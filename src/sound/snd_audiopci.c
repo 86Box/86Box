@@ -67,13 +67,10 @@ typedef struct {
     uint32_t		sr_cir;
     uint16_t		sr_ram[128];
 
-    uint8_t		uart_ctrl, uart_status,
-			uart_res;
-    uint32_t		uart_fifo;
-	
-	uint8_t midi_queue[64], midi_data;
-		int midi_r, midi_w;
-		int uart_in, sysex, valid;
+    uint8_t		uart_data, uart_ctrl,
+			uart_status, uart_res;
+    uint32_t		uart_fifo[8];
+    uint8_t		read_fifo_pos, write_fifo_pos;
 
     ac97_codec_t *	codec;
     uint32_t		codec_ctrl;
@@ -169,6 +166,8 @@ typedef struct {
 #define UART_STATUS_TXRDY		(1<<1)
 #define UART_STATUS_RXRDY		(1<<0)
 
+#define UART_FIFO_BYTE_VALID		0x00000100
+
 #define FORMAT_MONO_8			0
 #define FORMAT_STEREO_8			1
 #define FORMAT_MONO_16			2
@@ -204,19 +203,16 @@ es1371_update_irqs(es1371_t *dev)
     int irq = 0;
 
     if ((dev->int_status & INT_STATUS_DAC1) && (dev->si_cr & SI_P1_INTR_EN))
-		irq = 1;
+	irq = 1;
     if ((dev->int_status & INT_STATUS_DAC2) && (dev->si_cr & SI_P2_INTR_EN))
-		irq = 1;
+	irq = 1;
 
-	if (dev->int_status & INT_STATUS_UART) {
-		if (((dev->uart_ctrl & UART_CTRL_TXINTEN) != 0x20) && (dev->uart_status & UART_STATUS_TXINT) && !dev->uart_in) {
-			audiopci_log("TXINT\n");
-			irq = 1;
-		} else if ((dev->uart_ctrl & UART_CTRL_RXINTEN) && (dev->uart_status & UART_STATUS_RXINT) && (dev->uart_in)) {
-			audiopci_log("RXINT\n");
-			irq = 1;
-		}
-	}
+    dev->int_status &= ~INT_STATUS_UART;
+
+    if ((dev->uart_status & UART_STATUS_TXINT) || (dev->uart_status & UART_STATUS_RXINT)) {
+	dev->int_status |= INT_STATUS_UART;
+	irq = 1;
+    }
 
     if (irq)
 	dev->int_status |= INT_STATUS_INTR;
@@ -234,14 +230,95 @@ es1371_update_irqs(es1371_t *dev)
 
 
 static void
+es1371_update_tx_irq(es1371_t *dev)
+{
+    dev->uart_status &= ~UART_STATUS_TXINT;
+
+    if (((dev->uart_ctrl & UART_CTRL_TXINTEN) == 0x20) && (dev->uart_status & UART_STATUS_TXRDY))
+	dev->uart_status |= UART_STATUS_TXINT;
+
+    es1371_update_irqs(dev);
+}
+
+
+static void
+es1371_set_tx_irq(es1371_t *dev, int set)
+{
+    dev->uart_status &= ~UART_STATUS_TXRDY;
+
+    if (set)
+	dev->uart_status |= UART_STATUS_TXRDY;
+
+    es1371_update_tx_irq(dev);
+}
+
+
+static void
+es1371_update_rx_irq(es1371_t *dev)
+{
+    dev->uart_status &= ~UART_STATUS_RXINT;
+
+    if ((dev->uart_ctrl & UART_CTRL_RXINTEN) && (dev->uart_status & UART_STATUS_RXRDY))
+	dev->uart_status |= UART_STATUS_RXINT;
+
+    es1371_update_irqs(dev);
+}
+
+
+static void
+es1371_set_rx_irq(es1371_t *dev, int set)
+{
+    dev->uart_status &= ~UART_STATUS_RXRDY;
+
+    if (set)
+	dev->uart_status |= UART_STATUS_RXRDY;
+
+    es1371_update_rx_irq(dev);
+}
+
+
+static void
+es1371_scan_fifo(es1371_t *dev)
+{
+    if (dev->read_fifo_pos != dev->write_fifo_pos) {
+	dev->uart_data = dev->uart_fifo[dev->read_fifo_pos];
+	dev->read_fifo_pos = (dev->read_fifo_pos + 1) & 7;
+
+	es1371_set_rx_irq(dev, 1);
+    } else
+	es1371_set_rx_irq(dev, 0);
+}
+
+
+static void
+es1371_write_fifo(es1371_t *dev, uint8_t val)
+{
+    if (dev->write_fifo_pos < 8) {
+	dev->uart_fifo[dev->write_fifo_pos] = val | UART_FIFO_BYTE_VALID;
+	dev->write_fifo_pos = (dev->write_fifo_pos + 1) & 7;
+    }
+}
+
+
+static void
+es1371_reset_fifo(es1371_t *dev)
+{
+    int i;
+
+    for (i = 0; i < 8; i++)
+	dev->uart_fifo[i] = 0x00000000;
+
+    dev->read_fifo_pos = dev->write_fifo_pos = 0;
+
+    es1371_set_rx_irq(dev, 0);
+}
+
+
+static void
 es1371_reset(void *p)
 {
     es1371_t *dev = (es1371_t *) p;
-
-	dev->uart_in = 0;
-	dev->midi_r = 0;
-	dev->midi_w = 0;
-	dev->valid = 0;
+    int i;
 
     nmi = 0;
 
@@ -329,7 +406,14 @@ es1371_reset(void *p)
 
     /* UART FIFO Register, Address 30H, 34H, 38H, 3CH, Memory Page 1110b, 1111b
        Addressable as longword only */
-    dev->uart_fifo = 0xfffffe00;
+    for (i = 0; i < 8; i++)
+	dev->uart_fifo[i] = 0xffff0000;
+
+    /* Reset the UART TX. */
+    es1371_set_tx_irq(dev, 0);
+
+    /* Reset the UART (RX) FIFO. */
+    es1371_reset_fifo(dev);
 
     /* Update interrupts to ensure they're all correctly cleared. */
     es1371_update_irqs(dev);
@@ -357,10 +441,10 @@ es1371_read_frame_reg(es1371_t *dev, int frame, int page)
 			/* UART FIFO Register, Address 30H, 34H, 38H, 3CH, Memory Page 1110b, 1111b
 			   Addressable as longword only */
 			case 0xe: case 0xf:
-				ret = dev->midi_data;
-				if (dev->valid) {
-					ret |= 0x100;
-				}
+				audiopci_log("[30:%02X] ret = dev->uart_fifo[%02X] = %08X\n", page,
+				      ((page & 0x01) << 2) + ((frame >> 2) & 0x03),
+				      dev->uart_fifo[((page & 0x01) << 2) + ((frame >> 2) & 0x03)]);
+				ret = dev->uart_fifo[((page & 0x01) << 2) + ((frame >> 2) & 0x03)];
 				break;
 		}
 		break;
@@ -379,10 +463,10 @@ es1371_read_frame_reg(es1371_t *dev, int frame, int page)
 			/* UART FIFO Register, Address 30H, 34H, 38H, 3CH, Memory Page 1110b, 1111b
 			   Addressable as longword only */
 			case 0xe: case 0xf:
-				ret = dev->midi_data;
-				if (dev->valid) {
-					ret |= 0x100;
-				}
+				audiopci_log("[34:%02X] ret = dev->uart_fifo[%02X] = %08X\n", page,
+				      ((page & 0x01) << 2) + ((frame >> 2) & 0x03),
+				      dev->uart_fifo[((page & 0x01) << 2) + ((frame >> 2) & 0x03)]);
+				ret = dev->uart_fifo[((page & 0x01) << 2) + ((frame >> 2) & 0x03)];
 				break;
 		}
 		break;
@@ -396,10 +480,10 @@ es1371_read_frame_reg(es1371_t *dev, int frame, int page)
 			/* UART FIFO Register, Address 30H, 34H, 38H, 3CH, Memory Page 1110b, 1111b
 			   Addressable as longword only */
 			case 0xe: case 0xf:
-				ret = dev->midi_data;
-				if (dev->valid) {
-					ret |= 0x100;
-				}
+				audiopci_log("[38:%02X] ret = dev->uart_fifo[%02X] = %08X\n", page,
+				      ((page & 0x01) << 2) + ((frame >> 2) & 0x03),
+				      dev->uart_fifo[((page & 0x01) << 2) + ((frame >> 2) & 0x03)]);
+				ret = dev->uart_fifo[((page & 0x01) << 2) + ((frame >> 2) & 0x03)];
 				break;
 		}
 		break;
@@ -413,10 +497,10 @@ es1371_read_frame_reg(es1371_t *dev, int frame, int page)
 			/* UART FIFO Register, Address 30H, 34H, 38H, 3CH, Memory Page 1110b, 1111b
 			   Addressable as longword only */
 			case 0xe: case 0xf:
-				ret = dev->midi_data;
-				if (dev->valid) {
-					ret |= 0x100;
-				}
+				audiopci_log("[3C:%02X] ret = dev->uart_fifo[%02X] = %08X\n", page,
+				      ((page & 0x01) << 2) + ((frame >> 2) & 0x03),
+				      dev->uart_fifo[((page & 0x01) << 2) + ((frame >> 2) & 0x03)]);
+				ret = dev->uart_fifo[((page & 0x01) << 2) + ((frame >> 2) & 0x03)];
 				break;
 		}
 		break;
@@ -448,9 +532,10 @@ es1371_write_frame_reg(es1371_t *dev, int frame, int page, uint32_t val)
 				break;
 			/* UART FIFO Register, Address 30H, 34H, 38H, 3CH, Memory Page 1110b, 1111b
 			   Addressable as longword only */
-			case 0xe:
-			case 0xf:
-				dev->uart_fifo = (dev->uart_fifo & 0xfffffe00) | (val & 0x000001ff);
+			case 0xe: case 0xf:
+				audiopci_log("[30:%02X] dev->uart_fifo[%02X] = %08X\n", page,
+					     ((page & 0x01) << 2) + ((frame >> 2) & 0x03), val);
+				dev->uart_fifo[((page & 0x01) << 2) + ((frame >> 2) & 0x03)] = val;
 				break;
 		}
 		break;
@@ -470,9 +555,10 @@ es1371_write_frame_reg(es1371_t *dev, int frame, int page, uint32_t val)
 				break;
 			/* UART FIFO Register, Address 30H, 34H, 38H, 3CH, Memory Page 1110b, 1111b
 			   Addressable as longword only */
-			case 0xe:
-			case 0xf:
-				dev->uart_fifo = (dev->uart_fifo & 0xfffffe00) | (val & 0x000001ff);
+			case 0xe: case 0xf:
+				audiopci_log("[34:%02X] dev->uart_fifo[%02X] = %08X\n", page,
+					     ((page & 0x01) << 2) + ((frame >> 2) & 0x03), val);
+				dev->uart_fifo[((page & 0x01) << 2) + ((frame >> 2) & 0x03)] = val;
 				break;
 		}
 		break;
@@ -485,9 +571,10 @@ es1371_write_frame_reg(es1371_t *dev, int frame, int page, uint32_t val)
 				break;
 			/* UART FIFO Register, Address 30H, 34H, 38H, 3CH, Memory Page 1110b, 1111b
 			   Addressable as longword only */
-			case 0xe:
-			case 0xf:
-				dev->uart_fifo = (dev->uart_fifo & 0xfffffe00) | (val & 0x000001ff);
+			case 0xe: case 0xf:
+				audiopci_log("[38:%02X] dev->uart_fifo[%02X] = %08X\n", page,
+					     ((page & 0x01) << 2) + ((frame >> 2) & 0x03), val);
+				dev->uart_fifo[((page & 0x01) << 2) + ((frame >> 2) & 0x03)] = val;
 				break;
 		}
 		break;
@@ -501,18 +588,18 @@ es1371_write_frame_reg(es1371_t *dev, int frame, int page, uint32_t val)
 				break;
 			/* UART FIFO Register, Address 30H, 34H, 38H, 3CH, Memory Page 1110b, 1111b
 			   Addressable as longword only */
-			case 0xe:
-			case 0xf:
-				dev->uart_fifo = (dev->uart_fifo & 0xfffffe00) | (val & 0x000001ff);
+			case 0xe: case 0xf:
+				audiopci_log("[3C:%02X] dev->uart_fifo[%02X] = %08X\n", page,
+					     ((page & 0x01) << 2) + ((frame >> 2) & 0x03), val);
+				dev->uart_fifo[((page & 0x01) << 2) + ((frame >> 2) & 0x03)] = val;
 				break;
 		}
 		break;
     }
-	
-	if (page == 0x0e || page == 0x0f) {
-		audiopci_log("Write frame = %02x, page = %02x, uart fifo = %08x, val = %02x\n", frame, page, dev->uart_fifo, val);
-		dev->valid = 0;
-	}
+
+    if (page == 0x0e || page == 0x0f) {
+	audiopci_log("Write frame = %02x, page = %02x, uart fifo = %08x, val = %02x\n", frame, page, dev->uart_fifo, val);
+    }
 }
 
 
@@ -543,34 +630,27 @@ es1371_inb(uint16_t port, void *p)
 	   must be for a reason */
 	case 0x04:
 		ret = dev->int_status & 0xff;
+		audiopci_log("[R] STATUS  0- 7 = %02X\n", ret);
 		break;
 	case 0x05:
 		ret = (dev->int_status >> 8) & 0xff;
+		audiopci_log("[R] STATUS  8-15 = %02X\n", ret);
 		break;
 	case 0x06:
 		ret = (dev->int_status >> 16) & 0x0f;
+		audiopci_log("[R] STATUS 16-23 = %02X\n", ret);
 		break;
 	case 0x07:
 		ret = ((dev->int_status >> 24) & 0x03) | 0xfc;
+		audiopci_log("[R] STATUS 24-31 = %02X\n", ret);
 		break;
 
 	/* UART Data Register, Address 08H
 	   Addressable as byte only */
 	case 0x08:
-		ret = 0x00;
-		if (dev->uart_in) {
-			ret = dev->midi_queue[dev->midi_r];
-			if (dev->midi_r != dev->midi_w) {
-				dev->midi_r++;
-				dev->midi_r &= 0x3f;
-			}
-			dev->midi_data = ret;
-			audiopci_log("MIDI input ret = %02x, pos = %i, valid = %i\n", ret, dev->midi_r, dev->valid);
-			if (!dev->valid)
-				dev->int_status &= ~INT_STATUS_UART;
-			dev->uart_status &= ~(UART_STATUS_RXINT | UART_STATUS_RXRDY);
-			es1371_update_irqs(dev);
-		}
+		ret = dev->uart_data;
+		es1371_set_rx_irq(dev, 0);
+		audiopci_log("[R] UART DATA = %02X\n", ret);
 		break;
 
 	/* UART Status Register, Address 09H
@@ -584,6 +664,7 @@ es1371_inb(uint16_t port, void *p)
 	   Addressable as byte only */
 	case 0x0a:
 		ret = dev->uart_res & 0x01;
+		audiopci_log("[R] UART RES = %02X\n", ret);
 		break;
 
 	/* Memory Page Register, Address 0CH
@@ -735,6 +816,7 @@ es1371_inl(uint16_t port, void *p)
 	   Addressable as longword only */
 	case 0x04:
 		ret = dev->int_status;
+		audiopci_log("[R] STATUS = %08X\n", ret);
 		break;
 
 	/* Memory Page Register, Address 0CH
@@ -836,35 +918,36 @@ es1371_outb(uint16_t port, uint8_t val, void *p)
 	/* UART Data Register, Address 08H
 	   Addressable as byte only */
 	case 0x08:
-		audiopci_log("MIDI data = %02x\n", dev->midi_data);
+		audiopci_log("MIDI data = %02x\n", val);
+		/* TX does not use FIFO. */
 		midi_raw_out_byte(val);
+		es1371_set_tx_irq(dev, 1);
 		break;
 
 	/* UART Control Register, Address 09H
 	   Addressable as byte only */
 	case 0x09:
+		audiopci_log("[W] UART CTRL = %02X\n", val);
 		dev->uart_ctrl = val & 0xe3;
 		
-		if ((val & 0x03) == 0x03) { /*Software reset*/
-			dev->uart_in = 0;
-			dev->uart_status = 0x00;
-			dev->midi_r = 0;
-			dev->midi_w = 0;
-			dev->valid = 0;
-		} else if (dev->uart_ctrl & UART_CTRL_RXINTEN) {
-			dev->uart_in = 1;
-			audiopci_log("ES1371 UART RX Cntrl = %02x\n", dev->uart_ctrl);
-		} else if ((dev->uart_ctrl & UART_CTRL_TXINTEN) != 0x20) {
-			dev->int_status &= ~INT_STATUS_UART;
-			dev->uart_in = 0;
+		if ((val & 0x03) == 0x03) {
+			/* Reset TX */
+			es1371_set_tx_irq(dev, 1);
+
+			/* Software reset */
+			es1371_reset_fifo(dev);
+		} else {
+			es1371_set_tx_irq(dev, 1);
+
+			es1371_update_tx_irq(dev);
+			es1371_update_rx_irq(dev);
 		}
-		
-		es1371_update_irqs(dev);
 		break;
 
 	/* UART Reserved Register, Address 0AH
 	   Addressable as byte only */
 	case 0x0a:
+		audiopci_log("[W] UART RES = %02X\n", val);
 		dev->uart_res = val & 0x01;
 		break;
 
@@ -1031,6 +1114,7 @@ es1371_outl(uint16_t port, uint32_t val, void *p)
 	/* Interrupt/Chip Select Status Register, Address 04H
 	   Addressable as longword only */
 	case 0x04:
+		audiopci_log("[W] STATUS = %08X\n", val);
 		break;
 
 	/* Memory Page Register, Address 0CH
@@ -1770,41 +1854,9 @@ es1371_poll(void *p)
 
     timer_advance_u64(&dev->dac[1].timer, dev->dac[1].latch);
 
+    es1371_scan_fifo(dev);
+
     es1371_update(dev);		
-
-    if (dev->int_ctrl & INT_UART_EN) {
-	//audiopci_log("UART INT Enabled\n");
-	if (((dev->uart_ctrl & (UART_CTRL_RXINTEN | UART_CTRL_TXINTEN)) == UART_CTRL_RXINTEN) && dev->uart_in) {
-		audiopci_log("RX irq\n");
-		dev->int_status |= INT_STATUS_UART;
-	} else if (((dev->uart_ctrl & (UART_CTRL_RXINTEN | UART_CTRL_TXINTEN)) == UART_CTRL_TXINTEN) && !dev->uart_in) {
-		audiopci_log("TX irq\n");
-		dev->int_status |= INT_STATUS_UART;
-	} else if ((dev->uart_ctrl & (UART_CTRL_RXINTEN | UART_CTRL_TXINTEN)) == (UART_CTRL_RXINTEN | UART_CTRL_TXINTEN)) {
-		dev->int_status &= ~INT_STATUS_UART;
-		if (dev->uart_in) {
-			audiopci_log("No Status UART RX\n");
-			dev->uart_status |= (UART_STATUS_RXINT | UART_STATUS_RXRDY);
-			dev->uart_status &= ~(UART_STATUS_TXINT | UART_STATUS_TXRDY);
-		} else {
-			audiopci_log("No Status UART TX\n");
-			dev->uart_status &= ~(UART_STATUS_RXINT | UART_STATUS_RXRDY);
-			dev->uart_status |= (UART_STATUS_TXINT | UART_STATUS_TXRDY);
-		}
-	} else {
-		audiopci_log("STAT UART IN = %i\n", dev->uart_in);
-		if (dev->uart_in) {
-			dev->uart_status |= (UART_STATUS_RXINT | UART_STATUS_RXRDY);
-			dev->uart_status &= ~(UART_STATUS_TXINT | UART_STATUS_TXRDY);
-		} else {
-			dev->uart_status &= ~(UART_STATUS_RXINT | UART_STATUS_RXRDY);
-			dev->uart_status |= (UART_STATUS_TXINT | UART_STATUS_TXRDY);
-		}		
-	}
-
-	//audiopci_log("UART control = %02x\n", dev->uart_ctrl & (UART_CTRL_RXINTEN | UART_CTRL_TXINTEN));
-	es1371_update_irqs(dev);
-    }
 
     if (dev->int_ctrl & INT_DAC1_EN) {
 	frac = dev->dac[0].ac & 0x7fff;
@@ -1928,50 +1980,38 @@ generate_es1371_filter(void)
 static void
 es1371_input_msg(void *p, uint8_t *msg, uint32_t len)
 {
-	es1371_t *dev = (es1371_t *)p;
-	uint8_t i;
-	
-	audiopci_log("SYSEX on MSG = %i, len = %i, midiw = %i\n", dev->sysex, len, dev->midi_w);
+    es1371_t *dev = (es1371_t *)p;
+    uint8_t i;
 
-	if (dev->sysex) 
-		return;
-	
-	if (dev->uart_in) {
-		audiopci_log("RX midi data\n");
-		dev->uart_status |= (UART_STATUS_RXINT | UART_STATUS_RXRDY);
-		dev->valid = 1;
-		
-		for (i=0; i < len; i++) {
-			dev->midi_queue[dev->midi_w++] = msg[i];
-			dev->midi_w &= 0x3f;
-		}
-		
-		es1371_update_irqs(dev);
-	}
+    for (i = 0; i < len; i++)
+	es1371_write_fifo(dev, msg[i]);
 }
+
 
 static int
 es1371_input_sysex(void *p, uint8_t *buffer, uint32_t len, int abort) 
 {
-	es1371_t *dev = (es1371_t *)p;
-	uint32_t i;
-	
-	audiopci_log("SYSEX = %i, Abort = %i\n", dev->sysex, abort);
-	
-	if (abort) {
-		dev->sysex = 0;
-		return 0;
+    es1371_t *dev = (es1371_t *)p;
+    uint32_t i = -1;
+
+    audiopci_log("Abort = %i\n", abort);
+
+    if (dev->uart_status & UART_STATUS_RXRDY)
+	abort = 1;
+
+    if (!abort) {
+	for (i = 0; i < len; i++) {
+		es1371_write_fifo(dev, buffer[i]);
+		if (dev->uart_status & UART_STATUS_RXRDY)
+			break;
 	}
-	dev->sysex = 1;
-	for (i=0;i<len;i++) {
-		if (dev->midi_r == dev->midi_w)
-			return (len-i);
-		dev->midi_queue[dev->midi_w++] = buffer[i];
-		dev->midi_w &= 0x3f;
-	}
-	dev->sysex = 0;
-	return 0;
+    }
+
+    /* The last sent position is in i. Return 7 - i. */
+
+    return 7 - i;
 }
+
 
 static void *
 es1371_init(const device_t *info)
@@ -1979,8 +2019,8 @@ es1371_init(const device_t *info)
     es1371_t *dev = malloc(sizeof(es1371_t));
     memset(dev, 0x00, sizeof(es1371_t));
 
-	if (device_get_config_int("receive_input"))
-		midi_in_handler(1, es1371_input_msg, es1371_input_sysex, dev);
+    if (device_get_config_int("receive_input"))
+	midi_in_handler(1, es1371_input_msg, es1371_input_sysex, dev);
 
     sound_add_handler(es1371_get_buffer, dev);
     sound_set_cd_audio_filter(es1371_filter_cd_audio, dev);
