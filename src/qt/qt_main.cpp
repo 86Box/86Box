@@ -147,12 +147,12 @@ int main(int argc, char* argv[]) {
         HWND main_hwnd = (HWND)main_window->winId();
 
         wmfilter.reset(new WindowsManagerFilter());
-        QObject::connect(wmfilter.get(), WindowsManagerFilter::showsettings, main_window, MainWindow::showSettings);
-        QObject::connect(wmfilter.get(), WindowsManagerFilter::pause, main_window, MainWindow::togglePause);
-        QObject::connect(wmfilter.get(), WindowsManagerFilter::reset, main_window, MainWindow::hardReset);
-        QObject::connect(wmfilter.get(), WindowsManagerFilter::shutdown, [](){ plat_power_off(); });
-        QObject::connect(wmfilter.get(), WindowsManagerFilter::ctrlaltdel, [](){ pc_send_cad(); });
-        QObject::connect(wmfilter.get(), WindowsManagerFilter::dialogstatus, [main_hwnd](bool open){
+        QObject::connect(wmfilter.get(), &WindowsManagerFilter::showsettings, main_window, &MainWindow::showSettings);
+        QObject::connect(wmfilter.get(), &WindowsManagerFilter::pause, main_window, &MainWindow::togglePause);
+        QObject::connect(wmfilter.get(), &WindowsManagerFilter::reset, main_window, &MainWindow::hardReset);
+        QObject::connect(wmfilter.get(), &WindowsManagerFilter::shutdown, [](){ plat_power_off(); });
+        QObject::connect(wmfilter.get(), &WindowsManagerFilter::ctrlaltdel, [](){ pc_send_cad(); });
+        QObject::connect(wmfilter.get(), &WindowsManagerFilter::dialogstatus, [main_hwnd](bool open){
             PostMessage((HWND)(uintptr_t)source_hwnd, WM_SENDDLGSTATUS, (WPARAM)(open ? 1 : 0), (LPARAM)main_hwnd);
         });
 
