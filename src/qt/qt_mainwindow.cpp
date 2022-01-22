@@ -79,7 +79,7 @@ MainWindow::MainWindow(QWidget *parent) :
     toolbar_spacer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
     ui->toolBar->addWidget(toolbar_spacer);
 
-    auto toolbar_label = new QLabel();    
+    auto toolbar_label = new QLabel();
     ui->toolBar->addWidget(toolbar_label);
 
     this->setWindowIcon(QIcon(":/settings/win/icons/86Box-yellow.ico"));
@@ -104,6 +104,7 @@ MainWindow::MainWindow(QWidget *parent) :
                 toolbar_label->setText(QString("%1 - %2").arg(parts[1], parts.last()));
         }
 #endif
+        ui->actionPause->setChecked(dopause);
     });
     connect(this, &MainWindow::getTitleForNonQtThread, this, &MainWindow::getTitle_, Qt::BlockingQueuedConnection);
 
