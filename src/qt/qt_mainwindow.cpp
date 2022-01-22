@@ -1501,3 +1501,8 @@ void MainWindow::hardReset()
 {
     ui->actionHard_Reset->trigger();
 }
+
+void MainWindow::togglePause()
+{
+    ui->actionPause->trigger();
+}

@@ -144,15 +144,23 @@ int main(int argc, char* argv[]) {
     std::unique_ptr<WindowsManagerFilter> wmfilter;
     if (source_hwnd)
     {
+        HWND main_hwnd = (HWND)main_window->winId();
+
         wmfilter.reset(new WindowsManagerFilter());
         QObject::connect(wmfilter.get(), WindowsManagerFilter::showsettings, main_window, MainWindow::showSettings);
-        QObject::connect(wmfilter.get(), WindowsManagerFilter::pause, [](){ plat_pause(dopause ^ 1); });
+        QObject::connect(wmfilter.get(), WindowsManagerFilter::pause, main_window, MainWindow::togglePause);
         QObject::connect(wmfilter.get(), WindowsManagerFilter::reset, main_window, MainWindow::hardReset);
         QObject::connect(wmfilter.get(), WindowsManagerFilter::shutdown, [](){ plat_power_off(); });
         QObject::connect(wmfilter.get(), WindowsManagerFilter::ctrlaltdel, [](){ pc_send_cad(); });
+        QObject::connect(wmfilter.get(), WindowsManagerFilter::dialogstatus, [main_hwnd](bool open){
+            PostMessage((HWND)(uintptr_t)source_hwnd, WM_SENDDLGSTATUS, (WPARAM)(open ? 1 : 0), (LPARAM)main_hwnd);
+        });
+
+        /* Native filter to catch VM-managers commands */
         app.installNativeEventFilter(wmfilter.get());
 
-        HWND main_hwnd = (HWND)main_window->winId();
+        /* Filter to catch main window being blocked (by modal dialog) */
+        main_window->installEventFilter(wmfilter.get());
 
         /* Send main window HWND to manager */
         PostMessage((HWND)(uintptr_t)source_hwnd, WM_SENDHWND, (WPARAM)unique_id, (LPARAM)main_hwnd);

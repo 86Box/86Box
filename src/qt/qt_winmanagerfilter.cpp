@@ -30,6 +30,7 @@
 
 #include "qt_winmanagerfilter.hpp"
 
+#include <Windows.h>
 #include <86box/win.h>
 
 bool WindowsManagerFilter::nativeEventFilter(const QByteArray &eventType, void *message, long *result)
@@ -59,4 +60,18 @@ bool WindowsManagerFilter::nativeEventFilter(const QByteArray &eventType, void *
     }
 
     return false;
+}
+
+bool WindowsManagerFilter::eventFilter(QObject *obj, QEvent *event)
+{
+    if (event->type() == QEvent::WindowBlocked)
+    {
+        emit dialogstatus(1);
+    }
+    else if (event->type() == QEvent::WindowUnblocked)
+    {
+        emit dialogstatus(0);
+    }
+
+    return QObject::eventFilter(obj, event);
 }

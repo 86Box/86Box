@@ -50,6 +50,7 @@ signals:
 public slots:
     void showSettings();
     void hardReset();
+    void togglePause();
 private slots:
     void on_actionFullscreen_triggered();
     void on_actionSettings_triggered();

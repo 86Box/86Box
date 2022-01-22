@@ -33,6 +33,8 @@
 
 #include <QObject>
 #include <QAbstractNativeEventFilter>
+#include <QByteArray>
+#include <QEvent>
 
 #if QT_VERSION_MAJOR >= 6
 #define result_t qintptr
@@ -40,6 +42,10 @@
 #define result_t long
 #endif
 
+/*
+ * Filters native events for messages from VM-manager and
+ * window blocked events to notify about open modal dialogs.
+ */
 class WindowsManagerFilter : public QObject, public QAbstractNativeEventFilter
 {
     Q_OBJECT
@@ -53,6 +59,10 @@ signals:
     void showsettings();
     void reset();
     void shutdown();
+    void dialogstatus(bool open);
+
+protected:
+    bool eventFilter(QObject *obj, QEvent *event) override;
 };
 
 #endif
