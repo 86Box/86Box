@@ -19,9 +19,11 @@ extern "C" {
 #include <QFileDialog>
 #include <QProgressDialog>
 #include <QPushButton>
+#include <QStringBuilder>
 
 #include "qt_harddrive_common.hpp"
 #include "qt_models_common.hpp"
+#include "qt_util.hpp"
 
 HarddiskDialog::HarddiskDialog(bool existing, QWidget *parent) :
     QDialog(parent),
@@ -29,7 +31,7 @@ HarddiskDialog::HarddiskDialog(bool existing, QWidget *parent) :
 {
     ui->setupUi(this);
 
-    ui->fileField->setFilter(tr("Hard disk images (*.HD? *.hd? *.IM? *.im? *.VHD *.vhd);;All files (*)"));
+    ui->fileField->setFilter(tr("Hard disk images") % util::DlgFilter({ "hd?","im?","vhd" }) % tr("All files") % util::DlgFilter({ "*" }, true));
     if (existing) {
         setWindowTitle(tr("Add Existing Hard Disk"));
         ui->lineEditCylinders->setEnabled(false);
@@ -339,7 +341,15 @@ void HarddiskDialog::onCreateNewFile() {
             _86box_geometry = create_drive_vhd_dynamic(fileName, cylinders_, heads_, sectors_, block_size);
             break;
         case 5:
-            QString vhdParent = QFileDialog::getOpenFileName(this, tr("Select the parent VHD"), QString(), tr("VHD files (*.VHD *.vhd);;All files (*)"));
+            QString vhdParent = QFileDialog::getOpenFileName(
+                this,
+                tr("Select the parent VHD"),
+                QString(),
+                tr("VHD files") %
+                util::DlgFilter({ "vhd" }) %
+                tr("All files") %
+                util::DlgFilter({ "*" }, true));
+
             if (vhdParent.isEmpty()) {
                 return;
             }

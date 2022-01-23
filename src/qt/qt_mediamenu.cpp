@@ -5,6 +5,7 @@
 #include <QMenu>
 #include <QFileDialog>
 #include <QMessageBox>
+#include <QStringBuilder>
 
 extern "C" {
 #include <86box/config.h>
@@ -24,6 +25,7 @@ extern "C" {
 };
 
 #include "qt_newfloppydialog.hpp"
+#include "qt_util.hpp"
 
 std::shared_ptr<MediaMenu> MediaMenu::ptr;
 
@@ -145,7 +147,14 @@ void MediaMenu::cassetteNewImage() {
 }
 
 void MediaMenu::cassetteSelectImage(bool wp) {
-    auto filename = QFileDialog::getOpenFileName(parentWidget, QString(), QString(), tr("Cassette images (*.pcm *.PCM *.raw *.RAW *.wav *.WAV *.cas *.CAS);;All files (*)"));
+    auto filename = QFileDialog::getOpenFileName(parentWidget,
+        QString(),
+        QString(),
+        tr("Cassette images") %
+        util::DlgFilter({ "pcm","raw","wav","cas" }) %
+        tr("All files") %
+        util::DlgFilter({ "*" }, true));
+
     cassetteMount(filename, wp);
 }
 
@@ -199,7 +208,15 @@ void MediaMenu::cassetteUpdateMenu() {
 }
 
 void MediaMenu::cartridgeSelectImage(int i) {
-    auto filename = QFileDialog::getOpenFileName(parentWidget, QString(), QString(), tr("Cartridge images (*.A *.a *.B *.b *.JRC *.jrc);;All files (*)"));
+    auto filename = QFileDialog::getOpenFileName(
+        parentWidget,
+        QString(),
+        QString(),
+        tr("Cartridge images") %
+        util::DlgFilter({ "a","b","jrc" }) %
+        tr("All files") %
+        util::DlgFilter({ "*" }, true));
+
     if (filename.isEmpty()) {
         return;
     }
@@ -242,7 +259,23 @@ void MediaMenu::floppyNewImage(int i) {
 }
 
 void MediaMenu::floppySelectImage(int i, bool wp) {
-    auto filename = QFileDialog::getOpenFileName(parentWidget, QString(), QString(), tr("All images (*.0?? *.1?? *.??0 *.86F *.86f *.BIN *.bin *.CQ? *.cq? *.D?? *.d?? *.FLP *.flp *.HDM *.hdm *.IM? *.im? *.JSON *.json *.TD0 *.td0 *.*FD? *.*fd? *.MFM *.mfm *.XDF *.xdf);;Advanced sector images (*.IMD *.imd *.JSON *.json *.TD0 *.td0);;Basic sector images (*.0?? *.1?? *.??0 *.BIN *.bin *.CQ? *.cq? *.D?? *.d?? *.FLP *.flp *.HDM *.hdm *.IM? *.im? *.XDF *.xdf *.*FD? *.*fd?);;Flux images (*.FDI *.fdi);;Surface images (*.86F *.86f *.MFM *.mfm);;All files (*)"));
+    auto filename = QFileDialog::getOpenFileName(
+        parentWidget,
+        QString(),
+        QString(),
+        tr("All images") %
+        util::DlgFilter({ "0??","1??","??0","86f","bin","cq?","d??","flp","hdm","im?","json","td0","*fd?","mfm","xdf" }) %
+        tr("Advanced sector images") %
+        util::DlgFilter({ "imd","json","td0" }) %
+        tr("Basic sector images") %
+        util::DlgFilter({ "0??","1??","??0","bin","cq?","d??","flp","hdm","im?","xdf","*fd?" }) %
+        tr("Flux images") %
+        util::DlgFilter({ "fdi" }) %
+        tr("Surface images") %
+        util::DlgFilter({ "86f","mfm" }) %
+        tr("All files") %
+        util::DlgFilter({ "*" }, true));
+
     floppyMount(i, filename, wp);
 }
 
@@ -268,7 +301,7 @@ void MediaMenu::floppyEject(int i) {
 }
 
 void MediaMenu::floppyExportTo86f(int i) {
-    auto filename = QFileDialog::getSaveFileName(parentWidget, QString(), QString(), tr("Surface images (*.86F *.86f)"));
+    auto filename = QFileDialog::getSaveFileName(parentWidget, QString(), QString(), tr("Surface images") % util::DlgFilter({ "86f" }, true));
     if (! filename.isEmpty()) {
         QByteArray filenameBytes = filename.toUtf8();
         plat_pause(1);
@@ -306,7 +339,15 @@ void MediaMenu::cdromMount(int i) {
     QString dir;
     QFileInfo fi(cdrom[i].image_path);
 
-    auto filename = QFileDialog::getOpenFileName(parentWidget, QString(), QString(), tr("CD-ROM images (*.ISO *.iso *.CUE *.cue);;All files (*)"));
+    auto filename = QFileDialog::getOpenFileName(
+        parentWidget,
+        QString(),
+        QString(),
+        tr("CD-ROM images") %
+        util::DlgFilter({ "iso","cue" }) %
+        tr("All files") %
+        util::DlgFilter({ "*" }, true));
+
     if (filename.isEmpty()) {
         auto* imageMenu = dynamic_cast<QAction*>(cdromMenus[i]->children()[cdromImagePos]);
         imageMenu->setChecked(false);
@@ -389,7 +430,15 @@ void MediaMenu::zipNewImage(int i) {
 }
 
 void MediaMenu::zipSelectImage(int i, bool wp) {
-    auto filename = QFileDialog::getOpenFileName(parentWidget, QString(), QString(), tr("ZIP images (*.IM? *.im? *.ZDI *.zdi);;All files (*)"));
+    auto filename = QFileDialog::getOpenFileName(
+        parentWidget,
+        QString(),
+        QString(),
+        tr("ZIP images") %
+        util::DlgFilter({ "im?","zdi" }) %
+        tr("All files") %
+        util::DlgFilter({ "*" }, true));
+
     zipMount(i, filename, wp);
 }
 
@@ -478,7 +527,15 @@ void MediaMenu::moNewImage(int i) {
 }
 
 void MediaMenu::moSelectImage(int i, bool wp) {
-    auto filename = QFileDialog::getOpenFileName(parentWidget, QString(), QString(), tr("MO images (*.im? *.mdi *.IM? *.MDI);;All files (*)"));
+    auto filename = QFileDialog::getOpenFileName(
+        parentWidget,
+        QString(),
+        QString(),
+        tr("MO images") %
+        util::DlgFilter({ "im?", "mdi" }) %
+        tr("All files") %
+        util::DlgFilter({ "*", }, true));
+
     moMount(i, filename, wp);
 }
 

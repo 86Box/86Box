@@ -622,8 +622,8 @@ msgstr "Sebesség"
 msgid "ZIP %03i %i (%s): %ls"
 msgstr "ZIP %03i %i (%s): %ls"
 
-msgid "ZIP images (*.im? *.zdi)"
-msgstr "ZIP-lemezképek (*.im? *.zdi)"
+msgid "ZIP images"
+msgstr "ZIP-lemezképek"
 
 msgid "86Box could not find any usable ROM images.\n\nPlease <a href=\"https://github.com/86Box/roms/releases/latest\">download</a> a ROM set and extract it into the \"roms\" directory."
 msgstr "A 86Box nem talált használható ROM-képeket\n\nKérem <a href=\"https://github.com/86Box/roms/releases/latest\">töltse le</a> a ROM készletet és bontsa ki a \"roms\" könyvtárba."
@@ -631,8 +631,8 @@ msgstr "A 86Box nem talált használható ROM-képeket\n\nKérem <a href=\"https
 msgid "(empty)"
 msgstr "(üres)"
 
-msgid "ZIP images (*.im? *.zdi);;All files (*.*)"
-msgstr "ZIP-lemezképek (*.im? *.zdi);;Minden fájl (*.*)"
+msgid "All files"
+msgstr "Minden fájl"
 
 msgid "Turbo"
 msgstr "Turbó"
@@ -643,8 +643,14 @@ msgstr "Bekapcsolva"
 msgid "Off"
 msgstr "Kikapcsolva"
 
-msgid "All images (*.86f *.dsk *.flp *.im? *.*fd?);;Basic sector images (*.dsk *.flp *.im? *.img *.*fd?);;Surface images (*.86f)"
-msgstr "Minden képfájl (*.86f *.dsk *.flp *.im? *.*fd?);;Alapvető szektor képfájlok (*.dsk *.flp *.im? *.img *.*fd?);;Felületi képfájlok (*.86f)"
+msgid "All images"
+msgstr "Minden képfájl"
+
+msgid "Basic sector images"
+msgstr "Alapvető szektor képfájlok"
+
+msgid "Surface images"
+msgstr "Felületi képfájlok"
 
 msgid "Machine \"%hs\" is not available due to missing ROMs in the roms/machines directory. Switching to an available machine."
 msgstr "A számítógép \"%hs\" nem elérhető a \"roms/machines\" mappából hiányzó ROM-képek miatt. Ehelyett egy másik gép kerül futtatásra."
@@ -684,9 +690,6 @@ msgstr "Egyéb cserélhető tárolók"
 
 msgid "Other peripherals"
 msgstr "Egyéb perifériák"
-
-msgid "Surface images (*.86f)"
-msgstr "Felületi képfájlok (*.86f)"
 
 msgid "Click to capture mouse"
 msgstr "Kattintson az egér elfogásához"
@@ -778,8 +781,11 @@ msgstr "%u MB (CHS: %i, %i, %i)"
 msgid "Floppy %i (%s): %ls"
 msgstr "Floppy %i (%s): %ls"
 
-msgid "All images (*.0?? *.1?? *.??0 *.86f *.bin *.cq? *.d?? *.flp *.hdm *.im? *.json *.td0 *.*fd? *.mfm *.xdf);;Advanced sector images (*.imd *.json *.td0);;Basic sector images (*.0?? *.1?? *.??0 *.bin *.cq? *.d?? *.flp *.hdm *.im? *.xdf *.*fd?);;Flux images (*.fdi);;Surface images (*.86f *.mfm);;All files (*.*)"
-msgstr "Minden képfájl (*.0?? *.1?? *.??0 *.86f *.bin *.cq? *.d?? *.flp *.hdm *.im? *.json *.td0 *.*fd? *.mfm *.xdf);;Továbbfejlesztett szektor képek (*.imd *.json *.td0);;Alapvető szektor képek  (*.0?? *.1?? *.??0 *.bin *.cq? *.d?? *.flp *.hdm *.im? *.xdf *.*fd?);;Flux képekfájlok (*.fdi);;Felületi képfájlok (*.86f *.mfm);;Minden fájl (*.*)"
+msgid "Advanced sector images"
+msgstr "Továbbfejlesztett szektor képek"
+
+msgid "Flux images"
+msgstr "Flux képekfájlok"
 
 msgid "Unable to initialize FreeType"
 msgstr "A FreeType inicializálása nem lehetséges"
@@ -799,8 +805,8 @@ msgstr "Nem sikerült inicializálni a Ghostscript-et"
 msgid "MO %i (%ls): %ls"
 msgstr "MO %i (%ls): %ls"
 
-msgid "MO images (*.im? *.mdi);;All files (*.*)"
-msgstr "MO-képfájlok (*.im? *.mdi);;Minden fájl (*.*)"
+msgid "MO images"
+msgstr "MO-képfájlok"
 
 msgid "Welcome to 86Box!"
 msgstr "Üdvözli önt az 86Box!"
@@ -889,8 +895,8 @@ msgstr "Újraindítás"
 msgid "Don't reset"
 msgstr "Ne indítsa újra"
 
-msgid "CD-ROM images (*.iso *.cue);;All files (*.*)"
-msgstr "CD-ROM-képek (*.iso *.cue);;Minden fájl (*.*)"
+msgid "CD-ROM images"
+msgstr "CD-ROM-képek"
 
 msgid "%hs Device Configuration"
 msgstr "%hs eszközkonfiguráció"
@@ -898,8 +904,8 @@ msgstr "%hs eszközkonfiguráció"
 msgid "Monitor in sleep mode"
 msgstr "Képernyő alvó módban"
 
-msgid "OpenGL Shaders (*.glsl);;All files (*.*)"
-msgstr "OpenGL Shaderek (*.glsl);;Minden fájl (*.*)"
+msgid "OpenGL Shaders"
+msgstr "OpenGL Shaderek"
 
 msgid "OpenGL options"
 msgstr "OpenGL beállítások"
@@ -916,14 +922,14 @@ msgstr "Folytatás"
 msgid "Cassette: %s"
 msgstr "Magnókazetta: %s"
 
-msgid "Cassette images (*.pcm *.raw *.wav *.cas);;All files (*.*)"
-msgstr "Magnókazetta-képek (*.pcm *.raw *.wav *.cas);;Minden fájl (*.*)"
+msgid "Cassette images"
+msgstr "Magnókazetta-képek"
 
 msgid "Cartridge %i: %ls"
 msgstr "ROM-kazetta %i: %ls"
 
-msgid "Cartridge images (*.a *.b *.jrc);;All files (*.*)"
-msgstr "ROM-kazetta képek (*.a *.b *.jrc);;Minden fájl (*.*)"
+msgid "Cartridge images"
+msgstr "ROM-kazetta képek"
 
 msgid "Error initializing renderer"
 msgstr "Hiba történt a renderelő inicializálásakor"
@@ -979,8 +985,8 @@ msgstr "A HDI lemezképek nem lehetnek nagyobbak 4 GB-nál."
 msgid "Disk images cannot be larger than 127 GB."
 msgstr "A lemezképek mérete nem haladhatja meg a 127 GB-ot."
 
-msgid "Hard disk images (*.hd? *.im? *.vhd);;All files (*.*)"
-msgstr "Merevlemez-képfájlok (*.hd? *.im? *.vhd);;Minden fájl (*.*)"
+msgid "Hard disk images"
+msgstr "Merevlemez-képfájlok"
 
 msgid "Unable to read file"
 msgstr "A fájl nem olvasható"
@@ -1051,8 +1057,8 @@ msgstr "Nagy blokkméret (2 MB)"
 msgid "Small blocks (512 KB)"
 msgstr "Kis blokkméret (512 KB)"
 
-msgid "VHD files (*.vhd);;All files (*.*)"
-msgstr "VHD fájlok (*.vhd);;Minden fájl (*.*)"
+msgid "VHD files"
+msgstr "VHD fájlok"
 
 msgid "Select the parent VHD"
 msgstr "Válassza ki a szülő VHD-t"

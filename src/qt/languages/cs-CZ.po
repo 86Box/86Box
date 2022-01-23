@@ -622,8 +622,8 @@ msgstr "Rychlost"
 msgid "ZIP %03i %i (%s): %ls"
 msgstr "ZIP %03i %i (%s): %ls"
 
-msgid "ZIP images (*.im? *.zdi)"
-msgstr "Obrazy ZIP disků (*.im? *.zdi)"
+msgid "ZIP images"
+msgstr "Obrazy ZIP disků"
 
 msgid "86Box could not find any usable ROM images.\n\nPlease <a href=\"https://github.com/86Box/roms/releases/latest\">download</a> a ROM set and extract it into the \"roms\" directory."
 msgstr "86Box nenalezl žádné použitelné image pamětí ROM.\n\n<a href=\"https://github.com/86Box/roms/releases/latest\">Stáhněte</a> sadu obrazů ROM a extrahujte ji do složky \"roms\"."
@@ -631,8 +631,8 @@ msgstr "86Box nenalezl žádné použitelné image pamětí ROM.\n\n<a href=\"ht
 msgid "(empty)"
 msgstr "(prázdné)"
 
-msgid "ZIP images (*.im? *.zdi);;All files (*.*)"
-msgstr "Obrazy ZIP disků (*.im? *.zdi);;All files (*.*)"
+msgid "All files"
+msgstr "All files"
 
 msgid "Turbo"
 msgstr "Turbo"
@@ -643,8 +643,14 @@ msgstr "Zap."
 msgid "Off"
 msgstr "Vyp."
 
-msgid "All images (*.86f *.dsk *.flp *.im? *.*fd?);;Basic sector images (*.dsk *.flp *.im? *.img *.*fd?);;Surface images (*.86f)"
-msgstr "Všechny obrazy disků (*.86f *.dsk *.flp *.im? *.*fd?);;Základní sektorové obrazy (*.dsk *.flp *.im? *.img *.*fd?);;Obrazy povrchu (*.86f)"
+msgid "All images"
+msgstr "Všechny obrazy disků"
+
+msgid "Basic sector images"
+msgstr "Základní sektorové obrazy"
+
+msgid "Surface images"
+msgstr "Obrazy povrchu"
 
 msgid "Machine \"%hs\" is not available due to missing ROMs in the roms/machines directory. Switching to an available machine."
 msgstr "Počítač \"%hs\" není dostupný, jelikož chybí obraz jeho paměti ROM ve složce \"roms/machines\". Konfigurace se přepne na jiný dostupný počítač."
@@ -684,9 +690,6 @@ msgstr "Další vyměnitelná zařízení"
 
 msgid "Other peripherals"
 msgstr "Jiné příslušenství"
-
-msgid "Surface images (*.86f)"
-msgstr "Obrazy povrchu (*.86f)"
 
 msgid "Click to capture mouse"
 msgstr "Klikněte pro zabraní myši"
@@ -778,8 +781,11 @@ msgstr "%u MB (CHS: %i, %i, %i)"
 msgid "Floppy %i (%s): %ls"
 msgstr "Disketová mechanika %i (%s): %ls"
 
-msgid "All images (*.0?? *.1?? *.??0 *.86f *.bin *.cq? *.d?? *.flp *.hdm *.im? *.json *.td0 *.*fd? *.mfm *.xdf);;Advanced sector images (*.imd *.json *.td0);;Basic sector images (*.0?? *.1?? *.??0 *.bin *.cq? *.d?? *.flp *.hdm *.im? *.xdf *.*fd?);;Flux images (*.fdi);;Surface images (*.86f *.mfm);;All files (*.*)"
-msgstr "Všechny obrazy (*.0?? *.1?? *.??0 *.86f *.bin *.cq? *.d?? *.flp *.hdm *.im? *.json *.td0 *.*fd? *.mfm *.xdf);;Rozšířené sektorové obrazy (*.imd *.json *.td0);;Základní sektorové obrazy (*.0?? *.1?? *.??0 *.bin *.cq? *.d?? *.flp *.hdm *.im? *.xdf *.*fd?);;Obrazy magnetického toku (*.fdi);;Obrazy povrchu (*.86f *.mfm);;Všechny soubory (*.*)"
+msgid "Advanced sector images"
+msgstr "Rozšířené sektorové obrazy"
+
+msgid "Flux images"
+msgstr "Obrazy magnetického toku"
 
 msgid "Unable to initialize FreeType"
 msgstr "Nastala chyba při inicializaci knihovny FreeType"
@@ -799,8 +805,8 @@ msgstr "Nastala chyba při inicializaci knihovny Ghostscript"
 msgid "MO %i (%ls): %ls"
 msgstr "MO %i (%ls): %ls"
 
-msgid "MO images (*.im? *.mdi);;All files (*.*)"
-msgstr "Obrazy MO (*.im? *.mdi);;Všechny soubory (*.*)"
+msgid "MO images"
+msgstr "Obrazy MO"
 
 msgid "Welcome to 86Box!"
 msgstr "Vítejte v programu 86Box!"
@@ -889,8 +895,8 @@ msgstr "Resetovat"
 msgid "Don't reset"
 msgstr "Neresetovat"
 
-msgid "CD-ROM images (*.iso *.cue);;All files (*.*)"
-msgstr "Obraz CD-ROM disku (*.iso *.cue);;Všechny soubory (*.*)"
+msgid "CD-ROM images"
+msgstr "Obraz CD-ROM disku"
 
 msgid "%hs Device Configuration"
 msgstr "Konfigurace zařízení %hs"
@@ -898,8 +904,8 @@ msgstr "Konfigurace zařízení %hs"
 msgid "Monitor in sleep mode"
 msgstr "Monitor je v režimu spánku"
 
-msgid "OpenGL Shaders (*.glsl);;All files (*.*)"
-msgstr "Shadery OpenGL (*.glsl);;All files (*.*)"
+msgid "OpenGL Shaders"
+msgstr "Shadery OpenGL"
 
 msgid "OpenGL options"
 msgstr "Možnosti OpenGL"
@@ -916,14 +922,14 @@ msgstr "Pokračovat"
 msgid "Cassette: %s"
 msgstr "Kazeta: %s"
 
-msgid "Cassette images (*.pcm *.raw *.wav *.cas);;All files (*.*)"
-msgstr "Kazetové nahrávky (*.pcm *.raw *.wav *.cas);;Všechny soubory (*.*)"
+msgid "Cassette images"
+msgstr "Kazetové nahrávky"
 
 msgid "Cartridge %i: %ls"
 msgstr "Cartridge %i: %ls"
 
-msgid "Cartridge images (*.a *.b *.jrc);;All files (*.*)"
-msgstr "Obrazy cartridge (*.a *.b *.jrc);;Všechny soubory (*.*)"
+msgid "Cartridge images"
+msgstr "Obrazy cartridge"
 
 msgid "Error initializing renderer"
 msgstr "Error initializing renderer"
@@ -979,8 +985,8 @@ msgstr "Obraz disku formátu HDI nemůžou být větší než 4 GB."
 msgid "Disk images cannot be larger than 127 GB."
 msgstr "Obraz disku nemůžou být větší než 127 GB."
 
-msgid "Hard disk images (*.hd? *.im? *.vhd);;All files (*.*)"
-msgstr "Obrazy pevného disku (*.hd? *.im? *.vhd);;Všechny soubory (*.*)"
+msgid "Hard disk images"
+msgstr "Obrazy pevného disku"
 
 msgid "Unable to read file"
 msgstr "Nebylo možné přečíst soubor"
@@ -1051,8 +1057,8 @@ msgstr "Velké bloky (2 MB)"
 msgid "Small blocks (512 KB)"
 msgstr "Malé bloky (512 KB)"
 
-msgid "VHD files (*.vhd);;All files (*.*)"
-msgstr "Soubory VHD (*.vhd);;Všechny soubory (*.*)"
+msgid "VHD files"
+msgstr "Soubory VHD"
 
 msgid "Select the parent VHD"
 msgstr "Vyberte nadřazený virtuální disk"

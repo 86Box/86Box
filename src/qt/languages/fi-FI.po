@@ -622,8 +622,8 @@ msgstr "Nopeus"
 msgid "ZIP %03i %i (%s): %ls"
 msgstr "ZIP %03i %i (%s): %ls"
 
-msgid "ZIP images (*.im? *.zdi)"
-msgstr "ZIP-levykuvat (*.im? *.zdi)"
+msgid "ZIP images"
+msgstr "ZIP-levykuvat"
 
 msgid "86Box could not find any usable ROM images.\n\nPlease <a href=\"https://github.com/86Box/roms/releases/latest\">download</a> a ROM set and extract it into the \"roms\" directory."
 msgstr "86Box ei löytänyt käyttökelpoisia ROM-tiedostoja.\n\nVoit <a href=\"https://github.com/86Box/roms/releases/latest\">ladata</a> ROM-paketin ja purkaa sen \"roms\" hakemistoon."
@@ -631,8 +631,8 @@ msgstr "86Box ei löytänyt käyttökelpoisia ROM-tiedostoja.\n\nVoit <a href=\"
 msgid "(empty)"
 msgstr "(tyhjä)"
 
-msgid "ZIP images (*.im? *.zdi);;All files (*.*)"
-msgstr "ZIP-levykuvat (*.im? *.zdi);;Kaikki tiedostot (*.*)"
+msgid "All files"
+msgstr "Kaikki tiedostot"
 
 msgid "Turbo"
 msgstr "Turbo"
@@ -643,8 +643,14 @@ msgstr "Päällä"
 msgid "Off"
 msgstr "Pois"
 
-msgid "All images (*.86f *.dsk *.flp *.im? *.*fd?);;Basic sector images (*.dsk *.flp *.im? *.img *.*fd?);;Surface images (*.86f)"
-msgstr "Kaikki levykuvat (*.86f *.dsk *.flp *.im? *.*fd?);;Perussektorilevykuvat (*.dsk *.flp *.im? *.img *.*fd?);;Pintalevykuvat (*.86f)"
+msgid "All images"
+msgstr "Kaikki levykuvat"
+
+msgid "Basic sector images"
+msgstr "Perussektorilevykuvat"
+
+msgid "Surface images"
+msgstr "Pintalevykuvat"
 
 msgid "Machine \"%hs\" is not available due to missing ROMs in the roms/machines directory. Switching to an available machine."
 msgstr "Konetta \"%hs\" ei voi käyttää puuttuvien ROM-tiedostojen vuoksi. Vaihdetaan käyttökelpoiseen koneeseen."
@@ -684,9 +690,6 @@ msgstr "Muut tallennuslaitteet"
 
 msgid "Other peripherals"
 msgstr "Muut oheislaitteet"
-
-msgid "Surface images (*.86f)"
-msgstr "Pintalevykuvat (*.86f)"
 
 msgid "Click to capture mouse"
 msgstr "Kaappaa hiiri klikkaamalla"
@@ -778,8 +781,11 @@ msgstr "%u Mt (CHS: %i, %i, %i)"
 msgid "Floppy %i (%s): %ls"
 msgstr "Levyke %i (%s): %ls"
 
-msgid "All images (*.0?? *.1?? *.??0 *.86f *.bin *.cq? *.d?? *.flp *.hdm *.im? *.json *.td0 *.*fd? *.mfm *.xdf);;Advanced sector images (*.imd *.json *.td0);;Basic sector images (*.0?? *.1?? *.??0 *.bin *.cq? *.d?? *.flp *.hdm *.im? *.xdf *.*fd?);;Flux images (*.fdi);;Surface images (*.86f *.mfm);;All files (*.*)"
-msgstr "Kaikki levykuvat (*.0?? *.1?? *.??0 *.86f *.bin *.cq? *.d?? *.flp *.hdm *.im? *.json *.td0 *.*fd? *.mfm *.xdf);;Kehittyneet sektorilevykuvat (*.imd *.json *.td0);;Perussektorilevykuvat (*.0?? *.1?? *.??0 *.bin *.cq? *.d?? *.flp *.hdm *.im? *.xdf *.*fd?);;Flux-levykuvat (*.fdi);;Pintalevykuvat (*.86f *.mfm);;Kaikki tiedostot (*.*)"
+msgid "Advanced sector images"
+msgstr "Kehittyneet sektorilevykuvat"
+
+msgid "Flux images"
+msgstr "Flux-levykuvat"
 
 msgid "Unable to initialize FreeType"
 msgstr "FreeType:n alustus epäonnistui"
@@ -799,8 +805,8 @@ msgstr "Ghostscript:in alustus epäonnistui"
 msgid "MO %i (%ls): %ls"
 msgstr "MO %i (%ls): %ls"
 
-msgid "MO images (*.im? *.mdi);;All files (*.*)"
-msgstr "MO-levykuvat (*.im? *.mdi);;Kaikki tiedostot (*.*)"
+msgid "MO images"
+msgstr "MO-levykuvat"
 
 msgid "Welcome to 86Box!"
 msgstr "Tervetuloa 86Box:iin!"
@@ -889,8 +895,8 @@ msgstr "Käynnistä uudelleen"
 msgid "Don't reset"
 msgstr "Älä käynnistä uudelleen"
 
-msgid "CD-ROM images (*.iso *.cue);;All files (*.*)"
-msgstr "CD-ROM-levykuvat (*.iso *.cue);;Kaikki tiedostot (*.*)"
+msgid "CD-ROM images"
+msgstr "CD-ROM-levykuvat"
 
 msgid "%hs Device Configuration"
 msgstr "%hs - Laitteen määritykset"
@@ -898,8 +904,8 @@ msgstr "%hs - Laitteen määritykset"
 msgid "Monitor in sleep mode"
 msgstr "Näyttö lepotilassa"
 
-msgid "OpenGL Shaders (*.glsl);;All files (*.*)"
-msgstr "OpenGL-varjostinohjelmat (*.glsl);;Kaikki tiedostot (*.*)"
+msgid "OpenGL Shaders"
+msgstr "OpenGL-varjostinohjelmat"
 
 msgid "OpenGL options"
 msgstr "OpenGL-asetukset"
@@ -916,14 +922,14 @@ msgstr "Jatka"
 msgid "Cassette: %s"
 msgstr "Kasetti: %s"
 
-msgid "Cassette images (*.pcm *.raw *.wav *.cas);;All files (*.*)"
-msgstr "Kasetti-tiedostot (*.pcm *.raw *.wav *.cas);;Kaikki tiedostot (*.*)"
+msgid "Cassette images"
+msgstr "Kasetti-tiedostot"
 
 msgid "Cartridge %i: %ls"
 msgstr "ROM-moduuli %i: %ls"
 
-msgid "Cartridge images (*.a *.b *.jrc);;All files (*.*)"
-msgstr "ROM-moduulikuvat (*.a *.b *.jrc);;Kaikki tiedostot (*.*)"
+msgid "Cartridge images"
+msgstr "ROM-moduulikuvat"
 
 msgid "Error initializing renderer"
 msgstr "Virhe renderöijän alustuksessa"
@@ -979,8 +985,8 @@ msgstr "HDI levykuvan suurin mahdollinen koko on 4 Gt."
 msgid "Disk images cannot be larger than 127 GB."
 msgstr "Levykuvien suurin mahdollinen koko on 127 Gt."
 
-msgid "Hard disk images (*.hd? *.im? *.vhd);;All files (*.*)"
-msgstr "Kiintolevykuvat (*.hd? *.im? *.vhd);;Kaikki tiedostot (*.*)"
+msgid "Hard disk images"
+msgstr "Kiintolevykuvat"
 
 msgid "Unable to read file"
 msgstr "Tiedostoa ei voi lukea"
@@ -1051,8 +1057,8 @@ msgstr "Suuret lohkot (2 Mt)"
 msgid "Small blocks (512 KB)"
 msgstr "Pienet lohkot (512 kt)"
 
-msgid "VHD files (*.vhd);;All files (*.*)"
-msgstr "VHD-tiedostot (*.vhd);;Kaikki tiedostot (*.*)"
+msgid "VHD files"
+msgstr "VHD-tiedostot"
 
 msgid "Select the parent VHD"
 msgstr "Valitse ylätason VHD"

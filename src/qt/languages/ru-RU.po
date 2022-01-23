@@ -622,8 +622,8 @@ msgstr "Скорость"
 msgid "ZIP %03i %i (%s): %ls"
 msgstr "ZIP %03i %i (%s): %ls"
 
-msgid "ZIP images (*.im? *.zdi)"
-msgstr "Образы ZIP (*.im? *.zdi)"
+msgid "ZIP images"
+msgstr "Образы ZIP"
 
 msgid "86Box could not find any usable ROM images.\n\nPlease <a href=\"https://github.com/86Box/roms/releases/latest\">download</a> a ROM set and extract it into the \"roms\" directory."
 msgstr "86Box не смог найти ни одного подходящего для использования файла с ПЗУ.\n\nПожалуйста <a href=\"https://github.com/86Box/roms/releases/latest\">скачайте</a> набор ПЗУ и извлеките его в каталог \"roms\"."
@@ -631,8 +631,8 @@ msgstr "86Box не смог найти ни одного подходящего 
 msgid "(empty)"
 msgstr "(пусто)"
 
-msgid "ZIP images (*.im? *.zdi);;All files (*.*)"
-msgstr "Образы ZIP (*.im? *.zdi);;Все файлы (*.*)"
+msgid "All files"
+msgstr "Все файлы"
 
 msgid "Turbo"
 msgstr "Турбо"
@@ -643,8 +643,14 @@ msgstr "Вкл"
 msgid "Off"
 msgstr "Выкл"
 
-msgid "All images (*.86f *.dsk *.flp *.im? *.*fd?);;Basic sector images (*.dsk *.flp *.im? *.img *.*fd?);;Surface images (*.86f)"
-msgstr "Все образы (*.86f *.dsk *.flp *.im? *.*fd?);;Простые посекторные образы (*.dsk *.flp *.im? *.img *.*fd?);;Surface образы (*.86f)"
+msgid "All images"
+msgstr "Все образы"
+
+msgid "Basic sector images"
+msgstr "Простые посекторные образы"
+
+msgid "Surface images"
+msgstr "Surface образы"
 
 msgid "Machine \"%hs\" is not available due to missing ROMs in the roms/machines directory. Switching to an available machine."
 msgstr "Системная плата \"%hs\" недоступна из-за отсутствия файла её ПЗУ в каталоге roms/machines. Переключение на доступную системную плату."
@@ -684,9 +690,6 @@ msgstr "Другие съёмные устр-ва"
 
 msgid "Other peripherals"
 msgstr "Другая периферия"
-
-msgid "Surface images (*.86f)"
-msgstr "Образы Surface (*.86f)"
 
 msgid "Click to capture mouse"
 msgstr "Щёлкните мышью для захвата курсора"
@@ -778,8 +781,11 @@ msgstr "%u МБ (CHS: %i, %i, %i)"
 msgid "Floppy %i (%s): %ls"
 msgstr "Дисковод %i (%s): %ls"
 
-msgid "All images (*.0?? *.1?? *.??0 *.86f *.bin *.cq? *.d?? *.flp *.hdm *.im? *.json *.td0 *.*fd? *.mfm *.xdf);;Advanced sector images (*.imd *.json *.td0);;Basic sector images (*.0?? *.1?? *.??0 *.bin *.cq? *.d?? *.flp *.hdm *.im? *.xdf *.*fd?);;Flux images (*.fdi);;Surface images (*.86f *.mfm);;All files (*.*)"
-msgstr "Все образы (*.0?? *.1?? *.??0 *.86f *.bin *.cq? *.d?? *.flp *.hdm *.im? *.json *.td0 *.*fd? *.mfm *.xdf);;Расширенные образы секторов (*.imd *.json *.td0);;Основные образы секторов (*.0?? *.1?? *.??0 *.bin *.cq? *.d?? *.flp *.hdm *.im? *.xdf *.*fd?);;Образы Flux (*.fdi);;Образы Surface (*.86f *.mfm);;Все файлы (*.*)"
+msgid "Advanced sector images"
+msgstr "Расширенные образы секторов"
+
+msgid "Flux images"
+msgstr "Образы Flux"
 
 msgid "Unable to initialize FreeType"
 msgstr "Невозможно инициализировать FreeType"
@@ -799,8 +805,8 @@ msgstr "Невозможно инициализировать Ghostscript"
 msgid "MO %i (%ls): %ls"
 msgstr "Магнитооптический %i (%ls): %ls"
 
-msgid "MO images (*.im? *.mdi);;All files (*.*)"
-msgstr "Образы магнитооптических дисков (*.im? *.mdi);;Все файлы (*.*)"
+msgid "MO images"
+msgstr "Образы магнитооптических дисков"
 
 msgid "Welcome to 86Box!"
 msgstr "Добро пожаловать в 86Box!"
@@ -889,8 +895,8 @@ msgstr "Перезагрузить"
 msgid "Don't reset"
 msgstr "Не перезагружать"
 
-msgid "CD-ROM images (*.iso *.cue);;All files (*.*)"
-msgstr "Образы CD-ROM (*.iso *.cue);;Все файлы (*.*)"
+msgid "CD-ROM images"
+msgstr "Образы CD-ROM"
 
 msgid "%hs Device Configuration"
 msgstr "Конфигурация устройства %hs"
@@ -898,8 +904,8 @@ msgstr "Конфигурация устройства %hs"
 msgid "Monitor in sleep mode"
 msgstr "Монитор в спящем режиме"
 
-msgid "OpenGL Shaders (*.glsl);;All files (*.*)"
-msgstr "Шейдеры OpenGL (*.glsl);;Все файлы (*.*)"
+msgid "OpenGL Shaders"
+msgstr "Шейдеры OpenGL"
 
 msgid "OpenGL options"
 msgstr "Параметры OpenGL"
@@ -916,14 +922,14 @@ msgstr "Продолжить"
 msgid "Cassette: %s"
 msgstr "Кассета: %s"
 
-msgid "Cassette images (*.pcm *.raw *.wav *.cas);;All files (*.*)"
-msgstr "Образы кассет (*.pcm *.raw *.wav *.cas);;Все файлы (*.*)"
+msgid "Cassette images"
+msgstr "Образы кассет"
 
 msgid "Cartridge %i: %ls"
 msgstr "Картридж %i: %ls"
 
-msgid "Cartridge images (*.a *.b *.jrc);;All files (*.*)"
-msgstr "Образы картриджей (*.a *.b *.jrc);;Все файлы (*.*)"
+msgid "Cartridge images"
+msgstr "Образы картриджей"
 
 msgid "Error initializing renderer"
 msgstr "Error initializing renderer"
@@ -979,8 +985,8 @@ msgstr "Размер образов дисков HDI не может превы�
 msgid "Disk images cannot be larger than 127 GB."
 msgstr "Размер образов дисков не может превышать 127 ГБ."
 
-msgid "Hard disk images (*.hd? *.im? *.vhd);;All files (*.*)"
-msgstr "Образы жёстких дисков (*.hd? *.im? *.vhd);;Все файлы (*.*)"
+msgid "Hard disk images"
+msgstr "Образы жёстких дисков"
 
 msgid "Unable to read file"
 msgstr "Невозможно прочитать файл"
@@ -1051,8 +1057,8 @@ msgstr "Большие блоки (2 МБ)"
 msgid "Small blocks (512 KB)"
 msgstr "Маленькие блоки (512 КБ)"
 
-msgid "VHD files (*.vhd);;All files (*.*)"
-msgstr "Файлы VHD (*.vhd);;Все файлы (*.*)"
+msgid "VHD files"
+msgstr "Файлы VHD"
 
 msgid "Select the parent VHD"
 msgstr "Выберите родительский VHD"

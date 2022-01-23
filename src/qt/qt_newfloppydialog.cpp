@@ -2,6 +2,7 @@
 #include "ui_qt_newfloppydialog.h"
 
 #include "qt_models_common.hpp"
+#include "qt_util.hpp"
 
 extern "C" {
 #include <86box/random.h>
@@ -15,6 +16,7 @@ extern "C" {
 #include <QMessageBox>
 #include <QProgressDialog>
 #include <thread>
+#include <QStringBuilder>
 
 struct disk_size_t {
     int hole;
@@ -101,19 +103,26 @@ NewFloppyDialog::NewFloppyDialog(MediaType type, QWidget *parent) :
         for (int i = 0; i < floppyTypes.size(); ++i) {
             Models::AddEntry(model, tr(floppyTypes[i].toUtf8().data()), i);
         }
-        ui->fileField->setFilter(tr("All images (*.86F *.86f *.DSK *.dsk *.FLP *.flp *.IM? *.im? *.*FD? *.*fd?);;Basic sector images (*.DSK *.dsk *.FLP *.flp *.IM? *.im? *.IMG *.img *.*FD? *.*fd?);;Surface images (*.86F *.86f)"));
+        ui->fileField->setFilter(
+            tr("All images") %
+            util::DlgFilter({ "86f","dsk","flp","im?","*fd?" }) %
+            tr("Basic sector images") %
+            util::DlgFilter({ "dsk","flp","im?","img","*fd?" }) %
+            tr("Surface images") %
+            util::DlgFilter({ "86f" }, true));
+        
         break;
     case MediaType::Zip:
         for (int i = 0; i < zipTypes.size(); ++i) {
             Models::AddEntry(model, tr(zipTypes[i].toUtf8().data()), i);
         }
-        ui->fileField->setFilter(tr("ZIP images (*.IM? *.im? *.ZDI *.zdi)"));
+        ui->fileField->setFilter(tr("ZIP images") % util::DlgFilter({ "im?","zdi" }, true));
         break;
     case MediaType::Mo:
         for (int i = 0; i < moTypes.size(); ++i) {
             Models::AddEntry(model, tr(moTypes[i].toUtf8().data()), i);
         }
-        ui->fileField->setFilter(tr("MO images (*.IM? *.im? *.MDI *.mdi);;All files (*)"));
+        ui->fileField->setFilter(tr("MO images") % util::DlgFilter({ "im?","mdi" }) % tr("All files") % util::DlgFilter({ "*" }, true));
         break;
     }
 

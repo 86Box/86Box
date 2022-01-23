@@ -108,6 +108,8 @@ add_library(ui STATIC
     qt_progsettings.hpp
     qt_progsettings.cpp
     qt_progsettings.ui
+    qt_util.hpp
+    qt_util.cpp
 
     ../qt_resources.qrc
 )

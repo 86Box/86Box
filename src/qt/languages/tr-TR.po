@@ -622,8 +622,8 @@ msgstr "Hız"
 msgid "ZIP %03i %i (%s): %ls"
 msgstr "ZIP %03i %i (%s): %ls"
 
-msgid "ZIP images (*.im? *.zdi)"
-msgstr "ZIP imajları (*.im? *.zdi)"
+msgid "ZIP images"
+msgstr "ZIP imajları"
 
 msgid "86Box could not find any usable ROM images.\n\nPlease <a href=\"https://github.com/86Box/roms/releases/latest\">download</a> a ROM set and extract it into the \"roms\" directory."
 msgstr "86Box hiç bir kullanılabilir ROM imajı bulamadı.\n\nLütfen <a href=\"https://github.com/86Box/roms/releases/latest\">ROM setini indirin</a> ve onu \"Roms\" klasörüne çıkarın."
@@ -631,8 +631,8 @@ msgstr "86Box hiç bir kullanılabilir ROM imajı bulamadı.\n\nLütfen <a href=
 msgid "(empty)"
 msgstr "(empty)"
 
-msgid "ZIP images (*.im? *.zdi);;All files (*.*)"
-msgstr "ZIP imajları (*.im? *.zdi);;All files (*.*)"
+msgid "All files"
+msgstr "All files"
 
 msgid "Turbo"
 msgstr "Turbo"
@@ -643,8 +643,14 @@ msgstr "Açık"
 msgid "Off"
 msgstr "Kapalı"
 
-msgid "All images (*.86f *.dsk *.flp *.im? *.*fd?);;Basic sector images (*.dsk *.flp *.im? *.img *.*fd?);;Surface images (*.86f)"
-msgstr "Tüm imajlar (*.86f *.dsk *.flp *.im? *.*fd?);;Basit sektör imajları (*.dsk *.flp *.im? *.img *.*fd?);;Yüzey imajları (*.86f)"
+msgid "All images"
+msgstr "Tüm imajlar"
+
+msgid "Basic sector images"
+msgstr "Basit sektör imajları"
+
+msgid "Surface images"
+msgstr "Yüzey imajları"
 
 msgid "Machine \"%hs\" is not available due to missing ROMs in the roms/machines directory. Switching to an available machine."
 msgstr "\"%hs\" makinesi roms/machines klasöründe mevcut olmayan ROM imajı yüzünden mevcut değil. Mevcut olan bir makineye geçiş yapılıyor."
@@ -684,9 +690,6 @@ msgstr "Diğer kaldırılabilir cihazlar"
 
 msgid "Other peripherals"
 msgstr "Diğer cihazlar"
-
-msgid "Surface images (*.86f)"
-msgstr "Yüzey imajları (*.86f)"
 
 msgid "Click to capture mouse"
 msgstr "Farenin yakalanması için tıklayın"
@@ -778,8 +781,11 @@ msgstr "%u MB (CHS: %i, %i, %i)"
 msgid "Floppy %i (%s): %ls"
 msgstr "Disket %i (%s): %ls"
 
-msgid "All images (*.0?? *.1?? *.??0 *.86f *.bin *.cq? *.d?? *.flp *.hdm *.im? *.json *.td0 *.*fd? *.mfm *.xdf);;Advanced sector images (*.imd *.json *.td0);;Basic sector images (*.0?? *.1?? *.??0 *.bin *.cq? *.d?? *.flp *.hdm *.im? *.xdf *.*fd?);;Flux images (*.fdi);;Surface images (*.86f *.mfm);;All files (*.*)"
-msgstr "Tüm imajlar (*.0?? *.1?? *.??0 *.86f *.bin *.cq? *.d?? *.flp *.hdm *.im? *.json *.td0 *.*fd? *.mfm *.xdf);;Gelişmiş sektör imajları (*.imd *.json *.td0);;Basit sektör imajları (*.0?? *.1?? *.??0 *.bin *.cq? *.d?? *.flp *.hdm *.im? *.xdf *.*fd?);;Flux images (*.fdi);;Yüzey imajları (*.86f *.mfm);;All files (*.*)"
+msgid "Advanced sector images"
+msgstr "Gelişmiş sektör imajları"
+
+msgid "Flux images"
+msgstr "Flux images"
 
 msgid "Unable to initialize FreeType"
 msgstr "FreeType başlatılamadı"
@@ -799,8 +805,8 @@ msgstr "Ghostscript başlatılamadı"
 msgid "MO %i (%ls): %ls"
 msgstr "MO %i (%ls): %ls"
 
-msgid "MO images (*.im? *.mdi);;All files (*.*)"
-msgstr "MO imajları (*.im? *.mdi);;All files (*.*)"
+msgid "MO images"
+msgstr "MO imajları"
 
 msgid "Welcome to 86Box!"
 msgstr "86Box'a hoşgeldiniz!"
@@ -889,8 +895,8 @@ msgstr "Yeniden başlat"
 msgid "Don't reset"
 msgstr "Yeniden başlatma"
 
-msgid "CD-ROM images (*.iso *.cue);;All files (*.*)"
-msgstr "CD-ROM imajları (*.iso *.cue);;Tüm dosyalar (*.*)"
+msgid "CD-ROM images"
+msgstr "CD-ROM imajları"
 
 msgid "%hs Device Configuration"
 msgstr "%hs Cihaz Konfigürasyonu"
@@ -898,8 +904,8 @@ msgstr "%hs Cihaz Konfigürasyonu"
 msgid "Monitor in sleep mode"
 msgstr "Monitör uyku modunda"
 
-msgid "OpenGL Shaders (*.glsl);;All files (*.*)"
-msgstr "OpenGL Gölgelendiricileri (*.glsl);;Tüm dosyalar (*.*)"
+msgid "OpenGL Shaders"
+msgstr "OpenGL Gölgelendiricileri"
 
 msgid "OpenGL options"
 msgstr "OpenGL ayarları"
@@ -916,14 +922,14 @@ msgstr "Devam et"
 msgid "Cassette: %s"
 msgstr "Kaset: %s"
 
-msgid "Cassette images (*.pcm *.raw *.wav *.cas);;All files (*.*)"
-msgstr "Kaset imajları (*.pcm *.raw *.wav *.cas);;Tüm dosyalar (*.*)"
+msgid "Cassette images"
+msgstr "Kaset imajları"
 
 msgid "Cartridge %i: %ls"
 msgstr "Kartuş %i: %ls"
 
-msgid "Cartridge images (*.a *.b *.jrc);;All files (*.*)"
-msgstr "Kartuş imajları (*.a *.b *.jrc);;Tüm dosyalar (*.*)"
+msgid "Cartridge images"
+msgstr "Kartuş imajları"
 
 msgid "Error initializing renderer"
 msgstr "Error initializing renderer"
@@ -979,8 +985,8 @@ msgstr "HDI disk imajları 4 GB'tan daha büyük olamaz."
 msgid "Disk images cannot be larger than 127 GB."
 msgstr "Disk imajları 127 GB'tan daha büyük olamaz."
 
-msgid "Hard disk images (*.hd? *.im? *.vhd);;All files (*.*)"
-msgstr "Hard disk imajları (*.hd? *.im? *.vhd);;Tüm dosyalar (*.*)"
+msgid "Hard disk images"
+msgstr "Hard disk imajları"
 
 msgid "Unable to read file"
 msgstr "Dosya okunamıyor"
@@ -1051,8 +1057,8 @@ msgstr "Büyük bloklar (2 MB)"
 msgid "Small blocks (512 KB)"
 msgstr "Küçük bloklar (512 KB)"
 
-msgid "VHD files (*.vhd);;All files (*.*)"
-msgstr "VHD dosyaları (*.vhd);;Tüm dosyalar (*.*)"
+msgid "VHD files"
+msgstr "VHD dosyaları"
 
 msgid "Select the parent VHD"
 msgstr "Ana VHD dosyasını seçin"

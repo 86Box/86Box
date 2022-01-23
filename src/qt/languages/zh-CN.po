@@ -622,8 +622,8 @@ msgstr "速度"
 msgid "ZIP %03i %i (%s): %ls"
 msgstr "ZIP %03i %i (%s): %ls"
 
-msgid "ZIP images (*.im? *.zdi)"
-msgstr "ZIP 镜像 (*.im? *.zdi)"
+msgid "ZIP images"
+msgstr "ZIP 镜像"
 
 msgid "86Box could not find any usable ROM images.\n\nPlease <a href=\"https://github.com/86Box/roms/releases/latest\">download</a> a ROM set and extract it into the \"roms\" directory."
 msgstr "86Box 找不到任何可用的 ROM 镜像。\n\n请<a href=\"https://github.com/86Box/roms/releases/latest\">下载</a>ROM 包并将其解压到 \"roms\" 文件夹。"
@@ -631,8 +631,8 @@ msgstr "86Box 找不到任何可用的 ROM 镜像。\n\n请<a href=\"https://git
 msgid "(empty)"
 msgstr "(空)"
 
-msgid "ZIP images (*.im? *.zdi);;All files (*.*)"
-msgstr "ZIP 镜像 (*.im? *.zdi);;所有文件 (*.*)"
+msgid "All files"
+msgstr "所有文件"
 
 msgid "Turbo"
 msgstr "加速"
@@ -643,8 +643,14 @@ msgstr "开"
 msgid "Off"
 msgstr "关"
 
-msgid "All images (*.86f *.dsk *.flp *.im? *.*fd?);;Basic sector images (*.dsk *.flp *.im? *.img *.*fd?);;Surface images (*.86f)"
-msgstr "所有镜像 (*.86f *.dsk *.flp *.im? *.*fd?);;基本扇区镜像 (*.dsk *.flp *.im? *.img *.*fd?);;表面镜像 (*.86f)"
+msgid "All images"
+msgstr "所有镜像"
+
+msgid "Basic sector images"
+msgstr "基本扇区镜像"
+
+msgid "Surface images"
+msgstr "表面镜像"
 
 msgid "Machine \"%hs\" is not available due to missing ROMs in the roms/machines directory. Switching to an available machine."
 msgstr "由于 roms/machines 文件夹中缺少合适的 ROM，机型 \"%hs\" 不可用。将切换到其他可用机型。"
@@ -684,9 +690,6 @@ msgstr "其他可移动设备"
 
 msgid "Other peripherals"
 msgstr "其他外围设备"
-
-msgid "Surface images (*.86f)"
-msgstr "表面镜像 (*.86f)"
 
 msgid "Click to capture mouse"
 msgstr "单击窗口捕捉鼠标"
@@ -778,8 +781,11 @@ msgstr "%u MB (CHS: %i, %i, %i)"
 msgid "Floppy %i (%s): %ls"
 msgstr "软盘 %i (%s): %ls"
 
-msgid "All images (*.0?? *.1?? *.??0 *.86f *.bin *.cq? *.d?? *.flp *.hdm *.im? *.json *.td0 *.*fd? *.mfm *.xdf);;Advanced sector images (*.imd *.json *.td0);;Basic sector images (*.0?? *.1?? *.??0 *.bin *.cq? *.d?? *.flp *.hdm *.im? *.xdf *.*fd?);;Flux images (*.fdi);;Surface images (*.86f *.mfm);;All files (*.*)"
-msgstr "所有镜像 (*.0?? *.1?? *.??0 *.86f *.bin *.cq? *.d?? *.flp *.hdm *.im? *.json *.td0 *.*fd? *.mfm *.xdf);;高级扇区镜像 (*.imd *.json *.td0);;基本扇区镜像 (*.0?? *.1?? *.??0 *.bin *.cq? *.d?? *.flp *.hdm *.im? *.xdf *.*fd?);;Flux 镜像 (*.fdi);;表面镜像 (*.86f *.mfm);;所有文件 (*.*)"
+msgid "Advanced sector images"
+msgstr "高级扇区镜像"
+
+msgid "Flux images"
+msgstr "Flux 镜像"
 
 msgid "Unable to initialize FreeType"
 msgstr "无法初始化 FreeType"
@@ -799,8 +805,8 @@ msgstr "无法初始化 Ghostscript"
 msgid "MO %i (%ls): %ls"
 msgstr "磁光盘 %i (%ls): %ls"
 
-msgid "MO images (*.im? *.mdi);;All files (*.*)"
-msgstr "磁光盘镜像 (*.im? *.mdi);;所有文件 (*.*)"
+msgid "MO images"
+msgstr "磁光盘镜像"
 
 msgid "Welcome to 86Box!"
 msgstr "欢迎使用 86Box！"
@@ -889,8 +895,8 @@ msgstr "重置"
 msgid "Don't reset"
 msgstr "不重置"
 
-msgid "CD-ROM images (*.iso *.cue);;All files (*.*)"
-msgstr "光盘镜像 (*.iso *.cue);;所有文件 (*.*)"
+msgid "CD-ROM images"
+msgstr "光盘镜像"
 
 msgid "%hs Device Configuration"
 msgstr "%hs 设备配置"
@@ -898,8 +904,8 @@ msgstr "%hs 设备配置"
 msgid "Monitor in sleep mode"
 msgstr "显示器处在睡眠状态"
 
-msgid "OpenGL Shaders (*.glsl);;All files (*.*)"
-msgstr "OpenGL 着色器 (*.glsl);;所有文件 (*.*)"
+msgid "OpenGL Shaders"
+msgstr "OpenGL 着色器"
 
 msgid "OpenGL options"
 msgstr "OpenGL 选项"
@@ -916,14 +922,14 @@ msgstr "继续"
 msgid "Cassette: %s"
 msgstr "磁带: %s"
 
-msgid "Cassette images (*.pcm *.raw *.wav *.cas);;All files (*.*)"
-msgstr "磁带镜像 (*.pcm *.raw *.wav *.cas);;所有文件 (*.*)"
+msgid "Cassette images"
+msgstr "磁带镜像"
 
 msgid "Cartridge %i: %ls"
 msgstr "卡带 %i: %ls"
 
-msgid "Cartridge images (*.a *.b *.jrc);;All files (*.*)"
-msgstr "卡带镜像 (*.a *.b *.jrc);;所有文件 (*.*)"
+msgid "Cartridge images"
+msgstr "卡带镜像"
 
 msgid "Error initializing renderer"
 msgstr "初始化渲染器时出错"
@@ -979,8 +985,8 @@ msgstr "HDI 磁盘镜像不能超过 4 GB。"
 msgid "Disk images cannot be larger than 127 GB."
 msgstr "磁盘镜像不能超过 127 GB。"
 
-msgid "Hard disk images (*.hd? *.im? *.vhd);;All files (*.*)"
-msgstr "硬盘镜像 (*.hd? *.im? *.vhd);;所有文件 (*.*)"
+msgid "Hard disk images"
+msgstr "硬盘镜像"
 
 msgid "Unable to read file"
 msgstr "无法读取文件"
@@ -1051,8 +1057,8 @@ msgstr "大块 (2 MB)"
 msgid "Small blocks (512 KB)"
 msgstr "小块 (512 KB)"
 
-msgid "VHD files (*.vhd);;All files (*.*)"
-msgstr "VHD 文件 (*.vhd);;所有文件 (*.*)"
+msgid "VHD files"
+msgstr "VHD 文件"
 
 msgid "Select the parent VHD"
 msgstr "选择父 VHD 文件"

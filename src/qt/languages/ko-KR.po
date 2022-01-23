@@ -622,8 +622,8 @@ msgstr "속도"
 msgid "ZIP %03i %i (%s): %ls"
 msgstr "ZIP %03i %i (%s): %ls"
 
-msgid "ZIP images (*.im? *.zdi)"
-msgstr "ZIP 이미지 (*.im? *.zdi)"
+msgid "ZIP images"
+msgstr "ZIP 이미지"
 
 msgid "86Box could not find any usable ROM images.\n\nPlease <a href=\"https://github.com/86Box/roms/releases/latest\">download</a> a ROM set and extract it into the \"roms\" directory."
 msgstr "86Box에서 사용 가능한 ROM 이미지를 찾을 수 없습니다.\n\nROM 세트를<a href=\"https://github.com/86Box/roms/releases/latest\">다운로드</a> 후 \"roms\" 디렉토리에 압축을 풀어 주세요."
@@ -631,8 +631,8 @@ msgstr "86Box에서 사용 가능한 ROM 이미지를 찾을 수 없습니다.\n
 msgid "(empty)"
 msgstr "(비었음)"
 
-msgid "ZIP images (*.im? *.zdi);;All files (*.*)"
-msgstr "ZIP 이미지 (*.im? *.zdi);;모든 파일 (*.*)"
+msgid "All files"
+msgstr "모든 파일"
 
 msgid "Turbo"
 msgstr "터보"
@@ -643,8 +643,14 @@ msgstr "켜짐"
 msgid "Off"
 msgstr "꺼짐"
 
-msgid "All images (*.86f *.dsk *.flp *.im? *.*fd?);;Basic sector images (*.dsk *.flp *.im? *.img *.*fd?);;Surface images (*.86f)"
-msgstr "모든 이미지 (*.86f *.dsk *.flp *.im? *.*fd?);;기본 섹터 이미지 (*.dsk *.flp *.im? *.img *.*fd?);;표면 이미지 (*.86f)"
+msgid "All images"
+msgstr "모든 이미지"
+
+msgid "Basic sector images"
+msgstr "기본 섹터 이미지"
+
+msgid "Surface images"
+msgstr "표면 이미지"
 
 msgid "Machine \"%hs\" is not available due to missing ROMs in the roms/machines directory. Switching to an available machine."
 msgstr "roms/machines 디렉토리에 필요한 롬파일이 없어 기종 \"%hs\"을(를) 사용할 수 없습니다. 사용 가능한 기종으로 변경합니다."
@@ -684,9 +690,6 @@ msgstr "기타 이동식 저장장치"
 
 msgid "Other peripherals"
 msgstr "기타 주변기기"
-
-msgid "Surface images (*.86f)"
-msgstr "표면 이미지 (*.86f)"
 
 msgid "Click to capture mouse"
 msgstr "이 창을 클릭하면 마우스를 사용합니다"
@@ -778,8 +781,11 @@ msgstr "%u MB (CHS: %i, %i, %i)"
 msgid "Floppy %i (%s): %ls"
 msgstr "플로피 %i (%s): %ls"
 
-msgid "All images (*.0?? *.1?? *.??0 *.86f *.bin *.cq? *.d?? *.flp *.hdm *.im? *.json *.td0 *.*fd? *.mfm *.xdf);;Advanced sector images (*.imd *.json *.td0);;Basic sector images (*.0?? *.1?? *.??0 *.bin *.cq? *.d?? *.flp *.hdm *.im? *.xdf *.*fd?);;Flux images (*.fdi);;Surface images (*.86f *.mfm);;All files (*.*)"
-msgstr "모든 이미지 (*.0?? *.1?? *.??0 *.86f *.bin *.cq? *.d?? *.flp *.hdm *.im? *.json *.td0 *.*fd? *.mfm *.xdf);;어드밴스드 섹터 이미지 (*.imd *.json *.td0);;기본 섹터 이미지 (*.0?? *.1?? *.??0 *.bin *.cq? *.d?? *.flp *.hdm *.im? *.xdf *.*fd?);;플럭스 이미지 (*.fdi);;표면 이미지 (*.86f *.mfm);;모든 파일 (*.*)"
+msgid "Advanced sector images"
+msgstr "어드밴스드 섹터 이미지"
+
+msgid "Flux images"
+msgstr "플럭스 이미지"
 
 msgid "Unable to initialize FreeType"
 msgstr "FreeType을 초기화할 수 없습니다"
@@ -799,8 +805,8 @@ msgstr "Ghostscript를 초기화할 수 없습니다"
 msgid "MO %i (%ls): %ls"
 msgstr "광자기 %i (%ls): %ls"
 
-msgid "MO images (*.im? *.mdi);;All files (*.*)"
-msgstr "광자기 이미지 (*.im? *.mdi);;모든 파일 (*.*)"
+msgid "MO images"
+msgstr "광자기 이미지"
 
 msgid "Welcome to 86Box!"
 msgstr "86Box에 어서오세요!"
@@ -889,8 +895,8 @@ msgstr "재시작"
 msgid "Don't reset"
 msgstr "재시작 안함"
 
-msgid "CD-ROM images (*.iso *.cue);;All files (*.*)"
-msgstr "CD-ROM 이미지 (*.iso *.cue);;모든 파일 (*.*)"
+msgid "CD-ROM images"
+msgstr "CD-ROM 이미지"
 
 msgid "%hs Device Configuration"
 msgstr "%hs 장치 설정"
@@ -898,8 +904,8 @@ msgstr "%hs 장치 설정"
 msgid "Monitor in sleep mode"
 msgstr "모니터 절전 모드"
 
-msgid "OpenGL Shaders (*.glsl);;All files (*.*)"
-msgstr "OpenGL 쉐이더 (*.glsl);;모든 파일 (*.*)"
+msgid "OpenGL Shaders"
+msgstr "OpenGL 쉐이더"
 
 msgid "OpenGL options"
 msgstr "OpenGL 설정"
@@ -916,14 +922,14 @@ msgstr "계속"
 msgid "Cassette: %s"
 msgstr "카세트: %s"
 
-msgid "Cassette images (*.pcm *.raw *.wav *.cas);;All files (*.*)"
-msgstr "카세트 이미지 (*.pcm *.raw *.wav *.cas);;모든 파일 (*.*)"
+msgid "Cassette images"
+msgstr "카세트 이미지"
 
 msgid "Cartridge %i: %ls"
 msgstr "카트리지 %i: %ls"
 
-msgid "Cartridge images (*.a *.b *.jrc);;All files (*.*)"
-msgstr "카트리지 이미지 (*.a *.b *.jrc);;모든 파일 (*.*)"
+msgid "Cartridge images"
+msgstr "카트리지 이미지"
 
 msgid "Error initializing renderer"
 msgstr "Error initializing renderer"
@@ -979,8 +985,8 @@ msgstr "HDI 디스크 이미지는 4GB 이상으로 지정할 수 없습니다"
 msgid "Disk images cannot be larger than 127 GB."
 msgstr "디스크 이미지는 127GB 이상으로 지정할 수 없습니다"
 
-msgid "Hard disk images (*.hd? *.im? *.vhd);;All files (*.*)"
-msgstr "하드 디스크 이미지 (*.hd? *.im? *.vhd);;모든 파일 (*.*)"
+msgid "Hard disk images"
+msgstr "하드 디스크 이미지"
 
 msgid "Unable to read file"
 msgstr "파일을 읽을 수 없습니다"
@@ -1051,8 +1057,8 @@ msgstr "대형 블록 (2 MB)"
 msgid "Small blocks (512 KB)"
 msgstr "소형 블록 (512 KB)"
 
-msgid "VHD files (*.vhd);;All files (*.*)"
-msgstr "VHD 파일 (*.vhd);;모든 파일 (*.*)"
+msgid "VHD files"
+msgstr "VHD 파일"
 
 msgid "Select the parent VHD"
 msgstr "부모 VHD 선택"

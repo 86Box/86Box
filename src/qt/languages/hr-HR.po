@@ -622,8 +622,8 @@ msgstr "Brzina"
 msgid "ZIP %03i %i (%s): %ls"
 msgstr "ZIP %03i %i (%s): %ls"
 
-msgid "ZIP images (*.im? *.zdi)"
-msgstr "ZIP slike (*.im? *.zdi)"
+msgid "ZIP images"
+msgstr "ZIP slike"
 
 msgid "86Box could not find any usable ROM images.\n\nPlease <a href=\"https://github.com/86Box/roms/releases/latest\">download</a> a ROM set and extract it into the \"roms\" directory."
 msgstr "86Box nije mogao pronaći upotrebljive ROM datoteke.\n\nMolimte posjetite <a href=\"https://github.com/86Box/roms/releases/latest\"></a> sknite paket s ROM datotekama i ekstrahirajte paket u \"roms\" mapu."
@@ -631,8 +631,8 @@ msgstr "86Box nije mogao pronaći upotrebljive ROM datoteke.\n\nMolimte posjetit
 msgid "(empty)"
 msgstr "(prazno)"
 
-msgid "ZIP images (*.im? *.zdi);;All files (*.*)"
-msgstr "ZIP slike (*.im? *.zdi);;Sve datoteke (*.*)"
+msgid "All files"
+msgstr "Sve datoteke"
 
 msgid "Turbo"
 msgstr "Turbo"
@@ -643,8 +643,14 @@ msgstr "Uključeno"
 msgid "Off"
 msgstr "Isključeno"
 
-msgid "All images (*.86f *.dsk *.flp *.im? *.*fd?);;Basic sector images (*.dsk *.flp *.im? *.img *.*fd?);;Surface images (*.86f)"
-msgstr "Sve slike (*.86f *.dsk *.flp *.im? *.*fd?);;BOsnovne sektorske slike (*.dsk *.flp *.im? *.img *.*fd?);;Površinske slike (*.86f)"
+msgid "All images"
+msgstr "Sve slike"
+
+msgid "Basic sector images"
+msgstr "BOsnovne sektorske slike"
+
+msgid "Surface images"
+msgstr "Površinske slike"
 
 msgid "Machine \"%hs\" is not available due to missing ROMs in the roms/machines directory. Switching to an available machine."
 msgstr "Sistem \"%hs\" nije dostupan jer ne postoje potrebni ROM-ovi u mapu roms/machines. Prebacivanje na dostupno računalo."
@@ -684,9 +690,6 @@ msgstr "Ostali uklonjivi uređaji"
 
 msgid "Other peripherals"
 msgstr "Ostali periferni uređaji"
-
-msgid "Surface images (*.86f)"
-msgstr "Površinske slike (*.86f)"
 
 msgid "Click to capture mouse"
 msgstr "Kliknite da uhvatite miš"
@@ -778,8 +781,11 @@ msgstr "%u MB (CHS: %i, %i, %i)"
 msgid "Floppy %i (%s): %ls"
 msgstr "Disketa %i (%s): %ls"
 
-msgid "All images (*.0?? *.1?? *.??0 *.86f *.bin *.cq? *.d?? *.flp *.hdm *.im? *.json *.td0 *.*fd? *.mfm *.xdf);;Advanced sector images (*.imd *.json *.td0);;Basic sector images (*.0?? *.1?? *.??0 *.bin *.cq? *.d?? *.flp *.hdm *.im? *.xdf *.*fd?);;Flux images (*.fdi);;Surface images (*.86f *.mfm);;All files (*.*)"
-msgstr "Sve slike (*.0?? *.1?? *.??0 *.86f *.bin *.cq? *.d?? *.flp *.hdm *.im? *.json *.td0 *.*fd? *.mfm *.xdf);;Napredne sektorske slike (*.imd *.json *.td0);;Osnovne sektorske slike (*.0?? *.1?? *.??0 *.bin *.cq? *.d?? *.flp *.hdm *.im? *.xdf *.*fd?);;Flux slike (*.fdi);;Površinske slike (*.86f *.mfm);;Sve datoteke (*.*)"
+msgid "Advanced sector images"
+msgstr "Napredne sektorske slike"
+
+msgid "Flux images"
+msgstr "Flux slike"
 
 msgid "Unable to initialize FreeType"
 msgstr "Nije moguće inicijalizirati FreeType"
@@ -799,8 +805,8 @@ msgstr "Nije moguće inicijalizirati GhostScript"
 msgid "MO %i (%ls): %ls"
 msgstr "MO %i (%ls): %ls"
 
-msgid "MO images (*.im? *.mdi);;All files (*.*)"
-msgstr "MO slike (*.im? *.mdi);;Svi datoteke (*.*)"
+msgid "MO images"
+msgstr "MO slike"
 
 msgid "Welcome to 86Box!"
 msgstr "Dobrodošli u 86Box!"
@@ -889,8 +895,8 @@ msgstr "Resetiraj"
 msgid "Don't reset"
 msgstr "Ne resetiraj"
 
-msgid "CD-ROM images (*.iso *.cue);;All files (*.*)"
-msgstr "CD-ROM slike (*.iso *.cue);;Sve datoteke (*.*)"
+msgid "CD-ROM images"
+msgstr "CD-ROM slike"
 
 msgid "%hs Device Configuration"
 msgstr "Konfiguracija uređaja %hs "
@@ -898,8 +904,8 @@ msgstr "Konfiguracija uređaja %hs "
 msgid "Monitor in sleep mode"
 msgstr "Ekran u stanju mirovanja"
 
-msgid "OpenGL Shaders (*.glsl);;All files (*.*)"
-msgstr "OpenGL shaderi (*.glsl);;Sve datoteke (*.*)"
+msgid "OpenGL Shaders"
+msgstr "OpenGL shaderi"
 
 msgid "OpenGL options"
 msgstr "OpenGL opcije"
@@ -916,14 +922,14 @@ msgstr "Nastavi"
 msgid "Cassette: %s"
 msgstr "Audio kaseta: %s"
 
-msgid "Cassette images (*.pcm *.raw *.wav *.cas);;All files (*.*)"
-msgstr "Slike audio kasete (*.pcm *.raw *.wav *.cas);;Sve datoteke (*.*)"
+msgid "Cassette images"
+msgstr "Slike audio kasete"
 
 msgid "Cartridge %i: %ls"
 msgstr "Kaseta %i: %ls"
 
-msgid "Cartridge images (*.a *.b *.jrc);;All files (*.*)"
-msgstr "Slike kasete (*.a *.b *.jrc);;Sve datoteke (*.*)"
+msgid "Cartridge images"
+msgstr "Slike kasete"
 
 msgid "Error initializing renderer"
 msgstr "Nije moguće inicijalizirati renderer"
@@ -979,8 +985,8 @@ msgstr "HDI disk image datoteke ne mogu biti veće od 4 GB."
 msgid "Disk images cannot be larger than 127 GB."
 msgstr "Slike tvrdog diska ne mogu biti veće od 127 GB."
 
-msgid "Hard disk images (*.hd? *.im? *.vhd);;All files (*.*)"
-msgstr "Slike za tvrde diskove (*.hd? *.im? *.vhd);;Sve datoteke (*.*)"
+msgid "Hard disk images"
+msgstr "Slike za tvrde diskove"
 
 msgid "Unable to read file"
 msgstr "Nije moguće pročitati datoteku"
@@ -1051,8 +1057,8 @@ msgstr "Veliki blokovi (2 MB)"
 msgid "Small blocks (512 KB)"
 msgstr "Mali blokovi (512 KB)"
 
-msgid "VHD files (*.vhd);;All files (*.*)"
-msgstr "VHD slike (*.vhd);;Sve datoteke (*.*)"
+msgid "VHD files"
+msgstr "VHD slike"
 
 msgid "Select the parent VHD"
 msgstr "Izaberi matičnu sliku VHD"

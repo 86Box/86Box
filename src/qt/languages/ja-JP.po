@@ -622,8 +622,8 @@ msgstr "速度"
 msgid "ZIP %03i %i (%s): %ls"
 msgstr "ZIP %03i %i (%s): %ls"
 
-msgid "ZIP images (*.im? *.zdi)"
-msgstr "ZIPイメージ (*.im? *.zdi)"
+msgid "ZIP images"
+msgstr "ZIPイメージ"
 
 msgid "86Box could not find any usable ROM images.\n\nPlease <a href=\"https://github.com/86Box/roms/releases/latest\">download</a> a ROM set and extract it into the \"roms\" directory."
 msgstr "86Boxで使用可能なROMイメージが見つかりませんでした。\n\nROMセットを<a href=\"https://github.com/86Box/roms/releases/latest\">ダウンロード</a>して、「roms」ディレクトリに解凍してください。"
@@ -631,8 +631,8 @@ msgstr "86Boxで使用可能なROMイメージが見つかりませんでした�
 msgid "(empty)"
 msgstr "(空)"
 
-msgid "ZIP images (*.im? *.zdi);;All files (*.*)"
-msgstr "ZIPイメージ (*.im? *.zdi);;すべてのファイル (*.*)"
+msgid "All files"
+msgstr "すべてのファイル"
 
 msgid "Turbo"
 msgstr "高速"
@@ -643,8 +643,14 @@ msgstr "オン"
 msgid "Off"
 msgstr "オフ"
 
-msgid "All images (*.86f *.dsk *.flp *.im? *.*fd?);;Basic sector images (*.dsk *.flp *.im? *.img *.*fd?);;Surface images (*.86f)"
-msgstr "すべてのイメージ (*.86f *.dsk *.flp *.im? *.*fd?);;基本的なセクターイメージ (*.dsk *.flp *.im? *.img *.*fd?);;表面イメージ (*.86f)"
+msgid "All images"
+msgstr "すべてのイメージ"
+
+msgid "Basic sector images"
+msgstr "基本的なセクターイメージ"
+
+msgid "Surface images"
+msgstr "表面イメージ"
 
 msgid "Machine \"%hs\" is not available due to missing ROMs in the roms/machines directory. Switching to an available machine."
 msgstr "roms/machinesディレクトリにROMがないため、マシン「%hs」は使用できません。使用可能なマシンに切り替えます。"
@@ -684,9 +690,6 @@ msgstr "その他のリムーバブルデバイス"
 
 msgid "Other peripherals"
 msgstr "その他の周辺装置"
-
-msgid "Surface images (*.86f)"
-msgstr "表面イメージ (*.86f)"
 
 msgid "Click to capture mouse"
 msgstr "クリックするとマウスをキャプチャします"
@@ -778,8 +781,11 @@ msgstr "%u MB (CHS: %i, %i, %i)"
 msgid "Floppy %i (%s): %ls"
 msgstr "フロッピー %i (%s): %ls"
 
-msgid "All images (*.0?? *.1?? *.??0 *.86f *.bin *.cq? *.d?? *.flp *.hdm *.im? *.json *.td0 *.*fd? *.mfm *.xdf);;Advanced sector images (*.imd *.json *.td0);;Basic sector images (*.0?? *.1?? *.??0 *.bin *.cq? *.d?? *.flp *.hdm *.im? *.xdf *.*fd?);;Flux images (*.fdi);;Surface images (*.86f *.mfm);;All files (*.*)"
-msgstr "すべてのイメージ (*.0?? *.1?? *.??0 *.86f *.bin *.cq? *.d?? *.flp *.hdm *.im? *.json *.td0 *.*fd? *.mfm *.xdf);;アドバンスドセクターイメージ (*.imd *.json *.td0);;基本セクターイメージ (*.0?? *.1?? *.??0 *.bin *.cq? *.d?? *.flp *.hdm *.im? *.xdf *.*fd?);;フラックスイメージ (*.fdi);;表面イメージ (*.86f *.mfm);;すべてのファイル (*.*)"
+msgid "Advanced sector images"
+msgstr "アドバンスドセクターイメージ"
+
+msgid "Flux images"
+msgstr "フラックスイメージ"
 
 msgid "Unable to initialize FreeType"
 msgstr "FreeTypeが初期化できません"
@@ -799,8 +805,8 @@ msgstr "Ghostscriptが初期化できません"
 msgid "MO %i (%ls): %ls"
 msgstr "光磁気 %i (%ls): %ls"
 
-msgid "MO images (*.im? *.mdi);;All files (*.*)"
-msgstr "光磁気イメージ (*.im? *.mdi);;すべてのファイル (*.*)"
+msgid "MO images"
+msgstr "光磁気イメージ"
 
 msgid "Welcome to 86Box!"
 msgstr "86Boxへようこそ！"
@@ -889,8 +895,8 @@ msgstr "リセット"
 msgid "Don't reset"
 msgstr "リセットしない"
 
-msgid "CD-ROM images (*.iso *.cue);;All files (*.*)"
-msgstr "CD-ROMイメージ (*.iso *.cue);;すべてのファイル (*.*)"
+msgid "CD-ROM images"
+msgstr "CD-ROMイメージ"
 
 msgid "%hs Device Configuration"
 msgstr "%hs デバイスの設定"
@@ -898,8 +904,8 @@ msgstr "%hs デバイスの設定"
 msgid "Monitor in sleep mode"
 msgstr "モニターのスリープモード"
 
-msgid "OpenGL Shaders (*.glsl);;All files (*.*)"
-msgstr "OpenGLシェーダー (*.glsl);;すべてのファイル (*.*)"
+msgid "OpenGL Shaders"
+msgstr "OpenGLシェーダー"
 
 msgid "OpenGL options"
 msgstr "OpenGL設定"
@@ -916,14 +922,14 @@ msgstr "続行"
 msgid "Cassette: %s"
 msgstr "カセット: %s"
 
-msgid "Cassette images (*.pcm *.raw *.wav *.cas);;All files (*.*)"
-msgstr "カセットイメージ (*.pcm *.raw *.wav *.cas);;すべてのファイル (*.*)"
+msgid "Cassette images"
+msgstr "カセットイメージ"
 
 msgid "Cartridge %i: %ls"
 msgstr "カートリッジ %i: %ls"
 
-msgid "Cartridge images (*.a *.b *.jrc);;All files (*.*)"
-msgstr "カートリッジイメージ (*.a *.b *.jrc);;すべてのファイル (*.*)"
+msgid "Cartridge images"
+msgstr "カートリッジイメージ"
 
 msgid "Error initializing renderer"
 msgstr "レンダラーの初期化エラー"
@@ -979,8 +985,8 @@ msgstr "HDIディスクイメージは4GBを超えることはできません。
 msgid "Disk images cannot be larger than 127 GB."
 msgstr "ディスクイメージは127GBを超えることはできません。"
 
-msgid "Hard disk images (*.hd? *.im? *.vhd);;All files (*.*)"
-msgstr "ハードディスクイメージ (*.hd? *.im? *.vhd);;すべてのファイル (*.*)"
+msgid "Hard disk images"
+msgstr "ハードディスクイメージ"
 
 msgid "Unable to read file"
 msgstr "ファイルの読み込みができません"
@@ -1051,8 +1057,8 @@ msgstr "大型ブロック (2 MB)"
 msgid "Small blocks (512 KB)"
 msgstr "小型ブロック (512 KB)"
 
-msgid "VHD files (*.vhd);;All files (*.*)"
-msgstr "VHDファイル (*.vhd);;すべてのファイル (*.*)"
+msgid "VHD files"
+msgstr "VHDファイル"
 
 msgid "Select the parent VHD"
 msgstr "親VHDの選択"
