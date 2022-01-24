@@ -295,7 +295,7 @@ END
 #define STR_MACHINE		"Системная плата:"
 #define STR_CONFIGURE		"Настройка"
 #define STR_CPU_TYPE		"Тип ЦП:"
-#define STR_SPEED		"Speed:"
+#define STR_SPEED		"Скорость:"
 #define STR_FPU			"FPU:"
 #define STR_WAIT_STATES		"Циклы ожидания:"
 #define STR_MB			"МБ"
