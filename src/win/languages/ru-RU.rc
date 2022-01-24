@@ -31,8 +31,8 @@ BEGIN
     END
     POPUP "&Вид"
     BEGIN
-        MENUITEM "&Скрыть строку статуса",		IDM_VID_HIDE_STATUS_BAR
-        MENUITEM "Hide &toolbar",		IDM_VID_HIDE_TOOLBAR
+        MENUITEM "&Скрыть строку состояния",		IDM_VID_HIDE_STATUS_BAR
+        MENUITEM "С&крыть панель инструментов",		IDM_VID_HIDE_TOOLBAR
         MENUITEM SEPARATOR
         MENUITEM "&Изменяемый размер окна",          IDM_VID_RESIZE
         MENUITEM "&Запомнить размер и положение",  IDM_VID_REMEMBER
@@ -98,7 +98,7 @@ BEGIN
     POPUP "&Инструменты"
     BEGIN
         MENUITEM "&Настройки машины...",                IDM_CONFIG
-        MENUITEM "&Обновление значков строки статуса",	IDM_UPDATE_ICONS
+        MENUITEM "&Обновление значков строки состояния",	IDM_UPDATE_ICONS
         MENUITEM SEPARATOR
         MENUITEM "Сделать с&криншот\tCtrl+F11",  IDM_ACTION_SCREENSHOT
         MENUITEM SEPARATOR
@@ -208,7 +208,7 @@ CdromSubmenu MENU DISCARDABLE
 BEGIN
     POPUP ""
     BEGIN
-        MENUITEM "&Mute",					IDM_CDROM_MUTE
+        MENUITEM "О&тключить звук",					IDM_CDROM_MUTE
         MENUITEM SEPARATOR
         MENUITEM "П&устой",					IDM_CDROM_EMPTY
         MENUITEM "&Снова загрузить предыдущий образ",			IDM_CDROM_RELOAD
@@ -294,8 +294,8 @@ END
 #define STR_MACHINE_TYPE	"Тип машины:"
 #define STR_MACHINE		"Системная плата:"
 #define STR_CONFIGURE		"Настройка"
-#define STR_CPU_TYPE		"Тип ЦПУ:"
-#define STR_SPEED		"Speed:"
+#define STR_CPU_TYPE		"Тип ЦП:"
+#define STR_SPEED		"Частота:"
 #define STR_FPU			"FPU:"
 #define STR_WAIT_STATES		"Циклы ожидания:"
 #define STR_MB			"МБ"
@@ -525,21 +525,21 @@ BEGIN
     IDS_2143	"Шейдеры OpenGL (*.GLSL)\0*.GLSL\0Все файлы (*.*)\0*.*\0"
     IDS_2144	"Параметры OpenGL"
     IDS_2145	"Вы загружаете неподдерживаемую конфигурацию"
-    IDS_2146	"Выбор типов CPU для этой системной платы на данной эмулируемой машине отключен.\n\nЭто позволяет выбрать процессор, который в противном случае несовместим с выбранной материнской платой. Однако, вы можете столкнуться с несовместимостью с BIOS материнской платы или другим ПО.\n\nВключение этого параметра официально не поддерживается, и все поданные отчеты об ошибках могут быть закрыты как недействительные."
+    IDS_2146	"Выбор типов ЦП для этой системной платы на данной эмулируемой машине отключен.\n\nЭто позволяет выбрать процессор, который в противном случае несовместим с выбранной материнской платой. Однако, вы можете столкнуться с несовместимостью с BIOS материнской платы или другим ПО.\n\nВключение этого параметра официально не поддерживается, и все поданные отчеты об ошибках могут быть закрыты как недействительные."
     IDS_2147	"Продолжить"
     IDS_2148	"Кассета: %s"
     IDS_2149	"Образы кассет (*.PCM;*.RAW;*.WAV;*.CAS)\0*.PCM;*.RAW;*.WAV;*.CAS\0Все файлы (*.*)\0*.*\0"
     IDS_2150	"Картридж %i: %ls"
     IDS_2151	"Образы картриджей (*.A;*.B;*.JRC)\0*.A;*.B;*.JRC\0Все файлы (*.*)\0*.*\0"
-    IDS_2152	"Error initializing renderer"
-    IDS_2153	"OpenGL (3.0 Core) renderer could not be initialized. Use another renderer."
-    IDS_2154	"Resume execution"
-    IDS_2155	"Pause execution"
-    IDS_2156	"Press Ctrl+Alt+Del"
-    IDS_2157	"Press Ctrl+Alt+Esc"
-    IDS_2158	"Hard reset"
-    IDS_2159	"ACPI shutdown"
-    IDS_2160	"Settings"
+    IDS_2152	"Ошибка инициализации рендерера"
+    IDS_2153	"Невозможно инициализировать рендерер OpenGL (3.0). Пожалуйста, используйте другой рендерер."
+    IDS_2154	"Возобновить выполнение"
+    IDS_2155	"Приостановить выполнение"
+    IDS_2156	"Нажать Ctrl+Alt+Del"
+    IDS_2157	"Нажать Ctrl+Alt+Esc"
+    IDS_2158	"Холодная перезагрузка"
+    IDS_2159	"Сигнал завершения ACPI"
+    IDS_2160	"Настройки машины"
 END
 
 STRINGTABLE DISCARDABLE 
