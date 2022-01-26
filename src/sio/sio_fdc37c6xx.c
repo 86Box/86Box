@@ -338,6 +338,7 @@ fdc37c6xx_init(const device_t *info)
    understood their datasheets correctly. */
 const device_t fdc37c651_device = {
     "SMC FDC37C651 Super I/O",
+    "fdc37c651",
     0,
     0x51,
     fdc37c6xx_init, fdc37c6xx_close, NULL,
