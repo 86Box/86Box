@@ -67,7 +67,7 @@ null_close(void *priv)
 
 
 static const device_t null_device = {
-    "Null HDC", 0, 0,
+    "Null HDC", "null", 0, 0,
     null_init, null_close, NULL,
     { NULL }, NULL, NULL, NULL
 };
