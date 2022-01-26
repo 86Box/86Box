@@ -4572,8 +4572,8 @@ const device_t gd5420_isa_device =
 
 const device_t gd5422_isa_device = {
     "Cirrus Logic GD5422 (ISA)",
-    DEVICE_AT | DEVICE_ISA,
     "gd5422_isa",
+    DEVICE_AT | DEVICE_ISA,
     CIRRUS_ID_CLGD5422,
     gd54xx_init, gd54xx_close,
     gd54xx_reset,
@@ -4585,8 +4585,8 @@ const device_t gd5422_isa_device = {
 
 const device_t gd5424_vlb_device = {
     "Cirrus Logic GD5424 (VLB)",
-    DEVICE_VLB,
     "gd5424_vlb",
+    DEVICE_VLB,
     CIRRUS_ID_CLGD5424,
     gd54xx_init, gd54xx_close,
     gd54xx_reset,
