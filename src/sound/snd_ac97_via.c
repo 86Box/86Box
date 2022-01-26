@@ -829,8 +829,8 @@ ac97_via_close(void *priv)
 }
 
 
-{
 const device_t ac97_via_device =
+{
     "VIA VT82C686 Integrated AC97 Controller",
     "ac97_via",
     DEVICE_PCI,
