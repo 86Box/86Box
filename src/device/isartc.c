@@ -83,6 +83,11 @@
 #include <86box/isartc.h>
 
 
+#define ISARTC_EV170	0
+#define ISARTC_DTK		1
+#define ISARTC_P5PAK	2
+#define ISARTC_A6PAK	3
+
 #define ISARTC_DEBUG	0
 
 
@@ -506,7 +511,7 @@ isartc_init(const device_t *info)
 
     /* Do per-board initialization. */
     switch(dev->board) {
-	case 0:		/* Everex EV-170 Magic I/O */
+	case ISARTC_EV170:		/* Everex EV-170 Magic I/O */
 		dev->flags |= FLAG_YEAR80;
 		dev->base_addr = device_get_config_hex16("base");
 		dev->base_addrsz = 32;
@@ -519,7 +524,7 @@ isartc_init(const device_t *info)
 		dev->year = MM67_AL_DOM;	/* year, NON STANDARD */
 		break;
 
-	case 1:		/* DTK PII-147 Hexa I/O Plus */
+	case ISARTC_DTK:		/* DTK PII-147 Hexa I/O Plus */
 		dev->flags |= FLAG_YEARBCD;
 		dev->base_addr = device_get_config_hex16("base");
 		dev->base_addrsz = 32;
@@ -531,7 +536,8 @@ isartc_init(const device_t *info)
 		dev->year = MM67_AL_HUNTEN;	/* year, NON STANDARD */
 		break;
 
-	case 2:		/* Paradise Systems 5PAK */
+	case ISARTC_P5PAK:		/* Paradise Systems 5PAK */
+	case ISARTC_A6PAK:		/* AST SixPakPlus */
 		dev->flags |= FLAG_YEAR80;
 		dev->base_addr = 0x02c0;
 		dev->base_addrsz = 32;
@@ -627,7 +633,7 @@ static const device_config_t ev170_config[] = {
 static const device_t ev170_device = {
     "Everex EV-170 Magic I/O",
     DEVICE_ISA,
-    0,
+    ISARTC_EV170,
     isartc_init, isartc_close, NULL,
     { NULL }, NULL, NULL,
     ev170_config
@@ -657,7 +663,7 @@ static const device_config_t pii147_config[] = {
 static const device_t pii147_device = {
     "DTK PII-147 Hexa I/O Plus",
     DEVICE_ISA,
-    1,
+    ISARTC_DTK,
     isartc_init, isartc_close, NULL,
     { NULL }, NULL, NULL,
     pii147_config
@@ -693,10 +699,46 @@ static const device_config_t p5pak_config[] = {
 static const device_t p5pak_device = {
     "Paradise Systems 5-PAK",
     DEVICE_ISA,
-    2,
+    ISARTC_P5PAK,
     isartc_init, isartc_close, NULL,
     { NULL }, NULL, NULL,
     p5pak_config
+};
+
+
+static const device_config_t a6pak_config[] = {
+	{
+		"irq", "IRQ", CONFIG_SELECTION, "", -1, "", { 0 },
+		{
+			{
+				"Disabled", -1
+			},
+			{
+				"IRQ2", 2
+			},
+			{
+				"IRQ3", 3
+			},
+			{
+				"IRQ5", 5
+			},
+			{
+				""
+			}
+		},
+	},
+	{
+		"", "", -1
+	}
+};
+
+static const device_t a6pak_device = {
+    "AST SixPakPlus",
+    DEVICE_ISA,
+    ISARTC_A6PAK,
+    isartc_init, isartc_close, NULL,
+    { NULL }, NULL, NULL,
+    a6pak_config
 };
 
 
@@ -708,6 +750,7 @@ static const struct {
     { "ev170",	&ev170_device	},
     { "pii147",	&pii147_device	},
     { "p5pak",	&p5pak_device	},
+    { "a6pak",	&a6pak_device	},
     { "",	NULL		},
 };
 
