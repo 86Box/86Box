@@ -52,8 +52,13 @@ typedef struct {
 } disk_size_t;
 
 
-static const disk_size_t disk_sizes[14] = {	{	0,  1, 2, 1, 0,  40,  8, 2, 0xfe, 2, 2,  1,  64 },		/* 160k */
-						{	0,  1, 2, 1, 0,  40,  9, 2, 0xfc, 2, 2,  1,  64 },		/* 180k */
+static const disk_size_t disk_sizes[14] = {
+//						{	1,  1, 2, 1, 1,  77, 26, 0,    0, 4, 2,  6,  68 },		/* 250k 8" */
+//						{	1,  2, 2, 1, 1,  77, 26, 0,    0, 4, 2,  6,  68 },		/* 500k 8" */
+//						{	1,  1, 2, 1, 1,  77,  8, 3,    0, 1, 2,  2, 192 },		/* 616k 8" */
+//						{	1,  2, 0, 1, 1,  77,  8, 3,    0, 1, 2,  2, 192 },		/* 1232k 8" */
+						{	0,  1, 2, 1, 0,  40,  8, 2, 0xfe, 1, 2,  1,  64 },		/* 160k */
+						{	0,  1, 2, 1, 0,  40,  9, 2, 0xfc, 1, 2,  2,  64 },		/* 180k */
 						{	0,  2, 2, 1, 0,  40,  8, 2, 0xff, 2, 2,  1, 112 },		/* 320k */
 						{	0,  2, 2, 1, 0,  40,  9, 2, 0xfd, 2, 2,  2, 112 },		/* 360k */
 						{	0,  2, 2, 1, 0,  80,  8, 2, 0xfb, 2, 2,  2, 112 },		/* 640k */
@@ -698,7 +703,7 @@ NewFloppyDialogProcedure(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
     uint8_t disk_size, rpm_mode;
     int ret;
     FILE *f;
-    int zip_types, mo_types;
+    int zip_types, mo_types, floppy_types;
     wchar_t *twcs;
 
     switch (message) {
@@ -716,7 +721,8 @@ NewFloppyDialogProcedure(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 			for (i = 0; i < mo_types; i++)
 		                SendMessage(h, CB_ADDSTRING, 0, win_get_string(IDS_5902 + i));
 		} else {
-			for (i = 0; i < 12; i++)
+			floppy_types = 12;
+			for (i = 0; i < floppy_types; i++)
 		                SendMessage(h, CB_ADDSTRING, 0, win_get_string(IDS_5888 + i));
 		}
                 SendMessage(h, CB_SETCURSEL, 0, 0);

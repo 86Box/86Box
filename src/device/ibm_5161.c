@@ -54,15 +54,29 @@ ibm_5161_in(uint16_t port, void *priv)
     ret = dev->regs[port & 0x0007];
 
     switch (port) {
-	case 0x211:
-	case 0x215:
+	case 0x210: /* Write to latch expansion bus data (ED0-ED7) */
+				/* Read to verify expansion bus data (ED0-ED7) */
+		break;
+	case 0x214: /* Write to latch data bus bits (DO - 07) */
+				/* Read data bus bits (DO - D7) */
+		break;
+	case 0x211: /* Read high-order address bits (A8 - A 15) */
+	case 0x215: /* Read high-order address bits (A8 - A 15) */
 		ret = (get_last_addr() >> 8) & 0xff;
 		break;
-	case 0x212:
-	case 0x216:
+	case 0x212: /* Read low-order address bits (A0 - A7) */
+	case 0x216: /* Read low-order address bits (A0 - A7) */
 		ret = get_last_addr() & 0xff;
 		break;
-	case 0x213:
+	case 0x213: /* Write 00 to disable expansion unit */
+				/* Write 01 to enable expansion unit */
+				/* Read status of expansion unit
+						00 = enable/disable
+						01 = wait-state request flag
+						02-03 = not used
+						04-07 = switch position
+							1 = Off
+							0 =On */
 		ret = dev->regs[3] & 0x01;
 		break;
     }
