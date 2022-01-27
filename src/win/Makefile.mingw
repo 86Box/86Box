@@ -75,6 +75,9 @@ ifeq ($(DEV_BUILD), y)
  ifndef ISAMEM_IAB
   ISAMEM_IAB := y
  endif
+ ifndef ISAMEM_BRAT
+  ISAMEM_BRAT := y
+ endif
  ifndef OLIVETTI
   OLIVETTI	:= y
  endif
@@ -129,6 +132,9 @@ else
  endif
  ifndef ISAMEM_IAB
   ISAMEM_IAB := n
+ endif
+ ifndef ISAMEM_BRAT
+  ISAMEM_BRAT := n
  endif
  ifndef OLIVETTI
   OLIVETTI	:= n
@@ -468,6 +474,10 @@ endif
 
 ifeq ($(ISAMEM_IAB), y)
 OPTS        += -DUSE_ISAMEM_IAB
+endif
+
+ifeq ($(ISAMEM_BRAT), y)
+OPTS        += -DUSE_ISAMEM_BRAT
 endif
 
 ifeq ($(OLIVETTI), y)
