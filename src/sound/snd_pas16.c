@@ -17,6 +17,7 @@
 #include <86box/filters.h>
 #include <86box/snd_mpu401.h>
 #include <86box/snd_opl.h>
+#include <86box/snd_sb.h>
 #include <86box/snd_sb_dsp.h>
 
 
@@ -413,7 +414,7 @@ static void pas16_pit_out(uint16_t port, uint8_t val, void *p)
                 {
                         if (!(val & 0x20))
                         {
-                                if (val & 2) pas16->pit.rl[0] = timer_get_remaining_u64(&pit.timer[0]) / PITCONST;;
+                                if (val & 2) pas16->pit.rl[0] = timer_get_remaining_u64(&pas16->pit.timer[0]) / PITCONST;;
                                 if (val & 4) pas16->pit.rl[1] = pas16->pit.c[1];
                                 if (val & 8) pas16->pit.rl[2] = pas16->pit.c[2];
                         }
@@ -429,7 +430,7 @@ static void pas16_pit_out(uint16_t port, uint8_t val, void *p)
                 if (!(pas16->pit.ctrl & 0x30))
                 {
 			if (!t)
-                                pas16->pit.rl[t] = timer_get_remaining_u64(&pit.timer[t]) / PITCONST;
+                                pas16->pit.rl[t] = timer_get_remaining_u64(&pas16->pit.timer[t]) / PITCONST;
 			else
 			{
 	                        pas16->pit.rl[t] = pas16->pit.c[t];
@@ -450,7 +451,7 @@ static void pas16_pit_out(uint16_t port, uint8_t val, void *p)
                         {
                                 pas16->pit.rm[t] = 3;
 				if (!t)
-                                        pas16->pit.rl[t] = timer_get_remaining_u64(&pit.timer[t]) / PITCONST;
+                                        pas16->pit.rl[t] = timer_get_remaining_u64(&pas16->pit.timer[t]) / PITCONST;
 				else
 	                                pas16->pit.rl[t] = pas16->pit.c[t];
                         }
@@ -519,8 +520,8 @@ static uint8_t pas16_pit_in(uint16_t port, void *p)
                         pas16->pit.rereadlatch[t] = 0;
                         if (!t)
                         {
-                                pas16->pit.rl[t] = timer_get_remaining_u64(&pit.timer[t]) / PITCONST;
-                                if ((timer_get_remaining_u64(&pit.timer[t]) / PITCONST) > 65536) 
+                                pas16->pit.rl[t] = timer_get_remaining_u64(&pas16->pit.timer[t]) / PITCONST;
+                                if ((timer_get_remaining_u64(&pas16->pit.timer[t]) / PITCONST) > 65536) 
                                         pas16->pit.rl[t] = 0xFFFF;
                         }
                         else

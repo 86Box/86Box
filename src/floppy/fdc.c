@@ -2311,7 +2311,7 @@ fdc_reset(void *priv)
     fdc->max_track = (fdc->flags & FDC_FLAG_MORE_TRACKS) ? 85 : 79;
 
     fdc_remove(fdc);
-    fdc_set_base(fdc, (fdc->flags & FDC_FLAG_PCJR) ? 0x00f0 : 0x03f0);
+    fdc_set_base(fdc, (fdc->flags & FDC_FLAG_PCJR) ? FDC_PRIMARY_PCJR_ADDR : FDC_PRIMARY_ADDR);
 
     current_drive = 0;
 
@@ -2342,12 +2342,12 @@ fdc_init(const device_t *info)
 
     fdc->flags = info->local;
 
-    fdc->irq = 6;
+    fdc->irq = FDC_PRIMARY_IRQ;
 
     if (fdc->flags & FDC_FLAG_PCJR)
 	timer_add(&fdc->watchdog_timer, fdc_watchdog_poll, fdc, 0);
     else
-	fdc->dma_ch = 2;
+	fdc->dma_ch = FDC_PRIMARY_DMA;
 
     fdc_log("FDC added: %04X (flags: %08X)\n", fdc->base_address, fdc->flags);
 
