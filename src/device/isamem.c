@@ -94,6 +94,7 @@
 #define ISAMEM_EV159_CARD 10
 #define ISAMEM_RAMPAGEXT_CARD 11
 #define ISAMEM_ABOVEBOARD_CARD 12
+#define ISAMEM_BRAT_CARD 13
 
 #define ISAMEM_DEBUG	0
 
@@ -451,6 +452,7 @@ dev->frame_addr = 0xE0000;
 
 	case ISAMEM_RAMPAGEXT_CARD: /* AST RAMpage/XT */
 	case ISAMEM_ABOVEBOARD_CARD: /* Intel AboveBoard */
+	case ISAMEM_BRAT_CARD: /* BocaRAM/AT */
 		dev->base_addr = device_get_config_hex16("base");
 		dev->total_size = device_get_config_int("size");
 		dev->start_addr = device_get_config_int("start");
@@ -982,6 +984,96 @@ static const device_t ev159_device = {
     { NULL }, NULL, NULL,
     ev159_config
 };
+
+
+#ifdef USE_ISAMEM_BRAT
+static const device_config_t brat_config[] =
+{
+	{
+		"base", "Address", CONFIG_HEX16, "", 0x0258, "", { 0 },
+		{
+			{
+				"208H", 0x0208
+			},
+			{
+				"218H", 0x0218
+			},
+			{
+				"258H", 0x0258
+			},
+			{
+				"268H", 0x0268
+			},
+			{
+				""
+			}
+		},
+	},
+	{
+		"frame", "Frame Address", CONFIG_HEX20, "", 0, "", { 0 },
+		{
+			{
+				"Disabled", 0x00000
+			},
+			{
+				"D000H", 0xD0000
+			},
+			{
+				"E000H", 0xE0000
+			},
+			{
+				""
+			}
+		},
+	},
+	{
+		"width", "I/O Width", CONFIG_SELECTION, "", 8, "", { 0 },
+		{
+			{
+				"8-bit", 8
+			},
+			{
+				"16-bit", 16
+			},
+			{
+				""
+			}
+		},
+	},
+	{
+		"speed", "Transfer Speed", CONFIG_SELECTION, "", 0, "", { 0 },
+		{
+			{
+				"Standard", 0
+			},
+			{
+				"High-Speed", 1
+			},
+			{
+				""
+			}
+		}
+	},
+	{
+		"size", "Memory Size", CONFIG_SPINNER, "", 128,
+		"",
+		{ 0, 8192, 512 },
+		{ 0 }
+	},
+	{
+		"", "", -1
+	}
+};
+
+static const device_t brat_device = {
+    "BocaRAM/AT",
+    DEVICE_ISA,
+    ISAMEM_BRAT_CARD,
+    isamem_init, isamem_close, NULL,
+    { NULL }, NULL, NULL,
+    brat_config
+};
+#endif
 
 
 #ifdef USE_ISAMEM_RAMPAGE
