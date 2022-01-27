@@ -1075,7 +1075,7 @@ static const device_config_t rampage_config[] =
 	}
 };
 
-static const device_t isamem_rampage_device = {
+static const device_t rampage_device = {
     "AST RAMpage/XT",
     DEVICE_ISA,
     ISAMEM_RAMPAGEXT_CARD,
@@ -1177,7 +1177,7 @@ static const device_config_t iab_config[] =
 	}
 };
 
-static const device_t isamem_iab_device = {
+static const device_t iab_device = {
     "Intel AboveBoard",
     DEVICE_ISA,
     ISAMEM_ABOVEBOARD_CARD,

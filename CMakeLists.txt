@@ -113,21 +113,23 @@ option(DEV_BRANCH   "Development branch"                                        
 
 # Development branch features
 #
-#                      Option       Description                                     Def.    Condition       Otherwise
-#                      ------       -----------                                     ----    ---------       ---------
-cmake_dependent_option(AMD_K5       "AMD K5"                                        ON      "DEV_BRANCH"    OFF)
-cmake_dependent_option(CYRIX_6X86   "Cyrix 6x86"                                    ON      "DEV_BRANCH"    OFF)
-cmake_dependent_option(GUSMAX       "Gravis UltraSound MAX"                         ON      "DEV_BRANCH"    OFF)
-cmake_dependent_option(LASERXT      "VTech Laser XT"                                ON      "DEV_BRANCH"    OFF)
-cmake_dependent_option(MGA          "Matrox Mystique graphics adapters"             ON      "DEV_BRANCH"    OFF)
-cmake_dependent_option(NO_SIO       "Machines without emulated Super I/O chips"     ON      "DEV_BRANCH"    OFF)
-cmake_dependent_option(OLIVETTI     "Olivetti M290"                                 ON      "DEV_BRANCH"    OFF)
-cmake_dependent_option(OPEN_AT      "OpenAT"                                        ON      "DEV_BRANCH"    OFF)
-cmake_dependent_option(PAS16        "Pro Audio Spectrum 16"                         OFF     "DEV_BRANCH"    OFF)
-cmake_dependent_option(SIO_DETECT   "Super I/O Detection Helper"                    ON      "DEV_BRANCH"    OFF)
-cmake_dependent_option(VGAWONDER    "ATI VGA Wonder (ATI-18800)"                    ON      "DEV_BRANCH"    OFF)
-cmake_dependent_option(VNC          "VNC renderer"                                  OFF     "DEV_BRANCH"    OFF)
-cmake_dependent_option(XL24         "ATI VGA Wonder XL24 (ATI-28800-6)"             ON      "DEV_BRANCH"    OFF)
+#                      Option         Description                                   Def.    Condition       Otherwise
+#                      ------         -----------                                   ----    ---------       ---------
+cmake_dependent_option(AMD_K5         "AMD K5"                                      ON      "DEV_BRANCH"    OFF)
+cmake_dependent_option(CYRIX_6X86     "Cyrix 6x86"                                  ON      "DEV_BRANCH"    OFF)
+cmake_dependent_option(GUSMAX         "Gravis UltraSound MAX"                       ON      "DEV_BRANCH"    OFF)
+cmake_dependent_option(LASERXT        "VTech Laser XT"                              ON      "DEV_BRANCH"    OFF)
+cmake_dependent_option(MGA            "Matrox Mystique graphics adapters"           ON      "DEV_BRANCH"    OFF)
+cmake_dependent_option(NO_SIO         "Machines without emulated Super I/O chips"   ON      "DEV_BRANCH"    OFF)
+cmake_dependent_option(OLIVETTI       "Olivetti M290"                               ON      "DEV_BRANCH"    OFF)
+cmake_dependent_option(OPEN_AT        "OpenAT"                                      ON      "DEV_BRANCH"    OFF)
+cmake_dependent_option(PAS16          "Pro Audio Spectrum 16"                       OFF     "DEV_BRANCH"    OFF)
+cmake_dependent_option(SIO_DETECT     "Super I/O Detection Helper"                  ON      "DEV_BRANCH"    OFF)
+cmake_dependent_option(VGAWONDER      "ATI VGA Wonder (ATI-18800)"                  ON      "DEV_BRANCH"    OFF)
+cmake_dependent_option(VNC            "VNC renderer"                                OFF     "DEV_BRANCH"    OFF)
+cmake_dependent_option(XL24           "ATI VGA Wonder XL24 (ATI-28800-6)"           ON      "DEV_BRANCH"    OFF)
+cmake_dependent_option(ISAMEM_RAMPAGE "AST Rampage"                                 ON      "DEV_BRANCH"    OFF)
+cmake_dependent_option(ISAMEM_IAB     "Intel Above Board"                           ON      "DEV_BRANCH"    OFF)
 
 # Determine the build type
 set(RELEASE_BUILD   OFF)
