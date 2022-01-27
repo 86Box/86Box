@@ -105,7 +105,7 @@ const machine_type_t machine_types[] = {
 const machine_t machines[] = {
     /* 8088 Machines */
     { "[8088] IBM PC (1981)",			"ibmpc",		MACHINE_TYPE_8088,		CPU_PKG_8088, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC,									   16,    64,  16,    0,		      machine_pc_init, NULL			},
-    { "[8088] IBM PC (1982)",			"ibmpc82",		MACHINE_TYPE_8088,		CPU_PKG_8088, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC,									  256,   256, 256,    0,		    machine_pc82_init, NULL			},
+    { "[8088] IBM PC (1982)",			"ibmpc82",		MACHINE_TYPE_8088,		CPU_PKG_8088, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC,									   64,   256,  64,    0,		      machine_pc82_init, NULL		},
     { "[8088] IBM PCjr",			"ibmpcjr",		MACHINE_TYPE_8088,		CPU_PKG_8088, 0, 4772728, 4772728, 0, 0, 0, 0,									MACHINE_PC | MACHINE_VIDEO_FIXED | MACHINE_CARTRIDGE,				  128,   640, 128,    0,		    machine_pcjr_init, pcjr_get_device		},
     { "[8088] IBM XT (1982)",			"ibmxt",		MACHINE_TYPE_8088,		CPU_PKG_8088, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC,									   64,   256,  64,    0,		      machine_xt_init, NULL			},
     { "[8088] IBM XT (1986)",			"ibmxt86",		MACHINE_TYPE_8088,		CPU_PKG_8088, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC,									  256,   640,  64,    0,		    machine_xt86_init, NULL			},

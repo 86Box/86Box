@@ -101,7 +101,7 @@ b215_init(const device_t *info)
     rom_init(&dev->rom, ROM_B215, ROM_ADDR, 0x2000, 0x1fff, 0, MEM_MAPPING_EXTERNAL);
 
     dev->fdc_controller = device_add(&fdc_um8398_device);
-    io_sethandler(0x03f0, 1, b215_read, NULL, NULL, NULL, NULL, NULL, dev);
+    io_sethandler(FDC_PRIMARY_ADDR, 1, b215_read, NULL, NULL, NULL, NULL, NULL, dev);
 
     return dev;
 }

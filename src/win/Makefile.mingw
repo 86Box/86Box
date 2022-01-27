@@ -69,6 +69,12 @@ ifeq ($(DEV_BUILD), y)
  ifndef XL24
   XL24		:= y
  endif
+ ifndef ISAMEM_RAMPAGE
+  ISAMEM_RAMPAGE := y
+ endif
+ ifndef ISAMEM_IAB
+  ISAMEM_IAB := y
+ endif
  ifndef OLIVETTI
   OLIVETTI	:= y
  endif
@@ -117,6 +123,12 @@ else
  endif
  ifndef XL24
   XL24		:= n
+ endif
+ ifndef ISAMEM_RAMPAGE
+  ISAMEM_RAMPAGE := n
+ endif
+ ifndef ISAMEM_IAB
+  ISAMEM_IAB := n
  endif
  ifndef OLIVETTI
   OLIVETTI	:= n
@@ -448,6 +460,14 @@ endif
 
 ifeq ($(XL24), y)
 OPTS		+= -DUSE_XL24
+endif
+
+ifeq ($(ISAMEM_RAMPAGE), y)
+OPTS        += -DUSE_ISAMEM_RAMPAGE
+endif
+
+ifeq ($(ISAMEM_IAB), y)
+OPTS        += -DUSE_ISAMEM_IAB
 endif
 
 ifeq ($(OLIVETTI), y)
