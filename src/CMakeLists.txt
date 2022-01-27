@@ -217,6 +217,7 @@ if(APPLE)
         install_qt5_plugin("Qt6::QCocoaIntegrationPlugin" QT_PLUGINS ${prefix})
     else()
         install_qt5_plugin("Qt5::QCocoaIntegrationPlugin" QT_PLUGINS ${prefix})
+        install_qt5_plugin("Qt5::QMacStylePlugin" QT_PLUGINS ${prefix})
     endif()
     
     file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/qt.conf"
