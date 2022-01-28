@@ -47,6 +47,12 @@ typedef struct
 	uint8_t misc;
 	uint8_t type;
 	uint8_t mode;
+	uint8_t pll_addr;
+	uint8_t clock_sel;
+	struct
+	{
+		uint8_t m, n, p;
+	} pix, mem, loop;
 } tvp3026_ramdac_t;
 
 static void
@@ -95,7 +101,6 @@ tvp3026_ramdac_out(uint16_t addr, int rs2, int rs3, uint8_t val, void *p, svga_t
     uint16_t da_mask = 0x03ff;
     rs |= (!!rs2 << 2);
     rs |= (!!rs3 << 3);
-
 
     switch (rs) {
 	case 0x00:	/* Palette Write Index Register (RS value = 0000) */
@@ -152,7 +157,7 @@ tvp3026_ramdac_out(uint16_t addr, int rs2, int rs3, uint8_t val, void *p, svga_t
 			svga->dac_hwcursor.xsize = svga->dac_hwcursor.ysize = 64;
 			svga->dac_hwcursor.x = ramdac->hwc_x - svga->dac_hwcursor.xsize;
 			svga->dac_hwcursor.y = ramdac->hwc_y - svga->dac_hwcursor.ysize;
-			svga->dac_hwcursor.ena = ((val & 0x03) != 0);
+			svga->dac_hwcursor.ena = !!(val & 0x03);
 			ramdac->mode = val & 0x03;
 		}
 		break;
@@ -163,7 +168,7 @@ tvp3026_ramdac_out(uint16_t addr, int rs2, int rs3, uint8_t val, void *p, svga_t
 				svga->dac_hwcursor.xsize = svga->dac_hwcursor.ysize = 64;
 				svga->dac_hwcursor.x = ramdac->hwc_x - svga->dac_hwcursor.xsize;
 				svga->dac_hwcursor.y = ramdac->hwc_y - svga->dac_hwcursor.ysize;
-				svga->dac_hwcursor.ena = ((val & 0x03) != 0);
+				svga->dac_hwcursor.ena = !!(val & 0x03);
 				ramdac->mode = val & 0x03;
 				break;
 			case 0x0f: /* Latch Control */
@@ -177,6 +182,9 @@ tvp3026_ramdac_out(uint16_t addr, int rs2, int rs3, uint8_t val, void *p, svga_t
 				ramdac->mcr = val;
 				tvp3026_set_bpp(ramdac, svga);
 				break;
+			case 0x1a: /* Clock Selection */
+				ramdac->clock_sel = val;
+				break;
 			case 0x1c: /* Palette-Page Register */
 				ramdac->ppr = val;
 				break;
@@ -186,6 +194,51 @@ tvp3026_ramdac_out(uint16_t addr, int rs2, int rs3, uint8_t val, void *p, svga_t
 			case 0x1e: /* Miscellaneous Control */
 				ramdac->misc = val;
 				svga->ramdac_type = (val & 0x08) ? RAMDAC_8BIT : RAMDAC_6BIT;
+				break;
+			case 0x2c: /* PLL Address */
+				ramdac->pll_addr = val;
+				break;
+			case 0x2d: /* Pixel clock PLL data */
+				switch (ramdac->pll_addr & 3) {
+                    case 0:
+                        ramdac->pix.n = val;
+                        break;
+                    case 1:
+                        ramdac->pix.m = val;
+                        break;
+                    case 2:
+                        ramdac->pix.p = val;
+                        break;
+                }
+                ramdac->pll_addr = ((ramdac->pll_addr + 1) & 3) | (ramdac->pll_addr & 0xfc);
+                break;
+			case 0x2e: /* Memory Clock PLL Data */
+				switch ((ramdac->pll_addr >> 2) & 3) {
+					case 0:
+						ramdac->mem.n = val;
+						break;
+					case 1:
+						ramdac->mem.m = val;
+						break;
+					case 2:
+						ramdac->mem.p = val;
+						break;
+				}
+				ramdac->pll_addr = ((ramdac->pll_addr + 4) & 0x0c) | (ramdac->pll_addr & 0xf3);
+				break;
+			case 0x2f: /* Loop Clock PLL Data */
+				switch ((ramdac->pll_addr >> 4) & 3) {
+					case 0:
+						ramdac->loop.n = val;
+						break;
+					case 1:
+						ramdac->loop.m = val;
+						break;
+					case 2:
+						ramdac->loop.p = val;
+						break;
+				}
+				ramdac->pll_addr = ((ramdac->pll_addr + 0x10) & 0x30) | (ramdac->pll_addr & 0xcf);
 				break;
 			case 0x39: /* MCLK/Loop Clock Control */
 				ramdac->mclk = val;
@@ -292,6 +345,9 @@ tvp3026_ramdac_in(uint16_t addr, int rs2, int rs3, void *p, svga_t *svga)
 			case 0x19: /* Multiplex Control */
 				temp = ramdac->mcr;
 				break;
+			case 0x1a: /* Clock Selection */
+				temp = ramdac->clock_sel;
+				break;
 			case 0x1c: /* Palette-Page Register */
 				temp = ramdac->ppr;
 				break;
@@ -300,6 +356,54 @@ tvp3026_ramdac_in(uint16_t addr, int rs2, int rs3, void *p, svga_t *svga)
 				break;
 			case 0x1e: /* Miscellaneous Control */
 				temp = ramdac->misc;
+				break;
+			case 0x2c: /* PLL Address */
+				temp = ramdac->pll_addr;
+				break;
+			case 0x2d: /* Pixel clock PLL data */
+				switch (ramdac->pll_addr & 3) {
+                    case 0:
+                        temp = ramdac->pix.n;
+                        break;
+                    case 1:
+                        temp = ramdac->pix.m;
+                        break;
+                    case 2:
+                        temp = ramdac->pix.p;
+                        break;
+					case 3:
+						temp = 0x40; /*PLL locked to frequency*/
+						break;
+                }
+                break;
+			case 0x2e: /* Memory Clock PLL Data */
+				switch ((ramdac->pll_addr >> 2) & 3) {
+					case 0:
+						temp = ramdac->mem.n;
+						break;
+					case 1:
+						temp = ramdac->mem.m;
+						break;
+					case 2:
+						temp = ramdac->mem.p;
+						break;
+					case 3:
+						temp = 0x40; /*PLL locked to frequency*/
+						break;
+				}
+				break;
+			case 0x2f: /* Loop Clock PLL Data */
+				switch ((ramdac->pll_addr >> 4) & 3) {
+					case 0:
+						temp = ramdac->loop.n;
+						break;
+					case 1:
+						temp = ramdac->loop.m;
+						break;
+					case 2:
+						temp = ramdac->loop.p;
+						break;
+				}
 				break;
 			case 0x39: /* MCLK/Loop Clock Control */
 				temp = ramdac->mclk;
@@ -436,6 +540,29 @@ tvp3026_hwcursor_draw(svga_t *svga, int displine)
 }
 
 
+float 
+tvp3026_getclock(int clock, void *p)
+{
+	tvp3026_ramdac_t *ramdac = (tvp3026_ramdac_t *) p;
+	int n, m, pl;
+	float f_vco, f_pll;
+	
+    if (clock == 0)
+	return 25175000.0;
+    if (clock == 1)
+	return 28322000.0;	
+	
+/*Fvco = 8 x Fref x (65 - M) / (65 - N)*/
+/*Fpll = Fvco / 2^P*/
+    n = ramdac->pix.n & 0x3f;
+    m = ramdac->pix.m & 0x3f;
+    pl = ramdac->pix.p & 0x03;
+    f_vco = 8.0 * 14318184 * (float)(65 - m) / (float)(65 - n);
+    f_pll = f_vco / (float)(1 << pl);
+
+    return f_pll;
+}
+
 void *
 tvp3026_ramdac_init(const device_t *info)
 {
@@ -447,6 +574,7 @@ tvp3026_ramdac_init(const device_t *info)
 	ramdac->latch_cntl = 0x06;
 	ramdac->true_color = 0x80;
 	ramdac->mcr = 0x98;
+	ramdac->clock_sel = 0x07;
 	ramdac->mclk = 0x18;
 
     return ramdac;
