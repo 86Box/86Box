@@ -37,7 +37,7 @@ BEGIN
         MENUITEM "&Изменяемый размер окна",          IDM_VID_RESIZE
         MENUITEM "&Запомнить размер и положение",  IDM_VID_REMEMBER
         MENUITEM SEPARATOR
-        POPUP "&Рендерер"
+        POPUP "&Рендеринг"
         BEGIN
             MENUITEM "&SDL (Software)",         IDM_VID_SDL_SW
             MENUITEM "SDL (&Hardware)",         IDM_VID_SDL_HW
@@ -144,7 +144,7 @@ BEGIN
         MENUITEM "&Точка останова журнала\tCtrl+F10", IDM_LOG_BREAKPOINT
 #  endif
 #  ifdef ENABLE_VRAM_DUMP
-        MENUITEM "&Выгрузка дампа видео-ОЗУ\tCtrl+F1", IDM_DUMP_VRAM
+        MENUITEM "&Выгрузка дампа видеопамяти\tCtrl+F1", IDM_DUMP_VRAM
 #  endif
 # endif
     END
