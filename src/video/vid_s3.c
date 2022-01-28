@@ -41,6 +41,7 @@
 #define ROM_DIAMOND_STEALTH_VRAM	"roms/video/s3/Diamond Stealth VRAM BIOS v2.31 U14.BIN"
 #define ROM_AMI_86C924			"roms/video/s3/S3924AMI.BIN"
 #define ROM_METHEUS_86C928		"roms/video/s3/928.VBI"
+#define ROM_SPEA_MERCURY_LITE_PCI	"roms/video/s3/SPEAVGA.VBI"
 #define ROM_SPEA_MIRAGE_86C801		"roms/video/s3/V7MIRAGE.VBI"
 #define ROM_SPEA_MIRAGE_86C805		"roms/video/s3/86c805pspeavlbus.BIN"
 #define ROM_MIROCRYSTAL8S_805		"roms/video/s3/S3_805VL_ATT20C491_miroCRYSTAL_8s_ver1.4.BIN"
@@ -104,7 +105,8 @@ enum
 	S3_PHOENIX_VISION968,
 	S3_MIROCRYSTAL8S_805,
 	S3_NUMBER9_9FX_531,
-	S3_NUMBER9_9FX_771
+	S3_NUMBER9_9FX_771,
+	S3_SPEA_MERCURY_LITE_PCI
 };
 
 
@@ -113,22 +115,24 @@ enum
 	S3_86C911 = 0x00,
 	S3_86C924 = 0x02,
 	S3_86C928 = 0x04,
-	S3_86C801 = 0x06,
-	S3_86C805 = 0x07,
-	S3_VISION964 = 0x08,
-	S3_VISION968 = 0x10,
-	S3_VISION864 = 0x18,
-	S3_VISION868 = 0x20,
-	S3_TRIO32 = 0x28,
-	S3_TRIO64 = 0x30,
-	S3_TRIO64V = 0x38,
-	S3_TRIO64V2 = 0x40
+	S3_86C928PCI = 0x06,
+	S3_86C801 = 0x07,
+	S3_86C805 = 0x08,
+	S3_VISION964 = 0x18,
+	S3_VISION968 = 0x20,
+	S3_VISION864 = 0x28,
+	S3_VISION868 = 0x30,
+	S3_TRIO32 = 0x38,
+	S3_TRIO64 = 0x40,
+	S3_TRIO64V = 0x48,
+	S3_TRIO64V2 = 0x50
 };
 
 
 static video_timings_t timing_s3_86c911		= {VIDEO_ISA, 4,  4,  5,  20, 20, 35};
 static video_timings_t timing_s3_86c801		= {VIDEO_ISA, 4,  4,  5,  20, 20, 35};
 static video_timings_t timing_s3_86c805		= {VIDEO_BUS, 4,  4,  5,  20, 20, 35};
+static video_timings_t timing_s3_86c928pci	= {VIDEO_PCI, 2,  2,  4,  26, 26, 42};
 static video_timings_t timing_s3_stealth64_vlb	= {VIDEO_BUS, 2,  2,  4,  26, 26, 42};
 static video_timings_t timing_s3_stealth64_pci	= {VIDEO_PCI, 2,  2,  4,  26, 26, 42};
 static video_timings_t timing_s3_vision864_vlb	= {VIDEO_BUS, 4,  4,  5,  20, 20, 35};
@@ -563,7 +567,7 @@ static void
 s3_accel_out_pixtrans_w(s3_t *s3, uint16_t val)
 {
 	svga_t *svga = &s3->svga;
-	
+
 	if (s3->accel.cmd & 0x100) {
 		switch (s3->accel.cmd & 0x600) {
 			case 0x000:
@@ -1173,7 +1177,8 @@ s3_accel_out_fifo(s3_t *s3, uint16_t port, uint8_t val)
 						else
 							s3_accel_start(2, 1, 0xffffffff, s3->accel.pix_trans[0] | (s3->accel.pix_trans[0] << 8), s3);
 					} else {
-						s3_accel_start(2, 1, 0xffffffff, s3->accel.pix_trans[0] | (s3->accel.pix_trans[0] << 8), s3);
+						if (s3->chip != S3_86C928PCI)
+							s3_accel_start(2, 1, 0xffffffff, s3->accel.pix_trans[0] | (s3->accel.pix_trans[0] << 8), s3);
 					}
 					break;
 			}
@@ -1197,7 +1202,7 @@ s3_accel_out_fifo(s3_t *s3, uint16_t port, uint8_t val)
 					}
 					break;
 				case 0x200:
-					/*Windows 95's built-in driver expects this to be loaded regardless of the byte swap bit (0xE2E9) in the 86c928*/
+					/*Windows 95's built-in driver expects this to be loaded regardless of the byte swap bit (0xE2E9) in the 86c928 ISA/VLB*/
 					if (((s3->accel.multifunc[0xa] & 0xc0) == 0x80) || (s3->accel.cmd & 2)) {
 						if (((s3->accel.frgd_mix & 0x60) != 0x40) || ((s3->accel.bkgd_mix & 0x60) != 0x40)) {
 							if (s3->accel.cmd & 0x1000)
@@ -1205,7 +1210,7 @@ s3_accel_out_fifo(s3_t *s3, uint16_t port, uint8_t val)
 							else
 								s3_accel_start(16, 1, s3->accel.pix_trans[0] | (s3->accel.pix_trans[1] << 8), 0, s3);
 						} else {
-							if (s3->chip == S3_86C928)
+							if (s3->chip == S3_86C928 || s3->chip == S3_86C928PCI)
 								s3_accel_out_pixtrans_w(s3, s3->accel.pix_trans[0] | (s3->accel.pix_trans[1] << 8));
 							else {
 								if (s3->accel.cmd & 0x1000)
@@ -1214,6 +1219,15 @@ s3_accel_out_fifo(s3_t *s3, uint16_t port, uint8_t val)
 									s3_accel_start(2, 1, 0xffffffff, s3->accel.pix_trans[0] | (s3->accel.pix_trans[1] << 8), s3);
 							}
 						}
+					} else {
+						if (s3->chip == S3_86C928 || s3->chip == S3_86C928PCI)
+							s3_accel_out_pixtrans_w(s3, s3->accel.pix_trans[0] | (s3->accel.pix_trans[1] << 8));
+						else {
+							if (s3->accel.cmd & 0x1000)
+								s3_accel_start(2, 1, 0xffffffff, s3->accel.pix_trans[1] | (s3->accel.pix_trans[0] << 8), s3);
+							else
+								s3_accel_start(2, 1, 0xffffffff, s3->accel.pix_trans[0] | (s3->accel.pix_trans[1] << 8), s3);
+						}						
 					}
 					break;
 				case 0x400:
@@ -1261,7 +1275,7 @@ s3_accel_out_fifo(s3_t *s3, uint16_t port, uint8_t val)
 						s3_accel_start(1, 1, 0xffffffff, s3->accel.pix_trans[0] | (s3->accel.pix_trans[1] << 8) | (s3->accel.pix_trans[2] << 16) | (s3->accel.pix_trans[3] << 24), s3);
 					break;
 				case 0x200:
-					/*Windows 95's built-in driver expects the upper 16 bits to be loaded instead of the whole 32-bit one, regardless of the byte swap bit (0xE2EB) in the 86c928*/
+					/*Windows 95's built-in driver expects the upper 16 bits to be loaded instead of the whole 32-bit one, regardless of the byte swap bit (0xE2EB) in the 86c928 ISA/VLB card*/
 					if (((s3->accel.multifunc[0xa] & 0xc0) == 0x80) || (s3->accel.cmd & 2)) {
 						if (((s3->accel.frgd_mix & 0x60) != 0x40) || ((s3->accel.bkgd_mix & 0x60) != 0x40)) {
 							if (s3->accel.cmd & 0x1000)
@@ -1269,7 +1283,7 @@ s3_accel_out_fifo(s3_t *s3, uint16_t port, uint8_t val)
 							else
 								s3_accel_start(16, 1, s3->accel.pix_trans[0] | (s3->accel.pix_trans[1] << 8) | (s3->accel.pix_trans[2] << 16) | (s3->accel.pix_trans[3] << 24), 0, s3);
 						} else {
-							if (s3->chip == S3_86C928)
+							if (s3->chip == S3_86C928 || s3->chip == S3_86C928PCI)
 								s3_accel_out_pixtrans_w(s3, s3->accel.pix_trans[2] | (s3->accel.pix_trans[3] << 8));
 							else {
 								if (s3->accel.cmd & 0x1000)
@@ -1277,6 +1291,15 @@ s3_accel_out_fifo(s3_t *s3, uint16_t port, uint8_t val)
 								else
 									s3_accel_start(2, 1, 0xffffffff, s3->accel.pix_trans[0] | (s3->accel.pix_trans[1] << 8) | (s3->accel.pix_trans[2] << 16) | (s3->accel.pix_trans[3] << 24), s3);
 							}
+						}
+					} else {
+						if (s3->chip == S3_86C928 || s3->chip == S3_86C928PCI)
+							s3_accel_out_pixtrans_w(s3, s3->accel.pix_trans[2] | (s3->accel.pix_trans[3] << 8));
+						else {
+							if (s3->accel.cmd & 0x1000)
+								s3_accel_start(2, 1, 0xffffffff, s3->accel.pix_trans[3] | (s3->accel.pix_trans[2] << 8) | (s3->accel.pix_trans[1] << 16) | (s3->accel.pix_trans[0] << 24), s3);
+							else
+								s3_accel_start(2, 1, 0xffffffff, s3->accel.pix_trans[0] | (s3->accel.pix_trans[1] << 8) | (s3->accel.pix_trans[2] << 16) | (s3->accel.pix_trans[3] << 24), s3);
 						}
 					}
 					break;
@@ -1360,7 +1383,7 @@ s3_accel_write_fifo(s3_t *s3, uint32_t addr, uint8_t val)
 		if ((addr >= 0x08000) && (addr <= 0x0803f))
 		 	s3_pci_write(0, addr & 0xff, val, s3);
 	}
-
+	
 	switch (addr & 0x1fffe) {
 		case 0x8100: addr = 0x82e8; break; /*ALT_CURXY*/
 		case 0x8102: addr = 0x86e8; break;
@@ -2405,8 +2428,10 @@ s3_out(uint16_t addr, uint8_t val, void *p)
 	{
 		case 0x3c2:
 		if ((s3->chip == S3_VISION964) || (s3->chip == S3_VISION968) || (s3->chip == S3_86C928)) {
-			if (((val >> 2) & 3) != 3)
-	                	icd2061_write(svga->clock_gen, (val >> 2) & 3);
+			if ((s3->card_type != S3_SPEA_MERCURY_P64V) && (s3->card_type != S3_MIROVIDEO40SV_ERGO_968)) {
+				if (((val >> 2) & 3) != 3)
+							icd2061_write(svga->clock_gen, (val >> 2) & 3);
+			}
 		}
                 break;
 
@@ -2472,6 +2497,8 @@ s3_out(uint16_t addr, uint8_t val, void *p)
 			sc1148x_ramdac_out(addr, rs2, val, svga->ramdac, svga);
 		} else if (s3->card_type == S3_NUMBER9_9FX_531)
 			att498_ramdac_out(addr, rs2, val, svga->ramdac, svga);
+		else if ((s3->chip == S3_86C928PCI) && (s3->card_type == S3_SPEA_MERCURY_LITE_PCI))
+			sc1502x_ramdac_out(addr, val, svga->ramdac, svga);
 		else
 			sdac_ramdac_out(addr, rs2, val, svga->ramdac, svga);
 		return;
@@ -2760,6 +2787,8 @@ s3_in(uint16_t addr, void *p)
 			return sc1148x_ramdac_in(addr, rs2, svga->ramdac, svga);
 		else if (s3->card_type == S3_NUMBER9_9FX_531)
 			return att498_ramdac_in(addr, rs2, svga->ramdac, svga);		
+		else if ((s3->chip == S3_86C928PCI) && (s3->card_type == S3_SPEA_MERCURY_LITE_PCI))
+			return sc1502x_ramdac_in(addr, svga->ramdac, svga);
 		else
 			return sdac_ramdac_in(addr, rs2, svga->ramdac, svga);
 		break;
@@ -2880,7 +2909,7 @@ static void s3_recalctimings(svga_t *svga)
 	if (s3->card_type == S3_MIROCRYSTAL10SD_805 || s3->card_type == S3_MIROCRYSTAL20SD_864 ||
 		s3->card_type == S3_MIROCRYSTAL20SV_964 || s3->card_type == S3_SPEA_MIRAGE_86C801 ||
 		s3->card_type == S3_SPEA_MIRAGE_86C805 || s3->card_type == S3_MIROCRYSTAL8S_805 ||
-		s3->card_type == S3_NUMBER9_9FX_531) {
+		s3->card_type == S3_NUMBER9_9FX_531 || s3->card_type == S3_SPEA_MERCURY_LITE_PCI) {
 		if (!(svga->crtc[0x5e] & 0x04))
 			svga->vblankstart = svga->dispend;
 		if (svga->bpp != 32) {
@@ -3006,7 +3035,8 @@ static void s3_recalctimings(svga_t *svga)
 					svga->hdisp = s3->width;
 			}
 			
-			if (s3->card_type == S3_SPEA_MIRAGE_86C801 || s3->card_type == S3_SPEA_MIRAGE_86C805)
+			if (s3->card_type == S3_SPEA_MIRAGE_86C801 || s3->card_type == S3_SPEA_MIRAGE_86C805 || 
+				s3->card_type == S3_SPEA_MERCURY_LITE_PCI)
 				svga->hdisp = s3->width;
 			break;
 			case 16:
@@ -3034,7 +3064,8 @@ static void s3_recalctimings(svga_t *svga)
 					svga->hdisp = s3->width;
 			}
 			
-			if (s3->card_type == S3_SPEA_MIRAGE_86C801 || s3->card_type == S3_SPEA_MIRAGE_86C805)
+			if (s3->card_type == S3_SPEA_MIRAGE_86C801 || s3->card_type == S3_SPEA_MIRAGE_86C805 || 
+				s3->card_type == S3_SPEA_MERCURY_LITE_PCI)
 				svga->hdisp = s3->width;
 			break;
 			case 24:
@@ -3044,6 +3075,15 @@ static void s3_recalctimings(svga_t *svga)
 					svga->hdisp /= 3;
 				else
 					svga->hdisp = (svga->hdisp * 2) / 3;
+				
+				if (s3->card_type == S3_SPEA_MERCURY_LITE_PCI) {
+					if (s3->width == 2048)
+						switch (svga->dispend) {
+							case 480:
+								svga->hdisp = 640;
+								break;
+						}
+				}
 			} else {
 				if (s3->card_type == S3_MIROVIDEO40SV_ERGO_968 || s3->card_type == S3_PHOENIX_VISION968 || 
 					s3->card_type == S3_SPEA_MERCURY_P64V)
@@ -3085,7 +3125,7 @@ static void s3_recalctimings(svga_t *svga)
 								s3->width = 800;	
 							svga->hdisp = 800;
 							break;
-						}						
+						}
 					}
 				}
 			}
@@ -3292,6 +3332,7 @@ s3_updatemapping(s3_t *s3)
 					case S3_TRIO64V:
 					case S3_TRIO64V2:
 					case S3_86C928:
+					case S3_86C928PCI:
 						s3->linear_size = 0x400000;
 						break;
 					default:
@@ -3842,8 +3883,9 @@ s3_accel_in(uint16_t port, void *p)
 							s3_accel_start(16, 1, s3->accel.pix_trans[0], 0, s3);
 						else
 							s3_accel_start(2, 1, 0xffffffff, s3->accel.pix_trans[0], s3);
-					} else
+					} else {
 						s3_accel_start(2, 1, 0xffffffff, s3->accel.pix_trans[0], s3);
+					}
 					break;
 			}
 		}
@@ -5235,7 +5277,6 @@ s3_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat, s3_
 	/*Bit 4 of the Command register is the draw yes bit, which enables writing to memory/reading from memory when enabled.
 	  When this bit is disabled, no writing to memory/reading from memory is allowed. (This bit is almost meaningless on 
 	  the NOP command)*/
-
 	switch (cmd)
 	{
 		case 0: /*NOP (Short Stroke Vectors)*/
@@ -6129,8 +6170,6 @@ s3_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat, s3_
 			frgd_mix = (s3->accel.frgd_mix >> 5) & 3;
 			bkgd_mix = (s3->accel.bkgd_mix >> 5) & 3;
 
-
-
 			while ((s3->accel.poly_cy < end_y1) && (s3->accel.poly_cy2 < end_y2))
 			{
 				int y = s3->accel.poly_cy;
@@ -6278,7 +6317,7 @@ s3_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat, s3_
 
 					ROPMIX
 
-					if (s3->accel.cmd & 0x10) {	
+					if (s3->accel.cmd & 0x10) {
 						WRITE(s3->accel.dest + s3->accel.dx, out);
 					}
 				}
@@ -6615,6 +6654,7 @@ static void s3_reset(void *priv)
 			break;
 
 		case S3_METHEUS_86C928:
+		case S3_SPEA_MERCURY_LITE_PCI:
 			svga->crtc[0x5a] = 0x0a;
 			break;			
 
@@ -6762,6 +6802,11 @@ static void *s3_init(const device_t *info)
 				video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_86c805);
 			else
 				video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_86c801);
+			break;
+		case S3_SPEA_MERCURY_LITE_PCI:
+			bios_fn = ROM_SPEA_MERCURY_LITE_PCI;
+			chip = S3_86C928PCI;
+			video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_86c928pci);
 			break;
 		case S3_MIROCRYSTAL20SD_864:
 			bios_fn = ROM_MIROCRYSTAL20SD_864_VLB;
@@ -7159,7 +7204,20 @@ static void *s3_init(const device_t *info)
 			svga->ramdac = device_add(&bt485_ramdac_device);
 			svga->clock_gen = device_add(&icd2061_device);
 			svga->getclock = icd2061_getclock;
-			break;			
+			break;
+
+		case S3_SPEA_MERCURY_LITE_PCI:
+			svga->decode_mask = (4 << 20) - 1;
+			stepping = 0xb0; /*86C928PCI*/
+			s3->id = stepping;
+			s3->id_ext = stepping;
+			s3->id_ext_pci = stepping;
+			s3->packed_mmio = 0;
+			svga->crtc[0x5a] = 0x0a;
+			svga->ramdac = device_add(&sc1502x_ramdac_device);
+			svga->clock_gen = device_add(&av9194_device);
+			svga->getclock = av9194_getclock;
+			break;					
 			
 		case S3_PARADISE_BAHAMAS64:
 		case S3_PHOENIX_VISION864:
@@ -7219,13 +7277,15 @@ static void *s3_init(const device_t *info)
 			}
 
 			if (info->local == S3_ELSAWIN2KPROX || info->local == S3_PHOENIX_VISION968 ||
-				info->local == S3_NUMBER9_9FX_771)
+				info->local == S3_NUMBER9_9FX_771) {
 				svga->ramdac = device_add(&ibm_rgb528_ramdac_device);
-			else
+				svga->clock_gen = device_add(&icd2061_device);
+				svga->getclock = icd2061_getclock;
+			} else {
 				svga->ramdac = device_add(&tvp3026_ramdac_device);
-
-			svga->clock_gen = device_add(&icd2061_device);
-			svga->getclock = icd2061_getclock;
+				svga->clock_gen = svga->ramdac;
+				svga->getclock = tvp3026_getclock;
+			}
 			break;
 
 		case S3_NUMBER9_9FX_531:
@@ -7378,6 +7438,11 @@ static int s3_mirocrystal_10sd_805_available(void)
 static int s3_metheus_86c928_available(void)
 {
 	return rom_present(ROM_METHEUS_86C928);
+}
+
+static int s3_spea_mercury_lite_pci_available(void)
+{
+	return rom_present(ROM_SPEA_MERCURY_LITE_PCI);
 }
 
 static int s3_bahamas64_available(void)
@@ -7791,6 +7856,20 @@ const device_t s3_metheus_86c928_vlb_device =
 	s3_close,
 	s3_reset,
 	{ s3_metheus_86c928_available },
+	s3_speed_changed,
+	s3_force_redraw,
+	s3_standard_config
+};
+
+const device_t s3_spea_mercury_lite_86c928_pci_device =
+{
+	"S3 86c928 PCI (SPEA Mercury Lite)",
+	DEVICE_PCI,
+	S3_SPEA_MERCURY_LITE_PCI,
+	s3_init,
+	s3_close,
+	s3_reset,
+	{ s3_spea_mercury_lite_pci_available },
 	s3_speed_changed,
 	s3_force_redraw,
 	s3_standard_config
