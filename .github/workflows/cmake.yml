@@ -99,7 +99,6 @@ jobs:
       matrix:
         build:
         - name: Regular ODR
-          slug: ''
           type: Release
           new-dynarec: off
           strip: --strip
@@ -211,21 +210,30 @@ jobs:
         run: cmake --build build --target install
 
   macos:
-    name: "macOS 11"
+    name: "macOS 11 (${{ matrix.build.name }} x86_64)"
 
     runs-on: macos-11
     strategy:
       fail-fast: false
       matrix:
         build:
-        - name: Debug
-          dev-build: off
+        - name: Regular ODR
+          type: Release
           new-dynarec: off
+          strip: --strip
+        - name: Debug ODR
+          slug: -Debug
           type: Debug
-        - name: Dev
-          dev-build: on
+          new-dynarec: off
+        - name: Regular NDR
+          slug: -NDR
+          type: Release
+          strip: --strip
           new-dynarec: on
+        - name: Debug NDR
+          slug: -NDR-Debug
           type: Debug
+          new-dynarec: on
 
     steps:
       - uses: actions/checkout@v2
@@ -234,10 +242,14 @@ jobs:
       - name: Configure CMake
         run: >-
           cmake -S . -B build
-          -D CMAKE_INSTALL_PREFIX=./build/artifacts
-          -D DEV_BRANCH=${{ matrix.build.dev-build }}
+          --toolchain cmake/flags-gcc-x86_64.cmake
           -D NEW_DYNAREC=${{ matrix.build.new-dynarec }}
-          -D VNC=OFF
           -D CMAKE_BUILD_TYPE=${{ matrix.build.type }}
       - name: Build
         run: cmake --build build --target install
+      - name: Generate package
+        run: cmake --install build --prefix ./build/artifacts ${{ matrix.build.strip }}
+      - uses: actions/upload-artifact@v2
+        with:
+          name: '86Box${{ matrix.build.slug }}-macOS-x86_64-gha${{ github.run_number }}'
+          path: build/artifacts/**
