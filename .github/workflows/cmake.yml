@@ -246,7 +246,7 @@ jobs:
           -D NEW_DYNAREC=${{ matrix.build.new-dynarec }}
           -D CMAKE_BUILD_TYPE=${{ matrix.build.type }}
       - name: Build
-        run: cmake --build build --target install
+        run: cmake --build build
       - name: Generate package
         run: cmake --install build --prefix ./build/artifacts ${{ matrix.build.strip }}
       - uses: actions/upload-artifact@v2
