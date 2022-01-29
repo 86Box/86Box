@@ -13,8 +13,13 @@
 #           Copyright 2020,2021 David Hrdlička.
 #
 
-add_library(cpu OBJECT cpu.c cpu_table.c fpu.c x86.c 808x.c 386.c 386_common.c 386_dynarec.c
-    x86seg.c x87.c x87_timings.c)
+set(cpu_SOURCES cpu.c cpu_table.c fpu.c x86.c 808x.c 386.c 386_common.c 386_dynarec.c x86seg.c x87.c x87_timings.c)
+
+if (DYNAREC)
+    set(cpu_SOURCES ${cpu_SOURCES} 386_dynarec_ops.c)
+endif()
+
+add_library(cpu OBJECT ${cpu_SOURCES})
 
 if(AMD_K5)
     target_compile_definitions(cpu PRIVATE USE_AMD_K5)
@@ -29,5 +34,4 @@ if(DYNAREC)
         codegen_timing_common.c codegen_timing_k6.c
         codegen_timing_pentium.c codegen_timing_p6.c
         codegen_timing_winchip.c codegen_timing_winchip2.c)
-    add_library(dynarec_ops OBJECT 386_dynarec_ops.c)
 endif()
