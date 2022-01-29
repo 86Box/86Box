@@ -102,6 +102,7 @@ jobs:
           slug: ''
           type: Release
           new-dynarec: off
+          strip: --strip
         - name: Debug ODR
           slug: -Debug
           type: Debug
@@ -109,6 +110,7 @@ jobs:
         - name: Regular NDR
           slug: -NDR
           type: Release
+          strip: --strip
           new-dynarec: on
         - name: Debug NDR
           slug: -NDR-Debug
@@ -127,9 +129,6 @@ jobs:
           triplet: arm64-windows-static
           toolchain: cmake/llvm-win32-aarch64.cmake
           vcvars: x64_arm64
-        include:
-        - build: Release
-          strip: --strip
         exclude:
         - build: 
             new-dynarec: off
@@ -172,7 +171,7 @@ jobs:
         cmake --build build
       shell: cmd
     - name: Generate package
-      run: cmake --install build --prefix ./build/artifacts ${{ matrix.strip }}
+      run: cmake --install build --prefix ./build/artifacts ${{ matrix.build.strip }}
     - uses: actions/upload-artifact@v2
       with:
         name: '86Box${{ matrix.build.slug }}-Windows-LLVM-${{ matrix.target.name }}-gha${{ github.run_number }}'
