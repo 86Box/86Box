@@ -83,11 +83,11 @@ jobs:
       run: cmake --build build --target ${{ matrix.build.target }}
     - uses: actions/upload-artifact@v2
       with:
-        name: '86Box-${{ matrix.build.name }}-MSYS2-${{ matrix.environment.msystem }}-${{ github.sha }}'
+        name: '86Box-${{ matrix.build.name }}-MSYS2-${{ matrix.environment.msystem }}-gha${{ github.run_number }}'
         path: build/artifacts/**
 
   llvm-windows:
-    name: "Windows vcpkg/LLVM (${{ matrix.build }} ${{ matrix.target.name }} NDR=${{ matrix.new-dynarec }})"
+    name: "Windows vcpkg/LLVM (${{ matrix.build.name }} ${{ matrix.target.name }})"
 
     runs-on: windows-2022
 
@@ -97,8 +97,23 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        build: [Release, Debug]
-        new-dynarec: [on, off]
+        build:
+        - name: Regular ODR
+          slug: ''
+          type: Release
+          new-dynarec: off
+        - name: Debug ODR
+          slug: -Debug
+          type: Debug
+          new-dynarec: off
+        - name: Regular NDR
+          slug: -NDR
+          type: Release
+          new-dynarec: on
+        - name: Debug NDR
+          slug: -NDR-Debug
+          type: Debug
+          new-dynarec: on
         target:
         - name: x86
           triplet: x86-windows-static
@@ -116,7 +131,8 @@ jobs:
         - build: Release
           strip: --strip
         exclude:
-        - new-dynarec: off
+        - build: 
+            new-dynarec: off
           target:
             name: ARM64
 
@@ -144,8 +160,8 @@ jobs:
   
         set PATH=C:/Program Files/LLVM/bin;%PATH%
 
-        cmake -S . -B build -G Ninja -D CMAKE_BUILD_TYPE=${{ matrix.build }}
-        -D NEW_DYNAREC=${{ matrix.new-dynarec }}
+        cmake -S . -B build -G Ninja -D CMAKE_BUILD_TYPE=${{ matrix.build.type }}
+        -D NEW_DYNAREC=${{ matrix.build.new-dynarec }}
         -D CMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake
         -D VCPKG_CHAINLOAD_TOOLCHAIN_FILE=${{ github.workspace }}/${{ matrix.target.toolchain }}
         -D VCPKG_TARGET_TRIPLET=${{ matrix.target.triplet }}
@@ -159,7 +175,7 @@ jobs:
       run: cmake --install build --prefix ./build/artifacts ${{ matrix.strip }}
     - uses: actions/upload-artifact@v2
       with:
-        name: '86Box-${{ matrix.build }}-NDR${{ matrix.new-dynarec }}-Win32-LLVM-${{ matrix.target.name }}-gha${{ github.run_number }}'
+        name: '86Box${{ matrix.build.slug }}-Windows-LLVM-${{ matrix.target.name }}-gha${{ github.run_number }}'
         path: build/artifacts/**
 
   linux:
