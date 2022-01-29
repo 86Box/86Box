@@ -1048,6 +1048,8 @@ pc_reset_hard_init(void)
 
 	cycles = cycles_main = 0;
 	
+	fpu_cycles = 0;
+	
 	update_mouse_msg();
 }
 
