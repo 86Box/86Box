@@ -1446,6 +1446,7 @@ cpu_set(void)
 	case FPU_487SX:
 	default:
 		x87_timings = x87_timings_486;
+		x87_concurrency = x87_concurrency_486;
     }
 
     if (is386) {
