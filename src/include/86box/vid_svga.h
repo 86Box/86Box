@@ -274,6 +274,7 @@ extern void tvp3026_ramdac_out(uint16_t addr, int rs2, int rs3, uint8_t val, voi
 extern uint8_t tvp3026_ramdac_in(uint16_t addr, int rs2, int rs3, void *p, svga_t *svga);
 extern void	tvp3026_recalctimings(void *p, svga_t *svga);
 extern void	tvp3026_hwcursor_draw(svga_t *svga, int displine);
+extern float	tvp3026_getclock(int clock, void *p);
 
 #ifdef EMU_DEVICE_H
 extern const device_t ati68860_ramdac_device;
