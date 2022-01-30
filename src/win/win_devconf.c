@@ -471,7 +471,7 @@ deviceconfig_inst_open(HWND hwnd, const device_t *device, int inst)
 			item->y = y;
 			item->id = id++;
 
-			item->cx = 80;
+			item->cx = 100;
 			item->cy = 15;
 
 			item->style = WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX;
