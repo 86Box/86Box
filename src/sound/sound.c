@@ -85,6 +85,7 @@ static const SOUND_CARD sound_cards[] =
 {
     { "none",		NULL				},
     { "internal",	NULL				},
+    { "pssj_isa",	&pssj_isa_device		},
     { "adlib",		&adlib_device			},
     { "adlibgold",	&adgold_device			},
     { "azt2316a",	&azt2316a_device		},

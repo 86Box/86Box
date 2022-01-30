@@ -29,16 +29,9 @@
 #include <86box/timer.h>
 #include <86box/video.h>
 #include <86box/vid_svga.h>
+#include <86box/vid_vga.h>
 
 
-typedef struct vga_t
-{
-        svga_t svga;
-        
-        rom_t bios_rom;
-} vga_t;
-
-static video_timings_t timing_vga	   = {VIDEO_ISA, 8, 16, 32, 8, 16, 32};
 static video_timings_t timing_ps1_svga_isa = {VIDEO_ISA, 6,  8, 16, 6,  8, 16};
 static video_timings_t timing_ps1_svga_mca = {VIDEO_MCA, 6,  8, 16, 6,  8, 16};
 
