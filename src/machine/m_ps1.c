@@ -62,6 +62,7 @@
 #include <86box/port_6x.h>
 #include <86box/video.h>
 #include <86box/machine.h>
+#include <86box/sound.h>
 
 
 typedef struct {

@@ -7,6 +7,7 @@
 #define HAVE_STDARG_H
 #include <86box/86box.h>
 #include <86box/io.h>
+#include <86box/pic.h>
 #include <86box/timer.h>
 #include <86box/device.h>
 #include <86box/sound.h>
@@ -151,7 +152,7 @@ ps1snd_get_buffer(int32_t *buffer, int len, void *priv)
     ps1snd_t *ps1snd = (ps1snd_t *)priv;
     int c;
 
-    ps1_snd_update(ps1snd);
+    ps1snd_update(ps1snd);
 
     for (c = 0; c < len * 2; c++)
         buffer[c] += ps1snd->buffer[c >> 1];
@@ -188,13 +189,13 @@ ps1snd_close(void *priv)
 }
 
 
-static const device_t ps1snd_device = {
+const device_t ps1snd_device = {
     "IBM PS/1 Audio Card",
-    0,
-    0,
+    0, 0,
     ps1snd_init, ps1snd_close,
     NULL,
     { NULL },
-    NULL
+    NULL,
+    NULL,
     NULL
 };
