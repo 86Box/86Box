@@ -6,7 +6,7 @@
 #include <QPaintDevice>
 #include <array>
 #include <atomic>
-#include "qt_renderercomon.hpp"
+#include "qt_renderercommon.hpp"
 
 class SoftwareRenderer : public QRasterWindow, public RendererCommon
 {

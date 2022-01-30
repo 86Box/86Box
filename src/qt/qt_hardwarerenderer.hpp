@@ -20,7 +20,7 @@
 #include <memory>
 #include <QApplication>
 
-#include "qt_renderercomon.hpp"
+#include "qt_renderercommon.hpp"
 
 #ifdef WAYLAND
 #include "wl_mouse.hpp"

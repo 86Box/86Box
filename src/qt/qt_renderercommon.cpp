@@ -1,4 +1,4 @@
-#include "qt_renderercomon.hpp"
+#include "qt_renderercommon.hpp"
 #include "qt_mainwindow.hpp"
 
 #include <QPainter>

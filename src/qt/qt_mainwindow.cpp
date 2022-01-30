@@ -6,7 +6,7 @@
 #include "qt_progsettings.hpp"
 
 #include "qt_rendererstack.hpp"
-#include "qt_renderercomon.hpp"
+#include "qt_renderercommon.hpp"
 
 extern "C" {
 #include <86box/86box.h>
