@@ -1249,7 +1249,8 @@ enum
 	TGUI_BITBLT = 1,
 	TGUI_SCANLINE = 3,
 	TGUI_BRESENHAMLINE = 4,
-	TGUI_SHORTVECTOR = 5
+	TGUI_SHORTVECTOR = 5,
+	TGUI_FASTLINE = 6
 };
 
 enum
@@ -1480,7 +1481,7 @@ tgui_accel_command(int count, uint32_t cpu_dat, tgui_t *tgui)
 				tgui->accel.right >>= 2;
 			}
 		}
-
+		
 		switch (tgui->accel.flags & (TGUI_SRCMONO|TGUI_SRCDISP))
 		{
 			case TGUI_SRCCPU:
@@ -1572,31 +1573,36 @@ tgui_accel_command(int count, uint32_t cpu_dat, tgui_t *tgui)
 			}
 
 			while (count--) {
-				src_dat = ((cpu_dat >> 31) ? tgui->accel.fg_col : tgui->accel.bg_col);
-				if (tgui->accel.bpp == 0)
-					src_dat &= 0xff;
-				else if (tgui->accel.bpp == 1)
-					src_dat &= 0xffff;
+				if ((tgui->type == TGUI_9440) || ((tgui->type >= TGUI_9660) && tgui->accel.dx >= tgui->accel.left && tgui->accel.dx <= tgui->accel.right &&
+					tgui->accel.dy >= tgui->accel.top && tgui->accel.dy <= tgui->accel.bottom)) {
+					src_dat = ((cpu_dat >> 31) ? tgui->accel.fg_col : tgui->accel.bg_col);
+					if (tgui->accel.bpp == 0)
+						src_dat &= 0xff;
+					else if (tgui->accel.bpp == 1)
+						src_dat &= 0xffff;
 
-				READ(tgui->accel.dst, dst_dat);
+					READ(tgui->accel.dst, dst_dat);
 
-				pat_dat = pattern_data[((tgui->accel.pat_y & 7)*8) + (tgui->accel.pat_x & 7)];
+					pat_dat = pattern_data[((tgui->accel.pat_y & 7)*8) + (tgui->accel.pat_x & 7)];
 
-				if (tgui->accel.bpp == 0)
-					pat_dat &= 0xff;
-				else if (tgui->accel.bpp == 1)
-					pat_dat &= 0xffff;
+					if (tgui->accel.bpp == 0)
+						pat_dat &= 0xff;
+					else if (tgui->accel.bpp == 1)
+						pat_dat &= 0xffff;
 
-				if (!(tgui->accel.flags & TGUI_TRANSENA) || (src_dat != trans_col)) {
-					MIX();
+					if (!(tgui->accel.flags & TGUI_TRANSENA) || (src_dat != trans_col)) {
+						MIX();
 
-					WRITE(tgui->accel.dst, out);
+						WRITE(tgui->accel.dst, out);
+					}
 				}
 
 				cpu_dat <<= 1;
 				tgui->accel.src += xdir;
 				tgui->accel.dst += xdir;
 				tgui->accel.pat_x += xdir;
+				if (tgui->type >= TGUI_9660)
+					tgui->accel.dx += xdir;
 				
 				tgui->accel.x++;
 				if (tgui->accel.x > tgui->accel.size_x) {
@@ -1604,6 +1610,11 @@ tgui_accel_command(int count, uint32_t cpu_dat, tgui_t *tgui)
 
 					tgui->accel.pat_x = tgui->accel.dst_x;
 					tgui->accel.pat_y += ydir;
+
+					if (tgui->type >= TGUI_9660) {
+						tgui->accel.dx = tgui->accel.dst_x & 0xfff;
+						tgui->accel.dy += ydir;
+					}
 
 					tgui->accel.src = tgui->accel.src_old = tgui->accel.src_old + (ydir * tgui->accel.pitch);
 					tgui->accel.dst = tgui->accel.dst_old = tgui->accel.dst_old + (ydir * tgui->accel.pitch);
@@ -1857,6 +1868,88 @@ tgui_accel_command(int count, uint32_t cpu_dat, tgui_t *tgui)
 					break;
 
 				switch ((tgui->accel.sv_size_y >> 8) & 0xe0) {
+					case 0x00:
+						dx++;
+						break;
+					case 0x20:
+						dx++;
+						dy--;
+						break;
+					case 0x40:
+						dy--;
+						break;
+					case 0x60:
+						dx--;
+						dy--;
+						break;
+					case 0x80:
+						dx--;
+						break;
+					case 0xa0:
+						dx--;
+						dy++;
+						break;
+					case 0xc0:
+						dy++;
+						break;
+					case 0xe0:
+						dx++;
+						dy++;
+						break;
+				}
+				
+				tgui->accel.y++;
+			}
+		}
+		break;
+		
+		case TGUI_FASTLINE:
+		{
+			if (tgui->type < TGUI_9660)
+				break;
+			
+			int16_t dx, dy;
+			
+			dx = tgui->accel.dst_x & 0xfff;
+			dy = tgui->accel.dst_y & 0xfff;
+			
+			tgui->accel.left = tgui->accel.src_x_clip & 0xfff;
+			tgui->accel.right = tgui->accel.dst_x_clip & 0xfff;
+			tgui->accel.top = tgui->accel.src_y_clip & 0xfff;
+			tgui->accel.bottom = tgui->accel.dst_y_clip & 0xfff;
+			
+			if (tgui->accel.bpp == 1) {
+				tgui->accel.left >>= 1;
+				tgui->accel.right >>= 1;
+			} else if (tgui->accel.bpp == 3) {
+				tgui->accel.left >>= 2;
+				tgui->accel.right >>= 2;
+			}
+
+			while (count--) {
+				READ(tgui->accel.src_x + (tgui->accel.src_y * tgui->accel.pitch), src_dat);
+				
+				/*Note by TC1995: I suppose the x/y clipping max is always more than 0 in the TGUI 96xx, but the TGUI 9440 lacks clipping*/
+				if ((tgui->type == TGUI_9440) || ((tgui->type >= TGUI_9660) && dx >= tgui->accel.left && dx <= tgui->accel.right &&
+					dy >= tgui->accel.top && dy <= tgui->accel.bottom)) {
+					READ(dx + (dy * tgui->accel.pitch), dst_dat);
+
+					pat_dat = tgui->accel.fg_col;
+					
+					if (tgui->accel.bpp == 0)
+						pat_dat &= 0xff;
+					else if (tgui->accel.bpp == 1)
+						pat_dat &= 0xffff;
+					
+					MIX();
+					
+					WRITE(dx + (dy * tgui->accel.pitch), out);
+				}
+
+				if (tgui->accel.y == (tgui->accel.size_y & 0xfff))
+					break;
+
+				switch ((tgui->accel.size_y >> 8) & 0xe0) {
 					case 0x00:
 						dx++;
 						break;
