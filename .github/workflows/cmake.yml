@@ -22,7 +22,7 @@ on:
     - "!**/Makefile*"
 
 jobs:
-  mingw:
+  msys2:
     name: MSYS2 ${{ matrix.build.name }} build (${{ matrix.environment.msystem }})
 
     runs-on: windows-latest
@@ -35,14 +35,29 @@ jobs:
       fail-fast: false
       matrix:
         build:
-        - name: Regular
+        - name: Regular ODR
+          slug: -ODR
           preset: regular
           target: install/strip
-        - name: Debug
+        - name: Debug ODR
+          slug: -ODR-Debug
           preset: debug
           target: install
-        - name: Dev
+        - name: Dev ODR
+          slug: -ODR-Dev
           preset: experimental
+          target: install
+        - name: Regular NDR
+          slug: -NDR
+          preset: regularndr
+          target: install/strip
+        - name: Debug NDR
+          slug: -NDR-Debug
+          preset: debugndr
+          target: install
+        - name: Dev NDR
+          slug: -NDR-Dev
+          preset: experimentalndr
           target: install
         environment:
           - msystem: MINGW32
@@ -51,6 +66,8 @@ jobs:
             prefix: mingw-w64-x86_64
           - msystem: UCRT64
             prefix: mingw-w64-ucrt-x86_64
+#          - msystem: CLANG32
+#            prefix: mingw-w64-clang-i686
           - msystem: CLANG64
             prefix: mingw-w64-clang-x86_64
 
@@ -99,21 +116,36 @@ jobs:
       matrix:
         build:
         - name: Regular ODR
+          slug: -ODR
           type: Release
+          dev-build: off
           new-dynarec: off
           strip: --strip
         - name: Debug ODR
-          slug: -Debug
+          slug: -ODR-Debug
           type: Debug
+          dev-build: off
+          new-dynarec: off
+        - name: Dev ODR
+          slug: -ODR-Dev
+          type: Debug
+          dev-build: on
           new-dynarec: off
         - name: Regular NDR
           slug: -NDR
           type: Release
           strip: --strip
+          dev-build: off
           new-dynarec: on
         - name: Debug NDR
           slug: -NDR-Debug
           type: Debug
+          dev-build: off
+          new-dynarec: on
+        - name: Dev NDR
+          slug: -NDR-Dev
+          type: Debug
+          dev-build: on
           new-dynarec: on
         target:
         - name: x86
@@ -185,16 +217,38 @@ jobs:
       fail-fast: false
       matrix:
         build:
-        - name: Debug
-          slug: -Debug
+        - name: Regular ODR
+          slug: -ODR
+          type: Release
           dev-build: off
           new-dynarec: off
+          strip: --strip
+        - name: Debug ODR
+          slug: -ODR-Debug
           type: Debug
-        - name: Dev
-          slug: -Dev
+          dev-build: off
+          new-dynarec: off
+        - name: Dev ODR
+          slug: -ODR-Dev
+          type: Debug
+          dev-build: on
+          new-dynarec: off
+        - name: Regular NDR
+          slug: -NDR
+          type: Release
+          strip: --strip
+          dev-build: off
+          new-dynarec: on
+        - name: Debug NDR
+          slug: -NDR-Debug
+          type: Debug
+          dev-build: off
+          new-dynarec: on
+        - name: Dev NDR
+          slug: -NDR-Dev
+          type: Debug
           dev-build: on
           new-dynarec: on
-          type: Debug
 
     steps:
       - uses: actions/checkout@v2
@@ -218,30 +272,46 @@ jobs:
           name: '86Box${{ matrix.build.slug }}-Linux-x86_64-gha${{ github.run_number }}'
           path: build/artifacts/**
 
-  macos:
+  macos11:
     name: "macOS 11 (${{ matrix.build.name }} x86_64)"
 
     runs-on: macos-11
+
     strategy:
       fail-fast: false
       matrix:
         build:
         - name: Regular ODR
+          slug: -ODR
           type: Release
+          dev-build: off
           new-dynarec: off
           strip: --strip
         - name: Debug ODR
-          slug: -Debug
+          slug: -ODR-Debug
           type: Debug
+          dev-build: off
+          new-dynarec: off
+        - name: Dev ODR
+          slug: -ODR-Dev
+          type: Debug
+          dev-build: on
           new-dynarec: off
         - name: Regular NDR
           slug: -NDR
           type: Release
           strip: --strip
+          dev-build: off
           new-dynarec: on
         - name: Debug NDR
           slug: -NDR-Debug
           type: Debug
+          dev-build: off
+          new-dynarec: on
+        - name: Dev NDR
+          slug: -NDR-Dev
+          type: Debug
+          dev-build: on
           new-dynarec: on
 
     steps:

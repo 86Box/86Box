@@ -35,6 +35,18 @@
             }
         },
         {
+            "name": "regularndr",
+            "inherits": [
+                "flags-base"
+            ],
+            "generator": "Ninja",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release",
+                "DEV_BRANCH": "OFF",
+                "NEW_DYNAREC": "ON"
+            }
+        },
+        {
             "name": "optimized",
             "inherits": [
                 "flags-base"
@@ -44,6 +56,18 @@
                 "CMAKE_BUILD_TYPE": "Optimized",
                 "DEV_BRANCH": "OFF",
                 "NEW_DYNAREC": "OFF"
+            }
+        },
+        {
+            "name": "optimizedndr",
+            "inherits": [
+                "flags-base"
+            ],
+            "generator": "Ninja",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Optimized",
+                "DEV_BRANCH": "OFF",
+                "NEW_DYNAREC": "ON"
             }
         },
         {
@@ -59,7 +83,31 @@
             }
         },
         {
+            "name": "debugndr",
+            "inherits": [
+                "flags-base"
+            ],
+            "generator": "Ninja",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug",
+                "DEV_BRANCH": "OFF",
+                "NEW_DYNAREC": "ON"
+            }
+        },
+        {
             "name": "experimental",
+            "inherits": [
+                "flags-base"
+            ],
+            "generator": "Ninja",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug",
+                "DEV_BRANCH": "ON",
+                "NEW_DYNAREC": "OFF"
+            }
+        },
+        {
+            "name": "experimentalndr",
             "inherits": [
                 "flags-base"
             ],
