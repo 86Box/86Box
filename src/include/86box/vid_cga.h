@@ -15,6 +15,8 @@
  *		Copyright 2008-2018 Sarah Walker.
  *		Copyright 2016-2018 Miran Grca.
  */
+#ifndef VIDEO_CGA_H
+# define VIDEO_CGA_H
 
 typedef struct cga_t
 {
@@ -65,3 +67,5 @@ void    cga_poll(void *p);
 extern const device_config_t cga_config[];
 extern const device_t cga_device;
 #endif
+
+#endif	/*VIDEO_CGA_H*/

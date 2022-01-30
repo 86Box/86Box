@@ -16,6 +16,8 @@
  *		Copyright 2008-2020 Sarah Walker.
  *		Copyright 2016-2020 Miran Grca.
  */
+#ifndef VIDEO_SVGA_H
+# define VIDEO_SVGA_H
 
 
 #define FLAG_EXTRA_BANKS	1
@@ -306,3 +308,5 @@ extern const device_t tseng_ics5301_ramdac_device;
 extern const device_t tseng_ics5341_ramdac_device;
 extern const device_t tvp3026_ramdac_device;
 #endif
+
+#endif	/*VIDEO_SVGA_H*/
