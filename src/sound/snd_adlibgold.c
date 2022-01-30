@@ -917,6 +917,33 @@ void *adgold_init(const device_t *info)
         for (; c >= 0; c--)
                 attenuation[c] = 0;
 
+        adgold->adgold_eeprom[0x00] = 0x00;
+        adgold->adgold_eeprom[0x01] = 0x00;
+        adgold->adgold_eeprom[0x02] = 0x7f;
+        adgold->adgold_eeprom[0x03] = 0x7f;
+        adgold->adgold_eeprom[0x04] = 0xf8; /* vol_l */
+        adgold->adgold_eeprom[0x05] = 0xf8; /* vol_r */
+        adgold->adgold_eeprom[0x06] = 0xf6; /* bass */
+        adgold->adgold_eeprom[0x07] = 0xf6; /* treble */
+        adgold->adgold_eeprom[0x08] = 0xce;
+        adgold->adgold_eeprom[0x09] = 0xff; /* fm_vol_l */
+        adgold->adgold_eeprom[0x0a] = 0xff; /* fm_vol_r */
+        adgold->adgold_eeprom[0x0b] = 0xff; /* samp_vol_l */
+        adgold->adgold_eeprom[0x0c] = 0xff; /* samp_vol_r */
+        adgold->adgold_eeprom[0x0d] = 0xff; /* aux_vol_l */
+        adgold->adgold_eeprom[0x0e] = 0xff; /* aux_vol_r */
+        adgold->adgold_eeprom[0x0f] = 0xff;
+        adgold->adgold_eeprom[0x10] = 0xff;
+        adgold->adgold_eeprom[0x11] = 0x20;
+        adgold->adgold_eeprom[0x12] = 0x00;
+        adgold->adgold_eeprom[0x13] = 0x0b; /* IRQ 1, DMA1 */
+        adgold->adgold_eeprom[0x14] = 0x00; /* DMA2 */
+        adgold->adgold_eeprom[0x15] = 0x71; /* Port */
+        adgold->adgold_eeprom[0x16] = 0x00;
+        adgold->adgold_eeprom[0x17] = 0x68;
+        adgold->adgold_eeprom[0x18] = 0x00; /* Surround */
+        adgold->adgold_eeprom[0x19] = 0x00;
+
         f = nvr_fopen("adgold.bin", "rb");
         if (f)
         {
@@ -927,8 +954,9 @@ void *adgold_init(const device_t *info)
 
         adgold->adgold_status = 0xf;
         adgold->adgold_38x_addr = 0;
-        adgold->adgold_eeprom[0x13] = 3 | (1 << 4);     /*IRQ 7, DMA 1*/
-        adgold->adgold_eeprom[0x14] = 3 << 4;           /*DMA 3*/
+        adgold->adgold_eeprom[0x13] = 3 | (1 << 3);     /*IRQ 7, DMA 1*/
+//        adgold->adgold_eeprom[0x14] = 3 << 4;         /*DMA 3 - Double check this */
+        adgold->adgold_eeprom[0x14] = 0x00;             /*DMA ?*/
         adgold->adgold_eeprom[0x15] = 0x388 / 8;        /*Present at 388-38f*/
         memcpy(adgold->adgold_38x_regs, adgold->adgold_eeprom, 0x19);
         adgold->vol_l = attenuation[adgold->adgold_eeprom[0x04] & 0x3f];
