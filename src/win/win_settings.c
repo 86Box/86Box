@@ -99,8 +99,8 @@ static int temp_net_type, temp_net_card;
 static char temp_pcap_dev[522];
 
 /* Ports category */
-static int temp_lpt_devices[3];
-static int temp_serial[4], temp_lpt[3];
+static int temp_lpt_devices[PARALLEL_MAX];
+static int temp_serial[SERIAL_MAX], temp_lpt[PARALLEL_MAX];
 
 /* Other peripherals category */
 static int temp_fdc_card, temp_hdc, temp_ide_ter, temp_ide_qua, temp_cassette;
@@ -357,11 +357,11 @@ win_settings_init(void)
     temp_net_card = network_card;
 
     /* Ports category */
-    for (i = 0; i < 3; i++) {
+    for (i = 0; i < PARALLEL_MAX; i++) {
 	temp_lpt_devices[i] = lpt_ports[i].device;
 	temp_lpt[i] = lpt_ports[i].enabled;
     }
-    for (i = 0; i < 4; i++)
+    for (i = 0; i < SERIAL_MAX; i++)
 	temp_serial[i] = serial_enabled[i];
 
     /* Storage devices category */
@@ -477,11 +477,11 @@ win_settings_changed(void)
     i = i || (network_card != temp_net_card);
 
     /* Ports category */
-    for (j = 0; j < 3; j++) {
+    for (j = 0; j < PARALLEL_MAX; j++) {
 	i = i || (temp_lpt_devices[j] != lpt_ports[j].device);
 	i = i || (temp_lpt[j] != lpt_ports[j].enabled);
     }
-    for (j = 0; j < 4; j++)
+    for (j = 0; j < SERIAL_MAX; j++)
 	i = i || (temp_serial[j] != serial_enabled[j]);
 
     /* Storage devices category */
@@ -568,11 +568,11 @@ win_settings_save(void)
     network_card = temp_net_card;
 
     /* Ports category */
-    for (i = 0; i < 3; i++) {
+    for (i = 0; i < PARALLEL_MAX; i++) {
 	lpt_ports[i].device = temp_lpt_devices[i];
 	lpt_ports[i].enabled = temp_lpt[i];
     }
-    for (i = 0; i < 4; i++)
+    for (i = 0; i < SERIAL_MAX; i++)
 	serial_enabled[i] = temp_serial[i];
 
     /* Storage devices category */
@@ -1504,7 +1504,7 @@ win_settings_ports_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 	case WM_INITDIALOG:
 		lptsTemp = (LPTSTR) malloc(512 * sizeof(WCHAR));
 
-		for (i = 0; i < 3; i++) {
+		for (i = 0; i < PARALLEL_MAX; i++) {
 			c = 0;
 			while (1) {
 				s = lpt_device_get_name(c);
@@ -1527,7 +1527,7 @@ win_settings_ports_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 			settings_enable_window(hdlg, IDC_COMBO_LPT1 + i, temp_lpt[i]);
 		}
 
-		for (i = 0; i < 4; i++)
+		for (i = 0; i < SERIAL_MAX; i++)
 			settings_set_check(hdlg, IDC_CHECK_SERIAL1 + i, temp_serial[i]);
 
 		free(lptsTemp);
@@ -1547,12 +1547,12 @@ win_settings_ports_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 		break;
 
 	case WM_SAVESETTINGS:
-		for (i = 0; i < 3; i++) {
+		for (i = 0; i < PARALLEL_MAX; i++) {
 			temp_lpt_devices[i] = settings_get_cur_sel(hdlg, IDC_COMBO_LPT1 + i);
 			temp_lpt[i] = settings_get_check(hdlg, IDC_CHECK_PARALLEL1 + i);
 		}
 
-		for (i = 0; i < 4; i++)
+		for (i = 0; i < SERIAL_MAX; i++)
 			temp_serial[i] = settings_get_check(hdlg, IDC_CHECK_SERIAL1 + i);
 
 	default:
