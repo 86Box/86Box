@@ -100,8 +100,8 @@ set(CMAKE_CXX_STANDARD 11)
 #      Option       Description                                                     Def.
 #      ------       -----------                                                     ----
 option(RELEASE      "Release build"                                                 OFF)
-option(USB          "USB support"                                                   OFF)
 option(DYNAREC      "Dynamic recompiler"                                            ON)
+option(OPENAL       "OpenAL"                                                        ON)
 option(FLUIDSYNTH   "FluidSynth"                                                    ON)
 option(MUNT         "MUNT"                                                          ON)
 option(VRAMDUMP     "Video RAM dumping"                                             OFF)
@@ -131,6 +131,7 @@ cmake_dependent_option(VNC            "VNC renderer"                            
 cmake_dependent_option(XL24           "ATI VGA Wonder XL24 (ATI-28800-6)"           ON      "DEV_BRANCH"    OFF)
 cmake_dependent_option(ISAMEM_RAMPAGE "AST Rampage"                                 ON      "DEV_BRANCH"    OFF)
 cmake_dependent_option(ISAMEM_IAB     "Intel Above Board"                           ON      "DEV_BRANCH"    OFF)
+cmake_dependent_option(ISAMEM_BRAT    "BocaRAM/AT"                                  ON      "DEV_BRANCH"    OFF)
 
 # Ditto but for Qt
 if (QT)

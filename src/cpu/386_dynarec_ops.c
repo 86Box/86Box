@@ -65,6 +65,8 @@ static __inline void fetch_ea_16_long(uint32_t rmdat)
 #define OP_TABLE(name) dynarec_ops_ ## name
 
 #define CLOCK_CYCLES(c)
+#define CLOCK_CYCLES_FPU(c)
+#define CONCURRENCY_CYCLES(c) fpu_cycles = (c)
 #define CLOCK_CYCLES_ALWAYS(c) cycles -= (c)
 
 #include "386_ops.h"

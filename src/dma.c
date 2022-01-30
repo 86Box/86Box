@@ -892,8 +892,10 @@ dma_page_write(uint16_t addr, uint8_t val, void *priv)
 {
     uint8_t convert[8] = CHANNELS;
 
+#ifdef USE_DYNAREC
     if ((addr == 0x84) && cpu_use_dynarec)
 	update_tsc();
+#endif
 
     addr &= 0x0f;
     dmaregs[2][addr] = val;
