@@ -101,6 +101,7 @@ set(CMAKE_CXX_STANDARD 11)
 #      ------       -----------                                                     ----
 option(RELEASE      "Release build"                                                 OFF)
 option(DYNAREC      "Dynamic recompiler"                                            ON)
+option(OPENAL       "OpenAL"                                                        ON)
 option(FLUIDSYNTH   "FluidSynth"                                                    ON)
 option(MUNT         "MUNT"                                                          ON)
 option(VRAMDUMP     "Video RAM dumping"                                             OFF)
