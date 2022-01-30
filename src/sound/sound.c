@@ -323,10 +323,12 @@ sound_cd_thread(void *param)
 		}
 	}
 
+#ifdef USE_OPENAL
 	if (sound_is_float)
 		givealbuffer_cd(cd_out_buffer);
 	else
 		givealbuffer_cd(cd_out_buffer_int16);
+#endif
     }
 }
 
@@ -430,10 +432,12 @@ sound_poll(void *priv)
 		}
 	}
 
+#ifdef USE_OPENAL
 	if (sound_is_float)
 		givealbuffer(outbuffer_ex);
 	else
 		givealbuffer(outbuffer_ex_int16);
+#endif
 
 	if (cd_thread_enable) {
                 cd_buf_update--;
@@ -462,7 +466,9 @@ sound_reset(void)
 
     midi_device_init();
     midi_in_device_init();
+#ifdef USE_OPENAL
     inital();
+#endif
 
     timer_add(&sound_poll_timer, sound_poll, NULL, 1);
 

@@ -932,7 +932,9 @@ pc_reset_hard_close(void)
 
 	scsi_disk_close();
 
+#ifdef USE_OPENAL
 	closeal();
+#endif
 
 	video_reset_close();
 
