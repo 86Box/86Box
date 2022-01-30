@@ -83,7 +83,7 @@ jobs:
       run: cmake --build build --target ${{ matrix.build.target }}
     - uses: actions/upload-artifact@v2
       with:
-        name: '86Box-${{ matrix.build.name }}-MSYS2-${{ matrix.environment.msystem }}-gha${{ github.run_number }}'
+        name: '86Box${{ matrix.build.slug }}-MSYS2-${{ matrix.environment.msystem }}-gha${{ github.run_number }}'
         path: build/artifacts/**
 
   llvm-windows:
@@ -177,18 +177,21 @@ jobs:
         path: build/artifacts/**
 
   linux:
-    name: "Linux GCC 11"
+    name: "Linux GCC 11 (${{ matrix.build.name }} x86_64)"
 
     runs-on: ubuntu-latest
+
     strategy:
       fail-fast: false
       matrix:
         build:
         - name: Debug
+          slug: -Debug
           dev-build: off
           new-dynarec: off
           type: Debug
         - name: Dev
+          slug: -Dev
           dev-build: on
           new-dynarec: on
           type: Debug
@@ -207,7 +210,13 @@ jobs:
           -D CMAKE_BUILD_TYPE=${{ matrix.build.type }}
           -D CMAKE_C_COMPILER=gcc-11 -D CMAKE_CXX_COMPILER=g++-11
       - name: Build
-        run: cmake --build build --target install
+        run: cmake --build build
+      - name: Generate package
+        run: cmake --install build --prefix ./build/artifacts ${{ matrix.build.strip }}
+      - uses: actions/upload-artifact@v2
+        with:
+          name: '86Box${{ matrix.build.slug }}-Linux-x86_64-gha${{ github.run_number }}'
+          path: build/artifacts/**
 
   macos:
     name: "macOS 11 (${{ matrix.build.name }} x86_64)"
@@ -243,7 +252,9 @@ jobs:
         run: >-
           cmake -S . -B build
           --toolchain cmake/flags-gcc-x86_64.cmake
+          -D DEV_BRANCH=${{ matrix.build.dev-build }}
           -D NEW_DYNAREC=${{ matrix.build.new-dynarec }}
+          -D VNC=OFF
           -D CMAKE_BUILD_TYPE=${{ matrix.build.type }}
       - name: Build
         run: cmake --build build

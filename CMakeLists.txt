@@ -100,8 +100,8 @@ set(CMAKE_CXX_STANDARD 11)
 #      Option       Description                                                     Def.
 #      ------       -----------                                                     ----
 option(RELEASE      "Release build"                                                 OFF)
-option(USB          "USB support"                                                   OFF)
 option(DYNAREC      "Dynamic recompiler"                                            ON)
+option(OPENAL       "OpenAL"                                                        ON)
 option(FLUIDSYNTH   "FluidSynth"                                                    ON)
 option(MUNT         "MUNT"                                                          ON)
 option(VRAMDUMP     "Video RAM dumping"                                             OFF)
