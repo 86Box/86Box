@@ -31,44 +31,8 @@
 #include <86box/pit.h>
 #include <86box/device.h>
 #include <86box/video.h>
+#include <86box/vid_hercules.h>
 
-
-typedef struct {
-    mem_mapping_t	mapping;
-
-    uint8_t	crtc[32], charbuffer[4096];
-    int		crtcreg;
-
-    uint8_t	ctrl,
-		ctrl2,
-		stat;
-
-    uint64_t	dispontime,
-		dispofftime;
-    pc_timer_t	timer;
-
-    int		firstline,
-		lastline;
-
-    int		linepos,
-		displine;
-    int		vc,
-		sc;
-    uint16_t	ma,
-		maback;
-    int		con, coff,
-		cursoron;
-    int		dispon,
-		blink;
-    int	vsynctime;
-    int		vadj;
-
-    int		lp_ff;
-
-    int		cols[256][2][2];
-
-    uint8_t	*vram;
-} hercules_t;
 
 static video_timings_t timing_hercules = {VIDEO_ISA, 8, 16, 32,   8, 16, 32};
 
