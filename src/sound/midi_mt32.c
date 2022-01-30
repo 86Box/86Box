@@ -13,8 +13,10 @@
 #include <86box/midi.h>
 
 
+#ifdef USE_OPENAL
 extern void givealbuffer_midi(void *buf, uint32_t size);
 extern void al_set_midi(int freq, int buf_size);
+#endif
 
 static const mt32emu_report_handler_i_v0 handler_v0 = {
         /** Returns the actual interface version ID */
@@ -136,7 +138,9 @@ static void mt32_thread(void *param)
 			buf_pos += bsize;
 			if (buf_pos >= buf_size)
 			{
+#ifdef USE_OPENAL
 				givealbuffer_midi(buffer, buf_size / sizeof(float));
+#endif
 				buf_pos = 0;
 			}
 		}
@@ -148,7 +152,9 @@ static void mt32_thread(void *param)
 			buf_pos += bsize;
 			if (buf_pos >= buf_size)
 			{
+#ifdef USE_OPENAL
 				givealbuffer_midi(buffer_int16, buf_size / sizeof(int16_t));
+#endif
 				buf_pos = 0;
 			}
 		}
@@ -200,7 +206,9 @@ void* mt32emu_init(char *control_rom, char *pcm_rom)
         mt32emu_set_reversed_stereo_enabled(context, device_get_config_int("reversed_stereo"));
         mt32emu_set_nice_amp_ramp_enabled(context, device_get_config_int("nice_ramp"));
 
+#ifdef USE_OPENAL
         al_set_midi(samplerate, buf_size);
+#endif
 
         dev = malloc(sizeof(midi_device_t));
         memset(dev, 0, sizeof(midi_device_t));

@@ -13,11 +13,16 @@
 #           Copyright 2020,2021 David Hrdlička.
 #
 
-add_library(snd OBJECT sound.c openal.c snd_opl.c snd_opl_nuked.c snd_resid.cc
+add_library(snd OBJECT sound.c snd_opl.c snd_opl_nuked.c snd_resid.cc
     midi.c midi_rtmidi.cpp snd_speaker.c snd_pssj.c snd_lpt_dac.c snd_ac97_codec.c snd_ac97_via.c
     snd_lpt_dss.c snd_adlib.c snd_adlibgold.c snd_ad1848.c snd_audiopci.c
     snd_azt2316a.c snd_cms.c snd_cs423x.c snd_gus.c snd_sb.c snd_sb_dsp.c
     snd_emu8k.c snd_mpu401.c snd_sn76489.c snd_ssi2001.c snd_wss.c snd_ym7128.c)
+
+if(OPENAL)
+    target_compile_definitions(snd PRIVATE USE_OPENAL)
+    target_sources(snd PRIVATE openal.c)
+endif()
 
 if(FLUIDSYNTH)
     target_compile_definitions(snd PRIVATE USE_FLUIDSYNTH)
