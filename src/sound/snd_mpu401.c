@@ -1385,6 +1385,17 @@ MPU401_InputSysex(void *p, uint8_t *buffer, uint32_t len, int abort)
 
     mpu401_log("MPU401 Input Sysex\n");
 
+#ifdef DOSBOX_CODE
+    if (mpu->mode == M_UART) {
+#else
+    if (!mpu->intelligent || mpu->mode == M_UART) {
+#endif
+	/* UART mode input. */
+	for (i = 0; i < len; i++)
+		MPU401_QueueByte(mpu, buffer[i]);
+	return 0;
+    }
+
     if (mpu->filter.sysex_in) {
 	if (abort) {
 		mpu->state.sysex_in_finished=1;
@@ -1422,12 +1433,12 @@ MPU401_InputSysex(void *p, uint8_t *buffer, uint32_t len, int abort)
 
 /*Input handler for MIDI*/
 void
-MPU401_InputMsg(void *p, uint8_t *msg)
+MPU401_InputMsg(void *p, uint8_t *msg, uint32_t len)
 {
     mpu_t *mpu = (mpu_t *)p;
     int i, tick;
     static uint8_t old_msg = 0;
-    uint8_t len = msg[3], key;
+    uint8_t key;
     uint8_t recdata[2], recmsg[4];
     int send = 1, send_thru = 0;
     int retrigger_thru = 0, chan, chrefnum;

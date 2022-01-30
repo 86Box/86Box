@@ -200,8 +200,9 @@ static void set_parent_binding(int enable)
  * @param wParam
  * @param lParam 
  * @param fullscreen
+ * @return Was message handled
 */
-static void handle_window_messages(UINT message, WPARAM wParam, LPARAM lParam, int fullscreen)
+static int handle_window_messages(UINT message, WPARAM wParam, LPARAM lParam, int fullscreen)
 {
 	switch (message)
 	{
@@ -219,7 +220,7 @@ static void handle_window_messages(UINT message, WPARAM wParam, LPARAM lParam, i
 			/* Mouse events that enter and exit capture. */
 			PostMessage(parent, message, wParam, lParam);
 		}
-		break;
+		return 1;
 	case WM_KEYDOWN:
 	case WM_KEYUP:
 	case WM_SYSKEYDOWN:
@@ -228,7 +229,7 @@ static void handle_window_messages(UINT message, WPARAM wParam, LPARAM lParam, i
 		{
 			PostMessage(parent, message, wParam, lParam);
 		}
-		break;
+		return 1;
 	case WM_INPUT:
 		if (fullscreen)
 		{
@@ -256,8 +257,17 @@ static void handle_window_messages(UINT message, WPARAM wParam, LPARAM lParam, i
 			}
 			free(raw);
 		}
-		break;
+		return 1;
+	case WM_MOUSELEAVE:
+		if (fullscreen)
+		{
+			/* Leave fullscreen if mouse leaves the renderer window. */
+			PostMessage(GetAncestor(parent, GA_ROOT), WM_LEAVEFULLSCREEN, 0, 0);
+		}
+		return 0;
 	}
+
+	return 0;
 }
 
 /**
@@ -638,12 +648,13 @@ static void opengl_main(void* param)
 
 			/* Handle window messages */
 			MSG msg;
-			if (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
+			while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
 			{
-				if (msg.hwnd == window_hwnd)
-					handle_window_messages(msg.message, msg.wParam, msg.lParam, fullscreen);
-				TranslateMessage(&msg);
-				DispatchMessage(&msg);
+				if (msg.hwnd != window_hwnd || !handle_window_messages(msg.message, msg.wParam, msg.lParam, fullscreen))
+				{
+					TranslateMessage(&msg);
+					DispatchMessage(&msg);
+				}
 			}
 
 			/* Wait for synchronized events for 1ms before going back to window events */
@@ -722,7 +733,14 @@ static void opengl_main(void* param)
 				{
 					SetForegroundWindow(window_hwnd);
 					SetFocus(window_hwnd);
+
+					/* Clip cursor to prevent it moving to another monitor. */
+					RECT rect;
+					GetWindowRect(window_hwnd, &rect);
+					ClipCursor(&rect);
 				}
+				else
+					ClipCursor(NULL);
 			}
 
 			if (fullscreen)
@@ -854,6 +872,8 @@ static void opengl_main(void* param)
 
 static void opengl_blit(int x, int y, int w, int h)
 {
+	int row;
+
 	if ((x < 0) || (y < 0) || (w <= 0) || (h <= 0) || (w > 2048) || (h > 2048) || (buffer32 == NULL) || (thread == NULL) ||
 		atomic_flag_test_and_set(&blit_info[write_pos].in_use))
 	{
@@ -861,7 +881,8 @@ static void opengl_blit(int x, int y, int w, int h)
 		return;
 	}
 
-	video_copy(blit_info[write_pos].buffer, &(buffer32->line[y][x]), h * ROW_LENGTH * sizeof(uint32_t));
+	for (row = 0; row < h; ++row)
+		video_copy(&(((uint8_t *) blit_info[write_pos].buffer)[row * ROW_LENGTH * sizeof(uint32_t)]), &(buffer32->line[y + row][x]), w * sizeof(uint32_t));
 
 	if (screenshots)
 		video_screenshot(blit_info[write_pos].buffer, 0, 0, ROW_LENGTH);

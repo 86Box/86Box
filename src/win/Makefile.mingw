@@ -69,6 +69,15 @@ ifeq ($(DEV_BUILD), y)
  ifndef XL24
   XL24		:= y
  endif
+ ifndef ISAMEM_RAMPAGE
+  ISAMEM_RAMPAGE := y
+ endif
+ ifndef ISAMEM_IAB
+  ISAMEM_IAB := y
+ endif
+ ifndef ISAMEM_BRAT
+  ISAMEM_BRAT := y
+ endif
  ifndef OLIVETTI
   OLIVETTI	:= y
  endif
@@ -117,6 +126,15 @@ else
  endif
  ifndef XL24
   XL24		:= n
+ endif
+ ifndef ISAMEM_RAMPAGE
+  ISAMEM_RAMPAGE := n
+ endif
+ ifndef ISAMEM_IAB
+  ISAMEM_IAB := n
+ endif
+ ifndef ISAMEM_BRAT
+  ISAMEM_BRAT := n
  endif
  ifndef OLIVETTI
   OLIVETTI	:= n
@@ -450,6 +468,18 @@ ifeq ($(XL24), y)
 OPTS		+= -DUSE_XL24
 endif
 
+ifeq ($(ISAMEM_RAMPAGE), y)
+OPTS        += -DUSE_ISAMEM_RAMPAGE
+endif
+
+ifeq ($(ISAMEM_IAB), y)
+OPTS        += -DUSE_ISAMEM_IAB
+endif
+
+ifeq ($(ISAMEM_BRAT), y)
+OPTS        += -DUSE_ISAMEM_BRAT
+endif
+
 ifeq ($(OLIVETTI), y)
 OPTS		+= -DUSE_OLIVETTI
 DEVBROBJ	+= olivetti_eva.o
@@ -691,7 +721,7 @@ UIOBJ		:= win_ui.o win_icon.o win_stbar.o win_discord.o \
 		   win_dialog.o win_about.o \
 		   win_settings.o win_devconf.o win_snd_gain.o win_specify_dim.o win_preferences.o \
 		   win_new_floppy.o win_jsconf.o \
-		   win_media_menu.o
+		   win_media_menu.o win_toolbar.o
 
 ifeq ($(DINPUT), y)
  PLATOBJ	+= win_joystick.o

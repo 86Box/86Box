@@ -10,7 +10,7 @@ extern uint8_t MIDI_evt_len[256];
 extern int midi_device_current;
 extern int midi_input_device_current;
 
-extern void (*input_msg)(void *p, uint8_t *msg);
+extern void (*input_msg)(void *p, uint8_t *msg, uint32_t len);
 extern int (*input_sysex)(void *p, uint8_t *buf, uint32_t len, int abort);
 extern void *midi_in_p;
 
@@ -44,7 +44,7 @@ typedef struct midi_in_handler_t
     int cnt;
     uint32_t len;
 
-    void (*msg)(void *p, uint8_t *msg);
+    void (*msg)(void *p, uint8_t *msg, uint32_t len);
     int (*sysex)(void *p, uint8_t *buffer, uint32_t len, int abort);
     struct midi_in_handler_t *p;
     struct midi_in_handler_t *prev, *next;
@@ -73,9 +73,9 @@ extern void	midi_raw_out_byte(uint8_t val);
 extern void	midi_clear_buffer(void);
 extern void	midi_poll();
 
-extern void	midi_in_handler(int set, void (*msg)(void *p, uint8_t *msg), int (*sysex)(void *p, uint8_t *buffer, uint32_t len, int abort), void *p);
+extern void	midi_in_handler(int set, void (*msg)(void *p, uint8_t *msg, uint32_t len), int (*sysex)(void *p, uint8_t *buffer, uint32_t len, int abort), void *p);
 extern void	midi_in_handlers_clear(void);
-extern void	midi_in_msg(uint8_t *msg);
+extern void	midi_in_msg(uint8_t *msg, uint32_t len);
 extern void	midi_in_sysex(uint8_t *buffer, uint32_t len);
 
 #if 0

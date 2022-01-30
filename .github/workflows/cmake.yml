@@ -83,68 +83,115 @@ jobs:
       run: cmake --build build --target ${{ matrix.build.target }}
     - uses: actions/upload-artifact@v2
       with:
-        name: '86Box-${{ matrix.build.name }}-MSYS2-${{ matrix.environment.msystem }}-${{ github.sha }}'
+        name: '86Box${{ matrix.build.slug }}-MSYS2-${{ matrix.environment.msystem }}-gha${{ github.run_number }}'
         path: build/artifacts/**
 
-  vs2019:
-    name: VS2019 ${{ matrix.build.name }} ${{ matrix.target-arch }} build (${{ matrix.toolset }})
+  llvm-windows:
+    name: "Windows vcpkg/LLVM (${{ matrix.build.name }} ${{ matrix.target.name }})"
 
-    runs-on: windows-latest
+    runs-on: windows-2022
+
+    env:
+      VCPKG_BINARY_SOURCES: 'clear;nuget,GitHub,readwrite'
 
     strategy:
       fail-fast: false
       matrix:
         build:
-        - name: Debug
-          dev-build: off
+        - name: Regular ODR
+          type: Release
           new-dynarec: off
+          strip: --strip
+        - name: Debug ODR
+          slug: -Debug
           type: Debug
-        - name: Dev
-          dev-build: on
+          new-dynarec: off
+        - name: Regular NDR
+          slug: -NDR
+          type: Release
+          strip: --strip
           new-dynarec: on
+        - name: Debug NDR
+          slug: -NDR-Debug
           type: Debug
-        target-arch: ['Win32', 'x64', 'ARM64']
-        toolset: ['clangcl']
+          new-dynarec: on
+        target:
+        - name: x86
+          triplet: x86-windows-static
+          toolchain: cmake/llvm-win32-i686.cmake
+          vcvars: x64_x86
+        - name: x64
+          triplet: x64-windows-static
+          toolchain: cmake/llvm-win32-x86_64.cmake
+          vcvars: x64
+        - name: ARM64
+          triplet: arm64-windows-static
+          toolchain: cmake/llvm-win32-aarch64.cmake
+          vcvars: x64_arm64
         exclude:
-          - target-arch: 'ARM64'
-            build:
-              new-dynarec: off
+        - build: 
+            new-dynarec: off
+          target:
+            name: ARM64
 
     steps:
     - uses: actions/checkout@v2
-    - uses: actions/cache@v2
-      with:
-        path: build/vcpkg_installed
-        key: vcpkg-${{ hashFiles('vcpkg.json') }}-${{ matrix.target-arch }}
+    - name: Download Ninja
+      run: >
+        Invoke-WebRequest https://github.com/ninja-build/ninja/releases/download/v1.10.2/ninja-win.zip -OutFile ninja-win.zip && 
+        Expand-Archive ninja-win.zip -DestinationPath .
+    - name: Setup NuGet Credentials
+      run: >
+        & (C:/vcpkg/vcpkg fetch nuget | tail -n 2)
+        sources add
+        -source "https://nuget.pkg.github.com/86Box/index.json"
+        -storepasswordincleartext
+        -name "GitHub"
+        -username "86Box"
+        -password "${{ secrets.GITHUB_TOKEN }}"
+    - name: vcpkg package restore
+      if: false
+      run: vcpkg install freetype libpng openal-soft sdl2 rtmidi --triplet ${{ matrix.target.triplet }}
     - name: Configure CMake
-      run: >-
-        cmake -S . -B build
-        -G "Visual Studio 16 2019" -A ${{ matrix.target-arch }} -T ${{ matrix.toolset }}
-        -D CMAKE_TOOLCHAIN_FILE=C:\vcpkg\scripts\buildsystems\vcpkg.cmake
-        -D CMAKE_INSTALL_PREFIX=./build/artifacts
-        -D DEV_BRANCH=${{ matrix.build.dev-build }}
+      run: >
+        call "C:/Program Files/Microsoft Visual Studio/2022/Enterprise/VC/Auxiliary/Build/vcvarsall.bat" ${{ matrix.target.vcvars }}
+  
+        set PATH=C:/Program Files/LLVM/bin;%PATH%
+
+        cmake -S . -B build -G Ninja -D CMAKE_BUILD_TYPE=${{ matrix.build.type }}
         -D NEW_DYNAREC=${{ matrix.build.new-dynarec }}
-        -D VNC=OFF
+        -D CMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake
+        -D VCPKG_CHAINLOAD_TOOLCHAIN_FILE=${{ github.workspace }}/${{ matrix.target.toolchain }}
+        -D VCPKG_TARGET_TRIPLET=${{ matrix.target.triplet }}
+      shell: cmd
     - name: Build
-      run: cmake --build build --config ${{ matrix.build.type }} --target install
+      run: |
+        call "C:/Program Files/Microsoft Visual Studio/2022/Enterprise/VC/Auxiliary/Build/vcvarsall.bat" ${{ matrix.target.vcvars }}
+        cmake --build build
+      shell: cmd
+    - name: Generate package
+      run: cmake --install build --prefix ./build/artifacts ${{ matrix.build.strip }}
     - uses: actions/upload-artifact@v2
       with:
-        name: '86Box-${{ matrix.build.name }}-VS2019-${{ matrix.target-arch }}-${{ matrix.toolset }}-${{ github.sha }}'
+        name: '86Box${{ matrix.build.slug }}-Windows-LLVM-${{ matrix.target.name }}-gha${{ github.run_number }}'
         path: build/artifacts/**
 
   linux:
-    name: "Linux GCC 11"
+    name: "Linux GCC 11 (${{ matrix.build.name }} x86_64)"
 
     runs-on: ubuntu-latest
+
     strategy:
       fail-fast: false
       matrix:
         build:
         - name: Debug
+          slug: -Debug
           dev-build: off
           new-dynarec: off
           type: Debug
         - name: Dev
+          slug: -Dev
           dev-build: on
           new-dynarec: on
           type: Debug
@@ -163,24 +210,39 @@ jobs:
           -D CMAKE_BUILD_TYPE=${{ matrix.build.type }}
           -D CMAKE_C_COMPILER=gcc-11 -D CMAKE_CXX_COMPILER=g++-11
       - name: Build
-        run: cmake --build build --target install
+        run: cmake --build build
+      - name: Generate package
+        run: cmake --install build --prefix ./build/artifacts ${{ matrix.build.strip }}
+      - uses: actions/upload-artifact@v2
+        with:
+          name: '86Box${{ matrix.build.slug }}-Linux-x86_64-gha${{ github.run_number }}'
+          path: build/artifacts/**
 
   macos:
-    name: "macOS 11"
+    name: "macOS 11 (${{ matrix.build.name }} x86_64)"
 
     runs-on: macos-11
     strategy:
       fail-fast: false
       matrix:
         build:
-        - name: Debug
-          dev-build: off
+        - name: Regular ODR
+          type: Release
           new-dynarec: off
+          strip: --strip
+        - name: Debug ODR
+          slug: -Debug
           type: Debug
-        - name: Dev
-          dev-build: on
+          new-dynarec: off
+        - name: Regular NDR
+          slug: -NDR
+          type: Release
+          strip: --strip
           new-dynarec: on
+        - name: Debug NDR
+          slug: -NDR-Debug
           type: Debug
+          new-dynarec: on
 
     steps:
       - uses: actions/checkout@v2
@@ -189,10 +251,16 @@ jobs:
       - name: Configure CMake
         run: >-
           cmake -S . -B build
-          -D CMAKE_INSTALL_PREFIX=./build/artifacts
+          --toolchain cmake/flags-gcc-x86_64.cmake
           -D DEV_BRANCH=${{ matrix.build.dev-build }}
           -D NEW_DYNAREC=${{ matrix.build.new-dynarec }}
           -D VNC=OFF
           -D CMAKE_BUILD_TYPE=${{ matrix.build.type }}
       - name: Build
-        run: cmake --build build --target install
+        run: cmake --build build
+      - name: Generate package
+        run: cmake --install build --prefix ./build/artifacts ${{ matrix.build.strip }}
+      - uses: actions/upload-artifact@v2
+        with:
+          name: '86Box${{ matrix.build.slug }}-macOS-x86_64-gha${{ github.run_number }}'
+          path: build/artifacts/**
