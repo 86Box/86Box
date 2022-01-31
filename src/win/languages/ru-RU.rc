@@ -332,6 +332,7 @@ END
 #define STR_LPT1		"Устройство LPT1:"
 #define STR_LPT2		"Устройство LPT2:"
 #define STR_LPT3		"Устройство LPT3:"
+#define STR_LPT4		"Устройство LPT4:"
 #define STR_SERIAL1		"Последов. порт COM1"
 #define STR_SERIAL2		"Последов. порт COM2"
 #define STR_SERIAL3		"Последов. порт COM3"
@@ -339,6 +340,7 @@ END
 #define STR_PARALLEL1		"Параллельный порт LPT1"
 #define STR_PARALLEL2		"Параллельный порт LPT2"
 #define STR_PARALLEL3		"Параллельный порт LPT3"
+#define STR_PARALLEL4		"Параллельный порт LPT4"
 
 #define STR_HDC			"Контроллер HD:"
 #define STR_FDC			"Контроллер FD:"

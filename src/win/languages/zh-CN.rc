@@ -332,6 +332,7 @@ END
 #define STR_LPT1		"LPT1 设备:"
 #define STR_LPT2		"LPT2 设备:"
 #define STR_LPT3		"LPT3 设备:"
+#define STR_LPT4		"LPT4 设备:"
 #define STR_SERIAL1		"串口 1"
 #define STR_SERIAL2		"串口 2"
 #define STR_SERIAL3		"串口 3"
@@ -339,6 +340,7 @@ END
 #define STR_PARALLEL1		"并口 1"
 #define STR_PARALLEL2		"并口 2"
 #define STR_PARALLEL3		"并口 3"
+#define STR_PARALLEL4		"并口 4"
 
 #define STR_HDC			"硬盘控制器:"
 #define STR_FDC			"软盘控制器:"

@@ -329,9 +329,10 @@ END
 #define STR_PCAP		"PCap-Gerät:"
 #define STR_NET			"Netzwerkadapter:"
 
-#define STR_LPT1		"LPT1-Gerät"
-#define STR_LPT2		"LPT2-Gerät"
-#define STR_LPT3		"LPT3-Gerät"
+#define STR_LPT1		"LPT1-Gerät:"
+#define STR_LPT2		"LPT2-Gerät:"
+#define STR_LPT3		"LPT3-Gerät:"
+#define STR_LPT4		"LPT4-Gerät:"
 #define STR_SERIAL1		"Serielle Schnittstelle 1"
 #define STR_SERIAL2		"Serielle Schnittstelle 2"
 #define STR_SERIAL3		"Serielle Schnittstelle 3"
@@ -339,6 +340,7 @@ END
 #define STR_PARALLEL1		"Parallelport 1"
 #define STR_PARALLEL2		"Parallelport 2"
 #define STR_PARALLEL3		"Parallelport 3"
+#define STR_PARALLEL4		"Parallelport 4"
 
 #define STR_HDC			"HDD-Controller:"
 #define STR_FDC			"FD-Controller:"

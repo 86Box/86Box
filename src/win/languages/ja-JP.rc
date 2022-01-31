@@ -332,6 +332,7 @@ END
 #define STR_LPT1		"LPT1デバイス:"
 #define STR_LPT2		"LPT2デバイス:"
 #define STR_LPT3		"LPT3デバイス:"
+#define STR_LPT4		"LPT4デバイス:"
 #define STR_SERIAL1		"シリアルポート1"
 #define STR_SERIAL2		"シリアルポート2"
 #define STR_SERIAL3		"シリアルポート3"
@@ -339,6 +340,7 @@ END
 #define STR_PARALLEL1		"パラレルポート1"
 #define STR_PARALLEL2		"パラレルポート2"
 #define STR_PARALLEL3		"パラレルポート3"
+#define STR_PARALLEL4		"パラレルポート4"
 
 #define STR_HDC			"HDコントローラー:"
 #define STR_FDC			"FDコントローラー:"

@@ -332,6 +332,7 @@ END
 #define STR_LPT1		"Dispositif LPT1:"
 #define STR_LPT2		"Dispositif LPT2:"
 #define STR_LPT3		"Dispositif LPT3:"
+#define STR_LPT4		"Dispositif LPT4:"
 #define STR_SERIAL1		"Port série 1"
 #define STR_SERIAL2		"Port série 2"
 #define STR_SERIAL3		"Port série 3"
@@ -339,6 +340,7 @@ END
 #define STR_PARALLEL1		"Port parallèle 1"
 #define STR_PARALLEL2		"Port parallèle 2"
 #define STR_PARALLEL3		"Port parallèle 3"
+#define STR_PARALLEL4		"Port parallèle 4"
 
 #define STR_HDC			"Contrôleur HD:"
 #define STR_FDC			"Contrôleur FD:"

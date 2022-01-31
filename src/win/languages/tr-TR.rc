@@ -332,6 +332,7 @@ END
 #define STR_LPT1		"LPT1 Cihazı:"
 #define STR_LPT2		"LPT2 Cihazı:"
 #define STR_LPT3		"LPT3 Cihazı:"
+#define STR_LPT4		"LPT4 Cihazı:"
 #define STR_SERIAL1		"Seri port 1"
 #define STR_SERIAL2		"Seri port 2"
 #define STR_SERIAL3		"Seri port 3"
@@ -339,6 +340,7 @@ END
 #define STR_PARALLEL1		"Paralel port 1"
 #define STR_PARALLEL2		"Paralel port 2"
 #define STR_PARALLEL3		"Paralel port 3"
+#define STR_PARALLEL4		"Paralel port 4"
 
 #define STR_HDC			"HD Kontrolcüsü:"
 #define STR_FDC			"FD Kontrolcüsü:"

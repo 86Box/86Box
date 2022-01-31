@@ -329,9 +329,10 @@ END
 #define STR_PCAP		"PCap zařízení:"
 #define STR_NET			"Síťový adaptér:"
 
-#define STR_LPT1		"Zařízení na LPT1"
-#define STR_LPT2		"Zařízení na LPT2"
-#define STR_LPT3		"Zařízení na LPT3"
+#define STR_LPT1		"Zařízení na LPT1:"
+#define STR_LPT2		"Zařízení na LPT2:"
+#define STR_LPT3		"Zařízení na LPT3:"
+#define STR_LPT4		"Zařízení na LPT4:"
 #define STR_SERIAL1		"Povolit port COM1"
 #define STR_SERIAL2		"Povolit port COM2"
 #define STR_SERIAL3		"Povolit port COM3"
@@ -339,6 +340,7 @@ END
 #define STR_PARALLEL1		"Povolit port LPT1"
 #define STR_PARALLEL2		"Povolit port LPT2"
 #define STR_PARALLEL3		"Povolit port LPT3"
+#define STR_PARALLEL4		"Povolit port LPT4"
 
 #define STR_HDC			"Řadič disku:"
 #define STR_FDC			"Disketový řadič:"
