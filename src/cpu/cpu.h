@@ -14,9 +14,9 @@
  *		leilei,
  *		Miran Grca, <mgrca8@gmail.com>
  *
- *		Copyright 2008-2018 Sarah Walker.
+ *		Copyright 2008-2020 Sarah Walker.
  *		Copyright 2016-2018 leilei.
- *		Copyright 2016,2018 Miran Grca.
+ *		Copyright 2016-2020 Miran Grca.
  */
 #ifndef EMU_CPU_H
 # define EMU_CPU_H
@@ -38,6 +38,8 @@ enum {
     CPU_V20,		/* NEC 808x class CPUs - future proofing */
     CPU_V30,
 #endif
+    CPU_188,		/* 18x class CPUs */
+    CPU_186,
     CPU_286,		/* 286 class CPUs */
     CPU_386SX,		/* 386 class CPUs */
     CPU_IBM386SLC,
@@ -114,6 +116,7 @@ enum {
 #define MANU_CYRIX	2
 #define MANU_IDT	3
 #define MANU_NEC	4
+#define MANU_IBM	5
 
 #define CPU_SUPPORTS_DYNAREC 1
 #define CPU_REQUIRES_DYNAREC 2
@@ -489,10 +492,11 @@ extern double   fpu_multi;
 extern int	cpu_cyrix_alignment;	/*Cyrix 5x86/6x86 only has data misalignment
 					  penalties when crossing 8-byte boundaries*/
 
-extern int	is8086,	is286, is386, is486;
+extern int	is8086,	is186, is286, is386, is486;
 extern int	is_am486, is_am486dxl, is_pentium, is_k5, is_k6, is_p6, is_cxsmm;
 extern int	hascache;
 extern int	isibm486;
+extern int	is_nec;
 extern int	is_rapidcad;
 extern int	hasfpu;
 #define CPU_FEATURE_RDTSC (1 << 0)
@@ -502,6 +506,7 @@ extern int	hasfpu;
 #define CPU_FEATURE_VME   (1 << 4)
 #define CPU_FEATURE_CX8   (1 << 5)
 #define CPU_FEATURE_3DNOW (1 << 6)
+#define CPU_FEATURE_SYSCALL (1 << 7)
 
 extern uint32_t	cpu_features;
 

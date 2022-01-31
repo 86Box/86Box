@@ -13,10 +13,10 @@
  *		Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 2008-2018 Sarah Walker.
+ *		Copyright 2008-2020 Sarah Walker.
  *		Copyright 2016-2018 leilei.
- *		Copyright 2016-2018 Miran Grca.
- *		Copyright 2018 Fred N. van Kempen.
+ *		Copyright 2016-2020 Miran Grca.
+ *		Copyright 2018-2021 Fred N. van Kempen.
  */
 #include <math.h>
 #include <stdarg.h>
@@ -58,13 +58,13 @@ enum {
         CPUID_PAE = (1 << 6),
         CPUID_MCE = (1 << 7),
         CPUID_CMPXCHG8B = (1 << 8),
-	CPUID_AMDSEP = (1 << 10),
-	CPUID_SEP = (1 << 11),
-	CPUID_MTRR = (1 << 12),
+        CPUID_AMDSEP = (1 << 10),
+        CPUID_SEP = (1 << 11),
+        CPUID_MTRR = (1 << 12),
         CPUID_MCA = (1 << 14),
         CPUID_CMOV = (1 << 15),
         CPUID_MMX = (1 << 23),
-	CPUID_FXSR = (1 << 24)
+        CPUID_FXSR = (1 << 24)
 };
 
 /*Addition flags returned by CPUID function 0x80000001*/
@@ -372,6 +372,8 @@ cpu_set(void)
 
     CPUID        = cpu_s->cpuid_model;
     is8086       = (cpu_s->cpu_type > CPU_8088);
+    is_nec       = (cpu->type == CPU_NEC);
+    is186        = (cpu->type == CPU_186);
     is286        = (cpu_s->cpu_type >= CPU_286);
     is386        = (cpu_s->cpu_type >= CPU_386SX);
     israpidcad   = (cpu_s->cpu_type == CPU_RAPIDCAD);
@@ -529,6 +531,8 @@ cpu_set(void)
     switch (cpu_s->cpu_type) {
 	case CPU_8088:
 	case CPU_8086:
+	case CPU_NEC:
+	case CPU_186:
 		break;
 
 	case CPU_286:

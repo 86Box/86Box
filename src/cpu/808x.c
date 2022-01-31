@@ -2679,7 +2679,8 @@ execx86(int cycs)
 						AL = (uint8_t) cpu_data;
 						AH = (uint8_t) cpu_dest;
 						set_co_mul(bits, AH != ((AL & 0x80) == 0 || (rmdat & 0x38) == 0x20 ? 0 : 0xff));
-						cpu_data = AH;
+						if (! is_nec)
+							cpu_data = AH;
 					}
 					/* NOTE: When implementing the V20, care should be taken to not change
 						 the zero flag. */
