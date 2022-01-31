@@ -23,7 +23,7 @@
 
 /* Configuration values. */
 #define SERIAL_MAX	4
-#define PARALLEL_MAX	3
+#define PARALLEL_MAX	4
 #define SCREEN_RES_X	640
 #define SCREEN_RES_Y	480
 
@@ -122,7 +122,8 @@ extern int	sound_is_float,			/* (C) sound uses FP values */
 		GUS, GUSMAX,			/* (C) sound option */
 		SSI2001,			/* (C) sound option */
 		voodoo_enabled;			/* (C) video option */
-extern uint32_t	mem_size;			/* (C) memory size */
+extern uint32_t	mem_size;			/* (C) memory size (Installed on system board) */
+extern uint32_t	isa_mem_size;		/* (C) memory size (ISA Memory Cards) */
 extern int	cpu,				/* (C) cpu type */
 		cpu_use_dynarec,		/* (C) cpu uses/needs Dyna */
 		fpu_type;			/* (C) fpu type */

@@ -295,7 +295,7 @@ END
 #define STR_MACHINE         "Tietokone:"
 #define STR_CONFIGURE       "Määritys"
 #define STR_CPU_TYPE        "Suorittimen tyyppi:"
-#define STR_SPEED           "Nopeus:"
+#define STR_CPU_SPEED       "Nopeus:"
 #define STR_FPU             "Apusuoritin:"
 #define STR_WAIT_STATES     "Odotustilat:"
 #define STR_MB              "Mt"
@@ -317,7 +317,7 @@ END
 #define STR_JOY4            "Peliohjain 4..."
 
 #define STR_SOUND           "Äänikortti:"
-#define STR_MIDI            "MIDI-ulostulo:"
+#define STR_MIDI_OUT        "MIDI-ulostulo:"
 #define STR_MIDI_IN         "MIDI-sisääntulo:"
 #define STR_MPU401          "Erillinen MPU-401"
 #define STR_SSI             "Innovation SSI-2001"
@@ -329,9 +329,14 @@ END
 #define STR_PCAP            "PCap-laite:"
 #define STR_NET             "Verkkokortti:"
 
+#define STR_COM1            "COM1-laite:"
+#define STR_COM2            "COM2-laite:"
+#define STR_COM3            "COM3-laite:"
+#define STR_COM4            "COM4-laite:"
 #define STR_LPT1            "LPT1-laite:"
 #define STR_LPT2            "LPT2-laite:"
 #define STR_LPT3            "LPT3-laite:"
+#define STR_LPT4            "LPT4-laite:"
 #define STR_SERIAL1         "Sarjaportti 1"
 #define STR_SERIAL2         "Sarjaportti 2"
 #define STR_SERIAL3         "Sarjaportti 3"
@@ -339,6 +344,7 @@ END
 #define STR_PARALLEL1       "Rinnakkaisportti 1"
 #define STR_PARALLEL2       "Rinnakkaisportti 2"
 #define STR_PARALLEL3       "Rinnakkaisportti 3"
+#define STR_PARALLEL4       "Rinnakkaisportti 4"
 
 #define STR_HDC             "Kiintolevyohjain:"
 #define STR_FDC             "Levykeohjain:"
@@ -372,6 +378,7 @@ END
 #define STR_TURBO           "Turbo-ajoitukset"
 #define STR_CHECKBPB        "Tarkista BPB"
 #define STR_CDROM_DRIVES    "CD-ROM-asemat:"
+#define STR_CD_SPEED       "Nopeus:"
 
 #define STR_MO_DRIVES       "Magneettisoptiset asemat (MO):"
 #define STR_ZIP_DRIVES      "ZIP-asemat:"

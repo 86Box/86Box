@@ -160,7 +160,8 @@ int GAMEBLASTER = 0;				/* (C) sound option */
 int GUS = 0;					/* (C) sound option */
 int SSI2001 = 0;				/* (C) sound option */
 int voodoo_enabled = 0;				/* (C) video option */
-uint32_t mem_size = 0;				/* (C) memory size */
+uint32_t mem_size = 0;				/* (C) memory size (Installed on system board)*/
+uint32_t isa_mem_size = 0;	/* (C) memory size (ISA Memory Cards) */
 int	cpu_use_dynarec = 0;			/* (C) cpu uses/needs Dyna */
 int cpu = 0;					/* (C) cpu type */
 int fpu_type = 0;				/* (C) fpu type */
@@ -931,7 +932,9 @@ pc_reset_hard_close(void)
 
 	scsi_disk_close();
 
+#ifdef USE_OPENAL
 	closeal();
+#endif
 
 	video_reset_close();
 
@@ -975,9 +978,6 @@ pc_reset_hard_init(void)
 
 	/* Reset and reconfigure the Sound Card layer. */
 	sound_card_reset();
-
-	/* Reset any ISA memory cards. */
-	isamem_reset();
 
 	/* Reset any ISA RTC cards. */
 	isartc_reset();
@@ -1048,8 +1048,12 @@ pc_reset_hard_init(void)
 	atfullspeed = 0;
 	pc_full_speed();
 
-	cycles = cycles_main = 0;
-	
+	cycles = 0;
+  fpu_cycles = 0;
+#ifdef USE_DYNAREC
+	cycles_main = 0;
+#endif
+
 	update_mouse_msg();
 }
 

@@ -20,12 +20,14 @@
 # define SCSI_BUSLOGIC_H
 
 
-extern const device_t buslogic_542b_1991_device;
-extern const device_t buslogic_device;
+extern const device_t buslogic_542b_device;
 extern const device_t buslogic_545s_device;
+extern const device_t buslogic_542bh_device;
+extern const device_t buslogic_545c_device;
 extern const device_t buslogic_640a_device;
 extern const device_t buslogic_445s_device;
-extern const device_t buslogic_pci_device;
+extern const device_t buslogic_445c_device;
+extern const device_t buslogic_958d_pci_device;
 
 extern	void BuslogicDeviceReset(void *p);
   

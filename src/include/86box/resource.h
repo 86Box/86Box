@@ -24,93 +24,134 @@
 
 
 /* Dialog IDs. */
-#define DLG_ABOUT		101	/* top-level dialog */
-#define DLG_STATUS		102	/* top-level dialog */
-#define DLG_SND_GAIN		103	/* top-level dialog */
-#define DLG_NEW_FLOPPY		104	/* top-level dialog */
-#define DLG_SPECIFY_DIM		105	/* top-level dialog */
-#define DLG_PREFERENCES		106	/* top-level dialog */
-#define DLG_CONFIG		110	/* top-level dialog */
-#define  DLG_CFG_MACHINE	111	/* sub-dialog of config */
-#define  DLG_CFG_VIDEO		112	/* sub-dialog of config */
-#define  DLG_CFG_INPUT		113	/* sub-dialog of config */
-#define  DLG_CFG_SOUND		114	/* sub-dialog of config */
-#define  DLG_CFG_NETWORK	115	/* sub-dialog of config */
-#define  DLG_CFG_PORTS		116	/* sub-dialog of config */
-#define  DLG_CFG_STORAGE	117	/* sub-dialog of config */
-#define  DLG_CFG_HARD_DISKS	118	/* sub-dialog of config */
-#define  DLG_CFG_HARD_DISKS_ADD	119	/* sub-dialog of config */
-#define  DLG_CFG_FLOPPY_AND_CDROM_DRIVES	120	/* sub-dialog of config */
-#define  DLG_CFG_OTHER_REMOVABLE_DEVICES	121	/* sub-dialog of config */
-#define  DLG_CFG_PERIPHERALS	122	/* sub-dialog of config */
+#define DLG_ABOUT				101	/* top-level dialog */
+#define DLG_STATUS				102	/* top-level dialog */
+#define DLG_SND_GAIN			103	/* top-level dialog */
+#define DLG_NEW_FLOPPY			104	/* top-level dialog */
+#define DLG_SPECIFY_DIM			105	/* top-level dialog */
+#define DLG_PREFERENCES			106	/* top-level dialog */
+#define DLG_CONFIG				110	/* top-level dialog */
+#define DLG_CFG_MACHINE			111	/* sub-dialog of config */
+#define DLG_CFG_VIDEO			112	/* sub-dialog of config */
+#define DLG_CFG_INPUT			113	/* sub-dialog of config */
+#define DLG_CFG_SOUND			114	/* sub-dialog of config */
+#define DLG_CFG_NETWORK			115	/* sub-dialog of config */
+#define DLG_CFG_PORTS			116	/* sub-dialog of config */
+#define DLG_CFG_STORAGE			117	/* sub-dialog of config */
+#define DLG_CFG_HARD_DISKS		118	/* sub-dialog of config */
+#define DLG_CFG_HARD_DISKS_ADD	119	/* sub-dialog of config */
+#define DLG_CFG_FLOPPY_AND_CDROM_DRIVES	120	/* sub-dialog of config */
+#define DLG_CFG_OTHER_REMOVABLE_DEVICES	121	/* sub-dialog of config */
+#define DLG_CFG_PERIPHERALS		122	/* sub-dialog of config */
 
 /* Static text label IDs. */
-#define IDT_1700		1700	/* Language: */
-#define IDT_1701		1701	/* Machine: */
-#define IDT_1702		1702	/* CPU type: */
-#define IDT_1703		1703	/* Wait states: */
-#define IDT_1704		1704	/* CPU: */
-#define IDT_1705		1705	/* MB	== IDC_TEXT_MB */
-#define IDT_1706		1706	/* Memory: */
-#define IDT_1707		1707	/* Video: */
-#define IDT_1708		1708	/* Machine type: */
-#define IDT_1709		1709	/* Mouse: */
-#define IDT_1710		1710	/* Joystick: */
-#define IDT_1711		1711	/* Sound card: */
-#define IDT_1712		1712	/* MIDI Out Device: */
-#define IDT_1713		1713	/* MIDI In Device: */
-#define IDT_1714		1714	/* Network type: */
-#define IDT_1715		1715	/* PCap device: */
-#define IDT_1716		1716	/* Network adapter: */
-#define IDT_1717		1717	/* SCSI Controller: */
-#define IDT_1718		1718	/* HD Controller: */
-#define IDT_1719		1719
-#define IDT_1720		1720	/* Hard disks: */
-#define IDT_1721		1721	/* Bus: */
-#define IDT_1722		1722	/* Channel: */
-#define IDT_1723		1723	/* ID: */
-#define IDT_1724		1724	/* LUN: */
-#define IDT_1726		1726	/* Sectors: */
-#define IDT_1727		1727	/* Heads: */
-#define IDT_1728		1728	/* Cylinders: */
-#define IDT_1729		1729	/* Size (MB): */
-#define IDT_1730		1730	/* Type: */
-#define IDT_1731		1731	/* File name: */
-#define IDT_1737		1737	/* Floppy drives: */
-#define IDT_1738		1738	/* Type: */
-#define IDT_1739		1739	/* CD-ROM drives: */
-#define IDT_1740		1740	/* Bus: */
-#define IDT_1741		1741	/* ID: */
-#define IDT_1742		1742	/* LUN: */
-#define IDT_1743		1743	/* Channel: */
-#define IDT_STEXT		1744	/* text in status window */
-#define IDT_SDEVICE		1745	/* text in status window */
-#define IDT_1746		1746	/* Gain */
-#define IDT_1749		1749	/* File name: */
-#define IDT_1750		1750	/* Disk size: */
-#define IDT_1751		1751	/* RPM mode: */
-#define IDT_1752		1752	/* Progress: */
-#define IDT_1753		1753	/* Bus: */
-#define IDT_1754		1754	/* ID: */
-#define IDT_1755		1755	/* LUN: */
-#define IDT_1756		1756	/* Channel: */
-#define IDT_1757		1757	/* Progress: */
-#define IDT_1758		1758	/* Speed: */
-#define IDT_1759		1759	/* ZIP drives: */
-#define IDT_1763		1763	/* Board #1: */
-#define IDT_1764		1764	/* Board #2: */
-#define IDT_1765		1765	/* Board #3: */
-#define IDT_1766		1766	/* Board #4: */
-#define IDT_1767		1767	/* ISA RTC: */
-#define IDT_1768		1768	/* Ext FD Controller: */
-#define IDT_1769		1769	/* MO drives: */
-#define IDT_1770		1770	/* Bus: */
-#define IDT_1771		1771	/* ID: */
-#define IDT_1772		1772	/* Channel */
-#define IDT_1773		1773	/* Type: */
-#define IDT_1774		1774	/* Image Format: */
-#define IDT_1775		1775	/* Block Size: */
 
+/* DLG_SND_GAIN */
+#define IDT_GAIN		1700	/* Gain */
+
+/* DLG_NEW_FLOPPY */
+#define IDT_FLP_FILE_NAME	1701	/* File name: */
+#define IDT_FLP_DISK_SIZE	1702	/* Disk size: */
+#define IDT_FLP_RPM_MODE	1703	/* RPM mode: */
+#define IDT_FLP_PROGRESS	1704	/* Progress: */
+
+/* DLG_SPECIFY_DIM */
+#define IDT_WIDTH		1705	/* ??? */
+#define IDT_HEIGHT		1706	/* ??? */
+
+/* DLG_CFG_MACHINE */
+#define IDT_MACHINE_TYPE	1707	/* Machine type: */
+#define IDT_MACHINE		1708	/* Machine: */
+#define IDT_CPU_TYPE	1709	/* CPU type: */
+#define IDT_CPU_SPEED	1710	/* CPU speed: */
+#define IDT_FPU			1711	/* FPU: */
+#define IDT_WAIT_STATES	1712	/* Wait states: */
+#define IDT_MB			1713	/* MB	== IDC_TEXT_MB */
+#define IDT_MEMORY		1714	/* Memory: */
+
+/* DLG_CFG_VIDEO */
+#define IDT_VIDEO		1715	/* Video: */
+
+/* DLG_CFG_INPUT */
+#define IDT_MOUSE		1716	/* Mouse: */
+#define IDT_JOYSTICK	1717	/* Joystick: */
+
+/* DLG_CFG_SOUND */
+#define IDT_SOUND		1718	/* Sound card: */
+#define IDT_MIDI_OUT	1719	/* MIDI Out Device: */
+#define IDT_MIDI_IN		1720	/* MIDI In Device: */
+
+/* DLG_CFG_NETWORK */
+#define IDT_NET_TYPE	1721	/* Network type: */
+#define IDT_PCAP		1722	/* PCap device: */
+#define IDT_NET			1723	/* Network adapter: */
+
+/* DLG_CFG_PORTS */
+#define IDT_COM1		1724	/* COM1 Device: */
+#define IDT_COM2		1725	/* COM1 Device: */
+#define IDT_COM3		1726	/* COM1 Device: */
+#define IDT_COM4		1727	/* COM1 Device: */
+
+#define IDT_LPT1		1728	/* LPT1 Device: */
+#define IDT_LPT2		1729	/* LPT2 Device: */
+#define IDT_LPT3		1730	/* LPT3 Device: */
+#define IDT_LPT4		1731	/* LPT4 Device: */
+
+/* DLG_CFG_STORAGE */
+#define IDT_HDC			1732	/* HD Controller: */
+#define IDT_FDC			1733	/* Ext FD Controller: */
+#define IDT_SCSI_1		1734	/* SCSI Board #1: */
+#define IDT_SCSI_2		1735	/* SCSI Board #2: */
+#define IDT_SCSI_3		1736	/* SCSI Board #3: */
+#define IDT_SCSI_4		1737	/* SCSI Board #4: */
+
+/* DLG_CFG_HARD_DISKS */
+#define IDT_HDD			1738	/* Hard disks: */
+#define IDT_BUS			1739	/* Bus: */
+#define IDT_CHANNEL		1740	/* Channel: */
+#define IDT_ID			1741	/* ID: */
+#define IDT_LUN			1742	/* LUN: */
+
+/* DLG_CFG_HARD_DISKS_ADD */
+#define IDT_SECTORS		1743	/* Sectors: */
+#define IDT_HEADS		1744	/* Heads: */
+#define IDT_CYLS		1745	/* Cylinders: */
+#define IDT_SIZE_MB		1746	/* Size (MB): */
+#define IDT_TYPE		1747	/* Type: */
+#define IDT_FILE_NAME	1748	/* File name: */
+#define IDT_IMG_FORMAT	1749	/* Image Format: */
+#define IDT_BLOCK_SIZE	1750	/* Block Size: */
+#define IDT_PROGRESS	1751	/* Progress: */
+
+/* DLG_CFG_FLOPPY_AND_CDROM_DRIVES */
+#define IDT_FLOPPY_DRIVES	1752	/* Floppy drives: */
+#define IDT_FDD_TYPE	1753	/* Type: */
+#define IDT_CD_DRIVES	1754	/* CD-ROM drives: */
+#define IDT_CD_BUS		1755	/* Bus: */
+#define IDT_CD_ID		1756	/* ID: */
+#define IDT_CD_LUN		1757	/* LUN: */
+#define IDT_CD_CHANNEL	1758	/* Channel: */
+#define IDT_CD_SPEED	1759	/* Speed: */
+
+/* DLG_CFG_OTHER_REMOVABLE_DEVICES */
+#define IDT_MO_DRIVES	1760	/* MO drives: */
+#define IDT_MO_BUS		1761	/* Bus: */
+#define IDT_MO_ID		1762	/* ID: */
+#define IDT_MO_CHANNEL	1763	/* Channel */
+#define IDT_MO_TYPE		1764	/* Type: */
+
+#define IDT_ZIP_DRIVES	1765	/* ZIP drives: */
+#define IDT_ZIP_BUS		1766	/* Bus: */
+#define IDT_ZIP_ID		1767	/* ID: */
+#define IDT_ZIP_LUN		1768	/* LUN: */
+#define IDT_ZIP_CHANNEL	1769	/* Channel: */
+
+/* DLG_CFG_PERIPHERALS */
+#define IDT_ISARTC		1770	/* ISA RTC: */
+#define IDT_ISAMEM_1	1771	/* ISAMEM Board #1: */
+#define IDT_ISAMEM_2	1772	/* ISAMEM Board #2: */
+#define IDT_ISAMEM_3	1773	/* ISAMEM Board #3: */
+#define IDT_ISAMEM_4	1774	/* ISAMEM Board #4: */
 
 /*
  * To try to keep these organized, we now group the
@@ -128,7 +169,7 @@
 #define IDC_COMBO_MACHINE	1011	/* machine/cpu config */
 #define IDC_CONFIGURE_MACHINE	1012
 #define IDC_COMBO_CPU_TYPE	1013
-#define IDC_COMBO_CPU		1014
+#define IDC_COMBO_CPU_SPEED	1014
 #define IDC_COMBO_FPU		1015
 #define IDC_COMBO_WS		1016
 #ifdef USE_DYNAREC
@@ -136,7 +177,7 @@
 #endif
 #define IDC_MEMTEXT		1018
 #define IDC_MEMSPIN		1019
-#define IDC_TEXT_MB		IDT_1705
+#define IDC_TEXT_MB		IDT_MB
 
 #define IDC_VIDEO		1020	/* video config */
 #define IDC_COMBO_VIDEO		1021
@@ -154,7 +195,7 @@
 #define IDC_CHECK_SSI		1042
 #define IDC_CHECK_CMS		1043
 #define IDC_CHECK_GUS		1044
-#define IDC_COMBO_MIDI		1045
+#define IDC_COMBO_MIDI_OUT	1045
 #define IDC_CHECK_MPU401	1046
 #define IDC_CONFIGURE_MPU401	1047
 #define IDC_CHECK_FLOAT		1048
@@ -170,31 +211,33 @@
 #define IDC_COMBO_LPT1		1070	/* ports config */
 #define IDC_COMBO_LPT2		1071
 #define IDC_COMBO_LPT3		1072
-#define IDC_CHECK_SERIAL1	1073
-#define IDC_CHECK_SERIAL2	1074
-#define IDC_CHECK_SERIAL3	1075
-#define IDC_CHECK_SERIAL4	1076
-#define IDC_CHECK_PARALLEL1	1077
-#define IDC_CHECK_PARALLEL2	1078
-#define IDC_CHECK_PARALLEL3	1079
+#define IDC_COMBO_LPT4		1073
+#define IDC_CHECK_SERIAL1	1074
+#define IDC_CHECK_SERIAL2	1075
+#define IDC_CHECK_SERIAL3	1076
+#define IDC_CHECK_SERIAL4	1077
+#define IDC_CHECK_PARALLEL1	1078
+#define IDC_CHECK_PARALLEL2	1079
+#define IDC_CHECK_PARALLEL3	1080
+#define IDC_CHECK_PARALLEL4	1081
 
-#define IDC_OTHER_PERIPH	1080	/* storage controllers config */
-#define IDC_COMBO_HDC		1081
-#define IDC_CONFIGURE_HDC	1082
-#define IDC_CHECK_IDE_TER	1083
-#define IDC_BUTTON_IDE_TER	1084
-#define IDC_CHECK_IDE_QUA	1085
-#define IDC_BUTTON_IDE_QUA	1086
-#define IDC_GROUP_SCSI		1087
-#define IDC_COMBO_SCSI_1	1088
-#define IDC_COMBO_SCSI_2	1089
-#define IDC_COMBO_SCSI_3	1090
-#define IDC_COMBO_SCSI_4	1091
-#define IDC_CONFIGURE_SCSI_1	1092
-#define IDC_CONFIGURE_SCSI_2	1093
-#define IDC_CONFIGURE_SCSI_3	1094
-#define IDC_CONFIGURE_SCSI_4	1095
-#define IDC_CHECK_CASSETTE	1096
+#define IDC_OTHER_PERIPH	1082	/* storage controllers config */
+#define IDC_COMBO_HDC		1083
+#define IDC_CONFIGURE_HDC	1084
+#define IDC_CHECK_IDE_TER	1085
+#define IDC_BUTTON_IDE_TER	1086
+#define IDC_CHECK_IDE_QUA	1087
+#define IDC_BUTTON_IDE_QUA	1088
+#define IDC_GROUP_SCSI		1089
+#define IDC_COMBO_SCSI_1	1090
+#define IDC_COMBO_SCSI_2	1091
+#define IDC_COMBO_SCSI_3	1092
+#define IDC_COMBO_SCSI_4	1093
+#define IDC_CONFIGURE_SCSI_1	1094
+#define IDC_CONFIGURE_SCSI_2	1095
+#define IDC_CONFIGURE_SCSI_3	1096
+#define IDC_CONFIGURE_SCSI_4	1097
+#define IDC_CHECK_CASSETTE	1098
 
 #define IDC_HARD_DISKS		1100	/* hard disks config */
 #define IDC_LIST_HARD_DISKS	1101
@@ -280,7 +323,7 @@
 #define  IDC_CONFIGURE_BUSLOGIC	1305
 #define  IDC_CONFIGURE_PCAP	1306
 #define  IDC_CONFIGURE_NET	1307
-#define  IDC_CONFIGURE_MIDI	1308
+#define  IDC_CONFIGURE_MIDI_OUT	1308
 #define  IDC_CONFIGURE_MIDI_IN 1309
 #define  IDC_JOY1		1310
 #define  IDC_JOY2		1311

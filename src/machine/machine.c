@@ -40,6 +40,7 @@
 #include "cpu.h"
 #include <86box/video.h>
 #include <86box/machine.h>
+#include <86box/isamem.h>
 
 
 int bios_only = 0;
@@ -101,6 +102,9 @@ machine_init_ex(int m)
 	/* Prepare some video-related things if we're using internal
 	   or no video. */
 	video_pre_reset(gfxcard);
+
+	/* Reset any ISA memory cards. */
+	isamem_reset();
     }
 
     /* All good, boot the machine! */

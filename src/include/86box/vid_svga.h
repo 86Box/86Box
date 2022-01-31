@@ -16,6 +16,8 @@
  *		Copyright 2008-2020 Sarah Walker.
  *		Copyright 2016-2020 Miran Grca.
  */
+#ifndef VIDEO_SVGA_H
+# define VIDEO_SVGA_H
 
 
 #define FLAG_EXTRA_BANKS	1
@@ -274,6 +276,7 @@ extern void tvp3026_ramdac_out(uint16_t addr, int rs2, int rs3, uint8_t val, voi
 extern uint8_t tvp3026_ramdac_in(uint16_t addr, int rs2, int rs3, void *p, svga_t *svga);
 extern void	tvp3026_recalctimings(void *p, svga_t *svga);
 extern void	tvp3026_hwcursor_draw(svga_t *svga, int displine);
+extern float	tvp3026_getclock(int clock, void *p);
 
 #ifdef EMU_DEVICE_H
 extern const device_t ati68860_ramdac_device;
@@ -305,3 +308,5 @@ extern const device_t tseng_ics5301_ramdac_device;
 extern const device_t tseng_ics5341_ramdac_device;
 extern const device_t tvp3026_ramdac_device;
 #endif
+
+#endif	/*VIDEO_SVGA_H*/

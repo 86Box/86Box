@@ -295,7 +295,7 @@ END
 #define STR_MACHINE		"Maszyna:"
 #define STR_CONFIGURE		"Konfiguruj"
 #define STR_CPU_TYPE		"Rodzaj procesora:"
-#define STR_SPEED		"Szybkość:"
+#define STR_CPU_SPEED		"Szybkość:"
 #define STR_FPU			"Jednostka FPU:"
 #define STR_WAIT_STATES		"Stany oczekiwania:"
 #define STR_MB			"MB"
@@ -317,7 +317,7 @@ END
 #define STR_JOY4		"Joystick 4..."
 
 #define STR_SOUND		"Karta dźwiękowa:"
-#define STR_MIDI		"Urządzenie wyjściowe MIDI:"
+#define STR_MIDI_OUT	"Urządzenie wyjściowe MIDI:"
 #define STR_MIDI_IN		"Urządzenie wejściowe MIDI:"
 #define STR_MPU401		"Samodzielne urządzenie MPU-401"
 #define STR_SSI			"Innovation SSI-2001"
@@ -332,6 +332,7 @@ END
 #define STR_LPT1		"Urządzenie LPT1:"
 #define STR_LPT2		"Urządzenie LPT2:"
 #define STR_LPT3		"Urządzenie LPT3:"
+#define STR_LPT4		"Urządzenie LPT4:"
 #define STR_SERIAL1		"Port szeregowy 1"
 #define STR_SERIAL2		"Port szeregowy 2"
 #define STR_SERIAL3		"Port szeregowy 3"
@@ -339,6 +340,7 @@ END
 #define STR_PARALLEL1		"Port równoległy 1"
 #define STR_PARALLEL2		"Port równoległy 2"
 #define STR_PARALLEL3		"Port równoległy 3"
+#define STR_PARALLEL4		"Port równoległy 4"
 
 #define STR_HDC			"Kontroler dysku twardego:"
 #define STR_FDC			"Kontroler dyskietek:"
@@ -372,6 +374,7 @@ END
 #define STR_TURBO		"Rozrządy Turbo"
 #define STR_CHECKBPB		"Sprawdzaj BPB"
 #define STR_CDROM_DRIVES	"Napędy CD-ROM:"
+#define STR_CD_SPEED		"Szybkość:"
 
 #define STR_MO_DRIVES		"Napędy MO:"
 #define STR_ZIP_DRIVES		"Napędy ZIP:"
