@@ -295,7 +295,7 @@ END
 #define STR_MACHINE		"Počítač:"
 #define STR_CONFIGURE		"Nastavit"
 #define STR_CPU_TYPE		"Procesor:"
-#define STR_SPEED		"Rychlost:"
+#define STR_CPU_SPEED		"Rychlost:"
 #define STR_FPU			"Koprocesor:"
 #define STR_WAIT_STATES		"Čekací stavy:"
 #define STR_MB			"MB"
@@ -317,7 +317,7 @@ END
 #define STR_JOY4		"Joystick 4..."
 
 #define STR_SOUND		"Zvuková karta:"
-#define STR_MIDI		"MIDI výstup:"
+#define STR_MIDI_OUT	"MIDI výstup:"
 #define STR_MIDI_IN		"MIDI vstup:"
 #define STR_MPU401		"Samostatný MPU-401"
 #define STR_SSI			"Innovation SSI-2001"
@@ -378,6 +378,7 @@ END
 #define STR_TURBO		"Turbo časování"
 #define STR_CHECKBPB		"Kontrola BPB"
 #define STR_CDROM_DRIVES	"Mechaniky CD-ROM:"
+#define STR_CD_SPEED		"Rychlost:"
 
 #define STR_MO_DRIVES		"Magnetooptické mechaniky:"
 #define STR_ZIP_DRIVES		"Mechaniky ZIP:"

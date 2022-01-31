@@ -295,7 +295,7 @@ END
 #define STR_MACHINE		"マシン:"
 #define STR_CONFIGURE		"設定"
 #define STR_CPU_TYPE		"CPUタイプ:"
-#define STR_SPEED		"速度:"
+#define STR_CPU_SPEED		"速度:"
 #define STR_FPU			"FPU:"
 #define STR_WAIT_STATES		"待機状態:"
 #define STR_MB			"MB"
@@ -317,7 +317,7 @@ END
 #define STR_JOY4		"ジョイスティック4..."
 
 #define STR_SOUND		"サウンドカード:"
-#define STR_MIDI		"MIDI出力デバイス:"
+#define STR_MIDI_OUT	"MIDI出力デバイス:"
 #define STR_MIDI_IN		"MIDI入力デバイス:"
 #define STR_MPU401		"独立型MPU-401"
 #define STR_SSI			"Innovation SSI-2001"
@@ -378,6 +378,7 @@ END
 #define STR_TURBO		"高速タイミング"
 #define STR_CHECKBPB		"BPBをチェック"
 #define STR_CDROM_DRIVES	"CD-ROMドライブ:"
+#define STR_CD_SPEED		"速度:"
 
 #define STR_MO_DRIVES		"光磁気ドライブ:"
 #define STR_ZIP_DRIVES		"ZIPドライブ:"
