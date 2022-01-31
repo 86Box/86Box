@@ -157,7 +157,7 @@ hdc_reset(void)
 char *
 hdc_get_internal_name(int hdc)
 {
-    return((char *) controllers[hdc].internal_name);
+    return((char *) controllers[hdc].device->internal_name);
 }
 
 
@@ -166,9 +166,9 @@ hdc_get_from_internal_name(char *s)
 {
 	int c = 0;
 	
-	while (strlen((char *) controllers[c].internal_name))
+	while (strlen((char *) controllers[c].device->internal_name))
 	{
-		if (!strcmp((char *) controllers[c].internal_name, s))
+		if (!strcmp((char *) controllers[c].device->internal_name, s))
 			return c;
 		c++;
 	}

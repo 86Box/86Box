@@ -1691,7 +1691,7 @@ acpi_reset(void *priv)
 	   - Bit  3: 80-conductor cable on secondary IDE channel (active low)
 	   - Bit  1: 80-conductor cable on primary IDE channel (active low) */
 	dev->regs.gpi_val = 0xfff57fc1;
-	if (!strcmp(machines[machine].internal_name, "ficva503a") || !strcmp(machines[machine].internal_name, "6via90ap"))
+	if (!strcmp(machine_get_internal_name(machine), "ficva503a") || !strcmp(machine_get_internal_name(machine), "6via90ap"))
 		dev->regs.gpi_val |= 0x00000004;
     }
 

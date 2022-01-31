@@ -123,7 +123,7 @@ midi_device_has_config(int card)
 char *
 midi_device_get_internal_name(int card)
 {
-    return (char *) devices[card].internal_name;
+    return (char *) devices[card].device->internal_name;
 }
 
 
@@ -132,8 +132,8 @@ midi_device_get_from_internal_name(char *s)
 {
     int c = 0;
 
-    while (strlen(devices[c].internal_name)) {
-	if (!strcmp(devices[c].internal_name, s))
+    while (strlen(devices[c].device->internal_name)) {
+	if (!strcmp(devices[c].device->internal_name, s))
 		return c;
 	c++;
     }
@@ -252,7 +252,7 @@ midi_in_device_has_config(int card)
 char *
 midi_in_device_get_internal_name(int card)
 {
-    return (char *) midi_in_devices[card].internal_name;
+    return (char *) midi_in_devices[card].device->internal_name;
 }
 
 
@@ -261,8 +261,8 @@ midi_in_device_get_from_internal_name(char *s)
 {
     int c = 0;
 
-    while (strlen(midi_in_devices[c].internal_name)) {
-	if (!strcmp(midi_in_devices[c].internal_name, s))
+    while (strlen(midi_in_devices[c].device->internal_name)) {
+	if (!strcmp(midi_in_devices[c].device->internal_name, s))
 		return c;
 	c++;
     }

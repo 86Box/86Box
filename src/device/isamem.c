@@ -1342,7 +1342,7 @@ isamem_get_name(int board)
 const char *
 isamem_get_internal_name(int board)
 {
-    return(boards[board].internal_name);
+    return(boards[board].dev->internal_name);
 }
 
 
@@ -1352,8 +1352,8 @@ isamem_get_from_internal_name(const char *s)
 {
     int c = 0;
 
-    while (boards[c].internal_name != NULL) {
-	if (! strcmp(boards[c].internal_name, s))
+    while (boards[c].dev->internal_name != NULL) {
+	if (! strcmp(boards[c].dev->internal_name, s))
 		return(c);
 	c++;
     }

@@ -771,7 +771,7 @@ isartc_reset(void)
 char *
 isartc_get_internal_name(int board)
 {
-    return((char *)boards[board].internal_name);
+    return((char *)boards[board].dev->internal_name);
 }
 
 
@@ -780,8 +780,8 @@ isartc_get_from_internal_name(char *s)
 {
     int c = 0;
 
-    while (strlen((char *) boards[c].internal_name)) {
-	if (! strcmp(boards[c].internal_name, s))
+    while (strlen((char *) boards[c].dev->internal_name)) {
+	if (! strcmp(boards[c].dev->internal_name, s))
 		return(c);
 	c++;
     }

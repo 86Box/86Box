@@ -341,7 +341,7 @@ video_card_has_config(int card)
 char *
 video_get_internal_name(int card)
 {
-    return((char *) video_cards[card].internal_name);
+    return((char *) video_cards[card].device->internal_name);
 }
 
 
@@ -350,8 +350,8 @@ video_get_video_from_internal_name(char *s)
 {
     int c = 0;
 
-    while (strcmp(video_cards[c].internal_name, "") != 0) {
-	if (!strcmp((char *) video_cards[c].internal_name, s))
+    while (strcmp(video_cards[c].device->internal_name, "") != 0) {
+	if (!strcmp((char *) video_cards[c].device->internal_name, s))
 		return(c);
 	c++;
     }

@@ -208,7 +208,7 @@ mouse_get_name(int mouse)
 char *
 mouse_get_internal_name(int mouse)
 {
-    return((char *)mouse_devices[mouse].internal_name);
+    return((char *)mouse_devices[mouse].device->internal_name);
 }
 
 
@@ -217,8 +217,8 @@ mouse_get_from_internal_name(char *s)
 {
     int c = 0;
 
-    while (mouse_devices[c].internal_name != NULL) {
-	if (! strcmp((char *)mouse_devices[c].internal_name, s))
+    while (mouse_devices[c].device->internal_name != NULL) {
+	if (! strcmp((char *)mouse_devices[c].device->internal_name, s))
 		return(c);
 	c++;
     }

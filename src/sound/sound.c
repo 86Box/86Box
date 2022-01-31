@@ -166,7 +166,7 @@ sound_card_has_config(int card)
 char *
 sound_card_get_internal_name(int card)
 {
-    return (char *) sound_cards[card].internal_name;
+    return (char *) sound_cards[card].device->internal_name;
 }
 
 
@@ -175,8 +175,8 @@ sound_card_get_from_internal_name(char *s)
 {
     int c = 0;
 
-    while (strlen((char *) sound_cards[c].internal_name)) {
-	if (!strcmp((char *) sound_cards[c].internal_name, s))
+    while (strlen((char *) sound_cards[c].device->internal_name)) {
+	if (!strcmp((char *) sound_cards[c].device->internal_name, s))
 		return c;
 	c++;
     }
