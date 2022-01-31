@@ -329,6 +329,10 @@ END
 #define STR_PCAP		"PCap zařízení:"
 #define STR_NET			"Síťový adaptér:"
 
+#define STR_COM1		"Zařízení na COM1:"
+#define STR_COM2		"Zařízení na COM2:"
+#define STR_COM3		"Zařízení na COM3:"
+#define STR_COM4		"Zařízení na COM4:"
 #define STR_LPT1		"Zařízení na LPT1:"
 #define STR_LPT2		"Zařízení na LPT2:"
 #define STR_LPT3		"Zařízení na LPT3:"

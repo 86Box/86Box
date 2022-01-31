@@ -329,6 +329,10 @@ END
 #define STR_PCAP		"PCap cihazı:"
 #define STR_NET			"Ağ cihazı:"
 
+#define STR_COM1		"COM1 Cihazı:"
+#define STR_COM2		"COM2 Cihazı:"
+#define STR_COM3		"COM3 Cihazı:"
+#define STR_COM4		"COM4 Cihazı:"
 #define STR_LPT1		"LPT1 Cihazı:"
 #define STR_LPT2		"LPT2 Cihazı:"
 #define STR_LPT3		"LPT3 Cihazı:"

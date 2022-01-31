@@ -329,6 +329,10 @@ END
 #define STR_PCAP		"Dispositif PCap:"
 #define STR_NET			"Adaptateur de réseau:"
 
+#define STR_COM1		"Dispositif COM1:"
+#define STR_COM2		"Dispositif COM2:"
+#define STR_COM3		"Dispositif COM3:"
+#define STR_COM4		"Dispositif COM4:"
 #define STR_LPT1		"Dispositif LPT1:"
 #define STR_LPT2		"Dispositif LPT2:"
 #define STR_LPT3		"Dispositif LPT3:"

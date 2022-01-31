@@ -329,6 +329,10 @@ END
 #define STR_PCAP		"Устройство PCap:"
 #define STR_NET			"Сетевая карта:"
 
+#define STR_COM1		"Устройство COM1:"
+#define STR_COM2		"Устройство COM2:"
+#define STR_COM3		"Устройство COM3:"
+#define STR_COM4		"Устройство COM4:"
 #define STR_LPT1		"Устройство LPT1:"
 #define STR_LPT2		"Устройство LPT2:"
 #define STR_LPT3		"Устройство LPT3:"

@@ -334,6 +334,10 @@ END
 #define STR_PCAP		"PCap eszköz:"
 #define STR_NET			"Hálózati kártya:"
 
+#define STR_COM1		"COM1 eszköz:"
+#define STR_COM2		"COM2 eszköz:"
+#define STR_COM3		"COM3 eszköz:"
+#define STR_COM4		"COM4 eszköz:"
 #define STR_LPT1		"LPT1 eszköz:"
 #define STR_LPT2		"LPT2 eszköz:"
 #define STR_LPT3		"LPT3 eszköz:"

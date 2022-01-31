@@ -329,6 +329,10 @@ END
 #define STR_PCAP		"Naprava PCap:"
 #define STR_NET			"Omrežna kartica:"
 
+#define STR_COM1		"Naprava COM1:"
+#define STR_COM2		"Naprava COM2:"
+#define STR_COM3		"Naprava COM3:"
+#define STR_COM4		"Naprava COM4:"
 #define STR_LPT1		"Naprava LPT1:"
 #define STR_LPT2		"Naprava LPT2:"
 #define STR_LPT3		"Naprava LPT3:"

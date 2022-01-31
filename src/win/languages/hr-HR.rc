@@ -329,6 +329,10 @@ END
 #define STR_PCAP		"Uređaj PCap:"
 #define STR_NET			"Mrežna kartica:"
 
+#define STR_COM1		"Uređaj COM1:"
+#define STR_COM2		"Uređaj COM2:"
+#define STR_COM3		"Uređaj COM3:"
+#define STR_COM4		"Uređaj COM4:"
 #define STR_LPT1		"Uređaj LPT1:"
 #define STR_LPT2		"Uređaj LPT2:"
 #define STR_LPT3		"Uređaj LPT3:"

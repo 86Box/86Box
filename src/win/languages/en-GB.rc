@@ -329,6 +329,10 @@ END
 #define STR_PCAP		"PCap device:"
 #define STR_NET			"Network adapter:"
 
+#define STR_COM1		"COM1 Device:"
+#define STR_COM2		"COM2 Device:"
+#define STR_COM3		"COM3 Device:"
+#define STR_COM4		"COM4 Device:"
 #define STR_LPT1		"LPT1 Device:"
 #define STR_LPT2		"LPT2 Device:"
 #define STR_LPT3		"LPT3 Device:"

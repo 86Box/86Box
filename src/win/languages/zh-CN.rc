@@ -329,6 +329,10 @@ END
 #define STR_PCAP		"PCap 设备:"
 #define STR_NET			"网络适配器:"
 
+#define STR_COM1		"COM1 设备:"
+#define STR_COM2		"COM2 设备:"
+#define STR_COM3		"COM3 设备:"
+#define STR_COM4		"COM4 设备:"
 #define STR_LPT1		"LPT1 设备:"
 #define STR_LPT2		"LPT2 设备:"
 #define STR_LPT3		"LPT3 设备:"

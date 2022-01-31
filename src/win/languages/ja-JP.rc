@@ -329,6 +329,10 @@ END
 #define STR_PCAP		"PCapデバイス:"
 #define STR_NET			"ネットワークアダプター:"
 
+#define STR_COM1		"COM1デバイス:"
+#define STR_COM2		"COM2デバイス:"
+#define STR_COM3		"COM3デバイス:"
+#define STR_COM4		"COM4デバイス:"
 #define STR_LPT1		"LPT1デバイス:"
 #define STR_LPT2		"LPT2デバイス:"
 #define STR_LPT3		"LPT3デバイス:"

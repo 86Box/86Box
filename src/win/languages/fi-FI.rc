@@ -329,6 +329,10 @@ END
 #define STR_PCAP            "PCap-laite:"
 #define STR_NET             "Verkkokortti:"
 
+#define STR_COM1            "COM1-laite:"
+#define STR_COM2            "COM2-laite:"
+#define STR_COM3            "COM3-laite:"
+#define STR_COM4            "COM4-laite:"
 #define STR_LPT1            "LPT1-laite:"
 #define STR_LPT2            "LPT2-laite:"
 #define STR_LPT3            "LPT3-laite:"

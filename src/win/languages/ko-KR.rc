@@ -329,6 +329,10 @@ END
 #define STR_PCAP		"PCap 장치:"
 #define STR_NET			"네트워크 어댑터:"
 
+#define STR_COM1		"COM1 장치:"
+#define STR_COM2		"COM2 장치:"
+#define STR_COM3		"COM3 장치:"
+#define STR_COM4		"COM4 장치:"
 #define STR_LPT1		"LPT1 장치:"
 #define STR_LPT2		"LPT2 장치:"
 #define STR_LPT3		"LPT3 장치:"
