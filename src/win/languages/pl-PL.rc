@@ -332,6 +332,7 @@ END
 #define STR_LPT1		"Urządzenie LPT1:"
 #define STR_LPT2		"Urządzenie LPT2:"
 #define STR_LPT3		"Urządzenie LPT3:"
+#define STR_LPT4		"Urządzenie LPT4:"
 #define STR_SERIAL1		"Port szeregowy 1"
 #define STR_SERIAL2		"Port szeregowy 2"
 #define STR_SERIAL3		"Port szeregowy 3"
@@ -339,6 +340,7 @@ END
 #define STR_PARALLEL1		"Port równoległy 1"
 #define STR_PARALLEL2		"Port równoległy 2"
 #define STR_PARALLEL3		"Port równoległy 3"
+#define STR_PARALLEL4		"Port równoległy 4"
 
 #define STR_HDC			"Kontroler dysku twardego:"
 #define STR_FDC			"Kontroler dyskietek:"
