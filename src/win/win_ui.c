@@ -1419,10 +1419,7 @@ ui_init(int nCmdShow)
 		scrnsz_x = fixed_size_x;
 		scrnsz_y = fixed_size_y;
 	}
-	if (hide_status_bar)
-		ResizeWindowByClientArea(hwndMain, scrnsz_x, scrnsz_y);
-	else
-		ResizeWindowByClientArea(hwndMain, scrnsz_x, scrnsz_y + sbar_height);
+	ResizeWindowByClientArea(hwnd, scrnsz_x, scrnsz_y + (hide_status_bar ? 0 : sbar_height) + (hide_tool_bar ? 0 : tbar_height));
     }
 
     /* Load the desired language */
