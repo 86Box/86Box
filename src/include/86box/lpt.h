@@ -24,12 +24,28 @@ extern void lpt1_remove_ams(void);
 #define lpt1_init(a)	lpt_port_init(0, a)
 #define lpt1_irq(a)	lpt_port_irq(0, a)
 #define lpt1_remove()	lpt_port_remove(0)
+
 #define lpt2_init(a)	lpt_port_init(1, a)
 #define lpt2_irq(a)	lpt_port_irq(1, a)
 #define lpt2_remove()	lpt_port_remove(1)
+
 #define lpt3_init(a)	lpt_port_init(2, a)
 #define lpt3_irq(a)	lpt_port_irq(2, a)
 #define lpt3_remove()	lpt_port_remove(2)
+
+#define lpt4_init(a)	lpt_port_init(3, a)
+#define lpt4_irq(a)	lpt_port_irq(3, a)
+#define lpt4_remove()	lpt_port_remove(3)
+
+/*
+#define lpt5_init(a)	lpt_port_init(4, a)
+#define lpt5_irq(a)	lpt_port_irq(4, a)
+#define lpt5_remove()	lpt_port_remove(4)
+
+#define lpt6_init(a)	lpt_port_init(5, a)
+#define lpt6_irq(a)	lpt_port_irq(5, a)
+#define lpt6_remove()	lpt_port_remove(5)
+*/
 
 
 void lpt_devices_init(void);
@@ -45,7 +61,7 @@ typedef struct {
     void *		priv;
 } lpt_port_t;
 
-extern lpt_port_t	lpt_ports[3];
+extern lpt_port_t	lpt_ports[PARALLEL_MAX];
 
 extern void	lpt_write(uint16_t port, uint8_t val, void *priv);
 extern uint8_t	lpt_read(uint16_t port, void *priv);

@@ -295,7 +295,7 @@ END
 #define STR_MACHINE		"机型:"
 #define STR_CONFIGURE		"配置"
 #define STR_CPU_TYPE		"CPU 类型:"
-#define STR_SPEED		"速度:"
+#define STR_CPU_SPEED		"速度:"
 #define STR_FPU			"浮点处理器 (FPU):"
 #define STR_WAIT_STATES		"等待状态 (WS):"
 #define STR_MB			"MB"
@@ -317,7 +317,7 @@ END
 #define STR_JOY4		"操纵杆 4..."
 
 #define STR_SOUND		"声卡:"
-#define STR_MIDI		"MIDI 输出设备:"
+#define STR_MIDI_OUT	"MIDI 输出设备:"
 #define STR_MIDI_IN		"MIDI 输入设备:"
 #define STR_MPU401		"独立 MPU-401"
 #define STR_SSI			"Innovation SSI-2001"
@@ -329,9 +329,14 @@ END
 #define STR_PCAP		"PCap 设备:"
 #define STR_NET			"网络适配器:"
 
+#define STR_COM1		"COM1 设备:"
+#define STR_COM2		"COM2 设备:"
+#define STR_COM3		"COM3 设备:"
+#define STR_COM4		"COM4 设备:"
 #define STR_LPT1		"LPT1 设备:"
 #define STR_LPT2		"LPT2 设备:"
 #define STR_LPT3		"LPT3 设备:"
+#define STR_LPT4		"LPT4 设备:"
 #define STR_SERIAL1		"串口 1"
 #define STR_SERIAL2		"串口 2"
 #define STR_SERIAL3		"串口 3"
@@ -339,6 +344,7 @@ END
 #define STR_PARALLEL1		"并口 1"
 #define STR_PARALLEL2		"并口 2"
 #define STR_PARALLEL3		"并口 3"
+#define STR_PARALLEL4		"并口 4"
 
 #define STR_HDC			"硬盘控制器:"
 #define STR_FDC			"软盘控制器:"
@@ -372,6 +378,7 @@ END
 #define STR_TURBO		"加速时序"
 #define STR_CHECKBPB		"检查 BPB"
 #define STR_CDROM_DRIVES	"光盘驱动器:"
+#define STR_CD_SPEED		"速度:"
 
 #define STR_MO_DRIVES		"磁光盘驱动器:"
 #define STR_ZIP_DRIVES		"ZIP 驱动器:"

@@ -11,6 +11,8 @@ LANGUAGE LANG_HUNGARIAN, SUBLANG_DEFAULT
 #pragma code_page(65001)
 #endif //_WIN32
 
+#define AUTHORS
+
 /////////////////////////////////////////////////////////////////////////////
 //
 // Menu
@@ -298,7 +300,7 @@ END
 #define STR_MACHINE		"Számítógép:"
 #define STR_CONFIGURE		"Beállítások..."
 #define STR_CPU_TYPE		"Processzor:"
-#define STR_SPEED		"Seb.:"
+#define STR_CPU_SPEED		"Seb.:"
 #define STR_FPU			"FPU-egység:"
 #define STR_WAIT_STATES		"Várak. ciklusok:"
 #define STR_MB			"MB"
@@ -320,7 +322,7 @@ END
 #define STR_JOY4		"Játékvez. 4..."
 
 #define STR_SOUND		"Hangkártya:"
-#define STR_MIDI		"MIDI-kimenet:"
+#define STR_MIDI_OUT	"MIDI-kimenet:"
 #define STR_MIDI_IN		"MIDI-bemenet:"
 #define STR_MPU401		"Különálló MPU-401"
 #define STR_SSI			"Innovation SSI-2001"
@@ -332,9 +334,14 @@ END
 #define STR_PCAP		"PCap eszköz:"
 #define STR_NET			"Hálózati kártya:"
 
+#define STR_COM1		"COM1 eszköz:"
+#define STR_COM2		"COM2 eszköz:"
+#define STR_COM3		"COM3 eszköz:"
+#define STR_COM4		"COM4 eszköz:"
 #define STR_LPT1		"LPT1 eszköz:"
 #define STR_LPT2		"LPT2 eszköz:"
 #define STR_LPT3		"LPT3 eszköz:"
+#define STR_LPT4		"LPT4 eszköz:"
 #define STR_SERIAL1		"Soros port 1"
 #define STR_SERIAL2		"Soros port 2"
 #define STR_SERIAL3		"Soros port 3"
@@ -342,6 +349,7 @@ END
 #define STR_PARALLEL1		"Párhuzamos port 1"
 #define STR_PARALLEL2		"Párhuzamos port 2"
 #define STR_PARALLEL3		"Párhuzamos port 3"
+#define STR_PARALLEL4		"Párhuzamos port 4"
 
 #define STR_HDC			"Merevl.-vezérlő:"
 #define STR_FDC			"Floppy-vezérlő:"
@@ -375,6 +383,7 @@ END
 #define STR_TURBO		"Turbó időzítés"
 #define STR_CHECKBPB		"BPB ellenőrzés"
 #define STR_CDROM_DRIVES	"CD-ROM meghajtók:"
+#define STR_CD_SPEED		"Seb.:"
 
 #define STR_MO_DRIVES		"MO-meghajtók:"
 #define STR_ZIP_DRIVES		"ZIP-meghajtók:"
