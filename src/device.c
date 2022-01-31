@@ -378,9 +378,7 @@ device_get_name(const device_t *d, int bus, char *name)
     name[0] = 0x00;
 
     if (bus) {
-	if (d->flags & DEVICE_LPT)
-		sbus = "LPT";
-	else if (d->flags & DEVICE_ISA)
+	if (d->flags & DEVICE_ISA)
 		sbus = (d->flags & DEVICE_AT) ? "ISA16" : "ISA";
 	else if (d->flags & DEVICE_CBUS)
 		sbus = "C-BUS";
@@ -396,6 +394,10 @@ device_get_name(const device_t *d, int bus, char *name)
 		sbus = "AGP";
 	else if (d->flags & DEVICE_AC97)
 		sbus = "AMR";
+    else if (d->flags & DEVICE_COM)
+        sbus = "COM";
+	else if (d->flags & DEVICE_LPT)
+		sbus = "LPT";
 
 	if (sbus != NULL) {
 		/* First concatenate [<Bus>] before the device's name. */
@@ -406,7 +408,7 @@ device_get_name(const device_t *d, int bus, char *name)
 		/* Then change string from ISA16 to ISA if applicable. */
 		if (!strcmp(sbus, "ISA16"))
 			sbus = "ISA";
-		else if (!strcmp(sbus, "LPT")) {
+		else if (!strcmp(sbus, "LPT")|| !strcmp(sbus, "COM")) {
 			sbus = NULL;
 			strcat(name, d->name);
 			return;
