@@ -6,7 +6,8 @@ LANGUAGE LANG_ITALIAN, SUBLANG_ITALIAN
 #pragma code_page(65001)
 #endif //_WIN32
 
-#define explorerdotexe
+// explorerdotexe
+#define AUTHORS
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -295,7 +296,7 @@ END
 #define STR_MACHINE		"Piastra madre:"
 #define STR_CONFIGURE		"Configura"
 #define STR_CPU_TYPE		"Tipo del CPU:"
-#define STR_SPEED		"Veloc.:"
+#define STR_CPU_SPEED		"Veloc.:"
 #define STR_FPU			"FPU:"
 #define STR_WAIT_STATES		"Stati di attesa:"
 #define STR_MB			"MB"
@@ -317,7 +318,7 @@ END
 #define STR_JOY4		"Joystick 4..."
 
 #define STR_SOUND		"Scheda audio:"
-#define STR_MIDI		"Uscita MIDI:"
+#define STR_MIDI_OUT	"Uscita MIDI:"
 #define STR_MIDI_IN		"Entrata MIDI:"
 #define STR_MPU401		"MPU-401 autonomo"
 #define STR_SSI			"Innovation SSI-2001"
@@ -329,9 +330,14 @@ END
 #define STR_PCAP		"Dispositivo PCap:"
 #define STR_NET			"Scheda di rete:"
 
+#define STR_COM1		"Dispositivo COM1:"
+#define STR_COM2		"Dispositivo COM2:"
+#define STR_COM3		"Dispositivo COM3:"
+#define STR_COM4		"Dispositivo COM4:"
 #define STR_LPT1		"Dispositivo LPT1:"
 #define STR_LPT2		"Dispositivo LPT2:"
 #define STR_LPT3		"Dispositivo LPT3:"
+#define STR_LPT4		"Dispositivo LPT4:"
 #define STR_SERIAL1		"Porta seriale 1"
 #define STR_SERIAL2		"Porta seriale 2"
 #define STR_SERIAL3		"Porta seriale 3"
@@ -339,6 +345,7 @@ END
 #define STR_PARALLEL1		"Porta parallela 1"
 #define STR_PARALLEL2		"Porta parallela 2"
 #define STR_PARALLEL3		"Porta parallela 3"
+#define STR_PARALLEL4		"Porta parallela 4"
 
 #define STR_HDC			"Controller HD:"
 #define STR_FDC			"Controller FD:"
@@ -372,6 +379,7 @@ END
 #define STR_TURBO		"Turbo"
 #define STR_CHECKBPB		"Verifica BPB"
 #define STR_CDROM_DRIVES	"Unità CD-ROM:"
+#define STR_CD_SPEED		"Veloc.:"
 
 #define STR_MO_DRIVES		"Unità magneto-ottiche:"
 #define STR_ZIP_DRIVES		"Unità ZIP:"

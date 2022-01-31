@@ -295,7 +295,7 @@ END
 #define STR_MACHINE		"マシン:"
 #define STR_CONFIGURE		"設定"
 #define STR_CPU_TYPE		"CPUタイプ:"
-#define STR_SPEED		"速度:"
+#define STR_CPU_SPEED		"速度:"
 #define STR_FPU			"FPU:"
 #define STR_WAIT_STATES		"待機状態:"
 #define STR_MB			"MB"
@@ -317,7 +317,7 @@ END
 #define STR_JOY4		"ジョイスティック4..."
 
 #define STR_SOUND		"サウンドカード:"
-#define STR_MIDI		"MIDI出力デバイス:"
+#define STR_MIDI_OUT	"MIDI出力デバイス:"
 #define STR_MIDI_IN		"MIDI入力デバイス:"
 #define STR_MPU401		"独立型MPU-401"
 #define STR_SSI			"Innovation SSI-2001"
@@ -329,9 +329,14 @@ END
 #define STR_PCAP		"PCapデバイス:"
 #define STR_NET			"ネットワークアダプター:"
 
+#define STR_COM1		"COM1デバイス:"
+#define STR_COM2		"COM2デバイス:"
+#define STR_COM3		"COM3デバイス:"
+#define STR_COM4		"COM4デバイス:"
 #define STR_LPT1		"LPT1デバイス:"
 #define STR_LPT2		"LPT2デバイス:"
 #define STR_LPT3		"LPT3デバイス:"
+#define STR_LPT4		"LPT4デバイス:"
 #define STR_SERIAL1		"シリアルポート1"
 #define STR_SERIAL2		"シリアルポート2"
 #define STR_SERIAL3		"シリアルポート3"
@@ -339,6 +344,7 @@ END
 #define STR_PARALLEL1		"パラレルポート1"
 #define STR_PARALLEL2		"パラレルポート2"
 #define STR_PARALLEL3		"パラレルポート3"
+#define STR_PARALLEL4		"パラレルポート4"
 
 #define STR_HDC			"HDコントローラー:"
 #define STR_FDC			"FDコントローラー:"
@@ -372,6 +378,7 @@ END
 #define STR_TURBO		"高速タイミング"
 #define STR_CHECKBPB		"BPBをチェック"
 #define STR_CDROM_DRIVES	"CD-ROMドライブ:"
+#define STR_CD_SPEED		"速度:"
 
 #define STR_MO_DRIVES		"光磁気ドライブ:"
 #define STR_ZIP_DRIVES		"ZIPドライブ:"
