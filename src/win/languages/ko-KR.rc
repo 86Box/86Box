@@ -295,7 +295,7 @@ END
 #define STR_MACHINE		"기종:"
 #define STR_CONFIGURE		"설정"
 #define STR_CPU_TYPE		"CPU 종류:"
-#define STR_SPEED		"속도:"
+#define STR_CPU_SPEED		"속도:"
 #define STR_FPU			"FPU:"
 #define STR_WAIT_STATES		"대기 상태:"
 #define STR_MB			"MB"
@@ -317,7 +317,7 @@ END
 #define STR_JOY4		"조이스틱 4..."
 
 #define STR_SOUND		"사운드 카드:"
-#define STR_MIDI		"MIDI 출력 장치:"
+#define STR_MIDI_OUT	"MIDI 출력 장치:"
 #define STR_MIDI_IN		"MIDI 입력 장치:"
 #define STR_MPU401		"MPU-401 단독 사용"
 #define STR_SSI			"Innovation SSI-2001"
@@ -378,6 +378,7 @@ END
 #define STR_TURBO		"고속 동작"
 #define STR_CHECKBPB		"BPB 확인"
 #define STR_CDROM_DRIVES	"CD-ROM 드라이브:"
+#define STR_CD_SPEED		"속도:"
 
 #define STR_MO_DRIVES		"광자기 드라이브:"
 #define STR_ZIP_DRIVES		"ZIP 드라이브:"

@@ -296,7 +296,7 @@ END
 #define STR_MACHINE		"Piastra madre:"
 #define STR_CONFIGURE		"Configura"
 #define STR_CPU_TYPE		"Tipo del CPU:"
-#define STR_SPEED		"Veloc.:"
+#define STR_CPU_SPEED		"Veloc.:"
 #define STR_FPU			"FPU:"
 #define STR_WAIT_STATES		"Stati di attesa:"
 #define STR_MB			"MB"
@@ -318,7 +318,7 @@ END
 #define STR_JOY4		"Joystick 4..."
 
 #define STR_SOUND		"Scheda audio:"
-#define STR_MIDI		"Uscita MIDI:"
+#define STR_MIDI_OUT	"Uscita MIDI:"
 #define STR_MIDI_IN		"Entrata MIDI:"
 #define STR_MPU401		"MPU-401 autonomo"
 #define STR_SSI			"Innovation SSI-2001"
@@ -379,6 +379,7 @@ END
 #define STR_TURBO		"Turbo"
 #define STR_CHECKBPB		"Verifica BPB"
 #define STR_CDROM_DRIVES	"Unità CD-ROM:"
+#define STR_CD_SPEED		"Veloc.:"
 
 #define STR_MO_DRIVES		"Unità magneto-ottiche:"
 #define STR_ZIP_DRIVES		"Unità ZIP:"

@@ -330,7 +330,7 @@ create_zip_sector_image(char *file_name, disk_size_t disk_size, uint8_t is_zdi, 
     h = GetDlgItem(hwnd, IDC_COMBO_RPM_MODE);
     EnableWindow(h, FALSE);
     ShowWindow(h, SW_HIDE);
-    h = GetDlgItem(hwnd, IDT_1751);
+    h = GetDlgItem(hwnd, IDT_FLP_RPM_MODE);
     EnableWindow(h, FALSE);
     ShowWindow(h, SW_HIDE);
     h = GetDlgItem(hwnd, IDC_PBAR_IMG_CREATE);
@@ -338,7 +338,7 @@ create_zip_sector_image(char *file_name, disk_size_t disk_size, uint8_t is_zdi, 
     SendMessage(h, PBM_SETPOS, (WPARAM) 0, (LPARAM) 0);
     EnableWindow(h, TRUE);
     ShowWindow(h, SW_SHOW);
-    h = GetDlgItem(hwnd, IDT_1757);
+    h = GetDlgItem(hwnd, IDT_FLP_PROGRESS);
     EnableWindow(h, TRUE);
     ShowWindow(h, SW_SHOW);
 
@@ -564,7 +564,7 @@ create_mo_sector_image(char *file_name, int8_t disk_size, uint8_t is_mdi, HWND h
     h = GetDlgItem(hwnd, IDC_COMBO_RPM_MODE);
     EnableWindow(h, FALSE);
     ShowWindow(h, SW_HIDE);
-    h = GetDlgItem(hwnd, IDT_1751);
+    h = GetDlgItem(hwnd, IDT_FLP_RPM_MODE);
     EnableWindow(h, FALSE);
     ShowWindow(h, SW_HIDE);
     h = GetDlgItem(hwnd, IDC_PBAR_IMG_CREATE);
@@ -572,7 +572,7 @@ create_mo_sector_image(char *file_name, int8_t disk_size, uint8_t is_mdi, HWND h
     SendMessage(h, PBM_SETPOS, (WPARAM) 0, (LPARAM) 0);
     EnableWindow(h, TRUE);
     ShowWindow(h, SW_SHOW);
-    h = GetDlgItem(hwnd, IDT_1757);
+    h = GetDlgItem(hwnd, IDT_FLP_PROGRESS);
     EnableWindow(h, TRUE);
     ShowWindow(h, SW_SHOW);
 
@@ -733,7 +733,7 @@ NewFloppyDialogProcedure(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
                 SendMessage(h, CB_SETCURSEL, 0, 0);
 		EnableWindow(h, FALSE);
 		ShowWindow(h, SW_HIDE);
-		h = GetDlgItem(hdlg, IDT_1751);
+		h = GetDlgItem(hdlg, IDT_FLP_RPM_MODE);
 		EnableWindow(h, FALSE);
 		ShowWindow(h, SW_HIDE);
 		h = GetDlgItem(hdlg, IDOK);
@@ -741,7 +741,7 @@ NewFloppyDialogProcedure(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 		h = GetDlgItem(hdlg, IDC_PBAR_IMG_CREATE);
 		EnableWindow(h, FALSE);
 		ShowWindow(h, SW_HIDE);
-		h = GetDlgItem(hdlg, IDT_1757);
+		h = GetDlgItem(hdlg, IDT_FLP_PROGRESS);
 		EnableWindow(h, FALSE);
 		ShowWindow(h, SW_HIDE);
 		break;
@@ -833,7 +833,7 @@ NewFloppyDialogProcedure(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 						else
 							file_type = 0;
 					}
-					h = GetDlgItem(hdlg, IDT_1751);
+					h = GetDlgItem(hdlg, IDT_FLP_RPM_MODE);
 					if (file_type == 2) {
 						EnableWindow(h, TRUE);
 						ShowWindow(h, SW_SHOW);

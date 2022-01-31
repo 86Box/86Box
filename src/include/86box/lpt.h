@@ -37,6 +37,7 @@ extern void lpt1_remove_ams(void);
 #define lpt4_irq(a)	lpt_port_irq(3, a)
 #define lpt4_remove()	lpt_port_remove(3)
 
+/*
 #define lpt5_init(a)	lpt_port_init(4, a)
 #define lpt5_irq(a)	lpt_port_irq(4, a)
 #define lpt5_remove()	lpt_port_remove(4)
@@ -44,6 +45,7 @@ extern void lpt1_remove_ams(void);
 #define lpt6_init(a)	lpt_port_init(5, a)
 #define lpt6_irq(a)	lpt_port_irq(5, a)
 #define lpt6_remove()	lpt_port_remove(5)
+*/
 
 
 void lpt_devices_init(void);
