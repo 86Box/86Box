@@ -1346,7 +1346,7 @@ win_settings_sound_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 			c++;
 		}
 
-		settings_enable_window(hdlg, IDC_CONFIGURE_MIDI, midi_device_has_config(temp_midi_device));
+		settings_enable_window(hdlg, IDC_CONFIGURE_MIDI_OUT, midi_device_has_config(temp_midi_device));
 
 		c = d = 0;
 		settings_reset_content(hdlg, IDC_COMBO_MIDI_IN);
@@ -1406,13 +1406,13 @@ win_settings_sound_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 
 			case IDC_COMBO_MIDI:
 				temp_midi_device = settings_list_to_midi[settings_get_cur_sel(hdlg, IDC_COMBO_MIDI)];
-				settings_enable_window(hdlg, IDC_CONFIGURE_MIDI, midi_device_has_config(temp_midi_device));
+				settings_enable_window(hdlg, IDC_CONFIGURE_MIDI_OUT, midi_device_has_config(temp_midi_device));
 				settings_set_check(hdlg, IDC_CHECK_MPU401, temp_mpu401);
 				settings_enable_window(hdlg, IDC_CHECK_MPU401, mpu401_standalone_allow());
 				settings_enable_window(hdlg, IDC_CONFIGURE_MPU401, mpu401_standalone_allow() && temp_mpu401);
 				break;
 
-			case IDC_CONFIGURE_MIDI:
+			case IDC_CONFIGURE_MIDI_OUT:
 				temp_midi_device = settings_list_to_midi[settings_get_cur_sel(hdlg, IDC_COMBO_MIDI)];
 				temp_deviceconfig |= deviceconfig_open(hdlg, (void *)midi_device_getdevice(temp_midi_device));
 				break;
