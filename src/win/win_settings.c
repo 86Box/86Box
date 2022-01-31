@@ -3731,7 +3731,7 @@ win_settings_zip_drives_recalc_list(HWND hdlg)
     lvI.mask = LVIF_TEXT | LVIF_IMAGE | LVIF_STATE;
     lvI.stateMask = lvI.iSubItem = lvI.state = 0;
 
-    for (i = 0; i < 4; i++) {
+    for (i = 0; i < ZIP_NUM; i++) {
 	fsid = combo_id_to_format_string_id(temp_zip_drives[i].bus_type);
 
 	lvI.iSubItem = 0;
