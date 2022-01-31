@@ -1076,6 +1076,12 @@ load_ports(void)
     for (c = 0; c < SERIAL_MAX; c++) {
 	sprintf(temp, "serial%d_enabled", c + 1);
 	serial_enabled[c] = !!config_get_int(cat, temp, (c >= 2) ? 0 : 1);
+
+/*
+	sprintf(temp, "serial%d_device", c + 1);
+	p = (char *) config_get_string(cat, temp, "none");
+	com_ports[c].device = com_device_get_from_internal_name(p);
+*/
     }
 
     for (c = 0; c < PARALLEL_MAX; c++) {
@@ -2554,6 +2560,15 @@ save_ports(void)
 		config_delete_var(cat, temp);
 	else
 		config_set_int(cat, temp, serial_enabled[c]);
+
+/*
+	sprintf(temp, "serial%d_device", c + 1);
+	if (com_ports[c].device == 0)
+		config_delete_var(cat, temp);
+	  else
+		config_set_string(cat, temp,
+				  (char *) com_device_get_internal_name(com_ports[c].device));
+*/
     }
 
     for (c = 0; c < PARALLEL_MAX; c++) {

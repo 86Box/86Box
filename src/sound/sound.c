@@ -85,7 +85,6 @@ static const SOUND_CARD sound_cards[] =
 {
     { "none",		NULL				},
     { "internal",	NULL				},
-    { "pssj_isa",	&pssj_isa_device		},
     { "adlib",		&adlib_device			},
     { "adlibgold",	&adgold_device			},
     { "azt2316a",	&azt2316a_device		},
@@ -105,6 +104,7 @@ static const SOUND_CARD sound_cards[] =
 #if defined(DEV_BRANCH) && defined(USE_PAS16)
     { "pas16",		&pas16_device			},
 #endif
+    { "pssj_isa",	&pssj_isa_device		},
     { "wss",		&wss_device			},
     { "adlib_mca",	&adlib_mca_device		},
     { "ncraudio",	&ncr_business_audio_device	},
