@@ -1135,12 +1135,15 @@ plat_setfullscreen(int on)
 			ResizeWindowByClientArea(hwndMain, temp_x, temp_y + (hide_status_bar ? 0 : sbar_height) + (hide_tool_bar ? 0 : tbar_height));
 		}
 
+		/* Toolbar. */
+		MoveWindow(hwndRebar, 0, 0, temp_x, tbar_height, TRUE);
+
 		/* Render window. */
-		MoveWindow(hwndRender, 0, 0, temp_x, temp_y, TRUE);
-		GetWindowRect(hwndRender, &rect);
+		MoveWindow(hwndRender, 0, hide_tool_bar ? 0 : tbar_height, temp_x, temp_y, TRUE);
 
 		/* Status bar. */
-		MoveWindow(hwndSBAR, 0, rect.bottom, temp_x, 17, TRUE);
+		GetClientRect(hwndMain, &rect);
+		MoveWindow(hwndSBAR, 0, rect.bottom - sbar_height, temp_x, sbar_height, TRUE);
 
 		if (mouse_capture)
 			ClipCursor(&rect);

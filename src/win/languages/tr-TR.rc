@@ -295,7 +295,7 @@ END
 #define STR_MACHINE		"Makine:"
 #define STR_CONFIGURE		"Ayarla"
 #define STR_CPU_TYPE		"CPU türü:"
-#define STR_SPEED		"Hız:"
+#define STR_CPU_SPEED		"Hız:"
 #define STR_FPU			"FPU:"
 #define STR_WAIT_STATES		"Bekleme süreleri:"
 #define STR_MB			"MB"
@@ -317,7 +317,7 @@ END
 #define STR_JOY4		"Oyun kolu 4..."
 
 #define STR_SOUND		"Ses kartı:"
-#define STR_MIDI		"MIDI Çıkış Cihazı:"
+#define STR_MIDI_OUT	"MIDI Çıkış Cihazı:"
 #define STR_MIDI_IN		"MIDI Giriş Cihazı:"
 #define STR_MPU401		"Bağımsız MPU-401"
 #define STR_SSI			"Innovation SSI-2001"
@@ -329,9 +329,14 @@ END
 #define STR_PCAP		"PCap cihazı:"
 #define STR_NET			"Ağ cihazı:"
 
+#define STR_COM1		"COM1 Cihazı:"
+#define STR_COM2		"COM2 Cihazı:"
+#define STR_COM3		"COM3 Cihazı:"
+#define STR_COM4		"COM4 Cihazı:"
 #define STR_LPT1		"LPT1 Cihazı:"
 #define STR_LPT2		"LPT2 Cihazı:"
 #define STR_LPT3		"LPT3 Cihazı:"
+#define STR_LPT4		"LPT4 Cihazı:"
 #define STR_SERIAL1		"Seri port 1"
 #define STR_SERIAL2		"Seri port 2"
 #define STR_SERIAL3		"Seri port 3"
@@ -339,6 +344,7 @@ END
 #define STR_PARALLEL1		"Paralel port 1"
 #define STR_PARALLEL2		"Paralel port 2"
 #define STR_PARALLEL3		"Paralel port 3"
+#define STR_PARALLEL4		"Paralel port 4"
 
 #define STR_HDC			"HD Kontrolcüsü:"
 #define STR_FDC			"FD Kontrolcüsü:"
@@ -372,6 +378,7 @@ END
 #define STR_TURBO		"Turbo zamanlamaları"
 #define STR_CHECKBPB		"BPB'yi denetle"
 #define STR_CDROM_DRIVES	"CD-ROM sürücüleri:"
+#define STR_CD_SPEED		"Hız:"
 
 #define STR_MO_DRIVES		"MO sürücüleri:"
 #define STR_ZIP_DRIVES		"ZIP sürücüleri:"

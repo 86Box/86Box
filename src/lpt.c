@@ -14,7 +14,7 @@
 #include <86box/net_plip.h>
 
 
-lpt_port_t	lpt_ports[3];
+lpt_port_t	lpt_ports[PARALLEL_MAX];
 
 
 static const struct {
@@ -74,7 +74,7 @@ lpt_devices_init(void)
 {
     int i = 0;
 
-    for (i = 0; i < 3; i++) {
+    for (i = 0; i < PARALLEL_MAX; i++) {
 	lpt_ports[i].dt = (lpt_device_t *) lpt_devices[lpt_ports[i].device].device;
 
 	if (lpt_ports[i].dt)
@@ -89,7 +89,7 @@ lpt_devices_close(void)
     int i = 0;
     lpt_port_t *dev;
 
-    for (i = 0; i < 3; i++) {
+    for (i = 0; i < PARALLEL_MAX; i++) {
 	dev = &lpt_ports[i];
 
 	if (dev->dt)
@@ -176,10 +176,10 @@ void
 lpt_init(void)
 {
     int i;
-    uint16_t default_ports[3] = { 0x378, 0x278, 0x3bc };
-    uint8_t default_irqs[3] = { 7, 5, 7 };
+    uint16_t default_ports[PARALLEL_MAX] = { 0x378, 0x278, 0x3bc, 0x268 }; /*, 0x27c, 0x26c }; */
+    uint8_t default_irqs[PARALLEL_MAX] = { 7, 5, 7, 5 }; /* , 7, 5 }; */
 
-    for (i = 0; i < 3; i++) {
+    for (i = 0; i < PARALLEL_MAX; i++) {
 	lpt_ports[i].addr = 0xffff;
 	lpt_ports[i].irq = 0xff;
 	lpt_ports[i].enable_irq = 0x10;

@@ -295,7 +295,7 @@ END
 #define STR_MACHINE		"Системная плата:"
 #define STR_CONFIGURE		"Настройка"
 #define STR_CPU_TYPE		"Тип ЦП:"
-#define STR_SPEED		"Скорость:"
+#define STR_CPU_SPEED		"Скорость:"
 #define STR_FPU			"FPU:"
 #define STR_WAIT_STATES		"Циклы ожидания:"
 #define STR_MB			"МБ"
@@ -317,7 +317,7 @@ END
 #define STR_JOY4		"Джойстик 4..."
 
 #define STR_SOUND		"Звуковая карта:"
-#define STR_MIDI		"MIDI Out устр-во:"
+#define STR_MIDI_OUT	"MIDI Out устр-во:"
 #define STR_MIDI_IN		"MIDI In устр-во:"
 #define STR_MPU401		"Отдельный MPU-401"
 #define STR_SSI			"Innovation SSI-2001"
@@ -329,9 +329,14 @@ END
 #define STR_PCAP		"Устройство PCap:"
 #define STR_NET			"Сетевая карта:"
 
+#define STR_COM1		"Устройство COM1:"
+#define STR_COM2		"Устройство COM2:"
+#define STR_COM3		"Устройство COM3:"
+#define STR_COM4		"Устройство COM4:"
 #define STR_LPT1		"Устройство LPT1:"
 #define STR_LPT2		"Устройство LPT2:"
 #define STR_LPT3		"Устройство LPT3:"
+#define STR_LPT4		"Устройство LPT4:"
 #define STR_SERIAL1		"Последов. порт COM1"
 #define STR_SERIAL2		"Последов. порт COM2"
 #define STR_SERIAL3		"Последов. порт COM3"
@@ -339,6 +344,7 @@ END
 #define STR_PARALLEL1		"Параллельный порт LPT1"
 #define STR_PARALLEL2		"Параллельный порт LPT2"
 #define STR_PARALLEL3		"Параллельный порт LPT3"
+#define STR_PARALLEL4		"Параллельный порт LPT4"
 
 #define STR_HDC			"Контроллер HD:"
 #define STR_FDC			"Контроллер FD:"
@@ -372,6 +378,7 @@ END
 #define STR_TURBO		"Турбо тайминги"
 #define STR_CHECKBPB		"Проверять BPB"
 #define STR_CDROM_DRIVES	"Дисководы CD-ROM:"
+#define STR_CD_SPEED		"Скорость:"
 
 #define STR_MO_DRIVES		"Магнитооптические дисководы:"
 #define STR_ZIP_DRIVES		"ZIP дисководы:"

@@ -295,7 +295,7 @@ END
 #define STR_MACHINE		"Sistem:"
 #define STR_CONFIGURE		"Nastavi"
 #define STR_CPU_TYPE		"Vrsta procesorja:"
-#define STR_SPEED		"Hitrost:"
+#define STR_CPU_SPEED		"Hitrost:"
 #define STR_FPU			"Procesor plavajoče vejice:"
 #define STR_WAIT_STATES		"Čakalna stanja:"
 #define STR_MB			"MB"
@@ -317,7 +317,7 @@ END
 #define STR_JOY4		"Igralna palica 4..."
 
 #define STR_SOUND		"Zvočna kartica:"
-#define STR_MIDI		"Izhodna naprava MIDI:"
+#define STR_MIDI_OUT	"Izhodna naprava MIDI:"
 #define STR_MIDI_IN		"Vhodna naprava MIDI:"
 #define STR_MPU401		"Samostojen MPU-401"
 #define STR_SSI			"Innovation SSI-2001"
@@ -329,9 +329,14 @@ END
 #define STR_PCAP		"Naprava PCap:"
 #define STR_NET			"Omrežna kartica:"
 
+#define STR_COM1		"Naprava COM1:"
+#define STR_COM2		"Naprava COM2:"
+#define STR_COM3		"Naprava COM3:"
+#define STR_COM4		"Naprava COM4:"
 #define STR_LPT1		"Naprava LPT1:"
 #define STR_LPT2		"Naprava LPT2:"
 #define STR_LPT3		"Naprava LPT3:"
+#define STR_LPT4		"Naprava LPT4:"
 #define STR_SERIAL1		"Serijska vrata 1"
 #define STR_SERIAL2		"Serijska vrata 2"
 #define STR_SERIAL3		"Serijska vrata 3"
@@ -339,6 +344,7 @@ END
 #define STR_PARALLEL1		"Paralelna vrata 1"
 #define STR_PARALLEL2		"Paralelna vrata 2"
 #define STR_PARALLEL3		"Paralelna vrata 3"
+#define STR_PARALLEL4		"Paralelna vrata 4"
 
 #define STR_HDC			"Krmilnik trdega diska:"
 #define STR_FDC			"Krmilnik disketnika:"
@@ -372,6 +378,7 @@ END
 #define STR_TURBO		"Turbo časovniki"
 #define STR_CHECKBPB		"Preverjaj BPB"
 #define STR_CDROM_DRIVES	"Pogoni CD-ROM:"
+#define STR_CD_SPEED		"Hitrost:"
 
 #define STR_MO_DRIVES		"Magnetno-optični pogoni:"
 #define STR_ZIP_DRIVES		"Pogoni ZIP:"

@@ -55,18 +55,19 @@
 
 enum {
     DEVICE_NOT_WORKING = 1,	/* does not currently work correctly and will be disabled in a release build */
-    DEVICE_LPT = 2,		/* requires a parallel port */
-    DEVICE_PCJR = 4,		/* requires an IBM PCjr */
-    DEVICE_AT = 8,		/* requires an AT-compatible system */
-    DEVICE_PS2 = 0x10,		/* requires a PS/1 or PS/2 system */
-    DEVICE_ISA = 0x20,		/* requires the ISA bus */
-    DEVICE_CBUS = 0x40,		/* requires the C-BUS bus */
-    DEVICE_MCA = 0x80,		/* requires the MCA bus */
-    DEVICE_EISA = 0x100,	/* requires the EISA bus */
-    DEVICE_VLB = 0x200,		/* requires the PCI bus */
-    DEVICE_PCI = 0x400,		/* requires the VLB bus */
-    DEVICE_AGP = 0x800,		/* requires the AGP bus */
-    DEVICE_AC97 = 0x1000	/* requires the AC'97 bus */
+    DEVICE_PCJR = 2,		/* requires an IBM PCjr */
+    DEVICE_AT = 4,			/* requires an AT-compatible system */
+    DEVICE_PS2 = 8,			/* requires a PS/1 or PS/2 system */
+    DEVICE_ISA = 0x10,		/* requires the ISA bus */
+    DEVICE_CBUS = 0x20,		/* requires the C-BUS bus */
+    DEVICE_MCA = 0x40,		/* requires the MCA bus */
+    DEVICE_EISA = 0x80,		/* requires the EISA bus */
+    DEVICE_VLB = 0x100,		/* requires the PCI bus */
+    DEVICE_PCI = 0x200,		/* requires the VLB bus */
+    DEVICE_AGP = 0x400,		/* requires the AGP bus */
+    DEVICE_AC97 = 0x800,	/* requires the AC'97 bus */
+    DEVICE_COM = 0x1000,	/* requires a serial port */
+    DEVICE_LPT = 0x2000		/* requires a parallel port */
 };
 
 
