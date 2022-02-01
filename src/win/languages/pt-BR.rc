@@ -298,7 +298,7 @@ END
 #define STR_MACHINE		"Máquina:"
 #define STR_CONFIGURE		"Configurar"
 #define STR_CPU_TYPE		"Tipo de CPU:"
-#define STR_SPEED		"Veloc.:"
+#define STR_CPU_SPEED		"Veloc.:"
 #define STR_FPU			"FPU:"
 #define STR_WAIT_STATES		"Estados de espera:"
 #define STR_MB			"MB"
@@ -320,7 +320,7 @@ END
 #define STR_JOY4		"Joystick 4..."
 
 #define STR_SOUND		"Placa de som:"
-#define STR_MIDI		"Disp. saída MIDI:"
+#define STR_MIDI_OUT	"Disp. saída MIDI:"
 #define STR_MIDI_IN		"Disp. entrada MIDI:"
 #define STR_MPU401		"MPU-401 autônomo"
 #define STR_SSI			"Innovation SSI-2001"
@@ -332,9 +332,14 @@ END
 #define STR_PCAP		"Dispositivo PCap:"
 #define STR_NET			"Adaptador de rede:"
 
+#define STR_COM1		"Dispositivo COM1:"
+#define STR_COM2		"Dispositivo COM2:"
+#define STR_COM3		"Dispositivo COM3:"
+#define STR_COM4		"Dispositivo COM4:"
 #define STR_LPT1		"Dispositivo LPT1:"
 #define STR_LPT2		"Dispositivo LPT2:"
 #define STR_LPT3		"Dispositivo LPT3:"
+#define STR_LPT4		"Dispositivo LPT4:"
 #define STR_SERIAL1		"Porta serial 1"
 #define STR_SERIAL2		"Porta serial 2"
 #define STR_SERIAL3		"Porta serial 3"
@@ -342,6 +347,7 @@ END
 #define STR_PARALLEL1		"Porta paralela 1"
 #define STR_PARALLEL2		"Porta paralela 2"
 #define STR_PARALLEL3		"Porta paralela 3"
+#define STR_PARALLEL4		"Porta paralela 4"
 
 #define STR_HDC			"Controlador HD:"
 #define STR_FDC			"Controlador FD:"
@@ -375,6 +381,7 @@ END
 #define STR_TURBO		"Turbo"
 #define STR_CHECKBPB		"Verificar BPB"
 #define STR_CDROM_DRIVES	"Unidades de CD-ROM:"
+#define STR_CD_SPEED		"Veloc.:"
 
 #define STR_MO_DRIVES		"Unidades magneto-ópticas:"
 #define STR_ZIP_DRIVES		"Unidades ZIP:"
