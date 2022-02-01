@@ -269,6 +269,7 @@ static void prefetch_flush()
 
 
 #define OP_TABLE(name) ops_ ## name
+#if 0
 #define CLOCK_CYCLES(c) \
 	{\
 		if (fpu_cycles > 0) {\
@@ -280,6 +281,9 @@ static void prefetch_flush()
 			cycles -= (c);\
 		}\
 	}
+#else
+#define CLOCK_CYCLES(c) cycles -= (c)
+#endif
 #define CLOCK_CYCLES_FPU(c) cycles -= (c)
 #define CONCURRENCY_CYCLES(c) fpu_cycles = (c)
 #define CLOCK_CYCLES_ALWAYS(c) cycles -= (c)
