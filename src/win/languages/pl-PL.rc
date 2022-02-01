@@ -329,6 +329,10 @@ END
 #define STR_PCAP		"Urządzenie PCap:"
 #define STR_NET			"Karta sieciowa:"
 
+#define STR_COM1		"Urządzenie COM1:"
+#define STR_COM2		"Urządzenie COM2:"
+#define STR_COM3		"Urządzenie COM3:"
+#define STR_COM4		"Urządzenie COM4:"
 #define STR_LPT1		"Urządzenie LPT1:"
 #define STR_LPT2		"Urządzenie LPT2:"
 #define STR_LPT3		"Urządzenie LPT3:"
