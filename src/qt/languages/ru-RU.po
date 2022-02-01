@@ -26,10 +26,10 @@ msgid "&View"
 msgstr "&Вид"
 
 msgid "&Hide status bar"
-msgstr "&Скрыть строку статуса"
+msgstr "&Скрыть строку состояния"
 
 msgid "Hide &toolbar"
-msgstr "Hide &toolbar"
+msgstr "С&крыть панель инструментов"
 
 msgid "&Resizeable window"
 msgstr "&Изменяемый размер окна"
@@ -38,7 +38,7 @@ msgid "R&emember size && position"
 msgstr "&Запомнить размер и положение"
 
 msgid "Re&nderer"
-msgstr "&Рендерер"
+msgstr "&Рендеринг"
 
 msgid "&SDL (Software)"
 msgstr "&SDL (Software)"
@@ -158,7 +158,7 @@ msgid "&Settings..."
 msgstr "&Настройки машины..."
 
 msgid "&Update status bar icons"
-msgstr "&Обновление значков строки статуса"
+msgstr "&Обновление значков строки состояния"
 
 msgid "Take s&creenshot\tCtrl+F11"
 msgstr "Сделать с&криншот\tCtrl+F11"
@@ -206,7 +206,7 @@ msgid "&Log breakpoint\tCtrl+F10"
 msgstr "&Точка останова журнала\tCtrl+F10"
 
 msgid "Dump &video RAM\tCtrl+F1"
-msgstr "&Выгрузка дампа видео-ОЗУ\tCtrl+F1"
+msgstr "&Выгрузка дампа видеопамяти\tCtrl+F1"
 
 msgid "&Help"
 msgstr "&Помощь"
@@ -248,7 +248,7 @@ msgid "E&xport to 86F..."
 msgstr "Э&кспорт в 86F..."
 
 msgid "&Mute"
-msgstr "&Mute"
+msgstr "О&тключить звук"
 
 msgid "E&mpty"
 msgstr "П&устой"
@@ -356,10 +356,10 @@ msgid "Configure"
 msgstr "Настройка"
 
 msgid "CPU type:"
-msgstr "Тип ЦПУ:"
+msgstr "Тип ЦП:"
 
 msgid "Speed:"
-msgstr "Speed:"
+msgstr "Скорость:"
 
 msgid "FPU:"
 msgstr "FPU:"
@@ -445,6 +445,18 @@ msgstr "Устройство PCap:"
 msgid "Network adapter:"
 msgstr "Сетевая карта:"
 
+msgid "COM1 Device:"
+msgstr "Устройство COM1:"
+
+msgid "COM2 Device:"
+msgstr "Устройство COM2:"
+
+msgid "COM3 Device:"
+msgstr "Устройство COM3:"
+
+msgid "COM4 Device:"
+msgstr "Устройство COM4:"
+
 msgid "LPT1 Device:"
 msgstr "Устройство LPT1:"
 
@@ -453,6 +465,9 @@ msgstr "Устройство LPT2:"
 
 msgid "LPT3 Device:"
 msgstr "Устройство LPT3:"
+
+msgid "LPT4 Device:"
+msgstr "Устройство LPT4:"
 
 msgid "Serial port 1"
 msgstr "Последов. порт COM1"
@@ -474,6 +489,9 @@ msgstr "Параллельный порт LPT2"
 
 msgid "Parallel port 3"
 msgstr "Параллельный порт LPT3"
+
+msgid "Parallel port 4"
+msgstr "Параллельный порт LPT4"
 
 msgid "HD Controller:"
 msgstr "Контроллер HD:"
@@ -770,7 +788,7 @@ msgid "Unable to load keyboard accelerators."
 msgstr "Невозможно загрузить ускорители клавиатуры."
 
 msgid "Unable to register raw input."
-msgstr "Невозможно зарегистрировать необработанный ввод."
+msgstr "Невозможно зарегистрировать необработанный (RAW) ввод."
 
 msgid "%u"
 msgstr "%u"
@@ -914,7 +932,7 @@ msgid "You are loading an unsupported configuration"
 msgstr "Вы загружаете неподдерживаемую конфигурацию"
 
 msgid "CPU type filtering based on selected machine is disabled for this emulated machine.\n\nThis makes it possible to choose a CPU that is otherwise incompatible with the selected machine. However, you may run into incompatibilities with the machine BIOS or other software.\n\nEnabling this setting is not officially supported and any bug reports filed may be closed as invalid."
-msgstr "Выбор типов CPU для этой системной платы на данной эмулируемой машине отключен.\n\nЭто позволяет выбрать процессор, который в противном случае несовместим с выбранной материнской платой. Однако, вы можете столкнуться с несовместимостью с BIOS материнской платы или другим ПО.\n\nВключение этого параметра официально не поддерживается, и все поданные отчеты об ошибках могут быть закрыты как недействительные."
+msgstr "Выбор типов ЦП для этой системной платы на данной эмулируемой машине отключен.\n\nЭто позволяет выбрать процессор, который в противном случае несовместим с выбранной материнской платой. Однако, вы можете столкнуться с несовместимостью с BIOS материнской платы или другим ПО.\n\nВключение этого параметра официально не поддерживается, и все поданные отчеты об ошибках могут быть закрыты как недействительные."
 
 msgid "Continue"
 msgstr "Продолжить"
@@ -932,28 +950,28 @@ msgid "Cartridge images"
 msgstr "Образы картриджей"
 
 msgid "Error initializing renderer"
-msgstr "Error initializing renderer"
+msgstr "Ошибка инициализации рендерера"
 
 msgid "OpenGL (3.0 Core) renderer could not be initialized. Use another renderer."
-msgstr "OpenGL (3.0 Core) renderer could not be initialized. Use another renderer."
+msgstr "Невозможно инициализировать рендерер OpenGL (3.0). Пожалуйста, используйте другой рендерер."
 
 msgid "Resume execution"
-msgstr "Resume execution"
+msgstr "Возобновить выполнение"
 
 msgid "Pause execution"
-msgstr "Pause execution"
+msgstr "Приостановить выполнение"
 
 msgid "Press Ctrl+Alt+Del"
-msgstr "Press Ctrl+Alt+Del"
+msgstr "Нажать Ctrl+Alt+Del"
 
 msgid "Press Ctrl+Alt+Esc"
-msgstr "Press Ctrl+Alt+Esc"
+msgstr "Нажать Ctrl+Alt+Esc"
 
 msgid "Hard reset"
-msgstr "Hard reset"
+msgstr "Холодная перезагрузка"
 
 msgid "ACPI shutdown"
-msgstr "ACPI shutdown"
+msgstr "Сигнал завершения ACPI"
 
 msgid "Hard disk (%s)"
 msgstr "Жёсткий диск (%s)"
@@ -968,16 +986,16 @@ msgid "MFM/RLL or ESDI CD-ROM drives never existed"
 msgstr "MFM/RLL или ESDI дисководов CD-ROM никогда не существовало"
 
 msgid "Custom..."
-msgstr "Custom..."
+msgstr "Задать вручную..."
 
 msgid "Custom (large)..."
-msgstr "Custom (large)..."
+msgstr "Задать вручную (large)..."
 
 msgid "Add New Hard Disk"
 msgstr "Создать новый жёсткий диск"
 
 msgid "Add Existing Hard Disk"
-msgstr "Добавить существующий жёсткий диск"
+msgstr "Выбрать существующий жёсткий диск"
 
 msgid "HDI disk images cannot be larger than 4 GB."
 msgstr "Размер образов дисков HDI не может превышать 4 ГБ."

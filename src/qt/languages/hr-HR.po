@@ -445,6 +445,18 @@ msgstr "Uređaj PCap:"
 msgid "Network adapter:"
 msgstr "Mrežna kartica:"
 
+msgid "COM1 Device:"
+msgstr "Uređaj COM1:"
+
+msgid "COM2 Device:"
+msgstr "Uređaj COM2:"
+
+msgid "COM3 Device:"
+msgstr "Uređaj COM3:"
+
+msgid "COM4 Device:"
+msgstr "Uređaj COM4:"
+
 msgid "LPT1 Device:"
 msgstr "Uređaj LPT1:"
 
@@ -453,6 +465,9 @@ msgstr "Uređaj LPT2:"
 
 msgid "LPT3 Device:"
 msgstr "Uređaj LPT3:"
+
+msgid "LPT4 Device:"
+msgstr "Uređaj LPT4:"
 
 msgid "Serial port 1"
 msgstr "Serijska vrata 1"
@@ -474,6 +489,9 @@ msgstr "Paralelna vrata 2"
 
 msgid "Parallel port 3"
 msgstr "Paralelna vrata 3"
+
+msgid "Parallel port 4"
+msgstr "Paralelna vrata 4"
 
 msgid "HD Controller:"
 msgstr "Kontroler tvrdog diska:"

@@ -445,6 +445,18 @@ msgstr "PCap cihazı:"
 msgid "Network adapter:"
 msgstr "Ağ cihazı:"
 
+msgid "COM1 Device:"
+msgstr "COM1 Cihazı:"
+
+msgid "COM2 Device:"
+msgstr "COM2 Cihazı:"
+
+msgid "COM3 Device:"
+msgstr "COM3 Cihazı:"
+
+msgid "COM4 Device:"
+msgstr "COM4 Cihazı:"
+
 msgid "LPT1 Device:"
 msgstr "LPT1 Cihazı:"
 
@@ -453,6 +465,9 @@ msgstr "LPT2 Cihazı:"
 
 msgid "LPT3 Device:"
 msgstr "LPT3 Cihazı:"
+
+msgid "LPT4 Device:"
+msgstr "LPT4 Cihazı:"
 
 msgid "Serial port 1"
 msgstr "Seri port 1"
@@ -474,6 +489,9 @@ msgstr "Paralel port 2"
 
 msgid "Parallel port 3"
 msgstr "Paralel port 3"
+
+msgid "Parallel port 4"
+msgstr "Paralel port 4"
 
 msgid "HD Controller:"
 msgstr "HD Kontrolcüsü:"

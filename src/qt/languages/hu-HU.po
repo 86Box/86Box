@@ -445,6 +445,18 @@ msgstr "PCap eszköz:"
 msgid "Network adapter:"
 msgstr "Hálózati kártya:"
 
+msgid "COM1 Device:"
+msgstr "COM1 eszköz:"
+
+msgid "COM2 Device:"
+msgstr "COM2 eszköz:"
+
+msgid "COM3 Device:"
+msgstr "COM3 eszköz:"
+
+msgid "COM4 Device:"
+msgstr "COM4 eszköz:"
+
 msgid "LPT1 Device:"
 msgstr "LPT1 eszköz:"
 
@@ -453,6 +465,9 @@ msgstr "LPT2 eszköz:"
 
 msgid "LPT3 Device:"
 msgstr "LPT3 eszköz:"
+
+msgid "LPT4 Device:"
+msgstr "LPT4 eszköz:"
 
 msgid "Serial port 1"
 msgstr "Soros port 1"
@@ -474,6 +489,9 @@ msgstr "Párhuzamos port 2"
 
 msgid "Parallel port 3"
 msgstr "Párhuzamos port 3"
+
+msgid "Parallel port 4"
+msgstr "Párhuzamos port 4"
 
 msgid "HD Controller:"
 msgstr "Merevl.-vezérlő:"
