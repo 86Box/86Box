@@ -1920,6 +1920,7 @@ const device_t buslogic_542b_device = {
 
 const device_t buslogic_545s_device = {
 	"BusLogic BT-545S ISA",
+    "buslogic_545s",
 	DEVICE_ISA | DEVICE_AT,
 	CHIP_BUSLOGIC_ISA_545S_1992_10_05,
 	buslogic_init, x54x_close, NULL,
@@ -1969,6 +1970,7 @@ const device_t buslogic_445s_device = {
 
 const device_t buslogic_445c_device = {
 	"BusLogic BT-445C VLB",
+    "buslogic_445c",
 	DEVICE_VLB,
 	CHIP_BUSLOGIC_VLB_445C_1994_12_01,
 	buslogic_init, x54x_close, NULL,
