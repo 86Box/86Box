@@ -4442,6 +4442,7 @@ const device_t s3_diamond_stealth_3000_pci_device =
 const device_t s3_stb_velocity_3d_pci_device =
 {
         "S3 ViRGE/VX (STB Velocity 3D) PCI",
+        "s3_stb_velocity_3d_pci",
         DEVICE_PCI,
         S3_STB_VELOCITY_3D,
         s3_virge_init,

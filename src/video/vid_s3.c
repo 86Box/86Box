@@ -7897,6 +7897,7 @@ const device_t s3_metheus_86c928_vlb_device =
 const device_t s3_spea_mercury_lite_86c928_pci_device =
 {
 	"S3 86c928 PCI (SPEA Mercury Lite)",
+	"s3_spea_mercury_lite_86c928_pci",
 	DEVICE_PCI,
 	S3_SPEA_MERCURY_LITE_PCI,
 	s3_init,
