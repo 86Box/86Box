@@ -746,16 +746,25 @@ static const device_t a6pak_device = {
 };
 
 
+static const device_t isartc_none_device = {
+    "None",
+    "isartc_none",
+    0, 0,
+    NULL, NULL, NULL,
+    { NULL }, NULL, NULL,
+    NULL
+};
+
+
 static const struct {
-    const char		*internal_name;
     const device_t	*dev;
 } boards[] = {
-    { "none",	NULL	      	},
-    { "ev170",	&ev170_device	},
-    { "pii147",	&pii147_device	},
-    { "p5pak",	&p5pak_device	},
-    { "a6pak",	&a6pak_device	},
-    { "",	NULL		},
+    { &isartc_none_device	},
+    { &ev170_device	},
+    { &pii147_device	},
+    { &p5pak_device	},
+    { &a6pak_device	},
+    { NULL		},
 };
 
 

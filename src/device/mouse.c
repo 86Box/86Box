@@ -31,7 +31,6 @@
 
 
 typedef struct {
-    const char  *internal_name;
     const device_t    *device;
 } mouse_t;
 
@@ -62,17 +61,17 @@ static const device_t mouse_internal_device = {
 
 
 static mouse_t mouse_devices[] = {
-    { "none",		&mouse_none_device	},
-    { "internal",	&mouse_internal_device	},
-    { "logibus",	&mouse_logibus_device	},
-    { "msbus",		&mouse_msinport_device	},
+    { &mouse_none_device	},
+    { &mouse_internal_device	},
+    { &mouse_logibus_device	},
+    { &mouse_msinport_device	},
 #if 0
     { "genibus",	&mouse_genibus_device	},
 #endif
-    { "mssystems",	&mouse_mssystems_device	},
-    { "msserial",	&mouse_msserial_device	},
-    { "ltserial",	&mouse_ltserial_device	},
-    { "ps2",		&mouse_ps2_device	},
+    { &mouse_mssystems_device	},
+    { &mouse_msserial_device	},
+    { &mouse_ltserial_device	},
+    { &mouse_ps2_device	},
     { NULL,		NULL			}
 };
 

@@ -102,17 +102,17 @@ fdc_log(const char *fmt, ...)
 
 
 typedef const struct {
-    const char  *internal_name;
     const device_t    *device;
 } fdc_cards_t;
 
 /* All emulated machines have at least one integrated FDC controller */
 static fdc_cards_t fdc_cards[] = {
-    { "internal",	NULL			},
-    { "b215",	&fdc_b215_device	},
-    { "dtk_pii151b",	&fdc_pii151b_device	},
-    { "dtk_pii158b",	&fdc_pii158b_device	},
-    { "",		NULL			},
+    { &fdc_null_device	},
+    { &fdc_internal_device	},
+    { &fdc_b215_device  },
+    { &fdc_pii151b_device },
+    { &fdc_pii158b_device },
+    { NULL                }
 };
 
 
@@ -2372,6 +2372,26 @@ fdc_3f1_enable(fdc_t *fdc, int enable)
     fdc->enable_3f1 = enable;
 }
 
+
+const device_t fdc_none_device = {
+  "None",
+  "fdc_none",
+  0, 0,
+  NULL, NULL, NULL,
+  { NULL }, NULL, NULL,
+  NULL
+};
+
+const device_t fdc_internal_device = {
+  "None",
+  "fdc_internal",
+  0, 0,
+  NULL, NULL, NULL,
+  { NULL }, NULL, NULL,
+  NULL
+};
+
+const device_t fdc_internal_device = {};
 
 const device_t fdc_xt_device = {
     "PC/XT Floppy Drive Controller",

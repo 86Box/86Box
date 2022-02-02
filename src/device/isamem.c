@@ -1291,29 +1291,38 @@ static const device_t iab_device = {
 #endif
 
 
+static const device_t isa_none_device = {
+    "None",
+    "isa_none",
+    0, 0,
+    NULL, NULL, NULL,
+    { NULL }, NULL, NULL,
+    NULL
+};
+
+
 static const struct {
-    const char		*internal_name;
     const device_t	*dev;
 } boards[] = {
-    { "none",		NULL				},
-    { "ibmxt",		&ibmxt_device		},
-    { "genericxt",	&genericxt_device	},
-    { "ibmat",		&ibmat_device		},
-    { "genericat",	&genericat_device	},
-    { "p5pak",		&p5pak_device		},
-    { "a6pak",		&a6pak_device		},
-    { "ems5150",	&ems5150_device		},
-    { "ev159",		&ev159_device		},
+    { &isa_none_device				},
+    { &ibmxt_device		},
+    { &genericxt_device	},
+    { &ibmat_device		},
+    { &genericat_device	},
+    { &p5pak_device		},
+    { &a6pak_device		},
+    { &ems5150_device		},
+    { &ev159_device		},
 #ifdef USE_ISAMEM_BRAT
-    { "brat",		&brat_device		},
+    { &brat_device		},
 #endif
 #ifdef USE_ISAMEM_RAMPAGE
-    { "rampage",	&rampage_device		},
+    { &rampage_device		},
 #endif
 #ifdef USE_ISAMEM_IAB
-    { "iab",		&iab_device			},
+    { &iab_device			},
 #endif
-    { "",			NULL				}
+    { NULL				}
 };
 
 

@@ -17,20 +17,29 @@
 lpt_port_t	lpt_ports[PARALLEL_MAX];
 
 
+static const device_t lpt_none_device = {
+  "None",
+  "lpt_none",
+  0, 0,
+  NULL, NULL, NULL,
+  { NULL }, NULL, NULL,
+  NULL
+};
+
+
 static const struct {
-    const char *internal_name;
     const lpt_device_t *device;
 } lpt_devices[] = {
-    {"none",		NULL},
-    {"dss",		&dss_device},
-    {"lpt_dac",		&lpt_dac_device},
-    {"lpt_dac_stereo",	&lpt_dac_stereo_device},
-    {"text_prt",	&lpt_prt_text_device},
-    {"dot_matrix",	&lpt_prt_escp_device},
-    {"postscript",	&lpt_prt_ps_device},
-    {"plip",		&lpt_plip_device},
-    {"dongle_savquest",	&lpt_hasp_savquest_device},
-    {"", NULL}
+    {&lpt_none_device},
+    {&dss_device},
+    {&lpt_dac_device},
+    {&lpt_dac_stereo_device},
+    {&lpt_prt_text_device},
+    {&lpt_prt_escp_device},
+    {&lpt_prt_ps_device},
+    {&lpt_plip_device},
+    {&lpt_hasp_savquest_device},
+    {NULL}
 };
 
 

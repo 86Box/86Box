@@ -66,8 +66,8 @@ null_close(void *priv)
 }
 
 
-static const device_t null_device = {
-    "Null HDC", "null", 0, 0,
+static const device_t hdc_none_device = {
+    "None", "hdc_none", 0, 0,
     null_init, null_close, NULL,
     { NULL }, NULL, NULL, NULL
 };
@@ -86,8 +86,8 @@ inthdc_close(void *priv)
 }
 
 
-static const device_t inthdc_device = {
-    "Internal controller", "inthdc", 0, 0,
+static const device_t hdc_internal_device = {
+    "Internal", "hdc_internal", 0, 0,
     inthdc_init, inthdc_close, NULL,
     { NULL }, NULL, NULL, NULL
 };
@@ -97,30 +97,30 @@ static const struct {
     const char		*internal_name;
     const device_t	*device;
 } controllers[] = {
-    { "none",			&null_device			},
-    { "internal",		&inthdc_device			},
-    { "st506_xt",		&st506_xt_xebec_device		},
-    { "st506_xt_dtc5150x",	&st506_xt_dtc5150x_device	},
-    { "st506_xt_st11_m",	&st506_xt_st11_m_device		},
-    { "st506_xt_wd1002a_wx1",	&st506_xt_wd1002a_wx1_device	},
-    { "st506_at",		&st506_at_wd1003_device		},
-    { "st506_xt_st11_r",	&st506_xt_st11_r_device		},
-    { "st506_xt_wd1002a_27x",	&st506_xt_wd1002a_27x_device	},
-    { "esdi_at",		&esdi_at_wd1007vse1_device	},
-    { "ide_isa",		&ide_isa_device			},
-    { "ide_isa_2ch",		&ide_isa_2ch_device		},
-    { "xtide_at",		&xtide_at_device		},
-    { "xtide_at_386",		&xtide_at_386_device		},
-    { "xtide_at_ps2",		&xtide_at_ps2_device		},
-    { "xta_wdxt150",		&xta_wdxt150_device		},
-    { "xtide_acculogic",	&xtide_acculogic_device		},
-    { "xtide",			&xtide_device			},
-    { "esdi_mca",		&esdi_ps2_device		},
-    { "ide_pci",		&ide_pci_device			},
-    { "ide_pci_2ch",		&ide_pci_2ch_device		},
-    { "ide_vlb",		&ide_vlb_device			},
-    { "ide_vlb_2ch",		&ide_vlb_2ch_device		},
-    { "",			NULL				}
+    { &hdc_null_device			},
+    { &hdc_internal_device			},
+    { &st506_xt_xebec_device		},
+    { &st506_xt_dtc5150x_device	},
+    { &st506_xt_st11_m_device		},
+    { &st506_xt_wd1002a_wx1_device	},
+    { &st506_at_wd1003_device		},
+    { &st506_xt_st11_r_device		},
+    { &st506_xt_wd1002a_27x_device	},
+    { &esdi_at_wd1007vse1_device	},
+    { &ide_isa_device			},
+    { &ide_isa_2ch_device		},
+    { &xtide_at_device		},
+    { &xtide_at_386_device		},
+    { &xtide_at_ps2_device		},
+    { &xta_wdxt150_device		},
+    { &xtide_acculogic_device		},
+    { &xtide_device			},
+    { &esdi_ps2_device		},
+    { &ide_pci_device			},
+    { &ide_pci_2ch_device		},
+    { &ide_vlb_device			},
+    { &ide_vlb_2ch_device		},
+    { NULL				}
 };
 
 

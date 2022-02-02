@@ -42,7 +42,6 @@
 
 
 typedef struct {
-        const char *internal_name;
         const device_t *device;
 } SOUND_CARD;
 
@@ -81,39 +80,57 @@ static void (*filter_cd_audio)(int channel, double *buffer, void *p) = NULL;
 static void *filter_cd_audio_p = NULL;
 
 
+static const device_t sound_none_device = {
+  "None",
+  "sound_none",
+  0, 0,
+  NULL, NULL, NULL,
+  { NULL }, NULL, NULL,
+  NULL
+};
+static const device_t sound_internal_device = {
+  "Internal Sound Card",
+  "sound_internal",
+  0, 0,
+  NULL, NULL, NULL,
+  { NULL }, NULL, NULL,
+  NULL
+};
+
+
 static const SOUND_CARD sound_cards[] =
 {
-    { "none",		NULL				},
-    { "internal",	NULL				},
-    { "adlib",		&adlib_device			},
-    { "adlibgold",	&adgold_device			},
-    { "azt2316a",	&azt2316a_device		},
-    { "azt1605",	&azt1605_device			},
-    { "cs4236b",	&cs4236b_device			},
-    { "sb",		&sb_1_device			},
-    { "sb1.5",		&sb_15_device			},
-    { "sb2.0",		&sb_2_device			},
-    { "sbprov1",	&sb_pro_v1_device		},
-    { "sbprov2",	&sb_pro_v2_device		},
-    { "sb16",		&sb_16_device			},
-    { "sb16_pnp",	&sb_16_pnp_device		},
-    { "sb32_pnp",	&sb_32_pnp_device		},
-    { "sbawe32",	&sb_awe32_device		},
-    { "sbawe32_pnp",	&sb_awe32_pnp_device		},
-    { "sbawe64_gold",	&sb_awe64_gold_device		},
+    { &sound_none_device				},
+    { &sound_internal_device				},
+    { &adlib_device			},
+    { &adgold_device			},
+    { &azt2316a_device		},
+    { &azt1605_device			},
+    { &cs4236b_device			},
+    { &sb_1_device			},
+    { &sb_15_device			},
+    { &sb_2_device			},
+    { &sb_pro_v1_device		},
+    { &sb_pro_v2_device		},
+    { &sb_16_device			},
+    { &sb_16_pnp_device		},
+    { &sb_32_pnp_device		},
+    { &sb_awe32_device		},
+    { &sb_awe32_pnp_device		},
+    { &sb_awe64_gold_device		},
 #if defined(DEV_BRANCH) && defined(USE_PAS16)
-    { "pas16",		&pas16_device			},
+    { &pas16_device			},
 #endif
-    { "pssj_isa",	&pssj_isa_device		},
-    { "wss",		&wss_device			},
-    { "adlib_mca",	&adlib_mca_device		},
-    { "ncraudio",	&ncr_business_audio_device	},
-    { "sbmcv",		&sb_mcv_device			},
-    { "sbpromcv",	&sb_pro_mcv_device		},
-    { "es1371",		&es1371_device			},
-    { "ad1881",		&ad1881_device			},
-    { "cs4297a",	&cs4297a_device			},
-    { "",		NULL				}
+    { &pssj_isa_device		},
+    { &wss_device			},
+    { &adlib_mca_device		},
+    { &ncr_business_audio_device	},
+    { &sb_mcv_device			},
+    { &sb_pro_mcv_device		},
+    { &es1371_device			},
+    { &ad1881_device			},
+    { &cs4297a_device			},
+    { NULL				}
 };
 
 
