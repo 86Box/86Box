@@ -722,6 +722,7 @@ static const device_config_t genericxt_config[] =
 
 static const device_t genericxt_device = {
     "Generic PC/XT Memory Expansion",
+    "genericxt",
     DEVICE_ISA,
     ISAMEM_GENXT_CARD,
     isamem_init, isamem_close, NULL,
@@ -777,6 +778,7 @@ static const device_config_t genericat_config[] =
 
 static const device_t genericat_device = {
     "Generic PC/AT Memory Expansion",
+    "genericat",
     DEVICE_ISA,
     ISAMEM_GENAT_CARD,
     isamem_init, isamem_close, NULL,
@@ -832,6 +834,7 @@ static const device_config_t a6pak_config[] =
 
 static const device_t a6pak_device = {
     "AST SixPakPlus",
+    "a6pak",
     DEVICE_ISA,
     ISAMEM_A6PAK_CARD,
     isamem_init, isamem_close, NULL,
@@ -1072,6 +1075,7 @@ static const device_config_t brat_config[] =
 
 static const device_t brat_device = {
     "BocaRAM/AT",
+    "brat",
     DEVICE_ISA,
     ISAMEM_BRAT_CARD,
     isamem_init, isamem_close, NULL,
@@ -1277,6 +1281,7 @@ static const device_config_t iab_config[] =
 
 static const device_t iab_device = {
     "Intel AboveBoard",
+    "iab",
     DEVICE_ISA,
     ISAMEM_ABOVEBOARD_CARD,
     isamem_init, isamem_close, NULL,

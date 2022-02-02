@@ -737,6 +737,7 @@ static const device_config_t a6pak_config[] = {
 
 static const device_t a6pak_device = {
     "AST SixPakPlus",
+    "a6pak",
     DEVICE_ISA,
     ISARTC_A6PAK,
     isartc_init, isartc_close, NULL,

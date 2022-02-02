@@ -293,6 +293,7 @@ const device_t pssj_1e0_device =
 const device_t pssj_isa_device =
 {
     "Tandy PSSJ Clone",
+    "pssj_isa",
     DEVICE_ISA,
     0,
     pssj_isa_init,
