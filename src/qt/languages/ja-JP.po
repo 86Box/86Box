@@ -445,6 +445,18 @@ msgstr "PCapデバイス:"
 msgid "Network adapter:"
 msgstr "ネットワークアダプター:"
 
+msgid "COM1 Device:"
+msgstr "COM1デバイス:"
+
+msgid "COM2 Device:"
+msgstr "COM2デバイス:"
+
+msgid "COM3 Device:"
+msgstr "COM3デバイス:"
+
+msgid "COM4 Device:"
+msgstr "COM4デバイス:"
+
 msgid "LPT1 Device:"
 msgstr "LPT1デバイス:"
 
@@ -453,6 +465,9 @@ msgstr "LPT2デバイス:"
 
 msgid "LPT3 Device:"
 msgstr "LPT3デバイス:"
+
+msgid "LPT4 Device:"
+msgstr "LPT4デバイス:"
 
 msgid "Serial port 1"
 msgstr "シリアルポート1"
@@ -474,6 +489,9 @@ msgstr "パラレルポート2"
 
 msgid "Parallel port 3"
 msgstr "パラレルポート3"
+
+msgid "Parallel port 4"
+msgstr "パラレルポート4"
 
 msgid "HD Controller:"
 msgstr "HDコントローラー:"

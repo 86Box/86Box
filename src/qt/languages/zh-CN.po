@@ -445,6 +445,18 @@ msgstr "PCap 设备:"
 msgid "Network adapter:"
 msgstr "网络适配器:"
 
+msgid "COM1 Device:"
+msgstr "COM1 设备:"
+
+msgid "COM2 Device:"
+msgstr "COM2 设备:"
+
+msgid "COM3 Device:"
+msgstr "COM3 设备:"
+
+msgid "COM4 Device:"
+msgstr "COM4 设备:"
+
 msgid "LPT1 Device:"
 msgstr "LPT1 设备:"
 
@@ -453,6 +465,9 @@ msgstr "LPT2 设备:"
 
 msgid "LPT3 Device:"
 msgstr "LPT3 设备:"
+
+msgid "LPT4 Device:"
+msgstr "LPT4 设备:"
 
 msgid "Serial port 1"
 msgstr "串口 1"
@@ -474,6 +489,9 @@ msgstr "并口 2"
 
 msgid "Parallel port 3"
 msgstr "并口 3"
+
+msgid "Parallel port 4"
+msgstr "并口 4"
 
 msgid "HD Controller:"
 msgstr "硬盘控制器:"

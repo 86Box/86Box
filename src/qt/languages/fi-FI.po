@@ -445,6 +445,18 @@ msgstr "PCap-laite:"
 msgid "Network adapter:"
 msgstr "Verkkokortti:"
 
+msgid "COM1 Device:"
+msgstr "COM1-laite:"
+
+msgid "COM2 Device:"
+msgstr "COM2-laite:"
+
+msgid "COM3 Device:"
+msgstr "COM3-laite:"
+
+msgid "COM4 Device:"
+msgstr "COM4-laite:"
+
 msgid "LPT1 Device:"
 msgstr "LPT1-laite:"
 
@@ -453,6 +465,9 @@ msgstr "LPT2-laite:"
 
 msgid "LPT3 Device:"
 msgstr "LPT3-laite:"
+
+msgid "LPT4 Device:"
+msgstr "LPT4-laite:"
 
 msgid "Serial port 1"
 msgstr "Sarjaportti 1"
@@ -474,6 +489,9 @@ msgstr "Rinnakkaisportti 2"
 
 msgid "Parallel port 3"
 msgstr "Rinnakkaisportti 3"
+
+msgid "Parallel port 4"
+msgstr "Rinnakkaisportti 4"
 
 msgid "HD Controller:"
 msgstr "Kiintolevyohjain:"

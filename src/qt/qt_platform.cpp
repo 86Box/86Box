@@ -342,6 +342,7 @@ extern "C++"
         {0x0419, {"ru-RU", "Russian (Russia)"} },
         {0x0424, {"sl-SI", "Slovenian (Slovenia)"} },
         {0x041F, {"tr-TR", "Turkish (Turkey)"} },
+        {0x0422, {"uk-UA", "Ukrainian (Ukraine)"} },
         {0x0804, {"zh-CN", "Chinese (China)"} },
         {0xFFFF, {"system", "(System Default)"} },
     };

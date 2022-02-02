@@ -445,14 +445,29 @@ msgstr "PCap zařízení:"
 msgid "Network adapter:"
 msgstr "Síťový adaptér:"
 
+msgid "COM1 Device:"
+msgstr "Zařízení na COM1:"
+
+msgid "COM2 Device:"
+msgstr "Zařízení na COM2:"
+
+msgid "COM3 Device:"
+msgstr "Zařízení na COM3:"
+
+msgid "COM4 Device:"
+msgstr "Zařízení na COM4:"
+
 msgid "LPT1 Device:"
-msgstr "Zařízení na LPT1"
+msgstr "Zařízení na LPT1:"
 
 msgid "LPT2 Device:"
-msgstr "Zařízení na LPT2"
+msgstr "Zařízení na LPT2:"
 
 msgid "LPT3 Device:"
-msgstr "Zařízení na LPT3"
+msgstr "Zařízení na LPT3:"
+
+msgid "LPT4 Device:"
+msgstr "Zařízení na LPT4:"
 
 msgid "Serial port 1"
 msgstr "Povolit port COM1"
@@ -474,6 +489,9 @@ msgstr "Povolit port LPT2"
 
 msgid "Parallel port 3"
 msgstr "Povolit port LPT3"
+
+msgid "Parallel port 4"
+msgstr "Povolit port LPT4"
 
 msgid "HD Controller:"
 msgstr "Řadič disku:"
