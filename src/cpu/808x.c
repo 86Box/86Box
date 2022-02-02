@@ -89,12 +89,12 @@ static int refresh = 0, cycdiff;
 		wait(val, 0);	\
 	}
 
-#if 0
 #define CLOCK_CYCLES_ALWAYS(val)		\
 	{			\
 		wait(val, 0);	\
 	}
 
+#if 0
 #define CLOCK_CYCLES_FPU(val)		\
 	{			\
 		wait(val, 0);	\
@@ -119,6 +119,13 @@ static int refresh = 0, cycdiff;
 	{			\
 		wait(val, 0);	\
 	}
+
+#define CLOCK_CYCLES_FPU(val)		\
+	{			\
+		wait(val, 0);	\
+	}
+
+#define CONCURRENCY_CYCLES(c)
 #endif
 
 

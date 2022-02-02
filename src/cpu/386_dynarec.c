@@ -283,6 +283,8 @@ static void prefetch_flush()
 #define CONCURRENCY_CYCLES(c) fpu_cycles = (c)
 #else
 #define CLOCK_CYCLES(c) cycles -= (c)
+#define CLOCK_CYCLES_FPU(c) cycles -= (c)
+#define CONCURRENCY_CYCLES(c)
 #endif
 #define CLOCK_CYCLES_ALWAYS(c) cycles -= (c)
 

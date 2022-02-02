@@ -68,6 +68,9 @@ static __inline void fetch_ea_16_long(uint32_t rmdat)
 #if 0
 #define CLOCK_CYCLES_FPU(c)
 #define CONCURRENCY_CYCLES(c) fpu_cycles = (c)
+#else
+#define CLOCK_CYCLES_FPU(c)
+#define CONCURRENCY_CYCLES(c)
 #endif
 #define CLOCK_CYCLES_ALWAYS(c) cycles -= (c)
 
