@@ -94,7 +94,6 @@ static const device_t hdc_internal_device = {
 
 
 static const struct {
-    const char		*internal_name;
     const device_t	*device;
 } controllers[] = {
     { &hdc_null_device			},
