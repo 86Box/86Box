@@ -17,36 +17,27 @@
 lpt_port_t	lpt_ports[PARALLEL_MAX];
 
 
-static const device_t lpt_none_device = {
-  "None",
-  "lpt_none",
-  0, 0,
-  NULL, NULL, NULL,
-  { NULL }, NULL, NULL,
-  NULL
-};
-
-
 static const struct {
+    const char *internal_name;
     const lpt_device_t *device;
 } lpt_devices[] = {
-    {&lpt_none_device},
-    {&dss_device},
-    {&lpt_dac_device},
-    {&lpt_dac_stereo_device},
-    {&lpt_prt_text_device},
-    {&lpt_prt_escp_device},
-    {&lpt_prt_ps_device},
-    {&lpt_plip_device},
-    {&lpt_hasp_savquest_device},
-    {NULL}
+    {"none",		NULL},
+    {"dss",		&dss_device},
+    {"lpt_dac",		&lpt_dac_device},
+    {"lpt_dac_stereo",	&lpt_dac_stereo_device},
+    {"text_prt",	&lpt_prt_text_device},
+    {"dot_matrix",	&lpt_prt_escp_device},
+    {"postscript",	&lpt_prt_ps_device},
+    {"plip",		&lpt_plip_device},
+    {"dongle_savquest",	&lpt_hasp_savquest_device},
+    {"", NULL}
 };
 
 
 char *
 lpt_device_get_name(int id)
 {
-    if (strlen((char *) lpt_devices[id].device->internal_name) == 0)
+    if (strlen((char *) lpt_devices[id].internal_name) == 0)
 	return NULL;
     if (!lpt_devices[id].device)
 	return "None";
@@ -57,9 +48,9 @@ lpt_device_get_name(int id)
 char *
 lpt_device_get_internal_name(int id)
 {
-    if (strlen((char *) lpt_devices[id].device->internal_name) == 0)
+    if (strlen((char *) lpt_devices[id].internal_name) == 0)
 	return NULL;
-    return (char *) lpt_devices[id].device->internal_name;
+    return (char *) lpt_devices[id].internal_name;
 }
 
 
@@ -68,8 +59,8 @@ lpt_device_get_from_internal_name(char *s)
 {
     int c = 0;
 
-    while (strlen((char *) lpt_devices[c].device->internal_name) != 0) {
-	if (strcmp(lpt_devices[c].device->internal_name, s) == 0)
+    while (strlen((char *) lpt_devices[c].internal_name) != 0) {
+	if (strcmp(lpt_devices[c].internal_name, s) == 0)
 		return c;
 	c++;
     }
