@@ -105,7 +105,8 @@ int strnicmp(const char *s1, const char *s2, size_t n)
 void
 do_stop(void)
 {
-    QCoreApplication::quit();
+    cpu_thread_run = 0;
+    //main_window->close();
 }
 
 void plat_get_exe_name(char *s, int size)
