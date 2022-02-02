@@ -106,6 +106,7 @@ speaker_get_buffer(int32_t *buffer, int len, void *p)
 void
 speaker_init(void)
 {
+    memset(speaker_buffer, 0, sizeof(speaker_buffer));
     sound_add_handler(speaker_get_buffer, NULL);
     speaker_mute = 0;
 }
