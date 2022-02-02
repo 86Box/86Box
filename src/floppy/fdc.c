@@ -101,6 +101,24 @@ fdc_log(const char *fmt, ...)
 #endif
 
 
+const device_t fdc_none_device = {
+  "None",
+  "fdc_none",
+  0, 0,
+  NULL, NULL, NULL,
+  { NULL }, NULL, NULL,
+  NULL
+};
+const device_t fdc_internal_device = {
+  "None",
+  "fdc_internal",
+  0, 0,
+  NULL, NULL, NULL,
+  { NULL }, NULL, NULL,
+  NULL
+};
+
+
 typedef const struct {
     const device_t    *device;
 } fdc_cards_t;
@@ -2373,25 +2391,7 @@ fdc_3f1_enable(fdc_t *fdc, int enable)
 }
 
 
-const device_t fdc_none_device = {
-  "None",
-  "fdc_none",
-  0, 0,
-  NULL, NULL, NULL,
-  { NULL }, NULL, NULL,
-  NULL
-};
 
-const device_t fdc_internal_device = {
-  "None",
-  "fdc_internal",
-  0, 0,
-  NULL, NULL, NULL,
-  { NULL }, NULL, NULL,
-  NULL
-};
-
-const device_t fdc_internal_device = {};
 
 const device_t fdc_xt_device = {
     "PC/XT Floppy Drive Controller",
