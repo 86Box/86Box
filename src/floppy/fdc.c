@@ -125,7 +125,7 @@ typedef const struct {
 
 /* All emulated machines have at least one integrated FDC controller */
 static fdc_cards_t fdc_cards[] = {
-    { &fdc_null_device	},
+    { &fdc_none_device	},
     { &fdc_internal_device	},
     { &fdc_b215_device  },
     { &fdc_pii151b_device },
