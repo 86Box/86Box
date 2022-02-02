@@ -66,13 +66,6 @@ null_close(void *priv)
 }
 
 
-static const device_t hdc_none_device = {
-    "None", "hdc_none", 0, 0,
-    null_init, null_close, NULL,
-    { NULL }, NULL, NULL, NULL
-};
-
-
 static void *
 inthdc_init(const device_t *info)
 {
@@ -86,6 +79,11 @@ inthdc_close(void *priv)
 }
 
 
+static const device_t hdc_none_device = {
+    "None", "hdc_none", 0, 0,
+    null_init, null_close, NULL,
+    { NULL }, NULL, NULL, NULL
+};
 static const device_t hdc_internal_device = {
     "Internal", "hdc_internal", 0, 0,
     inthdc_init, inthdc_close, NULL,
@@ -96,7 +94,7 @@ static const device_t hdc_internal_device = {
 static const struct {
     const device_t	*device;
 } controllers[] = {
-    { &hdc_null_device			},
+    { &hdc_none_device			},
     { &hdc_internal_device			},
     { &st506_xt_xebec_device		},
     { &st506_xt_dtc5150x_device	},
