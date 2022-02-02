@@ -1938,7 +1938,7 @@ const device_t buslogic_542bh_device = {
 	BT_ISA_Config
 };
 
-const device_t buslogic_545s_device = {
+const device_t buslogic_545c_device = {
 	"BusLogic BT-545C ISA",
     "buslogic_545c",
 	DEVICE_ISA | DEVICE_AT,
