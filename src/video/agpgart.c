@@ -183,6 +183,7 @@ agpgart_close(void *priv)
 const device_t agpgart_device =
 {
     "AGP Graphics Address Remapping Table",
+    "agpgart",
     DEVICE_PCI,
     0,
     agpgart_init, agpgart_close, NULL,

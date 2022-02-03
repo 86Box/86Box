@@ -827,6 +827,7 @@ neat_init(const device_t *info)
 
 const device_t neat_device = {
     "C&T CS8121 (NEAT)",
+    "neat",
     0,
     0,
     neat_init, neat_close, NULL,

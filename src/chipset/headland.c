@@ -687,6 +687,7 @@ headland_init(const device_t *info)
 
 const device_t headland_gc10x_device = {
     "Headland GC101/102/103",
+    "headland_gc10x",
     0,
     0,
     headland_init, headland_close, NULL,
@@ -696,6 +697,7 @@ const device_t headland_gc10x_device = {
 
 const device_t headland_ht18a_device = {
     "Headland HT18 Rev. A",
+    "headland_ht18a",
     0,
     1,
     headland_init, headland_close, NULL,
@@ -705,6 +707,7 @@ const device_t headland_ht18a_device = {
 
 const device_t headland_ht18b_device = {
     "Headland HT18 Rev. B",
+    "headland_ht18b",
     0,
     2,
     headland_init, headland_close, NULL,
@@ -714,6 +717,7 @@ const device_t headland_ht18b_device = {
 
 const device_t headland_ht18c_device = {
     "Headland HT18 Rev. C",
+    "headland_ht18c",
     0,
     8,
     headland_init, headland_close, NULL,

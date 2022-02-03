@@ -239,6 +239,7 @@ opti495_init(const device_t *info)
 
 const device_t opti493_device = {
     "OPTi 82C493",
+    "opti493",
     0,
     0,
     opti495_init, opti495_close, NULL,
@@ -249,6 +250,7 @@ const device_t opti493_device = {
 
 const device_t opti495_device = {
     "OPTi 82C495",
+    "opti495",
     0,
     1,
     opti495_init, opti495_close, NULL,

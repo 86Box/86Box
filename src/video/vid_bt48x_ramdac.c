@@ -503,6 +503,7 @@ bt48x_ramdac_close(void *priv)
 const device_t bt484_ramdac_device =
 {
         "Brooktree Bt484 RAMDAC",
+        "bt484_ramdac",
         0, BT484,
         bt48x_ramdac_init, bt48x_ramdac_close,
 	NULL, { NULL }, NULL, NULL
@@ -511,6 +512,7 @@ const device_t bt484_ramdac_device =
 const device_t att20c504_ramdac_device =
 {
         "AT&T 20c504 RAMDAC",
+        "att20c504_ramdac",
         0, ATT20C504,
         bt48x_ramdac_init, bt48x_ramdac_close,
 	NULL, { NULL }, NULL, NULL
@@ -519,6 +521,7 @@ const device_t att20c504_ramdac_device =
 const device_t bt485_ramdac_device =
 {
         "Brooktree Bt485 RAMDAC",
+        "bt485_ramdac",
         0, BT485,
         bt48x_ramdac_init, bt48x_ramdac_close,
 	NULL, { NULL }, NULL, NULL
@@ -527,6 +530,7 @@ const device_t bt485_ramdac_device =
 const device_t att20c505_ramdac_device =
 {
         "AT&T 20c505 RAMDAC",
+        "att20c505_ramdac",
         0, ATT20C505,
         bt48x_ramdac_init, bt48x_ramdac_close,
 	NULL, { NULL }, NULL, NULL
@@ -535,6 +539,7 @@ const device_t att20c505_ramdac_device =
 const device_t bt485a_ramdac_device =
 {
         "Brooktree Bt485A RAMDAC",
+        "bt485a_ramdac",
         0, BT485A,
         bt48x_ramdac_init, bt48x_ramdac_close,
 	NULL, { NULL }, NULL, NULL

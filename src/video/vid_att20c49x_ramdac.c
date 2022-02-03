@@ -178,6 +178,7 @@ att49x_ramdac_close(void *priv)
 const device_t att490_ramdac_device =
 {
         "AT&T 20c490 RAMDAC",
+        "att490_ramdac",
         0, ATT_490,
         att49x_ramdac_init, att49x_ramdac_close,
 	NULL, { NULL }, NULL, NULL
@@ -186,6 +187,7 @@ const device_t att490_ramdac_device =
 const device_t att491_ramdac_device =
 {
         "AT&T 20c491 RAMDAC",
+        "att491_ramdac",
         0, ATT_491,
         att49x_ramdac_init, att49x_ramdac_close,
 	NULL, { NULL }, NULL, NULL
@@ -194,6 +196,7 @@ const device_t att491_ramdac_device =
 const device_t att492_ramdac_device =
 {
         "AT&T 20c492 RAMDAC",
+        "att492_ramdac",
         0, ATT_492,
         att49x_ramdac_init, att49x_ramdac_close,
 	NULL, { NULL }, NULL, NULL

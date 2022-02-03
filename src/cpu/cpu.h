@@ -354,7 +354,11 @@ typedef struct {
     uint8_t	ssegs, ismmx,
 		abrt, _smi_line;
 
+#ifdef FPU_CYCLES
     int		_cycles, _fpu_cycles, _in_smm;
+#else
+    int		_cycles, _in_smm;
+#endif
 
     uint16_t	npxs, npxc;
 
@@ -457,7 +461,9 @@ COMPILE_TIME_ASSERT(sizeof(cpu_state_t) <= 128)
 #define DI	cpu_state.regs[7].w
 
 #define cycles	cpu_state._cycles
+#ifdef FPU_CYCLES
 #define fpu_cycles	cpu_state._fpu_cycles
+#endif
 
 #define cpu_rm	cpu_state.rm_data.rm_mod_reg.rm
 #define cpu_mod	cpu_state.rm_data.rm_mod_reg.mod

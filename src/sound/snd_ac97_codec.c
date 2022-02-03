@@ -646,6 +646,7 @@ ac97_codec_get(int model)
 const device_t ad1881_device =
 {
     "Analog Devices AD1881",
+    "ad1881",
     DEVICE_AC97,
     AC97_CODEC_AD1881,
     ac97_codec_init, ac97_codec_close, ac97_codec_reset,
@@ -658,6 +659,7 @@ const device_t ad1881_device =
 const device_t ak4540_device =
 {
     "Asahi Kasei AK4540",
+    "ak4540",
     DEVICE_AC97,
     AC97_CODEC_AK4540,
     ac97_codec_init, ac97_codec_close, ac97_codec_reset,
@@ -670,6 +672,7 @@ const device_t ak4540_device =
 const device_t alc100_device =
 {
     "Avance Logic ALC100",
+    "alc100",
     DEVICE_AC97,
     AC97_CODEC_ALC100,
     ac97_codec_init, ac97_codec_close, ac97_codec_reset,
@@ -682,6 +685,7 @@ const device_t alc100_device =
 const device_t cs4297_device =
 {
     "Crystal CS4297",
+    "cs4297",
     DEVICE_AC97,
     AC97_CODEC_CS4297,
     ac97_codec_init, ac97_codec_close, ac97_codec_reset,
@@ -694,6 +698,7 @@ const device_t cs4297_device =
 const device_t cs4297a_device =
 {
     "Crystal CS4297A",
+    "cs4297a",
     DEVICE_AC97,
     AC97_CODEC_CS4297A,
     ac97_codec_init, ac97_codec_close, ac97_codec_reset,
@@ -706,6 +711,7 @@ const device_t cs4297a_device =
 const device_t stac9708_device =
 {
     "SigmaTel STAC9708",
+    "stac9708",
     DEVICE_AC97,
     AC97_CODEC_STAC9708,
     ac97_codec_init, ac97_codec_close, ac97_codec_reset,
@@ -718,6 +724,7 @@ const device_t stac9708_device =
 const device_t stac9721_device =
 {
     "SigmaTel STAC9721",
+    "stac9721",
     DEVICE_AC97,
     AC97_CODEC_STAC9721,
     ac97_codec_init, ac97_codec_close, ac97_codec_reset,
@@ -730,6 +737,7 @@ const device_t stac9721_device =
 const device_t wm9701a_device =
 {
     "Wolfson WM9701A",
+    "wm9701a",
     DEVICE_AC97,
     AC97_CODEC_WM9701A,
     ac97_codec_init, ac97_codec_close, ac97_codec_reset,

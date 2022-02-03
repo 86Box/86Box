@@ -504,6 +504,7 @@ const lpt_device_t lpt_plip_device = {
 
 const device_t plip_device = {
     "Parallel Line Internet Protocol",
+    "plip",
     DEVICE_LPT, 0,
     plip_net_init, NULL,
     NULL, { NULL }, NULL, NULL

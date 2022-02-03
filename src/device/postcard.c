@@ -142,6 +142,7 @@ postcard_close(UNUSED(void *priv))
 
 const device_t postcard_device = {
     "POST Card",
+    "postcard",
     DEVICE_ISA,
     0,
     postcard_init, postcard_close, NULL,

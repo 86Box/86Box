@@ -588,6 +588,7 @@ static void
 const device_t sff8038i_device =
 {
     "SFF-8038i IDE Bus Master",
+    "sff8038i",
     DEVICE_PCI,
     0,
     sff_init, 

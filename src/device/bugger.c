@@ -357,6 +357,7 @@ bug_close(UNUSED(void *priv))
 
 const device_t bugger_device = {
     "ISA/PCI Bus Bugger",
+    "bugger",
     DEVICE_ISA | DEVICE_AT,
     0,
     bug_init, bug_close, NULL,

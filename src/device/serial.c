@@ -724,6 +724,7 @@ serial_standalone_init(void) {
 
 const device_t ns8250_device = {
     "National Semiconductor 8250(-compatible) UART",
+    "ns8250",
     0,
     SERIAL_8250,
     serial_init, serial_close, NULL,
@@ -733,6 +734,7 @@ const device_t ns8250_device = {
 
 const device_t ns8250_pcjr_device = {
     "National Semiconductor 8250(-compatible) UART for PCjr",
+    "ns8250_pcjr",
     DEVICE_PCJR,
     SERIAL_8250_PCJR,
     serial_init, serial_close, NULL,
@@ -742,6 +744,7 @@ const device_t ns8250_pcjr_device = {
 
 const device_t ns16450_device = {
     "National Semiconductor NS16450(-compatible) UART",
+    "ns16450",
     0,
     SERIAL_16450,
     serial_init, serial_close, NULL,
@@ -751,6 +754,7 @@ const device_t ns16450_device = {
 
 const device_t ns16550_device = {
     "National Semiconductor NS16550(-compatible) UART",
+    "ns16550",
     0,
     SERIAL_16550,
     serial_init, serial_close, NULL,
@@ -760,6 +764,7 @@ const device_t ns16550_device = {
 
 const device_t ns16650_device = {
     "Startech Semiconductor 16650(-compatible) UART",
+    "ns16650",
     0,
     SERIAL_16650,
     serial_init, serial_close, NULL,
@@ -769,6 +774,7 @@ const device_t ns16650_device = {
 
 const device_t ns16750_device = {
     "Texas Instruments 16750(-compatible) UART",
+    "ns16750",
     0,
     SERIAL_16750,
     serial_init, serial_close, NULL,
@@ -778,6 +784,7 @@ const device_t ns16750_device = {
 
 const device_t ns16850_device = {
     "Exar Corporation NS16850(-compatible) UART",
+    "ns16850",
     0,
     SERIAL_16850,
     serial_init, serial_close, NULL,
@@ -787,6 +794,7 @@ const device_t ns16850_device = {
 
 const device_t ns16950_device = {
     "Oxford Semiconductor NS16950(-compatible) UART",
+    "ns16950",
     0,
     SERIAL_16950,
     serial_init, serial_close, NULL,

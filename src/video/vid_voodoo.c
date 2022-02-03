@@ -1429,6 +1429,7 @@ static const device_config_t voodoo_config[] =
 const device_t voodoo_device =
 {
         "3DFX Voodoo Graphics",
+        "voodoo",
         DEVICE_PCI,
 	0,
         voodoo_init,

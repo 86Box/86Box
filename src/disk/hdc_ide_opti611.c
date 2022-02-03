@@ -314,6 +314,7 @@ opti611_init(const device_t *info)
 
 const device_t ide_opti611_vlb_device = {
     "OPTi 82C611/82C611A VLB",
+    "ide_opti611_vlb",
     0,
     0,
     opti611_init, opti611_close, NULL,

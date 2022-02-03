@@ -155,6 +155,7 @@ sc1148x_ramdac_close(void *priv)
 const device_t sc11483_ramdac_device =
 {
         "Sierra SC11483 RAMDAC",
+        "sc11483_ramdac",
         0, 0,
         sc1148x_ramdac_init, sc1148x_ramdac_close,
 	NULL, { NULL }, NULL, NULL
@@ -163,6 +164,7 @@ const device_t sc11483_ramdac_device =
 const device_t sc11487_ramdac_device =
 {
         "Sierra SC11487 RAMDAC",
+        "sc11487_ramdac",
         0, 1,
         sc1148x_ramdac_init, sc1148x_ramdac_close,
 	NULL, { NULL }, NULL, NULL
@@ -171,6 +173,7 @@ const device_t sc11487_ramdac_device =
 const device_t sc11484_nors2_ramdac_device =
 {
         "Sierra SC11484 RAMDAC (no RS2 signal)",
+        "sc11484_nors2_ramdac",
         0, 2,
         sc1148x_ramdac_init, sc1148x_ramdac_close,
 	NULL, { NULL }, NULL, NULL
@@ -179,6 +182,7 @@ const device_t sc11484_nors2_ramdac_device =
 const device_t sc11486_ramdac_device =
 {
         "Sierra SC11486 RAMDAC",
+        "sc11486_ramdac",
         0, 3,
         sc1148x_ramdac_init, sc1148x_ramdac_close,
 	NULL, { NULL }, NULL, NULL

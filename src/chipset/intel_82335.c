@@ -198,6 +198,7 @@ intel_82335_init(const device_t *info)
 
 const device_t intel_82335_device = {
     "Intel 82335",
+    "intel_82335",
     0,
     0,
     intel_82335_init,

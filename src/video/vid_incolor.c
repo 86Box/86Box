@@ -1094,6 +1094,7 @@ speed_changed(void *priv)
 
 const device_t incolor_device = {
     "Hercules InColor",
+    "incolor",
     DEVICE_ISA,
     0,
     incolor_init, incolor_close, NULL,

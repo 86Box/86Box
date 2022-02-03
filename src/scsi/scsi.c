@@ -51,45 +51,54 @@ int		scsi_card_current[SCSI_BUS_MAX] = { 0, 0 };
 static uint8_t	next_scsi_bus = 0;
 
 
+static const device_t scsi_none_device = {
+    "None",
+    "none",
+    0, 0,
+    NULL, NULL, NULL,
+    { NULL }, NULL, NULL,
+    NULL
+};
+
+
 typedef const struct {
-    const char		*internal_name;
     const device_t	*device;
 } SCSI_CARD;
 
 
 static SCSI_CARD scsi_cards[] = {
-    { "none",		NULL,			},
-    { "aha154xa",	&aha154xa_device,	},
-    { "aha154xb",	&aha154xb_device,	},
-    { "aha154xc",	&aha154xc_device,	},
-    { "aha154xcf",	&aha154xcf_device,	},
-    { "aha154xcp",	&aha154xcp_device,	},
-    { "bt542b",		&buslogic_542b_device,	},
-    { "bt542bh",	&buslogic_542bh_device,	},
-    { "bt545s",		&buslogic_545s_device,	},
-    { "bt545c",		&buslogic_545c_device,	},
-    { "lcs6821n",	&scsi_lcs6821n_device,	},
-    { "rt1000b",	&scsi_rt1000b_device,	},
-    { "t128",		&scsi_t128_device,	},
-    { "t130b",		&scsi_t130b_device,	},
+    { &scsi_none_device,		},
+    { &aha154xa_device,			},
+    { &aha154xb_device,			},
+    { &aha154xc_device,			},
+    { &aha154xcf_device,		},
+    { &aha154xcp_device,		},
+    { &buslogic_542b_device,		},
+    { &buslogic_542bh_device,		},
+    { &buslogic_545s_device,		},
+    { &buslogic_545c_device,		},
+    { &scsi_lcs6821n_device,		},
+    { &scsi_rt1000b_device,		},
+    { &scsi_t128_device,		},
+    { &scsi_t130b_device,		},
 #ifdef WALTJE
-    { "wd33c93",	&scsi_wd33c93_device,	},
+    { &scsi_wd33c93_device,		},
 #endif
-    { "aha1640",	&aha1640_device,	},
-    { "bt640a",		&buslogic_640a_device,	},
-    { "ncr53c90",	&ncr53c90_mca_device,	},
-    { "spock",		&spock_device,		},
-    { "bt958d",		&buslogic_958d_pci_device,	},
-    { "ncr53c810",	&ncr53c810_pci_device,	},
-    { "ncr53c815",	&ncr53c815_pci_device,	},
-    { "ncr53c820",	&ncr53c820_pci_device,	},
-    { "ncr53c825a",	&ncr53c825a_pci_device,	},
-    { "ncr53c860",	&ncr53c860_pci_device,	},
-    { "ncr53c875",	&ncr53c875_pci_device,	},
-    { "dc390",		&dc390_pci_device,	},
-    { "bt445s",		&buslogic_445s_device,	},
-    { "bt445c",		&buslogic_445c_device,	},
-    { "",		NULL,			},
+    { &aha1640_device,			},
+    { &buslogic_640a_device,		},
+    { &ncr53c90_mca_device,		},
+    { &spock_device,			},
+    { &buslogic_958d_pci_device,	},
+    { &ncr53c810_pci_device,		},
+    { &ncr53c815_pci_device,		},
+    { &ncr53c820_pci_device,		},
+    { &ncr53c825a_pci_device,		},
+    { &ncr53c860_pci_device,		},
+    { &ncr53c875_pci_device,		},
+    { &dc390_pci_device,		},
+    { &buslogic_445s_device,		},
+    { &buslogic_445c_device,		},
+    { NULL,				},
 };
 
 
@@ -143,7 +152,7 @@ scsi_card_has_config(int card)
 char *
 scsi_card_get_internal_name(int card)
 {
-    return((char *) scsi_cards[card].internal_name);
+    return device_get_internal_name(scsi_cards[card].device);
 }
 
 
@@ -152,8 +161,8 @@ scsi_card_get_from_internal_name(char *s)
 {
     int c = 0;
 
-    while (strlen((char *) scsi_cards[c].internal_name)) {
-	if (!strcmp((char *) scsi_cards[c].internal_name, s))
+    while (scsi_cards[c].device != NULL) {
+	if (!strcmp((char *) scsi_cards[c].device->internal_name, s))
 		return(c);
 	c++;
     }

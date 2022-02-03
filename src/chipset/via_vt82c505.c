@@ -219,6 +219,7 @@ vt82c505_init(const device_t *info)
 
 const device_t via_vt82c505_device = {
     "VIA VT82C505",
+    "via_vt82c505",
     DEVICE_PCI,
     0,
     vt82c505_init,

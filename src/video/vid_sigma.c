@@ -958,6 +958,7 @@ device_config_t sigma_config[] =
 const device_t sigma_device =
 {
         "Sigma Color 400",
+        "sigma400",
         DEVICE_ISA, 0,
         sigma_init,
         sigma_close,

@@ -1330,6 +1330,7 @@ static const device_config_t mca_mac_config[] =
 
 const device_t ne1000_device = {
     "Novell NE1000",
+    "ne1k",
     DEVICE_ISA,
     NE2K_NE1000,
     nic_init, nic_close, NULL,
@@ -1339,6 +1340,7 @@ const device_t ne1000_device = {
 
 const device_t ne2000_device = {
     "Novell NE2000",
+    "ne2k",
     DEVICE_ISA | DEVICE_AT,
     NE2K_NE2000,
     nic_init, nic_close, NULL,
@@ -1348,6 +1350,7 @@ const device_t ne2000_device = {
 
 const device_t ethernext_mc_device = {
     "NetWorth EtherNext/MC",
+    "ethernextmc",
     DEVICE_MCA,
     NE2K_ETHERNEXT_MC,
     nic_init, nic_close, NULL,
@@ -1357,6 +1360,7 @@ const device_t ethernext_mc_device = {
 
 const device_t rtl8019as_device = {
     "Realtek RTL8019AS",
+    "ne2kpnp",
     DEVICE_ISA | DEVICE_AT,
     NE2K_RTL8019AS,
     nic_init, nic_close, NULL,
@@ -1366,6 +1370,7 @@ const device_t rtl8019as_device = {
 
 const device_t rtl8029as_device = {
     "Realtek RTL8029AS",
+    "ne2kpci",
     DEVICE_PCI,
     NE2K_RTL8029AS,
     nic_init, nic_close, NULL,

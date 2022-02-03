@@ -419,6 +419,7 @@ hb4_init(const device_t *info)
 
 const device_t umc_hb4_device = {
     "UMC HB4(8881F)",
+    "umc_hb4",
     DEVICE_PCI,
     0x886a,
     hb4_init, hb4_close, hb4_reset,

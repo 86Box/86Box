@@ -239,6 +239,7 @@ static void joystick_standard_a0_over(void *p)
 const joystick_if_t joystick_2axis_2button =
 {
         "2-axis, 2-button joystick(s)",
+	"2axis_2button",
         joystick_standard_init,
         joystick_standard_close,
         joystick_standard_read,
@@ -255,6 +256,7 @@ const joystick_if_t joystick_2axis_2button =
 const joystick_if_t joystick_2axis_4button =
 {
         "2-axis, 4-button joystick",
+	"2axis_4button",
         joystick_standard_init,
         joystick_standard_close,
         joystick_standard_read_4button,
@@ -271,6 +273,7 @@ const joystick_if_t joystick_2axis_4button =
 const joystick_if_t joystick_3axis_2button =
 {
         "3-axis, 2-button joystick",
+	"3axis_2button",
         joystick_standard_init,
         joystick_standard_close,
         joystick_standard_read,
@@ -287,6 +290,7 @@ const joystick_if_t joystick_3axis_2button =
 const joystick_if_t joystick_3axis_4button =
 {
         "3-axis, 4-button joystick",
+	"3axis_4button",
         joystick_standard_init,
         joystick_standard_close,
         joystick_standard_read_4button,
@@ -303,6 +307,7 @@ const joystick_if_t joystick_3axis_4button =
 const joystick_if_t joystick_4axis_4button =
 {
         "4-axis, 4-button joystick",
+	"4axis_4button",
         joystick_standard_init,
         joystick_standard_close,
         joystick_standard_read_4button,
@@ -319,6 +324,7 @@ const joystick_if_t joystick_4axis_4button =
 const joystick_if_t joystick_2axis_6button =
 {
         "2-axis, 6-button joystick",
+	"2axis_6button",
         joystick_standard_init,
         joystick_standard_close,
         joystick_standard_read_4button,
@@ -335,6 +341,7 @@ const joystick_if_t joystick_2axis_6button =
 const joystick_if_t joystick_2axis_8button =
 {
         "2-axis, 8-button joystick",
+	"2axis_8button",
         joystick_standard_init,
         joystick_standard_close,
         joystick_standard_read_4button,

@@ -1,0 +1,654 @@
+////////////////////////////////////////////////////////////////////////////
+// Ukrainian resources
+
+#ifdef _WIN32
+LANGUAGE LANG_UKRAINIAN, SUBLANG_DEFAULT
+#pragma code_page(65001)
+#endif //_WIN32
+
+#define AUTHORS
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Menu
+//
+
+MainMenu MENU DISCARDABLE 
+BEGIN
+    POPUP "&Действие"
+    BEGIN
+        MENUITEM "&Клавіатура потребує захвату",	IDM_ACTION_KBD_REQ_CAPTURE
+        MENUITEM "&Правий CTRL - це лівий ALT",	IDM_ACTION_RCTRL_IS_LALT
+        MENUITEM SEPARATOR
+        MENUITEM "&Холодне перезавантаження...",                 IDM_ACTION_HRESET
+        MENUITEM "&Ctrl+Alt+Del\tCtrl+F12",     IDM_ACTION_RESET_CAD
+        MENUITEM SEPARATOR
+	MENUITEM "Ctrl+Alt+&Esc",		IDM_ACTION_CTRL_ALT_ESC
+        MENUITEM SEPARATOR
+        MENUITEM "&Пауза",                      IDM_ACTION_PAUSE
+        MENUITEM SEPARATOR
+        MENUITEM "&Вихід...",                       IDM_ACTION_EXIT
+    END
+    POPUP "&Вид"
+    BEGIN
+        MENUITEM "&Приховати рядок стану",		IDM_VID_HIDE_STATUS_BAR
+        MENUITEM "&Приховати панель інструментів",		IDM_VID_HIDE_TOOLBAR
+        MENUITEM SEPARATOR
+        MENUITEM "&Змінний розмір вікна",          IDM_VID_RESIZE
+        MENUITEM "&Запам'ятати розмір і становище",  IDM_VID_REMEMBER
+        MENUITEM SEPARATOR
+        POPUP "&Рендеринг"
+        BEGIN
+            MENUITEM "&SDL (Software)",         IDM_VID_SDL_SW
+            MENUITEM "SDL (&Hardware)",         IDM_VID_SDL_HW
+            MENUITEM "SDL (&OpenGL)",           IDM_VID_SDL_OPENGL
+            MENUITEM "Open&GL (3.0)",      IDM_VID_OPENGL_CORE
+#ifdef USE_VNC
+            MENUITEM "&VNC",                    IDM_VID_VNC
+#endif
+        END
+        MENUITEM SEPARATOR
+        MENUITEM "&Вказати розміри...",          IDM_VID_SPECIFY_DIM
+        MENUITEM "&Встановити відношення сторін 4:3",    IDM_VID_FORCE43
+        POPUP "&Масштаб вікна"
+        BEGIN
+            MENUITEM "&0.5x",                   IDM_VID_SCALE_1X
+            MENUITEM "&1x",                     IDM_VID_SCALE_2X
+            MENUITEM "1.&5x",                   IDM_VID_SCALE_3X
+            MENUITEM "&2x",                     IDM_VID_SCALE_4X
+        END
+        POPUP "Метод фільтрації"
+        BEGIN
+            MENUITEM "&Найближчий",                 IDM_VID_FILTER_NEAREST
+            MENUITEM "&Лінійний",                  IDM_VID_FILTER_LINEAR
+        END
+        MENUITEM "Масштабування Hi&DPI",              IDM_VID_HIDPI
+        MENUITEM SEPARATOR
+        MENUITEM "&Повноекранний режим\tCtrl+Alt+PageUP",    IDM_VID_FULLSCREEN
+        POPUP "&Розстягування у повноекранному режимі"
+        BEGIN
+            MENUITEM "&На весь екран",        IDM_VID_FS_FULL
+            MENUITEM "&4:3",                        IDM_VID_FS_43
+            MENUITEM "&Квадратні пікселі (зберегти відношення)", IDM_VID_FS_KEEPRATIO
+            MENUITEM "&Цілісночисленне масштабування",              IDM_VID_FS_INT
+        END
+        POPUP "Налаштування E&GA/(S)VGA"
+        BEGIN
+            MENUITEM "&Інвертувати кольори VGA",   IDM_VID_INVERT
+            POPUP "&Тип екрана VGA"
+            BEGIN
+                MENUITEM "RGB &кольоровий",          IDM_VID_GRAY_RGB
+                MENUITEM "&RGB монохромний",      IDM_VID_GRAY_MONO
+                MENUITEM "&Бурштиновий відтінок",      IDM_VID_GRAY_AMBER
+                MENUITEM "&Зелений відтінок",      IDM_VID_GRAY_GREEN
+                MENUITEM "&Білий відтінок",      IDM_VID_GRAY_WHITE
+            END
+            POPUP "Тип монохромного &конвертування"
+            BEGIN
+                MENUITEM "BT&601 (NTSC/PAL)",   IDM_VID_GRAYCT_601
+                MENUITEM "BT&709 (HDTV)",       IDM_VID_GRAYCT_709
+                MENUITEM "&Усереднений",            IDM_VID_GRAYCT_AVE
+            END
+        END
+        MENUITEM SEPARATOR
+        MENUITEM "Вильоти розгортки CGA/PCjr/Tandy/E&GA/(S)VGA",     IDM_VID_OVERSCAN
+        MENUITEM "Змінити контрастність &монохромного дисплея", IDM_VID_CGACON
+    END
+    MENUITEM "&Носії",				IDM_MEDIA
+    POPUP "&Інструменти"
+    BEGIN
+        MENUITEM "&Налаштування машини...",                IDM_CONFIG
+        MENUITEM "&Обновлення значків рядка стану",	IDM_UPDATE_ICONS
+        MENUITEM SEPARATOR
+        MENUITEM "Зробити &знімок\tCtrl+F11",  IDM_ACTION_SCREENSHOT
+        MENUITEM SEPARATOR
+        MENUITEM "&Параметри...",		IDM_PREFERENCES
+        MENUITEM "Увімкнути інтеграцію &Discord", IDM_DISCORD
+        MENUITEM SEPARATOR
+        MENUITEM "&Посилення звуку...",              IDM_SND_GAIN
+#ifdef MTR_ENABLED
+        MENUITEM SEPARATOR
+        MENUITEM "Почати трасування\tCtrl+T",         IDM_ACTION_BEGIN_TRACE
+        MENUITEM "Завершити трасування\tCtrl+T",           IDM_ACTION_END_TRACE
+#endif
+    END
+#if defined(ENABLE_LOG_TOGGLES) || defined(ENABLE_LOG_COMMANDS)
+    POPUP "&Ведення журнала"
+    BEGIN
+# ifdef ENABLE_BUSLOGIC_LOG
+        MENUITEM "Увімкнути журнали BusLogic\tCtrl+F4", IDM_LOG_BUSLOGIC
+# endif
+# ifdef ENABLE_CDROM_LOG
+        MENUITEM "Увімкнути журнали CD-ROM\tCtrl+F5", IDM_LOG_CDROM
+# endif
+# ifdef ENABLE_D86F_LOG
+        MENUITEM "Увімкнути журнали дискет (86F)\tCtrl+F6", IDM_LOG_D86F
+# endif
+# ifdef ENABLE_FDC_LOG
+        MENUITEM "Увімкнути журнали контролера дискет\tCtrl+F7", IDM_LOG_FDC
+# endif
+# ifdef ENABLE_IDE_LOG
+        MENUITEM "Увімкнути журнали IDE\tCtrl+F8", IDM_LOG_IDE
+# endif
+# ifdef ENABLE_SERIAL_LOG
+        MENUITEM "Увімкнути журнали COM порту\tCtrl+F3", IDM_LOG_SERIAL
+# endif
+# ifdef ENABLE_NIC_LOG
+        MENUITEM "Увімкнути журнали мережі\tCtrl+F9", IDM_LOG_NIC
+# endif
+# ifdef ENABLE_LOG_COMMANDS
+#  ifdef ENABLE_LOG_TOGGLES
+	MENUITEM SEPARATOR
+#  endif
+#  ifdef ENABLE_LOG_BREAKPOINT
+        MENUITEM "&Точка зупинка журналу\tCtrl+F10", IDM_LOG_BREAKPOINT
+#  endif
+#  ifdef ENABLE_VRAM_DUMP
+        MENUITEM "&Вивантаження дампа відеопам'яті\tCtrl+F1", IDM_DUMP_VRAM
+#  endif
+# endif
+    END
+#endif
+    POPUP "&Допомога"
+    BEGIN
+        MENUITEM "&Документація...",           IDM_DOCS
+        MENUITEM "&Про програму 86Box...",             IDM_ABOUT
+    END
+END
+
+StatusBarMenu MENU DISCARDABLE 
+BEGIN
+    MENUITEM SEPARATOR
+END
+
+CassetteSubmenu MENU DISCARDABLE
+BEGIN
+    POPUP ""
+    BEGIN
+        MENUITEM "&Новий образ...",				IDM_CASSETTE_IMAGE_NEW
+        MENUITEM SEPARATOR
+        MENUITEM "&Вибрати образ...",				IDM_CASSETTE_IMAGE_EXISTING
+        MENUITEM "Вибрати образ (&Захист від запису)...",	IDM_CASSETTE_IMAGE_EXISTING_WP
+        MENUITEM SEPARATOR
+        MENUITEM "&Запис",					IDM_CASSETTE_RECORD
+        MENUITEM "&Відтворення",					IDM_CASSETTE_PLAY
+        MENUITEM "&Перемотування на початок",			IDM_CASSETTE_REWIND
+        MENUITEM "&Перемотування у кінець",			IDM_CASSETTE_FAST_FORWARD
+        MENUITEM SEPARATOR
+        MENUITEM "&Вилучити",					IDM_CASSETTE_EJECT
+    END
+END
+
+CartridgeSubmenu MENU DISCARDABLE
+BEGIN
+    POPUP ""
+    BEGIN
+        MENUITEM "&Образ...",					IDM_CARTRIDGE_IMAGE
+        MENUITEM SEPARATOR
+        MENUITEM "&Вилучити",					IDM_CARTRIDGE_EJECT
+    END
+END
+
+FloppySubmenu MENU DISCARDABLE
+BEGIN
+    POPUP ""
+    BEGIN
+        MENUITEM "&Новий образ...",				IDM_FLOPPY_IMAGE_NEW
+        MENUITEM SEPARATOR
+        MENUITEM "&Вибрати образ...",				IDM_FLOPPY_IMAGE_EXISTING
+        MENUITEM "Вибрати образ (&Захист від запису)...",	IDM_FLOPPY_IMAGE_EXISTING_WP
+        MENUITEM SEPARATOR
+        MENUITEM "&Експорт в 86F...",				IDM_FLOPPY_EXPORT_TO_86F
+        MENUITEM SEPARATOR
+        MENUITEM "&Вилучити",					IDM_FLOPPY_EJECT
+    END
+END
+
+CdromSubmenu MENU DISCARDABLE
+BEGIN
+    POPUP ""
+    BEGIN
+        MENUITEM "&Відключити звук",					IDM_CDROM_MUTE
+        MENUITEM SEPARATOR
+        MENUITEM "&Пустий",					IDM_CDROM_EMPTY
+        MENUITEM "&Знову завантажити попередній образ",			IDM_CDROM_RELOAD
+        MENUITEM SEPARATOR
+        MENUITEM "&Образ...",					IDM_CDROM_IMAGE
+    END
+END
+
+ZIPSubmenu MENU DISCARDABLE
+BEGIN
+    POPUP ""
+    BEGIN
+        MENUITEM "&Новий образ...",				IDM_ZIP_IMAGE_NEW
+        MENUITEM SEPARATOR
+        MENUITEM "&Вибрати образ...",				IDM_ZIP_IMAGE_EXISTING
+        MENUITEM "Вибрати образ (&Захист від запису)...",	IDM_ZIP_IMAGE_EXISTING_WP
+        MENUITEM SEPARATOR
+        MENUITEM "&Вилучити",					IDM_ZIP_EJECT
+        MENUITEM "&Знову завантажити попередній образ",			IDM_ZIP_RELOAD
+    END
+END
+
+MOSubmenu MENU DISCARDABLE
+BEGIN
+    POPUP ""
+    BEGIN
+        MENUITEM "&Новий образ...",				IDM_MO_IMAGE_NEW
+        MENUITEM SEPARATOR
+        MENUITEM "&Вибрати образ...",				IDM_MO_IMAGE_EXISTING
+        MENUITEM "Вибрати образ (&Захист від запису)...",	IDM_MO_IMAGE_EXISTING_WP
+        MENUITEM SEPARATOR
+        MENUITEM "&Вилучити",					IDM_MO_EJECT
+        MENUITEM "&Знову завантажити попередній образ",			IDM_MO_RELOAD
+    END
+END
+
+VidGLSubMenu MENU DISCARDABLE
+BEGIN
+    POPUP "Цільова &частота кадрів"
+    BEGIN
+        MENUITEM "&Синхронізація з відео", IDM_VID_GL_FPS_BLITTER
+        MENUITEM "&25 кадрів в секунду", IDM_VID_GL_FPS_25
+        MENUITEM "&30 кадрів в секунду", IDM_VID_GL_FPS_30
+        MENUITEM "&50 кадрів в секунду", IDM_VID_GL_FPS_50
+        MENUITEM "&60 кадрів в секунду", IDM_VID_GL_FPS_60
+        MENUITEM "&75 кадрів в секунду", IDM_VID_GL_FPS_75
+    END
+    MENUITEM "&VSync", IDM_VID_GL_VSYNC
+    MENUITEM "&Вибрати шейдер...", IDM_VID_GL_SHADER
+    MENUITEM "&Видалити шейдер", IDM_VID_GL_NOSHADER
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Dialog
+//
+
+#define STR_PREFERENCES		"Параметри"
+#define STR_SND_GAIN		"Посилення звуку"
+#define STR_NEW_FLOPPY		"Новий образ"
+#define STR_CONFIG		"Налаштування"
+#define STR_SPECIFY_DIM		"Вказати розміри головного вікна"
+
+#define STR_OK			"OK"
+#define STR_CANCEL		"Відміна"
+#define STR_GLOBAL		"Зберегти ці параметри як &глобальні за замовчуванням"
+#define STR_DEFAULT		"&За замовчуванням"
+#define STR_LANGUAGE		"Язык:"
+#define STR_ICONSET		"Набір іконок:"
+
+#define STR_GAIN		"Посилення"
+
+#define STR_FILE_NAME		"Ім'я файлу:"
+#define STR_DISK_SIZE		"Розмір диска:"
+#define STR_RPM_MODE		"RPM режим:"
+#define STR_PROGRESS		"Прогрес:"
+
+#define STR_WIDTH		"Ширина:"
+#define STR_HEIGHT		"Висота:"
+#define STR_LOCK_TO_SIZE	"Зафіксувати розмір"
+
+#define STR_MACHINE_TYPE	"Тип машини:"
+#define STR_MACHINE		"Системна плата:"
+#define STR_CONFIGURE		"Налаштування"
+#define STR_CPU_TYPE		"Тип ЦП:"
+#define STR_CPU_SPEED		"Швидкість:"
+#define STR_FPU			"FPU:"
+#define STR_WAIT_STATES		"Цикли очікування:"
+#define STR_MB			"МБ"
+#define STR_MEMORY		"Пам'ять:"
+#define STR_TIME_SYNC		"Синхронізація часу"
+#define STR_DISABLED		"Відключити"
+#define STR_ENABLED_LOCAL	"Увімкнути (місцеве)"
+#define STR_ENABLED_UTC		"Увімкнути (UTC)"
+#define STR_DYNAREC		"Динамічний рекомпілятор"
+
+#define STR_VIDEO		"Відеокарта:"
+#define STR_VOODOO		"Прискорювач Voodoo"
+
+#define STR_MOUSE		"Миша:"
+#define STR_JOYSTICK		"Джойстик:"
+#define STR_JOY1		"Джойстик 1..."
+#define STR_JOY2		"Джойстик 2..."
+#define STR_JOY3		"Джойстик 3..."
+#define STR_JOY4		"Джойстик 4..."
+
+#define STR_SOUND		"Звукова карта:"
+#define STR_MIDI_OUT		"MIDI Out при-ій:"
+#define STR_MIDI_IN		"MIDI In при-ій:"
+#define STR_MPU401		"Окремий MPU-401"
+#define STR_SSI			"Innovation SSI-2001"
+#define STR_CMS			"CMS / Game Blaster"
+#define STR_GUS			"Gravis Ultrasound"
+#define STR_FLOAT		"FLOAT32 звук"
+
+#define STR_NET_TYPE		"Тип мережі:"
+#define STR_PCAP		"Пристрій PCap:"
+#define STR_NET			"Мережева карта:"
+
+#define STR_COM1		"Пристрій COM1:"
+#define STR_COM2		"Пристрій COM2:"
+#define STR_COM3		"Пристрій COM3:"
+#define STR_COM4		"Пристрій COM4:"
+#define STR_LPT1		"Пристрій LPT1:"
+#define STR_LPT2		"Пристрій LPT2:"
+#define STR_LPT3		"Пристрій LPT3:"
+#define STR_LPT4		"Пристрій LPT4:"
+#define STR_SERIAL1		"Послідов. порт COM1"
+#define STR_SERIAL2		"Послідов. порт COM2"
+#define STR_SERIAL3		"Послідов. порт COM3"
+#define STR_SERIAL4		"Послідов. порт COM4"
+#define STR_PARALLEL1		"Паралельний порт LPT1"
+#define STR_PARALLEL2		"Паралельний порт LPT2"
+#define STR_PARALLEL3		"Паралельний порт LPT3"
+#define STR_PARALLEL4		"Паралельний порт LPT4"
+
+#define STR_HDC			"Контролер HD:"
+#define STR_FDC			"Контролер FD:"
+#define STR_IDE_TER		"Третинний IDE контролер"
+#define STR_IDE_QUA		"Четвертинний IDE контролер"
+#define STR_SCSI		"SCSI"
+#define STR_SCSI_1		"Контролер 1:"
+#define STR_SCSI_2		"Контролер 2:"
+#define STR_SCSI_3		"Контролер 3:"
+#define STR_SCSI_4		"Контролер 4:"
+#define STR_CASSETTE		"Касета"
+
+#define STR_HDD			"Жорсткі диски:"
+#define STR_NEW			"&Створити..."
+#define STR_EXISTING		"&Вибрати..."
+#define STR_REMOVE		"&Прибрати"
+#define STR_BUS			"Шина:"
+#define STR_CHANNEL		"Канал:"
+#define STR_ID			"ID:"
+
+#define STR_SPECIFY		"&Вказати..."
+#define STR_SECTORS		"Сектора:"
+#define STR_HEADS		"Головки:"
+#define STR_CYLS		"Циліндри:"
+#define STR_SIZE_MB		"Розмір (МБ):"
+#define STR_TYPE		"Тип:"
+#define STR_IMG_FORMAT		"Тип образу:"
+#define STR_BLOCK_SIZE		"Розмір блоку:"
+
+#define STR_FLOPPY_DRIVES	"Гнучкі диски:"
+#define STR_TURBO		"Турбо таймінги"
+#define STR_CHECKBPB		"Перевіряти BPB"
+#define STR_CDROM_DRIVES	"Дисководи CD-ROM:"
+#define STR_CD_SPEED		"Швидкість:"
+
+#define STR_MO_DRIVES		"Магнітооптичні дисководи:"
+#define STR_ZIP_DRIVES		"ZIP дисководи:"
+#define STR_250			"ZIP 250"
+
+#define STR_ISARTC		"ISA RTC:"
+#define STR_ISAMEM		"Карта розширення памя'ті (ISA)"
+#define STR_ISAMEM_1		"Карта 1:"
+#define STR_ISAMEM_2		"Карта 2:"
+#define STR_ISAMEM_3		"Карта 3:"
+#define STR_ISAMEM_4		"Карта 4:"
+#define STR_BUGGER		"Пристрій ISABugger"
+#define STR_POSTCARD		"Карта POST"
+
+#define FONT_SIZE		9
+#define FONT_NAME		"Segoe UI"
+
+#include "dialogs.rc"
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// String Table
+//
+
+STRINGTABLE DISCARDABLE 
+BEGIN
+    2048	"86Box"
+    IDS_2049	"Помилка"
+    IDS_2050	"Непереробна помилка"
+    IDS_2051	"<зарезервовано>"
+    IDS_2052	"Натисніть CTRL + ALT + PAGE DOWN для повернення у віконний режим."
+    IDS_2053	"Швидкість"
+    IDS_2054	"ZIP %03i %i (%s): %ls"
+    IDS_2055	"Образи ZIP (*.IM?;*.ZDI)\0*.IM?;*.ZDI\0"
+    IDS_2056	"86Box не зміг знайти жодного відповідного для використання файлу з ПЗУ.\n\nБудь ласка <a href=""https://github.com/86Box/roms/releases/latest"">завантажте</a> набір ПЗУ і витягніть його в каталог ""roms""."
+    IDS_2057	"(пусто)"
+    IDS_2058	"Образи ZIP (*.IM?;*.ZDI)\0*.IM?;*.ZDI\0Всі файли (*.*)\0*.*\0"
+    IDS_2059	"Турбо"
+    IDS_2060	"Увімк"
+    IDS_2061	"Вимк"
+    IDS_2062	"Всі образи (*.86F;*.DSK;*.FLP;*.IM?;*.*FD?)\0*.86F;*.DSK;*.FLP;*.IM?;*.*FD?\0Прості посекторні образи (*.DSK;*.FLP;*.IM?;*.*FD?)\0*.DSK;*.FLP;*.IM?;*.IMG;*.*FD?\0Surface образы (*.86F)\0*.86F\0"
+    IDS_2063	"Системна плата ""%hs"" недоступна через відсутність файлу її ПЗУ в каталозі roms/machines. Переключення на доступну системну плату."
+END
+
+STRINGTABLE DISCARDABLE 
+BEGIN
+    IDS_2064	"Відеокарта ""%hs"" недоступна через відсутність файлу її ПЗУ в каталозі roms/video. Переключення на доступну відеокарту."
+    IDS_2065	"Комп'ютер"
+    IDS_2066	"Дисплей"
+    IDS_2067	"Пристрій введення"
+    IDS_2068	"Звук"
+    IDS_2069	"Мережа"
+    IDS_2070	"Порти (COM и LPT)"
+    IDS_2071	"Контролери дисків"
+    IDS_2072	"Жорсткі диски"
+    IDS_2073	"Гнучкі диски і CD-ROM"
+    IDS_2074	"Інші знімні при-ої"
+    IDS_2075	"Інша периферія"
+    IDS_2076	"Образи Surface (*.86F)\0*.86F\0"
+    IDS_2077	"Клацніть мишею для захвату курсора"
+    IDS_2078	"Натисніть F8+F12 щоб звільнити курсор"
+    IDS_2079	"Натисніть F8+F12 або середню кнопку миши щоб звільнити курсор"
+END
+
+STRINGTABLE DISCARDABLE 
+BEGIN
+    IDS_2080	"Неможливо ініціалізувати FluidSynth"
+    IDS_2081	"Шина"
+    IDS_2082	"Файл"
+    IDS_2083	"C"
+    IDS_2084	"H"
+    IDS_2085	"S"
+    IDS_2086	"МБ"
+    IDS_2087	"Перевіряти BPB"
+    IDS_2088	"КБ"
+    IDS_2089	"Не вдалося ініціалізувати рендер відео."
+    IDS_2090	"За замовчуванням"
+    IDS_2091	"%i WS"
+    IDS_2092	"Тип"
+    IDS_2093	"Не вдалося налаштувати PCap"
+    IDS_2094	"Пристрої PCap не знайдені"
+    IDS_2095	"Невірний пристрій PCap"
+    IDS_2096	"Стандартний 2-кнопковий джойстик"
+    IDS_2097	"Стандартний 4-кнопковий джойстик"
+    IDS_2098	"Стандартний 6-кнопковий джойстик"
+    IDS_2099	"Стандартний 8-кнопковий джойстик"
+    IDS_2100	"CH Flightstick Pro"
+    IDS_2101	"Microsoft SideWinder Pad"
+    IDS_2102	"Система управління польотом Thrustmaster"
+    IDS_2103	"Ні"
+    IDS_2104	"Неможливо завантажити прискорювачі клавіатури."
+    IDS_2105	"Неможливо зарреєструвати необроблене (RAW) введ."
+    IDS_2106	"%u"
+    IDS_2107	"%u МБ (CHS: %i, %i, %i)"
+    IDS_2108	"Дисковод %i (%s): %ls"
+    IDS_2109	"Всі образи (*.0??;*.1??;*.??0;*.86F;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.JSON;*.TD0;*.*FD?;*.MFM;*.XDF)\0*.0??;*.1??;*.??0;*.86F;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.JSON;*.TD0;*.*FD?;*.MFM;*.XDF\0Розширені образи секторів (*.IMD;*.JSON;*.TD0)\0*.IMD;*.JSON;*.TD0\0Основні образи секторів (*.0??;*.1??;*.??0;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.XDF;*.*FD?)\0*.0??;*.1??;*.??0;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.XDF;*.*FD?\0Образи Flux (*.FDI)\0*.FDI\0Образи Surface (*.86F;*.MFM)\0*.86F;*.MFM\0Всі файли (*.*)\0*.*\0"
+    IDS_2110	"Неможливо ініціалізувати FreeType"
+    IDS_2111	"Неможливо ініціалізувати SDL, потрібно SDL2.dll"
+    IDS_2112	"Ви впевнені, що хочете виконати холодне перезавантаження емульованої машини?"
+    IDS_2113	"Ви впевнені, що хочете вийти з 86Box?"
+    IDS_2114	"Неможливо ініціалізувати Ghostscript"
+    IDS_2115	"Магнітооптичний %i (%ls): %ls"
+    IDS_2116	"Образи магнітооптичних дисків (*.IM?;*.MDI)\0*.IM?;*.MDI\0Все файлы (*.*)\0*.*\0"
+    IDS_2117	"Ласкаво просимо в 86Box!"
+    IDS_2118	"Вбудований контролер"
+    IDS_2119	"Вихід"
+    IDS_2120	"ПЗУ не знайдені"
+    IDS_2121	"Чи бажаєте ви зберегти налаштування?"
+    IDS_2122	"Це призведе до холодної перезагрузки эмулируемой машины."
+    IDS_2123	"Зберегти"
+    IDS_2124	"О 86Box"
+    IDS_2125	"86Box v." EMU_VERSION
+
+    IDS_2126	"Емулятор старих комп'ютерів\n\nАвтори: Sarah Walker, Miran Grca, Fred N. van Kempen (waltje), SA1988, Tiseno100, reenigne, leilei, JohnElliott, greatpsycho, and others.\n\nВипускаєтся під ліцензією GNU General Public License версії 2 або більше пізніше. Додадкову інформацію см. у файлі LICENSE."
+    IDS_2127	"OK"
+    IDS_2128	"Обладнання недоступне"
+#ifdef _WIN32
+#define LIB_NAME_PCAP "WinPcap"
+#else
+#define LIB_NAME_PCAP "libpcap"
+#endif
+    IDS_2129	"Переконайтесь, що " LIB_NAME_PCAP " встановлений і ваше мережеве з'єднання, сумісне з " LIB_NAME_PCAP "."
+    IDS_2130	"Недопустимая конфигурация"
+#ifdef _WIN32
+#define LIB_NAME_FREETYPE "freetype.dll"
+#else
+#define LIB_NAME_FREETYPE "libfreetype"
+#endif
+    IDS_2131	"Для емуляції принтера ESC/P потрібно " LIB_NAME_FREETYPE "."
+#ifdef _WIN32
+#define LIB_NAME_GS "gsdll32.dll"
+#else
+#define LIB_NAME_GS "libgs"
+#endif
+    IDS_2132	LIB_NAME_GS " потрібно для автоматичного перетворення файлів PostScript в PDF.\n\nВсі документи, відправлені на загальний принтер PostScript, будуть збережені у вигляді файлів PostScript (.ps)."
+#ifdef _WIN32
+#define LIB_NAME_FLUIDSYNTH "libfluidsynth.dll"
+#else
+#define LIB_NAME_FLUIDSYNTH "libfluidsynth"
+#endif
+    IDS_2133	"Для FluidSynth MIDI-висновку потрібно " LIB_NAME_FLUIDSYNTH "."
+    IDS_2134	"Вхід у повноекранний режим"
+    IDS_2135	"Більше не показувати це повідомлення"
+    IDS_2136	"Не виходити"
+    IDS_2137	"Перезавантажити"
+    IDS_2138	"Не перезавантажувати"
+    IDS_2139	"Образи магнітооптичних дисків (*.IM?;*.MDI)\0*.IM?;*.MDI\0Всі файли (*.*)\0*.*\0"
+    IDS_2140	"Образи CD-ROM (*.ISO;*.CUE)\0*.ISO;*.CUE\0Всі файли (*.*)\0*.*\0"
+    IDS_2141	"Конфігурація пристрою %hs"
+    IDS_2142    "Монітор у сплячому режимі"
+    IDS_2143	"Шейдери OpenGL (*.GLSL)\0*.GLSL\0Все файлы (*.*)\0*.*\0"
+    IDS_2144	"Параметри OpenGL"
+    IDS_2145	"Ви завантажуєте непідтримувану конфігурацію"
+    IDS_2146	"Вибір типів ЦП для цієї системної плати на даній емульованій машині відключено.\n\nЦе дозволяє вибрати процесор, який в іншому випадку не сумісний з вибраною материнською платою. Однак, ви можете зіткнутися з несумісністю з BIOS материнської плати або іншим ПО.\n\nВключення цього параметра офіційно не підтримується, і всі подані звіти про помилки можуть бути закриті як недійсні."
+    IDS_2147	"Продовжити"
+    IDS_2148 "Касета: %s"
+    IDS_2149 "Образи касет (*.PCM;*.RAW;*.WAV;*.CAS)\0*.PCM;*.RAW;*.WAV;*.CAS\0Всі файли (*.*)\0*. *\0"
+    IDS_2150 "Картидж %i: %ls"
+    IDS_2151 "Образи картриджів (*.A;*.B;*.JRC)\0*.A;*.B;*.JRC\0Всі файли (*.*)\0*.*\0"
+    IDS_2152 "Помилка ініціалізації рендерера"
+    IDS_2153 "Неможливо ініціалізувати рендерер OpenGL (3.0). Будь ласка, використовуйте інший рендерер."
+    IDS_2154 "Відновити виконання"
+    IDS_2155 "Призупинити виконання"
+    IDS_2156 "Натиснути Ctrl+Alt+Del"
+    IDS_2157 "Натиснути Ctrl+Alt+Esc"
+    IDS_2158 "Холодне перезавантаження"
+    IDS_2159 "Сигнал завершення ACPI"
+    IDS_2160 "Налаштування машини"
+END
+
+STRINGTABLE DISCARDABLE
+BEGIN
+    IDS_4096 "Жорсткий диск (%s)"
+    IDS_4097 "%01i:%01i"
+    IDS_4098 "%01i"
+    IDS_4099 "MFM/RLL або ESDI дисководів CD-ROM ніколи не існувало"
+    IDS_4100 "Задати вручну..."
+    IDS_4101 "Задати вручну (large)..."
+    IDS_4102 "Створити новий жорсткий диск"
+    IDS_4103 "Вибрати існуючий жорсткий диск"
+    IDS_4104 "Розмір образів дисків HDI не може перевищувати 4 ГБ."
+    IDS_4105 "Розмір образів дисків не може перевищувати 127 ГБ."
+    IDS_4106 "Образи жорстких дисків (*.HD?;*.IM?;*.VHD)\0*.HD?;*.IM?;*.VHD\0Всі файли (*.*)\0*.*\0 "
+    IDS_4107 "Неможливо прочитати файл"
+    IDS_4108 "Неможливо записати файл"
+    IDS_4109 "Образи HDI або HDX з розміром сектора, відмінним від 512, не підтримуються."
+    IDS_4110 "USB поки не підтримується"
+    IDS_4111 "Файл образу диска вже існує"
+    IDS_4112 "Вкажіть правильне ім'я файлу."
+    IDS_4113 "Образ диску створено"
+    IDS_4114 "Переконайтеся, що файл є доступним для читання."
+    IDS_4115 "Переконайтеся, що файл зберігається в каталогі, доступному для запису."
+    IDS_4116 "Занадто великий образ диска"
+    IDS_4117 "Не забудьте розмітити та відформатувати новостворений диск."
+    IDS_4118 "Вибраний файл буде перезаписано. Ви впевнені, що хочете використовувати його?"
+    IDS_4119 "Образ диска, що не підтримується"
+    IDS_4120 "Перезаписати"
+    IDS_4121 "Не перезаписувати"
+    IDS_4122 "RAW образ (.img)"
+    IDS_4123 "Образ HDI (.hdi)"
+    IDS_4124 "Образ HDX (.hdx)"
+    IDS_4125 "VHD фіксованого розміру (.vhd)"
+    IDS_4126 "VHD динамічного розміру (.vhd)"
+    IDS_4127 "Диференційований образ VHD (.vhd)"
+    IDS_4128 "Великі блоки (2 МБ)"
+    IDS_4129 "Маленькі блоки (512 КБ)"
+    IDS_4130 "Файли VHD (*.VHD)\0*.VHD\0Всі файли (*.*)\0*.*\0"
+    IDS_4131 "Виберіть батьківський VHD"
+    IDS_4132 "Це може означати, що батьківський образ був змінений після того, як було створено диференційований образ.\n\nЦе також може статися, якщо файли зображення були переміщені або скопійовані, або через помилку в програмі, що створила цей диск.\n \nВи хочете виправити тимчасові позначки?"
+    IDS_4133 "Тимчасові мітки батьківського та дочірнього дисків не співпадають"
+    IDS_4134 "Не вдалося виправити тимчасову позначку VHD."
+    IDS_4135 "%01i:%02i"
+
+    IDS_4352 "MFM/RLL"
+    IDS_4353 "XTA"
+    IDS_4354 "ESDI"
+    IDS_4355 "IDE"
+    IDS_4356 "ATAPI"
+    IDS_4357 "SCSI"
+
+    IDS_4608 "MFM/RLL (%01i:%01i)"
+    IDS_4609 "XTA (%01i:%01i)"
+    IDS_4610 "ESDI (%01i:%01i)"
+    IDS_4611 "IDE (%01i:%01i)"
+    IDS_4612 "ATAPI (%01i:%01i)"
+    IDS_4613 "SCSI (%01i:%02i)"
+
+    IDS_5120 "CD-ROM %i (%s): %s"
+
+    IDS_5376 "Відключено"
+    IDS_5381 "ATAPI"
+    IDS_5382 "SCSI"
+
+    IDS_5632 "Відключено"
+    IDS_5637 "ATAPI (%01i:%01i)"
+    IDS_5638 "SCSI (%01i:%02i)"
+
+    IDS_5888 "160 кБ"
+    IDS_5889 "180 кБ"
+    IDS_5890 "320 кБ"
+    IDS_5891 "360 кБ"
+    IDS_5892 "640 кБ"
+    IDS_5893 "720 кБ"
+    IDS_5894 "1.2 МБ"
+    IDS_5895 "1.25 МБ"
+    IDS_5896 "1.44 МБ"
+    IDS_5897 "DMF (кластер 1024)"
+    IDS_5898 "DMF (кластер 2048)"
+    IDS_5899 "2.88 МБ"
+    IDS_5900 "ZIP 100"
+    IDS_5901 "ZIP 250"
+    IDS_5902 "3.5"" 128Мб M.O. (ISO 10090)"
+    IDS_5903 "3.5"" 230Мб M.O. (ISO 13963)"
+    IDS_5904 "3.5"" 540Мб M.O. (ISO 15498)"
+    IDS_5905 "3.5"" 640Мб M.O. (ISO 15498)"
+    IDS_5906 "3.5"" 1.3Гб M.O. (GigaMO)"
+    IDS_5907 "3.5"" 2.3Гб M.O. (GigaMO 2)"
+    IDS_5908 "5.25"" 600Мб M.O."
+    IDS_5909 "5.25"" 650Мб M.O."
+    IDS_5910 "5.25"" 1Гб M.O."
+    IDS_5911 "5.25"" 1.3Гб M.O."
+
+    IDS_6144 "Точний RPM"
+    IDS_6145 "На 1% повільніше точного RPM"
+    IDS_6146 "На 1.5% повільніше точного RPM"
+    IDS_6147 "На 2% повільніше точного RPM"
+
+    IDS_7168 "(Системний)"
+END
+#define IDS_LANG_ENUS IDS_7168
+
+// Ukrainian resources
+////////////////////////////////////////////////////////////////////////////

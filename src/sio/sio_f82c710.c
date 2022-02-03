@@ -343,6 +343,7 @@ f82c710_init(const device_t *info)
 
 const device_t f82c606_device = {
     "82C606 CHIPSpak Multifunction Controller",
+    "f82c606",
     0,
     606,
     f82c710_init, f82c710_close, f82c710_reset,
@@ -352,6 +353,7 @@ const device_t f82c606_device = {
 
 const device_t f82c710_device = {
     "F82C710 UPC Super I/O",
+    "f82c710",
     0,
     710,
     f82c710_init, f82c710_close, f82c710_reset,

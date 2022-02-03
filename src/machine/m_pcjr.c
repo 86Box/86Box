@@ -793,6 +793,7 @@ static const device_config_t pcjr_config[] = {
 
 static const device_t pcjr_device = {
     "IBM PCjr",
+    "pcjr",
     0, 0,
     NULL, NULL, NULL,
     { NULL },
