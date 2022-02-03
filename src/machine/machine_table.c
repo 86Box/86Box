@@ -105,7 +105,7 @@ const machine_type_t machine_types[] = {
 const machine_t machines[] = {
     /* 8088 Machines */
     { "[8088] IBM PC (1981)",			"ibmpc",		MACHINE_TYPE_8088,		CPU_PKG_8088, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC,									   16,    64,  16,    0,		      machine_pc_init, NULL			},
-    { "[8088] IBM PC (1982)",			"ibmpc82",		MACHINE_TYPE_8088,		CPU_PKG_8088, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC,									  256,   256, 256,    0,		    machine_pc82_init, NULL			},
+    { "[8088] IBM PC (1982)",			"ibmpc82",		MACHINE_TYPE_8088,		CPU_PKG_8088, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC,									   64,   256,  64,    0,		      machine_pc82_init, NULL		},
     { "[8088] IBM PCjr",			"ibmpcjr",		MACHINE_TYPE_8088,		CPU_PKG_8088, 0, 4772728, 4772728, 0, 0, 0, 0,									MACHINE_PC | MACHINE_VIDEO_FIXED | MACHINE_CARTRIDGE,				  128,   640, 128,    0,		    machine_pcjr_init, pcjr_get_device		},
     { "[8088] IBM XT (1982)",			"ibmxt",		MACHINE_TYPE_8088,		CPU_PKG_8088, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC,									   64,   256,  64,    0,		      machine_xt_init, NULL			},
     { "[8088] IBM XT (1986)",			"ibmxt86",		MACHINE_TYPE_8088,		CPU_PKG_8088, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC,									  256,   640,  64,    0,		    machine_xt86_init, NULL			},
@@ -309,11 +309,11 @@ const machine_t machines[] = {
 
     /* 386DX machines which utilize the MCA bus */
     /* Has IBM PS/2 Type 1 KBC firmware. */
-    { "[MCA] IBM PS/2 model 70 (type 3)",	"ibmps2_m70_type3",	MACHINE_TYPE_386DX,		CPU_PKG_386DX | CPU_PKG_486BL, 0, 0, 0, 0, 0, 0, 0,								MACHINE_MCA | MACHINE_BUS_PS2 | MACHINE_VIDEO,					 2048, 16384, 2048,  63,      machine_ps2_model_70_type3_init, NULL			},
+    { "[MCA] IBM PS/2 model 70 (type 3)",	"ibmps2_m70_type3",	MACHINE_TYPE_386DX,		CPU_PKG_386DX | CPU_PKG_486BL, 0, 0, 0, 0, 0, 0, 0,								MACHINE_MCA | MACHINE_BUS_PS2 | MACHINE_VIDEO,					 2048, 65536, 2048,  63,      machine_ps2_model_70_type3_init, NULL			},
     /* Has IBM PS/2 Type 1 KBC firmware. */
-    { "[MCA] IBM PS/2 model 80",		"ibmps2_m80",		MACHINE_TYPE_386DX,		CPU_PKG_386DX | CPU_PKG_486BL, 0, 0, 0, 0, 0, 0, 0,								MACHINE_MCA | MACHINE_BUS_PS2 | MACHINE_VIDEO,					 1024, 12288, 1024,  63,	    machine_ps2_model_80_init, NULL			},
+    { "[MCA] IBM PS/2 model 80 (type 2)",		"ibmps2_m80",		MACHINE_TYPE_386DX,		CPU_PKG_386DX | CPU_PKG_486BL | CPU_PKG_SOCKET1, 0, 0, 0, 0, 0, 0, 0,								MACHINE_MCA | MACHINE_BUS_PS2 | MACHINE_VIDEO,					 1024, 65536, 1024,  63,	    machine_ps2_model_80_init, NULL			},
     /* Has IBM PS/2 Type 1 KBC firmware. */
-    { "[MCA] IBM PS/2 model 80 (type 3)",	"ibmps2_m80_type3",	MACHINE_TYPE_386DX,		CPU_PKG_386DX | CPU_PKG_486BL, 0, 0, 0, 0, 0, 0, 0,								MACHINE_MCA | MACHINE_BUS_PS2 | MACHINE_VIDEO,					 2048, 12288, 2048,  63,	machine_ps2_model_80_axx_init, NULL			},
+    { "[MCA] IBM PS/2 model 80 (type 3)",	"ibmps2_m80_type3",	MACHINE_TYPE_386DX,		CPU_PKG_386DX | CPU_PKG_486BL | CPU_PKG_SOCKET1, 0, 0, 0, 0, 0, 0, 0,								MACHINE_MCA | MACHINE_BUS_PS2 | MACHINE_VIDEO,					 2048, 65536, 2048,  63,	machine_ps2_model_80_axx_init, NULL			},
 
     /* 386DX/486 machines */
     /* The BIOS sends commands C9 without a parameter and D5, both of which are

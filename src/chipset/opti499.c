@@ -162,7 +162,7 @@ opti499_write(uint16_t addr, uint8_t val, void *priv)
 		break;
 
 	case 0xe1: case 0xe2:
-		dev->scratch[addr] = val;
+		dev->scratch[~addr & 0x01] = val;
 		break;
     }
 }
@@ -189,7 +189,7 @@ opti499_read(uint16_t addr, void *priv)
 		break;
 	case 0xe1:
 	case 0xe2:
-		ret = dev->scratch[addr];
+		ret = dev->scratch[~addr & 0x01];
 		break;
     }
 
@@ -256,6 +256,7 @@ opti499_init(const device_t *info)
 
 const device_t opti499_device = {
     "OPTi 82C499",
+    "opti499",
     0,
     1,
     opti499_init, opti499_close, opti499_reset,

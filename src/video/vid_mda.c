@@ -358,6 +358,7 @@ static const device_config_t mda_config[] =
 const device_t mda_device =
 {
         "MDA",
+        "mda",
         DEVICE_ISA, 0,
         mda_standalone_init, mda_close, NULL,
         { NULL },

@@ -725,6 +725,7 @@ static const device_config_t herculesplus_config[] = {
 
 const device_t herculesplus_device = {
     "Hercules Plus",
+    "hercules_plus",
     DEVICE_ISA,
     0,
     herculesplus_init, herculesplus_close, NULL,

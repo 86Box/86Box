@@ -760,6 +760,7 @@ void t3100e_speed_changed(void *p)
 const device_t t3100e_device =
 {
         "Toshiba T3100e",
+        "t3100e",
         0,
         0,
         t3100e_init,

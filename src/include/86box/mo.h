@@ -51,7 +51,7 @@ static const mo_type_t mo_types[KNOWN_MO_TYPES] = {
 
 typedef struct
 {
-    const char vendor[8];
+    const char vendor[9];
     const char model[16];
     const char revision[5];
     int8_t supported_media[KNOWN_MO_TYPES];

@@ -126,6 +126,7 @@ phoenix_486_jumper_init(const device_t *info)
 
 const device_t phoenix_486_jumper_device = {
     "Phoenix 486 Jumper Readout",
+    "phoenix_486_jumper",
     0,
     0,
     phoenix_486_jumper_init, phoenix_486_jumper_close, phoenix_486_jumper_reset,
@@ -136,6 +137,7 @@ const device_t phoenix_486_jumper_device = {
 
 const device_t phoenix_486_jumper_pci_device = {
     "Phoenix 486 Jumper Readout (PCI machines)",
+    "phoenix_486_jumper_pci",
     0,
     1,
     phoenix_486_jumper_init, phoenix_486_jumper_close, phoenix_486_jumper_reset,

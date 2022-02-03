@@ -403,6 +403,7 @@ ims8848_init(const device_t *info)
 
 const device_t ims8848_device = {
     "IMS 8848/8849",
+    "ims8848",
     0,
     0,
     ims8848_init, ims8848_close, ims8848_reset,

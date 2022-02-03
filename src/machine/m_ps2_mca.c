@@ -862,13 +862,8 @@ static void ps2_mca_mem_fffc_init(int start_mb)
 {
 	uint32_t planar_size, expansion_start;
 
-	if (start_mb == 2) {
-		planar_size = 0x160000;
-		expansion_start = 0x260000;
-	} else {
-		planar_size = (start_mb - 1) << 20;
-		expansion_start = start_mb << 20;
-	}
+	planar_size = (start_mb - 1) << 20;
+	expansion_start = start_mb << 20;
 
 	mem_mapping_set_addr(&ram_high_mapping, 0x100000, planar_size);
 
@@ -918,6 +913,36 @@ static void ps2_mca_mem_fffc_init(int start_mb)
 			NULL);
 	mem_mapping_disable(&ps2.expansion_mapping);
 }
+
+static void ps2_mca_mem_d071_init(int start_mb)
+{
+	uint32_t planar_size, expansion_start;
+
+	planar_size = (start_mb - 1) << 20;
+	expansion_start = start_mb << 20;
+
+	mem_mapping_set_addr(&ram_high_mapping, 0x100000, planar_size);
+
+	ps2.mem_pos_regs[0] = 0xd0;
+	ps2.mem_pos_regs[1] = 0x71;
+	ps2.mem_pos_regs[4] = (mem_size / 1024) - start_mb;
+
+	mca_add(ps2_mem_expansion_read, ps2_mem_expansion_write, ps2_mem_expansion_feedb, NULL, NULL);
+	mem_mapping_add(&ps2.expansion_mapping,
+			expansion_start,
+			(mem_size - (start_mb << 10)) << 10,
+			mem_read_ram,
+			mem_read_ramw,
+			mem_read_raml,
+			mem_write_ram,
+			mem_write_ramw,
+			mem_write_raml,
+			&ram[expansion_start],
+			MEM_MAPPING_INTERNAL,
+			NULL);
+	mem_mapping_disable(&ps2.expansion_mapping);
+}
+
 
 static void ps2_mca_board_model_50_init()
 {        
@@ -995,7 +1020,7 @@ static void ps2_mca_board_model_55sx_init()
 	model_55sx_mem_recalc();
 }
 
-static void mem_encoding_update()
+static void mem_encoding_update(void)
 {
 	mem_mapping_disable(&ps2.split_mapping);
 
@@ -1005,6 +1030,8 @@ static void mem_encoding_update()
 		mem_set_mem_state(1 << 20, (mem_size << 10) - (1 << 20), MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
                 
         ps2.split_addr = ((uint32_t) (ps2.mem_regs[0] & 0xf)) << 20;
+		if (!ps2.split_addr)
+			ps2.split_addr = 1 << 20;
         
         if (ps2.mem_regs[1] & 2) {
                 mem_set_mem_state(0xe0000, 0x20000, MEM_READ_EXTANY | MEM_WRITE_INTERNAL);
@@ -1210,14 +1237,22 @@ static void ps2_mca_board_model_70_type34_init(int is_type4, int slots)
 		if (ps2.planar_id == 0xfff9) {
 			if (mem_size > 4096)
 			{
-					/* Only 4 MB supported on planar, create a memory expansion card for the rest */
-			ps2_mca_mem_fffc_init(4);
+				/* Only 4 MB supported on planar, create a memory expansion card for the rest */
+				if (mem_size > 12288) {
+					ps2_mca_mem_d071_init(4);
+				} else {
+					ps2_mca_mem_fffc_init(4);
+				}
 			}		
 		} else {
 			if (mem_size > 8192)
 			{
-					/* Only 8 MB supported on planar, create a memory expansion card for the rest */
-			ps2_mca_mem_fffc_init(8);
+				/* Only 8 MB supported on planar, create a memory expansion card for the rest */
+				if (mem_size > 16384)
+					ps2_mca_mem_d071_init(8);
+				else {
+					ps2_mca_mem_fffc_init(8);
+				}
 			}
 		}
 
@@ -1288,8 +1323,12 @@ static void ps2_mca_board_model_80_type2_init(int is486)
         
         if ((mem_size > 4096) && !is486)
         {
-                /* Only 4 MB supported on planar, create a memory expansion card for the rest */
-		ps2_mca_mem_fffc_init(4);
+			/* Only 4 MB supported on planar, create a memory expansion card for the rest */
+			if (mem_size > 12288)
+				ps2_mca_mem_d071_init(4);
+			else {
+				ps2_mca_mem_fffc_init(4);
+			}
         }
 
 	if (gfxcard == VID_INTERNAL)	

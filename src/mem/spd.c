@@ -665,6 +665,7 @@ spd_write_drbs_intel_gmch(uint8_t *regs)
 
 static const device_t spd_device = {
     "Serial Presence Detect ROMs",
+    "spd",
     DEVICE_ISA,
     0,
     spd_init, spd_close, NULL,

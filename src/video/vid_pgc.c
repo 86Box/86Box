@@ -2600,7 +2600,7 @@ pgc_speed_changed(void *priv)
 
 
 void
-pgc_close(void *priv)
+pgc_close_common(void *priv)
 {
     pgc_t *dev = (pgc_t *)priv;
 
@@ -2633,6 +2633,15 @@ pgc_close(void *priv)
        	free(dev->cga_vram);
     if (dev->vram)
        	free(dev->vram);
+}
+
+
+void
+pgc_close(void *priv)
+{
+    pgc_t *dev = (pgc_t *)priv;
+
+    pgc_close_common(priv);
 
     free(dev);
 }
@@ -2721,6 +2730,7 @@ pgc_standalone_init(const device_t *info)
 
 const device_t pgc_device = {
     "PGC",
+    "pgc",
     DEVICE_ISA, 0,
     pgc_standalone_init,
     pgc_close,

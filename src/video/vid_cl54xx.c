@@ -4539,6 +4539,7 @@ static const device_config_t gd5480_config[] =
 const device_t gd5401_isa_device =
 {
     "Cirrus Logic GD5401 (ISA) (ACUMOS AVGA1)",
+    "cl_gd5401_isa",
     DEVICE_ISA,
     CIRRUS_ID_CLGD5401,
     gd54xx_init, gd54xx_close,
@@ -4552,6 +4553,7 @@ const device_t gd5401_isa_device =
 const device_t gd5402_isa_device =
 {
     "Cirrus Logic GD5402 (ISA) (ACUMOS AVGA2)",
+    "cl_gd5402_isa",
     DEVICE_ISA,
     CIRRUS_ID_CLGD5402,
     gd54xx_init, gd54xx_close,
@@ -4565,6 +4567,7 @@ const device_t gd5402_isa_device =
 const device_t gd5402_onboard_device =
 {
     "Cirrus Logic GD5402 (ISA) (ACUMOS AVGA2) (On-Board)",
+    "cl_gd5402_onboard",
     DEVICE_AT | DEVICE_ISA,
     CIRRUS_ID_CLGD5402 | 0x200,
     gd54xx_init, gd54xx_close,
@@ -4578,6 +4581,7 @@ const device_t gd5402_onboard_device =
 const device_t gd5420_isa_device =
 {
     "Cirrus Logic GD5420 (ISA)",
+    "cl_gd5420_isa",
     DEVICE_AT | DEVICE_ISA,
     CIRRUS_ID_CLGD5420,
     gd54xx_init, gd54xx_close,
@@ -4590,6 +4594,7 @@ const device_t gd5420_isa_device =
 
 const device_t gd5422_isa_device = {
     "Cirrus Logic GD5422 (ISA)",
+    "cl_gd5422_isa",
     DEVICE_AT | DEVICE_ISA,
     CIRRUS_ID_CLGD5422,
     gd54xx_init, gd54xx_close,
@@ -4602,6 +4607,7 @@ const device_t gd5422_isa_device = {
 
 const device_t gd5424_vlb_device = {
     "Cirrus Logic GD5424 (VLB)",
+    "cl_gd5424_vlb",
     DEVICE_VLB,
     CIRRUS_ID_CLGD5424,
     gd54xx_init, gd54xx_close,
@@ -4615,6 +4621,7 @@ const device_t gd5424_vlb_device = {
 const device_t gd5426_isa_device =
 {
     "Cirrus Logic GD5426 (ISA)",
+    "cl_gd5426_isa",
     DEVICE_AT | DEVICE_ISA,
     CIRRUS_ID_CLGD5426,
     gd54xx_init, 
@@ -4631,6 +4638,7 @@ const device_t gd5426_isa_device =
 const device_t gd5426_diamond_speedstar_pro_a1_isa_device =
 {
     "Cirrus Logic GD5426 (ISA) (Diamond SpeedStar Pro Rev. A1)",
+    "cl_gd5426_diamond_a1_isa",
     DEVICE_AT | DEVICE_ISA,
     CIRRUS_ID_CLGD5426 | 0x100,
     gd54xx_init, 
@@ -4645,6 +4653,7 @@ const device_t gd5426_diamond_speedstar_pro_a1_isa_device =
 const device_t gd5426_vlb_device =
 {
     "Cirrus Logic GD5426 (VLB)",
+    "cl_gd5426_vlb",
     DEVICE_VLB,
     CIRRUS_ID_CLGD5426,
     gd54xx_init, 
@@ -4660,6 +4669,7 @@ const device_t gd5426_vlb_device =
 const device_t gd5426_onboard_device =
 {
     "Cirrus Logic GD5426 (VLB) (On-Board)",
+    "cl_gd5426_onboard",
     DEVICE_VLB,
     CIRRUS_ID_CLGD5426 | 0x200,
     gd54xx_init, 
@@ -4674,6 +4684,7 @@ const device_t gd5426_onboard_device =
 const device_t gd5428_isa_device =
 {
     "Cirrus Logic GD5428 (ISA)",
+    "cl_gd5428_isa",
     DEVICE_AT | DEVICE_ISA,
     CIRRUS_ID_CLGD5428,
     gd54xx_init, 
@@ -4688,6 +4699,7 @@ const device_t gd5428_isa_device =
 const device_t gd5428_vlb_device =
 {
     "Cirrus Logic GD5428 (VLB)",
+    "cl_gd5428_vlb",
     DEVICE_VLB,
     CIRRUS_ID_CLGD5428,
     gd54xx_init, 
@@ -4703,6 +4715,7 @@ const device_t gd5428_vlb_device =
 const device_t gd5428_diamond_speedstar_pro_b1_vlb_device =
 {
     "Cirrus Logic GD5428 (VLB) (Diamond SpeedStar Pro Rev. B1)",
+    "cl_gd5428_diamond_b1_vlb",
     DEVICE_VLB,
     CIRRUS_ID_CLGD5428 | 0x100,
     gd54xx_init, 
@@ -4717,6 +4730,7 @@ const device_t gd5428_diamond_speedstar_pro_b1_vlb_device =
 const device_t gd5428_mca_device =
 {
     "Cirrus Logic GD5428 (MCA) (IBM SVGA Adapter/A)",
+    "ibm1mbsvga",
     DEVICE_MCA,
     CIRRUS_ID_CLGD5428,
     gd54xx_init, 
@@ -4731,6 +4745,7 @@ const device_t gd5428_mca_device =
 const device_t gd5428_onboard_device =
 {
     "Cirrus Logic GD5428 (ISA) (On-Board)",
+    "cl_gd5428_onboard",
     DEVICE_AT | DEVICE_ISA,
     CIRRUS_ID_CLGD5428,
     gd54xx_init, 
@@ -4745,6 +4760,7 @@ const device_t gd5428_onboard_device =
 const device_t gd5429_isa_device =
 {
     "Cirrus Logic GD5429 (ISA)",
+    "cl_gd5429_isa",
     DEVICE_AT | DEVICE_ISA,
     CIRRUS_ID_CLGD5429,
     gd54xx_init, 
@@ -4759,6 +4775,7 @@ const device_t gd5429_isa_device =
 const device_t gd5429_vlb_device =
 {
     "Cirrus Logic GD5429 (VLB)",
+    "cl_gd5429_vlb",
     DEVICE_VLB,
     CIRRUS_ID_CLGD5429,
     gd54xx_init, 
@@ -4774,6 +4791,7 @@ const device_t gd5429_vlb_device =
 const device_t gd5430_diamond_speedstar_pro_se_a8_vlb_device =
 {
     "Cirrus Logic GD5430 (VLB) (Diamond SpeedStar Pro SE Rev. A8)",
+    "cl_gd5430_vlb",
     DEVICE_VLB,
     CIRRUS_ID_CLGD5430,
     gd54xx_init, 
@@ -4788,6 +4806,7 @@ const device_t gd5430_diamond_speedstar_pro_se_a8_vlb_device =
 const device_t gd5430_pci_device =
 {
     "Cirrus Logic GD5430 (PCI)",
+    "cl_gd5430_pci",
     DEVICE_PCI,
     CIRRUS_ID_CLGD5430,
     gd54xx_init, 
@@ -4802,6 +4821,7 @@ const device_t gd5430_pci_device =
 const device_t gd5434_isa_device =
 {
     "Cirrus Logic GD5434 (ISA)",
+    "cl_gd5434_isa",
     DEVICE_AT | DEVICE_ISA,
     CIRRUS_ID_CLGD5434,
     gd54xx_init, 
@@ -4817,6 +4837,7 @@ const device_t gd5434_isa_device =
 const device_t gd5434_diamond_speedstar_64_a3_isa_device =
 {
     "Cirrus Logic GD5434 (ISA) (Diamond SpeedStar 64 Rev. A3)",
+    "cl_gd5434_diamond_a3_isa",
     DEVICE_AT | DEVICE_ISA,
     CIRRUS_ID_CLGD5434 | 0x100,
     gd54xx_init, 
@@ -4831,6 +4852,7 @@ const device_t gd5434_diamond_speedstar_64_a3_isa_device =
 const device_t gd5434_onboard_pci_device =
 {
     "Cirrus Logic GD5434-4 (PCI) (On-Board)",
+    "cl_gd5434_onboard_pci",
     DEVICE_PCI,
     CIRRUS_ID_CLGD5434 | 0x200,
     gd54xx_init, 
@@ -4845,6 +4867,7 @@ const device_t gd5434_onboard_pci_device =
 const device_t gd5434_vlb_device =
 {
     "Cirrus Logic GD5434 (VLB)",
+    "cl_gd5434_vlb",
     DEVICE_VLB,
     CIRRUS_ID_CLGD5434,
     gd54xx_init, 
@@ -4859,6 +4882,7 @@ const device_t gd5434_vlb_device =
 const device_t gd5434_pci_device =
 {
     "Cirrus Logic GD5434 (PCI)",
+    "cl_gd5434_pci",
     DEVICE_PCI,
     CIRRUS_ID_CLGD5434,
     gd54xx_init, 
@@ -4873,6 +4897,7 @@ const device_t gd5434_pci_device =
 const device_t gd5436_pci_device =
 {
     "Cirrus Logic GD5436 (PCI)",
+    "cl_gd5436_pci",
     DEVICE_PCI,
     CIRRUS_ID_CLGD5436,
     gd54xx_init, 
@@ -4887,6 +4912,7 @@ const device_t gd5436_pci_device =
 const device_t gd5440_onboard_pci_device =
 {
     "Cirrus Logic GD5440 (PCI) (On-Board)",
+    "cl_gd5440_onboard_pci",
     DEVICE_PCI,
     CIRRUS_ID_CLGD5440 | 0x600,
     gd54xx_init,
@@ -4901,6 +4927,7 @@ const device_t gd5440_onboard_pci_device =
 const device_t gd5440_pci_device =
 {
     "Cirrus Logic GD5440 (PCI)",
+    "cl_gd5440_pci",
     DEVICE_PCI,
     CIRRUS_ID_CLGD5440 | 0x400,
     gd54xx_init,
@@ -4915,6 +4942,7 @@ const device_t gd5440_pci_device =
 const device_t gd5446_pci_device =
 {
     "Cirrus Logic GD5446 (PCI)",
+    "cl_gd5446_pci",
     DEVICE_PCI,
     CIRRUS_ID_CLGD5446,
     gd54xx_init,
@@ -4929,6 +4957,7 @@ const device_t gd5446_pci_device =
 const device_t gd5446_stb_pci_device =
 {
     "Cirrus Logic GD5446 (PCI) (STB Nitro 64V)",
+    "cl_gd5446_stb_pci",
     DEVICE_PCI,
     CIRRUS_ID_CLGD5446 | 0x100,
     gd54xx_init,
@@ -4943,6 +4972,7 @@ const device_t gd5446_stb_pci_device =
 const device_t gd5480_pci_device =
 {
     "Cirrus Logic GD5480 (PCI)",
+    "cl_gd5480_pci",
     DEVICE_PCI,
     CIRRUS_ID_CLGD5480,
     gd54xx_init, 

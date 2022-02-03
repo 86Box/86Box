@@ -743,6 +743,7 @@ device_config_t vid_1512_config[] =
 
 static const device_t vid_1512_device = {
     "Amstrad PC1512 (video)",
+    "vid_1512",
     0, 0,
     NULL, vid_close_1512, NULL,
     { NULL },
@@ -939,6 +940,7 @@ device_config_t vid_1640_config[] =
 
 static const device_t vid_1640_device = {
     "Amstrad PC1640 (video)",
+    "vid_1640",
     0, 0,
     NULL, vid_close_1640, NULL,
     { NULL },
@@ -1848,6 +1850,7 @@ device_config_t vid_200_config[] =
 
 static const device_t vid_200_device = {
     "Amstrad PC200 (video)",
+    "vid_200",
     0, 0,
     NULL, vid_close_200, NULL,
     { NULL },
@@ -1975,6 +1978,7 @@ device_config_t vid_ppc512_config[] =
 
 static const device_t vid_ppc512_device = {
     "Amstrad PPC512 (video)",
+    "vid_ppc512",
     0, 0,
     NULL, vid_close_200, NULL,
     { NULL },
@@ -2014,6 +2018,7 @@ device_config_t vid_pc2086_config[] =
 
 static const device_t vid_pc2086_device = {
     "Amstrad PC2086",
+    "vid_pc2086",
     0, 0,
     NULL, NULL, NULL,
     { NULL },
@@ -2053,6 +2058,7 @@ device_config_t vid_pc3086_config[] =
 
 static const device_t vid_pc3086_device = {
     "Amstrad PC3086",
+    "vid_pc3086",
     0, 0,
     NULL, NULL, NULL,
     { NULL },

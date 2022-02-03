@@ -773,6 +773,7 @@ static const device_config_t t1000_config[] =
 
 const device_t t1000_video_device = {
     "Toshiba T1000 Video",
+    "t1000_video",
     0, 0,
     t1000_init, t1000_close, NULL,
     { NULL },
@@ -784,6 +785,7 @@ const device_t t1000_video_device = {
 
 const device_t t1200_video_device = {
     "Toshiba T1200 Video",
+    "t1200_video",
     0, 0,
     t1000_init, t1000_close, NULL,
     { NULL },

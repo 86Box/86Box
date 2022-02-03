@@ -143,6 +143,8 @@ sis_85c496_recalcmapping(sis_85c496_t *dev)
 	} else
 		mem_set_mem_state_both(base, 0x8000, MEM_READ_EXTANY | MEM_WRITE_EXTANY);
     }
+
+    flushmmucache_nopc();
 }
 
 
@@ -240,13 +242,8 @@ sis_85c49x_pci_write(int func, int addr, uint8_t val, void *priv)
 		break;
 	case 0x45:	/* Shadow Configure */
 		dev->pci_conf[addr] = val & 0x0f;
-		if (valxor & 0x03) {
+		if (valxor & 0x03)
 			sis_85c496_recalcmapping(dev);
-			if ((old == 0x0a) && (val == 0x09))
-				flushmmucache_nopc();
-			else
-				flushmmucache();
-		}
 		break;
 	case 0x46:	/* Cacheable Control */
 		dev->pci_conf[addr] = val;
@@ -625,6 +622,7 @@ static void
 const device_t sis_85c496_device =
 {
     "SiS 85c496/85c497",
+    "sis_85c496",
     DEVICE_PCI,
     0,
     sis_85c496_init, 
@@ -640,6 +638,7 @@ const device_t sis_85c496_device =
 const device_t sis_85c496_ls486e_device =
 {
     "SiS 85c496/85c497 (Lucky Star LS-486E)",
+    "sis_85c496_ls486e",
     DEVICE_PCI,
     1,
     sis_85c496_init, 

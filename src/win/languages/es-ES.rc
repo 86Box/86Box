@@ -32,6 +32,7 @@ BEGIN
     POPUP "&Vista"
     BEGIN
         MENUITEM "&Ocultar barra de estado",		IDM_VID_HIDE_STATUS_BAR
+        MENUITEM "Hide &toolbar",		IDM_VID_HIDE_TOOLBAR
         MENUITEM SEPARATOR
         MENUITEM "&Ventana redimensionable",          IDM_VID_RESIZE
         MENUITEM "&Recordar tamaño y posición",  IDM_VID_REMEMBER
@@ -294,7 +295,7 @@ END
 #define STR_MACHINE		"Máquina:"
 #define STR_CONFIGURE		"Configurar"
 #define STR_CPU_TYPE		"Tipo de CPU:"
-#define STR_SPEED		"Velocidad:"
+#define STR_CPU_SPEED		"Velocidad:"
 #define STR_FPU			"FPU:"
 #define STR_WAIT_STATES		"Estados en espera:"
 #define STR_MB			"MB"
@@ -316,7 +317,7 @@ END
 #define STR_JOY4		"Mando 4..."
 
 #define STR_SOUND		"Tarjeta de sonido:"
-#define STR_MIDI		"Dispositivo MIDI de salida:"
+#define STR_MIDI_OUT	"Dispositivo MIDI de salida:"
 #define STR_MIDI_IN		"Dispositivo MIDI de entrada:"
 #define STR_MPU401		"MPU-401 independiente"
 #define STR_SSI			"Innovation SSI-2001"
@@ -328,9 +329,14 @@ END
 #define STR_PCAP		"Dispositivo PCap:"
 #define STR_NET			"Adaptador de red:"
 
+#define STR_COM1		"Dispositivo COM1:"
+#define STR_COM2		"Dispositivo COM2:"
+#define STR_COM3		"Dispositivo COM3:"
+#define STR_COM4		"Dispositivo COM4:"
 #define STR_LPT1		"Dispositivo LPT1:"
 #define STR_LPT2		"Dispositivo LPT2:"
 #define STR_LPT3		"Dispositivo LPT3:"
+#define STR_LPT4		"Dispositivo LPT4:"
 #define STR_SERIAL1		"Puerto serie 1"
 #define STR_SERIAL2		"Puerto serie 2"
 #define STR_SERIAL3		"Puerto serie 3"
@@ -338,6 +344,7 @@ END
 #define STR_PARALLEL1		"Puerto paralelo 1"
 #define STR_PARALLEL2		"Puerto paralelo 2"
 #define STR_PARALLEL3		"Puerto paralelo 3"
+#define STR_PARALLEL4		"Puerto paralelo 4"
 
 #define STR_HDC			"Controladora HD:"
 #define STR_FDC			"Controladora FD:"
@@ -371,6 +378,7 @@ END
 #define STR_TURBO		"Temporizaciones Turbo"
 #define STR_CHECKBPB		"Chequear BPB"
 #define STR_CDROM_DRIVES	"Unidades de CD-ROM:"
+#define STR_CD_SPEED		"Velocidad:"
 
 #define STR_MO_DRIVES		"Unidades MO:"
 #define STR_ZIP_DRIVES		"Unidades ZIP:"
@@ -532,6 +540,13 @@ BEGIN
     IDS_2151	"Imágenes de Cartucho (*.A;*.B;*.JRC)\0*.A;*.B;*.JRC\0All files (*.*)\0*.*\0"
     IDS_2152	"Error initializing renderer"
     IDS_2153	"OpenGL (3.0 Core) renderer could not be initialized. Use another renderer."
+    IDS_2154	"Resume execution"
+    IDS_2155	"Pause execution"
+    IDS_2156	"Press Ctrl+Alt+Del"
+    IDS_2157	"Press Ctrl+Alt+Esc"
+    IDS_2158	"Hard reset"
+    IDS_2159	"ACPI shutdown"
+    IDS_2160	"Settings"
 END
 
 STRINGTABLE DISCARDABLE 

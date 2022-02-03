@@ -245,6 +245,7 @@ catalyst_flash_close(void *p)
 const device_t catalyst_flash_device =
 {
     "Catalyst 28F010-D Flash BIOS",
+    "catalyst_flash",
     DEVICE_PCI,
     0,
     catalyst_flash_init,

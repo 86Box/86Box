@@ -793,6 +793,7 @@ scamp_init(const device_t *info)
 
 const device_t vlsi_scamp_device = {
     "VLSI SCAMP",
+    "vlsi_scamp",
     0,
     0,
     scamp_init, scamp_close, NULL,

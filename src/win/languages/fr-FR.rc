@@ -32,6 +32,7 @@ BEGIN
     POPUP "&Vue"
     BEGIN
         MENUITEM "&Masquer la barre de status",		IDM_VID_HIDE_STATUS_BAR
+        MENUITEM "Hide &toolbar",		IDM_VID_HIDE_TOOLBAR
         MENUITEM SEPARATOR
         MENUITEM "Fenètre &Retaillable",          IDM_VID_RESIZE
         MENUITEM "S&auvegarder taille && position",  IDM_VID_REMEMBER
@@ -294,7 +295,7 @@ END
 #define STR_MACHINE		"Machine:"
 #define STR_CONFIGURE		"Configurer"
 #define STR_CPU_TYPE		"Type du processeur:"
-#define STR_SPEED		"Vitesse:"
+#define STR_CPU_SPEED		"Vitesse:"
 #define STR_FPU			"FPU:"
 #define STR_WAIT_STATES		"États d'attente:"
 #define STR_MB			"Mo"
@@ -316,7 +317,7 @@ END
 #define STR_JOY4		"Manette 4..."
 
 #define STR_SOUND		"Carte son:"
-#define STR_MIDI		"Sortie MIDI:"
+#define STR_MIDI_OUT	"Sortie MIDI:"
 #define STR_MIDI_IN		"Entrée MIDI:"
 #define STR_MPU401		"MPU-401 autonome"
 #define STR_SSI			"Innovation SSI-2001"
@@ -328,9 +329,14 @@ END
 #define STR_PCAP		"Dispositif PCap:"
 #define STR_NET			"Adaptateur de réseau:"
 
+#define STR_COM1		"Dispositif COM1:"
+#define STR_COM2		"Dispositif COM2:"
+#define STR_COM3		"Dispositif COM3:"
+#define STR_COM4		"Dispositif COM4:"
 #define STR_LPT1		"Dispositif LPT1:"
 #define STR_LPT2		"Dispositif LPT2:"
 #define STR_LPT3		"Dispositif LPT3:"
+#define STR_LPT4		"Dispositif LPT4:"
 #define STR_SERIAL1		"Port série 1"
 #define STR_SERIAL2		"Port série 2"
 #define STR_SERIAL3		"Port série 3"
@@ -338,6 +344,7 @@ END
 #define STR_PARALLEL1		"Port parallèle 1"
 #define STR_PARALLEL2		"Port parallèle 2"
 #define STR_PARALLEL3		"Port parallèle 3"
+#define STR_PARALLEL4		"Port parallèle 4"
 
 #define STR_HDC			"Contrôleur HD:"
 #define STR_FDC			"Contrôleur FD:"
@@ -371,6 +378,7 @@ END
 #define STR_TURBO		"Turbo"
 #define STR_CHECKBPB		"Vérifier BPB"
 #define STR_CDROM_DRIVES	"Lecterus CD-ROM:"
+#define STR_CD_SPEED		"Vitesse:"
 
 #define STR_MO_DRIVES		"Lecteurs magnéto-optiques:"
 #define STR_ZIP_DRIVES		"Lecteurs ZIP:"
@@ -532,6 +540,13 @@ BEGIN
     IDS_2151	"Images cartouche (*.A;*.B;*.JRC)\0*.A;*.B;*.JRC\0Tous les fichiers (*.*)\0*.*\0"
     IDS_2152	"Error initializing renderer"
     IDS_2153	"OpenGL (3.0 Core) renderer could not be initialized. Use another renderer."
+    IDS_2154	"Resume execution"
+    IDS_2155	"Pause execution"
+    IDS_2156	"Press Ctrl+Alt+Del"
+    IDS_2157	"Press Ctrl+Alt+Esc"
+    IDS_2158	"Hard reset"
+    IDS_2159	"ACPI shutdown"
+    IDS_2160	"Settings"
 END
 
 STRINGTABLE DISCARDABLE 

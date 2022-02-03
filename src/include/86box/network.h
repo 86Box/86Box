@@ -78,7 +78,6 @@ typedef struct netpkt {
 } netpkt_t;
 
 typedef struct {
-    const char		*internal_name;
     const device_t	*device;
     void		*priv;
     int			(*poll)(void *);

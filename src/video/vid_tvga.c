@@ -471,6 +471,7 @@ static const device_config_t tvga_config[] =
 const device_t tvga8900b_device =
 {
         "Trident TVGA 8900B",
+        "tvga8900b",
         DEVICE_ISA,
 	TVGA8900B_ID,
         tvga_init,
@@ -485,6 +486,7 @@ const device_t tvga8900b_device =
 const device_t tvga8900d_device =
 {
         "Trident TVGA 8900D",
+        "tvga8900d",
         DEVICE_ISA,
 	TVGA8900CLD_ID,
         tvga_init,
@@ -499,6 +501,7 @@ const device_t tvga8900d_device =
 const device_t tvga9000b_device =
 {
         "Trident TVGA 9000B",
+        "tvga9000b",
         DEVICE_ISA,
 	TVGA9000B_ID,
         tvga_init,

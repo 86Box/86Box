@@ -561,6 +561,7 @@ load_general(void)
 
     kbd_req_capture = config_get_int(cat, "kbd_req_capture", 0);
     hide_status_bar = config_get_int(cat, "hide_status_bar", 0);
+    hide_tool_bar = config_get_int(cat, "hide_tool_bar", 0);
 
     confirm_reset = config_get_int(cat, "confirm_reset", 1);
     confirm_exit = config_get_int(cat, "confirm_exit", 1);
@@ -1075,6 +1076,12 @@ load_ports(void)
     for (c = 0; c < SERIAL_MAX; c++) {
 	sprintf(temp, "serial%d_enabled", c + 1);
 	serial_enabled[c] = !!config_get_int(cat, temp, (c >= 2) ? 0 : 1);
+
+/*
+	sprintf(temp, "serial%d_device", c + 1);
+	p = (char *) config_get_string(cat, temp, "none");
+	com_ports[c].device = com_device_get_from_internal_name(p);
+*/
     }
 
     for (c = 0; c < PARALLEL_MAX; c++) {
@@ -2036,6 +2043,7 @@ config_load(void)
 
 	kbd_req_capture = 0;
 	hide_status_bar = 0;
+	hide_tool_bar = 0;
 	scale = 1;
 	machine = machine_get_machine_from_internal_name("ibmpc");
 	dpi_scale = 1;
@@ -2221,6 +2229,11 @@ save_general(void)
 	config_set_int(cat, "hide_status_bar", hide_status_bar);
     else
 	config_delete_var(cat, "hide_status_bar");
+
+    if (hide_tool_bar != 0)
+	config_set_int(cat, "hide_tool_bar", hide_tool_bar);
+    else
+	config_delete_var(cat, "hide_tool_bar");	
 
     if (confirm_reset != 1)
 	config_set_int(cat, "confirm_reset", confirm_reset);
@@ -2547,6 +2560,15 @@ save_ports(void)
 		config_delete_var(cat, temp);
 	else
 		config_set_int(cat, temp, serial_enabled[c]);
+
+/*
+	sprintf(temp, "serial%d_device", c + 1);
+	if (com_ports[c].device == 0)
+		config_delete_var(cat, temp);
+	  else
+		config_set_string(cat, temp,
+				  (char *) com_device_get_internal_name(com_ports[c].device));
+*/
     }
 
     for (c = 0; c < PARALLEL_MAX; c++) {

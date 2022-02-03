@@ -315,8 +315,8 @@ compaq_cga_poll(void *p)
 				compaq_cga_log("Lastline %i Firstline %i  %i\n", self->cga.lastline,
 					       self->cga.firstline ,self->cga.lastline - self->cga.firstline);
 
-				if (self->cga.cgamode & 1)	x = (self->cga.crtc[1] << 3);
-				else				x = (self->cga.crtc[1] << 4);
+				if (self->cga.cgamode & 1)	x = (self->cga.crtc[1] << 3) + 16;
+				else				x = (self->cga.crtc[1] << 4) + 16;
 
 				self->cga.lastline++;
 
@@ -479,6 +479,7 @@ extern const device_config_t cga_config[];
 const device_t compaq_cga_device =
 {
         "Compaq CGA",
+        "compaq_cga",
         DEVICE_ISA, 0,
         compaq_cga_init,
         compaq_cga_close,
@@ -492,6 +493,7 @@ const device_t compaq_cga_device =
 const device_t compaq_cga_2_device =
 {
         "Compaq CGA 2",
+        "compaq_cga_2",
         DEVICE_ISA, 1,
         compaq_cga_init,
         compaq_cga_close,

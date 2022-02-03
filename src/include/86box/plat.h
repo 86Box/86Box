@@ -90,7 +90,7 @@ extern int	update_icons;
 extern int	unscaled_size_x,		/* current unscaled size X */
 		unscaled_size_y;		/* current unscaled size Y */
 
-extern int	kbd_req_capture, hide_status_bar;
+extern int	kbd_req_capture, hide_status_bar, hide_tool_bar;
 
 /* System-related functions. */
 extern char	*fix_exe_path(char *str);
@@ -126,6 +126,7 @@ extern void	plat_vidsize(int x, int y);
 extern void	plat_setfullscreen(int on);
 extern void	plat_resize(int x, int y);
 extern void	plat_vidapi_enable(int enabled);
+extern void	plat_vidapi_reload(void);
 extern void	plat_vid_reload_options(void);
 extern uint32_t plat_language_code(char* langcode);
 extern void plat_language_code_r(uint32_t lcid, char* outbuf, int len);

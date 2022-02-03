@@ -3531,6 +3531,7 @@ static const device_config_t mach64vt2_config[] =
 const device_t mach64gx_isa_device =
 {
         "ATI Mach64GX ISA",
+        "mach64gx_isa",
         DEVICE_AT | DEVICE_ISA,
 	0,
         mach64gx_init, mach64_close, NULL,
@@ -3543,6 +3544,7 @@ const device_t mach64gx_isa_device =
 const device_t mach64gx_vlb_device =
 {
         "ATI Mach64GX VLB",
+        "mach64gx_vlb",
         DEVICE_VLB,
 	0,
         mach64gx_init, mach64_close, NULL,
@@ -3555,6 +3557,7 @@ const device_t mach64gx_vlb_device =
 const device_t mach64gx_pci_device =
 {
         "ATI Mach64GX PCI",
+        "mach64gx_pci",
         DEVICE_PCI,
 	0,
         mach64gx_init, mach64_close, NULL,
@@ -3567,6 +3570,7 @@ const device_t mach64gx_pci_device =
 const device_t mach64vt2_device =
 {
         "ATI Mach64VT2",
+        "mach64vt2",
         DEVICE_PCI,
 	0,
         mach64vt2_init, mach64_close, NULL,

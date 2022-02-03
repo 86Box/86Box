@@ -21,19 +21,23 @@ add_library(plat OBJECT win.c win_dynld.c win_cdrom.c win_keyboard.c
 add_library(ui OBJECT win_ui.c win_icon.c win_stbar.c win_sdl.c win_dialog.c win_about.c
     win_settings.c win_devconf.c win_snd_gain.c win_specify_dim.c win_new_floppy.c
     win_jsconf.c win_media_menu.c win_preferences.c win_discord.c glad.c win_opengl.c
-    win_opengl_glslp.c 86Box.rc)
+    win_opengl_glslp.c win_toolbar.c 86Box.rc)
 
 if(NOT CPPTHREADS)
     target_sources(plat PRIVATE win_thread.c)
 endif()
 
-if(NOT MINGW)
+# CMake 3.22 messed this up for clang/clang++
+# See https://gitlab.kitware.com/cmake/cmake/-/issues/22611
+if(MSVC OR (NOT MINGW AND CMAKE_VERSION VERSION_GREATER_EQUAL 3.22))
     # MSVC linker adds its own manifest to the executable, which fails if
     # we include ours in 86Box.rc. We therefore need to pass the manifest
     # directly as as a source file, so the linker can use that instead.
     set_property(SOURCE 86Box.rc PROPERTY COMPILE_DEFINITIONS NO_INCLUDE_MANIFEST)
     target_sources(86Box PRIVATE 86Box.manifest)
+endif()
 
+if(NOT MINGW)
     # Append null to resource strings (fixes file dialogs)
     set_property(SOURCE 86Box.rc PROPERTY COMPILE_FLAGS -n)
 

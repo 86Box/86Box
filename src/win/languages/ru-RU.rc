@@ -31,12 +31,13 @@ BEGIN
     END
     POPUP "&Вид"
     BEGIN
-        MENUITEM "&Скрыть строку статуса",		IDM_VID_HIDE_STATUS_BAR
+        MENUITEM "&Скрыть строку состояния",		IDM_VID_HIDE_STATUS_BAR
+        MENUITEM "С&крыть панель инструментов",		IDM_VID_HIDE_TOOLBAR
         MENUITEM SEPARATOR
         MENUITEM "&Изменяемый размер окна",          IDM_VID_RESIZE
         MENUITEM "&Запомнить размер и положение",  IDM_VID_REMEMBER
         MENUITEM SEPARATOR
-        POPUP "&Рендерер"
+        POPUP "&Рендеринг"
         BEGIN
             MENUITEM "&SDL (Software)",         IDM_VID_SDL_SW
             MENUITEM "SDL (&Hardware)",         IDM_VID_SDL_HW
@@ -97,7 +98,7 @@ BEGIN
     POPUP "&Инструменты"
     BEGIN
         MENUITEM "&Настройки машины...",                IDM_CONFIG
-        MENUITEM "&Обновление значков строки статуса",	IDM_UPDATE_ICONS
+        MENUITEM "&Обновление значков строки состояния",	IDM_UPDATE_ICONS
         MENUITEM SEPARATOR
         MENUITEM "Сделать с&криншот\tCtrl+F11",  IDM_ACTION_SCREENSHOT
         MENUITEM SEPARATOR
@@ -143,7 +144,7 @@ BEGIN
         MENUITEM "&Точка останова журнала\tCtrl+F10", IDM_LOG_BREAKPOINT
 #  endif
 #  ifdef ENABLE_VRAM_DUMP
-        MENUITEM "&Выгрузка дампа видео-ОЗУ\tCtrl+F1", IDM_DUMP_VRAM
+        MENUITEM "&Выгрузка дампа видеопамяти\tCtrl+F1", IDM_DUMP_VRAM
 #  endif
 # endif
     END
@@ -207,7 +208,7 @@ CdromSubmenu MENU DISCARDABLE
 BEGIN
     POPUP ""
     BEGIN
-        MENUITEM "&Mute",					IDM_CDROM_MUTE
+        MENUITEM "О&тключить звук",					IDM_CDROM_MUTE
         MENUITEM SEPARATOR
         MENUITEM "П&устой",					IDM_CDROM_EMPTY
         MENUITEM "&Снова загрузить предыдущий образ",			IDM_CDROM_RELOAD
@@ -293,8 +294,8 @@ END
 #define STR_MACHINE_TYPE	"Тип машины:"
 #define STR_MACHINE		"Системная плата:"
 #define STR_CONFIGURE		"Настройка"
-#define STR_CPU_TYPE		"Тип ЦПУ:"
-#define STR_SPEED		"Speed:"
+#define STR_CPU_TYPE		"Тип ЦП:"
+#define STR_CPU_SPEED		"Скорость:"
 #define STR_FPU			"FPU:"
 #define STR_WAIT_STATES		"Циклы ожидания:"
 #define STR_MB			"МБ"
@@ -316,7 +317,7 @@ END
 #define STR_JOY4		"Джойстик 4..."
 
 #define STR_SOUND		"Звуковая карта:"
-#define STR_MIDI		"MIDI Out устр-во:"
+#define STR_MIDI_OUT	"MIDI Out устр-во:"
 #define STR_MIDI_IN		"MIDI In устр-во:"
 #define STR_MPU401		"Отдельный MPU-401"
 #define STR_SSI			"Innovation SSI-2001"
@@ -328,9 +329,14 @@ END
 #define STR_PCAP		"Устройство PCap:"
 #define STR_NET			"Сетевая карта:"
 
+#define STR_COM1		"Устройство COM1:"
+#define STR_COM2		"Устройство COM2:"
+#define STR_COM3		"Устройство COM3:"
+#define STR_COM4		"Устройство COM4:"
 #define STR_LPT1		"Устройство LPT1:"
 #define STR_LPT2		"Устройство LPT2:"
 #define STR_LPT3		"Устройство LPT3:"
+#define STR_LPT4		"Устройство LPT4:"
 #define STR_SERIAL1		"Последов. порт COM1"
 #define STR_SERIAL2		"Последов. порт COM2"
 #define STR_SERIAL3		"Последов. порт COM3"
@@ -338,6 +344,7 @@ END
 #define STR_PARALLEL1		"Параллельный порт LPT1"
 #define STR_PARALLEL2		"Параллельный порт LPT2"
 #define STR_PARALLEL3		"Параллельный порт LPT3"
+#define STR_PARALLEL4		"Параллельный порт LPT4"
 
 #define STR_HDC			"Контроллер HD:"
 #define STR_FDC			"Контроллер FD:"
@@ -371,6 +378,7 @@ END
 #define STR_TURBO		"Турбо тайминги"
 #define STR_CHECKBPB		"Проверять BPB"
 #define STR_CDROM_DRIVES	"Дисководы CD-ROM:"
+#define STR_CD_SPEED		"Скорость:"
 
 #define STR_MO_DRIVES		"Магнитооптические дисководы:"
 #define STR_ZIP_DRIVES		"ZIP дисководы:"
@@ -462,7 +470,7 @@ BEGIN
     IDS_2102	"Система управления полетом Thrustmaster"
     IDS_2103	"Нет"
     IDS_2104	"Невозможно загрузить ускорители клавиатуры."
-    IDS_2105	"Невозможно зарегистрировать необработанный ввод."
+    IDS_2105	"Невозможно зарегистрировать необработанный (RAW) ввод."
     IDS_2106	"%u"
     IDS_2107	"%u МБ (CHS: %i, %i, %i)"
     IDS_2108	"Дисковод %i (%s): %ls"
@@ -481,8 +489,8 @@ BEGIN
     IDS_2121	"Хотите ли вы сохранить настройки?"
     IDS_2122	"Это приведет к холодной перезагрузке эмулируемой машины."
     IDS_2123	"Сохранить"
-    IDS_2124	"О программе 86Box"
-    IDS_2125	"86Box v" EMU_VERSION
+    IDS_2124	"О 86Box"
+    IDS_2125	"86Box v." EMU_VERSION
 
     IDS_2126	"Эмулятор старых компьютеров\n\nАвторы: Sarah Walker, Miran Grca, Fred N. van Kempen (waltje), SA1988, Tiseno100, reenigne, leilei, JohnElliott, greatpsycho, and others.\n\nВыпускается под лицензией GNU General Public License версии 2 или более поздней. Дополнительную информацию см. в файле LICENSE."
     IDS_2127	"OK"
@@ -524,14 +532,21 @@ BEGIN
     IDS_2143	"Шейдеры OpenGL (*.GLSL)\0*.GLSL\0Все файлы (*.*)\0*.*\0"
     IDS_2144	"Параметры OpenGL"
     IDS_2145	"Вы загружаете неподдерживаемую конфигурацию"
-    IDS_2146	"Выбор типов CPU для этой системной платы на данной эмулируемой машине отключен.\n\nЭто позволяет выбрать процессор, который в противном случае несовместим с выбранной материнской платой. Однако, вы можете столкнуться с несовместимостью с BIOS материнской платы или другим ПО.\n\nВключение этого параметра официально не поддерживается, и все поданные отчеты об ошибках могут быть закрыты как недействительные."
+    IDS_2146	"Выбор типов ЦП для этой системной платы на данной эмулируемой машине отключен.\n\nЭто позволяет выбрать процессор, который в противном случае несовместим с выбранной материнской платой. Однако, вы можете столкнуться с несовместимостью с BIOS материнской платы или другим ПО.\n\nВключение этого параметра официально не поддерживается, и все поданные отчеты об ошибках могут быть закрыты как недействительные."
     IDS_2147	"Продолжить"
     IDS_2148	"Кассета: %s"
     IDS_2149	"Образы кассет (*.PCM;*.RAW;*.WAV;*.CAS)\0*.PCM;*.RAW;*.WAV;*.CAS\0Все файлы (*.*)\0*.*\0"
     IDS_2150	"Картридж %i: %ls"
     IDS_2151	"Образы картриджей (*.A;*.B;*.JRC)\0*.A;*.B;*.JRC\0Все файлы (*.*)\0*.*\0"
-    IDS_2152	"Error initializing renderer"
-    IDS_2153	"OpenGL (3.0 Core) renderer could not be initialized. Use another renderer."
+    IDS_2152	"Ошибка инициализации рендерера"
+    IDS_2153	"Невозможно инициализировать рендерер OpenGL (3.0). Пожалуйста, используйте другой рендерер."
+    IDS_2154	"Возобновить выполнение"
+    IDS_2155	"Приостановить выполнение"
+    IDS_2156	"Нажать Ctrl+Alt+Del"
+    IDS_2157	"Нажать Ctrl+Alt+Esc"
+    IDS_2158	"Холодная перезагрузка"
+    IDS_2159	"Сигнал завершения ACPI"
+    IDS_2160	"Настройки машины"
 END
 
 STRINGTABLE DISCARDABLE 
@@ -540,10 +555,10 @@ BEGIN
     IDS_4097	"%01i:%01i"
     IDS_4098	"%01i"
     IDS_4099	"MFM/RLL или ESDI дисководов CD-ROM никогда не существовало"
-    IDS_4100	"Custom..."
-    IDS_4101	"Custom (large)..."
+    IDS_4100	"Задать вручную..."
+    IDS_4101	"Задать вручную (large)..."
     IDS_4102	"Создать новый жёсткий диск"
-    IDS_4103	"Добавить существующий жёсткий диск"
+    IDS_4103	"Выбрать существующий жёсткий диск"
     IDS_4104	"Размер образов дисков HDI не может превышать 4 ГБ."
     IDS_4105	"Размер образов дисков не может превышать 127 ГБ."
     IDS_4106	"Образы жёстких дисков (*.HD?;*.IM?;*.VHD)\0*.HD?;*.IM?;*.VHD\0Все файлы (*.*)\0*.*\0"

@@ -207,6 +207,7 @@ vt82c686_init(const device_t *info)
 
 const device_t via_vt82c686_hwm_device = {
     "VIA VT82C686 Integrated Hardware Monitor",
+    "via_vt82c686_hwm",
     DEVICE_ISA,
     0,
     vt82c686_init, vt82c686_close, NULL,

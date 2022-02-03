@@ -1007,7 +1007,7 @@ im1024_close(void *priv)
 {
     im1024_t *dev = (im1024_t *)priv;
 
-    pgc_close(&dev->pgc);
+    pgc_close_common(&dev->pgc);
 
     free(dev);
 }
@@ -1031,6 +1031,7 @@ im1024_speed_changed(void *priv)
 
 const device_t im1024_device = {
     "ImageManager 1024",
+    "im1024",
     DEVICE_ISA, 0,
     im1024_init, im1024_close, NULL,
     { im1024_available },

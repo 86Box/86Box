@@ -525,6 +525,7 @@ pci_bridge_init(const device_t *info)
 const device_t dec21150_device =
 {
     "DEC 21150 PCI Bridge",
+    "dec21150",
     DEVICE_PCI,
     PCI_BRIDGE_DEC_21150,
     pci_bridge_init,
@@ -540,6 +541,7 @@ const device_t dec21150_device =
 const device_t ali5243_agp_device =
 {
     "ALi M5243 AGP Bridge",
+    "ali5243_agp",
     DEVICE_PCI,
     AGP_BRIDGE_ALI_M5243,
     pci_bridge_init,
@@ -555,6 +557,7 @@ const device_t ali5243_agp_device =
 const device_t ali5247_agp_device =
 {
     "ALi M5247 AGP Bridge",
+    "ali5247_agp",
     DEVICE_PCI,
     AGP_BRIDGE_ALI_M5247,
     pci_bridge_init,
@@ -569,6 +572,7 @@ const device_t ali5247_agp_device =
 const device_t i440lx_agp_device =
 {
     "Intel 82443LX/EX AGP Bridge",
+    "i440lx_agp",
     DEVICE_PCI,
     AGP_BRIDGE_INTEL_440LX,
     pci_bridge_init,
@@ -583,6 +587,7 @@ const device_t i440lx_agp_device =
 const device_t i440bx_agp_device =
 {
     "Intel 82443BX/ZX AGP Bridge",
+    "i440bx_agp",
     DEVICE_PCI,
     AGP_BRIDGE_INTEL_440BX,
     pci_bridge_init,
@@ -597,6 +602,7 @@ const device_t i440bx_agp_device =
 const device_t i440gx_agp_device =
 {
     "Intel 82443GX AGP Bridge",
+    "i440gx_agp",
     DEVICE_PCI,
     AGP_BRIDGE_INTEL_440GX,
     pci_bridge_init,
@@ -639,6 +645,7 @@ const device_t intel_mch_p4_agp_device =
 const device_t via_vp3_agp_device =
 {
     "VIA Apollo VP3 AGP Bridge",
+    "via_vp3_agp",
     DEVICE_PCI,
     AGP_BRIDGE_VIA_597,
     pci_bridge_init,
@@ -653,6 +660,7 @@ const device_t via_vp3_agp_device =
 const device_t via_mvp3_agp_device =
 {
     "VIA Apollo MVP3 AGP Bridge",
+    "via_mvp3_agp",
     DEVICE_PCI,
     AGP_BRIDGE_VIA_598,
     pci_bridge_init,
@@ -667,6 +675,7 @@ const device_t via_mvp3_agp_device =
 const device_t via_apro_agp_device =
 {
     "VIA Apollo Pro AGP Bridge",
+    "via_apro_agp",
     DEVICE_PCI,
     AGP_BRIDGE_VIA_691,
     pci_bridge_init,
@@ -681,6 +690,7 @@ const device_t via_apro_agp_device =
 const device_t via_vt8601_agp_device =
 {
     "VIA Apollo ProMedia AGP Bridge",
+    "via_vt8601_agp",
     DEVICE_PCI,
     AGP_BRIDGE_VIA_8601,
     pci_bridge_init,

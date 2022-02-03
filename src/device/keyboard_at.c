@@ -2012,8 +2012,7 @@ write64_generic(void *priv, uint8_t val)
 {
     atkbd_t *dev = (atkbd_t *)priv;
     uint8_t current_drive, fixed_bits;
-    uint8_t kbc_ven = 0x0;
-    kbc_ven = dev->flags & KBC_VEN_MASK;
+    uint8_t kbc_ven = dev->flags & KBC_VEN_MASK;
 
     switch (val) {
 	case 0xa4:	/* check if password installed */
@@ -2317,6 +2316,7 @@ write64_ami(void *priv, uint8_t val)
 {
     atkbd_t *dev = (atkbd_t *)priv;
     uint16_t index = 0x00c0;
+    uint8_t kbc_ven = dev->flags & KBC_VEN_MASK;
 
     switch (val) {
 	case 0x00 ... 0x1f:
@@ -2386,7 +2386,7 @@ write64_ami(void *priv, uint8_t val)
 			* Never returned by an actual keyboard controller, or at least has not been seen returned by
 			  one thus far.
 		 */
-		kbc_transmit(dev, 'H');
+		kbc_transmit(dev, (kbc_ven == KBC_VEN_INTEL_AMI) ? '5' : 'H');
 		return 0;
 
 	case 0xa2:	/* clear keyboard controller lines P22/P23 */
@@ -3160,6 +3160,7 @@ kbd_init(const device_t *info)
 
 const device_t keyboard_at_device = {
     "PC/AT Keyboard",
+    "keyboard_at",
     0,
     KBC_TYPE_ISA | KBC_VEN_GENERIC,
     kbd_init,
@@ -3170,6 +3171,7 @@ const device_t keyboard_at_device = {
 
 const device_t keyboard_at_ami_device = {
     "PC/AT Keyboard (AMI)",
+    "keyboard_at_ami",
     0,
     KBC_TYPE_ISA | KBC_VEN_AMI,
     kbd_init,
@@ -3180,6 +3182,7 @@ const device_t keyboard_at_ami_device = {
 
 const device_t keyboard_at_toshiba_device = {
     "PC/AT Keyboard (Toshiba)",
+    "keyboard_at_toshiba",
     0,
     KBC_TYPE_ISA | KBC_VEN_TOSHIBA,
     kbd_init,
@@ -3190,6 +3193,7 @@ const device_t keyboard_at_toshiba_device = {
 
 const device_t keyboard_at_olivetti_device = {
     "PC/AT Keyboard (Olivetti)",
+    "keyboard_at_olivetti",
     0,
     KBC_TYPE_ISA | KBC_VEN_OLIVETTI,
     kbd_init,
@@ -3200,6 +3204,7 @@ const device_t keyboard_at_olivetti_device = {
 
 const device_t keyboard_at_ncr_device = {
     "PC/AT Keyboard (NCR)",
+    "keyboard_at_ncr",
     0,
     KBC_TYPE_ISA | KBC_VEN_NCR,
     kbd_init,
@@ -3210,6 +3215,7 @@ const device_t keyboard_at_ncr_device = {
 
 const device_t keyboard_ps2_device = {
     "PS/2 Keyboard",
+    "keyboard_ps2_ps2",
     0,
     KBC_TYPE_PS2_1 | KBC_VEN_GENERIC,
     kbd_init,
@@ -3220,6 +3226,7 @@ const device_t keyboard_ps2_device = {
 
 const device_t keyboard_ps2_ps1_device = {
     "PS/2 Keyboard (IBM PS/1)",
+    "keyboard_ps2_ps1",
     0,
     KBC_TYPE_PS2_1 | KBC_VEN_IBM_PS1,
     kbd_init,
@@ -3230,6 +3237,7 @@ const device_t keyboard_ps2_ps1_device = {
 
 const device_t keyboard_ps2_ps1_pci_device = {
     "PS/2 Keyboard (IBM PS/1)",
+    "keyboard_ps2_ps1_pci",
     DEVICE_PCI,
     KBC_TYPE_PS2_1 | KBC_VEN_IBM_PS1,
     kbd_init,
@@ -3240,6 +3248,7 @@ const device_t keyboard_ps2_ps1_pci_device = {
 
 const device_t keyboard_ps2_xi8088_device = {
     "PS/2 Keyboard (Xi8088)",
+    "keyboard_ps2_xi8088",
     0,
     KBC_TYPE_PS2_1 | KBC_VEN_XI8088,
     kbd_init,
@@ -3250,6 +3259,7 @@ const device_t keyboard_ps2_xi8088_device = {
 
 const device_t keyboard_ps2_ami_device = {
     "PS/2 Keyboard (AMI)",
+    "keyboard_ps2_ami",
     0,
     KBC_TYPE_PS2_1 | KBC_VEN_AMI,
     kbd_init,
@@ -3260,6 +3270,7 @@ const device_t keyboard_ps2_ami_device = {
 
 const device_t keyboard_ps2_olivetti_device = {
     "PS/2 Keyboard (Olivetti)",
+    "keyboard_ps2_olivetti",
     0,
     KBC_TYPE_PS2_1 | KBC_VEN_OLIVETTI,
     kbd_init,
@@ -3270,6 +3281,7 @@ const device_t keyboard_ps2_olivetti_device = {
 
 const device_t keyboard_ps2_mca_device = {
     "PS/2 Keyboard",
+    "keyboard_ps2_mca",
     0,
     KBC_TYPE_PS2_1 | KBC_VEN_IBM_MCA,
     kbd_init,
@@ -3280,6 +3292,7 @@ const device_t keyboard_ps2_mca_device = {
 
 const device_t keyboard_ps2_mca_2_device = {
     "PS/2 Keyboard",
+    "keyboard_ps2_mca_2",
     0,
     KBC_TYPE_PS2_2 | KBC_VEN_IBM_MCA,
     kbd_init,
@@ -3290,6 +3303,7 @@ const device_t keyboard_ps2_mca_2_device = {
 
 const device_t keyboard_ps2_quadtel_device = {
     "PS/2 Keyboard (Quadtel/MegaPC)",
+    "keyboard_ps2_quadtel",
     0,
     KBC_TYPE_PS2_1 | KBC_VEN_QUADTEL,
     kbd_init,
@@ -3300,6 +3314,7 @@ const device_t keyboard_ps2_quadtel_device = {
 
 const device_t keyboard_ps2_pci_device = {
     "PS/2 Keyboard",
+    "keyboard_ps2_pci",
     DEVICE_PCI,
     KBC_TYPE_PS2_1 | KBC_VEN_GENERIC,
     kbd_init,
@@ -3310,6 +3325,7 @@ const device_t keyboard_ps2_pci_device = {
 
 const device_t keyboard_ps2_ami_pci_device = {
     "PS/2 Keyboard (AMI)",
+    "keyboard_ps2_ami_pci",
     DEVICE_PCI,
     KBC_TYPE_PS2_1 | KBC_VEN_AMI,
     kbd_init,
@@ -3320,6 +3336,7 @@ const device_t keyboard_ps2_ami_pci_device = {
 
 const device_t keyboard_ps2_intel_ami_pci_device = {
     "PS/2 Keyboard (AMI)",
+    "keyboard_ps2_intel_ami_pci",
     DEVICE_PCI,
     KBC_TYPE_PS2_1 | KBC_VEN_INTEL_AMI,
     kbd_init,
@@ -3330,6 +3347,7 @@ const device_t keyboard_ps2_intel_ami_pci_device = {
 
 const device_t keyboard_ps2_acer_pci_device = {
     "PS/2 Keyboard (Acer 90M002A)",
+    "keyboard_ps2_acer_pci",
     DEVICE_PCI,
     KBC_TYPE_PS2_1 | KBC_VEN_ACER,
     kbd_init,

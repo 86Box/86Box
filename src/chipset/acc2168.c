@@ -194,6 +194,7 @@ acc2168_init(const device_t *info)
 
 const device_t acc2168_device = {
     "ACC 2046/2168",
+    "acc2168",
     0,
     0,
     acc2168_init,

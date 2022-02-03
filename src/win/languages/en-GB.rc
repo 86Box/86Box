@@ -32,6 +32,7 @@ BEGIN
     POPUP "&View"
     BEGIN
         MENUITEM "&Hide status bar",		IDM_VID_HIDE_STATUS_BAR
+        MENUITEM "Hide &toolbar",		IDM_VID_HIDE_TOOLBAR
         MENUITEM SEPARATOR
         MENUITEM "&Resizeable window",          IDM_VID_RESIZE
         MENUITEM "R&emember size && position",  IDM_VID_REMEMBER
@@ -294,7 +295,7 @@ END
 #define STR_MACHINE		"Machine:"
 #define STR_CONFIGURE		"Configure"
 #define STR_CPU_TYPE		"CPU type:"
-#define STR_SPEED		"Speed:"
+#define STR_CPU_SPEED		"Speed:"
 #define STR_FPU			"FPU:"
 #define STR_WAIT_STATES		"Wait states:"
 #define STR_MB			"MB"
@@ -316,7 +317,7 @@ END
 #define STR_JOY4		"Joystick 4..."
 
 #define STR_SOUND		"Sound card:"
-#define STR_MIDI		"MIDI Out Device:"
+#define STR_MIDI_OUT	"MIDI Out Device:"
 #define STR_MIDI_IN		"MIDI In Device:"
 #define STR_MPU401		"Standalone MPU-401"
 #define STR_SSI			"Innovation SSI-2001"
@@ -328,9 +329,14 @@ END
 #define STR_PCAP		"PCap device:"
 #define STR_NET			"Network adapter:"
 
+#define STR_COM1		"COM1 Device:"
+#define STR_COM2		"COM2 Device:"
+#define STR_COM3		"COM3 Device:"
+#define STR_COM4		"COM4 Device:"
 #define STR_LPT1		"LPT1 Device:"
 #define STR_LPT2		"LPT2 Device:"
 #define STR_LPT3		"LPT3 Device:"
+#define STR_LPT4		"LPT4 Device:"
 #define STR_SERIAL1		"Serial port 1"
 #define STR_SERIAL2		"Serial port 2"
 #define STR_SERIAL3		"Serial port 3"
@@ -338,6 +344,7 @@ END
 #define STR_PARALLEL1		"Parallel port 1"
 #define STR_PARALLEL2		"Parallel port 2"
 #define STR_PARALLEL3		"Parallel port 3"
+#define STR_PARALLEL4		"Parallel port 4"
 
 #define STR_HDC			"HD Controller:"
 #define STR_FDC			"FD Controller:"
@@ -371,6 +378,7 @@ END
 #define STR_TURBO		"Turbo timings"
 #define STR_CHECKBPB		"Check BPB"
 #define STR_CDROM_DRIVES	"CD-ROM drives:"
+#define STR_CD_SPEED		"Speed:"
 
 #define STR_MO_DRIVES		"MO drives:"
 #define STR_ZIP_DRIVES		"ZIP drives:"
@@ -532,6 +540,13 @@ BEGIN
     IDS_2151	"Cartridge images (*.A;*.B;*.JRC)\0*.A;*.B;*.JRC\0All files (*.*)\0*.*\0"
     IDS_2152	"Error initializing renderer"
     IDS_2153	"OpenGL (3.0 Core) renderer could not be initialized. Use another renderer."
+    IDS_2154	"Resume execution"
+    IDS_2155	"Pause execution"
+    IDS_2156	"Press Ctrl+Alt+Del"
+    IDS_2157	"Press Ctrl+Alt+Esc"
+    IDS_2158	"Hard reset"
+    IDS_2159	"ACPI shutdown"
+    IDS_2160	"Settings"
 END
 
 STRINGTABLE DISCARDABLE 

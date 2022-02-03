@@ -35,6 +35,7 @@ BEGIN
     POPUP "&Exibir"
     BEGIN
         MENUITEM "&Ocultar barra de status",		IDM_VID_HIDE_STATUS_BAR
+        MENUITEM "Ocultar &barra de ferramenta",		IDM_VID_HIDE_TOOLBAR
         MENUITEM SEPARATOR
         MENUITEM "&Janela redimensionável",          IDM_VID_RESIZE
         MENUITEM "&Lembrar tamanho e posição",  IDM_VID_REMEMBER
@@ -297,7 +298,7 @@ END
 #define STR_MACHINE		"Máquina:"
 #define STR_CONFIGURE		"Configurar"
 #define STR_CPU_TYPE		"Tipo de CPU:"
-#define STR_SPEED		"Veloc.:"
+#define STR_CPU_SPEED		"Veloc.:"
 #define STR_FPU			"FPU:"
 #define STR_WAIT_STATES		"Estados de espera:"
 #define STR_MB			"MB"
@@ -319,7 +320,7 @@ END
 #define STR_JOY4		"Joystick 4..."
 
 #define STR_SOUND		"Placa de som:"
-#define STR_MIDI		"Disp. saída MIDI:"
+#define STR_MIDI_OUT	"Disp. saída MIDI:"
 #define STR_MIDI_IN		"Disp. entrada MIDI:"
 #define STR_MPU401		"MPU-401 autônomo"
 #define STR_SSI			"Innovation SSI-2001"
@@ -331,9 +332,14 @@ END
 #define STR_PCAP		"Dispositivo PCap:"
 #define STR_NET			"Adaptador de rede:"
 
+#define STR_COM1		"Dispositivo COM1:"
+#define STR_COM2		"Dispositivo COM2:"
+#define STR_COM3		"Dispositivo COM3:"
+#define STR_COM4		"Dispositivo COM4:"
 #define STR_LPT1		"Dispositivo LPT1:"
 #define STR_LPT2		"Dispositivo LPT2:"
 #define STR_LPT3		"Dispositivo LPT3:"
+#define STR_LPT4		"Dispositivo LPT4:"
 #define STR_SERIAL1		"Porta serial 1"
 #define STR_SERIAL2		"Porta serial 2"
 #define STR_SERIAL3		"Porta serial 3"
@@ -341,6 +347,7 @@ END
 #define STR_PARALLEL1		"Porta paralela 1"
 #define STR_PARALLEL2		"Porta paralela 2"
 #define STR_PARALLEL3		"Porta paralela 3"
+#define STR_PARALLEL4		"Porta paralela 4"
 
 #define STR_HDC			"Controlador HD:"
 #define STR_FDC			"Controlador FD:"
@@ -368,12 +375,13 @@ END
 #define STR_SIZE_MB		"Tamanho (MB):"
 #define STR_TYPE		"Tipo:"
 #define STR_IMG_FORMAT		"Formato:"
-#define STR_BLOCK_SIZE		"Tamanho do bloco:"
+#define STR_BLOCK_SIZE		"Bloco:"
 
 #define STR_FLOPPY_DRIVES	"Unidades de disquete:"
 #define STR_TURBO		"Turbo"
 #define STR_CHECKBPB		"Verificar BPB"
 #define STR_CDROM_DRIVES	"Unidades de CD-ROM:"
+#define STR_CD_SPEED		"Veloc.:"
 
 #define STR_MO_DRIVES		"Unidades magneto-ópticas:"
 #define STR_ZIP_DRIVES		"Unidades ZIP:"
@@ -478,7 +486,7 @@ BEGIN
     IDS_2115	"Magneto-óptico %i (%ls): %ls"
     IDS_2116	"Imagens magneto-ópticas (*.IM?;*.MDI)\0*.IM?;*.MDI\0Todos os arquivos (*.*)\0*.*\0"
     IDS_2117	"Bem-vindo ao 86Box!"
-    IDS_2118	"Controle interno"
+    IDS_2118	"Controlador interno"
     IDS_2119	"Sair"
     IDS_2120	"Nenhum ROM encontrada"
     IDS_2121	"Você deseja salvar as configurações?"
@@ -535,6 +543,13 @@ BEGIN
     IDS_2151	"Imagens de cartucho (*.A;*.B;*.JRC)\0*.A;*.B;*.JRC\0Todos os arquivos (*.*)\0*.*\0"
     IDS_2152	"Erro ao inicializar o renderizador"
     IDS_2153	"O renderizador OpenGL (Núcleo 3.0) não pôde ser inicializado. Use outro renderizador."
+    IDS_2154	"Continuar a execução"
+    IDS_2155	"Pausar a execução"
+    IDS_2156	"Pressionar Ctrl+Alt+Del"
+    IDS_2157	"Pressionar Ctrl+Alt+Esc"
+    IDS_2158	"Reinicialização completa"
+    IDS_2159	"Desligamento por ACPI"
+    IDS_2160	"Configurações"
 END
 
 STRINGTABLE DISCARDABLE 

@@ -121,6 +121,7 @@ tkd8001_ramdac_close(void *priv)
 const device_t tkd8001_ramdac_device =
 {
         "Trident TKD8001 RAMDAC",
+        "tkd8001_ramdac",
         0, 0,
         tkd8001_ramdac_init, tkd8001_ramdac_close,
 	NULL, { NULL }, NULL, NULL

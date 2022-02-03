@@ -127,6 +127,7 @@ ics2595_setclock(void *p, double clock)
 const device_t ics2595_device =
 {
         "ICS2595 clock chip",
+        "ics2595",
         0, 0,
         ics2595_init, ics2595_close,
 	NULL, { NULL }, NULL, NULL

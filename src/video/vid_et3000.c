@@ -298,6 +298,7 @@ static const device_config_t et3000_config[] =
 
 const device_t et3000_isa_device = {
     "Tseng Labs ET3000AX (ISA)",
+    "et3000ax",
     DEVICE_ISA,
     0,
     et3000_init, et3000_close, NULL,

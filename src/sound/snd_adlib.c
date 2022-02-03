@@ -127,6 +127,7 @@ void adlib_close(void *p)
 const device_t adlib_device =
 {
         "AdLib",
+        "adlib",
         DEVICE_ISA,
 	0,
         adlib_init, adlib_close, NULL,
@@ -137,6 +138,7 @@ const device_t adlib_device =
 const device_t adlib_mca_device =
 {
         "AdLib (MCA)",
+        "adlib_mca",
         DEVICE_MCA,
 	0,
         adlib_init, adlib_close, NULL,

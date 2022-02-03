@@ -355,6 +355,7 @@ static const device_config_t ps2_config[] = {
 
 const device_t mouse_ps2_device = {
     "Standard PS/2 Mouse",
+    "ps2",
     DEVICE_PS2,
     MOUSE_TYPE_PS2,
     mouse_ps2_init, ps2_close, NULL,
