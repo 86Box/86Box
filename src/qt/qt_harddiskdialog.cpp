@@ -83,7 +83,7 @@ HarddiskDialog::HarddiskDialog(bool existing, QWidget *parent) :
 
     ui->lineEditSize->setValidator(new QIntValidator());
     ui->buttonBox->button(QDialogButtonBox::Ok)->setEnabled(false);
-    connect(ui->fileField, &FileField::fileSelected, this, [this] {
+    if (!existing) connect(ui->fileField, &FileField::fileSelected, this, [this] {
         ui->buttonBox->button(QDialogButtonBox::Ok)->setEnabled(true);
     });
 }
@@ -459,6 +459,7 @@ void HarddiskDialog::onExistingFileSelected(const QString &fileName) {
     uint32_t cylinders = 0;
     int vhd_error = 0;
 
+    ui->buttonBox->button(QDialogButtonBox::Ok)->setEnabled(false);
     QFile file(fileName);
     if (! file.open(QIODevice::ReadOnly)) {
         QMessageBox::critical(this, tr("Unable to read file"), tr("Make sure the file exists and is readable."));
@@ -553,6 +554,7 @@ void HarddiskDialog::onExistingFileSelected(const QString &fileName) {
     ui->lineEditSectors->setEnabled(true);
     ui->lineEditSize->setEnabled(true);
     ui->comboBoxType->setEnabled(true);
+    ui->buttonBox->button(QDialogButtonBox::Ok)->setEnabled(true);
 }
 
 void HarddiskDialog::recalcSize() {

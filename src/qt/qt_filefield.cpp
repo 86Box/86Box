@@ -8,6 +8,8 @@ FileField::FileField(QWidget *parent) :
     ui(new Ui::FileField)
 {
     ui->setupUi(this);
+
+    connect(ui->label, &QLineEdit::editingFinished, this, [this] () { emit fileSelected(ui->label->text()); });
 }
 
 FileField::~FileField()
