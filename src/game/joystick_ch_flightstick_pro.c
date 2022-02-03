@@ -116,7 +116,7 @@ static void ch_flightstick_pro_a0_over(void *p)
 const joystick_if_t joystick_ch_flightstick_pro =
 {
         "CH Flightstick Pro",
-        "ch_flighstick_pro",
+        "ch_flightstick_pro",
         ch_flightstick_pro_init,
         ch_flightstick_pro_close,
         ch_flightstick_pro_read,
