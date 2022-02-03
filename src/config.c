@@ -2562,10 +2562,16 @@ save_ports(void)
 		config_set_int(cat, temp, serial_enabled[c]);
 
 /*
+	sprintf(temp, "serial%d_type", c + 1);
+	if (!serial_enabled[c])
+		config_delete_var(cat, temp);
+//	else
+//		config_set_string(cat, temp, (char *) serial_type[c])
+
 	sprintf(temp, "serial%d_device", c + 1);
 	if (com_ports[c].device == 0)
 		config_delete_var(cat, temp);
-	  else
+	else
 		config_set_string(cat, temp,
 				  (char *) com_device_get_internal_name(com_ports[c].device));
 */
