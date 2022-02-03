@@ -133,6 +133,7 @@ static const device_config_t b215_config[] = {
 
 const device_t fdc_b215_device = {
     "Magitronic B215",
+    "b215",
     DEVICE_ISA,
     0,
     b215_init,

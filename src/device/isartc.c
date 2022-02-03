@@ -632,6 +632,7 @@ static const device_config_t ev170_config[] = {
 
 static const device_t ev170_device = {
     "Everex EV-170 Magic I/O",
+    "ev170",
     DEVICE_ISA,
     ISARTC_EV170,
     isartc_init, isartc_close, NULL,
@@ -662,6 +663,7 @@ static const device_config_t pii147_config[] = {
 
 static const device_t pii147_device = {
     "DTK PII-147 Hexa I/O Plus",
+    "pii147",
     DEVICE_ISA,
     ISARTC_DTK,
     isartc_init, isartc_close, NULL,
@@ -698,6 +700,7 @@ static const device_config_t p5pak_config[] = {
 
 static const device_t p5pak_device = {
     "Paradise Systems 5-PAK",
+    "p5pak",
     DEVICE_ISA,
     ISARTC_P5PAK,
     isartc_init, isartc_close, NULL,
@@ -734,6 +737,7 @@ static const device_config_t a6pak_config[] = {
 
 static const device_t a6pak_device = {
     "AST SixPakPlus",
+    "a6pak",
     DEVICE_ISA,
     ISARTC_A6PAK,
     isartc_init, isartc_close, NULL,
@@ -742,16 +746,25 @@ static const device_t a6pak_device = {
 };
 
 
+static const device_t isartc_none_device = {
+    "None",
+    "none",
+    0, 0,
+    NULL, NULL, NULL,
+    { NULL }, NULL, NULL,
+    NULL
+};
+
+
 static const struct {
-    const char		*internal_name;
     const device_t	*dev;
 } boards[] = {
-    { "none",	NULL	      	},
-    { "ev170",	&ev170_device	},
-    { "pii147",	&pii147_device	},
-    { "p5pak",	&p5pak_device	},
-    { "a6pak",	&a6pak_device	},
-    { "",	NULL		},
+    { &isartc_none_device	},
+    { &ev170_device		},
+    { &pii147_device		},
+    { &p5pak_device		},
+    { &a6pak_device		},
+    { NULL			},
 };
 
 
@@ -768,7 +781,7 @@ isartc_reset(void)
 char *
 isartc_get_internal_name(int board)
 {
-    return((char *)boards[board].internal_name);
+    return device_get_internal_name(boards[board].dev);
 }
 
 
@@ -777,8 +790,8 @@ isartc_get_from_internal_name(char *s)
 {
     int c = 0;
 
-    while (strlen((char *) boards[c].internal_name)) {
-	if (! strcmp(boards[c].internal_name, s))
+    while (boards[c].dev != NULL) {
+	if (! strcmp(boards[c].dev->internal_name, s))
 		return(c);
 	c++;
     }

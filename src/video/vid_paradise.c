@@ -720,6 +720,7 @@ void paradise_force_redraw(void *p)
 const device_t paradise_pvga1a_pc2086_device =
 {
         "Paradise PVGA1A (Amstrad PC2086)",
+        "pvga1a_pc2086",
         0,
 	PVGA1A,
         paradise_pvga1a_pc2086_init,
@@ -734,6 +735,7 @@ const device_t paradise_pvga1a_pc2086_device =
 const device_t paradise_pvga1a_pc3086_device =
 {
         "Paradise PVGA1A (Amstrad PC3086)",
+        "pvga1a_pc3086",
         0,
 	PVGA1A,
         paradise_pvga1a_pc3086_init,
@@ -769,6 +771,7 @@ static const device_config_t paradise_pvga1a_config[] =
 const device_t paradise_pvga1a_ncr3302_device =
 {
         "Paradise PVGA1A (NCR 3302)",
+        "pvga1a_ncr3302",
         0,
 	PVGA1A,
         paradise_pvga1a_ncr3302_init,
@@ -783,6 +786,7 @@ const device_t paradise_pvga1a_ncr3302_device =
 const device_t paradise_pvga1a_device =
 {
         "Paradise PVGA1A",
+        "pvga1a",
         DEVICE_ISA,
 	PVGA1A,
         paradise_pvga1a_standalone_init,
@@ -796,6 +800,7 @@ const device_t paradise_pvga1a_device =
 const device_t paradise_wd90c11_megapc_device =
 {
         "Paradise WD90C11 (Amstrad MegaPC)",
+        "wd90c11_megapc",
         0,
 	WD90C11,
         paradise_wd90c11_megapc_init,
@@ -809,6 +814,7 @@ const device_t paradise_wd90c11_megapc_device =
 const device_t paradise_wd90c11_device =
 {
         "Paradise WD90C11-LR",
+        "wd90c11",
         DEVICE_ISA,
 	WD90C11,
         paradise_wd90c11_standalone_init,
@@ -844,6 +850,7 @@ static const device_config_t paradise_wd90c30_config[] =
 const device_t paradise_wd90c30_device =
 {
         "Paradise WD90C30-LR",
+        "wd90c30",
         DEVICE_ISA,
 	WD90C30,
         paradise_wd90c30_standalone_init,

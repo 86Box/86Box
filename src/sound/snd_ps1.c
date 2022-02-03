@@ -191,6 +191,7 @@ ps1snd_close(void *priv)
 
 const device_t ps1snd_device = {
     "IBM PS/1 Audio Card",
+    "ps1snd",
     0, 0,
     ps1snd_init, ps1snd_close,
     NULL,

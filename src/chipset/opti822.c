@@ -311,6 +311,7 @@ opti822_init(const device_t *info)
 
 const device_t opti822_device = {
     "OPTi 82C822 PCIB",
+    "opti822",
     DEVICE_PCI,
     0,
     opti822_init,

@@ -177,6 +177,7 @@ cs4031_init(const device_t *info)
 
 const device_t cs4031_device = {
     "Chips & Technogies CS4031",
+    "cs4031",
     0,
     0,
     cs4031_init,

@@ -670,6 +670,7 @@ const device_config_t nga_config[] =
 const device_t nga_device =
 {
 	"NCR NGA",
+	"nga",
 	DEVICE_ISA, 0,
 	nga_init,
 	nga_close,

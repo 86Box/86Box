@@ -159,6 +159,7 @@ static void
 
 const device_t cs8230_device = {
     "C&T CS8230 (386/AT)",
+    "cs8230",
     0,
     0,
     cs8230_init, cs8230_close, NULL,

@@ -290,6 +290,7 @@ ati68860_ramdac_close(void *priv)
 const device_t ati68860_ramdac_device =
 {
         "ATI-68860 RAMDAC",
+        "ati68860_ramdac",
         0, 0,
         ati68860_ramdac_init, ati68860_ramdac_close,
 	NULL, { NULL }, NULL, NULL

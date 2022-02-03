@@ -556,6 +556,7 @@ static const device_config_t fluidsynth_config[] =
 const device_t fluidsynth_device =
 {
         "FluidSynth",
+        "fluidsynth",
         0,
         0,
         fluidsynth_init,

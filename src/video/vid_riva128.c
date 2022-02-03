@@ -2495,6 +2495,7 @@ static const device_config_t riva128_config[] =
 const device_t riva128_pci_device =
 {
 	"nVidia RIVA 128 (PCI)",
+	"riva128",
 	DEVICE_PCI,
 	RIVA128_DEVICE_ID,
 	riva128_init,

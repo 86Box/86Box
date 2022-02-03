@@ -743,6 +743,7 @@ sis_5571_init(const device_t *info)
 
 const device_t sis_5571_device = {
 	"SiS 5571",
+	"sis_5571",
 	DEVICE_PCI,
 	0,
 	sis_5571_init,

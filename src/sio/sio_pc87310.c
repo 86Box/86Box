@@ -266,6 +266,7 @@ pc87310_init(const device_t *info)
 
 const device_t pc87310_device = {
     "National Semiconductor PC87310 Super I/O",
+    "pc87310",
     0,
     0,
     pc87310_init, pc87310_close, NULL,
@@ -275,6 +276,7 @@ const device_t pc87310_device = {
 
 const device_t pc87310_ide_device = {
     "National Semiconductor PC87310 Super I/O with IDE functionality",
+    "pc87310_ide",
     0,
     1,
     pc87310_init, pc87310_close, NULL,

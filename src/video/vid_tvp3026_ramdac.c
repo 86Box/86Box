@@ -594,6 +594,7 @@ tvp3026_ramdac_close(void *priv)
 const device_t tvp3026_ramdac_device =
 {
         "TI TVP3026 RAMDAC",
+        "tvp3026_ramdac",
         0, 0,
         tvp3026_ramdac_init, tvp3026_ramdac_close,
 	NULL, { NULL }, NULL, NULL

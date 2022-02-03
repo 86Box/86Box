@@ -319,6 +319,7 @@ static const device_config_t mt32_config[] =
 const device_t mt32_device =
 {
         "Roland MT-32 Emulation",
+        "mt32",
         0,
         0,
         mt32_init,
@@ -333,6 +334,7 @@ const device_t mt32_device =
 const device_t cm32l_device =
 {
         "Roland CM-32L Emulation",
+        "cm32l",
         0,
         0,
         cm32l_init,

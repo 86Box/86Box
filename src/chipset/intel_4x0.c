@@ -1623,6 +1623,7 @@ static void
 const device_t i420tx_device =
 {
     "Intel 82424TX",
+    "i420tx",
     DEVICE_PCI,
     INTEL_420TX,
     i4x0_init, 
@@ -1638,6 +1639,7 @@ const device_t i420tx_device =
 const device_t i420zx_device =
 {
     "Intel 82424ZX",
+    "i420zx",
     DEVICE_PCI,
     INTEL_420ZX,
     i4x0_init, 
@@ -1653,6 +1655,7 @@ const device_t i420zx_device =
 const device_t i430lx_device =
 {
     "Intel 82434LX",
+    "i430lx",
     DEVICE_PCI,
     INTEL_430LX,
     i4x0_init, 
@@ -1668,6 +1671,7 @@ const device_t i430lx_device =
 const device_t i430nx_device =
 {
     "Intel 82434NX",
+    "i430nx",
     DEVICE_PCI,
     INTEL_430NX,
     i4x0_init, 
@@ -1683,6 +1687,7 @@ const device_t i430nx_device =
 const device_t i430fx_device =
 {
     "Intel SB82437FX-66",
+    "i430fx",
     DEVICE_PCI,
     INTEL_430FX,
     i4x0_init, 
@@ -1698,6 +1703,7 @@ const device_t i430fx_device =
 const device_t i430fx_rev02_device =
 {
     "Intel SB82437FX-66 (Rev. 02)",
+    "i430fx_rev02",
     DEVICE_PCI,
     0x0200 | INTEL_430FX,
     i4x0_init, 
@@ -1713,6 +1719,7 @@ const device_t i430fx_rev02_device =
 const device_t i430hx_device =
 {
     "Intel 82439HX",
+    "i430hx",
     DEVICE_PCI,
     INTEL_430HX,
     i4x0_init, 
@@ -1728,6 +1735,7 @@ const device_t i430hx_device =
 const device_t i430vx_device =
 {
     "Intel 82437VX",
+    "i430vx",
     DEVICE_PCI,
     INTEL_430VX,
     i4x0_init, 
@@ -1743,6 +1751,7 @@ const device_t i430vx_device =
 const device_t i430tx_device =
 {
     "Intel 82439TX",
+    "i430tx",
     DEVICE_PCI,
     INTEL_430TX,
     i4x0_init, 
@@ -1758,6 +1767,7 @@ const device_t i430tx_device =
 const device_t i440fx_device =
 {
     "Intel 82441FX",
+    "i440fx",
     DEVICE_PCI,
     INTEL_440FX,
     i4x0_init, 
@@ -1772,6 +1782,7 @@ const device_t i440fx_device =
 const device_t i440lx_device =
 {
     "Intel 82443LX",
+    "i440lx",
     DEVICE_PCI,
     INTEL_440LX,
     i4x0_init, 
@@ -1786,6 +1797,7 @@ const device_t i440lx_device =
 const device_t i440ex_device =
 {
     "Intel 82443EX",
+    "i440ex",
     DEVICE_PCI,
     INTEL_440EX,
     i4x0_init, 
@@ -1800,6 +1812,7 @@ const device_t i440ex_device =
 const device_t i440bx_device =
 {
     "Intel 82443BX",
+    "i440bx",
     DEVICE_PCI,
     0x8000 | INTEL_440BX,
     i4x0_init, 
@@ -1814,6 +1827,7 @@ const device_t i440bx_device =
 const device_t i440bx_no_agp_device =
 {
     "Intel 82443BX",
+    "i440bx_no_agp",
     DEVICE_PCI,
     0x8200 | INTEL_440BX,
     i4x0_init, 
@@ -1828,6 +1842,7 @@ const device_t i440bx_no_agp_device =
 const device_t i440gx_device =
 {
     "Intel 82443GX",
+    "i440gx",
     DEVICE_PCI,
     0x8000 | INTEL_440GX,
     i4x0_init, 
@@ -1842,6 +1857,7 @@ const device_t i440gx_device =
 const device_t i440zx_device =
 {
     "Intel 82443ZX",
+    "i440zx",
     DEVICE_PCI,
     0x8000 | INTEL_440ZX,
     i4x0_init, 

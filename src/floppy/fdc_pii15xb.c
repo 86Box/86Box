@@ -149,6 +149,7 @@ static const device_config_t pii_config[] = {
 
 const device_t fdc_pii151b_device = {
     "DTK PII-151B (MiniMicro) Floppy Drive Controller",
+    "dtk_pii151b",
     DEVICE_ISA,
     151,
     pii_init,
@@ -161,6 +162,7 @@ const device_t fdc_pii151b_device = {
 
 const device_t fdc_pii158b_device = {
     "DTK PII-158B (MiniMicro4) Floppy Drive Controller",
+    "dtk_pii158b",
     DEVICE_ISA,
     158,
     pii_init,

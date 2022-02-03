@@ -569,6 +569,7 @@ w83977f_init(const device_t *info)
 
 const device_t w83977f_device = {
     "Winbond W83977F Super I/O",
+    "w83977f",
     0,
     0,
     w83977f_init, w83977f_close, NULL,
@@ -579,6 +580,7 @@ const device_t w83977f_device = {
 
 const device_t w83977f_370_device = {
     "Winbond W83977F Super I/O (Port 370h)",
+    "w83977f_370",
     0,
     0x40,
     w83977f_init, w83977f_close, NULL,
@@ -589,6 +591,7 @@ const device_t w83977f_370_device = {
 
 const device_t w83977tf_device = {
     "Winbond W83977TF Super I/O",
+    "w83977tf",
     0,
     1,
     w83977f_init, w83977f_close, NULL,
@@ -599,6 +602,7 @@ const device_t w83977tf_device = {
 
 const device_t w83977ef_device = {
     "Winbond W83977TF Super I/O",
+    "w83977ef",
     0,
     2,
     w83977f_init, w83977f_close, NULL,
@@ -609,6 +613,7 @@ const device_t w83977ef_device = {
 
 const device_t w83977ef_370_device = {
     "Winbond W83977TF Super I/O (Port 370h)",
+    "w83977ef_370",
     0,
     0x42,
     w83977f_init, w83977f_close, NULL,

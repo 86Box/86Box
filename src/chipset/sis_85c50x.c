@@ -393,6 +393,7 @@ sis_85c50x_init(const device_t *info)
 
 const device_t sis_85c50x_device = {
     "SiS 85C50x",
+    "sis_85c50x",
     DEVICE_PCI,
     0,
     sis_85c50x_init, sis_85c50x_close,

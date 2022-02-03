@@ -303,6 +303,7 @@ um8669f_init(const device_t *info)
 
 const device_t um8669f_device = {
     "UMC UM8669F Super I/O",
+    "um8669f",
     0,
     0,
     um8669f_init, um8669f_close, NULL,

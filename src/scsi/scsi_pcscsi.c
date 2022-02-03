@@ -2012,6 +2012,7 @@ static const device_config_t bios_enable_config[] = {
 const device_t dc390_pci_device =
 {
     "Tekram DC-390 PCI",
+    "dc390",
     DEVICE_PCI,
     0,
     dc390_init, esp_close, NULL,
@@ -2022,6 +2023,7 @@ const device_t dc390_pci_device =
 const device_t ncr53c90_mca_device =
 {
     "NCR 53c90 MCA",
+    "ncr53c90",
     DEVICE_MCA,
     0,
     ncr53c90_mca_init, esp_close, NULL,

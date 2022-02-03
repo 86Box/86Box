@@ -244,6 +244,7 @@ lm75_init(const device_t *info)
 /* LM75 on SMBus address 4Ah, reporting temperatures[1]. */
 const device_t lm75_1_4a_device = {
     "National Semiconductor LM75 Temperature Sensor",
+    "lm75_1_4a",
     DEVICE_ISA,
     0x14a,
     lm75_init, lm75_close, NULL,
@@ -256,6 +257,7 @@ const device_t lm75_1_4a_device = {
    the Winbond W83781D family. Not to be used stand-alone. */
 const device_t lm75_w83781d_device = {
     "Winbond W83781D Secondary Temperature Sensor",
+    "lm75_w83781d",
     DEVICE_ISA,
     0,
     lm75_init, lm75_close, NULL,

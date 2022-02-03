@@ -763,6 +763,7 @@ via_apollo_close(void *priv)
 const device_t via_vpx_device =
 {
     "VIA Apollo VPX",
+    "via_vpx",
     DEVICE_PCI,
     VIA_585,	/*VT82C585*/
     via_apollo_init, 
@@ -777,6 +778,7 @@ const device_t via_vpx_device =
 const device_t amd640_device =
 {
     "AMD 640 System Controller",
+    "amd640",
     DEVICE_PCI,
     VIA_595,	/*VT82C595*/
     via_apollo_init, 
@@ -791,6 +793,7 @@ const device_t amd640_device =
 const device_t via_vp3_device =
 {
     "VIA Apollo VP3",
+    "via_vp3",
     DEVICE_PCI,
     VIA_597,	/*VT82C597*/
     via_apollo_init, 
@@ -805,6 +808,7 @@ const device_t via_vp3_device =
 const device_t via_mvp3_device =
 {
     "VIA Apollo MVP3",
+    "via_mvp3",
     DEVICE_PCI,
     VIA_598,	/*VT82C598MVP*/
     via_apollo_init, 
@@ -818,6 +822,7 @@ const device_t via_mvp3_device =
 
 const device_t via_apro_device = {
     "VIA Apollo Pro",
+    "via_apro",
     DEVICE_PCI,
     VIA_691,	/*VT82C691*/
     via_apollo_init,
@@ -831,6 +836,7 @@ const device_t via_apro_device = {
 
 const device_t via_apro133_device = {
     "VIA Apollo Pro133",
+    "via_apro133",
     DEVICE_PCI,
     VIA_693A,	/*VT82C693A*/
     via_apollo_init,
@@ -844,6 +850,7 @@ const device_t via_apro133_device = {
 
 const device_t via_apro133a_device = {
     "VIA Apollo Pro133A",
+    "via_apro_133a",
     DEVICE_PCI,
     VIA_694,	/*VT82C694X*/
     via_apollo_init,
@@ -857,6 +864,7 @@ const device_t via_apro133a_device = {
 
 const device_t via_vt8601_device = {
     "VIA Apollo ProMedia",
+    "via_vt8601",
     DEVICE_PCI,
     VIA_8601,	/*VT8601*/
     via_apollo_init,

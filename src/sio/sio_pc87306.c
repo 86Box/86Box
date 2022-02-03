@@ -421,6 +421,7 @@ pc87306_init(const device_t *info)
 
 const device_t pc87306_device = {
     "National Semiconductor PC87306 Super I/O",
+    "pc87306",
     0,
     0,
     pc87306_init, pc87306_close, NULL,

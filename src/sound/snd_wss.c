@@ -244,6 +244,7 @@ static const device_config_t wss_config[] = {
 const device_t wss_device =
 {
     "Windows Sound System",
+    "wss",
     DEVICE_ISA | DEVICE_AT, 0,
     wss_init, wss_close, NULL,
     { NULL },
@@ -255,6 +256,7 @@ const device_t wss_device =
 const device_t ncr_business_audio_device =
 {
     "NCR Business Audio",
+    "ncraudio",
     DEVICE_MCA, 0,
     ncr_audio_init, wss_close, NULL,
     { NULL },

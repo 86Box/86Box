@@ -317,6 +317,7 @@ fdc37m60x_init(const device_t *info)
 
 const device_t fdc37m60x_device = {
     "SMSC FDC37M60X",
+    "fdc37m60x",
     0,
     0x03f0,
     fdc37m60x_init,
@@ -330,6 +331,7 @@ const device_t fdc37m60x_device = {
 
 const device_t fdc37m60x_370_device = {
     "SMSC FDC37M60X with 10K Pull Up Resistor",
+    "fdc37m60x_370",
     0,
     0x0370,
     fdc37m60x_init,

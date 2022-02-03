@@ -743,6 +743,7 @@ static const device_config_t threec503_config[] =
 
 const device_t threec503_device = {
     "3Com EtherLink II",
+    "3c503",
     DEVICE_ISA,
     0,
     threec503_nic_init, threec503_nic_close, NULL,

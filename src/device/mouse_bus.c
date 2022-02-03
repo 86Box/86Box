@@ -833,6 +833,7 @@ static const device_config_t ms_config[] = {
 
 const device_t mouse_logibus_device = {
     "Logitech/Microsoft Bus Mouse",
+    "logibus",
     DEVICE_ISA,
     MOUSE_TYPE_LOGIBUS,
     bm_init, bm_close, NULL,
@@ -842,6 +843,7 @@ const device_t mouse_logibus_device = {
 
 const device_t mouse_logibus_onboard_device = {
     "Logitech Bus Mouse (On-Board)",
+    "logibus_onboard",
     DEVICE_ISA,
     MOUSE_TYPE_LOGIBUS | MOUSE_TYPE_ONBOARD,
     bm_init, bm_close, NULL,
@@ -850,6 +852,7 @@ const device_t mouse_logibus_onboard_device = {
 
 const device_t mouse_msinport_device = {
     "Microsoft Bus Mouse (InPort)",
+    "msbus",
     DEVICE_ISA,
     MOUSE_TYPE_INPORT,
     bm_init, bm_close, NULL,
