@@ -269,6 +269,7 @@ prime3b_init(const device_t *info)
 
 const device_t prime3b_device = {
     "Goldstar Prime3B",
+    "prime3b",
     0,
     0,
     prime3b_init,
@@ -281,6 +282,7 @@ const device_t prime3b_device = {
 
 const device_t prime3b_ide_device = {
     "Goldstar Prime3B with IDE functionality",
+    "prime3b_ide",
     0,
     1,
     prime3b_init,

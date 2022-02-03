@@ -1352,6 +1352,7 @@ ps1_hdc_close(void *priv)
 
 const device_t ps1_hdc_device = {
     "PS/1 2011 Fixed Disk Controller",
+    "ps1_hdc",
     DEVICE_ISA | DEVICE_PS2,
     0,
     ps1_hdc_init, ps1_hdc_close, NULL,

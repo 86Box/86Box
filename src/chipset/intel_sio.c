@@ -548,6 +548,7 @@ sio_init(const device_t *info)
 const device_t sio_device =
 {
     "Intel 82378IB (SIO)",
+    "sio",
     DEVICE_PCI,
     0x00,
     sio_init,
@@ -563,6 +564,7 @@ const device_t sio_device =
 const device_t sio_zb_device =
 {
     "Intel 82378ZB (SIO)",
+    "sio_zb",
     DEVICE_PCI,
     0x03,
     sio_init,

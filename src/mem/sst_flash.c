@@ -478,6 +478,7 @@ sst_close(void *p)
 const device_t sst_flash_29ee010_device =
 {
     "SST 29EE010 Flash BIOS",
+    "sst_flash_29ee010",
     0,
     SST | SST29EE010 | SIZE_1M,
     sst_init,
@@ -490,6 +491,7 @@ const device_t sst_flash_29ee010_device =
 const device_t sst_flash_29ee020_device =
 {
     "SST 29EE020 Flash BIOS",
+    "sst_flash_29ee020",
     0,
     SST | SST29EE020 | SIZE_2M,
     sst_init,
@@ -502,6 +504,7 @@ const device_t sst_flash_29ee020_device =
 const device_t winbond_flash_w29c020_device =
 {
     "Winbond W29C020 Flash BIOS",
+    "winbond_flash_w29c020",
     0,
     WINBOND | W29C020 | SIZE_2M,
     sst_init,
@@ -514,6 +517,7 @@ const device_t winbond_flash_w29c020_device =
 const device_t sst_flash_39sf010_device =
 {
     "SST 39SF010 Flash BIOS",
+    "sst_flash_39sf010",
     0,
     SST | SST39SF010 | SIZE_1M,
     sst_init,
@@ -526,6 +530,7 @@ const device_t sst_flash_39sf010_device =
 const device_t sst_flash_39sf020_device =
 {
     "SST 39SF020 Flash BIOS",
+    "sst_flash_39sf020",
     0,
     SST | SST39SF020 | SIZE_2M,
     sst_init,
@@ -537,6 +542,7 @@ const device_t sst_flash_39sf020_device =
 const device_t sst_flash_39sf040_device =
 {
     "SST 39SF040 Flash BIOS",
+    "sst_flash_39sf040",
     0,
     SST | SST39SF040 | SIZE_4M,
     sst_init,

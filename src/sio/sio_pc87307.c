@@ -593,6 +593,7 @@ pc87307_init(const device_t *info)
 
 const device_t pc87307_device = {
     "National Semiconductor PC87307 Super I/O",
+    "pc87307",
     0,
     0x1c0,
     pc87307_init, pc87307_close, NULL,
@@ -603,6 +604,7 @@ const device_t pc87307_device = {
 
 const device_t pc87307_15c_device = {
     "National Semiconductor PC87307 Super I/O (Port 15Ch)",
+    "pc87307_15c",
     0,
     0x2c0,
     pc87307_init, pc87307_close, NULL,
@@ -613,6 +615,7 @@ const device_t pc87307_15c_device = {
 
 const device_t pc87307_both_device = {
     "National Semiconductor PC87307 Super I/O (Ports 2Eh and 15Ch)",
+    "pc87307_both",
     0,
     0x3c0,
     pc87307_init, pc87307_close, NULL,
@@ -623,6 +626,7 @@ const device_t pc87307_both_device = {
 
 const device_t pc97307_device = {
     "National Semiconductor PC97307 Super I/O",
+    "pc97307",
     0,
     0x1cf,
     pc87307_init, pc87307_close, NULL,

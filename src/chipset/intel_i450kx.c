@@ -809,6 +809,7 @@ i450kx_init(const device_t *info)
 
 const device_t i450kx_device = {
     "Intel 450KX (Mars)",
+    "i450kx",
     DEVICE_PCI,
     0,
     i450kx_init,

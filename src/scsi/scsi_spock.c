@@ -1179,6 +1179,7 @@ static const device_config_t spock_rom_config[] = {
 const device_t spock_device =
 {
 	"IBM PS/2 SCSI Adapter (Spock)",
+	"spock",
 	DEVICE_MCA,
 	0,
 	spock_init, spock_close, NULL,

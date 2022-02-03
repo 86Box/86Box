@@ -1545,6 +1545,7 @@ scat_init(const device_t *info)
 
 const device_t scat_device = {
     "C&T SCAT (v1)",
+    "scat",
     0,
     0,
     scat_init, scat_close, NULL,
@@ -1554,6 +1555,7 @@ const device_t scat_device = {
 
 const device_t scat_4_device = {
     "C&T SCAT (v4)",
+    "scat_4",
     0,
     4,
     scat_init, scat_close, NULL,
@@ -1563,6 +1565,7 @@ const device_t scat_4_device = {
 
 const device_t scat_sx_device = {
     "C&T SCATsx",
+    "scat_sx",
     0,
     32,
     scat_init, scat_close, NULL,

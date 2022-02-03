@@ -629,6 +629,7 @@ ali1489_init(const device_t *info)
 
 const device_t ali1489_device = {
     "ALi M1489",
+    "ali1489",
     0,
     0,
     ali1489_init,

@@ -304,6 +304,7 @@ vt82c686_init(const device_t *info)
 
 const device_t via_vt82c686_sio_device = {
     "VIA VT82C686 Integrated Super I/O",
+    "via_vt82c686_sio",
     0,
     0,
     vt82c686_init, vt82c686_close, NULL,

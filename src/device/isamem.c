@@ -694,6 +694,7 @@ static const device_config_t ibmxt_config[] =
 
 static const device_t ibmxt_device = {
     "IBM PC/XT Memory Expansion",
+    "ibmxt",
     DEVICE_ISA,
     ISAMEM_IBMXT_CARD,
     isamem_init, isamem_close, NULL,
@@ -721,6 +722,7 @@ static const device_config_t genericxt_config[] =
 
 static const device_t genericxt_device = {
     "Generic PC/XT Memory Expansion",
+    "genericxt",
     DEVICE_ISA,
     ISAMEM_GENXT_CARD,
     isamem_init, isamem_close, NULL,
@@ -748,6 +750,7 @@ static const device_config_t ibmat_config[] =
 
 static const device_t ibmat_device = {
     "IBM PC/AT Memory Expansion",
+    "ibmat",
     DEVICE_ISA,
     ISAMEM_IBMAT_CARD,
     isamem_init, isamem_close, NULL,
@@ -775,6 +778,7 @@ static const device_config_t genericat_config[] =
 
 static const device_t genericat_device = {
     "Generic PC/AT Memory Expansion",
+    "genericat",
     DEVICE_ISA,
     ISAMEM_GENAT_CARD,
     isamem_init, isamem_close, NULL,
@@ -802,6 +806,7 @@ static const device_config_t p5pak_config[] =
 
 static const device_t p5pak_device = {
     "Paradise Systems 5-PAK",
+    "p5pak",
     DEVICE_ISA,
     ISAMEM_P5PAK_CARD,
     isamem_init, isamem_close, NULL,
@@ -829,6 +834,7 @@ static const device_config_t a6pak_config[] =
 
 static const device_t a6pak_device = {
     "AST SixPakPlus",
+    "a6pak",
     DEVICE_ISA,
     ISAMEM_A6PAK_CARD,
     isamem_init, isamem_close, NULL,
@@ -875,6 +881,7 @@ static const device_config_t ems5150_config[] =
 
 static const device_t ems5150_device = {
     "Micro Mainframe EMS-5150(T)",
+    "ems5150",
     DEVICE_ISA,
     ISAMEM_EMS5150_CARD,
     isamem_init, isamem_close, NULL,
@@ -978,6 +985,7 @@ static const device_config_t ev159_config[] =
 
 static const device_t ev159_device = {
     "Everex EV-159 RAM 3000 Deluxe",
+    "ev159",
     DEVICE_ISA,
     ISAMEM_EV159_CARD,
     isamem_init, isamem_close, NULL,
@@ -1067,6 +1075,7 @@ static const device_config_t brat_config[] =
 
 static const device_t brat_device = {
     "BocaRAM/AT",
+    "brat",
     DEVICE_ISA,
     ISAMEM_BRAT_CARD,
     isamem_init, isamem_close, NULL,
@@ -1169,6 +1178,7 @@ static const device_config_t rampage_config[] =
 
 static const device_t rampage_device = {
     "AST RAMpage/XT",
+    "rampage",
     DEVICE_ISA,
     ISAMEM_RAMPAGEXT_CARD,
     isamem_init, isamem_close, NULL,
@@ -1271,6 +1281,7 @@ static const device_config_t iab_config[] =
 
 static const device_t iab_device = {
     "Intel AboveBoard",
+    "iab",
     DEVICE_ISA,
     ISAMEM_ABOVEBOARD_CARD,
     isamem_init, isamem_close, NULL,
@@ -1280,29 +1291,38 @@ static const device_t iab_device = {
 #endif
 
 
+static const device_t isa_none_device = {
+    "None",
+    "none",
+    0, 0,
+    NULL, NULL, NULL,
+    { NULL }, NULL, NULL,
+    NULL
+};
+
+
 static const struct {
-    const char		*internal_name;
     const device_t	*dev;
 } boards[] = {
-    { "none",		NULL				},
-    { "ibmxt",		&ibmxt_device		},
-    { "genericxt",	&genericxt_device	},
-    { "ibmat",		&ibmat_device		},
-    { "genericat",	&genericat_device	},
-    { "p5pak",		&p5pak_device		},
-    { "a6pak",		&a6pak_device		},
-    { "ems5150",	&ems5150_device		},
-    { "ev159",		&ev159_device		},
+    { &isa_none_device		},
+    { &ibmxt_device		},
+    { &genericxt_device		},
+    { &ibmat_device		},
+    { &genericat_device		},
+    { &p5pak_device		},
+    { &a6pak_device		},
+    { &ems5150_device		},
+    { &ev159_device		},
 #ifdef USE_ISAMEM_BRAT
-    { "brat",		&brat_device		},
+    { &brat_device		},
 #endif
 #ifdef USE_ISAMEM_RAMPAGE
-    { "rampage",	&rampage_device		},
+    { &rampage_device		},
 #endif
 #ifdef USE_ISAMEM_IAB
-    { "iab",		&iab_device			},
+    { &iab_device		},
 #endif
-    { "",			NULL				}
+    { NULL			}
 };
 
 
@@ -1336,7 +1356,7 @@ isamem_get_name(int board)
 const char *
 isamem_get_internal_name(int board)
 {
-    return(boards[board].internal_name);
+    return device_get_internal_name(boards[board].dev);
 }
 
 
@@ -1346,8 +1366,8 @@ isamem_get_from_internal_name(const char *s)
 {
     int c = 0;
 
-    while (boards[c].internal_name != NULL) {
-	if (! strcmp(boards[c].internal_name, s))
+    while (boards[c].dev != NULL) {
+	if (! strcmp(boards[c].dev->internal_name, s))
 		return(c);
 	c++;
     }

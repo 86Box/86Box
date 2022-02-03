@@ -177,6 +177,7 @@ opti5x7_init(const device_t *info)
 
 const device_t opti5x7_device = {
     "OPTi 82C5x6/82C5x7",
+    "opti5x7",
     0,
     0,
     opti5x7_init,

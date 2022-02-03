@@ -477,6 +477,7 @@ acc3221_init(const device_t *info)
 
 const device_t acc3221_device = {
     "ACC 3221-SP Super I/O",
+    "acc3221",
     0,
     0,
     acc3221_init, acc3221_close, NULL,

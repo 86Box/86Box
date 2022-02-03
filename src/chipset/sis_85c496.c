@@ -622,6 +622,7 @@ static void
 const device_t sis_85c496_device =
 {
     "SiS 85c496/85c497",
+    "sis_85c496",
     DEVICE_PCI,
     0,
     sis_85c496_init, 
@@ -637,6 +638,7 @@ const device_t sis_85c496_device =
 const device_t sis_85c496_ls486e_device =
 {
     "SiS 85c496/85c497 (Lucky Star LS-486E)",
+    "sis_85c496_ls486e",
     DEVICE_PCI,
     1,
     sis_85c496_init, 

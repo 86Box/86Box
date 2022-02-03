@@ -1601,6 +1601,7 @@ static void
 const device_t piix_device =
 {
     "Intel 82371FB (PIIX)",
+    "piix",
     DEVICE_PCI,
     0x122e0101,
     piix_init, 
@@ -1615,6 +1616,7 @@ const device_t piix_device =
 const device_t piix_rev02_device =
 {
     "Intel 82371FB (PIIX) (Faulty BusMastering!!)",
+    "piix_rev02",
     DEVICE_PCI,
     0x122e0121,
     piix_init, 
@@ -1629,6 +1631,7 @@ const device_t piix_rev02_device =
 const device_t piix3_device =
 {
     "Intel 82371SB (PIIX3)",
+    "piix3",
     DEVICE_PCI,
     0x70000403,
     piix_init, 
@@ -1643,6 +1646,7 @@ const device_t piix3_device =
 const device_t piix4_device =
 {
     "Intel 82371AB/EB (PIIX4/PIIX4E)",
+    "piix4",
     DEVICE_PCI,
     0x71100004,
     piix_init, 
@@ -1657,6 +1661,7 @@ const device_t piix4_device =
 const device_t piix4e_device =
 {
     "Intel 82371EB (PIIX4E)",
+    "piix4e",
     DEVICE_PCI,
     0x71100094,
     piix_init, 
@@ -1671,6 +1676,7 @@ const device_t piix4e_device =
 const device_t slc90e66_device =
 {
     "SMSC SLC90E66 (Victory66)",
+    "slc90e66",
     DEVICE_PCI,
     0x94600005,
     piix_init, 

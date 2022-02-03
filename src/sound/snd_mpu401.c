@@ -1902,6 +1902,7 @@ static const device_config_t mpu401_standalone_mca_config[] =
 
 const device_t mpu401_device = {
     "Roland MPU-IPC-T",
+    "mpu401",
     DEVICE_ISA, 0,
     mpu401_standalone_init, mpu401_standalone_close, NULL,
     { NULL },
@@ -1912,6 +1913,7 @@ const device_t mpu401_device = {
 
 const device_t mpu401_mca_device = {
     "Roland MPU-IMC",
+    "mpu401_mca",
     DEVICE_MCA, 0,
     mpu401_standalone_init, mpu401_standalone_close, NULL,
     { NULL },

@@ -398,6 +398,7 @@ ct_82c100_init(const device_t *info)
 
 const device_t ct_82c100_device = {
     "C&T 82C100",
+    "ct_82c100",
     0,
     0,
     ct_82c100_init, ct_82c100_close, ct_82c100_reset,

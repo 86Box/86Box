@@ -191,6 +191,7 @@ vl82c480_init(const device_t *info)
 
 const device_t vl82c480_device = {
     "VLSI VL82c480",
+    "vl82c480",
     0,
     0x90,
     vl82c480_init, vl82c480_close, NULL,
@@ -201,6 +202,7 @@ const device_t vl82c480_device = {
 
 const device_t vl82c486_device = {
     "VLSI VL82c486",
+    "vl82c486",
     0,
     0x98,
     vl82c480_init, vl82c480_close, NULL,

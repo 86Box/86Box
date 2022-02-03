@@ -1694,6 +1694,7 @@ static const device_config_t radius_svga_multiview_config[] =
 const device_t g2_gc205_device =
 {
     "G2 GC205",
+    "g2_gc205",
     DEVICE_ISA,
     0x7070,
     g2_gc205_init,
@@ -1707,6 +1708,7 @@ const device_t g2_gc205_device =
 const device_t v7_vga_1024i_device =
 {
     "Video 7 VGA 1024i (HT208)",
+    "v7_vga_1024i",
     DEVICE_ISA,
     0x7140,
     v7_vga_1024i_init,
@@ -1721,6 +1723,7 @@ const device_t v7_vga_1024i_device =
 const device_t ht216_32_pb410a_device =
 {
     "Headland HT216-32 (Packard Bell PB410A)",
+    "ht216_32_pb410a",
     DEVICE_VLB,
     0x7861,	/*HT216-32*/
     ht216_pb410a_init,
@@ -1734,6 +1737,7 @@ const device_t ht216_32_pb410a_device =
 const device_t ht216_32_standalone_device =
 {
     "Headland HT216-32",
+    "ht216_32",
     DEVICE_VLB,
     0x7861,	/*HT216-32*/
     ht216_standalone_init,
@@ -1748,6 +1752,7 @@ const device_t ht216_32_standalone_device =
 const device_t radius_svga_multiview_isa_device =
 {
     "Radius SVGA Multiview ISA (HT209)",
+    "radius_isa",
     DEVICE_ISA | DEVICE_AT,
     0x7152,	/*HT209*/
     radius_svga_multiview_init,
@@ -1762,6 +1767,7 @@ const device_t radius_svga_multiview_isa_device =
 const device_t radius_svga_multiview_mca_device =
 {
     "Radius SVGA Multiview MCA (HT209)",
+    "radius_mc",
     DEVICE_MCA,
     0x7152,	/*HT209*/
     radius_svga_multiview_init,

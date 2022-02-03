@@ -184,6 +184,7 @@ void vga_force_redraw(void *p)
 const device_t vga_device =
 {
         "VGA",
+        "vga",
         DEVICE_ISA,
 	0,
         vga_init,
@@ -198,6 +199,7 @@ const device_t vga_device =
 const device_t ps1vga_device =
 {
         "PS/1 VGA",
+        "ps1vga",
         DEVICE_ISA,
 	0,
         ps1vga_init,
@@ -212,6 +214,7 @@ const device_t ps1vga_device =
 const device_t ps1vga_mca_device =
 {
         "PS/1 VGA",
+        "ps1vga_mca",
         DEVICE_MCA,
 	0,
         ps1vga_init,

@@ -565,6 +565,7 @@ intel_flash_close(void *p)
 const device_t intel_flash_bxt_ami_device =
 {
     "Intel 28F001BXT/28F002BXT/28F004BXT Flash BIOS",
+    "intel_flash_bxt_ami",
     DEVICE_PCI,
     FLAG_INV_A16,
     intel_flash_init,
@@ -577,6 +578,7 @@ const device_t intel_flash_bxt_ami_device =
 const device_t intel_flash_bxt_device =
 {
     "Intel 28F001BXT/28F002BXT/28F004BXT Flash BIOS",
+    "intel_flash_bxt",
     DEVICE_PCI, 0,
     intel_flash_init,
     intel_flash_close,
@@ -588,6 +590,7 @@ const device_t intel_flash_bxt_device =
 const device_t intel_flash_bxb_device =
 {
     "Intel 28F001BXB/28F002BXB/28F004BXB Flash BIOS",
+    "intel_flash_bxb",
     DEVICE_PCI, FLAG_BXB,
     intel_flash_init,
     intel_flash_close,

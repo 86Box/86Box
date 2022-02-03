@@ -715,6 +715,7 @@ cassette_init(const device_t *info)
 
 const device_t cassette_device = {
     "IBM PC/PCjr Cassette Device",
+    "cassette",
     0,
     0,
     cassette_init, cassette_close, NULL,

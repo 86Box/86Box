@@ -2103,6 +2103,7 @@ static const device_config_t es1371_config[] =
 const device_t es1371_device =
 {
     "Ensoniq AudioPCI (ES1371)",
+    "es1371",
     DEVICE_PCI,
     0,
     es1371_init,
@@ -2117,6 +2118,7 @@ const device_t es1371_device =
 const device_t es1371_onboard_device =
 {
     "Ensoniq AudioPCI (ES1371) (On-Board)",
+    "es1371_onboard",
     DEVICE_PCI,
     1,
     es1371_init,

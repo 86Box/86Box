@@ -265,6 +265,7 @@ static const device_config_t pssj_isa_config[] =
 const device_t pssj_device =
 {
     "Tandy PSSJ",
+    "pssj",
     0,
     0,
     pssj_init,
@@ -278,6 +279,7 @@ const device_t pssj_device =
 const device_t pssj_1e0_device =
 {
     "Tandy PSSJ (port 1e0h)",
+    "pssj_1e0",
     0,
     0,
     pssj_1e0_init,
@@ -291,6 +293,7 @@ const device_t pssj_1e0_device =
 const device_t pssj_isa_device =
 {
     "Tandy PSSJ Clone",
+    "pssj_isa",
     DEVICE_ISA,
     0,
     pssj_isa_init,

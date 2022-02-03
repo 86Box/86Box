@@ -265,6 +265,7 @@ vid_init(const device_t *info)
 
 const device_t ibm_ps1_2121_device = {
     "IBM PS/1 Model 2121 SVGA",
+    "ibm_ps1_2121",
     DEVICE_ISA,
     512,
     vid_init, vid_close, NULL,

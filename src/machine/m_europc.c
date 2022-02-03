@@ -690,6 +690,7 @@ static const device_config_t europc_config[] = {
 
 const device_t europc_device = {
     "EuroPC System Board",
+    "europc",
     0, 0,
     europc_boot, europc_close, NULL,
     { NULL }, NULL, NULL,

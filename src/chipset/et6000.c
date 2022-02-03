@@ -150,6 +150,7 @@ et6000_init(const device_t *info)
 
 const device_t et6000_device = {
     "ETEQ Cheetah ET6000",
+    "et6000",
     0,
     0,
     et6000_init,

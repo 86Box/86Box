@@ -361,6 +361,7 @@ vt82c49x_init(const device_t *info)
 
 const device_t via_vt82c49x_device = {
     "VIA VT82C49X",
+    "via_vt82c49x",
     0,
     0,
     vt82c49x_init, vt82c49x_close, NULL,
@@ -371,6 +372,7 @@ const device_t via_vt82c49x_device = {
 
 const device_t via_vt82c49x_pci_device = {
     "VIA VT82C49X PCI",
+    "via_vt82c49x_pci",
     DEVICE_PCI,
     0,
     vt82c49x_init, vt82c49x_close, vt82c49x_reset,
@@ -381,6 +383,7 @@ const device_t via_vt82c49x_pci_device = {
 
 const device_t via_vt82c49x_ide_device = {
     "VIA VT82C49X (With IDE)",
+    "via_vt82c49x_ide",
     0,
     1,
     vt82c49x_init, vt82c49x_close, NULL,
@@ -391,6 +394,7 @@ const device_t via_vt82c49x_ide_device = {
 
 const device_t via_vt82c49x_pci_ide_device = {
     "VIA VT82C49X PCI (With IDE)",
+    "via_vt82c49x_pci_ide",
     DEVICE_PCI,
     1,
     vt82c49x_init, vt82c49x_close, vt82c49x_reset,

@@ -338,6 +338,7 @@ pc87332_init(const device_t *info)
 
 const device_t pc87332_device = {
     "National Semiconductor PC87332 Super I/O",
+    "pc87332",
     0,
     0x00,
     pc87332_init, pc87332_close, NULL,
@@ -348,6 +349,7 @@ const device_t pc87332_device = {
 
 const device_t pc87332_398_device = {
     "National Semiconductor PC87332 Super I/O (Port 398h)",
+    "pc87332_398",
     0,
     0x01,
     pc87332_init, pc87332_close, NULL,
@@ -358,6 +360,7 @@ const device_t pc87332_398_device = {
 
 const device_t pc87332_398_ide_device = {
     "National Semiconductor PC87332 Super I/O (Port 398h) (With IDE)",
+    "pc87332_398_ide",
     0,
     0x101,
     pc87332_init, pc87332_close, NULL,
@@ -368,6 +371,7 @@ const device_t pc87332_398_ide_device = {
 
 const device_t pc87332_398_ide_sec_device = {
     "National Semiconductor PC87332 Super I/O (Port 398h) (With Secondary IDE)",
+    "pc87332_398_ide_sec",
     0,
     0x201,
     pc87332_init, pc87332_close, NULL,
@@ -378,6 +382,7 @@ const device_t pc87332_398_ide_sec_device = {
 
 const device_t pc87332_398_ide_fdcon_device = {
     "National Semiconductor PC87332 Super I/O (Port 398h) (With IDE and FDC on)",
+    "pc87332_398_ide_fdcon",
     0,
     0x10101,
     pc87332_init, pc87332_close, NULL,
