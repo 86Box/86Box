@@ -220,6 +220,8 @@ if(APPLE)
     else()
         install_qt5_plugin("Qt5::QCocoaIntegrationPlugin" QT_PLUGINS ${prefix})
         install_qt5_plugin("Qt5::QMacStylePlugin" QT_PLUGINS ${prefix})
+        install_qt5_plugin("Qt5::QICOPlugin" QT_PLUGINS ${prefix})
+        install_qt5_plugin("Qt5::QICNSPlugin" QT_PLUGINS ${prefix})
     endif()
     
     file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/qt.conf"
@@ -251,8 +253,9 @@ if(APPLE)
 
     install(CODE "include(BundleUtilities)
         fixup_bundle(\"${APPS}\" \"${QT_PLUGINS}\" \"${DIRS}\")")
-    endif()
+    endif()    
 endif()
+
 
 # Install our dependencies if using vcpkg
 if(VCPKG_TOOLCHAIN)
