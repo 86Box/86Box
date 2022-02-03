@@ -82,15 +82,15 @@ static void *filter_cd_audio_p = NULL;
 
 static const device_t sound_none_device = {
   "None",
-  "sound_none",
+  "none",
   0, 0,
   NULL, NULL, NULL,
   { NULL }, NULL, NULL,
   NULL
 };
 static const device_t sound_internal_device = {
-  "Internal Sound Card",
-  "sound_internal",
+  "Internal",
+  "internal",
   0, 0,
   NULL, NULL, NULL,
   { NULL }, NULL, NULL,
@@ -100,30 +100,30 @@ static const device_t sound_internal_device = {
 
 static const SOUND_CARD sound_cards[] =
 {
-    { &sound_none_device				},
-    { &sound_internal_device				},
+    { &sound_none_device		},
+    { &sound_internal_device		},
     { &adlib_device			},
     { &adgold_device			},
-    { &azt2316a_device		},
+    { &azt2316a_device			},
     { &azt1605_device			},
     { &cs4236b_device			},
     { &sb_1_device			},
     { &sb_15_device			},
     { &sb_2_device			},
-    { &sb_pro_v1_device		},
-    { &sb_pro_v2_device		},
+    { &sb_pro_v1_device			},
+    { &sb_pro_v2_device			},
     { &sb_16_device			},
-    { &sb_16_pnp_device		},
-    { &sb_32_pnp_device		},
-    { &sb_awe32_device		},
+    { &sb_16_pnp_device			},
+    { &sb_32_pnp_device			},
+    { &sb_awe32_device			},
     { &sb_awe32_pnp_device		},
     { &sb_awe64_gold_device		},
 #if defined(DEV_BRANCH) && defined(USE_PAS16)
     { &pas16_device			},
 #endif
-    { &pssj_isa_device		},
+    { &pssj_isa_device			},
     { &wss_device			},
-    { &adlib_mca_device		},
+    { &adlib_mca_device			},
     { &ncr_business_audio_device	},
     { &sb_mcv_device			},
     { &sb_pro_mcv_device		},
@@ -183,7 +183,7 @@ sound_card_has_config(int card)
 char *
 sound_card_get_internal_name(int card)
 {
-    return (char *) sound_cards[card].device->internal_name;
+    return device_get_internal_name(sound_cards[card].device);
 }
 
 
@@ -192,7 +192,7 @@ sound_card_get_from_internal_name(char *s)
 {
     int c = 0;
 
-    while (strlen((char *) sound_cards[c].device->internal_name)) {
+    while (sound_cards[c].device != NULL) {
 	if (!strcmp((char *) sound_cards[c].device->internal_name, s))
 		return c;
 	c++;

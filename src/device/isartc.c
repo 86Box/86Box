@@ -748,7 +748,7 @@ static const device_t a6pak_device = {
 
 static const device_t isartc_none_device = {
     "None",
-    "isartc_none",
+    "none",
     0, 0,
     NULL, NULL, NULL,
     { NULL }, NULL, NULL,
@@ -760,11 +760,11 @@ static const struct {
     const device_t	*dev;
 } boards[] = {
     { &isartc_none_device	},
-    { &ev170_device	},
-    { &pii147_device	},
-    { &p5pak_device	},
-    { &a6pak_device	},
-    { NULL		},
+    { &ev170_device		},
+    { &pii147_device		},
+    { &p5pak_device		},
+    { &a6pak_device		},
+    { NULL			},
 };
 
 
@@ -781,7 +781,7 @@ isartc_reset(void)
 char *
 isartc_get_internal_name(int board)
 {
-    return((char *)boards[board].dev->internal_name);
+    return device_get_internal_name(boards[board].dev);
 }
 
 
@@ -790,7 +790,7 @@ isartc_get_from_internal_name(char *s)
 {
     int c = 0;
 
-    while (strlen((char *) boards[c].dev->internal_name)) {
+    while (boards[c].dev != NULL) {
 	if (! strcmp(boards[c].dev->internal_name, s))
 		return(c);
 	c++;

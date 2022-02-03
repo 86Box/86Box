@@ -823,7 +823,7 @@ const device_t compaq_ati28800_device =
 const device_t ati28800_wonderxl24_device =
 {
         "ATI-28800 (VGA Wonder XL24)",
-        "ati28800_wonderxl24",
+        "ati28800w",
         DEVICE_ISA,
 	VGAWONDERXL24,
         ati28800_init, ati28800_close, NULL,

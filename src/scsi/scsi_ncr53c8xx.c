@@ -2660,7 +2660,7 @@ static const device_config_t ncr53c8xx_pci_config[] = {
 const device_t ncr53c810_pci_device =
 {
     "NCR 53c810",
-    "ncr53c810_pci",
+    "ncr53c810",
     DEVICE_PCI,
     CHIP_810,
     ncr53c8xx_init, ncr53c8xx_close, NULL,
@@ -2671,7 +2671,7 @@ const device_t ncr53c810_pci_device =
 const device_t ncr53c810_onboard_pci_device =
 {
     "NCR 53c810 On-Board",
-    "ncr53c810_onboard_pci",
+    "ncr53c810_onboard",
     DEVICE_PCI,
     0x8001,
     ncr53c8xx_init, ncr53c8xx_close, NULL,
@@ -2682,7 +2682,7 @@ const device_t ncr53c810_onboard_pci_device =
 const device_t ncr53c815_pci_device =
 {
     "NCR 53c815",
-    "ncr53c815_pci",
+    "ncr53c815",
     DEVICE_PCI,
     CHIP_815,
     ncr53c8xx_init, ncr53c8xx_close, NULL,
@@ -2693,7 +2693,7 @@ const device_t ncr53c815_pci_device =
 const device_t ncr53c820_pci_device =
 {
     "NCR 53c820",
-    "ncr53c820_pci",
+    "ncr53c820",
     DEVICE_PCI,
     CHIP_820,
     ncr53c8xx_init, ncr53c8xx_close, NULL,
@@ -2704,7 +2704,7 @@ const device_t ncr53c820_pci_device =
 const device_t ncr53c825a_pci_device =
 {
     "NCR 53c825A",
-    "ncr53c825a_pci",
+    "ncr53c825a",
     DEVICE_PCI,
     CHIP_825,
     ncr53c8xx_init, ncr53c8xx_close, NULL,
@@ -2715,7 +2715,7 @@ const device_t ncr53c825a_pci_device =
 const device_t ncr53c860_pci_device =
 {
     "NCR 53c860",
-    "ncr53c860_pci",
+    "ncr53c860",
     DEVICE_PCI,
     CHIP_860,
     ncr53c8xx_init, ncr53c8xx_close, NULL,
@@ -2726,7 +2726,7 @@ const device_t ncr53c860_pci_device =
 const device_t ncr53c875_pci_device =
 {
     "NCR 53c875",
-    "ncr53c875_pci",
+    "ncr53c875",
     DEVICE_PCI,
     CHIP_875,
     ncr53c8xx_init, ncr53c8xx_close, NULL,

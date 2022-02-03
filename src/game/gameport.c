@@ -64,6 +64,7 @@ int		joystick_type = 0;
 
 static const joystick_if_t joystick_none = {
     "None",
+    "none",
     NULL,
     NULL,
     NULL,
@@ -77,21 +78,20 @@ static const joystick_if_t joystick_none = {
 
 
 static const struct {
-    const char		*internal_name;
     const joystick_if_t	*joystick;
 } joysticks[] = {
     { &joystick_none			},
-    { &joystick_2axis_2button	},
-    { &joystick_2axis_4button	},
-    { &joystick_2axis_6button	},
-    { &joystick_2axis_8button	},
-    { &joystick_3axis_2button	},
-    { &joystick_3axis_4button	},
-    { &joystick_4axis_4button	},
+    { &joystick_2axis_2button		},
+    { &joystick_2axis_4button		},
+    { &joystick_2axis_6button		},
+    { &joystick_2axis_8button		},
+    { &joystick_3axis_2button		},
+    { &joystick_3axis_4button		},
+    { &joystick_4axis_4button		},
     { &joystick_ch_flightstick_pro	},
-    { &joystick_sw_pad		},
-    { &joystick_tm_fcs		},
-    { NULL					}
+    { &joystick_sw_pad			},
+    { &joystick_tm_fcs			},
+    { NULL				}
 };
 static joystick_instance_t *joystick_instance = NULL;
 
@@ -140,7 +140,10 @@ joystick_get_name(int js)
 char *
 joystick_get_internal_name(int js)
 {
-    return (char *) joysticks[js].internal_name;
+    if (joysticks[js].joystick == NULL)
+	return "";
+
+    return (char *) joysticks[js].joystick->internal_name;
 }
 
 
@@ -149,8 +152,8 @@ joystick_get_from_internal_name(char *s)
 {
     int c = 0;
 
-    while (strlen((char *) joysticks[c].internal_name)) {
-	if (!strcmp((char *) joysticks[c].internal_name, s))
+    while (joysticks[c].joystick != NULL) {
+	if (!strcmp((char *) joysticks[c].joystick->internal_name, s))
 		return c;
 	c++;
     }

@@ -900,7 +900,7 @@ static const device_config_t ltsermouse_config[] = {
 
 const device_t mouse_mssystems_device = {
     "Mouse Systems Serial Mouse",
-    "mouse_mssystems",
+    "mssystems",
     0,
     MOUSE_TYPE_MSYSTEMS,
     sermouse_init, sermouse_close, NULL,
@@ -910,7 +910,7 @@ const device_t mouse_mssystems_device = {
 
 const device_t mouse_msserial_device = {
     "Microsoft Serial Mouse",
-    "mouse_msserial",
+    "msserial",
     0,
     0,
     sermouse_init, sermouse_close, NULL,
@@ -920,7 +920,7 @@ const device_t mouse_msserial_device = {
 
 const device_t mouse_ltserial_device = {
     "Logitech Serial Mouse",
-    "mouse_ltserial",
+    "ltserial",
     0,
     1,
     sermouse_init, sermouse_close, NULL,

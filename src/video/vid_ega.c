@@ -249,7 +249,6 @@ ega_in(uint16_t addr, void *p)
 {
     ega_t *ega = (ega_t *)p;
     uint8_t ret = 0xff;
-    uint16_t port = addr;
 
     if (((addr & 0xfff0) == 0x3d0 || (addr & 0xfff0) == 0x3b0) && !(ega->miscout & 1)) 
 	addr ^= 0x60;
@@ -1260,7 +1259,7 @@ const device_t ega_device =
 const device_t cpqega_device =
 {
         "Compaq EGA",
-        "cpqega",
+        "compaq_ega",
         DEVICE_ISA,
 	EGA_COMPAQ,
         ega_standalone_init, ega_close, NULL,
@@ -1273,7 +1272,7 @@ const device_t cpqega_device =
 const device_t sega_device =
 {
         "SuperEGA",
-        "sega",
+        "superega",
         DEVICE_ISA,
 	EGA_SUPEREGA,
         ega_standalone_init, ega_close, NULL,
@@ -1286,7 +1285,7 @@ const device_t sega_device =
 const device_t atiega_device =
 {
         "ATI EGA Wonder 800+",
-        "atiega",
+        "egawonder800",
         DEVICE_ISA,
 	EGA_ATI,
         ega_standalone_init, ega_close, NULL,

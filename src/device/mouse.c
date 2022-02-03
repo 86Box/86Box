@@ -44,15 +44,15 @@ int	mouse_x,
 
 static const device_t mouse_none_device = {
     "None",
-    "mouse_none",
+    "none",
     0, MOUSE_TYPE_NONE,
     NULL, NULL, NULL,
     { NULL }, NULL, NULL,
     NULL
 };
 static const device_t mouse_internal_device = {
-    "Internal Mouse",
-    "mouse_internal",
+    "Internal",
+    "internal",
     0, MOUSE_TYPE_INTERNAL,
     NULL, NULL, NULL,
     { NULL }, NULL, NULL,
@@ -66,13 +66,13 @@ static mouse_t mouse_devices[] = {
     { &mouse_logibus_device	},
     { &mouse_msinport_device	},
 #if 0
-    { "genibus",	&mouse_genibus_device	},
+    { &mouse_genibus_device	},
 #endif
     { &mouse_mssystems_device	},
     { &mouse_msserial_device	},
     { &mouse_ltserial_device	},
-    { &mouse_ps2_device	},
-    { NULL,		NULL			}
+    { &mouse_ps2_device		},
+    { NULL			}
 };
 
 
@@ -207,7 +207,7 @@ mouse_get_name(int mouse)
 char *
 mouse_get_internal_name(int mouse)
 {
-    return((char *)mouse_devices[mouse].device->internal_name);
+    return device_get_internal_name(mouse_devices[mouse].device);
 }
 
 
@@ -216,7 +216,7 @@ mouse_get_from_internal_name(char *s)
 {
     int c = 0;
 
-    while (mouse_devices[c].device->internal_name != NULL) {
+    while (mouse_devices[c].device != NULL) {
 	if (! strcmp((char *)mouse_devices[c].device->internal_name, s))
 		return(c);
 	c++;

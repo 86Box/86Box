@@ -256,7 +256,7 @@ const device_t wss_device =
 const device_t ncr_business_audio_device =
 {
     "NCR Business Audio",
-    "ncr_business_audio",
+    "ncraudio",
     DEVICE_MCA, 0,
     ncr_audio_init, wss_close, NULL,
     { NULL },

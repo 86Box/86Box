@@ -2959,7 +2959,7 @@ static void banshee_force_redraw(void *p)
 const device_t voodoo_banshee_device =
 {
         "3dfx Voodoo Banshee",
-        "voodoo_banshee",
+        "voodoo_banshee_pci",
         DEVICE_PCI,
 	0,
         banshee_init,
@@ -2974,7 +2974,7 @@ const device_t voodoo_banshee_device =
 const device_t creative_voodoo_banshee_device =
 {
         "Creative 3D Blaster Banshee",
-        "creative_voodoo_banshee",
+        "ctl3d_banshee_pci",
         DEVICE_PCI,
 	0,
         creative_banshee_init,
@@ -2989,7 +2989,7 @@ const device_t creative_voodoo_banshee_device =
 const device_t voodoo_3_2000_device =
 {
         "3dfx Voodoo3 2000",
-        "voodoo_3_2000",
+        "voodoo3_2k_pci",
         DEVICE_PCI,
         0,
 	v3_2000_init,
@@ -3004,7 +3004,7 @@ const device_t voodoo_3_2000_device =
 const device_t voodoo_3_2000_agp_device =
 {
         "3dfx Voodoo3 2000",
-        "voodoo_3_2000_agp",
+        "voodoo3_2k_agp",
         DEVICE_AGP,
         0,
 	v3_2000_agp_init,
@@ -3019,7 +3019,7 @@ const device_t voodoo_3_2000_agp_device =
 const device_t voodoo_3_2000_agp_onboard_8m_device =
 {
         "3dfx Voodoo3 2000 (On-Board 8MB SGRAM)",
-        "voodoo_3_2000_agp_onboard_8m",
+        "voodoo3_2k_agp_onboard_8m",
         DEVICE_AGP,
         8,
 	v3_2000_agp_onboard_init,
@@ -3034,7 +3034,7 @@ const device_t voodoo_3_2000_agp_onboard_8m_device =
 const device_t voodoo_3_3000_device =
 {
         "3dfx Voodoo3 3000",
-        "voodoo_3_3000",
+        "voodoo3_3k_pci",
         DEVICE_PCI,
 	0,
         v3_3000_init,
@@ -3049,7 +3049,7 @@ const device_t voodoo_3_3000_device =
 const device_t voodoo_3_3000_agp_device =
 {
         "3dfx Voodoo3 3000",
-        "voodoo_3_3000_agp",
+        "voodoo3_3k_agp",
         DEVICE_AGP,
 	0,
         v3_3000_agp_init,
@@ -3064,7 +3064,7 @@ const device_t voodoo_3_3000_agp_device =
 const device_t velocity_100_agp_device =
 {
         "3dfx Velocity 100",
-        "velocity_100_agp",
+        "velocity100_agp",
         DEVICE_AGP,
         0,
 	velocity_100_agp_init,

@@ -115,6 +115,7 @@ static void tm_fcs_a0_over(void *p)
 const joystick_if_t joystick_tm_fcs =
 {
         "Thrustmaster Flight Control System",
+        "thrustmaster_fcs",
         tm_fcs_init,
         tm_fcs_close,
         tm_fcs_read,

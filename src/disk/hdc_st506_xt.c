@@ -1834,7 +1834,7 @@ static const device_config_t wd_rll_config[] = {
 
 const device_t st506_xt_xebec_device = {
     "IBM PC Fixed Disk Adapter (MFM)",
-    "st506_xt_xebec",
+    "st506_xt",
     DEVICE_ISA,
     (HDD_BUS_MFM << 8) | 0,
     st506_init, st506_close, NULL,

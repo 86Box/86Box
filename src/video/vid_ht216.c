@@ -1737,7 +1737,7 @@ const device_t ht216_32_pb410a_device =
 const device_t ht216_32_standalone_device =
 {
     "Headland HT216-32",
-    "ht216_32_standalone",
+    "ht216_32",
     DEVICE_VLB,
     0x7861,	/*HT216-32*/
     ht216_standalone_init,
@@ -1752,7 +1752,7 @@ const device_t ht216_32_standalone_device =
 const device_t radius_svga_multiview_isa_device =
 {
     "Radius SVGA Multiview ISA (HT209)",
-    "radius_svga_multiview_isa",
+    "radius_isa",
     DEVICE_ISA | DEVICE_AT,
     0x7152,	/*HT209*/
     radius_svga_multiview_init,
@@ -1767,7 +1767,7 @@ const device_t radius_svga_multiview_isa_device =
 const device_t radius_svga_multiview_mca_device =
 {
     "Radius SVGA Multiview MCA (HT209)",
-    "radius_svga_multiview_mca",
+    "radius_mc",
     DEVICE_MCA,
     0x7152,	/*HT209*/
     radius_svga_multiview_init,

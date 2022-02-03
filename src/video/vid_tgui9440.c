@@ -3233,7 +3233,7 @@ static const device_config_t tgui96xx_config[] =
 const device_t tgui9400cxi_device =
 {
         "Trident TGUI 9400CXi",
-        "tgui9400cxi",
+        "tgui9400cxi_vlb",
         DEVICE_VLB,
         TGUI_9400CXI,
         tgui_init,

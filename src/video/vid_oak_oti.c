@@ -569,7 +569,7 @@ static const device_config_t oti077_config[] =
 const device_t oti037c_device =
 {
 	"Oak OTI-037C",
-  "oti037c",
+	"oti037c",
 	DEVICE_ISA,
 	0,
 	oti_init, oti_close, NULL,
@@ -581,7 +581,7 @@ const device_t oti037c_device =
 const device_t oti067_device =
 {
 	"Oak OTI-067",
-  "oti067",
+	"oti067",
 	DEVICE_ISA,
 	2,
 	oti_init, oti_close, NULL,
@@ -594,7 +594,7 @@ const device_t oti067_device =
 const device_t oti067_m300_device =
 {
 	"Oak OTI-067 (Olivetti M300-08/15)",
-  "oti067_m300",
+	"oti067_m300",
 	DEVICE_ISA,
 	4,
 	oti_init, oti_close, NULL,
@@ -607,7 +607,7 @@ const device_t oti067_m300_device =
 const device_t oti067_ama932j_device =
 {
 	"Oak OTI-067 (AMA-932J)",
-  "oti067_ama932j",
+	"oti067_ama932j",
 	DEVICE_ISA,
 	3,
 	oti_init, oti_close, NULL,
@@ -620,7 +620,7 @@ const device_t oti067_ama932j_device =
 const device_t oti077_device =
 {
 	"Oak OTI-077",
-  "oti077",
+	"oti077",
 	DEVICE_ISA,
 	5,
 	oti_init, oti_close, NULL,

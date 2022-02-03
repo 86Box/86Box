@@ -1786,7 +1786,7 @@ static const device_config_t t128_config[] = {
 const device_t scsi_lcs6821n_device =
 {
     "Longshine LCS-6821N",
-    "scsi_lcs6821n",
+    "lcs6821n",
     DEVICE_ISA,
     0,
     ncr_init, ncr_close, NULL,
@@ -1798,7 +1798,7 @@ const device_t scsi_lcs6821n_device =
 const device_t scsi_rt1000b_device =
 {
     "Rancho RT1000B",
-    "scsi_rt1000b",
+    "rt1000b",
     DEVICE_ISA,
     1,
     ncr_init, ncr_close, NULL,
@@ -1810,7 +1810,7 @@ const device_t scsi_rt1000b_device =
 const device_t scsi_t130b_device =
 {
     "Trantor T130B",
-    "scsi_t130b",
+    "t130b",
     DEVICE_ISA,
     2,
     ncr_init, ncr_close, NULL,
@@ -1822,7 +1822,7 @@ const device_t scsi_t130b_device =
 const device_t scsi_t128_device =
 {
     "Trantor T128",
-    "scsi_t128",
+    "t128",
     DEVICE_ISA,
     3,
     ncr_init, ncr_close, NULL,

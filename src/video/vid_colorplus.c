@@ -468,7 +468,7 @@ static const device_config_t colorplus_config[] =
 const device_t colorplus_device =
 {
         "Colorplus",
-        "colorplus",
+        "plantronics",
         DEVICE_ISA, 0,
         colorplus_standalone_init,
         colorplus_close,

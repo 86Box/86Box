@@ -2603,7 +2603,7 @@ static const device_config_t sb_awe64_gold_config[] =
 const device_t sb_1_device =
 {
         "Sound Blaster v1.0",
-        "sb_1",
+        "sb",
         DEVICE_ISA,
 	0,
         sb_1_init, sb_close, NULL, { NULL },
@@ -2615,7 +2615,7 @@ const device_t sb_1_device =
 const device_t sb_15_device =
 {
         "Sound Blaster v1.5",
-        "sb_15",
+        "sb1.5",
         DEVICE_ISA,
 	0,
         sb_15_init, sb_close, NULL, { NULL },
@@ -2627,7 +2627,7 @@ const device_t sb_15_device =
 const device_t sb_mcv_device =
 {
         "Sound Blaster MCV",
-        "sb_mcv",
+        "sbmcv",
         DEVICE_MCA,
 	0,
         sb_mcv_init, sb_close, NULL, { NULL },
@@ -2639,7 +2639,7 @@ const device_t sb_mcv_device =
 const device_t sb_2_device =
 {
         "Sound Blaster v2.0",
-        "sb_2",
+        "sb2.0",
         DEVICE_ISA,
 	0,
         sb_2_init, sb_close, NULL, { NULL },
@@ -2651,7 +2651,7 @@ const device_t sb_2_device =
 const device_t sb_pro_v1_device =
 {
         "Sound Blaster Pro v1",
-        "sb_pro_v1",
+        "sbprov1",
         DEVICE_ISA,
 	0,
         sb_pro_v1_init, sb_close, NULL, { NULL },
@@ -2663,7 +2663,7 @@ const device_t sb_pro_v1_device =
 const device_t sb_pro_v2_device =
 {
         "Sound Blaster Pro v2",
-        "sb_pro_v2",
+        "sbprov2",
         DEVICE_ISA,
 	0,
         sb_pro_v2_init, sb_close, NULL, { NULL },
@@ -2675,7 +2675,7 @@ const device_t sb_pro_v2_device =
 const device_t sb_pro_mcv_device =
 {
         "Sound Blaster Pro MCV",
-        "sb_pro_mcv",
+        "sbpromcv",
         DEVICE_MCA,
 	0,
         sb_pro_mcv_init, sb_close, NULL, { NULL },
@@ -2687,7 +2687,7 @@ const device_t sb_pro_mcv_device =
 const device_t sb_pro_compat_device =
 {
         "Sound Blaster Pro (Compatibility)",
-        "sb_pro_compat",
+        "sbpro_compat",
         DEVICE_ISA | DEVICE_AT,
 	0,
         sb_pro_compat_init, sb_close, NULL, { NULL },
@@ -2699,7 +2699,7 @@ const device_t sb_pro_compat_device =
 const device_t sb_16_device =
 {
         "Sound Blaster 16",
-        "sb_16",
+        "sb16",
         DEVICE_ISA | DEVICE_AT,
 	0,
         sb_16_init, sb_close, NULL, { NULL },
@@ -2711,7 +2711,7 @@ const device_t sb_16_device =
 const device_t sb_16_pnp_device =
 {
         "Sound Blaster 16 PnP",
-        "sb_16_pnp",
+        "sb16_pnp",
         DEVICE_ISA | DEVICE_AT,
 	0,
         sb_16_pnp_init, sb_close, NULL, { NULL },
@@ -2723,7 +2723,7 @@ const device_t sb_16_pnp_device =
 const device_t sb_32_pnp_device =
 {
         "Sound Blaster 32 PnP",
-        "sb_32_pnp",
+        "sb32_pnp",
         DEVICE_ISA | DEVICE_AT,
 	0,
         sb_awe32_pnp_init, sb_awe32_close, NULL,
@@ -2737,7 +2737,7 @@ const device_t sb_32_pnp_device =
 const device_t sb_awe32_device =
 {
         "Sound Blaster AWE32",
-        "sb_awe32",
+        "sbawe32",
         DEVICE_ISA | DEVICE_AT,
 	0,
         sb_awe32_init, sb_awe32_close, NULL,
@@ -2750,7 +2750,7 @@ const device_t sb_awe32_device =
 const device_t sb_awe32_pnp_device =
 {
         "Sound Blaster AWE32 PnP",
-        "sb_awe32_pnp",
+        "sbawe32_pnp",
         DEVICE_ISA | DEVICE_AT,
 	1,
         sb_awe32_pnp_init, sb_awe32_close, NULL,
@@ -2763,7 +2763,7 @@ const device_t sb_awe32_pnp_device =
 const device_t sb_awe64_gold_device =
 {
         "Sound Blaster AWE64 Gold",
-        "sb_awe64_gold",
+        "sbawe64_gold",
         DEVICE_ISA | DEVICE_AT,
 	2,
         sb_awe32_pnp_init, sb_awe32_close, NULL,

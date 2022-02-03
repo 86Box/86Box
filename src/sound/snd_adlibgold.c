@@ -1024,7 +1024,7 @@ static const device_config_t adgold_config[] =
 const device_t adgold_device =
 {
         "AdLib Gold",
-        "adgold",
+        "adlibgold",
         DEVICE_ISA, 0,
         adgold_init,
         adgold_close,

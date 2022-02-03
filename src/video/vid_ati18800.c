@@ -284,7 +284,7 @@ static void ati18800_force_redraw(void *p)
 const device_t ati18800_wonder_device =
 {
         "ATI-18800",
-        "ati18800_wonder",
+        "ati18800w",
         DEVICE_ISA, ATI18800_WONDER,
         ati18800_init,
         ati18800_close,
@@ -299,7 +299,7 @@ const device_t ati18800_wonder_device =
 const device_t ati18800_vga88_device =
 {
         "ATI-18800-1",
-        "ati18800_vga88",
+        "ati18800v",
         DEVICE_ISA, ATI18800_VGA88,
         ati18800_init,
         ati18800_close,

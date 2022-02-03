@@ -354,7 +354,6 @@ const device_t pc87332_398_device = {
     0x01,
     pc87332_init, pc87332_close, NULL,
     { NULL }, NULL, NULL,
-    "pc87332",
     NULL
 };
 

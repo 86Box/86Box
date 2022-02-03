@@ -101,17 +101,9 @@ fdc_log(const char *fmt, ...)
 #endif
 
 
-const device_t fdc_none_device = {
-  "None",
-  "fdc_none",
-  0, 0,
-  NULL, NULL, NULL,
-  { NULL }, NULL, NULL,
-  NULL
-};
 const device_t fdc_internal_device = {
-  "None",
-  "fdc_internal",
+  "Internal",
+  "internal",
   0, 0,
   NULL, NULL, NULL,
   { NULL }, NULL, NULL,
@@ -125,12 +117,11 @@ typedef const struct {
 
 /* All emulated machines have at least one integrated FDC controller */
 static fdc_cards_t fdc_cards[] = {
-    { &fdc_none_device	},
     { &fdc_internal_device	},
-    { &fdc_b215_device  },
-    { &fdc_pii151b_device },
-    { &fdc_pii158b_device },
-    { NULL                }
+    { &fdc_b215_device  	},
+    { &fdc_pii151b_device 	},
+    { &fdc_pii158b_device 	},
+    { NULL			}
 };
 
 
@@ -163,7 +154,7 @@ fdc_card_has_config(int card)
 char *
 fdc_card_get_internal_name(int card)
 {
-    return((char *) fdc_cards[card].device->internal_name);
+    return device_get_internal_name(fdc_cards[card].device);
 }
 
 
@@ -172,7 +163,7 @@ fdc_card_get_from_internal_name(char *s)
 {
     int c = 0;
 
-    while (strlen((char *) fdc_cards[c].device->internal_name)) {
+    while (fdc_cards[c].device != NULL) {
 	if (!strcmp((char *) fdc_cards[c].device->internal_name, s))
 		return(c);
 	c++;

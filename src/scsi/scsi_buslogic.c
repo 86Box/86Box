@@ -1910,7 +1910,7 @@ static const device_config_t BT958D_Config[] = {
 
 const device_t buslogic_542b_device = {
 	"BusLogic BT-542B ISA",
-    "buslogic_542b_1991",
+	"bt542b",
 	DEVICE_ISA | DEVICE_AT,
 	CHIP_BUSLOGIC_ISA_542B_1991_12_14,
 	buslogic_init, x54x_close, NULL,
@@ -1920,7 +1920,7 @@ const device_t buslogic_542b_device = {
 
 const device_t buslogic_545s_device = {
 	"BusLogic BT-545S ISA",
-    "buslogic_545s",
+	"bt545s",
 	DEVICE_ISA | DEVICE_AT,
 	CHIP_BUSLOGIC_ISA_545S_1992_10_05,
 	buslogic_init, x54x_close, NULL,
@@ -1930,7 +1930,7 @@ const device_t buslogic_545s_device = {
 
 const device_t buslogic_542bh_device = {
 	"BusLogic BT-542BH ISA",
-    "buslogic",
+	"bt542bh",
 	DEVICE_ISA | DEVICE_AT,
 	CHIP_BUSLOGIC_ISA_542BH_1993_05_23,
 	buslogic_init, x54x_close, NULL,
@@ -1940,7 +1940,7 @@ const device_t buslogic_542bh_device = {
 
 const device_t buslogic_545c_device = {
 	"BusLogic BT-545C ISA",
-    "buslogic_545c",
+	"bt545c",
 	DEVICE_ISA | DEVICE_AT,
 	CHIP_BUSLOGIC_ISA_545C_1994_12_01,
 	buslogic_init, x54x_close, NULL,
@@ -1950,7 +1950,7 @@ const device_t buslogic_545c_device = {
 
 const device_t buslogic_640a_device = {
 	"BusLogic BT-640A MCA",
-    "buslogic_640a",
+	"bt640a",
 	DEVICE_MCA,
 	CHIP_BUSLOGIC_MCA_640A_1993_05_23,
 	buslogic_init, x54x_close, NULL,
@@ -1960,7 +1960,7 @@ const device_t buslogic_640a_device = {
 
 const device_t buslogic_445s_device = {
 	"BusLogic BT-445S VLB",
-    "buslogic_445s",
+	"bt445s",
 	DEVICE_VLB,
 	CHIP_BUSLOGIC_VLB_445S_1993_11_16,
 	buslogic_init, x54x_close, NULL,
@@ -1970,7 +1970,7 @@ const device_t buslogic_445s_device = {
 
 const device_t buslogic_445c_device = {
 	"BusLogic BT-445C VLB",
-    "buslogic_445c",
+	"bt445c",
 	DEVICE_VLB,
 	CHIP_BUSLOGIC_VLB_445C_1994_12_01,
 	buslogic_init, x54x_close, NULL,
@@ -1980,7 +1980,7 @@ const device_t buslogic_445c_device = {
 
 const device_t buslogic_958d_pci_device = {
 	"BusLogic BT-958D PCI",
-    "buslogic_pci",
+	"bt958d",
 	DEVICE_PCI,
 	CHIP_BUSLOGIC_PCI_958D_1995_12_30,
 	buslogic_init, x54x_close, NULL,

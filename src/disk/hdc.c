@@ -80,12 +80,12 @@ inthdc_close(void *priv)
 
 
 static const device_t hdc_none_device = {
-    "None", "hdc_none", 0, 0,
+    "None", "none", 0, 0,
     null_init, null_close, NULL,
     { NULL }, NULL, NULL, NULL
 };
 static const device_t hdc_internal_device = {
-    "Internal", "hdc_internal", 0, 0,
+    "Internal", "internal", 0, 0,
     inthdc_init, inthdc_close, NULL,
     { NULL }, NULL, NULL, NULL
 };
@@ -95,9 +95,9 @@ static const struct {
     const device_t	*device;
 } controllers[] = {
     { &hdc_none_device			},
-    { &hdc_internal_device			},
+    { &hdc_internal_device		},
     { &st506_xt_xebec_device		},
-    { &st506_xt_dtc5150x_device	},
+    { &st506_xt_dtc5150x_device		},
     { &st506_xt_st11_m_device		},
     { &st506_xt_wd1002a_wx1_device	},
     { &st506_at_wd1003_device		},
@@ -106,13 +106,13 @@ static const struct {
     { &esdi_at_wd1007vse1_device	},
     { &ide_isa_device			},
     { &ide_isa_2ch_device		},
-    { &xtide_at_device		},
+    { &xtide_at_device			},
     { &xtide_at_386_device		},
     { &xtide_at_ps2_device		},
     { &xta_wdxt150_device		},
     { &xtide_acculogic_device		},
     { &xtide_device			},
-    { &esdi_ps2_device		},
+    { &esdi_ps2_device			},
     { &ide_pci_device			},
     { &ide_pci_2ch_device		},
     { &ide_vlb_device			},
@@ -154,23 +154,22 @@ hdc_reset(void)
 char *
 hdc_get_internal_name(int hdc)
 {
-    return((char *) controllers[hdc].device->internal_name);
+    return device_get_internal_name(controllers[hdc].device);
 }
 
 
 int
 hdc_get_from_internal_name(char *s)
 {
-	int c = 0;
-	
-	while (strlen((char *) controllers[c].device->internal_name))
-	{
-		if (!strcmp((char *) controllers[c].device->internal_name, s))
-			return c;
-		c++;
-	}
-	
-	return 0;
+    int c = 0;
+
+    while (controllers[c].device != NULL) {
+	if (!strcmp((char *) controllers[c].device->internal_name, s))
+		return c;
+	c++;
+    }
+
+    return 0;
 }
 
 

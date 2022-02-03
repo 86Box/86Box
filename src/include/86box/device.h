@@ -160,6 +160,8 @@ extern void		device_set_config_hex20(const char *s, int val);
 extern void		device_set_config_mac(const char *s, int val);
 extern const char	*device_get_config_string(const char *name);
 
+extern char *		device_get_internal_name(const device_t *d);
+
 extern int	machine_get_config_int(char *s);
 extern char	*machine_get_config_string(char *s);
 

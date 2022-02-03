@@ -1178,7 +1178,7 @@ static const device_config_t rampage_config[] =
 
 static const device_t rampage_device = {
     "AST RAMpage/XT",
-    "isamem_rampage",
+    "rampage",
     DEVICE_ISA,
     ISAMEM_RAMPAGEXT_CARD,
     isamem_init, isamem_close, NULL,
@@ -1293,7 +1293,7 @@ static const device_t iab_device = {
 
 static const device_t isa_none_device = {
     "None",
-    "isa_none",
+    "none",
     0, 0,
     NULL, NULL, NULL,
     { NULL }, NULL, NULL,
@@ -1304,11 +1304,11 @@ static const device_t isa_none_device = {
 static const struct {
     const device_t	*dev;
 } boards[] = {
-    { &isa_none_device				},
+    { &isa_none_device		},
     { &ibmxt_device		},
-    { &genericxt_device	},
+    { &genericxt_device		},
     { &ibmat_device		},
-    { &genericat_device	},
+    { &genericat_device		},
     { &p5pak_device		},
     { &a6pak_device		},
     { &ems5150_device		},
@@ -1320,9 +1320,9 @@ static const struct {
     { &rampage_device		},
 #endif
 #ifdef USE_ISAMEM_IAB
-    { &iab_device			},
+    { &iab_device		},
 #endif
-    { NULL				}
+    { NULL			}
 };
 
 
@@ -1356,7 +1356,7 @@ isamem_get_name(int board)
 const char *
 isamem_get_internal_name(int board)
 {
-    return(boards[board].dev->internal_name);
+    return device_get_internal_name(boards[board].dev);
 }
 
 
@@ -1366,7 +1366,7 @@ isamem_get_from_internal_name(const char *s)
 {
     int c = 0;
 
-    while (boards[c].dev->internal_name != NULL) {
+    while (boards[c].dev != NULL) {
 	if (! strcmp(boards[c].dev->internal_name, s))
 		return(c);
 	c++;
