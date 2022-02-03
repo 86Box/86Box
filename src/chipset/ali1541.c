@@ -644,6 +644,7 @@ ali1541_init(const device_t *info)
 
 const device_t ali1541_device = {
     "ALi M1541 CPU-to-PCI Bridge",
+    "ali1541",
     DEVICE_PCI,
     0,
     ali1541_init,

@@ -605,6 +605,7 @@ fdc37c67x_init(const device_t *info)
 
 const device_t fdc37c67x_device = {
     "SMC FDC37C67X Super I/O",
+    "fdc37c67x",
     0,
     0x40,
     fdc37c67x_init, fdc37c67x_close, NULL,

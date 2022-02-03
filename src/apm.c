@@ -126,6 +126,7 @@ static void
 const device_t apm_device =
 {
     "Advanced Power Management",
+    "apm",
     0,
     0,
     apm_init,
@@ -141,6 +142,7 @@ const device_t apm_device =
 const device_t apm_pci_device =
 {
     "Advanced Power Management (PCI)",
+    "apm_pci",
     DEVICE_PCI,
     0,
     apm_init,
@@ -156,6 +158,7 @@ const device_t apm_pci_device =
 const device_t apm_pci_acpi_device =
 {
     "Advanced Power Management (PCI)",
+    "apm_pci_acpi",
     DEVICE_PCI,
     1,
     apm_init,

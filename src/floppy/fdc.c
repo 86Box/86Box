@@ -101,18 +101,27 @@ fdc_log(const char *fmt, ...)
 #endif
 
 
+const device_t fdc_internal_device = {
+  "Internal",
+  "internal",
+  0, 0,
+  NULL, NULL, NULL,
+  { NULL }, NULL, NULL,
+  NULL
+};
+
+
 typedef const struct {
-    const char  *internal_name;
     const device_t    *device;
 } fdc_cards_t;
 
 /* All emulated machines have at least one integrated FDC controller */
 static fdc_cards_t fdc_cards[] = {
-    { "internal",	NULL			},
-    { "b215",	&fdc_b215_device	},
-    { "dtk_pii151b",	&fdc_pii151b_device	},
-    { "dtk_pii158b",	&fdc_pii158b_device	},
-    { "",		NULL			},
+    { &fdc_internal_device	},
+    { &fdc_b215_device  	},
+    { &fdc_pii151b_device 	},
+    { &fdc_pii158b_device 	},
+    { NULL			}
 };
 
 
@@ -145,7 +154,7 @@ fdc_card_has_config(int card)
 char *
 fdc_card_get_internal_name(int card)
 {
-    return((char *) fdc_cards[card].internal_name);
+    return device_get_internal_name(fdc_cards[card].device);
 }
 
 
@@ -154,8 +163,8 @@ fdc_card_get_from_internal_name(char *s)
 {
     int c = 0;
 
-    while (strlen((char *) fdc_cards[c].internal_name)) {
-	if (!strcmp((char *) fdc_cards[c].internal_name, s))
+    while (fdc_cards[c].device != NULL) {
+	if (!strcmp((char *) fdc_cards[c].device->internal_name, s))
 		return(c);
 	c++;
     }
@@ -2373,8 +2382,11 @@ fdc_3f1_enable(fdc_t *fdc, int enable)
 }
 
 
+
+
 const device_t fdc_xt_device = {
     "PC/XT Floppy Drive Controller",
+    "fdc_xt",
     0,
     0,
     fdc_init,
@@ -2385,6 +2397,7 @@ const device_t fdc_xt_device = {
 
 const device_t fdc_xt_t1x00_device = {
     "PC/XT Floppy Drive Controller (Toshiba)",
+    "fdc_xt_t1x00",
     0,
     FDC_FLAG_TOSHIBA,
     fdc_init,
@@ -2395,6 +2408,7 @@ const device_t fdc_xt_t1x00_device = {
 
 const device_t fdc_xt_amstrad_device = {
     "PC/XT Floppy Drive Controller (Amstrad)",
+    "fdc_xt_amstrad",
     0,
     FDC_FLAG_DISKCHG_ACTLOW | FDC_FLAG_AMSTRAD,
     fdc_init,
@@ -2405,6 +2419,7 @@ const device_t fdc_xt_amstrad_device = {
 
 const device_t fdc_xt_tandy_device = {
     "PC/XT Floppy Drive Controller (Tandy)",
+    "fdc_xt_tandy",
     0,
     FDC_FLAG_AMSTRAD,
     fdc_init,
@@ -2416,6 +2431,7 @@ const device_t fdc_xt_tandy_device = {
 
 const device_t fdc_pcjr_device = {
     "PCjr Floppy Drive Controller",
+    "fdc_pcjr",
     0,
     FDC_FLAG_PCJR,
     fdc_init,
@@ -2426,6 +2442,7 @@ const device_t fdc_pcjr_device = {
 
 const device_t fdc_at_device = {
     "PC/AT Floppy Drive Controller",
+    "fdc_at",
     0,
     FDC_FLAG_AT,
     fdc_init,
@@ -2436,6 +2453,7 @@ const device_t fdc_at_device = {
 
 const device_t fdc_at_actlow_device = {
     "PC/AT Floppy Drive Controller (Active low)",
+    "fdc_at_actlow",
     0,
     FDC_FLAG_DISKCHG_ACTLOW | FDC_FLAG_AT,
     fdc_init,
@@ -2446,6 +2464,7 @@ const device_t fdc_at_actlow_device = {
 
 const device_t fdc_at_ps1_device = {
     "PC/AT Floppy Drive Controller (PS/1, PS/2 ISA)",
+    "fdc_at_ps1",
     0,
     FDC_FLAG_DISKCHG_ACTLOW | FDC_FLAG_AT | FDC_FLAG_PS1,
     fdc_init,
@@ -2456,6 +2475,7 @@ const device_t fdc_at_ps1_device = {
 
 const device_t fdc_at_smc_device = {
     "PC/AT Floppy Drive Controller (SM(s)C FDC37Cxxx)",
+    "fdc_at_smc",
     0,
     FDC_FLAG_AT | FDC_FLAG_SUPERIO,
     fdc_init,
@@ -2466,6 +2486,7 @@ const device_t fdc_at_smc_device = {
 
 const device_t fdc_at_winbond_device = {
     "PC/AT Floppy Drive Controller (Winbond W83x77F)",
+    "fdc_at_winbond",
     0,
     FDC_FLAG_AT | FDC_FLAG_SUPERIO | FDC_FLAG_START_RWC_1 | FDC_FLAG_MORE_TRACKS,
     fdc_init,
@@ -2476,6 +2497,7 @@ const device_t fdc_at_winbond_device = {
 
 const device_t fdc_at_nsc_device = {
     "PC/AT Floppy Drive Controller (NSC PC8730x)",
+    "fdc_at_nsc",
     0,
     FDC_FLAG_AT | FDC_FLAG_MORE_TRACKS | FDC_FLAG_NSC,
     fdc_init,
@@ -2486,6 +2508,7 @@ const device_t fdc_at_nsc_device = {
 
 const device_t fdc_dp8473_device = {
     "NS DP8473 Floppy Drive Controller",
+    "fdc_dp8473",
     0,
     FDC_FLAG_AT | FDC_FLAG_NSC,
     fdc_init,
@@ -2496,6 +2519,7 @@ const device_t fdc_dp8473_device = {
 
 const device_t fdc_um8398_device = {
     "UMC UM8398 Floppy Drive Controller",
+    "fdc_um8398",
     0,
     FDC_FLAG_UMC,
     fdc_init,

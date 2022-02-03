@@ -138,6 +138,7 @@ rabbit_init(const device_t *info)
 
 const device_t rabbit_device = {
     "SiS Rabbit",
+    "rabbit",
     0,
     0,
     rabbit_init, rabbit_close, NULL,

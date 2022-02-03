@@ -1060,6 +1060,7 @@ stpc_lpt_init(const device_t *info)
 const device_t stpc_client_device =
 {
     "STPC Client",
+    "stpc_client",
     DEVICE_PCI,
     STPC_CLIENT,
     stpc_init, 
@@ -1074,6 +1075,7 @@ const device_t stpc_client_device =
 const device_t stpc_consumer2_device =
 {
     "STPC Consumer-II",
+    "stpc_consumer2",
     DEVICE_PCI,
     STPC_CONSUMER2,
     stpc_init, 
@@ -1088,6 +1090,7 @@ const device_t stpc_consumer2_device =
 const device_t stpc_elite_device =
 {
     "STPC Elite",
+    "stpc_elite",
     DEVICE_PCI,
     STPC_ELITE,
     stpc_init, 
@@ -1102,6 +1105,7 @@ const device_t stpc_elite_device =
 const device_t stpc_atlas_device =
 {
     "STPC Atlas",
+    "stpc_atlas",
     DEVICE_PCI,
     STPC_ATLAS,
     stpc_init, 
@@ -1117,6 +1121,7 @@ const device_t stpc_atlas_device =
 const device_t stpc_serial_device =
 {
     "STPC Serial UARTs",
+    "stpc_serial",
     0,
     0,
     stpc_serial_init,
@@ -1131,6 +1136,7 @@ const device_t stpc_serial_device =
 const device_t stpc_lpt_device =
 {
     "STPC Parallel Port",
+    "stpc_lpt",
     0,
     0,
     stpc_lpt_init,

@@ -83,6 +83,7 @@ typedef struct {
 
 typedef struct {
     const char *name;
+    const char *internal_name;
 
     void	*(*init)(void);
     void	(*close)(void *p);

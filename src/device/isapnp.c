@@ -1067,6 +1067,7 @@ isapnp_reset_device(void *priv, uint8_t ldn)
 
 static const device_t isapnp_device = {
     "ISA Plug and Play",
+    "isapnp",
     0,
     0,
     isapnp_init, isapnp_close, NULL,

@@ -307,6 +307,7 @@ sdac_ramdac_close(void *priv)
 const device_t gendac_ramdac_device =
 {
     "S3 GENDAC 86c708 RAMDAC",
+    "gendac_ramdac",
     0, S3_86C708,
     sdac_ramdac_init, sdac_ramdac_close,
     NULL, { NULL }, NULL, NULL
@@ -315,6 +316,7 @@ const device_t gendac_ramdac_device =
 const device_t tseng_ics5301_ramdac_device =
 {
     "Tseng ICS5301 GENDAC RAMDAC",
+    "tseng_ics5301_ramdac",
     0, ICS_5301,
     sdac_ramdac_init, sdac_ramdac_close,
     NULL, { NULL }, NULL, NULL
@@ -323,6 +325,7 @@ const device_t tseng_ics5301_ramdac_device =
 const device_t tseng_ics5341_ramdac_device =
 {
     "Tseng ICS5341 GENDAC RAMDAC",
+    "tseng_ics5341_ramdac",
     0, ICS_5341,
     sdac_ramdac_init, sdac_ramdac_close,
     NULL, { NULL }, NULL, NULL
@@ -331,6 +334,7 @@ const device_t tseng_ics5341_ramdac_device =
 const device_t sdac_ramdac_device =
 {
     "S3 SDAC 86c716 RAMDAC",
+    "sdac_ramdac",
     0, S3_86C716,
     sdac_ramdac_init, sdac_ramdac_close,
     NULL, { NULL }, NULL, NULL

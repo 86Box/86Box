@@ -176,6 +176,7 @@ port_6x_init(const device_t *info)
 
 const device_t port_6x_device = {
     "Port 6x Registers",
+    "port_6x",
     0,
     0,
     port_6x_init, port_6x_close, NULL,
@@ -186,6 +187,7 @@ const device_t port_6x_device = {
 
 const device_t port_6x_xi8088_device = {
     "Port 6x Registers (Xi8088)",
+    "port_6x_xi8088",
     0,
     PORT_6X_TURBO | PORT_6X_EXT_REF | PORT_6X_MIRROR,
     port_6x_init, port_6x_close, NULL,
@@ -196,6 +198,7 @@ const device_t port_6x_xi8088_device = {
 
 const device_t port_6x_ps2_device = {
     "Port 6x Registers (IBM PS/2)",
+    "port_6x_ps2",
     0,
     PORT_6X_EXT_REF,
     port_6x_init, port_6x_close, NULL,
@@ -206,6 +209,7 @@ const device_t port_6x_ps2_device = {
 
 const device_t port_6x_olivetti_device = {
     "Port 6x Registers (Olivetti)",
+    "port_6x_olivetti",
     0,
     PORT_6X_SWA,
     port_6x_init, port_6x_close, NULL,

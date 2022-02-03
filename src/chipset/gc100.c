@@ -233,6 +233,7 @@ gc100_init(const device_t *info)
 
 const device_t gc100_device = {
     "G2 GC100",
+    "gc100",
     0,
     0,
     gc100_init, gc100_close, NULL,
@@ -242,6 +243,7 @@ const device_t gc100_device = {
 
 const device_t gc100a_device = {
     "G2 GC100A",
+    "gc100a",
     0,
     1,
     gc100_init, gc100_close, NULL,

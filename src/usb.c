@@ -413,6 +413,7 @@ usb_init(const device_t *info)
 const device_t usb_device =
 {
     "Universal Serial Bus",
+    "usb",
     DEVICE_PCI,
     0,
     usb_init, 

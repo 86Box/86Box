@@ -305,6 +305,7 @@ opti283_init(const device_t *info)
 
 const device_t opti283_device = {
     "OPTi 82C283",
+    "opti283",
     0,
     0,
     opti283_init,

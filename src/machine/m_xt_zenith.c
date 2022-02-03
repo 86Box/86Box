@@ -101,6 +101,7 @@ zenith_scratchpad_close(void *p)
 
 static const device_t zenith_scratchpad_device = {
     "Zenith scratchpad RAM",
+    "zenith_scratchpad",
     0, 0,
     zenith_scratchpad_init, zenith_scratchpad_close, NULL,
     { NULL },

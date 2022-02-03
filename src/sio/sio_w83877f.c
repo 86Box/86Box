@@ -462,6 +462,7 @@ w83877f_init(const device_t *info)
 
 const device_t w83877f_device = {
     "Winbond W83877F Super I/O",
+    "w83877f",
     0,
     0x0a05,
     w83877f_init, w83877f_close, NULL,
@@ -472,6 +473,7 @@ const device_t w83877f_device = {
 
 const device_t w83877f_president_device = {
     "Winbond W83877F Super I/O (President)",
+    "w83877f_president",
     0,
     0x0a04,
     w83877f_init, w83877f_close, NULL,
@@ -482,6 +484,7 @@ const device_t w83877f_president_device = {
 
 const device_t w83877tf_device = {
     "Winbond W83877TF Super I/O",
+    "w83877tf",
     0,
     0x0c04,
     w83877f_init, w83877f_close, NULL,
@@ -492,6 +495,7 @@ const device_t w83877tf_device = {
 
 const device_t w83877tf_acorp_device = {
     "Winbond W83877TF Super I/O",
+    "w83877tf_acorp",
     0,
     0x0c05,
     w83877f_init, w83877f_close, NULL,

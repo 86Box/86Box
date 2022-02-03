@@ -787,6 +787,7 @@ lm78_init(const device_t *info)
 /* National Semiconductor LM78 on ISA and SMBus. */
 const device_t lm78_device = {
     "National Semiconductor LM78 Hardware Monitor",
+    "lm78",
     DEVICE_ISA,
     0x290 | LM78_I2C,
     lm78_init, lm78_close, lm78_reset,
@@ -798,6 +799,7 @@ const device_t lm78_device = {
 /* Winbond W83781D on ISA and SMBus. */
 const device_t w83781d_device = {
     "Winbond W83781D Hardware Monitor",
+    "w83781d",
     DEVICE_ISA,
     0x290 | LM78_I2C | LM78_W83781D,
     lm78_init, lm78_close, lm78_reset,
@@ -809,6 +811,7 @@ const device_t w83781d_device = {
 /* Winbond W83781D on ISA and SMBus. */
 const device_t w83781d_p5a_device = {
     "Winbond W83781D Hardware Monitor (ASUS P5A)",
+    "w83781d_p5a",
     DEVICE_ISA,
     0x290 | LM78_I2C | LM78_W83781D | LM78_P5A,
     lm78_init, lm78_close, lm78_reset,
@@ -821,6 +824,7 @@ const device_t w83781d_p5a_device = {
    I2C-only W83781D clone with additional voltages, GPIOs and fan control. */
 const device_t as99127f_device = {
     "ASUS AS99127F Rev. 1 Hardware Monitor",
+    "as99137f",
     DEVICE_ISA,
     LM78_I2C | LM78_AS99127F_REV1,
     lm78_init, lm78_close, lm78_reset,
@@ -832,6 +836,7 @@ const device_t as99127f_device = {
 /* Rev. 2 is manufactured by Winbond and differs only in GPI registers. */
 const device_t as99127f_rev2_device = {
     "ASUS AS99127F Rev. 2 Hardware Monitor",
+    "as99127f_rev2",
     DEVICE_ISA,
     LM78_I2C | LM78_AS99127F_REV2,
     lm78_init, lm78_close, lm78_reset,
@@ -843,6 +848,7 @@ const device_t as99127f_rev2_device = {
 /* Winbond W83782D on ISA and SMBus. */
 const device_t w83782d_device = {
     "Winbond W83782D Hardware Monitor",
+    "w83783d",
     DEVICE_ISA,
     0x290 | LM78_I2C | LM78_W83782D,
     lm78_init, lm78_close, lm78_reset,
