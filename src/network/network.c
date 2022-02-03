@@ -70,27 +70,37 @@
 #include <86box/net_wd8003.h>
 
 
+static const device_t net_none_device = {
+    "None",
+    "none",
+    0, NET_TYPE_NONE,
+    NULL, NULL, NULL,
+    { NULL }, NULL, NULL,
+    NULL
+};
+
+
 static netcard_t net_cards[] = {
-    { "none",		NULL,				NULL	},
-    { "3c503",		&threec503_device,		NULL	},
-    { "pcnetisa",	&pcnet_am79c960_device, 	NULL	},
-    { "pcnetisaplus",	&pcnet_am79c961_device, 	NULL	},
-    { "ne1k",		&ne1000_device,			NULL	},
-    { "ne2k",		&ne2000_device,			NULL	},
-    { "pcnetracal",	&pcnet_am79c960_eb_device,	NULL	},
-    { "ne2kpnp",	&rtl8019as_device,		NULL	},
-    { "wd8003e",	&wd8003e_device,		NULL	},
-    { "wd8003eb",	&wd8003eb_device,		NULL	},
-    { "wd8013ebt",	&wd8013ebt_device,		NULL	},
-    { "plip",		&plip_device,			NULL	},
-    { "ethernextmc",	&ethernext_mc_device,		NULL	},
-    { "wd8003eta",	&wd8003eta_device,		NULL	},
-    { "wd8003ea",	&wd8003ea_device,		NULL	},
-    { "pcnetfast",	&pcnet_am79c973_device,		NULL	},
-    { "pcnetpci",	&pcnet_am79c970a_device,	NULL	},
-    { "ne2kpci",	&rtl8029as_device,		NULL	},
-    { "pcnetvlb",	&pcnet_am79c960_vlb_device,	NULL	},
-    { "",		NULL,				NULL	}
+    { &net_none_device,			NULL	},
+    { &threec503_device,		NULL	},
+    { &pcnet_am79c960_device, 		NULL	},
+    { &pcnet_am79c961_device, 		NULL	},
+    { &ne1000_device,			NULL	},
+    { &ne2000_device,			NULL	},
+    { &pcnet_am79c960_eb_device,	NULL	},
+    { &rtl8019as_device,		NULL	},
+    { &wd8003e_device,			NULL	},
+    { &wd8003eb_device,			NULL	},
+    { &wd8013ebt_device,		NULL	},
+    { &plip_device,			NULL	},
+    { &ethernext_mc_device,		NULL	},
+    { &wd8003eta_device,		NULL	},
+    { &wd8003ea_device,			NULL	},
+    { &pcnet_am79c973_device,		NULL	},
+    { &pcnet_am79c970a_device,		NULL	},
+    { &rtl8029as_device,		NULL	},
+    { &pcnet_am79c960_vlb_device,	NULL	},
+    { NULL,				NULL	}
 };
 
 
@@ -649,7 +659,7 @@ network_card_has_config(int card)
 char *
 network_card_get_internal_name(int card)
 {
-    return((char *)net_cards[card].internal_name);
+    return device_get_internal_name(net_cards[card].device);
 }
 
 
@@ -659,13 +669,13 @@ network_card_get_from_internal_name(char *s)
 {
     int c = 0;
 	
-    while (strlen((char *)net_cards[c].internal_name)) {
-	if (! strcmp((char *)net_cards[c].internal_name, s))
-			return(c);
+    while (net_cards[c].device != NULL) {
+	if (! strcmp((char *)net_cards[c].device->internal_name, s))
+		return(c);
 	c++;
     }
 	
-    return(-1);
+    return 0;
 }
 
 

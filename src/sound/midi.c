@@ -68,29 +68,46 @@ uint8_t MIDI_evt_len[256] = {
 
 typedef struct
 {
-    const char *internal_name;
     const device_t *device;
 } MIDI_DEVICE, MIDI_IN_DEVICE;
 
+static const device_t midi_none_device = {
+  "None",
+  "none",
+  0, 0,
+  NULL, NULL, NULL,
+  { NULL }, NULL, NULL,
+  NULL
+};
+
 static const MIDI_DEVICE devices[] =
 {
-    { "none",				NULL			},
+    { &midi_none_device		},
 #ifdef USE_FLUIDSYNTH
-    { "fluidsynth",			&fluidsynth_device	},
+    { &fluidsynth_device	},
 #endif
 #ifdef USE_MUNT
-    { "mt32",				&mt32_device		},
-    { "cm32l",				&cm32l_device		},
+    { &mt32_device		},
+    { &cm32l_device		},
 #endif
-    { SYSTEM_MIDI_INTERNAL_NAME,	&rtmidi_device	},
-    { "",				NULL			}
+    { &rtmidi_device		},
+    { NULL			}
+};
+
+static const device_t midi_in_none_device = {
+  "None",
+  "none",
+  0, 0,
+  NULL, NULL, NULL,
+  { NULL }, NULL, NULL,
+  NULL
 };
 
 static const MIDI_IN_DEVICE midi_in_devices[] =
 {
-    { "none",				NULL			},
-    { MIDI_INPUT_INTERNAL_NAME,		&rtmidi_input_device	},
-    { "",				NULL			}
+    { &midi_in_none_device	},
+    { &rtmidi_input_device	},
+    { NULL			}
 };
 
 
@@ -123,7 +140,7 @@ midi_device_has_config(int card)
 char *
 midi_device_get_internal_name(int card)
 {
-    return (char *) devices[card].internal_name;
+    return device_get_internal_name(devices[card].device);
 }
 
 
@@ -132,8 +149,8 @@ midi_device_get_from_internal_name(char *s)
 {
     int c = 0;
 
-    while (strlen(devices[c].internal_name)) {
-	if (!strcmp(devices[c].internal_name, s))
+    while (devices[c].device != NULL) {
+	if (!strcmp(devices[c].device->internal_name, s))
 		return c;
 	c++;
     }
@@ -252,7 +269,7 @@ midi_in_device_has_config(int card)
 char *
 midi_in_device_get_internal_name(int card)
 {
-    return (char *) midi_in_devices[card].internal_name;
+    return device_get_internal_name(midi_in_devices[card].device);
 }
 
 
@@ -261,8 +278,8 @@ midi_in_device_get_from_internal_name(char *s)
 {
     int c = 0;
 
-    while (strlen(midi_in_devices[c].internal_name)) {
-	if (!strcmp(midi_in_devices[c].internal_name, s))
+    while (midi_in_devices[c].device != NULL) {
+	if (!strcmp(midi_in_devices[c].device->internal_name, s))
 		return c;
 	c++;
     }

@@ -265,6 +265,7 @@ static void sw_a0_over(void *p)
 const joystick_if_t joystick_sw_pad =
 {
         "Microsoft SideWinder Pad",
+        "sidewinder_pad",
         sw_init,
         sw_close,
         sw_read,

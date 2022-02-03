@@ -387,6 +387,7 @@ smbus_piix4_close(void *priv)
 
 const device_t piix4_smbus_device = {
     "PIIX4-compatible SMBus Host Controller",
+    "piix4_smbus",
     DEVICE_AT,
     SMBUS_PIIX4,
     smbus_piix4_init, smbus_piix4_close, NULL,
@@ -396,6 +397,7 @@ const device_t piix4_smbus_device = {
 
 const device_t via_smbus_device = {
     "VIA VT82C686B SMBus Host Controller",
+    "via_smbus",
     DEVICE_AT,
     SMBUS_VIA,
     smbus_piix4_init, smbus_piix4_close, NULL,

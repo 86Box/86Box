@@ -2183,6 +2183,7 @@ static const device_config_t et4000w32p_config[] =
 const device_t et4000w32_device =
 {
         "Tseng Labs ET4000/w32 ISA",
+        "et4000w32",
         DEVICE_ISA | DEVICE_AT, ET4000W32,
         et4000w32p_init, et4000w32p_close, NULL,
         { et4000w32_available },
@@ -2194,6 +2195,7 @@ const device_t et4000w32_device =
 const device_t et4000w32_onboard_device =
 {
         "Tseng Labs ET4000/w32 (ISA) (On-Board)",
+        "et4000w32_onboard",
         DEVICE_ISA | DEVICE_AT, ET4000W32,
         et4000w32p_init, et4000w32p_close, NULL,
         { et4000w32_available },
@@ -2205,6 +2207,7 @@ const device_t et4000w32_onboard_device =
 const device_t et4000w32i_isa_device =
 {
         "Tseng Labs ET4000/w32i Rev. B ISA",
+        "et4000w32i",
         DEVICE_ISA | DEVICE_AT, ET4000W32I,
         et4000w32p_init, et4000w32p_close, NULL,
         { et4000w32i_isa_available },
@@ -2216,6 +2219,7 @@ const device_t et4000w32i_isa_device =
 const device_t et4000w32i_vlb_device =
 {
         "Tseng Labs ET4000/w32i Rev. B VLB",
+        "et4000w32i_vlb",
         DEVICE_VLB, ET4000W32I,
         et4000w32p_init, et4000w32p_close, NULL,
         { et4000w32i_vlb_available },
@@ -2227,6 +2231,7 @@ const device_t et4000w32i_vlb_device =
 const device_t et4000w32p_revc_vlb_device =
 {
         "Tseng Labs ET4000/w32p Rev. C VLB (Cardex)",
+        "et4000w32p_revc_vlb",
         DEVICE_VLB, ET4000W32P_REVC,
         et4000w32p_init, et4000w32p_close, NULL,
         { et4000w32p_revc_available },
@@ -2238,6 +2243,7 @@ const device_t et4000w32p_revc_vlb_device =
 const device_t et4000w32p_revc_pci_device =
 {
         "Tseng Labs ET4000/w32p Rev. C PCI (Cardex)",
+        "et4000w32p_revc_pci",
         DEVICE_PCI, ET4000W32P_REVC,
         et4000w32p_init, et4000w32p_close, NULL,
         { et4000w32p_revc_available },
@@ -2249,6 +2255,7 @@ const device_t et4000w32p_revc_pci_device =
 const device_t et4000w32p_noncardex_vlb_device =
 {
         "Tseng Labs ET4000/w32p Rev. D VLB",
+        "et4000w32p_nc_vlb",
         DEVICE_VLB, ET4000W32P,
         et4000w32p_init, et4000w32p_close, NULL,
         { et4000w32p_noncardex_available },
@@ -2260,6 +2267,7 @@ const device_t et4000w32p_noncardex_vlb_device =
 const device_t et4000w32p_noncardex_pci_device =
 {
         "Tseng Labs ET4000/w32p Rev. D PCI",
+        "et4000w32p_nc_pci",
         DEVICE_PCI, ET4000W32P,
         et4000w32p_init, et4000w32p_close, NULL,
         { et4000w32p_noncardex_available },
@@ -2271,6 +2279,7 @@ const device_t et4000w32p_noncardex_pci_device =
 const device_t et4000w32p_cardex_vlb_device =
 {
         "Tseng Labs ET4000/w32p Rev. D VLB (Cardex)",
+        "et4000w32p_vlb",
         DEVICE_VLB, ET4000W32P_CARDEX,
         et4000w32p_init, et4000w32p_close, NULL,
         { et4000w32p_cardex_available },
@@ -2282,6 +2291,7 @@ const device_t et4000w32p_cardex_vlb_device =
 const device_t et4000w32p_cardex_pci_device =
 {
         "Tseng Labs ET4000/w32p Rev. D PCI (Cardex)",
+        "et4000w32p_pci",
         DEVICE_PCI, ET4000W32P_CARDEX,
         et4000w32p_init, et4000w32p_close, NULL,
         { et4000w32p_cardex_available },
@@ -2293,6 +2303,7 @@ const device_t et4000w32p_cardex_pci_device =
 const device_t et4000w32p_vlb_device =
 {
         "Tseng Labs ET4000/w32p Rev. D VLB (Diamond Stealth32)",
+        "stealth32_vlb",
         DEVICE_VLB, ET4000W32P_DIAMOND,
         et4000w32p_init, et4000w32p_close, NULL,
         { et4000w32p_available },
@@ -2304,6 +2315,7 @@ const device_t et4000w32p_vlb_device =
 const device_t et4000w32p_pci_device =
 {
         "Tseng Labs ET4000/w32p Rev. D PCI (Diamond Stealth32)",
+        "stealth32_pci",
         DEVICE_PCI, ET4000W32P_DIAMOND,
         et4000w32p_init, et4000w32p_close, NULL,
         { et4000w32p_available },

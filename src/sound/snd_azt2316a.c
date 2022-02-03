@@ -1466,6 +1466,7 @@ static const device_config_t azt2316a_config[] =
 const device_t azt2316a_device =
 {
         "Aztech Sound Galaxy Pro 16 AB (Washington)",
+        "azt2316a",
         DEVICE_ISA | DEVICE_AT,
 	SB_SUBTYPE_CLONE_AZT2316A_0X11,
         azt_init, azt_close, NULL, { NULL },
@@ -1477,6 +1478,7 @@ const device_t azt2316a_device =
 const device_t azt1605_device =
 {
         "Aztech Sound Galaxy Nova 16 Extra (Clinton)",
+        "azt1605",
         DEVICE_ISA | DEVICE_AT,
 	SB_SUBTYPE_CLONE_AZT1605_0X0C,
         azt_init, azt_close, NULL, { NULL },

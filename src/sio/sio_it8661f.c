@@ -338,6 +338,7 @@ it8661f_init(const device_t *info)
 
 const device_t it8661f_device = {
     "ITE IT8661F",
+    "it8661f",
     0,
     0,
     it8661f_init,

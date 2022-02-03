@@ -262,6 +262,7 @@ xtide_at_close(void *priv)
 
 const device_t xtide_device = {
     "PC/XT XTIDE",
+    "xtide",
     DEVICE_ISA,
     0,
     xtide_init, xtide_close, NULL,
@@ -271,6 +272,7 @@ const device_t xtide_device = {
 
 const device_t xtide_at_device = {
     "PC/AT XTIDE",
+    "xtide_at",
     DEVICE_ISA | DEVICE_AT,
     0,
     xtide_at_init, xtide_at_close, NULL,
@@ -280,6 +282,7 @@ const device_t xtide_at_device = {
 
 const device_t xtide_at_386_device = {
     "PC/AT XTIDE (386)",
+    "xtide_at_386",
     DEVICE_ISA | DEVICE_AT,
     1,
     xtide_at_init, xtide_at_close, NULL,
@@ -289,6 +292,7 @@ const device_t xtide_at_386_device = {
 
 const device_t xtide_acculogic_device = {
     "Acculogic XT IDE",
+    "xtide_acculogic",
     DEVICE_ISA,
     0,
     xtide_acculogic_init, xtide_close, NULL,
@@ -298,6 +302,7 @@ const device_t xtide_acculogic_device = {
 
 const device_t xtide_at_ps2_device = {
     "PS/2 AT XTIDE (1.1.5)",
+    "xtide_at_ps2",
     DEVICE_ISA | DEVICE_AT,
     0,
     xtide_at_ps2_init, xtide_at_close, NULL,

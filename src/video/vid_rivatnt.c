@@ -1224,6 +1224,7 @@ static const device_config_t rivatnt_config[] =
 const device_t rivatnt_pci_device =
 {
 	"nVidia RIVA TNT (PCI)",
+	"rivatnt",
 	DEVICE_PCI,
 	RIVATNT_DEVICE_ID,
 	rivatnt_init,

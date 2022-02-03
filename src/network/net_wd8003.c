@@ -1073,6 +1073,7 @@ static const device_config_t mca_mac_config[] =
 
 const device_t wd8003e_device = {
     "Western Digital WD8003E",
+    "wd8003e",
     DEVICE_ISA,
     WD8003E,
     wd_init, wd_close, NULL,
@@ -1082,6 +1083,7 @@ const device_t wd8003e_device = {
 
 const device_t wd8003eb_device = {
     "Western Digital WD8003EB",
+    "wd8003eb",
     DEVICE_ISA,
     WD8003EB,
     wd_init, wd_close, NULL,
@@ -1091,6 +1093,7 @@ const device_t wd8003eb_device = {
 
 const device_t wd8013ebt_device = {
     "Western Digital WD8013EBT",
+    "wd8013ebt",
     DEVICE_ISA,
     WD8013EBT,
     wd_init, wd_close, NULL,
@@ -1100,6 +1103,7 @@ const device_t wd8013ebt_device = {
 
 const device_t wd8003eta_device = {
     "Western Digital WD8003ET/A",
+    "wd8003eta",
     DEVICE_MCA,
     WD8003ETA,
     wd_init, wd_close, NULL,
@@ -1109,6 +1113,7 @@ const device_t wd8003eta_device = {
 
 const device_t wd8003ea_device = {
     "Western Digital WD8003E/A",
+    "wd8003ea",
     DEVICE_MCA,
     WD8003EA,
     wd_init, wd_close, NULL,

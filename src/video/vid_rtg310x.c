@@ -384,6 +384,7 @@ static const device_config_t rtg_config[] =
 
 const device_t realtek_rtg3106_device = {
     "Realtek RTG3106 (ISA)",
+    "rtg3106",
     DEVICE_ISA | DEVICE_AT,
     2,
     rtg_init, rtg_close, NULL,

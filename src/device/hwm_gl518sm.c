@@ -300,6 +300,7 @@ gl518sm_init(const device_t *info)
 /* GL518SM on SMBus address 2Ch */
 const device_t gl518sm_2c_device = {
     "Genesys Logic GL518SM Hardware Monitor",
+    "gl518sm_2c",
     DEVICE_ISA,
     0x2c,
     gl518sm_init, gl518sm_close, NULL,
@@ -310,6 +311,7 @@ const device_t gl518sm_2c_device = {
 /* GL518SM on SMBus address 2Dh */
 const device_t gl518sm_2d_device = {
     "Genesys Logic GL518SM Hardware Monitor",
+    "gl518sm_2d",
     DEVICE_ISA,
     0x2d,
     gl518sm_init, gl518sm_close, NULL,

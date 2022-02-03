@@ -1154,6 +1154,7 @@ static const device_config_t wdxt150_config[] = {
 
 const device_t xta_wdxt150_device = {
     "WDXT-150 XTA Fixed Disk Controller",
+    "xta_wdxt150",
     DEVICE_ISA,
     0,
     xta_init, xta_close, NULL,
@@ -1164,6 +1165,7 @@ const device_t xta_wdxt150_device = {
 
 const device_t xta_hd20_device = {
     "EuroPC HD20 Fixed Disk Controller",
+    "xta_hd20",
     DEVICE_ISA,
     1,
     xta_init, xta_close, NULL,

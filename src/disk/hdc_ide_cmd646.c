@@ -409,6 +409,7 @@ cmd646_init(const device_t *info)
 
 const device_t ide_cmd646_device = {
     "CMD PCI-0646",
+    "ide_cmd646",
     DEVICE_PCI,
     0x8a,
     cmd646_init, cmd646_close, cmd646_reset,
@@ -418,6 +419,7 @@ const device_t ide_cmd646_device = {
 
 const device_t ide_cmd646_legacy_only_device = {
     "CMD PCI-0646 (Legacy Mode Only)",
+    "ide_cmd646_legacy_only",
     DEVICE_PCI,
     0x80,
     cmd646_init, cmd646_close, cmd646_reset,
@@ -427,6 +429,7 @@ const device_t ide_cmd646_legacy_only_device = {
 
 const device_t ide_cmd646_single_channel_device = {
     "CMD PCI-0646",
+    "ide_cmd646_single_channel",
     DEVICE_PCI,
     0x2008a,
     cmd646_init, cmd646_close, cmd646_reset,

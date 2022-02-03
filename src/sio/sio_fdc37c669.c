@@ -329,6 +329,7 @@ fdc37c669_init(const device_t *info)
 
 const device_t fdc37c669_device = {
     "SMC FDC37C669 Super I/O",
+    "fdc37c669",
     0,
     0,
     fdc37c669_init, fdc37c669_close, NULL,
@@ -339,6 +340,7 @@ const device_t fdc37c669_device = {
 
 const device_t fdc37c669_370_device = {
     "SMC FDC37C669 Super I/O (Port 370h)",
+    "fdc37c669_370",
     0,
     1,
     fdc37c669_init, fdc37c669_close, NULL,

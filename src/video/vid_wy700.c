@@ -1010,6 +1010,7 @@ void wy700_speed_changed(void *p)
 const device_t wy700_device =
 {
         "Wyse 700",
+        "wy700",
         DEVICE_ISA, 0,
         wy700_init,
         wy700_close,
