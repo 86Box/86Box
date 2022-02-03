@@ -203,7 +203,6 @@ SettingsBusTracking::device_track(int set, uint8_t dev_type, int bus, int channe
     int i, element;
     uint64_t mask;
     uint8_t count = 0;
-    fprintf(stderr, "set: %d, dev_type: %hd, bus: %d, channel: %d\n", set, dev_type, bus, channel);
 
     switch (bus) {
         case HDD_BUS_MFM:
