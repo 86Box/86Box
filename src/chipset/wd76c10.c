@@ -539,6 +539,7 @@ wd76c10_init(const device_t *info)
 
 const device_t wd76c10_device = {
     "Western Digital WD76C10",
+    "wd76c10",
     0,
     0,
     wd76c10_init,

@@ -173,6 +173,7 @@ static const device_config_t xi8088_config[] =
 const device_t xi8088_device =
 {
         "Xi8088",
+        "xi8088",
         0,
         0,
         xi8088_init,

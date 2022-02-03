@@ -276,6 +276,7 @@ opti895_init(const device_t *info)
 
 const device_t opti802g_device = {
     "OPTi 82C802G",
+    "opti802g",
     0,
     0,
     opti895_init, opti895_close, NULL,
@@ -286,6 +287,7 @@ const device_t opti802g_device = {
 
 const device_t opti895_device = {
     "OPTi 82C895",
+    "opti895",
     0,
     0,
     opti895_init, opti895_close, NULL,

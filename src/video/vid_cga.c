@@ -641,6 +641,7 @@ const device_config_t cga_config[] =
 const device_t cga_device =
 {
         "CGA",
+        "cga",
         DEVICE_ISA, 0,
         cga_standalone_init,
         cga_close,

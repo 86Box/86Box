@@ -249,7 +249,6 @@ ega_in(uint16_t addr, void *p)
 {
     ega_t *ega = (ega_t *)p;
     uint8_t ret = 0xff;
-    uint16_t port = addr;
 
     if (((addr & 0xfff0) == 0x3d0 || (addr & 0xfff0) == 0x3b0) && !(ega->miscout & 1)) 
 	addr ^= 0x60;
@@ -1247,6 +1246,7 @@ static const device_config_t ega_config[] =
 const device_t ega_device =
 {
         "EGA",
+        "ega",
         DEVICE_ISA,
 	EGA_IBM,
         ega_standalone_init, ega_close, NULL,
@@ -1259,6 +1259,7 @@ const device_t ega_device =
 const device_t cpqega_device =
 {
         "Compaq EGA",
+        "compaq_ega",
         DEVICE_ISA,
 	EGA_COMPAQ,
         ega_standalone_init, ega_close, NULL,
@@ -1271,6 +1272,7 @@ const device_t cpqega_device =
 const device_t sega_device =
 {
         "SuperEGA",
+        "superega",
         DEVICE_ISA,
 	EGA_SUPEREGA,
         ega_standalone_init, ega_close, NULL,
@@ -1283,6 +1285,7 @@ const device_t sega_device =
 const device_t atiega_device =
 {
         "ATI EGA Wonder 800+",
+        "egawonder800",
         DEVICE_ISA,
 	EGA_ATI,
         ega_standalone_init, ega_close, NULL,
@@ -1295,6 +1298,7 @@ const device_t atiega_device =
 const device_t iskra_ega_device =
 {
         "Iskra EGA (Cyrillic ROM)",
+        "iskra_ega",
         DEVICE_ISA,
 	EGA_ISKRA,
         ega_standalone_init, ega_close, NULL,
@@ -1307,6 +1311,7 @@ const device_t iskra_ega_device =
 const device_t et2000_device =
 {
         "Tseng Labs ET2000",
+        "et2000",
         DEVICE_ISA,
 	EGA_TSENG,
         ega_standalone_init, ega_close, NULL,

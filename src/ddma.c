@@ -188,6 +188,7 @@ ddma_init(const device_t *info)
 const device_t ddma_device =
 {
     "Distributed DMA",
+    "ddma",
     DEVICE_PCI,
     0,
     ddma_init, 

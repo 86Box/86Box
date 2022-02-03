@@ -474,6 +474,7 @@ pc87309_init(const device_t *info)
 
 const device_t pc87309_device = {
     "National Semiconductor PC87309 Super I/O",
+    "pc87309",
     0,
     0xe0,
     pc87309_init, pc87309_close, NULL,
@@ -484,6 +485,7 @@ const device_t pc87309_device = {
 
 const device_t pc87309_15c_device = {
     "National Semiconductor PC87309 Super I/O (Port 15Ch)",
+    "pc87309_15c",
     0,
     0x1e0,
     pc87309_init, pc87309_close, NULL,

@@ -256,6 +256,7 @@ opti499_init(const device_t *info)
 
 const device_t opti499_device = {
     "OPTi 82C499",
+    "opti499",
     0,
     1,
     opti499_init, opti499_close, opti499_reset,

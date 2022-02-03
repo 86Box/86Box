@@ -264,6 +264,7 @@ static const device_config_t midi_input_config[] =
 const device_t rtmidi_device =
 {
     SYSTEM_MIDI_NAME,
+    SYSTEM_MIDI_INTERNAL_NAME,
     0, 0,
     rtmidi_init,
     rtmidi_close,
@@ -278,6 +279,7 @@ const device_t rtmidi_device =
 const device_t rtmidi_input_device =
 {
     MIDI_INPUT_NAME,
+    MIDI_INPUT_INTERNAL_NAME,
     0, 0,
     rtmidi_input_init,
     rtmidi_input_close,

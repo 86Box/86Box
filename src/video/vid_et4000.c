@@ -830,6 +830,7 @@ static const device_config_t et4000_config[] =
 
 const device_t et4000_isa_device = {
     "Tseng Labs ET4000AX (ISA)",
+    "et4000ax",
     DEVICE_ISA,
     0,
     et4000_init, et4000_close, NULL,
@@ -841,6 +842,7 @@ const device_t et4000_isa_device = {
 
 const device_t et4000_mca_device = {
     "Tseng Labs ET4000AX (MCA)",
+    "et4000mca",
     DEVICE_MCA,
     1,
     et4000_init, et4000_close, NULL,
@@ -852,6 +854,7 @@ const device_t et4000_mca_device = {
 
 const device_t et4000k_isa_device = {
     "Trigem Korean VGA (Tseng Labs ET4000AX Korean)",
+    "tgkorvga",
     DEVICE_ISA,
     2,
     et4000_init, et4000_close, NULL,
@@ -863,6 +866,7 @@ const device_t et4000k_isa_device = {
 
 const device_t et4000k_tg286_isa_device = {
     "Trigem Korean VGA (Trigem 286M)",
+    "et4000k_tg286_isa",
     DEVICE_ISA,
     3,
     et4000_init, et4000_close, NULL,
@@ -874,6 +878,7 @@ const device_t et4000k_tg286_isa_device = {
 
 const device_t et4000_kasan_isa_device = {
     "Kasan Hangulmadang-16 VGA (Tseng Labs ET4000AX Korean)",
+    "kasan16vga",
     DEVICE_ISA,
     4,
     et4000_init, et4000_close, NULL,
