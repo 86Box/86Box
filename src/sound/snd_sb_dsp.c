@@ -533,6 +533,8 @@ sb_exec_command(sb_dsp_t *dsp)
 	case 0x24:	/* 8-bit single cycle DMA input */
 		sb_start_dma_i(dsp, 1, 0, 0, dsp->sb_data[0] + (dsp->sb_data[1] << 8));
 		break;
+	case 0x28:	/* Direct ADC, 8-bit (Burst) */
+		break;
 	case 0x2C:	/* 8-bit autoinit DMA input */
 		if (dsp->sb_type >= SB15)
 			sb_start_dma_i(dsp, 1, 1, 0, dsp->sb_data[0] + (dsp->sb_data[1] << 8));
@@ -546,6 +548,10 @@ sb_exec_command(sb_dsp_t *dsp)
 		sb_dsp_log("MIDI interrupt mode input\n");
 		dsp->midi_in_poll = 0;
 		dsp->uart_irq = 1;
+		break;
+	case 0x32:	/* MIDI Read Timestamp Poll */
+		break;
+	case 0x33:	/* MIDI Read Timestamp Interrupt */
 		break;
 	case 0x34: /* MIDI In poll  */
 		if (dsp->sb_type < SB2)
@@ -593,6 +599,10 @@ sb_exec_command(sb_dsp_t *dsp)
 			dsp->sb_8051_ram[0x13] = dsp->sb_freq & 0xff;
 			dsp->sb_8051_ram[0x14] = (dsp->sb_freq >> 8) & 0xff;
 		}
+		break;
+	case 0x45:	/* Continue Auto-Initialize DMA, 8-bit */
+		break;
+	case 0x47:	/* Continue Auto-Initialize DMA, 16-bit */
 		break;
 	case 0x48:	/* Set DSP block transfer size */
 		dsp->sb_8_autolen = dsp->sb_data[0] + (dsp->sb_data[1] << 8);
@@ -864,7 +874,7 @@ sb_exec_command(sb_dsp_t *dsp)
 			if (dsp->sb_asp_mode & 4)
 				dsp->sb_asp_ram_index = 0;
 			sb_dsp_log("SB16 ASP set mode %02X\n", dsp->sb_asp_mode);
-		}
+		} /* else DSP Status (Obsolete) */
 		break;
 	case 0x05: /* ASP set codec parameter */
 		if (dsp->sb_type >= SB16)
