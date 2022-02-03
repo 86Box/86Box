@@ -271,7 +271,8 @@ pipeline {
 							    result: currentBuild.currentResult,
 							    description: "**Status:** ${result}\n\u2060", /* word joiner character forces a blank line */
 							    enableArtifactsList: false,
-							    showChangeset: true
+							    showChangeset: true,
+							    scmWebUrl: "https://github.com/86Box/86Box/commit/%s"
 
 						/* Notify IRC, which needs a node for whatever reason. */
 						node {
