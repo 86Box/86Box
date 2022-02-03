@@ -122,7 +122,7 @@ MainWindow::MainWindow(QWidget *parent) :
 
     emit updateMenuResizeOptions();
 
-    connect(this, &MainWindow::pollMouse, ui->stackedWidget, &RendererStack::mousePoll);
+    connect(this, &MainWindow::pollMouse, ui->stackedWidget, &RendererStack::mousePoll, Qt::DirectConnection);
 
     connect(this, &MainWindow::setMouseCapture, this, [this](bool state) {
         mouse_capture = state ? 1 : 0;
