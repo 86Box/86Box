@@ -135,6 +135,7 @@ philips_init(const device_t *info)
 
 const device_t philips_device = {
     "Philips XT Mainboard",
+    "philips",
     0,
     0,
     philips_init, philips_close, NULL,

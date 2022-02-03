@@ -2730,6 +2730,7 @@ pgc_standalone_init(const device_t *info)
 
 const device_t pgc_device = {
     "PGC",
+    "pgc",
     DEVICE_ISA, 0,
     pgc_standalone_init,
     pgc_close,

@@ -589,6 +589,7 @@ m19_vid_init(m19_vid_t *vid)
 
 const device_t m24_kbd_device = {
     "Olivetti M24 keyboard and mouse",
+    "m24_kbd",
     0,
     0,
     NULL,
@@ -630,6 +631,7 @@ const device_config_t m19_vid_config[] =
 
 const device_t m19_vid_device = {
     "Olivetti M19 graphics card",
+    "m19_vid",
     0, 0,
     NULL, m19_vid_close, NULL,
     { NULL },

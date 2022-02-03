@@ -532,6 +532,7 @@ i420ex_init(const device_t *info)
 const device_t i420ex_device =
 {
     "Intel 82420EX",
+    "i420ex",
     DEVICE_PCI,
     0x00,
     i420ex_init,
@@ -547,6 +548,7 @@ const device_t i420ex_device =
 const device_t i420ex_ide_device =
 {
     "Intel 82420EX (With IDE)",
+    "i420ex_ide",
     DEVICE_PCI,
     0x01,
     i420ex_init,

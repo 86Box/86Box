@@ -1501,6 +1501,7 @@ static const device_config_t aha_154xcf_config[] = {
 
 const device_t aha154xa_device = {
     "Adaptec AHA-154xA",
+    "aha154xa",
     DEVICE_ISA | DEVICE_AT,
     AHA_154xA,
     aha_init, x54x_close, NULL,
@@ -1510,6 +1511,7 @@ const device_t aha154xa_device = {
 
 const device_t aha154xb_device = {
     "Adaptec AHA-154xB",
+    "aha154xb",
     DEVICE_ISA | DEVICE_AT,
     AHA_154xB,
     aha_init, x54x_close, NULL,
@@ -1519,6 +1521,7 @@ const device_t aha154xb_device = {
 
 const device_t aha154xc_device = {
     "Adaptec AHA-154xC",
+    "aha154xc",
     DEVICE_ISA | DEVICE_AT,
     AHA_154xC,
     aha_init, x54x_close, NULL,
@@ -1528,6 +1531,7 @@ const device_t aha154xc_device = {
 
 const device_t aha154xcf_device = {
     "Adaptec AHA-154xCF",
+    "aha154xcf",
     DEVICE_ISA | DEVICE_AT,
     AHA_154xCF,
     aha_init, x54x_close, NULL,
@@ -1537,6 +1541,7 @@ const device_t aha154xcf_device = {
 
 const device_t aha154xcp_device = {
     "Adaptec AHA-154xCP",
+    "aha154xcp",
     DEVICE_ISA | DEVICE_AT,
     AHA_154xCP,
     aha_init, aha1542cp_close, NULL,
@@ -1546,6 +1551,7 @@ const device_t aha154xcp_device = {
 
 const device_t aha1640_device = {
     "Adaptec AHA-1640",
+    "aha1640",
     DEVICE_MCA,
     AHA_1640,
     aha_init, x54x_close, NULL,

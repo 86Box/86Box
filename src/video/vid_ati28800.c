@@ -759,6 +759,7 @@ static const device_config_t ati28800_wonderxl_config[] =
 const device_t ati28800_device =
 {
         "ATI 28800-5 (ATI VGA Charger)",
+        "ati28800",
         DEVICE_ISA,
 	0,
         ati28800_init, ati28800_close, NULL,
@@ -771,6 +772,7 @@ const device_t ati28800_device =
 const device_t ati28800k_device =
 {
         "ATI Korean VGA",
+        "ati28800k",
         DEVICE_ISA,
 	0,
         ati28800k_init, ati28800_close, NULL,
@@ -783,6 +785,7 @@ const device_t ati28800k_device =
 const device_t ati28800k_spc4620p_device =
 {
         "ATI Korean VGA On-Board SPC-4620P",
+        "ati28800k_spc4620p",
         DEVICE_ISA,
 	1,
         ati28800k_init, ati28800_close, NULL,
@@ -794,6 +797,7 @@ const device_t ati28800k_spc4620p_device =
 const device_t ati28800k_spc6033p_device =
 {
         "ATI Korean VGA On-Board SPC-6033P",
+        "ati28800k_spc6033p",
         DEVICE_ISA,
 	2,
         ati28800k_init, ati28800_close, NULL,
@@ -805,6 +809,7 @@ const device_t ati28800k_spc6033p_device =
 const device_t compaq_ati28800_device =
 {
         "ATI 28800-5 (ATI VGA Wonder XL)",
+        "compaq_ati28800",
         DEVICE_ISA,
 	VGAWONDERXL,
         ati28800_init, ati28800_close, NULL,
@@ -818,6 +823,7 @@ const device_t compaq_ati28800_device =
 const device_t ati28800_wonderxl24_device =
 {
         "ATI-28800 (VGA Wonder XL24)",
+        "ati28800w",
         DEVICE_ISA,
 	VGAWONDERXL24,
         ati28800_init, ati28800_close, NULL,

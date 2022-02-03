@@ -349,6 +349,7 @@ contaq_82c59x_init(const device_t *info)
 
 const device_t contaq_82c596a_device = {
     "Contaq 82C596A",
+    "contaq_82c596a",
     0,
     0,
     contaq_82c59x_init,
@@ -363,6 +364,7 @@ const device_t contaq_82c596a_device = {
 
 const device_t contaq_82c597_device = {
     "Contaq 82C597",
+    "contaq_82c597",
     0,
     1,
     contaq_82c59x_init,

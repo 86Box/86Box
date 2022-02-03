@@ -180,6 +180,7 @@ att498_ramdac_close(void *priv)
 const device_t att498_ramdac_device =
 {
         "AT&T 22c498 RAMDAC",
+        "att498_ramdac",
         0, 0,
         att498_ramdac_init, att498_ramdac_close,
 	NULL, { NULL }, NULL, NULL

@@ -219,6 +219,7 @@ port_92_init(const device_t *info)
 
 const device_t port_92_device = {
     "Port 92 Register",
+    "port_92",
     0,
     0,
     port_92_init, port_92_close, NULL,
@@ -229,6 +230,7 @@ const device_t port_92_device = {
 
 const device_t port_92_inv_device = {
     "Port 92 Register (inverted bits 2-7)",
+    "port_92_inv",
     0,
     PORT_92_INV,
     port_92_init, port_92_close, NULL,
@@ -239,6 +241,7 @@ const device_t port_92_inv_device = {
 
 const device_t port_92_word_device = {
     "Port 92 Register (16-bit)",
+    "port_92_word",
     0,
     PORT_92_WORD,
     port_92_init, port_92_close, NULL,
@@ -249,6 +252,7 @@ const device_t port_92_word_device = {
 
 const device_t port_92_pci_device = {
     "Port 92 Register (PCI)",
+    "port_92_pci",
     0,
     PORT_92_PCI,
     port_92_init, port_92_close, NULL,

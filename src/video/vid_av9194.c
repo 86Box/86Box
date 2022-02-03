@@ -98,6 +98,7 @@ av9194_init(const device_t *info)
 const device_t av9194_device =
 {
         "AV9194 Clock Generator",
+        "av9194",
         0, 0,
         av9194_init, NULL,
 	NULL, { NULL }, NULL, NULL

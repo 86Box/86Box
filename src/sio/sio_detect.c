@@ -109,6 +109,7 @@ sio_detect_init(const device_t *info)
 
 const device_t sio_detect_device = {
     "Super I/O Detection Helper",
+    "sio_detect",
     0,
     0,
     sio_detect_init, sio_detect_close, NULL,

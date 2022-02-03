@@ -844,18 +844,20 @@ pit_init(const device_t *info)
 
 const device_t i8253_device =
 {
-        "Intel 8253/8253-5 Programmable Interval Timer",
-        DEVICE_ISA,
-	PIT_8253,
+    "Intel 8253/8253-5 Programmable Interval Timer",
+    "i8253",
+    DEVICE_ISA,
+    PIT_8253,
         pit_init, pit_close, NULL,
         { NULL }, NULL, NULL,
-	NULL
+    NULL
 };
 
 
 const device_t i8254_device =
 {
         "Intel 8254 Programmable Interval Timer",
+        "i8254",
         DEVICE_ISA,
 	PIT_8254,
         pit_init, pit_close, NULL,
@@ -867,6 +869,7 @@ const device_t i8254_device =
 const device_t i8254_sec_device =
 {
         "Intel 8254 Programmable Interval Timer (Secondary)",
+        "i8254_sec",
         DEVICE_ISA,
 	PIT_8254 | PIT_SECONDARY,
         pit_init, pit_close, NULL,
@@ -878,6 +881,7 @@ const device_t i8254_sec_device =
 const device_t i8254_ext_io_device =
 {
         "Intel 8254 Programmable Interval Timer (External I/O)",
+        "i8254_ext_io",
         DEVICE_ISA,
 	PIT_8254 | PIT_EXT_IO,
         pit_init, pit_close, NULL,
@@ -889,6 +893,7 @@ const device_t i8254_ext_io_device =
 const device_t i8254_ps2_device =
 {
         "Intel 8254 Programmable Interval Timer (PS/2)",
+        "i8254_ps2",
         DEVICE_ISA,
 	PIT_8254 | PIT_PS2 | PIT_EXT_IO,
         pit_init, pit_close, NULL,

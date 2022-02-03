@@ -814,6 +814,7 @@ access_bus_init(const device_t *info)
 
 static const device_t access_bus_device = {
     "SMC FDC37C932FR ACCESS.bus",
+    "access_bus",
     0,
     0x03,
     access_bus_init, access_bus_close, NULL,
@@ -886,6 +887,7 @@ fdc37c93x_init(const device_t *info)
 
 const device_t fdc37c931apm_device = {
     "SMC FDC37C932QF Super I/O",
+    "fdc37c931apm",
     0,
     0x130,	/* Share the same ID with the 932QF. */
     fdc37c93x_init, fdc37c93x_close, NULL,
@@ -895,6 +897,7 @@ const device_t fdc37c931apm_device = {
 
 const device_t fdc37c931apm_compaq_device = {
     "SMC FDC37C932QF Super I/O (Compaq Presario 4500)",
+    "fdc37c931apm_compaq",
     0,
     0x330,	/* Share the same ID with the 932QF. */
     fdc37c93x_init, fdc37c93x_close, NULL,
@@ -904,6 +907,7 @@ const device_t fdc37c931apm_compaq_device = {
 
 const device_t fdc37c932fr_device = {
     "SMC FDC37C932FR Super I/O",
+    "fdc37c932fr",
     0,
     0x03,
     fdc37c93x_init, fdc37c93x_close, NULL,
@@ -913,6 +917,7 @@ const device_t fdc37c932fr_device = {
 
 const device_t fdc37c932qf_device = {
     "SMC FDC37C932QF Super I/O",
+    "fdc37c932qf",
     0,
     0x30,
     fdc37c93x_init, fdc37c93x_close, NULL,
@@ -922,6 +927,7 @@ const device_t fdc37c932qf_device = {
 
 const device_t fdc37c935_device = {
     "SMC FDC37C935 Super I/O",
+    "fdc37c935",
     0,
     0x02,
     fdc37c93x_init, fdc37c93x_close, NULL,

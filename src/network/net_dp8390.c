@@ -1114,6 +1114,7 @@ dp8390_close(void *priv)
 const device_t dp8390_device =
 {
         "DP8390 Network Interface Controller",
+        "dp8390",
         0, 0,
         dp8390_init, dp8390_close,
 	NULL, { NULL }, NULL, NULL

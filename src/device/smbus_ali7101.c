@@ -302,6 +302,7 @@ smbus_ali7101_close(void *priv)
 
 const device_t ali7101_smbus_device = {
     "ALi M7101-compatible SMBus Host Controller",
+    "ali7101_smbus",
     DEVICE_AT,
     0,
     smbus_ali7101_init, smbus_ali7101_close, smbus_ali7101_reset,

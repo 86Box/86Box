@@ -3233,6 +3233,7 @@ static const device_config_t tgui96xx_config[] =
 const device_t tgui9400cxi_device =
 {
         "Trident TGUI 9400CXi",
+        "tgui9400cxi_vlb",
         DEVICE_VLB,
         TGUI_9400CXI,
         tgui_init,
@@ -3247,6 +3248,7 @@ const device_t tgui9400cxi_device =
 const device_t tgui9440_vlb_device =
 {
         "Trident TGUI 9440AGi VLB",
+        "tgui9440_vlb",
         DEVICE_VLB,
 	TGUI_9440,
         tgui_init,
@@ -3261,6 +3263,7 @@ const device_t tgui9440_vlb_device =
 const device_t tgui9440_pci_device =
 {
         "Trident TGUI 9440AGi PCI",
+        "tgui9440_pci",
         DEVICE_PCI,
 	TGUI_9440,
         tgui_init,
@@ -3275,6 +3278,7 @@ const device_t tgui9440_pci_device =
 const device_t tgui9440_onboard_pci_device =
 {
         "Trident TGUI 9440AGi On-Board PCI",
+        "tgui9440_onboard_pci",
         DEVICE_PCI,
 	TGUI_9440 | ONBOARD,
         tgui_init,
@@ -3289,6 +3293,7 @@ const device_t tgui9440_onboard_pci_device =
 const device_t tgui9660_pci_device =
 {
         "Trident TGUI 9660XGi PCI",
+        "tgui9660_pci",
         DEVICE_PCI,
 	TGUI_9660,
         tgui_init,
@@ -3303,6 +3308,7 @@ const device_t tgui9660_pci_device =
 const device_t tgui9680_pci_device =
 {
         "Trident TGUI 9680XGi PCI",
+        "tgui9680_pci",
         DEVICE_PCI,
 	TGUI_9680,
         tgui_init,

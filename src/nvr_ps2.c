@@ -154,6 +154,7 @@ ps2_nvr_close(void *priv)
 
 const device_t ps2_nvr_device = {
     "PS/2 Secondary NVRAM",
+    "ps2_nvr",
     0, 0,
     ps2_nvr_init, ps2_nvr_close, NULL,
     { NULL }, NULL,

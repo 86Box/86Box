@@ -4397,6 +4397,7 @@ static const device_config_t s3_virge_357_config[] =
 const device_t s3_virge_325_pci_device =
 {
         "S3 ViRGE (325) PCI",
+        "virge325_pci",
         DEVICE_PCI,
         S3_VIRGE_325,
         s3_virge_init,
@@ -4411,6 +4412,7 @@ const device_t s3_virge_325_pci_device =
 const device_t s3_diamond_stealth_2000_pci_device =
 {
         "S3 ViRGE (Diamond Stealth 3D 2000) PCI",
+        "stealth3d_2000_pci",
         DEVICE_PCI,
         S3_DIAMOND_STEALTH3D_2000,
         s3_virge_init,
@@ -4425,6 +4427,7 @@ const device_t s3_diamond_stealth_2000_pci_device =
 const device_t s3_diamond_stealth_3000_pci_device =
 {
         "S3 ViRGE/VX (Diamond Stealth 3D 3000) PCI",
+        "stealth3d_3000_pci",
         DEVICE_PCI,
         S3_DIAMOND_STEALTH3D_3000,
         s3_virge_init,
@@ -4439,6 +4442,7 @@ const device_t s3_diamond_stealth_3000_pci_device =
 const device_t s3_stb_velocity_3d_pci_device =
 {
         "S3 ViRGE/VX (STB Velocity 3D) PCI",
+        "stb_velocity3d_pci",
         DEVICE_PCI,
         S3_STB_VELOCITY_3D,
         s3_virge_init,
@@ -4453,6 +4457,7 @@ const device_t s3_stb_velocity_3d_pci_device =
 const device_t s3_virge_375_pci_device =
 {
         "S3 ViRGE/DX (375) PCI",
+        "virge375_pci",
         DEVICE_PCI,
         S3_VIRGE_DX,
         s3_virge_init,
@@ -4467,6 +4472,7 @@ const device_t s3_virge_375_pci_device =
 const device_t s3_diamond_stealth_2000pro_pci_device =
 {
         "S3 ViRGE/DX (Diamond Stealth 3D 2000 Pro) PCI",
+        "stealth3d_2000pro_pci",
         DEVICE_PCI,
         S3_DIAMOND_STEALTH3D_2000PRO,
         s3_virge_init,
@@ -4481,6 +4487,7 @@ const device_t s3_diamond_stealth_2000pro_pci_device =
 const device_t s3_virge_385_pci_device =
 {
         "S3 ViRGE/GX (385) PCI",
+        "virge385_pci",
         DEVICE_PCI,
         S3_VIRGE_GX,
         s3_virge_init,
@@ -4495,6 +4502,7 @@ const device_t s3_virge_385_pci_device =
 const device_t s3_virge_357_pci_device =
 {
         "S3 ViRGE/GX2 (357) PCI",
+        "virge357_pci",
         DEVICE_PCI,
         S3_VIRGE_GX2,
         s3_virge_init,
@@ -4509,6 +4517,7 @@ const device_t s3_virge_357_pci_device =
 const device_t s3_virge_357_agp_device =
 {
         "S3 ViRGE/GX2 (357) AGP",
+        "virge357_agp",
         DEVICE_AGP,
         S3_VIRGE_GX2,
         s3_virge_init,
@@ -4523,6 +4532,7 @@ const device_t s3_virge_357_agp_device =
 const device_t s3_diamond_stealth_4000_pci_device =
 {
         "S3 ViRGE/GX2 (Diamond Stealth 3D 4000) PCI",
+        "stealth3d_4000_pci",
         DEVICE_PCI,
         S3_DIAMOND_STEALTH3D_4000,
         s3_virge_init,
@@ -4537,6 +4547,7 @@ const device_t s3_diamond_stealth_4000_pci_device =
 const device_t s3_diamond_stealth_4000_agp_device =
 {
         "S3 ViRGE/GX2 (Diamond Stealth 3D 4000) AGP",
+        "stealth3d_4000_agp",
         DEVICE_AGP,
         S3_DIAMOND_STEALTH3D_4000,
         s3_virge_init,
@@ -4551,6 +4562,7 @@ const device_t s3_diamond_stealth_4000_agp_device =
 const device_t s3_trio3d2x_pci_device =
 {
         "S3 Trio3D/2X (362) PCI",
+        "trio3d2x",
         DEVICE_PCI,
         S3_TRIO_3D2X,
         s3_virge_init,
@@ -4565,6 +4577,7 @@ const device_t s3_trio3d2x_pci_device =
 const device_t s3_trio3d2x_agp_device =
 {
         "S3 Trio3D/2X (362) AGP",
+        "trio3d2x_agp",
         DEVICE_AGP,
         S3_TRIO_3D2X,
         s3_virge_init,

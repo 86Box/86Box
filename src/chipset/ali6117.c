@@ -379,6 +379,7 @@ ali6117_init(const device_t *info)
 const device_t ali1217_device =
 {
     "ALi M1217",
+    "ali1217",
     DEVICE_AT,
     0x8,
     ali6117_init, 
@@ -394,6 +395,7 @@ const device_t ali1217_device =
 const device_t ali6117d_device =
 {
     "ALi M6117D",
+    "ali6117d",
     DEVICE_AT,
     0x2,
     ali6117_init, 

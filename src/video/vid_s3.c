@@ -593,8 +593,9 @@ s3_accel_out_pixtrans_w(s3_t *s3, uint16_t val)
 						s3_accel_start(16, 1, val | (val << 16), 0, s3);
 					} else
 						s3_accel_start(2, 1, 0xffffffff, val | (val << 16), s3);
-				} else
+				} else {
 					s3_accel_start(2, 1, 0xffffffff, val | (val << 16), s3);
+				}
 				break;
 			case 0x400:
 				if (svga->crtc[0x53] & 0x08) {
@@ -1177,8 +1178,9 @@ s3_accel_out_fifo(s3_t *s3, uint16_t port, uint8_t val)
 						else
 							s3_accel_start(2, 1, 0xffffffff, s3->accel.pix_trans[0] | (s3->accel.pix_trans[0] << 8), s3);
 					} else {
-						if (s3->chip != S3_86C928PCI)
+						if (s3->chip != S3_86C928PCI && s3->chip != S3_86C928) {
 							s3_accel_start(2, 1, 0xffffffff, s3->accel.pix_trans[0] | (s3->accel.pix_trans[0] << 8), s3);
+						}
 					}
 					break;
 			}
@@ -1210,9 +1212,9 @@ s3_accel_out_fifo(s3_t *s3, uint16_t port, uint8_t val)
 							else
 								s3_accel_start(16, 1, s3->accel.pix_trans[0] | (s3->accel.pix_trans[1] << 8), 0, s3);
 						} else {
-							if (s3->chip == S3_86C928 || s3->chip == S3_86C928PCI)
+							if (s3->chip == S3_86C928 || s3->chip == S3_86C928PCI) {
 								s3_accel_out_pixtrans_w(s3, s3->accel.pix_trans[0] | (s3->accel.pix_trans[1] << 8));
-							else {
+							} else {
 								if (s3->accel.cmd & 0x1000)
 									s3_accel_start(2, 1, 0xffffffff, s3->accel.pix_trans[1] | (s3->accel.pix_trans[0] << 8), s3);
 								else
@@ -1220,9 +1222,9 @@ s3_accel_out_fifo(s3_t *s3, uint16_t port, uint8_t val)
 							}
 						}
 					} else {
-						if (s3->chip == S3_86C928 || s3->chip == S3_86C928PCI)
+						if (s3->chip == S3_86C928 || s3->chip == S3_86C928PCI) {
 							s3_accel_out_pixtrans_w(s3, s3->accel.pix_trans[0] | (s3->accel.pix_trans[1] << 8));
-						else {
+						} else {
 							if (s3->accel.cmd & 0x1000)
 								s3_accel_start(2, 1, 0xffffffff, s3->accel.pix_trans[1] | (s3->accel.pix_trans[0] << 8), s3);
 							else
@@ -1283,9 +1285,9 @@ s3_accel_out_fifo(s3_t *s3, uint16_t port, uint8_t val)
 							else
 								s3_accel_start(16, 1, s3->accel.pix_trans[0] | (s3->accel.pix_trans[1] << 8) | (s3->accel.pix_trans[2] << 16) | (s3->accel.pix_trans[3] << 24), 0, s3);
 						} else {
-							if (s3->chip == S3_86C928 || s3->chip == S3_86C928PCI)
+							if (s3->chip == S3_86C928 || s3->chip == S3_86C928PCI) {
 								s3_accel_out_pixtrans_w(s3, s3->accel.pix_trans[2] | (s3->accel.pix_trans[3] << 8));
-							else {
+							} else {
 								if (s3->accel.cmd & 0x1000)
 									s3_accel_start(2, 1, 0xffffffff, s3->accel.pix_trans[3] | (s3->accel.pix_trans[2] << 8) | (s3->accel.pix_trans[1] << 16) | (s3->accel.pix_trans[0] << 24), s3);
 								else
@@ -1293,9 +1295,9 @@ s3_accel_out_fifo(s3_t *s3, uint16_t port, uint8_t val)
 							}
 						}
 					} else {
-						if (s3->chip == S3_86C928 || s3->chip == S3_86C928PCI)
+						if (s3->chip == S3_86C928 || s3->chip == S3_86C928PCI) {
 							s3_accel_out_pixtrans_w(s3, s3->accel.pix_trans[2] | (s3->accel.pix_trans[3] << 8));
-						else {
+						} else {
 							if (s3->accel.cmd & 0x1000)
 								s3_accel_start(2, 1, 0xffffffff, s3->accel.pix_trans[3] | (s3->accel.pix_trans[2] << 8) | (s3->accel.pix_trans[1] << 16) | (s3->accel.pix_trans[0] << 24), s3);
 							else
@@ -1582,8 +1584,17 @@ s3_accel_write_fifo_w(s3_t *s3, uint32_t addr, uint16_t val)
 			if (addr == 0x811c)
 				s3_accel_out_fifo_w(s3, 0x9ee8, val);
 			else {
-				s3_accel_write_fifo(s3, addr,     val);
-				s3_accel_write_fifo(s3, addr + 1, val >> 8);
+				if (addr == 0xe2e8 || addr == 0xe2ea) {
+					if (s3->chip == S3_86C928 || s3->chip == S3_86C928PCI)
+						s3_accel_out_pixtrans_w(s3, val);
+					else {
+						s3_accel_write_fifo(s3, addr,     val);
+						s3_accel_write_fifo(s3, addr + 1, val >> 8);
+					}
+				} else {
+					s3_accel_write_fifo(s3, addr,     val);
+					s3_accel_write_fifo(s3, addr + 1, val >> 8);
+				}
 			}
 		} else {
 			s3_accel_out_pixtrans_w(s3, val);
@@ -1789,10 +1800,21 @@ s3_accel_write_fifo_l(s3_t *s3, uint32_t addr, uint32_t val)
 	}
     } else {
 	if (addr & 0x8000) {
-		s3_accel_write_fifo(s3, addr,     val);
-		s3_accel_write_fifo(s3, addr + 1, val >> 8);
-		s3_accel_write_fifo(s3, addr + 2, val >> 16);
-		s3_accel_write_fifo(s3, addr + 3, val >> 24);
+		if (addr == 0xe2e8) {
+			if (s3->chip == S3_86C928 || s3->chip == S3_86C928PCI)
+				s3_accel_out_pixtrans_l(s3, val);
+			else {
+				s3_accel_write_fifo(s3, addr,     val);
+				s3_accel_write_fifo(s3, addr + 1, val >> 8);
+				s3_accel_write_fifo(s3, addr + 2, val >> 16);
+				s3_accel_write_fifo(s3, addr + 3, val >> 24);
+			}
+		} else {
+			s3_accel_write_fifo(s3, addr,     val);
+			s3_accel_write_fifo(s3, addr + 1, val >> 8);
+			s3_accel_write_fifo(s3, addr + 2, val >> 16);
+			s3_accel_write_fifo(s3, addr + 3, val >> 24);
+		}
 	} else {
 		s3_accel_out_pixtrans_l(s3, val);
 	}
@@ -7709,6 +7731,7 @@ static const device_config_t s3_968_config[] =
 const device_t s3_orchid_86c911_isa_device =
 {
 	"S3 86c911 ISA (Orchid Fahrenheit 1280)",
+	"orchid_s3_911",
 	DEVICE_AT | DEVICE_ISA,
 	S3_ORCHID_86C911,
 	s3_init,
@@ -7723,6 +7746,7 @@ const device_t s3_orchid_86c911_isa_device =
 const device_t s3_diamond_stealth_vram_isa_device =
 {
 	"S3 86c911 ISA (Diamond Stealth VRAM)",
+	"stealthvram_isa",
 	DEVICE_AT | DEVICE_ISA,
 	S3_DIAMOND_STEALTH_VRAM,
 	s3_init,
@@ -7737,6 +7761,7 @@ const device_t s3_diamond_stealth_vram_isa_device =
 const device_t s3_ami_86c924_isa_device =
 {
 	"S3 86c924 ISA (AMI)",
+	"ami_s3_924",
 	DEVICE_AT | DEVICE_ISA,
 	S3_AMI_86C924,
 	s3_init,
@@ -7751,6 +7776,7 @@ const device_t s3_ami_86c924_isa_device =
 const device_t s3_spea_mirage_86c801_isa_device =
 {
 	"S3 86c801 ISA (SPEA Mirage ISA)",
+	"px_s3_v7_801_isa",
 	DEVICE_AT | DEVICE_ISA,
 	S3_SPEA_MIRAGE_86C801,
 	s3_init,
@@ -7765,6 +7791,7 @@ const device_t s3_spea_mirage_86c801_isa_device =
 const device_t s3_spea_mirage_86c805_vlb_device =
 {
 	"S3 86c805 VLB (SPEA Mirage VL)",
+	"px_s3_v7_805_vlb",
 	DEVICE_VLB,
 	S3_SPEA_MIRAGE_86C805,
 	s3_init,
@@ -7779,6 +7806,7 @@ const device_t s3_spea_mirage_86c805_vlb_device =
 const device_t s3_mirocrystal_8s_805_vlb_device =
 {
 	"S3 86c805 VLB (MiroCRYSTAL 8S)",
+	"mirocrystal8s_vlb",
 	DEVICE_VLB,
 	S3_MIROCRYSTAL8S_805,
 	s3_init,
@@ -7794,6 +7822,7 @@ const device_t s3_mirocrystal_8s_805_vlb_device =
 const device_t s3_mirocrystal_10sd_805_vlb_device =
 {
 	"S3 86c805 VLB (MiroCRYSTAL 10SD)",
+	"mirocrystal10sd_vlb",
 	DEVICE_VLB,
 	S3_MIROCRYSTAL10SD_805,
 	s3_init,
@@ -7808,6 +7837,7 @@ const device_t s3_mirocrystal_10sd_805_vlb_device =
 const device_t s3_phoenix_86c801_isa_device =
 {
 	"S3 86c801 ISA (Phoenix)",
+	"px_86c801_isa",
 	DEVICE_AT | DEVICE_ISA,
 	S3_PHOENIX_86C801,
 	s3_init,
@@ -7822,6 +7852,7 @@ const device_t s3_phoenix_86c801_isa_device =
 const device_t s3_phoenix_86c805_vlb_device =
 {
 	"S3 86c805 VLB (Phoenix)",
+	"px_86c805_vlb",
 	DEVICE_VLB,
 	S3_PHOENIX_86C805,
 	s3_init,
@@ -7836,6 +7867,7 @@ const device_t s3_phoenix_86c805_vlb_device =
 const device_t s3_metheus_86c928_isa_device =
 {
 	"S3 86c928 ISA (Metheus Premier 928)",
+	"metheus928_isa",
 	DEVICE_AT | DEVICE_ISA,
 	S3_METHEUS_86C928,
 	s3_init,
@@ -7850,6 +7882,7 @@ const device_t s3_metheus_86c928_isa_device =
 const device_t s3_metheus_86c928_vlb_device =
 {
 	"S3 86c928 VLB (Metheus Premier 928)",
+	"metheus928_vlb",
 	DEVICE_VLB,
 	S3_METHEUS_86C928,
 	s3_init,
@@ -7864,6 +7897,7 @@ const device_t s3_metheus_86c928_vlb_device =
 const device_t s3_spea_mercury_lite_86c928_pci_device =
 {
 	"S3 86c928 PCI (SPEA Mercury Lite)",
+	"spea_mercurylite_pci",
 	DEVICE_PCI,
 	S3_SPEA_MERCURY_LITE_PCI,
 	s3_init,
@@ -7878,6 +7912,7 @@ const device_t s3_spea_mercury_lite_86c928_pci_device =
 const device_t s3_mirocrystal_20sd_864_vlb_device =
 {
 	"S3 Vision864 VLB (MiroCRYSTAL 20SD)",
+	"mirocrystal20sd_vlb",
 	DEVICE_VLB,
 	S3_MIROCRYSTAL20SD_864,
 	s3_init,
@@ -7892,6 +7927,7 @@ const device_t s3_mirocrystal_20sd_864_vlb_device =
 const device_t s3_bahamas64_vlb_device =
 {
 	"S3 Vision864 VLB (Paradise Bahamas 64)",
+	"bahamas64_vlb",
 	DEVICE_VLB,
 	S3_PARADISE_BAHAMAS64,
 	s3_init,
@@ -7906,6 +7942,7 @@ const device_t s3_bahamas64_vlb_device =
 const device_t s3_bahamas64_pci_device =
 {
 	"S3 Vision864 PCI (Paradise Bahamas 64)",
+	"bahamas64_pci",
 	DEVICE_PCI,
 	S3_PARADISE_BAHAMAS64,
 	s3_init,
@@ -7920,6 +7957,7 @@ const device_t s3_bahamas64_pci_device =
 const device_t s3_mirocrystal_20sv_964_vlb_device =
 {
 	"S3 Vision964 VLB (MiroCRYSTAL 20SV)",
+	"mirocrystal20sv_vlb",
 	DEVICE_VLB,
 	S3_MIROCRYSTAL20SV_964,
 	s3_init,
@@ -7934,6 +7972,7 @@ const device_t s3_mirocrystal_20sv_964_vlb_device =
 const device_t s3_mirocrystal_20sv_964_pci_device =
 {
 	"S3 Vision964 PCI (MiroCRYSTAL 20SV)",
+	"mirocrystal20sv_pci",
 	DEVICE_PCI,
 	S3_MIROCRYSTAL20SV_964,
 	s3_init,
@@ -7949,6 +7988,7 @@ const device_t s3_mirocrystal_20sv_964_pci_device =
 const device_t s3_diamond_stealth64_964_vlb_device =
 {
 	"S3 Vision964 VLB (Diamond Stealth64 VRAM)",
+	"stealth64v_vlb",
 	DEVICE_VLB,
 	S3_DIAMOND_STEALTH64_964,
 	s3_init,
@@ -7963,6 +8003,7 @@ const device_t s3_diamond_stealth64_964_vlb_device =
 const device_t s3_diamond_stealth64_964_pci_device =
 {
 	"S3 Vision964 PCI (Diamond Stealth64 VRAM)",
+	"stealth64v_pci",
 	DEVICE_PCI,
 	S3_DIAMOND_STEALTH64_964,
 	s3_init,
@@ -7977,6 +8018,7 @@ const device_t s3_diamond_stealth64_964_pci_device =
 const device_t s3_9fx_771_pci_device =
 {
 	"S3 Vision968 PCI (Number 9 9FX 771)",
+	"n9_9fx_771_pci",
 	DEVICE_PCI,
 	S3_NUMBER9_9FX_771,
 	s3_init,
@@ -7991,6 +8033,7 @@ const device_t s3_9fx_771_pci_device =
 const device_t s3_phoenix_vision968_pci_device =
 {
 	"S3 Vision968 PCI (Phoenix)",
+	"px_vision968_pci",
 	DEVICE_PCI,
 	S3_PHOENIX_VISION968,
 	s3_init,
@@ -8005,6 +8048,7 @@ const device_t s3_phoenix_vision968_pci_device =
 const device_t s3_phoenix_vision968_vlb_device =
 {
 	"S3 Vision968 VLB (Phoenix)",
+	"px_vision968_vlb",
 	DEVICE_VLB,
 	S3_PHOENIX_VISION968,
 	s3_init,
@@ -8019,6 +8063,7 @@ const device_t s3_phoenix_vision968_vlb_device =
 const device_t s3_mirovideo_40sv_ergo_968_pci_device =
 {
 	"S3 Vision968 PCI (MiroVIDEO 40SV Ergo)",
+	"mirovideo40sv_pci",
 	DEVICE_PCI,
 	S3_MIROVIDEO40SV_ERGO_968,
 	s3_init,
@@ -8033,6 +8078,7 @@ const device_t s3_mirovideo_40sv_ergo_968_pci_device =
 const device_t s3_spea_mercury_p64v_pci_device =
 {
 	"S3 Vision968 PCI (SPEA Mercury P64V)",
+	"spea_mercury64p_pci",
 	DEVICE_PCI,
 	S3_SPEA_MERCURY_P64V,
 	s3_init,
@@ -8047,6 +8093,7 @@ const device_t s3_spea_mercury_p64v_pci_device =
 const device_t s3_9fx_vlb_device =
 {
 	"S3 Trio64 VLB (Number 9 9FX 330)",
+	"n9_9fx_vlb",
 	DEVICE_VLB,
 	S3_NUMBER9_9FX,
 	s3_init,
@@ -8061,6 +8108,7 @@ const device_t s3_9fx_vlb_device =
 const device_t s3_9fx_pci_device =
 {
 	"S3 Trio64 PCI (Number 9 9FX 330)",
+	"n9_9fx_pci",
 	DEVICE_PCI,
 	S3_NUMBER9_9FX,
 	s3_init,
@@ -8075,6 +8123,7 @@ const device_t s3_9fx_pci_device =
 const device_t s3_phoenix_trio32_vlb_device =
 {
 	"S3 Trio32 VLB (Phoenix)",
+	"px_trio32_vlb",
 	DEVICE_VLB,
 	S3_PHOENIX_TRIO32,
 	s3_init,
@@ -8089,6 +8138,7 @@ const device_t s3_phoenix_trio32_vlb_device =
 const device_t s3_phoenix_trio32_pci_device =
 {
 	"S3 Trio32 PCI (Phoenix)",
+	"px_trio32_pci",
 	DEVICE_PCI,
 	S3_PHOENIX_TRIO32,
 	s3_init,
@@ -8103,6 +8153,7 @@ const device_t s3_phoenix_trio32_pci_device =
 const device_t s3_diamond_stealth_se_vlb_device =
 {
 	"S3 Trio32 VLB (Diamond Stealth SE)",
+	"stealthse_vlb",
 	DEVICE_VLB,
 	S3_DIAMOND_STEALTH_SE,
 	s3_init,
@@ -8117,6 +8168,7 @@ const device_t s3_diamond_stealth_se_vlb_device =
 const device_t s3_diamond_stealth_se_pci_device =
 {
 	"S3 Trio32 PCI (Diamond Stealth SE)",
+	"stealthse_pci",
 	DEVICE_PCI,
 	S3_DIAMOND_STEALTH_SE,
 	s3_init,
@@ -8132,6 +8184,7 @@ const device_t s3_diamond_stealth_se_pci_device =
 const device_t s3_phoenix_trio64_vlb_device =
 {
 	"S3 Trio64 VLB (Phoenix)",
+	"px_trio64_vlb",
 	DEVICE_VLB,
 	S3_PHOENIX_TRIO64,
 	s3_init,
@@ -8146,6 +8199,7 @@ const device_t s3_phoenix_trio64_vlb_device =
 const device_t s3_phoenix_trio64_onboard_pci_device =
 {
 	"S3 Trio64 PCI On-Board (Phoenix)",
+	"px_trio64_onboard_pci",
 	DEVICE_PCI,
 	S3_PHOENIX_TRIO64_ONBOARD,
 	s3_init,
@@ -8160,6 +8214,7 @@ const device_t s3_phoenix_trio64_onboard_pci_device =
 const device_t s3_phoenix_trio64_pci_device =
 {
 	"S3 Trio64 PCI (Phoenix)",
+	"px_trio64_pci",
 	DEVICE_PCI,
 	S3_PHOENIX_TRIO64,
 	s3_init,
@@ -8174,6 +8229,7 @@ const device_t s3_phoenix_trio64_pci_device =
 const device_t s3_phoenix_trio64vplus_onboard_pci_device =
 {
 	"S3 Trio64V+ PCI On-Board (Phoenix)",
+	"px_trio64vplus_onboard_pci",
 	DEVICE_PCI,
 	S3_PHOENIX_TRIO64VPLUS_ONBOARD,
 	s3_init,
@@ -8188,6 +8244,7 @@ const device_t s3_phoenix_trio64vplus_onboard_pci_device =
 const device_t s3_phoenix_trio64vplus_pci_device =
 {
 	"S3 Trio64V+ PCI (Phoenix)",
+	"px_trio64vplus_pci",
 	DEVICE_PCI,
 	S3_PHOENIX_TRIO64VPLUS,
 	s3_init,
@@ -8202,6 +8259,7 @@ const device_t s3_phoenix_trio64vplus_pci_device =
 const device_t s3_phoenix_vision864_vlb_device =
 {
 	"S3 Vision864 VLB (Phoenix)",
+	"px_vision864_vlb",
 	DEVICE_VLB,
 	S3_PHOENIX_VISION864,
 	s3_init,
@@ -8216,6 +8274,7 @@ const device_t s3_phoenix_vision864_vlb_device =
 const device_t s3_phoenix_vision864_pci_device =
 {
 	"S3 Vision864 PCI (Phoenix)",
+	"px_vision864_pci",
 	DEVICE_PCI,
 	S3_PHOENIX_VISION864,
 	s3_init,
@@ -8230,6 +8289,7 @@ const device_t s3_phoenix_vision864_pci_device =
 const device_t s3_9fx_531_pci_device =
 {
 	"S3 Vision868 PCI (Number 9 9FX 531)",
+	"n9_9fx_531_pci",
 	DEVICE_PCI,
 	S3_NUMBER9_9FX_531,
 	s3_init,
@@ -8244,6 +8304,7 @@ const device_t s3_9fx_531_pci_device =
 const device_t s3_phoenix_vision868_vlb_device =
 {
 	"S3 Vision868 VLB (Phoenix)",
+	"px_vision868_vlb",
 	DEVICE_VLB,
 	S3_PHOENIX_VISION868,
 	s3_init,
@@ -8258,6 +8319,7 @@ const device_t s3_phoenix_vision868_vlb_device =
 const device_t s3_phoenix_vision868_pci_device =
 {
 	"S3 Vision868 PCI (Phoenix)",
+	"px_vision868_pci",
 	DEVICE_PCI,
 	S3_PHOENIX_VISION868,
 	s3_init,
@@ -8272,6 +8334,7 @@ const device_t s3_phoenix_vision868_pci_device =
 const device_t s3_diamond_stealth64_vlb_device =
 {
 	"S3 Trio64 VLB (Diamond Stealth64 DRAM)",
+	"stealth64d_vlb",
 	DEVICE_VLB,
 	S3_DIAMOND_STEALTH64_764,
 	s3_init,
@@ -8286,6 +8349,7 @@ const device_t s3_diamond_stealth64_vlb_device =
 const device_t s3_diamond_stealth64_pci_device =
 {
 	"S3 Trio64 PCI (Diamond Stealth64 DRAM)",
+	"stealth64d_pci",
 	DEVICE_PCI,
 	S3_DIAMOND_STEALTH64_764,
 	s3_init,
@@ -8300,6 +8364,7 @@ const device_t s3_diamond_stealth64_pci_device =
 const device_t s3_spea_mirage_p64_vlb_device =
 {
 	"S3 Trio64 VLB (SPEA Mirage P64)",
+	"spea_miragep64_vlb",
 	DEVICE_VLB,
 	S3_SPEA_MIRAGE_P64,
 	s3_init,
@@ -8314,6 +8379,7 @@ const device_t s3_spea_mirage_p64_vlb_device =
 const device_t s3_elsa_winner2000_pro_x_964_pci_device =
 {
    	"S3 Vision964 PCI (ELSA Winner 2000 Pro/X)",
+   	"elsawin2kprox_964_pci",
         DEVICE_PCI,
         S3_ELSAWIN2KPROX_964,
         s3_init,
@@ -8328,6 +8394,7 @@ const device_t s3_elsa_winner2000_pro_x_964_pci_device =
 const device_t s3_elsa_winner2000_pro_x_pci_device =
 {
    	"S3 Vision968 PCI (ELSA Winner 2000 Pro/X)",
+   	"elsawin2kprox_pci",
         DEVICE_PCI,
         S3_ELSAWIN2KPROX,
         s3_init,
@@ -8342,6 +8409,7 @@ const device_t s3_elsa_winner2000_pro_x_pci_device =
 const device_t s3_trio64v2_dx_pci_device =
 {
         "S3 Trio64V2/DX PCI",
+        "trio64v2dx_pci",
         DEVICE_PCI,
         S3_TRIO64V2_DX,
         s3_init,
@@ -8357,6 +8425,7 @@ const device_t s3_trio64v2_dx_pci_device =
 const device_t s3_trio64v2_dx_onboard_pci_device =
 {
         "S3 Trio64V2/DX On-Board PCI",
+        "trio64v2dx_onboard_pci",
         DEVICE_PCI,
         S3_TRIO64V2_DX_ONBOARD,
         s3_init,
@@ -8367,4 +8436,3 @@ const device_t s3_trio64v2_dx_onboard_pci_device =
         s3_force_redraw,
         s3_standard_config
 };
-

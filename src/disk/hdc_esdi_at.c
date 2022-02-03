@@ -846,6 +846,7 @@ wd1007vse1_available(void)
 
 const device_t esdi_at_wd1007vse1_device = {
     "Western Digital WD1007V-SE1 (ESDI)",
+    "esdi_at",
     DEVICE_ISA | DEVICE_AT,
     0,
     wd1007vse1_init, wd1007vse1_close, NULL,

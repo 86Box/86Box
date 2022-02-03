@@ -1049,7 +1049,9 @@ pc_reset_hard_init(void)
 	pc_full_speed();
 
 	cycles = 0;
-  fpu_cycles = 0;
+#ifdef FPU_CYCLES
+	fpu_cycles = 0;
+#endif
 #ifdef USE_DYNAREC
 	cycles_main = 0;
 #endif

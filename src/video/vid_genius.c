@@ -792,6 +792,7 @@ genius_speed_changed(void *p)
 const device_t genius_device =
 {
         "Genius VHR",
+        "genius",
         DEVICE_ISA, 0,
         genius_init, genius_close, NULL,
         { genius_available },

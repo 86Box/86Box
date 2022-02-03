@@ -274,6 +274,7 @@ pc87311_init(const device_t *info)
 
 const device_t pc87311_device = {
     "National Semiconductor PC87311",
+    "pc87311",
     0,
     0,
     pc87311_init,
@@ -286,6 +287,7 @@ const device_t pc87311_device = {
 
 const device_t pc87311_ide_device = {
     "National Semiconductor PC87311 with IDE functionality",
+    "pc87311_ide",
     0,
     1,
     pc87311_init,

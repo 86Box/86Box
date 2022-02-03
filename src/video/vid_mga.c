@@ -5118,6 +5118,7 @@ static const device_config_t mystique_config[] =
 const device_t mystique_device =
 {
     "Matrox Mystique",
+    "mystique",
     DEVICE_PCI,
     0,
     mystique_init,
@@ -5133,6 +5134,7 @@ const device_t mystique_device =
 const device_t mystique_220_device =
 {
     "Matrox Mystique 220",
+    "mystique_220",
     DEVICE_PCI,
     1,
     mystique_init,

@@ -732,6 +732,7 @@ const device_config_t compaq_plasma_config[] =
 static const device_t compaq_plasma_device =
 {
         "Compaq Plasma",
+        "compaq_plasma",
         0, 0,
         compaq_plasma_init,
         compaq_plasma_close,

@@ -250,6 +250,7 @@ stg_ramdac_close(void *priv)
 const device_t stg_ramdac_device =
 {
         "SGS-Thompson STG170x RAMDAC",
+        "stg_ramdac",
         0, 0,
         stg_ramdac_init, stg_ramdac_close,
 	NULL, { NULL }, NULL, NULL

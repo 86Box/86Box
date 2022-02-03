@@ -31,7 +31,6 @@
 
 
 typedef struct {
-    const char  *internal_name;
     const device_t    *device;
 } mouse_t;
 
@@ -45,13 +44,15 @@ int	mouse_x,
 
 static const device_t mouse_none_device = {
     "None",
+    "none",
     0, MOUSE_TYPE_NONE,
     NULL, NULL, NULL,
     { NULL }, NULL, NULL,
     NULL
 };
 static const device_t mouse_internal_device = {
-    "Internal Mouse",
+    "Internal",
+    "internal",
     0, MOUSE_TYPE_INTERNAL,
     NULL, NULL, NULL,
     { NULL }, NULL, NULL,
@@ -60,18 +61,18 @@ static const device_t mouse_internal_device = {
 
 
 static mouse_t mouse_devices[] = {
-    { "none",		&mouse_none_device	},
-    { "internal",	&mouse_internal_device	},
-    { "logibus",	&mouse_logibus_device	},
-    { "msbus",		&mouse_msinport_device	},
+    { &mouse_none_device	},
+    { &mouse_internal_device	},
+    { &mouse_logibus_device	},
+    { &mouse_msinport_device	},
 #if 0
-    { "genibus",	&mouse_genibus_device	},
+    { &mouse_genibus_device	},
 #endif
-    { "mssystems",	&mouse_mssystems_device	},
-    { "msserial",	&mouse_msserial_device	},
-    { "ltserial",	&mouse_ltserial_device	},
-    { "ps2",		&mouse_ps2_device	},
-    { NULL,		NULL			}
+    { &mouse_mssystems_device	},
+    { &mouse_msserial_device	},
+    { &mouse_ltserial_device	},
+    { &mouse_ps2_device		},
+    { NULL			}
 };
 
 
@@ -206,7 +207,7 @@ mouse_get_name(int mouse)
 char *
 mouse_get_internal_name(int mouse)
 {
-    return((char *)mouse_devices[mouse].internal_name);
+    return device_get_internal_name(mouse_devices[mouse].device);
 }
 
 
@@ -215,8 +216,8 @@ mouse_get_from_internal_name(char *s)
 {
     int c = 0;
 
-    while (mouse_devices[c].internal_name != NULL) {
-	if (! strcmp((char *)mouse_devices[c].internal_name, s))
+    while (mouse_devices[c].device != NULL) {
+	if (! strcmp((char *)mouse_devices[c].device->internal_name, s))
 		return(c);
 	c++;
     }

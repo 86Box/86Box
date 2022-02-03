@@ -386,3 +386,4 @@ END
 #include "languages/sl-SI.rc"
 #include "languages/es-ES.rc"
 #include "languages/tr-TR.rc"
+#include "languages/uk-UA.rc"
