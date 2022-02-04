@@ -143,7 +143,10 @@ void MediaMenu::cassetteNewImage() {
     if (fileinfo.suffix().isEmpty()) {
         filename.append(".cas");
     }
-    cassetteMount(filename, false);
+    if (!filename.isNull()) {
+        if (filename.isEmpty()) cassetteEject();
+        else cassetteMount(filename, false);
+    }
 }
 
 void MediaMenu::cassetteSelectImage(bool wp) {
@@ -155,7 +158,7 @@ void MediaMenu::cassetteSelectImage(bool wp) {
         tr("All files") %
         util::DlgFilter({ "*" }, true));
 
-    cassetteMount(filename, wp);
+    if (!filename.isEmpty()) cassetteMount(filename, wp);
 }
 
 void MediaMenu::cassetteMount(const QString& filename, bool wp) {
@@ -276,7 +279,7 @@ void MediaMenu::floppySelectImage(int i, bool wp) {
         tr("All files") %
         util::DlgFilter({ "*" }, true));
 
-    floppyMount(i, filename, wp);
+    if (!filename.isEmpty()) floppyMount(i, filename, wp);
 }
 
 void MediaMenu::floppyMount(int i, const QString &filename, bool wp) {
@@ -349,8 +352,6 @@ void MediaMenu::cdromMount(int i) {
         util::DlgFilter({ "*" }, true));
 
     if (filename.isEmpty()) {
-        auto* imageMenu = dynamic_cast<QAction*>(cdromMenus[i]->children()[cdromImagePos]);
-        imageMenu->setChecked(false);
         return;
     }
     QByteArray fn = filename.toUtf8().data();
@@ -439,7 +440,7 @@ void MediaMenu::zipSelectImage(int i, bool wp) {
         tr("All files") %
         util::DlgFilter({ "*" }, true));
 
-    zipMount(i, filename, wp);
+    if (!filename.isEmpty()) zipMount(i, filename, wp);
 }
 
 void MediaMenu::zipMount(int i, const QString &filename, bool wp) {
@@ -536,7 +537,7 @@ void MediaMenu::moSelectImage(int i, bool wp) {
         tr("All files") %
         util::DlgFilter({ "*", }, true));
 
-    moMount(i, filename, wp);
+    if (!filename.isEmpty()) moMount(i, filename, wp);
 }
 
 void MediaMenu::moMount(int i, const QString &filename, bool wp) {

@@ -104,10 +104,12 @@ MainWindow::MainWindow(QWidget *parent) :
         {
             /* get the percentage and mouse message, TODO: refactor ui_window_title() */
             auto parts = title.split(" - ");
-            if (parts.size() < 5)
-                toolbar_label->setText(parts[1]);
-            else
-                toolbar_label->setText(QString("%1 - %2").arg(parts[1], parts.last()));
+            if (parts.size() >= 2) {
+                if (parts.size() < 5)
+                    toolbar_label->setText(parts[1]);
+                else
+                    toolbar_label->setText(QString("%1 - %2").arg(parts[1], parts.last()));
+            }
         }
 #endif
         ui->actionPause->setChecked(dopause);
@@ -346,11 +348,11 @@ MainWindow::MainWindow(QWidget *parent) :
 #ifdef MTR_ENABLED
     {
         ui->menuTools->addSeparator();
-        static auto actionBegin_trace = ui->menuTools->addAction(tr("Begin trace"));
-        static auto actionEnd_trace = ui->menuTools->addAction(tr("End trace"));
-        actionBegin_trace->setShortcut(QKeySequence(Qt::Key_Control + Qt::Key_T));
-        actionEnd_trace->setShortcut(QKeySequence(Qt::Key_Control + Qt::Key_T));
-        actionEnd_trace->setDisabled(true);
+        ui->actionBegin_trace->setVisible(true);
+        ui->actionEnd_trace->setVisible(true);
+        ui->actionBegin_trace->setShortcut(QKeySequence(Qt::Key_Control + Qt::Key_T));
+        ui->actionEnd_trace->setShortcut(QKeySequence(Qt::Key_Control + Qt::Key_T));
+        ui->actionEnd_trace->setDisabled(true);
         static auto init_trace = [&]
         {
             mtr_init("trace.json");
@@ -362,41 +364,26 @@ MainWindow::MainWindow(QWidget *parent) :
             mtr_shutdown();
         };
 #ifdef Q_OS_MACOS
-        actionBegin_trace->setShortcutVisibleInContextMenu(true);
-        actionEnd_trace->setShortcutVisibleInContextMenu(true);
+        ui->actionBegin_trace->setShortcutVisibleInContextMenu(true);
+        ui->actionEnd_trace->setShortcutVisibleInContextMenu(true);
 #endif
         static bool trace = false;
-        connect(actionBegin_trace, &QAction::triggered, this, [this]
+        connect(ui->actionBegin_trace, &QAction::triggered, this, [this]
         {
             if (trace) return;
-            actionBegin_trace->setDisabled(true);
-            actionEnd_trace->setDisabled(false);
+            ui->actionBegin_trace->setDisabled(true);
+            ui->actionEnd_trace->setDisabled(false);
             init_trace();
             trace = true;
         });
-        connect(actionEnd_trace, &QAction::triggered, this, [this]
+        connect(ui->actionEnd_trace, &QAction::triggered, this, [this]
         {
             if (!trace) return;
-            actionBegin_trace->setDisabled(false);
-            actionEnd_trace->setDisabled(true);
+            ui->actionBegin_trace->setDisabled(false);
+            ui->actionEnd_trace->setDisabled(true);
             shutdown_trace();
             trace = false;
         });
-    }
-#endif
-
-#ifdef ENABLE_VRAM_DUMP
-    {
-#ifndef MTR_ENABLED
-        ui->menuTools->addSeparator();
-#endif
-        auto actionDump_video_RAM = ui->menuTools->addAction(tr("Dump &video RAM"));
-        actionDump_video_RAM->setShortcut(QKeySequence(Qt::Key_Control + Qt::Key_F1));
-#ifdef Q_OS_MACOS
-        actionDump_video_RAM->setShortcutVisibleInContextMenu(true);
-#endif
-        connect(actionDump_video_RAM, &QAction::triggered, this, [this]
-        { svga_dump_vram(); });
     }
 #endif
 }

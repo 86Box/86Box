@@ -47,7 +47,7 @@
      <x>0</x>
      <y>0</y>
      <width>724</width>
-     <height>21</height>
+     <height>22</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuAction">
@@ -79,6 +79,9 @@
     <addaction name="actionSound_gain"/>
     <addaction name="separator"/>
     <addaction name="actionPreferences"/>
+    <addaction name="separator"/>
+    <addaction name="actionBegin_trace"/>
+    <addaction name="actionEnd_trace"/>
    </widget>
    <widget class="QMenu" name="menuView">
     <property name="title">
@@ -664,6 +667,34 @@
    </property>
    <property name="toolTip">
     <string>ACPI Shutdown</string>
+   </property>
+  </action>
+  <action name="actionBegin_trace">
+   <property name="text">
+    <string>Begin trace</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+T</string>
+   </property>
+   <property name="visible">
+    <bool>false</bool>
+   </property>
+   <property name="shortcutVisibleInContextMenu">
+    <bool>false</bool>
+   </property>
+  </action>
+  <action name="actionEnd_trace">
+   <property name="text">
+    <string>End trace</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+T</string>
+   </property>
+   <property name="visible">
+    <bool>false</bool>
+   </property>
+   <property name="shortcutVisibleInContextMenu">
+    <bool>false</bool>
    </property>
   </action>
  </widget>
