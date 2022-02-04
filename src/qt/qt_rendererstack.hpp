@@ -64,6 +64,7 @@ private:
     int x, y, w, h, sx, sy, sw, sh;
 
     int currentBuf = 0;
+    int isMouseDown = 0;
     std::vector<std::tuple<uint8_t*, std::atomic_flag*>> imagebufs;
 
     std::unique_ptr<QWidget> current;
