@@ -86,29 +86,33 @@ void RendererStack::mousePoll()
 #endif
 }
 
-int ignoreNextMouseEvent = 1;
+static int ignoreNextMouseEvent = 1, isButtonDown = 0;
 void RendererStack::mouseReleaseEvent(QMouseEvent *event)
 {
-    if (this->geometry().contains(event->pos()) && event->button() == Qt::LeftButton && !mouse_capture)
+    if (this->geometry().contains(event->pos()) && event->button() == Qt::LeftButton && !mouse_capture && (isButtonDown & 1))
     {
         plat_mouse_capture(1);
         this->setCursor(Qt::BlankCursor);
         if (!ignoreNextMouseEvent) ignoreNextMouseEvent++; // Avoid jumping cursor when moved.
+        isButtonDown &= ~1;
         return;
     }
     if (mouse_capture && event->button() == Qt::MiddleButton && mouse_get_buttons() < 3)
     {
         plat_mouse_capture(0);
         this->setCursor(Qt::ArrowCursor);
+        isButtonDown &= ~1;
         return;
     }
     if (mouse_capture)
     {
         mousedata.mousebuttons &= ~event->button();
     }
+    isButtonDown &= ~1;
 }
 void RendererStack::mousePressEvent(QMouseEvent *event)
 {
+    isButtonDown |= 1;
     if (mouse_capture)
     {
         mousedata.mousebuttons |= event->button();
