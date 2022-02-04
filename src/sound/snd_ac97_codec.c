@@ -467,9 +467,9 @@ ac97_codec_reset(void *priv)
 	dev->regs[0x14 >> 1] = AC97_MUTE | 0x0808;
     if (dev->misc_flags & AC97_AUXIN)
 	dev->regs[0x14 >> 1] = AC97_MUTE | 0x0808;
-    dev->regs[0x1c] = AC97_MUTE; /* record gain */
+    dev->regs[0x1c >> 1] = AC97_MUTE; /* record gain */
     if (dev->reset_flags & AC97_MICPCM)
-	dev->regs[0x1e] = AC97_MUTE; /* mic record gain */
+	dev->regs[0x1e >> 1] = AC97_MUTE; /* mic record gain */
     if (dev->misc_flags & AC97_LDAC)
 	dev->regs[0x36 >> 1] = AC97_MUTE_L;
     if (dev->misc_flags & AC97_CDAC)
