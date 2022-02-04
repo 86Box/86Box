@@ -30,6 +30,7 @@
 #include <pthread.h>
 #include <sys/time.h>
 #include <unistd.h>
+#include <stdatomic.h>
 #endif
 
 #include <minitrace/minitrace.h>
@@ -66,8 +67,8 @@ typedef struct raw_event {
 static raw_event_t *event_buffer;
 static raw_event_t *flush_buffer;
 static volatile int event_count;
-static __attribute__ ((aligned (32))) volatile long is_tracing = FALSE;
-static __attribute__ ((aligned (32))) volatile long stop_flushing_requested = FALSE;
+static __attribute__ ((aligned (32))) atomic_long is_tracing = FALSE;
+static __attribute__ ((aligned (32))) atomic_long stop_flushing_requested = FALSE;
 static int is_flushing = FALSE;
 static int events_in_progress = 0;
 static int64_t time_offset;
@@ -93,8 +94,6 @@ void mtr_flush_with_state(int);
 //	 mtr_time_s()
 //	 pthread basics
 #ifdef _WIN32
-#define atomic_load(a) InterlockedOr((a), 0)
-#define atomic_store(a, b) InterlockedExchange((a), b)
 
 static int get_cur_thread_id() {
 	return (int)GetCurrentThreadId();
@@ -160,6 +159,31 @@ static inline int get_cur_thread_id() {
 }
 static inline int get_cur_process_id() {
 	return (int)getpid();
+}
+
+static pthread_t thread_handle = 0;
+static void* thread_flush_proc(void* param) {
+    while(1) {
+        mtr_flush_with_state(0);
+        if(atomic_load(&stop_flushing_requested)) {
+            break;
+        }
+    }
+    return 0;
+}
+static void init_flushing_thread(void) {
+    pthread_mutex_lock(&mutex);
+    is_flushing = FALSE;
+    pthread_mutex_unlock(&mutex);
+    if (pthread_create(&thread_handle, NULL, thread_flush_proc, NULL) != 0)
+    {
+        thread_handle = 0;
+    }
+}
+
+static void join_flushing_thread(void) {
+    if (thread_handle) pthread_join(thread_handle, NULL);
+    thread_handle = 0;
 }
 
 #if defined(BLACKBERRY)
@@ -269,9 +293,9 @@ void mtr_start() {
 #ifndef MTR_ENABLED
 	return;
 #endif
-	pthread_cond_init(&buffer_not_full_cond);
-	pthread_cond_init(&buffer_full_cond);
-        atomic_store(&is_tracing, TRUE);
+    pthread_cond_init(&buffer_not_full_cond, NULL);
+    pthread_cond_init(&buffer_full_cond, NULL);
+    atomic_store(&is_tracing, TRUE);
 	init_flushing_thread();
 }
 

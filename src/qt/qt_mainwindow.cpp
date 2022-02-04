@@ -17,6 +17,10 @@ extern "C" {
 #include <86box/video.h>
 #include <86box/vid_ega.h>
 #include <86box/version.h>
+
+#ifdef MTR_ENABLED
+#include <minitrace/minitrace.h>
+#endif
 };
 
 #include <QGuiApplication>
@@ -338,6 +342,63 @@ MainWindow::MainWindow(QWidget *parent) :
             }
         });
     }
+
+#ifdef MTR_ENABLED
+    {
+        ui->menuTools->addSeparator();
+        static auto actionBegin_trace = ui->menuTools->addAction(tr("Begin trace"));
+        static auto actionEnd_trace = ui->menuTools->addAction(tr("End trace"));
+        actionBegin_trace->setShortcut(QKeySequence(Qt::Key_Control + Qt::Key_T));
+        actionEnd_trace->setShortcut(QKeySequence(Qt::Key_Control + Qt::Key_T));
+        actionEnd_trace->setDisabled(true);
+        static auto init_trace = [&]
+        {
+            mtr_init("trace.json");
+            mtr_start();
+        };
+        static auto shutdown_trace = [&]
+        {
+            mtr_stop();
+            mtr_shutdown();
+        };
+#ifdef Q_OS_MACOS
+        actionBegin_trace->setShortcutVisibleInContextMenu(true);
+        actionEnd_trace->setShortcutVisibleInContextMenu(true);
+#endif
+        static bool trace = false;
+        connect(actionBegin_trace, &QAction::triggered, this, [this]
+        {
+            if (trace) return;
+            actionBegin_trace->setDisabled(true);
+            actionEnd_trace->setDisabled(false);
+            init_trace();
+            trace = true;
+        });
+        connect(actionEnd_trace, &QAction::triggered, this, [this]
+        {
+            if (!trace) return;
+            actionBegin_trace->setDisabled(false);
+            actionEnd_trace->setDisabled(true);
+            shutdown_trace();
+            trace = false;
+        });
+    }
+#endif
+
+#ifdef ENABLE_VRAM_DUMP
+    {
+#ifndef MTR_ENABLED
+        ui->menuTools->addSeparator();
+#endif
+        auto actionDump_video_RAM = ui->menuTools->addAction(tr("Dump &video RAM"));
+        actionDump_video_RAM->setShortcut(QKeySequence(Qt::Key_Control + Qt::Key_F1));
+#ifdef Q_OS_MACOS
+        actionDump_video_RAM->setShortcutVisibleInContextMenu(true);
+#endif
+        connect(actionDump_video_RAM, &QAction::triggered, this, [this]
+        { svga_dump_vram(); });
+    }
+#endif
 }
 
 void MainWindow::closeEvent(QCloseEvent *event) {
@@ -1068,6 +1129,12 @@ bool MainWindow::eventFilter(QObject* receiver, QEvent* event)
         }
     }
 
+    if (receiver == this)
+    {
+        static auto curdopause = dopause;
+        if (event->type() == QEvent::WindowBlocked) { curdopause = dopause; plat_pause(1); }
+        else if (event->type() == QEvent::WindowUnblocked) { plat_pause(curdopause); }
+    }
     return QMainWindow::eventFilter(receiver, event);
 }
 
