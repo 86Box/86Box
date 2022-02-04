@@ -30,7 +30,9 @@ void FileField::on_pushButton_clicked() {
         fileName = QFileDialog::getOpenFileName(this, QString(), QString(), filter_, &selectedFilter_);
     }
 
-    fileName_ = fileName;
-    ui->label->setText(fileName);
-    emit fileSelected(fileName);
+    if (!fileName.isNull()) {
+        fileName_ = fileName;
+        ui->label->setText(fileName);
+        emit fileSelected(fileName);
+    }
 }

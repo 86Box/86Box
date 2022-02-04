@@ -384,21 +384,6 @@ MainWindow::MainWindow(QWidget *parent) :
         });
     }
 #endif
-
-#ifdef ENABLE_VRAM_DUMP
-    {
-#ifndef MTR_ENABLED
-        ui->menuTools->addSeparator();
-#endif
-        auto actionDump_video_RAM = ui->menuTools->addAction(tr("Dump &video RAM"));
-        actionDump_video_RAM->setShortcut(QKeySequence(Qt::Key_Control + Qt::Key_F1));
-#ifdef Q_OS_MACOS
-        actionDump_video_RAM->setShortcutVisibleInContextMenu(true);
-#endif
-        connect(actionDump_video_RAM, &QAction::triggered, this, [this]
-        { svga_dump_vram(); });
-    }
-#endif
 }
 
 void MainWindow::closeEvent(QCloseEvent *event) {
