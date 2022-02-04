@@ -67,7 +67,7 @@ MainWindow::MainWindow(QWidget *parent) :
 #ifdef Q_OS_WINDOWS
     auto font_name = tr("FONT_NAME");
     auto font_size = tr("FONT_SIZE");
-    setFont(QFont(font_name, font_size.toInt()));
+    QApplication::setFont(QFont(font_name, font_size.toInt()));
 #endif
 
     mm = std::make_shared<MediaMenu>(this);
@@ -1575,7 +1575,7 @@ void MainWindow::changeEvent(QEvent* event)
     {
         auto font_name = tr("FONT_NAME");
         auto font_size = tr("FONT_SIZE");
-        setFont(QFont(font_name, font_size.toInt()));
+        QApplication::setFont(QFont(font_name, font_size.toInt()));
     }
 #endif
     QWidget::changeEvent(event);
