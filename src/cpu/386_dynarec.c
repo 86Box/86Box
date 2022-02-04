@@ -195,7 +195,7 @@ static int prefetch_prefixes = 0;
 
 static void prefetch_run(int instr_cycles, int bytes, int modrm, int reads, int reads_l, int writes, int writes_l, int ea32)
 {
-	if(is486 && CACHE_ON()) return;
+	//if(is486 && CACHE_ON()) return;
 	int mem_cycles = reads*cpu_cycles_read + reads_l*cpu_cycles_read_l + writes*cpu_cycles_write + writes_l*cpu_cycles_write_l;
 
 	if (instr_cycles < mem_cycles)
