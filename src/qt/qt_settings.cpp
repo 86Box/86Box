@@ -112,6 +112,8 @@ Settings::Settings(QWidget *parent) :
     ui->stackedWidget->addWidget(otherRemovable);
     ui->stackedWidget->addWidget(otherPeripherals);
 
+    ui->listView->setMaximumWidth(ui->listView->sizeHintForColumn(0) + 5);
+
     connect(machine, &SettingsMachine::currentMachineChanged, display, &SettingsDisplay::onCurrentMachineChanged);
     connect(machine, &SettingsMachine::currentMachineChanged, input, &SettingsInput::onCurrentMachineChanged);
     connect(machine, &SettingsMachine::currentMachineChanged, sound, &SettingsSound::onCurrentMachineChanged);
