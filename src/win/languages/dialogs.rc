@@ -164,7 +164,7 @@ BEGIN
 
     CONTROL         "",-1,
                     "Static", SS_BLACKFRAME | SS_SUNKEN,
-                    1, 226, 542, 1
+                    1, 226, CFG_PANE_WIDTH + 150, 1
 END
 
 DLG_CFG_MACHINE DIALOG DISCARDABLE  CFG_PANE_LEFT, CFG_PANE_TOP, CFG_PANE_WIDTH, 200
