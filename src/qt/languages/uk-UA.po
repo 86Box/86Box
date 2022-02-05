@@ -1,5 +1,5 @@
 msgid "&Action"
-msgstr "&Действие"
+msgstr "&Дія"
 
 msgid "&Keyboard requires capture"
 msgstr "&Клавіатура потребує захвату"
@@ -23,7 +23,7 @@ msgid "E&xit..."
 msgstr "&Вихід..."
 
 msgid "&View"
-msgstr "&Вид"
+msgstr "&Вигляд"
 
 msgid "&Hide status bar"
 msgstr "&Приховати рядок стану"
@@ -593,7 +593,7 @@ msgid "ISA RTC:"
 msgstr "ISA RTC:"
 
 msgid "ISA Memory Expansion"
-msgstr "Карта розширення памя'ті (ISA)"
+msgstr "Карта розширення пам'яті (ISA)"
 
 msgid "Card 1:"
 msgstr "Карта 1:"
@@ -647,7 +647,7 @@ msgid "86Box could not find any usable ROM images.\n\nPlease <a href=\"https://g
 msgstr "86Box не зміг знайти жодного відповідного для використання файлу з ПЗУ.\n\nБудь ласка <a href=\"https://github.com/86Box/roms/releases/latest\">завантажте</a> набір ПЗУ і витягніть його в каталог \"roms\"."
 
 msgid "(empty)"
-msgstr "(пусто)"
+msgstr "(порожньо)"
 
 msgid "All files"
 msgstr "Всі файли"
@@ -668,7 +668,7 @@ msgid "Basic sector images"
 msgstr "Прості посекторні образи"
 
 msgid "Surface images"
-msgstr "Surface образы"
+msgstr "Образ поверхні"
 
 msgid "Machine \"%hs\" is not available due to missing ROMs in the roms/machines directory. Switching to an available machine."
 msgstr "Системна плата \"%hs\" недоступна через відсутність файлу її ПЗУ в каталозі roms/machines. Переключення на доступну системну плату."
@@ -713,10 +713,10 @@ msgid "Click to capture mouse"
 msgstr "Клацніть мишею для захвату курсора"
 
 msgid "Press F8+F12 to release mouse"
-msgstr "Натисніть F8+F12 щоб звільнити курсор"
+msgstr "Натисніть F8+F12, щоб звільнити курсор"
 
 msgid "Press F8+F12 or middle button to release mouse"
-msgstr "Натисніть F8+F12 або середню кнопку миши щоб звільнити курсор"
+msgstr "Натисніть F8+F12 або середню кнопку миші, щоб звільнити курсор"
 
 msgid "Unable to initialize FluidSynth"
 msgstr "Неможливо ініціалізувати FluidSynth"
@@ -788,7 +788,7 @@ msgid "Unable to load keyboard accelerators."
 msgstr "Неможливо завантажити прискорювачі клавіатури."
 
 msgid "Unable to register raw input."
-msgstr "Неможливо зарреєструвати необроблене (RAW) введ."
+msgstr "Неможливо зарреєструвати необроблене (RAW) введення."
 
 msgid "%u"
 msgstr "%u"
@@ -842,13 +842,13 @@ msgid "Do you want to save the settings?"
 msgstr "Чи бажаєте ви зберегти налаштування?"
 
 msgid "This will hard reset the emulated machine."
-msgstr "Це призведе до холодної перезагрузки эмулируемой машины."
+msgstr "Це призведе до холодної перезагрузки емульованої машини."
 
 msgid "Save"
 msgstr "Зберегти"
 
 msgid "About 86Box"
-msgstr "О 86Box"
+msgstr "Про 86Box"
 
 msgid "86Box v"
 msgstr "86Box v."
@@ -869,7 +869,7 @@ msgid "Make sure libpcap is installed and that you are on a libpcap-compatible n
 msgstr "Переконайтесь, що libpcap встановлений і ваше мережеве з'єднання, сумісне з libpcap."
 
 msgid "Invalid configuration"
-msgstr "Недопустимая конфигурация"
+msgstr "Неприпустима конфігурація"
 
 msgid "freetype.dll"
 msgstr "freetype.dll"
@@ -944,7 +944,7 @@ msgid "Cassette images"
 msgstr "Образи касет"
 
 msgid "Cartridge %i: %ls"
-msgstr "Картидж %i: %ls"
+msgstr "Картридж %i: %ls"
 
 msgid "Cartridge images"
 msgstr "Образи картриджів"
@@ -1031,7 +1031,7 @@ msgid "Make sure the file exists and is readable."
 msgstr "Переконайтеся, що файл є доступним для читання."
 
 msgid "Make sure the file is being saved to a writable directory."
-msgstr "Переконайтеся, що файл зберігається в каталогі, доступному для запису."
+msgstr "Переконайтеся, що файл зберігається в каталог, який є доступним для запису."
 
 msgid "Disk image too large"
 msgstr "Занадто великий образ диска"
