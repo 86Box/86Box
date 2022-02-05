@@ -9,7 +9,10 @@ FileField::FileField(QWidget *parent) :
 {
     ui->setupUi(this);
 
-    connect(ui->label, &QLineEdit::editingFinished, this, [this] () { emit fileSelected(ui->label->text()); });
+    connect(ui->label, &QLineEdit::editingFinished, this, [this] () {
+        fileName_ = ui->label->text();
+        emit fileSelected(ui->label->text());
+    });
 }
 
 FileField::~FileField()

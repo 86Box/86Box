@@ -47,7 +47,6 @@ HarddiskDialog::HarddiskDialog(bool existing, QWidget *parent) :
     } else {
         setWindowTitle(tr("Add New Hard Disk"));
         ui->fileField->setCreateFile(true);
-        connect(ui->buttonBox, &QDialogButtonBox::accepted, this, &HarddiskDialog::onCreateNewFile);
     }
 
     auto* model = ui->comboBoxFormat->model();
@@ -248,6 +247,14 @@ static MVHDGeom create_drive_vhd_diff(const QString& fileName, const QString& pa
 }
 
 void HarddiskDialog::onCreateNewFile() {
+
+    for (auto& curObject : children())
+    {
+        if (qobject_cast<QWidget*>(curObject)) qobject_cast<QWidget*>(curObject)->setDisabled(true);
+    }
+
+    ui->progressBar->setEnabled(true);
+    setResult(QDialog::Rejected);
     qint64 size = ui->lineEditSize->text().toUInt() << 20U;
     if (size > 0x1FFFFFFE00ll) {
         QMessageBox::critical(this, tr("Disk image too large"), tr("Disk images cannot be larger than 127 GB."));
@@ -323,18 +330,16 @@ void HarddiskDialog::onCreateNewFile() {
     } else if (img_format >= 3) { /* VHD file */
         file.close();
 
-        MVHDGeom _86box_geometry;
+        MVHDGeom _86box_geometry{};
         int block_size = ui->comboBoxBlockSize->currentIndex() == 0 ? MVHD_BLOCK_LARGE : MVHD_BLOCK_SMALL;
         switch (img_format) {
         case 3:
         {
-            QProgressDialog progress(tr("86Box"), QString(), 0, 100, this);
-            connect(this, &HarddiskDialog::fileProgress, &progress, &QProgressDialog::setValue);
-            std::thread writer([&_86box_geometry, fileName, this] {
+            connect(this, &HarddiskDialog::fileProgress, this, [this] (int value) { ui->progressBar->setValue(value); QApplication::processEvents(); } );
+            ui->progressBar->setVisible(true);
+            [&_86box_geometry, fileName, this] {
                 _86box_geometry = create_drive_vhd_fixed(fileName, this, cylinders_, heads_, sectors_);
-            });
-            progress.exec();
-            writer.join();
+            }();
         }
             break;
         case 4:
@@ -357,7 +362,14 @@ void HarddiskDialog::onCreateNewFile() {
             break;
         }
 
-        if (img_format != 5) {
+        if (_86box_geometry.cyl == 0 &&
+            _86box_geometry.heads == 0 &&
+            _86box_geometry.spt == 0)
+        {
+            QMessageBox::critical(this, tr("Unable to write file"), tr("Make sure the file is being saved to a writable directory."));
+            return;
+        }
+        else if (img_format != 5) {
             QMessageBox::information(this, tr("Disk image created"), tr("Remember to partition and format the newly-created drive."));
         }
 
@@ -367,14 +379,15 @@ void HarddiskDialog::onCreateNewFile() {
         cylinders_ = _86box_geometry.cyl;
         heads_ = _86box_geometry.heads;
         sectors_ = _86box_geometry.spt;
+        setResult(QDialog::Accepted);
 
         return;
     }
 
     // formats 0, 1 and 2
-    QProgressDialog progress(tr("86Box"), QString(), 0, 100, this);
-    connect(this, &HarddiskDialog::fileProgress, &progress, &QProgressDialog::setValue);
-    std::thread writer([size, &file, this] {
+    connect(this, &HarddiskDialog::fileProgress, this, [this] (int value) { ui->progressBar->setValue(value); QApplication::processEvents(); } );
+    ui->progressBar->setVisible(true);
+    [size, &file, this] {
         QDataStream stream(&file);
         stream.setByteOrder(QDataStream::LittleEndian);
 
@@ -393,11 +406,10 @@ void HarddiskDialog::onCreateNewFile() {
             }
         }
         emit fileProgress(100);
-    });
+    }();
 
-    progress.exec();
-    writer.join();
     QMessageBox::information(this, tr("Disk image created"), tr("Remember to partition and format the newly-created drive."));
+    setResult(QDialog::Accepted);
 }
 
 static void adjust_vhd_geometry_for_86box(MVHDGeom *vhd_geometry) {
@@ -717,4 +729,11 @@ void HarddiskDialog::on_comboBoxType_currentIndexChanged(int index) {
     checkAndAdjustCylinders();
     checkAndAdjustHeads();
     checkAndAdjustSectors();
+}
+
+void HarddiskDialog::accept()
+{
+    if (ui->fileField->createFile()) onCreateNewFile();
+    else setResult(QDialog::Accepted);
+    QDialog::done(result());
 }
