@@ -405,7 +405,7 @@ void
 spd_write_drbs_with_ext(uint8_t *regs, uint8_t reg_min, uint8_t reg_max, uint8_t drb_unit)
 {
     uint8_t row, dimm, drb;
-    uint16_t row_val = size, rows[SPD_MAX_SLOTS];
+    uint16_t size, row_val = rows[SPD_MAX_SLOTS];
     int shift;
 
     /* No SPD: split SIMMs into pairs as if they were "DIMM"s. */
@@ -435,8 +435,6 @@ spd_write_drbs_with_ext(uint8_t *regs, uint8_t reg_min, uint8_t reg_max, uint8_t
 
 	/* Determine the DRB register to write. */
 	drb = reg_min + row;
-	if (apollo && ((drb & 0xf) < 0xa))
-		drb = apollo + (drb & 0xf);
 
 	/* Write DRB register, adding the previous DRB's value. */
 	if (row == 0)
