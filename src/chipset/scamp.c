@@ -556,7 +556,7 @@ recalc_sltptr(scamp_t *dev)
 	{
 			mem_set_mem_state(0, sltptr, MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
 			mem_set_mem_state(sltptr, 0xa0000-sltptr, MEM_READ_EXTANY | MEM_WRITE_EXTANY);
-			mem_set_mem_state(0x100000, 0xf00000, MEM_READ_EXTANY | MEM_WRITE_EXTERNAL);
+			mem_set_mem_state(0x100000, 0xf00000, MEM_READ_EXTANY | MEM_WRITE_EXTANY);
 	}
 }
 
