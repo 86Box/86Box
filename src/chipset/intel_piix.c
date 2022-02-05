@@ -62,6 +62,7 @@ typedef struct _piix_ {
     uint8_t		cur_readout_reg, rev,
 			type, func_shift,
 			max_func, pci_slot,
+			no_mirq0, pad,
 			regs[4][256],
 			readout_regs[256], board_config[2];
     uint16_t		func0_id, nvr_io_base,
@@ -1412,7 +1413,7 @@ piix_reset(void *p)
     sff_set_irq_mode(dev->bm[0], 0, 0);
     sff_set_irq_mode(dev->bm[1], 0, 0);
 
-    if (dev->type >= 4) {
+    if (dev->no_mirq0 || (dev->type >= 4)) {
 	sff_set_irq_mode(dev->bm[0], 1, 0);
 	sff_set_irq_mode(dev->bm[1], 1, 0);
     } else {
@@ -1458,7 +1459,8 @@ static void
     dev->type = info->local & 0x0f;
     /* If (dev->type == 4) and (dev->rev & 0x08), then this is PIIX4E. */
     dev->rev = (info->local >> 4) & 0x0f;
-    dev->func_shift = info->local >> 8;
+    dev->func_shift = (info->local >> 8) & 0x0f;
+    dev->no_mirq0 = (info->local >> 12) & 0x0f;
     dev->func0_id = info->local >> 16;
 
     dev->pci_slot = pci_add_card(PCI_ADD_SOUTHBRIDGE, piix_read, piix_write, dev);
@@ -1477,7 +1479,7 @@ static void
     sff_set_irq_mode(dev->bm[0], 0, 0);
     sff_set_irq_mode(dev->bm[1], 0, 0);
 
-    if (dev->type >= 4) {
+    if (dev->no_mirq0 || (dev->type >= 4)) {
 	sff_set_irq_mode(dev->bm[0], 1, 0);
 	sff_set_irq_mode(dev->bm[1], 1, 0);
     } else {
@@ -1634,6 +1636,21 @@ const device_t piix3_device =
     "piix3",
     DEVICE_PCI,
     0x70000403,
+    piix_init, 
+    piix_close, 
+    piix_reset,
+    { NULL },
+    piix_speed_changed,
+    NULL,
+    NULL
+};
+
+const device_t piix3_ioapic_device =
+{
+    "Intel 82371SB (PIIX3) (Boards with I/O APIC)",
+    "piix3",
+    DEVICE_PCI,
+    0x70001403,
     piix_init, 
     piix_close, 
     piix_reset,
