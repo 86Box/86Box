@@ -10,6 +10,18 @@
     <height>228</height>
    </rect>
   </property>
+  <property name="minimumSize">
+   <size>
+    <width>370</width>
+    <height>228</height>
+   </size>
+  </property>
+  <property name="maximumSize">
+   <size>
+    <width>370</width>
+    <height>228</height>
+   </size>
+  </property>
   <property name="windowTitle">
    <string>Preferences</string>
   </property>

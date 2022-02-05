@@ -147,6 +147,7 @@ void DeviceConfig::ConfigureDevice(const _device_* device, int instance) {
         ++config;
     }
 
+    dc.setFixedSize(dc.minimumSizeHint());
     int res = dc.exec();
     if (res == QDialog::Accepted) {
         config = device->config;
