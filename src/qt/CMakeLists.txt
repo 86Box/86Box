@@ -10,7 +10,6 @@ add_library(plat STATIC
     qt.c
     qt_main.cpp
     qt_platform.cpp
-    sdl_joystick.cpp
 )
 
 add_library(ui STATIC
@@ -118,6 +117,8 @@ add_library(ui STATIC
 if(WIN32)
     enable_language(RC)
     target_sources(86Box PUBLIC ../win/86Box-qt.rc)
+    target_sources(plat PRIVATE win_joystick_rawinput.c)
+    target_link_libraries(86Box hid)
 
     # CMake 3.22 messed this up for clang/clang++
     # See https://gitlab.kitware.com/cmake/cmake/-/issues/22611
@@ -128,6 +129,8 @@ if(WIN32)
         set_property(SOURCE ../win/86Box-qt.rc PROPERTY COMPILE_DEFINITIONS NO_INCLUDE_MANIFEST)
         target_sources(86Box PRIVATE ../win/86Box.manifest)
     endif()
+else()
+    target_sources(plat PRIVATE sdl_joystick.cpp)
 endif()
 
 if(WIN32 AND NOT MINGW)
