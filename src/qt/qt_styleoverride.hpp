@@ -2,6 +2,7 @@
 #define QT_STYLEOVERRIDE_HPP
 
 #include <QProxyStyle>
+#include <QWidget>
 
 class StyleOverride : public QProxyStyle
 {
@@ -11,6 +12,8 @@ public:
         const QStyleOption *option = nullptr,
         const QWidget *widget = nullptr,
         QStyleHintReturn *returnData = nullptr) const override;
+
+    void polish(QWidget* widget) override;
 };
 
 #endif
