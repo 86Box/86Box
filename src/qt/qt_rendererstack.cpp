@@ -239,7 +239,7 @@ void RendererStack::blit(int x, int y, int w, int h)
     sw = this->w = w;
     sh = this->h = h;
     uint8_t* imagebits = std::get<uint8_t*>(imagebufs[currentBuf]);
-    for (int y1 = y; y1 < (y + h - 1); y1++)
+    for (int y1 = y; y1 < (y + h); y1++)
     {
         auto scanline = imagebits + (y1 * (2048) * 4) + (x * 4);
         video_copy(scanline, &(buffer32->line[y1][x]), w * 4);
