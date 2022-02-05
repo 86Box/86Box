@@ -100,7 +100,7 @@ jobs:
       run: cmake --build build --target ${{ matrix.build.target }}
     - uses: actions/upload-artifact@v2
       with:
-        name: '86Box${{ matrix.build.slug }}-MSYS2-${{ matrix.environment.msystem }}-gha${{ github.run_number }}'
+        name: '86Box${{ matrix.build.slug }}-Windows-${{ matrix.environment.msystem }}-gha${{ github.run_number }}'
         path: build/artifacts/**
 
   llvm-windows:

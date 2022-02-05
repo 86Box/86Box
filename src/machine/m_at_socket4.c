@@ -334,7 +334,7 @@ machine_at_pb520r_init(const machine_t *model)
     int ret;
 
     ret = bios_load_linear_combined("roms/machines/pb520r/1009bc0r.bio",
-				    "roms/machines/pb520r/1009bc0r.bi1", 0x1c000, 128);
+				    "roms/machines/pb520r/1009bc0r.bi1", 0x1d000, 128);
 
     if (bios_only || !ret)
 	return ret;
