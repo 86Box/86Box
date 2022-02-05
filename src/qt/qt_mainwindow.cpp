@@ -1414,6 +1414,7 @@ void MainWindow::on_actionAbout_86Box_triggered()
         QDesktopServices::openUrl(QUrl("https://86box.net/"));
     });
     msgBox.setIconPixmap(QIcon(":/settings/win/icons/86Box-yellow.ico").pixmap(32, 32));
+    msgBox.setWindowFlags(Qt::Dialog | Qt::CustomizeWindowHint | Qt::WindowTitleHint | Qt::WindowCloseButtonHint);
     msgBox.exec();
 }
 

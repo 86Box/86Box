@@ -10,6 +10,24 @@
     <height>269</height>
    </rect>
   </property>
+  <property name="sizePolicy">
+   <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+    <horstretch>0</horstretch>
+    <verstretch>0</verstretch>
+   </sizepolicy>
+  </property>
+  <property name="minimumSize">
+   <size>
+    <width>421</width>
+    <height>269</height>
+   </size>
+  </property>
+  <property name="maximumSize">
+   <size>
+    <width>421</width>
+    <height>269</height>
+   </size>
+  </property>
   <property name="windowTitle">
    <string>Dialog</string>
   </property>
@@ -197,14 +215,14 @@
    </item>
    <item row="8" column="0" colspan="6">
     <widget class="QProgressBar" name="progressBar">
+     <property name="visible">
+      <bool>false</bool>
+     </property>
      <property name="value">
       <number>0</number>
      </property>
      <property name="textVisible">
       <bool>true</bool>
-     </property>
-     <property name="visible">
-      <bool>false</bool>
      </property>
     </widget>
    </item>
