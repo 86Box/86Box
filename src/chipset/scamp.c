@@ -49,6 +49,9 @@
 
 #define RAMMAP_REMP386 (1 << 4)
 
+#define EMSEN1_EMSMAP  (1 << 4)
+#define EMSEN1_EMSENAB (1 << 7)
+
 #define NR_ELEMS(x) (sizeof(x) / sizeof(x[0]))
 
 
@@ -73,12 +76,24 @@ typedef struct {
 } ram_struct_t;
 
 typedef struct {
+    void *	parent;
+    int		segment;
+} ems_struct_t;
+
+typedef struct {
     int		cfg_index;
     uint8_t	cfg_regs[256];
     int		cfg_enable, ram_config;
 
+	int ems_index;
+	int ems_autoinc;
+	uint16_t ems[0x24];
+	mem_mapping_t ems_mappings[20]; /*a0000-effff*/
+	uint32_t mappings[20];
+
     mem_mapping_t ram_mapping[2];
     ram_struct_t ram_struct[2];
+	ems_struct_t ems_struct[20];
 
     uint32_t	ram_virt_base[2], ram_phys_base[2];
     uint32_t	ram_mask[2];
@@ -521,10 +536,109 @@ recalc_mappings(void *priv)
 }
 
 
-static void 
-shadow_control(uint32_t addr, uint32_t size, int state)
+static void
+recalc_sltptr(scamp_t *dev)
 {
-    switch (state) {
+	uint32_t sltptr = dev->cfg_regs[CFG_SLTPTR] << 16;
+
+	if (sltptr >= 0xa0000 && sltptr < 0x100000)
+			sltptr = 0x100000;
+	if (sltptr > 0xfe0000)
+			sltptr = 0xfe0000;
+
+	if (sltptr >= 0xa0000)
+	{
+			mem_set_mem_state(0, 0xa0000, MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
+			mem_set_mem_state(0x100000, sltptr - 0x100000, MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
+			mem_set_mem_state(sltptr, 0x1000000 - sltptr, MEM_READ_EXTANY | MEM_WRITE_EXTANY);
+	}
+	else
+	{
+			mem_set_mem_state(0, sltptr, MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
+			mem_set_mem_state(sltptr, 0xa0000-sltptr, MEM_READ_EXTANY | MEM_WRITE_EXTANY);
+			mem_set_mem_state(0x100000, 0xf00000, MEM_READ_EXTANY | MEM_WRITE_EXTANY);
+	}
+}
+
+static uint8_t
+scamp_ems_read(uint32_t addr, void *priv)
+{
+    ems_struct_t *ems = (ems_struct_t *) priv;
+    scamp_t *dev = ems->parent;
+    int segment = ems->segment;
+
+	addr = (addr & 0x3fff) | dev->mappings[segment];
+	return ram[addr];
+}
+
+static void
+scamp_ems_write(uint32_t addr, uint8_t val, void *priv)
+{
+    ems_struct_t *ems = (ems_struct_t *) priv;
+    scamp_t *dev = ems->parent;
+    int segment = ems->segment;
+	
+	addr = (addr & 0x3fff) | dev->mappings[segment];
+	ram[addr] = val;
+}
+
+static void
+recalc_ems(scamp_t *dev)
+{		
+		int segment;
+		const uint32_t ems_base[12] =
+		{
+				0xc0000, 0xc4000, 0xc8000, 0xcc000,
+				0xd0000, 0xd4000, 0xd8000, 0xdc000,
+				0xe0000, 0xe4000, 0xe8000, 0xec000
+		};
+        uint32_t new_mappings[20];
+        uint16_t ems_enable;
+
+        for (segment = 0; segment < 20; segment++)
+                new_mappings[segment] = 0xa0000 + segment*0x4000;
+
+        if (dev->cfg_regs[CFG_EMSEN1] & EMSEN1_EMSENAB)
+                ems_enable = dev->cfg_regs[CFG_EMSEN2] | ((dev->cfg_regs[CFG_EMSEN1] & 0xf) << 8);
+        else
+                ems_enable = 0;
+
+        for (segment = 0; segment < 12; segment++)
+        {
+                if (ems_enable & (1 << segment))
+                {
+                        uint32_t phys_addr = dev->ems[segment] << 14;
+
+                        /*If physical address is in remapped memory then adjust down to a0000-fffff range*/
+                        if ((dev->cfg_regs[CFG_RAMMAP] & RAMMAP_REMP386) && phys_addr >= (mem_size * 1024)
+                            && phys_addr < ((mem_size + 384) * 1024))
+                                phys_addr = (phys_addr - mem_size * 1024) + 0xa0000;
+                        new_mappings[(ems_base[segment] - 0xa0000) >> 14] = phys_addr;
+                }
+        }
+
+        for (segment = 0; segment < 20; segment++)
+        {
+                if (new_mappings[segment] != dev->mappings[segment])
+                {
+                        dev->mappings[segment] = new_mappings[segment];
+                        if (new_mappings[segment] < (mem_size * 1024))
+                        {
+                                mem_mapping_set_exec(&dev->ems_mappings[segment], ram + dev->mappings[segment]);
+                                mem_mapping_enable(&dev->ems_mappings[segment]);
+                        }
+                        else
+                                mem_mapping_disable(&dev->ems_mappings[segment]);
+                }
+        }
+}
+
+static void 
+shadow_control(uint32_t addr, uint32_t size, int state, int ems_enable)
+{
+	if (ems_enable)
+		mem_set_mem_state(addr, size, MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
+	else switch (state) {
 	case 0:
 		mem_set_mem_state(addr, size, MEM_READ_EXTANY | MEM_WRITE_EXTANY);
 		break;
@@ -542,6 +656,55 @@ shadow_control(uint32_t addr, uint32_t size, int state)
     flushmmucache_nopc();
 }
 
+static void
+shadow_recalc(scamp_t *dev)
+{
+        uint8_t abaxs = (dev->cfg_regs[CFG_RAMMAP] & RAMMAP_REMP386) ? 0 : dev->cfg_regs[CFG_ABAXS];
+        uint8_t caxs = (dev->cfg_regs[CFG_RAMMAP] & RAMMAP_REMP386) ? 0 : dev->cfg_regs[CFG_CAXS];
+        uint8_t daxs = (dev->cfg_regs[CFG_RAMMAP] & RAMMAP_REMP386) ? 0 : dev->cfg_regs[CFG_DAXS];
+        uint8_t feaxs = (dev->cfg_regs[CFG_RAMMAP] & RAMMAP_REMP386) ? 0 : dev->cfg_regs[CFG_FEAXS];
+        uint32_t ems_enable;
+
+        if (dev->cfg_regs[CFG_EMSEN1] & EMSEN1_EMSENAB) {
+			if (dev->cfg_regs[CFG_EMSEN1] & EMSEN1_EMSMAP) /*Axxx/Bxxx/Dxxx*/
+					ems_enable = (dev->cfg_regs[CFG_EMSEN2] & 0xf) | ((dev->cfg_regs[CFG_EMSEN1] & 0xf) << 4) | ((dev->cfg_regs[CFG_EMSEN2] & 0xf0) << 8);
+			else /*Cxxx/Dxxx/Exxx*/
+					ems_enable = (dev->cfg_regs[CFG_EMSEN2] << 8) | ((dev->cfg_regs[CFG_EMSEN1] & 0xf) << 16);
+        } else
+            ems_enable = 0;
+
+        /*Enabling remapping will disable all shadowing*/
+        if (dev->cfg_regs[CFG_RAMMAP] & RAMMAP_REMP386)
+			mem_remap_top(384);
+
+		shadow_control(0xa0000, 0x4000, abaxs & 3, ems_enable & 0x00001);
+		shadow_control(0xa0000, 0x4000, abaxs & 3, ems_enable & 0x00002);
+		shadow_control(0xa8000, 0x4000, (abaxs >> 2) & 3, ems_enable & 0x00004);
+		shadow_control(0xa8000, 0x4000, (abaxs >> 2) & 3, ems_enable & 0x00008);
+
+		shadow_control(0xb0000, 0x4000, (abaxs >> 4) & 3, ems_enable & 0x00010);
+		shadow_control(0xb0000, 0x4000, (abaxs >> 4) & 3, ems_enable & 0x00020);
+		shadow_control(0xb8000, 0x4000, (abaxs >> 6) & 3, ems_enable & 0x00040);
+		shadow_control(0xb8000, 0x4000, (abaxs >> 6) & 3, ems_enable & 0x00080);
+
+		shadow_control(0xc0000, 0x4000, caxs & 3, ems_enable & 0x00100);
+		shadow_control(0xc4000, 0x4000, (caxs >> 2) & 3, ems_enable & 0x00200);
+		shadow_control(0xc8000, 0x4000, (caxs >> 4) & 3, ems_enable & 0x00400);
+		shadow_control(0xcc000, 0x4000, (caxs >> 6) & 3, ems_enable & 0x00800);
+
+		shadow_control(0xd0000, 0x4000, daxs & 3, ems_enable & 0x01000);
+		shadow_control(0xd4000, 0x4000, (daxs >> 2) & 3, ems_enable & 0x02000);
+		shadow_control(0xd8000, 0x4000, (daxs >> 4) & 3, ems_enable & 0x04000);
+		shadow_control(0xdc000, 0x4000, (daxs >> 6) & 3, ems_enable & 0x08000);
+
+		shadow_control(0xe0000, 0x4000, feaxs & 3, ems_enable & 0x10000);
+		shadow_control(0xe4000, 0x4000, feaxs & 3, ems_enable & 0x20000);
+		shadow_control(0xe8000, 0x4000, (feaxs >> 2) & 3, ems_enable & 0x40000);
+		shadow_control(0xec000, 0x4000, (feaxs >> 2) & 3, ems_enable & 0x80000);
+
+		shadow_control(0xf0000, 0x8000, (feaxs >> 4) & 3, 0);
+		shadow_control(0xf8000, 0x8000, (feaxs >> 6) & 3, 0);
+}
 
 static void 
 scamp_write(uint16_t addr, uint8_t val, void *priv)
@@ -549,6 +712,26 @@ scamp_write(uint16_t addr, uint8_t val, void *priv)
     scamp_t *dev = (scamp_t *) priv;
 
     switch (addr) {
+	case 0xe8:
+		dev->ems_index = val & 0x1f;
+		dev->ems_autoinc = val & 0x40;
+		break;
+
+	case 0xea:
+		if (dev->ems_index < 0x24) {
+			dev->ems[dev->ems_index] = (dev->ems[dev->ems_index] & 0x300) | val;
+			recalc_ems(dev);
+		}
+		break;
+	case 0xeb:
+		if (dev->ems_index < 0x24) {
+			dev->ems[dev->ems_index] = (dev->ems[dev->ems_index] & 0x0ff) | ((val & 3) << 8);
+			recalc_ems(dev);
+		}
+		if (dev->ems_autoinc)
+			dev->ems_index = (dev->ems_index + 1) & 0x1f;
+		break;
+		
 	case 0xec:
 		if (dev->cfg_enable)
 			dev->cfg_index = val;
@@ -559,72 +742,26 @@ scamp_write(uint16_t addr, uint8_t val, void *priv)
 			dev->cfg_regs[dev->cfg_index] = val;
 			switch (dev->cfg_index) {
 				case CFG_SLTPTR:
+					recalc_sltptr(dev);
 					break;
 
 				case CFG_RAMMAP:
 					recalc_mappings(dev);
 					mem_mapping_disable(&ram_remapped_mapping);
-					if (dev->cfg_regs[CFG_RAMMAP] & RAMMAP_REMP386) {
-						/* Enabling remapping will disable all shadowing */
-						mem_remap_top(384);
-						shadow_control(0xa0000, 0x60000, 0);
-					} else {
-						shadow_control(0xa0000, 0x8000, dev->cfg_regs[CFG_ABAXS] & 3);
-						shadow_control(0xa8000, 0x8000, (dev->cfg_regs[CFG_ABAXS] >> 2) & 3);
-						shadow_control(0xb0000, 0x8000, (dev->cfg_regs[CFG_ABAXS] >> 4) & 3);
-						shadow_control(0xb8000, 0x8000, (dev->cfg_regs[CFG_ABAXS] >> 6) & 3);
+					shadow_recalc(dev);
+					break;
 
-						shadow_control(0xc0000, 0x4000, dev->cfg_regs[CFG_CAXS] & 3);
-						shadow_control(0xc4000, 0x4000, (dev->cfg_regs[CFG_CAXS] >> 2) & 3);
-						shadow_control(0xc8000, 0x4000, (dev->cfg_regs[CFG_CAXS] >> 4) & 3);
-						shadow_control(0xcc000, 0x4000, (dev->cfg_regs[CFG_CAXS] >> 6) & 3);
-
-						shadow_control(0xd0000, 0x4000, dev->cfg_regs[CFG_DAXS] & 3);
-						shadow_control(0xd4000, 0x4000, (dev->cfg_regs[CFG_DAXS] >> 2) & 3);
-						shadow_control(0xd8000, 0x4000, (dev->cfg_regs[CFG_DAXS] >> 4) & 3);
-						shadow_control(0xdc000, 0x4000, (dev->cfg_regs[CFG_DAXS] >> 6) & 3);
-
-						shadow_control(0xe0000, 0x8000, dev->cfg_regs[CFG_FEAXS] & 3);
-						shadow_control(0xe8000, 0x8000, (dev->cfg_regs[CFG_FEAXS] >> 2) & 3);
-						shadow_control(0xf0000, 0x8000, (dev->cfg_regs[CFG_FEAXS] >> 4) & 3);
-						shadow_control(0xf8000, 0x8000, (dev->cfg_regs[CFG_FEAXS] >> 6) & 3);
-					}
+				case CFG_EMSEN1:
+				case CFG_EMSEN2:
+					shadow_recalc(dev);
+					recalc_ems(dev);
 					break;
 
 				case CFG_ABAXS:
-					if (!(dev->cfg_regs[CFG_RAMMAP] & RAMMAP_REMP386)) {
-						shadow_control(0xa0000, 0x8000, val & 3);
-						shadow_control(0xa8000, 0x8000, (val >> 2) & 3);
-						shadow_control(0xb0000, 0x8000, (val >> 4) & 3);
-						shadow_control(0xb8000, 0x8000, (val >> 6) & 3);
-					}
-					break;
-
 				case CFG_CAXS:
-					if (!(dev->cfg_regs[CFG_RAMMAP] & RAMMAP_REMP386)) {
-						shadow_control(0xc0000, 0x4000, val & 3);
-						shadow_control(0xc4000, 0x4000, (val >> 2) & 3);
-						shadow_control(0xc8000, 0x4000, (val >> 4) & 3);
-						shadow_control(0xcc000, 0x4000, (val >> 6) & 3);
-					}
-					break;
-
 				case CFG_DAXS:
-					if (!(dev->cfg_regs[CFG_RAMMAP] & RAMMAP_REMP386)) {
-						shadow_control(0xd0000, 0x4000, val & 3);
-						shadow_control(0xd4000, 0x4000, (val >> 2) & 3);
-						shadow_control(0xd8000, 0x4000, (val >> 4) & 3);
-						shadow_control(0xdc000, 0x4000, (val >> 6) & 3);
-					}
-					break;
-
 				case CFG_FEAXS:
-					if (!(dev->cfg_regs[CFG_RAMMAP] & RAMMAP_REMP386)) {
-						shadow_control(0xe0000, 0x8000, val & 3);
-						shadow_control(0xe8000, 0x8000, (val >> 2) & 3);
-						shadow_control(0xf0000, 0x8000, (val >> 4) & 3);
-						shadow_control(0xf8000, 0x8000, (val >> 6) & 3);
-					}
+					shadow_recalc(dev);
 					break;
 			}
 		}
@@ -648,6 +785,21 @@ scamp_read(uint16_t addr, void *priv)
     uint8_t ret = 0xff;
 
     switch (addr) {
+	case 0xe8:
+		ret = dev->ems_index | dev->ems_autoinc;
+		break;
+
+	case 0xea:
+		if (dev->ems_index < 0x24)
+			ret = dev->ems[dev->ems_index] & 0xff;
+		break;
+	case 0xeb:
+		if (dev->ems_index < 0x24)
+			ret = dev->ems[dev->ems_index] = (dev->ems[dev->ems_index] >> 8) & 0xfc;
+		if (dev->ems_autoinc)
+			dev->ems_index = (dev->ems_index + 1) & 0x1f;
+		break;		
+
 	case 0xed:
 		if (dev->cfg_enable && (dev->cfg_index >= 0x00) && (dev->cfg_index <= 0x16))
 			ret = (dev->cfg_regs[dev->cfg_index]);
@@ -717,6 +869,8 @@ scamp_init(const device_t *info)
 			    ram_mirrored_read, NULL, NULL,
 			    ram_mirrored_write, NULL, NULL);
     mem_mapping_disable(&ram_high_mapping);
+	mem_mapping_set_addr(&ram_mid_mapping, 0xf0000, 0x10000);
+	mem_mapping_set_exec(&ram_mid_mapping, ram+0xf0000);
 
     addr = 0;
     for (c = 0; c < 2; c++) {
@@ -784,6 +938,17 @@ scamp_init(const device_t *info)
     }
 
     mem_set_mem_state(0xfe0000, 0x20000, MEM_READ_EXTANY | MEM_WRITE_EXTANY);
+
+	for (c = 0; c < 20; c++) {
+	dev->ems_struct[c].parent = dev;
+	dev->ems_struct[c].segment = c;
+	mem_mapping_add(&dev->ems_mappings[c],
+					0xa0000 + c*0x4000, 0x4000,
+					scamp_ems_read, NULL, NULL,
+					scamp_ems_write, NULL, NULL,
+					ram + 0xa0000 + c*0x4000, MEM_MAPPING_INTERNAL, (void *)&dev->ems_struct[c]);
+	dev->mappings[c] = 0xa0000 + c*0x4000;
+	}
 
     dev->port_92 = device_add(&port_92_device);
 
