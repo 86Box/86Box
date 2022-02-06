@@ -18,6 +18,10 @@ cmake_minimum_required(VERSION 3.16)
 cmake_policy(SET CMP0091 NEW)
 cmake_policy(SET CMP0079 NEW)
 
+if (QT)
+    list(APPEND VCPKG_MANIFEST_FEATURES "qt-ui")
+endif()
+
 project(86Box
     VERSION 3.2
     DESCRIPTION "Emulator of x86-based systems"
