@@ -294,7 +294,7 @@ ali1533_write(int func, int addr, uint8_t val, void *priv)
 				dev->ide_slot = 0x0d;	/* A24 = slot 13 */
 				break;
 		}
-		ali1543_log("IDE slot = %02X (A%0i)\n", dev->ide_slot - 5, dev->ide_slot + 11);
+		ali1543_log("IDE slot = %02X (A%0i)\n", dev->ide_slot/* - 5*/, dev->ide_slot + 11);
 		ali5229_ide_irq_handler(dev);
 		break;
 
@@ -363,7 +363,7 @@ ali1533_write(int func, int addr, uint8_t val, void *priv)
 				dev->pmu_slot = 0x04;	/* A15 = slot 04 */
 				break;
 		}
-		ali1543_log("PMU slot = %02X (A%0i)\n", dev->pmu_slot - 5, dev->pmu_slot + 11);
+		ali1543_log("PMU slot = %02X (A%0i)\n", dev->pmu_slot/* - 5*/, dev->pmu_slot + 11);
 		switch (val & 0x03) {
 			case 0x00:
 				dev->usb_slot = 0x14;	/* A31 = slot 20 */
@@ -378,7 +378,7 @@ ali1533_write(int func, int addr, uint8_t val, void *priv)
 				dev->usb_slot = 0x01;	/* A12 = slot 01 */
 				break;
 		}
-		ali1543_log("USB slot = %02X (A%0i)\n", dev->usb_slot - 5, dev->usb_slot + 11);
+		ali1543_log("USB slot = %02X (A%0i)\n", dev->usb_slot/* - 5*/, dev->usb_slot + 11);
 		break;
 
 	case 0x73:	/* DDMA Base Address */
@@ -955,11 +955,14 @@ ali7101_write(int func, int addr, uint8_t val, void *priv)
 	case 0x04:	/* Enable PMU */
 		ali1543_log("PMU04: %02X\n", val);
 		dev->pmu_conf[addr] = val & 0x01;
-		acpi_update_io_mapping(dev->acpi, (dev->pmu_conf[0x11] << 8) | (dev->pmu_conf[0x10] & 0xc0), dev->pmu_conf[0x04] & 1);
-		if (dev->type == 1)
-			smbus_ali7101_remap(dev->smbus, (dev->pmu_conf[0x15] << 8) | (dev->pmu_conf[0x14] & 0xc0), (dev->pmu_conf[0xe0] & 1) && (dev->pmu_conf[0x04] & 1));
-		else
-			smbus_ali7101_remap(dev->smbus, (dev->pmu_conf[0x15] << 8) | (dev->pmu_conf[0x14] & 0xe0), (dev->pmu_conf[0xe0] & 1) && (dev->pmu_conf[0x04] & 1));
+		if (!(dev->pmu_conf[0x5b] & 0x02))
+			acpi_update_io_mapping(dev->acpi, (dev->pmu_conf[0x11] << 8) | (dev->pmu_conf[0x10] & 0xc0), dev->pmu_conf[0x04] & 1);
+		if (!(dev->pmu_conf[0x5b] & 0x04)) {
+			if (dev->type == 1)
+				smbus_ali7101_remap(dev->smbus, (dev->pmu_conf[0x15] << 8) | (dev->pmu_conf[0x14] & 0xc0), (dev->pmu_conf[0xe0] & 1) && (dev->pmu_conf[0x04] & 1));
+			else
+				smbus_ali7101_remap(dev->smbus, (dev->pmu_conf[0x15] << 8) | (dev->pmu_conf[0x14] & 0xe0), (dev->pmu_conf[0xe0] & 1) && (dev->pmu_conf[0x04] & 1));
+		}
 		break;
 
 	/* PMU Base I/O */
