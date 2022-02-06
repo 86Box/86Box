@@ -536,6 +536,7 @@ static void ide_hd_identify(ide_t *ide)
     ide_padstr((char *) (ide->buffer + 10), "", 20); /* Serial Number */
     ide_padstr((char *) (ide->buffer + 23), EMU_VERSION_EX, 8); /* Firmware */
     ide_padstr((char *) (ide->buffer + 27), device_identify, 40); /* Model */
+	ide->buffer[0] = (1 << 6); /*Fixed drive*/
     ide->buffer[20] = 3;   /*Buffer type*/
     ide->buffer[21] = 512; /*Buffer size*/
     ide->buffer[50] = 0x4000; /* Capabilities */
