@@ -135,7 +135,6 @@ int main(int argc, char* argv[]) {
         return 6;
     }
 
-    discord_load();
     if (settings_only)
     {
         Settings settings;
@@ -146,6 +145,9 @@ int main(int argc, char* argv[]) {
         }
         return 0;
     }
+
+    discord_load();
+
     main_window = new MainWindow();
     main_window->show();
     app.installEventFilter(main_window);
