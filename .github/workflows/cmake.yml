@@ -79,8 +79,7 @@ jobs:
         msystem: ${{ matrix.environment.msystem }}
         install: >-
           ${{ matrix.environment.prefix }}-ninja
-          ${{ matrix.environment.prefix }}-gcc
-          ${{ matrix.environment.prefix }}-clang
+          ${{ matrix.environment.prefix }}-cc
           ${{ matrix.environment.prefix }}-pkg-config
           ${{ matrix.environment.prefix }}-openal
           ${{ matrix.environment.prefix }}-freetype

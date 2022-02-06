@@ -60,6 +60,7 @@ typedef struct
     int		type;
     smram_t	*smram_low, *smram_high;
     void	*agpgart;
+    void	(*write_drbs)(uint8_t *regs, uint8_t reg_min, uint8_t reg_max, uint8_t drb_unit);
 } i4x0_t;
 
 
@@ -652,7 +653,7 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
 		break;
 	case 0x60: case 0x61: case 0x62: case 0x63: case 0x64:
 		if ((addr & 0x7) <= dev->max_drb) {
-			spd_write_drbs(regs, 0x60, 0x60 + dev->max_drb, dev->drb_unit);
+			dev->write_drbs(regs, 0x60, 0x60 + dev->max_drb, dev->drb_unit);
 			break;
 		}
 		switch (dev->type) {
@@ -676,7 +677,7 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
 		break;
 	case 0x65:
 		if ((addr & 0x7) <= dev->max_drb) {
-			spd_write_drbs(regs, 0x60, 0x60 + dev->max_drb, dev->drb_unit);
+			dev->write_drbs(regs, 0x60, 0x60 + dev->max_drb, dev->drb_unit);
 			break;
 		}
 		switch (dev->type) {
@@ -699,7 +700,7 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
 		break;
 	case 0x66:
 		if ((addr & 0x7) <= dev->max_drb) {
-			spd_write_drbs(regs, 0x60, 0x60 + dev->max_drb, dev->drb_unit);
+			dev->write_drbs(regs, 0x60, 0x60 + dev->max_drb, dev->drb_unit);
 			break;
 		}
 		switch (dev->type) {
@@ -713,7 +714,7 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
 		break;
 	case 0x67:
 		if ((addr & 0x7) <= dev->max_drb) {
-			spd_write_drbs(regs, 0x60, 0x60 + dev->max_drb, dev->drb_unit);
+			dev->write_drbs(regs, 0x60, 0x60 + dev->max_drb, dev->drb_unit);
 			break;
 		}
 		switch (dev->type) {
@@ -733,8 +734,12 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
 		}
 		break;
 	case 0x68:
+		if (dev->type == INTEL_430NX) {
+			dev->write_drbs(regs, 0x60, 0x60 + dev->max_drb, dev->drb_unit);
+			break;
+		}
 		switch (dev->type) {
-			case INTEL_430NX: case INTEL_430HX:
+			case INTEL_430HX:
 			case INTEL_430VX: case INTEL_430TX:
 				regs[0x68] = val;
 				break;
@@ -755,8 +760,11 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
 		}
 		break;
 	case 0x69:
+		if (dev->type == INTEL_430NX) {
+			dev->write_drbs(regs, 0x60, 0x60 + dev->max_drb, dev->drb_unit);
+			break;
+		}
 		switch (dev->type) {
-			case INTEL_430NX:
 			case INTEL_440BX: case INTEL_440GX:
 				regs[0x69] = val;
 				break;
@@ -769,8 +777,11 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
 		}
 		break;
 	case 0x6a: case 0x6b:
+		if (dev->type == INTEL_430NX) {
+			dev->write_drbs(regs, 0x60, 0x60 + dev->max_drb, dev->drb_unit);
+			break;
+		}
 		switch (dev->type) {
-			case INTEL_430NX:
 			case INTEL_440BX: case INTEL_440GX:
 				regs[addr] = val;
 				break;
@@ -1309,6 +1320,8 @@ static void
 
     regs[0x00] = 0x86; regs[0x01] = 0x80; /*Intel*/
 
+    dev->write_drbs = spd_write_drbs;
+
     switch (dev->type) {
 	case INTEL_420TX:
 	case INTEL_420ZX:
@@ -1360,7 +1373,7 @@ static void
 		regs[0x59] = 0x0f;
 		regs[0x60] = regs[0x61] = regs[0x62] = regs[0x63] = 0x02;
 		dev->max_drb = 5;
-		dev->drb_unit = 4;
+		dev->drb_unit = 1;
 		dev->drb_default = 0x02;
 		break;
 	case INTEL_430NX:
@@ -1381,8 +1394,9 @@ static void
 		regs[0x59] = 0x0f;
 		regs[0x60] = regs[0x61] = regs[0x62] = regs[0x63] = regs[0x64] = regs[0x65] = regs[0x66] = regs[0x67] = 0x02;
 		dev->max_drb = 7;
-		dev->drb_unit = 4;
+		dev->drb_unit = 1;
 		dev->drb_default = 0x02;
+		dev->write_drbs = spd_write_drbs_with_ext;
 		break;
 	case INTEL_430FX:
 		regs[0x02] = 0x2d; regs[0x03] = 0x12;	/* SB82437FX-66 */
