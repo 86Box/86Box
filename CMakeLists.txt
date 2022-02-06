@@ -114,7 +114,7 @@ option(CPPTHREADS   "C++11 threads"                                             
 option(NEW_DYNAREC  "Use the PCem v15 (\"new\") dynamic recompiler"                 OFF)
 option(MINITRACE    "Enable Chrome tracing using the modified minitrace library"    OFF)
 option(DEV_BRANCH   "Development branch"                                            OFF)
-option(QT           "QT GUI"                                                        ON)
+option(QT           "QT GUI"                                                        OFF)
 
 # Development branch features
 #
@@ -139,7 +139,6 @@ cmake_dependent_option(ISAMEM_BRAT    "BocaRAM/AT"                              
 
 # Ditto but for Qt
 if (QT)
-    option(QT_STATIC "Statically build QT" ON)
     option(USE_QT6 "Use Qt6 instead of Qt5" OFF)
 endif()
 
