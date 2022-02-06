@@ -7,13 +7,13 @@
     <x>0</x>
     <y>0</y>
     <width>354</width>
-    <height>43</height>
+    <height>25</height>
    </rect>
   </property>
   <property name="sizePolicy">
-   <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-    <horstretch>1</horstretch>
-    <verstretch>1</verstretch>
+   <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+    <horstretch>0</horstretch>
+    <verstretch>0</verstretch>
    </sizepolicy>
   </property>
   <property name="windowTitle">
@@ -35,8 +35,8 @@
    <item>
     <widget class="QLineEdit" name="label">
      <property name="sizePolicy">
-      <sizepolicy hsizetype="Expanding" vsizetype="MinimumExpanding">
-       <horstretch>1</horstretch>
+      <sizepolicy hsizetype="MinimumExpanding" vsizetype="Expanding">
+       <horstretch>0</horstretch>
        <verstretch>1</verstretch>
       </sizepolicy>
      </property>
@@ -45,8 +45,8 @@
    <item>
     <widget class="QPushButton" name="pushButton">
      <property name="sizePolicy">
-      <sizepolicy hsizetype="Expanding" vsizetype="MinimumExpanding">
-       <horstretch>1</horstretch>
+      <sizepolicy hsizetype="MinimumExpanding" vsizetype="Expanding">
+       <horstretch>0</horstretch>
        <verstretch>1</verstretch>
       </sizepolicy>
      </property>
