@@ -7,19 +7,19 @@
     <x>0</x>
     <y>0</y>
     <width>327</width>
-    <height>140</height>
+    <height>200</height>
    </rect>
   </property>
   <property name="minimumSize">
    <size>
     <width>327</width>
-    <height>140</height>
+    <height>200</height>
    </size>
   </property>
   <property name="maximumSize">
    <size>
     <width>327</width>
-    <height>140</height>
+    <height>200</height>
    </size>
   </property>
   <property name="windowTitle">
@@ -36,9 +36,9 @@
    <item row="0" column="1">
     <widget class="FileField" name="fileField" native="true">
      <property name="sizePolicy">
-      <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-       <horstretch>1</horstretch>
-       <verstretch>1</verstretch>
+      <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+       <horstretch>0</horstretch>
+       <verstretch>0</verstretch>
       </sizepolicy>
      </property>
     </widget>
@@ -53,7 +53,7 @@
    <item row="1" column="1">
     <widget class="QComboBox" name="comboBoxSize">
      <property name="sizePolicy">
-      <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+      <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
        <horstretch>0</horstretch>
        <verstretch>0</verstretch>
       </sizepolicy>
@@ -70,7 +70,7 @@
    <item row="2" column="1">
     <widget class="QComboBox" name="comboBoxRpm">
      <property name="sizePolicy">
-      <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+      <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
        <horstretch>0</horstretch>
        <verstretch>0</verstretch>
       </sizepolicy>
