@@ -36,3 +36,6 @@ Makefile
 /.vs
 /.vscode
 src/win/RCa04980
+
+# Qt Creator
+CMakeLists.txt.user

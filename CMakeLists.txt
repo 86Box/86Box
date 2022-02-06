@@ -13,10 +13,14 @@
 #           Copyright 2020,2021 David Hrdlička.
 #
 
-cmake_minimum_required(VERSION 3.15)
+cmake_minimum_required(VERSION 3.16)
 
 cmake_policy(SET CMP0091 NEW)
 cmake_policy(SET CMP0079 NEW)
+
+if (QT)
+    list(APPEND VCPKG_MANIFEST_FEATURES "qt-ui")
+endif()
 
 project(86Box
     VERSION 3.2
@@ -110,6 +114,7 @@ option(CPPTHREADS   "C++11 threads"                                             
 option(NEW_DYNAREC  "Use the PCem v15 (\"new\") dynamic recompiler"                 OFF)
 option(MINITRACE    "Enable Chrome tracing using the modified minitrace library"    OFF)
 option(DEV_BRANCH   "Development branch"                                            OFF)
+option(QT           "QT GUI"                                                        OFF)
 
 # Development branch features
 #
@@ -131,6 +136,11 @@ cmake_dependent_option(XL24           "ATI VGA Wonder XL24 (ATI-28800-6)"       
 cmake_dependent_option(ISAMEM_RAMPAGE "AST Rampage"                                 ON      "DEV_BRANCH"    OFF)
 cmake_dependent_option(ISAMEM_IAB     "Intel Above Board"                           ON      "DEV_BRANCH"    OFF)
 cmake_dependent_option(ISAMEM_BRAT    "BocaRAM/AT"                                  ON      "DEV_BRANCH"    OFF)
+
+# Ditto but for Qt
+if (QT)
+    option(USE_QT6 "Use Qt6 instead of Qt5" OFF)
+endif()
 
 # Determine the build type
 set(RELEASE_BUILD   OFF)

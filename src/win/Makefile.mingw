@@ -717,7 +717,7 @@ PLATOBJ		:= win.o \
 		    win_crashdump.o \
 		    win_mouse.o
 
-UIOBJ		:= win_ui.o win_icon.o win_stbar.o win_discord.o \
+UIOBJ		:= win_ui.o win_icon.o win_stbar.o discord.o \
 		   win_sdl.o win_opengl.o win_opengl_glslp.o glad.o \
 		   win_dialog.o win_about.o \
 		   win_settings.o win_devconf.o win_snd_gain.o win_specify_dim.o win_preferences.o \

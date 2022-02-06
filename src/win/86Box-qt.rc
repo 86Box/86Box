@@ -1,0 +1,123 @@
+/*
+ * 86Box	A hypervisor and IBM PC system emulator that specializes in
+ *		running old operating systems and software designed for IBM
+ *		PC systems and compatibles from 1981 through fairly recent
+ *		system designs based on the PCI bus.
+ *
+ *		This file is part of the 86Box distribution.
+ *
+ *		Application resource script for Windows.
+ *
+ * Authors:	Miran Grca, <mgrca8@gmail.com>
+ *		Fred N. van Kempen, <decwiz@yahoo.com>
+ *		David Hrdlička, <hrdlickadavid@outlook.com>
+ *
+ *		Copyright 2016-2019 Miran Grca.
+ *		Copyright 2018,2019 David Hrdlička.
+ *		Copyright 2021 Laci bá'
+ */
+#define IN_RESOURCE_H
+#include <86box/version.h>
+#undef IN_RESOURCE_H
+
+#define APSTUDIO_READONLY_SYMBOLS
+#define APSTUDIO_HIDDEN_SYMBOLS
+#include <windows.h>
+#undef APSTUDIO_HIDDEN_SYMBOLS
+#undef APSTUDIO_READONLY_SYMBOLS
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENU)
+
+#ifndef NO_INCLUDE_MANIFEST
+/////////////////////////////////////////////////////////////////////////////
+//
+// 24
+//
+
+1                       24      MOVEABLE PURE   "86Box.manifest"
+#endif
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Icon
+//
+
+#ifdef CMAKE
+#define ICON_PATH
+#else
+#define ICON_PATH "win/"
+#endif
+
+// Icon with lowest ID value placed first to ensure application icon
+// remains consistent on all systems.
+// defining the icons depending on the build status
+#ifdef RELEASE_BUILD
+/* Icon by OBattler and laciba96 (green for release builds)*/
+ 10                     ICON    DISCARDABLE     ICON_PATH "icons/86Box-green.ico"
+#elif BETA_BUILD
+/* Icon by OBattler and laciba96 (yellow for beta builds done by Jenkins)*/
+ 10                     ICON    DISCARDABLE     ICON_PATH "icons/86Box-yellow.ico"
+#elif ALPHA_BUILD
+/* Icon by OBattler and laciba96 (red for alpha builds done by Jenkins)*/
+ 10                     ICON    DISCARDABLE     ICON_PATH "icons/86Box-red.ico"
+#else
+/* Icon by OBattler and laciba96 (gray for builds of branches and from the git master)*/
+ 10                     ICON    DISCARDABLE     ICON_PATH "icons/86Box-gray.ico"
+#endif
+
+
+#ifndef _MAC
+/////////////////////////////////////////////////////////////////////////////
+//
+// Version
+//
+
+VS_VERSION_INFO VERSIONINFO
+ FILEVERSION EMU_VERSION_MAJ,EMU_VERSION_MIN,EMU_VERSION_PATCH,EMU_BUILD_NUM
+ PRODUCTVERSION EMU_VERSION_MAJ,EMU_VERSION_MIN,EMU_VERSION_PATCH,EMU_BUILD_NUM
+ FILEFLAGSMASK 0x3fL
+#ifdef _DEBUG
+ FILEFLAGS 0x1L
+#else
+ FILEFLAGS 0x0L
+#endif
+ FILEOS 0x40004L
+ FILETYPE 0x1L
+ FILESUBTYPE 0x0L
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "040904b0"
+        BEGIN
+            VALUE "CompanyName", EMU_NAME "\0"
+            VALUE "FileDescription", EMU_NAME "\0"
+            VALUE "FileVersion", EMU_VERSION "\0"
+            VALUE "InternalName", EMU_NAME "\0"
+            VALUE "LegalCopyright", "Copyright \xa9 2007-" COPYRIGHT_YEAR " " EMU_NAME " contributors\0"
+            VALUE "OriginalFilename", EMU_NAME ".exe\0"
+            VALUE "ProductName", EMU_NAME "\0"
+            VALUE "ProductVersion", EMU_VERSION "\0"
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x409, 1200
+    END
+END
+
+#endif    // !_MAC
+
+#endif 
+
+
+
+#ifndef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 3 resource.
+//
+
+
+/////////////////////////////////////////////////////////////////////////////
+#endif    // not APSTUDIO_INVOKED
