@@ -24,11 +24,15 @@ Q_IMPORT_PLUGIN(QWindowsVistaStylePlugin)
 #include <86box/win.h>
 #endif
 
+extern "C"
+{
 #include <86box/86box.h>
+#include <86box/config.h>
 #include <86box/plat.h>
 #include <86box/ui.h>
 #include <86box/video.h>
 #include <86box/discord.h>
+}
 
 #include <thread>
 #include <iostream>
@@ -36,6 +40,7 @@ Q_IMPORT_PLUGIN(QWindowsVistaStylePlugin)
 
 #include "qt_mainwindow.hpp"
 #include "qt_progsettings.hpp"
+#include "qt_settings.hpp"
 #include "cocoa_mouse.hpp"
 #include "qt_styleoverride.hpp"
 
@@ -131,6 +136,16 @@ int main(int argc, char* argv[]) {
     }
 
     discord_load();
+    if (settings_only)
+    {
+        Settings settings;
+        if (settings.exec() == QDialog::Accepted)
+        {
+            settings.save();
+            config_save();
+        }
+        return 0;
+    }
     main_window = new MainWindow();
     main_window->show();
     app.installEventFilter(main_window);
@@ -182,7 +197,6 @@ int main(int argc, char* argv[]) {
 
     /* Set the PAUSE mode depending on the renderer. */
     // plat_pause(0);
-    if (settings_only) dopause = 1;
     QTimer onesec;
     QTimer discordupdate;
     QObject::connect(&onesec, &QTimer::timeout, &app, [] {

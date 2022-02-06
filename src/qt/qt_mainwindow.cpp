@@ -442,7 +442,6 @@ void MainWindow::showEvent(QShowEvent *event) {
         scrnsz_x = window_w;
         scrnsz_y = window_h;
     }
-    if (settings_only) QTimer::singleShot(0, this, [this] () { ui->actionSettings->trigger(); });
 }
 
 void MainWindow::on_actionKeyboard_requires_capture_triggered() {
@@ -518,11 +517,6 @@ void MainWindow::on_actionSettings_triggered() {
         break;
     }
     plat_pause(currentPause);
-    if (settings_only) {
-        cpu_thread_run = 0;
-        config_save();
-        QApplication::quit();
-    }
 }
 
 std::array<uint32_t, 256> x11_to_xt_base
