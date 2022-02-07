@@ -430,7 +430,7 @@ cd archive_tmp
 if is_windows
 then
 	# Create zip.
-	"$sevenzip" a -y -mx9 "$(cygpath -w "$cwd")\\$package_name.zip" *
+	"$sevenzip" a -y "$(cygpath -w "$cwd")\\$package_name.zip" *
 	status=$?
 elif is_mac
 then
