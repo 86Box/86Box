@@ -1,4 +1,4 @@
-#include "qt_renderercomon.hpp"
+#include "qt_renderercommon.hpp"
 #include "qt_mainwindow.hpp"
 
 #include <QPainter>
@@ -16,13 +16,6 @@ extern "C" {
 RendererCommon::RendererCommon() = default;
 
 extern MainWindow* main_window;
-void RendererCommon::onPaint(QPaintDevice* device) {
-    QPainter painter(device);
-    painter.setRenderHint(QPainter::SmoothPixmapTransform, video_filter_method > 0 ? true : false);
-    painter.fillRect(0, 0, device->width(), device->height(), QColorConstants::Black);
-    painter.setCompositionMode(QPainter::CompositionMode_Plus);
-    painter.drawImage(destination, image, source);
-}
 
 static void integer_scale(double *d, double *g) {
     double ratio;

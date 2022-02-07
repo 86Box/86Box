@@ -47,6 +47,10 @@ signals:
 
     void showMessageForNonQtThread(const QString& header, const QString& message);
     void getTitleForNonQtThread(wchar_t* title);
+public slots:
+    void showSettings();
+    void hardReset();
+    void togglePause();
 private slots:
     void on_actionFullscreen_triggered();
     void on_actionSettings_triggered();
@@ -90,6 +94,7 @@ private slots:
     void on_actionSpecify_dimensions_triggered();
     void on_actionHiDPI_scaling_triggered();
     void on_actionHide_status_bar_triggered();
+    void on_actionHide_tool_bar_triggered();
     void on_actionUpdate_status_bar_icons_triggered();
 
     void refreshMediaMenu();
@@ -103,6 +108,8 @@ private slots:
 
     void on_actionPreferences_triggered();
 
+    void on_actionEnable_Discord_integration_triggered(bool checked);
+
 protected:
     void keyPressEvent(QKeyEvent* event) override;
     void keyReleaseEvent(QKeyEvent* event) override;
@@ -111,6 +118,7 @@ protected:
     bool eventFilter(QObject* receiver, QEvent* event) override;
     void showEvent(QShowEvent* event) override;
     void closeEvent(QCloseEvent* event) override;
+    void changeEvent(QEvent* event) override;
 
 private:
     Ui::MainWindow *ui;

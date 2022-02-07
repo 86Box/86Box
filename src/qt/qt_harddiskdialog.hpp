@@ -25,6 +25,9 @@ public:
 signals:
     void fileProgress(int i);
 
+public slots:
+    void accept() override;
+
 private slots:
     void on_comboBoxType_currentIndexChanged(int index);
     void on_lineEditSectors_textEdited(const QString &arg1);
@@ -35,7 +38,6 @@ private slots:
     void on_comboBoxFormat_currentIndexChanged(int index);
     void onCreateNewFile();
     void onExistingFileSelected(const QString& fileName);
-
 private:
     Ui::HarddiskDialog *ui;
 

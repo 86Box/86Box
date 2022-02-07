@@ -8,6 +8,11 @@ FileField::FileField(QWidget *parent) :
     ui(new Ui::FileField)
 {
     ui->setupUi(this);
+
+    connect(ui->label, &QLineEdit::editingFinished, this, [this] () {
+        fileName_ = ui->label->text();
+        emit fileSelected(ui->label->text());
+    });
 }
 
 FileField::~FileField()
@@ -28,7 +33,9 @@ void FileField::on_pushButton_clicked() {
         fileName = QFileDialog::getOpenFileName(this, QString(), QString(), filter_, &selectedFilter_);
     }
 
-    fileName_ = fileName;
-    ui->label->setText(fileName);
-    emit fileSelected(fileName);
+    if (!fileName.isNull()) {
+        fileName_ = fileName;
+        ui->label->setText(fileName);
+        emit fileSelected(fileName);
+    }
 }

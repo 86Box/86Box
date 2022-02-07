@@ -14,6 +14,8 @@
 #include "qt_settingsotherperipherals.hpp"
 
 #include "qt_progsettings.hpp"
+#include "qt_harddrive_common.hpp"
+#include "qt_settings_bus_tracking.hpp"
 
 extern "C"
 {
@@ -85,6 +87,7 @@ Settings::Settings(QWidget *parent) :
 
     ui->listView->setModel(new SettingsModel(this));
 
+    Harddrives::busTrackClass = new SettingsBusTracking;
     machine = new SettingsMachine(this);
     display = new SettingsDisplay(this);
     input = new SettingsInput(this);
@@ -109,6 +112,8 @@ Settings::Settings(QWidget *parent) :
     ui->stackedWidget->addWidget(otherRemovable);
     ui->stackedWidget->addWidget(otherPeripherals);
 
+    ui->listView->setFixedWidth(ui->listView->sizeHintForColumn(0) + 5);
+
     connect(machine, &SettingsMachine::currentMachineChanged, display, &SettingsDisplay::onCurrentMachineChanged);
     connect(machine, &SettingsMachine::currentMachineChanged, input, &SettingsInput::onCurrentMachineChanged);
     connect(machine, &SettingsMachine::currentMachineChanged, sound, &SettingsSound::onCurrentMachineChanged);
@@ -124,6 +129,8 @@ Settings::Settings(QWidget *parent) :
 Settings::~Settings()
 {
     delete ui;
+    delete Harddrives::busTrackClass;
+    Harddrives::busTrackClass = nullptr;
 }
 
 void Settings::save() {
@@ -142,7 +149,7 @@ void Settings::save() {
 
 void Settings::accept()
 {
-    if (confirm_save)
+    if (confirm_save && !settings_only)
     {
         QMessageBox questionbox(QMessageBox::Icon::Question, "86Box", QStringLiteral("%1\n\n%2").arg(tr("Do you want to save the settings?"), tr("This will hard reset the emulated machine.")), QMessageBox::Save | QMessageBox::Cancel, this);
         QCheckBox *chkbox = new QCheckBox(tr("Don't show this message again"));

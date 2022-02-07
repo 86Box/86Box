@@ -12,3 +12,10 @@ int StyleOverride::styleHint(
 
     return QProxyStyle::styleHint(hint, option, widget, returnData);
 }
+
+void StyleOverride::polish(QWidget* widget)
+{
+    /* Disable title bar context help buttons globally as they are unused. */
+    if (widget->isWindow())
+        widget->setWindowFlag(Qt::WindowContextHelpButtonHint, false);
+}

@@ -10,7 +10,6 @@ add_library(plat STATIC
     qt.c
     qt_main.cpp
     qt_platform.cpp
-    sdl_joystick.cpp
 )
 
 add_library(ui STATIC
@@ -27,8 +26,8 @@ add_library(ui STATIC
     qt_rendererstack.cpp
     qt_rendererstack.hpp
     qt_rendererstack.ui
-    qt_renderercomon.cpp
-    qt_renderercomon.hpp
+    qt_renderercommon.cpp
+    qt_renderercommon.hpp
     qt_softwarerenderer.cpp
     qt_softwarerenderer.hpp
     qt_hardwarerenderer.cpp
@@ -71,6 +70,8 @@ add_library(ui STATIC
     qt_settingsotherperipherals.cpp
     qt_settingsotherperipherals.hpp
     qt_settingsotherperipherals.ui
+    qt_settings_bus_tracking.cpp
+    qt_settings_bus_tracking.hpp
 
     qt_deviceconfig.cpp
     qt_deviceconfig.hpp
@@ -106,9 +107,31 @@ add_library(ui STATIC
     qt_progsettings.hpp
     qt_progsettings.cpp
     qt_progsettings.ui
+    qt_util.hpp
+    qt_util.cpp
 
     ../qt_resources.qrc
 )
+
+
+if(WIN32)
+    enable_language(RC)
+    target_sources(86Box PUBLIC ../win/86Box-qt.rc)
+    target_sources(plat PRIVATE win_joystick_rawinput.c)
+    target_link_libraries(86Box hid)
+
+    # CMake 3.22 messed this up for clang/clang++
+    # See https://gitlab.kitware.com/cmake/cmake/-/issues/22611
+    if(MSVC OR (NOT MINGW AND CMAKE_VERSION VERSION_GREATER_EQUAL 3.22))
+        # MSVC linker adds its own manifest to the executable, which fails if
+        # we include ours in 86Box.rc. We therefore need to pass the manifest
+        # directly as as a source file, so the linker can use that instead.
+        set_property(SOURCE ../win/86Box-qt.rc PROPERTY COMPILE_DEFINITIONS NO_INCLUDE_MANIFEST)
+        target_sources(86Box PRIVATE ../win/86Box.manifest)
+    endif()
+else()
+    target_sources(plat PRIVATE sdl_joystick.cpp)
+endif()
 
 if(WIN32 AND NOT MINGW)
     target_sources(plat PRIVATE ../win/win_opendir.c)
@@ -119,7 +142,12 @@ if (APPLE)
 endif()
 
 if (WIN32)
-    target_sources(ui PRIVATE qt_winrawinputfilter.hpp qt_winrawinputfilter.cpp)
+    target_sources(ui PRIVATE
+        qt_winrawinputfilter.hpp
+        qt_winrawinputfilter.cpp
+        qt_winmanagerfilter.hpp
+        qt_winmanagerfilter.cpp
+    )
 endif()
 
 target_link_libraries(

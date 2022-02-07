@@ -3,8 +3,10 @@
 
 #include <QWidget>
 #include <QRasterWindow>
+#include <QPaintDevice>
+#include <array>
 #include <atomic>
-#include "qt_renderercomon.hpp"
+#include "qt_renderercommon.hpp"
 
 class SoftwareRenderer : public QRasterWindow, public RendererCommon
 {
@@ -12,11 +14,18 @@ class SoftwareRenderer : public QRasterWindow, public RendererCommon
 public:
     explicit SoftwareRenderer(QWidget *parent = nullptr);
 
-    void paintEvent(QPaintEvent *event) override;
+    void paintEvent(QPaintEvent* event) override;
+
+    std::vector<std::tuple<uint8_t*, std::atomic_flag*>> getBuffers() override;
+
 public slots:
-    void onBlit(const std::unique_ptr<uint8_t>* img, int, int, int, int, std::atomic_flag* in_use);
+    void onBlit(int buf_idx, int x, int y, int w, int h);
 
 protected:
+    std::array<std::unique_ptr<QImage>, 2> images;
+    int cur_image = -1;
+
+    void onPaint(QPaintDevice* device);
     void resizeEvent(QResizeEvent *event) override;
     bool event(QEvent *event) override;
 };

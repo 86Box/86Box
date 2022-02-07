@@ -17,6 +17,11 @@
 #ifndef WIN_DISCORD_H
 # define WIN_DISCORD_H
 
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
 extern int	discord_loaded;
 
 extern int	discord_load();
@@ -24,5 +29,9 @@ extern void	discord_init();
 extern void	discord_close();
 extern void	discord_update_activity(int paused);
 extern void	discord_run_callbacks();
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
