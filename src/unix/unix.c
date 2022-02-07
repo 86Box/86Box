@@ -1267,3 +1267,9 @@ void endblit()
 {
     SDL_UnlockMutex(blitmtx);
 }
+
+/* API */
+void
+ui_sb_mt32lcd(char* str)
+{
+}
