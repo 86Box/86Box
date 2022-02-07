@@ -1,3 +1,21 @@
+/*
+ * 86Box	A hypervisor and IBM PC system emulator that specializes in
+ *		running old operating systems and software designed for IBM
+ *		PC systems and compatibles from 1981 through fairly recent
+ *		system designs based on the PCI bus.
+ *
+ *		This file is part of the 86Box distribution.
+ *
+ *		Hard disk dialog code.
+ *
+ *
+ *
+ * Authors:	Joakim L. Gilje <jgilje@jgilje.net>
+ *          Cacodemon345
+ *
+ *		Copyright 2021 Joakim L. Gilje
+ *      Copyright 2022 Cacodemon345
+ */
 #include "qt_harddiskdialog.hpp"
 #include "ui_qt_harddiskdialog.h"
 
@@ -22,6 +40,7 @@ extern "C" {
 #include <QStringBuilder>
 
 #include "qt_harddrive_common.hpp"
+#include "qt_settings_bus_tracking.hpp"
 #include "qt_models_common.hpp"
 #include "qt_util.hpp"
 
@@ -609,6 +628,7 @@ bool HarddiskDialog::checkAndAdjustCylinders() {
 
 
 void HarddiskDialog::on_comboBoxBus_currentIndexChanged(int index) {
+    int chanIdx = 0;
     if (index < 0) {
         return;
     }
@@ -665,6 +685,27 @@ void HarddiskDialog::on_comboBoxBus_currentIndexChanged(int index) {
     ui->lineEditSectors->setValidator(new QIntValidator(1, max_sectors, this));
 
     Harddrives::populateBusChannels(ui->comboBoxChannel->model(), ui->comboBoxBus->currentData().toInt());
+    switch (ui->comboBoxBus->currentData().toInt())
+    {
+        case HDD_BUS_MFM:
+            chanIdx = (Harddrives::busTrackClass->next_free_mfm_channel());
+            break;
+        case HDD_BUS_XTA:
+            chanIdx = (Harddrives::busTrackClass->next_free_xta_channel());
+            break;
+        case HDD_BUS_ESDI:
+            chanIdx = (Harddrives::busTrackClass->next_free_esdi_channel());
+            break;
+        case HDD_BUS_ATAPI:
+        case HDD_BUS_IDE:
+            chanIdx = (Harddrives::busTrackClass->next_free_ide_channel());
+            break;
+        case HDD_BUS_SCSI:
+            chanIdx = (Harddrives::busTrackClass->next_free_scsi_id());
+            break;
+    }
+
+    ui->comboBoxChannel->setCurrentIndex(chanIdx);
 }
 
 void HarddiskDialog::on_lineEditSize_textEdited(const QString &text) {
