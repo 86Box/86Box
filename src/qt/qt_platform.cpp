@@ -6,7 +6,7 @@
  *
  *		This file is part of the 86Box distribution.
  *
- *      Main entry point module
+ *      Common platform functions.
  *
  *
  * Authors:	Joakim L. Gilje <jgilje@jgilje.net>
