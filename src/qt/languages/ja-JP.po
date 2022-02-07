@@ -178,36 +178,6 @@ msgstr "トレース開始\tCtrl+T"
 msgid "End trace\tCtrl+T"
 msgstr "トレース終了\tCtrl+T"
 
-msgid "&Logging"
-msgstr "ログ(&L)"
-
-msgid "Enable BusLogic logs\tCtrl+F4"
-msgstr "BusLogicのログを有効\tCtrl+F4"
-
-msgid "Enable CD-ROM logs\tCtrl+F5"
-msgstr "CD-ROMのログを有効\tCtrl+F5"
-
-msgid "Enable floppy (86F) logs\tCtrl+F6"
-msgstr "フロッピー(86F)のログを有効\tCtrl+F6"
-
-msgid "Enable floppy controller logs\tCtrl+F7"
-msgstr "フロッピーコントローラーのログを有効\tCtrl+F7"
-
-msgid "Enable IDE logs\tCtrl+F8"
-msgstr "IDEのログを有効\tCtrl+F8"
-
-msgid "Enable Serial Port logs\tCtrl+F3"
-msgstr "シリアルポートのログを有効\tCtrl+F3"
-
-msgid "Enable Network logs\tCtrl+F9"
-msgstr "ネットワークのログを有効\tCtrl+F9"
-
-msgid "&Log breakpoint\tCtrl+F10"
-msgstr "ブレークポイントのログを有効(&L)\tCtrl+F10"
-
-msgid "Dump &video RAM\tCtrl+F1"
-msgstr "ビデオRAMのダンプを有効(&V)\tCtrl+F1"
-
 msgid "&Help"
 msgstr "ヘルプ(&H)"
 

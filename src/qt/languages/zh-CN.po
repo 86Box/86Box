@@ -178,36 +178,6 @@ msgstr "开始追踪\tCtrl+T"
 msgid "End trace\tCtrl+T"
 msgstr "结束追踪\tCtrl+T"
 
-msgid "&Logging"
-msgstr "记录日志(&L)"
-
-msgid "Enable BusLogic logs\tCtrl+F4"
-msgstr "启用 BusLogic 日志\tCtrl+F4"
-
-msgid "Enable CD-ROM logs\tCtrl+F5"
-msgstr "启用 CD-ROM 日志\tCtrl+F5"
-
-msgid "Enable floppy (86F) logs\tCtrl+F6"
-msgstr "启用软盘 (86F) 日志\tCtrl+F6"
-
-msgid "Enable floppy controller logs\tCtrl+F7"
-msgstr "启用软盘控制器日志\tCtrl+F7"
-
-msgid "Enable IDE logs\tCtrl+F8"
-msgstr "启用 IDE 日志\tCtrl+F8"
-
-msgid "Enable Serial Port logs\tCtrl+F3"
-msgstr "启用串口日志\tCtrl+F3"
-
-msgid "Enable Network logs\tCtrl+F9"
-msgstr "启用网络日志\tCtrl+F9"
-
-msgid "&Log breakpoint\tCtrl+F10"
-msgstr "日志断点(&L)\tCtrl+F10"
-
-msgid "Dump &video RAM\tCtrl+F1"
-msgstr "创建显卡内存转储(&V)\tCtrl+F1"
-
 msgid "&Help"
 msgstr "帮助(&H)"
 

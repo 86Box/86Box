@@ -178,36 +178,6 @@ msgstr "Začít trace\tCtrl+T"
 msgid "End trace\tCtrl+T"
 msgstr "Zastavit trace\tCtrl+T"
 
-msgid "&Logging"
-msgstr "&Záznamy"
-
-msgid "Enable BusLogic logs\tCtrl+F4"
-msgstr "Povolit záznamy BusLogic\tCtrl+F4"
-
-msgid "Enable CD-ROM logs\tCtrl+F5"
-msgstr "Povolit záznamy CD-ROM\tCtrl+F5"
-
-msgid "Enable floppy (86F) logs\tCtrl+F6"
-msgstr "Povolit záznamy diskety (86F)\tCtrl+F6"
-
-msgid "Enable floppy controller logs\tCtrl+F7"
-msgstr "Povolit záznamy disketového řadiče\tCtrl+F7"
-
-msgid "Enable IDE logs\tCtrl+F8"
-msgstr "Povolit záznamy IDE\tCtrl+F8"
-
-msgid "Enable Serial Port logs\tCtrl+F3"
-msgstr "Povolit záznamy sériového portu\tCtrl+F3"
-
-msgid "Enable Network logs\tCtrl+F9"
-msgstr "Povolit záznamy sítě\tCtrl+F9"
-
-msgid "&Log breakpoint\tCtrl+F10"
-msgstr "Zaznamenat do &logu zarážku\tCtrl+F10"
-
-msgid "Dump &video RAM\tCtrl+F1"
-msgstr "Zaznamenat obsah &video RAM\tCtrl+F1"
-
 msgid "&Help"
 msgstr "Ná&pověda"
 
