@@ -9,6 +9,7 @@
 #include <86box/mem.h>
 #include <86box/rom.h>
 #include <86box/plat.h>
+#include <86box/ui.h>
 #include <86box/sound.h>
 #include <86box/midi.h>
 
@@ -18,6 +19,19 @@ extern void givealbuffer_midi(void *buf, uint32_t size);
 extern void al_set_midi(int freq, int buf_size);
 #endif
 
+static void display_mt32_message(void *instance_data, const char *message)
+{
+    int sz = 0;
+    char* ui_msg = NULL;
+
+    sz = snprintf(NULL, 0, "MT-32: %s", message);
+    ui_msg = calloc(sz + 1, 1);
+    if (ui_msg)
+    {
+        snprintf(ui_msg, sz, "MT-32: %s", message);
+        ui_sb_mt32lcd(ui_msg);
+    }
+}
 static const mt32emu_report_handler_i_v0 handler_v0 = {
         /** Returns the actual interface version ID */
         NULL, //mt32emu_report_handler_version (*getVersionID)(mt32emu_report_handler_i i);
@@ -28,7 +42,7 @@ static const mt32emu_report_handler_i_v0 handler_v0 = {
         NULL, //void (*onErrorControlROM)(void *instance_data);
         NULL, //void (*onErrorPCMROM)(void *instance_data);
         /** Callback for reporting about displaying a new custom message on LCD */
-        NULL, //void (*showLCDMessage)(void *instance_data, const char *message);
+        display_mt32_message, //void (*showLCDMessage)(void *instance_data, const char *message);
         /** Callback for reporting actual processing of a MIDI message */
         NULL, //void (*onMIDIMessagePlayed)(void *instance_data);
         /**
