@@ -330,11 +330,7 @@ const machine_t machines[] = {
     { "[ALi M1217] Flytech 386",		"flytech386",		MACHINE_TYPE_386SX,	MACHINE_CHIPSET_ALI_M1217,		   machine_at_flytech386_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_386SX, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PS2,		MACHINE_IDE | MACHINE_VIDEO,				 1024, 16384, 1024, 127, at_flytech386_get_device	},
     /* I'm going to assume this has a standard/generic IBM-compatible AT KBC
        firmware until the board is identified. */
-<<<<<<< HEAD
-    { "[ALi M1217] MR 386SX clone",		"mr1217",		MACHINE_TYPE_386SX,	MACHINE_CHIPSET_ALI_M1217,		       machine_at_mr1217_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_386SX, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PS2,		MACHINE_IDE | MACHINE_VIDEO,				 1024, 16384, 1024, 127, NULL				},
-=======
-    { "[ALi M1217] MR BIOS 386SX clone",		"mr1217",		MACHINE_TYPE_386SX,		CPU_PKG_386SX, 0, 0, 0, 0, 0, 0, 0,										MACHINE_AT | MACHINE_BUS_PS2 | MACHINE_IDE | MACHINE_VIDEO,			 1024, 16384, 1024, 127,	       machine_at_mr1217_init, NULL			},
->>>>>>> origin/master
+    { "[ALi M1217] MR BIOS 386SX clone",	"mr1217",		MACHINE_TYPE_386SX,	MACHINE_CHIPSET_ALI_M1217,		       machine_at_mr1217_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_386SX, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PS2,		MACHINE_IDE | MACHINE_VIDEO,				 1024, 16384, 1024, 127, NULL				},
     /* Has IBM PS/2 Type 1 KBC firmware. */
     { "[ALi M6117] Acrosser PJ-A511M",		"pja511m",		MACHINE_TYPE_386SX,	MACHINE_CHIPSET_ALI_M6117,		      machine_at_pja511m_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_M6117, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PS2,		MACHINE_IDE,						 1024, 32768, 1024, 127, NULL				},
     /* Has IBM PS/2 Type 1 KBC firmware. */
