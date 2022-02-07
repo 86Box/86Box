@@ -99,7 +99,7 @@ int	ui_msgbox(int flags, void *message) {
 }
 
 void ui_sb_update_text() {
-    main_window->statusBar()->showMessage(sb_text.isEmpty() ? sb_buguitext : sb_text);
+    emit main_window->statusBarMessage(sb_text.isEmpty() ? sb_buguitext : sb_text);
 }
 
 void ui_sb_set_text_w(wchar_t *wstr) {
