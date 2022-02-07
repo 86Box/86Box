@@ -16,6 +16,7 @@
  */
 
 def repository = 'https://github.com/86Box/86Box.git'
+def commitBrowser = 'https://github.com/86Box/86Box/commit/%s'
 def branch = 'master'
 
 def osArchs = [
@@ -278,7 +279,7 @@ pipeline {
 							    description: "**Status:** ${result}\n\u2060", /* word joiner character forces a blank line */
 							    enableArtifactsList: false,
 							    showChangeset: true,
-							    scmWebUrl: "https://github.com/86Box/86Box/commit/%s"
+							    scmWebUrl: commitBrowser
 
 						/* Notify IRC, which needs a node for whatever reason. */
 						node {
