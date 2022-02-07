@@ -729,7 +729,7 @@ scamp_write(uint16_t addr, uint8_t val, void *priv)
 			recalc_ems(dev);
 		}
 		if (dev->ems_autoinc)
-			dev->ems_index = (dev->ems_index + 1) & 0x1f;
+			dev->ems_index = (dev->ems_index + 1) & 0x3f;
 		break;
 		
 	case 0xec:
@@ -795,9 +795,9 @@ scamp_read(uint16_t addr, void *priv)
 		break;
 	case 0xeb:
 		if (dev->ems_index < 0x24)
-			ret = dev->ems[dev->ems_index] = (dev->ems[dev->ems_index] >> 8) & 0xfc;
+			ret = (dev->ems[dev->ems_index] >> 8) | 0xfc;
 		if (dev->ems_autoinc)
-			dev->ems_index = (dev->ems_index + 1) & 0x1f;
+			dev->ems_index = (dev->ems_index + 1) & 0x3f;
 		break;		
 
 	case 0xed:
