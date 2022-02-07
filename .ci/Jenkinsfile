@@ -195,6 +195,9 @@ pipeline {
 								/* Archive resulting artifacts. */
 								archiveArtifacts artifacts: "$packageName*"
 							}
+
+							/* Clean up. */
+							removeDir("${env.WORKSPACE_TMP}/output")
 						} catch (e) {
 							/* Mark that a failure occurred. */
 							anyFailure = true
@@ -231,6 +234,9 @@ pipeline {
 													/* Archive resulting artifacts. */
 													archiveArtifacts artifacts: "**/**/$packageName*"
 												}
+
+												/* Clean up. */
+												removeDir("${env.WORKSPACE_TMP}/output")
 											} catch (e) {
 												/* Mark that a failure occurred. */
 												anyFailure = true
