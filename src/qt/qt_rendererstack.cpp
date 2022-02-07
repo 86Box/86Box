@@ -27,12 +27,6 @@ RendererStack::RendererStack(QWidget *parent) :
     ui(new Ui::RendererStack)
 {
     ui->setupUi(this);
-    imagebufs[0].reset(new uint8_t[2048 * 2048 * 4]);
-    imagebufs[1].reset(new uint8_t[2048 * 2048 * 4]);
-
-    buffers_in_use = std::vector<std::atomic_flag>(2);
-    buffers_in_use[0].clear();
-    buffers_in_use[1].clear();
 
 #ifdef WAYLAND
     if (QApplication::platformName().contains("wayland")) {
@@ -95,26 +89,30 @@ void RendererStack::mousePoll()
 int ignoreNextMouseEvent = 1;
 void RendererStack::mouseReleaseEvent(QMouseEvent *event)
 {
-    if (this->geometry().contains(event->pos()) && event->button() == Qt::LeftButton && !mouse_capture)
+    if (this->geometry().contains(event->pos()) && event->button() == Qt::LeftButton && !mouse_capture && (isMouseDown & 1))
     {
         plat_mouse_capture(1);
         this->setCursor(Qt::BlankCursor);
         if (!ignoreNextMouseEvent) ignoreNextMouseEvent++; // Avoid jumping cursor when moved.
+        isMouseDown &= ~1;
         return;
     }
     if (mouse_capture && event->button() == Qt::MiddleButton && mouse_get_buttons() < 3)
     {
         plat_mouse_capture(0);
         this->setCursor(Qt::ArrowCursor);
+        isMouseDown &= ~1;
         return;
     }
     if (mouse_capture)
     {
         mousedata.mousebuttons &= ~event->button();
     }
+    isMouseDown &= ~1;
 }
 void RendererStack::mousePressEvent(QMouseEvent *event)
 {
+    isMouseDown |= 1;
     if (mouse_capture)
     {
         mousedata.mousebuttons |= event->button();
@@ -182,7 +180,7 @@ void RendererStack::switchRenderer(Renderer renderer) {
     switch (renderer) {
     case Renderer::Software:
     {
-        auto sw = new SoftwareRenderer(this);
+        auto sw = new SoftwareRenderer(this);        
         rendererWindow = sw;
         connect(this, &RendererStack::blitToRenderer, sw, &SoftwareRenderer::onBlit, Qt::QueuedConnection);
         current.reset(this->createWindowContainer(sw, this));
@@ -216,13 +214,14 @@ void RendererStack::switchRenderer(Renderer renderer) {
         break;
     }
     }
+
+    imagebufs = std::move(rendererWindow->getBuffers());
+
     current->setFocusPolicy(Qt::NoFocus);
     current->setFocusProxy(this);
     addWidget(current.get());
 
     this->setStyleSheet("background-color: black");
-    for (auto& in_use : buffers_in_use)
-        in_use.clear();
 
     endblit();
 }
@@ -230,7 +229,7 @@ void RendererStack::switchRenderer(Renderer renderer) {
 // called from blitter thread
 void RendererStack::blit(int x, int y, int w, int h)
 {
-    if ((w <= 0) || (h <= 0) || (w > 2048) || (h > 2048) || (buffer32 == NULL) || buffers_in_use[currentBuf].test_and_set())
+    if ((w <= 0) || (h <= 0) || (w > 2048) || (h > 2048) || (buffer32 == NULL) || std::get<std::atomic_flag*>(imagebufs[currentBuf])->test_and_set())
     {
         video_blit_complete();
         return;
@@ -239,14 +238,18 @@ void RendererStack::blit(int x, int y, int w, int h)
     sy = y;
     sw = this->w = w;
     sh = this->h = h;
-    auto imagebits = imagebufs[currentBuf].get();
-    video_copy(imagebits + y * (2048 * 4) + x * 4, &(buffer32->line[y][x]), h * 2048 * sizeof(uint32_t));
+    uint8_t* imagebits = std::get<uint8_t*>(imagebufs[currentBuf]);
+    for (int y1 = y; y1 < (y + h); y1++)
+    {
+        auto scanline = imagebits + (y1 * (2048) * 4) + (x * 4);
+        video_copy(scanline, &(buffer32->line[y1][x]), w * 4);
+    }
 
     if (screenshots)
     {
         video_screenshot((uint32_t *)imagebits, x, y, 2048);
     }
     video_blit_complete();
-    blitToRenderer(&imagebufs[currentBuf], sx, sy, sw, sh, &buffers_in_use[currentBuf]);
-    currentBuf = (currentBuf + 1) % 2;
+    emit blitToRenderer(currentBuf, sx, sy, sw, sh);
+    currentBuf = (currentBuf + 1) % imagebufs.size();
 }

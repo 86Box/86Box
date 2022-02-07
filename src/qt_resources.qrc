@@ -48,4 +48,13 @@
         <file>win/icons/86Box-red.ico</file>
         <file>win/icons/86Box-yellow.ico</file>
     </qresource>
+    <qresource prefix="/menuicons">
+        <file>win/icons/acpi_shutdown.ico</file>
+        <file>win/icons/hard_reset.ico</file>
+        <file>win/icons/pause.ico</file>
+        <file>win/icons/run.ico</file>
+        <file>win/icons/send_cad.ico</file>
+        <file>win/icons/send_cae.ico</file>
+        <file>win/icons/settings.ico</file>
+    </qresource>
 </RCC>

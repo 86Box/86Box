@@ -13,6 +13,7 @@ MainWindow* main_window = nullptr;
 extern "C" {
 
 #include <86box/plat.h>
+#include <86box/ui.h>
 
 void
 plat_delay_ms(uint32_t count)
@@ -58,8 +59,8 @@ int	ui_msgbox_header(int flags, void *header, void* message) {
     if (header <= (void*)7168) header = plat_get_string((uintptr_t)header);
     if (message <= (void*)7168) message = plat_get_string((uintptr_t)message);
 
-    auto hdr = QString::fromWCharArray(reinterpret_cast<const wchar_t*>(header));
-    auto msg = QString::fromWCharArray(reinterpret_cast<const wchar_t*>(message));
+    auto hdr = (flags & MBX_ANSI) ? QString((char*)header) : QString::fromWCharArray(reinterpret_cast<const wchar_t*>(header));
+    auto msg = (flags & MBX_ANSI) ? QString((char*)message) : QString::fromWCharArray(reinterpret_cast<const wchar_t*>(message));
 
     // any error in early init
     if (main_window == nullptr) {

@@ -429,7 +429,7 @@ win_settings_init(void)
 
     /* ISA memory boards. */
     for (i = 0; i < ISAMEM_MAX; i++)
-	temp_isamem[i] = isamem_type[i];	
+	temp_isamem[i] = isamem_type[i];
 
     temp_deviceconfig = 0;
 }
@@ -2316,7 +2316,7 @@ static void
 win_settings_hard_disks_resize_columns(HWND hdlg)
 {
     /* Bus, File, Cylinders, Heads, Sectors, Size */
-    int iCol, width[C_COLUMNS_HARD_DISKS] = {104, 177, 50, 26, 32, 50};
+    int iCol, width[C_COLUMNS_HARD_DISKS] = {104, 354, 50, 26, 32, 50};
     int total = 0;
     HWND hwndList = GetDlgItem(hdlg, IDC_LIST_HARD_DISKS);
     RECT r;
@@ -2351,7 +2351,7 @@ win_settings_hard_disks_init_columns(HWND hdlg)
 			lvc.fmt = LVCFMT_LEFT;
 			break;
 		case 1: /* File */
-			lvc.cx = 177;
+			lvc.cx = 354;
 			lvc.fmt = LVCFMT_LEFT;
 			break;
 		case 2: /* Cylinders */
@@ -2650,13 +2650,13 @@ win_settings_hard_disks_add_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM 
 		size = (tracks * hpc * spt) << 9;
 		set_edit_box_contents(hdlg, IDC_EDIT_HD_SIZE, (uint32_t) (size >> 20LL));
 		hdconf_initialize_hdt_combo(hdlg);
-		
+
 		settings_add_string(hdlg, IDC_COMBO_HD_IMG_FORMAT, win_get_string(IDS_4122));
 		settings_add_string(hdlg, IDC_COMBO_HD_IMG_FORMAT, win_get_string(IDS_4123));
 		settings_add_string(hdlg, IDC_COMBO_HD_IMG_FORMAT, win_get_string(IDS_4124));
 		settings_add_string(hdlg, IDC_COMBO_HD_IMG_FORMAT, win_get_string(IDS_4125));
 		settings_add_string(hdlg, IDC_COMBO_HD_IMG_FORMAT, win_get_string(IDS_4126));
-		settings_add_string(hdlg, IDC_COMBO_HD_IMG_FORMAT, win_get_string(IDS_4127)); 	
+		settings_add_string(hdlg, IDC_COMBO_HD_IMG_FORMAT, win_get_string(IDS_4127));
 		settings_set_cur_sel(hdlg, IDC_COMBO_HD_IMG_FORMAT, 0);
 
 		settings_add_string(hdlg, IDC_COMBO_HD_BLOCK_SIZE, win_get_string(IDS_4128));
@@ -2674,7 +2674,7 @@ win_settings_hard_disks_add_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM 
 			settings_enable_window(hdlg, IDC_COMBO_HD_TYPE, FALSE);
 			settings_show_window(hdlg, IDC_COMBO_HD_IMG_FORMAT, FALSE);
 			settings_show_window(hdlg, IDT_IMG_FORMAT, FALSE);
-			
+
 			/* adjust window size */
 			GetWindowRect(hdlg, &rect);
 			OffsetRect(&rect, -rect.left, -rect.top);
@@ -2837,7 +2837,7 @@ win_settings_hard_disks_add_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM 
 						hard_disk_added = 1;
 						EndDialog(hdlg, 0);
 						return TRUE;
-					} 
+					}
 
 					big_buf = (char *) malloc(1048576);
 					memset(big_buf, 0, 1048576);
@@ -2942,7 +2942,7 @@ hdd_add_file_open_error:
 							if (vhd == NULL) {
 								settings_msgbox_header(MBX_ERROR, (existing & 1) ? (wchar_t *) IDS_4114 : (wchar_t *) IDS_4115, (existing & 1) ? (wchar_t *) IDS_4107 : (wchar_t *) IDS_4108);
 								return TRUE;
-							} else if (vhd_error == MVHD_ERR_TIMESTAMP) {								
+							} else if (vhd_error == MVHD_ERR_TIMESTAMP) {
 								if (settings_msgbox_ex(MBX_QUESTION_YN | MBX_WARNING, plat_get_string(IDS_4133), plat_get_string(IDS_4132), NULL, NULL, NULL) != 0) {
 									int ts_res = mvhd_diff_update_par_timestamp(vhd, &vhd_error);
 									if (ts_res != 0) {

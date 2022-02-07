@@ -27,6 +27,7 @@ JoystickConfiguration::JoystickConfiguration(int type, int joystick_nr, QWidget 
     }
 
     ui->comboBoxDevice->setCurrentIndex(joystick_state[joystick_nr].plat_joystick_nr);
+    setFixedSize(minimumSizeHint());
 }
 
 JoystickConfiguration::~JoystickConfiguration()
@@ -180,4 +181,6 @@ void JoystickConfiguration::on_comboBoxDevice_currentIndexChanged(int index) {
 
         ++row;
     }
+
+    setFixedSize(minimumSizeHint());
 }

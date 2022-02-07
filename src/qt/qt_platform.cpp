@@ -18,6 +18,7 @@
 #include <QElapsedTimer>
 
 #include "qt_mainwindow.hpp"
+#include "qt_progsettings.hpp"
 
 #ifdef Q_OS_UNIX
 #include <sys/mman.h>
@@ -55,6 +56,7 @@ extern "C" {
 #ifdef Q_OS_WINDOWS
 #define NOMINMAX
 #include <windows.h>
+#include <86box/win.h>
 #else
 #include <strings.h>
 #endif
@@ -66,6 +68,7 @@ extern "C" {
 #include <86box/plat_dynld.h>
 #include <86box/config.h>
 #include <86box/ui.h>
+#include <86box/discord.h>
 
 #include "../cpu/cpu.h"
 #include <86box/plat.h>
@@ -78,6 +81,7 @@ int rctrl_is_lalt = 0;
 int	update_icons = 0;
 int	kbd_req_capture = 0;
 int hide_status_bar = 0;
+int hide_tool_bar = 0;
 uint32_t lang_id = 0x0409, lang_sys = 0x0409; // Multilangual UI variables, for now all set to LCID of en-US
 
 int stricmp(const char* s1, const char* s2)
@@ -101,7 +105,8 @@ int strnicmp(const char *s1, const char *s2, size_t n)
 void
 do_stop(void)
 {
-    QCoreApplication::quit();
+    cpu_thread_run = 0;
+    //main_window->close();
 }
 
 void plat_get_exe_name(char *s, int size)
@@ -128,71 +133,7 @@ plat_timer_read(void)
 FILE *
 plat_fopen(const char *path, const char *mode)
 {
-    /*
-    QString filepath(path);
-    if (filepath.isEmpty()) {
-        return nullptr;
-    }
-
-    qWarning() << "plat_fopen" << filepath;
-    bool ok = false;
-    QFile file(filepath);
-    auto mode_len = strlen(mode);
-    for (size_t i = 0; i < mode_len; ++i) {
-        switch (mode[i]) {
-        case 'r':
-            ok = file.open(QIODevice::ReadOnly);
-            break;
-        case 'w':
-            ok = file.open(QIODevice::ReadWrite);
-            break;
-        case 'b':
-        case 't':
-            break;
-        default:
-            qWarning() << "Unhandled open mode" << mode[i];
-        }
-    }
-
-    if (ok) {
-        qDebug() << "filehandle" << file.handle();
-        QFile returned;
-        qDebug() << "\t" << returned.open(file.handle(), file.openMode(), QFileDevice::FileHandleFlag::DontCloseHandle);
-        return fdopen(returned.handle(), mode);
-    } else {
-        return nullptr;
-    }
-    */
-
-/* Not sure if any this is necessary, fopen seems to work on Windows -Manaatti
-#ifdef Q_OS_WINDOWS
-    wchar_t *pathw, *modew;
-    int len;
-    FILE *fp;
-
-    if (acp_utf8)
-        return fopen(path, mode);
-    else {
-        len = mbstoc16s(NULL, path, 0) + 1;
-        pathw = malloc(sizeof(wchar_t) * len);
-        mbstoc16s(pathw, path, len);
-
-        len = mbstoc16s(NULL, mode, 0) + 1;
-        modew = malloc(sizeof(wchar_t) * len);
-        mbstoc16s(modew, mode, len);
-
-        fp = _wfopen(pathw, modew);
-
-        free(pathw);
-        free(modew);
-
-        return fp;
-    }
-#endif
-#ifdef Q_OS_UNIX
-*/
-    return fopen(path, mode);
-//#endif
+    return fopen(QString::fromUtf8(path).toLocal8Bit(), mode);
 }
 
 FILE *
@@ -338,7 +279,7 @@ plat_pause(int p)
     wchar_t title[512];
 
     if ((p == 0) && (time_sync & TIME_SYNC_ENABLED))
-    nvr_time_sync();
+        nvr_time_sync();
 
     dopause = p;
     if (p) {
@@ -349,6 +290,12 @@ plat_pause(int p)
     } else {
         ui_window_title(oldtitle);
     }
+    discord_update_activity(dopause);
+
+#ifdef Q_OS_WINDOWS
+    if (source_hwnd)
+        PostMessage((HWND)(uintptr_t)source_hwnd, WM_SENDSTATUS, (WPARAM)!!p, (LPARAM)(HWND)main_window->winId());
+#endif
 }
 
 // because we can't include nvr.h because it's got fields named new
@@ -373,15 +320,54 @@ void set_language(uint32_t id) {
     lang_id = id;
 }
 
+extern "C++"
+{
+    QMap<uint32_t, QPair<QString, QString>> ProgSettings::lcid_langcode =
+    {
+        {0x0405, {"cs-CZ", "Czech (Czech Republic)"} },
+        {0x0407, {"de-DE", "German (Germany)"} },
+        {0x0408, {"en-US", "English (United States)"} },
+        {0x0809, {"en-GB", "English (United Kingdom)"} },
+        {0x0C0A, {"es-ES", "Spanish (Spain)"} },
+        {0x040B, {"fi-FI", "Finnish (Finland)"} },
+        {0x040C, {"fr-FR", "French (France)"} },
+        {0x041A, {"hr-HR", "Croatian (Croatia)"} },
+        {0x040E, {"hu-HU", "Hungarian (Hungary)"} },
+        {0x0410, {"it-IT", "Italian (Italy)"} },
+        {0x0411, {"ja-JP", "Japanese (Japan)"} },
+        {0x0412, {"ko-KR", "Korean (Korea)"} },
+        {0x0415, {"pl-PL", "Polish (Poland)"} },
+        {0x0416, {"pt-BR", "Portuguese (Brazil)"} },
+        {0x0816, {"pt-PT", "Portuguese (Portugal)"} },
+        {0x0419, {"ru-RU", "Russian (Russia)"} },
+        {0x0424, {"sl-SI", "Slovenian (Slovenia)"} },
+        {0x041F, {"tr-TR", "Turkish (Turkey)"} },
+        {0x0422, {"uk-UA", "Ukrainian (Ukraine)"} },
+        {0x0804, {"zh-CN", "Chinese (China)"} },
+        {0xFFFF, {"system", "(System Default)"} },
+    };
+}
+
 /* Sets up the program language before initialization. */
 uint32_t plat_language_code(char* langcode) {
-    /* or maybe not */
-    return 0;
+    for (auto& curKey : ProgSettings::lcid_langcode.keys())
+    {
+        if (ProgSettings::lcid_langcode[curKey].first == langcode)
+        {
+            return curKey;
+        }
+    }
+    return 0xFFFF;
 }
 
 /* Converts back the language code to LCID */
 void plat_language_code_r(uint32_t lcid, char* outbuf, int len) {
-    /* or maybe not */
+    if (!ProgSettings::lcid_langcode.contains(lcid))
+    {
+        qstrncpy(outbuf, "system", len);
+        return;
+    }
+    qstrncpy(outbuf, ProgSettings::lcid_langcode[lcid].first.toUtf8().constData(), len);
     return;
 }
 
@@ -489,9 +475,9 @@ size_t c16stombs(char dst[], const uint16_t src[], int len)
 #endif
 
 
-static std::map<int, std::wstring> translatedstrings;
+QMap<int, std::wstring> ProgSettings::translatedstrings;
 
-static void reload_strings()
+void ProgSettings::reloadStrings()
 {
     translatedstrings.clear();
     translatedstrings[IDS_2077] = QCoreApplication::translate("", "Click to capture mouse").toStdWString();
@@ -536,8 +522,8 @@ static void reload_strings()
 
 wchar_t* plat_get_string(int i)
 {
-    if (translatedstrings.empty()) reload_strings();
-    return translatedstrings[i].data();
+    if (ProgSettings::translatedstrings.empty()) ProgSettings::reloadStrings();
+    return ProgSettings::translatedstrings[i].data();
 }
 
 int

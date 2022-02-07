@@ -1,6 +1,3 @@
-msgid "Translated by"
-msgstr "Unknown"
-
 msgid "&Action"
 msgstr "動作(&A)"
 
@@ -11,7 +8,7 @@ msgid "&Right CTRL is left ALT"
 msgstr "右CTRLを左ALTへ(&R)"
 
 msgid "&Hard Reset..."
-msgstr "再起動(&H)..."
+msgstr "ハードリセット(&H)..."
 
 msgid "&Ctrl+Alt+Del\tCtrl+F12"
 msgstr "Ctrl+Alt+Del(&C)\tCtrl+F12"
@@ -31,11 +28,14 @@ msgstr "表示(&V)"
 msgid "&Hide status bar"
 msgstr "ステータスバーを隠す(&H)"
 
+msgid "Hide &toolbar"
+msgstr "ツールバーを隠す(&T)"
+
 msgid "&Resizeable window"
-msgstr "ウィンドウのサイズを変更可能にする(&R)"
+msgstr "ウィンドウのサイズをリサイズ可能(&R)"
 
 msgid "R&emember size && position"
-msgstr "ウィンドウのサイズと位置を記憶する(&E)"
+msgstr "ウィンドウのサイズと位置を記憶(&E)"
 
 msgid "Re&nderer"
 msgstr "レンダラー(&N)"
@@ -56,13 +56,13 @@ msgid "&VNC"
 msgstr "VNC(&V)"
 
 msgid "Specify dimensions..."
-msgstr "ウィンドウのサイズを指定する..."
+msgstr "ウィンドウのサイズを指定..."
 
 msgid "F&orce 4:3 display ratio"
-msgstr "画面比率を4:3に合わせる(&O)"
+msgstr "4:3アスペクト比を固定(&O)"
 
 msgid "&Window scale factor"
-msgstr "ウィンドウの倍率(&W)"
+msgstr "ウィンドウの表示倍率(&W)"
 
 msgid "&0.5x"
 msgstr "0.5x(&0)"
@@ -80,19 +80,19 @@ msgid "Filter method"
 msgstr "フィルター方式"
 
 msgid "&Nearest"
-msgstr "ニアレストネイバー(&N)"
+msgstr "最近傍補間(&N)"
 
 msgid "&Linear"
-msgstr "リニア補間(&L)"
+msgstr "線形補間(&L)"
 
 msgid "Hi&DPI scaling"
-msgstr "高DPIスケール(&D)"
+msgstr "HiDPIスケーリング(&D)"
 
 msgid "&Fullscreen\tCtrl+Alt+PageUP"
 msgstr "フルスクリーン(&F)\tCtrl+Alt+PageUP"
 
 msgid "Fullscreen &stretch mode"
-msgstr "フルスクリーンの比率(&S)"
+msgstr "フルスクリーンのスケール(&S)"
 
 msgid "&Full screen stretch"
 msgstr "フルスクリーンに拡大(&F)"
@@ -101,37 +101,37 @@ msgid "&4:3"
 msgstr "4:3(&4)"
 
 msgid "&Square pixels (Keep ratio)"
-msgstr "正方形のピクセル(維持率)(&S)"
+msgstr "正方形ピクセル(アスペクト比を維持)(&S)"
 
 msgid "&Integer scale"
-msgstr "定数倍(&I)"
+msgstr "整数倍(&I)"
 
 msgid "E&GA/(S)VGA settings"
 msgstr "E&GA/(S)VGAの設定"
 
 msgid "&Inverted VGA monitor"
-msgstr "色反転VGAモニター(&I)"
+msgstr "色を反転(&I)"
 
 msgid "VGA screen &type"
-msgstr "VGA画面タイプ(&T)"
+msgstr "画面タイプ(&T)"
 
 msgid "RGB &Color"
-msgstr "RGBカラー(&C)"
+msgstr "RGB(カラー)(&C)"
 
 msgid "&RGB Grayscale"
-msgstr "RGBグレースケール(&R)"
+msgstr "RGB(グレースケール)(&R)"
 
 msgid "&Amber monitor"
-msgstr "橙色モニター(&A)"
+msgstr "モニター(琥珀色)(&A)"
 
 msgid "&Green monitor"
-msgstr "緑色モニター(&G)"
+msgstr "モニター(緑色)(&G)"
 
 msgid "&White monitor"
-msgstr "白色モニター(&W)"
+msgstr "モニター(白色)(&W)"
 
 msgid "Grayscale &conversion type"
-msgstr "グレースケール表示方式(&C)"
+msgstr "グレースケール変換タイプ(&C)"
 
 msgid "BT&601 (NTSC/PAL)"
 msgstr "BT601 (NTSC/PAL)(&6)"
@@ -140,13 +140,13 @@ msgid "BT&709 (HDTV)"
 msgstr "BT709 (HDTV)(&7)"
 
 msgid "&Average"
-msgstr "平均値(&A)"
+msgstr "平均(&A)"
 
 msgid "CGA/PCjr/Tandy/E&GA/(S)VGA overscan"
 msgstr "CGA/PCjr/Tandy/EGA/(S)VGAオーバースキャン(&G)"
 
 msgid "Change contrast for &monochrome display"
-msgstr "単色モニター用対比転換(&M)"
+msgstr "単色モニター用コントラストを変更(&M)"
 
 msgid "&Media"
 msgstr "メディア(&M)"
@@ -158,7 +158,7 @@ msgid "&Settings..."
 msgstr "設定(&S)..."
 
 msgid "&Update status bar icons"
-msgstr "ステータスバーのアイコンを更新する(&U)"
+msgstr "ステータスバーのアイコンを更新(&U)"
 
 msgid "Take s&creenshot\tCtrl+F11"
 msgstr "スクリーンショットを撮る(&C)\tCtrl+F11"
@@ -167,10 +167,10 @@ msgid "&Preferences..."
 msgstr "環境設定(&P)..."
 
 msgid "Enable &Discord integration"
-msgstr "Discordとの連携を可能にする(&D)"
+msgstr "Discordとの連携機能(&D)"
 
 msgid "Sound &gain..."
-msgstr "音量ゲイン(&G)..."
+msgstr "音量を調節(&G)..."
 
 msgid "Begin trace\tCtrl+T"
 msgstr "トレース開始\tCtrl+T"
@@ -182,31 +182,31 @@ msgid "&Logging"
 msgstr "ログ(&L)"
 
 msgid "Enable BusLogic logs\tCtrl+F4"
-msgstr "BusLogicのログを有効にする\tCtrl+F4"
+msgstr "BusLogicのログを有効\tCtrl+F4"
 
 msgid "Enable CD-ROM logs\tCtrl+F5"
-msgstr "CD-ROMのログを有効にする\tCtrl+F5"
+msgstr "CD-ROMのログを有効\tCtrl+F5"
 
 msgid "Enable floppy (86F) logs\tCtrl+F6"
-msgstr "フロッピー(86F)のログを有効にする\tCtrl+F6"
+msgstr "フロッピー(86F)のログを有効\tCtrl+F6"
 
 msgid "Enable floppy controller logs\tCtrl+F7"
-msgstr "フロッピーコントローラーのログを有効にする\tCtrl+F7"
+msgstr "フロッピーコントローラーのログを有効\tCtrl+F7"
 
 msgid "Enable IDE logs\tCtrl+F8"
-msgstr "IDEのログを有効にする\tCtrl+F8"
+msgstr "IDEのログを有効\tCtrl+F8"
 
 msgid "Enable Serial Port logs\tCtrl+F3"
-msgstr "シリアルポートのログを有効にする\tCtrl+F3"
+msgstr "シリアルポートのログを有効\tCtrl+F3"
 
 msgid "Enable Network logs\tCtrl+F9"
-msgstr "ネットワークのログを有効にする\tCtrl+F9"
+msgstr "ネットワークのログを有効\tCtrl+F9"
 
 msgid "&Log breakpoint\tCtrl+F10"
-msgstr "ブレークポイントのログを有効にする(&L)\tCtrl+F10"
+msgstr "ブレークポイントのログを有効(&L)\tCtrl+F10"
 
 msgid "Dump &video RAM\tCtrl+F1"
-msgstr "ビデオRAMのダンプを有効にする(&V)\tCtrl+F1"
+msgstr "ビデオRAMのダンプを有効(&V)\tCtrl+F1"
 
 msgid "&Help"
 msgstr "ヘルプ(&H)"
@@ -215,28 +215,28 @@ msgid "&Documentation..."
 msgstr "ドキュメント(&D)..."
 
 msgid "&About 86Box..."
-msgstr "86Boxについて(&A)..."
+msgstr "86Boxのバージョン情報(&A)..."
 
 msgid "&New image..."
-msgstr "新規のイメージ(&N)..."
+msgstr "新規イメージ(&N)..."
 
 msgid "&Existing image..."
-msgstr "既存のイメージ(&E)..."
+msgstr "既存のイメージを開く(&E)..."
 
 msgid "Existing image (&Write-protected)..."
-msgstr "既存のイメージ（ライトプロテクト付き） (&W)..."
+msgstr "既存のイメージを開く(書き込み保護)(&W)..."
 
 msgid "&Record"
-msgstr "録音する(&R)"
+msgstr "録音(&R)"
 
 msgid "&Play"
-msgstr "再生する(&P)"
+msgstr "再生(&P)"
 
 msgid "&Rewind to the beginning"
 msgstr "冒頭に巻き戻す(&R)"
 
 msgid "&Fast forward to the end"
-msgstr "最後まで早送りする(&F)"
+msgstr "最後まで早送り(&F)"
 
 msgid "E&ject"
 msgstr "取り出す(&J)"
@@ -245,7 +245,7 @@ msgid "&Image..."
 msgstr "イメージ(&I)..."
 
 msgid "E&xport to 86F..."
-msgstr "86Fへのエクスポート(&X)..."
+msgstr "86Fイメージにエクスポート(&X)..."
 
 msgid "&Mute"
 msgstr "ミュート(&M)"
@@ -254,7 +254,7 @@ msgid "E&mpty"
 msgstr "空(&M)"
 
 msgid "&Reload previous image"
-msgstr "前のイメージを再読み込み (&R)"
+msgstr "前のイメージを再読み込み(&R)"
 
 msgid "&Image"
 msgstr "イメージ(&I)"
@@ -263,7 +263,7 @@ msgid "Target &framerate"
 msgstr "目標フレームレート(&F)"
 
 msgid "&Sync with video"
-msgstr "ビデオとの同期(&S)"
+msgstr "ビデオと同期(&S)"
 
 msgid "&25 fps"
 msgstr "25 fps(&2)"
@@ -281,13 +281,13 @@ msgid "&75 fps"
 msgstr "75 fps(&7)"
 
 msgid "&VSync"
-msgstr "VSync(&V)"
+msgstr "垂直同期(VSync)(&V)"
 
 msgid "&Select shader..."
-msgstr "シェーダの選択(&S)..."
+msgstr "シェーダーを選択(&S)..."
 
 msgid "&Remove shader"
-msgstr "シェーダの削除(&R)"
+msgstr "シェーダーを削除(&R)"
 
 msgid "Preferences"
 msgstr "環境設定"
@@ -329,13 +329,13 @@ msgid "File name:"
 msgstr "ファイル名:"
 
 msgid "Disk size:"
-msgstr "ディスクの容量:"
+msgstr "ディスクサイズ:"
 
 msgid "RPM mode:"
-msgstr "RPMモード:"
+msgstr "回転数モード:"
 
 msgid "Progress:"
-msgstr "進行:"
+msgstr "進行状況:"
 
 msgid "Width:"
 msgstr "幅:"
@@ -374,19 +374,19 @@ msgid "Memory:"
 msgstr "メモリ:"
 
 msgid "Time synchronization"
-msgstr "時刻同期化"
+msgstr "時刻同期機能"
 
 msgid "Disabled"
-msgstr "使用しない"
+msgstr "無効にする"
 
 msgid "Enabled (local time)"
-msgstr "使用する (現地時間)"
+msgstr "有効にする (現地時間)"
 
 msgid "Enabled (UTC)"
-msgstr "使用する (UTC)"
+msgstr "有効にする (UTC)"
 
 msgid "Dynamic Recompiler"
-msgstr "動的再コンパイル"
+msgstr "動的リコンパイラ"
 
 msgid "Video:"
 msgstr "ビデオカード:"
@@ -422,7 +422,7 @@ msgid "MIDI In Device:"
 msgstr "MIDI入力デバイス:"
 
 msgid "Standalone MPU-401"
-msgstr "MPU-401を単独使用"
+msgstr "独立型MPU-401"
 
 msgid "Innovation SSI-2001"
 msgstr "Innovation SSI-2001"
@@ -434,7 +434,7 @@ msgid "Gravis Ultrasound"
 msgstr "Gravis Ultrasound"
 
 msgid "Use FLOAT32 sound"
-msgstr "FLOAT32サウンドを使用"
+msgstr "FLOAT32サウンドを使用する"
 
 msgid "Network type:"
 msgstr "ネットワークタイプ:"
@@ -443,7 +443,19 @@ msgid "PCap device:"
 msgstr "PCapデバイス:"
 
 msgid "Network adapter:"
-msgstr "ネットワークカード:"
+msgstr "ネットワークアダプター:"
+
+msgid "COM1 Device:"
+msgstr "COM1デバイス:"
+
+msgid "COM2 Device:"
+msgstr "COM2デバイス:"
+
+msgid "COM3 Device:"
+msgstr "COM3デバイス:"
+
+msgid "COM4 Device:"
+msgstr "COM4デバイス:"
 
 msgid "LPT1 Device:"
 msgstr "LPT1デバイス:"
@@ -453,6 +465,9 @@ msgstr "LPT2デバイス:"
 
 msgid "LPT3 Device:"
 msgstr "LPT3デバイス:"
+
+msgid "LPT4 Device:"
+msgstr "LPT4デバイス:"
 
 msgid "Serial port 1"
 msgstr "シリアルポート1"
@@ -474,6 +489,9 @@ msgstr "パラレルポート2"
 
 msgid "Parallel port 3"
 msgstr "パラレルポート3"
+
+msgid "Parallel port 4"
+msgstr "パラレルポート4"
 
 msgid "HD Controller:"
 msgstr "HDコントローラー:"
@@ -539,10 +557,10 @@ msgid "Cylinders:"
 msgstr "シリンダー:"
 
 msgid "Size (MB):"
-msgstr "容量(MB):"
+msgstr "サイズ(MB):"
 
 msgid "Type:"
-msgstr "形式:"
+msgstr "タイプ:"
 
 msgid "Image Format:"
 msgstr "イメージ形式:"
@@ -595,7 +613,10 @@ msgstr "ISABuggerデバイス"
 msgid "POST card"
 msgstr "POSTカード"
 
-msgid "Segoe UI"
+msgid "FONT_SIZE"
+msgstr "9"
+
+msgid "FONT_NAME"
 msgstr "Meiryo UI"
 
 msgid "86Box"
@@ -619,17 +640,17 @@ msgstr "速度"
 msgid "ZIP %03i %i (%s): %ls"
 msgstr "ZIP %03i %i (%s): %ls"
 
-msgid "ZIP images (*.IM? *.im? *.ZDI *.zdi)"
-msgstr "ZIPイメージ (*.IM? *.im? *.ZDI *.zdi)"
+msgid "ZIP images"
+msgstr "ZIPイメージ"
 
 msgid "86Box could not find any usable ROM images.\n\nPlease <a href=\"https://github.com/86Box/roms/releases/latest\">download</a> a ROM set and extract it into the \"roms\" directory."
-msgstr "86Boxで使用可能なROMイメージが見つかりませんでした。\n\nROMセットを<a href=\"https://github.com/86Box/roms/releases/latest\">ダウンロード</a>して、《roms》ディレクトリに解凍してください。"
+msgstr "86Boxで使用可能なROMイメージが見つかりませんでした。\n\nROMセットを<a href=\"https://github.com/86Box/roms/releases/latest\">ダウンロード</a>して、「roms」ディレクトリに解凍してください。"
 
 msgid "(empty)"
 msgstr "(空)"
 
-msgid "ZIP images (*.IM? *.im? *.ZDI *.zdi);;All files (*)"
-msgstr "ZIPイメージ (*.IM? *.im? *.ZDI *.zdi);;すべてのファイル (*)"
+msgid "All files"
+msgstr "すべてのファイル"
 
 msgid "Turbo"
 msgstr "高速"
@@ -640,14 +661,20 @@ msgstr "オン"
 msgid "Off"
 msgstr "オフ"
 
-msgid "All images (*.86F *.86f *.DSK *.dsk *.FLP *.flp *.IM? *.im? *.*FD? *.*fd?);;Basic sector images (*.DSK *.dsk *.FLP *.flp *.IM? *.im? *.IMG *.img *.*FD? *.*fd?);;Surface images (*.86F *.86f)"
-msgstr "すべてのイメージ (*.86F *.86f *.DSK *.dsk *.FLP *.flp *.IM? *.im? *.*FD? *.*fd?);;基本的なセクターイメージ (*.DSK *.dsk *.FLP *.flp *.IM? *.im? *.IMG *.img *.*FD? *.*fd?);;表面イメージ (*.86F *.86f)"
+msgid "All images"
+msgstr "すべてのイメージ"
+
+msgid "Basic sector images"
+msgstr "基本的なセクターイメージ"
+
+msgid "Surface images"
+msgstr "表面イメージ"
 
 msgid "Machine \"%hs\" is not available due to missing ROMs in the roms/machines directory. Switching to an available machine."
-msgstr "roms/machinesディレクトリにROMがないため、マシン《%hs》は使用できません。使用可能なマシンに切り替えます。"
+msgstr "roms/machinesディレクトリにROMがないため、マシン「%hs」は使用できません。使用可能なマシンに切り替えます。"
 
 msgid "Video card \"%hs\" is not available due to missing ROMs in the roms/video directory. Switching to an available video card."
-msgstr "roms/videoディレクトリにROMがないため、ビデオカード《%hs》は使用できません。使用可能なビデオカードに切り替えます。"
+msgstr "roms/videoディレクトリにROMがないため、ビデオカード「%hs」は使用できません。使用可能なビデオカードに切り替えます。"
 
 msgid "Machine"
 msgstr "マシン"
@@ -680,19 +707,16 @@ msgid "Other removable devices"
 msgstr "その他のリムーバブルデバイス"
 
 msgid "Other peripherals"
-msgstr "その他の周辺機器"
-
-msgid "Surface images (*.86F *.86f)"
-msgstr "表面イメージ (*.86F *.86f)"
+msgstr "その他の周辺装置"
 
 msgid "Click to capture mouse"
-msgstr "クリックするとマウスを直接入力します"
+msgstr "クリックするとマウスをキャプチャします"
 
 msgid "Press F8+F12 to release mouse"
-msgstr "F12+F8キーでマウスの直接入力を解除します"
+msgstr "F8+F12キーでマウスを解放します"
 
 msgid "Press F8+F12 or middle button to release mouse"
-msgstr "F12+F8キーまたは中クリックでマウスの直接入力を解除します"
+msgstr "F8+F12キーまたは中ボタンでマウスを解放します"
 
 msgid "Unable to initialize FluidSynth"
 msgstr "FluidSynthが初期化できません"
@@ -725,7 +749,7 @@ msgid "%i Wait state(s)"
 msgstr "%iつの待機状態"
 
 msgid "Type"
-msgstr "形式"
+msgstr "タイプ"
 
 msgid "Failed to set up PCap"
 msgstr "PCapのセットアップに失敗しました"
@@ -737,16 +761,16 @@ msgid "Invalid PCap device"
 msgstr "不正なPCapデバイスです"
 
 msgid "Standard 2-button joystick(s)"
-msgstr "標準2ボタンジョイスティック"
+msgstr "標準ジョイスティック(2ボタン)"
 
 msgid "Standard 4-button joystick"
-msgstr "標準4ボタンジョイスティック"
+msgstr "標準ジョイスティック(4ボタン)"
 
 msgid "Standard 6-button joystick"
-msgstr "標準6ボタンジョイスティック"
+msgstr "標準ジョイスティック(6ボタン)"
 
 msgid "Standard 8-button joystick"
-msgstr "標準8ボタンジョイスティック"
+msgstr "標準ジョイスティック(8ボタン)"
 
 msgid "CH Flightstick Pro"
 msgstr "CH Flightstick Pro"
@@ -761,10 +785,10 @@ msgid "None"
 msgstr "なし"
 
 msgid "Unable to load keyboard accelerators."
-msgstr "キーボードアクセラレーターを読み込めません。"
+msgstr "キーボードアクセラレータを読み込めません。"
 
 msgid "Unable to register raw input."
-msgstr "Raw入力が登録できません。"
+msgstr "生の入力が登録できません。"
 
 msgid "%u"
 msgstr "%u"
@@ -775,8 +799,11 @@ msgstr "%u MB (CHS: %i, %i, %i)"
 msgid "Floppy %i (%s): %ls"
 msgstr "フロッピー %i (%s): %ls"
 
-msgid "All images (*.0?? *.1?? *.??0 *.86F *.86f *.BIN *.bin *.CQ? *.cq? *.D?? *.d?? *.FLP *.flp *.HDM *.hdm *.IM? *.im? *.JSON *.json *.TD0 *.td0 *.*FD? *.*fd? *.MFM *.mfm *.XDF *.xdf);;Advanced sector images (*.IMD *.imd *.JSON *.json *.TD0 *.td0);;Basic sector images (*.0?? *.1?? *.??0 *.BIN *.bin *.CQ? *.cq? *.D?? *.d?? *.FLP *.flp *.HDM *.hdm *.IM? *.im? *.XDF *.xdf *.*FD? *.*fd?);;Flux images (*.FDI *.fdi);;Surface images (*.86F *.86f *.MFM *.mfm);;All files (*)"
-msgstr "すべてのイメージ (*.0?? *.1?? *.??0 *.86F *.86f *.BIN *.bin *.CQ? *.cq? *.D?? *.d?? *.FLP *.flp *.HDM *.hdm *.IM? *.im? *.JSON *.json *.TD0 *.td0 *.*FD? *.*fd? *.MFM *.mfm *.XDF *.xdf);;アドバンスドセクターイメージ (*.IMD *.imd *.JSON *.json *.TD0 *.td0);;基本セクターイメージ (*.0?? *.1?? *.??0 *.BIN *.bin *.CQ? *.cq? *.D?? *.d?? *.FLP *.flp *.HDM *.hdm *.IM? *.im? *.XDF *.xdf *.*FD? *.*fd?);;フラックスイメージ (*.FDI *.fdi);;表面イメージ (*.86F *.86f *.MFM *.mfm);;すべてのファイル (*)"
+msgid "Advanced sector images"
+msgstr "アドバンスドセクターイメージ"
+
+msgid "Flux images"
+msgstr "フラックスイメージ"
 
 msgid "Unable to initialize FreeType"
 msgstr "FreeTypeが初期化できません"
@@ -785,7 +812,7 @@ msgid "Unable to initialize SDL, SDL2.dll is required"
 msgstr "SDLが初期化できません。SDL2.dllが必要です"
 
 msgid "Are you sure you want to hard reset the emulated machine?"
-msgstr "起動中のマシンを再起動しますか？"
+msgstr "使用中のマシンをハードリセットしますか？"
 
 msgid "Are you sure you want to exit 86Box?"
 msgstr "86Boxを終了しますか？"
@@ -796,14 +823,14 @@ msgstr "Ghostscriptが初期化できません"
 msgid "MO %i (%ls): %ls"
 msgstr "光磁気 %i (%ls): %ls"
 
-msgid "MO images (*.IM? *.im? *.MDI *.mdi);;All files (*)"
-msgstr "光磁気イメージ (*.IM? *.im? *.MDI *.mdi);;すべてのファイル (*)"
+msgid "MO images"
+msgstr "光磁気イメージ"
 
 msgid "Welcome to 86Box!"
-msgstr "86Boxへようこそ!"
+msgstr "86Boxへようこそ！"
 
 msgid "Internal controller"
-msgstr "内部のコントローラー"
+msgstr "内蔵コントローラー"
 
 msgid "Exit"
 msgstr "終了"
@@ -815,19 +842,19 @@ msgid "Do you want to save the settings?"
 msgstr "設定を保存しますか？"
 
 msgid "This will hard reset the emulated machine."
-msgstr "保存すると使用中のマシンが再起動されます。"
+msgstr "保存すると使用中のマシンがハードリセットされます。"
 
 msgid "Save"
 msgstr "保存"
 
 msgid "About 86Box"
-msgstr "86Boxについて"
+msgstr "86Boxのバージョン情報"
 
 msgid "86Box v"
 msgstr "86Box v"
 
 msgid "An emulator of old computers\n\nAuthors: Sarah Walker, Miran Grca, Fred N. van Kempen (waltje), SA1988, Tiseno100, reenigne, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2 or later. See LICENSE for more information."
-msgstr "古いコンピュータのエミュレータ\n\n著者: Sarah Walker, Miran Grca, Fred N. van Kempen (waltje), SA1988, Tiseno100, reenigne, leilei, JohnElliott, greatpsycho, and others.\n\nGNU General Public License version 2以降でリリースされています。詳しくは LICENSE をご覧ください。"
+msgstr "古いパソコンのエミュレーター\n\n著者: Sarah Walker, Miran Grca, Fred N. van Kempen (waltje), SA1988, Tiseno100, reenigne, leilei, JohnElliott, greatpsycho, and others.\n\nGNU General Public License version 2以降でリリースされています。詳しくは LICENSE をご覧ください。"
 
 msgid "Hardware not available"
 msgstr "ハードウェアが利用できません"
@@ -860,7 +887,7 @@ msgid "libgs"
 msgstr "libgs"
 
 msgid " is required for automatic conversion of PostScript files to PDF.\n\nAny documents sent to the generic PostScript printer will be saved as PostScript (.ps) files."
-msgstr "はPostScriptファイルをPDFに自動変換させる為に必要です。\n\n汎用PostScriptプリンターに送った任意のドキュメントはPostScript(.ps)ファイルとして保存されます。"
+msgstr "PostScriptファイルをPDFに自動変換するにはlibgsが必要です。\n\n汎用PostScriptプリンターに送信されたドキュメントは、PostScript(.ps)ファイルとして保存されます。"
 
 msgid "libfluidsynth.dll"
 msgstr "libfluidsynth.dll"
@@ -872,10 +899,10 @@ msgid " is required for FluidSynth MIDI output."
 msgstr "FluidSynthのMIDI出力にはlibfluidsynthが必要です。"
 
 msgid "Entering fullscreen mode"
-msgstr "フルスクリーンモードに転換します"
+msgstr "フルスクリーンに切り替えています"
 
 msgid "Don't show this message again"
-msgstr "今後このメッセージを表示しない"
+msgstr "今後、このメッセージを表示しない"
 
 msgid "Don't exit"
 msgstr "終了しない"
@@ -886,8 +913,8 @@ msgstr "リセット"
 msgid "Don't reset"
 msgstr "リセットしない"
 
-msgid "CD-ROM images (*.ISO *.iso *.CUE *.cue);;All files (*)"
-msgstr "CD-ROMイメージ (*.ISO *.iso *.CUE *.cue);;すべてのファイル (*)"
+msgid "CD-ROM images"
+msgstr "CD-ROMイメージ"
 
 msgid "%hs Device Configuration"
 msgstr "%hs デバイスの設定"
@@ -895,11 +922,11 @@ msgstr "%hs デバイスの設定"
 msgid "Monitor in sleep mode"
 msgstr "モニターのスリープモード"
 
-msgid "OpenGL Shaders (*.GLSL *.glsl);;All files (*)"
-msgstr "OpenGLシェーダー (*.GLSL *.glsl);;すべてのファイル (*)"
+msgid "OpenGL Shaders"
+msgstr "OpenGLシェーダー"
 
 msgid "OpenGL options"
-msgstr "OpenGLの設定"
+msgstr "OpenGL設定"
 
 msgid "You are loading an unsupported configuration"
 msgstr "サポートされていない設定を読み込んでいます"
@@ -908,25 +935,43 @@ msgid "CPU type filtering based on selected machine is disabled for this emulate
 msgstr "選択したマシンに基づくCPUタイプのフィルタリングは、このエミュレートされたマシンでは無効になっています。\n\nこれにより、選択したマシンと互換性のないCPUが選択できます。ただし、マシンのBIOSまたは他のソフトウェアとの互換性が失われる可能性があります。\n\nこの設定の有効化は公式サポートができません。また、バグレポートが無効として閉じられる場合があります。"
 
 msgid "Continue"
-msgstr "つづく"
+msgstr "続行"
 
 msgid "Cassette: %s"
 msgstr "カセット: %s"
 
-msgid "Cassette images (*.PCM *.pcm *.RAW *.raw *.WAV *.wav *.CAS *.cas);;All files (*)"
-msgstr "カセットイメージ (*.PCM *.pcm *.RAW *.raw *.WAV *.wav *.CAS *.cas);;すべてのファイル (*)"
+msgid "Cassette images"
+msgstr "カセットイメージ"
 
 msgid "Cartridge %i: %ls"
 msgstr "カートリッジ %i: %ls"
 
-msgid "Cartridge images (*.A *.a *.B *.b *.JRC *.jrc);;All files (*)"
-msgstr "カートリッジイメージ (*.A *.a *.B *.b *.JRC *.jrc);;すべてのファイル (*)"
+msgid "Cartridge images"
+msgstr "カートリッジイメージ"
 
 msgid "Error initializing renderer"
 msgstr "レンダラーの初期化エラー"
 
 msgid "OpenGL (3.0 Core) renderer could not be initialized. Use another renderer."
-msgstr "OpenGL（3.0コア）レンダラーが初期化できませんでした。別のレンダラーを使用してください。"
+msgstr "OpenGL (3.0コア) レンダラーが初期化できませんでした。別のレンダラーを使用してください。"
+
+msgid "Resume execution"
+msgstr "実行を再開"
+
+msgid "Pause execution"
+msgstr "実行を一時停止"
+
+msgid "Press Ctrl+Alt+Del"
+msgstr "Ctrl+Alt+DELを押し"
+
+msgid "Press Ctrl+Alt+Esc"
+msgstr "Ctrl+Alt+Escを押し"
+
+msgid "Hard reset"
+msgstr "ハードリセット"
+
+msgid "ACPI shutdown"
+msgstr "ACPIシャットダウン"
 
 msgid "Hard disk (%s)"
 msgstr "ハードディスク (%s)"
@@ -944,7 +989,7 @@ msgid "Custom..."
 msgstr "カスタム..."
 
 msgid "Custom (large)..."
-msgstr "カスタム（大）..."
+msgstr "カスタム (大型)..."
 
 msgid "Add New Hard Disk"
 msgstr "新規のディスクを追加"
@@ -953,13 +998,13 @@ msgid "Add Existing Hard Disk"
 msgstr "既定のディスクを追加"
 
 msgid "HDI disk images cannot be larger than 4 GB."
-msgstr "HDIのディスクイメージは4GB以上にはできません。"
+msgstr "HDIディスクイメージは4GBを超えることはできません。"
 
 msgid "Disk images cannot be larger than 127 GB."
-msgstr "ディスクイメージは127GB以上にはできません。"
+msgstr "ディスクイメージは127GBを超えることはできません。"
 
-msgid "Hard disk images (*.HD? *.hd? *.IM? *.im? *.VHD *.vhd);;All files (*)"
-msgstr "ハードディスクイメージ (*.HD? *.hd? *.IM? *.im? *.VHD *.vhd);;すべてのファイル (*)"
+msgid "Hard disk images"
+msgstr "ハードディスクイメージ"
 
 msgid "Unable to read file"
 msgstr "ファイルの読み込みができません"
@@ -968,10 +1013,10 @@ msgid "Unable to write file"
 msgstr "ファイルの書き込みができません"
 
 msgid "HDI or HDX images with a sector size other than 512 are not supported."
-msgstr "512バイト以外のセクターサイズを持ったHDIまたはHDX形式のイメージはサポートしません。"
+msgstr "512以外のセクタサイズを持つHDIまたはHDXイメージはサポートされていません。"
 
 msgid "USB is not yet supported"
-msgstr "USBはまだサポートしません"
+msgstr "USBはまだサポートされていません"
 
 msgid "Disk image file already exists"
 msgstr "ディスクイメージファイルが既に存在します"
@@ -983,19 +1028,19 @@ msgid "Disk image created"
 msgstr "ディスクイメージが作成されました"
 
 msgid "Make sure the file exists and is readable."
-msgstr "ファイルが存在し、読み取り可能であることを確認します。"
+msgstr "ファイルが存在し、読み取り可能であることを確認してください。"
 
 msgid "Make sure the file is being saved to a writable directory."
 msgstr "ファイルが書き込み可能なディレクトリに保存されていることを確認してください。"
 
 msgid "Disk image too large"
-msgstr "ディスクイメージが大きすぎます"
+msgstr "ディスクイメージのサイズが大きすぎます"
 
 msgid "Remember to partition and format the newly-created drive."
-msgstr "新規ディスクのパーティション設定とフォーマットを必ずしといてください。"
+msgstr "新規ドライブをパーティション分割し、フォーマットを必ずしといてください。"
 
 msgid "The selected file will be overwritten. Are you sure you want to use it?"
-msgstr "選択したファイルは上書きされます。使っていいですか？"
+msgstr "選択したファイルが上書きされます。使っていいですか？"
 
 msgid "Unsupported disk image"
 msgstr "サポートされていないディスクイメージ"
@@ -1016,13 +1061,13 @@ msgid "HDX image (.hdx)"
 msgstr "HDXイメージ (.hdx)"
 
 msgid "Fixed-size VHD (.vhd)"
-msgstr "固定サイズのVHD (.vhd)"
+msgstr "VHD(容量固定)(.vhd)"
 
 msgid "Dynamic-size VHD (.vhd)"
-msgstr "ダイナミックサイズのVHD (.vhd)"
+msgstr "VHD(容量可変)(.vhd)"
 
 msgid "Differencing VHD (.vhd)"
-msgstr "ディファレンシングVHD (.vhd)"
+msgstr "VHD(差分)(.vhd)"
 
 msgid "Large blocks (2 MB)"
 msgstr "大型ブロック (2 MB)"
@@ -1030,8 +1075,8 @@ msgstr "大型ブロック (2 MB)"
 msgid "Small blocks (512 KB)"
 msgstr "小型ブロック (512 KB)"
 
-msgid "VHD files (*.VHD *.vhd);;All files (*)"
-msgstr "VHDファイル (*.VHD *.vhd);;すべてのファイル (*)"
+msgid "VHD files"
+msgstr "VHDファイル"
 
 msgid "Select the parent VHD"
 msgstr "親VHDの選択"

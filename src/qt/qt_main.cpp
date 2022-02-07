@@ -20,17 +20,27 @@ Q_IMPORT_PLUGIN(QWindowsVistaStylePlugin)
 
 #ifdef Q_OS_WINDOWS
 #include "qt_winrawinputfilter.hpp"
+#include "qt_winmanagerfilter.hpp"
+#include <86box/win.h>
 #endif
 
+extern "C"
+{
 #include <86box/86box.h>
+#include <86box/config.h>
 #include <86box/plat.h>
 #include <86box/ui.h>
 #include <86box/video.h>
+#include <86box/discord.h>
+}
 
 #include <thread>
 #include <iostream>
+#include <memory>
 
 #include "qt_mainwindow.hpp"
+#include "qt_progsettings.hpp"
+#include "qt_settings.hpp"
 #include "cocoa_mouse.hpp"
 #include "qt_styleoverride.hpp"
 
@@ -45,6 +55,8 @@ extern "C" {
 #include <86box/nvr.h>
     extern int qt_nvr_save(void);
 }
+
+void qt_set_sequence_auto_mnemonic(bool b);
 
 void
 main_thread_fn()
@@ -97,56 +109,16 @@ main_thread_fn()
     is_quit = 1;
 }
 
-class CustomTranslator : public QTranslator
-{
-protected:
-    QString translate(const char *context, const char *sourceText,
-                                  const char *disambiguation = nullptr, int n = -1) const override
-    {
-        if (strcmp(sourceText, "&Fullscreen") == 0) sourceText = "&Fullscreen\tCtrl+Alt+PageUP";
-        if (strcmp(sourceText, "&Ctrl+Alt+Del") == 0) sourceText = "&Ctrl+Alt+Del\tCtrl+F12";
-        if (strcmp(sourceText, "Take s&creenshot") == 0) sourceText = "Take s&creenshot\tCtrl+F11";
-        if (strcmp(sourceText, "&Qt (Software)") == 0)
-        {
-            QString finalstr = QTranslator::translate("", "&SDL (Software)", disambiguation, n);
-            finalstr.replace("SDL", "Qt");
-            finalstr.replace("(&S)", "(&Q)");
-            return finalstr;
-        }
-        QString finalstr = QTranslator::translate("", sourceText, disambiguation, n);
-#ifdef Q_OS_MACOS
-        if (finalstr.contains('\t')) finalstr.truncate(finalstr.indexOf('\t'));
-#endif
-        return finalstr;
-    }
-};
-
 int main(int argc, char* argv[]) {
-    QApplication app(argc, argv);
+    QApplication app(argc, argv);    
+    qt_set_sequence_auto_mnemonic(false);
     Q_INIT_RESOURCE(qt_resources);
     Q_INIT_RESOURCE(qt_translations);
     QSurfaceFormat fmt = QSurfaceFormat::defaultFormat();
     fmt.setSwapInterval(0);
     QSurfaceFormat::setDefaultFormat(fmt);
     app.setStyle(new StyleOverride());
-    QDirIterator it(":", QDirIterator::Subdirectories);
-    while (it.hasNext()) {
-        qDebug() << it.next() << "\n";
-    }
-    QTranslator qtTranslator;
-    qtTranslator.load(QLocale::system(), QStringLiteral("qt_"), QString(), QLibraryInfo::location(QLibraryInfo::TranslationsPath));
-    if (app.installTranslator(&qtTranslator))
-    {
-        qDebug() << "Qt translations loaded." << "\n";
-    }
-    CustomTranslator translator;
-    qDebug() << QLocale::system().name() << "\n";
-    auto localetofilename = QLocale::system().name().replace('_', '-');
-    if (translator.load(QLatin1String("86box_"), QLatin1String(":/"), QString(), localetofilename + ".qm"))
-    {
-        qDebug() << "Translations loaded.\n";
-        QCoreApplication::installTranslator(&translator);
-    }
+
 #ifdef __APPLE__
     CocoaEventFilter cocoafilter;
     app.installNativeEventFilter(&cocoafilter);
@@ -157,16 +129,62 @@ int main(int argc, char* argv[]) {
     {
         return 0;
     }
+    ProgSettings::loadTranslators(&app);
     if (! pc_init_modules()) {
         ui_msgbox_header(MBX_FATAL, (void*)IDS_2120, (void*)IDS_2056);
         return 6;
     }
+
+    if (settings_only)
+    {
+        Settings settings;
+        if (settings.exec() == QDialog::Accepted)
+        {
+            settings.save();
+            config_save();
+        }
+        return 0;
+    }
+
+    discord_load();
 
     main_window = new MainWindow();
     main_window->show();
     app.installEventFilter(main_window);
 
 #ifdef Q_OS_WINDOWS
+    /* Setup VM-manager messages */
+    std::unique_ptr<WindowsManagerFilter> wmfilter;
+    if (source_hwnd)
+    {
+        HWND main_hwnd = (HWND)main_window->winId();
+
+        wmfilter.reset(new WindowsManagerFilter());
+        QObject::connect(wmfilter.get(), &WindowsManagerFilter::showsettings, main_window, &MainWindow::showSettings);
+        QObject::connect(wmfilter.get(), &WindowsManagerFilter::pause, main_window, &MainWindow::togglePause);
+        QObject::connect(wmfilter.get(), &WindowsManagerFilter::reset, main_window, &MainWindow::hardReset);
+        QObject::connect(wmfilter.get(), &WindowsManagerFilter::shutdown, [](){ plat_power_off(); });
+        QObject::connect(wmfilter.get(), &WindowsManagerFilter::ctrlaltdel, [](){ pc_send_cad(); });
+        QObject::connect(wmfilter.get(), &WindowsManagerFilter::dialogstatus, [main_hwnd](bool open){
+            PostMessage((HWND)(uintptr_t)source_hwnd, WM_SENDDLGSTATUS, (WPARAM)(open ? 1 : 0), (LPARAM)main_hwnd);
+        });
+
+        /* Native filter to catch VM-managers commands */
+        app.installNativeEventFilter(wmfilter.get());
+
+        /* Filter to catch main window being blocked (by modal dialog) */
+        main_window->installEventFilter(wmfilter.get());
+
+        /* Send main window HWND to manager */
+        PostMessage((HWND)(uintptr_t)source_hwnd, WM_SENDHWND, (WPARAM)unique_id, (LPARAM)main_hwnd);
+
+        /* Send shutdown message to manager */
+        QObject::connect(&app, &QApplication::destroyed, [main_hwnd](QObject*) {
+            PostMessage((HWND)(uintptr_t)source_hwnd, WM_HAS_SHUTDOWN, (WPARAM)0, (LPARAM)main_hwnd);
+        });
+    }
+
+    /* Setup raw input */
     auto rawInputFilter = WindowsRawInputFilter::Register(main_window);
     if (rawInputFilter)
     {
@@ -174,19 +192,33 @@ int main(int argc, char* argv[]) {
         QObject::disconnect(main_window, &MainWindow::pollMouse, 0, 0);
         QObject::connect(main_window, &MainWindow::pollMouse, (WindowsRawInputFilter*)rawInputFilter.get(), &WindowsRawInputFilter::mousePoll, Qt::DirectConnection);
         main_window->setSendKeyboardInput(false);
-    }
+    }    
 #endif
 
     pc_reset_hard_init();
 
     /* Set the PAUSE mode depending on the renderer. */
     // plat_pause(0);
-    if (settings_only) dopause = 1;
     QTimer onesec;
+    QTimer discordupdate;
     QObject::connect(&onesec, &QTimer::timeout, &app, [] {
         pc_onesec();
     });
+    onesec.setTimerType(Qt::PreciseTimer);
     onesec.start(1000);
+    if (discord_loaded) {
+        QTimer::singleShot(1000, &app, [] {
+            if (enable_discord) {
+                discord_init();
+                discord_update_activity(dopause);
+            } else
+                discord_close();
+        });
+        QObject::connect(&discordupdate, &QTimer::timeout, &app, [] {
+            discord_run_callbacks();
+        });
+        discordupdate.start(0);
+    }
 
     /* Initialize the rendering window, or fullscreen. */
     auto main_thread = std::thread([] {

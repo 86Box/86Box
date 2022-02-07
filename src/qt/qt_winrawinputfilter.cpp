@@ -44,6 +44,7 @@
 #include <array>
 #include <memory>
 
+extern "C" void win_joystick_handle(PRAWINPUT);
 std::unique_ptr<WindowsRawInputFilter> WindowsRawInputFilter::Register(QMainWindow *window)
 {
     HWND wnd = (HWND)window->winId();
@@ -148,6 +149,11 @@ void WindowsRawInputFilter::handle_input(HRAWINPUT input)
                 if (mouse_capture)
                     mouse_handle(raw);
                 break;
+            case RIM_TYPEHID:
+            {
+                win_joystick_handle(raw);
+                break;
+            }
         }
     }
 }
@@ -379,6 +385,16 @@ void WindowsRawInputFilter::mouse_handle(PRAWINPUT raw)
         dx += state.lLastX;
         dy += state.lLastY;
     }
+    HWND wnd = (HWND)window->winId();
+
+    RECT rect;
+
+    GetWindowRect(wnd, &rect);
+
+    int left = rect.left + (rect.right - rect.left) / 2;
+    int top = rect.top + (rect.bottom - rect.top) / 2;
+
+    SetCursorPos(left, top);
 }
 
 void WindowsRawInputFilter::mousePoll()

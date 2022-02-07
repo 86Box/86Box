@@ -1,3 +1,5 @@
+#include <QDebug>
+
 #include "qt_progsettings.hpp"
 #include "ui_qt_progsettings.h"
 #include "qt_mainwindow.hpp"
@@ -7,6 +9,7 @@
 #include <QMap>
 #include <QDir>
 #include <QFile>
+#include <QLibraryInfo>
 
 extern "C"
 {
@@ -19,6 +22,8 @@ extern "C"
 static QMap<QString, QString> iconset_to_qt;
 extern MainWindow* main_window;
 
+ProgSettings::CustomTranslator* ProgSettings::translator = nullptr;
+QTranslator* ProgSettings::qtTranslator = nullptr;
 QString ProgSettings::getIconSetPath()
 {
     QString roms_root;
@@ -45,6 +50,13 @@ QString ProgSettings::getIconSetPath()
     return iconset_to_qt[icon_set];
 }
 
+QIcon ProgSettings::loadIcon(QString file)
+{
+    (void)getIconSetPath();
+    if (!QFile::exists(iconset_to_qt[icon_set] + file)) return QIcon(iconset_to_qt[""] + file);
+    return QIcon(iconset_to_qt[icon_set] + file);
+}
+
 ProgSettings::ProgSettings(QWidget *parent) :
     QDialog(parent),
     ui(new Ui::ProgSettings)
@@ -69,12 +81,29 @@ ProgSettings::ProgSettings(QWidget *parent) :
             ui->comboBox->setCurrentIndex(ui->comboBox->findData(i.key()));
         }
     }
+    ui->comboBox->setItemData(0, '(' + tr("Default") + ')', Qt::DisplayRole);
+
+    ui->comboBoxLanguage->setItemData(0, 0xFFFF);
+    for (auto i = lcid_langcode.begin(); i != lcid_langcode.end(); i++)
+    {
+        if (i.key() == 0xFFFF) continue;
+        ui->comboBoxLanguage->addItem(lcid_langcode[i.key()].second, i.key());
+        if (i.key() == lang_id)
+        {
+            ui->comboBoxLanguage->setCurrentIndex(ui->comboBoxLanguage->findData(i.key()));
+        }
+    }
 }
 
 void ProgSettings::accept()
 {
     strcpy(icon_set, ui->comboBox->currentData().toString().toUtf8().data());
+    lang_id = ui->comboBoxLanguage->currentData().toUInt();
 
+    loadTranslators(QCoreApplication::instance());
+    reloadStrings();
+    update_mouse_msg();
+    main_window->ui->retranslateUi(main_window);
     QString msg = main_window->status->getMessage();
     main_window->status.reset(new MachineStatus(main_window));
     main_window->refreshMediaMenu();
@@ -94,5 +123,54 @@ ProgSettings::~ProgSettings()
 void ProgSettings::on_pushButton_released()
 {
     ui->comboBox->setCurrentIndex(0);
+}
+
+void ProgSettings::loadTranslators(QObject *parent)
+{
+    if (qtTranslator)
+    {
+        QApplication::removeTranslator(qtTranslator);
+        qtTranslator = nullptr;
+    }
+    if (translator)
+    {
+        QApplication::removeTranslator(translator);
+        translator = nullptr;
+    }
+    qtTranslator = new QTranslator(parent);
+    translator = new CustomTranslator(parent);
+    QString localetofilename = "";
+    if (lang_id == 0xFFFF || lcid_langcode.contains(lang_id) == false)
+    {
+        for (int i = 0; i < QLocale::system().uiLanguages().size(); i++)
+        {
+            localetofilename = QLocale::system().uiLanguages()[i];
+            if (translator->load(QLatin1String("86box_") + localetofilename, QLatin1String(":/")))
+            {
+                qDebug() << "Translations loaded.\n";
+                QCoreApplication::installTranslator(translator);
+                if (!qtTranslator->load(QLatin1String("qtbase_") + localetofilename.replace('-', '_'), QLibraryInfo::location(QLibraryInfo::TranslationsPath)))
+                    qtTranslator->load(QLatin1String("qt_") + localetofilename.replace('-', '_'), QApplication::applicationDirPath() + "/./translations/");
+                if (QApplication::installTranslator(qtTranslator))
+                {
+                    qDebug() << "Qt translations loaded." << "\n";
+                }
+                break;
+            }
+        }
+    }
+    else
+    {
+        translator->load(QLatin1String("86box_") + lcid_langcode[lang_id].first, QLatin1String(":/"));
+        QCoreApplication::installTranslator(translator);
+        if (!qtTranslator->load(QLatin1String("qtbase_") + QString(lcid_langcode[lang_id].first).replace('-', '_'), QLibraryInfo::location(QLibraryInfo::TranslationsPath)))
+            qtTranslator->load(QLatin1String("qt_") + QString(lcid_langcode[lang_id].first).replace('-', '_'), QApplication::applicationDirPath() + "/./translations/");
+        QCoreApplication::installTranslator(qtTranslator);
+    }
+}
+
+void ProgSettings::on_pushButtonLanguage_released()
+{
+    ui->comboBoxLanguage->setCurrentIndex(0);
 }
 

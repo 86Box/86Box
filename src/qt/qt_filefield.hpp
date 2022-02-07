@@ -22,6 +22,7 @@ public:
     QString selectedFilter() const { return selectedFilter_; }
 
     void setCreateFile(bool createFile) { createFile_ = createFile; }
+    bool createFile() { return createFile_; }
 
 signals:
     void fileSelected(const QString& fileName);

@@ -1,6 +1,3 @@
-msgid "Translated by"
-msgstr "Unknown"
-
 msgid "&Action"
 msgstr "&Действие"
 
@@ -29,7 +26,10 @@ msgid "&View"
 msgstr "&Вид"
 
 msgid "&Hide status bar"
-msgstr "&Скрыть строку статуса"
+msgstr "&Скрыть строку состояния"
+
+msgid "Hide &toolbar"
+msgstr "С&крыть панель инструментов"
 
 msgid "&Resizeable window"
 msgstr "&Изменяемый размер окна"
@@ -38,7 +38,7 @@ msgid "R&emember size && position"
 msgstr "&Запомнить размер и положение"
 
 msgid "Re&nderer"
-msgstr "&Рендерер"
+msgstr "&Рендеринг"
 
 msgid "&SDL (Software)"
 msgstr "&SDL (Software)"
@@ -158,7 +158,7 @@ msgid "&Settings..."
 msgstr "&Настройки машины..."
 
 msgid "&Update status bar icons"
-msgstr "&Обновление значков строки статуса"
+msgstr "&Обновление значков строки состояния"
 
 msgid "Take s&creenshot\tCtrl+F11"
 msgstr "Сделать с&криншот\tCtrl+F11"
@@ -206,7 +206,7 @@ msgid "&Log breakpoint\tCtrl+F10"
 msgstr "&Точка останова журнала\tCtrl+F10"
 
 msgid "Dump &video RAM\tCtrl+F1"
-msgstr "&Выгрузка дампа видео-ОЗУ\tCtrl+F1"
+msgstr "&Выгрузка дампа видеопамяти\tCtrl+F1"
 
 msgid "&Help"
 msgstr "&Помощь"
@@ -248,7 +248,7 @@ msgid "E&xport to 86F..."
 msgstr "Э&кспорт в 86F..."
 
 msgid "&Mute"
-msgstr "&Mute"
+msgstr "О&тключить звук"
 
 msgid "E&mpty"
 msgstr "П&устой"
@@ -356,10 +356,10 @@ msgid "Configure"
 msgstr "Настройка"
 
 msgid "CPU type:"
-msgstr "Тип ЦПУ:"
+msgstr "Тип ЦП:"
 
 msgid "Speed:"
-msgstr "Speed:"
+msgstr "Скорость:"
 
 msgid "FPU:"
 msgstr "FPU:"
@@ -445,6 +445,18 @@ msgstr "Устройство PCap:"
 msgid "Network adapter:"
 msgstr "Сетевая карта:"
 
+msgid "COM1 Device:"
+msgstr "Устройство COM1:"
+
+msgid "COM2 Device:"
+msgstr "Устройство COM2:"
+
+msgid "COM3 Device:"
+msgstr "Устройство COM3:"
+
+msgid "COM4 Device:"
+msgstr "Устройство COM4:"
+
 msgid "LPT1 Device:"
 msgstr "Устройство LPT1:"
 
@@ -453,6 +465,9 @@ msgstr "Устройство LPT2:"
 
 msgid "LPT3 Device:"
 msgstr "Устройство LPT3:"
+
+msgid "LPT4 Device:"
+msgstr "Устройство LPT4:"
 
 msgid "Serial port 1"
 msgstr "Последов. порт COM1"
@@ -474,6 +489,9 @@ msgstr "Параллельный порт LPT2"
 
 msgid "Parallel port 3"
 msgstr "Параллельный порт LPT3"
+
+msgid "Parallel port 4"
+msgstr "Параллельный порт LPT4"
 
 msgid "HD Controller:"
 msgstr "Контроллер HD:"
@@ -595,7 +613,10 @@ msgstr "Устройство ISABugger"
 msgid "POST card"
 msgstr "Карта POST"
 
-msgid "Segoe UI"
+msgid "FONT_SIZE"
+msgstr "9"
+
+msgid "FONT_NAME"
 msgstr "Segoe UI"
 
 msgid "86Box"
@@ -619,8 +640,8 @@ msgstr "Скорость"
 msgid "ZIP %03i %i (%s): %ls"
 msgstr "ZIP %03i %i (%s): %ls"
 
-msgid "ZIP images (*.IM? *.im? *.ZDI *.zdi)"
-msgstr "Образы ZIP (*.IM? *.im? *.ZDI *.zdi)"
+msgid "ZIP images"
+msgstr "Образы ZIP"
 
 msgid "86Box could not find any usable ROM images.\n\nPlease <a href=\"https://github.com/86Box/roms/releases/latest\">download</a> a ROM set and extract it into the \"roms\" directory."
 msgstr "86Box не смог найти ни одного подходящего для использования файла с ПЗУ.\n\nПожалуйста <a href=\"https://github.com/86Box/roms/releases/latest\">скачайте</a> набор ПЗУ и извлеките его в каталог \"roms\"."
@@ -628,8 +649,8 @@ msgstr "86Box не смог найти ни одного подходящего 
 msgid "(empty)"
 msgstr "(пусто)"
 
-msgid "ZIP images (*.IM? *.im? *.ZDI *.zdi);;All files (*)"
-msgstr "Образы ZIP (*.IM? *.im? *.ZDI *.zdi);;Все файлы (*)"
+msgid "All files"
+msgstr "Все файлы"
 
 msgid "Turbo"
 msgstr "Турбо"
@@ -640,8 +661,14 @@ msgstr "Вкл"
 msgid "Off"
 msgstr "Выкл"
 
-msgid "All images (*.86F *.86f *.DSK *.dsk *.FLP *.flp *.IM? *.im? *.*FD? *.*fd?);;Basic sector images (*.DSK *.dsk *.FLP *.flp *.IM? *.im? *.IMG *.img *.*FD? *.*fd?);;Surface images (*.86F *.86f)"
-msgstr "Все образы (*.86F *.86f *.DSK *.dsk *.FLP *.flp *.IM? *.im? *.*FD? *.*fd?);;Простые посекторные образы (*.DSK *.dsk *.FLP *.flp *.IM? *.im? *.IMG *.img *.*FD? *.*fd?);;Surface образы (*.86F *.86f)"
+msgid "All images"
+msgstr "Все образы"
+
+msgid "Basic sector images"
+msgstr "Простые посекторные образы"
+
+msgid "Surface images"
+msgstr "Surface образы"
 
 msgid "Machine \"%hs\" is not available due to missing ROMs in the roms/machines directory. Switching to an available machine."
 msgstr "Системная плата \"%hs\" недоступна из-за отсутствия файла её ПЗУ в каталоге roms/machines. Переключение на доступную системную плату."
@@ -681,9 +708,6 @@ msgstr "Другие съёмные устр-ва"
 
 msgid "Other peripherals"
 msgstr "Другая периферия"
-
-msgid "Surface images (*.86F *.86f)"
-msgstr "Образы Surface (*.86F *.86f)"
 
 msgid "Click to capture mouse"
 msgstr "Щёлкните мышью для захвата курсора"
@@ -764,7 +788,7 @@ msgid "Unable to load keyboard accelerators."
 msgstr "Невозможно загрузить ускорители клавиатуры."
 
 msgid "Unable to register raw input."
-msgstr "Невозможно зарегистрировать необработанный ввод."
+msgstr "Невозможно зарегистрировать необработанный (RAW) ввод."
 
 msgid "%u"
 msgstr "%u"
@@ -775,8 +799,11 @@ msgstr "%u МБ (CHS: %i, %i, %i)"
 msgid "Floppy %i (%s): %ls"
 msgstr "Дисковод %i (%s): %ls"
 
-msgid "All images (*.0?? *.1?? *.??0 *.86F *.86f *.BIN *.bin *.CQ? *.cq? *.D?? *.d?? *.FLP *.flp *.HDM *.hdm *.IM? *.im? *.JSON *.json *.TD0 *.td0 *.*FD? *.*fd? *.MFM *.mfm *.XDF *.xdf);;Advanced sector images (*.IMD *.imd *.JSON *.json *.TD0 *.td0);;Basic sector images (*.0?? *.1?? *.??0 *.BIN *.bin *.CQ? *.cq? *.D?? *.d?? *.FLP *.flp *.HDM *.hdm *.IM? *.im? *.XDF *.xdf *.*FD? *.*fd?);;Flux images (*.FDI *.fdi);;Surface images (*.86F *.86f *.MFM *.mfm);;All files (*)"
-msgstr "Все образы (*.0?? *.1?? *.??0 *.86F *.86f *.BIN *.bin *.CQ? *.cq? *.D?? *.d?? *.FLP *.flp *.HDM *.hdm *.IM? *.im? *.JSON *.json *.TD0 *.td0 *.*FD? *.*fd? *.MFM *.mfm *.XDF *.xdf);;Расширенные образы секторов (*.IMD *.imd *.JSON *.json *.TD0 *.td0);;Основные образы секторов (*.0?? *.1?? *.??0 *.BIN *.bin *.CQ? *.cq? *.D?? *.d?? *.FLP *.flp *.HDM *.hdm *.IM? *.im? *.XDF *.xdf *.*FD? *.*fd?);;Образы Flux (*.FDI *.fdi);;Образы Surface (*.86F *.86f *.MFM *.mfm);;Все файлы (*)"
+msgid "Advanced sector images"
+msgstr "Расширенные образы секторов"
+
+msgid "Flux images"
+msgstr "Образы Flux"
 
 msgid "Unable to initialize FreeType"
 msgstr "Невозможно инициализировать FreeType"
@@ -796,8 +823,8 @@ msgstr "Невозможно инициализировать Ghostscript"
 msgid "MO %i (%ls): %ls"
 msgstr "Магнитооптический %i (%ls): %ls"
 
-msgid "MO images (*.IM? *.im? *.MDI *.mdi);;All files (*)"
-msgstr "Образы магнитооптических дисков (*.IM? *.im? *.MDI *.mdi);;Все файлы (*)"
+msgid "MO images"
+msgstr "Образы магнитооптических дисков"
 
 msgid "Welcome to 86Box!"
 msgstr "Добро пожаловать в 86Box!"
@@ -886,8 +913,8 @@ msgstr "Перезагрузить"
 msgid "Don't reset"
 msgstr "Не перезагружать"
 
-msgid "CD-ROM images (*.ISO *.iso *.CUE *.cue);;All files (*)"
-msgstr "Образы CD-ROM (*.ISO *.iso *.CUE *.cue);;Все файлы (*)"
+msgid "CD-ROM images"
+msgstr "Образы CD-ROM"
 
 msgid "%hs Device Configuration"
 msgstr "Конфигурация устройства %hs"
@@ -895,8 +922,8 @@ msgstr "Конфигурация устройства %hs"
 msgid "Monitor in sleep mode"
 msgstr "Монитор в спящем режиме"
 
-msgid "OpenGL Shaders (*.GLSL *.glsl);;All files (*)"
-msgstr "Шейдеры OpenGL (*.GLSL *.glsl);;Все файлы (*)"
+msgid "OpenGL Shaders"
+msgstr "Шейдеры OpenGL"
 
 msgid "OpenGL options"
 msgstr "Параметры OpenGL"
@@ -905,7 +932,7 @@ msgid "You are loading an unsupported configuration"
 msgstr "Вы загружаете неподдерживаемую конфигурацию"
 
 msgid "CPU type filtering based on selected machine is disabled for this emulated machine.\n\nThis makes it possible to choose a CPU that is otherwise incompatible with the selected machine. However, you may run into incompatibilities with the machine BIOS or other software.\n\nEnabling this setting is not officially supported and any bug reports filed may be closed as invalid."
-msgstr "Выбор типов CPU для этой системной платы на данной эмулируемой машине отключен.\n\nЭто позволяет выбрать процессор, который в противном случае несовместим с выбранной материнской платой. Однако, вы можете столкнуться с несовместимостью с BIOS материнской платы или другим ПО.\n\nВключение этого параметра официально не поддерживается, и все поданные отчеты об ошибках могут быть закрыты как недействительные."
+msgstr "Выбор типов ЦП для этой системной платы на данной эмулируемой машине отключен.\n\nЭто позволяет выбрать процессор, который в противном случае несовместим с выбранной материнской платой. Однако, вы можете столкнуться с несовместимостью с BIOS материнской платы или другим ПО.\n\nВключение этого параметра официально не поддерживается, и все поданные отчеты об ошибках могут быть закрыты как недействительные."
 
 msgid "Continue"
 msgstr "Продолжить"
@@ -913,20 +940,38 @@ msgstr "Продолжить"
 msgid "Cassette: %s"
 msgstr "Кассета: %s"
 
-msgid "Cassette images (*.PCM *.pcm *.RAW *.raw *.WAV *.wav *.CAS *.cas);;All files (*)"
-msgstr "Образы кассет (*.PCM *.pcm *.RAW *.raw *.WAV *.wav *.CAS *.cas);;Все файлы (*)"
+msgid "Cassette images"
+msgstr "Образы кассет"
 
 msgid "Cartridge %i: %ls"
 msgstr "Картридж %i: %ls"
 
-msgid "Cartridge images (*.A *.a *.B *.b *.JRC *.jrc);;All files (*)"
-msgstr "Образы картриджей (*.A *.a *.B *.b *.JRC *.jrc);;Все файлы (*)"
+msgid "Cartridge images"
+msgstr "Образы картриджей"
 
 msgid "Error initializing renderer"
-msgstr "Error initializing renderer"
+msgstr "Ошибка инициализации рендерера"
 
 msgid "OpenGL (3.0 Core) renderer could not be initialized. Use another renderer."
-msgstr "OpenGL (3.0 Core) renderer could not be initialized. Use another renderer."
+msgstr "Невозможно инициализировать рендерер OpenGL (3.0). Пожалуйста, используйте другой рендерер."
+
+msgid "Resume execution"
+msgstr "Возобновить выполнение"
+
+msgid "Pause execution"
+msgstr "Приостановить выполнение"
+
+msgid "Press Ctrl+Alt+Del"
+msgstr "Нажать Ctrl+Alt+Del"
+
+msgid "Press Ctrl+Alt+Esc"
+msgstr "Нажать Ctrl+Alt+Esc"
+
+msgid "Hard reset"
+msgstr "Холодная перезагрузка"
+
+msgid "ACPI shutdown"
+msgstr "Сигнал завершения ACPI"
 
 msgid "Hard disk (%s)"
 msgstr "Жёсткий диск (%s)"
@@ -941,16 +986,16 @@ msgid "MFM/RLL or ESDI CD-ROM drives never existed"
 msgstr "MFM/RLL или ESDI дисководов CD-ROM никогда не существовало"
 
 msgid "Custom..."
-msgstr "Custom..."
+msgstr "Задать вручную..."
 
 msgid "Custom (large)..."
-msgstr "Custom (large)..."
+msgstr "Задать вручную (large)..."
 
 msgid "Add New Hard Disk"
 msgstr "Создать новый жёсткий диск"
 
 msgid "Add Existing Hard Disk"
-msgstr "Добавить существующий жёсткий диск"
+msgstr "Выбрать существующий жёсткий диск"
 
 msgid "HDI disk images cannot be larger than 4 GB."
 msgstr "Размер образов дисков HDI не может превышать 4 ГБ."
@@ -958,8 +1003,8 @@ msgstr "Размер образов дисков HDI не может превы�
 msgid "Disk images cannot be larger than 127 GB."
 msgstr "Размер образов дисков не может превышать 127 ГБ."
 
-msgid "Hard disk images (*.HD? *.hd? *.IM? *.im? *.VHD *.vhd);;All files (*)"
-msgstr "Образы жёстких дисков (*.HD? *.hd? *.IM? *.im? *.VHD *.vhd);;Все файлы (*)"
+msgid "Hard disk images"
+msgstr "Образы жёстких дисков"
 
 msgid "Unable to read file"
 msgstr "Невозможно прочитать файл"
@@ -1030,8 +1075,8 @@ msgstr "Большие блоки (2 МБ)"
 msgid "Small blocks (512 KB)"
 msgstr "Маленькие блоки (512 КБ)"
 
-msgid "VHD files (*.VHD *.vhd);;All files (*)"
-msgstr "Файлы VHD (*.VHD *.vhd);;Все файлы (*)"
+msgid "VHD files"
+msgstr "Файлы VHD"
 
 msgid "Select the parent VHD"
 msgstr "Выберите родительский VHD"

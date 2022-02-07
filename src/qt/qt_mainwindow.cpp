@@ -6,17 +6,21 @@
 #include "qt_progsettings.hpp"
 
 #include "qt_rendererstack.hpp"
-#include "qt_renderercomon.hpp"
+#include "qt_renderercommon.hpp"
 
 extern "C" {
 #include <86box/86box.h>
 #include <86box/config.h>
 #include <86box/keyboard.h>
 #include <86box/plat.h>
-#include <86box/device.h>
+#include <86box/discord.h>
 #include <86box/video.h>
 #include <86box/vid_ega.h>
 #include <86box/version.h>
+
+#ifdef MTR_ENABLED
+#include <minitrace/minitrace.h>
+#endif
 };
 
 #include <QGuiApplication>
@@ -34,6 +38,7 @@ extern "C" {
 #include <QActionGroup>
 #include <QOpenGLContext>
 #include <QScreen>
+#include <QString>
 
 #include <array>
 #include <unordered_map>
@@ -59,23 +64,55 @@ MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::MainWindow)
 {
+#ifdef Q_OS_WINDOWS
+    auto font_name = tr("FONT_NAME");
+    auto font_size = tr("FONT_SIZE");
+    QApplication::setFont(QFont(font_name, font_size.toInt()));
+#endif
+
     mm = std::make_shared<MediaMenu>(this);
     MediaMenu::ptr = mm;
     status = std::make_unique<MachineStatus>(this);
 
+    setUnifiedTitleAndToolBarOnMac(true);
     ui->setupUi(this);
     ui->stackedWidget->setMouseTracking(true);
     statusBar()->setVisible(!hide_status_bar);
-    statusBar()->setStyleSheet("QStatusBar::item {border: None;}");
+    statusBar()->setStyleSheet("QStatusBar::item {border: None; } QStatusBar QLabel { margin-right: 2px; margin-bottom: 1px; }");
+    ui->toolBar->setVisible(!hide_tool_bar);
+
+    auto toolbar_spacer = new QWidget();
+    toolbar_spacer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+    ui->toolBar->addWidget(toolbar_spacer);
+
+    auto toolbar_label = new QLabel();
+    ui->toolBar->addWidget(toolbar_label);
 
     this->setWindowIcon(QIcon(":/settings/win/icons/86Box-yellow.ico"));
     this->setWindowFlag(Qt::MSWindowsFixedSizeDialogHint, vid_resize != 1);
     this->setWindowFlag(Qt::WindowMaximizeButtonHint, vid_resize == 1);
 
+    this->setWindowTitle(QString("%1 - %2 %3").arg(vm_name, EMU_NAME, EMU_VERSION_FULL));
+
     connect(this, &MainWindow::showMessageForNonQtThread, this, &MainWindow::showMessage_, Qt::BlockingQueuedConnection);
 
-    connect(this, &MainWindow::setTitle, this, [this](const QString& title) {
-        setWindowTitle(title);
+    connect(this, &MainWindow::setTitle, this, [this,toolbar_label](const QString& title) {
+        if (!hide_tool_bar)
+#ifdef _WIN32        
+            toolbar_label->setText(title);
+#else
+        {
+            /* get the percentage and mouse message, TODO: refactor ui_window_title() */
+            auto parts = title.split(" - ");
+            if (parts.size() >= 2) {
+                if (parts.size() < 5)
+                    toolbar_label->setText(parts[1]);
+                else
+                    toolbar_label->setText(QString("%1 - %2").arg(parts[1], parts.last()));
+            }
+        }
+#endif
+        ui->actionPause->setChecked(dopause);
     });
     connect(this, &MainWindow::getTitleForNonQtThread, this, &MainWindow::getTitle_, Qt::BlockingQueuedConnection);
 
@@ -91,7 +128,7 @@ MainWindow::MainWindow(QWidget *parent) :
 
     emit updateMenuResizeOptions();
 
-    connect(this, &MainWindow::pollMouse, ui->stackedWidget, &RendererStack::mousePoll);
+    connect(this, &MainWindow::pollMouse, ui->stackedWidget, &RendererStack::mousePoll, Qt::DirectConnection);
 
     connect(this, &MainWindow::setMouseCapture, this, [this](bool state) {
         mouse_capture = state ? 1 : 0;
@@ -118,7 +155,12 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(this, &MainWindow::resizeContents, this, [this](int w, int h) {
         if (!QApplication::platformName().contains("eglfs") && vid_resize == 0) {
             w = w / (!dpi_scale ? this->screen()->devicePixelRatio() : 1);
-            int modifiedHeight = (h / (!dpi_scale ? this->screen()->devicePixelRatio() : 1)) + menuBar()->height() + (statusBar()->height() * !hide_status_bar);
+            
+            int modifiedHeight = (h / (!dpi_scale ? this->screen()->devicePixelRatio() : 1))
+                + menuBar()->height()
+                + (statusBar()->height() * !hide_status_bar)
+                + (ui->toolBar->height() * !hide_tool_bar);
+            
             ui->stackedWidget->resize(w, h);
             if (vid_resize == 0) {
                 setFixedSize(w, modifiedHeight);
@@ -152,7 +194,9 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->menuWindow_scale_factor->setEnabled(vid_resize == 0);
     ui->actionHiDPI_scaling->setChecked(dpi_scale);
     ui->actionHide_status_bar->setChecked(hide_status_bar);
+    ui->actionHide_tool_bar->setChecked(hide_tool_bar);
     ui->actionUpdate_status_bar_icons->setChecked(update_icons);
+    ui->actionEnable_Discord_integration->setChecked(enable_discord);
 
 #if defined Q_OS_WINDOWS || defined Q_OS_MACOS
     /* Make the option visible only if ANGLE is loaded. */
@@ -291,6 +335,57 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->actionTake_screenshot->setShortcutVisibleInContextMenu(true);
 #endif
     video_setblit(qt_blit);
+
+    if (start_in_fullscreen) {
+        connect(ui->stackedWidget, &RendererStack::blitToRenderer, this, [this] () {
+            if (start_in_fullscreen) {
+                QTimer::singleShot(100, ui->actionFullscreen, &QAction::trigger);
+                start_in_fullscreen = 0;
+            }
+        });
+    }
+
+#ifdef MTR_ENABLED
+    {
+        ui->menuTools->addSeparator();
+        ui->actionBegin_trace->setVisible(true);
+        ui->actionEnd_trace->setVisible(true);
+        ui->actionBegin_trace->setShortcut(QKeySequence(Qt::Key_Control + Qt::Key_T));
+        ui->actionEnd_trace->setShortcut(QKeySequence(Qt::Key_Control + Qt::Key_T));
+        ui->actionEnd_trace->setDisabled(true);
+        static auto init_trace = [&]
+        {
+            mtr_init("trace.json");
+            mtr_start();
+        };
+        static auto shutdown_trace = [&]
+        {
+            mtr_stop();
+            mtr_shutdown();
+        };
+#ifdef Q_OS_MACOS
+        ui->actionBegin_trace->setShortcutVisibleInContextMenu(true);
+        ui->actionEnd_trace->setShortcutVisibleInContextMenu(true);
+#endif
+        static bool trace = false;
+        connect(ui->actionBegin_trace, &QAction::triggered, this, [this]
+        {
+            if (trace) return;
+            ui->actionBegin_trace->setDisabled(true);
+            ui->actionEnd_trace->setDisabled(false);
+            init_trace();
+            trace = true;
+        });
+        connect(ui->actionEnd_trace, &QAction::triggered, this, [this]
+        {
+            if (!trace) return;
+            ui->actionBegin_trace->setDisabled(false);
+            ui->actionEnd_trace->setDisabled(true);
+            shutdown_trace();
+            trace = false;
+        });
+    }
+#endif
 }
 
 void MainWindow::closeEvent(QCloseEvent *event) {
@@ -334,7 +429,11 @@ void MainWindow::showEvent(QShowEvent *event) {
         setGeometry(window_x, window_y, window_w, window_h + menuBar()->height() + (hide_status_bar ? 0 : statusBar()->height()));
     }
     if (vid_resize == 2) {
-        setFixedSize(fixed_size_x, fixed_size_y + menuBar()->height() + (hide_status_bar ? 0 : statusBar()->height()));
+        setFixedSize(fixed_size_x, fixed_size_y
+            + menuBar()->height()
+            + (hide_status_bar ? 0 : statusBar()->height())
+            + (hide_tool_bar ? 0 : ui->toolBar->height()));
+
         scrnsz_x = fixed_size_x;
         scrnsz_y = fixed_size_y;
     }
@@ -343,7 +442,6 @@ void MainWindow::showEvent(QShowEvent *event) {
         scrnsz_x = window_w;
         scrnsz_y = window_h;
     }
-    if (settings_only) QTimer::singleShot(0, this, [this] () { ui->actionSettings->trigger(); });
 }
 
 void MainWindow::on_actionKeyboard_requires_capture_triggered() {
@@ -419,10 +517,6 @@ void MainWindow::on_actionSettings_triggered() {
         break;
     }
     plat_pause(currentPause);
-    if (settings_only) {
-        cpu_thread_run = 0;
-        close();
-    }
 }
 
 std::array<uint32_t, 256> x11_to_xt_base
@@ -953,18 +1047,38 @@ void MainWindow::on_actionFullscreen_triggered() {
         showNormal();
         ui->menubar->show();
         if (!hide_status_bar) ui->statusbar->show();
+        if (!hide_tool_bar) ui->toolBar->show();
         video_fullscreen = 0;
         if (vid_resize != 1) {
-            if (vid_resize == 2) setFixedSize(fixed_size_x, fixed_size_y + menuBar()->height() + (!hide_status_bar ? statusBar()->height() : 0));
+            if (vid_resize == 2) setFixedSize(fixed_size_x, fixed_size_y
+                + menuBar()->height()
+                + (!hide_status_bar ? statusBar()->height() : 0)
+                + (!hide_tool_bar ? ui->toolBar->height() : 0));
+
             emit resizeContents(scrnsz_x, scrnsz_y);
         }
     } else {
+        if (video_fullscreen_first)
+        {
+            QMessageBox questionbox(QMessageBox::Icon::Information, tr("Entering fullscreen mode"), tr("Press CTRL+ALT+PAGE DOWN to return to windowed mode."), QMessageBox::Ok, this);
+            QCheckBox *chkbox = new QCheckBox(tr("Don't show this message again"));
+            questionbox.setCheckBox(chkbox);
+            chkbox->setChecked(!video_fullscreen_first);
+            bool confirm_exit_temp = false;
+            QObject::connect(chkbox, &QCheckBox::stateChanged, [](int state) {
+                video_fullscreen_first = (state == Qt::CheckState::Unchecked);
+            });
+            questionbox.exec();
+            config_save();
+        }
         setFixedSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
         ui->menubar->hide();
         ui->statusbar->hide();
+        ui->toolBar->hide();
         showFullScreen();
         video_fullscreen = 1;
     }
+    ui->stackedWidget->rendererWindow->onResize(width(), height());
 }
 
 void MainWindow::getTitle_(wchar_t *title)
@@ -996,6 +1110,12 @@ bool MainWindow::eventFilter(QObject* receiver, QEvent* event)
         }
     }
 
+    if (receiver == this)
+    {
+        static auto curdopause = dopause;
+        if (event->type() == QEvent::WindowBlocked) { curdopause = dopause; plat_pause(1); }
+        else if (event->type() == QEvent::WindowUnblocked) { plat_pause(curdopause); }
+    }
     return QMainWindow::eventFilter(receiver, event);
 }
 
@@ -1288,6 +1408,7 @@ void MainWindow::on_actionAbout_86Box_triggered()
         QDesktopServices::openUrl(QUrl("https://86box.net/"));
     });
     msgBox.setIconPixmap(QIcon(":/settings/win/icons/86Box-yellow.ico").pixmap(32, 32));
+    msgBox.setWindowFlags(Qt::Dialog | Qt::CustomizeWindowHint | Qt::WindowTitleHint | Qt::WindowCloseButtonHint);
     msgBox.exec();
 }
 
@@ -1343,8 +1464,30 @@ void MainWindow::on_actionHide_status_bar_triggered()
     hide_status_bar ^= 1;
     ui->actionHide_status_bar->setChecked(hide_status_bar);
     statusBar()->setVisible(!hide_status_bar);
-    if (vid_resize >= 2) setFixedSize(fixed_size_x, fixed_size_y + menuBar()->height() + (hide_status_bar ? 0 : statusBar()->height()));
-    else {
+    if (vid_resize >= 2) {
+         setFixedSize(fixed_size_x, fixed_size_y
+            + menuBar()->height()
+            + (hide_status_bar ? 0 : statusBar()->height())
+            + (hide_tool_bar ? 0 : ui->toolBar->height()));
+    } else {
+        int vid_resize_orig = vid_resize;
+        vid_resize = 0;
+        emit resizeContents(scrnsz_x, scrnsz_y);
+        vid_resize = vid_resize_orig;
+    }
+}
+
+void MainWindow::on_actionHide_tool_bar_triggered()
+{
+    hide_tool_bar ^= 1;
+    ui->actionHide_tool_bar->setChecked(hide_tool_bar);
+    ui->toolBar->setVisible(!hide_tool_bar);
+    if (vid_resize >= 2) {
+         setFixedSize(fixed_size_x, fixed_size_y
+            + menuBar()->height()
+            + (hide_status_bar ? 0 : statusBar()->height())
+            + (hide_tool_bar ? 0 : ui->toolBar->height()));
+    } else {
         int vid_resize_orig = vid_resize;
         vid_resize = 0;
         emit resizeContents(scrnsz_x, scrnsz_y);
@@ -1393,3 +1536,42 @@ void MainWindow::on_actionPreferences_triggered()
     progsettings.exec();
 }
 
+
+void MainWindow::on_actionEnable_Discord_integration_triggered(bool checked)
+{
+    enable_discord = checked;
+    if(enable_discord) {
+        discord_init();
+        discord_update_activity(dopause);
+    } else
+        discord_close();
+}
+
+void MainWindow::showSettings()
+{
+    if (findChild<Settings*>() == nullptr)
+        ui->actionSettings->trigger();
+}
+
+void MainWindow::hardReset()
+{
+    ui->actionHard_Reset->trigger();
+}
+
+void MainWindow::togglePause()
+{
+    ui->actionPause->trigger();
+}
+
+void MainWindow::changeEvent(QEvent* event)
+{
+#ifdef Q_OS_WINDOWS
+    if (event->type() == QEvent::LanguageChange)
+    {
+        auto font_name = tr("FONT_NAME");
+        auto font_size = tr("FONT_SIZE");
+        QApplication::setFont(QFont(font_name, font_size.toInt()));
+    }
+#endif
+    QWidget::changeEvent(event);
+}

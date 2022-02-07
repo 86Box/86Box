@@ -18,7 +18,7 @@ static void enableElements(Ui::SettingsNetwork *ui) {
     bool adaptersEnabled = netType == NET_TYPE_SLIRP ||
                            (netType == NET_TYPE_PCAP && ui->comboBoxPcap->currentData().toInt() > 0);
     ui->comboBoxAdapter->setEnabled(adaptersEnabled);
-    ui->pushButtonConfigure->setEnabled(adaptersEnabled && ui->comboBoxAdapter->currentIndex() > 0);
+    ui->pushButtonConfigure->setEnabled(adaptersEnabled && ui->comboBoxAdapter->currentIndex() > 0 && network_card_has_config(ui->comboBoxAdapter->currentData().toInt()));
 }
 
 SettingsNetwork::SettingsNetwork(QWidget *parent) :
