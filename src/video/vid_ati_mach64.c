@@ -385,7 +385,7 @@ void mach64_out(uint16_t addr, uint8_t val, void *p)
                 case 0x1cf:
                 mach64->regs[mach64->index & 0x3f] = val;
                 if ((mach64->index & 0x3f) == 0x36)
-                        mach64_recalctimings(svga);
+                        svga_recalctimings(svga);
                 break;
                 
                 case 0x3C6: case 0x3C7: case 0x3C8: case 0x3C9:
@@ -3393,8 +3393,10 @@ static void *mach64gx_init(const device_t *info)
         mach64->config_stat0 = (5 << 9) | (3 << 3); /*ATI-68860, 256Kx16 DRAM*/
         if (info->flags & DEVICE_PCI)
                 mach64->config_stat0 |= 0; /*PCI, 256Kx16 DRAM*/
-        else if ((info->flags & DEVICE_VLB) || (info->flags & DEVICE_ISA))
+        else if (info->flags & DEVICE_VLB)
                 mach64->config_stat0 |= 1; /*VLB, 256Kx16 DRAM*/
+		else if (info->flags & DEVICE_ISA)
+				mach64->config_stat0 |= 7; /*ISA 16-bit, 256k16 DRAM*/
 
         ati_eeprom_load(&mach64->eeprom, "mach64.nvr", 1);
 
