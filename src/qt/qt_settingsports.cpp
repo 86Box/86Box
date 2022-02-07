@@ -11,6 +11,7 @@
  *
  *
  * Authors:	Joakim L. Gilje <jgilje@jgilje.net>
+ *          Cacodemon345
  *
  *      Copyright 2022 Cacodemon345
  *		Copyright 2021 Joakim L. Gilje
