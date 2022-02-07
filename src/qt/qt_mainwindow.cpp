@@ -13,10 +13,12 @@
  * Authors:	Joakim L. Gilje <jgilje@jgilje.net>
  *          Cacodemon345
  *          Teemu Korhonen
+ *          dob205
  *
  *		Copyright 2021 Joakim L. Gilje
  *      Copyright 2021-2022 Cacodemon345
  *      Copyright 2021-2022 Teemu Korhonen
+ *      Copyright 2022 dob205
  */
 #include "qt_mainwindow.hpp"
 #include "ui_qt_mainwindow.h"
