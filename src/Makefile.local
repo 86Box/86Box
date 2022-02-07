@@ -30,8 +30,6 @@ STUFF	:=
 
 # Add feature selections here.
 # -DANSI_CFG forces the config file to ANSI encoding.
-# -DENABLE_VRAM_DUMP enables Video Ram dumping.
-# -DENABLE_LOG_BREAKPOINT enables extra logging.
 # Root logging:
 # -DENABLE_ACPI_LOG=N sets logging level at N.
 # -DENABLE_APM_LOG=N sets logging level at N.
@@ -125,7 +123,7 @@ STUFF	:=
 # -DENABLE_3COM503_LOG=N sets logging level at N.
 # -DENABLE_DP8390_LOG=N sets logging level at N.
 # -DENABLE_NETWORK_LOG=N sets logging level at N.
-# -DENABLE_NIC_LOG=N sets logging level at N.
+# -DENABLE_NE2K_LOG=N sets logging level at N.
 # -DENABLE_PCAP_LOG=N sets logging level at N.
 # -DENABLE_PCNET_LOG=N sets logging level at N.
 # -DENABLE_SLIRP_LOG=N sets logging level at N.
@@ -168,7 +166,6 @@ STUFF	:=
 # -DENABLE_DISCORD_LOG=N sets logging level at N.
 # -DENABLE_DYNLD_LOG=N sets logging level at N.
 # -DENABLE_JOYSTICK_LOG=N sets logging level at N.
-# -DENABLE_LOG_TOGGLES=N sets logging level at N.
 # -DENABLE_SDL_LOG=N sets logging level at N.
 # -DENABLE_SETTINGS_LOG=N sets logging level at N.
 EXTRAS		:=

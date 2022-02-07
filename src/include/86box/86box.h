@@ -36,19 +36,6 @@
 /* Default language 0xFFFF = from system, 0x409 = en-US */
 #define DEFAULT_LANGUAGE 0x0409
 
-#if defined(ENABLE_BUSLOGIC_LOG) || \
-    defined(ENABLE_CDROM_LOG) || \
-    defined(ENABLE_D86F_LOG) || \
-    defined(ENABLE_FDC_LOG) || \
-    defined(ENABLE_IDE_LOG) || \
-    defined(ENABLE_NIC_LOG)
-# define ENABLE_LOG_TOGGLES	1
-#endif
-
-#if defined(ENABLE_LOG_BREAKPOINT) || defined(ENABLE_VRAM_DUMP)
-# define ENABLE_LOG_COMMANDS	1
-#endif
-
 #ifdef MIN
 #undef MIN
 #endif
@@ -142,16 +129,6 @@ extern int	is_pentium;			/* TODO: Move back to cpu/cpu.h when it's figured out,
 							 how to remove that hack from the ET4000/W32p. */
 extern int	fixed_size_x, fixed_size_y;
 
-
-#ifdef ENABLE_LOG_TOGGLES
-extern int	buslogic_do_log;
-extern int	cdrom_do_log;
-extern int	d86f_do_log;
-extern int	fdc_do_log;
-extern int	ide_do_log;
-extern int	serial_do_log;
-extern int	nic_do_log;
-#endif
 
 extern char	exe_path[2048];			/* path (dir) of executable */
 extern char	usr_path[1024];			/* path (dir) of user data */

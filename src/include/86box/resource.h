@@ -411,17 +411,6 @@
 #define IDM_VID_GL_SHADER	40107
 #define IDM_VID_GL_NOSHADER	40108
 
-#define IDM_LOG_BREAKPOINT	51201
-#define IDM_DUMP_VRAM		51202	// should be an Action
-
-#define IDM_LOG_SERIAL		51211
-#define IDM_LOG_D86F		51212
-#define IDM_LOG_FDC		51213
-#define IDM_LOG_IDE		51214
-#define IDM_LOG_CDROM		51215
-#define IDM_LOG_NIC		51216
-#define IDM_LOG_BUSLOGIC	51217
-
 /*
  * We need 7 bits for CDROM (2 bits ID and 5 bits for host drive),
  * and 5 bits for Removable Disks (5 bits for ID), so we use an

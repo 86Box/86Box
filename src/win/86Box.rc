@@ -37,33 +37,6 @@
 
 MainAccel ACCELERATORS MOVEABLE PURE 
 BEGIN
-#ifdef ENABLE_VRAM_DUMP
-    VK_F1,   IDM_DUMP_VRAM,          CONTROL, VIRTKEY
-#endif
-#ifdef ENABLE_SERIAL_LOG
-    VK_F3,   IDM_LOG_SERIAL,         CONTROL, VIRTKEY
-#endif
-#ifdef ENABLE_BUSLOGIC_LOG
-    VK_F4,   IDM_LOG_BUSLOGIC,       CONTROL, VIRTKEY
-#endif
-#ifdef ENABLE_CDROM_LOG
-    VK_F5,   IDM_LOG_CDROM,          CONTROL, VIRTKEY
-#endif
-#ifdef ENABLE_D86F_LOG
-    VK_F6,   IDM_LOG_D86F,           CONTROL, VIRTKEY
-#endif
-#ifdef ENABLE_FDC_LOG
-    VK_F7,   IDM_LOG_FDC,            CONTROL, VIRTKEY
-#endif
-#ifdef ENABLE_IDE_LOG
-    VK_F8,   IDM_LOG_IDE,            CONTROL, VIRTKEY
-#endif
-#ifdef ENABLE_NIC_LOG
-    VK_F9,   IDM_LOG_NIC,            CONTROL, VIRTKEY
-#endif
-#ifdef ENABLE_LOG_BREAKPOINT
-    VK_F10,  IDM_LOG_BREAKPOINT,     CONTROL, VIRTKEY
-#endif
 #ifdef MTR_ENABLED
     "T",     IDM_ACTION_TRACE,       CONTROL, VIRTKEY
 #endif

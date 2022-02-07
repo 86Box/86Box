@@ -316,10 +316,6 @@ ifeq ($(RELEASE), y)
 OPTS		+= -DRELEASE_BUILD
 RFLAGS		+= -DRELEASE_BUILD
 endif
-ifeq ($(VRAMDUMP), y)
-OPTS		+= -DENABLE_VRAM_DUMP
-RFLAGS		+= -DENABLE_VRAM_DUMP
-endif
 
 
 # Optional modules.
