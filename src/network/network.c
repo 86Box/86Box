@@ -112,9 +112,6 @@ char		network_host[522];
 netdev_t	network_devs[32];
 int		network_rx_pause = 0,
 		network_tx_pause = 0;
-#ifdef ENABLE_NIC_LOG
-int		nic_do_log = ENABLE_NIC_LOG;
-#endif
 
 
 /* Local variables. */
@@ -490,13 +487,9 @@ network_reset(void)
 {
     int i = -1;
 
-#ifdef ENABLE_NIC_LOG
-    network_log("NETWORK: reset (type=%d, card=%d) debug=%d\n",
-			network_type, network_card, nic_do_log);
-#else
     network_log("NETWORK: reset (type=%d, card=%d)\n",
 				network_type, network_card);
-#endif
+
     ui_sb_update_icon(SB_NETWORK, 0);
 
     /* Just in case.. */

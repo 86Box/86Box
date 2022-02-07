@@ -161,6 +161,7 @@ file_dlg_w(HWND hwnd, WCHAR *f, WCHAR *fn, WCHAR *title, int save)
     OPENFILENAME ofn;
     BOOL r;
     /* DWORD err; */
+    int old_dopause;
 
     /* Initialize OPENFILENAME */
     ZeroMemory(&ofn, sizeof(ofn));
@@ -187,10 +188,13 @@ file_dlg_w(HWND hwnd, WCHAR *f, WCHAR *fn, WCHAR *title, int save)
     ofn.lpstrTitle = title;
 
     /* Display the Open dialog box. */
+    old_dopause = dopause;
+    plat_pause(1);
     if (save)
 	r = GetSaveFileName(&ofn);
     else
 	r = GetOpenFileName(&ofn);
+    plat_pause(old_dopause);
 
     plat_chdir(usr_path);
 

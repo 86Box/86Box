@@ -120,7 +120,7 @@ typedef struct {
 
 
 #ifdef ENABLE_WD_LOG
-int WE_do_log = ENABLE_WD_LOG;
+int wd_do_log = ENABLE_WD_LOG;
 
 static void
 wdlog(const char *fmt, ...)
@@ -595,12 +595,6 @@ wd_init(const device_t *info)
 {
     uint32_t mac;
     wd_t *dev;
-
-    /* Get the desired debug level. */
-#ifdef ENABLE_NIC_LOG
-    i = device_get_config_int("debug");
-    if (i > 0) WE_do_log = i;
-#endif
 
     dev = malloc(sizeof(wd_t));
     memset(dev, 0x00, sizeof(wd_t));

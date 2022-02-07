@@ -303,7 +303,7 @@ machine_at_p65up5_common_init(const machine_t *model, const device_t *northbridg
     pci_register_slot(0x0C, PCI_CARD_NORMAL, 1, 2, 3, 4);
     pci_register_slot(0x0D, PCI_CARD_NORMAL, 4, 1, 2, 3);
     device_add(northbridge);
-    device_add(&piix3_device);
+    device_add(&piix3_ioapic_device);
     device_add(&keyboard_ps2_ami_pci_device);
     device_add(&w83877f_device);
     device_add(&sst_flash_29ee010_device);
