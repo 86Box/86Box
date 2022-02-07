@@ -3,8 +3,25 @@ set(CMAKE_INCLUDE_CURRENT_DIR ON)
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTOUIC ON)
 set(CMAKE_AUTORCC ON)
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+
+if (USE_QT6)
+    set(QT_MAJOR 6)
+else()
+    set(QT_MAJOR 5)
+endif()
+
+set(QT_STATIC ${STATIC_BUILD})
+
+if(QT_STATIC AND MINGW)
+    set(CMAKE_PREFIX_PATH "$ENV{MSYSTEM_PREFIX}/qt5-static")
+endif()
 
 find_package(Threads REQUIRED)
+find_package(Qt${QT_MAJOR} COMPONENTS Core Widgets OpenGL REQUIRED)
+find_package(Qt${QT_MAJOR}LinguistTools REQUIRED)
 
 add_library(plat STATIC
     qt.c
