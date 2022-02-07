@@ -91,7 +91,7 @@ MainWindow::MainWindow(QWidget *parent) :
 #ifdef RELEASE_BUILD
     this->setWindowIcon(QIcon(":/settings/win/icons/86Box-green.ico"));
 #elif defined ALPHA_BUILD
-    this->setWindowIcon(QIcon(":/settings/win/icons/86Box-read.ico"))
+    this->setWindowIcon(QIcon(":/settings/win/icons/86Box-red.ico"))
 #elif defined BETA_BUILD
     this->setWindowIcon(QIcon(":/settings/win/icons/86Box-yellow.ico"));
 #else
@@ -1418,7 +1418,7 @@ void MainWindow::on_actionAbout_86Box_triggered()
 #ifdef RELEASE_BUILD
     msgBox.setIconPixmap(QIcon(":/settings/win/icons/86Box-green.ico").pixmap(32, 32));
 #elif defined ALPHA_BUILD
-    msgBox.setIconPixmap(QIcon(":/settings/win/icons/86Box-read.ico").pixmap(32, 32))
+    msgBox.setIconPixmap(QIcon(":/settings/win/icons/86Box-red.ico").pixmap(32, 32))
 #elif defined BETA_BUILD
     msgBox.setIconPixmap(QIcon(":/settings/win/icons/86Box-yellow.ico").pixmap(32, 32));
 #else
