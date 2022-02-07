@@ -36,10 +36,6 @@ if(DYNAREC)
     add_compile_definitions(USE_DYNAREC)
 endif()
 
-if(VRAMDUMP)
-    add_compile_definitions(ENABLE_VRAM_DUMP)
-endif()
-
 if(DEV_BRANCH)
     add_compile_definitions(DEV_BRANCH)
 endif()

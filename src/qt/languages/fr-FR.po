@@ -178,36 +178,6 @@ msgstr "Démarrer traces\tCtrl+T"
 msgid "End trace\tCtrl+T"
 msgstr "Finir traces\tCtrl+T"
 
-msgid "&Logging"
-msgstr "&Journalisation"
-
-msgid "Enable BusLogic logs\tCtrl+F4"
-msgstr "Activer journaux de BusLogic\tCtrl+F4"
-
-msgid "Enable CD-ROM logs\tCtrl+F5"
-msgstr "Activer journaux du CD-ROM\tCtrl+F5"
-
-msgid "Enable floppy (86F) logs\tCtrl+F6"
-msgstr "Activer journaux des disquettes (86F)s\tCtrl+F6"
-
-msgid "Enable floppy controller logs\tCtrl+F7"
-msgstr "Activer journaux du contrôleur de disquettes\tCtrl+F7"
-
-msgid "Enable IDE logs\tCtrl+F8"
-msgstr "Activer journaux de IDE\tCtrl+F8"
-
-msgid "Enable Serial Port logs\tCtrl+F3"
-msgstr "Activer journaux de port série\tCtrl+F3"
-
-msgid "Enable Network logs\tCtrl+F9"
-msgstr "Activer journaux du réseau\tCtrl+F9"
-
-msgid "&Log breakpoint\tCtrl+F10"
-msgstr "&Point d'arrêt du journal\tCtrl+F10"
-
-msgid "Dump &video RAM\tCtrl+F1"
-msgstr "Vidage de la mémoire &vidéo\tCtrl+F1"
-
 msgid "&Help"
 msgstr "&Aide"
 

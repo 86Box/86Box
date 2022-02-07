@@ -108,7 +108,6 @@ option(DYNAREC      "Dynamic recompiler"                                        
 option(OPENAL       "OpenAL"                                                        ON)
 option(FLUIDSYNTH   "FluidSynth"                                                    ON)
 option(MUNT         "MUNT"                                                          ON)
-option(VRAMDUMP     "Video RAM dumping"                                             OFF)
 option(DINPUT       "DirectInput"                                                   OFF)
 option(CPPTHREADS   "C++11 threads"                                                 ON)
 option(NEW_DYNAREC  "Use the PCem v15 (\"new\") dynamic recompiler"                 OFF)

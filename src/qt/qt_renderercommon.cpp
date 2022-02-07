@@ -1,3 +1,20 @@
+/*
+ * 86Box	A hypervisor and IBM PC system emulator that specializes in
+ *		running old operating systems and software designed for IBM
+ *		PC systems and compatibles from 1981 through fairly recent
+ *		system designs based on the PCI bus.
+ *
+ *		This file is part of the 86Box distribution.
+ *
+ *		Program settings UI module.
+ *
+ *
+ *
+ * Authors: Joakim L. Gilje <jgilje@jgilje.net>
+ *
+ *      Copyright 2021 Joakim L. Gilje
+ */
+
 #include "qt_renderercommon.hpp"
 #include "qt_mainwindow.hpp"
 

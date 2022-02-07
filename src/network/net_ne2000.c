@@ -124,15 +124,15 @@ typedef struct {
 } nic_t;
 
 
-#ifdef ENABLE_NIC_LOG
-int nic_do_log = ENABLE_NIC_LOG;
+#ifdef ENABLE_NE2K_LOG
+int ne2k_do_log = ENABLE_NE2K_LOG;
 
 static void
 nelog(int lvl, const char *fmt, ...)
 {
     va_list ap;
 
-    if (nic_do_log >= lvl) {
+    if (ne2k_do_log >= lvl) {
 	va_start(ap, fmt);
 	pclog_ex(fmt, ap);
 	va_end(ap);
@@ -920,15 +920,6 @@ nic_init(const device_t *info)
     uint32_t mac;
     char *rom;
     nic_t *dev;
-#ifdef ENABLE_NIC_LOG
-    int i;
-#endif
-
-    /* Get the desired debug level. */
-#ifdef ENABLE_NIC_LOG
-    i = device_get_config_int("debug");
-    if (i > 0) nic_do_log = i;
-#endif
 
     dev = malloc(sizeof(nic_t));
     memset(dev, 0x00, sizeof(nic_t));
