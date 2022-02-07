@@ -178,36 +178,6 @@ msgstr "Inicio do rastreamento\tCtrl+T"
 msgid "End trace\tCtrl+T"
 msgstr "Fim do rastreamento\tCtrl+T"
 
-msgid "&Logging"
-msgstr "&Registros"
-
-msgid "Enable BusLogic logs\tCtrl+F4"
-msgstr "Ativar registros da BusLogic\tCtrl+F4"
-
-msgid "Enable CD-ROM logs\tCtrl+F5"
-msgstr "Ativar registros do CD-ROM\tCtrl+F5"
-
-msgid "Enable floppy (86F) logs\tCtrl+F6"
-msgstr "Ativar registros do disquete (86F)\tCtrl+F6"
-
-msgid "Enable floppy controller logs\tCtrl+F7"
-msgstr "Ativar registros do controlador de disquete\tCtrl+F7"
-
-msgid "Enable IDE logs\tCtrl+F8"
-msgstr "Ativar registros da IDE\tCtrl+F8"
-
-msgid "Enable Serial Port logs\tCtrl+F3"
-msgstr "Ativar registros da porta serial\tCtrl+F3"
-
-msgid "Enable Network logs\tCtrl+F9"
-msgstr "Ativar registros da rede\tCtrl+F9"
-
-msgid "&Log breakpoint\tCtrl+F10"
-msgstr "&Ponto de parada no registo\tCtrl+F10"
-
-msgid "Dump &video RAM\tCtrl+F1"
-msgstr "Despejo da RAM de &vídeo\tCtrl+F1"
-
 msgid "&Help"
 msgstr "&Ajuda"
 

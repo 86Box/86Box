@@ -117,43 +117,6 @@ BEGIN
         MENUITEM "Nyomkövetés befejezése\tCtrl+T",           IDM_ACTION_END_TRACE
 #endif
     END
-#if defined(ENABLE_LOG_TOGGLES) || defined(ENABLE_LOG_COMMANDS)
-    POPUP "&Naplózás"
-    BEGIN
-# ifdef ENABLE_BUSLOGIC_LOG
-        MENUITEM "BusLogic naplók engedélyezése\tCtrl+F4", IDM_LOG_BUSLOGIC
-# endif
-# ifdef ENABLE_CDROM_LOG
-        MENUITEM "CD-ROM naplók engedélyezése\tCtrl+F5", IDM_LOG_CDROM
-# endif
-# ifdef ENABLE_D86F_LOG
-        MENUITEM "Hajlékonylemez (86F) naplók engedélyezése\tCtrl+F6", IDM_LOG_D86F
-# endif
-# ifdef ENABLE_FDC_LOG
-        MENUITEM "Hajlékonylemez-vezérlő naplók engedélyezése\tCtrl+F7", IDM_LOG_FDC
-# endif
-# ifdef ENABLE_IDE_LOG
-        MENUITEM "IDE naplók engedélyezése\tCtrl+F8", IDM_LOG_IDE
-# endif
-# ifdef ENABLE_SERIAL_LOG
-        MENUITEM "Soros port naplók engedélyezése\tCtrl+F3", IDM_LOG_SERIAL
-# endif
-# ifdef ENABLE_NIC_LOG
-        MENUITEM "Hálózati naplók engedélyezése\tCtrl+F9", IDM_LOG_NIC
-# endif
-# ifdef ENABLE_LOG_COMMANDS
-#  ifdef ENABLE_LOG_TOGGLES
-	MENUITEM SEPARATOR
-#  endif
-#  ifdef ENABLE_LOG_BREAKPOINT
-        MENUITEM "Töréspontok &naplózása\tCtrl+F10", IDM_LOG_BREAKPOINT
-#  endif
-#  ifdef ENABLE_VRAM_DUMP
-        MENUITEM "&Videómemória lementése\tCtrl+F1", IDM_DUMP_VRAM
-#  endif
-# endif
-    END
-#endif
     POPUP "&Súgó"
     BEGIN
         MENUITEM "&Dokumentáció...",           IDM_DOCS

@@ -188,10 +188,6 @@ extern void	loadfont(char *s, int format);
 extern int	get_actual_size_x(void);
 extern int	get_actual_size_y(void);
 
-#ifdef ENABLE_VRAM_DUMP
-extern void	svga_dump_vram(void);
-#endif
-
 extern uint32_t	video_color_transform(uint32_t color);
 
 extern void	agpgart_set_aperture(void *handle, uint32_t base, uint32_t size, int enable);
