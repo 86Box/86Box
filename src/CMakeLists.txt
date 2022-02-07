@@ -174,11 +174,17 @@ endif()
 
 
 # Install other dependencies
-if(WIN32 OR (APPLE AND NOT QT))
+if(WIN32)
     install(CODE "
         include(BundleUtilities)
         get_filename_component(CMAKE_INSTALL_PREFIX_ABSOLUTE \${CMAKE_INSTALL_PREFIX} ABSOLUTE)
         fixup_bundle(\"\${CMAKE_INSTALL_PREFIX_ABSOLUTE}/$<TARGET_FILE_NAME:86Box>\" \"\" \"\")"
+    COMPONENT Runtime)
+elseif(APPLE AND NOT QT)
+    install(CODE "
+        include(BundleUtilities)
+        get_filename_component(CMAKE_INSTALL_PREFIX_ABSOLUTE \${CMAKE_INSTALL_PREFIX} ABSOLUTE)
+        fixup_bundle(\"\${CMAKE_INSTALL_PREFIX_ABSOLUTE}/86Box.app\" \"\" \"\")"
     COMPONENT Runtime)
 endif()
 

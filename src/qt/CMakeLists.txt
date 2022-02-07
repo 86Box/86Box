@@ -208,7 +208,7 @@ macro(install_qt5_plugin _qt_plugin_name _qt_plugins_var _prefix)
 endmacro()
 
 if (APPLE AND CMAKE_MACOSX_BUNDLE)
-    set(prefix "$<TARGET_FILE_NAME:86Box>/Contents")
+    set(prefix "86Box.app/Contents")
     set(INSTALL_RUNTIME_DIR "${prefix}/MacOS")
     set(INSTALL_CMAKE_DIR "${prefix}/Resources")
 
@@ -228,7 +228,7 @@ if (APPLE AND CMAKE_MACOSX_BUNDLE)
         DESTINATION "${INSTALL_CMAKE_DIR}")
 
     # Note Mac specific extension .app
-    set(APPS "\$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/$<TARGET_FILE_NAME:86Box>")
+    set(APPS "\$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/86Box.app")
 
     # Directories to look for dependencies
     set(DIRS "${CMAKE_BINARY_DIR}")
