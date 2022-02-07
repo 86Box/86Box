@@ -16,7 +16,7 @@ endif()
 set(QT_STATIC ${STATIC_BUILD})
 
 if(QT_STATIC AND MINGW)
-    set(CMAKE_PREFIX_PATH "$ENV{MSYSTEM_PREFIX}/qt5-static")
+    set(CMAKE_PREFIX_PATH "$ENV{MSYSTEM_PREFIX}/qt${QT_MAJOR}-static")
 endif()
 
 find_package(Threads REQUIRED)
