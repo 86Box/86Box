@@ -377,7 +377,6 @@ MainWindow::MainWindow(QWidget *parent) :
 
 #ifdef MTR_ENABLED
     {
-        ui->menuTools->addSeparator();
         ui->actionBegin_trace->setVisible(true);
         ui->actionEnd_trace->setVisible(true);
         ui->actionBegin_trace->setShortcut(QKeySequence(Qt::Key_Control + Qt::Key_T));
