@@ -28,6 +28,8 @@
 
 MainWindow* main_window = nullptr;
 
+static QString sb_text, sb_buguitext;
+
 extern "C" {
 
 #include <86box/plat.h>
@@ -96,12 +98,18 @@ int	ui_msgbox(int flags, void *message) {
     return ui_msgbox_header(flags, nullptr, message);
 }
 
+void ui_sb_update_text() {
+    main_window->statusBar()->showMessage(sb_text.isEmpty() ? sb_buguitext : sb_text);
+}
+
 void ui_sb_set_text_w(wchar_t *wstr) {
-    main_window->statusBar()->showMessage(QString::fromWCharArray(wstr));
+    sb_text = QString::fromWCharArray(wstr);
+    ui_sb_update_text();
 }
 
 void ui_sb_set_text(char *str) {
-    main_window->statusBar()->showMessage(QString(str));
+    sb_text = str;
+    ui_sb_update_text();
 }
 
 void
@@ -115,7 +123,8 @@ ui_sb_update_panes() {
 }
 
 void ui_sb_bugui(char *str) {
-    main_window->statusBarMessage(str);
+    sb_buguitext = str;
+    ui_sb_update_text();;
 }
 
 void ui_sb_set_ready(int ready) {
