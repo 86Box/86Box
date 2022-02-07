@@ -34,7 +34,7 @@ SettingsPorts::SettingsPorts(QWidget *parent) :
 {
     ui->setupUi(this);
 
-    for (int i = 0; i < 3; i++) {
+    for (int i = 0; i < 4; i++) {
         auto* cbox = findChild<QComboBox*>(QString("comboBoxLpt%1").arg(i+1));
         auto* model = cbox->model();
         int c = 0;
@@ -93,5 +93,10 @@ void SettingsPorts::on_checkBoxParallel2_stateChanged(int state) {
 
 void SettingsPorts::on_checkBoxParallel3_stateChanged(int state) {
     ui->comboBoxLpt3->setEnabled(state == Qt::Checked);
+}
+
+
+void SettingsPorts::on_checkBoxParallel4_stateChanged(int state) {
+    ui->comboBoxLpt4->setEnabled(state == Qt::Checked);
 }
 
