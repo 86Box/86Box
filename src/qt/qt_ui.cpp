@@ -100,6 +100,10 @@ void ui_sb_set_text_w(wchar_t *wstr) {
     main_window->statusBar()->showMessage(QString::fromWCharArray(wstr));
 }
 
+void ui_sb_set_text(char *str) {
+    main_window->statusBar()->showMessage(QString(str));
+}
+
 void
 ui_sb_update_tip(int arg) {
     main_window->updateStatusBarTip(arg);
@@ -115,7 +119,10 @@ void ui_sb_bugui(char *str) {
 }
 
 void ui_sb_set_ready(int ready) {
-    qDebug() << Q_FUNC_INFO << ready;
+    if (ready == 0) {
+        ui_sb_bugui(nullptr);
+        ui_sb_set_text(nullptr);
+    }
 }
 
 void
