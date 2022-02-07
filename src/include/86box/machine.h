@@ -57,7 +57,7 @@
 #define MACHINE_AGP		(MACHINE_BUS_AGP | MACHINE_PCI)		/* sys is AT-compatible with AGP  */
 #define MACHINE_AGP98		(MACHINE_BUS_AGP | MACHINE_PCI98)	/* sys is NEC PC-98x1 series with AGP (did that even exist?) */
 
-#define MACHINE_PCJR		(MACHINE_PC | MACHINE_CATRIDGE)		/* sys is PCjr */
+#define MACHINE_PCJR		(MACHINE_PC | MACHINE_CARTRIDGE)	/* sys is PCjr */
 #define MACHINE_PS2		(MACHINE_AT | MACHINE_BUS_PS2)		/* sys is PS/2 */
 #define MACHINE_PS2_MCA		(MACHINE_MCA | MACHINE_BUS_PS2)		/* sys is MCA PS/2 */
 #define MACHINE_PS2_VLB		(MACHINE_VLB | MACHINE_BUS_PS2)		/* sys is VLB PS/2 */
@@ -186,7 +186,7 @@ enum {
     MACHINE_CHIPSET_SCAT,
     MACHINE_CHIPSET_NEAT,
     MACHINE_CHIPSET_CT_386,
-    MACHINE_CHIPSET_CS4031,
+    MACHINE_CHIPSET_CT_CS4031,
     MACHINE_CHIPSET_CONTAQ_82C596,
     MACHINE_CHIPSET_CONTAQ_82C597,
     MACHINE_CHIPSET_IMS_8848,
@@ -218,6 +218,7 @@ enum {
     MACHINE_CHIPSET_SIS_310,
     MACHINE_CHIPSET_SIS_401,
     MACHINE_CHIPSET_SIS_460,
+    MACHINE_CHIPSET_SIS_461,
     MACHINE_CHIPSET_SIS_471,
     MACHINE_CHIPSET_SIS_496,
     MACHINE_CHIPSET_SIS_501,
@@ -250,10 +251,10 @@ enum {
 };
 
 
-typedef struct _machine_type_ {
+typedef struct _machine_filter_ {
     const char	*name;
     const char  id;
-} machine_type_t;
+} machine_filter_t;
 
 
 typedef struct _machine_ {
@@ -288,7 +289,8 @@ typedef struct _machine_ {
 
 
 /* Global variables. */
-extern const machine_type_t	machine_types[];
+extern const machine_filter_t	machine_types[],
+				machine_chipsets[];
 extern const machine_t		machines[];
 extern int			bios_only;
 extern int			machine;

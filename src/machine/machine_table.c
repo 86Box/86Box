@@ -33,7 +33,7 @@
 #include <86box/machine.h>
 
 
-const machine_type_t machine_types[] = {
+const machine_filter_t machine_types[] = {
     { "None",				MACHINE_TYPE_NONE	},
     { "8088",				MACHINE_TYPE_8088	},
     { "8086",				MACHINE_TYPE_8086	},
@@ -61,7 +61,7 @@ const machine_type_t machine_types[] = {
 };
 
 
-const machine_chipset_t machine_chipsets[] = {
+const machine_filter_t machine_chipsets[] = {
     { "None",				MACHINE_CHIPSET_NONE			},
     { "Discrete",			MACHINE_CHIPSET_DISCRETE		},
     { "Proprietary",			MACHINE_CHIPSET_PROPRIETARY		},
@@ -137,7 +137,7 @@ const machine_chipset_t machine_chipsets[] = {
     { "VIA Apollo Pro",			MACHINE_CHIPSET_VIA_APOLLO_PRO		},
     { "VIA Apollo Pro 133",		MACHINE_CHIPSET_VIA_APOLLO_PRO_133	},
     { "VIA Apollo Pro 133A",		MACHINE_CHIPSET_VIA_APOLLO_PRO_133A	},
-    { "VLSI SCAMP",			MACHINE_CHIPSET_SCAMP			},
+    { "VLSI SCAMP",			MACHINE_CHIPSET_VLSI_SCAMP		},
     { "VLSI VL82C480",			MACHINE_CHIPSET_VLSI_VL82C480		},
     { "VLSI VL82C481",			MACHINE_CHIPSET_VLSI_VL82C481		},
     { "VLSI VL82C486",			MACHINE_CHIPSET_VLSI_VL82C486		},
@@ -231,7 +231,7 @@ const machine_t machines[] = {
     { "[8086] Amstrad PC20(0)",			"pc200",		MACHINE_TYPE_8086,	MACHINE_CHIPSET_PROPRIETARY,			   machine_pc200_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_8086, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC,		MACHINE_VIDEO | MACHINE_MOUSE,				  512,   640, 128,   63, pc200_get_device		},
     { "[8086] Amstrad PPC512/640",		"ppc512",		MACHINE_TYPE_8086,	MACHINE_CHIPSET_PROPRIETARY,			  machine_ppc512_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_8086, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC,		MACHINE_VIDEO | MACHINE_MOUSE,				  512,   640, 128,   63, ppc512_get_device		},
     { "[8086] Compaq Deskpro",			"deskpro",		MACHINE_TYPE_8086,	MACHINE_CHIPSET_PROPRIETARY,	       machine_xt_compaq_deskpro_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_8086, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC,		0,							  128,   640, 128,    0, NULL				},
-    { "[8086] Olivetti M21/24/24SP",		"m24",			MACHINE_TYPE_8086,	MACHINE_CHIPSET_PROPRITARY,			  machine_xt_m24_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_8086, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC,		MACHINE_VIDEO | MACHINE_MOUSE,				  128,   640, 128,    0, m24_get_device			},
+    { "[8086] Olivetti M21/24/24SP",		"m24",			MACHINE_TYPE_8086,	MACHINE_CHIPSET_PROPRIETARY,			  machine_xt_m24_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_8086, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC,		MACHINE_VIDEO | MACHINE_MOUSE,				  128,   640, 128,    0, m24_get_device			},
     /* Has Olivetti KBC firmware. */
     { "[8086] Olivetti M240",			"m240",			MACHINE_TYPE_8086,	MACHINE_CHIPSET_PROPRIETARY,			 machine_xt_m240_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_8086, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC,		0,							  128,   640, 128,    0, NULL				},
     { "[8086] Schetmash Iskra-3104",		"iskra3104",		MACHINE_TYPE_8086,	MACHINE_CHIPSET_DISCRETE,		    machine_xt_iskra3104_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_8086, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC,		0,							  128,   640, 128,    0, NULL				},
@@ -271,7 +271,7 @@ const machine_t machines[] = {
 #endif
 #if defined(DEV_BRANCH) && defined(USE_OPEN_AT)
     /* Has IBM AT KBC firmware. */
-    { "[ISA] OpenAT",				"openat",		MACHINE_TYPE_286,	MACHINE_CHIPET_DISCRETE,		       machine_at_openat_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_286, 0, 0, 0, 0, 0, 0, 0,										MACHINE_AT,		0,							  256, 15872, 128,   63, NULL				},
+    { "[ISA] OpenAT",				"openat",		MACHINE_TYPE_286,	MACHINE_CHIPSET_DISCRETE,		       machine_at_openat_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_286, 0, 0, 0, 0, 0, 0, 0,										MACHINE_AT,		0,							  256, 15872, 128,   63, NULL				},
 #endif
     /* Has IBM AT KBC firmware. */
     { "[ISA] Phoenix IBM AT",			"ibmatpx",		MACHINE_TYPE_286,	MACHINE_CHIPSET_DISCRETE,		      machine_at_ibmatpx_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_286, 0, 6000000, 8000000, 0, 0, 0, 0,									MACHINE_AT,		0,							  256, 15872, 128,   63, NULL				},
@@ -356,13 +356,13 @@ const machine_t machines[] = {
     /* Uses Commodore (CBM) KBC firmware, to be implemented as identical to
        the IBM PS/2 Type 1 KBC firmware unless evidence emerges of any
        proprietary commands. */
-    { "[SCAMP] Commodore SL386SX-25",		"cmdsl386sx25",		MACHINE_TYPE_386SX,	MACHINE_CHIPSET_SCAMP,			 machine_at_cmdsl386sx25_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_386SX, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PS2,		MACHINE_IDE | MACHINE_VIDEO,				 1024,  8192,  512, 127, at_cmdsl386sx25_get_device	},
+    { "[SCAMP] Commodore SL386SX-25",		"cmdsl386sx25",		MACHINE_TYPE_386SX,	MACHINE_CHIPSET_VLSI_SCAMP,		 machine_at_cmdsl386sx25_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_386SX, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PS2,		MACHINE_IDE | MACHINE_VIDEO,				 1024,  8192,  512, 127, at_cmdsl386sx25_get_device	},
     /* The closest BIOS string I find to this one's, differs only in one part,
        and ends in -8, so I'm going to assume that this, too, has an AMI '8'
        (AMI Keyboard BIOS Plus) KBC firmware. */
-    { "[SCAMP] DataExpert 386SX",		"dataexpert386sx",	MACHINE_TYPE_386SX,	MACHINE_CHIPSET_SCAMP,		      machine_at_dataexpert386sx_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_386SX, 0, 10000000, 25000000, 0, 0, 0, 0,								MACHINE_AT,		0,							 1024, 16384, 1024, 127, NULL				},
+    { "[SCAMP] DataExpert 386SX",		"dataexpert386sx",	MACHINE_TYPE_386SX,	MACHINE_CHIPSET_VLSI_SCAMP,	      machine_at_dataexpert386sx_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_386SX, 0, 10000000, 25000000, 0, 0, 0, 0,								MACHINE_AT,		0,							 1024, 16384, 1024, 127, NULL				},
     /* Has IBM PS/2 Type 1 KBC firmware. */
-    { "[SCAMP] Samsung SPC-6033P",		"spc6033p",		MACHINE_TYPE_386SX,	MACHINE_CHIPSET_SCAMP,			     machine_at_spc6033p_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_386SX, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PS2,		MACHINE_IDE | MACHINE_VIDEO,				 2048, 12288, 2048, 127, at_spc6033p_get_device		},
+    { "[SCAMP] Samsung SPC-6033P",		"spc6033p",		MACHINE_TYPE_386SX,	MACHINE_CHIPSET_VLSI_SCAMP,		     machine_at_spc6033p_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_386SX, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PS2,		MACHINE_IDE | MACHINE_VIDEO,				 2048, 12288, 2048, 127, at_spc6033p_get_device		},
     /* Has an unknown AMI KBC firmware, I'm going to assume 'F' until a
        photo or real hardware BIOS string is found. */
     { "[SCAT] KMX-C-02",			"kmxc02",		MACHINE_TYPE_386SX,	MACHINE_CHIPSET_SCAT,			       machine_at_kmxc02_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_386SX, 0, 0, 0, 0, 0, 0, 0,										MACHINE_AT,		0,							  512, 16384,  512, 127, NULL				},
@@ -421,7 +421,7 @@ const machine_t machines[] = {
     { "[CS4031] AMI 486 CS4031",		"cs4031",		MACHINE_TYPE_486,	MACHINE_CHIPSET_CT_CS4031,		       machine_at_cs4031_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_SOCKET1, 0, 0, 0, 0, 0, 0, 0,										MACHINE_VLB,		0,							 1024, 65536, 1024, 127, NULL				},
     /* Uses some variant of Phoenix MultiKey/42 as the Intel 8242 chip has a Phoenix
        copyright. */
-    { "[OPTi 895] Mylex MVI486",		"mvi486",		MACHINE_TYPE_486,	MACHINE_CHIPSET_OPTI_895_802_G,		       machine_at_mvi486_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_SOCKET1, 0, 0, 0, 0, 0, 0, 0,										MACHINE_VLB,		MACHINE_IDE_DUAL,					 1024, 65536, 1024, 127, NULL				},
+    { "[OPTi 895] Mylex MVI486",		"mvi486",		MACHINE_TYPE_486,	MACHINE_CHIPSET_OPTI_895_802G,		       machine_at_mvi486_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_SOCKET1, 0, 0, 0, 0, 0, 0, 0,										MACHINE_VLB,		MACHINE_IDE_DUAL,					 1024, 65536, 1024, 127, NULL				},
     /* Has AMI KF KBC firmware. */
     { "[SiS 401] ASUS ISA-486",			"isa486",		MACHINE_TYPE_486,	MACHINE_CHIPSET_SIS_401,		       machine_at_isa486_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_SOCKET1, 0, 0, 0, 0, 0, 0, 0,										MACHINE_AT,		MACHINE_IDE,						 1024, 65536, 1024, 127, NULL				},
     /* Has AMIKey H KBC firmware, per the screenshot in "How computers & MS-DOS work". */
@@ -451,7 +451,7 @@ const machine_t machines[] = {
     /* Uses an ACER/NEC 90M002A (UPD82C42C, 8042 clone) with unknown firmware (V4.01H). */
     { "[ALi M1429G] Acer A1G",			"acera1g",		MACHINE_TYPE_486_S2,	MACHINE_CHIPSET_ALI_M1429G,		      machine_at_acera1g_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_SOCKET3, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PS2,		MACHINE_IDE_DUAL | MACHINE_VIDEO,			 4096, 36864, 1024, 127, at_acera1g_get_device		},
     /* This has an AMIKey-2, which is an updated version of type 'H'. */
-    { "[ALi M1429G] Kaimei SA-486 VL-BUS M.B.",	"win486",		MACHINE_TYPE_486_S2	MACHINE_CHIPSET_ALI_M1429G,		  machine_at_winbios1429_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_SOCKET3, 0, 0, 0, 0, 0, 0, 0,										MACHINE_VLB,		MACHINE_IDE,						 1024, 32768, 1024, 127, NULL				},
+    { "[ALi M1429G] Kaimei SA-486 VL-BUS M.B.",	"win486",		MACHINE_TYPE_486_S2,	MACHINE_CHIPSET_ALI_M1429G,		  machine_at_winbios1429_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_SOCKET3, 0, 0, 0, 0, 0, 0, 0,										MACHINE_VLB,		MACHINE_IDE,						 1024, 32768, 1024, 127, NULL				},
     /* Uses an Intel KBC with Phoenix MultiKey KBC firmware. */
     { "[SiS 461] DEC DECpc LPV",		"decpclpv",		MACHINE_TYPE_486_S2,	MACHINE_CHIPSET_SIS_461,		     machine_at_decpclpv_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_SOCKET3, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PS2,		MACHINE_IDE_DUAL | MACHINE_VIDEO,			 1024, 32768, 1024, 127, NULL				},
     /* Uses an NEC 90M002A (UPD82C42C, 8042 clone) with unknown firmware. */
@@ -469,11 +469,11 @@ const machine_t machines[] = {
     /* Has AMI MegaKey KBC firmware. */
     { "[Contaq 82C597] Green-B",		"greenb",		MACHINE_TYPE_486_S3,	MACHINE_CHIPSET_CONTAQ_82C597,		       machine_at_greenb_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_SOCKET3, 0, 0, 0, 0, 0, 0, 0,										MACHINE_VLB,		0,							 1024, 65536, 1024, 127, NULL				},
     /* Has a VIA VT82C42N KBC. */
-    { "[OPTi 895] Jetway J-403TG",		"403tg",		MACHINE_TYPE_486_S3,	MACHINE_CHIPSET_OPTI_895_802_G,			machine_at_403tg_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_SOCKET3, 0, 0, 0, 0, 0, 0, 0,										MACHINE_VLB,		0,							 1024, 65536, 1024, 127, NULL				},
+    { "[OPTi 895] Jetway J-403TG",		"403tg",		MACHINE_TYPE_486_S3,	MACHINE_CHIPSET_OPTI_895_802G,			machine_at_403tg_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_SOCKET3, 0, 0, 0, 0, 0, 0, 0,										MACHINE_VLB,		0,							 1024, 65536, 1024, 127, NULL				},
     /* Has JetKey 5 KBC Firmware which looks like it is a clone of AMIKey type F. */
-    { "[OPTi 895] Jetway J-403TG Rev D",	"403tg_d",		MACHINE_TYPE_486_S3,	MACHINE_CHIPSET_OPTI_895_802_G,		      machine_at_403tg_d_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_SOCKET3, 0, 0, 0, 0, 0, 0, 0,										MACHINE_VLB,		0,							 1024, 65536, 1024, 127, NULL				},
+    { "[OPTi 895] Jetway J-403TG Rev D",	"403tg_d",		MACHINE_TYPE_486_S3,	MACHINE_CHIPSET_OPTI_895_802G,		      machine_at_403tg_d_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_SOCKET3, 0, 0, 0, 0, 0, 0, 0,										MACHINE_VLB,		0,							 1024, 65536, 1024, 127, NULL				},
     /* Has JetKey 5 KBC Firmware which looks like it is a clone of AMIKey type F. */
-    { "[OPTi 895] Jetway J-403TG Rev D (MR BIOS)","403tg_d_mr",		MACHINE_TYPE_486_S3,	MACHINE_CHIPSET_OPTI_895_802_G,		   machine_at_403tg_d_mr_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_SOCKET3, 0, 0, 0, 0, 0, 0, 0,										MACHINE_VLB,		0,							 1024, 65536, 1024, 127, NULL				},
+    { "[OPTi 895] Jetway J-403TG Rev D (MR BIOS)","403tg_d_mr",		MACHINE_TYPE_486_S3,	MACHINE_CHIPSET_OPTI_895_802G,		   machine_at_403tg_d_mr_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_SOCKET3, 0, 0, 0, 0, 0, 0, 0,										MACHINE_VLB,		0,							 1024, 65536, 1024, 127, NULL				},
     /* Has AMIKey H keyboard BIOS. */
     { "[SiS 471] AOpen Vi15G",			"vi15g",		MACHINE_TYPE_486_S3,	MACHINE_CHIPSET_SIS_471,			machine_at_vi15g_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_SOCKET3, 0, 0, 0, 0, 0, 0, 0,										MACHINE_VLB,		MACHINE_IDE,						 1024, 65536, 1024, 127, NULL				},
     /* This has an AMIKey-2, which is an updated version of type 'H'. */
@@ -504,7 +504,7 @@ const machine_t machines[] = {
     /* Has an ALi M5042 keyboard controller with Phoenix MultiKey/42 v1.40 firmware. */
     { "[ALi M1489] ESA TF-486",			"tf486",		MACHINE_TYPE_486_S3,	MACHINE_CHIPSET_ALI_M1489,			machine_at_tf486_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_SOCKET3, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PS2_PCI,	MACHINE_IDE_DUAL,					 1024,  65536, 1024, 255, NULL				},
     /* Has IBM PS/2 Type 1 KBC firmware. */
-    { "[OPTi 802G] IBM PC 330 (type 6573)",	"pc330_6573",		MACHINE_TYPE_486_S3,	MACHINE_CHIPSET_OPTI_895_802_G,		   machine_at_pc330_6573_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_SOCKET3_PC330, 0, 25000000, 33333333, 0, 0, 2.0, 3.0,							MACHINE_PS2_PCI,	MACHINE_IDE,						 1024,  65536, 1024, 127, NULL				},
+    { "[OPTi 802G] IBM PC 330 (type 6573)",	"pc330_6573",		MACHINE_TYPE_486_S3,	MACHINE_CHIPSET_OPTI_895_802G,		   machine_at_pc330_6573_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_SOCKET3_PC330, 0, 25000000, 33333333, 0, 0, 2.0, 3.0,							MACHINE_PS2_PCI,	MACHINE_IDE,						 1024,  65536, 1024, 127, NULL				},
     /* This has an AMIKey-2, which is an updated version of type 'H'. */
     { "[i420EX] ASUS PVI-486AP4",		"486ap4",		MACHINE_TYPE_486_S3,	MACHINE_CHIPSET_INTEL_420EX,		       machine_at_486ap4_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_SOCKET3, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PS2_PCIV,	MACHINE_IDE_DUAL,					 1024, 131072, 1024, 127, NULL				},
     /* This has the Phoenix MultiKey KBC firmware. */
@@ -548,9 +548,9 @@ const machine_t machines[] = {
     /* This has a Holtek KBC. */
     { "[UMC 8881] Shuttle HOT-433A",		"hot433",		MACHINE_TYPE_486_S3,	MACHINE_CHIPSET_UMC_UM8881,		       machine_at_hot433_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_SOCKET3, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PCI,		MACHINE_IDE_DUAL,					 1024, 262144, 1024, 255, NULL				},
     /* Has a VIA VT82C406 KBC+RTC that likely has identical commands to the VT82C42N. */
-    { "[VIA VT82C496G] DFI G486VPA",		"g486vpa",		MACHINE_TYPE_486_S3,	MACHINE_CHIPSET_VIA_VT82C496,		      machine_at_g486vpa_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_SOCKET3, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PCIV,		MACHINE_IDE_DUAL,					 1024, 131072, 1024, 255, NULL				},
+    { "[VIA VT82C496G] DFI G486VPA",		"g486vpa",		MACHINE_TYPE_486_S3,	MACHINE_CHIPSET_VIA_VT82C496G,		      machine_at_g486vpa_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_SOCKET3, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PCIV,		MACHINE_IDE_DUAL,					 1024, 131072, 1024, 255, NULL				},
     /* Has a VIA VT82C42N KBC. */
-    { "[VIA VT82C496G] FIC VIP-IO2",		"486vipio2",		MACHINE_TYPE_486_S3,	MACHINE_CHIPSET_VIA_VT82C496,		    machine_at_486vipio2_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_SOCKET3, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PS2_PCIV,	MACHINE_IDE_DUAL,					 1024, 131072, 1024, 255, NULL				},
+    { "[VIA VT82C496G] FIC VIP-IO2",		"486vipio2",		MACHINE_TYPE_486_S3,	MACHINE_CHIPSET_VIA_VT82C496G,		    machine_at_486vipio2_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_SOCKET3, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PS2_PCIV,	MACHINE_IDE_DUAL,					 1024, 131072, 1024, 255, NULL				},
 
     /* 486 machines - Miscellaneous */
     /* 486 machines which utilize the PCI bus */
