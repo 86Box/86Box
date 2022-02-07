@@ -19,18 +19,23 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
-#include <windows.h>
 #include <time.h>
 #define HAVE_STDARG_H
 #include <86box/86box.h>
-#include "cpu.h"
+#include "cpu/cpu.h"
 #include <86box/machine.h>
 #include <86box/plat.h>
 #include <86box/plat_dynld.h>
-#include <86box/win_discord.h>
+#include <86box/discord.h>
 #include <discord_game_sdk.h>
 
+#ifdef _WIN32
 #define PATH_DISCORD_DLL	"discord_game_sdk.dll"
+#elif defined __APPLE__
+#define PATH_DISCORD_DLL    "discord_game_sdk.dylib"
+#else
+#define PATH_DISCORD_DLL	"discord_game_sdk.so"
+#endif
 
 int	discord_loaded = 0;
 
@@ -74,7 +79,7 @@ discord_update_activity(int paused)
     if(discord_activities == NULL)
 	return;
 
-    discord_log("win_discord: discord_update_activity(paused=%d)\n", paused);
+    discord_log("discord: discord_update_activity(paused=%d)\n", paused);
 
     memset(&activity, 0x00, sizeof(activity));
 
@@ -85,13 +90,13 @@ discord_update_activity(int paused)
 
     if (strlen(vm_name) < 100)
     {
-	sprintf_s(activity.details, sizeof(activity.details), "Running \"%s\"", vm_name);
-	sprintf_s(activity.state, sizeof(activity.state), "%s (%s/%s)", strchr(machine_getname(), ']') + 2, cpufamily, cpu_s->name);
+	snprintf(activity.details, sizeof(activity.details), "Running \"%s\"", vm_name);
+	snprintf(activity.state, sizeof(activity.state), "%s (%s/%s)", strchr(machine_getname(), ']') + 2, cpufamily, cpu_s->name);
     }
     else
     {
 	strncpy(activity.details, strchr(machine_getname(), ']') + 2, sizeof(activity.details) - 1);
-	sprintf_s(activity.state, sizeof(activity.state), "%s/%s", cpufamily, cpu_s->name);
+	snprintf(activity.state, sizeof(activity.state), "%s/%s", cpufamily, cpu_s->name);
     }
 
     activity.timestamps.start = time(NULL);
@@ -139,7 +144,7 @@ discord_load()
 
     if (discord_handle == NULL)
     {
-	discord_log("win_discord: couldn't load " PATH_DISCORD_DLL "\n");
+    discord_log("discord: couldn't load " PATH_DISCORD_DLL "\n");
 	discord_close();
 
 	return(0);
@@ -165,7 +170,7 @@ discord_init()
     result = discord_create(DISCORD_VERSION, &params, &discord_core);
     if (result != DiscordResult_Ok)
     {
-	discord_log("win_discord: DiscordCreate returned %d\n", result);
+    discord_log("discord: DiscordCreate returned %d\n", result);
 	discord_close();
 	return;
     }

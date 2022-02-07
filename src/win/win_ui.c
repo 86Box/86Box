@@ -43,7 +43,7 @@
 #include <86box/ui.h>
 #include <86box/win.h>
 #include <86box/version.h>
-# include <86box/win_discord.h>
+#include <86box/discord.h>
 
 #ifdef MTR_ENABLED
 #include <minitrace/minitrace.h>

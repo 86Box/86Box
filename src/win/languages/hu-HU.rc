@@ -4,7 +4,7 @@
 // Translated by Laci bá', 2021
 // 
 
-#define TRANSLATORS_NAME "Laci bá'"
+//#define TRANSLATORS_NAME "Laci bá'"
 
 #ifdef _WIN32
 LANGUAGE LANG_HUNGARIAN, SUBLANG_DEFAULT
