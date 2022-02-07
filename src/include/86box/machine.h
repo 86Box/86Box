@@ -276,14 +276,14 @@ typedef struct _machine_ {
     uint32_t	min_ram, max_ram;
     int		ram_granularity;
     int		nvrmask;
-    uint16_t	kbc;
-    uint16_t	kbc_p1;
-    uint32_t	acpi_gpi;
 #ifdef EMU_DEVICE_H
     const device_t	*(*get_device)(void);
 #else
     void	*get_device;
 #endif
+    uint16_t	kbc;
+    uint16_t	kbc_p1;
+    uint32_t	acpi_gpi;
 } machine_t;
 
 
