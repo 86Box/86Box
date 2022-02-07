@@ -1072,14 +1072,14 @@ machine_has_flags(int m, int flags)
 int
 machine_has_bus(int m, int bus_flags)
 {
-    return(machines[m].flags & bus_flags);
+    return(machines[m].bus_flags & bus_flags);
 }
 
 
 int
 machine_has_cartridge(int m)
 {
-    return(machine_has_flags(m, MACHINE_CARTRIDGE) ? 1 : 0);
+    return(machine_has_bus(m, MACHINE_CARTRIDGE) ? 1 : 0);
 }
 
 

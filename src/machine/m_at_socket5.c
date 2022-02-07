@@ -86,13 +86,8 @@ machine_at_430nx_init(const machine_t *model)
 {
     int ret;
 
-#if 0
     ret = bios_load_linear("roms/machines/430nx/IP.20",
 			   0x000e0000, 131072, 0);
-#else
-    ret = bios_load_linear_inverted("roms/machines/430nx/IP.20",
-				    0x000e0000, 131072, 0);
-#endif
 
     if (bios_only || !ret)
 	return ret;
@@ -100,11 +95,7 @@ machine_at_430nx_init(const machine_t *model)
     machine_at_award_common_init(model);
 
     device_add(&sio_device);
-#if 1
     device_add(&intel_flash_bxt_device);
-#else
-    device_add(&intel_flash_bxt_ami_device);
-#endif
     device_add(&i430nx_device);
 
     return ret;
