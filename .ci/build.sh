@@ -213,8 +213,8 @@ else
 		*)	arch_deb="$arch";;
 	esac
 
-	# Establish general and architecture-specific dependencies.
-	pkgs="cmake pkg-config git tar xz-utils dpkg-dev rpm"
+	# Establish general dependencies.
+	pkgs="cmake pkg-config git tar xz-utils dpkg-dev rpm wayland-protocols"
 	if [ "$(dpkg --print-architecture)" = "$arch_deb" ]
 	then
 		pkgs="$pkgs build-essential"
@@ -222,12 +222,17 @@ else
 		sudo dpkg --add-architecture $arch_deb
 		pkgs="$pkgs crossbuild-essential-$arch_deb"
 	fi
+
+	# Establish architecture-specific dependencies we don't want listed on the readme...
+	pkgs="$pkgs linux-libc-dev:$arch_deb extra-cmake-modules:$arch_deb qttools5-dev:$arch_deb qtbase5-private-dev:$arch_deb"
+
+	# ...and the ones we do want listed. Non-dev packages fill missing spots on the list.
 	libpkgs=""
 	longest_libpkg=0
-	for pkg in libc6-dev linux-libc-dev libopenal-dev libfreetype6-dev libsdl2-dev libpng-dev librtmidi-dev
+	for pkg in libc6-dev libstdc++6 libopenal-dev libfreetype6-dev libx11-dev libsdl2-dev libpng-dev librtmidi-dev qtdeclarative5-dev libwayland-dev libevdev-dev libglib2.0-dev
 	do
 		libpkgs="$libpkgs $pkg:$arch_deb"
-		length=$(echo -n $pkg | sed 's/-dev$//' | wc -c)
+		length=$(echo -n $pkg | sed 's/-dev$//' | sed "s/qtdeclarative/qt/" | wc -c)
 		[ $length -gt $longest_libpkg ] && longest_libpkg=$length
 	done
 
@@ -392,7 +397,7 @@ then
 else
 	# Archive readme with library package versions.
 	echo Libraries used to compile this $arch build of $project: > archive_tmp/README
-	dpkg-query -f '${Package} ${Version}\n' -W $libpkgs | sed "s/-dev / /" | while IFS=" " read pkg version
+	dpkg-query -f '${Package} ${Version}\n' -W $libpkgs | sed "s/-dev / /" | sed "s/qtdeclarative/qt/" | while IFS=" " read pkg version
 	do
 		for i in $(seq $(expr $longest_libpkg - $(echo -n $pkg | wc -c)))
 		do
@@ -425,7 +430,7 @@ cd archive_tmp
 if is_windows
 then
 	# Create zip.
-	"$sevenzip" a -y -mx9 "$(cygpath -w "$cwd")\\$package_name.zip" *
+	"$sevenzip" a -y "$(cygpath -w "$cwd")\\$package_name.zip" *
 	status=$?
 elif is_mac
 then
