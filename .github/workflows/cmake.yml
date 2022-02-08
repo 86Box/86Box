@@ -328,6 +328,7 @@ jobs:
           -D CMAKE_BUILD_TYPE=${{ matrix.build.type }}
           -D QT=ON
           -D Qt5_DIR=/usr/local/Cellar/qt@5/5.15.2/lib/cmake/
+          -D Qt5LinguistTools_DIR=/usr/local/Cellar/qt@5/5.15.2/lib/cmake/Qt5LinguistTools/
       - name: Build
         run: cmake --build build
       - name: Generate package
