@@ -503,13 +503,13 @@ BEGIN
     IDS_2151	"Slike kasete (*.A;*.B;*.JRC)\0*.A;*.B;*.JRC\0Sve datoteke (*.*)\0*.*\0"
     IDS_2152	"Nije moguće inicijalizirati renderer"
     IDS_2153	"Nije moguće inicijalizirati OpenGL (3.0 jezgra) renderer. Molimte koristite drugi renderer."
-    IDS_2154	"Resume execution"
-    IDS_2155	"Pause execution"
-    IDS_2156	"Press Ctrl+Alt+Del"
-    IDS_2157	"Press Ctrl+Alt+Esc"
-    IDS_2158	"Hard reset"
-    IDS_2159	"ACPI shutdown"
-    IDS_2160	"Settings"
+    IDS_2154	"Nastavi"
+    IDS_2155	"Pauziraj"
+    IDS_2156	"Stisni Ctrl+Alt+Del"
+    IDS_2157	"Stisni Ctrl+Alt+Esc"
+    IDS_2158	"Ponovno pokretanje"
+    IDS_2159	"ACPI bazirano gašenje"
+    IDS_2160	"Postavke"
 END
 
 STRINGTABLE DISCARDABLE 
