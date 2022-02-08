@@ -122,7 +122,7 @@ void SettingsInput::on_comboBoxJoystick_currentIndexChanged(int index) {
 
 void SettingsInput::on_pushButtonConfigureMouse_clicked() {
     int mouseId = ui->comboBoxMouse->currentData().toInt();
-    DeviceConfig::ConfigureDevice(mouse_get_device(mouseId));
+    DeviceConfig::ConfigureDevice(mouse_get_device(mouseId), 0, qobject_cast<Settings*>(Settings::settings));
 }
 
 static int get_axis(JoystickConfiguration& jc, int axis, int joystick_nr) {

@@ -282,5 +282,5 @@ void SettingsMachine::on_pushButtonConfigure_clicked() {
     // deviceconfig_inst_open
     int machineId = ui->comboBoxMachine->currentData().toInt();
     const auto* device = machine_getdevice(machineId);
-    DeviceConfig::ConfigureDevice(device);
+    DeviceConfig::ConfigureDevice(device, 0, qobject_cast<Settings*>(Settings::settings));
 }

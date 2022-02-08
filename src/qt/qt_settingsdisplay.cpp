@@ -93,11 +93,11 @@ void SettingsDisplay::onCurrentMachineChanged(int machineId) {
 
 void SettingsDisplay::on_pushButtonConfigure_clicked() {
     auto* device = video_card_getdevice(ui->comboBoxVideo->currentData().toInt());
-    DeviceConfig::ConfigureDevice(device);
+    DeviceConfig::ConfigureDevice(device, 0, qobject_cast<Settings*>(Settings::settings));
 }
 
 void SettingsDisplay::on_pushButtonConfigureVoodoo_clicked() {
-    DeviceConfig::ConfigureDevice(&voodoo_device);
+    DeviceConfig::ConfigureDevice(&voodoo_device, 0, qobject_cast<Settings*>(Settings::settings));
 }
 
 void SettingsDisplay::on_comboBoxVideo_currentIndexChanged(int index) {
