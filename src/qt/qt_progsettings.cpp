@@ -30,6 +30,7 @@
 extern "C"
 {
 #include <86box/86box.h>
+#include <86box/version.h>
 #include <86box/config.h>
 #include <86box/plat.h>
 }
@@ -120,6 +121,7 @@ void ProgSettings::accept()
     reloadStrings();
     update_mouse_msg();
     main_window->ui->retranslateUi(main_window);
+    main_window->setWindowTitle(QString("%1 - %2 %3").arg(vm_name, EMU_NAME, EMU_VERSION_FULL));
     QString msg = main_window->status->getMessage();
     main_window->status.reset(new MachineStatus(main_window));
     main_window->refreshMediaMenu();

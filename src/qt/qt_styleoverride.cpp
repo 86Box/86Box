@@ -31,7 +31,14 @@ int StyleOverride::styleHint(
 
 void StyleOverride::polish(QWidget* widget)
 {
+    QProxyStyle::polish(widget);
     /* Disable title bar context help buttons globally as they are unused. */
-    if (widget->isWindow())
+    if (widget->isWindow()) {
+        if (widget->layout() && widget->minimumSize() == widget->maximumSize()) {
+            widget->setFixedSize(QSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX));
+            widget->layout()->setSizeConstraint(QLayout::SetFixedSize);
+            widget->setWindowFlag(Qt::MSWindowsFixedSizeDialogHint, true);
+        }
         widget->setWindowFlag(Qt::WindowContextHelpButtonHint, false);
+    }
 }

@@ -28,6 +28,7 @@ public:
     ~Settings();
      void save();
 
+     static Settings* settings;
 protected slots:
      void accept() override;
 
