@@ -122,7 +122,11 @@ option(CPPTHREADS   "C++11 threads"                                             
 option(NEW_DYNAREC  "Use the PCem v15 (\"new\") dynamic recompiler"                 OFF)
 option(MINITRACE    "Enable Chrome tracing using the modified minitrace library"    OFF)
 option(DEV_BRANCH   "Development branch"                                            OFF)
+if(NOT WIN32)
+option(QT           "QT GUI"                                                        ON)
+else()
 option(QT           "QT GUI"                                                        OFF)
+endif()
 
 # Development branch features
 #
