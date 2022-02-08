@@ -317,7 +317,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Install dependencies
-        run: brew install freetype sdl2 libpng openal-soft rtmidi qt@5 && brew link qt@5
+        run: brew install freetype sdl2 libpng openal-soft rtmidi qt
       - name: Configure CMake
         run: >-
           cmake -S . -B build
@@ -326,6 +326,8 @@ jobs:
           -D NEW_DYNAREC=${{ matrix.build.new-dynarec }}
           -D VNC=OFF
           -D CMAKE_BUILD_TYPE=${{ matrix.build.type }}
+          -D QT=ON
+          -D USE_QT6=ON
       - name: Build
         run: cmake --build build
       - name: Generate package
