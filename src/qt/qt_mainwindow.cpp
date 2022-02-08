@@ -416,7 +416,10 @@ MainWindow::MainWindow(QWidget *parent) :
     }
 #endif
 
+#ifdef _WIN32
     ui->toolBar->setIconSize(QSize(16 * screen()->devicePixelRatio(), 16 * screen()->devicePixelRatio()));
+    ui->statusbar->resize(ui->statusbar->width(), ui->statusbar->sizeHint().height() * screen()->devicePixelRatio());
+#endif
 }
 
 void MainWindow::closeEvent(QCloseEvent *event) {
