@@ -18,8 +18,16 @@ cmake_minimum_required(VERSION 3.16)
 cmake_policy(SET CMP0091 NEW)
 cmake_policy(SET CMP0079 NEW)
 
-if (QT)
+if(QT)
     list(APPEND VCPKG_MANIFEST_FEATURES "qt-ui")
+endif()
+
+if(SLIRP_EXTERNAL)
+    list(APPEND VCPKG_MANIFEST_FEATURES "slirp")
+endif()
+
+if(MUNT_EXTERNAL)
+    list(APPEND VCPKG_MANIFEST_FEATURES "munt")
 endif()
 
 project(86Box
