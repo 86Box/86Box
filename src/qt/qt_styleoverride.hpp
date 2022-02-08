@@ -3,6 +3,7 @@
 
 #include <QProxyStyle>
 #include <QWidget>
+#include <QLayout>
 
 class StyleOverride : public QProxyStyle
 {

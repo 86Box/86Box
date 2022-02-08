@@ -18,6 +18,7 @@
  */
 #include "qt_deviceconfig.hpp"
 #include "ui_qt_deviceconfig.h"
+#include "qt_settings.hpp"
 
 #include <QDebug>
 #include <QComboBox>
@@ -47,8 +48,8 @@ DeviceConfig::~DeviceConfig()
     delete ui;
 }
 
-void DeviceConfig::ConfigureDevice(const _device_* device, int instance) {
-    DeviceConfig dc;
+void DeviceConfig::ConfigureDevice(const _device_* device, int instance, Settings* settings) {
+    DeviceConfig dc(settings);
     dc.setWindowTitle(QString("%1 Device Configuration").arg(device->name));
 
     device_context_t device_context;
