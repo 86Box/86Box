@@ -317,7 +317,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Install dependencies
-        run: brew install freetype sdl2 libpng openal-soft rtmidi qt
+        run: brew install freetype sdl2 libpng openal-soft rtmidi qt@5
       - name: Configure CMake
         run: >-
           cmake -S . -B build
@@ -327,7 +327,7 @@ jobs:
           -D VNC=OFF
           -D CMAKE_BUILD_TYPE=${{ matrix.build.type }}
           -D QT=ON
-          -D USE_QT6=ON
+          -D Qt5_DIR=/usr/local/opt/qt@5/lib/cmake/
       - name: Build
         run: cmake --build build
       - name: Generate package
