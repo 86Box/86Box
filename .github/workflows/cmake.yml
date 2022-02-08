@@ -317,7 +317,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Install dependencies
-        run: brew install freetype sdl2 libpng openal-soft rtmidi
+        run: brew install freetype sdl2 libpng openal-soft rtmidi qt@5 && brew link qt@5
       - name: Configure CMake
         run: >-
           cmake -S . -B build
