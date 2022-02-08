@@ -416,6 +416,8 @@ MainWindow::MainWindow(QWidget *parent) :
         });
     }
 #endif
+
+    ui->toolBar->setIconSize(QSize(16 * screen()->devicePixelRatio(), 16 * screen()->devicePixelRatio()));
 }
 
 void MainWindow::closeEvent(QCloseEvent *event) {

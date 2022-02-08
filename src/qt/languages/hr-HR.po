@@ -29,7 +29,7 @@ msgid "&Hide status bar"
 msgstr "&Sakrij statusni redak"
 
 msgid "Hide &toolbar"
-msgstr "Hide &toolbar"
+msgstr "&Sakrij alatni redak"
 
 msgid "&Resizeable window"
 msgstr "&Prozor s promjenjivim veličinama"
@@ -926,22 +926,22 @@ msgid "OpenGL (3.0 Core) renderer could not be initialized. Use another renderer
 msgstr "Nije moguće inicijalizirati OpenGL (3.0 jezgra) renderer. Molimte koristite drugi renderer."
 
 msgid "Resume execution"
-msgstr "Resume execution"
+msgstr "Nastavi"
 
 msgid "Pause execution"
-msgstr "Pause execution"
+msgstr "Pauziraj"
 
 msgid "Press Ctrl+Alt+Del"
-msgstr "Press Ctrl+Alt+Del"
+msgstr "Stisni Ctrl+Alt+Del"
 
 msgid "Press Ctrl+Alt+Esc"
-msgstr "Press Ctrl+Alt+Esc"
+msgstr "Stisni Ctrl+Alt+Esc"
 
 msgid "Hard reset"
-msgstr "Hard reset"
+msgstr "Ponovno pokretanje"
 
 msgid "ACPI shutdown"
-msgstr "ACPI shutdown"
+msgstr "ACPI bazirano gašenje"
 
 msgid "Hard disk (%s)"
 msgstr "Tvrdi disk (%s)"
