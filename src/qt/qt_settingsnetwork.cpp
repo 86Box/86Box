@@ -1,3 +1,19 @@
+/*
+ * 86Box	A hypervisor and IBM PC system emulator that specializes in
+ *		running old operating systems and software designed for IBM
+ *		PC systems and compatibles from 1981 through fairly recent
+ *		system designs based on the PCI bus.
+ *
+ *		This file is part of the 86Box distribution.
+ *
+ *		Network devices configuration UI module.
+ *
+ *
+ *
+ * Authors:	Joakim L. Gilje <jgilje@jgilje.net>
+ *
+ *		Copyright 2021 Joakim L. Gilje
+ */
 #include "qt_settingsnetwork.hpp"
 #include "ui_qt_settingsnetwork.h"
 
@@ -108,6 +124,6 @@ void SettingsNetwork::on_comboBoxAdapter_currentIndexChanged(int index) {
 }
 
 void SettingsNetwork::on_pushButtonConfigure_clicked() {
-    DeviceConfig::ConfigureDevice(network_card_getdevice(ui->comboBoxAdapter->currentData().toInt()));
+    DeviceConfig::ConfigureDevice(network_card_getdevice(ui->comboBoxAdapter->currentData().toInt()), 0, qobject_cast<Settings*>(Settings::settings));
 }
 

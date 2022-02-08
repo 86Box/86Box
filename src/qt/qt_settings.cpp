@@ -1,3 +1,21 @@
+/*
+ * 86Box	A hypervisor and IBM PC system emulator that specializes in
+ *		running old operating systems and software designed for IBM
+ *		PC systems and compatibles from 1981 through fairly recent
+ *		system designs based on the PCI bus.
+ *
+ *		This file is part of the 86Box distribution.
+ *
+ *		Program settings UI module.
+ *
+ *
+ *
+ * Authors: Joakim L. Gilje <jgilje@jgilje.net>
+ *          Cacodemon345
+ *
+ *      Copyright 2021 Joakim L. Gilje
+ *      Copyright 2021-2022 Cacodemon345
+ */
 #include "qt_settings.hpp"
 #include "ui_qt_settings.h"
 
@@ -79,6 +97,7 @@ int SettingsModel::rowCount(const QModelIndex &parent) const {
     return pages.size();
 }
 
+Settings* Settings::settings = nullptr;;
 Settings::Settings(QWidget *parent) :
     QDialog(parent),
     ui(new Ui::Settings)
@@ -124,6 +143,8 @@ Settings::Settings(QWidget *parent) :
     connect(ui->listView->selectionModel(), &QItemSelectionModel::currentChanged, this, [this](const QModelIndex &current, const QModelIndex &previous) {
         ui->stackedWidget->setCurrentIndex(current.row());
     });
+
+    Settings::settings = this;
 }
 
 Settings::~Settings()
@@ -131,6 +152,7 @@ Settings::~Settings()
     delete ui;
     delete Harddrives::busTrackClass;
     Harddrives::busTrackClass = nullptr;
+    Settings::settings = nullptr;
 }
 
 void Settings::save() {

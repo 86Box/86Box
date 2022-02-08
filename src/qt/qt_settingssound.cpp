@@ -1,3 +1,19 @@
+/*
+ * 86Box	A hypervisor and IBM PC system emulator that specializes in
+ *		running old operating systems and software designed for IBM
+ *		PC systems and compatibles from 1981 through fairly recent
+ *		system designs based on the PCI bus.
+ *
+ *		This file is part of the 86Box distribution.
+ *
+ *		Sound/MIDI devices configuration UI module.
+ *
+ *
+ *
+ * Authors:	Joakim L. Gilje <jgilje@jgilje.net>
+ *
+ *		Copyright 2021 Joakim L. Gilje
+ */
 #include "qt_settingssound.hpp"
 #include "ui_qt_settingssound.h"
 
@@ -161,7 +177,7 @@ void SettingsSound::on_comboBoxSoundCard_currentIndexChanged(int index) {
 
 
 void SettingsSound::on_pushButtonConfigureSoundCard_clicked() {
-    DeviceConfig::ConfigureDevice(sound_card_getdevice(ui->comboBoxSoundCard->currentData().toInt()));
+    DeviceConfig::ConfigureDevice(sound_card_getdevice(ui->comboBoxSoundCard->currentData().toInt()), 0, qobject_cast<Settings*>(Settings::settings));
 }
 
 void SettingsSound::on_comboBoxMidiOut_currentIndexChanged(int index) {
@@ -174,7 +190,7 @@ void SettingsSound::on_comboBoxMidiOut_currentIndexChanged(int index) {
 }
 
 void SettingsSound::on_pushButtonConfigureMidiOut_clicked() {
-    DeviceConfig::ConfigureDevice(midi_device_getdevice(ui->comboBoxMidiOut->currentData().toInt()));
+    DeviceConfig::ConfigureDevice(midi_device_getdevice(ui->comboBoxMidiOut->currentData().toInt()), 0, qobject_cast<Settings*>(Settings::settings));
 }
 
 void SettingsSound::on_comboBoxMidiIn_currentIndexChanged(int index) {
@@ -187,7 +203,7 @@ void SettingsSound::on_comboBoxMidiIn_currentIndexChanged(int index) {
 }
 
 void SettingsSound::on_pushButtonConfigureMidiIn_clicked() {
-    DeviceConfig::ConfigureDevice(midi_in_device_getdevice(ui->comboBoxMidiIn->currentData().toInt()));
+    DeviceConfig::ConfigureDevice(midi_in_device_getdevice(ui->comboBoxMidiIn->currentData().toInt()), 0, qobject_cast<Settings*>(Settings::settings));
 }
 
 void SettingsSound::on_checkBoxMPU401_stateChanged(int state) {
@@ -208,20 +224,20 @@ void SettingsSound::on_checkBoxGUS_stateChanged(int state) {
 
 void SettingsSound::on_pushButtonConfigureMPU401_clicked() {
     if (machine_has_bus(machineId, MACHINE_BUS_MCA) > 0) {
-        DeviceConfig::ConfigureDevice(&mpu401_mca_device);
+        DeviceConfig::ConfigureDevice(&mpu401_mca_device, 0, qobject_cast<Settings*>(Settings::settings));
     } else {
-        DeviceConfig::ConfigureDevice(&mpu401_device);
+        DeviceConfig::ConfigureDevice(&mpu401_device, 0, qobject_cast<Settings*>(Settings::settings));
     }
 }
 
 void SettingsSound::on_pushButtonConfigureSSI2001_clicked() {
-    DeviceConfig::ConfigureDevice(&ssi2001_device);
+    DeviceConfig::ConfigureDevice(&ssi2001_device, 0, qobject_cast<Settings*>(Settings::settings));
 }
 
 void SettingsSound::on_pushButtonConfigureCMS_clicked() {
-    DeviceConfig::ConfigureDevice(&cms_device);
+    DeviceConfig::ConfigureDevice(&cms_device, 0, qobject_cast<Settings*>(Settings::settings));
 }
 
 void SettingsSound::on_pushButtonConfigureGUS_clicked() {
-    DeviceConfig::ConfigureDevice(&gus_device);
+    DeviceConfig::ConfigureDevice(&gus_device, 0, qobject_cast<Settings*>(Settings::settings));
 }

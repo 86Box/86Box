@@ -32,7 +32,7 @@ BEGIN
     POPUP "&Pogled"
     BEGIN
         MENUITEM "&Sakrij statusni redak",		IDM_VID_HIDE_STATUS_BAR
-        MENUITEM "Hide &toolbar",		IDM_VID_HIDE_TOOLBAR
+        MENUITEM "&Sakrij alatni redak",		IDM_VID_HIDE_TOOLBAR
         MENUITEM SEPARATOR
         MENUITEM "&Prozor s promjenjivim veličinama",          IDM_VID_RESIZE
         MENUITEM "&Zapamtite veličinu i položaj",  IDM_VID_REMEMBER
@@ -112,43 +112,6 @@ BEGIN
         MENUITEM "&Svrši praćenje\tCtrl+T",           IDM_ACTION_END_TRACE
 #endif
     END
-#if defined(ENABLE_LOG_TOGGLES) || defined(ENABLE_LOG_COMMANDS)
-    POPUP "&Logging"
-    BEGIN
-# ifdef ENABLE_BUSLOGIC_LOG
-        MENUITEM "Omogući bilježenje za BusLogic\tCtrl+F4", IDM_LOG_BUSLOGIC
-# endif
-# ifdef ENABLE_CDROM_LOG
-        MENUITEM "Omogući bilježenje za CD-ROM\tCtrl+F5", IDM_LOG_CDROM
-# endif
-# ifdef ENABLE_D86F_LOG
-        MENUITEM "Omogući bilježenje za diskete (86F)\tCtrl+F6", IDM_LOG_D86F
-# endif
-# ifdef ENABLE_FDC_LOG
-        MENUITEM "Omogući bilježenje za disketni krmilnik\tCtrl+F7", IDM_LOG_FDC
-# endif
-# ifdef ENABLE_IDE_LOG
-        MENUITEM "Omogući bilježenje za IDE\tCtrl+F8", IDM_LOG_IDE
-# endif
-# ifdef ENABLE_SERIAL_LOG
-        MENUITEM "Omogući bilježenje za serijska vrata\tCtrl+F3", IDM_LOG_SERIAL
-# endif
-# ifdef ENABLE_NIC_LOG
-        MENUITEM "Omogući bilježenje za omrežje\tCtrl+F9", IDM_LOG_NIC
-# endif
-# ifdef ENABLE_LOG_COMMANDS
-#  ifdef ENABLE_LOG_TOGGLES
-	MENUITEM SEPARATOR
-#  endif
-#  ifdef ENABLE_LOG_BREAKPOINT
-        MENUITEM "&Zabilježi prekidnu točku\tCtrl+F10", IDM_LOG_BREAKPOINT
-#  endif
-#  ifdef ENABLE_VRAM_DUMP
-        MENUITEM "&Ispiši memoriju zaslona\tCtrl+F1", IDM_DUMP_VRAM
-#  endif
-# endif
-    END
-#endif
     POPUP "&Pomoć"
     BEGIN
         MENUITEM "&Dokumentacija...",           IDM_DOCS
@@ -540,13 +503,13 @@ BEGIN
     IDS_2151	"Slike kasete (*.A;*.B;*.JRC)\0*.A;*.B;*.JRC\0Sve datoteke (*.*)\0*.*\0"
     IDS_2152	"Nije moguće inicijalizirati renderer"
     IDS_2153	"Nije moguće inicijalizirati OpenGL (3.0 jezgra) renderer. Molimte koristite drugi renderer."
-    IDS_2154	"Resume execution"
-    IDS_2155	"Pause execution"
-    IDS_2156	"Press Ctrl+Alt+Del"
-    IDS_2157	"Press Ctrl+Alt+Esc"
-    IDS_2158	"Hard reset"
-    IDS_2159	"ACPI shutdown"
-    IDS_2160	"Settings"
+    IDS_2154	"Nastavi"
+    IDS_2155	"Pauziraj"
+    IDS_2156	"Stisni Ctrl+Alt+Del"
+    IDS_2157	"Stisni Ctrl+Alt+Esc"
+    IDS_2158	"Ponovno pokretanje"
+    IDS_2159	"ACPI bazirano gašenje"
+    IDS_2160	"Postavke"
 END
 
 STRINGTABLE DISCARDABLE 

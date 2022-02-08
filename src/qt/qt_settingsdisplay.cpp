@@ -1,3 +1,19 @@
+/*
+ * 86Box	A hypervisor and IBM PC system emulator that specializes in
+ *		running old operating systems and software designed for IBM
+ *		PC systems and compatibles from 1981 through fairly recent
+ *		system designs based on the PCI bus.
+ *
+ *		This file is part of the 86Box distribution.
+ *
+ *		Display settings UI module.
+ *
+ *
+ *
+ * Authors:	Joakim L. Gilje <jgilje@jgilje.net>
+ *
+ *		Copyright 2021 Joakim L. Gilje
+ */
 #include "qt_settingsdisplay.hpp"
 #include "ui_qt_settingsdisplay.h"
 
@@ -77,11 +93,11 @@ void SettingsDisplay::onCurrentMachineChanged(int machineId) {
 
 void SettingsDisplay::on_pushButtonConfigure_clicked() {
     auto* device = video_card_getdevice(ui->comboBoxVideo->currentData().toInt());
-    DeviceConfig::ConfigureDevice(device);
+    DeviceConfig::ConfigureDevice(device, 0, qobject_cast<Settings*>(Settings::settings));
 }
 
 void SettingsDisplay::on_pushButtonConfigureVoodoo_clicked() {
-    DeviceConfig::ConfigureDevice(&voodoo_device);
+    DeviceConfig::ConfigureDevice(&voodoo_device, 0, qobject_cast<Settings*>(Settings::settings));
 }
 
 void SettingsDisplay::on_comboBoxVideo_currentIndexChanged(int index) {

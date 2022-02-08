@@ -178,36 +178,6 @@ msgstr "Z&ačni sledenje\tCtrl+T"
 msgid "End trace\tCtrl+T"
 msgstr "&Končaj sledenje\tCtrl+T"
 
-msgid "&Logging"
-msgstr "&Beleženje"
-
-msgid "Enable BusLogic logs\tCtrl+F4"
-msgstr "Omogoči beleženje za BusLogic\tCtrl+F4"
-
-msgid "Enable CD-ROM logs\tCtrl+F5"
-msgstr "Omogoči beleženje za CD-ROM\tCtrl+F5"
-
-msgid "Enable floppy (86F) logs\tCtrl+F6"
-msgstr "Omogoči beleženje za diskete (86F)\tCtrl+F6"
-
-msgid "Enable floppy controller logs\tCtrl+F7"
-msgstr "Omogoči beleženje za disketni krmilnik\tCtrl+F7"
-
-msgid "Enable IDE logs\tCtrl+F8"
-msgstr "Omogoči beleženje za IDE\tCtrl+F8"
-
-msgid "Enable Serial Port logs\tCtrl+F3"
-msgstr "Omogoči beleženje za serijska vrata\tCtrl+F3"
-
-msgid "Enable Network logs\tCtrl+F9"
-msgstr "Omogoči beleženje za omrežje\tCtrl+F9"
-
-msgid "&Log breakpoint\tCtrl+F10"
-msgstr "&Zabeleži prelomno točko\tCtrl+F10"
-
-msgid "Dump &video RAM\tCtrl+F1"
-msgstr "&Izvozi pomnilnik zaslona\tCtrl+F1"
-
 msgid "&Help"
 msgstr "&Pomoč"
 

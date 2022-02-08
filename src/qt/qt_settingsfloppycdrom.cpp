@@ -1,3 +1,21 @@
+/*
+ * 86Box	A hypervisor and IBM PC system emulator that specializes in
+ *		running old operating systems and software designed for IBM
+ *		PC systems and compatibles from 1981 through fairly recent
+ *		system designs based on the PCI bus.
+ *
+ *		This file is part of the 86Box distribution.
+ *
+ *		Floppy/CD-ROM devices configuration UI module.
+ *
+ *
+ *
+ * Authors:	Joakim L. Gilje <jgilje@jgilje.net>
+ *          Cacodemon345
+ *
+ *      Copyright 2021-2022 Cacodemon345
+ *		Copyright 2021 Joakim L. Gilje
+ */
 #include "qt_settingsfloppycdrom.hpp"
 #include "ui_qt_settingsfloppycdrom.h"
 
@@ -173,8 +191,8 @@ void SettingsFloppyCDROM::onCDROMRowChanged(const QModelIndex &current) {
     if (! match.isEmpty()) {
         ui->comboBoxChannel->setCurrentIndex(match.first().row());
     }
-    else ui->comboBoxChannel->setCurrentIndex(8);
-    ui->comboBoxSpeed->setCurrentIndex(speed - 1);
+
+    ui->comboBoxSpeed->setCurrentIndex(speed == 0 ? 7 : speed - 1);
 }
 
 void SettingsFloppyCDROM::on_checkBoxTurboTimings_stateChanged(int arg1) {

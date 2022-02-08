@@ -1,3 +1,21 @@
+/*
+ * 86Box	A hypervisor and IBM PC system emulator that specializes in
+ *		running old operating systems and software designed for IBM
+ *		PC systems and compatibles from 1981 through fairly recent
+ *		system designs based on the PCI bus.
+ *
+ *		This file is part of the 86Box distribution.
+ *
+ *		Common UI functions.
+ *
+ *
+ *
+ * Authors:	Joakim L. Gilje <jgilje@jgilje.net>
+ *          Cacodemon345
+ *
+ *		Copyright 2021 Joakim L. Gilje
+ *      Copyright 2021-2022 Cacodemon345
+ */
 #include <cstdint>
 
 #include <QDebug>
@@ -9,6 +27,8 @@
 #include "qt_mainwindow.hpp"
 
 MainWindow* main_window = nullptr;
+
+static QString sb_text, sb_buguitext, sb_mt32lcdtext;
 
 extern "C" {
 
@@ -78,8 +98,24 @@ int	ui_msgbox(int flags, void *message) {
     return ui_msgbox_header(flags, nullptr, message);
 }
 
+void ui_sb_update_text() {
+    emit main_window->statusBarMessage( !sb_mt32lcdtext.isEmpty() ? sb_mt32lcdtext : sb_text.isEmpty() ? sb_buguitext : sb_text);
+}
+
+void ui_sb_mt32lcd(char* str)
+{
+    sb_mt32lcdtext = QString(str);
+    ui_sb_update_text();
+}
+
 void ui_sb_set_text_w(wchar_t *wstr) {
-    main_window->statusBar()->showMessage(QString::fromWCharArray(wstr));
+    sb_text = QString::fromWCharArray(wstr);
+    ui_sb_update_text();
+}
+
+void ui_sb_set_text(char *str) {
+    sb_text = str;
+    ui_sb_update_text();
 }
 
 void
@@ -93,11 +129,15 @@ ui_sb_update_panes() {
 }
 
 void ui_sb_bugui(char *str) {
-    main_window->statusBarMessage(str);
+    sb_buguitext = str;
+    ui_sb_update_text();;
 }
 
 void ui_sb_set_ready(int ready) {
-    qDebug() << Q_FUNC_INFO << ready;
+    if (ready == 0) {
+        ui_sb_bugui(nullptr);
+        ui_sb_set_text(nullptr);
+    }
 }
 
 void

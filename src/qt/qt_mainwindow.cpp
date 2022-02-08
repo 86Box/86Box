@@ -1,3 +1,25 @@
+/*
+ * 86Box	A hypervisor and IBM PC system emulator that specializes in
+ *		running old operating systems and software designed for IBM
+ *		PC systems and compatibles from 1981 through fairly recent
+ *		system designs based on the PCI bus.
+ *
+ *		This file is part of the 86Box distribution.
+ *
+ *		Main window module.
+ *
+ *
+ *
+ * Authors:	Joakim L. Gilje <jgilje@jgilje.net>
+ *          Cacodemon345
+ *          Teemu Korhonen
+ *          dob205
+ *
+ *		Copyright 2021 Joakim L. Gilje
+ *      Copyright 2021-2022 Cacodemon345
+ *      Copyright 2021-2022 Teemu Korhonen
+ *      Copyright 2022 dob205
+ */
 #include "qt_mainwindow.hpp"
 #include "ui_qt_mainwindow.h"
 
@@ -88,7 +110,15 @@ MainWindow::MainWindow(QWidget *parent) :
     auto toolbar_label = new QLabel();
     ui->toolBar->addWidget(toolbar_label);
 
+#ifdef RELEASE_BUILD
+    this->setWindowIcon(QIcon(":/settings/win/icons/86Box-green.ico"));
+#elif defined ALPHA_BUILD
+    this->setWindowIcon(QIcon(":/settings/win/icons/86Box-red.ico"));
+#elif defined BETA_BUILD
     this->setWindowIcon(QIcon(":/settings/win/icons/86Box-yellow.ico"));
+#else
+    this->setWindowIcon(QIcon(":/settings/win/icons/86Box-gray.ico"));
+#endif
     this->setWindowFlag(Qt::MSWindowsFixedSizeDialogHint, vid_resize != 1);
     this->setWindowFlag(Qt::WindowMaximizeButtonHint, vid_resize == 1);
 
@@ -347,7 +377,6 @@ MainWindow::MainWindow(QWidget *parent) :
 
 #ifdef MTR_ENABLED
     {
-        ui->menuTools->addSeparator();
         ui->actionBegin_trace->setVisible(true);
         ui->actionEnd_trace->setVisible(true);
         ui->actionBegin_trace->setShortcut(QKeySequence(Qt::Key_Control + Qt::Key_T));
@@ -386,6 +415,8 @@ MainWindow::MainWindow(QWidget *parent) :
         });
     }
 #endif
+
+    ui->toolBar->setIconSize(QSize(16 * screen()->devicePixelRatio(), 16 * screen()->devicePixelRatio()));
 }
 
 void MainWindow::closeEvent(QCloseEvent *event) {
@@ -1407,7 +1438,15 @@ void MainWindow::on_actionAbout_86Box_triggered()
     {
         QDesktopServices::openUrl(QUrl("https://86box.net/"));
     });
+#ifdef RELEASE_BUILD
+    msgBox.setIconPixmap(QIcon(":/settings/win/icons/86Box-green.ico").pixmap(32, 32));
+#elif defined ALPHA_BUILD
+    msgBox.setIconPixmap(QIcon(":/settings/win/icons/86Box-red.ico").pixmap(32, 32));
+#elif defined BETA_BUILD
     msgBox.setIconPixmap(QIcon(":/settings/win/icons/86Box-yellow.ico").pixmap(32, 32));
+#else
+    msgBox.setIconPixmap(QIcon(":/settings/win/icons/86Box-gray.ico").pixmap(32, 32));
+#endif
     msgBox.setWindowFlags(Qt::Dialog | Qt::CustomizeWindowHint | Qt::WindowTitleHint | Qt::WindowCloseButtonHint);
     msgBox.exec();
 }

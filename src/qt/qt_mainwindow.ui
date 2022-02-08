@@ -317,7 +317,7 @@
     <string>&amp;Settings...</string>
    </property>
    <property name="menuRole">
-    <enum>QAction::PreferencesRole</enum>
+    <enum>QAction::NoRole</enum>
    </property>
    <property name="iconVisibleInMenu">
     <bool>false</bool>
@@ -632,7 +632,7 @@
     <string>&amp;Preferences...</string>
    </property>
    <property name="menuRole">
-    <enum>QAction::NoRole</enum>
+    <enum>QAction::PreferencesRole</enum>
    </property>
   </action>
   <action name="actionEnable_Discord_integration">
@@ -648,7 +648,7 @@
     <bool>true</bool>
    </property>
    <property name="text">
-    <string>Hide tool bar</string>
+    <string>Hide &amp;toolbar</string>
    </property>
    <property name="toolTip">
     <string>Hide tool bar</string>

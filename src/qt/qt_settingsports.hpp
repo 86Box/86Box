@@ -21,6 +21,8 @@ private slots:
     void on_checkBoxParallel2_stateChanged(int arg1);
     void on_checkBoxParallel1_stateChanged(int arg1);
 
+    void on_checkBoxParallel4_stateChanged(int arg1);
+
 private:
     Ui::SettingsPorts *ui;
 };
