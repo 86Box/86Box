@@ -18,8 +18,16 @@ cmake_minimum_required(VERSION 3.16)
 cmake_policy(SET CMP0091 NEW)
 cmake_policy(SET CMP0079 NEW)
 
-if (QT)
+if(QT)
     list(APPEND VCPKG_MANIFEST_FEATURES "qt-ui")
+endif()
+
+if(SLIRP_EXTERNAL)
+    list(APPEND VCPKG_MANIFEST_FEATURES "slirp")
+endif()
+
+if(MUNT_EXTERNAL)
+    list(APPEND VCPKG_MANIFEST_FEATURES "munt")
 endif()
 
 project(86Box
@@ -114,7 +122,11 @@ option(CPPTHREADS   "C++11 threads"                                             
 option(NEW_DYNAREC  "Use the PCem v15 (\"new\") dynamic recompiler"                 OFF)
 option(MINITRACE    "Enable Chrome tracing using the modified minitrace library"    OFF)
 option(DEV_BRANCH   "Development branch"                                            OFF)
+if(NOT WIN32)
+option(QT           "QT GUI"                                                        ON)
+else()
 option(QT           "QT GUI"                                                        OFF)
+endif()
 
 # Development branch features
 #

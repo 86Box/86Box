@@ -260,6 +260,7 @@ jobs:
           -D DEV_BRANCH=${{ matrix.build.dev-build }}
           -D NEW_DYNAREC=${{ matrix.build.new-dynarec }}
           -D VNC=OFF
+          -D QT=OFF
           -D CMAKE_BUILD_TYPE=${{ matrix.build.type }}
           -D CMAKE_C_COMPILER=gcc-11 -D CMAKE_CXX_COMPILER=g++-11
       - name: Build
@@ -316,7 +317,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Install dependencies
-        run: brew install freetype sdl2 libpng openal-soft rtmidi
+        run: brew install freetype sdl2 libpng openal-soft rtmidi qt@5
       - name: Configure CMake
         run: >-
           cmake -S . -B build
@@ -325,6 +326,9 @@ jobs:
           -D NEW_DYNAREC=${{ matrix.build.new-dynarec }}
           -D VNC=OFF
           -D CMAKE_BUILD_TYPE=${{ matrix.build.type }}
+          -D QT=ON
+          -D Qt5_DIR=/usr/local/Cellar/qt@5/5.15.2/lib/cmake/
+          -D Qt5LinguistTools_DIR=/usr/local/Cellar/qt@5/5.15.2/lib/cmake/Qt5LinguistTools/
       - name: Build
         run: cmake --build build
       - name: Generate package

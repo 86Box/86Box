@@ -29,7 +29,7 @@ msgid "&Hide status bar"
 msgstr "&Statusleiste ausblenden"
 
 msgid "Hide &toolbar"
-msgstr "Hide &toolbar"
+msgstr "Werkzeugleiste &ausblenden"
 
 msgid "&Resizeable window"
 msgstr "&Größenverstellbares Fenster"
@@ -320,7 +320,7 @@ msgid "Machine type:"
 msgstr "Systemtyp:"
 
 msgid "Machine:"
-msgstr "Maschine:"
+msgstr "System:"
 
 msgid "Configure"
 msgstr "Einstellen"
@@ -812,7 +812,7 @@ msgid "Do you want to save the settings?"
 msgstr "Möchten Sie die Einstellungen speichern?"
 
 msgid "This will hard reset the emulated machine."
-msgstr "Dies wird zu einem Hard-Reset der emulierten Maschine führen."
+msgstr "Dies wird zu einem Hard-Reset des emulierten Systems führen."
 
 msgid "Save"
 msgstr "Speichern"
@@ -926,22 +926,22 @@ msgid "OpenGL (3.0 Core) renderer could not be initialized. Use another renderer
 msgstr "Der OpenGL (3.0-Kern)-Renderer konnte nicht initialisiert werden. Bitte benutzen Sie einen anderen Renderer."
 
 msgid "Resume execution"
-msgstr "Resume execution"
+msgstr "Fortsetzen"
 
 msgid "Pause execution"
-msgstr "Pause execution"
+msgstr "Pausieren"
 
 msgid "Press Ctrl+Alt+Del"
-msgstr "Press Ctrl+Alt+Del"
+msgstr "Strg+Alt+Entf drücken"
 
 msgid "Press Ctrl+Alt+Esc"
-msgstr "Press Ctrl+Alt+Esc"
+msgstr "Strg+Alt+Esc drücken"
 
 msgid "Hard reset"
-msgstr "Hard reset"
+msgstr "Hard-Reset"
 
 msgid "ACPI shutdown"
-msgstr "ACPI shutdown"
+msgstr "ACPI-basiertes Herunterfahren"
 
 msgid "Hard disk (%s)"
 msgstr "Festplatte (%s)"

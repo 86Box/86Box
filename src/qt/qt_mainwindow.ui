@@ -648,7 +648,7 @@
     <bool>true</bool>
    </property>
    <property name="text">
-    <string>Hide tool bar</string>
+    <string>Hide &amp;toolbar</string>
    </property>
    <property name="toolTip">
     <string>Hide tool bar</string>
