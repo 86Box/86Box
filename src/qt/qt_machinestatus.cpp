@@ -145,7 +145,7 @@ namespace {
         }
     };
 
-    static const QSize pixmap_size(16, 16);
+    static QSize pixmap_size(16, 16);
     static const QString pixmap_empty = QStringLiteral("_empty");
     static const QString pixmap_active = QStringLiteral("_active");
     static const QString pixmap_empty_active = QStringLiteral("_empty_active");
@@ -171,6 +171,7 @@ struct MachineStatus::States {
     Pixmaps pixmaps;
 
     States(QObject* parent) {
+        pixmap_size = QSize(16, 16) * qobject_cast<MainWindow*>(parent->parent())->screen()->devicePixelRatio();
         pixmaps.cartridge.load("/cartridge%1.ico");
         pixmaps.cassette.load("/cassette%1.ico");
         pixmaps.floppy_disabled.normal = ProgSettings::loadIcon(QStringLiteral("/floppy_disabled.ico")).pixmap(pixmap_size);

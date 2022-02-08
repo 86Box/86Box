@@ -366,10 +366,10 @@ sound_realloc_buffers(void)
 
     if (sound_is_float) {
         outbuffer_ex = calloc(SOUNDBUFLEN * 2, sizeof(float));
-	memset(outbuffer_ex, 0x00, SOUNDBUFLEN * 2, sizeof(float));
+	memset(outbuffer_ex, 0x00, SOUNDBUFLEN * 2 * sizeof(float));
     } else {
         outbuffer_ex_int16 = calloc(SOUNDBUFLEN * 2, sizeof(int16_t));
-	memset(outbuffer_ex_int16, 0x00, SOUNDBUFLEN * 2, sizeof(int16_t));
+	memset(outbuffer_ex_int16, 0x00, SOUNDBUFLEN * 2 * sizeof(int16_t));
     }
 }
 
@@ -385,7 +385,7 @@ sound_init(void)
 
     outbuffer = NULL;
     outbuffer = calloc(SOUNDBUFLEN * 2, sizeof(int32_t));
-    memset(outbuffer, 0x00, SOUNDBUFLEN * 2, sizeof(int32_t));
+    memset(outbuffer, 0x00, SOUNDBUFLEN * 2 * sizeof(int32_t));
 
     for (i = 0; i < CDROM_NUM; i++) {
 	if (cdrom[i].bus_type != CDROM_BUS_DISABLED)
