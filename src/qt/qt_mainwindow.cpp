@@ -419,6 +419,7 @@ MainWindow::MainWindow(QWidget *parent) :
 #ifdef _WIN32
     ui->toolBar->setIconSize(QSize(16 * screen()->devicePixelRatio(), 16 * screen()->devicePixelRatio()));
 #endif
+    setContextMenuPolicy(Qt::PreventContextMenu);
 }
 
 void MainWindow::closeEvent(QCloseEvent *event) {
