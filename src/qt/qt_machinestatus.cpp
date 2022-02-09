@@ -172,9 +172,6 @@ struct MachineStatus::States {
     Pixmaps pixmaps;
 
     States(QObject* parent) {
-#ifdef _WIN32
-        pixmap_size = QSize(16, 16) * qobject_cast<MainWindow*>(parent->parent())->screen()->devicePixelRatio();
-#endif
         pixmaps.cartridge.load("/cartridge%1.ico");
         pixmaps.cassette.load("/cassette%1.ico");
         pixmaps.floppy_disabled.normal = ProgSettings::loadIcon(QStringLiteral("/floppy_disabled.ico")).pixmap(pixmap_size);
