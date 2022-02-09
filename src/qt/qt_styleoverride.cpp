@@ -35,7 +35,8 @@ void StyleOverride::polish(QWidget* widget)
     /* Disable title bar context help buttons globally as they are unused. */
     if (widget->isWindow()) {
         if (widget->layout() && widget->minimumSize() == widget->maximumSize()) {
-            if (widget->minimumSize() < widget->minimumSizeHint()) {
+            if (widget->minimumSize().width() < widget->minimumSizeHint().width()
+		|| widget->minimumSize().height() < widget->minimumSizeHint().height()) {
                 widget->setFixedSize(QSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX));
                 widget->layout()->setSizeConstraint(QLayout::SetFixedSize);
             }
