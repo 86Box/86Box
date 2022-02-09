@@ -229,7 +229,7 @@ else
 	# ...and the ones we do want listed. Non-dev packages fill missing spots on the list.
 	libpkgs=""
 	longest_libpkg=0
-	for pkg in libc6-dev libstdc++6 libopenal-dev libfreetype6-dev libx11-dev libsdl2-dev libpng-dev librtmidi-dev qtdeclarative5-dev libwayland-dev libevdev-dev libglib2.0-dev
+	for pkg in libc6-dev libstdc++6 libopenal-dev libfreetype6-dev libx11-dev libsdl2-dev libpng-dev librtmidi-dev qtdeclarative5-dev libwayland-dev libevdev-dev libglib2.0-dev libslirp-dev
 	do
 		libpkgs="$libpkgs $pkg:$arch_deb"
 		length=$(echo -n $pkg | sed 's/-dev$//' | sed "s/qtdeclarative/qt/" | wc -c)
@@ -280,6 +280,9 @@ EOF
 	sudo apt-get update
 	DEBIAN_FRONTEND=noninteractive sudo apt-get -y install $pkgs $libpkgs
 	sudo apt-get clean
+
+	# Link against the system libslirp instead of compiling ours.
+	cmake_flags_extra="$cmake_flags_extra -D SLIRP_EXTERNAL=ON"
 fi
 
 # Clean workspace.
