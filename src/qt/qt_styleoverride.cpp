@@ -16,6 +16,9 @@
  */
 #include "qt_styleoverride.hpp"
 
+#include <QComboBox>
+#include <QAbstractItemView>
+
 int StyleOverride::styleHint(
         StyleHint hint,
         const QStyleOption *option,
@@ -43,5 +46,10 @@ void StyleOverride::polish(QWidget* widget)
             widget->setWindowFlag(Qt::MSWindowsFixedSizeDialogHint, true);
         }
         widget->setWindowFlag(Qt::WindowContextHelpButtonHint, false);
+    }
+
+    if (qobject_cast<QComboBox*>(widget)) {
+        widget->setMinimumWidth(widget->minimumSizeHint().width());
+        qobject_cast<QComboBox*>(widget)->view()->setMinimumWidth(widget->minimumSizeHint().width());
     }
 }
