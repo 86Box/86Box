@@ -47,6 +47,7 @@ extern uint64_t		tsc;
 #include <QTimer>
 #include <QStatusBar>
 #include <QMenu>
+#include <QScreen>
 
 #include "qt_mediamenu.hpp"
 #include "qt_mainwindow.hpp"
