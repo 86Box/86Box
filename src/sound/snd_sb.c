@@ -1271,9 +1271,9 @@ sb_1_init(const device_t *info)
     /* SB1/2 port mappings, 210h to 260h in 10h steps
        2x0 to 2x3 -> CMS chip
        2x6, 2xA, 2xC, 2xE -> DSP chip
-       2x8, 2x9, 388 and 389 FM chip*/
+       2x8, 2x9, 388 and 389 FM chip */
     sb_t *sb = malloc(sizeof(sb_t));
-    uint16_t addr = device_get_config_hex16("base");        
+    uint16_t addr = device_get_config_hex16("base");
     memset(sb, 0, sizeof(sb_t));
 
     sb->opl_enabled = device_get_config_int("opl");
@@ -1354,9 +1354,9 @@ sb_15_init(const device_t *info)
 void *
 sb_mcv_init(const device_t *info)
 {
-    /*SB1/2 port mappings, 210h to 260h in 10h steps
-      2x6, 2xA, 2xC, 2xE -> DSP chip
-      2x8, 2x9, 388 and 389 FM chip */
+    /* SB1/2 port mappings, 210h to 260h in 10h steps
+       2x6, 2xA, 2xC, 2xE -> DSP chip
+       2x8, 2x9, 388 and 389 FM chip */
     sb_t *sb = malloc(sizeof(sb_t));
     memset(sb, 0, sizeof(sb_t));
 
@@ -1388,7 +1388,7 @@ sb_mcv_init(const device_t *info)
 void *
 sb_2_init(const device_t *info)
 {
-    /* SB2 port mappings. 220h or 240h.
+    /* SB2 port mappings, 220h or 240h.
        2x0 to 2x3 -> CMS chip
        2x6, 2xA, 2xC, 2xE -> DSP chip
        2x8, 2x9, 388 and 389 FM chip
@@ -1409,7 +1409,7 @@ sb_2_init(const device_t *info)
     sb->opl_enabled = device_get_config_int("opl");
     if (sb->opl_enabled)
 	opl2_init(&sb->opl);
-    
+
     sb_dsp_init(&sb->dsp, SB2, SB_SUBTYPE_DEFAULT, sb);
     sb_dsp_setaddr(&sb->dsp, addr);
     sb_dsp_setirq(&sb->dsp, device_get_config_int("irq"));
@@ -1476,7 +1476,7 @@ sb_pro_v1_opl_write(uint16_t port, uint8_t val, void *priv)
 static void *
 sb_pro_v1_init(const device_t *info)
 {
-    /* SB Pro port mappings. 220h or 240h.
+    /* SB Pro port mappings, 220h or 240h.
        2x0 to 2x3 -> FM chip, Left and Right (9*2 voices)
        2x4 to 2x5 -> Mixer interface
        2x6, 2xA, 2xC, 2xE -> DSP chip
@@ -1499,7 +1499,7 @@ sb_pro_v1_init(const device_t *info)
     sb_dsp_setirq(&sb->dsp, device_get_config_int("irq"));
     sb_dsp_setdma8(&sb->dsp, device_get_config_int("dma"));
     sb_ct1345_mixer_reset(sb);
-     /* DSP I/O handler is activated in sb_dsp_setaddr */
+    /* DSP I/O handler is activated in sb_dsp_setaddr */
     if (sb->opl_enabled) {
 	io_sethandler(addr,     0x0002, opl2_read,    NULL, NULL,
 					opl2_write,   NULL, NULL, &sb->opl);
@@ -1527,7 +1527,7 @@ sb_pro_v1_init(const device_t *info)
 static void *
 sb_pro_v2_init(const device_t *info)
 {
-    /* SB Pro port mappings. 220h or 240h.
+    /* SB Pro 2 port mappings, 220h or 240h.
        2x0 to 2x3 -> FM chip (18 voices)
        2x4 to 2x5 -> Mixer interface
        2x6, 2xA, 2xC, 2xE -> DSP chip
@@ -1572,11 +1572,11 @@ sb_pro_v2_init(const device_t *info)
 static void *
 sb_pro_mcv_init(const device_t *info)
 {
-    /*SB Pro port mappings. 220h or 240h.
-      2x0 to 2x3 -> FM chip, Left and Right (18 voices)
-      2x4 to 2x5 -> Mixer interface
-      2x6, 2xA, 2xC, 2xE -> DSP chip
-      2x8, 2x9, 388 and 389 FM chip (9 voices) */
+    /* SB Pro MCV port mappings, 220h or 240h.
+       2x0 to 2x3 -> FM chip, Left and Right (18 voices)
+       2x4 to 2x5 -> Mixer interface
+       2x6, 2xA, 2xC, 2xE -> DSP chip
+       2x8, 2x9, 388 and 389 FM chip (9 voices) */
     sb_t *sb = malloc(sizeof(sb_t));
     memset(sb, 0, sizeof(sb_t));
 
@@ -1903,17 +1903,26 @@ static const device_config_t sb_config[] =
                 "base", "Address", CONFIG_HEX16, "", 0x220, "", { 0 },
                 {
                         {
+                                "0x210", 0x210
+                        },
+                        {
                                 "0x220", 0x220
+                        },
+                        {
+                                "0x230", 0x230
                         },
                         {
                                 "0x240", 0x240
                         },
                         {
+                                "0x250", 0x250
+                        },
+                        {
                                 "0x260", 0x260
                         },
-	                {
-				""
-			}
+                        {
+                                ""
+                        }
                 }
         },
         {
@@ -1950,12 +1959,12 @@ static const device_config_t sb_config[] =
                         }
                 }
         },
-	{
-		"opl", "Enable OPL", CONFIG_BINARY, "", 1
-	},
-	{
-		"receive_input", "Receive input (SB MIDI)", CONFIG_BINARY, "", 1
-	},
+        {
+                "opl", "Enable OPL", CONFIG_BINARY, "", 1
+        },
+        {
+                "receive_input", "Receive input (SB MIDI)", CONFIG_BINARY, "", 1
+        },
         {
                 "", "", -1
         }
@@ -1968,17 +1977,26 @@ static const device_config_t sb15_config[] =
                 "base", "Address", CONFIG_HEX16, "", 0x220, "", { 0 },
                 {
                         {
+                                "0x210", 0x210
+                        },
+                        {
                                 "0x220", 0x220
+                        },
+                        {
+                                "0x230", 0x230
                         },
                         {
                                 "0x240", 0x240
                         },
                         {
+                                "0x250", 0x250
+                        },
+                        {
                                 "0x260", 0x260
                         },
-	                {
-				""
-			}
+                        {
+                                ""
+                        }
                 }
         },
         {
@@ -2015,15 +2033,15 @@ static const device_config_t sb15_config[] =
                         }
                 }
         },
-	{
-		"opl", "Enable OPL", CONFIG_BINARY, "", 1
-	},
-	{
-		"cms", "Enable CMS", CONFIG_BINARY, "", 0
-	},
-	{
-		"receive_input", "Receive input (SB MIDI)", CONFIG_BINARY, "", 1
-	},
+        {
+                "opl", "Enable OPL", CONFIG_BINARY, "", 1
+        },
+        {
+                "cms", "Enable CMS", CONFIG_BINARY, "", 0
+        },
+        {
+                "receive_input", "Receive input (SB MIDI)", CONFIG_BINARY, "", 1
+        },
         {
                 "", "", -1
         }
@@ -2044,9 +2062,9 @@ static const device_config_t sb2_config[] =
                         {
                                 "0x260", 0x260
                         },
-	                {
-				""
-			}
+                        {
+                                ""
+                        }
                 }
         },
         {
@@ -2067,11 +2085,61 @@ static const device_config_t sb2_config[] =
                         {
                                 "0x260", 0x260
                         },
-	                {
-				""
-			}
+                        {
+                                ""
+                        }
                 }
         },
+        {
+                "irq", "IRQ", CONFIG_SELECTION, "", 5, "", { 0 },
+                {
+                        {
+                                "IRQ 2", 2
+                        },
+                        {
+                                "IRQ 3", 3
+                        },
+                        {
+                                "IRQ 5", 5
+                        },
+                        {
+                                "IRQ 7", 7
+                        },
+                        {
+                                ""
+                        }
+                }
+        },
+        {
+                "dma", "DMA", CONFIG_SELECTION, "", 1, "", { 0 },
+                {
+                        {
+                                "DMA 1", 1
+                        },
+                        {
+                                "DMA 3", 3
+                        },
+                        {
+                                ""
+                        }
+                }
+        },
+        {
+                "opl", "Enable OPL", CONFIG_BINARY, "", 1
+        },
+        {
+                "cms", "Enable CMS", CONFIG_BINARY, "", 0
+        },
+        {
+                "receive_input", "Receive input (SB MIDI)", CONFIG_BINARY, "", 1
+        },
+        {
+                "", "", -1
+        }
+};
+
+static const device_config_t sb_mcv_config[] =
+{
         {
                 "irq", "IRQ", CONFIG_SELECTION, "", 7, "", { 0 },
                 {
@@ -2106,59 +2174,12 @@ static const device_config_t sb2_config[] =
                         }
                 }
         },
-	{
-		"opl", "Enable OPL", CONFIG_BINARY, "", 1
-	},
-	{
-		"cms", "Enable CMS", CONFIG_BINARY, "", 0
-	},
-	{
-		"receive_input", "Receive input (SB MIDI)", CONFIG_BINARY, "", 1
-	},
         {
-                "", "", -1
-        }
-};
-
-static const device_config_t sb_mcv_config[] =
-{
-        {
-                "irq", "IRQ", CONFIG_SELECTION, "", 7, "", { 0 },
-                {
-                        {
-                                "IRQ 3", 3
-                        },
-                        {
-                                "IRQ 5", 5
-                        },
-                        {
-                                "IRQ 7", 7
-                        },
-                        {
-                                ""
-                        }
-                }
+                "opl", "Enable OPL", CONFIG_BINARY, "", 1
         },
         {
-                "dma", "DMA", CONFIG_SELECTION, "", 1, "", { 0 },
-                {
-                        {
-                                "DMA 1", 1
-                        },
-                        {
-                                "DMA 3", 3
-                        },
-                        {
-                                ""
-                        }
-                }
+                "receive_input", "Receive input (SB MIDI)", CONFIG_BINARY, "", 1
         },
-	{
-		"opl", "Enable OPL", CONFIG_BINARY, "", 1
-	},
-	{
-		"receive_input", "Receive input (SB MIDI)", CONFIG_BINARY, "", 1
-	},
         {
                 "", "", -1
         }
@@ -2204,6 +2225,9 @@ static const device_config_t sb_pro_config[] =
                 "dma", "DMA", CONFIG_SELECTION, "", 1, "", { 0 },
                 {
                         {
+                                "DMA 0", 0
+                        },
+                        {
                                 "DMA 1", 1
                         },
                         {
@@ -2214,12 +2238,12 @@ static const device_config_t sb_pro_config[] =
                         }
                 }
         },
-	{
-		"opl", "Enable OPL", CONFIG_BINARY, "", 1
-	},
-	{
-		"receive_input", "Receive input (SB MIDI)", CONFIG_BINARY, "", 1
-	},
+        {
+                "opl", "Enable OPL", CONFIG_BINARY, "", 1
+        },
+        {
+                "receive_input", "Receive input (SB MIDI)", CONFIG_BINARY, "", 1
+        },
         {
                 "", "", -1
         }
@@ -2318,15 +2342,15 @@ static const device_config_t sb_16_config[] =
                         }
                 }
         },
-	{
-		"opl", "Enable OPL", CONFIG_BINARY, "", 1
-	},
-	{
-		"receive_input", "Receive input (SB MIDI)", CONFIG_BINARY, "", 1
-	},
-	{
-		"receive_input401", "Receive input (MPU-401)", CONFIG_BINARY, "", 0
-	},
+        {
+                "opl", "Enable OPL", CONFIG_BINARY, "", 1
+        },
+        {
+                "receive_input", "Receive input (SB MIDI)", CONFIG_BINARY, "", 1
+        },
+        {
+                "receive_input401", "Receive input (MPU-401)", CONFIG_BINARY, "", 0
+        },
         {
                 "", "", -1
         }
@@ -2334,12 +2358,12 @@ static const device_config_t sb_16_config[] =
 
 static const device_config_t sb_16_pnp_config[] =
 {
-	{
-		"receive_input", "Receive input (SB MIDI)", CONFIG_BINARY, "", 1
-	},
-	{
-		"receive_input401", "Receive input (MPU-401)", CONFIG_BINARY, "", 0
-	},
+        {
+                "receive_input", "Receive input (SB MIDI)", CONFIG_BINARY, "", 1
+        },
+        {
+                "receive_input401", "Receive input (MPU-401)", CONFIG_BINARY, "", 0
+        },
         {
                 "", "", -1
         }
@@ -2367,12 +2391,12 @@ static const device_config_t sb_32_pnp_config[] =
                         }
                 }
         },
-	{
-		"receive_input", "Receive input (SB MIDI)", CONFIG_BINARY, "", 1
-	},
-	{
-		"receive_input401", "Receive input (MPU-401)", CONFIG_BINARY, "", 0
-	},
+        {
+                "receive_input", "Receive input (SB MIDI)", CONFIG_BINARY, "", 1
+        },
+        {
+                "receive_input401", "Receive input (MPU-401)", CONFIG_BINARY, "", 0
+        },
         {
                 "", "", -1
         }
@@ -2514,15 +2538,15 @@ static const device_config_t sb_awe32_config[] =
                         }
                 }
         },
-	{
-		"opl", "Enable OPL", CONFIG_BINARY, "", 1
-	},
-	{
-		"receive_input", "Receive input (SB MIDI)", CONFIG_BINARY, "", 1
-	},
-	{
-		"receive_input401", "Receive input (MPU-401)", CONFIG_BINARY, "", 0
-	},
+        {
+                "opl", "Enable OPL", CONFIG_BINARY, "", 1
+        },
+        {
+                "receive_input", "Receive input (SB MIDI)", CONFIG_BINARY, "", 1
+        },
+        {
+                "receive_input401", "Receive input (MPU-401)", CONFIG_BINARY, "", 0
+        },
         {
                 "", "", -1
         }
@@ -2553,12 +2577,12 @@ static const device_config_t sb_awe32_pnp_config[] =
                         }
                 }
         },
-	{
-		"receive_input", "Receive input (SB MIDI)", CONFIG_BINARY, "", 1
-	},
-	{
-		"receive_input401", "Receive input (MPU-401)", CONFIG_BINARY, "", 0
-	},
+        {
+                "receive_input", "Receive input (SB MIDI)", CONFIG_BINARY, "", 1
+        },
+        {
+                "receive_input401", "Receive input (MPU-401)", CONFIG_BINARY, "", 0
+        },
         {
                 "", "", -1
         }
@@ -2589,12 +2613,12 @@ static const device_config_t sb_awe64_gold_config[] =
                         }
                 }
         },
-	{
-		"receive_input", "Receive input (SB MIDI)", CONFIG_BINARY, "", 1
-	},
-	{
-		"receive_input401", "Receive input (MPU-401)", CONFIG_BINARY, "", 0
-	},
+        {
+                "receive_input", "Receive input (SB MIDI)", CONFIG_BINARY, "", 1
+        },
+        {
+                "receive_input401", "Receive input (MPU-401)", CONFIG_BINARY, "", 0
+        },
         {
                 "", "", -1
         }
@@ -2605,7 +2629,7 @@ const device_t sb_1_device =
         "Sound Blaster v1.0",
         "sb",
         DEVICE_ISA,
-	0,
+        0,
         sb_1_init, sb_close, NULL, { NULL },
         sb_speed_changed,
         NULL,
@@ -2617,7 +2641,7 @@ const device_t sb_15_device =
         "Sound Blaster v1.5",
         "sb1.5",
         DEVICE_ISA,
-	0,
+        0,
         sb_15_init, sb_close, NULL, { NULL },
         sb_speed_changed,
         NULL,
@@ -2629,7 +2653,7 @@ const device_t sb_mcv_device =
         "Sound Blaster MCV",
         "sbmcv",
         DEVICE_MCA,
-	0,
+        0,
         sb_mcv_init, sb_close, NULL, { NULL },
         sb_speed_changed,
         NULL,
@@ -2641,7 +2665,7 @@ const device_t sb_2_device =
         "Sound Blaster v2.0",
         "sb2.0",
         DEVICE_ISA,
-	0,
+        0,
         sb_2_init, sb_close, NULL, { NULL },
         sb_speed_changed,
         NULL,
@@ -2653,7 +2677,7 @@ const device_t sb_pro_v1_device =
         "Sound Blaster Pro v1",
         "sbprov1",
         DEVICE_ISA,
-	0,
+        0,
         sb_pro_v1_init, sb_close, NULL, { NULL },
         sb_speed_changed,
         NULL,
@@ -2665,7 +2689,7 @@ const device_t sb_pro_v2_device =
         "Sound Blaster Pro v2",
         "sbprov2",
         DEVICE_ISA,
-	0,
+        0,
         sb_pro_v2_init, sb_close, NULL, { NULL },
         sb_speed_changed,
         NULL,
@@ -2677,7 +2701,7 @@ const device_t sb_pro_mcv_device =
         "Sound Blaster Pro MCV",
         "sbpromcv",
         DEVICE_MCA,
-	0,
+        0,
         sb_pro_mcv_init, sb_close, NULL, { NULL },
         sb_speed_changed,
         NULL,
@@ -2689,7 +2713,7 @@ const device_t sb_pro_compat_device =
         "Sound Blaster Pro (Compatibility)",
         "sbpro_compat",
         DEVICE_ISA | DEVICE_AT,
-	0,
+        0,
         sb_pro_compat_init, sb_close, NULL, { NULL },
         sb_speed_changed,
         NULL,
@@ -2701,7 +2725,7 @@ const device_t sb_16_device =
         "Sound Blaster 16",
         "sb16",
         DEVICE_ISA | DEVICE_AT,
-	0,
+        0,
         sb_16_init, sb_close, NULL, { NULL },
         sb_speed_changed,
         NULL,
@@ -2713,7 +2737,7 @@ const device_t sb_16_pnp_device =
         "Sound Blaster 16 PnP",
         "sb16_pnp",
         DEVICE_ISA | DEVICE_AT,
-	0,
+        0,
         sb_16_pnp_init, sb_close, NULL, { NULL },
         sb_speed_changed,
         NULL,
@@ -2725,7 +2749,7 @@ const device_t sb_32_pnp_device =
         "Sound Blaster 32 PnP",
         "sb32_pnp",
         DEVICE_ISA | DEVICE_AT,
-	0,
+        0,
         sb_awe32_pnp_init, sb_awe32_close, NULL,
         { sb_32_pnp_available },
         sb_speed_changed,
@@ -2739,7 +2763,7 @@ const device_t sb_awe32_device =
         "Sound Blaster AWE32",
         "sbawe32",
         DEVICE_ISA | DEVICE_AT,
-	0,
+        0,
         sb_awe32_init, sb_awe32_close, NULL,
         { sb_awe32_available },
         sb_speed_changed,
@@ -2752,7 +2776,7 @@ const device_t sb_awe32_pnp_device =
         "Sound Blaster AWE32 PnP",
         "sbawe32_pnp",
         DEVICE_ISA | DEVICE_AT,
-	1,
+        1,
         sb_awe32_pnp_init, sb_awe32_close, NULL,
         { sb_awe32_pnp_available },
         sb_speed_changed,
@@ -2765,7 +2789,7 @@ const device_t sb_awe64_gold_device =
         "Sound Blaster AWE64 Gold",
         "sbawe64_gold",
         DEVICE_ISA | DEVICE_AT,
-	2,
+        2,
         sb_awe32_pnp_init, sb_awe32_close, NULL,
         { sb_awe64_gold_available },
         sb_speed_changed,
