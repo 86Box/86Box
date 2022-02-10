@@ -417,10 +417,7 @@ MainWindow::MainWindow(QWidget *parent) :
     }
 #endif
 
-#ifdef _WIN32
-    ui->toolBar->setIconSize(QSize(16 * screen()->devicePixelRatio(), 16 * screen()->devicePixelRatio()));
-    ui->statusbar->resize(ui->statusbar->width(), ui->statusbar->sizeHint().height() * screen()->devicePixelRatio());
-#endif
+    setContextMenuPolicy(Qt::PreventContextMenu);
 }
 
 void MainWindow::closeEvent(QCloseEvent *event) {
@@ -461,7 +458,7 @@ void MainWindow::showEvent(QShowEvent *event) {
     if (shownonce) return;
     shownonce = true;
     if (window_remember && !QApplication::platformName().contains("wayland")) {
-        setGeometry(window_x, window_y, window_w, window_h + menuBar()->height() + (hide_status_bar ? 0 : statusBar()->height()));
+        setGeometry(window_x, window_y, window_w, window_h + menuBar()->height() + (hide_status_bar ? 0 : statusBar()->height()) + (hide_tool_bar ? 0 : ui->toolBar->height()));
     }
     if (vid_resize == 2) {
         setFixedSize(fixed_size_x, fixed_size_y
@@ -472,8 +469,11 @@ void MainWindow::showEvent(QShowEvent *event) {
         scrnsz_x = fixed_size_x;
         scrnsz_y = fixed_size_y;
     }
-    else if (window_remember) {
-        emit resizeContents(window_w, window_h);
+    else if (window_remember && vid_resize == 1) {
+        resize(window_w, window_h
+               + menuBar()->height()
+               + (hide_status_bar ? 0 : statusBar()->height())
+               + (hide_tool_bar ? 0 : ui->toolBar->height()) + 1);
         scrnsz_x = window_w;
         scrnsz_y = window_h;
     }

@@ -521,9 +521,9 @@ intel_flash_init(const device_t *info)
 	fread(&(dev->array[dev->block_start[BLOCK_MAIN1]]), dev->block_len[BLOCK_MAIN1], 1, f);
 	if (dev->block_len[BLOCK_MAIN2])
 		fread(&(dev->array[dev->block_start[BLOCK_MAIN2]]), dev->block_len[BLOCK_MAIN2], 1, f);
-	else if (dev->block_len[BLOCK_MAIN3])
+	if (dev->block_len[BLOCK_MAIN3])
 		fread(&(dev->array[dev->block_start[BLOCK_MAIN3]]), dev->block_len[BLOCK_MAIN3], 1, f);
-	else if (dev->block_len[BLOCK_MAIN4])
+	if (dev->block_len[BLOCK_MAIN4])
 		fread(&(dev->array[dev->block_start[BLOCK_MAIN4]]), dev->block_len[BLOCK_MAIN4], 1, f);
 
 	fread(&(dev->array[dev->block_start[BLOCK_DATA1]]), dev->block_len[BLOCK_DATA1], 1, f);
@@ -545,9 +545,9 @@ intel_flash_close(void *p)
     fwrite(&(dev->array[dev->block_start[BLOCK_MAIN1]]), dev->block_len[BLOCK_MAIN1], 1, f);
     if (dev->block_len[BLOCK_MAIN2])
 	fwrite(&(dev->array[dev->block_start[BLOCK_MAIN2]]), dev->block_len[BLOCK_MAIN2], 1, f);
-    else if (dev->block_len[BLOCK_MAIN3])
+    if (dev->block_len[BLOCK_MAIN3])
 	fwrite(&(dev->array[dev->block_start[BLOCK_MAIN3]]), dev->block_len[BLOCK_MAIN3], 1, f);
-    else if (dev->block_len[BLOCK_MAIN4])
+    if (dev->block_len[BLOCK_MAIN4])
 	fwrite(&(dev->array[dev->block_start[BLOCK_MAIN4]]), dev->block_len[BLOCK_MAIN4], 1, f);
 
     fwrite(&(dev->array[dev->block_start[BLOCK_DATA1]]), dev->block_len[BLOCK_DATA1], 1, f);

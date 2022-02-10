@@ -47,6 +47,7 @@ extern uint64_t		tsc;
 #include <QTimer>
 #include <QStatusBar>
 #include <QMenu>
+#include <QScreen>
 
 #include "qt_mediamenu.hpp"
 #include "qt_mainwindow.hpp"
@@ -171,7 +172,6 @@ struct MachineStatus::States {
     Pixmaps pixmaps;
 
     States(QObject* parent) {
-        pixmap_size = QSize(16, 16) * qobject_cast<MainWindow*>(parent->parent())->screen()->devicePixelRatio();
         pixmaps.cartridge.load("/cartridge%1.ico");
         pixmaps.cassette.load("/cassette%1.ico");
         pixmaps.floppy_disabled.normal = ProgSettings::loadIcon(QStringLiteral("/floppy_disabled.ico")).pixmap(pixmap_size);
@@ -331,7 +331,7 @@ void MachineStatus::refresh(QStatusBar* sbar) {
     int c_xta = hdd_count(HDD_BUS_XTA);
     int c_ide = hdd_count(HDD_BUS_IDE);
     int c_scsi = hdd_count(HDD_BUS_SCSI);
-    int do_net = (network_type == NET_TYPE_NONE) || (network_card == 0);
+    int do_net = network_available();
 
     sbar->removeWidget(d->cassette.label.get());
     for (int i = 0; i < 2; ++i) {
