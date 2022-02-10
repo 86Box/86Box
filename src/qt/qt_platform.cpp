@@ -224,8 +224,14 @@ plat_get_filename(char *s)
 int
 plat_path_abs(char *path)
 {
-    QFileInfo fi(path);
-    return fi.isAbsolute() ? 1 : 0;
+#ifdef Q_OS_WINDOWS
+    if ((path[1] == ':') || (path[0] == '\\') || (path[0] == '/'))
+        return 1;
+
+    return 0;
+#else
+    return path[0] == '/';
+#endif
 }
 
 void
