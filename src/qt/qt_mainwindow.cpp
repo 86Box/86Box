@@ -195,11 +195,7 @@ MainWindow::MainWindow(QWidget *parent) :
                 + (ui->toolBar->height() * !hide_tool_bar);
             
             ui->stackedWidget->resize(w, h);
-            if (vid_resize == 0) {
-                setFixedSize(w, modifiedHeight);
-            } else {
-                resize(w, modifiedHeight);
-            }
+            setFixedSize(w, modifiedHeight);
         }
     });
 
