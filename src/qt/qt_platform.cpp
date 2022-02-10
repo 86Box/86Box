@@ -258,7 +258,7 @@ plat_tempfile(char *bufp, char *prefix, char *suffix)
 
      name.append(QDateTime::currentDateTime().toString("yyyyMMdd-hhmmss-zzzz"));
      if (suffix) name.append(suffix);
-     sprintf(&bufp[strlen(bufp)], "%s", name.toUtf8().data());
+     strcpy(bufp, name.toUtf8().data());
 }
 
 void plat_remove(char* path)
