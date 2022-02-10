@@ -498,6 +498,8 @@ static void *
 isartc_init(const device_t *info)
 {
     rtcdev_t *dev;
+    int is_at = IS_AT(machine);
+    is_at = is_at || !strcmp(machine_get_internal_name(), "xi8088");
 
     /* Create a device instance. */
     dev = (rtcdev_t *)malloc(sizeof(rtcdev_t));
@@ -567,7 +569,8 @@ isartc_init(const device_t *info)
     /* Hook into the NVR backend. */
     dev->nvr.fn = isartc_get_internal_name(isartc_type);
     dev->nvr.irq = dev->irq;
-    nvr_init(&dev->nvr);
+    if (!is_at)
+	nvr_init(&dev->nvr);
 
     /* Let them know our device instance. */
     return((void *)dev);
