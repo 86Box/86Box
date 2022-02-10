@@ -134,6 +134,7 @@ int main(int argc, char* argv[]) {
     QApplication::setAttribute(Qt::AA_UseHighDpiPixmaps);
     QApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
 #endif
+    QApplication::setHighDpiScaleFactorRoundingPolicy(Qt::HighDpiScaleFactorRoundingPolicy::PassThrough);
     QApplication app(argc, argv);
     qt_set_sequence_auto_mnemonic(false);
     Q_INIT_RESOURCE(qt_resources);

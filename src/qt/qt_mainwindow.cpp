@@ -68,6 +68,7 @@ extern "C" {
 #include "qt_settings.hpp"
 #include "qt_machinestatus.hpp"
 #include "qt_mediamenu.hpp"
+#include "qt_util.hpp"
 
 #ifdef __unix__
 #ifdef WAYLAND
@@ -184,9 +185,9 @@ MainWindow::MainWindow(QWidget *parent) :
 
     connect(this, &MainWindow::resizeContents, this, [this](int w, int h) {
         if (!QApplication::platformName().contains("eglfs") && vid_resize == 0) {
-            w = w / (!dpi_scale ? this->screen()->devicePixelRatio() : 1);
+            w = w / (!dpi_scale ? util::screenOfWidget(this)->devicePixelRatio() : 1);
             
-            int modifiedHeight = (h / (!dpi_scale ? this->screen()->devicePixelRatio() : 1))
+            int modifiedHeight = (h / (!dpi_scale ? util::screenOfWidget(this)->devicePixelRatio() : 1))
                 + menuBar()->height()
                 + (statusBar()->height() * !hide_status_bar)
                 + (ui->toolBar->height() * !hide_tool_bar);
