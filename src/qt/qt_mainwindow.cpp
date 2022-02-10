@@ -124,7 +124,7 @@ MainWindow::MainWindow(QWidget *parent) :
     this->setWindowFlag(Qt::WindowMaximizeButtonHint, vid_resize == 1);
 
     QString vmname(vm_name);
-    if (vmname.last(1) == "\"" || vmname.last(1) == "'") vmname.truncate(vmname.size() - 1);
+    if (vmname.at(vmname.size() - 1) == '"' || vmname.at(vmname.size() - 1) == '\'') vmname.truncate(vmname.size() - 1);
     this->setWindowTitle(QString("%1 - %2 %3").arg(vmname, EMU_NAME, EMU_VERSION_FULL));
 
     connect(this, &MainWindow::showMessageForNonQtThread, this, &MainWindow::showMessage_, Qt::BlockingQueuedConnection);
