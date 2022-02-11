@@ -138,10 +138,6 @@ void RendererStack::mousePressEvent(QMouseEvent *event)
     {
         mousedata.mousebuttons |= event->button();
     }
-    if (main_window->frameGeometry().contains(event->pos()) && !geometry().contains(event->pos()))
-    {
-        main_window->windowHandle()->startSystemMove();
-    }
     event->accept();
 }
 void RendererStack::wheelEvent(QWheelEvent *event)

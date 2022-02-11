@@ -468,10 +468,9 @@ void MainWindow::showEvent(QShowEvent *event) {
         scrnsz_y = fixed_size_y;
     }
     else if (window_remember && vid_resize == 1) {
-        resize(window_w, window_h
-               + menuBar()->height()
-               + (hide_status_bar ? 0 : statusBar()->height())
-               + (hide_tool_bar ? 0 : ui->toolBar->height()) + 1);
+        ui->stackedWidget->setFixedSize(window_w, window_h);
+        adjustSize();
+        ui->stackedWidget->setFixedSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
         scrnsz_x = window_w;
         scrnsz_y = window_h;
     }
