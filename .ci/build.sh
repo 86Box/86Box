@@ -176,6 +176,15 @@ fi
 
 echo [-] Building [$package_name] for [$arch] with flags [$cmake_flags]
 
+# Determine CMake toolchain file for this architecture.
+case $arch in
+	32 | x86)	toolchain="flags-gcc-i686";;
+	64 | x86_64)	toolchain="flags-gcc-x86_64";;
+	ARM32 | arm32)	toolchain="flags-gcc-armv7";;
+	ARM64 | arm64)	toolchain="flags-gcc-aarch64";;
+	*)		toolchain="flags-gcc-$arch";;
+esac
+
 # Perform platform-specific setup.
 strip_binary=strip
 if is_windows
@@ -200,6 +209,9 @@ then
 		exit 2
 	fi
 	echo [-] Using MSYSTEM [$MSYSTEM]
+
+	# Point CMake to the toolchain file.
+	cmake_flags_extra="$cmake_flags_extra -D \"CMAKE_TOOLCHAIN_FILE=cmake/$toolchain.cmake\""
 elif is_mac
 then
 	# macOS lacks nproc, but sysctl can do the same job.
@@ -214,7 +226,7 @@ else
 	esac
 
 	# Establish general dependencies.
-	pkgs="cmake pkg-config git tar xz-utils dpkg-dev rpm wayland-protocols"
+	pkgs="cmake pkg-config git tar xz-utils wayland-protocols"
 	if [ "$(dpkg --print-architecture)" = "$arch_deb" ]
 	then
 		pkgs="$pkgs build-essential"
@@ -271,6 +283,8 @@ set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
 
 set(ENV{PKG_CONFIG_PATH} "")
 set(ENV{PKG_CONFIG_LIBDIR} "/usr/lib/$libdir/pkgconfig:/usr/share/$libdir/pkgconfig")
+
+include("$(pwd)/cmake/$toolchain.cmake")
 EOF
 	cmake_flags_extra="$cmake_flags_extra -D CMAKE_TOOLCHAIN_FILE=toolchain.cmake"
 	strip_binary="$arch_gnu-strip"
@@ -296,11 +310,11 @@ find . \( -name Makefile -o -name CMakeCache.txt -o -name CMakeFiles \) -exec rm
 
 # Add ARCH to skip the arch_detect process.
 case $arch in
-	32 | x86)    cmake_flags_extra="$cmake_flags_extra -D ARCH=i386";;
-	64 | x86_64) cmake_flags_extra="$cmake_flags_extra -D ARCH=x86_64";;
-	ARM32 | arm32) cmake_flags_extra="$cmake_flags_extra -D ARCH=arm";;
-	ARM64 | arm64) cmake_flags_extra="$cmake_flags_extra -D ARCH=arm64";;
-	*) cmake_flags_extra="$cmake_flags_extra -D \"ARCH=$arch\"";;
+	32 | x86)	cmake_flags_extra="$cmake_flags_extra -D ARCH=i386";;
+	64 | x86_64)	cmake_flags_extra="$cmake_flags_extra -D ARCH=x86_64";;
+	ARM32 | arm32)	cmake_flags_extra="$cmake_flags_extra -D ARCH=arm";;
+	ARM64 | arm64)	cmake_flags_extra="$cmake_flags_extra -D ARCH=arm64";;
+	*)		cmake_flags_extra="$cmake_flags_extra -D \"ARCH=$arch\"";;
 esac
 
 # Add git hash.

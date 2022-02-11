@@ -9,15 +9,7 @@
         {
             "name": "flags-base",
             "cacheVariables": {
-                "CMAKE_CONFIGURATION_TYPES": "Debug;Release;Optimized",
-                "CMAKE_C_FLAGS": "-msse2 -mfpmath=sse -fomit-frame-pointer -mstackrealign -Wall -fno-strict-aliasing",
-                "CMAKE_CXX_FLAGS": "-msse2 -mfpmath=sse -fomit-frame-pointer -mstackrealign -Wall -fno-strict-aliasing",
-                "CMAKE_C_FLAGS_RELEASE": "-g0 -O3",
-                "CMAKE_CXX_FLAGS_RELEASE": "-g0 -O3",
-                "CMAKE_C_FLAGS_DEBUG": "-ggdb -Og",
-                "CMAKE_CXX_FLAGS_DEBUG": "-ggdb -Og",
-                "CMAKE_C_FLAGS_OPTIMIZED": "-march=native -mtune=native -O3 -ffp-contract=fast -flto",
-                "CMAKE_CXX_FLAGS_OPTIMIZED": "-march=native -mtune=native -O3 -ffp-contract=fast -flto"
+                "CMAKE_CONFIGURATION_TYPES": "Debug;Release;Optimized"
             },
             "hidden": true,
             "binaryDir": "build"
