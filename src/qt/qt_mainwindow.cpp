@@ -187,19 +187,15 @@ MainWindow::MainWindow(QWidget *parent) :
 
     connect(this, &MainWindow::resizeContents, this, [this](int w, int h) {
         if (!QApplication::platformName().contains("eglfs") && vid_resize == 0) {
-            w = w / (!dpi_scale ? util::screenOfWidget(this)->devicePixelRatio() : 1);
+            w = qRound(w / (!dpi_scale ? util::screenOfWidget(this)->devicePixelRatio() : 1.));
             
-            int modifiedHeight = (h / (!dpi_scale ? util::screenOfWidget(this)->devicePixelRatio() : 1))
+            int modifiedHeight = qRound(h / (!dpi_scale ? util::screenOfWidget(this)->devicePixelRatio() : 1.))
                 + menuBar()->height()
                 + (statusBar()->height() * !hide_status_bar)
                 + (ui->toolBar->height() * !hide_tool_bar);
             
             ui->stackedWidget->resize(w, h);
-            if (vid_resize == 0) {
-                setFixedSize(w, modifiedHeight);
-            } else {
-                resize(w, modifiedHeight);
-            }
+            setFixedSize(w, modifiedHeight);
         }
     });
 
@@ -472,10 +468,9 @@ void MainWindow::showEvent(QShowEvent *event) {
         scrnsz_y = fixed_size_y;
     }
     else if (window_remember && vid_resize == 1) {
-        resize(window_w, window_h
-               + menuBar()->height()
-               + (hide_status_bar ? 0 : statusBar()->height())
-               + (hide_tool_bar ? 0 : ui->toolBar->height()) + 1);
+        ui->stackedWidget->setFixedSize(window_w, window_h);
+        adjustSize();
+        ui->stackedWidget->setFixedSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
         scrnsz_x = window_w;
         scrnsz_y = window_h;
     }

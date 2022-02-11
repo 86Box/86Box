@@ -273,6 +273,7 @@ void
 pic_reset()
 {
     int is_at = IS_AT(machine);
+    is_at = is_at || !strcmp(machine_get_internal_name(), "xi8088");
 
     memset(&pic, 0, sizeof(pic_t));
     memset(&pic2, 0, sizeof(pic_t));

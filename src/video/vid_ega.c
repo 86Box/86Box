@@ -125,6 +125,7 @@ ega_out(uint16_t addr, uint8_t val, void *p)
 					if (ega->attrregs[0x10] & 0x80) ega->egapal[c] = (ega->attrregs[c] &  0xf) | ((ega->attrregs[0x14] & 0xf) << 4);
 					else                            ega->egapal[c] = (ega->attrregs[c] & 0x3f) | ((ega->attrregs[0x14] & 0xc) << 4);
 				}
+				fullchange = changeframecount;
 			}
 			/* Recalculate timings on change of attribute register 0x11
 			   (overscan border color) too. */

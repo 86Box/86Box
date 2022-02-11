@@ -122,7 +122,7 @@ void ProgSettings::accept()
     update_mouse_msg();
     main_window->ui->retranslateUi(main_window);
     QString vmname(vm_name);
-    if (vmname.at(vmname.size() - 1) == "\"" || vmname.at(vmname.size() - 1) == "'") vmname.truncate(vmname.size() - 1);
+    if (vmname.at(vmname.size() - 1) == '"' || vmname.at(vmname.size() - 1) == '\'') vmname.truncate(vmname.size() - 1);
     main_window->setWindowTitle(QString("%1 - %2 %3").arg(vmname, EMU_NAME, EMU_VERSION_FULL));
     QString msg = main_window->status->getMessage();
     main_window->status.reset(new MachineStatus(main_window));
