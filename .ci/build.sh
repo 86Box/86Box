@@ -211,7 +211,7 @@ then
 	echo [-] Using MSYSTEM [$MSYSTEM]
 
 	# Point CMake to the toolchain file.
-	cmake_flags_extra="$cmake_flags_extra -D CMAKE_TOOLCHAIN_FILE=\"cmake/$toolchain.cmake\""
+	cmake_flags_extra="$cmake_flags_extra -D \"CMAKE_TOOLCHAIN_FILE=cmake/$toolchain.cmake\""
 elif is_mac
 then
 	# macOS lacks nproc, but sysctl can do the same job.
