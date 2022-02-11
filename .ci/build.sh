@@ -250,6 +250,14 @@ else
 		*)	libdir="$arch_gnu";;
 	esac
 
+	# Determine toolchain file for this architecture.
+	case $arch in
+		x86)	toolchain="flags-gcc-i686";;
+		arm32)	toolchain="flags-gcc-armv7";;
+		arm64)	toolchain="flags-gcc-aarch64";;
+		*)	toolchain="flags-gcc-$arch";;
+	esac
+
 	# Create CMake toolchain file.
 	cat << EOF > toolchain.cmake
 set(CMAKE_SYSTEM_NAME Linux)
@@ -271,6 +279,8 @@ set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
 
 set(ENV{PKG_CONFIG_PATH} "")
 set(ENV{PKG_CONFIG_LIBDIR} "/usr/lib/$libdir/pkgconfig:/usr/share/$libdir/pkgconfig")
+
+include("$cwd/cmake/$toolchain.cmake")
 EOF
 	cmake_flags_extra="$cmake_flags_extra -D CMAKE_TOOLCHAIN_FILE=toolchain.cmake"
 	strip_binary="$arch_gnu-strip"
