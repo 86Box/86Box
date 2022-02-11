@@ -284,7 +284,7 @@ set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
 set(ENV{PKG_CONFIG_PATH} "")
 set(ENV{PKG_CONFIG_LIBDIR} "/usr/lib/$libdir/pkgconfig:/usr/share/$libdir/pkgconfig")
 
-include("$cwd/cmake/$toolchain.cmake")
+include("$(pwd)/cmake/$toolchain.cmake")
 EOF
 	cmake_flags_extra="$cmake_flags_extra -D CMAKE_TOOLCHAIN_FILE=toolchain.cmake"
 	strip_binary="$arch_gnu-strip"
