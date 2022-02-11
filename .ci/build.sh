@@ -214,7 +214,7 @@ else
 	esac
 
 	# Establish general dependencies.
-	pkgs="cmake pkg-config git tar xz-utils dpkg-dev rpm wayland-protocols"
+	pkgs="cmake pkg-config git tar xz-utils wayland-protocols"
 	if [ "$(dpkg --print-architecture)" = "$arch_deb" ]
 	then
 		pkgs="$pkgs build-essential"
