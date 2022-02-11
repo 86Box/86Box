@@ -24,6 +24,11 @@ def osArchs = [
 	'Linux': ['x86', 'x86_64', 'arm32', 'arm64']
 ]
 
+def osFlags = [
+	'Windows': '',
+	'Linux': '-D QT=ON'
+]
+
 def archNames = [
 	'32': 'x86 (32-bit)',
 	'x86': 'x86 (32-bit)',
@@ -229,7 +234,7 @@ pipeline {
 													/* Run build process. */
 													def packageName = "${env.JOB_BASE_NAME}${dynarecSlugs[dynarec]}${presetSlugs[preset]}-$os-$arch-b${env.BUILD_NUMBER}"
 													dir("${dynarecNames[dynarec]}/$os - ${archNames[arch]}") {
-														runBuild("-b \"$packageName\" \"$arch\" ${presetFlags[preset]} ${dynarecFlags[dynarec]} -D QT=ON -D \"BUILD_TYPE=$BUILD_TYPE\" -D \"EMU_BUILD=build ${env.BUILD_NUMBER}\" -D \"EMU_BUILD_NUM=${env.BUILD_NUMBER}\"")
+														runBuild("-b \"$packageName\" \"$arch\" ${presetFlags[preset]} ${dynarecFlags[dynarec]} ${osFlags[os]} -D \"BUILD_TYPE=$BUILD_TYPE\" -D \"EMU_BUILD=build ${env.BUILD_NUMBER}\" -D \"EMU_BUILD_NUM=${env.BUILD_NUMBER}\"")
 													}
 
 													/* Archive resulting artifacts. */
