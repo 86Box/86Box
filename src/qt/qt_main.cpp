@@ -27,6 +27,7 @@
 #include <QDirIterator>
 #include <QLibraryInfo>
 #include <QString>
+#include <QFont>
 
 #ifdef QT_STATIC
 /* Static builds need plugin imports */
