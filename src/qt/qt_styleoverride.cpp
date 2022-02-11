@@ -39,7 +39,7 @@ void StyleOverride::polish(QWidget* widget)
     if (widget->isWindow()) {
         if (widget->layout() && widget->minimumSize() == widget->maximumSize()) {
             if (widget->minimumSize().width() < widget->minimumSizeHint().width()
-		|| widget->minimumSize().height() < widget->minimumSizeHint().height()) {
+                || widget->minimumSize().height() < widget->minimumSizeHint().height()) {
                 widget->setFixedSize(QSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX));
                 widget->layout()->setSizeConstraint(QLayout::SetFixedSize);
             }
@@ -49,7 +49,6 @@ void StyleOverride::polish(QWidget* widget)
     }
 
     if (qobject_cast<QComboBox*>(widget)) {
-        widget->setMinimumWidth(widget->minimumSizeHint().width());
         qobject_cast<QComboBox*>(widget)->view()->setMinimumWidth(widget->minimumSizeHint().width());
     }
 }

@@ -16,12 +16,8 @@
 add_library(net OBJECT network.c net_pcap.c net_slirp.c net_dp8390.c net_3c503.c
     net_ne2000.c net_pcnet.c net_wd8003.c net_plip.c)
 
-if(NOT WIN32 AND NOT APPLE)
-    set(SLIRP_EXTERNAL 1)
-else()
-    option(SLIRP_EXTERNAL "Link against the system-provided libslirp library" OFF)
-    mark_as_advanced(SLIRP_EXTERNAL)
-endif()
+option(SLIRP_EXTERNAL "Link against the system-provided libslirp library" OFF)
+mark_as_advanced(SLIRP_EXTERNAL)
 
 if(SLIRP_EXTERNAL)
     find_package(PkgConfig REQUIRED)

@@ -69,6 +69,7 @@ extern "C" {
 #include "qt_settings.hpp"
 #include "qt_machinestatus.hpp"
 #include "qt_mediamenu.hpp"
+#include "qt_util.hpp"
 
 #ifdef __unix__
 #ifdef WAYLAND
@@ -123,7 +124,9 @@ MainWindow::MainWindow(QWidget *parent) :
     this->setWindowFlag(Qt::MSWindowsFixedSizeDialogHint, vid_resize != 1);
     this->setWindowFlag(Qt::WindowMaximizeButtonHint, vid_resize == 1);
 
-    this->setWindowTitle(QString("%1 - %2 %3").arg(vm_name, EMU_NAME, EMU_VERSION_FULL));
+    QString vmname(vm_name);
+    if (vmname.at(vmname.size() - 1) == '"' || vmname.at(vmname.size() - 1) == '\'') vmname.truncate(vmname.size() - 1);
+    this->setWindowTitle(QString("%1 - %2 %3").arg(vmname, EMU_NAME, EMU_VERSION_FULL));
 
     connect(this, &MainWindow::showMessageForNonQtThread, this, &MainWindow::showMessage_, Qt::BlockingQueuedConnection);
 
@@ -185,19 +188,15 @@ MainWindow::MainWindow(QWidget *parent) :
 
     connect(this, &MainWindow::resizeContents, this, [this](int w, int h) {
         if (!QApplication::platformName().contains("eglfs") && vid_resize == 0) {
-            w = w / (!dpi_scale ? this->screen()->devicePixelRatio() : 1);
+            w = qRound(w / (!dpi_scale ? util::screenOfWidget(this)->devicePixelRatio() : 1.));
             
-            int modifiedHeight = (h / (!dpi_scale ? this->screen()->devicePixelRatio() : 1))
+            int modifiedHeight = qRound(h / (!dpi_scale ? util::screenOfWidget(this)->devicePixelRatio() : 1.))
                 + menuBar()->height()
                 + (statusBar()->height() * !hide_status_bar)
                 + (ui->toolBar->height() * !hide_tool_bar);
             
             ui->stackedWidget->resize(w, h);
-            if (vid_resize == 0) {
-                setFixedSize(w, modifiedHeight);
-            } else {
-                resize(w, modifiedHeight);
-            }
+            setFixedSize(w, modifiedHeight);
         }
     });
 

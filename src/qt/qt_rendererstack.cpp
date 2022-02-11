@@ -25,6 +25,7 @@
 #include "qt_hardwarerenderer.hpp"
 
 #include "qt_mainwindow.hpp"
+#include "qt_util.hpp"
 
 #include "evdev_mouse.hpp"
 
@@ -173,7 +174,7 @@ void RendererStack::mouseMoveEvent(QMouseEvent *event)
         ignoreNextMouseEvent--;
     }
     else if (event->globalPos().x() == 0 || event->globalPos().y() == 0) leaveEvent((QEvent*)event);
-    else if (event->globalPos().x() == (screen()->geometry().width() - 1) || event->globalPos().y() == (screen()->geometry().height() - 1)) leaveEvent((QEvent*)event);
+    else if (event->globalPos().x() == (util::screenOfWidget(this)->geometry().width() - 1) || event->globalPos().y() == (util::screenOfWidget(this)->geometry().height() - 1)) leaveEvent((QEvent*)event);
     oldPos = event->pos();
 #endif
 }
