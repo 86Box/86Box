@@ -176,6 +176,15 @@ fi
 
 echo [-] Building [$package_name] for [$arch] with flags [$cmake_flags]
 
+# Determine CMake toolchain file for this architecture.
+case $arch in
+	32 | x86)	toolchain="flags-gcc-i686";;
+	64 | x86_64)	toolchain="flags-gcc-x86_64";;
+	ARM32 | arm32)	toolchain="flags-gcc-armv7";;
+	ARM64 | arm64)	toolchain="flags-gcc-aarch64";;
+	*)		toolchain="flags-gcc-$arch";;
+esac
+
 # Perform platform-specific setup.
 strip_binary=strip
 if is_windows
@@ -200,6 +209,9 @@ then
 		exit 2
 	fi
 	echo [-] Using MSYSTEM [$MSYSTEM]
+
+	# Point CMake to the toolchain file.
+	cmake_flags_extra="$cmake_flags_extra -D CMAKE_TOOLCHAIN_FILE=\"$cwd/cmake/$toolchain.cmake\""
 elif is_mac
 then
 	# macOS lacks nproc, but sysctl can do the same job.
@@ -250,14 +262,6 @@ else
 		*)	libdir="$arch_gnu";;
 	esac
 
-	# Determine toolchain file for this architecture.
-	case $arch in
-		x86)	toolchain="flags-gcc-i686";;
-		arm32)	toolchain="flags-gcc-armv7";;
-		arm64)	toolchain="flags-gcc-aarch64";;
-		*)	toolchain="flags-gcc-$arch";;
-	esac
-
 	# Create CMake toolchain file.
 	cat << EOF > toolchain.cmake
 set(CMAKE_SYSTEM_NAME Linux)
@@ -306,11 +310,11 @@ find . \( -name Makefile -o -name CMakeCache.txt -o -name CMakeFiles \) -exec rm
 
 # Add ARCH to skip the arch_detect process.
 case $arch in
-	32 | x86)    cmake_flags_extra="$cmake_flags_extra -D ARCH=i386";;
-	64 | x86_64) cmake_flags_extra="$cmake_flags_extra -D ARCH=x86_64";;
-	ARM32 | arm32) cmake_flags_extra="$cmake_flags_extra -D ARCH=arm";;
-	ARM64 | arm64) cmake_flags_extra="$cmake_flags_extra -D ARCH=arm64";;
-	*) cmake_flags_extra="$cmake_flags_extra -D \"ARCH=$arch\"";;
+	32 | x86)	cmake_flags_extra="$cmake_flags_extra -D ARCH=i386";;
+	64 | x86_64)	cmake_flags_extra="$cmake_flags_extra -D ARCH=x86_64";;
+	ARM32 | arm32)	cmake_flags_extra="$cmake_flags_extra -D ARCH=arm";;
+	ARM64 | arm64)	cmake_flags_extra="$cmake_flags_extra -D ARCH=arm64";;
+	*)		cmake_flags_extra="$cmake_flags_extra -D \"ARCH=$arch\"";;
 esac
 
 # Add git hash.
