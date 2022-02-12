@@ -41,6 +41,8 @@ extern "C" {
 #include <86box/vid_ega.h>
 #include <86box/version.h>
 
+    extern int qt_nvr_save(void);
+
 #ifdef MTR_ENABLED
 #include <minitrace/minitrace.h>
 #endif
@@ -66,6 +68,10 @@ extern "C" {
 #include <array>
 #include <unordered_map>
 
+#ifdef Q_OS_WINDOWS
+#include <Shobjidl.h>
+#endif
+
 #include "qt_settings.hpp"
 #include "qt_machinestatus.hpp"
 #include "qt_mediamenu.hpp"
@@ -89,6 +95,8 @@ MainWindow::MainWindow(QWidget *parent) :
     ui(new Ui::MainWindow)
 {
 #ifdef Q_OS_WINDOWS
+    SetCurrentProcessExplicitAppUserModelID(L"86Box.86Box");
+
     auto font_name = tr("FONT_NAME");
     auto font_size = tr("FONT_SIZE");
     QApplication::setFont(QFont(font_name, font_size.toInt()));
@@ -420,7 +428,7 @@ MainWindow::MainWindow(QWidget *parent) :
 }
 
 void MainWindow::closeEvent(QCloseEvent *event) {
-    if (confirm_exit && cpu_thread_run)
+    if (confirm_exit && confirm_exit_cmdl && cpu_thread_run)
     {
         QMessageBox questionbox(QMessageBox::Icon::Question, "86Box", tr("Are you sure you want to exit 86Box?"), QMessageBox::Yes | QMessageBox::No, this);
         QCheckBox *chkbox = new QCheckBox(tr("Don't show this message again"));
@@ -445,6 +453,7 @@ void MainWindow::closeEvent(QCloseEvent *event) {
             window_y = this->geometry().y();
         }
     }
+    qt_nvr_save();
     config_save();
     event->accept();
 }
