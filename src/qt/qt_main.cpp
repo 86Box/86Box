@@ -141,11 +141,7 @@ int main(int argc, char* argv[]) {
 #endif
     QApplication app(argc, argv);
     QLocale::setDefault(QLocale::C);
-#ifdef Q_OS_WINDOWS
-    auto font_name = QObject::tr("FONT_NAME");
-    auto font_size = QObject::tr("FONT_SIZE");
-    QApplication::setFont(QFont(font_name, font_size.toInt()));
-#endif
+
     qt_set_sequence_auto_mnemonic(false);
     Q_INIT_RESOURCE(qt_resources);
     Q_INIT_RESOURCE(qt_translations);
@@ -165,6 +161,11 @@ int main(int argc, char* argv[]) {
         return 0;
     }
     ProgSettings::loadTranslators(&app);
+#ifdef Q_OS_WINDOWS
+    auto font_name = QObject::tr("FONT_NAME");
+    auto font_size = QObject::tr("FONT_SIZE");
+    QApplication::setFont(QFont(font_name, font_size.toInt()));
+#endif
     if (! pc_init_modules()) {
         ui_msgbox_header(MBX_FATAL, (void*)IDS_2120, (void*)IDS_2056);
         return 6;
