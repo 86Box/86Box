@@ -12,7 +12,7 @@
 #
 # Authors:	RichardG, <richardg867@gmail.com>
 #
-#		Copyright 2021 RichardG.
+#		Copyright 2021-2022 RichardG.
 #
 
 #
@@ -227,7 +227,7 @@ else
 	esac
 
 	# Establish general dependencies.
-	pkgs="cmake pkg-config git imagemagick wayland-protocols"
+	pkgs="cmake pkg-config git imagemagick wget wayland-protocols"
 	if [ "$(dpkg --print-architecture)" = "$arch_deb" ]
 	then
 		pkgs="$pkgs build-essential"
