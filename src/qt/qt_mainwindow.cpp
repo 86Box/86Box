@@ -67,6 +67,10 @@ extern "C" {
 #include <array>
 #include <unordered_map>
 
+#ifdef Q_OS_WINDOWS
+#include <Shobjidl.h>
+#endif
+
 #include "qt_settings.hpp"
 #include "qt_machinestatus.hpp"
 #include "qt_mediamenu.hpp"
@@ -90,6 +94,8 @@ MainWindow::MainWindow(QWidget *parent) :
     ui(new Ui::MainWindow)
 {
 #ifdef Q_OS_WINDOWS
+    SetCurrentProcessExplicitAppUserModelID(L"86Box.86Box");
+
     auto font_name = tr("FONT_NAME");
     auto font_size = tr("FONT_SIZE");
     QApplication::setFont(QFont(font_name, font_size.toInt()));
