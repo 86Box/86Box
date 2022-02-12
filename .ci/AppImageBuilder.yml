@@ -34,7 +34,9 @@ AppDir:
     - sourceline: 'deb http://deb.debian.org/debian bullseye-updates main'
       key_url: 'https://ftp-master.debian.org/keys/archive-key-11-security.asc'
     include:
+    - libdrm2
     - libevdev2
+    - libgbm1
     - libopenal1
     - libpng16-16
     - libqt5core5a
@@ -45,6 +47,7 @@ AppDir:
     - libslirp0
     - libwayland-client0
     - libx11-6
+    - libxcb1
   files:
     exclude:
     - etc
@@ -53,6 +56,7 @@ AppDir:
     - usr/sbin
     - usr/share/alsa
     - usr/share/apport
+    - usr/share/bug
     - usr/share/doc
     - usr/share/doc-base
     - usr/share/glib-2.0
