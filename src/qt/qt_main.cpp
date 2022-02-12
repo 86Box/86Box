@@ -43,6 +43,7 @@ Q_IMPORT_PLUGIN(QWindowsVistaStylePlugin)
 #include "qt_winrawinputfilter.hpp"
 #include "qt_winmanagerfilter.hpp"
 #include <86box/win.h>
+#include <Shobjidl.h>
 #endif
 
 extern "C"
@@ -165,6 +166,7 @@ int main(int argc, char* argv[]) {
     auto font_name = QObject::tr("FONT_NAME");
     auto font_size = QObject::tr("FONT_SIZE");
     QApplication::setFont(QFont(font_name, font_size.toInt()));
+    SetCurrentProcessExplicitAppUserModelID(L"86Box.86Box");
 #endif
     if (! pc_init_modules()) {
         ui_msgbox_header(MBX_FATAL, (void*)IDS_2120, (void*)IDS_2056);
