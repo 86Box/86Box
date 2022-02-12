@@ -10,12 +10,12 @@
  *
  *
  *
- * Authors:	Michael Dr�ing, <michael@drueing.de>
+ * Authors:	Michael Drüing, <michael@drueing.de>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
  *
  *		Based on code by Frederic Weymann (originally for DosBox.)
  *
- *		Copyright 2018 Michael Dr�ing.
+ *		Copyright 2018 Michael Drüing.
  *		Copyright 2018 Fred N. van Kempen.
  *
  *		Redistribution and  use  in source  and binary forms, with
