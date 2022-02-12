@@ -112,43 +112,6 @@ BEGIN
         MENUITEM "Завершити трасування\tCtrl+T",           IDM_ACTION_END_TRACE
 #endif
     END
-#if defined(ENABLE_LOG_TOGGLES) || defined(ENABLE_LOG_COMMANDS)
-    POPUP "&Ведення журнала"
-    BEGIN
-# ifdef ENABLE_BUSLOGIC_LOG
-        MENUITEM "Увімкнути журнали BusLogic\tCtrl+F4", IDM_LOG_BUSLOGIC
-# endif
-# ifdef ENABLE_CDROM_LOG
-        MENUITEM "Увімкнути журнали CD-ROM\tCtrl+F5", IDM_LOG_CDROM
-# endif
-# ifdef ENABLE_D86F_LOG
-        MENUITEM "Увімкнути журнали дискет (86F)\tCtrl+F6", IDM_LOG_D86F
-# endif
-# ifdef ENABLE_FDC_LOG
-        MENUITEM "Увімкнути журнали контролера дискет\tCtrl+F7", IDM_LOG_FDC
-# endif
-# ifdef ENABLE_IDE_LOG
-        MENUITEM "Увімкнути журнали IDE\tCtrl+F8", IDM_LOG_IDE
-# endif
-# ifdef ENABLE_SERIAL_LOG
-        MENUITEM "Увімкнути журнали COM порту\tCtrl+F3", IDM_LOG_SERIAL
-# endif
-# ifdef ENABLE_NIC_LOG
-        MENUITEM "Увімкнути журнали мережі\tCtrl+F9", IDM_LOG_NIC
-# endif
-# ifdef ENABLE_LOG_COMMANDS
-#  ifdef ENABLE_LOG_TOGGLES
-	MENUITEM SEPARATOR
-#  endif
-#  ifdef ENABLE_LOG_BREAKPOINT
-        MENUITEM "&Точка зупинка журналу\tCtrl+F10", IDM_LOG_BREAKPOINT
-#  endif
-#  ifdef ENABLE_VRAM_DUMP
-        MENUITEM "&Вивантаження дампа відеопам'яті\tCtrl+F1", IDM_DUMP_VRAM
-#  endif
-# endif
-    END
-#endif
     POPUP "&Допомога"
     BEGIN
         MENUITEM "&Документація...",           IDM_DOCS

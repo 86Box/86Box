@@ -1,3 +1,19 @@
+/*
+ * 86Box	A hypervisor and IBM PC system emulator that specializes in
+ *		running old operating systems and software designed for IBM
+ *		PC systems and compatibles from 1981 through fairly recent
+ *		system designs based on the PCI bus.
+ *
+ *		This file is part of the 86Box distribution.
+ *
+ *		Storage devices configuration UI module.
+ *
+ *
+ *
+ * Authors:	Joakim L. Gilje <jgilje@jgilje.net>
+ *
+ *		Copyright 2021 Joakim L. Gilje
+ */
 #include "qt_settingsstoragecontrollers.hpp"
 #include "ui_qt_settingsstoragecontrollers.h"
 
@@ -172,19 +188,19 @@ void SettingsStorageControllers::on_checkBoxQuaternaryIDE_stateChanged(int arg1)
 }
 
 void SettingsStorageControllers::on_pushButtonHD_clicked() {
-    DeviceConfig::ConfigureDevice(hdc_get_device(ui->comboBoxHD->currentData().toInt()));
+    DeviceConfig::ConfigureDevice(hdc_get_device(ui->comboBoxHD->currentData().toInt()), 0, qobject_cast<Settings*>(Settings::settings));
 }
 
 void SettingsStorageControllers::on_pushButtonFD_clicked() {
-    DeviceConfig::ConfigureDevice(fdc_card_getdevice(ui->comboBoxFD->currentData().toInt()));
+    DeviceConfig::ConfigureDevice(fdc_card_getdevice(ui->comboBoxFD->currentData().toInt()), 0, qobject_cast<Settings*>(Settings::settings));
 }
 
 void SettingsStorageControllers::on_pushButtonTertiaryIDE_clicked() {
-    DeviceConfig::ConfigureDevice(&ide_ter_device);
+    DeviceConfig::ConfigureDevice(&ide_ter_device, 0, qobject_cast<Settings*>(Settings::settings));
 }
 
 void SettingsStorageControllers::on_pushButtonQuaternaryIDE_clicked() {
-    DeviceConfig::ConfigureDevice(&ide_qua_device);
+    DeviceConfig::ConfigureDevice(&ide_qua_device, 0, qobject_cast<Settings*>(Settings::settings));
 }
 
 void SettingsStorageControllers::on_comboBoxSCSI1_currentIndexChanged(int index) {
@@ -217,17 +233,17 @@ void SettingsStorageControllers::on_comboBoxSCSI4_currentIndexChanged(int index)
 
 
 void SettingsStorageControllers::on_pushButtonSCSI1_clicked() {
-    DeviceConfig::ConfigureDevice(scsi_card_getdevice(ui->comboBoxSCSI1->currentData().toInt()), 1);
+    DeviceConfig::ConfigureDevice(scsi_card_getdevice(ui->comboBoxSCSI1->currentData().toInt()), 1, qobject_cast<Settings*>(Settings::settings));
 }
 
 void SettingsStorageControllers::on_pushButtonSCSI2_clicked() {
-    DeviceConfig::ConfigureDevice(scsi_card_getdevice(ui->comboBoxSCSI2->currentData().toInt()), 2);
+    DeviceConfig::ConfigureDevice(scsi_card_getdevice(ui->comboBoxSCSI2->currentData().toInt()), 2, qobject_cast<Settings*>(Settings::settings));
 }
 
 void SettingsStorageControllers::on_pushButtonSCSI3_clicked() {
-    DeviceConfig::ConfigureDevice(scsi_card_getdevice(ui->comboBoxSCSI3->currentData().toInt()), 3);
+    DeviceConfig::ConfigureDevice(scsi_card_getdevice(ui->comboBoxSCSI3->currentData().toInt()), 3, qobject_cast<Settings*>(Settings::settings));
 }
 
 void SettingsStorageControllers::on_pushButtonSCSI4_clicked() {
-    DeviceConfig::ConfigureDevice(scsi_card_getdevice(ui->comboBoxSCSI4->currentData().toInt()), 4);
+    DeviceConfig::ConfigureDevice(scsi_card_getdevice(ui->comboBoxSCSI4->currentData().toInt()), 4, qobject_cast<Settings*>(Settings::settings));
 }

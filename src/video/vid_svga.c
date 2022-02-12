@@ -120,6 +120,7 @@ svga_out(uint16_t addr, uint8_t val, void *p)
 								  ((svga->attrregs[0x14] & 0xc) << 4);
 					}
 				}
+				svga->fullchange = changeframecount;
 			}
 			/* Recalculate timings on change of attribute register 0x11
 			   (overscan border color) too. */

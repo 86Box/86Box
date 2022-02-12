@@ -9,6 +9,7 @@
 #include <86box/mem.h>
 #include <86box/rom.h>
 #include <86box/plat.h>
+#include <86box/ui.h>
 #include <86box/sound.h>
 #include <86box/midi.h>
 
@@ -18,7 +19,46 @@ extern void givealbuffer_midi(void *buf, uint32_t size);
 extern void al_set_midi(int freq, int buf_size);
 #endif
 
-static const mt32emu_report_handler_i_v0 handler_v0 = {
+static void display_mt32_message(void *instance_data, const char *message);
+
+static const mt32emu_report_handler_i_v0 handler_mt32_v0 = {
+        /** Returns the actual interface version ID */
+        NULL, //mt32emu_report_handler_version (*getVersionID)(mt32emu_report_handler_i i);
+
+        /** Callback for debug messages, in vprintf() format */
+        NULL, //void (*printDebug)(void *instance_data, const char *fmt, va_list list);
+        /** Callbacks for reporting errors */
+        NULL, //void (*onErrorControlROM)(void *instance_data);
+        NULL, //void (*onErrorPCMROM)(void *instance_data);
+        /** Callback for reporting about displaying a new custom message on LCD */
+        display_mt32_message, //void (*showLCDMessage)(void *instance_data, const char *message);
+        /** Callback for reporting actual processing of a MIDI message */
+        NULL, //void (*onMIDIMessagePlayed)(void *instance_data);
+        /**
+         * Callback for reporting an overflow of the input MIDI queue.
+         * Returns MT32EMU_BOOL_TRUE if a recovery action was taken
+         * and yet another attempt to enqueue the MIDI event is desired.
+         */
+        NULL, //mt32emu_boolean (*onMIDIQueueOverflow)(void *instance_data);
+        /**
+         * Callback invoked when a System Realtime MIDI message is detected in functions
+         * mt32emu_parse_stream and mt32emu_play_short_message and the likes.
+         */
+        NULL, //void (*onMIDISystemRealtime)(void *instance_data, mt32emu_bit8u system_realtime);
+        /** Callbacks for reporting system events */
+        NULL, //void (*onDeviceReset)(void *instance_data);
+        NULL, //void (*onDeviceReconfig)(void *instance_data);
+        /** Callbacks for reporting changes of reverb settings */
+        NULL, //void (*onNewReverbMode)(void *instance_data, mt32emu_bit8u mode);
+        NULL, //void (*onNewReverbTime)(void *instance_data, mt32emu_bit8u time);
+        NULL, //void (*onNewReverbLevel)(void *instance_data, mt32emu_bit8u level);
+        /** Callbacks for reporting various information */
+        NULL, //void (*onPolyStateChanged)(void *instance_data, mt32emu_bit8u part_num);
+        NULL, //void (*onProgramChanged)(void *instance_data, mt32emu_bit8u part_num, const char *sound_group_name, const char *patch_name);
+};
+
+/** Alternate report handler for Roland CM-32L */
+static const mt32emu_report_handler_i_v0 handler_cm32l_v0 = {
         /** Returns the actual interface version ID */
         NULL, //mt32emu_report_handler_version (*getVersionID)(mt32emu_report_handler_i i);
 
@@ -54,7 +94,8 @@ static const mt32emu_report_handler_i_v0 handler_v0 = {
         NULL, //void (*onProgramChanged)(void *instance_data, mt32emu_bit8u part_num, const char *sound_group_name, const char *patch_name);
 };
 
-static const mt32emu_report_handler_i handler = { &handler_v0 };
+static const mt32emu_report_handler_i handler_mt32 = { &handler_mt32_v0 };
+static const mt32emu_report_handler_i handler_cm32l = { &handler_cm32l_v0 };
 
 static mt32emu_context context = NULL;
 static int roms_present[2] = {-1, -1};
@@ -95,6 +136,20 @@ static int buf_size = 0;
 static float* buffer = NULL;
 static int16_t* buffer_int16 = NULL;
 static int midi_pos = 0;
+
+static void display_mt32_message(void *instance_data, const char *message)
+{
+    int sz = 0;
+    char* ui_msg = NULL;
+
+    sz = snprintf(NULL, 0, "MT-32: %s", message);
+    ui_msg = calloc(sz + 1, 1);
+    if (ui_msg)
+    {
+        snprintf(ui_msg, sz, "MT-32: %s", message);
+        ui_sb_mt32lcd(ui_msg);
+    }
+}
 
 void mt32_stream(float* stream, int len)
 {
@@ -176,7 +231,7 @@ void* mt32emu_init(char *control_rom, char *pcm_rom)
 	midi_device_t* dev;
         char fn[512];
 
-        context = mt32emu_create_context(handler, NULL);
+        context = mt32emu_create_context(strstr(control_rom, "CM32L_CONTROL.ROM") ? handler_cm32l : handler_mt32, NULL);
 
         if (!rom_getfile(control_rom, fn, 512)) return 0;
         if (!mt32_check("mt32emu_add_rom_file", mt32emu_add_rom_file(context, fn), MT32EMU_RC_ADDED_CONTROL_ROM)) return 0;

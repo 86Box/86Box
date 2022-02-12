@@ -32,7 +32,7 @@ jobs:
         shell: msys2 {0}
 
     strategy:
-      fail-fast: false
+      fail-fast: true
       matrix:
         build:
         - name: Regular ODR
@@ -111,7 +111,7 @@ jobs:
       VCPKG_BINARY_SOURCES: 'clear;nuget,GitHub,readwrite'
 
     strategy:
-      fail-fast: false
+      fail-fast: true
       matrix:
         build:
         - name: Regular ODR
@@ -213,7 +213,7 @@ jobs:
     runs-on: ubuntu-latest
 
     strategy:
-      fail-fast: false
+      fail-fast: true
       matrix:
         build:
         - name: Regular ODR
@@ -252,14 +252,14 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Install dependencies
-        run: sudo apt update && sudo apt install gcc-11 g++-11 libfreetype-dev libsdl2-dev libpng-dev libopenal-dev libc6-dev librtmidi-dev
+        run: sudo apt update && sudo apt install gcc-11 g++-11 libfreetype-dev libsdl2-dev libpng-dev libopenal-dev libc6-dev librtmidi-dev qtbase5-dev
       - name: Configure CMake
         run: >-
           cmake -S . -B build
           -D CMAKE_INSTALL_PREFIX=./build/artifacts
           -D DEV_BRANCH=${{ matrix.build.dev-build }}
           -D NEW_DYNAREC=${{ matrix.build.new-dynarec }}
-          -D VNC=OFF
+          -D QT=ON
           -D CMAKE_BUILD_TYPE=${{ matrix.build.type }}
           -D CMAKE_C_COMPILER=gcc-11 -D CMAKE_CXX_COMPILER=g++-11
       - name: Build
@@ -268,7 +268,7 @@ jobs:
         run: cmake --install build --prefix ./build/artifacts ${{ matrix.build.strip }}
       - uses: actions/upload-artifact@v2
         with:
-          name: '86Box${{ matrix.build.slug }}-Linux-x86_64-gha${{ github.run_number }}'
+          name: '86Box${{ matrix.build.slug }}-UbuntuFocal-x86_64-gha${{ github.run_number }}'
           path: build/artifacts/**
 
   macos11:
@@ -277,7 +277,7 @@ jobs:
     runs-on: macos-11
 
     strategy:
-      fail-fast: false
+      fail-fast: true
       matrix:
         build:
         - name: Regular ODR
@@ -316,7 +316,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Install dependencies
-        run: brew install freetype sdl2 libpng openal-soft rtmidi
+        run: brew install freetype sdl2 libpng openal-soft rtmidi qt@5
       - name: Configure CMake
         run: >-
           cmake -S . -B build
@@ -325,6 +325,9 @@ jobs:
           -D NEW_DYNAREC=${{ matrix.build.new-dynarec }}
           -D VNC=OFF
           -D CMAKE_BUILD_TYPE=${{ matrix.build.type }}
+          -D QT=ON
+          -D Qt5_DIR=/usr/local/Cellar/qt@5/5.15.2_1/lib/cmake/Qt5
+          -D Qt5LinguistTools_DIR=/usr/local/Cellar/qt@5/5.15.2_1/lib/cmake/Qt5LinguistTools/
       - name: Build
         run: cmake --build build
       - name: Generate package

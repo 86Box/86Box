@@ -29,7 +29,7 @@ msgid "&Hide status bar"
 msgstr "&Statusleiste ausblenden"
 
 msgid "Hide &toolbar"
-msgstr "Hide &toolbar"
+msgstr "Werkzeugleiste &ausblenden"
 
 msgid "&Resizeable window"
 msgstr "&Größenverstellbares Fenster"
@@ -178,36 +178,6 @@ msgstr "Tracing starten\tStrg+T"
 msgid "End trace\tCtrl+T"
 msgstr "Tracing beenden\tStrg+T"
 
-msgid "&Logging"
-msgstr "&Logging"
-
-msgid "Enable BusLogic logs\tCtrl+F4"
-msgstr "BusLogic-Logs aktivieren\tStrg+F4"
-
-msgid "Enable CD-ROM logs\tCtrl+F5"
-msgstr "CD-ROM-Logs aktivieren\tStrg+F5"
-
-msgid "Enable floppy (86F) logs\tCtrl+F6"
-msgstr "Disketten (86F)-Logs aktivieren\tStrg+F6"
-
-msgid "Enable floppy controller logs\tCtrl+F7"
-msgstr "Diskettencontroller-Logs aktivieren\tStrg+F7"
-
-msgid "Enable IDE logs\tCtrl+F8"
-msgstr "IDE-Logs aktivieren\tStrg+F8"
-
-msgid "Enable Serial Port logs\tCtrl+F3"
-msgstr "Seriell-Port-Logs aktivieren\tStrg+F3"
-
-msgid "Enable Network logs\tCtrl+F9"
-msgstr "Netzwerk-Logs aktivieren\tStrg+F9"
-
-msgid "&Log breakpoint\tCtrl+F10"
-msgstr "&Breakpoint für die Log-Datei\tStrg+F10"
-
-msgid "Dump &video RAM\tCtrl+F1"
-msgstr "&Video-RAM dumpen\tStrg+F1"
-
 msgid "&Help"
 msgstr "&Hilfe"
 
@@ -350,7 +320,7 @@ msgid "Machine type:"
 msgstr "Systemtyp:"
 
 msgid "Machine:"
-msgstr "Maschine:"
+msgstr "System:"
 
 msgid "Configure"
 msgstr "Einstellen"
@@ -842,7 +812,7 @@ msgid "Do you want to save the settings?"
 msgstr "Möchten Sie die Einstellungen speichern?"
 
 msgid "This will hard reset the emulated machine."
-msgstr "Dies wird zu einem Hard-Reset der emulierten Maschine führen."
+msgstr "Dies wird zu einem Hard-Reset des emulierten Systems führen."
 
 msgid "Save"
 msgstr "Speichern"
@@ -956,22 +926,22 @@ msgid "OpenGL (3.0 Core) renderer could not be initialized. Use another renderer
 msgstr "Der OpenGL (3.0-Kern)-Renderer konnte nicht initialisiert werden. Bitte benutzen Sie einen anderen Renderer."
 
 msgid "Resume execution"
-msgstr "Resume execution"
+msgstr "Fortsetzen"
 
 msgid "Pause execution"
-msgstr "Pause execution"
+msgstr "Pausieren"
 
 msgid "Press Ctrl+Alt+Del"
-msgstr "Press Ctrl+Alt+Del"
+msgstr "Strg+Alt+Entf drücken"
 
 msgid "Press Ctrl+Alt+Esc"
-msgstr "Press Ctrl+Alt+Esc"
+msgstr "Strg+Alt+Esc drücken"
 
 msgid "Hard reset"
-msgstr "Hard reset"
+msgstr "Hard-Reset"
 
 msgid "ACPI shutdown"
-msgstr "ACPI shutdown"
+msgstr "ACPI-basiertes Herunterfahren"
 
 msgid "Hard disk (%s)"
 msgstr "Festplatte (%s)"

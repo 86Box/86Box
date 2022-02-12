@@ -1,3 +1,22 @@
+/*
+ * 86Box	A hypervisor and IBM PC system emulator that specializes in
+ *		running old operating systems and software designed for IBM
+ *		PC systems and compatibles from 1981 through fairly recent
+ *		system designs based on the PCI bus.
+ *
+ *		This file is part of the 86Box distribution.
+ *
+ *      Main entry point module
+ *
+ *
+ * Authors:	Joakim L. Gilje <jgilje@jgilje.net>
+ *          Cacodemon345
+ *          Teemu Korhonen
+ *
+ *		Copyright 2021 Joakim L. Gilje
+ *      Copyright 2021-2022 Cacodemon345
+ *      Copyright 2021-2022 Teemu Korhonen
+ */
 #include <QApplication>
 #include <QSurfaceFormat>
 #include <QDebug>
@@ -7,6 +26,8 @@
 #include <QTranslator>
 #include <QDirIterator>
 #include <QLibraryInfo>
+#include <QString>
+#include <QFont>
 
 #ifdef QT_STATIC
 /* Static builds need plugin imports */
@@ -22,6 +43,7 @@ Q_IMPORT_PLUGIN(QWindowsVistaStylePlugin)
 #include "qt_winrawinputfilter.hpp"
 #include "qt_winmanagerfilter.hpp"
 #include <86box/win.h>
+#include <Shobjidl.h>
 #endif
 
 extern "C"
@@ -110,7 +132,17 @@ main_thread_fn()
 }
 
 int main(int argc, char* argv[]) {
-    QApplication app(argc, argv);    
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
+    QApplication::setAttribute(Qt::AA_DisableHighDpiScaling, false);
+    QApplication::setAttribute(Qt::AA_UseHighDpiPixmaps);
+    QApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
+#endif
+#if QT_VERSION >= QT_VERSION_CHECK(5, 14, 0)
+    QApplication::setHighDpiScaleFactorRoundingPolicy(Qt::HighDpiScaleFactorRoundingPolicy::PassThrough);
+#endif
+    QApplication app(argc, argv);
+    QLocale::setDefault(QLocale::C);
+
     qt_set_sequence_auto_mnemonic(false);
     Q_INIT_RESOURCE(qt_resources);
     Q_INIT_RESOURCE(qt_translations);
@@ -130,6 +162,12 @@ int main(int argc, char* argv[]) {
         return 0;
     }
     ProgSettings::loadTranslators(&app);
+#ifdef Q_OS_WINDOWS
+    auto font_name = QObject::tr("FONT_NAME");
+    auto font_size = QObject::tr("FONT_SIZE");
+    QApplication::setFont(QFont(font_name, font_size.toInt()));
+    SetCurrentProcessExplicitAppUserModelID(L"86Box.86Box");
+#endif
     if (! pc_init_modules()) {
         ui_msgbox_header(MBX_FATAL, (void*)IDS_2120, (void*)IDS_2056);
         return 6;
@@ -163,7 +201,11 @@ int main(int argc, char* argv[]) {
         QObject::connect(wmfilter.get(), &WindowsManagerFilter::showsettings, main_window, &MainWindow::showSettings);
         QObject::connect(wmfilter.get(), &WindowsManagerFilter::pause, main_window, &MainWindow::togglePause);
         QObject::connect(wmfilter.get(), &WindowsManagerFilter::reset, main_window, &MainWindow::hardReset);
-        QObject::connect(wmfilter.get(), &WindowsManagerFilter::shutdown, [](){ plat_power_off(); });
+        QObject::connect(wmfilter.get(), &WindowsManagerFilter::request_shutdown, main_window, &MainWindow::close);
+        QObject::connect(wmfilter.get(), &WindowsManagerFilter::force_shutdown, [](){
+            do_stop();
+            emit main_window->close();
+        });
         QObject::connect(wmfilter.get(), &WindowsManagerFilter::ctrlaltdel, [](){ pc_send_cad(); });
         QObject::connect(wmfilter.get(), &WindowsManagerFilter::dialogstatus, [main_hwnd](bool open){
             PostMessage((HWND)(uintptr_t)source_hwnd, WM_SENDDLGSTATUS, (WPARAM)(open ? 1 : 0), (LPARAM)main_hwnd);

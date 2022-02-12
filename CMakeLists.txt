@@ -18,8 +18,16 @@ cmake_minimum_required(VERSION 3.16)
 cmake_policy(SET CMP0091 NEW)
 cmake_policy(SET CMP0079 NEW)
 
-if (QT)
+if(QT)
     list(APPEND VCPKG_MANIFEST_FEATURES "qt-ui")
+endif()
+
+if(SLIRP_EXTERNAL)
+    list(APPEND VCPKG_MANIFEST_FEATURES "slirp")
+endif()
+
+if(MUNT_EXTERNAL)
+    list(APPEND VCPKG_MANIFEST_FEATURES "munt")
 endif()
 
 project(86Box
@@ -32,26 +40,26 @@ include(CPack)
 include(CMakeDependentOption)
 
 # Basic build options
-if(WIN32)
-    if(VCPKG_TOOLCHAIN)
-        # For vcpkg builds we have to respect the linking method used by the
-        # specified triplet.
-        set(NO_STATIC_OPTION ON)
-        if(VCPKG_TARGET_TRIPLET MATCHES "-windows-static$")
-            # `-static` triplet, use static linking
-            set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
-            set(STATIC_BUILD ON)
-        elseif(VCPKG_TARGET_TRIPLET MATCHES "-windows-static-md$")
-            # `-static-md` triplet, use static linking with dynamic CRT
-            set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
-            set(STATIC_BUILD ON)
-        elseif()
-            # Regular triplet, use dynamic linking
-            set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
-            set(STATIC_BUILD OFF)
-        endif()
+if(VCPKG_TOOLCHAIN)
+    # For vcpkg builds we have to respect the linking method used by the
+    # specified triplet.
+    set(NO_STATIC_OPTION ON)
+    if(VCPKG_TARGET_TRIPLET MATCHES "-static$")
+        # `-static` triplet, use static linking
+        set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+        set(STATIC_BUILD ON)
+    elseif(VCPKG_TARGET_TRIPLET MATCHES "-static-md$")
+        # `-static-md` triplet, use static linking with dynamic CRT
+        set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
+        set(STATIC_BUILD ON)
+    elseif()
+        # Regular triplet, use dynamic linking
+        set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
+        set(STATIC_BUILD OFF)
     endif()
+endif()
 
+if(WIN32)
     # Prefer static builds on Windows
     set(PREFER_STATIC ON)
 
@@ -98,6 +106,7 @@ if(WIN32)
 endif()
 
 set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_FIND_PACKAGE_PREFER_CONFIG ON)
 
 # Optional features
 #
@@ -108,13 +117,16 @@ option(DYNAREC      "Dynamic recompiler"                                        
 option(OPENAL       "OpenAL"                                                        ON)
 option(FLUIDSYNTH   "FluidSynth"                                                    ON)
 option(MUNT         "MUNT"                                                          ON)
-option(VRAMDUMP     "Video RAM dumping"                                             OFF)
 option(DINPUT       "DirectInput"                                                   OFF)
 option(CPPTHREADS   "C++11 threads"                                                 ON)
 option(NEW_DYNAREC  "Use the PCem v15 (\"new\") dynamic recompiler"                 OFF)
 option(MINITRACE    "Enable Chrome tracing using the modified minitrace library"    OFF)
 option(DEV_BRANCH   "Development branch"                                            OFF)
+if(NOT WIN32)
+option(QT           "QT GUI"                                                        ON)
+else()
 option(QT           "QT GUI"                                                        OFF)
+endif()
 
 # Development branch features
 #

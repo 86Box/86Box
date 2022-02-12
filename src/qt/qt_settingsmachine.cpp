@@ -1,3 +1,19 @@
+/*
+ * 86Box	A hypervisor and IBM PC system emulator that specializes in
+ *		running old operating systems and software designed for IBM
+ *		PC systems and compatibles from 1981 through fairly recent
+ *		system designs based on the PCI bus.
+ *
+ *		This file is part of the 86Box distribution.
+ *
+ *		Machine selection and configuration UI module.
+ *
+ *
+ *
+ * Authors:	Joakim L. Gilje <jgilje@jgilje.net>
+ *
+ *		Copyright 2021 Joakim L. Gilje
+ */
 #include "qt_settingsmachine.hpp"
 #include "ui_qt_settingsmachine.h"
 
@@ -266,5 +282,5 @@ void SettingsMachine::on_pushButtonConfigure_clicked() {
     // deviceconfig_inst_open
     int machineId = ui->comboBoxMachine->currentData().toInt();
     const auto* device = machine_getdevice(machineId);
-    DeviceConfig::ConfigureDevice(device);
+    DeviceConfig::ConfigureDevice(device, 0, qobject_cast<Settings*>(Settings::settings));
 }

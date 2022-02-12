@@ -1,3 +1,21 @@
+/*
+ * 86Box	A hypervisor and IBM PC system emulator that specializes in
+ *		running old operating systems and software designed for IBM
+ *		PC systems and compatibles from 1981 through fairly recent
+ *		system designs based on the PCI bus.
+ *
+ *		This file is part of the 86Box distribution.
+ *
+ *		Program settings UI module.
+ *
+ *
+ *
+ * Authors: Miran Grca <mgrca8@gmail.com>
+ *          Cacodemon345
+ *
+ *      Copyright 2022 Miran Grca
+ *      Copyright 2022 Cacodemon345
+ */
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>

@@ -251,30 +251,6 @@ ResetAllMenus(void)
 
     CheckMenuItem(menuMain, IDM_UPDATE_ICONS, MF_UNCHECKED);
 
-#ifdef ENABLE_LOG_TOGGLES
-# ifdef ENABLE_BUSLOGIC_LOG
-    CheckMenuItem(menuMain, IDM_LOG_BUSLOGIC, MF_UNCHECKED);
-# endif
-# ifdef ENABLE_CDROM_LOG
-    CheckMenuItem(menuMain, IDM_LOG_CDROM, MF_UNCHECKED);
-# endif
-# ifdef ENABLE_D86F_LOG
-    CheckMenuItem(menuMain, IDM_LOG_D86F, MF_UNCHECKED);
-# endif
-# ifdef ENABLE_FDC_LOG
-    CheckMenuItem(menuMain, IDM_LOG_FDC, MF_UNCHECKED);
-# endif
-# ifdef ENABLE_IDE_LOG
-    CheckMenuItem(menuMain, IDM_LOG_IDE, MF_UNCHECKED);
-# endif
-# ifdef ENABLE_SERIAL_LOG
-    CheckMenuItem(menuMain, IDM_LOG_SERIAL, MF_UNCHECKED);
-# endif
-# ifdef ENABLE_NIC_LOG
-    CheckMenuItem(menuMain, IDM_LOG_NIC, MF_UNCHECKED);
-# endif
-#endif
-
     CheckMenuItem(menuMain, IDM_VID_HIDE_STATUS_BAR, MF_UNCHECKED);
     CheckMenuItem(menuMain, IDM_VID_HIDE_TOOLBAR, MF_UNCHECKED);
     CheckMenuItem(menuMain, IDM_VID_FORCE43, MF_UNCHECKED);
@@ -319,30 +295,6 @@ ResetAllMenus(void)
     CheckMenuItem(menuMain, IDM_ACTION_KBD_REQ_CAPTURE, kbd_req_capture ? MF_CHECKED : MF_UNCHECKED);
 
     CheckMenuItem(menuMain, IDM_UPDATE_ICONS, update_icons ? MF_CHECKED : MF_UNCHECKED);
-
-#ifdef ENABLE_LOG_TOGGLES
-# ifdef ENABLE_BUSLOGIC_LOG
-    CheckMenuItem(menuMain, IDM_LOG_BUSLOGIC, buslogic_do_log?MF_CHECKED:MF_UNCHECKED);
-# endif
-# ifdef ENABLE_CDROM_LOG
-    CheckMenuItem(menuMain, IDM_LOG_CDROM, cdrom_do_log?MF_CHECKED:MF_UNCHECKED);
-# endif
-# ifdef ENABLE_D86F_LOG
-    CheckMenuItem(menuMain, IDM_LOG_D86F, d86f_do_log?MF_CHECKED:MF_UNCHECKED);
-# endif
-# ifdef ENABLE_FDC_LOG
-    CheckMenuItem(menuMain, IDM_LOG_FDC, fdc_do_log?MF_CHECKED:MF_UNCHECKED);
-# endif
-# ifdef ENABLE_IDE_LOG
-    CheckMenuItem(menuMain, IDM_LOG_IDE, ide_do_log?MF_CHECKED:MF_UNCHECKED);
-# endif
-# ifdef ENABLE_SERIAL_LOG
-    CheckMenuItem(menuMain, IDM_LOG_SERIAL, serial_do_log?MF_CHECKED:MF_UNCHECKED);
-# endif
-# ifdef ENABLE_NIC_LOG
-    CheckMenuItem(menuMain, IDM_LOG_NIC, nic_do_log?MF_CHECKED:MF_UNCHECKED);
-# endif
-#endif
 
     CheckMenuItem(menuMain, IDM_VID_HIDE_STATUS_BAR, hide_status_bar ? MF_CHECKED : MF_UNCHECKED);
     CheckMenuItem(menuMain, IDM_VID_HIDE_TOOLBAR, hide_tool_bar ? MF_CHECKED : MF_UNCHECKED);
@@ -879,68 +831,6 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 					discord_close();
 				break;
 
-#ifdef ENABLE_LOG_TOGGLES
-# ifdef ENABLE_BUSLOGIC_LOG
-			case IDM_LOG_BUSLOGIC:
-				buslogic_do_log ^= 1;
-				CheckMenuItem(hmenu, IDM_LOG_BUSLOGIC, buslogic_do_log ? MF_CHECKED : MF_UNCHECKED);
-				break;
-# endif
-
-# ifdef ENABLE_CDROM_LOG
-			case IDM_LOG_CDROM:
-				cdrom_do_log ^= 1;
-				CheckMenuItem(hmenu, IDM_LOG_CDROM, cdrom_do_log ? MF_CHECKED : MF_UNCHECKED);
-				break;
-# endif
-
-# ifdef ENABLE_D86F_LOG
-			case IDM_LOG_D86F:
-				d86f_do_log ^= 1;
-				CheckMenuItem(hmenu, IDM_LOG_D86F, d86f_do_log ? MF_CHECKED : MF_UNCHECKED);
-				break;
-# endif
-
-# ifdef ENABLE_FDC_LOG
-			case IDM_LOG_FDC:
-				fdc_do_log ^= 1;
-				CheckMenuItem(hmenu, IDM_LOG_FDC, fdc_do_log ? MF_CHECKED : MF_UNCHECKED);
-				break;
-# endif
-
-# ifdef ENABLE_IDE_LOG
-			case IDM_LOG_IDE:
-				ide_do_log ^= 1;
-				CheckMenuItem(hmenu, IDM_LOG_IDE, ide_do_log ? MF_CHECKED : MF_UNCHECKED);
-				break;
-# endif
-
-# ifdef ENABLE_SERIAL_LOG
-			case IDM_LOG_SERIAL:
-				serial_do_log ^= 1;
-				CheckMenuItem(hmenu, IDM_LOG_SERIAL, serial_do_log ? MF_CHECKED : MF_UNCHECKED);
-				break;
-# endif
-
-# ifdef ENABLE_NIC_LOG
-			case IDM_LOG_NIC:
-				nic_do_log ^= 1;
-				CheckMenuItem(hmenu, IDM_LOG_NIC, nic_do_log ? MF_CHECKED : MF_UNCHECKED);
-				break;
-# endif
-#endif
-
-#ifdef ENABLE_LOG_BREAKPOINT
-			case IDM_LOG_BREAKPOINT:
-				pclog("---- LOG BREAKPOINT ----\n");
-				break;
-#endif
-
-#ifdef ENABLE_VRAM_DUMP
-			case IDM_DUMP_VRAM:
-				svga_dump_vram();
-				break;
-#endif
 			default:
 				media_menu_proc(hwnd, message, wParam, lParam);
 				break;
@@ -1122,21 +1012,29 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 	case WM_SHUTDOWN:
 		if (manager_wm)
 			break;
-		win_notify_dlg_open();
-		if (confirm_exit && confirm_exit_cmdl)
-			i = ui_msgbox_ex(MBX_QUESTION_YN | MBX_DONTASK, (wchar_t *) IDS_2113, NULL, (wchar_t *) IDS_2119, (wchar_t *) IDS_2136, NULL);
-		else
-			i = 0;
-		if ((i % 10) == 0) {
-			if (i == 10) {
-				confirm_exit = 0;
-				nvr_save();
-				config_save();
-			}
+		if (LOWORD(wParam) == 1) {
+			confirm_exit = 0;
+			nvr_save();
+			config_save();
 			KillTimer(hwnd, TIMER_1SEC);
 			PostQuitMessage(0);
+		} else {
+			win_notify_dlg_open();
+			if (confirm_exit && confirm_exit_cmdl)
+				i = ui_msgbox_ex(MBX_QUESTION_YN | MBX_DONTASK, (wchar_t *) IDS_2113, NULL, (wchar_t *) IDS_2119, (wchar_t *) IDS_2136, NULL);
+			else
+				i = 0;
+			if ((i % 10) == 0) {
+				if (i == 10) {
+					confirm_exit = 0;
+					nvr_save();
+					config_save();
+				}
+				KillTimer(hwnd, TIMER_1SEC);
+				PostQuitMessage(0);
+			}
+			win_notify_dlg_closed();
 		}
-		win_notify_dlg_closed();
 		break;
 
 	case WM_CTRLALTDEL:

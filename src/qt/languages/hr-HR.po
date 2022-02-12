@@ -29,7 +29,7 @@ msgid "&Hide status bar"
 msgstr "&Sakrij statusni redak"
 
 msgid "Hide &toolbar"
-msgstr "Hide &toolbar"
+msgstr "&Sakrij alatni redak"
 
 msgid "&Resizeable window"
 msgstr "&Prozor s promjenjivim veličinama"
@@ -177,36 +177,6 @@ msgstr "Z&apočni praćenje\tCtrl+T"
 
 msgid "End trace\tCtrl+T"
 msgstr "&Svrši praćenje\tCtrl+T"
-
-msgid "&Logging"
-msgstr "&Logging"
-
-msgid "Enable BusLogic logs\tCtrl+F4"
-msgstr "Omogući bilježenje za BusLogic\tCtrl+F4"
-
-msgid "Enable CD-ROM logs\tCtrl+F5"
-msgstr "Omogući bilježenje za CD-ROM\tCtrl+F5"
-
-msgid "Enable floppy (86F) logs\tCtrl+F6"
-msgstr "Omogući bilježenje za diskete (86F)\tCtrl+F6"
-
-msgid "Enable floppy controller logs\tCtrl+F7"
-msgstr "Omogući bilježenje za disketni krmilnik\tCtrl+F7"
-
-msgid "Enable IDE logs\tCtrl+F8"
-msgstr "Omogući bilježenje za IDE\tCtrl+F8"
-
-msgid "Enable Serial Port logs\tCtrl+F3"
-msgstr "Omogući bilježenje za serijska vrata\tCtrl+F3"
-
-msgid "Enable Network logs\tCtrl+F9"
-msgstr "Omogući bilježenje za omrežje\tCtrl+F9"
-
-msgid "&Log breakpoint\tCtrl+F10"
-msgstr "&Zabilježi prekidnu točku\tCtrl+F10"
-
-msgid "Dump &video RAM\tCtrl+F1"
-msgstr "&Ispiši memoriju zaslona\tCtrl+F1"
 
 msgid "&Help"
 msgstr "&Pomoć"
@@ -956,22 +926,22 @@ msgid "OpenGL (3.0 Core) renderer could not be initialized. Use another renderer
 msgstr "Nije moguće inicijalizirati OpenGL (3.0 jezgra) renderer. Molimte koristite drugi renderer."
 
 msgid "Resume execution"
-msgstr "Resume execution"
+msgstr "Nastavi"
 
 msgid "Pause execution"
-msgstr "Pause execution"
+msgstr "Pauziraj"
 
 msgid "Press Ctrl+Alt+Del"
-msgstr "Press Ctrl+Alt+Del"
+msgstr "Stisni Ctrl+Alt+Del"
 
 msgid "Press Ctrl+Alt+Esc"
-msgstr "Press Ctrl+Alt+Esc"
+msgstr "Stisni Ctrl+Alt+Esc"
 
 msgid "Hard reset"
-msgstr "Hard reset"
+msgstr "Ponovno pokretanje"
 
 msgid "ACPI shutdown"
-msgstr "ACPI shutdown"
+msgstr "ACPI bazirano gašenje"
 
 msgid "Hard disk (%s)"
 msgstr "Tvrdi disk (%s)"

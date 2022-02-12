@@ -36,10 +36,6 @@ if(DYNAREC)
     add_compile_definitions(USE_DYNAREC)
 endif()
 
-if(VRAMDUMP)
-    add_compile_definitions(ENABLE_VRAM_DUMP)
-endif()
-
 if(DEV_BRANCH)
     add_compile_definitions(DEV_BRANCH)
 endif()
@@ -83,25 +79,6 @@ if(APPLE)
     endif()
 endif()
 
-if(QT)
-  set(CMAKE_CXX_STANDARD 17)
-  set(CMAKE_CXX_STANDARD_REQUIRED ON)
-  set(CMAKE_CXX_EXTENSIONS OFF)
-  if (USE_QT6)
-      set(QT_MAJOR 6)
-  else()
-      set(QT_MAJOR 5)
-  endif()
-  
-  # if we want to use qt5-static to eliminate need for bundling qt dlls (windows)
-  #set(QT_STATIC ON)
-  # needed to build with qt5-static if both qt5 and qt5-static are installed
-  #set(CMAKE_PREFIX_PATH "path/to/qt5-static")
-  
-  find_package(Qt${QT_MAJOR} COMPONENTS Core Widgets OpenGL REQUIRED)
-  find_package(Qt${QT_MAJOR}LinguistTools REQUIRED)
-endif()
-
 find_package(Freetype REQUIRED)
 include_directories(${FREETYPE_INCLUDE_DIRS})
 if(APPLE)
@@ -111,9 +88,20 @@ if(APPLE)
 endif()
 
 if(OPENAL)
-    find_package(OpenAL REQUIRED)
-    include_directories(${OPENAL_INCLUDE_DIR})
-    target_link_libraries(86Box ${OPENAL_LIBRARY})
+    if(VCPKG_TOOLCHAIN)
+        find_package(OpenAL CONFIG REQUIRED)
+    elseif(MINGW)
+        find_package(OpenAL MODULE REQUIRED)
+    else()
+        find_package(OpenAL REQUIRED)
+    endif()
+
+    if(TARGET OpenAL::OpenAL)
+        target_link_libraries(86Box OpenAL::OpenAL)
+    else()
+        include_directories(${OPENAL_INCLUDE_DIR})
+        target_link_libraries(86Box ${OPENAL_LIBRARY})
+    endif()
 endif()
 
 find_package(SDL2 REQUIRED)
@@ -178,89 +166,28 @@ else()
     install(TARGETS 86Box)
 endif()
 
-# prepare everything for Qt5 bundle creation
-if (APPLE AND QT)
-    set(prefix "86Box.app/Contents")
-    set(INSTALL_RUNTIME_DIR "${prefix}/MacOS")
-    set(INSTALL_CMAKE_DIR "${prefix}/Resources")
-endif()
-
-# loads a macro to install Qt5 plugins on macOS
-# based on https://stackoverflow.com/questions/35612687/cmake-macos-x-bundle-with-bundleutiliies-for-qt-application
-macro(install_qt5_plugin _qt_plugin_name _qt_plugins_var _prefix)
-    get_target_property(_qt_plugin_path "${_qt_plugin_name}" LOCATION)
-    if(EXISTS "${_qt_plugin_path}")
-        get_filename_component(_qt_plugin_file "${_qt_plugin_path}" NAME)
-        get_filename_component(_qt_plugin_type "${_qt_plugin_path}" PATH)
-        get_filename_component(_qt_plugin_type "${_qt_plugin_type}" NAME)
-        set(_qt_plugin_dest "${_prefix}/PlugIns/${_qt_plugin_type}")
-        install(FILES "${_qt_plugin_path}"
-            DESTINATION "${_qt_plugin_dest}")
-        set(${_qt_plugins_var}
-            "${${_qt_plugins_var}};\$ENV{DEST_DIR}\${CMAKE_INSTALL_PREFIX}/${_qt_plugin_dest}/${_qt_plugin_file}")
-    else()
-        message(FATAL_ERROR "QT plugin ${_qt_plugin_name} not found")
-    endif()
-endmacro()
-
-# Install our dependencies to the macOS bundle
-if(APPLE)
-    if (NOT QT)
-        install(CODE "
-            include(BundleUtilities)
-            get_filename_component(CMAKE_INSTALL_PREFIX_ABSOLUTE \${CMAKE_INSTALL_PREFIX} ABSOLUTE)
-            fixup_bundle(\"\${CMAKE_INSTALL_PREFIX_ABSOLUTE}/86Box.app\" \"\" \"\")"
-        COMPONENT Runtime)
-    endif()
-    
-    if(QT)
-    # using the install_qt5_plugin to add Qt plugins into the macOS app bundle
-    if (USE_QT6)
-        install_qt5_plugin("Qt6::QCocoaIntegrationPlugin" QT_PLUGINS ${prefix})
-    else()
-        install_qt5_plugin("Qt5::QCocoaIntegrationPlugin" QT_PLUGINS ${prefix})
-        install_qt5_plugin("Qt5::QMacStylePlugin" QT_PLUGINS ${prefix})
-        install_qt5_plugin("Qt5::QICOPlugin" QT_PLUGINS ${prefix})
-        install_qt5_plugin("Qt5::QICNSPlugin" QT_PLUGINS ${prefix})
-    endif()
-    
-    file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/qt.conf"
-        "[Paths]\nPlugins = ${_qt_plugin_dir}\n")
-    install(FILES "${CMAKE_CURRENT_BINARY_DIR}/qt.conf"
-        DESTINATION "${INSTALL_CMAKE_DIR}")
-
-    # Note Mac specific extension .app
-    set(APPS "\$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/86Box.app")
-
-    # Directories to look for dependencies
-    set(DIRS "${CMAKE_BINARY_DIR}")
-
-    # Path used for searching by FIND_XXX(), with appropriate suffixes added
-    if(CMAKE_PREFIX_PATH)
-        foreach(dir ${CMAKE_PREFIX_PATH})
-            list(APPEND DIRS "${dir}/bin" "${dir}/lib")
-    endforeach()
-    endif()
-
-    # Append Qt's lib folder which is two levels above Qt5Widgets_DIR
-    list(APPEND DIRS "${Qt5Widgets_DIR}/../..")
-
-    include(InstallRequiredSystemLibraries)
-
-    message(STATUS "APPS: ${APPS}")
-    message(STATUS "QT_PLUGINS: ${QT_PLUGINS}")
-    message(STATUS "DIRS: ${DIRS}")
-
-    install(CODE "include(BundleUtilities)
-        fixup_bundle(\"${APPS}\" \"${QT_PLUGINS}\" \"${DIRS}\")")
-    endif()    
-endif()
-
 
 # Install our dependencies if using vcpkg
 if(VCPKG_TOOLCHAIN)
     x_vcpkg_install_local_dependencies(TARGETS 86Box DESTINATION ".")
 endif()
+
+
+# Install other dependencies
+if(WIN32)
+    install(CODE "
+        include(BundleUtilities)
+        get_filename_component(CMAKE_INSTALL_PREFIX_ABSOLUTE \${CMAKE_INSTALL_PREFIX} ABSOLUTE)
+        fixup_bundle(\"\${CMAKE_INSTALL_PREFIX_ABSOLUTE}/$<TARGET_FILE_NAME:86Box>\" \"\" \"\")"
+    COMPONENT Runtime)
+elseif(APPLE AND NOT QT)
+    install(CODE "
+        include(BundleUtilities)
+        get_filename_component(CMAKE_INSTALL_PREFIX_ABSOLUTE \${CMAKE_INSTALL_PREFIX} ABSOLUTE)
+        fixup_bundle(\"\${CMAKE_INSTALL_PREFIX_ABSOLUTE}/86Box.app\" \"\" \"\")"
+    COMPONENT Runtime)
+endif()
+
 
 # Install the PDB file on Windows builds
 if(MSVC)

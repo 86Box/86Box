@@ -1,3 +1,23 @@
+/*
+ * 86Box	A hypervisor and IBM PC system emulator that specializes in
+ *		running old operating systems and software designed for IBM
+ *		PC systems and compatibles from 1981 through fairly recent
+ *		system designs based on the PCI bus.
+ *
+ *		This file is part of the 86Box distribution.
+ *
+ *		Software renderer module.
+ *
+ *
+ *
+ * Authors:	Joakim L. Gilje <jgilje@jgilje.net>
+ *          Cacodemon345
+ *          Teemu Korhonen
+ *
+ *		Copyright 2021 Joakim L. Gilje
+ *      Copyright 2021-2022 Cacodemon345
+ *      Copyright 2021-2022 Teemu Korhonen
+ */
 #include "qt_softwarerenderer.hpp"
 #include <QApplication>
 #include <QPainter>
@@ -56,7 +76,11 @@ void SoftwareRenderer::onPaint(QPaintDevice* device) {
 
     QPainter painter(device);
     painter.setRenderHint(QPainter::SmoothPixmapTransform, video_filter_method > 0 ? true : false);
+#if QT_VERSION >= QT_VERSION_CHECK(5, 14, 0)
     painter.fillRect(0, 0, device->width(), device->height(), QColorConstants::Black);
+#else
+    painter.fillRect(0,0, device->width(), device->height(), Qt::black);
+#endif
     painter.setCompositionMode(QPainter::CompositionMode_Plus);
     painter.drawImage(destination, *images[cur_image], source);
 }

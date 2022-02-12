@@ -178,36 +178,6 @@ msgstr "추적 시작하기\tCtrl+T"
 msgid "End trace\tCtrl+T"
 msgstr "추적 끝내기\tCtrl+T"
 
-msgid "&Logging"
-msgstr "로그(&L)"
-
-msgid "Enable BusLogic logs\tCtrl+F4"
-msgstr "BusLogic 로그 켜기\tCtrl+F4"
-
-msgid "Enable CD-ROM logs\tCtrl+F5"
-msgstr "CD-ROM 로그 켜기\tCtrl+F5"
-
-msgid "Enable floppy (86F) logs\tCtrl+F6"
-msgstr "플로피 (86F) 로그 켜기\tCtrl+F6"
-
-msgid "Enable floppy controller logs\tCtrl+F7"
-msgstr "플로피 컨트롤러 로그 켜기\tCtrl+F7"
-
-msgid "Enable IDE logs\tCtrl+F8"
-msgstr "IDE 로그 켜기\tCtrl+F8"
-
-msgid "Enable Serial Port logs\tCtrl+F3"
-msgstr "직렬 포트 로그 켜기\tCtrl+F3"
-
-msgid "Enable Network logs\tCtrl+F9"
-msgstr "네트워크 로그 켜기\tCtrl+F9"
-
-msgid "&Log breakpoint\tCtrl+F10"
-msgstr "중단점 로그 켜기(&L)\tCtrl+F10"
-
-msgid "Dump &video RAM\tCtrl+F1"
-msgstr "비디오 RAM 덤프 켜기(&V)\tCtrl+F1"
-
 msgid "&Help"
 msgstr "도움말(&H)"
 

@@ -193,13 +193,13 @@ BEGIN
     LTEXT           STR_CPU_TYPE, IDT_CPU_TYPE,
                     CFG_HMARGIN, 47, CFG_PANE_LTEXT_PRI_WIDTH, CFG_PANE_LTEXT_HEIGHT
     COMBOBOX        IDC_COMBO_CPU_TYPE,
-                    CFG_COMBO_BOX_LEFT, 45, 115, CFG_COMBO_HEIGHT,
+                    CFG_COMBO_BOX_LEFT, 45, 110, CFG_COMBO_HEIGHT,
                     CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
 
     LTEXT           STR_CPU_SPEED, IDT_CPU_SPEED,
-                    225, 47, 24, CFG_PANE_LTEXT_HEIGHT
+                    216, 47, 34, CFG_PANE_LTEXT_HEIGHT
     COMBOBOX        IDC_COMBO_CPU_SPEED,
-                    255, 45, 106, CFG_COMBO_HEIGHT,
+                    252, 45, 109, CFG_COMBO_HEIGHT,
                     CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
 
     LTEXT           STR_FPU,IDT_FPU,
@@ -286,16 +286,16 @@ BEGIN
                     CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
 
     PUSHBUTTON      STR_JOY1, IDC_JOY1,
-                    CFG_HMARGIN, 44, 80, CFG_BTN_HEIGHT
+                    CFG_HMARGIN, 44, 84, CFG_BTN_HEIGHT
 
     PUSHBUTTON      STR_JOY2, IDC_JOY2,
-                    99, 44, 80, CFG_BTN_HEIGHT
+                    96, 44, 84, CFG_BTN_HEIGHT
 
     PUSHBUTTON      STR_JOY3, IDC_JOY3,
-                    195, 44, 80, CFG_BTN_HEIGHT
+                    187, 44, 84, CFG_BTN_HEIGHT
 
     PUSHBUTTON      STR_JOY4, IDC_JOY4,
-                    290, 44, 80, CFG_BTN_HEIGHT
+                    277, 44, 84, CFG_BTN_HEIGHT
 END
 
 DLG_CFG_SOUND DIALOG DISCARDABLE  CFG_PANE_LEFT, CFG_PANE_TOP, CFG_PANE_WIDTH, CFG_PANE_HEIGHT
@@ -453,19 +453,19 @@ BEGIN
 
     CONTROL         STR_PARALLEL1, IDC_CHECK_PARALLEL1,
                     "Button", BS_AUTOCHECKBOX | WS_TABSTOP,
-                    147, 83, CFG_CHECKBOX_PRI_WIDTH, CFG_CHECKBOX_HEIGHT
+                    167, 83, CFG_CHECKBOX_PRI_WIDTH, CFG_CHECKBOX_HEIGHT
 
     CONTROL         STR_PARALLEL2, IDC_CHECK_PARALLEL2,
                     "Button", BS_AUTOCHECKBOX | WS_TABSTOP,
-                    147, 102, CFG_CHECKBOX_PRI_WIDTH, CFG_CHECKBOX_HEIGHT
+                    167, 102, CFG_CHECKBOX_PRI_WIDTH, CFG_CHECKBOX_HEIGHT
 
     CONTROL         STR_PARALLEL3, IDC_CHECK_PARALLEL3,
                     "Button", BS_AUTOCHECKBOX | WS_TABSTOP,
-                    147, 121, CFG_CHECKBOX_PRI_WIDTH, CFG_CHECKBOX_HEIGHT
+                    167, 121, CFG_CHECKBOX_PRI_WIDTH, CFG_CHECKBOX_HEIGHT
 
     CONTROL         STR_PARALLEL4, IDC_CHECK_PARALLEL4,
                     "Button", BS_AUTOCHECKBOX | WS_TABSTOP,
-                    147, 140, CFG_CHECKBOX_PRI_WIDTH, CFG_CHECKBOX_HEIGHT
+                    167, 140, CFG_CHECKBOX_PRI_WIDTH, CFG_CHECKBOX_HEIGHT
 END
 
 DLG_CFG_STORAGE DIALOG DISCARDABLE  CFG_PANE_LEFT, CFG_PANE_TOP, CFG_PANE_WIDTH, CFG_PANE_HEIGHT
@@ -550,35 +550,38 @@ BEGIN
                     "SysListView32",
                     LVS_REPORT | LVS_SHOWSELALWAYS | LVS_SINGLESEL | 
                     WS_BORDER | WS_TABSTOP,
-                    CFG_HMARGIN, 18, CFG_SYSLISTVIEW32_WIDTH, 182
-
-    PUSHBUTTON      STR_NEW, IDC_BUTTON_HDD_ADD_NEW,
-                    80, 206, 62, CFG_BTN_HEIGHT
-    PUSHBUTTON      STR_EXISTING, IDC_BUTTON_HDD_ADD,
-                    153, 206, 62, CFG_BTN_HEIGHT
-    PUSHBUTTON      STR_REMOVE, IDC_BUTTON_HDD_REMOVE,
-                    222, 206, 62, CFG_BTN_HEIGHT
+                    CFG_HMARGIN, 18, CFG_SYSLISTVIEW32_WIDTH, 162
 
     LTEXT           STR_BUS,IDT_BUS,
-                    CFG_HMARGIN, 119, 24, CFG_PANE_LTEXT_HEIGHT
+                    CFG_HMARGIN, 188, 24, CFG_PANE_LTEXT_HEIGHT
     COMBOBOX        IDC_COMBO_HD_BUS,
-                    33, 117, 90, 12,CBS_DROPDOWNLIST | 
+                    33, 186, 130, 12,CBS_DROPDOWNLIST | 
                     WS_VSCROLL | WS_TABSTOP
 
     LTEXT           STR_CHANNEL, IDT_CHANNEL,
-                    131, 119, 38, CFG_PANE_LTEXT_HEIGHT
+                    181, 188, 38, CFG_PANE_LTEXT_HEIGHT
     COMBOBOX        IDC_COMBO_HD_CHANNEL,
-                    170, 117, 90, 12,
+                    221, 186, 140, 12,
                     CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
     COMBOBOX        IDC_COMBO_HD_CHANNEL_IDE,
-                    170, 117, 90, 12,
+                    221, 186, 140, 12,
                     CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
 
     LTEXT           STR_ID, IDT_ID,
-                    131, 119, 38, CFG_PANE_LTEXT_HEIGHT
+                    181, 188, 38, CFG_PANE_LTEXT_HEIGHT
     COMBOBOX        IDC_COMBO_HD_ID,
-                    170, 117, 90, 12,
+                    221, 186, 140, 12,
                     CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+
+    PUSHBUTTON      STR_NEW, IDC_BUTTON_HDD_ADD_NEW,
+                    CFG_HMARGIN, 207, 112, CFG_BTN_HEIGHT
+
+    PUSHBUTTON      STR_EXISTING, IDC_BUTTON_HDD_ADD,
+                    128, 207, 112, CFG_BTN_HEIGHT
+
+    PUSHBUTTON      STR_REMOVE, IDC_BUTTON_HDD_REMOVE,
+                    249, 207, 112, CFG_BTN_HEIGHT
+
 END
 
 DLG_CFG_HARD_DISKS_ADD DIALOG DISCARDABLE  0, 0, 219, 151
@@ -680,16 +683,16 @@ BEGIN
     LTEXT           STR_TYPE, IDT_FDD_TYPE,
                     CFG_HMARGIN, 87, 24, CFG_PANE_LTEXT_HEIGHT
     COMBOBOX        IDC_COMBO_FD_TYPE,
-                    33, 85, 90, 12,
+                    33, 85, 140, 12,
                     CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
 
     CONTROL         STR_TURBO, IDC_CHECKTURBO,
                     "Button", BS_AUTOCHECKBOX | WS_TABSTOP,
-                    131, 86, 64, CFG_CHECKBOX_HEIGHT
+                    186, 86, 84, CFG_CHECKBOX_HEIGHT
 
     CONTROL         STR_CHECKBPB, IDC_CHECKBPB,
                     "Button", BS_AUTOCHECKBOX | WS_TABSTOP,
-                    196, 86, 64, CFG_CHECKBOX_HEIGHT
+                    272, 86, 84, CFG_CHECKBOX_HEIGHT
 
     LTEXT           STR_CDROM_DRIVES, IDT_CD_DRIVES,
                     CFG_HMARGIN, 107, 258, CFG_PANE_LTEXT_HEIGHT
@@ -702,25 +705,25 @@ BEGIN
     LTEXT           STR_BUS, IDT_CD_BUS,
                     CFG_HMARGIN, 187, 24, CFG_PANE_LTEXT_HEIGHT
     COMBOBOX        IDC_COMBO_CD_BUS,
-                    33, 185, 90, 12,
-                    CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
-
-    LTEXT           STR_ID, IDT_CD_ID,
-                    131, 187, 38, CFG_PANE_LTEXT_HEIGHT
-    COMBOBOX        IDC_COMBO_CD_ID,
-                    170, 185, 90, 12,
+                    33, 185, 140, 12,
                     CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
 
     LTEXT           STR_CHANNEL, IDT_CD_CHANNEL,
-                    131, 187, 38, CFG_PANE_LTEXT_HEIGHT
+                    181, 187, 38, CFG_PANE_LTEXT_HEIGHT
     COMBOBOX        IDC_COMBO_CD_CHANNEL_IDE,
-                    170, 185, 90, 12,
+                    221, 185, 140, 12,
+                    CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+
+    LTEXT           STR_ID, IDT_CD_ID,
+                    181, 187, 38, CFG_PANE_LTEXT_HEIGHT
+    COMBOBOX        IDC_COMBO_CD_ID,
+                    221, 185, 140, 12,
                     CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
 
     LTEXT           STR_CD_SPEED, IDT_CD_SPEED,
                     CFG_HMARGIN, 207, 24, CFG_PANE_LTEXT_HEIGHT
     COMBOBOX        IDC_COMBO_CD_SPEED,
-                    33, 205, 90, 12,
+                    33, 205, 328, 12,
                     CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
 END
 
@@ -740,25 +743,25 @@ BEGIN
     LTEXT           STR_BUS, IDT_MO_BUS,
                     CFG_HMARGIN, 87, 24, CFG_PANE_LTEXT_HEIGHT
     COMBOBOX        IDC_COMBO_MO_BUS,
-                    33, 85, 90, 12,
+                    33, 85, 140, 12,
                     CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
 
     LTEXT           STR_ID, IDT_MO_ID,
-                    131, 87, 38, CFG_PANE_LTEXT_HEIGHT
+                    181, 87, 38, CFG_PANE_LTEXT_HEIGHT
     COMBOBOX        IDC_COMBO_MO_ID,
-                    170, 85, 90, 12,
+                    221, 85, 140, 12,
                     CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
 
     LTEXT           STR_CHANNEL, IDT_MO_CHANNEL,
-                    131, 87, 38, CFG_PANE_LTEXT_HEIGHT
+                    181, 87, 38, CFG_PANE_LTEXT_HEIGHT
     COMBOBOX        IDC_COMBO_MO_CHANNEL_IDE,
-                    170, 85, 90, 12,
+                    221, 85, 140, 12,
                     CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
 
     LTEXT           STR_TYPE, IDT_MO_TYPE,
                     CFG_HMARGIN, 107, 24, CFG_PANE_LTEXT_HEIGHT
     COMBOBOX        IDC_COMBO_MO_TYPE,
-                    33, 105, 120, 12,
+                    33, 105, 328, 12,
                     CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
 
     LTEXT           STR_ZIP_DRIVES, IDT_ZIP_DRIVES,
@@ -772,24 +775,24 @@ BEGIN
     LTEXT           STR_BUS, IDT_ZIP_BUS,
                     CFG_HMARGIN, 207, 24, CFG_PANE_LTEXT_HEIGHT
     COMBOBOX        IDC_COMBO_ZIP_BUS,
-                    33, 205, 90, 12,
-                    CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
-
-    LTEXT           STR_ID, IDT_ZIP_ID,
-                    131, 207, 38, CFG_PANE_LTEXT_HEIGHT
-    COMBOBOX        IDC_COMBO_ZIP_ID,
-                    170, 205, 90, 12,
+                    33, 205, 140, 12,
                     CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
 
     LTEXT           STR_CHANNEL, IDT_ZIP_CHANNEL,
-                    131, 207, 38, CFG_PANE_LTEXT_HEIGHT
+                    181, 207, 38, CFG_PANE_LTEXT_HEIGHT
     COMBOBOX        IDC_COMBO_ZIP_CHANNEL_IDE,
-                    170, 205, 90, 12,
+                    221, 205, 105, 12,
+                    CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+
+    LTEXT           STR_ID, IDT_ZIP_ID,
+                    181, 207, 38, CFG_PANE_LTEXT_HEIGHT
+    COMBOBOX        IDC_COMBO_ZIP_ID,
+                    221, 205, 105, 12,
                     CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
 
     CONTROL         STR_250, IDC_CHECK250,
                     "Button", BS_AUTOCHECKBOX | WS_TABSTOP,
-                    268, 205, 44, CFG_CHECKBOX_HEIGHT
+                    329, 206, 44, CFG_CHECKBOX_HEIGHT
 END
 
 DLG_CFG_PERIPHERALS DIALOG DISCARDABLE  CFG_PANE_LEFT, CFG_PANE_TOP, CFG_PANE_WIDTH, CFG_PANE_HEIGHT

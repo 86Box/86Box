@@ -32,7 +32,7 @@ BEGIN
     POPUP "&Ansicht"
     BEGIN
         MENUITEM "&Statusleiste ausblenden",		IDM_VID_HIDE_STATUS_BAR
-        MENUITEM "Hide &toolbar",		IDM_VID_HIDE_TOOLBAR
+        MENUITEM "&Werkzeugleiste ausblenden",		IDM_VID_HIDE_TOOLBAR
         MENUITEM SEPARATOR
         MENUITEM "&Größenverstellbares Fenster",          IDM_VID_RESIZE
         MENUITEM "&Größe && Position merken",  IDM_VID_REMEMBER
@@ -112,43 +112,6 @@ BEGIN
         MENUITEM "Tracing beenden\tStrg+T",           IDM_ACTION_END_TRACE
 #endif
     END
-#if defined(ENABLE_LOG_TOGGLES) || defined(ENABLE_LOG_COMMANDS)
-    POPUP "&Logging"
-    BEGIN
-# ifdef ENABLE_BUSLOGIC_LOG
-        MENUITEM "BusLogic-Logs aktivieren\tStrg+F4", IDM_LOG_BUSLOGIC
-# endif
-# ifdef ENABLE_CDROM_LOG
-        MENUITEM "CD-ROM-Logs aktivieren\tStrg+F5", IDM_LOG_CDROM
-# endif
-# ifdef ENABLE_D86F_LOG
-        MENUITEM "Disketten (86F)-Logs aktivieren\tStrg+F6", IDM_LOG_D86F
-# endif
-# ifdef ENABLE_FDC_LOG
-        MENUITEM "Diskettencontroller-Logs aktivieren\tStrg+F7", IDM_LOG_FDC
-# endif
-# ifdef ENABLE_IDE_LOG
-        MENUITEM "IDE-Logs aktivieren\tStrg+F8", IDM_LOG_IDE
-# endif
-# ifdef ENABLE_SERIAL_LOG
-        MENUITEM "Seriell-Port-Logs aktivieren\tStrg+F3", IDM_LOG_SERIAL
-# endif
-# ifdef ENABLE_NIC_LOG
-        MENUITEM "Netzwerk-Logs aktivieren\tStrg+F9", IDM_LOG_NIC
-# endif
-# ifdef ENABLE_LOG_COMMANDS
-#  ifdef ENABLE_LOG_TOGGLES
-	MENUITEM SEPARATOR
-#  endif
-#  ifdef ENABLE_LOG_BREAKPOINT
-        MENUITEM "&Breakpoint für die Log-Datei\tStrg+F10", IDM_LOG_BREAKPOINT
-#  endif
-#  ifdef ENABLE_VRAM_DUMP
-        MENUITEM "&Video-RAM dumpen\tStrg+F1", IDM_DUMP_VRAM
-#  endif
-# endif
-    END
-#endif
     POPUP "&Hilfe"
     BEGIN
         MENUITEM "&Dokumentation...",           IDM_DOCS
@@ -292,10 +255,10 @@ END
 #define STR_LOCK_TO_SIZE	"Feste Größe"
 
 #define STR_MACHINE_TYPE	"Systemtyp:"
-#define STR_MACHINE		"Maschine:"
+#define STR_MACHINE		"System:"
 #define STR_CONFIGURE		"Einstellen"
 #define STR_CPU_TYPE		"CPU-Typ:"
-#define STR_CPU_SPEED		"Geschwindigkeit:"
+#define STR_CPU_SPEED		"Takt:"
 #define STR_FPU			"FPU-Einheit:"
 #define STR_WAIT_STATES		"Wartezustände:"
 #define STR_MB			"MB"
@@ -487,7 +450,7 @@ BEGIN
     IDS_2119	"Beenden"
     IDS_2120	"Keine ROMs gefunden"
     IDS_2121	"Möchten Sie die Einstellungen speichern?"
-    IDS_2122	"Dies wird zu einem Hard-Reset der emulierten Maschine führen."
+    IDS_2122	"Dies wird zu einem Hard-Reset des emulierten Systems führen."
     IDS_2123	"Speichern"
     IDS_2124	"Über 86Box"
     IDS_2125	"86Box Version " EMU_VERSION
@@ -540,13 +503,13 @@ BEGIN
     IDS_2151	"Cartridgeimages (*.A;*.B;*.JRC)\0*.A;*.B;*.JRC\0Alle Dateien (*.*)\0*.*\0"
     IDS_2152	"Fehler bei der Rendererinitialisierung"
     IDS_2153	"Der OpenGL (3.0-Kern)-Renderer konnte nicht initialisiert werden. Bitte benutzen Sie einen anderen Renderer."
-    IDS_2154	"Resume execution"
-    IDS_2155	"Pause execution"
-    IDS_2156	"Press Ctrl+Alt+Del"
-    IDS_2157	"Press Ctrl+Alt+Esc"
-    IDS_2158	"Hard reset"
-    IDS_2159	"ACPI shutdown"
-    IDS_2160	"Settings"
+    IDS_2154	"Fortsetzen"
+    IDS_2155	"Pausieren"
+    IDS_2156	"Strg+Alt+Entf drücken"
+    IDS_2157	"Strg+Alt+Esc drücken"
+    IDS_2158	"Hard-Reset"
+    IDS_2159	"ACPI-basiertes Herunterfahren"
+    IDS_2160	"Optionen"
 END
 
 STRINGTABLE DISCARDABLE 

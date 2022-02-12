@@ -1,3 +1,23 @@
+/*
+ * 86Box	A hypervisor and IBM PC system emulator that specializes in
+ *		running old operating systems and software designed for IBM
+ *		PC systems and compatibles from 1981 through fairly recent
+ *		system designs based on the PCI bus.
+ *
+ *		This file is part of the 86Box distribution.
+ *
+ *		Program settings UI module.
+ *
+ *
+ *
+ * Authors: Joakim L. Gilje <jgilje@jgilje.net>
+ *          Cacodemon345
+ *          Teemu Korhonen
+ *
+ *      Copyright 2021 Joakim L. Gilje
+ *      Copyright 2021-2021 Teemu Korhonen
+ *      Copyright 2021-2022 Cacodemon345
+ */
 #include "qt_rendererstack.hpp"
 #include "ui_qt_rendererstack.h"
 
@@ -5,6 +25,7 @@
 #include "qt_hardwarerenderer.hpp"
 
 #include "qt_mainwindow.hpp"
+#include "qt_util.hpp"
 
 #include "evdev_mouse.hpp"
 
@@ -117,10 +138,6 @@ void RendererStack::mousePressEvent(QMouseEvent *event)
     {
         mousedata.mousebuttons |= event->button();
     }
-    if (main_window->frameGeometry().contains(event->pos()) && !geometry().contains(event->pos()))
-    {
-        main_window->windowHandle()->startSystemMove();
-    }
     event->accept();
 }
 void RendererStack::wheelEvent(QWheelEvent *event)
@@ -153,7 +170,7 @@ void RendererStack::mouseMoveEvent(QMouseEvent *event)
         ignoreNextMouseEvent--;
     }
     else if (event->globalPos().x() == 0 || event->globalPos().y() == 0) leaveEvent((QEvent*)event);
-    else if (event->globalPos().x() == (screen()->geometry().width() - 1) || event->globalPos().y() == (screen()->geometry().height() - 1)) leaveEvent((QEvent*)event);
+    else if (event->globalPos().x() == (util::screenOfWidget(this)->geometry().width() - 1) || event->globalPos().y() == (util::screenOfWidget(this)->geometry().height() - 1)) leaveEvent((QEvent*)event);
     oldPos = event->pos();
 #endif
 }

@@ -1,3 +1,23 @@
+/*
+ * 86Box	A hypervisor and IBM PC system emulator that specializes in
+ *		running old operating systems and software designed for IBM
+ *		PC systems and compatibles from 1981 through fairly recent
+ *		system designs based on the PCI bus.
+ *
+ *		This file is part of the 86Box distribution.
+ *
+ *		Hardware renderer module.
+ *
+ *
+ *
+ * Authors:	Joakim L. Gilje <jgilje@jgilje.net>
+ *          Cacodemon345
+ *          Teemu Korhonen
+ *
+ *		Copyright 2021 Joakim L. Gilje
+ *      Copyright 2021-2022 Cacodemon345
+ *      Copyright 2021-2022 Teemu Korhonen
+ */
 #include "qt_hardwarerenderer.hpp"
 #include <QApplication>
 #include <QVector2D>
@@ -12,7 +32,7 @@ extern "C" {
 
 void HardwareRenderer::resizeGL(int w, int h)
 {
-    glViewport(0, 0, w * devicePixelRatio(), h * devicePixelRatio());
+    glViewport(0, 0, qRound(w * devicePixelRatio()), qRound(h * devicePixelRatio()));
 }
 
 #define PROGRAM_VERTEX_ATTRIBUTE 0
@@ -121,11 +141,11 @@ void HardwareRenderer::paintGL() {
     QVector<QVector2D> verts, texcoords;
     QMatrix4x4 mat;
     mat.setToIdentity();
-    mat.ortho(QRect(0, 0, width(), height()));
+    mat.ortho(QRectF(0, 0, (qreal)width(), (qreal)height()));
     verts.push_back(QVector2D((float)destination.x(), (float)destination.y()));
-    verts.push_back(QVector2D((float)destination.x(), (float)destination.y() + destination.height()));
-    verts.push_back(QVector2D((float)destination.x() + destination.width(), (float)destination.y() + destination.height()));
-    verts.push_back(QVector2D((float)destination.x() + destination.width(), (float)destination.y()));
+    verts.push_back(QVector2D((float)destination.x(), (float)destination.y() + (float)destination.height()));
+    verts.push_back(QVector2D((float)destination.x() + (float)destination.width(), (float)destination.y() + (float)destination.height()));
+    verts.push_back(QVector2D((float)destination.x() + (float)destination.width(), (float)destination.y()));
     texcoords.push_back(QVector2D((float)source.x() / 2048.f, (float)(source.y()) / 2048.f));
     texcoords.push_back(QVector2D((float)source.x() / 2048.f, (float)(source.y() + source.height()) / 2048.f));
     texcoords.push_back(QVector2D((float)(source.x() + source.width()) / 2048.f, (float)(source.y() + source.height()) / 2048.f));

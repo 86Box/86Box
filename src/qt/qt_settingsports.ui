@@ -58,6 +58,16 @@
      <item row="2" column="1">
       <widget class="QComboBox" name="comboBoxLpt3"/>
      </item>
+     <item row="3" column="0">
+      <widget class="QLabel" name="label_4">
+       <property name="text">
+        <string>LPT4 Device:</string>
+       </property>
+      </widget>
+     </item>
+     <item row="3" column="1">
+      <widget class="QComboBox" name="comboBoxLpt4"/>
+     </item>
     </layout>
    </item>
    <item>
@@ -108,6 +118,13 @@
       <widget class="QCheckBox" name="checkBoxSerial4">
        <property name="text">
         <string>Serial port 4</string>
+       </property>
+      </widget>
+     </item>
+     <item row="3" column="1">
+      <widget class="QCheckBox" name="checkBoxParallel4">
+       <property name="text">
+        <string>Parallel port 4</string>
        </property>
       </widget>
      </item>

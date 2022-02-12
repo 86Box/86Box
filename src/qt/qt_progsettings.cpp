@@ -1,3 +1,19 @@
+/*
+ * 86Box	A hypervisor and IBM PC system emulator that specializes in
+ *		running old operating systems and software designed for IBM
+ *		PC systems and compatibles from 1981 through fairly recent
+ *		system designs based on the PCI bus.
+ *
+ *		This file is part of the 86Box distribution.
+ *
+ *		Program settings UI module.
+ *
+ *
+ *
+ * Authors: Cacodemon345
+ *
+ *      Copyright 2021-2022 Cacodemon345
+ */
 #include <QDebug>
 
 #include "qt_progsettings.hpp"
@@ -14,6 +30,7 @@
 extern "C"
 {
 #include <86box/86box.h>
+#include <86box/version.h>
 #include <86box/config.h>
 #include <86box/plat.h>
 }
@@ -104,6 +121,9 @@ void ProgSettings::accept()
     reloadStrings();
     update_mouse_msg();
     main_window->ui->retranslateUi(main_window);
+    QString vmname(vm_name);
+    if (vmname.at(vmname.size() - 1) == '"' || vmname.at(vmname.size() - 1) == '\'') vmname.truncate(vmname.size() - 1);
+    main_window->setWindowTitle(QString("%1 - %2 %3").arg(vmname, EMU_NAME, EMU_VERSION_FULL));
     QString msg = main_window->status->getMessage();
     main_window->status.reset(new MachineStatus(main_window));
     main_window->refreshMediaMenu();

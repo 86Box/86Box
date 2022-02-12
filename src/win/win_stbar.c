@@ -1073,3 +1073,9 @@ ui_sb_bugui(char *str)
 	memset(sb_bugtext, 0x00, sizeof(sb_bugtext));
     ui_sb_update_text();
 }
+
+/* API */
+void
+ui_sb_mt32lcd(char* str)
+{
+}

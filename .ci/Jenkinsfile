@@ -16,11 +16,17 @@
  */
 
 def repository = 'https://github.com/86Box/86Box.git'
+def commitBrowser = 'https://github.com/86Box/86Box/commit/%s'
 def branch = 'master'
 
 def osArchs = [
 	'Windows': ['32', '64'],
 	'Linux': ['x86', 'x86_64', 'arm32', 'arm64']
+]
+
+def osFlags = [
+	'Windows': '',
+	'Linux': '-D QT=ON'
 ]
 
 def archNames = [
@@ -143,7 +149,7 @@ pipeline {
 	parameters {
 		string(name: 'BUILD_TYPE',
 		       defaultValue: 'beta', /* !!! CHANGE HERE !!! for build type */
-		       description: "Build type to pass on to CMake. Don't change this, you should instead change the default value on .ci/Jenkinsfile")
+		       description: "Build type to pass on to CMake. Should only be changed for one-off builds, otherwise change the default on .ci/Jenkinsfile")
 	}
 
 	stages {
@@ -195,6 +201,9 @@ pipeline {
 								/* Archive resulting artifacts. */
 								archiveArtifacts artifacts: "$packageName*"
 							}
+
+							/* Clean up. */
+							removeDir("${env.WORKSPACE_TMP}/output")
 						} catch (e) {
 							/* Mark that a failure occurred. */
 							anyFailure = true
@@ -225,12 +234,15 @@ pipeline {
 													/* Run build process. */
 													def packageName = "${env.JOB_BASE_NAME}${dynarecSlugs[dynarec]}${presetSlugs[preset]}-$os-$arch-b${env.BUILD_NUMBER}"
 													dir("${dynarecNames[dynarec]}/$os - ${archNames[arch]}") {
-														runBuild("-b \"$packageName\" \"$arch\" ${presetFlags[preset]} ${dynarecFlags[dynarec]} -D \"BUILD_TYPE=$BUILD_TYPE\" -D \"EMU_BUILD=build ${env.BUILD_NUMBER}\" -D \"EMU_BUILD_NUM=${env.BUILD_NUMBER}\"")
+														runBuild("-b \"$packageName\" \"$arch\" ${presetFlags[preset]} ${dynarecFlags[dynarec]} ${osFlags[os]} -D \"BUILD_TYPE=$BUILD_TYPE\" -D \"EMU_BUILD=build ${env.BUILD_NUMBER}\" -D \"EMU_BUILD_NUM=${env.BUILD_NUMBER}\"")
 													}
 
 													/* Archive resulting artifacts. */
 													archiveArtifacts artifacts: "**/**/$packageName*"
 												}
+
+												/* Clean up. */
+												removeDir("${env.WORKSPACE_TMP}/output")
 											} catch (e) {
 												/* Mark that a failure occurred. */
 												anyFailure = true
@@ -272,7 +284,7 @@ pipeline {
 							    description: "**Status:** ${result}\n\u2060", /* word joiner character forces a blank line */
 							    enableArtifactsList: false,
 							    showChangeset: true,
-							    scmWebUrl: "https://github.com/86Box/86Box/commit/%s"
+							    scmWebUrl: commitBrowser
 
 						/* Notify IRC, which needs a node for whatever reason. */
 						node {

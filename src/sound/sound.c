@@ -354,16 +354,23 @@ sound_cd_thread(void *param)
 static void
 sound_realloc_buffers(void)
 {
-    if (outbuffer_ex != NULL)
+    if (outbuffer_ex != NULL) {
 	free(outbuffer_ex);
+	outbuffer_ex = NULL;
+    }
 
-    if (outbuffer_ex_int16 != NULL)
+    if (outbuffer_ex_int16 != NULL) {
 	free(outbuffer_ex_int16);
+	outbuffer_ex_int16 = NULL;
+    }
 
-    if (sound_is_float)
+    if (sound_is_float) {
         outbuffer_ex = calloc(SOUNDBUFLEN * 2, sizeof(float));
-    else
+	memset(outbuffer_ex, 0x00, SOUNDBUFLEN * 2 * sizeof(float));
+    } else {
         outbuffer_ex_int16 = calloc(SOUNDBUFLEN * 2, sizeof(int16_t));
+	memset(outbuffer_ex_int16, 0x00, SOUNDBUFLEN * 2 * sizeof(int16_t));
+    }
 }
 
 
@@ -376,7 +383,9 @@ sound_init(void)
     outbuffer_ex = NULL;
     outbuffer_ex_int16 = NULL;
 
+    outbuffer = NULL;
     outbuffer = calloc(SOUNDBUFLEN * 2, sizeof(int32_t));
+    memset(outbuffer, 0x00, SOUNDBUFLEN * 2 * sizeof(int32_t));
 
     for (i = 0; i < CDROM_NUM; i++) {
 	if (cdrom[i].bus_type != CDROM_BUS_DISABLED)
@@ -432,7 +441,7 @@ sound_poll(void *priv)
     if (sound_pos_global == SOUNDBUFLEN) {
 	int c;
 
-	memset(outbuffer, 0, SOUNDBUFLEN * 2 * sizeof(int32_t));
+	memset(outbuffer, 0x00, SOUNDBUFLEN * 2 * sizeof(int32_t));
 
 	for (c = 0; c < sound_handlers_num; c++)
 		sound_handlers[c].get_buffer(outbuffer, SOUNDBUFLEN, sound_handlers[c].priv);

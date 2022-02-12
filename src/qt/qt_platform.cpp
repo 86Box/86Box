@@ -1,3 +1,22 @@
+/*
+ * 86Box	A hypervisor and IBM PC system emulator that specializes in
+ *		running old operating systems and software designed for IBM
+ *		PC systems and compatibles from 1981 through fairly recent
+ *		system designs based on the PCI bus.
+ *
+ *		This file is part of the 86Box distribution.
+ *
+ *      Common platform functions.
+ *
+ *
+ * Authors:	Joakim L. Gilje <jgilje@jgilje.net>
+ *          Cacodemon345
+ *          Teemu Korhonen
+ *
+ *		Copyright 2021 Joakim L. Gilje
+ *      Copyright 2021-2022 Cacodemon345
+ *      Copyright 2021-2022 Teemu Korhonen
+ */
 #include <cstdio>
 
 #include <mutex>
@@ -78,7 +97,7 @@ int mouse_capture = 0;
 int fixed_size_x = 640;
 int fixed_size_y = 480;
 int rctrl_is_lalt = 0;
-int	update_icons = 0;
+int	update_icons = 1;
 int	kbd_req_capture = 0;
 int hide_status_bar = 0;
 int hide_tool_bar = 0;
@@ -205,8 +224,14 @@ plat_get_filename(char *s)
 int
 plat_path_abs(char *path)
 {
-    QFileInfo fi(path);
-    return fi.isAbsolute() ? 1 : 0;
+#ifdef Q_OS_WINDOWS
+    if ((path[1] == ':') || (path[0] == '\\') || (path[0] == '/'))
+        return 1;
+
+    return 0;
+#else
+    return path[0] == '/';
+#endif
 }
 
 void
@@ -239,7 +264,7 @@ plat_tempfile(char *bufp, char *prefix, char *suffix)
 
      name.append(QDateTime::currentDateTime().toString("yyyyMMdd-hhmmss-zzzz"));
      if (suffix) name.append(suffix);
-     sprintf(&bufp[strlen(bufp)], "%s", name.toUtf8().data());
+     strcpy(bufp, name.toUtf8().data());
 }
 
 void plat_remove(char* path)

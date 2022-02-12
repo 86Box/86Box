@@ -1,3 +1,21 @@
+/*
+ * 86Box	A hypervisor and IBM PC system emulator that specializes in
+ *		running old operating systems and software designed for IBM
+ *		PC systems and compatibles from 1981 through fairly recent
+ *		system designs based on the PCI bus.
+ *
+ *		This file is part of the 86Box distribution.
+ *
+ *		File field widget.
+ *
+ *
+ *
+ * Authors:	Joakim L. Gilje <jgilje@jgilje.net>
+ *          Cacodemon345
+ *
+ *		Copyright 2021 Joakim L. Gilje
+ *      Copyright 2022 Cacodemon345
+ */
 #include "qt_filefield.hpp"
 #include "ui_qt_filefield.h"
 
@@ -13,6 +31,7 @@ FileField::FileField(QWidget *parent) :
         fileName_ = ui->label->text();
         emit fileSelected(ui->label->text());
     });
+    this->setFixedWidth(this->sizeHint().width() + ui->pushButton->sizeHint().width());
 }
 
 FileField::~FileField()

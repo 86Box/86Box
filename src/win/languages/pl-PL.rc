@@ -112,43 +112,6 @@ BEGIN
         MENUITEM "Zakończ śledzenie\tCtrl+T",           IDM_ACTION_END_TRACE
 #endif
     END
-#if defined(ENABLE_LOG_TOGGLES) || defined(ENABLE_LOG_COMMANDS)
-    POPUP "&Logowanie"
-    BEGIN
-# ifdef ENABLE_BUSLOGIC_LOG
-        MENUITEM "Włącz logu BusLogic\tCtrl+F4", IDM_LOG_BUSLOGIC
-# endif
-# ifdef ENABLE_CDROM_LOG
-        MENUITEM "Włącz logi CD-ROM\tCtrl+F5", IDM_LOG_CDROM
-# endif
-# ifdef ENABLE_D86F_LOG
-        MENUITEM "Włącz logi dyskietek (86F)\tCtrl+F6", IDM_LOG_D86F
-# endif
-# ifdef ENABLE_FDC_LOG
-        MENUITEM "Włącz logi kontrolera dyskietek\tCtrl+F7", IDM_LOG_FDC
-# endif
-# ifdef ENABLE_IDE_LOG
-        MENUITEM "Włącz logi IDE\tCtrl+F8", IDM_LOG_IDE
-# endif
-# ifdef ENABLE_SERIAL_LOG
-        MENUITEM "Włącz logi portu szeregowego\tCtrl+F3", IDM_LOG_SERIAL
-# endif
-# ifdef ENABLE_NIC_LOG
-        MENUITEM "Włącz logi sieci\tCtrl+F9", IDM_LOG_NIC
-# endif
-# ifdef ENABLE_LOG_COMMANDS
-#  ifdef ENABLE_LOG_TOGGLES
-	MENUITEM SEPARATOR
-#  endif
-#  ifdef ENABLE_LOG_BREAKPOINT
-        MENUITEM "&Punkt przerwania dziennika\tCtrl+F10", IDM_LOG_BREAKPOINT
-#  endif
-#  ifdef ENABLE_VRAM_DUMP
-        MENUITEM "Zrzuć pamięć &wideo\tCtrl+F1", IDM_DUMP_VRAM
-#  endif
-# endif
-    END
-#endif
     POPUP "&Pomoc"
     BEGIN
         MENUITEM "&Dokumentacja...",           IDM_DOCS
@@ -572,7 +535,7 @@ BEGIN
     IDS_4114	"Sprawdź, czy plik istnieje i nadaje się do odczytu."
     IDS_4115	"Sprawdź, czy plik jest zapiyswany w katalogu z możliwością zapisu."
     IDS_4116	"Obraz dysku jest za duży"
-    IDS_4117	"Nie zapomnij o partycjonowaniu u sformatowaniu nowo utworzego dysku"
+    IDS_4117	"Nie zapomnij o partycjonowaniu i sformatowaniu nowo utworzego dysku"
     IDS_4118	"Wybrany plik zostanie nadpisany. Czy na pewno chcesz użyć tego pliku?"
     IDS_4119	"Niewspierany obraz dysku"
     IDS_4120	"Nadpisz"
@@ -587,7 +550,7 @@ BEGIN
     IDS_4129	"Małe bloki (512 KB)"
     IDS_4130	"Pliki VHD (*.VHD)\0*.VHD\0Wszystkie pliki (*.*)\0*.*\0"
     IDS_4131	"Wybierz nadrzędny plik VHD"
-    IDS_4132	"Może to oznaczać, że obraz nadrzędny został zmodyfikowany po utworzeniu obrazu różnicującego.\n\nMoże się to również zdarzyć, jeśli pliki obrazów przeniesione lub skopiowane, lub wystąpił błąd w programie, który utworzył ten dysk\n\nCzy chcesz naprawić sygnatury czasowe?"
+    IDS_4132	"Może to oznaczać, że obraz nadrzędny został zmodyfikowany po utworzeniu obrazu różnicującego.\n\nMoże się to również zdarzyć, jeśli pliki obrazów zostały przeniesione lub skopiowane, lub wystąpił błąd w programie, który utworzył ten dysk\n\nCzy chcesz naprawić sygnatury czasowe?"
     IDS_4133	"Sygnatury czasowe dysku nadrzędnego i podrzędnego nie zgadzają się"
     IDS_4134	"Nie można naprawić sygnatury czasowej VHD."
     IDS_4135	"%01i:%02i"
