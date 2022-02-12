@@ -85,6 +85,7 @@ make_tar() {
 
 # Set common variables.
 project=86Box
+project_lower=86box
 cwd=$(pwd)
 
 # Parse arguments.
@@ -226,7 +227,7 @@ else
 	esac
 
 	# Establish general dependencies.
-	pkgs="cmake pkg-config git tar xz-utils wayland-protocols"
+	pkgs="cmake pkg-config git imagemagick wayland-protocols"
 	if [ "$(dpkg --print-architecture)" = "$arch_deb" ]
 	then
 		pkgs="$pkgs build-essential"
@@ -412,24 +413,20 @@ then
 	# TBD
 	:
 else
-	# Archive readme with library package versions.
-	echo Libraries used to compile this $arch build of $project: > archive_tmp/README
-	dpkg-query -f '${Package} ${Version}\n' -W $libpkgs | sed "s/-dev / /" | sed "s/qtdeclarative/qt/" | while IFS=" " read pkg version
-	do
-		for i in $(seq $(expr $longest_libpkg - $(echo -n $pkg | wc -c)))
-		do
-			echo -n " " >> archive_tmp/README
-		done
-		echo $pkg $version >> archive_tmp/README
-	done
+	# Archive icon, while also shrinking it to 512x512 if necessary.
+	convert src/win/assets/$project_lower.png -resize '512x512>' icon.png
+	icon_base="$(identify -format 'archive_tmp/usr/share/icons/%wx%h' icon.png)"
+	mkdir -p "$icon_base"
+	mv icon.png "$icon_base/$project_lower.png"
 
 	# Archive executable, while also stripping it if requested.
+	mkdir -p archive_tmp/usr/local/bin
 	if [ $strip -ne 0 ]
 	then
-		"$strip_binary" -o "archive_tmp/$project" "build/src/$project"
+		"$strip_binary" -o "archive_tmp/usr/local/bin/$project" "build/src/$project"
 		status=$?
 	else
-		mv "build/src/$project" "archive_tmp/$project"
+		mv "build/src/$project" "archive_tmp/usr/local/bin/$project"
 		status=$?
 	fi
 fi
@@ -443,10 +440,10 @@ fi
 
 # Produce artifact archive.
 echo [-] Creating artifact archive
-cd archive_tmp
 if is_windows
 then
 	# Create zip.
+	cd archive_tmp
 	"$sevenzip" a -y "$(cygpath -w "$cwd")\\$package_name.zip" *
 	status=$?
 elif is_mac
@@ -454,9 +451,33 @@ then
 	# TBD
 	:
 else
-	# Create binary tarball.
-	VERBOSE=1 make_tar "$cwd/$package_name.tar"
+	# Determine AppImage runtime architecture.
+	case $arch in
+		x86)	arch_appimage="i686";;
+		arm32)	arch_appimage="armhf";;
+		arm64)	arch_appimage="aarch64";;
+		*)	arch_appimage="$arch";;
+	esac
+
+	# Download appimage-builder if necessary.
+	[ ! -e "appimage-builder.AppImage" ] && wget -qO appimage-builder.AppImage \
+		https://github.com/AppImageCrafters/appimage-builder/releases/download/v0.9.2/appimage-builder-0.9.2-35e3eab-x86_64.AppImage
+	chmod u+x appimage-builder.AppImage
+
+	# Remove any dangling AppImages which may interfere with the renaming process.
+	rm -rf "$project-"*".AppImage"
+
+	# Run appimage-builder in extract-and-run mode for Docker compatibility.
+	project="$project" project_lower="$project_lower" arch_deb="$arch_deb" arch_appimage="$arch_appimage" \
+		APPIMAGE_EXTRACT_AND_RUN=1 ./appimage-builder.AppImage --recipe .ci/AppImageBuilder.yml
 	status=$?
+
+	# Rename AppImage to the final name if the build succeeded.
+	if [ $status -eq 0 ]
+	then
+		mv "$project-"*".AppImage" "$cwd/$package_name.AppImage"
+		status=$?
+	fi
 fi
 cd ..
 
