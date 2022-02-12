@@ -40,6 +40,8 @@ extern "C" {
 #include <86box/vid_ega.h>
 #include <86box/version.h>
 
+    extern int qt_nvr_save(void);
+
 #ifdef MTR_ENABLED
 #include <minitrace/minitrace.h>
 #endif
@@ -419,7 +421,7 @@ MainWindow::MainWindow(QWidget *parent) :
 }
 
 void MainWindow::closeEvent(QCloseEvent *event) {
-    if (confirm_exit && cpu_thread_run)
+    if (confirm_exit && confirm_exit_cmdl && cpu_thread_run)
     {
         QMessageBox questionbox(QMessageBox::Icon::Question, "86Box", tr("Are you sure you want to exit 86Box?"), QMessageBox::Yes | QMessageBox::No, this);
         QCheckBox *chkbox = new QCheckBox(tr("Don't show this message again"));
@@ -444,6 +446,7 @@ void MainWindow::closeEvent(QCloseEvent *event) {
             window_y = this->geometry().y();
         }
     }
+    qt_nvr_save();
     config_save();
     event->accept();
 }
