@@ -413,6 +413,17 @@ then
 	# TBD
 	:
 else
+	# Archive readme with library package versions.
+	echo Libraries used to compile this $arch build of $project: > archive_tmp/README
+	dpkg-query -f '${Package} ${Version}\n' -W $libpkgs | sed "s/-dev / /" | sed "s/qtdeclarative/qt/" | while IFS=" " read pkg version
+	do
+		for i in $(seq $(expr $longest_libpkg - $(echo -n $pkg | wc -c)))
+		do
+			echo -n " " >> archive_tmp/README
+		done
+		echo $pkg $version >> archive_tmp/README
+	done
+
 	# Archive icon, while also shrinking it to 512x512 if necessary.
 	convert src/win/assets/$project_lower.png -resize '512x512>' icon.png
 	icon_base="$(identify -format 'archive_tmp/usr/share/icons/%wx%h' icon.png)"
