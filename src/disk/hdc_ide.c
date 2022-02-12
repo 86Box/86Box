@@ -1602,7 +1602,7 @@ ide_writeb(uint16_t addr, uint8_t val, void *priv)
 			if (ide->type == IDE_ATAPI)
 				ide->sc->status = DRDY_STAT;
 			else
-				ide->atastat = BSY_STAT;
+				ide->atastat = READY_STAT | BSY_STAT;
 
 			if (ide->type == IDE_ATAPI)
 				ide->sc->callback = 100.0 * IDE_TIME;

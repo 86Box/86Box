@@ -26,6 +26,8 @@
 #include <QTranslator>
 #include <QDirIterator>
 #include <QLibraryInfo>
+#include <QString>
+#include <QFont>
 
 #ifdef QT_STATIC
 /* Static builds need plugin imports */
@@ -139,6 +141,11 @@ int main(int argc, char* argv[]) {
 #endif
     QApplication app(argc, argv);
     QLocale::setDefault(QLocale::C);
+#ifdef Q_OS_WINDOWS
+    auto font_name = QObject::tr("FONT_NAME");
+    auto font_size = QObject::tr("FONT_SIZE");
+    QApplication::setFont(QFont(font_name, font_size.toInt()));
+#endif
     qt_set_sequence_auto_mnemonic(false);
     Q_INIT_RESOURCE(qt_resources);
     Q_INIT_RESOURCE(qt_translations);
