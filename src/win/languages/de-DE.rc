@@ -64,7 +64,7 @@ BEGIN
         END
         MENUITEM "Hi&DPI-Skalierung",              IDM_VID_HIDPI
         MENUITEM SEPARATOR
-        MENUITEM "&Vollbild\tStrg+Alt+BildAuf",    IDM_VID_FULLSCREEN
+        MENUITEM "&Vollbild\tStrg+Alt+Bild auf",    IDM_VID_FULLSCREEN
         POPUP "&Stretching-Modus im Vollbildmodus"
         BEGIN
             MENUITEM "&Vollbild-Stretching",        IDM_VID_FS_FULL

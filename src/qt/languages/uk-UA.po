@@ -88,8 +88,8 @@ msgstr "&Лінійний"
 msgid "Hi&DPI scaling"
 msgstr "Масштабування Hi&DPI"
 
-msgid "&Fullscreen\tCtrl+Alt+PageUP"
-msgstr "&Повноекранний режим\tCtrl+Alt+PageUP"
+msgid "&Fullscreen\tCtrl+Alt+PgUp"
+msgstr "&Повноекранний режим\tCtrl+Alt+PgUp"
 
 msgid "Fullscreen &stretch mode"
 msgstr "&Розстягування у повноекранному режимі"
@@ -601,8 +601,8 @@ msgstr "Непереробна помилка"
 msgid " - PAUSED"
 msgstr " - PAUSED"
 
-msgid "Press CTRL+ALT+PAGE DOWN to return to windowed mode."
-msgstr "Натисніть CTRL + ALT + PAGE DOWN для повернення у віконний режим."
+msgid "Press Ctrl+Alt+PgDn to return to windowed mode."
+msgstr "Натисніть Ctrl+Alt+PgDn для повернення у віконний режим."
 
 msgid "Speed"
 msgstr "Швидкість"

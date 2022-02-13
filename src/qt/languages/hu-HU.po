@@ -88,8 +88,8 @@ msgstr "&Lineáris"
 msgid "Hi&DPI scaling"
 msgstr "Hi&DPI méretezés"
 
-msgid "&Fullscreen\tCtrl+Alt+PageUP"
-msgstr "&Teljes képernyő\tCtrl+Alt+PageUP"
+msgid "&Fullscreen\tCtrl+Alt+PgUp"
+msgstr "&Teljes képernyő\tCtrl+Alt+PgUp"
 
 msgid "Fullscreen &stretch mode"
 msgstr "Teljes képernyős &méretezés"
@@ -601,8 +601,8 @@ msgstr "Végzetes hiba"
 msgid " - PAUSED"
 msgstr " - PAUSED"
 
-msgid "Press CTRL+ALT+PAGE DOWN to return to windowed mode."
-msgstr "Használja a CTRL+ALT+PAGE DOWN gombokat az ablakhoz való visszatéréshez."
+msgid "Press Ctrl+Alt+PgDn to return to windowed mode."
+msgstr "Használja a Ctrl+Alt+PgDn gombokat az ablakhoz való visszatéréshez."
 
 msgid "Speed"
 msgstr "Sebesség"

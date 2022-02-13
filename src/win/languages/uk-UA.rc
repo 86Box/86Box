@@ -64,7 +64,7 @@ BEGIN
         END
         MENUITEM "Масштабування Hi&DPI",              IDM_VID_HIDPI
         MENUITEM SEPARATOR
-        MENUITEM "&Повноекранний режим\tCtrl+Alt+PageUP",    IDM_VID_FULLSCREEN
+        MENUITEM "&Повноекранний режим\tCtrl+Alt+PgUp",    IDM_VID_FULLSCREEN
         POPUP "&Розстягування у повноекранному режимі"
         BEGIN
             MENUITEM "&На весь екран",        IDM_VID_FS_FULL
@@ -372,7 +372,7 @@ BEGIN
     IDS_2049	"Помилка"
     IDS_2050	"Непереробна помилка"
     IDS_2051	" - PAUSED"
-    IDS_2052	"Натисніть CTRL + ALT + PAGE DOWN для повернення у віконний режим."
+    IDS_2052	"Натисніть Ctrl+Alt+PgDn для повернення у віконний режим."
     IDS_2053	"Швидкість"
     IDS_2054	"ZIP %03i %i (%s): %ls"
     IDS_2055	"Образи ZIP (*.IM?;*.ZDI)\0*.IM?;*.ZDI\0"

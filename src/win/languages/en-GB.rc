@@ -64,7 +64,7 @@ BEGIN
         END
         MENUITEM "Hi&DPI scaling",              IDM_VID_HIDPI
         MENUITEM SEPARATOR
-        MENUITEM "&Fullscreen\tCtrl+Alt+PageUP",    IDM_VID_FULLSCREEN
+        MENUITEM "&Fullscreen\tCtrl+Alt+PgUp",    IDM_VID_FULLSCREEN
         POPUP "Fullscreen &stretch mode"
         BEGIN
             MENUITEM "&Full screen stretch",        IDM_VID_FS_FULL
@@ -372,7 +372,7 @@ BEGIN
     IDS_2049	"Error"
     IDS_2050	"Fatal error"
     IDS_2051	" - PAUSED"
-    IDS_2052	"Press CTRL+ALT+PAGE DOWN to return to windowed mode."
+    IDS_2052	"Press Ctrl+Alt+PgDn to return to windowed mode."
     IDS_2053	"Speed"
     IDS_2054	"ZIP %03i %i (%s): %ls"
     IDS_2055	"ZIP images (*.IM?;*.ZDI)\0*.IM?;*.ZDI\0"

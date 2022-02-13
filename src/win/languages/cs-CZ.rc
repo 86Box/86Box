@@ -64,7 +64,7 @@ BEGIN
         END
         MENUITEM "Š&kálování HiDPI",				IDM_VID_HIDPI
         MENUITEM SEPARATOR
-        MENUITEM "&Celá obrazovka\tCtrl+Alt+PageUP",		IDM_VID_FULLSCREEN
+        MENUITEM "&Celá obrazovka\tCtrl+Alt+PgUp",		IDM_VID_FULLSCREEN
         POPUP "Režím roztá&hnutí při celé obrazovce"
         BEGIN
             MENUITEM "&Roztáhnout",				IDM_VID_FS_FULL
@@ -372,7 +372,7 @@ BEGIN
     IDS_2049	"Chyba"
     IDS_2050	"Kritická chyba"
     IDS_2051	" - PAUSED"
-    IDS_2052	"Stiskněte Ctrl+Alt+Page Down pro návrat z režimu celé obrazovky."
+    IDS_2052	"Stiskněte Ctrl+Alt+PgDn pro návrat z režimu celé obrazovky."
     IDS_2053	"Rychlost"
     IDS_2054	"ZIP %03i %i (%s): %ls"
     IDS_2055	"Obrazy ZIP disků (*.IM?;*.ZDI)\0*.IM?;*.ZDI\0"

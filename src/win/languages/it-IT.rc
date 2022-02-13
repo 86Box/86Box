@@ -65,7 +65,7 @@ BEGIN
         END
         MENUITEM "Scala Hi&DPI",              IDM_VID_HIDPI
         MENUITEM SEPARATOR
-        MENUITEM "&Schermo intero\tCtrl+Alt+PageUP",    IDM_VID_FULLSCREEN
+        MENUITEM "&Schermo intero\tCtrl+Alt+PgUp",    IDM_VID_FULLSCREEN
         POPUP "Modalità adattamento &schermo intero"
         BEGIN
             MENUITEM "&Adatta a schermo intero",        IDM_VID_FS_FULL
@@ -373,7 +373,7 @@ BEGIN
     IDS_2049	"Errore"
     IDS_2050	"Errore fatale"
     IDS_2051	" - PAUSED"
-    IDS_2052	"Usa CTRL+ALT+PAGE DOWN per tornare alla modalità finestra."
+    IDS_2052	"Usa Ctrl+Alt+PgDn per tornare alla modalità finestra."
     IDS_2053	"Velocità"
     IDS_2054	"ZIP %03i %i (%s): %ls"
     IDS_2055	"Immagini ZIP (*.IM?;*.ZDI)\0*.IM?;*.ZDI\0"

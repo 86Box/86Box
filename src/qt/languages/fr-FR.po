@@ -88,8 +88,8 @@ msgstr "&Lineaire"
 msgid "Hi&DPI scaling"
 msgstr "Mise à l'échelle Hi&DPI"
 
-msgid "&Fullscreen\tCtrl+Alt+PageUP"
-msgstr "&Plein Ecran\tCtrl+Alt+PageUP"
+msgid "&Fullscreen\tCtrl+Alt+PgUp"
+msgstr "&Plein Ecran\tCtrl+Alt+PgUp"
 
 msgid "Fullscreen &stretch mode"
 msgstr "Mode &Elargi plein écran"
@@ -601,8 +601,8 @@ msgstr "Erreur fatale"
 msgid " - PAUSED"
 msgstr " - PAUSED"
 
-msgid "Press CTRL+ALT+PAGE DOWN to return to windowed mode."
-msgstr "Appuyez sur CTRL+ALT+PAGE ↓ pour revenir au mode fenêtré."
+msgid "Press Ctrl+Alt+PgDn to return to windowed mode."
+msgstr "Appuyez sur Ctrl+Alt+PgDn pour revenir au mode fenêtré."
 
 msgid "Speed"
 msgstr "Vitesse"

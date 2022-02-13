@@ -88,8 +88,8 @@ msgstr "&Linearna"
 msgid "Hi&DPI scaling"
 msgstr "&Raztezanje za visok DPI"
 
-msgid "&Fullscreen\tCtrl+Alt+PageUP"
-msgstr "&Celozaslonski način\tCtrl+Alt+PageUP"
+msgid "&Fullscreen\tCtrl+Alt+PgUp"
+msgstr "&Celozaslonski način\tCtrl+Alt+PgUp"
 
 msgid "Fullscreen &stretch mode"
 msgstr "&Način celozaslonskega raztezanja"
@@ -601,8 +601,8 @@ msgstr "Kritična napaka"
 msgid " - PAUSED"
 msgstr " - PAUSED"
 
-msgid "Press CTRL+ALT+PAGE DOWN to return to windowed mode."
-msgstr "Pritisnite CTRL+ALT+PAGE DOWN za povratek iz celozaslonskega načina."
+msgid "Press Ctrl+Alt+PgDn to return to windowed mode."
+msgstr "Pritisnite Ctrl+Alt+PgDn za povratek iz celozaslonskega načina."
 
 msgid "Speed"
 msgstr "Hitrost"

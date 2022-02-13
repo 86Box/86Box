@@ -69,7 +69,7 @@ BEGIN
         END
         MENUITEM "Hi&DPI méretezés",              IDM_VID_HIDPI
         MENUITEM SEPARATOR
-        MENUITEM "&Teljes képernyő\tCtrl+Alt+PageUP",    IDM_VID_FULLSCREEN
+        MENUITEM "&Teljes képernyő\tCtrl+Alt+PgUp",    IDM_VID_FULLSCREEN
         POPUP "Teljes képernyős &méretezés"
         BEGIN
             MENUITEM "&Nyújtás a teljes képernyőre",        IDM_VID_FS_FULL
@@ -377,7 +377,7 @@ BEGIN
     IDS_2049	"Hiba"
     IDS_2050	"Végzetes hiba"
     IDS_2051	" - PAUSED"
-    IDS_2052	"Használja a CTRL+ALT+PAGE DOWN gombokat az ablakhoz való visszatéréshez."
+    IDS_2052	"Használja a Ctrl+Alt+PgDn gombokat az ablakhoz való visszatéréshez."
     IDS_2053	"Sebesség"
     IDS_2054	"ZIP %03i %i (%s): %ls"
     IDS_2055	"ZIP-lemezképek (*.IM?;*.ZDI)\0*.IM?;*.ZDI\0"

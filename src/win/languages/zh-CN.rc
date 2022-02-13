@@ -64,7 +64,7 @@ BEGIN
         END
         MENUITEM "HiDPI 缩放(&D)",              IDM_VID_HIDPI
         MENUITEM SEPARATOR
-        MENUITEM "全屏(&F)\tCtrl+Alt+PageUP",    IDM_VID_FULLSCREEN
+        MENUITEM "全屏(&F)\tCtrl+Alt+PgUp",    IDM_VID_FULLSCREEN
         POPUP "全屏拉伸模式(&S)"
         BEGIN
             MENUITEM "全屏拉伸(&F)",        IDM_VID_FS_FULL
@@ -372,7 +372,7 @@ BEGIN
     IDS_2049	"错误"
     IDS_2050	"致命错误"
     IDS_2051	" - PAUSED"
-    IDS_2052	"按 CTRL+ALT+PAGE DOWN 组合键返回到窗口模式。"
+    IDS_2052	"按 Ctrl+Alt+PgDn 组合键返回到窗口模式。"
     IDS_2053	"速度"
     IDS_2054	"ZIP %03i %i (%s): %ls"
     IDS_2055	"ZIP 镜像 (*.IM?;*.ZDI)\0*.IM?;*.ZDI\0"

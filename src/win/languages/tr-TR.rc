@@ -64,7 +64,7 @@ BEGIN
         END
         MENUITEM "Hi&DPI ölçeklemesi",              IDM_VID_HIDPI
         MENUITEM SEPARATOR
-        MENUITEM "&Tam ekran\tCtrl+Alt+PageUP",    IDM_VID_FULLSCREEN
+        MENUITEM "&Tam ekran\tCtrl+Alt+PgUp",    IDM_VID_FULLSCREEN
         POPUP "Tam ekran &germe modu"
         BEGIN
             MENUITEM "&Tam ekrana ger",        IDM_VID_FS_FULL
@@ -372,7 +372,7 @@ BEGIN
     IDS_2049	"Hata"
     IDS_2050	"Kritik hata"
     IDS_2051	" - PAUSED"
-    IDS_2052	"Pencere moduna geri dönmek için CTRL+ALT+PAGE DOWN tuşlarına basın."
+    IDS_2052	"Pencere moduna geri dönmek için Ctrl+Alt+PgDn tuşlarına basın."
     IDS_2053	"Hız"
     IDS_2054	"ZIP %03i %i (%s): %ls"
     IDS_2055	"ZIP imajları (*.IM?;*.ZDI)\0*.IM?;*.ZDI\0"

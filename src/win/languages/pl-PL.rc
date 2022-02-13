@@ -64,7 +64,7 @@ BEGIN
         END
         MENUITEM "Skalowanie Hi&DPI",              IDM_VID_HIDPI
         MENUITEM SEPARATOR
-        MENUITEM "&Pełny ekran\tCtrl+Alt+PageUP",    IDM_VID_FULLSCREEN
+        MENUITEM "&Pełny ekran\tCtrl+Alt+PgUp",    IDM_VID_FULLSCREEN
         POPUP "Fullscreen &stretch mode"
         BEGIN
             MENUITEM "&Tryb rozciągania na pełnym ekranie",        IDM_VID_FS_FULL
@@ -372,7 +372,7 @@ BEGIN
     IDS_2049	"Błąd"
     IDS_2050	"Fatalny błąd"
     IDS_2051	" - PAUSED"
-    IDS_2052	"Naciśnij klawisze CTRL+ALT+PAGE DOWN aby wrócić to trybu okna."
+    IDS_2052	"Naciśnij klawisze Ctrl+Alt+PgDn aby wrócić to trybu okna."
     IDS_2053	"Szybkość"
     IDS_2054	"ZIP %03i %i (%s): %ls"
     IDS_2055	"Obrazy ZIP (*.IM?;*.ZDI)\0*.IM?;*.ZDI\0"

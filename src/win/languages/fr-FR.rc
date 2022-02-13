@@ -64,7 +64,7 @@ BEGIN
         END
         MENUITEM "Mise à l'échelle Hi&DPI",              IDM_VID_HIDPI
         MENUITEM SEPARATOR
-        MENUITEM "&Plein Ecran\tCtrl+Alt+PageUP",    IDM_VID_FULLSCREEN
+        MENUITEM "&Plein Ecran\tCtrl+Alt+PgUp",    IDM_VID_FULLSCREEN
         POPUP "Mode &Elargi plein écran"
         BEGIN
             MENUITEM "&Plein écran étiré",        IDM_VID_FS_FULL
@@ -372,7 +372,7 @@ BEGIN
     IDS_2049	"Erreur"
     IDS_2050	"Erreur fatale"
     IDS_2051	" - PAUSED"
-    IDS_2052	"Appuyez sur CTRL+ALT+PAGE ↓ pour revenir au mode fenêtré."
+    IDS_2052	"Appuyez sur Ctrl+Alt+PgDn pour revenir au mode fenêtré."
     IDS_2053	"Vitesse"
     IDS_2054	"ZIP %03i %i (%s): %ls"
     IDS_2055	"Images ZIP (*.IM?;*.ZDI)\0*.IM?;*.ZDI\0"

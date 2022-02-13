@@ -64,7 +64,7 @@ BEGIN
         END
         MENUITEM "&Suuri DPI-skaalaus",                                 IDM_VID_HIDPI
         MENUITEM SEPARATOR
-        MENUITEM "&Koko näytön tila\tCtrl+Alt+PageUP",                  IDM_VID_FULLSCREEN
+        MENUITEM "&Koko näytön tila\tCtrl+Alt+PgUp",                  IDM_VID_FULLSCREEN
         POPUP "Koko näytön &skaalaustila"
         BEGIN
             MENUITEM "&Venytä koko näyttöön",                           IDM_VID_FS_FULL
@@ -372,7 +372,7 @@ BEGIN
     IDS_2049    "Virhe"
     IDS_2050    "Vakava virhe"
     IDS_2051    " - PAUSED"
-    IDS_2052    "Paina CTRL+ALT+PAGE DOWN palataksesi ikkunoituun tilaan."
+    IDS_2052    "Paina Ctrl+Alt+PgDn palataksesi ikkunoituun tilaan."
     IDS_2053    "Nopeus"
     IDS_2054    "ZIP %03i %i (%s): %ls"
     IDS_2055    "ZIP-levykuvat (*.IM?;*.ZDI)\0*.IM?;*.ZDI\0"

@@ -67,7 +67,7 @@ BEGIN
         END
         MENUITEM "Escala Hi&DPI",              IDM_VID_HIDPI
         MENUITEM SEPARATOR
-        MENUITEM "&Tela cheia\tCtrl+Alt+PageUP",    IDM_VID_FULLSCREEN
+        MENUITEM "&Tela cheia\tCtrl+Alt+PgUp",    IDM_VID_FULLSCREEN
         POPUP "Modo de &redimensionamento da tela cheia"
         BEGIN
             MENUITEM "&Tela cheia esticada",        IDM_VID_FS_FULL
@@ -375,7 +375,7 @@ BEGIN
     IDS_2049	"Erro"
     IDS_2050	"Erro fatal"
     IDS_2051	" - PAUSED"
-    IDS_2052	"Use CTRL+ALT+PAGE DOWN para retornar ao modo janela"
+    IDS_2052	"Use Ctrl+Alt+PgDn para retornar ao modo janela"
     IDS_2053	"Velocidade"
     IDS_2054	"ZIP %03i %i (%s): %ls"
     IDS_2055	"Imagens ZIP (*.IM?;*.ZDI)\0*.IM?;*.ZDI\0"

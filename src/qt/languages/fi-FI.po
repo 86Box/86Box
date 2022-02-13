@@ -88,8 +88,8 @@ msgstr "Li&neaarinen interpolaatio"
 msgid "Hi&DPI scaling"
 msgstr "&Suuri DPI-skaalaus"
 
-msgid "&Fullscreen\tCtrl+Alt+PageUP"
-msgstr "&Koko näytön tila\tCtrl+Alt+PageUP"
+msgid "&Fullscreen\tCtrl+Alt+PgUp"
+msgstr "&Koko näytön tila\tCtrl+Alt+PgUp"
 
 msgid "Fullscreen &stretch mode"
 msgstr "Koko näytön &skaalaustila"
@@ -601,8 +601,8 @@ msgstr "Vakava virhe"
 msgid " - PAUSED"
 msgstr " - PAUSED"
 
-msgid "Press CTRL+ALT+PAGE DOWN to return to windowed mode."
-msgstr "Paina CTRL+ALT+PAGE DOWN palataksesi ikkunoituun tilaan."
+msgid "Press Ctrl+Alt+PgDn to return to windowed mode."
+msgstr "Paina Ctrl+Alt+PgDn palataksesi ikkunoituun tilaan."
 
 msgid "Speed"
 msgstr "Nopeus"

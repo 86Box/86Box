@@ -64,7 +64,7 @@ BEGIN
         END
         MENUITEM "HiDPIスケーリング(&D)",              IDM_VID_HIDPI
         MENUITEM SEPARATOR
-        MENUITEM "フルスクリーン(&F)\tCtrl+Alt+PageUP",    IDM_VID_FULLSCREEN
+        MENUITEM "フルスクリーン(&F)\tCtrl+Alt+PgUp",    IDM_VID_FULLSCREEN
         POPUP "フルスクリーンのスケール(&S)"
         BEGIN
             MENUITEM "フルスクリーンに拡大(&F)",        IDM_VID_FS_FULL
@@ -372,7 +372,7 @@ BEGIN
     IDS_2049	"エラー"
     IDS_2050	"致命的なエラー"
     IDS_2051	" - PAUSED"
-    IDS_2052	"CTRL+ALT+PAGE DOWNでウィンドウモードに戻ります。"
+    IDS_2052	"Ctrl+Alt+PgDnでウィンドウモードに戻ります。"
     IDS_2053	"速度"
     IDS_2054	"ZIP %03i %i (%s): %ls"
     IDS_2055	"ZIPイメージ (*.IM?;*.ZDI)\0*.IM?;*.ZDI\0"

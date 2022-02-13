@@ -64,7 +64,7 @@ BEGIN
         END
         MENUITEM "Масштабирование Hi&DPI",              IDM_VID_HIDPI
         MENUITEM SEPARATOR
-        MENUITEM "&Полноэкранный режим\tCtrl+Alt+PageUP",    IDM_VID_FULLSCREEN
+        MENUITEM "&Полноэкранный режим\tCtrl+Alt+PgUp",    IDM_VID_FULLSCREEN
         POPUP "&Растягивание в полноэкранном режиме"
         BEGIN
             MENUITEM "&На весь экран",        IDM_VID_FS_FULL
@@ -372,7 +372,7 @@ BEGIN
     IDS_2049	"Ошибка"
     IDS_2050	"Неустранимая ошибка"
     IDS_2051	" - ПАУЗА"
-    IDS_2052	"Нажмите CTRL + ALT + PAGE DOWN для возврата в оконный режим."
+    IDS_2052	"Нажмите Ctrl+Alt+PgDn для возврата в оконный режим."
     IDS_2053	"Скорость"
     IDS_2054	"ZIP %03i %i (%s): %ls"
     IDS_2055	"Образы ZIP (*.IM?;*.ZDI)\0*.IM?;*.ZDI\0"

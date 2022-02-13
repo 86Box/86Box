@@ -64,7 +64,7 @@ BEGIN
         END
         MENUITEM "HiDPI 스케일링(&D)",              IDM_VID_HIDPI
         MENUITEM SEPARATOR
-        MENUITEM "전체 화면(&F)\tCtrl+Alt+PageUP",    IDM_VID_FULLSCREEN
+        MENUITEM "전체 화면(&F)\tCtrl+Alt+PgUp",    IDM_VID_FULLSCREEN
         POPUP "전체 화면 비율(&S)"
         BEGIN
             MENUITEM "전체 화면으로 확대(&F)",        IDM_VID_FS_FULL
@@ -372,7 +372,7 @@ BEGIN
     IDS_2049	"오류"
     IDS_2050	"치명적인 오류"
     IDS_2051	" - PAUSED"
-    IDS_2052	"CTRL+ALT+PAGE DOWN 키를 누르면 창 모드로 전환합니다."
+    IDS_2052	"Ctrl+Alt+PgDn 키를 누르면 창 모드로 전환합니다."
     IDS_2053	"속도"
     IDS_2054	"ZIP %03i %i (%s): %ls"
     IDS_2055	"ZIP 이미지 (*.IM?;*.ZDI)\0*.IM?;*.ZDI\0"

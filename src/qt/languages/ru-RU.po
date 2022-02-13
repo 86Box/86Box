@@ -88,8 +88,8 @@ msgstr "&Линейный"
 msgid "Hi&DPI scaling"
 msgstr "Масштабирование Hi&DPI"
 
-msgid "&Fullscreen\tCtrl+Alt+PageUP"
-msgstr "&Полноэкранный режим\tCtrl+Alt+PageUP"
+msgid "&Fullscreen\tCtrl+Alt+PgUp"
+msgstr "&Полноэкранный режим\tCtrl+Alt+PgUp"
 
 msgid "Fullscreen &stretch mode"
 msgstr "&Растягивание в полноэкранном режиме"
@@ -601,8 +601,8 @@ msgstr "Неустранимая ошибка"
 msgid " - PAUSED"
 msgstr " - ПАУЗА"
 
-msgid "Press CTRL+ALT+PAGE DOWN to return to windowed mode."
-msgstr "Нажмите CTRL + ALT + PAGE DOWN для возврата в оконный режим."
+msgid "Press Ctrl+Alt+PgDn to return to windowed mode."
+msgstr "Нажмите Ctrl+Alt+PgDn для возврата в оконный режим."
 
 msgid "Speed"
 msgstr "Скорость"

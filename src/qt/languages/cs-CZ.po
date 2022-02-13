@@ -88,8 +88,8 @@ msgstr "&Lineární"
 msgid "Hi&DPI scaling"
 msgstr "Š&kálování HiDPI"
 
-msgid "&Fullscreen\tCtrl+Alt+PageUP"
-msgstr "&Celá obrazovka\tCtrl+Alt+PageUP"
+msgid "&Fullscreen\tCtrl+Alt+PgUp"
+msgstr "&Celá obrazovka\tCtrl+Alt+PgUp"
 
 msgid "Fullscreen &stretch mode"
 msgstr "Režím roztá&hnutí při celé obrazovce"
@@ -601,8 +601,8 @@ msgstr "Kritická chyba"
 msgid " - PAUSED"
 msgstr " - PAUSED"
 
-msgid "Press CTRL+ALT+PAGE DOWN to return to windowed mode."
-msgstr "Stiskněte Ctrl+Alt+Page Down pro návrat z režimu celé obrazovky."
+msgid "Press Ctrl+Alt+PgDn to return to windowed mode."
+msgstr "Stiskněte Ctrl+Alt+PgDn pro návrat z režimu celé obrazovky."
 
 msgid "Speed"
 msgstr "Rychlost"

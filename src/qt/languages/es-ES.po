@@ -88,8 +88,8 @@ msgstr "&Lineal"
 msgid "Hi&DPI scaling"
 msgstr "&Escalado alta densidad"
 
-msgid "&Fullscreen\tCtrl+Alt+PageUP"
-msgstr "&Pantalla completa\tCtrl+Alt+PageUP"
+msgid "&Fullscreen\tCtrl+Alt+PgUp"
+msgstr "&Pantalla completa\tCtrl+Alt+PgUp"
 
 msgid "Fullscreen &stretch mode"
 msgstr "Escalado pantalla completa"
@@ -601,8 +601,8 @@ msgstr "Error fatal"
 msgid " - PAUSED"
 msgstr " - PAUSED"
 
-msgid "Press CTRL+ALT+PAGE DOWN to return to windowed mode."
-msgstr "Pulsa CTRL+ALT+AVPÁG para volver a modo ventana."
+msgid "Press Ctrl+Alt+PgDn to return to windowed mode."
+msgstr "Pulsa Ctrl+Alt+PgDn para volver a modo ventana."
 
 msgid "Speed"
 msgstr "Velocidad"

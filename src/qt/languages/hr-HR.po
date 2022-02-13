@@ -88,8 +88,8 @@ msgstr "&Linearna"
 msgid "Hi&DPI scaling"
 msgstr "&HiDPI skaliranje"
 
-msgid "&Fullscreen\tCtrl+Alt+PageUP"
-msgstr "&Cijelozaslonski način\tCtrl+Alt+PageUP"
+msgid "&Fullscreen\tCtrl+Alt+PgUp"
+msgstr "&Cijelozaslonski način\tCtrl+Alt+PgUp"
 
 msgid "Fullscreen &stretch mode"
 msgstr "&Način cijelozaslonskog rastezanja"
@@ -601,8 +601,8 @@ msgstr "Fatalna greška"
 msgid " - PAUSED"
 msgstr " - PAUSED"
 
-msgid "Press CTRL+ALT+PAGE DOWN to return to windowed mode."
-msgstr "Pritisnite CTRL+ALT+PAGE DOWN za povratak u prozorski način rada."
+msgid "Press Ctrl+Alt+PgDn to return to windowed mode."
+msgstr "Pritisnite Ctrl+Alt+PgDn za povratak u prozorski način rada."
 
 msgid "Speed"
 msgstr "Brzina"

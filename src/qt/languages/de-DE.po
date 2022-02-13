@@ -88,8 +88,8 @@ msgstr "&Linear"
 msgid "Hi&DPI scaling"
 msgstr "Hi&DPI-Skalierung"
 
-msgid "&Fullscreen\tCtrl+Alt+PageUP"
-msgstr "&Vollbild\tStrg+Alt+BildAuf"
+msgid "&Fullscreen\tCtrl+Alt+PgUp"
+msgstr "&Vollbild\tStrg+Alt+Bild auf"
 
 msgid "Fullscreen &stretch mode"
 msgstr "&Stretching-Modus im Vollbildmodus"
@@ -601,7 +601,7 @@ msgstr "Fataler Fehler"
 msgid " - PAUSED"
 msgstr " - PAUSED"
 
-msgid "Press CTRL+ALT+PAGE DOWN to return to windowed mode."
+msgid "Press Ctrl+Alt+PgDn to return to windowed mode."
 msgstr "Bitte Strg+Alt+Bild ab zur Rückkehr in den Fenstermodus drücken."
 
 msgid "Speed"
