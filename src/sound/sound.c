@@ -123,6 +123,7 @@ static const SOUND_CARD sound_cards[] =
 #if defined(DEV_BRANCH) && defined(USE_PAS16)
     { &pas16_device				},
 #endif
+    { &tndy_device				},
     { &pssj_isa_device			},
     { &wss_device				},
     { &adlib_mca_device			},
