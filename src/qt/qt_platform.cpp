@@ -303,13 +303,20 @@ plat_pause(int p)
     static wchar_t oldtitle[512];
     wchar_t title[512];
 
+    if (p == dopause) {
+#ifdef Q_OS_WINDOWS
+        if (source_hwnd)
+            PostMessage((HWND)(uintptr_t)source_hwnd, WM_SENDSTATUS, (WPARAM)!!p, (LPARAM)(HWND)main_window->winId());
+#endif
+        return;
+    }
     if ((p == 0) && (time_sync & TIME_SYNC_ENABLED))
         nvr_time_sync();
 
     dopause = p;
     if (p) {
         wcsncpy(oldtitle, ui_window_title(NULL), sizeof_w(oldtitle) - 1);
-        wcscpy(title, oldtitle);
+        wcscpy(title, oldtitle);twicr
         wcscat(title, L" - PAUSED -");
         ui_window_title(title);
     } else {
