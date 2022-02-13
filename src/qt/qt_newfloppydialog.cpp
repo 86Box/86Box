@@ -71,9 +71,9 @@ static const disk_size_t disk_sizes[14] = {	{	0,  1, 2, 1, 0,  40,  8, 2, 0xfe, 
 
 static const QStringList rpmModes = {
     "Perfect RPM",
-    "1%% below perfect RPM",
-    "1.5%% below perfect RPM",
-    "2%% below perfect RPM",
+    "1% below perfect RPM",
+    "1.5% below perfect RPM",
+    "2% below perfect RPM",
 };
 
 static const QStringList floppyTypes = {
@@ -97,16 +97,16 @@ static const QStringList zipTypes = {
 };
 
 static const QStringList moTypes = {
-    "3.5\" 128Mb M.O. (ISO 10090)",
-    "3.5\" 230Mb M.O. (ISO 13963)",
-    "3.5\" 540Mb M.O. (ISO 15498)",
-    "3.5\" 640Mb M.O. (ISO 15498)",
-    "3.5\" 1.3Gb M.O. (GigaMO)",
-    "3.5\" 2.3Gb M.O. (GigaMO 2)",
-    "5.25\" 600Mb M.O.",
-    "5.25\" 650Mb M.O.",
-    "5.25\" 1Gb M.O.",
-    "5.25\" 1.3Gb M.O.",
+    "3.5\" 128 MB (ISO 10090)",
+    "3.5\" 230 MB (ISO 13963)",
+    "3.5\" 540 MB (ISO 15498)",
+    "3.5\" 640 MB (ISO 15498)",
+    "3.5\" 1.3 GB (GigaMO)",
+    "3.5\" 2.3 GB (GigaMO 2)",
+    "5.25\" 600 MB",
+    "5.25\" 650 MB",
+    "5.25\" 1 GB",
+    "5.25\" 1.3 GB",
 };
 
 NewFloppyDialog::NewFloppyDialog(MediaType type, QWidget *parent) :
@@ -148,7 +148,7 @@ NewFloppyDialog::NewFloppyDialog(MediaType type, QWidget *parent) :
 
     model = ui->comboBoxRpm->model();
     for (int i = 0; i < rpmModes.size(); ++i) {
-        Models::AddEntry(model, tr(rpmModes[i].toUtf8().data()).replace("%%", "%"), i);
+        Models::AddEntry(model, tr(rpmModes[i].toUtf8().data()), i);
     }
 
     connect(ui->fileField, &FileField::fileSelected, this, [this](const QString& filename) {

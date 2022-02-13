@@ -252,7 +252,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Install dependencies
-        run: sudo apt update && sudo apt install gcc-11 g++-11 libfreetype-dev libsdl2-dev libpng-dev libopenal-dev libc6-dev librtmidi-dev qtbase5-dev
+        run: sudo apt update && sudo apt install gcc-11 g++-11 libfreetype-dev libsdl2-dev libpng-dev libopenal-dev libc6-dev librtmidi-dev qtbase5-dev qttools5-dev
       - name: Configure CMake
         run: >-
           cmake -S . -B build
