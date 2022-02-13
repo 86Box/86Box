@@ -1147,8 +1147,8 @@ bool MainWindow::eventFilter(QObject* receiver, QEvent* event)
     if (receiver == this)
     {
         static auto curdopause = dopause;
-        if (event->type() == QEvent::WindowBlocked) { curdopause = dopause; plat_pause(1); }
-        else if (event->type() == QEvent::WindowUnblocked) { plat_pause(curdopause); }
+        if (event->type() == QEvent::WindowBlocked) { curdopause = dopause; dopause = 1; }
+        else if (event->type() == QEvent::WindowUnblocked) { dopause = curdopause; }
     }
     return QMainWindow::eventFilter(receiver, event);
 }
