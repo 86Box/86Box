@@ -470,6 +470,12 @@ else
 		*)	arch_appimage="$arch";;
 	esac
 
+	# Get version for AppImage metadata.
+	project_version=$(grep -oP '#define\s+EMU_VERSION\s+"\K([^"]+)' "build/src/include/$project_lower/version.h" 2>/dev/null)
+	[ -z "$project_version" ] && project_version=unknown
+	build_num=$(grep -oP '#define\s+EMU_BUILD_NUM\s+\K([0-9]+)' "build/src/include/$project_lower/version.h" 2>/dev/null)
+	[ ! -z "$build_num" -a "$build_num" != "0" ] && project_version="$project_version-b$build_num"
+
 	# Download appimage-builder if necessary.
 	[ ! -e "appimage-builder.AppImage" ] && wget -qO appimage-builder.AppImage \
 		https://github.com/AppImageCrafters/appimage-builder/releases/download/v0.9.2/appimage-builder-0.9.2-35e3eab-x86_64.AppImage
@@ -479,7 +485,7 @@ else
 	rm -rf "$project-"*".AppImage"
 
 	# Run appimage-builder in extract-and-run mode for Docker compatibility.
-	project="$project" project_lower="$project_lower" arch_deb="$arch_deb" arch_appimage="$arch_appimage" \
+	project="$project" project_lower="$project_lower" project_version="$project_version" arch_deb="$arch_deb" arch_appimage="$arch_appimage" \
 		APPIMAGE_EXTRACT_AND_RUN=1 ./appimage-builder.AppImage --recipe .ci/AppImageBuilder.yml
 	status=$?
 
