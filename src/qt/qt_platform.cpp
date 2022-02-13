@@ -301,7 +301,7 @@ void
 plat_pause(int p)
 {
     static wchar_t oldtitle[512];
-    wchar_t title[512];
+    wchar_t title[512], paused_msg[64];
 
     if (p == dopause) {
 #ifdef Q_OS_WINDOWS
@@ -317,7 +317,8 @@ plat_pause(int p)
     if (p) {
         wcsncpy(oldtitle, ui_window_title(NULL), sizeof_w(oldtitle) - 1);
         wcscpy(title, oldtitle);
-        wcscat(title, L" - PAUSED -");
+        QObject::tr(" - PAUSED").toWCharArray(paused_msg);
+        wcscat(title, paused_msg);
         ui_window_title(title);
     } else {
         ui_window_title(oldtitle);

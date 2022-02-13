@@ -88,8 +88,8 @@ msgstr "线性(&L)"
 msgid "Hi&DPI scaling"
 msgstr "HiDPI 缩放(&D)"
 
-msgid "&Fullscreen\tCtrl+Alt+PageUP"
-msgstr "全屏(&F)\tCtrl+Alt+PageUP"
+msgid "&Fullscreen\tCtrl+Alt+PgUp"
+msgstr "全屏(&F)\tCtrl+Alt+PgUp"
 
 msgid "Fullscreen &stretch mode"
 msgstr "全屏拉伸模式(&S)"
@@ -598,11 +598,11 @@ msgstr "错误"
 msgid "Fatal error"
 msgstr "致命错误"
 
-msgid "<reserved>"
-msgstr "<reserved>"
+msgid " - PAUSED"
+msgstr " - PAUSED"
 
-msgid "Press CTRL+ALT+PAGE DOWN to return to windowed mode."
-msgstr "按 CTRL+ALT+PAGE DOWN 组合键返回到窗口模式。"
+msgid "Press Ctrl+Alt+PgDn to return to windowed mode."
+msgstr "按 Ctrl+Alt+PgDn 组合键返回到窗口模式。"
 
 msgid "Speed"
 msgstr "速度"
@@ -1138,47 +1138,47 @@ msgstr "2.88 MB"
 msgid "ZIP 100"
 msgstr "ZIP 100"
 
-msgid "3.5\" 128Mb M.O. (ISO 10090)"
-msgstr "3.5 英寸 128Mb 磁光盘 (ISO 10090)"
+msgid "3.5\" 128 MB (ISO 10090)"
+msgstr "3.5 英寸 128 MB (ISO 10090)"
 
-msgid "3.5\" 230Mb M.O. (ISO 13963)"
-msgstr "3.5 英寸 230Mb 磁光盘 (ISO 13963)"
+msgid "3.5\" 230 MB (ISO 13963)"
+msgstr "3.5 英寸 230 MB (ISO 13963)"
 
-msgid "3.5\" 540Mb M.O. (ISO 15498)"
-msgstr "3.5 英寸 540Mb 磁光盘 (ISO 15498)"
+msgid "3.5\" 540 MB (ISO 15498)"
+msgstr "3.5 英寸 540 MB (ISO 15498)"
 
-msgid "3.5\" 640Mb M.O. (ISO 15498)"
-msgstr "3.5 英寸 640Mb 磁光盘 (ISO 15498)"
+msgid "3.5\" 640 MB (ISO 15498)"
+msgstr "3.5 英寸 640 MB (ISO 15498)"
 
-msgid "3.5\" 1.3Gb M.O. (GigaMO)"
-msgstr "3.5 英寸 1.3Gb 磁光盘 (GigaMO)"
+msgid "3.5\" 1.3 GB (GigaMO)"
+msgstr "3.5 英寸 1.3 GB (GigaMO)"
 
-msgid "3.5\" 2.3Gb M.O. (GigaMO 2)"
-msgstr "3.5 英寸 2.3Gb 磁光盘 (GigaMO 2)"
+msgid "3.5\" 2.3 GB (GigaMO 2)"
+msgstr "3.5 英寸 2.3 GB (GigaMO 2)"
 
-msgid "5.25\" 600Mb M.O."
-msgstr "5.25 英寸 600Mb 磁光盘"
+msgid "5.25\" 600 MB"
+msgstr "5.25 英寸 600 MB"
 
-msgid "5.25\" 650Mb M.O."
-msgstr "5.25 英寸 650Mb 磁光盘"
+msgid "5.25\" 650 MB"
+msgstr "5.25 英寸 650 MB"
 
-msgid "5.25\" 1Gb M.O."
-msgstr "5.25 英寸 1Gb 磁光盘"
+msgid "5.25\" 1 GB"
+msgstr "5.25 英寸 1 GB"
 
-msgid "5.25\" 1.3Gb M.O."
-msgstr "5.25 英寸 1.3Gb 磁光盘"
+msgid "5.25\" 1.3 GB"
+msgstr "5.25 英寸 1.3 GB"
 
 msgid "Perfect RPM"
 msgstr "标准转速 (RPM)"
 
-msgid "1%% below perfect RPM"
-msgstr "低于标准转速的 1%%"
+msgid "1% below perfect RPM"
+msgstr "低于标准转速的 1%"
 
-msgid "1.5%% below perfect RPM"
-msgstr "低于标准转速的 1.5%%"
+msgid "1.5% below perfect RPM"
+msgstr "低于标准转速的 1.5%"
 
-msgid "2%% below perfect RPM"
-msgstr "低于标准转速的 2%%"
+msgid "2% below perfect RPM"
+msgstr "低于标准转速的 2%"
 
 msgid "(System Default)"
 msgstr "(系统默认)"

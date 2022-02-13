@@ -128,7 +128,7 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(this, &MainWindow::setTitle, this, [this,toolbar_label](const QString& title) {
         if (dopause && !hide_tool_bar)
         {
-            toolbar_label->setText(toolbar_label->text() + " - PAUSED -");
+            toolbar_label->setText(toolbar_label->text() + tr(" - PAUSED"));
             return;
         }
         if (!hide_tool_bar)
@@ -1094,7 +1094,7 @@ void MainWindow::on_actionFullscreen_triggered() {
     } else {
         if (video_fullscreen_first)
         {
-            QMessageBox questionbox(QMessageBox::Icon::Information, tr("Entering fullscreen mode"), tr("Press CTRL+ALT+PAGE DOWN to return to windowed mode."), QMessageBox::Ok, this);
+            QMessageBox questionbox(QMessageBox::Icon::Information, tr("Entering fullscreen mode"), tr("Press Ctrl+Alt+PgDn to return to windowed mode."), QMessageBox::Ok, this);
             QCheckBox *chkbox = new QCheckBox(tr("Don't show this message again"));
             questionbox.setCheckBox(chkbox);
             chkbox->setChecked(!video_fullscreen_first);
