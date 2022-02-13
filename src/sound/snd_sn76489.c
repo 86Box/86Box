@@ -224,12 +224,48 @@ void *ncr8496_device_init(const device_t *info)
         return sn76489;
 }
 
+void *tndy_device_init(const device_t *info)
+{
+        sn76489_t *sn76489 = malloc(sizeof(sn76489_t));
+        memset(sn76489, 0, sizeof(sn76489_t));
+
+        uint16_t addr = device_get_config_hex16("base");
+
+        sn76489_init(sn76489, addr, 0x0008, SN76496, 3579545);
+
+        return sn76489;
+}
+
 void sn76489_device_close(void *p)
 {
         sn76489_t *sn76489 = (sn76489_t *)p;
 
         free(sn76489);        
 }
+
+static const device_config_t tndy_config[] =
+{
+        {
+                "base", "Address", CONFIG_HEX16, "", 0x0C0, "", { 0 },
+                {
+                        {
+                                "0x0C0", 0x0C0
+                        },
+                        {
+                                "0x1E0", 0x1E0
+                        },
+                        {
+                                "0x2C0", 0x2C0
+                        },
+                        {
+                                ""
+                        }
+                }
+        },
+        {
+                "", "", -1
+        }
+};
 
 const device_t sn76489_device =
 {
@@ -242,6 +278,7 @@ const device_t sn76489_device =
 	NULL, { NULL }, NULL,
         NULL
 };
+
 const device_t ncr8496_device =
 {
         "NCR8496 PSG",
@@ -252,4 +289,16 @@ const device_t ncr8496_device =
         sn76489_device_close,
 	NULL, { NULL }, NULL,
         NULL
+};
+
+const device_t tndy_device =
+{
+        "TNDY",
+        "tndy",
+        DEVICE_ISA,
+	0,
+        tndy_device_init,
+        sn76489_device_close,
+	NULL, { NULL }, NULL,
+        tndy_config
 };

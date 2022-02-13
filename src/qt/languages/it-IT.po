@@ -88,8 +88,8 @@ msgstr "&Lineare"
 msgid "Hi&DPI scaling"
 msgstr "Scala Hi&DPI"
 
-msgid "&Fullscreen\tCtrl+Alt+PageUP"
-msgstr "&Schermo intero\tCtrl+Alt+PageUP"
+msgid "&Fullscreen\tCtrl+Alt+PgUp"
+msgstr "&Schermo intero\tCtrl+Alt+PgUp"
 
 msgid "Fullscreen &stretch mode"
 msgstr "Modalità adattamento &schermo intero"
@@ -598,11 +598,11 @@ msgstr "Errore"
 msgid "Fatal error"
 msgstr "Errore fatale"
 
-msgid "<reserved>"
-msgstr "<reserved>"
+msgid " - PAUSED"
+msgstr " - PAUSED"
 
-msgid "Press CTRL+ALT+PAGE DOWN to return to windowed mode."
-msgstr "Usa CTRL+ALT+PAGE DOWN per tornare alla modalità finestra."
+msgid "Press Ctrl+Alt+PgDn to return to windowed mode."
+msgstr "Usa Ctrl+Alt+PgDn per tornare alla modalità finestra."
 
 msgid "Speed"
 msgstr "Velocità"
@@ -1138,47 +1138,47 @@ msgstr "2.88 MB"
 msgid "ZIP 100"
 msgstr "ZIP 100"
 
-msgid "3.5\" 128Mb M.O. (ISO 10090)"
-msgstr "3.5\" 128Mb M.O. (ISO 10090)"
+msgid "3.5\" 128 MB (ISO 10090)"
+msgstr "3.5\" 128 MB (ISO 10090)"
 
-msgid "3.5\" 230Mb M.O. (ISO 13963)"
-msgstr "3.5\" 230Mb M.O. (ISO 13963)"
+msgid "3.5\" 230 MB (ISO 13963)"
+msgstr "3.5\" 230 MB (ISO 13963)"
 
-msgid "3.5\" 540Mb M.O. (ISO 15498)"
-msgstr "3.5\" 540Mb M.O. (ISO 15498)"
+msgid "3.5\" 540 MB (ISO 15498)"
+msgstr "3.5\" 540 MB (ISO 15498)"
 
-msgid "3.5\" 640Mb M.O. (ISO 15498)"
-msgstr "3.5\" 640Mb M.O. (ISO 15498)"
+msgid "3.5\" 640 MB (ISO 15498)"
+msgstr "3.5\" 640 MB (ISO 15498)"
 
-msgid "3.5\" 1.3Gb M.O. (GigaMO)"
-msgstr "3.5\" 1.3Gb M.O. (GigaMO)"
+msgid "3.5\" 1.3 GB (GigaMO)"
+msgstr "3.5\" 1.3 GB (GigaMO)"
 
-msgid "3.5\" 2.3Gb M.O. (GigaMO 2)"
-msgstr "3.5\" 2.3Gb M.O. (GigaMO 2)"
+msgid "3.5\" 2.3 GB (GigaMO 2)"
+msgstr "3.5\" 2.3 GB (GigaMO 2)"
 
-msgid "5.25\" 600Mb M.O."
-msgstr "5.25\" 600Mb M.O."
+msgid "5.25\" 600 MB"
+msgstr "5.25\" 600 MB"
 
-msgid "5.25\" 650Mb M.O."
-msgstr "5.25\" 650Mb M.O."
+msgid "5.25\" 650 MB"
+msgstr "5.25\" 650 MB"
 
-msgid "5.25\" 1Gb M.O."
-msgstr "5.25\" 1Gb M.O."
+msgid "5.25\" 1 GB"
+msgstr "5.25\" 1 GB"
 
-msgid "5.25\" 1.3Gb M.O."
-msgstr "5.25\" 1.3Gb M.O."
+msgid "5.25\" 1.3 GB"
+msgstr "5.25\" 1.3 GB"
 
 msgid "Perfect RPM"
 msgstr "RPM perfette"
 
-msgid "1%% below perfect RPM"
-msgstr "RPM 1%% sotto perfezione"
+msgid "1% below perfect RPM"
+msgstr "RPM 1% sotto perfezione"
 
-msgid "1.5%% below perfect RPM"
-msgstr "RPM 1.5%% sotto perfezione"
+msgid "1.5% below perfect RPM"
+msgstr "RPM 1.5% sotto perfezione"
 
-msgid "2%% below perfect RPM"
-msgstr "RPM 2%% sotto perfezione"
+msgid "2% below perfect RPM"
+msgstr "RPM 2% sotto perfezione"
 
 msgid "(System Default)"
 msgstr "(Predefinito del sistema)"
