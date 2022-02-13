@@ -37,6 +37,7 @@ AppDir:
     - libdrm2
     - libevdev2
     - libgbm1
+    - libgles2
     - libopenal1
     - libpng16-16
     - libqt5core5a
@@ -47,7 +48,13 @@ AppDir:
     - libslirp0
     - libwayland-client0
     - libx11-6
+    - libx11-xcb1
+    - libxcb-render0
+    - libxcb-shape0
+    - libxcb-shm0
+    - libxcb-xfixes0
     - libxcb1
+    - zlib1g
   files:
     exclude:
     - etc
