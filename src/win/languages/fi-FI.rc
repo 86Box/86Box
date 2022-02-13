@@ -64,7 +64,7 @@ BEGIN
         END
         MENUITEM "&Suuri DPI-skaalaus",                                 IDM_VID_HIDPI
         MENUITEM SEPARATOR
-        MENUITEM "&Koko näytön tila\tCtrl+Alt+PageUP",                  IDM_VID_FULLSCREEN
+        MENUITEM "&Koko näytön tila\tCtrl+Alt+PgUp",                  IDM_VID_FULLSCREEN
         POPUP "Koko näytön &skaalaustila"
         BEGIN
             MENUITEM "&Venytä koko näyttöön",                           IDM_VID_FS_FULL
@@ -371,8 +371,8 @@ BEGIN
     2048    "86Box"
     IDS_2049    "Virhe"
     IDS_2050    "Vakava virhe"
-    IDS_2051    "<varattu>"
-    IDS_2052    "Paina CTRL+ALT+PAGE DOWN palataksesi ikkunoituun tilaan."
+    IDS_2051    " - PAUSED"
+    IDS_2052    "Paina Ctrl+Alt+PgDn palataksesi ikkunoituun tilaan."
     IDS_2053    "Nopeus"
     IDS_2054    "ZIP %03i %i (%s): %ls"
     IDS_2055    "ZIP-levykuvat (*.IM?;*.ZDI)\0*.IM?;*.ZDI\0"
@@ -593,21 +593,21 @@ BEGIN
     IDS_5899    "2.88 Mt"
     IDS_5900    "ZIP 100"
     IDS_5901    "ZIP 250"
-    IDS_5902    "3.5"" 128Mt M.O. (ISO 10090)"
-    IDS_5903    "3.5"" 230Mt M.O. (ISO 13963)"
-    IDS_5904    "3.5"" 540Mt M.O. (ISO 15498)"
-    IDS_5905    "3.5"" 640Mt M.O. (ISO 15498)"
-    IDS_5906    "3.5"" 1.3Gt M.O. (GigaMO)"
-    IDS_5907    "3.5"" 2.3Gt M.O. (GigaMO 2)"
-    IDS_5908    "5.25"" 600Mt M.O."
-    IDS_5909    "5.25"" 650Mt M.O."
-    IDS_5910    "5.25"" 1Gt M.O."
-    IDS_5911    "5.25"" 1.3Gt M.O."
+    IDS_5902    "3.5"" 128 Mt (ISO 10090)"
+    IDS_5903    "3.5"" 230 Mt (ISO 13963)"
+    IDS_5904    "3.5"" 540 Mt (ISO 15498)"
+    IDS_5905    "3.5"" 640 Mt (ISO 15498)"
+    IDS_5906    "3.5"" 1.3 Gt (GigaMO)"
+    IDS_5907    "3.5"" 2.3 Gt (GigaMO 2)"
+    IDS_5908    "5.25"" 600 Mt"
+    IDS_5909    "5.25"" 650 Mt"
+    IDS_5910    "5.25"" 1 Gt"
+    IDS_5911    "5.25"" 1.3 Gt"
 
     IDS_6144    "Täydellinen RPM"
-    IDS_6145    "1%% alle täydellisen RPM:n"
-    IDS_6146    "1.5%% alle täydellisen RPM:n"
-    IDS_6147    "2%% alle täydellisen RPM:n"
+    IDS_6145    "1% alle täydellisen RPM:n"
+    IDS_6146    "1.5% alle täydellisen RPM:n"
+    IDS_6147    "2% alle täydellisen RPM:n"
 
     IDS_7168    "(Järjestelmän oletus)"
 END

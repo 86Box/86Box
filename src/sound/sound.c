@@ -101,28 +101,31 @@ static const device_t sound_internal_device = {
 static const SOUND_CARD sound_cards[] =
 {
     { &sound_none_device		},
-    { &sound_internal_device		},
-    { &adlib_device			},
+    { &sound_internal_device	},
+    { &adlib_device				},
     { &adgold_device			},
     { &azt2316a_device			},
     { &azt1605_device			},
     { &cs4236b_device			},
-    { &sb_1_device			},
-    { &sb_15_device			},
-    { &sb_2_device			},
+    { &sb_1_device				},
+    { &sb_15_device				},
+    { &sb_2_device				},
     { &sb_pro_v1_device			},
     { &sb_pro_v2_device			},
-    { &sb_16_device			},
+    { &sb_16_device				},
     { &sb_16_pnp_device			},
     { &sb_32_pnp_device			},
     { &sb_awe32_device			},
     { &sb_awe32_pnp_device		},
+    { &sb_awe64_value_device	},
+    { &sb_awe64_device			},
     { &sb_awe64_gold_device		},
 #if defined(DEV_BRANCH) && defined(USE_PAS16)
-    { &pas16_device			},
+    { &pas16_device				},
 #endif
+    { &tndy_device				},
     { &pssj_isa_device			},
-    { &wss_device			},
+    { &wss_device				},
     { &adlib_mca_device			},
     { &ncr_business_audio_device	},
     { &sb_mcv_device			},
@@ -130,7 +133,7 @@ static const SOUND_CARD sound_cards[] =
     { &es1371_device			},
     { &ad1881_device			},
     { &cs4297a_device			},
-    { NULL				}
+    { NULL						}
 };
 
 

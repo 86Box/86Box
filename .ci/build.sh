@@ -227,7 +227,7 @@ else
 	esac
 
 	# Establish general dependencies.
-	pkgs="cmake pkg-config git imagemagick wget wayland-protocols"
+	pkgs="cmake pkg-config git imagemagick wget p7zip-full wayland-protocols"
 	if [ "$(dpkg --print-architecture)" = "$arch_deb" ]
 	then
 		pkgs="$pkgs build-essential"
@@ -366,6 +366,26 @@ then
 	exit 5
 fi
 
+# Download Discord Game SDK from their CDN if necessary.
+if [ ! -e "discord_game_sdk.zip" ]
+then
+	echo [-] Downloading Discord Game SDK
+	wget -qO discord_game_sdk.zip "https://dl-game-sdk.discordapp.net/2.5.6/discord_game_sdk.zip"
+	status=$?
+	if [ $status -ne 0 ]
+	then
+		echo [!] Discord Game SDK download failed with status [$status]
+		rm -f discord_game_sdk.zip
+	fi
+fi
+
+# Determine Discord Game SDK architecture.
+case $arch in
+	32)	arch_discord="x86";;
+	64)	arch_discord="x86_64";;
+	*)	arch_discord="$arch";;
+esac
+
 # Archive the executable and its dependencies.
 # The executable should always be archived last for the check after this block.
 status=0
@@ -386,15 +406,9 @@ then
 		cp -p "$gs"/bin/gsdll*.dll archive_tmp/
 	done
 
-	# Archive Discord Game SDK DLL from their CDN.
-	discordarch=
-	[ "$arch" = "32" ] && discordarch=x86
-	[ "$arch" = "64" ] && discordarch=x86_64
-	if [ ! -z "$discordarch" ]
-	then
-		[ ! -e "discord_game_sdk.zip" ] && wget -qOdiscord_game_sdk.zip https://dl-game-sdk.discordapp.net/2.5.6/discord_game_sdk.zip
-		"$sevenzip" e -y -oarchive_tmp discord_game_sdk.zip lib/$discordarch/discord_game_sdk.dll
-	fi
+	# Archive Discord Game SDK DLL.
+	"$sevenzip" e -y -o"archive_tmp" discord_game_sdk.zip "lib/$arch_discord/discord_game_sdk.dll"
+	[ ! -e "archive_tmp/discord_game_sdk.dll" ] && echo [!] No Discord Game SDK for architecture [$arch_discord]
 
 	# Archive other DLLs from local directory.
 	cp -p "/home/$project/dll$arch/"* archive_tmp/
@@ -413,6 +427,10 @@ then
 	# TBD
 	:
 else
+	# Archive Discord Game SDK library.
+	7z e -y -o"archive_tmp/usr/lib/$libdir" discord_game_sdk.zip "lib/$arch_discord/discord_game_sdk.so"
+	[ ! -e "archive_tmp/usr/lib/$libdir/discord_game_sdk.so" ] && echo [!] No Discord Game SDK for architecture [$arch_discord]
+
 	# Archive readme with library package versions.
 	echo Libraries used to compile this $arch build of $project: > archive_tmp/README
 	dpkg-query -f '${Package} ${Version}\n' -W $libpkgs | sed "s/-dev / /" | sed "s/qtdeclarative/qt/" | while IFS=" " read pkg version
@@ -470,6 +488,12 @@ else
 		*)	arch_appimage="$arch";;
 	esac
 
+	# Get version for AppImage metadata.
+	project_version=$(grep -oP '#define\s+EMU_VERSION\s+"\K([^"]+)' "build/src/include/$project_lower/version.h" 2> /dev/null)
+	[ -z "$project_version" ] && project_version=unknown
+	build_num=$(grep -oP '#define\s+EMU_BUILD_NUM\s+\K([0-9]+)' "build/src/include/$project_lower/version.h" 2> /dev/null)
+	[ ! -z "$build_num" -a "$build_num" != "0" ] && project_version="$project_version-b$build_num"
+
 	# Download appimage-builder if necessary.
 	[ ! -e "appimage-builder.AppImage" ] && wget -qO appimage-builder.AppImage \
 		https://github.com/AppImageCrafters/appimage-builder/releases/download/v0.9.2/appimage-builder-0.9.2-35e3eab-x86_64.AppImage
@@ -479,7 +503,7 @@ else
 	rm -rf "$project-"*".AppImage"
 
 	# Run appimage-builder in extract-and-run mode for Docker compatibility.
-	project="$project" project_lower="$project_lower" arch_deb="$arch_deb" arch_appimage="$arch_appimage" \
+	project="$project" project_lower="$project_lower" project_version="$project_version" arch_deb="$arch_deb" arch_appimage="$arch_appimage" \
 		APPIMAGE_EXTRACT_AND_RUN=1 ./appimage-builder.AppImage --recipe .ci/AppImageBuilder.yml
 	status=$?
 

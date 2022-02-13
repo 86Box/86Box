@@ -716,7 +716,7 @@ plat_pause(int p)
     if (p) {
 	wcsncpy(oldtitle, ui_window_title(NULL), sizeof_w(oldtitle) - 1);
 	wcscpy(title, oldtitle);
-	wcscat(title, L" - PAUSED -");
+	wcscat(title, L" - PAUSED");
 	ui_window_title(title);
     } else {
 	ui_window_title(oldtitle);

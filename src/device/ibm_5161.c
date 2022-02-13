@@ -116,7 +116,7 @@ const device_t ibm_5161_device =
 {
     "IBM Expansion Unit (5161)",
     "ibm_5161",
-    0,
+    DEVICE_ISA,
     0,
     ibm_5161_init,
     ibm_5161_close,

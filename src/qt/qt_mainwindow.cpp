@@ -68,10 +68,6 @@ extern "C" {
 #include <array>
 #include <unordered_map>
 
-#ifdef Q_OS_WINDOWS
-#include <Shobjidl.h>
-#endif
-
 #include "qt_settings.hpp"
 #include "qt_machinestatus.hpp"
 #include "qt_mediamenu.hpp"
@@ -94,14 +90,6 @@ MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::MainWindow)
 {
-#ifdef Q_OS_WINDOWS
-    SetCurrentProcessExplicitAppUserModelID(L"86Box.86Box");
-
-    auto font_name = tr("FONT_NAME");
-    auto font_size = tr("FONT_SIZE");
-    QApplication::setFont(QFont(font_name, font_size.toInt()));
-#endif
-
     mm = std::make_shared<MediaMenu>(this);
     MediaMenu::ptr = mm;
     status = std::make_unique<MachineStatus>(this);
@@ -139,6 +127,11 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(this, &MainWindow::showMessageForNonQtThread, this, &MainWindow::showMessage_, Qt::BlockingQueuedConnection);
 
     connect(this, &MainWindow::setTitle, this, [this,toolbar_label](const QString& title) {
+        if (dopause && !hide_tool_bar)
+        {
+            toolbar_label->setText(toolbar_label->text() + tr(" - PAUSED"));
+            return;
+        }
         if (!hide_tool_bar)
 #ifdef _WIN32        
             toolbar_label->setText(title);
@@ -1102,7 +1095,7 @@ void MainWindow::on_actionFullscreen_triggered() {
     } else {
         if (video_fullscreen_first)
         {
-            QMessageBox questionbox(QMessageBox::Icon::Information, tr("Entering fullscreen mode"), tr("Press CTRL+ALT+PAGE DOWN to return to windowed mode."), QMessageBox::Ok, this);
+            QMessageBox questionbox(QMessageBox::Icon::Information, tr("Entering fullscreen mode"), tr("Press Ctrl+Alt+PgDn to return to windowed mode."), QMessageBox::Ok, this);
             QCheckBox *chkbox = new QCheckBox(tr("Don't show this message again"));
             questionbox.setCheckBox(chkbox);
             chkbox->setChecked(!video_fullscreen_first);
