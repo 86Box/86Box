@@ -371,7 +371,7 @@ BEGIN
     2048	"86Box"
     IDS_2049	"오류"
     IDS_2050	"치명적인 오류"
-    IDS_2051	"<예약됨>"
+    IDS_2051	" - PAUSED"
     IDS_2052	"CTRL+ALT+PAGE DOWN 키를 누르면 창 모드로 전환합니다."
     IDS_2053	"속도"
     IDS_2054	"ZIP %03i %i (%s): %ls"

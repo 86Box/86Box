@@ -24,7 +24,7 @@
 #define IDS_STRINGS	2048		// "86Box"
 #define IDS_2049	2049		// "Error"
 #define IDS_2050	2050		// "Fatal error"
-#define IDS_2051	2051		// "<reserved>"
+#define IDS_2051	2051		// " - PAUSED"
 #define IDS_2052	2052		// "Press CTRL+ALT+PAGE DOWN..."
 #define IDS_2053	2053		// "Speed"
 #define IDS_2054	2054		// "ZIP %i (%03i): %ls"

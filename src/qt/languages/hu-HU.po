@@ -598,8 +598,8 @@ msgstr "Hiba"
 msgid "Fatal error"
 msgstr "Végzetes hiba"
 
-msgid "<reserved>"
-msgstr "<fenntartva>"
+msgid " - PAUSED"
+msgstr " - PAUSED"
 
 msgid "Press CTRL+ALT+PAGE DOWN to return to windowed mode."
 msgstr "Használja a CTRL+ALT+PAGE DOWN gombokat az ablakhoz való visszatéréshez."

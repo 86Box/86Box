@@ -598,8 +598,8 @@ msgstr "Chyba"
 msgid "Fatal error"
 msgstr "Kritická chyba"
 
-msgid "<reserved>"
-msgstr "<rezervováno>"
+msgid " - PAUSED"
+msgstr " - PAUSED"
 
 msgid "Press CTRL+ALT+PAGE DOWN to return to windowed mode."
 msgstr "Stiskněte Ctrl+Alt+Page Down pro návrat z režimu celé obrazovky."

@@ -598,8 +598,8 @@ msgstr "Erreur"
 msgid "Fatal error"
 msgstr "Erreur fatale"
 
-msgid "<reserved>"
-msgstr "<reservée>"
+msgid " - PAUSED"
+msgstr " - PAUSED"
 
 msgid "Press CTRL+ALT+PAGE DOWN to return to windowed mode."
 msgstr "Appuyez sur CTRL+ALT+PAGE ↓ pour revenir au mode fenêtré."

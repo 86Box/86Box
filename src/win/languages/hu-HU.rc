@@ -376,7 +376,7 @@ BEGIN
     2048	"86Box"
     IDS_2049	"Hiba"
     IDS_2050	"Végzetes hiba"
-    IDS_2051	"<fenntartva>"
+    IDS_2051	" - PAUSED"
     IDS_2052	"Használja a CTRL+ALT+PAGE DOWN gombokat az ablakhoz való visszatéréshez."
     IDS_2053	"Sebesség"
     IDS_2054	"ZIP %03i %i (%s): %ls"

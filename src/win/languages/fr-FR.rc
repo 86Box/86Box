@@ -371,7 +371,7 @@ BEGIN
     2048	"86Box"
     IDS_2049	"Erreur"
     IDS_2050	"Erreur fatale"
-    IDS_2051	"<reservée>"
+    IDS_2051	" - PAUSED"
     IDS_2052	"Appuyez sur CTRL+ALT+PAGE ↓ pour revenir au mode fenêtré."
     IDS_2053	"Vitesse"
     IDS_2054	"ZIP %03i %i (%s): %ls"

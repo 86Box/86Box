@@ -371,7 +371,7 @@ BEGIN
     2048	"86Box"
     IDS_2049	"Napaka"
     IDS_2050	"Kritična napaka"
-    IDS_2051	"<rezervirano>"
+    IDS_2051	" - PAUSED"
     IDS_2052	"Pritisnite CTRL+ALT+PAGE DOWN za povratek iz celozaslonskega načina."
     IDS_2053	"Hitrost"
     IDS_2054	"ZIP %03i %i (%s): %ls"

@@ -1505,7 +1505,7 @@ plat_pause(int p)
     if (p) {
 	wcsncpy(oldtitle, ui_window_title(NULL), sizeof_w(oldtitle) - 1);
 	wcscpy(title, oldtitle);
-	wcscat(title, L" - PAUSED -");
+	wcscat(title, plat_get_string(IDS_2051));
 	ui_window_title(title);
     } else {
 	ui_window_title(oldtitle);

@@ -598,8 +598,8 @@ msgstr "Помилка"
 msgid "Fatal error"
 msgstr "Непереробна помилка"
 
-msgid "<reserved>"
-msgstr "<зарезервовано>"
+msgid " - PAUSED"
+msgstr " - PAUSED"
 
 msgid "Press CTRL+ALT+PAGE DOWN to return to windowed mode."
 msgstr "Натисніть CTRL + ALT + PAGE DOWN для повернення у віконний режим."

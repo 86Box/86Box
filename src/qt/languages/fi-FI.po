@@ -598,8 +598,8 @@ msgstr "Virhe"
 msgid "Fatal error"
 msgstr "Vakava virhe"
 
-msgid "<reserved>"
-msgstr "<varattu>"
+msgid " - PAUSED"
+msgstr " - PAUSED"
 
 msgid "Press CTRL+ALT+PAGE DOWN to return to windowed mode."
 msgstr "Paina CTRL+ALT+PAGE DOWN palataksesi ikkunoituun tilaan."

@@ -371,7 +371,7 @@ BEGIN
     2048	"86Box"
     IDS_2049	"Erro"
     IDS_2050	"Erro fatal"
-    IDS_2051	"<reservado>"
+    IDS_2051	" - PAUSED"
     IDS_2052	"Pressione CTRL+ALT+PAGE DOWN para voltar ao modo de janela."
     IDS_2053	"Velocidade"
     IDS_2054	"ZIP %03i %i (%s): %ls"

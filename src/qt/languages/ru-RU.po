@@ -598,8 +598,8 @@ msgstr "Ошибка"
 msgid "Fatal error"
 msgstr "Неустранимая ошибка"
 
-msgid "<reserved>"
-msgstr "<зарезервировано>"
+msgid " - PAUSED"
+msgstr " - ПАУЗА"
 
 msgid "Press CTRL+ALT+PAGE DOWN to return to windowed mode."
 msgstr "Нажмите CTRL + ALT + PAGE DOWN для возврата в оконный режим."

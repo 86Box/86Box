@@ -598,8 +598,8 @@ msgstr "Hata"
 msgid "Fatal error"
 msgstr "Kritik hata"
 
-msgid "<reserved>"
-msgstr "<ayrılmış>"
+msgid " - PAUSED"
+msgstr " - PAUSED"
 
 msgid "Press CTRL+ALT+PAGE DOWN to return to windowed mode."
 msgstr "Pencere moduna geri dönmek için CTRL+ALT+PAGE DOWN tuşlarına basın."

@@ -128,7 +128,7 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(this, &MainWindow::setTitle, this, [this,toolbar_label](const QString& title) {
         if (dopause && !hide_tool_bar)
         {
-            toolbar_label->setText(toolbar_label->text() + " - PAUSED -");
+            toolbar_label->setText(toolbar_label->text() + tr(" - PAUSED"));
             return;
         }
         if (!hide_tool_bar)

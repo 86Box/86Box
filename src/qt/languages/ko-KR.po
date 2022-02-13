@@ -598,8 +598,8 @@ msgstr "오류"
 msgid "Fatal error"
 msgstr "치명적인 오류"
 
-msgid "<reserved>"
-msgstr "<예약됨>"
+msgid " - PAUSED"
+msgstr " - PAUSED"
 
 msgid "Press CTRL+ALT+PAGE DOWN to return to windowed mode."
 msgstr "CTRL+ALT+PAGE DOWN 키를 누르면 창 모드로 전환합니다."

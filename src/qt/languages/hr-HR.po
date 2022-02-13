@@ -598,8 +598,8 @@ msgstr "Greška"
 msgid "Fatal error"
 msgstr "Fatalna greška"
 
-msgid "<reserved>"
-msgstr "<rezervirano>"
+msgid " - PAUSED"
+msgstr " - PAUSED"
 
 msgid "Press CTRL+ALT+PAGE DOWN to return to windowed mode."
 msgstr "Pritisnite CTRL+ALT+PAGE DOWN za povratak u prozorski način rada."

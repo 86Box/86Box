@@ -371,7 +371,7 @@ BEGIN
     2048	"86Box"
     IDS_2049	"Chyba"
     IDS_2050	"Kritická chyba"
-    IDS_2051	"<rezervováno>"
+    IDS_2051	" - PAUSED"
     IDS_2052	"Stiskněte Ctrl+Alt+Page Down pro návrat z režimu celé obrazovky."
     IDS_2053	"Rychlost"
     IDS_2054	"ZIP %03i %i (%s): %ls"
