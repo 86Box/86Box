@@ -33,12 +33,15 @@ AppDir:
       key_url: 'https://ftp-master.debian.org/keys/archive-key-11.asc'
     - sourceline: 'deb http://deb.debian.org/debian bullseye-updates main'
       key_url: 'https://ftp-master.debian.org/keys/archive-key-11-security.asc'
+    - sourceline: 'deb http://deb.debian.org/debian stretch main'
+      key_url: 'https://ftp-master.debian.org/keys/archive-key-9.asc'
     include:
     - libdrm2
     - libevdev2
     - libgbm1
     - libgles2
-    - libopenal1
+    - libopenal-data=1:1.17*
+    - libopenal1=1:1.17*
     - libpng16-16
     - libqt5core5a
     - libqt5gui5
@@ -67,6 +70,7 @@ AppDir:
     - usr/share/doc
     - usr/share/doc-base
     - usr/share/glib-2.0
+    - usr/share/libinput
     - usr/share/libwacom
     - usr/share/lintian
     - usr/share/locale
