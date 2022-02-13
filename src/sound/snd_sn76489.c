@@ -294,7 +294,7 @@ const device_t ncr8496_device =
 const device_t tndy_device =
 {
         "TNDY",
-        "tndy"
+        "tndy",
         DEVICE_ISA,
 	0,
         tndy_device_init,
