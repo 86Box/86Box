@@ -120,6 +120,8 @@ extern const device_t sb_16_pnp_device;
 extern const device_t sb_32_pnp_device;
 extern const device_t sb_awe32_device;
 extern const device_t sb_awe32_pnp_device;
+extern const device_t sb_awe64_value_device;
+extern const device_t sb_awe64_device;
 extern const device_t sb_awe64_gold_device;
 
 /* Innovation SSI-2001 */
