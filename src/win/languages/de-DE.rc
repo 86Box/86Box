@@ -341,7 +341,7 @@ END
 #define STR_TURBO		"Turbo-Timings"
 #define STR_CHECKBPB		"BPB überprüfen"
 #define STR_CDROM_DRIVES	"CD-ROM-Laufwerke:"
-#define STR_CD_SPEED		"Geschwindigkeit:"
+#define STR_CD_SPEED		"Takt:"
 
 #define STR_MO_DRIVES		"MO-Laufwerke:"
 #define STR_ZIP_DRIVES		"ZIP-Laufwerke:"

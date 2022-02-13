@@ -1731,6 +1731,20 @@ sb_awe32_pnp_available()
 
 
 static int
+sb_awe64_value_available()
+{
+    return sb_awe32_available() && rom_present("roms/sound/CT4520 PnP.BIN");
+}
+
+
+static int
+sb_awe64_available()
+{
+    return sb_awe32_available() && rom_present("roms/sound/CT4520 PnP.BIN");
+}
+
+
+static int
 sb_awe64_gold_available()
 {
     return sb_awe32_available() && rom_present("roms/sound/CT4540 PnP.BIN");
@@ -1802,7 +1816,7 @@ sb_awe32_pnp_init(const device_t *info)
     sb->opl_enabled = 1;
     opl3_init(&sb->opl);
 
-    sb_dsp_init(&sb->dsp, (info->local == 2) ? SBAWE64 : SBAWE32, SB_SUBTYPE_DEFAULT, sb);
+    sb_dsp_init(&sb->dsp, ((info->local == 2) || (info->local == 3) || (info->local == 4)) ? SBAWE64 : SBAWE32, SB_SUBTYPE_DEFAULT, sb);
     sb_ct1745_mixer_reset(sb);
 
     sb->mixer_enabled = 1;
@@ -1821,7 +1835,7 @@ sb_awe32_pnp_init(const device_t *info)
 
     sb->gameport = gameport_add(&gameport_pnp_device);
 
-    if (info->local != 2)
+    if ((info->local != 2) && (info->local != 3) && (info->local != 4))
 	device_add(&ide_ter_pnp_device);
 
     char *pnp_rom_file = NULL;
@@ -1834,7 +1848,11 @@ sb_awe32_pnp_init(const device_t *info)
 		pnp_rom_file = "roms/sound/CT3980 PnP.BIN";
 		break;
 
-	case 2:
+	case 2: case 3:
+		pnp_rom_file = "roms/sound/CT4520 PnP.BIN";
+		break;
+
+	case 4:
 		pnp_rom_file = "roms/sound/CT4540 PnP.BIN";
 		break;
     }
@@ -1858,7 +1876,7 @@ sb_awe32_pnp_init(const device_t *info)
 		isapnp_add_card(pnp_rom, sizeof(sb->pnp_rom), sb_awe32_pnp_config_changed, NULL, NULL, NULL, sb);
 		break;
 
-	case 2:
+	case 2: case 3: case 4:
 		isapnp_add_card(pnp_rom, sizeof(sb->pnp_rom), sb_awe64_gold_pnp_config_changed, NULL, NULL, NULL, sb);
 		break;
     }
@@ -2378,6 +2396,9 @@ static const device_config_t sb_32_pnp_config[] =
                                 "None", 0
                         },
                         {
+                                "512 KB", 512
+                        },
+                        {
                                 "2 MB", 2048
                         },
                         {
@@ -2588,6 +2609,105 @@ static const device_config_t sb_awe32_pnp_config[] =
         }
 };
 
+static const device_config_t sb_awe64_value_config[] =
+{
+        {
+                "onboard_ram", "Onboard RAM", CONFIG_SELECTION, "", 512, "", { 0 },
+                {
+                        {
+                                "512 KB", 512
+                        },
+                        {
+                                "1 MB", 1024
+                        },
+                        {
+                                "2 MB", 2048
+                        },
+                        {
+                                "4 MB", 4096
+                        },
+                        {
+                                "8 MB", 8192
+                        },
+                        {
+                                "12 MB", 12288
+                        },
+                        {
+                                "16 MB", 16384
+                        },
+                        {
+                                "20 MB", 20480
+                        },
+                        {
+                                "24 MB", 24576
+                        },
+                        {
+                                "28 MB", 28672
+                        },
+                        {
+                                ""
+                        }
+                }
+        },
+        {
+                "receive_input", "Receive input (SB MIDI)", CONFIG_BINARY, "", 1
+        },
+        {
+                "receive_input401", "Receive input (MPU-401)", CONFIG_BINARY, "", 0
+        },
+        {
+                "", "", -1
+        }
+};
+
+static const device_config_t sb_awe64_config[] =
+{
+        {
+                "onboard_ram", "Onboard RAM", CONFIG_SELECTION, "", 1024, "", { 0 },
+                {
+                        {
+                                "1 MB", 1024
+                        },
+                        {
+                                "2 MB", 2048
+                        },
+                        {
+                                "4 MB", 4096
+                        },
+                        {
+                                "8 MB", 8192
+                        },
+                        {
+                                "12 MB", 12288
+                        },
+                        {
+                                "16 MB", 16384
+                        },
+                        {
+                                "20 MB", 20480
+                        },
+                        {
+                                "24 MB", 24576
+                        },
+                        {
+                                "28 MB", 28672
+                        },
+                        {
+                                ""
+                        }
+                }
+        },
+        {
+                "receive_input", "Receive input (SB MIDI)", CONFIG_BINARY, "", 1
+        },
+        {
+                "receive_input401", "Receive input (MPU-401)", CONFIG_BINARY, "", 0
+        },
+        {
+                "", "", -1
+        }
+};
+
 static const device_config_t sb_awe64_gold_config[] =
 {
         {
@@ -2606,7 +2726,13 @@ static const device_config_t sb_awe64_gold_config[] =
                                 "16 MB", 16384
                         },
                         {
-                                "28 MB", 28*1024
+                                "20 MB", 20480
+                        },
+                        {
+                                "24 MB", 24576
+                        },
+                        {
+                                "28 MB", 28672
                         },
                         {
                                 ""
@@ -2784,12 +2910,38 @@ const device_t sb_awe32_pnp_device =
         sb_awe32_pnp_config
 };
 
+const device_t sb_awe64_value_device =
+{
+        "Sound Blaster AWE64 Value",
+        "sbawe64_value",
+        DEVICE_ISA | DEVICE_AT,
+        2,
+        sb_awe32_pnp_init, sb_awe32_close, NULL,
+        { sb_awe64_value_available },
+        sb_speed_changed,
+        NULL,
+        sb_awe64_value_config
+};
+
+const device_t sb_awe64_device =
+{
+        "Sound Blaster AWE64",
+        "sbawe64",
+        DEVICE_ISA | DEVICE_AT,
+        3,
+        sb_awe32_pnp_init, sb_awe32_close, NULL,
+        { sb_awe64_available },
+        sb_speed_changed,
+        NULL,
+        sb_awe64_config
+};
+
 const device_t sb_awe64_gold_device =
 {
         "Sound Blaster AWE64 Gold",
         "sbawe64_gold",
         DEVICE_ISA | DEVICE_AT,
-        2,
+        4,
         sb_awe32_pnp_init, sb_awe32_close, NULL,
         { sb_awe64_gold_available },
         sb_speed_changed,
