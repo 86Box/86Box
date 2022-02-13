@@ -605,9 +605,9 @@ BEGIN
     IDS_5911	"5.25"" 1.3 GB"
 
     IDS_6144	"Mükemmel RPM"
-    IDS_6145	"mükemmel RPM değerinin 1%% altı"
-    IDS_6146	"mükemmel RPM değerinin 1.5%% altı"
-    IDS_6147	"mükemmel RPM değerinin 2%% altı"
+    IDS_6145	"mükemmel RPM değerinin 1% altı"
+    IDS_6146	"mükemmel RPM değerinin 1.5% altı"
+    IDS_6147	"mükemmel RPM değerinin 2% altı"
 
     IDS_7168	"(Sistem Varsayılanı)"
 END

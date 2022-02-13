@@ -1171,14 +1171,14 @@ msgstr "5.25 英寸 1.3 GB"
 msgid "Perfect RPM"
 msgstr "标准转速 (RPM)"
 
-msgid "1%% below perfect RPM"
-msgstr "低于标准转速的 1%%"
+msgid "1% below perfect RPM"
+msgstr "低于标准转速的 1%"
 
-msgid "1.5%% below perfect RPM"
-msgstr "低于标准转速的 1.5%%"
+msgid "1.5% below perfect RPM"
+msgstr "低于标准转速的 1.5%"
 
-msgid "2%% below perfect RPM"
-msgstr "低于标准转速的 2%%"
+msgid "2% below perfect RPM"
+msgstr "低于标准转速的 2%"
 
 msgid "(System Default)"
 msgstr "(系统默认)"

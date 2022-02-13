@@ -1171,14 +1171,14 @@ msgstr "5.25\" 1,3 GB"
 msgid "Perfect RPM"
 msgstr "Idealne obroty"
 
-msgid "1%% below perfect RPM"
-msgstr "1%% poniżej idealnych obrotów"
+msgid "1% below perfect RPM"
+msgstr "1% poniżej idealnych obrotów"
 
-msgid "1.5%% below perfect RPM"
-msgstr "1.5%% poniżej idealnych obrotów"
+msgid "1.5% below perfect RPM"
+msgstr "1.5% poniżej idealnych obrotów"
 
-msgid "2%% below perfect RPM"
-msgstr "2%% poniżej idealnych obrotów"
+msgid "2% below perfect RPM"
+msgstr "2% poniżej idealnych obrotów"
 
 msgid "(System Default)"
 msgstr "(Domyślne ustawienie systemowe)"

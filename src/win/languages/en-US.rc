@@ -605,9 +605,9 @@ BEGIN
     IDS_5911	"5.25"" 1.3 GB"
 
     IDS_6144	"Perfect RPM"
-    IDS_6145	"1%% below perfect RPM"
-    IDS_6146	"1.5%% below perfect RPM"
-    IDS_6147	"2%% below perfect RPM"
+    IDS_6145	"1% below perfect RPM"
+    IDS_6146	"1.5% below perfect RPM"
+    IDS_6147	"2% below perfect RPM"
 
     IDS_7168	"(System Default)"
 END

@@ -71,9 +71,9 @@ static const disk_size_t disk_sizes[14] = {	{	0,  1, 2, 1, 0,  40,  8, 2, 0xfe, 
 
 static const QStringList rpmModes = {
     "Perfect RPM",
-    "1%% below perfect RPM",
-    "1.5%% below perfect RPM",
-    "2%% below perfect RPM",
+    "1% below perfect RPM",
+    "1.5% below perfect RPM",
+    "2% below perfect RPM",
 };
 
 static const QStringList floppyTypes = {
@@ -148,7 +148,7 @@ NewFloppyDialog::NewFloppyDialog(MediaType type, QWidget *parent) :
 
     model = ui->comboBoxRpm->model();
     for (int i = 0; i < rpmModes.size(); ++i) {
-        Models::AddEntry(model, tr(rpmModes[i].toUtf8().data()).replace("%%", "%"), i);
+        Models::AddEntry(model, tr(rpmModes[i].toUtf8().data()), i);
     }
 
     connect(ui->fileField, &FileField::fileSelected, this, [this](const QString& filename) {

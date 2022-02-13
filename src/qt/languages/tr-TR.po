@@ -1171,14 +1171,14 @@ msgstr "5.25\" 1.3 GB"
 msgid "Perfect RPM"
 msgstr "Mükemmel RPM"
 
-msgid "1%% below perfect RPM"
-msgstr "mükemmel RPM değerinin 1%% altı"
+msgid "1% below perfect RPM"
+msgstr "mükemmel RPM değerinin 1% altı"
 
-msgid "1.5%% below perfect RPM"
-msgstr "mükemmel RPM değerinin 1.5%% altı"
+msgid "1.5% below perfect RPM"
+msgstr "mükemmel RPM değerinin 1.5% altı"
 
-msgid "2%% below perfect RPM"
-msgstr "mükemmel RPM değerinin 2%% altı"
+msgid "2% below perfect RPM"
+msgstr "mükemmel RPM değerinin 2% altı"
 
 msgid "(System Default)"
 msgstr "(Sistem Varsayılanı)"

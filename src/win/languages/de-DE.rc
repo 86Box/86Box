@@ -605,9 +605,9 @@ BEGIN
     IDS_5911	"5,25-Zoll 1,3 GB"
 
     IDS_6144	"Perfekte Drehzahl"
-    IDS_6145	"1%% unterhalb der perfekten Drehzahl"
-    IDS_6146	"1,5%% unterhalb der perfekten Drehzahl"
-    IDS_6147	"2%% unterhalb der perfekten Drehzahl"
+    IDS_6145	"1% unterhalb der perfekten Drehzahl"
+    IDS_6146	"1,5% unterhalb der perfekten Drehzahl"
+    IDS_6147	"2% unterhalb der perfekten Drehzahl"
 
     IDS_7168	"(Systemstandard)"
 END

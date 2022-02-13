@@ -1171,14 +1171,14 @@ msgstr "5.25\" 1.3 GB"
 msgid "Perfect RPM"
 msgstr "RPM perfette"
 
-msgid "1%% below perfect RPM"
-msgstr "RPM 1%% sotto perfezione"
+msgid "1% below perfect RPM"
+msgstr "RPM 1% sotto perfezione"
 
-msgid "1.5%% below perfect RPM"
-msgstr "RPM 1.5%% sotto perfezione"
+msgid "1.5% below perfect RPM"
+msgstr "RPM 1.5% sotto perfezione"
 
-msgid "2%% below perfect RPM"
-msgstr "RPM 2%% sotto perfezione"
+msgid "2% below perfect RPM"
+msgstr "RPM 2% sotto perfezione"
 
 msgid "(System Default)"
 msgstr "(Predefinito del sistema)"

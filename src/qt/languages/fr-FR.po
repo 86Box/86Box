@@ -1171,13 +1171,13 @@ msgstr "5.25\" 1.3 Go"
 msgid "Perfect RPM"
 msgstr "RPM précis"
 
-msgid "1%% below perfect RPM"
+msgid "1% below perfect RPM"
 msgstr "Précision RPM de moins 1%"
 
-msgid "1.5%% below perfect RPM"
+msgid "1.5% below perfect RPM"
 msgstr "Précision RPM de moins 1.5%"
 
-msgid "2%% below perfect RPM"
+msgid "2% below perfect RPM"
 msgstr "Précision RPM de moins 2%"
 
 msgid "(System Default)"

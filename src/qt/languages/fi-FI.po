@@ -1171,14 +1171,14 @@ msgstr "5.25\" 1.3 Gt"
 msgid "Perfect RPM"
 msgstr "Täydellinen RPM"
 
-msgid "1%% below perfect RPM"
-msgstr "1%% alle täydellisen RPM:n"
+msgid "1% below perfect RPM"
+msgstr "1% alle täydellisen RPM:n"
 
-msgid "1.5%% below perfect RPM"
-msgstr "1.5%% alle täydellisen RPM:n"
+msgid "1.5% below perfect RPM"
+msgstr "1.5% alle täydellisen RPM:n"
 
-msgid "2%% below perfect RPM"
-msgstr "2%% alle täydellisen RPM:n"
+msgid "2% below perfect RPM"
+msgstr "2% alle täydellisen RPM:n"
 
 msgid "(System Default)"
 msgstr "(Järjestelmän oletus)"

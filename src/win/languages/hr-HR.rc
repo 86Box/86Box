@@ -605,9 +605,9 @@ BEGIN
     IDS_5911	"5,25"" 1.3 GB"
 
     IDS_6144	"Savršeni broj okretaja u minuti"
-    IDS_6145	"1%% ispod savršenog broja okretaja"
-    IDS_6146	"1,5%% ispod savršenog broja okretaja"
-    IDS_6147	"2%% ispod savršenog broja okretaja"
+    IDS_6145	"1% ispod savršenog broja okretaja"
+    IDS_6146	"1,5% ispod savršenog broja okretaja"
+    IDS_6147	"2% ispod savršenog broja okretaja"
 
     IDS_7168	"(Zadana postavka operativnog sustava)"
 END

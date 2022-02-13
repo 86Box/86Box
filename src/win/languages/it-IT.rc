@@ -606,9 +606,9 @@ BEGIN
     IDS_5911	"5.25"" 1.3 GB"
 
     IDS_6144	"RPM perfette"
-    IDS_6145	"RPM 1%% sotto perfezione"
-    IDS_6146	"RPM 1.5%% sotto perfezione"
-    IDS_6147	"RPM 2%% sotto perfezione"
+    IDS_6145	"RPM 1% sotto perfezione"
+    IDS_6146	"RPM 1.5% sotto perfezione"
+    IDS_6147	"RPM 2% sotto perfezione"
 
     IDS_7168	"(Predefinito del sistema)"
 END
