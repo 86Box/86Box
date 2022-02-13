@@ -395,9 +395,7 @@ pc_init(int argc, char *argv[])
 {
 	char path[2048], path2[2048];
 	char *cfg = NULL, *p;
-#if defined(__APPLE__)
-	char mac_rom_path[2048];
-#elif !defined(_WIN32)
+#if !defined(__APPLE__) && !defined(_WIN32)
 	char *appimage;
 #endif
 	char temp[128];
