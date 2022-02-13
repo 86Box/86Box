@@ -395,8 +395,10 @@ pc_init(int argc, char *argv[])
 {
 	char path[2048], path2[2048];
 	char *cfg = NULL, *p;
-#ifdef __APPLE__
+#if defined(__APPLE__)
 	char mac_rom_path[2048];
+#elif !defined(_WIN32)
+	char *appimage;
 #endif
 	char temp[128];
 	struct tm *info;
@@ -590,11 +592,20 @@ usage:
 			plat_dir_create(usr_path);
 	}
 
+	if (path2[0] == '\0') {
+#if defined(__APPLE__)
+		getDefaultROMPath(path2);
+#elif !defined(_WIN32)
+		appimage = getenv("APPIMAGE");
+		if (appimage && (appimage[0] != '\0')) {
+			plat_get_dirname(path2, appimage);
+			plat_path_slash(path2);
+			strcat(path2, "roms");
+			plat_path_slash(path2);
+		}
+#endif
+	}
 
-	#ifdef __APPLE__
-		getDefaultROMPath(mac_rom_path);
-		strcpy(path2, mac_rom_path);
-	#endif
 	if (vmrp && (path2[0] == '\0')) {
 		strcpy(path2, usr_path);
 		plat_path_slash(path2);
