@@ -241,7 +241,7 @@ void pssj_close(void *p)
 static const device_config_t pssj_isa_config[] =
 {
     {
-        "base", "Address", CONFIG_HEX16, "", 0xC0, "", { 0 },
+        "base", "Address", CONFIG_HEX16, "", 0x2C0, "", { 0 },
         {
             {
                 "0xC0", 0xC0
