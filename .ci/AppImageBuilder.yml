@@ -42,6 +42,7 @@ AppDir:
     - libgl1
     - libgles2
     - libglvnd0
+    - libglx0
     - libopenal-data=1:1.17*
     - libopenal1=1:1.17*
     - libpng16-16
