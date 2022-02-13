@@ -39,6 +39,7 @@ AppDir:
     - libdrm2
     - libevdev2
     - libgbm1
+    - libgl1
     - libgles2
     - libglvnd0
     - libopenal-data=1:1.17*
