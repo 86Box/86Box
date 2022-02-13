@@ -1040,10 +1040,10 @@ msgid "Differencing VHD (.vhd)"
 msgstr "VHD à différenciation (.vhd)"
 
 msgid "Large blocks (2 MB)"
-msgstr "Blocs grands (2 MB)"
+msgstr "Blocs grands (2 Mo)"
 
 msgid "Small blocks (512 KB)"
-msgstr "Blocs petits (512 KB)"
+msgstr "Blocs petits (512 Ko)"
 
 msgid "VHD files"
 msgstr "Fichiers VHD"
@@ -1100,31 +1100,31 @@ msgid "CD-ROM %i (%s): %s"
 msgstr "CD-ROM %i (%s): %s"
 
 msgid "160 kB"
-msgstr "160 kB"
+msgstr "160 Ko"
 
 msgid "180 kB"
-msgstr "180 kB"
+msgstr "180 Ko"
 
 msgid "320 kB"
-msgstr "320 kB"
+msgstr "320 Ko"
 
 msgid "360 kB"
-msgstr "360 kB"
+msgstr "360 Ko"
 
 msgid "640 kB"
-msgstr "640 kB"
+msgstr "640 Ko"
 
 msgid "720 kB"
-msgstr "720 kB"
+msgstr "720 Ko"
 
 msgid "1.2 MB"
-msgstr "1.2 MB"
+msgstr "1.2 Mo"
 
 msgid "1.25 MB"
-msgstr "1.25 MB"
+msgstr "1.25 Mo"
 
 msgid "1.44 MB"
-msgstr "1.44 MB"
+msgstr "1.44 Mo"
 
 msgid "DMF (cluster 1024)"
 msgstr "DMF (cluster 1024)"
@@ -1133,7 +1133,7 @@ msgid "DMF (cluster 2048)"
 msgstr "DMF (cluster 2048)"
 
 msgid "2.88 MB"
-msgstr "2.88 MB"
+msgstr "2.88 Mo"
 
 msgid "ZIP 100"
 msgstr "ZIP 100"
