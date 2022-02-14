@@ -371,7 +371,7 @@ BEGIN
     2048	"86Box"
     IDS_2049	"错误"
     IDS_2050	"致命错误"
-    IDS_2051	" - PAUSED"
+    IDS_2051	" - 已暂停"
     IDS_2052	"按 Ctrl+Alt+PgDn 组合键返回到窗口模式。"
     IDS_2053	"速度"
     IDS_2054	"ZIP %03i %i (%s): %ls"
@@ -402,8 +402,8 @@ BEGIN
     IDS_2075	"其他外围设备"
     IDS_2076	"表面镜像 (*.86F)\0*.86F\0"
     IDS_2077	"单击窗口捕捉鼠标"
-    IDS_2078	"按 F8+F12 释放鼠标"
-    IDS_2079	"按 F8+F12 或鼠标中键释放鼠标"
+    IDS_2078	"按下 F8+F12 释放鼠标"
+    IDS_2079	"按下 F8+F12 或鼠标中键释放鼠标"
 END
 
 STRINGTABLE DISCARDABLE 
