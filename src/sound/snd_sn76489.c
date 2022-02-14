@@ -305,6 +305,7 @@ const device_t tndy_device =
         tndy_device_init,
         sn76489_device_close,
 	NULL, { NULL }, NULL,
+        NULL,
         tndy_config
 };
 #endif
