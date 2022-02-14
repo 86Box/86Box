@@ -227,7 +227,7 @@ else
 	esac
 
 	# Establish general dependencies.
-	pkgs="cmake pkg-config git imagemagick wget p7zip-full wayland-protocols"
+	pkgs="cmake pkg-config git imagemagick wget p7zip-full wayland-protocols tar gzip"
 	if [ "$(dpkg --print-architecture)" = "$arch_deb" ]
 	then
 		pkgs="$pkgs build-essential"
@@ -427,6 +427,20 @@ then
 	# TBD
 	:
 else
+	# Build openal-soft 1.21.1 manually to fix audio issues. This is a temporary
+	# workaround until a newer version of openal-soft trickles down to Debian repos.
+	if [ -d "openal-soft-1.21.1" ]
+	then
+		rm -rf openal-soft-1.21.1/build/*
+	else
+		wget -qO - https://github.com/kcat/openal-soft/archive/refs/tags/1.21.1.tar.gz | tar zxf -
+	fi
+	cwd_root=$(pwd)
+	cd openal-soft-1.21.1/build
+	cmake -G "Unix Makefiles" -D "CMAKE_TOOLCHAIN_FILE=$cwd_root/toolchain.cmake" -D "CMAKE_INSTALL_PREFIX=$cwd_root/archive_tmp/usr" ..
+	make -j$(nproc) install
+	cd ../..
+
 	# Archive Discord Game SDK library.
 	7z e -y -o"archive_tmp/usr/lib/$libdir" discord_game_sdk.zip "lib/$arch_discord/discord_game_sdk.so"
 	[ ! -e "archive_tmp/usr/lib/$libdir/discord_game_sdk.so" ] && echo [!] No Discord Game SDK for architecture [$arch_discord]
