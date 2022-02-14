@@ -231,9 +231,6 @@ if (APPLE AND CMAKE_MACOSX_BUNDLE)
     install(FILES "${CMAKE_CURRENT_BINARY_DIR}/qt.conf"
         DESTINATION "${INSTALL_CMAKE_DIR}")
 
-    # Note Mac specific extension .app
-    set(APPS "\$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/86Box.app")
-
     # Directories to look for dependencies
     set(DIRS "${CMAKE_BINARY_DIR}")
 
@@ -253,9 +250,10 @@ if (APPLE AND CMAKE_MACOSX_BUNDLE)
     message(STATUS "QT_PLUGINS: ${QT_PLUGINS}")
     message(STATUS "DIRS: ${DIRS}")
 
-    install(CODE "
+    install(CODE "        
         include(BundleUtilities)
-        fixup_bundle(\"${APPS}\" \"${QT_PLUGINS}\" \"${DIRS}\")")
+        get_filename_component(CMAKE_INSTALL_PREFIX_ABSOLUTE \$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX} ABSOLUTE)
+        fixup_bundle(\"\${CMAKE_INSTALL_PREFIX_ABSOLUTE}/86Box.app\" \"${QT_PLUGINS}\" \"${DIRS}\")")
 endif()
 
 if (UNIX AND NOT APPLE)
