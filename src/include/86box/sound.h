@@ -103,9 +103,11 @@ extern const device_t pas16_device;
 extern const device_t ps1snd_device;
 
 /* Tandy PSSJ */
-extern const device_t tndy_device;
 extern const device_t pssj_device;
+#if defined(DEV_BRANCH) && defined(USE_TANDY_ISA)
 extern const device_t pssj_isa_device;
+extern const device_t tndy_device;
+#endif
 
 /* Creative Labs Sound Blaster */
 extern const device_t sb_1_device;

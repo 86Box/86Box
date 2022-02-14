@@ -63,6 +63,9 @@ ifeq ($(DEV_BUILD), y)
  ifndef VGAWONDER
   VGAWONDER	:= y
  endif
+ ifndef TANDY_ISA
+  TANDY_ISA	:= y
+ endif
  ifndef VNC
   VNC		:= y
  endif
@@ -120,6 +123,9 @@ else
  endif
  ifndef VGAWONDER
   VGAWONDER	:= n
+ endif
+ ifndef TANDY_ISA
+  TANDY_ISA	:= n
  endif
  ifndef VNC
   VNC		:= n
@@ -454,6 +460,10 @@ endif
 ifeq ($(SIO_DETECT), y)
 OPTS		+= -DUSE_SIO_DETECT
 DEVBROBJ	+= sio_detect.o
+endif
+
+ifeq ($(TANDY_ISA), y)
+OPTS		+= -DUSE_TANDY_ISA
 endif
 
 ifeq ($(VGAWONDER), y)
