@@ -356,16 +356,6 @@ then
 	exit 4
 fi
 
-# Create temporary directory for archival.
-echo [-] Gathering archive files
-rm -rf archive_tmp
-mkdir archive_tmp
-if [ ! -d "archive_tmp" ]
-then
-	echo [!] Archive directory creation failed
-	exit 5
-fi
-
 # Download Discord Game SDK from their CDN if necessary.
 if [ ! -e "discord_game_sdk.zip" ]
 then
@@ -385,6 +375,16 @@ case $arch in
 	64)	arch_discord="x86_64";;
 	*)	arch_discord="$arch";;
 esac
+
+# Create temporary directory for archival.
+echo [-] Gathering archive files
+rm -rf archive_tmp
+mkdir archive_tmp
+if [ ! -d "archive_tmp" ]
+then
+	echo [!] Archive directory creation failed
+	exit 5
+fi
 
 # Archive the executable and its dependencies.
 # The executable should always be archived last for the check after this block.
