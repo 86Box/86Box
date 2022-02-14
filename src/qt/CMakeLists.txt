@@ -204,8 +204,7 @@ macro(install_qt5_plugin _qt_plugin_name _qt_plugins_var _prefix)
         set(_qt_plugin_dest "${_prefix}/PlugIns/${_qt_plugin_type}")
         install(FILES "${_qt_plugin_path}"
             DESTINATION "${_qt_plugin_dest}")
-        set(${_qt_plugins_var}
-            "${${_qt_plugins_var}};${_qt_plugin_dest}/${_qt_plugin_file}")
+        list(APPEND ${_qt_plugins_var} "${_qt_plugin_dest}/${_qt_plugin_file}")
     else()
         message(FATAL_ERROR "QT plugin ${_qt_plugin_name} not found")
     endif()
@@ -252,15 +251,11 @@ if (APPLE AND CMAKE_MACOSX_BUNDLE)
 
     install(CODE "
         include(BundleUtilities)
-
         get_filename_component(CMAKE_INSTALL_PREFIX_ABSOLUTE \$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX} ABSOLUTE)
-
-        set(QT_PLUGINS_ABSOLUTE "")
         foreach(PLUGIN ${QT_PLUGINS})
             get_filename_component(PLUGIN_ABSOLUTE \${PLUGIN} ABSOLUTE BASE_DIR \${CMAKE_INSTALL_PREFIX_ABSOLUTE})
             list(APPEND QT_PLUGINS_ABSOLUTE \${PLUGIN_ABSOLUTE})
         endforeach()
-
         fixup_bundle(\"\${CMAKE_INSTALL_PREFIX_ABSOLUTE}/86Box.app\" \"${QT_PLUGINS_ABSOLUTE}\" \"${DIRS}\")")
 endif()
 
