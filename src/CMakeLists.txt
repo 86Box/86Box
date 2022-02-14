@@ -11,14 +11,13 @@
 # Authors:  David Hrdlička, <hrdlickadavid@outlook.com>
 #           dob205
 #
-#           Copyright 2020,2021 David Hrdlička.
+#           Copyright 2020-2022 David Hrdlička.
 #           Copyright 2021 dob205.
 #
 
-# WIN32 marks us as a GUI app on Windows
-add_executable(86Box WIN32 MACOSX_BUNDLE 86box.c config.c log.c random.c timer.c io.c acpi.c apm.c
-    dma.c ddma.c discord.c nmi.c pic.c pit.c port_6x.c port_92.c ppi.c pci.c mca.c usb.c fifo8.c
-    device.c nvr.c nvr_at.c nvr_ps2.c)
+add_executable(86Box 86box.c config.c log.c random.c timer.c io.c acpi.c apm.c
+    dma.c ddma.c discord.c nmi.c pic.c pit.c port_6x.c port_92.c ppi.c pci.c
+    mca.c usb.c fifo8.c device.c nvr.c nvr_at.c nvr_ps2.c)
 
 if(CPPTHREADS)
     target_sources(86Box PRIVATE thread.cpp)

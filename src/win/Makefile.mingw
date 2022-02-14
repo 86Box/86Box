@@ -42,6 +42,15 @@ ifeq ($(DEV_BUILD), y)
  ifndef GUSMAX
   GUSMAX	:= y
  endif
+ ifndef ISAMEM_RAMPAGE
+  ISAMEM_RAMPAGE := y
+ endif
+ ifndef ISAMEM_IAB
+  ISAMEM_IAB := y
+ endif
+ ifndef ISAMEM_BRAT
+  ISAMEM_BRAT := y
+ endif
  ifndef LASERXT
   LASERXT	:= y
  endif
@@ -63,20 +72,14 @@ ifeq ($(DEV_BUILD), y)
  ifndef VGAWONDER
   VGAWONDER	:= y
  endif
+ ifndef TANDY_ISA
+  TANDY_ISA	:= y
+ endif
  ifndef VNC
   VNC		:= y
  endif
  ifndef XL24
   XL24		:= y
- endif
- ifndef ISAMEM_RAMPAGE
-  ISAMEM_RAMPAGE := y
- endif
- ifndef ISAMEM_IAB
-  ISAMEM_IAB := y
- endif
- ifndef ISAMEM_BRAT
-  ISAMEM_BRAT := y
  endif
  ifndef OLIVETTI
   OLIVETTI	:= y
@@ -100,6 +103,15 @@ else
  ifndef GUSMAX
   GUSMAX	:= n
  endif
+ ifndef ISAMEM_RAMPAGE
+  ISAMEM_RAMPAGE := n
+ endif
+ ifndef ISAMEM_IAB
+  ISAMEM_IAB := n
+ endif
+ ifndef ISAMEM_BRAT
+  ISAMEM_BRAT := n
+ endif
  ifndef LASERXT
   LASERXT	:= n
  endif
@@ -121,20 +133,14 @@ else
  ifndef VGAWONDER
   VGAWONDER	:= n
  endif
+ ifndef TANDY_ISA
+  TANDY_ISA	:= n
+ endif
  ifndef VNC
   VNC		:= n
  endif
  ifndef XL24
   XL24		:= n
- endif
- ifndef ISAMEM_RAMPAGE
-  ISAMEM_RAMPAGE := n
- endif
- ifndef ISAMEM_IAB
-  ISAMEM_IAB := n
- endif
- ifndef ISAMEM_BRAT
-  ISAMEM_BRAT := n
  endif
  ifndef OLIVETTI
   OLIVETTI	:= n
@@ -428,6 +434,18 @@ ifeq ($(GUSMAX), y)
 OPTS		+= -DUSE_GUSMAX
 endif
 
+ifeq ($(ISAMEM_RAMPAGE), y)
+OPTS        += -DUSE_ISAMEM_RAMPAGE
+endif
+
+ifeq ($(ISAMEM_IAB), y)
+OPTS        += -DUSE_ISAMEM_IAB
+endif
+
+ifeq ($(ISAMEM_BRAT), y)
+OPTS        += -DUSE_ISAMEM_BRAT
+endif
+
 ifeq ($(LASERXT), y)
 OPTS		+= -DUSE_LASERXT
 DEVBROBJ	+= m_xt_laserxt.o
@@ -456,24 +474,16 @@ OPTS		+= -DUSE_SIO_DETECT
 DEVBROBJ	+= sio_detect.o
 endif
 
+ifeq ($(TANDY_ISA), y)
+OPTS		+= -DUSE_TANDY_ISA
+endif
+
 ifeq ($(VGAWONDER), y)
 OPTS		+= -DUSE_VGAWONDER
 endif
 
 ifeq ($(XL24), y)
 OPTS		+= -DUSE_XL24
-endif
-
-ifeq ($(ISAMEM_RAMPAGE), y)
-OPTS        += -DUSE_ISAMEM_RAMPAGE
-endif
-
-ifeq ($(ISAMEM_IAB), y)
-OPTS        += -DUSE_ISAMEM_IAB
-endif
-
-ifeq ($(ISAMEM_BRAT), y)
-OPTS        += -DUSE_ISAMEM_BRAT
 endif
 
 ifeq ($(OLIVETTI), y)

@@ -599,7 +599,7 @@ msgid "Fatal error"
 msgstr "致命的なエラー"
 
 msgid " - PAUSED"
-msgstr " - PAUSED"
+msgstr " - 一時停止"
 
 msgid "Press Ctrl+Alt+PgDn to return to windowed mode."
 msgstr "Ctrl+Alt+PgDnでウィンドウモードに戻ります。"

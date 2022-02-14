@@ -224,6 +224,7 @@ void *ncr8496_device_init(const device_t *info)
         return sn76489;
 }
 
+#if defined(DEV_BRANCH) && defined(USE_TANDY_ISA)
 void *tndy_device_init(const device_t *info)
 {
         sn76489_t *sn76489 = malloc(sizeof(sn76489_t));
@@ -235,6 +236,7 @@ void *tndy_device_init(const device_t *info)
 
         return sn76489;
 }
+#endif
 
 void sn76489_device_close(void *p)
 {
@@ -243,6 +245,7 @@ void sn76489_device_close(void *p)
         free(sn76489);        
 }
 
+#if defined(DEV_BRANCH) && defined(USE_TANDY_ISA)
 static const device_config_t tndy_config[] =
 {
         {
@@ -266,6 +269,7 @@ static const device_config_t tndy_config[] =
                 "", "", -1
         }
 };
+#endif
 
 const device_t sn76489_device =
 {
@@ -291,6 +295,7 @@ const device_t ncr8496_device =
         NULL
 };
 
+#if defined(DEV_BRANCH) && defined(USE_TANDY_ISA)
 const device_t tndy_device =
 {
         "TNDY",
@@ -300,5 +305,7 @@ const device_t tndy_device =
         tndy_device_init,
         sn76489_device_close,
 	NULL, { NULL }, NULL,
+        NULL,
         tndy_config
 };
+#endif

@@ -74,12 +74,21 @@ SettingsMachine::SettingsMachine(QWidget *parent) :
 
     int selectedMachineType = 0;
     auto* machineTypesModel = ui->comboBoxMachineType->model();
-    for (int i = 0; i < MACHINE_TYPE_MAX; ++i) {
-        Models::AddEntry(machineTypesModel, machine_types[i].name, machine_types[i].id);
-        if (machine_types[i].id == machine_get_type(machine)) {
-            selectedMachineType  = i;
+    for (int i = 1; i < MACHINE_TYPE_MAX; ++i) {
+        int j = 0;
+        while (machine_get_internal_name_ex(j) != nullptr) {
+            if (machine_available(j) && (machine_get_type(j) == i)) {
+                int row = Models::AddEntry(machineTypesModel, machine_types[i].name, machine_types[i].id);
+                if (machine_types[i].id == machine_get_type(machine)) {
+                    selectedMachineType = row;
+                }
+                break;
+            }
+            j++;
         }
     }
+
+    ui->comboBoxMachineType->setCurrentIndex(-1);
     ui->comboBoxMachineType->setCurrentIndex(selectedMachineType);
 }
 
@@ -124,12 +133,16 @@ void SettingsMachine::save() {
 }
 
 void SettingsMachine::on_comboBoxMachineType_currentIndexChanged(int index) {
+    if (index < 0) {
+        return;
+    }
+
     auto* model = ui->comboBoxMachine->model();
     int removeRows = model->rowCount();
 
     int selectedMachineRow = 0;
     for (int i = 0; i < machine_count(); ++i) {
-        if ((machine_get_type(i) == index) && machine_available(i)) {
+        if ((machine_get_type(i) == ui->comboBoxMachineType->currentData().toInt()) && machine_available(i)) {
             int row = Models::AddEntry(model, machines[i].name, i);
             if (i == machine) {
                 selectedMachineRow = row - removeRows;
