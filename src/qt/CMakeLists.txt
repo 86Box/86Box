@@ -204,8 +204,7 @@ macro(install_qt5_plugin _qt_plugin_name _qt_plugins_var _prefix)
         set(_qt_plugin_dest "${_prefix}/PlugIns/${_qt_plugin_type}")
         install(FILES "${_qt_plugin_path}"
             DESTINATION "${_qt_plugin_dest}")
-        set(${_qt_plugins_var}
-            "${${_qt_plugins_var}};\$ENV{DEST_DIR}\${CMAKE_INSTALL_PREFIX}/${_qt_plugin_dest}/${_qt_plugin_file}")
+        list(APPEND ${_qt_plugins_var} "${_qt_plugin_dest}/${_qt_plugin_file}")
     else()
         message(FATAL_ERROR "QT plugin ${_qt_plugin_name} not found")
     endif()
@@ -231,12 +230,6 @@ if (APPLE AND CMAKE_MACOSX_BUNDLE)
     install(FILES "${CMAKE_CURRENT_BINARY_DIR}/qt.conf"
         DESTINATION "${INSTALL_CMAKE_DIR}")
 
-    # Note Mac specific extension .app
-    set(APPS "\$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/86Box.app")
-
-    # Directories to look for dependencies
-    set(DIRS "${CMAKE_BINARY_DIR}")
-
     # Path used for searching by FIND_XXX(), with appropriate suffixes added
     if(CMAKE_PREFIX_PATH)
         foreach(dir ${CMAKE_PREFIX_PATH})
@@ -249,13 +242,14 @@ if (APPLE AND CMAKE_MACOSX_BUNDLE)
 
     include(InstallRequiredSystemLibraries)
 
-    message(STATUS "APPS: ${APPS}")
-    message(STATUS "QT_PLUGINS: ${QT_PLUGINS}")
-    message(STATUS "DIRS: ${DIRS}")
-
     install(CODE "
         include(BundleUtilities)
-        fixup_bundle(\"${APPS}\" \"${QT_PLUGINS}\" \"${DIRS}\")")
+        get_filename_component(CMAKE_INSTALL_PREFIX_ABSOLUTE \$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX} ABSOLUTE)
+        foreach(PLUGIN ${QT_PLUGINS})
+            get_filename_component(PLUGIN_ABSOLUTE \${PLUGIN} ABSOLUTE BASE_DIR \${CMAKE_INSTALL_PREFIX_ABSOLUTE})
+            list(APPEND QT_PLUGINS_ABSOLUTE \${PLUGIN_ABSOLUTE})
+        endforeach()
+        fixup_bundle(\"\${CMAKE_INSTALL_PREFIX_ABSOLUTE}/86Box.app\" \"${QT_PLUGINS_ABSOLUTE}\" \"${DIRS}\")")
 endif()
 
 if (UNIX AND NOT APPLE)

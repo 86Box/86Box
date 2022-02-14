@@ -32,7 +32,6 @@ public:
             if (strcmp(sourceText, "Take s&creenshot") == 0) sourceText = "Take s&creenshot\tCtrl+F11";
             if (strcmp(sourceText, "Begin trace") == 0) sourceText = "Begin trace\tCtrl+T";
             if (strcmp(sourceText, "End trace") == 0) sourceText = "End trace\tCtrl+T";
-            if (strcmp(sourceText, "Dump &video RAM") == 0) sourceText = "Dump &video RAM\tCtrl+F1";
             if (strcmp(sourceText, "&Qt (Software)") == 0)
             {
                 QString finalstr = QTranslator::translate("", "&SDL (Software)", disambiguation, n);

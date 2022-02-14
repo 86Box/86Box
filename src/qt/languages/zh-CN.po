@@ -599,10 +599,10 @@ msgid "Fatal error"
 msgstr "致命错误"
 
 msgid " - PAUSED"
-msgstr " - PAUSED"
+msgstr " - 已暂停"
 
 msgid "Press Ctrl+Alt+PgDn to return to windowed mode."
-msgstr "按 Ctrl+Alt+PgDn 组合键返回到窗口模式。"
+msgstr "按下 Ctrl+Alt+PgDn 返回到窗口模式。"
 
 msgid "Speed"
 msgstr "速度"
@@ -683,10 +683,10 @@ msgid "Click to capture mouse"
 msgstr "单击窗口捕捉鼠标"
 
 msgid "Press F8+F12 to release mouse"
-msgstr "按 F8+F12 释放鼠标"
+msgstr "按下 F8+F12 释放鼠标"
 
 msgid "Press F8+F12 or middle button to release mouse"
-msgstr "按 F8+F12 或鼠标中键释放鼠标"
+msgstr "按下 F8+F12 或鼠标中键释放鼠标"
 
 msgid "Unable to initialize FluidSynth"
 msgstr "无法初始化 FluidSynth"
@@ -932,10 +932,10 @@ msgid "Pause execution"
 msgstr "暂停执行"
 
 msgid "Press Ctrl+Alt+Del"
-msgstr "按 Ctrl+Alt+Del"
+msgstr "按下 Ctrl+Alt+Del"
 
 msgid "Press Ctrl+Alt+Esc"
-msgstr "按 Ctrl+Alt+Esc"
+msgstr "按下 Ctrl+Alt+Esc"
 
 msgid "Hard reset"
 msgstr "硬重置"

@@ -215,6 +215,7 @@ void *pssj_1e0_init(const device_t *info)
     return pssj;
 }
 
+#if defined(DEV_BRANCH) && defined(USE_TANDY_ISA)
 void *pssj_isa_init(const device_t *info)
 {
     pssj_t *pssj = malloc(sizeof(pssj_t));
@@ -230,6 +231,7 @@ void *pssj_isa_init(const device_t *info)
 
     return pssj;
 }
+#endif
 
 void pssj_close(void *p)
 {
@@ -238,6 +240,7 @@ void pssj_close(void *p)
     free(pssj);        
 }
 
+#if defined(DEV_BRANCH) && defined(USE_TANDY_ISA)
 static const device_config_t pssj_isa_config[] =
 {
     {
@@ -261,6 +264,7 @@ static const device_config_t pssj_isa_config[] =
         "", "", -1
     }
 };
+#endif
 
 const device_t pssj_device =
 {
@@ -290,6 +294,7 @@ const device_t pssj_1e0_device =
     NULL
 };
 
+#if defined(DEV_BRANCH) && defined(USE_TANDY_ISA)
 const device_t pssj_isa_device =
 {
     "Tandy PSSJ Clone",
@@ -304,3 +309,4 @@ const device_t pssj_isa_device =
     NULL,
     pssj_isa_config
 };
+#endif
