@@ -230,9 +230,6 @@ if (APPLE AND CMAKE_MACOSX_BUNDLE)
     install(FILES "${CMAKE_CURRENT_BINARY_DIR}/qt.conf"
         DESTINATION "${INSTALL_CMAKE_DIR}")
 
-    # Directories to look for dependencies
-    set(DIRS "${CMAKE_BINARY_DIR}")
-
     # Path used for searching by FIND_XXX(), with appropriate suffixes added
     if(CMAKE_PREFIX_PATH)
         foreach(dir ${CMAKE_PREFIX_PATH})
@@ -244,10 +241,6 @@ if (APPLE AND CMAKE_MACOSX_BUNDLE)
     list(APPEND DIRS "${Qt5Widgets_DIR}/../..")
 
     include(InstallRequiredSystemLibraries)
-
-    message(STATUS "APPS: ${APPS}")
-    message(STATUS "QT_PLUGINS: ${QT_PLUGINS}")
-    message(STATUS "DIRS: ${DIRS}")
 
     install(CODE "
         include(BundleUtilities)
