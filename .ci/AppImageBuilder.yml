@@ -51,6 +51,7 @@ AppDir:
     - librtmidi5
     - libsdl2-2.0-0
     - libslirp0
+    - libsndio7.0
     - libwayland-client0
     - libx11-6
     - libx11-xcb1
