@@ -442,8 +442,8 @@ else
 	cd ../..
 
 	# Archive Discord Game SDK library.
-	7z e -y -o"archive_tmp/usr/lib/$libdir" discord_game_sdk.zip "lib/$arch_discord/discord_game_sdk.so"
-	[ ! -e "archive_tmp/usr/lib/$libdir/discord_game_sdk.so" ] && echo [!] No Discord Game SDK for architecture [$arch_discord]
+	7z e -y -o"archive_tmp/usr/lib" discord_game_sdk.zip "lib/$arch_discord/discord_game_sdk.so"
+	[ ! -e "archive_tmp/usr/lib/discord_game_sdk.so" ] && echo [!] No Discord Game SDK for architecture [$arch_discord]
 
 	# Archive readme with library package versions.
 	echo Libraries used to compile this $arch build of $project: > archive_tmp/README
