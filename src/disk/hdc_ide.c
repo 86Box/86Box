@@ -3018,8 +3018,11 @@ ide_reset(void *p)
 {
     ide_log("Resetting IDE...\n");
 
-    ide_board_reset(0);
-    ide_board_reset(1);
+    if (ide_boards[0] != NULL)
+	ide_board_reset(0);
+
+    if (ide_boards[1] != NULL)
+	ide_board_reset(1);
 }
 
 
@@ -3029,8 +3032,15 @@ ide_close(void *priv)
 {
     ide_log("Closing IDE...\n");
 
-    ide_board_close(0);
-    ide_board_close(1);
+    if (ide_boards[0] != NULL) {
+	ide_board_close(0);
+	ide_boards[0] = NULL;
+    }
+
+    if (ide_boards[1] != NULL) {
+	ide_board_close(1);
+	ide_boards[1] = NULL;
+    }
 }
 
 
