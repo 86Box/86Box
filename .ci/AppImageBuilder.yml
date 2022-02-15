@@ -34,7 +34,6 @@ AppDir:
     - sourceline: 'deb http://deb.debian.org/debian bullseye-updates main'
       key_url: 'https://ftp-master.debian.org/keys/archive-key-11-security.asc'
     include:
-    - libdrm2
     - libevdev2
     - libfluidsynth2
     - libfreetype6
