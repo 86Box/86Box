@@ -63,5 +63,5 @@ AboutDialogCreate(HWND hwnd)
     TaskDialogIndirect(&tdconfig, &i, NULL, NULL);
 
     if (i == IDOK)
-	ShellExecute(hwnd, L"open", L"https://" EMU_SITE, NULL, NULL, SW_SHOW);
+	ShellExecute(hwnd, L"open", L"https://" EMU_SITE_W, NULL, NULL, SW_SHOW);
 }
