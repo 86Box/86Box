@@ -427,6 +427,8 @@ then
 	# TBD
 	:
 else
+	cwd_root=$(pwd)
+
 	# Build openal-soft 1.21.1 manually to fix audio issues. This is a temporary
 	# workaround until a newer version of openal-soft trickles down to Debian repos.
 	if [ -d "openal-soft-1.21.1" ]
@@ -435,11 +437,25 @@ else
 	else
 		wget -qO - https://github.com/kcat/openal-soft/archive/refs/tags/1.21.1.tar.gz | tar zxf -
 	fi
-	cwd_root=$(pwd)
 	cd openal-soft-1.21.1/build
+	[ -e Makefile ] && make clean
 	cmake -G "Unix Makefiles" -D "CMAKE_TOOLCHAIN_FILE=$cwd_root/toolchain.cmake" -D "CMAKE_INSTALL_PREFIX=$cwd_root/archive_tmp/usr" ..
 	make -j$(nproc) install
-	cd ../..
+	cd "$cwd_root"
+
+	# Build rtmidi without JACK support to remove the dependency on libjack.
+	if [ -d "rtmidi-4.0.0" ]
+	then
+		rm -rf rtmidi-4.0.0/CMakeCache.txt rtmidi-4.0.0/CMakeFiles
+	else
+		wget -qO - http://www.music.mcgill.ca/~gary/rtmidi/release/rtmidi-4.0.0.tar.gz | tar zxf -
+	fi
+	cwd_root=$(pwd)
+	cd rtmidi-4.0.0
+	[ -e Makefile ] && make clean
+	cmake -G "Unix Makefiles" -D RTMIDI_API_JACK=OFF -D "CMAKE_TOOLCHAIN_FILE=$cwd_root/toolchain.cmake" -D "CMAKE_INSTALL_PREFIX=$cwd_root/archive_tmp/usr" .
+	make -j$(nproc) install
+	cd "$cwd_root"
 
 	# Archive Discord Game SDK library.
 	7z e -y -o"archive_tmp/usr/lib" discord_game_sdk.zip "lib/$arch_discord/discord_game_sdk.so"

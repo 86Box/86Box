@@ -47,7 +47,6 @@ AppDir:
     - libqt5core5a
     - libqt5gui5
     - libqt5widgets5
-    - librtmidi5
     - libslirp0
     - libsndio7.0
     - libwayland-client0
@@ -90,6 +89,7 @@ AppDir:
     - usr/share/pkgconfig
     - usr/share/poppler
     - usr/share/readline
+    - usr/share/rtmidi
     - usr/share/sounds
     - usr/share/X11
     - usr/share/xml
