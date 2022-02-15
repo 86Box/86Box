@@ -34,6 +34,7 @@ extern MainWindow* main_window;
 extern "C"
 {
 #include <X11/Xlib.h>
+#include <X11/keysym.h>
 #include <X11/extensions/XInput2.h>
 #include <unistd.h>
 #include <fcntl.h>
@@ -50,7 +51,7 @@ static QThread* procThread = nullptr;
 static bool xi2childinit = false;
 static XIEventMask ximask;
 static std::atomic<bool> exitfromthread = false;
-static std::atomic<double> xi2_mouse_x = 0, xi2_mouse_y = 0;
+static std::atomic<double> xi2_mouse_x = 0, xi2_mouse_y = 0, xi2_mouse_abs_x = 0, xi2_mouse_abs_y = 0;
 static int xi2opcode = 0;
 static double prev_rel_coords[2] = { 0., 0. };
 static Time prev_time = 0;
@@ -91,6 +92,7 @@ void xinput2_proc()
     XISetMask(ximask.mask, XI_RawButtonPress);
     XISetMask(ximask.mask, XI_RawButtonRelease);
     XISetMask(ximask.mask, XI_RawMotion);
+    if (XKeysymToKeycode(disp, XK_Home) == 69) XISetMask(ximask.mask, XI_Motion);
 
     XISelectEvents(disp, win, &ximask, 1);
 
@@ -118,6 +120,18 @@ void xinput2_proc()
                     prev_rel_coords[0] = relative_coords[0];
                     prev_rel_coords[1] = relative_coords[1];
                     prev_time = rawev->time;
+                }
+                case XI_Motion: {
+                    if (XKeysymToKeycode(disp, XK_Home) == 69) {
+                        // No chance we will get raw motion events on VNC.
+                        const XIDeviceEvent *motionev = (const XIDeviceEvent*)cookie->data;
+                        if (xi2_mouse_abs_x != 0 || xi2_mouse_abs_y != 0) {
+                            xi2_mouse_x = xi2_mouse_x + (motionev->event_x - xi2_mouse_abs_x);
+                            xi2_mouse_y = xi2_mouse_y + (motionev->event_y - xi2_mouse_abs_y);
+                        }
+                        xi2_mouse_abs_x = motionev->event_x;
+                        xi2_mouse_abs_y = motionev->event_y;
+                    }
                 }
             }
         }

@@ -809,7 +809,6 @@ std::array<uint32_t, 256> x11_to_xt_vnc
     0,
     0,
     0,
-    0,
     0x1D,
     0x11D,
     0x2A,
