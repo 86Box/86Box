@@ -20,6 +20,7 @@ public:
     virtual std::vector<std::tuple<uint8_t*, std::atomic_flag*>> getBuffers() = 0;
 protected:
     bool eventDelegate(QEvent* event, bool& result);
+    void drawStatusBarIcons(QPainter* painter);
 
     QRect source, destination;
     QWidget* parentWidget{nullptr};

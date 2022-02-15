@@ -521,6 +521,7 @@ load_general(void)
 
     rctrl_is_lalt = config_get_int(cat, "rctrl_is_lalt", 0);
     update_icons = config_get_int(cat, "update_icons", 1);
+    status_icons_fullscreen = !!config_get_int(cat, "status_icons_fullscreen", 0);
 
     window_remember = config_get_int(cat, "window_remember", 0);
     if (window_remember || (vid_resize & 2)) {
@@ -2293,6 +2294,11 @@ save_general(void)
 	config_set_int(cat, "enable_discord", enable_discord);
     else
 	config_delete_var(cat, "enable_discord");
+
+    if (status_icons_fullscreen)
+        config_set_int(cat, "status_icons_fullscreen", status_icons_fullscreen);
+    else
+        config_delete_var(cat, "status_icons_fullscreen");
 
     if (video_framerate != -1)
 	    config_set_int(cat, "video_gl_framerate", video_framerate);

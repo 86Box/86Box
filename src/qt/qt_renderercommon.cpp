@@ -17,17 +17,25 @@
 
 #include "qt_renderercommon.hpp"
 #include "qt_mainwindow.hpp"
+#include "qt_machinestatus.hpp"
+#include "ui_qt_mainwindow.h"
 
 #include <QPainter>
 #include <QWidget>
 #include <QEvent>
 #include <QApplication>
+#include <QFontMetrics>
+#include <QStatusBar>
+#include <QLayout>
 
 #include <cmath>
 
 extern "C" {
 #include <86box/86box.h>
+#include <86box/plat.h>
 #include <86box/video.h>
+
+int status_icons_fullscreen = 0;
 }
 
 RendererCommon::RendererCommon() = default;
@@ -99,6 +107,44 @@ void RendererCommon::onResize(int width, int height) {
         destination.setRect(0, 0, hw, hh);
         break;
     }
+}
+
+void RendererCommon::drawStatusBarIcons(QPainter* painter)
+{
+    uint32_t x = 0;
+    auto prevcompositionMode = painter->compositionMode();
+    painter->setCompositionMode(QPainter::CompositionMode::CompositionMode_SourceOver);
+    for (int i = 0; i < main_window->ui->statusbar->children().count(); i++)
+    {
+        QLabel* label = qobject_cast<QLabel*>(main_window->ui->statusbar->children()[i]);
+        if (label)
+        {
+            auto pixmap = label->pixmap(Qt::ReturnByValue);
+            if (!pixmap.isNull())
+            {
+                painter->setBrush(QColor(0, 0, 0, 255));
+                painter->fillRect(x, painter->device()->height() - pixmap.height() - 4, pixmap.width(), pixmap.height() + 4, QColor(0, 0, 0, 127));
+                painter->drawPixmap(x, painter->device()->height() - pixmap.height(), pixmap);
+                x += pixmap.width();
+                if (i <= main_window->ui->statusbar->children().count() - 3)
+                {
+                    painter->fillRect(x, painter->device()->height() - pixmap.height() - 4, main_window->ui->statusbar->layout()->spacing(), pixmap.height() + 4, QColor(0, 0, 0, 127));
+                    x += main_window->ui->statusbar->layout()->spacing();
+                }
+                else painter->fillRect(x, painter->device()->height() - pixmap.height() - 4, 4, pixmap.height() + 4, QColor(0, 0, 0, 127));
+            }
+        }
+    }
+    if (main_window->status->getMessage().isEmpty() == false)
+    {
+        auto curStatusMsg = main_window->status->getMessage();
+        auto textSize = painter->fontMetrics().size(Qt::TextSingleLine, curStatusMsg);
+        painter->setPen(QColor(0, 0, 0, 127));
+        painter->fillRect(painter->device()->width() - textSize.width(), painter->device()->height() - textSize.height(), textSize.width(), textSize.height(), QColor(0, 0, 0, 127));
+        painter->setPen(QColor(255, 255, 255, 255));
+        painter->drawText(QRectF(painter->device()->width() - textSize.width(), painter->device()->height() - textSize.height(), textSize.width(), textSize.height()), Qt::TextSingleLine, curStatusMsg);
+    }
+    painter->setCompositionMode(prevcompositionMode);
 }
 
 bool RendererCommon::eventDelegate(QEvent *event, bool& result)

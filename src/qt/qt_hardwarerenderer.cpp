@@ -86,6 +86,7 @@ void HardwareRenderer::initializeGL()
         "void main(void)\n"
         "{\n"
         "    gl_FragColor = texture2D(texture, texc.st).bgra;\n"
+        "    gl_FragColor.a = 1.0;\n"
         "}\n";
     QString fsrccore =
         "uniform sampler2D texture;\n"
@@ -94,6 +95,7 @@ void HardwareRenderer::initializeGL()
         "void main(void)\n"
         "{\n"
         "    FragColor = texture2D(texture, texc.st).bgra;\n"
+        "    FragColor.a = 1.0;\n"
         "}\n";
     if (m_context->isOpenGLES() && m_context->format().version() >= qMakePair(3, 0))
     {
@@ -133,6 +135,22 @@ void HardwareRenderer::initializeGL()
     pclog("OpenGL version: %s\n", glGetString(GL_VERSION));
     pclog("OpenGL shader language version: %s\n", glGetString(GL_SHADING_LANGUAGE_VERSION));
     glClearColor(0, 0, 0, 1);
+}
+
+void HardwareRenderer::paintOverGL()
+{
+    // Context switching is needed to make use of QPainter to draw status bar icons in fullscreen.
+    // Especially since it seems to be impossible to use QPainter on externally-created OpenGL contexts.
+    if (video_fullscreen && status_icons_fullscreen)
+    {
+        m_context->makeCurrent(nullptr);
+        makeCurrent();
+        QPainter painter(this);
+        drawStatusBarIcons(&painter);
+        painter.end();
+        doneCurrent();
+        m_context->makeCurrent(this);
+    }
 }
 
 void HardwareRenderer::paintGL() {
@@ -200,7 +218,7 @@ void HardwareRenderer::onBlit(int buf_idx, int x, int y, int w, int h) {
 
 void HardwareRenderer::resizeEvent(QResizeEvent *event) {
     onResize(width(), height());
-    
+
     QOpenGLWindow::resizeEvent(event);
 }
 
@@ -214,7 +232,7 @@ bool HardwareRenderer::event(QEvent *event)
 std::vector<std::tuple<uint8_t*, std::atomic_flag*>> HardwareRenderer::getBuffers()
 {
     std::vector<std::tuple<uint8_t*, std::atomic_flag*>> buffers;
-    
+
     buffers.push_back(std::make_tuple(imagebufs[0].get(), &buf_usage[0]));
     buffers.push_back(std::make_tuple(imagebufs[1].get(), &buf_usage[1]));
 

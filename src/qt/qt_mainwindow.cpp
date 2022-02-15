@@ -132,7 +132,7 @@ MainWindow::MainWindow(QWidget *parent) :
             return;
         }
         if (!hide_tool_bar)
-#ifdef _WIN32        
+#ifdef _WIN32
             toolbar_label->setText(title);
 #else
         {
@@ -187,12 +187,12 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(this, &MainWindow::resizeContents, this, [this](int w, int h) {
         if (!QApplication::platformName().contains("eglfs") && vid_resize == 0) {
             w = qRound(w / (!dpi_scale ? util::screenOfWidget(this)->devicePixelRatio() : 1.));
-            
+
             int modifiedHeight = qRound(h / (!dpi_scale ? util::screenOfWidget(this)->devicePixelRatio() : 1.))
                 + menuBar()->height()
                 + (statusBar()->height() * !hide_status_bar)
                 + (ui->toolBar->height() * !hide_tool_bar);
-            
+
             ui->stackedWidget->resize(w, h);
             setFixedSize(w, modifiedHeight);
         }
@@ -225,6 +225,7 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->actionHide_tool_bar->setChecked(hide_tool_bar);
     ui->actionUpdate_status_bar_icons->setChecked(update_icons);
     ui->actionEnable_Discord_integration->setChecked(enable_discord);
+    ui->actionShow_status_icons_in_fullscreen->setChecked(status_icons_fullscreen);
 
 #if defined Q_OS_WINDOWS || defined Q_OS_MACOS
     /* Make the option visible only if ANGLE is loaded. */
@@ -1614,3 +1615,10 @@ void MainWindow::changeEvent(QEvent* event)
 #endif
     QWidget::changeEvent(event);
 }
+
+void MainWindow::on_actionShow_status_icons_in_fullscreen_triggered()
+{
+    status_icons_fullscreen = !status_icons_fullscreen;
+    ui->actionShow_status_icons_in_fullscreen->setChecked(status_icons_fullscreen);
+}
+

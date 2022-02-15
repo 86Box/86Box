@@ -47,6 +47,7 @@ public:
     void resizeGL(int w, int h) override;
     void initializeGL() override;
     void paintGL() override;
+    void paintOverGL() override;
     std::vector<std::tuple<uint8_t*, std::atomic_flag*>> getBuffers() override;
     HardwareRenderer(QWidget* parent = nullptr, RenderType rtype = RenderType::OpenGL)
     : QOpenGLWindow(QOpenGLWindow::NoPartialUpdate, parent->windowHandle()), QOpenGLFunctions()

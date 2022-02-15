@@ -75,7 +75,7 @@ extern "C" {
 
 /* Global variables residing in the platform module. */
 extern int	dopause,			/* system is paused */
-		mouse_capture;			/* mouse is captured in app */
+        mouse_capture;			/* mouse is captured in app */
 extern atomic_flag_t doresize;			/* screen resize requested */
 extern volatile int	is_quit;				/* system exit requested */
 
@@ -88,9 +88,10 @@ extern int	infocus;
 extern char	emu_version[200];		/* version ID string */
 extern int	rctrl_is_lalt;
 extern int	update_icons;
+extern int status_icons_fullscreen;
 
 extern int	unscaled_size_x,		/* current unscaled size X */
-		unscaled_size_y;		/* current unscaled size Y */
+        unscaled_size_y;		/* current unscaled size Y */
 
 extern int	kbd_req_capture, hide_status_bar, hide_tool_bar;
 

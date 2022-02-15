@@ -110,6 +110,8 @@ private slots:
 
     void on_actionEnable_Discord_integration_triggered(bool checked);
 
+    void on_actionShow_status_icons_in_fullscreen_triggered();
+
 protected:
     void keyPressEvent(QKeyEvent* event) override;
     void keyReleaseEvent(QKeyEvent* event) override;
@@ -124,7 +126,7 @@ private:
     Ui::MainWindow *ui;
     std::unique_ptr<MachineStatus> status;
     std::shared_ptr<MediaMenu> mm;
-    
+
     /* If main window should send keyboard input */
     bool send_keyboard_input = true;
     bool shownonce = false;
