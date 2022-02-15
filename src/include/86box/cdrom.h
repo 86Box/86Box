@@ -147,6 +147,7 @@ extern uint8_t	cdrom_get_current_subchannel(cdrom_t *dev, uint8_t *b, int msf);
 extern uint8_t	cdrom_get_current_subcodeq_playstatus(cdrom_t *dev, uint8_t *b);
 extern int	cdrom_read_toc(cdrom_t *dev, unsigned char *b, int type,
 			       unsigned char start_track, int msf, int max_len);
+extern void	cdrom_get_track_buffer(cdrom_t *dev, uint8_t *buf);
 extern int	cdrom_readsector_raw(cdrom_t *dev, uint8_t *buffer, int sector, int ismsf,
 				     int cdrom_sector_type, int cdrom_sector_flags, int *len);
 extern void 	cdrom_read_disc_info_toc(cdrom_t *dev, unsigned char *b, unsigned char track, int type);

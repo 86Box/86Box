@@ -695,6 +695,32 @@ cdrom_read_toc(cdrom_t *dev, unsigned char *b, int type, unsigned char start_tra
     return len;
 }
 
+
+/* A new API call for Mitsumi CD-ROM. */
+void
+cdrom_get_track_buffer(cdrom_t *dev, uint8_t *buf)
+{
+    track_info_t ti;
+    int first_track, last_track;
+
+    if (dev != NULL) {
+	dev->ops->get_tracks(dev, &first_track, &last_track);
+	buf[0] = 1;
+	buf[1] = last_track + 1;
+	dev->ops->get_track_info(dev, 1, 0, &ti);
+	buf[2] = ti.m;
+	buf[3] = ti.s;
+	buf[4] = ti.f;
+	dev->ops->get_track_info(dev, last_track + 1, 0, &ti);
+	buf[5] = ti.m;
+	buf[6] = ti.s;
+	buf[7] = ti.f;
+	buf[8] = 0x00;
+    } else
+	memset(buf, 0x00, 9);
+}
+
+
 void
 cdrom_read_disc_info_toc(cdrom_t *dev, unsigned char *b, unsigned char track, int type)
 {
