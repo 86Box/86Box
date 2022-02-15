@@ -50,7 +50,14 @@
       </widget>
      </item>
      <item row="0" column="1">
-      <widget class="QComboBox" name="comboBoxHD"/>
+      <widget class="QComboBox" name="comboBoxHD">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+      </widget>
      </item>
      <item row="0" column="2">
       <widget class="QPushButton" name="pushButtonHD">
@@ -104,52 +111,15 @@
       <string>SCSI</string>
      </property>
      <layout class="QGridLayout" name="gridLayout_3">
-      <item row="3" column="2">
-       <widget class="QComboBox" name="comboBoxSCSI4"/>
+      <item row="1" column="3">
+       <widget class="QPushButton" name="pushButtonSCSI2">
+        <property name="text">
+         <string>Configure</string>
+        </property>
+       </widget>
       </item>
       <item row="3" column="3">
        <widget class="QPushButton" name="pushButtonSCSI4">
-        <property name="text">
-         <string>Configure</string>
-        </property>
-       </widget>
-      </item>
-      <item row="0" column="0">
-       <widget class="QLabel" name="label_3">
-        <property name="text">
-         <string>Controller 1:</string>
-        </property>
-       </widget>
-      </item>
-      <item row="0" column="2">
-       <widget class="QComboBox" name="comboBoxSCSI1"/>
-      </item>
-      <item row="1" column="2">
-       <widget class="QComboBox" name="comboBoxSCSI2"/>
-      </item>
-      <item row="3" column="0" rowspan="2">
-       <widget class="QLabel" name="label_5">
-        <property name="text">
-         <string>Controller 4:</string>
-        </property>
-       </widget>
-      </item>
-      <item row="1" column="0">
-       <widget class="QLabel" name="label_4">
-        <property name="text">
-         <string>Controller 2:</string>
-        </property>
-       </widget>
-      </item>
-      <item row="0" column="3">
-       <widget class="QPushButton" name="pushButtonSCSI1">
-        <property name="text">
-         <string>Configure</string>
-        </property>
-       </widget>
-      </item>
-      <item row="1" column="3">
-       <widget class="QPushButton" name="pushButtonSCSI2">
         <property name="text">
          <string>Configure</string>
         </property>
@@ -162,8 +132,52 @@
         </property>
        </widget>
       </item>
+      <item row="0" column="2">
+       <widget class="QComboBox" name="comboBoxSCSI1">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="3">
+       <widget class="QPushButton" name="pushButtonSCSI1">
+        <property name="text">
+         <string>Configure</string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="2">
+       <widget class="QComboBox" name="comboBoxSCSI2"/>
+      </item>
       <item row="2" column="2">
        <widget class="QComboBox" name="comboBoxSCSI3"/>
+      </item>
+      <item row="3" column="2">
+       <widget class="QComboBox" name="comboBoxSCSI4"/>
+      </item>
+      <item row="0" column="0">
+       <widget class="QLabel" name="label_3">
+        <property name="text">
+         <string>Controller 1:</string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="0">
+       <widget class="QLabel" name="label_4">
+        <property name="text">
+         <string>Controller 2:</string>
+        </property>
+       </widget>
+      </item>
+      <item row="3" column="0" rowspan="2">
+       <widget class="QLabel" name="label_5">
+        <property name="text">
+         <string>Controller 4:</string>
+        </property>
+       </widget>
       </item>
       <item row="2" column="3">
        <widget class="QPushButton" name="pushButtonSCSI3">

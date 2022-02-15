@@ -38,6 +38,12 @@
    </item>
    <item row="0" column="2">
     <widget class="QPushButton" name="pushButtonConfigure">
+     <property name="sizePolicy">
+      <sizepolicy hsizetype="Maximum" vsizetype="Fixed">
+       <horstretch>0</horstretch>
+       <verstretch>0</verstretch>
+      </sizepolicy>
+     </property>
      <property name="text">
       <string>Configure</string>
      </property>
