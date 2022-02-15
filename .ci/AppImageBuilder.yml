@@ -51,11 +51,6 @@ AppDir:
     - libsndio7.0
     - libwayland-client0
     - libx11-6
-    - libx11-xcb1
-    - libxcb-render0
-    - libxcb-shape0
-    - libxcb-shm0
-    - libxcb-xfixes0
     - libxcb1
   files:
     exclude:
