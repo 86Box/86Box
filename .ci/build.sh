@@ -440,7 +440,7 @@ else
 	cd openal-soft-1.21.1/build
 	[ -e Makefile ] && make clean
 	cmake -G "Unix Makefiles" -D "CMAKE_TOOLCHAIN_FILE=$cwd_root/toolchain.cmake" -D "CMAKE_INSTALL_PREFIX=$cwd_root/archive_tmp/usr" ..
-	make -j$(nproc) install
+	make -j$(nproc) install || exit 99
 	cd "$cwd_root"
 
 	# Build rtmidi without JACK support to remove the dependency on libjack.
@@ -454,7 +454,7 @@ else
 	cd rtmidi-4.0.0
 	[ -e Makefile ] && make clean
 	cmake -G "Unix Makefiles" -D RTMIDI_API_JACK=OFF -D "CMAKE_TOOLCHAIN_FILE=$cwd_root/toolchain.cmake" -D "CMAKE_INSTALL_PREFIX=$cwd_root/archive_tmp/usr" .
-	make -j$(nproc) install
+	make -j$(nproc) install || exit 99
 	cd "$cwd_root"
 
 	# Build SDL2 for joystick support with most components disabled to remove the dependencies on PulseAudio and libdrm.
@@ -473,7 +473,7 @@ else
 		-D SDL_WAYLAND_QT_TOUCH=OFF -D SDL_RPI=OFF -D SDL_VIVANTE=OFF -D SDL_VULKAN=OFF -D SDL_KMSDRM=OFF -D SDL_KMSDRM_SHARED=OFF -D SDL_OFFSCREEN=OFF \
 		-D SDL_HIDAPI_JOYSTICK=ON -D SDL_VIRTUAL_JOYSTICK=ON -D SDL_SHARED=ON -D SDL_STATIC=OFF -S "$cwd_root/SDL2-2.0.20" \
 		-D "CMAKE_TOOLCHAIN_FILE=$cwd_root/toolchain.cmake" -D "CMAKE_INSTALL_PREFIX=$cwd_root/archive_tmp/usr"
-	make -j$(nproc) install
+	make -j$(nproc) install || exit 99
 	cd "$cwd_root"
 
 	# Archive Discord Game SDK library.
