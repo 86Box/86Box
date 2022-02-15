@@ -169,7 +169,6 @@ MainWindow::MainWindow(QWidget *parent) :
         mouse_capture = state ? 1 : 0;
         qt_mouse_capture(mouse_capture);
         if (mouse_capture) {
-            ui->stackedWidget->grabMouse();
             this->grabKeyboard();
 #ifdef WAYLAND
             if (QGuiApplication::platformName().contains("wayland")) {
@@ -177,7 +176,6 @@ MainWindow::MainWindow(QWidget *parent) :
             }
 #endif
         } else {
-            ui->stackedWidget->releaseMouse();
             this->releaseKeyboard();
 #ifdef WAYLAND
             if (QGuiApplication::platformName().contains("wayland")) {
