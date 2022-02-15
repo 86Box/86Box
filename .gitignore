@@ -31,6 +31,8 @@ Makefile
 *.zip
 *.tar
 *.tar.*
+*.AppImage
+/appimage-builder-cache
 
 # Visual Studio Code
 /.vs

@@ -40,6 +40,8 @@ extern "C" {
 #include <86box/vid_ega.h>
 #include <86box/version.h>
 
+    extern int qt_nvr_save(void);
+
 #ifdef MTR_ENABLED
 #include <minitrace/minitrace.h>
 #endif
@@ -87,12 +89,6 @@ MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::MainWindow)
 {
-#ifdef Q_OS_WINDOWS
-    auto font_name = tr("FONT_NAME");
-    auto font_size = tr("FONT_SIZE");
-    QApplication::setFont(QFont(font_name, font_size.toInt()));
-#endif
-
     mm = std::make_shared<MediaMenu>(this);
     MediaMenu::ptr = mm;
     status = std::make_unique<MachineStatus>(this);
@@ -130,6 +126,11 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(this, &MainWindow::showMessageForNonQtThread, this, &MainWindow::showMessage_, Qt::BlockingQueuedConnection);
 
     connect(this, &MainWindow::setTitle, this, [this,toolbar_label](const QString& title) {
+        if (dopause && !hide_tool_bar)
+        {
+            toolbar_label->setText(toolbar_label->text() + tr(" - PAUSED"));
+            return;
+        }
         if (!hide_tool_bar)
 #ifdef _WIN32        
             toolbar_label->setText(title);
@@ -167,7 +168,6 @@ MainWindow::MainWindow(QWidget *parent) :
         mouse_capture = state ? 1 : 0;
         qt_mouse_capture(mouse_capture);
         if (mouse_capture) {
-            ui->stackedWidget->grabMouse();
             this->grabKeyboard();
 #ifdef WAYLAND
             if (QGuiApplication::platformName().contains("wayland")) {
@@ -175,7 +175,6 @@ MainWindow::MainWindow(QWidget *parent) :
             }
 #endif
         } else {
-            ui->stackedWidget->releaseMouse();
             this->releaseKeyboard();
 #ifdef WAYLAND
             if (QGuiApplication::platformName().contains("wayland")) {
@@ -419,7 +418,7 @@ MainWindow::MainWindow(QWidget *parent) :
 }
 
 void MainWindow::closeEvent(QCloseEvent *event) {
-    if (confirm_exit && cpu_thread_run)
+    if (confirm_exit && confirm_exit_cmdl && cpu_thread_run)
     {
         QMessageBox questionbox(QMessageBox::Icon::Question, "86Box", tr("Are you sure you want to exit 86Box?"), QMessageBox::Yes | QMessageBox::No, this);
         QCheckBox *chkbox = new QCheckBox(tr("Don't show this message again"));
@@ -444,6 +443,7 @@ void MainWindow::closeEvent(QCloseEvent *event) {
             window_y = this->geometry().y();
         }
     }
+    qt_nvr_save();
     config_save();
     event->accept();
 }
@@ -1092,7 +1092,7 @@ void MainWindow::on_actionFullscreen_triggered() {
     } else {
         if (video_fullscreen_first)
         {
-            QMessageBox questionbox(QMessageBox::Icon::Information, tr("Entering fullscreen mode"), tr("Press CTRL+ALT+PAGE DOWN to return to windowed mode."), QMessageBox::Ok, this);
+            QMessageBox questionbox(QMessageBox::Icon::Information, tr("Entering fullscreen mode"), tr("Press Ctrl+Alt+PgDn to return to windowed mode."), QMessageBox::Ok, this);
             QCheckBox *chkbox = new QCheckBox(tr("Don't show this message again"));
             questionbox.setCheckBox(chkbox);
             chkbox->setChecked(!video_fullscreen_first);

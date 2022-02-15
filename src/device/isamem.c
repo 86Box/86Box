@@ -68,11 +68,13 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING  IN ANY  WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
 #include <stdlib.h>
 #include <wchar.h>
+#define HAVE_STDARG_H
 #include <86box/86box.h>
 #include <86box/machine.h>
 #include <86box/io.h>
@@ -994,7 +996,7 @@ static const device_t ev159_device = {
 };
 
 
-#ifdef USE_ISAMEM_BRAT
+#if defined(DEV_BRANCH) && defined(USE_ISAMEM_BRAT)
 static const device_config_t brat_config[] =
 {
 	{
@@ -1066,7 +1068,7 @@ static const device_config_t brat_config[] =
 		"size", "Memory Size", CONFIG_SPINNER, "", 128,
 		"",
 		{ 0, 8192, 512 },
-		{ 0 }
+		{ { 0 } }
 	},
 	{
 		"", "", -1
@@ -1085,7 +1087,7 @@ static const device_t brat_device = {
 #endif
 
 
-#ifdef USE_ISAMEM_RAMPAGE
+#if defined(DEV_BRANCH) && defined(USE_ISAMEM_RAMPAGE)
 static const device_config_t rampage_config[] =
 {
 	{
@@ -1169,7 +1171,7 @@ static const device_config_t rampage_config[] =
 		"size", "Memory Size", CONFIG_SPINNER, "", 128,
 		"",
 		{ 0, 8192, 128 },
-		{ 0 }
+		{ { 0 } }
 	},
 	{
 		"", "", -1
@@ -1188,7 +1190,7 @@ static const device_t rampage_device = {
 #endif
 
 
-#ifdef USE_ISAMEM_IAB
+#if defined(DEV_BRANCH) && defined(USE_ISAMEM_IAB)
 static const device_config_t iab_config[] =
 {
 	{
@@ -1272,7 +1274,7 @@ static const device_config_t iab_config[] =
 		"size", "Memory Size", CONFIG_SPINNER, "", 128,
 		"",
 		{ 0, 8192, 128 },
-		{ 0 }
+		{ { 0 } }
 	},
 	{
 		"", "", -1
@@ -1313,13 +1315,13 @@ static const struct {
     { &a6pak_device		},
     { &ems5150_device		},
     { &ev159_device		},
-#ifdef USE_ISAMEM_BRAT
+#if defined(DEV_BRANCH) && defined(USE_ISAMEM_BRAT)
     { &brat_device		},
 #endif
-#ifdef USE_ISAMEM_RAMPAGE
+#if defined(DEV_BRANCH) && defined(USE_ISAMEM_RAMPAGE)
     { &rampage_device		},
 #endif
-#ifdef USE_ISAMEM_IAB
+#if defined(DEV_BRANCH) && defined(USE_ISAMEM_IAB)
     { &iab_device		},
 #endif
     { NULL			}

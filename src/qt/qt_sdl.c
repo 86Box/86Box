@@ -15,10 +15,10 @@
  *
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
- *		Michael Dr�ing, <michael@drueing.de>
+ *		Michael Drüing, <michael@drueing.de>
  *
  *		Copyright 2018-2020 Fred N. van Kempen.
- *		Copyright 2018-2020 Michael Dr�ing.
+ *		Copyright 2018-2020 Michael Drüing.
  *
  *		Redistribution and  use  in source  and binary forms, with
  *		or  without modification, are permitted  provided that the

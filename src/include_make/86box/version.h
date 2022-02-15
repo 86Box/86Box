@@ -32,7 +32,7 @@
 #define EMU_VERSION_FULL	EMU_VERSION
 #define EMU_VERSION_FULL_W	EMU_VERSION_W
 
-#define COPYRIGHT_YEAR	"2021"
+#define COPYRIGHT_YEAR	"2022"
 
 /* Web URL info. */
 #define EMU_SITE	L"86box.net"

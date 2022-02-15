@@ -131,6 +131,7 @@ private:
 
     friend class SpecifyDimensions;
     friend class ProgSettings;
+    friend class RendererCommon;
 };
 
 #endif // QT_MAINWINDOW_HPP

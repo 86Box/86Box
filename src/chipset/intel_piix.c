@@ -1648,7 +1648,7 @@ const device_t piix3_device =
 const device_t piix3_ioapic_device =
 {
     "Intel 82371SB (PIIX3) (Boards with I/O APIC)",
-    "piix3",
+    "piix3_ioapic",
     DEVICE_PCI,
     0x70001403,
     piix_init, 

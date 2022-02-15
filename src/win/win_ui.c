@@ -1012,21 +1012,29 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 	case WM_SHUTDOWN:
 		if (manager_wm)
 			break;
-		win_notify_dlg_open();
-		if (confirm_exit && confirm_exit_cmdl)
-			i = ui_msgbox_ex(MBX_QUESTION_YN | MBX_DONTASK, (wchar_t *) IDS_2113, NULL, (wchar_t *) IDS_2119, (wchar_t *) IDS_2136, NULL);
-		else
-			i = 0;
-		if ((i % 10) == 0) {
-			if (i == 10) {
-				confirm_exit = 0;
-				nvr_save();
-				config_save();
-			}
+		if (LOWORD(wParam) == 1) {
+			confirm_exit = 0;
+			nvr_save();
+			config_save();
 			KillTimer(hwnd, TIMER_1SEC);
 			PostQuitMessage(0);
+		} else {
+			win_notify_dlg_open();
+			if (confirm_exit && confirm_exit_cmdl)
+				i = ui_msgbox_ex(MBX_QUESTION_YN | MBX_DONTASK, (wchar_t *) IDS_2113, NULL, (wchar_t *) IDS_2119, (wchar_t *) IDS_2136, NULL);
+			else
+				i = 0;
+			if ((i % 10) == 0) {
+				if (i == 10) {
+					confirm_exit = 0;
+					nvr_save();
+					config_save();
+				}
+				KillTimer(hwnd, TIMER_1SEC);
+				PostQuitMessage(0);
+			}
+			win_notify_dlg_closed();
 		}
-		win_notify_dlg_closed();
 		break;
 
 	case WM_CTRLALTDEL:
@@ -1497,7 +1505,7 @@ plat_pause(int p)
     if (p) {
 	wcsncpy(oldtitle, ui_window_title(NULL), sizeof_w(oldtitle) - 1);
 	wcscpy(title, oldtitle);
-	wcscat(title, L" - PAUSED -");
+	wcscat(title, plat_get_string(IDS_2051));
 	ui_window_title(title);
     } else {
 	ui_window_title(oldtitle);

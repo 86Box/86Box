@@ -239,6 +239,8 @@ void* fluidsynth_init(const device_t *info)
         fluidsynth_handle = dynld_module("libfluidsynth.dylib", fluidsynth_imports);
 #else
 	fluidsynth_handle = dynld_module("libfluidsynth.so.3", fluidsynth_imports);
+	if (fluidsynth_handle == NULL)
+		fluidsynth_handle = dynld_module("libfluidsynth.so.2", fluidsynth_imports);
 #endif
 	if (fluidsynth_handle == NULL)
 	{

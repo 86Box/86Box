@@ -88,8 +88,8 @@ msgstr "&Lineaire"
 msgid "Hi&DPI scaling"
 msgstr "Mise à l'échelle Hi&DPI"
 
-msgid "&Fullscreen\tCtrl+Alt+PageUP"
-msgstr "&Plein Ecran\tCtrl+Alt+PageUP"
+msgid "&Fullscreen\tCtrl+Alt+PgUp"
+msgstr "&Plein Ecran\tCtrl+Alt+PgUp"
 
 msgid "Fullscreen &stretch mode"
 msgstr "Mode &Elargi plein écran"
@@ -598,11 +598,11 @@ msgstr "Erreur"
 msgid "Fatal error"
 msgstr "Erreur fatale"
 
-msgid "<reserved>"
-msgstr "<reservée>"
+msgid " - PAUSED"
+msgstr " - PAUSED"
 
-msgid "Press CTRL+ALT+PAGE DOWN to return to windowed mode."
-msgstr "Appuyez sur CTRL+ALT+PAGE ↓ pour revenir au mode fenêtré."
+msgid "Press Ctrl+Alt+PgDn to return to windowed mode."
+msgstr "Appuyez sur Ctrl+Alt+PgDn pour revenir au mode fenêtré."
 
 msgid "Speed"
 msgstr "Vitesse"
@@ -1040,10 +1040,10 @@ msgid "Differencing VHD (.vhd)"
 msgstr "VHD à différenciation (.vhd)"
 
 msgid "Large blocks (2 MB)"
-msgstr "Blocs grands (2 MB)"
+msgstr "Blocs grands (2 Mo)"
 
 msgid "Small blocks (512 KB)"
-msgstr "Blocs petits (512 KB)"
+msgstr "Blocs petits (512 Ko)"
 
 msgid "VHD files"
 msgstr "Fichiers VHD"
@@ -1100,31 +1100,31 @@ msgid "CD-ROM %i (%s): %s"
 msgstr "CD-ROM %i (%s): %s"
 
 msgid "160 kB"
-msgstr "160 kB"
+msgstr "160 Ko"
 
 msgid "180 kB"
-msgstr "180 kB"
+msgstr "180 Ko"
 
 msgid "320 kB"
-msgstr "320 kB"
+msgstr "320 Ko"
 
 msgid "360 kB"
-msgstr "360 kB"
+msgstr "360 Ko"
 
 msgid "640 kB"
-msgstr "640 kB"
+msgstr "640 Ko"
 
 msgid "720 kB"
-msgstr "720 kB"
+msgstr "720 Ko"
 
 msgid "1.2 MB"
-msgstr "1.2 MB"
+msgstr "1.2 Mo"
 
 msgid "1.25 MB"
-msgstr "1.25 MB"
+msgstr "1.25 Mo"
 
 msgid "1.44 MB"
-msgstr "1.44 MB"
+msgstr "1.44 Mo"
 
 msgid "DMF (cluster 1024)"
 msgstr "DMF (cluster 1024)"
@@ -1133,51 +1133,51 @@ msgid "DMF (cluster 2048)"
 msgstr "DMF (cluster 2048)"
 
 msgid "2.88 MB"
-msgstr "2.88 MB"
+msgstr "2.88 Mo"
 
 msgid "ZIP 100"
 msgstr "ZIP 100"
 
-msgid "3.5\" 128Mb M.O. (ISO 10090)"
-msgstr "3.5\" 128Mb M.O. (ISO 10090)"
+msgid "3.5\" 128 MB (ISO 10090)"
+msgstr "3.5\" 128 Mo (ISO 10090)"
 
-msgid "3.5\" 230Mb M.O. (ISO 13963)"
-msgstr "3.5\" 230Mb M.O. (ISO 13963)"
+msgid "3.5\" 230 MB (ISO 13963)"
+msgstr "3.5\" 230 Mo (ISO 13963)"
 
-msgid "3.5\" 540Mb M.O. (ISO 15498)"
-msgstr "3.5\" 540Mb M.O. (ISO 15498)"
+msgid "3.5\" 540 MB (ISO 15498)"
+msgstr "3.5\" 540 Mo (ISO 15498)"
 
-msgid "3.5\" 640Mb M.O. (ISO 15498)"
-msgstr "3.5\" 640Mb M.O. (ISO 15498)"
+msgid "3.5\" 640 MB (ISO 15498)"
+msgstr "3.5\" 640 Mo (ISO 15498)"
 
-msgid "3.5\" 1.3Gb M.O. (GigaMO)"
-msgstr "3.5\" 1.3Gb M.O. (GigaMO)"
+msgid "3.5\" 1.3 GB (GigaMO)"
+msgstr "3.5\" 1.3 Go (GigaMO)"
 
-msgid "3.5\" 2.3Gb M.O. (GigaMO 2)"
-msgstr "3.5\" 2.3Gb M.O. (GigaMO 2)"
+msgid "3.5\" 2.3 GB (GigaMO 2)"
+msgstr "3.5\" 2.3 Go (GigaMO 2)"
 
-msgid "5.25\" 600Mb M.O."
-msgstr "5.25\" 600Mb M.O."
+msgid "5.25\" 600 MB"
+msgstr "5.25\" 600 Mo"
 
-msgid "5.25\" 650Mb M.O."
-msgstr "5.25\" 650Mb M.O."
+msgid "5.25\" 650 MB"
+msgstr "5.25\" 650 Mo"
 
-msgid "5.25\" 1Gb M.O."
-msgstr "5.25\" 1Gb M.O."
+msgid "5.25\" 1 GB"
+msgstr "5.25\" 1 Go"
 
-msgid "5.25\" 1.3Gb M.O."
-msgstr "5.25\" 1.3Gb M.O."
+msgid "5.25\" 1.3 GB"
+msgstr "5.25\" 1.3 Go"
 
 msgid "Perfect RPM"
 msgstr "RPM précis"
 
-msgid "1%% below perfect RPM"
+msgid "1% below perfect RPM"
 msgstr "Précision RPM de moins 1%"
 
-msgid "1.5%% below perfect RPM"
+msgid "1.5% below perfect RPM"
 msgstr "Précision RPM de moins 1.5%"
 
-msgid "2%% below perfect RPM"
+msgid "2% below perfect RPM"
 msgstr "Précision RPM de moins 2%"
 
 msgid "(System Default)"

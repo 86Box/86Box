@@ -14,7 +14,7 @@
 #           Copyright 2021 David Hrdlička.
 #
 
-string(APPEND CMAKE_C_FLAGS_INIT    " -m64 -march=x86-64 -msse2 -mfpmath=sse ${CMAKE_C_FLAGS_INIT}")
-string(APPEND CMAKE_CXX_FLAGS_INIT  " -m64 -march=x86-64 -msse2 -mfpmath=sse ${CMAKE_CXX_FLAGS_INIT}")
+string(APPEND CMAKE_C_FLAGS_INIT    " -m64 -march=x86-64 -msse2 -mfpmath=sse -mstackrealign ${CMAKE_C_FLAGS_INIT}")
+string(APPEND CMAKE_CXX_FLAGS_INIT  " -m64 -march=x86-64 -msse2 -mfpmath=sse -mstackrealign ${CMAKE_CXX_FLAGS_INIT}")
 
 include(${CMAKE_CURRENT_LIST_DIR}/flags-gcc.cmake)

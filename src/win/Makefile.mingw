@@ -43,8 +43,19 @@ ifeq ($(DEV_BUILD), y)
  ifndef GUSMAX
   GUSMAX	:= y
  endif
+<<<<<<< HEAD
  ifndef INTEL_ICH2
   INTEL_ICH2	:= y
+=======
+ ifndef ISAMEM_RAMPAGE
+  ISAMEM_RAMPAGE := y
+ endif
+ ifndef ISAMEM_IAB
+  ISAMEM_IAB := y
+ endif
+ ifndef ISAMEM_BRAT
+  ISAMEM_BRAT := y
+>>>>>>> origin/master
  endif
  ifndef LASERXT
   LASERXT	:= y
@@ -67,20 +78,14 @@ ifeq ($(DEV_BUILD), y)
  ifndef VGAWONDER
   VGAWONDER	:= y
  endif
+ ifndef TANDY_ISA
+  TANDY_ISA	:= y
+ endif
  ifndef VNC
   VNC		:= y
  endif
  ifndef XL24
   XL24		:= y
- endif
- ifndef ISAMEM_RAMPAGE
-  ISAMEM_RAMPAGE := y
- endif
- ifndef ISAMEM_IAB
-  ISAMEM_IAB := y
- endif
- ifndef ISAMEM_BRAT
-  ISAMEM_BRAT := y
  endif
  ifndef OLIVETTI
   OLIVETTI	:= y
@@ -104,8 +109,19 @@ else
  ifndef GUSMAX
   GUSMAX	:= n
  endif
+<<<<<<< HEAD
  ifndef INTEL_ICH2
   INTEL_ICH2	:= n
+=======
+ ifndef ISAMEM_RAMPAGE
+  ISAMEM_RAMPAGE := n
+ endif
+ ifndef ISAMEM_IAB
+  ISAMEM_IAB := n
+ endif
+ ifndef ISAMEM_BRAT
+  ISAMEM_BRAT := n
+>>>>>>> origin/master
  endif
  ifndef LASERXT
   LASERXT	:= n
@@ -128,20 +144,14 @@ else
  ifndef VGAWONDER
   VGAWONDER	:= n
  endif
+ ifndef TANDY_ISA
+  TANDY_ISA	:= n
+ endif
  ifndef VNC
   VNC		:= n
  endif
  ifndef XL24
   XL24		:= n
- endif
- ifndef ISAMEM_RAMPAGE
-  ISAMEM_RAMPAGE := n
- endif
- ifndef ISAMEM_IAB
-  ISAMEM_IAB := n
- endif
- ifndef ISAMEM_BRAT
-  ISAMEM_BRAT := n
  endif
  ifndef OLIVETTI
   OLIVETTI	:= n
@@ -435,9 +445,22 @@ ifeq ($(GUSMAX), y)
 OPTS		+= -DUSE_GUSMAX
 endif
 
+<<<<<<< HEAD
 ifeq ($(INTEL_ICH2), y)
 OPTS		+= -DUSE_INTEL_ICH2
 DEVBROBJ	+= intel_mch_p4.o intel_gmch.o intel_ich2.o intel_ich2_setup.o
+=======
+ifeq ($(ISAMEM_RAMPAGE), y)
+OPTS        += -DUSE_ISAMEM_RAMPAGE
+endif
+
+ifeq ($(ISAMEM_IAB), y)
+OPTS        += -DUSE_ISAMEM_IAB
+endif
+
+ifeq ($(ISAMEM_BRAT), y)
+OPTS        += -DUSE_ISAMEM_BRAT
+>>>>>>> origin/master
 endif
 
 ifeq ($(LASERXT), y)
@@ -468,24 +491,16 @@ OPTS		+= -DUSE_SIO_DETECT
 DEVBROBJ	+= sio_detect.o
 endif
 
+ifeq ($(TANDY_ISA), y)
+OPTS		+= -DUSE_TANDY_ISA
+endif
+
 ifeq ($(VGAWONDER), y)
 OPTS		+= -DUSE_VGAWONDER
 endif
 
 ifeq ($(XL24), y)
 OPTS		+= -DUSE_XL24
-endif
-
-ifeq ($(ISAMEM_RAMPAGE), y)
-OPTS        += -DUSE_ISAMEM_RAMPAGE
-endif
-
-ifeq ($(ISAMEM_IAB), y)
-OPTS        += -DUSE_ISAMEM_IAB
-endif
-
-ifeq ($(ISAMEM_BRAT), y)
-OPTS        += -DUSE_ISAMEM_BRAT
 endif
 
 ifeq ($(OLIVETTI), y)
