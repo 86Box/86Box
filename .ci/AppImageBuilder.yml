@@ -52,6 +52,7 @@ AppDir:
     - libwayland-client0
     - libx11-6
     - libxcb1
+    - zlib1g
   files:
     exclude:
     - etc
