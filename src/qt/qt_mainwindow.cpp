@@ -1434,7 +1434,7 @@ void MainWindow::on_actionAbout_86Box_triggered()
     msgBox.setInformativeText(tr("An emulator of old computers\n\nAuthors: Sarah Walker, Miran Grca, Fred N. van Kempen (waltje), SA1988, Tiseno100, reenigne, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2 or later. See LICENSE for more information."));
     msgBox.setWindowTitle("About 86Box");
     msgBox.addButton("OK", QMessageBox::ButtonRole::AcceptRole);
-    auto webSiteButton = msgBox.addButton(EMU_SITE_W, QMessageBox::ButtonRole::HelpRole);
+    auto webSiteButton = msgBox.addButton(QString::fromWCharArray(EMU_SITE_W), QMessageBox::ButtonRole::HelpRole);
     webSiteButton->connect(webSiteButton, &QPushButton::released, []()
     {
         QDesktopServices::openUrl(QUrl("https://" EMU_SITE));
