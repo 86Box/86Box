@@ -119,7 +119,11 @@ void RendererCommon::drawStatusBarIcons(QPainter* painter)
         QLabel* label = qobject_cast<QLabel*>(main_window->ui->statusbar->children()[i]);
         if (label)
         {
-            auto pixmap = label->pixmap(Qt::ReturnByValue);
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+            const QPixmap pixmap = label->pixmap();
+#else
+            const QPixmap pixmap = *label->pixmap();
+#endif
             if (!pixmap.isNull())
             {
                 painter->setBrush(QColor(0, 0, 0, 255));
