@@ -135,7 +135,6 @@ void RendererCommon::drawStatusBarIcons(QPainter* painter)
                     x += main_window->statusBar()->layout()->spacing();
                 }
                 else painter->fillRect(x, painter->device()->height() - pixmap.height() - 4, 4, pixmap.height() + 4, QColor::fromRgbF(0, 0, 0, .5));
-                pixheight = qMax((unsigned int)pixheight, (unsigned int)pixmap.height());
             }
         }
     }
