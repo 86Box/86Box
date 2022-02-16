@@ -574,7 +574,7 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 				break;
 
 			case IDM_DOCS:
-				ShellExecute(hwnd, L"open", EMU_DOCS_URL, NULL, NULL, SW_SHOW);
+				ShellExecute(hwnd, L"open", EMU_DOCS_URL_W, NULL, NULL, SW_SHOW);
 				break;
 
 			case IDM_UPDATE_ICONS:

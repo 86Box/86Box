@@ -35,10 +35,13 @@
 #define COPYRIGHT_YEAR	"2022"
 
 /* Web URL info. */
-#define EMU_SITE	L"86box.net"
-#define EMU_ROMS_URL	L"https://github.com/86Box/roms/releases/latest"
+#define EMU_SITE	"86box.net"
+#define EMU_SITE_W	LSTR(EMU_SITE)
+#define EMU_ROMS_URL	"https://github.com/86Box/roms/releases/latest"
+#define EMU_ROMS_URL_W	LSTR(EMU_ROMS_URL)
 #ifdef RELEASE_BUILD
-# define EMU_DOCS_URL	L"https://86box.readthedocs.io/en/v3.0/"
+# define EMU_DOCS_URL	"https://86box.readthedocs.io/en/v3.2/"
 #else
-# define EMU_DOCS_URL	L"https://86box.readthedocs.io"
+# define EMU_DOCS_URL	"https://86box.readthedocs.io"
 #endif
+#define EMU_DOCS_URL_W	LSTR(EMU_DOCS_URL)

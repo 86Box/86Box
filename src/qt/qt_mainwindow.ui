@@ -668,6 +668,9 @@
    <property name="toolTip">
     <string>ACPI Shutdown</string>
    </property>
+   <property name="visible">
+    <bool>false</bool>
+   </property>
   </action>
   <action name="actionBegin_trace">
    <property name="text">
