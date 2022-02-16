@@ -39,7 +39,7 @@ AboutDialogCreate(HWND hwnd)
     int i;
     TASKDIALOGCONFIG tdconfig = {0};
     TASKDIALOG_BUTTON tdbuttons[] = {
-	{IDOK, EMU_SITE},
+	{IDOK, EMU_SITE_W},
 	{IDCANCEL, MAKEINTRESOURCE(IDS_2127)}
     };
 
