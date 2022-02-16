@@ -125,16 +125,17 @@ void RendererCommon::drawStatusBarIcons(QPainter* painter)
 #endif
             if (!pixmap.isNull())
             {
-                painter->setBrush(QColor(0, 0, 0, 255));
-                painter->fillRect(x, painter->device()->height() - pixmap.height() - 5, pixmap.width(), pixmap.height() + 5, QColor(0, 0, 0, 127));
+                painter->setBrush(QColor::fromRgbF(0, 0, 0, 1.));
+                painter->fillRect(x, painter->device()->height() - pixmap.height() - 5, pixmap.width(), pixmap.height() + 5, QColor::fromRgbF(0, 0, 0, .5));
                 painter->drawPixmap(x + main_window->statusBar()->layout()->spacing() / 2, painter->device()->height() - pixmap.height() - 3, pixmap);
                 x += pixmap.width();
                 if (i <= main_window->statusBar()->children().count() - 3)
                 {
-                    painter->fillRect(x, painter->device()->height() - pixmap.height() - 5, main_window->statusBar()->layout()->spacing(), pixmap.height() + 5, QColor(0, 0, 0, 127));
+                    painter->fillRect(x, painter->device()->height() - pixmap.height() - 5, main_window->statusBar()->layout()->spacing(), pixmap.height() + 5, QColor::fromRgbF(0, 0, 0, .5));
                     x += main_window->statusBar()->layout()->spacing();
                 }
-                else painter->fillRect(x, painter->device()->height() - pixmap.height() - 4, 4, pixmap.height() + 4, QColor(0, 0, 0, 127));
+                else painter->fillRect(x, painter->device()->height() - pixmap.height() - 4, 4, pixmap.height() + 4, QColor::fromRgbF(0, 0, 0, .5));
+                pixheight = qMax((unsigned int)pixheight, (unsigned int)pixmap.height());
             }
         }
     }
