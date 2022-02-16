@@ -24,6 +24,7 @@ Performance may vary depending on both host and guest configuration. Most emulat
 It is also recommended to use a manager application with 86Box for easier handling of multiple virtual machines.
 * [WinBox for 86Box](https://github.com/86Box/WinBox-for-86Box) by Laci bá'
   * The new manager with improved new user experience; installer, automatic updates of emulator files and more.
+  * While development is suspended and the repository is archived, the latest version is fully functional.
 * [86Box Manager](https://github.com/86Box/86BoxManager) by [daviunic](https://github.com/daviunic) (Overdoze)
   * The traditional 86Box manager with simple interface.
 
