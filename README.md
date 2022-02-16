@@ -21,7 +21,7 @@ System requirements and recommendations
 
 Performance may vary depending on both host and guest configuration. Most emulation logic is executed in a single thread, therefore generally systems with better IPC (instructions per clock) should be able to emulate higher clock speeds.
 
-It is also recommended to use a manager application with 86Box for easier handling of multiple virtual machines.
+It is also recommended to use a manager application (**Windows only**) with 86Box for easier handling of multiple virtual machines.
 * [WinBox for 86Box](https://github.com/86Box/WinBox-for-86Box) by Laci bá'
   * The new manager with improved new user experience; installer, automatic updates of emulator files and more.
   * While development is suspended and the repository is archived, the latest version is fully functional.
