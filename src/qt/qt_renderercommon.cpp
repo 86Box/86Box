@@ -18,7 +18,6 @@
 #include "qt_renderercommon.hpp"
 #include "qt_mainwindow.hpp"
 #include "qt_machinestatus.hpp"
-#include "ui_qt_mainwindow.h"
 
 #include <QPainter>
 #include <QWidget>
@@ -114,9 +113,9 @@ void RendererCommon::drawStatusBarIcons(QPainter* painter)
     uint32_t x = 0;
     auto prevcompositionMode = painter->compositionMode();
     painter->setCompositionMode(QPainter::CompositionMode::CompositionMode_SourceOver);
-    for (int i = 0; i < main_window->ui->statusbar->children().count(); i++)
+    for (int i = 0; i < main_window->statusBar()->children().count(); i++)
     {
-        QLabel* label = qobject_cast<QLabel*>(main_window->ui->statusbar->children()[i]);
+        QLabel* label = qobject_cast<QLabel*>(main_window->statusBar()->children()[i]);
         if (label)
         {
 #if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
@@ -127,13 +126,13 @@ void RendererCommon::drawStatusBarIcons(QPainter* painter)
             if (!pixmap.isNull())
             {
                 painter->setBrush(QColor(0, 0, 0, 255));
-                painter->fillRect(x, painter->device()->height() - pixmap.height() - 4, pixmap.width(), pixmap.height() + 4, QColor(0, 0, 0, 127));
-                painter->drawPixmap(x, painter->device()->height() - pixmap.height(), pixmap);
+                painter->fillRect(x, painter->device()->height() - pixmap.height() - 5, pixmap.width(), pixmap.height() + 5, QColor(0, 0, 0, 127));
+                painter->drawPixmap(x + main_window->statusBar()->layout()->spacing() / 2, painter->device()->height() - pixmap.height() - 3, pixmap);
                 x += pixmap.width();
-                if (i <= main_window->ui->statusbar->children().count() - 3)
+                if (i <= main_window->statusBar()->children().count() - 3)
                 {
-                    painter->fillRect(x, painter->device()->height() - pixmap.height() - 4, main_window->ui->statusbar->layout()->spacing(), pixmap.height() + 4, QColor(0, 0, 0, 127));
-                    x += main_window->ui->statusbar->layout()->spacing();
+                    painter->fillRect(x, painter->device()->height() - pixmap.height() - 5, main_window->statusBar()->layout()->spacing(), pixmap.height() + 5, QColor(0, 0, 0, 127));
+                    x += main_window->statusBar()->layout()->spacing();
                 }
                 else painter->fillRect(x, painter->device()->height() - pixmap.height() - 4, 4, pixmap.height() + 4, QColor(0, 0, 0, 127));
             }
@@ -142,11 +141,11 @@ void RendererCommon::drawStatusBarIcons(QPainter* painter)
     if (main_window->status->getMessage().isEmpty() == false)
     {
         auto curStatusMsg = main_window->status->getMessage();
-        auto textSize = painter->fontMetrics().size(Qt::TextSingleLine, curStatusMsg);
+        auto textSize = painter->fontMetrics().size(Qt::TextSingleLine, QChar(' ') + curStatusMsg + QChar(' '));
         painter->setPen(QColor(0, 0, 0, 127));
         painter->fillRect(painter->device()->width() - textSize.width(), painter->device()->height() - textSize.height(), textSize.width(), textSize.height(), QColor(0, 0, 0, 127));
         painter->setPen(QColor(255, 255, 255, 255));
-        painter->drawText(QRectF(painter->device()->width() - textSize.width(), painter->device()->height() - textSize.height(), textSize.width(), textSize.height()), Qt::TextSingleLine, curStatusMsg);
+        painter->drawText(QRectF(painter->device()->width() - textSize.width(), painter->device()->height() - textSize.height(), textSize.width(), textSize.height()), Qt::TextSingleLine, QChar(' ') + curStatusMsg + QChar(' '));
     }
     painter->setCompositionMode(prevcompositionMode);
 }
