@@ -574,7 +574,7 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 				break;
 
 			case IDM_DOCS:
-				ShellExecute(hwnd, L"open", EMU_DOCS_URL, NULL, NULL, SW_SHOW);
+				ShellExecute(hwnd, L"open", EMU_DOCS_URL_W, NULL, NULL, SW_SHOW);
 				break;
 
 			case IDM_UPDATE_ICONS:
@@ -1171,6 +1171,7 @@ ui_init(int nCmdShow)
     int bRet;
     TASKDIALOGCONFIG tdconfig = {0};
     TASKDIALOG_BUTTON tdbuttons[] = {{IDCANCEL, MAKEINTRESOURCE(IDS_2119)}};
+    uint32_t helper_lang;
 
     /* Load DPI related Windows 10 APIs */
     user32_handle = dynld_module("user32.dll", user32_imports);
@@ -1203,6 +1204,12 @@ ui_init(int nCmdShow)
 		TaskDialogIndirect(&tdconfig, NULL, NULL, NULL);
 		return(6);
 	}
+
+
+	/* Load the desired language */
+	helper_lang = lang_id;
+	lang_id = 0;
+	set_language(helper_lang);
 
 	win_settings_open(NULL);
 	return(0);
@@ -1321,7 +1328,7 @@ ui_init(int nCmdShow)
     }
 
     /* Load the desired language */
-    uint32_t helper_lang = lang_id;
+    helper_lang = lang_id;
     lang_id = 0;
     set_language(helper_lang);
 	

@@ -427,6 +427,8 @@ then
 	# TBD
 	:
 else
+	cwd_root=$(pwd)
+
 	# Build openal-soft 1.21.1 manually to fix audio issues. This is a temporary
 	# workaround until a newer version of openal-soft trickles down to Debian repos.
 	if [ -d "openal-soft-1.21.1" ]
@@ -435,11 +437,44 @@ else
 	else
 		wget -qO - https://github.com/kcat/openal-soft/archive/refs/tags/1.21.1.tar.gz | tar zxf -
 	fi
-	cwd_root=$(pwd)
 	cd openal-soft-1.21.1/build
+	[ -e Makefile ] && make clean
 	cmake -G "Unix Makefiles" -D "CMAKE_TOOLCHAIN_FILE=$cwd_root/toolchain.cmake" -D "CMAKE_INSTALL_PREFIX=$cwd_root/archive_tmp/usr" ..
-	make -j$(nproc) install
-	cd ../..
+	make -j$(nproc) install || exit 99
+	cd "$cwd_root"
+
+	# Build rtmidi without JACK support to remove the dependency on libjack.
+	if [ -d "rtmidi-4.0.0" ]
+	then
+		rm -rf rtmidi-4.0.0/CMakeCache.txt rtmidi-4.0.0/CMakeFiles
+	else
+		wget -qO - http://www.music.mcgill.ca/~gary/rtmidi/release/rtmidi-4.0.0.tar.gz | tar zxf -
+	fi
+	cwd_root=$(pwd)
+	cd rtmidi-4.0.0
+	[ -e Makefile ] && make clean
+	cmake -G "Unix Makefiles" -D RTMIDI_API_JACK=OFF -D "CMAKE_TOOLCHAIN_FILE=$cwd_root/toolchain.cmake" -D "CMAKE_INSTALL_PREFIX=$cwd_root/archive_tmp/usr" .
+	make -j$(nproc) install || exit 99
+	cd "$cwd_root"
+
+	# Build SDL2 for joystick support with most components disabled to remove the dependencies on PulseAudio and libdrm.
+	if [ ! -d "SDL2-2.0.20" ]
+	then
+		wget -qO - https://www.libsdl.org/release/SDL2-2.0.20.tar.gz | tar zxf -
+	fi
+	rm -rf sdlbuild
+	mkdir sdlbuild
+	cd sdlbuild
+	cmake -G "Unix Makefiles" -D SDL_DISKAUDIO=OFF -D SDL_DIRECTFB_SHARED=OFF -D SDL_OPENGL=OFF -D SDL_OPENGLES=OFF -D SDL_OSS=OFF -D SDL_ALSA=OFF \
+		-D SDL_ALSA_SHARED=OFF -D SDL_JACK=OFF -D SDL_JACK_SHARED=OFF -D SDL_ESD=OFF -D SDL_ESD_SHARED=OFF -D SDL_PIPEWIRE=OFF -D SDL_PIPEWIRE_SHARED=OFF \
+		-D SDL_PULSEAUDIO=OFF -D SDL_PULSEAUDIO_SHARED=OFF -D SDL_ARTS=OFF -D SDL_ARTS_SHARED=OFF -D SDL_NAS=OFF -D SDL_NAS_SHARED=OFF -D SDL_SNDIO=OFF \
+		-D SDL_SNDIO_SHARED=OFF -D SDL_FUSIONSOUND=OFF -D SDL_FUSIONSOUND_SHARED=OFF -D SDL_LIBSAMPLERATE=OFF -D SDL_LIBSAMPLERATE_SHARED=OFF -D SDL_X11=OFF \
+		-D SDL_X11_SHARED=OFF -D SDL_WAYLAND=OFF -D SDL_WAYLAND_SHARED=OFF -D SDL_WAYLAND_LIBDECOR=OFF -D SDL_WAYLAND_LIBDECOR_SHARED=OFF \
+		-D SDL_WAYLAND_QT_TOUCH=OFF -D SDL_RPI=OFF -D SDL_VIVANTE=OFF -D SDL_VULKAN=OFF -D SDL_KMSDRM=OFF -D SDL_KMSDRM_SHARED=OFF -D SDL_OFFSCREEN=OFF \
+		-D SDL_HIDAPI_JOYSTICK=ON -D SDL_VIRTUAL_JOYSTICK=ON -D SDL_SHARED=ON -D SDL_STATIC=OFF -S "$cwd_root/SDL2-2.0.20" \
+		-D "CMAKE_TOOLCHAIN_FILE=$cwd_root/toolchain.cmake" -D "CMAKE_INSTALL_PREFIX=$cwd_root/archive_tmp/usr"
+	make -j$(nproc) install || exit 99
+	cd "$cwd_root"
 
 	# Archive Discord Game SDK library.
 	7z e -y -o"archive_tmp/usr/lib" discord_game_sdk.zip "lib/$arch_discord/discord_game_sdk.so"

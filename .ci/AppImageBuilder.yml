@@ -34,7 +34,6 @@ AppDir:
     - sourceline: 'deb http://deb.debian.org/debian bullseye-updates main'
       key_url: 'https://ftp-master.debian.org/keys/archive-key-11-security.asc'
     include:
-    - libdrm2
     - libevdev2
     - libfluidsynth2
     - libfreetype6
@@ -48,18 +47,12 @@ AppDir:
     - libqt5core5a
     - libqt5gui5
     - libqt5widgets5
-    - librtmidi5
-    - libsdl2-2.0-0
     - libslirp0
     - libsndio7.0
     - libwayland-client0
     - libx11-6
-    - libx11-xcb1
-    - libxcb-render0
-    - libxcb-shape0
-    - libxcb-shm0
-    - libxcb-xfixes0
     - libxcb1
+    - zlib1g
   files:
     exclude:
     - etc
@@ -67,6 +60,7 @@ AppDir:
     - opt/libc/usr/share
     - usr/bin
     - usr/include
+    - usr/lib/*/libasound.so.*
     - usr/lib/cmake
     - usr/lib/pkgconfig
     - usr/sbin
@@ -91,6 +85,7 @@ AppDir:
     - usr/share/pkgconfig
     - usr/share/poppler
     - usr/share/readline
+    - usr/share/rtmidi
     - usr/share/sounds
     - usr/share/X11
     - usr/share/xml

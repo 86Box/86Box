@@ -49,14 +49,20 @@ RendererStack::RendererStack(QWidget *parent) :
 {
     ui->setupUi(this);
 
+#ifdef __unix__
 #ifdef WAYLAND
     if (QApplication::platformName().contains("wayland")) {
         wl_init();
     }
 #endif
 #ifdef EVDEV_INPUT
-    if (QApplication::platformName() == "xcb" || QApplication::platformName() == "eglfs") {
+    if (QApplication::platformName() == "eglfs") {
         evdev_init();
+    }
+#endif
+    if (QApplication::platformName() == "xcb") {
+        extern void xinput2_init();
+        xinput2_init();
     }
 #endif
 }
@@ -91,20 +97,31 @@ void RendererStack::mousePoll()
 {
 #ifdef __APPLE__
     return macos_poll_mouse();
-#else
+#else /* !defined __APPLE__ */
     mouse_x = mousedata.deltax;
     mouse_y = mousedata.deltay;
     mouse_z = mousedata.deltaz;
     mousedata.deltax = mousedata.deltay = mousedata.deltaz = 0;
     mouse_buttons = mousedata.mousebuttons;
+
+#ifdef __unix__
 #ifdef WAYLAND
     if (QApplication::platformName().contains("wayland"))
         wl_mouse_poll();
 #endif
+
 #ifdef EVDEV_INPUT
-    evdev_mouse_poll();
+    if (QApplication::platformName() == "eglfs") evdev_mouse_poll();
+    else
 #endif
-#endif
+    if (QApplication::platformName() == "xcb")
+    {
+        extern void xinput2_poll();
+        xinput2_poll();
+    }
+#endif /* defined __unix__ */
+#endif /* !defined __APPLE__ */
+
 }
 
 int ignoreNextMouseEvent = 1;
@@ -169,8 +186,8 @@ void RendererStack::mouseMoveEvent(QMouseEvent *event)
         leaveEvent((QEvent*)event);
         ignoreNextMouseEvent--;
     }
-    else if (event->globalPos().x() == 0 || event->globalPos().y() == 0) leaveEvent((QEvent*)event);
-    else if (event->globalPos().x() == (util::screenOfWidget(this)->geometry().width() - 1) || event->globalPos().y() == (util::screenOfWidget(this)->geometry().height() - 1)) leaveEvent((QEvent*)event);
+    QCursor::setPos(mapToGlobal(QPoint(width() / 2, height() / 2)));
+    ignoreNextMouseEvent = 2;
     oldPos = event->pos();
 #endif
 }
@@ -183,7 +200,6 @@ void RendererStack::leaveEvent(QEvent* event)
         return;
     }
     if (!mouse_capture) return;
-    QCursor::setPos(mapToGlobal(QPoint(width() / 2, height() / 2)));
     ignoreNextMouseEvent = 2;
     event->accept();
 }

@@ -168,7 +168,6 @@ MainWindow::MainWindow(QWidget *parent) :
         mouse_capture = state ? 1 : 0;
         qt_mouse_capture(mouse_capture);
         if (mouse_capture) {
-            ui->stackedWidget->grabMouse();
             this->grabKeyboard();
 #ifdef WAYLAND
             if (QGuiApplication::platformName().contains("wayland")) {
@@ -176,7 +175,6 @@ MainWindow::MainWindow(QWidget *parent) :
             }
 #endif
         } else {
-            ui->stackedWidget->releaseMouse();
             this->releaseKeyboard();
 #ifdef WAYLAND
             if (QGuiApplication::platformName().contains("wayland")) {
@@ -810,7 +808,6 @@ std::array<uint32_t, 256> x11_to_xt_vnc
     0,
     0,
     0,
-    0,
     0x1D,
     0x11D,
     0x2A,
@@ -1436,10 +1433,10 @@ void MainWindow::on_actionAbout_86Box_triggered()
     msgBox.setInformativeText(tr("An emulator of old computers\n\nAuthors: Sarah Walker, Miran Grca, Fred N. van Kempen (waltje), SA1988, Tiseno100, reenigne, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2 or later. See LICENSE for more information."));
     msgBox.setWindowTitle("About 86Box");
     msgBox.addButton("OK", QMessageBox::ButtonRole::AcceptRole);
-    auto webSiteButton = msgBox.addButton("86box.net", QMessageBox::ButtonRole::HelpRole);
+    auto webSiteButton = msgBox.addButton(EMU_SITE, QMessageBox::ButtonRole::HelpRole);
     webSiteButton->connect(webSiteButton, &QPushButton::released, []()
     {
-        QDesktopServices::openUrl(QUrl("https://86box.net/"));
+        QDesktopServices::openUrl(QUrl("https://" EMU_SITE));
     });
 #ifdef RELEASE_BUILD
     msgBox.setIconPixmap(QIcon(":/settings/win/icons/86Box-green.ico").pixmap(32, 32));
@@ -1456,7 +1453,7 @@ void MainWindow::on_actionAbout_86Box_triggered()
 
 void MainWindow::on_actionDocumentation_triggered()
 {
-     QDesktopServices::openUrl(QUrl("https://86box.readthedocs.io"));
+     QDesktopServices::openUrl(QUrl(EMU_DOCS_URL));
 }
 
 void MainWindow::on_actionCGA_PCjr_Tandy_EGA_S_VGA_overscan_triggered() {
