@@ -445,6 +445,10 @@ void MainWindow::closeEvent(QCloseEvent *event) {
     }
     qt_nvr_save();
     config_save();
+#ifdef __unix__
+    extern void xinput2_exit();
+    if (QApplication::platformName() == "xcb") xinput2_exit();
+#endif
     event->accept();
 }
 

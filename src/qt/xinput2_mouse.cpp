@@ -152,9 +152,12 @@ void xinput2_proc()
 
 void xinput2_exit()
 {
-    exitthread = true;
-    procThread->wait(5000);
-    procThread->terminate();
+    if (!exitthread)
+    {
+        exitthread = true;
+        procThread->wait(5000);
+        procThread->terminate();
+    }
 }
 
 void xinput2_init()
