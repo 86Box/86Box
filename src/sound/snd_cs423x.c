@@ -776,9 +776,6 @@ cs423x_init(const device_t *info)
     if ((dev->eeprom_data[0] == 0x55) && (dev->eeprom_data[1] == 0xbb))
 	dev->eeprom = i2c_eeprom_init(i2c_gpio_get_bus(dev->i2c), 0x50, dev->eeprom_data, sizeof(dev->eeprom_data), 1);
 
-    /* Initialize ISAPnP. */
-    dev->pnp_card = isapnp_add_card(NULL, 0, cs423x_pnp_config_changed, NULL, NULL, NULL, dev);
-
     /* Initialize SBPro codec. The WSS codec is initialized later by cs423x_reset */
     dev->sb = device_add(&sb_pro_compat_device);
     sound_set_cd_audio_filter(sbpro_filter_cd_audio, dev->sb); /* CD audio filter for the default context */
@@ -786,6 +783,9 @@ cs423x_init(const device_t *info)
     /* Initialize RAM, registers and WSS codec. */
     cs423x_reset(dev);
     sound_add_handler(cs423x_get_buffer, dev);
+
+    /* Initialize ISAPnP. */
+    dev->pnp_card = isapnp_add_card(NULL, 0, cs423x_pnp_config_changed, NULL, NULL, NULL, dev);
 
     return dev;
 }
