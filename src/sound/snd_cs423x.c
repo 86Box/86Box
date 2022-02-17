@@ -708,7 +708,7 @@ cs423x_reset(void *priv)
     /* Reset PnP resource data, state and logical devices. */
     dev->pnp_enable = 1;
     cs423x_pnp_enable(dev, 1, 1);
-    if (dev->pnp_card)
+    if (dev->pnp_card && dev->sb)
 	isapnp_reset_card(dev->pnp_card);
 
     /* Reset SLAM. */
@@ -780,7 +780,7 @@ cs423x_init(const device_t *info)
     dev->pnp_card = isapnp_add_card(NULL, 0, cs423x_pnp_config_changed, NULL, NULL, NULL, dev);
 
     /* Initialize SBPro codec. The WSS codec is initialized later by cs423x_reset */
-    dev->sb = device_add(&sb_pro_compat_device);
+    dev->sb = device_add_inst(&sb_pro_compat_device, 1);
     sound_set_cd_audio_filter(sbpro_filter_cd_audio, dev->sb); /* CD audio filter for the default context */
 
     /* Initialize RAM, registers and WSS codec. */
