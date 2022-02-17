@@ -66,6 +66,7 @@ extern "C"
 #include "cocoa_mouse.hpp"
 #include "qt_styleoverride.hpp"
 
+
 // Void Cast
 #define VC(x) const_cast<wchar_t*>(x)
 

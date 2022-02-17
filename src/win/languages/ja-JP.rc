@@ -371,7 +371,7 @@ BEGIN
     2048	"86Box"
     IDS_2049	"エラー"
     IDS_2050	"致命的なエラー"
-    IDS_2051	" - PAUSED"
+    IDS_2051	" - 一時停止"
     IDS_2052	"Ctrl+Alt+PgDnでウィンドウモードに戻ります。"
     IDS_2053	"速度"
     IDS_2054	"ZIP %03i %i (%s): %ls"
