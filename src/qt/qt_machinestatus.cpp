@@ -259,8 +259,8 @@ void MachineStatus::iterateCDROM(const std::function<void (int)> &cb) {
     for (size_t i = 0; i < CDROM_NUM; i++) {
         /* Could be Internal or External IDE.. */
         if ((cdrom[i].bus_type == CDROM_BUS_ATAPI) &&
-            !hasIDE() && hdc_name != QStringLiteral("ide") &&
-            hdc_name != QStringLiteral("xtide"))
+            !hasIDE() && hdc_name.left(3) != QStringLiteral("ide") &&
+            hdc_name.left(5) != QStringLiteral("xtide"))
             continue;
         if ((cdrom[i].bus_type == CDROM_BUS_SCSI) && !hasSCSI() &&
             (scsi_card_current[0] == 0) && (scsi_card_current[1] == 0) &&
@@ -277,8 +277,8 @@ void MachineStatus::iterateZIP(const std::function<void (int)> &cb) {
     for (size_t i = 0; i < ZIP_NUM; i++) {
         /* Could be Internal or External IDE.. */
         if ((zip_drives[i].bus_type == ZIP_BUS_ATAPI) &&
-            !hasIDE() && hdc_name != QStringLiteral("ide") &&
-            hdc_name != QStringLiteral("xtide"))
+            !hasIDE() && hdc_name.left(3) != QStringLiteral("ide") &&
+            hdc_name.left(5) != QStringLiteral("xtide"))
             continue;
         if ((zip_drives[i].bus_type == ZIP_BUS_SCSI) && !hasSCSI() &&
             (scsi_card_current[0] == 0) && (scsi_card_current[1] == 0) &&
@@ -295,8 +295,8 @@ void MachineStatus::iterateMO(const std::function<void (int)> &cb) {
     for (size_t i = 0; i < MO_NUM; i++) {
         /* Could be Internal or External IDE.. */
         if ((mo_drives[i].bus_type == MO_BUS_ATAPI) &&
-            !hasIDE() && hdc_name != QStringLiteral("ide") &&
-            hdc_name != QStringLiteral("xtide"))
+            !hasIDE() && hdc_name.left(3) != QStringLiteral("ide") &&
+            hdc_name.left(5) != QStringLiteral("xtide"))
             continue;
         if ((mo_drives[i].bus_type == MO_BUS_SCSI) && !hasSCSI() &&
             (scsi_card_current[0] == 0) && (scsi_card_current[1] == 0) &&

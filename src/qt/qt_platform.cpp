@@ -337,6 +337,7 @@ extern int	nvr_save(void);
 void
 plat_power_off(void)
 {
+    plat_mouse_capture(0);
     confirm_exit = 0;
     nvr_save();
     config_save();
