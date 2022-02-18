@@ -3,7 +3,6 @@ name: CMake
 on:
 
   push:
-
     paths:
     - src/**
     - "**/CMakeLists.txt"
@@ -13,7 +12,6 @@ on:
     - "!**/Makefile*"
 
   pull_request:
-
     paths:
     - src/**
     - "**/CMakeLists.txt"
