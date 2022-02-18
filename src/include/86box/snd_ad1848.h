@@ -23,7 +23,6 @@ enum {
     AD1848_TYPE_DEFAULT = 0,
     AD1848_TYPE_CS4248,
     AD1848_TYPE_CS4231,
-    AD1848_TYPE_CS4235,
     AD1848_TYPE_CS4236
 };
 
@@ -47,10 +46,6 @@ typedef struct {
 
     int16_t	buffer[SOUNDBUFLEN * 2];
     int		pos;
-
-    void	*cram_priv,
-		(*cram_write)(uint16_t addr, uint8_t val, void *priv);
-    uint8_t	(*cram_read)(uint16_t addr, void *priv);
 } ad1848_t;
 
 
