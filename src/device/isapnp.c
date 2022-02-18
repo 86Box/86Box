@@ -414,7 +414,7 @@ isapnp_write_addr(uint16_t addr, uint8_t val, void *priv)
 		if (!dev->key_pos) {
 			isapnp_log("ISAPnP: Key unlocked, putting cards to SLEEP\n");
 			while (card) {
-				if (card->enable && (card->state == PNP_STATE_WAIT_FOR_KEY))
+				if (card->enable && (card->enable != ISAPNP_CARD_NO_KEY) && (card->state == PNP_STATE_WAIT_FOR_KEY))
 					card->state = PNP_STATE_SLEEP;
 				card = card->next;
 			}
@@ -974,14 +974,12 @@ isapnp_enable_card(void *priv, uint8_t enable)
 
     /* Look for a matching card. */
     isapnp_card_t *card = dev->first_card;
-    uint8_t will_enable;
     while (card) {
 	if (card == priv) {
 		/* Enable or disable the card. */
-		will_enable = (enable >= ISAPNP_CARD_ENABLE);
-		if (will_enable ^ card->enable)
+		if (!!enable ^ !!card->enable)
 			card->state = (enable == ISAPNP_CARD_FORCE_CONFIG) ? PNP_STATE_CONFIG : PNP_STATE_WAIT_FOR_KEY;
-		card->enable = will_enable;
+		card->enable = enable;
 
 		/* Invalidate other references if we're disabling this card. */
 		if (!card->enable) {

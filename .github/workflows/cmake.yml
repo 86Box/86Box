@@ -3,6 +3,9 @@ name: CMake
 on:
 
   push:
+    branches:
+    - master
+
     paths:
     - src/**
     - "**/CMakeLists.txt"
@@ -12,6 +15,9 @@ on:
     - "!**/Makefile*"
 
   pull_request:
+    branches:
+    - master
+
     paths:
     - src/**
     - "**/CMakeLists.txt"
@@ -25,7 +31,7 @@ jobs:
   msys2:
     name: MSYS2 ${{ matrix.build.name }} build (${{ matrix.environment.msystem }})
 
-    runs-on: windows-latest
+    runs-on: windows-2022
 
     defaults:
       run:
@@ -35,10 +41,10 @@ jobs:
       fail-fast: true
       matrix:
         build:
-        - name: Regular ODR
-          slug: -ODR
-          preset: regular
-          target: install/strip
+#        - name: Regular ODR
+#          slug: -ODR
+#          preset: regular
+#          target: install/strip
         - name: Debug ODR
           slug: -ODR-Debug
           preset: debug
@@ -47,10 +53,10 @@ jobs:
           slug: -ODR-Dev
           preset: experimental
           target: install
-        - name: Regular NDR
-          slug: -NDR
-          preset: regularndr
-          target: install/strip
+#        - name: Regular NDR
+#          slug: -NDR
+#          preset: regularndr
+#          target: install/strip
         - name: Debug NDR
           slug: -NDR-Debug
           preset: debugndr
@@ -68,8 +74,8 @@ jobs:
             prefix: mingw-w64-ucrt-x86_64
 #          - msystem: CLANG32
 #            prefix: mingw-w64-clang-i686
-          - msystem: CLANG64
-            prefix: mingw-w64-clang-x86_64
+#          - msystem: CLANG64
+#            prefix: mingw-w64-clang-x86_64
 
     steps:
     - uses: msys2/setup-msys2@v2
@@ -114,12 +120,12 @@ jobs:
       fail-fast: true
       matrix:
         build:
-        - name: Regular ODR
-          slug: -ODR
-          type: Release
-          dev-build: off
-          new-dynarec: off
-          strip: --strip
+#        - name: Regular ODR
+#          slug: -ODR
+#          type: Release
+#          dev-build: off
+#          new-dynarec: off
+#          strip: --strip
         - name: Debug ODR
           slug: -ODR-Debug
           type: Debug
@@ -130,12 +136,12 @@ jobs:
           type: Debug
           dev-build: on
           new-dynarec: off
-        - name: Regular NDR
-          slug: -NDR
-          type: Release
-          strip: --strip
-          dev-build: off
-          new-dynarec: on
+#        - name: Regular NDR
+#          slug: -NDR
+#          type: Release
+#          strip: --strip
+#          dev-build: off
+#          new-dynarec: on
         - name: Debug NDR
           slug: -NDR-Debug
           type: Debug
@@ -210,18 +216,18 @@ jobs:
   linux:
     name: "Linux GCC 11 (${{ matrix.build.name }} x86_64)"
 
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
 
     strategy:
       fail-fast: true
       matrix:
         build:
-        - name: Regular ODR
-          slug: -ODR
-          type: Release
-          dev-build: off
-          new-dynarec: off
-          strip: --strip
+#        - name: Regular ODR
+#          slug: -ODR
+#          type: Release
+#          dev-build: off
+#          new-dynarec: off
+#          strip: --strip
         - name: Debug ODR
           slug: -ODR-Debug
           type: Debug
@@ -232,12 +238,12 @@ jobs:
           type: Debug
           dev-build: on
           new-dynarec: off
-        - name: Regular NDR
-          slug: -NDR
-          type: Release
-          strip: --strip
-          dev-build: off
-          new-dynarec: on
+#        - name: Regular NDR
+#          slug: -NDR
+#          type: Release
+#          strip: --strip
+#          dev-build: off
+#          new-dynarec: on
         - name: Debug NDR
           slug: -NDR-Debug
           type: Debug
@@ -280,12 +286,12 @@ jobs:
       fail-fast: true
       matrix:
         build:
-        - name: Regular ODR
-          slug: -ODR
-          type: Release
-          dev-build: off
-          new-dynarec: off
-          strip: --strip
+#        - name: Regular ODR
+#          slug: -ODR
+#          type: Release
+#          dev-build: off
+#          new-dynarec: off
+#          strip: --strip
         - name: Debug ODR
           slug: -ODR-Debug
           type: Debug
@@ -296,12 +302,12 @@ jobs:
           type: Debug
           dev-build: on
           new-dynarec: off
-        - name: Regular NDR
-          slug: -NDR
-          type: Release
-          strip: --strip
-          dev-build: off
-          new-dynarec: on
+#        - name: Regular NDR
+#          slug: -NDR
+#          type: Release
+#          strip: --strip
+#          dev-build: off
+#          new-dynarec: on
         - name: Debug NDR
           slug: -NDR-Debug
           type: Debug

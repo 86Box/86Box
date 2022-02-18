@@ -106,6 +106,7 @@ static const SOUND_CARD sound_cards[] =
     { &adgold_device			},
     { &azt2316a_device			},
     { &azt1605_device			},
+    { &cs4235_device			},
     { &cs4236b_device			},
     { &sb_1_device				},
     { &sb_15_device				},
