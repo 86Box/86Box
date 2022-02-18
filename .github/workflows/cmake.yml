@@ -25,7 +25,7 @@ jobs:
   msys2:
     name: MSYS2 ${{ matrix.build.name }} build (${{ matrix.environment.msystem }})
 
-    runs-on: windows-latest
+    runs-on: windows-2022
 
     defaults:
       run:
@@ -68,8 +68,8 @@ jobs:
             prefix: mingw-w64-ucrt-x86_64
 #          - msystem: CLANG32
 #            prefix: mingw-w64-clang-i686
-          - msystem: CLANG64
-            prefix: mingw-w64-clang-x86_64
+#          - msystem: CLANG64
+#            prefix: mingw-w64-clang-x86_64
 
     steps:
     - uses: msys2/setup-msys2@v2
@@ -210,7 +210,7 @@ jobs:
   linux:
     name: "Linux GCC 11 (${{ matrix.build.name }} x86_64)"
 
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-2004
 
     strategy:
       fail-fast: true

@@ -268,7 +268,7 @@ isapnp_read_data(uint16_t addr, void *priv)
 	case 0x01: /* Serial Isolation */
 		card = dev->first_card;
 		while (card) {
-			if (card->enable && (card->state == PNP_STATE_ISOLATION))
+			if (card->enable && card->rom && (card->state == PNP_STATE_ISOLATION))
 				break;
 			card = card->next;
 		}

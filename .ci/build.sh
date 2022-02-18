@@ -232,7 +232,7 @@ else
 	then
 		pkgs="$pkgs build-essential"
 	else
-		sudo dpkg --add-architecture $arch_deb
+		sudo dpkg --add-architecture "$arch_deb"
 		pkgs="$pkgs crossbuild-essential-$arch_deb"
 	fi
 

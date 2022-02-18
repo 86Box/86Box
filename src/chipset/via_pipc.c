@@ -1577,7 +1577,7 @@ pipc_init(const device_t *info)
 	dev->ac97 = device_add(&ac97_via_device);
 	ac97_via_set_slot(dev->ac97, dev->slot, PCI_INTC);
 
-	dev->sb = device_add(&sb_pro_compat_device);
+	dev->sb = device_add_inst(&sb_pro_compat_device, 2);
 #ifndef VIA_PIPC_FM_EMULATION
 	dev->sb->opl_enabled = 1;
 #endif

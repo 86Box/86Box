@@ -64,6 +64,7 @@ AppDir:
     - usr/lib/cmake
     - usr/lib/pkgconfig
     - usr/sbin
+    - usr/share/aclocal
     - usr/share/alsa
     - usr/share/apport
     - usr/share/bug
