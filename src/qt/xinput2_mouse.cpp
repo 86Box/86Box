@@ -120,6 +120,14 @@ void xinput2_proc()
                     prev_rel_coords[0] = relative_coords[0];
                     prev_rel_coords[1] = relative_coords[1];
                     prev_time = rawev->time;
+                    if (!mouse_capture) break;
+                    XWindowAttributes winattrib{};
+                    if (XGetWindowAttributes(disp, main_window->winId(), &winattrib)) {
+                         auto globalPoint = main_window->mapToGlobal(QPoint(main_window->width() / 2, main_window->height() / 2));
+                         XWarpPointer(disp, XRootWindow(disp, XScreenNumberOfScreen(winattrib.screen)), XRootWindow(disp, XScreenNumberOfScreen(winattrib.screen)), 0, 0, 0, 0, globalPoint.x(), globalPoint.y());
+                         XFlush(disp);
+                    }
+
                 }
                 case XI_Motion: {
                     if (XKeysymToKeycode(disp, XK_Home) == 69) {
@@ -144,9 +152,12 @@ void xinput2_proc()
 
 void xinput2_exit()
 {
-    exitthread = true;
-    procThread->wait(5000);
-    procThread->terminate();
+    if (!exitthread)
+    {
+        exitthread = true;
+        procThread->wait(5000);
+        procThread->terminate();
+    }
 }
 
 void xinput2_init()
@@ -175,13 +186,6 @@ void xinput2_poll()
     {
         mouse_x = xi2_mouse_x;
         mouse_y = xi2_mouse_y;
-        XWindowAttributes winattrib{};
-        if (XGetWindowAttributes(disp, main_window->winId(), &winattrib))
-        {
-            auto globalPoint = main_window->mapToGlobal(QPoint(main_window->width() / 2, main_window->height() / 2));
-            XWarpPointer(disp, XRootWindow(disp, XScreenNumberOfScreen(winattrib.screen)), XRootWindow(disp, XScreenNumberOfScreen(winattrib.screen)), 0, 0, 0, 0, globalPoint.x(), globalPoint.y());
-            XFlush(disp);
-        }
     }
     xi2_mouse_x = 0;
     xi2_mouse_y = 0;

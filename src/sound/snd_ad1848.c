@@ -16,7 +16,7 @@
  *
  *		Copyright 2008-2020 Sarah Walker.
  *		Copyright 2018-2020 TheCollector1995.
- *		Copyright 2021 RichardG.
+ *		Copyright 2021-2022 RichardG.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -56,7 +56,7 @@ ad1848_setdma(ad1848_t *ad1848, int dma)
 void
 ad1848_updatevolmask(ad1848_t *ad1848)
 {
-    if ((ad1848->type == AD1848_TYPE_CS4236) && ((ad1848->xregs[4] & 0x10) || ad1848->wten))
+    if ((ad1848->type >= AD1848_TYPE_CS4235) && ((ad1848->xregs[4] & 0x10) || ad1848->wten))
 	ad1848->wave_vol_mask = 0x3f;
     else
 	ad1848->wave_vol_mask = 0x7f;
@@ -69,7 +69,7 @@ ad1848_updatefreq(ad1848_t *ad1848)
     double freq;
     uint8_t set = 0;
 
-    if (ad1848->type == AD1848_TYPE_CS4236) {
+    if (ad1848->type >= AD1848_TYPE_CS4235) {
 	if (ad1848->xregs[11] & 0x20) {
 		freq = 16934400LL;
 		switch (ad1848->xregs[13]) {
@@ -134,7 +134,7 @@ ad1848_read(uint16_t addr, void *priv)
 				break;
 
 			case 18: case 19:
-				if (ad1848->type == AD1848_TYPE_CS4236) {
+				if (ad1848->type >= AD1848_TYPE_CS4235) {
 					if ((ad1848->xregs[4] & 0x14) == 0x14) /* FM remapping */
 						ret = ad1848->xregs[ad1848->index - 12]; /* real FM volume on registers 6 and 7 */
 					else if (ad1848->wten && !(ad1848->xregs[4] & 0x08)) /* wavetable remapping */
@@ -142,8 +142,14 @@ ad1848_read(uint16_t addr, void *priv)
 				}
 				break;
 
+			case 20: case 21:
+				/* Backdoor to the Control/RAM registers on CS4235. */
+				if ((ad1848->type == AD1848_TYPE_CS4235) && (ad1848->xregs[18] & 0x80))
+					ret = ad1848->cram_read(ad1848->index - 15, ad1848->cram_priv);
+				break;
+
 			case 23:
-				if ((ad1848->type == AD1848_TYPE_CS4236) && (ad1848->regs[23] & 0x08)) {
+				if ((ad1848->type >= AD1848_TYPE_CS4235) && (ad1848->regs[23] & 0x08)) {
 					if ((ad1848->xindex & 0xfe) == 0x00) /* remapped line volume */
 						ret = ad1848->regs[18 + ad1848->xindex];
 					else
@@ -174,7 +180,7 @@ ad1848_write(uint16_t addr, uint8_t val, void *priv)
 			ad1848->index = val & 0x1f; /* cs4231a extended mode enabled */
 		else
 			ad1848->index = val & 0x0f; /* ad1848/cs4248 mode TODO: some variants/clones DO NOT mirror, just ignore the writes? */
-		if (ad1848->type == AD1848_TYPE_CS4236)
+		if (ad1848->type >= AD1848_TYPE_CS4235)
 			ad1848->regs[23] &= ~0x08; /* clear XRAE */
 		ad1848->trd = val & 0x20;
 		ad1848->mce = val & 0x40;
@@ -183,7 +189,7 @@ ad1848_write(uint16_t addr, uint8_t val, void *priv)
 	case 1:
 		switch (ad1848->index) {
 			case 10:
-				if (ad1848->type != AD1848_TYPE_CS4236)
+				if (ad1848->type < AD1848_TYPE_CS4235)
 					break;
 				/* fall-through */
 
@@ -223,7 +229,7 @@ ad1848_write(uint16_t addr, uint8_t val, void *priv)
 				break;
 
 			case 18: case 19:
-				if (ad1848->type == AD1848_TYPE_CS4236) {
+				if (ad1848->type >= AD1848_TYPE_CS4235) {
 					if ((ad1848->xregs[4] & 0x14) == 0x14) { /* FM remapping */
 						ad1848->xregs[ad1848->index - 12] = val; /* real FM volume on extended registers 6 and 7 */
 						temp = 1;
@@ -265,12 +271,20 @@ ad1848_write(uint16_t addr, uint8_t val, void *priv)
 				}
 				break;
 
+			case 20: case 21:
+				/* Backdoor to the Control/RAM registers on CS4235. */
+				if ((ad1848->type == AD1848_TYPE_CS4235) && (ad1848->xregs[18] & 0x80)) {
+					ad1848->cram_write(ad1848->index - 15, val, ad1848->cram_priv);
+					val = ad1848->regs[ad1848->index];
+				}
+				break;
+
 			case 22:
 				updatefreq = 1;
 				break;
 
 			case 23:
-				if ((ad1848->type == AD1848_TYPE_CS4236) && ((ad1848->regs[12] & 0x60) == 0x60)) {
+				if ((ad1848->type >= AD1848_TYPE_CS4235) && ((ad1848->regs[12] & 0x60) == 0x60)) {
 					if (!(ad1848->regs[23] & 0x08)) { /* existing (not new) XRAE is clear */
 						ad1848->xindex = ((val & 0x04) << 2) | (val >> 4);
 						break;
@@ -327,7 +341,7 @@ ad1848_write(uint16_t addr, uint8_t val, void *priv)
 		if (updatefreq)
 			ad1848_updatefreq(ad1848);
 
-		if ((ad1848->type == AD1848_TYPE_CS4231) || (ad1848->type == AD1848_TYPE_CS4236)) { /* TODO: configure CD volume for CS4248/AD1848 too */
+		if (ad1848->type >= AD1848_TYPE_CS4231) { /* TODO: configure CD volume for CS4248/AD1848 too */
 			temp = (ad1848->type == AD1848_TYPE_CS4231) ? 18 : 4;
 			if (ad1848->regs[temp] & 0x80)
 				ad1848->cd_vol_l = 0;
@@ -474,7 +488,7 @@ ad1848_init(ad1848_t *ad1848, uint8_t type)
     ad1848->regs[8] = 0;
     ad1848->regs[9] = 0x08;
     ad1848->regs[10] = ad1848->regs[11] = 0;
-    if ((type == AD1848_TYPE_CS4248) || (type == AD1848_TYPE_CS4231) || (type == AD1848_TYPE_CS4236))
+    if ((type == AD1848_TYPE_CS4248) || (type == AD1848_TYPE_CS4231) || (type >= AD1848_TYPE_CS4235))
 	ad1848->regs[12] = 0x8a;
     else
 	ad1848->regs[12] = 0xa;
@@ -489,7 +503,7 @@ ad1848_init(ad1848_t *ad1848, uint8_t type)
 	ad1848->regs[25] = CS4231;
 	ad1848->regs[26] = 0x80;
 	ad1848->regs[29] = 0x80;
-    } else if (type == AD1848_TYPE_CS4236) {
+    } else if (type >= AD1848_TYPE_CS4235) {
 	ad1848->regs[16] = ad1848->regs[17] = 0;
 	ad1848->regs[18] = ad1848->regs[19] = 0;
 	ad1848->regs[20] = ad1848->regs[21] = 0;

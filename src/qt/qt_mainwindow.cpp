@@ -446,6 +446,10 @@ void MainWindow::closeEvent(QCloseEvent *event) {
     }
     qt_nvr_save();
     config_save();
+#ifdef __unix__
+    extern void xinput2_exit();
+    if (QApplication::platformName() == "xcb") xinput2_exit();
+#endif
     event->accept();
 }
 
@@ -1434,10 +1438,10 @@ void MainWindow::on_actionAbout_86Box_triggered()
     msgBox.setInformativeText(tr("An emulator of old computers\n\nAuthors: Sarah Walker, Miran Grca, Fred N. van Kempen (waltje), SA1988, Tiseno100, reenigne, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2 or later. See LICENSE for more information."));
     msgBox.setWindowTitle("About 86Box");
     msgBox.addButton("OK", QMessageBox::ButtonRole::AcceptRole);
-    auto webSiteButton = msgBox.addButton("86box.net", QMessageBox::ButtonRole::HelpRole);
+    auto webSiteButton = msgBox.addButton(EMU_SITE, QMessageBox::ButtonRole::HelpRole);
     webSiteButton->connect(webSiteButton, &QPushButton::released, []()
     {
-        QDesktopServices::openUrl(QUrl("https://86box.net/"));
+        QDesktopServices::openUrl(QUrl("https://" EMU_SITE));
     });
 #ifdef RELEASE_BUILD
     msgBox.setIconPixmap(QIcon(":/settings/win/icons/86Box-green.ico").pixmap(32, 32));
@@ -1454,7 +1458,7 @@ void MainWindow::on_actionAbout_86Box_triggered()
 
 void MainWindow::on_actionDocumentation_triggered()
 {
-     QDesktopServices::openUrl(QUrl("https://86box.readthedocs.io"));
+     QDesktopServices::openUrl(QUrl(EMU_DOCS_URL));
 }
 
 void MainWindow::on_actionCGA_PCjr_Tandy_EGA_S_VGA_overscan_triggered() {

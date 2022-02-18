@@ -442,7 +442,7 @@ sst_init(const device_t *info)
     f = nvr_fopen(flash_path, "rb");
     if (f) {
 	if (fread(&(dev->array[0x00000]), 1, dev->size, f) != dev->size)
-		fatal("Less than %i bytes read from the SST Flash ROM file\n", dev->size);
+		pclog("Less than %i bytes read from the SST Flash ROM file\n", dev->size);
 	fclose(f);
     } else
 	dev->dirty = 1;		/* It is by definition dirty on creation. */
