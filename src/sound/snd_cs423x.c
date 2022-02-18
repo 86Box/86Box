@@ -12,7 +12,7 @@
  *
  * Authors:	RichardG, <richardg867@gmail.com>
  *
- *		Copyright 2021 RichardG.
+ *		Copyright 2021-2022 RichardG.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -37,7 +37,10 @@
 #include <86box/nvr.h>
 
 
+#define CRYSTAL_NOEEPROM	0x100
+
 enum {
+    CRYSTAL_CS4235  = 0xdd,
     CRYSTAL_CS4236B = 0xcb,
     CRYSTAL_CS4237B = 0xc8,
     CRYSTAL_CS4238B = 0xc9
@@ -69,7 +72,7 @@ static const uint8_t cs4236b_eeprom[] = {
     0x10, 0x03, /* DMA routing */
 
     /* PnP resources */
-    0x0e, 0x63, 0x42, 0x36, 0x00, 0x00, 0x00, 0x00, 0x00, /* CSC4236, dummy checksum (filled in by isapnp_add_card) */
+    0x0e, 0x63, 0x42, 0x35, 0x00, 0x00, 0x00, 0x00, 0x00, /* CSC4236, dummy checksum (filled in by isapnp_add_card) */
     0x0a, 0x10, 0x01, /* PnP version 1.0, vendor version 0.1 */
     0x82, 0x0e, 0x00, 'C', 'r', 'y', 's', 't', 'a', 'l', ' ', 'C', 'o', 'd', 'e' ,'c', 0x00, /* ANSI identifier */
 
@@ -312,7 +315,8 @@ cs423x_write(uint16_t addr, uint8_t val, void *priv)
 		break;
 
 	case 6: /* RAM Access End */
-		if (!val) {
+		/* TriGem Delhi-III BIOS writes undocumented value 0x40 instead of 0x00. */
+		if ((val == 0x00) || (val == 0x40)) {
 			dev->ram_dl = 0;
 
 			/* Update PnP state and resource data. */
@@ -356,6 +360,20 @@ cs423x_slam_write(uint16_t addr, uint8_t val, void *priv)
 		break;
 
 	case CRYSTAL_SLAM_INDEX:
+		/* Intercept the Activate Audio Device command. */
+		if (val == 0x79) {
+			/* Apply the last logical device's configuration. */
+			if (dev->slam_config) {
+				cs423x_pnp_config_changed(dev->slam_ld, dev->slam_config, dev);
+				free(dev->slam_config);
+				dev->slam_config = NULL;
+			}
+
+			/* Exit out of SLAM. */
+			dev->slam_state = CRYSTAL_SLAM_NONE;
+			break;
+		}
+
 		/* Write register index. */
 		dev->slam_reg = val;
 		dev->slam_state = CRYSTAL_SLAM_BYTE1;
@@ -428,18 +446,6 @@ cs423x_slam_write(uint16_t addr, uint8_t val, void *priv)
 
 				/* Activate or deactivate the device. */
 				dev->slam_config->activate = val & 0x01;
-				break;
-
-			case 0x79: /* activate chip */
-				/* Apply the last logical device's configuration. */
-				if (dev->slam_config) {
-					cs423x_pnp_config_changed(dev->slam_ld, dev->slam_config, dev);
-					free(dev->slam_config);
-					dev->slam_config = NULL;
-				}
-
-				/* Exit out of SLAM. */
-				dev->slam_state = CRYSTAL_SLAM_NONE;
 				break;
 		}
 
@@ -541,11 +547,13 @@ cs423x_pnp_enable(cs423x_t *dev, uint8_t update_rom, uint8_t update_hwconfig)
 	if (update_rom)
 		isapnp_update_card_rom(dev->pnp_card, &dev->ram_data[dev->pnp_offset], 384);
 
-	/* Hide PnP card if the PKD bit is set, or if PnP was disabled by command 0x55. */
+	/* Disable PnP key if the PKD bit is set, or if it was disabled by command 0x55. */
+	/* But wait! The TriGem Delhi-III BIOS sends command 0x55, and its behavior doesn't
+	   line up with real hardware (still listed in the POST summary and seen by software).
+	   Disable the PnP key disabling mechanism until someone figures something out. */
+	//isapnp_enable_card(dev->pnp_card, ((dev->ram_data[0x4002] & 0x20) || !dev->pnp_enable) ? ISAPNP_CARD_NO_KEY : ISAPNP_CARD_ENABLE);
 	if ((dev->ram_data[0x4002] & 0x20) || !dev->pnp_enable)
-		isapnp_enable_card(dev->pnp_card, ISAPNP_CARD_DISABLE);
-	else
-		isapnp_enable_card(dev->pnp_card, ISAPNP_CARD_ENABLE);
+		pclog("CS423x: Attempted to disable PnP key\n");
     }
 
     /* Update some register bits based on the config data in RAM if requested. */
@@ -560,10 +568,12 @@ cs423x_pnp_enable(cs423x_t *dev, uint8_t update_rom, uint8_t update_hwconfig)
 	}
 
 	/* Update SPS. */
-	if (dev->ram_data[0x4003] & 0x04)
-		dev->indirect_regs[8] |= 0x04;
-	else
-		dev->indirect_regs[8] &= ~0x04;
+	if (dev->type != CRYSTAL_CS4235) {
+		if (dev->ram_data[0x4003] & 0x04)
+			dev->indirect_regs[8] |= 0x04;
+		else
+			dev->indirect_regs[8] &= ~0x04;
+	}
 
 	/* Update IFM. */
 	if (dev->ram_data[0x4003] & 0x80)
@@ -723,8 +733,9 @@ cs423x_init(const device_t *info)
     memset(dev, 0, sizeof(cs423x_t));
 
     /* Initialize model-specific data. */
-    dev->type = info->local;
+    dev->type = info->local & 0xff;
     switch (dev->type) {
+    	case CRYSTAL_CS4235:
 	case CRYSTAL_CS4236B:
 	case CRYSTAL_CS4237B:
 	case CRYSTAL_CS4238B:
@@ -735,36 +746,45 @@ cs423x_init(const device_t *info)
 		/* Different Chip Version and ID registers, which shouldn't be reset by ad1848_init */
 		dev->ad1848.xregs[25] = dev->type;
 
-		/* Load EEPROM contents from template. */
-		memcpy(dev->eeprom_data, cs4236b_eeprom, sizeof(cs4236b_eeprom));
+		if (!(info->local & CRYSTAL_NOEEPROM)) {
+			/* Load EEPROM contents from template. */
+			memcpy(dev->eeprom_data, cs4236b_eeprom, sizeof(cs4236b_eeprom));
 
-		/* Set content size. */
-		dev->eeprom_data[2] = sizeof(cs4236b_eeprom) >> 8;
-		dev->eeprom_data[3] = sizeof(cs4236b_eeprom) & 0xff;
+			/* Set content size. */
+			dev->eeprom_data[2] = sizeof(cs4236b_eeprom) >> 8;
+			dev->eeprom_data[3] = sizeof(cs4236b_eeprom) & 0xff;
 
-		/* Set PnP card ID and EEPROM file name. */
-		switch (dev->type) {
-			case CRYSTAL_CS4236B:
-				dev->nvr_path = "cs4236b.nvr";
-				break;
+			/* Set PnP card ID and EEPROM file name. */
+			switch (dev->type) {
+				case CRYSTAL_CS4235:
+					dev->eeprom_data[8] = 0x05;
+					dev->eeprom_data[16] = 0x08;
+					dev->eeprom_data[26] = 0x25;
+					dev->nvr_path = "cs4235.nvr";
+					break;
 
-			case CRYSTAL_CS4237B:
-				dev->eeprom_data[26] = 0x37;
-				dev->nvr_path = "cs4237b.nvr";
-				break;
+				case CRYSTAL_CS4236B:
+					dev->nvr_path = "cs4236b.nvr";
+					break;
 
-			case CRYSTAL_CS4238B:
-				dev->eeprom_data[26] = 0x38;
-				dev->nvr_path = "cs4238b.nvr";
-				break;
+				case CRYSTAL_CS4237B:
+					dev->eeprom_data[26] = 0x37;
+					dev->nvr_path = "cs4237b.nvr";
+					break;
+
+				case CRYSTAL_CS4238B:
+					dev->eeprom_data[26] = 0x38;
+					dev->nvr_path = "cs4238b.nvr";
+					break;
+			}
+
+			/* Load EEPROM contents from file if present. */
+			cs423x_nvram(dev, 0);
 		}
-
-		/* Load EEPROM contents from file if present. */
-		cs423x_nvram(dev, 0);
 
 		/* Initialize game port. The '7B and '8B game port only responds to 6 I/O ports; the remaining
 		   2 ports are reserved on those chips, and probably connected to the Digital Assist feature. */
-		dev->gameport = gameport_add((dev->type == CRYSTAL_CS4236B) ? &gameport_pnp_device : &gameport_pnp_6io_device);
+		dev->gameport = gameport_add(((dev->type == CRYSTAL_CS4235) || (dev->type == CRYSTAL_CS4236B)) ? &gameport_pnp_device : &gameport_pnp_6io_device);
 
 		break;
     }
@@ -786,6 +806,11 @@ cs423x_init(const device_t *info)
     /* Initialize RAM, registers and WSS codec. */
     cs423x_reset(dev);
     sound_add_handler(cs423x_get_buffer, dev);
+
+    /* Add Control/RAM backdoor handlers for CS4235. */
+    dev->ad1848.cram_priv = dev;
+    dev->ad1848.cram_read = cs423x_read;
+    dev->ad1848.cram_write = cs423x_write;
 
     return dev;
 }
@@ -816,6 +841,32 @@ cs423x_speed_changed(void *priv)
     ad1848_speed_changed(&dev->ad1848);
 }
 
+
+const device_t cs4235_device =
+{
+    "Crystal CS4235",
+    "cs4235",
+    DEVICE_ISA | DEVICE_AT,
+    CRYSTAL_CS4235,
+    cs423x_init, cs423x_close, cs423x_reset,
+    { NULL },
+    cs423x_speed_changed,
+    NULL,
+    NULL
+};
+
+const device_t cs4235_onboard_device =
+{
+    "Crystal CS4235 (On-Board)",
+    "cs4235_onboard",
+    DEVICE_ISA | DEVICE_AT,
+    CRYSTAL_CS4235 | CRYSTAL_NOEEPROM,
+    cs423x_init, cs423x_close, cs423x_reset,
+    { NULL },
+    cs423x_speed_changed,
+    NULL,
+    NULL
+};
 
 const device_t cs4236b_device =
 {

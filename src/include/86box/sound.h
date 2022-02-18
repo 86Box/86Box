@@ -135,6 +135,8 @@ extern const device_t wss_device;
 extern const device_t ncr_business_audio_device;
 
 /* Crystal CS423x */
+extern const device_t cs4235_device;
+extern const device_t cs4235_onboard_device;
 extern const device_t cs4236b_device;
 extern const device_t cs4237b_device;
 extern const device_t cs4238b_device;

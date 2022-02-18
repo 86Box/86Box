@@ -25,6 +25,8 @@ private slots:
     void on_comboBoxAdapter_currentIndexChanged(int index);
     void on_comboBoxNetwork_currentIndexChanged(int index);
 
+    void on_comboBoxPcap_currentIndexChanged(int index);
+
 private:
     Ui::SettingsNetwork *ui;
     int machineId = 0;
