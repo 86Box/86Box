@@ -86,7 +86,12 @@ if(APPLE)
     target_link_libraries(86Box Freetype::Freetype)
 endif()
 
-if(OPENAL)
+if(FAUDIO)
+    find_package(FAudio REQUIRED)
+    target_link_libraries(86Box FAudio::FAudio)
+endif()
+
+if(OPENAL AND NOT FAUDIO)
     if(VCPKG_TOOLCHAIN)
         find_package(OpenAL CONFIG REQUIRED)
     elseif(MINGW)
