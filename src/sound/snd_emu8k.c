@@ -2404,4 +2404,3 @@ void emu8k_close(emu8k_t *emu8k)
         free(emu8k->rom);
         free(emu8k->ram);
 }
-

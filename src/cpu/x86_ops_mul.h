@@ -261,4 +261,3 @@ static int opIMUL_l_l_a32(uint32_t fetchdat)
         PREFETCH_RUN(30, 2, rmdat, 0,1,0,0, 1);
         return 0;
 }
-

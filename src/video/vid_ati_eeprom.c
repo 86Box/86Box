@@ -208,4 +208,3 @@ int ati_eeprom_read(ati_eeprom_t *eeprom)
 {
         return eeprom->out;
 }
-

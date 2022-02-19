@@ -88,4 +88,3 @@ static int opINTO(uint32_t fetchdat)
         PREFETCH_RUN(3, 1, -1, 0,0,0,0, 0);
         return 0;
 }
-

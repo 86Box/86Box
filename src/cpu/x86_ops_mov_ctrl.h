@@ -366,4 +366,3 @@ static int opMOV_TRx_r_a32(uint32_t fetchdat)
         PREFETCH_RUN(6, 2, rmdat, 0,0,0,0, 1);
         return 0;
 }
-

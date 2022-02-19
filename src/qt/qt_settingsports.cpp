@@ -101,4 +101,3 @@ void SettingsPorts::on_checkBoxParallel3_stateChanged(int state) {
 void SettingsPorts::on_checkBoxParallel4_stateChanged(int state) {
     ui->comboBoxLpt4->setEnabled(state == Qt::Checked);
 }
-

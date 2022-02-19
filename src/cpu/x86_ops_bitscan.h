@@ -156,4 +156,3 @@ static int opBSR_l_a32(uint32_t fetchdat)
         PREFETCH_RUN(instr_cycles, 2, rmdat, 0,(cpu_mod == 3) ? 0:1,0,0, 1);
         return 0;
 }
-

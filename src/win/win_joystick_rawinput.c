@@ -468,4 +468,3 @@ void joystick_process(void)
 				}
 		}
 }
-

@@ -825,4 +825,3 @@ static int op83_l_a32(uint32_t fetchdat)
         
         return 0;
 }
-

@@ -562,4 +562,3 @@ void internal_mtr_raw_event_arg(const char *category, const char *name, char ph,
 	--events_in_progress;
 	pthread_mutex_unlock(&event_mutex);
 }
-

@@ -182,4 +182,3 @@ lzf_decompress (const void *const in_data,  unsigned int in_len,
 
   return op - (u8 *)out_data;
 }
-

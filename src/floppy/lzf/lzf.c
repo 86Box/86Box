@@ -534,4 +534,3 @@ main (int argc, char *argv[])
 
   exit (rc ? 1 : 0);
 }
-

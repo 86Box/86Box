@@ -378,4 +378,3 @@ static int opRET_l_imm(uint32_t fetchdat)
         PREFETCH_FLUSH();
         return 0;
 }
-

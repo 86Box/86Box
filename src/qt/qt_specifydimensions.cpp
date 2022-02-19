@@ -89,4 +89,3 @@ void SpecifyDimensions::on_SpecifyDimensions_accepted()
     main_window->show();
     emit main_window->updateWindowRememberOption();
 }
-

@@ -201,4 +201,3 @@ machine_xt_p3120_init(const machine_t *model)
     
     return ret;
 }
-

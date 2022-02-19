@@ -264,4 +264,3 @@ static int opIRETD(uint32_t fetchdat)
         PREFETCH_FLUSH();
         return cpu_state.abrt;
 }
- 

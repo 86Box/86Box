@@ -371,4 +371,3 @@ machine_ps1_m2121_init(const machine_t *model)
 
     return ret;
 }
-

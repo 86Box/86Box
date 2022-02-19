@@ -103,4 +103,3 @@ const device_t av9194_device =
         av9194_init, NULL,
 	NULL, { NULL }, NULL, NULL
 };
-
