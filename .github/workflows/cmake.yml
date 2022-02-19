@@ -3,9 +3,6 @@ name: CMake
 on:
 
   push:
-    branches:
-    - master
-
     paths:
     - src/**
     - "**/CMakeLists.txt"
@@ -15,9 +12,6 @@ on:
     - "!**/Makefile*"
 
   pull_request:
-    branches:
-    - master
-
     paths:
     - src/**
     - "**/CMakeLists.txt"
