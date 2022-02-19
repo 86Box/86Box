@@ -19,9 +19,9 @@
  *		Copyright 2016-2019 Miran Grca.
  *		Copyright 2018,2019 David Hrdlička.
  */
+
 #ifndef WIN_RESOURCE_H
 # define WIN_RESOURCE_H
-
 
 /* Dialog IDs. */
 #define DLG_ABOUT				101	/* top-level dialog */

@@ -19,6 +19,9 @@
  *		Copyright 2021 RichardG.
  */
 
+#ifndef SOUND_AD1848_H
+# define SOUND_AD1848_H
+
 enum {
     AD1848_TYPE_DEFAULT = 0,
     AD1848_TYPE_CS4248,
@@ -66,3 +69,5 @@ extern void	ad1848_speed_changed(ad1848_t *ad1848);
 extern void	ad1848_filter_cd_audio(int channel, double *buffer, void *priv);
 
 extern void	ad1848_init(ad1848_t *ad1848, uint8_t type);
+
+#endif /*SOUND_AD1848_H*/

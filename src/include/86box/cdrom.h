@@ -15,7 +15,7 @@
  *		Copyright 2016-2019 Miran Grca.
  */
 #ifndef EMU_CDROM_H
-#define EMU_CDROM_H
+# define EMU_CDROM_H
 
 
 #define CDROM_NUM			4

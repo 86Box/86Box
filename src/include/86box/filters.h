@@ -1,3 +1,6 @@
+#ifndef EMU_FILTERS_H
+# define EMU_FILTERS_H
+
 #define NCoef 2
 
 /* fc=150Hz */
@@ -399,3 +402,5 @@ static inline double low_fir_sb16(int c, int i, double NewSample)
                         
         return out;
 }
+
+#endif /*EMU_FILTERS_H*/

@@ -19,7 +19,6 @@
 #ifndef VID_PGC_H
 # define VID_PGC_H
 
-
 #define PGC_ERROR_RANGE    0x01
 #define PGC_ERROR_INTEGER  0x02
 #define PGC_ERROR_MEMORY   0x03
@@ -180,6 +179,5 @@ extern int	pgc_result_coord(pgc_t *, int32_t val);
 /* Special overload functions for non-IBM implementations. */
 extern void	pgc_hndl_lut8(pgc_t *);
 extern void	pgc_hndl_lut8rd(pgc_t *);
-
 
 #endif	/*VID_PGC_H*/

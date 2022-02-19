@@ -20,9 +20,9 @@
  *		Copyright 2016-2018 Miran Grca.
  *		Copyright 2017,2018 Fred N. van Kempen.
  */
-#ifndef SCSI_X54X_H
 
-#define SCSI_X54X_H
+#ifndef SCSI_X54X_H
+# define SCSI_X54X_H
 
 #define SCSI_DELAY_TM		1			/* was 50 */
 
@@ -510,6 +510,5 @@ extern void	x54x_mem_disable(x54x_t *dev);
 extern void	*x54x_init(const device_t *info);
 extern void	x54x_close(void *priv);
 extern void	x54x_device_reset(void *priv);
-
 
 #endif

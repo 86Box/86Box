@@ -1,8 +1,9 @@
 /* Copyright holders: RichardG867, Tenshi
    see COPYING for more details
 */
+
 #ifndef CDROM_IMAGE_H
-#define CDROM_IMAGE_H
+# define CDROM_IMAGE_H
 
 /* this header file lists the functions provided by
    various platform specific cdrom-ioctl files */
@@ -23,4 +24,4 @@ extern void cdrom_set_null_handler(uint8_t id);
 }
 #endif
 
-#endif /* ! CDROM_IMAGE_H */
+#endif /*CDROM_IMAGE_H*/

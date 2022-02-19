@@ -16,9 +16,9 @@
  *		Copyright 2008-2020 Sarah Walker.
  *		Copyright 2016-2020 Miran Grca.
  */
+
 #ifndef VIDEO_SVGA_H
 # define VIDEO_SVGA_H
-
 
 #define FLAG_EXTRA_BANKS	1
 #define	FLAG_ADDR_BY8		2

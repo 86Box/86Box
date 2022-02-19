@@ -5,6 +5,9 @@
   fbzColorPath
 */
 
+#ifndef VIDEO_VOODOO_CODEGEN_X86_64_H
+# define VIDEO_VOODOO_CODEGEN_X86_64_H
+
 #ifdef _MSC_VER
 #include <intrin.h>
 #else
@@ -3450,3 +3453,5 @@ void voodoo_codegen_close(voodoo_t *voodoo)
 {
         plat_munmap(voodoo->codegen_data, sizeof(voodoo_x86_data_t) * BLOCK_NUM*4);
 }
+
+#endif /*VIDEO_VOODOO_CODEGEN_X86_64_H*/

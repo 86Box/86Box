@@ -1,3 +1,6 @@
+#ifndef VIDEO_ATI_EEPROM_H
+# define VIDEO_ATI_EEPROM_H
+
 /* Copyright holders: Sarah Walker
    see COPYING for more details
 */
@@ -47,3 +50,5 @@ typedef struct ati_eeprom_t
 void ati_eeprom_load(ati_eeprom_t *eeprom, char *fn, int type);
 void ati_eeprom_write(ati_eeprom_t *eeprom, int ena, int clk, int dat);
 int ati_eeprom_read(ati_eeprom_t *eeprom);
+
+#endif /*VIDEO_ATI_EEPROM_H*/

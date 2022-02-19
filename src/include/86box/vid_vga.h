@@ -16,6 +16,7 @@
  *		Copyright 2016-2018 Miran Grca.
  *		Copyright 2021 Jasmine Iwanek.
  */
+
 #ifndef VIDEO_VGA_H
 # define VIDEO_VGA_H
 

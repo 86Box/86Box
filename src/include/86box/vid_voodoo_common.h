@@ -16,6 +16,9 @@
  *		Copyright 2008-2020 Sarah Walker.
  */
 
+#ifndef VIDEO_VOODOO_COMMON_H
+# define VIDEO_VOODOO_COMMON_H
+
 #ifdef CLAMP
 #undef CLAMP
 #endif
@@ -528,3 +531,5 @@ void voodoo_update_ncc(voodoo_t *voodoo, int tmu);
 
 void *voodoo_2d3d_card_init(int type);
 void voodoo_card_close(voodoo_t *voodoo);
+
+#endif /*VIDEO_VOODOO_COMMON_H*/

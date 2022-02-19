@@ -22,6 +22,9 @@
  *		Copyright 2020 EngiNerd.
  */
 
+#ifndef VIDEO_OGC_H
+# define VIDEO_OGC_H
+
 typedef struct ogc_t {
     cga_t cga;
 	/* unused in OGC, required for M19 video card structure idiom */
@@ -46,3 +49,5 @@ void    ogc_mdaattr_rebuild();
 extern const device_config_t ogc_config[];
 extern const device_t ogc_device;
 #endif
+
+#endif /*VIDEO_OGC_H*/

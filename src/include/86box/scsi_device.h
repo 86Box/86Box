@@ -16,9 +16,9 @@
  *		Copyright 2016-2019 Miran Grca.
  *		Copyright 2017-2019 Fred N. van Kempen.
  */
+
 #ifndef SCSI_DEVICE_H
 # define SCSI_DEVICE_H
-
 
 /* Configuration. */
 #define SCSI_BUS_MAX		4		/* currently we support up to 4 controllers */

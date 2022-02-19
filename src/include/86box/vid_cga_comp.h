@@ -16,6 +16,7 @@
  *		Copyright 2015-2018 reenigne.
  *		Copyright 2015-2018 Miran Grca.
  */
+
 #ifndef VIDEO_CGA_COMP_H
 # define VIDEO_CGA_COMP_H
 

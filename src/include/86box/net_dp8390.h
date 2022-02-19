@@ -16,6 +16,7 @@
  *		Copyright 2016-2018 Miran Grca.
  *		Copyright 2008-2018 Bochs project.
  */
+
 #ifndef NET_DP8390_H
 # define NET_DP8390_H
 

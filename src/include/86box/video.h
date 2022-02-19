@@ -18,6 +18,7 @@
  *		Copyright 2016-2019 Miran Grca.
  *		Copyright 2017-2019 Fred N. van Kempen.
  */
+
 #ifndef EMU_VIDEO_H
 # define EMU_VIDEO_H
 
@@ -444,6 +445,5 @@ extern const device_t wy700_device;
 /* AGP GART */
 extern const device_t agpgart_device;
 #endif
-
 
 #endif	/*EMU_VIDEO_H*/

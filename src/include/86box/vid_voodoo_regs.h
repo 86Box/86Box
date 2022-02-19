@@ -1,3 +1,6 @@
+#ifndef VIDEO_VOODOO_REGS_H
+# define VIDEO_VOODOO_REGS_H
+
 enum
 {
         SST_status = 0x000,
@@ -691,3 +694,5 @@ enum
 #define dither ( params->fbzMode & FBZ_DITHER)
 #define dither2x2 (params->fbzMode & FBZ_DITHER_2x2)
 #define dithersub (params->fbzMode & FBZ_DITHER_SUB)
+
+#endif /*VIDEO_VOODOO_REGS_H*/

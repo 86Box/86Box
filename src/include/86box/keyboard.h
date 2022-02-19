@@ -18,6 +18,7 @@
  *		Copyright 2016-2019 Miran Grca.
  *		Copyright 2017-2019 Fred N. van Kempen.
  */
+
 #ifndef EMU_KEYBOARD_H
 # define EMU_KEYBOARD_H
 

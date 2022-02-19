@@ -14,6 +14,7 @@
  *
  *		Copyright 2021 RichardG.
  */
+
 #ifndef EMU_ISAPNP_H
 # define EMU_ISAPNP_H
 # include <stdint.h>

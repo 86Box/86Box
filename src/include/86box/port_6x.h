@@ -15,9 +15,9 @@
  *
  *		Copyright 2021 Miran Grca.
  */
+
 #ifndef EMU_PORT_6X_H
 # define EMU_PORT_6X_H
-
 
 #ifdef _TIMER_H_
 typedef struct

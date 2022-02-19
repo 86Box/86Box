@@ -14,6 +14,7 @@
  *
  *		Copyright 2020 Miran Grca.
  */
+
 #ifndef USB_H
 # define USB_H
 
@@ -43,6 +44,5 @@ extern void		ohci_update_mem_mapping(usb_t *dev, uint8_t base1, uint8_t base2, u
 #ifdef __cplusplus
 }
 #endif
-
 
 #endif	/*USB_H*/

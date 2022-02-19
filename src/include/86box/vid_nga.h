@@ -22,6 +22,9 @@
  *		Copyright 2020 EngiNerd.
  */
 
+#ifndef VIDEO_NGA_H
+# define VIDEO_NGA_H
+
 typedef struct nga_t {
     cga_t cga;
 	/* unused in OGC, required for M19 video card structure idiom */
@@ -46,3 +49,5 @@ void    nga_mdaattr_rebuild();
 extern const device_config_t nga_config[];
 extern const device_t nga_device;
 #endif
+
+#endif /*VIDEO_NGA_H*/

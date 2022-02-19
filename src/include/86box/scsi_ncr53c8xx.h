@@ -21,9 +21,9 @@
  *		Copyright 2009-2018 Artyom Tarasenko.
  *		Copyright 2017,2018 Miran Grca.
  */
+
 #ifndef SCSI_NCR53C8XX_H
 # define SCSI_NCR53C8XX_H
-
 
 extern const device_t ncr53c810_pci_device;
 extern const device_t ncr53c810_onboard_pci_device;
