@@ -19,9 +19,13 @@ add_library(snd OBJECT sound.c snd_opl.c snd_opl_nuked.c snd_resid.cc
     snd_azt2316a.c snd_cms.c snd_cs423x.c snd_gus.c snd_sb.c snd_sb_dsp.c
     snd_emu8k.c snd_mpu401.c snd_sn76489.c snd_ssi2001.c snd_wss.c snd_ym7128.c)
 
-if(OPENAL)
+if(OPENAL OR FAUDIO)
     target_compile_definitions(snd PRIVATE USE_OPENAL)
-    target_sources(snd PRIVATE openal.c)
+    if (FAUDIO)
+        target_sources(snd PRIVATE faudio.cpp)
+    else()
+        target_sources(snd PRIVATE openal.c)
+    endif()
 endif()
 
 if(FLUIDSYNTH)
