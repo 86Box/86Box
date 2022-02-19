@@ -15,6 +15,7 @@
  *		Copyright 2008-2018 Sarah Walker.
  *		Copyright 2016-2018 Miran Grca.
  */
+
 #ifndef SOUND_SND_SB_H
 # define SOUND_SND_SB_H
 
