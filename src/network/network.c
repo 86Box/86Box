@@ -352,12 +352,12 @@ network_rx_queue(void *priv)
 {
     int ret = 1;
 
+    netpkt_t *pkt = NULL;
+
     if (network_rx_pause || !thread_test_mutex(network_mutex)) {
 	timer_on_auto(&network_rx_queue_timer, 0.762939453125 * 2.0 * 128.0);
 	return;
     }
-
-    netpkt_t *pkt = NULL;
 
     network_busy(1);
 
