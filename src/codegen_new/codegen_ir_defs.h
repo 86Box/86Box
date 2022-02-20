@@ -9,7 +9,7 @@
   All registers must have been written back or discarded.
   This should be used when calling external functions that may change any emulated
   registers.*/
-#define UOP_TYPE_BARRIER (1 << 31)
+#define UOP_TYPE_BARRIER (1u << 31)
 
 /*uOP is a barrier. All previous uOPs must have completed before this one executes.
   All registers must have been written back, but do not have to be discarded.
