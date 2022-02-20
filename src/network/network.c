@@ -335,8 +335,10 @@ network_rx_queue(void *priv)
 
     /* Transmission. */
     network_queue_get(2, &pkt);
-    if (pkt != NULL)
+    if (pkt != NULL) {
 	network_queue_put(1, pkt->priv, pkt->data, pkt->len);
+	network_queue_advance(2);
+    }
 
     // network_busy(0);
 
