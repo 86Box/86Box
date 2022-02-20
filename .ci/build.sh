@@ -298,6 +298,9 @@ EOF
 
 	# Link against the system libslirp instead of compiling ours.
 	cmake_flags_extra="$cmake_flags_extra -D SLIRP_EXTERNAL=ON"
+
+	# Use OpenAL for Linux builds before FAudio builds are set up.
+	cmake_flags_extra="$cmake_flags_extra -D OPENAL=ON"
 fi
 
 # Clean workspace.
