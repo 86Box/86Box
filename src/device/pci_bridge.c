@@ -617,6 +617,7 @@ const device_t i440gx_agp_device =
 const device_t intel_gmch_agp_device =
 {
     "Intel i815xx AGP Bridge",
+    "i815_agp",
     DEVICE_PCI,
     AGP_BRIDGE_INTEL_GMCH,
     pci_bridge_init,
@@ -631,6 +632,7 @@ const device_t intel_gmch_agp_device =
 const device_t intel_mch_p4_agp_device =
 {
     "Intel i845 AGP Bridge",
+    "i845_agp",
     DEVICE_PCI,
     AGP_BRIDGE_INTEL_MCH_P4,
     pci_bridge_init,

@@ -369,6 +369,7 @@ intel_gmch_init(const device_t *info)
 
 const device_t intel_gmch_device = {
     "Intel i815EP (GMCH) Chipset",
+    "i815ep",
     DEVICE_PCI,
     0,
     intel_gmch_init, intel_gmch_close, intel_gmch_reset,
