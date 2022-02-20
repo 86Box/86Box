@@ -19,12 +19,46 @@ add_library(snd OBJECT sound.c snd_opl.c snd_opl_nuked.c snd_resid.cc
     snd_azt2316a.c snd_cms.c snd_cs423x.c snd_gus.c snd_sb.c snd_sb_dsp.c
     snd_emu8k.c snd_mpu401.c snd_sn76489.c snd_ssi2001.c snd_wss.c snd_ym7128.c)
 
-if(OPENAL OR FAUDIO)
-    target_compile_definitions(snd PRIVATE USE_OPENAL)
-    if (FAUDIO)
-        target_sources(snd PRIVATE faudio.cpp)
+if(OPENAL)
+    if(VCPKG_TOOLCHAIN)
+        find_package(OpenAL CONFIG REQUIRED)
+    elseif(MINGW)
+        find_package(OpenAL MODULE REQUIRED)
     else()
-        target_sources(snd PRIVATE openal.c)
+        find_package(OpenAL REQUIRED)
+    endif()
+
+    if(TARGET OpenAL::OpenAL)
+        target_link_libraries(86Box OpenAL::OpenAL)
+    else()
+        include_directories(${OPENAL_INCLUDE_DIR})
+        target_link_libraries(86Box ${OPENAL_LIBRARY})
+    endif()
+
+    target_sources(snd PRIVATE openal.c)
+else()
+    if(WIN32)
+        option(FAUDIO "Use FAudio instead of XAudio2" OFF)
+    endif()
+
+    target_sources(snd PRIVATE xaudio2.c)
+
+    if(NOT WIN32 OR FAUDIO)
+        find_package(PkgConfig REQUIRED)
+
+        # Use FAudio, a reimplementation of XAudio2
+        pkg_check_modules(FAUDIO IMPORTED_TARGET FAudio)
+        if(FAUDIO_FOUND)
+            target_link_libraries(86Box PkgConfig::FAUDIO)
+        else()
+            find_path(FAUDIO_INCLUDE_DIR NAMES "FAudio.h")
+            find_library(FAUDIO_LIBRARY FAudio)
+
+            include_directories(${FAUDIO_INCLUDE_DIR})
+            target_link_libraries(86Box ${FAUDIO_LIBRARY})
+        endif()
+
+        set_property(SOURCE xaudio2.c PROPERTY COMPILE_DEFINITIONS USE_FAUDIO)
     endif()
 endif()
 

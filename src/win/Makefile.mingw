@@ -173,7 +173,7 @@ ifndef DINPUT
  DINPUT		:= n
 endif
 ifndef OPENAL
-OPENAL		:= y
+OPENAL		:= n
 endif
 ifndef FLUIDSYNTH
 FLUIDSYNTH	:= y
@@ -373,9 +373,6 @@ else
  endif
 endif
 
-ifeq ($(OPENAL), y)
-OPTS		+= -DUSE_OPENAL
-endif
 ifeq ($(FLUIDSYNTH), y)
 OPTS		+= -DUSE_FLUIDSYNTH
 FSYNTHOBJ	:= midi_fluidsynth.o
@@ -645,7 +642,6 @@ PRINTOBJ	:= png.o prt_cpmap.o \
 		    prt_escp.o prt_text.o prt_ps.o
 
 SNDOBJ		:= sound.o \
-		    openal.o \
 		    snd_opl.o snd_opl_nuked.o \
 		    snd_resid.o \
 		     convolve.o convolve-sse.o envelope.o extfilt.o \
@@ -734,6 +730,12 @@ ifeq ($(DINPUT), y)
  PLATOBJ	+= win_joystick.o
 else
  PLATOBJ	+= win_joystick_rawinput.o
+endif
+
+ifeq ($(OPENAL), y)
+ SNDOBJ		+= openal.o
+else
+ SNDOBJ		+= xaudio2.o
 endif
 
 OBJ		:= $(MAINOBJ) $(CPUOBJ) $(CHIPSETOBJ) $(MCHOBJ) $(DEVOBJ) $(MEMOBJ) \
