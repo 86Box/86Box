@@ -122,6 +122,7 @@ static uint8_t		network_timer_active = 0;
 static pc_timer_t	network_rx_queue_timer;
 static netpkt_t		*first_pkt[3] = { NULL, NULL, NULL },
 			*last_pkt[3] = { NULL, NULL, NULL };
+static netpkt_t		*queued_pkt = NULL;
 
 
 #ifdef ENABLE_NETWORK_LOG
@@ -310,32 +311,32 @@ static void
 network_rx_queue(void *priv)
 {
     int ret = 1;
-    static netpkt_t *pkt = NULL;
+    netpkt_t *tx_queued_pkt = NULL;
 
     if (network_rx_pause || !thread_test_mutex(network_mutex)) {
 	timer_on_auto(&network_rx_queue_timer, 0.762939453125 * 2.0 * 128.0);
 	return;
     }
 
-    if (pkt == NULL)
-	network_queue_get(0, &pkt);
-    if ((pkt != NULL) && (pkt->len > 0)) {
-	network_dump_packet(pkt);
-	ret = net_cards[network_card].rx(pkt->priv, pkt->data, pkt->len);5
-	if (pkt->len >= 128)
-		timer_on_auto(&network_rx_queue_timer, 0.762939453125 * 2.0 * ((double) pkt->len));
+    if (queued_pkt == NULL)
+	network_queue_get(0, &queued_pkt);
+    if ((queued_pkt != NULL) && (queued_pkt->len > 0)) {
+	network_dump_packet(queued_pkt);
+	ret = net_cards[network_card].rx(queued_pkt->priv, queued_pkt->data, queued_pkt->len);
+	if (queued_pkt->len >= 128)
+		timer_on_auto(&network_rx_queue_timer, 0.762939453125 * 2.0 * ((double) queued_pkt->len));
 	else
 		timer_on_auto(&network_rx_queue_timer, 0.762939453125 * 2.0 * 128.0);
     } else
 	timer_on_auto(&network_rx_queue_timer, 0.762939453125 * 2.0 * 128.0);
     if (ret)
-	pkt = NULL;
+	queued_pkt = NULL;
     network_queue_advance(0);
 
     /* Transmission. */
-    network_queue_get(2, &pkt);
-    if (pkt != NULL) {
-	network_queue_put(1, pkt->priv, pkt->data, pkt->len);
+    network_queue_get(2, &tx_queued_pkt);
+    if (tx_queued_pkt != NULL) {
+	network_queue_put(1, tx_queued_pkt->priv, tx_queued_pkt->data, tx_queued_pkt->len);
 	network_queue_advance(2);
     }
 
@@ -377,6 +378,7 @@ network_attach(void *dev, uint8_t *mac, NETRXCB rx, NETWAITCB wait, NETSETLINKST
 
     first_pkt[0] = first_pkt[1] = first_pkt[2] = NULL;
     last_pkt[0] = last_pkt[1] = last_pkt[2] = NULL;
+    queued_pkt = NULL;
     memset(&network_rx_queue_timer, 0x00, sizeof(pc_timer_t));
     timer_add(&network_rx_queue_timer, network_rx_queue, NULL, 0);
     /* 10 mbps. */
