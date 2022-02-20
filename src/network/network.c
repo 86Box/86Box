@@ -120,8 +120,8 @@ static mutex_t		*network_mutex;
 static uint8_t		*network_mac;
 static uint8_t		network_timer_active = 0;
 static pc_timer_t	network_rx_queue_timer;
-static netpkt_t		*first_pkt[2] = { NULL, NULL },
-			*last_pkt[2] = { NULL, NULL };
+static netpkt_t		*first_pkt[3] = { NULL, NULL, NULL },
+			*last_pkt[3] = { NULL, NULL, NULL };
 
 
 static struct {
@@ -198,20 +198,6 @@ network_wait(uint8_t wait)
 	thread_wait_mutex(network_mutex);
       else
 	thread_release_mutex(network_mutex);
-}
-
-
-void
-network_poll(void)
-{
-    network_wait(0);
-
-    while (poll_data.busy)
-	thread_wait_event(poll_data.wake_poll_thread, -1);
-
-    network_wait(1);
-
-    thread_reset_event(poll_data.wake_poll_thread);
 }
 
 
@@ -359,7 +345,7 @@ network_rx_queue(void *priv)
 	return;
     }
 
-    network_busy(1);
+    // network_busy(1);
 
     network_queue_get(0, &pkt);
     if ((pkt != NULL) && (pkt->len > 0)) {
@@ -374,7 +360,11 @@ network_rx_queue(void *priv)
     if (ret)
 	network_queue_advance(0);
 
-    network_busy(0);
+    /* Transmission. */
+    network_queue_get(2, &pkt);
+    network_queue_put(1, pkt->priv, pkt->data, pkt->len);
+
+    // network_busy(0);
 
     network_wait(0);
 }
@@ -416,8 +406,8 @@ network_attach(void *dev, uint8_t *mac, NETRXCB rx, NETWAITCB wait, NETSETLINKST
 		break;
     }
 
-    first_pkt[0] = first_pkt[1] = NULL;
-    last_pkt[0] = last_pkt[1] = NULL;
+    first_pkt[0] = first_pkt[1] = first_pkt[2] = NULL;
+    last_pkt[0] = last_pkt[1] = last_pkt[2] = NULL;
     memset(&network_rx_queue_timer, 0x00, sizeof(pc_timer_t));
     timer_add(&network_rx_queue_timer, network_rx_queue, NULL, 0);
     /* 10 mbps. */
@@ -555,7 +545,7 @@ network_tx(uint8_t *bufp, int len)
 
     ui_sb_update_icon(SB_NETWORK, 1);
 
-    network_queue_put(1, NULL, bufp, len);
+    network_queue_put(2, NULL, bufp, len);
 
     ui_sb_update_icon(SB_NETWORK, 0);
 
@@ -564,13 +554,16 @@ network_tx(uint8_t *bufp, int len)
 
 
 /* Actually transmit the packet. */
-void
-network_do_tx(void)
+int
+network_tx_queue_check(void)
 {
     netpkt_t *pkt = NULL;
 
+    if ((first_pkt[1] == NULL) && (last_pkt[1] == NULL))
+	return 0;
+
     if (network_tx_pause)
-	return;
+	return 1;
 
     network_queue_get(1, &pkt);
     if ((pkt != NULL) && (pkt->len > 0)) {
@@ -586,15 +579,6 @@ network_do_tx(void)
 	}
     }
     network_queue_advance(1);
-}
-
-
-int
-network_tx_queue_check(void)
-{
-    if ((first_pkt[1] == NULL) && (last_pkt[1] == NULL))
-	return 0;
-
     return 1;
 }
 
