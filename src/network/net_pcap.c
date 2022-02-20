@@ -183,8 +183,10 @@ poll_thread(void *arg)
 	/* Wait for a poll request. */
 	network_poll();
 
-	if (pcap == NULL)
+	if (pcap == NULL) {
+		network_wait(0);
 		break;
+	}
 
 	if (network_get_wait() || (poll_card->set_link_state && poll_card->set_link_state(poll_card->priv)) || (poll_card->wait && poll_card->wait(poll_card->priv)))
 		data = NULL;
@@ -213,12 +215,12 @@ poll_thread(void *arg)
 	if (tx)
 		network_do_tx();
 
+	/* Release ownership of the device. */
+	network_wait(0);
+
 	/* If we did not get anything, wait a while. */
 	if (!tx)
 		thread_wait_event(evt, 10);
-
-	/* Release ownership of the device. */
-	network_wait(0);
     }
 
     /* No longer needed. */

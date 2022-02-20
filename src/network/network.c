@@ -204,8 +204,12 @@ network_wait(uint8_t wait)
 void
 network_poll(void)
 {
+    network_wait(0);
+
     while (poll_data.busy)
 	thread_wait_event(poll_data.wake_poll_thread, -1);
+
+    network_wait(1);
 
     thread_reset_event(poll_data.wake_poll_thread);
 }
