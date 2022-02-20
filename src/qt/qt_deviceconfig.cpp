@@ -67,7 +67,7 @@ void DeviceConfig::ConfigureDevice(const _device_* device, int instance, Setting
             dc.ui->formLayout->addRow(config->description, cbox);
             break;
         }
-        case CONFIG_MIDI:
+        case CONFIG_MIDI_OUT:
         {
             auto* cbox = new QComboBox();
             cbox->setObjectName(config->name);
