@@ -310,20 +310,18 @@ static void
 network_rx_queue(void *priv)
 {
     int ret = 1;
-
-    netpkt_t *pkt = NULL;
+    static netpkt_t *pkt = NULL;
 
     if (network_rx_pause || !thread_test_mutex(network_mutex)) {
 	timer_on_auto(&network_rx_queue_timer, 0.762939453125 * 2.0 * 128.0);
 	return;
     }
 
-    // network_busy(1);
-
-    network_queue_get(0, &pkt);
+    if (pkt == NULL)
+	network_queue_get(0, &pkt);
     if ((pkt != NULL) && (pkt->len > 0)) {
 	network_dump_packet(pkt);
-	ret = net_cards[network_card].rx(pkt->priv, pkt->data, pkt->len);
+	ret = net_cards[network_card].rx(pkt->priv, pkt->data, pkt->len);5
 	if (pkt->len >= 128)
 		timer_on_auto(&network_rx_queue_timer, 0.762939453125 * 2.0 * ((double) pkt->len));
 	else
@@ -331,7 +329,8 @@ network_rx_queue(void *priv)
     } else
 	timer_on_auto(&network_rx_queue_timer, 0.762939453125 * 2.0 * 128.0);
     if (ret)
-	network_queue_advance(0);
+	pkt = NULL;
+    network_queue_advance(0);
 
     /* Transmission. */
     network_queue_get(2, &pkt);
@@ -339,8 +338,6 @@ network_rx_queue(void *priv)
 	network_queue_put(1, pkt->priv, pkt->data, pkt->len);
 	network_queue_advance(2);
     }
-
-    // network_busy(0);
 
     network_wait(0);
 }
