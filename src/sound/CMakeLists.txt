@@ -47,8 +47,16 @@ else()
         find_package(PkgConfig REQUIRED)
 
         # Use FAudio, a reimplementation of XAudio2
-        pkg_check_modules(FAUDIO REQUIRED IMPORTED_TARGET FAudio)
-        target_link_libraries(86Box PkgConfig::FAUDIO)
+        pkg_check_modules(FAUDIO IMPORTED_TARGET FAudio)
+        if(FAUDIO_FOUND)
+            target_link_libraries(86Box PkgConfig::FAUDIO)
+        else()
+            find_path(FAUDIO_INCLUDE_DIR NAMES "FAudio.h")
+            find_library(FAUDIO_LIBRARY FAudio)
+
+            include_directories(${FAUDIO_INCLUDE_DIR})
+            target_link_libraries(86Box ${FAUDIO_LIBRARY})
+        endif()
 
         set_property(SOURCE xaudio2.c PROPERTY COMPILE_DEFINITIONS USE_FAUDIO)
     endif()
