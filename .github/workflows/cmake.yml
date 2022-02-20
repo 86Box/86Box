@@ -35,10 +35,10 @@ jobs:
       fail-fast: true
       matrix:
         build:
-        - name: Regular ODR
-          slug: -ODR
-          preset: regular
-          target: install/strip
+#        - name: Regular ODR
+#          slug: -ODR
+#          preset: regular
+#          target: install/strip
         - name: Debug ODR
           slug: -ODR-Debug
           preset: debug
@@ -47,10 +47,10 @@ jobs:
           slug: -ODR-Dev
           preset: experimental
           target: install
-        - name: Regular NDR
-          slug: -NDR
-          preset: regularndr
-          target: install/strip
+#        - name: Regular NDR
+#          slug: -NDR
+#          preset: regularndr
+#          target: install/strip
         - name: Debug NDR
           slug: -NDR-Debug
           preset: debugndr
@@ -114,12 +114,12 @@ jobs:
       fail-fast: true
       matrix:
         build:
-        - name: Regular ODR
-          slug: -ODR
-          type: Release
-          dev-build: off
-          new-dynarec: off
-          strip: --strip
+#        - name: Regular ODR
+#          slug: -ODR
+#          type: Release
+#          dev-build: off
+#          new-dynarec: off
+#          strip: --strip
         - name: Debug ODR
           slug: -ODR-Debug
           type: Debug
@@ -130,12 +130,12 @@ jobs:
           type: Debug
           dev-build: on
           new-dynarec: off
-        - name: Regular NDR
-          slug: -NDR
-          type: Release
-          strip: --strip
-          dev-build: off
-          new-dynarec: on
+#        - name: Regular NDR
+#          slug: -NDR
+#          type: Release
+#          strip: --strip
+#          dev-build: off
+#          new-dynarec: on
         - name: Debug NDR
           slug: -NDR-Debug
           type: Debug
@@ -210,18 +210,18 @@ jobs:
   linux:
     name: "Linux GCC 11 (${{ matrix.build.name }} x86_64)"
 
-    runs-on: ubuntu-2004
+    runs-on: ubuntu-20.04
 
     strategy:
       fail-fast: true
       matrix:
         build:
-        - name: Regular ODR
-          slug: -ODR
-          type: Release
-          dev-build: off
-          new-dynarec: off
-          strip: --strip
+#        - name: Regular ODR
+#          slug: -ODR
+#          type: Release
+#          dev-build: off
+#          new-dynarec: off
+#          strip: --strip
         - name: Debug ODR
           slug: -ODR-Debug
           type: Debug
@@ -232,12 +232,12 @@ jobs:
           type: Debug
           dev-build: on
           new-dynarec: off
-        - name: Regular NDR
-          slug: -NDR
-          type: Release
-          strip: --strip
-          dev-build: off
-          new-dynarec: on
+#        - name: Regular NDR
+#          slug: -NDR
+#          type: Release
+#          strip: --strip
+#          dev-build: off
+#          new-dynarec: on
         - name: Debug NDR
           slug: -NDR-Debug
           type: Debug
@@ -252,7 +252,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Install dependencies
-        run: sudo apt update && sudo apt install gcc-11 g++-11 libfreetype-dev libsdl2-dev libpng-dev libopenal-dev libc6-dev librtmidi-dev qtbase5-dev qttools5-dev
+        run: sudo apt update && sudo apt install gcc-11 g++-11 libfreetype-dev libsdl2-dev libpng-dev libopenal-dev libc6-dev librtmidi-dev qtbase5-dev qttools5-dev libfaudio-dev
       - name: Configure CMake
         run: >-
           cmake -S . -B build
@@ -280,12 +280,12 @@ jobs:
       fail-fast: true
       matrix:
         build:
-        - name: Regular ODR
-          slug: -ODR
-          type: Release
-          dev-build: off
-          new-dynarec: off
-          strip: --strip
+#        - name: Regular ODR
+#          slug: -ODR
+#          type: Release
+#          dev-build: off
+#          new-dynarec: off
+#          strip: --strip
         - name: Debug ODR
           slug: -ODR-Debug
           type: Debug
@@ -296,12 +296,12 @@ jobs:
           type: Debug
           dev-build: on
           new-dynarec: off
-        - name: Regular NDR
-          slug: -NDR
-          type: Release
-          strip: --strip
-          dev-build: off
-          new-dynarec: on
+#        - name: Regular NDR
+#          slug: -NDR
+#          type: Release
+#          strip: --strip
+#          dev-build: off
+#          new-dynarec: on
         - name: Debug NDR
           slug: -NDR-Debug
           type: Debug
@@ -316,7 +316,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Install dependencies
-        run: brew install freetype sdl2 libpng openal-soft rtmidi qt@5
+        run: brew install freetype sdl2 libpng openal-soft rtmidi qt@5 faudio
       - name: Configure CMake
         run: >-
           cmake -S . -B build

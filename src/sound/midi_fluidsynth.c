@@ -40,10 +40,8 @@ enum fluid_interp {
 };
 
 
-#ifdef USE_OPENAL
 extern void givealbuffer_midi(void *buf, uint32_t size);
 extern void al_set_midi(int freq, int buf_size);
-#endif
 
 static void	*fluidsynth_handle;		/* handle to FluidSynth DLL */
 
@@ -152,9 +150,7 @@ static void fluidsynth_thread(void *param)
 			buf_pos += buf_size;
 			if (buf_pos >= data->buf_size)
 			{
-#ifdef USE_OPENAL
        		                givealbuffer_midi(data->buffer, data->buf_size / sizeof(float));
-#endif
 				buf_pos = 0;
 			}
 		}
@@ -167,9 +163,7 @@ static void fluidsynth_thread(void *param)
 			buf_pos += buf_size;
 			if (buf_pos >= data->buf_size)
 			{
-#ifdef USE_OPENAL
        		                givealbuffer_midi(data->buffer_int16, data->buf_size / sizeof(int16_t));
-#endif
 				buf_pos = 0;
 			}
 		}
@@ -322,9 +316,7 @@ void* fluidsynth_init(const device_t *info)
 		data->buffer_int16 = malloc(data->buf_size);
 	}
 
-#ifdef USE_OPENAL
         al_set_midi(data->samplerate, data->buf_size);
-#endif
 
         dev = malloc(sizeof(midi_device_t));
         memset(dev, 0, sizeof(midi_device_t));
