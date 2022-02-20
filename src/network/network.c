@@ -204,8 +204,12 @@ network_wait(uint8_t wait)
 void
 network_poll(void)
 {
+    network_wait(0);
+
     while (poll_data.busy)
 	thread_wait_event(poll_data.wake_poll_thread, -1);
+
+    network_wait(1);
 
     thread_reset_event(poll_data.wake_poll_thread);
 }
@@ -348,12 +352,12 @@ network_rx_queue(void *priv)
 {
     int ret = 1;
 
-    if (network_rx_pause) {
+    netpkt_t *pkt = NULL;
+
+    if (network_rx_pause || !thread_test_mutex(network_mutex)) {
 	timer_on_auto(&network_rx_queue_timer, 0.762939453125 * 2.0 * 128.0);
 	return;
     }
-
-    netpkt_t *pkt = NULL;
 
     network_busy(1);
 
@@ -371,6 +375,8 @@ network_rx_queue(void *priv)
 	network_queue_advance(0);
 
     network_busy(0);
+
+    network_wait(0);
 }
 
 

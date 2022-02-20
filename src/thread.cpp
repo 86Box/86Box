@@ -38,6 +38,16 @@ thread_create_mutex(void)
 }
 
 int
+thread_test_mutex(mutex_t *_mutex)
+{
+    if (_mutex == nullptr)
+	return 0;
+
+    auto mutex = reinterpret_cast<std::mutex*>(_mutex);
+    return mutex->try_lock() ? 1 : 0;
+}
+
+int
 thread_wait_mutex(mutex_t *_mutex)
 {
     if (_mutex == nullptr)

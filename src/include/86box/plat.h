@@ -204,6 +204,7 @@ extern void	thread_destroy_event(event_t *arg);
 
 extern mutex_t	*thread_create_mutex(void);
 extern void	thread_close_mutex(mutex_t *arg);
+extern int	thread_test_mutex(mutex_t *arg);
 extern int	thread_wait_mutex(mutex_t *arg);
 extern int	thread_release_mutex(mutex_t *mutex);
 
