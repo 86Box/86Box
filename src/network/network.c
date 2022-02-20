@@ -371,6 +371,8 @@ network_rx_queue(void *priv)
 	network_queue_advance(0);
 
     network_busy(0);
+
+    network_wait(0);
 }
 
 
