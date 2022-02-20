@@ -1187,6 +1187,7 @@ const device_t piix4_nvr_device = {
 
 const device_t ps_no_nmi_nvr_device = {
     "PS/1 or PS/2 NVRAM (No NMI)",
+    "ps1_nvr",
     DEVICE_PS2,
     10,
     nvr_at_init, nvr_at_close, nvr_at_reset,
@@ -1196,6 +1197,7 @@ const device_t ps_no_nmi_nvr_device = {
 
 const device_t amstrad_no_nmi_nvr_device = {
     "Amstrad NVRAM (No NMI)",
+    "amstrad_nvr",
     DEVICE_ISA | DEVICE_AT,
     11,
     nvr_at_init, nvr_at_close, nvr_at_reset,
