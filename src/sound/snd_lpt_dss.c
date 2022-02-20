@@ -17,12 +17,12 @@ typedef struct dss_t
 
         uint8_t fifo[16];
         int read_idx, write_idx;
-        
+
         uint8_t dac_val,
 		status;
-        
+
         pc_timer_t timer;
-        
+
         int16_t buffer[SOUNDBUFLEN];
         int pos;
 } dss_t;
@@ -78,14 +78,14 @@ static void dss_get_buffer(int32_t *buffer, int len, void *p)
         int c;
 	int16_t val;
 	float fval;
-        
+
         dss_update(dss);
-        
+
         for (c = 0; c < len*2; c += 2)
         {
 		fval = dss_iir((float)dss->buffer[c >> 1]);
                 val = (float) fval;
-                
+
                 buffer[c] += val;
                 buffer[c+1] += val;
         }
@@ -124,7 +124,7 @@ static void *dss_init(void *lpt)
 static void dss_close(void *p)
 {
         dss_t *dss = (dss_t *)p;
-        
+
         free(dss);
 }
 

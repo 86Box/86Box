@@ -272,7 +272,7 @@ config_free(void)
 		ent = nent;
 	}
 
-	free(sec);		
+	free(sec);
 	sec = ns;
     }
 }
@@ -318,7 +318,7 @@ config_read(char *fn)
     f = plat_fopen(fn, "rt, ccs=UTF-8");
 #endif
     if (f == NULL) return(0);
-	
+
     sec = malloc(sizeof(section_t));
     memset(sec, 0x00, sizeof(section_t));
     memset(&config_head, 0x00, sizeof(list_t));
@@ -365,7 +365,7 @@ config_read(char *fn)
 		list_add(&ns->list, &config_head);
 
 		/* New section is now the current one. */
-		sec = ns;			
+		sec = ns;
 		continue;
 	}
 
@@ -464,7 +464,7 @@ config_write(char *fn)
 
 	sec = (section_t *)sec->list.next;
     }
-	
+
     (void)fclose(f);
 }
 
@@ -571,14 +571,14 @@ load_general(void)
 	if (p != NULL)
 	{
 		lang_id = plat_language_code(p);
-	}	
-	
+	}
+
 	p = config_get_string(cat, "iconset", NULL);
 	if (p != NULL)
 		strcpy(icon_set, p);
 	else
 		strcpy(icon_set, "");
-	
+
     enable_discord = !!config_get_int(cat, "enable_discord", 0);
 
     video_framerate = config_get_int(cat, "video_gl_framerate", -1);
@@ -677,7 +677,7 @@ load_machine(void)
 		machine = machine_get_machine_from_internal_name(p);
 		migrate_from = NULL;
 	}
-    } else 
+    } else
 	machine = 0;
 
     /* This is for backwards compatibility. */
@@ -834,20 +834,20 @@ load_machine(void)
     p = (char *)config_get_string(cat, "fpu_type", "none");
     fpu_type = fpu_get_type(cpu_f, cpu, p);
 
-    mem_size = config_get_int(cat, "mem_size", 64);	
+    mem_size = config_get_int(cat, "mem_size", 64);
 #if 0
     if (mem_size < ((machine_has_bus(machine, MACHINE_AT) &&
         (machines[machine].ram_granularity < 128)) ? machines[machine].min_ram*1024 : machines[machine].min_ram))
 	mem_size = (((machine_has_bus(machine, MACHINE_AT) && (machines[machine].ram_granularity < 128)) ? machines[machine].min_ram*1024 : machines[machine].min_ram);
 #endif
-	
+
     if (mem_size > 2097152)
 	mem_size = 2097152;
 
     cpu_use_dynarec = !!config_get_int(cat, "cpu_use_dynarec", 0);
 
     p = config_get_string(cat, "time_sync", NULL);
-    if (p != NULL) {        
+    if (p != NULL) {
 	if (!strcmp(p, "disabled"))
 		time_sync = TIME_SYNC_DISABLED;
 	else
@@ -978,7 +978,7 @@ load_input_devices(void)
 			sprintf(temp, "joystick_%i_axis_%i", c, d);
 			joystick_state[c].axis_mapping[d] = config_get_int(cat, temp, d);
 		}
-		for (d=0; d<joystick_get_button_count(joystick_type); d++) {			
+		for (d=0; d<joystick_get_button_count(joystick_type); d++) {
 			sprintf(temp, "joystick_%i_button_%i", c, d);
 			joystick_state[c].button_mapping[d] = config_get_int(cat, temp, d);
 		}
@@ -1027,7 +1027,7 @@ load_sound(void)
     SSI2001 = !!config_get_int(cat, "ssi2001", 0);
     GAMEBLASTER = !!config_get_int(cat, "gameblaster", 0);
     GUS = !!config_get_int(cat, "gus", 0);
-    
+
     memset(temp, '\0', sizeof(temp));
     p = config_get_string(cat, "sound_type", "float");
     if (strlen(p) > 511)
@@ -1140,7 +1140,7 @@ load_storage_controllers(void)
 
     /* TODO: Backwards compatibility, get rid of this when enough time has passed. */
     backwards_compat2 = (find_section(cat) == NULL);
-	
+
     /* TODO: Backwards compatibility, get rid of this when enough time has passed. */
     p = config_get_string(cat, "scsicard", NULL);
     if (p != NULL) {
@@ -1966,7 +1966,7 @@ load_other_removable_devices(void)
 
 	sprintf(temp, "mo_%02i_iso_path", c+1);
 	config_delete_var(cat, temp);
-    }    
+    }
 }
 
 
@@ -1979,7 +1979,7 @@ load_other_peripherals(void)
     char temp[512];
     int c, free_p = 0;
 
-    if (backwards_compat2) {	
+    if (backwards_compat2) {
 	p = config_get_string(cat, "scsicard", NULL);
 	if (p != NULL)
 		scsi_card_current[0] = scsi_card_get_from_internal_name(p);
@@ -2042,7 +2042,7 @@ load_other_peripherals(void)
     }
 
     p = config_get_string(cat, "isartc_type", "none");
-    isartc_type = isartc_get_from_internal_name(p);	
+    isartc_type = isartc_get_from_internal_name(p);
 }
 
 
@@ -2284,7 +2284,7 @@ save_general(void)
 		plat_language_code_r(lang_id, buffer, 511);
 		config_set_string(cat, "language", buffer);
 	  }
-	  
+
 	if (!strcmp(icon_set, ""))
 		config_delete_var(cat, "iconset");
 	else
@@ -2356,7 +2356,7 @@ save_machine(void)
 
 			/* Match the family name, speed and multiplier. */
 			if (!strcmp(cpu_f->internal_name, legacy_table_entry->family)) {
-				if ((legacy_table_entry->rspeed == cpu_f->cpus[cpu].rspeed) && 
+				if ((legacy_table_entry->rspeed == cpu_f->cpus[cpu].rspeed) &&
 				    (legacy_table_entry->multi == cpu_f->cpus[cpu].multi)) { /* exact speed/multiplier match */
 					legacy_cpu = i;
 					break;
@@ -2449,15 +2449,15 @@ save_input_devices(void)
 		sprintf(tmp2, "joystick_%i_nr", c);
 		config_delete_var(cat, tmp2);
 
-		for (d=0; d<16; d++) {			
+		for (d=0; d<16; d++) {
 			sprintf(tmp2, "joystick_%i_axis_%i", c, d);
 			config_delete_var(cat, tmp2);
 		}
-		for (d=0; d<16; d++) {			
+		for (d=0; d<16; d++) {
 			sprintf(tmp2, "joystick_%i_button_%i", c, d);
 			config_delete_var(cat, tmp2);
 		}
-		for (d=0; d<16; d++) {			
+		for (d=0; d<16; d++) {
 			sprintf(tmp2, "joystick_%i_pov_%i", c, d);
 			config_delete_var(cat, tmp2);
 		}
@@ -2470,15 +2470,15 @@ save_input_devices(void)
 		config_set_int(cat, tmp2, joystick_state[c].plat_joystick_nr);
 
 		if (joystick_state[c].plat_joystick_nr) {
-			for (d=0; d<joystick_get_axis_count(joystick_type); d++) {			
+			for (d=0; d<joystick_get_axis_count(joystick_type); d++) {
 				sprintf(tmp2, "joystick_%i_axis_%i", c, d);
 				config_set_int(cat, tmp2, joystick_state[c].axis_mapping[d]);
 			}
-			for (d=0; d<joystick_get_button_count(joystick_type); d++) {			
+			for (d=0; d<joystick_get_button_count(joystick_type); d++) {
 				sprintf(tmp2, "joystick_%i_button_%i", c, d);
 				config_set_int(cat, tmp2, joystick_state[c].button_mapping[d]);
 			}
-			for (d=0; d<joystick_get_pov_count(joystick_type); d++) {			
+			for (d=0; d<joystick_get_pov_count(joystick_type); d++) {
 				sprintf(tmp2, "joystick_%i_pov_%i", c, d);
 				sprintf(temp, "%i, %i", joystick_state[c].pov_mapping[d][0], joystick_state[c].pov_mapping[d][1]);
 				config_set_string(cat, tmp2, temp);
@@ -2746,8 +2746,8 @@ save_other_peripherals(void)
 	config_delete_var(cat, "isartc_type");
       else
 	config_set_string(cat, "isartc_type",
-			  isartc_get_internal_name(isartc_type));	
-	
+			  isartc_get_internal_name(isartc_type));
+
     delete_section_if_empty(cat);
 }
 
@@ -2947,7 +2947,7 @@ save_other_removable_devices(void)
 			hdd_bus_to_string(zip_drives[c].bus_type, 1));
 		config_set_string(cat, temp, tmp2);
 	}
-		
+
 	sprintf(temp, "zip_%02i_ide_channel", c+1);
 	if (zip_drives[c].bus_type != ZIP_BUS_ATAPI)
 		config_delete_var(cat, temp);
@@ -2987,7 +2987,7 @@ save_other_removable_devices(void)
 			hdd_bus_to_string(mo_drives[c].bus_type, 1));
 		config_set_string(cat, temp, tmp2);
 	}
-		
+
 	sprintf(temp, "mo_%02i_ide_channel", c+1);
 	if (mo_drives[c].bus_type != MO_BUS_ATAPI)
 		config_delete_var(cat, temp);
@@ -3024,7 +3024,7 @@ save_other_removable_devices(void)
 
 void
 config_save(void)
-{	
+{
     save_general();			/* General */
     save_machine();			/* Machine */
     save_video();			/* Video */
@@ -3046,14 +3046,14 @@ void
 config_dump(void)
 {
     section_t *sec;
-	
+
     sec = (section_t *)config_head.next;
     while (sec != NULL) {
 	entry_t *ent;
 
 	if (sec->name[0])
 		config_log("[%s]\n", sec->name);
-	
+
 	ent = (entry_t *)sec->entry_head.next;
 	while (ent != NULL) {
 		config_log("%s = %s\n", ent->name, ent->data);
@@ -3074,7 +3074,7 @@ config_delete_var(char *head, char *name)
 
     section = find_section(head);
     if (section == NULL) return;
-		
+
     entry = find_entry(section, name);
     if (entry != NULL) {
 	list_delete(&entry->list, &section->entry_head);
@@ -3093,7 +3093,7 @@ config_get_int(char *head, char *name, int def)
     section = find_section(head);
     if (section == NULL)
 	return(def);
-		
+
     entry = find_entry(section, name);
     if (entry == NULL)
 	return(def);
@@ -3114,7 +3114,7 @@ config_get_double(char *head, char *name, double def)
     section = find_section(head);
     if (section == NULL)
 	return(def);
-		
+
     entry = find_entry(section, name);
     if (entry == NULL)
 	return(def);
@@ -3201,7 +3201,7 @@ config_get_string(char *head, char *name, char *def)
     entry = find_entry(section, name);
     if (entry == NULL)
 	return(def);
-     
+
     return(entry->data);
 }
 
@@ -3219,7 +3219,7 @@ config_get_wstring(char *head, char *name, wchar_t *def)
     entry = find_entry(section, name);
     if (entry == NULL)
 	return(def);
-   
+
     return(entry->wdata);
 }
 

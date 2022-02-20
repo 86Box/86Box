@@ -200,4 +200,3 @@ void SettingsInput::on_pushButtonJoystick3_clicked() {
 void SettingsInput::on_pushButtonJoystick4_clicked() {
     updateJoystickConfig(ui->comboBoxJoystick->currentData().toInt(), 3, this);
 }
-

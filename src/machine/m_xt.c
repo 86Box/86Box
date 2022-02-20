@@ -26,9 +26,9 @@ machine_xt_common_init(const machine_t *model)
 
     pit_ctr_set_out_func(&pit->counters[1], pit_refresh_timer_xt);
 
-    if (fdc_type == FDC_INTERNAL)	
+    if (fdc_type == FDC_INTERNAL)
 	    device_add(&fdc_xt_device);
-    
+
     nmi_init();
     standalone_gameport_type = &gameport_device;
 }
@@ -224,6 +224,20 @@ machine_xt_ataripc3_init(const machine_t *model)
 
     ret = bios_load_linear("roms/machines/ataripc3/c101701-004 308.u61",
 			   0x000f8000, 0x8000, 0);
+    
+    if (bios_only || !ret)
+	return ret;
+
+    machine_xt_clone_init(model);
+
+    return ret;
+}
+machine_xt_znic_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/znic/ibmzen.rom",
+			   0x000fe000, 8192, 0);
 
     if (bios_only || !ret)
 	return ret;
@@ -365,7 +379,7 @@ machine_xt_mpc1600_init(const machine_t *model)
 
     ret = bios_load_linear("roms/machines/mpc1600/mpc4.34_merged.bin",
 			   0x000fc000, 16384, 0);
-    
+
     if (bios_only || !ret)
 	return ret;
 
@@ -384,7 +398,7 @@ machine_xt_pcspirit_init(const machine_t *model)
 
     ret = bios_load_linear("roms/machines/pcspirit/u1101.bin",
 			   0x000fe000, 16384, 0);
-    
+
     if (ret) {
 	bios_load_aux_linear("roms/machines/pcspirit/u1103.bin",
 			     0x000fc000, 8192, 0);

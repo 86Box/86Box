@@ -509,7 +509,7 @@ es1371_read_frame_reg(es1371_t *dev, int frame, int page)
 	if (page == 0x0e || page == 0x0f) {
 		audiopci_log("Read frame = %02x, page = %02x, uart fifo valid = %02x, temp = %03x\n", frame, page, dev->valid, ret);
 	}
-	
+
     return ret;
 }
 
@@ -675,7 +675,7 @@ es1371_inb(uint16_t port, void *p)
 	case 0x0d ... 0x0e:
 		ret = 0x00;
 		break;
-		
+
 	/* Legacy Control/Status Register, Address 18H
 	   Addressable as byte, word, longword */
 	case 0x18:
@@ -702,10 +702,10 @@ es1371_inb(uint16_t port, void *p)
 	case 0x22:
 		ret = (dev->si_cr >> 16) | 0x80;
 		break;
-	case 0x23:		
+	case 0x23:
 		ret = 0xff;
 		break;
-		
+
 	default:
 		audiopci_log("Bad es1371_inb: port=%04x\n", port);
     }
@@ -831,7 +831,7 @@ es1371_inl(uint16_t port, void *p)
 		ret = dev->sr_cir & ~0xffff;
 		ret |= dev->sr_ram[dev->sr_cir >> 25];
 		break;
-		
+
 	/* CODEC Read Register, Address 14H
 	   Addressable as longword only */
 	case 0x14:
@@ -929,7 +929,7 @@ es1371_outb(uint16_t port, uint8_t val, void *p)
 	case 0x09:
 		audiopci_log("[W] UART CTRL = %02X\n", val);
 		dev->uart_ctrl = val & 0xe3;
-		
+
 		if ((val & 0x03) == 0x03) {
 			/* Reset TX */
 			es1371_set_tx_irq(dev, 1);
@@ -1137,7 +1137,7 @@ es1371_outl(uint16_t port, uint32_t val, void *p)
 					break;
 				case 0x72:
 					dev->dac[0].ac = (dev->dac[0].ac & ~0x7fff) | (val & 0x7fff);
-					break;				
+					break;
 				case 0x73:
 					dev->dac[0].vf = (dev->dac[0].vf & ~0x7fff) | (val & 0x7fff);
 					break;
@@ -1237,7 +1237,7 @@ capture_event(es1371_t *dev, int type, int rw, uint16_t port)
 {
     dev->legacy_ctrl &= ~(LEGACY_EVENT_MASK | LEGACY_EVENT_ADDR_MASK);
     dev->legacy_ctrl |= type;
-    if (rw)	
+    if (rw)
 	dev->legacy_ctrl |= LEGACY_EVENT_TYPE_RW;
     else
 	dev->legacy_ctrl &= ~LEGACY_EVENT_TYPE_RW;
@@ -1839,7 +1839,7 @@ es1371_update(es1371_t *dev)
     else if (r > 32767)
 	r = 32767;
 
-   for (; dev->pos < sound_pos_global; dev->pos++) {                                        
+   for (; dev->pos < sound_pos_global; dev->pos++) {
 	dev->buffer[dev->pos*2]     = l;
 	dev->buffer[dev->pos*2 + 1] = r;
     }
@@ -1856,7 +1856,7 @@ es1371_poll(void *p)
 
     es1371_scan_fifo(dev);
 
-    es1371_update(dev);		
+    es1371_update(dev);
 
     if (dev->int_ctrl & INT_DAC1_EN) {
 	frac = dev->dac[0].ac & 0x7fff;
@@ -1989,7 +1989,7 @@ es1371_input_msg(void *p, uint8_t *msg, uint32_t len)
 
 
 static int
-es1371_input_sysex(void *p, uint8_t *buffer, uint32_t len, int abort) 
+es1371_input_sysex(void *p, uint8_t *buffer, uint32_t len, int abort)
 {
     es1371_t *dev = (es1371_t *)p;
     uint32_t i = -1;
@@ -2030,7 +2030,7 @@ es1371_init(const device_t *info)
 
     dev->card = pci_add_card(info->local ? PCI_ADD_SOUND : PCI_ADD_NORMAL, es1371_pci_read, es1371_pci_write, dev);
 
-    timer_add(&dev->dac[1].timer, es1371_poll, dev, 1); 
+    timer_add(&dev->dac[1].timer, es1371_poll, dev, 1);
 
     generate_es1371_filter();
 
@@ -2090,10 +2090,10 @@ static const device_config_t es1371_config[] =
 		}
 	},
 	.default_int = AC97_CODEC_CS4297A
-    }, 
+    },
 	{
 		"receive_input", "Receive input (MIDI)", CONFIG_BINARY, "", 1
-	},	
+	},
 	{
 	"", "", -1
     }

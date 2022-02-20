@@ -4,12 +4,12 @@
 /*The allocator handles all allocation of executable memory. Since the two-pass
   recompiler design makes applying hard limits to codeblock size difficult, the
   allocator allows memory to be provided as and when required.
-  
+
   The allocator provides a block size of a little under 1 kB (slightly lower to
   limit cache aliasing). Each generated codeblock is allocated one block by default,
   and will allocate additional block(s) once the existing memory is sorted. Blocks
   are chained together by jump instructions.
-  
+
   Due to the chaining, the total memory size is limited by the range of a jump
   instruction. ARMv7 is restricted to +/- 32 MB, ARMv8 to +/- 128 MB, x86 to
   +/- 2GB. As a result, total memory size is limited to 32 MB on ARMv7*/

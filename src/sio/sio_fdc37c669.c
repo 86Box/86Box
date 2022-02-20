@@ -127,11 +127,11 @@ fdc37c669_write(uint16_t port, uint8_t val, void *priv)
 		if (valxor & 4) {
 			if (dev->id) {
 				lpt2_remove();
-				if ((dev->regs[1] & 4) && (dev->regs[0x23] >= 0x40)) 
+				if ((dev->regs[1] & 4) && (dev->regs[0x23] >= 0x40))
 					lpt2_init(make_port(dev, 0x23));
 			} else {
 				lpt1_remove();
-				if ((dev->regs[1] & 4) && (dev->regs[0x23] >= 0x40)) 
+				if ((dev->regs[1] & 4) && (dev->regs[0x23] >= 0x40))
 					lpt1_init(make_port(dev, 0x23));
 			}
 		}
@@ -177,11 +177,11 @@ fdc37c669_write(uint16_t port, uint8_t val, void *priv)
 		if (valxor) {
 			if (dev->id) {
 				lpt2_remove();
-				if ((dev->regs[1] & 4) && (dev->regs[0x23] >= 0x40)) 
+				if ((dev->regs[1] & 4) && (dev->regs[0x23] >= 0x40))
 					lpt2_init(make_port(dev, 0x23));
 			} else {
 				lpt1_remove();
-				if ((dev->regs[1] & 4) && (dev->regs[0x23] >= 0x40)) 
+				if ((dev->regs[1] & 4) && (dev->regs[0x23] >= 0x40))
 					lpt1_init(make_port(dev, 0x23));
 			}
 		}

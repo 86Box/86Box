@@ -479,7 +479,7 @@ static int opC0_a16(uint32_t fetchdat)
         int c;
         int tempc;
         uint8_t temp, temp2 = 0;
-        
+
         fetch_ea_16(fetchdat);
         if (cpu_mod != 3)
                 SEG_CHECK_WRITE(cpu_state.ea_seg);
@@ -494,7 +494,7 @@ static int opC0_a32(uint32_t fetchdat)
         int c;
         int tempc;
         uint8_t temp, temp2 = 0;
-        
+
         fetch_ea_32(fetchdat);
         if (cpu_mod != 3)
                 SEG_CHECK_WRITE(cpu_state.ea_seg);
@@ -509,7 +509,7 @@ static int opC1_w_a16(uint32_t fetchdat)
         int c;
         int tempc;
         uint16_t temp, temp2 = 0;
-        
+
         fetch_ea_16(fetchdat);
         if (cpu_mod != 3)
                 SEG_CHECK_WRITE(cpu_state.ea_seg);
@@ -524,7 +524,7 @@ static int opC1_w_a32(uint32_t fetchdat)
         int c;
         int tempc;
         uint16_t temp, temp2 = 0;
-        
+
         fetch_ea_32(fetchdat);
         if (cpu_mod != 3)
                 SEG_CHECK_WRITE(cpu_state.ea_seg);
@@ -539,7 +539,7 @@ static int opC1_l_a16(uint32_t fetchdat)
         int c;
         int tempc;
         uint32_t temp, temp2 = 0;
-        
+
         fetch_ea_16(fetchdat);
         if (cpu_mod != 3)
                 SEG_CHECK_WRITE(cpu_state.ea_seg);
@@ -554,7 +554,7 @@ static int opC1_l_a32(uint32_t fetchdat)
         int c;
         int tempc;
         uint32_t temp, temp2 = 0;
-        
+
         fetch_ea_32(fetchdat);
         if (cpu_mod != 3)
                 SEG_CHECK_WRITE(cpu_state.ea_seg);
@@ -570,7 +570,7 @@ static int opD0_a16(uint32_t fetchdat)
         int c = 1;
         int tempc;
         uint8_t temp, temp2 = 0;
-        
+
         fetch_ea_16(fetchdat);
         if (cpu_mod != 3)
                 SEG_CHECK_WRITE(cpu_state.ea_seg);
@@ -583,7 +583,7 @@ static int opD0_a32(uint32_t fetchdat)
         int c = 1;
         int tempc;
         uint8_t temp, temp2 = 0;
-        
+
         fetch_ea_32(fetchdat);
         if (cpu_mod != 3)
                 SEG_CHECK_WRITE(cpu_state.ea_seg);
@@ -596,7 +596,7 @@ static int opD1_w_a16(uint32_t fetchdat)
         int c = 1;
         int tempc;
         uint16_t temp, temp2 = 0;
-        
+
         fetch_ea_16(fetchdat);
         if (cpu_mod != 3)
                 SEG_CHECK_WRITE(cpu_state.ea_seg);
@@ -609,7 +609,7 @@ static int opD1_w_a32(uint32_t fetchdat)
         int c = 1;
         int tempc;
         uint16_t temp, temp2 = 0;
-        
+
         fetch_ea_32(fetchdat);
         if (cpu_mod != 3)
                 SEG_CHECK_WRITE(cpu_state.ea_seg);
@@ -622,7 +622,7 @@ static int opD1_l_a16(uint32_t fetchdat)
         int c = 1;
         int tempc;
         uint32_t temp, temp2 = 0;
-        
+
         fetch_ea_16(fetchdat);
         if (cpu_mod != 3)
                 SEG_CHECK_WRITE(cpu_state.ea_seg);
@@ -635,7 +635,7 @@ static int opD1_l_a32(uint32_t fetchdat)
         int c = 1;
         int tempc;
         uint32_t temp, temp2 = 0;
-        
+
         fetch_ea_32(fetchdat);
         if (cpu_mod != 3)
                 SEG_CHECK_WRITE(cpu_state.ea_seg);
@@ -649,7 +649,7 @@ static int opD2_a16(uint32_t fetchdat)
         int c;
         int tempc;
         uint8_t temp, temp2 = 0;
-        
+
         fetch_ea_16(fetchdat);
         if (cpu_mod != 3)
                 SEG_CHECK_WRITE(cpu_state.ea_seg);
@@ -663,7 +663,7 @@ static int opD2_a32(uint32_t fetchdat)
         int c;
         int tempc;
         uint8_t temp, temp2 = 0;
-        
+
         fetch_ea_32(fetchdat);
         if (cpu_mod != 3)
                 SEG_CHECK_WRITE(cpu_state.ea_seg);
@@ -677,7 +677,7 @@ static int opD3_w_a16(uint32_t fetchdat)
         int c;
         int tempc;
         uint16_t temp, temp2 = 0;
-        
+
         fetch_ea_16(fetchdat);
         if (cpu_mod != 3)
                 SEG_CHECK_WRITE(cpu_state.ea_seg);
@@ -691,7 +691,7 @@ static int opD3_w_a32(uint32_t fetchdat)
         int c;
         int tempc;
         uint16_t temp, temp2 = 0;
-        
+
         fetch_ea_32(fetchdat);
         if (cpu_mod != 3)
                 SEG_CHECK_WRITE(cpu_state.ea_seg);
@@ -705,7 +705,7 @@ static int opD3_l_a16(uint32_t fetchdat)
         int c;
         int tempc;
         uint32_t temp, temp2 = 0;
-        
+
         fetch_ea_16(fetchdat);
         if (cpu_mod != 3)
                 SEG_CHECK_WRITE(cpu_state.ea_seg);
@@ -719,7 +719,7 @@ static int opD3_l_a32(uint32_t fetchdat)
         int c;
         int tempc;
         uint32_t temp, temp2 = 0;
-        
+
         fetch_ea_32(fetchdat);
         if (cpu_mod != 3)
                 SEG_CHECK_WRITE(cpu_state.ea_seg);
@@ -845,7 +845,7 @@ static int opD3_l_a32(uint32_t fetchdat)
                 PREFETCH_RUN(3, 3, rmdat, 0,(cpu_mod == 3) ? 0:1,0,(cpu_mod == 3) ? 0:1, 1); \
                 return 0;                                                       \
         }
-              
+
 opSHxD(SHLD_w)
 opSHxD(SHLD_l)
 opSHxD(SHRD_w)

@@ -47,7 +47,7 @@ public:
   void clock();
   int clock(cycle_count& delta_t, short* buf, int n, int interleave = 1);
   void reset();
-  
+
   // Read/write registers.
   reg8 read(reg8 offset);
   void write(reg8 offset, reg8 value);
@@ -73,7 +73,7 @@ public:
     EnvelopeGeneratorFP::State envelope_state[3];
     bool hold_zero[3];
   };
-    
+
   State read_state();
   void write_state(const State& state);
 
@@ -114,7 +114,7 @@ protected:
   int sample_index;
   int fir_N;
   int fir_RES;
-  
+
   // Linear interpolation helper
   float sample_prev;
 

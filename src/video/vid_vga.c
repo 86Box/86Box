@@ -41,7 +41,7 @@ void vga_out(uint16_t addr, uint8_t val, void *p)
         svga_t *svga = &vga->svga;
         uint8_t old;
 
-        if (((addr & 0xfff0) == 0x3d0 || (addr & 0xfff0) == 0x3b0) && !(svga->miscout & 1)) 
+        if (((addr & 0xfff0) == 0x3d0 || (addr & 0xfff0) == 0x3b0) && !(svga->miscout & 1))
                 addr ^= 0x60;
 
         switch (addr)
@@ -82,9 +82,9 @@ uint8_t vga_in(uint16_t addr, void *p)
         svga_t *svga = &vga->svga;
         uint8_t temp;
 
-        if (((addr & 0xfff0) == 0x3d0 || (addr & 0xfff0) == 0x3b0) && !(svga->miscout & 1)) 
+        if (((addr & 0xfff0) == 0x3d0 || (addr & 0xfff0) == 0x3b0) && !(svga->miscout & 1))
                 addr ^= 0x60;
-             
+
         switch (addr)
         {
                 case 0x3D4:
@@ -123,7 +123,7 @@ static void *vga_init(const device_t *info)
 
         vga->svga.bpp = 8;
         vga->svga.miscout = 1;
-        
+
         return vga;
 }
 
@@ -133,7 +133,7 @@ void *ps1vga_init(const device_t *info)
 {
         vga_t *vga = malloc(sizeof(vga_t));
         memset(vga, 0, sizeof(vga_t));
-       
+
 	if (info->flags & DEVICE_MCA)
 		video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_ps1_svga_mca);
 	else
@@ -149,7 +149,7 @@ void *ps1vga_init(const device_t *info)
 
         vga->svga.bpp = 8;
         vga->svga.miscout = 1;
-        
+
         return vga;
 }
 
@@ -163,14 +163,14 @@ void vga_close(void *p)
         vga_t *vga = (vga_t *)p;
 
         svga_close(&vga->svga);
-        
+
         free(vga);
 }
 
 void vga_speed_changed(void *p)
 {
         vga_t *vga = (vga_t *)p;
-        
+
         svga_recalctimings(&vga->svga);
 }
 

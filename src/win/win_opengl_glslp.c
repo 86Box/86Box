@@ -86,9 +86,9 @@ static char* read_file_to_string(const char* path)
 	{
 		/* get file size */
 		fseek(file_handle, 0, SEEK_END);
-		
+
 		size_t file_size = (size_t)ftell(file_handle);
-		
+
 		fseek(file_handle, 0, SEEK_SET);
 
 		/* read to buffer and close */

@@ -3,19 +3,19 @@ extern int tempc;
 enum
 {
         FLAGS_UNKNOWN,
-        
+
         FLAGS_ZN8,
         FLAGS_ZN16,
         FLAGS_ZN32,
-        
+
         FLAGS_ADD8,
         FLAGS_ADD16,
         FLAGS_ADD32,
-        
+
         FLAGS_SUB8,
         FLAGS_SUB16,
         FLAGS_SUB32,
-        
+
         FLAGS_SHL8,
         FLAGS_SHL16,
         FLAGS_SHL32,
@@ -41,7 +41,7 @@ enum
         FLAGS_INC8,
         FLAGS_INC16,
         FLAGS_INC32,
-        
+
         FLAGS_DEC8,
         FLAGS_DEC16,
         FLAGS_DEC32
@@ -62,7 +62,7 @@ static __inline int ZF_SET()
 {
         switch (cpu_state.flags_op)
         {
-                case FLAGS_ZN8: 
+                case FLAGS_ZN8:
                 case FLAGS_ZN16:
                 case FLAGS_ZN32:
                 case FLAGS_ADD8:
@@ -95,7 +95,7 @@ static __inline int ZF_SET()
                 case FLAGS_SBC32:
 #endif
                 return !cpu_state.flags_res;
-                
+
 #ifdef USE_NEW_DYNAREC
                 case FLAGS_ROL8:
                 case FLAGS_ROL16:
@@ -121,7 +121,7 @@ static __inline int NF_SET()
 {
         switch (cpu_state.flags_op)
         {
-                case FLAGS_ZN8: 
+                case FLAGS_ZN8:
                 case FLAGS_ADD8:
                 case FLAGS_SUB8:
                 case FLAGS_SHL8:
@@ -134,7 +134,7 @@ static __inline int NF_SET()
                 case FLAGS_SBC8:
 #endif
                 return cpu_state.flags_res & 0x80;
-                
+
                 case FLAGS_ZN16:
                 case FLAGS_ADD16:
                 case FLAGS_SUB16:
@@ -148,7 +148,7 @@ static __inline int NF_SET()
                 case FLAGS_SBC16:
 #endif
                 return cpu_state.flags_res & 0x8000;
-                
+
                 case FLAGS_ZN32:
                 case FLAGS_ADD32:
                 case FLAGS_SUB32:
@@ -162,7 +162,7 @@ static __inline int NF_SET()
                 case FLAGS_SBC32:
 #endif
                 return cpu_state.flags_res & 0x80000000;
-                
+
 #ifdef USE_NEW_DYNAREC
                 case FLAGS_ROL8:
                 case FLAGS_ROL16:
@@ -188,7 +188,7 @@ static __inline int PF_SET()
 {
         switch (cpu_state.flags_op)
         {
-                case FLAGS_ZN8: 
+                case FLAGS_ZN8:
                 case FLAGS_ZN16:
                 case FLAGS_ZN32:
                 case FLAGS_ADD8:
@@ -221,7 +221,7 @@ static __inline int PF_SET()
                 case FLAGS_SBC32:
 #endif
                 return znptable8[cpu_state.flags_res & 0xff] & P_FLAG;
-                
+
 #ifdef USE_NEW_DYNAREC
                 case FLAGS_ROL8:
                 case FLAGS_ROL16:
@@ -254,7 +254,7 @@ static __inline int VF_SET()
                 case FLAGS_SAR16:
                 case FLAGS_SAR32:
                 return 0;
-                
+
 #ifdef USE_NEW_DYNAREC
                 case FLAGS_ADC8:
 #endif
@@ -299,7 +299,7 @@ static __inline int VF_SET()
                 return (((cpu_state.flags_op1 << cpu_state.flags_op2) ^ (cpu_state.flags_op1 << (cpu_state.flags_op2 - 1))) & 0x8000);
                 case FLAGS_SHL32:
                 return (((cpu_state.flags_op1 << cpu_state.flags_op2) ^ (cpu_state.flags_op1 << (cpu_state.flags_op2 - 1))) & 0x80000000);
-                
+
                 case FLAGS_SHR8:
                 return ((cpu_state.flags_op2 == 1) && (cpu_state.flags_op1 & 0x80));
                 case FLAGS_SHR16:
@@ -340,7 +340,7 @@ static __inline int AF_SET()
 {
         switch (cpu_state.flags_op)
         {
-                case FLAGS_ZN8: 
+                case FLAGS_ZN8:
                 case FLAGS_ZN16:
                 case FLAGS_ZN32:
                 case FLAGS_SHL8:
@@ -353,7 +353,7 @@ static __inline int AF_SET()
                 case FLAGS_SAR16:
                 case FLAGS_SAR32:
                 return 0;
-                
+
                 case FLAGS_ADD8:
                 case FLAGS_ADD16:
                 case FLAGS_ADD32:
@@ -388,7 +388,7 @@ static __inline int AF_SET()
                 case FLAGS_SBC32:
                 return ((cpu_state.flags_op1 & 0xf) < (cpu_state.flags_op2 & 0xf)) ||
                         ((cpu_state.flags_op1 & 0xf) == (cpu_state.flags_op2 & 0xf) && (cpu_state.flags_res & 0xf) != 0);
-                
+
                 case FLAGS_ROL8:
                 case FLAGS_ROL16:
                 case FLAGS_ROL32:
@@ -464,7 +464,7 @@ static __inline int CF_SET()
                 case FLAGS_SAR32:
                 return ((int32_t)cpu_state.flags_op1 >> (cpu_state.flags_op2 - 1)) & 1;
 
-                case FLAGS_ZN8: 
+                case FLAGS_ZN8:
                 case FLAGS_ZN16:
                 case FLAGS_ZN32:
                 return 0;
@@ -474,7 +474,7 @@ static __inline int CF_SET()
                 case FLAGS_ROL16:
                 case FLAGS_ROL32:
                 return cpu_state.flags_res & 1;
-                
+
                 case FLAGS_ROR8:
                 return (cpu_state.flags_res & 0x80) ? 1 : 0;
                 case FLAGS_ROR16:
@@ -510,7 +510,7 @@ static __inline void flags_rebuild()
                 if (CF_SET()) tempf |= C_FLAG;
                 if (PF_SET()) tempf |= P_FLAG;
                 if (AF_SET()) tempf |= A_FLAG;
-                if (ZF_SET()) tempf |= Z_FLAG;                                
+                if (ZF_SET()) tempf |= Z_FLAG;
                 if (NF_SET()) tempf |= N_FLAG;
                 if (VF_SET()) tempf |= V_FLAG;
                 cpu_state.flags = (cpu_state.flags & ~0x8d5) | tempf;

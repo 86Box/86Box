@@ -58,7 +58,7 @@ static void joystick_standard_close(void *p)
 static uint8_t joystick_standard_read(void *p)
 {
         uint8_t ret = 0xf0;
-        
+
         if (JOYSTICK_PRESENT(0))
         {
                 if (joystick_state[0].button[0])
@@ -73,14 +73,14 @@ static uint8_t joystick_standard_read(void *p)
                 if (joystick_state[1].button[1])
                         ret &= ~0x80;
         }
-        
+
         return ret;
 }
 
 static uint8_t joystick_standard_read_4button(void *p)
 {
         uint8_t ret = 0xf0;
-        
+
         if (JOYSTICK_PRESENT(0))
         {
                 if (joystick_state[0].button[0])
@@ -92,7 +92,7 @@ static uint8_t joystick_standard_read_4button(void *p)
                 if (joystick_state[0].button[3])
                         ret &= ~0x80;
         }
-        
+
         return ret;
 }
 
@@ -218,13 +218,13 @@ static int joystick_standard_read_axis_8button(void *p, int axis)
                 case 2:
                 if (joystick_state[0].button[4])
                         return -32767;
-                if (joystick_state[0].button[6])                        
+                if (joystick_state[0].button[6])
                         return 32768;
                 return 0;
                 case 3:
                 if (joystick_state[0].button[5])
                         return -32767;
-                if (joystick_state[0].button[7])                        
+                if (joystick_state[0].button[7])
                         return 32768;
                 return 0;
 		default:

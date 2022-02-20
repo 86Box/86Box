@@ -15,9 +15,9 @@
  *
  *		Copyright 2018,2019 Miran Grca.
  */
+
 #ifndef EMU_ZIP_H
 #define EMU_ZIP_H
-
 
 #define ZIP_NUM			  4
 
@@ -122,6 +122,5 @@ extern void	zip_close();
 #ifdef __cplusplus
 }
 #endif
-
 
 #endif	/*EMU_ZIP_H*/

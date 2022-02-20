@@ -16,9 +16,9 @@
  *		Copyright 2008-2020 Sarah Walker.
  *		Copyright 2016-2020 Miran Grca.
  */
+
 #ifndef VIDEO_SVGA_H
 # define VIDEO_SVGA_H
-
 
 #define FLAG_EXTRA_BANKS	1
 #define	FLAG_ADDR_BY8		2
@@ -120,7 +120,7 @@ typedef struct svga_t
     /* Called when VC=R18 and friends. If this returns zero then MA resetting
        is skipped. Matrox Mystique in Power mode reuses this counter for
        vertical line interrupt*/
-    int (*line_compare)(struct svga_t *svga);    
+    int (*line_compare)(struct svga_t *svga);
 
     /*Called at the start of vertical sync*/
     void (*vsync_callback)(struct svga_t *svga);
@@ -148,7 +148,7 @@ typedef struct svga_t
     uint16_t ksc5601_english_font_type;
 
     int vertical_linedbl;
-        
+
     /*Used to implement CRTC[0x17] bit 2 hsync divisor*/
     int hsync_divisor;
 
@@ -167,7 +167,7 @@ typedef struct svga_t
 } svga_t;
 
 
-extern int	svga_init(const device_t *info, svga_t *svga, void *p, int memsize, 
+extern int	svga_init(const device_t *info, svga_t *svga, void *p, int memsize,
 			  void (*recalctimings_ex)(struct svga_t *svga),
 			  uint8_t (*video_in) (uint16_t addr, void *p),
 			  void    (*video_out)(uint16_t addr, uint8_t val, void *p),

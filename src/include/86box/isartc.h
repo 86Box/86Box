@@ -44,8 +44,9 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING  IN ANY  WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#ifndef ISARTC_H
-# define ISARTC_H
+
+#ifndef EMU_ISARTC_H
+# define EMU_ISARTC_H
 
 
 #ifdef __cplusplus
@@ -67,4 +68,4 @@ extern const device_t	*isartc_get_device(int t);
 #endif
 
 
-#endif	/*ISARTC_H*/
+#endif	/*EMU_ISARTC_H*/

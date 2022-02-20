@@ -31,7 +31,7 @@ static struct
 int codegen_get_instruction_uop(codeblock_t *block, uint32_t pc, int *first_instruction, int *TOP)
 {
         int c;
-        
+
         for (c = 0; c <= block->ins; c++)
         {
                 if (codegen_instructions[c].pc == pc)
@@ -41,7 +41,7 @@ int codegen_get_instruction_uop(codeblock_t *block, uint32_t pc, int *first_inst
                         return codegen_instructions[c].first_uop;
                 }
         }
-        
+
         *first_instruction = block->ins;
         return -1;
 }
@@ -185,7 +185,7 @@ static x86seg *codegen_generate_ea_16_long(ir_data_t *ir, x86seg *op_ea_seg, uin
                         op_ea_seg = &cpu_state.seg_ss;
                 }
         }
-        
+
         codegen_mark_code_present(ir->block, cs+old_pc, ((*op_pc)+1)-old_pc);
         return op_ea_seg;
 }
@@ -290,7 +290,7 @@ static x86seg *codegen_generate_ea_32_long(ir_data_t *ir, x86seg *op_ea_seg, uin
                                 uop_MOV_IMM(ir, IREG_eaaddr, new_eaaddr);
                                 extra_bytes = 4;
                         }
-                        
+
                         (*op_pc) += 4;
                 }
                 else
@@ -327,7 +327,7 @@ static x86seg *codegen_generate_ea_32_long(ir_data_t *ir, x86seg *op_ea_seg, uin
 
         if (extra_bytes)
                 codegen_mark_code_present(ir->block, cs+old_pc, extra_bytes);
-                
+
         return op_ea_seg;
 }
 
@@ -617,7 +617,7 @@ generate_call:
 
 		if (codegen_timing_jump_cycles)
 			codegen_timing_jump_cycles();
-                
+
                 if (jump_cycles)
                         codegen_accumulate(ir, ACCREG_cycles, -jump_cycles);
                 codegen_accumulate_flush(ir);
@@ -673,7 +673,7 @@ generate_call:
                 if (recomp_opcodes_3DNOW[opcode_3dnow])
                 {
                         next_pc = opcode_pc + 1;
-                
+
                         op_table = (OpFn *) x86_dynarec_opcodes_3DNOW;
                         recomp_op_table = recomp_opcodes_3DNOW;
                         opcode = opcode_3dnow;
@@ -765,14 +765,14 @@ generate_call:
         last_op_ea_seg = op_ea_seg;
         last_op_ssegs = op_ssegs;
         //codegen_block_ins++;
-        
+
         block->ins++;
 
 	if (block->ins >= MAX_INSTRUCTION_COUNT)
 		CPU_BLOCK_END();
 
         codegen_endpc = (cs + cpu_state.pc) + 8;
-        
+
 //        if (has_ea)
 //                fatal("Has EA\n");
 }

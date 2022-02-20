@@ -155,7 +155,7 @@ void voodoo_wait_for_swap_complete(voodoo_t *voodoo)
 static uint32_t cmdfifo_get(voodoo_t *voodoo)
 {
         uint32_t val;
-	
+
 	if (!voodoo->cmdfifo_in_sub) {
 		while (voodoo->cmdfifo_depth_rd == voodoo->cmdfifo_depth_wr)
 		{
@@ -381,7 +381,7 @@ void voodoo_fifo_thread(void *param)
                                         mask >>= 1;
                                 }
                                 break;
-                                
+
                                 case 3:
                                 num = (header >> 29) & 7;
                                 mask = header;//(header >> 10) & 0xff;

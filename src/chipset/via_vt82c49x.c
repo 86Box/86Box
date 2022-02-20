@@ -354,7 +354,7 @@ vt82c49x_init(const device_t *info)
     pic_elcr_set_enabled(1);
 
     vt82c49x_recalc(dev);
-    
+
     return dev;
 }
 

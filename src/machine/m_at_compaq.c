@@ -70,24 +70,24 @@ static uint32_t 	normcols[256][2];
  *
  * Bit  3:   Disable built-in video (for add-on card)
  * Bit  2:   Thin font
- * Bits 0,1: Font set (not currently implemented) 
- */ 
+ * Bits 0,1: Font set (not currently implemented)
+ */
 static int8_t cpq_st_display_internal = -1;
 
-static void 
+static void
 compaq_plasma_display_set(uint8_t internal)
 {
 	cpq_st_display_internal = internal;
 }
 
-static uint8_t 
+static uint8_t
 compaq_plasma_display_get(void)
 {
 	return cpq_st_display_internal;
 }
 
 
-typedef struct compaq_plasma_t 
+typedef struct compaq_plasma_t
 {
 	mem_mapping_t plasma_mapping;
 	cga_t cga;
@@ -100,7 +100,7 @@ typedef struct compaq_plasma_t
 	int dispon;
 } compaq_plasma_t;
 
-static uint8_t cga_crtcmask[32] = 
+static uint8_t cga_crtcmask[32] =
 {
 	0xff, 0xff, 0xff, 0xff, 0x7f, 0x1f, 0x7f, 0x7f, 0xf3, 0x1f, 0x7f, 0x1f, 0x3f, 0xff, 0x3f, 0xff,
 	0xff, 0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
@@ -112,7 +112,7 @@ static mem_mapping_t	ram_mapping;
 
 static void compaq_plasma_recalcattrs(compaq_plasma_t *self);
 
-static void 
+static void
 compaq_plasma_recalctimings(compaq_plasma_t *self)
 {
 	double _dispontime, _dispofftime, disptime;
@@ -150,7 +150,7 @@ compaq_plasma_read(uint32_t addr, void *priv)
 }
 
 /* Draw a row of text in 80-column mode */
-static void 
+static void
 compaq_plasma_text80(compaq_plasma_t *self)
 {
 	uint32_t cols[2];
@@ -184,9 +184,9 @@ compaq_plasma_text80(compaq_plasma_t *self)
 			(attr & 0x80) && !drawcursor);
 
 		if (self->cga.cgamode & 0x20) { /* Blink */
-			cols[1] = blinkcols[attr][1]; 		
-			cols[0] = blinkcols[attr][0]; 		
-                        if (blink) 
+			cols[1] = blinkcols[attr][1];
+			cols[0] = blinkcols[attr][0];
+                        if (blink)
 				cols[1] = cols[0];
 		} else {
 			cols[1] = normcols[attr][1];
@@ -238,9 +238,9 @@ compaq_plasma_text40(compaq_plasma_t *self)
 			(attr & 0x80) && !drawcursor);
 
 		if (self->cga.cgamode & 0x20) { /* Blink */
-			cols[1] = blinkcols[attr][1]; 		
-			cols[0] = blinkcols[attr][0]; 		
-                        if (blink) 
+			cols[1] = blinkcols[attr][1];
+			cols[0] = blinkcols[attr][0];
+                        if (blink)
 				cols[1] = cols[0];
 		} else {
 			cols[1] = normcols[attr][1];
@@ -248,12 +248,12 @@ compaq_plasma_text40(compaq_plasma_t *self)
 		}
                 if (drawcursor) {
                 	for (c = 0; c < 8; c++) {
-                       		((uint32_t *)buffer32->line[self->displine])[(x << 4) + c*2] = 
+                       		((uint32_t *)buffer32->line[self->displine])[(x << 4) + c*2] =
                        		((uint32_t *)buffer32->line[self->displine])[(x << 4) + c*2 + 1] = cols[(fontdatm[chr][sc] & (1 << (c ^ 7))) ? 1 : 0] ^ (amber ^ black);
 			}
 		} else {
 			for (c = 0; c < 8; c++) {
-				((uint32_t *)buffer32->line[self->displine])[(x << 4) + c*2] = 
+				((uint32_t *)buffer32->line[self->displine])[(x << 4) + c*2] =
 				((uint32_t *)buffer32->line[self->displine])[(x << 4) + c*2+1] = cols[(fontdatm[chr][sc] & (1 << (c ^ 7))) ? 1 : 0];
 			}
                 }
@@ -263,7 +263,7 @@ compaq_plasma_text40(compaq_plasma_t *self)
 
 
 /* Draw a line in CGA 640x200 or Compaq Plasma 640x400 mode */
-static void 
+static void
 compaq_plasma_cgaline6(compaq_plasma_t *self)
 {
 	int x, c;
@@ -300,7 +300,7 @@ compaq_plasma_cgaline6(compaq_plasma_t *self)
 
 /* Draw a line in CGA 320x200 mode. Here the CGA colours are converted to
  * dither patterns: colour 1 to 25% grey, colour 2 to 50% grey */
-static void 
+static void
 compaq_plasma_cgaline4(compaq_plasma_t *self)
 {
 	int x, c;
@@ -309,7 +309,7 @@ compaq_plasma_cgaline4(compaq_plasma_t *self)
 	uint16_t addr;
 
 	uint16_t ma = (self->cga.crtc[13] | (self->cga.crtc[12] << 8)) & 0x7fff;
-	
+
 	/* 320*200 */
 	addr = ((self->displine >> 1) & 1) * 0x2000 +
 		(self->displine >> 2) * 80 +
@@ -321,7 +321,7 @@ compaq_plasma_cgaline4(compaq_plasma_t *self)
 
 		for (c = 0; c < 4; c++) {
 			pattern = (dat & 0xC0) >> 6;
-			if (!(self->cga.cgamode & 8)) 
+			if (!(self->cga.cgamode & 8))
 				pattern = 0;
 
 			switch (pattern & 3) {
@@ -366,13 +366,13 @@ compaq_plasma_out(uint16_t addr, uint8_t val, void *priv)
 		self->cga.crtc[self->cga.crtcreg] = val & cga_crtcmask[self->cga.crtcreg];
 
 		/* Register 0x12 controls the attribute mappings for the
-		* plasma screen. */		
+		* plasma screen. */
 		if (self->cga.crtcreg == 0x12)  {
-			self->attrmap = val;	
+			self->attrmap = val;
 			compaq_plasma_recalcattrs(self);
 			break;
 		}
-		
+
 		if (old != val) {
 			if (self->cga.crtcreg < 0xe || self->cga.crtcreg > 0x10) {
 				fullchange = changeframecount;
@@ -380,7 +380,7 @@ compaq_plasma_out(uint16_t addr, uint8_t val, void *priv)
 			}
 		}
 		break;
-		
+
 	case 0x3d8:
 		self->cga.cgamode = val;
 		break;
@@ -395,7 +395,7 @@ compaq_plasma_out(uint16_t addr, uint8_t val, void *priv)
 		else
 			compaq_plasma_display_set(0);
 		break;
-		
+
 	case 0x23c6:
 		self->port_23c6 = val;
 		if (val & 8) /* Disable internal CGA */
@@ -430,7 +430,7 @@ compaq_plasma_in(uint16_t addr, void *priv)
 	case 0x3da:
 		ret = self->cga.cgastat;
 		break;
-		
+
 	case 0x13c6:
 		if (compaq_plasma_display_get())
 			ret = 8;
@@ -450,7 +450,7 @@ static void
 compaq_plasma_poll(void *p)
 {
 	compaq_plasma_t *self = (compaq_plasma_t *)p;
-	
+
 	/* Switch between internal plasma and external CRT display. */
 	if (cpq_st_display_internal != -1 && cpq_st_display_internal != self->internal_monitor) {
 		self->internal_monitor = cpq_st_display_internal;
@@ -460,8 +460,8 @@ compaq_plasma_poll(void *p)
 	if (!self->internal_monitor && !(self->port_23c6 & 1)) {
 		cga_poll(&self->cga);
 		return;
-	}	
-	
+	}
+
 	if (!self->linepos) {
 		timer_advance_u64(&self->cga.timer, self->dispofftime);
 		self->cga.cgastat |= 1;
@@ -474,7 +474,7 @@ compaq_plasma_poll(void *p)
 			if (self->cga.cgamode & 0x02)	 {
 				if (self->cga.cgamode & 0x10)
 					compaq_plasma_cgaline6(self);
-				else	
+				else
 					compaq_plasma_cgaline4(self);
 			}
 			else if (self->cga.cgamode & 0x01) /* High-res text */
@@ -505,9 +505,9 @@ compaq_plasma_poll(void *p)
 			if ((640 != xsize) || (400 != ysize) || video_force_resize_get()) {
 				xsize = 640;
 				ysize = 400;
-				if (xsize < 64) 
+				if (xsize < 64)
 					xsize = 656;
-                                if (ysize < 32) 
+                                if (ysize < 32)
 					ysize = 200;
 				set_screen_size(xsize, ysize);
 
@@ -524,26 +524,26 @@ compaq_plasma_poll(void *p)
 			if (self->cga.cgamode & 0x02) {
 				if (self->cga.cgamode & 0x10)
 					video_bpp = 1;
-				else	
+				else
 					video_bpp = 2;
 
-			} else	 
+			} else
 				video_bpp = 0;
 			self->cga.cgablink++;
                 }
         }
 }
 
-static void 
+static void
 compaq_plasma_recalcattrs(compaq_plasma_t *self)
 {
 	int n;
 
 	/* val behaves as follows:
-	 *     Bit 0: Attributes 01-06, 08-0E are inverse video 
-	 *     Bit 1: Attributes 01-06, 08-0E are bold 
+	 *     Bit 0: Attributes 01-06, 08-0E are inverse video
+	 *     Bit 1: Attributes 01-06, 08-0E are bold
 	 *     Bit 2: Attributes 11-16, 18-1F, 21-26, 28-2F ... F1-F6, F8-FF
-	 * 	      are inverse video 
+	 * 	      are inverse video
 	 *     Bit 3: Attributes 11-16, 18-1F, 21-26, 28-2F ... F1-F6, F8-FF
 	 * 	      are bold */
 
@@ -554,15 +554,15 @@ compaq_plasma_recalcattrs(compaq_plasma_t *self)
 	/* Initialise the attribute mapping. Start by defaulting everything
 	 * to black on amber, and with bold set by bit 3 */
 	for (n = 0; n < 256; n++) {
-		blinkcols[n][0] = normcols[n][0] = amber; 
+		blinkcols[n][0] = normcols[n][0] = amber;
 		blinkcols[n][1] = normcols[n][1] = black;
 	}
 
-	/* Colours 0x11-0xFF are controlled by bits 2 and 3 of the 
-	 * passed value. Exclude x0 and x8, which are always black on 
+	/* Colours 0x11-0xFF are controlled by bits 2 and 3 of the
+	 * passed value. Exclude x0 and x8, which are always black on
 	 * amber. */
 	for (n = 0x11; n <= 0xFF; n++) {
-		if ((n & 7) == 0) 
+		if ((n & 7) == 0)
 			continue;
 		if (self->attrmap & 4) { /* Inverse */
 			blinkcols[n][0] = normcols[n][0] = amber;
@@ -572,10 +572,10 @@ compaq_plasma_recalcattrs(compaq_plasma_t *self)
 			blinkcols[n][1] = normcols[n][1] = amber;
 		}
 	}
-	/* Set up the 01-0E range, controlled by bits 0 and 1 of the 
+	/* Set up the 01-0E range, controlled by bits 0 and 1 of the
 	 * passed value. When blinking is enabled this also affects 81-8E. */
 	for (n = 0x01; n <= 0x0E; n++) {
-		if (n == 7) 
+		if (n == 7)
 			continue;
 		if (self->attrmap & 1) {
 			blinkcols[n][0] = normcols[n][0] = amber;
@@ -589,7 +589,7 @@ compaq_plasma_recalcattrs(compaq_plasma_t *self)
 			blinkcols[n+128][1] = amber;
 		}
 	}
-	/* Colours 07 and 0F are always amber on black. If blinking is 
+	/* Colours 07 and 0F are always amber on black. If blinking is
 	 * enabled so are 87 and 8F. */
 	for (n = 0x07; n <= 0x0F; n += 8) {
 		blinkcols[n][0] = normcols[n][0] = black;
@@ -616,7 +616,7 @@ compaq_plasma_recalcattrs(compaq_plasma_t *self)
 }
 
 static void *
-compaq_plasma_init(const device_t *info) 
+compaq_plasma_init(const device_t *info)
 {
 	int display_type;
 	compaq_plasma_t *self = malloc(sizeof(compaq_plasma_t));
@@ -648,7 +648,7 @@ compaq_plasma_init(const device_t *info)
 	self->cga.rgb_type = device_get_config_int("rgb_type");
 	cga_palette = (self->cga.rgb_type << 1);
 	cgapal_rebuild();
-	
+
 	return self;
 }
 
@@ -813,8 +813,8 @@ machine_at_compaq_init(const machine_t *model, int type)
 {
     if (type != COMPAQ_DESKPRO386)
 	mem_remap_top(384);
-	
-    if (fdc_type == FDC_INTERNAL)	
+
+    if (fdc_type == FDC_INTERNAL)
 	device_add(&fdc_at_device);
 
     mem_mapping_add(&ram_mapping, 0xfa0000, 0x60000,

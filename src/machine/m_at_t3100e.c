@@ -15,7 +15,7 @@
  *
  *		Memory management
  *		~~~~~~~~~~~~~~~~~
- * 
+ *
  *		Motherboard memory is divided into:
  *		- Conventional memory: Either 512k or 640k
  *		- Upper memory:        Either 512k or 384k, depending on
@@ -25,7 +25,7 @@
  *				       The BIOS setup screen allows some or
  *				       all of this to be used as EMS; the
  *				       remainder is XMS.
- * 
+ *
  *		Additional memory (either EMS or XMS) can also be provided
  *		by ISA expansion cards.
  *
@@ -40,7 +40,7 @@
  *		  Bit 6: Always 1  } These bits select which motherboard
  *		  Bit 5: Always 0  } function to access.
  *		  Bit 4: Set to treat upper RAM as XMS
- *		  Bit 3: Enable external RAM boards? 
+ *		  Bit 3: Enable external RAM boards?
  *		  Bit 2: Set for 640k conventional memory, clear for 512k
  *		  Bit 1: Enable RAM beyond 1Mb.
  *		  Bit 0: Enable EMS.
@@ -69,7 +69,7 @@
  *		OUT 0x4208, 0x80  will page in the first 16k page at 0xD4000.
  *		OUT 0x218,  0x80  will page in the 129th 16k page at 0xD0000.
  *		etc.
- * 
+ *
  *		To use EMS from DOS, you will need the Toshiba EMS driver
  *		(TOSHEMM.ZIP). This supports the above system, plus further
  *		ranges of ports at 0x_2A8, 0x_2B8, 0x_2C8.
@@ -104,7 +104,7 @@
  *                          01 0 => 3, 4, 5
  *                          01 1 => 3, 5, 4
  *                          10 0 => 4, -, 3
- *                          10 1 => 3, -, 4 
+ *                          10 1 => 3, -, 4
  *		  010 => set memory mappings
  *			 bit 4 set if upper RAM is XMS
  *			 bit 3 enable add-on memory boards beyond 5Mb?
@@ -237,7 +237,7 @@ t3100e_log(const char *fmt, ...)
 #endif
 
 
-/* Given a memory address (which ought to be in the page frame at 0xD0000), 
+/* Given a memory address (which ought to be in the page frame at 0xD0000),
  * which page does it relate to? */
 static int addr_to_page(uint32_t addr)
 {
@@ -248,7 +248,7 @@ static int addr_to_page(uint32_t addr)
 	return -1;
 }
 
-/* And vice versa: Given a page slot, which memory address does it 
+/* And vice versa: Given a page slot, which memory address does it
  * correspond to? */
 static uint32_t page_to_addr(int pg)
 {
@@ -256,7 +256,7 @@ static uint32_t page_to_addr(int pg)
 }
 
 /* Given an EMS page ID, return its physical address in RAM. */
-uint32_t t3100e_ems_execaddr(struct t3100e_ems_regs *regs, 
+uint32_t t3100e_ems_execaddr(struct t3100e_ems_regs *regs,
 					int pg, uint16_t val)
 {
 	uint32_t addr;
@@ -296,14 +296,14 @@ static int port_to_page(uint16_t addr)
 {
 	switch (addr)
 	{
-		case 0x208:  return  0; 
-		case 0x4208: return  1; 
-		case 0x8208: return  2; 
-		case 0xC208: return  3; 
-		case 0x218:  return  4; 
-		case 0x4218: return  5; 
-		case 0x8218: return  6; 
-		case 0xC218: return  7; 
+		case 0x208:  return  0;
+		case 0x4208: return  1;
+		case 0x8208: return  2;
+		case 0xC208: return  3;
+		case 0x218:  return  4;
+		case 0x4218: return  5;
+		case 0x8218: return  6;
+		case 0xC218: return  7;
 		case 0x258:  return  8;
 		case 0x4258: return  9;
 		case 0x8258: return 10;
@@ -331,12 +331,12 @@ void dump_mappings()
 		if (mm == &ram_mid_mapping ) name = "MID ";
 		if (mm == &ram_high_mapping) name = "HIGH";
 		if (mm == &t3100e_ems.upper_mapping) name = "UPPR";
-		if (mm == &t3100e_ems.mapping[0]) 
+		if (mm == &t3100e_ems.mapping[0])
 		{
 			name = "EMS0";
 			offset = t3100e_ems.page_exec[0];
 		}
-		if (mm == &t3100e_ems.mapping[1]) 
+		if (mm == &t3100e_ems.mapping[1])
 		{
 			name = "EMS1";
 			offset = t3100e_ems.page_exec[1];
@@ -346,14 +346,14 @@ void dump_mappings()
 			name = "EMS2";
 			offset = t3100e_ems.page_exec[2];
 		}
-		if (mm == &t3100e_ems.mapping[3]) 
+		if (mm == &t3100e_ems.mapping[3])
 		{
 			name = "EMS3";
 			offset = t3100e_ems.page_exec[3];
 		}
 
-		t3100e_log("  %p | base=%05x size=%05x %c @ %06x %s\n", mm, 
-			mm->base, mm->size, mm->enable ? 'Y' : 'N', 
+		t3100e_log("  %p | base=%05x size=%05x %c @ %06x %s\n", mm,
+			mm->base, mm->size, mm->enable ? 'Y' : 'N',
 			offset, name);
 
 		mm = mm->next;
@@ -366,7 +366,7 @@ void t3100e_map_ram(uint8_t val)
 	int32_t upper_len;
 
 #ifdef ENABLE_T3100E_LOG
-	t3100e_log("OUT 0x8084, %02x [ set memory mapping :", val | 0x40); 
+	t3100e_log("OUT 0x8084, %02x [ set memory mapping :", val | 0x40);
 	if (val & 1) t3100e_log("ENABLE_EMS ");
 	if (val & 2) t3100e_log("ENABLE_XMS ");
 	if (val & 4) t3100e_log("640K ");
@@ -376,12 +376,12 @@ void t3100e_map_ram(uint8_t val)
 #endif
 
 	/* Bit 2 controls size of conventional memory */
-	if (val & 4) 
+	if (val & 4)
 	{
 		t3100e_ems.upper_base  = 0xA0000;
 		t3100e_ems.upper_pages = 24;
 	}
-	else	
+	else
 	{
 		t3100e_ems.upper_base = 0x80000;
 		t3100e_ems.upper_pages = 32;
@@ -402,7 +402,7 @@ void t3100e_map_ram(uint8_t val)
 		mem_mapping_disable(&ram_high_mapping);
 	}
 
-	/* Bit 4 set if upper RAM is mapped to high memory 
+	/* Bit 4 set if upper RAM is mapped to high memory
          * (and bit 1 set if XMS enabled) */
 	if ((val & 0x12) == 0x12)
 	{
@@ -419,7 +419,7 @@ void t3100e_map_ram(uint8_t val)
 	/* Recalculate EMS mappings */
 	for (n = 0; n < 4; n++)
 	{
-		t3100e_ems_out(t3100e_ems_page_reg[n], t3100e_ems.page[n], 
+		t3100e_ems_out(t3100e_ems_page_reg[n], t3100e_ems.page[n],
 				&t3100e_ems);
 	}
 
@@ -461,7 +461,7 @@ uint8_t t3100e_sys_in(uint16_t addr, void *p)
 {
 	struct t3100e_ems_regs *regs = (struct t3100e_ems_regs *)p;
 
-	/* The low 4 bits always seem to be 0x0C. The high 4 are a 
+	/* The low 4 bits always seem to be 0x0C. The high 4 are a
 	 * notification sent by the keyboard controller when it detects
 	 * an [Fn] key combination */
 	t3100e_log("IN 0x8084\n");
@@ -478,10 +478,10 @@ void t3100e_sys_out(uint16_t addr, uint8_t val, void *p)
 	switch (val & 0xE0)
 	{
 		case 0x00: /* Set serial port IRQs. Not implemented */
-			t3100e_log("OUT 0x8084, %02x [ set serial port IRQs]\n", val); 
+			t3100e_log("OUT 0x8084, %02x [ set serial port IRQs]\n", val);
 			break;
 		case 0x40: /* Set RAM mappings. */
-			t3100e_map_ram(val & 0x1F);		
+			t3100e_map_ram(val & 0x1F);
 			break;
 
 		case 0x80: /* Set video options. */
@@ -521,7 +521,7 @@ uint8_t t3100e_config_get(void)
 	prt_switch = (type_b ? 2 : 0);
 	switch(type_a)
 	{
-/* Since a T3100e cannot have an internal 5.25" drive, mark 5.25" A: drive as 
+/* Since a T3100e cannot have an internal 5.25" drive, mark 5.25" A: drive as
  * being external, and set the internal type based on type_b. */
 		case 1:			/* 360k */
 		case 2:			/* 1.2Mb */
@@ -536,7 +536,7 @@ uint8_t t3100e_config_get(void)
 			}
 			break;
 		case 4: value |= 0x01;	/* 720k */
-			if (type_a == type_b) 
+			if (type_a == type_b)
 			{
 				value &= (~8);	/* Two internal drives */
 				prt_switch = 0;	/* No external drive */
@@ -544,7 +544,7 @@ uint8_t t3100e_config_get(void)
 			break;
 		case 5:	/* 1.4M */
 		case 7:	/* 2.8M */
-			if (type_a == type_b) 
+			if (type_a == type_b)
 			{
 				value &= (~8);	/* Two internal drives */
 				prt_switch = 0;	/* No external drive */
@@ -552,7 +552,7 @@ uint8_t t3100e_config_get(void)
 			break;
 		case 6:	/* 3-mode */
 			value |= 0x10;
-			if (type_a == type_b) 
+			if (type_a == type_b)
 			{
 				value &= (~8);	/* Two internal drives */
 				prt_switch = 0;	/* No external drive */
@@ -573,7 +573,7 @@ uint8_t t3100e_config_get(void)
 uint8_t t3100e_ems_in(uint16_t addr, void *p)
 {
 	struct t3100e_ems_regs *regs = (struct t3100e_ems_regs *)p;
-	
+
 	int page = port_to_page(addr);
 	if (page >= 0)
 		return regs->page[page];
@@ -623,7 +623,7 @@ static uint8_t ems_read_ram(uint32_t addr, void *priv)
 
 	if (pg < 0) return 0xFF;
 	addr = regs->page_exec[pg] + (addr & 0x3FFF);
-	return ram[addr];	
+	return ram[addr];
 }
 
 
@@ -637,8 +637,8 @@ static uint16_t ems_read_ramw(uint32_t addr, void *priv)
 	if (pg < 0) return 0xFFFF;
 	//t3100e_log("ems_read_ramw addr=%05x ", addr);
 	addr = regs->page_exec[pg] + (addr & 0x3FFF);
-	//t3100e_log("-> %06x val=%04x\n", addr, *(uint16_t *)&ram[addr]);	
-	return *(uint16_t *)&ram[addr];	
+	//t3100e_log("-> %06x val=%04x\n", addr, *(uint16_t *)&ram[addr]);
+	return *(uint16_t *)&ram[addr];
 }
 
 
@@ -649,7 +649,7 @@ static uint32_t ems_read_raml(uint32_t addr, void *priv)
 
 	if (pg < 0) return 0xFFFFFFFF;
 	addr = regs->page_exec[pg] + (addr & 0x3FFF);
-	return *(uint32_t *)&ram[addr];	
+	return *(uint32_t *)&ram[addr];
 }
 
 /* Write RAM in the EMS page frame */
@@ -660,7 +660,7 @@ static void ems_write_ram(uint32_t addr, uint8_t val, void *priv)
 
 	if (pg < 0) return;
 	addr = regs->page_exec[pg] + (addr & 0x3FFF);
-	ram[addr] = val;	
+	ram[addr] = val;
 }
 
 
@@ -674,7 +674,7 @@ static void ems_write_ramw(uint32_t addr, uint16_t val, void *priv)
 	addr = regs->page_exec[pg] + (addr & 0x3FFF);
 	//t3100e_log("-> %06x val=%04x\n", addr, val);
 
-	*(uint16_t *)&ram[addr] = val;	
+	*(uint16_t *)&ram[addr] = val;
 }
 
 
@@ -685,19 +685,19 @@ static void ems_write_raml(uint32_t addr, uint32_t val, void *priv)
 
 	if (pg < 0) return;
 	addr = regs->page_exec[pg] + (addr & 0x3FFF);
-	*(uint32_t *)&ram[addr] = val;	
+	*(uint32_t *)&ram[addr] = val;
 }
 
 
 
-/* Read RAM in the upper area. This is basically what the 'remapped' 
+/* Read RAM in the upper area. This is basically what the 'remapped'
  * mapping in mem.c does, except that the upper area can move around */
 static uint8_t upper_read_ram(uint32_t addr, void *priv)
 {
 	struct t3100e_ems_regs *regs = (struct t3100e_ems_regs *)priv;
 
 	addr = (addr - (1024 * mem_size)) + regs->upper_base;
-	return ram[addr];	
+	return ram[addr];
 }
 
 static uint16_t upper_read_ramw(uint32_t addr, void *priv)
@@ -705,7 +705,7 @@ static uint16_t upper_read_ramw(uint32_t addr, void *priv)
 	struct t3100e_ems_regs *regs = (struct t3100e_ems_regs *)priv;
 
 	addr = (addr - (1024 * mem_size)) + regs->upper_base;
-	return *(uint16_t *)&ram[addr];	
+	return *(uint16_t *)&ram[addr];
 }
 
 static uint32_t upper_read_raml(uint32_t addr, void *priv)
@@ -713,7 +713,7 @@ static uint32_t upper_read_raml(uint32_t addr, void *priv)
 	struct t3100e_ems_regs *regs = (struct t3100e_ems_regs *)priv;
 
 	addr = (addr - (1024 * mem_size)) + regs->upper_base;
-	return *(uint32_t *)&ram[addr];	
+	return *(uint32_t *)&ram[addr];
 }
 
 
@@ -722,7 +722,7 @@ static void upper_write_ram(uint32_t addr, uint8_t val, void *priv)
 	struct t3100e_ems_regs *regs = (struct t3100e_ems_regs *)priv;
 
 	addr = (addr - (1024 * mem_size)) + regs->upper_base;
-	ram[addr] = val;	
+	ram[addr] = val;
 }
 
 
@@ -731,7 +731,7 @@ static void upper_write_ramw(uint32_t addr, uint16_t val, void *priv)
 	struct t3100e_ems_regs *regs = (struct t3100e_ems_regs *)priv;
 
 	addr = (addr - (1024 * mem_size)) + regs->upper_base;
-	*(uint16_t *)&ram[addr] = val;	
+	*(uint16_t *)&ram[addr] = val;
 }
 
 
@@ -741,7 +741,7 @@ static void upper_write_raml(uint32_t addr, uint32_t val, void *priv)
 	struct t3100e_ems_regs *regs = (struct t3100e_ems_regs *)priv;
 
 	addr = (addr - (1024 * mem_size)) + regs->upper_base;
-	*(uint32_t *)&ram[addr] = val;	
+	*(uint32_t *)&ram[addr] = val;
 }
 
 
@@ -760,7 +760,7 @@ int machine_at_t3100e_init(const machine_t *model)
 	int pg;
 
         memset(&t3100e_ems, 0, sizeof(t3100e_ems));
-        
+
         machine_at_common_ide_init(model);
 
 	device_add(&keyboard_at_toshiba_device);
@@ -769,29 +769,29 @@ int machine_at_t3100e_init(const machine_t *model)
 	{
 	device_add(&fdc_at_device);
 	}
-	
+
 	/* Hook up system control port */
-	io_sethandler(0x8084, 0x0001, 
+	io_sethandler(0x8084, 0x0001,
 			t3100e_sys_in, NULL, NULL,
 			t3100e_sys_out, NULL, NULL, &t3100e_ems);
 
 	/* Start monitoring all 16 EMS registers */
-	for (pg = 0; pg < 16; pg++) 
+	for (pg = 0; pg < 16; pg++)
 	{
-		io_sethandler(t3100e_ems_page_reg[pg], 0x0001, 
+		io_sethandler(t3100e_ems_page_reg[pg], 0x0001,
 				t3100e_ems_in, NULL, NULL,
-				t3100e_ems_out, NULL, NULL, &t3100e_ems); 
+				t3100e_ems_out, NULL, NULL, &t3100e_ems);
 	}
 
 	/* Map the EMS page frame */
 	for (pg = 0; pg < 4; pg++)
 	{
 		t3100e_log("Adding memory map at %x for page %d\n", page_to_addr(pg), pg);
-		mem_mapping_add(&t3100e_ems.mapping[pg], 
-			page_to_addr(pg), 16384, 
+		mem_mapping_add(&t3100e_ems.mapping[pg],
+			page_to_addr(pg), 16384,
 			ems_read_ram,  ems_read_ramw,  ems_read_raml,
 			ems_write_ram, ems_write_ramw, ems_write_raml,
-			NULL, MEM_MAPPING_EXTERNAL, 
+			NULL, MEM_MAPPING_EXTERNAL,
 			&t3100e_ems);
 		/* Start them all off disabled */
 		mem_mapping_disable(&t3100e_ems.mapping[pg]);

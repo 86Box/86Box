@@ -16,6 +16,7 @@
  *		Copyright 2016-2019 Miran Grca.
  *		Copyright 2021 Jasmine Iwanek.
  */
+
 #ifndef VIDEO_HERCULES_H
 # define VIDEO_HERCULES_H
 

@@ -2,7 +2,7 @@ static int opPUNPCKLDQ_a16(uint32_t fetchdat)
 {
         if((cpu_features & CPU_FEATURE_SSE2) && sse_xmm) return opPUNPCKLDQ_xmm_a16(fetchdat);
         MMX_ENTER();
-        
+
         fetch_ea_16(fetchdat);
         if (cpu_mod == 3)
         {
@@ -12,7 +12,7 @@ static int opPUNPCKLDQ_a16(uint32_t fetchdat)
         else
         {
                 uint32_t src;
-        
+
                 SEG_CHECK_READ(cpu_state.ea_seg);
                 src = readmeml(easeg, cpu_state.eaaddr); if (cpu_state.abrt) return 0;
                 cpu_state.MM[cpu_reg].l[1] = src;
@@ -26,7 +26,7 @@ static int opPUNPCKLDQ_a32(uint32_t fetchdat)
         if((cpu_features & CPU_FEATURE_SSE2) && sse_xmm) return opPUNPCKLDQ_xmm_a32(fetchdat);
 
         MMX_ENTER();
-        
+
         fetch_ea_32(fetchdat);
         if (cpu_mod == 3)
         {
@@ -50,10 +50,10 @@ static int opPUNPCKHDQ_a16(uint32_t fetchdat)
 {
         MMX_REG src;
         MMX_ENTER();
-        
+
         fetch_ea_16(fetchdat);
         MMX_GETSRC();
-        
+
         cpu_state.MM[cpu_reg].l[0] = cpu_state.MM[cpu_reg].l[1];
         cpu_state.MM[cpu_reg].l[1] = src.l[1];
 
@@ -63,7 +63,7 @@ static int opPUNPCKHDQ_a32(uint32_t fetchdat)
 {
         MMX_REG src;
         MMX_ENTER();
-        
+
         fetch_ea_32(fetchdat);
         MMX_GETSRC();
 
@@ -78,7 +78,7 @@ static int opPUNPCKLBW_a16(uint32_t fetchdat)
         if((cpu_features & CPU_FEATURE_SSE2) && sse_xmm) return opPUNPCKLBW_xmm_a16(fetchdat);
         MMX_REG src;
         MMX_ENTER();
-        
+
         fetch_ea_16(fetchdat);
         MMX_GETSRC();
 
@@ -98,7 +98,7 @@ static int opPUNPCKLBW_a32(uint32_t fetchdat)
         if((cpu_features & CPU_FEATURE_SSE2) && sse_xmm) return opPUNPCKLBW_xmm_a32(fetchdat);
         MMX_REG src;
         MMX_ENTER();
-        
+
         fetch_ea_32(fetchdat);
         MMX_GETSRC();
 
@@ -118,7 +118,7 @@ static int opPUNPCKHBW_a16(uint32_t fetchdat)
 {
         MMX_REG src;
         MMX_ENTER();
-        
+
         fetch_ea_16(fetchdat);
         MMX_GETSRC();
 
@@ -130,14 +130,14 @@ static int opPUNPCKHBW_a16(uint32_t fetchdat)
         cpu_state.MM[cpu_reg].b[5] = src.b[6];
         cpu_state.MM[cpu_reg].b[6] = cpu_state.MM[cpu_reg].b[7];
         cpu_state.MM[cpu_reg].b[7] = src.b[7];
-        
+
         return 0;
 }
 static int opPUNPCKHBW_a32(uint32_t fetchdat)
 {
         MMX_REG src;
         MMX_ENTER();
-        
+
         fetch_ea_32(fetchdat);
         MMX_GETSRC();
 
@@ -149,7 +149,7 @@ static int opPUNPCKHBW_a32(uint32_t fetchdat)
         cpu_state.MM[cpu_reg].b[5] = src.b[6];
         cpu_state.MM[cpu_reg].b[6] = cpu_state.MM[cpu_reg].b[7];
         cpu_state.MM[cpu_reg].b[7] = src.b[7];
-        
+
         return 0;
 }
 
@@ -159,7 +159,7 @@ static int opPUNPCKLWD_a16(uint32_t fetchdat)
 
         MMX_REG src;
         MMX_ENTER();
-        
+
         fetch_ea_16(fetchdat);
         MMX_GETSRC();
 
@@ -176,7 +176,7 @@ static int opPUNPCKLWD_a32(uint32_t fetchdat)
 
         MMX_REG src;
         MMX_ENTER();
-        
+
         fetch_ea_32(fetchdat);
         MMX_GETSRC();
 
@@ -192,7 +192,7 @@ static int opPUNPCKHWD_a16(uint32_t fetchdat)
 {
         MMX_REG src;
         MMX_ENTER();
-        
+
         fetch_ea_16(fetchdat);
         MMX_GETSRC();
 
@@ -207,7 +207,7 @@ static int opPUNPCKHWD_a32(uint32_t fetchdat)
 {
         MMX_REG src;
         MMX_ENTER();
-        
+
         fetch_ea_32(fetchdat);
         MMX_GETSRC();
 
@@ -225,7 +225,7 @@ static int opPACKSSWB_a16(uint32_t fetchdat)
 
         MMX_REG src, dst;
         MMX_ENTER();
-        
+
         fetch_ea_16(fetchdat);
         MMX_GETSRC();
         dst = cpu_state.MM[cpu_reg];
@@ -238,7 +238,7 @@ static int opPACKSSWB_a16(uint32_t fetchdat)
         cpu_state.MM[cpu_reg].sb[5] = SSATB(src.sw[1]);
         cpu_state.MM[cpu_reg].sb[6] = SSATB(src.sw[2]);
         cpu_state.MM[cpu_reg].sb[7] = SSATB(src.sw[3]);
-        
+
         return 0;
 }
 static int opPACKSSWB_a32(uint32_t fetchdat)
@@ -247,7 +247,7 @@ static int opPACKSSWB_a32(uint32_t fetchdat)
 
         MMX_REG src, dst;
         MMX_ENTER();
-        
+
         fetch_ea_32(fetchdat);
         MMX_GETSRC();
         dst = cpu_state.MM[cpu_reg];
@@ -260,7 +260,7 @@ static int opPACKSSWB_a32(uint32_t fetchdat)
         cpu_state.MM[cpu_reg].sb[5] = SSATB(src.sw[1]);
         cpu_state.MM[cpu_reg].sb[6] = SSATB(src.sw[2]);
         cpu_state.MM[cpu_reg].sb[7] = SSATB(src.sw[3]);
-        
+
         return 0;
 }
 
@@ -268,7 +268,7 @@ static int opPACKUSWB_a16(uint32_t fetchdat)
 {
         MMX_REG src, dst;
         MMX_ENTER();
-        
+
         fetch_ea_16(fetchdat);
         MMX_GETSRC();
         dst = cpu_state.MM[cpu_reg];
@@ -281,14 +281,14 @@ static int opPACKUSWB_a16(uint32_t fetchdat)
         cpu_state.MM[cpu_reg].b[5] = USATB(src.sw[1]);
         cpu_state.MM[cpu_reg].b[6] = USATB(src.sw[2]);
         cpu_state.MM[cpu_reg].b[7] = USATB(src.sw[3]);
-        
+
         return 0;
 }
 static int opPACKUSWB_a32(uint32_t fetchdat)
 {
         MMX_REG src, dst;
         MMX_ENTER();
-        
+
         fetch_ea_32(fetchdat);
         MMX_GETSRC();
         dst = cpu_state.MM[cpu_reg];
@@ -309,31 +309,31 @@ static int opPACKSSDW_a16(uint32_t fetchdat)
 {
         MMX_REG src, dst;
         MMX_ENTER();
-        
+
         fetch_ea_16(fetchdat);
         MMX_GETSRC();
         dst = cpu_state.MM[cpu_reg];
-        
+
         cpu_state.MM[cpu_reg].sw[0] = SSATW(dst.sl[0]);
         cpu_state.MM[cpu_reg].sw[1] = SSATW(dst.sl[1]);
         cpu_state.MM[cpu_reg].sw[2] = SSATW(src.sl[0]);
         cpu_state.MM[cpu_reg].sw[3] = SSATW(src.sl[1]);
-        
+
         return 0;
 }
 static int opPACKSSDW_a32(uint32_t fetchdat)
 {
         MMX_REG src, dst;
         MMX_ENTER();
-        
+
         fetch_ea_32(fetchdat);
         MMX_GETSRC();
         dst = cpu_state.MM[cpu_reg];
-        
+
         cpu_state.MM[cpu_reg].sw[0] = SSATW(dst.sl[0]);
         cpu_state.MM[cpu_reg].sw[1] = SSATW(dst.sl[1]);
         cpu_state.MM[cpu_reg].sw[2] = SSATW(src.sl[0]);
         cpu_state.MM[cpu_reg].sw[3] = SSATW(src.sl[1]);
-        
+
         return 0;
 }

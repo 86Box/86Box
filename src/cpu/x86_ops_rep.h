@@ -755,7 +755,7 @@ static int opREPNE(uint32_t fetchdat)
         return x86_opcodes[(fetchdat & 0xff) | cpu_state.op32](fetchdat >> 8);
 }
 static int opREPE(uint32_t fetchdat)
-{       
+{
         fetchdat = fastreadl(cs + cpu_state.pc);
         if (cpu_state.abrt) return 1;
         cpu_state.pc++;

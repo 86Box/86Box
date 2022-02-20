@@ -45,11 +45,11 @@
 /* 0 to 7 -> -14dB to 0dB i 2dB steps. 8 to 15 -> 0 to +14dB in 2dB steps.
   Note that for positive dB values, this is not amplitude, it is amplitude-1. */
 static const double sb_bass_treble_4bits[]= {
-    0.199526231, 0.25, 0.316227766, 0.398107170, 0.5, 0.63095734, 0.794328234, 1, 
+    0.199526231, 0.25, 0.316227766, 0.398107170, 0.5, 0.63095734, 0.794328234, 1,
     0, 0.25892541, 0.584893192, 1, 1.511886431, 2.16227766, 3, 4.011872336
 };
 
-/* Attenuation tables for the mixer. Max volume = 32767 in order to give 6dB of 
+/* Attenuation tables for the mixer. Max volume = 32767 in order to give 6dB of
  * headroom and avoid integer overflow */
 static const double sb_att_2dbstep_5bits[]=
 {
@@ -184,7 +184,7 @@ static void
 sb_get_buffer_sb2(int32_t *buffer, int len, void *p)
 {
     sb_t *sb = (sb_t *) p;
-    sb_ct1335_mixer_t *mixer = &sb->mixer_sb2;            
+    sb_ct1335_mixer_t *mixer = &sb->mixer_sb2;
     int c;
     double out_mono = 0.0, out_l = 0.0, out_r = 0.0;
 
@@ -881,7 +881,7 @@ sb_ct1745_mixer_read(uint16_t addr, void *p)
 		ret = mixer->regs[mixer->index];
 		break;
 
-	/*SB Pro compatibility*/                        
+	/*SB Pro compatibility*/
 	case 0x04:
 		ret = ((mixer->regs[0x33] >> 4) & 0x0f) | (mixer->regs[0x32] & 0xf0);
 		break;
@@ -913,7 +913,7 @@ sb_ct1745_mixer_read(uint16_t addr, void *p)
 		ret = ((mixer->regs[0x39] >> 4) & 0x0f) | (mixer->regs[0x38] & 0xf0);
 		break;
 
-	case 0x48: 
+	case 0x48:
 		/* Undocumented. The Creative Windows Mixer calls this after calling 3C (input selector),
 		   even when writing.
 		   Also, the version I have (5.17), does not use the MIDI.L/R input selectors, it uses
@@ -951,7 +951,7 @@ sb_ct1745_mixer_read(uint16_t addr, void *p)
 			case 5: ret |= 0x20; break;
 			case 6: ret |= 0x40; break;
 			case 7: ret |= 0x80; break;
-		}                            
+		}
 		break;
 
 	case 0x82:
@@ -1612,7 +1612,7 @@ sb_pro_compat_init(const device_t *info)
 
     sb_dsp_init(&sb->dsp, SBPRO2, SB_SUBTYPE_DEFAULT, sb);
     sb_ct1345_mixer_reset(sb);
- 
+
     sb->mixer_enabled = 1;
     sound_add_handler(sb_get_buffer_sbpro, sb);
 

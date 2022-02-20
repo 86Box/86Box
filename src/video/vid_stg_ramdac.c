@@ -102,11 +102,11 @@ stg_ramdac_out(uint16_t addr, uint8_t val, void *p, svga_t *svga)
 			case 0:
 			case 1:
 			case 2:
-			case 3: 
+			case 3:
 				break;
 			case 4:		/* REG06 */
 				old = ramdac->command;
-				ramdac->command = val; 
+				ramdac->command = val;
 				if ((old ^ val) & 8)
 					stg_ramdac_set_bpp(svga, ramdac);
 				else {
@@ -114,11 +114,11 @@ stg_ramdac_out(uint16_t addr, uint8_t val, void *p, svga_t *svga)
 						stg_ramdac_set_bpp(svga, ramdac);
 				}
 				break;
-			case 5: 
-				ramdac->index = (ramdac->index & 0xff00) | val; 
+			case 5:
+				ramdac->index = (ramdac->index & 0xff00) | val;
 				break;
                         case 6:
-				ramdac->index = (ramdac->index & 0xff) | (val << 8); 
+				ramdac->index = (ramdac->index & 0xff) | (val << 8);
 				break;
 			case 7:
 				if (ramdac->index < 0x100)
@@ -160,13 +160,13 @@ stg_ramdac_in(uint16_t addr, void *p, svga_t *svga)
 				temp = 0xff;
 				break;
 			case 4:
-				temp = ramdac->command; 
+				temp = ramdac->command;
 				break;
 			case 5:
-				temp = ramdac->index & 0xff; 
+				temp = ramdac->index & 0xff;
 				break;
 			case 6:
-				temp = ramdac->index >> 8; 
+				temp = ramdac->index >> 8;
 				break;
 			case 7:
 				switch (ramdac->index) {

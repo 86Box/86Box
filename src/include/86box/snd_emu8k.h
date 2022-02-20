@@ -1,9 +1,11 @@
+#ifndef SOUND_EMU8K_H
+# define SOUND_EMU8K_H
 
 /* All these defines are in samples, not in bytes. */
 #define EMU8K_MEM_ADDRESS_MASK 0xFFFFFF
 #define EMU8K_RAM_MEM_START 0x200000
 #define EMU8K_FM_MEM_ADDRESS 0xFFFFE0
-#define EMU8K_RAM_POINTERS_MASK 0x3F 
+#define EMU8K_RAM_POINTERS_MASK 0x3F
 #define EMU8K_LFOCHORUS_SIZE 0x4000
 /*
  * Everything in this file assumes little endian
@@ -16,7 +18,7 @@ typedef struct emu8k_mem_internal_t {
                         uint16_t fract_lw_address;
                         uint16_t fract_address;
                         uint32_t int_address;
-                };      
+                };
         };
 } emu8k_mem_internal_t;
 
@@ -28,13 +30,13 @@ typedef struct emu8k_mem_pointers_t {
                         uint16_t lw_address;
                         uint8_t hb_address;
                         uint8_t unused_address;
-                };      
+                };
         };
 } emu8k_mem_pointers_t;
 
 /*
  * From the Soundfount 2.0 fileformat Spec.:
- * 
+ *
     An envelope generates a control signal in six phases.
     When key-on occurs, a delay period begins during which the envelope value is zero.
     The envelope then rises in a convex curve to a value of one during the attack phase.
@@ -44,25 +46,25 @@ typedef struct emu8k_mem_pointers_t {
     When a value of one is reached, the envelope enters a hold phase during which it remains at one.
     When the hold phase ends, the envelope enters a decay phase during which its value decreases linearly to a sustain level.
     " For the Volume Envelope, the decay phase linearly ramps toward the sustain level, causing a constant dB change for each time unit. "
-    When the sustain level is reached, the envelope enters sustain phase, during which the envelope stays at the sustain level. 
-    
+    When the sustain level is reached, the envelope enters sustain phase, during which the envelope stays at the sustain level.
+
     Whenever a key-off occurs, the envelope immediately enters a release phase during which the value linearly ramps from the current value to zero.
     " For the Volume Envelope, the release phase linearly ramps toward zero from the current level, causing a constant dB change for each time unit"
 
     When zero is reached, the envelope value remains at zero.
-    
+
     Modulation of pitch and filter cutoff are in octaves, semitones, and cents.
     These parameters can be modulated to varying degree, either positively or negatively, by the modulation envelope.
     The degree of modulation is specified in cents for the full-scale attack peak.
-    
+
     The volume envelope operates in dB, with the attack peak providing a full scale output, appropriately scaled by the initial volume.
     The zero value, however, is actually zero gain.
     The implementation in the EMU8000 provides for 96 dB of amplitude control.
-    When 96 dB of attenuation is reached in the final gain amplifier, an abrupt jump to zero gain 
+    When 96 dB of attenuation is reached in the final gain amplifier, an abrupt jump to zero gain
     (infinite dB of attenuation) occurs. In a 16-bit system, this jump is inaudible
 */
 /* It seems that the envelopes don't really have a decay/release stage,
- * but instead they have a volume ramper that can be triggered 
+ * but instead they have a volume ramper that can be triggered
  * automatically (after hold period), or manually (by activating release)
  * and the "sustain" value is the target of any of both cases.
  * Some programs like cubic player and AWEAmp use this, and it was
@@ -75,9 +77,9 @@ typedef struct emu8k_mem_pointers_t {
  *    contains the destination volume, and the lower byte contains the ramp time.
  */
 
-/* attack_amount is linear amplitude (added directly to value). 
+/* attack_amount is linear amplitude (added directly to value).
  * ramp_amount_db is linear dB (added directly to value too, but needs conversion to get linear amplitude).
- * value range is 21bits for both, linear amplitude being 1<<21 = 0dBFS and 0 = -96dBFS (which is shortcut to silence), 
+ * value range is 21bits for both, linear amplitude being 1<<21 = 0dBFS and 0 = -96dBFS (which is shortcut to silence),
  * and db amplutide being 0 = 0dBFS and -(1<<21) = -96dBFS (which is shortcut to silence).
  * This allows to operate db values by simply adding them.
  */
@@ -98,8 +100,8 @@ typedef struct emu8k_chorus_eng_t {
         double lfodepth_multip;
         double delay_offset_samples_right;
         emu8k_mem_internal_t lfo_inc;
-        emu8k_mem_internal_t lfo_pos; 
-        
+        emu8k_mem_internal_t lfo_pos;
+
         int32_t chorus_left_buffer[EMU8K_LFOCHORUS_SIZE];
         int32_t chorus_right_buffer[EMU8K_LFOCHORUS_SIZE];
 
@@ -110,16 +112,16 @@ typedef struct emu8k_chorus_eng_t {
 
 
 /* Reverb parameters description, extracted from AST sources.
- Mix level        
- Decay            
- Link return amp  
+ Mix level
+ Decay
+ Link return amp
  Link type         Switches between normal or panned
  Room reso (   ms) L&R (Ref 6 +1)
- Ref 1 x2 (11 ms)R 
- Ref 2 x4 (22 ms)R 
- Ref 3 x8 (44 ms)L 
- Ref 4 x13(71 ms)R 
- Ref 5 x19(105ms)L 
+ Ref 1 x2 (11 ms)R
+ Ref 2 x4 (22 ms)R
+ Ref 3 x8 (44 ms)L
+ Ref 4 x13(71 ms)R
+ Ref 5 x19(105ms)L
  Ref 6 x  (   ms)R  (multiplier changes with room reso)
  Ref 1-6 filter    L&R
  Ref 1-6 amp       L&R
@@ -129,7 +131,7 @@ typedef struct emu8k_chorus_eng_t {
  Ref 4 feedback    L&R
  Ref 5 feedback    L&R
  Ref 6 feedback    L&R
-*/ 
+*/
 typedef struct emu8k_reverb_combfilter_t {
         int read_pos;
         int32_t reflection[MAX_REFL_SIZE];
@@ -149,11 +151,11 @@ typedef struct emu8k_reverb_eng_t {
 
         uint8_t refl_in_amp;
 
-        emu8k_reverb_combfilter_t reflections[6];       
+        emu8k_reverb_combfilter_t reflections[6];
         emu8k_reverb_combfilter_t allpass[8];
         emu8k_reverb_combfilter_t tailL;
         emu8k_reverb_combfilter_t tailR;
-        
+
         emu8k_reverb_combfilter_t damper;
 } emu8k_reverb_eng_t;
 
@@ -202,7 +204,7 @@ typedef struct emu8k_voice_t
         uint32_t unknown_data0_5;
         union {
                 uint32_t psst;
-                struct { 
+                struct {
                         uint16_t psst_lw_address;
                         uint8_t psst_hw_address;
                         uint8_t psst_pan;
@@ -211,7 +213,7 @@ typedef struct emu8k_voice_t
         };
         union {
                 uint32_t csl;
-                struct { 
+                struct {
                         uint16_t csl_lw_address;
                         uint8_t csl_hw_address;
                         uint8_t csl_chor_send;
@@ -232,12 +234,12 @@ typedef struct emu8k_voice_t
         #define CCCA_DMA_ACTIVE(ccca) (ccca&0x04000000)
         #define CCCA_DMA_WRITE_MODE(ccca) (ccca&0x02000000)
         #define CCCA_DMA_WRITE_RIGHT(ccca) (ccca&0x01000000)
-        
+
         uint16_t envvol;
         #define ENVVOL_NODELAY(envol) (envvol&0x8000)
         /* Verified with a soundfont bank. 7FFF is the minimum delay time, and 0 is the max delay time */
         #define ENVVOL_TO_EMU_SAMPLES(envvol) (envvol&0x8000) ? 0 : ((0x8000-(envvol&0x7FFF)) <<5)
-        
+
         uint16_t dcysusv;
         #define DCYSUSV_IS_RELEASE(dcysusv) (dcysusv&0x8000)
         #define DCYSUSV_GENERATOR_ENGINE_ON(dcysusv) !(dcysusv&0x0080)
@@ -245,39 +247,39 @@ typedef struct emu8k_voice_t
         /* Inverting the range compared to documentation because the envelope runs from 0dBFS = 0 to -96dBFS = (1 <<21) */
         #define DCYSUSV_SUS_TO_ENV_RANGE(susvalue)  (((0x7F-susvalue) << 21)/0x7F)
         #define DCYSUSV_DECAYRELEASE_GET(dcysusv) (dcysusv&0x7F)
-        
+
         uint16_t envval;
         #define ENVVAL_NODELAY(enval) (envval&0x8000)
         /* Verified with a soundfont bank. 7FFF is the minimum delay time, and 0 is the max delay time */
         #define ENVVAL_TO_EMU_SAMPLES(envval)(envval&0x8000) ? 0 : ((0x8000-(envval&0x7FFF)) <<5)
-        
+
         uint16_t dcysus;
         #define DCYSUS_IS_RELEASE(dcysus) (dcysus&0x8000)
         #define DCYSUS_SUSVALUE_GET(dcysus) ((dcysus>>8)&0x7F)
         #define DCYSUS_SUS_TO_ENV_RANGE(susvalue) ((susvalue << 21)/0x7F)
         #define DCYSUS_DECAYRELEASE_GET(dcysus) (dcysus&0x7F)
-        
+
         uint16_t atkhldv;
         #define ATKHLDV_TRIGGER(atkhldv) !(atkhldv&0x8000)
         #define ATKHLDV_HOLD(atkhldv) ((atkhldv>>8)&0x7F)
         #define ATKHLDV_HOLD_TO_EMU_SAMPLES(atkhldv) (4096*(0x7F-((atkhldv>>8)&0x7F)))
         #define ATKHLDV_ATTACK(atkhldv) (atkhldv&0x7F)
-        
+
         uint16_t lfo1val, lfo2val;
         #define LFOxVAL_NODELAY(lfoxval) (lfoxval&0x8000)
         #define LFOxVAL_TO_EMU_SAMPLES(lfoxval) (lfoxval&0x8000) ? 0 : ((0x8000-(lfoxval&0x7FFF)) <<5)
-        
+
         uint16_t atkhld;
         #define ATKHLD_TRIGGER(atkhld) !(atkhld&0x8000)
         #define ATKHLD_HOLD(atkhld) ((atkhld>>8)&0x7F)
         #define ATKHLD_HOLD_TO_EMU_SAMPLES(atkhld) (4096*(0x7F-((atkhld>>8)&0x7F)))
         #define ATKHLD_ATTACK(atkhld) (atkhld&0x7F)
-        
-        
+
+
         uint16_t ip;
         #define INTIAL_PITCH_CENTER 0xE000
         #define INTIAL_PITCH_OCTAVE 0x1000
-        
+
         union {
                 uint16_t ifatn;
                 struct{
@@ -313,17 +315,17 @@ typedef struct emu8k_voice_t
                         int8_t fm2frq2_lfo2_vibrato;
                 };
         };
-        
+
         int env_engine_on;
-        
+
         emu8k_mem_internal_t addr, loop_start, loop_end;
-        
+
         int32_t initial_att;
         int32_t initial_filter;
 
         emu8k_envelope_t vol_envelope;
         emu8k_envelope_t mod_envelope;
-        
+
         int64_t lfo1_speed, lfo2_speed;
         emu8k_mem_internal_t lfo1_count, lfo2_count;
         int32_t lfo1_delay_samples, lfo2_delay_samples;
@@ -351,12 +353,12 @@ typedef struct emu8k_t
         uint32_t hwcf4, hwcf5, hwcf6, hwcf7;
 
         uint16_t init1[32], init2[32], init3[32], init4[32];
-                
+
         uint32_t smalr, smarr, smalw, smarw;
         uint16_t smld_buffer, smrd_buffer;
 
         uint16_t wc;
-        
+
         uint16_t id;
 
         /* The empty block is used to act as an unallocated memory returning zero. */
@@ -367,14 +369,14 @@ typedef struct emu8k_t
         uint32_t ram_end_addr;
 
         int cur_reg, cur_voice;
-        
+
         int16_t out_l, out_r;
-        
+
         emu8k_chorus_eng_t chorus_engine;
         int32_t chorus_in_buffer[SOUNDBUFLEN];
         emu8k_reverb_eng_t reverb_engine;
         int32_t reverb_in_buffer[SOUNDBUFLEN];
-        
+
         int pos;
         int32_t buffer[SOUNDBUFLEN * 2];
 
@@ -448,7 +450,7 @@ Section E - Introduction to the EMU8000 Chip
 
      Amplifier
        The amplifier determines the loudness of an audio signal.
-     
+
      LFO1
        An  LFO, or Low Frequency Oscillator, is normally used  to
        periodically modulate, that is, change a sound  parameter,
@@ -457,11 +459,11 @@ Section E - Introduction to the EMU8000 Chip
        modulation).  It  operates  at  sub-audio  frequency  from
        0.042  Hz  to 10.71 Hz. The LFO1 in the EMU8000  modulates
        the pitch, volume and filter cutoff simultaneously.
-     
+
      LFO2
        The  LFO2 is similar to the LFO1, except that it modulates
        the pitch of the audio signal only.
-     
+
      Resonance
        A  filter  alone  would  be like an  equalizer,  making  a
        bright  audio signal duller, but the addition of resonance
@@ -470,7 +472,7 @@ Section E - Introduction to the EMU8000 Chip
        signals  at the cutoff frequency, giving the audio  signal
        a  subtle wah-wah, that is, imagine a siren sound  going
        from bright to dull to bright again periodically.
-     
+
      LFO1 to Volume (Tremolo)
        The  LFO1's  output is routed to the amplifier,  with  the
        depth  of  oscillation determined by LFO1 to Volume.  LFO1
@@ -484,7 +486,7 @@ Section E - Introduction to the EMU8000 Chip
        oscillating).  An  example of a GM instrument  that  makes
        use  of  LFO1  to Volume is instrument number 45,  Tremolo
        Strings.
-     
+
      LFO1 to Filter Cutoff (Wah-Wah)
        The  LFO1's output is routed to the filter, with the depth
        of  oscillation  determined by LFO1  to  Filter.  LFO1  to
@@ -502,7 +504,7 @@ Section E - Introduction to the EMU8000 Chip
        oscillator,  producing a vibrato effect. An example  of  a
        GM   instrument  that  makes  use  of  LFO1  to  Pitch  is
        instrument number 57, Trumpet.
-     
+
      LFO2 to Pitch (Vibrato)
        The  LFO1  in  the  EMU8000  can  simultaneously  modulate
        pitch,  volume  and  filter.  LFO2,  on  the  other  hand,
@@ -511,7 +513,7 @@ Section E - Introduction to the EMU8000 Chip
        periodic  fluctuation  in  the pitch  of  the  oscillator,
        producing  a  vibrato effect. When this  is  coupled  with
        LFO1 to Pitch, a complex vibrato effect can be achieved.
-     
+
      Volume Envelope
        The   character  of  a  musical  instrument   is   largely
        determined  by its volume envelope, the way in  which  the
@@ -537,7 +539,7 @@ Section E - Introduction to the EMU8000 Chip
                  as a key is held down.
        Release   The  time it takes the envelope to fall  to  the
                  zero level after the key is released.
-       
+
        Using  these  six  parameters  can  yield  very  realistic
        reproduction  of  the volume envelope  characteristics  of
        many musical instruments.
@@ -558,14 +560,14 @@ Section E - Introduction to the EMU8000 Chip
        useful  in  creating synthetic sci-fi sound  textures.  An
        example  of  a GM instrument that makes use of the  filter
        envelope is instrument number 86, Pad 8 (Sweep).
-     
+
      Pitch/Filter Envelope Modulation
        These  two  parameters determine the modulation  depth  of
        the  pitch  and  filter envelope. In the  wind  instrument
        example   above,   a  small  amount  of   pitch   envelope
        modulation  is  desirable to simulate  its  natural  pitch
        characteristics.
-     
+
      This  rich  modulation capability of the  EMU8000  is  fully
      exploited  by  the SB AWE32 MIDI drivers.  The  driver  also
      provides  you  with a means to change these parameters  over
@@ -619,9 +621,9 @@ Section E - Introduction to the EMU8000 Chip
      Short Delay (feed back)
        This  chorus  variation simulates a short  delay  repeated
        (feedback) many times.
-       
-       
-       
+
+
+
 Registers to write the Chorus Parameters to (all are 16-bit, unless noted):
 (codified as in register,port,voice. port 0=0x620, 2=0x622, 4=0xA20, 6=0xA22, 8=0xE20)
 ( 3409 = register 3, port A20, voice 9)
@@ -700,16 +702,16 @@ Hall 1:
 0x7224,0x7224,0x7254,0x7284,0x4448,0x4548,0xA440,0xA540,
 0x842B,0x852B,0x842B,0x852B,0x842A,0x852A,0x842A,0x852A,
 0x8429,0x8529,0x8429,0x8529
-                           
+
 Hall 2:
-                                     
+
 0xB488,0xA470,0x9570,0x84B5,0x383A,0x3EB5,0x7254,0x7234,
 0x7224,0x7254,0x7264,0x7294,0x44C3,0x45C3,0xA404,0xA504,
 0x842A,0x852A,0x842A,0x852A,0x8429,0x8529,0x8429,0x8529,
-0x8428,0x8528,0x8428,0x8528 
+0x8428,0x8528,0x8428,0x8528
 
 Plate:
-     
+
 0xB4FF,0xA470,0x9570,0x84B5,0x383A,0x3EB5,0x7234,0x7234,
 0x7234,0x7234,0x7234,0x7234,0x4448,0x4548,0xA440,0xA540,
 0x842A,0x852A,0x842A,0x852A,0x8429,0x8529,0x8429,0x8529,
@@ -776,3 +778,5 @@ Treble Parameters:
 0xD308  0xD308  0xD308  0xD308  0xD308  0xD308  0xD3019 0xD32A  0xD34C  0xD36E  0xD36E  0xD36E
 0x0001  0x0001  0x0001  0x0001  0x0001  0x0002  0x0002  0x0002  0x0002  0x0002  0x0002  0x0002
 */
+
+#endif /*SOUND_EMU8K_H*/

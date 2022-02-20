@@ -11,9 +11,9 @@
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Copyright 2017-2020 Fred N. van Kempen.
  */
+
 #ifndef EMU_SIO_H
 # define EMU_SIO_H
-
 
 extern void		vt82c686_sio_write(uint8_t addr, uint8_t val, void *priv);
 
@@ -82,6 +82,5 @@ extern const device_t	w83977f_370_device;
 extern const device_t	w83977tf_device;
 extern const device_t	w83977ef_device;
 extern const device_t	w83977ef_370_device;
-
 
 #endif	/*EMU_SIO_H*/

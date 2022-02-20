@@ -24,7 +24,7 @@ static void mvhd_next_struct_to_buffer(void* struct_memb, size_t memb_size, bool
 
 /**
  * \brief Get the next field from a buffer and store it in a struct member, converting endian if necessary
- * 
+ *
  * \param [out] struct_memb struct member to save the field to
  * \param [in] memb_size the size of struct_memb, in bytes
  * \param [in] req_endian is the field a value that requires endian conversion (eg: uint16, uint32)
@@ -50,7 +50,7 @@ static void mvhd_next_buffer_to_struct(void* struct_memb, size_t memb_size, bool
 
 /**
  * \brief Save a struct member into a buffer, converting endian if necessary
- * 
+ *
  * \param [in] struct_memb struct member read from
  * \param [in] memb_size the size of struct_memb, in bytes
  * \param [in] req_endian is the field a value that requires endian conversion (eg: uint16, uint32)

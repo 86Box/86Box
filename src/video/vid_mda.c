@@ -116,7 +116,7 @@ void mda_poll(void *p)
                 mda->stat |= 1;
                 mda->linepos = 1;
                 oldsc = mda->sc;
-                if ((mda->crtc[8] & 3) == 3) 
+                if ((mda->crtc[8] & 3) == 3)
                         mda->sc = (mda->sc << 1) & 7;
                 if (mda->dispon)
                 {
@@ -158,7 +158,7 @@ void mda_poll(void *p)
                         mda->stat |= 8;
                 }
                 mda->displine++;
-                if (mda->displine >= 500) 
+                if (mda->displine >= 500)
                         mda->displine=0;
         }
         else
@@ -174,10 +174,10 @@ void mda_poll(void *p)
                                 mda->stat&=~8;
                         }
                 }
-                if (mda->sc == (mda->crtc[11] & 31) || ((mda->crtc[8] & 3) == 3 && mda->sc == ((mda->crtc[11] & 31) >> 1))) 
-                { 
-                        mda->con = 0; 
-                        mda->coff = 1; 
+                if (mda->sc == (mda->crtc[11] & 31) || ((mda->crtc[8] & 3) == 3 && mda->sc == ((mda->crtc[11] & 31) >> 1)))
+                {
+                        mda->con = 0;
+                        mda->coff = 1;
                 }
                 if (mda->vadj)
                 {
@@ -199,7 +199,7 @@ void mda_poll(void *p)
                         oldvc = mda->vc;
                         mda->vc++;
                         mda->vc &= 127;
-                        if (mda->vc == mda->crtc[6]) 
+                        if (mda->vc == mda->crtc[6])
                                 mda->dispon=0;
                         if (oldvc == mda->crtc[4])
                         {
@@ -284,7 +284,7 @@ void mda_init(mda_t *mda)
 	{
 		cga_palette = 0;
 	}
-	cgapal_rebuild();	
+	cgapal_rebuild();
 
         timer_add(&mda->timer, mda_poll, mda, 1);
 }
@@ -323,7 +323,7 @@ void mda_close(void *p)
 void mda_speed_changed(void *p)
 {
         mda_t *mda = (mda_t *)p;
-        
+
         mda_recalctimings(mda);
 }
 

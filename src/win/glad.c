@@ -981,4 +981,3 @@ int gladLoadGLLoader(GLADloadproc load) {
 	load_GL_ARB_sync(load);
 	return GLVersion.major != 0 || GLVersion.minor != 0;
 }
-

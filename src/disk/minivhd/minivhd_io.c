@@ -11,7 +11,7 @@
 #include "minivhd_internal.h"
 #include "minivhd_util.h"
 
-/* The following bit array macros adapted from 
+/* The following bit array macros adapted from
    http://www.mathcs.emory.edu/~cheung/Courses/255/Syllabus/1-C-intro/bit-array.html */
 
 #define VHD_SETBIT(A,k)     ( A[(k/8)] |= (0x80 >> (k%8)) )
@@ -26,11 +26,11 @@ static void mvhd_write_curr_sect_bitmap(MVHDMeta* vhdm);
 
 /**
  * \brief Check that we will not be overflowing buffers
- * 
+ *
  * \param [in] offset The offset from which we are beginning from
  * \param [in] num_sectors The number of sectors which we desire to read/write
  * \param [in] total_sectors The total number of sectors available
- * \param [out] transfer_sect The number of sectors to actually write. 
+ * \param [out] transfer_sect The number of sectors to actually write.
  * This may be lower than num_sectors if offset + num_sectors >= total_sectors
  * \param [out] trunc_sectors The number of sectors truncated if transfer_sectors < num_sectors
  */
@@ -52,10 +52,10 @@ void mvhd_write_empty_sectors(FILE* f, int sector_count) {
 
 /**
  * \brief Read the sector bitmap for a block.
- * 
- * If the block is sparse, the sector bitmap in memory will be 
+ *
+ * If the block is sparse, the sector bitmap in memory will be
  * zeroed. Otherwise, the sector bitmap is read from the VHD file.
- * 
+ *
  * \param [in] vhdm MiniVHD data structure
  * \param [in] blk The block for which to read the sector bitmap from
  */
@@ -71,7 +71,7 @@ static void mvhd_read_sect_bitmap(MVHDMeta* vhdm, int blk) {
 
 /**
  * \brief Write the current sector bitmap in memory to file
- * 
+ *
  * \param [in] vhdm MiniVHD data structure
  */
 static void mvhd_write_curr_sect_bitmap(MVHDMeta* vhdm) {
@@ -84,7 +84,7 @@ static void mvhd_write_curr_sect_bitmap(MVHDMeta* vhdm) {
 
 /**
  * \brief Write block offset from memory into file
- * 
+ *
  * \param [in] vhdm MiniVHD data structure
  * \param [in] blk The block for which to write the offset for
  */
@@ -97,15 +97,15 @@ static void mvhd_write_bat_entry(MVHDMeta* vhdm, int blk) {
 
 /**
  * \brief Create an empty block in a sparse or differencing VHD image
- * 
- * VHD images store data in blocks, which are typically 4096 sectors in size 
- * (~2MB). These blocks may be stored on disk in any order. Blocks are created 
+ *
+ * VHD images store data in blocks, which are typically 4096 sectors in size
+ * (~2MB). These blocks may be stored on disk in any order. Blocks are created
  * on demand when required.
- * 
- * This function creates new, empty blocks, by replacing the footer at the end of the file 
+ *
+ * This function creates new, empty blocks, by replacing the footer at the end of the file
  * and then re-inserting the footer at the new file end. The BAT table entry for the
  * new block is updated with the new offset.
- * 
+ *
  * \param [in] vhdm MiniVHD data structure
  * \param [in] blk The block number to create
  */
@@ -176,7 +176,7 @@ int mvhd_sparse_read(MVHDMeta* vhdm, uint32_t offset, int num_sectors, void* out
                 addr = ((int64_t)vhdm->block_offset[blk] + vhdm->bitmap.sector_count + sib) * MVHD_SECTOR_SIZE;
                 mvhd_fseeko64(vhdm->f, addr, SEEK_SET);
             }
-        }        
+        }
         if (VHD_TESTBIT(vhdm->bitmap.curr_bitmap, sib)) {
             fread(buff, MVHD_SECTOR_SIZE, 1, vhdm->f);
         } else {
@@ -245,7 +245,7 @@ int mvhd_sparse_diff_write(MVHDMeta* vhdm, uint32_t offset, int num_sectors, voi
     for (s = offset; s < ls; s++) {
         blk = s / vhdm->sect_per_block;
         sib = s % vhdm->sect_per_block;
-        if (vhdm->bitmap.curr_block != blk && prev_blk >= 0) {            
+        if (vhdm->bitmap.curr_block != blk && prev_blk >= 0) {
             /* Write the sector bitmap for the previous block, before we replace it. */
             mvhd_write_curr_sect_bitmap(vhdm);
         }
@@ -254,9 +254,9 @@ int mvhd_sparse_diff_write(MVHDMeta* vhdm, uint32_t offset, int num_sectors, voi
                zero either way */
             mvhd_read_sect_bitmap(vhdm, blk);
             mvhd_create_block(vhdm, blk);
-        } 
+        }
         if (blk != prev_blk) {
-            if (vhdm->bitmap.curr_block != blk) {                
+            if (vhdm->bitmap.curr_block != blk) {
                 mvhd_read_sect_bitmap(vhdm, blk);
                 mvhd_fseeko64(vhdm->f, (uint64_t)sib * MVHD_SECTOR_SIZE, SEEK_CUR);
             } else {

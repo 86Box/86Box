@@ -685,11 +685,11 @@ machine_at_pc330_6573_init(const machine_t *model)	/* doesn't like every CPU oth
 	return ret;
 
     machine_at_common_init(model);
-    pci_register_slot(0x10, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0); 
+    pci_register_slot(0x10, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
     pci_register_slot(0x11, PCI_CARD_NORMAL, 1, 2, 3, 4);
     pci_register_slot(0x12, PCI_CARD_NORMAL, 2, 3, 4, 1);
     pci_register_slot(0x13, PCI_CARD_NORMAL, 3, 4, 1, 2);
-	
+
     device_add(&opti802g_device);
     device_add(&opti822_device);
     device_add(&keyboard_ps2_device);
@@ -1347,7 +1347,7 @@ machine_at_abpb4_init(const machine_t *model)
 	return ret;
 
     machine_at_common_init(model);
-    
+
     pci_init(PCI_CAN_SWITCH_TYPE);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
     pci_register_slot(0x03, PCI_CARD_NORMAL, 1, 2, 3, 4);
@@ -1376,7 +1376,7 @@ machine_at_win486pci_init(const machine_t *model)
 	return ret;
 
     machine_at_common_init(model);
-    
+
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
     pci_register_slot(0x03, PCI_CARD_NORMAL, 1, 2, 3, 4);
@@ -1403,7 +1403,7 @@ machine_at_ms4145_init(const machine_t *model)
 	return ret;
 
     machine_at_common_init(model);
-    
+
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
     pci_register_slot(0x03, PCI_CARD_NORMAL, 1, 2, 3, 4);
@@ -1432,7 +1432,7 @@ machine_at_sbc490_init(const machine_t *model)
 	return ret;
 
     machine_at_common_init(model);
-    
+
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
     pci_register_slot(0x0F, PCI_CARD_NORMAL, 2, 3, 4, 1);
@@ -1473,7 +1473,7 @@ machine_at_tf486_init(const machine_t *model)
 	return ret;
 
     machine_at_common_init(model);
-    
+
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
     pci_register_slot(0x0C, PCI_CARD_NORMAL, 1, 2, 3, 4);
@@ -1643,7 +1643,7 @@ machine_at_ecs486_init(const machine_t *model)
 	return ret;
 
     machine_at_common_init(model);
-    
+
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x10, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
     pci_register_slot(0x12, PCI_CARD_SOUTHBRIDGE, 1, 2, 3, 4);
@@ -1675,7 +1675,7 @@ machine_at_hot433_init(const machine_t *model)
 	return ret;
 
     machine_at_common_init(model);
-    
+
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x10, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
     pci_register_slot(0x12, PCI_CARD_SOUTHBRIDGE, 1, 2, 3, 4);
@@ -1708,7 +1708,7 @@ machine_at_atc1415_init(const machine_t *model)
 	return ret;
 
     machine_at_common_init(model);
-    
+
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x10, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
     pci_register_slot(0x12, PCI_CARD_SOUTHBRIDGE, 1, 2, 3, 4);
@@ -1740,7 +1740,7 @@ machine_at_actionpc2600_init(const machine_t *model)
 	return ret;
 
     machine_at_common_init(model);
-    
+
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x10, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
     pci_register_slot(0x12, PCI_CARD_SOUTHBRIDGE, 1, 2, 3, 4);
@@ -1771,7 +1771,7 @@ machine_at_m919_init(const machine_t *model)
 	return ret;
 
     machine_at_common_init(model);
-    
+
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x10, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
     pci_register_slot(0x12, PCI_CARD_SOUTHBRIDGE, 1, 2, 3, 4);
@@ -1801,7 +1801,7 @@ machine_at_spc7700plw_init(const machine_t *model)
 	return ret;
 
     machine_at_common_init(model);
-    
+
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x10, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
     pci_register_slot(0x12, PCI_CARD_SOUTHBRIDGE, 1, 2, 3, 4);

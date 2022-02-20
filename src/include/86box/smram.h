@@ -14,9 +14,9 @@
  *
  *		Copyright 2016-2020 Miran Grca.
  */
+
 #ifndef EMU_SMRAM_H
 # define EMU_SMRAM_H
-
 
 typedef struct _smram_
 {
@@ -61,6 +61,5 @@ extern int	smram_enabled(smram_t *smr);
 extern void	smram_state_change(smram_t *smr, int smm, int flags);
 /* Enables or disables the use of a separate SMRAM for addresses below A0000. */
 extern void	smram_set_separate_smram(uint8_t set);
-
 
 #endif	/*EMU_SMRAM_H*/

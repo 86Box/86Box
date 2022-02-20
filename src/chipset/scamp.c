@@ -153,7 +153,7 @@ static const struct
 
 /* The column bits masked when using 256kbit DRAMs in 4Mbit mode aren't contiguous,
    so we use separate routines for that special case */
-static uint8_t 
+static uint8_t
 ram_mirrored_256k_in_4mi_read(uint32_t addr, void *priv)
 {
     ram_struct_t *rs = (ram_struct_t *) priv;
@@ -183,7 +183,7 @@ ram_mirrored_256k_in_4mi_read(uint32_t addr, void *priv)
 }
 
 
-static void 
+static void
 ram_mirrored_256k_in_4mi_write(uint32_t addr, uint8_t val, void *priv)
 {
     ram_struct_t *rs = (ram_struct_t *) priv;
@@ -215,7 +215,7 @@ ram_mirrored_256k_in_4mi_write(uint32_t addr, uint8_t val, void *priv)
 
 /*Read/write handlers for interleaved memory banks. We must keep CPU and ram array
   mapping linear, otherwise we won't be able to execute code from interleaved banks*/
-static uint8_t 
+static uint8_t
 ram_mirrored_interleaved_read(uint32_t addr, void *priv)
 {
     ram_struct_t *rs = (ram_struct_t *) priv;
@@ -245,7 +245,7 @@ ram_mirrored_interleaved_read(uint32_t addr, void *priv)
 }
 
 
-static void 
+static void
 ram_mirrored_interleaved_write(uint32_t addr, uint8_t val, void *priv)
 {
     ram_struct_t *rs = (ram_struct_t *) priv;
@@ -275,7 +275,7 @@ ram_mirrored_interleaved_write(uint32_t addr, uint8_t val, void *priv)
 }
 
 
-static uint8_t 
+static uint8_t
 ram_mirrored_read(uint32_t addr, void *priv)
 {
     ram_struct_t *rs = (ram_struct_t *) priv;
@@ -293,14 +293,14 @@ ram_mirrored_read(uint32_t addr, void *priv)
 }
 
 
-static void 
+static void
 ram_mirrored_write(uint32_t addr, uint8_t val, void *priv)
 {
     ram_struct_t *rs = (ram_struct_t *) priv;
     scamp_t *dev = rs->parent;
     int bank = rs->bank, byte;
     int row, column;
-        
+
     addr -= dev->ram_virt_base[bank];
     byte = addr & 1;
     column = (addr >> 1) & dev->ram_mask[bank];
@@ -311,7 +311,7 @@ ram_mirrored_write(uint32_t addr, uint8_t val, void *priv)
 }
 
 
-static void 
+static void
 recalc_mappings(void *priv)
 {
     scamp_t *dev = (scamp_t *) priv;
@@ -346,7 +346,7 @@ recalc_mappings(void *priv)
 
     if (rammap[cur_rammap].bank[0] == BANK_NONE)
 	bank_nr = 1;
-        
+
     for (; bank_nr < 2; bank_nr++) {
 	old_virt_base = virt_base;
 	phys_bank = ram_configs[dev->ram_config].bank[bank_nr];
@@ -511,7 +511,7 @@ recalc_mappings(void *priv)
 							ram_mirrored_interleaved_read, NULL, NULL,
 							ram_mirrored_interleaved_write, NULL, NULL);
 			break;
-                        
+
 		case BANK_4M_INTERLEAVED:
 			if (phys_bank == BANK_256K || phys_bank == BANK_256K_INTERLEAVED) {
 				mem_mapping_set_handler(&dev->ram_mapping[bank_nr],
@@ -577,14 +577,14 @@ scamp_ems_write(uint32_t addr, uint8_t val, void *priv)
     ems_struct_t *ems = (ems_struct_t *) priv;
     scamp_t *dev = ems->parent;
     int segment = ems->segment;
-	
+
 	addr = (addr & 0x3fff) | dev->mappings[segment];
 	ram[addr] = val;
 }
 
 static void
 recalc_ems(scamp_t *dev)
-{		
+{
 		int segment;
 		const uint32_t ems_base[12] =
 		{
@@ -633,7 +633,7 @@ recalc_ems(scamp_t *dev)
         }
 }
 
-static void 
+static void
 shadow_control(uint32_t addr, uint32_t size, int state, int ems_enable)
 {
 	if (ems_enable)
@@ -706,7 +706,7 @@ shadow_recalc(scamp_t *dev)
 		shadow_control(0xf8000, 0x8000, (feaxs >> 6) & 3, 0);
 }
 
-static void 
+static void
 scamp_write(uint16_t addr, uint8_t val, void *priv)
 {
     scamp_t *dev = (scamp_t *) priv;
@@ -731,7 +731,7 @@ scamp_write(uint16_t addr, uint8_t val, void *priv)
 		if (dev->ems_autoinc)
 			dev->ems_index = (dev->ems_index + 1) & 0x3f;
 		break;
-		
+
 	case 0xec:
 		if (dev->cfg_enable)
 			dev->cfg_index = val;
@@ -778,7 +778,7 @@ scamp_write(uint16_t addr, uint8_t val, void *priv)
 }
 
 
-static uint8_t 
+static uint8_t
 scamp_read(uint16_t addr, void *priv)
 {
     scamp_t *dev = (scamp_t *) priv;
@@ -798,7 +798,7 @@ scamp_read(uint16_t addr, void *priv)
 			ret = (dev->ems[dev->ems_index] >> 8) | 0xfc;
 		if (dev->ems_autoinc)
 			dev->ems_index = (dev->ems_index + 1) & 0x3f;
-		break;		
+		break;
 
 	case 0xed:
 		if (dev->cfg_enable && (dev->cfg_index >= 0x00) && (dev->cfg_index <= 0x16))
@@ -839,7 +839,7 @@ scamp_init(const device_t *info)
     int c;
     scamp_t *dev = (scamp_t *)malloc(sizeof(scamp_t));
     memset(dev, 0x00, sizeof(scamp_t));
-	
+
     dev->cfg_regs[CFG_ID] = ID_VL82C311;
     dev->cfg_enable = 1;
 
@@ -852,7 +852,7 @@ scamp_init(const device_t *info)
     io_sethandler(0x00f9, 0x0001,
 		  scamp_read, NULL, NULL, scamp_write, NULL, NULL, dev);
     io_sethandler(0x00fb, 0x0001,
-		  scamp_read, NULL, NULL, scamp_write, NULL, NULL, dev);	
+		  scamp_read, NULL, NULL, scamp_write, NULL, NULL, dev);
 
     dev->ram_config = 0;
 

@@ -16,9 +16,9 @@
  *		Copyright 2016-2019 Miran Grca.
  *		Copyright 2017-2019 Fred N. van Kempen.
  */
+
 #ifndef SCSI_DEVICE_H
 # define SCSI_DEVICE_H
-
 
 /* Configuration. */
 #define SCSI_BUS_MAX		4		/* currently we support up to 4 controllers */
@@ -197,8 +197,8 @@
 #define CD_FRAMES                     75 /* frames per second */
 #define CD_FRAMESIZE                2048 /* bytes per frame, "cooked" mode */
 #define CD_MAX_BYTES       (CD_MINS * CD_SECS * CD_FRAMES * CD_FRAMESIZE)
-#define CD_MAX_SECTORS     (CD_MAX_BYTES / 512)	
-	
+#define CD_MAX_SECTORS     (CD_MAX_BYTES / 512)
+
 /* Event notification classes for GET EVENT STATUS NOTIFICATION */
 #define GESN_NO_EVENTS                0
 #define GESN_OPERATIONAL_CHANGE       1
@@ -340,7 +340,7 @@ typedef struct scsi_common_s {
     double callback;
 } scsi_common_t;
 
-typedef struct {	
+typedef struct {
     int32_t	buffer_length;
 
     uint8_t	status, phase;

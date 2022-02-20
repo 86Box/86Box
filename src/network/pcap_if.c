@@ -210,7 +210,7 @@ start_cap(char *dev)
         now = hdr->ts.tv_sec;
         ltime = localtime(&now);
         strftime(temp, sizeof(temp), "%H:%M:%S", ltime);
-        
+
 	/* Process and print the packet. */
         printf("\n<< %s,%.6ld len=%u\n",
 		temp, hdr->ts.tv_usec, hdr->len);

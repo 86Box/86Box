@@ -141,7 +141,7 @@ uint32_t ropPOP_W(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fe
         {
                 x86seg *target_seg = codegen_generate_ea(ir, op_ea_seg, fetchdat, op_ssegs, &op_pc, op_32, 2);
                 codegen_check_seg_write(block, ir, target_seg);
-                
+
                 if (stack32)
                         uop_MEM_LOAD_REG(ir, IREG_temp0_W, IREG_SS_base, IREG_ESP);
                 else
@@ -340,7 +340,7 @@ uint32_t ropPUSHA_32(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t
 uint32_t ropPOPA_16(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
 {
         int sp_reg;
-        
+
         uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);
         sp_reg = LOAD_SP(ir);
         uop_MEM_LOAD_REG(ir, IREG_DI, IREG_SS_base, sp_reg);

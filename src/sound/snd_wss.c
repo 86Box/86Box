@@ -21,7 +21,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <wchar.h>
-#include <math.h>  
+#include <math.h>
 #include <86box/86box.h>
 #include <86box/io.h>
 #include <86box/timer.h>
@@ -158,7 +158,7 @@ ncr_audio_mca_write(int port, uint8_t val, void *priv)
 
 	if (wss->opl_enabled)
 		io_sethandler(0x0388, 0x0004, opl3_read,   NULL, NULL, opl3_write,   NULL, NULL,  &wss->opl);
-	
+
 	io_sethandler(addr, 0x0004, wss_read,    NULL, NULL, wss_write,    NULL, NULL,  wss);
 	io_sethandler(addr+4, 0x0004, ad1848_read, NULL, NULL, ad1848_write, NULL, NULL,  &wss->ad1848);
     }

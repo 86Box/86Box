@@ -460,7 +460,7 @@ network_close(void)
 
     /* Force-close the SLIRP module. */
     net_slirp_close();
- 
+
     /* Close the network thread mutex. */
     thread_close_mutex(network_mutex);
     network_mutex = NULL;
@@ -640,13 +640,13 @@ int
 network_card_get_from_internal_name(char *s)
 {
     int c = 0;
-	
+
     while (net_cards[c].device != NULL) {
 	if (! strcmp((char *)net_cards[c].device->internal_name, s))
 		return(c);
 	c++;
     }
-	
+
     return 0;
 }
 

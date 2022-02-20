@@ -13,6 +13,7 @@
  * Author:	RichardG, <richardg867@gmail.com>
  *		Copyright 2020 RichardG.
  */
+
 #ifndef NET_PLIP_H
 # define NET_PLIP_H
 # include <86box/device.h>

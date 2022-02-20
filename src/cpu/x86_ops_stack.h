@@ -191,7 +191,7 @@ static int opPOPA_l(uint32_t fetchdat)
 
 static int opPUSH_imm_w(uint32_t fetchdat)
 {
-        uint16_t val = getwordf(); 
+        uint16_t val = getwordf();
         PUSH_W(val);
         CLOCK_CYCLES(2);
         PREFETCH_RUN(2, 3, -1, 0,0,1,0, 0);
@@ -212,7 +212,7 @@ static int opPUSH_imm_bw(uint32_t fetchdat)
 
         if (tempw & 0x80) tempw |= 0xFF00;
         PUSH_W(tempw);
-        
+
         CLOCK_CYCLES(2);
         PREFETCH_RUN(2, 2, -1, 0,0,1,0, 0);
         return cpu_state.abrt;
@@ -223,7 +223,7 @@ static int opPUSH_imm_bl(uint32_t fetchdat)
 
         if (templ & 0x80) templ |= 0xFFFFFF00;
         PUSH_L(templ);
-        
+
         CLOCK_CYCLES(2);
         PREFETCH_RUN(2, 2, -1, 0,0,0,1, 0);
         return cpu_state.abrt;
@@ -232,7 +232,7 @@ static int opPUSH_imm_bl(uint32_t fetchdat)
 static int opPOPW_a16(uint32_t fetchdat)
 {
         uint16_t temp;
-        
+
         temp = POP_W();                                 if (cpu_state.abrt) return 1;
 
         fetch_ea_16(fetchdat);
@@ -244,7 +244,7 @@ static int opPOPW_a16(uint32_t fetchdat)
                 if (stack32) ESP -= 2;
                 else         SP -= 2;
         }
-                        
+
         if (is486) { CLOCK_CYCLES((cpu_mod == 3) ? 1 : 6); }
         else       { CLOCK_CYCLES((cpu_mod == 3) ? 4 : 5); }
         PREFETCH_RUN((cpu_mod == 3) ? 4 : 5, 2, rmdat, 1,0,(cpu_mod == 3) ? 0:1,0, 0);
@@ -253,9 +253,9 @@ static int opPOPW_a16(uint32_t fetchdat)
 static int opPOPW_a32(uint32_t fetchdat)
 {
         uint16_t temp;
-                
+
         temp = POP_W();                                 if (cpu_state.abrt) return 1;
-        
+
         fetch_ea_32(fetchdat);
         if (cpu_mod != 3)
                 SEG_CHECK_WRITE(cpu_state.ea_seg);
@@ -265,7 +265,7 @@ static int opPOPW_a32(uint32_t fetchdat)
                 if (stack32) ESP -= 2;
                 else         SP -= 2;
         }
-                        
+
         if (is486) { CLOCK_CYCLES((cpu_mod == 3) ? 1 : 6); }
         else       { CLOCK_CYCLES((cpu_mod == 3) ? 4 : 5); }
         PREFETCH_RUN((cpu_mod == 3) ? 4 : 5, 2, rmdat, 1,0,(cpu_mod == 3) ? 0:1,0, 1);
@@ -278,7 +278,7 @@ static int opPOPL_a16(uint32_t fetchdat)
 
         temp = POP_L();                                 if (cpu_state.abrt) return 1;
 
-        fetch_ea_16(fetchdat);        
+        fetch_ea_16(fetchdat);
         if (cpu_mod != 3)
                 SEG_CHECK_WRITE(cpu_state.ea_seg);
         seteal(temp);
@@ -287,7 +287,7 @@ static int opPOPL_a16(uint32_t fetchdat)
                 if (stack32) ESP -= 4;
                 else         SP -= 4;
         }
-                        
+
         if (is486) { CLOCK_CYCLES((cpu_mod == 3) ? 1 : 6); }
         else       { CLOCK_CYCLES((cpu_mod == 3) ? 4 : 5); }
         PREFETCH_RUN((cpu_mod == 3) ? 4 : 5, 2, rmdat, 0,1,0,(cpu_mod == 3) ? 0:1, 0);
@@ -328,10 +328,10 @@ static int opENTER_w(uint32_t fetchdat)
         count = (fetchdat >> 16) & 0xff; cpu_state.pc++;
         tempEBP = EBP;
 	tempESP = ESP;
-        
+
         PUSH_W(BP); if (cpu_state.abrt) return 1;
         frame_ptr = ESP;
-        
+
         if (count > 0)
         {
                 while (--count)
@@ -350,7 +350,7 @@ static int opENTER_w(uint32_t fetchdat)
                 writes++; instr_cycles += (is486) ? 3 : 5;
         }
         BP = frame_ptr;
-        
+
         if (stack32) ESP -= offset;
         else          SP -= offset;
         CLOCK_CYCLES((is486) ? 14 : 10);
@@ -369,10 +369,10 @@ static int opENTER_l(uint32_t fetchdat)
 	offset = getwordf();
         count = (fetchdat >> 16) & 0xff; cpu_state.pc++;
         tempEBP = EBP; tempESP = ESP;
-        
+
         PUSH_L(EBP); if (cpu_state.abrt) return 1;
         frame_ptr = ESP;
-        
+
         if (count > 0)
         {
                 while (--count)
@@ -391,7 +391,7 @@ static int opENTER_l(uint32_t fetchdat)
                 writes++; instr_cycles += (is486) ? 3 : 5;
         }
         EBP = frame_ptr;
-        
+
         if (stack32) ESP -= offset;
         else          SP -= offset;
         CLOCK_CYCLES((is486) ? 14 : 10);
@@ -406,11 +406,11 @@ static int opLEAVE_w(uint32_t fetchdat)
         uint32_t tempESP = ESP;
         uint16_t temp;
 
-        SP = BP;       
+        SP = BP;
         temp = POP_W();
         if (cpu_state.abrt) { ESP = tempESP; return 1; }
         BP = temp;
-        
+
         CLOCK_CYCLES(4);
         PREFETCH_RUN(4, 1, -1, 1,0,0,0, 0);
         return 0;
@@ -420,12 +420,12 @@ static int opLEAVE_l(uint32_t fetchdat)
         uint32_t tempESP = ESP;
         uint32_t temp;
 
-        ESP = EBP;       
+        ESP = EBP;
         temp = POP_L();
         if (cpu_state.abrt) { ESP = tempESP; return 1; }
         EBP = temp;
-        
-        CLOCK_CYCLES(4);        
+
+        CLOCK_CYCLES(4);
         PREFETCH_RUN(4, 1, -1, 0,1,0,0, 0);
         return 0;
 }
@@ -446,7 +446,7 @@ static int opLEAVE_l(uint32_t fetchdat)
                 PREFETCH_RUN(2, 1, -1, 0,0,0,1, 0); \
                 return cpu_state.abrt;                                                    \
         }
-        
+
 #define POP_SEG_OPS(seg, realseg)                                               \
         static int opPOP_ ## seg ## _w(uint32_t fetchdat)                       \
         {                                                                       \
@@ -469,7 +469,7 @@ static int opLEAVE_l(uint32_t fetchdat)
                 return cpu_state.abrt;                                                    \
         }
 
-                
+
 PUSH_SEG_OPS(CS)
 PUSH_SEG_OPS(DS)
 PUSH_SEG_OPS(ES)
@@ -490,7 +490,7 @@ static int opPOP_SS_w(uint32_t fetchdat)
         loadseg(temp_seg, &cpu_state.seg_ss);   if (cpu_state.abrt) { ESP = temp_esp; return 1; }
         CLOCK_CYCLES(is486 ? 3 : 7);
         PREFETCH_RUN(is486 ? 3 : 7, 1, -1, 0,0,1,0, 0);
-                        
+
         cpu_state.oldpc = cpu_state.pc;
         cpu_state.op32 = use32;
         cpu_state.ssegs = 0;

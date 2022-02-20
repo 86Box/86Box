@@ -51,10 +51,10 @@
 static int opRETF_a16(uint32_t fetchdat)
 {
         int cycles_old = cycles; UN_USED(cycles_old);
-        
+
         CPU_BLOCK_END();
         RETF_a16(0);
-        
+
         PREFETCH_RUN(cycles_old-cycles, 1, -1, 2,0,0,0, 0);
         PREFETCH_FLUSH();
         return 0;
@@ -62,7 +62,7 @@ static int opRETF_a16(uint32_t fetchdat)
 static int opRETF_a32(uint32_t fetchdat)
 {
         int cycles_old = cycles; UN_USED(cycles_old);
-        
+
         CPU_BLOCK_END();
         RETF_a32(0);
 
@@ -99,7 +99,7 @@ static int opRETF_a32_imm(uint32_t fetchdat)
 static int opIRET_286(uint32_t fetchdat)
 {
         int cycles_old = cycles; UN_USED(cycles_old);
-        
+
         if ((cr0 & 1) && (cpu_state.eflags & VM_FLAG) && (IOPL != 3))
         {
                 x86gpf(NULL,0);
@@ -144,7 +144,7 @@ static int opIRET_286(uint32_t fetchdat)
 static int opIRET(uint32_t fetchdat)
 {
         int cycles_old = cycles; UN_USED(cycles_old);
-        
+
         if ((cr0 & 1) && (cpu_state.eflags & VM_FLAG) && (IOPL != 3))
         {
                 if (cr4 & CR4_VME)
@@ -221,7 +221,7 @@ static int opIRET(uint32_t fetchdat)
 static int opIRETD(uint32_t fetchdat)
 {
         int cycles_old = cycles; UN_USED(cycles_old);
-        
+
         if ((cr0 & 1) && (cpu_state.eflags & VM_FLAG) && (IOPL != 3))
         {
                 x86gpf_expected(NULL,0);
@@ -264,4 +264,3 @@ static int opIRETD(uint32_t fetchdat)
         PREFETCH_FLUSH();
         return cpu_state.abrt;
 }
- 

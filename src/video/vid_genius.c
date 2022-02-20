@@ -46,9 +46,9 @@ static video_timings_t timing_genius = {VIDEO_ISA, 8, 16, 32,   8, 16, 32};
 
 
 /* I'm at something of a disadvantage writing this emulation: I don't have an
- * MDSI Genius card, nor do I have the BIOS extension (VHRBIOS.SYS) that came 
+ * MDSI Genius card, nor do I have the BIOS extension (VHRBIOS.SYS) that came
  * with it. What I do have are the GEM and Windows 1.04 drivers, plus a driver
- * for a later MCA version of the card. The latter can be found at 
+ * for a later MCA version of the card. The latter can be found at
  * <http://files.mpoli.fi/hardware/DISPLAY/GENIUS/> and is necessary if you
  * want the Windows driver to work.
  *
@@ -57,9 +57,9 @@ static video_timings_t timing_genius = {VIDEO_ISA, 8, 16, 32,   8, 16, 32};
  * The GEM driver SDGEN9.VGA
  * The Windows 1.04 driver GENIUS.DRV
  *
- * As far as I can see, the card uses a fixed resolution of 728x1008 pixels. 
+ * As far as I can see, the card uses a fixed resolution of 728x1008 pixels.
  * It has the following modes of operation:
- * 
+ *
  * > MDA-compatible:      80x25 text, each character 9x15 pixels.
  * > CGA-compatible:      640x200 mono graphics
  * > Dual:                MDA text in the top half, CGA graphics in the bottom
@@ -67,16 +67,16 @@ static video_timings_t timing_genius = {VIDEO_ISA, 8, 16, 32,   8, 16, 32};
  * > Native graphics:     728x1008 mono graphics.
  *
  * Under the covers, this seems to translate to:
- *  > Text framebuffer.     At B000:0000, 16k. Displayed if enable bit is set 
+ *  > Text framebuffer.     At B000:0000, 16k. Displayed if enable bit is set
  *                         in the MDA control register.
  *  > Graphics framebuffer. In native modes goes from A000:0000 to A000:FFFF
- *                         and B800:0000 to B800:FFFF. In CGA-compatible 
+ *                         and B800:0000 to B800:FFFF. In CGA-compatible
  *                         mode only the section at B800:0000 to B800:7FFF
  *                         is visible. Displayed if enable bit is set in the
  *                         CGA control register.
- * 
+ *
  * Two card-specific registers control text and graphics display:
- * 
+ *
  *  03B0: Control register.
  * 	   Bit 0: Map all graphics framebuffer into memory.
  *         Bit 2: Unknown. Set by GMC /M; cleared by mode set or GMC /T.
@@ -88,14 +88,14 @@ static video_timings_t timing_genius = {VIDEO_ISA, 8, 16, 32,   8, 16, 32};
  *        Bit  4:   Set to double character cell height (scanlines are doubled)
  *        Bit  7:   Unknown, seems to be set for all modes except 80x66
  *
- *  Not having the card also means I don't have its font. According to the 
- *  card brochure the font is an 8x12 bitmap in a 9x15 character cell. I 
- *  therefore generated it by taking the MDA font, increasing graphics to 
+ *  Not having the card also means I don't have its font. According to the
+ *  card brochure the font is an 8x12 bitmap in a 9x15 character cell. I
+ *  therefore generated it by taking the MDA font, increasing graphics to
  *  16 pixels in height and reducing the height of characters so they fit
  *  in an 8x12 cell if necessary.
  */
 
- 
+
 
 typedef struct genius_t
 {
@@ -105,14 +105,14 @@ typedef struct genius_t
         int mda_crtcreg;	/* Current CRTC register */
         uint8_t cga_crtc[32];	/* The 'CRTC' as the host PC sees it */
         int cga_crtcreg;	/* Current CRTC register */
-	uint8_t genius_control;	/* Native control register 
-				 * I think bit 0 enables the full 
-				 * framebuffer. 
+	uint8_t genius_control;	/* Native control register
+				 * I think bit 0 enables the full
+				 * framebuffer.
 				 */
-	uint8_t genius_charh;	/* Native character height register: 
-				 * 00h => chars are 15 pixels high 
+	uint8_t genius_charh;	/* Native character height register:
+				 * 00h => chars are 15 pixels high
 				 * 81h => chars are 14 pixels high
-				 * 83h => chars are 12 pixels high 
+				 * 83h => chars are 12 pixels high
 				 * 90h => chars are 30 pixels high [15 x 2]
 				 * 93h => chars are 24 pixels high [12 x 2]
 				 */
@@ -130,7 +130,7 @@ typedef struct genius_t
 
         uint64_t dispontime, dispofftime;
         pc_timer_t timer;
-        
+
         int linepos, displine;
         int vc;
         int dispon, blink;
@@ -179,7 +179,7 @@ genius_out(uint16_t addr, uint8_t val, void *p)
 		return;
 
 	/* Emulated MDA control register */
-	case 0x3b8: 
+	case 0x3b8:
 		genius->mda_ctrl = val;
 		return;
 
@@ -219,10 +219,10 @@ genius_in(uint16_t addr, void *p)
 	case 0x3b1: case 0x3b3: case 0x3b5: case 0x3b7:
 		ret = genius->mda_crtc[genius->mda_crtcreg];
 		break;
-	case 0x3b8: 
+	case 0x3b8:
 		ret = genius->mda_ctrl;
 		break;
-	case 0x3ba: 
+	case 0x3ba:
 		ret = genius->mda_stat;
 		break;
 	case 0x3d0: case 0x3d2: case 0x3d4: case 0x3d6:
@@ -388,15 +388,15 @@ genius_textline(genius_t *genius, uint8_t background, int mda, int cols80)
 
 #if 0
 	if (genius->genius_charh & 0x10) {
-		row = ((dl >> 1) / charh);	
-		sc  = ((dl >> 1) % charh);	
+		row = ((dl >> 1) / charh);
+		sc  = ((dl >> 1) % charh);
 	} else {
-		row = (dl / charh);	
-		sc  = (dl % charh);	
+		row = (dl / charh);
+		sc  = (dl % charh);
 	}
 #else
-	row = (dl / charh);	
-	sc  = (dl % charh);	
+	row = (dl / charh);
+	sc  = (dl % charh);
 #endif
     } else {
 	if ((genius->displine < 512)  || (genius->displine >= 912))
@@ -411,8 +411,8 @@ genius_textline(genius_t *genius, uint8_t background, int mda, int cols80)
 	cw = 8;
 	charh = crtc[9] + 1;
 
-	row = ((dl >> 1) / charh);	
-	sc  = ((dl >> 1) % charh);	
+	row = ((dl >> 1) / charh);
+	sc  = ((dl >> 1) % charh);
     }
 
     ma = (crtc[13] | (crtc[12] << 8)) & 0x3fff;
@@ -507,7 +507,7 @@ genius_textline(genius_t *genius, uint8_t background, int mda, int cols80)
                	                	        buffer32->line[dl][((x * cw) << 1) + 17] = col;
 					}
 				}
-			} else {	/* Otherwise fill with background */	
+			} else {	/* Otherwise fill with background */
 				col = mdaattr[attr][blink][0];
 				if (genius->genius_control & 0x20)
 					col ^= 15;
@@ -733,7 +733,7 @@ void
     genius_pal[3] = 15 + 16;	/* F */
 
     /* MDA attributes */
-    /* I don't know if the Genius's MDA emulation actually does 
+    /* I don't know if the Genius's MDA emulation actually does
      * emulate bright / non-bright. For the time being pretend it does. */
     for (c = 0; c < 256; c++) {
 	mdaattr[c][0][0] = mdaattr[c][1][0] = mdaattr[c][1][1] = genius_pal[0];

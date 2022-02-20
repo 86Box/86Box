@@ -48,4 +48,3 @@ void SoundGain::on_SoundGain_rejected()
 {
     sound_gain = sound_gain_orig;
 }
-

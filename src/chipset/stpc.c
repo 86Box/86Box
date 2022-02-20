@@ -835,7 +835,7 @@ stpc_setup(stpc_t *dev)
 	dev->pci_conf[3][0x01] = dev->local >> 24;
 	dev->pci_conf[3][0x02] = 0x30;
 	dev->pci_conf[3][0x03] = 0x02;
-	
+
 	dev->pci_conf[3][0x06] = 0x80;
 	dev->pci_conf[3][0x07] = 0x02;
 
@@ -877,7 +877,7 @@ stpc_init(const device_t *info)
 
     stpc_t *dev = (stpc_t *) malloc(sizeof(stpc_t));
     memset(dev, 0, sizeof(stpc_t));
-    
+
     dev->local = info->local;
 
     pci_add_card(PCI_ADD_NORTHBRIDGE, stpc_nb_read, stpc_nb_write, dev);
@@ -1002,7 +1002,7 @@ stpc_lpt_write(uint16_t addr, uint8_t val, void *priv)
     } else if (addr == 0x3f0) {
 	if (val == 0xaa)
 		dev->unlocked = 0;
-	else	
+	else
 		dev->offset = val;
     } else if (dev->offset == 1) {
 	/* dev->reg1 is set by stpc_lpt_handlers */
@@ -1063,8 +1063,8 @@ const device_t stpc_client_device =
     "stpc_client",
     DEVICE_PCI,
     STPC_CLIENT,
-    stpc_init, 
-    stpc_close, 
+    stpc_init,
+    stpc_close,
     stpc_reset,
     { NULL },
     NULL,
@@ -1078,8 +1078,8 @@ const device_t stpc_consumer2_device =
     "stpc_consumer2",
     DEVICE_PCI,
     STPC_CONSUMER2,
-    stpc_init, 
-    stpc_close, 
+    stpc_init,
+    stpc_close,
     stpc_reset,
     { NULL },
     NULL,
@@ -1093,8 +1093,8 @@ const device_t stpc_elite_device =
     "stpc_elite",
     DEVICE_PCI,
     STPC_ELITE,
-    stpc_init, 
-    stpc_close, 
+    stpc_init,
+    stpc_close,
     stpc_reset,
     { NULL },
     NULL,
@@ -1108,8 +1108,8 @@ const device_t stpc_atlas_device =
     "stpc_atlas",
     DEVICE_PCI,
     STPC_ATLAS,
-    stpc_init, 
-    stpc_close, 
+    stpc_init,
+    stpc_close,
     stpc_reset,
     { NULL },
     NULL,

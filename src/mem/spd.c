@@ -213,7 +213,7 @@ spd_register(uint8_t ram_type, uint8_t slot_mask, uint16_t max_module_size)
 	rows[slot] = 0;
 	if (slot_mask & (1 << slot))
 		slot_count++;
-    }    
+    }
 
     /* Populate rows. */
     spd_populate(rows, slot_count, (mem_size >> 10), min_module_size, max_module_size, 1);

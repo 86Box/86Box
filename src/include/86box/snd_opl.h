@@ -17,7 +17,6 @@
 #ifndef SOUND_OPL_H
 # define SOUND_OPL_H
 
-
 typedef void	(*tmrfunc)(void *priv, int timer, uint64_t period);
 
 /* Define an OPLx chip. */
@@ -52,6 +51,5 @@ extern uint8_t	opl3_read(uint16_t port, void *);
 extern void	opl3_write(uint16_t port, uint8_t val, void *);
 extern void	opl3_init(opl_t *);
 extern void	opl3_update(opl_t *);
-
 
 #endif	/*SOUND_OPL_H*/

@@ -73,12 +73,12 @@ olivetti_eva_write(uint16_t addr, uint8_t val, void *priv)
         case 0x069:
             dev->reg_069 = val;
             /*
-             * Unfortunately, if triggered, the BIOS remapping function fails causing 
+             * Unfortunately, if triggered, the BIOS remapping function fails causing
              * a fatal error. Therefore, this code section is currently commented.
              */
             // if (val & 1){
-            //     /* 
-            //      * Set the register to 7 or above for the BIOS to trigger the 
+            //     /*
+            //      * Set the register to 7 or above for the BIOS to trigger the
             //      * memory remapping function if shadowing is active.
             //      */
             //     dev->reg_069 = 0x7;
@@ -129,24 +129,24 @@ olivetti_eva_init(const device_t *info)
 {
     olivetti_eva_t *dev = (olivetti_eva_t *) malloc(sizeof(olivetti_eva_t));
     memset(dev, 0, sizeof(olivetti_eva_t));
-    
+
     /* GA98 registers */
     dev->reg_065 = 0x00;
-    
+
     /* RAM page registers: never read, only set */
     dev->reg_067 = 0x00;
-    
+
     /* RAM enable registers */
     dev->reg_069 = 0x0;
-    
+
     io_sethandler(0x0065, 0x0001, olivetti_eva_read, NULL, NULL, olivetti_eva_write, NULL, NULL, dev);
     io_sethandler(0x0067, 0x0001, olivetti_eva_read, NULL, NULL, olivetti_eva_write, NULL, NULL, dev);
     io_sethandler(0x0069, 0x0001, olivetti_eva_read, NULL, NULL, olivetti_eva_write, NULL, NULL, dev);
-    
+
     /* When shadowing is not enabled in BIOS, all upper memory is available as XMS */
     mem_remap_top(384);
-    
-    /* 
+
+    /*
      * Default settings when NVRAM is cleared activate shadowing.
      * Thus, to avoid boot errors, remap only 256k from UMB to XMS.
      * Remove this block once BIOS memory remapping works.

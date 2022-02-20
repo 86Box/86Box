@@ -865,7 +865,7 @@ machine_at_prox1332_init(const machine_t *model)
 
 
 /*
- * Current bugs: 
+ * Current bugs:
  * - ctrl-alt-del produces an 8042 error
  */
 int
@@ -885,13 +885,13 @@ machine_at_pc8_init(const machine_t *model)
 
     if (fdc_type == FDC_INTERNAL)
 	device_add(&fdc_at_device);
-    
+
     return ret;
 }
 
 
 /*
- * Current bugs: 
+ * Current bugs:
  * - ctrl-alt-del produces an 8042 error
  */
 int
@@ -920,13 +920,13 @@ machine_at_3302_init(const machine_t *model)
 	device_add(&paradise_pvga1a_ncr3302_device);
 
     device_add(&keyboard_at_ncr_device);
-    
+
     return ret;
 }
 
 
 /*
- * Current bugs: 
+ * Current bugs:
  * - soft-reboot after saving CMOS settings/pressing ctrl-alt-del produces an 8042 error
  */
 int
@@ -942,13 +942,13 @@ machine_at_pc916sx_init(const machine_t *model)
 	return ret;
 
     machine_at_common_init(model);
-    
+
     device_add(&keyboard_at_ncr_device);
     mem_remap_top(384);
 
     if (fdc_type == FDC_INTERNAL)
 	device_add(&fdc_at_device);
-    
+
     return ret;
 }
 
@@ -971,9 +971,9 @@ machine_at_m290_init(const machine_t *model)
 
     if (fdc_type == FDC_INTERNAL)
 	device_add(&fdc_at_device);
-    
+
     device_add(&olivetti_eva_device);
-    
+
     return ret;
 }
 #endif

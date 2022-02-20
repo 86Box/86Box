@@ -32,6 +32,7 @@
  *   Boston, MA 02111-1307
  *   USA.
  */
+
 #ifndef NET_NE2000_H
 # define NET_NE2000_H
 

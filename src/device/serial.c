@@ -556,7 +556,7 @@ serial_read(uint16_t addr, void *p)
 		else
 			ret = dev->ier;
 		break;
-	case 2: 
+	case 2:
 		ret = dev->iir;
 		if ((ret & 0xe) == 2) {
 			dev->int_status &= ~SERIAL_INT_TRANSMIT;

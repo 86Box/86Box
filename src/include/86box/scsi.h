@@ -19,7 +19,7 @@
  *		Copyright 2017,2018 Fred N. van Kempen.
  */
 #ifndef EMU_SCSI_H
-#define EMU_SCSI_H
+# define EMU_SCSI_H
 
 extern int	scsi_card_current[4];
 

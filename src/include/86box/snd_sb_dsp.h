@@ -1,5 +1,5 @@
 #ifndef SOUND_SND_SB_DSP_H
-#define SOUND_SND_SB_DSP_H
+# define SOUND_SND_SB_DSP_H
 
 /*Sound Blaster Clones, for quirks*/
 #define SB_SUBTYPE_DEFAULT             0 /*Handle as a Creative card*/

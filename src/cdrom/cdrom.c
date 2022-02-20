@@ -363,10 +363,10 @@ uint8_t
 cdrom_audio_track_search(cdrom_t *dev, uint32_t pos, int type, uint8_t playbit)
 {
     int m = 0, s = 0, f = 0;
-    
+
     if (dev->cd_status == CD_STATUS_DATA_ONLY)
-	return 0;    
-    
+	return 0;
+
     switch (type) {
 	case 0x40:
 	    cdrom_log("Audio Track Search: MSF = %06x, type = %02x\n", pos, type);
@@ -376,7 +376,7 @@ cdrom_audio_track_search(cdrom_t *dev, uint32_t pos, int type, uint8_t playbit)
 	    pos = MSFtoLBA(m, s, f) - 150;
 	    break;
     }
-    
+
     /* Do this at this point, since it's at this point that we know the
        actual LBA position to start playing from. */
     if (!(dev->ops->track_type(dev, pos) & CD_TRACK_AUDIO)) {
@@ -391,7 +391,7 @@ cdrom_audio_track_search(cdrom_t *dev, uint32_t pos, int type, uint8_t playbit)
     return 1;
 }
 
-uint8_t	
+uint8_t
 cdrom_toshiba_audio_play(cdrom_t *dev, uint32_t pos, int type)
 {
     int m = 0, s = 0, f = 0;
@@ -412,15 +412,15 @@ cdrom_toshiba_audio_play(cdrom_t *dev, uint32_t pos, int type)
 	    pos = MSFtoLBA(m, s, f) - 150;
 	    break;
     }
-    
+
     /* Do this at this point, since it's at this point that we know the
        actual LBA position to start playing from. */
     if (!(dev->ops->track_type(dev, pos) & CD_TRACK_AUDIO)) {
 	cdrom_log("CD-ROM %i: LBA %08X not on an audio track\n", dev->id, pos);
 	cdrom_stop(dev);
 	return 0;
-    }    
-    
+    }
+
     dev->cd_end = pos;
     dev->cd_buflen = 0;
     return 1;
@@ -496,7 +496,7 @@ cdrom_get_current_subcodeq_playstatus(cdrom_t *dev, uint8_t *b)
     subchannel_t subc;
 
     dev->ops->get_subchannel(dev, dev->seek_pos, &subc);
-    
+
     if (dev->cd_status == CD_STATUS_PLAYING)
 	ret = 0x00;
     else if (dev->cd_status == CD_STATUS_PAUSED) {
@@ -505,7 +505,7 @@ cdrom_get_current_subcodeq_playstatus(cdrom_t *dev, uint8_t *b)
 	else
 	    ret = 0x01;
     }
-    else 
+    else
 	ret = 0x03;
 
     b[0] = subc.attr;
@@ -518,7 +518,7 @@ cdrom_get_current_subcodeq_playstatus(cdrom_t *dev, uint8_t *b)
     b[7] = CD_BCD(subc.abs_s);
     b[8] = CD_BCD(subc.abs_f);
     cdrom_log("CD-ROM %i: Returned subcode-q at %02i:%02i.%02i, track=%02x\n", dev->id, b[3], b[4], b[5], b[1]);
-    
+
     return ret;
 }
 

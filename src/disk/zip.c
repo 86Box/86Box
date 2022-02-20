@@ -1215,7 +1215,7 @@ zip_insert(zip_t *dev)
 /*SCSI Sense Initialization*/
 void
 zip_sense_code_ok(zip_t *dev)
-{	
+{
     zip_sense_key = SENSE_NONE;
     zip_asc = 0;
     zip_ascq = 0;
@@ -1334,7 +1334,7 @@ zip_reset(scsi_common_t *sc)
 
 static void
 zip_request_sense(zip_t *dev, uint8_t *buffer, uint8_t alloc_length, int desc)
-{				
+{
     /*Will return 18 bytes of 0*/
     if (alloc_length != 0) {
 	memset(buffer, 0, alloc_length);

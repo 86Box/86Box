@@ -16,6 +16,7 @@
  *		Copyright 2016-2018 Miran Grca.
  *		Copyright 2008-2018 Bochs project.
  */
+
 #ifndef NET_DP8390_H
 # define NET_DP8390_H
 
@@ -180,7 +181,7 @@ typedef struct {
     int		mem_size, mem_start, mem_end;
 
     int		tx_timer_index;
-    int		tx_timer_active;	
+    int		tx_timer_active;
 
     void	*priv;
 

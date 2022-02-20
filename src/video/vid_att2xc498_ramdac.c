@@ -162,7 +162,7 @@ att498_ramdac_init(const device_t *info)
     memset(ramdac, 0, sizeof(att498_ramdac_t));
 
     ramdac->type = info->local;
-    
+
     return ramdac;
 }
 
