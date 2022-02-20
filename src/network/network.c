@@ -313,25 +313,24 @@ network_rx_queue(void *priv)
     int ret = 1;
     netpkt_t *tx_queued_pkt = NULL;
 
-    if (network_rx_pause || !thread_test_mutex(network_mutex)) {
-	timer_on_auto(&network_rx_queue_timer, 0.762939453125 * 2.0 * 64.0);
+    if (network_rx_pause) {
+	timer_on_auto(&network_rx_queue_timer, 0.762939453125 * 2.0 * 128.0);
 	return;
     }
+
+    network_wait(1);
 
     if (queued_pkt == NULL)
 	network_queue_get(0, &queued_pkt);
     if ((queued_pkt != NULL) && (queued_pkt->len > 0)) {
 	network_dump_packet(queued_pkt);
 	ret = net_cards[network_card].rx(queued_pkt->priv, queued_pkt->data, queued_pkt->len);
-	if (ret) {
-		if (queued_pkt->len >= 128)
-			timer_on_auto(&network_rx_queue_timer, 0.762939453125 * 2.0 * ((double) queued_pkt->len));
-		else
-			timer_on_auto(&network_rx_queue_timer, 0.762939453125 * 2.0 * 128.0);
-	} else
-		timer_on_auto(&network_rx_queue_timer, 0.762939453125 * 2.0 * 64.0);
+	if (queued_pkt->len >= 128)
+		timer_on_auto(&network_rx_queue_timer, 0.762939453125 * 2.0 * ((double) queued_pkt->len));
+	else
+		timer_on_auto(&network_rx_queue_timer, 0.762939453125 * 2.0 * 128.0);
     } else
-	timer_on_auto(&network_rx_queue_timer, 0.762939453125 * 2.0 * 64.0);
+	timer_on_auto(&network_rx_queue_timer, 0.762939453125 * 2.0 * 128.0);
     if (ret)
 	queued_pkt = NULL;
     network_queue_advance(0);
