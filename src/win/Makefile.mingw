@@ -746,8 +746,7 @@ ifdef EXOBJ
 OBJ		+= $(EXOBJ)
 endif
 
-LIBS		:= -mwindows -lcomctl32 \
-		   -lopenal -lole32
+LIBS		:= -mwindows -lcomctl32 -lole32
 
 ifeq ($(VNC), y)
 LIBS		+= $(VNCLIB) -lws2_32
@@ -762,7 +761,10 @@ ifeq ($(ARM64), y)
 LIBS		+= -lgcc
 endif
 ifeq ($(DINPUT), y)
- LIBS    += -ldinput8
+ LIBS		+= -ldinput8
+endif
+ifeq ($(OPENAL), y)
+ LIBS		+= -lopenal
 endif
 
 LIBS    += -static
