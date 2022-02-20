@@ -53,7 +53,7 @@ typedef struct tvga_t
         int oldmode;
         uint8_t oldctrl1;
         uint8_t oldctrl2, newctrl2;
-        
+
         int vram_size;
         uint32_t vram_mask;
 } tvga_t;
@@ -88,16 +88,16 @@ void tvga_out(uint16_t addr, uint8_t val, void *p)
                 case 0x3C5:
                 switch (svga->seqaddr & 0xf)
                 {
-                        case 0xB: 
-                        tvga->oldmode=1; 
+                        case 0xB:
+                        tvga->oldmode=1;
                         break;
-                        case 0xC: 
-                        if (svga->seqregs[0xe] & 0x80) 
-                                svga->seqregs[0xc] = val; 
+                        case 0xC:
+                        if (svga->seqregs[0xe] & 0x80)
+                                svga->seqregs[0xc] = val;
                         break;
-                        case 0xd: 
-                        if (tvga->oldmode) 
-                                tvga->oldctrl2 = val;                                
+                        case 0xd:
+                        if (tvga->oldmode)
+                                tvga->oldctrl2 = val;
                         else
                         {
                                 tvga->newctrl2 = val;
@@ -105,9 +105,9 @@ void tvga_out(uint16_t addr, uint8_t val, void *p)
                         }
                         break;
                         case 0xE:
-                        if (tvga->oldmode) 
-                                tvga->oldctrl1 = val; 
-                        else 
+                        if (tvga->oldmode)
+                                tvga->oldctrl1 = val;
+                        else
                         {
                                 svga->seqregs[0xe] = val ^ 2;
                                 tvga->tvga_3d8 = svga->seqregs[0xe] & 0xf;
@@ -118,7 +118,7 @@ void tvga_out(uint16_t addr, uint8_t val, void *p)
                 break;
 
                 case 0x3C6: case 0x3C7: case 0x3C8: case 0x3C9:
-		if (tvga->card_id != TVGA9000B_ID) {	
+		if (tvga->card_id != TVGA9000B_ID) {
 			tkd8001_ramdac_out(addr, val, svga->ramdac, svga);
 			return;
 		}
@@ -135,7 +135,7 @@ void tvga_out(uint16_t addr, uint8_t val, void *p)
                                 /*override mask - TVGA supports linear 128k at A0000*/
                                 svga->banked_mask = 0x1ffff;
                         }
-                        return;			
+                        return;
                         case 0xE:
                         svga->gdcreg[0xe] = val ^ 2;
                         tvga->tvga_3d9 = svga->gdcreg[0xe] & 0xf;
@@ -207,7 +207,7 @@ uint8_t tvga_in(uint16_t addr, void *p)
         svga_t *svga = &tvga->svga;
 
         if (((addr&0xFFF0) == 0x3D0 || (addr&0xFFF0) == 0x3B0) && !(svga->miscout & 1)) addr ^= 0x60;
-        
+
         switch (addr)
         {
                 case 0x3C5:
@@ -223,8 +223,8 @@ uint8_t tvga_in(uint16_t addr, void *p)
                 }
                 if ((svga->seqaddr & 0xf) == 0xe)
                 {
-                        if (tvga->oldmode) 
-                                return tvga->oldctrl1; 
+                        if (tvga->oldmode)
+                                return tvga->oldctrl1;
                 }
                 break;
                 case 0x3C6: case 0x3C7: case 0x3C8: case 0x3C9:
@@ -249,7 +249,7 @@ uint8_t tvga_in(uint16_t addr, void *p)
 static void tvga_recalcbanking(tvga_t *tvga)
 {
         svga_t *svga = &tvga->svga;
-        
+
         svga->write_bank = (tvga->tvga_3d8 & 0x1f) * 65536;
 
         if (svga->gdcreg[0xf] & 1)
@@ -263,7 +263,7 @@ void tvga_recalctimings(svga_t *svga)
         tvga_t *tvga = (tvga_t *)svga->p;
 	int clksel;
 	int high_res_256 = 0;
-	
+
         if (!svga->rowoffset) svga->rowoffset = 0x100; /*This is the only sensible way I can see this being handled,
                                                          given that TVGA8900D has no overflow bits.
                                                          Some sort of overflow is required for 320x200x24 and 1024x768x16*/
@@ -272,26 +272,26 @@ void tvga_recalctimings(svga_t *svga)
 
         if (svga->bpp == 24)
                 svga->hdisp = (svga->crtc[1] + 1) * 8;
-        
+
 	if ((svga->crtc[0x1e] & 0xA0) == 0xA0) svga->ma_latch |= 0x10000;
 	if ((svga->crtc[0x27] & 0x01) == 0x01) svga->ma_latch |= 0x20000;
 	if ((svga->crtc[0x27] & 0x02) == 0x02) svga->ma_latch |= 0x40000;
-	
+
         if (tvga->oldctrl2 & 0x10)
         {
                 svga->rowoffset <<= 1;
                 svga->ma_latch <<= 1;
         }
-	
+
         if (svga->gdcreg[0xf] & 0x08)
         {
                 svga->htotal *= 2;
                 svga->hdisp *= 2;
                 svga->hdisp_time *= 2;
         }
-	   
+
 	svga->interlace = (svga->crtc[0x1e] & 4);
-	   
+
         if (svga->interlace)
                 svga->rowoffset >>= 1;
 
@@ -325,27 +325,27 @@ void tvga_recalctimings(svga_t *svga)
                 if (svga->interlace)
                         high_res_256 = (svga->htotal * 8) > (svga->vtotal * 4);
                 else
-                        high_res_256 = (svga->htotal * 8) > (svga->vtotal * 2);	
+                        high_res_256 = (svga->htotal * 8) > (svga->vtotal * 2);
 	}
 
         if ((tvga->oldctrl2 & 0x10) || high_res_256)
         {
                 if (high_res_256)
-                        svga->hdisp /= 2;		
+                        svga->hdisp /= 2;
                 switch (svga->bpp)
                 {
-                        case 8: 
+                        case 8:
                         svga->render = svga_render_8bpp_highres;
                         break;
-                        case 15: 
-                        svga->render = svga_render_15bpp_highres; 
+                        case 15:
+                        svga->render = svga_render_15bpp_highres;
                         svga->hdisp /= 2;
                         break;
-                        case 16: 
-                        svga->render = svga_render_16bpp_highres; 
+                        case 16:
+                        svga->render = svga_render_16bpp_highres;
                         svga->hdisp /= 2;
                         break;
-                        case 24: 
+                        case 24:
                         svga->render = svga_render_24bpp_highres;
                         svga->hdisp /= 3;
                         break;
@@ -360,7 +360,7 @@ static void *tvga_init(const device_t *info)
 	const char *bios_fn;
         tvga_t *tvga = malloc(sizeof(tvga_t));
         memset(tvga, 0, sizeof(tvga_t));
-        
+
         if (info->local == TVGA9000B_ID) {
 		video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_tvga9000);
 		tvga->vram_size = 512 << 10;
@@ -368,11 +368,11 @@ static void *tvga_init(const device_t *info)
 		video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_tvga8900);
 		tvga->vram_size = device_get_config_int("memory") << 10;
         }
-	
+
 	tvga->vram_mask = tvga->vram_size - 1;
 
 	tvga->card_id = info->local;
-	
+
 	switch (info->local)
 	{
 		case TVGA8900B_ID:
@@ -388,9 +388,9 @@ static void *tvga_init(const device_t *info)
 			free(tvga);
 			return NULL;
 	}
-	
+
         rom_init(&tvga->bios_rom, (char *) bios_fn, 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
-        
+
         svga_init(info, &tvga->svga, tvga, tvga->vram_size,
                    tvga_recalctimings,
                    tvga_in, tvga_out,
@@ -399,7 +399,7 @@ static void *tvga_init(const device_t *info)
 
 	if (info->local != TVGA9000B_ID)
 		tvga->svga.ramdac = device_add(&tkd8001_ramdac_device);
-       
+
         io_sethandler(0x03c0, 0x0020, tvga_in, NULL, NULL, tvga_out, NULL, NULL, tvga);
 
         return tvga;
@@ -423,16 +423,16 @@ static int tvga9000b_available(void)
 void tvga_close(void *p)
 {
         tvga_t *tvga = (tvga_t *)p;
-        
+
         svga_close(&tvga->svga);
-        
+
         free(tvga);
 }
 
 void tvga_speed_changed(void *p)
 {
         tvga_t *tvga = (tvga_t *)p;
-        
+
         svga_recalctimings(&tvga->svga);
 }
 

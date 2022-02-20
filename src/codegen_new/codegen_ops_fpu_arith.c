@@ -21,7 +21,7 @@ uint32_t ropFADD(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fet
         uop_FP_ENTER(ir);
         uop_FADD(ir, IREG_ST(0), IREG_ST(0), IREG_ST(src_reg));
         uop_MOV_IMM(ir, IREG_tag(0), TAG_VALID);
-        
+
         return op_pc;
 }
 uint32_t ropFADDr(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
@@ -42,7 +42,7 @@ uint32_t ropFADDP(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fe
         uop_FADD(ir, IREG_ST(dest_reg), IREG_ST(dest_reg), IREG_ST(0));
         uop_MOV_IMM(ir, IREG_tag(dest_reg), TAG_VALID);
         fpu_POP(block, ir);
-        
+
         return op_pc;
 }
 
@@ -128,7 +128,7 @@ uint32_t ropFDIVP(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fe
         uop_FDIV(ir, IREG_ST(dest_reg), IREG_ST(dest_reg), IREG_ST(0));
         uop_MOV_IMM(ir, IREG_tag(dest_reg), TAG_VALID);
         fpu_POP(block, ir);
-        
+
         return op_pc;
 }
 uint32_t ropFDIVRP(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
@@ -234,7 +234,7 @@ uint32_t ropFSUBRP(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t f
         uop_FSUB(ir, IREG_ST(dest_reg), IREG_ST(0), IREG_ST(dest_reg));
         uop_MOV_IMM(ir, IREG_tag(dest_reg), TAG_VALID);
         fpu_POP(block, ir);
-        
+
         return op_pc;
 }
 

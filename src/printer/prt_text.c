@@ -60,7 +60,7 @@
 #include <86box/device.h>
 #include <86box/timer.h>
 #include <86box/pit.h>
-#include <86box/plat.h> 
+#include <86box/plat.h>
 #include <86box/lpt.h>
 #include <86box/printer.h>
 #include <86box/prt_devs.h>
@@ -112,7 +112,7 @@ typedef struct {
     double	page_width,	/* all in inches */
 		page_height,
 		left_margin,
-		top_margin, 
+		top_margin,
 		right_margin,
 		bot_margin;
 
@@ -140,7 +140,7 @@ typedef struct {
 
 
 /* Dump the current page into a formatted file. */
-static void 
+static void
 dump_page(prnt_t *dev)
 {
     char path[1024];

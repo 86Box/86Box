@@ -1172,7 +1172,7 @@ enter_smm(int in_hlt)
 
 	flushmmucache();
     }
-    
+
     oldcpl = 0;
 
     cpu_cur_status &= ~(CPU_STATUS_PMODE | CPU_STATUS_V86);
@@ -1518,7 +1518,7 @@ idivl(int32_t val)
     int64_t num, quo;
     int32_t rem, quo32;
 
-    if (val == 0)  {       
+    if (val == 0)  {
 	divexcp();
 	return 1;
     }

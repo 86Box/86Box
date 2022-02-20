@@ -22,12 +22,12 @@
  *		As well as the usual PGC ring buffer at 0xC6000, the IM1024
  *		appears to have an alternate method of passing commands. This
  *		is enabled by setting 0xC6330 to 1, and then:
- * 
+ *
  *		  CX = count to write
  *		  SI -> bytes to write
- * 
+ *
  *		  Set pending bytes to 0
- *		  Read [C6331]. This gives number of bytes that can be written: 
+ *		  Read [C6331]. This gives number of bytes that can be written:
  *		    0xFF => 0, 0xFE => 1, 0xFD => 2 etc.
  *		  Write that number of bytes to C6000.
  *		  If there are more to come, go back to reading [C6331].
@@ -129,7 +129,7 @@ fifo_write(im1024_t *dev, uint8_t val)
 	dev->fifo_len *= 2;
     }
 
-    /* Append to the queue. */	
+    /* Append to the queue. */
     dev->fifo[dev->fifo_wrptr++] = val;
 
     /* Wrap if end of buffer reached. */
@@ -171,7 +171,7 @@ input_byte(pgc_t *pgc, uint8_t *result)
     while (!pgc->stopped && (dev->fifo_wrptr == dev->fifo_rdptr) &&
 	   (pgc->mapram[0x300] == pgc->mapram[0x301])) {
 	pgc->waiting_input_fifo = 1;
-	pgc_sleep(pgc);	
+	pgc_sleep(pgc);
     }
 
     if (pgc->stopped)
@@ -205,13 +205,13 @@ input_byte(pgc_t *pgc, uint8_t *result)
 	pgc->vp_x2 = pgc->maxw - 1; \
 	pgc->vp_y2 = pgc->maxh - 1; \
 
-/* And to restore clip state */	
+/* And to restore clip state */
 #define POPCLIP \
 	pgc->vp_x1 = vp_x1; \
 	pgc->vp_y1 = vp_y1; \
 	pgc->vp_x2 = vp_x2; \
 	pgc->vp_y2 = vp_y2; \
-	}	
+	}
 
 
 /* Override memory read to return FIFO space. */
@@ -296,8 +296,8 @@ hndl_iprec(pgc_t *pgc)
 
 
 /*
- * Set drawing mode. 
- * 
+ * Set drawing mode.
+ *
  * 0 => Draw
  * 1 => Invert
  * 2 => XOR (IM-1024)
@@ -539,8 +539,8 @@ hndl_poly(pgc_t *pgc)
 	}
 
 	if (count + realcount >= as) {
-		nx = (int32_t *)realloc(x, 2 * as * sizeof(int32_t));	
-		ny = (int32_t *)realloc(y, 2 * as * sizeof(int32_t));	
+		nx = (int32_t *)realloc(x, 2 * as * sizeof(int32_t));
+		ny = (int32_t *)realloc(y, 2 * as * sizeof(int32_t));
 		if (!x || !y) {
 #ifdef ENABLE_IM1024_LOG
 			im1024_log("IM1024: poly: realloc failed\n");
@@ -569,7 +569,7 @@ hndl_poly(pgc_t *pgc)
 		}
 
 		/* Skip degenerate line segments. */
-		if (realcount > 0 && 
+		if (realcount > 0 &&
 		    (xw << 16) == x[realcount - 1] &&
 		    (yw << 16) == y[realcount - 1]) continue;
 
@@ -631,7 +631,7 @@ parse_poly(pgc_t *pgc, pgc_cl_t *cl, int c)
     im1024_log("IM1024: parse_poly: count=%02x\n", count);
     if (! pgc_cl_append(cl, count)) {
 	pgc_error(pgc, PGC_ERROR_OVERFLOW);
-	return 0;	
+	return 0;
     }
 
     im1024_log("IM1024: parse_poly: parse %i words\n", 2 * count);
@@ -669,10 +669,10 @@ hndl_rect(pgc_t *pgc)
     } else {
 	/* Outline: 4 lines. */
 	p = pgc->line_pattern;
-	p = pgc_draw_line_r(pgc, x0, y0, x1, y0, p);		
-	p = pgc_draw_line_r(pgc, x1, y0, x1, y1, p);		
-	p = pgc_draw_line_r(pgc, x1, y1, x0, y1, p);		
-	p = pgc_draw_line_r(pgc, x0, y1, x0, y0, p);		
+	p = pgc_draw_line_r(pgc, x0, y0, x1, y0, p);
+	p = pgc_draw_line_r(pgc, x1, y0, x1, y1, p);
+	p = pgc_draw_line_r(pgc, x1, y1, x0, y1, p);
+	p = pgc_draw_line_r(pgc, x0, y1, x0, y0, p);
     }
 }
 
@@ -746,7 +746,7 @@ hndl_twrite(pgc_t *pgc)
 
     for (n = 0; n < count; n++) {
 	wb = (dev->fontx[buf[n]] + 7) / 8;
-	im1024_log("IM1024: ch=0x%02x w=%i h=%i wb=%i\n", 
+	im1024_log("IM1024: ch=0x%02x w=%i h=%i wb=%i\n",
 		   buf[n], dev->fontx[buf[n]], dev->fonty[buf[n]], wb);
 
 	for (y = 0; y < dev->fonty[buf[n]]; y++) {
@@ -851,7 +851,7 @@ hndl_imagew(pgc_t *pgc)
 		if (v1 & 0x80) {
 			/* Literal run. */
 			v1 -= 0x7f;
-			while (col1 <= col2 && v1 != 0)	{	
+			while (col1 <= col2 && v1 != 0)	{
 				if (! pgc_param_byte(pgc, &v2)) return;
 				pgc_write_pixel(pgc, col1, row1, v2);
 				col1++;
@@ -862,12 +862,12 @@ hndl_imagew(pgc_t *pgc)
 			if (! pgc_param_byte(pgc, &v2)) return;
 
 			v1++;
-			while (col1 <= col2 && v1 != 0)	{	
+			while (col1 <= col2 && v1 != 0)	{
 				pgc_write_pixel(pgc, col1, row1, v2);
 				col1++;
 				v1--;
 			}
-		}	
+		}
 	}
     }
 
@@ -890,7 +890,7 @@ hndl_dot(pgc_t *pgc)
     int16_t x = pgc->x >> 16,
 	    y = pgc->y >> 16;
 
-    pgc_sto_raster(pgc, &x, &y);	
+    pgc_sto_raster(pgc, &x, &y);
 
     im1024_log("IM1024: DOT @ %i,%i ink=%i mode=%i\n",
 	       x, y, pgc->color, pgc->draw_mode);
@@ -900,9 +900,9 @@ hndl_dot(pgc_t *pgc)
 
 
 /*
- * This command (which I have called IMAGEX, since I don't know its real 
+ * This command (which I have called IMAGEX, since I don't know its real
  * name) is a screen-to-memory blit. It reads a rectangle of bytes, rather
- * than the single row read by IMAGER, and does not attempt to compress 
+ * than the single row read by IMAGER, and does not attempt to compress
  * the result.
  */
 static void

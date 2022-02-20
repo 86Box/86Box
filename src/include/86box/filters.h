@@ -1,3 +1,6 @@
+#ifndef EMU_FILTERS_H
+# define EMU_FILTERS_H
+
 #define NCoef 2
 
 /* fc=150Hz */
@@ -29,7 +32,7 @@ static inline float adgold_highpass_iir(int i, float NewSample) {
     y[i][0] = ACoef[0] * x[i][0];
     for(n=1; n<=NCoef; n++)
         y[i][0] += ACoef[n] * x[i][n] - BCoef[n] * y[i][n];
-    
+
     return y[i][0];
 }
 
@@ -62,7 +65,7 @@ static inline float adgold_lowpass_iir(int i, float NewSample) {
     y[i][0] = ACoef[0] * x[i][0];
     for(n=1; n<=NCoef; n++)
         y[i][0] += ACoef[n] * x[i][n] - BCoef[n] * y[i][n];
-    
+
     return y[i][0];
 }
 
@@ -95,7 +98,7 @@ static inline float adgold_pseudo_stereo_iir(float NewSample) {
     y[0] = ACoef[0] * x[0];
     for(n=1; n<=NCoef; n++)
         y[0] += ACoef[n] * x[n] - BCoef[n] * y[n];
-    
+
     return y[0];
 }
 
@@ -112,7 +115,7 @@ static inline float dss_iir(float NewSample) {
         -1.41898265221812010000,
         0.55326988968868285000
     };
-    
+
     static float y[NCoef+1]; /* output samples */
     static float x[NCoef+1]; /* input samples */
     int n;
@@ -161,7 +164,7 @@ static inline float dac_iir(int i, float NewSample) {
     y[i][0] = ACoef[0] * x[i][0];
     for(n=1; n<=NCoef; n++)
         y[i][0] += ACoef[n] * x[i][n] - BCoef[n] * y[i][n];
-    
+
     return y[i][0];
 }
 
@@ -347,7 +350,7 @@ static inline double sb_iir(int c, int i, double NewSample) {
         -1.41898265221812010000,
         0.55326988968868285000
     };
-    
+
     static double y[2][2][NCoef+1]; /* output samples */
     static double x[2][2][NCoef+1]; /* input samples */
     int n;
@@ -396,6 +399,8 @@ static inline double low_fir_sb16(int c, int i, double NewSample)
                 if (pos[c] > SB16_NCoef)
                         pos[c] = 0;
         }
-                        
+
         return out;
 }
+
+#endif /*EMU_FILTERS_H*/

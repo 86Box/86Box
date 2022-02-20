@@ -52,7 +52,7 @@ static uint16_t	dma_sg_base;
 static uint16_t	dma16_buffer[65536];
 static uint32_t dma_mask;
 
-static struct {	
+static struct {
     int	xfr_command,
 	xfr_channel;
     int	byte_ptr;
@@ -760,11 +760,11 @@ dma16_read(uint16_t addr, void *priv)
 	case 6: /*Address registers*/
 		dma_wp[1] ^= 1;
 		if (dma_ps2.is_ps2) {
-			if (dma_wp[1]) 
+			if (dma_wp[1])
 				return(dma[channel].ac);
 			return((dma[channel].ac >> 8) & 0xff);
 		}
-		if (dma_wp[1]) 
+		if (dma_wp[1])
 			return((dma[channel].ac >> 1) & 0xff);
 		return((dma[channel].ac >> 9) & 0xff);
 
@@ -1338,7 +1338,7 @@ _dma_writew(uint32_t addr, uint16_t val, dma_t *dma_c)
 		dma_bm_write(addr, (uint8_t *) &val, 2, dma_transfer_size(dma_c));
     } else {
 	_dma_write(addr,     val & 0xff, dma_c);
-	_dma_write(addr + 1, val >> 8, dma_c); 
+	_dma_write(addr + 1, val >> 8, dma_c);
     }
 }
 

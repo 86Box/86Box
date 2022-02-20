@@ -104,7 +104,7 @@ const uint8_t mo_command_flags[0x100] =
     IMPLEMENTED | CHECK_READY,					/* 0xA8 */
     0,
     IMPLEMENTED | CHECK_READY,					/* 0xAA */
-    0, 
+    0,
     IMPLEMENTED | CHECK_READY | NONDATA,			/* 0xAC */
     0,
     IMPLEMENTED | CHECK_READY,					/* 0xAE */
@@ -377,7 +377,7 @@ mo_load(mo_t *dev, char *fn)
 	    break;
 	}
     }
-    
+
     if (!found)
 	return mo_load_abort(dev);
 
@@ -1141,7 +1141,7 @@ mo_erase(mo_t *dev)
 /*SCSI Sense Initialization*/
 void
 mo_sense_code_ok(mo_t *dev)
-{	
+{
     mo_sense_key = SENSE_NONE;
     mo_asc = 0;
     mo_ascq = 0;
@@ -1260,7 +1260,7 @@ mo_reset(scsi_common_t *sc)
 
 static void
 mo_request_sense(mo_t *dev, uint8_t *buffer, uint8_t alloc_length, int desc)
-{				
+{
     /*Will return 18 bytes of 0*/
     if (alloc_length != 0) {
 	memset(buffer, 0, alloc_length);
@@ -1527,7 +1527,7 @@ mo_command(scsi_common_t *sc, uint8_t *cdb)
 		/*TODO: Implement*/
 		mo_invalid_field(dev);
 		return;
-		
+
 	case GPCMD_WRITE_6:
 	case GPCMD_WRITE_10:
 	case GPCMD_WRITE_AND_VERIFY_10:

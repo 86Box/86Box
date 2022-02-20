@@ -60,13 +60,13 @@ mem_block_t *codegen_allocator_allocate(mem_block_t *parent, int code_block)
 {
         mem_block_t *block;
         uint32_t block_nr;
-        
+
         while (!mem_block_free_list)
         {
                 /*Pick a random memory block and free the owning code block*/
                 block_nr = rand() & MEM_BLOCK_MASK;
                 block = &mem_blocks[block_nr];
-                
+
                 if (block->code_block && block->code_block != code_block)
                         codegen_delete_block(&codeblock[block->code_block]);
         }
@@ -75,7 +75,7 @@ mem_block_t *codegen_allocator_allocate(mem_block_t *parent, int code_block)
         block_nr = mem_block_free_list;
         block = &mem_blocks[block_nr-1];
         mem_block_free_list = block->next;
-        
+
         block->code_block = code_block;
         if (parent)
         {
@@ -97,12 +97,12 @@ void codegen_allocator_free(mem_block_t *block)
         {
                 int next_block_nr = block->next;
                 codegen_allocator_usage--;
-                
+
                 block->next = mem_block_free_list;
                 block->code_block = BLOCK_INVALID;
                 mem_block_free_list = block_nr;
                 block_nr = next_block_nr;
-                
+
                 if (block_nr)
                         block = &mem_blocks[block_nr - 1];
                 else

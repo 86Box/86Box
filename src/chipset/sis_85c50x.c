@@ -304,7 +304,7 @@ sis_85c50x_isa_read(uint16_t addr, void *priv)
 			ret = dev->regs[dev->index];
 		break;
     }
-    
+
     sis_85c50x_log("85C501-ISA: dev->regs[%02x] (%02x)\n", dev->index, ret);
 
     return ret;

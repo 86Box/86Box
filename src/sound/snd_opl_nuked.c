@@ -1071,7 +1071,7 @@ channel_set_4op(nuked_t *dev, uint8_t data)
 
 
 uint16_t
-nuked_write_addr(void *priv, uint16_t port, uint8_t val) 
+nuked_write_addr(void *priv, uint16_t port, uint8_t val)
 {
     nuked_t *dev = (nuked_t *)priv;
     uint16_t addr;

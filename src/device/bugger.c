@@ -268,7 +268,7 @@ bug_reset(void)
 
     /* Clear both 7SEG displays. */
     bug_seg1 = 0x00; bug_seg2 = 0x00;
- 
+
     /* Reset the control register (updates UI.) */
     bug_wctrl(CTRL_RESET);
 }

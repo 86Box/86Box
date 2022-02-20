@@ -161,8 +161,8 @@ int checkio(uint32_t port);
 static __inline uint8_t fastreadb(uint32_t a)
 {
         uint8_t *t;
-        
-        if ((a >> 12) == pccache) 
+
+        if ((a >> 12) == pccache)
                 return *((uint8_t *)&pccache2[a]);
         t = getpccache(a);
         if (cpu_state.abrt)

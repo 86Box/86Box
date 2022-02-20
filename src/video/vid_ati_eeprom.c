@@ -108,7 +108,7 @@ void ati_eeprom_write(ati_eeprom_t *eeprom, int ena, int clk, int dat)
                                         }
                                 }
                                 break;
-                                
+
                                 case EEPROM_INPUT:
                                 eeprom->dat = (eeprom->dat << 1) | (dat ? 1 : 0);
                                 eeprom->count--;
@@ -180,7 +180,7 @@ void ati_eeprom_write(ati_eeprom_t *eeprom, int ena, int clk, int dat)
                                 }
                                 break;
                         }
-                }                
+                }
                 eeprom->oldena = ena;
         }
         else if (!clk && eeprom->oldclk)
@@ -208,4 +208,3 @@ int ati_eeprom_read(ati_eeprom_t *eeprom)
 {
         return eeprom->out;
 }
-

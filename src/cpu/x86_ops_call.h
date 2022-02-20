@@ -26,7 +26,7 @@
                 PUSH_W(old_cs);                         if (cpu_state.abrt) { CS = old_cs; cgate16 = cgate32 = 0; return 1; }     \
                 PUSH_W(old_pc);                         if (cpu_state.abrt) { CS = old_cs; ESP = old_esp; return 1; } \
         }
-        
+
 #define CALL_FAR_l(new_seg, new_pc)                                             \
         old_cs = CS;                                                            \
         old_pc = cpu_state.pc;                                                  \
@@ -83,7 +83,7 @@
                 PUSH_W(old_cs);                         if (cpu_state.abrt) { cgate16 = cgate32 = 0; return 1; }     \
                 PUSH_W(old_pc);                         if (cpu_state.abrt) { ESP = old_esp; return 1; } \
         }
-        
+
 #define CALL_FAR_l(new_seg, new_pc)                                             \
         old_cs = CS;                                                            \
         old_pc = cpu_state.pc;                                                  \
@@ -113,22 +113,22 @@
                 PUSH_L(old_pc);                         if (cpu_state.abrt) { ESP = old_esp; return 1; } \
         }
 #endif
-        
-       
+
+
 static int opCALL_far_w(uint32_t fetchdat)
 {
         uint32_t old_cs, old_pc;
         uint16_t new_cs, new_pc;
         int cycles_old = cycles; UN_USED(cycles_old);
-        
+
         new_pc = getwordf();
         new_cs = getword();                             if (cpu_state.abrt) return 1;
-               
+
         CALL_FAR_w(new_cs, new_pc);
         CPU_BLOCK_END();
         PREFETCH_RUN(cycles_old-cycles, 5, -1, 0,0,cgate16 ? 2:0,cgate16 ? 0:2, 0);
         PREFETCH_FLUSH();
-                        
+
         return 0;
 }
 static int opCALL_far_l(uint32_t fetchdat)
@@ -136,15 +136,15 @@ static int opCALL_far_l(uint32_t fetchdat)
         uint32_t old_cs, old_pc;
         uint32_t new_cs, new_pc;
         int cycles_old = cycles; UN_USED(cycles_old);
-                
+
         new_pc = getlong();
         new_cs = getword();                             if (cpu_state.abrt) return 1;
-        
+
         CALL_FAR_l(new_cs, new_pc);
         CPU_BLOCK_END();
         PREFETCH_RUN(cycles_old-cycles, 7, -1, 0,0,cgate16 ? 2:0,cgate16 ? 0:2, 0);
         PREFETCH_FLUSH();
-                        
+
         return 0;
 }
 
@@ -154,11 +154,11 @@ static int opFF_w_a16(uint32_t fetchdat)
         uint16_t old_cs, new_cs;
         uint32_t old_pc, new_pc;
         int cycles_old = cycles; UN_USED(cycles_old);
-        
+
         uint16_t temp;
-        
+
         fetch_ea_16(fetchdat);
-        
+
         switch (rmdat & 0x38)
         {
                 case 0x00: /*INC w*/
@@ -196,7 +196,7 @@ static int opFF_w_a16(uint32_t fetchdat)
                         SEG_CHECK_READ(cpu_state.ea_seg);
                 new_pc = readmemw(easeg, cpu_state.eaaddr);
                 new_cs = readmemw(easeg, (cpu_state.eaaddr + 2)); if (cpu_state.abrt) return 1;
-                
+
                 CALL_FAR_w(new_cs, new_pc);
                 CPU_BLOCK_END();
                 PREFETCH_RUN(cycles_old-cycles, 2, rmdat, 2,0,cgate16 ? 2:0,cgate16 ? 0:2, 0);
@@ -253,11 +253,11 @@ static int opFF_w_a32(uint32_t fetchdat)
         uint16_t old_cs, new_cs;
         uint32_t old_pc, new_pc;
         int cycles_old = cycles; UN_USED(cycles_old);
-        
+
         uint16_t temp;
-        
+
         fetch_ea_32(fetchdat);
-        
+
         switch (rmdat & 0x38)
         {
                 case 0x00: /*INC w*/
@@ -295,7 +295,7 @@ static int opFF_w_a32(uint32_t fetchdat)
                         SEG_CHECK_READ(cpu_state.ea_seg);
                 new_pc = readmemw(easeg, cpu_state.eaaddr);
                 new_cs = readmemw(easeg, (cpu_state.eaaddr + 2)); if (cpu_state.abrt) return 1;
-                
+
                 CALL_FAR_w(new_cs, new_pc);
                 CPU_BLOCK_END();
                 PREFETCH_RUN(cycles_old-cycles, 2, rmdat, 2,0,cgate16 ? 2:0,cgate16 ? 0:2, 1);
@@ -353,11 +353,11 @@ static int opFF_l_a16(uint32_t fetchdat)
         uint16_t old_cs, new_cs;
         uint32_t old_pc, new_pc;
         int cycles_old = cycles; UN_USED(cycles_old);
-                
+
         uint32_t temp;
-        
+
         fetch_ea_16(fetchdat);
-        
+
         switch (rmdat & 0x38)
         {
                 case 0x00: /*INC l*/
@@ -395,7 +395,7 @@ static int opFF_l_a16(uint32_t fetchdat)
                         SEG_CHECK_READ(cpu_state.ea_seg);
                 new_pc = readmeml(easeg, cpu_state.eaaddr);
                 new_cs = readmemw(easeg, (cpu_state.eaaddr + 4)); if (cpu_state.abrt) return 1;
-                
+
                 CALL_FAR_l(new_cs, new_pc);
                 CPU_BLOCK_END();
                 PREFETCH_RUN(cycles_old-cycles, 2, rmdat, 1,1,cgate16 ? 2:0,cgate16 ? 0:2, 0);
@@ -452,11 +452,11 @@ static int opFF_l_a32(uint32_t fetchdat)
         uint16_t old_cs, new_cs;
         uint32_t old_pc, new_pc;
         int cycles_old = cycles; UN_USED(cycles_old);
-                
+
         uint32_t temp;
-        
+
         fetch_ea_32(fetchdat);
-        
+
         switch (rmdat & 0x38)
         {
                 case 0x00: /*INC l*/
@@ -494,7 +494,7 @@ static int opFF_l_a32(uint32_t fetchdat)
                         SEG_CHECK_READ(cpu_state.ea_seg);
                 new_pc = readmeml(easeg, cpu_state.eaaddr);
                 new_cs = readmemw(easeg, (cpu_state.eaaddr + 4)); if (cpu_state.abrt) return 1;
-                
+
                 CALL_FAR_l(new_cs, new_pc);
                 CPU_BLOCK_END();
                 PREFETCH_RUN(cycles_old-cycles, 2, rmdat, 1,1,cgate16 ? 2:0,cgate16 ? 0:2, 1);

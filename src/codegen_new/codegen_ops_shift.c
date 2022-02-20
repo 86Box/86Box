@@ -58,7 +58,7 @@ static uint32_t shift_common_8(ir_data_t *ir, uint32_t fetchdat, uint32_t op_pc,
                         uop_MOV_IMM(ir, IREG_flags_op, FLAGS_SAR8);
                         uop_MOVZX(ir, IREG_flags_res, IREG_8(dest_reg));
                         break;
-                        
+
                         default:
                         return 0;
                 }
@@ -454,7 +454,7 @@ uint32_t ropC0(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetch
         }
         imm = fastreadb(cs + op_pc + 1) & 0x1f;
         codegen_mark_code_present(block, cs+op_pc+1, 1);
-        
+
         if (imm)
                 return shift_common_8(ir, fetchdat, op_pc, target_seg, imm) + 1;
         return op_pc+1;
@@ -477,7 +477,7 @@ uint32_t ropC1_w(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fet
         }
         imm = fastreadb(cs + op_pc + 1) & 0x1f;
         codegen_mark_code_present(block, cs+op_pc+1, 1);
-        
+
         if (imm)
                 return shift_common_16(ir, fetchdat, op_pc, target_seg, imm) + 1;
         return op_pc+1;
@@ -501,7 +501,7 @@ uint32_t ropC1_l(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fet
         {
                 uint32_t new_pc;
                 int jump_uop;
-                
+
                 LOAD_IMMEDIATE_FROM_RAM_8(block, ir, IREG_temp2, cs + op_pc + 1);
                 uop_AND_IMM(ir, IREG_temp2, IREG_temp2, 0x1f);
                 jump_uop = uop_CMP_IMM_JZ_DEST(ir, IREG_temp2, 0);
@@ -515,7 +515,7 @@ uint32_t ropC1_l(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fet
         {
                 uint8_t imm = fastreadb(cs + op_pc + 1) & 0x1f;
                 codegen_mark_code_present(block, cs+op_pc+1, 1);
-        
+
                 if (imm)
                         return shift_common_32(ir, fetchdat, op_pc, target_seg, imm) + 1;
         }
@@ -584,7 +584,7 @@ uint32_t ropD2(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetch
 
         if (!(CL & 0x1f) || !block->ins)
                 return 0;
-                
+
         uop_AND_IMM(ir, IREG_temp2, REG_ECX, 0x1f);
         uop_CMP_IMM_JZ(ir, IREG_temp2, 0, codegen_exit_rout);
 
@@ -706,7 +706,7 @@ uint32_t ropD3_w(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fet
 
         if (!(CL & 0x1f) || !block->ins)
                 return 0;
-                
+
         uop_AND_IMM(ir, IREG_temp2, REG_ECX, 0x1f);
         uop_CMP_IMM_JZ(ir, IREG_temp2, 0, codegen_exit_rout);
 
@@ -958,7 +958,7 @@ uint32_t ropSHLD_16_imm(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint3
         }
         imm = fastreadb(cs + op_pc + 1) & 0x1f;
         codegen_mark_code_present(block, cs+op_pc+1, 1);
-        
+
         if (!imm)
                 return op_pc+2;
 
@@ -1006,7 +1006,7 @@ uint32_t ropSHLD_32_imm(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint3
         }
         imm = fastreadb(cs + op_pc + 1) & 0x1f;
         codegen_mark_code_present(block, cs+op_pc+1, 1);
-        
+
         if (!imm)
                 return op_pc+2;
 
@@ -1054,7 +1054,7 @@ uint32_t ropSHRD_16_imm(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint3
         }
         imm = fastreadb(cs + op_pc + 1) & 0x1f;
         codegen_mark_code_present(block, cs+op_pc+1, 1);
-        
+
         if (!imm)
                 return op_pc+2;
 
@@ -1102,7 +1102,7 @@ uint32_t ropSHRD_32_imm(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint3
         }
         imm = fastreadb(cs + op_pc + 1) & 0x1f;
         codegen_mark_code_present(block, cs+op_pc+1, 1);
-        
+
         if (!imm)
                 return op_pc+2;
 

@@ -15,6 +15,7 @@
  *		Copyright 2008-2018 Sarah Walker.
  *		Copyright 2016-2018 Miran Grca.
  */
+
 #ifndef SOUND_SND_SB_H
 # define SOUND_SND_SB_H
 
@@ -56,17 +57,17 @@ typedef struct sb_ct1345_mixer_t
         double mic;
         /*see sb_ct1745_mixer for values for input selector*/
         int32_t input_selector;
-        
+
         int input_filter;
         int in_filter_freq;
         int output_filter;
-        
+
         int stereo;
         int stereo_isleft;
-        
+
         uint8_t index;
         uint8_t regs[256];
-    
+
 } sb_ct1345_mixer_t;
 /* SB16 and AWE32 */
 typedef struct sb_ct1745_mixer_t
@@ -81,7 +82,7 @@ typedef struct sb_ct1745_mixer_t
 
         int bass_l,   bass_r;
         int treble_l, treble_r;
-        
+
         int output_selector;
         #define OUTPUT_MIC 1
         #define OUTPUT_CD_R 2
@@ -100,12 +101,12 @@ typedef struct sb_ct1745_mixer_t
         #define INPUT_MIDI_L 64
 
         int mic_agc;
-        
+
         int32_t input_gain_L;
         int32_t input_gain_R;
         double output_gain_L;
         double output_gain_R;
-        
+
         uint8_t index;
         uint8_t regs[256];
 } sb_ct1745_mixer_t;
@@ -126,7 +127,7 @@ typedef struct sb_t
         void		*gameport;
 
         int pos;
-        
+
         uint8_t pos_regs[8], pnp_rom[512];
 
         uint16_t opl_pnp_addr;

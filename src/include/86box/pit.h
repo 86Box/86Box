@@ -14,6 +14,7 @@
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *		Copyright 2019,2020 Miran Grca.
  */
+
 #ifndef EMU_PIT_H
 # define EMU_PIT_H
 

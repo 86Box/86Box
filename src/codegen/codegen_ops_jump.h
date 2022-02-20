@@ -6,7 +6,7 @@ static uint32_t ropJMP_r8(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uin
                 offset |= 0xffffff00;
 
         STORE_IMM_ADDR_L((uintptr_t)&cpu_state.pc, op_pc+1+offset);
-        
+
         return -1;
 }
 
@@ -15,7 +15,7 @@ static uint32_t ropJMP_r16(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, ui
         uint16_t offset = fetchdat & 0xffff;
 
         STORE_IMM_ADDR_L((uintptr_t)&cpu_state.pc, (op_pc+2+offset) & 0xffff);
-        
+
         return -1;
 }
 
@@ -24,7 +24,7 @@ static uint32_t ropJMP_r32(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, ui
         uint32_t offset = fastreadl(cs + op_pc);
 
         STORE_IMM_ADDR_L((uintptr_t)&cpu_state.pc, op_pc+4+offset);
-        
+
         return -1;
 }
 
@@ -42,11 +42,11 @@ static uint32_t ropJCXZ(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint3
                 TEST_ZERO_JUMP_L(host_reg, op_pc+1+offset, 0);
         }
         else
-        {       
+        {
                 int host_reg = LOAD_REG_W(REG_CX);
                 TEST_ZERO_JUMP_W(host_reg, op_pc+1+offset, 0);
         }
-                
+
         return op_pc+1;
 }
 
@@ -56,7 +56,7 @@ static uint32_t ropLOOP(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint3
 
         if (offset & 0x80)
                 offset |= 0xffffff00;
-        
+
         if (op_32 & 0x200)
         {
                 int host_reg = LOAD_REG_L(REG_ECX);
@@ -71,7 +71,7 @@ static uint32_t ropLOOP(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint3
                 STORE_REG_W_RELEASE(host_reg);
                 TEST_NONZERO_JUMP_W(host_reg, op_pc+1+offset, 0);
         }
-       
+
         return op_pc+1;
 }
 
@@ -87,10 +87,10 @@ static void BRANCH_COND_B(int pc_offset, uint32_t op_pc, uint32_t offset, int no
 static void BRANCH_COND_E(int pc_offset, uint32_t op_pc, uint32_t offset, int not)
 {
         int host_reg;
-        
+
         switch (codegen_flags_changed ? cpu_state.flags_op : FLAGS_UNKNOWN)
         {
-                case FLAGS_ZN8: 
+                case FLAGS_ZN8:
                 case FLAGS_ZN16:
                 case FLAGS_ZN32:
                 case FLAGS_ADD8:
@@ -120,7 +120,7 @@ static void BRANCH_COND_E(int pc_offset, uint32_t op_pc, uint32_t offset, int no
                 else
                         TEST_ZERO_JUMP_L(host_reg, op_pc+pc_offset+offset, timing_bt);
                 break;
-                
+
                 case FLAGS_UNKNOWN:
                 CALL_FUNC((uintptr_t)ZF_SET);
                 if (not)
@@ -152,10 +152,10 @@ static void BRANCH_COND_P(int pc_offset, uint32_t op_pc, uint32_t offset, int no
 static void BRANCH_COND_S(int pc_offset, uint32_t op_pc, uint32_t offset, int not)
 {
         int host_reg;
-        
+
         switch (codegen_flags_changed ? cpu_state.flags_op : FLAGS_UNKNOWN)
         {
-                case FLAGS_ZN8: 
+                case FLAGS_ZN8:
                 case FLAGS_ADD8:
                 case FLAGS_SUB8:
                 case FLAGS_SHL8:
@@ -186,7 +186,7 @@ static void BRANCH_COND_S(int pc_offset, uint32_t op_pc, uint32_t offset, int no
                 else
                         TEST_NONZERO_JUMP_L(host_reg, op_pc+pc_offset+offset, timing_bt);
                 break;
-                
+
                 case FLAGS_ZN32:
                 case FLAGS_ADD32:
                 case FLAGS_SUB32:
@@ -202,7 +202,7 @@ static void BRANCH_COND_S(int pc_offset, uint32_t op_pc, uint32_t offset, int no
                 else
                         TEST_NONZERO_JUMP_L(host_reg, op_pc+pc_offset+offset, timing_bt);
                 break;
-                
+
                 case FLAGS_UNKNOWN:
                 CALL_FUNC((uintptr_t)NF_SET);
                 if (not)

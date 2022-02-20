@@ -140,7 +140,7 @@ const uint8_t scsi_cdrom_command_flags[0x100] =
     IMPLEMENTED | CHECK_READY,					/* 0xBE */
     IMPLEMENTED | CHECK_READY,					/* 0xBF */
     IMPLEMENTED | CHECK_READY | SCSI_ONLY,			/* 0xC0 */
-    IMPLEMENTED | CHECK_READY | SCSI_ONLY,			/* 0xC1 */    
+    IMPLEMENTED | CHECK_READY | SCSI_ONLY,			/* 0xC1 */
     IMPLEMENTED | CHECK_READY | SCSI_ONLY,			/* 0xC2 */
     0,								/* 0xC3 */
     IMPLEMENTED | CHECK_READY | SCSI_ONLY,			/* 0xC4 */
@@ -1127,7 +1127,7 @@ scsi_cdrom_read_dvd_structure(scsi_cdrom_t *dev, int format, const uint8_t *pack
 
 		/* Size of buffer, not including 2 byte size field */
 		buf[0] = ((4 + 2) >> 8) & 0xff;
-		buf[1] = (4 + 2) & 0xff;			
+		buf[1] = (4 + 2) & 0xff;
 
 		/* 4 byte header + 4 byte data */
 		return (4 + 4);
@@ -1564,16 +1564,16 @@ scsi_cdrom_command(scsi_common_t *sc, uint8_t *cdb)
 		scsi_cdrom_set_phase(dev, SCSI_PHASE_DATA_IN);
 
 		scsi_cdrom_buf_alloc(dev, 65536);
-		
+
 		if ((!dev->drv->ops) && ((cdb[1] & 3) == 2)) {
 			scsi_cdrom_not_ready(dev);
 			return;
-		}		
-		
+		}
+
 		memset(dev->buffer, 0, 4);
-		
+
 		cdrom_read_disc_info_toc(dev->drv, dev->buffer, cdb[2], cdb[1] & 3);
-		
+
 		len = 4;
 		scsi_cdrom_set_buf_len(dev, BufLen, &len);
 
@@ -1979,7 +1979,7 @@ scsi_cdrom_command(scsi_common_t *sc, uint8_t *cdb)
 
 	case GPCMD_READ_DISC_INFORMATION:
 		scsi_cdrom_set_phase(dev, SCSI_PHASE_DATA_IN);
-		
+
 		max_len = cdb[7];
 		max_len <<= 8;
 		max_len |= cdb[8];
@@ -2064,7 +2064,7 @@ scsi_cdrom_command(scsi_common_t *sc, uint8_t *cdb)
 			scsi_cdrom_illegal_mode(dev);
 		break;
 
-	case GPCMD_TOSHIBA_PLAY_AUDIO:	
+	case GPCMD_TOSHIBA_PLAY_AUDIO:
 		scsi_cdrom_set_phase(dev, SCSI_PHASE_STATUS);
 		if ((dev->drv->host_drive < 1) || (dev->drv->cd_status <= CD_STATUS_DATA_ONLY)) {
 			scsi_cdrom_illegal_mode(dev);
@@ -2072,7 +2072,7 @@ scsi_cdrom_command(scsi_common_t *sc, uint8_t *cdb)
 		}
 		pos = (cdb[2] << 24) | (cdb[3] << 16) | (cdb[4] << 8) | cdb[5];
 		ret = cdrom_toshiba_audio_play(dev->drv, pos, cdb[9]);
-		
+
 		if (ret)
 			scsi_cdrom_command_complete(dev);
 		else
@@ -2207,7 +2207,7 @@ scsi_cdrom_command(scsi_common_t *sc, uint8_t *cdb)
 					dev->buffer[1] = 0x13;
 					break;
 			}
-			
+
 			scsi_cdrom_log("Audio Status = %02x\n", dev->buffer[1]);
 		}
 
@@ -2246,7 +2246,7 @@ scsi_cdrom_command(scsi_common_t *sc, uint8_t *cdb)
 
 		scsi_cdrom_set_buf_len(dev, BufLen, &alloc_length);
 		scsi_cdrom_data_command_finish(dev, len, len, len, 0);
-		break;		
+		break;
 
 	case GPCMD_READ_DVD_STRUCTURE:
 		scsi_cdrom_set_phase(dev, SCSI_PHASE_DATA_IN);
@@ -2306,7 +2306,7 @@ scsi_cdrom_command(scsi_common_t *sc, uint8_t *cdb)
 
 		scsi_cdrom_command_complete(dev);
 		break;
-	
+
 	case GPCMD_CADDY_EJECT:
 		scsi_cdrom_set_phase(dev, SCSI_PHASE_STATUS);
 		scsi_cdrom_stop(sc);
@@ -2384,22 +2384,22 @@ scsi_cdrom_command(scsi_common_t *sc, uint8_t *cdb)
 			memset(dev->buffer, 0, 8);
 			dev->buffer[0] = 5; /*CD-ROM*/
 			dev->buffer[1] = 0x80; /*Removable*/
-			
+
 			if (dev->drv->bus_type == CDROM_BUS_SCSI) {
 				dev->buffer[2] = 0x02;
 				dev->buffer[3] = 0x02;
 			}
 			else {
 				dev->buffer[2] = 0x00;
-				dev->buffer[3] = 0x21;				
+				dev->buffer[3] = 0x21;
 			}
-			
+
 			dev->buffer[4] = 31;
 			if (dev->drv->bus_type == CDROM_BUS_SCSI) {
 				dev->buffer[6] = 1;	/* 16-bit transfers supported */
 				dev->buffer[7] = 0x20;	/* Wide bus supported */
 			}
-			
+
 			if (dev->drv->bus_type == CDROM_BUS_SCSI) {
 				ide_padstr8(dev->buffer + 8, 8, "TOSHIBA"); /* Vendor */
 				ide_padstr8(dev->buffer + 16, 16, "XM6201TASUN32XCD"); /* Product */
@@ -2487,7 +2487,7 @@ atapi_out:
 	case GPCMD_STOP_PLAY_SCAN:
 		scsi_cdrom_set_phase(dev, SCSI_PHASE_STATUS);
 
-		if (dev->drv->cd_status <= CD_STATUS_DATA_ONLY) {		
+		if (dev->drv->cd_status <= CD_STATUS_DATA_ONLY) {
 			scsi_cdrom_illegal_mode(dev);
 			break;
 		}

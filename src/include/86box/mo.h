@@ -17,9 +17,9 @@
  *
  *		Copyright 2020 Miran Grca.
  */
-#ifndef EMU_MO_H
-#define EMU_MO_H
 
+#ifndef EMU_MO_H
+# define EMU_MO_H
 
 #define MO_NUM			  4
 

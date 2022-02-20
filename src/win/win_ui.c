@@ -205,13 +205,13 @@ show_render_options_menu()
 {
 	if (vid_api == menu_vidapi)
 		return;
-	
+
 	if (cur_menu != NULL)
 	{
 		if (delete_submenu(menuMain, cur_menu))
 			cur_menu = NULL;
 	}
-	
+
 	if (cur_menu == NULL)
 	{
 		switch (IDM_VID_SDL_SW + vid_api)
@@ -235,7 +235,7 @@ show_render_options_menu()
 }
 
 static void
-video_set_filter_menu(HMENU menu) 
+video_set_filter_menu(HMENU menu)
 {
 	CheckMenuItem(menu, IDM_VID_FILTER_NEAREST, vid_api == 0 || video_filter_method == 0 ? MF_CHECKED : MF_UNCHECKED);
 	CheckMenuItem(menu, IDM_VID_FILTER_LINEAR, vid_api != 0 && video_filter_method == 1 ? MF_CHECKED : MF_UNCHECKED);
@@ -262,7 +262,7 @@ ResetAllMenus(void)
     CheckMenuItem(menuMain, IDM_VID_SDL_HW, MF_UNCHECKED);
     CheckMenuItem(menuMain, IDM_VID_SDL_OPENGL, MF_UNCHECKED);
     CheckMenuItem(menuMain, IDM_VID_OPENGL_CORE, MF_UNCHECKED);
-	
+
     menu_vidapi = -1;
     cur_menu = NULL;
     show_render_options_menu();
@@ -750,7 +750,7 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 				break;
 
 			case IDM_VID_FILTER_NEAREST:
-			case IDM_VID_FILTER_LINEAR:				
+			case IDM_VID_FILTER_LINEAR:
 				video_filter_method = LOWORD(wParam) - IDM_VID_FILTER_NEAREST;
 				video_set_filter_menu(hmenu);
 				plat_vid_reload_options();
@@ -763,7 +763,7 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 				atomic_flag_clear(&doresize);
 				config_save();
 				break;
-				
+
 			case IDM_PREFERENCES:
 				PreferencesDlgCreate(hwnd);
 				break;
@@ -1331,7 +1331,7 @@ ui_init(int nCmdShow)
     helper_lang = lang_id;
     lang_id = 0;
     set_language(helper_lang);
-	
+
     /* Make the window visible on the screen. */
     ShowWindow(hwnd, nCmdShow);
 

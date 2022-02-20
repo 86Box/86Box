@@ -1,5 +1,5 @@
-#ifndef SOUND_SND_CMS_H
-# define SOUND_SND_CMS_H
+#ifndef SOUND_CMS_H
+# define SOUND_CMS_H
 
 #include <stdint.h>
 #include <86box/sound.h>
@@ -32,4 +32,4 @@ extern void cms_update(cms_t *cms);
 extern void cms_write(uint16_t addr, uint8_t val, void *p);
 extern uint8_t cms_read(uint16_t addr, void *p);
 
-#endif	/*SOUND_SND_CMS_H*/
+#endif	/*SOUND_CMS_H*/

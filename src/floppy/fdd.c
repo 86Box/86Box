@@ -493,7 +493,7 @@ fdd_load(int drive, char *fn)
 	if (fseek(f, -1, SEEK_END) == -1)
 		fatal("fdd_load(): Error seeking to the end of the file\n");
 	size = ftell(f) + 1;
-	fclose(f);        
+	fclose(f);
 	while (loaders[c].ext) {
 		if (!strcasecmp(p, (char *) loaders[c].ext) && (size == loaders[c].size || loaders[c].size == -1)) {
 			driveloaders[drive] = c;

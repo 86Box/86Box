@@ -66,7 +66,7 @@ static int codegen_ADD_IMM(codeblock_t *block, uop_t *uop)
 {
         int dest_reg = HOST_REG_GET(uop->dest_reg_a_real), src_reg = HOST_REG_GET(uop->src_reg_a_real);
         int dest_size = IREG_GET_SIZE(uop->dest_reg_a_real), src_size = IREG_GET_SIZE(uop->src_reg_a_real);
-        
+
         if (REG_IS_L(dest_size) && REG_IS_L(src_size))
         {
                 if (uop->dest_reg_a_real != uop->src_reg_a_real)
@@ -280,7 +280,7 @@ static int codegen_CMP_IMM_JZ_DEST(codeblock_t *block, uop_t *uop)
                 fatal("CMP_IMM_JZ_DEST %02x\n", uop->src_reg_a_real);
 #endif
         uop->p = host_x86_JZ_long(block);
-        
+
         return 0;
 }
 
@@ -319,7 +319,7 @@ static int codegen_CMP_JNBE(codeblock_t *block, uop_t *uop)
 #endif
         jump_p = host_x86_JNBE_long(block);
         *jump_p = (uintptr_t)uop->p - ((uintptr_t)jump_p + 4);
-        
+
         return 0;
 }
 
@@ -801,7 +801,7 @@ static int codegen_FSUB(codeblock_t *block, uop_t *uop)
 static int codegen_FP_ENTER(codeblock_t *block, uop_t *uop)
 {
         uint32_t *branch_offset;
-        
+
         host_x86_MOV32_REG_ABS(block, REG_ECX, &cr0);
         host_x86_TEST32_REG_IMM(block, REG_ECX, 0xc);
         branch_offset = host_x86_JZ_long(block);
@@ -830,7 +830,7 @@ static int codegen_MMX_ENTER(codeblock_t *block, uop_t *uop)
         host_x86_MOV32_ABS_IMM(block, &cpu_state.tag[4], 0x01010101);
         host_x86_MOV32_ABS_IMM(block, &cpu_state.TOP, 0);
         host_x86_MOV8_ABS_IMM(block, &cpu_state.ismmx, 1);
-        
+
         return 0;
 }
 
@@ -1047,7 +1047,7 @@ static int codegen_MEM_LOAD_DOUBLE(codeblock_t *block, uop_t *uop)
         host_x86_TEST32_REG(block, REG_ESI, REG_ESI);
         host_x86_JNZ(block, codegen_exit_rout);
         host_x86_MOVQ_XREG_XREG(block, dest_reg, REG_XMM_TEMP);
-        
+
         return 0;
 }
 
@@ -1266,7 +1266,7 @@ static int codegen_MOV_REG_PTR(codeblock_t *block, uop_t *uop)
         }
         else
                 fatal("MOV_REG_PTR %02x\n", uop->dest_reg_a_real);
-                
+
         return 0;
 }
 static int codegen_MOVZX_REG_PTR_8(codeblock_t *block, uop_t *uop)
@@ -2830,7 +2830,7 @@ const uOpFn uop_handlers[UOP_MAX] =
         [UOP_JMP_DEST & UOP_MASK] = codegen_JMP_DEST,
 
         [UOP_LOAD_SEG & UOP_MASK] = codegen_LOAD_SEG,
-        
+
         [UOP_LOAD_FUNC_ARG_0 & UOP_MASK] = codegen_LOAD_FUNC_ARG0,
         [UOP_LOAD_FUNC_ARG_1 & UOP_MASK] = codegen_LOAD_FUNC_ARG1,
         [UOP_LOAD_FUNC_ARG_2 & UOP_MASK] = codegen_LOAD_FUNC_ARG2,
@@ -2844,12 +2844,12 @@ const uOpFn uop_handlers[UOP_MAX] =
         [UOP_STORE_P_IMM & UOP_MASK] = codegen_STORE_PTR_IMM,
         [UOP_STORE_P_IMM_8 & UOP_MASK] = codegen_STORE_PTR_IMM_8,
         [UOP_STORE_P_IMM_16 & UOP_MASK] = codegen_STORE_PTR_IMM_16,
-        
+
         [UOP_MEM_LOAD_ABS & UOP_MASK]    = codegen_MEM_LOAD_ABS,
         [UOP_MEM_LOAD_REG & UOP_MASK]    = codegen_MEM_LOAD_REG,
         [UOP_MEM_LOAD_SINGLE & UOP_MASK] = codegen_MEM_LOAD_SINGLE,
         [UOP_MEM_LOAD_DOUBLE & UOP_MASK] = codegen_MEM_LOAD_DOUBLE,
-        
+
         [UOP_MEM_STORE_ABS & UOP_MASK] = codegen_MEM_STORE_ABS,
         [UOP_MEM_STORE_REG & UOP_MASK] = codegen_MEM_STORE_REG,
         [UOP_MEM_STORE_IMM_8 & UOP_MASK] = codegen_MEM_STORE_IMM_8,
@@ -2857,7 +2857,7 @@ const uOpFn uop_handlers[UOP_MAX] =
         [UOP_MEM_STORE_IMM_32 & UOP_MASK] = codegen_MEM_STORE_IMM_32,
         [UOP_MEM_STORE_SINGLE & UOP_MASK] = codegen_MEM_STORE_SINGLE,
         [UOP_MEM_STORE_DOUBLE & UOP_MASK] = codegen_MEM_STORE_DOUBLE,
-        
+
         [UOP_MOV               & UOP_MASK] = codegen_MOV,
         [UOP_MOV_PTR           & UOP_MASK] = codegen_MOV_PTR,
         [UOP_MOV_IMM           & UOP_MASK] = codegen_MOV_IMM,
@@ -2917,16 +2917,16 @@ const uOpFn uop_handlers[UOP_MAX] =
 
         [UOP_TEST_JNS_DEST & UOP_MASK] = codegen_TEST_JNS_DEST,
         [UOP_TEST_JS_DEST & UOP_MASK] = codegen_TEST_JS_DEST,
-        
+
         [UOP_FP_ENTER & UOP_MASK]  = codegen_FP_ENTER,
         [UOP_MMX_ENTER & UOP_MASK] = codegen_MMX_ENTER,
-        
+
         [UOP_FADD & UOP_MASK] = codegen_FADD,
         [UOP_FDIV & UOP_MASK] = codegen_FDIV,
         [UOP_FMUL & UOP_MASK] = codegen_FMUL,
         [UOP_FSUB & UOP_MASK] = codegen_FSUB,
         [UOP_FCOM & UOP_MASK] = codegen_FCOM,
-        
+
         [UOP_FABS & UOP_MASK] = codegen_FABS,
         [UOP_FCHS & UOP_MASK] = codegen_FCHS,
         [UOP_FSQRT & UOP_MASK] = codegen_FSQRT,
@@ -2963,11 +2963,11 @@ const uOpFn uop_handlers[UOP_MAX] =
         [UOP_PFRSQRT & UOP_MASK] = codegen_PFRSQRT,
         [UOP_PFSUB & UOP_MASK]   = codegen_PFSUB,
         [UOP_PI2FD & UOP_MASK]   = codegen_PI2FD,
-        
+
         [UOP_PMADDWD & UOP_MASK] = codegen_PMADDWD,
         [UOP_PMULHW & UOP_MASK]  = codegen_PMULHW,
         [UOP_PMULLW & UOP_MASK]  = codegen_PMULLW,
-        
+
         [UOP_PSLLW_IMM & UOP_MASK] = codegen_PSLLW_IMM,
         [UOP_PSLLD_IMM & UOP_MASK] = codegen_PSLLD_IMM,
         [UOP_PSLLQ_IMM & UOP_MASK] = codegen_PSLLQ_IMM,
@@ -2977,7 +2977,7 @@ const uOpFn uop_handlers[UOP_MAX] =
         [UOP_PSRLW_IMM & UOP_MASK] = codegen_PSRLW_IMM,
         [UOP_PSRLD_IMM & UOP_MASK] = codegen_PSRLD_IMM,
         [UOP_PSRLQ_IMM & UOP_MASK] = codegen_PSRLQ_IMM,
-        
+
         [UOP_PSUBB & UOP_MASK]   = codegen_PSUBB,
         [UOP_PSUBW & UOP_MASK]   = codegen_PSUBW,
         [UOP_PSUBD & UOP_MASK]   = codegen_PSUBD,
@@ -2985,7 +2985,7 @@ const uOpFn uop_handlers[UOP_MAX] =
         [UOP_PSUBSW & UOP_MASK]  = codegen_PSUBSW,
         [UOP_PSUBUSB & UOP_MASK] = codegen_PSUBUSB,
         [UOP_PSUBUSW & UOP_MASK] = codegen_PSUBUSW,
-        
+
         [UOP_PUNPCKHBW & UOP_MASK] = codegen_PUNPCKHBW,
         [UOP_PUNPCKHWD & UOP_MASK] = codegen_PUNPCKHWD,
         [UOP_PUNPCKHDQ & UOP_MASK] = codegen_PUNPCKHDQ,
@@ -2994,7 +2994,7 @@ const uOpFn uop_handlers[UOP_MAX] =
         [UOP_PUNPCKLDQ & UOP_MASK] = codegen_PUNPCKLDQ,
 
         [UOP_NOP_BARRIER & UOP_MASK] = codegen_NOP,
-        
+
 #ifdef DEBUG_EXTRA
         [UOP_LOG_INSTR & UOP_MASK] = codegen_LOG_INSTR
 #endif

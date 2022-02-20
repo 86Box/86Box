@@ -87,7 +87,7 @@ LONG CALLBACK MakeCrashDump(PEXCEPTION_POINTERS ExceptionInfo)
 
 	BufPtr = &ExceptionHandlerBuffer[strlen(ExceptionHandlerBuffer)];
     }
-	
+
     /*
      * What would a good filename be?
      *
@@ -118,13 +118,13 @@ LONG CALLBACK MakeCrashDump(PEXCEPTION_POINTERS ExceptionInfo)
 					// creates a new file if it doesn't.
 	FILE_ATTRIBUTE_NORMAL,		// File attributes / etc don't matter.
 	NULL);				// A template file is not being used.
-	
+
     /* Check to make sure the file was actually created. */
     if (hDumpFile == INVALID_HANDLE_VALUE) {
 	/* CreateFile() failed, so just do nothing more. */
 	return(EXCEPTION_CONTINUE_SEARCH);
     }
-	
+
     /*
      * Write the data we were passed out in a human-readable format.
      *
@@ -152,7 +152,7 @@ LONG CALLBACK MakeCrashDump(PEXCEPTION_POINTERS ExceptionInfo)
 		}
 	}
     }
-	
+
     /* Start to put the crash-dump string into the buffer. */
     sprintf(ExceptionHandlerBuffer,
 	"#\r\n# %s\r\n#\r\n"
@@ -182,11 +182,11 @@ LONG CALLBACK MakeCrashDump(PEXCEPTION_POINTERS ExceptionInfo)
 		BufPtr += 1;
 	}
     }
-	
+
     sprintf(BufPtr,
 	"\r\nNumber of parameters: %lu\r\nException parameters: ",
 	ExceptionInfo->ExceptionRecord->NumberParameters);
-	
+
     for (int i = 0; i < ExceptionInfo->ExceptionRecord->NumberParameters; i++) {
 	BufPtr = &ExceptionHandlerBuffer[strlen(ExceptionHandlerBuffer)];
 	sprintf(BufPtr,"0x%p ",
@@ -196,7 +196,7 @@ LONG CALLBACK MakeCrashDump(PEXCEPTION_POINTERS ExceptionInfo)
 
 #if defined(__i386__) && !defined(__x86_64)
     PCONTEXT Registers = ExceptionInfo->ContextRecord;
-	
+
     /* This binary is being compiled for x86, include a register dump. */
     sprintf(BufPtr,
 	"\r\n\r\nRegister dump:\r\n\r\n"
@@ -211,7 +211,7 @@ LONG CALLBACK MakeCrashDump(PEXCEPTION_POINTERS ExceptionInfo)
     /* (MinGW headers seem to lack the x64 CONTEXT structure definition) */
     sprintf(BufPtr, "\r\n");
 #endif
-	
+
     /* Write the string to disk. */
     WriteFile(hDumpFile, ExceptionHandlerBuffer,
 	      strlen(ExceptionHandlerBuffer), NULL, NULL);

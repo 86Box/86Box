@@ -234,8 +234,8 @@ error:
     PNGFUNC(set_compression_strategy)(png, PNG_Z_DEFAULT_STRATEGY);
     PNGFUNC(set_compression_window_bits)(png, 15);
     PNGFUNC(set_compression_method)(png, 8);
-    PNGFUNC(set_compression_buffer_size)(png, 8192);    
-    
+    PNGFUNC(set_compression_buffer_size)(png, 8192);
+
     PNGFUNC(set_IHDR)(png, info, w, h, 8, PNG_COLOR_TYPE_PALETTE,
 		      PNG_INTERLACE_NONE, PNG_COMPRESSION_TYPE_DEFAULT,
 		      PNG_FILTER_TYPE_DEFAULT);
@@ -247,7 +247,7 @@ error:
     }
 
     PNGFUNC(set_PLTE)(png, info, palette, 256);
-    
+
     /* Create a buffer for scanlines of pixels. */
     rows = (png_bytep *)malloc(sizeof(png_bytep) * h);
     for (i = 0; i < h; i++) {
@@ -256,14 +256,14 @@ error:
     }
 
     PNGFUNC(set_rows)(png, info, rows);
-    
+
     PNGFUNC(write_png)(png, info, 0, NULL);
 
     /* Clean up. */
-    (void)fclose(fp);    
+    (void)fclose(fp);
 
     PNGFUNC(destroy_write_struct)(&png, &info);
-    
+
     /* No longer need the row buffers. */
     free(rows);
 }

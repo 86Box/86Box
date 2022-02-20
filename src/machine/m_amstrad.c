@@ -388,7 +388,7 @@ vid_poll_1512(void *priv)
 				if (vid->cgamode & 0x20) {
 					cols[1] = (attr & 15) + 16;
 					cols[0] = ((attr >> 4) & 7) + 16;
-					if ((vid->blink & 16) && (attr & 0x80) && !drawcursor) 
+					if ((vid->blink & 16) && (attr & 0x80) && !drawcursor)
 						cols[1] = cols[0];
 				} else {
 					cols[1] = (attr & 15) + 16;
@@ -417,7 +417,7 @@ vid_poll_1512(void *priv)
 				if (vid->cgamode & 0x20) {
 					cols[1] = (attr & 15) + 16;
 					cols[0] = ((attr >> 4) & 7) + 16;
-					if ((vid->blink & 16) && (attr & 0x80)) 
+					if ((vid->blink & 16) && (attr & 0x80))
 						cols[1] = cols[0];
 				} else {
 					cols[1] = (attr & 15) + 16;
@@ -434,9 +434,9 @@ vid_poll_1512(void *priv)
 						}
 				} else {
 					for (c = 0; c < 8; c++) {
-						buffer32->line[(vid->displine << 1)][(x << 4) + (c << 1) + 8] = 
+						buffer32->line[(vid->displine << 1)][(x << 4) + (c << 1) + 8] =
 						buffer32->line[(vid->displine << 1)][(x << 4) + (c << 1) + 1 + 8] =
-						buffer32->line[(vid->displine << 1) + 1][(x << 4) + (c << 1) + 8] = 
+						buffer32->line[(vid->displine << 1) + 1][(x << 4) + (c << 1) + 8] =
 						buffer32->line[(vid->displine << 1) + 1][(x << 4) + (c << 1) + 1 + 8] =
 							cols[(fontdat[vid->fontbase + chr][vid->sc & 7] & (1 << (c ^ 7))) ? 1 : 0];
 					}
@@ -504,13 +504,13 @@ vid_poll_1512(void *priv)
 	if (vid->vsynctime)
 	   vid->stat |= 8;
 	vid->displine++;
-	if (vid->displine >= 360) 
+	if (vid->displine >= 360)
 		vid->displine = 0;
     } else {
 	timer_advance_u64(&vid->timer, vid->dispontime);
-	if ((vid->lastline - vid->firstline) == 199) 
+	if ((vid->lastline - vid->firstline) == 199)
 		vid->dispon = 0; /*Amstrad PC1512 always displays 200 lines, regardless of CRTC settings*/
-	if (vid->dispon) 
+	if (vid->dispon)
 		vid->stat &= ~1;
 	vid->linepos = 0;
 	if (vid->vsynctime) {
@@ -518,9 +518,9 @@ vid_poll_1512(void *priv)
 		if (! vid->vsynctime)
 		   vid->stat &= ~8;
 	}
-	if (vid->sc == (vid->crtc[11] & 31)) { 
-		vid->con = 0; 
-		vid->coff = 1; 
+	if (vid->sc == (vid->crtc[11] & 31)) {
+		vid->con = 0;
+		vid->coff = 1;
 	}
 	if (vid->vadj) {
 		vid->sc++;
@@ -997,7 +997,7 @@ vid_speed_changed_200(void *priv)
 
 
 /* LCD colour mappings
- * 
+ *
  * 0 => solid green
  * 1 => blue on green
  * 2 => green on blue
@@ -1059,13 +1059,13 @@ static void set_lcd_cols(uint8_t mode_reg)
 			break;
 
 		case 1:
-			lcdcols[c][0][0] = lcdcols[c][1][0] = 
+			lcdcols[c][0][0] = lcdcols[c][1][0] =
 					   lcdcols[c][1][1] = green;
 			lcdcols[c][0][1] = blue;
 			break;
 
 		case 2:
-			lcdcols[c][0][0] = lcdcols[c][1][0] = 
+			lcdcols[c][0][0] = lcdcols[c][1][0] =
 					   lcdcols[c][1][1] = blue;
 			lcdcols[c][0][1] = green;
 			break;
@@ -1090,7 +1090,7 @@ vid_in_200(uint16_t addr, void *priv)
     switch (addr) {
 	case 0x03b8:
 		return(mda->ctrl);
-		
+
 	case 0x03d8:
 		return(cga->cgamode);
 
@@ -1159,14 +1159,14 @@ vid_out_200(uint16_t addr, uint8_t val, void *priv)
 			nmi = 1;
 		return;
 
-/* 	CGA writes ============================================================== */	
+/* 	CGA writes ============================================================== */
 	case 0x03d1:
 	case 0x03d3:
 	case 0x03d5:
 	case 0x03d7:
 		if (!(vid->operation_ctrl & 0x40) && cga->crtcreg <= 11) {
 			vid->crtc_index = 0x20 | (cga->crtcreg & 0x1f);
-			if (vid->operation_ctrl & 0x80) 
+			if (vid->operation_ctrl & 0x80)
 				nmi = 1;
 			vid->reg_3df = val;
 			return;
@@ -1198,7 +1198,7 @@ vid_out_200(uint16_t addr, uint8_t val, void *priv)
 	case 0x03de:
 		vid->crtc_index = 0x1f;
 	/* 	NMI only seems to be triggered if the value being written has the high
-	 * 	bit set (enable NMI). So it only protects writes to this port if you 
+	 * 	bit set (enable NMI). So it only protects writes to this port if you
 	 * 	let it? */
 		if (val & 0x80) {
 			vid->operation_ctrl = val;
@@ -1226,12 +1226,12 @@ vid_out_200(uint16_t addr, uint8_t val, void *priv)
                         timer_advance_u64(&vid->timer, 1);
 
 		/* Bit 2 disables the IDA. We don't support dynamic enabling
-		* and disabling of the IDA (instead, PCEM disconnects the 
-		* IDA from the bus altogether) so don't implement this */	
+		* and disabling of the IDA (instead, PCEM disconnects the
+		* IDA from the bus altogether) so don't implement this */
 
-		/* Enable the appropriate memory ranges depending whether 
+		/* Enable the appropriate memory ranges depending whether
 		* the IDA is configured as MDA or CGA */
-		if (vid->emulation == PC200_MDA || 
+		if (vid->emulation == PC200_MDA ||
 		    vid->emulation == PC200_LCDM) {
 			mem_mapping_disable(&vid->cga.mapping);
 			mem_mapping_enable(&vid->mda.mapping);
@@ -1251,8 +1251,8 @@ vid_out_200(uint16_t addr, uint8_t val, void *priv)
 }
 
 
-static void 
-lcd_draw_char_80(amsvid_t *vid, uint32_t *buffer, uint8_t chr, 
+static void
+lcd_draw_char_80(amsvid_t *vid, uint32_t *buffer, uint8_t chr,
 	uint8_t attr, int drawcursor, int blink, int sc,
 	int mode160, uint8_t control)
 {
@@ -1262,8 +1262,8 @@ lcd_draw_char_80(amsvid_t *vid, uint32_t *buffer, uint8_t chr,
     uint16_t mask;
 
     if (attr & 8) {	/* bright */
-	/* The brightness algorithm appears to be: replace any bit sequence 011 
-	 * with 001 (assuming an extra 0 to the left of the byte). 
+	/* The brightness algorithm appears to be: replace any bit sequence 011
+	 * with 001 (assuming an extra 0 to the left of the byte).
 	 */
 	bright = bits;
 	for (c = 0, mask = 0x100; c < 7; c++, mask >>= 1) {
@@ -1285,8 +1285,8 @@ lcd_draw_char_80(amsvid_t *vid, uint32_t *buffer, uint8_t chr,
 }
 
 
-static void 
-lcd_draw_char_40(amsvid_t *vid, uint32_t *buffer, uint8_t chr, 
+static void
+lcd_draw_char_40(amsvid_t *vid, uint32_t *buffer, uint8_t chr,
 	uint8_t attr, int drawcursor, int blink, int sc,
 	uint8_t control)
 {
@@ -1310,7 +1310,7 @@ lcd_draw_char_40(amsvid_t *vid, uint32_t *buffer, uint8_t chr,
 }
 
 
-static void 
+static void
 lcdm_poll(amsvid_t *vid)
 {
     mda_t *mda = &vid->mda;
@@ -1327,7 +1327,7 @@ lcdm_poll(amsvid_t *vid)
 	mda->stat |= 1;
 	mda->linepos = 1;
 	oldsc = mda->sc;
-	if ((mda->crtc[8] & 3) == 3) 
+	if ((mda->crtc[8] & 3) == 3)
 		mda->sc = (mda->sc << 1) & 7;
 	if (mda->dispon) {
 		if (mda->displine < mda->firstline)
@@ -1347,7 +1347,7 @@ lcdm_poll(amsvid_t *vid)
 	if (mda->vc == mda->crtc[7] && !mda->sc)
 		mda->stat |= 8;
 	mda->displine++;
-	if (mda->displine >= 500) 
+	if (mda->displine >= 500)
 		mda->displine=0;
     } else {
 	timer_advance_u64(&vid->timer, mda->dispontime);
@@ -1359,8 +1359,8 @@ lcdm_poll(amsvid_t *vid)
 			mda->stat&=~8;
 	}
 	if (mda->sc == (mda->crtc[11] & 31) || ((mda->crtc[8] & 3) == 3 && mda->sc == ((mda->crtc[11] & 31) >> 1))) {
-		mda->con = 0; 
-		mda->coff = 1; 
+		mda->con = 0;
+		mda->coff = 1;
 	}
 	if (mda->vadj) {
 		mda->sc++;
@@ -1378,7 +1378,7 @@ lcdm_poll(amsvid_t *vid)
 		oldvc = mda->vc;
 		mda->vc++;
 		mda->vc &= 127;
-		if (mda->vc == mda->crtc[6]) 
+		if (mda->vc == mda->crtc[6])
 		mda->dispon=0;
 		if (oldvc == mda->crtc[4]) {
 			mda->vc = 0;
@@ -1426,7 +1426,7 @@ lcdm_poll(amsvid_t *vid)
 }
 
 
-static void 
+static void
 lcdc_poll(amsvid_t *vid)
 {
     cga_t *cga = &vid->cga;
@@ -1446,7 +1446,7 @@ lcdc_poll(amsvid_t *vid)
 	cga->cgastat |= 1;
 	cga->linepos = 1;
 	oldsc = cga->sc;
-	if ((cga->crtc[8] & 3) == 3) 
+	if ((cga->crtc[8] & 3) == 3)
 		cga->sc = ((cga->sc << 1) + cga->oddeven) & 7;
 	if (cga->cgadispon) {
 		if (cga->displine < cga->firstline) {
@@ -1503,7 +1503,7 @@ lcdc_poll(amsvid_t *vid)
 	if (cga->vc == cga->crtc[7] && !cga->sc)
 		cga->cgastat |= 8;
 	cga->displine++;
-	if (cga->displine >= 360) 
+	if (cga->displine >= 360)
 		cga->displine = 0;
     } else {
 	timer_advance_u64(&vid->timer, cga->dispontime);
@@ -1514,8 +1514,8 @@ lcdc_poll(amsvid_t *vid)
 			cga->cgastat &= ~8;
 	}
 	if (cga->sc == (cga->crtc[11] & 31) || ((cga->crtc[8] & 3) == 3 && cga->sc == ((cga->crtc[11] & 31) >> 1))) {
-		cga->con = 0; 
-		cga->coff = 1; 
+		cga->con = 0;
+		cga->coff = 1;
 	}
 	if ((cga->crtc[8] & 3) == 3 && cga->sc == (cga->crtc[9] >> 1))
 		cga->maback = cga->ma;
@@ -1536,7 +1536,7 @@ lcdc_poll(amsvid_t *vid)
 		cga->vc++;
 		cga->vc &= 127;
 
-		if (cga->vc == cga->crtc[6]) 
+		if (cga->vc == cga->crtc[6])
 			cga->cgadispon = 0;
 
 		if (oldvc == cga->crtc[4]) {
@@ -1607,7 +1607,7 @@ lcdc_poll(amsvid_t *vid)
 	}
 	if (cga->cgadispon)
 		cga->cgastat &= ~1;
-	if ((cga->sc == (cga->crtc[10] & 31) || ((cga->crtc[8] & 3) == 3 && cga->sc == ((cga->crtc[10] & 31) >> 1)))) 
+	if ((cga->sc == (cga->crtc[10] & 31) || ((cga->crtc[8] & 3) == 3 && cga->sc == ((cga->crtc[10] & 31) >> 1))))
 		cga->con = 1;
 	if (cga->cgadispon && (cga->cgamode & 1)) {
 		for (x = 0; x < (cga->crtc[1] << 1); x++)
@@ -1617,7 +1617,7 @@ lcdc_poll(amsvid_t *vid)
 }
 
 
-static void 
+static void
 vid_poll_200(void *p)
 {
     amsvid_t *vid = (amsvid_t *)p;
@@ -1626,7 +1626,7 @@ vid_poll_200(void *p)
 	case PC200_LCDM:
 		lcdm_poll(vid);
 		return;
-	case PC200_LCDC:	
+	case PC200_LCDC:
 		lcdc_poll(vid);
 		return;
     }
@@ -1647,7 +1647,7 @@ vid_init_200(amstrad_t *ams)
     vid->emulation = device_get_config_int("video_emulation");
 
     /* Default to CGA */
-    vid->dipswitches = 0x10;	
+    vid->dipswitches = 0x10;
     vid->type = ams->type;
 
     if (ams->type == AMS_PC200) switch (vid->emulation) {
@@ -1685,12 +1685,12 @@ vid_init_200(amstrad_t *ams)
     mda_setcol(0x88, 0, 1, 15);
     /* Attribute 64 is black on black (on a real MDA it's white on black) */
     mda_setcol(0x40, 0, 1, 0);
-    mda_setcol(0xC0, 0, 1, 0);	
+    mda_setcol(0xC0, 0, 1, 0);
 
     cga->fontbase = (device_get_config_int("codepage") & 3) * 256;
 
     timer_add(&vid->timer, vid_poll_200, vid, 1);
-    mem_mapping_add(&vid->mda.mapping, 0xb0000, 0x08000, 
+    mem_mapping_add(&vid->mda.mapping, 0xb0000, 0x08000,
 		    mda_read, NULL, NULL, mda_write, NULL, NULL, NULL, 0, mda);
     mem_mapping_add(&vid->cga.mapping, 0xb8000, 0x08000,
 		    cga_read, NULL, NULL, cga_write, NULL, NULL, NULL, 0, cga);
@@ -2178,7 +2178,7 @@ kbd_write(uint16_t port, uint8_t val, void *priv)
 		speaker_update();
 		speaker_gated = val & 0x01;
 		speaker_enable = val & 0x02;
-		if (speaker_enable) 
+		if (speaker_enable)
 			was_speaker_enable = 1;
 		pit_ctr_set_gate(&pit->counters[2], val & 0x01);
 
@@ -2249,9 +2249,9 @@ kbd_read(uint16_t port, void *priv)
 			else {
 				ams->key_waiting = key_queue[key_queue_start];
 				key_queue_start = (key_queue_start + 1) & 0xf;
-				ams->wantirq = 1;	
+				ams->wantirq = 1;
 			}
-		}	
+		}
 		break;
 
 	case 0x61:
@@ -2472,7 +2472,7 @@ machine_amstrad_init(const machine_t *model, int type)
 		device_context_restore();
 		device_add_ex(&vid_1512_device, ams->vid);
 		break;
-	
+
 	case AMS_PPC512:
 		loadfont("roms/machines/ppc512/40109", 1);
 		device_context(&vid_ppc512_device);
@@ -2481,7 +2481,7 @@ machine_amstrad_init(const machine_t *model, int type)
 		device_context_restore();
 		device_add_ex(&vid_ppc512_device, ams->vid);
 		break;
-	
+
 	case AMS_PC1640:
 		loadfont("roms/video/mda/mda.rom", 0);
 		device_context(&vid_1640_device);

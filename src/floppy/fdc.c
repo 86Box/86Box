@@ -168,7 +168,7 @@ fdc_card_get_from_internal_name(char *s)
 		return(c);
 	c++;
     }
-	
+
     return(0);
 }
 
@@ -1098,7 +1098,7 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
 						}
 						fdd_readsector(real_drive(fdc, fdc->drive), fdc->sector, fdc->params[1], fdc->head, fdc->rate, fdc->params[4]);
                                         	break;
-                                        
+
                                         case 0x07:	/* Recalibrate */
 						fdc->rw_drive = fdc->params[0] & 3;
 						fdc->stat =  (1 << real_drive(fdc, fdc->drive));
@@ -1133,7 +1133,7 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
 						break;
 					case 0x0a: /* Read sector ID */
 						fdc_rate(fdc, fdc->drive);
-						fdc->head = (fdc->params[0] & 4) ? 1 : 0;                                        
+						fdc->head = (fdc->params[0] & 4) ? 1 : 0;
 						fdd_set_head(real_drive(fdc, fdc->drive), (fdc->params[0] & 4) ? 1 : 0);
 						if ((real_drive(fdc, fdc->drive) != 1) || fdc->drv2en) {
 							fdd_readaddress(real_drive(fdc, fdc->drive), fdc->head, fdc->rate);
@@ -2512,7 +2512,7 @@ const device_t fdc_dp8473_device = {
     0,
     FDC_FLAG_AT | FDC_FLAG_NSC,
     fdc_init,
-    fdc_close, 
+    fdc_close,
     fdc_reset,
     { NULL }, NULL, NULL
 };
@@ -2523,7 +2523,7 @@ const device_t fdc_um8398_device = {
     0,
     FDC_FLAG_UMC,
     fdc_init,
-    fdc_close, 
+    fdc_close,
     fdc_reset,
     { NULL }, NULL, NULL
 };

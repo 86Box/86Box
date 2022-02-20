@@ -131,7 +131,7 @@ static int FBSTP_a16(uint32_t fetchdat)
         fetch_ea_16(fetchdat);
 	SEG_CHECK_WRITE(cpu_state.ea_seg);
         tempd = ST(0);
-        if (tempd < 0.0) 
+        if (tempd < 0.0)
                 tempd = -tempd;
         for (c = 0; c < 9; c++)
         {
@@ -148,7 +148,7 @@ static int FBSTP_a16(uint32_t fetchdat)
         writememb(easeg, cpu_state.eaaddr + 9, tempc); if (cpu_state.abrt) return 1;
         x87_pop();
         CLOCK_CYCLES_FPU((fpu_type >= FPU_487SX) ? (x87_timings.fbstp) : (x87_timings.fbstp * cpu_multi));
-        CONCURRENCY_CYCLES((fpu_type >= FPU_487SX) ? (x87_concurrency.fbstp) : (x87_concurrency.fbstp * cpu_multi));		
+        CONCURRENCY_CYCLES((fpu_type >= FPU_487SX) ? (x87_concurrency.fbstp) : (x87_concurrency.fbstp * cpu_multi));
         return 0;
 }
 #ifndef FPU_8087
@@ -160,7 +160,7 @@ static int FBSTP_a32(uint32_t fetchdat)
         fetch_ea_32(fetchdat);
 	SEG_CHECK_WRITE(cpu_state.ea_seg);
         tempd = ST(0);
-        if (tempd < 0.0) 
+        if (tempd < 0.0)
                 tempd = -tempd;
         for (c = 0; c < 9; c++)
         {

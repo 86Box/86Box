@@ -259,7 +259,7 @@ smram_add(void)
     if (temp_smram == NULL) {
 	fatal("smram_add(): temp_smram malloc failed\n");
 	return NULL;
-    }    
+    }
     memset(temp_smram, 0x00, sizeof(smram_t));
     memset(&(temp_smram->mapping), 0x00, sizeof(mem_mapping_t));
 

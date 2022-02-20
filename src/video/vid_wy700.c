@@ -39,16 +39,16 @@ void updatewindowsize(int x, int y);
 
 /* The Wyse 700 is an unusual video card. Though it has an MC6845 CRTC, this
  * is not exposed directly to the host PC. Instead, the CRTC is controlled by
- * an MC68705P3 microcontroller. 
+ * an MC68705P3 microcontroller.
  *
- * Rather than emulate the real CRTC, I'm writing this as more or less a 
+ * Rather than emulate the real CRTC, I'm writing this as more or less a
  * fixed-frequency card with a 1280x800 display, and scaling its selection
  * of modes to that window.
  *
- * By default, the card responds to both the CGA and MDA I/O and memory 
+ * By default, the card responds to both the CGA and MDA I/O and memory
  * ranges. Either range can be disabled by means of jumpers; this allows
- * the Wy700 to coexist with a CGA or MDA. 
- * 
+ * the Wy700 to coexist with a CGA or MDA.
+ *
  * wy700->wy700_mode indicates which of the supported video modes is in use:
  *
  * 0x00:   40x 25   text     (CGA compatible)        [32x32 character cell]
@@ -67,9 +67,9 @@ void updatewindowsize(int x, int y);
 
 /* What works (or appears to) :
  * MDA/CGA 80x25 text mode
- * CGA 40x25 text mode        
- * CGA 640x200 graphics mode 
- * CGA 320x200 graphics mode 
+ * CGA 40x25 text mode
+ * CGA 640x200 graphics mode
+ * CGA 320x200 graphics mode
  * Hi-res graphics modes
  * Font selection
  * Display enable / disable
@@ -83,11 +83,11 @@ void updatewindowsize(int x, int y);
 
 
 /* The microcontroller sets up the real CRTC with one of five fixed mode
- * definitions. As written, this is a fairly simplistic emulation that 
- * doesn't attempt to closely follow the actual working of the CRTC; but I've 
+ * definitions. As written, this is a fairly simplistic emulation that
+ * doesn't attempt to closely follow the actual working of the CRTC; but I've
  * included the definitions here for information. */
 
-static uint8_t mode_1280x800[] = 
+static uint8_t mode_1280x800[] =
 {
 	0x31,	/* Horizontal total */
 	0x28,	/* Horizontal displayed */
@@ -101,7 +101,7 @@ static uint8_t mode_1280x800[] =
 	0x0f,	/* Maximum raster address */
 };
 
-static uint8_t mode_1280x400[] = 
+static uint8_t mode_1280x400[] =
 {
 	0x31,	/* Horizontal total */
 	0x28,	/* Horizontal displayed */
@@ -115,7 +115,7 @@ static uint8_t mode_1280x400[] =
 	0x0f,	/* Maximum raster address */
 };
 
-static uint8_t mode_640x400[] = 
+static uint8_t mode_640x400[] =
 {
 	0x18,	/* Horizontal total */
 	0x14,	/* Horizontal displayed */
@@ -129,7 +129,7 @@ static uint8_t mode_640x400[] =
 	0x0f,	/* Maximum raster address */
 };
 
-static uint8_t mode_640x200[] = 
+static uint8_t mode_640x200[] =
 {
 	0x18,	/* Horizontal total */
 	0x14,	/* Horizontal displayed */
@@ -143,7 +143,7 @@ static uint8_t mode_640x200[] =
 	0x07,	/* Maximum raster address */
 };
 
-static uint8_t mode_80x24[] = 
+static uint8_t mode_80x24[] =
 {
 	0x31,	/* Horizontal total */
 	0x28,	/* Horizontal displayed */
@@ -157,7 +157,7 @@ static uint8_t mode_80x24[] =
 	0x0f,	/* Maximum raster address */
 };
 
-static uint8_t mode_40x24[] = 
+static uint8_t mode_40x24[] =
 {
 	0x18,	/* Horizontal total */
 	0x14,	/* Horizontal displayed */
@@ -179,16 +179,16 @@ typedef struct wy700_t
 {
         mem_mapping_t mapping;
 
-	/* The microcontroller works by watching four ports: 
-	 * 0x3D8 / 0x3B8 (mode control register) 
+	/* The microcontroller works by watching four ports:
+	 * 0x3D8 / 0x3B8 (mode control register)
 	 * 0x3DD         (top scanline address)
 	 * 0x3DF         (Wy700 control register)
 	 * CRTC reg 14   (cursor location high)
-	 * 
+	 *
 	 * It will do nothing until one of these registers is touched. When
 	 * one is, it then reconfigures the internal 6845 based on what it
 	 * sees.
-	 */ 
+	 */
 	uint8_t last_03D8;	/* Copies of values written to the listed */
 	uint8_t last_03DD;	/* I/O ports */
 	uint8_t last_03DF;
@@ -213,7 +213,7 @@ typedef struct wy700_t
 
         uint64_t dispontime, dispofftime;
         pc_timer_t timer;
-        
+
         int linepos, displine;
         int vc;
         int dispon, blink;
@@ -240,7 +240,7 @@ void wy700_out(uint16_t addr, uint8_t val, void *p)
         wy700_t *wy700 = (wy700_t *)p;
         switch (addr)
         {
-		/* These three registers are only mapped in the 3Dx range, 
+		/* These three registers are only mapped in the 3Dx range,
 		 * not the 3Bx range. */
 		case 0x3DD:	/* Base address (low) */
 		wy700->wy700_base &= 0xFF00;
@@ -258,7 +258,7 @@ void wy700_out(uint16_t addr, uint8_t val, void *p)
 		wy700->wy700_control = val;
 		wy700_checkchanges(wy700);
 		break;
-				
+
 		/* Emulated CRTC, register select */
                 case 0x3b0: case 0x3b2: case 0x3b4: case 0x3b6:
 		case 0x3d0: case 0x3d2: case 0x3d4: case 0x3d6:
@@ -301,7 +301,7 @@ uint8_t wy700_in(uint16_t addr, void *p)
 		return wy700->cga_ctrl;
 		case 0x3d9:
 		return wy700->cga_colour;
-                case 0x3ba: 
+                case 0x3ba:
 	        return wy700->mda_stat;
 		case 0x3da:
 		return wy700->cga_stat;
@@ -310,7 +310,7 @@ uint8_t wy700_in(uint16_t addr, void *p)
 }
 
 
-/* Check if any of the four key registers has changed. If so, check for a 
+/* Check if any of the four key registers has changed. If so, check for a
  * mode change or cursor size change */
 void wy700_checkchanges(wy700_t *wy700)
 {
@@ -336,18 +336,18 @@ void wy700_checkchanges(wy700_t *wy700)
 			wy700->enabled = 1;
 			wy700->detach  = 0;
 			break;
-			
+
 			case 2:	/* Font 1 */
 			wy700->font    = 0;
 			break;
-			
+
 			case 3:	/* Font 2 */
 			wy700->font    = 1;
 			break;
-			
-/* Even with the microprogram from an original card, I can't really work out 
+
+/* Even with the microprogram from an original card, I can't really work out
  * what commands 4 and 5 (which I've called 'cursor detach' / 'cursor attach')
- * do. Command 4 sets a flag in microcontroller RAM, and command 5 clears 
+ * do. Command 4 sets a flag in microcontroller RAM, and command 5 clears
  * it. When the flag is set, the real cursor doesn't track the cursor in the
  * emulated CRTC, and its blink rate increases. Possibly it's a self-test
  * function of some kind.
@@ -358,21 +358,21 @@ void wy700_checkchanges(wy700_t *wy700)
 			case 4:	/* Detach cursor */
 			wy700->detach  = 1;
 			break;
-			
+
 			case 5:	/* Attach cursor */
 			wy700->detach  = 0;
 			break;
-			
+
 			case 6:	/* Disable display */
 			wy700->enabled = 0;
 			break;
-			
+
 			case 7:	/* Enable display */
 			wy700->enabled = 1;
 			break;
 		}
 		/* A control write with the top bit set selects graphics mode */
-		if (wy700->wy700_control & 0x80)	
+		if (wy700->wy700_control & 0x80)
 		{
 			/* Select hi-res graphics mode; map framebuffer at A0000 */
        	        	mem_mapping_set_addr(&wy700->mapping, 0xa0000, 0x20000);
@@ -381,17 +381,17 @@ void wy700_checkchanges(wy700_t *wy700)
 			/* Select appropriate preset timings */
 			if (wy700->wy700_mode & 0x40)
 			{
-				memcpy(wy700->real_crtc, mode_1280x800, 
+				memcpy(wy700->real_crtc, mode_1280x800,
 					sizeof(mode_1280x800));
 			}
 			else if (wy700->wy700_mode & 0x20)
 			{
-				memcpy(wy700->real_crtc, mode_1280x400, 
+				memcpy(wy700->real_crtc, mode_1280x400,
 					sizeof(mode_1280x400));
 			}
 			else
 			{
-				memcpy(wy700->real_crtc, mode_640x400, 
+				memcpy(wy700->real_crtc, mode_640x400,
 					sizeof(mode_640x400));
 			}
 		}
@@ -400,15 +400,15 @@ void wy700_checkchanges(wy700_t *wy700)
 	else if (wy700->last_03D8 != wy700->cga_ctrl)
 	{
 		wy700->last_03D8 = wy700->cga_ctrl;
-		/* Set lo-res text or graphics mode. 
-		 * (Strictly speaking, when not in hi-res mode the card 
-		 *  should be mapped at B0000-B3FFF and B8000-BBFFF, leaving 
+		/* Set lo-res text or graphics mode.
+		 * (Strictly speaking, when not in hi-res mode the card
+		 *  should be mapped at B0000-B3FFF and B8000-BBFFF, leaving
 		 * a 16k hole between the two ranges) */
                 mem_mapping_set_addr(&wy700->mapping, 0xb0000, 0x0C000);
 		if (wy700->cga_ctrl & 2)	/* Graphics mode */
 		{
 			wy700->wy700_mode = (wy700->cga_ctrl & 0x10) ? 6 : 4;
-			memcpy(wy700->real_crtc, mode_640x200, 
+			memcpy(wy700->real_crtc, mode_640x200,
 				sizeof(mode_640x200));
 		}
 		else if (wy700->cga_ctrl & 1) /* Text mode 80x24 */
@@ -465,10 +465,10 @@ void wy700_write(uint32_t addr, uint8_t val, void *p)
 		addr &= 0xFFFF;
 /* In 800-line modes, bit 1 of the control register sets the high bit of the
  * write address. */
-		if ((wy700->wy700_mode & 0x42) == 0x42)	
+		if ((wy700->wy700_mode & 0x42) == 0x42)
 		{
-			addr |= 0x10000;	
-		}	
+			addr |= 0x10000;
+		}
         	wy700->vram[addr] = val;
 	}
 	else
@@ -487,10 +487,10 @@ uint8_t wy700_read(uint32_t addr, void *p)
 		addr &= 0xFFFF;
 /* In 800-line modes, bit 0 of the control register sets the high bit of the
  * read address. */
-		if ((wy700->wy700_mode & 0x41) == 0x41)	
+		if ((wy700->wy700_mode & 0x41) == 0x41)
 		{
-			addr |= 0x10000;	
-		}	
+			addr |= 0x10000;
+		}
         	return wy700->vram[addr];
 	}
 	else
@@ -534,11 +534,11 @@ void wy700_textline(wy700_t *wy700)
 	uint16_t ca = (wy700->cga_crtc[15] | (wy700->cga_crtc[14] << 8)) & 0x3fff;
 
 
-/* The fake CRTC character height register selects whether MDA or CGA 
+/* The fake CRTC character height register selects whether MDA or CGA
  * attributes are used */
 	if (wy700->cga_crtc[9] == 0 || wy700->cga_crtc[9] == 13)
 	{
-		mda = 1;	
+		mda = 1;
 	}
 
 	if (wy700->font)
@@ -566,8 +566,8 @@ void wy700_textline(wy700_t *wy700)
 		attr = wy700->vram[(addr + 2 * x + 1) & 0x3FFF];
 		drawcursor = ((ma == ca) && cursorline && wy700->enabled &&
 			(wy700->cga_ctrl & 8) && (wy700->blink & 16));
-		blink = ((wy700->blink & 16) && 
-			(wy700->cga_ctrl & 0x20) && 
+		blink = ((wy700->blink & 16) &&
+			(wy700->cga_ctrl & 0x20) &&
 			(attr & 0x80) && !drawcursor);
 
 		if (wy700->cga_ctrl & 0x20) attr &= 0x7F;
@@ -590,7 +590,7 @@ void wy700_textline(wy700_t *wy700)
 				else    col = (mda ? mdacols : cgacols)[attr][blink][(bitmap[1] & (1 << ((c & 7) ^ 7))) ? 1 : 0];
 				if (!(wy700->enabled) || !(wy700->cga_ctrl & 8))
 					col = mdacols[0][0][0];
-				if (w == 40) 
+				if (w == 40)
 				{
                         		buffer32->line[wy700->displine][(x * cw) + 2*c] = col;
                         		buffer32->line[wy700->displine][(x * cw) + 2*c + 1] = col;
@@ -622,11 +622,11 @@ void wy700_cgaline(wy700_t *wy700)
 	       (wy700->displine >> 3) * 80 +
 	       ((ma & ~1) << 1);
 
-	/* The fixed mode setting here programs the real CRTC with a screen 
+	/* The fixed mode setting here programs the real CRTC with a screen
 	 * width to 20, so draw in 20 fixed chunks of 4 bytes each */
 	for (x = 0; x < 20; x++)
 	{
-		dat =  ((wy700->vram[addr     & 0x3FFF] << 24) | 
+		dat =  ((wy700->vram[addr     & 0x3FFF] << 24) |
 			(wy700->vram[(addr+1) & 0x3FFF] << 16) |
 			(wy700->vram[(addr+2) & 0x3FFF] << 8)  |
 			(wy700->vram[(addr+3) & 0x3FFF]));
@@ -681,7 +681,7 @@ void wy700_medresline(wy700_t *wy700)
 
 	for (x = 0; x < 20; x++)
 	{
-		dat =  ((wy700->vram[addr     & 0x1FFFF] << 24) | 
+		dat =  ((wy700->vram[addr     & 0x1FFFF] << 24) |
 			(wy700->vram[(addr+1) & 0x1FFFF] << 16) |
 			(wy700->vram[(addr+2) & 0x1FFFF] << 8)  |
 			(wy700->vram[(addr+3) & 0x1FFFF]));
@@ -715,8 +715,8 @@ void wy700_medresline(wy700_t *wy700)
 				ink = (dat & 0x80000000) ? 16 + 15: 16 + 0;
 				/* Display disabled? */
 				if (!(wy700->wy700_mode & 8)) ink = 16;
-				buffer32->line[wy700->displine][x*64 + 2*c]   = 
-				buffer32->line[wy700->displine][x*64 + 2*c+1] = 
+				buffer32->line[wy700->displine][x*64 + 2*c]   =
+				buffer32->line[wy700->displine][x*64 + 2*c+1] =
 					ink;
 				dat = dat << 1;
 			}
@@ -738,12 +738,12 @@ void wy700_hiresline(wy700_t *wy700)
 	addr = (wy700->displine >> 1) * 160 + 4 * wy700->wy700_base;
 
 	if (wy700->wy700_mode & 0x40)	/* 800-line interleaved modes */
-	{	
+	{
 		if (wy700->displine & 1) addr += 0x10000;
 	}
 	for (x = 0; x < 40; x++)
 	{
-		dat =  ((wy700->vram[addr     & 0x1FFFF] << 24) | 
+		dat =  ((wy700->vram[addr     & 0x1FFFF] << 24) |
 			(wy700->vram[(addr+1) & 0x1FFFF] << 16) |
 			(wy700->vram[(addr+2) & 0x1FFFF] << 8)  |
 			(wy700->vram[(addr+3) & 0x1FFFF]));
@@ -802,8 +802,8 @@ void wy700_poll(void *p)
                         {
                                 video_wait_for_buffer();
                         }
-	
-			if (wy700->wy700_mode & 0x80) 
+
+			if (wy700->wy700_mode & 0x80)
 				mode = wy700->wy700_mode & 0xF0;
 			else	mode = wy700->wy700_mode & 0x0F;
 
@@ -876,19 +876,19 @@ void wy700_poll(void *p)
 			/* Fixed 1280x800 resolution */
 			video_res_x = WY700_XSIZE;
 			video_res_y = WY700_YSIZE;
-			if (wy700->wy700_mode & 0x80) 
+			if (wy700->wy700_mode & 0x80)
 				mode = wy700->wy700_mode & 0xF0;
 			else	mode = wy700->wy700_mode & 0x0F;
 			switch(mode)
 			{
-				case 0x00: 
+				case 0x00:
 				case 0x02: video_bpp = 0; break;
-				case 0x04: 
-				case 0x90: 
+				case 0x04:
+				case 0x90:
 				case 0xB0:
 				case 0xD0:
 				case 0xF0: video_bpp = 2; break;
-				default:   video_bpp = 1; break;	
+				default:   video_bpp = 1; break;
 			}
                 	wy700->blink++;
                 }
@@ -917,7 +917,7 @@ void *wy700_init(const device_t *info)
         io_sethandler(0x03b0, 0x000C, wy700_in, NULL, NULL, wy700_out, NULL, NULL, wy700);
         io_sethandler(0x03d0, 0x0010, wy700_in, NULL, NULL, wy700_out, NULL, NULL, wy700);
 
-	/* Set up the emulated attributes. 
+	/* Set up the emulated attributes.
 	 * CGA is done in four groups: 00-0F, 10-7F, 80-8F, 90-FF */
         for (c = 0; c < 0x10; c++)
         {
@@ -1003,7 +1003,7 @@ void wy700_close(void *p)
 void wy700_speed_changed(void *p)
 {
         wy700_t *wy700 = (wy700_t *)p;
-        
+
         wy700_recalctimings(wy700);
 }
 

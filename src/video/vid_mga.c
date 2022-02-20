@@ -410,7 +410,7 @@ typedef struct mystique_t
     svga_t svga;
 
     rom_t bios_rom;
-	
+
 	int type;
 
     mem_mapping_t lfb_mapping, ctrl_mapping,
@@ -435,7 +435,7 @@ typedef struct mystique_t
 	pixel_count, trap_count;
 
     volatile int busy, blitter_submit_refcount,
-		 blitter_submit_dma_refcount, blitter_complete_refcount,        
+		 blitter_submit_dma_refcount, blitter_complete_refcount,
 		 endprdmasts_pending, softrap_pending,
 		 fifo_read_idx, fifo_write_idx;
 
@@ -663,7 +663,7 @@ mystique_out(uint16_t addr, uint8_t val, void *p)
     svga_t *svga = &mystique->svga;
     uint8_t old;
 
-    if ((((addr&0xFFF0) == 0x3D0 || (addr&0xFFF0) == 0x3B0) && addr < 0x3de) && !(svga->miscout & 1)) 
+    if ((((addr&0xFFF0) == 0x3D0 || (addr&0xFFF0) == 0x3B0) && addr < 0x3de) && !(svga->miscout & 1))
 	addr ^= 0x60;
 
     switch (addr) {
@@ -699,10 +699,10 @@ mystique_out(uint16_t addr, uint8_t val, void *p)
 			if ((svga->crtcreg & 0x3f) < 0xE || (svga->crtcreg & 0x3f) > 0x10) {
 				if (((svga->crtcreg & 0x3f) == 0xc) || ((svga->crtcreg & 0x3f) == 0xd)) {
 					svga->fullchange = 3;
-					svga->ma_latch = ((svga->crtc[0xc] << 8) | svga->crtc[0xd]) + ((svga->crtc[8] & 0x60) >> 5);				
+					svga->ma_latch = ((svga->crtc[0xc] << 8) | svga->crtc[0xd]) + ((svga->crtc[8] & 0x60) >> 5);
 				} else {
 					svga->fullchange = changeframecount;
-					svga_recalctimings(svga);				
+					svga_recalctimings(svga);
 				}
 			}
 			if (svga->crtcreg == 0x11) {
@@ -757,7 +757,7 @@ mystique_in(uint16_t addr, void *p)
     svga_t *svga = &mystique->svga;
     uint8_t temp = 0xff;
 
-    if ((((addr&0xFFF0) == 0x3D0 || (addr&0xFFF0) == 0x3B0) && addr < 0x3de) && !(svga->miscout & 1)) 
+    if ((((addr&0xFFF0) == 0x3D0 || (addr&0xFFF0) == 0x3B0) && addr < 0x3de) && !(svga->miscout & 1))
 	addr ^= 0x60;
 
     switch (addr) {
@@ -773,8 +773,8 @@ mystique_in(uint16_t addr, void *p)
 				temp = tvp3026_ramdac_in(addr, 0, 0, svga->ramdac, svga);
 		else
 				temp = svga_in(addr, svga);
-		break;		
-		
+		break;
+
 	case 0x3D4:
 		temp = svga->crtcreg;
 		break;
@@ -815,7 +815,7 @@ mystique_line_compare(svga_t *svga)
     return 0;
 }
 
-static void 
+static void
 mystique_vsync_callback(svga_t *svga)
 {
     mystique_t *mystique = (mystique_t *)svga->p;
@@ -823,17 +823,17 @@ mystique_vsync_callback(svga_t *svga)
     if (svga->crtc[0x11] & 0x10) {
 	mystique->status |= STATUS_VSYNCPEN;
 	mystique_update_irqs(mystique);
-    }    
+    }
 }
 
 static float
 mystique_getclock(int clock, void *p)
 {
 	mystique_t *mystique = (mystique_t *)p;
-	
+
 	if (clock == 0) return 25175000.0;
-	if (clock == 1) return 28322000.0;	
-	
+	if (clock == 1) return 28322000.0;
+
 	int m = mystique->xpixpll[2].m;
 	int n = mystique->xpixpll[2].n;
 	int pl = mystique->xpixpll[2].p;
@@ -948,7 +948,7 @@ mystique_recalctimings(svga_t *svga)
 	}
 	svga->line_compare = mystique_line_compare;
     } else {
-	svga->packed_chain4 = 0;	
+	svga->packed_chain4 = 0;
 	svga->line_compare = NULL;
 	if (mystique->type >= MGA_1064SG)
 		svga->bpp = 8;
@@ -1134,7 +1134,7 @@ mystique_read_xreg(mystique_t *mystique, int reg)
 		if (mystique->svga.vgapal[0].r < 0x80)
 			ret |= 4;
 		break;
-                
+
 	case XREG_XCRCREML: /*CRC not implemented*/
 		ret = 0;
 		break;
@@ -1334,10 +1334,10 @@ mystique_ctrl_read_b(uint32_t addr, void *p)
 	int rs2 = 0, rs3 = 0;
 
 	if ((mystique->type == MGA_2064W) && (addr & 0x3e00) == 0x3c00)
-	{	
+	{
 		/*RAMDAC*/
 		addr_0x0f = addr & 0x0f;
-		
+
 		if ((addr_0x0f & 3) == 0)
 			addr_0x03 = 0x3c8;
 		else if ((addr_0x0f & 3) == 1)
@@ -1346,7 +1346,7 @@ mystique_ctrl_read_b(uint32_t addr, void *p)
 			addr_0x03 = 0x3c6;
 		else if ((addr_0x0f & 3) == 3)
 			addr_0x03 = 0x3c7;
-		
+
 		if ((addr_0x0f >= 0x04) && (addr_0x0f <= 0x07)) {
 			rs2 = 1;
 			rs3 = 0;
@@ -1357,7 +1357,7 @@ mystique_ctrl_read_b(uint32_t addr, void *p)
 			rs2 = 1;
 			rs3 = 1;
 		}
-		
+
 		ret = tvp3026_ramdac_in(addr_0x03, rs2, rs3, svga->ramdac, svga);
     } else switch (addr & 0x3fff) {
 	case REG_FIFOSTATUS:
@@ -1499,12 +1499,12 @@ mystique_ctrl_read_b(uint32_t addr, void *p)
 	case 0x1e50: case 0x1e51: case 0x1e52: case 0x1e53:
 	case REG_ICLEAR: case REG_ICLEAR+1: case REG_ICLEAR+2: case REG_ICLEAR+3:
 	case 0x2c30: case 0x2c31: case 0x2c32: case 0x2c33:
-	case 0x3e08: 
+	case 0x3e08:
 		break;
 
 	case 0x3c08: case 0x3c09: case 0x3c0b:
                 break;
-                
+
 
 	default:
 		if ((addr & 0x3fff) >= 0x2c00 && (addr & 0x3fff) < 0x2c40)
@@ -1759,10 +1759,10 @@ mystique_ctrl_write_b(uint32_t addr, uint8_t val, void *p)
 	int rs2 = 0, rs3 = 0;
 
 	if ((mystique->type == MGA_2064W) && (addr & 0x3e00) == 0x3c00)
-	{	
+	{
 		/*RAMDAC*/
 		addr_0x0f = addr & 0x0f;
-		
+
 		if ((addr & 3) == 0)
 			addr_0x03 = 0x3c8;
 		else if ((addr & 3) == 1)
@@ -1771,7 +1771,7 @@ mystique_ctrl_write_b(uint32_t addr, uint8_t val, void *p)
 			addr_0x03 = 0x3c6;
 		else if ((addr & 3) == 3)
 			addr_0x03 = 0x3c7;
-		
+
 		if ((addr_0x0f >= 0x04) && (addr_0x0f <= 0x07)) {
 			rs2 = 1;
 			rs3 = 0;
@@ -1782,7 +1782,7 @@ mystique_ctrl_write_b(uint32_t addr, uint8_t val, void *p)
 			rs2 = 1;
 			rs3 = 1;
 		}
-		
+
 		tvp3026_ramdac_out(addr_0x03, rs2, rs3, val, svga->ramdac, svga);
 		return;
 	}
@@ -2657,19 +2657,19 @@ bitop(uint32_t src, uint32_t dst, uint32_t dwgctrl)
 	case BOP(0x0): return 0;
 	case BOP(0x1): return ~(dst | src);
 	case BOP(0x2): return dst & ~src;
-	case BOP(0x3): return ~src;      
+	case BOP(0x3): return ~src;
 	case BOP(0x4): return ~dst & src;
-	case BOP(0x5): return ~dst;      
-	case BOP(0x6): return dst ^ src; 
+	case BOP(0x5): return ~dst;
+	case BOP(0x6): return dst ^ src;
 	case BOP(0x7): return ~(dst & src);
-	case BOP(0x8): return dst & src;   
+	case BOP(0x8): return dst & src;
 	case BOP(0x9): return ~(dst ^ src);
-	case BOP(0xa): return dst;       
+	case BOP(0xa): return dst;
 	case BOP(0xb): return dst | ~src;
-	case BOP(0xc): return src;       
+	case BOP(0xc): return src;
 	case BOP(0xd): return ~dst | src;
-	case BOP(0xe): return dst | src; 
-	case BOP(0xf): return ~0;        
+	case BOP(0xe): return dst | src;
+	case BOP(0xf): return ~0;
     }
 
     return 0;
@@ -2782,7 +2782,7 @@ blit_idump_idump(mystique_t *mystique)
 
 						while ((count < 32) && !mystique->dwgreg.idump_end_of_line) {
 							val64 |= (uint64_t)((*(uint32_t *)&svga->vram[(mystique->dwgreg.src_addr * 3) & mystique->vram_mask]) & 0xffffff) << count;
-	
+
 							if (mystique->dwgreg.src_addr == mystique->dwgreg.ar[0]) {
 								mystique->dwgreg.ar[0] += mystique->dwgreg.ar[5];
 								mystique->dwgreg.ar[3] += mystique->dwgreg.ar[5];
@@ -3122,7 +3122,7 @@ blit_iload_iload(mystique_t *mystique, uint32_t data, int size)
 			case DWGCTRL_BLTMOD_BMONOWF:
 				data = (data >> 24) | ((data & 0x00ff0000) >> 8) | ((data & 0x0000ff00) << 8) | (data << 24);
 				data_mask = (1 << 31);
-				case DWGCTRL_BLTMOD_BMONOLEF:				
+				case DWGCTRL_BLTMOD_BMONOLEF:
 				while (size) {
 					if (mystique->dwgreg.xdst >= mystique->dwgreg.cxleft && mystique->dwgreg.xdst <= mystique->dwgreg.cxright &&
 					    mystique->dwgreg.ydst_lin >= mystique->dwgreg.ytop && mystique->dwgreg.ydst_lin <= mystique->dwgreg.ybot &&
@@ -3411,7 +3411,7 @@ blit_iload_iload_scale(mystique_t *mystique, uint32_t data, int size)
 				data >>= 16;
 				size -= 16;
 			}
-			
+
 			mystique->dwgreg.xdst = (mystique->dwgreg.xdst + 1) & 0xffff;
 			if (mystique->dwgreg.xdst == mystique->dwgreg.fxright)
 			{
@@ -3447,7 +3447,7 @@ blit_iload_iload_scale(mystique_t *mystique, uint32_t data, int size)
 				data64 >>= 32;
 				size -= 32;
 			}
-			
+
 			mystique->dwgreg.xdst = (mystique->dwgreg.xdst + 1) & 0xffff;
 			if (mystique->dwgreg.xdst == mystique->dwgreg.fxright)
 			{
@@ -4551,7 +4551,7 @@ blit_bitblt(mystique_t *mystique)
 									dst = svga->vram[(mystique->dwgreg.ydst_lin + x) & mystique->vram_mask];
 
 									dst = bitop(src, dst, mystique->dwgreg.dwgctrl_running);
-                                                
+
 									svga->vram[(mystique->dwgreg.ydst_lin + x) & mystique->vram_mask] = dst;
 									svga->changedvram[((mystique->dwgreg.ydst_lin + x) & mystique->vram_mask) >> 12] = changeframecount;
 									break;
@@ -4715,7 +4715,7 @@ blit_bitblt(mystique_t *mystique)
 
 static void
 blit_iload(mystique_t *mystique)
-{	
+{
     switch (mystique->dwgreg.dwgctrl_running & DWGCTRL_ATYPE_MASK) {
 	case DWGCTRL_ATYPE_RPL:
 	case DWGCTRL_ATYPE_RSTR:
@@ -4876,10 +4876,10 @@ mystique_start_blit(mystique_t *mystique)
 	case DWGCTRL_OPCODE_AUTOLINE_OPEN:
 		blit_autoline(mystique, 0);
 		break;
-        
+
 	case DWGCTRL_OPCODE_LINE_CLOSE:
 		blit_line(mystique, 1);
-		break;		
+		break;
 
 	case DWGCTRL_OPCODE_AUTOLINE_CLOSE:
 		blit_autoline(mystique, 1);
@@ -5161,7 +5161,7 @@ mystique_init(const device_t *info)
     memset(mystique, 0, sizeof(mystique_t));
 
 	mystique->type = info->local;
-	
+
 	if (mystique->type == MGA_2064W)
 		romfn = ROM_MILLENNIUM;
 	else if (mystique->type == MGA_1064SG)

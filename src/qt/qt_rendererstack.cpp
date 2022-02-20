@@ -213,7 +213,7 @@ void RendererStack::switchRenderer(Renderer renderer) {
     switch (renderer) {
     case Renderer::Software:
     {
-        auto sw = new SoftwareRenderer(this);        
+        auto sw = new SoftwareRenderer(this);
         rendererWindow = sw;
         connect(this, &RendererStack::blitToRenderer, sw, &SoftwareRenderer::onBlit, Qt::QueuedConnection);
         current.reset(this->createWindowContainer(sw, this));

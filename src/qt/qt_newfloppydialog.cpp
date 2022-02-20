@@ -130,7 +130,7 @@ NewFloppyDialog::NewFloppyDialog(MediaType type, QWidget *parent) :
             util::DlgFilter({ "dsk","flp","im?","img","*fd?" }) %
             tr("Surface images") %
             util::DlgFilter({ "86f" }, true));
-        
+
         break;
     case MediaType::Zip:
         for (int i = 0; i < zipTypes.size(); ++i) {

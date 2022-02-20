@@ -181,7 +181,7 @@ machine_at_dellxp60_init(const machine_t *model)
 
     ret = bios_load_linear_inverted("roms/machines/dellxp60/XP60-A08.ROM",
 				    0x000e0000, 131072, 0);
-			   
+
     if (bios_only || !ret)
 	return ret;
 

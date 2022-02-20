@@ -17,6 +17,7 @@
  *		Copyright 2017-2019 Fred N. van Kempen.
  *		Copyright 2021 Laci bá'
  */
+
 #ifndef EMU_PLAT_H
 # define EMU_PLAT_H
 

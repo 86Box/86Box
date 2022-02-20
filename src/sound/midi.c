@@ -399,7 +399,7 @@ midi_raw_out_byte(uint8_t val)
 }
 
 
-void 
+void
 midi_clear_buffer(void)
 {
     if (!midi)

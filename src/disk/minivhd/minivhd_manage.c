@@ -39,7 +39,7 @@ static int mvhd_init_sector_bitmap(MVHDMeta* vhdm, MVHDError* err);
 
 /**
  * \brief Populate data stuctures with content from a VHD footer
- * 
+ *
  * \param [in] vhdm MiniVHD data structure
  */
 static void mvhd_read_footer(MVHDMeta* vhdm) {
@@ -51,7 +51,7 @@ static void mvhd_read_footer(MVHDMeta* vhdm) {
 
 /**
  * \brief Populate data stuctures with content from a VHD sparse header
- * 
+ *
  * \param [in] vhdm MiniVHD data structure
  */
 static void mvhd_read_sparse_header(MVHDMeta* vhdm) {
@@ -63,9 +63,9 @@ static void mvhd_read_sparse_header(MVHDMeta* vhdm) {
 
 /**
  * \brief Validate VHD footer checksum
- * 
+ *
  * This works by generating a checksum from the footer, and comparing it against the stored checksum.
- * 
+ *
  * \param [in] vhdm MiniVHD data structure
  */
 static bool mvhd_footer_checksum_valid(MVHDMeta* vhdm) {
@@ -74,9 +74,9 @@ static bool mvhd_footer_checksum_valid(MVHDMeta* vhdm) {
 
 /**
  * \brief Validate VHD sparse header checksum
- * 
+ *
  * This works by generating a checksum from the sparse header, and comparing it against the stored checksum.
- * 
+ *
  * \param [in] vhdm MiniVHD data structure
  */
 static bool mvhd_sparse_checksum_valid(MVHDMeta* vhdm) {
@@ -85,14 +85,14 @@ static bool mvhd_sparse_checksum_valid(MVHDMeta* vhdm) {
 
 /**
  * \brief Read BAT into MiniVHD data structure
- * 
- * The Block Allocation Table (BAT) is the structure in a sparse and differencing VHD which stores 
+ *
+ * The Block Allocation Table (BAT) is the structure in a sparse and differencing VHD which stores
  * the 4-byte sector offsets for each data block. This function allocates enough memory to contain
  * the entire BAT, and then reads the contents of the BAT into the buffer.
- * 
+ *
  * \param [in] vhdm MiniVHD data structure
  * \param [out] err this is populated with MVHD_ERR_MEM if the calloc fails
- * 
+ *
  * \retval -1 if an error occurrs. Check value of err in this case
  * \retval 0 if the function call succeeds
  */
@@ -112,7 +112,7 @@ static int mvhd_read_bat(MVHDMeta *vhdm, MVHDError* err) {
 
 /**
  * \brief Perform a one-time calculation of some sparse VHD values
- * 
+ *
  * \param [in] vhdm MiniVHD data structure
  */
 static void mvhd_calc_sparse_values(MVHDMeta* vhdm) {
@@ -126,14 +126,14 @@ static void mvhd_calc_sparse_values(MVHDMeta* vhdm) {
 
 /**
  * \brief Allocate memory for a sector bitmap.
- * 
+ *
  * Each data block is preceded by a sector bitmap. Each bit indicates whether the corresponding sector
- * is considered 'clean' or 'dirty' (for sparse VHD images), or whether to read from the parent or current 
+ * is considered 'clean' or 'dirty' (for sparse VHD images), or whether to read from the parent or current
  * image (for differencing images).
- * 
+ *
  * \param [in] vhdm MiniVHD data structure
  * \param [out] err this is populated with MVHD_ERR_MEM if the calloc fails
- * 
+ *
  * \retval -1 if an error occurrs. Check value of err in this case
  * \retval 0 if the function call succeeds
  */
@@ -149,17 +149,17 @@ static int mvhd_init_sector_bitmap(MVHDMeta* vhdm, MVHDError* err) {
 
 /**
  * \brief Check if the path for a given platform code exists
- * 
- * From the available paths, both relative and absolute, construct a full path 
+ *
+ * From the available paths, both relative and absolute, construct a full path
  * and attempt to open a file at that path.
- * 
- * Note, this function makes no attempt to verify that the path is the correct 
+ *
+ * Note, this function makes no attempt to verify that the path is the correct
  * VHD image, or even a VHD image at all.
- * 
+ *
  * \param [in] paths a struct containing all available paths to work with
- * \param [in] the platform code to try and obtain a path for. Setting this to zero 
+ * \param [in] the platform code to try and obtain a path for. Setting this to zero
  * will try using the directory of the child image
- * 
+ *
  * \retval true if a file is found
  * \retval false if a file is not found
  */
@@ -195,23 +195,23 @@ static bool mvhd_parent_path_exists(struct MVHDPaths* paths, uint32_t plat_code)
 
 /**
  * \brief attempt to obtain a file path to a file that may be a valid VHD image
- * 
- * Differential VHD images store both a UTF-16BE file name (or path), and up to 
- * eight "parent locator" entries. Using this information, this function tries to 
+ *
+ * Differential VHD images store both a UTF-16BE file name (or path), and up to
+ * eight "parent locator" entries. Using this information, this function tries to
  * find a parent image.
- * 
+ *
  * This function does not verify if the path returned is a valid parent image.
- * 
+ *
  * \param [in] vhdm current MiniVHD data structure
  * \param [out] err any errors that may occurr. Check this if NULL is returned
- * 
- * \return a pointer to the global string `tmp_open_path`, or NULL if a path could 
+ *
+ * \return a pointer to the global string `tmp_open_path`, or NULL if a path could
  * not be found, or some error occurred
  */
 static char* mvhd_get_diff_parent_path(MVHDMeta* vhdm, int* err) {
     int utf_outlen, utf_inlen, utf_ret;
     char* par_fp = NULL;
-    /* We can't resolve relative paths if we don't have an absolute 
+    /* We can't resolve relative paths if we don't have an absolute
        path to work with */
     if (!cwk_path_is_absolute((const char*)vhdm->filename)) {
         *err = MVHD_ERR_PATH_REL;
@@ -255,7 +255,7 @@ static char* mvhd_get_diff_parent_path(MVHDMeta* vhdm, int* err) {
         }
         mvhd_fseeko64(vhdm->f, vhdm->sparse.par_loc_entry[i].plat_data_offset, SEEK_SET);
         fread(paths->tmp_src_path, sizeof (uint8_t), utf_inlen, vhdm->f);
-        /* Note, the W2*u parent locators are UTF-16LE, unlike the filename field previously obtained, 
+        /* Note, the W2*u parent locators are UTF-16LE, unlike the filename field previously obtained,
            which is UTF-16BE */
         utf_ret = UTF16LEToUTF8(loc_path, &utf_outlen, (const unsigned char*)paths->tmp_src_path, &utf_inlen);
         if (utf_ret < 0) {
@@ -282,7 +282,7 @@ static char* mvhd_get_diff_parent_path(MVHDMeta* vhdm, int* err) {
     /* If we reach this point, we could not find a path with a valid file */
     par_fp = NULL;
     *err = MVHD_ERR_PAR_NOT_FOUND;
-    
+
 paths_cleanup:
     free(paths);
     paths = NULL;
@@ -292,10 +292,10 @@ end:
 
 /**
  * \brief Attach the read/write function pointers to read/write functions
- * 
- * Depending on the VHD type, different sector reading and writing functions are used. 
+ *
+ * Depending on the VHD type, different sector reading and writing functions are used.
  * The functions are called via function pointers stored in the vhdm struct.
- * 
+ *
  * \param [in] vhdm MiniVHD data structure
  */
 static void mvhd_assign_io_funcs(MVHDMeta* vhdm) {
@@ -336,7 +336,7 @@ MVHDGeom mvhd_calculate_geometry(uint64_t size) {
     if (ts > 65535 * 16 * 255) {
         ts = 65535 * 16 * 255;
     }
-    if (ts >= 65535 * 16 * 63) {       
+    if (ts >= 65535 * 16 * 63) {
         spt = 255;
         heads = 16;
         cth = ts / spt;

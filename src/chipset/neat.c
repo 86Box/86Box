@@ -480,7 +480,7 @@ neat_write(uint16_t port, uint8_t val, void *priv)
 #endif
 				break;
 
-			case REG_RB0: 
+			case REG_RB0:
 				val &= RB0_MASK;
 				*reg = (*reg & ~RB0_MASK) | val | \
 				       (RB0_REV_ID << RB0_REV_SH);
@@ -489,7 +489,7 @@ neat_write(uint16_t port, uint8_t val, void *priv)
 #endif
 				break;
 
-			case REG_RB1: 
+			case REG_RB1:
 				val &= RB1_MASK;
 				*reg = (*reg & ~RB1_MASK) | val;
 #if NEAT_DEBUG > 1
@@ -497,7 +497,7 @@ neat_write(uint16_t port, uint8_t val, void *priv)
 #endif
 				break;
 
-			case REG_RB2: 
+			case REG_RB2:
 				val &= RB2_MASK;
 				*reg = (*reg & ~RB2_MASK) | val;
 #if NEAT_DEBUG > 1
@@ -505,7 +505,7 @@ neat_write(uint16_t port, uint8_t val, void *priv)
 #endif
 				break;
 
-			case REG_RB3: 
+			case REG_RB3:
 				val &= RB3_MASK;
 				*reg = (*reg & ~RB3_MASK) | val;
 #if NEAT_DEBUG > 1
@@ -513,7 +513,7 @@ neat_write(uint16_t port, uint8_t val, void *priv)
 #endif
 				break;
 
-			case REG_RB4: 
+			case REG_RB4:
 				val &= RB4_MASK;
 				*reg = (*reg & ~RB4_MASK) | val;
 #if NEAT_DEBUG > 1
@@ -521,7 +521,7 @@ neat_write(uint16_t port, uint8_t val, void *priv)
 #endif
 				break;
 
-			case REG_RB5: 
+			case REG_RB5:
 				val &= RB5_MASK;
 				*reg = (*reg & ~RB5_MASK) | val;
 #if NEAT_DEBUG > 1
@@ -529,7 +529,7 @@ neat_write(uint16_t port, uint8_t val, void *priv)
 #endif
 				break;
 
-			case REG_RB6: 
+			case REG_RB6:
 				val &= RB6_MASK;
 				*reg = (*reg & ~RB6_MASK) | val;
 #if NEAT_DEBUG > 1
@@ -537,7 +537,7 @@ neat_write(uint16_t port, uint8_t val, void *priv)
 #endif
 				break;
 
-			case REG_RB7: 
+			case REG_RB7:
 				val &= RB7_MASK;
 				*reg = val;
 #if NEAT_DEBUG > 1
@@ -556,7 +556,7 @@ neat_write(uint16_t port, uint8_t val, void *priv)
 				}
 				break;
 
-			case REG_RB8: 
+			case REG_RB8:
 				val &= RB8_MASK;
 				*reg = (*reg & ~RB8_MASK) | val;
 #if NEAT_DEBUG > 1
@@ -564,7 +564,7 @@ neat_write(uint16_t port, uint8_t val, void *priv)
 #endif
 				break;
 
-			case REG_RB9: 
+			case REG_RB9:
 				val &= RB9_MASK;
 				*reg = (*reg & ~RB9_MASK) | val;
 #if NEAT_DEBUG > 1
@@ -576,7 +576,7 @@ neat_write(uint16_t port, uint8_t val, void *priv)
 				}
 				break;
 
-			case REG_RB10: 
+			case REG_RB10:
 				val &= RB10_MASK;
 				*reg = (*reg & ~RB10_MASK) | val;
 #if NEAT_DEBUG > 1
@@ -591,7 +591,7 @@ neat_write(uint16_t port, uint8_t val, void *priv)
 					ems_recalc(dev, &dev->ems[i]);
 				break;
 
-			case REG_RB11: 
+			case REG_RB11:
 				val &= RB11_MASK;
 				*reg = (*reg & ~RB11_MASK) | val;
 #if NEAT_DEBUG > 1

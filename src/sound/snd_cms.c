@@ -59,7 +59,7 @@ void cms_update(cms_t *cms)
                                         {
                                                 cms->noisecount[c][d] -= 24000;
                                                 cms->noise[c][d] <<= 1;
-                                                if (!(((cms->noise[c][d] & 0x4000) >> 8) ^ (cms->noise[c][d] & 0x40))) 
+                                                if (!(((cms->noise[c][d] & 0x4000) >> 8) ^ (cms->noise[c][d] & 0x40)))
                                                         cms->noise[c][d] |= 1;
                                         }
                                 }
@@ -73,11 +73,11 @@ void cms_update(cms_t *cms)
 void cms_get_buffer(int32_t *buffer, int len, void *p)
 {
         cms_t *cms = (cms_t *)p;
-        
+
         int c;
 
         cms_update(cms);
-        
+
         for (c = 0; c < len * 2; c++)
                 buffer[c] += cms->buffer[c];
 
@@ -89,7 +89,7 @@ void cms_write(uint16_t addr, uint8_t val, void *p)
         cms_t *cms = (cms_t *)p;
         int voice;
         int chip = (addr & 2) >> 1;
-        
+
         switch (addr & 0xf)
         {
                 case 1:
@@ -98,7 +98,7 @@ void cms_write(uint16_t addr, uint8_t val, void *p)
                 case 3:
                 cms->addrs[1] = val & 31;
                 break;
-                
+
                 case 0: case 2:
                 cms_update(cms);
                 cms->regs[chip][cms->addrs[chip] & 31] = val;
@@ -167,7 +167,7 @@ void *cms_init(const device_t *info)
 void cms_close(void *p)
 {
         cms_t *cms = (cms_t *)p;
-        
+
         free(cms);
 }
 

@@ -19,7 +19,6 @@
 #ifndef EMU_UI_H
 # define EMU_UI_H
 
-
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -79,6 +78,5 @@ extern void	ui_sb_mt32lcd(char *str);
 #ifdef __cplusplus
 }
 #endif
-
 
 #endif	/*EMU_UI_H*/

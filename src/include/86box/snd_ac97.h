@@ -14,9 +14,8 @@
  *
  *		Copyright 2021 RichardG.
  */
-#ifndef EMU_SND_AC97_H
-# define EMU_SND_AC97_H
-
+#ifndef SOUND_AC97_H
+# define SOUND_AC97_H
 
 #define AC97_VENDOR_ID(f, s, t, dev)	((((f) & 0xff) << 24) | (((s) & 0xff) << 16) | (((t) & 0xff) << 8) | ((dev) & 0xff))
 
@@ -153,5 +152,4 @@ extern const device_t	wm9701a_device;
 extern const device_t	ac97_via_device;
 #endif
 
-
-#endif
+#endif /*SOUND_AC97_H*/

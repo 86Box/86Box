@@ -28,7 +28,7 @@ uint32_t ropJMP_r16(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t 
 {
         uint32_t offset = (int32_t)(int16_t)fastreadw(cs + op_pc);
         uint32_t dest_addr = op_pc+2+offset;
-        
+
         dest_addr &= 0xffff;
 
         if (offset < 0)
@@ -40,7 +40,7 @@ uint32_t ropJMP_r32(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t 
 {
         uint32_t offset = fastreadl(cs + op_pc);
         uint32_t dest_addr = op_pc+4+offset;
-        
+
         if (offset < 0)
                 codegen_can_unroll(block, ir, op_pc+1, dest_addr);
         codegen_mark_code_present(block, cs+op_pc, 4);
@@ -100,13 +100,13 @@ uint32_t ropCALL_r32(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t
         uint32_t ret_addr = op_pc + 4;
         uint32_t dest_addr = ret_addr + offset;
         int sp_reg;
-        
+
         uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);
         sp_reg = LOAD_SP_WITH_OFFSET(ir, -4);
         uop_MEM_STORE_IMM_32(ir, IREG_SS_base, sp_reg, ret_addr);
         SUB_SP(ir, 4);
         uop_MOV_IMM(ir, IREG_pc, dest_addr);
-        
+
         codegen_mark_code_present(block, cs+op_pc, 4);
         return -1;
 }
@@ -114,7 +114,7 @@ uint32_t ropCALL_r32(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t
 uint32_t ropRET_16(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
 {
         uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);
-        
+
         if (stack32)
                 uop_MEM_LOAD_REG(ir, IREG_temp0_W, IREG_SS_base, IREG_ESP);
         else
@@ -130,7 +130,7 @@ uint32_t ropRET_16(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t f
 uint32_t ropRET_32(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
 {
         uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);
-        
+
         if (stack32)
                 uop_MEM_LOAD_REG(ir, IREG_pc, IREG_SS_base, IREG_ESP);
         else
@@ -146,7 +146,7 @@ uint32_t ropRET_32(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t f
 uint32_t ropRET_imm_16(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
 {
         uint16_t offset = fastreadw(cs + op_pc);
-        
+
         uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);
 
         if (stack32)
@@ -267,7 +267,7 @@ uint32_t ropRETF_imm_32(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint3
 
         if ((msw&1) && !(cpu_state.eflags&VM_FLAG))
                 return 0;
-                
+
         offset = fastreadw(cs + op_pc);
         uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);
 

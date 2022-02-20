@@ -495,7 +495,7 @@ scsi_disk_reset(scsi_common_t *sc)
 
 void
 scsi_disk_request_sense(scsi_disk_t *dev, uint8_t *buffer, uint8_t alloc_length, int desc)
-{				
+{
     /*Will return 18 bytes of 0*/
     if (alloc_length != 0) {
 	memset(buffer, 0, alloc_length);
@@ -922,7 +922,7 @@ scsi_disk_command(scsi_common_t *sc, uint8_t *cdb)
 			dev->packet_status = PHASE_COMPLETE;
 			dev->callback = 20.0 * SCSI_TIME;
 			break;
-		}			
+		}
 
 		scsi_disk_buf_alloc(dev, 65536);
 

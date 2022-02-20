@@ -113,7 +113,7 @@ static int opMOV_r_DRx_a32(uint32_t fetchdat)
 static int opMOV_CRx_r_a16(uint32_t fetchdat)
 {
         uint32_t old_cr0 = cr0;
-        
+
         if ((CPL || (cpu_state.eflags&VM_FLAG)) && (cr0&1))
         {
                 x86gpf(NULL,0);
@@ -172,7 +172,7 @@ static int opMOV_CRx_r_a16(uint32_t fetchdat)
 static int opMOV_CRx_r_a32(uint32_t fetchdat)
 {
         uint32_t old_cr0 = cr0;
-        
+
         if ((CPL || (cpu_state.eflags&VM_FLAG)) && (cr0&1))
         {
                 x86gpf(NULL,0);
@@ -366,4 +366,3 @@ static int opMOV_TRx_r_a32(uint32_t fetchdat)
         PREFETCH_RUN(6, 2, rmdat, 0,0,0,0, 1);
         return 0;
 }
-

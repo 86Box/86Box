@@ -211,7 +211,7 @@ typedef struct {
     int		board;
     int		is_pci, is_vlb, is_isa;
     int		PCIBase;
-    int		MMIOBase;	
+    int		MMIOBase;
     uint32_t	base_address;
     int		base_irq;
     int		dma_channel;
@@ -426,7 +426,7 @@ pcnet_do_irq(nic_t *dev, int issue)
 			picint(1<<dev->base_irq);
 		else
 			picintc(1<<dev->base_irq);
-	}	
+	}
 }
 
 /**
@@ -582,7 +582,7 @@ pcnetRmdLoad(nic_t *dev, RMD *rmd, uint32_t addr, int fRetIfNotOwn)
     /* Double check the own bit; guest drivers might be buggy and lock prefixes in the recompiler are ignored by other threads. */
     if (rmd->rmd1.own == 1 && !(ownbyte & 0x80))
         pcnetlog(3, "%s: pcnetRmdLoad: own bit flipped while reading!!\n", dev->name);
-	
+
     if (!(ownbyte & 0x80))
         rmd->rmd1.own = 0;
 
@@ -660,7 +660,7 @@ struct ether_header /** @todo Use RTNETETHERHDR */
 
 #define MULTICAST_FILTER_LEN 8
 
-static __inline uint32_t 
+static __inline uint32_t
 lnc_mchash(const uint8_t *ether_addr)
 {
 #define LNC_POLYNOMIAL          0xEDB88320UL
@@ -774,7 +774,7 @@ padr_match(nic_t *dev, const uint8_t *buf, int size)
          hdr->ether_dhost[0],hdr->ether_dhost[1],hdr->ether_dhost[2],
          hdr->ether_dhost[3],hdr->ether_dhost[4],hdr->ether_dhost[5],
          padr[0],padr[1],padr[2],padr[3],padr[4],padr[5], result);
-		 
+
     return result;
 }
 
@@ -790,7 +790,7 @@ padr_bcast(nic_t *dev, const uint8_t *buf, size_t size)
 }
 
 
-static int 
+static int
 ladr_match(nic_t *dev, const uint8_t *buf, size_t size)
 {
     struct ether_header *hdr = (struct ether_header *)buf;
@@ -815,7 +815,7 @@ ladr_match(nic_t *dev, const uint8_t *buf, size_t size)
 /**
  * Get the receive descriptor ring address with a given index.
  */
-static __inline uint32_t 
+static __inline uint32_t
 pcnetRdraAddr(nic_t *dev, int idx)
 {
     return dev->GCRDRA + ((CSR_RCVRL(dev) - idx) << dev->iLog2DescSize);
@@ -825,23 +825,23 @@ pcnetRdraAddr(nic_t *dev, int idx)
 /**
  * Get the transmit descriptor ring address with a given index.
  */
-static __inline uint32_t 
+static __inline uint32_t
 pcnetTdraAddr(nic_t *dev, int idx)
 {
     return dev->GCTDRA + ((CSR_XMTRL(dev) - idx) << dev->iLog2DescSize);
 }
 
 
-static void 
+static void
 pcnetSoftReset(nic_t *dev)
 {
     pcnetlog(3, "%s: pcnetSoftReset\n", dev->name);
-	
+
     dev->u32Lnkst = 0x40;
     dev->GCRDRA   = 0;
     dev->GCTDRA   = 0;
     dev->u32RAP   = 0;
-	
+
     dev->aCSR[0]   = 0x0004;
     dev->aCSR[3]   = 0x0000;
     dev->aCSR[4]   = 0x0115;
@@ -893,10 +893,10 @@ static void
 pcnetUpdateIrq(nic_t *dev)
 {
     int iISR = 0;
-    uint16_t csr0;	
+    uint16_t csr0;
 
     csr0 = dev->aCSR[0];
-    
+
     csr0 &= ~0x0080; /* clear INTR */
 
     if (((csr0 & ~dev->aCSR[3]) & 0x5f00) ||
@@ -905,7 +905,7 @@ pcnetUpdateIrq(nic_t *dev)
 	iISR = !!(csr0 & 0x0040); /* CSR_INEA */
 	csr0 |= 0x0080; /* set INTR */
     }
-    
+
     if (dev->aCSR[4] & 0x0080) { /* UINTCMD */
 	dev->aCSR[4] &= ~0x0080; /* clear UINTCMD */
 	dev->aCSR[4] |= 0x0040; /* set UINT */
@@ -916,25 +916,25 @@ pcnetUpdateIrq(nic_t *dev)
 	csr0 |= 0x0080; /* set INTR */
 	iISR = 1;
     }
-    
+
     if (((dev->aCSR[5]>>1) & dev->aCSR[5]) & 0x0500) {
 	iISR = 1;
 	csr0 |= 0x0080; /* set INTR */
     }
-    
+
     if ((dev->aCSR[7] & 0x0c00) == 0x0c00) /* STINT + STINTE */
 	iISR = 1;
-	
+
     dev->aCSR[0] = csr0;
-    
+
     pcnetlog(2, "%s: pcnetUpdateIrq: iISR=%d\n", dev->name, iISR);
-    
+
     pcnet_do_irq(dev, iISR);
     dev->iISR = iISR;
 }
 
 
-static void 
+static void
 pcnetInit(nic_t *dev)
 {
     int i;
@@ -1023,7 +1023,7 @@ pcnetInit(nic_t *dev)
 /**
  * Start RX/TX operation.
  */
-static void 
+static void
 pcnetStart(nic_t *dev)
 {
     pcnetlog(3, "%s: pcnetStart: Poll timer\n", dev->name);
@@ -1037,7 +1037,7 @@ pcnetStart(nic_t *dev)
     if (!CSR_DRX(dev))
         dev->aCSR[0] |= 0x0020;    /* set RXON */
     dev->aCSR[0] &= ~0x0004;       /* clear STOP bit */
-    dev->aCSR[0] |= 0x0002;       /* STRT */	
+    dev->aCSR[0] |= 0x0002;       /* STRT */
     pcnetPollTimer(dev);
 }
 
@@ -1045,7 +1045,7 @@ pcnetStart(nic_t *dev)
 /**
  * Stop RX/TX operation.
  */
-static void 
+static void
 pcnetStop(nic_t *dev)
 {
     pcnetlog(3, "%s: pcnetStop: Poll timer\n", dev->name);
@@ -1062,7 +1062,7 @@ pcnetStop(nic_t *dev)
  * by the host (the guest driver) anymore. Well, it could but the results are undefined by
  * definition.
  */
-static void 
+static void
 pcnetRdtePoll(nic_t *dev)
 {
     /* assume lack of a next receive descriptor */
@@ -1140,7 +1140,7 @@ pcnetRdtePoll(nic_t *dev)
  * Poll Transmit Descriptor Table Entry
  * @return true if transmit descriptors available
  */
-static int 
+static int
 pcnetTdtePoll(nic_t *dev, TMD *tmd)
 {
     if (dev->GCTDRA) {
@@ -1178,7 +1178,7 @@ pcnetTdtePoll(nic_t *dev, TMD *tmd)
  * Poll Transmit Descriptor Table Entry
  * @return true if transmit descriptors available
  */
-static int 
+static int
 pcnetCalcPacketLen(nic_t *dev, int cb)
 {
     TMD tmd;
@@ -1244,7 +1244,7 @@ pcnetReceiveNoSync(void *priv, uint8_t *buf, int size)
         buf = buf1;
         size = 60;
     }
-    
+
     /*
      * Drop packets if the cable is not connected
      */
@@ -1269,7 +1269,7 @@ pcnetReceiveNoSync(void *priv, uint8_t *buf, int size)
 
         if (HOST_IS_OWNER(CSR_CRST(dev))) {
             /* Not owned by controller. This should not be possible as
-             * we already called pcnetCanReceive(). */			
+             * we already called pcnetCanReceive(). */
 	    const unsigned cb = 1 << dev->iLog2DescSize;
             uint32_t GCPhys = dev->GCRDRA;
             iRxDesc = CSR_RCVRL(dev);
@@ -1290,7 +1290,7 @@ pcnetReceiveNoSync(void *priv, uint8_t *buf, int size)
             uint32_t crda = CSR_CRDA(dev);
             uint32_t next_crda;
             RMD rmd, next_rmd;
-			
+
             /*
              * Ethernet framing considers these two octets to be
              * payload type; 802.3 framing considers them to be
@@ -1304,7 +1304,7 @@ pcnetReceiveNoSync(void *priv, uint8_t *buf, int size)
             if (len_802_3 < 46 && CSR_ASTRP_RCV(dev)) {
                 size = MIN(sizeof(RTNETETHERHDR) + len_802_3, size);
                 fStrip = 1;
-            }			
+            }
 
 	    memcpy(src, buf, size);
 
@@ -1315,7 +1315,7 @@ pcnetReceiveNoSync(void *priv, uint8_t *buf, int size)
 		if (!CSR_LOOP(dev))
 		    while (size < 60)
 			src[size++] = 0;
-		
+
                 uint32_t fcs = UINT32_MAX;
                 uint8_t *p = src;
 
@@ -1327,7 +1327,7 @@ pcnetReceiveNoSync(void *priv, uint8_t *buf, int size)
 		size += 4;
 	    }
 
-            cbPacket = (int)size; 
+            cbPacket = (int)size;
 
             pcnetRmdLoad(dev, &rmd, PHYSADDR(dev, crda), 0);
             /* if (!CSR_LAPPEN(dev)) */
@@ -1351,7 +1351,7 @@ pcnetReceiveNoSync(void *priv, uint8_t *buf, int size)
              */
 
             dma_bm_write(rbadr, src, cbBuf, dev->transfer_size);
-			
+
             /* RX disabled in the meantime? If so, abort RX. */
             if (CSR_DRX(dev) || CSR_STOP(dev) || CSR_SPND(dev)) {
 		pcnetlog(3, "%s: RX disabled 1\n", dev->name);
@@ -1435,7 +1435,7 @@ pcnetReceiveNoSync(void *priv, uint8_t *buf, int size)
             dev->aCSR[0] |= 0x0400;
             pcnetlog(1, "%s: RINT set, RCVRC=%d CRDA=%#010x\n", dev->name,
                  CSR_RCVRC(dev), PHYSADDR(dev, CSR_CRDA(dev)));
-			
+
             /* guest driver is owner: force repoll of current and next RDTEs */
             CSR_CRST(dev) = 0;
 	}
@@ -1474,7 +1474,7 @@ pcnetXmitFailTMDGeneric(nic_t *dev, TMD *pTmd)
  *
  * @threads TX or EMT.
  */
-static void 
+static void
 pcnetAsyncTransmit(nic_t *dev)
 {
     /*
@@ -1502,7 +1502,7 @@ pcnetAsyncTransmit(nic_t *dev)
             break;
 
         pcnetlog(3, "%s: TMDLOAD %#010x\n", dev->name, PHYSADDR(dev, CSR_CXDA(dev)));
-		
+
         int fLoopback = CSR_LOOP(dev);
 
         /*
@@ -1510,10 +1510,10 @@ pcnetAsyncTransmit(nic_t *dev)
          */
         if (tmd.tmd1.stp && tmd.tmd1.enp) {
             const int cb = 4096 - tmd.tmd1.bcnt;
-            pcnetlog("%s: pcnetAsyncTransmit: stp&enp: cb=%d xmtrc=%#x\n", dev->name, cb, CSR_XMTRC(dev));			
+            pcnetlog("%s: pcnetAsyncTransmit: stp&enp: cb=%d xmtrc=%#x\n", dev->name, cb, CSR_XMTRC(dev));
 
 	    if ((pcnetIsLinkUp(dev) || fLoopback)) {
-	    
+
 		/* From the manual: ``A zero length buffer is acceptable as
 		 * long as it is not the last buffer in a chain (STP = 0 and
 		 * ENP = 1).'' That means that the first buffer might have a
@@ -1526,10 +1526,10 @@ pcnetAsyncTransmit(nic_t *dev)
 			if (HOST_IS_OWNER(CSR_CRST(dev)))
 			    pcnetRdtePoll(dev);
 
-			pcnetReceiveNoSync(dev, dev->abLoopBuf, dev->xmit_pos);		    
+			pcnetReceiveNoSync(dev, dev->abLoopBuf, dev->xmit_pos);
 		    } else {
 			pcnetlog(3, "%s: pcnetAsyncTransmit: transmit loopbuf stp and enp, xmit pos = %d\n", dev->name, dev->xmit_pos);
-			network_tx(dev->abLoopBuf, dev->xmit_pos);		        
+			network_tx(dev->abLoopBuf, dev->xmit_pos);
 		    }
 		} else if (cb == 4096) {
 		    /* The Windows NT4 pcnet driver sometimes marks the first
@@ -1537,13 +1537,13 @@ pcnetAsyncTransmit(nic_t *dev)
 		     * passing it back). Do not update the ring counter in this
 		     * case (otherwise that driver becomes even more confused,
 		     * which causes transmit to stall for about 10 seconds).
-		     * This is just a workaround, not a final solution. 
+		     * This is just a workaround, not a final solution.
 		     */
 		    /* r=frank: IMHO this is the correct implementation. The
 		     * manual says: ``If the OWN bit is set and the buffer
 		     * length is 0, the OWN bit will be cleared. In the C-LANCE
 		     * the buffer length of 0 is interpreted as a 4096-byte
-		     * buffer.'' 
+		     * buffer.''
 		     */
 		    /* r=michaln: Perhaps not quite right. The C-LANCE (Am79C90)
 		     * datasheet explains that the old LANCE (Am7990) ignored
@@ -1637,12 +1637,12 @@ pcnetAsyncTransmit(nic_t *dev)
 			    pcnetRdtePoll(dev);
 
 			pcnetlog(3, "%s: pcnetAsyncTransmit: receive loopback enp\n", dev->name);
-			pcnetReceiveNoSync(dev, dev->abLoopBuf, dev->xmit_pos);						
+			pcnetReceiveNoSync(dev, dev->abLoopBuf, dev->xmit_pos);
 		    } else {
 			pcnetlog(3, "%s: pcnetAsyncTransmit: transmit loopbuf enp\n", dev->name);
 			network_tx(dev->abLoopBuf, dev->xmit_pos);
 		    }
-					
+
                     /* Write back the TMD, pass it to the host */
                     pcnetTmdStorePassHost(dev, &tmd, PHYSADDR(dev, CSR_CXDA(dev)));
 
@@ -1667,20 +1667,20 @@ pcnetAsyncTransmit(nic_t *dev)
         if (--cMax == 0)
             break;
     } while (CSR_TXON(dev));          /* transfer on */
-    
+
     if (cFlushIrq) {
 	dev->aCSR[0] |= 0x0200; /* set TINT */
 	/* Don't allow the guest to clear TINT before reading it */
 	dev->u16CSR0LastSeenByGuest &= ~0x0200;
 	pcnetUpdateIrq(dev);
-    }	
+    }
 }
 
 
 /**
  * Poll for changes in RX and TX descriptor rings.
  */
-static void 
+static void
 pcnetPollRxTx(nic_t *dev)
 {
     if (CSR_RXON(dev))  {
@@ -1742,13 +1742,13 @@ pcnetHardReset(nic_t *dev)
     dev->aBCR[BCR_PCISVID] = 0x1022;
 
     /* Reset the error counter. */
-    dev->uCntBadRMD = 0;	
+    dev->uCntBadRMD = 0;
 
     pcnetSoftReset(dev);
 }
 
 
-static void 
+static void
 pcnet_csr_writew(nic_t *dev, uint16_t rap, uint16_t val)
 {
     pcnetlog(1, "%s: pcnet_csr_writew: rap=%d val=%#06x\n", dev->name, rap, val);
@@ -1756,7 +1756,7 @@ pcnet_csr_writew(nic_t *dev, uint16_t rap, uint16_t val)
 	case 0:
 	{
 	    uint16_t csr0 = dev->aCSR[0];
-	    /* Clear any interrupt flags.  
+	    /* Clear any interrupt flags.
 	     * Don't clear an interrupt flag which was not seen by the guest yet. */
 	    csr0 &= ~(val & 0x7f00 & dev->u16CSR0LastSeenByGuest);
 	    csr0 = (csr0 & ~0x0040) | (val & 0x0048);
@@ -1839,12 +1839,12 @@ pcnet_csr_writew(nic_t *dev, uint16_t rap, uint16_t val)
 	    break;
 	case 4: /* Test and Features Control */
 	    dev->aCSR[4] &= ~(val & 0x026a);
-	    val &= ~0x026a; 
+	    val &= ~0x026a;
 	    val |= dev->aCSR[4] & 0x026a;
 	    break;
 	case 5: /* Extended Control and Interrupt 1 */
 	    dev->aCSR[5] &= ~(val & 0x0a90);
-	    val &= ~0x0a90; 
+	    val &= ~0x0a90;
 	    val |= dev->aCSR[5] & 0x0a90;
 	    break;
 	case 7: /* Extended Control and Interrupt 2 */
@@ -1896,12 +1896,12 @@ pcnet_csr_writew(nic_t *dev, uint16_t rap, uint16_t val)
 		dev->GCTDRA = (dev->GCTDRA & 0xffff0000) | (val & 0x0000ffff);
 	    else
 		dev->GCTDRA = (dev->GCTDRA & 0x0000ffff) | ((val & 0x0000ffff) << 16);
-    
+
 	    pcnetlog(3, "%s: WRITE CSR%d, %#06x => GCTDRA=%08x (alt init)\n", dev->name, rap, val, dev->GCTDRA);
 
 	    if (dev->GCTDRA & (dev->iLog2DescSize - 1))
 		pcnetlog(1, "%s: Warning: Misaligned TDRA (GCTDRA=%#010x)\n", dev->name, dev->GCTDRA);
-	    break;		
+	    break;
 	case 58: /* Software Style */
 	    pcnet_bcr_writew(dev,BCR_SWS,val);
 	    break;
@@ -1925,7 +1925,7 @@ pcnet_csr_writew(nic_t *dev, uint16_t rap, uint16_t val)
 	      * HACK ALERT! Set the counter registers too.
 	      */
 	     dev->aCSR[rap - 4] = val;
-	     break;		
+	     break;
 	default:
 	     return;
     }
@@ -2030,22 +2030,22 @@ pcnet_bcr_writew(nic_t *dev, uint16_t rap, uint16_t val)
 	    if (dev->board == DEV_AM79C973)
 		timer_set_delay_u64(&dev->timer_soft_int, (12.8 * val) * TIMER_USEC);
 	    break;
-	
+
 	case BCR_MIIMDR:
 	    dev->aMII[dev->aBCR[BCR_MIIADDR] & 0x1f] = val;
 	    break;
-	
+
 	default:
 	    break;
     }
 }
 
-static uint16_t 
+static uint16_t
 pcnet_mii_readw(nic_t *dev, uint16_t miiaddr)
 {
     uint16_t val;
     int autoneg, duplex, fast, isolate;
-    
+
     /* If the DANAS (BCR32.7) bit is set, the MAC does not do any
      * auto-negotiation and the PHY must be set up explicitly. DANAS
      * effectively disables most other BCR32 bits.
@@ -2059,10 +2059,10 @@ pcnet_mii_readw(nic_t *dev, uint16_t miiaddr)
 	duplex = (dev->aBCR[BCR_MIICAS] & 0x10) != 0;
 	fast = (dev->aBCR[BCR_MIICAS] & 0x08) != 0;
     }
-    
+
     /* Electrically isolating the PHY mostly disables it. */
     isolate = (dev->aMII[0] & 0x400) != 0;
-    
+
     switch (miiaddr) {
 	case 0:
 	    /* MII basic mode control register. */
@@ -2102,17 +2102,17 @@ pcnet_mii_readw(nic_t *dev, uint16_t miiaddr)
 		    val &= ~0x6000; /* 10 Mbps forced */
 	    }
 	    break;
-	    
+
 	case 2:
 	    /* PHY identifier 1. */
 	    val = 0x22; /* Am79C874/AC101 PHY */
 	    break;
-	
+
 	case 3:
 	    /* PHY identifier 2. */
 	    val = 0x561b; /* Am79C874/AC101 PHY */
 	    break;
-	
+
 	case 4:
 	    /* Advertisement control register. */
 	    val = 0x01e0 /* Try 100mbps FD/HD and 10mbps FD/HD. */
@@ -2144,13 +2144,13 @@ pcnet_mii_readw(nic_t *dev, uint16_t miiaddr)
 		dev->cLinkDownReported++;
 	    }
 	    break;
-	    
+
 	case 18:
 	    /* Diagnostic Register (FreeBSD pcn/ac101 driver reads this). */
 	    if (dev->fLinkUp && !dev->fLinkTempDown && !isolate) {
 		val = 0x1000 /* Receive PLL locked. */
 		    | 0x0200; /* Signal detected. */
-		
+
 		if (autoneg) {
 		    val |= 0x0400 /* 100Mbps rate. */
 		        | 0x0800; /* Full duplex. */
@@ -2165,16 +2165,16 @@ pcnet_mii_readw(nic_t *dev, uint16_t miiaddr)
 		dev->cLinkDownReported++;
 	    }
 	    break;
-	    
+
 	default:
 	    val = 0;
 	    break;
     }
-    
+
     return val;
 }
 
-static uint16_t 
+static uint16_t
 pcnet_bcr_readw(nic_t *dev, uint16_t rap)
 {
     uint16_t val;
@@ -2192,7 +2192,7 @@ pcnet_bcr_readw(nic_t *dev, uint16_t rap)
 		}
 		val |= (val & 0x017f & dev->u32Lnkst) ? 0x8000 : 0;
 		break;
-		
+
 	case BCR_MIIMDR:
 		if ((dev->board == DEV_AM79C973) && (((dev->aBCR[BCR_MIIADDR] >> 5) & 0x1f) == 0)) {
 		    uint16_t miiaddr = dev->aBCR[BCR_MIIADDR] & 0x1f;
@@ -2263,7 +2263,7 @@ pcnet_byte_read(nic_t *dev, uint32_t addr)
 
 static uint16_t
 pcnet_word_read(nic_t *dev, uint32_t addr)
-{ 
+{
     uint16_t val = 0xffff;
 
     if (!BCR_DWIO(dev)) {
@@ -2273,7 +2273,7 @@ pcnet_word_read(nic_t *dev, uint32_t addr)
 			/** Polling is then useless here and possibly expensive. */
 			if (!CSR_DPOLL(dev))
 				pcnetPollTimer(dev);
-			
+
 			val = pcnet_csr_readw(dev, dev->u32RAP);
 			if (dev->u32RAP == 0)
 				goto skip_update_irq;
@@ -2300,7 +2300,7 @@ skip_update_irq:
 }
 
 
-static void 
+static void
 pcnet_dword_write(nic_t *dev, uint32_t addr, uint32_t val)
 {
     if (BCR_DWIO(dev)) {
@@ -2327,7 +2327,7 @@ pcnet_dword_write(nic_t *dev, uint32_t addr, uint32_t val)
 
 static uint32_t
 pcnet_dword_read(nic_t *dev, uint32_t addr)
-{ 
+{
     uint32_t val = 0xffffffff;
 
     if (BCR_DWIO(dev)) {
@@ -2360,7 +2360,7 @@ skip_update_irq:
 }
 
 
-static void 
+static void
 pcnet_aprom_writeb(nic_t *dev, uint32_t addr, uint32_t val)
 {
     /* Check APROMWE bit to enable write access */
@@ -2369,7 +2369,7 @@ pcnet_aprom_writeb(nic_t *dev, uint32_t addr, uint32_t val)
 }
 
 
-static uint32_t 
+static uint32_t
 pcnet_aprom_readb(nic_t *dev, uint32_t addr)
 {
     uint32_t val = dev->aPROM[addr & 15];
@@ -2547,7 +2547,7 @@ pcnet_mem_disable(nic_t *dev)
 
 static void
 pcnet_ioremove(nic_t *dev, uint16_t addr, int len)
-{	
+{
     if (dev->is_pci || dev->is_vlb) {
 	io_removehandler(addr, len,
 			 pcnet_readb, pcnet_readw, pcnet_readl,
@@ -2562,7 +2562,7 @@ pcnet_ioremove(nic_t *dev, uint16_t addr, int len)
 
 static void
 pcnet_ioset(nic_t *dev, uint16_t addr, int len)
-{	
+{
     pcnet_ioremove(dev, addr, len);
 
     if (dev->is_pci || dev->is_vlb) {
@@ -2572,7 +2572,7 @@ pcnet_ioset(nic_t *dev, uint16_t addr, int len)
     } else {
 	io_sethandler(addr, len,
 		      pcnet_readb, pcnet_readw, NULL,
-		      pcnet_writeb, pcnet_writew, NULL, dev);	
+		      pcnet_writeb, pcnet_writew, NULL, dev);
     }
 }
 
@@ -2643,10 +2643,10 @@ pcnet_pci_write(int func, int addr, uint8_t val, void *p)
 			if (dev->MMIOBase != 0)
 				pcnet_mem_set_addr(dev, dev->MMIOBase);
 		}
-		return;	
+		return;
 
 	case 0x3C:
-		dev->base_irq = val;	
+		dev->base_irq = val;
 		pcnet_pci_regs[addr] = val;
 		return;
     }
@@ -2796,7 +2796,7 @@ pcnet_pnp_write_vendor_reg(uint8_t ld, uint8_t reg, uint8_t val, void *priv)
  *
  * @param  pThis        The PCnet shared instance data.
  */
-static void 
+static void
 pcnetTempLinkDown(nic_t *dev)
 {
     if (dev->fLinkUp) {
@@ -2852,12 +2852,12 @@ pcnetSetLinkState(void *priv)
 {
     nic_t *dev = (nic_t *) priv;
     int fLinkUp;
-    
+
     if (dev->fLinkTempDown) {
 	pcnetTempLinkDown(dev);
 	return 1;
     }
-    
+
     fLinkUp = (dev->fLinkUp && !dev->fLinkTempDown);
     if (dev->fLinkUp != fLinkUp) {
 	dev->fLinkUp = fLinkUp;
@@ -2871,7 +2871,7 @@ pcnetSetLinkState(void *priv)
             dev->aCSR[0] |= 0x8000 | 0x2000; /* ERR | CERR (this is probably wrong) */
 	}
     }
-    
+
     return 0;
 }
 
@@ -2889,7 +2889,7 @@ static void
 pcnetTimerRestore(void *priv)
 {
     nic_t *dev = (nic_t *) priv;
-    
+
     if (dev->cLinkDownReported <= PCNET_MAX_LINKDOWN_REPORTED) {
 	timer_advance_u64(&dev->timer_restore, 1500000 * TIMER_USEC);
     } else {
@@ -2926,10 +2926,10 @@ pcnet_init(const device_t *info)
 	pcnet_mem_init(dev, 0x0fffff00);
 	pcnet_mem_disable(dev);
     }
-    
+
     dev->fLinkUp = 1;
     dev->cMsLinkUpDelay = 5000;
-    
+
     if (dev->board == DEV_AM79C960_EB) {
 	    dev->maclocal[0] = 0x02;  /* 02:07:01 (Racal OID) */
 	    dev->maclocal[1] = 0x07;
@@ -2987,7 +2987,7 @@ pcnet_init(const device_t *info)
     } else {
 	/* Must be ASCII W (57h) if compatibility to AMD
 	 driver software is desired */
-	dev->aPROM[14] = dev->aPROM[15] = 0x57;    
+	dev->aPROM[14] = dev->aPROM[15] = 0x57;
     }
 
     for (c = 0, checksum = 0; c < 16; c++)
@@ -3065,14 +3065,14 @@ pcnet_close(void *priv)
     nic_t *dev = (nic_t *)priv;
 
     pcnetlog(1, "%s: closed\n", dev->name);
-    
+
     /* Make sure the platform layer is shut down. */
     network_close();
-    
+
     if (dev) {
 	free(dev);
 	dev = NULL;
-    
+
     }
 }
 
@@ -3118,7 +3118,7 @@ static const device_config_t pcnet_isa_config[] =
 			},
 			{
 				"IRQ 4", 4
-			},			
+			},
 			{
 				"IRQ 5", 5
 			},
@@ -3149,7 +3149,7 @@ static const device_config_t pcnet_isa_config[] =
 				""
 			}
 		},
-	},	
+	},
 	{
 		"mac", "MAC Address", CONFIG_MAC, "", -1
 	},
@@ -3188,7 +3188,7 @@ static const device_config_t pcnet_vlb_config[] =
 			},
 			{
 				"IRQ 4", 4
-			},			
+			},
 			{
 				"IRQ 5", 5
 			},

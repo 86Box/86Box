@@ -26,7 +26,7 @@ void mca_init(int nr_cards)
 		mca_card_reset[c] = NULL;
 		mca_priv[c] = NULL;
 	}
-        
+
 	mca_index = 0;
 	mca_nr_cards = nr_cards;
 }

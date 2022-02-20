@@ -1449,7 +1449,7 @@ static int codegen_MOV_INT_DOUBLE_64(codeblock_t *block, uop_t *uop)
                 host_x86_CVTSD2SI_REG64_XREG(block, REG_RCX, src_reg);
                 host_x86_LDMXCSR(block, &cpu_state.old_fp_control);
                 host_x86_MOVQ_XREG_REG(block, dest_reg, REG_RCX);
-                
+
                 *branch_offset = (uint32_t)((uintptr_t)&block_write_data[block_pos] - (uintptr_t)branch_offset) - 4;
         }
 #ifdef RECOMPILER_DEBUG

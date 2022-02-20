@@ -136,4 +136,3 @@ void SettingsNetwork::on_comboBoxPcap_currentIndexChanged(int index)
 
     enableElements(ui);
 }
-

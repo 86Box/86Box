@@ -204,7 +204,7 @@ void voodoo_use_texture(voodoo_t *voodoo, voodoo_params_t *params, int tmu)
                         return;
                 }
         }
-        
+
         /*Texture not found, search for unused texture*/
         do
         {

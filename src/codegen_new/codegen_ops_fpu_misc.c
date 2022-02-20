@@ -91,7 +91,7 @@ uint32_t ropFSTSW_AX(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t
 {
         uop_FP_ENTER(ir);
         uop_MOV(ir, IREG_AX, IREG_NPXS);
-        
+
         return op_pc;
 }
 

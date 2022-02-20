@@ -15,9 +15,9 @@
  *
  *		Copyright 2018,2019 Miran Grca.
  */
+
 #ifndef EMU_SCSI_CDROM_H
 #define EMU_SCSI_CDROM_H
-
 
 #define CDROM_TIME	10.0
 

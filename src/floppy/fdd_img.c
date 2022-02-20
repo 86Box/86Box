@@ -398,7 +398,7 @@ write_back(int drive)
     if (dev->f == NULL) return;
 
     if (dev->disk_at_once) return;
-		
+
     if (fseek(dev->f, dev->base + (dev->track * dev->sectors * ssize * dev->sides), SEEK_SET) == -1)
 	pclog("IMG write_back(): Error seeking to the beginning of the file\n");
     for (side = 0; side < dev->sides; side++) {

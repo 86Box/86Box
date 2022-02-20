@@ -17,6 +17,7 @@
  *		Copyright 2008-2020 Sarah Walker.
  *		Copyright 2016-2020 Miran Grca.
  */
+
 #ifndef VIDEO_EGA_H
 # define VIDEO_EGA_H
 
@@ -128,6 +129,5 @@ void ega_render_2bpp_highres(ega_t *ega);
 void ega_render_4bpp_lowres(ega_t *ega);
 void ega_render_4bpp_highres(ega_t *ega);
 #endif
-
 
 #endif	/*VIDEO_EGA_H*/

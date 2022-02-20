@@ -270,7 +270,7 @@ static void build_fp_round_routine(codeblock_t *block, int is_quad)
 	else
 		host_arm64_FCVTMS_W_D(block, REG_TEMP, REG_V_TEMP);
 	host_arm64_RET(block, REG_X30);
-	
+
 	jump_table[X87_ROUNDING_CHOP] = (uint64_t)(uintptr_t)&block_write_data[block_pos]; //zero
 	if (is_quad)
 		host_arm64_FCVTZS_X_D(block, REG_TEMP, REG_V_TEMP);
