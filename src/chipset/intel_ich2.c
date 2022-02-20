@@ -1158,6 +1158,7 @@ intel_ich2_init(const device_t *info)
 
 const device_t intel_ich2_device = {
     "Intel 82801BA(ICH2)",
+    "i82801ba",
     DEVICE_PCI,
     1,
     intel_ich2_init, intel_ich2_close, intel_ich2_reset,
@@ -1167,6 +1168,7 @@ const device_t intel_ich2_device = {
 
 const device_t intel_ich2_no_lan_device = {
     "Intel 82801BA(ICH2) Without LAN",
+    "i82801ba_nolan",
     DEVICE_PCI,
     0,
     intel_ich2_init, intel_ich2_close, intel_ich2_reset,

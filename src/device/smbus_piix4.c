@@ -404,6 +404,7 @@ const device_t piix4_smbus_device = {
 
 const device_t ich2_smbus_device = {
     "Intel ICH2 SMBus Host Controller",
+    "ich2_smbus",
     DEVICE_AT,
     SMBUS_ICH2,
     smbus_piix4_init, smbus_piix4_close, NULL,

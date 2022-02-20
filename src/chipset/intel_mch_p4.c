@@ -404,6 +404,7 @@ intel_mch_p4_init(const device_t *info)
 
 const device_t intel_mch_p4_device = {
     "Intel i845 SDRAM (MCH) Chipset",
+    "i845_sdr",
     DEVICE_PCI,
     0,
     intel_mch_p4_init, intel_mch_p4_close, intel_mch_p4_reset,
@@ -413,6 +414,7 @@ const device_t intel_mch_p4_device = {
 
 const device_t intel_mch_p4_ddr_device = {
     "Intel i845 DDR (MCH) Chipset",
+    "i845_ddr",
     DEVICE_PCI,
     1,
     intel_mch_p4_init, intel_mch_p4_close, intel_mch_p4_reset,
