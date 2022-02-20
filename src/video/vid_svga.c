@@ -1043,11 +1043,11 @@ svga_init(const device_t *info, svga_t *svga, void *p, int memsize,
     svga->dispontime = 1000ull << 32;
     svga->dispofftime = 1000ull << 32;
     svga->bpp = 8;
-    svga->vram = malloc(memsize);
+    svga->vram = calloc(memsize, 1);
     svga->vram_max = memsize;
     svga->vram_display_mask = svga->vram_mask = memsize - 1;
     svga->decode_mask = 0x7fffff;
-    svga->changedvram = malloc(memsize >> 12);
+    svga->changedvram = calloc(memsize >> 12, 1);
     svga->recalctimings_ex = recalctimings_ex;
     svga->video_in  = video_in;
     svga->video_out = video_out;

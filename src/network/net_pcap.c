@@ -180,11 +180,6 @@ poll_thread(void *arg)
 	/* Request ownership of the device. */
 	network_wait(1);
 
-#if 0
-	/* Wait for a poll request. */
-	network_poll();
-#endif
-
 	if (pcap == NULL) {
 		network_wait(0);
 		break;
@@ -211,11 +206,8 @@ poll_thread(void *arg)
 		}
 	}
 
-	/* Wait for the next packet to arrive. */
+	/* Wait for the next packet to arrive - network_do_tx() is called from there. */
 	tx = network_tx_queue_check();
-
-	if (tx)
-		network_do_tx();
 
 	/* Release ownership of the device. */
 	network_wait(0);
@@ -346,8 +338,6 @@ net_pcap_close(void)
 
     /* Tell the thread to terminate. */
     if (poll_tid != NULL) {
-	network_busy(0);
-
 	/* Wait for the thread to finish. */
 	pcap_log("PCAP: waiting for thread to end...\n");
 	thread_wait_event(poll_state, -1);
