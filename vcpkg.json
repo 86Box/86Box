@@ -1,35 +1,35 @@
 {
-	"name": "86box",
-	"version-string": "3.1",
-	"homepage": "https://86box.net/",
-	"documentation": "http://86box.readthedocs.io/",
-	"license": "GPL-2.0-or-later",
-	"dependencies": [
-		"freetype",
-		"libpng",
-		"openal-soft",
-		"sdl2",
-		"rtmidi"
-	],
-	"features": {
-		"qt-ui": {
-			"description": "Qt User Interface",
-			"dependencies": [
-				"qt5-base",
-				"qt5-translations"
-			]
-		},
-		"munt": {
-			"description": "Roland MT-32 emulation",
-			"dependencies": [
-				"libmt32emu"
-			]
-		},
-		"slirp": {
-			"description": "Slirp network support",
-			"dependencies": [
-				"libslirp"
-			]
-		}
-	}
+    "name": "86box",
+    "version-string": "3.1",
+    "homepage": "https://86box.net/",
+    "documentation": "http://86box.readthedocs.io/",
+    "license": "GPL-2.0-or-later",
+    "dependencies": [
+        "freetype",
+        "libpng",
+        "openal-soft",
+        "sdl2",
+        "rtmidi"
+    ],
+    "features": {
+        "qt-ui": {
+            "description": "Qt User Interface",
+            "dependencies": [
+                "qt5-base",
+                "qt5-translations"
+            ]
+        },
+        "munt": {
+            "description": "Roland MT-32 emulation",
+            "dependencies": [
+                "libmt32emu"
+            ]
+        },
+        "slirp": {
+            "description": "Slirp network support",
+            "dependencies": [
+                "libslirp"
+            ]
+        }
+    }
 }

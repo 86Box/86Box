@@ -120,18 +120,9 @@ static mutex_t		*network_mutex;
 static uint8_t		*network_mac;
 static uint8_t		network_timer_active = 0;
 static pc_timer_t	network_rx_queue_timer;
-static netpkt_t		*first_pkt[2] = { NULL, NULL },
-			*last_pkt[2] = { NULL, NULL };
-
-
-static struct {
-    volatile int	busy,
-			queue_in_use;
-
-    event_t		*wake_poll_thread,
-			*poll_complete,
-			*queue_not_in_use;
-} poll_data;
+static netpkt_t		*first_pkt[3] = { NULL, NULL, NULL },
+			*last_pkt[3] = { NULL, NULL, NULL };
+static netpkt_t		*queued_pkt = NULL;
 
 
 #ifdef ENABLE_NETWORK_LOG
@@ -198,33 +189,6 @@ network_wait(uint8_t wait)
 	thread_wait_mutex(network_mutex);
       else
 	thread_release_mutex(network_mutex);
-}
-
-
-void
-network_poll(void)
-{
-    while (poll_data.busy)
-	thread_wait_event(poll_data.wake_poll_thread, -1);
-
-    thread_reset_event(poll_data.wake_poll_thread);
-}
-
-
-void
-network_busy(uint8_t set)
-{
-    poll_data.busy = !!set;
-
-    if (! set)
-	thread_set_event(poll_data.wake_poll_thread);
-}
-
-
-void
-network_end(void)
-{
-    thread_set_event(poll_data.poll_complete);
 }
 
 
@@ -347,30 +311,36 @@ static void
 network_rx_queue(void *priv)
 {
     int ret = 1;
+    netpkt_t *tx_queued_pkt = NULL;
 
-    if (network_rx_pause) {
+    if (network_rx_pause || !thread_test_mutex(network_mutex)) {
 	timer_on_auto(&network_rx_queue_timer, 0.762939453125 * 2.0 * 128.0);
 	return;
     }
 
-    netpkt_t *pkt = NULL;
-
-    network_busy(1);
-
-    network_queue_get(0, &pkt);
-    if ((pkt != NULL) && (pkt->len > 0)) {
-	network_dump_packet(pkt);
-	ret = net_cards[network_card].rx(pkt->priv, pkt->data, pkt->len);
-	if (pkt->len >= 128)
-		timer_on_auto(&network_rx_queue_timer, 0.762939453125 * 2.0 * ((double) pkt->len));
+    if (queued_pkt == NULL)
+	network_queue_get(0, &queued_pkt);
+    if ((queued_pkt != NULL) && (queued_pkt->len > 0)) {
+	network_dump_packet(queued_pkt);
+	ret = net_cards[network_card].rx(queued_pkt->priv, queued_pkt->data, queued_pkt->len);
+	if (queued_pkt->len >= 128)
+		timer_on_auto(&network_rx_queue_timer, 0.762939453125 * 2.0 * ((double) queued_pkt->len));
 	else
 		timer_on_auto(&network_rx_queue_timer, 0.762939453125 * 2.0 * 128.0);
     } else
 	timer_on_auto(&network_rx_queue_timer, 0.762939453125 * 2.0 * 128.0);
     if (ret)
-	network_queue_advance(0);
+	queued_pkt = NULL;
+    network_queue_advance(0);
 
-    network_busy(0);
+    /* Transmission. */
+    network_queue_get(2, &tx_queued_pkt);
+    if (tx_queued_pkt != NULL) {
+	network_queue_put(1, tx_queued_pkt->priv, tx_queued_pkt->data, tx_queued_pkt->len);
+	network_queue_advance(2);
+    }
+
+    network_wait(0);
 }
 
 
@@ -395,10 +365,6 @@ network_attach(void *dev, uint8_t *mac, NETRXCB rx, NETWAITCB wait, NETSETLINKST
 
     network_set_wait(0);
 
-    /* Create the network events. */
-    poll_data.poll_complete = thread_create_event();
-    poll_data.wake_poll_thread = thread_create_event();
-
     /* Activate the platform module. */
     switch(network_type) {
 	case NET_TYPE_PCAP:
@@ -410,8 +376,9 @@ network_attach(void *dev, uint8_t *mac, NETRXCB rx, NETWAITCB wait, NETSETLINKST
 		break;
     }
 
-    first_pkt[0] = first_pkt[1] = NULL;
-    last_pkt[0] = last_pkt[1] = NULL;
+    first_pkt[0] = first_pkt[1] = first_pkt[2] = NULL;
+    last_pkt[0] = last_pkt[1] = last_pkt[2] = NULL;
+    queued_pkt = NULL;
     memset(&network_rx_queue_timer, 0x00, sizeof(pc_timer_t));
     timer_add(&network_rx_queue_timer, network_rx_queue, NULL, 0);
     /* 10 mbps. */
@@ -447,16 +414,6 @@ network_close(void)
     /* Force-close the SLIRP module. */
     net_slirp_close();
  
-    /* Close the network events. */
-    if (poll_data.wake_poll_thread != NULL) {
-	thread_destroy_event(poll_data.wake_poll_thread);
-	poll_data.wake_poll_thread = NULL;
-    }
-    if (poll_data.poll_complete != NULL) {
-	thread_destroy_event(poll_data.poll_complete);
-	poll_data.poll_complete = NULL;
-    }
-
     /* Close the network thread mutex. */
     thread_close_mutex(network_mutex);
     network_mutex = NULL;
@@ -545,26 +502,25 @@ network_reset(void)
 void
 network_tx(uint8_t *bufp, int len)
 {
-    network_busy(1);
-
     ui_sb_update_icon(SB_NETWORK, 1);
 
-    network_queue_put(1, NULL, bufp, len);
+    network_queue_put(2, NULL, bufp, len);
 
     ui_sb_update_icon(SB_NETWORK, 0);
-
-    network_busy(0);
 }
 
 
 /* Actually transmit the packet. */
-void
-network_do_tx(void)
+int
+network_tx_queue_check(void)
 {
     netpkt_t *pkt = NULL;
 
+    if ((first_pkt[1] == NULL) && (last_pkt[1] == NULL))
+	return 0;
+
     if (network_tx_pause)
-	return;
+	return 1;
 
     network_queue_get(1, &pkt);
     if ((pkt != NULL) && (pkt->len > 0)) {
@@ -580,15 +536,6 @@ network_do_tx(void)
 	}
     }
     network_queue_advance(1);
-}
-
-
-int
-network_tx_queue_check(void)
-{
-    if ((first_pkt[1] == NULL) && (last_pkt[1] == NULL))
-	return 0;
-
     return 1;
 }
 
