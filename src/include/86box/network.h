@@ -105,8 +105,6 @@ extern netdev_t network_devs[32];
 
 /* Function prototypes. */
 extern void	network_wait(uint8_t wait);
-extern void	network_busy(uint8_t set);
-extern void	network_end(void);
 
 extern void	network_init(void);
 extern void	network_attach(void *, uint8_t *, NETRXCB, NETWAITCB, NETSETLINKSTATE);

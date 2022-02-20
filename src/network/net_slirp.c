@@ -446,8 +446,6 @@ net_slirp_close(void)
 
     /* Tell the thread to terminate. */
     if (slirp->poll_tid) {
-	network_busy(0);
-
 	/* Wait for the thread to finish. */
 	slirp_log("SLiRP: waiting for thread to end...\n");
 	thread_wait_event(slirp->poll_state, -1);

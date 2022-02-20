@@ -338,8 +338,6 @@ net_pcap_close(void)
 
     /* Tell the thread to terminate. */
     if (poll_tid != NULL) {
-	network_busy(0);
-
 	/* Wait for the thread to finish. */
 	pcap_log("PCAP: waiting for thread to end...\n");
 	thread_wait_event(poll_state, -1);

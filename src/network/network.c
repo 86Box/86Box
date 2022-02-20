@@ -124,16 +124,6 @@ static netpkt_t		*first_pkt[3] = { NULL, NULL, NULL },
 			*last_pkt[3] = { NULL, NULL, NULL };
 
 
-static struct {
-    volatile int	busy,
-			queue_in_use;
-
-    event_t		*wake_poll_thread,
-			*poll_complete,
-			*queue_not_in_use;
-} poll_data;
-
-
 #ifdef ENABLE_NETWORK_LOG
 int network_do_log = ENABLE_NETWORK_LOG;
 static FILE *network_dump = NULL;
@@ -198,23 +188,6 @@ network_wait(uint8_t wait)
 	thread_wait_mutex(network_mutex);
       else
 	thread_release_mutex(network_mutex);
-}
-
-
-void
-network_busy(uint8_t set)
-{
-    poll_data.busy = !!set;
-
-    if (! set)
-	thread_set_event(poll_data.wake_poll_thread);
-}
-
-
-void
-network_end(void)
-{
-    thread_set_event(poll_data.poll_complete);
 }
 
 
@@ -362,7 +335,8 @@ network_rx_queue(void *priv)
 
     /* Transmission. */
     network_queue_get(2, &pkt);
-    network_queue_put(1, pkt->priv, pkt->data, pkt->len);
+    if (pkt != NULL)
+	network_queue_put(1, pkt->priv, pkt->data, pkt->len);
 
     // network_busy(0);
 
@@ -390,10 +364,6 @@ network_attach(void *dev, uint8_t *mac, NETRXCB rx, NETWAITCB wait, NETSETLINKST
     network_mac = mac;
 
     network_set_wait(0);
-
-    /* Create the network events. */
-    poll_data.poll_complete = thread_create_event();
-    poll_data.wake_poll_thread = thread_create_event();
 
     /* Activate the platform module. */
     switch(network_type) {
@@ -443,16 +413,6 @@ network_close(void)
     /* Force-close the SLIRP module. */
     net_slirp_close();
  
-    /* Close the network events. */
-    if (poll_data.wake_poll_thread != NULL) {
-	thread_destroy_event(poll_data.wake_poll_thread);
-	poll_data.wake_poll_thread = NULL;
-    }
-    if (poll_data.poll_complete != NULL) {
-	thread_destroy_event(poll_data.poll_complete);
-	poll_data.poll_complete = NULL;
-    }
-
     /* Close the network thread mutex. */
     thread_close_mutex(network_mutex);
     network_mutex = NULL;
@@ -541,15 +501,11 @@ network_reset(void)
 void
 network_tx(uint8_t *bufp, int len)
 {
-    network_busy(1);
-
     ui_sb_update_icon(SB_NETWORK, 1);
 
     network_queue_put(2, NULL, bufp, len);
 
     ui_sb_update_icon(SB_NETWORK, 0);
-
-    network_busy(0);
 }
 
 
