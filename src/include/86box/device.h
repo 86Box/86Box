@@ -40,17 +40,19 @@
 # define EMU_DEVICE_H
 
 
-#define CONFIG_STRING		0
-#define CONFIG_INT		1
-#define CONFIG_BINARY		2
-#define CONFIG_SELECTION	3
-#define CONFIG_MIDI		4
-#define CONFIG_FNAME		5
-#define CONFIG_SPINNER		6
-#define CONFIG_HEX16		7
-#define CONFIG_HEX20		8
-#define CONFIG_MAC		9
-#define CONFIG_MIDI_IN  10
+#define CONFIG_END		-1
+#define CONFIG_STRING		 0
+#define CONFIG_INT		 1
+#define CONFIG_BINARY		 2
+#define CONFIG_SELECTION	 3
+#define CONFIG_MIDI		 4
+#define CONFIG_FNAME		 5
+#define CONFIG_SPINNER		 6
+#define CONFIG_HEX16		 7
+#define CONFIG_HEX20		 8
+#define CONFIG_MAC		 9
+#define CONFIG_MIDI_IN		10
+#define CONFIG_BIOS		11
 
 
 enum {
@@ -77,6 +79,14 @@ typedef struct {
 } device_config_selection_t;
 
 typedef struct {
+    const char *name;
+    const char *internal_name;
+    int bios_type;
+    int files_no;
+    const char **files;
+} device_config_bios_t;
+
+typedef struct {
     int16_t min;
     int16_t max;
     int16_t step;
@@ -90,7 +100,8 @@ typedef struct {
     int default_int;
     const char *file_filter;
     device_config_spinner_t spinner;
-    const device_config_selection_t selection[16];
+    const device_config_selection_t *selection;
+    const device_config_bios_t *bios;
 } device_config_t;
 
 typedef struct _device_ {
@@ -146,6 +157,7 @@ extern void		device_register_pci_slot(const device_t *d, int device, int type, i
 extern void		device_speed_changed(void);
 extern void		device_force_redraw(void);
 extern void		device_get_name(const device_t *d, int bus, char *name);
+extern int		device_has_config(const device_t *d);
 
 extern int		device_is_valid(const device_t *, int m);
 
@@ -159,6 +171,7 @@ extern void		device_set_config_hex16(const char *s, int val);
 extern void		device_set_config_hex20(const char *s, int val);
 extern void		device_set_config_mac(const char *s, int val);
 extern const char	*device_get_config_string(const char *name);
+#define device_get_config_bios	device_get_config_string
 
 extern char *		device_get_internal_name(const device_t *d);
 

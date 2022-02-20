@@ -46,13 +46,16 @@ deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
     HWND h;
 
     int val_int, id, c, d, num;
+    int p, q;
     int changed, cid;
     const device_config_t *config;
     const device_config_selection_t *selection;
+    const device_config_bios_t *bio;
     char s[512], file_filter[512];
-    char *str;
+    char *str, *val_str;
     wchar_t ws[512], *wstr;
     LPTSTR lptsTemp;
+    int combo_to_struct[256];
 
     config = config_device.dev->config;
 
@@ -62,9 +65,11 @@ deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 		config = config_device.dev->config;
 
 		lptsTemp = (LPTSTR) malloc(512);
+		memset(combo_to_struct, 0, 256 * sizeof(int));
 
 		while (config->type != -1) {
 			selection = config->selection;
+			bios = config->bios;
 			h = GetDlgItem(hdlg, id);
 
 			switch (config->type) {
@@ -81,7 +86,7 @@ deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 								 (char *) config->name, config->default_int);
 
 					c = 0;
-					while (selection->description && selection->description[0]) {
+					while (selection && selection->description && selection->description[0]) {
 						mbstowcs(lptsTemp, selection->description,
 							 strlen(selection->description) + 1);
 						SendMessage(h, CB_ADDSTRING, 0, (LPARAM)(LPCSTR)lptsTemp);
@@ -89,6 +94,30 @@ deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 							SendMessage(h, CB_SETCURSEL, c, 0);
 						selection++;
 						c++;
+					}
+
+					id += 2;
+					break;
+				case CONFIG_BIOS:
+					val_string = config_get_string((char *) config_device.name,
+								       (char *) config->name, config->default_string);
+
+					c = 0;
+					q = 0;
+					while (bios && bios->name && bios->name[0]) {
+						mbstowcs(lptsTemp, bios->name, strlen(bios->name) + 1);
+						p = 0;
+						for (d = 0; d < bios->files_no; d++)
+							p += !!rom_present(bios->files[d]);
+						if (p == bios->files_no) {
+							SendMessage(h, CB_ADDSTRING, 0, (LPARAM)(LPCSTR)lptsTemp);
+							if (!strcmp(val_str, bios->internal_name))
+								SendMessage(h, CB_SETCURSEL, c, 0);
+							combo_to_struct[c] = q;
+							c++;
+						}
+						q++;
+						bios++;
 					}
 
 					id += 2;
@@ -144,7 +173,7 @@ deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 								   (char *) config->name, config->default_int);
 
 					c = 0;
-					while (selection->description && selection->description[0]) {
+					while (selection && selection->description && selection->description[0]) {
 						mbstowcs(lptsTemp, selection->description,
 							 strlen(selection->description) + 1);
 						SendMessage(h, CB_ADDSTRING, 0, (LPARAM)(LPCSTR)lptsTemp);
@@ -161,7 +190,7 @@ deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 								   (char *) config->name, config->default_int);
 
 					c = 0;
-					while (selection->description && selection->description[0]) {
+					while (selection && selection->description && selection->description[0]) {
 						mbstowcs(lptsTemp, selection->description,
 							 strlen(selection->description) + 1);
 						SendMessage(h, CB_ADDSTRING, 0, (LPARAM)(LPCSTR)lptsTemp);
@@ -210,6 +239,20 @@ deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 							selection++;
 
 						if (val_int != selection->value)
+							changed = 1;
+
+						id += 2;
+						break;
+					case CONFIG_BIOS:
+						val_str = config_get_string((char *) config_device.name,
+									    (char *) config->name, config->default_string);
+
+						c = combo_to_struct[SendMessage(h, CB_GETCURSEL, 0, 0)];
+
+						for (; c > 0; c--)
+							bios++;
+
+						if (strcmp(val_str, bios->internal_name))
 							changed = 1;
 
 						id += 2;
@@ -324,6 +367,14 @@ deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 
 						id += 2;
 						break;
+					case CONFIG_BIOS:
+						c = combo_to_struct[SendMessage(h, CB_GETCURSEL, 0, 0)];
+						for (; c > 0; c--)
+							bios++;
+						config_set_string((char *) config_device.name, (char *) config->name, bios->internal_name);
+
+						id += 2;
+						break;
 					case CONFIG_MIDI:
 						c = SendMessage(h, CB_GETCURSEL, 0, 0);
 						config_set_int((char *) config_device.name, (char *) config->name, c);
@@ -389,6 +440,9 @@ deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 						id++;
 						break;
 					case CONFIG_SELECTION:
+					case CONFIG_HEX16:
+					case CONFIG_HEX20:
+					case CONFIG_BIOS:
 					case CONFIG_MIDI:
 					case CONFIG_MIDI_IN:
 					case CONFIG_SPINNER:

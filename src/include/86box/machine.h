@@ -277,14 +277,19 @@ typedef struct _machine_ {
     uint32_t	min_ram, max_ram;
     int		ram_granularity;
     int		nvrmask;
+    uint16_t	kbc;
+    /* Bits:
+	7-0	Set bits are forced set on P1 (no forced set = 0x00);
+	15-8	Clear bits are forced clear on P1 (no foced clear = 0xff). */
+    uint16_t	kbc_p1;
+    uint32_t	gpi;
 #ifdef EMU_DEVICE_H
     const device_t	*(*get_device)(void);
+    const device_t	*(*get_vid_device)(void);
 #else
     void	*get_device;
+    void	*get_vid_device;
 #endif
-    uint16_t	kbc;
-    uint16_t	kbc_p1;
-    uint32_t	acpi_gpi;
 } machine_t;
 
 
@@ -317,6 +322,12 @@ extern int	machine_get_max_ram(int m);
 extern int	machine_get_ram_granularity(int m);
 extern int	machine_get_type(int m);
 extern void	machine_close(void);
+
+extern uint8_t	machine_get_p1(void);
+extern void	machine_load_p1(int m);
+extern uint32_t	machine_get_gpi(void);
+extern void	machine_load_gpi(int m);
+extern void	machine_set_gpi(uint32_t gpi);
 
 
 /* Initialization functions for boards and systems. */

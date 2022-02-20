@@ -55,8 +55,10 @@ typedef struct {
 #define KBC_OLIVETTI_XT			0x0014		/* Olivetti XT */
 #define KBC_OLIVETTI			0x0015		/* Olivetti AT */
 #define KBC_TOSHIBA			0x0016		/* Toshiba AT */
-#define KBC_QUADTEL			0x0017		/* Quadtel */
-#define KBC_SIEMENS			0x0018		/* Siemens */
+#define KBC_COMPAQ			0x0017		/* Compaq */
+#define KBC_NCR				0x0018		/* NCR */
+#define KBC_QUADTEL			0x0019		/* Quadtel */
+#define KBC_SIEMENS			0x001A		/* Siemens */
 /* Phoenix MultiKey/42 */
 #define PHOENIX_MK42_105		0x0521		/* Phoenix MultiKey/42 1.05 */
 #define PHOENIX_MK42_129		0x2921		/* Phoenix MultiKey/42 1.29 */

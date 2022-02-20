@@ -134,12 +134,19 @@ int
 machine_available(int m)
 {
     int ret;
+    device_t *d = machine_getdevice(m);
 
     bios_only = 1;
-    ret = machine_init_ex(m);
+
+    ret = device_available(d);
+    /* Do not check via machine_init_ex() if the device is not NULL and
+       it has a CONFIG_BIOS field. */
+    if ((m == NULL) || (ret >= 0))
+	ret = machine_init_ex(m);
 
     bios_only = 0;
-    return ret;
+
+    return !!ret;
 }
 
 

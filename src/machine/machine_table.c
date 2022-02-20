@@ -188,59 +188,59 @@ const machine_filter_t machine_chipsets[] = {
 
 const machine_t machines[] = {
     /* 8088 Machines */
-    { "[8088] IBM PC (1981)",			"ibmpc",		MACHINE_TYPE_8088,	MACHINE_CHIPSET_DISCRETE,			      machine_pc_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_8088, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC,		0,							   16,    64,  16,    0, NULL				},
-    { "[8088] IBM PC (1982)",			"ibmpc82",		MACHINE_TYPE_8088,	MACHINE_CHIPSET_DISCRETE,			    machine_pc82_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_8088, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC,		0,							   64,   256,  64,    0, NULL				},
-    { "[8088] IBM PCjr",			"ibmpcjr",		MACHINE_TYPE_8088,	MACHINE_CHIPSET_DISCRETE,			    machine_pcjr_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_8088, 0, 4772728, 4772728, 0, 0, 0, 0,									MACHINE_PCJR,		MACHINE_VIDEO_FIXED,					  128,   640, 128,    0, pcjr_get_device		},
-    { "[8088] IBM XT (1982)",			"ibmxt",		MACHINE_TYPE_8088,	MACHINE_CHIPSET_DISCRETE,			      machine_xt_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_8088, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC,		0,							   64,   256,  64,    0, NULL				},
-    { "[8088] IBM XT (1986)",			"ibmxt86",		MACHINE_TYPE_8088,	MACHINE_CHIPSET_DISCRETE,			    machine_xt86_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_8088, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC,		0,							  256,   640,  64,    0, NULL				},
-    { "[8088] American XT Computer",		"americxt",		MACHINE_TYPE_8088,	MACHINE_CHIPSET_DISCRETE,		     machine_xt_americxt_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_8088, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC,		0,							   64,   640,  64,    0, NULL				},
-    { "[8088] AMI XT clone",			"amixt",		MACHINE_TYPE_8088,	MACHINE_CHIPSET_DISCRETE,			machine_xt_amixt_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_8088, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC,		0,							   64,   640,  64,    0, NULL				},
-    { "[8088] Columbia Data Products MPC-1600", "mpc1600",		MACHINE_TYPE_8088,	MACHINE_CHIPSET_DISCRETE,		      machine_xt_mpc1600_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_8088, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC,		0,							  128,   512,  64,    0, NULL				},
-    { "[8088] Compaq Portable",			"portable",		MACHINE_TYPE_8088,	MACHINE_CHIPSET_DISCRETE,	      machine_xt_compaq_portable_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_8088, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC,		0,							  128,   640, 128,    0, NULL				},
-    { "[8088] DTK PIM-TB10-Z",			"dtk",			MACHINE_TYPE_8088,	MACHINE_CHIPSET_DISCRETE,			  machine_xt_dtk_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_8088, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC,		0,							   64,   640,  64,    0, NULL				},
-    { "[8088] Eagle PC Spirit",			"pcspirit",		MACHINE_TYPE_8088,	MACHINE_CHIPSET_DISCRETE,		     machine_xt_pcspirit_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_8088, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC,		0,							  128,   640,  64,    0, NULL				},
-    { "[8088] Generic XT clone",		"genxt",		MACHINE_TYPE_8088,	MACHINE_CHIPSET_DISCRETE,			   machine_genxt_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_8088, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC,		0,							   64,   640,  64,    0, NULL				},
-    { "[8088] Juko ST",				"jukopc",		MACHINE_TYPE_8088,	MACHINE_CHIPSET_DISCRETE,		       machine_xt_jukopc_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_8088, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC,		0,							   64,   640,  64,    0, NULL				},
-    { "[8088] Multitech PC-500",		"pc500",		MACHINE_TYPE_8088,	MACHINE_CHIPSET_DISCRETE,			machine_xt_pc500_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_8088, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC,		0,							  128,   640,  64,    0, NULL				},
-    { "[8088] Multitech PC-700",		"pc700",		MACHINE_TYPE_8088,	MACHINE_CHIPSET_DISCRETE,			machine_xt_pc700_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_8088, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC,		0,							  128,   640,  64,    0, NULL				},
-    { "[8088] NCR PC4i",			"pc4i",			MACHINE_TYPE_8088,	MACHINE_CHIPSET_DISCRETE,			 machine_xt_pc4i_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_8088, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC,		0,							  256,   640, 256,    0, NULL				},
-    { "[8088] Olivetti M19",			"m19",			MACHINE_TYPE_8088,	MACHINE_CHIPSET_PROPRIETARY,			  machine_xt_m19_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_8088, 0, 4772728, 7159092, 0, 0, 0, 0,									MACHINE_PC,		MACHINE_VIDEO_FIXED,					  256,   640, 256,    0, m19_get_device			},
-    { "[8088] OpenXT",				"openxt",		MACHINE_TYPE_8088,	MACHINE_CHIPSET_DISCRETE,		       machine_xt_openxt_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_8088, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC,		0,							   64,   640,  64,    0, NULL				},
-    { "[8088] Philips P3105/NMS9100",		"p3105",		MACHINE_TYPE_8088,	MACHINE_CHIPSET_DISCRETE,			machine_xt_p3105_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_8088, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC,		MACHINE_XTA,						  256,   768, 256,    0, NULL				},
-    { "[8088] Phoenix XT clone",		"pxxt",			MACHINE_TYPE_8088,	MACHINE_CHIPSET_DISCRETE,			 machine_xt_pxxt_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_8088, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC,		0,							   64,   640,  64,    0, NULL				},
-    { "[8088] Schneider EuroPC",		"europc",		MACHINE_TYPE_8088,	MACHINE_CHIPSET_PROPRIETARY,			  machine_europc_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_8088_EUROPC, 0, 0, 0, 0, 0, 0, 0,									MACHINE_PC,		MACHINE_XTA | MACHINE_MOUSE,				  512,   640, 128,   15, NULL				},
-    { "[8088] Super PC/Turbo XT",		"pcxt",			MACHINE_TYPE_8088,	MACHINE_CHIPSET_DISCRETE,			 machine_xt_pcxt_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_8088, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC,		0,							   64,   640,  64,    0, NULL				},
-    { "[8088] Tandy 1000",			"tandy",		MACHINE_TYPE_8088,	MACHINE_CHIPSET_PROPRIETARY,			   machine_tandy_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_8088_EUROPC, 0, 0, 0, 0, 0, 0, 0,									MACHINE_PC,		MACHINE_VIDEO_FIXED,					  128,   640, 128,    0, tandy1k_get_device		},
-    { "[8088] Tandy 1000 HX",			"tandy1000hx",		MACHINE_TYPE_8088,	MACHINE_CHIPSET_PROPRIETARY,		     machine_tandy1000hx_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_8088_EUROPC, 0, 0, 0, 0, 0, 0, 0,									MACHINE_PC,		MACHINE_VIDEO_FIXED,					  256,   640, 128,    0, tandy1k_hx_get_device		},
-    { "[8088] Toshiba T1000",			"t1000",		MACHINE_TYPE_8088,	MACHINE_CHIPSET_PROPRIETARY,			machine_xt_t1000_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_8088, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC,		MACHINE_VIDEO,						  512,  1280, 768,   63, t1000_get_device		},
+    { "[8088] IBM PC (1981)",			"ibmpc",		MACHINE_TYPE_8088,	MACHINE_CHIPSET_DISCRETE,			      machine_pc_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_8088, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC,		0,							   16,    64,  16,    0, KBC_IBM_PC_XT,			0xff00,	0xffffffff,	NULL,				NULL				},
+    { "[8088] IBM PC (1982)",			"ibmpc82",		MACHINE_TYPE_8088,	MACHINE_CHIPSET_DISCRETE,			    machine_pc82_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_8088, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC,		0,							   64,   256,  64,    0, KBC_IBM_PC_XT,			0xff00, 0xffffffff,	NULL,				NULL				},
+    { "[8088] IBM PCjr",			"ibmpcjr",		MACHINE_TYPE_8088,	MACHINE_CHIPSET_DISCRETE,			    machine_pcjr_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_8088, 0, 4772728, 4772728, 0, 0, 0, 0,									MACHINE_PCJR,		MACHINE_VIDEO_FIXED,					  128,   640, 128,    0, KBC_IBM_PCJR,			0xff00, 0xffffffff,	NULL,				pcjr_get_device			},
+    { "[8088] IBM XT (1982)",			"ibmxt",		MACHINE_TYPE_8088,	MACHINE_CHIPSET_DISCRETE,			      machine_xt_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_8088, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC,		0,							   64,   256,  64,    0, KBC_IBM_PC_XT,			0xff00, 0xffffffff,	NULL,				NULL				},
+    { "[8088] IBM XT (1986)",			"ibmxt86",		MACHINE_TYPE_8088,	MACHINE_CHIPSET_DISCRETE,			    machine_xt86_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_8088, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC,		0,							  256,   640,  64,    0, KBC_IBM_PC_XT,			0xff00, 0xffffffff,	NULL,				NULL				},
+    { "[8088] American XT Computer",		"americxt",		MACHINE_TYPE_8088,	MACHINE_CHIPSET_DISCRETE,		     machine_xt_americxt_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_8088, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC,		0,							   64,   640,  64,    0, KBC_IBM_PC_XT,			0xff00, 0xffffffff,	NULL,				NULL				},
+    { "[8088] AMI XT clone",			"amixt",		MACHINE_TYPE_8088,	MACHINE_CHIPSET_DISCRETE,			machine_xt_amixt_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_8088, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC,		0,							   64,   640,  64,    0, KBC_IBM_PC_XT,			0xff00, 0xffffffff,	NULL,				NULL				},
+    { "[8088] Columbia Data Products MPC-1600", "mpc1600",		MACHINE_TYPE_8088,	MACHINE_CHIPSET_DISCRETE,		      machine_xt_mpc1600_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_8088, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC,		0,							  128,   512,  64,    0, KBC_IBM_PC_XT,			0xff00, 0xffffffff,	NULL,				NULL				},
+    { "[8088] Compaq Portable",			"portable",		MACHINE_TYPE_8088,	MACHINE_CHIPSET_DISCRETE,	      machine_xt_compaq_portable_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_8088, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC,		0,							  128,   640, 128,    0, KBC_IBM_PC_XT,			0xff00, 0xffffffff,	NULL,				NULL				},
+    { "[8088] DTK PIM-TB10-Z",			"dtk",			MACHINE_TYPE_8088,	MACHINE_CHIPSET_DISCRETE,			  machine_xt_dtk_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_8088, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC,		0,							   64,   640,  64,    0, KBC_IBM_PC_XT,			0xff00, 0xffffffff,	NULL,				NULL				},
+    { "[8088] Eagle PC Spirit",			"pcspirit",		MACHINE_TYPE_8088,	MACHINE_CHIPSET_DISCRETE,		     machine_xt_pcspirit_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_8088, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC,		0,							  128,   640,  64,    0, KBC_IBM_PC_XT,			0xff00, 0xffffffff,	NULL,				NULL				},
+    { "[8088] Generic XT clone",		"genxt",		MACHINE_TYPE_8088,	MACHINE_CHIPSET_DISCRETE,			   machine_genxt_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_8088, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC,		0,							   64,   640,  64,    0, KBC_IBM_PC_XT,			0xff00, 0xffffffff,	NULL,				NULL				},
+    { "[8088] Juko ST",				"jukopc",		MACHINE_TYPE_8088,	MACHINE_CHIPSET_DISCRETE,		       machine_xt_jukopc_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_8088, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC,		0,							   64,   640,  64,    0, KBC_IBM_PC_XT,			0xff00, 0xffffffff,	NULL,				NULL				},
+    { "[8088] Multitech PC-500",		"pc500",		MACHINE_TYPE_8088,	MACHINE_CHIPSET_DISCRETE,			machine_xt_pc500_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_8088, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC,		0,							  128,   640,  64,    0, KBC_IBM_PC_XT,			0xff00, 0xffffffff,	NULL,				NULL				},
+    { "[8088] Multitech PC-700",		"pc700",		MACHINE_TYPE_8088,	MACHINE_CHIPSET_DISCRETE,			machine_xt_pc700_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_8088, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC,		0,							  128,   640,  64,    0, KBC_IBM_PC_XT,			0xff00, 0xffffffff,	NULL,				NULL				},
+    { "[8088] NCR PC4i",			"pc4i",			MACHINE_TYPE_8088,	MACHINE_CHIPSET_DISCRETE,			 machine_xt_pc4i_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_8088, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC,		0,							  256,   640, 256,    0, KBC_IBM_PC_XT,			0xff00, 0xffffffff,	NULL,				NULL				},
+    { "[8088] Olivetti M19",			"m19",			MACHINE_TYPE_8088,	MACHINE_CHIPSET_PROPRIETARY,			  machine_xt_m19_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_8088, 0, 4772728, 7159092, 0, 0, 0, 0,									MACHINE_PC,		MACHINE_VIDEO_FIXED,					  256,   640, 256,    0, KBC_OLIVETTI_XT,		0xff00, 0xffffffff,	NULL,				m19_get_device			},
+    { "[8088] OpenXT",				"openxt",		MACHINE_TYPE_8088,	MACHINE_CHIPSET_DISCRETE,		       machine_xt_openxt_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_8088, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC,		0,							   64,   640,  64,    0, KBC_IBM_PC_XT,			0xff00, 0xffffffff,	NULL,				NULL				},
+    { "[8088] Philips P3105/NMS9100",		"p3105",		MACHINE_TYPE_8088,	MACHINE_CHIPSET_DISCRETE,			machine_xt_p3105_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_8088, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC,		MACHINE_XTA,						  256,   768, 256,    0, KBC_IBM_PC_XT,			0xff00, 0xffffffff,	NULL,				NULL				},
+    { "[8088] Phoenix XT clone",		"pxxt",			MACHINE_TYPE_8088,	MACHINE_CHIPSET_DISCRETE,			 machine_xt_pxxt_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_8088, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC,		0,							   64,   640,  64,    0, KBC_IBM_PC_XT,			0xff00, 0xffffffff,	NULL,				NULL				},
+    { "[8088] Schneider EuroPC",		"europc",		MACHINE_TYPE_8088,	MACHINE_CHIPSET_PROPRIETARY,			  machine_europc_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_8088_EUROPC, 0, 0, 0, 0, 0, 0, 0,									MACHINE_PC,		MACHINE_XTA | MACHINE_MOUSE,				  512,   640, 128,   15, KBC_IBM_PC_XT,			0xff00, 0xffffffff,	NULL,				NULL				},
+    { "[8088] Super PC/Turbo XT",		"pcxt",			MACHINE_TYPE_8088,	MACHINE_CHIPSET_DISCRETE,			 machine_xt_pcxt_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_8088, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC,		0,							   64,   640,  64,    0, KBC_IBM_PC_XT,			0xff00, 0xffffffff,	NULL,				NULL				},
+    { "[8088] Tandy 1000",			"tandy",		MACHINE_TYPE_8088,	MACHINE_CHIPSET_PROPRIETARY,			   machine_tandy_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_8088_EUROPC, 0, 0, 0, 0, 0, 0, 0,									MACHINE_PC,		MACHINE_VIDEO_FIXED,					  128,   640, 128,    0, KBC_TANDY,			0xff00, 0xffffffff,	NULL,				tandy1k_get_device		},
+    { "[8088] Tandy 1000 HX",			"tandy1000hx",		MACHINE_TYPE_8088,	MACHINE_CHIPSET_PROPRIETARY,		     machine_tandy1000hx_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_8088_EUROPC, 0, 0, 0, 0, 0, 0, 0,									MACHINE_PC,		MACHINE_VIDEO_FIXED,					  256,   640, 128,    0, KBC_TANDY,			0xff00, 0xffffffff,	NULL,				tandy1k_hx_get_device		},
+    { "[8088] Toshiba T1000",			"t1000",		MACHINE_TYPE_8088,	MACHINE_CHIPSET_PROPRIETARY,			machine_xt_t1000_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_8088, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC,		MACHINE_VIDEO,						  512,  1280, 768,   63, KBC_IBM_PC_XT,			0xff00, 0xffffffff,	NULL,				t1000_get_device		},
 #if defined(DEV_BRANCH) && defined(USE_LASERXT)
-    { "[8088] VTech Laser Turbo XT",		"ltxt",			MACHINE_TYPE_8088,	MACHINE_CHIPSET_DISCRETE,		      machine_xt_laserxt_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_8088, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC,		0,							  256,   640, 256,    0, NULL				},
+    { "[8088] VTech Laser Turbo XT",		"ltxt",			MACHINE_TYPE_8088,	MACHINE_CHIPSET_DISCRETE,		      machine_xt_laserxt_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_8088, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC,		0,							  256,   640, 256,    0, KBC_IBM_PC_XT,			0xff00, 0xffffffff,	NULL,				NULL				},
 #endif
     /* Has a standard PS/2 KBC (so, use IBM PS/2 Type 1). */
-    { "[8088] Xi8088",				"xi8088",		MACHINE_TYPE_8088,	MACHINE_CHIPSET_DISCRETE,		       machine_xt_xi8088_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_8088, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PS2,		0,							   64,  1024, 128,  127, xi8088_get_device		},
-    { "[8088] Zenith Data Systems Z-151/152/161","zdsz151",		MACHINE_TYPE_8088,	MACHINE_CHIPSET_DISCRETE,			 machine_xt_z151_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_8088, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC,		0,							  128,   640,  64,    0, NULL				},
-    { "[8088] Zenith Data Systems Z-159",	"zdsz159",		MACHINE_TYPE_8088,	MACHINE_CHIPSET_DISCRETE,			 machine_xt_z159_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_8088, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC,		0,							  128,   640,  64,    0, NULL				},
-    { "[8088] Zenith Data Systems SupersPort (Z-184)","zdsupers",	MACHINE_TYPE_8088,	MACHINE_CHIPSET_DISCRETE,			 machine_xt_z184_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_8088, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC,		MACHINE_VIDEO_FIXED,					  128,   640, 128,    0, z184_get_device		},
-    { "[GC100A] Philips P3120",			"p3120",		MACHINE_TYPE_8088,	MACHINE_CHIPSET_GC100A,				machine_xt_p3120_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_8088, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC,		MACHINE_XTA,						  256,   768, 256,    0, NULL				},
+    { "[8088] Xi8088",				"xi8088",		MACHINE_TYPE_8088,	MACHINE_CHIPSET_DISCRETE,		       machine_xt_xi8088_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_8088, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PS2,		0,							   64,  1024, 128,  127, KBC_VIA_VT82C4XN_XI8088,	0xff04, 0xffffffff,	xi8088_get_device,		NULL				},
+    { "[8088] Zenith Data Systems Z-151/152/161","zdsz151",		MACHINE_TYPE_8088,	MACHINE_CHIPSET_DISCRETE,			 machine_xt_z151_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_8088, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC,		0,							  128,   640,  64,    0, KBC_IBM_PC_XT,			0xff00, 0xffffffff,	NULL,				NULL				},
+    { "[8088] Zenith Data Systems Z-159",	"zdsz159",		MACHINE_TYPE_8088,	MACHINE_CHIPSET_DISCRETE,			 machine_xt_z159_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_8088, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC,		0,							  128,   640,  64,    0, KBC_IBM_PC_XT,			0xff00, 0xffffffff,	NULL,				NULL				},
+    { "[8088] Zenith Data Systems SupersPort (Z-184)","zdsupers",	MACHINE_TYPE_8088,	MACHINE_CHIPSET_DISCRETE,			 machine_xt_z184_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_8088, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC,		MACHINE_VIDEO_FIXED,					  128,   640, 128,    0, KBC_IBM_PC_XT,			0xff00, 0xffffffff,	NULL,				z184_get_device			},
+    { "[GC100A] Philips P3120",			"p3120",		MACHINE_TYPE_8088,	MACHINE_CHIPSET_GC100A,				machine_xt_p3120_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_8088, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC,		MACHINE_XTA,						  256,   768, 256,    0, KBC_IBM_PC_XT,			0xff00, 0xffffffff,	NULL,				NULL				},
     
     /* 8086 Machines */
-    { "[8086] Amstrad PC1512",			"pc1512",		MACHINE_TYPE_8086,	MACHINE_CHIPSET_PROPRIETARY,			  machine_pc1512_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_8086, 0, 8000000, 8000000, 0, 0, 0, 0,									MACHINE_PC,		MACHINE_VIDEO_FIXED | MACHINE_MOUSE,			  512,   640, 128,   63, pc1512_get_device		},
-    { "[8086] Amstrad PC1640",			"pc1640",		MACHINE_TYPE_8086,	MACHINE_CHIPSET_PROPRIETARY,			  machine_pc1640_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_8086, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC,		MACHINE_VIDEO | MACHINE_MOUSE,				  640,   640, 640,   63, pc1640_get_device		},
-    { "[8086] Amstrad PC2086",			"pc2086",		MACHINE_TYPE_8086,	MACHINE_CHIPSET_PROPRIETARY,			  machine_pc2086_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_8086, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC,		MACHINE_VIDEO_FIXED | MACHINE_MOUSE,			  640,   640, 640,   63, pc2086_get_device		},
-    { "[8086] Amstrad PC3086",			"pc3086",		MACHINE_TYPE_8086,	MACHINE_CHIPSET_PROPRIETARY,			  machine_pc3086_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_8086, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC,		MACHINE_VIDEO_FIXED | MACHINE_MOUSE,			  640,   640, 640,   63, pc3086_get_device		},
-    { "[8086] Amstrad PC20(0)",			"pc200",		MACHINE_TYPE_8086,	MACHINE_CHIPSET_PROPRIETARY,			   machine_pc200_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_8086, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC,		MACHINE_VIDEO | MACHINE_MOUSE,				  512,   640, 128,   63, pc200_get_device		},
-    { "[8086] Amstrad PPC512/640",		"ppc512",		MACHINE_TYPE_8086,	MACHINE_CHIPSET_PROPRIETARY,			  machine_ppc512_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_8086, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC,		MACHINE_VIDEO | MACHINE_MOUSE,				  512,   640, 128,   63, ppc512_get_device		},
-    { "[8086] Compaq Deskpro",			"deskpro",		MACHINE_TYPE_8086,	MACHINE_CHIPSET_PROPRIETARY,	       machine_xt_compaq_deskpro_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_8086, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC,		0,							  128,   640, 128,    0, NULL				},
-    { "[8086] Olivetti M21/24/24SP",		"m24",			MACHINE_TYPE_8086,	MACHINE_CHIPSET_PROPRIETARY,			  machine_xt_m24_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_8086, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC,		MACHINE_VIDEO | MACHINE_MOUSE,				  128,   640, 128,    0, m24_get_device			},
+    { "[8086] Amstrad PC1512",			"pc1512",		MACHINE_TYPE_8086,	MACHINE_CHIPSET_PROPRIETARY,			  machine_pc1512_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_8086, 0, 8000000, 8000000, 0, 0, 0, 0,									MACHINE_PC,		MACHINE_VIDEO_FIXED | MACHINE_MOUSE,			  512,   640, 128,   63, KBC_AMSTRAD,			0xff00, 0xffffffff,	NULL,				pc1512_get_device		},
+    { "[8086] Amstrad PC1640",			"pc1640",		MACHINE_TYPE_8086,	MACHINE_CHIPSET_PROPRIETARY,			  machine_pc1640_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_8086, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC,		MACHINE_VIDEO | MACHINE_MOUSE,				  640,   640, 640,   63, KBC_AMSTRAD,			0xff00, 0xffffffff,	pc1640_get_device,		NULL				},
+    { "[8086] Amstrad PC2086",			"pc2086",		MACHINE_TYPE_8086,	MACHINE_CHIPSET_PROPRIETARY,			  machine_pc2086_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_8086, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC,		MACHINE_VIDEO_FIXED | MACHINE_MOUSE,			  640,   640, 640,   63, KBC_AMSTRAD,			0xff00, 0xffffffff,	pc2086_get_device,		NULL				},
+    { "[8086] Amstrad PC3086",			"pc3086",		MACHINE_TYPE_8086,	MACHINE_CHIPSET_PROPRIETARY,			  machine_pc3086_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_8086, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC,		MACHINE_VIDEO_FIXED | MACHINE_MOUSE,			  640,   640, 640,   63, KBC_AMSTRAD,			0xff00, 0xffffffff,	pc3086_get_device,		NULL				},
+    { "[8086] Amstrad PC20(0)",			"pc200",		MACHINE_TYPE_8086,	MACHINE_CHIPSET_PROPRIETARY,			   machine_pc200_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_8086, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC,		MACHINE_VIDEO | MACHINE_MOUSE,				  512,   640, 128,   63, KBC_AMSTRAD,			0xff00, 0xffffffff,	NULL,				pc200_get_device		},
+    { "[8086] Amstrad PPC512/640",		"ppc512",		MACHINE_TYPE_8086,	MACHINE_CHIPSET_PROPRIETARY,			  machine_ppc512_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_8086, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC,		MACHINE_VIDEO | MACHINE_MOUSE,				  512,   640, 128,   63, KBC_AMSTRAD,			0xff00, 0xffffffff,	NULL,				ppc512_get_device		},
+    { "[8086] Compaq Deskpro",			"deskpro",		MACHINE_TYPE_8086,	MACHINE_CHIPSET_PROPRIETARY,	       machine_xt_compaq_deskpro_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_8086, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC,		0,							  128,   640, 128,    0, KBC_IBM_PC_XT,			0xff00, 0xffffffff,	NULL,				NULL				},
+    { "[8086] Olivetti M21/24/24SP",		"m24",			MACHINE_TYPE_8086,	MACHINE_CHIPSET_PROPRIETARY,			  machine_xt_m24_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_8086, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC,		MACHINE_VIDEO | MACHINE_MOUSE,				  128,   640, 128,    0, KBC_OLIVETTI_XT,		0xff00, 0xffffffff,	NULL,				m24_get_device			},
     /* Has Olivetti KBC firmware. */
-    { "[8086] Olivetti M240",			"m240",			MACHINE_TYPE_8086,	MACHINE_CHIPSET_PROPRIETARY,			 machine_xt_m240_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_8086, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC,		0,							  128,   640, 128,    0, NULL				},
-    { "[8086] Schetmash Iskra-3104",		"iskra3104",		MACHINE_TYPE_8086,	MACHINE_CHIPSET_DISCRETE,		    machine_xt_iskra3104_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_8086, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC,		0,							  128,   640, 128,    0, NULL				},
-    { "[8086] Tandy 1000 SL/2",			"tandy1000sl2",		MACHINE_TYPE_8086,	MACHINE_CHIPSET_PROPRIETARY,		    machine_tandy1000sl2_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_8086, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC,		MACHINE_VIDEO_FIXED,					  512,   768, 128,    0, tandy1k_sl_get_device		},
-    { "[8086] Victor V86P",			"v86p",			MACHINE_TYPE_8086,	MACHINE_CHIPSET_PROPRIETARY,			    machine_v86p_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_8086, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC,		MACHINE_VIDEO,						  512,  1024, 128,  127, NULL				},
-    { "[8086] Toshiba T1200",			"t1200",		MACHINE_TYPE_8086,	MACHINE_CHIPSET_PROPRIETARY,			machine_xt_t1200_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_8086, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC,		MACHINE_VIDEO,						 1024,  2048,1024,   63, t1200_get_device		},
+    { "[8086] Olivetti M240",			"m240",			MACHINE_TYPE_8086,	MACHINE_CHIPSET_PROPRIETARY,			 machine_xt_m240_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_8086, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC,		0,							  128,   640, 128,    0, KBC_OLIVETTI,			0xff04, 0xffffffff,	NULL,				NULL				},
+    { "[8086] Schetmash Iskra-3104",		"iskra3104",		MACHINE_TYPE_8086,	MACHINE_CHIPSET_DISCRETE,		    machine_xt_iskra3104_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_8086, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC,		0,							  128,   640, 128,    0, KBC_IBM_PC_XT,			0xff00, 0xffffffff,	NULL,				NULL				},
+    { "[8086] Tandy 1000 SL/2",			"tandy1000sl2",		MACHINE_TYPE_8086,	MACHINE_CHIPSET_PROPRIETARY,		    machine_tandy1000sl2_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_8086, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC,		MACHINE_VIDEO_FIXED,					  512,   768, 128,    0, KBC_TANDY_SL2,			0xff00, 0xffffffff,	NULL,				tandy1k_sl_get_device		},
+    { "[8086] Victor V86P",			"v86p",			MACHINE_TYPE_8086,	MACHINE_CHIPSET_PROPRIETARY,			    machine_v86p_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_8086, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC,		MACHINE_VIDEO,						  512,  1024, 128,  127, KBC_IBM_PC_XT,			0xff00, 0xffffffff,	NULL,				NULL				},
+    { "[8086] Toshiba T1200",			"t1200",		MACHINE_TYPE_8086,	MACHINE_CHIPSET_PROPRIETARY,			machine_xt_t1200_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_8086, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC,		MACHINE_VIDEO,						 1024,  2048,1024,   63, KBC_IBM_PC_XT,			0xff00, 0xffffffff,	NULL,				t1200_get_device		},
     
 #if defined(DEV_BRANCH) && defined(USE_LASERXT)
-    { "[8086] VTech Laser XT3",			"lxt3",			MACHINE_TYPE_8086,	MACHINE_CHIPSET_DISCRETE,			 machine_xt_lxt3_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_8086, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC,		0,							  256,   640, 256,    0, NULL				},
+    { "[8086] VTech Laser XT3",			"lxt3",			MACHINE_TYPE_8086,	MACHINE_CHIPSET_DISCRETE,			 machine_xt_lxt3_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_8086, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC,		0,							  256,   640, 256,    0, KBC_IBM_PC_XT,			0xff00, 0xffffffff,	NULL,				NULL				},
 #endif
 
     /* 286 AT machines */
@@ -296,9 +296,9 @@ const machine_t machines[] = {
     /* Has IBM PS/2 Type 1 KBC firmware. */
     { "[SCAT] Goldstar GDC-212M",		"gdc212m",		MACHINE_TYPE_286,	MACHINE_CHIPSET_SCAT,			      machine_at_gdc212m_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_286, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PS2,		MACHINE_IDE,						  512,  4096, 512,  127, NULL				},
     /* Has a VIA VT82C42N KBC. */
-    { "[SCAT] Hyundai Solomon 286KP",		"award286",		MACHINE_TYPE_286,	MACHINE_CHIPSET_SCAT,			     machine_at_award286_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_286, 0, 0, 0, 0, 0, 0, 0,										MACHINE_AT,		0,							  512, 16384, 128,  127, NULL				},
+    { "[SCAT] Hyundai Solomon 286KP",		"award286",		MACHINE_TYPE_286,	MACHINE_CHIPSET_SCAT,			     machine_at_award286_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_286, 0, 0, 0, 0, 0, 0, 0,										MACHINE_AT,		0,							  512,  8192, 128,  127, NULL				},
     /* Has a VIA VT82C42N KBC. */
-    { "[SCAT] Hyundai Super-286TR",		"super286tr",		MACHINE_TYPE_286,	MACHINE_CHIPSET_SCAT,			   machine_at_super286tr_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_286, 0, 0, 0, 0, 0, 0, 0,										MACHINE_AT,		0,							  512, 16384, 128,  127, NULL				},
+    { "[SCAT] Hyundai Super-286TR",		"super286tr",		MACHINE_TYPE_286,	MACHINE_CHIPSET_SCAT,			   machine_at_super286tr_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_286, 0, 0, 0, 0, 0, 0, 0,										MACHINE_AT,		0,							  512,  8192, 128,  127, NULL				},
     /* Has IBM PS/2 Type 1 KBC firmware. */
     { "[SCAT] Samsung SPC-4200P",		"spc4200p",		MACHINE_TYPE_286,	MACHINE_CHIPSET_SCAT,			     machine_at_spc4200p_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_286, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PS2,		0,							  512,  2048, 128,  127, NULL				},
     /* Has IBM PS/2 Type 1 KBC firmware. */
@@ -1010,6 +1010,47 @@ const machine_t machines[] = {
 };
 
 
+/* Saved copies - jumpers get applied to these.
+   We use also machine_gpio to store IBM PC/XT jumpers as they need more than one byte. */
+static uint16_t		machine_p1;
+static uint32_t		machine_gpio;
+
+
+uint8_t
+machine_get_p1(void)
+{
+    return machine_p1;
+}
+
+
+void
+machine_load_p1(int m)
+{
+    machine_p1 = machines[machine].kbc_p1;
+}
+
+
+uint32_t
+machine_get_gpi(void)
+{
+    return machine_gpi;
+}
+
+
+void
+machine_load_gpi(int m)
+{
+    machine_gpi = machines[machine].acpi_gpi;
+}
+
+
+void
+machine_set_gpi(uint32_t gpi)
+{
+    machine_gpi = gpi;
+}
+
+
 int
 machine_count(void)
 {
@@ -1036,6 +1077,16 @@ machine_getdevice(int m)
 {
     if (machines[m].get_device)
 	return(machines[m].get_device());
+
+    return(NULL);
+}
+
+
+const device_t *
+machine_getviddevice(int m)
+{
+    if (machines[m].get_vid_device)
+	return(machines[m].get_vid_device());
 
     return(NULL);
 }

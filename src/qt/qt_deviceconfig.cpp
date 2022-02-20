@@ -51,6 +51,8 @@ DeviceConfig::~DeviceConfig()
 void DeviceConfig::ConfigureDevice(const _device_* device, int instance, Settings* settings) {
     DeviceConfig dc(settings);
     dc.setWindowTitle(QString("%1 Device Configuration").arg(device->name));
+    int combo_to_struct[256];
+    int c, d, p;
 
     device_context_t device_context;
     device_set_context(&device_context, device, instance);
@@ -128,11 +130,38 @@ void DeviceConfig::ConfigureDevice(const _device_* device, int instance, Setting
                 break;
             }
 
-            for (auto* sel = config->selection; (sel->description != nullptr) && (strlen(sel->description) > 0); ++sel) {
+            for (auto* sel = config->selection; (sel != nullptr) && (sel->description != nullptr) && (strlen(sel->description) > 0); ++sel) {
                 int row = Models::AddEntry(model, sel->description, sel->value);
                 if (selected == sel->value) {
                     currentIndex = row;
                 }
+            }
+            dc.ui->formLayout->addRow(config->description, cbox);
+            cbox->setCurrentIndex(currentIndex);
+            break;
+        }
+        case CONFIG_BIOS:
+        {
+            auto* cbox = new QComboBox();
+            cbox->setObjectName(config->name);
+            auto* model = cbox->model();
+            int currentIndex = -1;
+            char *selected;
+            selected = config_get_int(device_context.name, const_cast<char*>(config->name), config->default_string);
+
+            c = q = 0;
+            for (auto* bios = config->bios; (bios != nullptr) && (bios->name != nullptr) && (strlen(bios->name) > 0); ++bios) {
+                p = 0;
+                for (d = 0; d < bios->files_no; d++)
+                    p += !!rom_present(bios->files[d]);
+                if (p == bios->files_no) {
+                    int row = Models::AddEntry(model, bios->name, bios->internal_name);
+                    if (!strcmp(selected, q)) {
+                        currentIndex = row;
+                    }
+                    c++;
+               }
+               q++;
             }
             dc.ui->formLayout->addRow(config->description, cbox);
             cbox->setCurrentIndex(currentIndex);
@@ -184,6 +213,13 @@ void DeviceConfig::ConfigureDevice(const _device_* device, int instance, Setting
             {
                 auto* cbox = dc.findChild<QComboBox*>(config->name);
                 config_set_int(device_context.name, const_cast<char*>(config->name), cbox->currentData().toInt());
+                break;
+            }
+            case CONFIG_BIOS:
+            {
+                auto* cbox = dc.findChild<QComboBox*>(config->name);
+                int idx = cbox->currentData().toInt();
+                config_set_int(device_context.name, const_cast<char*>(config->name), config->bios[idx].internal_name);
                 break;
             }
             case CONFIG_HEX16:
