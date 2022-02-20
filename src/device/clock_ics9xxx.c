@@ -152,7 +152,7 @@ static const ics9xxx_model_t ics9xxx_models[] = {
     ICS9xxx_MODEL_END()
     ICS9xxx_MODEL(ICS9248_95)
 	.max_reg = 5,
-	.regs = {0x82, 0xff, 0xff, 0xff, 0xd5, 0xff}, 
+	.regs = {0x82, 0xff, 0xff, 0xff, 0xd5, 0xff},
 	.fs_regs = {{0, 4, -1, -1}, {0, 5, 4, 3}, {0, 6, -1, -1}, {0, 2, 4, 1}, {-1, -1, -1, -1}},
 	.hw_select = {0, 3},
 	.frequencies = (const ics9xxx_frequency_t[]) {
@@ -1220,7 +1220,7 @@ ics9xxx_init(const device_t *info)
 	dev->frequencies_ptr = (ics9xxx_frequency_t *) (dev->model->frequencies_ref ? ics9xxx_models[dev->model->frequencies_ref].frequencies : dev->model->frequencies);
 	if (!dev->frequencies_ptr)
 		fatal("ICS9xxx: NULL frequency table\n");
-	
+
 	/* Determine which frequency bits cannot be strapped (register only). */
 	uint8_t register_only_bits = 0x00;
 	for (i = 0; i < sizeof(dev->model->fs_regs) / sizeof(dev->model->fs_regs[0]); i++) {
@@ -1229,11 +1229,11 @@ ics9xxx_init(const device_t *info)
 		if ((dev->model->fs_regs[i].normal_reg == 7) && (dev->model->fs_regs[i].inv_reg == 7)) /* mark as register only */
 			register_only_bits |= 1 << i;
 	}
-	
+
 	/* Mark the hardware select bit's register as relevant, if there's one. */
 	if (dev->model->hw_select.normal_reg < 7)
 		dev->relevant_regs |= 1 << dev->model->hw_select.normal_reg;
-	
+
 	/* Find bus speed match and set default register bits accordingly. */
 	dev->bus_match = ics9xxx_find_bus_match(dev, cpu_busspeed, register_only_bits, 0x00);
 	for (i = 0; i < sizeof(dev->model->fs_regs) / sizeof(dev->model->fs_regs[0]); i++) {

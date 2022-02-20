@@ -200,7 +200,7 @@ void HardwareRenderer::onBlit(int buf_idx, int x, int y, int w, int h) {
 
 void HardwareRenderer::resizeEvent(QResizeEvent *event) {
     onResize(width(), height());
-    
+
     QOpenGLWindow::resizeEvent(event);
 }
 
@@ -214,7 +214,7 @@ bool HardwareRenderer::event(QEvent *event)
 std::vector<std::tuple<uint8_t*, std::atomic_flag*>> HardwareRenderer::getBuffers()
 {
     std::vector<std::tuple<uint8_t*, std::atomic_flag*>> buffers;
-    
+
     buffers.push_back(std::make_tuple(imagebufs[0].get(), &buf_usage[0]));
     buffers.push_back(std::make_tuple(imagebufs[1].get(), &buf_usage[1]));
 

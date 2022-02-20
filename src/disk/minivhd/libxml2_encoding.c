@@ -18,7 +18,7 @@
  * daniel@veillard.com
  *
  * Original code for IsoLatin1 and UTF-16 by "Martin J. Duerst" <duerst@w3.org>
- * 
+ *
  * Adapted and abridged for MiniVHD by Sherman Perry
  */
 #include <stdlib.h>
@@ -26,7 +26,7 @@
 static int xmlLittleEndian = 1;
 
 /* Note: extracted from original 'void xmlInitCharEncodingHandlers(void)' function */
-void xmlEncodingInit(void) 
+void xmlEncodingInit(void)
 {
     unsigned short int tst = 0x1234;
     unsigned char *ptr = (unsigned char *) &tst;
@@ -426,7 +426,7 @@ int UTF8ToUTF16BE(unsigned char* outb, int *outlen,
     return(*outlen);
 }
 
-/* This file is licenced under the MIT licence as follows: 
+/* This file is licenced under the MIT licence as follows:
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

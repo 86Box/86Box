@@ -181,7 +181,7 @@ typedef struct {
     int		mem_size, mem_start, mem_end;
 
     int		tx_timer_index;
-    int		tx_timer_active;	
+    int		tx_timer_active;
 
     void	*priv;
 

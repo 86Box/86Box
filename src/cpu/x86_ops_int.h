@@ -71,7 +71,7 @@ static int opINT(uint32_t fetchdat)
 static int opINTO(uint32_t fetchdat)
 {
         int cycles_old = cycles; UN_USED(cycles_old);
-        
+
         if ((cr0 & 1) && (cpu_state.eflags & VM_FLAG) && (IOPL != 3))
         {
                 x86gpf(NULL,0);

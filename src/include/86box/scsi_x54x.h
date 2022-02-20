@@ -493,7 +493,7 @@ typedef struct {
     pc_timer_t	timer, ResetCB;
 
     Req_t	Req;
-    
+
     fdc_t	*fdc;
 } x54x_t;
 

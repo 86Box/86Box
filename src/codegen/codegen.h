@@ -56,18 +56,18 @@
   added to the page_lookup for this purpose. When in the page_lookup, each write
   will go through the mem_write_ram*_page() functions and set the dirty mask
   appropriately.
-  
+
   Each codeblock also contains a code mask (actually two masks, one for each
   page the block is/may be in), again with each bit representing 64 bytes.
-  
+
   Each page has a list of codeblocks present in it. As each codeblock can span
   up to two pages, two lists are present.
-  
+
   When a codeblock is about to be executed, the code masks are compared with the
   dirty masks for the relevant pages. If either intersect, then
   codegen_check_flush() is called on the affected page(s), and all affected
   blocks are evicted.
-  
+
   The 64 byte granularity appears to work reasonably well for most cases,
   avoiding most unnecessary evictions (eg when code & data are stored in the
   same page).
@@ -78,17 +78,17 @@ typedef struct codeblock_t
         uint64_t page_mask, page_mask2;
         uint64_t *dirty_mask, *dirty_mask2;
         uint64_t cmp;
-        
+
         /*Previous and next pointers, for the codeblock list associated with
           each physical page. Two sets of pointers, as a codeblock can be
           present in two pages.*/
         struct codeblock_t *prev, *next;
         struct codeblock_t *prev_2, *next_2;
-        
+
         /*Pointers for codeblock tree, used to search for blocks when hash lookup
           fails.*/
         struct codeblock_t *parent, *left, *right;
-        
+
         int pnt;
         int ins;
 
@@ -116,7 +116,7 @@ static inline codeblock_t *codeblock_tree_find(uint32_t phys, uint32_t _cs)
 {
         codeblock_t *block = pages[phys >> 12].head;
         uint64_t a = _cs | ((uint64_t)phys << 32);
-        
+
         while (block)
         {
                 if (a == block->cmp)
@@ -130,7 +130,7 @@ static inline codeblock_t *codeblock_tree_find(uint32_t phys, uint32_t _cs)
                 else
                         block = block->right;
         }
-        
+
         return block;
 }
 
@@ -139,7 +139,7 @@ static inline void codeblock_tree_add(codeblock_t *new_block)
         codeblock_t *block = pages[new_block->phys >> 12].head;
         uint64_t a = new_block->_cs | ((uint64_t)new_block->phys << 32);
         new_block->cmp = a;
-                
+
         if (!block)
         {
                 pages[new_block->phys >> 12].head = new_block;
@@ -148,7 +148,7 @@ static inline void codeblock_tree_add(codeblock_t *new_block)
         else
         {
                 codeblock_t *old_block = NULL;
-                
+
                 while (block)
                 {
                         old_block = block;
@@ -157,12 +157,12 @@ static inline void codeblock_tree_add(codeblock_t *new_block)
                         else
                                 block = block->right;
                 }
-                
+
                 if (a < old_block->cmp)
                         old_block->left = new_block;
                 else
                         old_block->right = new_block;
-                
+
                 new_block->parent = old_block;
                 new_block->left = new_block->right = NULL;
         }
@@ -237,7 +237,7 @@ static inline void codeblock_tree_delete(codeblock_t *block)
                 /*Difficult case - node has two children. Walk right child to find lowest node*/
                 codeblock_t *lowest = block->right, *highest;
                 codeblock_t *old_parent;
-                        
+
                 while (lowest->left)
                         lowest = lowest->left;
 
@@ -260,7 +260,7 @@ static inline void codeblock_tree_delete(codeblock_t *block)
                         lowest->left->parent = lowest;
 
                 old_parent->left = NULL;
-                                
+
                 highest = lowest->right;
                 if (!highest)
                 {

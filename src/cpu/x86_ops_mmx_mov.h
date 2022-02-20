@@ -1,7 +1,7 @@
 static int opMOVD_l_mm_a16(uint32_t fetchdat)
 {
         MMX_ENTER();
-        
+
         fetch_ea_16(fetchdat);
         if (cpu_mod == 3)
         {
@@ -25,7 +25,7 @@ static int opMOVD_l_mm_a16(uint32_t fetchdat)
 static int opMOVD_l_mm_a32(uint32_t fetchdat)
 {
         MMX_ENTER();
-        
+
         fetch_ea_32(fetchdat);
         if (cpu_mod == 3)
         {
@@ -116,7 +116,7 @@ static int opMOVD_mm_l_a32_cx(uint32_t fetchdat)
                 return opSMINT(fetchdat);
 
         MMX_ENTER();
-        
+
         fetch_ea_32(fetchdat);
         if (cpu_mod == 3)
         {
@@ -137,7 +137,7 @@ static int opMOVD_mm_l_a32_cx(uint32_t fetchdat)
 static int opMOVQ_q_mm_a16(uint32_t fetchdat)
 {
         MMX_ENTER();
-        
+
         fetch_ea_16(fetchdat);
         if (cpu_mod == 3)
         {
@@ -147,7 +147,7 @@ static int opMOVQ_q_mm_a16(uint32_t fetchdat)
         else
         {
                 uint64_t dst;
-        
+
                 SEG_CHECK_READ(cpu_state.ea_seg);
                 dst = readmemq(easeg, cpu_state.eaaddr); if (cpu_state.abrt) return 1;
                 cpu_state.MM[cpu_reg].q = dst;
@@ -158,7 +158,7 @@ static int opMOVQ_q_mm_a16(uint32_t fetchdat)
 static int opMOVQ_q_mm_a32(uint32_t fetchdat)
 {
         MMX_ENTER();
-        
+
         fetch_ea_32(fetchdat);
         if (cpu_mod == 3)
         {
@@ -168,7 +168,7 @@ static int opMOVQ_q_mm_a32(uint32_t fetchdat)
         else
         {
                 uint64_t dst;
-        
+
                 SEG_CHECK_READ(cpu_state.ea_seg);
                 dst = readmemq(easeg, cpu_state.eaaddr); if (cpu_state.abrt) return 1;
                 cpu_state.MM[cpu_reg].q = dst;
@@ -180,7 +180,7 @@ static int opMOVQ_q_mm_a32(uint32_t fetchdat)
 static int opMOVQ_mm_q_a16(uint32_t fetchdat)
 {
         MMX_ENTER();
-        
+
         fetch_ea_16(fetchdat);
         if (cpu_mod == 3)
         {
@@ -199,7 +199,7 @@ static int opMOVQ_mm_q_a16(uint32_t fetchdat)
 static int opMOVQ_mm_q_a32(uint32_t fetchdat)
 {
         MMX_ENTER();
-        
+
         fetch_ea_32(fetchdat);
         if (cpu_mod == 3)
         {

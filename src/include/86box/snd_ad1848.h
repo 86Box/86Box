@@ -36,7 +36,7 @@ typedef struct {
 
     int		count;
     uint8_t	trd, mce, wten: 1;
-    
+
     int16_t	out_l, out_r;
     double	cd_vol_l, cd_vol_r;
     int		fm_vol_l, fm_vol_r;

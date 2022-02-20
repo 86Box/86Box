@@ -57,7 +57,7 @@ typedef struct ati18800_t
         ati_eeprom_t eeprom;
 
         rom_t bios_rom;
-        
+
         uint8_t regs[256];
         int index;
 } ati18800_t;
@@ -101,7 +101,7 @@ static void ati18800_out(uint16_t addr, uint8_t val, void *p)
                         break;
                 }
                 break;
-                
+
                 case 0x3D4:
                 svga->crtcreg = val & 0x3f;
                 return;
@@ -137,7 +137,7 @@ static uint8_t ati18800_in(uint16_t addr, void *p)
         uint8_t temp = 0xff;
 
         if (((addr&0xFFF0) == 0x3D0 || (addr&0xFFF0) == 0x3B0) && !(svga->miscout&1)) addr ^= 0x60;
-             
+
         switch (addr)
         {
                 case 0x1ce:
@@ -262,14 +262,14 @@ static void ati18800_close(void *p)
         ati18800_t *ati18800 = (ati18800_t *)p;
 
         svga_close(&ati18800->svga);
-        
+
         free(ati18800);
 }
 
 static void ati18800_speed_changed(void *p)
 {
         ati18800_t *ati18800 = (ati18800_t *)p;
-        
+
         svga_recalctimings(&ati18800->svga);
 }
 

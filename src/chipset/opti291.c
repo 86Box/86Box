@@ -7,7 +7,7 @@
  *		This file is part of the 86Box distribution.
  *
  *		Implementation of the OPTi 82C291 chipset.
- 
+
  * Authors:	plant/nerd73, Tiseno100
  *
  *              Copyright 2020 plant/nerd73.

@@ -43,7 +43,7 @@
 #else
 #define pre_gap1	0
 #endif
-  
+
 #define pre_track	pre_gap1 + length_gap1
 #define pre_gap		length_sync + length_am + 4 + length_crc
 #define pre_data	length_sync + length_am

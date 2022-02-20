@@ -62,23 +62,23 @@ ToolBarProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
     switch (message) {
 	case WM_NOTIFY:
 		switch (((LPNMHDR) lParam)->code) {
-			case TTN_GETDISPINFO: { 
-				LPTOOLTIPTEXT lpttt = (LPTOOLTIPTEXT)lParam; 
-				
+			case TTN_GETDISPINFO: {
+				LPTOOLTIPTEXT lpttt = (LPTOOLTIPTEXT)lParam;
+
 				// Set the instance of the module that contains the resource.
 				lpttt->hinst = hinstance;
-				
+
 				uintptr_t idButton = lpttt->hdr.idFrom;
-				
-				switch (idButton) { 
+
+				switch (idButton) {
 					case IDM_ACTION_PAUSE:
 						if (dopause)
 							lpttt->lpszText = MAKEINTRESOURCE(IDS_2154);
 						else
 							lpttt->lpszText = MAKEINTRESOURCE(IDS_2155);
-						break; 
-					
-					case IDM_ACTION_RESET_CAD: 
+						break;
+
+					case IDM_ACTION_RESET_CAD:
 						lpttt->lpszText = MAKEINTRESOURCE(IDS_2156);
 						break;
 
@@ -89,14 +89,14 @@ ToolBarProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 					case IDM_ACTION_HRESET:
 						lpttt->lpszText = MAKEINTRESOURCE(IDS_2158);
 						break;
-					
-					case IDM_CONFIG: 
+
+					case IDM_CONFIG:
 						lpttt->lpszText = MAKEINTRESOURCE(IDS_2160);
-						break; 
+						break;
 				}
-				
-				return TRUE; 
-			} 
+
+				return TRUE;
+			}
 		}
     }
 
@@ -141,7 +141,7 @@ ToolBarCreate(HWND hwndParent, HINSTANCE hInst)
 				WS_CHILD | WS_VISIBLE | WS_CLIPCHILDREN |
 				WS_CLIPSIBLINGS | TBSTYLE_TOOLTIPS |
 				TBSTYLE_FLAT | CCS_TOP | BTNS_AUTOSIZE |
-				CCS_NOPARENTALIGN | CCS_NORESIZE | 
+				CCS_NOPARENTALIGN | CCS_NORESIZE |
 				CCS_NODIVIDER,
 				0, 0, 0, 0,
 				hwndParent, NULL, hInst, NULL);
@@ -164,7 +164,7 @@ ToolBarCreate(HWND hwndParent, HINSTANCE hInst)
 
     // Create the containing Rebar.
     hwndRebar = CreateWindowEx(0, REBARCLASSNAME, NULL,
-				WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | 
+				WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS |
 				WS_CLIPCHILDREN | RBS_VARHEIGHT |
 				CCS_NODIVIDER | CCS_NOPARENTALIGN,
 				0, 0, scrnsz_x, 0,

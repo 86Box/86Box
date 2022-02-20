@@ -7,7 +7,7 @@
  *		This file is part of the 86Box distribution.
  *
  *		Implementation of the OPTi 82C546/82C547(Python) & 82C596/82C597(Cobra) chipsets.
- 
+
  * Authors:	plant/nerd73,
  *          Miran Grca, <mgrca8@gmail.com>
  *          Tiseno100

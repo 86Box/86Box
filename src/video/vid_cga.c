@@ -41,7 +41,7 @@
 #define COMPOSITE_OLD 0
 #define COMPOSITE_NEW 1
 
-static uint8_t crtcmask[32] = 
+static uint8_t crtcmask[32] =
 {
 	0xff, 0xff, 0xff, 0xff, 0x7f, 0x1f, 0x7f, 0x7f, 0xf3, 0x1f, 0x7f, 0x1f, 0x3f, 0xff, 0x3f, 0xff,
 	0xff, 0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
@@ -204,7 +204,7 @@ cga_poll(void *p)
 	cga->cgastat |= 1;
 	cga->linepos = 1;
 	oldsc = cga->sc;
-	if ((cga->crtc[8] & 3) == 3) 
+	if ((cga->crtc[8] & 3) == 3)
 		cga->sc = ((cga->sc << 1) + cga->oddeven) & 7;
 	if (cga->cgadispon) {
 		if (cga->displine < cga->firstline) {
@@ -237,7 +237,7 @@ cga_poll(void *p)
 		}
 		if (cga->cgamode & 1) {
 			for (x = 0; x < cga->crtc[1]; x++) {
-				if (cga->cgamode & 8) {	
+				if (cga->cgamode & 8) {
 					chr = cga->charbuffer[x << 1];
 					attr = cga->charbuffer[(x << 1) + 1];
 				} else
@@ -246,7 +246,7 @@ cga_poll(void *p)
 				cols[1] = (attr & 15) + 16;
 				if (cga->cgamode & 0x20) {
 					cols[0] = ((attr >> 4) & 7) + 16;
-					if ((cga->cgablink & 8) && (attr & 0x80) && !cga->drawcursor) 
+					if ((cga->cgablink & 8) && (attr & 0x80) && !cga->drawcursor)
 						cols[1] = cols[0];
 				} else
 					cols[0] = (attr >> 4) + 16;
@@ -333,7 +333,7 @@ cga_poll(void *p)
 		} else {
 			cols[0] = 0; cols[1] = (cga->cgacol & 15) + 16;
 			for (x = 0; x < cga->crtc[1]; x++) {
-				if (cga->cgamode & 8)	
+				if (cga->cgamode & 8)
 					dat = (cga->vram[((cga->ma << 1) & 0x1fff) + ((cga->sc & 1) * 0x2000)] << 8) | cga->vram[((cga->ma << 1) & 0x1fff) + ((cga->sc & 1) * 0x2000) + 1];
 				else
 					dat = 0;
@@ -376,7 +376,7 @@ cga_poll(void *p)
 	if (cga->vc == cga->crtc[7] && !cga->sc)
 		cga->cgastat |= 8;
 	cga->displine++;
-	if (cga->displine >= 360) 
+	if (cga->displine >= 360)
 		cga->displine = 0;
     } else {
 	timer_advance_u64(&cga->timer, cga->dispontime);
@@ -387,8 +387,8 @@ cga_poll(void *p)
 			cga->cgastat &= ~8;
 	}
 	if (cga->sc == (cga->crtc[11] & 31) || ((cga->crtc[8] & 3) == 3 && cga->sc == ((cga->crtc[11] & 31) >> 1))) {
-		cga->con = 0; 
-		cga->coff = 1; 
+		cga->con = 0;
+		cga->coff = 1;
 	}
 	if ((cga->crtc[8] & 3) == 3 && cga->sc == (cga->crtc[9] >> 1))
 		cga->maback = cga->ma;
@@ -409,7 +409,7 @@ cga_poll(void *p)
 		cga->vc++;
 		cga->vc &= 127;
 
-		if (cga->vc == cga->crtc[6]) 
+		if (cga->vc == cga->crtc[6])
 			cga->cgadispon = 0;
 
 		if (oldvc == cga->crtc[4]) {
@@ -462,14 +462,14 @@ cga_poll(void *p)
 					}
 
 					if (enable_overscan) {
-						if (cga->composite) 
+						if (cga->composite)
 							video_blit_memtoscreen(0, (cga->firstline - 4) << 1,
 								       xsize, ((cga->lastline - cga->firstline) + 8) << 1);
 						else
 							video_blit_memtoscreen_8(0, (cga->firstline - 4) << 1,
 										 xsize, ((cga->lastline - cga->firstline) + 8) << 1);
 					} else {
-						if (cga->composite) 
+						if (cga->composite)
 							video_blit_memtoscreen(8, cga->firstline << 1,
 								       xsize, (cga->lastline - cga->firstline) << 1);
 						else
@@ -508,7 +508,7 @@ cga_poll(void *p)
 	}
 	if (cga->cgadispon)
 		cga->cgastat &= ~1;
-	if ((cga->sc == (cga->crtc[10] & 31) || ((cga->crtc[8] & 3) == 3 && cga->sc == ((cga->crtc[10] & 31) >> 1)))) 
+	if ((cga->sc == (cga->crtc[10] & 31) || ((cga->crtc[8] & 3) == 3 && cga->sc == ((cga->crtc[10] & 31) >> 1))))
 		cga->con = 1;
 	if (cga->cgadispon && (cga->cgamode & 1)) {
 		for (x = 0; x < (cga->crtc[1] << 1); x++)

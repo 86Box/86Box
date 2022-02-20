@@ -18,7 +18,7 @@
  *		Copyright 2021 Miran Grca.
  */
 
-/* 
+/*
    UMC 8886xx Configuration Registers
 
    Note: PMU functionality is quite basic. There may be Enable/Disable bits, IRQ/SMI picks and it also

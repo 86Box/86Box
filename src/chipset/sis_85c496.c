@@ -468,7 +468,7 @@ sis_85c49x_pci_read(int func, int addr, void *priv)
 
     return ret;
 }
- 
+
 
 static void
 sis_85c496_rmsmiblk_count(void *priv)
@@ -625,8 +625,8 @@ const device_t sis_85c496_device =
     "sis_85c496",
     DEVICE_PCI,
     0,
-    sis_85c496_init, 
-    sis_85c496_close, 
+    sis_85c496_init,
+    sis_85c496_close,
     sis_85c496_reset,
     { NULL },
     NULL,
@@ -641,8 +641,8 @@ const device_t sis_85c496_ls486e_device =
     "sis_85c496_ls486e",
     DEVICE_PCI,
     1,
-    sis_85c496_init, 
-    sis_85c496_close, 
+    sis_85c496_init,
+    sis_85c496_close,
     sis_85c496_reset,
     { NULL },
     NULL,

@@ -193,7 +193,7 @@ io_removehandler_common(uint16_t base, int size,
 
 
 void
-io_handler_common(int set, uint16_t base, int size, 
+io_handler_common(int set, uint16_t base, int size,
 		  uint8_t (*inb)(uint16_t addr, void *priv),
 		  uint16_t (*inw)(uint16_t addr, void *priv),
 		  uint32_t (*inl)(uint16_t addr, void *priv),
@@ -210,7 +210,7 @@ io_handler_common(int set, uint16_t base, int size,
 
 
 void
-io_sethandler(uint16_t base, int size, 
+io_sethandler(uint16_t base, int size,
 	      uint8_t (*inb)(uint16_t addr, void *priv),
 	      uint16_t (*inw)(uint16_t addr, void *priv),
 	      uint32_t (*inl)(uint16_t addr, void *priv),
@@ -238,7 +238,7 @@ io_removehandler(uint16_t base, int size,
 
 
 void
-io_handler(int set, uint16_t base, int size, 
+io_handler(int set, uint16_t base, int size,
 	   uint8_t (*inb)(uint16_t addr, void *priv),
 	   uint16_t (*inw)(uint16_t addr, void *priv),
 	   uint32_t (*inl)(uint16_t addr, void *priv),
@@ -252,7 +252,7 @@ io_handler(int set, uint16_t base, int size,
 
 
 void
-io_sethandler_interleaved(uint16_t base, int size, 
+io_sethandler_interleaved(uint16_t base, int size,
 			  uint8_t (*inb)(uint16_t addr, void *priv),
 			  uint16_t (*inw)(uint16_t addr, void *priv),
 			  uint32_t (*inl)(uint16_t addr, void *priv),
@@ -280,7 +280,7 @@ io_removehandler_interleaved(uint16_t base, int size,
 
 
 void
-io_handler_interleaved(int set, uint16_t base, int size, 
+io_handler_interleaved(int set, uint16_t base, int size,
 		       uint8_t (*inb)(uint16_t addr, void *priv),
 		       uint16_t (*inw)(uint16_t addr, void *priv),
 		       uint32_t (*inl)(uint16_t addr, void *priv),
@@ -314,7 +314,7 @@ inb(uint16_t port)
 
     if (port & 0x80)
 	amstrad_latch = AMSTRAD_NOLATCH;
-    else if (port & 0x4000)   
+    else if (port & 0x4000)
 	amstrad_latch = AMSTRAD_SW10;
     else
 	amstrad_latch = AMSTRAD_SW9;
@@ -403,7 +403,7 @@ inw(uint16_t port)
 
     if (port & 0x80)
 	amstrad_latch = AMSTRAD_NOLATCH;
-    else if (port & 0x4000)   
+    else if (port & 0x4000)
 	amstrad_latch = AMSTRAD_SW10;
     else
 	amstrad_latch = AMSTRAD_SW9;
@@ -521,7 +521,7 @@ inl(uint16_t port)
 
     if (port & 0x80)
 	amstrad_latch = AMSTRAD_NOLATCH;
-    else if (port & 0x4000)   
+    else if (port & 0x4000)
 	amstrad_latch = AMSTRAD_SW10;
     else
 	amstrad_latch = AMSTRAD_SW9;

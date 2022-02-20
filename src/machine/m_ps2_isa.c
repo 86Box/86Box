@@ -73,7 +73,7 @@ static uint8_t ps2_read(uint16_t port, void *p)
                 temp = 0xff;
                 break;
         }
-        
+
         return temp;
 }
 
@@ -160,7 +160,7 @@ static void ps2board_init(void)
 	ps2_uart = device_add_inst(&ns16450_device, 1);
 
         lpt1_init(0x3bc);
-        
+
         memset(&ps2_hd, 0, sizeof(ps2_hd));
 }
 

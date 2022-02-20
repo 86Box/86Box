@@ -54,7 +54,7 @@
 #include <stdlib.h>
 #include <wchar.h>
 #include <86box/86box.h>
-#include <86box/plat.h> 
+#include <86box/plat.h>
 #include <86box/printer.h>
 
 
@@ -587,7 +587,7 @@ select_codepage(uint16_t code, uint16_t *curmap)
 	}
 	i++;
     }
-    
+
     for (i = 0; i < 256; i++)
 	curmap[i] = map_to_use[i];
 }

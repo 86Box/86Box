@@ -314,7 +314,7 @@ void mtr_stop() {
 // TODO: fwrite more than one line at a time.
 // Flushing is thread safe and process async
 // using double-buffering mechanism.
-// Aware: only one flushing process may be 
+// Aware: only one flushing process may be
 // running at any point of time
 void mtr_flush_with_state(int is_last) {
 #ifndef MTR_ENABLED

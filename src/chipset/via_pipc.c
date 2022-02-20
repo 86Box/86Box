@@ -980,7 +980,7 @@ pipc_write(int func, int addr, uint8_t val, void *priv)
 	if ((dev->local <= VIA_PIPC_586B) && (addr >= 0x74))
 		return;
 
-	if ((dev->local <= VIA_PIPC_596A) && ((addr == 0x51) || (addr == 0x52) || (addr == 0x5f) || (addr == 0x85) || 
+	if ((dev->local <= VIA_PIPC_596A) && ((addr == 0x51) || (addr == 0x52) || (addr == 0x5f) || (addr == 0x85) ||
 	    (addr == 0x86) || ((addr >= 0x8a) && (addr < 0x90))))
 		return;
 

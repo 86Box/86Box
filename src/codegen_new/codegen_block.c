@@ -58,7 +58,7 @@ static void delete_dirty_block(codeblock_t *block);
 /*Temporary list of code blocks that have recently been evicted. This allows for
   some historical state to be kept when a block is the target of self-modifying
   code.
-  
+
   The size of this list is limited to DIRTY_LIST_MAX_SIZE blocks. When this is
   exceeded the oldest entry will be moved to the free list.*/
 static uint16_t block_dirty_list_head, block_dirty_list_tail;
@@ -88,7 +88,7 @@ static void block_dirty_list_add(codeblock_t *block)
         if (block_dirty_list_head != BLOCK_INVALID)
         {
                 codeblock_t *old_head = &codeblock[block_dirty_list_head];
-                
+
                 block->next = block_dirty_list_head;
                 block->prev = BLOCK_INVALID;
                 block_dirty_list_head = old_head->prev = get_block_nr(block);
@@ -213,9 +213,9 @@ static codeblock_t *block_free_list_get()
 void codegen_init()
 {
         int c;
-        
+
         codegen_allocator_init();
-        
+
         codegen_backend_init();
         block_free_list = 0;
         for (c = 0; c < BLOCK_SIZE; c++)
@@ -235,7 +235,7 @@ void codegen_close()
         {
                 int c;
                 uint32_t highest_num = 0, highest_idx = 0;
-                
+
                 for (c = 0; c < 256*256; c++)
                 {
                         if (instr_counts[c] > highest_num)
@@ -263,7 +263,7 @@ void codegen_reset()
         for (c = 1; c < BLOCK_SIZE; c++)
         {
                 codeblock_t *block = &codeblock[c];
-                
+
                 if (block->pc != BLOCK_PC_INVALID)
                 {
                         block->phys = 0;
@@ -296,7 +296,7 @@ void dump_block()
                 pclog(" %p : %08x-%08x  %08x-%08x %p %p\n", (void *)block, start_pc, end_pc,  block->pc, block->endpc, (void *)block->prev, (void *)block->next);
                 if (!block->pc)
                         fatal("Dead PC=0\n");
-                
+
                 block = block->next;
         }
         pclog("dump_block done\n");*/
@@ -331,11 +331,11 @@ static void add_to_block_list(codeblock_t *block)
                         fatal("block->next->pc=BLOCK_PC_INVALID %p %p %x %x\n", (void *)&codeblock[block->next], (void *)codeblock, block_current, block_pos);
 #endif
         }
-        
+
         if (block->page_mask2)
         {
                 block->flags |= CODEBLOCK_HAS_PAGE2;
-                
+
                 block_prev_nr = pages[block->phys_2 >> 12].block_2;
 
                 if (block_prev_nr)
@@ -466,7 +466,7 @@ void codegen_delete_block(codeblock_t *block)
 void codegen_delete_random_block(int required_mem_block)
 {
         int block_nr = rand() & BLOCK_MASK;
-        
+
         while (1)
         {
                 if (block_nr && block_nr != block_current)
@@ -493,7 +493,7 @@ void codegen_check_flush(page_t *page, uint64_t mask, uint32_t phys_addr)
         {
                 codeblock_t *block = &codeblock[block_nr];
                 uint16_t next_block = block->next;
-                
+
                 if (*block->dirty_mask & block->page_mask)
                 {
                         invalidate_block(block);
@@ -506,7 +506,7 @@ void codegen_check_flush(page_t *page, uint64_t mask, uint32_t phys_addr)
         }
 
         block_nr = page->block_2;
-        
+
         while (block_nr)
         {
                 codeblock_t *block = &codeblock[block_nr];
@@ -522,12 +522,12 @@ void codegen_check_flush(page_t *page, uint64_t mask, uint32_t phys_addr)
 #endif
                 block_nr = next_block;
         }
-        
+
         if (page->code_present_mask & page->dirty_mask)
                 remove_from_evict_list = 1;
         page->code_present_mask &= ~page->dirty_mask;
         page->dirty_mask = 0;
-        
+
         for (c = 0; c < 64; c++)
         {
                 if (page->byte_code_present_mask[c] & page->byte_dirty_mask[c])
@@ -567,7 +567,7 @@ void codegen_block_init(uint32_t phys_addr)
         block->page_mask = block->page_mask2 = 0;
         block->flags = CODEBLOCK_STATIC_TOP;
         block->status = cpu_cur_status;
-        
+
         recomp_page = block->phys & ~0xfff;
         codeblock_tree_add(block);
 }
@@ -598,7 +598,7 @@ void codegen_block_start_recompile(codeblock_t *block)
         block->data = codeblock_allocator_get_ptr(block->head_mem_block);
 
         block->status = cpu_cur_status;
-        
+
         block->page_mask = block->page_mask2 = 0;
         block->ins = 0;
 
@@ -607,30 +607,30 @@ void codegen_block_start_recompile(codeblock_t *block)
         last_op32 = -1;
         last_ea_seg = NULL;
         last_ssegs = -1;
-        
+
         codegen_block_cycles = 0;
         codegen_timing_block_start();
-        
+
         codegen_block_ins = 0;
         codegen_block_full_ins = 0;
 
         recomp_page = block->phys & ~0xfff;
-        
+
         codegen_flags_changed = 0;
         codegen_fpu_entered = 0;
         codegen_mmx_entered = 0;
 
         codegen_fpu_loaded_iq[0] = codegen_fpu_loaded_iq[1] = codegen_fpu_loaded_iq[2] = codegen_fpu_loaded_iq[3] =
         codegen_fpu_loaded_iq[4] = codegen_fpu_loaded_iq[5] = codegen_fpu_loaded_iq[6] = codegen_fpu_loaded_iq[7] = 0;
-        
+
         cpu_state.seg_ds.checked = cpu_state.seg_es.checked = cpu_state.seg_fs.checked = cpu_state.seg_gs.checked = (cr0 & 1) ? 0 : 1;
 
         block->TOP = cpu_state.TOP & 7;
         block->flags |= CODEBLOCK_WAS_RECOMPILED;
 
         codegen_flat_ds = !(cpu_cur_status & CPU_STATUS_NOTFLATDS);
-        codegen_flat_ss = !(cpu_cur_status & CPU_STATUS_NOTFLATSS);       
-        
+        codegen_flat_ss = !(cpu_cur_status & CPU_STATUS_NOTFLATSS);
+
         if (block->flags & CODEBLOCK_BYTE_MASK)
         {
                 block->dirty_mask = &page->byte_dirty_mask[(block->phys >> PAGE_BYTE_MASK_SHIFT) & PAGE_BYTE_MASK_OFFSET_MASK];
@@ -684,7 +684,7 @@ void codegen_block_generate_end_mask_recompile()
                         if (block->flags & CODEBLOCK_BYTE_MASK)
                         {
                                 int offset = (block->phys_2 >> PAGE_BYTE_MASK_SHIFT) & PAGE_BYTE_MASK_OFFSET_MASK;
-                                
+
                                 page_2->byte_code_present_mask[offset] |= block->page_mask2;
                                 block->dirty_mask2 = &page_2->byte_dirty_mask[offset];
                         }

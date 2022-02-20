@@ -545,7 +545,7 @@ x54x_bios_command(x54x_t *x54x, uint8_t max_id, BIOSCMD *cmd, int8_t islba)
 
 		break;
     }
-	
+
     x54x_log("BIOS Request %02X complete: %02X\n", cmd->command, ret);
     return(ret);
 }
@@ -622,7 +622,7 @@ x54x_ccb(x54x_t *dev)
 
 static void
 x54x_mbi(x54x_t *dev)
-{	
+{
     Req_t *req = &dev->Req;
 //  uint32_t CCBPointer = req->CCBPointer;
     addr24 CCBPointer;
@@ -1073,7 +1073,7 @@ x54x_notify(x54x_t *dev)
 
 static void
 x54x_req_setup(x54x_t *dev, uint32_t CCBPointer, Mailbox32_t *Mailbox32)
-{	
+{
     Req_t *req = &dev->Req;
     uint8_t id, lun;
     scsi_device_t *sd;
@@ -1112,8 +1112,8 @@ x54x_req_setup(x54x_t *dev, uint32_t CCBPointer, Mailbox32_t *Mailbox32)
 	scsi_device_identify(sd, lun);
 
 	x54x_log("Transfer Control %02X\n", req->CmdBlock.common.ControlByte);
-	x54x_log("CDB Length %i\n", req->CmdBlock.common.CdbLength);	
-	x54x_log("CCB Opcode %x\n", req->CmdBlock.common.Opcode);		
+	x54x_log("CDB Length %i\n", req->CmdBlock.common.CdbLength);
+	x54x_log("CCB Opcode %x\n", req->CmdBlock.common.Opcode);
 	if ((req->CmdBlock.common.Opcode > 0x04) && (req->CmdBlock.common.Opcode != 0x81)) {
 		x54x_log("Invalid opcode: %02X\n",
 			req->CmdBlock.common.ControlByte);
@@ -1152,7 +1152,7 @@ x54x_req_abort(x54x_t *dev, uint32_t CCBPointer)
 
 static uint32_t
 x54x_mbo(x54x_t *dev, Mailbox32_t *Mailbox32)
-{	
+{
     Mailbox_t MailboxOut;
     uint32_t Outgoing;
     uint32_t ccbp;
@@ -1569,7 +1569,7 @@ x54x_out(uint16_t port, uint8_t val, void *priv)
 				case CMD_ECHO:
 				case CMD_OPTIONS:
 					dev->CmdParamLeft = 1;
-					break;	
+					break;
 
 				case CMD_SELTIMEOUT:
 					dev->CmdParamLeft = 4;
@@ -1593,7 +1593,7 @@ x54x_out(uint16_t port, uint8_t val, void *priv)
 			if (dev->ven_cmd_phase1)
 				dev->ven_cmd_phase1(dev);
 		}
-		
+
 		if (! dev->CmdParamLeft) {
 			x54x_log("Running Operation Code 0x%02X\n", dev->Command);
 			switch (dev->Command) {
@@ -1941,7 +1941,7 @@ x54x_init(const device_t *info)
 
     dev->card_bus = info->flags;
     dev->callback_phase = 0;
-	
+
     timer_add(&dev->ResetCB, x54x_reset_poll, dev, 0);
     timer_add(&dev->timer, x54x_cmd_callback, dev, 1);
     dev->timer.period = 10.0;

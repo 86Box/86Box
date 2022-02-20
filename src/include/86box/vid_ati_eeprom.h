@@ -20,7 +20,7 @@ enum
         EEPROM_OP_WRITE = 5,
         EEPROM_OP_READ  = 6,
         EEPROM_OP_ERASE = 7,
-        
+
         EEPROM_OP_WRALMAIN = -1
 };
 

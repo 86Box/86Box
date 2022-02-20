@@ -152,7 +152,7 @@ static int FSTOR()
         x87_ld_frstor(5); cpu_state.eaaddr += 10;
         x87_ld_frstor(6); cpu_state.eaaddr += 10;
         x87_ld_frstor(7);
-        
+
         cpu_state.ismmx = 0;
         /*Horrible hack, but as PCem doesn't keep the FPU stack in 80-bit precision at all times
           something like this is needed*/
@@ -390,7 +390,7 @@ static int opFLD(uint32_t fetchdat)
 {
         int old_tag;
         uint64_t old_i64;
-        
+
         FP_ENTER();
         cpu_state.pc++;
         old_tag = cpu_state.tag[(cpu_state.TOP + fetchdat) & 7];
@@ -419,7 +419,7 @@ static int opFXCH(uint32_t fetchdat)
         old_i64 = cpu_state.MM[cpu_state.TOP&7].q;
         cpu_state.MM[cpu_state.TOP&7].q = cpu_state.MM[(cpu_state.TOP + fetchdat) & 7].q;
         cpu_state.MM[(cpu_state.TOP + fetchdat) & 7].q = old_i64;
-        
+
         CLOCK_CYCLES_FPU((fpu_type >= FPU_487SX) ? (x87_timings.fxch) : (x87_timings.fxch * cpu_multi));
         CONCURRENCY_CYCLES((fpu_type >= FPU_487SX) ? (x87_concurrency.fxch) : (x87_concurrency.fxch * cpu_multi));
         return 0;
@@ -536,7 +536,7 @@ static int opFLDLN2(uint32_t fetchdat)
         CONCURRENCY_CYCLES((fpu_type >= FPU_487SX) ? (x87_concurrency.fld_const) : (x87_concurrency.fld_const * cpu_multi));
         return 0;
 }
- 
+
 static int opFLDZ(uint32_t fetchdat)
 {
         FP_ENTER();
@@ -832,7 +832,7 @@ static int FSTENV()
 {
         FP_ENTER();
 		cpu_state.npxs = (cpu_state.npxs & ~(7 << 11)) | ((cpu_state.TOP & 7) << 11);
-		
+
         switch ((cr0 & 1) | (cpu_state.op32 & 0x100))
         {
                 case 0x000: /*16-bit real mode*/

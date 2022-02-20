@@ -48,7 +48,7 @@ typedef struct pgc_cmd {
     uint8_t	hex;
     void	(*handler)(struct pgc *);
     int		(*parser) (struct pgc *, pgc_cl_t *, int);
-    int p;	
+    int p;
 } pgc_cmd_t;
 
 typedef struct pgc {
@@ -98,7 +98,7 @@ typedef struct pgc {
     int		waiting_error_fifo;
     int		ascii_mode;
     int		result_count;
- 
+
     int		fontbase;
     int		linepos,
 		displine;
@@ -116,7 +116,7 @@ typedef struct pgc {
 
     int		drawcursor;
 
-    int		(*inputbyte)(struct pgc *, uint8_t *result); 
+    int		(*inputbyte)(struct pgc *, uint8_t *result);
 } pgc_t;
 
 

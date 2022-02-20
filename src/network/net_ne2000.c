@@ -84,7 +84,7 @@ static uint8_t rtl8019as_pnp_rom[] = {
     0x4a, 0x8c, 0x80, 0x19, 0x00, 0x00, 0x00, 0x00, 0x00, /* RTL8019, dummy checksum (filled in by isapnp_add_card) */
     0x0a, 0x10, 0x10, /* PnP version 1.0, vendor version 1.0 */
     0x82, 0x22, 0x00, 'R', 'E', 'A', 'L', 'T', 'E', 'K', ' ', 'P', 'L', 'U', 'G', ' ', '&', ' ', 'P', 'L', 'A', 'Y', ' ', 'E', 'T', 'H', 'E', 'R', 'N', 'E', 'T', ' ', 'C', 'A', 'R', 'D', 0x00, /* ANSI identifier */
-	
+
     0x16, 0x4a, 0x8c, 0x80, 0x19, 0x02, 0x00, /* logical device RTL8019 */
 	0x1c, 0x41, 0xd0, 0x80, 0xd6, /* compatible device PNP80D6 */
 	0x47, 0x00, 0x20, 0x02, 0x80, 0x03, 0x20, 0x20, /* I/O 0x220-0x380, decodes 10-bit, 32-byte alignment, 32 addresses */
@@ -303,8 +303,8 @@ asic_write(nic_t *dev, uint32_t off, uint32_t val, unsigned len)
 
 	case 0x0f:  /* Reset register */
 		/* end of reset pulse */
-		break;	
-		
+		break;
+
 	default: /* this is invalid, but happens under win95 device detection */
 		nelog(3, "%s: ASIC write invalid address %04x, ignoring\n",
 						dev->name, (unsigned)off);
@@ -316,7 +316,7 @@ asic_write(nic_t *dev, uint32_t off, uint32_t val, unsigned len)
 /* Writes to this page are illegal. */
 static uint32_t
 page3_read(nic_t *dev, uint32_t off, unsigned int len)
-{ 
+{
     if (dev->board >= NE2K_RTL8019AS) switch(off) {
 	case 0x1:	/* 9346CR */
 		return(dev->_9346cr);
@@ -573,7 +573,7 @@ nic_pnp_write_vendor_reg(uint8_t ld, uint8_t reg, uint8_t val, void *priv)
 
 static void
 nic_ioset(nic_t *dev, uint16_t addr)
-{	
+{
     if (dev->is_pci) {
 	io_sethandler(addr, 32,
 			 nic_readb, nic_readw, nic_readl,
@@ -623,14 +623,14 @@ static void
 nic_update_bios(nic_t *dev)
 {
     int reg_bios_enable;
-	
+
     reg_bios_enable = 1;
 
     if (! dev->has_bios) return;
 
     if (dev->is_pci)
 	reg_bios_enable = dev->pci_bar[1].addr_regs[0] & 0x01;
-	
+
     /* PCI BIOS stuff, just enable_disable. */
     if (reg_bios_enable) {
 	mem_mapping_set_addr(&dev->bios_rom.mapping,
@@ -871,7 +871,7 @@ nic_mca_write(int port, uint8_t val, void *priv)
     /* Save the MCA register value. */
     dev->pos_regs[port & 7] = val;
 
-    nic_ioremove(dev, dev->base_address);	
+    nic_ioremove(dev, dev->base_address);
 
     /* This is always necessary so that the old handler doesn't remain. */
 	/* Get the new assigned I/O base address. */
@@ -894,13 +894,13 @@ nic_mca_write(int port, uint8_t val, void *priv)
     /* Initialize the device if fully configured. */
     if (dev->pos_regs[2] & 0x01) {
 	/* Card enabled; register (new) I/O handler. */
-	
+
 	nic_ioset(dev, dev->base_address);
-	
+
 	nic_reset(dev);
-	
+
 	nelog(2, "EtherNext/MC: Port=%04x, IRQ=%d\n", dev->base_address, dev->base_irq);
-	
+
     }
 }
 
@@ -947,10 +947,10 @@ nic_init(const device_t *info)
 		} else {
 			dev->bios_addr = 0x00000;
 			dev->has_bios = 0;
-		}		
+		}
 	}
 	else {
-		mca_add(nic_mca_read, nic_mca_write, nic_mca_feedb, NULL, dev);	
+		mca_add(nic_mca_read, nic_mca_write, nic_mca_feedb, NULL, dev);
 	}
     }
 
@@ -997,7 +997,7 @@ nic_init(const device_t *info)
 				    DP8390_FLAG_CLEAR_IRQ);
 		dp8390_mem_alloc(dev->dp8390, 0x4000, 0x4000);
 		break;
-		
+
 	case NE2K_ETHERNEXT_MC:
 		dev->maclocal[0] = 0x00;  /* 00:00:D8 (Networth Inc. OID) */
 		dev->maclocal[1] = 0x00;

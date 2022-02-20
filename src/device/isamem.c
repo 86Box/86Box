@@ -525,7 +525,7 @@ dev->frame_addr = 0xE0000;
 				ram_readb,
 				(dev->flags&FLAG_WIDE) ? ram_readw : NULL,
 				NULL,
-				ram_writeb, 
+				ram_writeb,
 				(dev->flags&FLAG_WIDE) ? ram_writew : NULL,
 				NULL,
 				ptr, MEM_MAPPING_EXTERNAL, &dev->ext_ram[EXTRAM_CONVENTIONAL]);
@@ -635,7 +635,7 @@ dev->frame_addr = 0xE0000;
 				ems_readb,
 				(dev->flags&FLAG_WIDE) ? ems_readw : NULL,
 				NULL,
-				ems_writeb, 
+				ems_writeb,
 				(dev->flags&FLAG_WIDE) ? ems_writew : NULL,
 				NULL,
 				ptr, MEM_MAPPING_EXTERNAL,

@@ -259,10 +259,10 @@ set_language(uint32_t id)
 	/* Set our new language ID. */
 	lang_id = id;
 	SetThreadUILanguage(lang_id);
-		
+
 	/* Load the strings table for this ID. */
 	LoadCommonStrings();
-		
+
 	/* Reload main menu */
 	menuMain = LoadMenu(hinstance, L"MainMenu");
 	if (hwndMain != NULL)
@@ -271,7 +271,7 @@ set_language(uint32_t id)
 	/* Re-init all the menus */
 	ResetAllMenus();
 	media_menu_init();
-    } 
+    }
 }
 
 
@@ -468,7 +468,7 @@ WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR lpszArg, int nCmdShow)
 
     /* Set the application version ID string. */
     sprintf(emu_version, "%s v%s", EMU_NAME, EMU_VERSION_FULL);
-	
+
 	/* First, set our (default) language. */
 	lang_sys = GetThreadUILanguage();
     set_language(DEFAULT_LANGUAGE);
@@ -852,8 +852,8 @@ plat_dir_check(char *path)
     DWORD dwAttrib;
     int len;
     wchar_t *temp;
-    
-    if (acp_utf8) 
+
+    if (acp_utf8)
 	dwAttrib = GetFileAttributesA(path);
     else {
 	len = mbstoc16s(NULL, path, 0) + 1;
@@ -875,7 +875,7 @@ plat_dir_create(char *path)
 {
     int ret, len;
     wchar_t *temp;
-    
+
     if (acp_utf8)
 	return (int)SHCreateDirectoryExA(NULL, path, NULL);
     else {
@@ -1197,12 +1197,12 @@ plat_vidapi_reload(void)
 
 
 /* Sets up the program language before initialization. */
-uint32_t 
+uint32_t
 plat_language_code(char* langcode)
 {
 	if (!strcmp(langcode, "system"))
 		return 0xFFFF;
-	
+
 	int len = mbstoc16s(NULL, langcode, 0) + 1;
 	wchar_t *temp = malloc(len * sizeof(wchar_t));
 	mbstoc16s(temp, langcode, len);
@@ -1222,10 +1222,10 @@ plat_language_code_r(uint32_t lcid, char* outbuf, int len)
 		strcpy(outbuf, "system");
 		return;
 	}
-	
+
 	wchar_t buffer[LOCALE_NAME_MAX_LENGTH + 1];
 	LCIDToLocaleName(lcid, buffer, LOCALE_NAME_MAX_LENGTH, 0);
-	
+
 	c16stombs(outbuf, buffer, len);
 }
 

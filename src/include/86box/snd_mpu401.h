@@ -52,11 +52,11 @@ typedef enum MpuDataType
     T_COMMAND
 } MpuDataType;
 
-typedef enum RecState 
-{ 
-	M_RECOFF, 
+typedef enum RecState
+{
+	M_RECOFF,
 	M_RECSTB,
-	M_RECON 
+	M_RECON
 } RecState;
 
 /* Messages sent to MPU-401 from host */
@@ -84,7 +84,7 @@ typedef struct mpu_t
     uint8_t rec_queue[MPU401_INPUT_QUEUE];
 	int rec_queue_pos, rec_queue_used;
 	uint32_t ch_toref[16];
-    struct track 
+    struct track
     {
 	int counter;
 	uint8_t value[3], sys_val,
@@ -141,7 +141,7 @@ typedef struct mpu_t
 		uint8_t chan, trmask;
 		uint32_t key[4];
 	} chanref[5], inputref[16];
-	pc_timer_t mpu401_event_callback, mpu401_eoi_callback, 
+	pc_timer_t mpu401_event_callback, mpu401_eoi_callback,
 		   mpu401_reset_callback;
 	void	(*ext_irq_update)(void *priv, int set);
 	int	(*ext_irq_pending)(void *priv);

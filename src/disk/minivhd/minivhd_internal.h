@@ -13,7 +13,7 @@
 #define MVHD_MAX_SIZE_IN_BYTES 0x1fe00000000
 
 #define MVHD_SPARSE_BLK 0xffffffff
-/* For simplicity, we don't handle paths longer than this 
+/* For simplicity, we don't handle paths longer than this
  * Note, this is the max path in characters, as that is what
  * Windows uses
  */

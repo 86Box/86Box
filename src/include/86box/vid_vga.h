@@ -23,7 +23,7 @@
 typedef struct vga_t
 {
         svga_t svga;
-        
+
         rom_t bios_rom;
 } vga_t;
 

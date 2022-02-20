@@ -452,7 +452,7 @@ network_close(void)
 
     /* Force-close the SLIRP module. */
     net_slirp_close();
- 
+
     /* Close the network events. */
     if (poll_data.wake_poll_thread != NULL) {
 	thread_destroy_event(poll_data.wake_poll_thread);
@@ -667,13 +667,13 @@ int
 network_card_get_from_internal_name(char *s)
 {
     int c = 0;
-	
+
     while (net_cards[c].device != NULL) {
 	if (! strcmp((char *)net_cards[c].device->internal_name, s))
 		return(c);
 	c++;
     }
-	
+
     return 0;
 }
 

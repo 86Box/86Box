@@ -58,8 +58,8 @@
 #include <86box/network.h>
 
 
-typedef int bpf_int32; 
-typedef unsigned int bpf_u_int32; 
+typedef int bpf_int32;
+typedef unsigned int bpf_u_int32;
 
 /*
  * The instruction data structure.
@@ -79,7 +79,7 @@ struct bpf_program {
     struct bpf_insn	*bf_insns;
 };
 
-typedef struct pcap_if	pcap_if_t; 
+typedef struct pcap_if	pcap_if_t;
 
 typedef struct net_timeval {
     long		tv_sec;
@@ -95,11 +95,11 @@ struct pcap_pkthdr {
 };
 
 struct pcap_if {
-    struct pcap_if *next; 
-    char *name;     
-    char *description;  
-    void *addresses; 
-    unsigned int flags;        
+    struct pcap_if *next;
+    char *name;
+    char *description;
+    void *addresses;
+    unsigned int flags;
 };
 
 

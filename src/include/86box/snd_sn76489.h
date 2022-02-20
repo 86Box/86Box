@@ -25,10 +25,10 @@ typedef struct sn76489_t
         uint8_t firstdat;
         int type;
         int extra_divide;
-        
+
         int16_t buffer[SOUNDBUFLEN];
         int pos;
-        
+
         double psgconst;
 } sn76489_t;
 

@@ -6,7 +6,7 @@
  *
  *		This file is part of the 86Box distribution.
  *
- *		Emulation of the Olivetti OGC 8-bit ISA (GO708) and 
+ *		Emulation of the Olivetti OGC 8-bit ISA (GO708) and
  *      M21/M24/M28 16-bit bus (GO317/318/380/709) video cards.
  *
  *

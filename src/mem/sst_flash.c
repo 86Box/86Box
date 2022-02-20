@@ -44,7 +44,7 @@ typedef struct sst_t
     uint32_t		size, mask,
 			page_mask, page_base,
 			last_addr;
-        
+
     uint8_t		page_buffer[128],
 			page_dirty[128];
     uint8_t		*array;
@@ -304,7 +304,7 @@ sst_write(uint32_t addr, uint8_t val, void *p)
 		} else {
 			dev->command_state++;
 			sst_buf_write(dev, addr, val);
-		} 
+		}
 		break;
 	case 7:
 		if (!dev->is_39)
@@ -390,7 +390,7 @@ sst_add_mappings(sst_t *dev)
 
     for (i = 0; i < count; i++) {
 	base = root_base + (i << 16);
-	fbase = base & biosmask; 
+	fbase = base & biosmask;
 
 	memcpy(&dev->array[fbase], &rom[base & biosmask], 0x10000);
 

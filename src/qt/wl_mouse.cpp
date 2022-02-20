@@ -51,7 +51,7 @@ void wl_mouse_poll()
     rel_mouse_y = 0;
 }
 
-static struct zwp_relative_pointer_v1_listener rel_listener = 
+static struct zwp_relative_pointer_v1_listener rel_listener =
 {
     rel_mouse_event
 };

@@ -33,7 +33,7 @@ float
 av9194_getclock(int clock, void *p)
 {
     float ret = 0.0;
-    
+
     switch (clock & 0x0f)
     {
 	case 0:
@@ -82,7 +82,7 @@ av9194_getclock(int clock, void *p)
 		ret = 94500000.0;
 		break;
     }
-    
+
     return ret;
 }
 

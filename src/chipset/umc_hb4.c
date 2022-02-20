@@ -10,7 +10,7 @@
  *
  *		Note: This chipset has no datasheet, everything were done via
  *		reverse engineering the BIOS of various machines using it.
- * 
+ *
  *		Note 2: Additional information were also used from all
  *		around the web.
  *
@@ -81,7 +81,7 @@
 
    Register 56h & 57h: DRAM Bank 0 Configuration
    Register 58h & 59h: DRAM Bank 1 Configuration
-  
+
    Register 60:
    Bit 5: If set and SMRAM is enabled, data cycles go to PCI and code cycles go to DRAM
    Bit 0: SMRAM Local Access Enable - if set, SMRAM is also enabled outside SMM

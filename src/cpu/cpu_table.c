@@ -47,7 +47,7 @@ FPU fpus_80286[] =
 {
         {"None", "none",  FPU_NONE},
         {"287",  "287",   FPU_287},
-        {"287XL","287xl", FPU_287XL},		
+        {"287XL","287xl", FPU_287XL},
         {NULL, NULL, 0}
 };
 FPU fpus_80386[] =
@@ -374,7 +374,7 @@ const cpu_family_t cpu_families[] = {
 	.name = "i486DX2 (SL-Enhanced)",
 	.internal_name = "i486dx2_slenh",
 	.cpus = (const CPU[]) {
-		{"40",           CPU_i486DX_SLENH, fpus_internal,  40000000, 2,  5000, 0x435,    0x435, 0, CPU_SUPPORTS_DYNAREC,  7, 7,6,6,  5},		
+		{"40",           CPU_i486DX_SLENH, fpus_internal,  40000000, 2,  5000, 0x435,    0x435, 0, CPU_SUPPORTS_DYNAREC,  7, 7,6,6,  5},
 		{"50",           CPU_i486DX_SLENH, fpus_internal,  50000000, 2,  5000, 0x435,    0x435, 0, CPU_SUPPORTS_DYNAREC,  8, 8,6,6,  6},
 		{"66",           CPU_i486DX_SLENH, fpus_internal,  66666666, 2,  5000, 0x435,    0x435, 0, CPU_SUPPORTS_DYNAREC, 12,12,6,6,  8},
 		{"", 0}
@@ -395,7 +395,7 @@ const cpu_family_t cpu_families[] = {
 	.name = "iDX4",
 	.internal_name = "idx4",
 	.cpus = (const CPU[]) {
-		{"75",              CPU_i486DX_SLENH,    fpus_internal,  75000000, 3.0, 5000,  0x480,  0x480, 0x0000, CPU_SUPPORTS_DYNAREC, 12,12, 9, 9,  9}, 
+		{"75",              CPU_i486DX_SLENH,    fpus_internal,  75000000, 3.0, 5000,  0x480,  0x480, 0x0000, CPU_SUPPORTS_DYNAREC, 12,12, 9, 9,  9},
 		{"100",             CPU_i486DX_SLENH,    fpus_internal, 100000000, 3.0, 5000,  0x483,  0x483, 0x0000, CPU_SUPPORTS_DYNAREC, 18,18, 9, 9, 12},
 		{"", 0}
 	}
@@ -416,7 +416,7 @@ const cpu_family_t cpu_families[] = {
 	.internal_name = "am486sx",
 	.cpus = (const CPU[]) {
 		{"33",   CPU_Am486SX,     fpus_486sx, 33333333, 1, 5000, 0x422,     0, 0, CPU_SUPPORTS_DYNAREC,  6, 6, 3, 3, 4},
-		{"40",   CPU_Am486SX,     fpus_486sx, 40000000, 1, 5000, 0x422,     0, 0, CPU_SUPPORTS_DYNAREC,  7, 7, 3, 3, 5}, 
+		{"40",   CPU_Am486SX,     fpus_486sx, 40000000, 1, 5000, 0x422,     0, 0, CPU_SUPPORTS_DYNAREC,  7, 7, 3, 3, 5},
 		{"", 0}
 	}
     }, {
@@ -425,8 +425,8 @@ const cpu_family_t cpu_families[] = {
 	.name = "Am486SX2",
 	.internal_name = "am486sx2",
 	.cpus = (const CPU[]) {
-		{"50",  CPU_Am486SX,    fpus_486sx, 50000000, 2, 5000, 0x45b,     0, 0, CPU_SUPPORTS_DYNAREC,  8, 8, 6, 6, 6}, 
-		{"66",  CPU_Am486SX,    fpus_486sx, 66666666, 2, 5000, 0x45b,     0, 0, CPU_SUPPORTS_DYNAREC, 12,12, 6, 6, 8}, 
+		{"50",  CPU_Am486SX,    fpus_486sx, 50000000, 2, 5000, 0x45b,     0, 0, CPU_SUPPORTS_DYNAREC,  8, 8, 6, 6, 6},
+		{"66",  CPU_Am486SX,    fpus_486sx, 66666666, 2, 5000, 0x45b,     0, 0, CPU_SUPPORTS_DYNAREC, 12,12, 6, 6, 8},
 		{"", 0}
 	}
     }, {
@@ -483,7 +483,7 @@ const cpu_family_t cpu_families[] = {
 		{"120", CPU_Am486DX, fpus_internal,  120000000, 3.0, 5000, 0x432,     0, 0, CPU_SUPPORTS_DYNAREC, 21,21, 9, 9, 15},
 		{"", 0}
 	}
-    }, 
+    },
      {
 	.package = CPU_PKG_SOCKET3,
 	.manufacturer = "AMD",
@@ -513,7 +513,7 @@ const cpu_family_t cpu_families[] = {
 	.cpus = (const CPU[]) {
 		{"P75",   CPU_ENH_Am486DX,   fpus_internal,  133333333, 4.0, 5000, 0x4e0, 0x4e0, 0, CPU_SUPPORTS_DYNAREC, 24,24,12,12, 16},
 		{"P75+",  CPU_ENH_Am486DX,   fpus_internal,  150000000, 3.0, 5000, 0x482, 0x482, 0, CPU_SUPPORTS_DYNAREC, 28,28,12,12, 20},/*The rare P75+ was indeed a triple-clocked 150 MHz according to research*/
-		{"P90",   CPU_ENH_Am486DX,   fpus_internal,  160000000, 4.0, 5000, 0x4e0, 0x4e0, 0, CPU_SUPPORTS_DYNAREC, 28,28,12,12, 20},/*160 MHz on a 40 MHz bus was a common overclock and "5x86/P90" was used by a number of BIOSes to refer to that configuration*/ 
+		{"P90",   CPU_ENH_Am486DX,   fpus_internal,  160000000, 4.0, 5000, 0x4e0, 0x4e0, 0, CPU_SUPPORTS_DYNAREC, 28,28,12,12, 20},/*160 MHz on a 40 MHz bus was a common overclock and "5x86/P90" was used by a number of BIOSes to refer to that configuration*/
 		{"", 0}
 	}
     }, {
@@ -828,7 +828,7 @@ const cpu_family_t cpu_families[] = {
 		{"380",               CPU_K6_2P,  fpus_internal,  380000000, 4.0, 2000, 0x5d4, 0x5d4, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,    34,   34,  12,  12, 46}, /* out of spec */
 		{"400/66",            CPU_K6_2P,  fpus_internal,  400000000, 6.0, 2000, 0x5d4, 0x5d4, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,    36,   36,  12,  12, 48}, /* out of spec */
 		{"400/100",           CPU_K6_2P,  fpus_internal,  400000000, 4.0, 2000, 0x5d4, 0x5d4, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,    36,   36,  12,  12, 48}, /* out of spec */
-		{"450",               CPU_K6_2P,  fpus_internal,  450000000, 4.5, 2000, 0x5d4, 0x5d4, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,    41,   41,  14,  14, 54}, 
+		{"450",               CPU_K6_2P,  fpus_internal,  450000000, 4.5, 2000, 0x5d4, 0x5d4, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,    41,   41,  14,  14, 54},
 		{"475",               CPU_K6_2P,  fpus_internal,  475000000, 5.0, 2000, 0x5d4, 0x5d4, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,    43,   43,  15,  15, 57},
 		{"500",               CPU_K6_2P,  fpus_internal,  500000000, 5.0, 2000, 0x5d4, 0x5d4, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,    45,   45,  15,  15, 60},
 		{"533",               CPU_K6_2P,  fpus_internal,  533333333, 5.5, 2000, 0x5d4, 0x5d4, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,    48,   48,  17,  17, 64},
@@ -1219,7 +1219,7 @@ static const cpu_legacy_table_t cpus_IBM486SLC[] = {
     {NULL, 0, 0}
 };
 
-static const cpu_legacy_table_t cpus_IBM486BL[] = {	
+static const cpu_legacy_table_t cpus_IBM486BL[] = {
     {"ibm486bl2", 50000000, 2},
     {"ibm486bl2", 66666666, 2},
     {"ibm486bl3", 75000000, 3},
@@ -1252,13 +1252,13 @@ static const cpu_legacy_table_t cpus_i486S1[] = {
     {"i486dx2", 50000000, 2},
     {"i486dx2", 66666666, 2},
     {"idx4_od", 75000000, 3},
-    {"idx4_od", 100000000, 3}, 
+    {"idx4_od", 100000000, 3},
     {NULL, 0, 0}
 };
 
 static const cpu_legacy_table_t cpus_Am486S1[] = {
     {"am486sx", 33333333, 1},
-    {"am486sx", 40000000, 1}, 
+    {"am486sx", 40000000, 1},
     {"am486sx2", 50000000, 2},
     {"am486sx2", 66666666, 2},
     {"am486dx", 33333333, 1},
@@ -1297,7 +1297,7 @@ static const cpu_legacy_table_t cpus_i486[] = {
     {"idx4", 75000000, 3.0},
     {"idx4", 100000000, 3.0},
     {"idx4_od", 75000000, 3.0},
-    {"idx4_od", 100000000, 3.0}, 
+    {"idx4_od", 100000000, 3.0},
     {"pentium_p24t", 62500000, 2.5},
     {"pentium_p24t", 83333333, 2.5},
     {NULL, 0, 0}
@@ -1315,7 +1315,7 @@ static const cpu_legacy_table_t cpus_i486_PC330[] = {
 
 static const cpu_legacy_table_t cpus_Am486[] = {
     {"am486sx", 33333333, 1.0},
-    {"am486sx", 40000000, 1.0}, 
+    {"am486sx", 40000000, 1.0},
     {"am486sx2", 50000000, 2.0},
     {"am486sx2", 66666666, 2.0},
     {"am486dx", 33333333, 1.0},
@@ -1329,7 +1329,7 @@ static const cpu_legacy_table_t cpus_Am486[] = {
     {"am486dx4", 120000000, 3.0},
     {"am5x86", 133333333, 4.0},
     {"am5x86", 150000000, 3.0},
-    {"am5x86", 160000000, 4.0}, 
+    {"am5x86", 160000000, 4.0},
     {NULL, 0, 0}
 };
 
@@ -1732,7 +1732,7 @@ static const cpu_legacy_table_t cpus_Xeon[] = {
     {"pentium2_xeon", 166666666, 2.5},
     {"pentium2_xeon", 400000000, 4.0},
     {"pentium2_xeon", 450000000, 4.5},
-    {NULL, 0, 0}	
+    {NULL, 0, 0}
 };
 
 static const cpu_legacy_table_t cpus_Celeron[] = {
@@ -1748,7 +1748,7 @@ static const cpu_legacy_table_t cpus_Celeron[] = {
     {"celeron_mendocino", 466666666, 7.0},
     {"celeron_mendocino", 500000000, 7.5},
     {"celeron_mendocino", 533333333, 8.0},
-    {NULL, 0, 0}	
+    {NULL, 0, 0}
 };
 
 static const cpu_legacy_table_t cpus_PentiumIID[] = {

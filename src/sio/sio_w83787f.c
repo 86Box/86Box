@@ -432,7 +432,7 @@ w83787f_init(const device_t *info)
 
     dev->uart[0] = device_add_inst(&ns16550_device, 1);
     dev->uart[1] = device_add_inst(&ns16550_device, 2);
-	
+
     if ((dev->ide_function & 0x30) == 0x10)
 	device_add(&ide_isa_device);
 

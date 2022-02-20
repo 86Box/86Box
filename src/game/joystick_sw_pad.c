@@ -74,7 +74,7 @@ typedef struct
         int poll_clock;
         uint64_t poll_data;
         int poll_mode;
-                
+
         pc_timer_t trigger_timer;
         int data_mode;
 } sw_data;
@@ -82,7 +82,7 @@ typedef struct
 static void sw_timer_over(void *p)
 {
         sw_data *sw = (sw_data *)p;
-        
+
 		sw->poll_clock = !sw->poll_clock;
 
 		if (sw->poll_clock)
@@ -109,13 +109,13 @@ static void sw_trigger_timer_over(void *p)
 static int sw_parity(uint16_t data)
 {
         int bits_set = 0;
-        
+
         while (data)
         {
                 bits_set++;
                 data &= (data - 1);
         }
-        
+
         return bits_set & 1;
 }
 
@@ -133,7 +133,7 @@ static void *sw_init(void)
 static void sw_close(void *p)
 {
         sw_data *sw = (sw_data *)p;
-        
+
         free(sw);
 }
 
@@ -146,10 +146,10 @@ static uint8_t sw_read(void *p)
                 return 0xff;
 
         if (timer_is_enabled(&sw->poll_timer))
-        {        
+        {
                 if (sw->poll_clock)
                         temp |= 0x10;
-        
+
                 if (sw->poll_mode)
                         temp |= (sw->poll_data & 7) << 5;
                 else
@@ -172,19 +172,19 @@ static void sw_write(void *p)
 
         if (!JOYSTICK_PRESENT(0))
                 return;
-        
+
         timer_process();
 
         if (!sw->poll_left)
         {
                 sw->poll_clock = 1;
 				timer_set_delay_u64(&sw->poll_timer, TIMER_USEC * 50);
-                
+
                 if (time_since_last > 9900 && time_since_last < 9940)
                 {
                         sw->poll_mode = 0;
                         sw->poll_left = 49;
-                        sw->poll_data = 0x2400ull | (0x1830ull << 15) | (0x19b0ull << 30);                
+                        sw->poll_data = 0x2400ull | (0x1830ull << 15) | (0x19b0ull << 30);
                 }
                 else
                 {
@@ -192,7 +192,7 @@ static void sw_write(void *p)
 
                         sw->poll_mode = sw->data_mode;
                         sw->data_mode = !sw->data_mode;
-                        
+
                         if (sw->poll_mode)
                         {
                                 sw->poll_left = 1;
@@ -208,7 +208,7 @@ static void sw_write(void *p)
                         {
                                 uint16_t data = 0x3fff;
                                 int b;
-                                
+
                                 if (!JOYSTICK_PRESENT(c))
                                         break;
 
@@ -243,7 +243,7 @@ static void sw_write(void *p)
                         }
                 }
         }
-        
+
         timer_disable(&sw->trigger_timer);
 }
 
@@ -251,7 +251,7 @@ static int sw_read_axis(void *p, int axis)
 {
         if (!JOYSTICK_PRESENT(0))
                 return AXIS_NOT_PRESENT;
-                
+
         return 0; /*No analogue support on Sidewinder game pad*/
 }
 
@@ -261,7 +261,7 @@ static void sw_a0_over(void *p)
 
         timer_set_delay_u64(&sw->trigger_timer, TIMER_USEC * 10000);
 }
-        
+
 const joystick_if_t joystick_sw_pad =
 {
         "Microsoft SideWinder Pad",

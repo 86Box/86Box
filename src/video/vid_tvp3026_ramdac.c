@@ -243,7 +243,7 @@ tvp3026_ramdac_out(uint16_t addr, int rs2, int rs3, uint8_t val, void *p, svga_t
 			case 0x39: /* MCLK/Loop Clock Control */
 				ramdac->mclk = val;
 				break;
-				
+
 		}
 		break;
 	case 0x0b:	/* Cursor RAM Data Register (RS value = 1011) */
@@ -474,7 +474,7 @@ tvp3026_hwcursor_draw(svga_t *svga, int displine)
 		svga->dac_hwcursor_latch.addr += pitch;
 
 	cd = (uint8_t *) ramdac->cursor64_data;
-	
+
 	for (x = 0; x < svga->dac_hwcursor_latch.xsize; x += 16) {
 	dat[0] = (cd[svga->dac_hwcursor_latch.addr]        << 8) |
 		  cd[svga->dac_hwcursor_latch.addr + 1];
@@ -540,18 +540,18 @@ tvp3026_hwcursor_draw(svga_t *svga, int displine)
 }
 
 
-float 
+float
 tvp3026_getclock(int clock, void *p)
 {
 	tvp3026_ramdac_t *ramdac = (tvp3026_ramdac_t *) p;
 	int n, m, pl;
 	float f_vco, f_pll;
-	
+
     if (clock == 0)
 	return 25175000.0;
     if (clock == 1)
-	return 28322000.0;	
-	
+	return 28322000.0;
+
 /*Fvco = 8 x Fref x (65 - M) / (65 - N)*/
 /*Fpll = Fvco / 2^P*/
     n = ramdac->pix.n & 0x3f;

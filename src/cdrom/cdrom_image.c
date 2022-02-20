@@ -177,7 +177,7 @@ image_is_track_pre(cdrom_t *dev, uint32_t lba)
 }
 
 
-static int 
+static int
 image_sector_size(struct cdrom *dev, uint32_t lba)
 {
     cd_img_t *img = (cd_img_t *)dev->image;
@@ -280,7 +280,7 @@ cdrom_image_open(cdrom_t *dev, const char *fn)
 
     /* This guarantees that if ops is not NULL, then
        neither is the image pointer. */
-    if (!img)	
+    if (!img)
 	return image_open_abort(dev);
 
     memset(img, 0, sizeof(cd_img_t));

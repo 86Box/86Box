@@ -153,7 +153,7 @@ sdl_real_blit(SDL_Rect* r_src)
 
     r_dst = *r_src;
     r_dst.x = r_dst.y = 0;
-    
+
     if (sdl_fs)
     {
 		sdl_stretch(&r_dst.w, &r_dst.h, &r_dst.x, &r_dst.y);

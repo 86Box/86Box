@@ -23,7 +23,7 @@
  *		f000:db3e 0x8..0xc
  *		f000:d7f8
  *		f000:db5f
- *		f000:e172 
+ *		f000:e172
  *		f000:ecc5	801a video setup error
  *		f000:d6c9	copyright output
  *		f000:e1b7
@@ -58,7 +58,7 @@
  *				read low 4 nibble at jim 0xa
  *				read low 4 nibble at jim 0xa
  *				return first nibble<<4|second nibble in ah
- *		  f000:f046	seldom compares ret 
+ *		  f000:f046	seldom compares ret
  *		  f000:fe87	0 -> ds
  *
  *		Memory:
@@ -67,7 +67,7 @@
  *		  0000:046a:	00 jim 250 01 jim 350
  *
  * WARNING	THIS IS A WORK-IN-PROGRESS MODULE. USE AT OWN RISK.
- *		
+ *
  *
  *
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>

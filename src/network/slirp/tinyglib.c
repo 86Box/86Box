@@ -60,22 +60,22 @@ g_strstr_len(const gchar *haystack, gssize haystack_len, const gchar *needle)
 	gsize haystack_len_unsigned = haystack_len;
 	const gchar *end;
 	gsize i;
-	
+
 	if (needle_len == 0)
 		return (gchar *) haystack;
-	
+
 	if (haystack_len_unsigned < needle_len)
 		return NULL;
-	
+
 	end = haystack + haystack_len - needle_len;
-	
+
 	while (p <= end && *p) {
 		for (i = 0; i < needle_len; i++)
 			if (p[i] != needle[i])
 				goto next;
-	
+
 		return (gchar *)p;
-	
+
 next:
 		p++;
 	}
@@ -104,10 +104,10 @@ g_strlcpy (gchar       *dest,
   gchar *d = dest;
   const gchar *s = src;
   gsize n = dest_size;
-  
+
   if (dest == NULL) return 0;
   if (src  == NULL) return 0;
-  
+
   /* Copy as many bytes as will fit */
   if (n != 0 && --n != 0)
     do
@@ -119,7 +119,7 @@ g_strlcpy (gchar       *dest,
           break;
       }
     while (--n != 0);
-  
+
   /* If not enough room in dest, add NUL and traverse rest of src */
   if (n == 0)
     {
@@ -128,6 +128,6 @@ g_strlcpy (gchar       *dest,
       while (*s++)
         ;
     }
-  
+
   return s - src - 1;  /* count does not include NUL */
 }

@@ -98,7 +98,7 @@ icd2061_write(void *p, int val)
 
 		if (icd2061->bit_count == 26) {
 			icd2061_log("26 bits received, data = %08X\n", icd2061->data);
-	
+
 			a = ((icd2061->data >> 22) & 0x07);	/* A  */
 			icd2061_log("A = %01X\n", a);
 

@@ -57,7 +57,7 @@
 //
 // SID filter
 // ----------
-// 
+//
 //     -----------------------------------------------
 //    |                                               |
 //    |            ---Rq--                            |
@@ -66,15 +66,15 @@
 //    | |                               |             |
 //    | |                        ---C---|      ---C---|
 //    | |                       |       |     |       |
-//    |  --R1--    ---R1--      |---Rs--|     |---Rs--| 
+//    |  --R1--    ---R1--      |---Rs--|     |---Rs--|
 //    |        |  |       |     |       |     |       |
 //     ----R1--|-----[A>--|--R-----[A>--|--R-----[A>--|
 //             |          |             |             |
 // vi -----R1--           |             |             |
-// 
+//
 //                       vhp           vbp           vlp
-// 
-// 
+//
+//
 // vi  - input voltage
 // vhp - highpass output
 // vbp - bandpass output
@@ -85,14 +85,14 @@
 // R   - NMOS FET voltage controlled resistor controlling cutoff frequency
 // Rs  - shunt resitor
 // C   - capacitor
-// 
-// 
-// 
+//
+//
+//
 // SID integrator
 // --------------
-// 
+//
 //                                   V+
-// 
+//
 //                                   |
 //                                   |
 //                              -----|
@@ -114,7 +114,7 @@
 //          R1                       V-
 //          |
 //          |
-// 
+//
 //          Vw
 //
 // ----------------------------------------------------------------------------
@@ -312,7 +312,7 @@ float FilterFP::clock(float voice1,
     else if (! voice3off)
         Vnf += voice3;
     ((filt & 8) ? Vi : Vnf) += ext_in;
-  
+
     if (! enabled)
         return (Vnf - Vi) * volf;
 
@@ -322,7 +322,7 @@ float FilterFP::clock(float voice1,
         Vf += Vbp;
     if (hp_bp_lp & 4)
         Vf += Vhp;
-    
+
     if (model == MOS6581FP) {
         float diff1, diff2;
 
@@ -345,7 +345,7 @@ float FilterFP::clock(float voice1,
             Vbp += (Vf + Vnf - Vbp) * distortion_cf_threshold;
         if (hp_bp_lp & 4)
             Vhp += (Vf + Vnf - Vhp) * distortion_cf_threshold;
-       
+
         /* Simulating the exponential VCR that the FET block is... */
         Vlp -= Vbp * type3_w0(Vbp, type3_fc_distortion_offset_bp);
         Vbp -= Vhp * type3_w0(Vhp, type3_fc_distortion_offset_hp) * outputleveldifference_bp_hp;
@@ -354,7 +354,7 @@ float FilterFP::clock(float voice1,
          * discontinuity but a saturation effect... */
         if (Vnf > 3.2e6f)
             Vnf = 3.2e6f;
-        
+
         Vf += Vnf + Vlp * (outputleveldifference_lp_bp - 1.f);
     } else {
         /* On the 8580, BP appears mixed in phase with the rest. */
@@ -364,7 +364,7 @@ float FilterFP::clock(float voice1,
 
         Vf += Vnf;
     }
-    
+
     return Vf * volf;
 }
 

@@ -283,7 +283,7 @@ static void build_fp_round_routine(codeblock_t *block)
 	host_arm_VCVTR_IS_D(block, REG_D_TEMP, REG_D_TEMP);
 	host_arm_VMSR_FPSCR(block, REG_TEMP);
 	host_arm_MOV_REG(block, REG_PC, REG_LR);
-	
+
 	jump_table[X87_ROUNDING_CHOP] = (uint64_t)(uintptr_t)&block_write_data[block_pos]; //zero
 	host_arm_VCVT_IS_D(block, REG_D_TEMP, REG_D_TEMP);
 	host_arm_MOV_REG(block, REG_PC, REG_LR);

@@ -103,7 +103,7 @@ static uint32_t (*address_remap_funcs[16])(svga_t *svga, uint32_t in_addr) =
 void svga_recalc_remap_func(svga_t *svga)
 {
         int func_nr;
-        
+
         if (svga->fb_only || svga->force_byte_mode)
                 func_nr = 0;
         else {
@@ -117,7 +117,7 @@ void svga_recalc_remap_func(svga_t *svga)
                         func_nr = VAR_WORD_MODE_MA15;
                 else
                         func_nr = VAR_WORD_MODE_MA13;
-                        
+
                 if (!(svga->crtc[0x17] & 0x01))
                         func_nr |= VAR_ROW0_MA13;
                 if (!(svga->crtc[0x17] & 0x02))

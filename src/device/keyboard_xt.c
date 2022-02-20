@@ -68,7 +68,7 @@
 #define KBD_TYPE_ZENITH   9
 
 typedef struct {
-    int want_irq;        
+    int want_irq;
     int blocked;
     int tandy;
 
@@ -371,7 +371,7 @@ static uint8_t
 get_fdd_switch_settings() {
 
     int i, fdd_count = 0;
-    
+
     for (i = 0; i < FDD_NUM; i++) {
                 if (fdd_get_flags(i))
                     fdd_count++;
@@ -533,7 +533,7 @@ kbd_write(uint16_t port, uint8_t val, void *priv)
 		speaker_gated = val & 1;
 		speaker_enable = val & 2;
 
-		if (speaker_enable) 
+		if (speaker_enable)
 			was_speaker_enable = 1;
 		pit_ctr_set_gate(&pit->counters[2], val & 1);
 
@@ -715,7 +715,7 @@ kbd_init(const device_t *info)
         /* DIP switch readout: bit set = OFF, clear = ON. */
         if (kbd->type == KBD_TYPE_OLIVETTI)
 		/* Olivetti M19
-		 * Jumpers J1, J2 - monitor type. 
+		 * Jumpers J1, J2 - monitor type.
 		 * 01 - mono (high-res)
 		 * 10 - color (low-res, disables 640x400x2 mode)
 		 * 00 - autoswitching

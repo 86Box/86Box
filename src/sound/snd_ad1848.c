@@ -196,7 +196,7 @@ ad1848_write(uint16_t addr, uint8_t val, void *priv)
 			case 8:
 				updatefreq = 1;
 				break;
-			
+
 			case 9:
 				if (!ad1848->enable && (val & 0x41) == 0x01) {
 					if (ad1848->timer_latch)
@@ -213,7 +213,7 @@ ad1848_write(uint16_t addr, uint8_t val, void *priv)
 
 			case 11:
 				return;
-			
+
 			case 12:
 				if (ad1848->type != AD1848_TYPE_DEFAULT)
 					ad1848->regs[12] = ((ad1848->regs[12] & 0x0f) + (val & 0xf0)) | 0x80;
@@ -404,7 +404,7 @@ ad1848_poll(void *priv)
 			ad1848->out_l = (dma_channel_read(ad1848->dma) ^ 0x80) * 256;
 			ad1848->out_r = (dma_channel_read(ad1848->dma) ^ 0x80) * 256;
 			break;
-	
+
 		case 0x40: /* Mono, 16-bit PCM little endian */
 			temp = dma_channel_read(ad1848->dma);
 			ad1848->out_l = ad1848->out_r = (dma_channel_read(ad1848->dma) << 8) | temp;

@@ -631,7 +631,7 @@ machine_at_nupro592_init(const machine_t *model)
     pci_register_slot(0x13, PCI_CARD_NORMAL, 3, 4, 1, 2);
     pci_register_slot(0x14, PCI_CARD_NORMAL, 2, 3, 4, 1);
     pci_register_slot(0x0B, PCI_CARD_NORMAL, 3, 4, 1, 2); /*Strongly suspect these are on-board slots*/
-    pci_register_slot(0x0C, PCI_CARD_NORMAL, 4, 1, 2, 3); 
+    pci_register_slot(0x0C, PCI_CARD_NORMAL, 4, 1, 2, 3);
     pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 4);	/* PIIX4 */
     device_add(&i430tx_device);
     device_add(&piix4_device);
@@ -644,7 +644,7 @@ machine_at_nupro592_init(const machine_t *model)
     hwm_values.fans[1] = 0; /* unused */
     hwm_values.fans[2] = 0; /* unused */
     /* -5V is not reported by the BIOS, but leave it set */
-    
+
     return ret;
 }
 

@@ -86,7 +86,7 @@ machine_at_kn97_init(const machine_t *model)
     device_add(&lm78_device); /* fans: Chassis, CPU, Power; temperature: MB */
     for (uint8_t i = 0; i < 3; i++)
 	hwm_values.fans[i] *= 2; /* BIOS reports fans with the wrong divisor for some reason */
-	
+
     return ret;
 }
 
@@ -118,7 +118,7 @@ machine_at_lx6_init(const machine_t *model)
     device_add(&w83977tf_device);
     device_add(&sst_flash_29ee010_device);
     spd_register(SPD_TYPE_SDRAM, 0xF, 256);
-	
+
     return ret;
 }
 
@@ -293,7 +293,7 @@ machine_at_bf6_init(const machine_t *model)
     device_add(&keyboard_ps2_pci_device);
     device_add(&w83977ef_device);
     device_add(&sst_flash_39sf020_device);
-    spd_register(SPD_TYPE_SDRAM, 0x7, 256);    
+    spd_register(SPD_TYPE_SDRAM, 0x7, 256);
 
     return ret;
 }
@@ -362,7 +362,7 @@ machine_at_atc6310bxii_init(const machine_t *model)
     device_add(&sst_flash_39sf020_device);
     spd_register(SPD_TYPE_SDRAM, 0x7, 256);
 
-    return ret;	
+    return ret;
 }
 
 
@@ -637,7 +637,7 @@ machine_at_ms6168_common_init(const machine_t *model)
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
     pci_register_slot(0x14, PCI_CARD_SOUND,       3, 4, 1, 2);
     pci_register_slot(0x0E, PCI_CARD_NORMAL,	  1, 2, 3, 4);
-    pci_register_slot(0x10, PCI_CARD_NORMAL,      2, 3, 4, 1);	
+    pci_register_slot(0x10, PCI_CARD_NORMAL,      2, 3, 4, 1);
     pci_register_slot(0x12, PCI_CARD_NORMAL,      3, 4, 1, 2);
     pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 1, 2, 3, 4);
     pci_register_slot(0x01, PCI_CARD_AGPBRIDGE,   1, 2, 3, 4);

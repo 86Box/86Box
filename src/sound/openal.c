@@ -60,7 +60,7 @@ al_set_midi(int freq, int buf_size)
 
 
 void closeal(void);
-ALvoid alutInit(ALint *argc,ALbyte **argv) 
+ALvoid alutInit(ALint *argc,ALbyte **argv)
 {
     /* Open device */
     Device = alcOpenDevice((ALCchar *)"");
@@ -76,7 +76,7 @@ ALvoid alutInit(ALint *argc,ALbyte **argv)
 
 
 ALvoid
-alutExit(ALvoid) 
+alutExit(ALvoid)
 {
     if (Context != NULL) {
 	/* Disable context */

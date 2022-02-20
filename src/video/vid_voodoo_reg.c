@@ -583,7 +583,7 @@ void voodoo_reg_writel(uint32_t addr, uint32_t val, void *p)
                 voodoo->params.fogTable[addr+1].dfog = (val >> 16) & 0xff;
                 voodoo->params.fogTable[addr+1].fog  = (val >> 24) & 0xff;
                 break;
-                
+
                 case SST_clipLeftRight1:
                 if (voodoo->type >= VOODOO_BANSHEE)
                 {
