@@ -43,10 +43,9 @@ ifeq ($(DEV_BUILD), y)
  ifndef GUSMAX
   GUSMAX	:= y
  endif
-<<<<<<< HEAD
  ifndef INTEL_ICH2
   INTEL_ICH2	:= y
-=======
+ endif
  ifndef ISAMEM_RAMPAGE
   ISAMEM_RAMPAGE := y
  endif
@@ -55,7 +54,6 @@ ifeq ($(DEV_BUILD), y)
  endif
  ifndef ISAMEM_BRAT
   ISAMEM_BRAT := y
->>>>>>> origin/master
  endif
  ifndef LASERXT
   LASERXT	:= y
@@ -109,10 +107,9 @@ else
  ifndef GUSMAX
   GUSMAX	:= n
  endif
-<<<<<<< HEAD
  ifndef INTEL_ICH2
   INTEL_ICH2	:= n
-=======
+ endif
  ifndef ISAMEM_RAMPAGE
   ISAMEM_RAMPAGE := n
  endif
@@ -121,7 +118,6 @@ else
  endif
  ifndef ISAMEM_BRAT
   ISAMEM_BRAT := n
->>>>>>> origin/master
  endif
  ifndef LASERXT
   LASERXT	:= n
@@ -445,11 +441,11 @@ ifeq ($(GUSMAX), y)
 OPTS		+= -DUSE_GUSMAX
 endif
 
-<<<<<<< HEAD
 ifeq ($(INTEL_ICH2), y)
 OPTS		+= -DUSE_INTEL_ICH2
 DEVBROBJ	+= intel_mch_p4.o intel_gmch.o intel_ich2.o intel_ich2_setup.o
-=======
+endif
+
 ifeq ($(ISAMEM_RAMPAGE), y)
 OPTS        += -DUSE_ISAMEM_RAMPAGE
 endif
@@ -460,7 +456,6 @@ endif
 
 ifeq ($(ISAMEM_BRAT), y)
 OPTS        += -DUSE_ISAMEM_BRAT
->>>>>>> origin/master
 endif
 
 ifeq ($(LASERXT), y)
