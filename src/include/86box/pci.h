@@ -18,9 +18,9 @@
  *		Copyright 2017-2020 Fred N. van Kempen.
  *		Copyright 2008-2020 Sarah Walker.
  */
+
 #ifndef EMU_PCI_H
 # define EMU_PCI_H
-
 
 #define PCI_REG_COMMAND 0x04
 

@@ -41,5 +41,3 @@ void getDefaultROMPath(char* Path)
 	strcpy(Path,[appDirectory fileSystemRepresentation]);
 	// return appDirectory;
 }
-
-

@@ -16,6 +16,7 @@
  *		Copyright 2021 Miran Grca.
  *		Copyright 2021 Fred N. van Kempen.
  */
+
 #ifndef EMU_LOG_H
 # define EMU_LOG_H
 

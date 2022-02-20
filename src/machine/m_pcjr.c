@@ -233,7 +233,7 @@ vid_read(uint32_t addr, void *p)
     pcjr_t *pcjr = (pcjr_t *)p;
 
     if (pcjr->memctrl == -1) return(0xff);
-		
+
     return(pcjr->b8000[addr & 0x3fff]);
 }
 
@@ -256,7 +256,7 @@ vid_poll(void *p)
 	pcjr->stat &= ~1;
 	pcjr->linepos = 1;
 	oldsc = pcjr->sc;
-	if ((pcjr->crtc[8] & 3) == 3) 
+	if ((pcjr->crtc[8] & 3) == 3)
 		pcjr->sc = (pcjr->sc << 1) & 7;
 	if (pcjr->dispon) {
 		uint16_t offset = 0;
@@ -294,7 +294,7 @@ vid_poll(void *p)
 		switch ((pcjr->array[0] & 0x13) | ((pcjr->array[3] & 0x08) << 5)) {
 			case 0x13: /*320x200x16*/
 				for (x = 0; x < pcjr->crtc[1]; x++) {
-					dat = (pcjr->vram[((pcjr->ma << 1) & mask) + offset] << 8) | 
+					dat = (pcjr->vram[((pcjr->ma << 1) & mask) + offset] << 8) |
 					       pcjr->vram[((pcjr->ma << 1) & mask) + offset + 1];
 					pcjr->ma++;
 					buffer32->line[(pcjr->displine << 1)][(x << 3) + 8]  = buffer32->line[(pcjr->displine << 1)][(x << 3) + 9]  =
@@ -313,7 +313,7 @@ vid_poll(void *p)
 				break;
 			case 0x12: /*160x200x16*/
 				for (x = 0; x < pcjr->crtc[1]; x++) {
-					dat = (pcjr->vram[((pcjr->ma << 1) & mask) + offset] << 8) | 
+					dat = (pcjr->vram[((pcjr->ma << 1) & mask) + offset] << 8) |
 					       pcjr->vram[((pcjr->ma << 1) & mask) + offset + 1];
 					pcjr->ma++;
 					buffer32->line[(pcjr->displine << 1)][(x << 4) + 8]  = buffer32->line[(pcjr->displine << 1)][(x << 4) + 9]  =
@@ -360,7 +360,7 @@ vid_poll(void *p)
 					if (pcjr->array[3] & 4) {
 						cols[1] = pcjr->array[ ((attr & 15)      & pcjr->array[1]) + 16] + 16;
 						cols[0] = pcjr->array[(((attr >> 4) & 7) & pcjr->array[1]) + 16] + 16;
-						if ((pcjr->blink & 16) && (attr & 0x80) && !drawcursor) 
+						if ((pcjr->blink & 16) && (attr & 0x80) && !drawcursor)
 							cols[1] = cols[0];
 					} else {
 						cols[1] = pcjr->array[((attr & 15) & pcjr->array[1]) + 16] + 16;
@@ -395,7 +395,7 @@ vid_poll(void *p)
 					if (pcjr->array[3] & 4) {
 						cols[1] = pcjr->array[ ((attr & 15)      & pcjr->array[1]) + 16] + 16;
 						cols[0] = pcjr->array[(((attr >> 4) & 7) & pcjr->array[1]) + 16] + 16;
-						if ((pcjr->blink & 16) && (attr & 0x80) && !drawcursor) 
+						if ((pcjr->blink & 16) && (attr & 0x80) && !drawcursor)
 							cols[1] = cols[0];
 					} else {
 						cols[1] = pcjr->array[((attr & 15) & pcjr->array[1]) + 16] + 16;
@@ -404,9 +404,9 @@ vid_poll(void *p)
 					pcjr->ma++;
 					if (pcjr->sc & 8) {
 						for (c = 0; c < 8; c++) {
-							buffer32->line[(pcjr->displine << 1)][(x << 4) + (c << 1) + 8] = 
+							buffer32->line[(pcjr->displine << 1)][(x << 4) + (c << 1) + 8] =
 							buffer32->line[(pcjr->displine << 1)][(x << 4) + (c << 1) + 1 + 8] =
-							buffer32->line[(pcjr->displine << 1) + 1][(x << 4) + (c << 1) + 8] = 
+							buffer32->line[(pcjr->displine << 1) + 1][(x << 4) + (c << 1) + 8] =
 							buffer32->line[(pcjr->displine << 1) + 1][(x << 4) + (c << 1) + 1 + 8] = cols[0];
 						}
 					} else {
@@ -432,7 +432,7 @@ vid_poll(void *p)
 				cols[2] = pcjr->array[2 + 16] + 16;
 				cols[3] = pcjr->array[3 + 16] + 16;
 				for (x = 0; x < pcjr->crtc[1]; x++) {
-					dat = (pcjr->vram[((pcjr->ma << 1) & mask) + offset] << 8) | 
+					dat = (pcjr->vram[((pcjr->ma << 1) & mask) + offset] << 8) |
 					       pcjr->vram[((pcjr->ma << 1) & mask) + offset + 1];
 					pcjr->ma++;
 					for (c = 0; c < 8; c++) {
@@ -491,11 +491,11 @@ vid_poll(void *p)
 		pcjr->stat |= 8;
 	}
 	pcjr->displine++;
-	if (pcjr->displine >= 360) 
+	if (pcjr->displine >= 360)
 		pcjr->displine = 0;
     } else {
 	timer_advance_u64(&pcjr->timer, pcjr->dispontime);
-	if (pcjr->dispon) 
+	if (pcjr->dispon)
 		pcjr->stat |= 1;
 	pcjr->linepos = 0;
 	if (pcjr->vsynctime) {
@@ -504,9 +504,9 @@ vid_poll(void *p)
 			pcjr->stat &= ~8;
 		}
 	}
-	if (pcjr->sc == (pcjr->crtc[11] & 31) || ((pcjr->crtc[8] & 3) == 3 && pcjr->sc == ((pcjr->crtc[11] & 31) >> 1))) { 
-		pcjr->con = 0; 
-		pcjr->coff = 1; 
+	if (pcjr->sc == (pcjr->crtc[11] & 31) || ((pcjr->crtc[8] & 3) == 3 && pcjr->sc == ((pcjr->crtc[11] & 31) >> 1))) {
+		pcjr->con = 0;
+		pcjr->coff = 1;
 	}
 	if (pcjr->vadj) {
 		pcjr->sc++;
@@ -524,14 +524,14 @@ vid_poll(void *p)
 		oldvc = pcjr->vc;
 		pcjr->vc++;
 		pcjr->vc &= 127;
-		if (pcjr->vc == pcjr->crtc[6]) 
+		if (pcjr->vc == pcjr->crtc[6])
 			pcjr->dispon = 0;
 		if (oldvc == pcjr->crtc[4]) {
 			pcjr->vc = 0;
 			pcjr->vadj = pcjr->crtc[5];
-			if (!pcjr->vadj) 
+			if (!pcjr->vadj)
 				pcjr->dispon = 1;
-			if (!pcjr->vadj) 
+			if (!pcjr->vadj)
 				pcjr->ma = pcjr->maback = (pcjr->crtc[13] | (pcjr->crtc[12] << 8)) & 0x3fff;
 			if ((pcjr->crtc[10] & 0x60) == 0x20) pcjr->cursoron = 0;
 			else				  pcjr->cursoron = pcjr->blink & 16;
@@ -565,14 +565,14 @@ vid_poll(void *p)
 					}
 
 					if (enable_overscan) {
-						if (pcjr->composite) 
+						if (pcjr->composite)
 							video_blit_memtoscreen(0, (pcjr->firstline - 4) << 1,
 								       xsize, ((pcjr->lastline - pcjr->firstline) + 8) << 1);
 						else
 							video_blit_memtoscreen_8(0, (pcjr->firstline - 4) << 1,
 										 xsize, ((pcjr->lastline - pcjr->firstline) + 8) << 1);
 					} else {
-						if (pcjr->composite) 
+						if (pcjr->composite)
 							video_blit_memtoscreen(8, pcjr->firstline << 1,
 								       xsize, (pcjr->lastline - pcjr->firstline) << 1);
 						else
@@ -594,7 +594,7 @@ vid_poll(void *p)
 		pcjr->sc &= 31;
 		pcjr->ma = pcjr->maback;
 	}
-	if ((pcjr->sc == (pcjr->crtc[10] & 31) || ((pcjr->crtc[8] & 3) == 3 && pcjr->sc == ((pcjr->crtc[10] & 31) >> 1)))) 
+	if ((pcjr->sc == (pcjr->crtc[10] & 31) || ((pcjr->crtc[8] & 3) == 3 && pcjr->sc == ((pcjr->crtc[10] & 31) >> 1))))
 		pcjr->con = 1;
     }
 }
@@ -624,7 +624,7 @@ kbd_write(uint16_t port, uint8_t val, void *priv)
 		speaker_update();
 		speaker_gated = val & 1;
 		speaker_enable = val & 2;
-		if (speaker_enable) 
+		if (speaker_enable)
 			was_speaker_enable = 1;
 		pit_ctr_set_gate(&pit->counters[2], val & 1);
 		sn76489_mute = speaker_mute = 1;
@@ -660,7 +660,7 @@ kbd_read(uint16_t port, void *priv)
 	case 0x60:
 		ret = pcjr->pa;
 		break;
-		
+
 	case 0x61:
 		ret = pcjr->pb;
 		break;
@@ -678,7 +678,7 @@ kbd_read(uint16_t port, void *priv)
 		if (pcjr->data)
 			ret |= 0x40;
 		break;
-		
+
 	case 0xa0:
 		pcjr->latched = 0;
 		ret = 0;

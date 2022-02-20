@@ -7,18 +7,18 @@
  *		This file is part of the 86Box distribution.
  *
  *		Rendering module for OpenGL
- * 
+ *
  * TODO:	More shader features
  *			- scaling
  *			- multipass
- *			- previous frames 
+ *			- previous frames
  *		(UI) options
  *		More error handling
- * 
+ *
  * Authors:	Teemu Korhonen
- * 
+ *
  *		Copyright 2021 Teemu Korhonen
- * 
+ *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
@@ -168,7 +168,7 @@ typedef struct
 
 /**
  * @brief Set or unset OpenGL context window as a child window.
- * 
+ *
  * Modifies the window style and sets the parent window.
  * WS_EX_NOACTIVATE keeps the window from stealing input focus.
  */
@@ -198,7 +198,7 @@ static void set_parent_binding(int enable)
  * @brief Windows message handler for our window.
  * @param message
  * @param wParam
- * @param lParam 
+ * @param lParam
  * @param fullscreen
  * @return Was message handled
 */
@@ -382,7 +382,7 @@ static int initialize_glcontext(gl_identifiers* gl)
 		/* Create persistent buffer for pixel transfer. */
 		glBufferStorage(GL_PIXEL_UNPACK_BUFFER, BUFFERBYTES * BUFFERCOUNT, NULL, GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT);
 
-		buf_ptr = glMapBufferRange(GL_PIXEL_UNPACK_BUFFER, 0, BUFFERBYTES * BUFFERCOUNT, GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT);		
+		buf_ptr = glMapBufferRange(GL_PIXEL_UNPACK_BUFFER, 0, BUFFERBYTES * BUFFERCOUNT, GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT);
 	}
 	else
 	{
@@ -410,8 +410,8 @@ static int initialize_glcontext(gl_identifiers* gl)
 }
 
 /**
- * @brief Clean up OpenGL context 
- * @param gl Identifiers from initialize 
+ * @brief Clean up OpenGL context
+ * @param gl Identifiers from initialize
 */
 static void finalize_glcontext(gl_identifiers* gl)
 {
@@ -472,7 +472,7 @@ static void __stdcall opengl_debugmsg_callback(GLenum source, GLenum type, GLuin
 
 /**
  * @brief Main OpenGL thread proc.
- * 
+ *
  * OpenGL context should be accessed only from this single thread.
  * Events are used to synchronize communication.
 */
@@ -488,7 +488,7 @@ static void opengl_main(void* param)
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
-	
+
 	if (GLAD_GL_ARB_debug_output && log_path[0] != '\0')
 		SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_DEBUG_FLAG | SDL_GL_CONTEXT_FORWARD_COMPATIBLE_FLAG);
 	else
@@ -515,7 +515,7 @@ static void opengl_main(void* param)
 		pclog("OpenGL: subsystem is not SDL_SYSWM_WINDOWS.\n");
 		opengl_fail();
 	}
-	
+
 	window_hwnd = wmi.info.win.window;
 
 	if (!fullscreen)
@@ -580,7 +580,7 @@ static void opengl_main(void* param)
 	}
 
 	gl_identifiers gl = { 0 };
-	
+
 	if (!initialize_glcontext(&gl))
 	{
 		pclog("OpenGL: failed to initialize.\n");
@@ -616,7 +616,7 @@ static void opengl_main(void* param)
 				uint32_t ticks = plat_get_micro_ticks();
 
 				uint32_t elapsed = ticks - last_swap;
-				
+
 				if (elapsed + 1000 > frametime)
 				{
 					/* Spin the remaining time (< 1ms) to next frame */
@@ -748,7 +748,7 @@ static void opengl_main(void* param)
 				int width, height, pad_x = 0, pad_y = 0, px_size = 1;
 				float ratio = 0;
 				const float ratio43 = 4.f / 3.f;
-				
+
 				SDL_GetWindowSize(window, &width, &height);
 
 				if (video_width > 0 && video_height > 0)
@@ -919,7 +919,7 @@ int opengl_init(HWND hwnd)
 	sync_objects.blit_waiting = CreateSemaphore(NULL, 0, BUFFERCOUNT * 2, NULL);
 
 	parent = hwnd;
-	
+
 	RECT parent_size;
 
 	GetWindowRect(parent, &parent_size);
@@ -992,7 +992,7 @@ void opengl_set_fs(int fs)
 		return;
 
 	thread_wait_mutex(resize_info.mutex);
-	
+
 	resize_info.fullscreen = fs;
 	resize_info.scaling_mode = video_fullscreen_scale;
 
@@ -1026,7 +1026,7 @@ void opengl_reload(void)
 
 	options.vsync = video_vsync;
 	options.frametime = framerate_to_frametime(video_framerate);
-	
+
 	if (strcmp(video_shader, options.shaderfile) != 0)
 	{
 		strcpy_s(options.shaderfile, sizeof(options.shaderfile), video_shader);

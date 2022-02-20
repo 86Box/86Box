@@ -122,7 +122,7 @@ deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 
 					id += 2;
 					break;
-				case CONFIG_MIDI:
+				case CONFIG_MIDI_OUT:
 					val_int = config_get_int((char *) config_device.name,
 								 (char *) config->name, config->default_int);
 
@@ -151,7 +151,7 @@ deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 					}
 
 					id += 2;
-					break;					
+					break;
 				case CONFIG_SPINNER:
 					val_int = config_get_int((char *) config_device.name,
 								 (char *) config->name, config->default_int);
@@ -257,7 +257,7 @@ deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 
 						id += 2;
 						break;
-					case CONFIG_MIDI:
+					case CONFIG_MIDI_OUT:
 						val_int = config_get_int((char *) config_device.name,
 									 (char *) config->name, config->default_int);
 
@@ -375,7 +375,7 @@ deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 
 						id += 2;
 						break;
-					case CONFIG_MIDI:
+					case CONFIG_MIDI_OUT:
 						c = SendMessage(h, CB_GETCURSEL, 0, 0);
 						config_set_int((char *) config_device.name, (char *) config->name, c);
 
@@ -443,7 +443,7 @@ deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 					case CONFIG_HEX16:
 					case CONFIG_HEX20:
 					case CONFIG_BIOS:
-					case CONFIG_MIDI:
+					case CONFIG_MIDI_OUT:
 					case CONFIG_MIDI_IN:
 					case CONFIG_SPINNER:
 						id += 2;
@@ -541,7 +541,7 @@ deviceconfig_inst_open(HWND hwnd, const device_t *device, int inst)
 			break;
 
 		case CONFIG_SELECTION:
-		case CONFIG_MIDI:
+		case CONFIG_MIDI_OUT:
 		case CONFIG_MIDI_IN:
 		case CONFIG_HEX16:
 		case CONFIG_HEX20:

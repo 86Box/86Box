@@ -6,7 +6,7 @@
  *
  *		This file is part of the 86Box distribution.
  *
- *		Emulation of the NCR NGA (K511, K201) video cards. 
+ *		Emulation of the NCR NGA (K511, K201) video cards.
  *
  *
  *
@@ -109,9 +109,9 @@ nga_write(uint32_t addr, uint8_t val, void *priv)
 	if(!(addr & 0x10000))
 		nga->vram_64k[addr & 0x7FFF]=val;
 	/* b8000-bffff */
-	else 
+	else
 		nga->cga.vram[addr & 0x7FFF]=val;
-	
+
 	if (nga->cga.snow_enabled) {
 		/* recreate snow effect */
 		offset = ((timer_get_remaining_u64(&nga->cga.timer) / CGACONST) * 4) & 0xfc;
@@ -124,14 +124,14 @@ nga_write(uint32_t addr, uint8_t val, void *priv)
 uint8_t
 nga_read(uint32_t addr, void *priv)
 {
-    
+
 	nga_t *nga = (nga_t *)priv;
     int offset;
 	uint8_t ret;
 	/* a8000-affff */
 	if(!(addr & 0x10000))
 		ret = nga->vram_64k[addr & 0x7FFF];
-	else 
+	else
 		ret = nga->cga.vram[addr & 0x7FFF];
 
 	nga_waitstates(&nga->cga);
@@ -142,7 +142,7 @@ nga_read(uint32_t addr, void *priv)
 		nga->cga.charbuffer[offset] = nga->cga.vram[addr & 0x7fff];
 		nga->cga.charbuffer[offset | 1] = nga->cga.vram[addr & 0x7fff];
 	}
-	
+
     return(ret);
 }
 
@@ -160,7 +160,7 @@ nga_poll(void *priv)
     int cols[4];
 	int col;
     int oldsc;
-	
+
 	/* graphic mode and not high-res modes */
 	if ((nga->cga.cgamode & 2) && !(nga->cga.cgamode & 0x40)) {
 		/* standard cga mode */
@@ -174,7 +174,7 @@ nga_poll(void *priv)
 			nga->cga.linepos = 1;
 			oldsc = nga->cga.sc;
 			/* if interlaced */
-			if ((nga->cga.crtc[8] & 3) == 3) 
+			if ((nga->cga.crtc[8] & 3) == 3)
 				nga->cga.sc = ((nga->cga.sc << 1) + nga->cga.oddeven) & 7;
 			if (nga->cga.cgadispon) {
 				if (nga->cga.displine < nga->cga.firstline) {
@@ -187,7 +187,7 @@ nga_poll(void *priv)
 					/* for each text column */
 					for (x = 0; x < nga->cga.crtc[1]; x++) {
 						/* video output enabled */
-						if (nga->cga.cgamode & 8) {	
+						if (nga->cga.cgamode & 8) {
 							/* character */
 							chr = nga->cga.charbuffer[x << 1];
 							/* text attributes */
@@ -211,16 +211,16 @@ nga_poll(void *priv)
 							cols[0] = (attr >> 4) + 16;
 						}
 						if (drawcursor) {
-							for (c = 0; c < 8; c++) 
+							for (c = 0; c < 8; c++)
 								buffer32->line[nga->cga.displine][(x << 3) + c + 8] = cols[(fontdatm[chr][((nga->cga.sc & 7) << 1) | nga->lineff] & (1 << (c ^ 7))) ? 1 : 0] ^ 15;
 						} else {
-							for (c = 0; c < 8; c++) 
+							for (c = 0; c < 8; c++)
 								buffer32->line[nga->cga.displine][(x << 3) + c + 8] = cols[(fontdatm[chr][((nga->cga.sc & 7) << 1) | nga->lineff] & (1 << (c ^ 7))) ? 1 : 0];
 						}
-						
+
 						nga->cga.ma++;
 					}
-				} 
+				}
 				/* 40-col */
 				else if (!(nga->cga.cgamode & 2)) {
 					/* for each text column */
@@ -248,16 +248,16 @@ nga_poll(void *priv)
 
 						if (drawcursor) {
 							for (c = 0; c < 8; c++)
-								buffer32->line[nga->cga.displine][(x << 4) + (c << 1) + 8] = 
+								buffer32->line[nga->cga.displine][(x << 4) + (c << 1) + 8] =
 								buffer32->line[nga->cga.displine][(x << 4) + (c << 1) + 1 + 8] = cols[(fontdatm[chr][((nga->cga.sc & 7) << 1) | nga->lineff] & (1 << (c ^ 7))) ? 1 : 0] ^ 15;
 						} else {
 							for (c = 0; c < 8; c++)
-								buffer32->line[nga->cga.displine][(x << 4) + (c << 1) + 8] = 
+								buffer32->line[nga->cga.displine][(x << 4) + (c << 1) + 8] =
 								buffer32->line[nga->cga.displine][(x << 4) + (c << 1) + 1 + 8] = cols[(fontdatm[chr][((nga->cga.sc & 7) << 1) | nga->lineff] & (1 << (c ^ 7))) ? 1 : 0];
 						}
-						
+
 						nga->cga.ma++;
-						
+
 					}
 				} else {
 					/* high res modes */
@@ -299,12 +299,12 @@ nga_poll(void *priv)
 							*/
 							dat2 = (nga->cga.sc & 1) * 0x4000;
 						}
-					} 
+					}
 					else {
 						dat2 = (nga->cga.sc & 1) * 0x2000;
 						cols[0] = 0; cols[1] = (nga->cga.cgacol & 15) + 16;
 					}
-					
+
 					/* for each text column */
 					for (x = 0; x < nga->cga.crtc[1]; x++) {
 						/* video out */
@@ -343,7 +343,7 @@ nga_poll(void *priv)
 					}
 				}
 			} else {
-				
+
 				/* nga specific */
 				cols[0] = ((nga->cga.cgamode & 0x12) == 0x12) ? 0 : (nga->cga.cgacol & 15) + 16;
 				/* 80-col */
@@ -354,7 +354,7 @@ nga_poll(void *priv)
 					hline(buffer32, 0, (nga->cga.displine << 1), ((nga->cga.crtc[1] << 4) + 16) << 2, cols[0]);
 					hline(buffer32, 0, (nga->cga.displine << 1) + 1, ((nga->cga.crtc[1] << 4) + 16) << 2, cols[0]);
 				}
-				
+
 			}
 
 			nga->cga.sc = oldsc;
@@ -362,7 +362,7 @@ nga_poll(void *priv)
 			if (nga->cga.vc == nga->cga.crtc[7] && !nga->cga.sc)
 				nga->cga.cgastat |= 8;
 			nga->cga.displine++;
-			if (nga->cga.displine >= 720) 
+			if (nga->cga.displine >= 720)
 				nga->cga.displine = 0;
 		} else {
 			timer_advance_u64(&nga->cga.timer, nga->cga.dispontime);
@@ -370,7 +370,7 @@ nga_poll(void *priv)
 			nga->cga.linepos = 0;
 			/* nga specific */
 			nga->lineff ^= 1;
-			
+
 			/* text mode or 640x400x2 */
 			if (nga->lineff && !((nga->cga.cgamode & 1) && (nga->cga.cgamode & 0x40))) {
 				nga->cga.ma = nga->cga.maback;
@@ -382,14 +382,14 @@ nga_poll(void *priv)
 						nga->cga.cgastat &= ~8;
 				}
 				/* cursor stop scanline */
-				if (nga->cga.sc == (nga->cga.crtc[11] & 31) || ((nga->cga.crtc[8] & 3) == 3 && nga->cga.sc == ((nga->cga.crtc[11] & 31) >> 1))) { 
-					nga->cga.con = 0; 
-					nga->cga.coff = 1; 
+				if (nga->cga.sc == (nga->cga.crtc[11] & 31) || ((nga->cga.crtc[8] & 3) == 3 && nga->cga.sc == ((nga->cga.crtc[11] & 31) >> 1))) {
+					nga->cga.con = 0;
+					nga->cga.coff = 1;
 				}
 				/* interlaced and max scanline per char reached */
 				if ((nga->cga.crtc[8] & 3) == 3 && nga->cga.sc == (nga->cga.crtc[9] >> 1))
 					nga->cga.maback = nga->cga.ma;
-				
+
 				if (nga->cga.vadj) {
 					nga->cga.sc++;
 					nga->cga.sc &= 31;
@@ -411,7 +411,7 @@ nga_poll(void *priv)
 					nga->cga.vc &= 127;
 
 					/* lines of character displayed */
-					if (nga->cga.vc == nga->cga.crtc[6]) 
+					if (nga->cga.vc == nga->cga.crtc[6])
 						nga->cga.cgadispon=0;
 
 					/* total vertical lines */
@@ -462,7 +462,7 @@ nga_poll(void *priv)
 								if (!enable_overscan)
 									xs_temp -= 16;
 
-								
+
 								if ((nga->cga.cgamode & 8) && ((xs_temp != xsize) || (ys_temp != ysize) || video_force_resize_get())) {
 									xsize = xs_temp;
 									ysize = ys_temp;
@@ -473,14 +473,14 @@ nga_poll(void *priv)
 								}
 								/* nga specific */
 								if (enable_overscan) {
-									if (nga->cga.composite) 
+									if (nga->cga.composite)
 										video_blit_memtoscreen(0, (nga->cga.firstline - 8),
 												xsize, (nga->cga.lastline - nga->cga.firstline) + 16);
 									else
 										video_blit_memtoscreen_8(0, (nga->cga.firstline - 8),
 												xsize, (nga->cga.lastline - nga->cga.firstline) + 16);
 								} else {
-									if (nga->cga.composite) 
+									if (nga->cga.composite)
 										video_blit_memtoscreen(8, nga->cga.firstline,
 												xsize, (nga->cga.lastline - nga->cga.firstline));
 									else
@@ -502,7 +502,7 @@ nga_poll(void *priv)
 								video_res_x /= 16;
 								video_res_y /= (nga->cga.crtc[9] + 1) * 2;
 								video_bpp = 0;
-							} 
+							}
 							else if (nga->cga.cgamode & 0x40) {
 								video_res_x /= 8;
 								video_res_y /= 2;
@@ -522,9 +522,9 @@ nga_poll(void *priv)
 
 				if (nga->cga.cgadispon)
 					nga->cga.cgastat &= ~1;
-				
+
 				/* enable cursor if its scanline was reached */
-				if ((nga->cga.sc == (nga->cga.crtc[10] & 31) || ((nga->cga.crtc[8] & 3) == 3 && nga->cga.sc == ((nga->cga.crtc[10] & 31) >> 1)))) 
+				if ((nga->cga.sc == (nga->cga.crtc[10] & 31) || ((nga->cga.crtc[8] & 3) == 3 && nga->cga.sc == ((nga->cga.crtc[10] & 31) >> 1))))
 					nga->cga.con = 1;
 			}
 			/* 80-columns */
@@ -567,10 +567,10 @@ nga_init(const device_t *info)
     charset = device_get_config_int("charset");
 
 	loadfont_ex("roms/video/nga/ncr_nga_35122.bin", 1, 4096 * charset);
-    
-	nga->cga.composite = 0; 
+
+	nga->cga.composite = 0;
     nga->cga.snow_enabled = device_get_config_int("snow_enabled");
-	
+
 	nga->cga.vram = malloc(0x8000);
 	nga->vram_64k = malloc(0x8000);
 
@@ -578,7 +578,7 @@ nga_init(const device_t *info)
     mem_mapping_add(&nga->cga.mapping, 0xb8000, 0x8000,
 		    nga_read, NULL, NULL,
 		    nga_write, NULL, NULL,  NULL, 0, nga);
-	
+
 	mem = device_get_config_int("memory");
 
 	if (mem > 32) {
@@ -589,12 +589,12 @@ nga_init(const device_t *info)
 	}
 
 	io_sethandler(0x03d0, 16, nga_in, NULL, NULL, nga_out, NULL, NULL, nga);
-	
+
     overscan_x = overscan_y = 16;
     nga->cga.rgb_type = device_get_config_int("rgb_type");
     cga_palette = (nga->cga.rgb_type << 1);
     cgapal_rebuild();
-	    
+
     return nga;
 }
 

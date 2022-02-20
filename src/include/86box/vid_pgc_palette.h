@@ -16,6 +16,7 @@
  *		Copyright 2019 Fred N. van Kempen.
  *		Copyright 2019 John Elliott.
  */
+
 #ifndef VID_PGC_PALETTE_H
 # define VID_PGC_PALETTE_H
 
@@ -1574,6 +1575,5 @@
 		makecol(0x00,0x00,0x00),
 		makecol(0x00,0x00,0x00),
 	},
-
 
 #endif	/*VID_PGC_PALETTE_H*/

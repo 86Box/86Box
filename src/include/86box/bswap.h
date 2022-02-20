@@ -34,8 +34,9 @@
  *   Boston, MA 02111-1307
  *   USA.
  */
+
 #ifndef BSWAP_H
-#define BSWAP_H
+# define BSWAP_H
 
 #include <stdint.h>
 
@@ -228,4 +229,4 @@ static __inline void cpu_to_be32wu(uint32_t *p, uint32_t v)
 #undef le_bswaps
 #undef be_bswaps
 
-#endif /* BSWAP_H */
+#endif /*BSWAP_H*/

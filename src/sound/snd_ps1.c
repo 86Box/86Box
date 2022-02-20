@@ -119,7 +119,7 @@ ps1snd_write(uint16_t port, uint8_t val, void *priv)
 static void
 ps1snd_update(ps1snd_t *ps1snd)
 {
-    for (; ps1snd->pos < sound_pos_global; ps1snd->pos++)        
+    for (; ps1snd->pos < sound_pos_global; ps1snd->pos++)
         ps1snd->buffer[ps1snd->pos] = (int8_t)(ps1snd->dac_val ^ 0x80) * 0x20;
 }
 

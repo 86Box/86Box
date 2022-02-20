@@ -56,7 +56,7 @@ typedef struct {
     uint8_t pos;
     uint8_t enable_register;
     uint8_t dipswitch_val;
-	
+
     uint32_t vram_size;
     uint32_t vram_mask;
 } oti_t;
@@ -86,7 +86,7 @@ oti_out(uint16_t addr, uint8_t val, void *p)
 		} else
 			break;
 		break;
-		
+
 	case 0x3c6: case 0x3c7: case 0x3c8: case 0x3c9:
 		if (oti->chip_id == OTI_077)
 			sc1148x_ramdac_out(addr, 0, val, svga->ramdac, svga);
@@ -126,7 +126,7 @@ oti_out(uint16_t addr, uint8_t val, void *p)
 		}
 		break;
 
-	case 0x3DE: 
+	case 0x3DE:
 		if (oti->chip_id)
 			oti->index = val & 0x1f;
 		else
@@ -202,13 +202,13 @@ oti_in(uint16_t addr, void *p)
     oti_t *oti = (oti_t *)p;
     svga_t *svga = &oti->svga;
     uint8_t idx, temp;
-	
+
     if (!oti->chip_id && !(oti->enable_register & 1) && (addr != 0x3C3))
 	return 0xff;
 
     if ((((addr&0xFFF0) == 0x3D0 || (addr&0xFFF0) == 0x3B0) && addr < 0x3de) &&
 	!(svga->miscout & 1)) addr ^= 0x60;
-	
+
     switch (addr) {
 	case 0x3C2:
 		if ((svga->vgapal[0].r + svga->vgapal[0].g + svga->vgapal[0].b) >= 0x50)
@@ -293,12 +293,12 @@ oti_in(uint16_t addr, void *p)
 		temp = oti->index;
 		if (oti->chip_id)
 			temp |= (oti->chip_id << 5);
-		break;	       
+		break;
 
 	case 0x3DF:
 		idx = oti->index;
 		if (!oti->chip_id)
-			idx &= 0x1f; 
+			idx &= 0x1f;
 		if (idx == 0x10)
 			temp = oti->dipswitch_val;
 		else
@@ -338,7 +338,7 @@ oti_pos_in(uint16_t addr, void *p)
     oti_t *oti = (oti_t *)p;
 
     return(oti->pos);
-}	
+}
 
 
 static void
@@ -356,7 +356,7 @@ oti_recalctimings(svga_t *svga)
     if ((oti->regs[0x0d] & 0x0c) && !(oti->regs[0x0d] & 0x10)) svga->rowoffset <<= 1;
 
     svga->interlace = oti->regs[0x14] & 0x80;
-	
+
 	if (svga->bpp == 16) {
 		svga->render = svga_render_16bpp_highres;
 		svga->hdisp >>= 1;
@@ -385,7 +385,7 @@ oti_init(const device_t *info)
 		oti->regs[0] = 0x08; /* FIXME: The BIOS wants to read this at index 0? This index is undocumented. */
 		/* io_sethandler(0x03c0, 32,
 			      oti_in, NULL, NULL, oti_out, NULL, NULL, oti); */
-		break;		
+		break;
 
 	case OTI_067_AMA932J:
 		romfn = BIOS_067_AMA932J_PATH;
@@ -448,7 +448,7 @@ oti_speed_changed(void *p)
 
     svga_recalctimings(&oti->svga);
 }
-	
+
 
 static void
 oti_force_redraw(void *p)

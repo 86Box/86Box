@@ -361,7 +361,7 @@ ali6117_init(const device_t *info)
 
     ali6117_t *dev = (ali6117_t *) malloc(sizeof(ali6117_t));
     memset(dev, 0, sizeof(ali6117_t));
-    
+
     dev->local = info->local;
 
     device_add(&ide_isa_device);
@@ -382,8 +382,8 @@ const device_t ali1217_device =
     "ali1217",
     DEVICE_AT,
     0x8,
-    ali6117_init, 
-    ali6117_close, 
+    ali6117_init,
+    ali6117_close,
     ali6117_reset,
     { NULL },
     NULL,
@@ -398,8 +398,8 @@ const device_t ali6117d_device =
     "ali6117d",
     DEVICE_AT,
     0x2,
-    ali6117_init, 
-    ali6117_close, 
+    ali6117_init,
+    ali6117_close,
     ali6117_reset,
     { NULL },
     NULL,

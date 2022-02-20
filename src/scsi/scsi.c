@@ -166,7 +166,7 @@ scsi_card_get_from_internal_name(char *s)
 		return(c);
 	c++;
     }
-	
+
     return(0);
 }
 

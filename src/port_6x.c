@@ -61,7 +61,7 @@ port_6x_write(uint16_t port, uint8_t val, void *priv)
 		speaker_update();
 		speaker_gated = val & 1;
 		speaker_enable = val & 2;
-		if (speaker_enable) 
+		if (speaker_enable)
 			was_speaker_enable = 1;
 		pit_ctr_set_gate(&pit->counters[2], val & 1);
 

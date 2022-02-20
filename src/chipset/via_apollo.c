@@ -232,7 +232,7 @@ via_apollo_host_bridge_write(int func, int addr, uint8_t val, void *priv)
     via_apollo_t *dev = (via_apollo_t *) priv;
     if (func)
 	return;
-	
+
     /*Read-only addresses*/
     if ((addr < 4) || ((addr > 5) && (addr < 7)) || ((addr >= 8) && (addr < 0xd)) ||
 	((addr >= 0xe) && (addr != 0x0f) && (addr < 0x12)) || ((addr >= 0x14) && (addr < 0x50)) ||
@@ -259,7 +259,7 @@ via_apollo_host_bridge_write(int func, int addr, uint8_t val, void *priv)
 		else
 		dev->pci_conf[0x05] = val;
 		break;
-		
+
 	case 0x07:
 		dev->pci_conf[0x07] &= ~(val & 0xb0);
 		break;
@@ -766,8 +766,8 @@ const device_t via_vpx_device =
     "via_vpx",
     DEVICE_PCI,
     VIA_585,	/*VT82C585*/
-    via_apollo_init, 
-    via_apollo_close, 
+    via_apollo_init,
+    via_apollo_close,
     via_apollo_reset,
     { NULL },
     NULL,
@@ -781,8 +781,8 @@ const device_t amd640_device =
     "amd640",
     DEVICE_PCI,
     VIA_595,	/*VT82C595*/
-    via_apollo_init, 
-    via_apollo_close, 
+    via_apollo_init,
+    via_apollo_close,
     via_apollo_reset,
     { NULL },
     NULL,
@@ -796,8 +796,8 @@ const device_t via_vp3_device =
     "via_vp3",
     DEVICE_PCI,
     VIA_597,	/*VT82C597*/
-    via_apollo_init, 
-    via_apollo_close, 
+    via_apollo_init,
+    via_apollo_close,
     via_apollo_reset,
     { NULL },
     NULL,
@@ -811,8 +811,8 @@ const device_t via_mvp3_device =
     "via_mvp3",
     DEVICE_PCI,
     VIA_598,	/*VT82C598MVP*/
-    via_apollo_init, 
-    via_apollo_close, 
+    via_apollo_init,
+    via_apollo_close,
     via_apollo_reset,
     { NULL },
     NULL,

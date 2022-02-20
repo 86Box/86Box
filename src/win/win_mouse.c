@@ -52,7 +52,7 @@ win_mouse_init(void)
 	ridev.usUsagePage = 0x01;
 	ridev.usUsage = 0x02;
 	if (! RegisterRawInputDevices(&ridev, 1, sizeof(ridev)))
-		fatal("plat_mouse_init: RegisterRawInputDevices failed\n"); 
+		fatal("plat_mouse_init: RegisterRawInputDevices failed\n");
 
 	memset(&mousestate, 0, sizeof(MOUSESTATE));
 }
@@ -85,13 +85,13 @@ win_mouse_handle(PRAWINPUT raw)
 
 
     if (state.usFlags & MOUSE_MOVE_ABSOLUTE) {
-		/* absolute mouse, i.e. RDP or VNC 
+		/* absolute mouse, i.e. RDP or VNC
 		 * seems to work fine for RDP on Windows 10
 		 * Not sure about other environments.
 		 */
 		mousestate.dx += (state.lLastX - x)/25;
 		mousestate.dy += (state.lLastY - y)/25;
-		x=state.lLastX; 
+		x=state.lLastX;
 		y=state.lLastY;
 	} else {
 		/* relative mouse, i.e. regular mouse */
@@ -124,7 +124,7 @@ mouse_poll(void)
 			mousestate.dx=0;
 			mousestate.dy=0;
 			mousestate.dwheel=0;
-			
+
 			//pclog("dx=%d, dy=%d, dwheel=%d\n", mouse_x, mouse_y, mouse_z);
 		}
 

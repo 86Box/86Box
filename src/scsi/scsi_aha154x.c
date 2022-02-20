@@ -301,7 +301,7 @@ aha_param_len(void *p)
 
 	case CMD_SHADOW_RAM:
 		return 1;
-		break;	
+		break;
 
 	case CMD_WRITE_EEPROM:
 		return 35;
@@ -407,7 +407,7 @@ aha_cmds(void *p)
 			dev->DataBuf[1] = dev->Lock;
 			dev->DataReplyLeft = 2;
 			break;
-					
+
 		case CMD_MBENABLE: /* Mailbox interface enable Command */
 			dev->DataReplyLeft = 0;
 			if (dev->CmdBuf[1] == dev->Lock) {
@@ -549,7 +549,7 @@ aha_mca_write(int port, uint8_t val, void *priv)
 
     /* Save the new IRQ and DMA channel values. */
     dev->Irq = (dev->pos_regs[4] & 0x07) + 8;
-    dev->DmaChannel = dev->pos_regs[5] & 0x0f;	
+    dev->DmaChannel = dev->pos_regs[5] & 0x0f;
 
     /* Extract the BIOS ROM address info. */
     if (! (dev->pos_regs[2] & 0x80)) switch(dev->pos_regs[3] & 0x38) {
@@ -1013,7 +1013,7 @@ aha_init(const device_t *info)
 		dev->rom_shramsz = 128;		/* size of shadow RAM */
 		dev->ha_bps = 5000000.0;	/* normal SCSI */
 		break;
-		
+
 	case AHA_154xB:
 		strcpy(dev->name, "AHA-154xB");
 		switch(dev->Base) {
@@ -1107,11 +1107,11 @@ aha_init(const device_t *info)
 
 		/* Enable MCA. */
 		dev->pos_regs[0] = 0x1F;	/* MCA board ID */
-		dev->pos_regs[1] = 0x0F;	
+		dev->pos_regs[1] = 0x0F;
 		mca_add(aha_mca_read, aha_mca_write, aha_mca_feedb, NULL, dev);
 		dev->ha_bps = 5000000.0;	/* normal SCSI */
 		break;
-    }	
+    }
 
     /* Initialize ROM BIOS if needed. */
     aha_setbios(dev);

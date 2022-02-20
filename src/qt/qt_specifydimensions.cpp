@@ -67,7 +67,7 @@ void SpecifyDimensions::on_SpecifyDimensions_accepted()
             + (!hide_status_bar ? main_window->statusBar()->height() : 0)
             + (!hide_tool_bar ? main_window->ui->toolBar->height() : 0)
             + main_window->menuBar()->height());
-        
+
         emit main_window->updateMenuResizeOptions();
         main_window->show();
         main_window->ui->stackedWidget->switchRenderer((RendererStack::Renderer)vid_api);
@@ -89,4 +89,3 @@ void SpecifyDimensions::on_SpecifyDimensions_accepted()
     main_window->show();
     emit main_window->updateWindowRememberOption();
 }
-

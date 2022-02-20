@@ -35,4 +35,9 @@
  *   USA.
  */
 
+#ifndef EMU_JOYSTICK_SW_PAD_H
+# define EMU_JOYSTICK_SW_PAD_H
+
 extern const joystick_if_t joystick_sw_pad;
+
+#endif /*EMU_JOYSTICK_SW_PAD_H*/

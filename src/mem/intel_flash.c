@@ -139,7 +139,7 @@ flash_readw(uint32_t addr, void *p)
 	case CMD_IID:
 		if (addr & 2)
 			ret = dev->flash_id;
-		else		
+		else
 			ret = 0x0089;
 		break;
 
@@ -315,7 +315,7 @@ intel_flash_add_mappings(flash_t *dev)
 	else
 		base = 0xe0000 + (i << 16);
 
-	fbase = base & biosmask; 
+	fbase = base & biosmask;
 	if (dev->flags & FLAG_INV_A16)
 		fbase ^= 0x10000;
 
@@ -509,7 +509,7 @@ intel_flash_init(const device_t *info)
 			dev->block_start[BLOCK_BOOT] = 0x1e000;		/* BOOT BLOCK */
 			dev->block_end[BLOCK_BOOT] = 0x1ffff;
 		}
-		break;		
+		break;
     }
 
     intel_flash_add_mappings(dev);

@@ -30,7 +30,7 @@ typedef union
   32:32 fixed point format, with the integer part compared against the TSC. The
   fractional part is used when advancing the timestamp to ensure a more accurate
   period.
-  
+
   As the timer only stores 32 bits of integer timestamp, and the TSC is 64 bits,
   the timer period can only be at most 0x7fffffff CPU cycles. To allow room for
   (optimistic) CPU frequency growth, timer period must be at most 1 second.

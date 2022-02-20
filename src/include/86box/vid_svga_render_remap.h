@@ -6,6 +6,9 @@
         row 1 -> MA14
 */
 
+#ifndef VIDEO_SVGA_RENDER_REMAP_H
+# define VIDEO_SVGA_RENDER_REMAP_H
+
 //S3 - enhanced mode mappings CR31.3 can force doubleword mode
 //Cirrus Logic handles SVGA writes seperately
 //S3, CL, TGUI blitters need checking
@@ -100,7 +103,7 @@ static uint32_t (*address_remap_funcs[16])(svga_t *svga, uint32_t in_addr) =
 void svga_recalc_remap_func(svga_t *svga)
 {
         int func_nr;
-        
+
         if (svga->fb_only || svga->force_byte_mode)
                 func_nr = 0;
         else {
@@ -114,7 +117,7 @@ void svga_recalc_remap_func(svga_t *svga)
                         func_nr = VAR_WORD_MODE_MA15;
                 else
                         func_nr = VAR_WORD_MODE_MA13;
-                        
+
                 if (!(svga->crtc[0x17] & 0x01))
                         func_nr |= VAR_ROW0_MA13;
                 if (!(svga->crtc[0x17] & 0x02))
@@ -124,3 +127,5 @@ void svga_recalc_remap_func(svga_t *svga)
 		svga->remap_required = (func_nr != 0);
         svga->remap_func = address_remap_funcs[func_nr];
 }
+
+#endif /*VIDEO_RENDER_REMAP_H*/

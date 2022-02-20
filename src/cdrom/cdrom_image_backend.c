@@ -438,7 +438,7 @@ cdi_read_sectors(cd_img_t *cdi, uint8_t *buffer, int raw, uint32_t sector, uint3
     uint8_t *buf;
     uint32_t buf_len, i;
 
-    /* TODO: This fails to account for Mode 2. Shouldn't we have a function 
+    /* TODO: This fails to account for Mode 2. Shouldn't we have a function
 	     to get sector size? */
     sector_size = raw ? RAW_SECTOR_SIZE : COOKED_SECTOR_SIZE;
     buf_len = num * sector_size;

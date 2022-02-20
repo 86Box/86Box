@@ -212,7 +212,7 @@ mouse_reset:
     }
 
     if (dev->flags & FLAG_INTELLI) {
-	for (temp = 0; temp < 5; temp++)	
+	for (temp = 0; temp < 5; temp++)
 		dev->last_data[temp] = dev->last_data[temp + 1];
 
 	dev->last_data[5] = val;

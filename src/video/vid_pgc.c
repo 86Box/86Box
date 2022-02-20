@@ -8,13 +8,13 @@
  *
  *		This implements just enough of the Professional Graphics
  *		Controller to act as a basis for the Vermont Microsystems
- *		IM-1024. 
+ *		IM-1024.
  *
  *		PGC features implemented include:
  *		> The CGA-compatible display modes
  *		> Switching to and from native mode
  *		> Communicating with the host PC
- * 
+ *
  *		Numerous features are implemented partially or not at all,
  *		such as:
  *		> 2D drawing
@@ -113,7 +113,7 @@ static const char *pgc_err_msgs[] = {
     "Too long\r",
     "Area    \r",
     "Missing \r",
-    "Unknown \r" 
+    "Unknown \r"
 };
 
 
@@ -167,7 +167,7 @@ output_byte(pgc_t *dev, uint8_t val)
 	pgc_log("PGC: output buffer state: %02x %02x  Sleeping\n",
 		dev->mapram[0x302], dev->mapram[0x303]);
 	dev->waiting_output_fifo = 1;
-	pgc_sleep(dev);	
+	pgc_sleep(dev);
     }
 
     if (dev->mapram[0x3ff]) {
@@ -206,7 +206,7 @@ error_byte(pgc_t *dev, uint8_t val)
     /* If error buffer full, wait for it to empty. */
     while (!dev->stopped && dev->mapram[0x304] == dev->mapram[0x305] - 1) {
 	dev->waiting_error_fifo = 1;
-	pgc_sleep(dev);	
+	pgc_sleep(dev);
     }
 
     if (dev->mapram[0x3ff]) {
@@ -238,7 +238,7 @@ error_string(pgc_t *dev, const char *s)
 /*
  * Read next byte from the input buffer.
  *
- * If no byte available will sleep until one is. Returns 0 if 
+ * If no byte available will sleep until one is. Returns 0 if
  * a PGC reset has been triggered by a write to 0xC63FF.
  */
 static int
@@ -247,7 +247,7 @@ input_byte(pgc_t *dev, uint8_t *result)
     /* If input buffer empty, wait for it to fill. */
     while (!dev->stopped && (dev->mapram[0x300] == dev->mapram[0x301])) {
 	dev->waiting_input_fifo = 1;
-	pgc_sleep(dev);	
+	pgc_sleep(dev);
     }
 
     if (dev->stopped)
@@ -303,7 +303,7 @@ read_command(pgc_t *dev)
 	return pgc_clist_byte(dev, &dev->hex_command);
 
     if (dev->ascii_mode) {
-	char ch;	
+	char ch;
 	int count  = 0;
 
 	while (count < 7) {
@@ -359,7 +359,7 @@ parse_command(pgc_t *dev, const pgc_cmd_t **pcmd)
 
 	/* If in ASCII mode match on the ASCII command. */
 	if (dev->ascii_mode && !dev->clcur) {
-		sprintf(match, "%-6.6s", cmd->ascii);		
+		sprintf(match, "%-6.6s", cmd->ascii);
 		if (! strncmp(match, dev->asc_command, 6)) {
 			*pcmd = cmd;
 			dev->hex_command = cmd->hex;
@@ -400,20 +400,20 @@ hndl_clbeg(pgc_t *dev)
     while (1) {
 	if (! parse_command(dev, &cmd)) {
 		/* PGC has been reset. */
-		return;	
-	} 
+		return;
+	}
 	if (!cmd) {
 		pgc_error(dev, PGC_ERROR_OPCODE);
-		return;		
+		return;
 	} else if (dev->hex_command == 0x71) {
 		/* CLEND */
 		dev->clist[param] = cl;
 		return;
-	} else {		
+	} else {
 		if (! pgc_cl_append(&cl, dev->hex_command)) {
 			pgc_error(dev, PGC_ERROR_OVERFLOW);
 			return;
-		}		
+		}
 
 		if (cmd->parser) {
 			if (! (*cmd->parser)(dev, &cl, cmd->p))
@@ -526,8 +526,8 @@ hndl_color(pgc_t *dev)
 
 
 /*
- * Set drawing mode. 
- * 
+ * Set drawing mode.
+ *
  * 0 => Draw
  * 1 => Invert
  */
@@ -667,7 +667,7 @@ pgc_write_pixel(pgc_t *dev, uint16_t x, uint16_t y, uint8_t ink)
     uint8_t *vram;
 
     /* Suppress out-of-range writes; clip to viewport. */
-    if (x < dev->vp_x1 || x > dev->vp_x2 || x >= dev->maxw || 
+    if (x < dev->vp_x1 || x > dev->vp_x2 || x >= dev->maxw ||
         y < dev->vp_y1 || y > dev->vp_y2 || y >= dev->maxh) {
 	pgc_log("PGC: write_pixel clipped: (%i,%i) "
 	      "vp_x1=%i vp_y1=%i vp_x2=%i vp_y2=%i "
@@ -689,7 +689,7 @@ pgc_read_pixel(pgc_t *dev, uint16_t x, uint16_t y)
     uint8_t *vram;
 
     /* Suppress out-of-range reads. */
-    if (x >= dev->maxw || y >= dev->maxh) 
+    if (x >= dev->maxw || y >= dev->maxh)
 	return 0;
 
     vram = pgc_vram_addr(dev, x, y);
@@ -712,10 +712,10 @@ pgc_plot(pgc_t *dev, uint16_t x, uint16_t y)
     uint8_t *vram;
 
     /* Only allow plotting within the current viewport. */
-    if (x < dev->vp_x1 || x > dev->vp_x2 || x >= dev->maxw || 
+    if (x < dev->vp_x1 || x > dev->vp_x2 || x >= dev->maxw ||
 	y < dev->vp_y1 || y > dev->vp_y2 || y >= dev->maxh) {
 	pgc_log("PGC: plot clipped: (%i,%i) %i <= x <= %i; %i <= y <= %i; "
-		"mode=%i ink=0x%02x\n", x, y, 
+		"mode=%i ink=0x%02x\n", x, y,
 		dev->vp_x1, dev->vp_x2, dev->vp_y1, dev->vp_y2,
 		dev->draw_mode, dev->color);
 	return;
@@ -752,7 +752,7 @@ pgc_plot(pgc_t *dev, uint16_t x, uint16_t y)
  * Draw a line (using raster coordinates).
  *
  * Bresenham's Algorithm from:
- *	<https://rosettacode.org/wiki/Bitmap/Bresenham%27s_line_algorithm#C> 
+ *	<https://rosettacode.org/wiki/Bitmap/Bresenham%27s_line_algorithm#C>
  *
  * The line pattern mask to use is passed in. Return value is the
  * line pattern mask, rotated by the number of points drawn.
@@ -813,7 +813,7 @@ pgc_draw_line(pgc_t *dev, int32_t x0, int32_t y0, int32_t x1, int32_t y1, uint16
 
 
 /*
- * Draw a horizontal line in the current fill pattern 
+ * Draw a horizontal line in the current fill pattern
  * (using raster coordinates).
  */
 void
@@ -832,8 +832,8 @@ pgc_fill_line_r(pgc_t *dev, int32_t x0, int32_t x1, int32_t y0)
 	if (dev->fill_pattern[y0 & 0x0F] & mask)
 		pgc_plot(dev, x, y0);
 	mask = mask >> 1;
-	if (mask == 0) mask = 0x8000; 
-    } 
+	if (mask == 0) mask = 0x8000;
+    }
 }
 
 
@@ -896,8 +896,8 @@ pgc_fill_polygon(pgc_t *dev, unsigned corners, int32_t *x, int32_t *y)
     }
 
     /* Polygon fill. Based on <http://alienryderflex.com/polygon_fill/> */
-    /* For each row, work out where the polygon lines intersect with 
-     * that row. */		
+    /* For each row, work out where the polygon lines intersect with
+     * that row. */
     for (ypos = ymin; ypos <= ymax; ypos++) {
 	nodes = 0;
 	j = corners - 1;
@@ -907,7 +907,7 @@ pgc_fill_polygon(pgc_t *dev, unsigned corners, int32_t *x, int32_t *y)
 			nodex[nodes++] = dx[i] + (ypos-dy[i])/(dy[j]-dy[i]) * (dx[j] - dx[i]);
 		}
 		j = i;
-	} 
+	}
 
 	/* Sort the intersections. */
 	if (nodes)
@@ -1041,14 +1041,14 @@ parse_poly(pgc_t *dev, pgc_cl_t *cl, int c)
 
     if (! pgc_cl_append(cl, count)) {
 	pgc_error(dev, PGC_ERROR_OVERFLOW);
-	return 0;	
+	return 0;
     }
     pgc_log("PCG: parse_poly: parse %i coords\n", 2 * count);
 
     return pgc_parse_coords(dev, cl, 2 * count);
 }
 
-	
+
 /* Handle the DISPLAY command. */
 static void
 hndl_display(pgc_t *dev)
@@ -1059,7 +1059,7 @@ hndl_display(pgc_t *dev)
 
     pgc_log("PGC: DISPLAY(%i)\n", param);
 
-    if (param > 1) 
+    if (param > 1)
 	pgc_error(dev, PGC_ERROR_RANGE);
     else
 	pgc_setdisplay(dev, param);
@@ -1101,7 +1101,7 @@ hndl_imagew(pgc_t *dev)
 	if (v1 & 0x80) {
 		/* Literal run. */
 		v1 -= 0x7f;
-		while (col1 <= col2 && v1 != 0)	{	
+		while (col1 <= col2 && v1 != 0)	{
 			if (! pgc_param_byte(dev, &v2)) return;
 			pgc_write_pixel(dev, col1, row, v2);
 			col1++;
@@ -1110,14 +1110,14 @@ hndl_imagew(pgc_t *dev)
 	} else {
 		/* Repeated run. */
 		if (! pgc_param_byte(dev, &v2)) return;
-		
+
 		v1++;
-		while (col1 <= col2 && v1 != 0)	{	
+		while (col1 <= col2 && v1 != 0)	{
 			pgc_write_pixel(dev, col1, row, v2);
 			col1++;
 			v1--;
 		}
-	}	
+	}
     }
 }
 
@@ -1166,9 +1166,9 @@ hndl_lutrd(pgc_t *dev)
 
     col = dev->palette[param];
 
-    pgc_result_byte(dev, (col >> 20) & 0x0f);	
-    pgc_result_byte(dev, (col >> 12) & 0x0f);	
-    pgc_result_byte(dev, (col >>  4) & 0x0f);	
+    pgc_result_byte(dev, (col >> 20) & 0x0f);
+    pgc_result_byte(dev, (col >> 12) & 0x0f);
+    pgc_result_byte(dev, (col >>  4) & 0x0f);
 }
 
 
@@ -1195,7 +1195,7 @@ hndl_lut(pgc_t *dev)
 
 /*
  * LUT8RD and LUT8 are extensions implemented by several PGC clones,
- * so here are functions that implement them even though they aren't 
+ * so here are functions that implement them even though they aren't
  * used by the PGC.
  */
 void
@@ -1208,8 +1208,8 @@ pgc_hndl_lut8rd(pgc_t *dev)
 
     col = dev->palette[param];
 
-    pgc_result_byte(dev, (col >> 16) & 0xff);	
-    pgc_result_byte(dev, (col >>  8) & 0xff);	
+    pgc_result_byte(dev, (col >> 16) & 0xff);
+    pgc_result_byte(dev, (col >>  8) & 0xff);
     pgc_result_byte(dev, col & 0xff);
 }
 
@@ -1363,7 +1363,7 @@ hndl_window(pgc_t *dev)
  *
  * In order to support the original PGC and clones, we support two lists;
  * core commands (listed below) and subclass commands (listed in the clone).
- * 
+ *
  * Each row has five parameters:
  * 	ASCII-mode command
  * 	Hex-mode command
@@ -1373,7 +1373,7 @@ hndl_window(pgc_t *dev)
  *
  * TODO: This list omits numerous commands present in a genuine PGC
  *       (ARC, AREA, AREABC, BUFFER, CIRCLE etc etc).
- * TODO: Some commands don't have a parse function (for example, IMAGEW) 
+ * TODO: Some commands don't have a parse function (for example, IMAGEW)
  *
  * The following ASCII entries have special meaning:
  * ~~~~~~  command is valid only in hex mode
@@ -1438,7 +1438,7 @@ static const pgc_cmd_t pgc_commands[] = {
     { "VWPORT", 0xb2, hndl_vwport,	pgc_parse_words,	4	},
     { "VWP",    0xb2, hndl_vwport,	pgc_parse_words,	4	},
     { "WINDOW", 0xb3, hndl_window,	pgc_parse_words,	4	},
-    { "WI",     0xb3, hndl_window,	pgc_parse_words,	4	}, 
+    { "WI",     0xb3, hndl_window,	pgc_parse_words,	4	},
 
     { "@@@@@@", 0x00, NULL,		NULL,			0	}
 };
@@ -1452,7 +1452,7 @@ wake_timer(void *priv)
     pgc_t *dev = (pgc_t *)priv;
 
 #ifdef ENABLE_PGC_LOG
-    pgc_log("PGC: woke up\n"); 
+    pgc_log("PGC: woke up\n");
 #endif
 
     thread_set_event(dev->pgc_wake_thread);
@@ -1487,9 +1487,9 @@ pgc_thread(void *priv)
 
 		/* Nope, just a reset. */
 		continue;
-	} 
+	}
 
-	pgc_log("PGC: Command: [%02x] '%s' found = %i\n", 
+	pgc_log("PGC: Command: [%02x] '%s' found = %i\n",
 		dev->hex_command, dev->asc_command, (cmd != NULL));
 
 	if (cmd) {
@@ -1514,7 +1514,7 @@ err_digit(pgc_t *dev)
     do {
 	/* Swallow everything until the next separator */
 	if (! dev->inputbyte(dev, &asc)) return 0;
-    } while (! is_whitespace(asc));	
+    } while (! is_whitespace(asc));
 
     pgc_error(dev, PGC_ERROR_DIGIT);
 
@@ -1537,7 +1537,7 @@ pgc_result_byte(pgc_t *dev, uint8_t val)
     sprintf(buf, "%i", val);
     dev->result_count++;
 
-    return output_string(dev, buf);	
+    return output_string(dev, buf);
 }
 
 
@@ -1558,7 +1558,7 @@ pgc_result_word(pgc_t *dev, int16_t val)
     sprintf(buf, "%i", val);
     dev->result_count++;
 
-    return output_string(dev, buf);	
+    return output_string(dev, buf);
 }
 
 
@@ -1665,7 +1665,7 @@ pgc_setdisplay(pgc_t *dev, int cga)
 
 /*
  * When idle, the PGC drawing thread sleeps. pgc_wake() awakens it - but
- * not immediately. Like the Voodoo, it has a short delay so that writes 
+ * not immediately. Like the Voodoo, it has a short delay so that writes
  * can be batched.
  */
 void
@@ -1683,7 +1683,7 @@ pgc_sleep(pgc_t *dev)
     pgc_log("PGC: sleeping on %i %i %i %i 0x%02x 0x%02x\n",
 	    dev->stopped,
 	    dev->waiting_input_fifo, dev->waiting_output_fifo,
-	    dev->waiting_error_fifo, dev->mapram[0x300], dev->mapram[0x301]); 
+	    dev->waiting_error_fifo, dev->mapram[0x300], dev->mapram[0x301]);
 
     /* Avoid entering waiting state. */
     if (dev->stopped) {
@@ -1720,7 +1720,7 @@ pgc_clist_byte(pgc_t *dev, uint8_t *val)
 
     if (dev->clcur->rdptr < dev->clcur->wrptr)
 	*val = dev->clcur->list[dev->clcur->rdptr++];
-    else 
+    else
 	*val = 0;
 
     /* If we've reached the end, reset to the beginning and
@@ -1844,7 +1844,7 @@ pgc_param_coord(pgc_t *dev, int32_t *value)
 	return 1;
     }
 
-    /* If in hex mode, read in the encoded integer and fraction parts 
+    /* If in hex mode, read in the encoded integer and fraction parts
      * from the hex stream */
     if (! dev->ascii_mode) {
 	for (n = 0; n < 4; n++)
@@ -1860,7 +1860,7 @@ pgc_param_coord(pgc_t *dev, int32_t *value)
     do {
 	if (! dev->inputbyte(dev, &asc)) return 0;
 	if (asc == '-') sign = -1;
-    }	while (is_whitespace(asc));	
+    }	while (is_whitespace(asc));
 
     /* There had better be a digit next. */
     if (! isdigit(asc)) 	{
@@ -1888,7 +1888,7 @@ pgc_param_coord(pgc_t *dev, int32_t *value)
 		case 'D':
 		case 'e':
 		case 'E':
-			esign = 1;	
+			esign = 1;
 			if (! dev->inputbyte(dev, &asc)) return 0;
 			if (asc == '-') {
 				sign = -1;
@@ -1907,12 +1907,12 @@ pgc_param_coord(pgc_t *dev, int32_t *value)
 			asc -= '0';	/* asc is digit */
 
 			switch (state) {
-				case PS_MAIN: 
+				case PS_MAIN:
 					integer = (integer * 10)+asc;
 					if (integer & 0x8000) {
 						/* Overflow */
 						pgc_error(dev, PGC_ERROR_RANGE);
-						integer = 0x7fff;	
+						integer = 0x7fff;
 					}
 					break;
 
@@ -1925,11 +1925,11 @@ pgc_param_coord(pgc_t *dev, int32_t *value)
 					exponent = (exponent * 10)+asc;
 					break;
 			}
-			
+
 	}
 
 	if (! dev->inputbyte(dev, &asc)) return 0;
-    } while (! is_whitespace(asc));	
+    } while (! is_whitespace(asc));
 
     res = (frac << 16) / dp;
     pgc_log("PGC: integer=%u frac=%u exponent=%u dp=%i res=0x%08lx\n",
@@ -1944,7 +1944,7 @@ pgc_param_coord(pgc_t *dev, int32_t *value)
 			res /= 10;
 	}
     }
-    *value = sign*res;	
+    *value = sign*res;
 
     return 1;
 }
@@ -1998,7 +1998,7 @@ pgc_parse_bytes(pgc_t *dev, pgc_cl_t *cl, int count)
 
     if (! param) {
 	pgc_error(dev, PGC_ERROR_OVERFLOW);
-	return 0;	
+	return 0;
     }
 
     for (n = 0; n < count; n++) {
@@ -2010,7 +2010,7 @@ pgc_parse_bytes(pgc_t *dev, pgc_cl_t *cl, int count)
 	if (! pgc_cl_append(cl, param[n])) {
 		pgc_error(dev, PGC_ERROR_OVERFLOW);
 		free(param);
-		return 0;	
+		return 0;
 	}
     }
 
@@ -2029,7 +2029,7 @@ pgc_parse_words(pgc_t *dev, pgc_cl_t *cl, int count)
 
     if (! param) {
 	pgc_error(dev, PGC_ERROR_OVERFLOW);
-	return 0;	
+	return 0;
     }
 
     for (n = 0; n < count; n++) {
@@ -2042,7 +2042,7 @@ pgc_parse_words(pgc_t *dev, pgc_cl_t *cl, int count)
 	    !pgc_cl_append(cl, param[n] >> 8)) {
 		pgc_error(dev, PGC_ERROR_OVERFLOW);
 		free(param);
-		return 0;	
+		return 0;
 	}
     }
 
@@ -2061,7 +2061,7 @@ pgc_parse_coords(pgc_t *dev, pgc_cl_t *cl, int count)
 
     if (! param) {
 	pgc_error(dev, PGC_ERROR_OVERFLOW);
-	return 0;	
+	return 0;
     }
 
     for (n = 0; n < count; n++) {
@@ -2073,7 +2073,7 @@ pgc_parse_coords(pgc_t *dev, pgc_cl_t *cl, int count)
 
     /* Here is how the real PGC serializes coords:
      *
-     * 100.5 -> 64 00 00 80  ie 0064.8000 
+     * 100.5 -> 64 00 00 80  ie 0064.8000
      * 100.3 -> 64 00 CD 4C  ie 0064.4CCD
      */
     for (n = 0; n < count; n++) {
@@ -2086,7 +2086,7 @@ pgc_parse_coords(pgc_t *dev, pgc_cl_t *cl, int count)
 	    !pgc_cl_append(cl, (param[n] >>  8) & 0xff)) {
 		pgc_error(dev, PGC_ERROR_OVERFLOW);
 		free(param);
-		return 0;	
+		return 0;
 	}
     }
 
@@ -2096,7 +2096,7 @@ pgc_parse_coords(pgc_t *dev, pgc_cl_t *cl, int count)
 }
 
 
-/* Convert coordinates based on the current window / viewport to raster 
+/* Convert coordinates based on the current window / viewport to raster
  * coordinates. */
 void
 pgc_dto_raster(pgc_t *dev, double *x, double *y)
@@ -2171,7 +2171,7 @@ pgc_out(uint16_t addr, uint8_t val, void *priv)
 	case 0x03d5:
 	case 0x03d7:
 		if (dev->mapram[0x03d0] < 18)
-			dev->mapram[0x03e0 + dev->mapram[0x03d0]] = val; 
+			dev->mapram[0x03e0 + dev->mapram[0x03d0]] = val;
 		break;
 
 	case 0x03d8:	/* CRTC Mode Control register */
@@ -2235,7 +2235,7 @@ pgc_write(uint32_t addr, uint8_t val, void *priv)
     pgc_t *dev = (pgc_t *)priv;
 
     /*
-     * It seems variable whether the PGC maps 1K or 2K at 0xc6000. 
+     * It seems variable whether the PGC maps 1K or 2K at 0xc6000.
      *
      * Map 2K here in case a clone requires it.
      */
@@ -2264,7 +2264,7 @@ pgc_write(uint32_t addr, uint8_t val, void *priv)
 					pgc_wake(dev);
 				}
 				break;
-			
+
 			case 0x305:	/* error read pointer */
 				if (dev->waiting_error_fifo &&
 				    dev->mapram[0x304] != (uint8_t)(dev->mapram[0x305] - 1)) {
@@ -2333,13 +2333,13 @@ pgc_cga_text(pgc_t *dev, int w)
     int cw = (w == 80) ? 8 : 16;
 
     addr = &dev->cga_vram[((ma + ((dev->displine / pitch) * w)) * 2) & 0x3ffe];
-    ma += (dev->displine / pitch) * w;	
+    ma += (dev->displine / pitch) * w;
 
     for (x = 0; x < w; x++) {
 	chr  = *addr++;
 	attr = *addr++;
 
-	/* Cursor enabled? */           
+	/* Cursor enabled? */
 	if (ma == ca && (dev->cgablink & 8) &&
 	    (dev->mapram[0x3ea] & 0x60) != 0x20) {
 		drawcursor = ((dev->mapram[0x3ea] & 0x1f) <= (sc >> 1)) &&
@@ -2350,14 +2350,14 @@ pgc_cga_text(pgc_t *dev, int w)
 	if (dev->mapram[0x3d8] & 0x20) {
 		cols[1] = (attr & 15) + 16;
 		cols[0] = ((attr >> 4) & 7) + 16;
-		if ((dev->cgablink & 8) && (attr & 0x80) && !drawcursor) 
+		if ((dev->cgablink & 8) && (attr & 0x80) && !drawcursor)
 			cols[1] = cols[0];
-	} else { 
+	} else {
 		cols[1] = (attr & 15) + 16;
 		cols[0] = (attr >> 4) + 16;
 	}
 
-	for (c = 0; c < cw; c++) { 
+	for (c = 0; c < cw; c++) {
 		if (drawcursor)
 			val = cols[(fontdatm[chr + dev->fontbase][sc] & (1 << (c ^ 7))) ? 1 : 0] ^ 0x0f;
 		else
@@ -2390,26 +2390,26 @@ pgc_cga_gfx40(pgc_t *dev)
        magenta/cyan/white. You still get red/cyan/white if bit 5 of port 03D9h is
        not set. This is a firmware issue rather than hardware. */
     if (dev->mapram[0x3d9] & 32) {
-	cols[1] = col | 3; 
-	cols[2] = col | 5; 
-	cols[3] = col | 7; 
-    } else if (dev->mapram[0x3d8] & 4) {
-	cols[1] = col | 3; 
-	cols[2] = col | 4; 
+	cols[1] = col | 3;
+	cols[2] = col | 5;
 	cols[3] = col | 7;
-    } else { 
-	cols[1] = col | 2; 
-	cols[2] = col | 4; 
-	cols[3] = col | 6; 
+    } else if (dev->mapram[0x3d8] & 4) {
+	cols[1] = col | 3;
+	cols[2] = col | 4;
+	cols[3] = col | 7;
+    } else {
+	cols[1] = col | 2;
+	cols[2] = col | 4;
+	cols[3] = col | 6;
     }
 
     for (x = 0; x < 40; x++) {
 	addr = &dev->cga_vram[(ma + 2 * x + 80 * (dev->displine >> 2) + 0x2000 * ((dev->displine >> 1) & 1)) & 0x3fff];
 	dat = (addr[0] << 8) | addr[1];
 	dev->ma++;
-	for (c = 0; c < 8; c++) { 
-		buffer32->line[dev->displine][(x << 4) + (c << 1)] = 
-		buffer32->line[dev->displine][(x << 4) + (c << 1) + 1] = cols[dat >> 14]; 
+	for (c = 0; c < 8; c++) {
+		buffer32->line[dev->displine][(x << 4) + (c << 1)] =
+		buffer32->line[dev->displine][(x << 4) + (c << 1) + 1] = cols[dat >> 14];
 		dat <<= 2;
 	}
     }
@@ -2433,8 +2433,8 @@ pgc_cga_gfx80(pgc_t *dev)
 	addr = &dev->cga_vram[(ma + 2 * x + 80 * (dev->displine >> 2) + 0x2000 * ((dev->displine >> 1) & 1)) & 0x3fff];
 	dat = (addr[0] << 8) | addr[1];
 	dev->ma++;
-	for (c = 0; c < 16; c++) { 
-		buffer32->line[dev->displine][(x << 4) + c] = cols[dat >> 15]; 
+	for (c = 0; c < 16; c++) {
+		buffer32->line[dev->displine][(x << 4) + c] = cols[dat >> 15];
 		dat <<= 1;
 	}
     }
@@ -2457,12 +2457,12 @@ pgc_cga_poll(pgc_t *dev)
 			video_wait_for_buffer();
 
 		if ((dev->mapram[0x03d8] & 0x12) == 0x12)
-			pgc_cga_gfx80(dev);	
+			pgc_cga_gfx80(dev);
 		else if (dev->mapram[0x03d8] & 0x02)
 			pgc_cga_gfx40(dev);
 		else if (dev->mapram[0x03d8] & 0x01)
 			pgc_cga_text(dev, 80);
-		else 
+		else
 			pgc_cga_text(dev, 40);
 	} else {
 		cols[0] = ((dev->mapram[0x03d8] & 0x12) == 0x12) ? 0 : ((dev->mapram[0x03d9] & 15) + 16);
@@ -2492,13 +2492,13 @@ pgc_cga_poll(pgc_t *dev)
 
 			if (video_force_resize_get())
 				video_force_resize_set(0);
-		} 
+		}
 		video_blit_memtoscreen_8(0, 0, xsize, ysize);
 		frames++;
 
 		/* We have a fixed 640x400 screen for CGA modes. */
-		video_res_x = PGC_CGA_WIDTH; 
-		video_res_y = PGC_CGA_HEIGHT; 
+		video_res_x = PGC_CGA_WIDTH;
+		video_res_y = PGC_CGA_HEIGHT;
 		switch (dev->mapram[0x3d8] & 0x12) {
 			case 0x12:
 				video_bpp = 1;
@@ -2540,7 +2540,7 @@ pgc_poll(void *priv)
 			video_wait_for_buffer();
 
 		/* Don't know why pan needs to be multiplied by -2, but
-		 * the IM1024 driver uses PAN -112 for an offset of 
+		 * the IM1024 driver uses PAN -112 for an offset of
 		 * 224. */
 		y = dev->displine - 2 * dev->pan_y;
 		for (x = 0; x < dev->screenw; x++) {
@@ -2577,7 +2577,7 @@ pgc_poll(void *priv)
 
 			if (video_force_resize_get())
 				video_force_resize_set(0);
-		} 
+		}
 		video_blit_memtoscreen(0, 0, xsize, ysize);
 		frames++;
 
@@ -2648,10 +2648,10 @@ pgc_close(void *priv)
 
 
 /*
- * Initialization code common to the PGC and its subclasses. 
+ * Initialization code common to the PGC and its subclasses.
  *
- * Pass the 'input byte' function in since this is overridden in 
- * the IM-1024, and needs to be set before the drawing thread is 
+ * Pass the 'input byte' function in since this is overridden in
+ * the IM-1024, and needs to be set before the drawing thread is
  * launched.
  */
 void
@@ -2666,7 +2666,7 @@ pgc_init(pgc_t *dev, int maxw, int maxh, int visw, int vish,
     mem_mapping_add(&dev->mapping, 0xc4000, 16384,
 		    pgc_read,NULL,NULL, pgc_write,NULL,NULL,
 		    NULL, MEM_MAPPING_EXTERNAL, dev);
-    mem_mapping_add(&dev->cga_mapping, 0xb8000, 32768, 
+    mem_mapping_add(&dev->cga_mapping, 0xb8000, 32768,
 		    pgc_read,NULL,NULL, pgc_write,NULL,NULL,
 		    NULL, MEM_MAPPING_EXTERNAL, dev);
 
@@ -2705,7 +2705,7 @@ pgc_init(pgc_t *dev, int maxw, int maxh, int visw, int vish,
     dev->pgc_thread = thread_create(pgc_thread, dev);
 
     timer_add(&dev->timer, pgc_poll, dev, 1);
- 
+
     timer_add(&dev->wake_timer, wake_timer, dev, 0);
 }
 

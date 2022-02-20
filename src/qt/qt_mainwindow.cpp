@@ -132,7 +132,7 @@ MainWindow::MainWindow(QWidget *parent) :
             return;
         }
         if (!hide_tool_bar)
-#ifdef _WIN32        
+#ifdef _WIN32
             toolbar_label->setText(title);
 #else
         {
@@ -187,12 +187,12 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(this, &MainWindow::resizeContents, this, [this](int w, int h) {
         if (!QApplication::platformName().contains("eglfs") && vid_resize == 0) {
             w = qRound(w / (!dpi_scale ? util::screenOfWidget(this)->devicePixelRatio() : 1.));
-            
+
             int modifiedHeight = qRound(h / (!dpi_scale ? util::screenOfWidget(this)->devicePixelRatio() : 1.))
                 + menuBar()->height()
                 + (statusBar()->height() * !hide_status_bar)
                 + (ui->toolBar->height() * !hide_tool_bar);
-            
+
             ui->stackedWidget->resize(w, h);
             setFixedSize(w, modifiedHeight);
         }

@@ -38,9 +38,9 @@ enum
 	IREG_ea_seg = 15,
 	IREG_op32   = 16,
 	IREG_ssegsx = 17,
-	
+
 	IREG_rm_mod_reg = 18,
-	
+
 	IREG_acycs = 19,
 	IREG_cycles = 20,
 
@@ -70,7 +70,7 @@ enum
 
 	IREG_temp0d = 38,
 	IREG_temp1d = 39,
-	
+
         /*FPU stack registers are physical registers. Use IREG_ST() / IREG_tag()
           to access.
           When CODEBLOCK_STATIC_TOP is set, the physical register number will be
@@ -85,7 +85,7 @@ enum
         IREG_ST5 = 45,
         IREG_ST6 = 46,
         IREG_ST7 = 47,
-        
+
         IREG_tag0 = 48,
         IREG_tag1 = 49,
         IREG_tag2 = 50,
@@ -103,7 +103,7 @@ enum
         IREG_ST5_i64 = 61,
         IREG_ST6_i64 = 62,
         IREG_ST7_i64 = 63,
-        
+
         IREG_MM0x = 64,
         IREG_MM1x = 65,
         IREG_MM2x = 66,
@@ -112,13 +112,13 @@ enum
         IREG_MM5x = 69,
         IREG_MM6x = 70,
         IREG_MM7x = 71,
-        
+
         IREG_NPXCx = 72,
         IREG_NPXSx = 73,
-        
+
         IREG_flagsx = 74,
         IREG_eflagsx = 75,
-        
+
         IREG_CS_limit_low = 76,
         IREG_DS_limit_low = 77,
         IREG_ES_limit_low = 78,
@@ -134,9 +134,9 @@ enum
         IREG_SS_limit_high = 87,
 
 	IREG_COUNT = 88,
-	
+
 	IREG_INVALID = 255,
-	
+
 	IREG_AX = IREG_EAX + IREG_SIZE_W,
 	IREG_CX = IREG_ECX + IREG_SIZE_W,
 	IREG_DX = IREG_EDX + IREG_SIZE_W,
@@ -155,7 +155,7 @@ enum
 	IREG_CH = IREG_ECX + IREG_SIZE_BH,
 	IREG_DH = IREG_EDX + IREG_SIZE_BH,
 	IREG_BH = IREG_EBX + IREG_SIZE_BH,
-	
+
 	IREG_flags_res_W = IREG_flags_res + IREG_SIZE_W,
 	IREG_flags_op1_W = IREG_flags_op1 + IREG_SIZE_W,
 	IREG_flags_op2_W = IREG_flags_op2 + IREG_SIZE_W,
@@ -168,7 +168,7 @@ enum
 	IREG_temp1_W = IREG_temp1 + IREG_SIZE_W,
 	IREG_temp2_W = IREG_temp2 + IREG_SIZE_W,
 	IREG_temp3_W = IREG_temp3 + IREG_SIZE_W,
-	
+
 	IREG_temp0_B = IREG_temp0 + IREG_SIZE_B,
 	IREG_temp1_B = IREG_temp1 + IREG_SIZE_B,
 	IREG_temp2_B = IREG_temp2 + IREG_SIZE_B,
@@ -181,14 +181,14 @@ enum
 	IREG_temp1_Q = IREG_temp1d + IREG_SIZE_Q,
 
 	IREG_eaaddr_W = IREG_eaaddr + IREG_SIZE_W,
-	
+
         IREG_CS_seg_W = IREG_CS_seg + IREG_SIZE_W,
         IREG_DS_seg_W = IREG_DS_seg + IREG_SIZE_W,
         IREG_ES_seg_W = IREG_ES_seg + IREG_SIZE_W,
         IREG_FS_seg_W = IREG_FS_seg + IREG_SIZE_W,
         IREG_GS_seg_W = IREG_GS_seg + IREG_SIZE_W,
         IREG_SS_seg_W = IREG_SS_seg + IREG_SIZE_W,
-        
+
         IREG_MM0 = IREG_MM0x + IREG_SIZE_Q,
         IREG_MM1 = IREG_MM1x + IREG_SIZE_Q,
         IREG_MM2 = IREG_MM2x + IREG_SIZE_Q,
@@ -197,12 +197,12 @@ enum
         IREG_MM5 = IREG_MM5x + IREG_SIZE_Q,
         IREG_MM6 = IREG_MM6x + IREG_SIZE_Q,
         IREG_MM7 = IREG_MM7x + IREG_SIZE_Q,
-        
+
         IREG_NPXC = IREG_NPXCx + IREG_SIZE_W,
         IREG_NPXS = IREG_NPXSx + IREG_SIZE_W,
-        
+
         IREG_ssegs = IREG_ssegsx + IREG_SIZE_B,
-        
+
         IREG_flags = IREG_flagsx + IREG_SIZE_W,
         IREG_eflags = IREG_eflagsx + IREG_SIZE_W
 };
@@ -324,7 +324,7 @@ static inline ir_reg_t codegen_reg_read(int reg)
 {
         ir_reg_t ireg;
         reg_version_t *version;
-        
+
 #ifndef RELEASE_BUILD
         if (IREG_GET_REG(reg) == IREG_INVALID)
                 fatal("codegen_reg_read - IREG_INVALID\n");
@@ -354,21 +354,21 @@ static inline ir_reg_t codegen_reg_write(int reg, int uop_nr)
         ir_reg_t ireg;
         int last_version = reg_last_version[IREG_GET_REG(reg)];
         reg_version_t *version;
-        
+
 #ifndef RELEASE_BUILD
         if (IREG_GET_REG(reg) == IREG_INVALID)
                 fatal("codegen_reg_write - IREG_INVALID\n");
 #endif
         ireg.reg = reg;
         ireg.version = last_version + 1;
-        
+
         if (IREG_GET_REG(reg) > IREG_EBX && last_version && !reg_version[IREG_GET_REG(reg)][last_version].refcount &&
                         !(reg_version[IREG_GET_REG(reg)][last_version].flags & REG_FLAGS_REQUIRED))
         {
                 if (reg_is_native_size(ireg)) /*Non-native size registers have an implicit dependency on the previous version, so don't add to dead list*/
                         add_to_dead_list(&reg_version[IREG_GET_REG(reg)][last_version], IREG_GET_REG(reg), last_version);
         }
-        
+
         reg_last_version[IREG_GET_REG(reg)]++;
 #ifndef RELEASE_BUILD
         if (!reg_last_version[IREG_GET_REG(reg)])

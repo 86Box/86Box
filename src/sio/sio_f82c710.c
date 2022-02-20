@@ -63,7 +63,7 @@ typedef struct upc_t
 } upc_t;
 
 
-static void 
+static void
 f82c710_update_ports(upc_t *dev, int set)
 {
     uint16_t com_addr = 0;
@@ -176,7 +176,7 @@ f82c606_update_ports(upc_t *dev, int set)
 }
 
 
-static uint8_t 
+static uint8_t
 f82c710_config_read(uint16_t port, void *priv)
 {
     upc_t *dev = (upc_t *) priv;
@@ -197,7 +197,7 @@ f82c710_config_read(uint16_t port, void *priv)
 }
 
 
-static void 
+static void
 f82c710_config_write(uint16_t port, uint8_t val, void *priv)
 {
     upc_t *dev = (upc_t *) priv;
@@ -330,7 +330,7 @@ f82c710_init(const device_t *info)
 	dev->fdc = device_add(&fdc_at_device);
 
     dev->uart[0] = device_add_inst(&ns16450_device, 1);
-    dev->uart[1] = device_add_inst(&ns16450_device, 2);	
+    dev->uart[1] = device_add_inst(&ns16450_device, 2);
 
     io_sethandler(0x02fa, 0x0001, NULL, NULL, NULL, f82c710_config_write, NULL, NULL, dev);
     io_sethandler(0x03fa, 0x0001, NULL, NULL, NULL, f82c710_config_write, NULL, NULL, dev);

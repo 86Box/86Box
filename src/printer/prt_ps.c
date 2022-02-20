@@ -41,7 +41,7 @@
 
 
 #define GS_ARG_ENCODING_UTF8	1
-#define gs_error_Quit		-101 
+#define gs_error_Quit		-101
 
 #ifdef _WIN32
 #if (!(defined __amd64__ || defined _M_X64 || defined __aarch64__ || defined _M_ARM64))

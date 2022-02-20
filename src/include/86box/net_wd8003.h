@@ -40,6 +40,7 @@
  *   Boston, MA 02111-1307
  *   USA.
  */
+
 #ifndef NET_WD8003_H
 # define NET_WD8003_H
 

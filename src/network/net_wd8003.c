@@ -181,7 +181,7 @@ static uint8_t
 wd_ram_read(uint32_t addr, void *priv)
 {
     wd_t *dev = (wd_t *)priv;
-	
+
     wdlog("WD80x3: RAM Read: addr=%06x, val=%02x\n", addr & (dev->ram_size - 1), dev->dp8390->mem[addr & (dev->ram_size - 1)]);
     return dev->dp8390->mem[addr & (dev->ram_size - 1)];
 }
@@ -190,7 +190,7 @@ static void
 wd_ram_write(uint32_t addr, uint8_t val, void *priv)
 {
     wd_t *dev = (wd_t *)priv;
-    
+
     dev->dp8390->mem[addr & (dev->ram_size - 1)] = val;
     wdlog("WD80x3: RAM Write: addr=%06x, val=%02x\n", addr & (dev->ram_size - 1), val);
 }
@@ -246,7 +246,7 @@ wd_smc_read(wd_t *dev, uint32_t off)
 		if (dev->board_chip & WE_ID_SOFT_CONFIG)
 			retval = dev->laar;
 		break;
-		
+
 	case 0x07:
 		if (dev->board_chip & WE_ID_SOFT_CONFIG)
 			retval = dev->if_chip;
@@ -254,32 +254,32 @@ wd_smc_read(wd_t *dev, uint32_t off)
 
 	case 0x08:
 		retval = dev->dp8390->physaddr[0];
-		break;	
-	
+		break;
+
 	case 0x09:
 		retval = dev->dp8390->physaddr[1];
-		break;	
-	
+		break;
+
 	case 0x0a:
 		retval = dev->dp8390->physaddr[2];
-		break;	
-	
+		break;
+
 	case 0x0b:
 		retval = dev->dp8390->physaddr[3];
-		break;	
-	
+		break;
+
 	case 0x0c:
 		retval = dev->dp8390->physaddr[4];
 		break;
-		
+
 	case 0x0d:
 		retval = dev->dp8390->physaddr[5];
 		break;
-	
+
 	case 0x0e:
 		retval = dev->board_chip;
 		break;
-		
+
 	case 0x0f:
 		/*This has to return the byte that adds up to 0xFF*/
 		checksum = (dev->dp8390->physaddr[0] + dev->dp8390->physaddr[1] + dev->dp8390->physaddr[2] +
@@ -354,7 +354,7 @@ wd_smc_write(wd_t *dev, uint32_t off, uint32_t val)
 			wdlog("WD80x3: Memory now %sabled (addr = %08X)\n", (val & WE_MSR_ENABLE_RAM) ? "en" : "dis", dev->ram_addr);
 		}
 		break;
-		
+
 	/* Bit 1: 0 = 8-bit slot, 1 = 16-bit slot;
 	   Bit 3: 0 = 8k RAM, 1 = 32k RAM (only on revision < 2). */
 	case 0x01:
@@ -363,7 +363,7 @@ wd_smc_write(wd_t *dev, uint32_t off, uint32_t val)
 		else
 			dev->icr = val;
 		break;
-		
+
 	/* Bit 5: Bit 0 of encoded IRQ;
 	   Bit 6: Bit 1 of encoded IRQ;
 	   Bit 7: Enable interrupts. */
@@ -390,7 +390,7 @@ wd_smc_write(wd_t *dev, uint32_t off, uint32_t val)
 		if (dev->board_chip & WE_ID_SOFT_CONFIG)
 			dev->if_chip = val;
 		break;
-		
+
 	default:
 		/* This is invalid, but happens under win95 device detection:
 		   maybe some clone cards implement writing for some other
@@ -415,7 +415,7 @@ wd_read(uint16_t addr, void *priv, int len)
     if (off == 0x10)
 	retval = dp8390_read_cr(dev->dp8390);
     else if ((off >= 0x00) && (off <= 0x0f))
-	retval = wd_smc_read(dev, off);	
+	retval = wd_smc_read(dev, off);
     else {
 	switch(dev->dp8390->CR.pgsel) {
 		case 0x00:
@@ -431,7 +431,7 @@ wd_read(uint16_t addr, void *priv, int len)
 			wdlog("%s: unknown value of pgsel in read - %d\n",
 							dev->name, dev->dp8390->CR.pgsel);
 			break;
-	}		
+	}
     }
 
     return(retval);
@@ -467,7 +467,7 @@ wd_write(uint16_t addr, uint8_t val, void *priv, unsigned int len)
     if (off == 0x10)
 	dp8390_write_cr(dev->dp8390, val);
     else if ((off >= 0x00) && (off <= 0x0f))
-	wd_smc_write(dev, off, val);	
+	wd_smc_write(dev, off, val);
     else {
 	switch(dev->dp8390->CR.pgsel) {
 		case 0x00:
@@ -480,7 +480,7 @@ wd_write(uint16_t addr, uint8_t val, void *priv, unsigned int len)
 			wdlog("%s: unknown value of pgsel in write - %d\n",
 							dev->name, dev->dp8390->CR.pgsel);
 			break;
-	}			
+	}
     }
 }
 
@@ -501,7 +501,7 @@ wd_writew(uint16_t addr, uint16_t val, void *priv)
 
 static void
 wd_io_set(wd_t *dev, uint16_t addr)
-{	
+{
     if (dev->bit16 & 1) {
 	io_sethandler(addr, 0x20,
 		      wd_readb, wd_readw, NULL,
@@ -516,7 +516,7 @@ wd_io_set(wd_t *dev, uint16_t addr)
 
 static void
 wd_io_remove(wd_t *dev, uint16_t addr)
-{	
+{
     if (dev->bit16 & 1) {
 	io_removehandler(addr, 0x20,
 			 wd_readb, wd_readw, NULL,
@@ -711,14 +711,14 @@ wd_init(const device_t *info)
 	wd_ram_write, NULL, NULL,
 	NULL, MEM_MAPPING_EXTERNAL, dev);
 
-    mem_mapping_disable(&dev->ram_mapping);		
+    mem_mapping_disable(&dev->ram_mapping);
 
     /* Attach ourselves to the network module. */
     network_attach(dev->dp8390, dev->dp8390->physaddr, dp8390_rx, NULL, NULL);
 
     if (!(dev->board_chip & WE_ID_BUS_MCA)) {
 	wdlog("%s: attached IO=0x%X IRQ=%d, RAM addr=0x%06x\n", dev->name,
-	      dev->base_address, dev->irq, dev->ram_addr);		
+	      dev->base_address, dev->irq, dev->ram_addr);
     }
 
     return(dev);

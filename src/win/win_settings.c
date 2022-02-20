@@ -237,7 +237,7 @@ settings_process_messages()
 {
     MSG msg;
     while (PeekMessage(&msg, 0, 0, 0, PM_REMOVE | PM_NOYIELD)) {
-	TranslateMessage(&msg); 
+	TranslateMessage(&msg);
 	DispatchMessage(&msg);
     }
 }
@@ -1710,8 +1710,8 @@ win_settings_storage_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 			case IDC_COMBO_FDC:
 				temp_fdc_card = settings_list_to_fdc[settings_get_cur_sel(hdlg, IDC_COMBO_FDC)];
 				settings_enable_window(hdlg, IDC_CONFIGURE_FDC, fdc_card_has_config(temp_fdc_card));
-				break;		
-			
+				break;
+
 			case IDC_CONFIGURE_HDC:
 				temp_hdc = settings_list_to_hdc[settings_get_cur_sel(hdlg, IDC_COMBO_HDC)];
 				temp_deviceconfig |= deviceconfig_open(hdlg, (void *)hdc_get_device(temp_hdc));
@@ -2427,7 +2427,7 @@ static int hdconf_initialize_hdt_combo(HWND hdlg)
 
     selection = 127;
 
-    for (i = 0; i < 127; i++) {	
+    for (i = 0; i < 127; i++) {
 	temp_size = ((uint64_t) hdd_table[i][0]) * hdd_table[i][1] * hdd_table[i][2];
 	size_mb = (uint32_t) (temp_size >> 11LL);
 	wsprintf(szText, plat_get_string(IDS_2107), size_mb, hdd_table[i][0], hdd_table[i][1], hdd_table[i][2]);
@@ -2449,7 +2449,7 @@ recalc_selection(HWND hdlg)
     int i = 0;
 
     selection = 127;
-    for (i = 0; i < 127; i++) {	
+    for (i = 0; i < 127; i++) {
 	if ((tracks == (int) hdd_table[i][0]) &&
 	    (hpc == (int) hdd_table[i][1]) &&
 	    (spt == (int) hdd_table[i][2]))
@@ -2468,7 +2468,7 @@ static void vhd_progress_callback(uint32_t current_sector, uint32_t total_sector
 	HWND h = GetDlgItem(vhd_progress_hdlg, IDC_PBAR_IMG_CREATE);
 	SendMessage(h, PBM_SETPOS, (WPARAM) current_sector, (LPARAM) 0);
 	while (PeekMessage(&msg, 0, 0, 0, PM_REMOVE | PM_NOYIELD)) {
-		TranslateMessage(&msg); 
+		TranslateMessage(&msg);
 		DispatchMessage(&msg);
 	}
 }
@@ -2506,7 +2506,7 @@ static void adjust_86box_geometry_for_vhd(MVHDGeom *_86box_geometry, MVHDGeom *v
 
 static void adjust_vhd_geometry_for_86box(MVHDGeom *vhd_geometry)
 {
-	if (vhd_geometry->spt <= 63) 
+	if (vhd_geometry->spt <= 63)
 		return;
 
 	int desired_sectors = vhd_geometry->cyl * vhd_geometry->heads * vhd_geometry->spt;
@@ -2636,7 +2636,7 @@ win_settings_hard_disks_add_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM 
 	case WM_INITDIALOG:
 		memset(hd_file_name, 0, sizeof(hd_file_name));
 
-		hdd_ptr = &(temp_hdd[next_free_id]);		
+		hdd_ptr = &(temp_hdd[next_free_id]);
 
 		SetWindowText(hdlg, plat_get_string((existing & 1) ? IDS_4103 : IDS_4102));
 
@@ -2832,7 +2832,7 @@ win_settings_hard_disks_add_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM 
 
 						hdd_ptr->tracks = _86box_geometry.cyl;
 						hdd_ptr->hpc = _86box_geometry.heads;
-						hdd_ptr->spt = _86box_geometry.spt;						
+						hdd_ptr->spt = _86box_geometry.spt;
 
 						hard_disk_added = 1;
 						EndDialog(hdlg, 0);
@@ -3300,10 +3300,10 @@ hdd_add_file_open_error:
 						settings_enable_window(hdlg, IDC_EDIT_HD_SIZE, TRUE);
 						set_edit_box_contents(hdlg, IDC_EDIT_HD_SIZE, (uint32_t) ((uint64_t)17 * 15 * 1023 * 512 >> 20));
 						size = (uint64_t)17 * 15 * 1023 * 512;
-						
+
 						settings_reset_content(hdlg, IDC_COMBO_HD_TYPE);
 						hdconf_initialize_hdt_combo(hdlg);
-						settings_enable_window(hdlg, IDC_COMBO_HD_TYPE, TRUE);						
+						settings_enable_window(hdlg, IDC_COMBO_HD_TYPE, TRUE);
 					}
 				}
 				no_update = 0;
@@ -3671,7 +3671,7 @@ win_settings_mo_drives_recalc_list(HWND hdlg)
 
     for (i = 0; i < MO_NUM; i++) {
 	fsid = combo_id_to_format_string_id(temp_mo_drives[i].bus_type);
-	
+
 	lvI.iSubItem = 0;
 	switch (temp_mo_drives[i].bus_type) {
 		case MO_BUS_DISABLED:

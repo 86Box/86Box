@@ -724,7 +724,7 @@ sermouse_speed_changed(void *priv)
 
     if (dev->report_enabled) {
 	timer_stop(&dev->report_timer);
-	if (dev->report_phase == REPORT_PHASE_TRANSMIT)	
+	if (dev->report_phase == REPORT_PHASE_TRANSMIT)
 		sermouse_timer_on(dev, dev->transmit_period, 1);
 	else
 		sermouse_timer_on(dev, sermouse_report_period(dev), 1);

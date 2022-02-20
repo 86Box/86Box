@@ -18,6 +18,7 @@
  *		Copyright 2016-2020 Miran Grca.
  *		Copyright 2017-2020 Fred N. van Kempen.
  */
+
 #ifndef EMU_MACHINE_H
 # define EMU_MACHINE_H
 

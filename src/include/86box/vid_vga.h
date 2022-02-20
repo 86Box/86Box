@@ -16,13 +16,14 @@
  *		Copyright 2016-2018 Miran Grca.
  *		Copyright 2021 Jasmine Iwanek.
  */
+
 #ifndef VIDEO_VGA_H
 # define VIDEO_VGA_H
 
 typedef struct vga_t
 {
         svga_t svga;
-        
+
         rom_t bios_rom;
 } vga_t;
 

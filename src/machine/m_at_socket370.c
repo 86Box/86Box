@@ -71,7 +71,7 @@ machine_at_s370slm_init(const machine_t *model)
     device_add(&w83781d_device); /* fans: CPU, Fan 2, Chassis; temperatures: unused, CPU, unused */
     hwm_values.temperatures[0] = 0; /* unused */
     hwm_values.temperatures[2] = 0; /* unused */
-	
+
     return ret;
 }
 
@@ -214,7 +214,7 @@ machine_at_atc7020bxii_init(const machine_t *model)
     device_add(&sst_flash_39sf020_device);
     spd_register(SPD_TYPE_SDRAM, 0xF, 256);
 
-    return ret;	
+    return ret;
 }
 
 

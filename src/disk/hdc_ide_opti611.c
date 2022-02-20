@@ -7,7 +7,7 @@
  *		This file is part of the 86Box distribution.
  *
  *		Implementation of the OPTi 82C611/611A VLB IDE controller.
- 
+
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *
  *              Copyright 2020 Miran Grca.
@@ -47,7 +47,7 @@ opti611_cfg_write(uint16_t addr, uint8_t val, void *priv)
     opti611_t *dev = (opti611_t *) priv;
 
     addr &= 0x0007;
-    
+
     switch (addr) {
 	case 0x0000:
 	case 0x0001:

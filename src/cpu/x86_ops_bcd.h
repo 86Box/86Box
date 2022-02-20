@@ -61,7 +61,7 @@ static int opAAS(uint32_t fetchdat)
 static int opDAA(uint32_t fetchdat)
 {
         uint16_t tempw, old_AL, old_CF;
-        
+
         flags_rebuild();
 	old_AL = AL;
 	old_CF = cpu_state.flags & C_FLAG;
@@ -89,7 +89,7 @@ static int opDAA(uint32_t fetchdat)
         cpu_state.flags = (cpu_state.flags & ~(C_FLAG | A_FLAG)) | tempw;
         CLOCK_CYCLES(4);
         PREFETCH_RUN(4, 1, -1, 0,0,0,0, 0);
-        
+
         return 0;
 }
 
@@ -124,6 +124,6 @@ static int opDAS(uint32_t fetchdat)
         cpu_state.flags = (cpu_state.flags & ~(C_FLAG | A_FLAG)) | tempw;
         CLOCK_CYCLES(4);
         PREFETCH_RUN(4, 1, -1, 0,0,0,0, 0);
-        
+
         return 0;
 }

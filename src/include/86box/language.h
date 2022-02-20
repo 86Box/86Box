@@ -16,6 +16,7 @@
  *
  *		Copyright 2017,2018 Fred N. van Kempen.
  */
+
 #ifndef LANG_UAGE_H
 # define LANG_UAGE_H
 

@@ -18,6 +18,7 @@
  *		Copyright 2017-2020 Fred N. van Kempen.
  *		Copyright 2016-2020 Miran Grca.
  */
+
 #ifndef EMU_MEM_H
 # define EMU_MEM_H
 
@@ -332,8 +333,8 @@ extern void	addreadlookup(uint32_t virt, uint32_t phys);
 extern void	addwritelookup(uint32_t virt, uint32_t phys);
 
 extern void	mem_mapping_set(mem_mapping_t *,
-                    uint32_t base, 
-                    uint32_t size, 
+                    uint32_t base,
+                    uint32_t size,
                     uint8_t  (*read_b)(uint32_t addr, void *p),
                     uint16_t (*read_w)(uint32_t addr, void *p),
                     uint32_t (*read_l)(uint32_t addr, void *p),
@@ -344,8 +345,8 @@ extern void	mem_mapping_set(mem_mapping_t *,
                     uint32_t flags,
                     void *p);
 extern void	mem_mapping_add(mem_mapping_t *,
-                    uint32_t base, 
-                    uint32_t size, 
+                    uint32_t base,
+                    uint32_t size,
                     uint8_t  (*read_b)(uint32_t addr, void *p),
                     uint16_t (*read_w)(uint32_t addr, void *p),
                     uint32_t (*read_l)(uint32_t addr, void *p),
@@ -433,7 +434,7 @@ static __inline uint32_t get_phys(uint32_t addr)
 	return get_phys_phys | (addr & 0xfff);
 
     get_phys_virt = addr;
-    
+
     if (!(cr0 >> 31)) {
 	get_phys_phys = (addr & rammask) & ~0xfff;
 	return addr & rammask;

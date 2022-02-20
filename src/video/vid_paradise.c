@@ -37,11 +37,11 @@
 typedef struct paradise_t
 {
         svga_t svga;
-        
+
         rom_t bios_rom;
-        
-		uint8_t bank_mask;		
-		
+
+		uint8_t bank_mask;
+
         enum
         {
                 PVGA1A = 0,
@@ -52,22 +52,22 @@ typedef struct paradise_t
 		uint32_t vram_mask;
 
         uint32_t read_bank[4], write_bank[4];
-		
+
 		int interlace;
 		int check, check2;
-		
+
 		struct {
 			uint8_t reg_block_ptr;
 			uint8_t reg_idx;
 			uint8_t disable_autoinc;
-			
+
 			uint16_t int_status;
 			uint16_t blt_ctrl1, blt_ctrl2;
 			uint16_t srclow, srchigh;
 			uint16_t dstlow, dsthigh;
 
 			uint32_t srcaddr, dstaddr;
-			
+
 			int invalid_block;
 		} accel;
 } paradise_t;
@@ -82,20 +82,20 @@ void paradise_out(uint16_t addr, uint8_t val, void *p)
         paradise_t *paradise = (paradise_t *)p;
         svga_t *svga = &paradise->svga;
         uint8_t old;
-		
+
 		if (paradise->vram_mask <= ((512 << 10) - 1))
 			paradise->bank_mask = 0x7f;
 		else
 			paradise->bank_mask = 0xff;
-	
-        if (((addr & 0xfff0) == 0x3d0 || (addr & 0xfff0) == 0x3b0) && !(svga->miscout & 1)) 
+
+        if (((addr & 0xfff0) == 0x3d0 || (addr & 0xfff0) == 0x3b0) && !(svga->miscout & 1))
                 addr ^= 0x60;
 
         switch (addr)
         {
                 case 0x3c5:
                 if (svga->seqaddr > 7)  {
-					if (paradise->type < WD90C11 || svga->seqregs[6] != 0x48) 
+					if (paradise->type < WD90C11 || svga->seqregs[6] != 0x48)
 						return;
 					svga->seqregs[svga->seqaddr & 0x1f] = val;
 					if (svga->seqaddr == 0x11) {
@@ -143,7 +143,7 @@ void paradise_out(uint16_t addr, uint8_t val, void *p)
 						svga->gdcreg[6] = val;
 						paradise_remap(paradise);
 						return;
-					
+
 					case 9:
 					case 0x0a:
 						svga->gdcreg[svga->gdcaddr] = val & paradise->bank_mask;
@@ -155,7 +155,7 @@ void paradise_out(uint16_t addr, uint8_t val, void *p)
 						return;
 				}
                 break;
-                
+
                 case 0x3D4:
                 svga->crtcreg = val & 0x3f;
                 return;
@@ -172,7 +172,7 @@ void paradise_out(uint16_t addr, uint8_t val, void *p)
                    return;
                 old = svga->crtc[svga->crtcreg];
                 svga->crtc[svga->crtcreg] = val;
-				
+
                 if (old != val)
                 {
                         if (svga->crtcreg < 0xe || svga->crtcreg > 0x10)
@@ -188,7 +188,7 @@ void paradise_out(uint16_t addr, uint8_t val, void *p)
                 }
                 break;
         }
-		
+
 		svga_out(addr, val, svga);
 }
 
@@ -196,18 +196,18 @@ uint8_t paradise_in(uint16_t addr, void *p)
 {
         paradise_t *paradise = (paradise_t *)p;
         svga_t *svga = &paradise->svga;
-        
+
         if (((addr & 0xfff0) == 0x3d0 || (addr & 0xfff0) == 0x3b0) && !(svga->miscout & 1))
                 addr ^= 0x60;
-        
+
         switch (addr)
         {
                 case 0x3c5:
                 if (svga->seqaddr > 7)
                 {
-                        if (paradise->type < WD90C11 || svga->seqregs[6] != 0x48) 
+                        if (paradise->type < WD90C11 || svga->seqregs[6] != 0x48)
 							return 0xff;
-						if (svga->seqaddr > 0x12) 
+						if (svga->seqaddr > 0x12)
 								return 0xff;
                         return svga->seqregs[svga->seqaddr & 0x1f];
                 }
@@ -232,7 +232,7 @@ uint8_t paradise_in(uint16_t addr, void *p)
 							}
 						}
 						return svga->gdcreg[0x0b];
-					
+
 					case 0x0f:
 						return (svga->gdcreg[0x0f] & 0x17) | 0x80;
 				}
@@ -242,7 +242,7 @@ uint8_t paradise_in(uint16_t addr, void *p)
                 return svga->crtcreg;
                 case 0x3D5:
                 if ((paradise->type == PVGA1A) && (svga->crtcreg & 0x20))
-					return 0xff;				
+					return 0xff;
                 if (svga->crtcreg > 0x29 && svga->crtcreg < 0x30 && (svga->crtc[0x29] & 0x88) != 0x80)
 					return 0xff;
                 return svga->crtc[svga->crtcreg];
@@ -278,10 +278,10 @@ void paradise_remap(paradise_t *paradise)
 		paradise->write_bank[0] = paradise->write_bank[2] = svga->gdcreg[9] << 12;
 		paradise->write_bank[1] = paradise->write_bank[3] = (svga->gdcreg[9] << 12) + ((svga->gdcreg[6] & 0x08) ? 0 : 0x8000);
 	}
-	
+
 	if ((((svga->gdcreg[0x0b] & 0xc0) == 0xc0) && !svga->chain4 && (svga->crtc[0x14] & 0x40) && ((svga->gdcreg[6] >> 2) & 3) == 1))
 		paradise->check = 1;
-	
+
 	if (paradise->bank_mask == 0x7f) {
 		paradise->read_bank[1] &= 0x7ffff;
 		paradise->write_bank[1] &= 0x7ffff;
@@ -302,16 +302,16 @@ void paradise_recalctimings(svga_t *svga)
 		if (svga->crtc[0x3e] & 0x10) svga->split |= 0x400;
 
 		svga->interlace = !!(svga->crtc[0x2d] & 0x20);
-		
-		if (!svga->interlace && svga->lowres && (svga->hdisp >= 1024) && 
-			((svga->gdcreg[5] & 0x60) == 0) && (svga->miscout >= 0x27) && 
-			(svga->miscout <= 0x2f) && ((svga->gdcreg[6] & 1) || 
+
+		if (!svga->interlace && svga->lowres && (svga->hdisp >= 1024) &&
+			((svga->gdcreg[5] & 0x60) == 0) && (svga->miscout >= 0x27) &&
+			(svga->miscout <= 0x2f) && ((svga->gdcreg[6] & 1) ||
 			(svga->attrregs[0x10] & 1))) { /*Horrible tweak to re-enable the interlace after returning to
 											 a windowed DOS box in Win3.x*/
 			svga->interlace = 1;
 		}
 	}
-	
+
 	if (paradise->type < WD90C30) {
 		if (svga->bpp >= 8 && !svga->lowres) {
 			svga->render = svga_render_8bpp_highres;
@@ -337,8 +337,8 @@ static void paradise_write(uint32_t addr, uint8_t val, void *p)
 		svga_t *svga = &paradise->svga;
 		uint32_t prev_addr, prev_addr2;
 
-		addr = (addr & 0x7fff) + paradise->write_bank[(addr >> 15) & 3];	
-		
+		addr = (addr & 0x7fff) + paradise->write_bank[(addr >> 15) & 3];
+
 		/*Could be done in a better way but it works.*/
 		if (!svga->lowres) {
 			if (paradise->check) {
@@ -375,7 +375,7 @@ static void paradise_write(uint32_t addr, uint8_t val, void *p)
 				}
 			}
 		}
-		
+
 		svga_write_linear(addr, val, svga);
 }
 static void paradise_writew(uint32_t addr, uint16_t val, void *p)
@@ -385,7 +385,7 @@ static void paradise_writew(uint32_t addr, uint16_t val, void *p)
 		uint32_t prev_addr, prev_addr2;
 
 		addr = (addr & 0x7fff) + paradise->write_bank[(addr >> 15) & 3];
-		
+
 		/*Could be done in a better way but it works.*/
 		if (!svga->lowres) {
 			if (paradise->check) {
@@ -422,7 +422,7 @@ static void paradise_writew(uint32_t addr, uint16_t val, void *p)
 				}
 			}
 		}
-		
+
 		svga_writew_linear(addr, val, svga);
 }
 
@@ -431,9 +431,9 @@ static uint8_t paradise_read(uint32_t addr, void *p)
         paradise_t *paradise = (paradise_t *)p;
 		svga_t *svga = &paradise->svga;
 		uint32_t prev_addr, prev_addr2;
-		
+
 		addr = (addr & 0x7fff) + paradise->read_bank[(addr >> 15) & 3];
-		
+
 		/*Could be done in a better way but it works.*/
 		if (!svga->lowres) {
 			if (paradise->check) {
@@ -478,9 +478,9 @@ static uint16_t paradise_readw(uint32_t addr, void *p)
         paradise_t *paradise = (paradise_t *)p;
 		svga_t *svga = &paradise->svga;
 		uint32_t prev_addr, prev_addr2;
-		
+
 		addr = (addr & 0x7fff) + paradise->read_bank[(addr >> 15) & 3];
-		
+
 		/*Could be done in a better way but it works.*/
 		if (!svga->lowres) {
 			if (paradise->check) {
@@ -562,7 +562,7 @@ void *paradise_init(const device_t *info, uint32_t memsize)
 			svga->ramdac = device_add(&sc11487_ramdac_device); /*Actually a Winbond W82c487-80, probably a clone.*/
 			break;
 	}
-	
+
 	mem_mapping_set_handler(&svga->mapping, paradise_read, paradise_readw, NULL, paradise_write, paradise_writew, NULL);
 	mem_mapping_set_p(&svga->mapping, paradise);
 
@@ -590,27 +590,27 @@ void *paradise_init(const device_t *info, uint32_t memsize)
 	svga->miscout = 1;
 
 	paradise->type = info->local;
-        
+
 	return paradise;
 }
 
 static void *paradise_pvga1a_ncr3302_init(const device_t *info)
 {
         paradise_t *paradise = paradise_init(info, 1 << 18);
-        
+
         if (paradise)
                 rom_init(&paradise->bios_rom, "roms/machines/3302/c000-wd_1987-1989-740011-003058-019c.bin", 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
-                
+
         return paradise;
 }
 
 static void *paradise_pvga1a_pc2086_init(const device_t *info)
 {
         paradise_t *paradise = paradise_init(info, 1 << 18);
-        
+
         if (paradise)
                 rom_init(&paradise->bios_rom, "roms/machines/pc2086/40186.ic171", 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
-                
+
         return paradise;
 }
 
@@ -620,7 +620,7 @@ static void *paradise_pvga1a_pc3086_init(const device_t *info)
 
         if (paradise)
                 rom_init(&paradise->bios_rom, "roms/machines/pc3086/c000.bin", 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
-                
+
         return paradise;
 }
 
@@ -633,10 +633,10 @@ static void *paradise_pvga1a_standalone_init(const device_t *info)
 	memory <<= 10;
 
         paradise = paradise_init(info, memory);
-        
+
         if (paradise)
                 rom_init(&paradise->bios_rom, "roms/video/pvga1a/BIOS.BIN", 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
-        
+
         return paradise;
 }
 
@@ -648,23 +648,23 @@ static int paradise_pvga1a_standalone_available(void)
 static void *paradise_wd90c11_megapc_init(const device_t *info)
 {
         paradise_t *paradise = paradise_init(info, 0);
-        
+
         if (paradise)
                 rom_init_interleaved(&paradise->bios_rom,
                                      "roms/machines/megapc/41651-bios lo.u18",
                                      "roms/machines/megapc/211253-bios hi.u19",
                                      0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
-        
+
         return paradise;
 }
 
 static void *paradise_wd90c11_standalone_init(const device_t *info)
 {
         paradise_t *paradise = paradise_init(info, 0);
-        
+
         if (paradise)
                 rom_init(&paradise->bios_rom, "roms/video/wd90c11/WD90C11.VBI", 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
-        
+
         return paradise;
 }
 
@@ -682,7 +682,7 @@ static void *paradise_wd90c30_standalone_init(const device_t *info)
 	memory <<= 10;
 
         paradise = paradise_init(info, memory);
-        
+
         if (paradise)
                 rom_init(&paradise->bios_rom, "roms/video/wd90c30/90C30-LR.VBI", 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
 
@@ -699,14 +699,14 @@ void paradise_close(void *p)
         paradise_t *paradise = (paradise_t *)p;
 
         svga_close(&paradise->svga);
-        
+
         free(paradise);
 }
 
 void paradise_speed_changed(void *p)
 {
         paradise_t *paradise = (paradise_t *)p;
-        
+
         svga_recalctimings(&paradise->svga);
 }
 

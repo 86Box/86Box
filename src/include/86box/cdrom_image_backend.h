@@ -19,8 +19,9 @@
  *		Copyright 2017-2020 Fred N. van Kempen.
  *		Copyright 2002-2020 The DOSBox Team.
  */
+
 #ifndef CDROM_IMAGE_BACKEND_H
-#define CDROM_IMAGE_BACKEND_H
+# define CDROM_IMAGE_BACKEND_H
 
 #define RAW_SECTOR_SIZE		2352
 #define COOKED_SECTOR_SIZE	2048
@@ -93,4 +94,4 @@ extern int	cdi_has_audio_track(cd_img_t *cdi);
 
 
 
-#endif /* ! CDROM_IMAGE_BACKEND_H */
+#endif /*CDROM_IMAGE_BACKEND_H*/

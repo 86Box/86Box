@@ -16,9 +16,9 @@
  *		Copyright 2008-2018 Sarah Walker.
  *		Copyright 2016-2018 Miran Grca.
  */
+
 #ifndef EMU_SOUND_H
 # define EMU_SOUND_H
-
 
 extern int sound_gain;
 

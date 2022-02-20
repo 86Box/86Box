@@ -19,9 +19,9 @@
  *		Copyright 2016-2019 Miran Grca.
  *		Copyright 2018,2019 David Hrdlička.
  */
+
 #ifndef WIN_RESOURCE_H
 # define WIN_RESOURCE_H
-
 
 /* Dialog IDs. */
 #define DLG_ABOUT				101	/* top-level dialog */
@@ -308,7 +308,7 @@
 #define IDC_COMBO_RPM_MODE	1202
 
 #define IDC_COMBO_LANG		1009    /* change language dialog */
-#define IDC_COMBO_ICON		1010  
+#define IDC_COMBO_ICON		1010
 #define IDC_CHECKBOX_GLOBAL 1300
 #define IDC_BUTTON_DEFAULT  1302
 #define IDC_BUTTON_DEFICON  1304

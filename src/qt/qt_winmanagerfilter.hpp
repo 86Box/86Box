@@ -7,10 +7,10 @@
  *      This file is part of the 86Box distribution.
  *
  *      Header file for Windows VM-managers native messages filter
- * 
+ *
  * Authors:
  *      Teemu Korhonen
- * 
+ *
  *      Copyright 2022 Teemu Korhonen
  */
 
@@ -24,7 +24,7 @@
 
 #if QT_VERSION_MAJOR >= 6
 #define result_t qintptr
-#else 
+#else
 #define result_t long
 #endif
 

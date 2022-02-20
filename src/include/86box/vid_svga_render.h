@@ -16,6 +16,9 @@
  *		Copyright 2016-2018 Miran Grca.
  */
 
+#ifndef VIDEO_SVGA_RENDER_H
+# define VIDEO_SVGA_RENDER_H
+
 extern int firstline_draw, lastline_draw;
 extern int displine;
 extern int sc;
@@ -66,3 +69,5 @@ void svga_render_RGBA8888_lowres(svga_t *svga);
 void svga_render_RGBA8888_highres(svga_t *svga);
 
 extern void (*svga_render)(svga_t *svga);
+
+#endif /*VID_SVGA_RENDER_H*/

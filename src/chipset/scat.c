@@ -384,7 +384,7 @@ get_addr(scat_t *dev, uint32_t addr, ems_page_t *p)
 		if (mem_size <= ((dev->regs[SCAT_VERSION] & 0x0f) > 3 ? 2048 : 4096) && (((dev->regs[SCAT_DRAM_CONFIGURATION] & 0x0f) < 8) || dev->external_is_RAS)) {
 			nbanks_2048k = 0;
 			nbanks_512k = mem_size >> 9;
-		} else { 
+		} else {
 			nbanks_2048k = mem_size >> 11;
 			nbanks_512k = (mem_size & 1536) >> 9;
 		}

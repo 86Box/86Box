@@ -1,4 +1,4 @@
-/* 
+/*
  * This file is distributed as a part of the Discord Game SDK.
  * Downloading, accessing, or using the API or SDK is bound by
  * the Discord Developer Terms of Service:

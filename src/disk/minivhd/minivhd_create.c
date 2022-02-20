@@ -17,10 +17,10 @@
 
 static void mvhd_gen_footer(MVHDFooter* footer, uint64_t size_in_bytes, MVHDGeom* geom, MVHDType type, uint64_t sparse_header_off);
 static void mvhd_gen_sparse_header(MVHDSparseHeader* header, uint32_t num_blks, uint64_t bat_offset, uint32_t block_size_in_sectors);
-static int mvhd_gen_par_loc(MVHDSparseHeader* header, 
-                            const char* child_path, 
-                            const char* par_path, 
-                            uint64_t start_offset, 
+static int mvhd_gen_par_loc(MVHDSparseHeader* header,
+                            const char* child_path,
+                            const char* par_path,
+                            uint64_t start_offset,
                             mvhd_utf16* w2ku_path_buff,
                             mvhd_utf16* w2ru_path_buff,
                             MVHDError* err);
@@ -28,7 +28,7 @@ static MVHDMeta* mvhd_create_sparse_diff(const char* path, const char* par_path,
 
 /**
  * \brief Populate a VHD footer
- * 
+ *
  * \param [in] footer to populate
  * \param [in] size_in_bytes is the total size of the virtual hard disk in bytes
  * \param [in] geom to use
@@ -55,7 +55,7 @@ static void mvhd_gen_footer(MVHDFooter* footer, uint64_t size_in_bytes, MVHDGeom
 
 /**
  * \brief Populate a VHD sparse header
- * 
+ *
  * \param [in] header for sparse and differencing images
  * \param [in] num_blks is the number of data blocks that the image contains
  * \param [in] bat_offset is the absolute file offset for start of the Block Allocation Table
@@ -73,7 +73,7 @@ static void mvhd_gen_sparse_header(MVHDSparseHeader* header, uint32_t num_blks, 
 
 /**
  * \brief Generate parent locators for differencing VHD images
- * 
+ *
  * \param [in] header the sparse header to populate with parent locator entries
  * \param [in] child_path is the full path to the VHD being created
  * \param [in] par_path is the full path to the parent image
@@ -81,14 +81,14 @@ static void mvhd_gen_sparse_header(MVHDSparseHeader* header, uint32_t num_blks, 
  * \param [out] w2ku_path_buff is a buffer containing the full path to the parent, encoded as UTF16-LE
  * \param [out] w2ru_path_buff is a buffer containing the relative path to the parent, encoded as UTF16-LE
  * \param [out] err indicates what error occurred, if any
- * 
+ *
  * \retval 0 if success
  * \retval < 0 if an error occurrs. Check value of *err for actual error
  */
-static int mvhd_gen_par_loc(MVHDSparseHeader* header, 
-                            const char* child_path, 
-                            const char* par_path, 
-                            uint64_t start_offset, 
+static int mvhd_gen_par_loc(MVHDSparseHeader* header,
+                            const char* child_path,
+                            const char* par_path,
+                            uint64_t start_offset,
                             mvhd_utf16* w2ku_path_buff,
                             mvhd_utf16* w2ru_path_buff,
                             MVHDError* err) {
@@ -97,7 +97,7 @@ static int mvhd_gen_par_loc(MVHDSparseHeader* header,
     int rv = 0;
     char* par_filename;
     size_t par_fn_len;
-    char rel_path[MVHD_MAX_PATH_BYTES] = {0};    
+    char rel_path[MVHD_MAX_PATH_BYTES] = {0};
     char child_dir[MVHD_MAX_PATH_BYTES] = {0};
     size_t child_dir_len;
     if (strlen(child_path) < sizeof child_dir) {
@@ -115,18 +115,18 @@ static int mvhd_gen_par_loc(MVHDSparseHeader* header,
         *err = MVHD_ERR_PATH_LEN;
         rv = -1;
         goto end;
-    }    
+    }
     /* We have our paths, now store the parent filename directly in the sparse header. */
-    int outlen = sizeof header->par_utf16_name;    
+    int outlen = sizeof header->par_utf16_name;
     int utf_ret;
-    utf_ret = UTF8ToUTF16BE((unsigned char*)header->par_utf16_name, &outlen, (const unsigned char*)par_filename, (int*)&par_fn_len);    
+    utf_ret = UTF8ToUTF16BE((unsigned char*)header->par_utf16_name, &outlen, (const unsigned char*)par_filename, (int*)&par_fn_len);
     if (utf_ret < 0) {
         mvhd_set_encoding_err(utf_ret, (int*)err);
         rv = -1;
         goto end;
     }
-    
-    /* And encode the paths to UTF16-LE */    
+
+    /* And encode the paths to UTF16-LE */
     size_t par_path_len = strlen(par_path);
     outlen = sizeof *w2ku_path_buff * MVHD_MAX_PATH_CHARS;
     utf_ret = UTF8ToUTF16LE((unsigned char*)w2ku_path_buff, &outlen, (const unsigned char*)par_path, (int*)&par_path_len);
@@ -136,7 +136,7 @@ static int mvhd_gen_par_loc(MVHDSparseHeader* header,
         goto end;
     }
     int w2ku_len = utf_ret;
-    outlen = sizeof *w2ru_path_buff * MVHD_MAX_PATH_CHARS;    
+    outlen = sizeof *w2ru_path_buff * MVHD_MAX_PATH_CHARS;
     utf_ret = UTF8ToUTF16LE((unsigned char*)w2ru_path_buff, &outlen, (const unsigned char*)rel_path, (int*)&rel_len);
     if (utf_ret < 0) {
         mvhd_set_encoding_err(utf_ret, (int*)err);
@@ -144,16 +144,16 @@ static int mvhd_gen_par_loc(MVHDSparseHeader* header,
         goto end;
     }
     int w2ru_len = utf_ret;
-    /** 
+    /**
      * Finally populate the parent locaters in the sparse header.
      * This is the information needed to find the paths saved elsewhere
-     * in the VHD image 
+     * in the VHD image
      */
 
     /* Note about the plat_data_space field: The VHD spec says this field stores the number of sectors needed to store the locator path.
-     * However, Hyper-V and VPC store the number of bytes, not the number of sectors, and will refuse to open VHDs which have the 
+     * However, Hyper-V and VPC store the number of bytes, not the number of sectors, and will refuse to open VHDs which have the
      * number of sectors in this field.
-     * See https://stackoverflow.com/questions/40760181/mistake-in-virtual-hard-disk-image-format-specification 
+     * See https://stackoverflow.com/questions/40760181/mistake-in-virtual-hard-disk-image-format-specification
      */
     header->par_loc_entry[0].plat_code = MVHD_DIF_LOC_W2KU;
     header->par_loc_entry[0].plat_data_len = (uint32_t)w2ku_len;
@@ -176,13 +176,13 @@ MVHDMeta* mvhd_create_fixed(const char* path, MVHDGeom geom, int* err, mvhd_prog
 
 /**
  * \brief internal function that implements public mvhd_create_fixed() functionality
- * 
+ *
  * Contains one more parameter than the public function, to allow using an existing
  * raw disk image as the data source for the new fixed VHD.
- * 
+ *
  * \param [in] raw_image file handle to a raw disk image to populate VHD
  */
-MVHDMeta* mvhd_create_fixed_raw(const char* path, FILE* raw_img, uint64_t size_in_bytes, MVHDGeom* geom, int* err, mvhd_progress_callback progress_callback) {    
+MVHDMeta* mvhd_create_fixed_raw(const char* path, FILE* raw_img, uint64_t size_in_bytes, MVHDGeom* geom, int* err, mvhd_progress_callback progress_callback) {
     uint8_t img_data[MVHD_SECTOR_SIZE] = {0};
     uint8_t footer_buff[MVHD_FOOTER_SIZE] = {0};
     MVHDMeta* vhdm = calloc(1, sizeof *vhdm);
@@ -211,17 +211,17 @@ MVHDMeta* mvhd_create_fixed_raw(const char* path, FILE* raw_img, uint64_t size_i
             *err = MVHD_ERR_CONV_SIZE;
             goto cleanup_vhdm;
         }
-        mvhd_gen_footer(&vhdm->footer, raw_size, geom, MVHD_TYPE_FIXED, 0);        
+        mvhd_gen_footer(&vhdm->footer, raw_size, geom, MVHD_TYPE_FIXED, 0);
         mvhd_fseeko64(raw_img, 0, SEEK_SET);
-        for (s = 0; s < size_sectors; s++) {            
+        for (s = 0; s < size_sectors; s++) {
             fread(img_data, sizeof img_data, 1, raw_img);
             fwrite(img_data, sizeof img_data, 1, f);
             if (progress_callback)
                 progress_callback(s + 1, size_sectors);
         }
     } else {
-        mvhd_gen_footer(&vhdm->footer, size_in_bytes, geom, MVHD_TYPE_FIXED, 0);        
-        for (s = 0; s < size_sectors; s++) {            
+        mvhd_gen_footer(&vhdm->footer, size_in_bytes, geom, MVHD_TYPE_FIXED, 0);
+        for (s = 0; s < size_sectors; s++) {
             fwrite(img_data, sizeof img_data, 1, f);
             if (progress_callback)
                 progress_callback(s + 1, size_sectors);
@@ -244,14 +244,14 @@ end:
 
 /**
  * \brief Create sparse or differencing VHD image.
- * 
+ *
  * \param [in] path is the absolute path to the VHD file to create
  * \param [in] par_path is the absolute path to a parent image. If NULL, a sparse image is created, otherwise create a differencing image
  * \param [in] size_in_bytes is the total size in bytes of the virtual hard disk image
  * \param [in] geom is the HDD geometry of the image to create. Determines final image size
  * \param [in] block_size_in_sectors is the block size in sectors
  * \param [out] err indicates what error occurred, if any
- * 
+ *
  * \return NULL if an error occurrs. Check value of *err for actual error. Otherwise returns pointer to a MVHDMeta struct
  */
 static MVHDMeta* mvhd_create_sparse_diff(const char* path, const char* par_path, uint64_t size_in_bytes, MVHDGeom* geom, uint32_t block_size_in_sectors, int* err) {
@@ -290,8 +290,8 @@ static MVHDMeta* mvhd_create_sparse_diff(const char* path, const char* par_path,
     } else if (geom == NULL || (geom->cyl == 0 || geom->heads == 0 || geom->spt == 0)) {
         *err = MVHD_ERR_INVALID_GEOM;
         goto cleanup_vhdm;
-    } 
-    
+    }
+
     FILE* f = mvhd_fopen(path, "wb+", err);
     if (f == NULL) {
         goto cleanup_vhdm;
@@ -308,9 +308,9 @@ static MVHDMeta* mvhd_create_sparse_diff(const char* path, const char* par_path,
     fwrite(footer_buff, sizeof footer_buff, 1, f);
     /**
      * Calculate the number of (2MB or 512KB) data blocks required to store the entire
-     * contents of the disk image, followed by the number of sectors the 
+     * contents of the disk image, followed by the number of sectors the
      * BAT occupies in the image. Note, the BAT is sector aligned, and is padded
-     * to the next sector boundary 
+     * to the next sector boundary
      * */
     uint32_t size_in_sectors = (uint32_t)(size_in_bytes / MVHD_SECTOR_SIZE);
     uint32_t num_blks = size_in_sectors / block_size_in_sectors;
@@ -323,10 +323,10 @@ static MVHDMeta* mvhd_create_sparse_diff(const char* path, const char* par_path,
     }
     /* Storing the BAT directly following the footer and header */
     uint64_t bat_offset = MVHD_FOOTER_SIZE + MVHD_SPARSE_SIZE;
-    uint64_t par_loc_offset = 0;    
+    uint64_t par_loc_offset = 0;
 
     /**
-     * If creating a differencing VHD, populate the sparse header with additional 
+     * If creating a differencing VHD, populate the sparse header with additional
      * data about the parent image, and where to find it, and it's last modified timestamp
      * */
     if (par_vhdm != NULL) {
@@ -337,12 +337,12 @@ static MVHDMeta* mvhd_create_sparse_diff(const char* path, const char* par_path,
          */
         w2ku_path_buff = calloc(MVHD_MAX_PATH_CHARS, sizeof * w2ku_path_buff);
         if (w2ku_path_buff == NULL) {
-            *err = MVHD_ERR_MEM;            
+            *err = MVHD_ERR_MEM;
             goto end;
         }
         w2ru_path_buff = calloc(MVHD_MAX_PATH_CHARS, sizeof * w2ru_path_buff);
         if (w2ru_path_buff == NULL) {
-            *err = MVHD_ERR_MEM;            
+            *err = MVHD_ERR_MEM;
             goto end;
         }
         memcpy(vhdm->sparse.par_uuid, par_vhdm->footer.uuid, sizeof vhdm->sparse.par_uuid);
@@ -362,7 +362,7 @@ static MVHDMeta* mvhd_create_sparse_diff(const char* path, const char* par_path,
     mvhd_write_empty_sectors(f, 5);
     /**
      * If creating a differencing VHD, the paths to the parent image need to be written
-     * tp the file. Both absolute and relative paths are written 
+     * tp the file. Both absolute and relative paths are written
      * */
     if (par_vhdm != NULL) {
         uint64_t curr_pos = (uint64_t)mvhd_ftello64(f);
@@ -399,9 +399,9 @@ cleanup_par_vhdm:
     if (par_vhdm != NULL) {
         mvhd_close(par_vhdm);
     }
-end:    
-    free(w2ku_path_buff);    
-    free(w2ru_path_buff);    
+end:
+    free(w2ku_path_buff);
+    free(w2ru_path_buff);
     return vhdm;
 }
 
@@ -415,7 +415,7 @@ MVHDMeta* mvhd_create_diff(const char* path, const char* par_path, int* err) {
 }
 
 MVHDMeta* mvhd_create_ex(MVHDCreationOptions options, int* err) {
-    uint32_t geom_sector_size;   
+    uint32_t geom_sector_size;
     switch (options.type)
     {
     case MVHD_TYPE_FIXED:
