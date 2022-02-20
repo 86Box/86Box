@@ -362,8 +362,10 @@ poll_thread(void *arg)
 	/* Request ownership of the queue. */
 	network_wait(1);
 
+#if 0
 	/* Wait for a poll request. */
 	network_poll();
+#endif
 
 	/* Stop processing if asked to. */
 	if (slirp->stop) {

@@ -180,8 +180,10 @@ poll_thread(void *arg)
 	/* Request ownership of the device. */
 	network_wait(1);
 
+#if 0
 	/* Wait for a poll request. */
 	network_poll();
+#endif
 
 	if (pcap == NULL) {
 		network_wait(0);
