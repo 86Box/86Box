@@ -93,7 +93,7 @@ deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 
 					id += 2;
 					break;
-				case CONFIG_MIDI:
+				case CONFIG_MIDI_OUT:
 					val_int = config_get_int((char *) config_device.name,
 								 (char *) config->name, config->default_int);
 
