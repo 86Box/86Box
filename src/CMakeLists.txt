@@ -201,7 +201,7 @@ add_subdirectory(scsi)
 add_subdirectory(sound)
 add_subdirectory(video)
 if (APPLE)
-	add_subdirectory(mac)
+    add_subdirectory(mac)
 endif()
 
 if (QT)
