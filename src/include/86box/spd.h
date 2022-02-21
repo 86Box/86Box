@@ -135,6 +135,5 @@ extern void spd_write_drbs(uint8_t *regs, uint8_t reg_min, uint8_t reg_max, uint
 extern void spd_write_drbs_with_ext(uint8_t *regs, uint8_t reg_min, uint8_t reg_max, uint8_t drb_unit);
 extern void spd_write_drbs_interleaved(uint8_t *regs, uint8_t reg_min, uint8_t reg_max, uint8_t drb_unit);
 extern void spd_write_drbs_ali1621(uint8_t *regs, uint8_t reg_min, uint8_t reg_max);
-extern void spd_write_drbs_intel_gmch(uint8_t *regs);
 
 #endif	/*EMU_SPD_H*/

@@ -104,7 +104,8 @@ enum {
     CPU_PKG_SOCKET8 = (1 << 18),
     CPU_PKG_SLOT1 = (1 << 19),
     CPU_PKG_SLOT2 = (1 << 20),
-    CPU_PKG_SOCKET370 = (1 << 21)
+    CPU_PKG_SOCKET370 = (1 << 21),
+    CPU_PKG_EBGA368 = (1 << 22)
 };
 
 

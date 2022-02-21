@@ -51,7 +51,6 @@ extern "C" {
 
 #define VEN_ALI		0x010b9
 #define VEN_INTEL	0x08086
-#define VEN_INTEL_ICH2	0x18086
 #define VEN_SIS		0x01039
 #define VEN_SMC		0x01055
 #define VEN_VIA		0x01106
@@ -109,7 +108,6 @@ extern int		acpi_rtc_status;
 
 extern const device_t	acpi_ali_device;
 extern const device_t	acpi_intel_device;
-extern const device_t	acpi_intel_ich2_device;
 extern const device_t	acpi_smc_device;
 extern const device_t	acpi_via_device;
 extern const device_t	acpi_via_596b_device;

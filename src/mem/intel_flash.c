@@ -31,7 +31,6 @@
 #include <86box/plat.h>
 
 
-#define FLAG_FWH	8
 #define FLAG_WORD	4
 #define FLAG_BXB	2
 #define FLAG_INV_A16	1

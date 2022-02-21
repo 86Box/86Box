@@ -21,11 +21,6 @@ add_library(chipset OBJECT 82c100.c acc2168.c cs8230.c ali1429.c ali1489.c ali15
     sis_85c4xx.c sis_85c496.c sis_85c50x.c gc100.c stpc.c umc_8886.c umc_hb4.c via_apollo.c
     via_pipc.c vl82c480.c wd76c10.c)
 
-if(INTEL_ICH2)
-	target_compile_definitions(chipset PRIVATE INTEL_ICH2)
-	target_compile_definitions(chipset PRIVATE intel_gmch.c intel_mch_p4.c intel_ich2.c)
-endif()
-
 if(OLIVETTI)
     target_sources(chipset PRIVATE olivetti_eva.c)
 endif()
