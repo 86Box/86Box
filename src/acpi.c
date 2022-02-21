@@ -42,6 +42,7 @@
 
 int acpi_rtc_status = 0;
 
+
 #ifdef ENABLE_ACPI_LOG
 int acpi_do_log = ENABLE_ACPI_LOG;
 
@@ -394,6 +395,7 @@ acpi_reg_read_intel_ich2(int size, uint16_t addr, void *p)
 #endif
     return ret;
 }
+
 
 static uint32_t
 acpi_reg_read_via_common(int size, uint16_t addr, void *p)

@@ -3110,7 +3110,7 @@ kbd_init(const device_t *info)
     io_sethandler(0x0064, 1, kbd_read, NULL, NULL, kbd_write, NULL, NULL, dev);
     keyboard_send = add_data_kbd;
 
-    timer_add(&dev->send_delay_timer, kbd_poll, dev, 1); 
+    timer_add(&dev->send_delay_timer, kbd_poll, dev, 1);
     timer_add(&dev->pulse_cb, pulse_poll, dev, 0);
 
     dev->write60_ven = NULL;

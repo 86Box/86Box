@@ -328,10 +328,10 @@ inb(uint16_t port)
 
     /* Siemens BIOS loop. */
     if (port == 0x14)
-	ret = 0x00;
+        ret = 0x00;
 
     if ((port != 0x40) && (port != 0x41) && (port != 0x42) && (port != 0x43) && (port != 0x60) && (port != 0x61) && (port != 0x61) && (port != 0xed) && (port != 0x3ba) && (port != 0x3da)) {
-	io_log("[%04X:%08X] (%i, %i, %04i) in b(%04X) = %02X\n", CS, cpu_state.pc, in_smm, found, qfound, port, ret);
+        io_log("[%04X:%08X] (%i, %i, %04i) in b(%04X) = %02X\n", CS, cpu_state.pc, in_smm, found, qfound, port, ret);
     }
 
     return(ret);
@@ -365,7 +365,7 @@ outb(uint16_t port, uint8_t val)
     }
 
     if ((port != 0x40) && (port != 0x41) && (port != 0x42) && (port != 0x43) && (port != 0x60) && (port != 0x61) && (port != 0x61) && (port != 0xed) && (port != 0x3ba) && (port != 0x3da)) {
-	io_log("[%04X:%08X] [%04X:%08X] (%i, %i, %04i) outb(%04X, %02X)\n", CS, cpu_state.pc, DS, ESI, in_smm, found, qfound, port, val);
+        io_log("[%04X:%08X] [%04X:%08X] (%i, %i, %04i) outb(%04X, %02X)\n", CS, cpu_state.pc, DS, ESI, in_smm, found, qfound, port, val);
     }
 
     return;
@@ -420,7 +420,7 @@ inw(uint16_t port)
 	cycles -= io_delay;
 
     if ((port != 0x40) && (port != 0x41) && (port != 0x42) && (port != 0x43) && (port != 0x60) && (port != 0x61) && (port != 0x61) && (port != 0x0078) && (port != 0xed) && (port != 0x3ba) && (port != 0x3da)) {
-	io_log("[%04X:%08X] (%i, %i, %04i) in w(%04X) = %04X\n", CS, cpu_state.pc, in_smm, found, qfound, port, ret);
+        io_log("[%04X:%08X] (%i, %i, %04i) in w(%04X) = %04X\n", CS, cpu_state.pc, in_smm, found, qfound, port, ret);
     }
 
     return ret;
@@ -468,7 +468,7 @@ outw(uint16_t port, uint16_t val)
     }
 
     if ((port != 0x40) && (port != 0x41) && (port != 0x42) && (port != 0x43) && (port != 0x60) && (port != 0x61) && (port != 0x61) && (port != 0xed) && (port != 0x3ba) && (port != 0x3da)) {
-	io_log("[%04X:%08X] (%i, %i, %04i) outw(%04X, %04X)\n", CS, cpu_state.pc, in_smm, found, qfound, port, val);
+        io_log("[%04X:%08X] (%i, %i, %04i) outw(%04X, %04X)\n", CS, cpu_state.pc, in_smm, found, qfound, port, val);
     }
 
     return;

@@ -44,6 +44,7 @@
 int inrecomp = 0, cpu_block_end = 0;
 int cpu_end_block_after_ins = 0;
 
+
 #ifdef ENABLE_386_DYNAREC_LOG
 int x386_dynarec_do_log = ENABLE_386_DYNAREC_LOG;
 

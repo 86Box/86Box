@@ -40,9 +40,9 @@
 # define EMU_DEVICE_H
 
 
-#define CONFIG_END		-1
+#define CONFIG_END			-1
 #define CONFIG_STRING		 0
-#define CONFIG_INT		 1
+#define CONFIG_INT			 1
 #define CONFIG_BINARY		 2
 #define CONFIG_SELECTION	 3
 #define CONFIG_MIDI_OUT		 4
@@ -50,9 +50,9 @@
 #define CONFIG_SPINNER		 6
 #define CONFIG_HEX16		 7
 #define CONFIG_HEX20		 8
-#define CONFIG_MAC		 9
+#define CONFIG_MAC			 9
 #define CONFIG_MIDI_IN		10
-#define CONFIG_BIOS		11
+#define CONFIG_BIOS			11
 
 
 enum {
