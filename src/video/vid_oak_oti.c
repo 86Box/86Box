@@ -30,11 +30,11 @@
 #include <86box/vid_svga.h>
 #include <86box/vid_svga_render.h>
 
-#define BIOS_037C_PATH		"roms/video/oti/bios.bin"
+#define BIOS_037C_PATH			"roms/video/oti/bios.bin"
 #define BIOS_067_AMA932J_PATH	"roms/machines/ama932j/OTI067.BIN"
 #define BIOS_067_M300_08_PATH	"roms/machines/m30008/EVC_BIOS.ROM"
 #define BIOS_067_M300_15_PATH	"roms/machines/m30015/EVC_BIOS.ROM"
-#define BIOS_077_PATH		"roms/video/oti/oti077.vbi"
+#define BIOS_077_PATH			"roms/video/oti/oti077.vbi"
 
 
 enum {
@@ -476,17 +476,20 @@ oti037c_available(void)
     return(rom_present(BIOS_037C_PATH));
 }
 
+
 static int
 oti067_ama932j_available(void)
 {
     return(rom_present(BIOS_067_AMA932J_PATH));
 }
 
+
 static int
 oti067_077_available(void)
 {
     return(rom_present(BIOS_077_PATH));
 }
+
 
 static int
 oti067_m300_available(void)

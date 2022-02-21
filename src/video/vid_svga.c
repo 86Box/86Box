@@ -783,6 +783,7 @@ svga_poll(void *p)
 				svga->ma = svga->maback = ((svga->crtc[5] & 0x60) >> 5);
 			svga->ma = (svga->ma << 2);
 			svga->maback = (svga->maback << 2);
+
 			svga->sc = 0;
 			if (svga->attrregs[0x10] & 0x20) {
 				svga->scrollcache = 0;
