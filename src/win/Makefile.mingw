@@ -43,9 +43,6 @@ ifeq ($(DEV_BUILD), y)
  ifndef GUSMAX
   GUSMAX	:= y
  endif
- ifndef INTEL_ICH2
-  INTEL_ICH2	:= y
- endif
  ifndef ISAMEM_RAMPAGE
   ISAMEM_RAMPAGE := y
  endif
@@ -106,9 +103,6 @@ else
  endif
  ifndef GUSMAX
   GUSMAX	:= n
- endif
- ifndef INTEL_ICH2
-  INTEL_ICH2	:= n
  endif
  ifndef ISAMEM_RAMPAGE
   ISAMEM_RAMPAGE := n
@@ -436,11 +430,6 @@ endif
 
 ifeq ($(GUSMAX), y)
 OPTS		+= -DUSE_GUSMAX
-endif
-
-ifeq ($(INTEL_ICH2), y)
-OPTS		+= -DUSE_INTEL_ICH2
-DEVBROBJ	+= intel_mch_p4.o intel_gmch.o intel_ich2.o intel_ich2_setup.o
 endif
 
 ifeq ($(ISAMEM_RAMPAGE), y)

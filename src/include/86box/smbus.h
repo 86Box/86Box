@@ -28,7 +28,6 @@
 
 enum {
     SMBUS_PIIX4 = 0,
-    SMBUS_ICH2,
     SMBUS_VIA
 };
 
@@ -64,7 +63,6 @@ extern void	smbus_ali7101_remap(smbus_ali7101_t *dev, uint16_t new_io_base, uint
 
 #ifdef EMU_DEVICE_H
 extern const device_t piix4_smbus_device;
-extern const device_t ich2_smbus_device;
 extern const device_t via_smbus_device;
 
 extern const device_t ali7101_smbus_device;
