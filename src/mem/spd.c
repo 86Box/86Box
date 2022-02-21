@@ -674,15 +674,15 @@ spd_write_drbs_intel_gmch(uint8_t *regs)
 			case 64:
 				reg_pick = 3;
 				break;
-			
+
 			case 96:
 				reg_pick = 6;
 				break;
-			
+
 			case 128:
 				reg_pick = 7;
 				break;
-			
+
 			case 192:
 				reg_pick = 0x0b;
 				break;
@@ -690,7 +690,7 @@ spd_write_drbs_intel_gmch(uint8_t *regs)
 			case 256:
 				reg_pick = 0x0c;
 				break;
-			
+
 			case 512:
 				reg_pick = 0x0f;
 				break;

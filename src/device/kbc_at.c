@@ -99,7 +99,7 @@
 		0110 0000	0x60	Award
 		0110 0001	0x61	Award 286 (has some AMI commands apparently)
 		0111 0000	0x70	Siemens
-*/		
+*/
 
 /* Standard IBM controller */
 #define KBC_VEN_GENERIC		0x00
@@ -148,7 +148,7 @@ typedef struct {
     uint8_t	*c_in, *c_data,		/* Data to controller */
 		*d_in, *d_data,		/* Data to device */
 		*inhibit;
-    
+
     void	(*process)(void *priv);
     void	*priv;
 } kbc_dev_t;
@@ -1314,7 +1314,7 @@ write64_ami(void *priv, uint8_t val)
 		kbc_transmit(dev, ami_copr[0]);
 		dev->kbc_phase = 1;
 		return 0;
-		
+
 	case 0xa1:	/* get controller version */
 		kbc_log(dev, "AMI - Get controller version\n");
 		// kbc_transmit(dev, 'H');
@@ -1991,7 +1991,7 @@ kbc_init(const device_t *info)
     io_sethandler(0x0060, 1, kbc_read, NULL, NULL, kbc_write, NULL, NULL, dev);
     io_sethandler(0x0064, 1, kbc_read, NULL, NULL, kbc_write, NULL, NULL, dev);
 
-    timer_add(&dev->send_delay_timer, kbd_poll, dev, 1); 
+    timer_add(&dev->send_delay_timer, kbd_poll, dev, 1);
     timer_add(&dev->pulse_cb, pulse_poll, dev, 0);
 
 #if (!defined(RELEASE_BUILD) && defined(ENABLE_KBC_AT_LOG))

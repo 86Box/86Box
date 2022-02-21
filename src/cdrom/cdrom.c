@@ -749,7 +749,7 @@ cdrom_get_q(cdrom_t *dev, uint8_t *buf, int *curtoctrk, uint8_t mode)
 }
 
 
-uint8_t	
+uint8_t
 cdrom_mitsumi_audio_play(cdrom_t *dev, uint32_t pos, uint32_t len)
 {
     track_info_t ti;

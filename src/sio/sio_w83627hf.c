@@ -277,10 +277,10 @@ w83627hf_hwm_read(uint16_t addr, void *priv)
 
                         case 0x05: /* -12V */
                             return 0x23;
-                        
+
                         case 0x06: /* -5V */
                             return 0x34;
-                        
+
                         case 0x08: /* Fan 1 */
                             return fan1_rpm;
 
@@ -344,10 +344,10 @@ w83627hf_fdc_write(uint16_t cur_reg, uint8_t val, w83627hf_t *dev)
         case 0xf1:
             dev->dev_regs[0][cur_reg] = val;
             fdc_update_boot_drive(dev->fdc_controller, (val & 0xc0) >> 6);
-            
+
             if(val & 2)
                 fdc_writeprotect(dev->fdc_controller);
-            
+
             fdc_set_swwp(dev->fdc_controller, val & 1);
         break;
 
@@ -793,7 +793,7 @@ w83627hf_write(uint16_t addr, uint8_t val, void *priv)
                     case 0x24:
                         dev->regs[dev->index] = val & 0xca;
                         break;
-                    
+
                     case 0x25:
                         dev->regs[dev->index] = val & 0x39;
                         break;

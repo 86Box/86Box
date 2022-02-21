@@ -147,7 +147,7 @@ et3000_out(uint16_t addr, uint8_t val, void *priv)
 				svga->fullchange = changeframecount;
 				svga_recalctimings(svga);
 			}
-		}				
+		}
 		break;
     }
 

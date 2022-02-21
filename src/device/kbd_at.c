@@ -688,7 +688,7 @@ kbd_command(atkbd_t *dev)
 		case 0xf3: /* set typematic rate/delay */
 			kbd_send_to_host(dev, 0xfa);
 			break;
-					
+
 		default:
 			kbd_log(dev, "Bad keyboard 0060 write %02X command %02X\n", val, dev->cmd);
 			kbd_send_to_host(dev, 0xfe);

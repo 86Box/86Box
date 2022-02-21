@@ -160,7 +160,7 @@ intel_gmch_write(int func, int addr, uint8_t val, void *priv)
             case 0x2c ... 0x2f:
                 if(dev->pci_conf[addr] == 0)
                     dev->pci_conf[addr] = val;
-            break; 
+            break;
 
             case 0x50:
                 dev->pci_conf[addr] = val & 0xdc;
