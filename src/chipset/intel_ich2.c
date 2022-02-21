@@ -297,7 +297,7 @@ static void
 intel_ich2_gpio_write(uint16_t addr, uint8_t val, void *priv)
 {
     intel_ich2_t *dev = (intel_ich2_t *)priv;
-    
+
     addr = addr - dev->gpio_base;
     intel_ich2_log("Intel ICH2-GPIO: dev->regs[%02x] = %02x POST: %02x \n", addr, val, inb(0x80));
 
@@ -519,7 +519,7 @@ intel_ich2_lpc_write(int func, int addr, uint8_t val, void *priv)
                     dev->lpc_conf[func][addr] = val & 0x10;
                 else /* GPIO base address */
                     dev->lpc_conf[func][addr] = (addr & 1) ? val : ((val & 0xc0) | 1);
-            
+
                 intel_ich2_gpio(dev);
             break;
 
@@ -679,7 +679,7 @@ intel_ich2_lpc_write(int func, int addr, uint8_t val, void *priv)
 
             case 0x20 ... 0x21: /* IDE Bus Mastering */
                 dev->lpc_conf[func][addr] = (addr & 1) ? val : ((val & 0xf0) | 1);
-                intel_ich2_bus_master(dev);    
+                intel_ich2_bus_master(dev);
             break;
 
             case 0x2c ... 0x2f:

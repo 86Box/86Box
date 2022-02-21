@@ -89,13 +89,13 @@ intel_mch_p4_tom_size(int size)
         case 0:
         default:
             return 0x00020000;
-        
+
         case 1:
             return 0x00040000;
 
         case 2:
             return 0x00080000;
-        
+
         case 3:
             return 0x00100000;
     }
@@ -169,7 +169,7 @@ intel_mch_p4_write(int func, int addr, uint8_t val, void *priv)
             case 0x2c ... 0x2f:
                 if(dev->pci_conf[addr] == 0)
                     dev->pci_conf[addr] = val;
-            break; 
+            break;
 
             case 0x51:
                 dev->pci_conf[addr] = val & 0x02;

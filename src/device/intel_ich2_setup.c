@@ -88,7 +88,7 @@ intel_ich2_setup(int northbridge, int lan, int dimm_type, int dimm_slots, const 
 
         for(int i = 0; i < dimm_slots; i++)
             dimm_slot_amount |= (1 << i);
-            
+
 
         spd_register(dimm_type ? SPD_TYPE_DDR : SPD_TYPE_SDRAM, dimm_slot_amount, max_dimm_size);
     }

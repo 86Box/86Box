@@ -144,8 +144,8 @@ static void
 mitsumi_cdrom_reset(mcd_t *dev)
 {
 	cdrom_t *cdrom = &cdrom[0];
-	
-	dev->stat = cdrom->host_drive ? (STAT_READY | STAT_CHANGE) : 0; 
+
+	dev->stat = cdrom->host_drive ? (STAT_READY | STAT_CHANGE) : 0;
 	dev->cmdrd_count = 0;
 	dev->cmdbuf_count = 0;
 	dev->buf_count = 0;
@@ -168,7 +168,7 @@ mitsumi_cdrom_read_sector(mcd_t *dev, int first)
 
 	if (cdrom == NULL)
 		return 0;
-	
+
 	if (dev->drvmode == DRV_MODE_CDDA) {
 		status = cdrom_mitsumi_audio_play(cdrom, dev->readmsf, dev->readcount);
 		if (status == 1)
@@ -176,7 +176,7 @@ mitsumi_cdrom_read_sector(mcd_t *dev, int first)
 		else
 			dev->drvmode = DRV_MODE_READ;
 	}
-	
+
 	if ((dev->enable_irq & IRQ_DATACOMP) && !first) {
 		picint(1 << dev->irq);
 	}
@@ -209,7 +209,7 @@ mitsumi_cdrom_read_sector(mcd_t *dev, int first)
 	return 1;
 }
 
-static uint8_t 
+static uint8_t
 mitsumi_cdrom_in(uint16_t port, void *priv)
 {
     mcd_t *dev = (mcd_t *)priv;
@@ -219,14 +219,14 @@ mitsumi_cdrom_in(uint16_t port, void *priv)
 	case 0:
 		if (dev->cmdbuf_count) {
 			dev->cmdbuf_count--;
-			return dev->cmdbuf[dev->cmdbuf_idx++]; 
+			return dev->cmdbuf[dev->cmdbuf_idx++];
 		} else if (dev->buf_count) {
 			ret = (dev->buf_idx < RAW_SECTOR_SIZE) ? dev->buf[dev->buf_idx] : 0;
 			dev->buf_idx++;
 			dev->buf_count--;
 			if (!dev->buf_count)
 				mitsumi_cdrom_read_sector(dev, 0);
-			
+
 			return ret;
 		}
 		return dev->stat;
@@ -239,12 +239,12 @@ mitsumi_cdrom_in(uint16_t port, void *priv)
 			ret |= FLAG_NOSTAT;
 		return ret | FLAG_UNK;
     }
-	
+
     return(0xff);
 }
 
 
-static void 
+static void
 mitsumi_cdrom_out(uint16_t port, uint8_t val, void *priv)
 {
     mcd_t *dev = (mcd_t *)priv;
@@ -344,7 +344,7 @@ mitsumi_cdrom_out(uint16_t port, uint8_t val, void *priv)
 					if (cdrom->host_drive) {
 						cdrom_get_q(cdrom, &(dev->cmdbuf[1]), &dev->cur_toc_track, dev->mode & MODE_GET_TOC);
 						dev->cmdbuf_count = 11;
-						dev->readcount = 0;						
+						dev->readcount = 0;
 					} else {
 						dev->cmdbuf_count = 1;
 						dev->cmdbuf[0] = STAT_CMD_CHECK;
@@ -373,7 +373,7 @@ mitsumi_cdrom_out(uint16_t port, uint8_t val, void *priv)
 						dev->cmdrd_count = 6;
 					} else {
 						dev->cmdbuf_count = 1;
-						dev->cmdbuf[0] = STAT_CMD_CHECK;					
+						dev->cmdbuf[0] = STAT_CMD_CHECK;
 					}
 					break;
 				case CMD_GET_VER:
@@ -408,19 +408,19 @@ mitsumi_cdrom_init(const device_t *info)
 
     dev = malloc(sizeof(mcd_t));
     memset(dev, 0x00, sizeof(mcd_t));
-	
+
 	dev->irq = 5;
 	dev->dma = 5;
-	
+
 	io_sethandler(0x310, 2,
 		mitsumi_cdrom_in,NULL,NULL, mitsumi_cdrom_out,NULL,NULL, dev);
 
-	mitsumi_cdrom_reset(dev);	
-	
+	mitsumi_cdrom_reset(dev);
+
 	return dev;
 }
 
-static void 
+static void
 mitsumi_cdrom_close(void *priv)
 {
     mcd_t *dev = (mcd_t *)priv;

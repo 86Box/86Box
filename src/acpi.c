@@ -42,6 +42,7 @@
 
 int acpi_rtc_status = 0;
 
+
 #ifdef ENABLE_ACPI_LOG
 int acpi_do_log = ENABLE_ACPI_LOG;
 
@@ -317,7 +318,7 @@ acpi_reg_read_intel_ich2(int size, uint16_t addr, void *p)
 		/* PMCNTRL - Power Management Control Register (IO) */
 		ret = (dev->regs.pmcntrl >> shift16) & 0xff;
 		break;
-	
+
 	case 0x10: case 0x11: case 0x13:
 		/* PCNTRL - Processor Control Register (IO) */
 		ret = (dev->regs.pcntrl >> shift32) & 0xff;
@@ -342,7 +343,7 @@ acpi_reg_read_intel_ich2(int size, uint16_t addr, void *p)
 		/* GPE1_EN - General Purpose Event 1 Enables Register */
 		ret = (dev->regs.gpen1 >> shift16) & 0xff;
 		break;
-	
+
 	case 0x30: case 0x31: case 0x32: case 0x33:
 		/* SMI_EN - SMI Control and Enable Register */
 		ret = (dev->regs.smi_en >> shift32) & 0xff;
@@ -357,12 +358,12 @@ acpi_reg_read_intel_ich2(int size, uint16_t addr, void *p)
 		/* MON_SMI - Device Monitor SMI Status and Enable Register */
 		ret = (dev->regs.monsmi >> shift16) & 0xff;
 		break;
-	
+
 	case 0x44: case 0x45: case 0x46: case 0x47:
 		/* DEVACT_STS - Device Activity Status Register */
 		ret = (dev->regs.devactsts >> shift16) & 0xff;
 		break;
-	
+
 	case 0x48: case 0x49: case 0x4a: case 0x4b:
 		/* DEVTRAP_EN - Device Trap Enable Register */
 		ret = (dev->regs.devtrapen >> shift16) & 0xff;
@@ -394,6 +395,7 @@ acpi_reg_read_intel_ich2(int size, uint16_t addr, void *p)
 #endif
     return ret;
 }
+
 
 static uint32_t
 acpi_reg_read_via_common(int size, uint16_t addr, void *p)
@@ -947,7 +949,7 @@ acpi_reg_write_intel_ich2(int size, uint16_t addr, uint8_t val, void *p)
 		/* GPE1_EN - General Purpose Event 1 Enables Register */
 		dev->regs.gpen1 = ((dev->regs.gpen1 & ~(0xff << shift16)) | (val << shift16)) & 0xffbb;
 		break;
-	
+
 	case 0x30: case 0x31: case 0x32: case 0x33:
 		/* SMI_EN - SMI Control and Enable Register */
 		dev->regs.smi_en = ((dev->regs.smi_en & ~(0xff << shift32)) | (val << shift32)) & 0x000068ff;
@@ -978,12 +980,12 @@ acpi_reg_write_intel_ich2(int size, uint16_t addr, uint8_t val, void *p)
 		dev->regs.monsmi = ((dev->regs.monsmi & ~(0xff << shift16)) | (val << shift16)) & 0x0f00;
 		dev->regs.monsmi &= ((dev->regs.monsmi & ~(0xff << shift16)) | (val << shift16)) & 0xf000;
 		break;
-	
+
 	case 0x44: case 0x45: case 0x46: case 0x47:
 		/* DEVACT_STS - Device Activity Status Register */
 		dev->regs.devactsts &= ((dev->regs.devactsts & ~(0xff << shift16)) | (val << shift16)) & 0x3fef;
 		break;
-	
+
 	case 0x48: case 0x49: case 0x4a: case 0x4b:
 		/* DEVTRAP_EN - Device Trap Enable Register */
 		dev->regs.devtrapen = ((dev->regs.devtrapen & ~(0xff << shift16)) | (val << shift16)) & 0x3c2f;
@@ -1050,7 +1052,7 @@ acpi_reg_write_intel_ich2(int size, uint16_t addr, uint8_t val, void *p)
 
 		if(val & 1) /* ICH2 NMI Trigger */
 			nmi = 1;
-		
+
 		if(nmi) /* Under NMI, Bit 0 can be cleared */
 			dev->regs.tco[addr - 0x60] &= val & 1;
 		break;

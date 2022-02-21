@@ -18,5 +18,5 @@
 # define CDROM_MITSUMI_H
 
 extern const device_t mitsumi_cdrom_device;
-  
+
 #endif	/*CDROM_MITSUMI_H*/

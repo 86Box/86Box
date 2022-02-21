@@ -1817,4 +1817,3 @@ machine_at_spc7700plw_init(const machine_t *model)
 
     return ret;
 }
-

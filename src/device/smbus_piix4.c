@@ -28,6 +28,7 @@
 #include <86box/i2c.h>
 #include <86box/smbus.h>
 
+
 #ifdef ENABLE_SMBUS_PIIX4_LOG
 int smbus_piix4_do_log = ENABLE_SMBUS_PIIX4_LOG;
 
@@ -372,7 +373,9 @@ smbus_piix4_init(const device_t *info)
     /* We save the I2C bus handle on dev but use i2c_smbus for all operations because
        dev and therefore dev->i2c will be invalidated if a device triggers a hard reset. */
     i2c_smbus = dev->i2c = i2c_addbus((dev->local == SMBUS_VIA) ? "smbus_vt82c686b" : "smbus_piix4");
+
     timer_add(&dev->response_timer, smbus_piix4_response, dev, 0);
+
     smbus_piix4_setclock(dev, 16384); /* default to 16.384 KHz */
 
     return dev;

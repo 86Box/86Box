@@ -488,7 +488,7 @@ svga_recalctimings(svga_t *svga)
 
     svga->ma_latch = ((svga->crtc[0xc] << 8) | svga->crtc[0xd]) + ((svga->crtc[8] & 0x60) >> 5);
     svga->ca_adj = 0;
-    
+
     svga->rowcount = svga->crtc[9] & 31;
 
     svga->hdisp_time = svga->hdisp;
