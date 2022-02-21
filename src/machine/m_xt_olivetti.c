@@ -202,7 +202,7 @@ m24_kbd_write(uint16_t port, uint8_t val, void *priv)
 						m24_kbd->scan[1] = m24_kbd->params[1];
 						m24_kbd->scan[2] = m24_kbd->params[2];
 						break;
-					
+
 					default:
 						m24_log("M24: bad keyboard command complete %02X\n", m24_kbd->command);
 				}
@@ -239,7 +239,7 @@ m24_kbd_write(uint16_t port, uint8_t val, void *priv)
 		speaker_update();
 		speaker_gated = val & 1;
 		speaker_enable = val & 2;
-		if (speaker_enable) 
+		if (speaker_enable)
 			was_speaker_enable = 1;
 		pit_ctr_set_gate(&pit->counters[2], val & 1);
 		break;
@@ -264,7 +264,7 @@ m24_kbd_read(uint16_t port, void *priv)
 			key_queue_start = (key_queue_start + 1) & 0xf;
 			m24_kbd->status |= STAT_OFULL;
 			m24_kbd->status &= ~STAT_IFULL;
-			m24_kbd->wantirq = 1;	
+			m24_kbd->wantirq = 1;
 		}
 		break;
 
@@ -292,7 +292,7 @@ m24_kbd_close(void *priv)
 
     /* Stop the timer. */
     timer_disable(&kbd->send_delay_timer);
- 
+
     /* Disable scanning. */
     keyboard_scan = 0;
 
@@ -311,7 +311,7 @@ static void
 m24_kbd_reset(void *priv)
 {
     m24_kbd_t *m24_kbd = (m24_kbd_t *)priv;
- 
+
     /* Initialize the keyboard. */
     m24_kbd->status = STAT_LOCK | STAT_CD;
     m24_kbd->wantirq = 0;
@@ -324,7 +324,7 @@ m24_kbd_reset(void *priv)
     m24_kbd->scan[3] = 0x4b;
     m24_kbd->scan[4] = 0x4d;
     m24_kbd->scan[5] = 0x48;
-    m24_kbd->scan[6] = 0x50;   
+    m24_kbd->scan[6] = 0x50;
 }
 
 
@@ -364,7 +364,7 @@ ms_poll(int x, int y, int z, int b, void *priv)
 	if (((key_queue_end - key_queue_start) & 0xf) > 12) return(0xff);
 
 	if (!m24_kbd->x && !m24_kbd->y) return(0xff);
-	
+
 	m24_kbd->y = -m24_kbd->y;
 
 	if (m24_kbd->x < -127) m24_kbd->x = -127;
@@ -414,7 +414,7 @@ ms_poll(int x, int y, int z, int b, void *priv)
 static void
 m24_kbd_init(m24_kbd_t *kbd)
 {
-	
+
     /* Initialize the keyboard. */
     io_sethandler(0x0060, 2,
 		  m24_kbd_read, NULL, NULL, m24_kbd_write, NULL, NULL, kbd);
@@ -651,10 +651,10 @@ static uint8_t
 m24_read(uint16_t port, void *priv)
 {
     uint8_t ret = 0x00;
-    int i, fdd_count = 0; 
+    int i, fdd_count = 0;
 
     switch (port) {
-	/* 
+	/*
 	 * port 66:
 	 * DIPSW-0 on mainboard (off=present=1)
 	 * bit 7 - 2764 (off) / 2732 (on) ROM (BIOS < 1.36)
@@ -668,8 +668,8 @@ m24_read(uint16_t port, void *priv)
 		/* Switch 5 - 8087 present */
 		if (hasfpu)
 			ret |= 0x10;
-		/* 
-		 * Switches 1, 2, 3, 4 - installed memory 
+		/*
+		 * Switches 1, 2, 3, 4 - installed memory
 		 * Switch 8 - Use memory bank 1
 		 */
 		switch (mem_size) {
@@ -690,7 +690,7 @@ m24_read(uint16_t port, void *priv)
 				ret |= 0x1|0x8|0x80;
 				break;
         }
-	/* 
+	/*
 	 * port 67:
 	 * DIPSW-1 on mainboard (off=present=1)
 	 * bits 7-6 - number of drives
@@ -699,7 +699,7 @@ m24_read(uint16_t port, void *priv)
 	 * bit 2 - BIOS HD on mainboard (on) / on controller (off)
 	 * bit 1 - FDD fast (off) / slow (on) start drive
 	 * bit 0 - 96 TPI (720 KB 3.5") (off) / 48 TPI (360 KB 5.25") FDD drive
-	 * 
+	 *
 	 * Display adapter:
 	 * off off 80x25 mono
 	 * off on  40x25 color
@@ -717,7 +717,7 @@ m24_read(uint16_t port, void *priv)
 			ret |= 0x00;
 		else
 			ret |= ((fdd_count - 1) << 6);
-        
+
 		/* Switches 5, 6 - monitor type */
 		if (video_is_mda())
 			ret |= 0x30;
@@ -725,10 +725,10 @@ m24_read(uint16_t port, void *priv)
 			ret |= 0x20;	/* 0x10 would be 40x25 */
 		else
 			ret |= 0x0;
-		
+
 		/* Switch 3 - Disable internal BIOS HD */
 		ret |= 0x4;
-		
+
 		/* Switch 2 - Set fast startup */
 		ret |= 0x2;
     }
@@ -788,7 +788,7 @@ machine_xt_m24_init(const machine_t *model)
 }
 
 /*
- * Current bugs: 
+ * Current bugs:
  * - handles only 360kb floppy drives (drive type and capacity selectable with jumpers mapped to unknown memory locations)
  */
 int
@@ -810,7 +810,7 @@ machine_xt_m240_init(const machine_t *model)
     /* Address 66-67 = mainboard dip-switch settings */
     io_sethandler(0x0066, 2, m24_read, NULL, NULL, NULL, NULL, NULL, NULL);
 
-    /* 
+    /*
      * port 60: should return jumper settings only under unknown conditions
      * SWB on mainboard (off=1)
      * bit 7 - use BIOS HD on mainboard (on) / on controller (off)
@@ -835,7 +835,7 @@ machine_xt_m240_init(const machine_t *model)
 
 
 /*
- * Current bugs: 
+ * Current bugs:
  * - 640x400x2 graphics mode not supported (bit 0 of register 0x3de cannot be set)
  * - optional mouse emulation missing
  * - setting CPU speed at 4.77MHz sometimes throws a timer error. If the machine is hard-resetted, the error disappears.

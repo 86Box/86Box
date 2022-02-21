@@ -8,7 +8,7 @@
  *
  *		Implementation of the G2 GC100/GC100A chipset.
  *		NOTE: As documentation is currently available only for the
- *		CG100 chipset, the GC100A chipset has been reverese-engineered. 
+ *		CG100 chipset, the GC100A chipset has been reverese-engineered.
  *		Thus, its behavior may not be fully accurate.
  *
  *		Authors: EngiNerd, <webmaster.crrc@yahoo.it>
@@ -71,7 +71,7 @@ static uint8_t
 get_fdd_switch_settings(void)
 {
     int i, fdd_count = 0;
-    
+
     for (i = 0; i < FDD_NUM; i++) {
 	if (fdd_get_flags(i))
 		fdd_count++;
@@ -80,7 +80,7 @@ get_fdd_switch_settings(void)
     if (!fdd_count)
         return 0x00;
     else
-        return ((fdd_count - 1) << 6) | 0x01;    
+        return ((fdd_count - 1) << 6) | 0x01;
 }
 
 
@@ -92,7 +92,7 @@ get_videomode_switch_settings(void)
     else if (video_is_cga())
 	return 0x20;	/* 0x10 would be 40x25 */
     else
-	return 0x00;    
+	return 0x00;
 }
 
 
@@ -124,7 +124,7 @@ gc100_write(uint16_t port, uint8_t val, void *priv)
 		else
 			cpu_dynamic_switch(cpu);
 		break;
-    
+
 	/* addr 0x5
 	 * programmable dip-switches
 	 * bits 6-7: floppy drive number
@@ -216,7 +216,7 @@ gc100_init(const device_t *info)
     dev->reg[0x5] = 0x0;
     dev->reg[0x6] = 0x0;
     dev->reg[0x7] = 0x0;
-    
+
     if (info->local) {
 	/* GC100A */
         io_sethandler(0x0c2, 0x02, gc100_read, NULL, NULL, gc100_write, NULL, NULL, dev);
@@ -226,7 +226,7 @@ gc100_init(const device_t *info)
         io_sethandler(0x022, 0x02, gc100_read, NULL, NULL, gc100_write, NULL, NULL, dev);
         io_sethandler(0x025, 0x01, gc100_read, NULL, NULL, gc100_write, NULL, NULL, dev);
     }
-    
+
     return dev;
 }
 

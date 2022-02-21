@@ -79,7 +79,7 @@ ega_out(uint16_t addr, uint8_t val, void *p)
     int c;
     uint8_t o, old;
 
-    if (((addr & 0xfff0) == 0x3d0 || (addr & 0xfff0) == 0x3b0) && !(ega->miscout & 1)) 
+    if (((addr & 0xfff0) == 0x3d0 || (addr & 0xfff0) == 0x3b0) && !(ega->miscout & 1))
 	addr ^= 0x60;
 
     switch (addr) {
@@ -118,7 +118,7 @@ ega_out(uint16_t addr, uint8_t val, void *p)
 		} else {
 			o = ega->attrregs[ega->attraddr & 31];
 			ega->attrregs[ega->attraddr & 31] = val;
-			if (ega->attraddr < 16) 
+			if (ega->attraddr < 16)
 				fullchange = changeframecount;
 			if (ega->attraddr == 0x10 || ega->attraddr == 0x14 || ega->attraddr < 0x10) {
 				for (c = 0; c < 16; c++) {
@@ -155,19 +155,19 @@ ega_out(uint16_t addr, uint8_t val, void *p)
 		if ((o ^ val) & 0x80)
 			ega_recalctimings(ega);
 		break;
-	case 0x3c4: 
-		ega->seqaddr = val; 
+	case 0x3c4:
+		ega->seqaddr = val;
 		break;
 	case 0x3c5:
 		o = ega->seqregs[ega->seqaddr & 0xf];
 		ega->seqregs[ega->seqaddr & 0xf] = val;
-		if (o != val && (ega->seqaddr & 0xf) == 1) 
+		if (o != val && (ega->seqaddr & 0xf) == 1)
 			ega_recalctimings(ega);
 		switch (ega->seqaddr & 0xf) {
 			case 1:
-				if (ega->scrblank && !(val & 0x20)) 
-					fullchange = 3; 
-				ega->scrblank = (ega->scrblank & ~0x20) | (val & 0x20); 
+				if (ega->scrblank && !(val & 0x20))
+					fullchange = 3;
+				ega->scrblank = (ega->scrblank & ~0x20) | (val & 0x20);
 				break;
 			case 2:
 				ega->writemask = val & 0xf;
@@ -181,21 +181,21 @@ ega_out(uint16_t addr, uint8_t val, void *p)
 				break;
 		}
 		break;
-	case 0x3ce: 
-		ega->gdcaddr = val; 
+	case 0x3ce:
+		ega->gdcaddr = val;
 		break;
 	case 0x3cf:
 		ega->gdcreg[ega->gdcaddr & 15] = val;
 		switch (ega->gdcaddr & 15) {
 			case 2:
-				ega->colourcompare = val; 
+				ega->colourcompare = val;
 				break;
 			case 4:
-				ega->readplane = val & 3; 
+				ega->readplane = val & 3;
 				break;
 			case 5:
 				ega->writemode = val & 3;
-				ega->readmode = val & 8; 
+				ega->readmode = val & 8;
 				ega->chain2_read = val & 0x10;
 				break;
 			case 6:
@@ -214,8 +214,8 @@ ega_out(uint16_t addr, uint8_t val, void *p)
 						break;
 				}
 				break;
-			case 7: 
-				ega->colournocare = val; 
+			case 7:
+				ega->colournocare = val;
 				break;
 		}
 		break;
@@ -251,7 +251,7 @@ ega_in(uint16_t addr, void *p)
     ega_t *ega = (ega_t *)p;
     uint8_t ret = 0xff;
 
-    if (((addr & 0xfff0) == 0x3d0 || (addr & 0xfff0) == 0x3b0) && !(ega->miscout & 1)) 
+    if (((addr & 0xfff0) == 0x3d0 || (addr & 0xfff0) == 0x3b0) && !(ega->miscout & 1))
 	addr ^= 0x60;
 
     switch (addr) {
@@ -271,18 +271,18 @@ ega_in(uint16_t addr, void *p)
 		}
 		break;
 
-	case 0x3c0: 
+	case 0x3c0:
 		if (ega_type)
 			ret = ega->attraddr | ega->attr_palette_enable;
 		break;
-	case 0x3c1: 
+	case 0x3c1:
 		if (ega_type)
 			ret = ega->attrregs[ega->attraddr];
 		break;
 	case 0x3c2:
 		ret = (egaswitches & (8 >> egaswitchread)) ? 0x10 : 0x00;
 		break;
-	case 0x3c4: 
+	case 0x3c4:
 		if (ega_type)
 			ret = ega->seqaddr;
 		break;
@@ -294,11 +294,11 @@ ega_in(uint16_t addr, void *p)
 		if (ega_type)
 			ret = 2;
 		break;
-	case 0x3cc: 
+	case 0x3cc:
 		if (ega_type)
 			ret = ega->miscout;
 		break;
-	case 0x3ce: 
+	case 0x3ce:
 		if (ega_type)
 			ret = ega->gdcaddr;
 		break;
@@ -438,7 +438,7 @@ ega_recalctimings(ega_t *ega)
 
     overscan_x = (ega->seqregs[1] & 1) ? 16 : 18;
 
-    if (ega->seqregs[1] & 8) 
+    if (ega->seqregs[1] & 8)
 	overscan_x <<= 1;
 
     ega->y_add = (overscan_y >> 1) - (ega->crtc[8] & 0x1f);
@@ -518,7 +518,7 @@ ega_poll(void *p)
 			ega_render_overscan_right(ega);
 		}
 
-		if (ega->lastline < ega->displine) 
+		if (ega->lastline < ega->displine)
 			ega->lastline = ega->displine;
 	}
 
@@ -528,18 +528,18 @@ ega_poll(void *p)
 	if ((ega->stat & 8) && ((ega->displine & 15) == (ega->crtc[0x11] & 15)) && ega->vslines)
 		ega->stat &= ~8;
 	ega->vslines++;
-	if (ega->displine > 500) 
+	if (ega->displine > 500)
 		ega->displine = 0;
     } else {
 	timer_advance_u64(&ega->timer, ega->dispontime);
 
-	if (ega->dispon) 
+	if (ega->dispon)
 		ega->stat &= ~1;
 	ega->hdisp_on = 0;
 
 	ega->linepos = 0;
 	if ((ega->sc == (ega->crtc[11] & 31)) || (ega->sc == ega->rowcount))
-		ega->con = 0; 
+		ega->con = 0;
 	if (ega->dispon) {
 		if (ega->linedbl && !ega->linecountff) {
 			ega->linecountff = 1;
@@ -585,11 +585,11 @@ ega_poll(void *p)
 		else
 			ega->cursoron = ega->blink & (16 + (16 * blink_delay));
 
-		if (!(ega->gdcreg[6] & 1) && !(ega->blink & 15)) 
+		if (!(ega->gdcreg[6] & 1) && !(ega->blink & 15))
 			fullchange = 2;
 		ega->blink = (ega->blink + 1) & 0x7f;
 
-		if (fullchange) 
+		if (fullchange)
 			fullchange--;
 	}
 	if (ega->vc == ega->vsyncstart) {
@@ -660,7 +660,7 @@ ega_poll(void *p)
 
 		ega->linecountff = 0;
 	}
-	if (ega->sc == (ega->crtc[10] & 31)) 
+	if (ega->sc == (ega->crtc[10] & 31))
 		ega->con = 1;
     }
 }
@@ -770,7 +770,7 @@ ega_write(uint32_t addr, uint8_t val, void *p)
     if (addr >= ega->vram_limit)
                 return;
 
-    if (!(ega->gdcreg[6] & 1)) 
+    if (!(ega->gdcreg[6] & 1))
 	fullchange = 2;
 
     switch (ega->writemode) {
@@ -781,7 +781,7 @@ ega_write(uint32_t addr, uint8_t val, void *p)
 		if (writemask2 & 8) ega->vram[addr | 0x3] = ega->ld;
 		break;
 	case 0:
-		if (ega->gdcreg[3] & 7) 
+		if (ega->gdcreg[3] & 7)
 			val = ega_rotate[ega->gdcreg[3] & 7][val];
 
 		if ((ega->gdcreg[8] == 0xff) && !(ega->gdcreg[3] & 0x18) && !ega->gdcreg[1]) {
@@ -996,7 +996,7 @@ ega_init(ega_t *ega, int monitor_type, int is_mono)
 		pallook64[c] += makecol32(((c >> 5) & 1) * 0x55, ((c >> 4) & 1) * 0x55, ((c >> 3) & 1) * 0x55);
 		pallook16[c]  = makecol32(((c >> 2) & 1) * 0xaa, ((c >> 1) & 1) * 0xaa, (c & 1) * 0xaa);
 		pallook16[c] += makecol32(((c >> 4) & 1) * 0x55, ((c >> 4) & 1) * 0x55, ((c >> 4) & 1) * 0x55);
-		if ((c & 0x17) == 6) 
+		if ((c & 0x17) == 6)
 			pallook16[c] = makecol32(0xaa, 0x55, 0);
 	}
 

@@ -308,7 +308,7 @@ double
 ide_atapi_get_period(uint8_t channel)
 {
     ide_t *ide = ide_drives[channel];
- 
+
     ide_log("ide_atapi_get_period(%i)\n", channel);
 
     if (!ide) {
@@ -1357,7 +1357,7 @@ ide_write_devctl(uint16_t addr, uint8_t val, void *priv)
 		return;
 
     dev->diag = 0;
- 
+
     if ((val & 4) && !(ide->fdisk & 4)) {
 	/* Reset toggled from 0 to 1, initiate reset procedure. */
 	if (ide->type == IDE_ATAPI)
@@ -1575,7 +1575,7 @@ ide_writeb(uint16_t addr, uint8_t val, void *priv)
 				return;
 			}
 		}
-                                
+
 		ide->head = val & 0xF;
 		ide->lba = val & 0x40;
 		ide_other->head = val & 0xF;
@@ -1617,7 +1617,7 @@ ide_writeb(uint16_t addr, uint8_t val, void *priv)
 					ide->sc->callback = 100.0 * IDE_TIME;
 				} else
 					ide->atastat = DRDY_STAT;
-				
+
 				ide_set_callback(ide, 100.0 * IDE_TIME);
 				return;
 
@@ -2137,7 +2137,7 @@ ide_callback(void *priv)
 		ide->atastat = DRDY_STAT | DSC_STAT;
 		ide->error = 1; /*Device passed*/
 		ide->secount = 1;
-		ide->sector = 1;		
+		ide->sector = 1;
 
 		ide_set_signature(ide);
 
@@ -2410,7 +2410,7 @@ ide_callback(void *priv)
 			ide->cfg_spt = ide->secount;
 			ide->cfg_hpc = ide->head + 1;
 		}
-		ide->command = 0x00;	
+		ide->command = 0x00;
 		ide->atastat = DRDY_STAT | DSC_STAT;
 		ide->error = 1;
 		ide_irq_raise(ide);

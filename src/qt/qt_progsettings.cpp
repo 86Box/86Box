@@ -193,4 +193,3 @@ void ProgSettings::on_pushButtonLanguage_released()
 {
     ui->comboBoxLanguage->setCurrentIndex(0);
 }
-

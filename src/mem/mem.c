@@ -427,7 +427,7 @@ uint64_t
 mmutranslatereal(uint32_t addr, int rw)
 {
     /* Fast path to return invalid without any call if an exception has occurred beforehand. */
-    if (cpu_state.abrt) 
+    if (cpu_state.abrt)
 	return 0xffffffffffffffffULL;
 
     if (cr4 & CR4_PAE)
@@ -442,7 +442,7 @@ uint32_t
 mmutranslatereal32(uint32_t addr, int rw)
 {
     /* Fast path to return invalid without any call if an exception has occurred beforehand. */
-    if (cpu_state.abrt) 
+    if (cpu_state.abrt)
 	return (uint32_t) 0xffffffffffffffffULL;
 
     return (uint32_t) mmutranslatereal(addr, rw);
@@ -455,7 +455,7 @@ mmutranslate_noabrt_normal(uint32_t addr, int rw)
     uint32_t temp,temp2,temp3;
     uint32_t addr2;
 
-    if (cpu_state.abrt) 
+    if (cpu_state.abrt)
 	return 0xffffffffffffffffULL;
 
     addr2 = ((cr3 & ~0xfff) + ((addr >> 20) & 0xffc));
@@ -488,7 +488,7 @@ mmutranslate_noabrt_pae(uint32_t addr, int rw)
     uint64_t temp,temp2,temp3,temp4;
     uint64_t addr2,addr3,addr4;
 
-    if (cpu_state.abrt) 
+    if (cpu_state.abrt)
 	return 0xffffffffffffffffULL;
 
     addr2 = (cr3 & ~0x1f) + ((addr >> 27) & 0x18);
@@ -527,7 +527,7 @@ uint64_t
 mmutranslate_noabrt(uint32_t addr, int rw)
 {
     /* Fast path to return invalid without any call if an exception has occurred beforehand. */
-    if (cpu_state.abrt) 
+    if (cpu_state.abrt)
 	return 0xffffffffffffffffULL;
 
     if (cr4 & CR4_PAE)
@@ -675,7 +675,7 @@ getpccache(uint32_t a)
 		else
 			cpu_prefetch_cycles = cpu_mem_prefetch_cycles;
 	}
-	
+
 	return &_mem_exec[a64 >> MEM_GRANULARITY_BITS][(uintptr_t)(a64 & MEM_GRANULARITY_PAGE) - (uintptr_t)(a2 & ~0xfff)];
     }
 
@@ -2076,7 +2076,7 @@ mem_write_ram(uint32_t addr, uint8_t val, void *priv)
     if ((addr >= 0xa0000) && (addr <= 0xbffff))
 	mem_log("Write B       %02X to   %08X\n", val, addr);
 #endif
-    if (is286) {	
+    if (is286) {
 	addwritelookup(mem_logical_addr, addr);
 	mem_write_ramb_page(addr, val, &pages[addr >> 12]);
     } else
@@ -2192,7 +2192,7 @@ mem_invalidate_range(uint32_t start_addr, uint32_t end_addr)
     page_t *p;
 
     start_addr &= ~PAGE_MASK_MASK;
-    end_addr = (end_addr + PAGE_MASK_MASK) & ~PAGE_MASK_MASK;        
+    end_addr = (end_addr + PAGE_MASK_MASK) & ~PAGE_MASK_MASK;
 
     for (; start_addr <= end_addr; start_addr += 0x1000) {
 	if ((start_addr >> 12) >= pages_sz)
@@ -2212,7 +2212,7 @@ mem_invalidate_range(uint32_t start_addr, uint32_t end_addr)
 #else
     uint32_t cur_addr;
     start_addr &= ~PAGE_MASK_MASK;
-    end_addr = (end_addr + PAGE_MASK_MASK) & ~PAGE_MASK_MASK;	
+    end_addr = (end_addr + PAGE_MASK_MASK) & ~PAGE_MASK_MASK;
 
     for (; start_addr <= end_addr; start_addr += 0x1000) {
 	/* Do nothing if the pages array is empty or DMA reads/writes to/from PCI device memory addresses
@@ -2323,8 +2323,8 @@ mem_mapping_recalc(uint64_t base, uint64_t size)
 
 void
 mem_mapping_set(mem_mapping_t *map,
-		uint32_t base, 
-		uint32_t size, 
+		uint32_t base,
+		uint32_t size,
 		uint8_t  (*read_b)(uint32_t addr, void *p),
 		uint16_t (*read_w)(uint32_t addr, void *p),
 		uint32_t (*read_l)(uint32_t addr, void *p),
@@ -2361,8 +2361,8 @@ mem_mapping_set(mem_mapping_t *map,
 
 void
 mem_mapping_add(mem_mapping_t *map,
-		uint32_t base, 
-		uint32_t size, 
+		uint32_t base,
+		uint32_t size,
 		uint8_t  (*read_b)(uint32_t addr, void *p),
 		uint16_t (*read_w)(uint32_t addr, void *p),
 		uint32_t (*read_l)(uint32_t addr, void *p),
@@ -2811,7 +2811,7 @@ mem_remap_top(int kb)
 	set = 0;
     } else
 	old_kb = kb;
-	
+
     if (size > kb)
 	size = kb;
 

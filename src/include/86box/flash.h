@@ -14,6 +14,9 @@
  *		Copyright 2020 Miran Grca.
  */
 
+#ifndef EMU_FLASH_H
+# define EMU_FLASH_H
+
 extern const device_t catalyst_flash_device;
 
 extern const device_t intel_flash_bxt_ami_device;
@@ -26,3 +29,5 @@ extern const device_t winbond_flash_w29c020_device;
 extern const device_t sst_flash_39sf010_device;
 extern const device_t sst_flash_39sf020_device;
 extern const device_t sst_flash_39sf040_device;
+
+#endif /*EMU_FLASH_H*/

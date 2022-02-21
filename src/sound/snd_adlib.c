@@ -37,7 +37,7 @@ adlib_log(const char *fmt, ...)
 typedef struct adlib_t
 {
         opl_t   opl;
-        
+
         uint8_t pos_regs[8];
 } adlib_t;
 
@@ -48,7 +48,7 @@ static void adlib_get_buffer(int32_t *buffer, int len, void *p)
         int c;
 
         opl2_update(&adlib->opl);
-        
+
         for (c = 0; c < len * 2; c++)
                 buffer[c] += (int32_t)adlib->opl.buffer[c];
 
@@ -58,9 +58,9 @@ static void adlib_get_buffer(int32_t *buffer, int len, void *p)
 uint8_t adlib_mca_read(int port, void *p)
 {
         adlib_t *adlib = (adlib_t *)p;
-        
+
         adlib_log("adlib_mca_read: port=%04x\n", port);
-        
+
         return adlib->pos_regs[port & 7];
 }
 
@@ -70,9 +70,9 @@ void adlib_mca_write(int port, uint8_t val, void *p)
 
         if (port < 0x102)
                 return;
-        
+
         adlib_log("adlib_mca_write: port=%04x val=%02x\n", port, val);
-        
+
         switch (port)
         {
                 case 0x102:
@@ -97,7 +97,7 @@ void *adlib_init(const device_t *info)
 {
         adlib_t *adlib = malloc(sizeof(adlib_t));
         memset(adlib, 0, sizeof(adlib_t));
-        
+
         adlib_log("adlib_init\n");
         opl2_init(&adlib->opl);
         io_sethandler(0x0388, 0x0002, opl2_read, NULL, NULL, opl2_write, NULL, NULL, &adlib->opl);
@@ -108,7 +108,7 @@ void *adlib_init(const device_t *info)
 void *adlib_mca_init(const device_t *info)
 {
         adlib_t *adlib = adlib_init(info);
-        
+
         io_removehandler(0x0388, 0x0002, opl2_read, NULL, NULL, opl2_write, NULL, NULL, &adlib->opl);
         mca_add(adlib_mca_read, adlib_mca_write, adlib_mca_feedb, NULL, adlib);
         adlib->pos_regs[0] = 0xd7;

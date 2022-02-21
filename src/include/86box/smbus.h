@@ -14,6 +14,7 @@
  *
  *		Copyright 2020 RichardG.
  */
+
 #ifndef EMU_SMBUS_PIIX4_H
 # define EMU_SMBUS_PIIX4_H
 
@@ -65,6 +66,5 @@ extern const device_t via_smbus_device;
 
 extern const device_t ali7101_smbus_device;
 #endif
-
 
 #endif	/*EMU_SMBUS_PIIX4_H*/

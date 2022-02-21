@@ -113,4 +113,3 @@ uint32_t fifo8_num_used(Fifo8 *fifo)
 {
     return fifo->num;
 }
-

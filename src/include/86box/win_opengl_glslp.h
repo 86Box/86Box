@@ -12,6 +12,7 @@
  *
  *		Copyright 2021 Teemu Korhonen
  */
+
 #ifndef WIN_OPENGL_GLSLP_H
 #define WIN_OPENGL_GLSLP_H
 

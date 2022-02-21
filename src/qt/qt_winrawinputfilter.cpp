@@ -7,14 +7,14 @@
  *      This file is part of the 86Box distribution.
  *
  *      Windows raw input native filter for QT
- * 
+ *
  * Authors:
  *      Teemu Korhonen
  *      Miran Grca, <mgrca8@gmail.com>
- * 
+ *
  *      Copyright 2021 Teemu Korhonen
  *      Copyright 2016-2018 Miran Grca.
- * 
+ *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
@@ -120,7 +120,7 @@ bool WindowsRawInputFilter::nativeEventFilter(const QByteArray &eventType, void 
         {
             if (window->isActiveWindow() && menus_open == 0)
                 handle_input((HRAWINPUT)msg->lParam);
-            
+
             return true;
         }
     }
@@ -370,7 +370,7 @@ void WindowsRawInputFilter::mouse_handle(PRAWINPUT raw)
 
     if (state.usFlags & MOUSE_MOVE_ABSOLUTE)
     {
-        /* absolute mouse, i.e. RDP or VNC 
+        /* absolute mouse, i.e. RDP or VNC
          * seems to work fine for RDP on Windows 10
          * Not sure about other environments.
          */

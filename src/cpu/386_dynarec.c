@@ -72,54 +72,54 @@ static __inline void fetch_ea_32_long(uint32_t rmdat)
 	if (cpu_rm == 4)
 	{
 		uint8_t sib = rmdat >> 8;
-		
+
 		switch (cpu_mod)
 		{
-			case 0: 
-			cpu_state.eaaddr = cpu_state.regs[sib & 7].l; 
-			cpu_state.pc++; 
-			break;
-			case 1: 
+			case 0:
+			cpu_state.eaaddr = cpu_state.regs[sib & 7].l;
 			cpu_state.pc++;
-			cpu_state.eaaddr = ((uint32_t)(int8_t)getbyte()) + cpu_state.regs[sib & 7].l; 
 			break;
-			case 2: 
-			cpu_state.eaaddr = (fastreadl(cs + cpu_state.pc + 1)) + cpu_state.regs[sib & 7].l; 
-			cpu_state.pc += 5; 
+			case 1:
+			cpu_state.pc++;
+			cpu_state.eaaddr = ((uint32_t)(int8_t)getbyte()) + cpu_state.regs[sib & 7].l;
+			break;
+			case 2:
+			cpu_state.eaaddr = (fastreadl(cs + cpu_state.pc + 1)) + cpu_state.regs[sib & 7].l;
+			cpu_state.pc += 5;
 			break;
 		}
 		/*SIB byte present*/
-		if ((sib & 7) == 5 && !cpu_mod) 
+		if ((sib & 7) == 5 && !cpu_mod)
 			cpu_state.eaaddr = getlong();
 		else if ((sib & 6) == 4 && !cpu_state.ssegs)
 		{
 			easeg = ss;
 			cpu_state.ea_seg = &cpu_state.seg_ss;
 		}
-		if (((sib >> 3) & 7) != 4) 
+		if (((sib >> 3) & 7) != 4)
 			cpu_state.eaaddr += cpu_state.regs[(sib >> 3) & 7].l << (sib >> 6);
 	}
 	else
 	{
 		cpu_state.eaaddr = cpu_state.regs[cpu_rm].l;
-		if (cpu_mod) 
+		if (cpu_mod)
 		{
 			if (cpu_rm == 5 && !cpu_state.ssegs)
 			{
 				easeg = ss;
 				cpu_state.ea_seg = &cpu_state.seg_ss;
 			}
-			if (cpu_mod == 1) 
-			{ 
-				cpu_state.eaaddr += ((uint32_t)(int8_t)(rmdat >> 8)); 
-				cpu_state.pc++; 
-			}
-			else	  
+			if (cpu_mod == 1)
 			{
-				cpu_state.eaaddr += getlong(); 
+				cpu_state.eaaddr += ((uint32_t)(int8_t)(rmdat >> 8));
+				cpu_state.pc++;
+			}
+			else
+			{
+				cpu_state.eaaddr += getlong();
 			}
 		}
-		else if (cpu_rm == 5) 
+		else if (cpu_rm == 5)
 		{
 			cpu_state.eaaddr = getlong();
 		}
@@ -138,8 +138,8 @@ static __inline void fetch_ea_16_long(uint32_t rmdat)
 {
 	eal_r = eal_w = NULL;
 	easeg = cpu_state.ea_seg->base;
-	if (!cpu_mod && cpu_rm == 6) 
-	{ 
+	if (!cpu_mod && cpu_rm == 6)
+	{
 		cpu_state.eaaddr = getword();
 	}
 	else
@@ -174,7 +174,7 @@ static __inline void fetch_ea_16_long(uint32_t rmdat)
 	}
 }
 
-#define fetch_ea_16(rmdat)	      cpu_state.pc++; cpu_mod=(rmdat >> 6) & 3; cpu_reg=(rmdat >> 3) & 7; cpu_rm = rmdat & 7; if (cpu_mod != 3) { fetch_ea_16_long(rmdat); if (cpu_state.abrt) return 1; } 
+#define fetch_ea_16(rmdat)	      cpu_state.pc++; cpu_mod=(rmdat >> 6) & 3; cpu_reg=(rmdat >> 3) & 7; cpu_rm = rmdat & 7; if (cpu_mod != 3) { fetch_ea_16_long(rmdat); if (cpu_state.abrt) return 1; }
 #define fetch_ea_32(rmdat)	      cpu_state.pc++; cpu_mod=(rmdat >> 6) & 3; cpu_reg=(rmdat >> 3) & 7; cpu_rm = rmdat & 7; if (cpu_mod != 3) { fetch_ea_32_long(rmdat); } if (cpu_state.abrt) return 1
 
 #include "x86_flags.h"
@@ -232,23 +232,23 @@ static void prefetch_run(int instr_cycles, int bytes, int modrm, int reads, int 
 				prefetch_bytes -= ((modrm & 0xc0) >> 6);
 		}
 	}
-	
+
 	/* Fill up prefetch queue */
 	while (prefetch_bytes < 0)
 	{
 		prefetch_bytes += cpu_prefetch_width;
 		cycles -= cpu_prefetch_cycles;
 	}
-	
+
 	/* Subtract cycles used for memory access by instruction */
 	instr_cycles -= mem_cycles;
-	
+
 	while (instr_cycles >= cpu_prefetch_cycles)
 	{
 		prefetch_bytes += cpu_prefetch_width;
 		instr_cycles -= cpu_prefetch_cycles;
 	}
-	
+
 	prefetch_prefixes = 0;
 	if (prefetch_bytes > 16)
 		prefetch_bytes = 16;

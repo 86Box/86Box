@@ -15,4 +15,10 @@
  *
  *		Copyright 2008-2020 Sarah Walker.
  */
+
+#ifndef VIDEO_VOODOO_SETUP_H
+# define VIDEO_VOODOO_SETUP_H
+
 void voodoo_triangle_setup(voodoo_t *voodoo);
+
+#endif /*VIDEO_VOODOO_SETUP_H*/

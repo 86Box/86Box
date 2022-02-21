@@ -53,7 +53,7 @@ void SoftwareRenderer::onBlit(int buf_idx, int x, int y, int w, int h) {
 
     cur_image = buf_idx;
     buf_usage[(buf_idx + 1) % 2].clear();
-    
+
     source.setRect(x, y, w, h),
     update();
 }
@@ -79,7 +79,7 @@ void SoftwareRenderer::onPaint(QPaintDevice* device) {
 #if QT_VERSION >= QT_VERSION_CHECK(5, 14, 0)
     painter.fillRect(0, 0, device->width(), device->height(), QColorConstants::Black);
 #else
-    painter.fillRect(0,0, device->width(), device->height(), Qt::black);
+    painter.fillRect(0, 0, device->width(), device->height(), Qt::black);
 #endif
     painter.setCompositionMode(QPainter::CompositionMode_Plus);
     painter.drawImage(destination, *images[cur_image], source);

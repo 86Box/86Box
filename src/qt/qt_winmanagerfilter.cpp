@@ -7,10 +7,10 @@
  *      This file is part of the 86Box distribution.
  *
  *      Windows VM-managers native messages filter
- * 
+ *
  * Authors:
  *      Teemu Korhonen
- * 
+ *
  *      Copyright 2022 Teemu Korhonen
  */
 

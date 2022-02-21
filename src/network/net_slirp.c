@@ -362,27 +362,24 @@ poll_thread(void *arg)
 	/* Request ownership of the queue. */
 	network_wait(1);
 
-	/* Wait for a poll request. */
-	network_poll();
-
 	/* Stop processing if asked to. */
-	if (slirp->stop) break;
+	if (slirp->stop) {
+		network_wait(0);
+		break;
+	}
 
 	/* See if there is any work. */
 	slirp_tic(slirp);
 
-	/* Wait for the next packet to arrive. */
+	/* Wait for the next packet to arrive - network_do_tx() is called from there. */
 	tx = network_tx_queue_check();
 
-	if (tx)
-		network_do_tx();
+	/* Release ownership of the queue. */
+	network_wait(0);
 
 	/* If we did not get anything, wait a while. */
 	if (!tx)
 		thread_wait_event(evt, 10);
-
-	/* Release ownership of the queue. */
-	network_wait(0);
     }
 
     /* No longer needed. */
@@ -449,8 +446,6 @@ net_slirp_close(void)
 
     /* Tell the thread to terminate. */
     if (slirp->poll_tid) {
-	network_busy(0);
-
 	/* Wait for the thread to finish. */
 	slirp_log("SLiRP: waiting for thread to end...\n");
 	thread_wait_event(slirp->poll_state, -1);

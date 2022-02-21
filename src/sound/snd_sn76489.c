@@ -28,7 +28,7 @@ void sn76489_update(sn76489_t *sn76489)
         {
                 int c;
                 int16_t result = 0;
-                        
+
                 for (c = 1; c < 4; c++)
                 {
                         if (sn76489->latch[c] > 256) result += (int16_t) (volslog[sn76489->vol[c]] * sn76489->stat[c]);
@@ -49,18 +49,18 @@ void sn76489_update(sn76489_t *sn76489)
                         sn76489->count[0] += (sn76489->latch[0] * 4);
                         if (!(sn76489->noise & 4))
                         {
-                                if (sn76489->shift & 1) 
+                                if (sn76489->shift & 1)
                                         sn76489->shift |= 0x8000;
                                 sn76489->shift >>= 1;
                         }
                         else
                         {
-                                if ((sn76489->shift & 1) ^ ((sn76489->shift >> 1) & 1)) 
+                                if ((sn76489->shift & 1) ^ ((sn76489->shift >> 1) & 1))
                                         sn76489->shift |= 0x8000;
                                 sn76489->shift >>= 1;
                         }
                 }
-        
+
                 sn76489->buffer[sn76489->pos] = result;
         }
 }
@@ -68,11 +68,11 @@ void sn76489_update(sn76489_t *sn76489)
 void sn76489_get_buffer(int32_t *buffer, int len, void *p)
 {
         sn76489_t *sn76489 = (sn76489_t *)p;
-        
+
         int c;
-        
+
         sn76489_update(sn76489);
-        
+
         if (!sn76489_mute)
         {
                 for (c = 0; c < len * 2; c++)
@@ -88,7 +88,7 @@ void sn76489_write(uint16_t addr, uint8_t data, void *p)
         int freq;
 
         sn76489_update(sn76489);
-        
+
         if (data & 0x80)
         {
                 sn76489->firstdat = data;
@@ -242,7 +242,7 @@ void sn76489_device_close(void *p)
 {
         sn76489_t *sn76489 = (sn76489_t *)p;
 
-        free(sn76489);        
+        free(sn76489);
 }
 
 #if defined(DEV_BRANCH) && defined(USE_TANDY_ISA)

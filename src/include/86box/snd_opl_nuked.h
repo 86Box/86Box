@@ -16,6 +16,7 @@
  *		Copyright 2017-2020 Fred N. van Kempen.
  *		Copyright 2016-2019 Miran Grca.
  */
+
 #ifndef SOUND_OPL_NUKED_H
 # define SOUND_OPL_NUKED_H
 
@@ -30,6 +31,5 @@ extern void	nuked_write_reg_buffered(void *, uint16_t reg, uint8_t v);
 extern void	nuked_generate(void *, int32_t *buf);
 extern void	nuked_generate_resampled(void *, int32_t *buf);
 extern void	nuked_generate_stream(void *, int32_t *sndptr, uint32_t num);
-
 
 #endif	/*SOUND_OPL_NUKED_H*/

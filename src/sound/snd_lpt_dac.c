@@ -16,10 +16,10 @@ typedef struct lpt_dac_t
 	void *lpt;
 
         uint8_t dac_val_l, dac_val_r;
-        
+
         int is_stereo;
         int channel;
-        
+
         int16_t buffer[2][SOUNDBUFLEN];
         int pos;
 } lpt_dac_t;
@@ -45,7 +45,7 @@ static void dac_write_data(uint8_t val, void *p)
                 else
                         lpt_dac->dac_val_l = val;
         }
-        else        
+        else
                 lpt_dac->dac_val_l = lpt_dac->dac_val_r = val;
         dac_update(lpt_dac);
 }
@@ -68,9 +68,9 @@ static void dac_get_buffer(int32_t *buffer, int len, void *p)
 {
         lpt_dac_t *lpt_dac = (lpt_dac_t *)p;
         int c;
-        
+
         dac_update(lpt_dac);
-        
+
         for (c = 0; c < len; c++)
         {
                 buffer[c*2]     += dac_iir(0, lpt_dac->buffer[0][c]);
@@ -87,21 +87,21 @@ static void *dac_init(void *lpt)
 	lpt_dac->lpt = lpt;
 
         sound_add_handler(dac_get_buffer, lpt_dac);
-                
+
         return lpt_dac;
 }
 static void *dac_stereo_init(void *lpt)
 {
         lpt_dac_t *lpt_dac = dac_init(lpt);
-        
+
         lpt_dac->is_stereo = 1;
-                
+
         return lpt_dac;
 }
 static void dac_close(void *p)
 {
         lpt_dac_t *lpt_dac = (lpt_dac_t *)p;
-        
+
         free(lpt_dac);
 }
 

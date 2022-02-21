@@ -129,7 +129,7 @@ threec503_interrupt(void *priv, int set)
 	case 5:
 		dev->regs.idcfr = 0x80;
 		break;
-    }	
+    }
 
     if (set)
 	picint(1 << dev->base_irq);
@@ -177,7 +177,7 @@ threec503_set_drq(threec503_t *dev)
 	case 3:
 		dev->regs.idcfr = 4;
 		break;
-    }	
+    }
 }
 
 
@@ -195,7 +195,7 @@ threec503_reset(void *priv)
 
     memset(&dev->regs, 0, sizeof(dev->regs));
 
-    dev->regs.ctrl = 0x0a;	
+    dev->regs.ctrl = 0x0a;
 }
 
 
@@ -399,7 +399,7 @@ threec503_nic_hi_read(uint16_t addr, void *priv)
 		if (!(dev->regs.ctrl & 0x80))
 			return 0xff;
 
-		threec503_set_drq(dev); 
+		threec503_set_drq(dev);
 
 		return dp8390_chipmem_read(dev->dp8390, dev->regs.da++, 1);
     }
@@ -529,7 +529,7 @@ threec503_nic_hi_write(uint16_t addr, uint8_t val, void *priv)
 		if (!(dev->regs.ctrl & 0x80))
 			return;
 
-		threec503_set_drq(dev); 
+		threec503_set_drq(dev);
 
 		dp8390_chipmem_write(dev->dp8390, dev->regs.da++, val, 1);
 		break;
@@ -542,7 +542,7 @@ threec503_nic_ioset(threec503_t *dev, uint16_t addr)
 {
     io_sethandler(addr, 0x10,
 		  threec503_nic_lo_read, NULL, NULL,
-		  threec503_nic_lo_write, NULL, NULL, dev);	
+		  threec503_nic_lo_write, NULL, NULL, dev);
 
     io_sethandler(addr+0x400, 0x10,
 		  threec503_nic_hi_read, NULL, NULL,
@@ -575,7 +575,7 @@ threec503_nic_init(const device_t *info)
      * PnP and PCI devices start with address spaces inactive.
      */
     threec503_nic_ioset(dev, dev->base_address);
-	
+
     /* Set up our BIA. */
     if (mac & 0xff000000) {
 	/* Generate new local MAC. */
@@ -597,7 +597,7 @@ threec503_nic_init(const device_t *info)
     dev->dp8390->interrupt = threec503_interrupt;
     dp8390_set_defaults(dev->dp8390, DP8390_FLAG_CHECK_CR | DP8390_FLAG_CLEAR_IRQ);
     dp8390_mem_alloc(dev->dp8390, 0x2000, 0x2000);
-	
+
     memcpy(dev->dp8390->physaddr, dev->maclocal, sizeof(dev->maclocal));
 
     threec503_log("I/O=%04x, IRQ=%d, MAC=%02x:%02x:%02x:%02x:%02x:%02x\n",

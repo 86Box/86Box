@@ -21,7 +21,7 @@
 
 
 #ifndef PCE_IBMPC_CASSETTE_H
-#define PCE_IBMPC_CASSETTE_H 1
+# define PCE_IBMPC_CASSETTE_H 1
 
 
 #include <stdio.h>
@@ -170,4 +170,4 @@ extern int		cassette_ui_writeprot;
 extern const device_t	cassette_device;
 
 
-#endif
+#endif /*PCE_IBMPC_CASSETTE_H*/

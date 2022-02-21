@@ -71,7 +71,7 @@ rom_fopen(char *fn, char *mode)
 
 	if (rom_path[0] != '\0') {
 		memset(fn2, 0x00, strlen(fn) + 1);
-		memcpy(fn2, &(fn[5]), strlen(fn) - 4);		
+		memcpy(fn2, &(fn[5]), strlen(fn) - 4);
 
 		plat_append_filename(temp, rom_path, fn2);
 	} else {
@@ -185,7 +185,7 @@ rom_load_linear_oddeven(char *fn, uint32_t addr, int sz, int off, uint8_t *ptr)
 {
     FILE *f = rom_fopen(fn, "rb");
     int i;
-        
+
     if (f == NULL) {
 	rom_log("ROM: image '%s' not found\n", fn);
 	return(0);
@@ -221,7 +221,7 @@ int
 rom_load_linear(char *fn, uint32_t addr, int sz, int off, uint8_t *ptr)
 {
     FILE *f = rom_fopen(fn, "rb");
-        
+
     if (f == NULL) {
 	rom_log("ROM: image '%s' not found\n", fn);
 	return(0);
@@ -251,7 +251,7 @@ int
 rom_load_linear_inverted(char *fn, uint32_t addr, int sz, int off, uint8_t *ptr)
 {
     FILE *f = rom_fopen(fn, "rb");
-        
+
     if (f == NULL) {
 	rom_log("ROM: image '%s' not found\n", fn);
 	return(0);

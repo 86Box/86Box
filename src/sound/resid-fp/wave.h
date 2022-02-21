@@ -269,7 +269,7 @@ reg12 WaveformGeneratorFP::outputN___()
 // in the output. The reason for this has not been determined.
 //
 // Example:
-// 
+//
 //             1 1
 // Bit #       1 0 9 8 7 6 5 4 3 2 1 0
 //             -----------------------
@@ -303,14 +303,14 @@ reg12 WaveformGeneratorFP::outputN___()
 //
 // Sawtooth+Triangle:
 // The sawtooth output is used to look up an OSC3 sample.
-// 
+//
 // Pulse+Triangle:
 // The triangle output is right-shifted and used to look up an OSC3 sample.
 // The sample is output if the pulse output is on.
 // The reason for using the triangle output as the index is to handle ring
 // modulation. Only the first half of the sample is used, which should be OK
 // since the triangle waveform has half the resolution of the accumulator.
-// 
+//
 // Pulse+Sawtooth:
 // The sawtooth output is used to look up an OSC3 sample.
 // The sample is output if the pulse output is on.
@@ -318,7 +318,7 @@ reg12 WaveformGeneratorFP::outputN___()
 // Pulse+Sawtooth+Triangle:
 // The sawtooth output is used to look up an OSC3 sample.
 // The sample is output if the pulse output is on.
-// 
+//
 RESID_INLINE
 reg12 WaveformGeneratorFP::output__ST()
 {

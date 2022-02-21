@@ -294,4 +294,3 @@ void SettingsHarddisks::on_pushButtonRemove_clicked() {
     ui->pushButtonNew->setEnabled(true);
     ui->pushButtonExisting->setEnabled(true);
 }
-

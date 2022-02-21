@@ -57,7 +57,7 @@ int codegen_can_unroll_full(codeblock_t *block, ir_data_t *ir, uint32_t next_pc,
                         TOP = cpu_state.TOP;
                 }
         }
-        
+
         if (TOP != cpu_state.TOP)
                 return 0;
 

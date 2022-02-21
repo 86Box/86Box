@@ -16,6 +16,9 @@
  *		Copyright 2016-2020 Miran Grca.
  */
 
+#ifndef EMU_HDC_IDE_SFF8038I_H
+# define EMU_HDC_IDE_SFF8038I_H
+
 typedef struct
 {
     uint8_t	command, status,
@@ -56,3 +59,5 @@ extern void	sff_set_irq_mode(sff8038i_t *dev, int channel, int irq_mode);
 extern void	sff_set_irq_pin(sff8038i_t *dev, int irq_pin);
 
 extern void	sff_set_irq_level(sff8038i_t *dev, int channel, int irq_level);
+
+#endif /*EMU_HDC_IDE_SFF8038I_H*/

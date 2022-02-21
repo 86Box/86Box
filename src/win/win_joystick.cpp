@@ -67,23 +67,23 @@ static BOOL CALLBACK joystick_enum_callback(LPCDIDEVICEINSTANCE lpddi, UNUSED(LP
 {
         if (joysticks_present >= MAX_JOYSTICKS)
                 return DIENUM_STOP;
-        
+
         joystick_log("joystick_enum_callback : found joystick %i : %s\n", joysticks_present, lpddi->tszProductName);
-        
+
         joystick_guids[joysticks_present++] = lpddi->guidInstance;
 
         if (joysticks_present >= MAX_JOYSTICKS)
                 return DIENUM_STOP;
-        
+
         return DIENUM_CONTINUE;
 }
 
-BOOL CALLBACK DIEnumDeviceObjectsCallback( 
+BOOL CALLBACK DIEnumDeviceObjectsCallback(
                       LPCDIDEVICEOBJECTINSTANCE lpddoi,
                       LPVOID pvRef)
 {
         plat_joystick_t *state = (plat_joystick_t *)pvRef;
-        
+
         if (lpddoi->guidType == GUID_XAxis  || lpddoi->guidType == GUID_YAxis  || lpddoi->guidType == GUID_ZAxis ||
             lpddoi->guidType == GUID_RxAxis || lpddoi->guidType == GUID_RyAxis || lpddoi->guidType == GUID_RzAxis)
         {
@@ -122,7 +122,7 @@ BOOL CALLBACK DIEnumDeviceObjectsCallback(
                         joystick_log("POV %i : %s  %x %x\n", state->nr_povs, state->pov[state->nr_povs].name, lpddoi->dwOfs, lpddoi->dwType);
                         state->nr_povs++;
                 }
-        }  
+        }
 		else if (lpddoi->guidType == GUID_Slider)
         {
                 if (state->nr_sliders < 2)
@@ -133,7 +133,7 @@ BOOL CALLBACK DIEnumDeviceObjectsCallback(
                         state->nr_sliders++;
                 }
         }
-        
+
         return DIENUM_CONTINUE;
 }
 
@@ -142,30 +142,30 @@ void joystick_init()
         int c;
 
         atexit(joystick_close);
-        
+
         joysticks_present = 0;
-        
+
         if (FAILED(DirectInput8Create(hinstance, DIRECTINPUT_VERSION, IID_IDirectInput8A, (void **) &lpdi, NULL)))
-                fatal("joystick_init : DirectInputCreate failed\n"); 
+                fatal("joystick_init : DirectInputCreate failed\n");
 
         if (FAILED(lpdi->EnumDevices(DIDEVTYPE_JOYSTICK, joystick_enum_callback, NULL, DIEDFL_ATTACHEDONLY)))
                 fatal("joystick_init : EnumDevices failed\n");
 
         joystick_log("joystick_init: joysticks_present=%i\n", joysticks_present);
-        
+
         for (c = 0; c < joysticks_present; c++)
-        {                
+        {
                 LPDIRECTINPUTDEVICE8 lpdi_joystick_temp = NULL;
                 DIPROPRANGE joy_axis_range;
                 DIDEVICEINSTANCE device_instance;
                 DIDEVCAPS devcaps;
-                
+
                 if (FAILED(lpdi->CreateDevice(joystick_guids[c], &lpdi_joystick_temp, NULL)))
                         fatal("joystick_init : CreateDevice failed\n");
                 if (FAILED(lpdi_joystick_temp->QueryInterface(IID_IDirectInputDevice8, (void **)&lpdi_joystick[c])))
                         fatal("joystick_init : CreateDevice failed\n");
                 lpdi_joystick_temp->Release();
-                
+
                 memset(&device_instance, 0, sizeof(device_instance));
                 device_instance.dwSize = sizeof(device_instance);
                 if (FAILED(lpdi_joystick[c]->GetDeviceInfo(&device_instance)))
@@ -183,8 +183,8 @@ void joystick_init()
                 joystick_log(" Buttons = %i\n", devcaps.dwButtons);
                 joystick_log(" POVs = %i\n", devcaps.dwPOVs);
 
-                lpdi_joystick[c]->EnumObjects(DIEnumDeviceObjectsCallback, &plat_joystick_state[c], DIDFT_ALL); 
-                
+                lpdi_joystick[c]->EnumObjects(DIEnumDeviceObjectsCallback, &plat_joystick_state[c], DIDFT_ALL);
+
                 if (FAILED(lpdi_joystick[c]->SetCooperativeLevel(hwndMain, DISCL_BACKGROUND | DISCL_NONEXCLUSIVE)))
                         fatal("joystick_init : SetCooperativeLevel failed\n");
                 if (FAILED(lpdi_joystick[c]->SetDataFormat(&c_dfDIJoystick)))
@@ -211,7 +211,7 @@ void joystick_init()
                 lpdi_joystick[c]->SetProperty(DIPROP_RANGE, &joy_axis_range.diph);
                 joy_axis_range.diph.dwObj = DIJOFS_SLIDER(1);
                 lpdi_joystick[c]->SetProperty(DIPROP_RANGE, &joy_axis_range.diph);
-				
+
                 if (FAILED(lpdi_joystick[c]->Acquire()))
                         fatal("joystick_init : Acquire failed\n");
         }
@@ -266,10 +266,10 @@ void joystick_process(void)
 	if (!joystick_type) return;
 
         for (c = 0; c < joysticks_present; c++)
-        {                
+        {
                 DIJOYSTATE joystate;
                 int b;
-                
+
                 if (FAILED(lpdi_joystick[c]->Poll()))
                 {
                         lpdi_joystick[c]->Acquire();
@@ -281,7 +281,7 @@ void joystick_process(void)
                         lpdi_joystick[c]->Poll();
                         lpdi_joystick[c]->GetDeviceState(sizeof(DIJOYSTATE), (LPVOID)&joystate);
                 }
-                
+
                 plat_joystick_state[c].a[0] = joystate.lX;
                 plat_joystick_state[c].a[1] = joystate.lY;
                 plat_joystick_state[c].a[2] = joystate.lZ;
@@ -290,7 +290,7 @@ void joystick_process(void)
                 plat_joystick_state[c].a[5] = joystate.lRz;
 				plat_joystick_state[c].s[0] = joystate.rglSlider[0];
                 plat_joystick_state[c].s[1] = joystate.rglSlider[1];
-                
+
                 for (b = 0; b < 16; b++)
                         plat_joystick_state[c].b[b] = joystate.rgbButtons[b] & 0x80;
 
@@ -298,13 +298,13 @@ void joystick_process(void)
                         plat_joystick_state[c].p[b] = joystate.rgdwPOV[b];
 //                joystick_log("joystick %i - x=%i y=%i b[0]=%i b[1]=%i  %i\n", c, joystick_state[c].x, joystick_state[c].y, joystick_state[c].b[0], joystick_state[c].b[1], joysticks_present);
         }
-        
+
         for (c = 0; c < joystick_get_max_joysticks(joystick_type); c++)
         {
                 if (joystick_state[c].plat_joystick_nr)
                 {
                         int joystick_nr = joystick_state[c].plat_joystick_nr - 1;
-                        
+
                         for (d = 0; d < joystick_get_axis_count(joystick_type); d++)
                                 joystick_state[c].axis[d] = joystick_get_axis(joystick_nr, joystick_state[c].axis_mapping[d]);
                         for (d = 0; d < joystick_get_button_count(joystick_type); d++)
@@ -317,10 +317,10 @@ void joystick_process(void)
 
                                 x = joystick_get_axis(joystick_nr, joystick_state[c].pov_mapping[d][0]);
                                 y = joystick_get_axis(joystick_nr, joystick_state[c].pov_mapping[d][1]);
-                                
+
                                 angle = (atan2((double)y, (double)x) * 360.0) / (2*M_PI);
                                 magnitude = sqrt((double)x*(double)x + (double)y*(double)y);
-                                
+
                                 if (magnitude < 16384)
                                         joystick_state[c].pov[d] = -1;
                                 else

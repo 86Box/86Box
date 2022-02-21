@@ -252,7 +252,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Install dependencies
-        run: sudo apt update && sudo apt install gcc-11 g++-11 libfreetype-dev libsdl2-dev libpng-dev libopenal-dev libc6-dev librtmidi-dev qtbase5-dev qttools5-dev
+        run: sudo apt update && sudo apt install gcc-11 g++-11 libfreetype-dev libsdl2-dev libpng-dev libopenal-dev libc6-dev librtmidi-dev qtbase5-dev qttools5-dev libfaudio-dev
       - name: Configure CMake
         run: >-
           cmake -S . -B build
@@ -316,7 +316,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Install dependencies
-        run: brew install freetype sdl2 libpng openal-soft rtmidi qt@5
+        run: brew install freetype sdl2 libpng openal-soft rtmidi qt@5 faudio
       - name: Configure CMake
         run: >-
           cmake -S . -B build

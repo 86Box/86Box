@@ -192,7 +192,7 @@ get_sector(esdi_t *esdi, off64_t *addr)
 
 	*addr = ((((off64_t)c * drive->real_hpc) + h) * drive->real_spt) + s;
     }
-        
+
     return(0);
 }
 
@@ -528,7 +528,7 @@ esdi_callback(void *priv)
 				irq_raise(esdi);
 				break;
 			}
-			
+
 			hdd_image_read(drive->hdd_num, addr, 1, (uint8_t *)esdi->buffer);
 			esdi->pos = 0;
 			esdi->status = STAT_DRQ|STAT_READY|STAT_DSC;
@@ -550,7 +550,7 @@ esdi_callback(void *priv)
 				irq_raise(esdi);
 				break;
 			}
-			
+
 			hdd_image_write(drive->hdd_num, addr, 1, (uint8_t *)esdi->buffer);
 			irq_raise(esdi);
 			esdi->secount = (esdi->secount - 1) & 0xff;
@@ -605,7 +605,7 @@ esdi_callback(void *priv)
 				irq_raise(esdi);
 				break;
 			}
-			
+
 			hdd_image_zero(drive->hdd_num, addr, esdi->secount);
 			esdi->status = STAT_READY|STAT_DSC;
 			irq_raise(esdi);

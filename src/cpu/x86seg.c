@@ -1516,7 +1516,7 @@ pmodeint(int num, int soft)
 		if (cpu_state.abrt)
 			return;
 		oaddr = addr;
-        
+
 		if (DPL2 > CPL) {
 			x86gpf("pmodeint(): Interrupt or trap gate DPL > CPL", seg & 0xfffc);
 			return;
@@ -2106,7 +2106,7 @@ taskswitch286(uint16_t seg, uint16_t *segdat, int is32)
 	new_pc = readmeml(base, 0x20);
 	new_flags = readmeml(base, 0x24);
 	if ((optype == OPTYPE_INT) || (optype == CALL))
-		new_flags |= NT_FLAG;                
+		new_flags |= NT_FLAG;
 
 	new_eax = readmeml(base, 0x28);
 	new_ecx = readmeml(base, 0x2C);

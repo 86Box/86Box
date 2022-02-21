@@ -54,7 +54,7 @@
 #include <86box/vid_svga_render.h>
 
 
-#define BIOS_ROM_PATH		"roms/video/et4000/ET4000.BIN"
+#define BIOS_ROM_PATH			"roms/video/et4000/ET4000.BIN"
 #define KOREAN_BIOS_ROM_PATH 	"roms/video/et4000/tgkorvga.bin"
 #define KOREAN_FONT_ROM_PATH 	"roms/video/et4000/tg_ksc5601.rom"
 #define KASAN_BIOS_ROM_PATH 	"roms/video/et4000/et4000_kasan16.bin"
@@ -79,7 +79,7 @@ typedef struct {
     int			get_korean_font_enabled;
     int			get_korean_font_index;
     uint16_t		get_korean_font_base;
-    
+
     uint8_t		kasan_cfg_index;
     uint8_t		kasan_cfg_regs[16];
     uint16_t		kasan_access_addr;
@@ -119,7 +119,7 @@ et4000_in(uint16_t addr, void *priv)
 			if ((svga->vgapal[0].r + svga->vgapal[0].g + svga->vgapal[0].b) >= 0x4e)
 				return 0;
 			else
-				return 0x10;					
+				return 0x10;
 		}
 		break;
 
@@ -153,7 +153,7 @@ et4000k_in(uint16_t addr, void *priv)
 {
     et4000_t *dev = (et4000_t *)priv;
     uint8_t val = 0xff;
-        
+
     switch (addr) {
 	case 0x22cb:
 		return dev->port_22cb_val;
@@ -245,7 +245,7 @@ et4000_out(uint16_t addr, uint8_t val, void *priv)
 				svga->read_bank = ((dev->banking >> 4) & 0x0f) * 0x10000;
 			} else
 				svga->write_bank = svga->read_bank = 0;
-			
+
                         old = svga->gdcreg[6];
                         svga_out(addr, val, svga);
                         if ((old & 0xc) != 0 && (val & 0xc) == 0)
@@ -253,7 +253,7 @@ et4000_out(uint16_t addr, uint8_t val, void *priv)
                                 /*override mask - ET4000 supports linear 128k at A0000*/
                                 svga->banked_mask = 0x1ffff;
                         }
-                        return;			
+                        return;
 		}
 		break;
 
@@ -291,7 +291,7 @@ et4000_out(uint16_t addr, uint8_t val, void *priv)
 	                                svga_recalctimings(svga);
 				}
                         }
-		}				
+		}
 		break;
     }
 
@@ -398,7 +398,7 @@ et4000_kasan_in(uint16_t addr, void *priv)
 		}
         } else
 		val = et4000_in(addr, priv);
-	
+
 	return val;
 }
 
@@ -571,7 +571,7 @@ et4000_recalctimings(svga_t *svga)
 			svga->clock = (cpuclock * (double)(1ull << 32)) / 36000000.0;
 			break;
 	}
-	
+
 	switch (svga->bpp) {
 		case 15:
 		case 16:
@@ -674,7 +674,7 @@ et4000_init(const device_t *info)
 		io_sethandler(0x03c0, 32,
 			      et4000_in,NULL,NULL, et4000_out,NULL,NULL, dev);
 		dev->pos_regs[0] = 0xf2;	/* ET4000 MCA board ID */
-		dev->pos_regs[1] = 0x80;	
+		dev->pos_regs[1] = 0x80;
 		mca_add(et4000_mca_read, et4000_mca_write, et4000_mca_feedb, NULL, dev);
 		break;
 
@@ -729,14 +729,14 @@ et4000_init(const device_t *info)
 			  NULL, NULL);
 		io_sethandler(0x03c0, 32,
 			      et4000_in,NULL,NULL, et4000_out,NULL,NULL, dev);
-		io_sethandler(0x0250, 8, 
+		io_sethandler(0x0250, 8,
 			      et4000_kasan_in, NULL, NULL, et4000_kasan_out, NULL, NULL, dev);
-		io_sethandler(0x0258, 2, 
+		io_sethandler(0x0258, 2,
 			      et4000_kasan_in, NULL, NULL, et4000_kasan_out, NULL, NULL, dev);
 		loadfont(KASAN_FONT_ROM_PATH, 6);
 		fn = KASAN_BIOS_ROM_PATH;
 		break;
-		
+
     }
 
     dev->svga.ramdac = device_add(&sc1502x_ramdac_device);

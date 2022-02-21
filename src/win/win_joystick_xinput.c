@@ -82,9 +82,9 @@ void joystick_init()
         int c;
 
         atexit(joystick_close);
-        
+
         joysticks_present = 0;
-        
+
         memset(controllers, 0, sizeof(XINPUT_STATE) * XINPUT_MAX_JOYSTICKS);
 
         for (c=0; c<XINPUT_MAX_JOYSTICKS; c++) {
@@ -146,7 +146,7 @@ void joystick_poll(void)
         for (int c=0; c<joysticks_present; c++) {
                 int value = XInputGetState(c, &controllers[c]);
                 if (value != ERROR_SUCCESS) continue;
-                        
+
                 plat_joystick_state[c].a[0] = controllers[c].Gamepad.sThumbLX;
                 plat_joystick_state[c].a[1] = - controllers[c].Gamepad.sThumbLY;
                 plat_joystick_state[c].a[3] = controllers[c].Gamepad.sThumbRX;
@@ -166,7 +166,7 @@ void joystick_poll(void)
                 plat_joystick_state[c].b[9] = (controllers[c].Gamepad.wButtons & XINPUT_GAMEPAD_START) ? 128 : 0;
                 plat_joystick_state[c].b[10] = (controllers[c].Gamepad.wButtons & XINPUT_GAMEPAD_LEFT_THUMB) ? 128 : 0;
                 plat_joystick_state[c].b[11] = (controllers[c].Gamepad.wButtons & XINPUT_GAMEPAD_RIGHT_THUMB) ? 128 : 0;
-                
+
                 int dpad_x = 0, dpad_y = 0;
                 if (controllers[c].Gamepad.wButtons & XINPUT_GAMEPAD_DPAD_UP)
                         dpad_y-=32767;
@@ -226,7 +226,7 @@ void joystick_process(void)
                 if (joystick_state[c].plat_joystick_nr)
                 {
                         int joystick_nr = joystick_state[c].plat_joystick_nr - 1;
-                        
+
                         for (d = 0; d < joystick_get_axis_count(joystick_type); d++)
                                 joystick_state[c].axis[d] = joystick_get_axis(joystick_nr, joystick_state[c].axis_mapping[d]);
                         for (d = 0; d < joystick_get_button_count(joystick_type); d++)
@@ -239,10 +239,10 @@ void joystick_process(void)
 
                                 x = joystick_get_axis(joystick_nr, joystick_state[c].pov_mapping[d][0]);
                                 y = joystick_get_axis(joystick_nr, joystick_state[c].pov_mapping[d][1]);
-                                
+
                                 angle = (atan2((double)y, (double)x) * 360.0) / (2*M_PI);
                                 magnitude = sqrt((double)x*(double)x + (double)y*(double)y);
-                                
+
                                 if (magnitude < 16384)
                                         joystick_state[c].pov[d] = -1;
                                 else

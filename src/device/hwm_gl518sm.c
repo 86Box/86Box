@@ -28,7 +28,7 @@
 #include <86box/i2c.h>
 #include <86box/hwm.h>
 
- 
+
 #define CLAMP(a, min, max)		(((a) < (min)) ? (min) : (((a) > (max)) ? (max) : (a)))
 /* Formulas and factors derived from Linux's gl518sm.c driver. */
 #define GL518SM_RPMDIV(r, d)		(CLAMP((r), 1, 960000) * (d))
@@ -272,7 +272,7 @@ gl518sm_init(const device_t *info)
     memset(dev, 0, sizeof(gl518sm_t));
 
     dev->local = info->local;
-    
+
     /* Set default values. */
     hwm_values_t defaults = {
 	{    /* fan speeds */

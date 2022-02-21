@@ -72,7 +72,7 @@ machine_at_6gxu_init(const machine_t *model)
     device_add(&w83782d_device); /* fans: CPU, Power, System; temperatures: System, CPU, unused */
     hwm_values.temperatures[2] = 0; /* unused */
     hwm_values.voltages[1] = 1500; /* VGTL */
-	
+
     return ret;
 }
 

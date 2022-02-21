@@ -405,7 +405,7 @@ pc_init(int argc, char *argv[])
 	int ng = 0, lvmp = 0;
 	uint32_t *uid, *shwnd;
 	uint32_t lang_init = 0;
-	
+
 	/* Grab the executable's full path. */
 	plat_get_exe_name(exe_path, sizeof(exe_path)-1);
 	p = plat_get_filename(exe_path);
@@ -421,7 +421,7 @@ pc_init(int argc, char *argv[])
 	 */
 	plat_getcwd(usr_path, sizeof(usr_path) - 1);
 	plat_getcwd(rom_path, sizeof(rom_path) - 1);
-	
+
 	memset(path, 0x00, sizeof(path));
 	memset(path2, 0x00, sizeof(path));
 
@@ -727,7 +727,7 @@ usage:
 
 	/* Load the configuration file. */
 	config_load();
-	
+
 	/* Load the desired language */
 	if (lang_init)
 		lang_id = lang_init;
@@ -941,9 +941,7 @@ pc_reset_hard_close(void)
 
 	scsi_disk_close();
 
-#ifdef USE_OPENAL
 	closeal();
-#endif
 
 	video_reset_close();
 
@@ -1071,7 +1069,7 @@ pc_reset_hard_init(void)
 void update_mouse_msg()
 {
 	wchar_t wcpufamily[2048], wcpu[2048], wmachine[2048], *wcp;
-	
+
 	mbstowcs(wmachine, machine_getname(), strlen(machine_getname())+1);
 
 	if (!cpu_override)

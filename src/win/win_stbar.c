@@ -482,7 +482,7 @@ StatusBarDestroyTips(void)
 
 /* API: mark the status bar as not ready. */
 /* Values: -1 - not ready, but don't clear POST text
-            0 - not ready 
+            0 - not ready
             1 - ready */
 void
 ui_sb_set_ready(int ready)
@@ -494,7 +494,7 @@ ui_sb_set_ready(int ready)
 
     if (ready == -1)
       ready = 0;
-	
+
     sb_ready = ready;
 }
 
@@ -709,7 +709,7 @@ ui_sb_update_panes(void)
 		sb_map[SB_MO | i] = sb_parts;
 		sb_parts++;
 	}
-    }    
+    }
     if (c_mfm && (mfm_int || !memcmp(hdc_name, "st506", 5))) {
 	edge += icon_width;
 	iStatusWidths[sb_parts] = edge;
@@ -803,8 +803,8 @@ ui_sb_update_panes(void)
 			sb_part_icons[i] |= 48;
 			StatusBarCreateZIPTip(i);
 			break;
-			
-		case SB_MO:		/* Magneto-Optical disk */	
+
+		case SB_MO:		/* Magneto-Optical disk */
 			sb_part_icons[i] = (strlen(mo_drives[sb_part_meanings[i] & 0xf].image_path) == 0) ? 128 : 0;
 			sb_part_icons[i] |= 56;
 			StatusBarCreateMOTip(i);
@@ -979,7 +979,7 @@ StatusBarCreate(HWND hwndParent, uintptr_t idStatus, HINSTANCE hInst)
 
     /* Create the window, and make sure it's using the STATUS class. */
     hwndSBAR = CreateWindowEx(0,
-			      STATUSCLASSNAME, 
+			      STATUSCLASSNAME,
 			      (LPCTSTR)NULL,
 			      SBARS_SIZEGRIP|WS_CHILD|WS_VISIBLE|SBT_TOOLTIPS,
 			      0, dh-17, dw, 17,

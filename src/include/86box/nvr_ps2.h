@@ -34,6 +34,7 @@
  *   Boston, MA 02111-1307
  *   USA.
  */
+
 #ifndef EMU_NVRPS2_H
 # define EMU_NVRPS2_H
 

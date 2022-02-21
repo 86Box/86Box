@@ -114,7 +114,7 @@ main_thread_fn()
             }
         } else {
             /* Just so we dont overload the host OS. */
-            if (drawits < -1)
+            if (drawits < -1 || dopause)
                 std::this_thread::sleep_for(std::chrono::milliseconds(1));
             else
                 std::this_thread::yield();
@@ -235,7 +235,7 @@ int main(int argc, char* argv[]) {
         QObject::disconnect(main_window, &MainWindow::pollMouse, 0, 0);
         QObject::connect(main_window, &MainWindow::pollMouse, (WindowsRawInputFilter*)rawInputFilter.get(), &WindowsRawInputFilter::mousePoll, Qt::DirectConnection);
         main_window->setSendKeyboardInput(false);
-    }    
+    }
 #endif
 
     pc_reset_hard_init();

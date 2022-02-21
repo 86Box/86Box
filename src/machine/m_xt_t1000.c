@@ -9,16 +9,16 @@
  *		Implementation of the Toshiba T1000 and T1200 portables.
  *
  *		The T1000 is the T3100e's little brother -- a real laptop
- *		with a rechargeable battery. 
+ *		with a rechargeable battery.
  *
  *		Features: 80C88 at 4.77MHz
  *		- 512k system RAM
  *		- 640x200 monochrome LCD
- *		- 82-key keyboard 
+ *		- 82-key keyboard
  *		- Real-time clock. Not the normal 146818, but a TC8521,
  *		   which is a 4-bit chip.
  *		- A ROM drive (128k, 256k or 512k) which acts as a mini
- *		  hard drive and contains a copy of DOS 2.11. 
+ *		  hard drive and contains a copy of DOS 2.11.
  *		- 160 bytes of non-volatile RAM for the CONFIG.SYS used
  *		  when booting from the ROM drive. Possibly physically
  *		  located in the keyboard controller RAM.
@@ -40,7 +40,7 @@
  *		and programming level.
  *
  *		01F2h: If hard drive is present, low 4 bits are 0Ch [20Mb]
- *			or 0Dh [10Mb]. 
+ *			or 0Dh [10Mb].
  *
  *		The hard drive is a 20MB (615/2/26) RLL 3.5" drive.
  *
@@ -154,7 +154,7 @@ typedef struct {
     uint8_t	turbo;
 
     /* NVRAM control */
-    uint8_t	nvr_c0;	
+    uint8_t	nvr_c0;
     uint8_t	nvr_tick;
     int		nvr_addr;
     uint8_t	nvr_active;
@@ -357,7 +357,7 @@ static uint32_t
 ems_execaddr(t1000_t *sys, int pg, uint16_t val)
 {
     if (!(val & 0x80)) return(0);	/* Bit 7 reset => not mapped */
-    if (!sys->ems_pages) return(0);	/* No EMS available: all used by 
+    if (!sys->ems_pages) return(0);	/* No EMS available: all used by
 					 * HardRAM or conventional RAM */
     val &= 0x7f;
 
@@ -454,7 +454,7 @@ ems_set_port(t1000_t *sys, uint8_t val)
 #endif
     if (sys->ems_port) {
 	for (n = 0; n <= 0xc000; n += 0x4000) {
-		io_removehandler(sys->ems_port+n, 1, 
+		io_removehandler(sys->ems_port+n, 1,
 				 ems_in,NULL,NULL, ems_out,NULL,NULL, sys);
 	}
 	sys->ems_port = 0;
@@ -468,7 +468,7 @@ ems_set_port(t1000_t *sys, uint8_t val)
     } else {
 	sys->ems_port = 0x208 | (val << 4);
 	for (n = 0; n <= 0xc000; n += 0x4000) {
-		io_sethandler(sys->ems_port+n, 1, 
+		io_sethandler(sys->ems_port+n, 1,
 			      ems_in,NULL,NULL, ems_out,NULL,NULL, sys);
 	}
 	sys->ems_port = 0;
@@ -497,7 +497,7 @@ ems_read_ram(uint32_t addr, void *priv)
     if (pg < 0) return(0xff);
     addr = sys->page_exec[pg] + (addr & 0x3fff);
 
-    return(ram[addr]);	
+    return(ram[addr]);
 }
 
 
@@ -568,7 +568,7 @@ ems_write_ramw(uint32_t addr, uint16_t val, void *priv)
     t1000_log("-> %06x val=%04x\n", addr, val);
 #endif
 
-    if (*(uint16_t *)&ram[addr] != val) nvr_dosave = 1;	
+    if (*(uint16_t *)&ram[addr] != val) nvr_dosave = 1;
 
     *(uint16_t *)&ram[addr] = val;
 }
@@ -583,7 +583,7 @@ ems_write_raml(uint32_t addr, uint32_t val, void *priv)
     if (pg < 0) return;
 
     addr = sys->page_exec[pg] + (addr & 0x3fff);
-    if (*(uint32_t *)&ram[addr] != val) nvr_dosave = 1;	
+    if (*(uint32_t *)&ram[addr] != val) nvr_dosave = 1;
 
     *(uint32_t *)&ram[addr] = val;
 }
@@ -620,7 +620,7 @@ read_ctl(uint16_t addr, void *priv)
 		break;
 
 	default:
-		ret = (sys->sys_ctl[addr & 0x0f]); 
+		ret = (sys->sys_ctl[addr & 0x0f]);
     }
 
     return(ret);
@@ -663,8 +663,8 @@ write_ctl(uint16_t addr, uint8_t val, void *priv)
 		{
 			t1000_video_enable(val & 0x01 ? 0 : 1);
 		}
-		break;		
-		
+		break;
+
 	case 0x0f:	/* EMS control */
 		switch (sys->sys_ctl[0x0e]) {
 			case 0x50:
@@ -734,7 +734,7 @@ t1000_write_nvram(uint16_t addr, uint8_t val, void *priv)
 
 	case 0xc1:	/* Write next byte to NVRAM */
 		if (sys->nvr_addr >= 0 && sys->nvr_addr < 160) {
-			if (sys->t1000_nvram[sys->nvr_addr] != val) 
+			if (sys->t1000_nvram[sys->nvr_addr] != val)
 				nvr_dosave = 1;
 			sys->t1000_nvram[sys->nvr_addr] = val;
 		}
@@ -773,7 +773,7 @@ static void write_t1200_nvram(uint32_t addr, uint8_t value, void *priv)
 {
     t1000_t *sys = (t1000_t *)priv;
 
-    if (sys->t1200_nvram[addr & 0x7FF] != value) 
+    if (sys->t1200_nvram[addr & 0x7FF] != value)
 	nvr_dosave = 1;
 
     sys->t1200_nvram[addr & 0x7FF] = value;
@@ -801,9 +801,9 @@ t1000_write_rom_ctl(uint16_t addr, uint8_t val, void *priv)
 	sys->rom_offset = ((val & 0x7f) * 0x10000) % T1000_ROMSIZE;
 	mem_mapping_set_addr(&sys->rom_mapping, 0xa0000, 0x10000);
 	mem_mapping_set_exec(&sys->rom_mapping, sys->romdrive + sys->rom_offset);
-	mem_mapping_enable(&sys->rom_mapping);	
+	mem_mapping_enable(&sys->rom_mapping);
     } else {
-	mem_mapping_disable(&sys->rom_mapping);	
+	mem_mapping_disable(&sys->rom_mapping);
     }
 }
 
@@ -965,8 +965,8 @@ machine_xt_t1200_init(const machine_t *model)
 
     /* Map the EMS page frame */
     for (pg = 0; pg < 4; pg++) {
-	mem_mapping_add(&t1000.mapping[pg], 
-			0xd0000 + (0x4000 * pg), 16384, 
+	mem_mapping_add(&t1000.mapping[pg],
+			0xd0000 + (0x4000 * pg), 16384,
 			ems_read_ram,ems_read_ramw,ems_read_raml,
 			ems_write_ram,ems_write_ramw,ems_write_raml,
 			NULL, MEM_MAPPING_EXTERNAL, &t1000);
@@ -984,7 +984,7 @@ machine_xt_t1200_init(const machine_t *model)
     mem_mapping_add(&t1000.nvr_mapping,
 		    0x000f0000, 2048,
 		    read_t1200_nvram, NULL, NULL,
-		    write_t1200_nvram, NULL, NULL, 
+		    write_t1200_nvram, NULL, NULL,
 		    NULL, MEM_MAPPING_EXTERNAL, &t1000);
 
     pit_ctr_set_out_func(&pit->counters[1], pit_refresh_timer_xt);

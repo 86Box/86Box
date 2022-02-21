@@ -69,7 +69,7 @@
                 PREFETCH_RUN(timing_bnt, 5, -1, 0,0,0,0, 0); \
                 return 0;                               \
         }                                               \
-        
+
 opJ(O)
 opJ(NO)
 opJ(B)
@@ -112,7 +112,7 @@ static int opLOOPNE_l(uint32_t fetchdat)
         ECX--;
         CLOCK_CYCLES((is486) ? 7 : 11);
         PREFETCH_RUN(11, 2, -1, 0,0,0,0, 0);
-        if (ECX && !ZF_SET()) 
+        if (ECX && !ZF_SET())
         {
                 cpu_state.pc += offset;
                 if (!(cpu_state.op32 & 0x100))
@@ -309,7 +309,7 @@ static int opCALL_r16(uint32_t fetchdat)
 }
 static int opCALL_r32(uint32_t fetchdat)
 {
-        int32_t addr = getlong();                       if (cpu_state.abrt) return 1;       
+        int32_t addr = getlong();                       if (cpu_state.abrt) return 1;
         PUSH_L(cpu_state.pc);
         cpu_state.pc += addr;
         CPU_BLOCK_END();
@@ -322,11 +322,11 @@ static int opCALL_r32(uint32_t fetchdat)
 static int opRET_w(uint32_t fetchdat)
 {
         uint16_t ret;
-        
+
         ret = POP_W();                          if (cpu_state.abrt) return 1;
         cpu_state.pc = ret;
         CPU_BLOCK_END();
-        
+
         CLOCK_CYCLES((is486) ? 5 : 10);
         PREFETCH_RUN(10, 1, -1, 1,0,0,0, 0);
         PREFETCH_FLUSH();
@@ -339,7 +339,7 @@ static int opRET_l(uint32_t fetchdat)
         ret = POP_L();                          if (cpu_state.abrt) return 1;
         cpu_state.pc = ret;
         CPU_BLOCK_END();
-        
+
         CLOCK_CYCLES((is486) ? 5 : 10);
         PREFETCH_RUN(10, 1, -1, 0,1,0,0, 0);
         PREFETCH_FLUSH();
@@ -353,10 +353,10 @@ static int opRET_w_imm(uint32_t fetchdat)
 
         ret = POP_W();                          if (cpu_state.abrt) return 1;
         if (stack32) ESP += offset;
-        else          SP += offset;       
+        else          SP += offset;
         cpu_state.pc = ret;
         CPU_BLOCK_END();
-        
+
         CLOCK_CYCLES((is486) ? 5 : 10);
         PREFETCH_RUN(10, 5, -1, 1,0,0,0, 0);
         PREFETCH_FLUSH();
@@ -369,13 +369,12 @@ static int opRET_l_imm(uint32_t fetchdat)
 
         ret = POP_L();                          if (cpu_state.abrt) return 1;
         if (stack32) ESP += offset;
-        else          SP += offset;       
+        else          SP += offset;
         cpu_state.pc = ret;
         CPU_BLOCK_END();
-        
+
         CLOCK_CYCLES((is486) ? 5 : 10);
         PREFETCH_RUN(10, 5, -1, 0,1,0,0, 0);
         PREFETCH_FLUSH();
         return 0;
 }
-

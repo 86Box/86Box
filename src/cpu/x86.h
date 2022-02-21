@@ -3,7 +3,7 @@
   of this code path; eg a GPF due to being in v86 mode. An 'unexpected' exception is
   one that would be unlikely to occur on the next exception, eg a page fault may be
   fixed up by the exception handler and the next execution would not hit it.
-  
+
   This distinction is used by the dynarec; a block that hits an 'expected' exception
   would be compiled, a block that hits an 'unexpected' exception would be rejected so
   that we don't end up with an unnecessarily short block*/

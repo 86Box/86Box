@@ -15,18 +15,19 @@
  *		Copyright 2008-2018 Sarah Walker.
  *		Copyright 2016-2018 Miran Grca.
  */
+
 #ifndef VIDEO_CGA_H
 # define VIDEO_CGA_H
 
 typedef struct cga_t
 {
         mem_mapping_t mapping;
-        
+
         int crtcreg;
         uint8_t crtc[32];
-        
+
         uint8_t cgastat;
-        
+
         uint8_t cgamode, cgacol;
 
 	int fontbase;
@@ -40,13 +41,13 @@ typedef struct cga_t
 
         uint64_t dispontime, dispofftime;
         pc_timer_t timer;
-        
+
         int firstline, lastline;
-        
+
         int drawcursor;
-        
+
         uint8_t *vram;
-        
+
         uint8_t charbuffer[256];
 
 	int revision;

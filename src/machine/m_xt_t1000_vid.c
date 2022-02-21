@@ -103,7 +103,7 @@ typedef struct t1000_t
 {
         mem_mapping_t mapping;
 
-	cga_t cga;		/* The CGA is used for the external 
+	cga_t cga;		/* The CGA is used for the external
 				 * display; most of its registers are
 				 * ignored by the plasma display. */
 
@@ -113,7 +113,7 @@ typedef struct t1000_t
 	uint8_t	attrmap;	/* Attribute mapping register */
 
         uint64_t dispontime, dispofftime;
-        
+
         int linepos, displine;
         int vc;
         int dispon;
@@ -145,12 +145,12 @@ static void t1000_out(uint16_t addr, uint8_t val, void *p)
                 case 0x3d1: case 0x3d3: case 0x3d5: case 0x3d7:
 		/* Register 0x12 controls the attribute mappings for the
 		 * LCD screen. */
-		if (t1000->cga.crtcreg == 0x12) 
+		if (t1000->cga.crtcreg == 0x12)
 		{
-			t1000->attrmap = val;	
+			t1000->attrmap = val;
 			t1000_recalcattrs(t1000);
 			return;
-		}	
+		}
 		cga_out(addr, val, &t1000->cga);
 
                 t1000_recalctimings(t1000);
@@ -182,7 +182,7 @@ static uint8_t t1000_in(uint16_t addr, void *p)
 			return val;
 		}
 	}
-	
+
 	return cga_in(addr, &t1000->cga);
 }
 
@@ -196,7 +196,7 @@ static void t1000_write(uint32_t addr, uint8_t val, void *p)
         t1000->vram[addr & 0x3fff] = val;
         cycles -= 4;
 }
-	
+
 static uint8_t t1000_read(uint32_t addr, void *p)
 {
         t1000_t *t1000 = (t1000_t *)p;
@@ -271,8 +271,8 @@ static void t1000_text_row80(t1000_t *t1000)
 
                 if (t1000->cga.cgamode & 0x20)	/* Blink */
                 {
-			cols[1] = blinkcols[attr][1]; 		
-			cols[0] = blinkcols[attr][0]; 		
+			cols[1] = blinkcols[attr][1];
+			cols[0] = blinkcols[attr][0];
                         if (blink) cols[1] = cols[0];
 		}
 		else
@@ -343,8 +343,8 @@ static void t1000_text_row40(t1000_t *t1000)
 
                 if (t1000->cga.cgamode & 0x20)	/* Blink */
                 {
-			cols[1] = blinkcols[attr][1]; 		
-			cols[0] = blinkcols[attr][0]; 		
+			cols[1] = blinkcols[attr][1];
+			cols[0] = blinkcols[attr][0];
                         if (blink) cols[1] = cols[0];
 		}
 		else
@@ -356,7 +356,7 @@ static void t1000_text_row40(t1000_t *t1000)
                 {
                 	for (c = 0; c < 8; c++)
 			{
-                       		((uint32_t *)buffer32->line[t1000->displine])[(x << 4) + c*2] = 
+                       		((uint32_t *)buffer32->line[t1000->displine])[(x << 4) + c*2] =
                        		((uint32_t *)buffer32->line[t1000->displine])[(x << 4) + c*2 + 1] = cols[(fontdat[bold][sc] & (1 << (c ^ 7))) ? 1 : 0] ^ (blue ^ grey);
 			}
 		}
@@ -364,7 +364,7 @@ static void t1000_text_row40(t1000_t *t1000)
                 {
                 	for (c = 0; c < 8; c++)
 			{
-				((uint32_t *)buffer32->line[t1000->displine])[(x << 4) + c*2] = 
+				((uint32_t *)buffer32->line[t1000->displine])[(x << 4) + c*2] =
 				((uint32_t *)buffer32->line[t1000->displine])[(x << 4) + c*2+1] = cols[(fontdat[bold][sc] & (1 << (c ^ 7))) ? 1 : 0];
 			}
                 }
@@ -432,7 +432,7 @@ static void t1000_cgaline4(t1000_t *t1000)
 			{
 				default:
 				case 0: ink0 = ink1 = grey; break;
-				case 1: if (t1000->displine & 1) 
+				case 1: if (t1000->displine & 1)
 					{
 						ink0 = grey; ink1 = grey;
 					}
@@ -441,7 +441,7 @@ static void t1000_cgaline4(t1000_t *t1000)
 						ink0 = blue; ink1 = grey;
 					}
 					break;
-				case 2: if (t1000->displine & 1) 
+				case 2: if (t1000->displine & 1)
 					{
 						ink0 = grey; ink1 = blue;
 					}
@@ -472,10 +472,10 @@ static void t1000_poll(void *p)
 
 		/* Set the font used for the external display */
 		t1000->cga.fontbase = ((t1000->video_options & 3) * 256);
-		
+
 		if (t1000->enabled) /* Disable internal chipset */
 			mem_mapping_enable(&t1000->mapping);
-		else    
+		else
 			mem_mapping_disable(&t1000->mapping);
 	}
 	/* Switch between internal plasma and external CRT display. */
@@ -503,20 +503,20 @@ static void t1000_poll(void *p)
                         }
 
 			/* Graphics */
-			if (t1000->cga.cgamode & 0x02)	
+			if (t1000->cga.cgamode & 0x02)
 			{
 				if (t1000->cga.cgamode & 0x10)
 					t1000_cgaline6(t1000);
 				else	t1000_cgaline4(t1000);
 			}
-			else	
+			else
 			if (t1000->cga.cgamode & 0x01) /* High-res text */
 			{
-				t1000_text_row80(t1000); 
+				t1000_text_row80(t1000);
 			}
 			else
 			{
-				t1000_text_row40(t1000); 
+				t1000_text_row40(t1000);
 			}
                 }
                 t1000->displine++;
@@ -563,7 +563,7 @@ static void t1000_poll(void *p)
 			video_res_x = T1000_XSIZE;
 			video_res_y = T1000_YSIZE;
 
-			if (t1000->cga.cgamode & 0x02)	
+			if (t1000->cga.cgamode & 0x02)
 			{
 				if (t1000->cga.cgamode & 0x10)
 					video_bpp = 1;
@@ -581,10 +581,10 @@ static void t1000_recalcattrs(t1000_t *t1000)
 	int n;
 
 	/* val behaves as follows:
-	 *     Bit 0: Attributes 01-06, 08-0E are inverse video 
-	 *     Bit 1: Attributes 01-06, 08-0E are bold 
+	 *     Bit 0: Attributes 01-06, 08-0E are inverse video
+	 *     Bit 1: Attributes 01-06, 08-0E are bold
 	 *     Bit 2: Attributes 11-16, 18-1F, 21-26, 28-2F ... F1-F6, F8-FF
-	 * 	      are inverse video 
+	 * 	      are inverse video
 	 *     Bit 3: Attributes 11-16, 18-1F, 21-26, 28-2F ... F1-F6, F8-FF
 	 * 	      are bold */
 
@@ -612,12 +612,12 @@ static void t1000_recalcattrs(t1000_t *t1000)
 	for (n = 0; n < 256; n++)
 	{
 		boldcols[n] = (n & 8) != 0;
-		blinkcols[n][0] = normcols[n][0] = blue; 
+		blinkcols[n][0] = normcols[n][0] = blue;
 		blinkcols[n][1] = normcols[n][1] = grey;
 	}
 
-	/* Colours 0x11-0xFF are controlled by bits 2 and 3 of the 
-	 * passed value. Exclude x0 and x8, which are always grey on 
+	/* Colours 0x11-0xFF are controlled by bits 2 and 3 of the
+	 * passed value. Exclude x0 and x8, which are always grey on
 	 * blue. */
 	for (n = 0x11; n <= 0xFF; n++)
 	{
@@ -634,7 +634,7 @@ static void t1000_recalcattrs(t1000_t *t1000)
 		}
 		if (t1000->attrmap & 8) boldcols[n] = 1;	/* Bold */
 	}
-	/* Set up the 01-0E range, controlled by bits 0 and 1 of the 
+	/* Set up the 01-0E range, controlled by bits 0 and 1 of the
 	 * passed value. When blinking is enabled this also affects 81-8E. */
 	for (n = 0x01; n <= 0x0E; n++)
 	{
@@ -655,7 +655,7 @@ static void t1000_recalcattrs(t1000_t *t1000)
 		}
 		if (t1000->attrmap & 2) boldcols[n] = 1;
 	}
-	/* Colours 07 and 0F are always blue on grey. If blinking is 
+	/* Colours 07 and 0F are always blue on grey. If blinking is
 	 * enabled so are 87 and 8F. */
 	for (n = 0x07; n <= 0x0F; n += 8)
 	{
@@ -736,19 +736,19 @@ static void t1000_close(void *p)
 static void t1000_speed_changed(void *p)
 {
         t1000_t *t1000 = (t1000_t *)p;
-        
+
         t1000_recalctimings(t1000);
 }
 
-static const device_config_t t1000_config[] = 
+static const device_config_t t1000_config[] =
 {
 	{
 		.name = "display_language",
 		.description = "Language",
 		.type = CONFIG_SELECTION,
-		.selection = 
+		.selection =
 		{
-			{ 
+			{
 				.description = "USA",
 				.value = 0
 			},

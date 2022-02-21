@@ -9,7 +9,7 @@
  *	  Implementation of the DTK MiniMicro series of Floppy Disk Controllers.
  *    Original code from VARCem. Fully rewritten, fixed and improved for 86Box.
  *
- * Author:	Fred N. van Kempen, <decwiz@yahoo.com>, 
+ * Author:	Fred N. van Kempen, <decwiz@yahoo.com>,
  *          Tiseno100
  *
  *		Copyright 2019 Fred N. van Kempen.

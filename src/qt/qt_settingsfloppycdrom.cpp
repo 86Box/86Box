@@ -250,4 +250,3 @@ void SettingsFloppyCDROM::on_comboBoxChannel_activated(int) {
         ui->comboBoxChannel->currentData().toUInt());
     Harddrives::busTrackClass->device_track(1, DEV_CDROM, ui->tableViewCDROM->model()->data(i, Qt::UserRole).toInt(), ui->tableViewCDROM->model()->data(i, Qt::UserRole + 1).toInt());
 }
-

@@ -1383,7 +1383,7 @@ write64_ami(void *priv, uint8_t val)
 		add_data(dev, 0x28);
 		add_data(dev, 0x00);
 		break;
-		
+
 	case 0xa1:	/* get controller version */
 		kbd_log("ATkbc: AMI - get controller version\n");
 		add_data(dev, 'H');
@@ -1873,7 +1873,7 @@ kbd_write(uint16_t port, uint8_t val, void *priv)
 					case 0xf3: /* set typematic rate/delay */
 						add_data_kbd_direct(dev, 0xfa);
 						break;
-					
+
 					default:
 						kbd_log("ATkbd: bad keyboard 0060 write %02X command %02X\n", val, dev->key_command);
 						add_data_kbd_direct(dev, 0xfe);
@@ -2182,7 +2182,7 @@ kbd_read(uint16_t port, void *priv)
 		/* Only clear the transmit timeout flag on non-PS/2 controllers, as on
 		   PS/2 controller, it is the keyboard/mouse output source bit. */
 		// dev->status &= ~STAT_RTIMEOUT;
-		if (((dev->flags & KBC_TYPE_MASK) > KBC_TYPE_PS2_NOREF) && 
+		if (((dev->flags & KBC_TYPE_MASK) > KBC_TYPE_PS2_NOREF) &&
 		   (kbc_ven != KBC_VEN_IBM_MCA))
 			dev->status &= ~STAT_TTIMEOUT;
 		break;
@@ -2293,7 +2293,7 @@ kbd_init(const device_t *info)
     io_sethandler(0x0064, 1, kbd_read, NULL, NULL, kbd_write, NULL, NULL, dev);
     keyboard_send = add_data_kbd;
 
-    timer_add(&dev->send_delay_timer, kbd_poll, dev, 1); 
+    timer_add(&dev->send_delay_timer, kbd_poll, dev, 1);
     timer_add(&dev->pulse_cb, pulse_poll, dev, 0);
 
     dev->write60_ven = NULL;

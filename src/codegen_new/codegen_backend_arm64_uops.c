@@ -1410,7 +1410,7 @@ static int codegen_MOV_INT_DOUBLE_64(codeblock_t *block, uop_t *uop)
 		host_arm64_FMOV_D_D(block, REG_V_TEMP, src_reg);
 	        host_arm64_call(block, codegen_fp_round_quad);
                 host_arm64_FMOV_D_Q(block, dest_reg, REG_TEMP);
-                
+
 		host_arm64_branch_set_offset(branch_offset, &block_write_data[block_pos]);
         }
         else

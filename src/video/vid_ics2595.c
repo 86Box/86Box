@@ -74,7 +74,7 @@ ics2595_write(void *p, int strobe, int dat)
 					ics2595->clocks[l] = (14318181.8 * ((double)n / 46.0)) / (double)d;
 					ics2595->state = ICS2595_IDLE;
 				}
-				break;                                                
+				break;
 		}
 	}
 

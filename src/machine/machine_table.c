@@ -134,11 +134,12 @@ const machine_t machines[] = {
 #endif
     /* Has a standard PS/2 KBC (so, use IBM PS/2 Type 1). */
     { "[8088] Xi8088",				"xi8088",		MACHINE_TYPE_8088,		CPU_PKG_8088, 0, 0, 0, 0, 0, 0, 0,										MACHINE_AT | MACHINE_BUS_PS2,							   64,  1024, 128,  127,	       machine_xt_xi8088_init, xi8088_get_device	},
+    { "[8088] Z-NIX PC-1600",			"znic",			MACHINE_TYPE_8088,		CPU_PKG_8088, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC,									   64,   640,  64,    0,		 machine_xt_znic_init, NULL			},
     { "[8088] Zenith Data Systems Z-151/152/161","zdsz151",		MACHINE_TYPE_8088,		CPU_PKG_8088, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC,									  128,   640,  64,    0,		 machine_xt_z151_init, NULL			},
     { "[8088] Zenith Data Systems Z-159",	"zdsz159",		MACHINE_TYPE_8088,		CPU_PKG_8088, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC,									  128,   640,  64,    0,		 machine_xt_z159_init, NULL			},
     { "[8088] Zenith Data Systems SupersPort (Z-184)","zdsupers",	MACHINE_TYPE_8088,		CPU_PKG_8088, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC | MACHINE_VIDEO_FIXED,						  128,   640, 128,    0,		 machine_xt_z184_init, z184_get_device		},
     { "[GC100A] Philips P3120",			"p3120",		MACHINE_TYPE_8088,		CPU_PKG_8088, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC | MACHINE_XTA,							  256,   768, 256,    0,		machine_xt_p3120_init, NULL			},
-    
+
     /* 8086 Machines */
     { "[8086] Amstrad PC1512",			"pc1512",		MACHINE_TYPE_8086,		CPU_PKG_8086, 0, 8000000, 8000000, 0, 0, 0, 0,									MACHINE_PC | MACHINE_VIDEO_FIXED | MACHINE_MOUSE,				  512,   640, 128,   63,		  machine_pc1512_init, pc1512_get_device	},
     { "[8086] Amstrad PC1640",			"pc1640",		MACHINE_TYPE_8086,		CPU_PKG_8086, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC | MACHINE_VIDEO | MACHINE_MOUSE,					  640,   640, 640,   63,		  machine_pc1640_init, pc1640_get_device	},
@@ -154,7 +155,7 @@ const machine_t machines[] = {
     { "[8086] Tandy 1000 SL/2",			"tandy1000sl2",		MACHINE_TYPE_8086,		CPU_PKG_8086, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC | MACHINE_VIDEO_FIXED,						  512,   768, 128,    0,	    machine_tandy1000sl2_init, tandy1k_sl_get_device	},
     { "[8086] Victor V86P",			"v86p",			MACHINE_TYPE_8086,		CPU_PKG_8086, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC | MACHINE_VIDEO,							  512,  1024, 128,  127,		machine_v86p_init, NULL				},
     { "[8086] Toshiba T1200",			"t1200",		MACHINE_TYPE_8086,		CPU_PKG_8086, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC | MACHINE_VIDEO,							 1024,  2048,1024,   63,		machine_xt_t1200_init, t1200_get_device		},
-    
+
 #if defined(DEV_BRANCH) && defined(USE_LASERXT)
     { "[8086] VTech Laser XT3",			"lxt3",			MACHINE_TYPE_8086,		CPU_PKG_8086, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC,									  256,   640, 256,    0,		 machine_xt_lxt3_init, NULL			},
 #endif
@@ -223,7 +224,7 @@ const machine_t machines[] = {
     { "[SCAT] Samsung SPC-4620P",		"spc4620p",		MACHINE_TYPE_286,		CPU_PKG_286, 0, 0, 0, 0, 0, 0, 0,										MACHINE_AT | MACHINE_BUS_PS2 | MACHINE_VIDEO,					 1024,  5120,1024,  127,	     machine_at_spc4620p_init, NULL			},
     /* Has IBM AT KBC firmware. */
     { "[SCAT] Samsung Deskmaster 286",		"deskmaster286",	MACHINE_TYPE_286,		CPU_PKG_286, 0, 0, 0, 0, 0, 0, 0,										MACHINE_AT,									  512, 16384, 128,  127,	machine_at_deskmaster286_init, NULL			},
-    
+
     /* 286 machines that utilize the MCA bus */
     /* Has IBM PS/2 Type 2 KBC firmware. */
     { "[MCA] IBM PS/2 model 50",		"ibmps2_m50",		MACHINE_TYPE_286,		CPU_PKG_286 | CPU_PKG_486SLC_IBM, 0, 10000000, 0, 0, 0, 0, 0,							MACHINE_MCA | MACHINE_BUS_PS2 | MACHINE_VIDEO,					 1024, 10240,1024,   63,	    machine_ps2_model_50_init, NULL			},
@@ -562,7 +563,7 @@ const machine_t machines[] = {
        PS/2 "Load Security" meaning), most likely MegaKey as it sends command AF
        (Set Extended Controller RAM) just like the later Intel AMI BIOS'es. */
     { "[OPTi 597] TMC PAT54PV",			"pat54pv",		MACHINE_TYPE_SOCKET5,		CPU_PKG_SOCKET5_7, CPU_BLOCK(CPU_K5, CPU_5K86), 50000000, 66666667, 3520, 3520, 1.5, 1.5,			MACHINE_VLB,									 2048,  65536, 2048, 127,	      machine_at_pat54pv_init, NULL			},
-    
+
     /* OPTi 596/597/822 */
     { "[OPTi 597] Shuttle HOT-543",		"hot543",		MACHINE_TYPE_SOCKET5,		CPU_PKG_SOCKET5_7, 0, 50000000, 66666667, 3520, 3520, 1.5, 2.0,							MACHINE_PCI | MACHINE_VLB,							 8192, 131072, 8192, 127,	       machine_at_hot543_init, NULL			},
 
@@ -827,7 +828,7 @@ const machine_t machines[] = {
     /* Has a Winbond W83977TF Super I/O chip with on-chip KBC with AMIKey-2 KBC
        firmware. */
     { "[i440BX] Supermicro P6SBA",		"p6sba",		MACHINE_TYPE_SLOT1,		CPU_PKG_SLOT1, 0, 66666667, 100000000, 1800, 3500, 1.5, 8.0,							MACHINE_AGP | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,		  		 8192, 786432, 8192, 255,		machine_at_p6sba_init, NULL			},
-    
+
     /* 440ZX */
     /* Has a Winbond W83977EF Super I/O chip with on-chip KBC with AMIKey-2 KBC
        firmware. */

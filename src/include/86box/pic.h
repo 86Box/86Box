@@ -15,9 +15,9 @@
  *		Copyright 2015-2020 Andrew Jenner.
  *		Copyright 2016-2020 Miran Grca.
  */
+
 #ifndef EMU_PIC_H
 # define EMU_PIC_H
-
 
 typedef struct pic {
     uint8_t	icw1, icw2, icw3, icw4,

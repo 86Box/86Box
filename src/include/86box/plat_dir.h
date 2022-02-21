@@ -13,9 +13,9 @@
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Copyright 2017 Fred N. van Kempen.
  */
+
 #ifndef PLAT_DIR_H
 # define PLAT_DIR_H
-
 
 #ifdef _MAX_FNAME
 # define MAXNAMLEN	_MAX_FNAME

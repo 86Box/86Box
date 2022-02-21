@@ -53,7 +53,7 @@ SDL_threadID eventthread;
 static int exit_event = 0;
 static int fullscreen_pending = 0;
 uint32_t lang_id = 0x0409, lang_sys = 0x0409; // Multilangual UI variables, for now all set to LCID of en-US
-char  icon_set[256] = "";  /* name of the iconset to be used */ 
+char  icon_set[256] = "";  /* name of the iconset to be used */
 
 static const uint16_t sdl_to_xt[0x200] =
 {
@@ -663,7 +663,7 @@ plat_power_off(void)
 
 void ui_sb_bugui(char *str)
 {
-    
+
 }
 
 extern void     sdl_blit(int x, int y, int w, int h);
@@ -814,7 +814,7 @@ void monitor_thread(void* param)
                 }
                 if (f_add_history) f_add_history(line);
                 memset(xargv, 0, sizeof(xargv));
-                while(1) 
+                while(1)
                 {
                     xargv[cmdargc++] = local_strsep(&linecpy, " ");
                     if (xargv[cmdargc - 1] == NULL || cmdargc >= 512) break;
@@ -861,7 +861,7 @@ void monitor_thread(void* param)
                     uint8_t id;
                     bool err = false;
                     char fn[PATH_MAX];
-                    
+
                     if (!xargv[2] || !xargv[1])
                     {
                         free(line);
@@ -1039,7 +1039,7 @@ int main(int argc, char** argv)
         SDL_Quit();
         return 6;
     }
-    
+
     eventthread = SDL_ThreadID();
     blitmtx = SDL_CreateMutex();
     if (!blitmtx)
@@ -1160,7 +1160,7 @@ int main(int argc, char** argv)
                 }
                 case SDL_RENDER_DEVICE_RESET:
                 case SDL_RENDER_TARGETS_RESET:
-                    {    
+                    {
                         extern void sdl_reinit_texture();
                         sdl_reinit_texture();
                         break;
@@ -1194,7 +1194,7 @@ int main(int argc, char** argv)
         if (mouse_capture && keyboard_ismsexit())
         {
             plat_mouse_capture(0);
-        }        
+        }
         if (blitreq)
         {
             extern void sdl_blit(int x, int y, int w, int h);
@@ -1243,7 +1243,7 @@ set_language(uint32_t id)
 /* Sets up the program language before initialization. */
 uint32_t plat_language_code(char* langcode)
 {
-    /* or maybe not */ 
+    /* or maybe not */
     return 0;
 }
 
@@ -1251,7 +1251,7 @@ uint32_t plat_language_code(char* langcode)
 void
 plat_language_code_r(uint32_t lcid, char* outbuf, int len)
 {
-    /* or maybe not */ 
+    /* or maybe not */
     return;
 }
 

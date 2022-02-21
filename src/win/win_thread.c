@@ -121,7 +121,7 @@ thread_destroy_event(event_t *arg)
 
 mutex_t *
 thread_create_mutex(void)
-{    
+{
     mutex_t *mutex = malloc(sizeof(CRITICAL_SECTION));
 
     InitializeCriticalSection(mutex);

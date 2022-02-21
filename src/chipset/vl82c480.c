@@ -58,7 +58,7 @@ vl82c480_shflags(uint8_t access)
 }
 
 
-static void 
+static void
 vl82c480_recalc(vl82c480_t *dev)
 {
     int i, j;
@@ -127,7 +127,7 @@ vl82c480_write(uint16_t addr, uint8_t val, void *p)
 }
 
 
-static uint8_t 
+static uint8_t
 vl82c480_read(uint16_t addr, void *p)
 {
     vl82c480_t *dev = (vl82c480_t *)p;

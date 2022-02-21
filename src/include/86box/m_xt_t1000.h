@@ -36,6 +36,7 @@
  *   Boston, MA 02111-1307
  *   USA.
  */
+
 #ifndef MACHINE_T1000_H
 # define MACHINE_T1000_H
 

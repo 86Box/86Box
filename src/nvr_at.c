@@ -149,7 +149,7 @@
  *		  This bit is set after each update cycle. When the UIE
  *		  bit is set to 1, the 1 in UF causes the IRQF bit to be
  *		  a 1, which asserts the !IRQ pin.  This bit can be
- *		  cleared by reading Register C or with a !RESET. 
+ *		  cleared by reading Register C or with a !RESET.
  *
  *		* Alarm Interrupt Flag (AF)
  *		  A 1 in the AF bit indicates that the current time has

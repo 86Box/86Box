@@ -19,6 +19,7 @@
  *		Copyright 2016-2020 Miran Grca.
  *		Copyright 2016-2020 TheCollector1995.
  */
+
 #ifndef SOUND_MPU401_H
 # define SOUND_MPU401_H
 
@@ -51,11 +52,11 @@ typedef enum MpuDataType
     T_COMMAND
 } MpuDataType;
 
-typedef enum RecState 
-{ 
-	M_RECOFF, 
+typedef enum RecState
+{
+	M_RECOFF,
 	M_RECSTB,
-	M_RECON 
+	M_RECON
 } RecState;
 
 /* Messages sent to MPU-401 from host */
@@ -83,7 +84,7 @@ typedef struct mpu_t
     uint8_t rec_queue[MPU401_INPUT_QUEUE];
 	int rec_queue_pos, rec_queue_used;
 	uint32_t ch_toref[16];
-    struct track 
+    struct track
     {
 	int counter;
 	uint8_t value[3], sys_val,
@@ -140,7 +141,7 @@ typedef struct mpu_t
 		uint8_t chan, trmask;
 		uint32_t key[4];
 	} chanref[5], inputref[16];
-	pc_timer_t mpu401_event_callback, mpu401_eoi_callback, 
+	pc_timer_t mpu401_event_callback, mpu401_eoi_callback,
 		   mpu401_reset_callback;
 	void	(*ext_irq_update)(void *priv, int set);
 	int	(*ext_irq_pending)(void *priv);
@@ -162,6 +163,5 @@ extern void	mpu401_irq_attach(mpu_t *mpu, void (*ext_irq_update)(void *priv, int
 
 extern int	MPU401_InputSysex(void *p, uint8_t *buffer, uint32_t len, int abort);
 extern void	MPU401_InputMsg(void *p, uint8_t *msg, uint32_t len);
-
 
 #endif	/*SOUND_MPU401_H*/
