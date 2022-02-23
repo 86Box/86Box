@@ -2107,7 +2107,7 @@ ide_board_callback(void *priv)
 
 
 static void
-atapi_error_no_read(ide_t *ide)
+atapi_error_no_ready(ide_t *ide)
 {
     ide->command = 0;
     if (ide->type == IDE_ATAPI) {
