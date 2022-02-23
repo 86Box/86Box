@@ -19,9 +19,9 @@
  *		Copyright 2016-2020 Miran Grca.
  *		Copyright 2017-2020 Fred N. van Kempen.
  */
+
 #ifndef EMU_SERIAL_H
 # define EMU_SERIAL_H
-
 
 #define SERIAL_8250			0
 #define SERIAL_8250_PCJR	1
@@ -100,6 +100,5 @@ extern const device_t	ns16650_device;
 extern const device_t	ns16750_device;
 extern const device_t	ns16850_device;
 extern const device_t	ns16950_device;
-
 
 #endif	/*EMU_SERIAL_H*/

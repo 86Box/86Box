@@ -7,12 +7,12 @@
  *      This file is part of the 86Box distribution.
  *
  *      Header file for windows raw input native filter for QT
- * 
+ *
  * Authors:
  *      Teemu Korhonen
- * 
+ *
  *      Copyright 2021 Teemu Korhonen
- * 
+ *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
@@ -42,7 +42,7 @@
 
 #if QT_VERSION_MAJOR >= 6
 #define result_t qintptr
-#else 
+#else
 #define result_t long
 #endif
 

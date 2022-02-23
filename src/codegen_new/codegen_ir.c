@@ -48,7 +48,7 @@ static void duplicate_uop(ir_data_t *ir, uop_t *uop, int offset)
         new_uop->imm_data = uop->imm_data;
         new_uop->p = uop->p;
         new_uop->pc = uop->pc;
-        
+
         if (uop->jump_dest_uop != -1)
         {
                 new_uop->jump_dest_uop = uop->jump_dest_uop + offset;
@@ -64,10 +64,10 @@ void codegen_ir_compile(ir_data_t *ir, codeblock_t *block)
         {
                 int unroll_count;
                 int unroll_end;
-                
+
                 codegen_set_loop_start(ir, codegen_unroll_first_instruction);
                 unroll_end = ir->wr_pos;
-                
+
                 for (unroll_count = 1; unroll_count < codegen_unroll_count; unroll_count++)
                 {
                         int offset = ir->wr_pos - codegen_unroll_start;
@@ -89,7 +89,7 @@ void codegen_ir_compile(ir_data_t *ir, codeblock_t *block)
         for (c = 0; c < ir->wr_pos; c++)
         {
                 uop_t *uop = &ir->uops[c];
-                
+
 //                pclog("uOP %i : %08x\n", c, uop->type);
 
                 if (uop->type & UOP_TYPE_BARRIER)
@@ -184,7 +184,7 @@ void codegen_ir_compile(ir_data_t *ir, codeblock_t *block)
                         else
                         {
                                 uop_t *uop_dest = &ir->uops[uop->jump_dest_uop];
-                                
+
                                 while (uop_dest->jump_list_next != -1)
                                         uop_dest = &ir->uops[uop_dest->jump_list_next];
 
@@ -195,7 +195,7 @@ void codegen_ir_compile(ir_data_t *ir, codeblock_t *block)
         }
 
         codegen_reg_flush_invalidate(ir, block);
-        
+
         if (jump_target_at_end != -1)
         {
                 uop_t *uop_dest = &ir->uops[jump_target_at_end];

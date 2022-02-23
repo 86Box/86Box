@@ -88,8 +88,8 @@ msgstr "Li&neaarinen interpolaatio"
 msgid "Hi&DPI scaling"
 msgstr "&Suuri DPI-skaalaus"
 
-msgid "&Fullscreen\tCtrl+Alt+PageUP"
-msgstr "&Koko näytön tila\tCtrl+Alt+PageUP"
+msgid "&Fullscreen\tCtrl+Alt+PgUp"
+msgstr "&Koko näytön tila\tCtrl+Alt+PgUp"
 
 msgid "Fullscreen &stretch mode"
 msgstr "Koko näytön &skaalaustila"
@@ -598,11 +598,11 @@ msgstr "Virhe"
 msgid "Fatal error"
 msgstr "Vakava virhe"
 
-msgid "<reserved>"
-msgstr "<varattu>"
+msgid " - PAUSED"
+msgstr " - PAUSED"
 
-msgid "Press CTRL+ALT+PAGE DOWN to return to windowed mode."
-msgstr "Paina CTRL+ALT+PAGE DOWN palataksesi ikkunoituun tilaan."
+msgid "Press Ctrl+Alt+PgDn to return to windowed mode."
+msgstr "Paina Ctrl+Alt+PgDn palataksesi ikkunoituun tilaan."
 
 msgid "Speed"
 msgstr "Nopeus"
@@ -1138,47 +1138,47 @@ msgstr "2.88 Mt"
 msgid "ZIP 100"
 msgstr "ZIP 100"
 
-msgid "3.5\" 128Mb M.O. (ISO 10090)"
-msgstr "3.5\" 128Mt M.O. (ISO 10090)"
+msgid "3.5\" 128 MB (ISO 10090)"
+msgstr "3.5\" 128 Mt (ISO 10090)"
 
-msgid "3.5\" 230Mb M.O. (ISO 13963)"
-msgstr "3.5\" 230Mt M.O. (ISO 13963)"
+msgid "3.5\" 230 MB (ISO 13963)"
+msgstr "3.5\" 230 Mt (ISO 13963)"
 
-msgid "3.5\" 540Mb M.O. (ISO 15498)"
-msgstr "3.5\" 540Mt M.O. (ISO 15498)"
+msgid "3.5\" 540 MB (ISO 15498)"
+msgstr "3.5\" 540 Mt (ISO 15498)"
 
-msgid "3.5\" 640Mb M.O. (ISO 15498)"
-msgstr "3.5\" 640Mt M.O. (ISO 15498)"
+msgid "3.5\" 640 MB (ISO 15498)"
+msgstr "3.5\" 640 Mt (ISO 15498)"
 
-msgid "3.5\" 1.3Gb M.O. (GigaMO)"
-msgstr "3.5\" 1.3Gt M.O. (GigaMO)"
+msgid "3.5\" 1.3 GB (GigaMO)"
+msgstr "3.5\" 1.3 Gt (GigaMO)"
 
-msgid "3.5\" 2.3Gb M.O. (GigaMO 2)"
-msgstr "3.5\" 2.3Gt M.O. (GigaMO 2)"
+msgid "3.5\" 2.3 GB (GigaMO 2)"
+msgstr "3.5\" 2.3 Gt (GigaMO 2)"
 
-msgid "5.25\" 600Mb M.O."
-msgstr "5.25\" 600Mt M.O."
+msgid "5.25\" 600 MB"
+msgstr "5.25\" 600 Mt"
 
-msgid "5.25\" 650Mb M.O."
-msgstr "5.25\" 650Mt M.O."
+msgid "5.25\" 650 MB"
+msgstr "5.25\" 650 Mt"
 
-msgid "5.25\" 1Gb M.O."
-msgstr "5.25\" 1Gt M.O."
+msgid "5.25\" 1 GB"
+msgstr "5.25\" 1 Gt"
 
-msgid "5.25\" 1.3Gb M.O."
-msgstr "5.25\" 1.3Gt M.O."
+msgid "5.25\" 1.3 GB"
+msgstr "5.25\" 1.3 Gt"
 
 msgid "Perfect RPM"
 msgstr "Täydellinen RPM"
 
-msgid "1%% below perfect RPM"
-msgstr "1%% alle täydellisen RPM:n"
+msgid "1% below perfect RPM"
+msgstr "1% alle täydellisen RPM:n"
 
-msgid "1.5%% below perfect RPM"
-msgstr "1.5%% alle täydellisen RPM:n"
+msgid "1.5% below perfect RPM"
+msgstr "1.5% alle täydellisen RPM:n"
 
-msgid "2%% below perfect RPM"
-msgstr "2%% alle täydellisen RPM:n"
+msgid "2% below perfect RPM"
+msgstr "2% alle täydellisen RPM:n"
 
 msgid "(System Default)"
 msgstr "(Järjestelmän oletus)"

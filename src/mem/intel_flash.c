@@ -138,7 +138,7 @@ flash_readw(uint32_t addr, void *p)
 	case CMD_IID:
 		if (addr & 2)
 			ret = dev->flash_id;
-		else		
+		else
 			ret = 0x0089;
 		break;
 
@@ -314,7 +314,7 @@ intel_flash_add_mappings(flash_t *dev)
 	else
 		base = 0xe0000 + (i << 16);
 
-	fbase = base & biosmask; 
+	fbase = base & biosmask;
 	if (dev->flags & FLAG_INV_A16)
 		fbase ^= 0x10000;
 
@@ -508,7 +508,7 @@ intel_flash_init(const device_t *info)
 			dev->block_start[BLOCK_BOOT] = 0x1e000;		/* BOOT BLOCK */
 			dev->block_end[BLOCK_BOOT] = 0x1ffff;
 		}
-		break;		
+		break;
     }
 
     intel_flash_add_mappings(dev);
@@ -521,9 +521,9 @@ intel_flash_init(const device_t *info)
 	fread(&(dev->array[dev->block_start[BLOCK_MAIN1]]), dev->block_len[BLOCK_MAIN1], 1, f);
 	if (dev->block_len[BLOCK_MAIN2])
 		fread(&(dev->array[dev->block_start[BLOCK_MAIN2]]), dev->block_len[BLOCK_MAIN2], 1, f);
-	else if (dev->block_len[BLOCK_MAIN3])
+	if (dev->block_len[BLOCK_MAIN3])
 		fread(&(dev->array[dev->block_start[BLOCK_MAIN3]]), dev->block_len[BLOCK_MAIN3], 1, f);
-	else if (dev->block_len[BLOCK_MAIN4])
+	if (dev->block_len[BLOCK_MAIN4])
 		fread(&(dev->array[dev->block_start[BLOCK_MAIN4]]), dev->block_len[BLOCK_MAIN4], 1, f);
 
 	fread(&(dev->array[dev->block_start[BLOCK_DATA1]]), dev->block_len[BLOCK_DATA1], 1, f);
@@ -545,9 +545,9 @@ intel_flash_close(void *p)
     fwrite(&(dev->array[dev->block_start[BLOCK_MAIN1]]), dev->block_len[BLOCK_MAIN1], 1, f);
     if (dev->block_len[BLOCK_MAIN2])
 	fwrite(&(dev->array[dev->block_start[BLOCK_MAIN2]]), dev->block_len[BLOCK_MAIN2], 1, f);
-    else if (dev->block_len[BLOCK_MAIN3])
+    if (dev->block_len[BLOCK_MAIN3])
 	fwrite(&(dev->array[dev->block_start[BLOCK_MAIN3]]), dev->block_len[BLOCK_MAIN3], 1, f);
-    else if (dev->block_len[BLOCK_MAIN4])
+    if (dev->block_len[BLOCK_MAIN4])
 	fwrite(&(dev->array[dev->block_start[BLOCK_MAIN4]]), dev->block_len[BLOCK_MAIN4], 1, f);
 
     fwrite(&(dev->array[dev->block_start[BLOCK_DATA1]]), dev->block_len[BLOCK_DATA1], 1, f);

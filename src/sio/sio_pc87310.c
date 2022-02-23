@@ -13,7 +13,7 @@
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *      Tiseno100
  *      EngiNerd <webmaster.crrc@yahoo.it>
- * 
+ *
  *		Copyright 2020 Miran Grca.
  *      Copyright 2020 Tiseno100
  *      Copyright 2021 EngiNerd.
@@ -147,7 +147,7 @@ pc87310_write(uint16_t port, uint8_t val, void *priv)
 	}
 
     pc87310_log("SIO: written %01X\n", val);
-    
+
     /* reconfigure parallel port */
     if (valxor & 0x03) {
         lpt1_remove();
@@ -203,7 +203,7 @@ pc87310_read(uint16_t port, void *priv)
     ret = dev->reg;
 
     pc87310_log("SIO: read %01X\n", ret);
-    
+
     return ret;
 }
 
@@ -247,7 +247,7 @@ pc87310_init(const device_t *info)
     HAS_IDE_FUNCTIONALITY = info->local;
 
     dev->fdc = device_add(&fdc_at_nsc_device);
-    
+
     dev->uart[0] = device_add_inst(&ns16550_device, 1);
     dev->uart[1] = device_add_inst(&ns16550_device, 2);
 
@@ -258,7 +258,7 @@ pc87310_init(const device_t *info)
 
     io_sethandler(0x3f3, 0x0001,
 		      pc87310_read, NULL, NULL, pc87310_write, NULL, NULL, dev);
-     
+
 
     return dev;
 }

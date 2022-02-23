@@ -1,4 +1,5 @@
 #
+#
 # 86Box		A hypervisor and IBM PC system emulator that specializes in
 #		running old operating systems and software designed for IBM
 #		PC systems and compatibles from 1981 through fairly recent
@@ -42,6 +43,15 @@ ifeq ($(DEV_BUILD), y)
  ifndef GUSMAX
   GUSMAX	:= y
  endif
+ ifndef ISAMEM_RAMPAGE
+  ISAMEM_RAMPAGE := y
+ endif
+ ifndef ISAMEM_IAB
+  ISAMEM_IAB := y
+ endif
+ ifndef ISAMEM_BRAT
+  ISAMEM_BRAT := y
+ endif
  ifndef LASERXT
   LASERXT	:= y
  endif
@@ -63,20 +73,14 @@ ifeq ($(DEV_BUILD), y)
  ifndef VGAWONDER
   VGAWONDER	:= y
  endif
+ ifndef TANDY_ISA
+  TANDY_ISA	:= y
+ endif
  ifndef VNC
   VNC		:= y
  endif
  ifndef XL24
   XL24		:= y
- endif
- ifndef ISAMEM_RAMPAGE
-  ISAMEM_RAMPAGE := y
- endif
- ifndef ISAMEM_IAB
-  ISAMEM_IAB := y
- endif
- ifndef ISAMEM_BRAT
-  ISAMEM_BRAT := y
  endif
  ifndef OLIVETTI
   OLIVETTI	:= y
@@ -100,6 +104,15 @@ else
  ifndef GUSMAX
   GUSMAX	:= n
  endif
+ ifndef ISAMEM_RAMPAGE
+  ISAMEM_RAMPAGE := n
+ endif
+ ifndef ISAMEM_IAB
+  ISAMEM_IAB := n
+ endif
+ ifndef ISAMEM_BRAT
+  ISAMEM_BRAT := n
+ endif
  ifndef LASERXT
   LASERXT	:= n
  endif
@@ -121,20 +134,14 @@ else
  ifndef VGAWONDER
   VGAWONDER	:= n
  endif
+ ifndef TANDY_ISA
+  TANDY_ISA	:= n
+ endif
  ifndef VNC
   VNC		:= n
  endif
  ifndef XL24
   XL24		:= n
- endif
- ifndef ISAMEM_RAMPAGE
-  ISAMEM_RAMPAGE := n
- endif
- ifndef ISAMEM_IAB
-  ISAMEM_IAB := n
- endif
- ifndef ISAMEM_BRAT
-  ISAMEM_BRAT := n
  endif
  ifndef OLIVETTI
   OLIVETTI	:= n
@@ -167,7 +174,7 @@ ifndef DINPUT
  DINPUT		:= n
 endif
 ifndef OPENAL
-OPENAL		:= y
+OPENAL		:= n
 endif
 ifndef FLUIDSYNTH
 FLUIDSYNTH	:= y
@@ -367,9 +374,6 @@ else
  endif
 endif
 
-ifeq ($(OPENAL), y)
-OPTS		+= -DUSE_OPENAL
-endif
 ifeq ($(FLUIDSYNTH), y)
 OPTS		+= -DUSE_FLUIDSYNTH
 FSYNTHOBJ	:= midi_fluidsynth.o
@@ -428,6 +432,18 @@ ifeq ($(GUSMAX), y)
 OPTS		+= -DUSE_GUSMAX
 endif
 
+ifeq ($(ISAMEM_RAMPAGE), y)
+OPTS        += -DUSE_ISAMEM_RAMPAGE
+endif
+
+ifeq ($(ISAMEM_IAB), y)
+OPTS        += -DUSE_ISAMEM_IAB
+endif
+
+ifeq ($(ISAMEM_BRAT), y)
+OPTS        += -DUSE_ISAMEM_BRAT
+endif
+
 ifeq ($(LASERXT), y)
 OPTS		+= -DUSE_LASERXT
 DEVBROBJ	+= m_xt_laserxt.o
@@ -456,24 +472,16 @@ OPTS		+= -DUSE_SIO_DETECT
 DEVBROBJ	+= sio_detect.o
 endif
 
+ifeq ($(TANDY_ISA), y)
+OPTS		+= -DUSE_TANDY_ISA
+endif
+
 ifeq ($(VGAWONDER), y)
 OPTS		+= -DUSE_VGAWONDER
 endif
 
 ifeq ($(XL24), y)
 OPTS		+= -DUSE_XL24
-endif
-
-ifeq ($(ISAMEM_RAMPAGE), y)
-OPTS        += -DUSE_ISAMEM_RAMPAGE
-endif
-
-ifeq ($(ISAMEM_IAB), y)
-OPTS        += -DUSE_ISAMEM_IAB
-endif
-
-ifeq ($(ISAMEM_BRAT), y)
-OPTS        += -DUSE_ISAMEM_BRAT
 endif
 
 ifeq ($(OLIVETTI), y)
@@ -635,7 +643,6 @@ PRINTOBJ	:= png.o prt_cpmap.o \
 		    prt_escp.o prt_text.o prt_ps.o
 
 SNDOBJ		:= sound.o \
-		    openal.o \
 		    snd_opl.o snd_opl_nuked.o \
 		    snd_resid.o \
 		     convolve.o convolve-sse.o envelope.o extfilt.o \
@@ -726,6 +733,12 @@ else
  PLATOBJ	+= win_joystick_rawinput.o
 endif
 
+ifeq ($(OPENAL), y)
+ SNDOBJ		+= openal.o
+else
+ SNDOBJ		+= xaudio2.o
+endif
+
 OBJ		:= $(MAINOBJ) $(CPUOBJ) $(CHIPSETOBJ) $(MCHOBJ) $(DEVOBJ) $(MEMOBJ) \
 		   $(FDDOBJ) $(GAMEOBJ) $(CDROMOBJ) $(ZIPOBJ) $(MOOBJ) $(HDDOBJ) $(MINIVHDOBJ) \
 		   $(NETOBJ) $(PRINTOBJ) $(SCSIOBJ) $(SIOOBJ) $(SNDOBJ) $(VIDOBJ) $(VOODOOOBJ) \
@@ -734,13 +747,12 @@ ifdef EXOBJ
 OBJ		+= $(EXOBJ)
 endif
 
-LIBS		:= -mwindows -lcomctl32 \
-		   -lopenal -lole32
+LIBS		:= -mwindows -lcomctl32 -lSDL2 -lrtmidi -limagehlp -ldinput8 -ldxguid  -ldxerr8 -luser32 -lgdi32 -lwinmm -limm32 -lole32 -loleaut32 -lshell32 -lversion -luuid
 
 ifeq ($(VNC), y)
 LIBS		+= $(VNCLIB) -lws2_32
 endif
-LIBS		+= -lpng -lz -lwsock32 -lshell32 -liphlpapi -lpsapi -lSDL2 -limm32 -lhid -lsetupapi -loleaut32 -luxtheme -lversion -lrtmidi -lwinmm -static -lstdc++
+LIBS		+= -lpng -lz -lwsock32 -liphlpapi -lpsapi -lhid -lsetupapi -luxtheme -static -lstdc++
 ifneq ($(X64), y)
 ifneq ($(ARM64), y)
 LIBS		+= -Wl,--large-address-aware

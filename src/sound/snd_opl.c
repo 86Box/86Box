@@ -239,7 +239,7 @@ opl2_read(uint16_t port, void *priv)
 
     opl2_update(dev);
 	opl_log("OPL2 port read = %04x\n", port);
-	
+
     return(opl_read(dev, port));
 }
 
@@ -299,7 +299,7 @@ void
 opl3_write(uint16_t port, uint8_t val, void *priv)
 {
     opl_t *dev = (opl_t *)priv;
-	
+
     opl3_update(dev);
 
     opl_write(dev, port, val);

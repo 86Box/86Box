@@ -58,7 +58,7 @@ static void tm_fcs_close(void *p)
 static uint8_t tm_fcs_read(void *p)
 {
         uint8_t ret = 0xf0;
-        
+
         if (JOYSTICK_PRESENT(0))
         {
                 if (joystick_state[0].button[0])

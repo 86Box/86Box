@@ -980,7 +980,7 @@ pipc_write(int func, int addr, uint8_t val, void *priv)
 	if ((dev->local <= VIA_PIPC_586B) && (addr >= 0x74))
 		return;
 
-	if ((dev->local <= VIA_PIPC_596A) && ((addr == 0x51) || (addr == 0x52) || (addr == 0x5f) || (addr == 0x85) || 
+	if ((dev->local <= VIA_PIPC_596A) && ((addr == 0x51) || (addr == 0x52) || (addr == 0x5f) || (addr == 0x85) ||
 	    (addr == 0x86) || ((addr >= 0x8a) && (addr < 0x90))))
 		return;
 
@@ -1577,7 +1577,7 @@ pipc_init(const device_t *info)
 	dev->ac97 = device_add(&ac97_via_device);
 	ac97_via_set_slot(dev->ac97, dev->slot, PCI_INTC);
 
-	dev->sb = device_add(&sb_pro_compat_device);
+	dev->sb = device_add_inst(&sb_pro_compat_device, 2);
 #ifndef VIA_PIPC_FM_EMULATION
 	dev->sb->opl_enabled = 1;
 #endif

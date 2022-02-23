@@ -35,7 +35,7 @@
 RecompOpFn recomp_opcodes[512] =
 {
         /*16-bit data*/
-/*      00              01              02              03              04              05              06              07              08              09              0a              0b              0c              0d              0e              0f*/        
+/*      00              01              02              03              04              05              06              07              08              09              0a              0b              0c              0d              0e              0f*/
 /*00*/  ropADD_b_rmw,   ropADD_w_rmw,   ropADD_b_rm,    ropADD_w_rm,    ropADD_AL_imm,  ropADD_AX_imm,  ropPUSH_ES_16,  ropPOP_ES_16,   ropOR_b_rmw,    ropOR_w_rmw,    ropOR_b_rm,     ropOR_w_rm,     ropOR_AL_imm,   ropOR_AX_imm,   ropPUSH_CS_16,  NULL,
 /*10*/  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           ropPUSH_SS_16,  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           ropPUSH_DS_16,  ropPOP_DS_16,
 /*20*/  ropAND_b_rmw,   ropAND_w_rmw,   ropAND_b_rm,    ropAND_w_rm,    ropAND_AL_imm,  ropAND_AX_imm,  NULL,           NULL,           ropSUB_b_rmw,   ropSUB_w_rmw,   ropSUB_b_rm,    ropSUB_w_rm,    ropSUB_AL_imm,  ropSUB_AX_imm,  NULL,           NULL,
@@ -57,7 +57,7 @@ RecompOpFn recomp_opcodes[512] =
 /*f0*/  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           ropF6,          ropF7_w,        NULL,           NULL,           ropCLI,         ropSTI,         ropCLD,         ropSTD,         ropFE,          ropFF_16,
 
         /*32-bit data*/
-/*      00              01              02              03              04              05              06              07              08              09              0a              0b              0c              0d              0e              0f*/        
+/*      00              01              02              03              04              05              06              07              08              09              0a              0b              0c              0d              0e              0f*/
 /*00*/  ropADD_b_rmw,   ropADD_l_rmw,   ropADD_b_rm,    ropADD_l_rm,    ropADD_AL_imm,  ropADD_EAX_imm, ropPUSH_ES_32,  ropPOP_ES_32,   ropOR_b_rmw,    ropOR_l_rmw,    ropOR_b_rm,     ropOR_l_rm,     ropOR_AL_imm,   ropOR_EAX_imm,  ropPUSH_CS_32,  NULL,
 /*10*/  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           ropPUSH_SS_32,  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           ropPUSH_DS_32,  ropPOP_DS_32,
 /*20*/  ropAND_b_rmw,   ropAND_l_rmw,   ropAND_b_rm,    ropAND_l_rm,    ropAND_AL_imm,  ropAND_EAX_imm, NULL,           NULL,           ropSUB_b_rmw,   ropSUB_l_rmw,   ropSUB_b_rm,    ropSUB_l_rm,    ropSUB_AL_imm,  ropSUB_EAX_imm, NULL,           NULL,
@@ -82,7 +82,7 @@ RecompOpFn recomp_opcodes[512] =
 RecompOpFn recomp_opcodes_0f[512] =
 {
         /*16-bit data*/
-/*      00              01              02              03              04              05              06              07              08              09              0a              0b              0c              0d              0e              0f*/        
+/*      00              01              02              03              04              05              06              07              08              09              0a              0b              0c              0d              0e              0f*/
 /*00*/  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
 /*10*/  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
 /*20*/  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
@@ -104,7 +104,7 @@ RecompOpFn recomp_opcodes_0f[512] =
 /*f0*/  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
 
         /*32-bit data*/
-/*      00              01              02              03              04              05              06              07              08              09              0a              0b              0c              0d              0e              0f*/        
+/*      00              01              02              03              04              05              06              07              08              09              0a              0b              0c              0d              0e              0f*/
 /*00*/  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
 /*10*/  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
 /*20*/  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
@@ -130,7 +130,7 @@ RecompOpFn recomp_opcodes_0f[512] =
 RecompOpFn recomp_opcodes_d8[512] =
 {
         /*16-bit data*/
-/*      00              01              02              03              04              05              06              07              08              09              0a              0b              0c              0d              0e              0f*/        
+/*      00              01              02              03              04              05              06              07              08              09              0a              0b              0c              0d              0e              0f*/
 /*00*/  ropFADDs,       ropFADDs,       ropFADDs,       ropFADDs,       ropFADDs,       ropFADDs,       ropFADDs,       ropFADDs,       ropFMULs,       ropFMULs,       ropFMULs,       ropFMULs,       ropFMULs,       ropFMULs,       ropFMULs,       ropFMULs,
 /*10*/  ropFCOMs,       ropFCOMs,       ropFCOMs,       ropFCOMs,       ropFCOMs,       ropFCOMs,       ropFCOMs,       ropFCOMs,       ropFCOMPs,      ropFCOMPs,      ropFCOMPs,      ropFCOMPs,      ropFCOMPs,      ropFCOMPs,      ropFCOMPs,      ropFCOMPs,
 /*20*/  ropFSUBs,       ropFSUBs,       ropFSUBs,       ropFSUBs,       ropFSUBs,       ropFSUBs,       ropFSUBs,       ropFSUBs,       ropFSUBRs,      ropFSUBRs,      ropFSUBRs,      ropFSUBRs,      ropFSUBRs,      ropFSUBRs,      ropFSUBRs,      ropFSUBRs,
@@ -152,7 +152,7 @@ RecompOpFn recomp_opcodes_d8[512] =
 /*f0*/  ropFDIV,        ropFDIV,        ropFDIV,        ropFDIV,        ropFDIV,        ropFDIV,        ropFDIV,        ropFDIV,        ropFDIVR,       ropFDIVR,       ropFDIVR,       ropFDIVR,       ropFDIVR,       ropFDIVR,       ropFDIVR,       ropFDIVR,
 
         /*32-bit data*/
-/*      00              01              02              03              04              05              06              07              08              09              0a              0b              0c              0d              0e              0f*/        
+/*      00              01              02              03              04              05              06              07              08              09              0a              0b              0c              0d              0e              0f*/
 /*00*/  ropFADDs,       ropFADDs,       ropFADDs,       ropFADDs,       ropFADDs,       ropFADDs,       ropFADDs,       ropFADDs,       ropFMULs,       ropFMULs,       ropFMULs,       ropFMULs,       ropFMULs,       ropFMULs,       ropFMULs,       ropFMULs,
 /*10*/  ropFCOMs,       ropFCOMs,       ropFCOMs,       ropFCOMs,       ropFCOMs,       ropFCOMs,       ropFCOMs,       ropFCOMs,       ropFCOMPs,      ropFCOMPs,      ropFCOMPs,      ropFCOMPs,      ropFCOMPs,      ropFCOMPs,      ropFCOMPs,      ropFCOMPs,
 /*20*/  ropFSUBs,       ropFSUBs,       ropFSUBs,       ropFSUBs,       ropFSUBs,       ropFSUBs,       ropFSUBs,       ropFSUBs,       ropFSUBRs,      ropFSUBRs,      ropFSUBRs,      ropFSUBRs,      ropFSUBRs,      ropFSUBRs,      ropFSUBRs,      ropFSUBRs,
@@ -177,7 +177,7 @@ RecompOpFn recomp_opcodes_d8[512] =
 RecompOpFn recomp_opcodes_d9[512] =
 {
         /*16-bit data*/
-/*      00              01              02              03              04              05              06              07              08              09              0a              0b              0c              0d              0e              0f*/        
+/*      00              01              02              03              04              05              06              07              08              09              0a              0b              0c              0d              0e              0f*/
 /*00*/  ropFLDs,        ropFLDs,        ropFLDs,        ropFLDs,        ropFLDs,        ropFLDs,        ropFLDs,        ropFLDs,        NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
 /*10*/  ropFSTs,        ropFSTs,        ropFSTs,        ropFSTs,        ropFSTs,        ropFSTs,        ropFSTs,        ropFSTs,        ropFSTPs,       ropFSTPs,       ropFSTPs,       ropFSTPs,       ropFSTPs,       ropFSTPs,       ropFSTPs,       ropFSTPs,
 /*20*/  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           ropFLDCW,       ropFLDCW,       ropFLDCW,       ropFLDCW,       ropFLDCW,       ropFLDCW,       ropFLDCW,       ropFLDCW,
@@ -199,7 +199,7 @@ RecompOpFn recomp_opcodes_d9[512] =
 /*f0*/  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
 
         /*32-bit data*/
-/*      00              01              02              03              04              05              06              07              08              09              0a              0b              0c              0d              0e              0f*/        
+/*      00              01              02              03              04              05              06              07              08              09              0a              0b              0c              0d              0e              0f*/
 /*00*/  ropFLDs,        ropFLDs,        ropFLDs,        ropFLDs,        ropFLDs,        ropFLDs,        ropFLDs,        ropFLDs,        NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
 /*10*/  ropFSTs,        ropFSTs,        ropFSTs,        ropFSTs,        ropFSTs,        ropFSTs,        ropFSTs,        ropFSTs,        ropFSTPs,       ropFSTPs,       ropFSTPs,       ropFSTPs,       ropFSTPs,       ropFSTPs,       ropFSTPs,       ropFSTPs,
 /*20*/  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           ropFLDCW,       ropFLDCW,       ropFLDCW,       ropFLDCW,       ropFLDCW,       ropFLDCW,       ropFLDCW,       ropFLDCW,
@@ -224,7 +224,7 @@ RecompOpFn recomp_opcodes_d9[512] =
 RecompOpFn recomp_opcodes_da[512] =
 {
         /*16-bit data*/
-/*      00              01              02              03              04              05              06              07              08              09              0a              0b              0c              0d              0e              0f*/        
+/*      00              01              02              03              04              05              06              07              08              09              0a              0b              0c              0d              0e              0f*/
 /*00*/  ropFADDil,      ropFADDil,      ropFADDil,      ropFADDil,      ropFADDil,      ropFADDil,      ropFADDil,      ropFADDil,      ropFMULil,      ropFMULil,      ropFMULil,      ropFMULil,      ropFMULil,      ropFMULil,      ropFMULil,      ropFMULil,
 /*10*/  ropFCOMil,      ropFCOMil,      ropFCOMil,      ropFCOMil,      ropFCOMil,      ropFCOMil,      ropFCOMil,      ropFCOMil,      ropFCOMPil,     ropFCOMPil,     ropFCOMPil,     ropFCOMPil,     ropFCOMPil,     ropFCOMPil,     ropFCOMPil,     ropFCOMPil,
 /*20*/  ropFSUBil,      ropFSUBil,      ropFSUBil,      ropFSUBil,      ropFSUBil,      ropFSUBil,      ropFSUBil,      ropFSUBil,      ropFSUBRil,     ropFSUBRil,     ropFSUBRil,     ropFSUBRil,     ropFSUBRil,     ropFSUBRil,     ropFSUBRil,     ropFSUBRil,
@@ -246,7 +246,7 @@ RecompOpFn recomp_opcodes_da[512] =
 /*f0*/  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
 
         /*32-bit data*/
-/*      00              01              02              03              04              05              06              07              08              09              0a              0b              0c              0d              0e              0f*/        
+/*      00              01              02              03              04              05              06              07              08              09              0a              0b              0c              0d              0e              0f*/
 /*00*/  ropFADDil,      ropFADDil,      ropFADDil,      ropFADDil,      ropFADDil,      ropFADDil,      ropFADDil,      ropFADDil,      ropFMULil,      ropFMULil,      ropFMULil,      ropFMULil,      ropFMULil,      ropFMULil,      ropFMULil,      ropFMULil,
 /*10*/  ropFCOMil,      ropFCOMil,      ropFCOMil,      ropFCOMil,      ropFCOMil,      ropFCOMil,      ropFCOMil,      ropFCOMil,      ropFCOMPil,     ropFCOMPil,     ropFCOMPil,     ropFCOMPil,     ropFCOMPil,     ropFCOMPil,     ropFCOMPil,     ropFCOMPil,
 /*20*/  ropFSUBil,      ropFSUBil,      ropFSUBil,      ropFSUBil,      ropFSUBil,      ropFSUBil,      ropFSUBil,      ropFSUBil,      ropFSUBRil,     ropFSUBRil,     ropFSUBRil,     ropFSUBRil,     ropFSUBRil,     ropFSUBRil,     ropFSUBRil,     ropFSUBRil,
@@ -271,7 +271,7 @@ RecompOpFn recomp_opcodes_da[512] =
 RecompOpFn recomp_opcodes_db[512] =
 {
         /*16-bit data*/
-/*      00              01              02              03              04              05              06              07              08              09              0a              0b              0c              0d              0e              0f*/        
+/*      00              01              02              03              04              05              06              07              08              09              0a              0b              0c              0d              0e              0f*/
 /*00*/  ropFILDl,       ropFILDl,       ropFILDl,       ropFILDl,       ropFILDl,       ropFILDl,       ropFILDl,       ropFILDl,       NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
 /*10*/  ropFISTl,       ropFISTl,       ropFISTl,       ropFISTl,       ropFISTl,       ropFISTl,       ropFISTl,       ropFISTl,       ropFISTPl,      ropFISTPl,      ropFISTPl,      ropFISTPl,      ropFISTPl,      ropFISTPl,      ropFISTPl,      ropFISTPl,
 /*20*/  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
@@ -293,7 +293,7 @@ RecompOpFn recomp_opcodes_db[512] =
 /*f0*/  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
 
         /*32-bit data*/
-/*      00              01              02              03              04              05              06              07              08              09              0a              0b              0c              0d              0e              0f*/        
+/*      00              01              02              03              04              05              06              07              08              09              0a              0b              0c              0d              0e              0f*/
 /*80*/  ropFILDl,       ropFILDl,       ropFILDl,       ropFILDl,       ropFILDl,       ropFILDl,       ropFILDl,       ropFILDl,       NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
 /*10*/  ropFISTl,       ropFISTl,       ropFISTl,       ropFISTl,       ropFISTl,       ropFISTl,       ropFISTl,       ropFISTl,       ropFISTPl,      ropFISTPl,      ropFISTPl,      ropFISTPl,      ropFISTPl,      ropFISTPl,      ropFISTPl,      ropFISTPl,
 /*20*/  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
@@ -318,7 +318,7 @@ RecompOpFn recomp_opcodes_db[512] =
 RecompOpFn recomp_opcodes_dc[512] =
 {
         /*16-bit data*/
-/*      00              01              02              03              04              05              06              07              08              09              0a              0b              0c              0d              0e              0f*/        
+/*      00              01              02              03              04              05              06              07              08              09              0a              0b              0c              0d              0e              0f*/
 /*00*/  ropFADDd,       ropFADDd,       ropFADDd,       ropFADDd,       ropFADDd,       ropFADDd,       ropFADDd,       ropFADDd,       ropFMULd,       ropFMULd,       ropFMULd,       ropFMULd,       ropFMULd,       ropFMULd,       ropFMULd,       ropFMULd,
 /*10*/  ropFCOMd,       ropFCOMd,       ropFCOMd,       ropFCOMd,       ropFCOMd,       ropFCOMd,       ropFCOMd,       ropFCOMd,       ropFCOMPd,      ropFCOMPd,      ropFCOMPd,      ropFCOMPd,      ropFCOMPd,      ropFCOMPd,      ropFCOMPd,      ropFCOMPd,
 /*20*/  ropFSUBd,       ropFSUBd,       ropFSUBd,       ropFSUBd,       ropFSUBd,       ropFSUBd,       ropFSUBd,       ropFSUBd,       ropFSUBRd,      ropFSUBRd,      ropFSUBRd,      ropFSUBRd,      ropFSUBRd,      ropFSUBRd,      ropFSUBRd,      ropFSUBRd,
@@ -340,7 +340,7 @@ RecompOpFn recomp_opcodes_dc[512] =
 /*f0*/  ropFDIVRr,      ropFDIVRr,      ropFDIVRr,      ropFDIVRr,      ropFDIVRr,      ropFDIVRr,      ropFDIVRr,      ropFDIVRr,      ropFDIVr,       ropFDIVr,       ropFDIVr,       ropFDIVr,       ropFDIVr,       ropFDIVr,       ropFDIVr,       ropFDIVr,
 
         /*32-bit data*/
-/*      00              01              02              03              04              05              06              07              08              09              0a              0b              0c              0d              0e              0f*/        
+/*      00              01              02              03              04              05              06              07              08              09              0a              0b              0c              0d              0e              0f*/
 /*00*/  ropFADDd,       ropFADDd,       ropFADDd,       ropFADDd,       ropFADDd,       ropFADDd,       ropFADDd,       ropFADDd,       ropFMULd,       ropFMULd,       ropFMULd,       ropFMULd,       ropFMULd,       ropFMULd,       ropFMULd,       ropFMULd,
 /*10*/  ropFCOMd,       ropFCOMd,       ropFCOMd,       ropFCOMd,       ropFCOMd,       ropFCOMd,       ropFCOMd,       ropFCOMd,       ropFCOMPd,      ropFCOMPd,      ropFCOMPd,      ropFCOMPd,      ropFCOMPd,      ropFCOMPd,      ropFCOMPd,      ropFCOMPd,
 /*20*/  ropFSUBd,       ropFSUBd,       ropFSUBd,       ropFSUBd,       ropFSUBd,       ropFSUBd,       ropFSUBd,       ropFSUBd,       ropFSUBRd,      ropFSUBRd,      ropFSUBRd,      ropFSUBRd,      ropFSUBRd,      ropFSUBRd,      ropFSUBRd,      ropFSUBRd,
@@ -365,7 +365,7 @@ RecompOpFn recomp_opcodes_dc[512] =
 RecompOpFn recomp_opcodes_dd[512] =
 {
         /*16-bit data*/
-/*      00              01              02              03              04              05              06              07              08              09              0a              0b              0c              0d              0e              0f*/        
+/*      00              01              02              03              04              05              06              07              08              09              0a              0b              0c              0d              0e              0f*/
 /*00*/  ropFLDd,        ropFLDd,        ropFLDd,        ropFLDd,        ropFLDd,        ropFLDd,        ropFLDd,        ropFLDd,        NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
 /*10*/  ropFSTd,        ropFSTd,        ropFSTd,        ropFSTd,        ropFSTd,        ropFSTd,        ropFSTd,        ropFSTd,        ropFSTPd,       ropFSTPd,       ropFSTPd,       ropFSTPd,       ropFSTPd,       ropFSTPd,       ropFSTPd,       ropFSTPd,
 /*20*/  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
@@ -387,7 +387,7 @@ RecompOpFn recomp_opcodes_dd[512] =
 /*f0*/  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
 
         /*32-bit data*/
-/*      00              01              02              03              04              05              06              07              08              09              0a              0b              0c              0d              0e              0f*/        
+/*      00              01              02              03              04              05              06              07              08              09              0a              0b              0c              0d              0e              0f*/
 /*00*/  ropFLDd,        ropFLDd,        ropFLDd,        ropFLDd,        ropFLDd,        ropFLDd,        ropFLDd,        ropFLDd,        NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
 /*10*/  ropFSTd,        ropFSTd,        ropFSTd,        ropFSTd,        ropFSTd,        ropFSTd,        ropFSTd,        ropFSTd,        ropFSTPd,       ropFSTPd,       ropFSTPd,       ropFSTPd,       ropFSTPd,       ropFSTPd,       ropFSTPd,       ropFSTPd,
 /*20*/  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
@@ -412,7 +412,7 @@ RecompOpFn recomp_opcodes_dd[512] =
 RecompOpFn recomp_opcodes_de[512] =
 {
         /*16-bit data*/
-/*      00              01              02              03              04              05              06              07              08              09              0a              0b              0c              0d              0e              0f*/        
+/*      00              01              02              03              04              05              06              07              08              09              0a              0b              0c              0d              0e              0f*/
 /*00*/  ropFADDiw,      ropFADDiw,      ropFADDiw,      ropFADDiw,      ropFADDiw,      ropFADDiw,      ropFADDiw,      ropFADDiw,      ropFMULiw,      ropFMULiw,      ropFMULiw,      ropFMULiw,      ropFMULiw,      ropFMULiw,      ropFMULiw,      ropFMULiw,
 /*10*/  ropFCOMiw,      ropFCOMiw,      ropFCOMiw,      ropFCOMiw,      ropFCOMiw,      ropFCOMiw,      ropFCOMiw,      ropFCOMiw,      ropFCOMPiw,     ropFCOMPiw,     ropFCOMPiw,     ropFCOMPiw,     ropFCOMPiw,     ropFCOMPiw,     ropFCOMPiw,     ropFCOMPiw,
 /*20*/  ropFSUBiw,      ropFSUBiw,      ropFSUBiw,      ropFSUBiw,      ropFSUBiw,      ropFSUBiw,      ropFSUBiw,      ropFSUBiw,      ropFSUBRiw,     ropFSUBRiw,     ropFSUBRiw,     ropFSUBRiw,     ropFSUBRiw,     ropFSUBRiw,     ropFSUBRiw,     ropFSUBRiw,
@@ -434,7 +434,7 @@ RecompOpFn recomp_opcodes_de[512] =
 /*f0*/  ropFDIVRP,      ropFDIVRP,      ropFDIVRP,      ropFDIVRP,      ropFDIVRP,      ropFDIVRP,      ropFDIVRP,      ropFDIVRP,      ropFDIVP,       ropFDIVP,       ropFDIVP,       ropFDIVP,       ropFDIVP,       ropFDIVP,       ropFDIVP,       ropFDIVP,
 
         /*32-bit data*/
-/*      00              01              02              03              04              05              06              07              08              09              0a              0b              0c              0d              0e              0f*/        
+/*      00              01              02              03              04              05              06              07              08              09              0a              0b              0c              0d              0e              0f*/
 /*00*/  ropFADDiw,      ropFADDiw,      ropFADDiw,      ropFADDiw,      ropFADDiw,      ropFADDiw,      ropFADDiw,      ropFADDiw,      ropFMULiw,      ropFMULiw,      ropFMULiw,      ropFMULiw,      ropFMULiw,      ropFMULiw,      ropFMULiw,      ropFMULiw,
 /*10*/  ropFCOMiw,      ropFCOMiw,      ropFCOMiw,      ropFCOMiw,      ropFCOMiw,      ropFCOMiw,      ropFCOMiw,      ropFCOMiw,      ropFCOMPiw,     ropFCOMPiw,     ropFCOMPiw,     ropFCOMPiw,     ropFCOMPiw,     ropFCOMPiw,     ropFCOMPiw,     ropFCOMPiw,
 /*20*/  ropFSUBiw,      ropFSUBiw,      ropFSUBiw,      ropFSUBiw,      ropFSUBiw,      ropFSUBiw,      ropFSUBiw,      ropFSUBiw,      ropFSUBRiw,     ropFSUBRiw,     ropFSUBRiw,     ropFSUBRiw,     ropFSUBRiw,     ropFSUBRiw,     ropFSUBRiw,     ropFSUBRiw,
@@ -459,7 +459,7 @@ RecompOpFn recomp_opcodes_de[512] =
 RecompOpFn recomp_opcodes_df[512] =
 {
         /*16-bit data*/
-/*      00              01              02              03              04              05              06              07              08              09              0a              0b              0c              0d              0e              0f*/        
+/*      00              01              02              03              04              05              06              07              08              09              0a              0b              0c              0d              0e              0f*/
 /*00*/  ropFILDw,       ropFILDw,       ropFILDw,       ropFILDw,       ropFILDw,       ropFILDw,       ropFILDw,       ropFILDw,       NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
 /*10*/  ropFISTw,       ropFISTw,       ropFISTw,       ropFISTw,       ropFISTw,       ropFISTw,       ropFISTw,       ropFISTw,       ropFISTPw,      ropFISTPw,      ropFISTPw,      ropFISTPw,      ropFISTPw,      ropFISTPw,      ropFISTPw,      ropFISTPw,
 /*20*/  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           ropFILDq,       ropFILDq,       ropFILDq,       ropFILDq,       ropFILDq,       ropFILDq,       ropFILDq,       ropFILDq,
@@ -481,7 +481,7 @@ RecompOpFn recomp_opcodes_df[512] =
 /*f0*/  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
 
         /*32-bit data*/
-/*      00              01              02              03              04              05              06              07              08              09              0a              0b              0c              0d              0e              0f*/        
+/*      00              01              02              03              04              05              06              07              08              09              0a              0b              0c              0d              0e              0f*/
 /*00*/  ropFILDw,       ropFILDw,       ropFILDw,       ropFILDw,       ropFILDw,       ropFILDw,       ropFILDw,       ropFILDw,       NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
 /*10*/  ropFISTw,       ropFISTw,       ropFISTw,       ropFISTw,       ropFISTw,       ropFISTw,       ropFISTw,       ropFISTw,       ropFISTPw,      ropFISTPw,      ropFISTPw,      ropFISTPw,      ropFISTPw,      ropFISTPw,      ropFISTPw,      ropFISTPw,
 /*20*/  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           ropFILDq,       ropFILDq,       ropFILDq,       ropFILDq,       ropFILDq,       ropFILDq,       ropFILDq,       ropFILDq,
@@ -506,7 +506,7 @@ RecompOpFn recomp_opcodes_df[512] =
 RecompOpFn recomp_opcodes_REPE[512] =
 {
         /*16-bit data*/
-/*      00              01              02              03              04              05              06              07              08              09              0a              0b              0c              0d              0e              0f*/        
+/*      00              01              02              03              04              05              06              07              08              09              0a              0b              0c              0d              0e              0f*/
 /*00*/  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
 /*10*/  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
 /*20*/  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
@@ -528,7 +528,7 @@ RecompOpFn recomp_opcodes_REPE[512] =
 /*f0*/  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
 
         /*32-bit data*/
-/*      00              01              02              03              04              05              06              07              08              09              0a              0b              0c              0d              0e              0f*/        
+/*      00              01              02              03              04              05              06              07              08              09              0a              0b              0c              0d              0e              0f*/
 /*00*/  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
 /*10*/  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
 /*20*/  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
@@ -553,7 +553,7 @@ RecompOpFn recomp_opcodes_REPE[512] =
 RecompOpFn recomp_opcodes_REPNE[512] =
 {
         /*16-bit data*/
-/*      00              01              02              03              04              05              06              07              08              09              0a              0b              0c              0d              0e              0f*/        
+/*      00              01              02              03              04              05              06              07              08              09              0a              0b              0c              0d              0e              0f*/
 /*00*/  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
 /*10*/  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
 /*20*/  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
@@ -575,7 +575,7 @@ RecompOpFn recomp_opcodes_REPNE[512] =
 /*f0*/  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
 
         /*32-bit data*/
-/*      00              01              02              03              04              05              06              07              08              09              0a              0b              0c              0d              0e              0f*/        
+/*      00              01              02              03              04              05              06              07              08              09              0a              0b              0c              0d              0e              0f*/
 /*00*/  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
 /*10*/  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
 /*20*/  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,

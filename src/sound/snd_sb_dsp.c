@@ -573,7 +573,7 @@ sb_exec_command(sb_dsp_t *dsp)
 		break;
 	case 0x38:	/* Write to SB MIDI Output (Raw) */
 		dsp->onebyte_midi = 1;
-		break;				
+		break;
 	case 0x40:	/* Set time constant */
 		dsp->sb_timei = dsp->sb_timeo = dsp->sb_data[0];
 		dsp->sblatcho = dsp->sblatchi = TIMER_USEC * (256 - dsp->sb_data[0]);
@@ -1045,7 +1045,7 @@ sb_read(uint16_t a, void *priv)
 }
 
 
-void 
+void
 sb_dsp_input_msg(void *p, uint8_t *msg, uint32_t len)
 {
     sb_dsp_t *dsp = (sb_dsp_t *) p;
@@ -1065,15 +1065,15 @@ sb_dsp_input_msg(void *p, uint8_t *msg, uint32_t len)
 	for (i = 0; i < len; i++)
 		sb_add_data(dsp, msg[i]);
 	sb_irq(dsp, 1);
-    } else if (dsp->midi_in_poll) { 
-	for (i = 0; i < len; i++) 
+    } else if (dsp->midi_in_poll) {
+	for (i = 0; i < len; i++)
 		sb_add_data(dsp, msg[i]);
     }
 }
 
 
-int 
-sb_dsp_input_sysex(void *p, uint8_t *buffer, uint32_t len, int abort) 
+int
+sb_dsp_input_sysex(void *p, uint8_t *buffer, uint32_t len, int abort)
 {
     sb_dsp_t *dsp = (sb_dsp_t *) p;
     uint32_t i;

@@ -41,7 +41,7 @@ int enum_helper, c;
 
 HWND hwndPreferences;
 
-BOOL CALLBACK 
+BOOL CALLBACK
 EnumResLangProc(HMODULE hModule, LPCTSTR lpszType, LPCTSTR lpszName, WORD wIDLanguage, LONG_PTR lParam)
 {
 	wchar_t temp[LOCALE_NAME_MAX_LENGTH + 1];
@@ -50,11 +50,11 @@ EnumResLangProc(HMODULE hModule, LPCTSTR lpszType, LPCTSTR lpszName, WORD wIDLan
 	GetLocaleInfoEx(temp, LOCALE_SENGLISHDISPLAYNAME, dispname, MAX_PATH);
 	SendMessage((HWND)lParam, CB_ADDSTRING, 0, (LPARAM)dispname);
 	SendMessage((HWND)lParam, CB_SETITEMDATA, c, (LPARAM)wIDLanguage);
-	
+
 	if (wIDLanguage == lang_id)
 		enum_helper = c;
 	c++;
-	
+
 	return 1;
 }
 
@@ -63,17 +63,17 @@ static void
 preferences_fill_languages(HWND hdlg)
 {
 	temp_language = GetThreadUILanguage();
-	HWND lang_combo = GetDlgItem(hdlg, IDC_COMBO_LANG); 
-	
+	HWND lang_combo = GetDlgItem(hdlg, IDC_COMBO_LANG);
+
 	SendMessage(lang_combo, CB_RESETCONTENT, 0, 0);
 	SendMessage(lang_combo, CB_ADDSTRING, 0, win_get_string(IDS_7168));
 	SendMessage(lang_combo, CB_SETITEMDATA, 0, 0xFFFF);
-	
-	enum_helper = 0; c = 1; 
+
+	enum_helper = 0; c = 1;
 	//if no one is selected, then it was 0xFFFF or unsupported language, in either case go with index enum_helper=0
 	//also start enum index from c=1
 	EnumResourceLanguages(hinstance, RT_MENU, L"MainMenu", &EnumResLangProc, (LPARAM)lang_combo);
-	
+
 	SendMessage(lang_combo, CB_SETCURSEL, enum_helper, 0);
 }
 
@@ -81,42 +81,42 @@ preferences_fill_languages(HWND hdlg)
 static void
 preferences_fill_iconsets(HWND hdlg)
 {
-	HWND icon_combo = GetDlgItem(hdlg, IDC_COMBO_ICON); 
-	
+	HWND icon_combo = GetDlgItem(hdlg, IDC_COMBO_ICON);
+
 	/* Add the default one */
 	wchar_t buffer[512] = L"(";
 	wcscat(buffer, plat_get_string(IDS_2090));
 	wcscat(buffer, L")");
-	
+
 	SendMessage(icon_combo, CB_RESETCONTENT, 0, 0);
 	SendMessage(icon_combo, CB_ADDSTRING, 0, (LPARAM)buffer);
 	SendMessage(icon_combo, CB_SETITEMDATA, 0, (LPARAM)strdup(""));
-	
+
 	int combo_index = -1;
-	
+
 	/* Find for extra ones */
 	HANDLE hFind;
 	WIN32_FIND_DATA data;
-	
+
 	char icon_path_root[512];
 	win_get_icons_path(icon_path_root);
-	
+
 	wchar_t search[512];
 	mbstoc16s(search, icon_path_root, strlen(icon_path_root) + 1);
 	wcscat(search, L"*.*");
-	
+
 	hFind = FindFirstFile((LPCWSTR)search, &data);
-	
+
 	if (hFind != INVALID_HANDLE_VALUE) {
 		do {
-			if (wcscmp(data.cFileName, L".") && wcscmp(data.cFileName, L"..") && 
+			if (wcscmp(data.cFileName, L".") && wcscmp(data.cFileName, L"..") &&
 			  (data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY))
 			{
 				wchar_t temp[512] = {0}, dispname[512] = {0};
 				mbstoc16s(temp, icon_path_root, strlen(icon_path_root) + 1);
 				wcscat(temp, data.cFileName);
 				wcscat(temp, L"\\iconinfo.txt");
-								
+
 				wcscpy(dispname, data.cFileName);
 				FILE *fp = _wfopen(temp, L"r");
 				if (fp)
@@ -126,29 +126,29 @@ preferences_fill_iconsets(HWND hdlg)
 					{
 						mbstoc16s(dispname, line, strlen(line) + 1);
 					}
-					
+
 					fclose(fp);
 				}
-				
+
 				char filename[512];
 				c16stombs(filename, data.cFileName, 511);
-				
+
 				int index = SendMessage(icon_combo, CB_ADDSTRING, 0, (LPARAM)dispname);
 				SendMessage(icon_combo, CB_SETITEMDATA, index, (LPARAM)(strdup(filename)));
-				
+
 				if (!strcmp(filename, icon_set))
 					combo_index = index;
 			}
 		} while (FindNextFile(hFind, &data));
 		FindClose(hFind);
 	}
-	
+
 	if (combo_index == -1)
 	{
 		combo_index = 0;
 		strcpy(temp_icon_set, "");
 	}
-	
+
 	SendMessage(icon_combo, CB_SETCURSEL, combo_index, 0);
 }
 
@@ -157,30 +157,30 @@ static int
 preferences_settings_changed(void)
 {
     int i = 0;
-	
+
     /* Language */
     i = i || has_language_changed(temp_language);
     i = i || strcmp(temp_icon_set, icon_set);
-	
+
     return i;
 }
 
 /* IndexOf by ItemData */
-static int 
+static int
 preferences_indexof(HWND combo, LPARAM itemdata)
 {
     int i;
     for (i = 0; i < SendMessage(combo, CB_GETCOUNT, 0, 0); i++)
         if (SendMessage(combo, CB_GETITEMDATA, i, 0) == itemdata)
             return i;
-	
+
     return -1;
 }
 
 /* This saves the settings back to the global variables. */
 static void
 preferences_settings_save(void)
-{	
+{
     /* Language */
     set_language(temp_language);
 
@@ -190,13 +190,13 @@ preferences_settings_save(void)
 
     /* Update title bar */
     update_mouse_msg();
-	
+
     /* Update status bar */
-    config_changed = 1;	
+    config_changed = 1;
     ui_sb_set_ready(-1);
     ui_sb_update_panes();
     ui_sb_update_text();
-	
+
     /* Save the language changes */
     config_save();
 }
@@ -220,8 +220,8 @@ PreferencesDlgProcedure(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 
 	case WM_COMMAND:
         switch (LOWORD(wParam)) {
-			case IDOK:				
-				if (preferences_settings_changed()) 
+			case IDOK:
+				if (preferences_settings_changed())
 				  preferences_settings_save();
 				EndDialog(hdlg, 0);
 				return TRUE;
@@ -229,41 +229,41 @@ PreferencesDlgProcedure(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 			case IDCANCEL:
 				EndDialog(hdlg, 0);
 				return TRUE;
-				
+
 			case IDC_COMBO_LANG:
 				if (HIWORD(wParam) == CBN_SELCHANGE) {
 					HWND combo = GetDlgItem(hdlg, IDC_COMBO_LANG);
-					int index = SendMessage(combo, CB_GETCURSEL, 0, 0); 
+					int index = SendMessage(combo, CB_GETCURSEL, 0, 0);
 					temp_language = SendMessage(combo, CB_GETITEMDATA, index, 0);
 				}
-				break; 
-				
+				break;
+
 			case IDC_COMBO_ICON:
 				if (HIWORD(wParam) == CBN_SELCHANGE) {
 					HWND combo = GetDlgItem(hdlg, IDC_COMBO_ICON);
-					int index = SendMessage(combo, CB_GETCURSEL, 0, 0); 
+					int index = SendMessage(combo, CB_GETCURSEL, 0, 0);
 					strcpy(temp_icon_set, (char*)SendMessage(combo, CB_GETITEMDATA, index, 0));
 				}
-				break; 
-				
+				break;
+
 			case IDC_BUTTON_DEFAULT: {
 				HWND combo = GetDlgItem(hdlg, IDC_COMBO_LANG);
 				int index = preferences_indexof(combo, DEFAULT_LANGUAGE);
-				SendMessage(combo, CB_SETCURSEL, index, 0); 
+				SendMessage(combo, CB_SETCURSEL, index, 0);
 				temp_language = DEFAULT_LANGUAGE;
-				break; 
+				break;
 			}
-		
+
 			case IDC_BUTTON_DEFICON: {
-				SendMessage(GetDlgItem(hdlg, IDC_COMBO_ICON), CB_SETCURSEL, 0, 0); 
+				SendMessage(GetDlgItem(hdlg, IDC_COMBO_ICON), CB_SETCURSEL, 0, 0);
 				strcpy(temp_icon_set, "");
-				break; 
+				break;
 			}
 			default:
 				break;
 		}
 		break;
-		
+
 	case WM_DESTROY: {
 			int i;
 			LRESULT temp;
@@ -279,7 +279,7 @@ PreferencesDlgProcedure(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 			}
 		}
 		break;
-				
+
     }
 
     return(FALSE);

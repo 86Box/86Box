@@ -584,7 +584,7 @@ BEGIN
 
 END
 
-DLG_CFG_HARD_DISKS_ADD DIALOG DISCARDABLE  0, 0, 219, 151
+DLG_CFG_HARD_DISKS_ADD DIALOG DISCARDABLE  0, 0, 239, 151
 STYLE DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "Add Hard Disk"
 FONT FONT_SIZE, FONT_NAME
@@ -592,61 +592,61 @@ BEGIN
     LTEXT           STR_FILE_NAME, IDT_FILE_NAME,
                     7, 7, 204, 12
     EDITTEXT        IDC_EDIT_HD_FILE_NAME,
-                    7, 18, 153, 12
+                    7, 18, 173, 12
     PUSHBUTTON      STR_SPECIFY, IDC_CFILE,
-                    167, 18, 44, CFG_BTN_HEIGHT
+                    187, 18, 44, CFG_BTN_HEIGHT
 
     LTEXT           STR_CYLS, IDT_CYLS,
-                    7, 37, 32, 12
+                    7, 37, 42, 12
     EDITTEXT        IDC_EDIT_HD_CYL,
-                    42, 36, 28, 12
+                    50, 36, 28, 12
 
     LTEXT           STR_HEADS, IDT_HEADS,
-                    81, 37, 29, 12
+                    86, 37, 29, 12
     EDITTEXT        IDC_EDIT_HD_HPC,
-                    112, 36, 28, 12
+                    122, 36, 28, 12
 
     LTEXT           STR_SECTORS, IDT_SECTORS,
-                    154, 37, 27, 12
+                    164, 37, 33, 12
     EDITTEXT        IDC_EDIT_HD_SPT,
-                    183, 36, 28, 12
+                    197, 36, 28, 12
 
     LTEXT           STR_SIZE_MB, IDT_SIZE_MB,
-                    7, 56, 33, 12
+                    7, 56, 48, 12
     EDITTEXT        IDC_EDIT_HD_SIZE,
-                    42, 54, 28, 12
+                    50, 54, 28, 12
 
     LTEXT           STR_TYPE, IDT_TYPE,
                     86, 56, 24, 12
     COMBOBOX        IDC_COMBO_HD_TYPE,
-                    113, 54, 98, 12,
+                    133, 54, 98, 12,
                     CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
 
     LTEXT           STR_BUS,IDT_BUS,
                     7, 75, 24, 12
     COMBOBOX        IDC_COMBO_HD_BUS,
-                    33, 73, 58, 12,
+                    43, 73, 58, 12,
                     CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
 
     LTEXT           STR_CHANNEL, IDT_CHANNEL,
-                    99, 75, 34, 12
+                    109, 75, 34, 12
     COMBOBOX        IDC_COMBO_HD_CHANNEL,
-                    134, 73, 77, 12,
+                    144, 73, 87, 12,
                     CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
     COMBOBOX        IDC_COMBO_HD_CHANNEL_IDE,
-                    134, 73, 77, 12,
+                    144, 73, 87, 12,
                     CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
 
     LTEXT           STR_ID, IDT_ID,
-                    99, 75, 34, 12
+                    109, 75, 34, 12
     COMBOBOX        IDC_COMBO_HD_ID,
-                    134, 73, 77, 12,
+                    144, 73, 87, 12,
                     CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
 
     LTEXT           STR_IMG_FORMAT, IDT_IMG_FORMAT,
-                    7, 94, 50, 12
+                    7, 94, 70, 12
     COMBOBOX        IDC_COMBO_HD_IMG_FORMAT,
-                    58, 92, 153, 12,
+                    78, 92, 153, 12,
                     CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
 
     LTEXT           STR_BLOCK_SIZE, IDT_BLOCK_SIZE,
@@ -663,9 +663,9 @@ BEGIN
                     7, 16, 204, 12
 
     DEFPUSHBUTTON   STR_OK, IDOK,
-                    55, 129, 50, CFG_BTN_HEIGHT
+                    75, 129, 50, CFG_BTN_HEIGHT
     PUSHBUTTON      STR_CANCEL, IDCANCEL,
-                    112, 129, 50, CFG_BTN_HEIGHT
+                    132, 129, 50, CFG_BTN_HEIGHT
 END
 
 DLG_CFG_FLOPPY_AND_CDROM_DRIVES DIALOG DISCARDABLE  CFG_PANE_LEFT, CFG_PANE_TOP, CFG_PANE_WIDTH, CFG_PANE_HEIGHT
@@ -721,9 +721,9 @@ BEGIN
                     CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
 
     LTEXT           STR_CD_SPEED, IDT_CD_SPEED,
-                    CFG_HMARGIN, 207, 24, CFG_PANE_LTEXT_HEIGHT
+                    CFG_HMARGIN, 207, 34, CFG_PANE_LTEXT_HEIGHT
     COMBOBOX        IDC_COMBO_CD_SPEED,
-                    33, 205, 328, 12,
+                    43, 205, 328, 12,
                     CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
 END
 

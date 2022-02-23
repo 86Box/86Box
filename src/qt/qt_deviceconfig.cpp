@@ -18,6 +18,7 @@
  */
 #include "qt_deviceconfig.hpp"
 #include "ui_qt_deviceconfig.h"
+#include "qt_settings.hpp"
 
 #include <QDebug>
 #include <QComboBox>
@@ -47,8 +48,8 @@ DeviceConfig::~DeviceConfig()
     delete ui;
 }
 
-void DeviceConfig::ConfigureDevice(const _device_* device, int instance) {
-    DeviceConfig dc;
+void DeviceConfig::ConfigureDevice(const _device_* device, int instance, Settings* settings) {
+    DeviceConfig dc(settings);
     dc.setWindowTitle(QString("%1 Device Configuration").arg(device->name));
 
     device_context_t device_context;
@@ -66,7 +67,7 @@ void DeviceConfig::ConfigureDevice(const _device_* device, int instance) {
             dc.ui->formLayout->addRow(config->description, cbox);
             break;
         }
-        case CONFIG_MIDI:
+        case CONFIG_MIDI_OUT:
         {
             auto* cbox = new QComboBox();
             cbox->setObjectName(config->name);
@@ -177,7 +178,7 @@ void DeviceConfig::ConfigureDevice(const _device_* device, int instance) {
                 config_set_int(device_context.name, const_cast<char*>(config->name), cbox->isChecked() ? 1 : 0);
                 break;
             }
-            case CONFIG_MIDI:
+            case CONFIG_MIDI_OUT:
             case CONFIG_MIDI_IN:
             case CONFIG_SELECTION:
             {

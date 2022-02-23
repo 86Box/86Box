@@ -192,7 +192,7 @@ w83877f_serial_handler(w83877f_t *dev, int uart)
 
     if (dev->regs[0x19] & (0x02 >> uart)) {
 	clock_src = 14769000.0;
-    } else if (dev->regs[0x03] & (0x02 >> uart)) { 
+    } else if (dev->regs[0x03] & (0x02 >> uart)) {
 	clock_src = 24000000.0 / 12.0;
     } else {
 	clock_src = 24000000.0 / 13.0;

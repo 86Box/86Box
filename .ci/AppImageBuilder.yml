@@ -1,0 +1,95 @@
+#
+# 86Box         A hypervisor and IBM PC system emulator that specializes in
+#               running old operating systems and software designed for IBM
+#               PC systems and compatibles from 1981 through fairly recent
+#               system designs based on the PCI bus.
+#
+#               This file is part of the 86Box distribution.
+#
+#               Recipe file for appimage-builder.
+#
+#
+# Authors:      RichardG, <richardg867@gmail.com>
+#
+#               Copyright 2022 RichardG.
+#
+
+version: 1
+AppDir:
+  path: ./archive_tmp
+  app_info:
+    id: !ENV 'net.${project_lower}.${project_lower}'
+    name: !ENV '${project}'
+    icon: !ENV '${project_lower}'
+    version: !ENV '${project_version}'
+    exec: !ENV 'usr/local/bin/${project}'
+    exec_args: $@
+  apt:
+    arch: !ENV '${arch_deb}'
+    sources:
+    - sourceline: 'deb http://deb.debian.org/debian bullseye main'
+      key_url: 'https://ftp-master.debian.org/keys/archive-key-11.asc'
+    - sourceline: 'deb http://security.debian.org/debian-security bullseye-security main'
+      key_url: 'https://ftp-master.debian.org/keys/archive-key-11.asc'
+    - sourceline: 'deb http://deb.debian.org/debian bullseye-updates main'
+      key_url: 'https://ftp-master.debian.org/keys/archive-key-11-security.asc'
+    include:
+    - libevdev2
+    - libfluidsynth2
+    - libfreetype6
+    - libgbm1
+    - libgl1
+    - libgles2
+    - libglvnd0
+    - libglx0
+    - libgs9
+    - libpng16-16
+    - libqt5core5a
+    - libqt5gui5
+    - libqt5widgets5
+    - libslirp0
+    - libsndio7.0
+    - libwayland-client0
+    - libx11-6
+    - libxcb1
+    - zlib1g
+  files:
+    exclude:
+    - etc
+    - lib/udev
+    - opt/libc/usr/share
+    - usr/bin
+    - usr/include
+    - usr/lib/*/libasound.so.*
+    - usr/lib/cmake
+    - usr/lib/pkgconfig
+    - usr/sbin
+    - usr/share/aclocal
+    - usr/share/alsa
+    - usr/share/apport
+    - usr/share/bug
+    - usr/share/color
+    - usr/share/doc
+    - usr/share/doc-base
+    - usr/share/fontconfig
+    - usr/share/fonts
+    - usr/share/ghostscript
+    - usr/share/glib-2.0
+    - usr/share/info
+    - usr/share/libinput
+    - usr/share/libwacom
+    - usr/share/lintian
+    - usr/share/locale
+    - usr/share/man
+    - usr/share/metainfo
+    - usr/share/openal
+    - usr/share/pkgconfig
+    - usr/share/poppler
+    - usr/share/readline
+    - usr/share/rtmidi
+    - usr/share/sounds
+    - usr/share/X11
+    - usr/share/xml
+    - var
+AppImage:
+  arch: !ENV '${arch_appimage}'

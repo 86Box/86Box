@@ -7,6 +7,7 @@
 #include <vector>
 #include <tuple>
 #include <atomic>
+#include <memory>
 
 class QWidget;
 

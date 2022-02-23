@@ -1355,6 +1355,8 @@ ali7101_read(int func, int addr, void *priv)
 	/* TODO: C4, C5 = GPIREG (masks: 0D, 0E) */
 	if (addr == 0x43)
 		ret = acpi_ali_soft_smi_status_read(dev->acpi) ? 0x10 : 0x00;
+	else if (addr == 0x7f)
+		ret = 0x80;
 	else if (addr == 0xbc)
 		ret = inb(0x70);
 	else

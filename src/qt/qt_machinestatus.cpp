@@ -47,6 +47,7 @@ extern uint64_t		tsc;
 #include <QTimer>
 #include <QStatusBar>
 #include <QMenu>
+#include <QScreen>
 
 #include "qt_mediamenu.hpp"
 #include "qt_mainwindow.hpp"
@@ -145,7 +146,7 @@ namespace {
         }
     };
 
-    static const QSize pixmap_size(16, 16);
+    static QSize pixmap_size(16, 16);
     static const QString pixmap_empty = QStringLiteral("_empty");
     static const QString pixmap_active = QStringLiteral("_active");
     static const QString pixmap_empty_active = QStringLiteral("_empty_active");
@@ -258,8 +259,8 @@ void MachineStatus::iterateCDROM(const std::function<void (int)> &cb) {
     for (size_t i = 0; i < CDROM_NUM; i++) {
         /* Could be Internal or External IDE.. */
         if ((cdrom[i].bus_type == CDROM_BUS_ATAPI) &&
-            !hasIDE() && hdc_name != QStringLiteral("ide") &&
-            hdc_name != QStringLiteral("xtide"))
+            !hasIDE() && hdc_name.left(3) != QStringLiteral("ide") &&
+            hdc_name.left(5) != QStringLiteral("xtide"))
             continue;
         if ((cdrom[i].bus_type == CDROM_BUS_SCSI) && !hasSCSI() &&
             (scsi_card_current[0] == 0) && (scsi_card_current[1] == 0) &&
@@ -276,8 +277,8 @@ void MachineStatus::iterateZIP(const std::function<void (int)> &cb) {
     for (size_t i = 0; i < ZIP_NUM; i++) {
         /* Could be Internal or External IDE.. */
         if ((zip_drives[i].bus_type == ZIP_BUS_ATAPI) &&
-            !hasIDE() && hdc_name != QStringLiteral("ide") &&
-            hdc_name != QStringLiteral("xtide"))
+            !hasIDE() && hdc_name.left(3) != QStringLiteral("ide") &&
+            hdc_name.left(5) != QStringLiteral("xtide"))
             continue;
         if ((zip_drives[i].bus_type == ZIP_BUS_SCSI) && !hasSCSI() &&
             (scsi_card_current[0] == 0) && (scsi_card_current[1] == 0) &&
@@ -294,8 +295,8 @@ void MachineStatus::iterateMO(const std::function<void (int)> &cb) {
     for (size_t i = 0; i < MO_NUM; i++) {
         /* Could be Internal or External IDE.. */
         if ((mo_drives[i].bus_type == MO_BUS_ATAPI) &&
-            !hasIDE() && hdc_name != QStringLiteral("ide") &&
-            hdc_name != QStringLiteral("xtide"))
+            !hasIDE() && hdc_name.left(3) != QStringLiteral("ide") &&
+            hdc_name.left(5) != QStringLiteral("xtide"))
             continue;
         if ((mo_drives[i].bus_type == MO_BUS_SCSI) && !hasSCSI() &&
             (scsi_card_current[0] == 0) && (scsi_card_current[1] == 0) &&
@@ -330,7 +331,7 @@ void MachineStatus::refresh(QStatusBar* sbar) {
     int c_xta = hdd_count(HDD_BUS_XTA);
     int c_ide = hdd_count(HDD_BUS_IDE);
     int c_scsi = hdd_count(HDD_BUS_SCSI);
-    int do_net = (network_type == NET_TYPE_NONE) || (network_card == 0);
+    int do_net = network_available();
 
     sbar->removeWidget(d->cassette.label.get());
     for (int i = 0; i < 2; ++i) {

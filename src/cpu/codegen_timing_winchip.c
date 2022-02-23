@@ -313,7 +313,7 @@ void codegen_timing_winchip_opcode(uint8_t opcode, uint32_t fetchdat, int op_32,
                 timings = mod3 ? opcode_timings_0f_mod3 : opcode_timings_0f;
                 deps = mod3 ? opcode_deps_0f_mod3 : opcode_deps_0f;
                 break;
-                
+
                 case 0xd8:
                 timings = mod3 ? opcode_timings_d8_mod3 : opcode_timings_d8;
                 deps = mod3 ? opcode_deps_d8_mod3 : opcode_deps_d8;
@@ -368,13 +368,13 @@ void codegen_timing_winchip_opcode(uint8_t opcode, uint32_t fetchdat, int op_32,
                         deps = mod3 ? opcode_deps_81_mod3 : opcode_deps_81;
                         opcode = (fetchdat >> 3) & 7;
                         break;
-                                
+
                         case 0xc0: case 0xc1: case 0xd0: case 0xd1: case 0xd2: case 0xd3:
                         timings = mod3 ? opcode_timings_shift_mod3 : opcode_timings_shift;
                         deps = mod3 ? opcode_deps_shift_mod3 : opcode_deps_shift;
                         opcode = (fetchdat >> 3) & 7;
                         break;
-                        
+
                         case 0xf6:
                         timings = mod3 ? opcode_timings_f6_mod3 : opcode_timings_f6;
                         deps = mod3 ? opcode_deps_f6_mod3 : opcode_deps_f6;
@@ -397,12 +397,12 @@ void codegen_timing_winchip_opcode(uint8_t opcode, uint32_t fetchdat, int op_32,
                         break;
                 }
         }
-        
+
         timing_count += COUNT(timings[opcode], op_32);
         if (regmask_modified & get_addr_regmask(deps[opcode], fetchdat, op_32))
                 timing_count++; /*AGI stall*/
         codegen_block_cycles += timing_count;
-        
+
         regmask_modified = get_dstdep_mask(deps[opcode], fetchdat, bit8);
 }
 

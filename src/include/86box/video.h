@@ -18,6 +18,7 @@
  *		Copyright 2016-2019 Miran Grca.
  *		Copyright 2017-2019 Fred N. van Kempen.
  */
+
 #ifndef EMU_VIDEO_H
 # define EMU_VIDEO_H
 
@@ -284,6 +285,8 @@ extern const device_t et4000w32_device;
 extern const device_t et4000w32_onboard_device;
 extern const device_t et4000w32i_isa_device;
 extern const device_t et4000w32i_vlb_device;
+extern const device_t et4000w32p_videomagic_revb_vlb_device;
+extern const device_t et4000w32p_videomagic_revb_pci_device;
 extern const device_t et4000w32p_revc_vlb_device;
 extern const device_t et4000w32p_revc_pci_device;
 extern const device_t et4000w32p_vlb_device;
@@ -444,6 +447,5 @@ extern const device_t wy700_device;
 /* AGP GART */
 extern const device_t agpgart_device;
 #endif
-
 
 #endif	/*EMU_VIDEO_H*/

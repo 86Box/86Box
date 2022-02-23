@@ -32,7 +32,7 @@ extern "C" {
 
 void HardwareRenderer::resizeGL(int w, int h)
 {
-    glViewport(0, 0, w * devicePixelRatio(), h * devicePixelRatio());
+    glViewport(0, 0, qRound(w * devicePixelRatio()), qRound(h * devicePixelRatio()));
 }
 
 #define PROGRAM_VERTEX_ATTRIBUTE 0
@@ -141,11 +141,11 @@ void HardwareRenderer::paintGL() {
     QVector<QVector2D> verts, texcoords;
     QMatrix4x4 mat;
     mat.setToIdentity();
-    mat.ortho(QRect(0, 0, width(), height()));
+    mat.ortho(QRectF(0, 0, (qreal)width(), (qreal)height()));
     verts.push_back(QVector2D((float)destination.x(), (float)destination.y()));
-    verts.push_back(QVector2D((float)destination.x(), (float)destination.y() + destination.height()));
-    verts.push_back(QVector2D((float)destination.x() + destination.width(), (float)destination.y() + destination.height()));
-    verts.push_back(QVector2D((float)destination.x() + destination.width(), (float)destination.y()));
+    verts.push_back(QVector2D((float)destination.x(), (float)destination.y() + (float)destination.height()));
+    verts.push_back(QVector2D((float)destination.x() + (float)destination.width(), (float)destination.y() + (float)destination.height()));
+    verts.push_back(QVector2D((float)destination.x() + (float)destination.width(), (float)destination.y()));
     texcoords.push_back(QVector2D((float)source.x() / 2048.f, (float)(source.y()) / 2048.f));
     texcoords.push_back(QVector2D((float)source.x() / 2048.f, (float)(source.y() + source.height()) / 2048.f));
     texcoords.push_back(QVector2D((float)(source.x() + source.width()) / 2048.f, (float)(source.y() + source.height()) / 2048.f));
@@ -200,7 +200,7 @@ void HardwareRenderer::onBlit(int buf_idx, int x, int y, int w, int h) {
 
 void HardwareRenderer::resizeEvent(QResizeEvent *event) {
     onResize(width(), height());
-    
+
     QOpenGLWindow::resizeEvent(event);
 }
 
@@ -214,7 +214,7 @@ bool HardwareRenderer::event(QEvent *event)
 std::vector<std::tuple<uint8_t*, std::atomic_flag*>> HardwareRenderer::getBuffers()
 {
     std::vector<std::tuple<uint8_t*, std::atomic_flag*>> buffers;
-    
+
     buffers.push_back(std::make_tuple(imagebufs[0].get(), &buf_usage[0]));
     buffers.push_back(std::make_tuple(imagebufs[1].get(), &buf_usage[1]));
 

@@ -40,6 +40,8 @@ extern "C" {
 #include <86box/vid_ega.h>
 #include <86box/version.h>
 
+    extern int qt_nvr_save(void);
+
 #ifdef MTR_ENABLED
 #include <minitrace/minitrace.h>
 #endif
@@ -68,6 +70,7 @@ extern "C" {
 #include "qt_settings.hpp"
 #include "qt_machinestatus.hpp"
 #include "qt_mediamenu.hpp"
+#include "qt_util.hpp"
 
 #ifdef __unix__
 #ifdef WAYLAND
@@ -86,12 +89,6 @@ MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::MainWindow)
 {
-#ifdef Q_OS_WINDOWS
-    auto font_name = tr("FONT_NAME");
-    auto font_size = tr("FONT_SIZE");
-    QApplication::setFont(QFont(font_name, font_size.toInt()));
-#endif
-
     mm = std::make_shared<MediaMenu>(this);
     MediaMenu::ptr = mm;
     status = std::make_unique<MachineStatus>(this);
@@ -113,7 +110,7 @@ MainWindow::MainWindow(QWidget *parent) :
 #ifdef RELEASE_BUILD
     this->setWindowIcon(QIcon(":/settings/win/icons/86Box-green.ico"));
 #elif defined ALPHA_BUILD
-    this->setWindowIcon(QIcon(":/settings/win/icons/86Box-red.ico"))
+    this->setWindowIcon(QIcon(":/settings/win/icons/86Box-red.ico"));
 #elif defined BETA_BUILD
     this->setWindowIcon(QIcon(":/settings/win/icons/86Box-yellow.ico"));
 #else
@@ -122,13 +119,20 @@ MainWindow::MainWindow(QWidget *parent) :
     this->setWindowFlag(Qt::MSWindowsFixedSizeDialogHint, vid_resize != 1);
     this->setWindowFlag(Qt::WindowMaximizeButtonHint, vid_resize == 1);
 
-    this->setWindowTitle(QString("%1 - %2 %3").arg(vm_name, EMU_NAME, EMU_VERSION_FULL));
+    QString vmname(vm_name);
+    if (vmname.at(vmname.size() - 1) == '"' || vmname.at(vmname.size() - 1) == '\'') vmname.truncate(vmname.size() - 1);
+    this->setWindowTitle(QString("%1 - %2 %3").arg(vmname, EMU_NAME, EMU_VERSION_FULL));
 
     connect(this, &MainWindow::showMessageForNonQtThread, this, &MainWindow::showMessage_, Qt::BlockingQueuedConnection);
 
     connect(this, &MainWindow::setTitle, this, [this,toolbar_label](const QString& title) {
+        if (dopause && !hide_tool_bar)
+        {
+            toolbar_label->setText(toolbar_label->text() + tr(" - PAUSED"));
+            return;
+        }
         if (!hide_tool_bar)
-#ifdef _WIN32        
+#ifdef _WIN32
             toolbar_label->setText(title);
 #else
         {
@@ -164,7 +168,6 @@ MainWindow::MainWindow(QWidget *parent) :
         mouse_capture = state ? 1 : 0;
         qt_mouse_capture(mouse_capture);
         if (mouse_capture) {
-            ui->stackedWidget->grabMouse();
             this->grabKeyboard();
 #ifdef WAYLAND
             if (QGuiApplication::platformName().contains("wayland")) {
@@ -172,7 +175,6 @@ MainWindow::MainWindow(QWidget *parent) :
             }
 #endif
         } else {
-            ui->stackedWidget->releaseMouse();
             this->releaseKeyboard();
 #ifdef WAYLAND
             if (QGuiApplication::platformName().contains("wayland")) {
@@ -184,19 +186,15 @@ MainWindow::MainWindow(QWidget *parent) :
 
     connect(this, &MainWindow::resizeContents, this, [this](int w, int h) {
         if (!QApplication::platformName().contains("eglfs") && vid_resize == 0) {
-            w = w / (!dpi_scale ? this->screen()->devicePixelRatio() : 1);
-            
-            int modifiedHeight = (h / (!dpi_scale ? this->screen()->devicePixelRatio() : 1))
+            w = qRound(w / (!dpi_scale ? util::screenOfWidget(this)->devicePixelRatio() : 1.));
+
+            int modifiedHeight = qRound(h / (!dpi_scale ? util::screenOfWidget(this)->devicePixelRatio() : 1.))
                 + menuBar()->height()
                 + (statusBar()->height() * !hide_status_bar)
                 + (ui->toolBar->height() * !hide_tool_bar);
-            
+
             ui->stackedWidget->resize(w, h);
-            if (vid_resize == 0) {
-                setFixedSize(w, modifiedHeight);
-            } else {
-                resize(w, modifiedHeight);
-            }
+            setFixedSize(w, modifiedHeight);
         }
     });
 
@@ -415,10 +413,12 @@ MainWindow::MainWindow(QWidget *parent) :
         });
     }
 #endif
+
+    setContextMenuPolicy(Qt::PreventContextMenu);
 }
 
 void MainWindow::closeEvent(QCloseEvent *event) {
-    if (confirm_exit && cpu_thread_run)
+    if (confirm_exit && confirm_exit_cmdl && cpu_thread_run)
     {
         QMessageBox questionbox(QMessageBox::Icon::Question, "86Box", tr("Are you sure you want to exit 86Box?"), QMessageBox::Yes | QMessageBox::No, this);
         QCheckBox *chkbox = new QCheckBox(tr("Don't show this message again"));
@@ -443,7 +443,12 @@ void MainWindow::closeEvent(QCloseEvent *event) {
             window_y = this->geometry().y();
         }
     }
+    qt_nvr_save();
     config_save();
+#ifdef __unix__
+    extern void xinput2_exit();
+    if (QApplication::platformName() == "xcb") xinput2_exit();
+#endif
     event->accept();
 }
 
@@ -455,7 +460,7 @@ void MainWindow::showEvent(QShowEvent *event) {
     if (shownonce) return;
     shownonce = true;
     if (window_remember && !QApplication::platformName().contains("wayland")) {
-        setGeometry(window_x, window_y, window_w, window_h + menuBar()->height() + (hide_status_bar ? 0 : statusBar()->height()));
+        setGeometry(window_x, window_y, window_w, window_h + menuBar()->height() + (hide_status_bar ? 0 : statusBar()->height()) + (hide_tool_bar ? 0 : ui->toolBar->height()));
     }
     if (vid_resize == 2) {
         setFixedSize(fixed_size_x, fixed_size_y
@@ -466,8 +471,10 @@ void MainWindow::showEvent(QShowEvent *event) {
         scrnsz_x = fixed_size_x;
         scrnsz_y = fixed_size_y;
     }
-    else if (window_remember) {
-        emit resizeContents(window_w, window_h);
+    else if (window_remember && vid_resize == 1) {
+        ui->stackedWidget->setFixedSize(window_w, window_h);
+        adjustSize();
+        ui->stackedWidget->setFixedSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
         scrnsz_x = window_w;
         scrnsz_y = window_h;
     }
@@ -805,7 +812,6 @@ std::array<uint32_t, 256> x11_to_xt_vnc
     0,
     0,
     0,
-    0,
     0x1D,
     0x11D,
     0x2A,
@@ -1089,7 +1095,7 @@ void MainWindow::on_actionFullscreen_triggered() {
     } else {
         if (video_fullscreen_first)
         {
-            QMessageBox questionbox(QMessageBox::Icon::Information, tr("Entering fullscreen mode"), tr("Press CTRL+ALT+PAGE DOWN to return to windowed mode."), QMessageBox::Ok, this);
+            QMessageBox questionbox(QMessageBox::Icon::Information, tr("Entering fullscreen mode"), tr("Press Ctrl+Alt+PgDn to return to windowed mode."), QMessageBox::Ok, this);
             QCheckBox *chkbox = new QCheckBox(tr("Don't show this message again"));
             questionbox.setCheckBox(chkbox);
             chkbox->setChecked(!video_fullscreen_first);
@@ -1431,15 +1437,15 @@ void MainWindow::on_actionAbout_86Box_triggered()
     msgBox.setInformativeText(tr("An emulator of old computers\n\nAuthors: Sarah Walker, Miran Grca, Fred N. van Kempen (waltje), SA1988, Tiseno100, reenigne, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2 or later. See LICENSE for more information."));
     msgBox.setWindowTitle("About 86Box");
     msgBox.addButton("OK", QMessageBox::ButtonRole::AcceptRole);
-    auto webSiteButton = msgBox.addButton("86box.net", QMessageBox::ButtonRole::HelpRole);
+    auto webSiteButton = msgBox.addButton(EMU_SITE, QMessageBox::ButtonRole::HelpRole);
     webSiteButton->connect(webSiteButton, &QPushButton::released, []()
     {
-        QDesktopServices::openUrl(QUrl("https://86box.net/"));
+        QDesktopServices::openUrl(QUrl("https://" EMU_SITE));
     });
 #ifdef RELEASE_BUILD
     msgBox.setIconPixmap(QIcon(":/settings/win/icons/86Box-green.ico").pixmap(32, 32));
 #elif defined ALPHA_BUILD
-    msgBox.setIconPixmap(QIcon(":/settings/win/icons/86Box-red.ico").pixmap(32, 32))
+    msgBox.setIconPixmap(QIcon(":/settings/win/icons/86Box-red.ico").pixmap(32, 32));
 #elif defined BETA_BUILD
     msgBox.setIconPixmap(QIcon(":/settings/win/icons/86Box-yellow.ico").pixmap(32, 32));
 #else
@@ -1451,7 +1457,7 @@ void MainWindow::on_actionAbout_86Box_triggered()
 
 void MainWindow::on_actionDocumentation_triggered()
 {
-     QDesktopServices::openUrl(QUrl("https://86box.readthedocs.io"));
+     QDesktopServices::openUrl(QUrl(EMU_DOCS_URL));
 }
 
 void MainWindow::on_actionCGA_PCjr_Tandy_EGA_S_VGA_overscan_triggered() {

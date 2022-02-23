@@ -118,7 +118,7 @@ static int op_66_REPE(uint32_t fetchdat) /*Data size select*/
         PREFETCH_PREFIX();
         if (x86_opcodes_REPE[(fetchdat & 0xff) | cpu_state.op32])
                 return x86_opcodes_REPE[(fetchdat & 0xff) | cpu_state.op32](fetchdat >> 8);
-        return x86_opcodes[(fetchdat & 0xff) | cpu_state.op32](fetchdat >> 8);        
+        return x86_opcodes[(fetchdat & 0xff) | cpu_state.op32](fetchdat >> 8);
 }
 static int op_67_REPE(uint32_t fetchdat) /*Address size select*/
 {
@@ -131,7 +131,7 @@ static int op_67_REPE(uint32_t fetchdat) /*Address size select*/
         PREFETCH_PREFIX();
         if (x86_opcodes_REPE[(fetchdat & 0xff) | cpu_state.op32])
                 return x86_opcodes_REPE[(fetchdat & 0xff) | cpu_state.op32](fetchdat >> 8);
-        return x86_opcodes[(fetchdat & 0xff) | cpu_state.op32](fetchdat >> 8);        
+        return x86_opcodes[(fetchdat & 0xff) | cpu_state.op32](fetchdat >> 8);
 }
 static int op_66_REPNE(uint32_t fetchdat) /*Data size select*/
 {
@@ -144,7 +144,7 @@ static int op_66_REPNE(uint32_t fetchdat) /*Data size select*/
         PREFETCH_PREFIX();
         if (x86_opcodes_REPNE[(fetchdat & 0xff) | cpu_state.op32])
                 return x86_opcodes_REPNE[(fetchdat & 0xff) | cpu_state.op32](fetchdat >> 8);
-        return x86_opcodes[(fetchdat & 0xff) | cpu_state.op32](fetchdat >> 8);        
+        return x86_opcodes[(fetchdat & 0xff) | cpu_state.op32](fetchdat >> 8);
 }
 static int op_67_REPNE(uint32_t fetchdat) /*Address size select*/
 {
@@ -157,5 +157,5 @@ static int op_67_REPNE(uint32_t fetchdat) /*Address size select*/
         PREFETCH_PREFIX();
         if (x86_opcodes_REPNE[(fetchdat & 0xff) | cpu_state.op32])
                 return x86_opcodes_REPNE[(fetchdat & 0xff) | cpu_state.op32](fetchdat >> 8);
-        return x86_opcodes[(fetchdat & 0xff) | cpu_state.op32](fetchdat >> 8);        
+        return x86_opcodes[(fetchdat & 0xff) | cpu_state.op32](fetchdat >> 8);
 }

@@ -18,12 +18,20 @@ cmake_minimum_required(VERSION 3.16)
 cmake_policy(SET CMP0091 NEW)
 cmake_policy(SET CMP0079 NEW)
 
-if (QT)
+if(QT)
     list(APPEND VCPKG_MANIFEST_FEATURES "qt-ui")
 endif()
 
+if(SLIRP_EXTERNAL)
+    list(APPEND VCPKG_MANIFEST_FEATURES "slirp")
+endif()
+
+if(MUNT_EXTERNAL)
+    list(APPEND VCPKG_MANIFEST_FEATURES "munt")
+endif()
+
 project(86Box
-    VERSION 3.2
+    VERSION 3.3
     DESCRIPTION "Emulator of x86-based systems"
     HOMEPAGE_URL "https://86box.net"
     LANGUAGES C CXX)
@@ -32,26 +40,26 @@ include(CPack)
 include(CMakeDependentOption)
 
 # Basic build options
-if(WIN32)
-    if(VCPKG_TOOLCHAIN)
-        # For vcpkg builds we have to respect the linking method used by the
-        # specified triplet.
-        set(NO_STATIC_OPTION ON)
-        if(VCPKG_TARGET_TRIPLET MATCHES "-windows-static$")
-            # `-static` triplet, use static linking
-            set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
-            set(STATIC_BUILD ON)
-        elseif(VCPKG_TARGET_TRIPLET MATCHES "-windows-static-md$")
-            # `-static-md` triplet, use static linking with dynamic CRT
-            set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
-            set(STATIC_BUILD ON)
-        elseif()
-            # Regular triplet, use dynamic linking
-            set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
-            set(STATIC_BUILD OFF)
-        endif()
+if(VCPKG_TOOLCHAIN)
+    # For vcpkg builds we have to respect the linking method used by the
+    # specified triplet.
+    set(NO_STATIC_OPTION ON)
+    if(VCPKG_TARGET_TRIPLET MATCHES "-static$")
+        # `-static` triplet, use static linking
+        set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+        set(STATIC_BUILD ON)
+    elseif(VCPKG_TARGET_TRIPLET MATCHES "-static-md$")
+        # `-static-md` triplet, use static linking with dynamic CRT
+        set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
+        set(STATIC_BUILD ON)
+    elseif()
+        # Regular triplet, use dynamic linking
+        set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
+        set(STATIC_BUILD OFF)
     endif()
+endif()
 
+if(WIN32)
     # Prefer static builds on Windows
     set(PREFER_STATIC ON)
 
@@ -98,6 +106,7 @@ if(WIN32)
 endif()
 
 set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_FIND_PACKAGE_PREFER_CONFIG ON)
 
 # Optional features
 #
@@ -105,7 +114,7 @@ set(CMAKE_CXX_STANDARD 11)
 #      ------       -----------                                                     ----
 option(RELEASE      "Release build"                                                 OFF)
 option(DYNAREC      "Dynamic recompiler"                                            ON)
-option(OPENAL       "OpenAL"                                                        ON)
+option(OPENAL       "OpenAL"                                                        OFF)
 option(FLUIDSYNTH   "FluidSynth"                                                    ON)
 option(MUNT         "MUNT"                                                          ON)
 option(DINPUT       "DirectInput"                                                   OFF)
@@ -113,7 +122,11 @@ option(CPPTHREADS   "C++11 threads"                                             
 option(NEW_DYNAREC  "Use the PCem v15 (\"new\") dynamic recompiler"                 OFF)
 option(MINITRACE    "Enable Chrome tracing using the modified minitrace library"    OFF)
 option(DEV_BRANCH   "Development branch"                                            OFF)
+if(NOT WIN32)
+option(QT           "QT GUI"                                                        ON)
+else()
 option(QT           "QT GUI"                                                        OFF)
+endif()
 
 # Development branch features
 #
@@ -122,6 +135,9 @@ option(QT           "QT GUI"                                                    
 cmake_dependent_option(AMD_K5         "AMD K5"                                      ON      "DEV_BRANCH"    OFF)
 cmake_dependent_option(CYRIX_6X86     "Cyrix 6x86"                                  ON      "DEV_BRANCH"    OFF)
 cmake_dependent_option(GUSMAX         "Gravis UltraSound MAX"                       ON      "DEV_BRANCH"    OFF)
+cmake_dependent_option(ISAMEM_RAMPAGE "AST Rampage"                                 ON      "DEV_BRANCH"    OFF)
+cmake_dependent_option(ISAMEM_IAB     "Intel Above Board"                           ON      "DEV_BRANCH"    OFF)
+cmake_dependent_option(ISAMEM_BRAT    "BocaRAM/AT"                                  ON      "DEV_BRANCH"    OFF)
 cmake_dependent_option(LASERXT        "VTech Laser XT"                              ON      "DEV_BRANCH"    OFF)
 cmake_dependent_option(MGA            "Matrox Mystique graphics adapters"           ON      "DEV_BRANCH"    OFF)
 cmake_dependent_option(NO_SIO         "Machines without emulated Super I/O chips"   ON      "DEV_BRANCH"    OFF)
@@ -129,12 +145,10 @@ cmake_dependent_option(OLIVETTI       "Olivetti M290"                           
 cmake_dependent_option(OPEN_AT        "OpenAT"                                      ON      "DEV_BRANCH"    OFF)
 cmake_dependent_option(PAS16          "Pro Audio Spectrum 16"                       OFF     "DEV_BRANCH"    OFF)
 cmake_dependent_option(SIO_DETECT     "Super I/O Detection Helper"                  ON      "DEV_BRANCH"    OFF)
+cmake_dependent_option(TANDY_ISA      "Tandy PSG ISA clone boards"                  ON      "DEV_BRANCH"    OFF)
 cmake_dependent_option(VGAWONDER      "ATI VGA Wonder (ATI-18800)"                  ON      "DEV_BRANCH"    OFF)
 cmake_dependent_option(VNC            "VNC renderer"                                OFF     "DEV_BRANCH"    OFF)
 cmake_dependent_option(XL24           "ATI VGA Wonder XL24 (ATI-28800-6)"           ON      "DEV_BRANCH"    OFF)
-cmake_dependent_option(ISAMEM_RAMPAGE "AST Rampage"                                 ON      "DEV_BRANCH"    OFF)
-cmake_dependent_option(ISAMEM_IAB     "Intel Above Board"                           ON      "DEV_BRANCH"    OFF)
-cmake_dependent_option(ISAMEM_BRAT    "BocaRAM/AT"                                  ON      "DEV_BRANCH"    OFF)
 
 # Ditto but for Qt
 if (QT)
@@ -169,7 +183,7 @@ if(NOT EMU_BUILD_NUM)
     set(EMU_BUILD_NUM 0)
 endif()
 if(NOT EMU_COPYRIGHT_YEAR)
-    set(EMU_COPYRIGHT_YEAR 2021)
+    set(EMU_COPYRIGHT_YEAR 2022)
 endif()
 
 add_subdirectory(src)

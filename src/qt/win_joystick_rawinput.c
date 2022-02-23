@@ -55,7 +55,7 @@ joystick_log(const char *fmt, ...)
 typedef struct {
 	HANDLE hdevice;
 	PHIDP_PREPARSED_DATA data;
-	
+
 	USAGE usage_button[256];
 
 	struct raw_axis_t {
@@ -127,7 +127,7 @@ void joystick_add_axis(raw_joystick_t* rawjoy, plat_joystick_t* joy, PHIDP_VALUE
 	} else {
 		/*
 		 * Some joysticks will send -1 in LogicalMax, like Xbox Controllers
-		 * so we need to mask that to appropriate value (instead of 0xFFFFFFFF) 
+		 * so we need to mask that to appropriate value (instead of 0xFFFFFFFF)
 		 */
 		rawjoy->axis[joy->nr_axes].max = prop->LogicalMax & ((1 << prop->BitSize) - 1);
 	}
@@ -158,7 +158,7 @@ void joystick_get_capabilities(raw_joystick_t* rawjoy, plat_joystick_t* joy) {
 	rawjoy->data = malloc(size);
 	if (GetRawInputDeviceInfoW(rawjoy->hdevice, RIDI_PREPARSEDDATA, rawjoy->data, &size) <= 0)
 		fatal("joystick_get_capabilities: Failed to get preparsed data.\n");
-	
+
 	HIDP_CAPS caps;
 	HidP_GetCaps(rawjoy->data, &caps);
 
@@ -213,7 +213,7 @@ void joystick_get_device_name(raw_joystick_t* rawjoy, plat_joystick_t* joy, PRID
 	if (GetRawInputDeviceInfoA(rawjoy->hdevice, RIDI_DEVICENAME, device_name, &size) <= 0)
 		fatal("joystick_get_capabilities: Failed to get device name.\n");
 
-	HANDLE hDevObj = CreateFile(device_name, GENERIC_READ | GENERIC_WRITE, 
+	HANDLE hDevObj = CreateFile(device_name, GENERIC_READ | GENERIC_WRITE,
 		FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, 0, NULL);
 	if (hDevObj) {
 		HidD_GetProductString(hDevObj, device_desc_wide, sizeof(WCHAR) * 200);
@@ -223,8 +223,8 @@ void joystick_get_device_name(raw_joystick_t* rawjoy, plat_joystick_t* joy, PRID
 
 	int result = WideCharToMultiByte(CP_ACP, 0, device_desc_wide, 200, joy->name, 260, NULL, NULL);
 	if (result == 0 || strlen(joy->name) == 0)
-		sprintf(joy->name, 
-			"RawInput %s, VID:%04lX PID:%04lX",  
+		sprintf(joy->name,
+			"RawInput %s, VID:%04lX PID:%04lX",
 			info->hid.usUsage == HID_USAGE_GENERIC_JOYSTICK ? "Joystick" : "Gamepad",
 			info->hid.dwVendorId,
 			info->hid.dwProductId);
@@ -248,8 +248,8 @@ void joystick_init()
 		PRID_DEVICE_INFO info = NULL;
 
 		if (joysticks_present >= MAX_PLAT_JOYSTICKS) break;
-		if (deviceList[i].dwType != RIM_TYPEHID) continue; 
-		
+		if (deviceList[i].dwType != RIM_TYPEHID) continue;
+
 		/* Get device info: hardware IDs and usage IDs */
 		GetRawInputDeviceInfoA(deviceList[i].hDevice, RIDI_DEVICEINFO, NULL, &size);
 		info = malloc(size);
@@ -259,9 +259,9 @@ void joystick_init()
 
 		/* If this is not a joystick/gamepad, skip */
 		if (info->hid.usUsagePage != HID_USAGE_PAGE_GENERIC) goto end_loop;
-		if (info->hid.usUsage != HID_USAGE_GENERIC_JOYSTICK && 
+		if (info->hid.usUsage != HID_USAGE_GENERIC_JOYSTICK &&
 			info->hid.usUsage != HID_USAGE_GENERIC_GAMEPAD) goto end_loop;
-		
+
 		plat_joystick_t *joy    = &plat_joystick_state[joysticks_present];
 		raw_joystick_t  *rawjoy = &raw_joystick_state[joysticks_present];
 		rawjoy->hdevice = deviceList[i].hDevice;
@@ -269,7 +269,7 @@ void joystick_init()
 		joystick_get_capabilities(rawjoy, joy);
 		joystick_get_device_name(rawjoy, joy, info);
 
-		joystick_log("joystick_init: %s - %d buttons, %d axes, %d POVs\n", 
+		joystick_log("joystick_init: %s - %d buttons, %d axes, %d POVs\n",
 			joy->name, joy->nr_buttons, joy->nr_axes, joy->nr_povs);
 
 		joysticks_present++;
@@ -277,7 +277,7 @@ void joystick_init()
 		end_loop:
 		free(info);
 	}
-	
+
 	joystick_log("joystick_init: joysticks_present=%i\n", joysticks_present);
 
 	/* Initialize the RawInput (joystick and gamepad) module. */
@@ -293,7 +293,7 @@ void joystick_init()
 	ridev[1].usUsage     = HID_USAGE_GENERIC_GAMEPAD;
 
 	if (!RegisterRawInputDevices(ridev, 2, sizeof(RAWINPUTDEVICE)))
-		fatal("plat_joystick_init: RegisterRawInputDevices failed\n"); 
+		fatal("plat_joystick_init: RegisterRawInputDevices failed\n");
 }
 
 void joystick_close()
@@ -326,7 +326,7 @@ void win_joystick_handle(PRAWINPUT raw)
 		}
 	}
 	if (j == -1) return;
-	
+
 	/* Read buttons */
 	USAGE usage_list[128] = {0};
 	ULONG usage_length    = plat_joystick_state[j].nr_buttons;
@@ -334,7 +334,7 @@ void win_joystick_handle(PRAWINPUT raw)
 
 	r = HidP_GetUsages(HidP_Input, HID_USAGE_PAGE_BUTTON, 0, usage_list, &usage_length,
 		raw_joystick_state[j].data, (PCHAR)raw->data.hid.bRawData, raw->data.hid.dwSizeHid);
-	
+
 	if (r == HIDP_STATUS_SUCCESS) {
 		for (int i=0; i<usage_length; i++) {
 			int button = raw_joystick_state[j].usage_button[usage_list[i]];
@@ -349,9 +349,9 @@ void win_joystick_handle(PRAWINPUT raw)
 		LONG   value  = 0;
 		LONG   center = (axis->max - axis->min + 1) / 2;
 
-		r = HidP_GetUsageValue(HidP_Input, HID_USAGE_PAGE_GENERIC, axis->link, axis->usage, &uvalue, 
+		r = HidP_GetUsageValue(HidP_Input, HID_USAGE_PAGE_GENERIC, axis->link, axis->usage, &uvalue,
 			raw_joystick_state[j].data, (PCHAR)raw->data.hid.bRawData, raw->data.hid.dwSizeHid);
-			
+
 		if (r == HIDP_STATUS_SUCCESS) {
 			if (axis->min < 0) {
 				/* extend signed uvalue to LONG */
@@ -371,7 +371,7 @@ void win_joystick_handle(PRAWINPUT raw)
 		}
 
 		plat_joystick_state[j].a[a] = value;
-		//joystick_log("%s %-06d ", plat_joystick_state[j].axis[a].name, plat_joystick_state[j].a[a]);	
+		//joystick_log("%s %-06d ", plat_joystick_state[j].axis[a].name, plat_joystick_state[j].a[a]);
 	}
 
 	/* read povs */
@@ -379,10 +379,10 @@ void win_joystick_handle(PRAWINPUT raw)
 		struct raw_pov_t* pov = &raw_joystick_state[j].pov[p];
 		ULONG  uvalue = 0;
 		LONG   value = -1;
-		
-		r = HidP_GetUsageValue(HidP_Input, HID_USAGE_PAGE_GENERIC, pov->link, pov->usage, &uvalue, 
+
+		r = HidP_GetUsageValue(HidP_Input, HID_USAGE_PAGE_GENERIC, pov->link, pov->usage, &uvalue,
 			raw_joystick_state[j].data, (PCHAR)raw->data.hid.bRawData, raw->data.hid.dwSizeHid);
-		
+
 		if (r == HIDP_STATUS_SUCCESS && (uvalue >= pov->min && uvalue <= pov->max)) {
 			value  = (uvalue - pov->min) * 36000;
 			value /= (pov->max - pov->min + 1);
@@ -392,7 +392,7 @@ void win_joystick_handle(PRAWINPUT raw)
 		plat_joystick_state[j].p[p] = value;
 
 		//joystick_log("%s %-3d ", plat_joystick_state[j].pov[p].name, plat_joystick_state[j].p[p]);
-			
+
 	}
 	//joystick_log("\n");
 }
@@ -405,13 +405,13 @@ static int joystick_get_axis(int joystick_nr, int mapping)
 		int pov = plat_joystick_state[joystick_nr].p[mapping & 3];
 		if (LOWORD(pov) == 0xFFFF)
 			return 0;
-		else 
+		else
 			return sin((2*M_PI * (double)pov) / 36000.0) * 32767;
 	}
 	else if (mapping & POV_Y)
 	{
 		int pov = plat_joystick_state[joystick_nr].p[mapping & 3];
-			
+
 		if (LOWORD(pov) == 0xFFFF)
 			return 0;
 		else
@@ -419,7 +419,7 @@ static int joystick_get_axis(int joystick_nr, int mapping)
 	}
 	else
 		return plat_joystick_state[joystick_nr].a[plat_joystick_state[joystick_nr].axis[mapping].id];
-	
+
 }
 
 
@@ -434,7 +434,7 @@ void joystick_process(void)
 				if (joystick_state[c].plat_joystick_nr)
 				{
 					int joystick_nr = joystick_state[c].plat_joystick_nr - 1;
-					
+
 					for (d = 0; d < joystick_get_axis_count(joystick_type); d++)
 						joystick_state[c].axis[d] = joystick_get_axis(joystick_nr, joystick_state[c].axis_mapping[d]);
 					for (d = 0; d < joystick_get_button_count(joystick_type); d++)
@@ -447,10 +447,10 @@ void joystick_process(void)
 
 						x = joystick_get_axis(joystick_nr, joystick_state[c].pov_mapping[d][0]);
 						y = joystick_get_axis(joystick_nr, joystick_state[c].pov_mapping[d][1]);
-						
+
 						angle = (atan2((double)y, (double)x) * 360.0) / (2*M_PI);
 						magnitude = sqrt((double)x*(double)x + (double)y*(double)y);
-						
+
 						if (magnitude < 16384)
 							joystick_state[c].pov[d] = -1;
 						else
@@ -468,4 +468,3 @@ void joystick_process(void)
 				}
 		}
 }
-

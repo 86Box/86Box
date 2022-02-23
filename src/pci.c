@@ -124,9 +124,9 @@ pci_write(uint16_t port, uint8_t val, void *priv)
 
     switch (port) {
 	case 0xcfc: case 0xcfd: case 0xcfe: case 0xcff:
-		if (! pci_enable) 
+		if (! pci_enable)
 			return;
-		   
+
 		pci_log("Writing %02X to PCI card on bus %i, slot %02X (pci_cards[%i]) (%02X:%02X)...\n", val, pci_bus, pci_card, slot, pci_func, pci_index | (port & 3));
 		slot = pci_card_to_slot_mapping[pci_bus_number_to_index_mapping[pci_bus]][pci_card];
 		if (slot != 0xff) {
@@ -159,9 +159,9 @@ pci_writew(uint16_t port, uint16_t val, void *priv)
 
     switch (port) {
 	case 0xcfc: case 0xcfd: case 0xcfe: case 0xcff:
-		if (! pci_enable) 
+		if (! pci_enable)
 			return;
-		   
+
 		pci_log("Writing %04X to PCI card on bus %i, slot %02X (pci_cards[%i]) (%02X:%02X)...\n", val, pci_bus, pci_card, slot, pci_func, pci_index | (port & 3));
 		slot = pci_card_to_slot_mapping[pci_bus_number_to_index_mapping[pci_bus]][pci_card];
 		if (slot != 0xff) {
@@ -195,9 +195,9 @@ pci_writel(uint16_t port, uint32_t val, void *priv)
 
     switch (port) {
 	case 0xcfc: case 0xcfd: case 0xcfe: case 0xcff:
-		if (! pci_enable) 
+		if (! pci_enable)
 			return;
-		   
+
 		pci_log("Writing %08X to PCI card on bus %i, slot %02X (pci_cards[%i]) (%02X:%02X)...\n", val, pci_bus, pci_card, slot, pci_func, pci_index | (port & 3));
 		slot = pci_card_to_slot_mapping[pci_bus_number_to_index_mapping[pci_bus]][pci_card];
 		if (slot != 0xff) {
@@ -234,7 +234,7 @@ pci_read(uint16_t port, void *priv)
 
     switch (port) {
 	case 0xcfc: case 0xcfd: case 0xcfe: case 0xcff:
-		if (! pci_enable) 
+		if (! pci_enable)
 			return 0xff;
 
 		slot = pci_card_to_slot_mapping[pci_bus_number_to_index_mapping[pci_bus]][pci_card];
@@ -269,7 +269,7 @@ pci_readw(uint16_t port, void *priv)
 
     switch (port) {
 	case 0xcfc: case 0xcfd: case 0xcfe: case 0xcff:
-		if (! pci_enable) 
+		if (! pci_enable)
 			return 0xff;
 
 		slot = pci_card_to_slot_mapping[pci_bus_number_to_index_mapping[pci_bus]][pci_card];
@@ -305,8 +305,8 @@ pci_readl(uint16_t port, void *priv)
 	pci_log("(%i) %03x read\n", pci_enable, port);
 
     switch (port) {
-	case 0xcfc: case 0xcfd: case 0xcfe: case 0xcff: 
-		if (! pci_enable) 
+	case 0xcfc: case 0xcfd: case 0xcfe: case 0xcff:
+		if (! pci_enable)
 			return 0xff;
 
 		slot = pci_card_to_slot_mapping[pci_bus_number_to_index_mapping[pci_bus]][pci_card];

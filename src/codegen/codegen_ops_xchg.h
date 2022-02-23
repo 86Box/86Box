@@ -54,7 +54,7 @@ static uint32_t ropXCHG_b(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uin
         temp_reg = COPY_REG(src_reg);
         STORE_REG_TARGET_B_RELEASE(dst_reg, (fetchdat >> 3) & 7);
         STORE_REG_TARGET_B_RELEASE(temp_reg, fetchdat & 7);
-        
+
         return op_pc + 1;
 }
 static uint32_t ropXCHG_w(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
@@ -69,7 +69,7 @@ static uint32_t ropXCHG_w(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uin
         temp_reg = COPY_REG(src_reg);
         STORE_REG_TARGET_W_RELEASE(dst_reg, (fetchdat >> 3) & 7);
         STORE_REG_TARGET_W_RELEASE(temp_reg, fetchdat & 7);
-        
+
         return op_pc + 1;
 }
 static uint32_t ropXCHG_l(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
@@ -84,6 +84,6 @@ static uint32_t ropXCHG_l(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uin
         temp_reg = COPY_REG(src_reg);
         STORE_REG_TARGET_L_RELEASE(dst_reg, (fetchdat >> 3) & 7);
         STORE_REG_TARGET_L_RELEASE(temp_reg, fetchdat & 7);
-        
+
         return op_pc + 1;
 }

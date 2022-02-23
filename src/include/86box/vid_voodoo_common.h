@@ -16,6 +16,9 @@
  *		Copyright 2008-2020 Sarah Walker.
  */
 
+#ifndef VIDEO_VOODOO_COMMON_H
+# define VIDEO_VOODOO_COMMON_H
+
 #ifdef CLAMP
 #undef CLAMP
 #endif
@@ -233,7 +236,7 @@ typedef struct voodoo_t
 
         int row_width, aux_row_width;
         int block_width;
-        
+
         int col_tiled, aux_tiled;
 
         uint8_t *fb_mem, *tex_mem[2];
@@ -365,7 +368,7 @@ typedef struct voodoo_t
         uint32_t bltCommand;
 
         uint32_t leftOverlayBuf;
-        
+
         struct
         {
                 int dst_x, dst_y;
@@ -393,7 +396,7 @@ typedef struct voodoo_t
                 uint32_t srcFormat;
                 uint32_t srcSize;
                 uint32_t srcXY;
-                
+
                 uint32_t colorPattern[64];
 
                 int bres_error_0, bres_error_1;
@@ -412,11 +415,11 @@ typedef struct voodoo_t
                 int srcX, srcY;
                 int src_stride;
                 int old_srcX;
-                
+
                 /*Used for handling packed 24bpp host data*/
                 int host_data_remainder;
                 uint32_t old_host_data;
-                
+
                 /*Polyfill coordinates*/
                 int lx[2], rx[2];
                 int ly[2], ry[2];
@@ -428,18 +431,18 @@ typedef struct voodoo_t
                 int lx_cur, rx_cur;
 
                 clip_t clip[2];
-                
+
                 uint8_t host_data[16384];
                 int host_data_count;
                 int host_data_size_src, host_data_size_dest;
                 int src_stride_src, src_stride_dest;
-                
+
                 int src_bpp;
 
                 int line_pix_pos, line_bit_pos;
                 int line_rep_cnt, line_bit_mask_size;
         } banshee_blt;
-        
+
         struct
         {
                 uint32_t vidOverlayStartCoords;
@@ -447,12 +450,12 @@ typedef struct voodoo_t
                 uint32_t vidOverlayDudx, vidOverlayDudxOffsetSrcWidth;
                 uint32_t vidOverlayDvdy, vidOverlayDvdyOffset;
                 //uint32_t vidDesktopOverlayStride;
-                
+
                 int start_x, start_y;
                 int end_x, end_y;
                 int size_x, size_y;
                 int overlay_bytes;
-                
+
                 unsigned int src_y;
         } overlay;
 
@@ -466,7 +469,7 @@ typedef struct voodoo_t
 
         int fb_write_buffer, fb_draw_buffer;
         int buffer_cutoff;
-        
+
         uint32_t tile_base, tile_stride;
         int tile_stride_shift, tile_x, tile_x_real;
 
@@ -504,7 +507,7 @@ typedef struct voodoo_t
 	uint8_t fifo_thread_run, render_thread_run[4];
 
         uint8_t *vram, *changedvram;
-        
+
         void *p;
 } voodoo_t;
 
@@ -528,3 +531,5 @@ void voodoo_update_ncc(voodoo_t *voodoo, int tmu);
 
 void *voodoo_2d3d_card_init(int type);
 void voodoo_card_close(voodoo_t *voodoo);
+
+#endif /*VIDEO_VOODOO_COMMON_H*/

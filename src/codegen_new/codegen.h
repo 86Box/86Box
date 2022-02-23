@@ -13,18 +13,18 @@
   added to the page_lookup for this purpose. When in the page_lookup, each write
   will go through the mem_write_ram*_page() functions and set the dirty mask
   appropriately.
-  
+
   Each codeblock also contains a code mask (actually two masks, one for each
   page the block is/may be in), again with each bit representing 64 bytes.
-  
+
   Each page has a list of codeblocks present in it. As each codeblock can span
   up to two pages, two lists are present.
-  
+
   When a codeblock is about to be executed, the code masks are compared with the
   dirty masks for the relevant pages. If either intersect, then
   codegen_check_flush() is called on the affected page(s), and all affected
   blocks are evicted.
-  
+
   The 64 byte granularity appears to work reasonably well for most cases,
   avoiding most unnecessary evictions (eg when code & data are stored in the
   same page).
@@ -45,7 +45,7 @@ typedef struct codeblock_t
         uint16_t parent, left, right;
 
         uint8_t *data;
-        
+
         uint64_t page_mask, page_mask2;
         uint64_t *dirty_mask, *dirty_mask2;
 
@@ -96,10 +96,10 @@ static inline codeblock_t *codeblock_tree_find(uint32_t phys, uint32_t _cs)
 {
         codeblock_t *block;
         uint64_t a = _cs | ((uint64_t)phys << 32);
-        
+
         if (!pages[phys >> 12].head)
                 return NULL;
-                
+
         block = &codeblock[pages[phys >> 12].head];
         while (block)
         {
@@ -115,7 +115,7 @@ static inline codeblock_t *codeblock_tree_find(uint32_t phys, uint32_t _cs)
                 else
                         block = block->right ? &codeblock[block->right] : NULL;
         }
-        
+
         return block;
 }
 
@@ -133,23 +133,23 @@ static inline void codeblock_tree_add(codeblock_t *new_block)
         {
                 codeblock_t *old_block = NULL;
                 uint64_t old_block_cmp = 0;
-                
+
                 while (block)
                 {
                         old_block = block;
                         old_block_cmp = old_block->_cs | ((uint64_t)old_block->phys << 32);
-                        
+
                         if (a < old_block_cmp)
                                 block = block->left ? &codeblock[block->left] : NULL;
                         else
                                 block = block->right ? &codeblock[block->right] : NULL;
                 }
-                
+
                 if (a < old_block_cmp)
                         old_block->left = get_block_nr(new_block);
                 else
                         old_block->right = get_block_nr(new_block);
-                
+
                 new_block->parent = get_block_nr(old_block);
                 new_block->left = new_block->right = BLOCK_INVALID;
         }
@@ -173,7 +173,7 @@ static inline void codeblock_tree_delete(codeblock_t *block)
                 else
                 {
                         uint16_t block_nr = get_block_nr(block);
-                        
+
                         if (parent->left == block_nr)
                                 parent->left = BLOCK_INVALID;
                         if (parent->right == block_nr)
@@ -237,11 +237,11 @@ static inline void codeblock_tree_delete(codeblock_t *block)
                 codeblock_t *lowest = &codeblock[block->right], *highest;
                 codeblock_t *old_parent;
                 uint16_t lowest_nr;
-                        
+
                 while (lowest->left)
                         lowest = &codeblock[lowest->left];
                 lowest_nr = get_block_nr(lowest);
-                
+
                 old_parent = &codeblock[lowest->parent];
 
                 /*Replace deleted node with lowest node*/
@@ -263,7 +263,7 @@ static inline void codeblock_tree_delete(codeblock_t *block)
                         codeblock[lowest->left].parent = lowest_nr;
 
                 old_parent->left = BLOCK_INVALID;
-                                
+
                 highest = &codeblock[lowest->right];
                 if (!lowest->right)
                 {

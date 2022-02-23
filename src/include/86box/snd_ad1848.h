@@ -19,10 +19,14 @@
  *		Copyright 2021 RichardG.
  */
 
+#ifndef SOUND_AD1848_H
+# define SOUND_AD1848_H
+
 enum {
     AD1848_TYPE_DEFAULT = 0,
     AD1848_TYPE_CS4248,
     AD1848_TYPE_CS4231,
+    AD1848_TYPE_CS4235,
     AD1848_TYPE_CS4236
 };
 
@@ -32,7 +36,7 @@ typedef struct {
 
     int		count;
     uint8_t	trd, mce, wten: 1;
-    
+
     int16_t	out_l, out_r;
     double	cd_vol_l, cd_vol_r;
     int		fm_vol_l, fm_vol_r;
@@ -46,6 +50,10 @@ typedef struct {
 
     int16_t	buffer[SOUNDBUFLEN * 2];
     int		pos;
+
+    void	*cram_priv,
+		(*cram_write)(uint16_t addr, uint8_t val, void *priv);
+    uint8_t	(*cram_read)(uint16_t addr, void *priv);
 } ad1848_t;
 
 
@@ -61,3 +69,5 @@ extern void	ad1848_speed_changed(ad1848_t *ad1848);
 extern void	ad1848_filter_cd_audio(int channel, double *buffer, void *priv);
 
 extern void	ad1848_init(ad1848_t *ad1848, uint8_t type);
+
+#endif /*SOUND_AD1848_H*/

@@ -101,28 +101,34 @@ static const device_t sound_internal_device = {
 static const SOUND_CARD sound_cards[] =
 {
     { &sound_none_device		},
-    { &sound_internal_device		},
-    { &adlib_device			},
+    { &sound_internal_device	},
+    { &adlib_device				},
     { &adgold_device			},
     { &azt2316a_device			},
     { &azt1605_device			},
+    { &cs4235_device			},
     { &cs4236b_device			},
-    { &sb_1_device			},
-    { &sb_15_device			},
-    { &sb_2_device			},
+    { &sb_1_device				},
+    { &sb_15_device				},
+    { &sb_2_device				},
     { &sb_pro_v1_device			},
     { &sb_pro_v2_device			},
-    { &sb_16_device			},
+    { &sb_16_device				},
     { &sb_16_pnp_device			},
     { &sb_32_pnp_device			},
     { &sb_awe32_device			},
     { &sb_awe32_pnp_device		},
+    { &sb_awe64_value_device	},
+    { &sb_awe64_device			},
     { &sb_awe64_gold_device		},
 #if defined(DEV_BRANCH) && defined(USE_PAS16)
-    { &pas16_device			},
+    { &pas16_device				},
 #endif
+#if defined(DEV_BRANCH) && defined(USE_TANDY_ISA)
     { &pssj_isa_device			},
-    { &wss_device			},
+    { &tndy_device				},
+#endif
+    { &wss_device				},
     { &adlib_mca_device			},
     { &ncr_business_audio_device	},
     { &sb_mcv_device			},
@@ -130,7 +136,7 @@ static const SOUND_CARD sound_cards[] =
     { &es1371_device			},
     { &ad1881_device			},
     { &cs4297a_device			},
-    { NULL				}
+    { NULL						}
 };
 
 
@@ -341,12 +347,10 @@ sound_cd_thread(void *param)
 		}
 	}
 
-#ifdef USE_OPENAL
 	if (sound_is_float)
 		givealbuffer_cd(cd_out_buffer);
 	else
 		givealbuffer_cd(cd_out_buffer_int16);
-#endif
     }
 }
 
@@ -354,16 +358,23 @@ sound_cd_thread(void *param)
 static void
 sound_realloc_buffers(void)
 {
-    if (outbuffer_ex != NULL)
+    if (outbuffer_ex != NULL) {
 	free(outbuffer_ex);
+	outbuffer_ex = NULL;
+    }
 
-    if (outbuffer_ex_int16 != NULL)
+    if (outbuffer_ex_int16 != NULL) {
 	free(outbuffer_ex_int16);
+	outbuffer_ex_int16 = NULL;
+    }
 
-    if (sound_is_float)
+    if (sound_is_float) {
         outbuffer_ex = calloc(SOUNDBUFLEN * 2, sizeof(float));
-    else
+	memset(outbuffer_ex, 0x00, SOUNDBUFLEN * 2 * sizeof(float));
+    } else {
         outbuffer_ex_int16 = calloc(SOUNDBUFLEN * 2, sizeof(int16_t));
+	memset(outbuffer_ex_int16, 0x00, SOUNDBUFLEN * 2 * sizeof(int16_t));
+    }
 }
 
 
@@ -376,7 +387,9 @@ sound_init(void)
     outbuffer_ex = NULL;
     outbuffer_ex_int16 = NULL;
 
+    outbuffer = NULL;
     outbuffer = calloc(SOUNDBUFLEN * 2, sizeof(int32_t));
+    memset(outbuffer, 0x00, SOUNDBUFLEN * 2 * sizeof(int32_t));
 
     for (i = 0; i < CDROM_NUM; i++) {
 	if (cdrom[i].bus_type != CDROM_BUS_DISABLED)
@@ -432,7 +445,7 @@ sound_poll(void *priv)
     if (sound_pos_global == SOUNDBUFLEN) {
 	int c;
 
-	memset(outbuffer, 0, SOUNDBUFLEN * 2 * sizeof(int32_t));
+	memset(outbuffer, 0x00, SOUNDBUFLEN * 2 * sizeof(int32_t));
 
 	for (c = 0; c < sound_handlers_num; c++)
 		sound_handlers[c].get_buffer(outbuffer, SOUNDBUFLEN, sound_handlers[c].priv);
@@ -450,12 +463,10 @@ sound_poll(void *priv)
 		}
 	}
 
-#ifdef USE_OPENAL
 	if (sound_is_float)
 		givealbuffer(outbuffer_ex);
 	else
 		givealbuffer(outbuffer_ex_int16);
-#endif
 
 	if (cd_thread_enable) {
                 cd_buf_update--;
@@ -484,9 +495,8 @@ sound_reset(void)
 
     midi_device_init();
     midi_in_device_init();
-#ifdef USE_OPENAL
+
     inital();
-#endif
 
     timer_add(&sound_poll_timer, sound_poll, NULL, 1);
 

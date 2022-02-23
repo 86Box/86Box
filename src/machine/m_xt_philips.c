@@ -75,18 +75,18 @@ philips_write(uint16_t port, uint8_t val, void *priv)
 	 * bit 7: turbo
 	 * bits 4-5: rtc read/set (I2C Bus SDA/SCL?)
 	 * bit 2: parity disabled
-	 */    
+	 */
 	case 0xc0:
 		dev->reg = val;
 		if (val & 0x80)
 			cpu_dynamic_switch(cpu);
 		else
 			cpu_dynamic_switch(0);
-		break;    
+		break;
     }
-    
+
     philips_log("Philips XT Mainboard: Write %02x at %02x\n", val, port);
-    
+
 }
 
 static uint8_t
@@ -170,7 +170,7 @@ machine_xt_p3105_init(const machine_t *model)
 
     ret = bios_load_linear("roms/machines/p3105/philipsnms9100.bin",
 			   0x000fc000, 16384, 0);
-    
+
     if (bios_only || !ret)
 	return ret;
 
@@ -189,16 +189,15 @@ machine_xt_p3120_init(const machine_t *model)
 
     ret = bios_load_linear("roms/machines/p3120/philips_p3120.bin",
 			   0x000f8000, 32768, 0);
-    
+
     if (bios_only || !ret)
 	return ret;
 
     machine_xt_philips_common_init(model);
-    
+
     device_add(&gc100a_device);
 
     device_add(&fdc_at_device);
-    
+
     return ret;
 }
-

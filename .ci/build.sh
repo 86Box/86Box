@@ -12,7 +12,7 @@
 #
 # Authors:	RichardG, <richardg867@gmail.com>
 #
-#		Copyright 2021 RichardG.
+#		Copyright 2021-2022 RichardG.
 #
 
 #
@@ -85,6 +85,7 @@ make_tar() {
 
 # Set common variables.
 project=86Box
+project_lower=86box
 cwd=$(pwd)
 
 # Parse arguments.
@@ -176,6 +177,15 @@ fi
 
 echo [-] Building [$package_name] for [$arch] with flags [$cmake_flags]
 
+# Determine CMake toolchain file for this architecture.
+case $arch in
+	32 | x86)	toolchain="flags-gcc-i686";;
+	64 | x86_64)	toolchain="flags-gcc-x86_64";;
+	ARM32 | arm32)	toolchain="flags-gcc-armv7";;
+	ARM64 | arm64)	toolchain="flags-gcc-aarch64";;
+	*)		toolchain="flags-gcc-$arch";;
+esac
+
 # Perform platform-specific setup.
 strip_binary=strip
 if is_windows
@@ -200,6 +210,9 @@ then
 		exit 2
 	fi
 	echo [-] Using MSYSTEM [$MSYSTEM]
+
+	# Point CMake to the toolchain file.
+	cmake_flags_extra="$cmake_flags_extra -D \"CMAKE_TOOLCHAIN_FILE=cmake/$toolchain.cmake\""
 elif is_mac
 then
 	# macOS lacks nproc, but sysctl can do the same job.
@@ -213,21 +226,26 @@ else
 		*)	arch_deb="$arch";;
 	esac
 
-	# Establish general and architecture-specific dependencies.
-	pkgs="cmake pkg-config git tar xz-utils dpkg-dev rpm"
+	# Establish general dependencies.
+	pkgs="cmake pkg-config git imagemagick wget p7zip-full wayland-protocols tar gzip"
 	if [ "$(dpkg --print-architecture)" = "$arch_deb" ]
 	then
 		pkgs="$pkgs build-essential"
 	else
-		sudo dpkg --add-architecture $arch_deb
+		sudo dpkg --add-architecture "$arch_deb"
 		pkgs="$pkgs crossbuild-essential-$arch_deb"
 	fi
+
+	# Establish architecture-specific dependencies we don't want listed on the readme...
+	pkgs="$pkgs linux-libc-dev:$arch_deb extra-cmake-modules:$arch_deb qttools5-dev:$arch_deb qtbase5-private-dev:$arch_deb"
+
+	# ...and the ones we do want listed. Non-dev packages fill missing spots on the list.
 	libpkgs=""
 	longest_libpkg=0
-	for pkg in libc6-dev linux-libc-dev libopenal-dev libfreetype6-dev libsdl2-dev libpng-dev librtmidi-dev
+	for pkg in libc6-dev libstdc++6 libopenal-dev libfreetype6-dev libx11-dev libsdl2-dev libpng-dev librtmidi-dev qtdeclarative5-dev libwayland-dev libevdev-dev libglib2.0-dev libslirp-dev
 	do
 		libpkgs="$libpkgs $pkg:$arch_deb"
-		length=$(echo -n $pkg | sed 's/-dev$//' | wc -c)
+		length=$(echo -n $pkg | sed 's/-dev$//' | sed "s/qtdeclarative/qt/" | wc -c)
 		[ $length -gt $longest_libpkg ] && longest_libpkg=$length
 	done
 
@@ -266,6 +284,8 @@ set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
 
 set(ENV{PKG_CONFIG_PATH} "")
 set(ENV{PKG_CONFIG_LIBDIR} "/usr/lib/$libdir/pkgconfig:/usr/share/$libdir/pkgconfig")
+
+include("$(pwd)/cmake/$toolchain.cmake")
 EOF
 	cmake_flags_extra="$cmake_flags_extra -D CMAKE_TOOLCHAIN_FILE=toolchain.cmake"
 	strip_binary="$arch_gnu-strip"
@@ -275,6 +295,12 @@ EOF
 	sudo apt-get update
 	DEBIAN_FRONTEND=noninteractive sudo apt-get -y install $pkgs $libpkgs
 	sudo apt-get clean
+
+	# Link against the system libslirp instead of compiling ours.
+	cmake_flags_extra="$cmake_flags_extra -D SLIRP_EXTERNAL=ON"
+
+	# Use OpenAL for Linux builds before FAudio builds are set up.
+	cmake_flags_extra="$cmake_flags_extra -D OPENAL=ON"
 fi
 
 # Clean workspace.
@@ -288,11 +314,11 @@ find . \( -name Makefile -o -name CMakeCache.txt -o -name CMakeFiles \) -exec rm
 
 # Add ARCH to skip the arch_detect process.
 case $arch in
-	32 | x86)    cmake_flags_extra="$cmake_flags_extra -D ARCH=i386";;
-	64 | x86_64) cmake_flags_extra="$cmake_flags_extra -D ARCH=x86_64";;
-	ARM32 | arm32) cmake_flags_extra="$cmake_flags_extra -D ARCH=arm";;
-	ARM64 | arm64) cmake_flags_extra="$cmake_flags_extra -D ARCH=arm64";;
-	*) cmake_flags_extra="$cmake_flags_extra -D \"ARCH=$arch\"";;
+	32 | x86)	cmake_flags_extra="$cmake_flags_extra -D ARCH=i386";;
+	64 | x86_64)	cmake_flags_extra="$cmake_flags_extra -D ARCH=x86_64";;
+	ARM32 | arm32)	cmake_flags_extra="$cmake_flags_extra -D ARCH=arm";;
+	ARM64 | arm64)	cmake_flags_extra="$cmake_flags_extra -D ARCH=arm64";;
+	*)		cmake_flags_extra="$cmake_flags_extra -D \"ARCH=$arch\"";;
 esac
 
 # Add git hash.
@@ -333,6 +359,26 @@ then
 	exit 4
 fi
 
+# Download Discord Game SDK from their CDN if necessary.
+if [ ! -e "discord_game_sdk.zip" ]
+then
+	echo [-] Downloading Discord Game SDK
+	wget -qO discord_game_sdk.zip "https://dl-game-sdk.discordapp.net/2.5.6/discord_game_sdk.zip"
+	status=$?
+	if [ $status -ne 0 ]
+	then
+		echo [!] Discord Game SDK download failed with status [$status]
+		rm -f discord_game_sdk.zip
+	fi
+fi
+
+# Determine Discord Game SDK architecture.
+case $arch in
+	32)	arch_discord="x86";;
+	64)	arch_discord="x86_64";;
+	*)	arch_discord="$arch";;
+esac
+
 # Create temporary directory for archival.
 echo [-] Gathering archive files
 rm -rf archive_tmp
@@ -363,15 +409,9 @@ then
 		cp -p "$gs"/bin/gsdll*.dll archive_tmp/
 	done
 
-	# Archive Discord Game SDK DLL from their CDN.
-	discordarch=
-	[ "$arch" = "32" ] && discordarch=x86
-	[ "$arch" = "64" ] && discordarch=x86_64
-	if [ ! -z "$discordarch" ]
-	then
-		[ ! -e "discord_game_sdk.zip" ] && wget -qOdiscord_game_sdk.zip https://dl-game-sdk.discordapp.net/2.5.6/discord_game_sdk.zip
-		"$sevenzip" e -y -oarchive_tmp discord_game_sdk.zip lib/$discordarch/discord_game_sdk.dll
-	fi
+	# Archive Discord Game SDK DLL.
+	"$sevenzip" e -y -o"archive_tmp" discord_game_sdk.zip "lib/$arch_discord/discord_game_sdk.dll"
+	[ ! -e "archive_tmp/discord_game_sdk.dll" ] && echo [!] No Discord Game SDK for architecture [$arch_discord]
 
 	# Archive other DLLs from local directory.
 	cp -p "/home/$project/dll$arch/"* archive_tmp/
@@ -390,9 +430,62 @@ then
 	# TBD
 	:
 else
+	cwd_root=$(pwd)
+
+	# Build openal-soft 1.21.1 manually to fix audio issues. This is a temporary
+	# workaround until a newer version of openal-soft trickles down to Debian repos.
+	if [ -d "openal-soft-1.21.1" ]
+	then
+		rm -rf openal-soft-1.21.1/build/*
+	else
+		wget -qO - https://github.com/kcat/openal-soft/archive/refs/tags/1.21.1.tar.gz | tar zxf -
+	fi
+	cd openal-soft-1.21.1/build
+	[ -e Makefile ] && make clean
+	cmake -G "Unix Makefiles" -D "CMAKE_TOOLCHAIN_FILE=$cwd_root/toolchain.cmake" -D "CMAKE_INSTALL_PREFIX=$cwd_root/archive_tmp/usr" ..
+	make -j$(nproc) install || exit 99
+	cd "$cwd_root"
+
+	# Build rtmidi without JACK support to remove the dependency on libjack.
+	if [ -d "rtmidi-4.0.0" ]
+	then
+		rm -rf rtmidi-4.0.0/CMakeCache.txt rtmidi-4.0.0/CMakeFiles
+	else
+		wget -qO - http://www.music.mcgill.ca/~gary/rtmidi/release/rtmidi-4.0.0.tar.gz | tar zxf -
+	fi
+	cwd_root=$(pwd)
+	cd rtmidi-4.0.0
+	[ -e Makefile ] && make clean
+	cmake -G "Unix Makefiles" -D RTMIDI_API_JACK=OFF -D "CMAKE_TOOLCHAIN_FILE=$cwd_root/toolchain.cmake" -D "CMAKE_INSTALL_PREFIX=$cwd_root/archive_tmp/usr" .
+	make -j$(nproc) install || exit 99
+	cd "$cwd_root"
+
+	# Build SDL2 for joystick support with most components disabled to remove the dependencies on PulseAudio and libdrm.
+	if [ ! -d "SDL2-2.0.20" ]
+	then
+		wget -qO - https://www.libsdl.org/release/SDL2-2.0.20.tar.gz | tar zxf -
+	fi
+	rm -rf sdlbuild
+	mkdir sdlbuild
+	cd sdlbuild
+	cmake -G "Unix Makefiles" -D SDL_DISKAUDIO=OFF -D SDL_DIRECTFB_SHARED=OFF -D SDL_OPENGL=OFF -D SDL_OPENGLES=OFF -D SDL_OSS=OFF -D SDL_ALSA=OFF \
+		-D SDL_ALSA_SHARED=OFF -D SDL_JACK=OFF -D SDL_JACK_SHARED=OFF -D SDL_ESD=OFF -D SDL_ESD_SHARED=OFF -D SDL_PIPEWIRE=OFF -D SDL_PIPEWIRE_SHARED=OFF \
+		-D SDL_PULSEAUDIO=OFF -D SDL_PULSEAUDIO_SHARED=OFF -D SDL_ARTS=OFF -D SDL_ARTS_SHARED=OFF -D SDL_NAS=OFF -D SDL_NAS_SHARED=OFF -D SDL_SNDIO=OFF \
+		-D SDL_SNDIO_SHARED=OFF -D SDL_FUSIONSOUND=OFF -D SDL_FUSIONSOUND_SHARED=OFF -D SDL_LIBSAMPLERATE=OFF -D SDL_LIBSAMPLERATE_SHARED=OFF -D SDL_X11=OFF \
+		-D SDL_X11_SHARED=OFF -D SDL_WAYLAND=OFF -D SDL_WAYLAND_SHARED=OFF -D SDL_WAYLAND_LIBDECOR=OFF -D SDL_WAYLAND_LIBDECOR_SHARED=OFF \
+		-D SDL_WAYLAND_QT_TOUCH=OFF -D SDL_RPI=OFF -D SDL_VIVANTE=OFF -D SDL_VULKAN=OFF -D SDL_KMSDRM=OFF -D SDL_KMSDRM_SHARED=OFF -D SDL_OFFSCREEN=OFF \
+		-D SDL_HIDAPI_JOYSTICK=ON -D SDL_VIRTUAL_JOYSTICK=ON -D SDL_SHARED=ON -D SDL_STATIC=OFF -S "$cwd_root/SDL2-2.0.20" \
+		-D "CMAKE_TOOLCHAIN_FILE=$cwd_root/toolchain.cmake" -D "CMAKE_INSTALL_PREFIX=$cwd_root/archive_tmp/usr"
+	make -j$(nproc) install || exit 99
+	cd "$cwd_root"
+
+	# Archive Discord Game SDK library.
+	7z e -y -o"archive_tmp/usr/lib" discord_game_sdk.zip "lib/$arch_discord/discord_game_sdk.so"
+	[ ! -e "archive_tmp/usr/lib/discord_game_sdk.so" ] && echo [!] No Discord Game SDK for architecture [$arch_discord]
+
 	# Archive readme with library package versions.
 	echo Libraries used to compile this $arch build of $project: > archive_tmp/README
-	dpkg-query -f '${Package} ${Version}\n' -W $libpkgs | sed "s/-dev / /" | while IFS=" " read pkg version
+	dpkg-query -f '${Package} ${Version}\n' -W $libpkgs | sed "s/-dev / /" | sed "s/qtdeclarative/qt/" | while IFS=" " read pkg version
 	do
 		for i in $(seq $(expr $longest_libpkg - $(echo -n $pkg | wc -c)))
 		do
@@ -401,13 +494,20 @@ else
 		echo $pkg $version >> archive_tmp/README
 	done
 
+	# Archive icon, while also shrinking it to 512x512 if necessary.
+	convert src/win/assets/$project_lower.png -resize '512x512>' icon.png
+	icon_base="$(identify -format 'archive_tmp/usr/share/icons/%wx%h' icon.png)"
+	mkdir -p "$icon_base"
+	mv icon.png "$icon_base/$project_lower.png"
+
 	# Archive executable, while also stripping it if requested.
+	mkdir -p archive_tmp/usr/local/bin
 	if [ $strip -ne 0 ]
 	then
-		"$strip_binary" -o "archive_tmp/$project" "build/src/$project"
+		"$strip_binary" -o "archive_tmp/usr/local/bin/$project" "build/src/$project"
 		status=$?
 	else
-		mv "build/src/$project" "archive_tmp/$project"
+		mv "build/src/$project" "archive_tmp/usr/local/bin/$project"
 		status=$?
 	fi
 fi
@@ -421,20 +521,50 @@ fi
 
 # Produce artifact archive.
 echo [-] Creating artifact archive
-cd archive_tmp
 if is_windows
 then
 	# Create zip.
-	"$sevenzip" a -y -mx9 "$(cygpath -w "$cwd")\\$package_name.zip" *
+	cd archive_tmp
+	"$sevenzip" a -y "$(cygpath -w "$cwd")\\$package_name.zip" *
 	status=$?
 elif is_mac
 then
 	# TBD
 	:
 else
-	# Create binary tarball.
-	VERBOSE=1 make_tar "$cwd/$package_name.tar"
+	# Determine AppImage runtime architecture.
+	case $arch in
+		x86)	arch_appimage="i686";;
+		arm32)	arch_appimage="armhf";;
+		arm64)	arch_appimage="aarch64";;
+		*)	arch_appimage="$arch";;
+	esac
+
+	# Get version for AppImage metadata.
+	project_version=$(grep -oP '#define\s+EMU_VERSION\s+"\K([^"]+)' "build/src/include/$project_lower/version.h" 2> /dev/null)
+	[ -z "$project_version" ] && project_version=unknown
+	build_num=$(grep -oP '#define\s+EMU_BUILD_NUM\s+\K([0-9]+)' "build/src/include/$project_lower/version.h" 2> /dev/null)
+	[ ! -z "$build_num" -a "$build_num" != "0" ] && project_version="$project_version-b$build_num"
+
+	# Download appimage-builder if necessary.
+	[ ! -e "appimage-builder.AppImage" ] && wget -qO appimage-builder.AppImage \
+		https://github.com/AppImageCrafters/appimage-builder/releases/download/v0.9.2/appimage-builder-0.9.2-35e3eab-x86_64.AppImage
+	chmod u+x appimage-builder.AppImage
+
+	# Remove any dangling AppImages which may interfere with the renaming process.
+	rm -rf "$project-"*".AppImage"
+
+	# Run appimage-builder in extract-and-run mode for Docker compatibility.
+	project="$project" project_lower="$project_lower" project_version="$project_version" arch_deb="$arch_deb" arch_appimage="$arch_appimage" \
+		APPIMAGE_EXTRACT_AND_RUN=1 ./appimage-builder.AppImage --recipe .ci/AppImageBuilder.yml
 	status=$?
+
+	# Rename AppImage to the final name if the build succeeded.
+	if [ $status -eq 0 ]
+	then
+		mv "$project-"*".AppImage" "$cwd/$package_name.AppImage"
+		status=$?
+	fi
 fi
 cd ..
 

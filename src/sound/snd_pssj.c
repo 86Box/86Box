@@ -22,11 +22,11 @@ typedef struct pssj_t
     uint8_t dac_val;
     uint16_t freq;
     int amplitude;
-        
+
     int irq;
     pc_timer_t timer_count;
     int enable;
-        
+
     int wave_pos;
     int pulse_width;
 
@@ -43,7 +43,7 @@ static void pssj_update_irq(pssj_t *pssj)
 static void pssj_write(uint16_t port, uint8_t val, void *p)
 {
     pssj_t *pssj = (pssj_t *)p;
-        
+
     switch (port & 3)
     {
         case 0:
@@ -77,7 +77,7 @@ static void pssj_write(uint16_t port, uint8_t val, void *p)
             pssj->freq = (pssj->freq & 0x0ff) | ((val & 0xf) << 8);
             pssj->amplitude = val >> 4;
             break;
-    }       
+    }
 }
 static uint8_t pssj_read(uint16_t port, void *p)
 {
@@ -113,7 +113,7 @@ static uint8_t pssj_read(uint16_t port, void *p)
 
 static void pssj_update(pssj_t *pssj)
 {
-    for (; pssj->pos < sound_pos_global; pssj->pos++)        
+    for (; pssj->pos < sound_pos_global; pssj->pos++)
         pssj->buffer[pssj->pos] = (((int8_t)(pssj->dac_val ^ 0x80) * 0x20) * pssj->amplitude) / 15;
 }
 
@@ -121,7 +121,7 @@ static void pssj_callback(void *p)
 {
     pssj_t *pssj = (pssj_t *)p;
     int data;
-        
+
     pssj_update(pssj);
     if (pssj->ctrl & 2)
     {
@@ -146,7 +146,7 @@ static void pssj_callback(void *p)
                 pssj->irq = 1;
                 pssj_update_irq(pssj);
             }
-        } 
+        }
     }
     else
     {
@@ -215,6 +215,7 @@ void *pssj_1e0_init(const device_t *info)
     return pssj;
 }
 
+#if defined(DEV_BRANCH) && defined(USE_TANDY_ISA)
 void *pssj_isa_init(const device_t *info)
 {
     pssj_t *pssj = malloc(sizeof(pssj_t));
@@ -230,18 +231,20 @@ void *pssj_isa_init(const device_t *info)
 
     return pssj;
 }
+#endif
 
 void pssj_close(void *p)
 {
     pssj_t *pssj = (pssj_t *)p;
 
-    free(pssj);        
+    free(pssj);
 }
 
+#if defined(DEV_BRANCH) && defined(USE_TANDY_ISA)
 static const device_config_t pssj_isa_config[] =
 {
     {
-        "base", "Address", CONFIG_HEX16, "", 0xC0, "", { 0 },
+        "base", "Address", CONFIG_HEX16, "", 0x2C0, "", { 0 },
         {
             {
                 "0xC0", 0xC0
@@ -261,6 +264,7 @@ static const device_config_t pssj_isa_config[] =
         "", "", -1
     }
 };
+#endif
 
 const device_t pssj_device =
 {
@@ -290,6 +294,7 @@ const device_t pssj_1e0_device =
     NULL
 };
 
+#if defined(DEV_BRANCH) && defined(USE_TANDY_ISA)
 const device_t pssj_isa_device =
 {
     "Tandy PSSJ Clone",
@@ -304,3 +309,4 @@ const device_t pssj_isa_device =
     NULL,
     pssj_isa_config
 };
+#endif

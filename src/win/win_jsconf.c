@@ -37,7 +37,7 @@ static void rebuild_axis_button_selections(HWND hdlg)
         for (c = 0; c < joystick_get_axis_count(joystick_config_type); c++)
         {
                 int sel = c;
-                                        
+
                 h = GetDlgItem(hdlg, id);
                 SendMessage(h, CB_RESETCONTENT, 0, 0);
 
@@ -68,7 +68,7 @@ static void rebuild_axis_button_selections(HWND hdlg)
                 }
                 else
                         EnableWindow(h, FALSE);
-                                        
+
                 id += 2;
         }
 
@@ -93,7 +93,7 @@ static void rebuild_axis_button_selections(HWND hdlg)
         for (c = 0; c < joystick_get_pov_count(joystick_config_type)*2; c++)
         {
                 int sel = c;
-                                        
+
                 h = GetDlgItem(hdlg, id);
                 SendMessage(h, CB_RESETCONTENT, 0, 0);
 
@@ -115,7 +115,7 @@ static void rebuild_axis_button_selections(HWND hdlg)
                 }
                 else
                         EnableWindow(h, FALSE);
-                                        
+
                 id += 2;
         }
 
@@ -127,10 +127,10 @@ static int get_axis(HWND hdlg, int id)
         int axis_sel = SendMessage(h, CB_GETCURSEL, 0, 0);
         int nr_axes = plat_joystick_state[joystick_state[joystick_nr].plat_joystick_nr-1].nr_axes;
 	int nr_povs = plat_joystick_state[joystick_state[joystick_nr].plat_joystick_nr - 1].nr_povs;
-		
+
         if (axis_sel < nr_axes)
                 return axis_sel;
-        
+
         axis_sel -= nr_axes;
         if (axis_sel < nr_povs * 2)
         {
@@ -157,7 +157,7 @@ static int get_pov(HWND hdlg, int id)
                 else
                         return POV_X | (axis_sel >> 1);
         }
-        
+
         return axis_sel - nr_povs;
 }
 
@@ -188,31 +188,31 @@ joystickconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 
                         for (c = 0; c < joysticks_present; c++)
                                 SendMessage(h, CB_ADDSTRING, 0, (LPARAM)(LPCSTR)plat_joystick_state[c].name);
-                        
+
                         SendMessage(h, CB_SETCURSEL, joystick, 0);
 
                         rebuild_axis_button_selections(hdlg);
-                                
+
                         if (joystick_state[joystick_nr].plat_joystick_nr)
                         {
                                 nr_axes = plat_joystick_state[joystick-1].nr_axes;
                                 nr_povs = plat_joystick_state[joystick-1].nr_povs;
-								
+
                                 for (c = 0; c < joystick_get_axis_count(joystick_config_type); c++)
                                 {
                                         int mapping = joystick_state[joystick_nr].axis_mapping[c];
-                                        
+
                                         h = GetDlgItem(hdlg, id);
                                         if (mapping & POV_X)
                                                 SendMessage(h, CB_SETCURSEL, nr_axes + (mapping & 3)*2, 0);
                                         else if (mapping & POV_Y)
                                                 SendMessage(h, CB_SETCURSEL, nr_axes + (mapping & 3)*2 + 1, 0);
                                         else if (mapping & SLIDER)
-						SendMessage(h, CB_SETCURSEL, nr_axes + nr_povs * 2 + (mapping & 3), 0);										
+						SendMessage(h, CB_SETCURSEL, nr_axes + nr_povs * 2 + (mapping & 3), 0);
 					else
                                                 SendMessage(h, CB_SETCURSEL, mapping, 0);
                                         id += 2;
-                                } 
+                                }
                                 for (c = 0; c < joystick_get_button_count(joystick_config_type); c++)
                                 {
                                         h = GetDlgItem(hdlg, id);
@@ -243,7 +243,7 @@ joystickconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
                         }
                 }
                 return TRUE;
-                
+
                 case WM_COMMAND:
                 switch (LOWORD(wParam))
                 {
@@ -251,21 +251,21 @@ joystickconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
                         if (HIWORD(wParam) == CBN_SELCHANGE)
                                 rebuild_axis_button_selections(hdlg);
                         break;
-                        
+
                         case IDOK:
                         {
                                 id = IDC_CONFIG_BASE + 2;
-                                                                
+
                                 h = GetDlgItem(hdlg, IDC_CONFIG_BASE);
                                 joystick_state[joystick_nr].plat_joystick_nr = SendMessage(h, CB_GETCURSEL, 0, 0);
-                                
+
                                 if (joystick_state[joystick_nr].plat_joystick_nr)
                                 {
                                         for (c = 0; c < joystick_get_axis_count(joystick_config_type); c++)
                                         {
                                                 joystick_state[joystick_nr].axis_mapping[c] = get_axis(hdlg, id);
                                                 id += 2;
-                                        }                               
+                                        }
                                         for (c = 0; c < joystick_get_button_count(joystick_config_type); c++)
                                         {
                                                 h = GetDlgItem(hdlg, id);
@@ -308,27 +308,27 @@ uint8_t joystickconfig_open(HWND hwnd, int joy_nr, int type)
 	char s[269];
 
 	joystickconfig_changed = 0;
-        
+
         joystick_nr = joy_nr;
         joystick_config_type = type;
 
         memset(data_block, 0, 4096);
-        
+
         dlg->style = DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU;
         dlg->x  = 10;
         dlg->y  = 10;
         dlg->cx = 220;
         dlg->cy = 70;
-        
+
         data = (uint16_t *)(dlg + 1);
-        
+
         *data++ = 0; /*no menu*/
         *data++ = 0; /*predefined dialog box class*/
         data += MultiByteToWideChar(CP_ACP, 0, "Joystick Configuration", -1, data, 50);
 
         *data++ = 9; /*Point*/
         data += MultiByteToWideChar(CP_ACP, 0, "Segoe UI", -1, data, 50);
-        
+
         if (((uintptr_t)data) & 2)
                 data++;
 
@@ -338,7 +338,7 @@ uint8_t joystickconfig_open(HWND hwnd, int joy_nr, int type)
         item->x = 70;
         item->y = y;
         item->id = id++;
-                
+
         item->cx = 140;
         item->cy = 150;
 
@@ -350,7 +350,7 @@ uint8_t joystickconfig_open(HWND hwnd, int joy_nr, int type)
 
         data += MultiByteToWideChar(CP_ACP, 0, "Device", -1, data, 256);
         *data++ = 0;              /* no creation data */
-                        
+
         if (((uintptr_t)data) & 2)
                 data++;
 
@@ -359,7 +359,7 @@ uint8_t joystickconfig_open(HWND hwnd, int joy_nr, int type)
         item->x = 10;
         item->y = y + 2;
         item->id = id++;
-                
+
         item->cx = 60;
         item->cy = 15;
 
@@ -371,7 +371,7 @@ uint8_t joystickconfig_open(HWND hwnd, int joy_nr, int type)
 
         data += MultiByteToWideChar(CP_ACP, 0, "Device", -1, data, 256);
         *data++ = 0;              /* no creation data */
-                        
+
         if (((uintptr_t)data) & 2)
                 data++;
 
@@ -385,7 +385,7 @@ uint8_t joystickconfig_open(HWND hwnd, int joy_nr, int type)
                 item->x = 70;
                 item->y = y;
                 item->id = id++;
-                
+
                 item->cx = 140;
                 item->cy = 150;
 
@@ -397,7 +397,7 @@ uint8_t joystickconfig_open(HWND hwnd, int joy_nr, int type)
 
                 data += MultiByteToWideChar(CP_ACP, 0, joystick_get_axis_name(type, c), -1, data, 256);
                 *data++ = 0;              /* no creation data */
-                        
+
                 if (((uintptr_t)data) & 2)
                         data++;
 
@@ -406,7 +406,7 @@ uint8_t joystickconfig_open(HWND hwnd, int joy_nr, int type)
                 item->x = 10;
                 item->y = y + 2;
                 item->id = id++;
-                
+
                 item->cx = 60;
                 item->cy = 15;
 
@@ -418,12 +418,12 @@ uint8_t joystickconfig_open(HWND hwnd, int joy_nr, int type)
 
                 data += MultiByteToWideChar(CP_ACP, 0, joystick_get_axis_name(type, c), -1, data, 256);
                 *data++ = 0;              /* no creation data */
-                        
+
                 if (((uintptr_t)data) & 2)
                         data++;
 
                 y += 20;
-        }                
+        }
 
         for (c = 0; c < joystick_get_button_count(type); c++)
         {
@@ -432,7 +432,7 @@ uint8_t joystickconfig_open(HWND hwnd, int joy_nr, int type)
                 item->x = 70;
                 item->y = y;
                 item->id = id++;
-                
+
                 item->cx = 140;
                 item->cy = 150;
 
@@ -444,7 +444,7 @@ uint8_t joystickconfig_open(HWND hwnd, int joy_nr, int type)
 
                 data += MultiByteToWideChar(CP_ACP, 0, joystick_get_button_name(type, c), -1, data, 256);
                 *data++ = 0;              /* no creation data */
-                        
+
                 if (((uintptr_t)data) & 2)
                         data++;
 
@@ -453,7 +453,7 @@ uint8_t joystickconfig_open(HWND hwnd, int joy_nr, int type)
                 item->x = 10;
                 item->y = y + 2;
                 item->id = id++;
-                
+
                 item->cx = 60;
                 item->cy = 15;
 
@@ -465,13 +465,13 @@ uint8_t joystickconfig_open(HWND hwnd, int joy_nr, int type)
 
                 data += MultiByteToWideChar(CP_ACP, 0, joystick_get_button_name(type, c), -1, data, 256);
                 *data++ = 0;              /* no creation data */
-                        
+
                 if (((uintptr_t)data) & 2)
                         data++;
 
                 y += 20;
-        }                
- 
+        }
+
         for (c = 0; c < joystick_get_pov_count(type)*2; c++)
         {
                 /*Combo box*/
@@ -479,7 +479,7 @@ uint8_t joystickconfig_open(HWND hwnd, int joy_nr, int type)
                 item->x = 70;
                 item->y = y;
                 item->id = id++;
-                
+
                 item->cx = 140;
                 item->cy = 150;
 
@@ -495,7 +495,7 @@ uint8_t joystickconfig_open(HWND hwnd, int joy_nr, int type)
                         sprintf(s, "%s (X axis)", joystick_get_pov_name(type, c/2));
                 data += MultiByteToWideChar(CP_ACP, 0, s, -1, data, 256);
                 *data++ = 0;              /* no creation data */
-                        
+
                 if (((uintptr_t)data) & 2)
                         data++;
 
@@ -504,7 +504,7 @@ uint8_t joystickconfig_open(HWND hwnd, int joy_nr, int type)
                 item->x = 10;
                 item->y = y + 2;
                 item->id = id++;
-                
+
                 item->cx = 60;
                 item->cy = 15;
 
@@ -516,7 +516,7 @@ uint8_t joystickconfig_open(HWND hwnd, int joy_nr, int type)
 
                 data += MultiByteToWideChar(CP_ACP, 0, s, -1, data, 256);
                 *data++ = 0;              /* no creation data */
-                        
+
                 if (((uintptr_t)data) & 2)
                         data++;
 
@@ -542,7 +542,7 @@ uint8_t joystickconfig_open(HWND hwnd, int joy_nr, int type)
 
         if (((uintptr_t)data) & 2)
                 data++;
-                
+
         item = (DLGITEMTEMPLATE *)data;
         item->x = 160;
         item->y = y + 5;

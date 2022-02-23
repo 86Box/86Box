@@ -395,8 +395,8 @@ pc_init(int argc, char *argv[])
 {
 	char path[2048], path2[2048];
 	char *cfg = NULL, *p;
-#ifdef __APPLE__
-	char mac_rom_path[2048];
+#if !defined(__APPLE__) && !defined(_WIN32)
+	char *appimage;
 #endif
 	char temp[128];
 	struct tm *info;
@@ -405,7 +405,7 @@ pc_init(int argc, char *argv[])
 	int ng = 0, lvmp = 0;
 	uint32_t *uid, *shwnd;
 	uint32_t lang_init = 0;
-	
+
 	/* Grab the executable's full path. */
 	plat_get_exe_name(exe_path, sizeof(exe_path)-1);
 	p = plat_get_filename(exe_path);
@@ -421,7 +421,7 @@ pc_init(int argc, char *argv[])
 	 */
 	plat_getcwd(usr_path, sizeof(usr_path) - 1);
 	plat_getcwd(rom_path, sizeof(rom_path) - 1);
-	
+
 	memset(path, 0x00, sizeof(path));
 	memset(path2, 0x00, sizeof(path));
 
@@ -590,11 +590,20 @@ usage:
 			plat_dir_create(usr_path);
 	}
 
+	if (path2[0] == '\0') {
+#if defined(__APPLE__)
+		getDefaultROMPath(path2);
+#elif !defined(_WIN32)
+		appimage = getenv("APPIMAGE");
+		if (appimage && (appimage[0] != '\0')) {
+			plat_get_dirname(path2, appimage);
+			plat_path_slash(path2);
+			strcat(path2, "roms");
+			plat_path_slash(path2);
+		}
+#endif
+	}
 
-	#ifdef __APPLE__
-		getDefaultROMPath(mac_rom_path);
-		strcpy(path2, mac_rom_path);
-	#endif
 	if (vmrp && (path2[0] == '\0')) {
 		strcpy(path2, usr_path);
 		plat_path_slash(path2);
@@ -718,7 +727,7 @@ usage:
 
 	/* Load the configuration file. */
 	config_load();
-	
+
 	/* Load the desired language */
 	if (lang_init)
 		lang_id = lang_init;
@@ -932,9 +941,7 @@ pc_reset_hard_close(void)
 
 	scsi_disk_close();
 
-#ifdef USE_OPENAL
 	closeal();
-#endif
 
 	video_reset_close();
 
@@ -1062,7 +1069,7 @@ pc_reset_hard_init(void)
 void update_mouse_msg()
 {
 	wchar_t wcpufamily[2048], wcpu[2048], wmachine[2048], *wcp;
-	
+
 	mbstowcs(wmachine, machine_getname(), strlen(machine_getname())+1);
 
 	if (!cpu_override)

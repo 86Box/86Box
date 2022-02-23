@@ -97,7 +97,7 @@ int mouse_capture = 0;
 int fixed_size_x = 640;
 int fixed_size_y = 480;
 int rctrl_is_lalt = 0;
-int	update_icons = 0;
+int	update_icons = 1;
 int	kbd_req_capture = 0;
 int hide_status_bar = 0;
 int hide_tool_bar = 0;
@@ -224,8 +224,14 @@ plat_get_filename(char *s)
 int
 plat_path_abs(char *path)
 {
-    QFileInfo fi(path);
-    return fi.isAbsolute() ? 1 : 0;
+#ifdef Q_OS_WINDOWS
+    if ((path[1] == ':') || (path[0] == '\\') || (path[0] == '/'))
+        return 1;
+
+    return 0;
+#else
+    return path[0] == '/';
+#endif
 }
 
 void
@@ -258,7 +264,7 @@ plat_tempfile(char *bufp, char *prefix, char *suffix)
 
      name.append(QDateTime::currentDateTime().toString("yyyyMMdd-hhmmss-zzzz"));
      if (suffix) name.append(suffix);
-     sprintf(&bufp[strlen(bufp)], "%s", name.toUtf8().data());
+     strcpy(bufp, name.toUtf8().data());
 }
 
 void plat_remove(char* path)
@@ -295,8 +301,15 @@ void
 plat_pause(int p)
 {
     static wchar_t oldtitle[512];
-    wchar_t title[512];
+    wchar_t title[512], paused_msg[64];
 
+    if (p == dopause) {
+#ifdef Q_OS_WINDOWS
+        if (source_hwnd)
+            PostMessage((HWND)(uintptr_t)source_hwnd, WM_SENDSTATUS, (WPARAM)!!p, (LPARAM)(HWND)main_window->winId());
+#endif
+        return;
+    }
     if ((p == 0) && (time_sync & TIME_SYNC_ENABLED))
         nvr_time_sync();
 
@@ -304,7 +317,8 @@ plat_pause(int p)
     if (p) {
         wcsncpy(oldtitle, ui_window_title(NULL), sizeof_w(oldtitle) - 1);
         wcscpy(title, oldtitle);
-        wcscat(title, L" - PAUSED -");
+        QObject::tr(" - PAUSED").toWCharArray(paused_msg);
+        wcscat(title, paused_msg);
         ui_window_title(title);
     } else {
         ui_window_title(oldtitle);
@@ -323,6 +337,7 @@ extern int	nvr_save(void);
 void
 plat_power_off(void)
 {
+    plat_mouse_capture(0);
     confirm_exit = 0;
     nvr_save();
     config_save();

@@ -16,6 +16,10 @@
  *
  *		Copyright 2008-2019 Sarah Walker.
  */
+
+#ifndef MACHINE_AMSTRAD_H
+# define MACHINE_AMSTRAD_H
+
 extern int amstrad_latch;
 
 enum
@@ -24,3 +28,5 @@ enum
     AMSTRAD_SW9,
     AMSTRAD_SW10
 };
+
+#endif /*MACHINE_AMSTRAD.H*/

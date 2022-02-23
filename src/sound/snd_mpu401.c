@@ -108,7 +108,7 @@ MPU401_ReCalcClock(mpu_t *mpu)
 	freq = (int32_t)((float)(mpu->clock.freq) * mpu->clock.freq_mod);
 	if ((freq > (mpu->clock.timebase * mintempo)) && (freq < (mpu->clock.timebase * maxtempo)))
 		mpu->clock.freq = freq;
-    }		
+    }
 }
 
 
@@ -167,9 +167,9 @@ MPU401_QueueByteEx(mpu_t *mpu, uint8_t data, int irq)
     if (mpu->queue_used < MPU401_QUEUE) {
 	int pos = mpu->queue_used+mpu->queue_pos;
 
-	if (mpu->queue_pos >= MPU401_QUEUE) 
+	if (mpu->queue_pos >= MPU401_QUEUE)
 		mpu->queue_pos -= MPU401_QUEUE;
-	if (pos>=MPU401_QUEUE) 
+	if (pos>=MPU401_QUEUE)
 		pos-=MPU401_QUEUE;
 
 	mpu->queue_used++;
@@ -179,7 +179,7 @@ MPU401_QueueByteEx(mpu_t *mpu, uint8_t data, int irq)
 
 
 static void
-MPU401_QueueByte(mpu_t *mpu, uint8_t data) 
+MPU401_QueueByte(mpu_t *mpu, uint8_t data)
 {
     MPU401_QueueByteEx(mpu, data, 1);
 }
@@ -244,7 +244,7 @@ MPU401_RecQueueBuffer(mpu_t *mpu, uint8_t *buf, uint32_t len, int block)
 
 
 static void
-MPU401_ClrQueue(mpu_t *mpu) 
+MPU401_ClrQueue(mpu_t *mpu)
 {
     mpu->queue_used = 0;
     mpu->queue_pos = 0;
@@ -261,7 +261,7 @@ MPU401_ClrQueue(mpu_t *mpu)
 
 
 static void
-MPU401_Reset(mpu_t *mpu) 
+MPU401_Reset(mpu_t *mpu)
 {
     uint8_t i;
 
@@ -359,7 +359,7 @@ MPU401_Reset(mpu_t *mpu)
 
 
 static void
-MPU401_ResetDone(void *priv) 
+MPU401_ResetDone(void *priv)
 {
     mpu_t *mpu = (mpu_t *)priv;
 
@@ -368,7 +368,7 @@ MPU401_ResetDone(void *priv)
     timer_disable(&mpu->mpu401_reset_callback);
 
     mpu->state.reset = 0;
-    
+
     if (mpu->state.cmd_pending) {
 	MPU401_WriteCommand(mpu, mpu->state.cmd_pending - 1);
 	mpu->state.cmd_pending = 0;
@@ -378,7 +378,7 @@ MPU401_ResetDone(void *priv)
 
 static void
 MPU401_WriteCommand(mpu_t *mpu, uint8_t val)
-{	
+{
     uint8_t i, j, was_uart, recmsg[3];
 
     if (mpu->state.reset)
@@ -472,7 +472,7 @@ MPU401_WriteCommand(mpu_t *mpu, uint8_t val)
 	uint8_t rec_cnt = mpu->clock.rec_counter;
 	if (((val == 0x20) || (val == 0x26)) && (mpu->state.rec == M_RECON))
 		MPU401_RecQueueBuffer(mpu, &rec_cnt, 1, 0);
-	
+
 	if (send_prchg) {
 		for (i = 0; i < 16; i++) {
 			if (mpu->filter.prchg_mask & (1 << i)) {
@@ -590,7 +590,7 @@ MPU401_WriteCommand(mpu_t *mpu, uint8_t val)
 		if (val & 1)
 			mpu->filter.sysex_thru = 0;
 		break;
-	case 0x98: case 0x99: case 0x9a: case 0x9b: /* Reference tables on/off */ 
+	case 0x98: case 0x99: case 0x9a: case 0x9b: /* Reference tables on/off */
 	case 0x9c: case 0x9d: case 0x9e: case 0x9f:
 		mpu->chanref[(val - 0x98) / 2].on = !!(val & 1);
 		break;
@@ -653,7 +653,7 @@ MPU401_WriteCommand(mpu_t *mpu, uint8_t val)
 		mpu->state.wsd_start = 1;
 		break;
 	/* Commands with data byte */
-	case 0xe0: case 0xe1: case 0xe2: case 0xe4: case 0xe6: 
+	case 0xe0: case 0xe1: case 0xe2: case 0xe4: case 0xe6:
 	case 0xe7: case 0xec: case 0xed: case 0xee: case 0xef:
 		mpu->state.command_byte = val;
 		break;
@@ -676,7 +676,7 @@ MPU401_WriteCommand(mpu_t *mpu, uint8_t val)
 
 
 static void
-MPU401_WriteData(mpu_t *mpu, uint8_t val) 
+MPU401_WriteData(mpu_t *mpu, uint8_t val)
 {
     static int length, cnt;
 	uint8_t i;
@@ -697,7 +697,7 @@ MPU401_WriteData(mpu_t *mpu, uint8_t val)
 	return;
     }
 #endif
-	
+
     switch (mpu->state.command_byte) {	/* 0xe# command data */
 	case 0x00:
 		break;
@@ -728,7 +728,7 @@ MPU401_WriteData(mpu_t *mpu, uint8_t val)
 	case 0xe6: /* Set metronome ticks per measure */
 		mpu->state.command_byte = 0;
 		mpu->clock.metromeas = val;
-		return; 
+		return;
 	case 0xe7:	/* Set internal clock to host interval */
 		mpu->state.command_byte = 0;
 		if (!val)
@@ -924,7 +924,7 @@ MPU401_WriteData(mpu_t *mpu, uint8_t val)
 						mpu->clock.measure_counter = 0;
 				} else {
 					/* mpu401_log("MPU-401:Illegal message"); */
-					mpu->playbuf[mpu->state.track].type = T_OVERFLOW;					
+					mpu->playbuf[mpu->state.track].type = T_OVERFLOW;
 				}
 				mpu->state.data_onoff = -1;
 				MPU401_EOIHandler(mpu);
@@ -949,13 +949,13 @@ MPU401_WriteData(mpu_t *mpu, uint8_t val)
 		}
 		break;
     }
-	
+
 	return;
 }
 
 
 static void
-MPU401_IntelligentOut(mpu_t *mpu, uint8_t track) 
+MPU401_IntelligentOut(mpu_t *mpu, uint8_t track)
 {
     uint8_t chan, chrefnum, key, msg;
 	int send, retrigger;
@@ -1010,7 +1010,7 @@ MPU401_IntelligentOut(mpu_t *mpu, uint8_t track)
 				midi_raw_out_byte(mpu->playbuf[track].value[i]);
 		}
 		break;
-	
+
 	default:
 		break;
     }
@@ -1018,7 +1018,7 @@ MPU401_IntelligentOut(mpu_t *mpu, uint8_t track)
 
 
 static void
-UpdateTrack(mpu_t *mpu, uint8_t track) 
+UpdateTrack(mpu_t *mpu, uint8_t track)
 {
     MPU401_IntelligentOut(mpu, track);
 
@@ -1035,7 +1035,7 @@ UpdateTrack(mpu_t *mpu, uint8_t track)
 
 #if 0
 static void
-UpdateConductor(mpu_t *mpu) 
+UpdateConductor(mpu_t *mpu)
 {
     if (mpu->condbuf.value[0] == 0xfc) {
 	mpu->condbuf.value[0] = 0;
@@ -1061,7 +1061,7 @@ MPU401_EOIHandler(void *priv)
     uint8_t i;
 
     mpu401_log("MPU-401 end of input callback\n");
-	
+
     timer_disable(&mpu->mpu401_eoi_callback);
     mpu->state.eoi_scheduled = 0;
     if (mpu->state.send_now) {
@@ -1072,7 +1072,7 @@ MPU401_EOIHandler(void *priv)
 	} else UpdateTrack(mpu, mpu->state.track);
     }
 
-    if (mpu->state.rec_copy || !mpu->state.sysex_in_finished) 
+    if (mpu->state.rec_copy || !mpu->state.sysex_in_finished)
 	return;
 
     if (mpu->ext_irq_update)
@@ -1097,7 +1097,7 @@ MPU401_EOIHandler(void *priv)
 
 
 static void
-MPU401_EOIHandlerDispatch(void *priv) 
+MPU401_EOIHandlerDispatch(void *priv)
 {
     mpu_t *mpu = (mpu_t *)priv;
 
@@ -1105,7 +1105,7 @@ MPU401_EOIHandlerDispatch(void *priv)
     if (mpu->state.send_now) {
 	mpu->state.eoi_scheduled = 1;
 	timer_advance_u64(&mpu->mpu401_eoi_callback, 60LL * TIMER_USEC); /* Possibly a bit longer */
-    } else if (!mpu->state.eoi_scheduled) 
+    } else if (!mpu->state.eoi_scheduled)
 	MPU401_EOIHandler(mpu);
 }
 
@@ -1144,7 +1144,7 @@ uint8_t
 MPU401_ReadData(mpu_t *mpu)
 {
     uint8_t ret;
-	
+
     ret = MSG_MPU_ACK;
 
     if (mpu->queue_used) {
@@ -1217,7 +1217,7 @@ static void
 mpu401_write(uint16_t addr, uint8_t val, void *priv)
 {
     mpu_t *mpu = (mpu_t *)priv;
-     
+
     /* mpu401_log("MPU401 Write Port %04X, val %x\n", addr, val); */
     switch (addr & 1) {
 	case 0: /*Data*/
@@ -1239,7 +1239,7 @@ mpu401_read(uint16_t addr, void *priv)
     mpu_t *mpu = (mpu_t *)priv;
     uint8_t ret = 0;
 
-    switch (addr & 1) {	
+    switch (addr & 1) {
 	case 0:		/* Read Data */
 		ret = MPU401_ReadData(mpu);
 		mpu401_log("Read Data (0x330) %X\n", ret);
@@ -1262,7 +1262,7 @@ mpu401_read(uint16_t addr, void *priv)
 
 
 static void
-MPU401_Event(void *priv) 
+MPU401_Event(void *priv)
 {
     mpu_t *mpu = (mpu_t *)priv;
     uint8_t i;
@@ -1347,8 +1347,8 @@ next_event:
 }
 
 
-static void 
-MPU401_NotesOff(mpu_t *mpu, int i) 
+static void
+MPU401_NotesOff(mpu_t *mpu, int i)
 {
     int j;
     uint8_t key;
@@ -1356,7 +1356,7 @@ MPU401_NotesOff(mpu_t *mpu, int i)
     if (mpu->filter.allnotesoff_out && !(mpu->inputref[i].on &&
 	(mpu->inputref[i].key[0] | mpu->inputref[i].key[1] |
 	mpu->inputref[i].key[2] | mpu->inputref[i].key[3]))) {
-	for (j=0;j<4;j++) 
+	for (j=0;j<4;j++)
 		mpu->chanref[mpu->ch_toref[i]].key[j]=0;
 	midi_raw_out_byte(0xb0 | i);
 	midi_raw_out_byte(123);
@@ -1403,13 +1403,13 @@ MPU401_InputSysex(void *p, uint8_t *buffer, uint32_t len, int abort)
 		return 0;
 	}
 	if (mpu->state.sysex_in_finished) {
-		if (mpu->rec_queue_used>=MPU401_INPUT_QUEUE) 
+		if (mpu->rec_queue_used>=MPU401_INPUT_QUEUE)
 			return len;
 		MPU401_RecQueueBuffer(mpu, &val_ff, 1, 1);
 		mpu->state.sysex_in_finished=0;
 		mpu->clock.rec_counter=0;
 	}
-	if (mpu->rec_queue_used>=MPU401_INPUT_QUEUE) 
+	if (mpu->rec_queue_used>=MPU401_INPUT_QUEUE)
 		return len;
 	int available = MPU401_INPUT_QUEUE - mpu->rec_queue_used;
 
@@ -1418,7 +1418,7 @@ MPU401_InputSysex(void *p, uint8_t *buffer, uint32_t len, int abort)
 		return 0;
 	} else {
 		MPU401_RecQueueBuffer(mpu,buffer, available, 1);
-		if (mpu->state.sysex_in_finished) 
+		if (mpu->state.sysex_in_finished)
 			return 0;
 		return (len - available);
 	}
@@ -1468,18 +1468,18 @@ MPU401_InputMsg(void *p, uint8_t *msg, uint32_t len)
 	key = msg[1] & 0x7f;
 	if (msg[0] < 0xf0) {
 		/* If non-system msg. */
-		if (!(mpu->state.midi_mask & (1 << chan)) && mpu->filter.all_thru) 
+		if (!(mpu->state.midi_mask & (1 << chan)) && mpu->filter.all_thru)
 			send_thru = 1;
-		else if (mpu->filter.midi_thru) 
+		else if (mpu->filter.midi_thru)
 			send_thru = 1;
 		switch (msg[0] & 0xf0) {
 			case 0x80:	/* Note off. */
 				if (send_thru) {
 					if (mpu->chanref[chrefnum].on && (mpu->chanref[chrefnum].M_GETKEY))
 						send_thru = 0;
-					if (!mpu->filter.midi_thru) 
+					if (!mpu->filter.midi_thru)
 						break;
-					if  (!(mpu->inputref[chan].M_GETKEY)) 
+					if  (!(mpu->inputref[chan].M_GETKEY))
 						send_thru = 0;
 					mpu->inputref[chan].M_DELKEY;
 				}
@@ -1488,9 +1488,9 @@ MPU401_InputMsg(void *p, uint8_t *msg, uint32_t len)
 				if (send_thru) {
 					if (mpu->chanref[chrefnum].on && (mpu->chanref[chrefnum].M_GETKEY))
 						retrigger_thru = 1;
-					if (!mpu->filter.midi_thru) 
+					if (!mpu->filter.midi_thru)
 						break;
-					if (mpu->inputref[chan].M_GETKEY) 
+					if (mpu->inputref[chan].M_GETKEY)
 						retrigger_thru = 1;
 					mpu->inputref[chan].M_SETKEY;
 				}
@@ -1518,14 +1518,14 @@ MPU401_InputMsg(void *p, uint8_t *msg, uint32_t len)
 	if ((msg[0] >= 0xf0) || (mpu->state.midi_mask & (1 << chan))) {
 		switch (msg[0] & 0xf0) {
 			case 0xa0:	/* Aftertouch. */
-				if (!mpu->filter.bender_in) 
+				if (!mpu->filter.bender_in)
 					send = 0;
 				break;
 			case 0xb0:	/* Control change. */
 				if (!mpu->filter.bender_in && (msg[1] < 64))
 					send = 0;
-				if (msg[1] >= 120) { 
-					if (mpu->filter.modemsgs_in) 
+				if (msg[1] >= 120) {
+					if (mpu->filter.modemsgs_in)
 						send = 1;
 				}
 				break;
@@ -1537,7 +1537,7 @@ MPU401_InputMsg(void *p, uint8_t *msg, uint32_t len)
 				break;
 			case 0xd0:	/* Ch pressure. */
 			case 0xe0:	/* Pitch wheel. */
-				if (!mpu->filter.bender_in) 
+				if (!mpu->filter.bender_in)
 					send = 0;
 				break;
 			case 0xf0:	/* System message. */
@@ -1547,7 +1547,7 @@ MPU401_InputMsg(void *p, uint8_t *msg, uint32_t len)
 						send = 0;	/* Don't pass to host in this mode? */
 						tick = mpu->clock.timebase / 24;
 						if (mpu->clock.ticks_in != tick) {
-							if (!mpu->clock.ticks_in || (mpu->clock.ticks_in > (tick * 2))) 
+							if (!mpu->clock.ticks_in || (mpu->clock.ticks_in > (tick * 2)))
 								mpu->clock.freq_mod *= 2.0;
 							else {
 								if (ABS(mpu->clock.ticks_in-tick) == 1)
@@ -1569,10 +1569,10 @@ MPU401_InputMsg(void *p, uint8_t *msg, uint32_t len)
 				} else {	/* Common or system. */
 					send = 0;
 					if ((msg[0] == 0xf2) || (msg[0] == 0xf3) || (msg[0] == 0xf6)) {
-						if (mpu->filter.commonmsgs_in) 
+						if (mpu->filter.commonmsgs_in)
 							send = 1;
-						if (mpu->filter.commonmsgs_thru) 
-							for (i = 0; i < len; i++) 
+						if (mpu->filter.commonmsgs_thru)
+							for (i = 0; i < len; i++)
 								midi_raw_out_byte(msg[i]);
 					}
 				}
@@ -1618,7 +1618,7 @@ MPU401_InputMsg(void *p, uint8_t *msg, uint32_t len)
 			midi_raw_out_byte(msg[1]);
 			midi_raw_out_byte(msg[2]);
 		}
-		for (i = 0; i < len; i++) 
+		for (i = 0; i < len; i++)
 			midi_raw_out_byte(msg[i]);
 	}
 	if (send) {
@@ -1797,7 +1797,7 @@ mpu401_standalone_init(const device_t *info)
     }
 
     mpu401_init(mpu, base, irq, M_INTELLIGENT, device_get_config_int("receive_input"));
-	
+
     return(mpu);
 }
 

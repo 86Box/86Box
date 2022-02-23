@@ -30,6 +30,7 @@
 extern "C"
 {
 #include <86box/86box.h>
+#include <86box/version.h>
 #include <86box/config.h>
 #include <86box/plat.h>
 }
@@ -120,6 +121,9 @@ void ProgSettings::accept()
     reloadStrings();
     update_mouse_msg();
     main_window->ui->retranslateUi(main_window);
+    QString vmname(vm_name);
+    if (vmname.at(vmname.size() - 1) == '"' || vmname.at(vmname.size() - 1) == '\'') vmname.truncate(vmname.size() - 1);
+    main_window->setWindowTitle(QString("%1 - %2 %3").arg(vmname, EMU_NAME, EMU_VERSION_FULL));
     QString msg = main_window->status->getMessage();
     main_window->status.reset(new MachineStatus(main_window));
     main_window->refreshMediaMenu();
@@ -189,4 +193,3 @@ void ProgSettings::on_pushButtonLanguage_released()
 {
     ui->comboBoxLanguage->setCurrentIndex(0);
 }
-

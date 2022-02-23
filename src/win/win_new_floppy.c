@@ -195,7 +195,7 @@ create_sector_image(char *file_name, disk_size_t disk_size, uint8_t is_fdi)
     uint32_t fat2_offs = 0;
     uint32_t zero_bytes = 0;
     uint16_t base = 0x1000;
-    
+
     f = plat_fopen(file_name, "wb");
     if (!f)
 	return 0;
@@ -305,7 +305,7 @@ create_zip_sector_image(char *file_name, disk_size_t disk_size, uint8_t is_zdi, 
     uint32_t pbar_max = 0;
     uint32_t i;
     MSG msg;
-    
+
     f = plat_fopen(file_name, "wb");
     if (!f)
 	return 0;
@@ -360,8 +360,8 @@ create_zip_sector_image(char *file_name, disk_size_t disk_size, uint8_t is_zdi, 
 	SendMessage(h, PBM_SETPOS, (WPARAM) 1, (LPARAM) 0);
 
 	while (PeekMessage(&msg, 0, 0, 0, PM_REMOVE | PM_NOYIELD)) {
-		TranslateMessage(&msg); 
-		DispatchMessage(&msg); 
+		TranslateMessage(&msg);
+		DispatchMessage(&msg);
 	}
 
 	fwrite(&empty[0x0800], 1, 2048, f);
@@ -370,8 +370,8 @@ create_zip_sector_image(char *file_name, disk_size_t disk_size, uint8_t is_zdi, 
 	SendMessage(h, PBM_SETPOS, (WPARAM) 2, (LPARAM) 0);
 
 	while (PeekMessage(&msg, 0, 0, 0, PM_REMOVE | PM_NOYIELD)) {
-		TranslateMessage(&msg); 
-		DispatchMessage(&msg); 
+		TranslateMessage(&msg);
+		DispatchMessage(&msg);
 	}
 
 	pbar_max -= 2;
@@ -512,8 +512,8 @@ create_zip_sector_image(char *file_name, disk_size_t disk_size, uint8_t is_zdi, 
 	SendMessage(h, PBM_SETPOS, (WPARAM) i + 2, (LPARAM) 0);
 
 	while (PeekMessage(&msg, 0, 0, 0, PM_REMOVE | PM_NOYIELD)) {
-		TranslateMessage(&msg); 
-		DispatchMessage(&msg); 
+		TranslateMessage(&msg);
+		DispatchMessage(&msg);
 	}
     }
 
@@ -539,7 +539,7 @@ create_mo_sector_image(char *file_name, int8_t disk_size, uint8_t is_mdi, HWND h
     uint32_t pbar_max = 0, blocks_num;
     uint32_t i, j;
     MSG msg;
-    
+
     f = plat_fopen(file_name, "wb");
     if (!f)
 	return 0;
@@ -593,8 +593,8 @@ create_mo_sector_image(char *file_name, int8_t disk_size, uint8_t is_mdi, HWND h
 	SendMessage(h, PBM_SETPOS, (WPARAM) 1, (LPARAM) 0);
 
 	while (PeekMessage(&msg, 0, 0, 0, PM_REMOVE | PM_NOYIELD)) {
-		TranslateMessage(&msg); 
-		DispatchMessage(&msg); 
+		TranslateMessage(&msg);
+		DispatchMessage(&msg);
 	}
 
 	fwrite(&empty[0x0800], 1, 2048, f);
@@ -603,8 +603,8 @@ create_mo_sector_image(char *file_name, int8_t disk_size, uint8_t is_mdi, HWND h
 	SendMessage(h, PBM_SETPOS, (WPARAM) 1, (LPARAM) 0);
 
 	while (PeekMessage(&msg, 0, 0, 0, PM_REMOVE | PM_NOYIELD)) {
-		TranslateMessage(&msg); 
-		DispatchMessage(&msg); 
+		TranslateMessage(&msg);
+		DispatchMessage(&msg);
 	}
     }
 
@@ -622,8 +622,8 @@ create_mo_sector_image(char *file_name, int8_t disk_size, uint8_t is_mdi, HWND h
 	SendMessage(h, PBM_SETPOS, (WPARAM) i + j, (LPARAM) 0);
 
 	while (PeekMessage(&msg, 0, 0, 0, PM_REMOVE | PM_NOYIELD)) {
-		TranslateMessage(&msg); 
-		DispatchMessage(&msg); 
+		TranslateMessage(&msg);
+		DispatchMessage(&msg);
 	}
     }
 
@@ -633,8 +633,8 @@ create_mo_sector_image(char *file_name, int8_t disk_size, uint8_t is_mdi, HWND h
 	SendMessage(h, PBM_SETPOS, (WPARAM) pbar_max - 1, (LPARAM) 0);
 
 	while (PeekMessage(&msg, 0, 0, 0, PM_REMOVE | PM_NOYIELD)) {
-		TranslateMessage(&msg); 
-		DispatchMessage(&msg); 
+		TranslateMessage(&msg);
+		DispatchMessage(&msg);
 	}
     }
 

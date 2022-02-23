@@ -98,7 +98,7 @@ i450kx_smram_recalc(i450kx_t *dev, int bus)
 
     addr = ((uint32_t) regs[0xb8] << 16) | ((uint32_t) regs[0xb9] << 24);
     size = (((uint32_t) ((regs[0xbb] >> 4) & 0x0f)) << 16) + 0x00010000;
-    
+
     if ((addr != 0x00000000) && !!(regs[0x57] & 0x08)) {
 	if (bus)
 		smram_enable_ex(dev->smram[bus], addr, addr, size, 0, !!(regs[0x57] & 8), 0, 1);

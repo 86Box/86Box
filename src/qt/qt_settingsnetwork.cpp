@@ -124,6 +124,15 @@ void SettingsNetwork::on_comboBoxAdapter_currentIndexChanged(int index) {
 }
 
 void SettingsNetwork::on_pushButtonConfigure_clicked() {
-    DeviceConfig::ConfigureDevice(network_card_getdevice(ui->comboBoxAdapter->currentData().toInt()));
+    DeviceConfig::ConfigureDevice(network_card_getdevice(ui->comboBoxAdapter->currentData().toInt()), 0, qobject_cast<Settings*>(Settings::settings));
 }
 
+
+void SettingsNetwork::on_comboBoxPcap_currentIndexChanged(int index)
+{
+    if (index < 0) {
+        return;
+    }
+
+    enableElements(ui);
+}

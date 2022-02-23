@@ -625,7 +625,7 @@ void pc_cas_advance (pc_cassette_t *cas)
     if (cas->motor == 0)
 	return;
 
-    if (cassette_cycles == -1) 
+    if (cassette_cycles == -1)
 	cassette_cycles = cycles;
     if (cycles <= cassette_cycles)
 	ticks = (cassette_cycles - cycles);

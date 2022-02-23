@@ -115,7 +115,7 @@ lm78_nvram(lm78_t *dev, uint8_t save)
 		fread(&dev->as99127f.nvram, sizeof(dev->as99127f.nvram), 1, f);
 	fclose(f);
     }
-    
+
     free(nvr_path);
 }
 
@@ -494,7 +494,7 @@ lm78_write(lm78_t *dev, uint8_t reg, uint8_t val, uint8_t bank)
 			return 0;
 		}
 	}
-    } 
+    }
 
     /* regular registers */
     switch (reg) {

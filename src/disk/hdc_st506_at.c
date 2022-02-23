@@ -742,7 +742,7 @@ mfm_init(const device_t *info)
     io_sethandler(0x03f6, 1,
 		  NULL,     NULL,      NULL, mfm_write, NULL,       NULL, mfm);
 
-    timer_add(&mfm->callback_timer, do_callback, mfm, 0);	
+    timer_add(&mfm->callback_timer, do_callback, mfm, 0);
 
     ui_sb_update_icon(SB_HDD|HDD_BUS_MFM, 0);
 
@@ -759,7 +759,7 @@ mfm_close(void *priv)
     for (d=0; d<2; d++) {
 	drive_t *drive = &mfm->drives[d];
 
-	hdd_image_close(drive->hdd_num);		
+	hdd_image_close(drive->hdd_num);
     }
 
     free(mfm);

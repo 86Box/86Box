@@ -205,13 +205,13 @@ show_render_options_menu()
 {
 	if (vid_api == menu_vidapi)
 		return;
-	
+
 	if (cur_menu != NULL)
 	{
 		if (delete_submenu(menuMain, cur_menu))
 			cur_menu = NULL;
 	}
-	
+
 	if (cur_menu == NULL)
 	{
 		switch (IDM_VID_SDL_SW + vid_api)
@@ -235,7 +235,7 @@ show_render_options_menu()
 }
 
 static void
-video_set_filter_menu(HMENU menu) 
+video_set_filter_menu(HMENU menu)
 {
 	CheckMenuItem(menu, IDM_VID_FILTER_NEAREST, vid_api == 0 || video_filter_method == 0 ? MF_CHECKED : MF_UNCHECKED);
 	CheckMenuItem(menu, IDM_VID_FILTER_LINEAR, vid_api != 0 && video_filter_method == 1 ? MF_CHECKED : MF_UNCHECKED);
@@ -262,7 +262,7 @@ ResetAllMenus(void)
     CheckMenuItem(menuMain, IDM_VID_SDL_HW, MF_UNCHECKED);
     CheckMenuItem(menuMain, IDM_VID_SDL_OPENGL, MF_UNCHECKED);
     CheckMenuItem(menuMain, IDM_VID_OPENGL_CORE, MF_UNCHECKED);
-	
+
     menu_vidapi = -1;
     cur_menu = NULL;
     show_render_options_menu();
@@ -574,7 +574,7 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 				break;
 
 			case IDM_DOCS:
-				ShellExecute(hwnd, L"open", EMU_DOCS_URL, NULL, NULL, SW_SHOW);
+				ShellExecute(hwnd, L"open", EMU_DOCS_URL_W, NULL, NULL, SW_SHOW);
 				break;
 
 			case IDM_UPDATE_ICONS:
@@ -750,7 +750,7 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 				break;
 
 			case IDM_VID_FILTER_NEAREST:
-			case IDM_VID_FILTER_LINEAR:				
+			case IDM_VID_FILTER_LINEAR:
 				video_filter_method = LOWORD(wParam) - IDM_VID_FILTER_NEAREST;
 				video_set_filter_menu(hmenu);
 				plat_vid_reload_options();
@@ -763,7 +763,7 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 				atomic_flag_clear(&doresize);
 				config_save();
 				break;
-				
+
 			case IDM_PREFERENCES:
 				PreferencesDlgCreate(hwnd);
 				break;
@@ -1012,21 +1012,29 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 	case WM_SHUTDOWN:
 		if (manager_wm)
 			break;
-		win_notify_dlg_open();
-		if (confirm_exit && confirm_exit_cmdl)
-			i = ui_msgbox_ex(MBX_QUESTION_YN | MBX_DONTASK, (wchar_t *) IDS_2113, NULL, (wchar_t *) IDS_2119, (wchar_t *) IDS_2136, NULL);
-		else
-			i = 0;
-		if ((i % 10) == 0) {
-			if (i == 10) {
-				confirm_exit = 0;
-				nvr_save();
-				config_save();
-			}
+		if (LOWORD(wParam) == 1) {
+			confirm_exit = 0;
+			nvr_save();
+			config_save();
 			KillTimer(hwnd, TIMER_1SEC);
 			PostQuitMessage(0);
+		} else {
+			win_notify_dlg_open();
+			if (confirm_exit && confirm_exit_cmdl)
+				i = ui_msgbox_ex(MBX_QUESTION_YN | MBX_DONTASK, (wchar_t *) IDS_2113, NULL, (wchar_t *) IDS_2119, (wchar_t *) IDS_2136, NULL);
+			else
+				i = 0;
+			if ((i % 10) == 0) {
+				if (i == 10) {
+					confirm_exit = 0;
+					nvr_save();
+					config_save();
+				}
+				KillTimer(hwnd, TIMER_1SEC);
+				PostQuitMessage(0);
+			}
+			win_notify_dlg_closed();
 		}
-		win_notify_dlg_closed();
 		break;
 
 	case WM_CTRLALTDEL:
@@ -1163,6 +1171,7 @@ ui_init(int nCmdShow)
     int bRet;
     TASKDIALOGCONFIG tdconfig = {0};
     TASKDIALOG_BUTTON tdbuttons[] = {{IDCANCEL, MAKEINTRESOURCE(IDS_2119)}};
+    uint32_t helper_lang;
 
     /* Load DPI related Windows 10 APIs */
     user32_handle = dynld_module("user32.dll", user32_imports);
@@ -1195,6 +1204,12 @@ ui_init(int nCmdShow)
 		TaskDialogIndirect(&tdconfig, NULL, NULL, NULL);
 		return(6);
 	}
+
+
+	/* Load the desired language */
+	helper_lang = lang_id;
+	lang_id = 0;
+	set_language(helper_lang);
 
 	win_settings_open(NULL);
 	return(0);
@@ -1313,10 +1328,10 @@ ui_init(int nCmdShow)
     }
 
     /* Load the desired language */
-    uint32_t helper_lang = lang_id;
+    helper_lang = lang_id;
     lang_id = 0;
     set_language(helper_lang);
-	
+
     /* Make the window visible on the screen. */
     ShowWindow(hwnd, nCmdShow);
 
@@ -1497,7 +1512,7 @@ plat_pause(int p)
     if (p) {
 	wcsncpy(oldtitle, ui_window_title(NULL), sizeof_w(oldtitle) - 1);
 	wcscpy(title, oldtitle);
-	wcscat(title, L" - PAUSED -");
+	wcscat(title, plat_get_string(IDS_2051));
 	ui_window_title(title);
     } else {
 	ui_window_title(oldtitle);

@@ -32,7 +32,7 @@ BEGIN
     POPUP "&Ansicht"
     BEGIN
         MENUITEM "&Statusleiste ausblenden",		IDM_VID_HIDE_STATUS_BAR
-        MENUITEM "Hide &toolbar",		IDM_VID_HIDE_TOOLBAR
+        MENUITEM "&Werkzeugleiste ausblenden",		IDM_VID_HIDE_TOOLBAR
         MENUITEM SEPARATOR
         MENUITEM "&Größenverstellbares Fenster",          IDM_VID_RESIZE
         MENUITEM "&Größe && Position merken",  IDM_VID_REMEMBER
@@ -64,7 +64,7 @@ BEGIN
         END
         MENUITEM "Hi&DPI-Skalierung",              IDM_VID_HIDPI
         MENUITEM SEPARATOR
-        MENUITEM "&Vollbild\tStrg+Alt+BildAuf",    IDM_VID_FULLSCREEN
+        MENUITEM "&Vollbild\tStrg+Alt+Bild auf",    IDM_VID_FULLSCREEN
         POPUP "&Stretching-Modus im Vollbildmodus"
         BEGIN
             MENUITEM "&Vollbild-Stretching",        IDM_VID_FS_FULL
@@ -255,10 +255,10 @@ END
 #define STR_LOCK_TO_SIZE	"Feste Größe"
 
 #define STR_MACHINE_TYPE	"Systemtyp:"
-#define STR_MACHINE		"Maschine:"
+#define STR_MACHINE		"System:"
 #define STR_CONFIGURE		"Einstellen"
 #define STR_CPU_TYPE		"CPU-Typ:"
-#define STR_CPU_SPEED		"Geschwindigkeit:"
+#define STR_CPU_SPEED		"Takt:"
 #define STR_FPU			"FPU-Einheit:"
 #define STR_WAIT_STATES		"Wartezustände:"
 #define STR_MB			"MB"
@@ -341,7 +341,7 @@ END
 #define STR_TURBO		"Turbo-Timings"
 #define STR_CHECKBPB		"BPB überprüfen"
 #define STR_CDROM_DRIVES	"CD-ROM-Laufwerke:"
-#define STR_CD_SPEED		"Geschwindigkeit:"
+#define STR_CD_SPEED		"Takt:"
 
 #define STR_MO_DRIVES		"MO-Laufwerke:"
 #define STR_ZIP_DRIVES		"ZIP-Laufwerke:"
@@ -371,7 +371,7 @@ BEGIN
     2048	"86Box"
     IDS_2049	"Fehler"
     IDS_2050	"Fataler Fehler"
-    IDS_2051	"<reserved>"
+    IDS_2051	" - PAUSED"
     IDS_2052	"Bitte Strg+Alt+Bild ab zur Rückkehr in den Fenstermodus drücken."
     IDS_2053	"Geschwindigkeit"
     IDS_2054	"ZIP %03i %i (%s): %ls"
@@ -450,7 +450,7 @@ BEGIN
     IDS_2119	"Beenden"
     IDS_2120	"Keine ROMs gefunden"
     IDS_2121	"Möchten Sie die Einstellungen speichern?"
-    IDS_2122	"Dies wird zu einem Hard-Reset der emulierten Maschine führen."
+    IDS_2122	"Dies wird zu einem Hard-Reset des emulierten Systems führen."
     IDS_2123	"Speichern"
     IDS_2124	"Über 86Box"
     IDS_2125	"86Box Version " EMU_VERSION
@@ -503,13 +503,13 @@ BEGIN
     IDS_2151	"Cartridgeimages (*.A;*.B;*.JRC)\0*.A;*.B;*.JRC\0Alle Dateien (*.*)\0*.*\0"
     IDS_2152	"Fehler bei der Rendererinitialisierung"
     IDS_2153	"Der OpenGL (3.0-Kern)-Renderer konnte nicht initialisiert werden. Bitte benutzen Sie einen anderen Renderer."
-    IDS_2154	"Resume execution"
-    IDS_2155	"Pause execution"
-    IDS_2156	"Press Ctrl+Alt+Del"
-    IDS_2157	"Press Ctrl+Alt+Esc"
-    IDS_2158	"Hard reset"
-    IDS_2159	"ACPI shutdown"
-    IDS_2160	"Settings"
+    IDS_2154	"Fortsetzen"
+    IDS_2155	"Pausieren"
+    IDS_2156	"Strg+Alt+Entf drücken"
+    IDS_2157	"Strg+Alt+Esc drücken"
+    IDS_2158	"Hard-Reset"
+    IDS_2159	"ACPI-basiertes Herunterfahren"
+    IDS_2160	"Optionen"
 END
 
 STRINGTABLE DISCARDABLE 
@@ -593,21 +593,21 @@ BEGIN
     IDS_5899	"2,88 MB"
     IDS_5900	"ZIP 100"
     IDS_5901	"ZIP 250"
-    IDS_5902	"3,5-Zoll 128 MB M.O. (ISO 10090)"
-    IDS_5903	"3,5-Zoll 230 MB M.O. (ISO 13963)"
-    IDS_5904	"3,5-Zoll 540 MB M.O. (ISO 15498)"
-    IDS_5905	"3,5-Zoll 640 MB M.O. (ISO 15498)"
-    IDS_5906	"3,5-Zoll 1,3 GB M.O. (GigaMO)"
-    IDS_5907	"3,5-Zoll 2,3 GB M.O. (GigaMO 2)"
-    IDS_5908	"5,25-Zoll 600 MB M.O."
-    IDS_5909	"5,25-Zoll 650 MB M.O."
-    IDS_5910	"5,25-Zoll 1 GB M.O."
-    IDS_5911	"5,25-Zoll 1,3 GB M.O."
+    IDS_5902	"3,5-Zoll 128 MB (ISO 10090)"
+    IDS_5903	"3,5-Zoll 230 MB (ISO 13963)"
+    IDS_5904	"3,5-Zoll 540 MB (ISO 15498)"
+    IDS_5905	"3,5-Zoll 640 MB (ISO 15498)"
+    IDS_5906	"3,5-Zoll 1,3 GB (GigaMO)"
+    IDS_5907	"3,5-Zoll 2,3 GB (GigaMO 2)"
+    IDS_5908	"5,25-Zoll 600 MB"
+    IDS_5909	"5,25-Zoll 650 MB"
+    IDS_5910	"5,25-Zoll 1 GB"
+    IDS_5911	"5,25-Zoll 1,3 GB"
 
     IDS_6144	"Perfekte Drehzahl"
-    IDS_6145	"1%% unterhalb der perfekten Drehzahl"
-    IDS_6146	"1,5%% unterhalb der perfekten Drehzahl"
-    IDS_6147	"2%% unterhalb der perfekten Drehzahl"
+    IDS_6145	"1% unterhalb der perfekten Drehzahl"
+    IDS_6146	"1,5% unterhalb der perfekten Drehzahl"
+    IDS_6147	"2% unterhalb der perfekten Drehzahl"
 
     IDS_7168	"(Systemstandard)"
 END

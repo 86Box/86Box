@@ -14,6 +14,7 @@
  *          Cacodemon345
  *
  *      Copyright 2022 Cacodemon345
+ *		Copyright 2022 Jasmine Iwanek
  *		Copyright 2021 Joakim L. Gilje
  */
 #include "qt_settingsports.hpp"
@@ -36,7 +37,7 @@ SettingsPorts::SettingsPorts(QWidget *parent) :
 {
     ui->setupUi(this);
 
-    for (int i = 0; i < 4; i++) {
+    for (int i = 0; i < PARALLEL_MAX; i++) {
         auto* cbox = findChild<QComboBox*>(QString("comboBoxLpt%1").arg(i+1));
         auto* model = cbox->model();
         int c = 0;
@@ -60,7 +61,7 @@ SettingsPorts::SettingsPorts(QWidget *parent) :
         cbox->setEnabled(lpt_ports[i].enabled > 0);
     }
 
-    for (int i = 0; i < 4; i++) {
+    for (int i = 0; i < SERIAL_MAX; i++) {
         auto* checkBox = findChild<QCheckBox*>(QString("checkBoxSerial%1").arg(i+1));
         checkBox->setChecked(serial_enabled[i] > 0);
     }
@@ -72,14 +73,14 @@ SettingsPorts::~SettingsPorts()
 }
 
 void SettingsPorts::save() {
-    for (int i = 0; i < 3; i++) {
+    for (int i = 0; i < PARALLEL_MAX; i++) {
         auto* cbox = findChild<QComboBox*>(QString("comboBoxLpt%1").arg(i+1));
         auto* checkBox = findChild<QCheckBox*>(QString("checkBoxParallel%1").arg(i+1));
         lpt_ports[i].device = cbox->currentData().toInt();
         lpt_ports[i].enabled = checkBox->isChecked() ? 1 : 0;
     }
 
-    for (int i = 0; i < 4; i++) {
+    for (int i = 0; i < SERIAL_MAX; i++) {
         auto* checkBox = findChild<QCheckBox*>(QString("checkBoxSerial%1").arg(i+1));
         serial_enabled[i] = checkBox->isChecked() ? 1 : 0;
     }
@@ -97,8 +98,6 @@ void SettingsPorts::on_checkBoxParallel3_stateChanged(int state) {
     ui->comboBoxLpt3->setEnabled(state == Qt::Checked);
 }
 
-
 void SettingsPorts::on_checkBoxParallel4_stateChanged(int state) {
     ui->comboBoxLpt4->setEnabled(state == Qt::Checked);
 }
-

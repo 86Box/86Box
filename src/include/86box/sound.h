@@ -16,9 +16,9 @@
  *		Copyright 2008-2018 Sarah Walker.
  *		Copyright 2016-2018 Miran Grca.
  */
+
 #ifndef EMU_SOUND_H
 # define EMU_SOUND_H
-
 
 extern int sound_gain;
 
@@ -104,7 +104,10 @@ extern const device_t ps1snd_device;
 
 /* Tandy PSSJ */
 extern const device_t pssj_device;
+#if defined(DEV_BRANCH) && defined(USE_TANDY_ISA)
 extern const device_t pssj_isa_device;
+extern const device_t tndy_device;
+#endif
 
 /* Creative Labs Sound Blaster */
 extern const device_t sb_1_device;
@@ -120,6 +123,8 @@ extern const device_t sb_16_pnp_device;
 extern const device_t sb_32_pnp_device;
 extern const device_t sb_awe32_device;
 extern const device_t sb_awe32_pnp_device;
+extern const device_t sb_awe64_value_device;
+extern const device_t sb_awe64_device;
 extern const device_t sb_awe64_gold_device;
 
 /* Innovation SSI-2001 */
@@ -130,6 +135,8 @@ extern const device_t wss_device;
 extern const device_t ncr_business_audio_device;
 
 /* Crystal CS423x */
+extern const device_t cs4235_device;
+extern const device_t cs4235_onboard_device;
 extern const device_t cs4236b_device;
 extern const device_t cs4237b_device;
 extern const device_t cs4238b_device;

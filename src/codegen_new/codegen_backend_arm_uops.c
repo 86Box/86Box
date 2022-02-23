@@ -416,7 +416,7 @@ static int codegen_CMP_JNBE(codeblock_t *block, uop_t *uop)
 
         jump_p = host_arm_BHI_(block);
         *jump_p |= ((((uintptr_t)uop->p - (uintptr_t)jump_p) - 8) & 0x3fffffc) >> 2;
-        
+
         return 0;
 }
 
@@ -1488,7 +1488,7 @@ static int codegen_MOV_INT_DOUBLE(codeblock_t *block, uop_t *uop)
 static int64_t x87_fround64(double b)
 {
         int64_t a, c;
-        
+
         switch ((cpu_state.npxc >> 10) & 3)
         {
                 case 0: /*Nearest*/
@@ -1507,7 +1507,7 @@ static int64_t x87_fround64(double b)
                 case 3: /*Chop*/
                 return (int64_t)b;
         }
-        
+
         return 0;
 }
 static int codegen_MOV_INT_DOUBLE_64(codeblock_t *block, uop_t *uop)
@@ -1529,7 +1529,7 @@ static int codegen_MOV_INT_DOUBLE_64(codeblock_t *block, uop_t *uop)
 		host_arm_VMOV_D_D(block, REG_D0, src_reg);
 	        host_arm_call(block, x87_fround64);
                 host_arm_VMOV_D_64(block, REG_D_TEMP, REG_R0, REG_R1);
-                
+
 		*branch_offset |= ((((uintptr_t)&block_write_data[block_pos] - (uintptr_t)branch_offset) - 8) & 0x3fffffc) >> 2;
         }
         else

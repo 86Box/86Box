@@ -1,18 +1,22 @@
 /* Copyright holders: Sarah Walker
    see COPYING for more details
 */
+
+#ifndef VIDEO_MDA_H
+# define VIDEO_MDA_H
+
 typedef struct mda_t
 {
         mem_mapping_t mapping;
-        
+
         uint8_t crtc[32];
         int crtcreg;
-        
+
         uint8_t ctrl, stat;
-        
+
         uint64_t dispontime, dispofftime;
         pc_timer_t timer;
-        
+
         int firstline, lastline;
 
         int linepos, displine;
@@ -38,3 +42,5 @@ void    mda_poll(void *p);
 #ifdef EMU_DEVICE_H
 extern const device_t mda_device;
 #endif
+
+#endif /*VIDEO_MDA_H*/

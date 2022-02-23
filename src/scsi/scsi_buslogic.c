@@ -268,7 +268,7 @@ BuslogicGetNVRFileName(buslogic_data_t *bl)
 	switch(bl->chip)
 	{
 		case CHIP_BUSLOGIC_ISA_542B_1991_12_14:
-			return "bt542b.nvr";		
+			return "bt542b.nvr";
 		case CHIP_BUSLOGIC_ISA_545S_1992_10_05:
 			return "bt545s.nvr";
 		case CHIP_BUSLOGIC_ISA_542BH_1993_05_23:
@@ -483,7 +483,7 @@ buslogic_get_host_id(void *p)
 
     HALocalRAM *HALR = &bl->LocalRAM;
 
-    if ((bl->chip == CHIP_BUSLOGIC_ISA_542B_1991_12_14) || 
+    if ((bl->chip == CHIP_BUSLOGIC_ISA_542B_1991_12_14) ||
 		(bl->chip == CHIP_BUSLOGIC_ISA_545S_1992_10_05) ||
 		(bl->chip == CHIP_BUSLOGIC_ISA_542BH_1993_05_23) ||
 		(bl->chip == CHIP_BUSLOGIC_VLB_445S_1993_11_16))
@@ -503,8 +503,8 @@ buslogic_get_irq(void *p)
 
     HALocalRAM *HALR = &bl->LocalRAM;
 
-    if ((bl->chip == CHIP_BUSLOGIC_ISA_542B_1991_12_14) || 
-		(bl->chip == CHIP_BUSLOGIC_ISA_545S_1992_10_05) || 
+    if ((bl->chip == CHIP_BUSLOGIC_ISA_542B_1991_12_14) ||
+		(bl->chip == CHIP_BUSLOGIC_ISA_545S_1992_10_05) ||
 		(bl->chip == CHIP_BUSLOGIC_ISA_542BH_1993_05_23) ||
 		(bl->chip == CHIP_BUSLOGIC_VLB_445S_1993_11_16) ||
 		(bl->chip == CHIP_BUSLOGIC_PCI_958D_1995_12_30))
@@ -526,8 +526,8 @@ buslogic_get_dma(void *p)
 
     if (bl->chip == CHIP_BUSLOGIC_PCI_958D_1995_12_30)
 	return (dev->Base ? 7 : 0);
-    else if ((bl->chip == CHIP_BUSLOGIC_ISA_542B_1991_12_14) || 
-		(bl->chip == CHIP_BUSLOGIC_ISA_545S_1992_10_05) || 
+    else if ((bl->chip == CHIP_BUSLOGIC_ISA_542B_1991_12_14) ||
+		(bl->chip == CHIP_BUSLOGIC_ISA_545S_1992_10_05) ||
 		(bl->chip == CHIP_BUSLOGIC_ISA_542BH_1993_05_23) ||
 		(bl->chip == CHIP_BUSLOGIC_VLB_445S_1993_11_16))
 	return dev->DmaChannel;
@@ -557,7 +557,7 @@ buslogic_param_len(void *p)
 		return sizeof(MailboxInitExtended_t);
 	case 0x83:
 		return 12;
-	case 0x90:	
+	case 0x90:
 	case 0x91:
 		return 2;
 	case 0x94:
@@ -615,7 +615,7 @@ BuslogicSCSIBIOSDMATransfer(x54x_t *dev, ESCMD *ESCSICmd, uint8_t TargetID, int 
 
 static void
 BuslogicSCSIBIOSRequestSetup(x54x_t *dev, uint8_t *CmdBuf, uint8_t *DataInBuf, uint8_t DataReply)
-{	
+{
     ESCMD *ESCSICmd = (ESCMD *)CmdBuf;
     uint32_t i;
     uint8_t temp_cdb[12];
@@ -633,8 +633,8 @@ BuslogicSCSIBIOSRequestSetup(x54x_t *dev, uint8_t *CmdBuf, uint8_t *DataInBuf, u
 	DataInBuf[3] = SCSI_STATUS_OK;
 	return;
     }
-		
-    buslogic_log("Scanning SCSI Target ID %i\n", ESCSICmd->TargetId);		
+
+    buslogic_log("Scanning SCSI Target ID %i\n", ESCSICmd->TargetId);
 
     sd->status = SCSI_STATUS_OK;
 
@@ -648,7 +648,7 @@ BuslogicSCSIBIOSRequestSetup(x54x_t *dev, uint8_t *CmdBuf, uint8_t *DataInBuf, u
 	scsi_device_identify(sd, ESCSICmd->LogicalUnit);
 
 	buslogic_log("Transfer Control %02X\n", ESCSICmd->DataDirection);
-	buslogic_log("CDB Length %i\n", ESCSICmd->CDBLength);	
+	buslogic_log("CDB Length %i\n", ESCSICmd->CDBLength);
     }
 
     target_cdb_len = 12;
@@ -687,7 +687,7 @@ BuslogicSCSIBIOSRequestSetup(x54x_t *dev, uint8_t *CmdBuf, uint8_t *DataInBuf, u
 	DataInBuf[3] = SCSI_STATUS_OK;
     } else if (scsi_devices[dev->bus][ESCSICmd->TargetId].status == SCSI_STATUS_CHECK_CONDITION) {
 	DataInBuf[2] = CCB_COMPLETE;
-	DataInBuf[3] = SCSI_STATUS_CHECK_CONDITION;			
+	DataInBuf[3] = SCSI_STATUS_CHECK_CONDITION;
     }
 
     dev->DataReplyLeft = DataReply;
@@ -732,7 +732,7 @@ buslogic_cmds(void *p)
 		}
 		dev->DataReplyLeft = 8;
 		break;
-	case 0x24:						
+	case 0x24:
 		for (i = 0; i < 15; i++) {
 			if (scsi_device_present(&scsi_devices[dev->bus][i]) && (i != buslogic_get_host_id(dev)))
 			    TargetsPresentMask |= (1 << i);
@@ -771,7 +771,7 @@ buslogic_cmds(void *p)
 			buslogic_log("Execute SCSI BIOS Command: %u more bytes follow\n", dev->CmdParamLeft);
 		} else {
 			buslogic_log("Execute SCSI BIOS Command: received %u bytes\n", dev->CmdBuf[0]);
-			BuslogicSCSIBIOSRequestSetup(dev, dev->CmdBuf, dev->DataBuf, 4);				
+			BuslogicSCSIBIOSRequestSetup(dev, dev->CmdBuf, dev->DataBuf, 4);
 		}
 		break;
 	case 0x84:
@@ -817,7 +817,7 @@ buslogic_cmds(void *p)
 			dev->DataReplyLeft = sizeof(BuslogicPCIInformation_t);
 		} else {
 			dev->DataReplyLeft = 0;
-			dev->Status |= STAT_INVCMD;					
+			dev->Status |= STAT_INVCMD;
 		}
 		break;
 	case 0x8B:
@@ -862,7 +862,7 @@ buslogic_cmds(void *p)
 		ReplyIESI->cMailbox = dev->MailboxCount;
 		ReplyIESI->uMailboxAddressBase = dev->MailboxOutAddr;
 		ReplyIESI->fHostWideSCSI = (bl->chip == CHIP_BUSLOGIC_PCI_958D_1995_12_30) ? 1 : 0;
-		if ((bl->chip != CHIP_BUSLOGIC_ISA_542B_1991_12_14) && (bl->chip != CHIP_BUSLOGIC_ISA_545S_1992_10_05) && 
+		if ((bl->chip != CHIP_BUSLOGIC_ISA_542B_1991_12_14) && (bl->chip != CHIP_BUSLOGIC_ISA_545S_1992_10_05) &&
 			(bl->chip != CHIP_BUSLOGIC_ISA_542BH_1993_05_23) && (bl->chip != CHIP_BUSLOGIC_MCA_640A_1993_05_23) &&
 			(bl->chip != CHIP_BUSLOGIC_VLB_445S_1993_11_16))
 			ReplyIESI->fLevelSensitiveInterrupt = bl->LocalRAM.structured.autoSCSIData.fLevelSensitiveInterrupt;
@@ -876,12 +876,12 @@ buslogic_cmds(void *p)
 		buslogic_log("Aggressive Round Robin Mode = %d\n", bl->fAggressiveRoundRobinMode);
 		dev->DataReplyLeft = 0;
 		break;
-	case 0x90:	
+	case 0x90:
 		buslogic_log("Store Local RAM\n");
 		Offset = dev->CmdBuf[0];
 		dev->DataReplyLeft = 0;
 		memcpy(&(bl->LocalRAM.u8View[Offset]), &(dev->CmdBuf[2]), dev->CmdBuf[1]);
-	
+
 		dev->DataReply = 0;
 		break;
 	case 0x91:
@@ -899,9 +899,9 @@ buslogic_cmds(void *p)
 			break;
 		}
 	case 0x92:
-		if ((bl->chip == CHIP_BUSLOGIC_ISA_542B_1991_12_14) || 
-			(bl->chip == CHIP_BUSLOGIC_ISA_545S_1992_10_05) || 
-			(bl->chip == CHIP_BUSLOGIC_ISA_542BH_1993_05_23) || 
+		if ((bl->chip == CHIP_BUSLOGIC_ISA_542B_1991_12_14) ||
+			(bl->chip == CHIP_BUSLOGIC_ISA_545S_1992_10_05) ||
+			(bl->chip == CHIP_BUSLOGIC_ISA_542BH_1993_05_23) ||
 			(bl->chip == CHIP_BUSLOGIC_MCA_640A_1993_05_23)) {
 			dev->DataReplyLeft = 0;
 			dev->Status |= STAT_INVCMD;
@@ -980,7 +980,7 @@ buslogic_cmds(void *p)
 			return 1;
 		} else {
 			dev->DataReplyLeft = 0;
-			dev->Status |= STAT_INVCMD;					
+			dev->Status |= STAT_INVCMD;
 		}
 		break;
 	case 0x96:
@@ -988,7 +988,7 @@ buslogic_cmds(void *p)
 			bl->ExtendedLUNCCBFormat = 0;
 		else if (dev->CmdBuf[0] == 1)
 			bl->ExtendedLUNCCBFormat = 1;
-					
+
 		dev->DataReplyLeft = 0;
 		break;
 	case 0x97:
@@ -1309,7 +1309,7 @@ BuslogicPCIWrite(int func, int addr, uint8_t val, void *p)
 				x54x_mem_set_addr(dev, bl->MMIOBase);
 			}
 		}
-		return;	
+		return;
 
 	case 0x30:			/* PCI_ROMBAR */
 	case 0x31:			/* PCI_ROMBAR */
@@ -1390,7 +1390,7 @@ buslogic_mca_write(int port, uint8_t val, void *priv)
 
     /* Save the new IRQ and DMA channel values. */
     dev->Irq = ((dev->pos_regs[2] >> 1) & 0x07) + 8;
-    dev->DmaChannel = dev->pos_regs[5] & 0x0f;	
+    dev->DmaChannel = dev->pos_regs[5] & 0x0f;
 
     /* Extract the BIOS ROM address info. */
     if (dev->pos_regs[2] & 0xe0)  switch(dev->pos_regs[2] & 0xe0) {
@@ -1401,7 +1401,7 @@ buslogic_mca_write(int port, uint8_t val, void *priv)
 		case 0x00: /* [0]=000x xxxx */
 		bl->bios_addr = 0;
 		break;
-		
+
 		case 0xc0: /* [0]=110x xxxx */
 		bl->bios_addr = 0xD8000;
 		break;
@@ -1679,7 +1679,7 @@ buslogic_init(const device_t *info)
 			dev->fw_rev = "BA335";
 			dev->flags |= X54X_32BIT;
 			dev->pos_regs[0] = 0x08;	/* MCA board ID */
-			dev->pos_regs[1] = 0x07;	
+			dev->pos_regs[1] = 0x07;
 			mca_add(buslogic_mca_read, buslogic_mca_write, buslogic_mca_feedb, NULL, dev);
 			dev->ha_bps = 5000000.0;	/* normal SCSI */
 			dev->max_id = 7;		/* narrow SCSI */
@@ -1788,9 +1788,9 @@ buslogic_init(const device_t *info)
 
     if ((bl->chip == CHIP_BUSLOGIC_MCA_640A_1993_05_23) || (bl->chip == CHIP_BUSLOGIC_PCI_958D_1995_12_30))
 	mem_mapping_disable(&bl->bios.mapping);
-	
+
     buslogic_log("Buslogic on port 0x%04X\n", dev->Base);
-	
+
     x54x_device_reset(dev);
 
     if ((bl->chip != CHIP_BUSLOGIC_ISA_542B_1991_12_14) && (bl->chip != CHIP_BUSLOGIC_ISA_545S_1992_10_05) && (bl->chip != CHIP_BUSLOGIC_ISA_542BH_1993_05_23) &&

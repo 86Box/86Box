@@ -58,7 +58,7 @@ static void ch_flightstick_pro_close(void *p)
 static uint8_t ch_flightstick_pro_read(void *p)
 {
         uint8_t ret = 0xf0;
-        
+
         if (JOYSTICK_PRESENT(0))
         {
                 if (joystick_state[0].button[0])

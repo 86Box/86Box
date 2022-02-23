@@ -12,4 +12,9 @@
  *		Copyright 2016-2018 Miran Grca.
  */
 
+#ifndef EMU_IBM_5161_H
+# define EMU_IBM_5161_H
+
 extern const device_t ibm_5161_device;
+
+#endif /*EMU_IBM_5151_H*/

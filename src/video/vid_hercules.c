@@ -54,7 +54,7 @@ recalc_timings(hercules_t *dev)
 }
 
 
-static uint8_t crtcmask[32] = 
+static uint8_t crtcmask[32] =
 {
 	0xff, 0xff, 0xff, 0xff, 0x7f, 0x1f, 0x7f, 0x7f, 0xf3, 0x1f, 0x7f, 0x1f, 0x3f, 0xff, 0x3f, 0xff,
 	0xff, 0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
@@ -303,7 +303,7 @@ hercules_poll(void *priv)
 	dev->linepos = 1;
 	oldsc = dev->sc;
 
-	if ((dev->crtc[8] & 3) == 3) 
+	if ((dev->crtc[8] & 3) == 3)
 		dev->sc = (dev->sc << 1) & 7;
 
 	if (dev->dispon) {
@@ -374,7 +374,7 @@ hercules_poll(void *priv)
 	if (dev->vc == dev->crtc[7] && !dev->sc)
 		dev->stat |= 8;
 	dev->displine++;
-	if (dev->displine >= 500) 
+	if (dev->displine >= 500)
 		dev->displine = 0;
     } else {
 	timer_advance_u64(&dev->timer, dev->dispontime);
@@ -391,8 +391,8 @@ hercules_poll(void *priv)
 
 	if (dev->sc == (dev->crtc[11] & 31) ||
 	    ((dev->crtc[8] & 3)==3 && dev->sc == ((dev->crtc[11] & 31) >> 1))) {
-		dev->con = 0; 
-		dev->coff = 1; 
+		dev->con = 0;
+		dev->coff = 1;
 	}
 
 	if (dev->vadj) {
@@ -412,7 +412,7 @@ hercules_poll(void *priv)
 		dev->vc++;
 		dev->vc &= 127;
 
-		if (dev->vc == dev->crtc[6]) 
+		if (dev->vc == dev->crtc[6])
 			dev->dispon = 0;
 
 		if (oldvc == dev->crtc[4]) {
@@ -604,7 +604,7 @@ static void
 speed_changed(void *priv)
 {
     hercules_t *dev = (hercules_t *)priv;
-	
+
     recalc_timings(dev);
 }
 

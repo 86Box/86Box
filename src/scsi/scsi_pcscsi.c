@@ -178,7 +178,7 @@ typedef struct {
 
     int32_t xfer_counter;
     int dma_enabled;
-    
+
     uint32_t buffer_pos;
     uint32_t dma_regs[8];
     uint32_t sbac;
@@ -186,18 +186,18 @@ typedef struct {
     double period;
 
     pc_timer_t timer;
-	
+
 	int mca;
 	uint16_t Base;
 	uint8_t HostID, DmaChannel;
-	
+
 	struct
 	{
 		uint8_t mode;
 		uint8_t status;
 		int pos;
 	} dma_86c01;
-	
+
 	uint8_t pos_regs[8];
 } esp_t;
 
@@ -364,7 +364,7 @@ esp_get_cmd(esp_t *dev, uint32_t maxlen)
 {
 	uint8_t buf[ESP_CMDFIFO_SZ];
     uint32_t dmalen, n;
-    
+
     dev->id = dev->wregs[ESP_WBUSID] & BUSID_DID;
     if (dev->dma) {
         dmalen = MIN(esp_get_tc(dev), maxlen);
@@ -410,20 +410,20 @@ esp_do_command_phase(esp_t *dev)
     scsi_device_t *sd;
 
     sd = &scsi_devices[dev->bus][dev->id];
-	
+
 	sd->buffer_length = -1;
-	
+
 	cmdlen = fifo8_num_used(&dev->cmdfifo);
 	if (!cmdlen)
 		return;
-	
+
 	esp_fifo_pop_buf(&dev->cmdfifo, buf, cmdlen);
-	
+
 	for (int i = 0; i < cmdlen; i++)
 		esp_log("CDB[%i] = %02x\n", i, buf[i]);
 
     scsi_device_command_phase0(sd, buf);
-    
+
     dev->buffer_pos = 0;
     dev->ti_size = sd->buffer_length;
     dev->xfer_counter = sd->buffer_length;
@@ -445,7 +445,7 @@ esp_do_command_phase(esp_t *dev)
 		dev->rregs[ESP_RSTAT] |= STAT_DO;
 		esp_log("ESP Data Out\n");
 		dev->ti_size = -sd->buffer_length;
-		esp_timer_on(dev, sd, scsi_device_get_callback(sd));		
+		esp_timer_on(dev, sd, scsi_device_get_callback(sd));
 	}
 	esp_log("ESP SCSI Start reading/writing\n");
 	esp_do_dma(dev, sd);
@@ -461,9 +461,9 @@ esp_do_command_phase(esp_t *dev)
 	} else
 		esp_pci_command_complete(dev, sd->status);
     }
-	
+
     scsi_device_identify(sd, SCSI_LUN_USE_CDB);
-	
+
 	dev->rregs[ESP_RINTR] |= INTR_BS | INTR_FC;
 	esp_raise_irq(dev);
 }
@@ -473,13 +473,13 @@ esp_do_message_phase(esp_t *dev)
 {
 	int len;
 	uint8_t message;
-	
+
     if (dev->cmdfifo_cdb_offset) {
 		message = esp_fifo_pop(&dev->cmdfifo);
-		
+
 		dev->lun = message & 7;
         dev->cmdfifo_cdb_offset--;
-	
+
 		if (scsi_device_present(&scsi_devices[dev->bus][dev->id]) && (dev->lun > 0)) {
 			/* We only support LUN 0 */
 			esp_log("LUN = %i\n", dev->lun);
@@ -490,10 +490,10 @@ esp_do_message_phase(esp_t *dev)
 		fifo8_reset(&dev->cmdfifo);
 		return;
 		}
-			
+
 		scsi_device_identify(&scsi_devices[dev->bus][dev->id], dev->lun);
-    }	
-	
+    }
+
 	esp_log("CDB offset = %i\n", dev->cmdfifo_cdb_offset);
 
 	if (dev->cmdfifo_cdb_offset) {
@@ -557,13 +557,13 @@ esp_do_nodma(esp_t *dev, scsi_device_t *sd)
     if (dev->do_cmd) {
 	esp_log("ESP Command on FIFO\n");
 	dev->ti_size = 0;
-	
+
 	if ((dev->rregs[ESP_RSTAT] & 7) == STAT_CD) {
 		if (dev->cmdfifo_cdb_offset == fifo8_num_used(&dev->cmdfifo)) {
 			esp_log("CDB offset = %i used return\n", dev->cmdfifo_cdb_offset);
 			return;
 		}
-		
+
 		dev->do_cmd = 0;
 		esp_do_cmd(dev);
 	} else {
@@ -600,13 +600,13 @@ esp_do_nodma(esp_t *dev, scsi_device_t *sd)
 		dev->ti_size += count;
 		dev->xfer_counter -= count;
     }
-    
+
     esp_log("ESP FIFO Transfer bytes = %d\n", dev->xfer_counter);
     if (dev->xfer_counter <= 0) {
 	if (sd->phase == SCSI_PHASE_DATA_OUT) {
 	    if (dev->ti_size < 0) {
 		esp_log("ESP FIFO Keep writing\n");
-		esp_do_nodma(dev, sd);	    
+		esp_do_nodma(dev, sd);
 	    } else {
 		esp_log("ESP FIFO Write finished\n");
 		scsi_device_command_phase1(sd);
@@ -661,9 +661,9 @@ esp_do_dma(esp_t *dev, scsi_device_t *sd)
     } else {
 	esp_log("ESP SCSI device found on ID %d, LUN %d\n", dev->id, dev->lun);
     }
-    
+
     count = tdbc = esp_get_tc(dev);
-    
+
 	if (dev->mca) { /*See the comment in the esp_do_busid_cmd() function.*/
 		if (sd->buffer_length < 0) {
 			if (dev->dma_enabled)
@@ -686,11 +686,11 @@ esp_do_dma(esp_t *dev, scsi_device_t *sd)
 		esp_pci_dma_memory_rw(dev, buf, count, READ_FROM_DEVICE);
 	fifo8_push_all(&dev->cmdfifo, buf, count);
 	dev->ti_size = 0;
-	
+
 	if ((dev->rregs[ESP_RSTAT] & 7) == STAT_CD) {
 		if (dev->cmdfifo_cdb_offset == fifo8_num_used(&dev->cmdfifo))
 			return;
-	
+
 		dev->do_cmd = 0;
 		esp_do_cmd(dev);
 	} else {
@@ -711,7 +711,7 @@ esp_do_dma(esp_t *dev, scsi_device_t *sd)
     }
 
     esp_log("ESP SCSI dmaleft = %d, async_len = %i, buffer length = %d\n", esp_get_tc(dev), sd->buffer_length);
-	
+
     /* Make sure count is never bigger than buffer_length. */
     if (count > dev->xfer_counter)
 		count = dev->xfer_counter;
@@ -739,7 +739,7 @@ esp_do_dma(esp_t *dev, scsi_device_t *sd)
 		}
 		dev->dma_86c01.pos = 0;
 	} else
-		esp_pci_dma_memory_rw(dev, sd->sc->temp_buffer + dev->buffer_pos, count, WRITE_TO_DEVICE);    
+		esp_pci_dma_memory_rw(dev, sd->sc->temp_buffer + dev->buffer_pos, count, WRITE_TO_DEVICE);
     }
 	esp_set_tc(dev, esp_get_tc(dev) - count);
     dev->buffer_pos += count;
@@ -749,13 +749,13 @@ esp_do_dma(esp_t *dev, scsi_device_t *sd)
     } else if (sd->phase == SCSI_PHASE_DATA_OUT) {
 	dev->ti_size += count;
     }
-    
+
     esp_log("ESP SCSI Transfer bytes = %d\n", dev->xfer_counter);
     if (dev->xfer_counter <= 0) {
 	if (sd->phase == SCSI_PHASE_DATA_OUT) {
 	    if (dev->ti_size < 0) {
 		esp_log("ESP SCSI Keep writing\n");
-		esp_do_dma(dev, sd);	    
+		esp_do_dma(dev, sd);
 	    } else {
 		esp_log("ESP SCSI Write finished\n");
 		scsi_device_command_phase1(sd);
@@ -783,7 +783,7 @@ done:
 	}
     } else {
 	/* Partially filled a scsi buffer. Complete immediately.  */
-partial:	
+partial:
 	esp_log("ESP SCSI Partially filled the SCSI buffer\n");
 	esp_dma_done(dev);
     }
@@ -794,7 +794,7 @@ static void
 esp_report_command_complete(esp_t *dev, uint32_t status)
 {
     esp_log("ESP Command complete\n");
-    
+
 	dev->ti_size = 0;
     dev->status = status;
     dev->rregs[ESP_RSTAT] = STAT_TC | STAT_ST;
@@ -814,7 +814,7 @@ static void
 esp_pci_command_complete(void *priv, uint32_t status)
 {
     esp_t *dev = (esp_t *)priv;
-    
+
     esp_command_complete(dev, status);
     dev->dma_regs[DMA_WBC] = 0;
     dev->dma_regs[DMA_STAT] |= DMA_STAT_DONE;
@@ -916,7 +916,7 @@ static void
 esp_write_response(esp_t *dev)
 {
 	uint8_t buf[2];
-	
+
     buf[0] = dev->status;
     buf[1] = 0;
 
@@ -927,7 +927,7 @@ esp_write_response(esp_t *dev)
 			buf[dev->dma_86c01.pos++] = val & 0xff;
 		}
 		dev->dma_86c01.pos = 0;
-	} else	
+	} else
 		esp_pci_dma_memory_rw(dev, buf, 2, WRITE_TO_DEVICE);
 	dev->rregs[ESP_RSTAT] = STAT_TC | STAT_ST;
 	dev->rregs[ESP_RINTR] = INTR_BS | INTR_FC;
@@ -952,7 +952,7 @@ esp_callback(void *p)
 		handle_ti(dev);
 	}
     }
-    
+
 	esp_log("ESP DMA activated = %d, CMD activated = %d\n", dev->dma_enabled, dev->do_cmd);
 }
 
@@ -975,7 +975,7 @@ esp_reg_read(esp_t *dev, uint32_t saddr)
 				dev->rregs[ESP_RSTAT] = STAT_TC | STAT_ST;
 			}
 		}
-		
+
 		dev->rregs[ESP_FIFO] = esp_fifo_pop(&dev->fifo);
 		ret = dev->rregs[ESP_FIFO];
 		break;
@@ -1003,7 +1003,7 @@ esp_reg_read(esp_t *dev, uint32_t saddr)
 	default:
 		ret = dev->rregs[saddr];
 		break;
-		
+
     }
     esp_log("Read reg %02x = %02x\n", saddr, ret);
     return ret;
@@ -1073,7 +1073,7 @@ esp_reg_write(esp_t *dev, uint32_t saddr, uint32_t val)
 				break;
 			case CMD_BUSRESET:
 				if (!(dev->wregs[ESP_CFG1] & CFG1_RESREPT)) {
-					dev->rregs[ESP_RINTR] |= INTR_RST;				    
+					dev->rregs[ESP_RINTR] |= INTR_RST;
 					esp_log("ESP Bus Reset with IRQ\n");
 				    esp_raise_irq(dev);
 				}
@@ -1175,15 +1175,15 @@ esp_pci_dma_memory_rw(esp_t *dev, uint8_t *buf, uint32_t len, int dir)
 	dev->dma_regs[DMA_WAC] += len;
 	if (dev->dma_regs[DMA_WBC] == 0)
 	dev->dma_regs[DMA_STAT] |= DMA_STAT_DONE;
-}	
+}
 
 static uint32_t
-esp_pci_dma_read(esp_t *dev, uint16_t saddr) 
+esp_pci_dma_read(esp_t *dev, uint16_t saddr)
 {
     uint32_t ret;
-    
+
     ret = dev->dma_regs[saddr];
-    
+
     if (saddr == DMA_STAT) {
 	if (dev->rregs[ESP_RSTAT] & STAT_INT) {
 	    ret |= DMA_STAT_SCSIINT;
@@ -1195,7 +1195,7 @@ esp_pci_dma_read(esp_t *dev, uint16_t saddr)
 	    esp_log("ESP PCI DMA Read done cleared\n");
 	}
     }
-    
+
     esp_log("ESP PCI DMA Read regs addr = %04x, temp = %06x\n", saddr, ret);
     return ret;
 }
@@ -1203,8 +1203,8 @@ esp_pci_dma_read(esp_t *dev, uint16_t saddr)
 static void
 esp_pci_dma_write(esp_t *dev, uint16_t saddr, uint32_t val)
 {
-    uint32_t mask;	
-	
+    uint32_t mask;
+
     switch (saddr) {
 	case DMA_CMD:
 	    dev->dma_regs[saddr] = val;
@@ -1268,12 +1268,12 @@ esp_pci_hard_reset(esp_t *dev)
 }
 
 static uint32_t
-esp_io_pci_read(esp_t *dev, uint32_t addr, unsigned int size) 
+esp_io_pci_read(esp_t *dev, uint32_t addr, unsigned int size)
 {
     uint32_t ret;
-    
+
     addr &= 0x7f;
-    
+
     if (addr < 0x40) {
 	/* SCSI core reg */
 	ret = esp_reg_read(dev, addr >> 2);
@@ -1289,18 +1289,18 @@ esp_io_pci_read(esp_t *dev, uint32_t addr, unsigned int size)
 	/* Invalid region */
 	ret = 0;
     }
-    
+
     /* give only requested data */
     ret >>= (addr & 3) * 8;
-    ret &= ~(~(uint64_t)0 << (8 * size));    
-    
+    ret &= ~(~(uint64_t)0 << (8 * size));
+
     esp_log("ESP PCI I/O read: addr = %02x, val = %02x\n", addr, ret);
     return ret;
 }
 
 static void
-esp_io_pci_write(esp_t *dev, uint32_t addr, uint32_t val, unsigned int size) 
-{ 
+esp_io_pci_write(esp_t *dev, uint32_t addr, uint32_t val, unsigned int size)
+{
     uint32_t current, mask;
     int shift;
 
@@ -1450,10 +1450,10 @@ dc390_write_eeprom(esp_t *dev, int ena, int clk, int dat)
 	uint8_t eedo = eeprom->out;
 	uint16_t address = eeprom->address;
 	uint8_t command = eeprom->opcode;
-	
+
 	esp_log("EEPROM CS=%02x,SK=%02x,DI=%02x,DO=%02x,tick=%d\n",
 		ena, clk, dat, eedo, tick);
-		
+
 	if (!eeprom->oldena && ena) {
 		esp_log("EEPROM Start chip select cycle\n");
 		tick = 0;
@@ -1466,7 +1466,7 @@ dc390_write_eeprom(esp_t *dev, int ena, int clk, int dat)
 				esp_log("EEPROM Erase All\n");
 				for (address = 0; address < 64; address++)
 					eeprom->data[address] = 0xffff;
-				dc390_save_eeprom(dev);				
+				dc390_save_eeprom(dev);
 			} else if (command == 3) {
 				esp_log("EEPROM Erase Word\n");
 				eeprom->data[address] = 0xffff;
@@ -1480,7 +1480,7 @@ dc390_write_eeprom(esp_t *dev, int ena, int clk, int dat)
 					esp_log("EEPROM Write All\n");
 					for (address = 0; address < 64; address++)
 						eeprom->data[address] &= eeprom->dat;
-					dc390_save_eeprom(dev);				
+					dc390_save_eeprom(dev);
 				}
 			}
 		}
@@ -1550,7 +1550,7 @@ dc390_write_eeprom(esp_t *dev, int ena, int clk, int dat)
 			esp_log("EEPROM Additional unneeded tick, not processed\n");
 		}
 	}
-	
+
 	eeprom->count = tick;
 	eeprom->oldena = ena;
 	eeprom->oldclk = clk;
@@ -1582,9 +1582,9 @@ dc390_load_eeprom(esp_t *dev)
 	    nvr[i * 2] = 0x57;
 	    nvr[i * 2 + 1] = 0x00;
 	}
-	
+
 	esp_log("EEPROM Defaults\n");
-	
+
 	nvr[EE_ADAPT_SCSI_ID] = 7;
 	nvr[EE_MODE2] = 0x0f;
 	nvr[EE_TAG_CMD_NUM] = 0x04;
@@ -1595,12 +1595,12 @@ dc390_load_eeprom(esp_t *dev)
 	    checksum += ((nvr[i] & 0xff) | (nvr[i + 1] << 8));
 	    esp_log("Checksum calc = %04x, nvr = %02x\n", checksum, nvr[i]);
 	}
-    
+
 	checksum = 0x1234 - checksum;
 	nvr[EE_CHKSUM1] = checksum & 0xff;
 	nvr[EE_CHKSUM2] = checksum >> 8;
 	esp_log("EEPROM Checksum = %04x\n", checksum);
-    }	    
+    }
 }
 
 uint8_t	esp_pci_regs[256];
@@ -1759,7 +1759,7 @@ esp_pci_write(int func, int addr, uint8_t val, void *p)
 		dev->irq = val;
 		esp_log("ESP IRQ now: %i\n", val);
 		return;
-	
+
 	case 0x40 ... 0x4f:
 		esp_pci_regs[addr] = val;
 		return;
@@ -1775,12 +1775,12 @@ dc390_init(const device_t *info)
     memset(dev, 0x00, sizeof(esp_t));
 
     dev->bus = scsi_get_bus();
-	
+
 	dev->mca = 0;
-	
+
     fifo8_create(&dev->fifo, ESP_FIFO_SZ);
-    fifo8_create(&dev->cmdfifo, ESP_CMDFIFO_SZ);	
-	
+    fifo8_create(&dev->cmdfifo, ESP_CMDFIFO_SZ);
+
     dev->PCIBase = 0;
     dev->MMIOBase = 0;
 
@@ -1820,9 +1820,9 @@ ncr53c90_in(uint16_t port, void *priv)
 {
     esp_t *dev = (esp_t *)priv;
     uint16_t ret = 0;
-	
+
 	port &= 0x1f;
-	
+
 	if (port >= 0x10)
 		ret = esp_reg_read(dev, port - 0x10);
 	else {
@@ -1830,15 +1830,15 @@ ncr53c90_in(uint16_t port, void *priv)
 			case 0x02:
 				ret = dev->dma_86c01.mode;
 				break;
-			
+
 			case 0x0c:
 				ret = dev->dma_86c01.status;
 				break;
 		}
 	}
-	
-	esp_log("[%04X:%08X]: NCR53c90 DMA read port = %02x, ret = %02x\n", CS, cpu_state.pc, port, ret);	
-	
+
+	esp_log("[%04X:%08X]: NCR53c90 DMA read port = %02x, ret = %02x\n", CS, cpu_state.pc, port, ret);
+
 	return ret;
 }
 
@@ -1861,7 +1861,7 @@ ncr53c90_out(uint16_t port, uint16_t val, void *priv)
 
 	port &= 0x1f;
 
-	esp_log("[%04X:%08X]: NCR53c90 DMA write port = %02x, val = %02x\n", CS, cpu_state.pc, port, val);	
+	esp_log("[%04X:%08X]: NCR53c90 DMA write port = %02x, val = %02x\n", CS, cpu_state.pc, port, val);
 
 	if (port >= 0x10)
 		esp_reg_write(dev, port - 0x10, val);
@@ -1909,7 +1909,7 @@ ncr53c90_mca_write(int port, uint8_t val, void *priv)
     dev->pos_regs[port & 7] = val;
 
     /* This is always necessary so that the old handler doesn't remain. */
-	if (dev->Base != 0) {	
+	if (dev->Base != 0) {
 		io_removehandler(dev->Base, 0x20,
 		      ncr53c90_inb, ncr53c90_inw, NULL,
                       ncr53c90_outb, ncr53c90_outw, NULL, dev);
@@ -1922,8 +1922,8 @@ ncr53c90_mca_write(int port, uint8_t val, void *priv)
     dev->irq = 3 + (2 * ((dev->pos_regs[2] & 0x30) >> 4));
 	if (dev->irq == 9)
 		dev->irq = 2;
-	
-    dev->DmaChannel = dev->pos_regs[3] & 0x0f;	
+
+    dev->DmaChannel = dev->pos_regs[3] & 0x0f;
 
     /*
      * Get misc SCSI config stuff.  For now, we are only
@@ -1967,14 +1967,14 @@ ncr53c90_mca_init(const device_t *info)
     memset(dev, 0x00, sizeof(esp_t));
 
     dev->bus = scsi_get_bus();
-	
+
 	dev->mca = 1;
 
     fifo8_create(&dev->fifo, ESP_FIFO_SZ);
     fifo8_create(&dev->cmdfifo, ESP_CMDFIFO_SZ);
 
 	dev->pos_regs[0] = 0x4d;	/* MCA board ID */
-	dev->pos_regs[1] = 0x7f;	
+	dev->pos_regs[1] = 0x7f;
 	mca_add(ncr53c90_mca_read, ncr53c90_mca_write, ncr53c90_mca_feedb, NULL, dev);
 
     esp_hard_reset(dev);
@@ -1984,15 +1984,15 @@ ncr53c90_mca_init(const device_t *info)
     return(dev);
 }
 
-static void 
+static void
 esp_close(void *priv)
 {
     esp_t *dev = (esp_t *)priv;
 
     if (dev) {
     fifo8_destroy(&dev->fifo);
-    fifo8_destroy(&dev->cmdfifo);		
-		
+    fifo8_destroy(&dev->cmdfifo);
+
 	free(dev);
 	dev = NULL;
     }

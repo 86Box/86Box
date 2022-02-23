@@ -19,7 +19,6 @@
 #ifndef EMU_UI_H
 # define EMU_UI_H
 
-
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -74,10 +73,10 @@ extern void	ui_sb_update_icon_state(int tag, int active);
 extern void	ui_sb_set_text_w(wchar_t *wstr);
 extern void	ui_sb_set_text(char *str);
 extern void	ui_sb_bugui(char *str);
+extern void	ui_sb_mt32lcd(char *str);
 
 #ifdef __cplusplus
 }
 #endif
-
 
 #endif	/*EMU_UI_H*/

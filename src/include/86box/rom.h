@@ -13,9 +13,9 @@
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Copyright 2018,2019 Fred N. van Kempen.
  */
+
 #ifndef EMU_ROM_H
 # define EMU_ROM_H
-
 
 #define FLAG_INT	1
 #define FLAG_INV	2

@@ -1,11 +1,11 @@
 static uint32_t ropINC_rw(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
 {
         int host_reg;
-        
+
         CALL_FUNC((uintptr_t)flags_rebuild_c);
-        
+
         host_reg = LOAD_REG_W(opcode & 7);
-        
+
         STORE_HOST_REG_ADDR_WL((uintptr_t)&cpu_state.flags_op1, host_reg);
         // ADD_HOST_REG_IMM_W(host_reg, 1);
 	INC_HOST_REG_W(host_reg);
@@ -13,7 +13,7 @@ static uint32_t ropINC_rw(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uin
         STORE_IMM_ADDR_L((uintptr_t)&cpu_state.flags_op, FLAGS_INC16);
         STORE_HOST_REG_ADDR_WL((uintptr_t)&cpu_state.flags_res, host_reg);
         STORE_REG_W_RELEASE(host_reg);
-        
+
         codegen_flags_changed = 1;
 
         return op_pc;
@@ -23,9 +23,9 @@ static uint32_t ropINC_rl(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uin
         int host_reg;
 
         CALL_FUNC((uintptr_t)flags_rebuild_c);
-        
+
         host_reg = LOAD_REG_L(opcode & 7);
-        
+
         STORE_HOST_REG_ADDR((uintptr_t)&cpu_state.flags_op1, host_reg);
         // ADD_HOST_REG_IMM(host_reg, 1);
 	INC_HOST_REG(host_reg);
@@ -41,11 +41,11 @@ static uint32_t ropINC_rl(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uin
 static uint32_t ropDEC_rw(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
 {
         int host_reg;
-        
+
         CALL_FUNC((uintptr_t)flags_rebuild_c);
 
         host_reg = LOAD_REG_W(opcode & 7);
-        
+
         STORE_HOST_REG_ADDR_WL((uintptr_t)&cpu_state.flags_op1, host_reg);
         // SUB_HOST_REG_IMM_W(host_reg, 1);
         DEC_HOST_REG_W(host_reg);
@@ -61,11 +61,11 @@ static uint32_t ropDEC_rw(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uin
 static uint32_t ropDEC_rl(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
 {
         int host_reg;
-        
+
         CALL_FUNC((uintptr_t)flags_rebuild_c);
 
         host_reg = LOAD_REG_L(opcode & 7);
-        
+
         STORE_HOST_REG_ADDR((uintptr_t)&cpu_state.flags_op1, host_reg);
         // SUB_HOST_REG_IMM(host_reg, 1);
         DEC_HOST_REG(host_reg);
@@ -474,10 +474,10 @@ static uint32_t ropADD_AL_imm(uint8_t opcode, uint32_t fetchdat, uint32_t op_32,
         ADD_HOST_REG_IMM_B(host_reg, fetchdat & 0xff);
         STORE_IMM_ADDR_L((uintptr_t)&cpu_state.flags_op2, fetchdat & 0xff);
         STORE_IMM_ADDR_L((uintptr_t)&cpu_state.flags_op, FLAGS_ADD8);
-        STORE_HOST_REG_ADDR_BL((uintptr_t)&cpu_state.flags_res, host_reg);        
+        STORE_HOST_REG_ADDR_BL((uintptr_t)&cpu_state.flags_res, host_reg);
         STORE_REG_B_RELEASE(host_reg);
 
-        codegen_flags_changed = 1;        
+        codegen_flags_changed = 1;
         return op_pc + 1;
 }
 static uint32_t ropADD_AX_imm(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
@@ -488,9 +488,9 @@ static uint32_t ropADD_AX_imm(uint8_t opcode, uint32_t fetchdat, uint32_t op_32,
         ADD_HOST_REG_IMM_W(host_reg, fetchdat & 0xffff);
         STORE_IMM_ADDR_L((uintptr_t)&cpu_state.flags_op2, fetchdat & 0xffff);
         STORE_IMM_ADDR_L((uintptr_t)&cpu_state.flags_op, FLAGS_ADD16);
-        STORE_HOST_REG_ADDR_WL((uintptr_t)&cpu_state.flags_res, host_reg);        
+        STORE_HOST_REG_ADDR_WL((uintptr_t)&cpu_state.flags_res, host_reg);
         STORE_REG_W_RELEASE(host_reg);
-        
+
         codegen_flags_changed = 1;
         return op_pc + 2;
 }
@@ -503,9 +503,9 @@ static uint32_t ropADD_EAX_imm(uint8_t opcode, uint32_t fetchdat, uint32_t op_32
         ADD_HOST_REG_IMM(host_reg, fetchdat);
         STORE_IMM_ADDR_L((uintptr_t)&cpu_state.flags_op2, fetchdat);
         STORE_IMM_ADDR_L((uintptr_t)&cpu_state.flags_op, FLAGS_ADD32);
-        STORE_HOST_REG_ADDR((uintptr_t)&cpu_state.flags_res, host_reg);        
+        STORE_HOST_REG_ADDR((uintptr_t)&cpu_state.flags_res, host_reg);
         STORE_REG_L_RELEASE(host_reg);
-        
+
         codegen_flags_changed = 1;
         return op_pc + 4;
 }
@@ -518,23 +518,23 @@ static uint32_t ropCMP_AL_imm(uint8_t opcode, uint32_t fetchdat, uint32_t op_32,
         host_reg = CMP_HOST_REG_IMM_B(host_reg, fetchdat & 0xff);
         STORE_IMM_ADDR_L((uintptr_t)&cpu_state.flags_op2, fetchdat & 0xff);
         STORE_IMM_ADDR_L((uintptr_t)&cpu_state.flags_op, FLAGS_SUB8);
-        STORE_HOST_REG_ADDR_BL((uintptr_t)&cpu_state.flags_res, host_reg);        
+        STORE_HOST_REG_ADDR_BL((uintptr_t)&cpu_state.flags_res, host_reg);
         RELEASE_REG(host_reg);
-        
+
         codegen_flags_changed = 1;
         return op_pc + 1;
 }
 static uint32_t ropCMP_AX_imm(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
 {
         int host_reg = LOAD_REG_W(REG_AX);
-        
+
         STORE_HOST_REG_ADDR_WL((uintptr_t)&cpu_state.flags_op1, host_reg);
         host_reg = CMP_HOST_REG_IMM_W(host_reg, fetchdat & 0xffff);
         STORE_IMM_ADDR_L((uintptr_t)&cpu_state.flags_op2, fetchdat & 0xffff);
         STORE_IMM_ADDR_L((uintptr_t)&cpu_state.flags_op, FLAGS_SUB16);
-        STORE_HOST_REG_ADDR_WL((uintptr_t)&cpu_state.flags_res, host_reg);        
+        STORE_HOST_REG_ADDR_WL((uintptr_t)&cpu_state.flags_res, host_reg);
         RELEASE_REG(host_reg);
-        
+
         codegen_flags_changed = 1;
         return op_pc + 2;
 }
@@ -547,9 +547,9 @@ static uint32_t ropCMP_EAX_imm(uint8_t opcode, uint32_t fetchdat, uint32_t op_32
         host_reg = CMP_HOST_REG_IMM_L(host_reg, fetchdat);
         STORE_IMM_ADDR_L((uintptr_t)&cpu_state.flags_op2, fetchdat);
         STORE_IMM_ADDR_L((uintptr_t)&cpu_state.flags_op, FLAGS_SUB32);
-        STORE_HOST_REG_ADDR((uintptr_t)&cpu_state.flags_res, host_reg);        
+        STORE_HOST_REG_ADDR((uintptr_t)&cpu_state.flags_res, host_reg);
         RELEASE_REG(host_reg);
-        
+
         codegen_flags_changed = 1;
         return op_pc + 4;
 }
@@ -562,9 +562,9 @@ static uint32_t ropSUB_AL_imm(uint8_t opcode, uint32_t fetchdat, uint32_t op_32,
         SUB_HOST_REG_IMM_B(host_reg, fetchdat & 0xff);
         STORE_IMM_ADDR_L((uintptr_t)&cpu_state.flags_op2, fetchdat & 0xff);
         STORE_IMM_ADDR_L((uintptr_t)&cpu_state.flags_op, FLAGS_SUB8);
-        STORE_HOST_REG_ADDR_BL((uintptr_t)&cpu_state.flags_res, host_reg);        
+        STORE_HOST_REG_ADDR_BL((uintptr_t)&cpu_state.flags_res, host_reg);
         STORE_REG_B_RELEASE(host_reg);
-        
+
         codegen_flags_changed = 1;
         return op_pc + 1;
 }
@@ -576,9 +576,9 @@ static uint32_t ropSUB_AX_imm(uint8_t opcode, uint32_t fetchdat, uint32_t op_32,
         SUB_HOST_REG_IMM_W(host_reg, fetchdat & 0xffff);
         STORE_IMM_ADDR_L((uintptr_t)&cpu_state.flags_op2, fetchdat & 0xffff);
         STORE_IMM_ADDR_L((uintptr_t)&cpu_state.flags_op, FLAGS_SUB16);
-        STORE_HOST_REG_ADDR_WL((uintptr_t)&cpu_state.flags_res, host_reg);        
+        STORE_HOST_REG_ADDR_WL((uintptr_t)&cpu_state.flags_res, host_reg);
         STORE_REG_W_RELEASE(host_reg);
-        
+
         codegen_flags_changed = 1;
         return op_pc + 2;
 }
@@ -591,9 +591,9 @@ static uint32_t ropSUB_EAX_imm(uint8_t opcode, uint32_t fetchdat, uint32_t op_32
         SUB_HOST_REG_IMM(host_reg, fetchdat);
         STORE_IMM_ADDR_L((uintptr_t)&cpu_state.flags_op2, fetchdat);
         STORE_IMM_ADDR_L((uintptr_t)&cpu_state.flags_op, FLAGS_SUB32);
-        STORE_HOST_REG_ADDR((uintptr_t)&cpu_state.flags_res, host_reg);        
+        STORE_HOST_REG_ADDR((uintptr_t)&cpu_state.flags_res, host_reg);
         STORE_REG_L_RELEASE(host_reg);
-        
+
         codegen_flags_changed = 1;
         return op_pc + 4;
 }
@@ -603,7 +603,7 @@ static uint32_t rop80(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_
         int host_reg;
         uint32_t imm;
         x86seg *target_seg = NULL;
-        
+
         if ((fetchdat & 0x30) == 0x10)
                 return 0;
 
@@ -629,7 +629,7 @@ static uint32_t rop80(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_
                 host_reg = LOAD_REG_B(fetchdat & 7);
                 imm = (fetchdat >> 8) & 0xff;
         }
-        
+
         switch (fetchdat & 0x38)
         {
                 case 0x00: /*ADD*/
@@ -663,8 +663,8 @@ static uint32_t rop80(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_
                 STORE_IMM_ADDR_L((uintptr_t)&cpu_state.flags_op, FLAGS_SUB8);
                 break;
         }
-        
-        STORE_HOST_REG_ADDR_BL((uintptr_t)&cpu_state.flags_res, host_reg);        
+
+        STORE_HOST_REG_ADDR_BL((uintptr_t)&cpu_state.flags_res, host_reg);
         if ((fetchdat & 0x38) != 0x38)
         {
                 if ((fetchdat & 0xc0) != 0xc0)
@@ -679,7 +679,7 @@ static uint32_t rop80(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_
         }
         else
                 RELEASE_REG(host_reg);
-        
+
         codegen_flags_changed = 1;
         return op_pc + 2;
 }
@@ -689,10 +689,10 @@ static uint32_t rop81_w(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint3
         int host_reg;
         uint32_t imm;
         x86seg *target_seg = NULL;
-                
+
         if ((fetchdat & 0x30) == 0x10)
                 return 0;
-        
+
         if ((fetchdat & 0xc0) != 0xc0)
         {
                 target_seg = FETCH_EA(op_ea_seg, fetchdat, op_ssegs, &op_pc, op_32);
@@ -715,7 +715,7 @@ static uint32_t rop81_w(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint3
                 host_reg = LOAD_REG_W(fetchdat & 7);
                 imm = (fetchdat >> 8) & 0xffff;
         }
-        
+
         switch (fetchdat & 0x38)
         {
                 case 0x00: /*ADD*/
@@ -749,8 +749,8 @@ static uint32_t rop81_w(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint3
                 STORE_IMM_ADDR_L((uintptr_t)&cpu_state.flags_op, FLAGS_SUB16);
                 break;
         }
-        
-        STORE_HOST_REG_ADDR_WL((uintptr_t)&cpu_state.flags_res, host_reg);        
+
+        STORE_HOST_REG_ADDR_WL((uintptr_t)&cpu_state.flags_res, host_reg);
         if ((fetchdat & 0x38) != 0x38)
         {
                 if ((fetchdat & 0xc0) != 0xc0)
@@ -765,7 +765,7 @@ static uint32_t rop81_w(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint3
         }
         else
                 RELEASE_REG(host_reg);
-        
+
         codegen_flags_changed = 1;
         return op_pc + 3;
 }
@@ -774,10 +774,10 @@ static uint32_t rop81_l(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint3
         int host_reg;
         uint32_t imm;
         x86seg *target_seg = NULL;
-        
+
         if ((fetchdat & 0x30) == 0x10)
                 return 0;
-        
+
         if ((fetchdat & 0xc0) != 0xc0)
         {
                 target_seg = FETCH_EA(op_ea_seg, fetchdat, op_ssegs, &op_pc, op_32);
@@ -799,7 +799,7 @@ static uint32_t rop81_l(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint3
                 host_reg = LOAD_REG_L(fetchdat & 7);
         }
         imm = fastreadl(cs + op_pc + 1);
-        
+
         switch (fetchdat & 0x38)
         {
                 case 0x00: /*ADD*/
@@ -833,8 +833,8 @@ static uint32_t rop81_l(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint3
                 STORE_IMM_ADDR_L((uintptr_t)&cpu_state.flags_op, FLAGS_SUB32);
                 break;
         }
-        
-        STORE_HOST_REG_ADDR((uintptr_t)&cpu_state.flags_res, host_reg);        
+
+        STORE_HOST_REG_ADDR((uintptr_t)&cpu_state.flags_res, host_reg);
         if ((fetchdat & 0x38) != 0x38)
         {
                 if ((fetchdat & 0xc0) != 0xc0)
@@ -849,7 +849,7 @@ static uint32_t rop81_l(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint3
         }
         else
                 RELEASE_REG(host_reg);
-        
+
         codegen_flags_changed = 1;
         return op_pc + 5;
 }
@@ -859,10 +859,10 @@ static uint32_t rop83_w(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint3
         int host_reg;
         uint32_t imm;
         x86seg *target_seg = NULL;
-                
+
         if ((fetchdat & 0x30) == 0x10)
                 return 0;
-        
+
         if ((fetchdat & 0xc0) != 0xc0)
         {
                 target_seg = FETCH_EA(op_ea_seg, fetchdat, op_ssegs, &op_pc, op_32);
@@ -888,7 +888,7 @@ static uint32_t rop83_w(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint3
 
         if (imm & 0x80)
                 imm |= 0xff80;
-        
+
         switch (fetchdat & 0x38)
         {
                 case 0x00: /*ADD*/
@@ -922,8 +922,8 @@ static uint32_t rop83_w(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint3
                 STORE_IMM_ADDR_L((uintptr_t)&cpu_state.flags_op, FLAGS_SUB16);
                 break;
         }
-        
-        STORE_HOST_REG_ADDR_WL((uintptr_t)&cpu_state.flags_res, host_reg);        
+
+        STORE_HOST_REG_ADDR_WL((uintptr_t)&cpu_state.flags_res, host_reg);
         if ((fetchdat & 0x38) != 0x38)
         {
                 if ((fetchdat & 0xc0) != 0xc0)
@@ -938,7 +938,7 @@ static uint32_t rop83_w(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint3
         }
         else
                 RELEASE_REG(host_reg);
-        
+
         codegen_flags_changed = 1;
         return op_pc + 2;
 }
@@ -950,7 +950,7 @@ static uint32_t rop83_l(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint3
 
         if ((fetchdat & 0x30) == 0x10)
                 return 0;
-        
+
         if ((fetchdat & 0xc0) != 0xc0)
         {
                 target_seg = FETCH_EA(op_ea_seg, fetchdat, op_ssegs, &op_pc, op_32);
@@ -976,7 +976,7 @@ static uint32_t rop83_l(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint3
 
         if (imm & 0x80)
                 imm |= 0xffffff80;
-        
+
         switch (fetchdat & 0x38)
         {
                 case 0x00: /*ADD*/
@@ -1010,8 +1010,8 @@ static uint32_t rop83_l(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint3
                 STORE_IMM_ADDR_L((uintptr_t)&cpu_state.flags_op, FLAGS_SUB32);
                 break;
         }
-        
-        STORE_HOST_REG_ADDR((uintptr_t)&cpu_state.flags_res, host_reg);        
+
+        STORE_HOST_REG_ADDR((uintptr_t)&cpu_state.flags_res, host_reg);
         if ((fetchdat & 0x38) != 0x38)
         {
                 if ((fetchdat & 0xc0) != 0xc0)

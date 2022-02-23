@@ -27,7 +27,7 @@ static int opCLI(uint32_t fetchdat)
 {
         if (!IOPLp)
         {
-                if ((!(cpu_state.eflags & VM_FLAG) && (cr4 & CR4_PVI)) || 
+                if ((!(cpu_state.eflags & VM_FLAG) && (cr4 & CR4_PVI)) ||
                         ((cpu_state.eflags & VM_FLAG) && (cr4 & CR4_VME)))
                 {
                         cpu_state.eflags &= ~VIF_FLAG;
@@ -40,7 +40,7 @@ static int opCLI(uint32_t fetchdat)
         }
         else
                 cpu_state.flags &= ~I_FLAG;
-         
+
         CLOCK_CYCLES(3);
         PREFETCH_RUN(3, 1, -1, 0,0,0,0, 0);
         return 0;
@@ -65,7 +65,7 @@ static int opSTI(uint32_t fetchdat)
 {
         if (!IOPLp)
         {
-                if ((!(cpu_state.eflags & VM_FLAG) && (cr4 & CR4_PVI)) || 
+                if ((!(cpu_state.eflags & VM_FLAG) && (cr4 & CR4_PVI)) ||
                         ((cpu_state.eflags & VM_FLAG) && (cr4 & CR4_VME)))
                 {
                         if (cpu_state.eflags & VIP_FLAG)
@@ -100,7 +100,7 @@ static int opSAHF(uint32_t fetchdat)
         cpu_state.flags = (cpu_state.flags & 0xff00) | (AH & 0xd5) | 2;
         CLOCK_CYCLES(3);
         PREFETCH_RUN(3, 1, -1, 0,0,0,0, 0);
-        
+
 #if (defined(USE_DYNAREC) && defined(USE_NEW_DYNAREC))
         codegen_flags_changed = 0;
 #endif
@@ -166,13 +166,13 @@ static int opPUSHFD(uint32_t fetchdat)
 static int opPOPF_286(uint32_t fetchdat)
 {
         uint16_t tempw;
-        
+
         if ((cpu_state.eflags & VM_FLAG) && (IOPL < 3))
         {
                 x86gpf(NULL, 0);
                 return 1;
         }
-        
+
         tempw = POP_W();                if (cpu_state.abrt) return 1;
 
         if (!(msw & 1))           cpu_state.flags = (cpu_state.flags & 0x7000) | (tempw & 0x0fd5) | 2;
@@ -183,7 +183,7 @@ static int opPOPF_286(uint32_t fetchdat)
 
         CLOCK_CYCLES(5);
         PREFETCH_RUN(5, 1, -1, 1,0,0,0, 0);
-        
+
 #if (defined(USE_DYNAREC) && defined(USE_NEW_DYNAREC))
         codegen_flags_changed = 0;
 #endif
@@ -193,7 +193,7 @@ static int opPOPF_286(uint32_t fetchdat)
 static int opPOPF(uint32_t fetchdat)
 {
         uint16_t tempw;
-        
+
         if ((cpu_state.eflags & VM_FLAG) && (IOPL < 3))
         {
                 if (cr4 & CR4_VME)
@@ -227,7 +227,7 @@ static int opPOPF(uint32_t fetchdat)
                 }
         }
         else
-        {        
+        {
                 tempw = POP_W();
                 if (cpu_state.abrt)
                         return 1;
@@ -243,7 +243,7 @@ static int opPOPF(uint32_t fetchdat)
 
         CLOCK_CYCLES(5);
         PREFETCH_RUN(5, 1, -1, 1,0,0,0, 0);
-        
+
 #if (defined(USE_DYNAREC) && defined(USE_NEW_DYNAREC))
         codegen_flags_changed = 0;
 #endif
@@ -253,31 +253,31 @@ static int opPOPF(uint32_t fetchdat)
 static int opPOPFD(uint32_t fetchdat)
 {
         uint32_t templ;
-        
+
         if ((cpu_state.eflags & VM_FLAG) && (IOPL < 3))
         {
                 x86gpf(NULL, 0);
                 return 1;
         }
-        
+
         templ = POP_L();                if (cpu_state.abrt) return 1;
 
         if (!(CPL) || !(msw & 1)) cpu_state.flags = (templ & 0x7fd5) | 2;
         else if (IOPLp)           cpu_state.flags = (cpu_state.flags & 0x3000) | (templ & 0x4fd5) | 2;
         else                      cpu_state.flags = (cpu_state.flags & 0x3200) | (templ & 0x4dd5) | 2;
-        
+
         templ &= (is486 || isibm486) ? 0x3c0000 : 0;
         templ |= ((cpu_state.eflags&3) << 16);
         if (cpu_CR4_mask & CR4_VME) cpu_state.eflags = (templ >> 16) & 0x3f;
         else if (CPUID)             cpu_state.eflags = (templ >> 16) & 0x27;
         else if (is486 || isibm486) cpu_state.eflags = (templ >> 16) & 7;
         else                        cpu_state.eflags = (templ >> 16) & 3;
-        
+
         flags_extract();
 
         CLOCK_CYCLES(5);
         PREFETCH_RUN(5, 1, -1, 0,1,0,0, 0);
-        
+
 #if (defined(USE_DYNAREC) && defined(USE_NEW_DYNAREC))
         codegen_flags_changed = 0;
 #endif

@@ -18,6 +18,7 @@
  *		Copyright 2016-2020 Miran Grca.
  *		Copyright 2017-2020 Fred N. van Kempen.
  */
+
 #ifndef EMU_MACHINE_H
 # define EMU_MACHINE_H
 
@@ -702,6 +703,7 @@ extern int	machine_xt_mpc1600_init(const machine_t *);
 extern int	machine_xt_pcspirit_init(const machine_t *);
 extern int	machine_xt_pc700_init(const machine_t *);
 extern int	machine_xt_pc500_init(const machine_t *);
+extern int	machine_xt_znic_init(const machine_t *);
 
 extern int	machine_xt_iskra3104_init(const machine_t *);
 

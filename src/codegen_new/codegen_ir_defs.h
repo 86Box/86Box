@@ -9,7 +9,7 @@
   All registers must have been written back or discarded.
   This should be used when calling external functions that may change any emulated
   registers.*/
-#define UOP_TYPE_BARRIER (1 << 31)
+#define UOP_TYPE_BARRIER (1u << 31)
 
 /*uOP is a barrier. All previous uOPs must have completed before this one executes.
   All registers must have been written back, but do not have to be discarded.
@@ -361,19 +361,19 @@ typedef struct ir_data_t
 static inline uop_t *uop_alloc(ir_data_t *ir, uint32_t uop_type)
 {
         uop_t *uop;
-        
+
         if (ir->wr_pos >= UOP_NR_MAX)
                 fatal("Exceeded uOP max\n");
-        
+
         uop = &ir->uops[ir->wr_pos++];
-        
+
         uop->dest_reg_a = invalid_ir_reg;
         uop->src_reg_a = invalid_ir_reg;
         uop->src_reg_b = invalid_ir_reg;
         uop->src_reg_c = invalid_ir_reg;
-        
+
         uop->pc = cpu_state.oldpc;
-        
+
         uop->jump_dest_uop = -1;
         uop->jump_list_next = -1;
 
@@ -386,7 +386,7 @@ static inline uop_t *uop_alloc(ir_data_t *ir, uint32_t uop_type)
 static inline void uop_set_jump_dest(ir_data_t *ir, int jump_uop)
 {
         uop_t *uop = &ir->uops[jump_uop];
-        
+
         uop->jump_dest_uop = ir->wr_pos;
 }
 
@@ -402,7 +402,7 @@ static inline int uop_gen(uint32_t uop_type, ir_data_t *ir)
 static inline int uop_gen_reg_src1(uint32_t uop_type, ir_data_t *ir, int src_reg_a)
 {
         uop_t *uop = uop_alloc(ir, uop_type);
-        
+
         uop->type = uop_type;
         uop->src_reg_a = codegen_reg_read(src_reg_a);
 
@@ -424,7 +424,7 @@ static inline int uop_gen_reg_src1_imm(uint32_t uop_type, ir_data_t *ir, int src
         uop->type = uop_type;
         uop->src_reg_a = codegen_reg_read(src_reg);
         uop->imm_data = imm;
-        
+
         return ir->wr_pos-1;
 }
 
@@ -514,7 +514,7 @@ static inline int uop_gen_reg_src2(uint32_t uop_type, ir_data_t *ir, int src_reg
         uop->type = uop_type;
         uop->src_reg_a = codegen_reg_read(src_reg_a);
         uop->src_reg_b = codegen_reg_read(src_reg_b);
-        
+
         return ir->wr_pos-1;
 }
 
@@ -552,7 +552,7 @@ static inline void uop_gen_reg_src3_imm(uint32_t uop_type, ir_data_t *ir, int sr
 static inline void uop_gen_imm(uint32_t uop_type, ir_data_t *ir, uint32_t imm)
 {
         uop_t *uop = uop_alloc(ir, uop_type);
-        
+
         uop->type = uop_type;
         uop->imm_data = imm;
 }
@@ -560,7 +560,7 @@ static inline void uop_gen_imm(uint32_t uop_type, ir_data_t *ir, uint32_t imm)
 static inline void uop_gen_pointer(uint32_t uop_type, ir_data_t *ir, void *p)
 {
         uop_t *uop = uop_alloc(ir, uop_type);
-        
+
         uop->type = uop_type;
         uop->p = p;
 }
@@ -568,7 +568,7 @@ static inline void uop_gen_pointer(uint32_t uop_type, ir_data_t *ir, void *p)
 static inline void uop_gen_pointer_imm(uint32_t uop_type, ir_data_t *ir, void *p, uint32_t imm)
 {
         uop_t *uop = uop_alloc(ir, uop_type);
-        
+
         uop->type = uop_type;
         uop->p = p;
         uop->imm_data = imm;

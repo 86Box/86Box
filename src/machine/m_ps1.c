@@ -116,7 +116,7 @@ ps1_write(uint16_t port, uint8_t val, void *priv)
 			}
 			ps->ps1_92 = val & ~1;
 		} else {
-			ps->ps1_92 = val;    
+			ps->ps1_92 = val;
 		}
 		mem_a20_alt = val & 2;
 		mem_a20_recalc();
@@ -293,7 +293,7 @@ ps1_setup(int model)
 
 		ps1_hdc_inform(priv, &ps->ps1_91);
 	}
-	
+
 	/* Enable the PS/1 VGA controller. */
 	device_add(&ps1vga_device);
     } else if (model == 2121) {
@@ -371,4 +371,3 @@ machine_ps1_m2121_init(const machine_t *model)
 
     return ret;
 }
-

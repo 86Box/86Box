@@ -14,6 +14,7 @@
  *
  *		Copyright 2021 RichardG.
  */
+
 #ifndef EMU_ISAPNP_H
 # define EMU_ISAPNP_H
 # include <stdint.h>
@@ -28,7 +29,8 @@
 enum {
     ISAPNP_CARD_DISABLE = 0,
     ISAPNP_CARD_ENABLE = 1,
-    ISAPNP_CARD_FORCE_CONFIG /* cheat code for UMC UM8669F */
+    ISAPNP_CARD_FORCE_CONFIG, /* cheat code for UMC UM8669F */
+    ISAPNP_CARD_NO_KEY /* cheat code for Crystal CS423x */
 };
 
 

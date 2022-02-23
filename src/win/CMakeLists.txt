@@ -28,7 +28,7 @@ if(NOT CPPTHREADS)
 endif()
 
 # CMake 3.22 messed this up for clang/clang++
-# See https://gitlab.kitware.com/cmake/cmake/-/issues/22611
+# See https://gitlab.kitware.com/cmake/cmake/-/issues/23066
 if(MSVC OR (NOT MINGW AND CMAKE_VERSION VERSION_GREATER_EQUAL 3.22))
     # MSVC linker adds its own manifest to the executable, which fails if
     # we include ours in 86Box.rc. We therefore need to pass the manifest
@@ -54,4 +54,4 @@ else()
 endif()
 
 target_link_libraries(86Box advapi32 comctl32 comdlg32 gdi32 shell32 iphlpapi
-    dxguid imm32 hid setupapi uxtheme version winmm psapi)
+    dxguid imm32 hid setupapi uxtheme version winmm psapi ws2_32)

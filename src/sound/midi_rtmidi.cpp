@@ -235,7 +235,7 @@ rtmidi_in_get_dev_name(int num, char *s)
 static const device_config_t system_midi_config[] =
 {
     {
-	"midi", "MIDI out device", CONFIG_MIDI, "", 0
+	"midi", "MIDI out device", CONFIG_MIDI_OUT, "", 0
     },
     {
 	"", "", -1

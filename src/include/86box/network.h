@@ -44,6 +44,7 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING  IN ANY  WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+
 #ifndef EMU_NETWORK_H
 # define EMU_NETWORK_H
 # include <stdint.h>
@@ -105,9 +106,6 @@ extern netdev_t network_devs[32];
 
 /* Function prototypes. */
 extern void	network_wait(uint8_t wait);
-extern void	network_poll(void);
-extern void	network_busy(uint8_t set);
-extern void	network_end(void);
 
 extern void	network_init(void);
 extern void	network_attach(void *, uint8_t *, NETRXCB, NETWAITCB, NETSETLINKSTATE);
@@ -115,7 +113,6 @@ extern void	network_close(void);
 extern void	network_reset(void);
 extern int	network_available(void);
 extern void	network_tx(uint8_t *, int);
-extern void	network_do_tx(void);
 extern int	network_tx_queue_check(void);
 
 extern int	net_pcap_prepare(netdev_t *);

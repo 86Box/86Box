@@ -10,12 +10,12 @@
  *
  *
  *
- * Authors:	Michael Dr�ing, <michael@drueing.de>
+ * Authors:	Michael Drüing, <michael@drueing.de>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
  *
  *		Based on code by Frederic Weymann (originally for DosBox.)
  *
- *		Copyright 2018 Michael Dr�ing.
+ *		Copyright 2018 Michael Drüing.
  *		Copyright 2018 Fred N. van Kempen.
  *
  *		Redistribution and  use  in source  and binary forms, with
@@ -54,7 +54,7 @@
 #include <stdlib.h>
 #include <wchar.h>
 #include <86box/86box.h>
-#include <86box/plat.h> 
+#include <86box/plat.h>
 #include <86box/printer.h>
 
 
@@ -587,7 +587,7 @@ select_codepage(uint16_t code, uint16_t *curmap)
 	}
 	i++;
     }
-    
+
     for (i = 0; i < 256; i++)
 	curmap[i] = map_to_use[i];
 }

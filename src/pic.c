@@ -222,7 +222,7 @@ find_best_interrupt(pic_t *dev)
 	if (dev == &pic2)
 		intr += 8;
 
-	if (cpu_fast_off_flags & (1 << intr))
+	if (cpu_fast_off_flags & (1u << intr))
 		cpu_fast_off_count = cpu_fast_off_val + 1;
     }
 
@@ -273,6 +273,7 @@ void
 pic_reset()
 {
     int is_at = IS_AT(machine);
+    is_at = is_at || !strcmp(machine_get_internal_name(), "xi8088");
 
     memset(&pic, 0, sizeof(pic_t));
     memset(&pic2, 0, sizeof(pic_t));

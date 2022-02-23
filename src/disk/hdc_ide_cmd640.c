@@ -177,7 +177,7 @@ cmd640_vlb_write(uint16_t addr, uint8_t val, void *priv)
     cmd640_t *dev = (cmd640_t *) priv;
 
     addr &= 0x00ff;
-    
+
     switch (addr) {
 	case 0x0078:
 		if (dev->in_cfg)

@@ -36,30 +36,30 @@
 
 /* The Sigma Designs Color 400 is a video card from 1985, presumably intended
  * as an EGA competitor.
- * 
- * The hardware seems to have gone through various iterations; I've seen 
+ *
+ * The hardware seems to have gone through various iterations; I've seen
  * pictures of full-length and half-length versions.
- * TH99 describes the jumpers / switches: 
+ * TH99 describes the jumpers / switches:
  *                    <http://arvutimuuseum.ee/th99/v/S-T/52579.htm>
  *
- * The card is CGA-compatible at BIOS level, but to improve compatibility 
- * attempts to write to the CGA I/O ports at 0x3D0-0x3DF trigger an NMI. The 
+ * The card is CGA-compatible at BIOS level, but to improve compatibility
+ * attempts to write to the CGA I/O ports at 0x3D0-0x3DF trigger an NMI. The
  * card's BIOS handles the NMI and translates the CGA writes into commands
  * to its own hardware at 0x2D0-0x2DF. (DIP switches on the card allow the
  * base address to be changed, but since the BIOS dump I have doesn't support
  * this I haven't emulated it. Likewise the BIOS ROM address can be changed,
  * but I'm going with the default of 0xC0000).
  *
- * The BIOS still functions if the NMI system isn't operational. There 
+ * The BIOS still functions if the NMI system isn't operational. There
  * doesn't seem to be a jumper or DIP switch to lock it out, but at startup
  * the BIOS tests for its presence and configures itself to work or not
  * as required. I've therefore added a configuration option to handle this.
  *
- * The card's real CRTC at 0x2D0/0x2D1 appears to be a 6845. One oddity is 
- * that all its horizontal counts are halved compared to what a real CGA 
- * uses; 40-column modes have a width of 20, and 80-column modes have a 
+ * The card's real CRTC at 0x2D0/0x2D1 appears to be a 6845. One oddity is
+ * that all its horizontal counts are halved compared to what a real CGA
+ * uses; 40-column modes have a width of 20, and 80-column modes have a
  * width of 40. This means that the CRTC cursor position (registers 14/15) can
- * only address even-numbered columns, so the top bit of the control 
+ * only address even-numbered columns, so the top bit of the control
  * register at 0x2D9 is used to adjust the position.
  *
  * Apart from the CRTC, registers are:
@@ -72,7 +72,7 @@
  *         Graphics 320x200: 0x0F
  *         Graphics 640x200: 0x1F
  *         Graphics 640x400: 0x7F
- * 
+ *
  * I have assumed this is a bitmap with the following meaning: */
 #define MODE_80COLS   0x01	/* For text modes, 80 columns across */
 #define MODE_GRAPHICS 0x02	/* Graphics mode */
@@ -89,7 +89,7 @@
 #define CTL_SET_LPEN	0x04	/* Strobe 0 to set lightpen latch */
 #define CTL_PALETTE	0x01	/* 0x2DE writes to palette (1) or plane (0) */
 /*
- * The card BIOS seems to support two variants of the hardware: One where 
+ * The card BIOS seems to support two variants of the hardware: One where
  * bits 2 and 3 are normally 1 and are set to 0 to set/clear the latch, and
  * one where they are normally 0 and are set to 1. Behaviour is selected by
  * whether the byte at C000:17FFh is greater than 2Fh.
@@ -103,9 +103,9 @@
 #define STATUS_LPEN_A	0x02	/* Edge from lightpen has set trigger */
 #define STATUS_RETR_H	0x01	/* Horizontal retrace */
 /*
- * 0x2DB: On read: Byte written to the card that triggered NMI 
+ * 0x2DB: On read: Byte written to the card that triggered NMI
  * 0x2DB: On write: Resets the 'card raised NMI' flag.
- * 0x2DC: On read: Bit 7 set if the card raised NMI. If so, bits 0-3 
+ * 0x2DC: On read: Bit 7 set if the card raised NMI. If so, bits 0-3
  *                 give the low 4 bits of the I/O port address.
  * 0x2DC: On write: Resets the NMI.
  * 0x2DD: Memory paging. The memory from 0xC1800 to 0xC1FFF can be either:
@@ -120,28 +120,28 @@
  * Writing port 2DD switches to RAM.
  *
  * 0x2DE: Meaning depends on bottom bit of value written to port 0x2D9.
- *        Bit 0 set: Write to palette. High 4 bits of value = register, 
+ *        Bit 0 set: Write to palette. High 4 bits of value = register,
  *                   low 4 bits = RGBI values (active low)
  *        Bit 0 clear: Write to plane select. Low 2 bits of value select
- *                    plane 0-3 
+ *                    plane 0-3
  */
- 
+
 
 typedef struct sigma_t
 {
     mem_mapping_t mapping, bios_ram;
-    rom_t bios_rom; 
+    rom_t bios_rom;
 
     uint8_t crtc[32];	/* CRTC: Real values */
 
     uint8_t lastport;	/* Last I/O port written */
     uint8_t lastwrite;	/* Value written to that port */
     uint8_t sigma_ctl;	/* Controls register:
-			 * Bit 7 is low bit of cursor position 
+			 * Bit 7 is low bit of cursor position
 			 * Bit 5 set if writes to CGA ports trigger NMI
 			 * Bit 3 clears lightpen latch
 			 * Bit 2 sets lightpen latch
-			 * Bit 1 controls meaning of port 2DE 
+			 * Bit 1 controls meaning of port 2DE
 			 */
     uint8_t enable_nmi;	/* Enable the NMI mechanism for CGA emulation?*/
     uint8_t rom_paged;	/* Is ROM paged in at 0xC1800? */
@@ -155,7 +155,7 @@ typedef struct sigma_t
 
     uint16_t ma, maback;
 
-    int crtcreg;		/* CRTC: Real selected register */        
+    int crtcreg;		/* CRTC: Real selected register */
 
     int linepos, displine;
     int sc, vc;
@@ -173,7 +173,7 @@ typedef struct sigma_t
     pc_timer_t timer;
 
     uint8_t *vram;
-    uint8_t bram[2048];       
+    uint8_t bram[2048];
 
     uint8_t palette[16];
 
@@ -184,7 +184,7 @@ typedef struct sigma_t
 #define COMPOSITE_OLD 0
 #define COMPOSITE_NEW 1
 
-static uint8_t crtcmask[32] = 
+static uint8_t crtcmask[32] =
 {
         0xff, 0xff, 0xff, 0xff, 0x7f, 0x1f, 0x7f, 0x7f, 0xf3, 0x1f, 0x7f, 0x1f, 0x3f, 0xff, 0x3f, 0xff,
         0xff, 0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
@@ -230,7 +230,7 @@ sigma_out(uint16_t addr, uint8_t val, void *p)
 			if (sigma->crtcreg < 0xe || sigma->crtcreg > 0x10) {
 				fullchange = changeframecount;
 				sigma_recalctimings(sigma);
-			} 
+			}
 		}
 		return;
 
@@ -283,13 +283,13 @@ sigma_in(uint16_t addr, void *p)
 		result = sigma->crtc[sigma->crtcreg & 0x1F];
 		break;
 	case 0x2DA:
-		result = (sigma->sigma_ctl & 0xE0) | 
+		result = (sigma->sigma_ctl & 0xE0) |
 			 (sigma->sigmastat & 0x1F);
 		break;
-	case 0x2DB: 
+	case 0x2DB:
 		result = sigma->lastwrite;	/* Value that triggered NMI */
 		break;
-	case 0x2DC: 
+	case 0x2DC:
 		result = sigma->lastport;	/* Port that triggered NMI */
 		break;
 	case 0x2DD:	/* Page in ROM at 0xC1800 */
@@ -436,7 +436,7 @@ static void sigma_text80(sigma_t *sigma)
 	if (!(sigma->sigmamode & MODE_NOBLINK)) {
 		cols[1] = (attr & 15) | 16;
 		cols[0] = ((attr >> 4) & 7) | 16;
-		if ((sigma->cgablink & 8) && (attr & 0x80) && !sigma->drawcursor) 
+		if ((sigma->cgablink & 8) && (attr & 0x80) && !sigma->drawcursor)
 			cols[1] = cols[0];
 	} else {	/* No blink */
 		cols[1] = (attr & 15) | 16;
@@ -492,7 +492,7 @@ sigma_text40(sigma_t *sigma)
 	if (!(sigma->sigmamode & MODE_NOBLINK)) {
 		cols[1] = (attr & 15) | 16;
 		cols[0] = ((attr >> 4) & 7) | 16;
-		if ((sigma->cgablink & 8) && (attr & 0x80) && !sigma->drawcursor) 
+		if ((sigma->cgablink & 8) && (attr & 0x80) && !sigma->drawcursor)
 			cols[1] = cols[0];
 	} else {	/* No blink */
 		cols[1] = (attr & 15) | 16;
@@ -500,13 +500,13 @@ sigma_text40(sigma_t *sigma)
 	}
 
 	if (drawcursor) {
-		for (c = 0; c < 8; c++) { 
-			buffer32->line[sigma->displine][(x << 4) + 2*c + 8] = 
+		for (c = 0; c < 8; c++) {
+			buffer32->line[sigma->displine][(x << 4) + 2*c + 8] =
 			buffer32->line[sigma->displine][(x << 4) + 2*c + 9] = cols[(fontdatm[chr][sigma->sc & 15] & (1 << (c ^ 7))) ? 1 : 0] ^ 0xf;
 		}
 	} else {
 		for (c = 0; c < 8; c++) {
-			buffer32->line[sigma->displine][(x << 4) + 2*c + 8] = 
+			buffer32->line[sigma->displine][(x << 4) + 2*c + 8] =
 			buffer32->line[sigma->displine][(x << 4) + 2*c + 9] = cols[(fontdatm[chr][sigma->sc & 15] & (1 << (c ^ 7))) ? 1 : 0];
 		}
 	}
@@ -525,18 +525,18 @@ sigma_gfx400(sigma_t *sigma)
     unsigned char *vram = &sigma->vram[((sigma->ma << 1) & 0x1FFF) +
 				       (sigma->sc & 3) * 0x2000];
     uint8_t plane[4];
-    uint8_t mask, col, c;	
+    uint8_t mask, col, c;
 
     for (x = 0; x < (sigma->crtc[1] << 1); x++) {
-	plane[0] = vram[x];	
-	plane[1] = vram[0x8000 + x];	
-	plane[2] = vram[0x10000 + x];	
-	plane[3] = vram[0x18000 + x];	
+	plane[0] = vram[x];
+	plane[1] = vram[0x8000 + x];
+	plane[2] = vram[0x10000 + x];
+	plane[3] = vram[0x18000 + x];
 
 	for (c = 0, mask = 0x80; c < 8; c++, mask >>= 1) {
-		col = ((plane[3] & mask) ? 8 : 0) | 
-		      ((plane[2] & mask) ? 4 : 0) | 
-		      ((plane[1] & mask) ? 2 : 0) | 
+		col = ((plane[3] & mask) ? 8 : 0) |
+		      ((plane[2] & mask) ? 4 : 0) |
+		      ((plane[1] & mask) ? 2 : 0) |
 		      ((plane[0] & mask) ? 1 : 0);
 		col |= 16;
 		buffer32->line[sigma->displine][(x << 3) + c + 8] = col;
@@ -558,18 +558,18 @@ sigma_gfx200(sigma_t *sigma)
     unsigned char *vram = &sigma->vram[((sigma->ma << 1) & 0x1FFF) +
 				       (sigma->sc & 2) * 0x1000];
     uint8_t plane[4];
-    uint8_t mask, col, c;	
+    uint8_t mask, col, c;
 
     for (x = 0; x < (sigma->crtc[1] << 1); x++) {
-	plane[0] = vram[x];	
-	plane[1] = vram[0x8000 + x];	
-	plane[2] = vram[0x10000 + x];	
-	plane[3] = vram[0x18000 + x];	
+	plane[0] = vram[x];
+	plane[1] = vram[0x8000 + x];
+	plane[2] = vram[0x10000 + x];
+	plane[3] = vram[0x18000 + x];
 
 	for (c = 0, mask = 0x80; c < 8; c++, mask >>= 1) {
-		col = ((plane[3] & mask) ? 8 : 0) | 
-		      ((plane[2] & mask) ? 4 : 0) | 
-		      ((plane[1] & mask) ? 2 : 0) | 
+		col = ((plane[3] & mask) ? 8 : 0) |
+		      ((plane[2] & mask) ? 4 : 0) |
+		      ((plane[1] & mask) ? 2 : 0) |
 		      ((plane[0] & mask) ? 1 : 0);
 		col |= 16;
 		buffer32->line[sigma->displine][(x << 3) + c + 8] = col;
@@ -589,25 +589,25 @@ sigma_gfx4col(sigma_t *sigma)
     unsigned char *vram = &sigma->vram[((sigma->ma << 1) & 0x1FFF) +
 				       (sigma->sc & 2) * 0x1000];
     uint8_t plane[4];
-    uint8_t mask, col, c;	
+    uint8_t mask, col, c;
 
     for (x = 0; x < (sigma->crtc[1] << 1); x++) {
-	plane[0] = vram[x];	
-	plane[1] = vram[0x8000 + x];	
-	plane[2] = vram[0x10000 + x];	
-	plane[3] = vram[0x18000 + x];	
+	plane[0] = vram[x];
+	plane[1] = vram[0x8000 + x];
+	plane[2] = vram[0x10000 + x];
+	plane[3] = vram[0x18000 + x];
 
 	mask = 0x80;
 	for (c = 0; c < 4; c++) {
-		col = ((plane[3] & mask) ? 2 : 0) | 
+		col = ((plane[3] & mask) ? 2 : 0) |
 		      ((plane[2] & mask) ? 1 : 0);
 		mask = mask >> 1;
-		col |= ((plane[3] & mask) ? 8 : 0) | 
+		col |= ((plane[3] & mask) ? 8 : 0) |
 		       ((plane[2] & mask) ? 4 : 0);
 		col |= 16;
 		mask = mask >> 1;
 
-		buffer32->line[sigma->displine][(x << 3) + (c << 1) + 8] = 
+		buffer32->line[sigma->displine][(x << 3) + (c << 1) + 8] =
 		buffer32->line[sigma->displine][(x << 3) + (c << 1) + 9] = col;
 	}
 
@@ -631,7 +631,7 @@ sigma_poll(void *p)
 	sigma->sigmastat |= STATUS_RETR_H;
 	sigma->linepos = 1;
 	oldsc = sigma->sc;
-	if ((sigma->crtc[8] & 3) == 3) 
+	if ((sigma->crtc[8] & 3) == 3)
 		sigma->sc = ((sigma->sc << 1) + sigma->oddeven) & 7;
 	if (sigma->cgadispon) {
 		if (sigma->displine < sigma->firstline) {
@@ -664,13 +664,13 @@ sigma_poll(void *p)
 		}
 	} else {
 		cols[0] = 16;
-		if (sigma->sigmamode & MODE_80COLS) 
+		if (sigma->sigmamode & MODE_80COLS)
 			hline(buffer32, 0, sigma->displine, (sigma->crtc[1] << 4) + 16, cols[0]);
 		else
 			hline(buffer32, 0, sigma->displine, (sigma->crtc[1] << 5) + 16, cols[0]);
 	}
 
-	if (sigma->sigmamode & MODE_80COLS) 
+	if (sigma->sigmamode & MODE_80COLS)
 		x = (sigma->crtc[1] << 4) + 16;
 	else
 		x = (sigma->crtc[1] << 5) + 16;
@@ -682,7 +682,7 @@ sigma_poll(void *p)
 	if (sigma->vc == sigma->crtc[7] && !sigma->sc)
 		sigma->sigmastat |= STATUS_RETR_V;
 	sigma->displine++;
-	if (sigma->displine >= 560) 
+	if (sigma->displine >= 560)
 		sigma->displine = 0;
     } else {
 	timer_advance_u64(&sigma->timer, sigma->dispontime);
@@ -693,9 +693,9 @@ sigma_poll(void *p)
 			sigma->sigmastat &= ~STATUS_RETR_V;
 	}
 	if (sigma->sc == (sigma->crtc[11] & 31) ||
-	    ((sigma->crtc[8] & 3) == 3 && sigma->sc == ((sigma->crtc[11] & 31) >> 1))) { 
-		sigma->con = 0; 
-		sigma->coff = 1; 
+	    ((sigma->crtc[8] & 3) == 3 && sigma->sc == ((sigma->crtc[11] & 31) >> 1))) {
+		sigma->con = 0;
+		sigma->coff = 1;
 	}
 	if ((sigma->crtc[8] & 3) == 3 && sigma->sc == (sigma->crtc[9] >> 1))
 		sigma->maback = sigma->ma;
@@ -716,7 +716,7 @@ sigma_poll(void *p)
 		sigma->vc++;
 		sigma->vc &= 127;
 
-		if (sigma->vc == sigma->crtc[6]) 
+		if (sigma->vc == sigma->crtc[6])
 			sigma->cgadispon = 0;
 
 		if (oldvc == sigma->crtc[4]) {
@@ -736,7 +736,7 @@ sigma_poll(void *p)
 			sigma->displine = 0;
 			sigma->vsynctime = 16;
 			if (sigma->crtc[7]) {
-				if (sigma->sigmamode & MODE_80COLS) 
+				if (sigma->sigmamode & MODE_80COLS)
 					x = (sigma->crtc[1] << 4) + 16;
 				else
 					x = (sigma->crtc[1] << 5) + 16;
@@ -795,7 +795,7 @@ sigma_poll(void *p)
 	if (sigma->cgadispon)
 		sigma->sigmastat &= ~STATUS_RETR_H;
 	if ((sigma->sc == (sigma->crtc[10] & 31) ||
-	    ((sigma->crtc[8] & 3) == 3 && sigma->sc == ((sigma->crtc[10] & 31) >> 1)))) 
+	    ((sigma->crtc[8] & 3) == 3 && sigma->sc == ((sigma->crtc[10] & 31) >> 1))))
 		sigma->con = 1;
     }
 }
@@ -815,7 +815,7 @@ static void
     sigma->enable_nmi = device_get_config_int("enable_nmi");
 
     loadfont(ROM_SIGMA_FONT, 7);
-    rom_init(&sigma->bios_rom, ROM_SIGMA_BIOS, bios_addr, 0x2000, 
+    rom_init(&sigma->bios_rom, ROM_SIGMA_BIOS, bios_addr, 0x2000,
 	     0x1FFF, 0, MEM_MAPPING_EXTERNAL);
     /* The BIOS ROM is overlaid by RAM, so remove its default mapping
        and access it through sigma_bread() / sigma_bwrite() below */
@@ -825,19 +825,19 @@ static void
     sigma->vram = malloc(0x8000 * 4);
 
     timer_add(&sigma->timer, sigma_poll, sigma, 1);
-    mem_mapping_add(&sigma->mapping, 0xb8000, 0x08000, 
-		    sigma_read, NULL, NULL, 
-		    sigma_write, NULL, NULL,  
+    mem_mapping_add(&sigma->mapping, 0xb8000, 0x08000,
+		    sigma_read, NULL, NULL,
+		    sigma_write, NULL, NULL,
 		    NULL, MEM_MAPPING_EXTERNAL, sigma);
     mem_mapping_add(&sigma->bios_ram, bios_addr, 0x2000,
-		    sigma_bread, NULL, NULL, 
-		    sigma_bwrite, NULL, NULL,  
+		    sigma_bread, NULL, NULL,
+		    sigma_bwrite, NULL, NULL,
 		    sigma->bios_rom.rom, MEM_MAPPING_EXTERNAL, sigma);
-    io_sethandler(0x03d0, 0x0010, 
-		  sigma_in, NULL, NULL, 
+    io_sethandler(0x03d0, 0x0010,
+		  sigma_in, NULL, NULL,
 		  sigma_out, NULL, NULL, sigma);
-    io_sethandler(0x02d0, 0x0010, 
-		  sigma_in, NULL, NULL, 
+    io_sethandler(0x02d0, 0x0010,
+		  sigma_in, NULL, NULL,
 		  sigma_out, NULL, NULL, sigma);
 
     /* Start with ROM paged in, BIOS RAM paged out */

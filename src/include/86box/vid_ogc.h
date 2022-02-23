@@ -6,7 +6,7 @@
  *
  *		This file is part of the 86Box distribution.
  *
- *		Emulation of the Olivetti OGC 8-bit ISA (GO708) and 
+ *		Emulation of the Olivetti OGC 8-bit ISA (GO708) and
  *      M21/M24/M28 16-bit bus (GO317/318/380/709) video cards.
  *
  *
@@ -21,6 +21,9 @@
  *		Copyright 2017-2019 Fred N. van Kempen.
  *		Copyright 2020 EngiNerd.
  */
+
+#ifndef VIDEO_OGC_H
+# define VIDEO_OGC_H
 
 typedef struct ogc_t {
     cga_t cga;
@@ -46,3 +49,5 @@ void    ogc_mdaattr_rebuild();
 extern const device_config_t ogc_config[];
 extern const device_t ogc_device;
 #endif
+
+#endif /*VIDEO_OGC_H*/

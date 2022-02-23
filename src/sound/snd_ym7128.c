@@ -14,7 +14,7 @@ void ym7128_init(ym7128_t *ym7128)
 {
         int c;
         double out = 65536.0;
-        
+
         for (c = 0; c < 32; c++)
                 tap_position[c] = c * (2400 / 31);
 
@@ -35,7 +35,7 @@ void ym7128_write(ym7128_t *ym7128, uint8_t val)
         int new_a0 = val & 4;
         if (!ym7128->sci && new_sci)
                 ym7128->dat = (ym7128->dat << 1) | new_dat;
-        
+
         if (ym7128->a0 != new_a0)
         {
                 if (!ym7128->a0)
@@ -52,7 +52,7 @@ void ym7128_write(ym7128_t *ym7128, uint8_t val)
                                 case 0x0c: case 0x0d: case 0x0e: case 0x0f:
                                 ym7128->gr[ym7128->reg_sel & 7] = GET_ATTENUATION(ym7128->dat);
                                 break;
-                                
+
                                 case 0x10:
                                 ym7128->vm = GET_ATTENUATION(ym7128->dat);
                                 break;
@@ -96,7 +96,7 @@ void ym7128_write(ym7128_t *ym7128, uint8_t val)
 void ym7128_apply(ym7128_t *ym7128, int16_t *buffer, int len)
 {
         int c, d;
-        
+
         for (c = 0; c < len*2; c += 4)
         {
                 /*YM7128 samples a mono stream at ~24 kHz, so downsample*/
@@ -110,27 +110,27 @@ void ym7128_apply(ym7128_t *ym7128, int16_t *buffer, int len)
 
                 samp = (samp * ym7128->vm) >> 16;
                 samp += filter_out;
-                
+
                 ym7128->delay_buffer[ym7128->delay_pos] = samp;
-                
+
                 for (d = 0; d < 8; d++)
                 {
                         samp_l += (GET_DELAY_SAMPLE(ym7128, ym7128->t[d+1]) * ym7128->gl[d]) >> 16;
                         samp_r += (GET_DELAY_SAMPLE(ym7128, ym7128->t[d+1]) * ym7128->gr[d]) >> 16;
                 }
-                
+
                 samp_l = (samp_l * ym7128->vl*2) >> 16;
                 samp_r = (samp_r * ym7128->vr*2) >> 16;
-                
+
                 buffer[c]   += ((int32_t)samp_l + (int32_t)ym7128->prev_l) / 2;
                 buffer[c+1] += ((int32_t)samp_r + (int32_t)ym7128->prev_r) / 2;
                 buffer[c+2] += samp_l;
                 buffer[c+3] += samp_r;
-                
+
                 ym7128->delay_pos++;
                 if (ym7128->delay_pos >= 2400)
                         ym7128->delay_pos = 0;
-                        
+
                 ym7128->filter_dat = filter_temp;
                 ym7128->prev_l = samp_l;
                 ym7128->prev_r = samp_r;
