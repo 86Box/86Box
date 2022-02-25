@@ -144,7 +144,9 @@ extern const device_t cs4238b_device;
 
 /* C-Media CMI8x38 */
 extern const device_t cmi8338_device;
+extern const device_t cmi8338_onboard_device;
 extern const device_t cmi8738_device;
+extern const device_t cmi8738_onboard_device;
 #endif
 
 #endif	/*EMU_SOUND_H*/
