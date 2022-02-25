@@ -120,6 +120,7 @@ extern const device_t sb_pro_mcv_device;
 extern const device_t sb_pro_compat_device;
 extern const device_t sb_16_device;
 extern const device_t sb_16_pnp_device;
+extern const device_t sb_16_compat_device;
 extern const device_t sb_32_pnp_device;
 extern const device_t sb_awe32_device;
 extern const device_t sb_awe32_pnp_device;
@@ -140,6 +141,10 @@ extern const device_t cs4235_onboard_device;
 extern const device_t cs4236b_device;
 extern const device_t cs4237b_device;
 extern const device_t cs4238b_device;
+
+/* C-Media CMI8x38 */
+extern const device_t cmi8338_device;
+extern const device_t cmi8738_device;
 #endif
 
 #endif	/*EMU_SOUND_H*/
