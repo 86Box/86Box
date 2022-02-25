@@ -58,6 +58,7 @@ typedef struct _cmi8x38_ {
     int		slot;
 
     sb_t	*sb;
+    void	*gameport;
     cmi8x38_dma_t dma[2];
 
     int		master_vol_l, master_vol_r, cd_vol_l, cd_vol_r;
@@ -243,6 +244,11 @@ cmi8x38_write(uint16_t addr, uint8_t val, void *priv)
 			cmi8x38_start_playback(dev, dev->io_regs[0x00]);
 		break;
 
+	case 0x04:
+		/* Enable or disable the game port. */
+		gameport_remap(dev->gameport, (val & 0x02) ? 0x200 : 0);
+		break;
+
 	case 0x05:
 		dev->io_regs[addr] = val;
 		cmi8x38_speed_changed(dev);
@@ -335,7 +341,9 @@ cmi8x38_write(uint16_t addr, uint8_t val, void *priv)
 		break;
 
 	case 0x21:
-		if (dev->type != CMEDIA_CMI8338)
+		if (dev->type == CMEDIA_CMI8338)
+			val &= 0xf7;
+		else
 			val &= 0x07;
 		break;
 
@@ -416,7 +424,6 @@ cmi8x38_write(uint16_t addr, uint8_t val, void *priv)
 			val &= 0x10;
 		break;
 
-	case 0x04:
 	case 0x25: case 0x26:
 	case 0x70: case 0x71:
 	case 0x80 ... 0x8f:
@@ -781,6 +788,9 @@ cmi8x38_init(const device_t *info)
     /* Initialize playback handler and CD audio filter. */
     sound_add_handler(cmi8x38_get_buffer, dev);
     sound_set_cd_audio_filter(sb16_awe32_filter_cd_audio, dev->sb);
+
+    /* Initialize game port. */
+    dev->gameport = gameport_add(&gameport_pnp_device);
 
     /* Add PCI card. */
     dev->slot = pci_add_card((info->local & 0x100) ? PCI_ADD_SOUND : PCI_ADD_NORMAL, cmi8x38_pci_read, cmi8x38_pci_write, dev);
