@@ -29,6 +29,7 @@
 #include <86box/pci.h>
 #include <86box/sound.h>
 #include <86box/snd_sb.h>
+#include <86box/gameport.h>
 
 
 enum {
@@ -146,7 +147,7 @@ cmi8x38_read(uint16_t addr, void *priv)
 		if (dev->type == CMEDIA_CMI8338)
 			goto io_reg;
 		else
-			ret = mpu401_read(addr, val, dev->sb->mpu);
+			ret = mpu401_read(addr, dev->sb->mpu);
 		break;
 
 	case 0x50 ... 0x5f:
