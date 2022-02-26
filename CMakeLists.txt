@@ -143,7 +143,7 @@ cmake_dependent_option(MGA            "Matrox Mystique graphics adapters"       
 cmake_dependent_option(NO_SIO         "Machines without emulated Super I/O chips"   ON      "DEV_BRANCH"    OFF)
 cmake_dependent_option(OLIVETTI       "Olivetti M290"                               ON      "DEV_BRANCH"    OFF)
 cmake_dependent_option(OPEN_AT        "OpenAT"                                      ON      "DEV_BRANCH"    OFF)
-cmake_dependent_option(PAS16          "Pro Audio Spectrum 16"                       OFF     "DEV_BRANCH"    OFF)
+cmake_dependent_option(PAS16          "Pro Audio Spectrum 16"                       ON      "DEV_BRANCH"    OFF)
 cmake_dependent_option(SIO_DETECT     "Super I/O Detection Helper"                  ON      "DEV_BRANCH"    OFF)
 cmake_dependent_option(TANDY_ISA      "Tandy PSG ISA clone boards"                  ON      "DEV_BRANCH"    OFF)
 cmake_dependent_option(VGAWONDER      "ATI VGA Wonder (ATI-18800)"                  ON      "DEV_BRANCH"    OFF)
