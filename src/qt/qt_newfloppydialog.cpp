@@ -31,6 +31,9 @@ extern "C" {
 #include <86box/mo.h>
 }
 
+#include <cstdio>
+#include <cstdlib>
+
 #include <QFile>
 #include <QFileInfo>
 #include <QMessageBox>
