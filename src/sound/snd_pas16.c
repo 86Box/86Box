@@ -399,11 +399,13 @@ pas16_out(uint16_t port, uint8_t val, void *p)
         default:
             pas16_log("pas16_out : unknown %04X\n", port);
     }
+#if 0
     if (cpu_state.pc == 0x80048CF3) {
         if (output)
             fatal("here\n");
         output = 3;
     }
+#endif
 }
 
 static void
@@ -705,7 +707,7 @@ pas16_get_buffer(int32_t *buffer, int len, void *p)
     pas16_update(pas16);
     for (c = 0; c < len * 2; c++) {
         buffer[c] += pas16->opl.buffer[c];
-        buffer[c] += (int16_t) (sb_iir(c & 1, (float) pas16->dsp.buffer[c]) / 1.3) / 2;
+        buffer[c] += (int16_t) (sb_iir(0, c & 1, (double) pas16->dsp.buffer[c]) / 1.3) / 2;
         buffer[c] += (pas16->pcm_buffer[c & 1][c >> 1] / 2);
     }
 
