@@ -301,7 +301,7 @@ bool NewFloppyDialog::create86f(const QString& filename, const disk_size_t& disk
 		break;
     }
 
-    empty = (unsigned char *) malloc(array_size);
+    auto empty = (unsigned char *) malloc(array_size);
 
     memset(tarray, 0, 2048);
     memset(empty, 0, array_size);
