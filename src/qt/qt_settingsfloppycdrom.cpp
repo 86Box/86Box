@@ -67,6 +67,7 @@ static void setCDROMBus(QAbstractItemModel* model, const QModelIndex& idx, uint8
 }
 
 static void setCDROMSpeed(QAbstractItemModel* model, const QModelIndex& idx, uint8_t speed) {
+    if (!speed) speed = 8;
     auto i = idx.siblingAtColumn(1);
     model->setData(i, QString("%1x").arg(speed));
     model->setData(i, speed, Qt::UserRole);
