@@ -25,6 +25,7 @@
 #include "qt_util.hpp"
 
 extern "C" {
+#include <86box/plat.h>
 #include <86box/random.h>
 #include <86box/scsi_device.h>
 #include <86box/zip.h>
