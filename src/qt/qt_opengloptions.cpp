@@ -82,7 +82,7 @@ OpenGLOptions::save() const
     auto path = m_shaders.first().path().toLocal8Bit();
 
     if (!path.isEmpty())
-        memcpy(video_shader, path.constData(), path.size());
+        strcpy(video_shader, path.constData());
     else
         video_shader[0] = '\0';
 }
