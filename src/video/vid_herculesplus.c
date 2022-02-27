@@ -695,32 +695,20 @@ speed_changed(void *priv)
 
 
 static const device_config_t herculesplus_config[] = {
+// clang-format off
     {
-	"rgb_type", "Display type", CONFIG_SELECTION, "", 0, "", { 0 },
-	{
-		{
-			"Default", 0
-		},
-		{
-			"Green", 1
-		},
-		{
-			"Amber", 2
-		},
-		{
-			"Gray", 3
-		},
-		{
-			""
-		}
-	}
+        "rgb_type", "Display type", CONFIG_SELECTION, "", 0, "", { 0 },
+        {
+            { "Default", 0 },
+            { "Green",   1 },
+            { "Amber",   2 },
+            { "Gray",    3 },
+            { ""           }
+        }
     },
-    {
-	"blend", "Blend", CONFIG_BINARY, "", 1
-    },
-    {
-	"", "", -1
-    }
+    { "blend", "Blend", CONFIG_BINARY, "",  1 },
+    { "",      "",                         -1 }
+// clang-format on
 };
 
 const device_t herculesplus_device = {

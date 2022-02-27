@@ -1614,223 +1614,127 @@ wd1002a_27x_available(void)
     return(rom_present(WD1002A_27X_BIOS_FILE));
 }
 
-
+// clang-format off
 static const device_config_t dtc_config[] = {
     {
-	"bios_addr", "BIOS address", CONFIG_HEX20, "", 0xc8000, "", { 0 },
-	{
-		{
-			"Disabled", 0x00000
-		},
-		{
-			"C800H", 0xc8000
-		},
-		{
-			"CA00H", 0xca000
-		},
-		{
-			"D800H", 0xd8000
-		},
-		{
-			"F400H", 0xf4000
-		},
-		{
-			""
-		}
-	}
+        "bios_addr", "BIOS address", CONFIG_HEX20, "", 0xc8000, "", { 0 },
+        {
+            { "Disabled", 0x00000 },
+            { "C800H",    0xc8000 },
+            { "CA00H",    0xca000 },
+            { "D800H",    0xd8000 },
+            { "F400H",    0xf4000 },
+            { ""                  }
+        }
     },
-    {
-	"", "", -1
-    }
+    { "", "", -1 }
 };
 
 static const device_config_t st11_config[] = {
     {
-	"base", "Address", CONFIG_HEX16, "", 0x0320, "", { 0 },
-	{
-		{
-			"320H", 0x0320
-		},
-		{
-			"324H", 0x0324
-		},
-		{
-			"328H", 0x0328
-		},
-		{
-			"32CH", 0x032c
-		},
-		{
-			""
-		}
-	}
+        "base", "Address", CONFIG_HEX16, "", 0x0320, "", { 0 },
+        {
+            { "320H", 0x0320 },
+            { "324H", 0x0324 },
+            { "328H", 0x0328 },
+            { "32CH", 0x032c },
+            { ""             }
+        }
     },
     {
-	"irq", "IRQ", CONFIG_SELECTION, "", 5, "", { 0 },
-	{
-		{
-			"IRQ 2", 2
-		},
-		{
-			"IRQ 5", 5
-		},
-		{
-			""
-		}
-	}
+        "irq", "IRQ", CONFIG_SELECTION, "", 5, "", { 0 },
+        {
+            { "IRQ 2", 2 },
+            { "IRQ 5", 5 },
+            { ""         }
+        }
     },
     {
-	"bios_addr", "BIOS address", CONFIG_HEX20, "", 0xc8000, "", { 0 },
-	{
-		{
-			"Disabled", 0x00000
-		},
-		{
-			"C800H", 0xc8000
-		},
-		{
-			"D000H", 0xd0000
-		},
-		{
-			"D800H", 0xd8000
-		},
-		{
-			"E000H", 0xe0000
-		},
-		{
-			""
-		}
-	}
+        "bios_addr", "BIOS address", CONFIG_HEX20, "", 0xc8000, "", { 0 },
+        {
+            { "Disabled", 0x00000 },
+            { "C800H",    0xc8000 },
+            { "D000H",    0xd0000 },
+            { "D800H",    0xd8000 },
+            { "E000H",    0xe0000 },
+            { ""                  }
+        }
     },
     {
-	"revision", "Board Revision", CONFIG_SELECTION, "", 19, "", { 0 },
-	{
-		{
-			"Rev. 05 (v1.7)", 5
-		},
-		{
-			"Rev. 19 (v2.0)", 19
-		},
-		{
-			""
-		}
-	}
+        "revision", "Board Revision", CONFIG_SELECTION, "", 19, "", { 0 },
+        {
+            { "Rev. 05 (v1.7)",  5 },
+            { "Rev. 19 (v2.0)", 19 },
+            { ""                   }
+        }
     },
-    {
-	"", "", -1
-    }
+    { "", "", -1 }
 };
 
 static const device_config_t wd_config[] = {
     {
-	"bios_addr", "BIOS address", CONFIG_HEX20, "", 0xc8000, "", { 0 },
-	{
-		{
-			"Disabled", 0x00000
-		},
-		{
-			"C800H", 0xc8000
-		},
-		{
-			""
-		}
-	}
+        "bios_addr", "BIOS address", CONFIG_HEX20, "", 0xc8000, "", { 0 },
+        {
+            { "Disabled", 0x00000 },
+            { "C800H",    0xc8000 },
+            { ""                  }
+        }
     },
     {
-	"base", "Address", CONFIG_HEX16, "", 0x0320, "", { 0 },
-	{
-		{
-			"320H", 0x0320
-		},
-		{
-			"324H", 0x0324
-		},
-		{
-			""
-		}
-	}
+        "base", "Address", CONFIG_HEX16, "", 0x0320, "", { 0 },
+        {
+            { "320H", 0x0320 },
+            { "324H", 0x0324 },
+            { ""             }
+        }
     },
     {
-	"irq", "IRQ", CONFIG_SELECTION, "", 5, "", { 0 },
-	{
-		{
-			"IRQ 2", 2
-		},
-		{
-			"IRQ 5", 5
-		},
-		{
-			""
-		}
-	}
+        "irq", "IRQ", CONFIG_SELECTION, "", 5, "", { 0 },
+        {
+            { "IRQ 2", 2 },
+            { "IRQ 5", 5 },
+            { ""         }
+        }
     },
-    {
-	"", "", -1
-    }
+    { "", "", -1 }
 };
 
 static const device_config_t wd_rll_config[] = {
     {
-	"bios_addr", "BIOS address", CONFIG_HEX20, "", 0xc8000, "", { 0 },
-	{
-		{
-			"Disabled", 0x00000
-		},
-		{
-			"C800H", 0xc8000
-		},
-		{
-			""
-		}
-	}
+        "bios_addr", "BIOS address", CONFIG_HEX20, "", 0xc8000, "", { 0 },
+        {
+            { "Disabled", 0x00000 },
+            { "C800H",    0xc8000 },
+            { ""                  }
+        }
     },
     {
-	"base", "Address", CONFIG_HEX16, "", 0x0320, "", { 0 },
-	{
-		{
-			"320H", 0x0320
-		},
-		{
-			"324H", 0x0324
-		},
-		{
-			""
-		}
-	}
+        "base", "Address", CONFIG_HEX16, "", 0x0320, "", { 0 },
+        {
+            { "320H", 0x0320 },
+            { "324H", 0x0324 },
+            { ""             }
+        }
     },
     {
-	"irq", "IRQ", CONFIG_SELECTION, "", 5, "", { 0 },
-	{
-		{
-			"IRQ 2", 2
-		},
-		{
-			"IRQ 5", 5
-		},
-		{
-			""
-		}
-	}
+        "irq", "IRQ", CONFIG_SELECTION, "", 5, "", { 0 },
+        {
+            { "IRQ 2", 2 },
+            { "IRQ 5", 5 },
+            { ""         }
+        }
     },
     {
-	"translate", "Translate 26 -> 17", CONFIG_SELECTION, "", 0, "", { 0 },
-	{
-		{
-			"Off", 0
-		},
-		{
-			"On", 1
-		},
-		{
-			""
-		}
-	}
+        "translate", "Translate 26 -> 17", CONFIG_SELECTION, "", 0, "", { 0 },
+        {
+            { "Off", 0 },
+            { "On",  1 },
+            { ""       }
+        }
     },
-    {
-	"", "", -1
-    }
+    { "", "", -1 }
 };
-
+// clang-format on
 
 const device_t st506_xt_xebec_device = {
     "IBM PC Fixed Disk Adapter (MFM)",
