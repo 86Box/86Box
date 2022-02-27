@@ -65,7 +65,7 @@ extern "C"
 #include "qt_settings.hpp"
 #include "cocoa_mouse.hpp"
 #include "qt_styleoverride.hpp"
-
+#include "qt_unixmanagerfilter.hpp"
 
 // Void Cast
 #define VC(x) const_cast<wchar_t*>(x)
@@ -238,6 +238,11 @@ int main(int argc, char* argv[]) {
     }
 #endif
 
+    UnixManagerSocket socket;
+    if (qgetenv("86BOX_MANAGER_SOCKET").size())
+    {
+        socket.connectToServer(qgetenv("86BOX_MANAGER_SOCKET"));
+    }
     pc_reset_hard_init();
 
     /* Set the PAUSE mode depending on the renderer. */
@@ -272,5 +277,6 @@ int main(int argc, char* argv[]) {
     cpu_thread_run = 0;
     main_thread.join();
 
+    socket.close();
     return ret;
 }
