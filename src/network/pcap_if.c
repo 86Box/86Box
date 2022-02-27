@@ -69,12 +69,14 @@ static pcap_t	*(*f_pcap_open_live)(const char *,int,int,int,char *);
 static int	(*f_pcap_next_ex)(pcap_t*,struct pcap_pkthdr**,const unsigned char**);
 static void	(*f_pcap_close)(pcap_t *);
 static dllimp_t pcap_imports[] = {
-  { "pcap_findalldevs",	&f_pcap_findalldevs	},
-  { "pcap_freealldevs",	&f_pcap_freealldevs	},
-  { "pcap_open_live",	&f_pcap_open_live	},
-  { "pcap_next_ex",	&f_pcap_next_ex		},
-  { "pcap_close",	&f_pcap_close		},
-  { NULL,		NULL			},
+// clang-format off
+  { "pcap_findalldevs", &f_pcap_findalldevs },
+  { "pcap_freealldevs", &f_pcap_freealldevs },
+  { "pcap_open_live",   &f_pcap_open_live   },
+  { "pcap_next_ex",     &f_pcap_next_ex     },
+  { "pcap_close",       &f_pcap_close       },
+  { NULL,               NULL                },
+// clang-format on
 };
 
 

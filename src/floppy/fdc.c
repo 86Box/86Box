@@ -2381,9 +2381,6 @@ fdc_3f1_enable(fdc_t *fdc, int enable)
     fdc->enable_3f1 = enable;
 }
 
-
-
-
 const device_t fdc_xt_device = {
     "PC/XT Floppy Drive Controller",
     "fdc_xt",

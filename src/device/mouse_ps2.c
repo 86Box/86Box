@@ -331,27 +331,20 @@ ps2_close(void *priv)
 
 
 static const device_config_t ps2_config[] = {
+// clang-format off
     {
-	"buttons", "Buttons", CONFIG_SELECTION, "", 2, "", { 0 }, {
-		{
-			"Two", 2
-		},
-		{
-			"Three", 3
-		},
-		{
-			"Wheel", 4
-		},
-		{
-			""
-		}
-	}
+        "buttons", "Buttons", CONFIG_SELECTION, "", 2, "", { 0 }, {
+            { "Two",   2 },
+            { "Three", 3 },
+            { "Wheel", 4 },
+            { ""         }
+        }
     },
     {
-	"", "", -1
+        "", "", -1
     }
+// clang-format on
 };
-
 
 const device_t mouse_ps2_device = {
     "Standard PS/2 Mouse",

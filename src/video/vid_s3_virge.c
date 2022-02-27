@@ -4216,102 +4216,60 @@ static void s3_virge_force_redraw(void *p)
         virge->svga.fullchange = changeframecount;
 }
 
+// clang-format off
 static const device_config_t s3_virge_config[] =
 {
+    {
+        "memory", "Memory size", CONFIG_SELECTION, "", 4, "", { 0 },
         {
-                "memory", "Memory size", CONFIG_SELECTION, "", 4, "", { 0 },
-                {
-                        {
-                                "2 MB", 2
-                        },
-                        {
-                                "4 MB", 4
-                        },
-                        {
-                                ""
-                        }
-                }
-        },
-        {
-                "bilinear", "Bilinear filtering", CONFIG_BINARY, "", 1
-        },
-        {
-                "dithering", "Dithering", CONFIG_BINARY, "", 1
-        },
-        {
-                "", "", -1
+            { "2 MB", 2 },
+            { "4 MB", 4 },
+            { ""        }
         }
+    },
+    { "bilinear", "Bilinear filtering", CONFIG_BINARY, "", 1 },
+    { "dithering", "Dithering", CONFIG_BINARY, "", 1 },
+    { "", "", -1 }
 };
 
 static const device_config_t s3_virge_stb_config[] =
 {
+    {
+        "memory", "Memory size", CONFIG_SELECTION, "", 4, "", { 0 },
         {
-                "memory", "Memory size", CONFIG_SELECTION, "", 4, "", { 0 },
-                {
-                        {
-                                "2 MB", 2
-                        },
-                        {
-                                "4 MB", 4
-                        },
-                        {
-                                "8 MB", 8
-                        },
-                        {
-                                ""
-                        }
-                }
-        },
-        {
-                "bilinear", "Bilinear filtering", CONFIG_BINARY, "", 1
-        },
-        {
-                "dithering", "Dithering", CONFIG_BINARY, "", 1
-        },
-        {
-                "", "", -1
+            { "2 MB", 2 },
+            { "4 MB", 4 },
+            { "8 MB", 8 },
+            { ""        }
         }
+    },
+    { "bilinear", "Bilinear filtering", CONFIG_BINARY, "", 1 },
+    { "dithering", "Dithering", CONFIG_BINARY, "", 1 },
+    { "", "", -1 }
 };
 
 static const device_config_t s3_virge_357_config[] =
 {
-        {
-                "bilinear", "Bilinear filtering", CONFIG_BINARY, "", 1
-        },
-        {
-                "dithering", "Dithering", CONFIG_BINARY, "", 1
-        },
-        {
-                "", "", -1
-        }
+    { "bilinear", "Bilinear filtering", CONFIG_BINARY, "", 1 },
+    { "dithering", "Dithering", CONFIG_BINARY, "", 1 },
+    { "", "", -1 }
 };
 
 static const device_config_t s3_trio3d2x_config[] =
 {
+    {
+        "memory", "Memory size", CONFIG_SELECTION, "", 4, "", { 0 },
         {
-                "memory", "Memory size", CONFIG_SELECTION, "", 4, "", { 0 },
-                {
-                        {
-                                "4 MB", 4
-                        },
-                        {
-                                "8 MB", 8
-                        },
-                        {
-                                ""
-                        }
-                }
-        },
-        {
-                "bilinear", "Bilinear filtering", CONFIG_BINARY, "", 1
-        },
-        {
-                "dithering", "Dithering", CONFIG_BINARY, "", 1
-        },
-        {
-                "", "", -1
+            { "4 MB", 4 },
+            { "8 MB", 8 },
+            { ""        }
         }
+    },
+    { "bilinear", "Bilinear filtering", CONFIG_BINARY, "", 1 },
+    { "dithering", "Dithering", CONFIG_BINARY, "", 1 },
+    { "", "", -1 }
 };
+// clang-format on
 
 const device_t s3_virge_325_pci_device =
 {
@@ -4321,7 +4279,7 @@ const device_t s3_virge_325_pci_device =
         S3_VIRGE_325,
         s3_virge_init,
         s3_virge_close,
-	s3_virge_reset,
+    s3_virge_reset,
         { s3_virge_325_available },
         s3_virge_speed_changed,
         s3_virge_force_redraw,
@@ -4336,7 +4294,7 @@ const device_t s3_diamond_stealth_2000_pci_device =
         S3_DIAMOND_STEALTH3D_2000,
         s3_virge_init,
         s3_virge_close,
-	s3_virge_reset,
+    s3_virge_reset,
         { s3_virge_325_diamond_available },
         s3_virge_speed_changed,
         s3_virge_force_redraw,
@@ -4351,7 +4309,7 @@ const device_t s3_diamond_stealth_3000_pci_device =
         S3_DIAMOND_STEALTH3D_3000,
         s3_virge_init,
         s3_virge_close,
-	s3_virge_reset,
+    s3_virge_reset,
         { s3_virge_988_diamond_available },
         s3_virge_speed_changed,
         s3_virge_force_redraw,
@@ -4366,7 +4324,7 @@ const device_t s3_stb_velocity_3d_pci_device =
         S3_STB_VELOCITY_3D,
         s3_virge_init,
         s3_virge_close,
-	s3_virge_reset,
+    s3_virge_reset,
         { s3_virge_988_stb_available },
         s3_virge_speed_changed,
         s3_virge_force_redraw,
@@ -4381,7 +4339,7 @@ const device_t s3_virge_375_pci_device =
         S3_VIRGE_DX,
         s3_virge_init,
         s3_virge_close,
-	s3_virge_reset,
+    s3_virge_reset,
         { s3_virge_375_available },
         s3_virge_speed_changed,
         s3_virge_force_redraw,
@@ -4396,7 +4354,7 @@ const device_t s3_diamond_stealth_2000pro_pci_device =
         S3_DIAMOND_STEALTH3D_2000PRO,
         s3_virge_init,
         s3_virge_close,
-	s3_virge_reset,
+    s3_virge_reset,
         { s3_virge_375_diamond_available },
         s3_virge_speed_changed,
         s3_virge_force_redraw,
@@ -4411,7 +4369,7 @@ const device_t s3_virge_385_pci_device =
         S3_VIRGE_GX,
         s3_virge_init,
         s3_virge_close,
-	s3_virge_reset,
+    s3_virge_reset,
         { s3_virge_385_available },
         s3_virge_speed_changed,
         s3_virge_force_redraw,
@@ -4426,7 +4384,7 @@ const device_t s3_virge_357_pci_device =
         S3_VIRGE_GX2,
         s3_virge_init,
         s3_virge_close,
-	s3_virge_reset,
+    s3_virge_reset,
         { s3_virge_357_available },
         s3_virge_speed_changed,
         s3_virge_force_redraw,
@@ -4441,7 +4399,7 @@ const device_t s3_virge_357_agp_device =
         S3_VIRGE_GX2,
         s3_virge_init,
         s3_virge_close,
-	s3_virge_reset,
+    s3_virge_reset,
         { s3_virge_357_available },
         s3_virge_speed_changed,
         s3_virge_force_redraw,
@@ -4456,7 +4414,7 @@ const device_t s3_diamond_stealth_4000_pci_device =
         S3_DIAMOND_STEALTH3D_4000,
         s3_virge_init,
         s3_virge_close,
-	s3_virge_reset,
+    s3_virge_reset,
         { s3_virge_357_diamond_available },
         s3_virge_speed_changed,
         s3_virge_force_redraw,
@@ -4471,7 +4429,7 @@ const device_t s3_diamond_stealth_4000_agp_device =
         S3_DIAMOND_STEALTH3D_4000,
         s3_virge_init,
         s3_virge_close,
-	s3_virge_reset,
+    s3_virge_reset,
         { s3_virge_357_diamond_available },
         s3_virge_speed_changed,
         s3_virge_force_redraw,
@@ -4486,7 +4444,7 @@ const device_t s3_trio3d2x_pci_device =
         S3_TRIO_3D2X,
         s3_virge_init,
         s3_virge_close,
-	s3_virge_reset,
+    s3_virge_reset,
         { s3_trio3d2x_available },
         s3_virge_speed_changed,
         s3_virge_force_redraw,
@@ -4501,7 +4459,7 @@ const device_t s3_trio3d2x_agp_device =
         S3_TRIO_3D2X,
         s3_virge_init,
         s3_virge_close,
-	s3_virge_reset,
+    s3_virge_reset,
         { s3_trio3d2x_available },
         s3_virge_speed_changed,
         s3_virge_force_redraw,

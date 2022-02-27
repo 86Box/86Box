@@ -575,79 +575,54 @@ cga_speed_changed(void *p)
     cga_recalctimings(cga);
 }
 
-
-const device_config_t cga_config[] =
-{
+// clang-format off
+const device_config_t cga_config[] = {
+    {
+        "display_type", "Display type", CONFIG_SELECTION, "", CGA_RGB, "", { 0 },
         {
-                "display_type", "Display type", CONFIG_SELECTION, "", CGA_RGB, "", { 0 },
-                {
-                        {
-                                "RGB", CGA_RGB
-                        },
-                        {
-                                "Composite", CGA_COMPOSITE
-                        },
-                        {
-                                ""
-                        }
-                }
-        },
-        {
-                "composite_type", "Composite type", CONFIG_SELECTION, "", COMPOSITE_OLD, "", { 0 },
-                {
-                        {
-                                "Old", COMPOSITE_OLD
-                        },
-                        {
-                                "New", COMPOSITE_NEW
-                        },
-                        {
-                                ""
-                        }
-                }
-        },
-        {
-                "rgb_type", "RGB type", CONFIG_SELECTION, "", 0, "", { 0 },
-                {
-                        {
-                                "Color", 0
-                        },
-                        {
-                                "Green Monochrome", 1
-                        },
-                        {
-                                "Amber Monochrome", 2
-                        },
-                        {
-                                "Gray Monochrome", 3
-                        },
-                        {
-                                "Color (no brown)", 4
-                        },
-                        {
-                                ""
-                        }
-                }
-        },
-        {
-                "snow_enabled", "Snow emulation", CONFIG_BINARY, "", 1
-        },
-        {
-                "", "", -1
+            { "RGB", CGA_RGB             },
+            { "Composite", CGA_COMPOSITE },
+            { ""                         }
         }
+    },
+    {
+        "composite_type", "Composite type", CONFIG_SELECTION, "", COMPOSITE_OLD, "", { 0 },
+        {
+            { "Old", COMPOSITE_OLD },
+            { "New", COMPOSITE_NEW },
+            { ""                   }
+        }
+    },
+    {
+        "rgb_type", "RGB type", CONFIG_SELECTION, "", 0, "", { 0 },
+        {
+            { "Color",            0 },
+            { "Green Monochrome", 1 },
+            { "Amber Monochrome", 2 },
+            { "Gray Monochrome",  3 },
+            { "Color (no brown)", 4 },
+            { ""                    }
+        }
+    },
+    {
+        "snow_enabled", "Snow emulation", CONFIG_BINARY, "", 1
+    },
+    {
+        "", "", -1
+    }
 };
+// clang-format on
 
-
-const device_t cga_device =
-{
-        "CGA",
-        "cga",
-        DEVICE_ISA, 0,
-        cga_standalone_init,
-        cga_close,
-	NULL,
-        { NULL },
-        cga_speed_changed,
-        NULL,
-        cga_config
+const device_t cga_device = {
+    "CGA",
+    "cga",
+    DEVICE_ISA,
+    0,
+    cga_standalone_init,
+    cga_close,
+    NULL,
+    { NULL },
+    cga_speed_changed,
+    NULL,
+    cga_config
 };

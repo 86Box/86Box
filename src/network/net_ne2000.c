@@ -1139,185 +1139,91 @@ nic_close(void *priv)
     free(dev);
 }
 
-
-static const device_config_t ne1000_config[] =
-{
-	{
-		"base", "Address", CONFIG_HEX16, "", 0x300, "", { 0 },
-		{
-			{
-				"0x280", 0x280
-			},
-			{
-				"0x300", 0x300
-			},
-			{
-				"0x320", 0x320
-			},
-			{
-				"0x340", 0x340
-			},
-			{
-				"0x360", 0x360
-			},
-			{
-				"0x380", 0x380
-			},
-			{
-				""
-			}
-		},
-	},
-	{
-		"irq", "IRQ", CONFIG_SELECTION, "", 3, "", { 0 },
-		{
-			{
-				"IRQ 2", 2
-			},
-			{
-				"IRQ 3", 3
-			},
-			{
-				"IRQ 5", 5
-			},
-			{
-				"IRQ 7", 7
-			},
-			{
-				"IRQ 10", 10
-			},
-			{
-				"IRQ 11", 11
-			},
-			{
-				""
-			}
-		},
-	},
-	{
-		"mac", "MAC Address", CONFIG_MAC, "", -1
-	},
-	{
-		"", "", -1
-	}
+// clang-format off
+static const device_config_t ne1000_config[] = {
+    {
+        "base", "Address", CONFIG_HEX16, "", 0x300, "", { 0 },
+        {
+            { "0x280", 0x280 },
+            { "0x300", 0x300 },
+            { "0x320", 0x320 },
+            { "0x340", 0x340 },
+            { "0x360", 0x360 },
+            { "0x380", 0x380 },
+            { ""             }
+        },
+    },
+    {
+        "irq", "IRQ", CONFIG_SELECTION, "", 3, "", { 0 },
+        {
+            { "IRQ 2",   2 },
+            { "IRQ 3",   3 },
+            { "IRQ 5",   5 },
+            { "IRQ 7",   7 },
+            { "IRQ 10", 10 },
+            { "IRQ 11", 11 },
+            { ""           }
+        },
+    },
+    { "mac", "MAC Address", CONFIG_MAC, "", -1 },
+    { "",    "",                            -1 }
 };
 
-static const device_config_t ne2000_config[] =
-{
-	{
-		"base", "Address", CONFIG_HEX16, "", 0x300, "", { 0 },
-		{
-			{
-				"0x280", 0x280
-			},
-			{
-				"0x300", 0x300
-			},
-			{
-				"0x320", 0x320
-			},
-			{
-				"0x340", 0x340
-			},
-			{
-				"0x360", 0x360
-			},
-			{
-				"0x380", 0x380
-			},
-			{
-				""
-			}
-		},
-	},
-	{
-		"irq", "IRQ", CONFIG_SELECTION, "", 10, "", { 0 },
-		{
-			{
-				"IRQ 2", 2
-			},
-			{
-				"IRQ 3", 3
-			},
-			{
-				"IRQ 5", 5
-			},
-			{
-				"IRQ 7", 7
-			},
-			{
-				"IRQ 10", 10
-			},
-			{
-				"IRQ 11", 11
-			},
-			{
-				""
-			}
-		},
-	},
-	{
-		"mac", "MAC Address", CONFIG_MAC, "", -1
-	},
-	{
-		"bios_addr", "BIOS address", CONFIG_HEX20, "", 0, "", { 0 },
-		{
-			{
-				"Disabled", 0x00000
-			},
-			{
-				"D000", 0xD0000
-			},
-			{
-				"D800", 0xD8000
-			},
-			{
-				"C800", 0xC8000
-			},
-			{
-				""
-			}
-		},
-	},
-	{
-		"", "", -1
-	}
+static const device_config_t ne2000_config[] = {
+    {
+        "base", "Address", CONFIG_HEX16, "", 0x300, "", { 0 },
+        {
+            { "0x280", 0x280 },
+            { "0x300", 0x300 },
+            { "0x320", 0x320 },
+            { "0x340", 0x340 },
+            { "0x360", 0x360 },
+            { "0x380", 0x380 },
+            { ""             }
+        },
+    },
+    {
+        "irq", "IRQ", CONFIG_SELECTION, "", 10, "", { 0 },
+        {
+            { "IRQ 2",   2 },
+            { "IRQ 3",   3 },
+            { "IRQ 5",   5 },
+            { "IRQ 7",   7 },
+            { "IRQ 10", 10 },
+            { "IRQ 11", 11 },
+            { ""           }
+        },
+    },
+    { "mac", "MAC Address", CONFIG_MAC, "", -1 },
+    {
+        "bios_addr", "BIOS address", CONFIG_HEX20, "", 0, "", { 0 },
+        {
+            { "Disabled", 0x00000 },
+            { "D000",     0xD0000 },
+            { "D800",     0xD8000 },
+            { "C800",     0xC8000 },
+            { ""                  }
+        },
+    },
+    { "", "", -1 }
 };
 
-static const device_config_t rtl8019as_config[] =
-{
-	{
-		"mac", "MAC Address", CONFIG_MAC, "", -1
-	},
-	{
-		"", "", -1
-	}
+static const device_config_t rtl8019as_config[] = {
+    { "mac", "MAC Address", CONFIG_MAC, "", -1 },
+    { "",    "",                            -1 }
 };
 
-static const device_config_t rtl8029as_config[] =
-{
-	{
-		"bios", "Enable BIOS", CONFIG_BINARY, "", 0
-	},
-	{
-		"mac", "MAC Address", CONFIG_MAC, "", -1
-	},
-	{
-		"", "", -1
-	}
+static const device_config_t rtl8029as_config[] = {
+    { "bios", "Enable BIOS", CONFIG_BINARY, "",  0 },
+    { "mac",  "MAC Address", CONFIG_MAC, "",    -1 },
+    { "",     "",                               -1 }
 };
 
-static const device_config_t mca_mac_config[] =
-{
-	{
-		"mac", "MAC Address", CONFIG_MAC, "", -1
-	},
-	{
-		"", "", -1
-	}
+static const device_config_t mca_mac_config[] = {
+    { "mac", "MAC Address", CONFIG_MAC, "", -1 },
+    { "",    "",                            -1 }
 };
-
-
+// clang-format on
 
 const device_t ne1000_device = {
     "Novell NE1000",

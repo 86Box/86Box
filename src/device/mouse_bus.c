@@ -693,143 +693,76 @@ bm_init(const device_t *info)
     return dev;
 }
 
-
 static const device_config_t lt_config[] = {
+// clang-format off
     {
-	"base", "Address", CONFIG_HEX16, "", 0x23c, "", { 0 },
-	{
-		{
-			"0x230", 0x230
-		},
-		{
-			"0x234", 0x234
-		},
-		{
-			"0x238", 0x238
-		},
-		{
-			"0x23C", 0x23c
-		},
-		{
-			""
-		}
-	}
+        "base", "Address", CONFIG_HEX16, "", 0x23c, "", { 0 }, {
+            { "0x230", 0x230 },
+            { "0x234", 0x234 },
+            { "0x238", 0x238 },
+            { "0x23C", 0x23c },
+            { ""             }
+        }
     },
     {
-	"irq", "IRQ", CONFIG_SELECTION, "", 5, "", { 0 }, {
-		{
-			"IRQ 2", 2
-		},
-		{
-			"IRQ 3", 3
-		},
-		{
-			"IRQ 4", 4
-		},
-		{
-			"IRQ 5", 5
-		},
-		{
-			""
-		}
-	}
+        "irq", "IRQ", CONFIG_SELECTION, "", 5, "", { 0 }, {
+            { "IRQ 2", 2 },
+            { "IRQ 3", 3 },
+            { "IRQ 4", 4 },
+            { "IRQ 5", 5 },
+            { "" }
+        }
     },
     {
-	"hz", "Hz", CONFIG_SELECTION, "", 45, "", { 0 }, {
-		{
-			"Non-timed (original)", 0
-		},
-		{
-			"30 Hz (JMP2 = 1)", 30
-		},
-		{
-			"45 Hz (JMP2 not populated)", 45
-		},
-		{
-			"60 Hz (JMP 2 = 2)", 60
-		},
-		{
-			""
-		}
-	}
+        "hz", "Hz", CONFIG_SELECTION, "", 45, "", { 0 }, {
+            { "Non-timed (original)",        0 },
+            { "30 Hz (JMP2 = 1)",           30 },
+            { "45 Hz (JMP2 not populated)", 45 },
+            { "60 Hz (JMP 2 = 2)",          60 },
+            { ""                               }
+        }
     },
     {
-	"buttons", "Buttons", CONFIG_SELECTION, "", 2, "", { 0 }, {
-		{
-			"Two", 2
-		},
-		{
-			"Three", 3
-		},
-		{
-			""
-		}
-	}
+        "buttons", "Buttons", CONFIG_SELECTION, "", 2, "", { 0 }, {
+            { "Two",   2 },
+            { "Three", 3 },
+            { ""         }
+        }
     },
-    {
-	"", "", -1
-    }
+    { "", "", -1 }
+// clang-format on
 };
-
 
 static const device_config_t ms_config[] = {
+// clang-format off
     {
-	"base", "Address", CONFIG_HEX16, "", 0x23c, "", { 0 },
-	{
-		{
-			"0x230", 0x230
-		},
-		{
-			"0x234", 0x234
-		},
-		{
-			"0x238", 0x238
-		},
-		{
-			"0x23C", 0x23c
-		},
-		{
-			""
-		}
-	}
+        "base", "Address", CONFIG_HEX16, "", 0x23c, "", { 0 }, {
+            { "0x230", 0x230 },
+            { "0x234", 0x234 },
+            { "0x238", 0x238 },
+            { "0x23C", 0x23c },
+            { ""             }
+        }
     },
     {
-	"irq", "IRQ", CONFIG_SELECTION, "", 5, "", { 0 }, {
-		{
-			"IRQ 2", 2
-		},
-		{
-			"IRQ 3", 3
-		},
-		{
-			"IRQ 4", 4
-		},
-		{
-			"IRQ 5", 5
-		},
-		{
-			""
-		}
-	}
+        "irq", "IRQ", CONFIG_SELECTION, "", 5, "", { 0 }, {
+            { "IRQ 2", 2 },
+            { "IRQ 3", 3 },
+            { "IRQ 4", 4 },
+            { "IRQ 5", 5 },
+            { "" }
+        }
     },
     {
-	"buttons", "Buttons", CONFIG_SELECTION, "", 2, "", { 0 }, {
-		{
-			"Two", 2
-		},
-		{
-			"Three", 3
-		},
-		{
-			""
-		}
-	}
+        "buttons", "Buttons", CONFIG_SELECTION, "", 2, "", { 0 }, {
+            { "Two",   2 },
+            { "Three", 3 },
+            { ""         }
+        }
     },
-    {
-	"", "", -1
-    }
+    { "", "", -1 }
+// clang-format on
 };
-
 
 const device_t mouse_logibus_device = {
     "Logitech/Microsoft Bus Mouse",
