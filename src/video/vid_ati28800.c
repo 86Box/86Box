@@ -705,63 +705,47 @@ ati28800_force_redraw(void *priv)
     ati28800->svga.fullchange = changeframecount;
 }
 
-
-static const device_config_t ati28800_config[] =
-{
+// clang-format off
+static const device_config_t ati28800_config[] = {
+    {
+        "memory", "Memory size", CONFIG_SELECTION, "", 512, "", { 0 },
         {
-                "memory", "Memory size", CONFIG_SELECTION, "", 512, "", { 0 },
-                {
-                        {
-                                "256 kB", 256
-                        },
-                        {
-                                "512 kB", 512
-                        },
-                        {
-                                "1 MB", 1024
-                        },
-                        {
-                                ""
-                        }
-                }
-        },
-        {
-                "", "", -1
+            { "256 kB",  256 },
+            { "512 kB",  512 },
+            { "1 MB",   1024 },
+            { ""             }
         }
+    },
+    {
+        "", "", -1
+    }
 };
 
 #if defined(DEV_BRANCH) && defined(USE_XL24)
 static const device_config_t ati28800_wonderxl_config[] =
 {
+    {
+        "memory", "Memory size", CONFIG_SELECTION, "", 512, "", { 0 },
         {
-                "memory", "Memory size", CONFIG_SELECTION, "", 512, "", { 0 },
-                {
-                        {
-                                "256 kB", 256
-                        },
-                        {
-                                "512 kB", 512
-                        },
-                        {
-                                "1 MB", 1024
-                        },
-                        {
-                                ""
-                        }
-                }
-        },
-        {
-                "", "", -1
+            { "256 kB",  256 },
+            { "512 kB",  512 },
+            { "1 MB",   1024 },
+            { ""             }
         }
+    },
+    {
+        "", "", -1
+    }
 };
 #endif
+// clang-format on
 
 const device_t ati28800_device =
 {
         "ATI 28800-5 (ATI VGA Charger)",
         "ati28800",
         DEVICE_ISA,
-	0,
+    0,
         ati28800_init, ati28800_close, NULL,
         { ati28800_available },
         ati28800_speed_changed,
@@ -774,12 +758,12 @@ const device_t ati28800k_device =
         "ATI Korean VGA",
         "ati28800k",
         DEVICE_ISA,
-	0,
+    0,
         ati28800k_init, ati28800_close, NULL,
         { ati28800k_available },
         ati28800_speed_changed,
         ati28800_force_redraw,
-	ati28800_config
+    ati28800_config
 };
 
 const device_t ati28800k_spc4620p_device =
@@ -787,7 +771,7 @@ const device_t ati28800k_spc4620p_device =
         "ATI Korean VGA On-Board SPC-4620P",
         "ati28800k_spc4620p",
         DEVICE_ISA,
-	1,
+    1,
         ati28800k_init, ati28800_close, NULL,
         { NULL },
         ati28800_speed_changed,
@@ -799,7 +783,7 @@ const device_t ati28800k_spc6033p_device =
         "ATI Korean VGA On-Board SPC-6033P",
         "ati28800k_spc6033p",
         DEVICE_ISA,
-	2,
+    2,
         ati28800k_init, ati28800_close, NULL,
         { NULL },
         ati28800_speed_changed,
@@ -811,12 +795,12 @@ const device_t compaq_ati28800_device =
         "ATI 28800-5 (ATI VGA Wonder XL)",
         "compaq_ati28800",
         DEVICE_ISA,
-	VGAWONDERXL,
+    VGAWONDERXL,
         ati28800_init, ati28800_close, NULL,
         { compaq_ati28800_available },
         ati28800_speed_changed,
         ati28800_force_redraw,
-	ati28800_config
+    ati28800_config
 };
 
 #if defined(DEV_BRANCH) && defined(USE_XL24)
@@ -825,11 +809,11 @@ const device_t ati28800_wonderxl24_device =
         "ATI-28800 (VGA Wonder XL24)",
         "ati28800w",
         DEVICE_ISA,
-	VGAWONDERXL24,
+    VGAWONDERXL24,
         ati28800_init, ati28800_close, NULL,
         { ati28800_wonderxl24_available },
         ati28800_speed_changed,
         ati28800_force_redraw,
-	ati28800_wonderxl_config
+    ati28800_wonderxl_config
 };
 #endif

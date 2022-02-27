@@ -7609,124 +7609,73 @@ static void s3_force_redraw(void *p)
 	s3->svga.fullchange = changeframecount;
 }
 
-static const device_config_t s3_orchid_86c911_config[] =
-{
-	{
-		"memory", "Memory size", CONFIG_SELECTION, "", 1, "", { 0 },
-		{
-			{
-				"512 KB", 0
-			},
-			{
-				"1 MB", 1
-			},
-			{
-				""
-			}
-		}
-	},
-	{
-		"", "", -1
-	}
+// clang-format off
+static const device_config_t s3_orchid_86c911_config[] = {
+    {
+        "memory", "Memory size", CONFIG_SELECTION, "", 1, "", { 0 },
+        {
+            { "512 KB", 0 },
+            { "1 MB",   1 },
+            { ""          }
+        }
+    },
+    { "", "", -1 }
 };
 
-static const device_config_t s3_9fx_config[] =
-{
-	{
-		"memory", "Memory size", CONFIG_SELECTION, "", 2, "", { 0 },
-		{
-			{
-				"1 MB", 1
-			},
-			{
-				"2 MB", 2
-			},
-			/*Trio64 also supports 4 MB, however the Number Nine BIOS does not*/
-			{
-				""
-			}
-		}
-	},
-	{
-		"", "", -1
-	}
+static const device_config_t s3_9fx_config[] = {
+    {
+        "memory", "Memory size", CONFIG_SELECTION, "", 2, "", { 0 },
+        {
+            { "1 MB", 1 },
+            { "2 MB", 2 },
+            /*Trio64 also supports 4 MB, however the Number Nine BIOS does not*/
+            { ""        }
+        }
+    },
+    { "", "", -1 }
 };
 
 
-static const device_config_t s3_phoenix_trio32_config[] =
-{
-	{
-		"memory", "Memory size", CONFIG_SELECTION, "", 2, "", { 0 },
-		{
-			{
-				"512 KB", 0
-			},
-			{
-				"1 MB", 1
-			},
-			{
-				"2 MB", 2
-			},
-			{
-				""
-			}
-		}
-	},
-	{
-		"", "", -1
-	}
+static const device_config_t s3_phoenix_trio32_config[] = {
+    {
+        "memory", "Memory size", CONFIG_SELECTION, "", 2, "", { 0 },
+        {
+            { "512 KB", 0 },
+            { "1 MB",   1 },
+            { "2 MB",   2 },
+            { ""          }
+        }
+    },
+    { "", "", -1 }
 };
 
-static const device_config_t s3_standard_config[] =
-{
-	{
-		"memory", "Memory size", CONFIG_SELECTION, "", 4, "", { 0 },
-		{
-			{
-				"1 MB", 1
-			},
-			{
-				"2 MB", 2
-			},
-			{
-				"4 MB", 4
-			},
-			{
-				""
-			}
-		}
-	},
-	{
-		"", "", -1
-	}
+static const device_config_t s3_standard_config[] = {
+    {
+        "memory", "Memory size", CONFIG_SELECTION, "", 4, "", { 0 },
+        {
+            { "1 MB", 1 },
+            { "2 MB", 2 },
+            { "4 MB", 4 },
+            { ""        }
+        }
+    },
+    { "", "", -1 }
 };
 
-static const device_config_t s3_968_config[] =
-{
-	{
-		"memory", "Memory size", CONFIG_SELECTION, "", 4, "", { 0 },
-		{
-			{
-				"1 MB", 1
-			},
-			{
-				"2 MB", 2
-			},
-			{
-				"4 MB", 4
-			},
-			{
-				"8 MB", 8
-			},
-			{
-				""
-			}
-		}
-	},
-	{
-		"", "", -1
-	}
+static const device_config_t s3_968_config[] = {
+    {
+        "memory", "Memory size", CONFIG_SELECTION, "", 4, "", { 0 },
+        {
+            { "1 MB", 1 },
+            { "2 MB", 2 },
+            { "4 MB", 4 },
+            { "8 MB", 8 },
+            { ""        }
+        }
+    },
+    { "", "", -1 }
 };
+// clang-format on
 
 const device_t s3_orchid_86c911_isa_device =
 {
@@ -8384,7 +8333,7 @@ const device_t s3_elsa_winner2000_pro_x_964_pci_device =
         S3_ELSAWIN2KPROX_964,
         s3_init,
         s3_close,
-	s3_reset,
+    s3_reset,
         { s3_elsa_winner2000_pro_x_964_available },
         s3_speed_changed,
         s3_force_redraw,
@@ -8399,7 +8348,7 @@ const device_t s3_elsa_winner2000_pro_x_pci_device =
         S3_ELSAWIN2KPROX,
         s3_init,
         s3_close,
-	s3_reset,
+    s3_reset,
         { s3_elsa_winner2000_pro_x_available },
         s3_speed_changed,
         s3_force_redraw,
@@ -8414,7 +8363,7 @@ const device_t s3_trio64v2_dx_pci_device =
         S3_TRIO64V2_DX,
         s3_init,
         s3_close,
-	s3_reset,
+    s3_reset,
         { s3_trio64v2_dx_available },
         s3_speed_changed,
         s3_force_redraw,
@@ -8430,7 +8379,7 @@ const device_t s3_trio64v2_dx_onboard_pci_device =
         S3_TRIO64V2_DX_ONBOARD,
         s3_init,
         s3_close,
-	NULL,
+    NULL,
         { NULL },
         s3_speed_changed,
         s3_force_redraw,

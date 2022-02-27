@@ -830,73 +830,50 @@ sermouse_init(const device_t *info)
 
 
 static const device_config_t mssermouse_config[] = {
+// clang-format off
     {
-	"port", "Serial Port", CONFIG_SELECTION, "", 0, "", { 0 }, {
-		{
-			"COM1", 0
-		},
-		{
-			"COM2", 1
-		},
-		{
-			""
-		}
-	}
+        "port", "Serial Port", CONFIG_SELECTION, "", 0, "", { 0 }, {
+            { "COM1", 0 },
+            { "COM2", 1 },
+            { "COM3", 2 },
+            { "COM4", 3 },
+            { ""        }
+        }
     },
     {
-	"buttons", "Buttons", CONFIG_SELECTION, "", 2, "", { 0 }, {
-		{
-			"Two", 2
-		},
-		{
-			"Three", 3
-		},
-		{
-			"Wheel", 4
-		},
-		{
-			""
-		}
-	}
+        "buttons", "Buttons", CONFIG_SELECTION, "", 2, "", { 0 }, {
+            { "Two",   2 },
+            { "Three", 3 },
+            { "Wheel", 4 },
+            { ""         }
+        }
     },
-    {
-	"", "", -1
-    }
+    { "", "", -1 }
+// clang-format on
 };
 
 
 static const device_config_t ltsermouse_config[] = {
+// clang-format off
     {
-	"port", "Serial Port", CONFIG_SELECTION, "", 0, "", { 0 }, {
-		{
-			"COM1", 0
-		},
-		{
-			"COM2", 1
-		},
-		{
-			""
-		}
-	}
+        "port", "Serial Port", CONFIG_SELECTION, "", 0, "", { 0 }, {
+            { "COM1", 0 },
+            { "COM2", 1 },
+            { "COM3", 2 },
+            { "COM4", 3 },
+            { ""        }
+        }
     },
     {
-	"buttons", "Buttons", CONFIG_SELECTION, "", 2, "", { 0 }, {
-		{
-			"Two", 2
-		},
-		{
-			"Three", 3
-		},
-		{
-			""
-		}
-	}
+        "buttons", "Buttons", CONFIG_SELECTION, "", 2, "", { 0 }, {
+            { "Two",   2 },
+            { "Three", 3 },
+            { ""         }
+        }
     },
-    {
-	"", "", -1
-    }
+    { "", "", -1 }
+// clang-format on
 };
-
 
 const device_t mouse_mssystems_device = {
     "Mouse Systems Serial Mouse",

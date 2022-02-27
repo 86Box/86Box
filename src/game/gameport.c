@@ -438,7 +438,6 @@ gameport_close(void *priv)
     free(dev);
 }
 
-
 const device_t gameport_device = {
     "Game port",
     "gameport",

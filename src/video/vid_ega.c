@@ -1176,71 +1176,61 @@ ega_speed_changed(void *p)
 
    0 = Switch closed (ON);
    1 = Switch open   (OFF). */
-static const device_config_t ega_config[] =
-{
+static const device_config_t ega_config[] = {
+// clang-format off
+    {
+        "memory", "Memory size", CONFIG_SELECTION, "", 256, "", { 0 },
         {
-                "memory", "Memory size", CONFIG_SELECTION, "", 256, "", { 0 },
-                {
-                        {
-                                "32 kB", 32
-                        },
-                        {
-                                "64 kB", 64
-                        },
-                        {
-                                "128 kB", 128
-                        },
-                        {
-                                "256 kB", 256
-                        },
-                        {
-                                ""
-                        }
-                }
-        },
-        {
-                .name = "monitor_type",
-                .description = "Monitor type",
-                .type = CONFIG_SELECTION,
-                .selection =
-                {
-                        {
-                                .description = "Monochrome (5151/MDA) (white)",
-                                .value = 0x0B | (DISPLAY_WHITE << 4)
-                        },
-                        {
-                                .description = "Monochrome (5151/MDA) (green)",
-                                .value = 0x0B | (DISPLAY_GREEN << 4)
-                        },
-                        {
-                                .description = "Monochrome (5151/MDA) (amber)",
-                                .value = 0x0B | (DISPLAY_AMBER << 4)
-                        },
-                        {
-                                .description = "Color 40x25 (5153/CGA)",
-                                .value = 0x06
-                        },
-                        {
-                                .description = "Color 80x25 (5153/CGA)",
-                                .value = 0x07
-                        },
-                        {
-                                .description = "Enhanced Color - Normal Mode (5154/ECD)",
-                                .value = 0x08
-                        },
-                        {
-                               .description = "Enhanced Color - Enhanced Mode (5154/ECD)",
-                                .value = 0x09
-                        },
-                        {
-                                .description = ""
-                        }
-                },
-                .default_int = 9
-        },
-        {
-                .type = -1
+            { "32 kB",   32 },
+            { "64 kB",   64 },
+            { "128 kB", 128 },
+            { "256 kB", 256 },
+            { ""            }
         }
+    },
+    {
+        .name = "monitor_type",
+        .description = "Monitor type",
+        .type = CONFIG_SELECTION,
+        .selection = {
+            {
+                .description = "Monochrome (5151/MDA) (white)",
+                .value = 0x0B | (DISPLAY_WHITE << 4)
+            },
+            {
+                .description = "Monochrome (5151/MDA) (green)",
+                .value = 0x0B | (DISPLAY_GREEN << 4)
+            },
+            {
+                .description = "Monochrome (5151/MDA) (amber)",
+                .value = 0x0B | (DISPLAY_AMBER << 4)
+            },
+            {
+                .description = "Color 40x25 (5153/CGA)",
+                .value = 0x06
+            },
+            {
+                .description = "Color 80x25 (5153/CGA)",
+                .value = 0x07
+            },
+            {
+                .description = "Enhanced Color - Normal Mode (5154/ECD)",
+                .value = 0x08
+            },
+            {
+                .description = "Enhanced Color - Enhanced Mode (5154/ECD)",
+                .value = 0x09
+            },
+            {
+                .description = ""
+            }
+        },
+        .default_int = 9
+    },
+    {
+        .type = -1
+    }
+// clang-format on
 };
 
 
@@ -1249,7 +1239,7 @@ const device_t ega_device =
         "EGA",
         "ega",
         DEVICE_ISA,
-	EGA_IBM,
+    EGA_IBM,
         ega_standalone_init, ega_close, NULL,
         { ega_standalone_available },
         ega_speed_changed,
@@ -1262,7 +1252,7 @@ const device_t cpqega_device =
         "Compaq EGA",
         "compaq_ega",
         DEVICE_ISA,
-	EGA_COMPAQ,
+    EGA_COMPAQ,
         ega_standalone_init, ega_close, NULL,
         { cpqega_standalone_available },
         ega_speed_changed,
@@ -1275,7 +1265,7 @@ const device_t sega_device =
         "SuperEGA",
         "superega",
         DEVICE_ISA,
-	EGA_SUPEREGA,
+    EGA_SUPEREGA,
         ega_standalone_init, ega_close, NULL,
         { sega_standalone_available },
         ega_speed_changed,
@@ -1288,7 +1278,7 @@ const device_t atiega_device =
         "ATI EGA Wonder 800+",
         "egawonder800",
         DEVICE_ISA,
-	EGA_ATI,
+    EGA_ATI,
         ega_standalone_init, ega_close, NULL,
         { atiega_standalone_available },
         ega_speed_changed,
@@ -1301,7 +1291,7 @@ const device_t iskra_ega_device =
         "Iskra EGA (Cyrillic ROM)",
         "iskra_ega",
         DEVICE_ISA,
-	EGA_ISKRA,
+    EGA_ISKRA,
         ega_standalone_init, ega_close, NULL,
         { iskra_ega_standalone_available },
         ega_speed_changed,
@@ -1314,7 +1304,7 @@ const device_t et2000_device =
         "Tseng Labs ET2000",
         "et2000",
         DEVICE_ISA,
-	EGA_TSENG,
+    EGA_TSENG,
         ega_standalone_init, ega_close, NULL,
         { et2000_standalone_available },
         ega_speed_changed,

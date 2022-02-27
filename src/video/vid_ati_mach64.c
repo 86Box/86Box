@@ -3441,75 +3441,65 @@ void mach64_force_redraw(void *p)
         mach64->svga.fullchange = changeframecount;
 }
 
-static const device_config_t mach64gx_config[] =
-{
+// clang-format off
+static const device_config_t mach64gx_config[] = {
+    {
+        "memory", "Memory size", CONFIG_SELECTION, "", 4, "", { 0 },
         {
-                "memory", "Memory size", CONFIG_SELECTION, "", 4, "", { 0 },
-                {
-                        {
-                                "1 MB", 1
-                        },
-                        {
-                                "2 MB", 2
-                        },
-                        {
-                                "4 MB", 4
-                        },
-                        {
-                                ""
-                        }
-                }
-        },
-        {
-                "", "", -1
+            { "1 MB", 1 },
+            { "2 MB", 2 },
+            { "4 MB", 4 },
+            { ""        }
         }
+    },
+    {
+        "", "", -1
+    }
 };
 
-static const device_config_t mach64vt2_config[] =
-{
+static const device_config_t mach64vt2_config[] = {
+    {
+        "memory", "Memory size", CONFIG_SELECTION, "", 4, "", { 0 },
         {
-                "memory", "Memory size", CONFIG_SELECTION, "", 4, "", { 0 },
-                {
-                        {
-                                "2 MB", 2
-                        },
-                        {
-                                "4 MB", 4
-                        },
-                        {
-                                ""
-                        }
-                }
-        },
-        {
-                "", "", -1
+            { "2 MB", 2 },
+            { "4 MB", 4 },
+            { ""        }
         }
+    },
+    {
+        "", "", -1
+    }
 };
+// clang-format on
 
 const device_t mach64gx_isa_device =
 {
-        "ATI Mach64GX ISA",
-        "mach64gx_isa",
-        DEVICE_AT | DEVICE_ISA,
-	0,
-        mach64gx_init, mach64_close, NULL,
-        { mach64gx_isa_available },
-        mach64_speed_changed,
-        mach64_force_redraw,
-        mach64gx_config
+    "ATI Mach64GX ISA",
+    "mach64gx_isa",
+    DEVICE_AT | DEVICE_ISA,
+    0,
+    mach64gx_init,
+    mach64_close,
+    NULL,
+    { mach64gx_isa_available },
+    mach64_speed_changed,
+    mach64_force_redraw,
+    mach64gx_config
 };
 
 const device_t mach64gx_vlb_device =
 {
-        "ATI Mach64GX VLB",
-        "mach64gx_vlb",
-        DEVICE_VLB,
-	0,
-        mach64gx_init, mach64_close, NULL,
-        { mach64gx_vlb_available },
-        mach64_speed_changed,
-        mach64_force_redraw,
-        mach64gx_config
+    "ATI Mach64GX VLB",
+    "mach64gx_vlb",
+    DEVICE_VLB,
+    0,
+    mach64gx_init,
+    mach64_close,
+    NULL,
+    { mach64gx_vlb_available },
+    mach64_speed_changed,
+    mach64_force_redraw,
+    mach64gx_config
 };
 
 const device_t mach64gx_pci_device =
@@ -3517,7 +3507,7 @@ const device_t mach64gx_pci_device =
         "ATI Mach64GX PCI",
         "mach64gx_pci",
         DEVICE_PCI,
-	0,
+    0,
         mach64gx_init, mach64_close, NULL,
         { mach64gx_available },
         mach64_speed_changed,
@@ -3530,7 +3520,7 @@ const device_t mach64vt2_device =
         "ATI Mach64VT2",
         "mach64vt2",
         DEVICE_PCI,
-	0,
+    0,
         mach64vt2_init, mach64_close, NULL,
         { mach64vt2_available },
         mach64_speed_changed,

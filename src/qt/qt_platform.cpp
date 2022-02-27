@@ -32,6 +32,7 @@
 #include <QTemporaryFile>
 #include <QCoreApplication>
 #include <QDateTime>
+#include <QLocalSocket>
 
 #include <QLibrary>
 #include <QElapsedTimer>

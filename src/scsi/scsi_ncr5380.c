@@ -657,14 +657,16 @@ ncr_write(uint16_t port, uint8_t val, void *priv)
 		/*a Write 6/10 has occurred, start the timer when the block count is loaded*/
 		ncr->dma_mode = DMA_SEND;
 		if (ncr_dev->type == 3) {
-			memset(ncr_dev->t128.buffer, 0, MIN(512, dev->buffer_length));
+			if (dev->buffer_length > 0) {
+				memset(ncr_dev->t128.buffer, 0, MIN(512, dev->buffer_length));
 
-			ncr_log("DMA send timer start, enabled? = %i\n", timer_is_enabled(&ncr_dev->timer));
-			ncr_dev->t128.block_count = dev->buffer_length >> 9;
-			ncr_dev->t128.block_loaded = 1;
+				ncr_log("DMA send timer start, enabled? = %i\n", timer_is_enabled(&ncr_dev->timer));
+				ncr_dev->t128.block_count = dev->buffer_length >> 9;
+				ncr_dev->t128.block_loaded = 1;
 
-			ncr_dev->t128.host_pos = 0;
-			ncr_dev->t128.status |= 0x04;
+				ncr_dev->t128.host_pos = 0;
+				ncr_dev->t128.status |= 0x04;
+			}
 		} else {
 			if ((ncr->mode & MODE_DMA) && !timer_is_enabled(&ncr_dev->timer)) {
 				memset(ncr_dev->buffer, 0, MIN(128, dev->buffer_length));
@@ -680,19 +682,21 @@ ncr_write(uint16_t port, uint8_t val, void *priv)
 		/*a Read 6/10 has occurred, start the timer when the block count is loaded*/
 		ncr->dma_mode = DMA_INITIATOR_RECEIVE;
 		if (ncr_dev->type == 3) {
-			ncr_log("DMA receive timer start, enabled? = %i, cdb[0] = %02x\n", timer_is_enabled(&ncr_dev->timer), ncr->command[0]);
-			memset(ncr_dev->t128.buffer, 0, MIN(512, dev->buffer_length));
+			ncr_log("DMA receive timer start, enabled? = %i, cdb[0] = %02x, buflen = %i\n", timer_is_enabled(&ncr_dev->timer), ncr->command[0], dev->buffer_length);
+			if (dev->buffer_length > 0) {
+				memset(ncr_dev->t128.buffer, 0, MIN(512, dev->buffer_length));
 
-			ncr_dev->t128.block_count = dev->buffer_length >> 9;
+				ncr_dev->t128.block_count = dev->buffer_length >> 9;
 
-			if (dev->buffer_length < 512)
-				ncr_dev->t128.block_count = 1;
+				if (dev->buffer_length < 512)
+					ncr_dev->t128.block_count = 1;
 
-			ncr_dev->t128.block_loaded = 1;
+				ncr_dev->t128.block_loaded = 1;
 
-			ncr_dev->t128.host_pos = MIN(512, dev->buffer_length);
-			ncr_dev->t128.status |= 0x04;
-			timer_on_auto(&ncr_dev->timer, 0.02);
+				ncr_dev->t128.host_pos = MIN(512, dev->buffer_length);
+				ncr_dev->t128.status |= 0x04;
+				timer_on_auto(&ncr_dev->timer, 0.02);
+			}
 		} else {
 			if ((ncr->mode & MODE_DMA) && !timer_is_enabled(&ncr_dev->timer)) {
 				memset(ncr_dev->buffer, 0, MIN(128, dev->buffer_length));
@@ -1568,220 +1572,121 @@ t128_available(void)
     return(rom_present(T128_ROM));
 }
 
+// clang-format off
 static const device_config_t ncr5380_mmio_config[] = {
+    {
+        "bios_addr", "BIOS Address", CONFIG_HEX20, "", 0xD8000, "", { 0 },
         {
-                "bios_addr", "BIOS Address", CONFIG_HEX20, "", 0xD8000, "", { 0 },
-                {
-                        {
-                                "C800H", 0xc8000
-                        },
-                        {
-                                "CC00H", 0xcc000
-                        },
-                        {
-                                "D800H", 0xd8000
-                        },
-                        {
-                                "DC00H", 0xdc000
-                        },
-                        {
-                                ""
-                        }
-                },
-
+            { "C800H", 0xc8000 },
+            { "CC00H", 0xcc000 },
+            { "D800H", 0xd8000 },
+            { "DC00H", 0xdc000 },
+            { ""               }
         },
+    },
+    {
+        "irq", "IRQ", CONFIG_SELECTION, "", 5, "", { 0 },
         {
-		"irq", "IRQ", CONFIG_SELECTION, "", 5, "", { 0 },
-                {
-                        {
-                                "IRQ 3", 3
-                        },
-                        {
-                                "IRQ 5", 5
-                        },
-                        {
-                                "IRQ 7", 7
-                        },
-                        {
-                                ""
-                        }
-                },
+            { "IRQ 3", 3 },
+            { "IRQ 5", 5 },
+            { "IRQ 7", 7 },
+            { ""         }
         },
-	{
-		"", "", -1
-	}
+    },
+    { "", "", -1 }
 };
 
 static const device_config_t rancho_config[] = {
+    {
+        "bios_addr", "BIOS Address", CONFIG_HEX20, "", 0xD8000, "", { 0 },
         {
-                "bios_addr", "BIOS Address", CONFIG_HEX20, "", 0xD8000, "", { 0 },
-                {
-                        {
-                                "C800H", 0xc8000
-                        },
-                        {
-                                "CC00H", 0xcc000
-                        },
-                        {
-                                "D800H", 0xd8000
-                        },
-                        {
-                                "DC00H", 0xdc000
-                        },
-                        {
-                                ""
-                        }
-                },
-
+            { "C800H", 0xc8000 },
+            { "CC00H", 0xcc000 },
+            { "D800H", 0xd8000 },
+            { "DC00H", 0xdc000 },
+            { ""               }
         },
+    },
+    {
+        "irq", "IRQ", CONFIG_SELECTION, "", 5, "", { 0 },
         {
-		        "irq", "IRQ", CONFIG_SELECTION, "", 5, "", { 0 },
-                {
-                        {
-                                "IRQ 3", 3
-                        },
-                        {
-                                "IRQ 5", 5
-                        },
-                        {
-                                "IRQ 7", 7
-                        },
-                        {
-                                ""
-                        }
-                },
+            { "IRQ 3", 3 },
+            { "IRQ 5", 5 },
+            { "IRQ 7", 7 },
+            { ""         }
         },
+    },
+    {
+        "bios_ver", "BIOS Version", CONFIG_SELECTION, "", 1, "", { 0 },
         {
-		        "bios_ver", "BIOS Version", CONFIG_SELECTION, "", 1, "", { 0 },
-                {
-                        {
-                                "8.20R", 1
-                        },
-                        {
-                                "8.10R", 0
-                        },
-                        {
-                                ""
-                        }
-                },
+            { "8.20R", 1 },
+            { "8.10R", 0 },
+            { ""         }
         },
-	{
-		"", "", -1
-	}
+    },
+    { "", "", -1 }
 };
 
 static const device_config_t t130b_config[] = {
+    {
+        "bios_addr", "BIOS Address", CONFIG_HEX20, "", 0xD8000, "", { 0 },
         {
-                "bios_addr", "BIOS Address", CONFIG_HEX20, "", 0xD8000, "", { 0 },
-                {
-                        {
-                                "Disabled", 0
-                        },
-                        {
-                                "C800H", 0xc8000
-                        },
-                        {
-                                "CC00H", 0xcc000
-                        },
-                        {
-                                "D800H", 0xd8000
-                        },
-                        {
-                                "DC00H", 0xdc000
-                        },
-                        {
-                                ""
-                        }
-                },
+            { "Disabled", 0 },
+            { "C800H", 0xc8000 },
+            { "CC00H", 0xcc000 },
+            { "D800H", 0xd8000 },
+            { "DC00H", 0xdc000 },
+            { ""               }
         },
+    },
+    {
+        "base", "Address", CONFIG_HEX16, "", 0x0350, "", { 0 },
         {
-		"base", "Address", CONFIG_HEX16, "", 0x0350, "", { 0 },
-                {
-                        {
-                                "240H", 0x0240
-                        },
-                        {
-                                "250H", 0x0250
-                        },
-                        {
-                                "340H", 0x0340
-                        },
-                        {
-                                "350H", 0x0350
-                        },
-                        {
-                                ""
-                        }
-                },
+            { "240H", 0x0240 },
+            { "250H", 0x0250 },
+            { "340H", 0x0340 },
+            { "350H", 0x0350 },
+            { ""             }
         },
+    },
+    {
+        "irq", "IRQ", CONFIG_SELECTION, "", 5, "", { 0 },
         {
-		"irq", "IRQ", CONFIG_SELECTION, "", 5, "", { 0 },
-                {
-                        {
-                                "IRQ 3", 3
-                        },
-                        {
-                                "IRQ 5", 5
-                        },
-                        {
-                                "IRQ 7", 7
-                        },
-                        {
-                                ""
-                        }
-                },
+            { "IRQ 3", 3 },
+            { "IRQ 5", 5 },
+            { "IRQ 7", 7 },
+            { ""         }
         },
-	{
-		"", "", -1
-	}
+    },
+    { "", "", -1 }
 };
-
 
 static const device_config_t t128_config[] = {
+    {
+        "bios_addr", "BIOS Address", CONFIG_HEX20, "", 0xD8000, "", { 0 },
         {
-                "bios_addr", "BIOS Address", CONFIG_HEX20, "", 0xD8000, "", { 0 },
-                {
-                        {
-                                "C800H", 0xc8000
-                        },
-                        {
-                                "CC00H", 0xcc000
-                        },
-                        {
-                                "D800H", 0xd8000
-                        },
-                        {
-                                "DC00H", 0xdc000
-                        },
-                        {
-                                ""
-                        }
-                },
+            { "C800H", 0xc8000 },
+            { "CC00H", 0xcc000 },
+            { "D800H", 0xd8000 },
+            { "DC00H", 0xdc000 },
+            { ""               }
         },
+    },
+    {
+        "irq", "IRQ", CONFIG_SELECTION, "", 5, "", { 0 },
         {
-		"irq", "IRQ", CONFIG_SELECTION, "", 5, "", { 0 },
-                {
-                        {
-                                "IRQ 3", 3
-                        },
-                        {
-                                "IRQ 5", 5
-                        },
-                        {
-                                "IRQ 7", 7
-                        },
-                        {
-                                ""
-                        }
-                },
+            { "IRQ 3", 3 },
+            { "IRQ 5", 5 },
+            { "IRQ 7", 7 },
+            { ""         }
         },
-        {
-                "boot", "Enable Boot ROM", CONFIG_BINARY, "", 1
-        },
-	{
-		"", "", -1
-	}
+    },
+    {
+        "boot", "Enable Boot ROM", CONFIG_BINARY, "", 1
+    },
+    { "", "", -1 }
 };
+// clang-format on
 
 const device_t scsi_lcs6821n_device =
 {

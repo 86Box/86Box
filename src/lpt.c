@@ -21,18 +21,19 @@ static const struct {
     const char *internal_name;
     const lpt_device_t *device;
 } lpt_devices[] = {
-    {"none",		NULL},
-    {"dss",		&dss_device},
-    {"lpt_dac",		&lpt_dac_device},
-    {"lpt_dac_stereo",	&lpt_dac_stereo_device},
-    {"text_prt",	&lpt_prt_text_device},
-    {"dot_matrix",	&lpt_prt_escp_device},
-    {"postscript",	&lpt_prt_ps_device},
-    {"plip",		&lpt_plip_device},
-    {"dongle_savquest",	&lpt_hasp_savquest_device},
-    {"", NULL}
+// clang-format off
+    {"none",            NULL                      },
+    {"dss",             &dss_device               },
+    {"lpt_dac",         &lpt_dac_device           },
+    {"lpt_dac_stereo",  &lpt_dac_stereo_device    },
+    {"text_prt",        &lpt_prt_text_device      },
+    {"dot_matrix",      &lpt_prt_escp_device      },
+    {"postscript",      &lpt_prt_ps_device        },
+    {"plip",            &lpt_plip_device          },
+    {"dongle_savquest",	&lpt_hasp_savquest_device },
+    {"",                NULL                      }
+// clang-format on
 };
-
 
 char *
 lpt_device_get_name(int id)

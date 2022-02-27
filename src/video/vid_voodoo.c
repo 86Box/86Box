@@ -1299,131 +1299,128 @@ void voodoo_close(void *p)
         free(voodoo_set);
 }
 
-static const device_config_t voodoo_config[] =
-{
-        {
-                .name = "type",
-                .description = "Voodoo type",
-                .type = CONFIG_SELECTION,
-                .selection =
-                {
-                        {
-                                .description = "Voodoo Graphics",
-                                .value = VOODOO_1
-                        },
-                        {
-                                .description = "Obsidian SB50 + Amethyst (2 TMUs)",
-                                .value = VOODOO_SB50
-                        },
-                        {
-                                .description = "Voodoo 2",
-                                .value = VOODOO_2
-                        },
-                        {
-                                .description = ""
-                        }
-                },
-                .default_int = 0
+static const device_config_t voodoo_config[] = {
+// clang-format off
+    {
+        .name = "type",
+        .description = "Voodoo type",
+        .type = CONFIG_SELECTION,
+        .selection = {
+            {
+                .description = "Voodoo Graphics",
+                .value = VOODOO_1
+            },
+            {
+                .description = "Obsidian SB50 + Amethyst (2 TMUs)",
+                .value = VOODOO_SB50
+            },
+            {
+                .description = "Voodoo 2",
+                .value = VOODOO_2
+            },
+            {
+                .description = ""
+            }
         },
-        {
-                .name = "framebuffer_memory",
-                .description = "Framebuffer memory size",
-                .type = CONFIG_SELECTION,
-                .selection =
-                {
-                        {
-                                .description = "2 MB",
-                                .value = 2
-                        },
-                        {
-                                .description = "4 MB",
-                                .value = 4
-                        },
-                        {
-                                .description = ""
-                        }
-                },
-                .default_int = 2
+        .default_int = 0
+    },
+    {
+        .name = "framebuffer_memory",
+        .description = "Framebuffer memory size",
+        .type = CONFIG_SELECTION,
+        .selection = {
+            {
+                .description = "2 MB",
+                .value = 2
+            },
+            {
+                .description = "4 MB",
+                .value = 4
+            },
+            {
+                .description = ""
+            }
         },
-        {
-                .name = "texture_memory",
-                .description = "Texture memory size",
-                .type = CONFIG_SELECTION,
-                .selection =
-                {
-                        {
-                                .description = "2 MB",
-                                .value = 2
-                        },
-                        {
-                                .description = "4 MB",
-                                .value = 4
-                        },
-                        {
-                                .description = ""
-                        }
-                },
-                .default_int = 2
+        .default_int = 2
+    },
+    {
+        .name = "texture_memory",
+        .description = "Texture memory size",
+        .type = CONFIG_SELECTION,
+        .selection = {
+            {
+                .description = "2 MB",
+                .value = 2
+            },
+            {
+                .description = "4 MB",
+                .value = 4
+            },
+            {
+                .description = ""
+            }
         },
-        {
-                .name = "bilinear",
-                .description = "Bilinear filtering",
-                .type = CONFIG_BINARY,
-                .default_int = 1
+        .default_int = 2
+    },
+    {
+        .name = "bilinear",
+        .description = "Bilinear filtering",
+        .type = CONFIG_BINARY,
+        .default_int = 1
+    },
+    {
+        .name = "dithersub",
+        .description = "Dither subtraction",
+        .type = CONFIG_BINARY,
+        .default_int = 1
+    },
+    {
+        .name = "dacfilter",
+        .description = "Screen Filter",
+        .type = CONFIG_BINARY,
+        .default_int = 0
+    },
+    {
+        .name = "render_threads",
+        .description = "Render threads",
+        .type = CONFIG_SELECTION,
+        .selection = {
+            {
+                .description = "1",
+                .value = 1
+            },
+            {
+                .description = "2",
+                .value = 2
+            },
+            {
+                .description = "4",
+                .value = 4
+            },
+            {
+                .description = ""
+            }
         },
-        {
-                .name = "dithersub",
-                .description = "Dither subtraction",
-                .type = CONFIG_BINARY,
-                .default_int = 1
-        },
-        {
-                .name = "dacfilter",
-                .description = "Screen Filter",
-                .type = CONFIG_BINARY,
-                .default_int = 0
-        },
-        {
-                .name = "render_threads",
-                .description = "Render threads",
-                .type = CONFIG_SELECTION,
-                .selection =
-                {
-                        {
-                                .description = "1",
-                                .value = 1
-                        },
-                        {
-                                .description = "2",
-                                .value = 2
-                        },
-                        {
-                                .description = "4",
-                                .value = 4
-                        },
-                        {
-                                .description = ""
-                        }
-                },
-                .default_int = 2
-        },
-        {
-                .name = "sli",
-                .description = "SLI",
-                .type = CONFIG_BINARY,
-                .default_int = 0
-        },
+        .default_int = 2
+    },
+    {
+        .name = "sli",
+        .description = "SLI",
+        .type = CONFIG_BINARY,
+        .default_int = 0
+    },
 #ifndef NO_CODEGEN
-        {
-                .name = "recompiler",
-                .description = "Recompiler",
-                .type = CONFIG_BINARY,
-                .default_int = 1
-        },
+    {
+        .name = "recompiler",
+        .description = "Recompiler",
+        .type = CONFIG_BINARY,
+        .default_int = 1
+    },
 #endif
-        {
-                .type = -1
-        }
+    {
+        .type = -1
+    }
+// clang-format on
 };
 
 const device_t voodoo_device =
@@ -1431,10 +1428,10 @@ const device_t voodoo_device =
         "3DFX Voodoo Graphics",
         "voodoo",
         DEVICE_PCI,
-	0,
+    0,
         voodoo_init,
         voodoo_close,
-	NULL,
+    NULL,
         { NULL },
         voodoo_speed_changed,
         voodoo_force_blit,

@@ -636,110 +636,60 @@ threec503_nic_close(void *priv)
 }
 
 
-static const device_config_t threec503_config[] =
-{
+static const device_config_t threec503_config[] = {
+// clang-format off
     {
-	"base", "Address", CONFIG_HEX16, "", 0x300, "", { 0 },
-	{
-		{
-			"0x250", 0x250
-		},
-		{
-			"0x280", 0x280
-		},
-		{
-			"0x2a0", 0x2a0
-		},
-		{
-			"0x2e0", 0x2e0
-		},
-		{
-			"0x300", 0x300
-		},
-		{
-			"0x310", 0x310
-		},
-		{
-			"0x330", 0x330
-		},
-		{
-			"0x350", 0x350
-		},
-		{
-			"", 0
-		}
-	},
+        "base", "Address", CONFIG_HEX16, "", 0x300, "", { 0 },
+        {
+            { "0x250", 0x250 },
+            { "0x280", 0x280 },
+            { "0x2a0", 0x2a0 },
+            { "0x2e0", 0x2e0 },
+            { "0x300", 0x300 },
+            { "0x310", 0x310 },
+            { "0x330", 0x330 },
+            { "0x350", 0x350 },
+            { "", 0 }
+        },
     },
     {
-	"irq", "IRQ", CONFIG_SELECTION, "", 3, "", { 0 },
-	{
-		{
-			"IRQ 2", 2
-		},
-		{
-			"IRQ 3", 3
-		},
-		{
-			"IRQ 4", 4
-		},
-		{
-			"IRQ 5", 5
-		},
-		{
-			"", 0
-		}
-	},
+        "irq", "IRQ", CONFIG_SELECTION, "", 3, "", { 0 },
+        {
+            { "IRQ 2", 2 },
+            { "IRQ 3", 3 },
+            { "IRQ 4", 4 },
+            { "IRQ 5", 5 },
+            { "", 0 }
+        },
     },
     {
-	"dma", "DMA", CONFIG_SELECTION, "", 3, "", { 0 },
-	{
-		{
-			"DMA 1", 1
-		},
-		{
-			"DMA 2", 2
-		},
-		{
-			"DMA 3", 3
-		},
-		{
-			"", 0
-		}
-	},
+        "dma", "DMA", CONFIG_SELECTION, "", 3, "", { 0 },
+        {
+            { "DMA 1", 1 },
+            { "DMA 2", 2 },
+            { "DMA 3", 3 },
+            { "", 0 }
+        },
     },
     {
-	"mac", "MAC Address", CONFIG_MAC, "", -1, "", { 0 },
-	{
-		{
-			"", 0
-		}
-	},
+        "mac", "MAC Address", CONFIG_MAC, "", -1, "", { 0 },
+        {
+            { "", 0 }
+        },
     },
     {
-	"bios_addr", "BIOS address", CONFIG_HEX20, "", 0xCC000, "", { 0 },
-	{
-		{
-			"DC00", 0xDC000
-		},
-		{
-			"D800", 0xD8000
-		},
-		{
-			"C800", 0xC8000
-		},
-		{
-			"CC00", 0xCC000
-		},
-		{
-			"", 0
-		}
-	},
+        "bios_addr", "BIOS address", CONFIG_HEX20, "", 0xCC000, "", { 0 },
+        {
+            { "DC00", 0xDC000 },
+            { "D800", 0xD8000 },
+            { "C800", 0xC8000 },
+            { "CC00", 0xCC000 },
+            { "", 0 }
+        },
     },
-    {
-	"", "", -1
-    }
+    { "", "", -1 }
+// clang-format off
 };
-
 
 const device_t threec503_device = {
     "3Com EtherLink II",

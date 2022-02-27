@@ -3117,95 +3117,47 @@ const device_t ide_pci_2ch_device = {
     { NULL }, NULL, NULL, NULL
 };
 
-static const device_config_t ide_ter_config[] =
-{
+// clang-format off
+static const device_config_t ide_ter_config[] = {
+    {
+        "irq", "IRQ", CONFIG_SELECTION, "", 10, "", { 0 },
         {
-                "irq", "IRQ", CONFIG_SELECTION, "", 10, "", { 0 },
-                {
-                        {
-                                "Plug and Play", -1
-                        },
-                        {
-                                "IRQ 2", 2
-                        },
-                        {
-                                "IRQ 3", 3
-                        },
-                        {
-                                "IRQ 4", 4
-                        },
-                        {
-                                "IRQ 5", 5
-                        },
-                        {
-                                "IRQ 7", 7
-                        },
-                        {
-                                "IRQ 9", 9
-                        },
-                        {
-                                "IRQ 10", 10
-                        },
-                        {
-                                "IRQ 11", 11
-                        },
-                        {
-                                "IRQ 12", 12
-                        },
-                        {
-                                ""
-                        }
-                }
-        },
-        {
-                "", "", -1
+            { "Plug and Play", -1 },
+            { "IRQ 2",          2 },
+            { "IRQ 3",          3 },
+            { "IRQ 4",          4 },
+            { "IRQ 5",          5 },
+            { "IRQ 7",          7 },
+            { "IRQ 9",          9 },
+            { "IRQ 10",        10 },
+            { "IRQ 11",        11 },
+            { "IRQ 12",        12 },
+            { ""                  }
         }
+    },
+    { "", "", -1 }
 };
 
-static const device_config_t ide_qua_config[] =
-{
+static const device_config_t ide_qua_config[] = {
+    {
+        "irq", "IRQ", CONFIG_SELECTION, "", 11, "", { 0 },
         {
-                "irq", "IRQ", CONFIG_SELECTION, "", 11, "", { 0 },
-                {
-                        {
-                                "Plug and Play", -1
-                        },
-                        {
-                                "IRQ 2", 2
-                        },
-                        {
-                                "IRQ 3", 3
-                        },
-                        {
-                                "IRQ 4", 4
-                        },
-                        {
-                                "IRQ 5", 5
-                        },
-                        {
-                                "IRQ 7", 7
-                        },
-                        {
-                                "IRQ 9", 9
-                        },
-                        {
-                                "IRQ 10", 10
-                        },
-                        {
-                                "IRQ 11", 11
-                        },
-                        {
-                                "IRQ 12", 12
-                        },
-                        {
-                                ""
-                        }
-                }
-        },
-        {
-                "", "", -1
+            { "Plug and Play", -1 },
+            { "IRQ 2",          2 },
+            { "IRQ 3",          3 },
+            { "IRQ 4",          4 },
+            { "IRQ 5",          5 },
+            { "IRQ 7",          7 },
+            { "IRQ 9",          9 },
+            { "IRQ 10",        10 },
+            { "IRQ 11",        11 },
+            { "IRQ 12",        12 },
+            { ""                  }
         }
+    },
+    { "", "", -1 }
 };
+// clang-format on
 
 const device_t ide_ter_device = {
     "Tertiary IDE Controller",

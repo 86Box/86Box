@@ -351,7 +351,7 @@ static void
 bug_close(UNUSED(void *priv))
 {
     io_removehandler(BUGGER_ADDR, BUGGER_ADDRLEN,
-		     bug_read, NULL, NULL, bug_write, NULL, NULL,  NULL);
+      bug_read, NULL, NULL, bug_write, NULL, NULL,  NULL);
 }
 
 

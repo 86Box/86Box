@@ -1802,111 +1802,59 @@ buslogic_init(const device_t *info)
     return(dev);
 }
 
-
+// clang-format off
 static const device_config_t BT_ISA_Config[] = {
+    {
+        "base", "Address", CONFIG_HEX16, "", 0x334, "", { 0 },
         {
-		"base", "Address", CONFIG_HEX16, "", 0x334, "", { 0 },
-                {
-                        {
-                                "0x330", 0x330
-                        },
-                        {
-                                "0x334", 0x334
-                        },
-                        {
-                                "0x230", 0x230
-                        },
-                        {
-                                "0x234", 0x234
-                        },
-                        {
-                                "0x130", 0x130
-                        },
-                        {
-                                "0x134", 0x134
-                        },
-                        {
-                                "", 0
-                        }
-                },
+            { "0x330", 0x330 },
+            { "0x334", 0x334 },
+            { "0x230", 0x230 },
+            { "0x234", 0x234 },
+            { "0x130", 0x130 },
+            { "0x134", 0x134 },
+            { "", 0 }
         },
+    },
+    {
+        "irq", "IRQ", CONFIG_SELECTION, "", 11, "", { 0 },
         {
-		"irq", "IRQ", CONFIG_SELECTION, "", 11, "", { 0 },
-                {
-                        {
-                                "IRQ 9", 9
-                        },
-                        {
-                                "IRQ 10", 10
-                        },
-                        {
-                                "IRQ 11", 11
-                        },
-                        {
-                                "IRQ 12", 12
-                        },
-                        {
-                                "IRQ 14", 14
-                        },
-                        {
-                                "IRQ 15", 15
-                        },
-                        {
-                                "", 0
-                        }
-                },
+            { "IRQ 9", 9 },
+            { "IRQ 10", 10 },
+            { "IRQ 11", 11 },
+            { "IRQ 12", 12 },
+            { "IRQ 14", 14 },
+            { "IRQ 15", 15 },
+            { "", 0 }
         },
+    },
+    {
+        "dma", "DMA channel", CONFIG_SELECTION, "", 6, "", { 0 },
         {
-		"dma", "DMA channel", CONFIG_SELECTION, "", 6, "", { 0 },
-                {
-                        {
-                                "DMA 5", 5
-                        },
-                        {
-                                "DMA 6", 6
-                        },
-                        {
-                                "DMA 7", 7
-                        },
-                        {
-                                "", 0
-                        }
-                },
+            { "DMA 5", 5 },
+            { "DMA 6", 6 },
+            { "DMA 7", 7 },
+            { "", 0 }
         },
+    },
+    {
+        "bios_addr", "BIOS Address", CONFIG_HEX20, "", 0, "", { 0 },
         {
-                "bios_addr", "BIOS Address", CONFIG_HEX20, "", 0, "", { 0 },
-                {
-                        {
-                                "Disabled", 0
-                        },
-                        {
-                                "C800H", 0xc8000
-                        },
-                        {
-                                "D000H", 0xd0000
-                        },
-                        {
-                                "D800H", 0xd8000
-                        },
-                        {
-                                "", 0
-                        }
-                },
+            { "Disabled", 0       },
+            { "C800H",    0xc8000 },
+            { "D000H",    0xd0000 },
+            { "D800H",    0xd8000 },
+            { "", 0 }
         },
-	{
-		"", "", -1
-	}
+    },
+    { "", "", -1 }
 };
-
 
 static const device_config_t BT958D_Config[] = {
-	{
-		"bios", "Enable BIOS", CONFIG_BINARY, "", 0
-	},
-	{
-		"", "", -1
-	}
+    { "bios", "Enable BIOS", CONFIG_BINARY, "",  0 },
+    { "",     "",                               -1 }
 };
+// clang-format on
 
 const device_t buslogic_542b_device = {
 	"BusLogic BT-542B ISA",

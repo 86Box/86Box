@@ -804,28 +804,19 @@ et4000_kasan_available(void)
 	   rom_present(KASAN_FONT_ROM_PATH);
 }
 
-static const device_config_t et4000_config[] =
-{
-	{
-		"memory", "Memory size", CONFIG_SELECTION, "", 1024, "", { 0 },
-		{
-			{
-				"256 KB", 256
-			},
-			{
-				"512 KB", 512
-			},
-			{
-				"1 MB", 1024
-			},
-			{
-				""
-			}
-		}
-	},
-	{
-		"", "", -1
-	}
+static const device_config_t et4000_config[] = {
+// clang-format off
+    {
+        "memory", "Memory size", CONFIG_SELECTION, "", 1024, "", { 0 },
+        {
+            { "256 KB",  256 },
+            { "512 KB",  512 },
+            { "1 MB",   1024 },
+            { ""             }
+        }
+    },
+    { "", "", -1 }
+// clang-format on
 };
 
 const device_t et4000_isa_device = {
