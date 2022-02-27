@@ -69,8 +69,6 @@ OpenGLOptions::OpenGLOptions(QObject *parent, bool loadConfig)
         addDefaultShader();
     else
         addShader(shaderPath);
-
-    m_modified = ~ModifiedFlags {};
 }
 
 void
@@ -89,56 +87,37 @@ OpenGLOptions::save()
         video_shader[0] = '\0';
 }
 
-bool
-OpenGLOptions::isModified()
+OpenGLOptions::FilterType
+OpenGLOptions::filter() const
 {
     /* Filter method is controlled externally */
-    auto newfilter = video_filter_method == 0
+    return video_filter_method == 0
         ? FilterType::Nearest
         : FilterType::Linear;
-
-    if (m_filter != newfilter) {
-        m_filter = newfilter;
-        m_modified.setFlag(ModifiedFlag::FilterModified);
-    }
-
-    return m_modified != ModifiedFlags {};
-}
-
-OpenGLOptions::ModifiedFlags
-OpenGLOptions::modified()
-{
-    ModifiedFlags temp {};
-    std::swap(temp, m_modified);
-    return temp;
 }
 
 void
 OpenGLOptions::setRenderBehavior(RenderBehaviorType value)
 {
     m_renderBehavior = value;
-    m_modified.setFlag(ModifiedFlag::RenderBehaviorModified);
 }
 
 void
 OpenGLOptions::setFrameRate(int value)
 {
     m_framerate = value;
-    m_modified.setFlag(ModifiedFlag::FrameRateModified);
 }
 
 void
 OpenGLOptions::setVSync(bool value)
 {
     m_vsync = value;
-    m_modified.setFlag(ModifiedFlag::VsyncModified);
 }
 
 void
 OpenGLOptions::setFilter(FilterType value)
 {
     m_filter = value;
-    m_modified.setFlag(ModifiedFlag::FilterModified);
 }
 
 void
@@ -190,8 +169,6 @@ OpenGLOptions::addShader(const QString &path)
         throw_shader_error(tr("Error linking shader program in file \"%1\""));
 
     m_shaders << OpenGLShaderPass(shader, path);
-
-    m_modified.setFlag(ModifiedFlag::ShadersModified);
 }
 
 void
@@ -202,6 +179,4 @@ OpenGLOptions::addDefaultShader()
     shader->addShaderFromSourceCode(QOpenGLShader::Fragment, fragment_shader);
     shader->link();
     m_shaders << OpenGLShaderPass(shader, QString());
-
-    m_modified.setFlag(ModifiedFlag::ShadersModified);
 }

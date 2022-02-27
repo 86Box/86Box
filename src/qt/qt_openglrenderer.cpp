@@ -250,34 +250,32 @@ OpenGLRenderer::setupBuffers()
 void
 OpenGLRenderer::applyOptions()
 {
-    /* TODO: make something else; this was a bad idea. */
+    /* TODO: change detection in options */
 
-    auto modified = options->modified();
-
-    if (modified.testFlag(OpenGLOptions::FrameRateModified) && options->framerate() > 0) {
+    if (options->framerate() > 0) {
         int interval = (int) ceilf(1000.f / (float) options->framerate());
         renderTimer->setInterval(std::chrono::milliseconds(interval));
     }
 
-    if (modified.testFlag(OpenGLOptions::RenderBehaviorModified)) {
-        if (options->renderBehavior() == OpenGLOptions::TargetFramerate)
-            renderTimer->start();
-        else
-            renderTimer->stop();
-    }
+    if (options->renderBehavior() == OpenGLOptions::TargetFramerate)
+        renderTimer->start();
+    else
+        renderTimer->stop();
 
-    if (modified.testFlag(OpenGLOptions::VsyncModified)) {
-        auto format = this->format();
-        format.setSwapInterval(options->vSync() ? 1 : 0);
+    auto format   = this->format();
+    int  interval = options->vSync() ? 1 : 0;
+
+    if (format.swapInterval() != interval) {
+        format.setSwapInterval(interval);
         setFormat(format);
         context->setFormat(format);
     }
 
-    if (modified.testFlag(OpenGLOptions::FilterModified)) {
-        GLint filter = options->filter() == OpenGLOptions::Linear ? GL_LINEAR : GL_NEAREST;
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, filter);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, filter);
-    }
+    GLint filter = options->filter() == OpenGLOptions::Linear ? GL_LINEAR : GL_NEAREST;
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, filter);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, filter);
+
+    currentFilter = options->filter();
 }
 
 void
@@ -329,7 +327,7 @@ OpenGLRenderer::render()
 {
     context->makeCurrent(this);
 
-    if (options->isModified())
+    if (options->filter() != currentFilter)
         applyOptions();
 
     /* TODO: multiple shader passes */

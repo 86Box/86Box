@@ -17,7 +17,6 @@
 #ifndef QT_OPENGLOPTIONS_HPP
 #define QT_OPENGLOPTIONS_HPP
 
-#include <QFLags>
 #include <QList>
 #include <QObject>
 #include <QOpenGLShaderProgram>
@@ -53,15 +52,6 @@ class OpenGLOptions : public QObject {
     Q_OBJECT
 
 public:
-    enum ModifiedFlag {
-        RenderBehaviorModified = 0x01,
-        FrameRateModified      = 0x02,
-        VsyncModified          = 0x04,
-        FilterModified         = 0x08,
-        ShadersModified        = 0x10
-    };
-    Q_DECLARE_FLAGS(ModifiedFlags, ModifiedFlag)
-
     enum RenderBehaviorType { SyncWithVideo,
                               TargetFramerate };
 
@@ -70,14 +60,10 @@ public:
 
     OpenGLOptions(QObject *parent = nullptr, bool loadConfig = false);
 
-    void          save();
-    bool          isModified();
-    ModifiedFlags modified();
-
     RenderBehaviorType renderBehavior() const { return m_renderBehavior; }
     int                framerate() const { return m_framerate; }
     bool               vSync() const { return m_vsync; }
-    FilterType         filter() const { return m_filter; }
+    FilterType         filter() const;
 
     QList<OpenGLShaderPass> shaders() const { return m_shaders; };
 
@@ -85,19 +71,16 @@ public:
     void setFrameRate(int value);
     void setVSync(bool value);
     void setFilter(FilterType value);
-
     void addShader(const QString &path);
     void addDefaultShader();
+    void save();
 
 private:
     RenderBehaviorType      m_renderBehavior = SyncWithVideo;
     int                     m_framerate      = -1;
     bool                    m_vsync          = false;
     FilterType              m_filter         = Nearest;
-    ModifiedFlags           m_modified       = {};
     QList<OpenGLShaderPass> m_shaders;
 };
-
-Q_DECLARE_OPERATORS_FOR_FLAGS(OpenGLOptions::ModifiedFlags)
 
 #endif

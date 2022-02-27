@@ -79,6 +79,8 @@ private:
     GLuint textureID      = 0;
     int    frameCounter   = 0;
 
+    OpenGLOptions::FilterType currentFilter;
+
     void *unpackBuffer = nullptr;
 
     void initialize();
