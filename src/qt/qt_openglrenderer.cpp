@@ -281,45 +281,45 @@ OpenGLRenderer::applyOptions()
 void
 OpenGLRenderer::applyShader(const OpenGLShaderPass &shader)
 {
-    if (!shader.shader->bind())
+    if (!shader.bind())
         return;
 
-    if (shader.vertex_coord != -1) {
-        glEnableVertexAttribArray(shader.vertex_coord);
-        glVertexAttribPointer(shader.vertex_coord, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), 0);
+    if (shader.vertex_coord() != -1) {
+        glEnableVertexAttribArray(shader.vertex_coord());
+        glVertexAttribPointer(shader.vertex_coord(), 2, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), 0);
     }
 
-    if (shader.tex_coord != -1) {
-        glEnableVertexAttribArray(shader.tex_coord);
-        glVertexAttribPointer(shader.tex_coord, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), (void *) (2 * sizeof(GLfloat)));
+    if (shader.tex_coord() != -1) {
+        glEnableVertexAttribArray(shader.tex_coord());
+        glVertexAttribPointer(shader.tex_coord(), 2, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), (void *) (2 * sizeof(GLfloat)));
     }
 
-    if (shader.color != -1) {
-        glEnableVertexAttribArray(shader.color);
-        glVertexAttribPointer(shader.color, 4, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), (void *) (4 * sizeof(GLfloat)));
+    if (shader.color() != -1) {
+        glEnableVertexAttribArray(shader.color());
+        glVertexAttribPointer(shader.color(), 4, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), (void *) (4 * sizeof(GLfloat)));
     }
 
-    if (shader.mvp_matrix != -1) {
+    if (shader.mvp_matrix() != -1) {
         static const GLfloat mvp[] = {
             1.f, 0.f, 0.f, 0.f,
             0.f, 1.f, 0.f, 0.f,
             0.f, 0.f, 1.f, 0.f,
             0.f, 0.f, 0.f, 1.f
         };
-        glUniformMatrix4fv(shader.mvp_matrix, 1, GL_FALSE, mvp);
+        glUniformMatrix4fv(shader.mvp_matrix(), 1, GL_FALSE, mvp);
     }
 
-    if (shader.output_size != -1)
-        glUniform2f(shader.output_size, destination.width(), destination.height());
+    if (shader.output_size() != -1)
+        glUniform2f(shader.output_size(), destination.width(), destination.height());
 
-    if (shader.input_size != -1)
-        glUniform2f(shader.input_size, source.width(), source.height());
+    if (shader.input_size() != -1)
+        glUniform2f(shader.input_size(), source.width(), source.height());
 
-    if (shader.texture_size != -1)
-        glUniform2f(shader.texture_size, source.width(), source.height());
+    if (shader.texture_size() != -1)
+        glUniform2f(shader.texture_size(), source.width(), source.height());
 
-    if (shader.frame_count != -1)
-        glUniform1i(shader.frame_count, frameCounter);
+    if (shader.frame_count() != -1)
+        glUniform1i(shader.frame_count(), frameCounter);
 }
 
 void

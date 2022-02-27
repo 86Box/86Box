@@ -40,7 +40,7 @@ OpenGLOptionsDialog::OpenGLOptionsDialog(QWidget *parent, const OpenGLOptions &o
     ui->vsync->setChecked(options.vSync());
 
     if (!options.shaders().isEmpty()) {
-        auto path = options.shaders().first().path;
+        auto path = options.shaders().first().path();
         if (!path.isEmpty())
             ui->shader->setPlainText(path);
     }

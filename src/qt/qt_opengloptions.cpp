@@ -72,14 +72,14 @@ OpenGLOptions::OpenGLOptions(QObject *parent, bool loadConfig)
 }
 
 void
-OpenGLOptions::save()
+OpenGLOptions::save() const
 {
     video_vsync         = m_vsync ? 1 : 0;
     video_framerate     = m_renderBehavior == RenderBehaviorType::SyncWithVideo ? -1 : m_framerate;
     video_filter_method = m_filter == FilterType::Nearest ? 0 : 1;
 
     /* TODO: multiple shaders */
-    auto path = m_shaders.first().path.toLocal8Bit();
+    auto path = m_shaders.first().path().toLocal8Bit();
 
     if (!path.isEmpty())
         memcpy(video_shader, path.constData(), path.size());

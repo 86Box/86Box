@@ -21,31 +21,44 @@
 #include <QObject>
 #include <QOpenGLShaderProgram>
 
-struct OpenGLShaderPass {
+class OpenGLShaderPass {
+public:
     OpenGLShaderPass(QOpenGLShaderProgram *shader, const QString &path)
-        : shader(shader)
-        , path(path)
-        , vertex_coord(shader->attributeLocation("VertexCoord"))
-        , tex_coord(shader->attributeLocation("TexCoord"))
-        , color(shader->attributeLocation("Color"))
-        , mvp_matrix(shader->uniformLocation("MVPMatrix"))
-        , input_size(shader->uniformLocation("InputSize"))
-        , output_size(shader->uniformLocation("OutputSize"))
-        , texture_size(shader->uniformLocation("TextureSize"))
-        , frame_count(shader->uniformLocation("FrameCount"))
+        : m_shader(shader)
+        , m_path(path)
+        , m_vertex_coord(shader->attributeLocation("VertexCoord"))
+        , m_tex_coord(shader->attributeLocation("TexCoord"))
+        , m_color(shader->attributeLocation("Color"))
+        , m_mvp_matrix(shader->uniformLocation("MVPMatrix"))
+        , m_input_size(shader->uniformLocation("InputSize"))
+        , m_output_size(shader->uniformLocation("OutputSize"))
+        , m_texture_size(shader->uniformLocation("TextureSize"))
+        , m_frame_count(shader->uniformLocation("FrameCount"))
     {
     }
 
-    QOpenGLShaderProgram *shader;
-    const QString         path;
-    const GLint           vertex_coord;
-    const GLint           tex_coord;
-    const GLint           color;
-    const GLint           mvp_matrix;
-    const GLint           input_size;
-    const GLint           output_size;
-    const GLint           texture_size;
-    const GLint           frame_count;
+    bool           bind() const { return m_shader->bind(); }
+    const QString &path() const { return m_path; }
+    const GLint   &vertex_coord() const { return m_vertex_coord; }
+    const GLint   &tex_coord() const { return m_tex_coord; }
+    const GLint   &color() const { return m_color; }
+    const GLint   &mvp_matrix() const { return m_mvp_matrix; }
+    const GLint   &input_size() const { return m_input_size; }
+    const GLint   &output_size() const { return m_output_size; }
+    const GLint   &texture_size() const { return m_texture_size; }
+    const GLint   &frame_count() const { return m_frame_count; }
+
+private:
+    QOpenGLShaderProgram *m_shader;
+    QString               m_path;
+    GLint                 m_vertex_coord;
+    GLint                 m_tex_coord;
+    GLint                 m_color;
+    GLint                 m_mvp_matrix;
+    GLint                 m_input_size;
+    GLint                 m_output_size;
+    GLint                 m_texture_size;
+    GLint                 m_frame_count;
 };
 
 class OpenGLOptions : public QObject {
@@ -65,7 +78,7 @@ public:
     bool               vSync() const { return m_vsync; }
     FilterType         filter() const;
 
-    QList<OpenGLShaderPass> shaders() const { return m_shaders; };
+    const QList<OpenGLShaderPass> &shaders() const { return m_shaders; };
 
     void setRenderBehavior(RenderBehaviorType value);
     void setFrameRate(int value);
@@ -73,7 +86,7 @@ public:
     void setFilter(FilterType value);
     void addShader(const QString &path);
     void addDefaultShader();
-    void save();
+    void save() const;
 
 private:
     RenderBehaviorType      m_renderBehavior = SyncWithVideo;
