@@ -241,6 +241,16 @@ int main(int argc, char* argv[]) {
     UnixManagerSocket socket;
     if (qgetenv("86BOX_MANAGER_SOCKET").size())
     {
+        QObject::connect(&socket, &UnixManagerSocket::showsettings, main_window, &MainWindow::showSettings);
+        QObject::connect(&socket, &UnixManagerSocket::pause, main_window, &MainWindow::togglePause);
+        QObject::connect(&socket, &UnixManagerSocket::reset, main_window, &MainWindow::hardReset);
+        QObject::connect(&socket, &UnixManagerSocket::request_shutdown, main_window, &MainWindow::close);
+        QObject::connect(&socket, &UnixManagerSocket::force_shutdown, [](){
+            do_stop();
+            emit main_window->close();
+        });
+        QObject::connect(&socket, &UnixManagerSocket::ctrlaltdel, [](){ pc_send_cad(); });
+        main_window->installEventFilter(&socket);
         socket.connectToServer(qgetenv("86BOX_MANAGER_SOCKET"));
     }
     pc_reset_hard_init();
