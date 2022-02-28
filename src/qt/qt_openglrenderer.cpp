@@ -104,15 +104,17 @@ OpenGLRenderer::event(QEvent *event)
 void
 OpenGLRenderer::initialize()
 {
-    if (!context->makeCurrent(this) || !initializeOpenGLFunctions()) {
+    if (!context->makeCurrent(this)) {
         /* TODO: This could be done much better */
-        QMessageBox::critical((QWidget *) qApp->findChild<QWindow *>(), tr("Error initializing OpenGL"), tr("OpenGL functions could not be initialized. Falling back to software rendering."));
+        QMessageBox::critical((QWidget *) qApp->findChild<QWindow *>(), tr("Error initializing OpenGL"), tr("Error setting OpenGL context. Falling back to software rendering."));
         context->doneCurrent();
         isFinalized   = true;
         isInitialized = true;
         emit errorInitializing();
         return;
     }
+
+    initializeOpenGLFunctions();
 
     setupExtensions();
 
@@ -199,32 +201,13 @@ OpenGLRenderer::getOptions(QWidget *parent)
 void
 OpenGLRenderer::setupExtensions()
 {
+#ifndef Q_OS_MACOS
     if (context->hasExtension("GL_ARB_buffer_storage")) {
         hasBufferStorage = true;
 
         glBufferStorage = (PFNGLBUFFERSTORAGEPROC) context->getProcAddress("glBufferStorage");
     }
-
-    if (context->hasExtension("GL_ARB_debug_output")) {
-        hasDebugOutput = true;
-
-        glDebugMessageControlARB  = (PFNGLDEBUGMESSAGECONTROLARBPROC) context->getProcAddress("glDebugMessageControlARB");
-        glDebugMessageInsertARB   = (PFNGLDEBUGMESSAGEINSERTARBPROC) context->getProcAddress("glDebugMessageInsertARB");
-        glDebugMessageCallbackARB = (PFNGLDEBUGMESSAGECALLBACKARBPROC) context->getProcAddress("glDebugMessageCallbackARB");
-        glGetDebugMessageLogARB   = (PFNGLGETDEBUGMESSAGELOGARBPROC) context->getProcAddress("glGetDebugMessageLogARB");
-    }
-
-    if (context->hasExtension("GL_ARB_sync")) {
-        hasSync = true;
-
-        glFenceSync      = (PFNGLFENCESYNCPROC) context->getProcAddress("glFenceSync");
-        glIsSync         = (PFNGLISSYNCPROC) context->getProcAddress("glIsSync");
-        glDeleteSync     = (PFNGLDELETESYNCPROC) context->getProcAddress("glDeleteSync");
-        glClientWaitSync = (PFNGLCLIENTWAITSYNCPROC) context->getProcAddress("glClientWaitSync");
-        glWaitSync       = (PFNGLWAITSYNCPROC) context->getProcAddress("glWaitSync");
-        glGetInteger64v  = (PFNGLGETINTEGER64VPROC) context->getProcAddress("glGetInteger64v");
-        glGetSynciv      = (PFNGLGETSYNCIVPROC) context->getProcAddress("glGetSynciv");
-    }
+#endif
 }
 
 void
@@ -235,10 +218,12 @@ OpenGLRenderer::setupBuffers()
     glBindBuffer(GL_PIXEL_UNPACK_BUFFER, unpackBufferID);
 
     if (hasBufferStorage) {
+#ifndef Q_OS_MACOS
         /* Create persistent buffer for pixel transfer. */
         glBufferStorage(GL_PIXEL_UNPACK_BUFFER, BUFFERBYTES * BUFFERCOUNT, NULL, GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT);
 
         unpackBuffer = glMapBufferRange(GL_PIXEL_UNPACK_BUFFER, 0, BUFFERBYTES * BUFFERCOUNT, GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT);
+#endif
     } else {
         /* Fallback; create our own buffer. */
         unpackBuffer = malloc(BUFFERBYTES * BUFFERCOUNT);

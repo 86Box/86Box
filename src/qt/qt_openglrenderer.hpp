@@ -18,12 +18,14 @@
 #define QT_OPENGLRENDERER_HPP
 
 #include <QOpenGLContext>
-#include <QOpenGLFunctions_3_0>
+#include <QOpenGLExtraFunctions>
 #include <QResizeEvent>
 #include <QTimer>
 #include <QWidget>
 #include <QWindow>
-#include <QtOpenGLExtensions/QOpenGLExtensions>
+#ifndef Q_OS_MACOS
+#    include <QtOpenGLExtensions/QOpenGLExtensions>
+#endif
 
 #include <atomic>
 #include <tuple>
@@ -32,7 +34,7 @@
 #include "qt_opengloptions.hpp"
 #include "qt_renderercommon.hpp"
 
-class OpenGLRenderer : public QWindow, protected QOpenGLFunctions_3_0, public RendererCommon {
+class OpenGLRenderer : public QWindow, protected QOpenGLExtraFunctions, public RendererCommon {
     Q_OBJECT
 
 public:
@@ -91,25 +93,10 @@ private:
     bool notReady() const { return !isInitialized || isFinalized; }
 
     /* GL_ARB_buffer_storage */
-    bool                   hasBufferStorage = false;
-    PFNGLBUFFERSTORAGEPROC glBufferStorage  = nullptr;
-
-    /* GL_ARB_debug_output */
-    bool                             hasDebugOutput            = false;
-    PFNGLDEBUGMESSAGECONTROLARBPROC  glDebugMessageControlARB  = nullptr;
-    PFNGLDEBUGMESSAGEINSERTARBPROC   glDebugMessageInsertARB   = nullptr;
-    PFNGLDEBUGMESSAGECALLBACKARBPROC glDebugMessageCallbackARB = nullptr;
-    PFNGLGETDEBUGMESSAGELOGARBPROC   glGetDebugMessageLogARB   = nullptr;
-
-    /* GL_ARB_sync */
-    bool                    hasSync          = false;
-    PFNGLFENCESYNCPROC      glFenceSync      = nullptr;
-    PFNGLISSYNCPROC         glIsSync         = nullptr;
-    PFNGLDELETESYNCPROC     glDeleteSync     = nullptr;
-    PFNGLCLIENTWAITSYNCPROC glClientWaitSync = nullptr;
-    PFNGLWAITSYNCPROC       glWaitSync       = nullptr;
-    PFNGLGETINTEGER64VPROC  glGetInteger64v  = nullptr;
-    PFNGLGETSYNCIVPROC      glGetSynciv      = nullptr;
+    bool hasBufferStorage = false;
+#ifndef Q_OS_MACOS
+    PFNGLBUFFERSTORAGEPROC glBufferStorage = nullptr;
+#endif
 
 private slots:
     void render();
