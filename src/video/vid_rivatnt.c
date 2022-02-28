@@ -13,10 +13,10 @@
  * Version:	@(#)vid_rivatnt.c	1.0.0	2019/09/13
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
- *		Melissa Goad
+ *		Melody Goad
  *
  *		Copyright 2020 Miran Grca.
- *		Copyright 2020 Melissa Goad.
+ *		Copyright 2020 Melody Goad.
  */
 #include <stdio.h>
 #include <stdint.h>

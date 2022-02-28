@@ -13,10 +13,10 @@
  * Version:	@(#)vid_riva128.c	1.0.0	2019/09/13
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
- *		Melissa Goad
+ *		Melody Goad
  *
  *		Copyright 2019 Miran Grca.
- *		Copyright 2019 Melissa Goad.
+ *		Copyright 2019 Melody Goad.
  */
 #include <stdio.h>
 #include <stdint.h>
