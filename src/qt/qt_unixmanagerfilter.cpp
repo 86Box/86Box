@@ -32,7 +32,7 @@ void UnixManagerSocket::readyToRead()
         if (line.size())
         {
             line.resize(line.size() - 2);
-            line.push_back((unsigned char)0);
+            line.push_back('\0');
             if (line == "showsettings")
             {
                 emit showsettings();
