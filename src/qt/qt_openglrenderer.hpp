@@ -23,7 +23,7 @@
 #include <QTimer>
 #include <QWidget>
 #include <QWindow>
-#include <QtGui/qopenglext.h>
+#include <QtOpenGLExtensions/QOpenGLExtensions>
 
 #include <atomic>
 #include <tuple>
