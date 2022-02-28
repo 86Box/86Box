@@ -390,6 +390,9 @@ OpenGLRenderer::onBlit(int buf_idx, int x, int y, int w, int h)
         glBindBuffer(GL_PIXEL_UNPACK_BUFFER, unpackBufferID);
     }
 
+    if (!hasBufferStorage)
+        glBufferSubData(GL_PIXEL_UNPACK_BUFFER, BUFFERBYTES * buf_idx, h * ROW_LENGTH * sizeof(uint32_t), (byte *) unpackBuffer + BUFFERBYTES * buf_idx);
+
     glPixelStorei(GL_UNPACK_SKIP_PIXELS, BUFFERPIXELS * buf_idx + y * ROW_LENGTH + x);
     glPixelStorei(GL_UNPACK_ROW_LENGTH, ROW_LENGTH);
     glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, w, h, GL_BGRA, GL_UNSIGNED_INT_8_8_8_8_REV, NULL);
