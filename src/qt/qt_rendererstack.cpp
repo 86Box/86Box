@@ -22,13 +22,8 @@
 #include "ui_qt_rendererstack.h"
 
 #include "qt_hardwarerenderer.hpp"
+#include "qt_openglrenderer.hpp"
 #include "qt_softwarerenderer.hpp"
-
-#ifndef Q_OS_MACOS
-#    include "qt_openglrenderer.hpp"
-#else
-#    include "qt_opengldummy.hpp"
-#endif
 
 #include "qt_mainwindow.hpp"
 #include "qt_util.hpp"
@@ -36,7 +31,6 @@
 #include "evdev_mouse.hpp"
 
 #include <QScreen>
-#include <QTimer>
 
 #ifdef __APPLE__
 #    include <CoreGraphics/CoreGraphics.h>

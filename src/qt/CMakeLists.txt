@@ -49,6 +49,13 @@ add_library(ui STATIC
     qt_softwarerenderer.hpp
     qt_hardwarerenderer.cpp
     qt_hardwarerenderer.hpp
+    qt_openglrenderer.cpp
+    qt_openglrenderer.hpp
+    qt_opengloptions.cpp
+    qt_opengloptions.hpp
+    qt_opengloptionsdialog.cpp
+    qt_opengloptionsdialog.hpp
+    qt_opengloptionsdialog.ui
 
     qt_settings.cpp
     qt_settings.hpp
@@ -130,19 +137,6 @@ add_library(ui STATIC
     ../qt_resources.qrc
 )
 
-if(NOT APPLE)
-    target_sources(ui PRIVATE
-        qt_openglrenderer.cpp
-        qt_openglrenderer.hpp
-        qt_opengloptions.cpp
-        qt_opengloptions.hpp
-        qt_opengloptionsdialog.cpp
-        qt_opengloptionsdialog.hpp
-        qt_opengloptionsdialog.ui
-    )
-else()
-    target_sources(ui PRIVATE qt_opengldummy.hpp)
-endif()
 
 if(WIN32)
     enable_language(RC)
