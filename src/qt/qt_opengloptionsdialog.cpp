@@ -74,7 +74,7 @@ OpenGLOptionsDialog::accept()
         else
             options->addDefaultShader();
 
-    } catch (std::runtime_error &e) {
+    } catch (const std::runtime_error &e) {
         delete options;
 
         QMessageBox msgBox(this);
