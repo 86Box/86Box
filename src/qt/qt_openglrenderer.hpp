@@ -23,7 +23,7 @@
 #include <QTimer>
 #include <QWidget>
 #include <QWindow>
-#ifndef Q_OS_MACOS
+#if !defined Q_OS_MACOS && !(QT_VERSION >= QT_VERSION_CHECK(6, 0, 0))
 #    include <QtOpenGLExtensions/QOpenGLExtensions>
 #endif
 
