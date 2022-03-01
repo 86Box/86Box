@@ -231,6 +231,8 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->actionHardware_Renderer_OpenGL_ES->setVisible(QOpenGLContext::openGLModuleType() == QOpenGLContext::LibGLES);
     if (QOpenGLContext::openGLModuleType() != QOpenGLContext::LibGLES && vid_api == 2) vid_api = 1;
 #endif
+    ui->actionHardware_Renderer_OpenGL->setVisible(QOpenGLContext::openGLModuleType() != QOpenGLContext::LibGLES);
+    if (QOpenGLContext::openGLModuleType() == QOpenGLContext::LibGLES && vid_api == 1) vid_api = 0;
 
     if (QApplication::platformName().contains("eglfs") && vid_api >= 1) {
         fprintf(stderr, "OpenGL renderers are unsupported on EGLFS.\n");
