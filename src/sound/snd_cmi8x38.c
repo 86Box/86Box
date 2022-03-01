@@ -54,7 +54,7 @@ typedef struct {
 } cmi8x38_dma_t;
 
 typedef struct _cmi8x38_ {
-    uint16_t	io_base;
+    uint16_t	io_base, sb_base, opl_base, mpu_base;
     uint8_t	type, pci_regs[256], io_regs[256], mixer_ext_regs[16];
     int		slot;
 
@@ -85,6 +85,7 @@ cmi8x38_log(const char *fmt, ...)
 #endif
 
 static const double freqs[] = {5512.0, 11025.0, 22050.0, 44100.0, 8000.0, 16000.0, 32000.0, 48000.0};
+static const uint16_t opl_ports_cmi8738[] = {0x388, 0x3c8, 0x3e0, 0x3e8};
 
 
 static void	cmi8x38_dma_process(void *priv);
@@ -103,6 +104,90 @@ cmi8x38_update_irqs(cmi8x38_t *dev)
 	dev->io_regs[0x13] &= ~0x80;
 	pci_clear_irq(dev->slot, PCI_INTA);
     }
+}
+
+
+static void
+cmi8x38_remap_sb(cmi8x38_t *dev)
+{
+    if (dev->sb_base) {
+	io_removehandler(dev->sb_base,     0x0004, opl3_read,    NULL, NULL,
+						   opl3_write,   NULL, NULL, &dev->sb->opl);
+	io_removehandler(dev->sb_base + 8, 0x0002, opl3_read,    NULL, NULL,
+						   opl3_write,   NULL, NULL, &dev->sb->opl);
+	io_removehandler(dev->sb_base + 4, 0x0002, sb_ct1745_mixer_read,  NULL, NULL,
+						   sb_ct1745_mixer_write, NULL, NULL, dev->sb);
+
+	sb_dsp_setaddr(&dev->sb->dsp, 0);
+    }
+
+    if (dev->io_regs[0x04] & 0x08) {
+	dev->sb_base = 0x220;
+	if (dev->type == CMEDIA_CMI8338)
+		dev->sb_base += (dev->io_regs[0x17] & 0x80) >> 2;
+	else
+		dev->sb_base += (dev->io_regs[0x17] & 0x0c) << 3;
+    } else {
+	dev->sb_base = 0;
+    }
+    cmi8x38_log("CMI8x38: remap_sb(%04X)\n", dev->sb_base);
+
+    if (dev->sb_base) {
+	io_sethandler(dev->sb_base,     0x0004, opl3_read,    NULL, NULL,
+						opl3_write,   NULL, NULL, &dev->sb->opl);
+	io_sethandler(dev->sb_base + 8, 0x0002, opl3_read,    NULL, NULL,
+						opl3_write,   NULL, NULL, &dev->sb->opl);
+	io_sethandler(dev->sb_base + 4, 0x0002, sb_ct1745_mixer_read,  NULL, NULL,
+						sb_ct1745_mixer_write, NULL, NULL, dev->sb);
+
+	sb_dsp_setaddr(&dev->sb->dsp, dev->sb_base);
+    }
+}
+
+
+static void
+cmi8x38_remap_opl(cmi8x38_t *dev)
+{
+    if (dev->opl_base) {
+	io_removehandler(dev->opl_base,    0x0004, opl3_read,    NULL, NULL,
+						   opl3_write,   NULL, NULL, &dev->sb->opl);
+    }
+
+    if (dev->io_regs[0x04] & 0x08) {
+	if (dev->type == CMEDIA_CMI8338)
+		dev->opl_base = 0x388;
+	else
+		dev->opl_base = opl_ports_cmi8738[dev->io_regs[0x17] & 0x03];
+    } else {
+	dev->opl_base = 0;
+    }
+    cmi8x38_log("CMI8x38: remap_opl(%04X)\n", dev->opl_base);
+
+    if (dev->opl_base) {
+	io_sethandler(dev->opl_base,	   0x0004, opl3_read,    NULL, NULL,
+						   opl3_write,   NULL, NULL, &dev->sb->opl);
+    }
+}
+
+
+static void
+cmi8x38_remap_mpu(cmi8x38_t *dev)
+{
+    if (dev->mpu_base)
+	mpu401_change_addr(dev->sb->mpu, 0);
+
+    if (dev->io_regs[0x04] & 0x04) {
+	if (dev->type == CMEDIA_CMI8338)
+		dev->mpu_base = 0x300 + ((dev->io_regs[0x17] & 0x60) >> 1);
+	else
+		dev->mpu_base = 0x330 - ((dev->io_regs[0x17] & 0x60) >> 1);
+    } else {
+	dev->mpu_base = 0;
+    }
+    cmi8x38_log("CMI8x38: remap_mpu(%04X)\n", dev->mpu_base);
+
+    if (dev->mpu_base)
+	mpu401_change_addr(dev->sb->mpu, dev->mpu_base);
 }
 
 
@@ -248,6 +333,12 @@ cmi8x38_write(uint16_t addr, uint8_t val, void *priv)
 	case 0x04:
 		/* Enable or disable the game port. */
 		gameport_remap(dev->gameport, (val & 0x02) ? 0x200 : 0);
+
+		/* Enable or disable the legacy devices. */
+		dev->io_regs[addr] = val;
+		cmi8x38_remap_sb(dev);
+		cmi8x38_remap_opl(dev);
+		cmi8x38_remap_mpu(dev);
 		break;
 
 	case 0x05:
@@ -310,6 +401,12 @@ cmi8x38_write(uint16_t addr, uint8_t val, void *priv)
 			else if ((dev->io_regs[0x17] & 0x10) && !(val & 0x10))
 				pci_clear_irq(dev->slot, PCI_INTA);
 		}
+
+		/* Remap the legacy devices. */
+		dev->io_regs[addr] = val;
+		cmi8x38_remap_sb(dev);
+		cmi8x38_remap_opl(dev);
+		cmi8x38_remap_mpu(dev);
 		break;
 
 	case 0x18:
@@ -439,15 +536,12 @@ cmi8x38_write(uint16_t addr, uint8_t val, void *priv)
 
 
 static void
-cmi8x38_remap(cmi8x38_t *dev, uint8_t io_msb, uint8_t enable)
+cmi8x38_remap(cmi8x38_t *dev)
 {
     if (dev->io_base)
 	io_removehandler(dev->io_base, 256, cmi8x38_read, NULL, NULL, cmi8x38_write, NULL, NULL, dev);
 
-    if (enable & 0x01)
-	dev->io_base = io_msb << 8;
-    else
-	dev->io_base = 0;
+    dev->io_base = (dev->pci_regs[0x04] & 0x01) ? (dev->pci_regs[0x11] << 8) : 0;
     cmi8x38_log("CMI8x38: remap(%04X)\n", dev->io_base);
 
     if (dev->io_base)
@@ -483,7 +577,10 @@ cmi8x38_pci_write(int func, int addr, uint8_t val, void *priv)
     switch (addr) {
 	case 0x04:
 		val &= 0x05;
-		cmi8x38_remap(dev, dev->pci_regs[0x11], val);
+
+		/* Enable or disable the I/O BAR. */
+		dev->pci_regs[addr] = val;
+		cmi8x38_remap(dev);
 		break;
 
 	case 0x05:
@@ -491,7 +588,9 @@ cmi8x38_pci_write(int func, int addr, uint8_t val, void *priv)
 		break;
 
 	case 0x11:
-		cmi8x38_remap(dev, val, dev->pci_regs[0x04]);
+		/* Remap the I/O BAR. */
+		dev->pci_regs[addr] = val;
+		cmi8x38_remap(dev);
 		break;
 
 	case 0x2c: case 0x2d: case 0x2e: case 0x2f:
@@ -694,6 +793,8 @@ cmi8x38_speed_changed(void *priv)
     cmi8x38_t *dev = (cmi8x38_t *) priv;
     double freq;
     uint8_t dsr = dev->io_regs[0x09], freqreg = dev->io_regs[0x05] >> 2;
+    char buf[256];
+    sprintf(buf, "%02X-%02X", dsr, freqreg);
 
     /* CMI8338 claims the frequency controls are for DAC (playback) and ADC (recording)
        respectively, while CMI8738 claims they're for channel 0 and channel 1. The Linux
@@ -708,12 +809,14 @@ cmi8x38_speed_changed(void *priv)
 		case 0x03: freq = 128000.0; break;
 		default:   freq = freqs[freqreg & 0x07]; break;
 	}
+	sprintf(&buf[strlen(buf)], " %d:%X-%X-%.0f", i, dsr & 0x03, freqreg & 0x07, freq);
 	dsr >>= 2;
 	freqreg >>= 3;
 
 	/* Set period. */
 	dev->dma[i].timer_latch = (uint64_t) ((double) TIMER_USEC * (1000000.0 / freq));
     }
+    ui_sb_bugui(buf);
 }
 
 
