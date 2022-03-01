@@ -17,13 +17,17 @@
 #ifndef QT_OPENGLRENDERER_HPP
 #define QT_OPENGLRENDERER_HPP
 
+#if defined Q_OS_MACOS || __arm__
+#    define NO_BUFFER_STORAGE
+#endif
+
 #include <QOpenGLContext>
 #include <QOpenGLExtraFunctions>
 #include <QResizeEvent>
 #include <QTimer>
 #include <QWidget>
 #include <QWindow>
-#if !defined Q_OS_MACOS && !(QT_VERSION >= QT_VERSION_CHECK(6, 0, 0))
+#if !defined NO_BUFFER_STORAGE && !(QT_VERSION >= QT_VERSION_CHECK(6, 0, 0))
 #    include <QtOpenGLExtensions/QOpenGLExtensions>
 #endif
 
@@ -94,7 +98,7 @@ private:
 
     /* GL_ARB_buffer_storage */
     bool hasBufferStorage = false;
-#ifndef Q_OS_MACOS
+#ifndef NO_BUFFER_STORAGE
     PFNGLBUFFERSTORAGEPROC glBufferStorage = nullptr;
 #endif
 
