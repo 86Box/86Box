@@ -19,6 +19,7 @@
 
 #include <QList>
 #include <QObject>
+#include <QOpenGLContext>
 #include <QOpenGLShaderProgram>
 
 class OpenGLShaderPass {

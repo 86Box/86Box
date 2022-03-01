@@ -45,6 +45,25 @@ void main() {\n\
     color = texture(texsampler, tex);\n\
 }\n";
 
+/* Default vertex shader (OpenGL ES 3). */
+static const GLchar *vertex_shader_es3 = "#version 300 es\n\
+in vec2 VertexCoord;\n\
+in vec2 TexCoord;\n\
+out vec2 tex;\n\
+void main(){\n\
+    gl_Position = vec4(VertexCoord, 0.0, 1.0);\n\
+    tex = TexCoord;\n\
+}\n";
+
+/* Default fragment shader (OpenGL ES 3). */
+static const GLchar *fragment_shader_es3 = "#version 300 es\n\
+in vec2 tex;\n\
+uniform sampler2D texsampler;\n\
+out vec4 color;\n\
+void main() {\n\
+    color = texture(texsampler, tex);\n\
+}\n";
+
 OpenGLOptions::OpenGLOptions(QObject *parent, bool loadConfig)
     : QObject(parent)
 {
@@ -149,6 +168,11 @@ OpenGLOptions::addShader(const QString &path)
         shader_text.remove(version);
     }
 
+    if (QOpenGLContext::currentContext() && QOpenGLContext::currentContext()->isOpenGLES())
+    {
+        /* Force #version 300 es (the default of #version 100 es is too old and too limited) */
+        version_line = "#version 300 es";
+    }
     auto shader = new QOpenGLShaderProgram(this);
 
     auto throw_shader_error = [path, shader](const QString &what) {
@@ -175,8 +199,8 @@ void
 OpenGLOptions::addDefaultShader()
 {
     auto shader = new QOpenGLShaderProgram(this);
-    shader->addShaderFromSourceCode(QOpenGLShader::Vertex, vertex_shader);
-    shader->addShaderFromSourceCode(QOpenGLShader::Fragment, fragment_shader);
+    shader->addShaderFromSourceCode(QOpenGLShader::Vertex, QOpenGLContext::currentContext() && QOpenGLContext::currentContext()->isOpenGLES() ? vertex_shader_es3 : vertex_shader);
+    shader->addShaderFromSourceCode(QOpenGLShader::Fragment, QOpenGLContext::currentContext() && QOpenGLContext::currentContext()->isOpenGLES() ? fragment_shader_es3 : fragment_shader);
     shader->link();
     m_shaders << OpenGLShaderPass(shader, QString());
 }

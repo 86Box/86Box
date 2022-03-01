@@ -43,6 +43,7 @@ OpenGLRenderer::OpenGLRenderer(QWidget *parent)
     format.setProfile(QSurfaceFormat::OpenGLContextProfile::CoreProfile);
     format.setMajorVersion(3);
     format.setMinorVersion(0);
+    if (QOpenGLContext::openGLModuleType() == QOpenGLContext::LibGLES) format.setRenderableType(QSurfaceFormat::OpenGLES);
 
     setFormat(format);
 
