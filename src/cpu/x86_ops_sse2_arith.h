@@ -1,7 +1,7 @@
 #include <stdlib.h>
 #include <math.h>
 
-static int oPDQRTPD_xmm_xmm_a16(uint32_t fetchdat)
+static int opSQRTPD_xmm_xmm_a16(uint32_t fetchdat)
 {
     fetch_ea_16(fetchdat);
     if (cpu_mod == 3)
@@ -27,7 +27,7 @@ static int oPDQRTPD_xmm_xmm_a16(uint32_t fetchdat)
     return 0;
 }
 
-static int oPDQRTPD_xmm_xmm_a32(uint32_t fetchdat)
+static int opSQRTPD_xmm_xmm_a32(uint32_t fetchdat)
 {
     fetch_ea_32(fetchdat);
     if (cpu_mod == 3)
@@ -75,7 +75,7 @@ static int opSQRTSD_xmm_xmm_a16(uint32_t fetchdat)
     return 0;
 }
 
-static int oPDQRTSD_xmm_xmm_a32(uint32_t fetchdat)
+static int opSQRTSD_xmm_xmm_a32(uint32_t fetchdat)
 {
     fetch_ea_32(fetchdat);
     if (cpu_mod == 3)
@@ -191,7 +191,7 @@ static int opRSQRTSD_xmm_xmm_a32(uint32_t fetchdat)
     return 0;
 }
 
-static int opRCPDS_xmm_xmm_a16(uint32_t fetchdat)
+static int opRCPSD_xmm_xmm_a16(uint32_t fetchdat)
 {
     fetch_ea_16(fetchdat);
     if (cpu_mod == 3)
@@ -213,7 +213,7 @@ static int opRCPDS_xmm_xmm_a16(uint32_t fetchdat)
     return 0;
 }
 
-static int opRCPDS_xmm_xmm_a32(uint32_t fetchdat)
+static int opRCPSD_xmm_xmm_a32(uint32_t fetchdat)
 {
     fetch_ea_32(fetchdat);
     if (cpu_mod == 3)
