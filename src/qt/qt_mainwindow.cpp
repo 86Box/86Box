@@ -203,7 +203,7 @@ MainWindow::MainWindow(QWidget *parent) :
         config_save();
         if (QApplication::activeWindow() == this)
         {
-            ui->stackedWidget->current->setFocus();
+            ui->stackedWidget->setFocusRenderer();
         }
     });
 
@@ -232,35 +232,54 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->actionHardware_Renderer_OpenGL_ES->setVisible(QOpenGLContext::openGLModuleType() == QOpenGLContext::LibGLES);
     if (QOpenGLContext::openGLModuleType() != QOpenGLContext::LibGLES && vid_api == 2) vid_api = 1;
 #endif
+    ui->actionHardware_Renderer_OpenGL->setVisible(QOpenGLContext::openGLModuleType() != QOpenGLContext::LibGLES);
+    if (QOpenGLContext::openGLModuleType() == QOpenGLContext::LibGLES && vid_api == 1) vid_api = 0;
 
     if (QApplication::platformName().contains("eglfs") && vid_api >= 1) {
         fprintf(stderr, "OpenGL renderers are unsupported on EGLFS.\n");
         vid_api = 0;
     }
+
     QActionGroup* actGroup = nullptr;
-    switch (vid_api) {
-    case 0:
-        ui->stackedWidget->switchRenderer(RendererStack::Renderer::Software);
-        ui->actionSoftware_Renderer->setChecked(true);
-        break;
-    case 1:
-        ui->stackedWidget->switchRenderer(RendererStack::Renderer::OpenGL);
-        ui->actionHardware_Renderer_OpenGL->setChecked(true);
-        break;
-    case 2:
-        ui->stackedWidget->switchRenderer(RendererStack::Renderer::OpenGLES);
-        ui->actionHardware_Renderer_OpenGL_ES->setChecked(true);
-        break;
-    case 3:
-        ui->stackedWidget->switchRenderer(RendererStack::Renderer::OpenGL3);
-        ui->actionOpenGL_3_0_Core->setChecked(true);
-        break;
-    }
+
     actGroup = new QActionGroup(this);
     actGroup->addAction(ui->actionSoftware_Renderer);
     actGroup->addAction(ui->actionHardware_Renderer_OpenGL);
     actGroup->addAction(ui->actionHardware_Renderer_OpenGL_ES);
     actGroup->addAction(ui->actionOpenGL_3_0_Core);
+    actGroup->setExclusive(true);
+
+    connect(actGroup, &QActionGroup::triggered, [this](QAction* action) {
+        vid_api = action->property("vid_api").toInt();
+        switch (vid_api)
+        {
+        case 0:
+            ui->stackedWidget->switchRenderer(RendererStack::Renderer::Software);
+            break;
+        case 1:
+            ui->stackedWidget->switchRenderer(RendererStack::Renderer::OpenGL);
+            break;
+        case 2:
+            ui->stackedWidget->switchRenderer(RendererStack::Renderer::OpenGLES);
+            break;
+        case 3:
+            ui->stackedWidget->switchRenderer(RendererStack::Renderer::OpenGL3);
+            break;
+        }
+    });
+
+    connect(ui->stackedWidget, &RendererStack::rendererChanged, [this]() {
+        ui->actionRenderer_options->setVisible(ui->stackedWidget->hasOptions());
+    });
+
+    /* Trigger initial renderer switch */
+    for (auto action : actGroup->actions())
+        if (action->property("vid_api").toInt() == vid_api) {
+            action->setChecked(true);
+            emit actGroup->triggered(action);
+            break;
+        }
+
     switch (scale) {
     case 0:
         ui->action0_5x->setChecked(true);
@@ -425,7 +444,7 @@ void MainWindow::closeEvent(QCloseEvent *event) {
         QCheckBox *chkbox = new QCheckBox(tr("Don't show this message again"));
         questionbox.setCheckBox(chkbox);
         chkbox->setChecked(!confirm_exit);
-        bool confirm_exit_temp = false;
+
         QObject::connect(chkbox, &QCheckBox::stateChanged, [](int state) {
             confirm_exit = (state == Qt::CheckState::Unchecked);
         });
@@ -498,7 +517,7 @@ void MainWindow::on_actionHard_Reset_triggered() {
         QCheckBox *chkbox = new QCheckBox(tr("Don't show this message again"));
         questionbox.setCheckBox(chkbox);
         chkbox->setChecked(!confirm_reset);
-        bool confirm_exit_temp = false;
+
         QObject::connect(chkbox, &QCheckBox::stateChanged, [](int state) {
             confirm_reset = (state == Qt::CheckState::Unchecked);
         });
@@ -1100,21 +1119,21 @@ void MainWindow::on_actionFullscreen_triggered() {
             QCheckBox *chkbox = new QCheckBox(tr("Don't show this message again"));
             questionbox.setCheckBox(chkbox);
             chkbox->setChecked(!video_fullscreen_first);
-            bool confirm_exit_temp = false;
+
             QObject::connect(chkbox, &QCheckBox::stateChanged, [](int state) {
                 video_fullscreen_first = (state == Qt::CheckState::Unchecked);
             });
             questionbox.exec();
             config_save();
         }
+        video_fullscreen = 1;
         setFixedSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
         ui->menubar->hide();
         ui->statusbar->hide();
         ui->toolBar->hide();
         showFullScreen();
-        video_fullscreen = 1;
     }
-    ui->stackedWidget->rendererWindow->onResize(width(), height());
+    ui->stackedWidget->onResize(width(), height());
 }
 
 void MainWindow::getTitle_(wchar_t *title)
@@ -1217,30 +1236,6 @@ QSize MainWindow::getRenderWidgetSize()
     return ui->stackedWidget->size();
 }
 
-void MainWindow::on_actionSoftware_Renderer_triggered() {
-    ui->stackedWidget->switchRenderer(RendererStack::Renderer::Software);
-    ui->actionHardware_Renderer_OpenGL->setChecked(false);
-    ui->actionHardware_Renderer_OpenGL_ES->setChecked(false);
-    ui->actionOpenGL_3_0_Core->setChecked(false);
-    vid_api = 0;
-}
-
-void MainWindow::on_actionHardware_Renderer_OpenGL_triggered() {
-    ui->stackedWidget->switchRenderer(RendererStack::Renderer::OpenGL);
-    ui->actionSoftware_Renderer->setChecked(false);
-    ui->actionHardware_Renderer_OpenGL_ES->setChecked(false);
-    ui->actionOpenGL_3_0_Core->setChecked(false);
-    vid_api = 1;
-}
-
-void MainWindow::on_actionHardware_Renderer_OpenGL_ES_triggered() {
-    ui->stackedWidget->switchRenderer(RendererStack::Renderer::OpenGLES);
-    ui->actionSoftware_Renderer->setChecked(false);
-    ui->actionHardware_Renderer_OpenGL->setChecked(false);
-    ui->actionOpenGL_3_0_Core->setChecked(false);
-    vid_api = 2;
-}
-
 void MainWindow::focusInEvent(QFocusEvent* event)
 {
     this->grabKeyboard();
@@ -1336,8 +1331,7 @@ static void update_fullscreen_scale_checkboxes(Ui::MainWindow* ui, QAction* sele
 
     if (video_fullscreen > 0) {
         auto widget = ui->stackedWidget->currentWidget();
-        auto rc = ui->stackedWidget->rendererWindow;
-        rc->onResize(widget->width(), widget->height());
+        ui->stackedWidget->onResize(widget->width(), widget->height());
     }
 
     device_force_redraw();
@@ -1564,16 +1558,6 @@ void MainWindow::setSendKeyboardInput(bool enabled)
     send_keyboard_input = enabled;
 }
 
-void MainWindow::on_actionOpenGL_3_0_Core_triggered()
-{
-    ui->stackedWidget->switchRenderer(RendererStack::Renderer::OpenGL3);
-    ui->actionSoftware_Renderer->setChecked(false);
-    ui->actionHardware_Renderer_OpenGL->setChecked(false);
-    ui->actionHardware_Renderer_OpenGL_ES->setChecked(false);
-    ui->actionOpenGL_3_0_Core->setChecked(true);
-    vid_api = 3;
-}
-
 void MainWindow::on_actionPreferences_triggered()
 {
     ProgSettings progsettings(this);
@@ -1618,4 +1602,12 @@ void MainWindow::changeEvent(QEvent* event)
     }
 #endif
     QWidget::changeEvent(event);
+}
+
+void MainWindow::on_actionRenderer_options_triggered()
+{
+    auto dlg = ui->stackedWidget->getOptions(this);
+
+    if (dlg)
+        dlg->exec();
 }
