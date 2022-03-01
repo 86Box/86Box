@@ -495,16 +495,12 @@ cmi8x38_write(uint16_t addr, uint8_t val, void *priv)
 		break;
 
 	case 0x40 ... 0x4f:
-		if (dev->type == CMEDIA_CMI8338)
-			break;
-		else
+		if (dev->type != CMEDIA_CMI8338)
 			mpu401_write(addr, val, dev->sb->mpu);
 		return;
 
 	case 0x50 ... 0x5f:
-		if (dev->type == CMEDIA_CMI8338)
-			break;
-		else
+		if (dev->type != CMEDIA_CMI8338)
 			opl3_write(addr, val, &dev->sb->opl);
 		return;
 
