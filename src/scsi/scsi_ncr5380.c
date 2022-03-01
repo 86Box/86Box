@@ -48,6 +48,7 @@
 #define RT1000B_820R_ROM	"roms/scsi/ncr5380/RTBIOS82.ROM"
 #define T130B_ROM	"roms/scsi/ncr5380/trantor_t130b_bios_v2.14.bin"
 #define T128_ROM	"roms/scsi/ncr5380/trantor_t128_bios_v1.12.bin"
+#define COREL_LS2000_ROM "roms/scsi/ncr5380/Corel LS2000 - BIOS ROM - Ver 1.65.bin"
 
 
 #define NCR_CURDATA	0		/* current SCSI data (read only) */
@@ -712,7 +713,7 @@ ncr_write(uint16_t port, uint8_t val, void *priv)
 		break;
     }
 
-    if (ncr->dma_mode == DMA_IDLE || ncr_dev->type == 0 || ncr_dev->type == 3) {
+    if (ncr->dma_mode == DMA_IDLE || ncr_dev->type == 0 || ncr_dev->type >= 3) {
 	bus_host = get_bus_host(ncr);
 	ncr_bus_update(priv, bus_host);
     }
@@ -1079,9 +1080,9 @@ ncr_dma_send(ncr5380_t *ncr_dev, ncr_t *ncr, scsi_device_t *dev)
     }
 
     /* Data ready. */
-    if (ncr_dev->type == 3) {
+    if (ncr_dev->type == 3)
 		data = ncr_dev->t128.buffer[ncr_dev->t128.pos];
-	} else
+	else
 		data = ncr_dev->buffer[ncr_dev->buffer_pos];
     bus = get_bus_host(ncr) & ~BUS_DATAMASK;
     bus |= BUS_SETDATA(data);
@@ -1506,6 +1507,18 @@ ncr_init(const device_t *info)
 				t128_write, NULL, NULL,
 				ncr_dev->bios_rom.rom, MEM_MAPPING_EXTERNAL, ncr_dev);
 		break;
+
+	case 4:		/* Corel LS2000 */
+		ncr_dev->rom_addr = device_get_config_hex20("bios_addr");
+		ncr_dev->irq = device_get_config_int("irq");
+		rom_init(&ncr_dev->bios_rom, COREL_LS2000_ROM,
+			 ncr_dev->rom_addr, 0x4000, 0x3fff, 0, MEM_MAPPING_EXTERNAL);
+
+		mem_mapping_add(&ncr_dev->mapping, ncr_dev->rom_addr, 0x4000,
+				memio_read, NULL, NULL,
+				memio_write, NULL, NULL,
+				ncr_dev->bios_rom.rom, MEM_MAPPING_EXTERNAL, ncr_dev);
+		break;
     }
 
     sprintf(temp, "%s: BIOS=%05X", ncr_dev->name, ncr_dev->rom_addr);
@@ -1516,7 +1529,7 @@ ncr_init(const device_t *info)
     ncr_log("%s\n", temp);
 
     ncr_reset(ncr_dev, &ncr_dev->ncr);
-	if (ncr_dev->type < 3) {
+	if (ncr_dev->type < 3 || ncr_dev->type == 4) {
 		ncr_dev->status_ctrl = STATUS_BUFFER_NOT_READY;
 		ncr_dev->buffer_host_pos = 128;
 	} else {
@@ -1570,6 +1583,12 @@ static int
 t128_available(void)
 {
     return(rom_present(T128_ROM));
+}
+
+static int
+corel_ls2000_available(void)
+{
+    return(rom_present(COREL_LS2000_ROM));
 }
 
 // clang-format off
@@ -1734,4 +1753,16 @@ const device_t scsi_t128_device =
     { t128_available },
     NULL, NULL,
     t128_config
+};
+
+const device_t scsi_ls2000_device =
+{
+    "Corel LS2000",
+    "ls2000",
+    DEVICE_ISA,
+    4,
+    ncr_init, ncr_close, NULL,
+    { corel_ls2000_available },
+    NULL, NULL,
+    ncr5380_mmio_config
 };
