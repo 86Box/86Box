@@ -18,6 +18,7 @@
 #include <QMessageBox>
 #include <QOpenGLShaderProgram>
 #include <QSurfaceFormat>
+#include <QOpenGLTexture>
 
 #include <cmath>
 
@@ -87,8 +88,8 @@ OpenGLRenderer::resizeEvent(QResizeEvent *event)
     glViewport(
         destination.x(),
         destination.y(),
-        destination.width(),
-        destination.height());
+        destination.width() * devicePixelRatio(),
+        destination.height() * devicePixelRatio());
 }
 
 bool
@@ -372,7 +373,7 @@ OpenGLRenderer::onBlit(int buf_idx, int x, int y, int w, int h)
 
         /* Resize the texture */
         glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, source.width(), source.height(), 0, GL_BGRA, GL_UNSIGNED_INT_8_8_8_8_REV, NULL);
+        glTexImage2D(GL_TEXTURE_2D, 0, (GLenum)QOpenGLTexture::RGBA8_UNorm, source.width(), source.height(), 0, (GLenum)QOpenGLTexture::BGRA, (GLenum)QOpenGLTexture::UInt32_RGBA8_Rev, NULL);
         glBindBuffer(GL_PIXEL_UNPACK_BUFFER, unpackBufferID);
     }
 
@@ -381,7 +382,7 @@ OpenGLRenderer::onBlit(int buf_idx, int x, int y, int w, int h)
 
     glPixelStorei(GL_UNPACK_SKIP_PIXELS, BUFFERPIXELS * buf_idx + y * ROW_LENGTH + x);
     glPixelStorei(GL_UNPACK_ROW_LENGTH, ROW_LENGTH);
-    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, w, h, GL_BGRA, GL_UNSIGNED_INT_8_8_8_8_REV, NULL);
+    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, w, h, (GLenum)QOpenGLTexture::BGRA, (GLenum)QOpenGLTexture::UInt32_RGBA8_Rev, NULL);
 
     /* TODO: check if fence sync is implementable here and still has any benefit. */
     glFinish();
