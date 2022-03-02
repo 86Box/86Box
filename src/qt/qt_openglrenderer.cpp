@@ -87,8 +87,8 @@ OpenGLRenderer::resizeEvent(QResizeEvent *event)
     glViewport(
         destination.x(),
         destination.y(),
-        destination.width(),
-        destination.height());
+        destination.width() * devicePixelRatio(),
+        destination.height() * devicePixelRatio());
 }
 
 bool
