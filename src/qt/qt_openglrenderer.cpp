@@ -17,7 +17,9 @@
 #include <QCoreApplication>
 #include <QMessageBox>
 #include <QOpenGLShaderProgram>
+#include <QOpenGLTexture>
 #include <QSurfaceFormat>
+#include <QOpenGLTexture>
 
 #include <cmath>
 
@@ -43,7 +45,8 @@ OpenGLRenderer::OpenGLRenderer(QWidget *parent)
     format.setProfile(QSurfaceFormat::OpenGLContextProfile::CoreProfile);
     format.setMajorVersion(3);
     format.setMinorVersion(0);
-    if (QOpenGLContext::openGLModuleType() == QOpenGLContext::LibGLES) format.setRenderableType(QSurfaceFormat::OpenGLES);
+    if (QOpenGLContext::openGLModuleType() == QOpenGLContext::LibGLES)
+        format.setRenderableType(QSurfaceFormat::OpenGLES);
 
     setFormat(format);
 
@@ -87,8 +90,8 @@ OpenGLRenderer::resizeEvent(QResizeEvent *event)
     glViewport(
         destination.x(),
         destination.y(),
-        destination.width(),
-        destination.height());
+        destination.width() * devicePixelRatio(),
+        destination.height() * devicePixelRatio());
 }
 
 bool
@@ -146,7 +149,7 @@ OpenGLRenderer::initialize()
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
 
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, INIT_WIDTH, INIT_HEIGHT, 0, GL_BGRA, GL_UNSIGNED_INT_8_8_8_8_REV, NULL);
+    glTexImage2D(GL_TEXTURE_2D, 0, QOpenGLTexture::RGBA8_UNorm, INIT_WIDTH, INIT_HEIGHT, 0, QOpenGLTexture::BGRA, QOpenGLTexture::UInt32_RGBA8_Rev, NULL);
 
     options = new OpenGLOptions(this, true);
 
@@ -372,7 +375,7 @@ OpenGLRenderer::onBlit(int buf_idx, int x, int y, int w, int h)
 
         /* Resize the texture */
         glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, source.width(), source.height(), 0, GL_BGRA, GL_UNSIGNED_INT_8_8_8_8_REV, NULL);
+        glTexImage2D(GL_TEXTURE_2D, 0, (GLenum)QOpenGLTexture::RGBA8_UNorm, source.width(), source.height(), 0, (GLenum)QOpenGLTexture::BGRA, (GLenum)QOpenGLTexture::UInt32_RGBA8_Rev, NULL);
         glBindBuffer(GL_PIXEL_UNPACK_BUFFER, unpackBufferID);
     }
 
@@ -381,7 +384,7 @@ OpenGLRenderer::onBlit(int buf_idx, int x, int y, int w, int h)
 
     glPixelStorei(GL_UNPACK_SKIP_PIXELS, BUFFERPIXELS * buf_idx + y * ROW_LENGTH + x);
     glPixelStorei(GL_UNPACK_ROW_LENGTH, ROW_LENGTH);
-    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, w, h, GL_BGRA, GL_UNSIGNED_INT_8_8_8_8_REV, NULL);
+    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, w, h, (GLenum)QOpenGLTexture::BGRA, (GLenum)QOpenGLTexture::UInt32_RGBA8_Rev, NULL);
 
     /* TODO: check if fence sync is implementable here and still has any benefit. */
     glFinish();
