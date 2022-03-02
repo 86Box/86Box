@@ -17,6 +17,7 @@
 #include <QCoreApplication>
 #include <QMessageBox>
 #include <QOpenGLShaderProgram>
+#include <QOpenGLTexture>
 #include <QSurfaceFormat>
 #include <QOpenGLTexture>
 
@@ -44,7 +45,8 @@ OpenGLRenderer::OpenGLRenderer(QWidget *parent)
     format.setProfile(QSurfaceFormat::OpenGLContextProfile::CoreProfile);
     format.setMajorVersion(3);
     format.setMinorVersion(0);
-    if (QOpenGLContext::openGLModuleType() == QOpenGLContext::LibGLES) format.setRenderableType(QSurfaceFormat::OpenGLES);
+    if (QOpenGLContext::openGLModuleType() == QOpenGLContext::LibGLES)
+        format.setRenderableType(QSurfaceFormat::OpenGLES);
 
     setFormat(format);
 
@@ -147,7 +149,7 @@ OpenGLRenderer::initialize()
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
 
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, INIT_WIDTH, INIT_HEIGHT, 0, GL_BGRA, GL_UNSIGNED_INT_8_8_8_8_REV, NULL);
+    glTexImage2D(GL_TEXTURE_2D, 0, QOpenGLTexture::RGBA8_UNorm, INIT_WIDTH, INIT_HEIGHT, 0, QOpenGLTexture::BGRA, QOpenGLTexture::UInt32_RGBA8_Rev, NULL);
 
     options = new OpenGLOptions(this, true);
 
