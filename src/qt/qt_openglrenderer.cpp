@@ -202,7 +202,7 @@ OpenGLRenderer::getOptions(QWidget *parent)
 void
 OpenGLRenderer::setupExtensions()
 {
-#ifndef Q_OS_MACOS
+#ifndef NO_BUFFER_STORAGE
     if (context->hasExtension("GL_ARB_buffer_storage")) {
         hasBufferStorage = true;
 
@@ -219,7 +219,7 @@ OpenGLRenderer::setupBuffers()
     glBindBuffer(GL_PIXEL_UNPACK_BUFFER, unpackBufferID);
 
     if (hasBufferStorage) {
-#ifndef Q_OS_MACOS
+#ifndef NO_BUFFER_STORAGE
         /* Create persistent buffer for pixel transfer. */
         glBufferStorage(GL_PIXEL_UNPACK_BUFFER, BUFFERBYTES * BUFFERCOUNT, NULL, GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT);
 
