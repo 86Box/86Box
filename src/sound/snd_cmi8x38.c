@@ -38,17 +38,18 @@ enum {
 };
 
 typedef struct {
-    uint8_t	id, reg, always_run, playback_enabled;
+    uint8_t	id, reg, always_run, playback_enabled, channels;
     struct _cmi8x38_ *dev;
 
     uint32_t	sample_ptr, fifo_pos, fifo_end;
     int32_t	frame_count_dma, frame_count_fragment, sample_count_out;
-    uint8_t	fifo[32], restart;
+    uint8_t	fifo[256], restart;
 
-    int16_t	out_l, out_r;
+    int16_t	out_fl, out_fr, out_rl, out_rr, out_c, out_lfe;
     int		vol_l, vol_r, pos;
     int32_t	buffer[SOUNDBUFLEN * 2];
     uint64_t	timer_latch;
+    double	dma_latch;
 
     pc_timer_t	dma_timer, poll_timer;
 } cmi8x38_dma_t;
@@ -356,6 +357,8 @@ cmi8x38_write(uint16_t addr, uint8_t val, void *priv)
 		if (dev->type == CMEDIA_CMI8338)
 			return;
 #endif
+		/* Update sample rate. */
+		dev->io_regs[addr] = val;
 		cmi8x38_speed_changed(dev);
 		break;
 
@@ -365,8 +368,14 @@ cmi8x38_write(uint16_t addr, uint8_t val, void *priv)
 		else
 			val &= 0xe0;
 
-		if (addr == 0x0a)
+		if (addr == 0x0a) {
+			/* Set PCI latency timer if requested. */
 			dev->pci_regs[0x0d] = (val & 0x80) ? 0x48 : 0x20; /* clearing SETLAT48 is undefined */
+		} else {
+			/* Update channel count. */
+			dev->io_regs[addr] = val;
+			cmi8x38_speed_changed(dev);
+		}
 		break;
 
 	case 0x0e:
@@ -384,6 +393,10 @@ cmi8x38_write(uint16_t addr, uint8_t val, void *priv)
 			return;
 		else
 			val &= 0xf0;
+
+		/* Update channel count. */
+		dev->io_regs[addr] = val;
+		cmi8x38_speed_changed(dev);
 		break;
 
 	case 0x16:
@@ -617,8 +630,8 @@ static void
 cmi8x38_update(cmi8x38_t *dev, cmi8x38_dma_t *dma)
 {
     sb_ct1745_mixer_t *mixer = &dev->sb->mixer_sb16;
-    int32_t l = (dma->out_l * mixer->voice_l) * mixer->master_l,
-	    r = (dma->out_r * mixer->voice_r) * mixer->master_r;
+    int32_t l = (dma->out_fl * mixer->voice_l) * mixer->master_l,
+	    r = (dma->out_fr * mixer->voice_r) * mixer->master_r;
 
     for (; dma->pos < sound_pos_global; dma->pos++) {
 	dma->buffer[dma->pos*2]     = l;
@@ -641,7 +654,7 @@ cmi8x38_dma_process(void *priv)
     }
 
     /* Schedule next run. */
-    timer_on_auto(&dma->dma_timer, 10.0);
+    timer_on_auto(&dma->dma_timer, dma->dma_latch);
 
     /* Process DMA if it's active, and the FIFO has room or is disabled. */
     uint8_t dma_status = dev->io_regs[0x00] >> dma->id;
@@ -720,7 +733,7 @@ cmi8x38_poll(void *priv)
     switch ((dev->io_regs[0x08] >> (dma->id << 1)) & 0x03) {
 	case 0x00: /* Mono, 8-bit PCM */
 		if ((dma->fifo_end - dma->fifo_pos) >= 1) {
-			dma->out_l = dma->out_r = (dma->fifo[dma->fifo_pos++ & (sizeof(dma->fifo) - 1)] ^ 0x80) << 8;
+			dma->out_fl = dma->out_fr = (dma->fifo[dma->fifo_pos++ & (sizeof(dma->fifo) - 1)] ^ 0x80) << 8;
 			dma->sample_count_out--;
 			return;
 		}
@@ -728,8 +741,8 @@ cmi8x38_poll(void *priv)
 
 	case 0x01: /* Stereo, 8-bit PCM */
 		if ((dma->fifo_end - dma->fifo_pos) >= 2) {
-			dma->out_l = (dma->fifo[dma->fifo_pos++ & (sizeof(dma->fifo) - 1)] ^ 0x80) << 8;
-			dma->out_r = (dma->fifo[dma->fifo_pos++ & (sizeof(dma->fifo) - 1)] ^ 0x80) << 8;
+			dma->out_fl = (dma->fifo[dma->fifo_pos++ & (sizeof(dma->fifo) - 1)] ^ 0x80) << 8;
+			dma->out_fr = (dma->fifo[dma->fifo_pos++ & (sizeof(dma->fifo) - 1)] ^ 0x80) << 8;
 			dma->sample_count_out -= 2;
 			return;
 		}
@@ -737,7 +750,7 @@ cmi8x38_poll(void *priv)
 
 	case 0x02: /* Mono, 16-bit PCM */
 		if ((dma->fifo_end - dma->fifo_pos) >= 2) {
-			dma->out_l = dma->out_r = *((uint16_t *) &dma->fifo[dma->fifo_pos & (sizeof(dma->fifo) - 1)]);
+			dma->out_fl = dma->out_fr = *((uint16_t *) &dma->fifo[dma->fifo_pos & (sizeof(dma->fifo) - 1)]);
 			dma->fifo_pos += 2;
 			dma->sample_count_out -= 2;
 			return;
@@ -745,19 +758,59 @@ cmi8x38_poll(void *priv)
 		break;
 
 	case 0x03: /* Stereo, 16-bit PCM */
-		if ((dma->fifo_end - dma->fifo_pos) >= 4) {
-			dma->out_l = *((uint16_t *) &dma->fifo[dma->fifo_pos & (sizeof(dma->fifo) - 1)]);
-			dma->fifo_pos += 2;
-			dma->out_r = *((uint16_t *) &dma->fifo[dma->fifo_pos & (sizeof(dma->fifo) - 1)]);
-			dma->fifo_pos += 2;
-			dma->sample_count_out -= 4;
-			return;
+		switch (dma->channels) {
+			case 2:
+				if ((dma->fifo_end - dma->fifo_pos) >= 4) {
+					dma->out_fl = *((uint16_t *) &dma->fifo[dma->fifo_pos & (sizeof(dma->fifo) - 1)]);
+					dma->fifo_pos += 2;
+					dma->out_fr = *((uint16_t *) &dma->fifo[dma->fifo_pos & (sizeof(dma->fifo) - 1)]);
+					dma->fifo_pos += 2;
+					dma->out_c = dma->out_lfe = dma->out_rl = dma->out_rr = 0;
+					dma->sample_count_out -= 4;
+					return;
+				}
+				break;
+
+			case 4:
+				if ((dma->fifo_end - dma->fifo_pos) >= 8) {
+					dma->out_fl = *((uint16_t *) &dma->fifo[dma->fifo_pos & (sizeof(dma->fifo) - 1)]);
+					dma->fifo_pos += 2;
+					dma->out_fr = *((uint16_t *) &dma->fifo[dma->fifo_pos & (sizeof(dma->fifo) - 1)]);
+					dma->fifo_pos += 2;
+					dma->out_rl = *((uint16_t *) &dma->fifo[dma->fifo_pos & (sizeof(dma->fifo) - 1)]);
+					dma->fifo_pos += 2;
+					dma->out_rr = *((uint16_t *) &dma->fifo[dma->fifo_pos & (sizeof(dma->fifo) - 1)]);
+					dma->fifo_pos += 2;
+					dma->out_c = dma->out_lfe = 0;
+					dma->sample_count_out -= 8;
+					return;
+				}
+				break;
+
+			case 6:
+				if ((dma->fifo_end - dma->fifo_pos) >= 12) {
+					dma->out_fl = *((uint16_t *) &dma->fifo[dma->fifo_pos & (sizeof(dma->fifo) - 1)]);
+					dma->fifo_pos += 2;
+					dma->out_fr = *((uint16_t *) &dma->fifo[dma->fifo_pos & (sizeof(dma->fifo) - 1)]);
+					dma->fifo_pos += 2;
+					dma->out_c = *((uint16_t *) &dma->fifo[dma->fifo_pos & (sizeof(dma->fifo) - 1)]);
+					dma->fifo_pos += 2;
+					dma->out_lfe = *((uint16_t *) &dma->fifo[dma->fifo_pos & (sizeof(dma->fifo) - 1)]);
+					dma->fifo_pos += 2;
+					dma->out_rl = *((uint16_t *) &dma->fifo[dma->fifo_pos & (sizeof(dma->fifo) - 1)]);
+					dma->fifo_pos += 2;
+					dma->out_rr = *((uint16_t *) &dma->fifo[dma->fifo_pos & (sizeof(dma->fifo) - 1)]);
+					dma->fifo_pos += 2;
+					dma->sample_count_out -= 12;
+					return;
+				}
+				break;
 		}
 		break;
     }
 
     /* Feed silence if the FIFO is empty. */
-    dma->out_l = dma->out_r = 0;
+    dma->out_fl = dma->out_fr = 0;
 }
 
 
@@ -788,9 +841,10 @@ cmi8x38_speed_changed(void *priv)
 {
     cmi8x38_t *dev = (cmi8x38_t *) priv;
     double freq;
-    uint8_t dsr = dev->io_regs[0x09], freqreg = dev->io_regs[0x05] >> 2;
+    uint8_t dsr = dev->io_regs[0x09], freqreg = dev->io_regs[0x05] >> 2,
+    	    chfmt45 = dev->io_regs[0x0b], chfmt6 = dev->io_regs[0x15];
     char buf[256];
-    sprintf(buf, "%02X-%02X", dsr, freqreg);
+    sprintf(buf, "%02X-%02X-%02X-%02X", dsr, freqreg, chfmt45, chfmt6);
 
     /* CMI8338 claims the frequency controls are for DAC (playback) and ADC (recording)
        respectively, while CMI8738 claims they're for channel 0 and channel 1. The Linux
@@ -805,12 +859,28 @@ cmi8x38_speed_changed(void *priv)
 		case 0x03: freq = 128000.0; break;
 		default:   freq = freqs[freqreg & 0x07]; break;
 	}
-	sprintf(&buf[strlen(buf)], " %d:%X-%X-%.0f", i, dsr & 0x03, freqreg & 0x07, freq);
+
+	/* Set polling timer period. */
+	freq = 1000000.0 / freq;
+	dev->dma[i].timer_latch = (uint64_t) ((double) TIMER_USEC * freq);
+
+	/* Calculate channel count and set DMA timer period. */
+	if (dev->type == CMEDIA_CMI8338) {
+stereo:		dev->dma[i].channels = 2;
+	} else {
+		if (chfmt45 & 0x80)
+			dev->dma[i].channels = (chfmt6 & 0x80) ? 6 : 5;
+		else if (chfmt45 & 0x20)
+			dev->dma[i].channels = 4;
+		else
+			goto stereo;
+	}	
+	dev->dma[i].dma_latch = freq / dev->dma[i].channels; /* frequency / approximately(dwords * 2) */
+
+	/* Shift sample rate configuration registers. */
+	sprintf(&buf[strlen(buf)], " %d:%X-%X-%.0f-%dC", i, dsr & 0x03, freqreg & 0x07, 1000000.0 / freq, dev->dma[i].channels);
 	dsr >>= 2;
 	freqreg >>= 3;
-
-	/* Set period. */
-	dev->dma[i].timer_latch = (uint64_t) ((double) TIMER_USEC * (1000000.0 / freq));
     }
     ui_sb_bugui(buf);
 }
@@ -867,7 +937,7 @@ cmi8x38_init(const device_t *info)
 
     /* Set the chip type. */
     cmi8x38_log("CMI8x38: init(%03X)\n", info->local);
-    dev->type = info->local;
+    dev->type = info->local & 0xff;
 
     /* Initialize Sound Blaster 16. */
     dev->sb = device_add_inst(&sb_16_compat_device, 1);
