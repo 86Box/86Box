@@ -985,7 +985,7 @@ static int opMAXSS_xmm_xmm_a32(uint32_t fetchdat)
 static int opCMPPS_xmm_xmm_a16(uint32_t fetchdat)
 {
     fetch_ea_16(fetchdat);
-    uint8_t imm = getbyte();
+    uint8_t imm = getbyte(); if (cpu_state.abrt) return 1;
     uint32_t cmp[4];
     if (cpu_mod == 3)
     {
@@ -1159,7 +1159,7 @@ static int opCMPPS_xmm_xmm_a16(uint32_t fetchdat)
 static int opCMPPS_xmm_xmm_a32(uint32_t fetchdat)
 {
     fetch_ea_32(fetchdat);
-    uint8_t imm = getbyte();
+    uint8_t imm = getbyte(); if (cpu_state.abrt) return 1;
     uint32_t cmp[4];
     if (cpu_mod == 3)
     {

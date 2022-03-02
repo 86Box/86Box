@@ -664,7 +664,7 @@ static int opPSHUFW_mm_mm_a16(uint32_t fetchdat)
 {
     MMX_ENTER();
     fetch_ea_16(fetchdat);
-    uint8_t imm = getbyte();
+    uint8_t imm = getbyte(); if (cpu_state.abrt) return 1;
     if (cpu_mod == 3)
     {
         cpu_state.MM[cpu_reg].w[0] = cpu_state.MM[cpu_rm].w[(imm & 3)];
@@ -692,7 +692,7 @@ static int opPSHUFW_mm_mm_a32(uint32_t fetchdat)
 {
     MMX_ENTER();
     fetch_ea_32(fetchdat);
-    uint8_t imm = getbyte();
+    uint8_t imm = getbyte(); if (cpu_state.abrt) return 1;
     if (cpu_mod == 3)
     {
         cpu_state.MM[cpu_reg].w[0] = cpu_state.MM[cpu_rm].w[(imm & 3)];
@@ -719,7 +719,7 @@ static int opPSHUFW_mm_mm_a32(uint32_t fetchdat)
 static int opPINSRW_xmm_w_a16(uint32_t fetchdat)
 {
     fetch_ea_16(fetchdat);
-    uint8_t imm = getbyte();
+    uint8_t imm = getbyte(); if (cpu_state.abrt) return 1;
     if (cpu_mod == 3)
     {
         uint16_t rm = getr16(cpu_rm);
@@ -751,7 +751,7 @@ static int opPINSRW_xmm_w_a16(uint32_t fetchdat)
 static int opPINSRW_xmm_w_a32(uint32_t fetchdat)
 {
     fetch_ea_32(fetchdat);
-    uint8_t imm = getbyte();
+    uint8_t imm = getbyte(); if (cpu_state.abrt) return 1;
     if (cpu_mod == 3)
     {
         uint16_t rm = getr16(cpu_rm);
@@ -784,7 +784,7 @@ static int opPEXTRW_mm_w_a16(uint32_t fetchdat)
 {
     MMX_ENTER();
     fetch_ea_16(fetchdat);
-    uint8_t imm = getbyte();
+    uint8_t imm = getbyte(); if (cpu_state.abrt) return 1;
     ILLEGAL_ON(cpu_mod != 3);
     if (cpu_mod == 3)
     {
@@ -798,7 +798,7 @@ static int opPEXTRW_mm_w_a32(uint32_t fetchdat)
 {
     MMX_ENTER();
     fetch_ea_32(fetchdat);
-    uint8_t imm = getbyte();
+    uint8_t imm = getbyte(); if (cpu_state.abrt) return 1;
     ILLEGAL_ON(cpu_mod != 3);
     if (cpu_mod == 3)
     {
@@ -811,7 +811,7 @@ static int opPEXTRW_mm_w_a32(uint32_t fetchdat)
 static int opPEXTRW_xmm_w_a16(uint32_t fetchdat)
 {
     fetch_ea_16(fetchdat);
-    uint8_t imm = getbyte();
+    uint8_t imm = getbyte(); if (cpu_state.abrt) return 1;
     ILLEGAL_ON(cpu_mod != 3);
     if (cpu_mod == 3)
     {
@@ -829,7 +829,7 @@ static int opPEXTRW_xmm_w_a16(uint32_t fetchdat)
 static int opPEXTRW_xmm_w_a32(uint32_t fetchdat)
 {
     fetch_ea_32(fetchdat);
-    uint8_t imm = getbyte();
+    uint8_t imm = getbyte(); if (cpu_state.abrt) return 1;
     ILLEGAL_ON(cpu_mod != 3);
     if (cpu_mod == 3)
     {
@@ -847,7 +847,7 @@ static int opPEXTRW_xmm_w_a32(uint32_t fetchdat)
 static int opSHUFPS_xmm_w_a16(uint32_t fetchdat)
 {
     fetch_ea_16(fetchdat);
-    uint8_t imm = getbyte();
+    uint8_t imm = getbyte(); if (cpu_state.abrt) return 1;
     if (cpu_mod == 3)
     {
         XMM[cpu_reg].f[0] = XMM[cpu_rm].f[imm & 3];
@@ -877,7 +877,7 @@ static int opSHUFPS_xmm_w_a16(uint32_t fetchdat)
 static int opSHUFPS_xmm_w_a32(uint32_t fetchdat)
 {
     fetch_ea_32(fetchdat);
-    uint8_t imm = getbyte();
+    uint8_t imm = getbyte(); if (cpu_state.abrt) return 1;
     if (cpu_mod == 3)
     {
         XMM[cpu_reg].f[0] = XMM[cpu_rm].f[imm & 3];
