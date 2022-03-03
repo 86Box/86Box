@@ -1,6 +1,7 @@
 static int opUCOMISS_xmm_xmm_a16(uint32_t fetchdat)
 {
     //TODO: Unordered result.
+    flags_rebuild();
     fetch_ea_16(fetchdat);
     cpu_state.flags &= ~(V_FLAG | A_FLAG | N_FLAG);
     if (cpu_mod == 3)
@@ -51,6 +52,7 @@ static int opUCOMISS_xmm_xmm_a16(uint32_t fetchdat)
 static int opUCOMISS_xmm_xmm_a32(uint32_t fetchdat)
 {
     //TODO: Unordered result.
+    flags_rebuild();
     fetch_ea_32(fetchdat);
     cpu_state.flags &= ~(V_FLAG | A_FLAG | N_FLAG);
     if (cpu_mod == 3)
@@ -101,6 +103,7 @@ static int opUCOMISS_xmm_xmm_a32(uint32_t fetchdat)
 static int opCOMISS_xmm_xmm_a16(uint32_t fetchdat)
 {
     //TODO: Unordered result.
+    flags_rebuild();
     fetch_ea_16(fetchdat);
     cpu_state.flags &= ~(V_FLAG | A_FLAG | N_FLAG);
     if (cpu_mod == 3)
@@ -151,6 +154,7 @@ static int opCOMISS_xmm_xmm_a16(uint32_t fetchdat)
 static int opCOMISS_xmm_xmm_a32(uint32_t fetchdat)
 {
     //TODO: Unordered result.
+    flags_rebuild();
     fetch_ea_32(fetchdat);
     cpu_state.flags &= ~(V_FLAG | A_FLAG | N_FLAG);
     if (cpu_mod == 3)
