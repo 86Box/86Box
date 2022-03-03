@@ -111,6 +111,7 @@ extern char	*plat_get_extension(char *s);
 extern void	plat_append_filename(char *dest, const char *s1, const char *s2);
 extern void	plat_put_backslash(char *s);
 extern void	plat_path_slash(char *path);
+extern void plat_path_normalize(char *path);
 extern int	plat_path_abs(char *path);
 extern int	plat_dir_check(char *path);
 extern int	plat_dir_create(char *path);

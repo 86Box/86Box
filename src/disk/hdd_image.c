@@ -252,6 +252,10 @@ hdd_image_load(int id)
 	int vhd_error = 0;
 
 	memset(empty_sector, 0, sizeof(empty_sector));
+	if (fn) {
+		plat_path_normalize(fn);
+	}
+
 
 	hdd_images[id].base = 0;
 
