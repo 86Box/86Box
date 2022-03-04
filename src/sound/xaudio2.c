@@ -178,6 +178,7 @@ inital()
     }
 
     initialized = 1;
+    atexit(closeal);
 }
 
 void
