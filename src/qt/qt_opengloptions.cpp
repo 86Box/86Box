@@ -172,7 +172,7 @@ OpenGLOptions::addShader(const QString &path)
     if (!shader->addShaderFromSourceCode(QOpenGLShader::Vertex, version_line % "\n#extension GL_ARB_shading_language_420pack : enable\n" % "\n#define VERTEX\n" % shader_text))
         throw_shader_error(tr("Error compiling vertex shader in file \"%1\""));
 
-    if (!shader->addShaderFromSourceCode(QOpenGLShader::Fragment, version_line % "\n#extension GL_ARB_shading_language_420pack : enable\n"  "\n#define FRAGMENT\n" % shader_text))
+    if (!shader->addShaderFromSourceCode(QOpenGLShader::Fragment, version_line % "\n#extension GL_ARB_shading_language_420pack : enable\n" % "\n#define FRAGMENT\n" % shader_text))
         throw_shader_error(tr("Error compiling fragment shader in file \"%1\""));
 
     if (!shader->link())
