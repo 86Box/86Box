@@ -77,6 +77,8 @@ private:
     OpenGLOptions *options;
     QTimer        *renderTimer;
 
+    QString glslVersion;
+
     bool isInitialized = false;
     bool isFinalized   = false;
 
