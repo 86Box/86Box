@@ -18,8 +18,8 @@
 #include <QMessageBox>
 #include <QOpenGLShaderProgram>
 #include <QOpenGLTexture>
+#include <QStringBuilder>
 #include <QSurfaceFormat>
-#include <QOpenGLTexture>
 
 #include <cmath>
 
@@ -44,17 +44,12 @@ OpenGLRenderer::OpenGLRenderer(QWidget *parent)
 
     format.setProfile(QSurfaceFormat::OpenGLContextProfile::CoreProfile);
     format.setMajorVersion(3);
-    format.setMinorVersion(0);
+    format.setMinorVersion(2);
+
     if (QOpenGLContext::openGLModuleType() == QOpenGLContext::LibGLES)
         format.setRenderableType(QSurfaceFormat::OpenGLES);
 
     setFormat(format);
-
-    context = new QOpenGLContext(this);
-
-    context->setFormat(format);
-
-    context->create();
 
     parentWidget = parent;
 
@@ -108,64 +103,83 @@ OpenGLRenderer::event(QEvent *event)
 void
 OpenGLRenderer::initialize()
 {
-    if (!context->makeCurrent(this)) {
-        /* TODO: This could be done much better */
-        QMessageBox::critical((QWidget *) qApp->findChild<QWindow *>(), tr("Error initializing OpenGL"), tr("Error setting OpenGL context. Falling back to software rendering."));
+    try {
+        context = new QOpenGLContext(this);
+
+        context->setFormat(format());
+
+        if (!context->create())
+            throw opengl_init_error(tr("Couldn't create OpenGL context."));
+
+        if (!context->makeCurrent(this))
+            throw opengl_init_error(tr("Couldn't switch to OpenGL context."));
+
+        initializeOpenGLFunctions();
+
+        initializeExtensions();
+
+        initializeBuffers();
+
+        /* Vertex, texture 2d coordinates and color (white) making a quad as triangle strip */
+        const GLfloat surface[] = {
+            -1.f, 1.f, 0.f, 0.f, 1.f, 1.f, 1.f, 1.f,
+            1.f, 1.f, 1.f, 0.f, 1.f, 1.f, 1.f, 1.f,
+            -1.f, -1.f, 0.f, 1.f, 1.f, 1.f, 1.f, 1.f,
+            1.f, -1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f
+        };
+
+        glGenVertexArrays(1, &vertexArrayID);
+
+        glBindVertexArray(vertexArrayID);
+
+        glGenBuffers(1, &vertexBufferID);
+        glBindBuffer(GL_ARRAY_BUFFER, vertexBufferID);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(surface), surface, GL_STATIC_DRAW);
+
+        glGenTextures(1, &textureID);
+        glBindTexture(GL_TEXTURE_2D, textureID);
+
+        const GLfloat border_color[] = { 0.f, 0.f, 0.f, 1.f };
+
+        glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, border_color);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+
+        glTexImage2D(GL_TEXTURE_2D, 0, QOpenGLTexture::RGBA8_UNorm, INIT_WIDTH, INIT_HEIGHT, 0, QOpenGLTexture::BGRA, QOpenGLTexture::UInt32_RGBA8_Rev, NULL);
+
+        options = new OpenGLOptions(this, true);
+
+        applyOptions();
+
+        glClearColor(0.f, 0.f, 0.f, 1.f);
+
+        glViewport(
+            destination.x(),
+            destination.y(),
+            destination.width() * devicePixelRatio(),
+            destination.height() * devicePixelRatio());
+
+        GLenum error = glGetError();
+        if (error != GL_NO_ERROR)
+            throw opengl_init_error(tr("OpenGL initialization failed. Error %1.").arg(error));
+
+        isInitialized = true;
+
+        emit initialized();
+
+    } catch (const opengl_init_error &e) {
+        /* Mark all buffers as in use */
+        for (auto &flag : buf_usage)
+            flag.test_and_set();
+
+        QMessageBox::critical((QWidget *) qApp->findChild<QWindow *>(), tr("Error initializing OpenGL"), e.what() % tr("\nFalling back to software rendering."));
+
         context->doneCurrent();
         isFinalized   = true;
         isInitialized = true;
+
         emit errorInitializing();
-        return;
     }
-
-    initializeOpenGLFunctions();
-
-    setupExtensions();
-
-    setupBuffers();
-
-    /* Vertex, texture 2d coordinates and color (white) making a quad as triangle strip */
-    const GLfloat surface[] = {
-        -1.f, 1.f, 0.f, 0.f, 1.f, 1.f, 1.f, 1.f,
-        1.f, 1.f, 1.f, 0.f, 1.f, 1.f, 1.f, 1.f,
-        -1.f, -1.f, 0.f, 1.f, 1.f, 1.f, 1.f, 1.f,
-        1.f, -1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f
-    };
-
-    glGenVertexArrays(1, &vertexArrayID);
-
-    glBindVertexArray(vertexArrayID);
-
-    glGenBuffers(1, &vertexBufferID);
-    glBindBuffer(GL_ARRAY_BUFFER, vertexBufferID);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(surface), surface, GL_STATIC_DRAW);
-
-    glGenTextures(1, &textureID);
-    glBindTexture(GL_TEXTURE_2D, textureID);
-
-    const GLfloat border_color[] = { 0.f, 0.f, 0.f, 1.f };
-
-    glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, border_color);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
-
-    glTexImage2D(GL_TEXTURE_2D, 0, QOpenGLTexture::RGBA8_UNorm, INIT_WIDTH, INIT_HEIGHT, 0, QOpenGLTexture::BGRA, QOpenGLTexture::UInt32_RGBA8_Rev, NULL);
-
-    options = new OpenGLOptions(this, true);
-
-    applyOptions();
-
-    glClearColor(0.f, 0.f, 0.f, 1.f);
-
-    glViewport(
-        destination.x(),
-        destination.y(),
-        destination.width(),
-        destination.height());
-
-    isInitialized = true;
-
-    emit initialized();
 }
 
 void
@@ -173,6 +187,8 @@ OpenGLRenderer::finalize()
 {
     if (isFinalized)
         return;
+
+    renderTimer->stop();
 
     context->makeCurrent(this);
 
@@ -203,7 +219,7 @@ OpenGLRenderer::getOptions(QWidget *parent)
 }
 
 void
-OpenGLRenderer::setupExtensions()
+OpenGLRenderer::initializeExtensions()
 {
 #ifndef NO_BUFFER_STORAGE
     if (context->hasExtension("GL_ARB_buffer_storage")) {
@@ -215,7 +231,7 @@ OpenGLRenderer::setupExtensions()
 }
 
 void
-OpenGLRenderer::setupBuffers()
+OpenGLRenderer::initializeBuffers()
 {
     glGenBuffers(1, &unpackBufferID);
 
@@ -231,6 +247,9 @@ OpenGLRenderer::setupBuffers()
     } else {
         /* Fallback; create our own buffer. */
         unpackBuffer = malloc(BUFFERBYTES * BUFFERCOUNT);
+
+        if (unpackBuffer == nullptr)
+            throw opengl_init_error(tr("Allocating memory for unpack buffer failed."));
 
         glBufferData(GL_PIXEL_UNPACK_BUFFER, BUFFERBYTES * BUFFERCOUNT, NULL, GL_STREAM_DRAW);
     }
@@ -375,7 +394,7 @@ OpenGLRenderer::onBlit(int buf_idx, int x, int y, int w, int h)
 
         /* Resize the texture */
         glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
-        glTexImage2D(GL_TEXTURE_2D, 0, (GLenum)QOpenGLTexture::RGBA8_UNorm, source.width(), source.height(), 0, (GLenum)QOpenGLTexture::BGRA, (GLenum)QOpenGLTexture::UInt32_RGBA8_Rev, NULL);
+        glTexImage2D(GL_TEXTURE_2D, 0, (GLenum) QOpenGLTexture::RGBA8_UNorm, source.width(), source.height(), 0, (GLenum) QOpenGLTexture::BGRA, (GLenum) QOpenGLTexture::UInt32_RGBA8_Rev, NULL);
         glBindBuffer(GL_PIXEL_UNPACK_BUFFER, unpackBufferID);
     }
 
@@ -384,7 +403,7 @@ OpenGLRenderer::onBlit(int buf_idx, int x, int y, int w, int h)
 
     glPixelStorei(GL_UNPACK_SKIP_PIXELS, BUFFERPIXELS * buf_idx + y * ROW_LENGTH + x);
     glPixelStorei(GL_UNPACK_ROW_LENGTH, ROW_LENGTH);
-    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, w, h, (GLenum)QOpenGLTexture::BGRA, (GLenum)QOpenGLTexture::UInt32_RGBA8_Rev, NULL);
+    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, w, h, (GLenum) QOpenGLTexture::BGRA, (GLenum) QOpenGLTexture::UInt32_RGBA8_Rev, NULL);
 
     /* TODO: check if fence sync is implementable here and still has any benefit. */
     glFinish();
