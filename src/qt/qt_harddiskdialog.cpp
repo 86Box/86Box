@@ -705,6 +705,7 @@ void HarddiskDialog::on_comboBoxBus_currentIndexChanged(int index) {
             break;
     }
 
+    if (chanIdx == 0xFF) chanIdx = 0;
     ui->comboBoxChannel->setCurrentIndex(chanIdx);
 }
 

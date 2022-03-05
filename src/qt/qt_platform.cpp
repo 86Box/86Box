@@ -238,10 +238,12 @@ plat_path_abs(char *path)
 void
 plat_path_normalize(char* path)
 {
+#ifdef Q_OS_WINDOWS
     while (*path++ != 0)
     {
         if (*path == '\\') *path = '/';
     }
+#endif
 }
 
 void
