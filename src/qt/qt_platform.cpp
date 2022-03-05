@@ -236,14 +236,24 @@ plat_path_abs(char *path)
 }
 
 void
+plat_path_normalize(char* path)
+{
+    while (*path++ != 0)
+    {
+        if (*path == '\\') *path = '/';
+    }
+}
+
+void
 plat_path_slash(char *path)
 {
     auto len = strlen(path);
-    auto separator = QDir::separator().toLatin1();
+    auto separator = '/';
     if (path[len-1] != separator) {
         path[len] = separator;
         path[len+1] = 0;
     }
+    plat_path_normalize(path);
 }
 
 void
