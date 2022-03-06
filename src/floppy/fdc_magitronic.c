@@ -112,23 +112,17 @@ static int b215_available(void)
 }
 
 static const device_config_t b215_config[] = {
+// clang-format off
     {
-	"bios_addr", "BIOS Address:", CONFIG_HEX20, "", 0xca000, "", { 0 },
-	{
-		{
-			"CA00H", 0xca000
-		},
-		{
-			"CC00H", 0xcc000
-		},
-		{
-			""
-		}
-	}
+        "bios_addr", "BIOS Address:", CONFIG_HEX20, "", 0xca000, "", { 0 },
+        {
+            { "CA00H", 0xca000 },
+            { "CC00H", 0xcc000 },
+            { "" }
+        }
     },
-    {
-	"", "", -1
-    }
+    { "", "", -1 }
+// clang-format on
 };
 
 const device_t fdc_b215_device = {

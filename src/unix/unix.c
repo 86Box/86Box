@@ -283,11 +283,21 @@ plat_path_abs(char *path)
 }
 
 void
+plat_path_normalize(char* path)
+{
+    while (*path++ != 0)
+    {
+        if (*path == '\\') *path = '/';
+    }
+}
+
+void
 plat_path_slash(char *path)
 {
     if ((path[strlen(path)-1] != '/')) {
 	strcat(path, "/");
     }
+    plat_path_normalize(path);
 }
 
 void

@@ -731,6 +731,11 @@ plat_remove(char *path)
     }
 }
 
+void
+plat_path_normalize(char* path)
+{
+    /* No-op */
+}
 
 /* Make sure a path ends with a trailing (back)slash. */
 void

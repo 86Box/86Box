@@ -30,11 +30,17 @@
 #include <86box/sound.h>
 #include <86box/snd_sb.h>
 #include <86box/gameport.h>
+#include <86box/ui.h>
 
 
 enum {
-    CMEDIA_CMI8338 = 0x00,
-    CMEDIA_CMI8738 = 0x11
+    /* [23:16] = reg 0F [7:0] (reg 0C [31:24])
+          [13] = onboard flag
+        [12:8] = reg 0B [4:0] (reg 08 [28:24])
+         [7:0] = PCI device ID [7:0] */
+    CMEDIA_CMI8338 = 0x000000,
+    CMEDIA_CMI8738_4CH = 0x040011, /* chip version 039 with 4-channel output */
+    CMEDIA_CMI8738_6CH = 0x080011 /* chip version 055 with 6-channel output */
 };
 
 typedef struct {
@@ -55,8 +61,9 @@ typedef struct {
 } cmi8x38_dma_t;
 
 typedef struct _cmi8x38_ {
+    uint32_t	type;
     uint16_t	io_base, sb_base, opl_base, mpu_base;
-    uint8_t	type, pci_regs[256], io_regs[256], mixer_ext_regs[16];
+    uint8_t	pci_regs[256], io_regs[256], mixer_ext_regs[16];
     int		slot;
 
     sb_t	*sb;
@@ -96,7 +103,7 @@ static void	cmi8x38_speed_changed(void *priv);
 static void
 cmi8x38_update_irqs(cmi8x38_t *dev)
 {
-    /* Calculate and use the any interrupt flag. */
+    /* Calculate and use the INTR flag. */
     if (*((uint32_t *) &dev->io_regs[0x10]) & 0x0401c003) {
 	dev->io_regs[0x13] |= 0x80;
 	pci_set_irq(dev->slot, PCI_INTA);
@@ -105,6 +112,26 @@ cmi8x38_update_irqs(cmi8x38_t *dev)
 	dev->io_regs[0x13] &= ~0x80;
 	pci_clear_irq(dev->slot, PCI_INTA);
     }
+}
+
+
+static void
+cmi8x38_mpu_irq_update(void *priv, int set)
+{
+    cmi8x38_t *dev = (cmi8x38_t *) priv;
+    if (set)
+	dev->io_regs[0x12] |= 0x01;
+    else
+	dev->io_regs[0x12] &= ~0x01;
+    cmi8x38_update_irqs(dev);
+}
+
+
+static int
+cmi8x38_mpu_irq_pending(void *priv)
+{
+    cmi8x38_t *dev = (cmi8x38_t *) priv;
+    return dev->io_regs[0x12] & 0x01;
 }
 
 
@@ -154,7 +181,7 @@ cmi8x38_remap_opl(cmi8x38_t *dev)
 						   opl3_write,   NULL, NULL, &dev->sb->opl);
     }
 
-    if (dev->io_regs[0x04] & 0x08) {
+    if (dev->io_regs[0x1a] & 0x08) {
 	if (dev->type == CMEDIA_CMI8338)
 		dev->opl_base = 0x388;
 	else
@@ -178,10 +205,9 @@ cmi8x38_remap_mpu(cmi8x38_t *dev)
 	mpu401_change_addr(dev->sb->mpu, 0);
 
     if (dev->io_regs[0x04] & 0x04) {
-	if (dev->type == CMEDIA_CMI8338)
-		dev->mpu_base = 0x300 + ((dev->io_regs[0x17] & 0x60) >> 1);
-	else
-		dev->mpu_base = 0x330 - ((dev->io_regs[0x17] & 0x60) >> 1);
+    	/* The CMI8338 datasheet's port range of [300:330] is
+    	   inaccurate. Drivers expect [330:300] like CMI8738. */
+	dev->mpu_base = 0x330 - ((dev->io_regs[0x17] & 0x60) >> 1);
     } else {
 	dev->mpu_base = 0;
     }
@@ -338,7 +364,6 @@ cmi8x38_write(uint16_t addr, uint8_t val, void *priv)
 		/* Enable or disable the legacy devices. */
 		dev->io_regs[addr] = val;
 		cmi8x38_remap_sb(dev);
-		cmi8x38_remap_opl(dev);
 		cmi8x38_remap_mpu(dev);
 		break;
 
@@ -418,7 +443,6 @@ cmi8x38_write(uint16_t addr, uint8_t val, void *priv)
 		/* Remap the legacy devices. */
 		dev->io_regs[addr] = val;
 		cmi8x38_remap_sb(dev);
-		cmi8x38_remap_opl(dev);
 		cmi8x38_remap_mpu(dev);
 		break;
 
@@ -438,6 +462,10 @@ cmi8x38_write(uint16_t addr, uint8_t val, void *priv)
 
 	case 0x1a:
 		val &= 0xfd;
+
+		/* Enable or disable the OPL. */
+		dev->io_regs[addr] = val;
+		cmi8x38_remap_opl(dev);
 		break;
 
 	case 0x1b:
@@ -666,10 +694,10 @@ cmi8x38_dma_process(void *priv)
 		   nothing consumes it, so it's implemented as an assumption. */
 		dma->restart = 0;
 		dma->sample_ptr = *((uint32_t *) &dev->io_regs[dma->reg]);
-		dma->frame_count_dma = dma->sample_count_out = *((uint16_t *) &dev->io_regs[dma->reg | 0x4]);
-		dma->frame_count_fragment = *((uint16_t *) &dev->io_regs[dma->reg | 0x6]);
+		dma->frame_count_dma = dma->sample_count_out = *((uint16_t *) &dev->io_regs[dma->reg | 0x4]) + 1;
+		dma->frame_count_fragment = *((uint16_t *) &dev->io_regs[dma->reg | 0x6]) + 1;
 
-		cmi8x38_log("CMI8x38: Starting DMA %d at %08X\n", dma->id, dma->sample_ptr);
+		cmi8x38_log("CMI8x38: Starting DMA %d at %08X (count %04X fragment %04X)\n", dma->id, dma->sample_ptr, dma->frame_count_dma, dma->frame_count_fragment);
 	}
 
 	if (dma_status & 0x01) {
@@ -687,7 +715,7 @@ cmi8x38_dma_process(void *priv)
 		cmi8x38_log("CMI8x38: DMA %d fragment size reached at %04X frames left", dma->id, dma->frame_count_dma - 1);
 
 		/* Reset fragment counter. */
-		dma->frame_count_fragment = *((uint16_t *) &dev->io_regs[dma->reg | 0x6]);
+		dma->frame_count_fragment = *((uint16_t *) &dev->io_regs[dma->reg | 0x6]) + 1;
 
 		/* Fire interrupt if requested. */
 		if (dev->io_regs[0x0e] & dma_bit) {
@@ -705,6 +733,7 @@ cmi8x38_dma_process(void *priv)
 
 	/* Check if the buffer's end was reached. */
 	if (--dma->frame_count_dma <= 0) {
+		dma->frame_count_dma = 0;
 		cmi8x38_log("CMI8x38: DMA %d end reached, restarting\n", dma->id);
 
 		/* Restart DMA on the next run. */
@@ -719,6 +748,7 @@ cmi8x38_poll(void *priv)
 {
     cmi8x38_dma_t *dma = (cmi8x38_dma_t *) priv;
     cmi8x38_t *dev = dma->dev;
+    int16_t *out_l, *out_r, *out_ol, *out_or; /* o = opposite */
 
     /* Schedule next run if playback is enabled. */
     if (dev->io_regs[0x00] & (1 << dma->id))
@@ -729,31 +759,45 @@ cmi8x38_poll(void *priv)
     /* Update audio buffer. */
     cmi8x38_update(dev, dma);
 
+    /* Swap stereo pair if this is the rear DMA channel according to ENDBDAC and XCHGDAC. */
+    if ((dev->io_regs[0x1a] & 0x80) && (!!(dev->io_regs[0x1a] & 0x40) ^ dma->id)) {
+	out_l = &dma->out_rl;
+	out_r = &dma->out_rr;
+	out_ol = &dma->out_fl;
+	out_or = &dma->out_fr;
+    } else {
+	out_l = &dma->out_fl;
+	out_r = &dma->out_fr;
+	out_ol = &dma->out_rl;
+	out_or = &dma->out_rr;
+    }
+    *out_ol = *out_or = dma->out_c = dma->out_lfe = 0;
+
     /* Feed next sample from the FIFO. */
     switch ((dev->io_regs[0x08] >> (dma->id << 1)) & 0x03) {
 	case 0x00: /* Mono, 8-bit PCM */
 		if ((dma->fifo_end - dma->fifo_pos) >= 1) {
-			dma->out_fl = dma->out_fr = (dma->fifo[dma->fifo_pos++ & (sizeof(dma->fifo) - 1)] ^ 0x80) << 8;
+			*out_l = *out_r = (dma->fifo[dma->fifo_pos++ & (sizeof(dma->fifo) - 1)] ^ 0x80) << 8;
 			dma->sample_count_out--;
-			return;
+			goto n4spk3d;
 		}
 		break;
 
 	case 0x01: /* Stereo, 8-bit PCM */
 		if ((dma->fifo_end - dma->fifo_pos) >= 2) {
-			dma->out_fl = (dma->fifo[dma->fifo_pos++ & (sizeof(dma->fifo) - 1)] ^ 0x80) << 8;
-			dma->out_fr = (dma->fifo[dma->fifo_pos++ & (sizeof(dma->fifo) - 1)] ^ 0x80) << 8;
+			*out_l = (dma->fifo[dma->fifo_pos++ & (sizeof(dma->fifo) - 1)] ^ 0x80) << 8;
+			*out_r = (dma->fifo[dma->fifo_pos++ & (sizeof(dma->fifo) - 1)] ^ 0x80) << 8;
 			dma->sample_count_out -= 2;
-			return;
+			goto n4spk3d;
 		}
 		break;
 
 	case 0x02: /* Mono, 16-bit PCM */
 		if ((dma->fifo_end - dma->fifo_pos) >= 2) {
-			dma->out_fl = dma->out_fr = *((uint16_t *) &dma->fifo[dma->fifo_pos & (sizeof(dma->fifo) - 1)]);
+			*out_l = *out_r = *((uint16_t *) &dma->fifo[dma->fifo_pos & (sizeof(dma->fifo) - 1)]);
 			dma->fifo_pos += 2;
 			dma->sample_count_out -= 2;
-			return;
+			goto n4spk3d;
 		}
 		break;
 
@@ -761,13 +805,12 @@ cmi8x38_poll(void *priv)
 		switch (dma->channels) {
 			case 2:
 				if ((dma->fifo_end - dma->fifo_pos) >= 4) {
-					dma->out_fl = *((uint16_t *) &dma->fifo[dma->fifo_pos & (sizeof(dma->fifo) - 1)]);
+					*out_l = *((uint16_t *) &dma->fifo[dma->fifo_pos & (sizeof(dma->fifo) - 1)]);
 					dma->fifo_pos += 2;
-					dma->out_fr = *((uint16_t *) &dma->fifo[dma->fifo_pos & (sizeof(dma->fifo) - 1)]);
+					*out_r = *((uint16_t *) &dma->fifo[dma->fifo_pos & (sizeof(dma->fifo) - 1)]);
 					dma->fifo_pos += 2;
-					dma->out_c = dma->out_lfe = dma->out_rl = dma->out_rr = 0;
 					dma->sample_count_out -= 4;
-					return;
+					goto n4spk3d;
 				}
 				break;
 
@@ -781,8 +824,24 @@ cmi8x38_poll(void *priv)
 					dma->fifo_pos += 2;
 					dma->out_rr = *((uint16_t *) &dma->fifo[dma->fifo_pos & (sizeof(dma->fifo) - 1)]);
 					dma->fifo_pos += 2;
-					dma->out_c = dma->out_lfe = 0;
 					dma->sample_count_out -= 8;
+					return;
+				}
+				break;
+
+			case 5: /* not supported by WDM and Linux drivers; channel layout assumed */
+				if ((dma->fifo_end - dma->fifo_pos) >= 10) {
+					dma->out_fl = *((uint16_t *) &dma->fifo[dma->fifo_pos & (sizeof(dma->fifo) - 1)]);
+					dma->fifo_pos += 2;
+					dma->out_fr = *((uint16_t *) &dma->fifo[dma->fifo_pos & (sizeof(dma->fifo) - 1)]);
+					dma->fifo_pos += 2;
+					dma->out_rl = *((uint16_t *) &dma->fifo[dma->fifo_pos & (sizeof(dma->fifo) - 1)]);
+					dma->fifo_pos += 2;
+					dma->out_rr = *((uint16_t *) &dma->fifo[dma->fifo_pos & (sizeof(dma->fifo) - 1)]);
+					dma->fifo_pos += 2;
+					dma->out_c  = *((uint16_t *) &dma->fifo[dma->fifo_pos & (sizeof(dma->fifo) - 1)]);
+					dma->fifo_pos += 2;
+					dma->sample_count_out -= 10;
 					return;
 				}
 				break;
@@ -793,13 +852,13 @@ cmi8x38_poll(void *priv)
 					dma->fifo_pos += 2;
 					dma->out_fr = *((uint16_t *) &dma->fifo[dma->fifo_pos & (sizeof(dma->fifo) - 1)]);
 					dma->fifo_pos += 2;
-					dma->out_c = *((uint16_t *) &dma->fifo[dma->fifo_pos & (sizeof(dma->fifo) - 1)]);
-					dma->fifo_pos += 2;
-					dma->out_lfe = *((uint16_t *) &dma->fifo[dma->fifo_pos & (sizeof(dma->fifo) - 1)]);
-					dma->fifo_pos += 2;
 					dma->out_rl = *((uint16_t *) &dma->fifo[dma->fifo_pos & (sizeof(dma->fifo) - 1)]);
 					dma->fifo_pos += 2;
 					dma->out_rr = *((uint16_t *) &dma->fifo[dma->fifo_pos & (sizeof(dma->fifo) - 1)]);
+					dma->fifo_pos += 2;
+					dma->out_c  = *((uint16_t *) &dma->fifo[dma->fifo_pos & (sizeof(dma->fifo) - 1)]);
+					dma->fifo_pos += 2;
+					dma->out_lfe= *((uint16_t *) &dma->fifo[dma->fifo_pos & (sizeof(dma->fifo) - 1)]);
 					dma->fifo_pos += 2;
 					dma->sample_count_out -= 12;
 					return;
@@ -810,7 +869,15 @@ cmi8x38_poll(void *priv)
     }
 
     /* Feed silence if the FIFO is empty. */
-    dma->out_fl = dma->out_fr = 0;
+    *out_l = *out_r = 0;
+    return;
+
+n4spk3d:
+    /* Mirror front and rear channels if requested. */
+    if (dev->io_regs[0x1b] & 0x04) {
+	*out_ol = *out_l;
+	*out_or = *out_r;
+    }
 }
 
 
@@ -842,17 +909,20 @@ cmi8x38_speed_changed(void *priv)
     cmi8x38_t *dev = (cmi8x38_t *) priv;
     double freq;
     uint8_t dsr = dev->io_regs[0x09], freqreg = dev->io_regs[0x05] >> 2,
-    	    chfmt45 = dev->io_regs[0x0b], chfmt6 = dev->io_regs[0x15];
+	    chfmt45 = dev->io_regs[0x0b], chfmt6 = dev->io_regs[0x15];
+
+#ifdef ENABLE_CMI8X38_LOG
     char buf[256];
     sprintf(buf, "%02X-%02X-%02X-%02X", dsr, freqreg, chfmt45, chfmt6);
+#endif
 
     /* CMI8338 claims the frequency controls are for DAC (playback) and ADC (recording)
        respectively, while CMI8738 claims they're for channel 0 and channel 1. The Linux
        driver just assumes the latter definition, so that's what we're going to use here. */
     for (int i = 0; i < (sizeof(dev->dma) / sizeof(dev->dma[0])); i++) {
 	/* More confusion. The Linux driver implies the sample rate doubling
-	   bits take precedence over any configured sample rate. It also
-	   supports 128K with both doubling bits set, which is undocumented. */
+	   bits take precedence over any configured sample rate. 128K with both
+	   doubling bits set is also supported there, but that's for newer chips. */
 	switch (dsr & 0x03) {
 		case 0x01: freq = 88200.0; break;
 		case 0x02: freq = 96000.0; break;
@@ -865,7 +935,7 @@ cmi8x38_speed_changed(void *priv)
 	dev->dma[i].timer_latch = (uint64_t) ((double) TIMER_USEC * freq);
 
 	/* Calculate channel count and set DMA timer period. */
-	if (dev->type == CMEDIA_CMI8338) {
+	if ((dev->type == CMEDIA_CMI8338) || (i == 0)) {
 stereo:		dev->dma[i].channels = 2;
 	} else {
 		if (chfmt45 & 0x80)
@@ -878,11 +948,17 @@ stereo:		dev->dma[i].channels = 2;
 	dev->dma[i].dma_latch = freq / dev->dma[i].channels; /* frequency / approximately(dwords * 2) */
 
 	/* Shift sample rate configuration registers. */
+#ifdef ENABLE_CMI8X38_LOG
 	sprintf(&buf[strlen(buf)], " %d:%X-%X-%.0f-%dC", i, dsr & 0x03, freqreg & 0x07, 1000000.0 / freq, dev->dma[i].channels);
+#endif
 	dsr >>= 2;
 	freqreg >>= 3;
     }
-    ui_sb_bugui(buf);
+
+#ifdef ENABLE_CMI8X38_LOG
+    if (cmi8x38_do_log)
+	ui_sb_bugui(buf);
+#endif
 }
 
 
@@ -913,8 +989,8 @@ cmi8x38_reset(void *priv)
 
     /* Reset I/O space registers. */
     memset(dev->io_regs, 0, sizeof(dev->io_regs));
-    if (dev->type == CMEDIA_CMI8738)
-	dev->io_regs[0x0f] = 0x04; /* chip version 039 with 4-channel support */
+    dev->io_regs[0x0b] = (dev->type >> 8) & 0x1f;
+    dev->io_regs[0x0f] = dev->type >> 16;
 
     /* Reset DMA channels. */
     for (int i = 0; i < (sizeof(dev->dma) / sizeof(dev->dma[0])); i++) {
@@ -936,13 +1012,19 @@ cmi8x38_init(const device_t *info)
     memset(dev, 0, sizeof(cmi8x38_t));
 
     /* Set the chip type. */
-    cmi8x38_log("CMI8x38: init(%03X)\n", info->local);
-    dev->type = info->local & 0xff;
+    if ((info->local == CMEDIA_CMI8738_6CH) && !device_get_config_int("six_channel"))
+	dev->type = CMEDIA_CMI8738_4CH;
+    else
+	dev->type = info->local;
+    cmi8x38_log("CMI8x38: init(%06X)\n", dev->type);
 
     /* Initialize Sound Blaster 16. */
-    dev->sb = device_add_inst(&sb_16_compat_device, 1);
+    dev->sb = device_add_inst(device_get_config_int("receive_input") ? &sb_16_compat_device : &sb_16_compat_nompu_device, 1);
     dev->sb->opl_enabled = 1; /* let snd_sb.c handle the OPL3 */
     dev->sb->mixer_sb16.output_filter = 0; /* no output filtering */
+
+    /* Initialize MPU-401 interrupt handler. */
+    mpu401_irq_attach(dev->sb->mpu, cmi8x38_mpu_irq_update, cmi8x38_mpu_irq_pending, dev);
 
     /* Initialize DMA channels. */
     for (int i = 0; i < (sizeof(dev->dma) / sizeof(dev->dma[0])); i++) {
@@ -963,7 +1045,7 @@ cmi8x38_init(const device_t *info)
     dev->gameport = gameport_add(&gameport_pnp_device);
 
     /* Add PCI card. */
-    dev->slot = pci_add_card((info->local & 0x100) ? PCI_ADD_SOUND : PCI_ADD_NORMAL, cmi8x38_pci_read, cmi8x38_pci_write, dev);
+    dev->slot = pci_add_card((info->local & (1 << 13)) ? PCI_ADD_SOUND : PCI_ADD_NORMAL, cmi8x38_pci_read, cmi8x38_pci_write, dev);
 
     /* Perform initial reset. */
     cmi8x38_reset(dev);
@@ -982,9 +1064,18 @@ cmi8x38_close(void *priv)
     free(dev);
 }
 
+static const device_config_t cmi8x38_config[] = {
+    { "receive_input", "Receive input (MPU-401)", CONFIG_BINARY, "",  1 },
+    { "",              "",                                           -1 }
+};
 
-const device_t cmi8338_device =
-{
+static const device_config_t cmi8738_config[] = {
+    { "six_channel",   "MX variant (6-channel)",  CONFIG_BINARY, "",  1 },
+    { "receive_input", "Receive input (MPU-401)", CONFIG_BINARY, "",  1 },
+    { "",              "",                                           -1 }
+};
+
+const device_t cmi8338_device = {
     "C-Media CMI8338",
     "cmi8338",
     DEVICE_PCI,
@@ -993,44 +1084,41 @@ const device_t cmi8338_device =
     { NULL },
     cmi8x38_speed_changed,
     NULL,
-    NULL
+    cmi8x38_config
 };
 
-const device_t cmi8338_onboard_device =
-{
+const device_t cmi8338_onboard_device = {
     "C-Media CMI8338 (On-Board)",
     "cmi8338_onboard",
     DEVICE_PCI,
-    CMEDIA_CMI8338 | 0x100,
+    CMEDIA_CMI8338 | (1 << 13),
     cmi8x38_init, cmi8x38_close, cmi8x38_reset,
     { NULL },
     cmi8x38_speed_changed,
     NULL,
-    NULL
+    cmi8x38_config
 };
 
-const device_t cmi8738_device =
-{
+const device_t cmi8738_device = {
     "C-Media CMI8738",
     "cmi8738",
     DEVICE_PCI,
-    CMEDIA_CMI8738,
+    CMEDIA_CMI8738_6CH,
     cmi8x38_init, cmi8x38_close, cmi8x38_reset,
     { NULL },
     cmi8x38_speed_changed,
     NULL,
-    NULL
+    cmi8738_config
 };
 
-const device_t cmi8738_onboard_device =
-{
+const device_t cmi8738_onboard_device = {
     "C-Media CMI8738 (On-Board)",
     "cmi8738_onboard",
     DEVICE_PCI,
-    CMEDIA_CMI8738 | 0x100,
+    CMEDIA_CMI8738_4CH | (1 << 13),
     cmi8x38_init, cmi8x38_close, cmi8x38_reset,
     { NULL },
     cmi8x38_speed_changed,
     NULL,
-    NULL
+    cmi8x38_config
 };

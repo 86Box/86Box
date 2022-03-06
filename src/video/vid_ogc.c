@@ -635,36 +635,22 @@ ogc_init(const device_t *info)
     return ogc;
 }
 
-
-const device_config_t ogc_m24_config[] =
-{
+const device_config_t ogc_m24_config[] = {
+// clang-format off
+    {
+        /* Olivetti / ATT compatible displays */
+        "rgb_type", "RGB type", CONFIG_SELECTION, "", CGA_RGB, "", { 0 },
         {
-                /* Olivetti / ATT compatible displays */
-				"rgb_type", "RGB type", CONFIG_SELECTION, "", CGA_RGB, "", { 0 },
-                {
-                        {
-                                "Color", 0
-                        },
-                        {
-                                "Green Monochrome", 1
-                        },
-                        {
-                                "Amber Monochrome", 2
-                        },
-                        {
-                                "Gray Monochrome", 3
-                        },
-                        {
-                                ""
-                        }
-                }
-        },
-        {
-                "snow_enabled", "Snow emulation", CONFIG_BINARY, "", 1,
-        },
-        {
-                "", "", -1
+            { "Color",            0 },
+            { "Green Monochrome", 1 },
+            { "Amber Monochrome", 2 },
+            { "Gray Monochrome",  3 },
+            { ""                    }
         }
+    },
+    { "snow_enabled", "Snow emulation", CONFIG_BINARY, "",  1, },
+    { "",             "",                                  -1  }
+// clang-format on
 };
 
 const device_t ogc_m24_device =

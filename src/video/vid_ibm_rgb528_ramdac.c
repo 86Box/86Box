@@ -954,11 +954,10 @@ ibm_rgb528_ramdac_close(void *priv)
 }
 
 
-const device_t ibm_rgb528_ramdac_device =
-{
-        "IBM RGB528 RAMDAC",
-        "ibm_rgb528_ramdac",
-        0, 0,
-        ibm_rgb528_ramdac_init, ibm_rgb528_ramdac_close,
-	NULL, { NULL }, NULL, NULL, NULL
+const device_t ibm_rgb528_ramdac_device = {
+    "IBM RGB528 RAMDAC",
+    "ibm_rgb528_ramdac",
+    0, 0,
+    ibm_rgb528_ramdac_init, ibm_rgb528_ramdac_close,
+    NULL, { NULL }, NULL, NULL, NULL
 };

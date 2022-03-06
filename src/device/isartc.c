@@ -594,43 +594,27 @@ isartc_close(void *priv)
 
 
 static const device_config_t ev170_config[] = {
-	{
-		"base", "Address", CONFIG_HEX16, "", 0x02C0, "", { 0 },
-		{
-			{
-				"240H", 0x0240
-			},
-			{
-				"2C0H", 0x02c0
-			},
-			{
-				""
-			}
-		},
-	},
-	{
-		"irq", "IRQ", CONFIG_SELECTION, "", -1, "", { 0 },
-		{
-			{
-				"Disabled", -1
-			},
-			{
-				"IRQ2", 2
-			},
-			{
-				"IRQ5", 5
-			},
-			{
-				"IRQ7", 7
-			},
-			{
-				""
-			}
-		},
-	},
-	{
-		"", "", -1
-	}
+// clang-format off
+    {
+        "base", "Address", CONFIG_HEX16, "", 0x02C0, "", { 0 },
+        {
+            { "240H", 0x0240 },
+            { "2C0H", 0x02c0 },
+            { ""             }
+        },
+    },
+    {
+        "irq", "IRQ", CONFIG_SELECTION, "", -1, "", { 0 },
+        {
+            { "Disabled", -1 },
+            { "IRQ2",      2 },
+            { "IRQ5",      5 },
+            { "IRQ7",      7 },
+            { ""             }
+        },
+    },
+    { "", "", -1 }
+// clang-format on
 };
 
 static const device_t ev170_device = {
@@ -645,23 +629,17 @@ static const device_t ev170_device = {
 
 
 static const device_config_t pii147_config[] = {
-	{
-		"base", "Address", CONFIG_HEX16, "", 0x0240, "", { 0 },
-		{
-			{
-				"Clock 1", 0x0240
-			},
-			{
-				"Clock 2", 0x0340
-			},
-			{
-				""
-			}
-		},
-	},
-	{
-		"", "", -1
-	}
+// clang-format off
+    {
+        "base", "Address", CONFIG_HEX16, "", 0x0240, "", { 0 },
+        {
+            { "Clock 1", 0x0240 },
+            { "Clock 2", 0x0340 },
+            { "" }
+        },
+    },
+    { "", "", -1 }
+// clang-format on
 };
 
 static const device_t pii147_device = {
@@ -676,29 +654,19 @@ static const device_t pii147_device = {
 
 
 static const device_config_t p5pak_config[] = {
-	{
-		"irq", "IRQ", CONFIG_SELECTION, "", -1, "", { 0 },
-		{
-			{
-				"Disabled", -1
-			},
-			{
-				"IRQ2", 2
-			},
-			{
-				"IRQ3", 3
-			},
-			{
-				"IRQ5", 5
-			},
-			{
-				""
-			}
-		},
-	},
-	{
-		"", "", -1
-	}
+// clang-format off
+    {
+        "irq", "IRQ", CONFIG_SELECTION, "", -1, "", { 0 },
+        {
+            { "Disabled", -1 },
+            { "IRQ2",      2 },
+            { "IRQ3",      3 },
+            { "IRQ5",      5 },
+            { ""             }
+        },
+    },
+    { "", "", -1 }
+// clang-format on
 };
 
 static const device_t p5pak_device = {
@@ -713,29 +681,19 @@ static const device_t p5pak_device = {
 
 
 static const device_config_t a6pak_config[] = {
-	{
-		"irq", "IRQ", CONFIG_SELECTION, "", -1, "", { 0 },
-		{
-			{
-				"Disabled", -1
-			},
-			{
-				"IRQ2", 2
-			},
-			{
-				"IRQ3", 3
-			},
-			{
-				"IRQ5", 5
-			},
-			{
-				""
-			}
-		},
-	},
-	{
-		"", "", -1
-	}
+// clang-format off
+    {
+        "irq", "IRQ", CONFIG_SELECTION, "", -1, "", { 0 },
+        {
+            { "Disabled", -1 },
+            { "IRQ2",      2 },
+            { "IRQ3",      3 },
+            { "IRQ5",      5 },
+            { ""             }
+        },
+    },
+    { "", "", -1 }
+// clang-format on
 };
 
 static const device_t a6pak_device = {
@@ -748,7 +706,6 @@ static const device_t a6pak_device = {
     a6pak_config
 };
 
-
 static const device_t isartc_none_device = {
     "None",
     "none",
@@ -758,18 +715,18 @@ static const device_t isartc_none_device = {
     NULL
 };
 
-
 static const struct {
     const device_t	*dev;
 } boards[] = {
-    { &isartc_none_device	},
-    { &ev170_device		},
-    { &pii147_device		},
-    { &p5pak_device		},
-    { &a6pak_device		},
-    { NULL			},
+// clang-format off
+    { &isartc_none_device },
+    { &ev170_device       },
+    { &pii147_device      },
+    { &p5pak_device       },
+    { &a6pak_device       },
+    { NULL                },
+// clang-format on
 };
-
 
 void
 isartc_reset(void)
@@ -779,7 +736,6 @@ isartc_reset(void)
     /* Add the device to the system. */
     device_add(boards[isartc_type].dev);
 }
-
 
 char *
 isartc_get_internal_name(int board)

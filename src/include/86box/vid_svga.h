@@ -158,7 +158,8 @@ typedef struct svga_t
 
 	/*Force CRTC to dword mode, regardless of CR14/CR17. Required for S3 enhanced mode*/
 	int force_dword_mode;
-	int force_byte_mode;
+	
+	int force_old_addr;
 
 	int remap_required;
 	uint32_t (*remap_func)(struct svga_t *svga, uint32_t in_addr);

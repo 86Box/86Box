@@ -3171,64 +3171,61 @@ void tgui_force_redraw(void *p)
         tgui->svga.fullchange = changeframecount;
 }
 
-
-static const device_config_t tgui9440_config[] =
-{
-        {
-                .name = "memory",
-                .description = "Memory size",
-                .type = CONFIG_SELECTION,
-                .selection =
-                {
-                        {
-                                .description = "1 MB",
-                                .value = 1
-                        },
-                        {
-                                .description = "2 MB",
-                                .value = 2
-                        },
-                        {
-                                .description = ""
-                        }
-                },
-                .default_int = 2
+// clang-format off
+static const device_config_t tgui9440_config[] = {
+    {
+        .name = "memory",
+        .description = "Memory size",
+        .type = CONFIG_SELECTION,
+        .selection = {
+            {
+                .description = "1 MB",
+                .value = 1
+            },
+            {
+                .description = "2 MB",
+                .value = 2
+            },
+            {
+                .description = ""
+            }
         },
-        {
-                .type = -1
-        }
+        .default_int = 2
+    },
+    {
+        .type = -1
+    }
 };
 
-static const device_config_t tgui96xx_config[] =
-{
-        {
-                .name = "memory",
-                .description = "Memory size",
-                .type = CONFIG_SELECTION,
-                .selection =
-                {
-                        {
-                                .description = "1 MB",
-                                .value = 1
-                        },
-                        {
-                                .description = "2 MB",
-                                .value = 2
-                        },
-                        {
-                                .description = "4 MB",
-                                .value = 4
-                        },
-                        {
-                                .description = ""
-                        }
-                },
-                .default_int = 4
+static const device_config_t tgui96xx_config[] = {
+    {
+        .name = "memory",
+        .description = "Memory size",
+        .type = CONFIG_SELECTION,
+        .selection = {
+            {
+                .description = "1 MB",
+                .value = 1
+            },
+            {
+                .description = "2 MB",
+                .value = 2
+            },
+            {
+                .description = "4 MB",
+                .value = 4
+            },
+            {
+                .description = ""
+            }
         },
-        {
-                .type = -1
-        }
+        .default_int = 4
+    },
+    {
+        .type = -1
+    }
 };
+// clang-format on
 
 const device_t tgui9400cxi_device =
 {
@@ -3238,7 +3235,7 @@ const device_t tgui9400cxi_device =
         TGUI_9400CXI,
         tgui_init,
         tgui_close,
-	NULL,
+    NULL,
         { tgui9400cxi_available },
         tgui_speed_changed,
         tgui_force_redraw,
@@ -3250,10 +3247,10 @@ const device_t tgui9440_vlb_device =
         "Trident TGUI 9440AGi VLB",
         "tgui9440_vlb",
         DEVICE_VLB,
-	TGUI_9440,
+    TGUI_9440,
         tgui_init,
         tgui_close,
-	NULL,
+    NULL,
         { tgui9440_available },
         tgui_speed_changed,
         tgui_force_redraw,
@@ -3265,10 +3262,10 @@ const device_t tgui9440_pci_device =
         "Trident TGUI 9440AGi PCI",
         "tgui9440_pci",
         DEVICE_PCI,
-	TGUI_9440,
+    TGUI_9440,
         tgui_init,
         tgui_close,
-	NULL,
+    NULL,
         { tgui9440_available },
         tgui_speed_changed,
         tgui_force_redraw,
@@ -3280,10 +3277,10 @@ const device_t tgui9440_onboard_pci_device =
         "Trident TGUI 9440AGi On-Board PCI",
         "tgui9440_onboard_pci",
         DEVICE_PCI,
-	TGUI_9440 | ONBOARD,
+    TGUI_9440 | ONBOARD,
         tgui_init,
         tgui_close,
-	NULL,
+    NULL,
         { NULL },
         tgui_speed_changed,
         tgui_force_redraw,
@@ -3295,10 +3292,10 @@ const device_t tgui9660_pci_device =
         "Trident TGUI 9660XGi PCI",
         "tgui9660_pci",
         DEVICE_PCI,
-	TGUI_9660,
+    TGUI_9660,
         tgui_init,
         tgui_close,
-	NULL,
+    NULL,
         { tgui96xx_available },
         tgui_speed_changed,
         tgui_force_redraw,
@@ -3310,10 +3307,10 @@ const device_t tgui9680_pci_device =
         "Trident TGUI 9680XGi PCI",
         "tgui9680_pci",
         DEVICE_PCI,
-	TGUI_9680,
+    TGUI_9680,
         tgui_init,
         tgui_close,
-	NULL,
+    NULL,
         { tgui96xx_available },
         tgui_speed_changed,
         tgui_force_redraw,

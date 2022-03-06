@@ -676,22 +676,20 @@ isamem_close(void *priv)
     free(dev);
 }
 
-
-static const device_config_t ibmxt_config[] =
-{
-	{
-		"size", "Memory Size", CONFIG_SPINNER, "", 128, "",
-		{ 0, 512, 16 },
-		{ { 0 } }
-	},
-	{
-		"start", "Start Address", CONFIG_SPINNER, "", 256, "",
-		{ 0, 576, 64 },
-		{ { 0 } }
-	},
-	{
-		"", "", -1
-	}
+static const device_config_t ibmxt_config[] = {
+// clang-format off
+    {
+        "size", "Memory Size", CONFIG_SPINNER, "", 128, "",
+        { 0, 512, 16 },
+        { { 0 } }
+    },
+    {
+        "start", "Start Address", CONFIG_SPINNER, "", 256, "",
+        { 0, 576, 64 },
+        { { 0 } }
+    },
+    { "", "", -1 }
+// clang-format on
 };
 
 static const device_t ibmxt_device = {
@@ -704,22 +702,20 @@ static const device_t ibmxt_device = {
     ibmxt_config
 };
 
-
-static const device_config_t genericxt_config[] =
-{
-	{
-		"size", "Memory Size", CONFIG_SPINNER, "", 16, "",
-		{ 0, 640, 16 },
-		{ { 0 } }
-	},
-	{
-		"start", "Start Address", CONFIG_SPINNER, "", 0, "",
-		{ 0, 624, 16 },
-		{ { 0 } }
-	},
-	{
-		"", "", -1
-	}
+static const device_config_t genericxt_config[] = {
+// clang-format off
+    {
+        "size", "Memory Size", CONFIG_SPINNER, "", 16, "",
+        { 0, 640, 16 },
+        { { 0 } }
+    },
+    {
+        "start", "Start Address", CONFIG_SPINNER, "", 0, "",
+        { 0, 624, 16 },
+        { { 0 } }
+    },
+    { "", "", -1 }
+// clang-format on
 };
 
 static const device_t genericxt_device = {
@@ -733,21 +729,20 @@ static const device_t genericxt_device = {
 };
 
 
-static const device_config_t ibmat_config[] =
-{
-	{
-		"size", "Memory Size", CONFIG_SPINNER, "", 512, "",
-		{ 0, 12288, 512 },
-		{ { 0 } }
-	},
-	{
-		"start", "Start Address", CONFIG_SPINNER, "", 512, "",
-		{ 0, 15872, 512 },
-		{ { 0 } }
-	},
-	{
-		"", "", -1
-	}
+static const device_config_t ibmat_config[] = {
+// clang-format off
+    {
+        "size", "Memory Size", CONFIG_SPINNER, "", 512, "",
+        { 0, 12288, 512 },
+        { { 0 } }
+    },
+    {
+        "start", "Start Address", CONFIG_SPINNER, "", 512, "",
+        { 0, 15872, 512 },
+        { { 0 } }
+    },
+    { "", "", -1 }
+// clang-format on
 };
 
 static const device_t ibmat_device = {
@@ -761,21 +756,20 @@ static const device_t ibmat_device = {
 };
 
 
-static const device_config_t genericat_config[] =
-{
-	{
-		"size", "Memory Size", CONFIG_SPINNER, "", 512, "",
-		{ 0, 16384, 512 },
-		{ { 0 } }
-	},
-	{
-		"start", "Start Address", CONFIG_SPINNER, "", 512, "",
-		{ 0, 15872, 128 },
-		{ { 0 } }
-	},
-	{
-		"", "", -1
-	}
+static const device_config_t genericat_config[] = {
+// clang-format off
+    {
+        "size", "Memory Size", CONFIG_SPINNER, "", 512, "",
+        { 0, 16384, 512 },
+        { { 0 } }
+    },
+    {
+        "start", "Start Address", CONFIG_SPINNER, "", 512, "",
+        { 0, 15872, 128 },
+        { { 0 } }
+    },
+    { "", "", -1 }
+// clang-format on
 };
 
 static const device_t genericat_device = {
@@ -789,21 +783,20 @@ static const device_t genericat_device = {
 };
 
 
-static const device_config_t p5pak_config[] =
-{
-	{
-		"size", "Memory Size", CONFIG_SPINNER, "", 128, "",
-		{ 0, 384, 64 },
-		{ { 0 } }
-	},
-	{
-		"start", "Start Address", CONFIG_SPINNER, "", 512, "",
-		{ 64, 576, 64 },
-		{ { 0 } }
-	},
-	{
-		"", "", -1
-	}
+static const device_config_t p5pak_config[] = {
+// clang-format off
+    {
+        "size", "Memory Size", CONFIG_SPINNER, "", 128, "",
+        { 0, 384, 64 },
+        { { 0 } }
+    },
+    {
+        "start", "Start Address", CONFIG_SPINNER, "", 512, "",
+        { 64, 576, 64 },
+        { { 0 } }
+    },
+    { "", "", -1 }
+// clang-format on
 };
 
 static const device_t p5pak_device = {
@@ -817,21 +810,20 @@ static const device_t p5pak_device = {
 };
 
 
-static const device_config_t a6pak_config[] =
-{
-	{
-		"size", "Memory Size", CONFIG_SPINNER, "", 64, "",
-		{ 0, 576, 64 },
-		{ { 0 } }
-	},
-	{
-		"start", "Start Address", CONFIG_SPINNER, "", 256, "",
-		{ 64, 512, 64 },
-		{ { 0 } }
-	},
-	{
-		"", "", -1
-	}
+static const device_config_t a6pak_config[] = {
+// clang-format off
+    {
+        "size", "Memory Size", CONFIG_SPINNER, "", 64, "",
+        { 0, 576, 64 },
+        { { 0 } }
+    },
+    {
+        "start", "Start Address", CONFIG_SPINNER, "", 256, "",
+        { 64, 512, 64 },
+        { { 0 } }
+    },
+    { "", "", -1 }
+// clang-format on
 };
 
 static const device_t a6pak_device = {
@@ -845,40 +837,26 @@ static const device_t a6pak_device = {
 };
 
 
-static const device_config_t ems5150_config[] =
-{
-	{
-		"size", "Memory Size", CONFIG_SPINNER, "", 256,
-		"",
-		{ 0, 2048, 64 },
-		{ { 0 } }
-	},
-	{
-		"base", "Address", CONFIG_HEX16, "", 0, "", { 0 },
-		{
-			{
-				"Disabled", 0
-			},
-			{
-				"Board 1", 0x0208
-			},
-			{
-				"Board 2", 0x020a
-			},
-			{
-				"Board 3", 0x020c
-			},
-			{
-				"Board 4", 0x020e
-			},
-			{
-				""
-			}
-		},
-	},
-	{
-		"", "", -1
-	}
+static const device_config_t ems5150_config[] = {
+// clang-format off
+    {
+        "size", "Memory Size", CONFIG_SPINNER, "", 256, "",
+        { 0, 2048, 64 },
+        { { 0 } }
+    },
+    {
+        "base", "Address", CONFIG_HEX16, "", 0, "", { 0 },
+        {
+            { "Disabled", 0x0000 },
+            { "Board 1",  0x0208 },
+            { "Board 2",  0x020a },
+            { "Board 3",  0x020c },
+            { "Board 4",  0x020e },
+            { "" }
+        },
+    },
+    { "", "", -1 }
+// clang-format on
 };
 
 static const device_t ems5150_device = {
@@ -891,98 +869,62 @@ static const device_t ems5150_device = {
     ems5150_config
 };
 
-
-static const device_config_t ev159_config[] =
-{
-	{
-		"size", "Memory Size", CONFIG_SPINNER, "", 512, "",
-		{ 0, 3072, 512 },
-		{ { 0 } }
-	},
-	{
-		"start", "Start Address", CONFIG_SPINNER, "", 0, "",
-		{ 0, 16128, 128 },
-		{ { 0 } }
-	},
-	{
-		"length", "Contiguous Size", CONFIG_SPINNER, "", 0, "",
-		{ 0, 16384, 128 },
-		{ { 0 } }
-	},
-	{
-		"width", "I/O Width", CONFIG_SELECTION, "", 0, "", { 0 },
-		{
-			{
-				"8-bit", 0
-			},
-			{
-				"16-bit", 1
-			},
-			{
-				""
-			}
-		},
-	},
-	{
-		"speed", "Transfer Speed", CONFIG_SELECTION, "", 0, "", { 0 },
-		{
-			{
-				"Standard (150ns)", 0
-			},
-			{
-				"High-Speed (120ns)", 1
-			},
-			{
-				""
-			}
-		}
-	},
-	{
-		"ems", "EMS mode", CONFIG_SELECTION, "", 0, "", { 0 },
-		{
-			{
-				"Disabled", 0
-			},
-			{
-				"Enabled", 1
-			},
-			{
-				""
-			}
-		},
-	},
-	{
-		"base", "Address", CONFIG_HEX16, "", 0x0258, "", { 0 },
-		{
-			{
-				"208H", 0x0208
-			},
-			{
-				"218H", 0x0218
-			},
-			{
-				"258H", 0x0258
-			},
-			{
-				"268H", 0x0268
-			},
-			{
-				"2A8H", 0x02A8
-			},
-			{
-				"2B8H", 0x02B8
-			},
-			{
-				"2E8H", 0x02E8
-			},
-			{
-				""
-			}
-		},
-	},
-	{
-		"", "", -1
-	}
+static const device_config_t ev159_config[] = {
+// clang-format off
+    {
+        "size", "Memory Size", CONFIG_SPINNER, "", 512, "",
+        { 0, 3072, 512 },
+        { { 0 } }
+    },
+    {
+        "start", "Start Address", CONFIG_SPINNER, "", 0, "",
+        { 0, 16128, 128 },
+        { { 0 } }
+    },
+    {
+        "length", "Contiguous Size", CONFIG_SPINNER, "", 0, "",
+        { 0, 16384, 128 },
+        { { 0 } }
+    },
+    {
+        "width", "I/O Width", CONFIG_SELECTION, "", 0, "", { 0 },
+        {
+            { "8-bit",  0 },
+            { "16-bit", 1 },
+            { ""          }
+        },
+    },
+    {
+        "speed", "Transfer Speed", CONFIG_SELECTION, "", 0, "", { 0 },
+        {
+            { "Standard (150ns)",   0 },
+            { "High-Speed (120ns)", 1 },
+            { ""                      }
+        }
+    },
+    {
+        "ems", "EMS mode", CONFIG_SELECTION, "", 0, "", { 0 },
+        {
+            { "Disabled", 0 },
+            { "Enabled",  1 },
+            { "" }
+        },
+    },
+    {
+        "base", "Address", CONFIG_HEX16, "", 0x0258, "", { 0 },
+        {
+            { "208H", 0x0208 },
+            { "218H", 0x0218 },
+            { "258H", 0x0258 },
+            { "268H", 0x0268 },
+            { "2A8H", 0x02A8 },
+            { "2B8H", 0x02B8 },
+            { "2E8H", 0x02E8 },
+            { ""             }
+        },
+    },
+    { "", "", -1 }
+// clang-format on
 };
 
 static const device_t ev159_device = {
@@ -995,84 +937,52 @@ static const device_t ev159_device = {
     ev159_config
 };
 
-
 #if defined(DEV_BRANCH) && defined(USE_ISAMEM_BRAT)
-static const device_config_t brat_config[] =
-{
-	{
-		"base", "Address", CONFIG_HEX16, "", 0x0258, "", { 0 },
-		{
-			{
-				"208H", 0x0208
-			},
-			{
-				"218H", 0x0218
-			},
-			{
-				"258H", 0x0258
-			},
-			{
-				"268H", 0x0268
-			},
-			{
-				""
-			}
-		},
-	},
-	{
-		"frame", "Frame Address", CONFIG_HEX20, "", 0, "", { 0 },
-		{
-			{
-				"Disabled", 0x00000
-			},
-			{
-				"D000H", 0xD0000
-			},
-			{
-				"E000H", 0xE0000
-			},
-			{
-				""
-			}
-		},
-	},
-	{
-		"width", "I/O Width", CONFIG_SELECTION, "", 8, "", { 0 },
-		{
-			{
-				"8-bit", 8
-			},
-			{
-				"16-bit", 16
-			},
-			{
-				""
-			}
-		},
-	},
-	{
-		"speed", "Transfer Speed", CONFIG_SELECTION, "", 0, "", { 0 },
-		{
-			{
-				"Standard", 0
-			},
-			{
-				"High-Speed", 1
-			},
-			{
-				""
-			}
-		}
-	},
-	{
-		"size", "Memory Size", CONFIG_SPINNER, "", 128,
-		"",
-		{ 0, 8192, 512 },
-		{ { 0 } }
-	},
-	{
-		"", "", -1
-	}
+static const device_config_t brat_config[] = {
+// clang-format off
+    {
+        "base", "Address", CONFIG_HEX16, "", 0x0258, "", { 0 },
+        {
+            { "208H", 0x0208 },
+            { "218H", 0x0218 },
+            { "258H", 0x0258 },
+            { "268H", 0x0268 },
+            { ""             }
+        },
+    },
+    {
+        "frame", "Frame Address", CONFIG_HEX20, "", 0, "", { 0 },
+        {
+            { "Disabled", 0x00000 },
+            { "D000H",    0xD0000 },
+            { "E000H",    0xE0000 },
+            { ""                  }
+        },
+    },
+    {
+        "width", "I/O Width", CONFIG_SELECTION, "", 8, "", { 0 },
+        {
+            { "8-bit",   8 },
+            { "16-bit", 16 },
+            { ""           }
+        },
+    },
+    {
+        "speed", "Transfer Speed", CONFIG_SELECTION, "", 0, "", { 0 },
+        {
+            { "Standard",   0 },
+            { "High-Speed", 1 },
+            { ""              }
+        }
+    },
+    {
+        "size", "Memory Size", CONFIG_SPINNER, "", 128,
+        "",
+        { 0, 8192, 512 },
+        { { 0 } }
+    },
+    { "", "", -1 }
+// clang-format on
 };
 
 static const device_t brat_device = {
@@ -1086,96 +996,55 @@ static const device_t brat_device = {
 };
 #endif
 
-
 #if defined(DEV_BRANCH) && defined(USE_ISAMEM_RAMPAGE)
-static const device_config_t rampage_config[] =
-{
-	{
-		"base", "Address", CONFIG_HEX16, "", 0x0258, "", { 0 },
-		{
-			{
-				"208H", 0x0208
-			},
-			{
-				"218H", 0x0218
-			},
-			{
-				"258H", 0x0258
-			},
-			{
-				"268H", 0x0268
-			},
-			{
-				"2A8H", 0x02A8
-			},
-			{
-				"2B8H", 0x02B8
-			},
-			{
-				"2E8H", 0x02E8
-			},
-			{
-				""
-			}
-		},
-	},
-	{
-		"frame", "Frame Address", CONFIG_HEX20, "", 0, "", { 0 },
-		{
-			{
-				"Disabled", 0x00000
-			},
-			{
-				"C000H", 0xC0000
-			},
-			{
-				"D000H", 0xD0000
-			},
-			{
-				"E000H", 0xE0000
-			},
-			{
-				""
-			}
-		},
-	},
-	{
-		"width", "I/O Width", CONFIG_SELECTION, "", 8, "", { 0 },
-		{
-			{
-				"8-bit", 8
-			},
-			{
-				"16-bit", 16
-			},
-			{
-				""
-			}
-		},
-	},
-	{
-		"speed", "Transfer Speed", CONFIG_SELECTION, "", 0, "", { 0 },
-		{
-			{
-				"Standard", 0
-			},
-			{
-				"High-Speed", 1
-			},
-			{
-				""
-			}
-		}
-	},
-	{
-		"size", "Memory Size", CONFIG_SPINNER, "", 128,
-		"",
-		{ 0, 8192, 128 },
-		{ { 0 } }
-	},
-	{
-		"", "", -1
-	}
+static const device_config_t rampage_config[] = {
+// clang-format off
+    {
+        "base", "Address", CONFIG_HEX16, "", 0x0258, "", { 0 },
+        {
+            { "208H", 0x0208 },
+            { "218H", 0x0218 },
+            { "258H", 0x0258 },
+            { "268H", 0x0268 },
+            { "2A8H", 0x02A8 },
+            { "2B8H", 0x02B8 },
+            { "2E8H", 0x02E8 },
+            { ""             }
+        },
+    },
+    {
+        "frame", "Frame Address", CONFIG_HEX20, "", 0, "", { 0 },
+        {
+            { "Disabled", 0x00000 },
+            { "C000H",    0xC0000 },
+            { "D000H",    0xD0000 },
+            { "E000H",    0xE0000 },
+            { ""                  }
+        },
+    },
+    {
+        "width", "I/O Width", CONFIG_SELECTION, "", 8, "", { 0 },
+        {
+            { "8-bit",   8 },
+            { "16-bit", 16 },
+            { ""           }
+        },
+    },
+    {
+        "speed", "Transfer Speed", CONFIG_SELECTION, "", 0, "", { 0 },
+        {
+            { "Standard",   0 },
+            { "High-Speed", 1 },
+            { ""              }
+        }
+    },
+    {
+        "size", "Memory Size", CONFIG_SPINNER, "", 128, "",
+        { 0, 8192, 128 },
+        { { 0 } }
+    },
+    { "", "", -1 }
+// clang-format on
 };
 
 static const device_t rampage_device = {
@@ -1191,94 +1060,54 @@ static const device_t rampage_device = {
 
 
 #if defined(DEV_BRANCH) && defined(USE_ISAMEM_IAB)
-static const device_config_t iab_config[] =
-{
-	{
-		"base", "Address", CONFIG_HEX16, "", 0x0258, "", { 0 },
-		{
-			{
-				"208H", 0x0208
-			},
-			{
-				"218H", 0x0218
-			},
-			{
-				"258H", 0x0258
-			},
-			{
-				"268H", 0x0268
-			},
-			{
-				"2A8H", 0x02A8
-			},
-			{
-				"2B8H", 0x02B8
-			},
-			{
-				"2E8H", 0x02E8
-			},
-			{
-				""
-			}
-		},
-	},
-	{
-		"frame", "Frame Address", CONFIG_HEX20, "", 0, "", { 0 },
-		{
-			{
-				"Disabled", 0x00000
-			},
-			{
-				"C000H", 0xC0000
-			},
-			{
-				"D000H", 0xD0000
-			},
-			{
-				"E000H", 0xE0000
-			},
-			{
-				""
-			}
-		},
-	},
-	{
-		"width", "I/O Width", CONFIG_SELECTION, "", 8, "", { 0 },
-		{
-			{
-				"8-bit", 8
-			},
-			{
-				"16-bit", 16
-			},
-			{
-				""
-			}
-		},
-	},
-	{
-		"speed", "Transfer Speed", CONFIG_SELECTION, "", 0, "", { 0 },
-		{
-			{
-				"Standard", 0
-			},
-			{
-				"High-Speed", 1
-			},
-			{
-				""
-			}
-		}
-	},
-	{
-		"size", "Memory Size", CONFIG_SPINNER, "", 128,
-		"",
-		{ 0, 8192, 128 },
-		{ { 0 } }
-	},
-	{
-		"", "", -1
-	}
+static const device_config_t iab_config[] = {
+// clang-format off
+    {
+        "base", "Address", CONFIG_HEX16, "", 0x0258, "", { 0 },
+        {
+            { "208H", 0x0208 },
+            { "218H", 0x0218 },
+            { "258H", 0x0258 },
+            { "268H", 0x0268 },
+            { "2A8H", 0x02A8 },
+            { "2B8H", 0x02B8 },
+            { "2E8H", 0x02E8 },
+            { ""             }
+        },
+    },
+    {
+        "frame", "Frame Address", CONFIG_HEX20, "", 0, "", { 0 },
+        {
+            { "Disabled", 0x00000 },
+            { "C000H",    0xC0000 },
+            { "D000H",    0xD0000 },
+            { "E000H",    0xE0000 },
+            { ""                  }
+        },
+    },
+    {
+        "width", "I/O Width", CONFIG_SELECTION, "", 8, "", { 0 },
+        {
+            { "8-bit",   8 },
+            { "16-bit", 16 },
+            { ""           }
+        },
+    },
+    {
+        "speed", "Transfer Speed", CONFIG_SELECTION, "", 0, "", { 0 },
+        {
+            { "Standard",   0 },
+            { "High-Speed", 1 },
+            { ""              }
+        }
+    },
+    {
+        "size", "Memory Size", CONFIG_SPINNER, "", 128, "",
+        { 0, 8192, 128 },
+        { { 0 } }
+    },
+    { "", "", -1 }
+// clang-format on
 };
 
 static const device_t iab_device = {
@@ -1292,7 +1121,6 @@ static const device_t iab_device = {
 };
 #endif
 
-
 static const device_t isa_none_device = {
     "None",
     "none",
@@ -1302,31 +1130,31 @@ static const device_t isa_none_device = {
     NULL
 };
 
-
 static const struct {
     const device_t	*dev;
 } boards[] = {
-    { &isa_none_device		},
-    { &ibmxt_device		},
-    { &genericxt_device		},
-    { &ibmat_device		},
-    { &genericat_device		},
-    { &p5pak_device		},
-    { &a6pak_device		},
-    { &ems5150_device		},
-    { &ev159_device		},
+// clang-format off
+    { &isa_none_device  },
+    { &ibmxt_device     },
+    { &genericxt_device },
+    { &ibmat_device     },
+    { &genericat_device },
+    { &p5pak_device     },
+    { &a6pak_device     },
+    { &ems5150_device   },
+    { &ev159_device     },
 #if defined(DEV_BRANCH) && defined(USE_ISAMEM_BRAT)
-    { &brat_device		},
+    { &brat_device      },
 #endif
 #if defined(DEV_BRANCH) && defined(USE_ISAMEM_RAMPAGE)
-    { &rampage_device		},
+    { &rampage_device   },
 #endif
 #if defined(DEV_BRANCH) && defined(USE_ISAMEM_IAB)
-    { &iab_device		},
+    { &iab_device       },
 #endif
-    { NULL			}
+    { NULL              }
+// clang-format on
 };
-
 
 void
 isamem_reset(void)
@@ -1345,7 +1173,6 @@ isamem_reset(void)
     }
 }
 
-
 const char *
 isamem_get_name(int board)
 {
@@ -1354,14 +1181,11 @@ isamem_get_name(int board)
     return(boards[board].dev->name);
 }
 
-
 const char *
 isamem_get_internal_name(int board)
 {
     return device_get_internal_name(boards[board].dev);
 }
-
-
 
 int
 isamem_get_from_internal_name(const char *s)
@@ -1377,7 +1201,6 @@ isamem_get_from_internal_name(const char *s)
     /* Not found. */
     return(0);
 }
-
 
 const device_t *
 isamem_get_device(int board)

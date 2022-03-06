@@ -437,6 +437,13 @@ machine_at_cuv4xls_init(const machine_t *model)
 }
 
 
+const device_t *
+at_cuv4xls_get_device(void)
+{
+    return &cmi8738_onboard_device;
+}
+
+
 int
 machine_at_6via90ap_init(const machine_t *model)
 {

@@ -100,13 +100,15 @@ static int 	(GSDLLAPI *gsapi_init_with_args)(void *instance, int argc, char **ar
 static int 	(GSDLLAPI *gsapi_exit)(void *instance);
 
 static dllimp_t ghostscript_imports[] = {
-  { "gsapi_revision",			&gsapi_revision			},
-  { "gsapi_new_instance",		&gsapi_new_instance		},
-  { "gsapi_delete_instance",		&gsapi_delete_instance		},
-  { "gsapi_set_arg_encoding",		&gsapi_set_arg_encoding		},
-  { "gsapi_init_with_args",		&gsapi_init_with_args		},
-  { "gsapi_exit",			&gsapi_exit			},
-  { NULL,				NULL				}
+// clang-format off
+    { "gsapi_revision",         &gsapi_revision         },
+    { "gsapi_new_instance",     &gsapi_new_instance     },
+    { "gsapi_delete_instance",  &gsapi_delete_instance  },
+    { "gsapi_set_arg_encoding", &gsapi_set_arg_encoding },
+    { "gsapi_init_with_args",   &gsapi_init_with_args   },
+    { "gsapi_exit",             &gsapi_exit             },
+    { NULL,                     NULL                    }
+// clang-format on
 };
 
 static void	*ghostscript_handle = NULL;

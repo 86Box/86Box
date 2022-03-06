@@ -20,7 +20,7 @@ if(QT_STATIC AND MINGW)
 endif()
 
 find_package(Threads REQUIRED)
-find_package(Qt${QT_MAJOR} COMPONENTS Core Widgets OpenGL REQUIRED)
+find_package(Qt${QT_MAJOR} COMPONENTS Core Widgets Network OpenGL REQUIRED)
 find_package(Qt${QT_MAJOR}LinguistTools REQUIRED)
 
 add_library(plat STATIC
@@ -49,6 +49,13 @@ add_library(ui STATIC
     qt_softwarerenderer.hpp
     qt_hardwarerenderer.cpp
     qt_hardwarerenderer.hpp
+    qt_openglrenderer.cpp
+    qt_openglrenderer.hpp
+    qt_opengloptions.cpp
+    qt_opengloptions.hpp
+    qt_opengloptionsdialog.cpp
+    qt_opengloptionsdialog.hpp
+    qt_opengloptionsdialog.ui
 
     qt_settings.cpp
     qt_settings.hpp
@@ -127,6 +134,9 @@ add_library(ui STATIC
     qt_util.hpp
     qt_util.cpp
 
+    qt_unixmanagerfilter.cpp
+    qt_unixmanagerfilter.hpp
+
     ../qt_resources.qrc
 )
 
@@ -176,6 +186,7 @@ target_link_libraries(
     PRIVATE
     Qt${QT_MAJOR}::Widgets
     Qt${QT_MAJOR}::Gui
+    Qt${QT_MAJOR}::Network
     Threads::Threads
 )
 
@@ -185,6 +196,7 @@ target_link_libraries(
     Qt${QT_MAJOR}::Widgets
     Qt${QT_MAJOR}::Gui
     Qt${QT_MAJOR}::OpenGL
+    Qt${QT_MAJOR}::Network
     Threads::Threads
 )
 
