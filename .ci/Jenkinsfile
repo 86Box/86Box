@@ -25,7 +25,7 @@ def osArchs = [
 ]
 
 def osFlags = [
-	'Windows': '',
+	'Windows': '-D QT=ON',
 	'Linux': '-D QT=ON'
 ]
 
