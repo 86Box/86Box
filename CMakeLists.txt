@@ -122,11 +122,7 @@ option(CPPTHREADS   "C++11 threads"                                             
 option(NEW_DYNAREC  "Use the PCem v15 (\"new\") dynamic recompiler"                 OFF)
 option(MINITRACE    "Enable Chrome tracing using the modified minitrace library"    OFF)
 option(DEV_BRANCH   "Development branch"                                            OFF)
-if(NOT WIN32)
 option(QT           "QT GUI"                                                        ON)
-else()
-option(QT           "QT GUI"                                                        OFF)
-endif()
 
 # Development branch features
 #
@@ -152,7 +148,7 @@ cmake_dependent_option(VNC            "VNC renderer"                            
 cmake_dependent_option(XL24           "ATI VGA Wonder XL24 (ATI-28800-6)"           ON      "DEV_BRANCH"    OFF)
 
 # Ditto but for Qt
-if (QT)
+if(QT)
     option(USE_QT6 "Use Qt6 instead of Qt5" OFF)
 endif()
 
