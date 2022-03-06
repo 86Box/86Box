@@ -42,9 +42,12 @@ OpenGLRenderer::OpenGLRenderer(QWidget *parent)
 
     QSurfaceFormat format;
 
+#ifdef Q_OS_MACOS
+    format.setVersion(4, 1);
+#else
+    format.setVersion(3, 2);
+#endif
     format.setProfile(QSurfaceFormat::OpenGLContextProfile::CoreProfile);
-    format.setMajorVersion(3);
-    format.setMinorVersion(2);
 
     if (QOpenGLContext::openGLModuleType() == QOpenGLContext::LibGLES)
         format.setRenderableType(QSurfaceFormat::OpenGLES);
@@ -114,7 +117,22 @@ OpenGLRenderer::initialize()
         if (!context->makeCurrent(this))
             throw opengl_init_error(tr("Couldn't switch to OpenGL context."));
 
+        auto version = context->format().version();
+
+        if (version.first < 3)
+            throw opengl_init_error(tr("OpenGL version 3.0 or greater is required. Current version is %1.%2").arg(version.first).arg(version.second));
+
         initializeOpenGLFunctions();
+
+        /* Prepare the shader version string */
+        glslVersion = reinterpret_cast<const char *>(glGetString(GL_SHADING_LANGUAGE_VERSION));
+        glslVersion.truncate(4);
+        glslVersion.remove('.');
+        glslVersion.prepend("#version ");
+        if (QOpenGLContext::openGLModuleType() == QOpenGLContext::LibGLES)
+            glslVersion.append(" es");
+        else if (context->format().profile() == QSurfaceFormat::CoreProfile)
+            glslVersion.append(" core");
 
         initializeExtensions();
 
@@ -147,7 +165,7 @@ OpenGLRenderer::initialize()
 
         glTexImage2D(GL_TEXTURE_2D, 0, QOpenGLTexture::RGBA8_UNorm, INIT_WIDTH, INIT_HEIGHT, 0, QOpenGLTexture::BGRA, QOpenGLTexture::UInt32_RGBA8_Rev, NULL);
 
-        options = new OpenGLOptions(this, true);
+        options = new OpenGLOptions(this, true, glslVersion);
 
         applyOptions();
 
@@ -211,7 +229,7 @@ OpenGLRenderer::finalize()
 QDialog *
 OpenGLRenderer::getOptions(QWidget *parent)
 {
-    auto dialog = new OpenGLOptionsDialog(parent, *options);
+    auto dialog = new OpenGLOptionsDialog(parent, *options, [this]() { return new OpenGLOptions(this, false, glslVersion); });
 
     connect(dialog, &OpenGLOptionsDialog::optionsChanged, this, &OpenGLRenderer::updateOptions);
 
