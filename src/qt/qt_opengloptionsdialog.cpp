@@ -24,9 +24,10 @@
 #include "qt_util.hpp"
 #include "ui_qt_opengloptionsdialog.h"
 
-OpenGLOptionsDialog::OpenGLOptionsDialog(QWidget *parent, const OpenGLOptions &options)
+OpenGLOptionsDialog::OpenGLOptionsDialog(QWidget *parent, const OpenGLOptions &options, std::function<OpenGLOptions *()> optionsFactory)
     : QDialog(parent)
     , ui(new Ui::OpenGLOptionsDialog)
+    , createOptions(optionsFactory)
 {
     ui->setupUi(this);
 
@@ -54,7 +55,7 @@ OpenGLOptionsDialog::~OpenGLOptionsDialog()
 void
 OpenGLOptionsDialog::accept()
 {
-    auto options = new OpenGLOptions();
+    auto options = createOptions();
 
     options->setRenderBehavior(
         ui->syncWithVideo->isChecked()
