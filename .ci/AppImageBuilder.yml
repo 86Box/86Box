@@ -61,6 +61,7 @@ AppDir:
     - usr/bin
     - usr/include
     - usr/lib/*/libasound.so.*
+    - usr/lib/*.a
     - usr/lib/cmake
     - usr/lib/pkgconfig
     - usr/sbin

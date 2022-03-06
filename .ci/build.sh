@@ -242,7 +242,7 @@ else
 	# ...and the ones we do want listed. Non-dev packages fill missing spots on the list.
 	libpkgs=""
 	longest_libpkg=0
-	for pkg in libc6-dev libstdc++6 libopenal-dev libfreetype6-dev libx11-dev libsdl2-dev libpng-dev librtmidi-dev qtdeclarative5-dev libwayland-dev libevdev-dev libglib2.0-dev libslirp-dev
+	for pkg in libc6-dev libstdc++6 libopenal-dev libfreetype6-dev libx11-dev libsdl2-dev libpng-dev librtmidi-dev qtdeclarative5-dev libwayland-dev libevdev-dev libglib2.0-dev libslirp-dev   libfaudio-dev libaudio-dev libjack-jackd2-dev libpipewire-0.3-dev libsamplerate0-dev libsndio-dev
 	do
 		libpkgs="$libpkgs $pkg:$arch_deb"
 		length=$(echo -n $pkg | sed 's/-dev$//' | sed "s/qtdeclarative/qt/" | wc -c)
@@ -298,9 +298,6 @@ EOF
 
 	# Link against the system libslirp instead of compiling ours.
 	cmake_flags_extra="$cmake_flags_extra -D SLIRP_EXTERNAL=ON"
-
-	# Use OpenAL for Linux builds before FAudio builds are set up.
-	cmake_flags_extra="$cmake_flags_extra -D OPENAL=ON"
 fi
 
 # Clean workspace.
@@ -432,19 +429,41 @@ then
 else
 	cwd_root=$(pwd)
 
-	# Build openal-soft 1.21.1 manually to fix audio issues. This is a temporary
-	# workaround until a newer version of openal-soft trickles down to Debian repos.
-	if [ -d "openal-soft-1.21.1" ]
+	if grep -q "OPENAL:BOOL=ON" build/CMakeCache.txt
 	then
-		rm -rf openal-soft-1.21.1/build/*
+		# Build openal-soft 1.21.1 manually to fix audio issues. This is a temporary
+		# workaround until a newer version of openal-soft trickles down to Debian repos.
+		if [ -d "openal-soft-1.21.1" ]
+		then
+			rm -rf openal-soft-1.21.1/build/*
+		else
+			wget -qO - https://github.com/kcat/openal-soft/archive/refs/tags/1.21.1.tar.gz | tar zxf -
+		fi
+		cd openal-soft-1.21.1/build
+		[ -e Makefile ] && make clean
+		cmake -G "Unix Makefiles" -D "CMAKE_TOOLCHAIN_FILE=$cwd_root/toolchain.cmake" -D "CMAKE_INSTALL_PREFIX=$cwd_root/archive_tmp/usr" ..
+		make -j$(nproc) install || exit 99
+		cd "$cwd_root"
+
+		# Build SDL2 without sound systems.
+		sdl_ss=OFF
 	else
-		wget -qO - https://github.com/kcat/openal-soft/archive/refs/tags/1.21.1.tar.gz | tar zxf -
+		# Build FAudio 22.03 manually to remove the dependency on GStreamer.
+		if [ -d "FAudio-22.03" ]
+		then
+			rm -rf FAudio-22.03/build
+		else
+			wget -qO - https://github.com/FNA-XNA/FAudio/archive/refs/tags/22.03.tar.gz | tar zxf -
+		fi
+		mkdir FAudio-22.03/build
+		cd FAudio-22.03/build
+		cmake -G "Unix Makefiles" -D "CMAKE_TOOLCHAIN_FILE=$cwd_root/toolchain.cmake" -D "CMAKE_INSTALL_PREFIX=$cwd_root/archive_tmp/usr" ..
+		make -j$(nproc) install || exit 99
+		cd "$cwd_root"
+
+		# Build SDL2 with sound systems.
+		sdl_ss=ON
 	fi
-	cd openal-soft-1.21.1/build
-	[ -e Makefile ] && make clean
-	cmake -G "Unix Makefiles" -D "CMAKE_TOOLCHAIN_FILE=$cwd_root/toolchain.cmake" -D "CMAKE_INSTALL_PREFIX=$cwd_root/archive_tmp/usr" ..
-	make -j$(nproc) install || exit 99
-	cd "$cwd_root"
 
 	# Build rtmidi without JACK support to remove the dependency on libjack.
 	if [ -d "rtmidi-4.0.0" ]
@@ -468,10 +487,10 @@ else
 	rm -rf sdlbuild
 	mkdir sdlbuild
 	cd sdlbuild
-	cmake -G "Unix Makefiles" -D SDL_DISKAUDIO=OFF -D SDL_DIRECTFB_SHARED=OFF -D SDL_OPENGL=OFF -D SDL_OPENGLES=OFF -D SDL_OSS=OFF -D SDL_ALSA=OFF \
-		-D SDL_ALSA_SHARED=OFF -D SDL_JACK=OFF -D SDL_JACK_SHARED=OFF -D SDL_ESD=OFF -D SDL_ESD_SHARED=OFF -D SDL_PIPEWIRE=OFF -D SDL_PIPEWIRE_SHARED=OFF \
-		-D SDL_PULSEAUDIO=OFF -D SDL_PULSEAUDIO_SHARED=OFF -D SDL_ARTS=OFF -D SDL_ARTS_SHARED=OFF -D SDL_NAS=OFF -D SDL_NAS_SHARED=OFF -D SDL_SNDIO=OFF \
-		-D SDL_SNDIO_SHARED=OFF -D SDL_FUSIONSOUND=OFF -D SDL_FUSIONSOUND_SHARED=OFF -D SDL_LIBSAMPLERATE=OFF -D SDL_LIBSAMPLERATE_SHARED=OFF -D SDL_X11=OFF \
+	cmake -G "Unix Makefiles" -D SDL_DISKAUDIO=OFF -D SDL_DIRECTFB_SHARED=OFF -D SDL_OPENGL=OFF -D SDL_OPENGLES=OFF -D SDL_OSS=OFF -D SDL_ALSA=$sdl_ss \
+		-D SDL_ALSA_SHARED=$sdl_ss -D SDL_JACK=$sdl_ss -D SDL_JACK_SHARED=$sdl_ss -D SDL_ESD=OFF -D SDL_ESD_SHARED=OFF -D SDL_PIPEWIRE=$sdl_ss -D SDL_PIPEWIRE_SHARED=$sdl_ss \
+		-D SDL_PULSEAUDIO=$sdl_ss -D SDL_PULSEAUDIO_SHARED=$sdl_ss -D SDL_ARTS=OFF -D SDL_ARTS_SHARED=OFF -D SDL_NAS=$sdl_ss -D SDL_NAS_SHARED=$sdl_ss -D SDL_SNDIO=$sdl_ss \
+		-D SDL_SNDIO_SHARED=$sdl_ss -D SDL_FUSIONSOUND=OFF -D SDL_FUSIONSOUND_SHARED=OFF -D SDL_LIBSAMPLERATE=$sdl_ss -D SDL_LIBSAMPLERATE_SHARED=$sdl_ss -D SDL_X11=OFF \
 		-D SDL_X11_SHARED=OFF -D SDL_WAYLAND=OFF -D SDL_WAYLAND_SHARED=OFF -D SDL_WAYLAND_LIBDECOR=OFF -D SDL_WAYLAND_LIBDECOR_SHARED=OFF \
 		-D SDL_WAYLAND_QT_TOUCH=OFF -D SDL_RPI=OFF -D SDL_VIVANTE=OFF -D SDL_VULKAN=OFF -D SDL_KMSDRM=OFF -D SDL_KMSDRM_SHARED=OFF -D SDL_OFFSCREEN=OFF \
 		-D SDL_HIDAPI_JOYSTICK=ON -D SDL_VIRTUAL_JOYSTICK=ON -D SDL_SHARED=ON -D SDL_STATIC=OFF -S "$cwd_root/SDL2-2.0.20" \
