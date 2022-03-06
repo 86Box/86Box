@@ -26,10 +26,13 @@
 #include <86box/mem.h>
 #include <86box/pic.h>
 #include <86box/timer.h>
+#include <86box/dma.h>
 #include <86box/pci.h>
 #include <86box/sound.h>
 #include <86box/snd_sb.h>
+#include <86box/snd_sb_dsp.h>
 #include <86box/gameport.h>
+#include <86box/nmi.h>
 #include <86box/ui.h>
 
 
@@ -41,6 +44,14 @@ enum {
     CMEDIA_CMI8338 = 0x000000,
     CMEDIA_CMI8738_4CH = 0x040011, /* chip version 039 with 4-channel output */
     CMEDIA_CMI8738_6CH = 0x080011 /* chip version 055 with 6-channel output */
+};
+
+enum {
+    TRAP_DMA = 0,
+    TRAP_PIC,
+    TRAP_OPL,
+    TRAP_MPU,
+    TRAP_MAX
 };
 
 typedef struct {
@@ -63,17 +74,21 @@ typedef struct {
 typedef struct _cmi8x38_ {
     uint32_t	type;
     uint16_t	io_base, sb_base, opl_base, mpu_base;
-    uint8_t	pci_regs[256], io_regs[256], mixer_ext_regs[16];
-    int		slot;
+    uint8_t	pci_regs[256], io_regs[256];
+    int		slot, sb_irq;
 
     sb_t	*sb;
-    void	*gameport;
+    void	*gameport, *io_traps[TRAP_MAX];
+
     cmi8x38_dma_t dma[2];
+    uint16_t	tdma_base_addr, tdma_base_count;
+    uint8_t	prev_mask;
+    int		tdma_last_8, tdma_last_16, tdma_mask;
 
     int		master_vol_l, master_vol_r, cd_vol_l, cd_vol_r;
 } cmi8x38_t;
 
-#define ENABLE_CMI8X38_LOG 1
+
 #ifdef ENABLE_CMI8X38_LOG
 int cmi8x38_do_log = ENABLE_CMI8X38_LOG;
 
@@ -104,7 +119,7 @@ static void
 cmi8x38_update_irqs(cmi8x38_t *dev)
 {
     /* Calculate and use the INTR flag. */
-    if (*((uint32_t *) &dev->io_regs[0x10]) & 0x0401c003) {
+    if ((*((uint32_t *) &dev->io_regs[0x10]) & 0x0401c003) || dev->sb_irq) {
 	dev->io_regs[0x13] |= 0x80;
 	pci_set_irq(dev->slot, PCI_INTA);
 	cmi8x38_log("CMI8x38: Raising IRQ\n");
@@ -136,6 +151,290 @@ cmi8x38_mpu_irq_pending(void *priv)
 
 
 static void
+cmi8x38_sb_irq_update(void *priv, int set)
+{
+    cmi8x38_t *dev = (cmi8x38_t *) priv;
+    dev->sb_irq = set;
+    cmi8x38_update_irqs(dev);
+}
+
+
+static int
+cmi8x38_sb_dma_post(cmi8x38_t *dev, uint16_t *addr, uint16_t *count, int channel)
+{
+    /* Increment address and decrement count. */
+    *addr += 1;
+    *count -= 1;
+
+    /* Handle end of DMA. */
+    if (*count == 0xffff) {
+	if (dma[channel].mode & 0x10) { /* auto-init */
+		/* Restart TDMA. */
+		*addr = dev->tdma_base_addr;
+		*count = dev->tdma_base_count;
+		cmi8x38_log("CMI8x38: Restarting TDMA on DMA %d with addr %08X count %04X\n", channel, (dma[channel].ab & 0xffff0000) | *addr, *count);
+	} else {
+		/* Mask TDMA. */
+		dev->tdma_mask |= 1 << channel;
+	}
+	return DMA_OVER;
+    }
+    return 0;
+}
+
+
+static int
+cmi8x38_sb_dma_readb(void *priv)
+{
+    cmi8x38_t *dev = (cmi8x38_t *) priv;
+
+    /* Stop if the DMA channel is invalid or if TDMA is masked. */
+    int channel = dev->sb->dsp.sb_8_dmanum;
+    if ((channel < 0) || (dev->tdma_mask & (1 << channel)))
+	return DMA_NODATA;
+
+    /* Get 16-bit address and count registers. */
+    uint16_t *addr = (uint16_t *) &dev->io_regs[0x1c],
+             *count = (uint16_t *) &dev->io_regs[0x1e];
+
+    /* Read data. */
+    int ret = mem_readb_phys((dma[channel].ab & 0xffff0000) | *addr);
+
+    /* Handle address, count and end. */
+    ret |= cmi8x38_sb_dma_post(dev, addr, count, channel);
+
+    return ret;
+}
+
+
+static int
+cmi8x38_sb_dma_readw(void *priv)
+{
+    cmi8x38_t *dev = (cmi8x38_t *) priv;
+
+    /* Stop if the DMA channel is invalid or if TDMA is masked. */
+    int channel = dev->sb->dsp.sb_16_dmanum;
+    if ((channel < 0) || (dev->tdma_mask & (1 << channel)))
+	return DMA_NODATA;
+
+    /* Get 16-bit address and count registers. */
+    uint16_t *addr = (uint16_t *) &dev->io_regs[0x1c],
+             *count = (uint16_t *) &dev->io_regs[0x1e];
+
+    /* Read data. */
+    int ret = mem_readw_phys((dma[channel].ab & 0xfffe0000) | ((*addr) << 1));
+
+    /* Handle address, count and end. */
+    ret |= cmi8x38_sb_dma_post(dev, addr, count, channel);
+
+    return ret;
+}
+
+
+static int
+cmi8x38_sb_dma_writeb(void *priv, uint8_t val)
+{
+    cmi8x38_t *dev = (cmi8x38_t *) priv;
+
+    /* Stop if the DMA channel is invalid or if TDMA is masked. */
+    int channel = dev->sb->dsp.sb_8_dmanum;
+    if ((channel < 0) || (dev->tdma_mask & (1 << channel)))
+	return 1;
+
+    /* Get 16-bit address and count registers. */
+    uint16_t *addr = (uint16_t *) &dev->io_regs[0x1c],
+             *count = (uint16_t *) &dev->io_regs[0x1e];
+
+    /* Write data. */
+    mem_writeb_phys((dma[channel].ab & 0xffff0000) | *addr, val);
+
+    /* Handle address, count and end. */
+    cmi8x38_sb_dma_post(dev, addr, count, channel);
+
+    return 0;
+}
+
+
+static int
+cmi8x38_sb_dma_writew(void *priv, uint16_t val)
+{
+    cmi8x38_t *dev = (cmi8x38_t *) priv;
+
+    /* Stop if the DMA channel is invalid or if TDMA is masked. */
+    int channel = dev->sb->dsp.sb_16_dmanum;
+    if ((channel < 0) || (dev->tdma_mask & (1 << channel)))
+	return 1;
+
+    /* Get 16-bit address and count registers. */
+    uint16_t *addr = (uint16_t *) &dev->io_regs[0x1c],
+             *count = (uint16_t *) &dev->io_regs[0x1e];
+
+    /* Write data. */
+    mem_writew_phys((dma[channel].ab & 0xfffe0000) | ((*addr) << 1), val);
+
+    /* Handle address, count and end. */
+    cmi8x38_sb_dma_post(dev, addr, count, channel);
+
+    return 0;
+}
+
+
+static void
+cmi8x38_dma_write(uint16_t addr, uint8_t val, void *priv)
+{
+    cmi8x38_t *dev = (cmi8x38_t *) priv;
+
+    /* Keep track of the last DMA channel written to. */
+    uint8_t channel;
+    if (addr < 0x08) {
+	channel = addr >> 1;
+	dev->tdma_last_8 = channel;
+    } else {
+	channel = 4 | ((addr >> 2) & 3);
+	dev->tdma_last_16 = channel;
+    }
+
+    /* Stop if not autodetecting. See note on cmi8x38_write(0x27). */
+    if (!(dev->io_regs[0x27] & 0x01))
+	return;
+
+    /* Write TDMA registers if this is a TDMA channel. */
+    if ((channel == dev->sb->dsp.sb_8_dmanum) || (channel == dev->sb->dsp.sb_16_dmanum)) {
+	/* Write base address and count. */
+	uint16_t *addr = (uint16_t *) &dev->io_regs[0x1c],
+                 *count = (uint16_t *) &dev->io_regs[0x1e];
+	*addr = dev->tdma_base_addr = dma[channel].ab >> !!(channel & 4);
+	*count = dev->tdma_base_count = dma[channel].cb;
+	cmi8x38_log("CMI8x38: Starting TDMA on DMA %d with addr %08X count %04X\n", channel, (dma[channel].ab & 0xffff0000) | *addr, *count);
+
+	/* Set high channel flag. */
+	if (channel & 4)
+		dev->io_regs[0x10] |= 0x20;
+	else
+		dev->io_regs[0x10] &= ~0x20;
+    }
+}
+
+static void
+cmi8x38_dma_mask_write(uint16_t addr, uint8_t val, void *priv)
+{
+    cmi8x38_t *dev = (cmi8x38_t *) priv;
+
+    /* Stop if not autodetecting. See note on cmi8x38_write(0x27). */
+    if (!(dev->io_regs[0x27] & 0x01))
+	return;
+
+    /* Unmask TDMA on DMA unmasking edge. */
+    if ((dev->sb->dsp.sb_8_dmanum >= 0) && (dev->prev_mask & (1 << dev->sb->dsp.sb_8_dmanum)) && !(dma_m & (1 << dev->sb->dsp.sb_8_dmanum)))
+	dev->tdma_mask &= ~(1 << dev->sb->dsp.sb_8_dmanum);
+    else if ((dev->sb->dsp.sb_16_dmanum >= 0) && (dev->prev_mask & (1 << dev->sb->dsp.sb_16_dmanum)) && !(dma_m & (1 << dev->sb->dsp.sb_16_dmanum)))
+	dev->tdma_mask &= ~(1 << dev->sb->dsp.sb_16_dmanum);
+    dev->prev_mask = dma_m;
+}
+
+
+static void
+cmi8338_io_trap(int size, uint16_t addr, uint8_t write, uint8_t val, void *priv)
+{
+    cmi8x38_t *dev = (cmi8x38_t *) priv;
+
+#ifdef ENABLE_CMI8X38_LOG
+    if (write)
+	cmi8x38_log("CMI8x38: cmi8338_io_trap(%04X, %02X)\n", addr, val);
+    else
+	cmi8x38_log("CMI8x38: cmi8338_io_trap(%04X)\n", addr);
+#endif
+
+    /* Weird offsets, it's best to just treat the register as a big dword. */
+    uint32_t *lcs = (uint32_t *) &dev->io_regs[0x14];
+    *lcs &= ~0x0003dff0;
+    *lcs |= (addr & 0x0f) << 14;
+    if (write)
+	*lcs |= 0x1000 | (val << 4);
+
+    /* Raise NMI. */
+    nmi = 1;
+}
+
+
+static uint8_t
+cmi8x38_sb_mixer_read(uint16_t addr, void *priv)
+{
+    cmi8x38_t *dev = (cmi8x38_t *) priv;
+    sb_ct1745_mixer_t *mixer = &dev->sb->mixer_sb16;
+    uint8_t ret = sb_ct1745_mixer_read(addr, dev->sb);
+
+    if (addr & 1) {
+	if ((mixer->index == 0x0e) || (mixer->index >= 0xf0))
+		ret = mixer->regs[mixer->index];
+	cmi8x38_log("CMI8x38: sb_mixer_read(1, %02X) = %02X\n", mixer->index, ret);
+    } else {
+	cmi8x38_log("CMI8x38: sb_mixer_read(0) = %02X\n", ret);
+    }
+
+    return ret;
+}
+
+
+static void
+cmi8x38_sb_mixer_write(uint16_t addr, uint8_t val, void *priv)
+{
+    cmi8x38_t *dev = (cmi8x38_t *) priv;
+    sb_ct1745_mixer_t *mixer = &dev->sb->mixer_sb16;
+
+    /* Our clone mixer has a few differences. */
+    if (addr & 1) {
+	cmi8x38_log("CMI8x38: sb_mixer_write(1, %02X, %02X)\n", mixer->index, val);
+
+	switch (mixer->index) {
+		/* Reset interleaved stereo flag for SBPro mode. */
+		case 0x00:
+			mixer->regs[0x0e] = 0x00;
+			break;
+
+		/* No dynamic IRQ and DMA assignment. */
+		case 0x80: case 0x81:
+			return;
+
+		/* Some extended registers beyond those accepted by the CT1745. */
+		case 0xf0:
+			if (dev->type == CMEDIA_CMI8338)
+				val &= 0xfe;
+			mixer->regs[mixer->index] = val;
+			return;
+
+		case 0xf8 ... 0xff:
+			if (dev->type == CMEDIA_CMI8338)
+				mixer->regs[mixer->index] = val;
+			/* fall-through */
+
+		case 0xf1 ... 0xf7:
+			return;
+	}
+
+	sb_ct1745_mixer_write(addr, val, dev->sb);
+
+	/* No [3F:47] controls. */
+	mixer->input_gain_L = 0;
+	mixer->input_gain_R = 0;
+	mixer->output_gain_L = (double) 1.0;
+	mixer->output_gain_R = (double) 1.0;
+	mixer->bass_l   = 8;
+	mixer->bass_r   = 8;
+	mixer->treble_l = 8;
+	mixer->treble_r = 8;
+
+	/* Check interleaved stereo flag for SBPro mode. */
+	if ((mixer->index == 0x00) || (mixer->index == 0x0e))
+		sb_dsp_set_stereo(&dev->sb->dsp, mixer->regs[0x0e] & 2);
+    } else {
+	cmi8x38_log("CMI8x38: sb_mixer_write(0, %02X)\n", val);
+	sb_ct1745_mixer_write(addr, val, dev->sb);
+    }
+}
+
+
+static void
 cmi8x38_remap_sb(cmi8x38_t *dev)
 {
     if (dev->sb_base) {
@@ -143,21 +442,19 @@ cmi8x38_remap_sb(cmi8x38_t *dev)
 						   opl3_write,   NULL, NULL, &dev->sb->opl);
 	io_removehandler(dev->sb_base + 8, 0x0002, opl3_read,    NULL, NULL,
 						   opl3_write,   NULL, NULL, &dev->sb->opl);
-	io_removehandler(dev->sb_base + 4, 0x0002, sb_ct1745_mixer_read,  NULL, NULL,
-						   sb_ct1745_mixer_write, NULL, NULL, dev->sb);
+	io_removehandler(dev->sb_base + 4, 0x0002, cmi8x38_sb_mixer_read,  NULL, NULL,
+						   cmi8x38_sb_mixer_write, NULL, NULL, dev);
 
 	sb_dsp_setaddr(&dev->sb->dsp, 0);
     }
 
-    if (dev->io_regs[0x04] & 0x08) {
-	dev->sb_base = 0x220;
-	if (dev->type == CMEDIA_CMI8338)
-		dev->sb_base += (dev->io_regs[0x17] & 0x80) >> 2;
-	else
-		dev->sb_base += (dev->io_regs[0x17] & 0x0c) << 3;
-    } else {
+    dev->sb_base = 0x220;
+    if (dev->type == CMEDIA_CMI8338)
+	dev->sb_base += (dev->io_regs[0x17] & 0x80) >> 2;
+    else
+	dev->sb_base += (dev->io_regs[0x17] & 0x0c) << 3;
+    if (!(dev->io_regs[0x04] & 0x08))
 	dev->sb_base = 0;
-    }
     cmi8x38_log("CMI8x38: remap_sb(%04X)\n", dev->sb_base);
 
     if (dev->sb_base) {
@@ -165,8 +462,8 @@ cmi8x38_remap_sb(cmi8x38_t *dev)
 						opl3_write,   NULL, NULL, &dev->sb->opl);
 	io_sethandler(dev->sb_base + 8, 0x0002, opl3_read,    NULL, NULL,
 						opl3_write,   NULL, NULL, &dev->sb->opl);
-	io_sethandler(dev->sb_base + 4, 0x0002, sb_ct1745_mixer_read,  NULL, NULL,
-						sb_ct1745_mixer_write, NULL, NULL, dev->sb);
+	io_sethandler(dev->sb_base + 4, 0x0002, cmi8x38_sb_mixer_read,  NULL, NULL,
+						cmi8x38_sb_mixer_write, NULL, NULL, dev);
 
 	sb_dsp_setaddr(&dev->sb->dsp, dev->sb_base);
     }
@@ -181,19 +478,16 @@ cmi8x38_remap_opl(cmi8x38_t *dev)
 						   opl3_write,   NULL, NULL, &dev->sb->opl);
     }
 
-    if (dev->io_regs[0x1a] & 0x08) {
-	if (dev->type == CMEDIA_CMI8338)
-		dev->opl_base = 0x388;
-	else
-		dev->opl_base = opl_ports_cmi8738[dev->io_regs[0x17] & 0x03];
-    } else {
+    dev->opl_base = (dev->type == CMEDIA_CMI8338) ? 0x388 : opl_ports_cmi8738[dev->io_regs[0x17] & 0x03];
+    io_trap_remap(dev->io_traps[TRAP_OPL], dev->io_regs[0x16] & 0x80, dev->opl_base, 4);
+    if (!(dev->io_regs[0x1a] & 0x08))
 	dev->opl_base = 0;
-    }
+
     cmi8x38_log("CMI8x38: remap_opl(%04X)\n", dev->opl_base);
 
     if (dev->opl_base) {
 	io_sethandler(dev->opl_base,	   0x0004, opl3_read,    NULL, NULL,
-						   opl3_write,   NULL, NULL, &dev->sb->opl);
+						   opl3_write,   NULL, NULL, &dev->sb->opl);	
     }
 }
 
@@ -204,13 +498,13 @@ cmi8x38_remap_mpu(cmi8x38_t *dev)
     if (dev->mpu_base)
 	mpu401_change_addr(dev->sb->mpu, 0);
 
-    if (dev->io_regs[0x04] & 0x04) {
-    	/* The CMI8338 datasheet's port range of [300:330] is
-    	   inaccurate. Drivers expect [330:300] like CMI8738. */
-	dev->mpu_base = 0x330 - ((dev->io_regs[0x17] & 0x60) >> 1);
-    } else {
+    /* The CMI8338 datasheet's port range of [300:330] is
+       inaccurate. Drivers expect [330:300] like CMI8738. */
+    dev->mpu_base = 0x330 - ((dev->io_regs[0x17] & 0x60) >> 1);
+    io_trap_remap(dev->io_traps[TRAP_MPU], dev->io_regs[0x16] & 0x20, dev->mpu_base, 2);
+    if (!(dev->io_regs[0x04] & 0x04))
 	dev->mpu_base = 0;
-    }
+
     cmi8x38_log("CMI8x38: remap_mpu(%04X)\n", dev->mpu_base);
 
     if (dev->mpu_base)
@@ -219,9 +513,9 @@ cmi8x38_remap_mpu(cmi8x38_t *dev)
 
 
 static void
-cmi8x38_start_playback(cmi8x38_t *dev, uint8_t val)
+cmi8x38_start_playback(cmi8x38_t *dev)
 {
-    uint8_t i;
+    uint8_t i, val = dev->io_regs[0x00];
 
     i = !(val & 0x01);
     if (!dev->dma[0].playback_enabled && i)
@@ -243,16 +537,8 @@ cmi8x38_read(uint16_t addr, void *priv)
     uint8_t ret;
 
     switch (addr) {
-	case 0x22:
-		sb_ct1745_mixer_t *mixer = &dev->sb->mixer_sb16;
-		if (mixer->index >= 0xf0)
-			ret = dev->mixer_ext_regs[mixer->index & 0x0f];
-		else
-			ret = sb_ct1745_mixer_read(1, dev->sb);
-		break;
-
-	case 0x23:
-		ret = sb_ct1745_mixer_read(0, dev->sb);
+	case 0x22: case 0x23:
+		ret = cmi8x38_sb_mixer_read(addr ^ 1, dev);
 		break;
 
 	case 0x40 ... 0x4f:
@@ -327,7 +613,8 @@ cmi8x38_write(uint16_t addr, uint8_t val, void *priv)
 		dev->dma[1].always_run = val & 0x02;
 
 		/* Start playback if requested. */
-		cmi8x38_start_playback(dev, val);
+		dev->io_regs[addr] = val;
+		cmi8x38_start_playback(dev);
 		break;
 
 	case 0x02:
@@ -354,7 +641,7 @@ cmi8x38_write(uint16_t addr, uint8_t val, void *priv)
 
 		/* Start playback along with DMA channels. */
 		if (val & 0x03)
-			cmi8x38_start_playback(dev, dev->io_regs[0x00]);
+			cmi8x38_start_playback(dev);
 		break;
 
 	case 0x04:
@@ -425,8 +712,14 @@ cmi8x38_write(uint16_t addr, uint8_t val, void *priv)
 		break;
 
 	case 0x16:
-		if (dev->type == CMEDIA_CMI8338)
+		if (dev->type == CMEDIA_CMI8338) {
 			val &= 0xa0;
+
+			/* Enable or disable I/O traps. */
+			dev->io_regs[addr] = val;
+			cmi8x38_remap_opl(dev);
+			cmi8x38_remap_mpu(dev);
+		}
 		break;
 
 	case 0x17:
@@ -438,6 +731,10 @@ cmi8x38_write(uint16_t addr, uint8_t val, void *priv)
 				pci_set_irq(dev->slot, PCI_INTA);
 			else if ((dev->io_regs[0x17] & 0x10) && !(val & 0x10))
 				pci_clear_irq(dev->slot, PCI_INTA);
+
+			/* Enable or disable I/O traps. */
+			io_trap_remap(dev->io_traps[TRAP_DMA], val & 0x02, 0x0000, 16);
+			io_trap_remap(dev->io_traps[TRAP_PIC], val & 0x01, 0x0020, 2);
 		}
 
 		/* Remap the legacy devices. */
@@ -484,43 +781,13 @@ cmi8x38_write(uint16_t addr, uint8_t val, void *priv)
 			val &= 0xf7;
 		else
 			val &= 0x07;
+
+		/* Enable or disable SBPro channel swapping. */
+		dev->sb->dsp.sbleftright_default = !!(val & 0x02);
 		break;
 
-	case 0x22:
-		sb_ct1745_mixer_t *mixer = &dev->sb->mixer_sb16;
-		switch (mixer->index) {
-			case 0xf0:
-				if (dev->type == CMEDIA_CMI8338)
-					val &= 0xfe;
-				dev->mixer_ext_regs[dev->sb->mixer_sb16.index & 0x0f] = val;
-				break;
-
-			case 0xf8 ... 0xff:
-				if (dev->type == CMEDIA_CMI8338)
-					dev->mixer_ext_regs[dev->sb->mixer_sb16.index & 0x0f] = val;
-				/* fall-through */
-
-			case 0xf1 ... 0xf7:
-				break;
-
-			default:
-				sb_ct1745_mixer_write(1, val, dev->sb);
-
-				/* Our clone mixer lacks the [3F:47] controls. */
-				mixer->input_gain_L = 0;
-				mixer->input_gain_R = 0;
-				mixer->output_gain_L = (double) 1.0;
-				mixer->output_gain_R = (double) 1.0;
-				mixer->bass_l   = 8;
-				mixer->bass_r   = 8;
-				mixer->treble_l = 8;
-				mixer->treble_r = 8;
-				break;
-		}
-		return;
-
-	case 0x23:
-		sb_ct1745_mixer_write(0, val, dev->sb);
+	case 0x22: case 0x23:
+		cmi8x38_sb_mixer_write(addr ^ 1, val, dev);
 		return;
 
 	case 0x24:
@@ -533,6 +800,16 @@ cmi8x38_write(uint16_t addr, uint8_t val, void *priv)
 			val &= 0x03;
 		else
 			val &= 0x27;
+
+		if (val & 0x01) {
+			/* Latch last DMA channels that had address/count registers written to.
+			   Nobody knows how this "autodetection" works, but the CMI8338 TSR
+			   disables it before and reenables it after copying the TDMA base/addr
+			   to the 8237 registers corresponding to the 8-bit SB DMA channel. */
+			dev->sb->dsp.sb_8_dmanum = dev->tdma_last_8;
+			if (!(dev->io_regs[0x21] & 0x01))
+				dev->sb->dsp.sb_16_dmanum = dev->tdma_last_16;
+		}
 		break;
 
 	case 0x40 ... 0x4f:
@@ -751,9 +1028,11 @@ cmi8x38_poll(void *priv)
     int16_t *out_l, *out_r, *out_ol, *out_or; /* o = opposite */
 
     /* Schedule next run if playback is enabled. */
+#if 0 /* temporary */
     if (dev->io_regs[0x00] & (1 << dma->id))
 	dma->playback_enabled = 0;
     else
+#endif
 	timer_advance_u64(&dma->poll_timer, dma->timer_latch);
 
     /* Update audio buffer. */
@@ -1000,6 +1279,10 @@ cmi8x38_reset(void *priv)
 	memset(dev->dma[i].fifo, 0, sizeof(dev->dma[i].fifo));
     }
 
+    /* Reset legacy DMA channel. */
+    dev->tdma_last_8 = dev->tdma_last_16 = dev->sb->dsp.sb_8_dmanum = dev->sb->dsp.sb_16_dmanum = -1;
+    dev->tdma_mask = 0;
+
     /* Reset Sound Blaster 16 mixer. */
     sb_ct1745_mixer_reset(dev->sb);
 }
@@ -1023,8 +1306,15 @@ cmi8x38_init(const device_t *info)
     dev->sb->opl_enabled = 1; /* let snd_sb.c handle the OPL3 */
     dev->sb->mixer_sb16.output_filter = 0; /* no output filtering */
 
-    /* Initialize MPU-401 interrupt handler. */
+    /* Initialize legacy interrupt and DMA handlers. */
     mpu401_irq_attach(dev->sb->mpu, cmi8x38_mpu_irq_update, cmi8x38_mpu_irq_pending, dev);
+    sb_dsp_irq_attach(&dev->sb->dsp, cmi8x38_sb_irq_update, dev);
+    sb_dsp_dma_attach(&dev->sb->dsp, cmi8x38_sb_dma_readb, cmi8x38_sb_dma_readw, cmi8x38_sb_dma_writeb, cmi8x38_sb_dma_writew, dev);
+    dev->sb->dsp.sb_type = SBPRO;
+    io_sethandler(0x00, 8, NULL, NULL, NULL, cmi8x38_dma_write, NULL, NULL, dev);
+    io_sethandler(0xc0, 16, NULL, NULL, NULL, cmi8x38_dma_write, NULL, NULL, dev);
+    io_sethandler(0x08, 8, NULL, NULL, NULL, cmi8x38_dma_mask_write, NULL, NULL, dev);
+    io_sethandler(0xd0, 16, NULL, NULL, NULL, cmi8x38_dma_mask_write, NULL, NULL, dev);
 
     /* Initialize DMA channels. */
     for (int i = 0; i < (sizeof(dev->dma) / sizeof(dev->dma[0])); i++) {
@@ -1044,6 +1334,14 @@ cmi8x38_init(const device_t *info)
     /* Initialize game port. */
     dev->gameport = gameport_add(&gameport_pnp_device);
 
+    /* Initialize I/O traps. */
+    if (dev->type == CMEDIA_CMI8338) {
+	dev->io_traps[TRAP_DMA] = io_trap_add(cmi8338_io_trap, dev);
+	dev->io_traps[TRAP_PIC] = io_trap_add(cmi8338_io_trap, dev);
+	dev->io_traps[TRAP_OPL] = io_trap_add(cmi8338_io_trap, dev);
+	dev->io_traps[TRAP_MPU] = io_trap_add(cmi8338_io_trap, dev);
+    }
+
     /* Add PCI card. */
     dev->slot = pci_add_card((info->local & (1 << 13)) ? PCI_ADD_SOUND : PCI_ADD_NORMAL, cmi8x38_pci_read, cmi8x38_pci_write, dev);
 
@@ -1060,6 +1358,9 @@ cmi8x38_close(void *priv)
     cmi8x38_t *dev = (cmi8x38_t *) priv;
 
     cmi8x38_log("CMI8x38: close()\n");
+
+    for (int i = 0; i < TRAP_MAX; i++)
+	io_trap_remove(dev->io_traps[i]);
 
     free(dev);
 }
