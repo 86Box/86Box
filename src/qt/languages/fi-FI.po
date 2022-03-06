@@ -38,7 +38,7 @@ msgid "R&emember size && position"
 msgstr "&Muista koko ja sijainti"
 
 msgid "Re&nderer"
-msgstr "&Hahmonnin"
+msgstr "&Renderöijä"
 
 msgid "&SDL (Software)"
 msgstr "&SDL (ohjelmistopohjainen)"
@@ -149,7 +149,7 @@ msgid "Change contrast for &monochrome display"
 msgstr "&Muuta harmaavärinäytön kontrastia"
 
 msgid "&Media"
-msgstr "&Levyt"
+msgstr "&Media"
 
 msgid "&Tools"
 msgstr "Työ&kalut"
@@ -191,10 +191,10 @@ msgid "&New image..."
 msgstr "&Uusi levykuva..."
 
 msgid "&Existing image..."
-msgstr "&Valmis levykuva..."
+msgstr "&Olemassaoleva levykuva..."
 
 msgid "Existing image (&Write-protected)..."
-msgstr "Valmis levykuva (&kirjoitussuojattu)..."
+msgstr "Olemassaoleva levykuva (&kirjoitussuojattu)..."
 
 msgid "&Record"
 msgstr "&Nauhoita"
@@ -251,7 +251,7 @@ msgid "&75 fps"
 msgstr "&75 ruutua/s"
 
 msgid "&VSync"
-msgstr "P&ystytahdistus"
+msgstr "&VSync"
 
 msgid "&Select shader..."
 msgstr "Valitse varjostin&ohjelma..."
@@ -500,7 +500,7 @@ msgid "&New..."
 msgstr "&Uusi..."
 
 msgid "&Existing..."
-msgstr "&Valmis..."
+msgstr "&Olemassaoleva..."
 
 msgid "&Remove"
 msgstr "&Poista"
@@ -710,7 +710,7 @@ msgid "KB"
 msgstr "kt"
 
 msgid "Could not initialize the video renderer."
-msgstr "Videohahmontimen alustus epäonnistui"
+msgstr "Videorenderöijän alustus epäonnistui"
 
 msgid "Default"
 msgstr "Oletus"
@@ -920,10 +920,10 @@ msgid "Cartridge images"
 msgstr "ROM-moduulikuvat"
 
 msgid "Error initializing renderer"
-msgstr "Virhe hahmontimen alustuksessa"
+msgstr "Virhe renderöijän alustuksessa"
 
 msgid "OpenGL (3.0 Core) renderer could not be initialized. Use another renderer."
-msgstr "OpenGL (3.0 Core) -hahmontimen alustus epäonnistui. Käytä toista hahmonninta."
+msgstr "OpenGL (3.0 Core) -renderöijän alustus epäonnistui. Käytä toista renderöijää."
 
 msgid "Resume execution"
 msgstr "Jatka suoritusta"
@@ -965,7 +965,7 @@ msgid "Add New Hard Disk"
 msgstr "Lisää uusi kiintolevy"
 
 msgid "Add Existing Hard Disk"
-msgstr "Lisää valmis kiintolevy"
+msgstr "Lisää olemassaoleva kiintolevy"
 
 msgid "HDI disk images cannot be larger than 4 GB."
 msgstr "HDI-levykuvan suurin mahdollinen koko on 4 Gt."
