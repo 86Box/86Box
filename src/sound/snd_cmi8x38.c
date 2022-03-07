@@ -1035,11 +1035,9 @@ cmi8x38_poll(void *priv)
     int16_t *out_l, *out_r, *out_ol, *out_or; /* o = opposite */
 
     /* Schedule next run if playback is enabled. */
-#if 0 /* temporary */
     if (dev->io_regs[0x00] & (1 << dma->id))
 	dma->playback_enabled = 0;
     else
-#endif
 	timer_advance_u64(&dma->poll_timer, dma->timer_latch);
 
     /* Update audio buffer. */
@@ -1287,7 +1285,8 @@ cmi8x38_reset(void *priv)
     }
 
     /* Reset legacy DMA channel. */
-    dev->tdma_8 = dev->tdma_16 = -1;
+    dev->tdma_8 = 1;
+    dev->tdma_16 = 5;
     dev->tdma_mask = 0;
 
     /* Reset Sound Blaster 16 mixer. */
