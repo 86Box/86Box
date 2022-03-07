@@ -183,7 +183,10 @@ cmi8x38_sb_dma_post(cmi8x38_t *dev, uint16_t *addr, uint16_t *count, int channel
 		/* Restart TDMA. */
 		*addr = dev->tdma_base_addr;
 		*count = dev->tdma_base_count;
-		cmi8x38_log("CMI8x38: Restarting TDMA on DMA %d with addr %08X count %04X\n", channel, (dma[channel].ab & 0xffff0000) | *addr, *count);
+		cmi8x38_log("CMI8x38: Restarting TDMA on DMA %d with addr %08X count %04X\n",
+		            channel,
+		            (channel & 4) ? ((dma[channel].ab & 0xfffe0000) | ((*addr) << 1)) : ((dma[channel].ab & 0xffff0000) | *addr),
+		            *count);
 	} else {
 		/* Mask TDMA. */
 		dev->tdma_mask |= 1 << channel;
@@ -311,7 +314,10 @@ cmi8x38_dma_write(uint16_t addr, uint8_t val, void *priv)
                  *count = (uint16_t *) &dev->io_regs[0x1e];
 	*addr = dev->tdma_base_addr = dma[channel].ab >> !!(channel & 4);
 	*count = dev->tdma_base_count = dma[channel].cb;
-	cmi8x38_log("CMI8x38: Starting TDMA on DMA %d with addr %08X count %04X\n", channel, (dma[channel].ab & 0xffff0000) | *addr, *count);
+	cmi8x38_log("CMI8x38: Starting TDMA on DMA %d with addr %08X count %04X\n",
+		    channel,
+		    (channel & 4) ? ((dma[channel].ab & 0xfffe0000) | ((*addr) << 1)) : ((dma[channel].ab & 0xffff0000) | *addr),
+		    *count);
 
 	/* Set high channel flag. */
 	if (channel & 4)
