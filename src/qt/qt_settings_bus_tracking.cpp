@@ -220,7 +220,6 @@ SettingsBusTracking::device_track(int set, uint8_t dev_type, int bus, int channe
 {
     int element;
     uint64_t mask;
-    uint8_t count = 0;
 
     switch (bus) {
         case HDD_BUS_MFM:
