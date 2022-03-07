@@ -298,7 +298,9 @@ cmi8x38_dma_write(uint16_t addr, uint8_t val, void *priv)
 {
     cmi8x38_t *dev = (cmi8x38_t *) priv;
 
-    /* Stop if autodetection is disabled. */
+    /* Stop if DMA channel auto-detection is disabled. This is required for the CMI8338 TSR,
+       which disables auto-detection while copying the TDMA address/count to the SB DMA channel,
+       so that those writes don't loop back to the DMA register snoop mechanism implemented here. */
     if (!(dev->io_regs[0x27] & 0x01))
 	return;
 
@@ -332,7 +334,7 @@ cmi8x38_dma_mask_write(uint16_t addr, uint8_t val, void *priv)
 {
     cmi8x38_t *dev = (cmi8x38_t *) priv;
 
-    /* Stop if autodetection is disabled. */
+    /* See comment on dma_write above. */
     if (!(dev->io_regs[0x27] & 0x01))
 	return;
 
@@ -1293,6 +1295,12 @@ cmi8x38_reset(void *priv)
     dev->io_regs[0x0b] = (dev->type >> 8) & 0x1f;
     dev->io_regs[0x0f] = dev->type >> 16;
 
+    /* Reset I/O mappings. */
+    cmi8x38_remap(dev);
+    cmi8x38_remap_sb(dev);
+    /* remap_mpu and remap_opl called by remap_traps */
+    cmi8x38_remap_traps(dev);
+
     /* Reset DMA channels. */
     for (int i = 0; i < (sizeof(dev->dma) / sizeof(dev->dma[0])); i++) {
 	dev->dma[i].playback_enabled = 0;
@@ -1333,9 +1341,9 @@ cmi8x38_init(const device_t *info)
     mpu401_irq_attach(dev->sb->mpu, cmi8x38_mpu_irq_update, cmi8x38_mpu_irq_pending, dev);
     sb_dsp_irq_attach(&dev->sb->dsp, cmi8x38_sb_irq_update, dev);
     sb_dsp_dma_attach(&dev->sb->dsp, cmi8x38_sb_dma_readb, cmi8x38_sb_dma_readw, cmi8x38_sb_dma_writeb, cmi8x38_sb_dma_writew, dev);
-    io_sethandler(0x00, 8, NULL, NULL, NULL, cmi8x38_dma_write, NULL, NULL, dev);
-    io_sethandler(0xc0, 16, NULL, NULL, NULL, cmi8x38_dma_write, NULL, NULL, dev);
-    io_sethandler(0x08, 8, NULL, NULL, NULL, cmi8x38_dma_mask_write, NULL, NULL, dev);
+    io_sethandler(0x00, 8,  NULL, NULL, NULL, cmi8x38_dma_write,      NULL, NULL, dev);
+    io_sethandler(0x08, 8,  NULL, NULL, NULL, cmi8x38_dma_mask_write, NULL, NULL, dev);
+    io_sethandler(0xc0, 16, NULL, NULL, NULL, cmi8x38_dma_write,      NULL, NULL, dev);
     io_sethandler(0xd0, 16, NULL, NULL, NULL, cmi8x38_dma_mask_write, NULL, NULL, dev);
 
     /* Initialize DMA channels. */
