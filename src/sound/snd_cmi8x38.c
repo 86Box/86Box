@@ -1376,7 +1376,7 @@ static const device_config_t cmi8x38_config[] = {
 };
 
 static const device_config_t cmi8738_config[] = {
-    { "six_channel",   "MX variant (6-channel)",  CONFIG_BINARY, "",  1 },
+    { "six_channel",   "6CH variant (6-channel)", CONFIG_BINARY, "",  1 },
     { "receive_input", "Receive input (MPU-401)", CONFIG_BINARY, "",  1 },
     { "",              "",                                           -1 }
 };
@@ -1422,6 +1422,18 @@ const device_t cmi8738_onboard_device = {
     "cmi8738_onboard",
     DEVICE_PCI,
     CMEDIA_CMI8738_4CH | (1 << 13),
+    cmi8x38_init, cmi8x38_close, cmi8x38_reset,
+    { NULL },
+    cmi8x38_speed_changed,
+    NULL,
+    cmi8x38_config
+};
+
+const device_t cmi8738_6ch_onboard_device = {
+    "C-Media CMI8738-6CH (On-Board)",
+    "cmi8738_6ch_onboard",
+    DEVICE_PCI,
+    CMEDIA_CMI8738_6CH | (1 << 13),
     cmi8x38_init, cmi8x38_close, cmi8x38_reset,
     { NULL },
     cmi8x38_speed_changed,
