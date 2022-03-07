@@ -54,7 +54,6 @@ void SettingsInput::onCurrentMachineChanged(int machineId) {
     // win_settings_video_proc, WM_INITDIALOG
     this->machineId = machineId;
 
-    const auto* machine = &machines[machineId];
     auto* mouseModel = ui->comboBoxMouse->model();
     auto removeRows = mouseModel->rowCount();
 

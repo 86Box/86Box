@@ -339,6 +339,11 @@ bool NewFloppyDialog::create86f(const QString& filename, const disk_size_t& disk
     return true;
 }
 
+/* Ignore false positive warning caused by a bug on gcc */
+#ifdef __GNUC__
+#pragma GCC diagnostic ignored "-Wstringop-overflow"
+#endif
+
 bool NewFloppyDialog::createSectorImage(const QString &filename, const disk_size_t& disk_size, FileType type)
 {
     uint32_t total_size = 0;

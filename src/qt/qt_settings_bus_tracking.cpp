@@ -218,7 +218,7 @@ SettingsBusTracking::scsi_bus_full()
 void
 SettingsBusTracking::device_track(int set, uint8_t dev_type, int bus, int channel)
 {
-    int i, element;
+    int element;
     uint64_t mask;
     uint8_t count = 0;
 

@@ -80,7 +80,6 @@ void SettingsNetwork::save() {
 
 void SettingsNetwork::onCurrentMachineChanged(int machineId) {
     this->machineId = machineId;
-    auto* machine = &machines[machineId];
 
     auto* model = ui->comboBoxAdapter->model();
     auto removeRows = model->rowCount();
