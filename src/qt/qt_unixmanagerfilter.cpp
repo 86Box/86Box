@@ -31,8 +31,7 @@ void UnixManagerSocket::readyToRead()
         QByteArray line = readLine();
         if (line.size())
         {
-            line.resize(line.size() - 2);
-            line.push_back('\0');
+            line.resize(line.size() - 1);
             if (line == "showsettings")
             {
                 emit showsettings();
