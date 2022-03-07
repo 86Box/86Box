@@ -83,7 +83,7 @@ typedef struct _cmi8x38_ {
     cmi8x38_dma_t dma[2];
     uint16_t	tdma_base_addr, tdma_base_count;
     uint8_t	prev_mask;
-    int		tdma_last_8, tdma_last_16, tdma_mask;
+    int		tdma_8, tdma_16, tdma_mask;
 
     int		master_vol_l, master_vol_r, cd_vol_l, cd_vol_r;
 } cmi8x38_t;
@@ -166,6 +166,17 @@ cmi8x38_sb_dma_post(cmi8x38_t *dev, uint16_t *addr, uint16_t *count, int channel
     *addr += 1;
     *count -= 1;
 
+    /* Copy TDMA registers to DMA on CMI8738+. Everything so far suggests that
+       those chips use PCI bus mastering to directly write to the DMA registers. */
+    if (dev->type != CMEDIA_CMI8338) {
+	if (channel & 4)
+		dma[channel].ab = (dma[channel].ab & 0xfffe0000) | ((*addr) << 1);
+	else
+		dma[channel].ab = (dma[channel].ab & 0xffff0000) | *addr;
+	dma[channel].ac = dma[channel].ab;
+	dma[channel].cc = dma[channel].cb = *count;
+    }
+
     /* Handle end of DMA. */
     if (*count == 0xffff) {
 	if (dma[channel].mode & 0x10) { /* auto-init */
@@ -189,7 +200,7 @@ cmi8x38_sb_dma_readb(void *priv)
     cmi8x38_t *dev = (cmi8x38_t *) priv;
 
     /* Stop if the DMA channel is invalid or if TDMA is masked. */
-    int channel = dev->sb->dsp.sb_8_dmanum;
+    int channel = dev->tdma_8;
     if ((channel < 0) || (dev->tdma_mask & (1 << channel)))
 	return DMA_NODATA;
 
@@ -213,7 +224,7 @@ cmi8x38_sb_dma_readw(void *priv)
     cmi8x38_t *dev = (cmi8x38_t *) priv;
 
     /* Stop if the DMA channel is invalid or if TDMA is masked. */
-    int channel = dev->sb->dsp.sb_16_dmanum;
+    int channel = dev->tdma_16;
     if ((channel < 0) || (dev->tdma_mask & (1 << channel)))
 	return DMA_NODATA;
 
@@ -237,7 +248,7 @@ cmi8x38_sb_dma_writeb(void *priv, uint8_t val)
     cmi8x38_t *dev = (cmi8x38_t *) priv;
 
     /* Stop if the DMA channel is invalid or if TDMA is masked. */
-    int channel = dev->sb->dsp.sb_8_dmanum;
+    int channel = dev->tdma_8;
     if ((channel < 0) || (dev->tdma_mask & (1 << channel)))
 	return 1;
 
@@ -261,7 +272,7 @@ cmi8x38_sb_dma_writew(void *priv, uint16_t val)
     cmi8x38_t *dev = (cmi8x38_t *) priv;
 
     /* Stop if the DMA channel is invalid or if TDMA is masked. */
-    int channel = dev->sb->dsp.sb_16_dmanum;
+    int channel = dev->tdma_16;
     if ((channel < 0) || (dev->tdma_mask & (1 << channel)))
 	return 1;
 
@@ -284,22 +295,17 @@ cmi8x38_dma_write(uint16_t addr, uint8_t val, void *priv)
 {
     cmi8x38_t *dev = (cmi8x38_t *) priv;
 
-    /* Keep track of the last DMA channel written to. */
-    uint8_t channel;
-    if (addr < 0x08) {
-	channel = addr >> 1;
-	dev->tdma_last_8 = channel;
-    } else {
-	channel = 4 | ((addr >> 2) & 3);
-	dev->tdma_last_16 = channel;
-    }
-
-    /* Stop if not autodetecting. See note on cmi8x38_write(0x27). */
+    /* Stop if autodetection is disabled. */
     if (!(dev->io_regs[0x27] & 0x01))
 	return;
 
     /* Write TDMA registers if this is a TDMA channel. */
-    if ((channel == dev->sb->dsp.sb_8_dmanum) || (channel == dev->sb->dsp.sb_16_dmanum)) {
+    int channel;
+    if (addr < 0x08)
+	channel = addr >> 1;
+    else
+	channel = 4 | ((addr >> 2) & 3);
+    if ((channel == dev->tdma_8) || (channel == dev->tdma_16)) {
 	/* Write base address and count. */
 	uint16_t *addr = (uint16_t *) &dev->io_regs[0x1c],
                  *count = (uint16_t *) &dev->io_regs[0x1e];
@@ -320,15 +326,15 @@ cmi8x38_dma_mask_write(uint16_t addr, uint8_t val, void *priv)
 {
     cmi8x38_t *dev = (cmi8x38_t *) priv;
 
-    /* Stop if not autodetecting. See note on cmi8x38_write(0x27). */
+    /* Stop if autodetection is disabled. */
     if (!(dev->io_regs[0x27] & 0x01))
 	return;
 
     /* Unmask TDMA on DMA unmasking edge. */
-    if ((dev->sb->dsp.sb_8_dmanum >= 0) && (dev->prev_mask & (1 << dev->sb->dsp.sb_8_dmanum)) && !(dma_m & (1 << dev->sb->dsp.sb_8_dmanum)))
-	dev->tdma_mask &= ~(1 << dev->sb->dsp.sb_8_dmanum);
-    else if ((dev->sb->dsp.sb_16_dmanum >= 0) && (dev->prev_mask & (1 << dev->sb->dsp.sb_16_dmanum)) && !(dma_m & (1 << dev->sb->dsp.sb_16_dmanum)))
-	dev->tdma_mask &= ~(1 << dev->sb->dsp.sb_16_dmanum);
+    if ((dev->tdma_8 >= 0) && (dev->prev_mask & (1 << dev->tdma_8)) && !(dma_m & (1 << dev->tdma_8)))
+	dev->tdma_mask &= ~(1 << dev->tdma_8);
+    else if ((dev->tdma_16 >= 0) && (dev->prev_mask & (1 << dev->tdma_16)) && !(dma_m & (1 << dev->tdma_16)))
+	dev->tdma_mask &= ~(1 << dev->tdma_16);
     dev->prev_mask = dma_m;
 }
 
@@ -392,8 +398,8 @@ cmi8x38_sb_mixer_write(uint16_t addr, uint8_t val, void *priv)
 			mixer->regs[0x0e] = 0x00;
 			break;
 
-		/* No dynamic IRQ and DMA assignment. */
-		case 0x80: case 0x81:
+		/* No dynamic MPU port assignment. */
+		case 0x84:
 			return;
 
 		/* Some extended registers beyond those accepted by the CT1745. */
@@ -427,6 +433,14 @@ cmi8x38_sb_mixer_write(uint16_t addr, uint8_t val, void *priv)
 	/* Check interleaved stereo flag for SBPro mode. */
 	if ((mixer->index == 0x00) || (mixer->index == 0x0e))
 		sb_dsp_set_stereo(&dev->sb->dsp, mixer->regs[0x0e] & 2);
+
+	/* Set TDMA channels if autodetection is enabled. */
+	if ((dev->io_regs[0x27] & 0x01) && (mixer->index == 0x81)) {
+		if (dev->tdma_8 == -1)
+			dev->tdma_8 = dev->sb->dsp.sb_8_dmanum;
+		if ((dev->sb->dsp.sb_type >= SB16) && (dev->tdma_16 == -1))
+			dev->tdma_16 = dev->sb->dsp.sb_16_dmanum;
+	}
     } else {
 	cmi8x38_log("CMI8x38: sb_mixer_write(0, %02X)\n", val);
 	sb_ct1745_mixer_write(addr, val, dev->sb);
@@ -784,6 +798,9 @@ cmi8x38_write(uint16_t addr, uint8_t val, void *priv)
 
 		/* Enable or disable SBPro channel swapping. */
 		dev->sb->dsp.sbleftright_default = !!(val & 0x02);
+
+		/* Enable or disable SB16 mode. */
+		dev->sb->dsp.sb_type = (val & 0x01) ? SBPRO2 : SB16;
 		break;
 
 	case 0x22: case 0x23:
@@ -800,16 +817,6 @@ cmi8x38_write(uint16_t addr, uint8_t val, void *priv)
 			val &= 0x03;
 		else
 			val &= 0x27;
-
-		if (val & 0x01) {
-			/* Latch last DMA channels that had address/count registers written to.
-			   Nobody knows how this "autodetection" works, but the CMI8338 TSR
-			   disables it before and reenables it after copying the TDMA base/addr
-			   to the 8237 registers corresponding to the 8-bit SB DMA channel. */
-			dev->sb->dsp.sb_8_dmanum = dev->tdma_last_8;
-			if (!(dev->io_regs[0x21] & 0x01))
-				dev->sb->dsp.sb_16_dmanum = dev->tdma_last_16;
-		}
 		break;
 
 	case 0x40 ... 0x4f:
@@ -1280,7 +1287,7 @@ cmi8x38_reset(void *priv)
     }
 
     /* Reset legacy DMA channel. */
-    dev->tdma_last_8 = dev->tdma_last_16 = dev->sb->dsp.sb_8_dmanum = dev->sb->dsp.sb_16_dmanum = -1;
+    dev->tdma_8 = dev->tdma_16 = -1;
     dev->tdma_mask = 0;
 
     /* Reset Sound Blaster 16 mixer. */
@@ -1310,7 +1317,6 @@ cmi8x38_init(const device_t *info)
     mpu401_irq_attach(dev->sb->mpu, cmi8x38_mpu_irq_update, cmi8x38_mpu_irq_pending, dev);
     sb_dsp_irq_attach(&dev->sb->dsp, cmi8x38_sb_irq_update, dev);
     sb_dsp_dma_attach(&dev->sb->dsp, cmi8x38_sb_dma_readb, cmi8x38_sb_dma_readw, cmi8x38_sb_dma_writeb, cmi8x38_sb_dma_writew, dev);
-    dev->sb->dsp.sb_type = SBPRO;
     io_sethandler(0x00, 8, NULL, NULL, NULL, cmi8x38_dma_write, NULL, NULL, dev);
     io_sethandler(0xc0, 16, NULL, NULL, NULL, cmi8x38_dma_write, NULL, NULL, dev);
     io_sethandler(0x08, 8, NULL, NULL, NULL, cmi8x38_dma_mask_write, NULL, NULL, dev);
