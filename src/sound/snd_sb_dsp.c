@@ -1212,7 +1212,7 @@ pollsb(void *p)
                 if (data[0] == DMA_NODATA)
                     break;
                 dsp->sbdat = (data[0] ^ 0x80) << 8;
-                if ((dsp->sb_type >= SBPRO) && (dsp->sb_type < SB16) && dsp->stereo) {
+                if (dsp->stereo) {
                     sb_dsp_log("pollsb: Mono unsigned, dsp->stereo, %s channel, %04X\n",
                                dsp->sbleftright ? "left" : "right", dsp->sbdat);
                     if (dsp->sbleftright)
@@ -1229,7 +1229,7 @@ pollsb(void *p)
                 if (data[0] == DMA_NODATA)
                     break;
                 dsp->sbdat = data[0] << 8;
-                if ((dsp->sb_type >= SBPRO) && (dsp->sb_type < SB16) && dsp->stereo) {
+                if (dsp->stereo) {
                     sb_dsp_log("pollsb: Mono signed, dsp->stereo, %s channel, %04X\n",
                                dsp->sbleftright ? "left" : "right", data[0], dsp->sbdat);
                     if (dsp->sbleftright)
@@ -1289,7 +1289,7 @@ pollsb(void *p)
                     dsp->sb_8_length--;
                 }
 
-                if ((dsp->sb_type >= SBPRO) && (dsp->sb_type < SB16) && dsp->stereo) {
+                if (dsp->stereo) {
                     sb_dsp_log("pollsb: ADPCM 4, dsp->stereo, %s channel, %04X\n",
                                dsp->sbleftright ? "left" : "right", dsp->sbdat);
                     if (dsp->sbleftright)
@@ -1332,7 +1332,7 @@ pollsb(void *p)
                     dsp->sb_8_length--;
                 }
 
-                if ((dsp->sb_type >= SBPRO) && (dsp->sb_type < SB16) && dsp->stereo) {
+                if (dsp->stereo) {
                     sb_dsp_log("pollsb: ADPCM 26, dsp->stereo, %s channel, %04X\n",
                                dsp->sbleftright ? "left" : "right", dsp->sbdat);
                     if (dsp->sbleftright)
@@ -1368,7 +1368,7 @@ pollsb(void *p)
                     dsp->sbdat2   = dsp->dma_readb(dsp->dma_priv);
                 }
 
-                if ((dsp->sb_type >= SBPRO) && (dsp->sb_type < SB16) && dsp->stereo) {
+                if (dsp->stereo) {
                     sb_dsp_log("pollsb: ADPCM 2, dsp->stereo, %s channel, %04X\n",
                                dsp->sbleftright ? "left" : "right", dsp->sbdat);
                     if (dsp->sbleftright)
