@@ -436,9 +436,8 @@ cmi8x38_sb_mixer_write(uint16_t addr, uint8_t val, void *priv)
 
 	/* Set TDMA channels if autodetection is enabled. */
 	if ((dev->io_regs[0x27] & 0x01) && (mixer->index == 0x81)) {
-		if (dev->tdma_8 == -1)
-			dev->tdma_8 = dev->sb->dsp.sb_8_dmanum;
-		if ((dev->sb->dsp.sb_type >= SB16) && (dev->tdma_16 == -1))
+		dev->tdma_8 = dev->sb->dsp.sb_8_dmanum;
+		if (dev->sb->dsp.sb_type >= SB16)
 			dev->tdma_16 = dev->sb->dsp.sb_16_dmanum;
 	}
     } else {
