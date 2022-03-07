@@ -422,32 +422,33 @@ ad1848_update(ad1848_t *ad1848)
 static int16_t
 ad1848_process_mulaw(uint8_t byte)
 {
-    int pos;
-    int16_t dec;
-
-    dec = (~byte) & 0x7f;
-    pos = ((dec & 0xf0) >> 4) + 5;
-    dec = (1 << pos) | ((dec & 0x0f) << (pos - 4)) | (1 << (pos - 5));
-    dec = (dec - 33) << 2;
-
-    return (byte & 0x80) ? dec : -dec;
+    byte = ~byte;
+    int16_t dec = ((byte & 0x0f) << 3) + 0x84;
+    dec <<= (byte & 0x70) >> 4;
+    return (byte & 0x80) ? (0x84 - dec) : (dec - 0x84);
 }
 
 static int16_t
 ad1848_process_alaw(uint8_t byte)
 {
-    int pos;
-    int16_t dec;
-
     byte ^= 0x55;
-    uint8_t sample = byte & 0x7f;
-    pos = ((sample & 0xf0) >> 4) + 4;
-    if (pos == 4)
-        dec = (sample << 4) | 0x08;
-    else
-        dec = (1 << (pos + 3)) | ((sample & 0x0f) << (pos - 1)) | (1 << (pos - 2));
+    int16_t dec = (byte & 0x0f) << 4;
+    int seg = (byte & 0x70) >> 4;
+    switch (seg) {
+        case 0:
+            dec += 0x8;
+            break;
 
-    return (byte & 0x80) ? -dec : dec;
+        case 1:
+            dec += 0x108;
+            break;
+
+        default:
+            dec += 0x108;
+            dec <<= seg - 1;
+            break;
+    }
+    return (byte & 0x80) ? dec : -dec;
 }
 
 static int16_t
