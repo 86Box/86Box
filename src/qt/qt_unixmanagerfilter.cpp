@@ -31,29 +31,27 @@ void UnixManagerSocket::readyToRead()
         QByteArray line = readLine();
         if (line.size())
         {
-            line.resize(line.size() - 2);
-            line.push_back('\0');
-            if (line == "showsettings")
+            if (line.data() == "showsettings")
             {
                 emit showsettings();
             }
-            else if (line == "pause")
+            else if (line.data() == "pause")
             {
                 emit pause();
             }
-            else if (line == "cad")
+            else if (line.data() == "cad")
             {
                 emit ctrlaltdel();
             }
-            else if (line == "reset")
+            else if (line.data() == "reset")
             {
                 emit resetVM();
             }
-            else if (line == "shutdownnoprompt")
+            else if (line.data() == "shutdownnoprompt")
             {
                 emit force_shutdown();
             }
-            else if (line == "shutdown")
+            else if (line.data() == "shutdown")
             {
                 emit request_shutdown();
             }
