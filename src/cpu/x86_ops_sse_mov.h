@@ -997,17 +997,12 @@ static int opMOVNTQ_q_mm_a16(uint32_t fetchdat)
     MMX_ENTER();
 
     fetch_ea_16(fetchdat);
-    if (cpu_mod == 3)
-    {
-        cpu_state.MM[cpu_rm].q = cpu_state.MM[cpu_reg].q;
-        CLOCK_CYCLES(1);
-    }
-    else
-    {
-        SEG_CHECK_WRITE(cpu_state.ea_seg);
-        CHECK_WRITE_COMMON(cpu_state.ea_seg, cpu_state.eaaddr, cpu_state.eaaddr + 7);
-        writememq(easeg, cpu_state.eaaddr,     cpu_state.MM[cpu_reg].q); if (cpu_state.abrt) return 1;
-    }
+    ILLEGAL_ON(cpu_mod == 3);
+    
+    SEG_CHECK_WRITE(cpu_state.ea_seg);
+    CHECK_WRITE_COMMON(cpu_state.ea_seg, cpu_state.eaaddr, cpu_state.eaaddr + 7);
+    writememq(easeg, cpu_state.eaaddr,     cpu_state.MM[cpu_reg].q); if (cpu_state.abrt) return 1;
+    CLOCK_CYCLES(2);
     return 0;
 }
 
@@ -1016,18 +1011,12 @@ static int opMOVNTQ_q_mm_a32(uint32_t fetchdat)
     MMX_ENTER();
 
     fetch_ea_32(fetchdat);
-    if (cpu_mod == 3)
-    {
-        cpu_state.MM[cpu_rm].q = cpu_state.MM[cpu_reg].q;
-        CLOCK_CYCLES(1);
-    }
-    else
-    {
-        SEG_CHECK_WRITE(cpu_state.ea_seg);
-        CHECK_WRITE_COMMON(cpu_state.ea_seg, cpu_state.eaaddr, cpu_state.eaaddr + 7);
-        writememq(easeg, cpu_state.eaaddr,     cpu_state.MM[cpu_reg].q); if (cpu_state.abrt) return 1;
-        CLOCK_CYCLES(2);
-    }
+    ILLEGAL_ON(cpu_mod == 3);
+
+    SEG_CHECK_WRITE(cpu_state.ea_seg);
+    CHECK_WRITE_COMMON(cpu_state.ea_seg, cpu_state.eaaddr, cpu_state.eaaddr + 7);
+    writememq(easeg, cpu_state.eaaddr,     cpu_state.MM[cpu_reg].q); if (cpu_state.abrt) return 1;
+    CLOCK_CYCLES(2);
     return 0;
 }
 
