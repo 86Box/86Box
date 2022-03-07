@@ -49,6 +49,10 @@ OpenGLOptions::OpenGLOptions(QObject *parent, bool loadConfig, const QString &gl
     : QObject(parent)
     , m_glslVersion(glslVersion)
 {
+    m_filter = video_filter_method == 0
+        ? FilterType::Nearest
+        : FilterType::Linear;
+
     if (!loadConfig)
         return;
 
@@ -59,10 +63,6 @@ OpenGLOptions::OpenGLOptions(QObject *parent, bool loadConfig, const QString &gl
     m_renderBehavior = video_framerate == -1
         ? RenderBehaviorType::SyncWithVideo
         : RenderBehaviorType::TargetFramerate;
-
-    m_filter = video_filter_method == 0
-        ? FilterType::Nearest
-        : FilterType::Linear;
 
     QString shaderPath(video_shader);
 
