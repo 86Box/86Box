@@ -37,6 +37,10 @@
 static int    ad1848_vols_7bits[128];
 static double ad1848_vols_5bits_aux_gain[32];
 
+/* Borrowed from snd_sb_dsp */
+extern int8_t  scaleMap4[64];
+extern uint8_t adjustMap4[64];
+
 void
 ad1848_setirq(ad1848_t *ad1848, int irq)
 {
@@ -253,7 +257,8 @@ ad1848_write(uint16_t addr, uint8_t val, void *priv)
                     return;
 
                 case 14:
-                    ad1848->count = ad1848->regs[15] | (val << 8);
+                    ad1848->count     = ad1848->regs[15] | (val << 8);
+                    ad1848->adpcm_pos = 0;
                     break;
 
                 case 17:
@@ -414,6 +419,64 @@ ad1848_update(ad1848_t *ad1848)
     }
 }
 
+static int16_t
+ad1848_process_mulaw(uint8_t byte)
+{
+    int pos;
+    int16_t dec;
+
+    dec = (~byte) & 0x7f;
+    pos = ((dec & 0xf0) >> 4) + 5;
+    dec = (1 << pos) | ((dec & 0x0f) << (pos - 4)) | (1 << (pos - 5));
+    dec = (dec - 33) << 2;
+
+    return (byte & 0x80) ? dec : -dec;
+}
+
+static int16_t
+ad1848_process_alaw(uint8_t byte)
+{
+    int pos;
+    int16_t dec;
+
+    byte ^= 0x55;
+    uint8_t sample = byte & 0x7f;
+    pos = ((sample & 0xf0) >> 4) + 4;
+    if (pos == 4)
+        dec = (sample << 4) | 0x08;
+    else
+        dec = (1 << (pos + 3)) | ((sample & 0x0f) << (pos - 1)) | (1 << (pos - 2));
+
+    return (byte & 0x80) ? -dec : dec;
+}
+
+static int16_t
+ad1848_process_adpcm(ad1848_t *ad1848)
+{
+    int temp;
+    if (ad1848->adpcm_pos) {
+        temp = (ad1848->adpcm_data & 0x0f) + ad1848->adpcm_step;
+    } else {
+        ad1848->adpcm_data = dma_channel_read(ad1848->dma);
+        temp = (ad1848->adpcm_data >> 4) + ad1848->adpcm_step;
+    }
+    ad1848->adpcm_pos ^= 1;
+    if (temp < 0)
+        temp = 0;
+    else if (temp > 63)
+        temp = 63;
+
+    ad1848->adpcm_ref += scaleMap4[temp];
+    if (ad1848->adpcm_ref > 0xff)
+        ad1848->adpcm_ref = 0xff;
+    else if (ad1848->adpcm_ref < 0x00)
+        ad1848->adpcm_ref = 0x00;
+
+    ad1848->adpcm_step = (ad1848->adpcm_step + adjustMap4[temp]) & 0xff;
+
+    return (ad1848->adpcm_ref ^ 0x80) << 8;
+}
+
 static void
 ad1848_poll(void *priv)
 {
@@ -431,12 +494,21 @@ ad1848_poll(void *priv)
 
         switch (ad1848->regs[8] & ad1848->fmt_mask) {
             case 0x00: /* Mono, 8-bit PCM */
-                ad1848->out_l = ad1848->out_r = (dma_channel_read(ad1848->dma) ^ 0x80) * 256;
+                ad1848->out_l = ad1848->out_r = (dma_channel_read(ad1848->dma) ^ 0x80) << 8;
                 break;
 
             case 0x10: /* Stereo, 8-bit PCM */
-                ad1848->out_l = (dma_channel_read(ad1848->dma) ^ 0x80) * 256;
-                ad1848->out_r = (dma_channel_read(ad1848->dma) ^ 0x80) * 256;
+                ad1848->out_l = (dma_channel_read(ad1848->dma) ^ 0x80) << 8;
+                ad1848->out_r = (dma_channel_read(ad1848->dma) ^ 0x80) << 8;
+                break;
+
+            case 0x20: /* Mono, 8-bit Mu-Law */
+                ad1848->out_l = ad1848->out_r = ad1848_process_mulaw(dma_channel_read(ad1848->dma));
+                break;
+
+            case 0x30: /* Stereo, 8-bit Mu-Law */
+                ad1848->out_l = ad1848_process_mulaw(dma_channel_read(ad1848->dma));
+                ad1848->out_r = ad1848_process_mulaw(dma_channel_read(ad1848->dma));
                 break;
 
             case 0x40: /* Mono, 16-bit PCM little endian */
@@ -451,6 +523,26 @@ ad1848_poll(void *priv)
                 ad1848->out_r = (dma_channel_read(ad1848->dma) << 8) | temp;
                 break;
 
+            case 0x60: /* Mono, 8-bit A-Law */
+                ad1848->out_l = ad1848->out_r = ad1848_process_alaw(dma_channel_read(ad1848->dma));
+                break;
+
+            case 0x70: /* Stereo, 8-bit A-Law */
+                ad1848->out_l = ad1848_process_alaw(dma_channel_read(ad1848->dma));
+                ad1848->out_r = ad1848_process_alaw(dma_channel_read(ad1848->dma));
+                break;
+
+            /* 0x80 and 0x90 reserved */
+
+            case 0xa0: /* Mono, 4-bit ADPCM */
+                ad1848->out_l = ad1848->out_r = ad1848_process_adpcm(ad1848);
+                break;
+
+            case 0xb0: /* Stereo, 4-bit ADPCM */
+                ad1848->out_l = ad1848_process_adpcm(ad1848);
+                ad1848->out_r = ad1848_process_adpcm(ad1848);
+                break;
+
             case 0xc0: /* Mono, 16-bit PCM big endian */
                 temp          = dma_channel_read(ad1848->dma);
                 ad1848->out_l = ad1848->out_r = dma_channel_read(ad1848->dma) | (temp << 8);
@@ -462,6 +554,8 @@ ad1848_poll(void *priv)
                 temp          = dma_channel_read(ad1848->dma);
                 ad1848->out_r = dma_channel_read(ad1848->dma) | (temp << 8);
                 break;
+
+            /* 0xe0 and 0xf0 reserved */
         }
 
         if (ad1848->regs[6] & 0x80)
@@ -475,7 +569,8 @@ ad1848_poll(void *priv)
             ad1848->out_r = (ad1848->out_r * ad1848_vols_7bits[ad1848->regs[7] & ad1848->wave_vol_mask]) >> 16;
 
         if (ad1848->count < 0) {
-            ad1848->count = ad1848->regs[15] | (ad1848->regs[14] << 8);
+            ad1848->count     = ad1848->regs[15] | (ad1848->regs[14] << 8);
+            ad1848->adpcm_pos = 0;
             if (!(ad1848->status & 0x01)) {
                 ad1848->status |= 0x01;
                 ad1848->regs[24] |= 0x10;
