@@ -340,7 +340,7 @@ bool NewFloppyDialog::create86f(const QString& filename, const disk_size_t& disk
 }
 
 /* Ignore false positive warning caused by a bug on gcc */
-#ifdef __GNUC__
+#if __GNUC__ >= 11
 #pragma GCC diagnostic ignored "-Wstringop-overflow"
 #endif
 
