@@ -75,7 +75,7 @@ typedef struct _cmi8x38_ {
     uint32_t	type;
     uint16_t	io_base, sb_base, opl_base, mpu_base;
     uint8_t	pci_regs[256], io_regs[256];
-    int		slot, sb_irq;
+    int		slot;
 
     sb_t	*sb;
     void	*gameport, *io_traps[TRAP_MAX];
@@ -119,7 +119,7 @@ static void
 cmi8x38_update_irqs(cmi8x38_t *dev)
 {
     /* Calculate and use the INTR flag. */
-    if ((*((uint32_t *) &dev->io_regs[0x10]) & 0x0401c003) || dev->sb_irq) {
+    if (*((uint32_t *) &dev->io_regs[0x10]) & 0x0401c003) {
 	dev->io_regs[0x13] |= 0x80;
 	pci_set_irq(dev->slot, PCI_INTA);
 	cmi8x38_log("CMI8x38: Raising IRQ\n");
@@ -154,7 +154,12 @@ static void
 cmi8x38_sb_irq_update(void *priv, int set)
 {
     cmi8x38_t *dev = (cmi8x38_t *) priv;
-    dev->sb_irq = set;
+    /* Interrupt flag shared with the first DMA channel. Combining SB and
+       PCI DMA is undefined; the VxD driver disables SB if PCI is in use. */
+    if (set)
+	dev->io_regs[0x10] |= 0x01;
+    else
+	dev->io_regs[0x10] &= ~0x01;
     cmi8x38_update_irqs(dev);
 }
 
