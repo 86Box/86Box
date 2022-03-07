@@ -493,7 +493,7 @@ cmi8x38_remap_opl(cmi8x38_t *dev)
     }
 
     dev->opl_base = (dev->type == CMEDIA_CMI8338) ? 0x388 : opl_ports_cmi8738[dev->io_regs[0x17] & 0x03];
-    io_trap_remap(dev->io_traps[TRAP_OPL], dev->io_regs[0x16] & 0x80, dev->opl_base, 4);
+    io_trap_remap(dev->io_traps[TRAP_OPL], (dev->io_regs[0x04] & 0x01) && (dev->io_regs[0x16] & 0x80), dev->opl_base, 4);
     if (!(dev->io_regs[0x1a] & 0x08))
 	dev->opl_base = 0;
 
@@ -515,7 +515,7 @@ cmi8x38_remap_mpu(cmi8x38_t *dev)
     /* The CMI8338 datasheet's port range of [300:330] is
        inaccurate. Drivers expect [330:300] like CMI8738. */
     dev->mpu_base = 0x330 - ((dev->io_regs[0x17] & 0x60) >> 1);
-    io_trap_remap(dev->io_traps[TRAP_MPU], dev->io_regs[0x16] & 0x20, dev->mpu_base, 2);
+    io_trap_remap(dev->io_traps[TRAP_MPU], (dev->io_regs[0x04] & 0x01) && (dev->io_regs[0x16] & 0x20), dev->mpu_base, 2);
     if (!(dev->io_regs[0x04] & 0x04))
 	dev->mpu_base = 0;
 
@@ -523,6 +523,16 @@ cmi8x38_remap_mpu(cmi8x38_t *dev)
 
     if (dev->mpu_base)
 	mpu401_change_addr(dev->sb->mpu, dev->mpu_base);
+}
+
+
+static void
+cmi8x38_remap_traps(cmi8x38_t *dev)
+{
+    cmi8x38_remap_opl(dev);
+    cmi8x38_remap_mpu(dev);
+    io_trap_remap(dev->io_traps[TRAP_DMA], (dev->io_regs[0x04] & 0x01) && (dev->io_regs[0x17] & 0x02), 0x0000, 16);
+    io_trap_remap(dev->io_traps[TRAP_PIC], (dev->io_regs[0x04] & 0x01) && (dev->io_regs[0x17] & 0x01), 0x0020, 2);
 }
 
 
@@ -665,7 +675,10 @@ cmi8x38_write(uint16_t addr, uint8_t val, void *priv)
 		/* Enable or disable the legacy devices. */
 		dev->io_regs[addr] = val;
 		cmi8x38_remap_sb(dev);
-		cmi8x38_remap_mpu(dev);
+		/* remap_mpu called by remap_traps */
+
+		/* Enable or disable I/O traps. */
+		cmi8x38_remap_traps(dev);
 		break;
 
 	case 0x05:
@@ -731,8 +744,7 @@ cmi8x38_write(uint16_t addr, uint8_t val, void *priv)
 
 			/* Enable or disable I/O traps. */
 			dev->io_regs[addr] = val;
-			cmi8x38_remap_opl(dev);
-			cmi8x38_remap_mpu(dev);
+			cmi8x38_remap_traps(dev);
 		}
 		break;
 
@@ -747,8 +759,8 @@ cmi8x38_write(uint16_t addr, uint8_t val, void *priv)
 				pci_clear_irq(dev->slot, PCI_INTA);
 
 			/* Enable or disable I/O traps. */
-			io_trap_remap(dev->io_traps[TRAP_DMA], val & 0x02, 0x0000, 16);
-			io_trap_remap(dev->io_traps[TRAP_PIC], val & 0x01, 0x0020, 2);
+			dev->io_regs[addr] = val;
+			cmi8x38_remap_traps(dev);
 		}
 
 		/* Remap the legacy devices. */
