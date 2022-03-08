@@ -262,7 +262,8 @@ ad1848_write(uint16_t addr, uint8_t val, void *priv)
                     break;
 
                 case 17:
-                    if (ad1848->type >= AD1848_TYPE_CS4231) /* enable additional data formats on modes 2 and 3 */
+                    /* Enable additional data formats on modes 2 and 3 where supported. */
+                    if ((ad1848->type == AD1848_TYPE_CS4231) || (ad1848->type == AD1848_TYPE_CS4236))
                         ad1848->fmt_mask = (val & 0x40) ? 0xf0 : 0x70;
                     break;
 
@@ -659,7 +660,10 @@ ad1848_init(ad1848_t *ad1848, uint8_t type)
     ad1848->out_l = ad1848->out_r = 0;
     ad1848->fm_vol_l = ad1848->fm_vol_r = 65536;
     ad1848_updatevolmask(ad1848);
-    ad1848->fmt_mask = 0x70;
+    if (type == AD1848_TYPE_CS4235)
+        ad1848->fmt_mask = 0x50;
+    else
+        ad1848->fmt_mask = 0x70;
 
     for (c = 0; c < 128; c++) {
         attenuation = 0.0;

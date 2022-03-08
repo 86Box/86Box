@@ -727,7 +727,7 @@ cs423x_init(const device_t *info)
         case CRYSTAL_CS4237B:
         case CRYSTAL_CS4238B:
             /* Same WSS codec and EEPROM structure. */
-            dev->ad1848_type = AD1848_TYPE_CS4236;
+            dev->ad1848_type = (dev->type == CRYSTAL_CS4235) ? AD1848_TYPE_CS4235 : AD1848_TYPE_CS4236;
             dev->pnp_offset  = 0x4013;
 
             /* Different Chip Version and ID registers, which shouldn't be reset by ad1848_init */
