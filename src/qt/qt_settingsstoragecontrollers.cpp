@@ -64,7 +64,6 @@ void SettingsStorageControllers::save() {
 
 void SettingsStorageControllers::onCurrentMachineChanged(int machineId) {
     this->machineId = machineId;
-    auto* machine = &machines[machineId];
 
     /*HD controller config*/
     auto* model = ui->comboBoxHD->model();

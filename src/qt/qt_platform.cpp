@@ -74,11 +74,13 @@ private:
 
 extern "C" {
 #ifdef Q_OS_WINDOWS
-#define NOMINMAX
-#include <windows.h>
-#include <86box/win.h>
+#    ifndef NOMINMAX
+#        define NOMINMAX
+#    endif
+#    include <windows.h>
+#    include <86box/win.h>
 #else
-#include <strings.h>
+#    include <strings.h>
 #endif
 #include <86box/86box.h>
 #include <86box/device.h>
