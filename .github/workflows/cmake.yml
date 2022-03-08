@@ -88,6 +88,8 @@ jobs:
           ${{ matrix.environment.prefix }}-libpng
           ${{ matrix.environment.prefix }}-libvncserver
           ${{ matrix.environment.prefix }}-rtmidi
+          ${{ matrix.environment.prefix }}-qt5-static
+          ${{ matrix.environment.prefix }}-qt5-translations
     - uses: actions/checkout@v2
     - name: Configure CMake
       run: >-
