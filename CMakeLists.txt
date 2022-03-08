@@ -22,6 +22,10 @@ if(NOT DEFINED QT OR QT)
     list(APPEND VCPKG_MANIFEST_FEATURES "qt-ui")
 endif()
 
+if(OPENAL)
+    list(APPEND VCPKG_MANIFEST_FEATURES "openal")
+endif()
+
 if(SLIRP_EXTERNAL)
     list(APPEND VCPKG_MANIFEST_FEATURES "slirp")
 endif()

@@ -7,7 +7,6 @@
     "dependencies": [
         "freetype",
         "libpng",
-        "openal-soft",
         "sdl2",
         "rtmidi"
     ],
@@ -29,6 +28,12 @@
             "description": "Slirp network support",
             "dependencies": [
                 "libslirp"
+            ]
+        },
+        "openal": {
+            "description": "OpenAL sound backend",
+            "dependencies": [
+                "openal-soft"
             ]
         }
     }
