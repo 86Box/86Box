@@ -34,6 +34,7 @@ extern "C" {
 
 #include <86box/plat.h>
 #include <86box/ui.h>
+#include <86box/mouse.h>
 
 void
 plat_delay_ms(uint32_t count)
@@ -72,6 +73,9 @@ void plat_setfullscreen(int on) {
 }
 
 void plat_mouse_capture(int on) {
+    if (!kbd_req_capture && (mouse_type == MOUSE_TYPE_NONE))
+        return;
+
     main_window->setMouseCapture(on > 0 ? true : false);
 }
 
