@@ -236,6 +236,7 @@ ad1848_write(uint16_t addr, uint8_t val, void *priv)
 
                 case 9:
                     if (!ad1848->enable && (val & 0x41) == 0x01) {
+                        ad1848->adpcm_pos = 0;
                         if (ad1848->timer_latch)
                             timer_set_delay_u64(&ad1848->timer_count, ad1848->timer_latch);
                         else
@@ -257,8 +258,7 @@ ad1848_write(uint16_t addr, uint8_t val, void *priv)
                     return;
 
                 case 14:
-                    ad1848->count     = ad1848->regs[15] | (val << 8);
-                    ad1848->adpcm_pos = 0;
+                    ad1848->count = ad1848->regs[15] | (val << 8);
                     break;
 
                 case 17:
@@ -455,13 +455,12 @@ static int16_t
 ad1848_process_adpcm(ad1848_t *ad1848)
 {
     int temp;
-    if (ad1848->adpcm_pos) {
+    if (ad1848->adpcm_pos++ & 1) {
         temp = (ad1848->adpcm_data & 0x0f) + ad1848->adpcm_step;
     } else {
         ad1848->adpcm_data = dma_channel_read(ad1848->dma);
         temp = (ad1848->adpcm_data >> 4) + ad1848->adpcm_step;
     }
-    ad1848->adpcm_pos ^= 1;
     if (temp < 0)
         temp = 0;
     else if (temp > 63)
@@ -580,7 +579,8 @@ ad1848_poll(void *priv)
             }
         }
 
-        ad1848->count--;
+        if (!(ad1848->adpcm_pos & 7)) /* ADPCM counts down every 4 bytes */
+                ad1848->count--;
     } else {
         ad1848->out_l = ad1848->out_r = 0;
         ad1848->cd_vol_l = ad1848->cd_vol_r = 0;
