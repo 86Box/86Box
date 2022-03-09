@@ -312,9 +312,9 @@ void WindowsRawInputFilter::keyboard_getkeymap()
     /* Get the scan code remappings from:
     HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Keyboard Layout */
     bufSize = 32768;
-    if (RegOpenKeyEx(HKEY_LOCAL_MACHINE, keyName, 0, 1, &hKey) == ERROR_SUCCESS)
+    if (RegOpenKeyExA(HKEY_LOCAL_MACHINE, keyName, 0, 1, &hKey) == ERROR_SUCCESS)
     {
-        if (RegQueryValueEx(hKey, valueName, NULL, NULL, buf, &bufSize) == ERROR_SUCCESS)
+        if (RegQueryValueExA(hKey, valueName, NULL, NULL, buf, &bufSize) == ERROR_SUCCESS)
         {
             bufEx2 = (UINT32 *)buf;
             scMapCount = bufEx2[2];
