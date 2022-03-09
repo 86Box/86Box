@@ -179,6 +179,7 @@ jobs:
         -name "GitHub"
         -username "86Box"
         -password "${{ secrets.GITHUB_TOKEN }}"
+    - run: dir "C:/Program Files/Microsoft Visual Studio/2022/*/VC/Tools/MSVC/*/include" -include stdatomic.h -recurse | del
     - name: vcpkg package restore
       if: false
       run: vcpkg install freetype libpng openal-soft sdl2 rtmidi --triplet ${{ matrix.target.triplet }}
