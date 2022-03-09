@@ -14,7 +14,7 @@
 #           Copyright 2021 David Hrdlička.
 #
 
-string(APPEND CMAKE_C_FLAGS_INIT    " -march=armv8-a -moutline-atomics")
-string(APPEND CMAKE_CXX_FLAGS_INIT  " -march=armv8-a -moutline-atomics")
+string(APPEND CMAKE_C_FLAGS_INIT    " -march=armv8-a")
+string(APPEND CMAKE_CXX_FLAGS_INIT  " -march=armv8-a")
 
 include(${CMAKE_CURRENT_LIST_DIR}/flags-gcc.cmake)
