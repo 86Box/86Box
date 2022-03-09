@@ -19,7 +19,7 @@
 #include <Windows.h>
 #include <86box/win.h>
 
-bool WindowsManagerFilter::nativeEventFilter(const QByteArray &eventType, void *message, long *result)
+bool WindowsManagerFilter::nativeEventFilter(const QByteArray &eventType, void *message, result_t *result)
 {
     if (eventType == "windows_generic_MSG")
     {
