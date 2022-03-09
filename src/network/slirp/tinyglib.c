@@ -31,7 +31,7 @@ g_spawn_async_with_fds(const gchar *working_directory, gchar **argv,
 
 /* Needs bounds checking, but not really used by libslirp. */
 GString *
-g_string_new(gchar *base)
+g_string_new(const gchar *base)
 {
     char *ret = malloc(4096);
     if (base)
