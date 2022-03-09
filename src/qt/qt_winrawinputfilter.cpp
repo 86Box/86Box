@@ -110,7 +110,7 @@ WindowsRawInputFilter::~WindowsRawInputFilter()
     RegisterRawInputDevices(rid, 2, sizeof(rid[0]));
 }
 
-bool WindowsRawInputFilter::nativeEventFilter(const QByteArray &eventType, void *message, long *result)
+bool WindowsRawInputFilter::nativeEventFilter(const QByteArray &eventType, void *message, result_t *result)
 {
     if (eventType == "windows_generic_MSG")
     {
