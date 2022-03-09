@@ -5,6 +5,7 @@ on:
   push:
     paths:
     - src/**
+    - cmake/**
     - "**/CMakeLists.txt"
     - "CMakePresets.json"
     - .github/workflows/cmake.yml
@@ -14,6 +15,7 @@ on:
   pull_request:
     paths:
     - src/**
+    - cmake/**
     - "**/CMakeLists.txt"
     - "CMakePresets.json"
     - .github/workflows/**
