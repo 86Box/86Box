@@ -507,13 +507,13 @@ w83977f_reset(w83977f_t *dev)
     }
 
     if (dev->id == 1) {
-	serial_setup(dev->uart[0], SERIAL3_ADDR, SERIAL3_IRQ);
-	serial_setup(dev->uart[1], SERIAL4_ADDR, SERIAL4_IRQ);
+	serial_setup(dev->uart[0], COM3_ADDR, COM3_IRQ);
+	serial_setup(dev->uart[1], COM4_ADDR, COM4_IRQ);
     } else {
 	fdc_reset(dev->fdc);
 
-	serial_setup(dev->uart[0], SERIAL1_ADDR, SERIAL1_IRQ);
-	serial_setup(dev->uart[1], SERIAL2_ADDR, SERIAL2_IRQ);
+	serial_setup(dev->uart[0], COM1_ADDR, COM1_IRQ);
+	serial_setup(dev->uart[1], COM2_ADDR, COM2_IRQ);
 
 	w83977f_fdc_handler(dev);
     }

@@ -76,16 +76,16 @@ static const isapnp_device_config_t um8669f_pnp_defaults[] = {
 	.dma = { { .dma = 2 }, }
     }, {
 	.activate = 1,
-	.io = { { .base = 0x03f8 }, },
-	.irq = { { .irq = 4 }, }
+	.io = { { .base = COM1_ADDR }, },
+	.irq = { { .irq = COM1_IRQ }, }
     }, {
 	.activate = 1,
-	.io = { { .base = 0x02f8 }, },
-	.irq = { { .irq = 3 }, }
+	.io = { { .base = COM2_ADDR }, },
+	.irq = { { .irq = COM2_IRQ }, }
     }, {
 	.activate = 1,
-	.io = { { .base = 0x0378 }, },
-	.irq = { { .irq = 7 }, }
+	.io = { { .base = LPT1_ADDR }, },
+	.irq = { { .irq = LPT1_IRQ }, }
     }, {
 	.activate = 0
     }, {

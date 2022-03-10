@@ -108,12 +108,12 @@ typedef struct {
     char		network_host[520];		/* PCap device */
 
     /* Ports category */
-    char		parallel_devices[3][32];	/* LPT device names */
+    char		parallel_devices[PARALLEL_MAX][32];	/* LPT device names */
 #ifdef USE_SERIAL_DEVICES
-    char		serial_devices[4][32];		/* Serial device names */
+    char		serial_devices[SERIAL_MAX][32];		/* Serial device names */
 #endif
-    int			serial_enabled[4],		/* Serial ports 1 and 2 enabled */
-			parallel_enabled[3];		/* LPT1, LPT2, LPT3 enabled */
+    int			serial_enabled[SERIAL_MAX],		/* Serial ports 1, 2, 3, 4 enabled */
+			parallel_enabled[PARALLEL_MAX];		/* LPT1, LPT2, LPT3, LPT4 enabled */
 
     /* Other peripherals category */
     int			fdc_type,			/* Floppy disk controller type */

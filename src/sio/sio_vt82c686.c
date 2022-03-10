@@ -261,8 +261,8 @@ vt82c686_reset(vt82c686_t *dev)
 
     fdc_reset(dev->fdc);
 
-    serial_setup(dev->uart[0], SERIAL1_ADDR, SERIAL1_IRQ);
-    serial_setup(dev->uart[1], SERIAL2_ADDR, SERIAL2_IRQ);
+    serial_setup(dev->uart[0], COM1_ADDR, COM1_IRQ);
+    serial_setup(dev->uart[1], COM2_ADDR, COM2_IRQ);
 
     vt82c686_lpt_handler(dev);
     vt82c686_serial_handler(dev, 0);

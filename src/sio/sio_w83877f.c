@@ -127,7 +127,7 @@ make_port(w83877f_t *dev, uint8_t reg)
 			p &= 0x3F8;
 		else
 			p &= 0x3FC;
-		if ((p < 0x100) || (p > 0x3FF))  p = 0x378;
+		if ((p < 0x100) || (p > 0x3FF))  p = LPT1_ADDR;
 		/* In ECP mode, A10 is active. */
 		if (l & 0x80)
 			p |= 0x400;
@@ -135,12 +135,12 @@ make_port(w83877f_t *dev, uint8_t reg)
 	case 0x24:
 		p = ((uint16_t) (dev->regs[reg] & 0xfe)) << 2;
 		p &= 0xFF8;
-		if ((p < 0x100) || (p > 0x3F8))  p = 0x3F8;
+		if ((p < 0x100) || (p > 0x3F8))  p = COM1_ADDR;
 		break;
 	case 0x25:
 		p = ((uint16_t) (dev->regs[reg] & 0xfe)) << 2;
 		p &= 0xFF8;
-		if ((p < 0x100) || (p > 0x3F8))  p = 0x2F8;
+		if ((p < 0x100) || (p > 0x3F8))  p = COM2_ADDR;
 		break;
     }
 
@@ -406,9 +406,9 @@ w83877f_reset(w83877f_t *dev)
     dev->regs[0x20] = (0x3f0 >> 2) & 0xfc;
     dev->regs[0x21] = (0x1f0 >> 2) & 0xfc;
     dev->regs[0x22] = ((0x3f6 >> 2) & 0xfc) | 1;
-    dev->regs[0x23] = (0x378 >> 2);
-    dev->regs[0x24] = (0x3f8 >> 2) & 0xfe;
-    dev->regs[0x25] = (0x2f8 >> 2) & 0xfe;
+    dev->regs[0x23] = (LPT1_ADDR >> 2);
+    dev->regs[0x24] = (COM1_ADDR >> 2) & 0xfe;
+    dev->regs[0x25] = (COM2_ADDR >> 2) & 0xfe;
     dev->regs[0x26] = (2 << 4) | 4;
     dev->regs[0x27] = (2 << 4) | 5;
     dev->regs[0x28] = (4 << 4) | 3;

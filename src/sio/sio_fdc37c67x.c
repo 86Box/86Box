@@ -530,7 +530,7 @@ fdc37c67x_reset(fdc37c67x_t *dev)
     dev->ld_regs[4][0x61] = 0xf8;
     dev->ld_regs[4][0x70] = 4;
     dev->ld_regs[4][0xf0] = 3;
-    serial_setup(dev->uart[0], 0x3f8, dev->ld_regs[4][0x70]);
+    serial_setup(dev->uart[0], COM1_ADDR, dev->ld_regs[4][0x70]);
 
     /* Logical device 5: Serial Port 2 */
     dev->ld_regs[5][0x30] = 1;
@@ -540,7 +540,7 @@ fdc37c67x_reset(fdc37c67x_t *dev)
     dev->ld_regs[5][0x74] = 4;
     dev->ld_regs[5][0xf1] = 2;
     dev->ld_regs[5][0xf2] = 3;
-    serial_setup(dev->uart[1], 0x2f8, dev->ld_regs[5][0x70]);
+    serial_setup(dev->uart[1], COM2_ADDR, dev->ld_regs[5][0x70]);
 
     /* Logical device 7: Keyboard */
     dev->ld_regs[7][0x30] = 1;

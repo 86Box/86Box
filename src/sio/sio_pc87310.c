@@ -73,8 +73,8 @@ static void
 lpt1_handler(pc87310_t *dev)
 {
     int temp;
-    uint16_t lpt_port = 0x378;
-    uint8_t lpt_irq = 7;
+    uint16_t lpt_port = LPT1_ADDR;
+    uint8_t lpt_irq = LPT1_IRQ;
 
     /* bits 0-1:
      * 00 378h
@@ -86,13 +86,13 @@ lpt1_handler(pc87310_t *dev)
 
     switch (temp) {
 	case 0:
-		lpt_port = 0x378;
+		lpt_port = LPT1_ADDR;
 		break;
 	case 1:
-		lpt_port = 0x3bc;
+		lpt_port = LPT_MDA_ADDR;
 		break;
 	case 2:
-		lpt_port = 0x278;
+		lpt_port = LPT2_ADDR;
 		break;
 	case 3:
 		lpt_port = 0x000;
@@ -121,10 +121,10 @@ serial_handler(pc87310_t *dev, int uart)
     if (!temp){
         //configure serial port as COM2
         if (((dev->reg >> 4) & 1) ^ uart)
-            serial_setup(dev->uart[uart], 0x2f8, 3);
+            serial_setup(dev->uart[uart], COM2_ADDR, COM2_IRQ);
         // configure serial port as COM1
         else
-            serial_setup(dev->uart[uart], 0x3f8, 4);
+            serial_setup(dev->uart[uart], COM1_ADDR, COM1_IRQ);
     }
 }
 

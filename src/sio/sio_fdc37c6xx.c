@@ -56,11 +56,11 @@ set_com34_addr(fdc37c6xx_t *dev)
 		dev->com4_addr = 0x238;
 		break;
 	case 0x20:
-		dev->com3_addr = 0x3e8;
-		dev->com4_addr = 0x2e8;
+		dev->com3_addr = COM3_ADDR;
+		dev->com4_addr = COM4_ADDR;
 		break;
 	case 0x40:
-		dev->com3_addr = 0x3e8;
+		dev->com3_addr = COM3_ADDR;
 		dev->com4_addr = 0x2e0;
 		break;
 	case 0x60:
@@ -84,16 +84,16 @@ set_serial_addr(fdc37c6xx_t *dev, int port)
     if (dev->regs[2] & (4 << shift)) {
 	switch ((dev->regs[2] >> shift) & 3) {
 		case 0:
-			serial_setup(dev->uart[port], SERIAL1_ADDR, SERIAL1_IRQ);
+			serial_setup(dev->uart[port], COM1_ADDR, COM1_IRQ);
 			break;
 		case 1:
-			serial_setup(dev->uart[port], SERIAL2_ADDR, SERIAL2_IRQ);
+			serial_setup(dev->uart[port], COM2_ADDR, COM2_IRQ);
 			break;
 		case 2:
-			serial_setup(dev->uart[port], dev->com3_addr, 4);
+			serial_setup(dev->uart[port], dev->com3_addr, COM3_IRQ);
 			break;
 		case 3:
-			serial_setup(dev->uart[port], dev->com4_addr, 3);
+			serial_setup(dev->uart[port], dev->com4_addr, COM4_IRQ);
 			break;
 	}
     }
@@ -108,15 +108,15 @@ lpt1_handler(fdc37c6xx_t *dev)
     lpt1_remove();
     switch (dev->regs[1] & 3) {
 	case 1:
-		lpt1_init(0x3bc);
+		lpt1_init(LPT_MDA_ADDR);
 		lpt1_irq(7);
 		break;
 	case 2:
-		lpt1_init(0x378);
+		lpt1_init(LPT1_ADDR);
 		lpt1_irq(7 /*5*/);
 		break;
 	case 3:
-		lpt1_init(0x278);
+		lpt1_init(LPT2_ADDR);
 		lpt1_irq(7 /*5*/);
 		break;
     }
@@ -243,13 +243,13 @@ fdc37c6xx_reset(fdc37c6xx_t *dev)
     dev->com4_addr = 0x238;
 
     serial_remove(dev->uart[0]);
-    serial_setup(dev->uart[0], SERIAL1_ADDR, SERIAL1_IRQ);
+    serial_setup(dev->uart[0], COM1_ADDR, COM1_IRQ);
 
     serial_remove(dev->uart[1]);
-    serial_setup(dev->uart[1], SERIAL2_ADDR, SERIAL2_IRQ);
+    serial_setup(dev->uart[1], COM2_ADDR, COM2_IRQ);
 
     lpt1_remove();
-    lpt1_init(0x378);
+    lpt1_init(LPT1_ADDR);
 
     fdc_reset(dev->fdc);
     fdc_remove(dev->fdc);

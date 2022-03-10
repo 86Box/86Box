@@ -435,14 +435,14 @@ static void
 acc3221_reset(acc3221_t *dev)
 {
     serial_remove(dev->uart[0]);
-    serial_setup(dev->uart[0], SERIAL1_ADDR, SERIAL1_IRQ);
+    serial_setup(dev->uart[0], COM1_ADDR, COM1_IRQ);
 
     serial_remove(dev->uart[1]);
-    serial_setup(dev->uart[1], SERIAL2_ADDR, SERIAL2_IRQ);
+    serial_setup(dev->uart[1], COM2_ADDR, COM2_IRQ);
 
     lpt1_remove();
-    lpt1_init(0x378);
-    lpt1_irq(7);
+    lpt1_init(LPT1_ADDR);
+    lpt1_irq(LPT1_IRQ);
 
     fdc_reset(dev->fdc);
 }
