@@ -116,12 +116,18 @@ bool WindowsRawInputFilter::nativeEventFilter(const QByteArray &eventType, void 
     {
         MSG *msg = static_cast<MSG *>(message);
 
-        if (msg->message == WM_INPUT)
-        {
+        if (msg->message == WM_INPUT) {
             if (window->isActiveWindow() && menus_open == 0)
-                handle_input((HRAWINPUT)msg->lParam);
+                handle_input((HRAWINPUT) msg->lParam);
 
             return true;
+        }
+
+        /* Stop processing of Alt-F4 */
+        if (msg->message == WM_SYSKEYDOWN) {
+            if (msg->wParam == 0x73) {
+                return true;
+            }
         }
     }
 
