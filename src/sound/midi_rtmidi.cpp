@@ -14,14 +14,12 @@
  *          Copyright 2021 Miran Grca.
  */
 
-#ifdef SYSTEM_MIDI
-#  if defined __has_include
-#    if __has_include (<RtMidi.h>)
-#      include <RtMidi.h>
-#    endif
-#    if __has_include (<rtmidi/RtMidi.h>)
-#      include <rtmidi/RtMidi.h>
-#    endif
+#if defined __has_include
+#  if __has_include (<RtMidi.h>)
+#    include <RtMidi.h>
+#  endif
+#  if __has_include (<rtmidi/RtMidi.h>)
+#    include <rtmidi/RtMidi.h>
 #  endif
 #endif
 
@@ -38,11 +36,9 @@ extern "C"
 #include <86box/midi_rtmidi.h>
 #include <86box/config.h>
 
-#ifdef SYSTEM_MIDI
-static RtMidiOut *    midiout = nullptr;
-static RtMidiIn *    midiin = nullptr;
-#endif
-static int        midi_out_id = 0, midi_in_id = 0;
+static RtMidiOut *  midiout = nullptr;
+static RtMidiIn *   midiin = nullptr;
+static int          midi_out_id = 0, midi_in_id = 0;
 static const int    midi_lengths[8] = {3, 3, 3, 3, 2, 2, 3, 1};
 
 
@@ -53,7 +49,6 @@ rtmidi_write(uint8_t val)
 }
 
 
-#ifdef SYSTEM_MIDI
 void
 rtmidi_play_msg(uint8_t *msg)
 {
@@ -236,76 +231,6 @@ rtmidi_in_get_dev_name(int num, char *s)
 {
     strcpy(s, midiin->getPortName(num).c_str());
 }
-#else /* !SYSTEM_MIDI */
-void
-rtmidi_play_msg(uint8_t *msg)
-{
-
-}
-
-
-void
-rtmidi_play_sysex(uint8_t *sysex, unsigned int len)
-{
-
-}
-
-
-void*
-rtmidi_init(const device_t *info)
-{
-	return nullptr;
-}
-
-
-void
-rtmidi_close(void *p)
-{
-
-}
-
-
-int
-rtmidi_get_num_devs(void)
-{
-	return 0;
-}
-
-
-void
-rtmidi_get_dev_name(int num, char *s)
-{
-
-}
-
-
-void*
-rtmidi_input_init(const device_t *info)
-{
-	return nullptr;
-}
-
-
-void
-rtmidi_input_close(void* p)
-{
-
-}
-
-
-int
-rtmidi_in_get_num_devs(void)
-{
-	return 0;
-}
-
-
-void
-rtmidi_in_get_dev_name(int num, char *s)
-{
-
-}
-#endif
 
 static const device_config_t system_midi_config[] =
 {

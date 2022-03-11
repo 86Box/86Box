@@ -95,7 +95,9 @@ static const MIDI_DEVICE devices[] = {
     { &mt32_device       },
     { &cm32l_device      },
 #endif
+#ifdef USE_RTMIDI
     { &rtmidi_device     },
+#endif
     { NULL               }
     // clang-format on
 };
@@ -117,7 +119,9 @@ static const device_t midi_in_none_device = {
 static const MIDI_IN_DEVICE midi_in_devices[] = {
     // clang-format off
     { &midi_in_none_device },
+#ifdef USE_RTMIDI
     { &rtmidi_input_device },
+#endif
     { NULL                 }
     // clang-format on
 };

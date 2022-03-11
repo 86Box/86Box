@@ -67,6 +67,7 @@ void DeviceConfig::ConfigureDevice(const _device_* device, int instance, Setting
             dc.ui->formLayout->addRow(config->description, cbox);
             break;
         }
+#ifdef USE_RTMIDI
         case CONFIG_MIDI_OUT:
         {
             auto* cbox = new QComboBox();
@@ -107,6 +108,7 @@ void DeviceConfig::ConfigureDevice(const _device_* device, int instance, Setting
             cbox->setCurrentIndex(currentIndex);
             break;
         }
+#endif
         case CONFIG_SELECTION:
         case CONFIG_HEX16:
         case CONFIG_HEX20:
