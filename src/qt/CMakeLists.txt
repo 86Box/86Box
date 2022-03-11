@@ -259,7 +259,7 @@ if (APPLE AND CMAKE_MACOSX_BUNDLE)
         fixup_bundle(\"\${CMAKE_INSTALL_PREFIX_ABSOLUTE}/86Box.app\" \"${QT_PLUGINS}\" \"${DIRS}\")")
 endif()
 
-if (UNIX AND NOT APPLE)
+if (UNIX AND NOT APPLE AND NOT HAIKU)
     find_package(X11 REQUIRED)
     target_link_libraries(ui PRIVATE X11::X11 X11::Xi)
     target_sources(ui PRIVATE xinput2_mouse.cpp)

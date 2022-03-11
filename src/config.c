@@ -300,6 +300,27 @@ config_detect_bom(char *fn)
 	return 0;
 }
 
+#ifdef __HAIKU__
+/* Local version of fgetws to avoid a crash */
+static wchar_t*
+config_fgetws(wchar_t *str, int count, FILE* stream)
+{
+    int i = 0;
+    if (feof(stream)) return NULL;
+    for (i = 0; i < count; i++) {
+        wint_t curChar = fgetwc(stream);
+        if (curChar == WEOF) {
+            if (i + 1 < count) str[i + 1] = 0;
+            return feof(stream) ? str : NULL;
+        }
+        str[i] = curChar;
+        if (curChar == '\n') break;
+    }
+    if (i + 1 < count) str[i + 1] = 0;
+    return str;
+}
+#endif
+
 /* Read and parse the configuration file into memory. */
 static int
 config_read(char *fn)
@@ -328,7 +349,11 @@ config_read(char *fn)
 
     while (1) {
 	memset(buff, 0x00, sizeof(buff));
+#ifdef __HAIKU__
+	config_fgetws(buff, sizeof_w(buff), f);
+#else
 	fgetws(buff, sizeof_w(buff), f);
+#endif
 	if (feof(f)) break;
 
 	/* Make sure there are no stray newlines or hard-returns in there. */

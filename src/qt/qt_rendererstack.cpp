@@ -49,7 +49,7 @@ RendererStack::RendererStack(QWidget *parent)
 {
     ui->setupUi(this);
 
-#ifdef __unix__
+#if defined __unix__ && !defined __HAIKU__
 #    ifdef WAYLAND
     if (QApplication::platformName().contains("wayland")) {
         wl_init();
@@ -104,7 +104,7 @@ RendererStack::mousePoll()
     mousedata.deltax = mousedata.deltay = mousedata.deltaz = 0;
     mouse_buttons                                          = mousedata.mousebuttons;
 
-#    ifdef __unix__
+#    if defined __unix__ && !defined __HAIKU__
 #        ifdef WAYLAND
     if (QApplication::platformName().contains("wayland"))
         wl_mouse_poll();
@@ -206,6 +206,7 @@ RendererStack::leaveEvent(QEvent *event)
     }
     if (!mouse_capture)
         return;
+    QCursor::setPos(mapToGlobal(QPoint(width() / 2, height() / 2)));
     ignoreNextMouseEvent = 2;
     event->accept();
 }
@@ -237,7 +238,11 @@ RendererStack::createRenderer(Renderer renderer)
                 auto sw        = new SoftwareRenderer(this);
                 rendererWindow = sw;
                 connect(this, &RendererStack::blitToRenderer, sw, &SoftwareRenderer::onBlit, Qt::QueuedConnection);
+#ifdef __HAIKU__
+                current.reset(sw);
+#else
                 current.reset(this->createWindowContainer(sw, this));
+#endif
             }
             break;
         case Renderer::OpenGL:
