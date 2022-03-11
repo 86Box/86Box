@@ -63,7 +63,7 @@ else()
 endif()
 
 if(SYSTEM_MIDI)
-    target_compile_definition(snd PRIVATE SYSTEM_MIDI)
+    target_compile_definitions(snd PRIVATE SYSTEM_MIDI)
 endif()
 
 if(FLUIDSYNTH)
