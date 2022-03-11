@@ -438,6 +438,11 @@ MainWindow::MainWindow(QWidget *parent) :
 }
 
 void MainWindow::closeEvent(QCloseEvent *event) {
+    if (mouse_capture) {
+        event->ignore();
+        return;
+    }
+
     if (confirm_exit && confirm_exit_cmdl && cpu_thread_run)
     {
         QMessageBox questionbox(QMessageBox::Icon::Question, "86Box", tr("Are you sure you want to exit 86Box?"), QMessageBox::Yes | QMessageBox::No, this);
