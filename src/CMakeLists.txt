@@ -100,18 +100,20 @@ find_package(PNG REQUIRED)
 include_directories(${PNG_INCLUDE_DIRS})
 target_link_libraries(86Box PNG::PNG)
 
-if(VCPKG_TOOLCHAIN)
-    # vcpkg includes a config file for rtmidi
-    find_package(RtMidi REQUIRED)
-    target_link_libraries(86Box RtMidi::rtmidi)
-else()
-    find_package(PkgConfig REQUIRED)
-    pkg_check_modules(RTMIDI REQUIRED IMPORTED_TARGET rtmidi)
-    target_link_libraries(86Box PkgConfig::RTMIDI)
+if(SYSTEM_MIDI)
+    if(VCPKG_TOOLCHAIN)
+        # vcpkg includes a config file for rtmidi
+        find_package(RtMidi REQUIRED)
+        target_link_libraries(86Box RtMidi::rtmidi)
+    else()
+        find_package(PkgConfig REQUIRED)
+        pkg_check_modules(RTMIDI REQUIRED IMPORTED_TARGET rtmidi)
+        target_link_libraries(86Box PkgConfig::RTMIDI)
 
-    if(WIN32)
-        target_link_libraries(PkgConfig::RTMIDI INTERFACE winmm)
-    endif()
+        if(WIN32)
+            target_link_libraries(PkgConfig::RTMIDI INTERFACE winmm)
+        endif()
+     endif()
 endif()
 
 configure_file(include/86box/version.h.in include/86box/version.h @ONLY)
@@ -187,6 +189,7 @@ elseif(WIN32)
         DESTINATION "."
         OPTIONAL)
 endif()
+
 
 add_subdirectory(device)
 add_subdirectory(disk)

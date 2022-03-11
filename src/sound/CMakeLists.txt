@@ -62,6 +62,10 @@ else()
     endif()
 endif()
 
+if(SYSTEM_MIDI)
+    target_compile_definition(snd PRIVATE SYSTEM_MIDI)
+endif()
+
 if(FLUIDSYNTH)
     target_compile_definitions(snd PRIVATE USE_FLUIDSYNTH)
     target_sources(snd PRIVATE midi_fluidsynth.c)

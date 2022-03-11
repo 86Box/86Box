@@ -162,6 +162,8 @@ int main(int argc, char* argv[]) {
     {
         return 0;
     }
+
+    fprintf(stderr, "Qt: version %s, platform \"%s\"\n", qVersion(), QApplication::platformName().toUtf8().data());
     ProgSettings::loadTranslators(&app);
 #ifdef Q_OS_WINDOWS
     auto font_name = QObject::tr("FONT_NAME");
