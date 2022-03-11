@@ -826,25 +826,18 @@ const device_t paradise_wd90c11_device =
 	NULL
 };
 
-static const device_config_t paradise_wd90c30_config[] =
-{
+static const device_config_t paradise_wd90c30_config[] = {
+// clang-format off
+    {
+        "memory", "Memory size", CONFIG_SELECTION, "", 1024, "", { 0 },
         {
-                "memory", "Memory size", CONFIG_SELECTION, "", 1024, "", { 0 },
-                {
-                        {
-                                "512 kB", 512
-                        },
-                        {
-                                "1 MB", 1024
-                        },
-                        {
-                                ""
-                        }
-                }
-        },
-        {
-                "", "", -1
+            { "512 kB",  512 },
+            { "1 MB",   1024 },
+            { ""             }
         }
+    },
+    { "", "", -1 }
+// clang-format on
 };
 
 const device_t paradise_wd90c30_device =

@@ -1,18 +1,19 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		MIDI backend implemented using the RtMidi library.
+ *          MIDI backend implemented using the RtMidi library.
  *
- * Author:	Cacodemon345,
- *		Miran Grca, <mgrca8@gmail.com>
- *		Copyright 2021 Cacodemon345.
- *		Copyright 2021 Miran Grca.
+ * Author:  Cacodemon345,
+ *          Miran Grca, <mgrca8@gmail.com>
+ *          Copyright 2021 Cacodemon345.
+ *          Copyright 2021 Miran Grca.
  */
+
 #if defined __has_include
 #  if __has_include (<RtMidi.h>)
 #    include <RtMidi.h>
@@ -35,11 +36,10 @@ extern "C"
 #include <86box/midi_rtmidi.h>
 #include <86box/config.h>
 
-
-static RtMidiOut *	midiout = nullptr;
-static RtMidiIn *	midiin = nullptr;
-static int		midi_out_id = 0, midi_in_id = 0;
-static const int	midi_lengths[8] = {3, 3, 3, 3, 2, 2, 3, 1};
+static RtMidiOut *  midiout = nullptr;
+static RtMidiIn *   midiin = nullptr;
+static int          midi_out_id = 0, midi_in_id = 0;
+static const int    midi_lengths[8] = {3, 3, 3, 3, 2, 2, 3, 1};
 
 
 int
@@ -53,7 +53,7 @@ void
 rtmidi_play_msg(uint8_t *msg)
 {
     if (midiout)
-	midiout->sendMessage(msg, midi_lengths[(msg[0] >> 4) & 7]);
+    midiout->sendMessage(msg, midi_lengths[(msg[0] >> 4) & 7]);
 }
 
 
@@ -61,7 +61,7 @@ void
 rtmidi_play_sysex(uint8_t *sysex, unsigned int len)
 {
     if (midiout)
-	midiout->sendMessage(sysex, len);
+    midiout->sendMessage(sysex, len);
 }
 
 
@@ -76,27 +76,27 @@ rtmidi_init(const device_t *info)
     dev->write = rtmidi_write;
 
     try {
-	if (!midiout) midiout = new RtMidiOut;
+    if (!midiout) midiout = new RtMidiOut;
     } catch (RtMidiError& error) {
-	pclog("Failed to initialize MIDI output: %s\n", error.getMessage().c_str());
-	return nullptr;
+    pclog("Failed to initialize MIDI output: %s\n", error.getMessage().c_str());
+    return nullptr;
     }
 
     midi_out_id = config_get_int((char*)SYSTEM_MIDI_NAME, (char*)"midi", 0);
 
     try {
-	midiout->openPort(midi_out_id);
+    midiout->openPort(midi_out_id);
     } catch (RtMidiError& error) {
-	pclog("Fallback to default MIDI output port: %s\n", error.getMessage().c_str());
+    pclog("Fallback to default MIDI output port: %s\n", error.getMessage().c_str());
 
-	try {
-		midiout->openPort(0);
-	} catch (RtMidiError& error) {
-		pclog("Failed to initialize MIDI output: %s\n", error.getMessage().c_str());
-		delete midiout;
-		midiout = nullptr;
-		return nullptr;
-	}
+    try {
+        midiout->openPort(0);
+    } catch (RtMidiError& error) {
+        pclog("Failed to initialize MIDI output: %s\n", error.getMessage().c_str());
+        delete midiout;
+        midiout = nullptr;
+        return nullptr;
+    }
     }
 
     midi_init(dev);
@@ -109,7 +109,7 @@ void
 rtmidi_close(void *p)
 {
     if (!midiout)
-	return;
+    return;
 
     midiout->closePort();
 
@@ -124,11 +124,11 @@ int
 rtmidi_get_num_devs(void)
 {
     if (!midiout) {
-	try {
-		midiout = new RtMidiOut;
-	} catch (RtMidiError& error) {
-		pclog("Failed to initialize MIDI output: %s\n", error.getMessage().c_str());
-	}
+    try {
+        midiout = new RtMidiOut;
+    } catch (RtMidiError& error) {
+        pclog("Failed to initialize MIDI output: %s\n", error.getMessage().c_str());
+    }
     }
 
     return midiout ? midiout->getPortCount() : 0;
@@ -148,7 +148,7 @@ rtmidi_input_callback(double timeStamp, std::vector<unsigned char> *message, voi
     if (message->front() == 0xF0)
         midi_in_sysex(message->data(), message->size());
     else
-	midi_in_msg(message->data(), message->size());
+    midi_in_msg(message->data(), message->size());
 }
 
 
@@ -159,28 +159,28 @@ rtmidi_input_init(const device_t *info)
     memset(dev, 0, sizeof(midi_device_t));
 
     try {
-	if (!midiin)
-		midiin = new RtMidiIn;
+    if (!midiin)
+        midiin = new RtMidiIn;
     } catch (RtMidiError& error) {
-	pclog("Failed to initialize MIDI input: %s\n", error.getMessage().c_str());
-	return nullptr;
+    pclog("Failed to initialize MIDI input: %s\n", error.getMessage().c_str());
+    return nullptr;
     }
 
     midi_in_id = config_get_int((char*)MIDI_INPUT_NAME, (char*)"midi_input", 0);
 
     try {
-	midiin->openPort(midi_in_id);
+    midiin->openPort(midi_in_id);
     } catch (RtMidiError& error) {
-	pclog("Fallback to default MIDI input port: %s\n", error.getMessage().c_str());
+    pclog("Fallback to default MIDI input port: %s\n", error.getMessage().c_str());
 
-	try {
-		midiin->openPort(0);
-	} catch (RtMidiError& error) {
-		pclog("Failed to initialize MIDI input: %s\n", error.getMessage().c_str());
-		delete midiin;
-		midiin = nullptr;
-		return nullptr;
-	}
+    try {
+        midiin->openPort(0);
+    } catch (RtMidiError& error) {
+        pclog("Failed to initialize MIDI input: %s\n", error.getMessage().c_str());
+        delete midiin;
+        midiin = nullptr;
+        return nullptr;
+    }
     }
 
     midiin->setCallback(&rtmidi_input_callback);
@@ -215,11 +215,11 @@ int
 rtmidi_in_get_num_devs(void)
 {
     if (!midiin) {
-	try {
-		midiin = new RtMidiIn;
-	} catch (RtMidiError& error) {
-		pclog("Failed to initialize MIDI input: %s\n", error.getMessage().c_str());
-	}
+    try {
+        midiin = new RtMidiIn;
+    } catch (RtMidiError& error) {
+        pclog("Failed to initialize MIDI input: %s\n", error.getMessage().c_str());
+    }
     }
 
     return midiin ? midiin->getPortCount() : 0;
@@ -235,29 +235,29 @@ rtmidi_in_get_dev_name(int num, char *s)
 static const device_config_t system_midi_config[] =
 {
     {
-	"midi", "MIDI out device", CONFIG_MIDI_OUT, "", 0
+    "midi", "MIDI out device", CONFIG_MIDI_OUT, "", 0
     },
     {
-	"", "", -1
+    "", "", -1
     }
 };
 
 static const device_config_t midi_input_config[] =
 {
     {
-	"midi_input", "MIDI in device", CONFIG_MIDI_IN, "", 0
+    "midi_input", "MIDI in device", CONFIG_MIDI_IN, "", 0
     },
     {
-	"realtime", "MIDI Real time", CONFIG_BINARY, "", 0
+    "realtime", "MIDI Real time", CONFIG_BINARY, "", 0
     },
     {
-	"thruchan", "MIDI Thru", CONFIG_BINARY, "", 1
+    "thruchan", "MIDI Thru", CONFIG_BINARY, "", 1
     },
     {
-	"clockout", "MIDI Clockout", CONFIG_BINARY, "", 1
+    "clockout", "MIDI Clockout", CONFIG_BINARY, "", 1
     },
     {
-	"", "", -1
+    "", "", -1
     }
 };
 

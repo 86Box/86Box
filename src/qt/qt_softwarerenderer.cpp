@@ -28,9 +28,13 @@ extern "C" {
 }
 
 SoftwareRenderer::SoftwareRenderer(QWidget *parent)
+#ifdef __HAIKU__
+    : QWidget(parent)
+#else
     : QRasterWindow(parent->windowHandle())
+#endif
 {
-    parentWidget = parent;
+    RendererCommon::parentWidget = parent;
 
     images[0] = std::make_unique<QImage>(QSize(2048, 2048), QImage::Format_RGB32);
     images[1] = std::make_unique<QImage>(QSize(2048, 2048), QImage::Format_RGB32);
@@ -38,6 +42,9 @@ SoftwareRenderer::SoftwareRenderer(QWidget *parent)
     buf_usage = std::vector<std::atomic_flag>(2);
     buf_usage[0].clear();
     buf_usage[1].clear();
+#ifdef __HAIKU__
+    this->setMouseTracking(true);
+#endif
 }
 
 void SoftwareRenderer::paintEvent(QPaintEvent* event) {
@@ -53,20 +60,29 @@ void SoftwareRenderer::onBlit(int buf_idx, int x, int y, int w, int h) {
 
     cur_image = buf_idx;
     buf_usage[(buf_idx + 1) % 2].clear();
-
-    source.setRect(x, y, w, h),
+    
+    source.setRect(x, y, w, h);
     update();
 }
 
 void SoftwareRenderer::resizeEvent(QResizeEvent *event) {
     onResize(width(), height());
+#ifdef __HAIKU__
+    QWidget::resizeEvent(event);
+#else
     QRasterWindow::resizeEvent(event);
+#endif
 }
 
 bool SoftwareRenderer::event(QEvent *event)
 {
     bool res = false;
-    if (!eventDelegate(event, res)) return QRasterWindow::event(event);
+    if (!eventDelegate(event, res))
+#ifdef __HAIKU__
+        return QWidget::event(event);
+#else
+        return QRasterWindow::event(event);
+#endif
     return res;
 }
 

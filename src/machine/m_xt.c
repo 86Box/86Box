@@ -437,3 +437,22 @@ machine_xt_pc500_init(const machine_t* model)
 
     return ret;
 }
+
+int
+machine_xt_vendex_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/vendex/Vendex Turbo 888 XT - ROM BIOS - VER 2.03C.bin",
+			   0x000fc000, 16384, 0);
+
+    if (bios_only || !ret)
+	return ret;
+
+    machine_xt_clone_init(model);
+
+    /* On-board FDC cannot be disabled */
+	device_add(&fdc_xt_device);
+
+    return ret;
+}

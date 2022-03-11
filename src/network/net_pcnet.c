@@ -3076,137 +3076,72 @@ pcnet_close(void *priv)
     }
 }
 
-
-static const device_config_t pcnet_pci_config[] =
-{
-	{
-		"mac", "MAC Address", CONFIG_MAC, "", -1
-	},
-	{
-		"", "", -1
-	}
+// clang-format off
+static const device_config_t pcnet_pci_config[] = {
+    { "mac", "MAC Address", CONFIG_MAC, "", -1 },
+    { "",    "",                            -1 }
 };
 
-
-static const device_config_t pcnet_isa_config[] =
-{
-	{
-		"base", "Address", CONFIG_HEX16, "", 0x300, "", { 0 },
-		{
-			{
-				"0x300", 0x300
-			},
-			{
-				"0x320", 0x320
-			},
-			{
-				"0x340", 0x340
-			},
-			{
-				"0x360", 0x360
-			},
-			{
-				""
-			}
-		},
-	},
-	{
-		"irq", "IRQ", CONFIG_SELECTION, "", 3, "", { 0 },
-		{
-			{
-				"IRQ 3", 3
-			},
-			{
-				"IRQ 4", 4
-			},
-			{
-				"IRQ 5", 5
-			},
-			{
-				"IRQ 9", 9
-			},
-			{
-				""
-			}
-		},
-	},
-	{
-		"dma", "DMA channel", CONFIG_SELECTION, "", 5, "", { 0 },
-		{
-			{
-				"DMA 3", 3
-			},
-			{
-				"DMA 5", 5
-			},
-			{
-				"DMA 6", 6
-			},
-			{
-				"DMA 7", 7
-			},
-			{
-				""
-			}
-		},
-	},
-	{
-		"mac", "MAC Address", CONFIG_MAC, "", -1
-	},
-	{
-		"", "", -1
-	}
+static const device_config_t pcnet_isa_config[] = {
+    {
+        "base", "Address", CONFIG_HEX16, "", 0x300, "", { 0 },
+        {
+            { "0x300", 0x300 },
+            { "0x320", 0x320 },
+            { "0x340", 0x340 },
+            { "0x360", 0x360 },
+            { ""             }
+        },
+    },
+    {
+        "irq", "IRQ", CONFIG_SELECTION, "", 3, "", { 0 },
+        {
+            { "IRQ 3", 3 },
+            { "IRQ 4", 4 },
+            { "IRQ 5", 5 },
+            { "IRQ 9", 9 },
+            { ""         }
+        },
+    },
+    {
+        "dma", "DMA channel", CONFIG_SELECTION, "", 5, "", { 0 },
+        {
+            { "DMA 3", 3 },
+            { "DMA 5", 5 },
+            { "DMA 6", 6 },
+            { "DMA 7", 7 },
+            { ""         }
+        },
+    },
+    { "mac", "MAC Address", CONFIG_MAC, "", -1 },
+    { "", "", -1 }
 };
 
-static const device_config_t pcnet_vlb_config[] =
-{
-	{
-		"base", "Address", CONFIG_HEX16, "", 0x300, "", { 0 },
-		{
-			{
-				"0x300", 0x300
-			},
-			{
-				"0x320", 0x320
-			},
-			{
-				"0x340", 0x340
-			},
-			{
-				"0x360", 0x360
-			},
-			{
-				""
-			}
-		},
-	},
-	{
-		"irq", "IRQ", CONFIG_SELECTION, "", 3, "", { 0 },
-		{
-			{
-				"IRQ 3", 3
-			},
-			{
-				"IRQ 4", 4
-			},
-			{
-				"IRQ 5", 5
-			},
-			{
-				"IRQ 9", 9
-			},
-			{
-				""
-			}
-		},
-	},
-	{
-		"mac", "MAC Address", CONFIG_MAC, "", -1
-	},
-	{
-		"", "", -1
-	}
+static const device_config_t pcnet_vlb_config[] = {
+    {
+        "base", "Address", CONFIG_HEX16, "", 0x300, "", { 0 },
+        {
+            { "0x300", 0x300 },
+            { "0x320", 0x320 },
+            { "0x340", 0x340 },
+            { "0x360", 0x360 },
+            { ""             }
+        },
+    },
+    {
+        "irq", "IRQ", CONFIG_SELECTION, "", 3, "", { 0 },
+        {
+            { "IRQ 3", 3 },
+            { "IRQ 4", 4 },
+            { "IRQ 5", 5 },
+            { "IRQ 9", 9 },
+            { ""         }
+        },
+    },
+    { "mac", "MAC Address", CONFIG_MAC, "", -1 },
+    { "", "", -1 }
 };
+// clang-format on
 
 const device_t pcnet_am79c960_device = {
     "AMD PCnet-ISA",

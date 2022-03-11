@@ -73,20 +73,32 @@
 	)
 #endif	/*HAVE_BYTESWAP_H*/
 
+#if defined __has_builtin && __has_builtin(__builtin_bswap16)
+#define bswap16(x) __builtin_bswap16(x)
+#else
 static __inline uint16_t bswap16(uint16_t x)
 {
     return bswap_16(x);
 }
+#endif
 
+#if defined __has_builtin && __has_builtin(__builtin_bswap32)
+#define bswap32(x) __builtin_bswap32(x)
+#else
 static __inline uint32_t bswap32(uint32_t x)
 {
     return bswap_32(x);
 }
+#endif
 
+#if defined __has_builtin && __has_builtin(__builtin_bswap64)
+#define bswap64(x) __builtin_bswap64(x)
+#else
 static __inline uint64_t bswap64(uint64_t x)
 {
     return bswap_64(x);
 }
+#endif
 
 static __inline void bswap16s(uint16_t *s)
 {

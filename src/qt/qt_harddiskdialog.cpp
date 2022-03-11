@@ -38,6 +38,7 @@ extern "C" {
 #include <QProgressDialog>
 #include <QPushButton>
 #include <QStringBuilder>
+#include <QStringList>
 
 #include "qt_harddrive_common.hpp"
 #include "qt_settings_bus_tracking.hpp"
@@ -50,8 +51,9 @@ HarddiskDialog::HarddiskDialog(bool existing, QWidget *parent) :
 {
     ui->setupUi(this);
 
-    ui->fileField->setFilter(tr("Hard disk images") % util::DlgFilter({ "hd?","im?","vhd" }) % tr("All files") % util::DlgFilter({ "*" }, true));
     if (existing) {
+        ui->fileField->setFilter(tr("Hard disk images") % util::DlgFilter({ "hd?", "im?", "vhd" }) % tr("All files") % util::DlgFilter({ "*" }, true));
+
         setWindowTitle(tr("Add Existing Hard Disk"));
         ui->lineEditCylinders->setEnabled(false);
         ui->lineEditHeads->setEnabled(false);
@@ -64,8 +66,24 @@ HarddiskDialog::HarddiskDialog(bool existing, QWidget *parent) :
 
         connect(ui->fileField, &FileField::fileSelected, this, &HarddiskDialog::onExistingFileSelected);
     } else {
+        QStringList filters({ tr("Raw image") % util::DlgFilter({ "img" }, true),
+                              tr("HDI image") % util::DlgFilter({ "hdi" }, true),
+                              tr("HDX image") % util::DlgFilter({ "hdx" }, true),
+                              tr("Fixed-size VHD") % util::DlgFilter({ "vhd" }, true),
+                              tr("Dynamic-size VHD") % util::DlgFilter({ "vhd" }, true),
+                              tr("Differencing VHD") % util::DlgFilter({ "vhd" }, true) });
+
+        ui->fileField->setFilter(filters.join(";;"));
+
         setWindowTitle(tr("Add New Hard Disk"));
         ui->fileField->setCreateFile(true);
+
+        connect(ui->fileField, &FileField::fileSelected, this, [this, filters] {
+            int filter = filters.indexOf(ui->fileField->selectedFilter());
+            if (filter > -1)
+                ui->comboBoxFormat->setCurrentIndex(filter);
+            ui->buttonBox->button(QDialogButtonBox::Ok)->setEnabled(true);
+        });
     }
 
     auto* model = ui->comboBoxFormat->model();
@@ -101,9 +119,6 @@ HarddiskDialog::HarddiskDialog(bool existing, QWidget *parent) :
 
     ui->lineEditSize->setValidator(new QIntValidator());
     ui->buttonBox->button(QDialogButtonBox::Ok)->setEnabled(false);
-    if (!existing) connect(ui->fileField, &FileField::fileSelected, this, [this] {
-        ui->buttonBox->button(QDialogButtonBox::Ok)->setEnabled(true);
-    });
 }
 
 HarddiskDialog::~HarddiskDialog()
@@ -705,6 +720,7 @@ void HarddiskDialog::on_comboBoxBus_currentIndexChanged(int index) {
             break;
     }
 
+    if (chanIdx == 0xFF) chanIdx = 0;
     ui->comboBoxChannel->setCurrentIndex(chanIdx);
 }
 

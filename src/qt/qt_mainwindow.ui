@@ -15,7 +15,7 @@
   </property>
   <widget class="QWidget" name="centralwidget">
    <property name="sizePolicy">
-    <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+    <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
      <horstretch>0</horstretch>
      <verstretch>0</verstretch>
     </sizepolicy>
@@ -37,7 +37,14 @@
      <number>0</number>
     </property>
     <item>
-     <widget class="RendererStack" name="stackedWidget"/>
+     <widget class="RendererStack" name="stackedWidget">
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+        <horstretch>0</horstretch>
+        <verstretch>0</verstretch>
+       </sizepolicy>
+      </property>
+     </widget>
     </item>
    </layout>
   </widget>
@@ -154,6 +161,8 @@
     <addaction name="actionRemember_size_and_position"/>
     <addaction name="separator"/>
     <addaction name="menuRenderer"/>
+    <addaction name="actionRenderer_options"/>
+    <addaction name="separator"/>
     <addaction name="actionSpecify_dimensions"/>
     <addaction name="actionForce_4_3_display_ratio"/>
     <addaction name="menuWindow_scale_factor"/>
@@ -341,6 +350,9 @@
    <property name="text">
     <string>&amp;Qt (Software)</string>
    </property>
+   <property name="vid_api" stdset="0">
+    <number>0</number>
+   </property>
   </action>
   <action name="actionHardware_Renderer_OpenGL">
    <property name="checkable">
@@ -349,6 +361,9 @@
    <property name="text">
     <string>Qt (&amp;OpenGL)</string>
    </property>
+   <property name="vid_api" stdset="0">
+    <number>1</number>
+   </property>
   </action>
   <action name="actionHardware_Renderer_OpenGL_ES">
    <property name="checkable">
@@ -356,6 +371,9 @@
    </property>
    <property name="text">
     <string>Qt (OpenGL &amp;ES)</string>
+   </property>
+   <property name="vid_api" stdset="0">
+    <number>2</number>
    </property>
   </action>
   <action name="actionHide_status_bar">
@@ -626,6 +644,9 @@
    <property name="text">
     <string>Open&amp;GL (3.0 Core)</string>
    </property>
+   <property name="vid_api" stdset="0">
+    <number>3</number>
+   </property>
   </action>
   <action name="actionPreferences">
    <property name="text">
@@ -698,6 +719,11 @@
    </property>
    <property name="shortcutVisibleInContextMenu">
     <bool>false</bool>
+   </property>
+  </action>
+  <action name="actionRenderer_options">
+   <property name="text">
+    <string>Renderer options...</string>
    </property>
   </action>
  </widget>

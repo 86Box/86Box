@@ -28,7 +28,7 @@ void Harddrives::populateBuses(QAbstractItemModel *model) {
     model->removeRows(0, model->rowCount());
     model->insertRows(0, 6);
     model->setData(model->index(0, 0), "MFM/RLL");
-    model->setData(model->index(1, 0), "XT IDE");
+    model->setData(model->index(1, 0), "XTA");
     model->setData(model->index(2, 0), "ESDI");
     model->setData(model->index(3, 0), "IDE");
     model->setData(model->index(4, 0), "ATAPI");
@@ -97,7 +97,7 @@ QString Harddrives::BusChannelName(uint8_t bus, uint8_t channel) {
         busName = QString("MFM/RLL (%1:%2)").arg(channel >> 1).arg(channel & 1);
         break;
     case HDD_BUS_XTA:
-        busName = QString("XT IDE (%1:%2)").arg(channel >> 1).arg(channel & 1);
+        busName = QString("XTA (%1:%2)").arg(channel >> 1).arg(channel & 1);
         break;
     case HDD_BUS_ESDI:
         busName = QString("ESDI (%1:%2)").arg(channel >> 1).arg(channel & 1);

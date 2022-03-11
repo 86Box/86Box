@@ -2107,6 +2107,23 @@ ide_board_callback(void *priv)
 
 
 static void
+atapi_error_no_ready(ide_t *ide)
+{
+    ide->command = 0;
+    if (ide->type == IDE_ATAPI) {
+	ide->sc->status = ERR_STAT | DSC_STAT;
+	ide->sc->error = ABRT_ERR;
+	ide->sc->pos = 0;
+    } else {
+	ide->atastat = ERR_STAT | DSC_STAT;
+	ide->error = ABRT_ERR;
+	ide->pos = 0;
+    }
+    ide_irq_raise(ide);
+}
+
+
+static void
 ide_callback(void *priv)
 {
     int snum, ret = 0;
@@ -2117,8 +2134,10 @@ ide_callback(void *priv)
 
     if (((ide->command >= WIN_RECAL) && (ide->command <= 0x1F)) ||
 	((ide->command >= WIN_SEEK) && (ide->command <= 0x7F))) {
-	if (ide->type != IDE_HDD)
-		goto abort_cmd;
+	if (ide->type != IDE_HDD) {
+		atapi_error_no_ready(ide);
+		return;
+	}
 	if ((ide->command >= WIN_SEEK) && (ide->command <= 0x7F) && !ide->lba) {
 		if ((ide->cylinder >= ide->tracks) || (ide->head >= ide->hpc) ||
 		    !ide->sector || (ide->sector > ide->spt))
@@ -3098,95 +3117,47 @@ const device_t ide_pci_2ch_device = {
     { NULL }, NULL, NULL, NULL
 };
 
-static const device_config_t ide_ter_config[] =
-{
+// clang-format off
+static const device_config_t ide_ter_config[] = {
+    {
+        "irq", "IRQ", CONFIG_SELECTION, "", 10, "", { 0 },
         {
-                "irq", "IRQ", CONFIG_SELECTION, "", 10, "", { 0 },
-                {
-                        {
-                                "Plug and Play", -1
-                        },
-                        {
-                                "IRQ 2", 2
-                        },
-                        {
-                                "IRQ 3", 3
-                        },
-                        {
-                                "IRQ 4", 4
-                        },
-                        {
-                                "IRQ 5", 5
-                        },
-                        {
-                                "IRQ 7", 7
-                        },
-                        {
-                                "IRQ 9", 9
-                        },
-                        {
-                                "IRQ 10", 10
-                        },
-                        {
-                                "IRQ 11", 11
-                        },
-                        {
-                                "IRQ 12", 12
-                        },
-                        {
-                                ""
-                        }
-                }
-        },
-        {
-                "", "", -1
+            { "Plug and Play", -1 },
+            { "IRQ 2",          2 },
+            { "IRQ 3",          3 },
+            { "IRQ 4",          4 },
+            { "IRQ 5",          5 },
+            { "IRQ 7",          7 },
+            { "IRQ 9",          9 },
+            { "IRQ 10",        10 },
+            { "IRQ 11",        11 },
+            { "IRQ 12",        12 },
+            { ""                  }
         }
+    },
+    { "", "", -1 }
 };
 
-static const device_config_t ide_qua_config[] =
-{
+static const device_config_t ide_qua_config[] = {
+    {
+        "irq", "IRQ", CONFIG_SELECTION, "", 11, "", { 0 },
         {
-                "irq", "IRQ", CONFIG_SELECTION, "", 11, "", { 0 },
-                {
-                        {
-                                "Plug and Play", -1
-                        },
-                        {
-                                "IRQ 2", 2
-                        },
-                        {
-                                "IRQ 3", 3
-                        },
-                        {
-                                "IRQ 4", 4
-                        },
-                        {
-                                "IRQ 5", 5
-                        },
-                        {
-                                "IRQ 7", 7
-                        },
-                        {
-                                "IRQ 9", 9
-                        },
-                        {
-                                "IRQ 10", 10
-                        },
-                        {
-                                "IRQ 11", 11
-                        },
-                        {
-                                "IRQ 12", 12
-                        },
-                        {
-                                ""
-                        }
-                }
-        },
-        {
-                "", "", -1
+            { "Plug and Play", -1 },
+            { "IRQ 2",          2 },
+            { "IRQ 3",          3 },
+            { "IRQ 4",          4 },
+            { "IRQ 5",          5 },
+            { "IRQ 7",          7 },
+            { "IRQ 9",          9 },
+            { "IRQ 10",        10 },
+            { "IRQ 11",        11 },
+            { "IRQ 12",        12 },
+            { ""                  }
         }
+    },
+    { "", "", -1 }
 };
+// clang-format on
 
 const device_t ide_ter_device = {
     "Tertiary IDE Controller",

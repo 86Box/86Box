@@ -29,7 +29,7 @@ msgid "&Hide status bar"
 msgstr "&Piilota tilapalkki"
 
 msgid "Hide &toolbar"
-msgstr "Hide &toolbar"
+msgstr "Piilota &työkalupalkki"
 
 msgid "&Resizeable window"
 msgstr "&Salli koon muuttaminen"
@@ -59,7 +59,7 @@ msgid "Specify dimensions..."
 msgstr "&Määritä koko..."
 
 msgid "F&orce 4:3 display ratio"
-msgstr "Pakota 4:3 näyttösuhde"
+msgstr "Pakota 4:3-näyttösuhde"
 
 msgid "&Window scale factor"
 msgstr "&Ikkunan kokokerroin"
@@ -107,19 +107,19 @@ msgid "&Integer scale"
 msgstr "&Kokonaislukuskaalaus"
 
 msgid "E&GA/(S)VGA settings"
-msgstr "&EGA/(S)VGA asetukset"
+msgstr "&EGA/(S)VGA-asetukset"
 
 msgid "&Inverted VGA monitor"
 msgstr "&VGA näyttö käänteisillä väreillä"
 
 msgid "VGA screen &type"
-msgstr "VGA näytön &tyyppi"
+msgstr "VGA-näytön &tyyppi"
 
 msgid "RGB &Color"
-msgstr "RGB &värit"
+msgstr "RGB, &värit"
 
 msgid "&RGB Grayscale"
-msgstr "&RGB harmaasävyinen"
+msgstr "&RGB, harmaasävy"
 
 msgid "&Amber monitor"
 msgstr "&Meripihkanvärinen"
@@ -143,7 +143,7 @@ msgid "&Average"
 msgstr "&Keskiarvo"
 
 msgid "CGA/PCjr/Tandy/E&GA/(S)VGA overscan"
-msgstr "CGA/PCjr/Tandy/E&GA/(S)VGA &yliskannaus"
+msgstr "CGA/PCjr/Tandy/E&GA/(S)VGA-&yliskannaus"
 
 msgid "Change contrast for &monochrome display"
 msgstr "&Muuta harmaavärinäytön kontrastia"
@@ -152,7 +152,7 @@ msgid "&Media"
 msgstr "&Media"
 
 msgid "&Tools"
-msgstr "&Työkalut"
+msgstr "Työ&kalut"
 
 msgid "&Settings..."
 msgstr "&Kokoonpano..."
@@ -167,10 +167,10 @@ msgid "&Preferences..."
 msgstr "&Sovellusasetukset..."
 
 msgid "Enable &Discord integration"
-msgstr "Käytä &Discord integraatiota"
+msgstr "Käytä &Discord-integraatiota"
 
 msgid "Sound &gain..."
-msgstr "&Äänen tulotaso..."
+msgstr "&Äänitasot..."
 
 msgid "Begin trace\tCtrl+T"
 msgstr "Aloita jäljitys\tCtrl+T"
@@ -182,19 +182,19 @@ msgid "&Help"
 msgstr "&Ohje"
 
 msgid "&Documentation..."
-msgstr "&Dokumentaatio..."
+msgstr "&Ohjekirja..."
 
 msgid "&About 86Box..."
-msgstr "&Tietoja 86Box:sta..."
+msgstr "&Tietoja 86Boxista..."
 
 msgid "&New image..."
-msgstr "&Uusi kasettikuva..."
+msgstr "&Uusi levykuva..."
 
 msgid "&Existing image..."
-msgstr "&Olemassaoleva kasettikuva..."
+msgstr "&Olemassaoleva levykuva..."
 
 msgid "Existing image (&Write-protected)..."
-msgstr "Olemassaoleva kasettikuva (&kirjoitussuojattu)..."
+msgstr "Olemassaoleva levykuva (&kirjoitussuojattu)..."
 
 msgid "&Record"
 msgstr "&Nauhoita"
@@ -209,7 +209,7 @@ msgid "&Fast forward to the end"
 msgstr "Kelaa &loppuun"
 
 msgid "E&ject"
-msgstr "&Poista kasettipesästä"
+msgstr "&Poista asemasta"
 
 msgid "&Image..."
 msgstr "&ROM-moduulikuva..."
@@ -263,7 +263,7 @@ msgid "Preferences"
 msgstr "Sovellusasetukset"
 
 msgid "Sound Gain"
-msgstr "Äänen tulotaso"
+msgstr "Äänen taso"
 
 msgid "New Image"
 msgstr "Uusi levykuva"
@@ -302,7 +302,7 @@ msgid "Disk size:"
 msgstr "Levyn koko:"
 
 msgid "RPM mode:"
-msgstr "RPM tila:"
+msgstr "Kierroslukutila:"
 
 msgid "Progress:"
 msgstr "Edistyminen:"
@@ -470,10 +470,10 @@ msgid "FD Controller:"
 msgstr "Levykeohjain:"
 
 msgid "Tertiary IDE Controller"
-msgstr "Tertinäärinen IDE-ohjain"
+msgstr "Kolmas IDE-ohjain"
 
 msgid "Quaternary IDE Controller"
-msgstr "Kvaternaarinen IDE-ohjain"
+msgstr "Neljäs IDE-ohjain"
 
 msgid "SCSI"
 msgstr "SCSI"
@@ -521,7 +521,7 @@ msgid "Sectors:"
 msgstr "Sektorit:"
 
 msgid "Heads:"
-msgstr "Päät:"
+msgstr "Lukupäät:"
 
 msgid "Cylinders:"
 msgstr "Sylinterit:"
@@ -599,7 +599,7 @@ msgid "Fatal error"
 msgstr "Vakava virhe"
 
 msgid " - PAUSED"
-msgstr " - PAUSED"
+msgstr " - TAUKO"
 
 msgid "Press Ctrl+Alt+PgDn to return to windowed mode."
 msgstr "Paina Ctrl+Alt+PgDn palataksesi ikkunoituun tilaan."
@@ -614,7 +614,7 @@ msgid "ZIP images"
 msgstr "ZIP-levykuvat"
 
 msgid "86Box could not find any usable ROM images.\n\nPlease <a href=\"https://github.com/86Box/roms/releases/latest\">download</a> a ROM set and extract it into the \"roms\" directory."
-msgstr "86Box ei löytänyt käyttökelpoisia ROM-tiedostoja.\n\nVoit <a href=\"https://github.com/86Box/roms/releases/latest\">ladata</a> ROM-paketin ja purkaa sen \"roms\" hakemistoon."
+msgstr "86Box ei löytänyt käyttökelpoisia ROM-tiedostoja.\n\nVoit <a href=\"https://github.com/86Box/roms/releases/latest\">ladata</a> ROM-paketin ja purkaa sen \"roms\"-hakemistoon."
 
 msgid "(empty)"
 msgstr "(tyhjä)"
@@ -689,7 +689,7 @@ msgid "Press F8+F12 or middle button to release mouse"
 msgstr "Paina F8+F12 tai keskipainiketta vapauttaaksesi hiiren"
 
 msgid "Unable to initialize FluidSynth"
-msgstr "FluidSynth:in alustus epäonnistui"
+msgstr "FluidSynthin alustus epäonnistui"
 
 msgid "Bus"
 msgstr "Väylä"
@@ -710,7 +710,7 @@ msgid "KB"
 msgstr "kt"
 
 msgid "Could not initialize the video renderer."
-msgstr "Video-renderöijän alustus epäonnistui"
+msgstr "Videorenderöijän alustus epäonnistui"
 
 msgid "Default"
 msgstr "Oletus"
@@ -782,13 +782,13 @@ msgid "Unable to initialize SDL, SDL2.dll is required"
 msgstr "SDL:n alustus epäonnistui. Tarvitaan SDL2.dll"
 
 msgid "Are you sure you want to hard reset the emulated machine?"
-msgstr "Oletko varma, että haluat käynnistää emuloidun tietokoneen uudelleen?"
+msgstr "Haluatko varmasti käynnistää emuloidun tietokoneen uudelleen?"
 
 msgid "Are you sure you want to exit 86Box?"
-msgstr "Haluatko varmasti sulkea 86Box:in?"
+msgstr "Haluatko varmasti sulkea 86Boxin?"
 
 msgid "Unable to initialize Ghostscript"
-msgstr "Ghostscript:in alustus epäonnistui"
+msgstr "Ghostscriptin alustus epäonnistui"
 
 msgid "MO %i (%ls): %ls"
 msgstr "MO %i (%ls): %ls"
@@ -797,7 +797,7 @@ msgid "MO images"
 msgstr "MO-levykuvat"
 
 msgid "Welcome to 86Box!"
-msgstr "Tervetuloa 86Box:iin!"
+msgstr "Tervetuloa 86Boxiin!"
 
 msgid "Internal controller"
 msgstr "Sisäinen ohjain"
@@ -911,7 +911,7 @@ msgid "Cassette: %s"
 msgstr "Kasetti: %s"
 
 msgid "Cassette images"
-msgstr "Kasetti-tiedostot"
+msgstr "Kasettitiedostot"
 
 msgid "Cartridge %i: %ls"
 msgstr "ROM-moduuli %i: %ls"
@@ -923,25 +923,25 @@ msgid "Error initializing renderer"
 msgstr "Virhe renderöijän alustuksessa"
 
 msgid "OpenGL (3.0 Core) renderer could not be initialized. Use another renderer."
-msgstr "OpenGL (3.0 Core) renderöijän alustus epäonnistui. Käytä toista renderöijää."
+msgstr "OpenGL (3.0 Core) -renderöijän alustus epäonnistui. Käytä toista renderöijää."
 
 msgid "Resume execution"
-msgstr "Resume execution"
+msgstr "Jatka suoritusta"
 
 msgid "Pause execution"
-msgstr "Pause execution"
+msgstr "Pysäytä suoritus"
 
 msgid "Press Ctrl+Alt+Del"
-msgstr "Press Ctrl+Alt+Del"
+msgstr "Paina Ctrl+Alt+Del"
 
 msgid "Press Ctrl+Alt+Esc"
-msgstr "Press Ctrl+Alt+Esc"
+msgstr "Paina Ctrl+Alt+Esc"
 
 msgid "Hard reset"
-msgstr "Hard reset"
+msgstr "Kylmä uudelleenkäynnistys"
 
 msgid "ACPI shutdown"
-msgstr "ACPI shutdown"
+msgstr "ACPI-sammutus"
 
 msgid "Hard disk (%s)"
 msgstr "Kiintolevy (%s)"
@@ -953,7 +953,7 @@ msgid "%01i"
 msgstr "%01i"
 
 msgid "MFM/RLL or ESDI CD-ROM drives never existed"
-msgstr "MFM/RLL tai ESDI CD-ROM asemia ei ole koskaan ollut olemassa"
+msgstr "MFM/RLL- tai ESDI-CD-ROM-asemia ei ole koskaan ollut olemassa"
 
 msgid "Custom..."
 msgstr "Mukautettu..."
@@ -968,7 +968,7 @@ msgid "Add Existing Hard Disk"
 msgstr "Lisää olemassaoleva kiintolevy"
 
 msgid "HDI disk images cannot be larger than 4 GB."
-msgstr "HDI levykuvan suurin mahdollinen koko on 4 Gt."
+msgstr "HDI-levykuvan suurin mahdollinen koko on 4 Gt."
 
 msgid "Disk images cannot be larger than 127 GB."
 msgstr "Levykuvien suurin mahdollinen koko on 127 Gt."
@@ -1010,16 +1010,16 @@ msgid "Remember to partition and format the newly-created drive."
 msgstr "Muista osioida ja alustaa juuri luomasi asema."
 
 msgid "The selected file will be overwritten. Are you sure you want to use it?"
-msgstr "Valittu tiedosto ylikirjoitetaan. Oletko varma, että haluat käyttää sitä?"
+msgstr "Valittu tiedosto korvataan. Oletko varma, että haluat käyttää sitä?"
 
 msgid "Unsupported disk image"
-msgstr "Levynkuvaa ei tueta"
+msgstr "Levykuvaa ei tueta"
 
 msgid "Overwrite"
-msgstr "Ylikirjoita"
+msgstr "Korvaa"
 
 msgid "Don't overwrite"
-msgstr "Älä ylikirjoita"
+msgstr "Älä korvaa"
 
 msgid "Raw image (.img)"
 msgstr "Raaka levykuva (.img)"
@@ -1169,16 +1169,16 @@ msgid "5.25\" 1.3 GB"
 msgstr "5.25\" 1.3 Gt"
 
 msgid "Perfect RPM"
-msgstr "Täydellinen RPM"
+msgstr "Täydellinen kierrosluku"
 
 msgid "1% below perfect RPM"
-msgstr "1% alle täydellisen RPM:n"
+msgstr "1% alle täydellisen kierrosluvun"
 
 msgid "1.5% below perfect RPM"
-msgstr "1.5% alle täydellisen RPM:n"
+msgstr "1.5% alle täydellisen kierrosluvun"
 
 msgid "2% below perfect RPM"
-msgstr "2% alle täydellisen RPM:n"
+msgstr "2% alle täydellisen kierrosluvun"
 
 msgid "(System Default)"
 msgstr "(Järjestelmän oletus)"

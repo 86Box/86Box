@@ -2000,14 +2000,15 @@ esp_close(void *priv)
 
 
 static const device_config_t bios_enable_config[] = {
-	{
-		"bios", "Enable BIOS", CONFIG_BINARY, "", 0
-	},
-	{
-		"", "", -1
-	}
+// clang-format off
+    {
+        "bios", "Enable BIOS", CONFIG_BINARY, "", 0
+    },
+    {
+        "", "", -1
+    }
+// clang-format on
 };
-
 
 const device_t dc390_pci_device =
 {

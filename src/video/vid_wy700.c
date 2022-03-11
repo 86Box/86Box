@@ -1014,9 +1014,9 @@ const device_t wy700_device =
         DEVICE_ISA, 0,
         wy700_init,
         wy700_close,
-	NULL,
+    NULL,
         { NULL },
         wy700_speed_changed,
-	NULL,
+    NULL,
         NULL
 };

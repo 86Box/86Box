@@ -735,335 +735,161 @@ wd_close(void *priv)
     free(dev);
 }
 
-
-static const device_config_t wd8003_config[] =
-{
-	{
-		"base", "Address", CONFIG_HEX16, "", 0x300, "", { 0 },
-		{
-			{
-				"0x240", 0x240
-			},
-			{
-				"0x280", 0x280
-			},
-			{
-				"0x300", 0x300
-			},
-			{
-				"0x380", 0x380
-			},
-			{
-				""
-			}
-		},
-	},
-	{
-		"irq", "IRQ", CONFIG_SELECTION, "", 3, "", { 0 },
-		{
-			{
-				"IRQ 2", 2
-			},
-			{
-				"IRQ 3", 3
-			},
-			{
-				"IRQ 5", 5
-			},
-			{
-				"IRQ 7", 7
-			},
-			{
-				""
-			}
-		},
-	},
-	{
-		"ram_addr", "RAM address", CONFIG_HEX20, "", 0xD0000, "", { 0 },
-		{
-			{
-				"C800", 0xC8000
-			},
-			{
-				"CC00", 0xCC000
-			},
-			{
-				"D000", 0xD0000
-			},
-			{
-				"D400", 0xD4000
-			},
-			{
-				"D800", 0xD8000
-			},
-			{
-				"DC00", 0xDC000
-			},
-			{
-				""
-			}
-		},
-	},
-	{
-		"mac", "MAC Address", CONFIG_MAC, "", -1
-	},
-	{
-		"", "", -1
-	}
+// clang-format off
+static const device_config_t wd8003_config[] = {
+    {
+        "base", "Address", CONFIG_HEX16, "", 0x300, "", { 0 },
+        {
+            { "0x240", 0x240 },
+            { "0x280", 0x280 },
+            { "0x300", 0x300 },
+            { "0x380", 0x380 },
+            { ""             }
+        },
+    },
+    {
+        "irq", "IRQ", CONFIG_SELECTION, "", 3, "", { 0 },
+        {
+            { "IRQ 2", 2 },
+            { "IRQ 3", 3 },
+            { "IRQ 5", 5 },
+            { "IRQ 7", 7 },
+            { ""         }
+        },
+    },
+    {
+        "ram_addr", "RAM address", CONFIG_HEX20, "", 0xD0000, "", { 0 },
+        {
+            { "C800", 0xC8000 },
+            { "CC00", 0xCC000 },
+            { "D000", 0xD0000 },
+            { "D400", 0xD4000 },
+            { "D800", 0xD8000 },
+            { "DC00", 0xDC000 },
+            { ""              }
+        },
+    },
+    { "mac", "MAC Address", CONFIG_MAC, "", -1 },
+    { "",    "",                            -1 }
 };
 
-static const device_config_t wd8003eb_config[] =
-{
-	{
-		"base", "Address", CONFIG_HEX16, "", 0x280, "", { 0 },
-		{
-			{
-				"0x200", 0x200
-			},
-			{
-				"0x220", 0x220
-			},
-			{
-				"0x240", 0x240
-			},
-			{
-				"0x260", 0x260
-			},
-			{
-				"0x280", 0x280
-			},
-			{
-				"0x2A0", 0x2A0
-			},
-			{
-				"0x2C0", 0x2C0
-			},
-			{
-				"0x300", 0x300
-			},
-			{
-				"0x340", 0x340
-			},
-			{
-				"0x380", 0x380
-			},
-			{
-				""
-			}
-		},
-	},
-	{
-		"irq", "IRQ", CONFIG_SELECTION, "", 3, "", { 0 },
-		{
-			{
-				"IRQ 2/9", 9
-			},
-			{
-				"IRQ 3", 3
-			},
-			{
-				"IRQ 4", 4
-			},
-			{
-				"IRQ 7", 7
-			},
-			{
-				""
-			}
-		},
-	},
-	{
-		"ram_addr", "RAM address", CONFIG_HEX20, "", 0xD0000, "", { 0 },
-		{
-			{
-				"C000", 0xC0000
-			},
-			{
-				"C400", 0xC4000
-			},
-			{
-				"C800", 0xC8000
-			},
-			{
-				"CC00", 0xCC000
-			},
-			{
-				"D000", 0xD0000
-			},
-			{
-				"D400", 0xD4000
-			},
-			{
-				"D800", 0xD8000
-			},
-			{
-				"DC00", 0xDC000
-			},
-			{
-				""
-			}
-		},
-	},
-	{
-		"ram_size", "RAM size", CONFIG_SELECTION, "", 8192, "", { 0 },
-		{
-			{
-				"8 kB", 8192
-			},
-			{
-				"32 kB", 32768
-			},
-			{
-				""
-			}
-		},
-	},
-	{
-		"mac", "MAC Address", CONFIG_MAC, "", -1
-	},
-	{
-		"", "", -1
-	}
+static const device_config_t wd8003eb_config[] = {
+    {
+        "base", "Address", CONFIG_HEX16, "", 0x280, "", { 0 },
+        {
+            { "0x200", 0x200 },
+            { "0x220", 0x220 },
+            { "0x240", 0x240 },
+            { "0x260", 0x260 },
+            { "0x280", 0x280 },
+            { "0x2A0", 0x2A0 },
+            { "0x2C0", 0x2C0 },
+            { "0x300", 0x300 },
+            { "0x340", 0x340 },
+            { "0x380", 0x380 },
+            { ""             }
+        },
+    },
+    {
+        "irq", "IRQ", CONFIG_SELECTION, "", 3, "", { 0 },
+        {
+            { "IRQ 2/9", 9 },
+            { "IRQ 3",   3 },
+            { "IRQ 4",   4 },
+            { "IRQ 7",   7 },
+            { ""           }
+        },
+    },
+    {
+        "ram_addr", "RAM address", CONFIG_HEX20, "", 0xD0000, "", { 0 },
+        {
+            { "C000", 0xC0000 },
+            { "C400", 0xC4000 },
+            { "C800", 0xC8000 },
+            { "CC00", 0xCC000 },
+            { "D000", 0xD0000 },
+            { "D400", 0xD4000 },
+            { "D800", 0xD8000 },
+            { "DC00", 0xDC000 },
+            { ""              }
+        },
+    },
+    {
+        "ram_size", "RAM size", CONFIG_SELECTION, "", 8192, "", { 0 },
+        {
+            { "8 kB",   8192 },
+            { "32 kB", 32768 },
+            { ""             }
+        },
+    },
+    { "mac", "MAC Address", CONFIG_MAC, "", -1 },
+    { "",    "",                            -1 }
 };
 
 /* WD8013EBT configuration and defaults set according to this site:
    http://www.stack.nl/~marcolz/network/wd80x3.html#WD8013EBT */
-static const device_config_t wd8013_config[] =
-{
-	{
-		"base", "Address", CONFIG_HEX16, "", 0x280, "", { 0 },
-		{
-			{
-				"0x200", 0x200
-			},
-			{
-				"0x220", 0x220
-			},
-			{
-				"0x240", 0x240
-			},
-			{
-				"0x260", 0x260
-			},
-			{
-				"0x280", 0x280
-			},
-			{
-				"0x2A0", 0x2A0
-			},
-			{
-				"0x2C0", 0x2C0
-			},
-			{
-				"0x300", 0x300
-			},
-			{
-				"0x340", 0x340
-			},
-			{
-				"0x380", 0x380
-			},
-			{
-				""
-			}
-		},
-	},
-	{
-		"irq", "IRQ", CONFIG_SELECTION, "", 3, "", { 0 },
-		{
-			{
-				"IRQ 2/9", 9
-			},
-			{
-				"IRQ 3", 3
-			},
-			{
-				"IRQ 4", 4
-			},
-			{
-				"IRQ 5", 5
-			},
-			{
-				"IRQ 7", 7
-			},
-			{
-				"IRQ 10", 10
-			},
-			{
-				"IRQ 11", 11
-			},
-			{
-				"IRQ 15", 15
-			},
-			{
-				""
-			}
-		},
-	},
-	{
-		"ram_addr", "RAM address", CONFIG_HEX20, "", 0xD0000, "", { 0 },
-		{
-			{
-				"C000", 0xC0000
-			},
-			{
-				"C400", 0xC4000
-			},
-			{
-				"C800", 0xC8000
-			},
-			{
-				"CC00", 0xCC000
-			},
-			{
-				"D000", 0xD0000
-			},
-			{
-				"D400", 0xD4000
-			},
-			{
-				"D800", 0xD8000
-			},
-			{
-				"DC00", 0xDC000
-			},
-			{
-				""
-			}
-		},
-	},
-	{
-		"ram_size", "RAM size", CONFIG_SELECTION, "", 16384, "", { 0 },
-		{
-			{
-				"16 kB", 16384
-			},
-			{
-				"64 kB", 65536
-			},
-			{
-				""
-			}
-		},
-	},
-	{
-		"mac", "MAC Address", CONFIG_MAC, "", -1
-	},
-	{
-		"", "", -1
-	}
+static const device_config_t wd8013_config[] = {
+    {
+        "base", "Address", CONFIG_HEX16, "", 0x280, "", { 0 },
+        {
+            { "0x200", 0x200 },
+            { "0x220", 0x220 },
+            { "0x240", 0x240 },
+            { "0x260", 0x260 },
+            { "0x280", 0x280 },
+            { "0x2A0", 0x2A0 },
+            { "0x2C0", 0x2C0 },
+            { "0x300", 0x300 },
+            { "0x340", 0x340 },
+            { "0x380", 0x380 },
+            { ""             }
+        },
+    },
+    {
+        "irq", "IRQ", CONFIG_SELECTION, "", 3, "", { 0 },
+        {
+            { "IRQ 2/9", 9 },
+            { "IRQ 3",   3 },
+            { "IRQ 4",   4 },
+            { "IRQ 5",   5 },
+            { "IRQ 7",   7 },
+            { "IRQ 10", 10 },
+            { "IRQ 11", 11 },
+            { "IRQ 15", 15 },
+            { ""           }
+        },
+    },
+    {
+        "ram_addr", "RAM address", CONFIG_HEX20, "", 0xD0000, "", { 0 },
+        {
+            { "C000", 0xC0000 },
+            { "C400", 0xC4000 },
+            { "C800", 0xC8000 },
+            { "CC00", 0xCC000 },
+            { "D000", 0xD0000 },
+            { "D400", 0xD4000 },
+            { "D800", 0xD8000 },
+            { "DC00", 0xDC000 },
+            { ""              }
+        },
+    },
+    {
+        "ram_size", "RAM size", CONFIG_SELECTION, "", 16384, "", { 0 },
+        {
+            { "16 kB", 16384 },
+            { "64 kB", 65536 },
+            { ""             }
+        },
+    },
+    { "mac", "MAC Address", CONFIG_MAC, "", -1 },
+    { "",    "",                            -1 }
 };
 
-static const device_config_t mca_mac_config[] =
-{
-	{
-		"mac", "MAC Address", CONFIG_MAC, "", -1
-	},
-	{
-		"", "", -1
-	}
+static const device_config_t mca_mac_config[] = {
+    { "mac", "MAC Address", CONFIG_MAC, "", -1 },
+    { "",    "",                            -1 }
 };
-
+// clang-format on
 
 const device_t wd8003e_device = {
     "Western Digital WD8003E",

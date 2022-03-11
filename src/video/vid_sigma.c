@@ -881,78 +881,39 @@ sigma_speed_changed(void *p)
 }
 
 
-device_config_t sigma_config[] =
-{
+device_config_t sigma_config[] = {
+// clang-format off
     {
-	"rgb_type", "RGB type", CONFIG_SELECTION, "", 0, "", { 0 },
-	{
-		{
-			"Color", 0
-		},
-		{
-			"Green Monochrome", 1
-		},
-		{
-			"Amber Monochrome", 2
-		},
-		{
-			"Gray Monochrome", 3
-		},
-		{
-			"Color (no brown)", 4
-		},
-		{
-			""
-		}
-	}
+        "rgb_type", "RGB type", CONFIG_SELECTION, "", 0, "", { 0 },
+        {
+            { "Color", 0 },
+            { "Green Monochrome", 1 },
+            { "Amber Monochrome", 2 },
+            { "Gray Monochrome", 3 },
+            { "Color (no brown)", 4 },
+            { "" }
+        }
     },
+    { "enable_nmi", "Enable NMI for CGA emulation", CONFIG_BINARY, "", 1 },
     {
-	"enable_nmi", "Enable NMI for CGA emulation", CONFIG_BINARY, "", 1
+        "bios_addr", "BIOS Address", CONFIG_HEX20, "", 0xc0000, "", { 0 },
+        {
+            { "C000H", 0xc0000 },
+            { "C800H", 0xc8000 },
+            { "CC00H", 0xcc000 },
+            { "D000H", 0xd0000 },
+            { "D400H", 0xd4000 },
+            { "D800H", 0xd8000 },
+            { "DC00H", 0xdc000 },
+            { "E000H", 0xe0000 },
+            { "E400H", 0xe4000 },
+            { "E800H", 0xe8000 },
+            { "EC00H", 0xec000 },
+            { ""               }
+        },
     },
-    {
-	"bios_addr", "BIOS Address", CONFIG_HEX20, "", 0xc0000, "", { 0 },
-	{
-		{
-			"C000H", 0xc0000
-		},
-		{
-			"C800H", 0xc8000
-		},
-		{
-			"CC00H", 0xcc000
-		},
-		{
-			"D000H", 0xd0000
-		},
-		{
-			"D400H", 0xd4000
-		},
-		{
-			"D800H", 0xd8000
-		},
-		{
-			"DC00H", 0xdc000
-		},
-		{
-			"E000H", 0xe0000
-		},
-		{
-			"E400H", 0xe4000
-		},
-		{
-			"E800H", 0xe8000
-		},
-		{
-			"EC00H", 0xec000
-		},
-		{
-			""
-		}
-	},
-    },
-    {
-	"", "", -1
-    }
+    { "", "", -1 }
+// clang-format on
 };
 
 const device_t sigma_device =

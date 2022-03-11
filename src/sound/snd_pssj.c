@@ -1,55 +1,55 @@
-#include <stdio.h>
 #include <stdint.h>
-#include <string.h>
+#include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <wchar.h>
+
 #include <86box/86box.h>
-#include <86box/io.h>
-#include <86box/dma.h>
-#include <86box/pic.h>
-#include <86box/timer.h>
 #include <86box/device.h>
+#include <86box/dma.h>
+#include <86box/io.h>
+#include <86box/pic.h>
 #include <86box/sound.h>
 #include <86box/snd_sn76489.h>
+#include <86box/timer.h>
 
-
-typedef struct pssj_t
-{
+typedef struct pssj_t {
     sn76489_t sn76489;
 
-    uint8_t ctrl;
-    uint8_t wave;
-    uint8_t dac_val;
+    uint8_t  ctrl;
+    uint8_t  wave;
+    uint8_t  dac_val;
     uint16_t freq;
-    int amplitude;
+    int      amplitude;
 
-    int irq;
+    int        irq;
     pc_timer_t timer_count;
-    int enable;
+    int        enable;
 
     int wave_pos;
     int pulse_width;
 
     int16_t buffer[SOUNDBUFLEN];
-    int pos;
+    int     pos;
 } pssj_t;
 
-static void pssj_update_irq(pssj_t *pssj)
+static void
+pssj_update_irq(pssj_t *pssj)
 {
     if (pssj->irq && (pssj->ctrl & 0x10) && (pssj->ctrl & 0x08))
         picint(1 << 7);
 }
 
-static void pssj_write(uint16_t port, uint8_t val, void *p)
+static void
+pssj_write(uint16_t port, uint8_t val, void *p)
 {
-    pssj_t *pssj = (pssj_t *)p;
+    pssj_t *pssj = (pssj_t *) p;
 
-    switch (port & 3)
-    {
+    switch (port & 3) {
         case 0:
             pssj->ctrl = val;
             if (!pssj->enable && ((val & 4) && (pssj->ctrl & 3)))
-                timer_set_delay_u64(&pssj->timer_count, (TIMER_USEC * (1000000.0 / 3579545.0) * (double)(pssj->freq ? pssj->freq : 0x400)));
+                timer_set_delay_u64(&pssj->timer_count, (TIMER_USEC * (1000000.0 / 3579545.0) * (double) (pssj->freq ? pssj->freq : 0x400)));
             pssj->enable = (val & 4) && (pssj->ctrl & 3);
             if (!pssj->enable)
                 timer_disable(&pssj->timer_count);
@@ -59,10 +59,9 @@ static void pssj_write(uint16_t port, uint8_t val, void *p)
             pssj_update_irq(pssj);
             break;
         case 1:
-            switch (pssj->ctrl & 3)
-            {
+            switch (pssj->ctrl & 3) {
                 case 1: /*Sound channel*/
-                    pssj->wave = val;
+                    pssj->wave        = val;
                     pssj->pulse_width = val & 7;
                     break;
                 case 3: /*Direct DAC*/
@@ -74,22 +73,21 @@ static void pssj_write(uint16_t port, uint8_t val, void *p)
             pssj->freq = (pssj->freq & 0xf00) | val;
             break;
         case 3:
-            pssj->freq = (pssj->freq & 0x0ff) | ((val & 0xf) << 8);
+            pssj->freq      = (pssj->freq & 0x0ff) | ((val & 0xf) << 8);
             pssj->amplitude = val >> 4;
             break;
     }
 }
-static uint8_t pssj_read(uint16_t port, void *p)
+static uint8_t
+pssj_read(uint16_t port, void *p)
 {
-    pssj_t *pssj = (pssj_t *)p;
+    pssj_t *pssj = (pssj_t *) p;
 
-    switch (port & 3)
-    {
+    switch (port & 3) {
         case 0:
             return (pssj->ctrl & ~0x88) | (pssj->irq ? 8 : 0);
         case 1:
-            switch (pssj->ctrl & 3)
-            {
+            switch (pssj->ctrl & 3) {
                 case 0: /*Joystick*/
                     return 0;
                 case 1: /*Sound channel*/
@@ -111,47 +109,39 @@ static uint8_t pssj_read(uint16_t port, void *p)
     return 0xff;
 }
 
-static void pssj_update(pssj_t *pssj)
+static void
+pssj_update(pssj_t *pssj)
 {
     for (; pssj->pos < sound_pos_global; pssj->pos++)
-        pssj->buffer[pssj->pos] = (((int8_t)(pssj->dac_val ^ 0x80) * 0x20) * pssj->amplitude) / 15;
+        pssj->buffer[pssj->pos] = (((int8_t) (pssj->dac_val ^ 0x80) * 0x20) * pssj->amplitude) / 15;
 }
 
-static void pssj_callback(void *p)
+static void
+pssj_callback(void *p)
 {
-    pssj_t *pssj = (pssj_t *)p;
-    int data;
+    pssj_t *pssj = (pssj_t *) p;
+    int     data;
 
     pssj_update(pssj);
-    if (pssj->ctrl & 2)
-    {
-        if ((pssj->ctrl & 3) == 3)
-        {
+    if (pssj->ctrl & 2) {
+        if ((pssj->ctrl & 3) == 3) {
             data = dma_channel_read(1);
 
-            if (data != DMA_NODATA)
-            {
+            if (data != DMA_NODATA) {
                 pssj->dac_val = data & 0xff;
             }
-        }
-        else
-        {
+        } else {
             data = dma_channel_write(1, 0x80);
         }
 
-        if ((data & DMA_OVER) && data != DMA_NODATA)
-        {
-            if (pssj->ctrl & 0x08)
-            {
+        if ((data & DMA_OVER) && data != DMA_NODATA) {
+            if (pssj->ctrl & 0x08) {
                 pssj->irq = 1;
                 pssj_update_irq(pssj);
             }
         }
-    }
-    else
-    {
-        switch (pssj->wave & 0xc0)
-        {
+    } else {
+        switch (pssj->wave & 0xc0) {
             case 0x00: /*Pulse*/
                 pssj->dac_val = (pssj->wave_pos > (pssj->pulse_width << 1)) ? 0xff : 0;
                 break;
@@ -171,13 +161,14 @@ static void pssj_callback(void *p)
         pssj->wave_pos = (pssj->wave_pos + 1) & 31;
     }
 
-    timer_advance_u64(&pssj->timer_count, (TIMER_USEC * (1000000.0 / 3579545.0) * (double)(pssj->freq ? pssj->freq : 0x400)));
+    timer_advance_u64(&pssj->timer_count, (TIMER_USEC * (1000000.0 / 3579545.0) * (double) (pssj->freq ? pssj->freq : 0x400)));
 }
 
-static void pssj_get_buffer(int32_t *buffer, int len, void *p)
+static void
+pssj_get_buffer(int32_t *buffer, int len, void *p)
 {
-    pssj_t *pssj = (pssj_t *)p;
-    int c;
+    pssj_t *pssj = (pssj_t *) p;
+    int     c;
 
     pssj_update(pssj);
 
@@ -187,7 +178,8 @@ static void pssj_get_buffer(int32_t *buffer, int len, void *p)
     pssj->pos = 0;
 }
 
-void *pssj_init(const device_t *info)
+void *
+pssj_init(const device_t *info)
 {
     pssj_t *pssj = malloc(sizeof(pssj_t));
     memset(pssj, 0, sizeof(pssj_t));
@@ -201,7 +193,8 @@ void *pssj_init(const device_t *info)
     return pssj;
 }
 
-void *pssj_1e0_init(const device_t *info)
+void *
+pssj_1e0_init(const device_t *info)
 {
     pssj_t *pssj = malloc(sizeof(pssj_t));
     memset(pssj, 0, sizeof(pssj_t));
@@ -216,7 +209,8 @@ void *pssj_1e0_init(const device_t *info)
 }
 
 #if defined(DEV_BRANCH) && defined(USE_TANDY_ISA)
-void *pssj_isa_init(const device_t *info)
+void *
+pssj_isa_init(const device_t *info)
 {
     pssj_t *pssj = malloc(sizeof(pssj_t));
     memset(pssj, 0, sizeof(pssj_t));
@@ -233,41 +227,32 @@ void *pssj_isa_init(const device_t *info)
 }
 #endif
 
-void pssj_close(void *p)
+void
+pssj_close(void *p)
 {
-    pssj_t *pssj = (pssj_t *)p;
+    pssj_t *pssj = (pssj_t *) p;
 
     free(pssj);
 }
 
 #if defined(DEV_BRANCH) && defined(USE_TANDY_ISA)
-static const device_config_t pssj_isa_config[] =
-{
+static const device_config_t pssj_isa_config[] = {
+// clang-format off
     {
         "base", "Address", CONFIG_HEX16, "", 0x2C0, "", { 0 },
         {
-            {
-                "0xC0", 0xC0
-            },
-            {
-                "0x1E0", 0x1E0
-            },
-            {
-                "0x2C0", 0x2C0
-            },
-            {
-                ""
-            }
+            { "0x0C0", 0x0C0 },
+            { "0x1E0", 0x1E0 },
+            { "0x2C0", 0x2C0 },
+            { ""             }
         }
     },
-    {
-        "", "", -1
-    }
+    { "", "", -1 }
+// clang-format on
 };
 #endif
 
-const device_t pssj_device =
-{
+const device_t pssj_device = {
     "Tandy PSSJ",
     "pssj",
     0,
@@ -280,8 +265,7 @@ const device_t pssj_device =
     NULL
 };
 
-const device_t pssj_1e0_device =
-{
+const device_t pssj_1e0_device = {
     "Tandy PSSJ (port 1e0h)",
     "pssj_1e0",
     0,
@@ -295,8 +279,7 @@ const device_t pssj_1e0_device =
 };
 
 #if defined(DEV_BRANCH) && defined(USE_TANDY_ISA)
-const device_t pssj_isa_device =
-{
+const device_t pssj_isa_device = {
     "Tandy PSSJ Clone",
     "pssj_isa",
     DEVICE_ISA,

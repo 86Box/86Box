@@ -32,6 +32,7 @@
 #include <QTemporaryFile>
 #include <QCoreApplication>
 #include <QDateTime>
+#include <QLocalSocket>
 
 #include <QLibrary>
 #include <QElapsedTimer>
@@ -73,11 +74,13 @@ private:
 
 extern "C" {
 #ifdef Q_OS_WINDOWS
-#define NOMINMAX
-#include <windows.h>
-#include <86box/win.h>
+#    ifndef NOMINMAX
+#        define NOMINMAX
+#    endif
+#    include <windows.h>
+#    include <86box/win.h>
 #else
-#include <strings.h>
+#    include <strings.h>
 #endif
 #include <86box/86box.h>
 #include <86box/device.h>
@@ -235,14 +238,26 @@ plat_path_abs(char *path)
 }
 
 void
+plat_path_normalize(char* path)
+{
+#ifdef Q_OS_WINDOWS
+    while (*path++ != 0)
+    {
+        if (*path == '\\') *path = '/';
+    }
+#endif
+}
+
+void
 plat_path_slash(char *path)
 {
     auto len = strlen(path);
-    auto separator = QDir::separator().toLatin1();
+    auto separator = '/';
     if (path[len-1] != separator) {
         path[len] = separator;
         path[len+1] = 0;
     }
+    plat_path_normalize(path);
 }
 
 void

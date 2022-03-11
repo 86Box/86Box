@@ -599,76 +599,45 @@ nga_init(const device_t *info)
 }
 
 
-const device_config_t nga_config[] =
-{
+const device_config_t nga_config[] = {
+// clang-format off
+    {
+        "rgb_type", "RGB type", CONFIG_SELECTION, "", 0, "", { 0 },
         {
-                "rgb_type", "RGB type", CONFIG_SELECTION, "", 0, "", { 0 },
-                {
-                        {
-                                "Color", 0
-                        },
-                        {
-                                "Green Monochrome", 1
-                        },
-                        {
-                                "Amber Monochrome", 2
-                        },
-                        {
-                                "Gray Monochrome", 3
-                        },
-                        {
-                                "Color (no brown)", 4
-                        },
-                        {
-                                ""
-                        }
-                }
-        },
-        {
-                "snow_enabled", "Snow emulation", CONFIG_BINARY, "", 1
-        },
-        {
-                "memory", "Memory size", CONFIG_SELECTION, "", 64, "", { 0 },
-				{
-						{
-                                "32 KB", 32
-                        },
-                        {
-                                "64 KB", 64
-                        },
-                        {
-                                ""
-                        }
-				}
-        },
-        {
-                "charset", "Character set", CONFIG_SELECTION, "", 0, "", { 0 },
-				{
-						{
-                                "U.S. English", 0
-                        },
-                        {
-                                "Scandinavian", 1
-                        },
-                        {
-                                "Other languages", 2
-                        },
-                        {
-                                "E.F. Hutton", 3
-                        },
-                        {
-                                ""
-                        }
-				}
-        },
-        {
-                "", "", -1
+            { "Color",            0 },
+            { "Green Monochrome", 1 },
+            { "Amber Monochrome", 2 },
+            { "Gray Monochrome",  3 },
+            { "Color (no brown)", 4 },
+            { ""                    }
         }
+    },
+    {
+        "snow_enabled", "Snow emulation", CONFIG_BINARY, "", 1
+    },
+    {
+        "memory", "Memory size", CONFIG_SELECTION, "", 64, "", { 0 },
+        {
+            { "32 KB", 32 },
+            { "64 KB", 64 },
+            { ""          }
+        }
+    },
+    {
+        "charset", "Character set", CONFIG_SELECTION, "", 0, "", { 0 },
+        {
+            { "U.S. English",    0 },
+            { "Scandinavian",    1 },
+            { "Other languages", 2 },
+            { "E.F. Hutton",     3 },
+            { ""                   }
+        }
+    },
+    { "", "", -1 }
+// clang-format on
 };
 
-
-const device_t nga_device =
-{
+const device_t nga_device = {
 	"NCR NGA",
 	"nga",
 	DEVICE_ISA, 0,
