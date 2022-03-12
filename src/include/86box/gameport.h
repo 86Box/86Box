@@ -109,8 +109,15 @@ extern "C" {
 #ifdef EMU_DEVICE_H
 extern const device_t	gameport_device;
 extern const device_t	gameport_201_device;
+extern const device_t	gameport_203_device;
+extern const device_t	gameport_205_device;
+extern const device_t	gameport_207_device;
 extern const device_t	gameport_208_device;
 extern const device_t	gameport_209_device;
+extern const device_t	gameport_20b_device;
+extern const device_t	gameport_20d_device;
+extern const device_t	gameport_20f_device;
+extern const device_t	gameport_tm_acm_device;
 extern const device_t	gameport_pnp_device;
 extern const device_t	gameport_pnp_6io_device;
 extern const device_t	gameport_sio_device;
