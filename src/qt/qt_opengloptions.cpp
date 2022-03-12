@@ -145,6 +145,9 @@ OpenGLOptions::addShader(const QString &path)
 
     shader_file.close();
 
+    /* Remove parameter lines */
+    shader_text.remove(QRegularExpression("^\\s*#pragma parameter.*?\\n", QRegularExpression::MultilineOption));
+
     QRegularExpression version("^\\s*(#version\\s+\\w+)", QRegularExpression::MultilineOption);
 
     auto match = version.match(shader_text);
