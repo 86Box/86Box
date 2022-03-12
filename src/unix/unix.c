@@ -32,6 +32,7 @@
 #include <86box/timer.h>
 #include <86box/nvr.h>
 #include <86box/ui.h>
+#include <86box/gdbstub.h>
 
 static int	first_use = 1;
 static uint64_t	StartingTime;
@@ -718,6 +719,8 @@ plat_pause(int p)
 {
     static wchar_t oldtitle[512];
     wchar_t title[512];
+
+    gdbstub_pause(&p);
 
     if ((p == 0) && (time_sync & TIME_SYNC_ENABLED))
 	nvr_time_sync();

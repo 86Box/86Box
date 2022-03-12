@@ -23,6 +23,11 @@ if(CPPTHREADS)
     target_sources(86Box PRIVATE thread.cpp)
 endif()
 
+if(GDBSTUB)
+    add_compile_definitions(USE_GDBSTUB)
+    target_sources(86Box PRIVATE gdbstub.c)
+endif()
+
 if(NEW_DYNAREC)
     add_compile_definitions(USE_NEW_DYNAREC)
 endif()

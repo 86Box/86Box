@@ -121,6 +121,7 @@ option(DINPUT       "DirectInput"                                               
 option(CPPTHREADS   "C++11 threads"                                                 ON)
 option(NEW_DYNAREC  "Use the PCem v15 (\"new\") dynamic recompiler"                 OFF)
 option(MINITRACE    "Enable Chrome tracing using the modified minitrace library"    OFF)
+option(GDBSTUB      "Enable GDB stub server for debugging"                          ON)
 option(DEV_BRANCH   "Development branch"                                            OFF)
 if(NOT WIN32)
 option(QT           "QT GUI"                                                        ON)

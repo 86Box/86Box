@@ -44,6 +44,7 @@
 #include <86box/win.h>
 #include <86box/version.h>
 #include <86box/discord.h>
+#include <86box/gdbstub.h>
 
 #ifdef MTR_ENABLED
 #include <minitrace/minitrace.h>
@@ -1495,6 +1496,8 @@ plat_pause(int p)
 {
     static wchar_t oldtitle[512];
     wchar_t title[512];
+
+    gdbstub_pause(&p);
 
     /* If un-pausing, as the renderer if that's OK. */
     if (p == 0)

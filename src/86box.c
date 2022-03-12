@@ -93,6 +93,7 @@
 #include <86box/ui.h>
 #include <86box/plat.h>
 #include <86box/version.h>
+#include <86box/gdbstub.h>
 
 
 /* Stuff that used to be globally declared in plat.h but is now extern there
@@ -736,6 +737,8 @@ usage:
 	if (lang_init)
 		lang_id = lang_init;
 
+	gdbstub_init();
+
 	/* All good! */
 	return(1);
 }
@@ -1171,6 +1174,8 @@ pc_close(thread_t *ptr)
 	mo_close();
 
 	scsi_disk_close();
+
+	gdbstub_close();
 }
 
 
