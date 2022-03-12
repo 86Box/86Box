@@ -326,8 +326,8 @@ jobs:
           -D DEV_BRANCH=${{ matrix.build.dev-build }}
           -D NEW_DYNAREC=${{ matrix.build.new-dynarec }}
           -D CMAKE_BUILD_TYPE=${{ matrix.build.type }}
-          -D Qt5_DIR=/usr/local/Cellar/qt@5/5.15.2_1/lib/cmake/Qt5
-          -D Qt5LinguistTools_DIR=/usr/local/Cellar/qt@5/5.15.2_1/lib/cmake/Qt5LinguistTools/
+          -D Qt5_DIR=/usr/local/opt/qt@5/lib/cmake/Qt5
+          -D Qt5LinguistTools_DIR=/usr/local/opt/qt@5/lib/cmake/Qt5LinguistTools/
       - name: Build
         run: cmake --build build
       - name: Generate package

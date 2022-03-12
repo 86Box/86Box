@@ -93,6 +93,7 @@ deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 
 					id += 2;
 					break;
+#ifdef USE_RTMIDI
 				case CONFIG_MIDI_OUT:
 					val_int = config_get_int((char *) config_device.name,
 								 (char *) config->name, config->default_int);
@@ -123,6 +124,7 @@ deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 
 					id += 2;
 					break;
+#endif
 				case CONFIG_SPINNER:
 					val_int = config_get_int((char *) config_device.name,
 								 (char *) config->name, config->default_int);

@@ -13,6 +13,7 @@
  *          Copyright 2021 Cacodemon345.
  *          Copyright 2021 Miran Grca.
  */
+
 #if defined __has_include
 #  if __has_include (<RtMidi.h>)
 #    include <RtMidi.h>
@@ -35,10 +36,9 @@ extern "C"
 #include <86box/midi_rtmidi.h>
 #include <86box/config.h>
 
-
-static RtMidiOut *    midiout = nullptr;
-static RtMidiIn *    midiin = nullptr;
-static int        midi_out_id = 0, midi_in_id = 0;
+static RtMidiOut *  midiout = nullptr;
+static RtMidiIn *   midiin = nullptr;
+static int          midi_out_id = 0, midi_in_id = 0;
 static const int    midi_lengths[8] = {3, 3, 3, 3, 2, 2, 3, 1};
 
 

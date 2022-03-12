@@ -38,7 +38,7 @@ extern int stricmp(const char* s1, const char* s2);
 extern int strnicmp(const char* s1, const char* s2, size_t n);
 #endif
 
-#if (defined(__unix__) || defined(__APPLE__)) && !defined(__linux__)
+#if (defined(__HAIKU__) || defined(__unix__) || defined(__APPLE__)) && !defined(__linux__)
 /* FreeBSD has largefile by default. */
 # define fopen64        fopen
 # define fseeko64       fseeko
