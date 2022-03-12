@@ -14,6 +14,7 @@
  *      Copyright 2022 Teemu Korhonen
  */
 
+#include <QByteArray>
 #include <QFile>
 #include <QRegularExpression>
 #include <QStringBuilder>
@@ -89,7 +90,7 @@ OpenGLOptions::save() const
     auto path = m_shaders.first().path().toLocal8Bit();
 
     if (!path.isEmpty())
-        strcpy(video_shader, path.constData());
+        qstrncpy(video_shader, path.constData(), sizeof(video_shader));
     else
         video_shader[0] = '\0';
 }
