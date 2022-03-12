@@ -82,8 +82,7 @@ typedef struct _cmi8x38_ {
 
     cmi8x38_dma_t dma[2];
     uint16_t	tdma_base_addr, tdma_base_count;
-    uint8_t	prev_mask;
-    int		tdma_8, tdma_16, tdma_mask;
+    int		tdma_8, tdma_16, tdma_mask, prev_mask;
 
     int		master_vol_l, master_vol_r, cd_vol_l, cd_vol_r;
 } cmi8x38_t;
@@ -173,7 +172,11 @@ cmi8x38_sb_dma_post(cmi8x38_t *dev, uint16_t *addr, uint16_t *count, int channel
 
     /* Copy TDMA registers to DMA on CMI8738+. Everything so far suggests that
        those chips use PCI bus mastering to directly write to the DMA registers. */
+#if 0 /* TSRs don't set ENWR8237, except for the patched C3DPCI - does that bit have no effect? */
+    if ((dev->type != CMEDIA_CMI8338) && (dev->io_regs[0x17] & 0x10)) {
+#else
     if (dev->type != CMEDIA_CMI8338) {
+#endif
 	if (channel & 4)
 		dma[channel].ab = (dma[channel].ab & 0xfffe0000) | ((*addr) << 1);
 	else
@@ -196,6 +199,11 @@ cmi8x38_sb_dma_post(cmi8x38_t *dev, uint16_t *addr, uint16_t *count, int channel
 		/* Mask TDMA. */
 		dev->tdma_mask |= 1 << channel;
 	}
+
+	/* Set the mysterious LHBTOG bit, assuming it corresponds to
+	   the 8237 channel status bit. Nothing appears to read it. */
+	dev->io_regs[0x10] |= 0x40;
+
 	return DMA_OVER;
     }
     return 0;
@@ -309,29 +317,34 @@ cmi8x38_dma_write(uint16_t addr, uint8_t val, void *priv)
     if (!(dev->io_regs[0x27] & 0x01))
 	return;
 
-    /* Write TDMA registers if this is a TDMA channel. */
+    /* Stop if this is not a TDMA channel. Also set or
+       clear the high channel flag while we're here. */
     int channel;
-    if (addr < 0x08)
+    if (addr < 0x08) {
 	channel = addr >> 1;
-    else
+	if (channel != dev->tdma_8)
+		return;
+	dev->io_regs[0x10] &= ~0x20;
+    } else {
 	channel = 4 | ((addr >> 2) & 3);
-    if ((channel == dev->tdma_8) || (channel == dev->tdma_16)) {
-	/* Write base address and count. */
-	uint16_t *addr = (uint16_t *) &dev->io_regs[0x1c],
-                 *count = (uint16_t *) &dev->io_regs[0x1e];
-	*addr = dev->tdma_base_addr = dma[channel].ab >> !!(channel & 4);
-	*count = dev->tdma_base_count = dma[channel].cb;
-	cmi8x38_log("CMI8x38: Starting TDMA on DMA %d with addr %08X count %04X\n",
-		    channel,
-		    (channel & 4) ? ((dma[channel].ab & 0xfffe0000) | ((*addr) << 1)) : ((dma[channel].ab & 0xffff0000) | *addr),
-		    *count);
-
-	/* Set high channel flag. */
-	if (channel & 4)
-		dev->io_regs[0x10] |= 0x20;
-	else
-		dev->io_regs[0x10] &= ~0x20;
+	if (channel != dev->tdma_16)
+		return;
+	dev->io_regs[0x10] |= 0x20;
     }
+
+    /* Write base address and count. */
+    uint16_t *daddr = (uint16_t *) &dev->io_regs[0x1c],
+             *count = (uint16_t *) &dev->io_regs[0x1e];
+    *daddr = dev->tdma_base_addr = dma[channel].ab >> !!(channel & 4);
+    *count = dev->tdma_base_count = dma[channel].cb;
+    cmi8x38_log("CMI8x38: Starting TDMA on DMA %d with addr %08X count %04X\n",
+                channel,
+                (channel & 4) ? ((dma[channel].ab & 0xfffe0000) | ((*daddr) << 1)) : ((dma[channel].ab & 0xffff0000) | *daddr),
+                *count);
+
+    /* Clear the mysterious LHBTOG bit, assuming it corresponds to
+       the 8237 channel status bit. Nothing appears to read it. */
+    dev->io_regs[0x10] &= ~0x40;
 }
 
 static void
@@ -655,8 +668,14 @@ cmi8x38_write(uint16_t addr, uint8_t val, void *priv)
 
 	case 0x02:
 		/* Reset DMA channels if requested. */
-		if (val & 0x04)
+		if (val & 0x04) {
 			val &= ~0x01;
+
+			if (dev->sb->dsp.sb_8_enable || dev->sb->dsp.sb_16_enable || dev->sb->dsp.sb_irq8 || dev->sb->dsp.sb_irq16) {
+				dev->sb->dsp.sb_8_enable = dev->sb->dsp.sb_16_enable = dev->sb->dsp.sb_irq8 = dev->sb->dsp.sb_irq16 = 0;
+				cmi8x38_update_irqs(dev);
+			}
+		}
 		if (val & 0x08)
 			val &= ~0x02;
 
