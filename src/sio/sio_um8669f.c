@@ -71,9 +71,9 @@ static uint8_t um8669f_pnp_rom[] = {
 static const isapnp_device_config_t um8669f_pnp_defaults[] = {
     {
 	.activate = 1,
-	.io = { { .base = 0x03f0 }, },
-	.irq = { { .irq = 6 }, },
-	.dma = { { .dma = 2 }, }
+	.io = { { .base = FDC_PRIMARY_ADDR }, },
+	.irq = { { .irq = FDC_PRIMARY_IRQ }, },
+	.dma = { { .dma = FDC_PRIMARY_DMA }, }
     }, {
 	.activate = 1,
 	.io = { { .base = COM1_ADDR }, },

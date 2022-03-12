@@ -142,7 +142,7 @@ prime3b_read(uint16_t addr, void *priv)
 
 void prime3b_fdc_handler(prime3b_t *dev)
 {
-    uint16_t fdc_base = !(ASR & 0x40) ? 0x3f0 : 0x370;
+    uint16_t fdc_base = !(ASR & 0x40) ? FDC_PRIMARY_ADDR : FDC_SECONDARY_ADDR;
     fdc_remove(dev->fdc_controller);
     fdc_set_base(dev->fdc_controller, fdc_base);
     prime3b_log("Prime3B-FDC: Enabled with base %03x\n", fdc_base);

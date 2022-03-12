@@ -81,9 +81,9 @@ w83877f_remap(w83877f_t *dev)
 
     io_removehandler(0x250, 0x0002,
 		     w83877f_read, NULL, NULL, w83877f_write, NULL, NULL, dev);
-    io_removehandler(0x3f0, 0x0002,
+    io_removehandler(FDC_PRIMARY_ADDR, 0x0002,
 		     w83877f_read, NULL, NULL, w83877f_write, NULL, NULL, dev);
-    dev->base_address = (hefras ? 0x3f0 : 0x250);
+    dev->base_address = (hefras ? FDC_PRIMARY_ADDR : 0x250);
     io_sethandler(dev->base_address, 0x0002,
 		  w83877f_read, NULL, NULL, w83877f_write, NULL, NULL, dev);
     dev->key_times = hefras + 1;
@@ -153,7 +153,7 @@ w83877f_fdc_handler(w83877f_t *dev)
 {
     fdc_remove(dev->fdc);
     if (!(dev->regs[6] & 0x08) && (dev->regs[0x20] & 0xc0))
-	fdc_set_base(dev->fdc, 0x03f0);
+	fdc_set_base(dev->fdc, FDC_PRIMARY_ADDR);
 }
 
 
@@ -219,7 +219,7 @@ w83877f_write(uint16_t port, uint8_t val, void *priv)
 	if (val <= max)
 		dev->cur_reg = val;
 	return;
-    } else if (port == 0x03f0) {
+    } else if (port == FDC_PRIMARY_ADDR) {
 	if ((val == dev->key) && !dev->locked) {
 		if (dev->key_times == 2) {
 			if (dev->tries) {
@@ -375,7 +375,7 @@ w83877f_read(uint16_t port, void *priv)
     uint8_t ret = 0xff;
 
     if (dev->locked) {
-	if ((port == 0x3f0) || (port == 0x251))
+	if ((port == FDC_PRIMARY_ADDR) || (port == 0x251))
 		ret = dev->cur_reg;
 	else if ((port == 0x3f1) || (port == 0x252)) {
 		if (dev->cur_reg == 7)
@@ -403,7 +403,7 @@ w83877f_reset(w83877f_t *dev)
     dev->regs[0x0d] = 0xA3;
     dev->regs[0x16] = dev->reg_init & 0xff;
     dev->regs[0x1e] = 0x81;
-    dev->regs[0x20] = (0x3f0 >> 2) & 0xfc;
+    dev->regs[0x20] = (FDC_PRIMARY_ADDR >> 2) & 0xfc;
     dev->regs[0x21] = (0x1f0 >> 2) & 0xfc;
     dev->regs[0x22] = ((0x3f6 >> 2) & 0xfc) | 1;
     dev->regs[0x23] = (LPT1_ADDR >> 2);
@@ -421,7 +421,7 @@ w83877f_reset(w83877f_t *dev)
     w83877f_serial_handler(dev, 0);
     w83877f_serial_handler(dev, 1);
 
-    dev->base_address = 0x3f0;
+    dev->base_address = FDC_PRIMARY_ADDR;
     dev->key = 0x89;
     dev->key_times = 1;
 

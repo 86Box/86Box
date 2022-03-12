@@ -128,7 +128,7 @@ fdc_handler(fdc37c6xx_t *dev)
 {
     fdc_remove(dev->fdc);
     if (dev->regs[0] & 0x10)
-	fdc_set_base(dev->fdc, (dev->regs[5] & 0x01) ? 0x0370 : 0x03f0);
+	fdc_set_base(dev->fdc, (dev->regs[5] & 0x01) ? FDC_SECONDARY_ADDR : FDC_PRIMARY_ADDR);
 }
 
 
@@ -160,7 +160,7 @@ fdc37c6xx_write(uint16_t port, uint8_t val, void *priv)
     uint8_t valxor = 0;
 
     if (dev->tries == 2) {
-	if (port == 0x3f0) {
+	if (port == FDC_PRIMARY_ADDR) {
 		if (val == 0xaa)
 			dev->tries = 0;
 		else
@@ -216,7 +216,7 @@ fdc37c6xx_write(uint16_t port, uint8_t val, void *priv)
 				break;
 		}
 	}
-    } else if ((port == 0x3f0) && (val == 0x55))
+    } else if ((port == FDC_PRIMARY_ADDR) && (val == 0x55))
 	dev->tries++;
 }
 
@@ -325,7 +325,7 @@ fdc37c6xx_init(const device_t *info)
 	dev->uart[1] = device_add_inst(&ns16450_device, 2);
     }
 
-    io_sethandler(0x03f0, 0x0002,
+    io_sethandler(FDC_PRIMARY_ADDR, 0x0002,
 		  fdc37c6xx_read, NULL, NULL, fdc37c6xx_write, NULL, NULL, dev);
 
     fdc37c6xx_reset(dev);

@@ -400,7 +400,7 @@ acc3221_write(uint16_t addr, uint8_t val, void *p)
 			if ((old ^ val) & REG_FB_FDC_DISABLE) {
 				fdc_remove(dev->fdc);
 				if (!(dev->regs[0xfb] & REG_FB_FDC_DISABLE))
-					fdc_set_base(dev->fdc, 0x03f0);
+					fdc_set_base(dev->fdc, FDC_PRIMARY_ADDR);
 			}
 			break;
 

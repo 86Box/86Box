@@ -594,9 +594,9 @@ fdc37c67x_init(const device_t *info)
 
     fdc37c67x_reset(dev);
 
-    io_sethandler(0x370, 0x0002,
+    io_sethandler(FDC_SECONDARY_ADDR, 0x0002,
 		  fdc37c67x_read, NULL, NULL, fdc37c67x_write, NULL, NULL, dev);
-    io_sethandler(0x3f0, 0x0002,
+    io_sethandler(FDC_PRIMARY_ADDR, 0x0002,
 		  fdc37c67x_read, NULL, NULL, fdc37c67x_write, NULL, NULL, dev);
 
     return dev;

@@ -49,7 +49,7 @@ fdc_handler(i82091aa_t *dev)
 {
     fdc_remove(dev->fdc);
     if (dev->regs[0x10] & 0x01)
-	fdc_set_base(dev->fdc, (dev->regs[0x10] & 0x02) ? 0x0370 : 0x03f0);
+	fdc_set_base(dev->fdc, (dev->regs[0x10] & 0x02) ? FDC_SECONDARY_ADDR : FDC_PRIMARY_ADDR);
 }
 
 

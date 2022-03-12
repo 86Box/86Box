@@ -205,7 +205,7 @@ w83787f_fdc_handler(w83787f_t *dev)
 {
     fdc_remove(dev->fdc);
     if (!(dev->regs[0] & 0x20) && !(dev->regs[6] & 0x08))
-	fdc_set_base(dev->fdc, (dev->regs[0] & 0x10) ? 0x03f0 : 0x0370);
+	fdc_set_base(dev->fdc, (dev->regs[0] & 0x10) ? FDC_PRIMARY_ADDR : FDC_SECONDARY_ADDR);
 }
 
 

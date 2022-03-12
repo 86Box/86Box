@@ -185,7 +185,7 @@ pc87310_write(uint16_t port, uint8_t val, void *priv)
         /* bit 6: 1 disable fdc */
         if (!(val & 0x40)) {
             pc87310_log("SIO: FDC enabled\n");
-            fdc_set_base(dev->fdc, 0x3f0);
+            fdc_set_base(dev->fdc, FDC_PRIMARY_ADDR);
         }
     }
     return;

@@ -221,7 +221,7 @@ it8661f_write(uint16_t addr, uint8_t val, void *priv)
     it8661f_t *dev = (it8661f_t *)priv;
 
     switch (addr) {
-	case 0x370:
+	case FDC_SECONDARY_ADDR:
 		if (!dev->unlocked) {
 			(val == mb_pnp_key[dev->enumerator]) ? dev->enumerator++ : (dev->enumerator = 0);
 			if (dev->enumerator == 31) {
@@ -326,7 +326,7 @@ it8661f_init(const device_t *info)
     dev->uart[0] = device_add_inst(&ns16550_device, 1);
     dev->uart[1] = device_add_inst(&ns16550_device, 2);
 
-    io_sethandler(0x0370, 0x0002, it8661f_read, NULL, NULL, it8661f_write, NULL, NULL, dev);
+    io_sethandler(FDC_SECONDARY_ADDR, 0x0002, it8661f_read, NULL, NULL, it8661f_write, NULL, NULL, dev);
 
     dev->enumerator = 0;
     dev->unlocked = 0;

@@ -60,12 +60,12 @@ static uint8_t	w83977f_read(uint16_t port, void *priv);
 static void
 w83977f_remap(w83977f_t *dev)
 {
-    io_removehandler(0x3f0, 0x0002,
+    io_removehandler(FDC_PRIMARY_ADDR, 0x0002,
 		     w83977f_read, NULL, NULL, w83977f_write, NULL, NULL, dev);
-    io_removehandler(0x370, 0x0002,
+    io_removehandler(FDC_SECONDARY_ADDR, 0x0002,
 		     w83977f_read, NULL, NULL, w83977f_write, NULL, NULL, dev);
 
-    dev->base_address = (HEFRAS ? 0x370 : 0x3f0);
+    dev->base_address = (HEFRAS ? FDC_SECONDARY_ADDR : FDC_PRIMARY_ADDR);
 
     io_sethandler(dev->base_address, 0x0002,
 		  w83977f_read, NULL, NULL, w83977f_write, NULL, NULL, dev);

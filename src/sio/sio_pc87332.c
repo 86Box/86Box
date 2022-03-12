@@ -195,7 +195,7 @@ pc87332_write(uint16_t port, uint8_t val, void *priv)
 		if (valxor & 0x28) {
 			fdc_remove(dev->fdc);
 			if ((val & 8) && !(dev->regs[2] & 1))
-				fdc_set_base(dev->fdc, (val & 0x20) ? 0x370 : 0x3f0);
+				fdc_set_base(dev->fdc, (val & 0x20) ? FDC_SECONDARY_ADDR : FDC_PRIMARY_ADDR);
 		}
 		if (dev->has_ide && (valxor & 0xc0))
 			ide_handler(dev);
@@ -232,7 +232,7 @@ pc87332_write(uint16_t port, uint8_t val, void *priv)
 				if (dev->regs[0] & 4)
 					serial_handler(dev, 1);
 				if (dev->regs[0] & 8)
-					fdc_set_base(dev->fdc, (dev->regs[0] & 0x20) ? 0x370 : 0x3f0);
+					fdc_set_base(dev->fdc, (dev->regs[0] & 0x20) ? FDC_SECONDARY_ADDR : FDC_PRIMARY_ADDR);
 			}
 		}
 		if (valxor & 8) {

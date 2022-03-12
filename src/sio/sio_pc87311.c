@@ -119,8 +119,8 @@ pc87311_read(uint16_t addr, void *priv)
 void pc87311_fdc_handler(pc87311_t *dev)
 {
     fdc_remove(dev->fdc_controller);
-    fdc_set_base(dev->fdc_controller, (FUNCTION_ENABLE & 0x20) ? 0x0370 : 0x03f0);
-    pc87311_log("PC87311-FDC: BASE %04x\n", (FUNCTION_ENABLE & 0x20) ? 0x0370 : 0x03f0);
+    fdc_set_base(dev->fdc_controller, (FUNCTION_ENABLE & 0x20) ? FDC_SECONDARY_ADDR : FDC_PRIMARY_ADDR);
+    pc87311_log("PC87311-FDC: BASE %04x\n", (FUNCTION_ENABLE & 0x20) ? FDC_SECONDARY_ADDR : FDC_PRIMARY_ADDR);
 }
 
 uint16_t com3(pc87311_t *dev)

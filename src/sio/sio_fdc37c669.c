@@ -260,7 +260,7 @@ fdc37c669_reset(fdc37c669_t *dev)
     dev->regs[0x0d] = 0x03;
     dev->regs[0x0e] = 0x02;
     dev->regs[0x1e] = 0x80;	/* Gameport controller. */
-    dev->regs[0x20] = (0x3f0 >> 2) & 0xfc;
+    dev->regs[0x20] = (FDC_PRIMARY_ADDR >> 2) & 0xfc;
     dev->regs[0x21] = (0x1f0 >> 2) & 0xfc;
     dev->regs[0x22] = ((0x3f6 >> 2) & 0xfc) | 1;
     if (dev->id == 1) {
@@ -316,7 +316,7 @@ fdc37c669_init(const device_t *info)
     dev->uart[0] = device_add_inst(&ns16550_device, (next_id << 1) + 1);
     dev->uart[1] = device_add_inst(&ns16550_device, (next_id << 1) + 2);
 
-    io_sethandler(info->local ? 0x370 : (next_id ? 0x370 : 0x3f0), 0x0002,
+    io_sethandler(info->local ? FDC_SECONDARY_ADDR : (next_id ? FDC_SECONDARY_ADDR : FDC_PRIMARY_ADDR), 0x0002,
 		  fdc37c669_read, NULL, NULL, fdc37c669_write, NULL, NULL, dev);
 
     fdc37c669_reset(dev);

@@ -100,7 +100,7 @@ f82c710_update_ports(upc_t *dev, int set)
 	ide_pri_enable();
 
     if (dev->regs[12] & 0x20)
-	fdc_set_base(dev->fdc, 0x03f0);
+	fdc_set_base(dev->fdc, FDC_PRIMARY_ADDR);
 }
 
 
