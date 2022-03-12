@@ -27,6 +27,7 @@ Makefile
 # Build scripts
 /archive_tmp
 /static2dll.*
+/pacman.txt
 /VERSION
 *.zip
 *.tar
