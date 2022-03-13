@@ -138,27 +138,29 @@ static const device_config_t pii_config[] = {
 };
 
 const device_t fdc_pii151b_device = {
-    "DTK PII-151B (MiniMicro) Floppy Drive Controller",
-    "dtk_pii151b",
-    DEVICE_ISA,
-    151,
-    pii_init,
-    pii_close,
-    NULL,
-    {pii_151b_available},
-    NULL,
-    NULL,
-    pii_config};
+    .name = "DTK PII-151B (MiniMicro) Floppy Drive Controller",
+    .internal_name = "dtk_pii151b",
+    .flags = DEVICE_ISA,
+    .local = 151,
+    .init = pii_init,
+    .close = pii_close,
+    .reset = NULL,
+    { .available = pii_151b_available },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = pii_config
+};
 
 const device_t fdc_pii158b_device = {
-    "DTK PII-158B (MiniMicro4) Floppy Drive Controller",
-    "dtk_pii158b",
-    DEVICE_ISA,
-    158,
-    pii_init,
-    pii_close,
-    NULL,
-    {pii_158_available},
-    NULL,
-    NULL,
-    pii_config};
+    .name = "DTK PII-158B (MiniMicro4) Floppy Drive Controller",
+    .internal_name = "dtk_pii158b",
+    .flags = DEVICE_ISA,
+    .local = 158,
+    .init = pii_init,
+    .close = pii_close,
+    .reset = NULL,
+    { .available = pii_158_available },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = pii_config
+};
