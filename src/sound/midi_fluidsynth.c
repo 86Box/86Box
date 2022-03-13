@@ -317,7 +317,7 @@ fluidsynth_init(const device_t *info)
     dev->play_sysex = fluidsynth_sysex;
     dev->poll       = fluidsynth_poll;
 
-    midi_init(dev);
+    midi_out_init(dev);
 
     data->on = 1;
 

@@ -91,7 +91,7 @@ static int temp_gfxcard, temp_voodoo;
 static int temp_mouse, temp_joystick;
 
 /* Sound category */
-static int temp_sound_card, temp_midi_device, temp_midi_input_device, temp_mpu401, temp_SSI2001, temp_GAMEBLASTER, temp_GUS;
+static int temp_sound_card, temp_midi_output_device, temp_midi_input_device, temp_mpu401, temp_SSI2001, temp_GAMEBLASTER, temp_GUS;
 static int temp_float;
 
 /* Network category */
@@ -339,7 +339,7 @@ win_settings_init(void)
 
     /* Sound category */
     temp_sound_card = sound_card_current;
-    temp_midi_device = midi_device_current;
+    temp_midi_output_device = midi_output_device_current;
     temp_midi_input_device = midi_input_device_current;
     temp_mpu401 = mpu401_standalone_enable;
     temp_SSI2001 = SSI2001;
@@ -463,7 +463,7 @@ win_settings_changed(void)
 
     /* Sound category */
     i = i || (sound_card_current != temp_sound_card);
-    i = i || (midi_device_current != temp_midi_device);
+    i = i || (midi_output_device_current != temp_midi_output_device);
     i = i || (midi_input_device_current != temp_midi_input_device);
     i = i || (mpu401_standalone_enable != temp_mpu401);
     i = i || (SSI2001 != temp_SSI2001);
@@ -553,7 +553,7 @@ win_settings_save(void)
 
     /* Sound category */
     sound_card_current = temp_sound_card;
-    midi_device_current = temp_midi_device;
+    midi_output_device_current = temp_midi_output_device;
     midi_input_device_current = temp_midi_input_device;
     mpu401_standalone_enable = temp_mpu401;
     SSI2001 = temp_SSI2001;
@@ -1261,7 +1261,7 @@ mpu401_standalone_allow(void)
     if (!machine_has_bus(temp_machine, MACHINE_BUS_ISA) && !machine_has_bus(temp_machine, MACHINE_BUS_MCA))
 	return 0;
 
-    md = midi_device_get_internal_name(temp_midi_device);
+    md = midi_out_device_get_internal_name(temp_midi_output_device);
     mdin = midi_in_device_get_internal_name(temp_midi_input_device);
 
     if (md != NULL) {
@@ -1327,18 +1327,18 @@ win_settings_sound_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 		c = d = 0;
 		settings_reset_content(hdlg, IDC_COMBO_MIDI_OUT);
 		while (1) {
-			generate_device_name(midi_device_getdevice(c), midi_device_get_internal_name(c), 0);
+			generate_device_name(midi_out_device_getdevice(c), midi_out_device_get_internal_name(c), 0);
 
 			if (!device_name[0])
 				break;
 
-			if (midi_device_available(c)) {
+			if (midi_out_device_available(c)) {
 				if (c == 0)
 					settings_add_string(hdlg, IDC_COMBO_MIDI_OUT, win_get_string(IDS_2103));
 				else
 					settings_add_string(hdlg, IDC_COMBO_MIDI_OUT, (LPARAM) device_name);
 				settings_list_to_midi[d] = c;
-				if ((c == 0) || (c == temp_midi_device))
+				if ((c == 0) || (c == temp_midi_output_device))
 					settings_set_cur_sel(hdlg, IDC_COMBO_MIDI_OUT, d);
 				d++;
 			}
@@ -1346,7 +1346,7 @@ win_settings_sound_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 			c++;
 		}
 
-		settings_enable_window(hdlg, IDC_CONFIGURE_MIDI_OUT, midi_device_has_config(temp_midi_device));
+		settings_enable_window(hdlg, IDC_CONFIGURE_MIDI_OUT, midi_out_device_has_config(temp_midi_output_device));
 
 		c = d = 0;
 		settings_reset_content(hdlg, IDC_COMBO_MIDI_IN);
@@ -1405,16 +1405,16 @@ win_settings_sound_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 				break;
 
 			case IDC_COMBO_MIDI_OUT:
-				temp_midi_device = settings_list_to_midi[settings_get_cur_sel(hdlg, IDC_COMBO_MIDI_OUT)];
-				settings_enable_window(hdlg, IDC_CONFIGURE_MIDI_OUT, midi_device_has_config(temp_midi_device));
+				temp_midi_output_device = settings_list_to_midi[settings_get_cur_sel(hdlg, IDC_COMBO_MIDI_OUT)];
+				settings_enable_window(hdlg, IDC_CONFIGURE_MIDI_OUT, midi_out_device_has_config(temp_midi_output_device));
 				settings_set_check(hdlg, IDC_CHECK_MPU401, temp_mpu401);
 				settings_enable_window(hdlg, IDC_CHECK_MPU401, mpu401_standalone_allow());
 				settings_enable_window(hdlg, IDC_CONFIGURE_MPU401, mpu401_standalone_allow() && temp_mpu401);
 				break;
 
 			case IDC_CONFIGURE_MIDI_OUT:
-				temp_midi_device = settings_list_to_midi[settings_get_cur_sel(hdlg, IDC_COMBO_MIDI_OUT)];
-				temp_deviceconfig |= deviceconfig_open(hdlg, (void *)midi_device_getdevice(temp_midi_device));
+				temp_midi_output_device = settings_list_to_midi[settings_get_cur_sel(hdlg, IDC_COMBO_MIDI_OUT)];
+				temp_deviceconfig |= deviceconfig_open(hdlg, (void *)midi_out_device_getdevice(temp_midi_output_device));
 				break;
 
 			case IDC_COMBO_MIDI_IN:
@@ -1474,7 +1474,7 @@ win_settings_sound_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 
 	case WM_SAVESETTINGS:
 		temp_sound_card = settings_list_to_device[0][settings_get_cur_sel(hdlg, IDC_COMBO_SOUND)];
-		temp_midi_device = settings_list_to_midi[settings_get_cur_sel(hdlg, IDC_COMBO_MIDI_OUT)];
+		temp_midi_output_device = settings_list_to_midi[settings_get_cur_sel(hdlg, IDC_COMBO_MIDI_OUT)];
 		temp_midi_input_device = settings_list_to_midi_in[settings_get_cur_sel(hdlg, IDC_COMBO_MIDI_IN)];
 		temp_mpu401 = settings_get_check(hdlg, IDC_CHECK_MPU401);
 		temp_GAMEBLASTER = settings_get_check(hdlg, IDC_CHECK_CMS);

@@ -6,26 +6,26 @@
 extern uint8_t MIDI_InSysexBuf[SYSEX_SIZE];
 extern uint8_t MIDI_evt_len[256];
 
-extern int midi_device_current;
+extern int midi_output_device_current;
 extern int midi_input_device_current;
 
 extern void (*input_msg)(void *p, uint8_t *msg, uint32_t len);
 extern int (*input_sysex)(void *p, uint8_t *buf, uint32_t len, int abort);
 extern void *midi_in_p;
 
-extern int midi_device_available(int card);
+extern int midi_out_device_available(int card);
 extern int midi_in_device_available(int card);
 #ifdef EMU_DEVICE_H
-const device_t *midi_device_getdevice(int card);
+const device_t *midi_out_device_getdevice(int card);
 const device_t *midi_in_device_getdevice(int card);
 #endif
-extern int   midi_device_has_config(int card);
+extern int   midi_out_device_has_config(int card);
 extern int   midi_in_device_has_config(int card);
-extern char *midi_device_get_internal_name(int card);
+extern char *midi_out_device_get_internal_name(int card);
 extern char *midi_in_device_get_internal_name(int card);
-extern int   midi_device_get_from_internal_name(char *s);
+extern int   midi_out_device_get_from_internal_name(char *s);
 extern int   midi_in_device_get_from_internal_name(char *s);
-extern void  midi_device_init();
+extern void  midi_out_device_init();
 extern void  midi_in_device_init();
 
 typedef struct midi_device_t {
@@ -56,11 +56,11 @@ typedef struct midi_t {
     midi_device_t *m_out_device, *m_in_device;
 } midi_t;
 
-extern midi_t *midi, *midi_in;
+extern midi_t *midi_out, *midi_in;
 
-extern void midi_init(midi_device_t *device);
+extern void midi_out_init(midi_device_t *device);
 extern void midi_in_init(midi_device_t *device, midi_t **mididev);
-extern void midi_close();
+extern void midi_out_close();
 extern void midi_in_close(void);
 extern void midi_raw_out_rt_byte(uint8_t val);
 extern void midi_raw_out_thru_rt_byte(uint8_t val);
@@ -90,7 +90,7 @@ extern void midi_in_sysex(uint8_t *buffer, uint32_t len);
 #define MIDI_INPUT_INTERNAL_NAME "midi_in"
 
 #ifdef EMU_DEVICE_H
-extern const device_t rtmidi_device;
+extern const device_t rtmidi_output_device;
 extern const device_t rtmidi_input_device;
 #    ifdef USE_FLUIDSYNTH
 extern const device_t fluidsynth_device;

@@ -272,7 +272,7 @@ mt32emu_init(char *control_rom, char *pcm_rom)
     dev->play_sysex = mt32_sysex;
     dev->poll       = mt32_poll;
 
-    midi_init(dev);
+    midi_out_init(dev);
 
     mt32_on = 1;
 
