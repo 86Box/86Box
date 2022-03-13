@@ -71,12 +71,17 @@
 
 
 static const device_t net_none_device = {
-    "None",
-    "none",
-    0, NET_TYPE_NONE,
-    NULL, NULL, NULL,
-    { NULL }, NULL, NULL,
-    NULL
+    .name = "None",
+    .internal_name = "none",
+    .flags = 0,
+    .local = NET_TYPE_NONE,
+    .init = NULL,
+    .close = NULL,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
 
