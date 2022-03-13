@@ -263,23 +263,30 @@ pc87310_init(const device_t *info)
     return dev;
 }
 
-
 const device_t pc87310_device = {
-    "National Semiconductor PC87310 Super I/O",
-    "pc87310",
-    0,
-    0,
-    pc87310_init, pc87310_close, NULL,
-    { NULL }, NULL, NULL,
-    NULL
+    .name = "National Semiconductor PC87310 Super I/O",
+    .internal_name = "pc87310",
+    .flags = 0,
+    .local = 0,
+    .init = pc87310_init,
+    .close = pc87310_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
 const device_t pc87310_ide_device = {
-    "National Semiconductor PC87310 Super I/O with IDE functionality",
-    "pc87310_ide",
-    0,
-    1,
-    pc87310_init, pc87310_close, NULL,
-    { NULL }, NULL, NULL,
-    NULL
+    .name = "National Semiconductor PC87310 Super I/O with IDE functionality",
+    .internal_name = "pc87310_ide",
+    .flags = 0,
+    .local = 1,
+    .init = pc87310_init,
+    .close = pc87310_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };

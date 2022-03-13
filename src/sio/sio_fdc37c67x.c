@@ -604,11 +604,15 @@ fdc37c67x_init(const device_t *info)
 
 
 const device_t fdc37c67x_device = {
-    "SMC FDC37C67X Super I/O",
-    "fdc37c67x",
-    0,
-    0x40,
-    fdc37c67x_init, fdc37c67x_close, NULL,
-    { NULL }, NULL, NULL,
-    NULL
+    .name = "SMC FDC37C67X Super I/O",
+    .internal_name = "fdc37c67x",
+    .flags = 0,
+    .local = 0x40,
+    .init = fdc37c67x_init,
+    .close = fdc37c67x_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };

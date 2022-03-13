@@ -335,57 +335,72 @@ pc87332_init(const device_t *info)
     return dev;
 }
 
-
 const device_t pc87332_device = {
-    "National Semiconductor PC87332 Super I/O",
-    "pc87332",
-    0,
-    0x00,
-    pc87332_init, pc87332_close, NULL,
-    { NULL }, NULL, NULL,
-    NULL
+    .name = "National Semiconductor PC87332 Super I/O",
+    .internal_name = "pc87332",
+    .flags = 0,
+    .local = 0x00,
+    .init = pc87332_init,
+    .close = pc87332_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
-
 
 const device_t pc87332_398_device = {
-    "National Semiconductor PC87332 Super I/O (Port 398h)",
-    "pc87332_398",
-    0,
-    0x01,
-    pc87332_init, pc87332_close, NULL,
-    { NULL }, NULL, NULL,
-    NULL
+    .name = "National Semiconductor PC87332 Super I/O (Port 398h)",
+    .internal_name = "pc87332_398",
+    .flags = 0,
+    .local = 0x01,
+    .init = pc87332_init,
+    .close = pc87332_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
-
 
 const device_t pc87332_398_ide_device = {
-    "National Semiconductor PC87332 Super I/O (Port 398h) (With IDE)",
-    "pc87332_398_ide",
-    0,
-    0x101,
-    pc87332_init, pc87332_close, NULL,
-    { NULL }, NULL, NULL,
-    NULL
+    .name = "National Semiconductor PC87332 Super I/O (Port 398h) (With IDE)",
+    .internal_name = "pc87332_398_ide",
+    .flags = 0,
+    .local = 0x101,
+    .init = pc87332_init,
+    .close = pc87332_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
-
 
 const device_t pc87332_398_ide_sec_device = {
-    "National Semiconductor PC87332 Super I/O (Port 398h) (With Secondary IDE)",
-    "pc87332_398_ide_sec",
-    0,
-    0x201,
-    pc87332_init, pc87332_close, NULL,
-    { NULL }, NULL, NULL,
-    NULL
+    .name = "National Semiconductor PC87332 Super I/O (Port 398h) (With Secondary IDE)",
+    .internal_name = "pc87332_398_ide_sec",
+    .flags = 0,
+    .local = 0x201,
+    .init = pc87332_init,
+    .close = pc87332_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
-
 const device_t pc87332_398_ide_fdcon_device = {
-    "National Semiconductor PC87332 Super I/O (Port 398h) (With IDE and FDC on)",
-    "pc87332_398_ide_fdcon",
-    0,
-    0x10101,
-    pc87332_init, pc87332_close, NULL,
-    { NULL }, NULL, NULL,
-    NULL
+    .name = "National Semiconductor PC87332 Super I/O (Port 398h) (With IDE and FDC on)",
+    .internal_name = "pc87332_398_ide_fdcon",
+    .flags = 0,
+    .local = 0x10101,
+    .init = pc87332_init,
+    .close = pc87332_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };

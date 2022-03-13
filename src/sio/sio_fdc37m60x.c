@@ -314,31 +314,30 @@ fdc37m60x_init(const device_t *info)
     return dev;
 }
 
-
 const device_t fdc37m60x_device = {
-    "SMSC FDC37M60X",
-    "fdc37m60x",
-    0,
-    FDC_PRIMARY_ADDR,
-    fdc37m60x_init,
-    fdc37m60x_close,
-    NULL,
-    { NULL },
-    NULL,
-    NULL,
-    NULL
+    .name = "SMSC FDC37M60X",
+    .internal_name = "fdc37m60x",
+    .flags = 0,
+    .local = FDC_PRIMARY_ADDR,
+    .init = fdc37m60x_init,
+    .close = fdc37m60x_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
 const device_t fdc37m60x_370_device = {
-    "SMSC FDC37M60X with 10K Pull Up Resistor",
-    "fdc37m60x_370",
-    0,
-    FDC_SECONDARY_ADDR,
-    fdc37m60x_init,
-    fdc37m60x_close,
-    NULL,
-    { NULL },
-    NULL,
-    NULL,
-    NULL
+    .name = "SMSC FDC37M60X with 10K Pull Up Resistor",
+    .internal_name = "fdc37m60x_370",
+    .flags = 0,
+    .local = FDC_SECONDARY_ADDR,
+    .init = fdc37m60x_init,
+    .close = fdc37m60x_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };

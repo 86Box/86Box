@@ -459,46 +459,58 @@ w83877f_init(const device_t *info)
     return dev;
 }
 
-
 const device_t w83877f_device = {
-    "Winbond W83877F Super I/O",
-    "w83877f",
-    0,
-    0x0a05,
-    w83877f_init, w83877f_close, NULL,
-    { NULL }, NULL, NULL,
-    NULL
+    .name = "Winbond W83877F Super I/O",
+    .internal_name = "w83877f",
+    .flags = 0,
+    .local = 0x0a05,
+    .init = w83877f_init,
+    .close = w83877f_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
-
 
 const device_t w83877f_president_device = {
-    "Winbond W83877F Super I/O (President)",
-    "w83877f_president",
-    0,
-    0x0a04,
-    w83877f_init, w83877f_close, NULL,
-    { NULL }, NULL, NULL,
-    NULL
+    .name = "Winbond W83877F Super I/O (President)",
+    .internal_name = "w83877f_president",
+    .flags = 0,
+    .local = 0x0a04,
+    .init = w83877f_init,
+    .close = w83877f_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
-
 
 const device_t w83877tf_device = {
-    "Winbond W83877TF Super I/O",
-    "w83877tf",
-    0,
-    0x0c04,
-    w83877f_init, w83877f_close, NULL,
-    { NULL }, NULL, NULL,
-    NULL
+    .name = "Winbond W83877TF Super I/O",
+    .internal_name = "w83877tf",
+    .flags = 0,
+    .local = 0x0c04,
+    .init = w83877f_init,
+    .close = w83877f_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
-
 const device_t w83877tf_acorp_device = {
-    "Winbond W83877TF Super I/O",
-    "w83877tf_acorp",
-    0,
-    0x0c05,
-    w83877f_init, w83877f_close, NULL,
-    { NULL }, NULL, NULL,
-    NULL
+    .name = "Winbond W83877TF Super I/O",
+    .internal_name = "w83877tf_acorp",
+    .flags = 0,
+    .local = 0x0c05,
+    .init = w83877f_init,
+    .close = w83877f_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };

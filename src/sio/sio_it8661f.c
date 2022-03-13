@@ -335,17 +335,16 @@ it8661f_init(const device_t *info)
     return dev;
 }
 
-
 const device_t it8661f_device = {
-    "ITE IT8661F",
-    "it8661f",
-    0,
-    0,
-    it8661f_init,
-    it8661f_close,
-    NULL,
-    { NULL },
-    NULL,
-    NULL,
-    NULL
+    .name = "ITE IT8661F",
+    .internal_name = "it8661f",
+    .flags = 0,
+    .local = 0,
+    .init = it8661f_init,
+    .close = it8661f_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };

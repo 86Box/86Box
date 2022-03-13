@@ -302,11 +302,15 @@ um8669f_init(const device_t *info)
 
 
 const device_t um8669f_device = {
-    "UMC UM8669F Super I/O",
-    "um8669f",
-    0,
-    0,
-    um8669f_init, um8669f_close, NULL,
-    { NULL }, NULL, NULL,
-    NULL
+    .name = "UMC UM8669F Super I/O",
+    .internal_name = "um8669f",
+    .flags = 0,
+    .local = 0,
+    .init = um8669f_init,
+    .close = um8669f_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };

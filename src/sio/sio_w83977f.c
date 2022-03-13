@@ -566,57 +566,72 @@ w83977f_init(const device_t *info)
     return dev;
 }
 
-
 const device_t w83977f_device = {
-    "Winbond W83977F Super I/O",
-    "w83977f",
-    0,
-    0,
-    w83977f_init, w83977f_close, NULL,
-    { NULL }, NULL, NULL,
-    NULL
+    .name = "Winbond W83977F Super I/O",
+    .internal_name = "w83977f",
+    .flags = 0,
+    .local = 0,
+    .init = w83977f_init,
+    .close = w83977f_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
-
 
 const device_t w83977f_370_device = {
-    "Winbond W83977F Super I/O (Port 370h)",
-    "w83977f_370",
-    0,
-    0x40,
-    w83977f_init, w83977f_close, NULL,
-    { NULL }, NULL, NULL,
-    NULL
+    .name = "Winbond W83977F Super I/O (Port 370h)",
+    .internal_name = "w83977f_370",
+    .flags = 0,
+    .local = 0x40,
+    .init = w83977f_init,
+    .close = w83977f_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
-
 
 const device_t w83977tf_device = {
-    "Winbond W83977TF Super I/O",
-    "w83977tf",
-    0,
-    1,
-    w83977f_init, w83977f_close, NULL,
-    { NULL }, NULL, NULL,
-    NULL
+    .name = "Winbond W83977TF Super I/O",
+    .internal_name = "w83977tf",
+    .flags = 0,
+    .local = 1,
+    .init = w83977f_init,
+    .close = w83977f_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
-
 
 const device_t w83977ef_device = {
-    "Winbond W83977TF Super I/O",
-    "w83977ef",
-    0,
-    2,
-    w83977f_init, w83977f_close, NULL,
-    { NULL }, NULL, NULL,
-    NULL
+    .name = "Winbond W83977TF Super I/O",
+    .internal_name = "w83977ef",
+    .flags = 0,
+    .local = 2,
+    .init = w83977f_init,
+    .close = w83977f_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
-
 const device_t w83977ef_370_device = {
-    "Winbond W83977TF Super I/O (Port 370h)",
-    "w83977ef_370",
-    0,
-    0x42,
-    w83977f_init, w83977f_close, NULL,
-    { NULL }, NULL, NULL,
-    NULL
+    .name = "Winbond W83977TF Super I/O (Port 370h)",
+    .internal_name = "w83977ef_370",
+    .flags = 0,
+    .local = 0x42,
+    .init = w83977f_init,
+    .close = w83977f_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };

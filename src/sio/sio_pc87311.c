@@ -273,27 +273,29 @@ pc87311_init(const device_t *info)
 }
 
 const device_t pc87311_device = {
-    "National Semiconductor PC87311",
-    "pc87311",
-    0,
-    0,
-    pc87311_init,
-    pc87311_close,
-    NULL,
-    {NULL},
-    NULL,
-    NULL,
-    NULL};
+    .name = "National Semiconductor PC87311",
+    .internal_name = "pc87311",
+    .flags = 0,
+    .local = 0,
+    .init = pc87311_init,
+    .close = pc87311_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
+};
 
 const device_t pc87311_ide_device = {
-    "National Semiconductor PC87311 with IDE functionality",
-    "pc87311_ide",
-    0,
-    1,
-    pc87311_init,
-    pc87311_close,
-    NULL,
-    {NULL},
-    NULL,
-    NULL,
-    NULL};
+    .name = "National Semiconductor PC87311 with IDE functionality",
+    .internal_name = "pc87311_ide",
+    .flags = 0,
+    .local = 1,
+    .init = pc87311_init,
+    .close = pc87311_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
+};
