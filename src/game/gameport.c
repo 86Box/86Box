@@ -402,20 +402,24 @@ static void *
 tmacm_init(const device_t *info)
 {
     uint16_t port = 0x0000;
+    gameport_t *dev = NULL;
+
+    dev = malloc(sizeof(gameport_t));
+    memset(dev, 0x00, sizeof(gameport_t));
 
     port = device_get_config_hex16("port1_addr");
     switch(port) {
         case 0x201:
-            gameport_add(&gameport_201_device);
+            dev = gameport_add(&gameport_201_device);
             break;
         case 0x203:
-            gameport_add(&gameport_203_device);
+            dev = gameport_add(&gameport_203_device);
             break;
         case 0x205:
-            gameport_add(&gameport_205_device);
+            dev = gameport_add(&gameport_205_device);
             break;
         case 0x207:
-            gameport_add(&gameport_207_device);
+            dev = gameport_add(&gameport_207_device);
             break;
         default:
             break;
@@ -424,16 +428,16 @@ tmacm_init(const device_t *info)
     port = device_get_config_hex16("port2_addr");
     switch(port) {
         case 0x201:
-            gameport_add(&gameport_209_device);
+            dev = gameport_add(&gameport_209_device);
             break;
         case 0x203:
-            gameport_add(&gameport_20b_device);
+            dev = gameport_add(&gameport_20b_device);
             break;
         case 0x205:
-            gameport_add(&gameport_20d_device);
+            dev = gameport_add(&gameport_20d_device);
             break;
         case 0x207:
-            gameport_add(&gameport_20f_device);
+            dev = gameport_add(&gameport_20f_device);
             break;
         default:
             break;
