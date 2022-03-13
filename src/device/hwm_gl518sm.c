@@ -296,25 +296,32 @@ gl518sm_init(const device_t *info)
     return dev;
 }
 
-
 /* GL518SM on SMBus address 2Ch */
 const device_t gl518sm_2c_device = {
-    "Genesys Logic GL518SM Hardware Monitor",
-    "gl518sm_2c",
-    DEVICE_ISA,
-    0x2c,
-    gl518sm_init, gl518sm_close, NULL,
-    { NULL }, NULL, NULL,
-    NULL
+    .name = "Genesys Logic GL518SM Hardware Monitor",
+    .internal_name = "gl518sm_2c",
+    .flags = DEVICE_ISA,
+    .local = 0x2c,
+    .init = gl518sm_init,
+    .close = gl518sm_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
 /* GL518SM on SMBus address 2Dh */
 const device_t gl518sm_2d_device = {
-    "Genesys Logic GL518SM Hardware Monitor",
-    "gl518sm_2d",
-    DEVICE_ISA,
-    0x2d,
-    gl518sm_init, gl518sm_close, NULL,
-    { NULL }, NULL, NULL,
-    NULL
+    .name = "Genesys Logic GL518SM Hardware Monitor",
+    .internal_name = "gl518sm_2d",
+    .flags = DEVICE_ISA,
+    .local = 0x2d,
+    .init = gl518sm_init,
+    .close = gl518sm_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };

@@ -876,31 +876,43 @@ static const device_config_t ltsermouse_config[] = {
 };
 
 const device_t mouse_mssystems_device = {
-    "Mouse Systems Serial Mouse",
-    "mssystems",
-    0,
-    MOUSE_TYPE_MSYSTEMS,
-    sermouse_init, sermouse_close, NULL,
-    { .poll = sermouse_poll }, sermouse_speed_changed, NULL,
-    mssermouse_config
+    .name = "Mouse Systems Serial Mouse",
+    .internal_name = "mssystems",
+    .flags = DEVICE_COM,
+    .local = MOUSE_TYPE_MSYSTEMS,
+    .init = sermouse_init,
+    .close = sermouse_close,
+    .reset = NULL,
+    { .poll = sermouse_poll },
+    .speed_changed = sermouse_speed_changed,
+    .force_redraw = NULL,
+    .config = mssermouse_config
 };
 
 const device_t mouse_msserial_device = {
-    "Microsoft Serial Mouse",
-    "msserial",
-    0,
-    0,
-    sermouse_init, sermouse_close, NULL,
-    { .poll = sermouse_poll }, sermouse_speed_changed, NULL,
-    mssermouse_config
+    .name = "Microsoft Serial Mouse",
+    .internal_name = "msserial",
+    .flags = DEVICE_COM,
+    .local = 0,
+    .init = sermouse_init,
+    .close = sermouse_close,
+    .reset = NULL,
+    { .poll = sermouse_poll },
+    .speed_changed = sermouse_speed_changed,
+    .force_redraw = NULL,
+    .config = mssermouse_config
 };
 
 const device_t mouse_ltserial_device = {
-    "Logitech Serial Mouse",
-    "ltserial",
-    0,
-    1,
-    sermouse_init, sermouse_close, NULL,
-    { .poll = sermouse_poll }, sermouse_speed_changed, NULL,
-    ltsermouse_config
+    .name = "Logitech Serial Mouse",
+    .internal_name = "ltserial",
+    .flags = DEVICE_COM,
+    .local = 1,
+    .init = sermouse_init,
+    .close = sermouse_close,
+    .reset = NULL,
+    { .poll = sermouse_poll },
+    .speed_changed = sermouse_speed_changed,
+    .force_redraw = NULL,
+    .config = ltsermouse_config
 };

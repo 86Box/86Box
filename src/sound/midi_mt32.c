@@ -272,7 +272,7 @@ mt32emu_init(char *control_rom, char *pcm_rom)
     dev->play_sysex = mt32_sysex;
     dev->poll       = mt32_poll;
 
-    midi_init(dev);
+    midi_out_init(dev);
 
     mt32_on = 1;
 
@@ -375,29 +375,29 @@ static const device_config_t mt32_config[] = {
 };
 
 const device_t mt32_device = {
-    "Roland MT-32 Emulation",
-    "mt32",
-    0,
-    0,
-    mt32_init,
-    mt32_close,
-    NULL,
-    { mt32_available },
-    NULL,
-    NULL,
-    mt32_config
+    .name = "Roland MT-32 Emulation",
+    .internal_name = "mt32",
+    .flags = 0,
+    .local = 0,
+    .init = mt32_init,
+    .close = mt32_close,
+    .reset = NULL,
+    { .available = mt32_available },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = mt32_config
 };
 
 const device_t cm32l_device = {
-    "Roland CM-32L Emulation",
-    "cm32l",
-    0,
-    0,
-    cm32l_init,
-    mt32_close,
-    NULL,
-    { cm32l_available },
-    NULL,
-    NULL,
-    mt32_config
+    .name = "Roland CM-32L Emulation",
+    .internal_name = "cm32l",
+    .flags = 0,
+    .local = 0,
+    .init = cm32l_init,
+    .close = mt32_close,
+    .reset = NULL,
+    { .available = cm32l_available },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = mt32_config
 };

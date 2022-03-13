@@ -299,13 +299,16 @@ smbus_ali7101_close(void *priv)
     free(dev);
 }
 
-
 const device_t ali7101_smbus_device = {
-    "ALi M7101-compatible SMBus Host Controller",
-    "ali7101_smbus",
-    DEVICE_AT,
-    0,
-    smbus_ali7101_init, smbus_ali7101_close, smbus_ali7101_reset,
-    { NULL }, NULL, NULL,
-    NULL
+    .name = "ALi M7101-compatible SMBus Host Controller",
+    .internal_name = "ali7101_smbus",
+    .flags = DEVICE_AT,
+    .local = 0,
+    .init = smbus_ali7101_init,
+    .close = smbus_ali7101_close,
+    .reset = smbus_ali7101_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };

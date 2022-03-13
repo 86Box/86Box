@@ -670,17 +670,16 @@ ali1621_init(const device_t *info)
     return dev;
 }
 
-
 const device_t ali1621_device = {
-    "ALi M1621 CPU-to-PCI Bridge",
-    "ali1621",
-    DEVICE_PCI,
-    0,
-    ali1621_init,
-    ali1621_close,
-    ali1621_reset,
-    {NULL},
-    NULL,
-    NULL,
-    NULL
+    .name = "ALi M1621 CPU-to-PCI Bridge",
+    .internal_name = "ali1621",
+    .flags = DEVICE_PCI,
+    .local = 0,
+    .init = ali1621_init,
+    .close = ali1621_close,
+    .reset = ali1621_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };

@@ -31,12 +31,12 @@
 #include <86box/midi.h>
 #include <86box/plat.h>
 
-int        midi_device_current       = 0;
-static int midi_device_last          = 0;
-int        midi_input_device_current = 0;
-static int midi_input_device_last    = 0;
+int        midi_output_device_current = 0;
+static int midi_output_device_last    = 0;
+int        midi_input_device_current  = 0;
+static int midi_input_device_last     = 0;
 
-midi_t *midi = NULL, *midi_in = NULL;
+midi_t *midi_out = NULL, *midi_in = NULL;
 
 midi_in_handler_t *mih_first = NULL, *mih_last = NULL,
                   *mih_cur = NULL;
@@ -69,51 +69,51 @@ uint8_t MIDI_evt_len[256] = {
 typedef struct
 {
     const device_t *device;
-} MIDI_DEVICE, MIDI_IN_DEVICE;
+} MIDI_OUT_DEVICE, MIDI_IN_DEVICE;
 
-static const device_t midi_none_device = {
-    "None",
-    "none",
-    0,
-    0,
-    NULL,
-    NULL,
-    NULL,
-    { NULL },
-    NULL,
-    NULL,
-    NULL
+static const device_t midi_out_none_device = {
+    .name = "None",
+    .internal_name = "none",
+    .flags = 0,
+    .local = 0,
+    .init = NULL,
+    .close = NULL,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
-static const MIDI_DEVICE devices[] = {
+static const MIDI_OUT_DEVICE devices[] = {
     // clang-format off
-    { &midi_none_device  },
+    { &midi_out_none_device  },
 #ifdef USE_FLUIDSYNTH
-    { &fluidsynth_device },
+    { &fluidsynth_device     },
 #endif
 #ifdef USE_MUNT
-    { &mt32_device       },
-    { &cm32l_device      },
+    { &mt32_device           },
+    { &cm32l_device          },
 #endif
 #ifdef USE_RTMIDI
-    { &rtmidi_device     },
+    { &rtmidi_output_device  },
 #endif
-    { NULL               }
+    { NULL                   }
     // clang-format on
 };
 
 static const device_t midi_in_none_device = {
-    "None",
-    "none",
-    0,
-    0,
-    NULL,
-    NULL,
-    NULL,
-    { NULL },
-    NULL,
-    NULL,
-    NULL
+    .name = "None",
+    .internal_name = "none",
+    .flags = 0,
+    .local = 0,
+    .init = NULL,
+    .close = NULL,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
 static const MIDI_IN_DEVICE midi_in_devices[] = {
@@ -127,7 +127,7 @@ static const MIDI_IN_DEVICE midi_in_devices[] = {
 };
 
 int
-midi_device_available(int card)
+midi_out_device_available(int card)
 {
     if (devices[card].device)
         return device_available(devices[card].device);
@@ -136,13 +136,13 @@ midi_device_available(int card)
 }
 
 const device_t *
-midi_device_getdevice(int card)
+midi_out_device_getdevice(int card)
 {
     return devices[card].device;
 }
 
 int
-midi_device_has_config(int card)
+midi_out_device_has_config(int card)
 {
     if (!devices[card].device)
         return 0;
@@ -150,13 +150,13 @@ midi_device_has_config(int card)
 }
 
 char *
-midi_device_get_internal_name(int card)
+midi_out_device_get_internal_name(int card)
 {
     return device_get_internal_name(devices[card].device);
 }
 
 int
-midi_device_get_from_internal_name(char *s)
+midi_out_device_get_from_internal_name(char *s)
 {
     int c = 0;
 
@@ -170,20 +170,20 @@ midi_device_get_from_internal_name(char *s)
 }
 
 void
-midi_device_init()
+midi_out_device_init()
 {
-    if (devices[midi_device_current].device)
-        device_add(devices[midi_device_current].device);
-    midi_device_last = midi_device_current;
+    if (devices[midi_output_device_current].device)
+        device_add(devices[midi_output_device_current].device);
+    midi_output_device_last = midi_output_device_current;
 }
 
 void
-midi_init(midi_device_t *device)
+midi_out_init(midi_device_t *device)
 {
-    midi = (midi_t *) malloc(sizeof(midi_t));
-    memset(midi, 0, sizeof(midi_t));
+    midi_out = (midi_t *) malloc(sizeof(midi_t));
+    memset(midi_out, 0, sizeof(midi_t));
 
-    midi->m_out_device = device;
+    midi_out->m_out_device = device;
 }
 
 void
@@ -196,16 +196,16 @@ midi_in_init(midi_device_t *device, midi_t **mididev)
 }
 
 void
-midi_close(void)
+midi_out_close(void)
 {
-    if (midi && midi->m_out_device) {
-        free(midi->m_out_device);
-        midi->m_out_device = NULL;
+    if (midi_out && midi_out->m_out_device) {
+        free(midi_out->m_out_device);
+        midi_out->m_out_device = NULL;
     }
 
-    if (midi) {
-        free(midi);
-        midi = NULL;
+    if (midi_out) {
+        free(midi_out);
+        midi_out = NULL;
     }
 }
 
@@ -226,22 +226,22 @@ midi_in_close(void)
 void
 midi_poll(void)
 {
-    if (midi && midi->m_out_device && midi->m_out_device->poll)
-        midi->m_out_device->poll();
+    if (midi_out && midi_out->m_out_device && midi_out->m_out_device->poll)
+        midi_out->m_out_device->poll();
 }
 
 void
 play_msg(uint8_t *msg)
 {
-    if (midi->m_out_device->play_msg)
-        midi->m_out_device->play_msg(msg);
+    if (midi_out->m_out_device->play_msg)
+        midi_out->m_out_device->play_msg(msg);
 }
 
 void
 play_sysex(uint8_t *sysex, unsigned int len)
 {
-    if (midi->m_out_device->play_sysex)
-        midi->m_out_device->play_sysex(sysex, len);
+    if (midi_out->m_out_device->play_sysex)
+        midi_out->m_out_device->play_sysex(sysex, len);
 }
 
 int
@@ -324,69 +324,69 @@ midi_raw_out_byte(uint8_t val)
 {
     uint32_t passed_ticks;
 
-    if (!midi || !midi->m_out_device)
+    if (!midi_out || !midi_out->m_out_device)
         return;
 
-    if ((midi->m_out_device->write && midi->m_out_device->write(val)))
+    if ((midi_out->m_out_device->write && midi_out->m_out_device->write(val)))
         return;
 
-    if (midi->midi_sysex_start) {
-        passed_ticks = plat_get_ticks() - midi->midi_sysex_start;
-        if (passed_ticks < midi->midi_sysex_delay)
-            plat_delay_ms(midi->midi_sysex_delay - passed_ticks);
+    if (midi_out->midi_sysex_start) {
+        passed_ticks = plat_get_ticks() - midi_out->midi_sysex_start;
+        if (passed_ticks < midi_out->midi_sysex_delay)
+            plat_delay_ms(midi_out->midi_sysex_delay - passed_ticks);
     }
 
     /* Test for a realtime MIDI message */
     if (val >= 0xf8) {
-        midi->midi_rt_buf[0] = val;
-        play_msg(midi->midi_rt_buf);
+        midi_out->midi_rt_buf[0] = val;
+        play_msg(midi_out->midi_rt_buf);
         return;
     }
 
     /* Test for a active sysex transfer */
-    if (midi->midi_status == 0xf0) {
+    if (midi_out->midi_status == 0xf0) {
         if (!(val & 0x80)) {
-            if (midi->midi_pos < (SYSEX_SIZE - 1))
-                midi->midi_sysex_data[midi->midi_pos++] = val;
+            if (midi_out->midi_pos < (SYSEX_SIZE - 1))
+                midi_out->midi_sysex_data[midi_out->midi_pos++] = val;
             return;
         } else {
-            midi->midi_sysex_data[midi->midi_pos++] = 0xf7;
+            midi_out->midi_sysex_data[midi_out->midi_pos++] = 0xf7;
 
-            if ((midi->midi_sysex_start) && (midi->midi_pos >= 4) && (midi->midi_pos <= 9) && (midi->midi_sysex_data[1] == 0x41) && (midi->midi_sysex_data[3] == 0x16)) {
+            if ((midi_out->midi_sysex_start) && (midi_out->midi_pos >= 4) && (midi_out->midi_pos <= 9) && (midi_out->midi_sysex_data[1] == 0x41) && (midi_out->midi_sysex_data[3] == 0x16)) {
                 /* pclog("MIDI: Skipping invalid MT-32 SysEx MIDI message\n"); */
             } else {
-                play_sysex(midi->midi_sysex_data, midi->midi_pos);
-                if (midi->midi_sysex_start) {
-                    if (midi->midi_sysex_data[5] == 0x7f)
-                        midi->midi_sysex_delay = 290; /* All parameters reset */
-                    else if ((midi->midi_sysex_data[5] == 0x10) && (midi->midi_sysex_data[6] == 0x00) && (midi->midi_sysex_data[7] == 0x04))
-                        midi->midi_sysex_delay = 145; /* Viking Child */
-                    else if ((midi->midi_sysex_data[5] == 0x10) && (midi->midi_sysex_data[6] == 0x00) && (midi->midi_sysex_data[7] == 0x01))
-                        midi->midi_sysex_delay = 30; /* Dark Sun 1 */
+                play_sysex(midi_out->midi_sysex_data, midi_out->midi_pos);
+                if (midi_out->midi_sysex_start) {
+                    if (midi_out->midi_sysex_data[5] == 0x7f)
+                        midi_out->midi_sysex_delay = 290; /* All parameters reset */
+                    else if ((midi_out->midi_sysex_data[5] == 0x10) && (midi_out->midi_sysex_data[6] == 0x00) && (midi_out->midi_sysex_data[7] == 0x04))
+                        midi_out->midi_sysex_delay = 145; /* Viking Child */
+                    else if ((midi_out->midi_sysex_data[5] == 0x10) && (midi_out->midi_sysex_data[6] == 0x00) && (midi_out->midi_sysex_data[7] == 0x01))
+                        midi_out->midi_sysex_delay = 30; /* Dark Sun 1 */
                     else
-                        midi->midi_sysex_delay = (unsigned int) (((float) (midi->midi_pos) * 1.25f) * 1000.0f / 3125.0f) + 2;
+                        midi_out->midi_sysex_delay = (unsigned int) (((float) (midi_out->midi_pos) * 1.25f) * 1000.0f / 3125.0f) + 2;
 
-                    midi->midi_sysex_start = plat_get_ticks();
+                    midi_out->midi_sysex_start = plat_get_ticks();
                 }
             }
         }
     }
 
     if (val & 0x80) {
-        midi->midi_status  = val;
-        midi->midi_cmd_pos = 0;
-        midi->midi_cmd_len = MIDI_evt_len[val];
-        if (midi->midi_status == 0xf0) {
-            midi->midi_sysex_data[0] = 0xf0;
-            midi->midi_pos           = 1;
+        midi_out->midi_status  = val;
+        midi_out->midi_cmd_pos = 0;
+        midi_out->midi_cmd_len = MIDI_evt_len[val];
+        if (midi_out->midi_status == 0xf0) {
+            midi_out->midi_sysex_data[0] = 0xf0;
+            midi_out->midi_pos           = 1;
         }
     }
 
-    if (midi->midi_cmd_len) {
-        midi->midi_cmd_buf[midi->midi_cmd_pos++] = val;
-        if (midi->midi_cmd_pos >= midi->midi_cmd_len) {
-            play_msg(midi->midi_cmd_buf);
-            midi->midi_cmd_pos = 1;
+    if (midi_out->midi_cmd_len) {
+        midi_out->midi_cmd_buf[midi_out->midi_cmd_pos++] = val;
+        if (midi_out->midi_cmd_pos >= midi_out->midi_cmd_len) {
+            play_msg(midi_out->midi_cmd_buf);
+            midi_out->midi_cmd_pos = 1;
         }
     }
 }
@@ -394,13 +394,13 @@ midi_raw_out_byte(uint8_t val)
 void
 midi_clear_buffer(void)
 {
-    if (!midi)
+    if (!midi_out)
         return;
 
-    midi->midi_pos     = 0;
-    midi->midi_status  = 0x00;
-    midi->midi_cmd_pos = 0;
-    midi->midi_cmd_len = 0;
+    midi_out->midi_pos     = 0;
+    midi_out->midi_status  = 0x00;
+    midi_out->midi_cmd_pos = 0;
+    midi_out->midi_cmd_len = 0;
 }
 
 void

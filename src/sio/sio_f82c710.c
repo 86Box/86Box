@@ -340,23 +340,30 @@ f82c710_init(const device_t *info)
     return dev;
 }
 
-
 const device_t f82c606_device = {
-    "82C606 CHIPSpak Multifunction Controller",
-    "f82c606",
-    0,
-    606,
-    f82c710_init, f82c710_close, f82c710_reset,
-    { NULL }, NULL, NULL,
-    NULL
+    .name = "82C606 CHIPSpak Multifunction Controller",
+    .internal_name = "f82c606",
+    .flags = 0,
+    .local = 606,
+    .init = f82c710_init,
+    .close = f82c710_close,
+    .reset = f82c710_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
 const device_t f82c710_device = {
-    "F82C710 UPC Super I/O",
-    "f82c710",
-    0,
-    710,
-    f82c710_init, f82c710_close, f82c710_reset,
-    { NULL }, NULL, NULL,
-    NULL
+    .name = "F82C710 UPC Super I/O",
+    .internal_name = "f82c710",
+    .flags = 0,
+    .local = 710,
+    .init = f82c710_init,
+    .close = f82c710_close,
+    .reset = f82c710_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };

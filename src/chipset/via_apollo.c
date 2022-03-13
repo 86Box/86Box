@@ -760,118 +760,114 @@ via_apollo_close(void *priv)
     free(dev);
 }
 
-const device_t via_vpx_device =
-{
-    "VIA Apollo VPX",
-    "via_vpx",
-    DEVICE_PCI,
-    VIA_585,	/*VT82C585*/
-    via_apollo_init,
-    via_apollo_close,
-    via_apollo_reset,
-    { NULL },
-    NULL,
-    NULL,
-    NULL
+const device_t via_vpx_device = {
+    .name = "VIA Apollo VPX",
+    .internal_name = "via_vpx",
+    .flags = DEVICE_PCI,
+    .local = VIA_585, /*VT82C585*/
+    .init = via_apollo_init,
+    .close = via_apollo_close,
+    .reset = via_apollo_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
-const device_t amd640_device =
-{
-    "AMD 640 System Controller",
-    "amd640",
-    DEVICE_PCI,
-    VIA_595,	/*VT82C595*/
-    via_apollo_init,
-    via_apollo_close,
-    via_apollo_reset,
-    { NULL },
-    NULL,
-    NULL,
-    NULL
+const device_t amd640_device = {
+    .name = "AMD 640 System Controller",
+    .internal_name = "amd640",
+    .flags = DEVICE_PCI,
+    .local = VIA_595, /*VT82C595*/
+    .init = via_apollo_init,
+    .close = via_apollo_close,
+    .reset = via_apollo_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
-const device_t via_vp3_device =
-{
-    "VIA Apollo VP3",
-    "via_vp3",
-    DEVICE_PCI,
-    VIA_597,	/*VT82C597*/
-    via_apollo_init,
-    via_apollo_close,
-    via_apollo_reset,
-    { NULL },
-    NULL,
-    NULL,
-    NULL
+const device_t via_vp3_device = {
+    .name = "VIA Apollo VP3",
+    .internal_name = "via_vp3",
+    .flags = DEVICE_PCI,
+    .local = VIA_597, /*VT82C597*/
+    .init = via_apollo_init,
+    .close = via_apollo_close,
+    .reset = via_apollo_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
-const device_t via_mvp3_device =
-{
-    "VIA Apollo MVP3",
-    "via_mvp3",
-    DEVICE_PCI,
-    VIA_598,	/*VT82C598MVP*/
-    via_apollo_init,
-    via_apollo_close,
-    via_apollo_reset,
-    { NULL },
-    NULL,
-    NULL,
-    NULL
+const device_t via_mvp3_device = {
+    .name = "VIA Apollo MVP3",
+    .internal_name = "via_mvp3",
+    .flags = DEVICE_PCI,
+    .local = VIA_598, /*VT82C598MVP*/
+    .init = via_apollo_init,
+    .close = via_apollo_close,
+    .reset = via_apollo_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
 const device_t via_apro_device = {
-    "VIA Apollo Pro",
-    "via_apro",
-    DEVICE_PCI,
-    VIA_691,	/*VT82C691*/
-    via_apollo_init,
-    via_apollo_close,
-    via_apollo_reset,
-    { NULL },
-    NULL,
-    NULL,
-    NULL
+    .name = "VIA Apollo Pro",
+    .internal_name = "via_apro",
+    .flags = DEVICE_PCI,
+    .local = VIA_691, /*VT82C691*/
+    .init = via_apollo_init,
+    .close = via_apollo_close,
+    .reset = via_apollo_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
 const device_t via_apro133_device = {
-    "VIA Apollo Pro133",
-    "via_apro133",
-    DEVICE_PCI,
-    VIA_693A,	/*VT82C693A*/
-    via_apollo_init,
-    via_apollo_close,
-    via_apollo_reset,
-    { NULL },
-    NULL,
-    NULL,
-    NULL
+    .name = "VIA Apollo Pro133",
+    .internal_name = "via_apro133",
+    .flags = DEVICE_PCI,
+    .local = VIA_693A, /*VT82C693A*/
+    .init = via_apollo_init,
+    .close = via_apollo_close,
+    .reset = via_apollo_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
 const device_t via_apro133a_device = {
-    "VIA Apollo Pro133A",
-    "via_apro_133a",
-    DEVICE_PCI,
-    VIA_694,	/*VT82C694X*/
-    via_apollo_init,
-    via_apollo_close,
-    via_apollo_reset,
-    { NULL },
-    NULL,
-    NULL,
-    NULL
+    .name = "VIA Apollo Pro133A",
+    .internal_name = "via_apro_133a",
+    .flags = DEVICE_PCI,
+    .local = VIA_694, /*VT82C694X*/
+    .init = via_apollo_init,
+    .close = via_apollo_close,
+    .reset = via_apollo_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
 const device_t via_vt8601_device = {
-    "VIA Apollo ProMedia",
-    "via_vt8601",
-    DEVICE_PCI,
-    VIA_8601,	/*VT8601*/
-    via_apollo_init,
-    via_apollo_close,
-    via_apollo_reset,
-    { NULL },
-    NULL,
-    NULL,
-    NULL
+    .name = "VIA Apollo ProMedia",
+    .internal_name = "via_vt8601",
+    .flags = DEVICE_PCI,
+    .local = VIA_8601, /*VT8601*/
+    .init = via_apollo_init,
+    .close = via_apollo_close,
+    .reset = via_apollo_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };

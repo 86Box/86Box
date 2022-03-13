@@ -173,46 +173,58 @@ port_6x_init(const device_t *info)
     return dev;
 }
 
-
 const device_t port_6x_device = {
-    "Port 6x Registers",
-    "port_6x",
-    0,
-    0,
-    port_6x_init, port_6x_close, NULL,
-    { NULL }, NULL, NULL,
-    NULL
+    .name = "Port 6x Registers",
+    .internal_name = "port_6x",
+    .flags = 0,
+    .local = 0,
+    .init = port_6x_init,
+    .close = port_6x_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
-
 
 const device_t port_6x_xi8088_device = {
-    "Port 6x Registers (Xi8088)",
-    "port_6x_xi8088",
-    0,
-    PORT_6X_TURBO | PORT_6X_EXT_REF | PORT_6X_MIRROR,
-    port_6x_init, port_6x_close, NULL,
-    { NULL }, NULL, NULL,
-    NULL
+    .name = "Port 6x Registers (Xi8088)",
+    .internal_name = "port_6x_xi8088",
+    .flags = 0,
+    .local = PORT_6X_TURBO | PORT_6X_EXT_REF | PORT_6X_MIRROR,
+    .init = port_6x_init,
+    .close = port_6x_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
-
 
 const device_t port_6x_ps2_device = {
-    "Port 6x Registers (IBM PS/2)",
-    "port_6x_ps2",
-    0,
-    PORT_6X_EXT_REF,
-    port_6x_init, port_6x_close, NULL,
-    { NULL }, NULL, NULL,
-    NULL
+    .name = "Port 6x Registers (IBM PS/2)",
+    .internal_name = "port_6x_ps2",
+    .flags = 0,
+    .local = PORT_6X_EXT_REF,
+    .init = port_6x_init,
+    .close = port_6x_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
-
 const device_t port_6x_olivetti_device = {
-    "Port 6x Registers (Olivetti)",
-    "port_6x_olivetti",
-    0,
-    PORT_6X_SWA,
-    port_6x_init, port_6x_close, NULL,
-    { NULL }, NULL, NULL,
-    NULL
+    .name = "Port 6x Registers (Olivetti)",
+    .internal_name = "port_6x_olivetti",
+    .flags = 0,
+    .local = PORT_6X_SWA,
+    .init = port_6x_init,
+    .close = port_6x_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };

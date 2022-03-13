@@ -115,19 +115,19 @@ static void ch_flightstick_pro_a0_over(void *p)
 
 const joystick_if_t joystick_ch_flightstick_pro =
 {
-        "CH Flightstick Pro",
-        "ch_flightstick_pro",
-        ch_flightstick_pro_init,
-        ch_flightstick_pro_close,
-        ch_flightstick_pro_read,
-        ch_flightstick_pro_write,
-        ch_flightstick_pro_read_axis,
-        ch_flightstick_pro_a0_over,
-        3,
-        4,
-        1,
-        1,
-        {"X axis", "Y axis", "Throttle"},
-        {"Button 1", "Button 2", "Button 3", "Button 4"},
-        {"POV"}
+    .name = "CH Flightstick Pro",
+    .internal_name = "ch_flightstick_pro",
+    .init = ch_flightstick_pro_init,
+    .close = ch_flightstick_pro_close,
+    .read = ch_flightstick_pro_read,
+    .write = ch_flightstick_pro_write,
+    .read_axis = ch_flightstick_pro_read_axis,
+    .a0_over = ch_flightstick_pro_a0_over,
+    .axis_count = 3,
+    .button_count = 4,
+    .pov_count = 1,
+    .max_joysticks = 1,
+    .axis_names = { "X axis", "Y axis", "Throttle" },
+    .button_names = { "Button 1", "Button 2", "Button 3", "Button 4" },
+    .pov_names = { "POV" }
 };

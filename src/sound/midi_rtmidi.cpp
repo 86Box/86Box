@@ -66,7 +66,7 @@ rtmidi_play_sysex(uint8_t *sysex, unsigned int len)
 
 
 void*
-rtmidi_init(const device_t *info)
+rtmidi_output_init(const device_t *info)
 {
     midi_device_t* dev = (midi_device_t*)malloc(sizeof(midi_device_t));
     memset(dev, 0, sizeof(midi_device_t));
@@ -99,14 +99,14 @@ rtmidi_init(const device_t *info)
     }
     }
 
-    midi_init(dev);
+    midi_out_init(dev);
 
     return dev;
 }
 
 
 void
-rtmidi_close(void *p)
+rtmidi_output_close(void *p)
 {
     if (!midiout)
     return;
@@ -116,12 +116,12 @@ rtmidi_close(void *p)
     delete midiout;
     midiout = nullptr;
 
-    midi_close();
+    midi_out_close();
 }
 
 
 int
-rtmidi_get_num_devs(void)
+rtmidi_out_get_num_devs(void)
 {
     if (!midiout) {
     try {
@@ -136,7 +136,7 @@ rtmidi_get_num_devs(void)
 
 
 void
-rtmidi_get_dev_name(int num, char *s)
+rtmidi_out_get_dev_name(int num, char *s)
 {
     strcpy(s, midiout->getPortName(num).c_str());
 }
@@ -207,7 +207,7 @@ rtmidi_input_close(void* p)
     delete midiin;
     midiin = nullptr;
 
-    midi_close();
+    midi_out_close();
 }
 
 
@@ -232,8 +232,7 @@ rtmidi_in_get_dev_name(int num, char *s)
     strcpy(s, midiin->getPortName(num).c_str());
 }
 
-static const device_config_t system_midi_config[] =
-{
+static const device_config_t system_midi_config[] = {
     {
     "midi", "MIDI out device", CONFIG_MIDI_OUT, "", 0
     },
@@ -242,8 +241,7 @@ static const device_config_t system_midi_config[] =
     }
 };
 
-static const device_config_t midi_input_config[] =
-{
+static const device_config_t midi_input_config[] = {
     {
     "midi_input", "MIDI in device", CONFIG_MIDI_IN, "", 0
     },
@@ -261,15 +259,14 @@ static const device_config_t midi_input_config[] =
     }
 };
 
-const device_t rtmidi_device =
-{
+const device_t rtmidi_output_device = {
     SYSTEM_MIDI_NAME,
     SYSTEM_MIDI_INTERNAL_NAME,
     0, 0,
-    rtmidi_init,
-    rtmidi_close,
+    rtmidi_output_init,
+    rtmidi_output_close,
     NULL,
-    { rtmidi_get_num_devs },
+    { rtmidi_out_get_num_devs },
     NULL,
     NULL,
     system_midi_config

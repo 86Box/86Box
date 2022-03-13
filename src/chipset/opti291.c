@@ -147,14 +147,15 @@ opti291_init(const device_t *info)
 }
 
 const device_t opti291_device = {
-	"OPTi 82C291",
-	"opti291",
-	0,
-	0,
-	opti291_init,
-	opti291_close,
-	NULL,
-	{NULL},
-	NULL,
-	NULL,
-	NULL};
+    .name = "OPTi 82C291",
+    .internal_name = "opti291",
+    .flags = 0,
+    .local = 0,
+    .init = opti291_init,
+    .close = opti291_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
+};

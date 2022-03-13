@@ -1037,9 +1037,9 @@ load_sound(void)
 
     p = config_get_string(cat, "midi_device", NULL);
     if (p != NULL)
-	midi_device_current = midi_device_get_from_internal_name(p);
+	midi_output_device_current = midi_out_device_get_from_internal_name(p);
       else
-	midi_device_current = 0;
+	midi_output_device_current = 0;
 
     p = config_get_string(cat, "midi_in_device", NULL);
     if (p != NULL)
@@ -2112,6 +2112,7 @@ config_load(void)
 	serial_enabled[1] = 1;
 	for (i = 2 ; i < SERIAL_MAX; i++)
 		serial_enabled[i] = 0;
+
 	lpt_ports[0].enabled = 1;
 
 	for (i = 1 ; i < PARALLEL_MAX; i++)
@@ -2531,10 +2532,10 @@ save_sound(void)
       else
 	config_set_string(cat, "sndcard", sound_card_get_internal_name(sound_card_current));
 
-    if (!strcmp(midi_device_get_internal_name(midi_device_current), "none"))
+    if (!strcmp(midi_out_device_get_internal_name(midi_output_device_current), "none"))
 	config_delete_var(cat, "midi_device");
       else
-	config_set_string(cat, "midi_device", midi_device_get_internal_name(midi_device_current));
+	config_set_string(cat, "midi_device", midi_out_device_get_internal_name(midi_output_device_current));
 
     if (!strcmp(midi_in_device_get_internal_name(midi_input_device_current), "none"))
 	config_delete_var(cat, "midi_in_device");

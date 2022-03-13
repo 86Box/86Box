@@ -1120,113 +1120,156 @@ nvr_at_close(void *priv)
 	nvr_at_inited = 0;
 }
 
-
 const device_t at_nvr_old_device = {
-    "PC/AT NVRAM (No century)",
-    "at_nvr_old",
-    DEVICE_ISA | DEVICE_AT,
-    0,
-    nvr_at_init, nvr_at_close, nvr_at_reset,
-    { NULL }, nvr_at_speed_changed,
-    NULL
+    .name = "PC/AT NVRAM (No century)",
+    .internal_name = "at_nvr_old",
+    .flags = DEVICE_ISA | DEVICE_AT,
+    .local = 0,
+    .init = nvr_at_init,
+    .close = nvr_at_close,
+    .reset = nvr_at_reset,
+    { .available = NULL },
+    .speed_changed = nvr_at_speed_changed,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
 const device_t at_nvr_device = {
-    "PC/AT NVRAM",
-    "at_nvr",
-    DEVICE_ISA | DEVICE_AT,
-    1,
-    nvr_at_init, nvr_at_close, nvr_at_reset,
-    { NULL }, nvr_at_speed_changed,
-    NULL
+    .name = "PC/AT NVRAM",
+    .internal_name = "at_nvr",
+    .flags = DEVICE_ISA | DEVICE_AT,
+    .local = 1,
+    .init = nvr_at_init,
+    .close = nvr_at_close,
+    .reset = nvr_at_reset,
+    { .available = NULL },
+    .speed_changed = nvr_at_speed_changed,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
 const device_t ps_nvr_device = {
-    "PS/1 or PS/2 NVRAM",
-    "ps_nvr",
-    DEVICE_PS2,
-    2,
-    nvr_at_init, nvr_at_close, nvr_at_reset,
-    { NULL }, nvr_at_speed_changed,
-    NULL
+    .name = "PS/1 or PS/2 NVRAM",
+    .internal_name = "ps_nvr",
+    .flags = DEVICE_PS2,
+    .local = 2,
+    .init = nvr_at_init,
+    .close = nvr_at_close,
+    .reset = nvr_at_reset,
+    { .available = NULL },
+    .speed_changed = nvr_at_speed_changed,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
 const device_t amstrad_nvr_device = {
-    "Amstrad NVRAM",
-    "amstrad_nvr",
-    DEVICE_ISA | DEVICE_AT,
-    3,
-    nvr_at_init, nvr_at_close, nvr_at_reset,
-    { NULL }, nvr_at_speed_changed,
-    NULL
+    .name = "Amstrad NVRAM",
+    .internal_name = "amstrad_nvr",
+    .flags = DEVICE_ISA | DEVICE_AT,
+    .local = 3,
+    .init = nvr_at_init,
+    .close = nvr_at_close,
+    .reset = nvr_at_reset,
+    { .available = NULL },
+    .speed_changed = nvr_at_speed_changed,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
 const device_t ibmat_nvr_device = {
-    "IBM AT NVRAM",
-    "ibmat_nvr",
-    DEVICE_ISA | DEVICE_AT,
-    4,
-    nvr_at_init, nvr_at_close, nvr_at_reset,
-    { NULL }, nvr_at_speed_changed,
-    NULL
+    .name = "IBM AT NVRAM",
+    .internal_name = "ibmat_nvr",
+    .flags = DEVICE_ISA | DEVICE_AT,
+    .local = 4,
+    .init = nvr_at_init,
+    .close = nvr_at_close,
+    .reset = nvr_at_reset,
+    { .available = NULL },
+    .speed_changed = nvr_at_speed_changed,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
 const device_t piix4_nvr_device = {
-    "Intel PIIX4 PC/AT NVRAM",
-    "piix4_nvr",
-    DEVICE_ISA | DEVICE_AT,
-    9,
-    nvr_at_init, nvr_at_close, nvr_at_reset,
-    { NULL }, nvr_at_speed_changed,
-    NULL
+    .name = "Intel PIIX4 PC/AT NVRAM",
+    .internal_name = "piix4_nvr",
+    .flags = DEVICE_ISA | DEVICE_AT,
+    .local = 9,
+    .init = nvr_at_init,
+    .close = nvr_at_close,
+    .reset = nvr_at_reset,
+    { .available = NULL },
+    .speed_changed = nvr_at_speed_changed,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
 const device_t ami_1992_nvr_device = {
-    "AMI Color 1992 PC/AT NVRAM",
-    "ami_1992_nvr",
-    DEVICE_ISA | DEVICE_AT,
-    12,
-    nvr_at_init, nvr_at_close, nvr_at_reset,
-    { NULL }, nvr_at_speed_changed,
-    NULL
+    .name = "AMI Color 1992 PC/AT NVRAM",
+    .internal_name = "ami_1992_nvr",
+    .flags = DEVICE_ISA | DEVICE_AT,
+    .local = 12,
+    .init = nvr_at_init,
+    .close = nvr_at_close,
+    .reset = nvr_at_reset,
+    { .available = NULL },
+    .speed_changed = nvr_at_speed_changed,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
 const device_t ami_1994_nvr_device = {
-    "AMI WinBIOS 1994 PC/AT NVRAM",
-    "ami_1994_nvr",
-    DEVICE_ISA | DEVICE_AT,
-    13,
-    nvr_at_init, nvr_at_close, nvr_at_reset,
-    { NULL }, nvr_at_speed_changed,
-    NULL
+    .name = "AMI WinBIOS 1994 PC/AT NVRAM",
+    .internal_name = "ami_1994_nvr",
+    .flags = DEVICE_ISA | DEVICE_AT,
+    .local = 13,
+    .init = nvr_at_init,
+    .close = nvr_at_close,
+    .reset = nvr_at_reset,
+    { .available = NULL },
+    .speed_changed = nvr_at_speed_changed,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
 const device_t ami_1995_nvr_device = {
-    "AMI WinBIOS 1995 PC/AT NVRAM",
-    "ami_1995_nvr",
-    DEVICE_ISA | DEVICE_AT,
-    14,
-    nvr_at_init, nvr_at_close, nvr_at_reset,
-    { NULL }, nvr_at_speed_changed,
-    NULL
+    .name = "AMI WinBIOS 1995 PC/AT NVRAM",
+    .internal_name = "ami_1995_nvr",
+    .flags = DEVICE_ISA | DEVICE_AT,
+    .local = 14,
+    .init = nvr_at_init,
+    .close = nvr_at_close,
+    .reset = nvr_at_reset,
+    { .available = NULL },
+    .speed_changed = nvr_at_speed_changed,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
 const device_t via_nvr_device = {
-    "VIA PC/AT NVRAM",
-    "via_nvr",
-    DEVICE_ISA | DEVICE_AT,
-    15,
-    nvr_at_init, nvr_at_close, nvr_at_reset,
-    { NULL }, nvr_at_speed_changed,
-    NULL
+    .name = "VIA PC/AT NVRAM",
+    .internal_name = "via_nvr",
+    .flags = DEVICE_ISA | DEVICE_AT,
+    .local = 15,
+    .init = nvr_at_init,
+    .close = nvr_at_close,
+    .reset = nvr_at_reset,
+    { .available = NULL },
+    .speed_changed = nvr_at_speed_changed,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
 const device_t p6rp4_nvr_device = {
-    "ASUS P/I-P6RP4 PC/AT NVRAM",
-    "p6rp4_nvr",
-    DEVICE_ISA | DEVICE_AT,
-    16,
-    nvr_at_init, nvr_at_close, nvr_at_reset,
-    { NULL }, nvr_at_speed_changed,
-    NULL
+    .name = "ASUS P/I-P6RP4 PC/AT NVRAM",
+    .internal_name = "p6rp4_nvr",
+    .flags = DEVICE_ISA | DEVICE_AT,
+    .local = 16,
+    .init = nvr_at_init,
+    .close = nvr_at_close,
+    .reset = nvr_at_reset,
+    { .available = NULL },
+    .speed_changed = nvr_at_speed_changed,
+    .force_redraw = NULL,
+    .config = NULL
 };

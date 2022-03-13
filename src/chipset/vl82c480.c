@@ -188,24 +188,30 @@ vl82c480_init(const device_t *info)
     return dev;
 }
 
-
 const device_t vl82c480_device = {
-    "VLSI VL82c480",
-    "vl82c480",
-    0,
-    0x90,
-    vl82c480_init, vl82c480_close, NULL,
-    { NULL }, NULL, NULL,
-    NULL
+    .name = "VLSI VL82c480",
+    .internal_name = "vl82c480",
+    .flags = 0,
+    .local = 0x90,
+    .init = vl82c480_init,
+    .close = vl82c480_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
-
 const device_t vl82c486_device = {
-    "VLSI VL82c486",
-    "vl82c486",
-    0,
-    0x98,
-    vl82c480_init, vl82c480_close, NULL,
-    { NULL }, NULL, NULL,
-    NULL
+    .name = "VLSI VL82c486",
+    .internal_name = "vl82c486",
+    .flags = 0,
+    .local = 0x98,
+    .init = vl82c480_init,
+    .close = vl82c480_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };

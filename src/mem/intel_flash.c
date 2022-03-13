@@ -560,40 +560,45 @@ intel_flash_close(void *p)
     free(dev);
 }
 
-
 /* For AMI BIOS'es - Intel 28F001BXT with A16 pin inverted. */
-const device_t intel_flash_bxt_ami_device =
-{
-    "Intel 28F001BXT/28F002BXT/28F004BXT Flash BIOS",
-    "intel_flash_bxt_ami",
-    DEVICE_PCI,
-    FLAG_INV_A16,
-    intel_flash_init,
-    intel_flash_close,
-    intel_flash_reset,
-    { NULL }, NULL, NULL, NULL
+const device_t intel_flash_bxt_ami_device = {
+    .name = "Intel 28F001BXT/28F002BXT/28F004BXT Flash BIOS",
+    .internal_name = "intel_flash_bxt_ami",
+    .flags = DEVICE_PCI,
+    .local = FLAG_INV_A16,
+    .init = intel_flash_init,
+    .close = intel_flash_close,
+    .reset = intel_flash_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
-
-const device_t intel_flash_bxt_device =
-{
-    "Intel 28F001BXT/28F002BXT/28F004BXT Flash BIOS",
-    "intel_flash_bxt",
-    DEVICE_PCI, 0,
-    intel_flash_init,
-    intel_flash_close,
-    intel_flash_reset,
-    { NULL }, NULL, NULL, NULL
+const device_t intel_flash_bxt_device = {
+    .name = "Intel 28F001BXT/28F002BXT/28F004BXT Flash BIOS",
+    .internal_name = "intel_flash_bxt",
+    .flags = DEVICE_PCI,
+    .local = 0,
+    .init = intel_flash_init,
+    .close = intel_flash_close,
+    .reset = intel_flash_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
-
-const device_t intel_flash_bxb_device =
-{
-    "Intel 28F001BXB/28F002BXB/28F004BXB Flash BIOS",
-    "intel_flash_bxb",
-    DEVICE_PCI, FLAG_BXB,
-    intel_flash_init,
-    intel_flash_close,
-    intel_flash_reset,
-    { NULL }, NULL, NULL, NULL
+const device_t intel_flash_bxb_device = {
+    .name = "Intel 28F001BXB/28F002BXB/28F004BXB Flash BIOS",
+    .internal_name = "intel_flash_bxb",
+    .flags = DEVICE_PCI,
+    .local = FLAG_BXB,
+    .init = intel_flash_init,
+    .close = intel_flash_close,
+    .reset = intel_flash_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };

@@ -16,13 +16,24 @@
 
 lpt_port_t	lpt_ports[PARALLEL_MAX];
 
+const lpt_device_t lpt_none_device = {
+    .name = "None",
+    .internal_name = "none",
+    .init = NULL,
+    .close = NULL,
+    .write_data = NULL,
+    .write_ctrl = NULL,
+    .read_data = NULL,
+    .read_status = NULL,
+    .read_ctrl = NULL
+};
 
 static const struct {
     const char *internal_name;
     const lpt_device_t *device;
 } lpt_devices[] = {
 // clang-format off
-    {"none",            NULL                      },
+    {"none",            &lpt_none_device          },
     {"dss",             &dss_device               },
     {"lpt_dac",         &lpt_dac_device           },
     {"lpt_dac_stereo",  &lpt_dac_stereo_device    },
@@ -39,21 +50,19 @@ char *
 lpt_device_get_name(int id)
 {
     if (strlen((char *) lpt_devices[id].internal_name) == 0)
-	return NULL;
+        return NULL;
     if (!lpt_devices[id].device)
-	return "None";
+        return "None";
     return (char *) lpt_devices[id].device->name;
 }
-
 
 char *
 lpt_device_get_internal_name(int id)
 {
     if (strlen((char *) lpt_devices[id].internal_name) == 0)
-	return NULL;
+        return NULL;
     return (char *) lpt_devices[id].internal_name;
 }
-
 
 int
 lpt_device_get_from_internal_name(char *s)
@@ -61,9 +70,9 @@ lpt_device_get_from_internal_name(char *s)
     int c = 0;
 
     while (strlen((char *) lpt_devices[c].internal_name) != 0) {
-	if (strcmp(lpt_devices[c].internal_name, s) == 0)
-		return c;
-	c++;
+        if (strcmp(lpt_devices[c].internal_name, s) == 0)
+            return c;
+        c++;
     }
 
     return 0;

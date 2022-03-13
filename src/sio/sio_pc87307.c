@@ -590,46 +590,58 @@ pc87307_init(const device_t *info)
     return dev;
 }
 
-
 const device_t pc87307_device = {
-    "National Semiconductor PC87307 Super I/O",
-    "pc87307",
-    0,
-    0x1c0,
-    pc87307_init, pc87307_close, NULL,
-    { NULL }, NULL, NULL,
-    NULL
+    .name = "National Semiconductor PC87307 Super I/O",
+    .internal_name = "pc87307",
+    .flags = 0,
+    .local = 0x1c0,
+    .init = pc87307_init,
+    .close = pc87307_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
-
 
 const device_t pc87307_15c_device = {
-    "National Semiconductor PC87307 Super I/O (Port 15Ch)",
-    "pc87307_15c",
-    0,
-    0x2c0,
-    pc87307_init, pc87307_close, NULL,
-    { NULL }, NULL, NULL,
-    NULL
+    .name = "National Semiconductor PC87307 Super I/O (Port 15Ch)",
+    .internal_name = "pc87307_15c",
+    .flags = 0,
+    .local = 0x2c0,
+    .init = pc87307_init,
+    .close = pc87307_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
-
 
 const device_t pc87307_both_device = {
-    "National Semiconductor PC87307 Super I/O (Ports 2Eh and 15Ch)",
-    "pc87307_both",
-    0,
-    0x3c0,
-    pc87307_init, pc87307_close, NULL,
-    { NULL }, NULL, NULL,
-    NULL
+    .name = "National Semiconductor PC87307 Super I/O (Ports 2Eh and 15Ch)",
+    .internal_name = "pc87307_both",
+    .flags = 0,
+    .local = 0x3c0,
+    .init = pc87307_init,
+    .close = pc87307_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
-
 const device_t pc97307_device = {
-    "National Semiconductor PC97307 Super I/O",
-    "pc97307",
-    0,
-    0x1cf,
-    pc87307_init, pc87307_close, NULL,
-    { NULL }, NULL, NULL,
-    NULL
+    .name = "National Semiconductor PC97307 Super I/O",
+    .internal_name = "pc97307",
+    .flags = 0,
+    .local = 0x1cf,
+    .init = pc87307_init,
+    .close = pc87307_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };

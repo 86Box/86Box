@@ -626,16 +626,16 @@ ali1489_init(const device_t *info)
     return dev;
 }
 
-
 const device_t ali1489_device = {
-    "ALi M1489",
-    "ali1489",
-    0,
-    0,
-    ali1489_init,
-    ali1489_close,
-    ali1489_reset,
-    {NULL},
-    NULL,
-    NULL,
-    NULL};
+    .name = "ALi M1489",
+    .internal_name = "ali1489",
+    .flags = 0,
+    .local = 0,
+    .init = ali1489_init,
+    .close = ali1489_close,
+    .reset = ali1489_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
+};

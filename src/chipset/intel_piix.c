@@ -1599,108 +1599,100 @@ static void
     return dev;
 }
 
-
-const device_t piix_device =
-{
-    "Intel 82371FB (PIIX)",
-    "piix",
-    DEVICE_PCI,
-    0x122e0101,
-    piix_init,
-    piix_close,
-    piix_reset,
-    { NULL },
-    piix_speed_changed,
-    NULL,
-    NULL
+const device_t piix_device = {
+    .name = "Intel 82371FB (PIIX)",
+    .internal_name = "piix",
+    .flags = DEVICE_PCI,
+    .local = 0x122e0101,
+    .init = piix_init,
+    .close = piix_close,
+    .reset = piix_reset,
+    { .available = NULL },
+    .speed_changed = piix_speed_changed,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
-const device_t piix_rev02_device =
-{
-    "Intel 82371FB (PIIX) (Faulty BusMastering!!)",
-    "piix_rev02",
-    DEVICE_PCI,
-    0x122e0121,
-    piix_init,
-    piix_close,
-    piix_reset,
-    { NULL },
-    piix_speed_changed,
-    NULL,
-    NULL
+const device_t piix_rev02_device = {
+    .name = "Intel 82371FB (PIIX) (Faulty BusMastering!!)",
+    .internal_name = "piix_rev02",
+    .flags = DEVICE_PCI,
+    .local = 0x122e0121,
+    .init = piix_init,
+    .close = piix_close,
+    .reset = piix_reset,
+    { .available = NULL },
+    .speed_changed = piix_speed_changed,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
-const device_t piix3_device =
-{
-    "Intel 82371SB (PIIX3)",
-    "piix3",
-    DEVICE_PCI,
-    0x70000403,
-    piix_init,
-    piix_close,
-    piix_reset,
-    { NULL },
-    piix_speed_changed,
-    NULL,
-    NULL
+const device_t piix3_device = {
+    .name = "Intel 82371SB (PIIX3)",
+    .internal_name = "piix3",
+    .flags = DEVICE_PCI,
+    .local = 0x70000403,
+    .init = piix_init,
+    .close = piix_close,
+    .reset = piix_reset,
+    { .available = NULL },
+    .speed_changed = piix_speed_changed,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
-const device_t piix3_ioapic_device =
-{
-    "Intel 82371SB (PIIX3) (Boards with I/O APIC)",
-    "piix3_ioapic",
-    DEVICE_PCI,
-    0x70001403,
-    piix_init,
-    piix_close,
-    piix_reset,
-    { NULL },
-    piix_speed_changed,
-    NULL,
-    NULL
+const device_t piix3_ioapic_device = {
+    .name = "Intel 82371SB (PIIX3) (Boards with I/O APIC)",
+    .internal_name = "piix3_ioapic",
+    .flags = DEVICE_PCI,
+    .local = 0x70001403,
+    .init = piix_init,
+    .close = piix_close,
+    .reset = piix_reset,
+    { .available = NULL },
+    .speed_changed = piix_speed_changed,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
-const device_t piix4_device =
-{
-    "Intel 82371AB/EB (PIIX4/PIIX4E)",
-    "piix4",
-    DEVICE_PCI,
-    0x71100004,
-    piix_init,
-    piix_close,
-    piix_reset,
-    { NULL },
-    piix_speed_changed,
-    NULL,
-    NULL
+const device_t piix4_device = {
+    .name = "Intel 82371AB/EB (PIIX4/PIIX4E)",
+    .internal_name = "piix4",
+    .flags = DEVICE_PCI,
+    .local = 0x71100004,
+    .init = piix_init,
+    .close = piix_close,
+    .reset = piix_reset,
+    { .available = NULL },
+    .speed_changed = piix_speed_changed,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
-const device_t piix4e_device =
-{
-    "Intel 82371EB (PIIX4E)",
-    "piix4e",
-    DEVICE_PCI,
-    0x71100094,
-    piix_init,
-    piix_close,
-    piix_reset,
-    { NULL },
-    piix_speed_changed,
-    NULL,
-    NULL
+const device_t piix4e_device = {
+    .name = "Intel 82371EB (PIIX4E)",
+    .internal_name = "piix4e",
+    .flags = DEVICE_PCI,
+    .local = 0x71100094,
+    .init = piix_init,
+    .close = piix_close,
+    .reset = piix_reset,
+    { .available = NULL },
+    .speed_changed = piix_speed_changed,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
-const device_t slc90e66_device =
-{
-    "SMSC SLC90E66 (Victory66)",
-    "slc90e66",
-    DEVICE_PCI,
-    0x94600005,
-    piix_init,
-    piix_close,
-    piix_reset,
-    { NULL },
-    piix_speed_changed,
-    NULL,
-    NULL
+const device_t slc90e66_device = {
+    .name = "SMSC SLC90E66 (Victory66)",
+    .internal_name = "slc90e66",
+    .flags = DEVICE_PCI,
+    .local = 0x94600005,
+    .init = piix_init,
+    .close = piix_close,
+    .reset = piix_reset,
+    { .available = NULL },
+    .speed_changed = piix_speed_changed,
+    .force_redraw = NULL,
+    .config = NULL
 };

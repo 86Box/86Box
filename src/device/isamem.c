@@ -693,13 +693,17 @@ static const device_config_t ibmxt_config[] = {
 };
 
 static const device_t ibmxt_device = {
-    "IBM PC/XT Memory Expansion",
-    "ibmxt",
-    DEVICE_ISA,
-    ISAMEM_IBMXT_CARD,
-    isamem_init, isamem_close, NULL,
-    { NULL }, NULL, NULL,
-    ibmxt_config
+    .name = "IBM PC/XT Memory Expansion",
+    .internal_name = "ibmxt",
+    .flags = DEVICE_ISA,
+    .local = ISAMEM_IBMXT_CARD,
+    .init = isamem_init,
+    .close = isamem_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = ibmxt_config
 };
 
 static const device_config_t genericxt_config[] = {
@@ -719,15 +723,18 @@ static const device_config_t genericxt_config[] = {
 };
 
 static const device_t genericxt_device = {
-    "Generic PC/XT Memory Expansion",
-    "genericxt",
-    DEVICE_ISA,
-    ISAMEM_GENXT_CARD,
-    isamem_init, isamem_close, NULL,
-    { NULL }, NULL, NULL,
-    genericxt_config
+    .name = "Generic PC/XT Memory Expansion",
+    .internal_name = "genericxt",
+    .flags = DEVICE_ISA,
+    .local = ISAMEM_GENXT_CARD,
+    .init = isamem_init,
+    .close = isamem_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = genericxt_config
 };
-
 
 static const device_config_t ibmat_config[] = {
 // clang-format off
@@ -746,15 +753,18 @@ static const device_config_t ibmat_config[] = {
 };
 
 static const device_t ibmat_device = {
-    "IBM PC/AT Memory Expansion",
-    "ibmat",
-    DEVICE_ISA,
-    ISAMEM_IBMAT_CARD,
-    isamem_init, isamem_close, NULL,
-    { NULL }, NULL, NULL,
-    ibmat_config
+    .name = "IBM PC/AT Memory Expansion",
+    .internal_name = "ibmat",
+    .flags = DEVICE_ISA,
+    .local = ISAMEM_IBMAT_CARD,
+    .init = isamem_init,
+    .close = isamem_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = ibmat_config
 };
-
 
 static const device_config_t genericat_config[] = {
 // clang-format off
@@ -773,15 +783,18 @@ static const device_config_t genericat_config[] = {
 };
 
 static const device_t genericat_device = {
-    "Generic PC/AT Memory Expansion",
-    "genericat",
-    DEVICE_ISA,
-    ISAMEM_GENAT_CARD,
-    isamem_init, isamem_close, NULL,
-    { NULL }, NULL, NULL,
-    genericat_config
+    .name = "Generic PC/AT Memory Expansion",
+    .internal_name = "genericat",
+    .flags = DEVICE_ISA,
+    .local = ISAMEM_GENAT_CARD,
+    .init = isamem_init,
+    .close = isamem_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = genericat_config
 };
-
 
 static const device_config_t p5pak_config[] = {
 // clang-format off
@@ -800,13 +813,17 @@ static const device_config_t p5pak_config[] = {
 };
 
 static const device_t p5pak_device = {
-    "Paradise Systems 5-PAK",
-    "p5pak",
-    DEVICE_ISA,
-    ISAMEM_P5PAK_CARD,
-    isamem_init, isamem_close, NULL,
-    { NULL }, NULL, NULL,
-    p5pak_config
+    .name = "Paradise Systems 5-PAK",
+    .internal_name = "p5pak",
+    .flags = DEVICE_ISA,
+    .local = ISAMEM_P5PAK_CARD,
+    .init = isamem_init,
+    .close = isamem_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = p5pak_config
 };
 
 
@@ -827,15 +844,18 @@ static const device_config_t a6pak_config[] = {
 };
 
 static const device_t a6pak_device = {
-    "AST SixPakPlus",
-    "a6pak",
-    DEVICE_ISA,
-    ISAMEM_A6PAK_CARD,
-    isamem_init, isamem_close, NULL,
-    { NULL }, NULL, NULL,
-    a6pak_config
+    .name = "AST SixPakPlus",
+    .internal_name = "a6pak",
+    .flags = DEVICE_ISA,
+    .local = ISAMEM_A6PAK_CARD,
+    .init = isamem_init,
+    .close = isamem_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = a6pak_config
 };
-
 
 static const device_config_t ems5150_config[] = {
 // clang-format off
@@ -860,13 +880,17 @@ static const device_config_t ems5150_config[] = {
 };
 
 static const device_t ems5150_device = {
-    "Micro Mainframe EMS-5150(T)",
-    "ems5150",
-    DEVICE_ISA,
-    ISAMEM_EMS5150_CARD,
-    isamem_init, isamem_close, NULL,
-    { NULL }, NULL, NULL,
-    ems5150_config
+    .name = "Micro Mainframe EMS-5150(T)",
+    .internal_name = "ems5150",
+    .flags = DEVICE_ISA,
+    .local = ISAMEM_EMS5150_CARD,
+    .init = isamem_init,
+    .close = isamem_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = ems5150_config
 };
 
 static const device_config_t ev159_config[] = {
@@ -928,13 +952,17 @@ static const device_config_t ev159_config[] = {
 };
 
 static const device_t ev159_device = {
-    "Everex EV-159 RAM 3000 Deluxe",
-    "ev159",
-    DEVICE_ISA,
-    ISAMEM_EV159_CARD,
-    isamem_init, isamem_close, NULL,
-    { NULL }, NULL, NULL,
-    ev159_config
+    .name = "Everex EV-159 RAM 3000 Deluxe",
+    .internal_name = "ev159",
+    .flags = DEVICE_ISA,
+    .local = ISAMEM_EV159_CARD,
+    .init = isamem_init,
+    .close = isamem_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = ev159_config
 };
 
 #if defined(DEV_BRANCH) && defined(USE_ISAMEM_BRAT)
@@ -986,13 +1014,17 @@ static const device_config_t brat_config[] = {
 };
 
 static const device_t brat_device = {
-    "BocaRAM/AT",
-    "brat",
-    DEVICE_ISA,
-    ISAMEM_BRAT_CARD,
-    isamem_init, isamem_close, NULL,
-    { NULL }, NULL, NULL,
-    brat_config
+    .name = "BocaRAM/AT",
+    .internal_name = "brat",
+    .flags = DEVICE_ISA,
+    .local = ISAMEM_BRAT_CARD,
+    .init = isamem_init,
+    .close = isamem_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = brat_config
 };
 #endif
 
@@ -1048,16 +1080,19 @@ static const device_config_t rampage_config[] = {
 };
 
 static const device_t rampage_device = {
-    "AST RAMpage/XT",
-    "rampage",
-    DEVICE_ISA,
-    ISAMEM_RAMPAGEXT_CARD,
-    isamem_init, isamem_close, NULL,
-    { NULL }, NULL, NULL,
-    rampage_config
+    .name = "AST RAMpage/XT",
+    .internal_name = "rampage",
+    .flags = DEVICE_ISA,
+    .local = ISAMEM_RAMPAGEXT_CARD,
+    .init = isamem_init,
+    .close = isamem_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = rampage_config
 };
 #endif
-
 
 #if defined(DEV_BRANCH) && defined(USE_ISAMEM_IAB)
 static const device_config_t iab_config[] = {
@@ -1111,23 +1146,32 @@ static const device_config_t iab_config[] = {
 };
 
 static const device_t iab_device = {
-    "Intel AboveBoard",
-    "iab",
-    DEVICE_ISA,
-    ISAMEM_ABOVEBOARD_CARD,
-    isamem_init, isamem_close, NULL,
-    { NULL }, NULL, NULL,
-    iab_config
+    .name = "Intel AboveBoard",
+    .internal_name = "iab",
+    .flags = DEVICE_ISA,
+    .local = ISAMEM_ABOVEBOARD_CARD,
+    .init = isamem_init,
+    .close = isamem_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = iab_config
 };
 #endif
 
 static const device_t isa_none_device = {
-    "None",
-    "none",
-    0, 0,
-    NULL, NULL, NULL,
-    { NULL }, NULL, NULL,
-    NULL
+    .name = "None",
+    .internal_name = "none",
+    .flags = 0,
+    .local = 0,
+    .init = NULL,
+    .close = NULL,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
 static const struct {

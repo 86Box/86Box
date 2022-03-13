@@ -123,49 +123,44 @@ static void
 }
 
 
-const device_t apm_device =
-{
-    "Advanced Power Management",
-    "apm",
-    0,
-    0,
-    apm_init,
-    apm_close,
-    NULL,
-    { NULL },
-    NULL,
-    NULL,
-    NULL
+const device_t apm_device = {
+    .name = "Advanced Power Management",
+    .internal_name = "apm",
+    .flags = 0,
+    .local = 0,
+    .init = apm_init,
+    .close = apm_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
-
-const device_t apm_pci_device =
-{
-    "Advanced Power Management (PCI)",
-    "apm_pci",
-    DEVICE_PCI,
-    0,
-    apm_init,
-    apm_close,
-    apm_reset,
-    { NULL },
-    NULL,
-    NULL,
-    NULL
+const device_t apm_pci_device = {
+    .name = "Advanced Power Management (PCI)",
+    .internal_name = "apm_pci",
+    .flags = DEVICE_PCI,
+    .local = 0,
+    .init = apm_init,
+    .close = apm_close,
+    .reset = apm_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
-
-const device_t apm_pci_acpi_device =
-{
-    "Advanced Power Management (PCI)",
-    "apm_pci_acpi",
-    DEVICE_PCI,
-    1,
-    apm_init,
-    apm_close,
-    apm_reset,
-    { NULL },
-    NULL,
-    NULL,
-    NULL
+const device_t apm_pci_acpi_device = {
+    .name = "Advanced Power Management (PCI)",
+    .internal_name = "apm_pci_acpi",
+    .flags = DEVICE_PCI,
+    .local = 1,
+    .init = apm_init,
+    .close = apm_close,
+    .reset = apm_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };

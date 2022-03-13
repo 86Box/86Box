@@ -329,7 +329,6 @@ ps2_close(void *priv)
     free(dev);
 }
 
-
 static const device_config_t ps2_config[] = {
 // clang-format off
     {
@@ -347,11 +346,15 @@ static const device_config_t ps2_config[] = {
 };
 
 const device_t mouse_ps2_device = {
-    "Standard PS/2 Mouse",
-    "ps2",
-    DEVICE_PS2,
-    MOUSE_TYPE_PS2,
-    mouse_ps2_init, ps2_close, NULL,
-    { .poll = ps2_poll }, NULL, NULL,
-    ps2_config
+    .name = "Standard PS/2 Mouse",
+    .internal_name = "ps2",
+    .flags = DEVICE_PS2,
+    .local = MOUSE_TYPE_PS2,
+    .init = mouse_ps2_init,
+    .close = ps2_close,
+    .reset = NULL,
+    { .poll = ps2_poll },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = ps2_config
 };

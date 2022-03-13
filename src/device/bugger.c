@@ -354,13 +354,16 @@ bug_close(UNUSED(void *priv))
       bug_read, NULL, NULL, bug_write, NULL, NULL,  NULL);
 }
 
-
 const device_t bugger_device = {
-    "ISA/PCI Bus Bugger",
-    "bugger",
-    DEVICE_ISA | DEVICE_AT,
-    0,
-    bug_init, bug_close, NULL,
-    { NULL }, NULL, NULL,
-    NULL
+    .name = "ISA/PCI Bus Bugger",
+    .internal_name = "bugger",
+    .flags = DEVICE_ISA | DEVICE_AT,
+    .local = 0,
+    .init = bug_init,
+    .close = bug_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };

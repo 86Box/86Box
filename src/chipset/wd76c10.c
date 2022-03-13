@@ -538,14 +538,15 @@ wd76c10_init(const device_t *info)
 }
 
 const device_t wd76c10_device = {
-    "Western Digital WD76C10",
-    "wd76c10",
-    0,
-    0,
-    wd76c10_init,
-    wd76c10_close,
-    NULL,
-    {NULL},
-    NULL,
-    NULL,
-    NULL};
+    .name = "Western Digital WD76C10",
+    .internal_name = "wd76c10",
+    .flags = 0,
+    .local = 0,
+    .init = wd76c10_init,
+    .close = wd76c10_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
+};

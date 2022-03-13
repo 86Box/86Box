@@ -804,15 +804,15 @@ ac97_via_close(void *priv)
 }
 
 const device_t ac97_via_device = {
-    "VIA VT82C686 Integrated AC97 Controller",
-    "ac97_via",
-    DEVICE_PCI,
-    0,
-    ac97_via_init,
-    ac97_via_close,
-    NULL,
-    { NULL },
-    ac97_via_speed_changed,
-    NULL,
-    NULL
+    .name = "VIA VT82C686 Integrated AC97 Controller",
+    .internal_name = "ac97_via",
+    .flags = DEVICE_PCI,
+    .local = 0,
+    .init = ac97_via_init,
+    .close = ac97_via_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = ac97_via_speed_changed,
+    .force_redraw = NULL,
+    .config = NULL
 };

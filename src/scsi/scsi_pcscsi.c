@@ -2010,24 +2010,30 @@ static const device_config_t bios_enable_config[] = {
 // clang-format on
 };
 
-const device_t dc390_pci_device =
-{
-    "Tekram DC-390 PCI",
-    "dc390",
-    DEVICE_PCI,
-    0,
-    dc390_init, esp_close, NULL,
-    { NULL }, NULL, NULL,
-    bios_enable_config
+const device_t dc390_pci_device = {
+    .name = "Tekram DC-390 PCI",
+    .internal_name = "dc390",
+    .flags = DEVICE_PCI,
+    .local = 0,
+    .init = dc390_init,
+    .close = esp_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = bios_enable_config
 };
 
-const device_t ncr53c90_mca_device =
-{
-    "NCR 53c90 MCA",
-    "ncr53c90",
-    DEVICE_MCA,
-    0,
-    ncr53c90_mca_init, esp_close, NULL,
-    { NULL }, NULL, NULL,
-    NULL
+const device_t ncr53c90_mca_device = {
+    .name = "NCR 53c90 MCA",
+    .internal_name = "ncr53c90",
+    .flags = DEVICE_MCA,
+    .local = 0,
+    .init = ncr53c90_mca_init,
+    .close = esp_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };

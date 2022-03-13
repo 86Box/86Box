@@ -474,79 +474,86 @@ sst_close(void *p)
     free(dev);
 }
 
-
-const device_t sst_flash_29ee010_device =
-{
-    "SST 29EE010 Flash BIOS",
-    "sst_flash_29ee010",
-    0,
-    SST | SST29EE010 | SIZE_1M,
-    sst_init,
-    sst_close,
-    NULL,
-    { NULL }, NULL, NULL, NULL
+const device_t sst_flash_29ee010_device = {
+    .name = "SST 29EE010 Flash BIOS",
+    .internal_name = "sst_flash_29ee010",
+    .flags = 0,
+    .local = SST | SST29EE010 | SIZE_1M,
+    .init = sst_init,
+    .close = sst_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
-
-const device_t sst_flash_29ee020_device =
-{
-    "SST 29EE020 Flash BIOS",
-    "sst_flash_29ee020",
-    0,
-    SST | SST29EE020 | SIZE_2M,
-    sst_init,
-    sst_close,
-    NULL,
-    { NULL }, NULL, NULL, NULL
+const device_t sst_flash_29ee020_device = {
+    .name = "SST 29EE020 Flash BIOS",
+    .internal_name = "sst_flash_29ee020",
+    .flags = 0,
+    .local = SST | SST29EE020 | SIZE_2M,
+    .init = sst_init,
+    .close = sst_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
-
-const device_t winbond_flash_w29c020_device =
-{
-    "Winbond W29C020 Flash BIOS",
-    "winbond_flash_w29c020",
-    0,
-    WINBOND | W29C020 | SIZE_2M,
-    sst_init,
-    sst_close,
-    NULL,
-    { NULL }, NULL, NULL, NULL
+const device_t winbond_flash_w29c020_device = {
+    .name = "Winbond W29C020 Flash BIOS",
+    .internal_name = "winbond_flash_w29c020",
+    .flags = 0,
+    .local = WINBOND | W29C020 | SIZE_2M,
+    .init = sst_init,
+    .close = sst_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
-
-const device_t sst_flash_39sf010_device =
-{
-    "SST 39SF010 Flash BIOS",
-    "sst_flash_39sf010",
-    0,
-    SST | SST39SF010 | SIZE_1M,
-    sst_init,
-    sst_close,
-    NULL,
-    { NULL }, NULL, NULL, NULL
+const device_t sst_flash_39sf010_device = {
+    .name = "SST 39SF010 Flash BIOS",
+    .internal_name = "sst_flash_39sf010",
+    .flags = 0,
+    .local = SST | SST39SF010 | SIZE_1M,
+    .init = sst_init,
+    .close = sst_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
-
-const device_t sst_flash_39sf020_device =
-{
-    "SST 39SF020 Flash BIOS",
-    "sst_flash_39sf020",
-    0,
-    SST | SST39SF020 | SIZE_2M,
-    sst_init,
-    sst_close,
-    NULL,
-    { NULL }, NULL, NULL, NULL
+const device_t sst_flash_39sf020_device = {
+    .name = "SST 39SF020 Flash BIOS",
+    .internal_name = "sst_flash_39sf020",
+    .flags = 0,
+    .local = SST | SST39SF020 | SIZE_2M,
+    .init = sst_init,
+    .close = sst_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
-const device_t sst_flash_39sf040_device =
-{
-    "SST 39SF040 Flash BIOS",
-    "sst_flash_39sf040",
-    0,
-    SST | SST39SF040 | SIZE_4M,
-    sst_init,
-    sst_close,
-    NULL,
-    { NULL }, NULL, NULL, NULL
+const device_t sst_flash_39sf040_device = {
+    .name = "SST 39SF040 Flash BIOS",
+    .internal_name = "sst_flash_39sf040",
+    .flags = 0,
+    .local = SST | SST39SF040 | SIZE_4M,
+    .init = sst_init,
+    .close = sst_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };

@@ -871,115 +871,144 @@ kbd_close(void *priv)
     free(kbd);
 }
 
-
 const device_t keyboard_pc_device = {
-    "IBM PC Keyboard (1981)",
-    "keyboard_pc",
-    0,
-    KBD_TYPE_PC81,
-    kbd_init,
-    kbd_close,
-    kbd_reset,
-    { NULL }, NULL, NULL
+    .name = "IBM PC Keyboard (1981)",
+    .internal_name = "keyboard_pc",
+    .flags = 0,
+    .local = KBD_TYPE_PC81,
+    .init = kbd_init,
+    .close = kbd_close,
+    .reset = kbd_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
 const device_t keyboard_pc82_device = {
-    "IBM PC Keyboard (1982)",
-    "keyboard_pc82",
-    0,
-    KBD_TYPE_PC82,
-    kbd_init,
-    kbd_close,
-    kbd_reset,
-    { NULL }, NULL, NULL
+    .name = "IBM PC Keyboard (1982)",
+    .internal_name = "keyboard_pc82",
+    .flags = 0,
+    .local = KBD_TYPE_PC82,
+    .init = kbd_init,
+    .close = kbd_close,
+    .reset = kbd_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
 const device_t keyboard_xt_device = {
-    "XT (1982) Keyboard",
-    "keyboard_xt",
-    0,
-    KBD_TYPE_XT82,
-    kbd_init,
-    kbd_close,
-    kbd_reset,
-    { NULL }, NULL, NULL
+    .name = "XT (1982) Keyboard",
+    .internal_name = "keyboard_xt",
+    .flags = 0,
+    .local = KBD_TYPE_XT82,
+    .init = kbd_init,
+    .close = kbd_close,
+    .reset = kbd_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
 const device_t keyboard_xt86_device = {
-    "XT (1986) Keyboard",
-    "keyboard_xt86",
-    0,
-    KBD_TYPE_XT86,
-    kbd_init,
-    kbd_close,
-    kbd_reset,
-    { NULL }, NULL, NULL
+    .name = "XT (1986) Keyboard",
+    .internal_name = "keyboard_xt86",
+    .flags = 0,
+    .local = KBD_TYPE_XT86,
+    .init = kbd_init,
+    .close = kbd_close,
+    .reset = kbd_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
 const device_t keyboard_xt_compaq_device = {
-    "Compaq Portable Keyboard",
-    "keyboard_xt_compaq",
-    0,
-    KBD_TYPE_COMPAQ,
-    kbd_init,
-    kbd_close,
-    kbd_reset,
-    { NULL }, NULL, NULL
+    .name = "Compaq Portable Keyboard",
+    .internal_name = "keyboard_xt_compaq",
+    .flags = 0,
+    .local = KBD_TYPE_COMPAQ,
+    .init = kbd_init,
+    .close = kbd_close,
+    .reset = kbd_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
 const device_t keyboard_tandy_device = {
-    "Tandy 1000 Keyboard",
-    "keyboard_tandy",
-    0,
-    KBD_TYPE_TANDY,
-    kbd_init,
-    kbd_close,
-    kbd_reset,
-    { NULL }, NULL, NULL
+    .name = "Tandy 1000 Keyboard",
+    .internal_name = "keyboard_tandy",
+    .flags = 0,
+    .local = KBD_TYPE_TANDY,
+    .init = kbd_init,
+    .close = kbd_close,
+    .reset = kbd_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
 const device_t keyboard_xt_t1x00_device = {
-    "Toshiba T1x00 Keyboard",
-    "keyboard_xt_t1x00",
-    0,
-    KBD_TYPE_TOSHIBA,
-    kbd_init,
-    kbd_close,
-    kbd_reset,
-    { NULL }, NULL, NULL
+    .name = "Toshiba T1x00 Keyboard",
+    .internal_name = "keyboard_xt_t1x00",
+    .flags = 0,
+    .local = KBD_TYPE_TOSHIBA,
+    .init = kbd_init,
+    .close = kbd_close,
+    .reset = kbd_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
 #if defined(DEV_BRANCH) && defined(USE_LASERXT)
 const device_t keyboard_xt_lxt3_device = {
-    "VTech Laser XT3 Keyboard",
-    "keyboard_xt_lxt3",
-    0,
-    KBD_TYPE_VTECH,
-    kbd_init,
-    kbd_close,
-    kbd_reset,
-    { NULL }, NULL, NULL
+    .name = "VTech Laser XT3 Keyboard",
+    .internal_name = "keyboard_xt_lxt3",
+    .flags = 0,
+    .local = KBD_TYPE_VTECH,
+    .init = kbd_init,
+    .close = kbd_close,
+    .reset = kbd_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 #endif
 
 const device_t keyboard_xt_olivetti_device = {
-    "Olivetti XT Keyboard",
-    "keyboard_xt_olivetti",
-    0,
-    KBD_TYPE_OLIVETTI,
-    kbd_init,
-    kbd_close,
-    kbd_reset,
-    { NULL }, NULL, NULL
+    .name = "Olivetti XT Keyboard",
+    .internal_name = "keyboard_xt_olivetti",
+    .flags = 0,
+    .local = KBD_TYPE_OLIVETTI,
+    .init = kbd_init,
+    .close = kbd_close,
+    .reset = kbd_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
 const device_t keyboard_xt_zenith_device = {
-    "Zenith XT Keyboard",
-    "keyboard_xt_zenith",
-    0,
-    KBD_TYPE_ZENITH,
-    kbd_init,
-    kbd_close,
-    kbd_reset,
-    { NULL }, NULL, NULL
+    .name = "Zenith XT Keyboard",
+    .internal_name = "keyboard_xt_zenith",
+    .flags = 0,
+    .local = KBD_TYPE_ZENITH,
+    .init = kbd_init,
+    .close = kbd_close,
+    .reset = kbd_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
