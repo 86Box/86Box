@@ -481,7 +481,7 @@ sound_reset(void)
 {
     sound_realloc_buffers();
 
-    midi_device_init();
+    midi_out_device_init();
     midi_in_device_init();
 
     inital();

@@ -377,23 +377,30 @@ umc_8886_init(const device_t *info)
     return dev;
 }
 
-
 const device_t umc_8886f_device = {
-    "UMC 8886F",
-    "umc_8886f",
-    DEVICE_PCI,
-    0x8886,
-    umc_8886_init, umc_8886_close, umc_8886_reset,
-    { NULL }, NULL, NULL,
-    NULL
+    .name = "UMC 8886F",
+    .internal_name = "umc_8886f",
+    .flags = DEVICE_PCI,
+    .local = 0x8886,
+    .init = umc_8886_init,
+    .close = umc_8886_close,
+    .reset = umc_8886_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
 const device_t umc_8886af_device = {
-    "UMC 8886AF/8886BF",
-    "umc_8886af",
-    DEVICE_PCI,
-    0x886a,
-    umc_8886_init, umc_8886_close, umc_8886_reset,
-    { NULL }, NULL, NULL,
-    NULL
+    .name = "UMC 8886AF/8886BF",
+    .internal_name = "umc_8886af",
+    .flags = DEVICE_PCI,
+    .local = 0x886a,
+    .init = umc_8886_init,
+    .close = umc_8886_close,
+    .reset = umc_8886_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };

@@ -935,7 +935,9 @@ pc_reset_hard_close(void)
 
 	scsi_device_close_all();
 
-	midi_close();
+	midi_out_close();
+
+	midi_in_close();
 
 	cdrom_close();
 
@@ -1158,7 +1160,9 @@ pc_close(thread_t *ptr)
 
 	scsi_device_close_all();
 
-	midi_close();
+	midi_out_close();
+
+	midi_in_close();
 
 	network_close();
 

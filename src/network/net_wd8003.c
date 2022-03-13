@@ -892,51 +892,71 @@ static const device_config_t mca_mac_config[] = {
 // clang-format on
 
 const device_t wd8003e_device = {
-    "Western Digital WD8003E",
-    "wd8003e",
-    DEVICE_ISA,
-    WD8003E,
-    wd_init, wd_close, NULL,
-    { NULL }, NULL, NULL,
-    wd8003_config
+    .name = "Western Digital WD8003E",
+    .internal_name = "wd8003e",
+    .flags = DEVICE_ISA,
+    .local = WD8003E,
+    .init = wd_init,
+    .close = wd_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = wd8003_config
 };
 
 const device_t wd8003eb_device = {
-    "Western Digital WD8003EB",
-    "wd8003eb",
-    DEVICE_ISA,
-    WD8003EB,
-    wd_init, wd_close, NULL,
-    { NULL }, NULL, NULL,
-    wd8003eb_config
+    .name = "Western Digital WD8003EB",
+    .internal_name = "wd8003eb",
+    .flags = DEVICE_ISA,
+    .local = WD8003EB,
+    .init = wd_init,
+    .close = wd_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = wd8003eb_config
 };
 
 const device_t wd8013ebt_device = {
-    "Western Digital WD8013EBT",
-    "wd8013ebt",
-    DEVICE_ISA,
-    WD8013EBT,
-    wd_init, wd_close, NULL,
-    { NULL }, NULL, NULL,
-    wd8013_config
+    .name = "Western Digital WD8013EBT",
+    .internal_name = "wd8013ebt",
+    .flags = DEVICE_ISA,
+    .local = WD8013EBT,
+    .init = wd_init,
+    .close = wd_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = wd8013_config
 };
 
 const device_t wd8003eta_device = {
-    "Western Digital WD8003ET/A",
-    "wd8003eta",
-    DEVICE_MCA,
-    WD8003ETA,
-    wd_init, wd_close, NULL,
-    { NULL }, NULL, NULL,
-    mca_mac_config
+    .name = "Western Digital WD8003ET/A",
+    .internal_name = "wd8003eta",
+    .flags = DEVICE_MCA,
+    .local = WD8003ETA,
+    .init = wd_init,
+    .close = wd_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = mca_mac_config
 };
 
 const device_t wd8003ea_device = {
-    "Western Digital WD8003E/A",
-    "wd8003ea",
-    DEVICE_MCA,
-    WD8003EA,
-    wd_init, wd_close, NULL,
-    { NULL }, NULL, NULL,
-    mca_mac_config
+    .name = "Western Digital WD8003E/A",
+    .internal_name = "wd8003ea",
+    .flags = DEVICE_MCA,
+    .local = WD8003EA,
+    .init = wd_init,
+    .close = wd_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = mca_mac_config
 };

@@ -2088,29 +2088,29 @@ static const device_config_t es1371_config[] = {
 };
 
 const device_t es1371_device = {
-    "Ensoniq AudioPCI (ES1371)",
-    "es1371",
-    DEVICE_PCI,
-    0,
-    es1371_init,
-    es1371_close,
-    es1371_reset,
-    { NULL },
-    es1371_speed_changed,
-    NULL,
-    es1371_config
+    .name = "Ensoniq AudioPCI (ES1371)",
+    .internal_name = "es1371",
+    .flags = DEVICE_PCI,
+    .local = 0,
+    .init = es1371_init,
+    .close = es1371_close,
+    .reset = es1371_reset,
+    { .available = NULL },
+    .speed_changed = es1371_speed_changed,
+    .force_redraw = NULL,
+    .config = es1371_config
 };
 
 const device_t es1371_onboard_device = {
-    "Ensoniq AudioPCI (ES1371) (On-Board)",
-    "es1371_onboard",
-    DEVICE_PCI,
-    1,
-    es1371_init,
-    es1371_close,
-    es1371_reset,
-    { NULL },
-    es1371_speed_changed,
-    NULL,
-    NULL
+    .name = "Ensoniq AudioPCI (ES1371) (On-Board)",
+    .internal_name = "es1371_onboard",
+    .flags = DEVICE_PCI,
+    .local = 1,
+    .init = es1371_init,
+    .close = es1371_close,
+    .reset = es1371_reset,
+    { .available = NULL },
+    .speed_changed = es1371_speed_changed,
+    .force_redraw = NULL,
+    .config = NULL
 };

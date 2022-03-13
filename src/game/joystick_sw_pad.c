@@ -262,20 +262,20 @@ static void sw_a0_over(void *p)
         timer_set_delay_u64(&sw->trigger_timer, TIMER_USEC * 10000);
 }
 
-const joystick_if_t joystick_sw_pad =
-{
-        "Microsoft SideWinder Pad",
-        "sidewinder_pad",
-        sw_init,
-        sw_close,
-        sw_read,
-        sw_write,
-        sw_read_axis,
-        sw_a0_over,
-        2,
-        10,
-        0,
-        4,
-        {"X axis", "Y axis"},
-        {"A", "B", "C", "X", "Y", "Z", "L", "R", "Start", "M"}
+const joystick_if_t joystick_sw_pad = {
+    .name = "Microsoft SideWinder Pad",
+    .internal_name = "sidewinder_pad",
+    .init = sw_init,
+    .close = sw_close,
+    .read = sw_read,
+    .write = sw_write,
+    .read_axis = sw_read_axis,
+    .a0_over = sw_a0_over,
+    .axis_count = 2,
+    .button_count = 10,
+    .pov_count = 0,
+    .max_joysticks = 4,
+    .axis_names = { "X axis", "Y axis" },
+    .button_names = { "A", "B", "C", "X", "Y", "Z", "L", "R", "Start", "M" },
+    .pov_names = { NULL }
 };

@@ -3144,61 +3144,85 @@ static const device_config_t pcnet_vlb_config[] = {
 // clang-format on
 
 const device_t pcnet_am79c960_device = {
-    "AMD PCnet-ISA",
-    "pcnetisa",
-    DEVICE_AT | DEVICE_ISA,
-    DEV_AM79C960,
-    pcnet_init, pcnet_close, NULL,
-    { NULL }, NULL, NULL,
-    pcnet_isa_config
+    .name = "AMD PCnet-ISA",
+    .internal_name = "pcnetisa",
+    .flags = DEVICE_AT | DEVICE_ISA,
+    .local = DEV_AM79C960,
+    .init = pcnet_init,
+    .close = pcnet_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = pcnet_isa_config
 };
 
 const device_t pcnet_am79c960_eb_device = {
-    "Racal Interlan EtherBlaster",
-    "pcnetracal",
-    DEVICE_AT | DEVICE_ISA,
-    DEV_AM79C960_EB,
-    pcnet_init, pcnet_close, NULL,
-    { NULL }, NULL, NULL,
-    pcnet_isa_config
+    .name = "Racal Interlan EtherBlaster",
+    .internal_name = "pcnetracal",
+    .flags = DEVICE_AT | DEVICE_ISA,
+    .local = DEV_AM79C960_EB,
+    .init = pcnet_init,
+    .close = pcnet_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = pcnet_isa_config
 };
 
 const device_t pcnet_am79c960_vlb_device = {
-    "AMD PCnet-VL",
-    "pcnetvlb",
-    DEVICE_VLB,
-    DEV_AM79C960_VLB,
-    pcnet_init, pcnet_close, NULL,
-    { NULL }, NULL, NULL,
-    pcnet_vlb_config
+    .name = "AMD PCnet-VL",
+    .internal_name = "pcnetvlb",
+    .flags = DEVICE_VLB,
+    .local = DEV_AM79C960_VLB,
+    .init = pcnet_init,
+    .close = pcnet_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = pcnet_vlb_config
 };
 
 const device_t pcnet_am79c961_device = {
-    "AMD PCnet-ISA+",
-    "pcnetisaplus",
-    DEVICE_AT | DEVICE_ISA,
-    DEV_AM79C961,
-    pcnet_init, pcnet_close, NULL,
-    { NULL }, NULL, NULL,
-    pcnet_pci_config
+    .name = "AMD PCnet-ISA+",
+    .internal_name = "pcnetisaplus",
+    .flags = DEVICE_AT | DEVICE_ISA,
+    .local = DEV_AM79C961,
+    .init = pcnet_init,
+    .close = pcnet_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = pcnet_pci_config
 };
 
 const device_t pcnet_am79c970a_device = {
-    "AMD PCnet-PCI II",
-    "pcnetpci",
-    DEVICE_PCI,
-    DEV_AM79C970A,
-    pcnet_init, pcnet_close, NULL,
-    { NULL }, NULL, NULL,
-    pcnet_pci_config
+    .name = "AMD PCnet-PCI II",
+    .internal_name = "pcnetpci",
+    .flags = DEVICE_PCI,
+    .local = DEV_AM79C970A,
+    .init = pcnet_init,
+    .close = pcnet_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = pcnet_pci_config
 };
 
 const device_t pcnet_am79c973_device = {
-    "AMD PCnet-FAST III",
-    "pcnetfast",
-    DEVICE_PCI,
-    DEV_AM79C973,
-    pcnet_init, pcnet_close, NULL,
-    { NULL }, NULL, NULL,
-    pcnet_pci_config
+    .name = "AMD PCnet-FAST III",
+    .internal_name = "pcnetfast",
+    .flags = DEVICE_PCI,
+    .local = DEV_AM79C973,
+    .init = pcnet_init,
+    .close = pcnet_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = pcnet_pci_config
 };

@@ -204,13 +204,16 @@ vt82c686_init(const device_t *info)
     return dev;
 }
 
-
 const device_t via_vt82c686_hwm_device = {
-    "VIA VT82C686 Integrated Hardware Monitor",
-    "via_vt82c686_hwm",
-    DEVICE_ISA,
-    0,
-    vt82c686_init, vt82c686_close, NULL,
-    { NULL }, NULL, NULL,
-    NULL
+    .name = "VIA VT82C686 Integrated Hardware Monitor",
+    .internal_name = "via_vt82c686_hwm",
+    .flags = DEVICE_ISA,
+    .local = 0,
+    .init = vt82c686_init,
+    .close = vt82c686_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };

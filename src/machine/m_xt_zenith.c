@@ -98,17 +98,19 @@ zenith_scratchpad_close(void *p)
     free(dev);
 }
 
-
 static const device_t zenith_scratchpad_device = {
-    "Zenith scratchpad RAM",
-    "zenith_scratchpad",
-    0, 0,
-    zenith_scratchpad_init, zenith_scratchpad_close, NULL,
-    { NULL },
-    NULL,
-    NULL
+    .name = "Zenith scratchpad RAM",
+    .internal_name = "zenith_scratchpad",
+    .flags = 0,
+    .local = 0,
+    .init = zenith_scratchpad_init,
+    .close = zenith_scratchpad_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
-
 
 void
 machine_zenith_init(const machine_t *model){

@@ -824,13 +824,16 @@ neat_init(const device_t *info)
     return dev;
 }
 
-
 const device_t neat_device = {
-    "C&T CS8121 (NEAT)",
-    "neat",
-    0,
-    0,
-    neat_init, neat_close, NULL,
-    { NULL }, NULL, NULL,
-    NULL
+    .name = "C&T CS8121 (NEAT)",
+    .internal_name = "neat",
+    .flags = 0,
+    .local = 0,
+    .init = neat_init,
+    .close = neat_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };

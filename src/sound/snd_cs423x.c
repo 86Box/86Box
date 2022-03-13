@@ -827,71 +827,71 @@ cs423x_speed_changed(void *priv)
 }
 
 const device_t cs4235_device = {
-    "Crystal CS4235",
-    "cs4235",
-    DEVICE_ISA | DEVICE_AT,
-    CRYSTAL_CS4235,
-    cs423x_init,
-    cs423x_close,
-    cs423x_reset,
-    { NULL },
-    cs423x_speed_changed,
-    NULL,
-    NULL
+    .name = "Crystal CS4235",
+    .internal_name = "cs4235",
+    .flags = DEVICE_ISA | DEVICE_AT,
+    .local = CRYSTAL_CS4235,
+    .init = cs423x_init,
+    .close = cs423x_close,
+    .reset = cs423x_reset,
+    { .available = NULL },
+    .speed_changed = cs423x_speed_changed,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
 const device_t cs4235_onboard_device = {
-    "Crystal CS4235 (On-Board)",
-    "cs4235_onboard",
-    DEVICE_ISA | DEVICE_AT,
-    CRYSTAL_CS4235 | CRYSTAL_NOEEPROM,
-    cs423x_init,
-    cs423x_close,
-    cs423x_reset,
-    { NULL },
-    cs423x_speed_changed,
-    NULL,
-    NULL
+    .name = "Crystal CS4235 (On-Board)",
+    .internal_name = "cs4235_onboard",
+    .flags = DEVICE_ISA | DEVICE_AT,
+    .local = CRYSTAL_CS4235 | CRYSTAL_NOEEPROM,
+    .init = cs423x_init,
+    .close = cs423x_close,
+    .reset = cs423x_reset,
+    { .available = NULL },
+    .speed_changed = cs423x_speed_changed,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
 const device_t cs4236b_device = {
-    "Crystal CS4236B",
-    "cs4236b",
-    DEVICE_ISA | DEVICE_AT,
-    CRYSTAL_CS4236B,
-    cs423x_init,
-    cs423x_close,
-    cs423x_reset,
-    { NULL },
-    cs423x_speed_changed,
-    NULL,
-    NULL
+    .name = "Crystal CS4236B",
+    .internal_name = "cs4236b",
+    .flags = DEVICE_ISA | DEVICE_AT,
+    .local = CRYSTAL_CS4236B,
+    .init = cs423x_init,
+    .close = cs423x_close,
+    .reset = cs423x_reset,
+    { .available = NULL },
+    .speed_changed = cs423x_speed_changed,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
 const device_t cs4237b_device = {
-    "Crystal CS4237B",
-    "cs4237b",
-    DEVICE_ISA | DEVICE_AT,
-    CRYSTAL_CS4237B,
-    cs423x_init,
-    cs423x_close,
-    cs423x_reset,
-    { NULL },
-    cs423x_speed_changed,
-    NULL,
-    NULL
+    .name = "Crystal CS4237B",
+    .internal_name = "cs4237b",
+    .flags = DEVICE_ISA | DEVICE_AT,
+    .local = CRYSTAL_CS4237B,
+    .init = cs423x_init,
+    .close = cs423x_close,
+    .reset = cs423x_reset,
+    { .available = NULL },
+    .speed_changed = cs423x_speed_changed,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
 const device_t cs4238b_device = {
-    "Crystal CS4238B",
-    "cs4238b",
-    DEVICE_ISA | DEVICE_AT,
-    CRYSTAL_CS4238B,
-    cs423x_init,
-    cs423x_close,
-    cs423x_reset,
-    { NULL },
-    cs423x_speed_changed,
-    NULL,
-    NULL
+    .name = "Crystal CS4238B",
+    .internal_name = "cs4238b",
+    .flags = DEVICE_ISA | DEVICE_AT,
+    .local = CRYSTAL_CS4238B,
+    .init = cs423x_init,
+    .close = cs423x_close,
+    .reset = cs423x_reset,
+    { .available = NULL },
+    .speed_changed = cs423x_speed_changed,
+    .force_redraw = NULL,
+    .config = NULL
 };

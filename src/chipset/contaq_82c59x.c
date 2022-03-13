@@ -346,32 +346,30 @@ contaq_82c59x_init(const device_t *info)
     return dev;
 }
 
-
 const device_t contaq_82c596a_device = {
-    "Contaq 82C596A",
-    "contaq_82c596a",
-    0,
-    0,
-    contaq_82c59x_init,
-    contaq_82c59x_close,
-    NULL,
-    { NULL },
-    NULL,
-    NULL,
-    NULL
+    .name = "Contaq 82C596A",
+    .internal_name = "contaq_82c596a",
+    .flags = 0,
+    .local = 0,
+    .init = contaq_82c59x_init,
+    .close = contaq_82c59x_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
-
 const device_t contaq_82c597_device = {
-    "Contaq 82C597",
-    "contaq_82c597",
-    0,
-    1,
-    contaq_82c59x_init,
-    contaq_82c59x_close,
-    NULL,
-    { NULL },
-    NULL,
-    NULL,
-    NULL
+    .name = "Contaq 82C597",
+    .internal_name = "contaq_82c597",
+    .flags = 0,
+    .local = 1,
+    .init = contaq_82c59x_init,
+    .close = contaq_82c59x_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };

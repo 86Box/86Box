@@ -52,12 +52,17 @@ static uint8_t	next_scsi_bus = 0;
 
 
 static const device_t scsi_none_device = {
-    "None",
-    "none",
-    0, 0,
-    NULL, NULL, NULL,
-    { NULL }, NULL, NULL,
-    NULL
+    .name = "None",
+    .internal_name = "none",
+    .flags = 0,
+    .local = 0,
+    .init = NULL,
+    .close = NULL,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
 
@@ -67,39 +72,41 @@ typedef const struct {
 
 
 static SCSI_CARD scsi_cards[] = {
-    { &scsi_none_device,		},
-    { &aha154xa_device,			},
-    { &aha154xb_device,			},
-    { &aha154xc_device,			},
-    { &aha154xcf_device,		},
-    { &aha154xcp_device,		},
-    { &buslogic_542b_device,		},
-    { &buslogic_542bh_device,		},
-    { &buslogic_545s_device,		},
-    { &buslogic_545c_device,		},
-    { &scsi_ls2000_device,		},
-    { &scsi_lcs6821n_device,		},
-    { &scsi_rt1000b_device,		},
-    { &scsi_t128_device,		},
-    { &scsi_t130b_device,		},
+// clang-format off
+    { &scsi_none_device,         },
+    { &aha154xa_device,          },
+    { &aha154xb_device,          },
+    { &aha154xc_device,          },
+    { &aha154xcf_device,         },
+    { &aha154xcp_device,         },
+    { &buslogic_542b_device,     },
+    { &buslogic_542bh_device,    },
+    { &buslogic_545s_device,     },
+    { &buslogic_545c_device,     },
+    { &scsi_ls2000_device,       },
+    { &scsi_lcs6821n_device,     },
+    { &scsi_rt1000b_device,      },
+    { &scsi_t128_device,         },
+    { &scsi_t130b_device,        },
 #ifdef WALTJE
-    { &scsi_wd33c93_device,		},
+    { &scsi_wd33c93_device,      },
 #endif
-    { &aha1640_device,			},
-    { &buslogic_640a_device,		},
-    { &ncr53c90_mca_device,		},
-    { &spock_device,			},
-    { &buslogic_958d_pci_device,	},
-    { &ncr53c810_pci_device,		},
-    { &ncr53c815_pci_device,		},
-    { &ncr53c820_pci_device,		},
-    { &ncr53c825a_pci_device,		},
-    { &ncr53c860_pci_device,		},
-    { &ncr53c875_pci_device,		},
-    { &dc390_pci_device,		},
-    { &buslogic_445s_device,		},
-    { &buslogic_445c_device,		},
-    { NULL,				},
+    { &aha1640_device,           },
+    { &buslogic_640a_device,     },
+    { &ncr53c90_mca_device,      },
+    { &spock_device,             },
+    { &buslogic_958d_pci_device, },
+    { &ncr53c810_pci_device,     },
+    { &ncr53c815_pci_device,     },
+    { &ncr53c820_pci_device,     },
+    { &ncr53c825a_pci_device,    },
+    { &ncr53c860_pci_device,     },
+    { &ncr53c875_pci_device,     },
+    { &dc390_pci_device,         },
+    { &buslogic_445s_device,     },
+    { &buslogic_445c_device,     },
+    { NULL,                      },
+// clang-format on
 };
 
 

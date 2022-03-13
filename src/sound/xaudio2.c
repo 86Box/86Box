@@ -167,7 +167,7 @@ inital()
     IXAudio2SourceVoice_Start(srcvoice, 0, XAUDIO2_COMMIT_NOW);
     IXAudio2SourceVoice_Start(srcvoicecd, 0, XAUDIO2_COMMIT_NOW);
 
-    char *mdn = midi_device_get_internal_name(midi_device_current);
+    char *mdn = midi_out_device_get_internal_name(midi_output_device_current);
 
     if (strcmp(mdn, "none") && strcmp(mdn, SYSTEM_MIDI_INTERNAL_NAME)) {
         fmt.nSamplesPerSec  = midi_freq;

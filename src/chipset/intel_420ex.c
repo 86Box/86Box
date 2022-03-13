@@ -528,34 +528,30 @@ i420ex_init(const device_t *info)
     return dev;
 }
 
-
-const device_t i420ex_device =
-{
-    "Intel 82420EX",
-    "i420ex",
-    DEVICE_PCI,
-    0x00,
-    i420ex_init,
-    i420ex_close,
-    i420ex_reset,
-    { NULL },
-    i420ex_speed_changed,
-    NULL,
-    NULL
+const device_t i420ex_device = {
+    .name = "Intel 82420EX",
+    .internal_name = "i420ex",
+    .flags = DEVICE_PCI,
+    .local = 0x00,
+    .init = i420ex_init,
+    .close = i420ex_close,
+    .reset = i420ex_reset,
+    { .available = NULL },
+    .speed_changed = i420ex_speed_changed,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
-
-const device_t i420ex_ide_device =
-{
-    "Intel 82420EX (With IDE)",
-    "i420ex_ide",
-    DEVICE_PCI,
-    0x01,
-    i420ex_init,
-    i420ex_close,
-    i420ex_reset,
-    { NULL },
-    i420ex_speed_changed,
-    NULL,
-    NULL
+const device_t i420ex_ide_device = {
+    .name = "Intel 82420EX (With IDE)",
+    .internal_name = "i420ex_ide",
+    .flags = DEVICE_PCI,
+    .local = 0x01,
+    .init = i420ex_init,
+    .close = i420ex_close,
+    .reset = i420ex_reset,
+    { .available = NULL },
+    .speed_changed = i420ex_speed_changed,
+    .force_redraw = NULL,
+    .config = NULL
 };

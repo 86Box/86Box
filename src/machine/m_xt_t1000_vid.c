@@ -740,56 +740,64 @@ static void t1000_speed_changed(void *p)
         t1000_recalctimings(t1000);
 }
 
-static const device_config_t t1000_config[] =
-{
-	{
-		.name = "display_language",
-		.description = "Language",
-		.type = CONFIG_SELECTION,
-		.selection =
-		{
-			{
-				.description = "USA",
-				.value = 0
-			},
-			{
-				.description = "Danish",
-				.value = 1
-			}
-		},
-		.default_int = 0
-	},
-	{
-		"backlight", "Enable backlight", CONFIG_BINARY, "", 1
-	},
-	{
-		"invert", "Invert colors", CONFIG_BINARY, "", 0
-	},
-	{
-		.type = -1
-	}
+static const device_config_t t1000_config[] = {
+    {
+        .name = "display_language",
+        .description = "Language",
+        .type = CONFIG_SELECTION,
+        .selection =
+        {
+            {
+                .description = "USA",
+                .value = 0
+            },
+            {
+                .description = "Danish",
+                .value = 1
+            }
+        },
+        .default_int = 0
+    },
+    {
+        .name = "backlight",
+        .description = "Enable backlight",
+        .type = CONFIG_BINARY,
+        .default_string = "",
+        .default_int = 1 },
+    {
+        .name = "invert",
+        .description = "Invert colors",
+        .type = CONFIG_BINARY,
+        .default_string = "",
+        .default_int = 0
+    },
+    { .type = -1 }
 };
-
 
 const device_t t1000_video_device = {
-    "Toshiba T1000 Video",
-    "t1000_video",
-    0, 0,
-    t1000_init, t1000_close, NULL,
-    { NULL },
-    t1000_speed_changed,
-    NULL,
-    t1000_config
+    .name = "Toshiba T1000 Video",
+    .internal_name = "t1000_video",
+    .flags = 0,
+    .local = 0,
+    .init = t1000_init,
+    .close = t1000_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = t1000_speed_changed,
+    .force_redraw = NULL,
+    .config = t1000_config
 };
 
-
 const device_t t1200_video_device = {
-    "Toshiba T1200 Video",
-    "t1200_video",
-    0, 0,
-    t1000_init, t1000_close, NULL,
-    { NULL },
-    t1000_speed_changed,
-    NULL,
-    t1000_config
+    .name = "Toshiba T1200 Video",
+    .internal_name = "t1200_video",
+    .flags = 0,
+    .local = 0,
+    .init = t1000_init,
+    .close = t1000_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = t1000_speed_changed,
+    .force_redraw = NULL,
+    .config = t1000_config
 };

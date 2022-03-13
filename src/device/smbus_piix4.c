@@ -384,23 +384,30 @@ smbus_piix4_close(void *priv)
     free(dev);
 }
 
-
 const device_t piix4_smbus_device = {
-    "PIIX4-compatible SMBus Host Controller",
-    "piix4_smbus",
-    DEVICE_AT,
-    SMBUS_PIIX4,
-    smbus_piix4_init, smbus_piix4_close, NULL,
-    { NULL }, NULL, NULL,
-    NULL
+    .name = "PIIX4-compatible SMBus Host Controller",
+    .internal_name = "piix4_smbus",
+    .flags = DEVICE_AT,
+    .local = SMBUS_PIIX4,
+    .init = smbus_piix4_init,
+    .close = smbus_piix4_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
 const device_t via_smbus_device = {
-    "VIA VT82C686B SMBus Host Controller",
-    "via_smbus",
-    DEVICE_AT,
-    SMBUS_VIA,
-    smbus_piix4_init, smbus_piix4_close, NULL,
-    { NULL }, NULL, NULL,
-    NULL
+    .name = "VIA VT82C686B SMBus Host Controller",
+    .internal_name = "via_smbus",
+    .flags = DEVICE_AT,
+    .local = SMBUS_VIA,
+    .init = smbus_piix4_init,
+    .close = smbus_piix4_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };

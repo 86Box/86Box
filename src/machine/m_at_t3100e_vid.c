@@ -757,16 +757,16 @@ void t3100e_speed_changed(void *p)
         t3100e_recalctimings(t3100e);
 }
 
-const device_t t3100e_device =
-{
-        "Toshiba T3100e",
-        "t3100e",
-        0,
-        0,
-        t3100e_init,
-        t3100e_close,
-        NULL,
-        { NULL },
-        t3100e_speed_changed,
-        NULL
+const device_t t3100e_device = {
+    .name = "Toshiba T3100e",
+    .internal_name = "t3100e",
+    .flags = 0,
+    .local = 0,
+    .init = t3100e_init,
+    .close = t3100e_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = t3100e_speed_changed,
+    .force_redraw = NULL,
+    .config = NULL
 };

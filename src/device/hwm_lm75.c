@@ -243,24 +243,32 @@ lm75_init(const device_t *info)
 
 /* LM75 on SMBus address 4Ah, reporting temperatures[1]. */
 const device_t lm75_1_4a_device = {
-    "National Semiconductor LM75 Temperature Sensor",
-    "lm75_1_4a",
-    DEVICE_ISA,
-    0x14a,
-    lm75_init, lm75_close, NULL,
-    { NULL }, NULL, NULL,
-    NULL
+    .name = "National Semiconductor LM75 Temperature Sensor",
+    .internal_name = "lm75_1_4a",
+    .flags = DEVICE_ISA,
+    .local = 0x14a,
+    .init = lm75_init,
+    .close = lm75_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
 
 /* LM75 secondary/tertiary temperature sensors built into
    the Winbond W83781D family. Not to be used stand-alone. */
 const device_t lm75_w83781d_device = {
-    "Winbond W83781D Secondary Temperature Sensor",
-    "lm75_w83781d",
-    DEVICE_ISA,
-    0,
-    lm75_init, lm75_close, NULL,
-    { NULL }, NULL, NULL,
-    NULL
+    .name = "Winbond W83781D Secondary Temperature Sensor",
+    .internal_name = "lm75_w83781d",
+    .flags = DEVICE_ISA,
+    .local = 0,
+    .init = lm75_init,
+    .close = lm75_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };

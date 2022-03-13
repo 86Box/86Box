@@ -641,17 +641,16 @@ ali1541_init(const device_t *info)
     return dev;
 }
 
-
 const device_t ali1541_device = {
-    "ALi M1541 CPU-to-PCI Bridge",
-    "ali1541",
-    DEVICE_PCI,
-    0,
-    ali1541_init,
-    ali1541_close,
-    ali1541_reset,
-    {NULL},
-    NULL,
-    NULL,
-    NULL
+    .name = "ALi M1541 CPU-to-PCI Bridge",
+    .internal_name = "ali1541",
+    .flags = DEVICE_PCI,
+    .local = 0,
+    .init = ali1541_init,
+    .close = ali1541_close,
+    .reset = ali1541_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };

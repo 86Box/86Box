@@ -358,46 +358,58 @@ vt82c49x_init(const device_t *info)
     return dev;
 }
 
-
 const device_t via_vt82c49x_device = {
-    "VIA VT82C49X",
-    "via_vt82c49x",
-    0,
-    0,
-    vt82c49x_init, vt82c49x_close, NULL,
-    { NULL }, NULL, NULL,
-    NULL
+    .name = "VIA VT82C49X",
+    .internal_name = "via_vt82c49x",
+    .flags = 0,
+    .local = 0,
+    .init = vt82c49x_init,
+    .close = vt82c49x_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
-
 
 const device_t via_vt82c49x_pci_device = {
-    "VIA VT82C49X PCI",
-    "via_vt82c49x_pci",
-    DEVICE_PCI,
-    0,
-    vt82c49x_init, vt82c49x_close, vt82c49x_reset,
-    { NULL }, NULL, NULL,
-    NULL
+    .name = "VIA VT82C49X PCI",
+    .internal_name = "via_vt82c49x_pci",
+    .flags = DEVICE_PCI,
+    .local = 0,
+    .init = vt82c49x_init,
+    .close = vt82c49x_close,
+    .reset = vt82c49x_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
-
 
 const device_t via_vt82c49x_ide_device = {
-    "VIA VT82C49X (With IDE)",
-    "via_vt82c49x_ide",
-    0,
-    1,
-    vt82c49x_init, vt82c49x_close, NULL,
-    { NULL }, NULL, NULL,
-    NULL
+    .name = "VIA VT82C49X (With IDE)",
+    .internal_name = "via_vt82c49x_ide",
+    .flags = 0,
+    .local = 1,
+    .init = vt82c49x_init,
+    .close = vt82c49x_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
-
 const device_t via_vt82c49x_pci_ide_device = {
-    "VIA VT82C49X PCI (With IDE)",
-    "via_vt82c49x_pci_ide",
-    DEVICE_PCI,
-    1,
-    vt82c49x_init, vt82c49x_close, vt82c49x_reset,
-    { NULL }, NULL, NULL,
-    NULL
+    .name = "VIA VT82C49X PCI (With IDE)",
+    .internal_name = "via_vt82c49x_pci_ide",
+    .flags = DEVICE_PCI,
+    .local = 1,
+    .init = vt82c49x_init,
+    .close = vt82c49x_close,
+    .reset = vt82c49x_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };

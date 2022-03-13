@@ -253,13 +253,16 @@ opti499_init(const device_t *info)
     return dev;
 }
 
-
 const device_t opti499_device = {
-    "OPTi 82C499",
-    "opti499",
-    0,
-    1,
-    opti499_init, opti499_close, opti499_reset,
-    { NULL }, NULL, NULL,
-    NULL
+    .name = "OPTi 82C499",
+    .internal_name = "opti499",
+    .flags = 0,
+    .local = 1,
+    .init = opti499_init,
+    .close = opti499_close,
+    .reset = opti499_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };

@@ -108,11 +108,15 @@ sio_detect_init(const device_t *info)
 
 
 const device_t sio_detect_device = {
-    "Super I/O Detection Helper",
-    "sio_detect",
-    0,
-    0,
-    sio_detect_init, sio_detect_close, NULL,
-    { NULL }, NULL, NULL,
-    NULL
+    .name = "Super I/O Detection Helper",
+    .internal_name = "sio_detect",
+    .flags = 0,
+    .local = 0,
+    .init = sio_detect_init,
+    .close = sio_detect_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };

@@ -806,17 +806,16 @@ i450kx_init(const device_t *info)
     return dev;
 }
 
-
 const device_t i450kx_device = {
-    "Intel 450KX (Mars)",
-    "i450kx",
-    DEVICE_PCI,
-    0,
-    i450kx_init,
-    i450kx_close,
-    i450kx_reset,
-    { NULL },
-    NULL,
-    NULL,
-    NULL
+    .name = "Intel 450KX (Mars)",
+    .internal_name = "i450kx",
+    .flags = DEVICE_PCI,
+    .local = 0,
+    .init = i450kx_init,
+    .close = i450kx_close,
+    .reset = i450kx_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
