@@ -119,8 +119,8 @@ pc87311_read(uint16_t addr, void *priv)
 void pc87311_fdc_handler(pc87311_t *dev)
 {
     fdc_remove(dev->fdc_controller);
-    fdc_set_base(dev->fdc_controller, (FUNCTION_ENABLE & 0x20) ? 0x0370 : 0x03f0);
-    pc87311_log("PC87311-FDC: BASE %04x\n", (FUNCTION_ENABLE & 0x20) ? 0x0370 : 0x03f0);
+    fdc_set_base(dev->fdc_controller, (FUNCTION_ENABLE & 0x20) ? FDC_SECONDARY_ADDR : FDC_PRIMARY_ADDR);
+    pc87311_log("PC87311-FDC: BASE %04x\n", (FUNCTION_ENABLE & 0x20) ? FDC_SECONDARY_ADDR : FDC_PRIMARY_ADDR);
 }
 
 uint16_t com3(pc87311_t *dev)
@@ -128,15 +128,15 @@ uint16_t com3(pc87311_t *dev)
     switch (COM_BA)
     {
     case 0:
-        return 0x03e8;
+        return COM3_ADDR;
     case 1:
         return 0x0338;
     case 2:
-        return 0x02e8;
+        return COM4_ADDR;
     case 3:
         return 0x0220;
     default:
-        return 0x03e8;
+        return COM3_ADDR;
     }
 }
 
@@ -145,7 +145,7 @@ uint16_t com4(pc87311_t *dev)
     switch (COM_BA)
     {
     case 0:
-        return 0x02e8;
+        return COM4_ADDR;
     case 1:
         return 0x0238;
     case 2:
@@ -153,7 +153,7 @@ uint16_t com4(pc87311_t *dev)
     case 3:
         return 0x0228;
     default:
-        return 0x02e8;
+        return COM4_ADDR;
     }
 }
 
@@ -164,20 +164,20 @@ void pc87311_uart_handler(uint8_t num, pc87311_t *dev)
     switch (!(num & 1) ? UART1_BA : UART2_BA)
     {
     case 0:
-        dev->base = 0x03f8;
-        dev->irq = 4;
+        dev->base = COM1_ADDR;
+        dev->irq = COM1_IRQ;
         break;
     case 1:
-        dev->base = 0x02f8;
-        dev->irq = 3;
+        dev->base = COM2_ADDR;
+        dev->irq = COM2_IRQ;
         break;
     case 2:
         dev->base = com3(dev);
-        dev->irq = 4;
+        dev->irq = COM3_IRQ;
         break;
     case 3:
         dev->base = com4(dev);
-        dev->irq = 3;
+        dev->irq = COM4_IRQ;
         break;
     }
     serial_setup(dev->uart[num & 1], dev->base, dev->irq);
@@ -190,16 +190,16 @@ void pc87311_lpt_handler(pc87311_t *dev)
     switch (LPT_BA)
     {
     case 0:
-        dev->base = 0x0378;
-        dev->irq = (POWER_TEST & 0x08) ? 7 : 5;
+        dev->base = LPT1_ADDR;
+        dev->irq = (POWER_TEST & 0x08) ? LPT1_IRQ : LPT2_IRQ;
         break;
     case 1:
-        dev->base = 0x03bc;
-        dev->irq = 7;
+        dev->base = LPT_MDA_ADDR;
+        dev->irq = LPT_MDA_IRQ;
         break;
     case 2:
-        dev->base = 0x0278;
-        dev->irq = 5;
+        dev->base = LPT2_ADDR;
+        dev->irq = LPT2_IRQ;
         break;
     }
     lpt1_init(dev->base);

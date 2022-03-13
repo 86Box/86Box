@@ -685,13 +685,13 @@ serial_init(const device_t *info)
 	dev->sd->serial = dev;
 	serial_reset_port(dev);
 	if (next_inst == 3)
-		serial_setup(dev, SERIAL4_ADDR, SERIAL4_IRQ);
+		serial_setup(dev, COM4_ADDR, COM4_IRQ);
 	else if (next_inst == 2)
-		serial_setup(dev, SERIAL3_ADDR, SERIAL3_IRQ);
+		serial_setup(dev, COM3_ADDR, COM3_IRQ);
 	else if ((next_inst == 1) || (info->flags & DEVICE_PCJR))
-		serial_setup(dev, SERIAL2_ADDR, SERIAL2_IRQ);
+		serial_setup(dev, COM2_ADDR, COM2_IRQ);
 	else if (next_inst == 0)
-		serial_setup(dev, SERIAL1_ADDR, SERIAL1_IRQ);
+		serial_setup(dev, COM1_ADDR, COM1_IRQ);
 
 	/* Default to 1200,N,7. */
 	dev->dlab = 96;
@@ -717,7 +717,7 @@ serial_set_next_inst(int ni)
 
 void
 serial_standalone_init(void) {
-	for ( ; next_inst < 4; )
+	for ( ; next_inst < SERIAL_MAX; )
 		device_add_inst(&ns8250_device, next_inst + 1);
 };
 

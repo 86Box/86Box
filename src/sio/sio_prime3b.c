@@ -108,15 +108,15 @@ prime3b_write(uint16_t addr, uint8_t val, void *priv)
             switch ((dev->regs[0xa4] >> 6) & 3)
             {
             case 0:
-                dev->com3_addr = 0x3e8;
-                dev->com4_addr = 0x2e8;
+                dev->com3_addr = COM3_ADDR;
+                dev->com4_addr = COM4_ADDR;
                 break;
             case 1:
                 dev->com3_addr = 0x338;
                 dev->com4_addr = 0x238;
                 break;
             case 2:
-                dev->com3_addr = 0x2e8;
+                dev->com3_addr = COM4_ADDR;
                 dev->com4_addr = 0x2e0;
                 break;
             case 3:
@@ -142,7 +142,7 @@ prime3b_read(uint16_t addr, void *priv)
 
 void prime3b_fdc_handler(prime3b_t *dev)
 {
-    uint16_t fdc_base = !(ASR & 0x40) ? 0x3f0 : 0x370;
+    uint16_t fdc_base = !(ASR & 0x40) ? FDC_PRIMARY_ADDR : FDC_SECONDARY_ADDR;
     fdc_remove(dev->fdc_controller);
     fdc_set_base(dev->fdc_controller, fdc_base);
     prime3b_log("Prime3B-FDC: Enabled with base %03x\n", fdc_base);
@@ -154,7 +154,7 @@ void prime3b_uart_handler(uint8_t num, prime3b_t *dev)
     if ((ASR >> (3 + 2 * num)) & 1)
         uart_base = !((ASR >> (2 + 2 * num)) & 1) ? dev->com3_addr : dev->com4_addr;
     else
-        uart_base = !((ASR >> (2 + 2 * num)) & 1) ? 0x3f8 : 0x2f8;
+        uart_base = !((ASR >> (2 + 2 * num)) & 1) ? COM1_ADDR : COM2_ADDR;
 
     serial_remove(dev->uart[num]);
     serial_setup(dev->uart[num], uart_base, 4 - num);
@@ -163,10 +163,10 @@ void prime3b_uart_handler(uint8_t num, prime3b_t *dev)
 
 void prime3b_lpt_handler(prime3b_t *dev)
 {
-    uint16_t lpt_base = (ASR & 2) ? 0x3bc : (!(ASR & 1) ? 0x378 : 0x278);
+    uint16_t lpt_base = (ASR & 2) ? LPT_MDA_ADDR : (!(ASR & 1) ? LPT1_ADDR : LPT2_ADDR);
     lpt1_remove();
     lpt1_init(lpt_base);
-    lpt1_irq(7);
+    lpt1_irq(LPT1_IRQ);
     prime3b_log("Prime3B-LPT: Enabled with base %03x\n", lpt_base);
 }
 
@@ -174,9 +174,10 @@ void prime3b_ide_handler(prime3b_t *dev)
 {
     ide_pri_disable();
     uint16_t ide_base = !(ASR & 0x80) ? 0x1f0 : 0x170;
+    uint16_t ide_side = ide_base + 0x206;
     ide_set_base(0, ide_base);
-    ide_set_side(0, ide_base + 0x206);
-    prime3b_log("Prime3B-IDE: Enabled with base %03x and side %03x\n", ide_base, ide_base + 0x206);
+    ide_set_side(0, ide_side);
+    prime3b_log("Prime3B-IDE: Enabled with base %03x and side %03x\n", ide_base, ide_side);
 }
 
 void prime3b_enable(prime3b_t *dev)
@@ -256,8 +257,8 @@ prime3b_init(const device_t *info)
     if (HAS_IDE_FUNCTIONALITY)
         device_add(&ide_isa_device);
 
-    dev->com3_addr = 0x3e8;
-    dev->com4_addr = 0x2e8;
+    dev->com3_addr = COM3_ADDR;
+    dev->com4_addr = COM4_ADDR;
     fdc_reset(dev->fdc_controller);
 
     prime3b_enable(dev);

@@ -246,10 +246,10 @@ static void
 fdc37c669_reset(fdc37c669_t *dev)
 {
     serial_remove(dev->uart[0]);
-    serial_setup(dev->uart[0], SERIAL1_ADDR, SERIAL1_IRQ);
+    serial_setup(dev->uart[0], COM1_ADDR, COM1_IRQ);
 
     serial_remove(dev->uart[1]);
-    serial_setup(dev->uart[1], SERIAL2_ADDR, SERIAL2_IRQ);
+    serial_setup(dev->uart[1], COM2_ADDR, COM2_IRQ);
 
     memset(dev->regs, 0, 42);
     dev->regs[0x00] = 0x28;
@@ -260,27 +260,27 @@ fdc37c669_reset(fdc37c669_t *dev)
     dev->regs[0x0d] = 0x03;
     dev->regs[0x0e] = 0x02;
     dev->regs[0x1e] = 0x80;	/* Gameport controller. */
-    dev->regs[0x20] = (0x3f0 >> 2) & 0xfc;
+    dev->regs[0x20] = (FDC_PRIMARY_ADDR >> 2) & 0xfc;
     dev->regs[0x21] = (0x1f0 >> 2) & 0xfc;
     dev->regs[0x22] = ((0x3f6 >> 2) & 0xfc) | 1;
     if (dev->id == 1) {
-	dev->regs[0x23] = (0x278 >> 2);
+	dev->regs[0x23] = (LPT2_ADDR >> 2);
 
 	lpt2_remove();
-	lpt2_init(0x278);
+	lpt2_init(LPT2_ADDR);
 
-	dev->regs[0x24] = (SERIAL3_ADDR >> 2) & 0xfe;
-	dev->regs[0x25] = (SERIAL4_ADDR >> 2) & 0xfe;
+	dev->regs[0x24] = (COM3_ADDR >> 2) & 0xfe;
+	dev->regs[0x25] = (COM4_ADDR >> 2) & 0xfe;
     } else {
 	fdc_reset(dev->fdc);
 
 	lpt1_remove();
-	lpt1_init(0x378);
+	lpt1_init(LPT1_ADDR);
 
-	dev->regs[0x23] = (0x378 >> 2);
+	dev->regs[0x23] = (LPT1_ADDR >> 2);
 
-	dev->regs[0x24] = (SERIAL1_ADDR >> 2) & 0xfe;
-	dev->regs[0x25] = (SERIAL2_ADDR >> 2) & 0xfe;
+	dev->regs[0x24] = (COM1_ADDR >> 2) & 0xfe;
+	dev->regs[0x25] = (COM2_ADDR >> 2) & 0xfe;
     }
     dev->regs[0x26] = (2 << 4) | 3;
     dev->regs[0x27] = (6 << 4) | (dev->id ? 5 : 7);
@@ -316,7 +316,7 @@ fdc37c669_init(const device_t *info)
     dev->uart[0] = device_add_inst(&ns16550_device, (next_id << 1) + 1);
     dev->uart[1] = device_add_inst(&ns16550_device, (next_id << 1) + 2);
 
-    io_sethandler(info->local ? 0x370 : (next_id ? 0x370 : 0x3f0), 0x0002,
+    io_sethandler(info->local ? FDC_SECONDARY_ADDR : (next_id ? FDC_SECONDARY_ADDR : FDC_PRIMARY_ADDR), 0x0002,
 		  fdc37c669_read, NULL, NULL, fdc37c669_write, NULL, NULL, dev);
 
     fdc37c669_reset(dev);

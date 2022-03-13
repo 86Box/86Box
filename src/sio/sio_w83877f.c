@@ -81,9 +81,9 @@ w83877f_remap(w83877f_t *dev)
 
     io_removehandler(0x250, 0x0002,
 		     w83877f_read, NULL, NULL, w83877f_write, NULL, NULL, dev);
-    io_removehandler(0x3f0, 0x0002,
+    io_removehandler(FDC_PRIMARY_ADDR, 0x0002,
 		     w83877f_read, NULL, NULL, w83877f_write, NULL, NULL, dev);
-    dev->base_address = (hefras ? 0x3f0 : 0x250);
+    dev->base_address = (hefras ? FDC_PRIMARY_ADDR : 0x250);
     io_sethandler(dev->base_address, 0x0002,
 		  w83877f_read, NULL, NULL, w83877f_write, NULL, NULL, dev);
     dev->key_times = hefras + 1;
@@ -127,7 +127,7 @@ make_port(w83877f_t *dev, uint8_t reg)
 			p &= 0x3F8;
 		else
 			p &= 0x3FC;
-		if ((p < 0x100) || (p > 0x3FF))  p = 0x378;
+		if ((p < 0x100) || (p > 0x3FF))  p = LPT1_ADDR;
 		/* In ECP mode, A10 is active. */
 		if (l & 0x80)
 			p |= 0x400;
@@ -135,12 +135,12 @@ make_port(w83877f_t *dev, uint8_t reg)
 	case 0x24:
 		p = ((uint16_t) (dev->regs[reg] & 0xfe)) << 2;
 		p &= 0xFF8;
-		if ((p < 0x100) || (p > 0x3F8))  p = 0x3F8;
+		if ((p < 0x100) || (p > 0x3F8))  p = COM1_ADDR;
 		break;
 	case 0x25:
 		p = ((uint16_t) (dev->regs[reg] & 0xfe)) << 2;
 		p &= 0xFF8;
-		if ((p < 0x100) || (p > 0x3F8))  p = 0x2F8;
+		if ((p < 0x100) || (p > 0x3F8))  p = COM2_ADDR;
 		break;
     }
 
@@ -153,7 +153,7 @@ w83877f_fdc_handler(w83877f_t *dev)
 {
     fdc_remove(dev->fdc);
     if (!(dev->regs[6] & 0x08) && (dev->regs[0x20] & 0xc0))
-	fdc_set_base(dev->fdc, 0x03f0);
+	fdc_set_base(dev->fdc, FDC_PRIMARY_ADDR);
 }
 
 
@@ -219,7 +219,7 @@ w83877f_write(uint16_t port, uint8_t val, void *priv)
 	if (val <= max)
 		dev->cur_reg = val;
 	return;
-    } else if (port == 0x03f0) {
+    } else if (port == FDC_PRIMARY_ADDR) {
 	if ((val == dev->key) && !dev->locked) {
 		if (dev->key_times == 2) {
 			if (dev->tries) {
@@ -375,7 +375,7 @@ w83877f_read(uint16_t port, void *priv)
     uint8_t ret = 0xff;
 
     if (dev->locked) {
-	if ((port == 0x3f0) || (port == 0x251))
+	if ((port == FDC_PRIMARY_ADDR) || (port == 0x251))
 		ret = dev->cur_reg;
 	else if ((port == 0x3f1) || (port == 0x252)) {
 		if (dev->cur_reg == 7)
@@ -403,12 +403,12 @@ w83877f_reset(w83877f_t *dev)
     dev->regs[0x0d] = 0xA3;
     dev->regs[0x16] = dev->reg_init & 0xff;
     dev->regs[0x1e] = 0x81;
-    dev->regs[0x20] = (0x3f0 >> 2) & 0xfc;
+    dev->regs[0x20] = (FDC_PRIMARY_ADDR >> 2) & 0xfc;
     dev->regs[0x21] = (0x1f0 >> 2) & 0xfc;
     dev->regs[0x22] = ((0x3f6 >> 2) & 0xfc) | 1;
-    dev->regs[0x23] = (0x378 >> 2);
-    dev->regs[0x24] = (0x3f8 >> 2) & 0xfe;
-    dev->regs[0x25] = (0x2f8 >> 2) & 0xfe;
+    dev->regs[0x23] = (LPT1_ADDR >> 2);
+    dev->regs[0x24] = (COM1_ADDR >> 2) & 0xfe;
+    dev->regs[0x25] = (COM2_ADDR >> 2) & 0xfe;
     dev->regs[0x26] = (2 << 4) | 4;
     dev->regs[0x27] = (2 << 4) | 5;
     dev->regs[0x28] = (4 << 4) | 3;
@@ -421,7 +421,7 @@ w83877f_reset(w83877f_t *dev)
     w83877f_serial_handler(dev, 0);
     w83877f_serial_handler(dev, 1);
 
-    dev->base_address = 0x3f0;
+    dev->base_address = FDC_PRIMARY_ADDR;
     dev->key = 0x89;
     dev->key_times = 1;
 

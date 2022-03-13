@@ -1465,7 +1465,7 @@ ali1533_sio_write(uint16_t addr, uint8_t val, void *priv)
     ali1543_t *dev = (ali1543_t *)priv;
 
     switch (addr) {
-	case 0x3f0:
+	case FDC_PRIMARY_ADDR:
 		dev->sio_index = val;
 		if (dev->sio_index == 0x51)
 			dev->in_configuration_mode = 1;
@@ -1501,7 +1501,7 @@ ali1533_sio_write(uint16_t addr, uint8_t val, void *priv)
 		break;
     }
 
-    if ((!dev->in_configuration_mode) && (dev->sio_regs[0x07] <= 7) && (addr == 0x03f0))
+    if ((!dev->in_configuration_mode) && (dev->sio_regs[0x07] <= 7) && (addr == FDC_PRIMARY_ADDR))
 	ali1533_sio_ldn(dev->sio_regs[0x07], dev);
 }
 
@@ -1686,7 +1686,7 @@ ali1543_init(const device_t *info)
     dev->usb_slot = pci_add_card(PCI_ADD_SOUTHBRIDGE, ali5237_read, ali5237_write, dev);
 
     /* Ports 3F0-1h: M1543 Super I/O */
-    io_sethandler(0x03f0, 0x0002, ali1533_sio_read, NULL, NULL, ali1533_sio_write, NULL, NULL, dev);
+    io_sethandler(FDC_PRIMARY_ADDR, 0x0002, ali1533_sio_read, NULL, NULL, ali1533_sio_write, NULL, NULL, dev);
 
     /* ACPI */
     dev->acpi = device_add(&acpi_ali_device);
