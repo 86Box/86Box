@@ -442,6 +442,8 @@ tmacm_init(const device_t *info)
         default:
             break;
     }
+
+    return dev;
 }
 
 static void
