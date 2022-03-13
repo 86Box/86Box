@@ -1,4 +1,5 @@
 /* Copyright holders: Sarah Walker
+/* Copyright holders: Sarah Walker
    see COPYING for more details
 */
 #include <stdio.h>
@@ -87,7 +88,7 @@ lpt_devices_init(void)
     for (i = 0; i < PARALLEL_MAX; i++) {
 	lpt_ports[i].dt = (lpt_device_t *) lpt_devices[lpt_ports[i].device].device;
 
-	if (lpt_ports[i].dt)
+	if (lpt_ports[i].dt && lpt_ports[i].dt->init)
 		lpt_ports[i].priv = lpt_ports[i].dt->init(&lpt_ports[i]);
     }
 }
