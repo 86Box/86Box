@@ -1320,61 +1320,85 @@ static const device_config_t aha_154xcf_config[] = {
 // clang-format on
 
 const device_t aha154xa_device = {
-    "Adaptec AHA-154xA",
-    "aha154xa",
-    DEVICE_ISA | DEVICE_AT,
-    AHA_154xA,
-    aha_init, x54x_close, NULL,
-    { NULL }, NULL, NULL,
-    aha_154xb_config
+    .name = "Adaptec AHA-154xA",
+    .internal_name = "aha154xa",
+    .flags = DEVICE_ISA | DEVICE_AT,
+    .local = AHA_154xA,
+    .init = aha_init,
+    .close = x54x_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = aha_154xb_config
 };
 
 const device_t aha154xb_device = {
-    "Adaptec AHA-154xB",
-    "aha154xb",
-    DEVICE_ISA | DEVICE_AT,
-    AHA_154xB,
-    aha_init, x54x_close, NULL,
-    { NULL }, NULL, NULL,
-    aha_154xb_config
+    .name = "Adaptec AHA-154xB",
+    .internal_name = "aha154xb",
+    .flags = DEVICE_ISA | DEVICE_AT,
+    .local = AHA_154xB,
+    .init = aha_init,
+    .close = x54x_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = aha_154xb_config
 };
 
 const device_t aha154xc_device = {
-    "Adaptec AHA-154xC",
-    "aha154xc",
-    DEVICE_ISA | DEVICE_AT,
-    AHA_154xC,
-    aha_init, x54x_close, NULL,
-    { NULL }, NULL, NULL,
-    aha_154x_config
+    .name = "Adaptec AHA-154xC",
+    .internal_name = "aha154xc",
+    .flags = DEVICE_ISA | DEVICE_AT,
+    .local = AHA_154xC,
+    .init = aha_init,
+    .close = x54x_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = aha_154x_config
 };
 
 const device_t aha154xcf_device = {
-    "Adaptec AHA-154xCF",
-    "aha154xcf",
-    DEVICE_ISA | DEVICE_AT,
-    AHA_154xCF,
-    aha_init, x54x_close, NULL,
-    { NULL }, NULL, NULL,
-    aha_154xcf_config
+    .name = "Adaptec AHA-154xCF",
+    .internal_name = "aha154xcf",
+    .flags = DEVICE_ISA | DEVICE_AT,
+    .local = AHA_154xCF,
+    .init = aha_init,
+    .close = x54x_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = aha_154xcf_config
 };
 
 const device_t aha154xcp_device = {
-    "Adaptec AHA-154xCP",
-    "aha154xcp",
-    DEVICE_ISA | DEVICE_AT,
-    AHA_154xCP,
-    aha_init, aha1542cp_close, NULL,
-    { NULL }, NULL, NULL,
-    NULL
+    .name = "Adaptec AHA-154xCP",
+    .internal_name = "aha154xcp",
+    .flags = DEVICE_ISA | DEVICE_AT,
+    .local = AHA_154xCP,
+    .init = aha_init,
+    .close = aha1542cp_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
 const device_t aha1640_device = {
-    "Adaptec AHA-1640",
-    "aha1640",
-    DEVICE_MCA,
-    AHA_1640,
-    aha_init, x54x_close, NULL,
-    { NULL }, NULL, NULL,
-    NULL
+    .name = "Adaptec AHA-1640",
+    .internal_name = "aha1640",
+    .flags = DEVICE_MCA,
+    .local = AHA_1640,
+    .init = aha_init,
+    .close = x54x_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };

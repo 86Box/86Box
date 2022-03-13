@@ -1707,62 +1707,72 @@ static const device_config_t t128_config[] = {
 };
 // clang-format on
 
-const device_t scsi_lcs6821n_device =
-{
-    "Longshine LCS-6821N",
-    "lcs6821n",
-    DEVICE_ISA,
-    0,
-    ncr_init, ncr_close, NULL,
-    { lcs6821n_available },
-    NULL, NULL,
-    ncr5380_mmio_config
+const device_t scsi_lcs6821n_device = {
+    .name = "Longshine LCS-6821N",
+    .internal_name = "lcs6821n",
+    .flags = DEVICE_ISA,
+    .local = 0,
+    .init = ncr_init,
+    .close = ncr_close,
+    .reset = NULL,
+    { .available = lcs6821n_available },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = ncr5380_mmio_config
 };
 
-const device_t scsi_rt1000b_device =
-{
-    "Rancho RT1000B",
-    "rt1000b",
-    DEVICE_ISA,
-    1,
-    ncr_init, ncr_close, NULL,
-    { rt1000b_available },
-    NULL, NULL,
-    rancho_config
+const device_t scsi_rt1000b_device = {
+    .name = "Rancho RT1000B",
+    .internal_name = "rt1000b",
+    .flags = DEVICE_ISA,
+    .local = 1,
+    .init = ncr_init,
+    .close = ncr_close,
+    .reset = NULL,
+    { .available = rt1000b_available },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = rancho_config
 };
 
-const device_t scsi_t130b_device =
-{
-    "Trantor T130B",
-    "t130b",
-    DEVICE_ISA,
-    2,
-    ncr_init, ncr_close, NULL,
-    { t130b_available },
-    NULL, NULL,
-    t130b_config
+const device_t scsi_t130b_device = {
+    .name = "Trantor T130B",
+    .internal_name = "t130b",
+    .flags = DEVICE_ISA,
+    .local = 2,
+    .init = ncr_init,
+    .close = ncr_close,
+    .reset = NULL,
+    { .available = t130b_available },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = t130b_config
 };
 
-const device_t scsi_t128_device =
-{
-    "Trantor T128",
-    "t128",
-    DEVICE_ISA,
-    3,
-    ncr_init, ncr_close, NULL,
-    { t128_available },
-    NULL, NULL,
-    t128_config
+const device_t scsi_t128_device = {
+    .name = "Trantor T128",
+    .internal_name = "t128",
+    .flags = DEVICE_ISA,
+    .local = 3,
+    .init = ncr_init,
+    .close = ncr_close,
+    .reset = NULL,
+    { .available = t128_available },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = t128_config
 };
 
-const device_t scsi_ls2000_device =
-{
-    "Corel LS2000",
-    "ls2000",
-    DEVICE_ISA,
-    4,
-    ncr_init, ncr_close, NULL,
-    { corel_ls2000_available },
-    NULL, NULL,
-    ncr5380_mmio_config
+const device_t scsi_ls2000_device = {
+    .name = "Corel LS2000",
+    .internal_name = "ls2000",
+    .flags = DEVICE_ISA,
+    .local = 4,
+    .init = ncr_init,
+    .close = ncr_close,
+    .reset = NULL,
+    { .available = corel_ls2000_available },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = ncr5380_mmio_config
 };

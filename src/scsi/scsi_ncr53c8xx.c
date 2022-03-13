@@ -2648,80 +2648,100 @@ static const device_config_t ncr53c8xx_pci_config[] = {
 // clang-format on
 };
 
-
-const device_t ncr53c810_pci_device =
-{
-    "NCR 53c810",
-    "ncr53c810",
-    DEVICE_PCI,
-    CHIP_810,
-    ncr53c8xx_init, ncr53c8xx_close, NULL,
-    { NULL }, NULL, NULL,
-    NULL
+const device_t ncr53c810_pci_device = {
+    .name = "NCR 53c810",
+    .internal_name = "ncr53c810",
+    .flags = DEVICE_PCI,
+    .local = CHIP_810,
+    .init = ncr53c8xx_init,
+    .close = ncr53c8xx_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
-const device_t ncr53c810_onboard_pci_device =
-{
-    "NCR 53c810 On-Board",
-    "ncr53c810_onboard",
-    DEVICE_PCI,
-    0x8001,
-    ncr53c8xx_init, ncr53c8xx_close, NULL,
-    { NULL }, NULL, NULL,
-    NULL
+const device_t ncr53c810_onboard_pci_device = {
+    .name = "NCR 53c810 On-Board",
+    .internal_name = "ncr53c810_onboard",
+    .flags = DEVICE_PCI,
+    .local = 0x8001,
+    .init = ncr53c8xx_init,
+    .close = ncr53c8xx_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
-const device_t ncr53c815_pci_device =
-{
-    "NCR 53c815",
-    "ncr53c815",
-    DEVICE_PCI,
-    CHIP_815,
-    ncr53c8xx_init, ncr53c8xx_close, NULL,
-    { NULL }, NULL, NULL,
+const device_t ncr53c815_pci_device = {
+    .name = "NCR 53c815",
+    .internal_name = "ncr53c815",
+    .flags = DEVICE_PCI,
+    .local = CHIP_815,
+    .init = ncr53c8xx_init,
+    .close = ncr53c8xx_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
     ncr53c8xx_pci_config
 };
 
-const device_t ncr53c820_pci_device =
-{
-    "NCR 53c820",
-    "ncr53c820",
-    DEVICE_PCI,
-    CHIP_820,
-    ncr53c8xx_init, ncr53c8xx_close, NULL,
-    { NULL }, NULL, NULL,
-    NULL
+const device_t ncr53c820_pci_device = {
+    .name = "NCR 53c820",
+    .internal_name = "ncr53c820",
+    .flags = DEVICE_PCI,
+    .local = CHIP_820,
+    .init = ncr53c8xx_init,
+    .close = ncr53c8xx_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
-const device_t ncr53c825a_pci_device =
-{
-    "NCR 53c825A",
-    "ncr53c825a",
-    DEVICE_PCI,
-    CHIP_825,
-    ncr53c8xx_init, ncr53c8xx_close, NULL,
-    { NULL }, NULL, NULL,
-    ncr53c8xx_pci_config
+const device_t ncr53c825a_pci_device = {
+    .name = "NCR 53c825A",
+    .internal_name = "ncr53c825a",
+    .flags = DEVICE_PCI,
+    .local = CHIP_825,
+    .init = ncr53c8xx_init,
+    .close = ncr53c8xx_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = ncr53c8xx_pci_config
 };
 
-const device_t ncr53c860_pci_device =
-{
-    "NCR 53c860",
-    "ncr53c860",
-    DEVICE_PCI,
-    CHIP_860,
-    ncr53c8xx_init, ncr53c8xx_close, NULL,
-    { NULL }, NULL, NULL,
-    ncr53c8xx_pci_config
+const device_t ncr53c860_pci_device = {
+    .name = "NCR 53c860",
+    .internal_name = "ncr53c860",
+    .flags = DEVICE_PCI,
+    .local = CHIP_860,
+    .init = ncr53c8xx_init,
+    .close = ncr53c8xx_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = ncr53c8xx_pci_config
 };
 
-const device_t ncr53c875_pci_device =
-{
-    "NCR 53c875",
-    "ncr53c875",
-    DEVICE_PCI,
-    CHIP_875,
-    ncr53c8xx_init, ncr53c8xx_close, NULL,
-    { NULL }, NULL, NULL,
-    ncr53c8xx_pci_config
+const device_t ncr53c875_pci_device = {
+    .name = "NCR 53c875",
+    .internal_name = "ncr53c875",
+    .flags = DEVICE_PCI,
+    .local = CHIP_875,
+    .init = ncr53c8xx_init,
+    .close = ncr53c8xx_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = ncr53c8xx_pci_config
 };
