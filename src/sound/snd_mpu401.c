@@ -1857,29 +1857,29 @@ static const device_config_t mpu401_standalone_mca_config[] = {
 };
 
 const device_t mpu401_device = {
-    "Roland MPU-IPC-T",
-    "mpu401",
-    DEVICE_ISA,
-    0,
-    mpu401_standalone_init,
-    mpu401_standalone_close,
-    NULL,
-    { NULL },
-    NULL,
-    NULL,
-    mpu401_standalone_config
+    .name = "Roland MPU-IPC-T",
+    .internal_name = "mpu401",
+    .flags = DEVICE_ISA,
+    .local = 0,
+    .init = mpu401_standalone_init,
+    .close = mpu401_standalone_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = mpu401_standalone_config
 };
 
 const device_t mpu401_mca_device = {
-    "Roland MPU-IMC",
-    "mpu401_mca",
-    DEVICE_MCA,
-    0,
-    mpu401_standalone_init,
-    mpu401_standalone_close,
-    NULL,
-    { NULL },
-    NULL,
-    NULL,
-    mpu401_standalone_mca_config
+    .name = "Roland MPU-IMC",
+    .internal_name = "mpu401_mca",
+    .flags = DEVICE_MCA,
+    .local = 0,
+    .init = mpu401_standalone_init,
+    .close = mpu401_standalone_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = mpu401_standalone_mca_config
 };

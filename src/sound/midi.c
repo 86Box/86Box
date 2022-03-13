@@ -72,17 +72,17 @@ typedef struct
 } MIDI_OUT_DEVICE, MIDI_IN_DEVICE;
 
 static const device_t midi_out_none_device = {
-    "None",
-    "none",
-    0,
-    0,
-    NULL,
-    NULL,
-    NULL,
-    { NULL },
-    NULL,
-    NULL,
-    NULL
+    .name = "None",
+    .internal_name = "none",
+    .flags = 0,
+    .local = 0,
+    .init = NULL,
+    .close = NULL,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
 static const MIDI_OUT_DEVICE devices[] = {
@@ -103,17 +103,17 @@ static const MIDI_OUT_DEVICE devices[] = {
 };
 
 static const device_t midi_in_none_device = {
-    "None",
-    "none",
-    0,
-    0,
-    NULL,
-    NULL,
-    NULL,
-    { NULL },
-    NULL,
-    NULL,
-    NULL
+    .name = "None",
+    .internal_name = "none",
+    .flags = 0,
+    .local = 0,
+    .init = NULL,
+    .close = NULL,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
 static const MIDI_IN_DEVICE midi_in_devices[] = {

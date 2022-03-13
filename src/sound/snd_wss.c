@@ -243,29 +243,29 @@ static const device_config_t wss_config[] = {
 };
 
 const device_t wss_device = {
-    "Windows Sound System",
-    "wss",
-    DEVICE_ISA | DEVICE_AT,
-    0,
-    wss_init,
-    wss_close,
-    NULL,
-    { NULL },
-    wss_speed_changed,
-    NULL,
-    wss_config
+    .name = "Windows Sound System",
+    .internal_name = "wss",
+    .flags = DEVICE_ISA | DEVICE_AT,
+    .local = 0,
+    .init = wss_init,
+    .close = wss_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = wss_speed_changed,
+    .force_redraw = NULL,
+    .config = wss_config
 };
 
 const device_t ncr_business_audio_device = {
-    "NCR Business Audio",
-    "ncraudio",
-    DEVICE_MCA,
-    0,
-    ncr_audio_init,
-    wss_close,
-    NULL,
-    { NULL },
-    wss_speed_changed,
-    NULL,
-    NULL
+    .name = "NCR Business Audio",
+    .internal_name = "ncraudio",
+    .flags = DEVICE_MCA,
+    .local = 0,
+    .init = ncr_audio_init,
+    .close = wss_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = wss_speed_changed,
+    .force_redraw = NULL,
+    .config = NULL
 };

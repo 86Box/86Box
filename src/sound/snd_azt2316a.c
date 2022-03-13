@@ -1425,29 +1425,29 @@ static const device_config_t azt2316a_config[] = {
 };
 
 const device_t azt2316a_device = {
-    "Aztech Sound Galaxy Pro 16 AB (Washington)",
-    "azt2316a",
-    DEVICE_ISA | DEVICE_AT,
-    SB_SUBTYPE_CLONE_AZT2316A_0X11,
-    azt_init,
-    azt_close,
-    NULL,
-    { NULL },
-    azt_speed_changed,
-    NULL,
-    azt2316a_config
+    .name = "Aztech Sound Galaxy Pro 16 AB (Washington)",
+    .internal_name = "azt2316a",
+    .flags = DEVICE_ISA | DEVICE_AT,
+    .local = SB_SUBTYPE_CLONE_AZT2316A_0X11,
+    .init = azt_init,
+    .close = azt_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = azt_speed_changed,
+    .force_redraw = NULL,
+    .config = azt2316a_config
 };
 
 const device_t azt1605_device = {
-    "Aztech Sound Galaxy Nova 16 Extra (Clinton)",
-    "azt1605",
-    DEVICE_ISA | DEVICE_AT,
-    SB_SUBTYPE_CLONE_AZT1605_0X0C,
-    azt_init,
-    azt_close,
-    NULL,
-    { NULL },
-    azt_speed_changed,
-    NULL,
-    azt1605_config
+    .name = "Aztech Sound Galaxy Nova 16 Extra (Clinton)",
+    .internal_name = "azt1605",
+    .flags = DEVICE_ISA | DEVICE_AT,
+    .local = SB_SUBTYPE_CLONE_AZT1605_0X0C,
+    .init = azt_init,
+    .close = azt_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = azt_speed_changed,
+    .force_redraw = NULL,
+    .config = azt1605_config
 };

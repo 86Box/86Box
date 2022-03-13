@@ -253,43 +253,45 @@ static const device_config_t pssj_isa_config[] = {
 #endif
 
 const device_t pssj_device = {
-    "Tandy PSSJ",
-    "pssj",
-    0,
-    0,
-    pssj_init,
-    pssj_close,
-    NULL,
-    { NULL },
-    NULL,
-    NULL
+    .name = "Tandy PSSJ",
+    .internal_name = "pssj",
+    .flags = 0,
+    .local = 0,
+    .init = pssj_init,
+    .close = pssj_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
 const device_t pssj_1e0_device = {
-    "Tandy PSSJ (port 1e0h)",
-    "pssj_1e0",
-    0,
-    0,
-    pssj_1e0_init,
-    pssj_close,
-    NULL,
-    { NULL },
-    NULL,
-    NULL
+    .name = "Tandy PSSJ (port 1e0h)",
+    .internal_name = "pssj_1e0",
+    .flags = 0,
+    .local = 0,
+    .init = pssj_1e0_init,
+    .close = pssj_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+	.config = NULL
 };
 
 #if defined(DEV_BRANCH) && defined(USE_TANDY_ISA)
 const device_t pssj_isa_device = {
-    "Tandy PSSJ Clone",
-    "pssj_isa",
-    DEVICE_ISA,
-    0,
-    pssj_isa_init,
-    pssj_close,
-    NULL,
-    { NULL },
-    NULL,
-    NULL,
-    pssj_isa_config
+    .name = "Tandy PSSJ Clone",
+    .internal_name = "pssj_isa",
+    .flags = DEVICE_ISA,
+    .local = 0,
+    .init = pssj_isa_init,
+    .close = pssj_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = pssj_isa_config
 };
 #endif
