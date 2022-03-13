@@ -53,23 +53,23 @@ SSE_REG XMM[8];
 uint32_t mxcsr;
 
 enum {
-        CPUID_FPU = (1 << 0),
-        CPUID_VME = (1 << 1),
-        CPUID_PSE = (1 << 3),
-        CPUID_TSC = (1 << 4),
-        CPUID_MSR = (1 << 5),
-        CPUID_PAE = (1 << 6),
-        CPUID_MCE = (1 << 7),
-        CPUID_CMPXCHG8B = (1 << 8),
-	CPUID_AMDSEP = (1 << 10),
-	CPUID_SEP = (1 << 11),
-	CPUID_MTRR = (1 << 12),
-	CPUID_PGE = (1 << 13),
-        CPUID_MCA = (1 << 14),
-        CPUID_CMOV = (1 << 15),
-        CPUID_MMX = (1 << 23),
-	CPUID_FXSR = (1 << 24),
-	CPUID_SSE = (1 << 25)
+    CPUID_FPU = (1 << 0),
+    CPUID_VME = (1 << 1),
+    CPUID_PSE = (1 << 3),
+    CPUID_TSC = (1 << 4),
+    CPUID_MSR = (1 << 5),
+    CPUID_PAE = (1 << 6),
+    CPUID_MCE = (1 << 7),
+    CPUID_CMPXCHG8B = (1 << 8),
+    CPUID_AMDSEP = (1 << 10),
+    CPUID_SEP = (1 << 11),
+    CPUID_MTRR = (1 << 12),
+    CPUID_PGE = (1 << 13),
+    CPUID_MCA = (1 << 14),
+    CPUID_CMOV = (1 << 15),
+    CPUID_MMX = (1 << 23),
+    CPUID_FXSR = (1 << 24),
+    CPUID_SSE = (1 << 25)
 };
 
 /*Addition flags returned by CPUID function 0x80000001*/
@@ -122,7 +122,7 @@ int		isa_cycles, cpu_inited,
 		cpu_override, cpu_effective, cpu_multi, cpu_16bitbus, cpu_64bitbus, cpu_busspeed,
 		cpu_cyrix_alignment, CPUID,
 
-		bochs_timing,
+        bochs_timing,
 
  		is286, is386, is486 = 1,
 		cpu_isintel, cpu_iscyrix, hascache, isibm486, israpidcad, is_vpc,
@@ -249,7 +249,7 @@ cpu_is_eligible(const cpu_family_t *cpu_family, int cpu, int machine)
     packages = machine_s->cpu_package;
     if (packages & CPU_PKG_SOCKET3)
 	packages |= CPU_PKG_SOCKET1;
-	else if (packages & CPU_PKG_SOCKET8)
+    else if (packages & CPU_PKG_SOCKET8)
 	packages |= CPU_PKG_SOCKET370;
     else if (packages & CPU_PKG_SLOT1)
 	packages |= CPU_PKG_SOCKET370 | CPU_PKG_SOCKET8;
@@ -405,7 +405,7 @@ cpu_set(void)
     is_k6        = (cpu_s->cpu_type >= CPU_K6) && !strcmp(cpu_f->manufacturer, "AMD");
     /* The Samuel 2 datasheet claims it's Celeron-compatible. */
     is_p6        = (cpu_isintel && (cpu_s->cpu_type >= CPU_PENTIUMPRO)) || !strcmp(cpu_f->manufacturer, "VIA");
-	is_pentium3  = cpu_isintel && (cpu_s->cpu_type >= CPU_PENTIUM3);
+    is_pentium3  = cpu_isintel && (cpu_s->cpu_type >= CPU_PENTIUM3);
     is_cxsmm     = (!strcmp(cpu_f->manufacturer, "Cyrix") || !strcmp(cpu_f->manufacturer, "ST")) &&
 		   (cpu_s->cpu_type >= CPU_Cx486S);
 
@@ -451,7 +451,7 @@ cpu_set(void)
 #endif
     x86_opcodes_REPE = ops_REPE;
     x86_opcodes_REPNE = ops_REPNE;
-	x86_opcodes_REPNE_0f = NULL;
+    x86_opcodes_REPNE_0f = NULL;
     x86_opcodes_3DNOW = ops_3DNOW;
 #ifdef USE_DYNAREC
     x86_dynarec_opcodes_REPE = dynarec_ops_REPE;
@@ -1302,8 +1302,8 @@ cpu_set(void)
                 cpu_features = CPU_FEATURE_RDTSC | CPU_FEATURE_MSR | CPU_FEATURE_CR4 | CPU_FEATURE_VME;
 		if (cpu_s->cpu_type >= CPU_PENTIUM2)
 			cpu_features |= CPU_FEATURE_MMX;
-        msr.fcr = (1 << 8) | (1 << 9) | (1 << 12) |  (1 << 16) | (1 << 19) | (1 << 21);
-        cpu_CR4_mask = CR4_VME | CR4_PVI | CR4_TSD | CR4_DE | CR4_PSE | CR4_MCE | CR4_PAE | CR4_PCE | CR4_PGE;
+                msr.fcr = (1 << 8) | (1 << 9) | (1 << 12) |  (1 << 16) | (1 << 19) | (1 << 21);
+                cpu_CR4_mask = CR4_VME | CR4_PVI | CR4_TSD | CR4_DE | CR4_PSE | CR4_MCE | CR4_PAE | CR4_PCE | CR4_PGE;
 		if (cpu_s->cpu_type == CPU_PENTIUM2D)
 	                cpu_CR4_mask |= CR4_OSFXSR;
 
@@ -1514,7 +1514,8 @@ cpu_set(void)
     else
 	cpu_exec = execx86;
 
-	if(bochs_timing) codegen_timing_set(&codegen_timing_486);
+    if(bochs_timing)
+        codegen_timing_set(&codegen_timing_486);
 }
 
 

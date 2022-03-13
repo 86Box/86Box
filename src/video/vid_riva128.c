@@ -2460,49 +2460,43 @@ riva128_force_redraw(void *p)
     riva128->svga.fullchange = changeframecount;
 }
 
-
-static const device_config_t riva128_config[] =
-{
-        {
-                .name = "memory",
-                .description = "Memory size",
-                .type = CONFIG_SELECTION,
-                .selection =
-                {
-                        {
-                                .description = "1 MB",
-                                .value = 1
-                        },
-                        {
-                                .description = "2 MB",
-                                .value = 2
-                        },
-                        {
-                                .description = "4 MB",
-                                .value = 4
-                        },
-                        {
-                                .description = ""
-                        }
-                },
-                .default_int = 4
+static const device_config_t riva128_config[] = {
+    {
+        .name = "memory",
+        .description = "Memory size",
+        .type = CONFIG_SELECTION,
+        .selection = {
+            {
+                .description = "1 MB",
+                .value = 1
+            },
+            {
+                .description = "2 MB",
+                .value = 2
+            },
+            {
+                .description = "4 MB",
+                .value = 4
+            },
+            {
+                .description = ""
+            }
         },
-        {
-                .type = -1
-        }
+        .default_int = 4
+    },
+    { .type = -1 }
 };
 
-const device_t riva128_pci_device =
-{
-    "nVidia RIVA 128 (PCI)",
-    "riva128",
-    DEVICE_PCI,
-    RIVA128_DEVICE_ID,
-    riva128_init,
-    riva128_close, 
-    NULL,
-    { riva128_available },
-    riva128_speed_changed,
-    riva128_force_redraw,
-    riva128_config
+const device_t riva128_pci_device = {
+    .name = "nVidia RIVA 128 (PCI)",
+    .internal_name = "riva128",
+    .flags = DEVICE_PCI,
+    .local = RIVA128_DEVICE_ID,
+    .init = riva128_init,
+    .close = riva128_close, 
+    .reset = NULL,
+    { .available = riva128_available },
+    .speed_changed = riva128_speed_changed,
+    .force_redraw = riva128_force_redraw,
+    .config = riva128_config
 };

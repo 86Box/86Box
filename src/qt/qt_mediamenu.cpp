@@ -32,7 +32,6 @@ extern "C" {
 #include <86box/device.h>
 #include <86box/timer.h>
 #include <86box/plat.h>
-#include <86box/machine.h>
 #include <86box/cassette.h>
 #include <86box/cartridge.h>
 #include <86box/fdd.h>

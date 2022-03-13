@@ -35,7 +35,6 @@ extern "C" {
 #include <86box/config.h>
 #include <86box/keyboard.h>
 #include <86box/plat.h>
-#include <86box/device.h>
 #include <86box/discord.h>
 #include <86box/video.h>
 #include <86box/vid_ega.h>

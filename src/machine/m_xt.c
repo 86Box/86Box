@@ -223,15 +223,17 @@ machine_xt_ataripc3_init(const machine_t *model)
     int ret;
 
     ret = bios_load_linear("roms/machines/ataripc3/c101701-004 308.u61",
-			   0x000f8000, 0x8000, 0);
-    
+               0x000f8000, 0x8000, 0);
+
     if (bios_only || !ret)
-	return ret;
+        return ret;
 
     machine_xt_clone_init(model);
 
     return ret;
 }
+
+int
 machine_xt_znic_init(const machine_t *model)
 {
     int ret;
