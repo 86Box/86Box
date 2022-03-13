@@ -588,56 +588,59 @@ m19_vid_init(m19_vid_t *vid)
 
 
 const device_t m24_kbd_device = {
-    "Olivetti M24 keyboard and mouse",
-    "m24_kbd",
-    0,
-    0,
-    NULL,
-    m24_kbd_close,
-    m24_kbd_reset,
-    { NULL }, NULL, NULL
+    .name = "Olivetti M24 keyboard and mouse",
+    .internal_name = "m24_kbd",
+    .flags = 0,
+    .local = 0,
+    .init = NULL,
+    .close = m24_kbd_close,
+    .reset = m24_kbd_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
-const device_config_t m19_vid_config[] =
-{
-        {
-                /* Olivetti / ATT compatible displays */
-				"rgb_type", "RGB type", CONFIG_SELECTION, "", CGA_RGB, "", { 0 },
-                {
-                        {
-                                "Color", 0
-                        },
-                        {
-                                "Green Monochrome", 1
-                        },
-                        {
-                                "Amber Monochrome", 2
-                        },
-                        {
-                                "Gray Monochrome", 3
-                        },
-                        {
-                                ""
-                        }
-                }
-        },
-        {
-                "snow_enabled", "Snow emulation", CONFIG_BINARY, "", 1,
-        },
-        {
-                "", "", -1
+const device_config_t m19_vid_config[] = {
+    {
+        /* Olivetti / ATT compatible displays */
+        .name = "rgb_type",
+        .description = "RGB type",
+        .type = CONFIG_SELECTION,
+        .default_string = "",
+        .default_int = CGA_RGB,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "Color",            .value = 0 },
+            { .description = "Green Monochrome", .value = 1 },
+            { .description = "Amber Monochrome", .value = 2 },
+            { .description = "Gray Monochrome",  .value = 3 },
+            { .description = ""                    }
         }
+    },
+    {
+        .name = "snow_enabled",
+        .description = "Snow emulation",
+        .type = CONFIG_BINARY,
+        .default_string = "",
+        .default_int = 1,
+    },
+    { .name = "", .description = "", .type = -1 }
 };
 
 const device_t m19_vid_device = {
-    "Olivetti M19 graphics card",
-    "m19_vid",
-    0, 0,
-    NULL, m19_vid_close, NULL,
-    { NULL },
-    m19_vid_speed_changed,
-    NULL,
-    m19_vid_config
+    .name = "Olivetti M19 graphics card",
+    .internal_name = "m19_vid",
+    .flags = 0,
+    .local = 0,
+    .init = NULL,
+    .close = m19_vid_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = m19_vid_speed_changed,
+    .force_redraw = NULL,
+    .config = m19_vid_config
 };
 
 const device_t *

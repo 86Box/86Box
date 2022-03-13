@@ -207,15 +207,15 @@ static const device_config_t cms_config[] = {
 };
 
 const device_t cms_device = {
-    "Creative Music System / Game Blaster",
-    "cms",
-    DEVICE_ISA,
-    0,
-    cms_init,
-    cms_close,
-    NULL,
-    { NULL },
-    NULL,
-    NULL,
-    cms_config
+    .name = "Creative Music System / Game Blaster",
+    .internal_name = "cms",
+    .flags = DEVICE_ISA,
+    .local = 0,
+    .init = cms_init,
+    .close = cms_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = cms_config
 };

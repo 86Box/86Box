@@ -1170,14 +1170,16 @@ static const device_config_t spock_rom_config[] = {
 // clang-format on
 };
 
-const device_t spock_device =
-{
-	"IBM PS/2 SCSI Adapter (Spock)",
-	"spock",
-	DEVICE_MCA,
-	0,
-	spock_init, spock_close, NULL,
-	{ spock_available },
-	NULL, NULL,
-	spock_rom_config
+const device_t spock_device = {
+    .name = "IBM PS/2 SCSI Adapter (Spock)",
+    .internal_name = "spock",
+    .flags = DEVICE_MCA,
+    .local = 0,
+    .init = spock_init,
+    .close = spock_close,
+    .reset = NULL,
+    { .available = spock_available },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = spock_rom_config
 };

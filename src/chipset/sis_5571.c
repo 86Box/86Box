@@ -742,14 +742,15 @@ sis_5571_init(const device_t *info)
 }
 
 const device_t sis_5571_device = {
-	"SiS 5571",
-	"sis_5571",
-	DEVICE_PCI,
-	0,
-	sis_5571_init,
-	sis_5571_close,
-	sis_5571_reset,
-	{NULL},
-	NULL,
-	NULL,
-	NULL};
+    .name = "SiS 5571",
+    .internal_name = "sis_5571",
+    .flags = DEVICE_PCI,
+    .local = 0,
+    .init = sis_5571_init,
+    .close = sis_5571_close,
+    .reset = sis_5571_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
+};

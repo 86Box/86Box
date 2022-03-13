@@ -471,24 +471,30 @@ pc87309_init(const device_t *info)
     return dev;
 }
 
-
 const device_t pc87309_device = {
-    "National Semiconductor PC87309 Super I/O",
-    "pc87309",
-    0,
-    0xe0,
-    pc87309_init, pc87309_close, NULL,
-    { NULL }, NULL, NULL,
-    NULL
+    .name = "National Semiconductor PC87309 Super I/O",
+    .internal_name = "pc87309",
+    .flags = 0,
+    .local = 0xe0,
+    .init = pc87309_init,
+    .close = pc87309_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
-
 const device_t pc87309_15c_device = {
-    "National Semiconductor PC87309 Super I/O (Port 15Ch)",
-    "pc87309_15c",
-    0,
-    0x1e0,
-    pc87309_init, pc87309_close, NULL,
-    { NULL }, NULL, NULL,
-    NULL
+    .name = "National Semiconductor PC87309 Super I/O (Port 15Ch)",
+    .internal_name = "pc87309_15c",
+    .flags = 0,
+    .local = 0x1e0,
+    .init = pc87309_init,
+    .close = pc87309_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };

@@ -153,10 +153,15 @@ ps2_nvr_close(void *priv)
 
 
 const device_t ps2_nvr_device = {
-    "PS/2 Secondary NVRAM",
-    "ps2_nvr",
-    0, 0,
-    ps2_nvr_init, ps2_nvr_close, NULL,
-    { NULL }, NULL,
-    NULL
+    .name = "PS/2 Secondary NVRAM",
+    .internal_name = "ps2_nvr",
+    .flags = 0,
+    .local = 0,
+    .init = ps2_nvr_init,
+    .close = ps2_nvr_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };

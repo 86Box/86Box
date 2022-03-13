@@ -193,14 +193,15 @@ acc2168_init(const device_t *info)
 }
 
 const device_t acc2168_device = {
-    "ACC 2046/2168",
-    "acc2168",
-    0,
-    0,
-    acc2168_init,
-    acc2168_close,
-    NULL,
-    {NULL},
-    NULL,
-    NULL,
-    NULL};
+    .name = "ACC 2046/2168",
+    .internal_name = "acc2168",
+    .flags = 0,
+    .local = 0,
+    .init = acc2168_init,
+    .close = acc2168_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
+};

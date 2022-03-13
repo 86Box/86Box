@@ -230,23 +230,30 @@ gc100_init(const device_t *info)
     return dev;
 }
 
-
 const device_t gc100_device = {
-    "G2 GC100",
-    "gc100",
-    0,
-    0,
-    gc100_init, gc100_close, NULL,
-    { NULL }, NULL, NULL,
-    NULL
+    .name = "G2 GC100",
+    .internal_name = "gc100",
+    .flags = 0,
+    .local = 0,
+    .init = gc100_init,
+    .close = gc100_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
 const device_t gc100a_device = {
-    "G2 GC100A",
-    "gc100a",
-    0,
-    1,
-    gc100_init, gc100_close, NULL,
-    { NULL }, NULL, NULL,
-    NULL
+    .name = "G2 GC100A",
+    .internal_name = "gc100a",
+    .flags = 0,
+    .local = 1,
+    .init = gc100_init,
+    .close = gc100_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };

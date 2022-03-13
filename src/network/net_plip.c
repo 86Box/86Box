@@ -493,6 +493,7 @@ plip_close(void *priv)
 
 const lpt_device_t lpt_plip_device = {
     .name = "Parallel Line Internet Protocol",
+    .internal_name = "plip",
     .init = plip_lpt_init,
     .close = plip_close,
     .write_data = plip_write_data,
@@ -503,9 +504,15 @@ const lpt_device_t lpt_plip_device = {
 };
 
 const device_t plip_device = {
-    "Parallel Line Internet Protocol",
-    "plip",
-    DEVICE_LPT, 0,
-    plip_net_init, NULL,
-    NULL, { NULL }, NULL, NULL
+    .name = "Parallel Line Internet Protocol",
+    .internal_name = "plip",
+    .flags = DEVICE_LPT,
+    .local = 0,
+    .init = plip_net_init,
+    .close = NULL,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };

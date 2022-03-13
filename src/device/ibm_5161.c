@@ -111,18 +111,16 @@ ibm_5161_init(const device_t *info)
     return dev;
 }
 
-
-const device_t ibm_5161_device =
-{
-    "IBM Expansion Unit (5161)",
-    "ibm_5161",
-    DEVICE_ISA,
-    0,
-    ibm_5161_init,
-    ibm_5161_close,
-    NULL,
-    { NULL },
-    NULL,
-    NULL,
-    NULL
+const device_t ibm_5161_device = {
+    .name = "IBM Expansion Unit (5161)",
+    .internal_name = "ibm_5161",
+    .flags = DEVICE_ISA,
+    .local = 0,
+    .init = ibm_5161_init,
+    .close = ibm_5161_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };

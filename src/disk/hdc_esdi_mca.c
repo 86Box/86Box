@@ -1180,9 +1180,15 @@ esdi_available(void)
 
 
 const device_t esdi_ps2_device = {
-    "IBM PS/2 ESDI Fixed Disk Adapter (MCA)",
-    "esdi_mca",
-    DEVICE_MCA, 0,
-    esdi_init, esdi_close, NULL,
-    { esdi_available }, NULL, NULL, NULL
+    .name = "IBM PS/2 ESDI Fixed Disk Adapter (MCA)",
+    .internal_name = "esdi_mca",
+    .flags = DEVICE_MCA,
+    .local = 0,
+    .init = esdi_init,
+    .close = esdi_close,
+    .reset = NULL,
+    { .available = esdi_available },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };

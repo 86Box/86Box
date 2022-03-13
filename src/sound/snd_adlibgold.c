@@ -990,15 +990,15 @@ static const device_config_t adgold_config[] = {
 };
 
 const device_t adgold_device = {
-    "AdLib Gold",
-    "adlibgold",
-    DEVICE_ISA,
-    0,
-    adgold_init,
-    adgold_close,
-    NULL,
-    { NULL },
-    NULL,
-    NULL,
-    adgold_config
+    .name = "AdLib Gold",
+    .internal_name = "adlibgold",
+    .flags = DEVICE_ISA,
+    .local = 0,
+    .init = adgold_init,
+    .close = adgold_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = adgold_config
 };

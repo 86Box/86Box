@@ -641,113 +641,113 @@ ac97_codec_get(int model)
 }
 
 const device_t ad1881_device = {
-    "Analog Devices AD1881",
-    "ad1881",
-    DEVICE_AC97,
-    AC97_CODEC_AD1881,
-    ac97_codec_init,
-    ac97_codec_close,
-    ac97_codec_reset,
-    { NULL },
-    NULL,
-    NULL,
-    NULL
+    .name = "Analog Devices AD1881",
+    .internal_name = "ad1881",
+    .flags = DEVICE_AC97,
+    .local = AC97_CODEC_AD1881,
+    .init = ac97_codec_init,
+    .close = ac97_codec_close,
+    .reset = ac97_codec_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
 const device_t ak4540_device = {
-    "Asahi Kasei AK4540",
-    "ak4540",
-    DEVICE_AC97,
-    AC97_CODEC_AK4540,
-    ac97_codec_init,
-    ac97_codec_close,
-    ac97_codec_reset,
-    { NULL },
-    NULL,
-    NULL,
-    NULL
+    .name = "Asahi Kasei AK4540",
+    .internal_name = "ak4540",
+    .flags = DEVICE_AC97,
+    .local = AC97_CODEC_AK4540,
+    .init = ac97_codec_init,
+    .close = ac97_codec_close,
+    .reset = ac97_codec_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
 const device_t alc100_device = {
-    "Avance Logic ALC100",
-    "alc100",
-    DEVICE_AC97,
-    AC97_CODEC_ALC100,
-    ac97_codec_init,
-    ac97_codec_close,
-    ac97_codec_reset,
-    { NULL },
-    NULL,
-    NULL,
-    NULL
+    .name = "Avance Logic ALC100",
+    .internal_name = "alc100",
+    .flags = DEVICE_AC97,
+    .local = AC97_CODEC_ALC100,
+    .init = ac97_codec_init,
+    .close = ac97_codec_close,
+    .reset = ac97_codec_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
 const device_t cs4297_device = {
-    "Crystal CS4297",
-    "cs4297",
-    DEVICE_AC97,
-    AC97_CODEC_CS4297,
-    ac97_codec_init,
-    ac97_codec_close,
-    ac97_codec_reset,
-    { NULL },
-    NULL,
-    NULL,
-    NULL
+    .name = "Crystal CS4297",
+    .internal_name = "cs4297",
+    .flags = DEVICE_AC97,
+    .local = AC97_CODEC_CS4297,
+    .init = ac97_codec_init,
+    .close = ac97_codec_close,
+    .reset = ac97_codec_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
 const device_t cs4297a_device = {
-    "Crystal CS4297A",
-    "cs4297a",
-    DEVICE_AC97,
-    AC97_CODEC_CS4297A,
-    ac97_codec_init,
-    ac97_codec_close,
-    ac97_codec_reset,
-    { NULL },
-    NULL,
-    NULL,
-    NULL
+    .name = "Crystal CS4297A",
+    .internal_name = "cs4297a",
+    .flags = DEVICE_AC97,
+    .local = AC97_CODEC_CS4297A,
+    .init = ac97_codec_init,
+    .close = ac97_codec_close,
+    .reset = ac97_codec_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
 const device_t stac9708_device = {
-    "SigmaTel STAC9708",
-    "stac9708",
-    DEVICE_AC97,
-    AC97_CODEC_STAC9708,
-    ac97_codec_init,
-    ac97_codec_close,
-    ac97_codec_reset,
-    { NULL },
-    NULL,
-    NULL,
-    NULL
+    .name = "SigmaTel STAC9708",
+    .internal_name = "stac9708",
+    .flags = DEVICE_AC97,
+    .local = AC97_CODEC_STAC9708,
+    .init = ac97_codec_init,
+    .close = ac97_codec_close,
+    .reset = ac97_codec_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
 const device_t stac9721_device = {
-    "SigmaTel STAC9721",
-    "stac9721",
-    DEVICE_AC97,
-    AC97_CODEC_STAC9721,
-    ac97_codec_init,
-    ac97_codec_close,
-    ac97_codec_reset,
-    { NULL },
-    NULL,
-    NULL,
-    NULL
+    .name = "SigmaTel STAC9721",
+    .internal_name = "stac9721",
+    .flags = DEVICE_AC97,
+    .local = AC97_CODEC_STAC9721,
+    .init = ac97_codec_init,
+    .close = ac97_codec_close,
+    .reset = ac97_codec_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
 const device_t wm9701a_device = {
-    "Wolfson WM9701A",
-    "wm9701a",
-    DEVICE_AC97,
-    AC97_CODEC_WM9701A,
-    ac97_codec_init,
-    ac97_codec_close,
-    ac97_codec_reset,
-    { NULL },
-    NULL,
-    NULL,
-    NULL
+    .name = "Wolfson WM9701A",
+    .internal_name = "wm9701a",
+    .flags = DEVICE_AC97,
+    .local = AC97_CODEC_WM9701A,
+    .init = ac97_codec_init,
+    .close = ac97_codec_close,
+    .reset = ac97_codec_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };

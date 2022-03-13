@@ -333,95 +333,130 @@ fdc37c6xx_init(const device_t *info)
     return dev;
 }
 
-
 /* The three appear to differ only in the chip ID, if I
    understood their datasheets correctly. */
 const device_t fdc37c651_device = {
-    "SMC FDC37C651 Super I/O",
-    "fdc37c651",
-    0,
-    0x51,
-    fdc37c6xx_init, fdc37c6xx_close, NULL,
-    { NULL }, NULL, NULL,
-    NULL
+    .name = "SMC FDC37C651 Super I/O",
+    .internal_name = "fdc37c651",
+    .flags = 0,
+    .local = 0x51,
+    .init = fdc37c6xx_init,
+    .close = fdc37c6xx_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
 const device_t fdc37c651_ide_device = {
-    "SMC FDC37C651 Super I/O (With IDE)",
-    "fdc37c651_ide",
-    0,
-    0x151,
-    fdc37c6xx_init, fdc37c6xx_close, NULL,
-    { NULL }, NULL, NULL,
-    NULL
+    .name = "SMC FDC37C651 Super I/O (With IDE)",
+    .internal_name = "fdc37c651_ide",
+    .flags = 0,
+    .local = 0x151,
+    .init = fdc37c6xx_init,
+    .close = fdc37c6xx_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
 const device_t fdc37c661_device = {
-    "SMC FDC37C661 Super I/O",
-    "fdc37c661",
-    0,
-    0x61,
-    fdc37c6xx_init, fdc37c6xx_close, NULL,
-    { NULL }, NULL, NULL,
-    NULL
+    .name = "SMC FDC37C661 Super I/O",
+    .internal_name = "fdc37c661",
+    .flags = 0,
+    .local = 0x61,
+    .init = fdc37c6xx_init,
+    .close = fdc37c6xx_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
 const device_t fdc37c661_ide_device = {
-    "SMC FDC37C661 Super I/O (With IDE)",
-    "fdc37c661_ide",
-    0,
-    0x161,
-    fdc37c6xx_init, fdc37c6xx_close, NULL,
-    { NULL }, NULL, NULL,
-    NULL
+    .name = "SMC FDC37C661 Super I/O (With IDE)",
+    .internal_name = "fdc37c661_ide",
+    .flags = 0,
+    .local = 0x161,
+    .init = fdc37c6xx_init,
+    .close = fdc37c6xx_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
 const device_t fdc37c663_device = {
-    "SMC FDC37C663 Super I/O",
-    "fdc37c663",
-    0,
-    0x63,
-    fdc37c6xx_init, fdc37c6xx_close, NULL,
-    { NULL }, NULL, NULL,
-    NULL
+    .name = "SMC FDC37C663 Super I/O",
+    .internal_name = "fdc37c663",
+    .flags = 0,
+    .local = 0x63,
+    .init = fdc37c6xx_init,
+    .close = fdc37c6xx_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
 const device_t fdc37c663_ide_device = {
-    "SMC FDC37C663 Super I/O (With IDE)",
-    "fdc37c663_ide",
-    0,
-    0x163,
-    fdc37c6xx_init, fdc37c6xx_close, NULL,
-    { NULL }, NULL, NULL,
-    NULL
+    .name = "SMC FDC37C663 Super I/O (With IDE)",
+    .internal_name = "fdc37c663_ide",
+    .flags = 0,
+    .local = 0x163,
+    .init = fdc37c6xx_init,
+    .close = fdc37c6xx_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
 const device_t fdc37c665_device = {
-    "SMC FDC37C665 Super I/O",
-    "fdc37c665",
-    0,
-    0x65,
-    fdc37c6xx_init, fdc37c6xx_close, NULL,
-    { NULL }, NULL, NULL,
-    NULL
+    .name = "SMC FDC37C665 Super I/O",
+    .internal_name = "fdc37c665",
+    .flags = 0,
+    .local = 0x65,
+    .init = fdc37c6xx_init,
+    .close = fdc37c6xx_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
 const device_t fdc37c665_ide_device = {
-    "SMC FDC37C665 Super I/O (With IDE)",
-    "fdc37c665_ide",
-    0,
-    0x265,
-    fdc37c6xx_init, fdc37c6xx_close, NULL,
-    { NULL }, NULL, NULL,
-    NULL
+    .name = "SMC FDC37C665 Super I/O (With IDE)",
+    .internal_name = "fdc37c665_ide",
+    .flags = 0,
+    .local = 0x265,
+    .init = fdc37c6xx_init,
+    .close = fdc37c6xx_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
 const device_t fdc37c666_device = {
-    "SMC FDC37C666 Super I/O",
-    "fdc37c666",
-    0,
-    0x66,
-    fdc37c6xx_init, fdc37c6xx_close, NULL,
-    { NULL }, NULL, NULL,
-    NULL
+    .name = "SMC FDC37C666 Super I/O",
+    .internal_name = "fdc37c666",
+    .flags = 0,
+    .local = 0x66,
+    .init = fdc37c6xx_init,
+    .close = fdc37c6xx_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };

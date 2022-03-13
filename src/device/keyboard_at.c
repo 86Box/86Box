@@ -2340,227 +2340,285 @@ kbd_init(const device_t *info)
     return(dev);
 }
 
-
 const device_t keyboard_at_device = {
-    "PC/AT Keyboard",
-    "keyboard_at",
-    0,
-    KBC_TYPE_ISA | KBC_VEN_GENERIC,
-    kbd_init,
-    kbd_close,
-    kbd_reset,
-    { NULL }, NULL, NULL, NULL
+    .name = "PC/AT Keyboard",
+    .internal_name = "keyboard_at",
+    .flags = 0,
+    .local = KBC_TYPE_ISA | KBC_VEN_GENERIC,
+    .init = kbd_init,
+    .close = kbd_close,
+    .reset = kbd_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
 const device_t keyboard_at_ami_device = {
-    "PC/AT Keyboard (AMI)",
-    "keyboard_at_ami",
-    0,
-    KBC_TYPE_ISA | KBC_VEN_AMI,
-    kbd_init,
-    kbd_close,
-    kbd_reset,
-    { NULL }, NULL, NULL, NULL
+    .name = "PC/AT Keyboard (AMI)",
+    .internal_name = "keyboard_at_ami",
+    .flags = 0,
+    .local = KBC_TYPE_ISA | KBC_VEN_AMI,
+    .init = kbd_init,
+    .close = kbd_close,
+    .reset = kbd_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
 const device_t keyboard_at_samsung_device = {
-    "PC/AT Keyboard (Samsung)",
-    "keyboard_at_samsung",
-    0,
-    KBC_TYPE_ISA | KBC_VEN_SAMSUNG,
-    kbd_init,
-    kbd_close,
-    kbd_reset,
-    { NULL }, NULL, NULL, NULL
+    .name = "PC/AT Keyboard (Samsung)",
+    .internal_name = "keyboard_at_samsung",
+    .flags = 0,
+    .local = KBC_TYPE_ISA | KBC_VEN_SAMSUNG,
+    .init = kbd_init,
+    .close = kbd_close,
+    .reset = kbd_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
 const device_t keyboard_at_toshiba_device = {
-    "PC/AT Keyboard (Toshiba)",
-    "keyboard_at_toshiba",
-    0,
-    KBC_TYPE_ISA | KBC_VEN_TOSHIBA,
-    kbd_init,
-    kbd_close,
-    kbd_reset,
-    { NULL }, NULL, NULL, NULL
+    .name = "PC/AT Keyboard (Toshiba)",
+    .internal_name = "keyboard_at_toshiba",
+    .flags = 0,
+    .local = KBC_TYPE_ISA | KBC_VEN_TOSHIBA,
+    .init = kbd_init,
+    .close = kbd_close,
+    .reset = kbd_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
 const device_t keyboard_at_olivetti_device = {
-    "PC/AT Keyboard (Olivetti)",
-    "keyboard_at_olivetti",
-    0,
-    KBC_TYPE_ISA | KBC_VEN_OLIVETTI,
-    kbd_init,
-    kbd_close,
-    kbd_reset,
-    { NULL }, NULL, NULL, NULL
+    .name = "PC/AT Keyboard (Olivetti)",
+    .internal_name = "keyboard_at_olivetti",
+    .flags = 0,
+    .local = KBC_TYPE_ISA | KBC_VEN_OLIVETTI,
+    .init = kbd_init,
+    .close = kbd_close,
+    .reset = kbd_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
 const device_t keyboard_at_ncr_device = {
-    "PC/AT Keyboard (NCR)",
-    "keyboard_at_ncr",
-    0,
-    KBC_TYPE_ISA | KBC_VEN_NCR,
-    kbd_init,
-    kbd_close,
-    kbd_reset,
-    { NULL }, NULL, NULL, NULL
+    .name = "PC/AT Keyboard (NCR)",
+    .internal_name = "keyboard_at_ncr",
+    .flags = 0,
+    .local = KBC_TYPE_ISA | KBC_VEN_NCR,
+    .init = kbd_init,
+    .close = kbd_close,
+    .reset = kbd_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
 const device_t keyboard_ps2_device = {
-    "PS/2 Keyboard",
-    "keyboard_ps2",
-    0,
-    KBC_TYPE_PS2_NOREF | KBC_VEN_GENERIC,
-    kbd_init,
-    kbd_close,
-    kbd_reset,
-    { NULL }, NULL, NULL, NULL
+    .name = "PS/2 Keyboard",
+    .internal_name = "keyboard_ps2",
+    .flags = 0,
+    .local = KBC_TYPE_PS2_NOREF | KBC_VEN_GENERIC,
+    .init = kbd_init,
+    .close = kbd_close,
+    .reset = kbd_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
 const device_t keyboard_ps2_ps2_device = {
-    "PS/2 Keyboard",
-    "keyboard_ps2_ps2",
-    0,
-    KBC_TYPE_PS2_1 | KBC_VEN_GENERIC,
-    kbd_init,
-    kbd_close,
-    kbd_reset,
-    { NULL }, NULL, NULL, NULL
+    .name = "PS/2 Keyboard",
+    .internal_name = "keyboard_ps2_ps2",
+    .flags = 0,
+    .local = KBC_TYPE_PS2_1 | KBC_VEN_GENERIC,
+    .init = kbd_init,
+    .close = kbd_close,
+    .reset = kbd_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
 const device_t keyboard_ps2_ps1_device = {
-    "PS/2 Keyboard (IBM PS/1)",
-    "keyboard_ps2_ps1",
-    0,
-    KBC_TYPE_PS2_NOREF | KBC_VEN_IBM_PS1,
-    kbd_init,
-    kbd_close,
-    kbd_reset,
-    { NULL }, NULL, NULL, NULL
+    .name = "PS/2 Keyboard (IBM PS/1)",
+    .internal_name = "keyboard_ps2_ps1",
+    .flags = 0,
+    .local = KBC_TYPE_PS2_NOREF | KBC_VEN_IBM_PS1,
+    .init = kbd_init,
+    .close = kbd_close,
+    .reset = kbd_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
 const device_t keyboard_ps2_ps1_pci_device = {
-    "PS/2 Keyboard (IBM PS/1)",
-    "keyboard_ps2_ps1_pci",
-    DEVICE_PCI,
-    KBC_TYPE_PS2_NOREF | KBC_VEN_IBM_PS1,
-    kbd_init,
-    kbd_close,
-    kbd_reset,
-    { NULL }, NULL, NULL, NULL
+    .name = "PS/2 Keyboard (IBM PS/1)",
+    .internal_name = "keyboard_ps2_ps1_pci",
+    .flags = DEVICE_PCI,
+    .local = KBC_TYPE_PS2_NOREF | KBC_VEN_IBM_PS1,
+    .init = kbd_init,
+    .close = kbd_close,
+    .reset = kbd_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
 const device_t keyboard_ps2_xi8088_device = {
-    "PS/2 Keyboard (Xi8088)",
-    "keyboard_ps2_xi8088",
-    0,
-    KBC_TYPE_PS2_1 | KBC_VEN_XI8088,
-    kbd_init,
-    kbd_close,
-    kbd_reset,
-    { NULL }, NULL, NULL, NULL
+    .name = "PS/2 Keyboard (Xi8088)",
+    .internal_name = "keyboard_ps2_xi8088",
+    .flags = 0,
+    .local = KBC_TYPE_PS2_1 | KBC_VEN_XI8088,
+    .init = kbd_init,
+    .close = kbd_close,
+    .reset = kbd_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
 const device_t keyboard_ps2_ami_device = {
-    "PS/2 Keyboard (AMI)",
-    "keyboard_ps2_ami",
-    0,
-    KBC_TYPE_PS2_NOREF | KBC_VEN_AMI,
-    kbd_init,
-    kbd_close,
-    kbd_reset,
-    { NULL }, NULL, NULL, NULL
+    .name = "PS/2 Keyboard (AMI)",
+    .internal_name = "keyboard_ps2_ami",
+    .flags = 0,
+    .local = KBC_TYPE_PS2_NOREF | KBC_VEN_AMI,
+    .init = kbd_init,
+    .close = kbd_close,
+    .reset = kbd_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
 const device_t keyboard_ps2_olivetti_device = {
-    "PS/2 Keyboard (Olivetti)",
-    "keyboard_ps2_olivetti",
-    0,
-    KBC_TYPE_PS2_NOREF | KBC_VEN_OLIVETTI,
-    kbd_init,
-    kbd_close,
-    kbd_reset,
-    { NULL }, NULL, NULL, NULL
+    .name = "PS/2 Keyboard (Olivetti)",
+    .internal_name = "keyboard_ps2_olivetti",
+    .flags = 0,
+    .local = KBC_TYPE_PS2_NOREF | KBC_VEN_OLIVETTI,
+    .init = kbd_init,
+    .close = kbd_close,
+    .reset = kbd_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
 const device_t keyboard_ps2_mca_device = {
-    "PS/2 Keyboard",
-    "keyboard_ps2_mca",
-    0,
-    KBC_TYPE_PS2_1 | KBC_VEN_IBM_MCA,
-    kbd_init,
-    kbd_close,
-    kbd_reset,
-    { NULL }, NULL, NULL, NULL
+    .name = "PS/2 Keyboard",
+    .internal_name = "keyboard_ps2_mca",
+    .flags = 0,
+    .local = KBC_TYPE_PS2_1 | KBC_VEN_IBM_MCA,
+    .init = kbd_init,
+    .close = kbd_close,
+    .reset = kbd_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
 const device_t keyboard_ps2_mca_2_device = {
-    "PS/2 Keyboard",
-    "keyboard_ps2_mca_2",
-    0,
-    KBC_TYPE_PS2_2 | KBC_VEN_IBM_MCA,
-    kbd_init,
-    kbd_close,
-    kbd_reset,
-    { NULL }, NULL, NULL, NULL
+    .name = "PS/2 Keyboard",
+    .internal_name = "keyboard_ps2_mca_2",
+    .flags = 0,
+    .local = KBC_TYPE_PS2_2 | KBC_VEN_IBM_MCA,
+    .init = kbd_init,
+    .close = kbd_close,
+    .reset = kbd_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
 const device_t keyboard_ps2_quadtel_device = {
-    "PS/2 Keyboard (Quadtel/MegaPC)",
-    "keyboard_ps2_quadtel",
-    0,
-    KBC_TYPE_PS2_NOREF | KBC_VEN_QUADTEL,
-    kbd_init,
-    kbd_close,
-    kbd_reset,
-    { NULL }, NULL, NULL, NULL
+    .name = "PS/2 Keyboard (Quadtel/MegaPC)",
+    .internal_name = "keyboard_ps2_quadtel",
+    .flags = 0,
+    .local = KBC_TYPE_PS2_NOREF | KBC_VEN_QUADTEL,
+    .init = kbd_init,
+    .close = kbd_close,
+    .reset = kbd_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
 const device_t keyboard_ps2_pci_device = {
-    "PS/2 Keyboard",
-    "keyboard_ps2_pci",
-    DEVICE_PCI,
-    KBC_TYPE_PS2_NOREF | KBC_VEN_GENERIC,
-    kbd_init,
-    kbd_close,
-    kbd_reset,
-    { NULL }, NULL, NULL, NULL
+    .name = "PS/2 Keyboard",
+    .internal_name = "keyboard_ps2_pci",
+    .flags = DEVICE_PCI,
+    .local = KBC_TYPE_PS2_NOREF | KBC_VEN_GENERIC,
+    .init = kbd_init,
+    .close = kbd_close,
+    .reset = kbd_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
 const device_t keyboard_ps2_ami_pci_device = {
-    "PS/2 Keyboard (AMI)",
-    "keyboard_ps2_ami_pci",
-    DEVICE_PCI,
-    KBC_TYPE_PS2_NOREF | KBC_VEN_AMI,
-    kbd_init,
-    kbd_close,
-    kbd_reset,
-    { NULL }, NULL, NULL, NULL
+    .name = "PS/2 Keyboard (AMI)",
+    .internal_name = "keyboard_ps2_ami_pci",
+    .flags = DEVICE_PCI,
+    .local = KBC_TYPE_PS2_NOREF | KBC_VEN_AMI,
+    .init = kbd_init,
+    .close = kbd_close,
+    .reset = kbd_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
 const device_t keyboard_ps2_intel_ami_pci_device = {
-    "PS/2 Keyboard (AMI)",
-    "keyboard_ps2_intel_ami_pci",
-    DEVICE_PCI,
-    KBC_TYPE_PS2_NOREF | KBC_VEN_INTEL_AMI,
-    kbd_init,
-    kbd_close,
-    kbd_reset,
-    { NULL }, NULL, NULL, NULL
+    .name = "PS/2 Keyboard (AMI)",
+    .internal_name = "keyboard_ps2_intel_ami_pci",
+    .flags = DEVICE_PCI,
+    .local = KBC_TYPE_PS2_NOREF | KBC_VEN_INTEL_AMI,
+    .init = kbd_init,
+    .close = kbd_close,
+    .reset = kbd_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
 const device_t keyboard_ps2_acer_pci_device = {
-    "PS/2 Keyboard (Acer 90M002A)",
-    "keyboard_ps2_acer_pci",
-    DEVICE_PCI,
-    KBC_TYPE_PS2_NOREF | KBC_VEN_ACER,
-    kbd_init,
-    kbd_close,
-    kbd_reset,
-    { NULL }, NULL, NULL, NULL
+    .name = "PS/2 Keyboard (Acer 90M002A)",
+    .internal_name = "keyboard_ps2_acer_pci",
+    .flags = DEVICE_PCI,
+    .local = KBC_TYPE_PS2_NOREF | KBC_VEN_ACER,
+    .init = kbd_init,
+    .close = kbd_close,
+    .reset = kbd_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
-
 
 void
 keyboard_at_set_mouse(void (*func)(uint8_t val, void *priv), void *priv)

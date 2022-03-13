@@ -236,24 +236,30 @@ opti495_init(const device_t *info)
     return dev;
 }
 
-
 const device_t opti493_device = {
-    "OPTi 82C493",
-    "opti493",
-    0,
-    0,
-    opti495_init, opti495_close, NULL,
-    { NULL }, NULL, NULL,
-    NULL
+    .name = "OPTi 82C493",
+    .internal_name = "opti493",
+    .flags = 0,
+    .local = 0,
+    .init = opti495_init,
+    .close = opti495_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
-
 const device_t opti495_device = {
-    "OPTi 82C495",
-    "opti495",
-    0,
-    1,
-    opti495_init, opti495_close, NULL,
-    { NULL }, NULL, NULL,
-    NULL
+    .name = "OPTi 82C495",
+    .internal_name = "opti495",
+    .flags = 0,
+    .local = 1,
+    .init = opti495_init,
+    .close = opti495_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };

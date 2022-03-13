@@ -302,17 +302,16 @@ opti283_init(const device_t *info)
     return dev;
 }
 
-
 const device_t opti283_device = {
-    "OPTi 82C283",
-    "opti283",
-    0,
-    0,
-    opti283_init,
-    opti283_close,
-    NULL,
-    { NULL },
-    NULL,
-    NULL,
-    NULL
+    .name = "OPTi 82C283",
+    .internal_name = "opti283",
+    .flags = 0,
+    .local = 0,
+    .init = opti283_init,
+    .close = opti283_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };

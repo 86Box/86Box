@@ -261,51 +261,71 @@ xtide_at_close(void *priv)
 
 
 const device_t xtide_device = {
-    "PC/XT XTIDE",
-    "xtide",
-    DEVICE_ISA,
-    0,
-    xtide_init, xtide_close, NULL,
-    { xtide_available }, NULL, NULL,
-    NULL
+    .name = "PC/XT XTIDE",
+    .internal_name = "xtide",
+    .flags = DEVICE_ISA,
+    .local = 0,
+    .init = xtide_init,
+    .close = xtide_close,
+    .reset = NULL,
+    { .available = xtide_available },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
 const device_t xtide_at_device = {
-    "PC/AT XTIDE",
-    "xtide_at",
-    DEVICE_ISA | DEVICE_AT,
-    0,
-    xtide_at_init, xtide_at_close, NULL,
-    { xtide_at_available }, NULL, NULL,
-    NULL
+    .name = "PC/AT XTIDE",
+    .internal_name = "xtide_at",
+    .flags = DEVICE_ISA | DEVICE_AT,
+    .local = 0,
+    .init = xtide_at_init,
+    .close = xtide_at_close,
+    .reset = NULL,
+    { .available = xtide_at_available },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
 const device_t xtide_at_386_device = {
-    "PC/AT XTIDE (386)",
-    "xtide_at_386",
-    DEVICE_ISA | DEVICE_AT,
-    1,
-    xtide_at_init, xtide_at_close, NULL,
-    { xtide_at_386_available }, NULL, NULL,
-    NULL
+    .name = "PC/AT XTIDE (386)",
+    .internal_name = "xtide_at_386",
+    .flags = DEVICE_ISA | DEVICE_AT,
+    .local = 1,
+    .init = xtide_at_init,
+    .close = xtide_at_close,
+    .reset = NULL,
+    { .available = xtide_at_386_available },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
 const device_t xtide_acculogic_device = {
-    "Acculogic XT IDE",
-    "xtide_acculogic",
-    DEVICE_ISA,
-    0,
-    xtide_acculogic_init, xtide_close, NULL,
-    { xtide_acculogic_available }, NULL, NULL,
-    NULL
+    .name = "Acculogic XT IDE",
+    .internal_name = "xtide_acculogic",
+    .flags = DEVICE_ISA,
+    .local = 0,
+    .init = xtide_acculogic_init,
+    .close = xtide_close,
+    .reset = NULL,
+    { .available = xtide_acculogic_available },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
 const device_t xtide_at_ps2_device = {
-    "PS/2 AT XTIDE (1.1.5)",
-    "xtide_at_ps2",
-    DEVICE_ISA | DEVICE_AT,
-    0,
-    xtide_at_ps2_init, xtide_at_close, NULL,
-    { xtide_at_ps2_available }, NULL, NULL,
-    NULL
+    .name = "PS/2 AT XTIDE (1.1.5)",
+    .internal_name = "xtide_at_ps2",
+    .flags = DEVICE_ISA | DEVICE_AT,
+    .local = 0,
+    .init = xtide_at_ps2_init,
+    .close = xtide_at_close,
+    .reset = NULL,
+    { .available = xtide_at_ps2_available },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };

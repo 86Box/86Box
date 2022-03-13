@@ -444,43 +444,58 @@ w83787f_init(const device_t *info)
     return dev;
 }
 
-
 const device_t w83787f_device = {
-    "Winbond W83787F/IF Super I/O",
-    "w83787f",
-    0,
-    0x09,
-    w83787f_init, w83787f_close, NULL,
-    { NULL }, NULL, NULL,
-    NULL
+    .name = "Winbond W83787F/IF Super I/O",
+    .internal_name = "w83787f",
+    .flags = 0,
+    .local = 0x09,
+    .init = w83787f_init,
+    .close = w83787f_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
 const device_t w83787f_ide_device = {
-    "Winbond W83787F/IF Super I/O (With IDE)",
-    "w83787f_ide",
-    0,
-    0x19,
-    w83787f_init, w83787f_close, NULL,
-    { NULL }, NULL, NULL,
-    NULL
+    .name = "Winbond W83787F/IF Super I/O (With IDE)",
+    .internal_name = "w83787f_ide",
+    .flags = 0,
+    .local = 0x19,
+    .init = w83787f_init,
+    .close = w83787f_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
 const device_t w83787f_ide_en_device = {
-    "Winbond W83787F/IF Super I/O (With IDE Enabled)",
-    "w83787f_ide_en",
-    0,
-    0x59,
-    w83787f_init, w83787f_close, NULL,
-    { NULL }, NULL, NULL,
-    NULL
+    .name = "Winbond W83787F/IF Super I/O (With IDE Enabled)",
+    .internal_name = "w83787f_ide_en",
+    .flags = 0,
+    .local = 0x59,
+    .init = w83787f_init,
+    .close = w83787f_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
 const device_t w83787f_ide_sec_device = {
-    "Winbond W83787F/IF Super I/O (With Secondary IDE)",
-    "w83787f_ide_sec",
-    0,
-    0x39,
-    w83787f_init, w83787f_close, NULL,
-    { NULL }, NULL, NULL,
-    NULL
+    .name = "Winbond W83787F/IF Super I/O (With Secondary IDE)",
+    .internal_name = "w83787f_ide_sec",
+    .flags = 0,
+    .local = 0x39,
+    .init = w83787f_init,
+    .close = w83787f_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };

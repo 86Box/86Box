@@ -1055,95 +1055,88 @@ stpc_lpt_init(const device_t *info)
     return dev;
 }
 
-
 /* STPC SoCs */
-const device_t stpc_client_device =
-{
-    "STPC Client",
-    "stpc_client",
-    DEVICE_PCI,
-    STPC_CLIENT,
-    stpc_init,
-    stpc_close,
-    stpc_reset,
-    { NULL },
-    NULL,
-    NULL,
-    NULL
+const device_t stpc_client_device = {
+    .name = "STPC Client",
+    .internal_name = "stpc_client",
+    .flags = DEVICE_PCI,
+    .local = STPC_CLIENT,
+    .init = stpc_init,
+    .close = stpc_close,
+    .reset = stpc_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
-const device_t stpc_consumer2_device =
-{
-    "STPC Consumer-II",
-    "stpc_consumer2",
-    DEVICE_PCI,
-    STPC_CONSUMER2,
-    stpc_init,
-    stpc_close,
-    stpc_reset,
-    { NULL },
-    NULL,
-    NULL,
-    NULL
+const device_t stpc_consumer2_device = {
+    .name = "STPC Consumer-II",
+    .internal_name = "stpc_consumer2",
+    .flags = DEVICE_PCI,
+    .local = STPC_CONSUMER2,
+    .init = stpc_init,
+    .close = stpc_close,
+    .reset = stpc_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
-const device_t stpc_elite_device =
-{
-    "STPC Elite",
-    "stpc_elite",
-    DEVICE_PCI,
-    STPC_ELITE,
-    stpc_init,
-    stpc_close,
-    stpc_reset,
-    { NULL },
-    NULL,
-    NULL,
-    NULL
+const device_t stpc_elite_device = {
+    .name = "STPC Elite",
+    .internal_name = "stpc_elite",
+    .flags = DEVICE_PCI,
+    .local = STPC_ELITE,
+    .init = stpc_init,
+    .close = stpc_close,
+    .reset = stpc_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
-const device_t stpc_atlas_device =
-{
-    "STPC Atlas",
-    "stpc_atlas",
-    DEVICE_PCI,
-    STPC_ATLAS,
-    stpc_init,
-    stpc_close,
-    stpc_reset,
-    { NULL },
-    NULL,
-    NULL,
-    NULL
+const device_t stpc_atlas_device = {
+    .name = "STPC Atlas",
+    .internal_name = "stpc_atlas",
+    .flags = DEVICE_PCI,
+    .local = STPC_ATLAS,
+    .init = stpc_init,
+    .close = stpc_close,
+    .reset = stpc_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
 /* Auxiliary devices */
-const device_t stpc_serial_device =
-{
-    "STPC Serial UARTs",
-    "stpc_serial",
-    0,
-    0,
-    stpc_serial_init,
-    stpc_serial_close,
-    NULL,
-    { NULL },
-    NULL,
-    NULL,
-    NULL
+const device_t stpc_serial_device = {
+    .name = "STPC Serial UARTs",
+    .internal_name = "stpc_serial",
+    .flags = 0,
+    .local = 0,
+    .init = stpc_serial_init,
+    .close = stpc_serial_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
-const device_t stpc_lpt_device =
-{
-    "STPC Parallel Port",
-    "stpc_lpt",
-    0,
-    0,
-    stpc_lpt_init,
-    stpc_lpt_close,
-    stpc_lpt_reset,
-    { NULL },
-    NULL,
-    NULL,
-    NULL
+const device_t stpc_lpt_device = {
+    .name = "STPC Parallel Port",
+    .internal_name = "stpc_lpt",
+    .flags = 0,
+    .local = 0,
+    .init = stpc_lpt_init,
+    .close = stpc_lpt_close,
+    .reset = stpc_lpt_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };

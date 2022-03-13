@@ -390,14 +390,16 @@ sis_85c50x_init(const device_t *info)
     return dev;
 }
 
-
 const device_t sis_85c50x_device = {
-    "SiS 85C50x",
-    "sis_85c50x",
-    DEVICE_PCI,
-    0,
-    sis_85c50x_init, sis_85c50x_close,
-    sis_85c50x_reset, { NULL },
-    NULL, NULL,
-    NULL
+    .name = "SiS 85C50x",
+    .internal_name = "sis_85c50x",
+    .flags = DEVICE_PCI,
+    .local = 0,
+    .init = sis_85c50x_init,
+    .close = sis_85c50x_close,
+    .reset = sis_85c50x_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };

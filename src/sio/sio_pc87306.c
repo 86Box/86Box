@@ -418,13 +418,16 @@ pc87306_init(const device_t *info)
     return dev;
 }
 
-
 const device_t pc87306_device = {
-    "National Semiconductor PC87306 Super I/O",
-    "pc87306",
-    0,
-    0,
-    pc87306_init, pc87306_close, NULL,
-    { NULL }, NULL, NULL,
-    NULL
+    .name = "National Semiconductor PC87306 Super I/O",
+    .internal_name = "pc87306",
+    .flags = 0,
+    .local = 0,
+    .init = pc87306_init,
+    .close = pc87306_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };

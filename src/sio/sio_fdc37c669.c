@@ -326,24 +326,31 @@ fdc37c669_init(const device_t *info)
     return dev;
 }
 
-
 const device_t fdc37c669_device = {
-    "SMC FDC37C669 Super I/O",
-    "fdc37c669",
-    0,
-    0,
-    fdc37c669_init, fdc37c669_close, NULL,
-    { NULL }, NULL, NULL,
-    NULL
+    .name = "SMC FDC37C669 Super I/O",
+    .internal_name = "fdc37c669",
+    .flags = 0,
+    .local = 0,
+    .init = fdc37c669_init,
+    .close = fdc37c669_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
 
 const device_t fdc37c669_370_device = {
-    "SMC FDC37C669 Super I/O (Port 370h)",
-    "fdc37c669_370",
-    0,
-    1,
-    fdc37c669_init, fdc37c669_close, NULL,
-    { NULL }, NULL, NULL,
-    NULL
+    .name = "SMC FDC37C669 Super I/O (Port 370h)",
+    .internal_name = "fdc37c669_370",
+    .flags = 0,
+    .local = 1,
+    fdc37c669_init,
+    fdc37c669_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };

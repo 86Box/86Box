@@ -275,35 +275,44 @@ i82091aa_init(const device_t *info)
     return dev;
 }
 
-
 const device_t i82091aa_device = {
-    "Intel 82091AA Super I/O",
-    "i82091aa",
-    0,
-    0x40,
-    i82091aa_init, i82091aa_close, NULL,
-    { NULL }, NULL, NULL,
-    NULL
+    .name = "Intel 82091AA Super I/O",
+    .internal_name = "i82091aa",
+    .flags = 0,
+    .local = 0x40,
+    .init = i82091aa_init,
+    .close = i82091aa_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
-
 
 const device_t i82091aa_398_device = {
-    "Intel 82091AA Super I/O (Port 398h)",
-    "i82091aa_398",
-    0,
-    0x148,
-    i82091aa_init, i82091aa_close, NULL,
-    { NULL }, NULL, NULL,
-    NULL
+    .name = "Intel 82091AA Super I/O (Port 398h)",
+    .internal_name = "i82091aa_398",
+    .flags = 0,
+    .local = 0x148,
+    .init = i82091aa_init,
+    .close = i82091aa_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
-
 const device_t i82091aa_ide_device = {
-    "Intel 82091AA Super I/O (With IDE)",
-    "i82091aa_ide",
-    0,
-    0x240,
-    i82091aa_init, i82091aa_close, NULL,
-    { NULL }, NULL, NULL,
-    NULL
+    .name = "Intel 82091AA Super I/O (With IDE)",
+    .internal_name = "i82091aa_ide",
+    .flags = 0,
+    .local = 0x240,
+    .init = i82091aa_init,
+    .close = i82091aa_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };

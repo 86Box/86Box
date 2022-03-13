@@ -955,13 +955,16 @@ scamp_init(const device_t *info)
     return dev;
 }
 
-
 const device_t vlsi_scamp_device = {
-    "VLSI SCAMP",
-    "vlsi_scamp",
-    0,
-    0,
-    scamp_init, scamp_close, NULL,
-    { NULL }, NULL, NULL,
-    NULL
+    .name = "VLSI SCAMP",
+    .internal_name = "vlsi_scamp",
+    .flags = 0,
+    .local = 0,
+    .init = scamp_init,
+    .close = scamp_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };

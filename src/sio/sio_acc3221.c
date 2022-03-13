@@ -476,11 +476,15 @@ acc3221_init(const device_t *info)
 
 
 const device_t acc3221_device = {
-    "ACC 3221-SP Super I/O",
-    "acc3221",
-    0,
-    0,
-    acc3221_init, acc3221_close, NULL,
-    { NULL }, NULL, NULL,
-    NULL
+    .name = "ACC 3221-SP Super I/O",
+    .internal_name = "acc3221",
+    .flags = 0,
+    .local = 0,
+    .init = acc3221_init,
+    .close = acc3221_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };

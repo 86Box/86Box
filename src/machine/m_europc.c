@@ -666,37 +666,37 @@ europc_close(void *priv)
 	free(nvr->fn);
 }
 
-
 static const device_config_t europc_config[] = {
     {
-	"js9", "JS9 Jumper (JIM)", CONFIG_INT, "", 0, "", { 0 },
-	{
-		{
-			"Disabled (250h)", 0
-		},
-		{
-			"Enabled (350h)", 1
-		},
-		{
-			""
-		}
-	},
+        .name = "js9",
+        .description = "JS9 Jumper (JIM)",
+        .type = CONFIG_INT,
+        .default_string = "",
+        .default_int = 0,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "Disabled (250h)", .value = 0 },
+            { .description = "Enabled (350h)",  .value = 1 },
+            { ""                                           }
+        },
     },
-    {
-	"", "", -1
-    }
+    { .name = "", .description = "", .type = -1 }
 };
-
 
 const device_t europc_device = {
-    "EuroPC System Board",
-    "europc",
-    0, 0,
-    europc_boot, europc_close, NULL,
-    { NULL }, NULL, NULL,
-    europc_config
+    .name = "EuroPC System Board",
+    .internal_name = "europc",
+    .flags = 0,
+    .local = 0,
+    .init = europc_boot,
+    .close = europc_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = europc_config
 };
-
 
 /*
  * This function sets up the Scheider EuroPC machine.

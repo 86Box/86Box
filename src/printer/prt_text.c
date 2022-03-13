@@ -483,12 +483,13 @@ prnt_close(void *priv)
 
 
 const lpt_device_t lpt_prt_text_device = {
-    "Generic Text Printer",
-    prnt_init,
-    prnt_close,
-    write_data,
-    write_ctrl,
-    NULL,
-    read_status,
-    NULL
+    .name = "Generic Text Printer",
+    .internal_name = "text_prt",
+    .init = prnt_init,
+    .close = prnt_close,
+    .write_data = write_data,
+    .write_ctrl = write_ctrl,
+    .read_data = NULL,
+    .read_status = read_status,
+    .read_ctrl = NULL
 };

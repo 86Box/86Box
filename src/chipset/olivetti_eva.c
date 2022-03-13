@@ -157,11 +157,15 @@ olivetti_eva_init(const device_t *info)
 }
 
 const device_t olivetti_eva_device = {
-    "Olivetti EVA Gate Array",
-    "olivetta_eva",
-    0,
-    0,
-    olivetti_eva_init, olivetti_eva_close, NULL,
-    { NULL }, NULL, NULL,
-    NULL
+    .name = "Olivetti EVA Gate Array",
+    .internal_name = "olivetta_eva",
+    .flags = 0,
+    .local = 0,
+    .init = olivetti_eva_init,
+    .close = olivetti_eva_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };

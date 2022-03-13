@@ -236,122 +236,128 @@ static void joystick_standard_a0_over(void *p)
 {
 }
 
-const joystick_if_t joystick_2axis_2button =
-{
-        "2-axis, 2-button joystick(s)",
-	"2axis_2button",
-        joystick_standard_init,
-        joystick_standard_close,
-        joystick_standard_read,
-        joystick_standard_write,
-        joystick_standard_read_axis,
-        joystick_standard_a0_over,
-        2,
-        2,
-        0,
-        2,
-        {"X axis", "Y axis"},
-        {"Button 1", "Button 2"}
+const joystick_if_t joystick_2axis_2button = {
+    .name = "2-axis, 2-button joystick(s)",
+    .internal_name = "2axis_2button",
+    .init = joystick_standard_init,
+    .close = joystick_standard_close,
+    .read = joystick_standard_read,
+    .write = joystick_standard_write,
+    .read_axis = joystick_standard_read_axis,
+    .a0_over = joystick_standard_a0_over,
+    .axis_count = 2,
+    .button_count = 2,
+    .pov_count = 0,
+    .max_joysticks = 2,
+    .axis_names = { "X axis", "Y axis" },
+    .button_names = { "Button 1", "Button 2" },
+    .pov_names = { NULL }
 };
-const joystick_if_t joystick_2axis_4button =
-{
-        "2-axis, 4-button joystick",
-	"2axis_4button",
-        joystick_standard_init,
-        joystick_standard_close,
-        joystick_standard_read_4button,
-        joystick_standard_write,
-        joystick_standard_read_axis_4button,
-        joystick_standard_a0_over,
-        2,
-        4,
-        0,
-        1,
-        {"X axis", "Y axis"},
-        {"Button 1", "Button 2", "Button 3", "Button 4"}
+
+const joystick_if_t joystick_2axis_4button = {
+    .name = "2-axis, 4-button joystick",
+    .internal_name = "2axis_4button",
+    .init = joystick_standard_init,
+    .close = joystick_standard_close,
+    .read = joystick_standard_read_4button,
+    .write = joystick_standard_write,
+    .read_axis = joystick_standard_read_axis_4button,
+    .a0_over = joystick_standard_a0_over,
+    .axis_count = 2,
+    .button_count = 4,
+    .pov_count = 0,
+    .max_joysticks = 1,
+    .axis_names = { "X axis", "Y axis" },
+    .button_names = { "Button 1", "Button 2", "Button 3", "Button 4" },
+    .pov_names = { NULL }
 };
-const joystick_if_t joystick_3axis_2button =
-{
-        "3-axis, 2-button joystick",
-	"3axis_2button",
-        joystick_standard_init,
-        joystick_standard_close,
-        joystick_standard_read,
-        joystick_standard_write,
-        joystick_standard_read_axis_3axis,
-        joystick_standard_a0_over,
-        3,
-        2,
-        0,
-        1,
-        {"X axis", "Y axis", "Z axis"},
-        {"Button 1", "Button 2"}
+
+const joystick_if_t joystick_3axis_2button = {
+    .name = "3-axis, 2-button joystick",
+    .internal_name = "3axis_2button",
+    .init = joystick_standard_init,
+    .close = joystick_standard_close,
+    .read = joystick_standard_read,
+    .write = joystick_standard_write,
+    .read_axis = joystick_standard_read_axis_3axis,
+    .a0_over = joystick_standard_a0_over,
+    .axis_count = 3,
+    .button_count = 2,
+    .pov_count = 0,
+    .max_joysticks = 1,
+    .axis_names = { "X axis", "Y axis", "Z axis" },
+    .button_names = { "Button 1", "Button 2" },
+    .pov_names = { NULL }
 };
-const joystick_if_t joystick_3axis_4button =
-{
-        "3-axis, 4-button joystick",
-	"3axis_4button",
-        joystick_standard_init,
-        joystick_standard_close,
-        joystick_standard_read_4button,
-        joystick_standard_write,
-        joystick_standard_read_axis_3axis,
-        joystick_standard_a0_over,
-        3,
-        4,
-        0,
-        1,
-        {"X axis", "Y axis", "Z axis"},
-        {"Button 1", "Button 2", "Button 3", "Button 4"}
+
+const joystick_if_t joystick_3axis_4button = {
+    .name = "3-axis, 4-button joystick",
+    .internal_name = "3axis_4button",
+    .init = joystick_standard_init,
+    .close = joystick_standard_close,
+    .read = joystick_standard_read_4button,
+    .write = joystick_standard_write,
+    .read_axis = joystick_standard_read_axis_3axis,
+    .a0_over = joystick_standard_a0_over,
+    .axis_count = 3,
+    .button_count = 4,
+    .pov_count = 0,
+    .max_joysticks = 1,
+    .axis_names = { "X axis", "Y axis", "Z axis" },
+    .button_names = { "Button 1", "Button 2", "Button 3", "Button 4" },
+    .pov_names = { NULL }
 };
-const joystick_if_t joystick_4axis_4button =
-{
-        "4-axis, 4-button joystick",
-	"4axis_4button",
-        joystick_standard_init,
-        joystick_standard_close,
-        joystick_standard_read_4button,
-        joystick_standard_write,
-        joystick_standard_read_axis_4axis,
-        joystick_standard_a0_over,
-        4,
-        4,
-        0,
-        1,
-        {"X axis", "Y axis", "Z axis", "zX axis"},
-        {"Button 1", "Button 2", "Button 3", "Button 4"}
+
+const joystick_if_t joystick_4axis_4button = {
+    .name = "4-axis, 4-button joystick",
+    .internal_name = "4axis_4button",
+    .init = joystick_standard_init,
+    .close = joystick_standard_close,
+    .read = joystick_standard_read_4button,
+    .write = joystick_standard_write,
+    .read_axis = joystick_standard_read_axis_4axis,
+    .a0_over = joystick_standard_a0_over,
+    .axis_count = 4,
+    .button_count = 4,
+    .pov_count = 0,
+    .max_joysticks = 1,
+    .axis_names = { "X axis", "Y axis", "Z axis", "zX axis" },
+    .button_names = { "Button 1", "Button 2", "Button 3", "Button 4" },
+    .pov_names = { NULL }
 };
-const joystick_if_t joystick_2axis_6button =
-{
-        "2-axis, 6-button joystick",
-	"2axis_6button",
-        joystick_standard_init,
-        joystick_standard_close,
-        joystick_standard_read_4button,
-        joystick_standard_write,
-        joystick_standard_read_axis_6button,
-        joystick_standard_a0_over,
-        2,
-        6,
-        0,
-        1,
-        {"X axis", "Y axis"},
-        {"Button 1", "Button 2", "Button 3", "Button 4", "Button 5", "Button 6"}
+
+const joystick_if_t joystick_2axis_6button = {
+    .name = "2-axis, 6-button joystick",
+    .internal_name = "2axis_6button",
+    .init = joystick_standard_init,
+    .close = joystick_standard_close,
+    .read = joystick_standard_read_4button,
+    .write = joystick_standard_write,
+    .read_axis = joystick_standard_read_axis_6button,
+    .a0_over = joystick_standard_a0_over,
+    .axis_count = 2,
+    .button_count = 6,
+    .pov_count = 0,
+    .max_joysticks = 1,
+    .axis_names = { "X axis", "Y axis" },
+    .button_names = { "Button 1", "Button 2", "Button 3", "Button 4", "Button 5", "Button 6" },
+    .pov_names = { NULL }
 };
-const joystick_if_t joystick_2axis_8button =
-{
-        "2-axis, 8-button joystick",
-	"2axis_8button",
-        joystick_standard_init,
-        joystick_standard_close,
-        joystick_standard_read_4button,
-        joystick_standard_write,
-        joystick_standard_read_axis_8button,
-        joystick_standard_a0_over,
-        2,
-        8,
-        0,
-        1,
-        {"X axis", "Y axis"},
-        {"Button 1", "Button 2", "Button 3", "Button 4", "Button 5", "Button 6", "Button 7", "Button 8"}
+
+const joystick_if_t joystick_2axis_8button = {
+    .name = "2-axis, 8-button joystick",
+    .internal_name = "2axis_8button",
+    .init = joystick_standard_init,
+    .close = joystick_standard_close,
+    .read = joystick_standard_read_4button,
+    .write = joystick_standard_write,
+    .read_axis = joystick_standard_read_axis_8button,
+    .a0_over = joystick_standard_a0_over,
+    .axis_count = 2,
+    .button_count = 8,
+    .pov_count = 0,
+    .max_joysticks = 1,
+    .axis_names = { "X axis", "Y axis" },
+    .button_names = { "Button 1", "Button 2", "Button 3", "Button 4", "Button 5", "Button 6", "Button 7", "Button 8" },
+    .pov_names = { NULL }
 };
