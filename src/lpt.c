@@ -103,7 +103,7 @@ lpt_devices_close(void)
     for (i = 0; i < PARALLEL_MAX; i++) {
 	dev = &lpt_ports[i];
 
-	if (lpt_ports[i].dt && lpt_ports[i].dt->init)
+	if (lpt_ports[i].dt && lpt_ports[i].dt->close)
 		dev->dt->close(dev->priv);
 
         dev->dt = NULL;
