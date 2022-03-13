@@ -313,11 +313,15 @@ opti611_init(const device_t *info)
 
 
 const device_t ide_opti611_vlb_device = {
-    "OPTi 82C611/82C611A VLB",
-    "ide_opti611_vlb",
-    0,
-    0,
-    opti611_init, opti611_close, NULL,
-    { NULL }, NULL, NULL,
-    NULL
+    .name = "OPTi 82C611/82C611A VLB",
+    .internal_name = "ide_opti611_vlb",
+    .flags = DEVICE_VLB,
+    .local = 0,
+    .init = opti611_init,
+    .close = opti611_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };

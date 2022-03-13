@@ -1737,67 +1737,85 @@ static const device_config_t wd_rll_config[] = {
 // clang-format on
 
 const device_t st506_xt_xebec_device = {
-    "IBM PC Fixed Disk Adapter (MFM)",
-    "st506_xt",
-    DEVICE_ISA,
-    (HDD_BUS_MFM << 8) | 0,
-    st506_init, st506_close, NULL,
-    { xebec_available },
-    NULL, NULL,
-    NULL
+    .name = "IBM PC Fixed Disk Adapter (MFM)",
+    .internal_name = "st506_xt",
+    .flags = DEVICE_ISA,
+    .local = (HDD_BUS_MFM << 8) | 0,
+    .init = st506_init,
+    .close = st506_close,
+    .reset = NULL,
+    { .available = xebec_available },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
 const device_t st506_xt_dtc5150x_device = {
-    "DTC 5150X MFM Fixed Disk Adapter",
-    "st506_xt_dtc5150x",
-    DEVICE_ISA,
-    (HDD_BUS_MFM << 8) | 1,
-    st506_init, st506_close, NULL,
-    { dtc5150x_available },
-    NULL, NULL,
-    dtc_config
+    .name = "DTC 5150X MFM Fixed Disk Adapter",
+    .internal_name = "st506_xt_dtc5150x",
+    .flags = DEVICE_ISA,
+    .local = (HDD_BUS_MFM << 8) | 1,
+    .init = st506_init,
+    .close = st506_close,
+    .reset = NULL,
+    { .available = dtc5150x_available },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = dtc_config
 };
 
 const device_t st506_xt_st11_m_device = {
-    "ST-11M MFM Fixed Disk Adapter",
-    "st506_xt_st11_m",
-    DEVICE_ISA,
-    (HDD_BUS_MFM << 8) | 11,
-    st506_init, st506_close, NULL,
-    { st11_m_available },
-    NULL, NULL,
-    st11_config
+    .name = "ST-11M MFM Fixed Disk Adapter",
+    .internal_name = "st506_xt_st11_m",
+    .flags = DEVICE_ISA,
+    .local = (HDD_BUS_MFM << 8) | 11,
+    .init = st506_init,
+    .close = st506_close,
+    .reset = NULL,
+    { .available = st11_m_available },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = st11_config
 };
 
 const device_t st506_xt_st11_r_device = {
-    "ST-11R RLL Fixed Disk Adapter",
-    "st506_xt_st11_r",
-    DEVICE_ISA,
-    (HDD_BUS_MFM << 8) | 12,
-    st506_init, st506_close, NULL,
-    { st11_r_available },
-    NULL, NULL,
-    st11_config
+    .name = "ST-11R RLL Fixed Disk Adapter",
+    .internal_name = "st506_xt_st11_r",
+    .flags = DEVICE_ISA,
+    .local = (HDD_BUS_MFM << 8) | 12,
+    .init = st506_init,
+    .close = st506_close,
+    .reset = NULL,
+    { .available = st11_r_available },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = st11_config
 };
 
 const device_t st506_xt_wd1002a_wx1_device = {
-    "WD1002A-WX1 MFM Fixed Disk Adapter",
-    "st506_xt_wd1002a_wx1",
-    DEVICE_ISA,
-    (HDD_BUS_MFM << 8) | 21,
-    st506_init, st506_close, NULL,
-    { wd1002a_wx1_available },
-    NULL, NULL,
-    wd_config
+    .name = "WD1002A-WX1 MFM Fixed Disk Adapter",
+    .internal_name = "st506_xt_wd1002a_wx1",
+    .flags = DEVICE_ISA,
+    .local = (HDD_BUS_MFM << 8) | 21,
+    .init = st506_init,
+    .close = st506_close,
+    .reset = NULL,
+    { .available = wd1002a_wx1_available },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = wd_config
 };
 
 const device_t st506_xt_wd1002a_27x_device = {
-    "WD1002A-27X RLL Fixed Disk Adapter",
-    "st506_xt_wd1002a_27x",
-    DEVICE_ISA,
-    (HDD_BUS_MFM << 8) | 22,
-    st506_init, st506_close, NULL,
-    { wd1002a_27x_available },
-    NULL, NULL,
-    wd_rll_config
+    .name = "WD1002A-27X RLL Fixed Disk Adapter",
+    .internal_name = "st506_xt_wd1002a_27x",
+    .flags = DEVICE_ISA,
+    .local = (HDD_BUS_MFM << 8) | 22,
+    .init = st506_init,
+    .close = st506_close,
+    .reset = NULL,
+    { .available = wd1002a_27x_available },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = wd_rll_config
 };
