@@ -313,7 +313,7 @@ fdd_set_densel(int densel)
 {
     int i = 0;
 
-    for (i = 0; i < 4; i++) {
+    for (i = 0; i < FDD_NUM; i++) {
 	if (drive_types[fdd[i].type].flags & FLAG_INVERT_DENSEL)
 		fdd[i].densel = densel ^ 1;
 	else
@@ -627,7 +627,7 @@ fdd_reset(void)
 {
     int i;
 
-    for (i = 0; i < 4; i++) {
+    for (i = 0; i < FDD_NUM; i++) {
 	drives[i].id = i;
 	timer_add(&(fdd_poll_time[i]), fdd_poll, &drives[i], 0);
     }
@@ -702,7 +702,7 @@ fdd_init(void)
 {
     int i;
 
-    for (i = 0; i < 4; i++) {
+    for (i = 0; i < FDD_NUM; i++) {
 	drives[i].poll = 0;
 	drives[i].seek = 0;
 	drives[i].readsector = 0;
@@ -714,10 +714,9 @@ fdd_init(void)
     imd_init();
     json_init();
 
-    fdd_load(0, floppyfns[0]);
-    fdd_load(1, floppyfns[1]);
-    fdd_load(2, floppyfns[2]);
-    fdd_load(3, floppyfns[3]);
+    for (i = 0; i < FDD_NUM; i++) {
+        fdd_load(i, floppyfns[i]);
+    }
 }
 
 
