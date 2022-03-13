@@ -714,11 +714,15 @@ cassette_init(const device_t *info)
 
 
 const device_t cassette_device = {
-    "IBM PC/PCjr Cassette Device",
-    "cassette",
-    0,
-    0,
-    cassette_init, cassette_close, NULL,
-    { NULL }, NULL, NULL,
-    NULL
+    .name = "IBM PC/PCjr Cassette Device",
+    .internal_name = "cassette",
+    .flags = 0,
+    .local = 0,
+    .init = cassette_init,
+    .close = cassette_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
