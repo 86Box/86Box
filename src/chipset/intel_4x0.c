@@ -1633,252 +1633,226 @@ static void
     return dev;
 }
 
-
-const device_t i420tx_device =
-{
-    "Intel 82424TX",
-    "i420tx",
-    DEVICE_PCI,
-    INTEL_420TX,
-    i4x0_init,
-    i4x0_close,
-    i4x0_reset,
-    { NULL },
-    NULL,
-    NULL,
-    NULL
+const device_t i420tx_device = {
+    .name = "Intel 82424TX",
+    .internal_name = "i420tx",
+    .flags = DEVICE_PCI,
+    .local = INTEL_420TX,
+    .init = i4x0_init,
+    .close = i4x0_close,
+    .reset = i4x0_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
-
-const device_t i420zx_device =
-{
-    "Intel 82424ZX",
-    "i420zx",
-    DEVICE_PCI,
-    INTEL_420ZX,
-    i4x0_init,
-    i4x0_close,
-    i4x0_reset,
-    { NULL },
-    NULL,
-    NULL,
-    NULL
+const device_t i420zx_device = {
+    .name = "Intel 82424ZX",
+    .internal_name = "i420zx",
+    .flags = DEVICE_PCI,
+    .local = INTEL_420ZX,
+    .init = i4x0_init,
+    .close = i4x0_close,
+    .reset = i4x0_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
-
-const device_t i430lx_device =
-{
-    "Intel 82434LX",
-    "i430lx",
-    DEVICE_PCI,
-    INTEL_430LX,
-    i4x0_init,
-    i4x0_close,
-    i4x0_reset,
-    { NULL },
-    NULL,
-    NULL,
-    NULL
+const device_t i430lx_device = {
+    .name = "Intel 82434LX",
+    .internal_name = "i430lx",
+    .flags = DEVICE_PCI,
+    .local = INTEL_430LX,
+    .init = i4x0_init,
+    .close = i4x0_close,
+    .reset = i4x0_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
-
-const device_t i430nx_device =
-{
-    "Intel 82434NX",
-    "i430nx",
-    DEVICE_PCI,
-    INTEL_430NX,
-    i4x0_init,
-    i4x0_close,
-    i4x0_reset,
-    { NULL },
-    NULL,
-    NULL,
-    NULL
+const device_t i430nx_device = {
+    .name = "Intel 82434NX",
+    .internal_name = "i430nx",
+    .flags = DEVICE_PCI,
+    .local = INTEL_430NX,
+    .init = i4x0_init,
+    .close = i4x0_close,
+    .reset = i4x0_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
-
-const device_t i430fx_device =
-{
-    "Intel SB82437FX-66",
-    "i430fx",
-    DEVICE_PCI,
-    INTEL_430FX,
-    i4x0_init,
-    i4x0_close,
-    i4x0_reset,
-    { NULL },
-    NULL,
-    NULL,
-    NULL
+const device_t i430fx_device = {
+    .name = "Intel SB82437FX-66",
+    .internal_name = "i430fx",
+    .flags = DEVICE_PCI,
+    .local = INTEL_430FX,
+    .init = i4x0_init,
+    .close = i4x0_close,
+    .reset = i4x0_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
-
-const device_t i430fx_rev02_device =
-{
-    "Intel SB82437FX-66 (Rev. 02)",
-    "i430fx_rev02",
-    DEVICE_PCI,
-    0x0200 | INTEL_430FX,
-    i4x0_init,
-    i4x0_close,
-    i4x0_reset,
-    { NULL },
-    NULL,
-    NULL,
-    NULL
+const device_t i430fx_rev02_device = {
+    .name = "Intel SB82437FX-66 (Rev. 02)",
+    .internal_name = "i430fx_rev02",
+    .flags = DEVICE_PCI,
+    .local = 0x0200 | INTEL_430FX,
+    .init = i4x0_init,
+    .close = i4x0_close,
+    .reset = i4x0_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
-
-const device_t i430hx_device =
-{
-    "Intel 82439HX",
-    "i430hx",
-    DEVICE_PCI,
-    INTEL_430HX,
-    i4x0_init,
-    i4x0_close,
-    i4x0_reset,
-    { NULL },
-    NULL,
-    NULL,
-    NULL
+const device_t i430hx_device = {
+    .name = "Intel 82439HX",
+    .internal_name = "i430hx",
+    .flags = DEVICE_PCI,
+    .local = INTEL_430HX,
+    .init = i4x0_init,
+    .close = i4x0_close,
+    .reset = i4x0_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
-
-const device_t i430vx_device =
-{
-    "Intel 82437VX",
-    "i430vx",
-    DEVICE_PCI,
-    INTEL_430VX,
-    i4x0_init,
-    i4x0_close,
-    i4x0_reset,
-    { NULL },
-    NULL,
-    NULL,
-    NULL
+const device_t i430vx_device = {
+    .name = "Intel 82437VX",
+    .internal_name = "i430vx",
+    .flags = DEVICE_PCI,
+    .local = INTEL_430VX,
+    .init = i4x0_init,
+    .close = i4x0_close,
+    .reset = i4x0_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
-
-const device_t i430tx_device =
-{
-    "Intel 82439TX",
-    "i430tx",
-    DEVICE_PCI,
-    INTEL_430TX,
-    i4x0_init,
-    i4x0_close,
-    i4x0_reset,
-    { NULL },
-    NULL,
-    NULL,
-    NULL
+const device_t i430tx_device = {
+    .name = "Intel 82439TX",
+    .internal_name = "i430tx",
+    .flags = DEVICE_PCI,
+    .local = INTEL_430TX,
+    .init = i4x0_init,
+    .close = i4x0_close,
+    .reset = i4x0_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
-
-const device_t i440fx_device =
-{
-    "Intel 82441FX",
-    "i440fx",
-    DEVICE_PCI,
-    INTEL_440FX,
-    i4x0_init,
-    i4x0_close,
-    i4x0_reset,
-    { NULL },
-    NULL,
-    NULL,
-    NULL
+const device_t i440fx_device = {
+    .name = "Intel 82441FX",
+    .internal_name = "i440fx",
+    .flags = DEVICE_PCI,
+    .local = INTEL_440FX,
+    .init = i4x0_init,
+    .close = i4x0_close,
+    .reset = i4x0_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
-const device_t i440lx_device =
-{
-    "Intel 82443LX",
-    "i440lx",
-    DEVICE_PCI,
-    INTEL_440LX,
-    i4x0_init,
-    i4x0_close,
-    i4x0_reset,
-    { NULL },
-    NULL,
-    NULL,
-    NULL
+const device_t i440lx_device = {
+    .name = "Intel 82443LX",
+    .internal_name = "i440lx",
+    .flags = DEVICE_PCI,
+    .local = INTEL_440LX,
+    .init = i4x0_init,
+    .close = i4x0_close,
+    .reset = i4x0_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
-const device_t i440ex_device =
-{
-    "Intel 82443EX",
-    "i440ex",
-    DEVICE_PCI,
-    INTEL_440EX,
-    i4x0_init,
-    i4x0_close,
-    i4x0_reset,
-    { NULL },
-    NULL,
-    NULL,
-    NULL
+const device_t i440ex_device = {
+    .name = "Intel 82443EX",
+    .internal_name = "i440ex",
+    .flags = DEVICE_PCI,
+    .local = INTEL_440EX,
+    .init = i4x0_init,
+    .close = i4x0_close,
+    .reset = i4x0_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
-const device_t i440bx_device =
-{
-    "Intel 82443BX",
-    "i440bx",
-    DEVICE_PCI,
-    0x8000 | INTEL_440BX,
-    i4x0_init,
-    i4x0_close,
-    i4x0_reset,
-    { NULL },
-    NULL,
-    NULL,
-    NULL
+const device_t i440bx_device = {
+    .name = "Intel 82443BX",
+    .internal_name = "i440bx",
+    .flags = DEVICE_PCI,
+    .local = 0x8000 | INTEL_440BX,
+    .init = i4x0_init,
+    .close = i4x0_close,
+    .reset = i4x0_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
-const device_t i440bx_no_agp_device =
-{
-    "Intel 82443BX",
-    "i440bx_no_agp",
-    DEVICE_PCI,
-    0x8200 | INTEL_440BX,
-    i4x0_init,
-    i4x0_close,
-    i4x0_reset,
-    { NULL },
-    NULL,
-    NULL,
-    NULL
+const device_t i440bx_no_agp_device = {
+    .name = "Intel 82443BX",
+    .internal_name = "i440bx_no_agp",
+    .flags = DEVICE_PCI,
+    .local = 0x8200 | INTEL_440BX,
+    .init = i4x0_init,
+    .close = i4x0_close,
+    .reset = i4x0_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
-const device_t i440gx_device =
-{
-    "Intel 82443GX",
-    "i440gx",
-    DEVICE_PCI,
-    0x8000 | INTEL_440GX,
-    i4x0_init,
-    i4x0_close,
-    i4x0_reset,
-    { NULL },
-    NULL,
-    NULL,
-    NULL
+const device_t i440gx_device = {
+    .name = "Intel 82443GX",
+    .internal_name = "i440gx",
+    .flags = DEVICE_PCI,
+    .local = 0x8000 | INTEL_440GX,
+    .init = i4x0_init,
+    .close = i4x0_close,
+    .reset = i4x0_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
-const device_t i440zx_device =
-{
-    "Intel 82443ZX",
-    "i440zx",
-    DEVICE_PCI,
-    0x8000 | INTEL_440ZX,
-    i4x0_init,
-    i4x0_close,
-    i4x0_reset,
-    { NULL },
-    NULL,
-    NULL,
-    NULL
+const device_t i440zx_device = {
+    .name = "Intel 82443ZX",
+    .internal_name = "i440zx",
+    .flags = DEVICE_PCI,
+    .local = 0x8000 | INTEL_440ZX,
+    .init = i4x0_init,
+    .close = i4x0_close,
+    .reset = i4x0_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };

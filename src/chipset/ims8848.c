@@ -400,13 +400,16 @@ ims8848_init(const device_t *info)
     return dev;
 }
 
-
 const device_t ims8848_device = {
-    "IMS 8848/8849",
-    "ims8848",
-    0,
-    0,
-    ims8848_init, ims8848_close, ims8848_reset,
-    { NULL }, NULL, NULL,
-    NULL
+    .name = "IMS 8848/8849",
+    .internal_name = "ims8848",
+    .flags = 0,
+    .local = 0,
+    .init = ims8848_init,
+    .close = ims8848_close,
+    .reset = ims8848_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };

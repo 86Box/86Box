@@ -545,33 +545,31 @@ sio_init(const device_t *info)
 }
 
 
-const device_t sio_device =
-{
-    "Intel 82378IB (SIO)",
-    "sio",
-    DEVICE_PCI,
-    0x00,
-    sio_init,
-    sio_close,
-    sio_reset,
-    { NULL },
-    sio_speed_changed,
-    NULL,
-    NULL
+const device_t sio_device = {
+    .name = "Intel 82378IB (SIO)",
+    .internal_name = "sio",
+    .flags = DEVICE_PCI,
+    .local = 0x00,
+    .init = sio_init,
+    .close = sio_close,
+    .reset = sio_reset,
+    { .available = NULL },
+    .speed_changed = sio_speed_changed,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
 
-const device_t sio_zb_device =
-{
-    "Intel 82378ZB (SIO)",
-    "sio_zb",
-    DEVICE_PCI,
-    0x03,
-    sio_init,
-    sio_close,
-    sio_reset,
-    { NULL },
-    sio_speed_changed,
-    NULL,
-    NULL
+const device_t sio_zb_device = {
+    .name = "Intel 82378ZB (SIO)",
+    .internal_name = "sio_zb",
+    .flags = DEVICE_PCI,
+    .local = 0x03,
+    .init = sio_init,
+    .close = sio_close,
+    .reset = sio_reset,
+    { .available = NULL },
+    .speed_changed = sio_speed_changed,
+    .force_redraw = NULL,
+    .config = NULL
 };

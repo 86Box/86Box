@@ -740,14 +740,15 @@ sis_5511_init(const device_t *info)
 }
 
 const device_t sis_5511_device = {
-	"SiS 5511",
-	"sis_5511",
-	DEVICE_PCI,
-	0,
-	sis_5511_init,
-	sis_5511_close,
-	sis_5511_reset,
-	{NULL},
-	NULL,
-	NULL,
-	NULL};
+    .name = "SiS 5511",
+    .internal_name = "sis_5511",
+    .flags = DEVICE_PCI,
+    .local = 0,
+    .init = sis_5511_init,
+    .close = sis_5511_close,
+    .reset = sis_5511_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
+};

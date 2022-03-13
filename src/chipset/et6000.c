@@ -149,14 +149,15 @@ et6000_init(const device_t *info)
 }
 
 const device_t et6000_device = {
-    "ETEQ Cheetah ET6000",
-    "et6000",
-    0,
-    0,
-    et6000_init,
-    et6000_close,
-    NULL,
-    {NULL},
-    NULL,
-    NULL,
-    NULL};
+    .name = "ETEQ Cheetah ET6000",
+    .internal_name = "et6000",
+    .flags = 0,
+    .local = 0,
+    .init = et6000_init,
+    .close = et6000_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
+};

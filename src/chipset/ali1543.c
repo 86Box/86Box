@@ -1741,31 +1741,30 @@ ali1543_init(const device_t *info)
     return dev;
 }
 
-
 const device_t ali1543_device = {
-    "ALi M1543 Desktop South Bridge",
-    "ali1543",
-    DEVICE_PCI,
-    0,
-    ali1543_init,
-    ali1543_close,
-    ali1543_reset,
-    { NULL },
-    NULL,
-    NULL,
-    NULL
+    .name = "ALi M1543 Desktop South Bridge",
+    .internal_name = "ali1543",
+    .flags = DEVICE_PCI,
+    .local = 0,
+    .init = ali1543_init,
+    .close = ali1543_close,
+    .reset = ali1543_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
 const device_t ali1543c_device = {
-    "ALi M1543C Desktop South Bridge",
-    "ali1543c",
-    DEVICE_PCI,
-    1,
-    ali1543_init,
-    ali1543_close,
-    ali1543_reset,
-    { NULL },
-    NULL,
-    NULL,
-    NULL
+    .name = "ALi M1543C Desktop South Bridge",
+    .internal_name = "ali1543c",
+    .flags = DEVICE_PCI,
+    .local = 1,
+    .init = ali1543_init,
+    .close = ali1543_close,
+    .reset = ali1543_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
