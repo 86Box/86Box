@@ -1,5 +1,4 @@
 /* Copyright holders: Sarah Walker
-/* Copyright holders: Sarah Walker
    see COPYING for more details
 */
 #include <stdio.h>
