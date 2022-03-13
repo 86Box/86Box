@@ -72,6 +72,9 @@ extern const OpFn *x86_dynarec_opcodes_REPE;
 extern const OpFn *x86_dynarec_opcodes_REPNE;
 extern const OpFn *x86_dynarec_opcodes_3DNOW;
 
+extern const OpFn dynarec_ops_186[1024];
+extern const OpFn dynarec_ops_186_0f[1024];
+
 extern const OpFn dynarec_ops_286[1024];
 extern const OpFn dynarec_ops_286_0f[1024];
 
@@ -170,6 +173,9 @@ extern const OpFn *x86_opcodes_df_a32;
 extern const OpFn *x86_opcodes_REPE;
 extern const OpFn *x86_opcodes_REPNE;
 extern const OpFn *x86_opcodes_3DNOW;
+
+extern const OpFn ops_186[1024];
+extern const OpFn ops_186_0f[1024];
 
 extern const OpFn ops_286[1024];
 extern const OpFn ops_286_0f[1024];

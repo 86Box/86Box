@@ -372,8 +372,8 @@ cpu_set(void)
 
     CPUID        = cpu_s->cpuid_model;
     is8086       = (cpu_s->cpu_type > CPU_8088);
-    is_nec       = (cpu->type == CPU_NEC);
-    is186        = (cpu->type == CPU_186);
+    is_nec       = (cpu->type == CPU_V20) || (cpu->type == CPU_V30);
+    is186        = (cpu->type == CPU_186) || (cpu->type == CPU_V30);
     is286        = (cpu_s->cpu_type >= CPU_286);
     is386        = (cpu_s->cpu_type >= CPU_386SX);
     israpidcad   = (cpu_s->cpu_type == CPU_RAPIDCAD);
@@ -531,8 +531,16 @@ cpu_set(void)
     switch (cpu_s->cpu_type) {
 	case CPU_8088:
 	case CPU_8086:
-	case CPU_NEC:
+		break;
+
+	case CPU_V20:
+	case CPU_V30:
 	case CPU_186:
+#ifdef USE_DYNAREC
+		x86_setopcodes(ops_186, ops_186_0f, dynarec_ops_186, dynarec_ops_186_0f);
+#else
+		x86_setopcodes(ops_186, ops_186_0f);
+#endif
 		break;
 
 	case CPU_286:

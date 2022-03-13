@@ -24,6 +24,7 @@
 enum {
 	FPU_NONE,
 	FPU_8087,
+	FPU_80187,
 	FPU_287,
 	FPU_287XL,
 	FPU_387,
@@ -34,10 +35,10 @@ enum {
 enum {
     CPU_8088 = 1,	/* 808x class CPUs */
     CPU_8086,
-#ifdef USE_NEC_808X
+//#ifdef USE_NEC_808X
     CPU_V20,		/* NEC 808x class CPUs - future proofing */
     CPU_V30,
-#endif
+//#endif
     CPU_188,		/* 18x class CPUs */
     CPU_186,
     CPU_286,		/* 286 class CPUs */
