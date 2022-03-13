@@ -60,17 +60,21 @@ typedef struct _joystick_instance_ {
 int		joystick_type = 0;
 
 static const joystick_if_t joystick_none = {
-    "None",
-    "none",
-    NULL,
-    NULL,
-    NULL,
-    NULL,
-    NULL,
-    NULL,
-    0,
-    0,
-    0
+    .name = "None",
+    .internal_name = "none",
+    .init = NULL,
+    .close = NULL,
+    .read = NULL,
+    .write = NULL,
+    .read_axis = NULL,
+    .a0_over = NULL,
+    .axis_count = 0,
+    .button_count = 0,
+    .pov_count = 0,
+    .max_joysticks = 0,
+    .axis_names = { NULL },
+    .button_names = { NULL },
+    .pov_names = { NULL }
 };
 
 static const struct {
