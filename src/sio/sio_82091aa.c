@@ -6,7 +6,7 @@
  *
  *		This file is part of the 86Box distribution.
  *
- *		Emulation of the Intel 82019AA Super I/O chip.
+ *		Emulation of the Intel 82091AA Super I/O chip.
  *
  *
  *
@@ -49,26 +49,26 @@ fdc_handler(i82091aa_t *dev)
 {
     fdc_remove(dev->fdc);
     if (dev->regs[0x10] & 0x01)
-	fdc_set_base(dev->fdc, (dev->regs[0x10] & 0x02) ? 0x0370 : 0x03f0);
+	fdc_set_base(dev->fdc, (dev->regs[0x10] & 0x02) ? FDC_SECONDARY_ADDR : FDC_PRIMARY_ADDR);
 }
 
 
 static void
 lpt1_handler(i82091aa_t *dev)
 {
-    uint16_t lpt_port = 0x378;
+    uint16_t lpt_port = LPT1_ADDR;
 
     lpt1_remove();
 
     switch ((dev->regs[0x20] >> 1) & 0x03) {
 	case 0x00:
-		lpt_port = 0x378;
+		lpt_port = LPT1_ADDR;
 		break;
 	case 1:
-		lpt_port = 0x278;
+		lpt_port = LPT2_ADDR;
 		break;
 	case 2:
-		lpt_port = 0x3bc;
+		lpt_port = LPT_MDA_ADDR;
 		break;
 	case 3:
 		lpt_port = 0x000;
@@ -78,7 +78,7 @@ lpt1_handler(i82091aa_t *dev)
     if ((dev->regs[0x20] & 0x01) && lpt_port)
 	lpt1_init(lpt_port);
 
-    lpt1_irq((dev->regs[0x20] & 0x08) ? 7 : 5);
+    lpt1_irq((dev->regs[0x20] & 0x08) ? LPT1_IRQ : LPT2_IRQ);
 }
 
 
@@ -86,16 +86,16 @@ static void
 serial_handler(i82091aa_t *dev, int uart)
 {
     int reg = (0x30 + (uart << 4));
-    uint16_t uart_port = 0x3f8;
+    uint16_t uart_port = COM1_ADDR;
 
     serial_remove(dev->uart[uart]);
 
     switch ((dev->regs[reg] >> 1) & 0x07) {
 	case 0x00:
-		uart_port = 0x3f8;
+		uart_port = COM1_ADDR;
 		break;
 	case 0x01:
-		uart_port = 0x2f8;
+		uart_port = COM2_ADDR;
 		break;
 	case 0x02:
 		uart_port = 0x220;
@@ -107,18 +107,18 @@ serial_handler(i82091aa_t *dev, int uart)
 		uart_port = 0x238;
 		break;
 	case 0x05:
-		uart_port = 0x2e8;
+		uart_port = COM4_ADDR;
 		break;
 	case 0x06:
 		uart_port = 0x338;
 		break;
 	case 0x07:
-		uart_port = 0x3e8;
+		uart_port = COM3_ADDR;
 		break;
     }
 
     if (dev->regs[reg] & 0x01)
-	serial_setup(dev->uart[uart], uart_port, (dev->regs[reg] & 0x10) ? 4 : 3);
+	serial_setup(dev->uart[uart], uart_port, (dev->regs[reg] & 0x10) ? COM1_IRQ : COM2_IRQ);
 }
 
 

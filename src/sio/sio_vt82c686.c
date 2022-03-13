@@ -239,9 +239,9 @@ vt82c686_sio_write(uint8_t addr, uint8_t val, void *priv)
 		break;
 
 	case 0x85:
-		io_removehandler(0x3f0, 2, vt82c686_read, NULL, NULL, vt82c686_write, NULL, NULL, dev);
+		io_removehandler(FDC_PRIMARY_ADDR, 2, vt82c686_read, NULL, NULL, vt82c686_write, NULL, NULL, dev);
 		if (val & 0x02)
-			io_sethandler(0x3f0, 2, vt82c686_read, NULL, NULL, vt82c686_write, NULL, NULL, dev);
+			io_sethandler(FDC_PRIMARY_ADDR, 2, vt82c686_read, NULL, NULL, vt82c686_write, NULL, NULL, dev);
 		break;
     }
 }
@@ -261,8 +261,8 @@ vt82c686_reset(vt82c686_t *dev)
 
     fdc_reset(dev->fdc);
 
-    serial_setup(dev->uart[0], SERIAL1_ADDR, SERIAL1_IRQ);
-    serial_setup(dev->uart[1], SERIAL2_ADDR, SERIAL2_IRQ);
+    serial_setup(dev->uart[0], COM1_ADDR, COM1_IRQ);
+    serial_setup(dev->uart[1], COM2_ADDR, COM2_IRQ);
 
     vt82c686_lpt_handler(dev);
     vt82c686_serial_handler(dev, 0);

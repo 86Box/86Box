@@ -65,22 +65,22 @@ cbm_io_write(uint16_t port, uint8_t val, void *p)
 
     switch (val & 3) {
 	case 1:
-		lpt1_init(0x3bc);
+		lpt1_init(LPT_MDA_ADDR);
 		break;
 	case 2:
-		lpt1_init(0x378);
+		lpt1_init(LPT1_ADDR);
 		break;
 	case 3:
-		lpt1_init(0x278);
+		lpt1_init(LPT2_ADDR);
 		break;
     }
 
     switch (val & 0xc) {
 	case 0x4:
-		serial_setup(cmd_uart, 0x2f8, 3);
+		serial_setup(cmd_uart, COM2_ADDR, COM2_IRQ);
 		break;
 	case 0x8:
-		serial_setup(cmd_uart, 0x3f8, 4);
+		serial_setup(cmd_uart, COM1_ADDR, COM1_IRQ);
 		break;
     }
 }

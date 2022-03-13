@@ -56,11 +56,11 @@ set_com34_addr(fdc37c6xx_t *dev)
 		dev->com4_addr = 0x238;
 		break;
 	case 0x20:
-		dev->com3_addr = 0x3e8;
-		dev->com4_addr = 0x2e8;
+		dev->com3_addr = COM3_ADDR;
+		dev->com4_addr = COM4_ADDR;
 		break;
 	case 0x40:
-		dev->com3_addr = 0x3e8;
+		dev->com3_addr = COM3_ADDR;
 		dev->com4_addr = 0x2e0;
 		break;
 	case 0x60:
@@ -84,16 +84,16 @@ set_serial_addr(fdc37c6xx_t *dev, int port)
     if (dev->regs[2] & (4 << shift)) {
 	switch ((dev->regs[2] >> shift) & 3) {
 		case 0:
-			serial_setup(dev->uart[port], SERIAL1_ADDR, SERIAL1_IRQ);
+			serial_setup(dev->uart[port], COM1_ADDR, COM1_IRQ);
 			break;
 		case 1:
-			serial_setup(dev->uart[port], SERIAL2_ADDR, SERIAL2_IRQ);
+			serial_setup(dev->uart[port], COM2_ADDR, COM2_IRQ);
 			break;
 		case 2:
-			serial_setup(dev->uart[port], dev->com3_addr, 4);
+			serial_setup(dev->uart[port], dev->com3_addr, COM3_IRQ);
 			break;
 		case 3:
-			serial_setup(dev->uart[port], dev->com4_addr, 3);
+			serial_setup(dev->uart[port], dev->com4_addr, COM4_IRQ);
 			break;
 	}
     }
@@ -108,15 +108,15 @@ lpt1_handler(fdc37c6xx_t *dev)
     lpt1_remove();
     switch (dev->regs[1] & 3) {
 	case 1:
-		lpt1_init(0x3bc);
+		lpt1_init(LPT_MDA_ADDR);
 		lpt1_irq(7);
 		break;
 	case 2:
-		lpt1_init(0x378);
+		lpt1_init(LPT1_ADDR);
 		lpt1_irq(7 /*5*/);
 		break;
 	case 3:
-		lpt1_init(0x278);
+		lpt1_init(LPT2_ADDR);
 		lpt1_irq(7 /*5*/);
 		break;
     }
@@ -128,7 +128,7 @@ fdc_handler(fdc37c6xx_t *dev)
 {
     fdc_remove(dev->fdc);
     if (dev->regs[0] & 0x10)
-	fdc_set_base(dev->fdc, (dev->regs[5] & 0x01) ? 0x0370 : 0x03f0);
+	fdc_set_base(dev->fdc, (dev->regs[5] & 0x01) ? FDC_SECONDARY_ADDR : FDC_PRIMARY_ADDR);
 }
 
 
@@ -160,7 +160,7 @@ fdc37c6xx_write(uint16_t port, uint8_t val, void *priv)
     uint8_t valxor = 0;
 
     if (dev->tries == 2) {
-	if (port == 0x3f0) {
+	if (port == FDC_PRIMARY_ADDR) {
 		if (val == 0xaa)
 			dev->tries = 0;
 		else
@@ -216,7 +216,7 @@ fdc37c6xx_write(uint16_t port, uint8_t val, void *priv)
 				break;
 		}
 	}
-    } else if ((port == 0x3f0) && (val == 0x55))
+    } else if ((port == FDC_PRIMARY_ADDR) && (val == 0x55))
 	dev->tries++;
 }
 
@@ -243,13 +243,13 @@ fdc37c6xx_reset(fdc37c6xx_t *dev)
     dev->com4_addr = 0x238;
 
     serial_remove(dev->uart[0]);
-    serial_setup(dev->uart[0], SERIAL1_ADDR, SERIAL1_IRQ);
+    serial_setup(dev->uart[0], COM1_ADDR, COM1_IRQ);
 
     serial_remove(dev->uart[1]);
-    serial_setup(dev->uart[1], SERIAL2_ADDR, SERIAL2_IRQ);
+    serial_setup(dev->uart[1], COM2_ADDR, COM2_IRQ);
 
     lpt1_remove();
-    lpt1_init(0x378);
+    lpt1_init(LPT1_ADDR);
 
     fdc_reset(dev->fdc);
     fdc_remove(dev->fdc);
@@ -325,7 +325,7 @@ fdc37c6xx_init(const device_t *info)
 	dev->uart[1] = device_add_inst(&ns16450_device, 2);
     }
 
-    io_sethandler(0x03f0, 0x0002,
+    io_sethandler(FDC_PRIMARY_ADDR, 0x0002,
 		  fdc37c6xx_read, NULL, NULL, fdc37c6xx_write, NULL, NULL, dev);
 
     fdc37c6xx_reset(dev);

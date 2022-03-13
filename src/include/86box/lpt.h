@@ -1,6 +1,22 @@
 #ifndef EMU_LPT_H
 # define EMU_LPT_H
 
+#define LPT1_ADDR		0x0378
+#define LPT1_IRQ		7
+#define LPT2_ADDR		0x0278
+#define LPT2_IRQ		5
+// LPT 1 on machines when installed
+#define LPT_MDA_ADDR	0x03bc
+#define LPT_MDA_IRQ	7
+#define LPT4_ADDR		0x0268
+#define LPT4_IRQ		5
+/*
+#define LPT5_ADDR		0x027c
+#define LPT5_IRQ		7
+#define LPT6_ADDR		0x026c
+#define LPT6_IRQ		5
+*/
+
 typedef struct
 {
     const char *name;

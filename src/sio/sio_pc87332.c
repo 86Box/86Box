@@ -48,23 +48,23 @@ static void
 lpt1_handler(pc87332_t *dev)
 {
     int temp;
-    uint16_t lpt_port = 0x378;
-    uint8_t lpt_irq = 5;
+    uint16_t lpt_port = LPT1_ADDR;
+    uint8_t lpt_irq = LPT2_IRQ;
 
     temp = dev->regs[0x01] & 3;
 
     switch (temp) {
 	case 0:
-		lpt_port = 0x378;
-		lpt_irq = (dev->regs[0x02] & 0x08) ? 7 : 5;
+		lpt_port = LPT1_ADDR;
+		lpt_irq = (dev->regs[0x02] & 0x08) ? LPT1_IRQ : LPT2_IRQ;
 		break;
 	case 1:
-		lpt_port = 0x3bc;
-		lpt_irq = 7;
+		lpt_port = LPT_MDA_ADDR;
+		lpt_irq = LPT_MDA_IRQ;
 		break;
 	case 2:
-		lpt_port = 0x278;
-		lpt_irq = 5;
+		lpt_port = LPT2_ADDR;
+		lpt_irq = LPT2_IRQ;
 		break;
 	case 3:
 		lpt_port = 0x000;
@@ -88,40 +88,40 @@ serial_handler(pc87332_t *dev, int uart)
 
     switch (temp) {
 	case 0:
-		serial_setup(dev->uart[uart], SERIAL1_ADDR, 4);
+		serial_setup(dev->uart[uart], COM1_ADDR, 4);
 		break;
 	case 1:
-		serial_setup(dev->uart[uart], SERIAL2_ADDR, 3);
+		serial_setup(dev->uart[uart], COM2_ADDR, 3);
 		break;
 	case 2:
 		switch ((dev->regs[1] >> 6) & 3) {
 			case 0:
-				serial_setup(dev->uart[uart], 0x3e8, 4);
+				serial_setup(dev->uart[uart], COM3_ADDR, COM3_IRQ);
 				break;
 			case 1:
-				serial_setup(dev->uart[uart], 0x338, 4);
+				serial_setup(dev->uart[uart], 0x338, COM3_IRQ);
 				break;
 			case 2:
-				serial_setup(dev->uart[uart], 0x2e8, 4);
+				serial_setup(dev->uart[uart], COM4_ADDR, COM3_IRQ);
 				break;
 			case 3:
-				serial_setup(dev->uart[uart], 0x220, 4);
+				serial_setup(dev->uart[uart], 0x220, COM3_IRQ);
 				break;
 		}
 		break;
 	case 3:
 		switch ((dev->regs[1] >> 6) & 3) {
 			case 0:
-				serial_setup(dev->uart[uart], 0x2e8, 3);
+				serial_setup(dev->uart[uart], COM4_ADDR, COM4_IRQ);
 				break;
 			case 1:
-				serial_setup(dev->uart[uart], 0x238, 3);
+				serial_setup(dev->uart[uart], 0x238, COM4_IRQ);
 				break;
 			case 2:
-				serial_setup(dev->uart[uart], 0x2e0, 3);
+				serial_setup(dev->uart[uart], 0x2e0, COM4_IRQ);
 				break;
 			case 3:
-				serial_setup(dev->uart[uart], 0x228, 3);
+				serial_setup(dev->uart[uart], 0x228, COM4_IRQ);
 				break;
 		}
 		break;
@@ -195,7 +195,7 @@ pc87332_write(uint16_t port, uint8_t val, void *priv)
 		if (valxor & 0x28) {
 			fdc_remove(dev->fdc);
 			if ((val & 8) && !(dev->regs[2] & 1))
-				fdc_set_base(dev->fdc, (val & 0x20) ? 0x370 : 0x3f0);
+				fdc_set_base(dev->fdc, (val & 0x20) ? FDC_SECONDARY_ADDR : FDC_PRIMARY_ADDR);
 		}
 		if (dev->has_ide && (valxor & 0xc0))
 			ide_handler(dev);
@@ -232,7 +232,7 @@ pc87332_write(uint16_t port, uint8_t val, void *priv)
 				if (dev->regs[0] & 4)
 					serial_handler(dev, 1);
 				if (dev->regs[0] & 8)
-					fdc_set_base(dev->fdc, (dev->regs[0] & 0x20) ? 0x370 : 0x3f0);
+					fdc_set_base(dev->fdc, (dev->regs[0] & 0x20) ? FDC_SECONDARY_ADDR : FDC_PRIMARY_ADDR);
 			}
 		}
 		if (valxor & 8) {

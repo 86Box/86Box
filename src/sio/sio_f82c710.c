@@ -81,26 +81,26 @@ f82c710_update_ports(upc_t *dev, int set)
 
     if (dev->regs[0] & 4) {
 	com_addr = dev->regs[4] * 4;
-	if (com_addr == SERIAL1_ADDR)
-		serial_setup(dev->uart[0], com_addr, 4);
-	else if (com_addr == SERIAL2_ADDR)
-		serial_setup(dev->uart[1], com_addr, 3);
+	if (com_addr == COM1_ADDR)
+		serial_setup(dev->uart[0], com_addr, COM1_IRQ);
+	else if (com_addr == COM2_ADDR)
+		serial_setup(dev->uart[1], com_addr, COM2_IRQ);
     }
 
     if (dev->regs[0] & 8) {
 	lpt_addr = dev->regs[6] * 4;
 	lpt1_init(lpt_addr);
-	if ((lpt_addr == 0x378) || (lpt_addr == 0x3bc))
-		lpt1_irq(7);
-	else if (lpt_addr == 0x278)
-		lpt1_irq(5);
+	if ((lpt_addr == LPT1_ADDR) || (lpt_addr == LPT_MDA_ADDR))
+		lpt1_irq(LPT1_IRQ);
+	else if (lpt_addr == LPT2_ADDR)
+		lpt1_irq(LPT2_IRQ);
     }
 
     if (dev->regs[12] & 0x80)
 	ide_pri_enable();
 
     if (dev->regs[12] & 0x20)
-	fdc_set_base(dev->fdc, 0x03f0);
+	fdc_set_base(dev->fdc, FDC_PRIMARY_ADDR);
 }
 
 
@@ -127,26 +127,26 @@ f82c606_update_ports(upc_t *dev, int set)
 
     switch (dev->regs[8] & 0xc0) {
 	case 0x40: nvr_int = 3; break;
-	case 0x80: uart1_int = 3; break;
-	case 0xc0: uart2_int = 3; break;
+	case 0x80: uart1_int = COM2_IRQ; break;
+	case 0xc0: uart2_int = COM2_IRQ; break;
     }
 
     switch (dev->regs[8] & 0x30) {
 	case 0x10: nvr_int = 4; break;
-	case 0x20: uart1_int = 4; break;
-	case 0x30: uart2_int = 4; break;
+	case 0x20: uart1_int = COM1_IRQ; break;
+	case 0x30: uart2_int = COM1_IRQ; break;
     }
 
     switch (dev->regs[8] & 0x0c) {
 	case 0x04: nvr_int = 5; break;
 	case 0x08: uart1_int = 5; break;
-	case 0x0c: lpt1_int = 5; break;
+	case 0x0c: lpt1_int = LPT2_IRQ; break;
     }
 
     switch (dev->regs[8] & 0x03) {
 	case 0x01: nvr_int = 7; break;
 	case 0x02: uart2_int = 7; break;
-	case 0x03: lpt1_int = 7; break;
+	case 0x03: lpt1_int = LPT1_IRQ; break;
     }
 
     if (dev->regs[0] & 1) {

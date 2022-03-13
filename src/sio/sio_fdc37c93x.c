@@ -741,7 +741,7 @@ fdc37c93x_reset(fdc37c93x_t *dev)
     dev->ld_regs[4][0x61] = 0xf8;
     dev->ld_regs[4][0x70] = 4;
     dev->ld_regs[4][0xF0] = 3;
-    serial_setup(dev->uart[0], 0x3f8, dev->ld_regs[4][0x70]);
+    serial_setup(dev->uart[0], COM1_ADDR, dev->ld_regs[4][0x70]);
 
     /* Logical device 5: Serial Port 2 */
     dev->ld_regs[5][0x30] = 1;
@@ -751,7 +751,7 @@ fdc37c93x_reset(fdc37c93x_t *dev)
     dev->ld_regs[5][0x74] = 4;
     dev->ld_regs[5][0xF1] = 2;
     dev->ld_regs[5][0xF2] = 3;
-    serial_setup(dev->uart[1], 0x2f8, dev->ld_regs[5][0x70]);
+    serial_setup(dev->uart[1], COM2_ADDR, dev->ld_regs[5][0x70]);
 
     /* Logical device 6: RTC */
     dev->ld_regs[6][0x30] = 1;
@@ -873,9 +873,9 @@ fdc37c93x_init(const device_t *info)
 	io_sethandler(0x0fb, 0x0001,
 		      fdc37c93x_read, NULL, NULL, fdc37c93x_write, NULL, NULL, dev);
     } else {
-	io_sethandler(0x370, 0x0002,
+	io_sethandler(FDC_SECONDARY_ADDR, 0x0002,
 		      fdc37c93x_read, NULL, NULL, fdc37c93x_write, NULL, NULL, dev);
-	io_sethandler(0x3f0, 0x0002,
+	io_sethandler(FDC_PRIMARY_ADDR, 0x0002,
 		      fdc37c93x_read, NULL, NULL, fdc37c93x_write, NULL, NULL, dev);
     }
 
