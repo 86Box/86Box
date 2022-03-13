@@ -484,6 +484,7 @@ prnt_close(void *priv)
 
 const lpt_device_t lpt_prt_text_device = {
     "Generic Text Printer",
+    "text_prt",
     prnt_init,
     prnt_close,
     write_data,

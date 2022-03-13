@@ -110,6 +110,7 @@ dac_close(void *p)
 
 const lpt_device_t lpt_dac_device = {
     "LPT DAC / Covox Speech Thing",
+    "lpt_dac",
     dac_init,
     dac_close,
     dac_write_data,
@@ -121,6 +122,7 @@ const lpt_device_t lpt_dac_device = {
 
 const lpt_device_t lpt_dac_stereo_device = {
     "Stereo LPT DAC",
+    "lpt_dac_stereo",
     dac_stereo_init,
     dac_close,
     dac_write_data,

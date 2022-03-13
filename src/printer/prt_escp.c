@@ -2144,6 +2144,7 @@ escp_close(void *priv)
 
 const lpt_device_t lpt_prt_escp_device = {
     "Generic ESC/P Dot-Matrix",
+    "dot_matrix",
     escp_init,
     escp_close,
     write_data,

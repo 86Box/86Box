@@ -133,6 +133,7 @@ dss_close(void *p)
 
 const lpt_device_t dss_device = {
     "Disney Sound Source",
+    "dss",
     dss_init,
     dss_close,
     dss_write_data,

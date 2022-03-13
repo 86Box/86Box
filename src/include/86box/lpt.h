@@ -20,6 +20,7 @@
 typedef struct
 {
     const char *name;
+    const char *internal_name;
 
     void *	(*init)(void *lpt);
     void	(*close)(void *p);
