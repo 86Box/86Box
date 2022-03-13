@@ -177,8 +177,8 @@ void
 lpt_init(void)
 {
     int i;
-    uint16_t default_ports[PARALLEL_MAX] = { 0x378, 0x278, 0x3bc, 0x268 }; /*, 0x27c, 0x26c }; */
-    uint8_t default_irqs[PARALLEL_MAX] = { 7, 5, 7, 5 }; /* , 7, 5 }; */
+    uint16_t default_ports[PARALLEL_MAX] = { LPT1_ADDR, LPT2_ADDR, LPT_MDA_ADDR, LPT4_ADDR };
+    uint8_t  default_irqs[PARALLEL_MAX]  = { LPT1_IRQ,  LPT2_IRQ,  LPT_MDA_IRQ,  LPT4_IRQ  };
 
     for (i = 0; i < PARALLEL_MAX; i++) {
 	lpt_ports[i].addr = 0xffff;

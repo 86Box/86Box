@@ -80,7 +80,7 @@ static const joystick_if_t joystick_none = {
 static const struct {
     const joystick_if_t	*joystick;
 } joysticks[] = {
-    { &joystick_none			},
+    { &joystick_none				},
     { &joystick_2axis_2button		},
     { &joystick_2axis_4button		},
     { &joystick_2axis_6button		},
@@ -89,9 +89,9 @@ static const struct {
     { &joystick_3axis_4button		},
     { &joystick_4axis_4button		},
     { &joystick_ch_flightstick_pro	},
-    { &joystick_sw_pad			},
-    { &joystick_tm_fcs			},
-    { NULL				}
+    { &joystick_sw_pad				},
+    { &joystick_tm_fcs				},
+    { NULL							}
 };
 static joystick_instance_t *joystick_instance = NULL;
 
@@ -418,6 +418,47 @@ gameport_init(const device_t *info)
     return dev;
 }
 
+static void *
+tmacm_init(const device_t *info)
+{
+    uint16_t port = 0x0000;
+
+    port = device_get_config_hex16("port1_addr");
+    switch(port) {
+        case 0x201:
+            gameport_add(&gameport_201_device);
+            break;
+        case 0x203:
+            gameport_add(&gameport_203_device);
+            break;
+        case 0x205:
+            gameport_add(&gameport_205_device);
+            break;
+        case 0x207:
+            gameport_add(&gameport_207_device);
+            break;
+        default:
+            break;
+    }
+
+    port = device_get_config_hex16("port2_addr");
+    switch(port) {
+        case 0x201:
+            gameport_add(&gameport_209_device);
+            break;
+        case 0x203:
+            gameport_add(&gameport_20b_device);
+            break;
+        case 0x205:
+            gameport_add(&gameport_20d_device);
+            break;
+        case 0x207:
+            gameport_add(&gameport_20f_device);
+            break;
+        default:
+            break;
+    }
+}
 
 static void
 gameport_close(void *priv)
@@ -439,71 +480,235 @@ gameport_close(void *priv)
 }
 
 const device_t gameport_device = {
-    "Game port",
-    "gameport",
-    0, 0x080200,
-    gameport_init,
-    gameport_close,
-    NULL, { NULL }, NULL,
-    NULL
+    .name = "Game port",
+    .internal_name = "gameport",
+    .flags = 0,
+    .local = 0x080200,
+    .init = gameport_init,
+    .close = gameport_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
 const device_t gameport_201_device = {
-    "Game port (Port 201h only)",
-    "gameport_201",
-    0, 0x010201,
-    gameport_init,
-    gameport_close,
-    NULL, { NULL }, NULL,
-    NULL
+    .name = "Game port (Port 201h only)",
+    .internal_name = "gameport_201",
+    .flags = 0,
+    .local = 0x010201,
+    .init = gameport_init,
+    .close = gameport_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
+};
+
+const device_t gameport_203_device = {
+    .name = "Game port (Port 203h only)",
+    .internal_name = "gameport_203",
+    .flags = 0,
+    .local = 0x010203,
+    .init = gameport_init,
+    .close = gameport_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
+};
+
+const device_t gameport_205_device = {
+    .name = "Game port (Port 205h only)",
+    .internal_name = "gameport_205",
+    .flags = 0,
+    .local = 0x010205,
+    .init = gameport_init,
+    .close = gameport_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
+};
+
+const device_t gameport_207_device = {
+    .name = "Game port (Port 207h only)",
+    .internal_name = "gameport_207",
+    .flags = 0,
+    .local = 0x010207,
+    .init = gameport_init,
+    .close = gameport_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
 const device_t gameport_208_device = {
-    "Game port (Port 208h-20fh)",
-    "gameport_208",
-    0, 0x080208,
-    gameport_init,
-    gameport_close,
-    NULL, { NULL }, NULL,
-    NULL
+    .name = "Game port (Port 208h-20fh)",
+    .internal_name = "gameport_208",
+    .flags = 0,
+    .local = 0x080208,
+    .init = gameport_init,
+    .close = gameport_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
 const device_t gameport_209_device = {
-    "Game port (Port 209h only)",
-    "gameport_209",
-    0, 0x010209,
-    gameport_init,
-    gameport_close,
-    NULL, { NULL }, NULL,
-    NULL
+    .name = "Game port (Port 209h only)",
+    .internal_name = "gameport_209",
+    .flags = 0,
+    .local = 0x010209,
+    .init = gameport_init,
+    .close = gameport_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
+};
+
+const device_t gameport_20b_device = {
+    .name = "Game port (Port 20Bh only)",
+    .internal_name = "gameport_20b",
+    .flags = 0,
+    .local = 0x01020B,
+    .init = gameport_init,
+    .close = gameport_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
+};
+
+const device_t gameport_20d_device = {
+    .name = "Game port (Port 20Dh only)",
+    .internal_name = "gameport_20d",
+    .flags = 0,
+    .local = 0x01020D,
+    .init = gameport_init,
+    .close = gameport_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
+};
+
+const device_t gameport_20f_device = {
+    .name = "Game port (Port 20Fh only)",
+    .internal_name = "gameport_20f",
+    .flags = 0,
+    .local = 0x01020F,
+    .init = gameport_init,
+    .close = gameport_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
+};
+
+static const device_config_t tmacm_config[] = {
+    {
+        .name = "port1_addr",
+        .description = "Port 1 Address",
+        .type = CONFIG_HEX16,
+        .default_string = "",
+        .default_int = 0x0201,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "201h",     .value = 0x0201 },
+            { .description = "203h",     .value = 0x0203 },
+            { .description = "205h",     .value = 0x0205 },
+            { .description = "207h",     .value = 0x0207 },
+            { .description = "Disabled", .value = 0x0000 },
+            { "" }
+        }
+    },
+    {
+        .name = "port2_addr",
+        .description = "Port 2 Address",
+        .type = CONFIG_HEX16,
+        .default_string = "",
+        .default_int = 0x0209,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "209h",     .value = 0x0209 },
+            { .description = "20Bh",     .value = 0x020B },
+            { .description = "20Dh",     .value = 0x020D },
+            { .description = "20Fh",     .value = 0x020F },
+            { .description = "Disabled", .value = 0x0000 },
+            { "" }
+        }
+    },
+    { "", "", -1 }
+};
+
+const device_t gameport_tm_acm_device = {
+    .name = "Game port (ThrustMaster ACM)",
+    .internal_name = "gameport_tmacm",
+    .flags = DEVICE_ISA,
+    .local = 0,
+    .init = tmacm_init,
+    .close = NULL,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = tmacm_config
 };
 
 const device_t gameport_pnp_device = {
-    "Game port (Plug and Play only)",
-    "gameport_pnp",
-    0, 0x080000,
-    gameport_init,
-    gameport_close,
-    NULL, { NULL }, NULL,
-    NULL
+    .name = "Game port (Plug and Play only)",
+    .internal_name = "gameport_pnp",
+    .flags = 0,
+    .local = 0x080000,
+    .init = gameport_init,
+    .close = gameport_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
 const device_t gameport_pnp_6io_device = {
-    "Game port (Plug and Play only, 6 I/O ports)",
-    "gameport_pnp_6io",
-    0, 0x060000,
-    gameport_init,
-    gameport_close,
-    NULL, { NULL }, NULL,
-    NULL
+    .name = "Game port (Plug and Play only, 6 I/O ports)",
+    .internal_name = "gameport_pnp_6io",
+    .flags = 0,
+    .local = 0x060000,
+    .init = gameport_init,
+    .close = gameport_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
 const device_t gameport_sio_device = {
-    "Game port (Super I/O)",
-    "gameport_sio",
-    0, 0x1080000,
-    gameport_init,
-    gameport_close,
-    NULL, { NULL }, NULL,
-    NULL
+    .name = "Game port (Super I/O)",
+    .internal_name = "gameport_sio",
+    .flags = 0,
+    .local = 0x1080000,
+    .init = gameport_init,
+    .close = gameport_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };

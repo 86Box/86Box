@@ -2106,13 +2106,16 @@ config_load(void)
 	video_fullscreen_first = 1;
 	time_sync = TIME_SYNC_ENABLED;
 	hdc_current = hdc_get_from_internal_name("none");
+
 	serial_enabled[0] = 1;
 	serial_enabled[1] = 1;
-	serial_enabled[2] = 0;
-	serial_enabled[3] = 0;
+	for (i = 2 ; i < SERIAL_MAX; i++)
+		serial_enabled[i] = 0;
 	lpt_ports[0].enabled = 1;
-	lpt_ports[1].enabled = 0;
-	lpt_ports[2].enabled = 0;
+
+	for (i = 1 ; i < PARALLEL_MAX; i++)
+		lpt_ports[i].enabled = 0;
+
 	for (i = 0; i < FDD_NUM; i++) {
 		if (i < 2)
 			fdd_set_type(i, 2);

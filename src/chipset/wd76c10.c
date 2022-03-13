@@ -172,7 +172,7 @@ static void wd76c10_disk_chip_select(wd76c10_t *dev)
 
     fdc_remove(dev->fdc_controller);
     if (!(dev->disk_chip_select & 2))
-        fdc_set_base(dev->fdc_controller, !(dev->disk_chip_select & 0x0010) ? 0x3f0 : 0x370);
+        fdc_set_base(dev->fdc_controller, !(dev->disk_chip_select & 0x0010) ? FDC_PRIMARY_ADDR : FDC_SECONDARY_ADDR);
 }
 
 static void wd76c10_shadow_recalc(wd76c10_t *dev)

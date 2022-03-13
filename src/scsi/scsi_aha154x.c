@@ -197,7 +197,7 @@ aha154x_eeprom(x54x_t *dev, uint8_t cmd,uint8_t arg,uint8_t len,uint8_t off,uint
 	if (dev->type == AHA_154xCF) {
 		if (dev->fdc_address > 0) {
 			fdc_remove(dev->fdc);
-			fdc_set_base(dev->fdc, (dev->nvr[0] & EE0_ALTFLOP) ? 0x370 : 0x3f0);
+			fdc_set_base(dev->fdc, (dev->nvr[0] & EE0_ALTFLOP) ? FDC_SECONDARY_ADDR : FDC_PRIMARY_ADDR);
 		}
 	}
     }
@@ -901,7 +901,7 @@ aha_initnvr(x54x_t *dev)
     /* Initialize the on-board EEPROM. */
     dev->nvr[0] = dev->HostID;			/* SCSI ID 7 */
     dev->nvr[0] |= (0x10 | 0x20 | 0x40);
-    if (dev->fdc_address == 0x370)
+    if (dev->fdc_address == FDC_SECONDARY_ADDR)
 	dev->nvr[0] |= EE0_ALTFLOP;
     dev->nvr[1] = dev->Irq-9;			/* IRQ15 */
     dev->nvr[1] |= (dev->DmaChannel<<4);	/* DMA6 */
@@ -939,7 +939,7 @@ aha_setnvr(x54x_t *dev)
     if (dev->type == AHA_154xCF) {
 	if (dev->fdc_address > 0) {
 		fdc_remove(dev->fdc);
-		fdc_set_base(dev->fdc, (dev->nvr[0] & EE0_ALTFLOP) ? 0x370 : 0x3f0);
+		fdc_set_base(dev->fdc, (dev->nvr[0] & EE0_ALTFLOP) ? FDC_SECONDARY_ADDR : FDC_PRIMARY_ADDR);
 	}
     }
 }
@@ -1305,12 +1305,12 @@ static const device_config_t aha_154xcf_config[] = {
         },
     },
     {
-		"fdc_addr", "FDC address", CONFIG_HEX16, "", 0, "", { 0 },
+        "fdc_addr", "FDC address", CONFIG_HEX16, "", 0, "", { 0 },
         {
-            { "None",      0 },
-            { "0x3f0", 0x3f0 },
-            { "0x370", 0x370 },
-            { ""             }
+            { "None",  0                  },
+            { "0x3f0", FDC_PRIMARY_ADDR   },
+            { "0x370", FDC_SECONDARY_ADDR },
+            { ""                          }
         },
     },
     {

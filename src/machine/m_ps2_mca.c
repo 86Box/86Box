@@ -359,22 +359,22 @@ static void model_50_write(uint16_t port, uint8_t val)
                 if (val & 0x04)
                 {
                         if (val & 0x08)
-                                serial_setup(ps2.uart, SERIAL1_ADDR, SERIAL1_IRQ);
+                                serial_setup(ps2.uart, COM1_ADDR, COM1_IRQ);
                         else
-                                serial_setup(ps2.uart, SERIAL2_ADDR, SERIAL2_IRQ);
+                                serial_setup(ps2.uart, COM2_ADDR, COM2_IRQ);
                 }
                 if (val & 0x10)
                 {
                         switch ((val >> 5) & 3)
                         {
                                 case 0:
-                                lpt1_init(0x3bc);
+                                lpt1_init(LPT_MDA_ADDR);
                                 break;
                                 case 1:
-                                lpt1_init(0x378);
+                                lpt1_init(LPT1_ADDR);
                                 break;
                                 case 2:
-                                lpt1_init(0x278);
+                                lpt1_init(LPT2_ADDR);
                                 break;
                         }
                 }
@@ -492,22 +492,22 @@ static void model_55sx_write(uint16_t port, uint8_t val)
                 if (val & 0x04)
                 {
                         if (val & 0x08)
-                                serial_setup(ps2.uart, SERIAL1_ADDR, SERIAL1_IRQ);
+                                serial_setup(ps2.uart, COM1_ADDR, COM1_IRQ);
                         else
-                                serial_setup(ps2.uart, SERIAL2_ADDR, SERIAL2_IRQ);
+                                serial_setup(ps2.uart, COM2_ADDR, COM2_IRQ);
                 }
                 if (val & 0x10)
                 {
                         switch ((val >> 5) & 3)
                         {
                                 case 0:
-                                lpt1_init(0x3bc);
+                                lpt1_init(LPT_MDA_ADDR);
                                 break;
                                 case 1:
-                                lpt1_init(0x378);
+                                lpt1_init(LPT1_ADDR);
                                 break;
                                 case 2:
-                                lpt1_init(0x278);
+                                lpt1_init(LPT2_ADDR);
                                 break;
                         }
                 }
@@ -552,22 +552,22 @@ static void model_70_type3_write(uint16_t port, uint8_t val)
                 if (val & 0x04)
                 {
                         if (val & 0x08)
-                                serial_setup(ps2.uart, SERIAL1_ADDR, SERIAL1_IRQ);
+                                serial_setup(ps2.uart, COM1_ADDR, COM1_IRQ);
                         else
-                                serial_setup(ps2.uart, SERIAL2_ADDR, SERIAL2_IRQ);
+                                serial_setup(ps2.uart, COM2_ADDR, COM2_IRQ);
                 }
                 if (val & 0x10)
                 {
                         switch ((val >> 5) & 3)
                         {
                                 case 0:
-                                lpt1_init(0x3bc);
+                                lpt1_init(LPT_MDA_ADDR);
                                 break;
                                 case 1:
-                                lpt1_init(0x378);
+                                lpt1_init(LPT1_ADDR);
                                 break;
                                 case 2:
-                                lpt1_init(0x278);
+                                lpt1_init(LPT2_ADDR);
                                 break;
                         }
                 }
@@ -608,22 +608,22 @@ static void model_80_write(uint16_t port, uint8_t val)
                 if (val & 0x04)
                 {
                         if (val & 0x08)
-                                serial_setup(ps2.uart, SERIAL1_ADDR, SERIAL1_IRQ);
+                                serial_setup(ps2.uart, COM1_ADDR, COM1_IRQ);
                         else
-                                serial_setup(ps2.uart, SERIAL2_ADDR, SERIAL2_IRQ);
+                                serial_setup(ps2.uart, COM2_ADDR, COM2_IRQ);
                 }
                 if (val & 0x10)
                 {
                         switch ((val >> 5) & 3)
                         {
                                 case 0:
-                                lpt1_init(0x3bc);
+                                lpt1_init(LPT_MDA_ADDR);
                                 break;
                                 case 1:
-                                lpt1_init(0x378);
+                                lpt1_init(LPT1_ADDR);
                                 break;
                                 case 2:
-                                lpt1_init(0x278);
+                                lpt1_init(LPT2_ADDR);
                                 break;
                         }
                 }
@@ -832,7 +832,7 @@ static void ps2_mca_board_common_init()
 
         ps2.setup = 0xff;
 
-        lpt1_init(0x3bc);
+        lpt1_init(LPT_MDA_ADDR);
 }
 
 static uint8_t ps2_mem_expansion_read(int port, void *p)
