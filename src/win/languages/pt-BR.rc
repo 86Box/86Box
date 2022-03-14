@@ -118,7 +118,7 @@ BEGIN
     POPUP "&Ajuda"
     BEGIN
         MENUITEM "&Documentação...",           IDM_DOCS
-        MENUITEM "&Sobre o 86Box...",             IDM_ABOUT
+        MENUITEM "&Sobre o PCBox...",             IDM_ABOUT
     END
 END
 
@@ -371,7 +371,7 @@ END
 
 STRINGTABLE DISCARDABLE 
 BEGIN
-    2048	"86Box"
+    2048	"PCBox"
     IDS_2049	"Erro"
     IDS_2050	"Erro fatal"
     IDS_2051	" - PAUSED"
@@ -379,7 +379,7 @@ BEGIN
     IDS_2053	"Velocidade"
     IDS_2054	"ZIP %03i %i (%s): %ls"
     IDS_2055	"Imagens ZIP (*.IM?;*.ZDI)\0*.IM?;*.ZDI\0"
-    IDS_2056	"O 86Box não conseguiu encontrar nenhuma imagem de ROM utilizável.\n\nPor favor, <a href=""https://github.com/86Box/roms/releases/latest"">baixe</a> um conjunto de ROM e extraia no diretório ""roms""."
+    IDS_2056	"O PCBox não conseguiu encontrar nenhuma imagem de ROM utilizável.\n\nPor favor, <a href=""https://github.com/PCBox/roms/releases/latest"">baixe</a> um conjunto de ROM e extraia no diretório ""roms""."
     IDS_2057	"(vazio)"
     IDS_2058	"Imagens ZIP (*.IM?;*.ZDI)\0*.IM?;*.ZDI\0Todos os arquivos (*.*)\0*.*\0"
     IDS_2059	"Turbo"
@@ -444,19 +444,19 @@ BEGIN
     IDS_2110	"Não foi possível inicializar o FreeType"
     IDS_2111	"Não é possível inicializar o SDL, é necessário o SDL2.dll"
     IDS_2112	"Tem certeza de que deseja reiniciar completamente a máquina emulada?"
-    IDS_2113	"Tem certeza de que deseja sair do 86Box?"
+    IDS_2113	"Tem certeza de que deseja sair do PCBox?"
     IDS_2114	"Não é possível inicializar o Ghostscript"
     IDS_2115	"Magneto-óptico %i (%ls): %ls"
     IDS_2116	"Imagens magneto-ópticas (*.IM?;*.MDI)\0*.IM?;*.MDI\0Todos os arquivos (*.*)\0*.*\0"
-    IDS_2117	"Bem-vindo ao 86Box!"
+    IDS_2117	"Bem-vindo ao PCBox!"
     IDS_2118	"Controlador interno"
     IDS_2119	"Sair"
     IDS_2120	"Nenhum ROM encontrada"
     IDS_2121	"Você deseja salvar as configurações?"
     IDS_2122	"Isto fará com que a máquina emulada seja reinicializada."
     IDS_2123	"Salvar"
-    IDS_2124	"Sobre o 86Box"
-    IDS_2125	"86Box versão" EMU_VERSION
+    IDS_2124	"Sobre o PCBox"
+    IDS_2125	"PCBox versão" EMU_VERSION
 
     IDS_2126	"Um emulador de computadores antigos\n\nAutores: Sarah Walker, Miran Grca, Fred N. van Kempen (waltje), SA1988, Tiseno100, reenigne, leilei, JohnElliott, greatpsycho, e outros.\n\nTraduzido por: Altieres Lima da Silva\n\nLançado sob a Licença Pública Geral GNU versão 2 ou posterior. Veja o arquivo LICENSE para mais informações."
     IDS_2127	"OK"

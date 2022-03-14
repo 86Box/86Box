@@ -115,7 +115,7 @@ BEGIN
     POPUP "ヘルプ(&H)"
     BEGIN
         MENUITEM "ドキュメント(&D)...",           IDM_DOCS
-        MENUITEM "86Boxのバージョン情報(&A)...",        IDM_ABOUT
+        MENUITEM "PCBoxのバージョン情報(&A)...",        IDM_ABOUT
     END
 END
 
@@ -368,7 +368,7 @@ END
 
 STRINGTABLE DISCARDABLE 
 BEGIN
-    2048	"86Box"
+    2048	"PCBox"
     IDS_2049	"エラー"
     IDS_2050	"致命的なエラー"
     IDS_2051	" - 一時停止"
@@ -376,7 +376,7 @@ BEGIN
     IDS_2053	"速度"
     IDS_2054	"ZIP %03i %i (%s): %ls"
     IDS_2055	"ZIPイメージ (*.IM?;*.ZDI)\0*.IM?;*.ZDI\0"
-    IDS_2056	"86Boxで使用可能なROMイメージが見つかりませんでした。\n\nROMセットを<a href=""https://github.com/86Box/roms/releases/latest"">ダウンロード</a>して、「roms」ディレクトリに解凍してください。"
+    IDS_2056	"PCBoxで使用可能なROMイメージが見つかりませんでした。\n\nROMセットを<a href=""https://github.com/PCBox/roms/releases/latest"">ダウンロード</a>して、「roms」ディレクトリに解凍してください。"
     IDS_2057	"(空)"
     IDS_2058	"ZIPイメージ (*.IM?;*.ZDI)\0*.IM?;*.ZDI\0すべてのファイル (*.*)\0*.*\0"
     IDS_2059	"高速"
@@ -441,19 +441,19 @@ BEGIN
     IDS_2110	"FreeTypeが初期化できません"
     IDS_2111	"SDLが初期化できません。SDL2.dllが必要です"
     IDS_2112	"使用中のマシンをハードリセットしますか？"
-    IDS_2113	"86Boxを終了しますか？"
+    IDS_2113	"PCBoxを終了しますか？"
     IDS_2114	"Ghostscriptが初期化できません"
     IDS_2115	"光磁気 %i (%ls): %ls"
     IDS_2116	"光磁気イメージ (*.IM?;*.MDI)\0*.IM?;*.MDI\0すべてのファイル (*.*)\0*.*\0"
-    IDS_2117	"86Boxへようこそ！"
+    IDS_2117	"PCBoxへようこそ！"
     IDS_2118	"内蔵コントローラー"
     IDS_2119	"終了"
     IDS_2120	"ROMが見つかりません"
     IDS_2121	"設定を保存しますか？"
     IDS_2122	"保存すると使用中のマシンがハードリセットされます。"
     IDS_2123	"保存"
-    IDS_2124	"86Boxのバージョン情報"
-    IDS_2125	"86Box v" EMU_VERSION
+    IDS_2124	"PCBoxのバージョン情報"
+    IDS_2125	"PCBox v" EMU_VERSION
 
     IDS_2126	"古いパソコンのエミュレーター\n\n著者: Sarah Walker, Miran Grca, Fred N. van Kempen (waltje), SA1988, Tiseno100, reenigne, leilei, JohnElliott, greatpsycho, and others.\n\nGNU General Public License version 2以降でリリースされています。詳しくは LICENSE をご覧ください。"
     IDS_2127	"OK"

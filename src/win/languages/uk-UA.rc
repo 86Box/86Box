@@ -115,7 +115,7 @@ BEGIN
     POPUP "&Допомога"
     BEGIN
         MENUITEM "&Документація...",           IDM_DOCS
-        MENUITEM "&Про програму 86Box...",             IDM_ABOUT
+        MENUITEM "&Про програму PCBox...",             IDM_ABOUT
     END
 END
 
@@ -368,7 +368,7 @@ END
 
 STRINGTABLE DISCARDABLE 
 BEGIN
-    2048	"86Box"
+    2048	"PCBox"
     IDS_2049	"Помилка"
     IDS_2050	"Непереробна помилка"
     IDS_2051	" - PAUSED"
@@ -376,7 +376,7 @@ BEGIN
     IDS_2053	"Швидкість"
     IDS_2054	"ZIP %03i %i (%s): %ls"
     IDS_2055	"Образи ZIP (*.IM?;*.ZDI)\0*.IM?;*.ZDI\0"
-    IDS_2056	"86Box не зміг знайти жодного відповідного для використання файлу з ПЗУ.\n\nБудь ласка <a href=""https://github.com/86Box/roms/releases/latest"">завантажте</a> набір ПЗУ і витягніть його в каталог ""roms""."
+    IDS_2056	"PCBox не зміг знайти жодного відповідного для використання файлу з ПЗУ.\n\nБудь ласка <a href=""https://github.com/PCBox/roms/releases/latest"">завантажте</a> набір ПЗУ і витягніть його в каталог ""roms""."
     IDS_2057	"(порожньо)"
     IDS_2058	"Образи ZIP (*.IM?;*.ZDI)\0*.IM?;*.ZDI\0Всі файли (*.*)\0*.*\0"
     IDS_2059	"Турбо"
@@ -441,19 +441,19 @@ BEGIN
     IDS_2110	"Неможливо ініціалізувати FreeType"
     IDS_2111	"Неможливо ініціалізувати SDL, потрібно SDL2.dll"
     IDS_2112	"Ви впевнені, що хочете виконати холодне перезавантаження емульованої машини?"
-    IDS_2113	"Ви впевнені, що хочете вийти з 86Box?"
+    IDS_2113	"Ви впевнені, що хочете вийти з PCBox?"
     IDS_2114	"Неможливо ініціалізувати Ghostscript"
     IDS_2115	"Магнітооптичний %i (%ls): %ls"
     IDS_2116	"Образи магнітооптичних дисків (*.IM?;*.MDI)\0*.IM?;*.MDI\0Все файлы (*.*)\0*.*\0"
-    IDS_2117	"Ласкаво просимо в 86Box!"
+    IDS_2117	"Ласкаво просимо в PCBox!"
     IDS_2118	"Вбудований контролер"
     IDS_2119	"Вихід"
     IDS_2120	"ПЗУ не знайдені"
     IDS_2121	"Чи бажаєте ви зберегти налаштування?"
     IDS_2122	"Це призведе до холодної перезагрузки емульованої машини."
     IDS_2123	"Зберегти"
-    IDS_2124	"Про 86Box"
-    IDS_2125	"86Box v." EMU_VERSION
+    IDS_2124	"Про PCBox"
+    IDS_2125	"PCBox v." EMU_VERSION
 
     IDS_2126	"Емулятор старих комп'ютерів\n\nАвтори: Sarah Walker, Miran Grca, Fred N. van Kempen (waltje), SA1988, Tiseno100, reenigne, leilei, JohnElliott, greatpsycho, and others.\n\nВипускаєтся під ліцензією GNU General Public License версії 2 або більше пізніше. Додадкову інформацію см. у файлі LICENSE."
     IDS_2127	"OK"

@@ -115,7 +115,7 @@ BEGIN
     POPUP "&Ayuda"
     BEGIN
         MENUITEM "&Documentación...",           IDM_DOCS
-        MENUITEM "&Acerca de 86Box...",             IDM_ABOUT
+        MENUITEM "&Acerca de PCBox...",             IDM_ABOUT
     END
 END
 
@@ -368,7 +368,7 @@ END
 
 STRINGTABLE DISCARDABLE 
 BEGIN
-    2048	"86Box"
+    2048	"PCBox"
     IDS_2049	"Error"
     IDS_2050	"Error fatal"
     IDS_2051	" - PAUSED"
@@ -376,7 +376,7 @@ BEGIN
     IDS_2053	"Velocidad"
     IDS_2054	"ZIP %03i %i (%s): %ls"
     IDS_2055	"Imagenes ZIP (*.IM?;*.ZDI)\0*.IM?;*.ZDI\0"
-    IDS_2056	"86Box no pudo encontrar ninguna imagen ROM usable.\n\nPor favor <a href=""https://github.com/86Box/roms/releases/latest"">descarga</a> un grupo de imágenes y extráelas en el directorio ""roms""."
+    IDS_2056	"PCBox no pudo encontrar ninguna imagen ROM usable.\n\nPor favor <a href=""https://github.com/PCBox/roms/releases/latest"">descarga</a> un grupo de imágenes y extráelas en el directorio ""roms""."
     IDS_2057	"(vacío)"
     IDS_2058	"Imagenes ZIP (*.IM?;*.ZDI)\0*.IM?;*.ZDI\0All files (*.*)\0*.*\0"
     IDS_2059	"Turbo"
@@ -441,19 +441,19 @@ BEGIN
     IDS_2110	"Incapaz de inicializar FreeType"
     IDS_2111	"Incapaz de inicializar SDL, se requiere SDL2.dll"
     IDS_2112	"¿Seguro que quieres resetear la máquina emulada?"
-    IDS_2113	"¿Seguro que quieres cerrar 86Box?"
+    IDS_2113	"¿Seguro que quieres cerrar PCBox?"
     IDS_2114	"Incapaz de inicializar Ghostscript"
     IDS_2115	"MO %i (%ls): %ls"
     IDS_2116	"Imágenes de MO (*.IM?;*.MDI)\0*.IM?;*.MDI\0All files (*.*)\0*.*\0"
-    IDS_2117	"¡Bienvenido a 86Box!"
+    IDS_2117	"¡Bienvenido a PCBox!"
     IDS_2118	"Controladora interna"
     IDS_2119	"Salir"
     IDS_2120	"No se encontraron ROMs"
     IDS_2121	"¿Quieres guardar los ajustes?"
     IDS_2122	"Se hará hard reset de la máquina emulada."
     IDS_2123	"Guardar"
-    IDS_2124	"Acerca de 86Box"
-    IDS_2125	"86Box v" EMU_VERSION
+    IDS_2124	"Acerca de PCBox"
+    IDS_2125	"PCBox v" EMU_VERSION
 
     IDS_2126	"Un emulador de ordenadores antigüos\n\nAutores: Sarah Walker, Miran Grca, Fred N. van Kempen (waltje), SA1988, Tiseno100, reenigne, leilei, JohnElliott, greatpsycho, y otros.\n\nLiberado bajo la GNU General Public License versión 2 o posterior. Ver LICENSE para más información."
     IDS_2127	"Aceptar"

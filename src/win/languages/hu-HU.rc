@@ -120,7 +120,7 @@ BEGIN
     POPUP "&Súgó"
     BEGIN
         MENUITEM "&Dokumentáció...",           IDM_DOCS
-        MENUITEM "A 86Box &névjegye...",             IDM_ABOUT
+        MENUITEM "A PCBox &névjegye...",             IDM_ABOUT
     END
 END
 
@@ -373,7 +373,7 @@ END
 
 STRINGTABLE DISCARDABLE 
 BEGIN
-    2048	"86Box"
+    2048	"PCBox"
     IDS_2049	"Hiba"
     IDS_2050	"Végzetes hiba"
     IDS_2051	" - PAUSED"
@@ -381,7 +381,7 @@ BEGIN
     IDS_2053	"Sebesség"
     IDS_2054	"ZIP %03i %i (%s): %ls"
     IDS_2055	"ZIP-lemezképek (*.IM?;*.ZDI)\0*.IM?;*.ZDI\0"
-    IDS_2056	"A 86Box nem talált használható ROM-képeket\n\nKérem <a href=""https://github.com/86Box/roms/releases/latest"">töltse le</a> a ROM készletet és bontsa ki a ""roms"" könyvtárba."
+    IDS_2056	"A PCBox nem talált használható ROM-képeket\n\nKérem <a href=""https://github.com/PCBox/roms/releases/latest"">töltse le</a> a ROM készletet és bontsa ki a ""roms"" könyvtárba."
     IDS_2057	"(üres)"
     IDS_2058	"ZIP-lemezképek (*.IM?;*.ZDI)\0*.IM?;*.ZDI\0Minden fájl (*.*)\0*.*\0"
     IDS_2059	"Turbó"
@@ -446,19 +446,19 @@ BEGIN
     IDS_2110	"A FreeType inicializálása nem lehetséges"
     IDS_2111	"Az SDL inicializálása nem lehetséges, az SDL2.dll fájl szükséges"
     IDS_2112	"Biztosan szeretné újraindítani az emulált gépet?"
-    IDS_2113	"Biztos benne, hogy ki szeretne lépni a 86Box-ból?"
+    IDS_2113	"Biztos benne, hogy ki szeretne lépni a PCBox-ból?"
     IDS_2114	"Nem sikerült inicializálni a Ghostscript-et"
     IDS_2115	"MO %i (%ls): %ls"
     IDS_2116	"MO-képfájlok (*.IM?;*.MDI)\0*.IM?;*.MDI\0Minden fájl (*.*)\0*.*\0"
-    IDS_2117	"Üdvözli önt az 86Box!"
+    IDS_2117	"Üdvözli önt az PCBox!"
     IDS_2118	"Integrált vezérlő"
     IDS_2119	"Kilépés"
     IDS_2120	"Nem találhatóak meg a ROM-képek"
     IDS_2121	"Szeretné menteni a beállításokat?"
     IDS_2122	"Ezzel hardveresen újraindítja az emulált gépet."
     IDS_2123	"Mentés"
-    IDS_2124	"A 86Box névjegye"
-    IDS_2125	"86Box v" EMU_VERSION
+    IDS_2124	"A PCBox névjegye"
+    IDS_2125	"PCBox v" EMU_VERSION
     IDS_2126	"Régi számítógépek emulátora\n\nFejlesztők: Sarah Walker, Miran Grca, Fred N. van Kempen (waltje), SA1988, Tiseno100, reenigne, leilei, JohnElliott, greatpsycho, and others.\n\nFordította: Laci bá'\n\nMegjelent a GNU General Public License v2 vagy újabb alatt. További információért lásd a LICENSE fájlt."
     IDS_2127	"OK"
     IDS_2128	"Hardver nem elérhető"
