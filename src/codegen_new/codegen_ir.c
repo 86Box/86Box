@@ -60,7 +60,7 @@ void codegen_ir_compile(ir_data_t *ir, codeblock_t *block)
         int jump_target_at_end = -1;
         int c;
 
-        /*if (codegen_unroll_count)
+        if (codegen_unroll_count)
         {
                 int unroll_count;
                 int unroll_end;
@@ -78,7 +78,7 @@ void codegen_ir_compile(ir_data_t *ir, codeblock_t *block)
                                 duplicate_uop(ir, &ir->uops[c], offset);
                         }
                 }
-        }*/
+        }
 
         codegen_reg_mark_as_required();
         codegen_reg_process_dead_list(ir);
