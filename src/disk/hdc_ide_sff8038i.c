@@ -587,15 +587,15 @@ static void
 
 const device_t sff8038i_device =
 {
-    "SFF-8038i IDE Bus Master",
-    "sff8038i",
-    DEVICE_PCI,
-    0,
-    sff_init,
-    sff_close,
-    sff_reset,
-    { NULL },
-    NULL,
-    NULL,
-    NULL
+    .name = "SFF-8038i IDE Bus Master",
+    .internal_name = "sff8038i",
+    .flags = DEVICE_PCI,
+    .local = 0,
+    .init = sff_init,
+    .close = sff_close,
+    .reset = sff_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };

@@ -408,31 +408,43 @@ cmd646_init(const device_t *info)
 
 
 const device_t ide_cmd646_device = {
-    "CMD PCI-0646",
-    "ide_cmd646",
-    DEVICE_PCI,
-    0x8a,
-    cmd646_init, cmd646_close, cmd646_reset,
-    { NULL }, NULL, NULL,
-    NULL
+    .name = "CMD PCI-0646",
+    .internal_name = "ide_cmd646",
+    .flags = DEVICE_PCI,
+    .local = 0x8a,
+    .init = cmd646_init,
+    .close = cmd646_close,
+    .reset = cmd646_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
 const device_t ide_cmd646_legacy_only_device = {
-    "CMD PCI-0646 (Legacy Mode Only)",
-    "ide_cmd646_legacy_only",
-    DEVICE_PCI,
-    0x80,
-    cmd646_init, cmd646_close, cmd646_reset,
-    { NULL }, NULL, NULL,
-    NULL
+    .name = "CMD PCI-0646 (Legacy Mode Only)",
+    .internal_name = "ide_cmd646_legacy_only",
+    .flags = DEVICE_PCI,
+    .local = 0x80,
+    .init = cmd646_init,
+    .close = cmd646_close,
+    .reset = cmd646_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
 const device_t ide_cmd646_single_channel_device = {
-    "CMD PCI-0646",
-    "ide_cmd646_single_channel",
-    DEVICE_PCI,
-    0x2008a,
-    cmd646_init, cmd646_close, cmd646_reset,
-    { NULL }, NULL, NULL,
-    NULL
+    .name = "CMD PCI-0646",
+    .internal_name = "ide_cmd646_single_channel",
+    .flags = DEVICE_PCI,
+    .local = 0x2008a,
+    .init = cmd646_init,
+    .close = cmd646_close,
+    .reset = cmd646_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };

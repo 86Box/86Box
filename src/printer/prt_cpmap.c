@@ -553,21 +553,23 @@ static const struct {
     uint16_t		code;
     const uint16_t	*map;
 } maps[] = {
-    { 437,	cp437Map	},
-    { 737,	cp737Map	},
-    { 775,	cp775Map	},
-    { 850,	cp850Map	},
-    { 852,	cp852Map	},
-    { 855,	cp855Map	},
-    { 857,	cp857Map	},
-    { 860,	cp860Map	},
-    { 861,	cp861Map	},
-    { 862,	cp862Map	},
-    { 863,	cp863Map	},
-    { 864,	cp864Map	},
-    { 865,	cp865Map	},
-    { 866,	cp866Map	},
-    { -1,	NULL		}
+// clang-format off
+    { 437, cp437Map },
+    { 737, cp737Map },
+    { 775, cp775Map },
+    { 850, cp850Map },
+    { 852, cp852Map },
+    { 855, cp855Map },
+    { 857, cp857Map },
+    { 860, cp860Map },
+    { 861, cp861Map },
+    { 862, cp862Map },
+    { 863, cp863Map },
+    { 864, cp864Map },
+    { 865, cp865Map },
+    { 866, cp866Map },
+    { -1,  NULL     }
+// clang-format on
 };
 
 

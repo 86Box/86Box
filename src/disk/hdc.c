@@ -52,19 +52,16 @@ hdc_log(const char *fmt, ...)
 #define hdc_log(fmt, ...)
 #endif
 
-
 static void *
-null_init(const device_t *info)
+nullhdc_init(const device_t *info)
 {
     return(NULL);
 }
 
-
 static void
-null_close(void *priv)
+nullhdc_close(void *priv)
 {
 }
-
 
 static void *
 inthdc_init(const device_t *info)
@@ -72,54 +69,72 @@ inthdc_init(const device_t *info)
     return(NULL);
 }
 
-
 static void
 inthdc_close(void *priv)
 {
 }
 
-
 static const device_t hdc_none_device = {
-    "None", "none", 0, 0,
-    null_init, null_close, NULL,
-    { NULL }, NULL, NULL, NULL
-};
-static const device_t hdc_internal_device = {
-    "Internal", "internal", 0, 0,
-    inthdc_init, inthdc_close, NULL,
-    { NULL }, NULL, NULL, NULL
+    .name = "None",
+    .internal_name = "none",
+    .flags = 0,
+    .local = 0,
+    .init = nullhdc_init,
+    .close = nullhdc_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
+static const device_t hdc_internal_device = {
+    .name = "Internal",
+    .internal_name = "internal",
+    .flags = 0,
+    .local = 0,
+    .init = inthdc_init,
+    .close = inthdc_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
+};
 
 static const struct {
     const device_t	*device;
 } controllers[] = {
-    { &hdc_none_device			},
-    { &hdc_internal_device		},
-    { &st506_xt_xebec_device		},
-    { &st506_xt_dtc5150x_device		},
-    { &st506_xt_st11_m_device		},
-    { &st506_xt_wd1002a_wx1_device	},
-    { &st506_at_wd1003_device		},
-    { &st506_xt_st11_r_device		},
-    { &st506_xt_wd1002a_27x_device	},
-    { &esdi_at_wd1007vse1_device	},
-    { &ide_isa_device			},
-    { &ide_isa_2ch_device		},
-    { &xtide_at_device			},
-    { &xtide_at_386_device		},
-    { &xtide_at_ps2_device		},
-    { &xta_wdxt150_device		},
-    { &xtide_acculogic_device		},
-    { &xtide_device			},
-    { &esdi_ps2_device			},
-    { &ide_pci_device			},
-    { &ide_pci_2ch_device		},
-    { &ide_vlb_device			},
-    { &ide_vlb_2ch_device		},
-    { NULL				}
+// clang-format off
+    { &hdc_none_device             },
+    { &hdc_internal_device         },
+    { &st506_xt_xebec_device       },
+    { &st506_xt_dtc5150x_device    },
+    { &st506_xt_st11_m_device      },
+    { &st506_xt_wd1002a_wx1_device },
+    { &st506_xt_wd1004a_wx1_device },
+    { &st506_at_wd1003_device      },
+    { &st506_xt_st11_r_device      },
+    { &st506_xt_wd1002a_27x_device },
+    { &st506_xt_wd1004_27x_device  },
+    { &st506_xt_wd1004a_27x_device },
+    { &esdi_at_wd1007vse1_device   },
+    { &ide_isa_device              },
+    { &ide_isa_2ch_device          },
+    { &xtide_at_device             },
+    { &xtide_at_386_device         },
+    { &xtide_at_ps2_device         },
+    { &xta_wdxt150_device          },
+    { &xtide_acculogic_device      },
+    { &xtide_device                },
+    { &esdi_ps2_device             },
+    { &ide_pci_device              },
+    { &ide_pci_2ch_device          },
+    { &ide_vlb_device              },
+    { &ide_vlb_2ch_device          },
+    { NULL                         }
+// clang-format on
 };
-
 
 /* Initialize the 'hdc_current' value based on configured HDC name. */
 void

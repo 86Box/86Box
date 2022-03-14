@@ -91,100 +91,91 @@ xi8088_init(const device_t *info)
     return &xi8088;
 }
 
-
-static const device_config_t xi8088_config[] =
-{
-        {
-                .name = "turbo_setting",
-                .description = "Turbo",
-                .type = CONFIG_SELECTION,
-                .selection =
-                {
-                        {
-                                .description = "Always at selected speed",
-                                .value = 0
-                        },
-                        {
-                                .description = "BIOS setting + Hotkeys (off during POST)",
-                                .value = 1
-                        }
-                },
-                .default_int = 0
+static const device_config_t xi8088_config[] = {
+    {
+        .name = "turbo_setting",
+        .description = "Turbo",
+        .type = CONFIG_SELECTION,
+        .selection = {
+            {
+                .description = "Always at selected speed",
+                .value = 0
+            },
+            {
+                .description = "BIOS setting + Hotkeys (off during POST)",
+                .value = 1
+            }
         },
-        {
-                .name = "bios_128kb",
-                .description = "BIOS size",
-                .type = CONFIG_SELECTION,
-                .selection =
-                {
-                        {
-                                .description = "64KB starting from 0xF0000",
-                                .value = 0
-                        },
-                        {
-                                .description = "128KB starting from 0xE0000 (address MSB inverted, last 64KB first)",
-                                .value = 1
-                        }
-                },
-                .default_int = 1
+        .default_int = 0
+    },
+    {
+        .name = "bios_128kb",
+        .description = "BIOS size",
+        .type = CONFIG_SELECTION,
+        .selection = {
+            {
+                .description = "64KB starting from 0xF0000",
+                .value = 0
+            },
+            {
+                .description = "128KB starting from 0xE0000 (address MSB inverted, last 64KB first)",
+                .value = 1
+            }
         },
-        {
-                .name = "umb_c0000h_c7fff",
-                .description = "Map 0xc0000-0xc7fff as UMB",
-                .type = CONFIG_BINARY,
-                .default_int = 0
-        },
-        {
-                .name = "umb_c8000h_cffff",
-                .description = "Map 0xc8000-0xcffff as UMB",
-                .type = CONFIG_BINARY,
-                .default_int = 0
-        },
-        {
-                .name = "umb_d0000h_d7fff",
-                .description = "Map 0xd0000-0xd7fff as UMB",
-                .type = CONFIG_BINARY,
-                .default_int = 0
-        },
-        {
-                .name = "umb_d8000h_dffff",
-                .description = "Map 0xd8000-0xdffff as UMB",
-                .type = CONFIG_BINARY,
-                .default_int = 0
-        },
-        {
-                .name = "umb_e0000h_e7fff",
-                .description = "Map 0xe0000-0xe7fff as UMB",
-                .type = CONFIG_BINARY,
-                .default_int = 0
-        },
-        {
-                .name = "umb_e8000h_effff",
-                .description = "Map 0xe8000-0xeffff as UMB",
-                .type = CONFIG_BINARY,
-                .default_int = 0
-        },
-        {
-                .type = -1
-        }
+        .default_int = 1
+    },
+    {
+        .name = "umb_c0000h_c7fff",
+        .description = "Map 0xc0000-0xc7fff as UMB",
+        .type = CONFIG_BINARY,
+        .default_int = 0
+    },
+    {
+        .name = "umb_c8000h_cffff",
+        .description = "Map 0xc8000-0xcffff as UMB",
+        .type = CONFIG_BINARY,
+        .default_int = 0
+    },
+    {
+        .name = "umb_d0000h_d7fff",
+        .description = "Map 0xd0000-0xd7fff as UMB",
+        .type = CONFIG_BINARY,
+        .default_int = 0
+    },
+    {
+        .name = "umb_d8000h_dffff",
+        .description = "Map 0xd8000-0xdffff as UMB",
+        .type = CONFIG_BINARY,
+        .default_int = 0
+    },
+    {
+        .name = "umb_e0000h_e7fff",
+        .description = "Map 0xe0000-0xe7fff as UMB",
+        .type = CONFIG_BINARY,
+        .default_int = 0
+    },
+    {
+        .name = "umb_e8000h_effff",
+        .description = "Map 0xe8000-0xeffff as UMB",
+        .type = CONFIG_BINARY,
+        .default_int = 0
+    },
+    { .type = -1 }
 };
 
-
-const device_t xi8088_device =
-{
-        "Xi8088",
-        "xi8088",
-        0,
-        0,
-        xi8088_init,
-        NULL,
-        NULL,
-        { NULL },
-        NULL,
-        NULL,
-        xi8088_config
+const device_t xi8088_device = {
+    .name = "Xi8088",
+    .internal_name = "xi8088",
+    .flags = 0,
+    .local = 0,
+    .init = xi8088_init,
+    .close = NULL,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = xi8088_config
 };
-
 
 const device_t *
 xi8088_get_device(void)

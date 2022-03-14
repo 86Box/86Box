@@ -61,9 +61,6 @@ private slots:
     void on_actionHard_Reset_triggered();
     void on_actionRight_CTRL_is_left_ALT_triggered();
     void on_actionKeyboard_requires_capture_triggered();
-    void on_actionHardware_Renderer_OpenGL_ES_triggered();
-    void on_actionHardware_Renderer_OpenGL_triggered();
-    void on_actionSoftware_Renderer_triggered();
     void on_actionResizable_window_triggered(bool checked);
     void on_actionInverted_VGA_monitor_triggered();
     void on_action0_5x_triggered();
@@ -96,19 +93,15 @@ private slots:
     void on_actionHide_status_bar_triggered();
     void on_actionHide_tool_bar_triggered();
     void on_actionUpdate_status_bar_icons_triggered();
+    void on_actionTake_screenshot_triggered();
+    void on_actionSound_gain_triggered();
+    void on_actionPreferences_triggered();
+    void on_actionEnable_Discord_integration_triggered(bool checked);
+    void on_actionRenderer_options_triggered();
 
     void refreshMediaMenu();
     void showMessage_(const QString& header, const QString& message);
     void getTitle_(wchar_t* title);
-    void on_actionTake_screenshot_triggered();
-
-    void on_actionSound_gain_triggered();
-
-    void on_actionOpenGL_3_0_Core_triggered();
-
-    void on_actionPreferences_triggered();
-
-    void on_actionEnable_Discord_integration_triggered(bool checked);
 
 protected:
     void keyPressEvent(QKeyEvent* event) override;

@@ -65,7 +65,7 @@ extern "C"
 #include "qt_settings.hpp"
 #include "cocoa_mouse.hpp"
 #include "qt_styleoverride.hpp"
-
+#include "qt_unixmanagerfilter.hpp"
 
 // Void Cast
 #define VC(x) const_cast<wchar_t*>(x)
@@ -162,6 +162,8 @@ int main(int argc, char* argv[]) {
     {
         return 0;
     }
+
+    fprintf(stderr, "Qt: version %s, platform \"%s\"\n", qVersion(), QApplication::platformName().toUtf8().data());
     ProgSettings::loadTranslators(&app);
 #ifdef Q_OS_WINDOWS
     auto font_name = QObject::tr("FONT_NAME");
@@ -238,6 +240,21 @@ int main(int argc, char* argv[]) {
     }
 #endif
 
+    UnixManagerSocket socket;
+    if (qgetenv("86BOX_MANAGER_SOCKET").size())
+    {
+        QObject::connect(&socket, &UnixManagerSocket::showsettings, main_window, &MainWindow::showSettings);
+        QObject::connect(&socket, &UnixManagerSocket::pause, main_window, &MainWindow::togglePause);
+        QObject::connect(&socket, &UnixManagerSocket::resetVM, main_window, &MainWindow::hardReset);
+        QObject::connect(&socket, &UnixManagerSocket::request_shutdown, main_window, &MainWindow::close);
+        QObject::connect(&socket, &UnixManagerSocket::force_shutdown, [](){
+            do_stop();
+            emit main_window->close();
+        });
+        QObject::connect(&socket, &UnixManagerSocket::ctrlaltdel, [](){ pc_send_cad(); });
+        main_window->installEventFilter(&socket);
+        socket.connectToServer(qgetenv("86BOX_MANAGER_SOCKET"));
+    }
     pc_reset_hard_init();
 
     /* Set the PAUSE mode depending on the renderer. */
@@ -272,5 +289,6 @@ int main(int argc, char* argv[]) {
     cpu_thread_run = 0;
     main_thread.join();
 
+    socket.close();
     return ret;
 }

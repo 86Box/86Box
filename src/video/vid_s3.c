@@ -404,9 +404,9 @@ static void	s3_pci_write(int func, int addr, uint8_t val, void *p);
 static __inline uint32_t
 dword_remap(svga_t *svga, uint32_t in_addr)
 {
-		if (svga->packed_chain4)
+		if (svga->packed_chain4 || svga->force_old_addr)
 			return in_addr;
-
+	
         return ((in_addr << 2) & 0x3fff0) |
                 ((in_addr >> 14) & 0xc) |
                 (in_addr & ~0x3fffc);
@@ -414,9 +414,9 @@ dword_remap(svga_t *svga, uint32_t in_addr)
 static __inline uint32_t
 dword_remap_w(svga_t *svga, uint32_t in_addr)
 {
-		if (svga->packed_chain4)
-			return in_addr;
-
+		if (svga->packed_chain4 || svga->force_old_addr)
+			return in_addr;	
+	
         return ((in_addr << 2) & 0x1fff8) |
                 ((in_addr >> 14) & 0x6) |
                 (in_addr & ~0x1fffe);
@@ -424,9 +424,9 @@ dword_remap_w(svga_t *svga, uint32_t in_addr)
 static __inline uint32_t
 dword_remap_l(svga_t *svga, uint32_t in_addr)
 {
-		if (svga->packed_chain4)
-			return in_addr;
-
+		if (svga->packed_chain4 || svga->force_old_addr)
+			return in_addr;	
+	
         return ((in_addr << 2) & 0xfffc) |
                 ((in_addr >> 14) & 0x3) |
                 (in_addr & ~0xffff);
@@ -2552,6 +2552,7 @@ s3_out(uint16_t addr, uint8_t val, void *p)
 		{
 			case 0x31:
 			s3->ma_ext = (s3->ma_ext & 0x1c) | ((val & 0x30) >> 4);
+			svga->force_dword_mode = !!(val & 0x08);
 			break;
 			case 0x32:
 			if ((svga->crtc[0x31] & 0x30) && (svga->crtc[0x51] & 0x01) && (val & 0x40))
@@ -2972,7 +2973,6 @@ static void s3_recalctimings(svga_t *svga)
 	}
 
 	if ((svga->gdcreg[5] & 0x40) && (svga->crtc[0x3a] & 0x10)) {
-		svga->fb_only = 1;
 		switch (svga->bpp) {
 			case 8:
 			svga->render = svga_render_8bpp_highres;
@@ -3155,7 +3155,6 @@ static void s3_recalctimings(svga_t *svga)
 			break;
 		}
 	} else {
-		svga->fb_only = 0;
 		if (!svga->scrblank && svga->attr_palette_enable) {
 			if ((svga->gdcreg[6] & 1) || (svga->attrregs[0x10] & 1)) {
 				if ((svga->crtc[0x31] & 0x08) && ((svga->gdcreg[5] & 0x60) == 0x00)) {
@@ -3231,7 +3230,6 @@ static void s3_trio64v_recalctimings(svga_t *svga)
 		svga->lowres = !((svga->gdcreg[5] & 0x40) && (svga->crtc[0x3a] & 0x10));
 
 		if ((svga->gdcreg[5] & 0x40) && (svga->crtc[0x3a] & 0x10)) {
-			svga->fb_only = 1;
 			switch (svga->bpp) {
 				case 8:
 				svga->render = svga_render_8bpp_highres;
@@ -3252,13 +3250,10 @@ static void s3_trio64v_recalctimings(svga_t *svga)
 				svga->render = svga_render_32bpp_highres;
 				break;
 			}
-		} else
-			svga->fb_only = 0;
+		}
 	}
         else /*Streams mode*/
         {
-				svga->fb_only = 1;
-
                 if (s3->streams.buffer_ctrl & 1)
                         svga->ma_latch = s3->streams.pri_fb1 >> 2;
                 else
@@ -3402,7 +3397,12 @@ s3_updatemapping(s3_t *s3)
 
 				mem_mapping_set_addr(&s3->linear_mapping, s3->linear_base, s3->linear_size);
 			}
+			if (s3->chip >= S3_TRIO64V)
+				svga->fb_only = 1;
 		} else {
+			if (s3->chip >= S3_TRIO64V)
+				svga->fb_only = 0;
+			
 			mem_mapping_disable(&s3->linear_mapping);
 		}
 
@@ -7163,6 +7163,8 @@ static void *s3_init(const device_t *info)
 
 	s3->card_type = info->local;
 
+	svga->force_old_addr = 1;
+
 	switch(s3->card_type) {
 		case S3_ORCHID_86C911:
 		case S3_DIAMOND_STEALTH_VRAM:
@@ -7423,8 +7425,6 @@ static void *s3_init(const device_t *info)
 		default:
 			return NULL;
 	}
-
-	svga->packed_chain4 = 1;
 
 	if (s3->pci)
 		s3->card = pci_add_card(PCI_ADD_VIDEO, s3_pci_read, s3_pci_write, s3);

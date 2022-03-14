@@ -797,6 +797,6 @@ const device_t genius_device =
         genius_init, genius_close, NULL,
         { genius_available },
         genius_speed_changed,
-	NULL,
+    NULL,
         NULL
 };

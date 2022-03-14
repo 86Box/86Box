@@ -221,7 +221,7 @@ it8661f_write(uint16_t addr, uint8_t val, void *priv)
     it8661f_t *dev = (it8661f_t *)priv;
 
     switch (addr) {
-	case 0x370:
+	case FDC_SECONDARY_ADDR:
 		if (!dev->unlocked) {
 			(val == mb_pnp_key[dev->enumerator]) ? dev->enumerator++ : (dev->enumerator = 0);
 			if (dev->enumerator == 31) {
@@ -326,7 +326,7 @@ it8661f_init(const device_t *info)
     dev->uart[0] = device_add_inst(&ns16550_device, 1);
     dev->uart[1] = device_add_inst(&ns16550_device, 2);
 
-    io_sethandler(0x0370, 0x0002, it8661f_read, NULL, NULL, it8661f_write, NULL, NULL, dev);
+    io_sethandler(FDC_SECONDARY_ADDR, 0x0002, it8661f_read, NULL, NULL, it8661f_write, NULL, NULL, dev);
 
     dev->enumerator = 0;
     dev->unlocked = 0;
@@ -335,17 +335,16 @@ it8661f_init(const device_t *info)
     return dev;
 }
 
-
 const device_t it8661f_device = {
-    "ITE IT8661F",
-    "it8661f",
-    0,
-    0,
-    it8661f_init,
-    it8661f_close,
-    NULL,
-    { NULL },
-    NULL,
-    NULL,
-    NULL
+    .name = "ITE IT8661F",
+    .internal_name = "it8661f",
+    .flags = 0,
+    .local = 0,
+    .init = it8661f_init,
+    .close = it8661f_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };

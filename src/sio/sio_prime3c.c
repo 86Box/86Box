@@ -318,27 +318,29 @@ prime3c_init(const device_t *info)
 }
 
 const device_t prime3c_device = {
-    "Goldstar Prime3C",
-    "prime3c",
-    0,
-    0,
-    prime3c_init,
-    prime3c_close,
-    NULL,
-    {NULL},
-    NULL,
-    NULL,
-    NULL};
+    .name = "Goldstar Prime3C",
+    .internal_name = "prime3c",
+    .flags = 0,
+    .local = 0,
+    .init = prime3c_init,
+    .close = prime3c_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
+};
 
 const device_t prime3c_ide_device = {
-    "Goldstar Prime3C with IDE functionality",
-    "prime3c_ide",
-    0,
-    1,
-    prime3c_init,
-    prime3c_close,
-    NULL,
-    {NULL},
-    NULL,
-    NULL,
-    NULL};
+    .name = "Goldstar Prime3C with IDE functionality",
+    .internal_name = "prime3c_ide",
+    .flags = 0,
+    .local = 1,
+    .init = prime3c_init,
+    .close = prime3c_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
+};

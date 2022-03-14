@@ -135,13 +135,16 @@ rabbit_init(const device_t *info)
     return dev;
 }
 
-
 const device_t rabbit_device = {
-    "SiS Rabbit",
-    "rabbit",
-    0,
-    0,
-    rabbit_init, rabbit_close, NULL,
-    { NULL }, NULL, NULL,
-    NULL
+    .name = "SiS Rabbit",
+    .internal_name = "rabbit",
+    .flags = 0,
+    .local = 0,
+    .init = rabbit_init,
+    .close = rabbit_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };

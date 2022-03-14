@@ -123,24 +123,30 @@ phoenix_486_jumper_init(const device_t *info)
     return dev;
 }
 
-
 const device_t phoenix_486_jumper_device = {
-    "Phoenix 486 Jumper Readout",
-    "phoenix_486_jumper",
-    0,
-    0,
-    phoenix_486_jumper_init, phoenix_486_jumper_close, phoenix_486_jumper_reset,
-    { NULL }, NULL, NULL,
-    NULL
+    .name = "Phoenix 486 Jumper Readout",
+    .internal_name = "phoenix_486_jumper",
+    .flags = 0,
+    .local = 0,
+    .init = phoenix_486_jumper_init,
+    .close = phoenix_486_jumper_close,
+    .reset = phoenix_486_jumper_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
-
 const device_t phoenix_486_jumper_pci_device = {
-    "Phoenix 486 Jumper Readout (PCI machines)",
-    "phoenix_486_jumper_pci",
-    0,
-    1,
-    phoenix_486_jumper_init, phoenix_486_jumper_close, phoenix_486_jumper_reset,
-    { NULL }, NULL, NULL,
-    NULL
+    .name = "Phoenix 486 Jumper Readout (PCI machines)",
+    .internal_name = "phoenix_486_jumper_pci",
+    .flags = 0,
+    .local = 1,
+    .init = phoenix_486_jumper_init,
+    .close = phoenix_486_jumper_close,
+    .reset = phoenix_486_jumper_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };

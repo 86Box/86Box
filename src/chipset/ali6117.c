@@ -375,34 +375,30 @@ ali6117_init(const device_t *info)
     return dev;
 }
 
-
-const device_t ali1217_device =
-{
-    "ALi M1217",
-    "ali1217",
-    DEVICE_AT,
-    0x8,
-    ali6117_init,
-    ali6117_close,
-    ali6117_reset,
-    { NULL },
-    NULL,
-    NULL,
-    NULL
+const device_t ali1217_device = {
+    .name = "ALi M1217",
+    .internal_name = "ali1217",
+    .flags = DEVICE_AT,
+    .local = 0x8,
+    .init = ali6117_init,
+    .close = ali6117_close,
+    .reset = ali6117_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
-
-const device_t ali6117d_device =
-{
-    "ALi M6117D",
-    "ali6117d",
-    DEVICE_AT,
-    0x2,
-    ali6117_init,
-    ali6117_close,
-    ali6117_reset,
-    { NULL },
-    NULL,
-    NULL,
-    NULL
+const device_t ali6117d_device = {
+    .name = "ALi M6117D",
+    .internal_name = "ali6117d",
+    .flags = DEVICE_AT,
+    .local = 0x2,
+    .init = ali6117_init,
+    .close = ali6117_close,
+    .reset = ali6117_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };

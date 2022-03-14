@@ -21,14 +21,19 @@ if(WIN32)
     target_link_libraries(slirp wsock32 iphlpapi)
 endif()
 
-option(SLIRP_GLIB "Use GLib proper with SLiRP" OFF)
+# tinyglib conflicts with the real GLib used by Qt, let's just be safe
+if(QT AND UNIX AND NOT APPLE)
+    set(SLIRP_TINYGLIB OFF)
+endif()
 
-if(SLIRP_GLIB)
+option(SLIRP_TINYGLIB "Use a minimal GLib stub (`tinyglib`) with SLiRP" ON)
+
+if(SLIRP_TINYGLIB)
+    target_sources(slirp PRIVATE tinyglib.c)
+else()
     find_package(PkgConfig REQUIRED)
     pkg_check_modules(GLIB REQUIRED IMPORTED_TARGET glib-2.0)
     target_link_libraries(slirp PkgConfig::GLIB)
 
     target_compile_definitions(slirp PRIVATE TINYGLIB_USE_GLIB)
-else()
-    target_sources(slirp PRIVATE tinyglib.c)
 endif()

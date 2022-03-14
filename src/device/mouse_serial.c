@@ -830,100 +830,89 @@ sermouse_init(const device_t *info)
 
 
 static const device_config_t mssermouse_config[] = {
+// clang-format off
     {
-	"port", "Serial Port", CONFIG_SELECTION, "", 0, "", { 0 }, {
-		{
-			"COM1", 0
-		},
-		{
-			"COM2", 1
-		},
-		{
-			""
-		}
-	}
+        "port", "Serial Port", CONFIG_SELECTION, "", 0, "", { 0 }, {
+            { "COM1", 0 },
+            { "COM2", 1 },
+            { "COM3", 2 },
+            { "COM4", 3 },
+            { ""        }
+        }
     },
     {
-	"buttons", "Buttons", CONFIG_SELECTION, "", 2, "", { 0 }, {
-		{
-			"Two", 2
-		},
-		{
-			"Three", 3
-		},
-		{
-			"Wheel", 4
-		},
-		{
-			""
-		}
-	}
+        "buttons", "Buttons", CONFIG_SELECTION, "", 2, "", { 0 }, {
+            { "Two",   2 },
+            { "Three", 3 },
+            { "Wheel", 4 },
+            { ""         }
+        }
     },
-    {
-	"", "", -1
-    }
+    { "", "", -1 }
+// clang-format on
 };
 
 
 static const device_config_t ltsermouse_config[] = {
+// clang-format off
     {
-	"port", "Serial Port", CONFIG_SELECTION, "", 0, "", { 0 }, {
-		{
-			"COM1", 0
-		},
-		{
-			"COM2", 1
-		},
-		{
-			""
-		}
-	}
+        "port", "Serial Port", CONFIG_SELECTION, "", 0, "", { 0 }, {
+            { "COM1", 0 },
+            { "COM2", 1 },
+            { "COM3", 2 },
+            { "COM4", 3 },
+            { ""        }
+        }
     },
     {
-	"buttons", "Buttons", CONFIG_SELECTION, "", 2, "", { 0 }, {
-		{
-			"Two", 2
-		},
-		{
-			"Three", 3
-		},
-		{
-			""
-		}
-	}
+        "buttons", "Buttons", CONFIG_SELECTION, "", 2, "", { 0 }, {
+            { "Two",   2 },
+            { "Three", 3 },
+            { ""         }
+        }
     },
-    {
-	"", "", -1
-    }
+    { "", "", -1 }
+// clang-format on
 };
 
-
 const device_t mouse_mssystems_device = {
-    "Mouse Systems Serial Mouse",
-    "mssystems",
-    0,
-    MOUSE_TYPE_MSYSTEMS,
-    sermouse_init, sermouse_close, NULL,
-    { .poll = sermouse_poll }, sermouse_speed_changed, NULL,
-    mssermouse_config
+    .name = "Mouse Systems Serial Mouse",
+    .internal_name = "mssystems",
+    .flags = DEVICE_COM,
+    .local = MOUSE_TYPE_MSYSTEMS,
+    .init = sermouse_init,
+    .close = sermouse_close,
+    .reset = NULL,
+    { .poll = sermouse_poll },
+    .speed_changed = sermouse_speed_changed,
+    .force_redraw = NULL,
+    .config = mssermouse_config
 };
 
 const device_t mouse_msserial_device = {
-    "Microsoft Serial Mouse",
-    "msserial",
-    0,
-    0,
-    sermouse_init, sermouse_close, NULL,
-    { .poll = sermouse_poll }, sermouse_speed_changed, NULL,
-    mssermouse_config
+    .name = "Microsoft Serial Mouse",
+    .internal_name = "msserial",
+    .flags = DEVICE_COM,
+    .local = 0,
+    .init = sermouse_init,
+    .close = sermouse_close,
+    .reset = NULL,
+    { .poll = sermouse_poll },
+    .speed_changed = sermouse_speed_changed,
+    .force_redraw = NULL,
+    .config = mssermouse_config
 };
 
 const device_t mouse_ltserial_device = {
-    "Logitech Serial Mouse",
-    "ltserial",
-    0,
-    1,
-    sermouse_init, sermouse_close, NULL,
-    { .poll = sermouse_poll }, sermouse_speed_changed, NULL,
-    ltsermouse_config
+    .name = "Logitech Serial Mouse",
+    .internal_name = "ltserial",
+    .flags = DEVICE_COM,
+    .local = 1,
+    .init = sermouse_init,
+    .close = sermouse_close,
+    .reset = NULL,
+    { .poll = sermouse_poll },
+    .speed_changed = sermouse_speed_changed,
+    .force_redraw = NULL,
+    .config = ltsermouse_config
 };

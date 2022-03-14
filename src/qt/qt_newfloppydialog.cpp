@@ -25,11 +25,15 @@
 #include "qt_util.hpp"
 
 extern "C" {
+#include <86box/plat.h>
 #include <86box/random.h>
 #include <86box/scsi_device.h>
 #include <86box/zip.h>
 #include <86box/mo.h>
 }
+
+#include <cstdio>
+#include <cstdlib>
 
 #include <QFile>
 #include <QFileInfo>
@@ -236,6 +240,8 @@ void NewFloppyDialog::onCreate() {
 
 bool NewFloppyDialog::create86f(const QString& filename, const disk_size_t& disk_size, uint8_t rpm_mode)
 {
+    FILE *f;
+
     uint32_t magic = 0x46423638;
     uint16_t version = 0x020C;
     uint16_t dflags = 0;
@@ -259,76 +265,84 @@ bool NewFloppyDialog::create86f(const QString& filename, const disk_size_t& disk
     tflags |= (disk_size.rpm << 5);		/* RPM. */
 
     switch (disk_size.hole) {
-    case 0:
-    case 1:
-    default:
-        switch(rpm_mode) {
-        case 1:
-            array_size = 25250;
-            break;
-        case 2:
-            array_size = 25374;
-            break;
-        case 3:
-            array_size = 25750;
-            break;
-        default:
-            array_size = 25000;
-            break;
-        }
-        break;
-    case 2:
-        switch(rpm_mode) {
-        case 1:
-            array_size = 50500;
-            break;
-        case 2:
-            array_size = 50750;
-            break;
-        case 3:
-            array_size = 51000;
-            break;
-        default:
-            array_size = 50000;
-            break;
-        }
-        break;
+	case 0:
+	case 1:
+	default:
+		switch(rpm_mode) {
+			case 1:
+				array_size = 25250;
+				break;
+			case 2:
+				array_size = 25374;
+				break;
+			case 3:
+				array_size = 25750;
+				break;
+			default:
+				array_size = 25000;
+				break;
+		}
+		break;
+	case 2:
+		switch(rpm_mode) {
+			case 1:
+				array_size = 50500;
+				break;
+			case 2:
+				array_size = 50750;
+				break;
+			case 3:
+				array_size = 51000;
+				break;
+			default:
+				array_size = 50000;
+				break;
+		}
+		break;
     }
 
-    QByteArray bytes(array_size, 0);
+    auto empty = (unsigned char *) malloc(array_size);
+
     memset(tarray, 0, 2048);
+    memset(empty, 0, array_size);
 
-    QFile file(filename);
-    if (! file.open(QIODevice::WriteOnly)) {
-        return false;
-    }
-    QDataStream stream(&file);
-    stream.setByteOrder(QDataStream::LittleEndian);
+    f = plat_fopen(filename.toUtf8().data(), "wb");
+    if (!f)
+	return false;
 
-    stream << magic;
-    stream << version;
-    stream << dflags;
+    fwrite(&magic, 4, 1, f);
+    fwrite(&version, 2, 1, f);
+    fwrite(&dflags, 2, 1, f);
 
     track_size = array_size + 6;
+
     track_base = 8 + ((disk_size.sides == 2) ? 2048 : 1024);
 
     if (disk_size.tracks <= 43)
-        shift = 1;
+	shift = 1;
 
     for (i = 0; i < (disk_size.tracks * disk_size.sides) << shift; i++)
-        tarray[i] = track_base + (i * track_size);
+	tarray[i] = track_base + (i * track_size);
 
-    stream.writeRawData(reinterpret_cast<const char *>(tarray), (disk_size.sides == 2) ? 2048 : 1024);
+    fwrite(tarray, 1, (disk_size.sides == 2) ? 2048 : 1024, f);
 
-    int max = i < (disk_size.tracks * disk_size.sides) << shift;
-    for (i = 0; i < max; i++) {
-        stream << tflags;
-        stream << index_hole_pos;
-        stream.writeRawData(bytes, bytes.size());
+    for (i = 0; i < (disk_size.tracks * disk_size.sides) << shift; i++) {
+	fwrite(&tflags, 2, 1, f);
+	fwrite(&index_hole_pos, 4, 1, f);
+	fwrite(empty, 1, array_size, f);
     }
+
+    free(empty);
+
+    fclose(f);
 
     return true;
 }
+
+/* Ignore false positive warning caused by a bug on gcc */
+#if __GNUC__ >= 11
+#pragma GCC diagnostic ignored "-Wstringop-overflow"
+#endif
 
 bool NewFloppyDialog::createSectorImage(const QString &filename, const disk_size_t& disk_size, FileType type)
 {

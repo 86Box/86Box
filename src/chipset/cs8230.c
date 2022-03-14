@@ -156,13 +156,16 @@ static void
     return cs8230;
 }
 
-
 const device_t cs8230_device = {
-    "C&T CS8230 (386/AT)",
-    "cs8230",
-    0,
-    0,
-    cs8230_init, cs8230_close, NULL,
-    { NULL }, NULL, NULL,
-    NULL
+    .name = "C&T CS8230 (386/AT)",
+    .internal_name = "cs8230",
+    .flags = 0,
+    .local = 0,
+    .init = cs8230_init,
+    .close = cs8230_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };

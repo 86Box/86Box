@@ -145,21 +145,21 @@ ps1_write(uint16_t port, uint8_t val, void *priv)
 			serial_remove(ps->uart);
 			if (val & 0x04) {
 				if (val & 0x08)
-					serial_setup(ps->uart, SERIAL1_ADDR, SERIAL1_IRQ);
+					serial_setup(ps->uart, COM1_ADDR, COM1_IRQ);
 				else
-					serial_setup(ps->uart, SERIAL2_ADDR, SERIAL2_IRQ);
+					serial_setup(ps->uart, COM2_ADDR, COM2_IRQ);
 			}
 			if (val & 0x10) {
 				switch ((val >> 5) & 3)
 				{
 					case 0:
-					lpt1_init(0x3bc);
+					lpt1_init(LPT_MDA_ADDR);
 					break;
 					case 1:
-					lpt1_init(0x378);
+					lpt1_init(LPT1_ADDR);
 					break;
 					case 2:
-					lpt1_init(0x278);
+					lpt1_init(LPT2_ADDR);
 					break;
 				}
 			}
@@ -270,7 +270,7 @@ ps1_setup(int model)
     ps->uart = device_add_inst(&ns16450_device, 1);
 
     lpt1_remove();
-    lpt1_init(0x3bc);
+    lpt1_init(LPT_MDA_ADDR);
 
     mem_remap_top(384);
 

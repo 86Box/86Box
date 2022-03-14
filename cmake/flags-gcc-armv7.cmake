@@ -14,7 +14,7 @@
 #           Copyright 2021 David Hrdlička.
 #
 
-string(APPEND CMAKE_C_FLAGS_INIT    " -march=armv7-a -mfloat-abi=hard ${CMAKE_C_FLAGS_INIT}")
-string(APPEND CMAKE_CXX_FLAGS_INIT  " -march=armv7-a -mfloat-abi=hard ${CMAKE_CXX_FLAGS_INIT}")
+string(APPEND CMAKE_C_FLAGS_INIT    " -march=armv7-a -mfloat-abi=hard")
+string(APPEND CMAKE_CXX_FLAGS_INIT  " -march=armv7-a -mfloat-abi=hard")
 
 include(${CMAKE_CURRENT_LIST_DIR}/flags-gcc.cmake)

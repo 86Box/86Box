@@ -1139,232 +1139,158 @@ nic_close(void *priv)
     free(dev);
 }
 
-
-static const device_config_t ne1000_config[] =
-{
-	{
-		"base", "Address", CONFIG_HEX16, "", 0x300, "", { 0 },
-		{
-			{
-				"0x280", 0x280
-			},
-			{
-				"0x300", 0x300
-			},
-			{
-				"0x320", 0x320
-			},
-			{
-				"0x340", 0x340
-			},
-			{
-				"0x360", 0x360
-			},
-			{
-				"0x380", 0x380
-			},
-			{
-				""
-			}
-		},
-	},
-	{
-		"irq", "IRQ", CONFIG_SELECTION, "", 3, "", { 0 },
-		{
-			{
-				"IRQ 2", 2
-			},
-			{
-				"IRQ 3", 3
-			},
-			{
-				"IRQ 5", 5
-			},
-			{
-				"IRQ 7", 7
-			},
-			{
-				"IRQ 10", 10
-			},
-			{
-				"IRQ 11", 11
-			},
-			{
-				""
-			}
-		},
-	},
-	{
-		"mac", "MAC Address", CONFIG_MAC, "", -1
-	},
-	{
-		"", "", -1
-	}
+// clang-format off
+static const device_config_t ne1000_config[] = {
+    {
+        "base", "Address", CONFIG_HEX16, "", 0x300, "", { 0 },
+        {
+            { "0x280", 0x280 },
+            { "0x300", 0x300 },
+            { "0x320", 0x320 },
+            { "0x340", 0x340 },
+            { "0x360", 0x360 },
+            { "0x380", 0x380 },
+            { ""             }
+        },
+    },
+    {
+        "irq", "IRQ", CONFIG_SELECTION, "", 3, "", { 0 },
+        {
+            { "IRQ 2",   2 },
+            { "IRQ 3",   3 },
+            { "IRQ 5",   5 },
+            { "IRQ 7",   7 },
+            { "IRQ 10", 10 },
+            { "IRQ 11", 11 },
+            { ""           }
+        },
+    },
+    { "mac", "MAC Address", CONFIG_MAC, "", -1 },
+    { "",    "",                            -1 }
 };
 
-static const device_config_t ne2000_config[] =
-{
-	{
-		"base", "Address", CONFIG_HEX16, "", 0x300, "", { 0 },
-		{
-			{
-				"0x280", 0x280
-			},
-			{
-				"0x300", 0x300
-			},
-			{
-				"0x320", 0x320
-			},
-			{
-				"0x340", 0x340
-			},
-			{
-				"0x360", 0x360
-			},
-			{
-				"0x380", 0x380
-			},
-			{
-				""
-			}
-		},
-	},
-	{
-		"irq", "IRQ", CONFIG_SELECTION, "", 10, "", { 0 },
-		{
-			{
-				"IRQ 2", 2
-			},
-			{
-				"IRQ 3", 3
-			},
-			{
-				"IRQ 5", 5
-			},
-			{
-				"IRQ 7", 7
-			},
-			{
-				"IRQ 10", 10
-			},
-			{
-				"IRQ 11", 11
-			},
-			{
-				""
-			}
-		},
-	},
-	{
-		"mac", "MAC Address", CONFIG_MAC, "", -1
-	},
-	{
-		"bios_addr", "BIOS address", CONFIG_HEX20, "", 0, "", { 0 },
-		{
-			{
-				"Disabled", 0x00000
-			},
-			{
-				"D000", 0xD0000
-			},
-			{
-				"D800", 0xD8000
-			},
-			{
-				"C800", 0xC8000
-			},
-			{
-				""
-			}
-		},
-	},
-	{
-		"", "", -1
-	}
+static const device_config_t ne2000_config[] = {
+    {
+        "base", "Address", CONFIG_HEX16, "", 0x300, "", { 0 },
+        {
+            { "0x280", 0x280 },
+            { "0x300", 0x300 },
+            { "0x320", 0x320 },
+            { "0x340", 0x340 },
+            { "0x360", 0x360 },
+            { "0x380", 0x380 },
+            { ""             }
+        },
+    },
+    {
+        "irq", "IRQ", CONFIG_SELECTION, "", 10, "", { 0 },
+        {
+            { "IRQ 2",   2 },
+            { "IRQ 3",   3 },
+            { "IRQ 5",   5 },
+            { "IRQ 7",   7 },
+            { "IRQ 10", 10 },
+            { "IRQ 11", 11 },
+            { ""           }
+        },
+    },
+    { "mac", "MAC Address", CONFIG_MAC, "", -1 },
+    {
+        "bios_addr", "BIOS address", CONFIG_HEX20, "", 0, "", { 0 },
+        {
+            { "Disabled", 0x00000 },
+            { "D000",     0xD0000 },
+            { "D800",     0xD8000 },
+            { "C800",     0xC8000 },
+            { ""                  }
+        },
+    },
+    { "", "", -1 }
 };
 
-static const device_config_t rtl8019as_config[] =
-{
-	{
-		"mac", "MAC Address", CONFIG_MAC, "", -1
-	},
-	{
-		"", "", -1
-	}
+static const device_config_t rtl8019as_config[] = {
+    { "mac", "MAC Address", CONFIG_MAC, "", -1 },
+    { "",    "",                            -1 }
 };
 
-static const device_config_t rtl8029as_config[] =
-{
-	{
-		"bios", "Enable BIOS", CONFIG_BINARY, "", 0
-	},
-	{
-		"mac", "MAC Address", CONFIG_MAC, "", -1
-	},
-	{
-		"", "", -1
-	}
+static const device_config_t rtl8029as_config[] = {
+    { "bios", "Enable BIOS", CONFIG_BINARY, "",  0 },
+    { "mac",  "MAC Address", CONFIG_MAC, "",    -1 },
+    { "",     "",                               -1 }
 };
 
-static const device_config_t mca_mac_config[] =
-{
-	{
-		"mac", "MAC Address", CONFIG_MAC, "", -1
-	},
-	{
-		"", "", -1
-	}
+static const device_config_t mca_mac_config[] = {
+    { "mac", "MAC Address", CONFIG_MAC, "", -1 },
+    { "",    "",                            -1 }
 };
-
-
+// clang-format on
 
 const device_t ne1000_device = {
-    "Novell NE1000",
-    "ne1k",
-    DEVICE_ISA,
-    NE2K_NE1000,
-    nic_init, nic_close, NULL,
-    { NULL }, NULL, NULL,
-    ne1000_config
+    .name = "Novell NE1000",
+    .internal_name = "ne1k",
+    .flags = DEVICE_ISA,
+    .local = NE2K_NE1000,
+    .init = nic_init,
+    .close = nic_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = ne1000_config
 };
 
 const device_t ne2000_device = {
-    "Novell NE2000",
-    "ne2k",
-    DEVICE_ISA | DEVICE_AT,
-    NE2K_NE2000,
-    nic_init, nic_close, NULL,
-    { NULL }, NULL, NULL,
-    ne2000_config
+    .name = "Novell NE2000",
+    .internal_name = "ne2k",
+    .flags = DEVICE_ISA | DEVICE_AT,
+    .local = NE2K_NE2000,
+    .init = nic_init,
+    .close = nic_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = ne2000_config
 };
 
 const device_t ethernext_mc_device = {
-    "NetWorth EtherNext/MC",
-    "ethernextmc",
-    DEVICE_MCA,
-    NE2K_ETHERNEXT_MC,
-    nic_init, nic_close, NULL,
-    { NULL }, NULL, NULL,
-    mca_mac_config
+    .name = "NetWorth EtherNext/MC",
+    .internal_name = "ethernextmc",
+    .flags = DEVICE_MCA,
+    .local = NE2K_ETHERNEXT_MC,
+    .init = nic_init,
+    .close = nic_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = mca_mac_config
 };
 
 const device_t rtl8019as_device = {
-    "Realtek RTL8019AS",
-    "ne2kpnp",
-    DEVICE_ISA | DEVICE_AT,
-    NE2K_RTL8019AS,
-    nic_init, nic_close, NULL,
-    { NULL }, NULL, NULL,
-    rtl8019as_config
+    .name = "Realtek RTL8019AS",
+    .internal_name = "ne2kpnp",
+    .flags = DEVICE_ISA | DEVICE_AT,
+    .local = NE2K_RTL8019AS,
+    .init = nic_init,
+    .close = nic_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = rtl8019as_config
 };
 
 const device_t rtl8029as_device = {
-    "Realtek RTL8029AS",
-    "ne2kpci",
-    DEVICE_PCI,
-    NE2K_RTL8029AS,
-    nic_init, nic_close, NULL,
-    { NULL }, NULL, NULL,
-    rtl8029as_config
+    .name = "Realtek RTL8029AS",
+    .internal_name = "ne2kpci",
+    .flags = DEVICE_PCI,
+    .local = NE2K_RTL8029AS,
+    .init = nic_init,
+    .close = nic_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = rtl8029as_config
 };

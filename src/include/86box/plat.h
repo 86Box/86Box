@@ -40,7 +40,7 @@ extern int stricmp(const char* s1, const char* s2);
 extern int strnicmp(const char* s1, const char* s2, size_t n);
 #endif
 
-#if (defined(__unix__) || defined(__APPLE__)) && !defined(__linux__)
+#if (defined(__HAIKU__) || defined(__unix__) || defined(__APPLE__)) && !defined(__linux__)
 /* FreeBSD has largefile by default. */
 # define fopen64        fopen
 # define fseeko64       fseeko
@@ -111,6 +111,7 @@ extern char	*plat_get_extension(char *s);
 extern void	plat_append_filename(char *dest, const char *s1, const char *s2);
 extern void	plat_put_backslash(char *s);
 extern void	plat_path_slash(char *path);
+extern void plat_path_normalize(char *path);
 extern int	plat_path_abs(char *path);
 extern int	plat_dir_check(char *path);
 extern int	plat_dir_create(char *path);

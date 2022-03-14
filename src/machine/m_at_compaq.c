@@ -670,77 +670,67 @@ compaq_plasma_speed_changed(void *p)
 	compaq_plasma_recalctimings(self);
 }
 
-const device_config_t compaq_plasma_config[] =
-{
-        {
-                "display_type", "Display type", CONFIG_SELECTION, "", CGA_RGB, "", { 0 },
-                {
-                        {
-                                "RGB", CGA_RGB
-                        },
-                        {
-                                "Composite", CGA_COMPOSITE
-                        },
-                        {
-                                ""
-                        }
-                }
-        },
-        {
-                "composite_type", "Composite type", CONFIG_SELECTION, "", COMPOSITE_OLD, "", { 0 },
-                {
-                        {
-                                "Old", COMPOSITE_OLD
-                        },
-                        {
-                                "New", COMPOSITE_NEW
-                        },
-                        {
-                                ""
-                        }
-                }
-        },
-        {
-                "rgb_type", "RGB type", CONFIG_SELECTION, "", 0, "", { 0 },
-                {
-                        {
-                                "Color", 0
-                        },
-                        {
-                                "Green Monochrome", 1
-                        },
-                        {
-                                "Amber Monochrome", 2
-                        },
-                        {
-                                "Gray Monochrome", 3
-                        },
-                        {
-                                "Color (no brown)", 4
-                        },
-                        {
-                                ""
-                        }
-                }
-        },
-        {
-                "", "", -1
+const device_config_t compaq_plasma_config[] = {
+    {
+        .name = "display_type",
+        .description = "Display type",
+        .type = CONFIG_SELECTION,
+        .default_string = "",
+        .default_int = CGA_RGB,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "RGB",       .value = CGA_RGB       },
+            { .description = "Composite", .value = CGA_COMPOSITE },
+            { .description = ""                                  }
         }
+    },
+    {
+        .name = "composite_type",
+        .description = "Composite type",
+        .type = CONFIG_SELECTION,
+        .default_string = "",
+        .default_int = COMPOSITE_OLD,
+        .file_filter = "",
+        .spinner = { 0 },
+        {
+            { .description = "Old", .value = COMPOSITE_OLD },
+            { .description = "New", .value = COMPOSITE_NEW },
+            { .description = ""                            }
+        }
+    },
+    {
+        .name = "rgb_type",
+		.description = "RGB type",
+		.type = CONFIG_SELECTION,
+        .default_string = "",
+        .default_int = 0,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "Color",            .value = 0 },
+            { .description = "Green Monochrome", .value = 1 },
+            { .description = "Amber Monochrome", .value = 2 },
+            { .description = "Gray Monochrome",  .value = 3 },
+            { .description = "Color (no brown)", .value = 4 },
+            { .description = ""                             }
+        }
+    },
+    { .name = "", .description = "", .type = -1 }
 };
 
-
-static const device_t compaq_plasma_device =
-{
-        "Compaq Plasma",
-        "compaq_plasma",
-        0, 0,
-        compaq_plasma_init,
-        compaq_plasma_close,
-        NULL,
-	{ NULL },
-        compaq_plasma_speed_changed,
-        NULL,
-        compaq_plasma_config
+static const device_t compaq_plasma_device = {
+    .name = "Compaq Plasma",
+    .internal_name = "compaq_plasma",
+    .flags = 0,
+    .local = 0,
+    .init = compaq_plasma_init,
+    .close = compaq_plasma_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = compaq_plasma_speed_changed,
+    .force_redraw = NULL,
+    .config = compaq_plasma_config
 };
 
 static uint8_t

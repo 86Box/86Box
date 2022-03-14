@@ -2107,6 +2107,23 @@ ide_board_callback(void *priv)
 
 
 static void
+atapi_error_no_ready(ide_t *ide)
+{
+    ide->command = 0;
+    if (ide->type == IDE_ATAPI) {
+	ide->sc->status = ERR_STAT | DSC_STAT;
+	ide->sc->error = ABRT_ERR;
+	ide->sc->pos = 0;
+    } else {
+	ide->atastat = ERR_STAT | DSC_STAT;
+	ide->error = ABRT_ERR;
+	ide->pos = 0;
+    }
+    ide_irq_raise(ide);
+}
+
+
+static void
 ide_callback(void *priv)
 {
     int snum, ret = 0;
@@ -2117,8 +2134,10 @@ ide_callback(void *priv)
 
     if (((ide->command >= WIN_RECAL) && (ide->command <= 0x1F)) ||
 	((ide->command >= WIN_SEEK) && (ide->command <= 0x7F))) {
-	if (ide->type != IDE_HDD)
-		goto abort_cmd;
+	if (ide->type != IDE_HDD) {
+		atapi_error_no_ready(ide);
+		return;
+	}
 	if ((ide->command >= WIN_SEEK) && (ide->command <= 0x7F) && !ide->lba) {
 		if ((ide->cylinder >= ide->tracks) || (ide->head >= ide->hpc) ||
 		    !ide->sector || (ide->sector > ide->spt))
@@ -3045,185 +3064,183 @@ ide_close(void *priv)
 
 
 const device_t ide_isa_device = {
-    "ISA PC/AT IDE Controller",
-    "ide_isa",
-    DEVICE_ISA | DEVICE_AT,
-    0,
-    ide_init, ide_close, ide_reset,
-    { NULL }, NULL, NULL, NULL
+    .name = "ISA PC/AT IDE Controller",
+    .internal_name = "ide_isa",
+    .flags = DEVICE_ISA | DEVICE_AT,
+    .local = 0,
+    .init = ide_init,
+    .close = ide_close,
+    .reset = ide_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
 const device_t ide_isa_2ch_device = {
-    "ISA PC/AT IDE Controller (Dual-Channel)",
-    "ide_isa_2ch",
-    DEVICE_ISA | DEVICE_AT,
-    1,
-    ide_init, ide_close, ide_reset,
-    { NULL }, NULL, NULL, NULL
+    .name = "ISA PC/AT IDE Controller (Dual-Channel)",
+    .internal_name = "ide_isa_2ch",
+    .flags = DEVICE_ISA | DEVICE_AT,
+    .local = 1,
+    .init = ide_init,
+    .close = ide_close,
+    .reset = ide_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
 const device_t ide_vlb_device = {
-    "VLB IDE Controller",
-    "ide_vlb",
-    DEVICE_VLB | DEVICE_AT,
-    2,
-    ide_init, ide_close, ide_reset,
-    { NULL }, NULL, NULL, NULL
+    .name = "VLB IDE Controller",
+    .internal_name = "ide_vlb",
+    .flags = DEVICE_VLB | DEVICE_AT,
+    .local = 2,
+    .init = ide_init,
+    .close = ide_close,
+    .reset = ide_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
 const device_t ide_vlb_2ch_device = {
-    "VLB IDE Controller (Dual-Channel)",
-    "ide_vlb_2ch",
-    DEVICE_VLB | DEVICE_AT,
-    3,
-    ide_init, ide_close, ide_reset,
-    { NULL }, NULL, NULL, NULL
+    .name = "VLB IDE Controller (Dual-Channel)",
+    .internal_name = "ide_vlb_2ch",
+    .flags = DEVICE_VLB | DEVICE_AT,
+    .local = 3,
+    .init = ide_init,
+    .close = ide_close,
+    .reset = ide_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
 const device_t ide_pci_device = {
-    "PCI IDE Controller",
-    "ide_pci",
-    DEVICE_PCI | DEVICE_AT,
-    4,
-    ide_init, ide_close, ide_reset,
-    { NULL }, NULL, NULL, NULL
+    .name = "PCI IDE Controller",
+    .internal_name = "ide_pci",
+    .flags = DEVICE_PCI | DEVICE_AT,
+    .local = 4,
+    .init = ide_init,
+    .close = ide_close,
+    .reset = ide_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
 const device_t ide_pci_2ch_device = {
-    "PCI IDE Controller (Dual-Channel)",
-    "ide_pci_2ch",
-    DEVICE_PCI | DEVICE_AT,
-    5,
-    ide_init, ide_close, ide_reset,
-    { NULL }, NULL, NULL, NULL
+    .name = "PCI IDE Controller (Dual-Channel)",
+    .internal_name = "ide_pci_2ch",
+    .flags = DEVICE_PCI | DEVICE_AT,
+    .local = 5,
+    .init = ide_init,
+    .close = ide_close,
+    .reset = ide_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
-static const device_config_t ide_ter_config[] =
-{
+// clang-format off
+static const device_config_t ide_ter_config[] = {
+    {
+        "irq", "IRQ", CONFIG_SELECTION, "", 10, "", { 0 },
         {
-                "irq", "IRQ", CONFIG_SELECTION, "", 10, "", { 0 },
-                {
-                        {
-                                "Plug and Play", -1
-                        },
-                        {
-                                "IRQ 2", 2
-                        },
-                        {
-                                "IRQ 3", 3
-                        },
-                        {
-                                "IRQ 4", 4
-                        },
-                        {
-                                "IRQ 5", 5
-                        },
-                        {
-                                "IRQ 7", 7
-                        },
-                        {
-                                "IRQ 9", 9
-                        },
-                        {
-                                "IRQ 10", 10
-                        },
-                        {
-                                "IRQ 11", 11
-                        },
-                        {
-                                "IRQ 12", 12
-                        },
-                        {
-                                ""
-                        }
-                }
-        },
-        {
-                "", "", -1
+            { "Plug and Play", -1 },
+            { "IRQ 2",          2 },
+            { "IRQ 3",          3 },
+            { "IRQ 4",          4 },
+            { "IRQ 5",          5 },
+            { "IRQ 7",          7 },
+            { "IRQ 9",          9 },
+            { "IRQ 10",        10 },
+            { "IRQ 11",        11 },
+            { "IRQ 12",        12 },
+            { ""                  }
         }
+    },
+    { "", "", -1 }
 };
 
-static const device_config_t ide_qua_config[] =
-{
+static const device_config_t ide_qua_config[] = {
+    {
+        "irq", "IRQ", CONFIG_SELECTION, "", 11, "", { 0 },
         {
-                "irq", "IRQ", CONFIG_SELECTION, "", 11, "", { 0 },
-                {
-                        {
-                                "Plug and Play", -1
-                        },
-                        {
-                                "IRQ 2", 2
-                        },
-                        {
-                                "IRQ 3", 3
-                        },
-                        {
-                                "IRQ 4", 4
-                        },
-                        {
-                                "IRQ 5", 5
-                        },
-                        {
-                                "IRQ 7", 7
-                        },
-                        {
-                                "IRQ 9", 9
-                        },
-                        {
-                                "IRQ 10", 10
-                        },
-                        {
-                                "IRQ 11", 11
-                        },
-                        {
-                                "IRQ 12", 12
-                        },
-                        {
-                                ""
-                        }
-                }
-        },
-        {
-                "", "", -1
+            { "Plug and Play", -1 },
+            { "IRQ 2",          2 },
+            { "IRQ 3",          3 },
+            { "IRQ 4",          4 },
+            { "IRQ 5",          5 },
+            { "IRQ 7",          7 },
+            { "IRQ 9",          9 },
+            { "IRQ 10",        10 },
+            { "IRQ 11",        11 },
+            { "IRQ 12",        12 },
+            { ""                  }
         }
+    },
+    { "", "", -1 }
 };
+// clang-format on
 
 const device_t ide_ter_device = {
-    "Tertiary IDE Controller",
-    "ide_ter",
-    DEVICE_AT,
-    0,
-    ide_ter_init, ide_ter_close, NULL,
-    { NULL }, NULL, NULL,
-    ide_ter_config
+    .name = "Tertiary IDE Controller",
+    .internal_name = "ide_ter",
+    .flags = DEVICE_AT,
+    .local = 0,
+    .init = ide_ter_init,
+    .close = ide_ter_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = ide_ter_config
 };
 
 const device_t ide_ter_pnp_device = {
-    "Tertiary IDE Controller (Plug and Play only)",
-    "ide_ter_pnp",
-    DEVICE_AT,
-    1,
-    ide_ter_init, ide_ter_close, NULL,
-    { NULL }, NULL, NULL,
-    NULL
+    .name = "Tertiary IDE Controller (Plug and Play only)",
+    .internal_name = "ide_ter_pnp",
+    .flags = DEVICE_AT,
+    .local = 1,
+    .init = ide_ter_init,
+    .close = ide_ter_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
 const device_t ide_qua_device = {
-    "Quaternary IDE Controller",
-    "ide_qua",
-    DEVICE_AT,
-    0,
-    ide_qua_init, ide_qua_close, NULL,
-    { NULL }, NULL, NULL,
-    ide_qua_config
+    .name = "Quaternary IDE Controller",
+    .internal_name = "ide_qua",
+    .flags = DEVICE_AT,
+    .local = 0,
+    .init = ide_qua_init,
+    .close = ide_qua_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = ide_qua_config
 };
 
 const device_t ide_qua_pnp_device = {
-    "Quaternary IDE Controller (Plug and Play only)",
-    "ide_qua_pnp",
-    DEVICE_AT,
-    1,
-    ide_qua_init, ide_qua_close, NULL,
-    { NULL }, NULL, NULL,
-    ide_qua_config
+    .name = "Quaternary IDE Controller (Plug and Play only)",
+    .internal_name = "ide_qua_pnp",
+    .flags = DEVICE_AT,
+    .local = 1,
+    .init = ide_qua_init,
+    .close = ide_qua_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = ide_qua_config
 };

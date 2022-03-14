@@ -497,156 +497,145 @@ pci_bridge_init(const device_t *info)
     return dev;
 }
 
-
 /* PCI bridges */
-const device_t dec21150_device =
-{
-    "DEC 21150 PCI Bridge",
-    "dec21150",
-    DEVICE_PCI,
-    PCI_BRIDGE_DEC_21150,
-    pci_bridge_init,
-    NULL,
-    pci_bridge_reset,
-    { NULL },
-    NULL,
-    NULL,
-    NULL
+const device_t dec21150_device = {
+    .name = "DEC 21150 PCI Bridge",
+    .internal_name = "dec21150",
+    .flags = DEVICE_PCI,
+    .local = PCI_BRIDGE_DEC_21150,
+    .init = pci_bridge_init,
+    .close = NULL,
+    .reset = pci_bridge_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
 /* AGP bridges */
-const device_t ali5243_agp_device =
-{
-    "ALi M5243 AGP Bridge",
-    "ali5243_agp",
-    DEVICE_PCI,
-    AGP_BRIDGE_ALI_M5243,
-    pci_bridge_init,
-    NULL,
-    pci_bridge_reset,
-    { NULL },
-    NULL,
-    NULL,
-    NULL
+const device_t ali5243_agp_device = {
+    .name = "ALi M5243 AGP Bridge",
+    .internal_name = "ali5243_agp",
+    .flags = DEVICE_PCI,
+    .local = AGP_BRIDGE_ALI_M5243,
+    .init = pci_bridge_init,
+    .close = NULL,
+    .reset = pci_bridge_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
 /* AGP bridges */
-const device_t ali5247_agp_device =
-{
-    "ALi M5247 AGP Bridge",
-    "ali5247_agp",
-    DEVICE_PCI,
-    AGP_BRIDGE_ALI_M5247,
-    pci_bridge_init,
-    NULL,
-    pci_bridge_reset,
-    { NULL },
-    NULL,
-    NULL,
-    NULL
+const device_t ali5247_agp_device = {
+    .name = "ALi M5247 AGP Bridge",
+    .internal_name = "ali5247_agp",
+    .flags = DEVICE_PCI,
+    .local = AGP_BRIDGE_ALI_M5247,
+    .init = pci_bridge_init,
+    .close = NULL,
+    .reset = pci_bridge_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
-const device_t i440lx_agp_device =
-{
-    "Intel 82443LX/EX AGP Bridge",
-    "i440lx_agp",
-    DEVICE_PCI,
-    AGP_BRIDGE_INTEL_440LX,
-    pci_bridge_init,
-    NULL,
-    pci_bridge_reset,
-    { NULL },
-    NULL,
-    NULL,
-    NULL
+const device_t i440lx_agp_device = {
+    .name = "Intel 82443LX/EX AGP Bridge",
+    .internal_name = "i440lx_agp",
+    .flags = DEVICE_PCI,
+    .local = AGP_BRIDGE_INTEL_440LX,
+    .init = pci_bridge_init,
+    .close = NULL,
+    .reset = pci_bridge_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
-const device_t i440bx_agp_device =
-{
-    "Intel 82443BX/ZX AGP Bridge",
-    "i440bx_agp",
-    DEVICE_PCI,
-    AGP_BRIDGE_INTEL_440BX,
-    pci_bridge_init,
-    NULL,
-    pci_bridge_reset,
-    { NULL },
-    NULL,
-    NULL,
-    NULL
+const device_t i440bx_agp_device = {
+    .name = "Intel 82443BX/ZX AGP Bridge",
+    .internal_name = "i440bx_agp",
+    .flags = DEVICE_PCI,
+    .local = AGP_BRIDGE_INTEL_440BX,
+    .init = pci_bridge_init,
+    .close = NULL,
+    .reset = pci_bridge_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
-const device_t i440gx_agp_device =
-{
-    "Intel 82443GX AGP Bridge",
-    "i440gx_agp",
-    DEVICE_PCI,
-    AGP_BRIDGE_INTEL_440GX,
-    pci_bridge_init,
-    NULL,
-    pci_bridge_reset,
-    { NULL },
-    NULL,
-    NULL,
-    NULL
+const device_t i440gx_agp_device = {
+    .name = "Intel 82443GX AGP Bridge",
+    .internal_name = "i440gx_agp",
+    .flags = DEVICE_PCI,
+    .local = AGP_BRIDGE_INTEL_440GX,
+    .init = pci_bridge_init,
+    .close = NULL,
+    .reset = pci_bridge_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
-const device_t via_vp3_agp_device =
-{
-    "VIA Apollo VP3 AGP Bridge",
-    "via_vp3_agp",
-    DEVICE_PCI,
-    AGP_BRIDGE_VIA_597,
-    pci_bridge_init,
-    NULL,
-    pci_bridge_reset,
-    { NULL },
-    NULL,
-    NULL,
-    NULL
+const device_t via_vp3_agp_device = {
+    .name = "VIA Apollo VP3 AGP Bridge",
+    .internal_name = "via_vp3_agp",
+    .flags = DEVICE_PCI,
+    .local = AGP_BRIDGE_VIA_597,
+    .init = pci_bridge_init,
+    .close = NULL,
+    .reset = pci_bridge_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
-const device_t via_mvp3_agp_device =
-{
-    "VIA Apollo MVP3 AGP Bridge",
-    "via_mvp3_agp",
-    DEVICE_PCI,
-    AGP_BRIDGE_VIA_598,
-    pci_bridge_init,
-    NULL,
-    pci_bridge_reset,
-    { NULL },
-    NULL,
-    NULL,
-    NULL
+const device_t via_mvp3_agp_device = {
+    .name = "VIA Apollo MVP3 AGP Bridge",
+    .internal_name = "via_mvp3_agp",
+    .flags = DEVICE_PCI,
+    .local = AGP_BRIDGE_VIA_598,
+    .init = pci_bridge_init,
+    .close = NULL,
+    .reset = pci_bridge_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
-const device_t via_apro_agp_device =
-{
-    "VIA Apollo Pro AGP Bridge",
-    "via_apro_agp",
-    DEVICE_PCI,
-    AGP_BRIDGE_VIA_691,
-    pci_bridge_init,
-    NULL,
-    pci_bridge_reset,
-    { NULL },
-    NULL,
-    NULL,
-    NULL
+const device_t via_apro_agp_device = {
+    .name = "VIA Apollo Pro AGP Bridge",
+    .internal_name = "via_apro_agp",
+    .flags = DEVICE_PCI,
+    .local = AGP_BRIDGE_VIA_691,
+    .init = pci_bridge_init,
+    .close = NULL,
+    .reset = pci_bridge_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
-const device_t via_vt8601_agp_device =
-{
-    "VIA Apollo ProMedia AGP Bridge",
-    "via_vt8601_agp",
-    DEVICE_PCI,
-    AGP_BRIDGE_VIA_8601,
-    pci_bridge_init,
-    NULL,
-    pci_bridge_reset,
-    { NULL },
-    NULL,
-    NULL,
-    NULL
+const device_t via_vt8601_agp_device = {
+    .name = "VIA Apollo ProMedia AGP Bridge",
+    .internal_name = "via_vt8601_agp",
+    .flags = DEVICE_PCI,
+    .local = AGP_BRIDGE_VIA_8601,
+    .init = pci_bridge_init,
+    .close = NULL,
+    .reset = pci_bridge_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
