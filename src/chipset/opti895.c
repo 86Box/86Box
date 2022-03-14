@@ -273,24 +273,30 @@ opti895_init(const device_t *info)
     return dev;
 }
 
-
 const device_t opti802g_device = {
-    "OPTi 82C802G",
-    "opti802g",
-    0,
-    0,
-    opti895_init, opti895_close, NULL,
-    { NULL }, NULL, NULL,
-    NULL
+    .name = "OPTi 82C802G",
+    .internal_name = "opti802g",
+    .flags = 0,
+    .local = 0,
+    .init = opti895_init,
+    .close = opti895_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
-
 const device_t opti895_device = {
-    "OPTi 82C895",
-    "opti895",
-    0,
-    0,
-    opti895_init, opti895_close, NULL,
-    { NULL }, NULL, NULL,
-    NULL
+    .name = "OPTi 82C895",
+    .internal_name = "opti895",
+    .flags = 0,
+    .local = 0,
+    .init = opti895_init,
+    .close = opti895_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };

@@ -1631,97 +1631,86 @@ pipc_close(void *p)
     free(dev);
 }
 
-
-const device_t via_vt82c586b_device =
-{
-    "VIA VT82C586B",
-    "via_vt82c586b",
-    DEVICE_PCI,
-    VIA_PIPC_586B,
-    pipc_init,
-    pipc_close,
-    pipc_reset,
-    { NULL },
-    NULL,
-    NULL,
-    NULL
+const device_t via_vt82c586b_device = {
+    .name = "VIA VT82C586B",
+    .internal_name = "via_vt82c586b",
+    .flags = DEVICE_PCI,
+    .local = VIA_PIPC_586B,
+    .init = pipc_init,
+    .close = pipc_close,
+    .reset = pipc_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
-const device_t via_vt82c596a_device =
-{
-    "VIA VT82C596A",
-    "via_vt82c596a",
-    DEVICE_PCI,
-    VIA_PIPC_596A,
-    pipc_init,
-    pipc_close,
-    pipc_reset,
-    { NULL },
-    NULL,
-    NULL,
-    NULL
+const device_t via_vt82c596a_device = {
+    .name = "VIA VT82C596A",
+    .internal_name = "via_vt82c596a",
+    .flags = DEVICE_PCI,
+    .local = VIA_PIPC_596A,
+    .init = pipc_init,
+    .close = pipc_close,
+    .reset = pipc_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
-
-const device_t via_vt82c596b_device =
-{
-    "VIA VT82C596B",
-    "via_vt82c596b",
-    DEVICE_PCI,
-    VIA_PIPC_596B,
-    pipc_init,
-    pipc_close,
-    pipc_reset,
-    { NULL },
-    NULL,
-    NULL,
-    NULL
+const device_t via_vt82c596b_device = {
+    .name = "VIA VT82C596B",
+    .internal_name = "via_vt82c596b",
+    .flags = DEVICE_PCI,
+    .local = VIA_PIPC_596B,
+    .init = pipc_init,
+    .close = pipc_close,
+    .reset = pipc_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
-
-const device_t via_vt82c686a_device =
-{
-    "VIA VT82C686A",
-    "via_vt82c686a",
-    DEVICE_PCI,
-    VIA_PIPC_686A,
-    pipc_init,
-    pipc_close,
-    pipc_reset,
-    { NULL },
-    NULL,
-    NULL,
-    NULL
+const device_t via_vt82c686a_device = {
+    .name = "VIA VT82C686A",
+    .internal_name = "via_vt82c686a",
+    .flags = DEVICE_PCI,
+    .local = VIA_PIPC_686A,
+    .init = pipc_init,
+    .close = pipc_close,
+    .reset = pipc_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
-
-const device_t via_vt82c686b_device =
-{
-    "VIA VT82C686B",
-    "via_vt82c686b",
-    DEVICE_PCI,
-    VIA_PIPC_686B,
-    pipc_init,
-    pipc_close,
-    pipc_reset,
-    { NULL },
-    NULL,
-    NULL,
-    NULL
+const device_t via_vt82c686b_device = {
+    .name = "VIA VT82C686B",
+    .internal_name = "via_vt82c686b",
+    .flags = DEVICE_PCI,
+    .local = VIA_PIPC_686B,
+    .init = pipc_init,
+    .close = pipc_close,
+    .reset = pipc_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
-
-const device_t via_vt8231_device =
-{
-    "VIA VT8231",
-    "via_vt8231",
-    DEVICE_PCI,
-    VIA_PIPC_8231,
-    pipc_init,
-    pipc_close,
-    pipc_reset,
-    { NULL },
-    NULL,
-    NULL,
-    NULL
+const device_t via_vt8231_device = {
+    .name = "VIA VT8231",
+    .internal_name = "via_vt8231",
+    .flags = DEVICE_PCI,
+    .local = VIA_PIPC_8231,
+    .init = pipc_init,
+    .close = pipc_close,
+    .reset = pipc_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };

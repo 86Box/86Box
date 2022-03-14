@@ -211,17 +211,16 @@ opti391_init(const device_t *info)
     return dev;
 }
 
-
 const device_t opti391_device = {
-    "OPTi 82C391",
-    "opti391",
-    0,
-    0,
-    opti391_init,
-    opti391_close,
-    NULL,
-    { NULL },
-    NULL,
-    NULL,
-    NULL
+    .name = "OPTi 82C391",
+    .internal_name = "opti391",
+    .flags = 0,
+    .local = 0,
+    .init = opti391_init,
+    .close = opti391_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };

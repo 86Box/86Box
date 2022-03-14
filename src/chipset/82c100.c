@@ -397,11 +397,15 @@ ct_82c100_init(const device_t *info)
 
 
 const device_t ct_82c100_device = {
-    "C&T 82C100",
-    "ct_82c100",
-    0,
-    0,
-    ct_82c100_init, ct_82c100_close, ct_82c100_reset,
-    { NULL }, NULL, NULL,
-    NULL
+    .name = "C&T 82C100",
+    .internal_name = "ct_82c100",
+    .flags = 0,
+    .local = 0,
+    .init = ct_82c100_init,
+    .close = ct_82c100_close,
+    .reset = ct_82c100_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };

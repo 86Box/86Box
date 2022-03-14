@@ -1349,17 +1349,19 @@ ps1_hdc_close(void *priv)
     free(dev);
 }
 
-
 const device_t ps1_hdc_device = {
-    "PS/1 2011 Fixed Disk Controller",
-    "ps1_hdc",
-    DEVICE_ISA | DEVICE_PS2,
-    0,
-    ps1_hdc_init, ps1_hdc_close, NULL,
-    { NULL }, NULL, NULL,
-    NULL
+    .name = "PS/1 2011 Fixed Disk Controller",
+    .internal_name = "ps1_hdc",
+    .flags = DEVICE_ISA | DEVICE_PS2,
+    .local = 0,
+    .init = ps1_hdc_init,
+    .close = ps1_hdc_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
-
 
 /*
  * Very nasty.

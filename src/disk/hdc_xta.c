@@ -1104,71 +1104,59 @@ xta_close(void *priv)
 
 
 static const device_config_t wdxt150_config[] = {
+// clang-format off
+    {
+        "base", "Address", CONFIG_HEX16, "", 0x0320, "", { 0 }, /*W2*/
         {
-		"base", "Address", CONFIG_HEX16, "", 0x0320, "", { 0 },		/*W2*/
-                {
-                        {
-                                "320H", 0x0320
-                        },
-                        {
-                                "324H", 0x0324
-                        },
-                        {
-                                ""
-                        }
-                },
+                        { "320H", 0x0320 },
+                        { "324H", 0x0324 },
+                        { ""             }
         },
+    },
+    {
+        "irq", "IRQ", CONFIG_SELECTION, "", 5, "", { 0 }, /*W3*/
         {
-		"irq", "IRQ", CONFIG_SELECTION, "", 5, "", { 0 },		/*W3*/
-                {
-                        {
-                                "IRQ 5", 5
-                        },
-                        {
-                                "IRQ 4", 4
-                        },
-                        {
-                                ""
-                        }
-                },
+                        { "IRQ 5", 5 },
+                        { "IRQ 4", 4 },
+                        { ""         }
         },
+    },
+    {
+        "bios_addr", "BIOS Address", CONFIG_HEX20, "", 0xc8000, "", { 0 }, /*W1*/
         {
-                "bios_addr", "BIOS Address", CONFIG_HEX20, "", 0xc8000, "", { 0 }, /*W1*/
-                {
-                        {
-                                "C800H", 0xc8000
-                        },
-                        {
-                                "CA00H", 0xca000
-                        },
-                        {
-                                ""
-                        }
-                },
+                        { "C800H", 0xc8000 },
+                        { "CA00H", 0xca000 },
+                        { ""               }
         },
-	{
-		"", "", -1
-	}
+    },
+	{ "", "", -1 }
+// clang-format off
 };
-
 
 const device_t xta_wdxt150_device = {
-    "WDXT-150 XTA Fixed Disk Controller",
-    "xta_wdxt150",
-    DEVICE_ISA,
-    0,
-    xta_init, xta_close, NULL,
-    { xta_available }, NULL, NULL,
-    wdxt150_config
+    .name = "WDXT-150 XTA Fixed Disk Controller",
+    .internal_name = "xta_wdxt150",
+    .flags = DEVICE_ISA,
+    .local = 0,
+    .init = xta_init,
+    .close = xta_close,
+    .reset = NULL,
+    { .available = xta_available },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = wdxt150_config
 };
 
-
 const device_t xta_hd20_device = {
-    "EuroPC HD20 Fixed Disk Controller",
-    "xta_hd20",
-    DEVICE_ISA,
-    1,
-    xta_init, xta_close, NULL,
-    { NULL }, NULL, NULL,
-    NULL
+    .name = "EuroPC HD20 Fixed Disk Controller",
+    .internal_name = "xta_hd20",
+    .flags = DEVICE_ISA,
+    .local = 1,
+    .init = xta_init,
+    .close = xta_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };

@@ -592,184 +592,158 @@ isartc_close(void *priv)
     free(dev);
 }
 
-
 static const device_config_t ev170_config[] = {
-	{
-		"base", "Address", CONFIG_HEX16, "", 0x02C0, "", { 0 },
-		{
-			{
-				"240H", 0x0240
-			},
-			{
-				"2C0H", 0x02c0
-			},
-			{
-				""
-			}
-		},
-	},
-	{
-		"irq", "IRQ", CONFIG_SELECTION, "", -1, "", { 0 },
-		{
-			{
-				"Disabled", -1
-			},
-			{
-				"IRQ2", 2
-			},
-			{
-				"IRQ5", 5
-			},
-			{
-				"IRQ7", 7
-			},
-			{
-				""
-			}
-		},
-	},
-	{
-		"", "", -1
-	}
+// clang-format off
+    {
+        "base", "Address", CONFIG_HEX16, "", 0x02C0, "", { 0 },
+        {
+            { "240H", 0x0240 },
+            { "2C0H", 0x02c0 },
+            { ""             }
+        },
+    },
+    {
+        "irq", "IRQ", CONFIG_SELECTION, "", -1, "", { 0 },
+        {
+            { "Disabled", -1 },
+            { "IRQ2",      2 },
+            { "IRQ5",      5 },
+            { "IRQ7",      7 },
+            { ""             }
+        },
+    },
+    { "", "", -1 }
+// clang-format on
 };
 
 static const device_t ev170_device = {
-    "Everex EV-170 Magic I/O",
-    "ev170",
-    DEVICE_ISA,
-    ISARTC_EV170,
-    isartc_init, isartc_close, NULL,
-    { NULL }, NULL, NULL,
-    ev170_config
+    .name = "Everex EV-170 Magic I/O",
+    .internal_name = "ev170",
+    .flags = DEVICE_ISA,
+    .local = ISARTC_EV170,
+    .init = isartc_init,
+    .close = isartc_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = ev170_config
 };
 
-
 static const device_config_t pii147_config[] = {
-	{
-		"base", "Address", CONFIG_HEX16, "", 0x0240, "", { 0 },
-		{
-			{
-				"Clock 1", 0x0240
-			},
-			{
-				"Clock 2", 0x0340
-			},
-			{
-				""
-			}
-		},
-	},
-	{
-		"", "", -1
-	}
+// clang-format off
+    {
+        "base", "Address", CONFIG_HEX16, "", 0x0240, "", { 0 },
+        {
+            { "Clock 1", 0x0240 },
+            { "Clock 2", 0x0340 },
+            { "" }
+        },
+    },
+    { "", "", -1 }
+// clang-format on
 };
 
 static const device_t pii147_device = {
-    "DTK PII-147 Hexa I/O Plus",
-    "pii147",
-    DEVICE_ISA,
-    ISARTC_DTK,
-    isartc_init, isartc_close, NULL,
-    { NULL }, NULL, NULL,
-    pii147_config
+    .name = "DTK PII-147 Hexa I/O Plus",
+    .internal_name = "pii147",
+    .flags = DEVICE_ISA,
+    .local = ISARTC_DTK,
+    .init = isartc_init,
+    .close = isartc_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = pii147_config
 };
 
-
 static const device_config_t p5pak_config[] = {
-	{
-		"irq", "IRQ", CONFIG_SELECTION, "", -1, "", { 0 },
-		{
-			{
-				"Disabled", -1
-			},
-			{
-				"IRQ2", 2
-			},
-			{
-				"IRQ3", 3
-			},
-			{
-				"IRQ5", 5
-			},
-			{
-				""
-			}
-		},
-	},
-	{
-		"", "", -1
-	}
+// clang-format off
+    {
+        "irq", "IRQ", CONFIG_SELECTION, "", -1, "", { 0 },
+        {
+            { "Disabled", -1 },
+            { "IRQ2",      2 },
+            { "IRQ3",      3 },
+            { "IRQ5",      5 },
+            { ""             }
+        },
+    },
+    { "", "", -1 }
+// clang-format on
 };
 
 static const device_t p5pak_device = {
-    "Paradise Systems 5-PAK",
-    "p5pak",
-    DEVICE_ISA,
-    ISARTC_P5PAK,
-    isartc_init, isartc_close, NULL,
-    { NULL }, NULL, NULL,
-    p5pak_config
+    .name = "Paradise Systems 5-PAK",
+    .internal_name = "p5pak",
+    .flags = DEVICE_ISA,
+    .local = ISARTC_P5PAK,
+    .init = isartc_init,
+    .close = isartc_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = p5pak_config
 };
 
-
 static const device_config_t a6pak_config[] = {
-	{
-		"irq", "IRQ", CONFIG_SELECTION, "", -1, "", { 0 },
-		{
-			{
-				"Disabled", -1
-			},
-			{
-				"IRQ2", 2
-			},
-			{
-				"IRQ3", 3
-			},
-			{
-				"IRQ5", 5
-			},
-			{
-				""
-			}
-		},
-	},
-	{
-		"", "", -1
-	}
+// clang-format off
+    {
+        "irq", "IRQ", CONFIG_SELECTION, "", -1, "", { 0 },
+        {
+            { "Disabled", -1 },
+            { "IRQ2",      2 },
+            { "IRQ3",      3 },
+            { "IRQ5",      5 },
+            { ""             }
+        },
+    },
+    { "", "", -1 }
+// clang-format on
 };
 
 static const device_t a6pak_device = {
-    "AST SixPakPlus",
-    "a6pak",
-    DEVICE_ISA,
-    ISARTC_A6PAK,
-    isartc_init, isartc_close, NULL,
-    { NULL }, NULL, NULL,
-    a6pak_config
+    .name = "AST SixPakPlus",
+    .internal_name = "a6pak",
+    .flags = DEVICE_ISA,
+    .local = ISARTC_A6PAK,
+    .init = isartc_init,
+    .close = isartc_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = a6pak_config
 };
-
 
 static const device_t isartc_none_device = {
-    "None",
-    "none",
-    0, 0,
-    NULL, NULL, NULL,
-    { NULL }, NULL, NULL,
-    NULL
+    .name = "None",
+    .internal_name = "none",
+    .flags = 0,
+    .local = 0,
+    .init = NULL,
+    .close = NULL,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
-
 
 static const struct {
     const device_t	*dev;
 } boards[] = {
-    { &isartc_none_device	},
-    { &ev170_device		},
-    { &pii147_device		},
-    { &p5pak_device		},
-    { &a6pak_device		},
-    { NULL			},
+// clang-format off
+    { &isartc_none_device },
+    { &ev170_device       },
+    { &pii147_device      },
+    { &p5pak_device       },
+    { &a6pak_device       },
+    { NULL                },
+// clang-format on
 };
-
 
 void
 isartc_reset(void)
@@ -779,7 +753,6 @@ isartc_reset(void)
     /* Add the device to the system. */
     device_add(boards[isartc_type].dev);
 }
-
 
 char *
 isartc_get_internal_name(int board)

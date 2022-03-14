@@ -72,7 +72,7 @@ extern "C" {
 #include "qt_mediamenu.hpp"
 #include "qt_util.hpp"
 
-#ifdef __unix__
+#if defined __unix__ && !defined __HAIKU__
 #ifdef WAYLAND
 #include "wl_mouse.hpp"
 #endif
@@ -80,6 +80,32 @@ extern "C" {
 #include <X11/keysym.h>
 #undef KeyPress
 #undef KeyRelease
+#endif
+
+#ifdef __HAIKU__
+#include <os/AppKit.h>
+#include <os/InterfaceKit.h>
+
+extern MainWindow* main_window;
+
+filter_result keyb_filter(BMessage *message, BHandler **target, BMessageFilter *filter)
+{
+    if (message->what == B_KEY_DOWN || message->what == B_KEY_UP
+    ||  message->what == B_UNMAPPED_KEY_DOWN || message->what == B_UNMAPPED_KEY_UP)
+    {
+        int key_state = 0, key_scancode = 0;
+        key_state = message->what == B_KEY_DOWN || message->what == B_UNMAPPED_KEY_DOWN;
+        message->FindInt32("key", &key_scancode);
+        QGuiApplication::postEvent(main_window, new QKeyEvent(key_state ? QEvent::KeyPress : QEvent::KeyRelease, 0, QGuiApplication::keyboardModifiers(), key_scancode, 0, 0));
+        if (key_scancode == 0x68 && key_state)
+        {
+            QGuiApplication::postEvent(main_window, new QKeyEvent(QEvent::KeyRelease, 0, QGuiApplication::keyboardModifiers(), key_scancode, 0, 0));
+        }
+    }
+    return B_DISPATCH_MESSAGE;
+}
+
+static BMessageFilter* filter;
 #endif
 
 extern void qt_mouse_capture(int);
@@ -93,6 +119,10 @@ MainWindow::MainWindow(QWidget *parent) :
     MediaMenu::ptr = mm;
     status = std::make_unique<MachineStatus>(this);
 
+#ifdef __HAIKU__
+    filter = new BMessageFilter(B_PROGRAMMED_DELIVERY, B_ANY_SOURCE, keyb_filter);
+    ((BWindow*)this->winId())->AddFilter(filter);
+#endif
     setUnifiedTitleAndToolBarOnMac(true);
     ui->setupUi(this);
     ui->stackedWidget->setMouseTracking(true);
@@ -202,7 +232,7 @@ MainWindow::MainWindow(QWidget *parent) :
         config_save();
         if (QApplication::activeWindow() == this)
         {
-            ui->stackedWidget->current->setFocus();
+            ui->stackedWidget->setFocusRenderer();
         }
     });
 
@@ -231,35 +261,57 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->actionHardware_Renderer_OpenGL_ES->setVisible(QOpenGLContext::openGLModuleType() == QOpenGLContext::LibGLES);
     if (QOpenGLContext::openGLModuleType() != QOpenGLContext::LibGLES && vid_api == 2) vid_api = 1;
 #endif
+    ui->actionHardware_Renderer_OpenGL->setVisible(QOpenGLContext::openGLModuleType() != QOpenGLContext::LibGLES);
+    if (QOpenGLContext::openGLModuleType() == QOpenGLContext::LibGLES && vid_api == 1) vid_api = 0;
 
-    if (QApplication::platformName().contains("eglfs") && vid_api >= 1) {
-        fprintf(stderr, "OpenGL renderers are unsupported on EGLFS.\n");
+    if ((QApplication::platformName().contains("eglfs") || QApplication::platformName() == "haiku")) {
+        if (vid_api >= 1) fprintf(stderr, "OpenGL renderers are unsupported on %s.\n", QApplication::platformName().toUtf8().data());
         vid_api = 0;
+        ui->actionHardware_Renderer_OpenGL->setVisible(false);
+        ui->actionHardware_Renderer_OpenGL_ES->setVisible(false);
+        ui->actionOpenGL_3_0_Core->setVisible(false);
     }
+
     QActionGroup* actGroup = nullptr;
-    switch (vid_api) {
-    case 0:
-        ui->stackedWidget->switchRenderer(RendererStack::Renderer::Software);
-        ui->actionSoftware_Renderer->setChecked(true);
-        break;
-    case 1:
-        ui->stackedWidget->switchRenderer(RendererStack::Renderer::OpenGL);
-        ui->actionHardware_Renderer_OpenGL->setChecked(true);
-        break;
-    case 2:
-        ui->stackedWidget->switchRenderer(RendererStack::Renderer::OpenGLES);
-        ui->actionHardware_Renderer_OpenGL_ES->setChecked(true);
-        break;
-    case 3:
-        ui->stackedWidget->switchRenderer(RendererStack::Renderer::OpenGL3);
-        ui->actionOpenGL_3_0_Core->setChecked(true);
-        break;
-    }
+
     actGroup = new QActionGroup(this);
     actGroup->addAction(ui->actionSoftware_Renderer);
     actGroup->addAction(ui->actionHardware_Renderer_OpenGL);
     actGroup->addAction(ui->actionHardware_Renderer_OpenGL_ES);
     actGroup->addAction(ui->actionOpenGL_3_0_Core);
+    actGroup->setExclusive(true);
+
+    connect(actGroup, &QActionGroup::triggered, [this](QAction* action) {
+        vid_api = action->property("vid_api").toInt();
+        switch (vid_api)
+        {
+        case 0:
+            ui->stackedWidget->switchRenderer(RendererStack::Renderer::Software);
+            break;
+        case 1:
+            ui->stackedWidget->switchRenderer(RendererStack::Renderer::OpenGL);
+            break;
+        case 2:
+            ui->stackedWidget->switchRenderer(RendererStack::Renderer::OpenGLES);
+            break;
+        case 3:
+            ui->stackedWidget->switchRenderer(RendererStack::Renderer::OpenGL3);
+            break;
+        }
+    });
+
+    connect(ui->stackedWidget, &RendererStack::rendererChanged, [this]() {
+        ui->actionRenderer_options->setVisible(ui->stackedWidget->hasOptions());
+    });
+
+    /* Trigger initial renderer switch */
+    for (auto action : actGroup->actions())
+        if (action->property("vid_api").toInt() == vid_api) {
+            action->setChecked(true);
+            emit actGroup->triggered(action);
+            break;
+        }
+
     switch (scale) {
     case 0:
         ui->action0_5x->setChecked(true);
@@ -418,13 +470,18 @@ MainWindow::MainWindow(QWidget *parent) :
 }
 
 void MainWindow::closeEvent(QCloseEvent *event) {
+    if (mouse_capture) {
+        event->ignore();
+        return;
+    }
+
     if (confirm_exit && confirm_exit_cmdl && cpu_thread_run)
     {
         QMessageBox questionbox(QMessageBox::Icon::Question, "86Box", tr("Are you sure you want to exit 86Box?"), QMessageBox::Yes | QMessageBox::No, this);
         QCheckBox *chkbox = new QCheckBox(tr("Don't show this message again"));
         questionbox.setCheckBox(chkbox);
         chkbox->setChecked(!confirm_exit);
-        bool confirm_exit_temp = false;
+
         QObject::connect(chkbox, &QCheckBox::stateChanged, [](int state) {
             confirm_exit = (state == Qt::CheckState::Unchecked);
         });
@@ -445,7 +502,7 @@ void MainWindow::closeEvent(QCloseEvent *event) {
     }
     qt_nvr_save();
     config_save();
-#ifdef __unix__
+#if defined __unix__ && !defined __HAIKU__
     extern void xinput2_exit();
     if (QApplication::platformName() == "xcb") xinput2_exit();
 #endif
@@ -497,7 +554,7 @@ void MainWindow::on_actionHard_Reset_triggered() {
         QCheckBox *chkbox = new QCheckBox(tr("Don't show this message again"));
         questionbox.setCheckBox(chkbox);
         chkbox->setChecked(!confirm_reset);
-        bool confirm_exit_temp = false;
+
         QObject::connect(chkbox, &QCheckBox::stateChanged, [](int state) {
             confirm_reset = (state == Qt::CheckState::Unchecked);
         });
@@ -1035,6 +1092,117 @@ static std::unordered_map<uint32_t, uint16_t> evdev_to_xt =
         {111, 0x153}
 };
 
+#ifdef __HAIKU__
+static std::unordered_map<uint8_t, uint16_t> be_to_xt =
+{
+    {0x01, 0x01},
+    {B_F1_KEY, 0x3B},
+    {B_F2_KEY, 0x3C},
+    {B_F3_KEY, 0x3D},
+    {B_F4_KEY, 0x3E},
+    {B_F5_KEY, 0x3F},
+    {B_F6_KEY, 0x40},
+    {B_F7_KEY, 0x41},
+    {B_F8_KEY, 0x42},
+    {B_F9_KEY, 0x43},
+    {B_F10_KEY, 0x44},
+    {B_F11_KEY, 0x57},
+    {B_F12_KEY, 0x58},
+    {0x11, 0x29},
+    {0x12, 0x02},
+    {0x13, 0x03},
+    {0x14, 0x04},
+    {0x15, 0x05},
+    {0x16, 0x06},
+    {0x17, 0x07},
+    {0x18, 0x08},
+    {0x19, 0x09},
+    {0x1A, 0x0A},
+    {0x1B, 0x0B},
+    {0x1C, 0x0C},
+    {0x1D, 0x0D},
+    {0x1E, 0x0E},
+    {0x1F, 0x152},
+    {0x20, 0x147},
+    {0x21, 0x149},
+    {0x22, 0x45},
+    {0x23, 0x135},
+    {0x24, 0x37},
+    {0x25, 0x4A},
+    {0x26, 0x0F},
+    {0x27, 0x10},
+    {0x28, 0x11},
+    {0x29, 0x12},
+    {0x2A, 0x13},
+    {0x2B, 0x14},
+    {0x2C, 0x15},
+    {0x2D, 0x16},
+    {0x2E, 0x17},
+    {0x2F, 0x18},
+    {0x30, 0x19},
+    {0x31, 0x1A},
+    {0x32, 0x1B},
+    {0x33, 0x2B},
+    {0x34, 0x153},
+    {0x35, 0x14F},
+    {0x36, 0x151},
+    {0x37, 0x47},
+    {0x38, 0x48},
+    {0x39, 0x49},
+    {0x3A, 0x4E},
+    {0x3B, 0x3A},
+    {0x3C, 0x1E},
+    {0x3D, 0x1F},
+    {0x3E, 0x20},
+    {0x3F, 0x21},
+    {0x40, 0x22},
+    {0x41, 0x23},
+    {0x42, 0x24},
+    {0x43, 0x25},
+    {0x44, 0x26},
+    {0x45, 0x27},
+    {0x46, 0x28},
+    {0x47, 0x1C},
+    {0x48, 0x4B},
+    {0x49, 0x4C},
+    {0x4A, 0x4D},
+    {0x4B, 0x2A},
+    {0x4C, 0x2C},
+    {0x4D, 0x2D},
+    {0x4E, 0x2E},
+    {0x4F, 0x2F},
+    {0x50, 0x30},
+    {0x51, 0x31},
+    {0x52, 0x32},
+    {0x53, 0x33},
+    {0x54, 0x34},
+    {0x55, 0x35},
+    {0x56, 0x36},
+    {0x57, 0x148},
+    {0x58, 0x51},
+    {0x59, 0x50},
+    {0x5A, 0x4F},
+    {0x5B, 0x11C},
+    {0x5C, 0x1D},
+    {0x5D, 0x38},
+    {0x5E, 0x39},
+    {0x5F, 0x138},
+    {0x60, 0x11D},
+    {0x61, 0x14B},
+    {0x62, 0x150},
+    {0x63, 0x14D},
+    {0x64, 0x52},
+    {0x65, 0x53},
+
+    {0x0e, 0x137},
+    {0x0f, 0x46},
+    {0x66, 0x15B},
+    {0x67, 0x15C},
+    {0x68, 0x15D},
+    {0x69, 0x56}
+};
+#endif
+
 static std::array<uint32_t, 256>& selected_keycode = x11_to_xt_base;
 
 uint16_t x11_keycode_to_keysym(uint32_t keycode)
@@ -1044,6 +1212,8 @@ uint16_t x11_keycode_to_keysym(uint32_t keycode)
     finalkeycode = (keycode & 0xFFFF);
 #elif defined(__APPLE__)
     finalkeycode = darwin_to_xt[keycode];
+#elif defined(__HAIKU__)
+    finalkeycode = be_to_xt[keycode];
 #else
     static Display* x11display = nullptr;
     if (QApplication::platformName().contains("wayland"))
@@ -1099,21 +1269,21 @@ void MainWindow::on_actionFullscreen_triggered() {
             QCheckBox *chkbox = new QCheckBox(tr("Don't show this message again"));
             questionbox.setCheckBox(chkbox);
             chkbox->setChecked(!video_fullscreen_first);
-            bool confirm_exit_temp = false;
+
             QObject::connect(chkbox, &QCheckBox::stateChanged, [](int state) {
                 video_fullscreen_first = (state == Qt::CheckState::Unchecked);
             });
             questionbox.exec();
             config_save();
         }
+        video_fullscreen = 1;
         setFixedSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
         ui->menubar->hide();
         ui->statusbar->hide();
         ui->toolBar->hide();
         showFullScreen();
-        video_fullscreen = 1;
     }
-    ui->stackedWidget->rendererWindow->onResize(width(), height());
+    ui->stackedWidget->onResize(width(), height());
 }
 
 void MainWindow::getTitle_(wchar_t *title)
@@ -1216,30 +1386,6 @@ QSize MainWindow::getRenderWidgetSize()
     return ui->stackedWidget->size();
 }
 
-void MainWindow::on_actionSoftware_Renderer_triggered() {
-    ui->stackedWidget->switchRenderer(RendererStack::Renderer::Software);
-    ui->actionHardware_Renderer_OpenGL->setChecked(false);
-    ui->actionHardware_Renderer_OpenGL_ES->setChecked(false);
-    ui->actionOpenGL_3_0_Core->setChecked(false);
-    vid_api = 0;
-}
-
-void MainWindow::on_actionHardware_Renderer_OpenGL_triggered() {
-    ui->stackedWidget->switchRenderer(RendererStack::Renderer::OpenGL);
-    ui->actionSoftware_Renderer->setChecked(false);
-    ui->actionHardware_Renderer_OpenGL_ES->setChecked(false);
-    ui->actionOpenGL_3_0_Core->setChecked(false);
-    vid_api = 1;
-}
-
-void MainWindow::on_actionHardware_Renderer_OpenGL_ES_triggered() {
-    ui->stackedWidget->switchRenderer(RendererStack::Renderer::OpenGLES);
-    ui->actionSoftware_Renderer->setChecked(false);
-    ui->actionHardware_Renderer_OpenGL->setChecked(false);
-    ui->actionOpenGL_3_0_Core->setChecked(false);
-    vid_api = 2;
-}
-
 void MainWindow::focusInEvent(QFocusEvent* event)
 {
     this->grabKeyboard();
@@ -1335,8 +1481,7 @@ static void update_fullscreen_scale_checkboxes(Ui::MainWindow* ui, QAction* sele
 
     if (video_fullscreen > 0) {
         auto widget = ui->stackedWidget->currentWidget();
-        auto rc = ui->stackedWidget->rendererWindow;
-        rc->onResize(widget->width(), widget->height());
+        ui->stackedWidget->onResize(widget->width(), widget->height());
     }
 
     device_force_redraw();
@@ -1563,16 +1708,6 @@ void MainWindow::setSendKeyboardInput(bool enabled)
     send_keyboard_input = enabled;
 }
 
-void MainWindow::on_actionOpenGL_3_0_Core_triggered()
-{
-    ui->stackedWidget->switchRenderer(RendererStack::Renderer::OpenGL3);
-    ui->actionSoftware_Renderer->setChecked(false);
-    ui->actionHardware_Renderer_OpenGL->setChecked(false);
-    ui->actionHardware_Renderer_OpenGL_ES->setChecked(false);
-    ui->actionOpenGL_3_0_Core->setChecked(true);
-    vid_api = 3;
-}
-
 void MainWindow::on_actionPreferences_triggered()
 {
     ProgSettings progsettings(this);
@@ -1617,4 +1752,12 @@ void MainWindow::changeEvent(QEvent* event)
     }
 #endif
     QWidget::changeEvent(event);
+}
+
+void MainWindow::on_actionRenderer_options_triggered()
+{
+    auto dlg = ui->stackedWidget->getOptions(this);
+
+    if (dlg)
+        dlg->exec();
 }

@@ -35,14 +35,14 @@
 #define SERIAL_FIFO_SIZE	16
 
 /* Default settings for the standard ports. */
-#define SERIAL1_ADDR		0x03f8
-#define SERIAL1_IRQ		4
-#define SERIAL2_ADDR		0x02f8
-#define SERIAL2_IRQ		3
-#define SERIAL3_ADDR		0x03e8
-#define SERIAL3_IRQ		4
-#define SERIAL4_ADDR		0x02e8
-#define SERIAL4_IRQ		3
+#define COM1_ADDR		0x03f8
+#define COM1_IRQ		4
+#define COM2_ADDR		0x02f8
+#define COM2_IRQ		3
+#define COM3_ADDR		0x03e8
+#define COM3_IRQ		4
+#define COM4_ADDR		0x02e8
+#define COM4_IRQ		3
 
 
 struct serial_device_s;

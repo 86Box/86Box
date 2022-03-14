@@ -710,7 +710,11 @@ usage:
 	if (rom_path[0] != '\0')
 		pclog("# ROM path: %s\n", rom_path);
 	else
-		pclog("# ROM path: %sroms\\\n", exe_path);
+#ifndef _WIN32
+	pclog("# ROM path: %sroms/\n", exe_path);
+#else
+	pclog("# ROM path: %sroms\\\n", exe_path);
+#endif
 	pclog("# Configuration file: %s\n#\n\n", cfg_path);
 	/*
 	 * We are about to read the configuration file, which MAY
@@ -931,7 +935,9 @@ pc_reset_hard_close(void)
 
 	scsi_device_close_all();
 
-	midi_close();
+	midi_out_close();
+
+	midi_in_close();
 
 	cdrom_close();
 
@@ -1154,7 +1160,9 @@ pc_close(thread_t *ptr)
 
 	scsi_device_close_all();
 
-	midi_close();
+	midi_out_close();
+
+	midi_in_close();
 
 	network_close();
 

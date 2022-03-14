@@ -21,7 +21,7 @@
 #include "codegen_ops.h"
 #include "codegen_ops_x86-64.h"
 
-#if defined(__unix__) || defined(__APPLE__)
+#if defined(__unix__) || defined(__APPLE__) || defined(__HAIKU__)
 #include <sys/mman.h>
 #include <unistd.h>
 #endif
@@ -66,7 +66,7 @@ void codegen_init()
 
 #if _WIN64
         codeblock = VirtualAlloc(NULL, BLOCK_SIZE * sizeof(codeblock_t), MEM_COMMIT, PAGE_EXECUTE_READWRITE);
-#elif defined(__unix__) || defined(__APPLE__)
+#elif defined(__unix__) || defined(__APPLE__) || defined(__HAIKU__)
         codeblock = mmap(NULL, BLOCK_SIZE * sizeof(codeblock_t), PROT_READ | PROT_WRITE | PROT_EXEC, MAP_ANON | MAP_PRIVATE, -1, 0);
 #else
         codeblock = malloc(BLOCK_SIZE * sizeof(codeblock_t));

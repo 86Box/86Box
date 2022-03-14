@@ -8,7 +8,13 @@
 #include <atomic>
 #include "qt_renderercommon.hpp"
 
-class SoftwareRenderer : public QRasterWindow, public RendererCommon
+class SoftwareRenderer :
+        #ifdef __HAIKU__
+        public QWidget,
+        #else
+        public QRasterWindow,
+        #endif
+        public RendererCommon
 {
     Q_OBJECT
 public:

@@ -769,10 +769,15 @@ mfm_close(void *priv)
 
 
 const device_t st506_at_wd1003_device = {
-    "WD1003 AT MFM/RLL Controller",
-    "st506_at",
-    DEVICE_ISA | DEVICE_AT,
-    0,
-    mfm_init, mfm_close, NULL,
-    { NULL }, NULL, NULL, NULL
+    .name = "WD1003 AT MFM/RLL Controller",
+    .internal_name = "st506_at",
+    .flags = DEVICE_ISA | DEVICE_AT,
+    .local = 0,
+    .init = mfm_init,
+    .close = mfm_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };

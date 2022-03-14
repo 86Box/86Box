@@ -216,46 +216,58 @@ port_92_init(const device_t *info)
     return dev;
 }
 
-
 const device_t port_92_device = {
-    "Port 92 Register",
-    "port_92",
-    0,
-    0,
-    port_92_init, port_92_close, NULL,
-    { NULL }, NULL, NULL,
-    NULL
+    .name = "Port 92 Register",
+    .internal_name = "port_92",
+    .flags = 0,
+    .local = 0,
+    .init = port_92_init,
+    .close = port_92_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
-
 
 const device_t port_92_inv_device = {
-    "Port 92 Register (inverted bits 2-7)",
-    "port_92_inv",
-    0,
-    PORT_92_INV,
-    port_92_init, port_92_close, NULL,
-    { NULL }, NULL, NULL,
-    NULL
+    .name = "Port 92 Register (inverted bits 2-7)",
+    .internal_name = "port_92_inv",
+    .flags = 0,
+    .local = PORT_92_INV,
+    .init = port_92_init,
+    .close = port_92_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
-
 
 const device_t port_92_word_device = {
-    "Port 92 Register (16-bit)",
-    "port_92_word",
-    0,
-    PORT_92_WORD,
-    port_92_init, port_92_close, NULL,
-    { NULL }, NULL, NULL,
-    NULL
+    .name = "Port 92 Register (16-bit)",
+    .internal_name = "port_92_word",
+    .flags = 0,
+    .local = PORT_92_WORD,
+    .init = port_92_init,
+    .close = port_92_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
-
 const device_t port_92_pci_device = {
-    "Port 92 Register (PCI)",
-    "port_92_pci",
-    0,
-    PORT_92_PCI,
-    port_92_init, port_92_close, NULL,
-    { NULL }, NULL, NULL,
-    NULL
+    .name = "Port 92 Register (PCI)",
+    .internal_name = "port_92_pci",
+    .flags = 0,
+    .local = PORT_92_PCI,
+    .init = port_92_init,
+    .close = port_92_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };

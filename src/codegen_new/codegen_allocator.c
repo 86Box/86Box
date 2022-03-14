@@ -1,4 +1,4 @@
-#if defined(__linux__) || defined(__APPLE__)
+#if defined(__unix__) || defined(__APPLE__) || defined(__HAIKU__)
 #include <sys/mman.h>
 #include <unistd.h>
 #include <stdlib.h>

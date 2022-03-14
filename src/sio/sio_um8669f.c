@@ -71,21 +71,21 @@ static uint8_t um8669f_pnp_rom[] = {
 static const isapnp_device_config_t um8669f_pnp_defaults[] = {
     {
 	.activate = 1,
-	.io = { { .base = 0x03f0 }, },
-	.irq = { { .irq = 6 }, },
-	.dma = { { .dma = 2 }, }
+	.io = { { .base = FDC_PRIMARY_ADDR }, },
+	.irq = { { .irq = FDC_PRIMARY_IRQ }, },
+	.dma = { { .dma = FDC_PRIMARY_DMA }, }
     }, {
 	.activate = 1,
-	.io = { { .base = 0x03f8 }, },
-	.irq = { { .irq = 4 }, }
+	.io = { { .base = COM1_ADDR }, },
+	.irq = { { .irq = COM1_IRQ }, }
     }, {
 	.activate = 1,
-	.io = { { .base = 0x02f8 }, },
-	.irq = { { .irq = 3 }, }
+	.io = { { .base = COM2_ADDR }, },
+	.irq = { { .irq = COM2_IRQ }, }
     }, {
 	.activate = 1,
-	.io = { { .base = 0x0378 }, },
-	.irq = { { .irq = 7 }, }
+	.io = { { .base = LPT1_ADDR }, },
+	.irq = { { .irq = LPT1_IRQ }, }
     }, {
 	.activate = 0
     }, {
@@ -302,11 +302,15 @@ um8669f_init(const device_t *info)
 
 
 const device_t um8669f_device = {
-    "UMC UM8669F Super I/O",
-    "um8669f",
-    0,
-    0,
-    um8669f_init, um8669f_close, NULL,
-    { NULL }, NULL, NULL,
-    NULL
+    .name = "UMC UM8669F Super I/O",
+    .internal_name = "um8669f",
+    .flags = 0,
+    .local = 0,
+    .init = um8669f_init,
+    .close = um8669f_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };

@@ -41,38 +41,49 @@ int	mouse_x,
 	mouse_z,
 	mouse_buttons;
 
-
 static const device_t mouse_none_device = {
-    "None",
-    "none",
-    0, MOUSE_TYPE_NONE,
-    NULL, NULL, NULL,
-    { NULL }, NULL, NULL,
-    NULL
-};
-static const device_t mouse_internal_device = {
-    "Internal",
-    "internal",
-    0, MOUSE_TYPE_INTERNAL,
-    NULL, NULL, NULL,
-    { NULL }, NULL, NULL,
-    NULL
+    .name = "None",
+    .internal_name = "none",
+    .flags = 0,
+    .local = MOUSE_TYPE_NONE,
+    .init = NULL,
+    .close = NULL,
+    .reset = NULL,
+    { .poll = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
+static const device_t mouse_internal_device = {
+    .name = "Internal",
+    .internal_name = "internal",
+    .flags = 0,
+    .local = MOUSE_TYPE_INTERNAL,
+    .init = NULL,
+    .close = NULL,
+    .reset = NULL,
+    { .poll = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
+};
 
 static mouse_t mouse_devices[] = {
-    { &mouse_none_device	},
-    { &mouse_internal_device	},
-    { &mouse_logibus_device	},
-    { &mouse_msinport_device	},
+// clang-format off
+    { &mouse_none_device      },
+    { &mouse_internal_device  },
+    { &mouse_logibus_device   },
+    { &mouse_msinport_device  },
 #if 0
-    { &mouse_genibus_device	},
+    { &mouse_genibus_device   },
 #endif
-    { &mouse_mssystems_device	},
-    { &mouse_msserial_device	},
-    { &mouse_ltserial_device	},
-    { &mouse_ps2_device		},
-    { NULL			}
+    { &mouse_mssystems_device },
+    { &mouse_msserial_device  },
+    { &mouse_ltserial_device  },
+    { &mouse_ps2_device       },
+    { NULL                    }
+// clang-format on
 };
 
 

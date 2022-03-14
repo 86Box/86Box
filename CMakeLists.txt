@@ -18,8 +18,12 @@ cmake_minimum_required(VERSION 3.16)
 cmake_policy(SET CMP0091 NEW)
 cmake_policy(SET CMP0079 NEW)
 
-if(QT)
+if(NOT DEFINED QT OR QT)
     list(APPEND VCPKG_MANIFEST_FEATURES "qt-ui")
+endif()
+
+if(OPENAL)
+    list(APPEND VCPKG_MANIFEST_FEATURES "openal")
 endif()
 
 if(SLIRP_EXTERNAL)
@@ -105,6 +109,11 @@ if(WIN32)
     add_compile_definitions(_WINSOCK_DEPRECATED_NO_WARNINGS)
 endif()
 
+if(HAIKU)
+    set(OPENAL ON)
+    set(RTMIDI OFF)
+endif()
+
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_FIND_PACKAGE_PREFER_CONFIG ON)
 
@@ -115,6 +124,7 @@ set(CMAKE_FIND_PACKAGE_PREFER_CONFIG ON)
 option(RELEASE      "Release build"                                                 OFF)
 option(DYNAREC      "Dynamic recompiler"                                            ON)
 option(OPENAL       "OpenAL"                                                        OFF)
+option(RTMIDI       "RtMidi"                                                        ON)
 option(FLUIDSYNTH   "FluidSynth"                                                    ON)
 option(MUNT         "MUNT"                                                          ON)
 option(DINPUT       "DirectInput"                                                   OFF)
@@ -122,11 +132,7 @@ option(CPPTHREADS   "C++11 threads"                                             
 option(NEW_DYNAREC  "Use the PCem v15 (\"new\") dynamic recompiler"                 OFF)
 option(MINITRACE    "Enable Chrome tracing using the modified minitrace library"    OFF)
 option(DEV_BRANCH   "Development branch"                                            OFF)
-if(NOT WIN32)
 option(QT           "QT GUI"                                                        ON)
-else()
-option(QT           "QT GUI"                                                        OFF)
-endif()
 
 # Development branch features
 #
@@ -143,7 +149,7 @@ cmake_dependent_option(MGA            "Matrox Mystique graphics adapters"       
 cmake_dependent_option(NO_SIO         "Machines without emulated Super I/O chips"   ON      "DEV_BRANCH"    OFF)
 cmake_dependent_option(OLIVETTI       "Olivetti M290"                               ON      "DEV_BRANCH"    OFF)
 cmake_dependent_option(OPEN_AT        "OpenAT"                                      ON      "DEV_BRANCH"    OFF)
-cmake_dependent_option(PAS16          "Pro Audio Spectrum 16"                       OFF     "DEV_BRANCH"    OFF)
+cmake_dependent_option(PAS16          "Pro Audio Spectrum 16"                       ON      "DEV_BRANCH"    OFF)
 cmake_dependent_option(SIO_DETECT     "Super I/O Detection Helper"                  ON      "DEV_BRANCH"    OFF)
 cmake_dependent_option(TANDY_ISA      "Tandy PSG ISA clone boards"                  ON      "DEV_BRANCH"    OFF)
 cmake_dependent_option(VGAWONDER      "ATI VGA Wonder (ATI-18800)"                  ON      "DEV_BRANCH"    OFF)
@@ -151,7 +157,7 @@ cmake_dependent_option(VNC            "VNC renderer"                            
 cmake_dependent_option(XL24           "ATI VGA Wonder XL24 (ATI-28800-6)"           ON      "DEV_BRANCH"    OFF)
 
 # Ditto but for Qt
-if (QT)
+if(QT)
     option(USE_QT6 "Use Qt6 instead of Qt5" OFF)
 endif()
 

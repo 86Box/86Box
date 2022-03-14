@@ -141,11 +141,15 @@ postcard_close(UNUSED(void *priv))
 
 
 const device_t postcard_device = {
-    "POST Card",
-    "postcard",
-    DEVICE_ISA,
-    0,
-    postcard_init, postcard_close, NULL,
-    { NULL }, NULL, NULL,
-    NULL
+    .name = "POST Card",
+    .internal_name = "postcard",
+    .flags = DEVICE_ISA,
+    .local = 0,
+    .init = postcard_init,
+    .close = postcard_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };

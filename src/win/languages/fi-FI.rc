@@ -32,7 +32,7 @@ BEGIN
     POPUP "&Näytä"
     BEGIN
         MENUITEM "&Piilota tilapalkki",                                 IDM_VID_HIDE_STATUS_BAR
-        MENUITEM "Hide &toolbar",                                       IDM_VID_HIDE_TOOLBAR
+        MENUITEM "Piilota &työkalupalkki",                              IDM_VID_HIDE_TOOLBAR
         MENUITEM SEPARATOR
         MENUITEM "&Salli koon muuttaminen",                             IDM_VID_RESIZE
         MENUITEM "&Muista koko ja sijainti",                            IDM_VID_REMEMBER
@@ -49,7 +49,7 @@ BEGIN
         END
         MENUITEM SEPARATOR
         MENUITEM "&Määritä koko...",                                    IDM_VID_SPECIFY_DIM
-        MENUITEM "Pakota 4:3 näyttösuhde",                              IDM_VID_FORCE43
+        MENUITEM "Pakota 4:3-näyttösuhde",                              IDM_VID_FORCE43
         POPUP "&Ikkunan kokokerroin"
         BEGIN
             MENUITEM "&0.5x",                                           IDM_VID_SCALE_1X
@@ -72,13 +72,13 @@ BEGIN
             MENUITEM "&Tasasivuiset kuvapisteet (säilytä kuvasuhde)",   IDM_VID_FS_KEEPRATIO
             MENUITEM "&Kokonaislukuskaalaus",                           IDM_VID_FS_INT
         END
-        POPUP "&EGA/(S)VGA asetukset"
+        POPUP "&EGA/(S)VGA-asetukset"
         BEGIN
-            MENUITEM "&VGA näyttö käänteisillä väreillä",               IDM_VID_INVERT
-            POPUP "VGA näytön &tyyppi"
+            MENUITEM "&VGA-näyttö käänteisillä väreillä",               IDM_VID_INVERT
+            POPUP "VGA-näytön &tyyppi"
             BEGIN
-                MENUITEM "RGB &värit",                                  IDM_VID_GRAY_RGB
-                MENUITEM "&RGB harmaasävyinen",                         IDM_VID_GRAY_MONO
+                MENUITEM "RGB, &värit",                                 IDM_VID_GRAY_RGB
+                MENUITEM "&RGB, harmaasävy",                            IDM_VID_GRAY_MONO
                 MENUITEM "&Meripihkanvärinen",                          IDM_VID_GRAY_AMBER
                 MENUITEM "V&ihreä",                                     IDM_VID_GRAY_GREEN
                 MENUITEM "V&alkoinen",                                  IDM_VID_GRAY_WHITE
@@ -95,7 +95,7 @@ BEGIN
         MENUITEM "&Muuta harmaavärinäytön kontrastia",                  IDM_VID_CGACON
     END
     MENUITEM "&Media",                                                  IDM_MEDIA
-    POPUP "&Työkalut"
+    POPUP "Työ&kalut"
     BEGIN
         MENUITEM "&Kokoonpano...",                                      IDM_CONFIG
         MENUITEM "&Päivitä tilapalkin kuvakkeita",                      IDM_UPDATE_ICONS
@@ -103,9 +103,9 @@ BEGIN
         MENUITEM "Ota &kuvakaappaus\tCtrl+F11",                         IDM_ACTION_SCREENSHOT
         MENUITEM SEPARATOR
         MENUITEM "&Sovellusasetukset...",                               IDM_PREFERENCES
-        MENUITEM "Käytä &Discord integraatiota",                        IDM_DISCORD
+        MENUITEM "Käytä &Discord-integraatiota",                        IDM_DISCORD
         MENUITEM SEPARATOR
-        MENUITEM "&Äänen tulotaso...",                                  IDM_SND_GAIN
+        MENUITEM "&Äänitasot...",                                       IDM_SND_GAIN
 #ifdef MTR_ENABLED
         MENUITEM SEPARATOR
         MENUITEM "Aloita jäljitys\tCtrl+T",                             IDM_ACTION_BEGIN_TRACE
@@ -114,8 +114,8 @@ BEGIN
     END
     POPUP "&Ohje"
     BEGIN
-        MENUITEM "&Dokumentaatio...",                                   IDM_DOCS
-        MENUITEM "&Tietoja 86Box:sta...",                               IDM_ABOUT
+        MENUITEM "&Ohjekirja...",                                       IDM_DOCS
+        MENUITEM "&Tietoja 86Boxista...",                               IDM_ABOUT
     END
 END
 
@@ -219,7 +219,7 @@ BEGIN
         MENUITEM "&60 ruutua/s",                IDM_VID_GL_FPS_60
         MENUITEM "&75 ruutua/s",                IDM_VID_GL_FPS_75
     END
-    MENUITEM "&VSync", IDM_VID_GL_VSYNC
+    MENUITEM "&VSync",                          IDM_VID_GL_VSYNC
     MENUITEM "Valitse varjostin&ohjelma...",    IDM_VID_GL_SHADER
     MENUITEM "&Poista varjostinohjelma",        IDM_VID_GL_NOSHADER
 END
@@ -231,7 +231,7 @@ END
 //
 
 #define STR_PREFERENCES     "Sovellusasetukset"
-#define STR_SND_GAIN        "Äänen tulotaso"
+#define STR_SND_GAIN        "Äänen taso"
 #define STR_NEW_FLOPPY      "Uusi levykuva"
 #define STR_CONFIG          "Kokoonpano"
 #define STR_SPECIFY_DIM     "Määritä pääikkunan koko"
@@ -247,7 +247,7 @@ END
 
 #define STR_FILE_NAME       "Tiedostonimi:"
 #define STR_DISK_SIZE       "Levyn koko:"
-#define STR_RPM_MODE        "RPM tila:"
+#define STR_RPM_MODE        "Kierroslukutila:"
 #define STR_PROGRESS        "Edistyminen:"
 
 #define STR_WIDTH           "Leveys:"
@@ -311,8 +311,8 @@ END
 
 #define STR_HDC             "Kiintolevyohjain:"
 #define STR_FDC             "Levykeohjain:"
-#define STR_IDE_TER         "Tertinäärinen IDE-ohjain"
-#define STR_IDE_QUA         "Kvaternaarinen IDE-ohjain"
+#define STR_IDE_TER         "Kolmas IDE-ohjain"
+#define STR_IDE_QUA         "Neljäs IDE-ohjain"
 #define STR_SCSI            "SCSI"
 #define STR_SCSI_1          "Ohjain 1:"
 #define STR_SCSI_2          "Ohjain 2:"
@@ -330,7 +330,7 @@ END
 
 #define STR_SPECIFY         "&Määritä..."
 #define STR_SECTORS         "Sektorit:"
-#define STR_HEADS           "Päät:"
+#define STR_HEADS           "Lukupäät:"
 #define STR_CYLS            "Sylinterit:"
 #define STR_SIZE_MB         "Koko (Mt):"
 #define STR_TYPE            "Tyyppi:"
@@ -341,7 +341,7 @@ END
 #define STR_TURBO           "Turbo-ajoitukset"
 #define STR_CHECKBPB        "Tarkista BPB"
 #define STR_CDROM_DRIVES    "CD-ROM-asemat:"
-#define STR_CD_SPEED       "Nopeus:"
+#define STR_CD_SPEED        "Nopeus:"
 
 #define STR_MO_DRIVES       "Magneettisoptiset asemat (MO):"
 #define STR_ZIP_DRIVES      "ZIP-asemat:"
@@ -371,12 +371,12 @@ BEGIN
     2048    "86Box"
     IDS_2049    "Virhe"
     IDS_2050    "Vakava virhe"
-    IDS_2051    " - PAUSED"
+    IDS_2051    " - TAUKO"
     IDS_2052    "Paina Ctrl+Alt+PgDn palataksesi ikkunoituun tilaan."
     IDS_2053    "Nopeus"
     IDS_2054    "ZIP %03i %i (%s): %ls"
     IDS_2055    "ZIP-levykuvat (*.IM?;*.ZDI)\0*.IM?;*.ZDI\0"
-    IDS_2056    "86Box ei löytänyt käyttökelpoisia ROM-tiedostoja.\n\nVoit <a href=""https://github.com/86Box/roms/releases/latest"">ladata</a> ROM-paketin ja purkaa sen ""roms"" hakemistoon."
+    IDS_2056    "86Box ei löytänyt käyttökelpoisia ROM-tiedostoja.\n\nVoit <a href=""https://github.com/86Box/roms/releases/latest"">ladata</a> ROM-paketin ja purkaa sen ""roms""-hakemistoon."
     IDS_2057    "(tyhjä)"
     IDS_2058    "ZIP-levykuvat (*.IM?;*.ZDI)\0*.IM?;*.ZDI\0Kaikki tiedostot (*.*)\0*.*\0"
     IDS_2059    "Turbo"
@@ -408,7 +408,7 @@ END
 
 STRINGTABLE DISCARDABLE
 BEGIN
-    IDS_2080    "FluidSynth:in alustus epäonnistui"
+    IDS_2080    "FluidSynthin alustus epäonnistui"
     IDS_2081    "Väylä"
     IDS_2082    "Tiedosto"
     IDS_2083    "C"
@@ -417,7 +417,7 @@ BEGIN
     IDS_2086    "Mt"
     IDS_2087    "Tarkista BPB"
     IDS_2088    "kt"
-    IDS_2089    "Video-renderöijän alustus epäonnistui"
+    IDS_2089    "Videorenderöijän alustus epäonnistui"
     IDS_2090    "Oletus"
     IDS_2091    "%i odotustilaa"
     IDS_2092    "Tyyppi"
@@ -440,12 +440,12 @@ BEGIN
     IDS_2109    "Kaikki levykuvat (*.0??;*.1??;*.??0;*.86F;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.JSON;*.TD0;*.*FD?;*.MFM;*.XDF)\0*.0??;*.1??;*.??0;*.86F;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.JSON;*.TD0;*.*FD?;*.MFM;*.XDF\0Kehittyneet sektorilevykuvat (*.IMD;*.JSON;*.TD0)\0*.IMD;*.JSON;*.TD0\0Perussektorilevykuvat (*.0??;*.1??;*.??0;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.XDF;*.*FD?)\0*.0??;*.1??;*.??0;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.XDF;*.*FD?\0Flux-levykuvat (*.FDI)\0*.FDI\0Pintalevykuvat (*.86F;*.MFM)\0*.86F;*.MFM\0Kaikki tiedostot (*.*)\0*.*\0"
     IDS_2110    "FreeType:n alustus epäonnistui"
     IDS_2111    "SDL:n alustus epäonnistui. Tarvitaan SDL2.dll"
-    IDS_2112    "Oletko varma, että haluat käynnistää emuloidun tietokoneen uudelleen?"
-    IDS_2113    "Haluatko varmasti sulkea 86Box:in?"
-    IDS_2114    "Ghostscript:in alustus epäonnistui"
+    IDS_2112    "Haluatko varmasti käynnistää emuloidun tietokoneen uudelleen?"
+    IDS_2113    "Haluatko varmasti sulkea 86Boxin?"
+    IDS_2114    "Ghostscriptin alustus epäonnistui"
     IDS_2115    "MO %i (%ls): %ls"
     IDS_2116    "MO-levykuvat (*.IM?;*.MDI)\0*.IM?;*.MDI\0Kaikki tiedostot (*.*)\0*.*\0"
-    IDS_2117    "Tervetuloa 86Box:iin!"
+    IDS_2117    "Tervetuloa 86Boxiin!"
     IDS_2118    "Sisäinen ohjain"
     IDS_2119    "Poistu"
     IDS_2120    "ROM-tiedostoja ei löytynyt"
@@ -498,18 +498,18 @@ BEGIN
     IDS_2146    "Valittuun tietokoneeseen perustuva suoritintyypin suodatus ei ole käytössä tällä emuloidulla koneella.\n\nTämä mahdollistaa muutoin yhteensopimattoman suorittimen valinnan kyseisen tietokoneen kanssa. Voit kuitenkin kohdata ongelmia tietokoneen BIOS:in tai muun ohjelmiston kanssa.\n\nTämän asetuksen käyttö ei ole virallisesti tuettua ja kaikki tehdyt virheraportit voidaan sulkea epäpätevinä."
     IDS_2147    "Jatka"
     IDS_2148    "Kasetti: %s"
-    IDS_2149    "Kasetti-tiedostot (*.PCM;*.RAW;*.WAV;*.CAS)\0*.PCM;*.RAW;*.WAV;*.CAS\0Kaikki tiedostot (*.*)\0*.*\0"
+    IDS_2149    "Kasettitiedostot (*.PCM;*.RAW;*.WAV;*.CAS)\0*.PCM;*.RAW;*.WAV;*.CAS\0Kaikki tiedostot (*.*)\0*.*\0"
     IDS_2150    "ROM-moduuli %i: %ls"
     IDS_2151    "ROM-moduulikuvat (*.A;*.B;*.JRC)\0*.A;*.B;*.JRC\0Kaikki tiedostot (*.*)\0*.*\0"
     IDS_2152	"Virhe renderöijän alustuksessa"
-    IDS_2153	"OpenGL (3.0 Core) renderöijän alustus epäonnistui. Käytä toista renderöijää."
-    IDS_2154	"Resume execution"
-    IDS_2155	"Pause execution"
-    IDS_2156	"Press Ctrl+Alt+Del"
-    IDS_2157	"Press Ctrl+Alt+Esc"
-    IDS_2158	"Hard reset"
-    IDS_2159	"ACPI shutdown"
-    IDS_2160	"Settings"
+    IDS_2153	"OpenGL (3.0 Core) -renderöijän alustus epäonnistui. Käytä toista renderöijää."
+    IDS_2154	"Jatka suoritusta"
+    IDS_2155	"Pysäytä suoritus"
+    IDS_2156	"Paina Ctrl+Alt+Del"
+    IDS_2157	"Paina Ctrl+Alt+Esc"
+    IDS_2158	"Kylmä uudelleenkäynnistys"
+    IDS_2159	"ACPI-sammutus"
+    IDS_2160	"Asetukset"
 END
 
 STRINGTABLE DISCARDABLE
@@ -517,12 +517,12 @@ BEGIN
     IDS_4096    "Kiintolevy (%s)"
     IDS_4097    "%01i:%01i"
     IDS_4098    "%01i"
-    IDS_4099    "MFM/RLL tai ESDI CD-ROM asemia ei ole koskaan ollut olemassa"
+    IDS_4099    "MFM/RLL- tai ESDI-CD-ROM-asemia ei ole koskaan ollut olemassa"
     IDS_4100    "Mukautettu..."
     IDS_4101    "Mukautettu (suuri)..."
     IDS_4102    "Lisää uusi kiintolevy"
     IDS_4103    "Lisää olemassaoleva kiintolevy"
-    IDS_4104    "HDI levykuvan suurin mahdollinen koko on 4 Gt."
+    IDS_4104    "HDI-levykuvan suurin mahdollinen koko on 4 Gt."
     IDS_4105    "Levykuvien suurin mahdollinen koko on 127 Gt."
     IDS_4106    "Kiintolevykuvat (*.HD?;*.IM?;*.VHD)\0*.HD?;*.IM?;*.VHD\0Kaikki tiedostot (*.*)\0*.*\0"
     IDS_4107    "Tiedostoa ei voi lukea"
@@ -536,10 +536,10 @@ BEGIN
     IDS_4115    "Varmista, että tiedoston tallennuskansioon on kirjoitusoikeus"
     IDS_4116    "Liian suuri levykuva"
     IDS_4117    "Muista osioida ja alustaa juuri luomasi asema."
-    IDS_4118    "Valittu tiedosto ylikirjoitetaan. Oletko varma, että haluat käyttää sitä?"
-    IDS_4119    "Levynkuvaa ei tueta"
-    IDS_4120    "Ylikirjoita"
-    IDS_4121    "Älä ylikirjoita"
+    IDS_4118    "Valittu tiedosto korvataan. Oletko varma, että haluat käyttää sitä?"
+    IDS_4119    "Levykuvaa ei tueta"
+    IDS_4120    "Korvaa"
+    IDS_4121    "Älä korvaa"
     IDS_4122    "Raaka levykuva (.img)"
     IDS_4123    "HDI-levykuva (.hdi)"
     IDS_4124    "HDX-levykuva (.hdx)"

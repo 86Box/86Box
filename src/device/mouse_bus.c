@@ -693,169 +693,115 @@ bm_init(const device_t *info)
     return dev;
 }
 
-
 static const device_config_t lt_config[] = {
+// clang-format off
     {
-	"base", "Address", CONFIG_HEX16, "", 0x23c, "", { 0 },
-	{
-		{
-			"0x230", 0x230
-		},
-		{
-			"0x234", 0x234
-		},
-		{
-			"0x238", 0x238
-		},
-		{
-			"0x23C", 0x23c
-		},
-		{
-			""
-		}
-	}
+        "base", "Address", CONFIG_HEX16, "", 0x23c, "", { 0 }, {
+            { "0x230", 0x230 },
+            { "0x234", 0x234 },
+            { "0x238", 0x238 },
+            { "0x23C", 0x23c },
+            { ""             }
+        }
     },
     {
-	"irq", "IRQ", CONFIG_SELECTION, "", 5, "", { 0 }, {
-		{
-			"IRQ 2", 2
-		},
-		{
-			"IRQ 3", 3
-		},
-		{
-			"IRQ 4", 4
-		},
-		{
-			"IRQ 5", 5
-		},
-		{
-			""
-		}
-	}
+        "irq", "IRQ", CONFIG_SELECTION, "", 5, "", { 0 }, {
+            { "IRQ 2", 2 },
+            { "IRQ 3", 3 },
+            { "IRQ 4", 4 },
+            { "IRQ 5", 5 },
+            { "" }
+        }
     },
     {
-	"hz", "Hz", CONFIG_SELECTION, "", 45, "", { 0 }, {
-		{
-			"Non-timed (original)", 0
-		},
-		{
-			"30 Hz (JMP2 = 1)", 30
-		},
-		{
-			"45 Hz (JMP2 not populated)", 45
-		},
-		{
-			"60 Hz (JMP 2 = 2)", 60
-		},
-		{
-			""
-		}
-	}
+        "hz", "Hz", CONFIG_SELECTION, "", 45, "", { 0 }, {
+            { "Non-timed (original)",        0 },
+            { "30 Hz (JMP2 = 1)",           30 },
+            { "45 Hz (JMP2 not populated)", 45 },
+            { "60 Hz (JMP 2 = 2)",          60 },
+            { ""                               }
+        }
     },
     {
-	"buttons", "Buttons", CONFIG_SELECTION, "", 2, "", { 0 }, {
-		{
-			"Two", 2
-		},
-		{
-			"Three", 3
-		},
-		{
-			""
-		}
-	}
+        "buttons", "Buttons", CONFIG_SELECTION, "", 2, "", { 0 }, {
+            { "Two",   2 },
+            { "Three", 3 },
+            { ""         }
+        }
     },
-    {
-	"", "", -1
-    }
+    { "", "", -1 }
+// clang-format on
 };
-
 
 static const device_config_t ms_config[] = {
+// clang-format off
     {
-	"base", "Address", CONFIG_HEX16, "", 0x23c, "", { 0 },
-	{
-		{
-			"0x230", 0x230
-		},
-		{
-			"0x234", 0x234
-		},
-		{
-			"0x238", 0x238
-		},
-		{
-			"0x23C", 0x23c
-		},
-		{
-			""
-		}
-	}
+        "base", "Address", CONFIG_HEX16, "", 0x23c, "", { 0 }, {
+            { "0x230", 0x230 },
+            { "0x234", 0x234 },
+            { "0x238", 0x238 },
+            { "0x23C", 0x23c },
+            { ""             }
+        }
     },
     {
-	"irq", "IRQ", CONFIG_SELECTION, "", 5, "", { 0 }, {
-		{
-			"IRQ 2", 2
-		},
-		{
-			"IRQ 3", 3
-		},
-		{
-			"IRQ 4", 4
-		},
-		{
-			"IRQ 5", 5
-		},
-		{
-			""
-		}
-	}
+        "irq", "IRQ", CONFIG_SELECTION, "", 5, "", { 0 }, {
+            { "IRQ 2", 2 },
+            { "IRQ 3", 3 },
+            { "IRQ 4", 4 },
+            { "IRQ 5", 5 },
+            { "" }
+        }
     },
     {
-	"buttons", "Buttons", CONFIG_SELECTION, "", 2, "", { 0 }, {
-		{
-			"Two", 2
-		},
-		{
-			"Three", 3
-		},
-		{
-			""
-		}
-	}
+        "buttons", "Buttons", CONFIG_SELECTION, "", 2, "", { 0 }, {
+            { "Two",   2 },
+            { "Three", 3 },
+            { ""         }
+        }
     },
-    {
-	"", "", -1
-    }
+    { "", "", -1 }
+// clang-format on
 };
 
-
 const device_t mouse_logibus_device = {
-    "Logitech/Microsoft Bus Mouse",
-    "logibus",
-    DEVICE_ISA,
-    MOUSE_TYPE_LOGIBUS,
-    bm_init, bm_close, NULL,
-    { .poll = bm_poll }, NULL, NULL,
-    lt_config
+    .name = "Logitech/Microsoft Bus Mouse",
+    .internal_name = "logibus",
+    .flags = DEVICE_ISA,
+    .local = MOUSE_TYPE_LOGIBUS,
+    .init = bm_init,
+    .close = bm_close,
+    .reset = NULL,
+    { .poll = bm_poll },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = lt_config
 };
 
 const device_t mouse_logibus_onboard_device = {
-    "Logitech Bus Mouse (On-Board)",
-    "logibus_onboard",
-    DEVICE_ISA,
-    MOUSE_TYPE_LOGIBUS | MOUSE_TYPE_ONBOARD,
-    bm_init, bm_close, NULL,
-    { .poll = bm_poll }, NULL, NULL
+    .name = "Logitech Bus Mouse (On-Board)",
+    .internal_name = "logibus_onboard",
+    .flags = DEVICE_ISA,
+    .local = MOUSE_TYPE_LOGIBUS | MOUSE_TYPE_ONBOARD,
+    .init = bm_init,
+    .close = bm_close,
+    .reset = NULL,
+    { .poll = bm_poll },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
 const device_t mouse_msinport_device = {
-    "Microsoft Bus Mouse (InPort)",
-    "msbus",
-    DEVICE_ISA,
-    MOUSE_TYPE_INPORT,
-    bm_init, bm_close, NULL,
-    { .poll = bm_poll }, NULL, NULL,
-    ms_config
+    .name = "Microsoft Bus Mouse (InPort)",
+    .internal_name = "msbus",
+    .flags = DEVICE_ISA,
+    .local = MOUSE_TYPE_INPORT,
+    .init = bm_init,
+    .close = bm_close,
+    .reset = NULL,
+    { .poll = bm_poll },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = ms_config
 };

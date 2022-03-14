@@ -416,13 +416,16 @@ hb4_init(const device_t *info)
     return dev;
 }
 
-
 const device_t umc_hb4_device = {
-    "UMC HB4(8881F)",
-    "umc_hb4",
-    DEVICE_PCI,
-    0x886a,
-    hb4_init, hb4_close, hb4_reset,
-    { NULL }, NULL, NULL,
-    NULL
+    .name = "UMC HB4(8881F)",
+    .internal_name = "umc_hb4",
+    .flags = DEVICE_PCI,
+    .local = 0x886a,
+    .init = hb4_init,
+    .close = hb4_close,
+    .reset = hb4_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };

@@ -71,36 +71,43 @@
 
 
 static const device_t net_none_device = {
-    "None",
-    "none",
-    0, NET_TYPE_NONE,
-    NULL, NULL, NULL,
-    { NULL }, NULL, NULL,
-    NULL
+    .name = "None",
+    .internal_name = "none",
+    .flags = 0,
+    .local = NET_TYPE_NONE,
+    .init = NULL,
+    .close = NULL,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
 
 static netcard_t net_cards[] = {
-    { &net_none_device,			NULL	},
-    { &threec503_device,		NULL	},
-    { &pcnet_am79c960_device, 		NULL	},
-    { &pcnet_am79c961_device, 		NULL	},
-    { &ne1000_device,			NULL	},
-    { &ne2000_device,			NULL	},
-    { &pcnet_am79c960_eb_device,	NULL	},
-    { &rtl8019as_device,		NULL	},
-    { &wd8003e_device,			NULL	},
-    { &wd8003eb_device,			NULL	},
-    { &wd8013ebt_device,		NULL	},
-    { &plip_device,			NULL	},
-    { &ethernext_mc_device,		NULL	},
-    { &wd8003eta_device,		NULL	},
-    { &wd8003ea_device,			NULL	},
-    { &pcnet_am79c973_device,		NULL	},
-    { &pcnet_am79c970a_device,		NULL	},
-    { &rtl8029as_device,		NULL	},
-    { &pcnet_am79c960_vlb_device,	NULL	},
-    { NULL,				NULL	}
+// clang-format off
+    { &net_none_device,           NULL },
+    { &threec503_device,          NULL },
+    { &pcnet_am79c960_device,     NULL },
+    { &pcnet_am79c961_device,     NULL },
+    { &ne1000_device,             NULL },
+    { &ne2000_device,             NULL },
+    { &pcnet_am79c960_eb_device,  NULL },
+    { &rtl8019as_device,          NULL },
+    { &wd8003e_device,            NULL },
+    { &wd8003eb_device,           NULL },
+    { &wd8013ebt_device,          NULL },
+    { &plip_device,               NULL },
+    { &ethernext_mc_device,       NULL },
+    { &wd8003eta_device,          NULL },
+    { &wd8003ea_device,           NULL },
+    { &pcnet_am79c973_device,     NULL },
+    { &pcnet_am79c970a_device,    NULL },
+    { &rtl8029as_device,          NULL },
+    { &pcnet_am79c960_vlb_device, NULL },
+    { NULL,                       NULL }
+// clang-format off
 };
 
 

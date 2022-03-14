@@ -197,14 +197,15 @@ intel_82335_init(const device_t *info)
 }
 
 const device_t intel_82335_device = {
-    "Intel 82335",
-    "intel_82335",
-    0,
-    0,
-    intel_82335_init,
-    intel_82335_close,
-    NULL,
-    {NULL},
-    NULL,
-    NULL,
-    NULL};
+    .name = "Intel 82335",
+    .internal_name = "intel_82335",
+    .flags = 0,
+    .local = 0,
+    .init = intel_82335_init,
+    .close = intel_82335_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
+};

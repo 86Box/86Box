@@ -176,14 +176,15 @@ cs4031_init(const device_t *info)
 }
 
 const device_t cs4031_device = {
-    "Chips & Technogies CS4031",
-    "cs4031",
-    0,
-    0,
-    cs4031_init,
-    cs4031_close,
-    NULL,
-    {NULL},
-    NULL,
-    NULL,
-    NULL};
+    .name = "Chips & Technogies CS4031",
+    .internal_name = "cs4031",
+    .flags = 0,
+    .local = 0,
+    .init = cs4031_init,
+    .close = cs4031_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
+};

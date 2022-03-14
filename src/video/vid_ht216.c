@@ -1622,74 +1622,45 @@ ht216_force_redraw(void *p)
 }
 
 
-static const device_config_t v7_vga_1024i_config[] =
-{
+static const device_config_t v7_vga_1024i_config[] = {
+    {
+        "memory", "Memory size", CONFIG_SELECTION, "", 512, "", { 0 },
         {
-                "memory", "Memory size", CONFIG_SELECTION, "", 512, "", { 0 },
-                {
-                        {
-                                "256 kB", 256
-                        },
-                        {
-                                "512 kB", 512
-                        },
-			{
-				""
-			}
-                }
-        },
-        {
-                "", "", -1
+            { "256 kB", 256 },
+            { "512 kB", 512 },
+            { ""            }
         }
+    },
+    { "", "", -1 }
 };
 
-static const device_config_t ht216_32_standalone_config[] =
-{
+// clang-format off
+static const device_config_t ht216_32_standalone_config[] = {
+    {
+        "monitor_type", "Monitor type", CONFIG_SELECTION, "", 0x18, "", { 0 },
         {
-                "monitor_type", "Monitor type", CONFIG_SELECTION, "", 0x18, "", { 0 },
-                {
-                        {
-                                "Mono Interlaced", 0x00
-                        },
-                        {
-                                "Mono Non-Interlaced", 0x08
-                        },
-                        {
-                                "Color Interlaced", 0x10
-                        },
-                        {
-                                "Color Non-Interlaced", 0x18
-                        },
-			{
-				""
-			}
-                }
-        },
-        {
-                "", "", -1
+            { "Mono Interlaced",      0x00 },
+            { "Mono Non-Interlaced",  0x08 },
+            { "Color Interlaced",     0x10 },
+            { "Color Non-Interlaced", 0x18 },
+            { ""                           }
         }
+    },
+    { "", "", -1 }
 };
 
-static const device_config_t radius_svga_multiview_config[] =
-{
+static const device_config_t radius_svga_multiview_config[] = {
+    {
+        "extensions", "Extensions", CONFIG_SELECTION, "", 0x00, "", { 0 },
         {
-                "extensions", "Extensions", CONFIG_SELECTION, "", 0x00, "", { 0 },
-                {
-                        {
-                                "Extensions Enabled", 0x00
-                        },
-                        {
-                                "Extensions Disabled", 0x02
-                        },
-			{
-				""
-			}
-                }
-        },
-        {
-                "", "", -1
+            { "Extensions Enabled", 0x00  },
+            { "Extensions Disabled", 0x02 },
+            { ""                          }
         }
+    },
+    { "", "", -1 }
 };
+// clang-format on
 
 const device_t g2_gc205_device =
 {

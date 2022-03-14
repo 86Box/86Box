@@ -769,39 +769,37 @@ speed_changed(void *priv)
     recalc_timings(pcjr);
 }
 
-
 static const device_config_t pcjr_config[] = {
     {
-	"display_type", "Display type", CONFIG_SELECTION, "", PCJR_RGB, "", { 0 },
-	{
-		{
-			"RGB", PCJR_RGB
-		},
-		{
-			"Composite", PCJR_COMPOSITE
-		},
-		{
-			""
-		}
-	}
+        .name = "display_type",
+        .description = "Display type",
+        .type = CONFIG_SELECTION,
+        .default_string = "",
+        .default_int = PCJR_RGB,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "RGB",       .value = PCJR_RGB       },
+            { .description = "Composite", .value = PCJR_COMPOSITE },
+            { .description = ""                                   }
+        }
     },
-    {
-	    "", "", -1
-    }
+    { .name = "", .description = "", .type = -1 }
 };
-
 
 static const device_t pcjr_device = {
     "IBM PCjr",
     "pcjr",
-    0, 0,
-    NULL, NULL, NULL,
+    0,
+    0,
+    NULL,
+    NULL,
+    NULL,
     { NULL },
     speed_changed,
     NULL,
     pcjr_config
 };
-
 
 const device_t *
 pcjr_get_device(void)

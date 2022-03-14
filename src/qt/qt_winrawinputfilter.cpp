@@ -110,18 +110,24 @@ WindowsRawInputFilter::~WindowsRawInputFilter()
     RegisterRawInputDevices(rid, 2, sizeof(rid[0]));
 }
 
-bool WindowsRawInputFilter::nativeEventFilter(const QByteArray &eventType, void *message, long *result)
+bool WindowsRawInputFilter::nativeEventFilter(const QByteArray &eventType, void *message, result_t *result)
 {
     if (eventType == "windows_generic_MSG")
     {
         MSG *msg = static_cast<MSG *>(message);
 
-        if (msg->message == WM_INPUT)
-        {
+        if (msg->message == WM_INPUT) {
             if (window->isActiveWindow() && menus_open == 0)
-                handle_input((HRAWINPUT)msg->lParam);
+                handle_input((HRAWINPUT) msg->lParam);
 
             return true;
+        }
+
+        /* Stop processing of Alt-F4 */
+        if (msg->message == WM_SYSKEYDOWN) {
+            if (msg->wParam == 0x73) {
+                return true;
+            }
         }
     }
 
@@ -312,9 +318,9 @@ void WindowsRawInputFilter::keyboard_getkeymap()
     /* Get the scan code remappings from:
     HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Keyboard Layout */
     bufSize = 32768;
-    if (RegOpenKeyEx(HKEY_LOCAL_MACHINE, keyName, 0, 1, &hKey) == ERROR_SUCCESS)
+    if (RegOpenKeyExA(HKEY_LOCAL_MACHINE, keyName, 0, 1, &hKey) == ERROR_SUCCESS)
     {
-        if (RegQueryValueEx(hKey, valueName, NULL, NULL, buf, &bufSize) == ERROR_SUCCESS)
+        if (RegQueryValueExA(hKey, valueName, NULL, NULL, buf, &bufSize) == ERROR_SUCCESS)
         {
             bufEx2 = (UINT32 *)buf;
             scMapCount = bufEx2[2];
