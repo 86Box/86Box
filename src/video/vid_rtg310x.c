@@ -374,13 +374,15 @@ static const device_config_t rtg_config[] = {
 };
 
 const device_t realtek_rtg3106_device = {
-    "Realtek RTG3106 (ISA)",
-    "rtg3106",
-    DEVICE_ISA | DEVICE_AT,
-    2,
-    rtg_init, rtg_close, NULL,
-    { rtg_available },
-    rtg_speed_changed,
-    rtg_force_redraw,
-    rtg_config
+    .name = "Realtek RTG3106 (ISA)",
+    .internal_name = "rtg3106",
+    .flags = DEVICE_ISA | DEVICE_AT,
+    .local = 2,
+    .init = rtg_init,
+	.close = rtg_close,
+	.reset = NULL,
+    { .available = rtg_available },
+    .speed_changed = rtg_speed_changed,
+    .force_redraw = rtg_force_redraw,
+    .config = rtg_config
 };

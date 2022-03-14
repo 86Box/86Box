@@ -246,12 +246,16 @@ stg_ramdac_close(void *priv)
 	free(ramdac);
 }
 
-
-const device_t stg_ramdac_device =
-{
-        "SGS-Thompson STG170x RAMDAC",
-        "stg_ramdac",
-        0, 0,
-        stg_ramdac_init, stg_ramdac_close,
-	NULL, { NULL }, NULL, NULL
+const device_t stg_ramdac_device = {
+    .name = "SGS-Thompson STG170x RAMDAC",
+    .internal_name = "stg_ramdac",
+    .flags = 0,
+    .local = 0,
+    .init = stg_ramdac_init,
+    .close = stg_ramdac_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };

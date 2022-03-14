@@ -840,17 +840,16 @@ static const device_config_t paradise_wd90c30_config[] = {
 // clang-format on
 };
 
-const device_t paradise_wd90c30_device =
-{
-        "Paradise WD90C30-LR",
-        "wd90c30",
-        DEVICE_ISA,
-	WD90C30,
-        paradise_wd90c30_standalone_init,
-        paradise_close,
-	NULL,
-        { paradise_wd90c30_standalone_available },
-        paradise_speed_changed,
-        paradise_force_redraw,
-	paradise_wd90c30_config
+const device_t paradise_wd90c30_device = {
+    .name = "Paradise WD90C30-LR",
+    .internal_name = "wd90c30",
+    .flags = DEVICE_ISA,
+    .local = WD90C30,
+    .init = paradise_wd90c30_standalone_init,
+    .close = paradise_close,
+    .reset = NULL,
+    { .available = paradise_wd90c30_standalone_available },
+    .speed_changed = paradise_speed_changed,
+    .force_redraw = paradise_force_redraw,
+    .config = paradise_wd90c30_config
 };

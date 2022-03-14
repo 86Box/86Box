@@ -2729,14 +2729,15 @@ pgc_standalone_init(const device_t *info)
 
 
 const device_t pgc_device = {
-    "PGC",
-    "pgc",
-    DEVICE_ISA, 0,
-    pgc_standalone_init,
-    pgc_close,
-    NULL,
-    { NULL },
-    pgc_speed_changed,
-    NULL,
-    NULL
+    .name = "PGC",
+    .internal_name = "pgc",
+    .flags = DEVICE_ISA,
+    .local = 0,
+    .init = pgc_standalone_init,
+    .close = pgc_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = pgc_speed_changed,
+    .force_redraw = NULL,
+    .config = NULL
 };

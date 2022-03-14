@@ -638,14 +638,15 @@ const device_config_t nga_config[] = {
 };
 
 const device_t nga_device = {
-	"NCR NGA",
-	"nga",
-	DEVICE_ISA, 0,
-	nga_init,
-	nga_close,
-	NULL,
-	{ NULL },
-	nga_speed_changed,
-	NULL,
-	nga_config
+    .name = "NCR NGA",
+    .internal_name = "nga",
+    .flags = DEVICE_ISA,
+    .local = 0,
+    .init = nga_init,
+    .close = nga_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = nga_speed_changed,
+    .force_redraw = NULL,
+    .config = nga_config
 };

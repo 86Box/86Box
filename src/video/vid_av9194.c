@@ -95,11 +95,16 @@ av9194_init(const device_t *info)
 }
 
 
-const device_t av9194_device =
-{
-        "AV9194 Clock Generator",
-        "av9194",
-        0, 0,
-        av9194_init, NULL,
-	NULL, { NULL }, NULL, NULL
+const device_t av9194_device = {
+    .name = "AV9194 Clock Generator",
+    .internal_name = "av9194",
+    .flags = 0,
+    .local = 0,
+    .init = av9194_init,
+    .close = NULL,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };

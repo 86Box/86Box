@@ -3452,9 +3452,7 @@ static const device_config_t mach64gx_config[] = {
             { ""        }
         }
     },
-    {
-        "", "", -1
-    }
+    { "", "", -1 }
 };
 
 static const device_config_t mach64vt2_config[] = {
@@ -3466,64 +3464,62 @@ static const device_config_t mach64vt2_config[] = {
             { ""        }
         }
     },
-    {
-        "", "", -1
-    }
+    { "", "", -1 }
 };
 // clang-format on
 
-const device_t mach64gx_isa_device =
-{
-    "ATI Mach64GX ISA",
-    "mach64gx_isa",
-    DEVICE_AT | DEVICE_ISA,
-    0,
-    mach64gx_init,
-    mach64_close,
-    NULL,
-    { mach64gx_isa_available },
-    mach64_speed_changed,
-    mach64_force_redraw,
-    mach64gx_config
+const device_t mach64gx_isa_device = {
+    .name = "ATI Mach64GX ISA",
+    .internal_name = "mach64gx_isa",
+    .flags = DEVICE_AT | DEVICE_ISA,
+    .local = 0,
+    .init = mach64gx_init,
+    .close = mach64_close,
+    .reset = NULL,
+    { .available = mach64gx_isa_available },
+    .speed_changed = mach64_speed_changed,
+    .force_redraw = mach64_force_redraw,
+    .config = mach64gx_config
 };
 
-const device_t mach64gx_vlb_device =
-{
-    "ATI Mach64GX VLB",
-    "mach64gx_vlb",
-    DEVICE_VLB,
-    0,
-    mach64gx_init,
-    mach64_close,
-    NULL,
-    { mach64gx_vlb_available },
-    mach64_speed_changed,
-    mach64_force_redraw,
-    mach64gx_config
+const device_t mach64gx_vlb_device = {
+    .name = "ATI Mach64GX VLB",
+    .internal_name = "mach64gx_vlb",
+    .flags = DEVICE_VLB,
+    .local = 0,
+    .init = mach64gx_init,
+    .close = mach64_close,
+    .reset = NULL,
+    { .available = mach64gx_vlb_available },
+    .speed_changed = mach64_speed_changed,
+    .force_redraw = mach64_force_redraw,
+    .config = mach64gx_config
 };
 
-const device_t mach64gx_pci_device =
-{
-        "ATI Mach64GX PCI",
-        "mach64gx_pci",
-        DEVICE_PCI,
-    0,
-        mach64gx_init, mach64_close, NULL,
-        { mach64gx_available },
-        mach64_speed_changed,
-        mach64_force_redraw,
-        mach64gx_config
+const device_t mach64gx_pci_device = {
+    .name = "ATI Mach64GX PCI",
+    .internal_name = "mach64gx_pci",
+    .flags = DEVICE_PCI,
+    .local = 0,
+    .init = mach64gx_init,
+    .close = mach64_close,
+    .reset = NULL,
+    { .available = mach64gx_available },
+    .speed_changed = mach64_speed_changed,
+    .force_redraw = mach64_force_redraw,
+    .config = mach64gx_config
 };
 
-const device_t mach64vt2_device =
-{
-        "ATI Mach64VT2",
-        "mach64vt2",
-        DEVICE_PCI,
-    0,
-        mach64vt2_init, mach64_close, NULL,
-        { mach64vt2_available },
-        mach64_speed_changed,
-        mach64_force_redraw,
-        mach64vt2_config
+const device_t mach64vt2_device = {
+    .name = "ATI Mach64VT2",
+    .internal_name = "mach64vt2",
+    .flags = DEVICE_PCI,
+    .local = 0,
+    .init = mach64vt2_init,
+    .close = mach64_close,
+    .reset = NULL,
+    { .available = mach64vt2_available },
+    .speed_changed = mach64_speed_changed,
+    .force_redraw = mach64_force_redraw,
+    .config = mach64vt2_config
 };
