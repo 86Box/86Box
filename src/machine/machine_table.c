@@ -203,7 +203,7 @@ const machine_t machines[] = {
     /* Has Quadtel KBC firmware. */
     { "[GC103] Quadtel 286 clone",		"quadt286",		MACHINE_TYPE_286,		CPU_PKG_286, 0, 0, 0, 0, 0, 0, 0,										MACHINE_AT,									  512, 16384, 128,  127,	     machine_at_quadt286_init, NULL			},
     /* Most likely has AMI 'F' KBC firmware. */
-    { "[GC103] Trigem 286M",			"tg286m",		MACHINE_TYPE_286,		CPU_PKG_286, 0, 0, 0, 0, 0, 0, 0,										MACHINE_AT | MACHINE_IDE,							  512,  8192, 128,  127,	       machine_at_tg286m_init, NULL			},
+    { "[GC103] TriGem 286M",			"tg286m",		MACHINE_TYPE_286,		CPU_PKG_286, 0, 0, 0, 0, 0, 0, 0,										MACHINE_AT | MACHINE_IDE,							  512,  8192, 128,  127,	       machine_at_tg286m_init, NULL			},
     { "[NEAT] Atari PC 4",			"ataripc4",		MACHINE_TYPE_286,		CPU_PKG_286, 0, 0, 0, 0, 0, 0, 0,										MACHINE_AT,									  512,  8192, 128,  127,	     machine_at_ataripc4_init, NULL			},
     /* This has "AMI KEYBOARD BIOS", most likely 'F'. */
     { "[NEAT] DataExpert 286",			"ami286",		MACHINE_TYPE_286,		CPU_PKG_286, 0, 0, 0, 0, 0, 0, 0,										MACHINE_AT,									  512,  8192, 128,  127,	     machine_at_neat_ami_init, NULL			},

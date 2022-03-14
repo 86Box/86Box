@@ -18,7 +18,7 @@
 
 /* Version info. */
 #define EMU_NAME	"PCBox"
-#define EMU_NAME_W	L"PCBox"
+#define EMU_NAME_W	LSTR(EMU_NAME)
 
 #define EMU_VERSION	"3.3"
 #define EMU_VERSION_W	LSTR(EMU_VERSION)

@@ -179,7 +179,6 @@ static __inline void fetch_ea_16_long(uint32_t rmdat)
 
 #include "x86_flags.h"
 
-#define CACHE_ON() (!(cr0 & (1 << 30)) && !(cpu_state.flags & T_FLAG))
 
 /*Prefetch emulation is a fairly simplistic model:
   - All instruction bytes must be fetched before it starts.
@@ -195,7 +194,6 @@ static int prefetch_prefixes = 0;
 
 static void prefetch_run(int instr_cycles, int bytes, int modrm, int reads, int reads_l, int writes, int writes_l, int ea32)
 {
-	//if(is486 && CACHE_ON()) return;
 	int mem_cycles = reads*cpu_cycles_read + reads_l*cpu_cycles_read_l + writes*cpu_cycles_write + writes_l*cpu_cycles_write_l;
 
 	if (instr_cycles < mem_cycles)
@@ -292,6 +290,9 @@ static void prefetch_flush()
 
 
 #include "386_ops.h"
+
+
+#define CACHE_ON() (!(cr0 & (1 << 30)) && !(cpu_state.flags & T_FLAG))
 
 #ifdef USE_DYNAREC
 int cycles_main = 0;

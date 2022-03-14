@@ -1918,10 +1918,10 @@ const OpFn OP_TABLE(pentium2d_0f)[1024] =
 /*f0*/  ILLEGAL,        opPSLLW_a32,    opPSLLD_a32,    opPSLLQ_a32,    ILLEGAL,        opPMADDWD_a32,  ILLEGAL,        ILLEGAL,        opPSUBB_a32,    opPSUBW_a32,    opPSUBD_a32,    ILLEGAL,        opPADDB_a32,    opPADDW_a32,    opPADDD_a32,    ILLEGAL,
 };
 
-const OpFn OP_TABLE(pentium3_0f)[1024] = 
+const OpFn OP_TABLE(pentium3_0f)[1024] =
 {
         /*16-bit data, 16-bit addr*/
-/*      00              01              02              03              04              05              06              07              08              09              0a              0b              0c              0d              0e              0f*/        
+/*      00              01              02              03              04              05              06              07              08              09              0a              0b              0c              0d              0e              0f*/
 /*00*/  op0F00_a16,     op0F01_w_a16,   opLAR_w_a16,    opLSL_w_a16,    ILLEGAL,        ILLEGAL,        opCLTS,         ILLEGAL,        opINVD,         opWBINVD,       ILLEGAL,        ILLEGAL,        ILLEGAL,        opNOP,          ILLEGAL,        ILLEGAL,
 /*10*/  opMOVUPS_q_xmm_a16,        opMOVUPS_xmm_q_a16,        opMOVLPS_f_xmm_MOVHLPS_xmm_xmm_a16,        opMOVLPS_xmm_f_a16,        opUNPCKLPS_f_xmm_a16,        opUNPCKHPS_f_xmm_a16,        opMOVHPS_f_xmm_MOVLHPS_xmm_xmm_a16,        opMOVHPS_xmm_f_a16,        opHINT_NOP_a16, opHINT_NOP_a16, opHINT_NOP_a16, opHINT_NOP_a16, opHINT_NOP_a16, opHINT_NOP_a16, opHINT_NOP_a16, opHINT_NOP_a16,
 /*20*/  opMOV_r_CRx_a16,opMOV_r_DRx_a16,opMOV_CRx_r_a16,opMOV_DRx_r_a16,opMOV_r_TRx_a16,ILLEGAL,        opMOV_TRx_r_a16,ILLEGAL,        opMOVAPS_q_xmm_a16,        opMOVAPS_xmm_q_a16,        opCVTPI2PS_xmm_mm_a16,        opMOVNTPS_xmm_q_a16,        opCVTTPS2PI_mm_xmm_a16,        opCVTPS2PI_mm_xmm_a16,        opUCOMISS_xmm_xmm_a16,        opCOMISS_xmm_xmm_a16,
@@ -1943,7 +1943,7 @@ const OpFn OP_TABLE(pentium3_0f)[1024] =
 /*f0*/  ILLEGAL,        opPSLLW_a16,    opPSLLD_a16,    opPSLLQ_a16,    ILLEGAL,        opPMADDWD_a16,  opPSADBW_a16,        opMASKMOVQ_l_mm_a16,        opPSUBB_a16,    opPSUBW_a16,    opPSUBD_a16,    ILLEGAL,        opPADDB_a16,    opPADDW_a16,    opPADDD_a16,    ILLEGAL,
 
         /*32-bit data, 16-bit addr*/
-/*      00              01              02              03              04              05              06              07              08              09              0a              0b              0c              0d              0e              0f*/        
+/*      00              01              02              03              04              05              06              07              08              09              0a              0b              0c              0d              0e              0f*/
 /*00*/  op0F00_a16,     op0F01_l_a16,   opLAR_l_a16,    opLSL_l_a16,    ILLEGAL,        ILLEGAL,        opCLTS,         ILLEGAL,        opINVD,         opWBINVD,       ILLEGAL,        ILLEGAL,        ILLEGAL,        opNOP,          ILLEGAL,        ILLEGAL,
 /*10*/  opMOVUPS_q_xmm_a16,        opMOVUPS_xmm_q_a16,        opMOVLPS_f_xmm_MOVHLPS_xmm_xmm_a16,        opMOVLPS_xmm_f_a16,        opUNPCKLPS_f_xmm_a16,        opUNPCKHPS_f_xmm_a16,        opMOVHPS_f_xmm_MOVLHPS_xmm_xmm_a16,        opMOVHPS_xmm_f_a16,        opHINT_NOP_a16, opHINT_NOP_a16, opHINT_NOP_a16, opHINT_NOP_a16, opHINT_NOP_a16, opHINT_NOP_a16, opHINT_NOP_a16, opHINT_NOP_a16,
 /*20*/  opMOV_r_CRx_a16,opMOV_r_DRx_a16,opMOV_CRx_r_a16,opMOV_DRx_r_a16,opMOV_r_TRx_a16,ILLEGAL,        opMOV_TRx_r_a16,ILLEGAL,        opMOVAPS_q_xmm_a16,        opMOVAPS_xmm_q_a16,        opCVTPI2PS_xmm_mm_a16,        opMOVNTPS_xmm_q_a16,        opCVTTPS2PI_mm_xmm_a16,        opCVTPS2PI_mm_xmm_a16,        opUCOMISS_xmm_xmm_a16,        opCOMISS_xmm_xmm_a16,
@@ -1965,7 +1965,7 @@ const OpFn OP_TABLE(pentium3_0f)[1024] =
 /*f0*/  ILLEGAL,        opPSLLW_a16,    opPSLLD_a16,    opPSLLQ_a16,    ILLEGAL,        opPMADDWD_a16,  opPSADBW_a16,        ILLEGAL,        opPSUBB_a16,    opPSUBW_a16,    opPSUBD_a16,    ILLEGAL,        opPADDB_a16,    opPADDW_a16,    opPADDD_a16,    ILLEGAL,
 
         /*16-bit data, 32-bit addr*/
-/*      00              01              02              03              04              05              06              07              08              09              0a              0b              0c              0d              0e              0f*/        
+/*      00              01              02              03              04              05              06              07              08              09              0a              0b              0c              0d              0e              0f*/
 /*00*/  op0F00_a32,     op0F01_w_a32,   opLAR_w_a32,    opLSL_w_a32,    ILLEGAL,        ILLEGAL,        opCLTS,         ILLEGAL,        opINVD,         opWBINVD,       ILLEGAL,        ILLEGAL,        ILLEGAL,        opNOP,          ILLEGAL,        ILLEGAL,
 /*10*/  opMOVUPS_q_xmm_a32,        opMOVUPS_xmm_q_a32,        opMOVLPS_f_xmm_MOVHLPS_xmm_xmm_a32,        opMOVLPS_xmm_f_a32,        opUNPCKLPS_f_xmm_a32,        opUNPCKHPS_f_xmm_a32,        opMOVHPS_f_xmm_MOVLHPS_xmm_xmm_a32,        opMOVHPS_xmm_f_a32,        opHINT_NOP_a32, opHINT_NOP_a32, opHINT_NOP_a32, opHINT_NOP_a32, opHINT_NOP_a32, opHINT_NOP_a32, opHINT_NOP_a32, opHINT_NOP_a32,
 /*20*/  opMOV_r_CRx_a32,opMOV_r_DRx_a32,opMOV_CRx_r_a32,opMOV_DRx_r_a32,opMOV_r_TRx_a32,ILLEGAL,        opMOV_TRx_r_a32,ILLEGAL,        opMOVAPS_q_xmm_a32,        opMOVAPS_xmm_q_a32,        opCVTPI2PS_xmm_mm_a32,        opMOVNTPS_xmm_q_a32,        opCVTTPS2PI_mm_xmm_a32,        opCVTPS2PI_mm_xmm_a32,        opUCOMISS_xmm_xmm_a32,        opCOMISS_xmm_xmm_a32,
@@ -1987,7 +1987,7 @@ const OpFn OP_TABLE(pentium3_0f)[1024] =
 /*f0*/  ILLEGAL,        opPSLLW_a32,    opPSLLD_a32,    opPSLLQ_a32,    ILLEGAL,        opPMADDWD_a32,  opPSADBW_a32,        opMASKMOVQ_l_mm_a32,        opPSUBB_a32,    opPSUBW_a32,    opPSUBD_a32,    ILLEGAL,        opPADDB_a32,    opPADDW_a32,    opPADDD_a32,    ILLEGAL,
 
         /*32-bit data, 32-bit addr*/
-/*      00              01              02              03              04              05              06              07              08              09              0a              0b              0c              0d              0e              0f*/        
+/*      00              01              02              03              04              05              06              07              08              09              0a              0b              0c              0d              0e              0f*/
 /*00*/  op0F00_a32,     op0F01_l_a32,   opLAR_l_a32,    opLSL_l_a32,    ILLEGAL,        ILLEGAL,        opCLTS,         ILLEGAL,        opINVD,         opWBINVD,       ILLEGAL,        ILLEGAL,        ILLEGAL,        opNOP,          ILLEGAL,        ILLEGAL,
 /*10*/  opMOVUPS_q_xmm_a32,        opMOVUPS_xmm_q_a32,        opMOVLPS_f_xmm_MOVHLPS_xmm_xmm_a32,        opMOVLPS_xmm_f_a32,        opUNPCKLPS_f_xmm_a32,        opUNPCKHPS_f_xmm_a32,        opMOVHPS_f_xmm_MOVLHPS_xmm_xmm_a32,        opMOVHPS_xmm_f_a32,        opHINT_NOP_a32, opHINT_NOP_a32, opHINT_NOP_a32, opHINT_NOP_a32, opHINT_NOP_a32, opHINT_NOP_a32, opHINT_NOP_a32, opHINT_NOP_a32,
 /*20*/  opMOV_r_CRx_a32,opMOV_r_DRx_a32,opMOV_CRx_r_a32,opMOV_DRx_r_a32,opMOV_r_TRx_a32,ILLEGAL,        opMOV_TRx_r_a32,ILLEGAL,        opMOVAPS_q_xmm_a32,        opMOVAPS_xmm_q_a32,        opCVTPI2PS_xmm_mm_a32,        opMOVNTPS_xmm_q_a32,        opCVTTPS2PI_mm_xmm_a32,        opCVTPS2PI_mm_xmm_a32,        opUCOMISS_xmm_xmm_a32,        opCOMISS_xmm_xmm_a32,
@@ -2009,10 +2009,10 @@ const OpFn OP_TABLE(pentium3_0f)[1024] =
 /*f0*/  ILLEGAL,        opPSLLW_a32,    opPSLLD_a32,    opPSLLQ_a32,    ILLEGAL,        opPMADDWD_a32,  opPSADBW_a32,        ILLEGAL,        opPSUBB_a32,    opPSUBW_a32,    opPSUBD_a32,    ILLEGAL,        opPADDB_a32,    opPADDW_a32,    opPADDD_a32,    ILLEGAL,
 };
 
-const OpFn OP_TABLE(pentium3_REPNE_0f)[1024] = 
+const OpFn OP_TABLE(pentium3_REPNE_0f)[1024] =
 {
         /*16-bit data, 16-bit addr*/
-/*      00              01              02              03              04              05              06              07              08              09              0a              0b              0c              0d              0e              0f*/        
+/*      00              01              02              03              04              05              06              07              08              09              0a              0b              0c              0d              0e              0f*/
 /*00*/  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
 /*10*/  opMOVSS_f_xmm_a16,        opMOVSS_xmm_f_a16,        opMOVLPS_f_xmm_MOVHLPS_xmm_xmm_a16,        opMOVLPS_xmm_f_a16,        opUNPCKLPS_f_xmm_a16,        opUNPCKHPS_f_xmm_a16,        opMOVHPS_f_xmm_MOVLHPS_xmm_xmm_a16,        opMOVHPS_xmm_f_a16,        NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
 /*20*/  opMOV_r_CRx_a16,opMOV_r_DRx_a16,opMOV_CRx_r_a16,opMOV_DRx_r_a16,opMOV_r_TRx_a16,ILLEGAL,        opMOV_TRx_r_a16,ILLEGAL,        opMOVAPS_q_xmm_a16,        opMOVAPS_xmm_q_a16,        opCVTSI2SS_xmm_l_a16,        opMOVNTPS_xmm_q_a16,        opCVTTSS2SI_l_xmm_a16,        opCVTSS2SI_l_xmm_a16,        opUCOMISS_xmm_xmm_a16,        opCOMISS_xmm_xmm_a16,
@@ -2034,7 +2034,7 @@ const OpFn OP_TABLE(pentium3_REPNE_0f)[1024] =
 /*f0*/  ILLEGAL,        opPSLLW_a16,    opPSLLD_a16,    opPSLLQ_a16,    ILLEGAL,        opPMADDWD_a16,  opPSADBW_a16,        opMASKMOVQ_l_mm_a16,        opPSUBB_a16,    opPSUBW_a16,    opPSUBD_a16,    ILLEGAL,        opPADDB_a16,    opPADDW_a16,    opPADDD_a16,    ILLEGAL,
 
         /*32-bit data, 16-bit addr*/
-/*      00              01              02              03              04              05              06              07              08              09              0a              0b              0c              0d              0e              0f*/        
+/*      00              01              02              03              04              05              06              07              08              09              0a              0b              0c              0d              0e              0f*/
 /*00*/  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
 /*10*/  opMOVSS_f_xmm_a16,        opMOVSS_xmm_f_a16,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        opHINT_NOP_a16, opHINT_NOP_a16, opHINT_NOP_a16, opHINT_NOP_a16, opHINT_NOP_a16, opHINT_NOP_a16, opHINT_NOP_a16, opHINT_NOP_a16,
 /*20*/  opMOV_r_CRx_a16,opMOV_r_DRx_a16,opMOV_CRx_r_a16,opMOV_DRx_r_a16,opMOV_r_TRx_a16,ILLEGAL,        opMOV_TRx_r_a16,ILLEGAL,        opMOVAPS_q_xmm_a16,        opMOVAPS_xmm_q_a16,        opCVTSI2SS_xmm_l_a16,        opMOVNTPS_xmm_q_a16,        opCVTTSS2SI_l_xmm_a16,        opCVTSS2SI_l_xmm_a16,        opUCOMISS_xmm_xmm_a16,        opCOMISS_xmm_xmm_a16,
@@ -2056,7 +2056,7 @@ const OpFn OP_TABLE(pentium3_REPNE_0f)[1024] =
 /*f0*/  ILLEGAL,        opPSLLW_a16,    opPSLLD_a16,    opPSLLQ_a16,    ILLEGAL,        opPMADDWD_a16,  opPSADBW_a16,        ILLEGAL,        opPSUBB_a16,    opPSUBW_a16,    opPSUBD_a16,    ILLEGAL,        opPADDB_a16,    opPADDW_a16,    opPADDD_a16,    ILLEGAL,
 
         /*16-bit data, 32-bit addr*/
-/*      00              01              02              03              04              05              06              07              08              09              0a              0b              0c              0d              0e              0f*/        
+/*      00              01              02              03              04              05              06              07              08              09              0a              0b              0c              0d              0e              0f*/
 /*00*/  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
 /*10*/  opMOVSS_f_xmm_a32,        opMOVSS_xmm_f_a32,        opMOVLPS_f_xmm_MOVHLPS_xmm_xmm_a32,        opMOVLPS_xmm_f_a32,        opUNPCKLPS_f_xmm_a32,        opUNPCKHPS_f_xmm_a32,        opMOVHPS_f_xmm_MOVLHPS_xmm_xmm_a32,        opMOVHPS_xmm_f_a32,        opHINT_NOP_a32, opHINT_NOP_a32, opHINT_NOP_a32, opHINT_NOP_a32, opHINT_NOP_a32, opHINT_NOP_a32, opHINT_NOP_a32, opHINT_NOP_a32,
 /*20*/  opMOV_r_CRx_a32,opMOV_r_DRx_a32,opMOV_CRx_r_a32,opMOV_DRx_r_a32,opMOV_r_TRx_a32,ILLEGAL,        opMOV_TRx_r_a32,ILLEGAL,        opMOVAPS_q_xmm_a32,        opMOVAPS_xmm_q_a32,        opCVTSI2SS_xmm_l_a32,        opMOVNTPS_xmm_q_a32,        opCVTTSS2SI_l_xmm_a32,        opCVTSS2SI_l_xmm_a32,        opUCOMISS_xmm_xmm_a32,        opCOMISS_xmm_xmm_a16,
@@ -2078,7 +2078,7 @@ const OpFn OP_TABLE(pentium3_REPNE_0f)[1024] =
 /*f0*/  ILLEGAL,        opPSLLW_a32,    opPSLLD_a32,    opPSLLQ_a32,    ILLEGAL,        opPMADDWD_a32,  opPSADBW_a32,        opMASKMOVQ_l_mm_a32,        opPSUBB_a32,    opPSUBW_a32,    opPSUBD_a32,    ILLEGAL,        opPADDB_a32,    opPADDW_a32,    opPADDD_a32,    ILLEGAL,
 
         /*32-bit data, 32-bit addr*/
-/*      00              01              02              03              04              05              06              07              08              09              0a              0b              0c              0d              0e              0f*/        
+/*      00              01              02              03              04              05              06              07              08              09              0a              0b              0c              0d              0e              0f*/
 /*00*/  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
 /*10*/  opMOVSS_f_xmm_a32,        opMOVSS_xmm_f_a32,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        opHINT_NOP_a32, opHINT_NOP_a32, opHINT_NOP_a32, opHINT_NOP_a32, opHINT_NOP_a32, opHINT_NOP_a32, opHINT_NOP_a32, opHINT_NOP_a32,
 /*20*/  opMOV_r_CRx_a32,opMOV_r_DRx_a32,opMOV_CRx_r_a32,opMOV_DRx_r_a32,opMOV_r_TRx_a32,ILLEGAL,        opMOV_TRx_r_a32,ILLEGAL,        opMOVAPS_q_xmm_a32,        opMOVAPS_xmm_q_a32,        opCVTSI2SS_xmm_l_a32,        opMOVNTPS_xmm_q_a32,        opCVTTSS2SI_l_xmm_a32,        opCVTSS2SI_l_xmm_a32,        opUCOMISS_xmm_xmm_a32,        opCOMISS_xmm_xmm_a16,
@@ -2100,10 +2100,10 @@ const OpFn OP_TABLE(pentium3_REPNE_0f)[1024] =
 /*f0*/  ILLEGAL,        opPSLLW_a32,    opPSLLD_a32,    opPSLLQ_a32,    ILLEGAL,        opPMADDWD_a32,  opPSADBW_a32,        ILLEGAL,        opPSUBB_a32,    opPSUBW_a32,    opPSUBD_a32,    ILLEGAL,        opPADDB_a32,    opPADDW_a32,    opPADDD_a32,    ILLEGAL,
 };
 
-const OpFn OP_TABLE(nehemiah_0f)[1024] = 
+const OpFn OP_TABLE(nehemiah_0f)[1024] =
 {
         /*16-bit data, 16-bit addr*/
-/*      00              01              02              03              04              05              06              07              08              09              0a              0b              0c              0d              0e              0f*/        
+/*      00              01              02              03              04              05              06              07              08              09              0a              0b              0c              0d              0e              0f*/
 /*00*/  op0F00_a16,     op0F01_w_a16,   opLAR_w_a16,    opLSL_w_a16,    ILLEGAL,        ILLEGAL,        opCLTS,         ILLEGAL,        opINVD,         opWBINVD,       ILLEGAL,        ILLEGAL,        ILLEGAL,        opPREFETCH_a16, opFEMMS,        op3DNOW_a16,
 /*10*/  opMOVUPS_q_xmm_a16,        opMOVUPS_xmm_q_a16,        opMOVLPS_f_xmm_MOVHLPS_xmm_xmm_a16,        opMOVLPS_xmm_f_a16,        opUNPCKLPS_f_xmm_a16,        opUNPCKHPS_f_xmm_a16,        opMOVHPS_f_xmm_MOVLHPS_xmm_xmm_a16,        opMOVHPS_xmm_f_a16,        opHINT_NOP_a16, opHINT_NOP_a16, opHINT_NOP_a16, opHINT_NOP_a16, opHINT_NOP_a16, opHINT_NOP_a16, opHINT_NOP_a16, opHINT_NOP_a16,
 /*20*/  opMOV_r_CRx_a16,opMOV_r_DRx_a16,opMOV_CRx_r_a16,opMOV_DRx_r_a16,opMOV_r_TRx_a16,ILLEGAL,        opMOV_TRx_r_a16,ILLEGAL,        opMOVAPS_q_xmm_a16,        opMOVAPS_xmm_q_a16,        opCVTPI2PS_xmm_mm_a16,        opMOVNTPS_xmm_q_a16,        opCVTTPS2PI_mm_xmm_a16,        opCVTPS2PI_mm_xmm_a16,        opUCOMISS_xmm_xmm_a16,        opCOMISS_xmm_xmm_a16,
@@ -2125,7 +2125,7 @@ const OpFn OP_TABLE(nehemiah_0f)[1024] =
 /*f0*/  ILLEGAL,        opPSLLW_a16,    opPSLLD_a16,    opPSLLQ_a16,    ILLEGAL,        opPMADDWD_a16,  opPSADBW_a16,        opMASKMOVQ_l_mm_a16,        opPSUBB_a16,    opPSUBW_a16,    opPSUBD_a16,    ILLEGAL,        opPADDB_a16,    opPADDW_a16,    opPADDD_a16,    ILLEGAL,
 
         /*32-bit data, 16-bit addr*/
-/*      00              01              02              03              04              05              06              07              08              09              0a              0b              0c              0d              0e              0f*/        
+/*      00              01              02              03              04              05              06              07              08              09              0a              0b              0c              0d              0e              0f*/
 /*00*/  op0F00_a16,     op0F01_l_a16,   opLAR_l_a16,    opLSL_l_a16,    ILLEGAL,        ILLEGAL,        opCLTS,         ILLEGAL,        opINVD,         opWBINVD,       ILLEGAL,        ILLEGAL,        ILLEGAL,        opNOP,          ILLEGAL,        ILLEGAL,
 /*10*/  opMOVUPS_q_xmm_a16,        opMOVUPS_xmm_q_a16,        opMOVLPS_f_xmm_MOVHLPS_xmm_xmm_a16,        opMOVLPS_xmm_f_a16,        opUNPCKLPS_f_xmm_a16,        opUNPCKHPS_f_xmm_a16,        opMOVHPS_f_xmm_MOVLHPS_xmm_xmm_a16,        opMOVHPS_xmm_f_a16,        opHINT_NOP_a16, opHINT_NOP_a16, opHINT_NOP_a16, opHINT_NOP_a16, opHINT_NOP_a16, opHINT_NOP_a16, opHINT_NOP_a16, opHINT_NOP_a16,
 /*20*/  opMOV_r_CRx_a16,opMOV_r_DRx_a16,opMOV_CRx_r_a16,opMOV_DRx_r_a16,opMOV_r_TRx_a16,ILLEGAL,        opMOV_TRx_r_a16,ILLEGAL,        opMOVAPS_q_xmm_a16,        opMOVAPS_xmm_q_a16,        opCVTPI2PS_xmm_mm_a16,        opMOVNTPS_xmm_q_a16,        opCVTTPS2PI_mm_xmm_a16,        opCVTPS2PI_mm_xmm_a16,        opUCOMISS_xmm_xmm_a16,        opCOMISS_xmm_xmm_a16,
@@ -2147,7 +2147,7 @@ const OpFn OP_TABLE(nehemiah_0f)[1024] =
 /*f0*/  ILLEGAL,        opPSLLW_a16,    opPSLLD_a16,    opPSLLQ_a16,    ILLEGAL,        opPMADDWD_a16,  opPSADBW_a16,        ILLEGAL,        opPSUBB_a16,    opPSUBW_a16,    opPSUBD_a16,    ILLEGAL,        opPADDB_a16,    opPADDW_a16,    opPADDD_a16,    ILLEGAL,
 
         /*16-bit data, 32-bit addr*/
-/*      00              01              02              03              04              05              06              07              08              09              0a              0b              0c              0d              0e              0f*/        
+/*      00              01              02              03              04              05              06              07              08              09              0a              0b              0c              0d              0e              0f*/
 /*00*/  op0F00_a32,     op0F01_w_a32,   opLAR_w_a32,    opLSL_w_a32,    ILLEGAL,        ILLEGAL,        opCLTS,         ILLEGAL,        opINVD,         opWBINVD,       ILLEGAL,        ILLEGAL,        ILLEGAL,        opPREFETCH_a32, opFEMMS,        op3DNOW_a32,
 /*10*/  opMOVUPS_q_xmm_a32,        opMOVUPS_xmm_q_a32,        opMOVLPS_f_xmm_MOVHLPS_xmm_xmm_a32,        opMOVLPS_xmm_f_a32,        opUNPCKLPS_f_xmm_a32,        opUNPCKHPS_f_xmm_a32,        opMOVHPS_f_xmm_MOVLHPS_xmm_xmm_a32,        opMOVHPS_xmm_f_a32,        opHINT_NOP_a32, opHINT_NOP_a32, opHINT_NOP_a32, opHINT_NOP_a32, opHINT_NOP_a32, opHINT_NOP_a32, opHINT_NOP_a32, opHINT_NOP_a32,
 /*20*/  opMOV_r_CRx_a32,opMOV_r_DRx_a32,opMOV_CRx_r_a32,opMOV_DRx_r_a32,opMOV_r_TRx_a32,ILLEGAL,        opMOV_TRx_r_a32,ILLEGAL,        opMOVAPS_q_xmm_a32,        opMOVAPS_xmm_q_a32,        opCVTPI2PS_xmm_mm_a32,        opMOVNTPS_xmm_q_a32,        opCVTTPS2PI_mm_xmm_a32,        opCVTPS2PI_mm_xmm_a32,        opUCOMISS_xmm_xmm_a32,        opCOMISS_xmm_xmm_a32,
@@ -2169,7 +2169,7 @@ const OpFn OP_TABLE(nehemiah_0f)[1024] =
 /*f0*/  ILLEGAL,        opPSLLW_a32,    opPSLLD_a32,    opPSLLQ_a32,    ILLEGAL,        opPMADDWD_a32,  opPSADBW_a32,        opMASKMOVQ_l_mm_a32,        opPSUBB_a32,    opPSUBW_a32,    opPSUBD_a32,    ILLEGAL,        opPADDB_a32,    opPADDW_a32,    opPADDD_a32,    ILLEGAL,
 
         /*32-bit data, 32-bit addr*/
-/*      00              01              02              03              04              05              06              07              08              09              0a              0b              0c              0d              0e              0f*/        
+/*      00              01              02              03              04              05              06              07              08              09              0a              0b              0c              0d              0e              0f*/
 /*00*/  op0F00_a32,     op0F01_l_a32,   opLAR_l_a32,    opLSL_l_a32,    ILLEGAL,        ILLEGAL,        opCLTS,         ILLEGAL,        opINVD,         opWBINVD,       ILLEGAL,        ILLEGAL,        ILLEGAL,        opPREFETCH_a32, opFEMMS,        op3DNOW_a32,
 /*10*/  opMOVUPS_q_xmm_a32,        opMOVUPS_xmm_q_a32,        opMOVLPS_f_xmm_MOVHLPS_xmm_xmm_a32,        opMOVLPS_xmm_f_a32,        opUNPCKLPS_f_xmm_a32,        opUNPCKHPS_f_xmm_a32,        opMOVHPS_f_xmm_MOVLHPS_xmm_xmm_a32,        opMOVHPS_xmm_f_a32,        opHINT_NOP_a32, opHINT_NOP_a32, opHINT_NOP_a32, opHINT_NOP_a32, opHINT_NOP_a32, opHINT_NOP_a32, opHINT_NOP_a32, opHINT_NOP_a32,
 /*20*/  opMOV_r_CRx_a32,opMOV_r_DRx_a32,opMOV_CRx_r_a32,opMOV_DRx_r_a32,opMOV_r_TRx_a32,ILLEGAL,        opMOV_TRx_r_a32,ILLEGAL,        opMOVAPS_q_xmm_a32,        opMOVAPS_xmm_q_a32,        opCVTPI2PS_xmm_mm_a32,        opMOVNTPS_xmm_q_a32,        opCVTTPS2PI_mm_xmm_a32,        opCVTPS2PI_mm_xmm_a32,        opUCOMISS_xmm_xmm_a32,        opCOMISS_xmm_xmm_a32,
@@ -2191,10 +2191,10 @@ const OpFn OP_TABLE(nehemiah_0f)[1024] =
 /*f0*/  ILLEGAL,        opPSLLW_a32,    opPSLLD_a32,    opPSLLQ_a32,    ILLEGAL,        opPMADDWD_a32,  opPSADBW_a32,        ILLEGAL,        opPSUBB_a32,    opPSUBW_a32,    opPSUBD_a32,    ILLEGAL,        opPADDB_a32,    opPADDW_a32,    opPADDD_a32,    ILLEGAL,
 };
 
-const OpFn OP_TABLE(nehemiah_REPNE_0f)[1024] = 
+const OpFn OP_TABLE(nehemiah_REPNE_0f)[1024] =
 {
         /*16-bit data, 16-bit addr*/
-/*      00              01              02              03              04              05              06              07              08              09              0a              0b              0c              0d              0e              0f*/        
+/*      00              01              02              03              04              05              06              07              08              09              0a              0b              0c              0d              0e              0f*/
 /*00*/  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
 /*10*/  opMOVSS_f_xmm_a16,        opMOVSS_xmm_f_a16,        opMOVLPS_f_xmm_MOVHLPS_xmm_xmm_a16,        opMOVLPS_xmm_f_a16,        opUNPCKLPS_f_xmm_a16,        opUNPCKHPS_f_xmm_a16,        opMOVHPS_f_xmm_MOVLHPS_xmm_xmm_a16,        opMOVHPS_xmm_f_a16,        NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
 /*20*/  opMOV_r_CRx_a16,opMOV_r_DRx_a16,opMOV_CRx_r_a16,opMOV_DRx_r_a16,opMOV_r_TRx_a16,ILLEGAL,        opMOV_TRx_r_a16,ILLEGAL,        opMOVAPS_q_xmm_a16,        opMOVAPS_xmm_q_a16,        opCVTSI2SS_xmm_l_a16,        opMOVNTPS_xmm_q_a16,        opCVTTSS2SI_l_xmm_a16,        opCVTSS2SI_l_xmm_a16,        opUCOMISS_xmm_xmm_a16,        opCOMISS_xmm_xmm_a16,
@@ -2216,7 +2216,7 @@ const OpFn OP_TABLE(nehemiah_REPNE_0f)[1024] =
 /*f0*/  ILLEGAL,        opPSLLW_a16,    opPSLLD_a16,    opPSLLQ_a16,    ILLEGAL,        opPMADDWD_a16,  opPSADBW_a16,        opMASKMOVQ_l_mm_a16,        opPSUBB_a16,    opPSUBW_a16,    opPSUBD_a16,    ILLEGAL,        opPADDB_a16,    opPADDW_a16,    opPADDD_a16,    ILLEGAL,
 
         /*32-bit data, 16-bit addr*/
-/*      00              01              02              03              04              05              06              07              08              09              0a              0b              0c              0d              0e              0f*/        
+/*      00              01              02              03              04              05              06              07              08              09              0a              0b              0c              0d              0e              0f*/
 /*00*/  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
 /*10*/  opMOVSS_f_xmm_a16,        opMOVSS_xmm_f_a16,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        opHINT_NOP_a16, opHINT_NOP_a16, opHINT_NOP_a16, opHINT_NOP_a16, opHINT_NOP_a16, opHINT_NOP_a16, opHINT_NOP_a16, opHINT_NOP_a16,
 /*20*/  opMOV_r_CRx_a16,opMOV_r_DRx_a16,opMOV_CRx_r_a16,opMOV_DRx_r_a16,opMOV_r_TRx_a16,ILLEGAL,        opMOV_TRx_r_a16,ILLEGAL,        opMOVAPS_q_xmm_a16,        opMOVAPS_xmm_q_a16,        opCVTSI2SS_xmm_l_a16,        opMOVNTPS_xmm_q_a16,        opCVTTSS2SI_l_xmm_a16,        opCVTSS2SI_l_xmm_a16,        opUCOMISS_xmm_xmm_a16,        opCOMISS_xmm_xmm_a16,
@@ -2238,7 +2238,7 @@ const OpFn OP_TABLE(nehemiah_REPNE_0f)[1024] =
 /*f0*/  ILLEGAL,        opPSLLW_a16,    opPSLLD_a16,    opPSLLQ_a16,    ILLEGAL,        opPMADDWD_a16,  opPSADBW_a16,        ILLEGAL,        opPSUBB_a16,    opPSUBW_a16,    opPSUBD_a16,    ILLEGAL,        opPADDB_a16,    opPADDW_a16,    opPADDD_a16,    ILLEGAL,
 
         /*16-bit data, 32-bit addr*/
-/*      00              01              02              03              04              05              06              07              08              09              0a              0b              0c              0d              0e              0f*/        
+/*      00              01              02              03              04              05              06              07              08              09              0a              0b              0c              0d              0e              0f*/
 /*00*/  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
 /*10*/  opMOVSS_f_xmm_a32,        opMOVSS_xmm_f_a32,        opMOVLPS_f_xmm_MOVHLPS_xmm_xmm_a32,        opMOVLPS_xmm_f_a32,        opUNPCKLPS_f_xmm_a32,        opUNPCKHPS_f_xmm_a32,        opMOVHPS_f_xmm_MOVLHPS_xmm_xmm_a32,        opMOVHPS_xmm_f_a32,        opHINT_NOP_a32, opHINT_NOP_a32, opHINT_NOP_a32, opHINT_NOP_a32, opHINT_NOP_a32, opHINT_NOP_a32, opHINT_NOP_a32, opHINT_NOP_a32,
 /*20*/  opMOV_r_CRx_a32,opMOV_r_DRx_a32,opMOV_CRx_r_a32,opMOV_DRx_r_a32,opMOV_r_TRx_a32,ILLEGAL,        opMOV_TRx_r_a32,ILLEGAL,        opMOVAPS_q_xmm_a32,        opMOVAPS_xmm_q_a32,        opCVTSI2SS_xmm_l_a32,        opMOVNTPS_xmm_q_a32,        opCVTTSS2SI_l_xmm_a32,        opCVTSS2SI_l_xmm_a32,        opUCOMISS_xmm_xmm_a32,        opCOMISS_xmm_xmm_a16,
@@ -2260,7 +2260,7 @@ const OpFn OP_TABLE(nehemiah_REPNE_0f)[1024] =
 /*f0*/  ILLEGAL,        opPSLLW_a32,    opPSLLD_a32,    opPSLLQ_a32,    ILLEGAL,        opPMADDWD_a32,  opPSADBW_a32,        opMASKMOVQ_l_mm_a32,        opPSUBB_a32,    opPSUBW_a32,    opPSUBD_a32,    ILLEGAL,        opPADDB_a32,    opPADDW_a32,    opPADDD_a32,    ILLEGAL,
 
         /*32-bit data, 32-bit addr*/
-/*      00              01              02              03              04              05              06              07              08              09              0a              0b              0c              0d              0e              0f*/        
+/*      00              01              02              03              04              05              06              07              08              09              0a              0b              0c              0d              0e              0f*/
 /*00*/  NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
 /*10*/  opMOVSS_f_xmm_a32,        opMOVSS_xmm_f_a32,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        opHINT_NOP_a32, opHINT_NOP_a32, opHINT_NOP_a32, opHINT_NOP_a32, opHINT_NOP_a32, opHINT_NOP_a32, opHINT_NOP_a32, opHINT_NOP_a32,
 /*20*/  opMOV_r_CRx_a32,opMOV_r_DRx_a32,opMOV_CRx_r_a32,opMOV_DRx_r_a32,opMOV_r_TRx_a32,ILLEGAL,        opMOV_TRx_r_a32,ILLEGAL,        opMOVAPS_q_xmm_a32,        opMOVAPS_xmm_q_a32,        opCVTSI2SS_xmm_l_a32,        opMOVNTPS_xmm_q_a32,        opCVTTSS2SI_l_xmm_a32,        opCVTSS2SI_l_xmm_a32,        opUCOMISS_xmm_xmm_a32,        opCOMISS_xmm_xmm_a16,
@@ -2282,7 +2282,7 @@ const OpFn OP_TABLE(nehemiah_REPNE_0f)[1024] =
 /*f0*/  ILLEGAL,        opPSLLW_a32,    opPSLLD_a32,    opPSLLQ_a32,    ILLEGAL,        opPMADDWD_a32,  opPSADBW_a32,        ILLEGAL,        opPSUBB_a32,    opPSUBW_a32,    opPSUBD_a32,    ILLEGAL,        opPADDB_a32,    opPADDW_a32,    opPADDD_a32,    ILLEGAL,
 };
 
-const OpFn OP_TABLE(286)[1024] = 
+const OpFn OP_TABLE(286)[1024] =
 {
         /*16-bit data, 16-bit addr*/
 /*      00              01              02              03              04              05              06              07              08              09              0a              0b              0c              0d              0e              0f*/
@@ -2558,7 +2558,7 @@ const OpFn OP_TABLE(REPE)[1024] =
 const OpFn OP_TABLE(REPNE)[1024] =
 {
         /*16-bit data, 16-bit addr*/
-/*      00              01              02              03              04              05              06              07              08              09              0a              0b              0c              0d              0e              0f*/        
+/*      00              01              02              03              04              05              06              07              08              09              0a              0b              0c              0d              0e              0f*/
 /*00*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              opREPNE_0f,
 /*10*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
 /*20*/  0,              0,              0,              0,              0,              0,              opES_REPNE_w_a16,0,             0,              0,              0,              0,              0,              0,              opCS_REPNE_w_a16,0,

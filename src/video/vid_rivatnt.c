@@ -1190,48 +1190,43 @@ rivatnt_force_redraw(void *p)
 }
 
 
-static const device_config_t rivatnt_config[] =
-{
-        {
-                .name = "memory",
-                .description = "Memory size",
-                .type = CONFIG_SELECTION,
-                .selection =
-                {
-                        {
-                                .description = "4 MB",
-                                .value = 4
-                        },
-                        {
-                                .description = "8 MB",
-                                .value = 8
-                        },
-                        {
-                                .description = "16 MB",
-                                .value = 16
-                        },
-                        {
-                                .description = ""
-                        }
-                },
-                .default_int = 16
+static const device_config_t rivatnt_config[] = {
+    {
+        .name = "memory",
+        .description = "Memory size",
+        .type = CONFIG_SELECTION,
+        .selection = {
+            {
+                .description = "4 MB",
+                .value = 4
+            },
+            {
+                .description = "8 MB",
+                .value = 8
+            },
+            {
+                .description = "16 MB",
+                .value = 16
+            },
+            {
+                .description = ""
+            }
         },
-        {
-                .type = -1
-        }
+        .default_int = 16
+    },
+    { .type = -1 }
 };
 
-const device_t rivatnt_pci_device =
-{
-    "nVidia RIVA TNT (PCI)",
-    "rivatnt",
-    DEVICE_PCI,
-    RIVATNT_DEVICE_ID,
-    rivatnt_init,
-    rivatnt_close, 
-    NULL,
-    { rivatnt_available },
-    rivatnt_speed_changed,
-    rivatnt_force_redraw,
-    rivatnt_config
+const device_t rivatnt_pci_device = {
+    .name = "nVidia RIVA TNT (PCI)",
+    .internal_name = "rivatnt",
+    .flags = DEVICE_PCI,
+    .local = RIVATNT_DEVICE_ID,
+    .init = rivatnt_init,
+    .close = rivatnt_close, 
+    .reset = NULL,
+    { .available = rivatnt_available },
+    .speed_changed = rivatnt_speed_changed,
+    .force_redraw = rivatnt_force_redraw,
+    .config = rivatnt_config
 };

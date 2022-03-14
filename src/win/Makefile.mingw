@@ -88,6 +88,9 @@ ifeq ($(DEV_BUILD), y)
  ifndef RIVA128
   RIVA128   := y
  endif
+ ifndef RIVATNT
+  RIVATNT   := y
+ endif
  ifndef NEW_KBC
   NEW_KBC	:= n
  endif
@@ -151,6 +154,9 @@ else
  endif
  ifndef RIVA128
   RIVA128   := n
+ endif
+ ifndef RIVATNT
+  RIVATNT   := n
  endif
  ifndef NEW_KBC
   NEW_KBC	:= n
@@ -498,10 +504,14 @@ OPTS		+= -DUSE_OLIVETTI
 DEVBROBJ	+= olivetti_eva.o
 endif
 
-
 ifeq ($(RIVA128), y)
 OPTS		+= -DUSE_RIVA128
-DEVBROBJ	+= vid_riva128.o vid_rivatnt.o
+DEVBROBJ	+= vid_riva128.o
+endif
+
+ifeq ($(RIVATNT), y)
+OPTS		+= -DUSE_RIVATNT
+DEVBROBJ	+= vid_rivatnt.o
 endif
 
 endif
