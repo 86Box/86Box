@@ -115,7 +115,7 @@ BEGIN
     POPUP "&Pomoc"
     BEGIN
         MENUITEM "&Dokumentacja...",           IDM_DOCS
-        MENUITEM "&O 86Box...",             IDM_ABOUT
+        MENUITEM "&O PCBox...",             IDM_ABOUT
     END
 END
 
@@ -368,7 +368,7 @@ END
 
 STRINGTABLE DISCARDABLE 
 BEGIN
-    2048	"86Box"
+    2048	"PCBox"
     IDS_2049	"Błąd"
     IDS_2050	"Fatalny błąd"
     IDS_2051	" - PAUSED"
@@ -376,7 +376,7 @@ BEGIN
     IDS_2053	"Szybkość"
     IDS_2054	"ZIP %03i %i (%s): %ls"
     IDS_2055	"Obrazy ZIP (*.IM?;*.ZDI)\0*.IM?;*.ZDI\0"
-    IDS_2056	"86Box nie może znaleźć obrazów ROM nadających się do użytku.\n\nProszę pobrać zestaw obrazów ROM ze strony <a href=""https://github.com/86Box/roms/releases/latest"">download</a>, i rozpakować je do katalogu ""roms""."
+    IDS_2056	"PCBox nie może znaleźć obrazów ROM nadających się do użytku.\n\nProszę pobrać zestaw obrazów ROM ze strony <a href=""https://github.com/PCBox/roms/releases/latest"">download</a>, i rozpakować je do katalogu ""roms""."
     IDS_2057	"(pusty)"
     IDS_2058	"Obrazy ZIP (*.IM?;*.ZDI)\0*.IM?;*.ZDI\0Wszystkie pliki (*.*)\0*.*\0"
     IDS_2059	"Turbo"
@@ -441,19 +441,19 @@ BEGIN
     IDS_2110	"Nie można zainicjować FreeType"
     IDS_2111	"Nie można zainicjować SDL, wymagany SDL2.dll"
     IDS_2112	"Jesteś pewien że chcesz wykonać twardy reset emulowanej maszyny?"
-    IDS_2113	"Jesteś pewien że chcesz zakończyć 86Box?"
+    IDS_2113	"Jesteś pewien że chcesz zakończyć PCBox?"
     IDS_2114	"Nie można zainicjować Ghostscript"
     IDS_2115	"MO %i (%ls): %ls"
     IDS_2116	"Obrazy MO (*.IM?;*.MDI)\0*.IM?;*.MDI\0All files (*.*)\0*.*\0"
-    IDS_2117	"Witamy w 86Box!"
+    IDS_2117	"Witamy w PCBox!"
     IDS_2118	"Kontroler wewnętrzny"
     IDS_2119	"Zakończ"
     IDS_2120	"Nie znaleziono obrazów ROM"
     IDS_2121	"Czy chcesz zapisać ustawienia?"
     IDS_2122	"To spowoduje twardy reset wirtualnej maszyny."
     IDS_2123	"Zapisz"
-    IDS_2124	"O 86Box"
-    IDS_2125	"86Box v" EMU_VERSION
+    IDS_2124	"O PCBox"
+    IDS_2125	"PCBox v" EMU_VERSION
 
     IDS_2126	"Emulator starych komputerów\n\nAutorzy: Sarah Walker, Miran Grca, Fred N. van Kempen (waltje), SA1988, Tiseno100, reenigne, leilei, JohnElliott, greatpsycho, i inni.\n\nPrzetłumaczony przez: Fanta-Shokata\n\nWydany na licencji GNU General Public License w wersji 2 lub nowszej. Zobacz LICENSE aby uzyskać więcej informacji."
     IDS_2127	"OK"

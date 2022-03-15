@@ -115,7 +115,7 @@ BEGIN
     POPUP "&Pomoć"
     BEGIN
         MENUITEM "&Dokumentacija...",           IDM_DOCS
-        MENUITEM "&O programu 86Box...",             IDM_ABOUT
+        MENUITEM "&O programu PCBox...",             IDM_ABOUT
     END
 END
 
@@ -368,7 +368,7 @@ END
 
 STRINGTABLE DISCARDABLE 
 BEGIN
-    2048	"86Box"
+    2048	"PCBox"
     IDS_2049	"Greška"
     IDS_2050	"Fatalna greška"
     IDS_2051	" - PAUSED"
@@ -376,7 +376,7 @@ BEGIN
     IDS_2053	"Brzina"
     IDS_2054	"ZIP %03i %i (%s): %ls"
     IDS_2055	"ZIP slike (*.IM?;*.ZDI)\0*.IM?;*.ZDI\0"
-    IDS_2056	"86Box nije mogao pronaći upotrebljive ROM datoteke.\n\nMolimte posjetite <a href=""https://github.com/86Box/roms/releases/latest""></a> sknite paket s ROM datotekama i ekstrahirajte paket u ""roms"" mapu."
+    IDS_2056	"PCBox nije mogao pronaći upotrebljive ROM datoteke.\n\nMolimte posjetite <a href=""https://github.com/PCBox/roms/releases/latest""></a> sknite paket s ROM datotekama i ekstrahirajte paket u ""roms"" mapu."
     IDS_2057	"(prazno)"
     IDS_2058	"ZIP slike (*.IM?;*.ZDI)\0*.IM?;*.ZDI\0Sve datoteke (*.*)\0*.*\0"
     IDS_2059	"Turbo"
@@ -441,19 +441,19 @@ BEGIN
     IDS_2110	"Nije moguće inicijalizirati FreeType"
     IDS_2111	"Nije moguće inicijalizirati SDL, SDL2.dll je potrebno"
     IDS_2112	"Jeste li sigurni da želite hard resetirati emulirani sistem?"
-    IDS_2113	"Jeste li sigurni da želite zatvoriti 86Box?"
+    IDS_2113	"Jeste li sigurni da želite zatvoriti PCBox?"
     IDS_2114	"Nije moguće inicijalizirati GhostScript"
     IDS_2115	"MO %i (%ls): %ls"
     IDS_2116	"MO slike (*.IM?;*.MDI)\0*.IM?;*.MDI\0Svi datoteke (*.*)\0*.*\0"
-    IDS_2117	"Dobrodošli u 86Box!"
+    IDS_2117	"Dobrodošli u PCBox!"
     IDS_2118	"Uunutarnji kontroler"
     IDS_2119	"Izlazi"
     IDS_2120	"Nisu pronađene ROM datoteke"
     IDS_2121	"Želite li spremiti postavke?"
     IDS_2122	"Ovo će napraviti hard resetiranje emuliranog sistema."
     IDS_2123	"Spremaj"
-    IDS_2124	"O programu 86Box"
-    IDS_2125	"86Box verzija " EMU_VERSION
+    IDS_2124	"O programu PCBox"
+    IDS_2125	"PCBox verzija " EMU_VERSION
 
     IDS_2126	"Emulator starih računala\n\nAutori: Sarah Walker, Miran Grca, Fred N. van Kempen (waltje), SA1988, Tiseno100, reenigne, leilei, JohnElliott, greatpsycho, i drugi.\n\nPreveo: dob205\n\nObjavljeno pod licencom GNU General Public License, verzija 2 ili novije. Za više informacija pogledajte datoteku LICENCE."
     IDS_2127	"U redu"

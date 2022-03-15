@@ -116,7 +116,7 @@ BEGIN
     POPUP "&?"
     BEGIN
         MENUITEM "&Documentazione...",           IDM_DOCS
-        MENUITEM "&Informazioni su 86Box...",             IDM_ABOUT
+        MENUITEM "&Informazioni su PCBox...",             IDM_ABOUT
     END
 END
 
@@ -369,7 +369,7 @@ END
 
 STRINGTABLE DISCARDABLE 
 BEGIN
-    2048	"86Box"
+    2048	"PCBox"
     IDS_2049	"Errore"
     IDS_2050	"Errore fatale"
     IDS_2051	" - PAUSED"
@@ -377,7 +377,7 @@ BEGIN
     IDS_2053	"Velocità"
     IDS_2054	"ZIP %03i %i (%s): %ls"
     IDS_2055	"Immagini ZIP (*.IM?;*.ZDI)\0*.IM?;*.ZDI\0"
-    IDS_2056	"86Box non può trovare immagini ROM utilizzabili.\n\nPlease <a href=""https://github.com/86Box/roms/releases/latest"">download</a> a ROM set and extract it into the ""roms"" directory."
+    IDS_2056	"PCBox non può trovare immagini ROM utilizzabili.\n\nPlease <a href=""https://github.com/PCBox/roms/releases/latest"">download</a> a ROM set and extract it into the ""roms"" directory."
     IDS_2057	"(empty)"
     IDS_2058	"Immagini ZIP (*.IM?;*.ZDI)\0*.IM?;*.ZDI\0Tutti i file (*.*)\0*.*\0"
     IDS_2059	"Turbo"
@@ -442,19 +442,19 @@ BEGIN
     IDS_2110	"Impossibile inizializzare FreeType"
     IDS_2111	"Impossibile inizializzare SDL, SDL2.dll è necessario"
     IDS_2112	"Sei sicuro di voler riavviare la macchina emulata?"
-    IDS_2113	"Sei sicuro di voler uscire da 86Box?"
+    IDS_2113	"Sei sicuro di voler uscire da PCBox?"
     IDS_2114	"Impossibile inizializzare Ghostscript"
     IDS_2115	"MO %i (%ls): %ls"
     IDS_2116	"Immagini MO (*.IM?;*.MDI)\0*.IM?;*.MDI\0Tutti i file (*.*)\0*.*\0"
-    IDS_2117	"Benvenuti in 86Box!"
+    IDS_2117	"Benvenuti in PCBox!"
     IDS_2118	"Controller interno"
     IDS_2119	"Esci"
     IDS_2120	"Nessune immagini ROM trovate"
     IDS_2121	"Vuole salvare queste impostazioni?"
     IDS_2122	"Questo riavvierà la macchina emulata."
     IDS_2123	"Salva"
-    IDS_2124	"Informazioni su 86Box"
-    IDS_2125	"86Box v" EMU_VERSION
+    IDS_2124	"Informazioni su PCBox"
+    IDS_2125	"PCBox v" EMU_VERSION
 
     IDS_2126	"Un emulatore di computer vecchi\n\nAutori: Sarah Walker, Miran Grca, Fred N. van Kempen (waltje), SA1988, Tiseno100, reenigne, leilei, JohnElliott, greatpsycho, and others.\n\nTradotto da: explorerdotexe\n\nRilasciato sotto la Licenza Pubblica GNU versione 2 o dopo. Vedi LICENSE per maggior informazioni."
     IDS_2127	"OK"

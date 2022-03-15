@@ -115,7 +115,7 @@ BEGIN
     POPUP "帮助(&H)"
     BEGIN
         MENUITEM "文档(&D)...",           IDM_DOCS
-        MENUITEM "关于 86Box(&A)...",             IDM_ABOUT
+        MENUITEM "关于 PCBox(&A)...",             IDM_ABOUT
     END
 END
 
@@ -368,7 +368,7 @@ END
 
 STRINGTABLE DISCARDABLE 
 BEGIN
-    2048	"86Box"
+    2048	"PCBox"
     IDS_2049	"错误"
     IDS_2050	"致命错误"
     IDS_2051	" - 已暂停"
@@ -376,7 +376,7 @@ BEGIN
     IDS_2053	"速度"
     IDS_2054	"ZIP %03i %i (%s): %ls"
     IDS_2055	"ZIP 镜像 (*.IM?;*.ZDI)\0*.IM?;*.ZDI\0"
-    IDS_2056	"86Box 找不到任何可用的 ROM 镜像。\n\n请<a href=""https://github.com/86Box/roms/releases/latest"">下载</a>ROM 包并将其解压到 ""roms"" 文件夹。"
+    IDS_2056	"PCBox 找不到任何可用的 ROM 镜像。\n\n请<a href=""https://github.com/PCBox/roms/releases/latest"">下载</a>ROM 包并将其解压到 ""roms"" 文件夹。"
     IDS_2057	"(空)"
     IDS_2058	"ZIP 镜像 (*.IM?;*.ZDI)\0*.IM?;*.ZDI\0所有文件 (*.*)\0*.*\0"
     IDS_2059	"加速"
@@ -441,19 +441,19 @@ BEGIN
     IDS_2110	"无法初始化 FreeType"
     IDS_2111	"无法初始化 SDL，需要 SDL2.dll"
     IDS_2112	"确定要硬重置模拟器吗？"
-    IDS_2113	"确定要退出 86Box 吗？"
+    IDS_2113	"确定要退出 PCBox 吗？"
     IDS_2114	"无法初始化 Ghostscript"
     IDS_2115	"磁光盘 %i (%ls): %ls"
     IDS_2116	"磁光盘镜像 (*.IM?;*.MDI)\0*.IM?;*.MDI\0所有文件 (*.*)\0*.*\0"
-    IDS_2117	"欢迎使用 86Box！"
+    IDS_2117	"欢迎使用 PCBox！"
     IDS_2118	"内部控制器"
     IDS_2119	"退出"
     IDS_2120	"找不到 ROM"
     IDS_2121	"要保存设置吗？"
     IDS_2122	"此操作将硬重置模拟器。"
     IDS_2123	"保存"
-    IDS_2124	"关于 86Box"
-    IDS_2125	"86Box v" EMU_VERSION
+    IDS_2124	"关于 PCBox"
+    IDS_2125	"PCBox v" EMU_VERSION
 
     IDS_2126	"一个旧式计算机模拟器\n\n作者: Sarah Walker、Miran Grca、Fred N. van Kempen (waltje)、SA1988、Tiseno100、reenigne、leilei、JohnElliott、greatpsycho 等人。\n\n本软件依据 GNU 通用公共许可证第二版或更新版本发布。详情见 LICENSE 文件。"
     IDS_2127	"确定"

@@ -115,7 +115,7 @@ BEGIN
     POPUP "&Ohje"
     BEGIN
         MENUITEM "&Ohjekirja...",                                       IDM_DOCS
-        MENUITEM "&Tietoja 86Boxista...",                               IDM_ABOUT
+        MENUITEM "&Tietoja PCBoxista...",                               IDM_ABOUT
     END
 END
 
@@ -368,7 +368,7 @@ END
 
 STRINGTABLE DISCARDABLE
 BEGIN
-    2048    "86Box"
+    2048    "PCBox"
     IDS_2049    "Virhe"
     IDS_2050    "Vakava virhe"
     IDS_2051    " - TAUKO"
@@ -376,7 +376,7 @@ BEGIN
     IDS_2053    "Nopeus"
     IDS_2054    "ZIP %03i %i (%s): %ls"
     IDS_2055    "ZIP-levykuvat (*.IM?;*.ZDI)\0*.IM?;*.ZDI\0"
-    IDS_2056    "86Box ei löytänyt käyttökelpoisia ROM-tiedostoja.\n\nVoit <a href=""https://github.com/86Box/roms/releases/latest"">ladata</a> ROM-paketin ja purkaa sen ""roms""-hakemistoon."
+    IDS_2056    "PCBox ei löytänyt käyttökelpoisia ROM-tiedostoja.\n\nVoit <a href=""https://github.com/PCBox/roms/releases/latest"">ladata</a> ROM-paketin ja purkaa sen ""roms""-hakemistoon."
     IDS_2057    "(tyhjä)"
     IDS_2058    "ZIP-levykuvat (*.IM?;*.ZDI)\0*.IM?;*.ZDI\0Kaikki tiedostot (*.*)\0*.*\0"
     IDS_2059    "Turbo"
@@ -441,19 +441,19 @@ BEGIN
     IDS_2110    "FreeType:n alustus epäonnistui"
     IDS_2111    "SDL:n alustus epäonnistui. Tarvitaan SDL2.dll"
     IDS_2112    "Haluatko varmasti käynnistää emuloidun tietokoneen uudelleen?"
-    IDS_2113    "Haluatko varmasti sulkea 86Boxin?"
+    IDS_2113    "Haluatko varmasti sulkea PCBoxin?"
     IDS_2114    "Ghostscriptin alustus epäonnistui"
     IDS_2115    "MO %i (%ls): %ls"
     IDS_2116    "MO-levykuvat (*.IM?;*.MDI)\0*.IM?;*.MDI\0Kaikki tiedostot (*.*)\0*.*\0"
-    IDS_2117    "Tervetuloa 86Boxiin!"
+    IDS_2117    "Tervetuloa PCBoxiin!"
     IDS_2118    "Sisäinen ohjain"
     IDS_2119    "Poistu"
     IDS_2120    "ROM-tiedostoja ei löytynyt"
     IDS_2121    "Tallennetaanko asetukset?"
     IDS_2122    "Tämä käynnistää emuloidun tietokoneen uudelleen."
     IDS_2123    "Tallenna"
-    IDS_2124    "Tietoja 86Box:sta"
-    IDS_2125    "86Box v" EMU_VERSION
+    IDS_2124    "Tietoja PCBox:sta"
+    IDS_2125    "PCBox v" EMU_VERSION
 
     IDS_2126    "Vanhojen tietokoneiden emulaattori\n\nTekijät: Sarah Walker, Miran Grca, Fred N. van Kempen (waltje), SA1988, Tiseno100, reenigne, leilei, JohnElliott, greatpsycho ja muut.\n\nJulkaistu GNU General Public License 2. version tai myöhemmän alaisena. Tarkempia tietoja LICENSE-tiedostossa."
     IDS_2127    "OK"

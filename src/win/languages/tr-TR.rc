@@ -115,7 +115,7 @@ BEGIN
     POPUP "&Yardım"
     BEGIN
         MENUITEM "&Dökümanlar...",           IDM_DOCS
-        MENUITEM "&86Box Hakkında...",             IDM_ABOUT
+        MENUITEM "&PCBox Hakkında...",             IDM_ABOUT
     END
 END
 
@@ -368,7 +368,7 @@ END
 
 STRINGTABLE DISCARDABLE 
 BEGIN
-    2048	"86Box"
+    2048	"PCBox"
     IDS_2049	"Hata"
     IDS_2050	"Kritik hata"
     IDS_2051	" - PAUSED"
@@ -376,7 +376,7 @@ BEGIN
     IDS_2053	"Hız"
     IDS_2054	"ZIP %03i %i (%s): %ls"
     IDS_2055	"ZIP imajları (*.IM?;*.ZDI)\0*.IM?;*.ZDI\0"
-    IDS_2056	"86Box hiç bir kullanılabilir ROM imajı bulamadı.\n\nLütfen <a href=""https://github.com/86Box/roms/releases/latest"">ROM setini indirin</a> ve onu ""Roms"" klasörüne çıkarın."
+    IDS_2056	"PCBox hiç bir kullanılabilir ROM imajı bulamadı.\n\nLütfen <a href=""https://github.com/PCBox/roms/releases/latest"">ROM setini indirin</a> ve onu ""Roms"" klasörüne çıkarın."
     IDS_2057	"(empty)"
     IDS_2058	"ZIP imajları (*.IM?;*.ZDI)\0*.IM?;*.ZDI\0All files (*.*)\0*.*\0"
     IDS_2059	"Turbo"
@@ -441,19 +441,19 @@ BEGIN
     IDS_2110	"FreeType başlatılamadı"
     IDS_2111	"SDL başlatılamadı, SDL2.dll gerekmektedir"
     IDS_2112	"Emüle edilen makineyi yeniden başlatmak istediğinizden emin misiniz?"
-    IDS_2113	"86Box'tan çıkmak istediğinize emin misiniz?"
+    IDS_2113	"PCBox'tan çıkmak istediğinize emin misiniz?"
     IDS_2114	"Ghostscript başlatılamadı"
     IDS_2115	"MO %i (%ls): %ls"
     IDS_2116	"MO imajları (*.IM?;*.MDI)\0*.IM?;*.MDI\0All files (*.*)\0*.*\0"
-    IDS_2117	"86Box'a hoşgeldiniz!"
+    IDS_2117	"PCBox'a hoşgeldiniz!"
     IDS_2118	"Dahili kontrolcü"
     IDS_2119	"Çıkış"
     IDS_2120	"Hiçbir ROM imajı bulunamadı"
     IDS_2121	"Ayarları kaydetmek istediğinizden emin misiniz?"
     IDS_2122	"Bu makineyi yeniden başlatacak."
     IDS_2123	"Kaydet"
-    IDS_2124	"86Box Hakkında"
-    IDS_2125	"86Box v" EMU_VERSION
+    IDS_2124	"PCBox Hakkında"
+    IDS_2125	"PCBox v" EMU_VERSION
 
     IDS_2126	"Bir eski bilgisayar emülatörü\n\nYapanlar: Sarah Walker, Miran Grca, Fred N. van Kempen (waltje), SA1988, Tiseno100, reenigne, leilei, JohnElliott, greatpsycho, ve diğerleri.\n\nGNU Genel Kamu Lisansı versiyon 2 veya sonrası altında yayınlanmıştır. Daha fazla bilgi için LICENSE'ı gözden geçirin."
     IDS_2127	"Tamam"

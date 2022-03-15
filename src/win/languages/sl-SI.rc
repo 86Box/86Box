@@ -115,7 +115,7 @@ BEGIN
     POPUP "&Pomoč"
     BEGIN
         MENUITEM "&Dokumentacija...",           IDM_DOCS
-        MENUITEM "&O programu 86Box...",             IDM_ABOUT
+        MENUITEM "&O programu PCBox...",             IDM_ABOUT
     END
 END
 
@@ -368,7 +368,7 @@ END
 
 STRINGTABLE DISCARDABLE 
 BEGIN
-    2048	"86Box"
+    2048	"PCBox"
     IDS_2049	"Napaka"
     IDS_2050	"Kritična napaka"
     IDS_2051	" - PAUSED"
@@ -376,7 +376,7 @@ BEGIN
     IDS_2053	"Hitrost"
     IDS_2054	"ZIP %03i %i (%s): %ls"
     IDS_2055	"ZIP slike (*.IM?;*.ZDI)\0*.IM?;*.ZDI\0"
-    IDS_2056	"86Box ni našel nobenih uporabnih ROM slik.\n\nProsim <a href=""https://github.com/86Box/roms/releases/latest"">prenesite</a> set ROM-ov in ga razširite v mapo ""roms""."
+    IDS_2056	"PCBox ni našel nobenih uporabnih ROM slik.\n\nProsim <a href=""https://github.com/PCBox/roms/releases/latest"">prenesite</a> set ROM-ov in ga razširite v mapo ""roms""."
     IDS_2057	"(prazno)"
     IDS_2058	"ZIP slike (*.IM?;*.ZDI)\0*.IM?;*.ZDI\0Vse datoteke (*.*)\0*.*\0"
     IDS_2059	"Turbo"
@@ -441,19 +441,19 @@ BEGIN
     IDS_2110	"Ne morem inicializirati FreeType"
     IDS_2111	"Ne morem inicializirati SDL, potrebna je knjižica SDL2.dll"
     IDS_2112	"Ste prepričani, da želite ponovno zagnati emulirani sistem?"
-    IDS_2113	"Ste prepričani, da želite zapreti 86Box?"
+    IDS_2113	"Ste prepričani, da želite zapreti PCBox?"
     IDS_2114	"Ne morem inicializirati Ghostscript"
     IDS_2115	"MO %i (%ls): %ls"
     IDS_2116	"Slike MO (*.IM?;*.MDI)\0*.IM?;*.MDI\0Vse datoteke (*.*)\0*.*\0"
-    IDS_2117	"Dobrodošli v 86Box!"
+    IDS_2117	"Dobrodošli v PCBox!"
     IDS_2118	"Notranji krmilnik"
     IDS_2119	"Izhod"
     IDS_2120	"Nobeni ROM-i niso bili najdeni"
     IDS_2121	"Želite shraniti nastavitve?"
     IDS_2122	"To bo ponovno zagnalo emuliran sistem."
     IDS_2123	"Shrani"
-    IDS_2124	"O programu 86Box"
-    IDS_2125	"86Box v" EMU_VERSION
+    IDS_2124	"O programu PCBox"
+    IDS_2125	"PCBox v" EMU_VERSION
 
     IDS_2126	"Emulator starih računalnikov\n\nAvtorji: Sarah Walker, Miran Grca, Fred N. van Kempen (waltje), SA1988, Tiseno100, reenigne, leilei, JohnElliott, greatpsycho in drugi.\n\nIzdano pod licenco GNU General Public License različica 2 ali novejša. Glej datoteko LICENSE za več informacij."
     IDS_2127	"V redu"
