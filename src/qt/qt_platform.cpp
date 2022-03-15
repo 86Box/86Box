@@ -533,9 +533,11 @@ void ProgSettings::reloadStrings()
     translatedstrings[IDS_2078] = QCoreApplication::translate("", "Press F8+F12 to release mouse").replace("F8+F12", MOUSE_CAPTURE_KEYSEQ).replace("CTRL-END", QLocale::system().name() == "de_DE" ? "Strg+Ende" : "CTRL-END").toStdWString();
     translatedstrings[IDS_2079] = QCoreApplication::translate("", "Press F8+F12 or middle button to release mouse").replace("F8+F12", MOUSE_CAPTURE_KEYSEQ).replace("CTRL-END", QLocale::system().name() == "de_DE" ? "Strg+Ende" : "CTRL-END").toStdWString();
     translatedstrings[IDS_2080] = QCoreApplication::translate("", "Failed to initialize FluidSynth").toStdWString();
+    translatedstrings[IDS_2130] = QCoreApplication::translate("", "Invalid configuration").toStdWString();
     translatedstrings[IDS_4099] = QCoreApplication::translate("", "MFM/RLL or ESDI CD-ROM drives never existed").toStdWString();
     translatedstrings[IDS_2093] = QCoreApplication::translate("", "Failed to set up PCap").toStdWString();
     translatedstrings[IDS_2094] = QCoreApplication::translate("", "No PCap devices found").toStdWString();
+    translatedstrings[IDS_2095] = QCoreApplication::translate("", "Invalid PCap device").toStdWString();
     translatedstrings[IDS_2110] = QCoreApplication::translate("", "Unable to initialize FreeType").toStdWString();
     translatedstrings[IDS_2111] = QCoreApplication::translate("", "Unable to initialize SDL, libsdl2 is required").toStdWString();
     translatedstrings[IDS_2129] = QCoreApplication::translate("", "Make sure libpcap is installed and that you are on a libpcap-compatible network connection.").toStdWString();
@@ -543,6 +545,7 @@ void ProgSettings::reloadStrings()
     translatedstrings[IDS_2063] = QCoreApplication::translate("", "Machine \"%hs\" is not available due to missing ROMs in the roms/machines directory. Switching to an available machine.").toStdWString();
     translatedstrings[IDS_2064] = QCoreApplication::translate("", "Video card \"%hs\" is not available due to missing ROMs in the roms/video directory. Switching to an available video card.").toStdWString();
     translatedstrings[IDS_2128] = QCoreApplication::translate("", "Hardware not available").toStdWString();
+    translatedstrings[IDS_2142] = QCoreApplication::translate("", "Monitor in sleep mode").toStdWString();
     translatedstrings[IDS_2120] = QCoreApplication::translate("", "No ROMs found").toStdWString();
     translatedstrings[IDS_2056] = QCoreApplication::translate("", "86Box could not find any usable ROM images.\n\nPlease <a href=\"https://github.com/86Box/roms/releases/latest\">download</a> a ROM set and extract it into the \"roms\" directory.").replace("roms", ROMDIR).toStdWString();
 
