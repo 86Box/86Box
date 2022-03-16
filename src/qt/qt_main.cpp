@@ -54,6 +54,7 @@ extern "C"
 #include <86box/ui.h>
 #include <86box/video.h>
 #include <86box/discord.h>
+#include <86box/gdbstub.h>
 }
 
 #include <thread>
@@ -95,6 +96,11 @@ main_thread_fn()
     while (!is_quit && cpu_thread_run) {
         /* See if it is time to run a frame of code. */
         new_time = elapsed_timer.elapsed();
+#ifdef USE_GDBSTUB
+        if (gdbstub_next_asap && (drawits <= 0))
+                drawits = 10;
+        else
+#endif
         drawits += (new_time - old_time);
         old_time = new_time;
         if (drawits > 0 && !dopause) {

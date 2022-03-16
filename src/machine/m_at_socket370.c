@@ -430,7 +430,17 @@ machine_at_cuv4xls_init(const machine_t *model)
     spd_register(SPD_TYPE_SDRAM, 0xF, 1024);
     device_add(&as99127f_device); /* fans: Chassis, CPU, Power; temperatures: MB, JTPWR, CPU */
 
+    if (sound_card_current == SOUND_INTERNAL)
+	device_add(&cmi8738_onboard_device);
+
     return ret;
+}
+
+
+const device_t *
+at_cuv4xls_get_device(void)
+{
+    return &cmi8738_onboard_device;
 }
 
 

@@ -36,6 +36,7 @@
 #include <86box/nmi.h>
 #include <86box/pic.h>
 #include <86box/pci.h>
+#include <86box/gdbstub.h>
 #ifdef USE_DYNAREC
 # include "codegen.h"
 #endif
@@ -1516,6 +1517,7 @@ cpu_set(void)
 
     if(bochs_timing)
         codegen_timing_set(&codegen_timing_486);
+    gdbstub_cpu_init();
 }
 
 

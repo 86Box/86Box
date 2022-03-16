@@ -1,6 +1,10 @@
 static int opINT3(uint32_t fetchdat)
 {
         int cycles_old = cycles; UN_USED(cycles_old);
+#ifdef USE_GDBSTUB
+        if (gdbstub_int3())
+                return 1;
+#endif
         if ((cr0 & 1) && (cpu_state.eflags & VM_FLAG) && (IOPL != 3))
         {
                 x86gpf(NULL,0);

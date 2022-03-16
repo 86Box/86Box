@@ -673,7 +673,7 @@ io_trap_remap(void *handle, int enable, uint16_t addr, uint16_t size)
 	   trap->base, trap->base + trap->size - 1, trap->enable, addr, addr + size - 1, enable);
 
     /* Remove old I/O mapping. */
-    if (trap->enable && trap->base && trap->size) {
+    if (trap->enable && trap->size) {
 	io_removehandler(trap->base, trap->size,
 			 io_trap_readb, io_trap_readw, io_trap_readl,
 			 io_trap_writeb, io_trap_writew, io_trap_writel,
@@ -686,8 +686,8 @@ io_trap_remap(void *handle, int enable, uint16_t addr, uint16_t size)
     trap->size = size;
 
     /* Add new I/O mapping. */
-    if (trap->enable && trap->base && trap->size) {
-    	io_sethandler(trap->base, trap->size,
+    if (trap->enable && trap->size) {
+	io_sethandler(trap->base, trap->size,
 		      io_trap_readb, io_trap_readw, io_trap_readl,
 		      io_trap_writeb, io_trap_writew, io_trap_writel,
 		      trap);

@@ -41,8 +41,9 @@ typedef struct {
     int     fm_vol_l, fm_vol_r;
     uint8_t fmt_mask, wave_vol_mask;
 
-    uint8_t enable : 1, irq : 4, dma : 3;
-    int     freq;
+    uint8_t enable : 1, irq : 4, dma : 3, adpcm_ref;
+    int8_t  adpcm_step;
+    int     freq, adpcm_data, adpcm_pos;
 
     pc_timer_t timer_count;
     uint64_t   timer_latch;
