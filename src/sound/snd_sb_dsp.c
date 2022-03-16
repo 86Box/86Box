@@ -174,9 +174,9 @@ sb_irq_update_pic(void *priv, int set)
 {
     sb_dsp_t *dsp = (sb_dsp_t *) priv;
     if (set)
-	picint(1 << dsp->sb_irqnum);
+        picint(1 << dsp->sb_irqnum);
     else
-	picintc(1 << dsp->sb_irqnum);
+        picintc(1 << dsp->sb_irqnum);
 }
 
 void

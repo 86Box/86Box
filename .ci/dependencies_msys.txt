@@ -6,6 +6,10 @@ libwinpthread-git 9.0.0.6357.eac8c38c1-1
 winpthreads-git 9.0.0.6357.eac8c38c1-1
 winstorecompat-git 9.0.0.6357.eac8c38c1-1
 gcc-libs 11.2.0-4
+gcc-ada 11.2.0-4
+gcc-fortran 11.2.0-4
+gcc-libgfortran 11.2.0-4
+gcc-objc 11.2.0-4
 gcc 11.2.0-4
 libgccjit 11.2.0-4
 tools-git 9.0.0.6357.eac8c38c1-1
