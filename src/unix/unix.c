@@ -523,6 +523,11 @@ main_thread(void *param)
     while (!is_quit && cpu_thread_run) {
 	/* See if it is time to run a frame of code. */
 	new_time = SDL_GetTicks();
+#ifdef USE_GDBSTUB
+	if (gdbstub_next_asap && (drawits <= 0))
+		drawits = 10;
+	else
+#endif
 	drawits += (new_time - old_time);
 	old_time = new_time;
 	if (drawits > 0 && !dopause) {
@@ -719,8 +724,6 @@ plat_pause(int p)
 {
     static wchar_t oldtitle[512];
     wchar_t title[512];
-
-    gdbstub_pause(&p);
 
     if ((p == 0) && (time_sync & TIME_SYNC_ENABLED))
 	nvr_time_sync();

@@ -2835,8 +2835,8 @@ execx86(int cycs)
 	}
 
 #ifdef USE_GDBSTUB
-		if (gdbstub_singlestep)
-			return;
+	if (gdbstub_instruction())
+		return;
 #endif
     }
 }

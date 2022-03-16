@@ -259,7 +259,7 @@ exec386(int cycs)
 			timer_process_inline();
 
 #ifdef USE_GDBSTUB
-		if (gdbstub_singlestep)
+		if (gdbstub_instruction())
 			return;
 #endif
 	}

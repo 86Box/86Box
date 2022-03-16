@@ -55,6 +55,7 @@
 #include <86box/win_opengl.h>
 #include <86box/win.h>
 #include <86box/version.h>
+#include <86box/gdbstub.h>
 #ifdef MTR_ENABLED
 #include <minitrace/minitrace.h>
 #endif
@@ -525,6 +526,11 @@ main_thread(void *param)
     while (!is_quit && cpu_thread_run) {
 	/* See if it is time to run a frame of code. */
 	new_time = GetTickCount();
+#ifdef USE_GDBSTUB
+	if (gdbstub_next_asap && (drawits <= 0))
+		drawits = 10;
+	else
+#endif
 	drawits += (new_time - old_time);
 	old_time = new_time;
 	if (drawits > 0 && !dopause) {

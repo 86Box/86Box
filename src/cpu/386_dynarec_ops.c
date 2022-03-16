@@ -19,6 +19,7 @@
 #include <86box/mem.h>
 #include <86box/nmi.h>
 #include <86box/pic.h>
+#include <86box/gdbstub.h>
 #include "codegen.h"
 
 #define CPU_BLOCK_END() cpu_block_end = 1

@@ -92,7 +92,6 @@ extern "C" {
 
 #include "../cpu/cpu.h"
 #include <86box/plat.h>
-#include <86box/gdbstub.h>
 
 volatile int cpu_thread_run = 1;
 int mouse_capture = 0;
@@ -314,8 +313,6 @@ plat_pause(int p)
 {
     static wchar_t oldtitle[512];
     wchar_t title[512], paused_msg[64];
-
-    gdbstub_pause(&p);
 
     if (p == dopause) {
 #ifdef Q_OS_WINDOWS
