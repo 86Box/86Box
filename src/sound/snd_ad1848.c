@@ -423,7 +423,7 @@ ad1848_update(ad1848_t *ad1848)
 static int16_t
 ad1848_process_mulaw(uint8_t byte)
 {
-    byte = ~byte;
+    byte        = ~byte;
     int16_t dec = ((byte & 0x0f) << 3) + 0x84;
     dec <<= (byte & 0x70) >> 4;
     return (byte & 0x80) ? (0x84 - dec) : (dec - 0x84);
@@ -434,18 +434,18 @@ ad1848_process_alaw(uint8_t byte)
 {
     byte ^= 0x55;
     int16_t dec = (byte & 0x0f) << 4;
-    int seg = (byte & 0x70) >> 4;
+    int     seg = (byte & 0x70) >> 4;
     switch (seg) {
         case 0:
-            dec += 0x8;
+            dec |= 0x8;
             break;
 
         case 1:
-            dec += 0x108;
+            dec |= 0x108;
             break;
 
         default:
-            dec += 0x108;
+            dec |= 0x108;
             dec <<= seg - 1;
             break;
     }
@@ -460,7 +460,7 @@ ad1848_process_adpcm(ad1848_t *ad1848)
         temp = (ad1848->adpcm_data & 0x0f) + ad1848->adpcm_step;
     } else {
         ad1848->adpcm_data = dma_channel_read(ad1848->dma);
-        temp = (ad1848->adpcm_data >> 4) + ad1848->adpcm_step;
+        temp               = (ad1848->adpcm_data >> 4) + ad1848->adpcm_step;
     }
     if (temp < 0)
         temp = 0;
@@ -533,7 +533,7 @@ ad1848_poll(void *priv)
                 ad1848->out_r = ad1848_process_alaw(dma_channel_read(ad1848->dma));
                 break;
 
-            /* 0x80 and 0x90 reserved */
+                /* 0x80 and 0x90 reserved */
 
             case 0xa0: /* Mono, 4-bit ADPCM */
                 ad1848->out_l = ad1848->out_r = ad1848_process_adpcm(ad1848);
@@ -556,7 +556,7 @@ ad1848_poll(void *priv)
                 ad1848->out_r = dma_channel_read(ad1848->dma) | (temp << 8);
                 break;
 
-            /* 0xe0 and 0xf0 reserved */
+                /* 0xe0 and 0xf0 reserved */
         }
 
         if (ad1848->regs[6] & 0x80)
@@ -581,7 +581,7 @@ ad1848_poll(void *priv)
         }
 
         if (!(ad1848->adpcm_pos & 7)) /* ADPCM counts down every 4 bytes */
-                ad1848->count--;
+            ad1848->count--;
     } else {
         ad1848->out_l = ad1848->out_r = 0;
         ad1848->cd_vol_l = ad1848->cd_vol_r = 0;
