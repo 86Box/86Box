@@ -2566,26 +2566,32 @@ const device_t sb_16_pnp_device = {
 
 const device_t sb_16_compat_device =
 {
-    "Sound Blaster 16 (Compatibility)",
-    "sb16_compat",
-    DEVICE_ISA | DEVICE_AT,
-    1,
-    sb_16_compat_init, sb_close, NULL, { NULL },
-    sb_speed_changed,
-    NULL,
-    NULL
+    .name = "Sound Blaster 16 (Compatibility)",
+    .internal_name = "sb16_compat",
+    .flags = DEVICE_ISA | DEVICE_AT,
+    .local = 1,
+    .init = sb_16_compat_init,
+    .close = sb_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = sb_speed_changed,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
 const device_t sb_16_compat_nompu_device =
 {
-    "Sound Blaster 16 (Compatibility - MPU-401 Off)",
-    "sb16_compat",
-    DEVICE_ISA | DEVICE_AT,
-    0,
-    sb_16_compat_init, sb_close, NULL, { NULL },
-    sb_speed_changed,
-    NULL,
-    NULL
+    .name = "Sound Blaster 16 (Compatibility - MPU-401 Off)",
+    .internal_name = "sb16_compat",
+    .flags = DEVICE_ISA | DEVICE_AT,
+    .local = 0,
+    .init = sb_16_compat_init,
+    .close = sb_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed =sb_speed_changed,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
 const device_t sb_32_pnp_device = {

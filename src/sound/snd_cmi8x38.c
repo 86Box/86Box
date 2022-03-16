@@ -1431,61 +1431,71 @@ static const device_config_t cmi8738_config[] = {
 };
 
 const device_t cmi8338_device = {
-    "C-Media CMI8338",
-    "cmi8338",
-    DEVICE_PCI,
-    CMEDIA_CMI8338,
-    cmi8x38_init, cmi8x38_close, cmi8x38_reset,
-    { NULL },
-    cmi8x38_speed_changed,
-    NULL,
-    cmi8x38_config
+    .name = "C-Media CMI8338",
+    .internal_name = "cmi8338",
+    .flags = DEVICE_PCI,
+    .local = CMEDIA_CMI8338,
+    .init = cmi8x38_init,
+    .close = cmi8x38_close,
+    .reset = cmi8x38_reset,
+    { .available = NULL },
+    .speed_changed = cmi8x38_speed_changed,
+    .force_redraw = NULL,
+    .config = cmi8x38_config
 };
 
 const device_t cmi8338_onboard_device = {
-    "C-Media CMI8338 (On-Board)",
-    "cmi8338_onboard",
-    DEVICE_PCI,
-    CMEDIA_CMI8338 | (1 << 13),
-    cmi8x38_init, cmi8x38_close, cmi8x38_reset,
-    { NULL },
-    cmi8x38_speed_changed,
-    NULL,
-    cmi8x38_config
+    .name = "C-Media CMI8338 (On-Board)",
+    .internal_name = "cmi8338_onboard",
+    .flags = DEVICE_PCI,
+    .local = CMEDIA_CMI8338 | (1 << 13),
+    .init = cmi8x38_init,
+    .close = cmi8x38_close,
+    .reset = cmi8x38_reset,
+    { .available = NULL },
+    .speed_changed = cmi8x38_speed_changed,
+    .force_redraw = NULL,
+    .config = cmi8x38_config
 };
 
 const device_t cmi8738_device = {
-    "C-Media CMI8738",
-    "cmi8738",
-    DEVICE_PCI,
-    CMEDIA_CMI8738_6CH,
-    cmi8x38_init, cmi8x38_close, cmi8x38_reset,
-    { NULL },
-    cmi8x38_speed_changed,
-    NULL,
-    cmi8738_config
+    .name = "C-Media CMI8738",
+    .internal_name = "cmi8738",
+    .flags = DEVICE_PCI,
+    .local = CMEDIA_CMI8738_6CH,
+    .init = cmi8x38_init,
+    .close = cmi8x38_close,
+    .reset = cmi8x38_reset,
+    { .available = NULL },
+    .speed_changed = cmi8x38_speed_changed,
+    .force_redraw = NULL,
+    .config = cmi8738_config
 };
 
 const device_t cmi8738_onboard_device = {
-    "C-Media CMI8738 (On-Board)",
-    "cmi8738_onboard",
-    DEVICE_PCI,
-    CMEDIA_CMI8738_4CH | (1 << 13),
-    cmi8x38_init, cmi8x38_close, cmi8x38_reset,
-    { NULL },
-    cmi8x38_speed_changed,
-    NULL,
-    cmi8x38_config
+    .name = "C-Media CMI8738 (On-Board)",
+    .internal_name = "cmi8738_onboard",
+    .flags = DEVICE_PCI,
+    .local = CMEDIA_CMI8738_4CH | (1 << 13),
+    .init = cmi8x38_init,
+    .close = cmi8x38_close,
+    .reset = cmi8x38_reset,
+    { .available = NULL },
+    .speed_changed = cmi8x38_speed_changed,
+    .force_redraw = NULL,
+    .config = cmi8x38_config
 };
 
 const device_t cmi8738_6ch_onboard_device = {
-    "C-Media CMI8738-6CH (On-Board)",
-    "cmi8738_6ch_onboard",
-    DEVICE_PCI,
-    CMEDIA_CMI8738_6CH | (1 << 13),
-    cmi8x38_init, cmi8x38_close, cmi8x38_reset,
-    { NULL },
-    cmi8x38_speed_changed,
-    NULL,
-    cmi8x38_config
+    .name = "C-Media CMI8738-6CH (On-Board)",
+    .internal_name = "cmi8738_6ch_onboard",
+    .flags = DEVICE_PCI,
+    .local = CMEDIA_CMI8738_6CH | (1 << 13),
+    .init = cmi8x38_init,
+    .close = cmi8x38_close,
+    .reset = cmi8x38_reset,
+    { .available = NULL },
+    .speed_changed = cmi8x38_speed_changed,
+    .force_redraw = NULL,
+    .config = cmi8x38_config
 };
