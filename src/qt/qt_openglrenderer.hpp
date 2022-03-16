@@ -32,6 +32,7 @@
 #endif
 
 #include <atomic>
+#include <stdexcept>
 #include <tuple>
 #include <vector>
 
@@ -76,6 +77,8 @@ private:
     OpenGLOptions *options;
     QTimer        *renderTimer;
 
+    QString glslVersion;
+
     bool isInitialized = false;
     bool isFinalized   = false;
 
@@ -90,8 +93,8 @@ private:
     void *unpackBuffer = nullptr;
 
     void initialize();
-    void setupExtensions();
-    void setupBuffers();
+    void initializeExtensions();
+    void initializeBuffers();
     void applyOptions();
     void applyShader(const OpenGLShaderPass &shader);
     bool notReady() const { return !isInitialized || isFinalized; }
@@ -105,6 +108,14 @@ private:
 private slots:
     void render();
     void updateOptions(OpenGLOptions *newOptions);
+};
+
+class opengl_init_error : public std::runtime_error {
+public:
+    opengl_init_error(const QString &what)
+        : std::runtime_error(what.toStdString())
+    {
+    }
 };
 
 #endif

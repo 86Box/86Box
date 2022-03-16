@@ -358,7 +358,7 @@ void MachineStatus::refresh(QStatusBar* sbar) {
     if (cassette_enable) {
         d->cassette.label = std::make_unique<ClickableLabel>();
         d->cassette.setEmpty(QString(cassette_fname).isEmpty());
-        connect((ClickableLabel*)d->cassette.label.get(), &ClickableLabel::clicked, [this](QPoint pos) {
+        connect((ClickableLabel*)d->cassette.label.get(), &ClickableLabel::clicked, [](QPoint pos) {
             MediaMenu::ptr->cassetteMenu->popup(pos - QPoint(0, MediaMenu::ptr->cassetteMenu->sizeHint().height()));
         });
         d->cassette.label->setToolTip(MediaMenu::ptr->cassetteMenu->title());
@@ -369,7 +369,7 @@ void MachineStatus::refresh(QStatusBar* sbar) {
         for (int i = 0; i < 2; ++i) {
             d->cartridge[i].label = std::make_unique<ClickableLabel>();
             d->cartridge[i].setEmpty(QString(cart_fns[i]).isEmpty());
-            connect((ClickableLabel*)d->cartridge[i].label.get(), &ClickableLabel::clicked, [this, i](QPoint pos) {
+            connect((ClickableLabel*)d->cartridge[i].label.get(), &ClickableLabel::clicked, [i](QPoint pos) {
                 MediaMenu::ptr->cartridgeMenus[i]->popup(pos - QPoint(0, MediaMenu::ptr->cartridgeMenus[i]->sizeHint().height()));
             });
             d->cartridge[i].label->setToolTip(MediaMenu::ptr->cartridgeMenus[i]->title());
@@ -389,7 +389,7 @@ void MachineStatus::refresh(QStatusBar* sbar) {
         d->fdd[i].label = std::make_unique<ClickableLabel>();
         d->fdd[i].setEmpty(QString(floppyfns[i]).isEmpty());
         d->fdd[i].setActive(false);
-        connect((ClickableLabel*)d->fdd[i].label.get(), &ClickableLabel::clicked, [this, i](QPoint pos) {
+        connect((ClickableLabel*)d->fdd[i].label.get(), &ClickableLabel::clicked, [i](QPoint pos) {
             MediaMenu::ptr->floppyMenus[i]->popup(pos - QPoint(0, MediaMenu::ptr->floppyMenus[i]->sizeHint().height()));
         });
         d->fdd[i].label->setToolTip(MediaMenu::ptr->floppyMenus[i]->title());
@@ -400,7 +400,7 @@ void MachineStatus::refresh(QStatusBar* sbar) {
         d->cdrom[i].label = std::make_unique<ClickableLabel>();
         d->cdrom[i].setEmpty(cdrom[i].host_drive != 200 || QString(cdrom[i].image_path).isEmpty());
         d->cdrom[i].setActive(false);
-        connect((ClickableLabel*)d->cdrom[i].label.get(), &ClickableLabel::clicked, [this, i](QPoint pos) {
+        connect((ClickableLabel*)d->cdrom[i].label.get(), &ClickableLabel::clicked, [i](QPoint pos) {
             MediaMenu::ptr->cdromMenus[i]->popup(pos - QPoint(0, MediaMenu::ptr->cdromMenus[i]->sizeHint().height()));
         });
         d->cdrom[i].label->setToolTip(MediaMenu::ptr->cdromMenus[i]->title());
@@ -411,7 +411,7 @@ void MachineStatus::refresh(QStatusBar* sbar) {
         d->zip[i].label = std::make_unique<ClickableLabel>();
         d->zip[i].setEmpty(QString(zip_drives[i].image_path).isEmpty());
         d->zip[i].setActive(false);
-        connect((ClickableLabel*)d->zip[i].label.get(), &ClickableLabel::clicked, [this, i](QPoint pos) {
+        connect((ClickableLabel*)d->zip[i].label.get(), &ClickableLabel::clicked, [i](QPoint pos) {
             MediaMenu::ptr->zipMenus[i]->popup(pos - QPoint(0, MediaMenu::ptr->zipMenus[i]->sizeHint().height()));
         });
         d->zip[i].label->setToolTip(MediaMenu::ptr->zipMenus[i]->title());
@@ -422,7 +422,7 @@ void MachineStatus::refresh(QStatusBar* sbar) {
         d->mo[i].label = std::make_unique<ClickableLabel>();
         d->mo[i].setEmpty(QString(mo_drives[i].image_path).isEmpty());
         d->mo[i].setActive(false);
-        connect((ClickableLabel*)d->mo[i].label.get(), &ClickableLabel::clicked, [this, i](QPoint pos) {
+        connect((ClickableLabel*)d->mo[i].label.get(), &ClickableLabel::clicked, [i](QPoint pos) {
             MediaMenu::ptr->moMenus[i]->popup(pos - QPoint(0, MediaMenu::ptr->moMenus[i]->sizeHint().height()));
         });
         d->mo[i].label->setToolTip(MediaMenu::ptr->moMenus[i]->title());
@@ -471,7 +471,7 @@ void MachineStatus::refresh(QStatusBar* sbar) {
     d->sound = std::make_unique<ClickableLabel>();
     d->sound->setPixmap(d->pixmaps.sound);
 
-    connect(d->sound.get(), &ClickableLabel::doubleClicked, d->sound.get(), [this](QPoint pos) {
+    connect(d->sound.get(), &ClickableLabel::doubleClicked, d->sound.get(), [](QPoint pos) {
         SoundGain gain(main_window);
         gain.exec();
     });

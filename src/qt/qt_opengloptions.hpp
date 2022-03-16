@@ -72,14 +72,14 @@ public:
     enum FilterType { Nearest,
                       Linear };
 
-    OpenGLOptions(QObject *parent = nullptr, bool loadConfig = false);
+    OpenGLOptions(QObject *parent, bool loadConfig, const QString &glslVersion);
 
     RenderBehaviorType renderBehavior() const { return m_renderBehavior; }
     int                framerate() const { return m_framerate; }
     bool               vSync() const { return m_vsync; }
     FilterType         filter() const;
 
-    const QList<OpenGLShaderPass> &shaders() const { return m_shaders; };
+    const QList<OpenGLShaderPass> &shaders() const { return m_shaders; }
 
     void setRenderBehavior(RenderBehaviorType value);
     void setFrameRate(int value);
@@ -95,6 +95,7 @@ private:
     bool                    m_vsync          = false;
     FilterType              m_filter         = Nearest;
     QList<OpenGLShaderPass> m_shaders;
+    QString                 m_glslVersion;
 };
 
 #endif

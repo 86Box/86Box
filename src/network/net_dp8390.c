@@ -1112,9 +1112,15 @@ dp8390_close(void *priv)
 
 
 const device_t dp8390_device = {
-    "DP8390 Network Interface Controller",
-    "dp8390",
-    0, 0,
-    dp8390_init, dp8390_close,
-    NULL, { NULL }, NULL, NULL
+    .name = "DP8390 Network Interface Controller",
+    .internal_name = "dp8390",
+    .flags = 0,
+    .local = 0,
+    .init = dp8390_init,
+    .close = dp8390_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };

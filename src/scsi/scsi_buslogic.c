@@ -1857,81 +1857,113 @@ static const device_config_t BT958D_Config[] = {
 // clang-format on
 
 const device_t buslogic_542b_device = {
-	"BusLogic BT-542B ISA",
-	"bt542b",
-	DEVICE_ISA | DEVICE_AT,
-	CHIP_BUSLOGIC_ISA_542B_1991_12_14,
-	buslogic_init, x54x_close, NULL,
-	{ NULL }, NULL, NULL,
-	BT_ISA_Config
+    .name = "BusLogic BT-542B ISA",
+    .internal_name = "bt542b",
+    .flags = DEVICE_ISA | DEVICE_AT,
+    .local = CHIP_BUSLOGIC_ISA_542B_1991_12_14,
+    .init = buslogic_init,
+    .close = x54x_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = BT_ISA_Config
 };
 
 const device_t buslogic_545s_device = {
-	"BusLogic BT-545S ISA",
-	"bt545s",
-	DEVICE_ISA | DEVICE_AT,
-	CHIP_BUSLOGIC_ISA_545S_1992_10_05,
-	buslogic_init, x54x_close, NULL,
-	{ NULL }, NULL, NULL,
-	BT_ISA_Config
+    .name = "BusLogic BT-545S ISA",
+    .internal_name = "bt545s",
+    .flags = DEVICE_ISA | DEVICE_AT,
+    .local = CHIP_BUSLOGIC_ISA_545S_1992_10_05,
+    .init = buslogic_init,
+    .close = x54x_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = BT_ISA_Config
 };
 
 const device_t buslogic_542bh_device = {
-	"BusLogic BT-542BH ISA",
-	"bt542bh",
-	DEVICE_ISA | DEVICE_AT,
-	CHIP_BUSLOGIC_ISA_542BH_1993_05_23,
-	buslogic_init, x54x_close, NULL,
-	{ NULL }, NULL, NULL,
-	BT_ISA_Config
+    .name = "BusLogic BT-542BH ISA",
+    .internal_name = "bt542bh",
+    .flags = DEVICE_ISA | DEVICE_AT,
+    .local = CHIP_BUSLOGIC_ISA_542BH_1993_05_23,
+    .init = buslogic_init,
+    .close = x54x_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = BT_ISA_Config
 };
 
 const device_t buslogic_545c_device = {
-	"BusLogic BT-545C ISA",
-	"bt545c",
-	DEVICE_ISA | DEVICE_AT,
-	CHIP_BUSLOGIC_ISA_545C_1994_12_01,
-	buslogic_init, x54x_close, NULL,
-	{ NULL }, NULL, NULL,
-	BT_ISA_Config
+    .name = "BusLogic BT-545C ISA",
+    .internal_name = "bt545c",
+    .flags = DEVICE_ISA | DEVICE_AT,
+    .local = CHIP_BUSLOGIC_ISA_545C_1994_12_01,
+    .init = buslogic_init,
+    .close = x54x_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = BT_ISA_Config
 };
 
 const device_t buslogic_640a_device = {
-	"BusLogic BT-640A MCA",
-	"bt640a",
-	DEVICE_MCA,
-	CHIP_BUSLOGIC_MCA_640A_1993_05_23,
-	buslogic_init, x54x_close, NULL,
-	{ NULL }, NULL, NULL,
-	NULL
+    .name = "BusLogic BT-640A MCA",
+    .internal_name = "bt640a",
+    .flags = DEVICE_MCA,
+    .local = CHIP_BUSLOGIC_MCA_640A_1993_05_23,
+    .init = buslogic_init,
+    .close = x54x_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
 const device_t buslogic_445s_device = {
-	"BusLogic BT-445S VLB",
-	"bt445s",
-	DEVICE_VLB,
-	CHIP_BUSLOGIC_VLB_445S_1993_11_16,
-	buslogic_init, x54x_close, NULL,
-	{ NULL }, NULL, NULL,
-	BT_ISA_Config
+    .name = "BusLogic BT-445S VLB",
+    .internal_name = "bt445s",
+    .flags = DEVICE_VLB,
+    .local = CHIP_BUSLOGIC_VLB_445S_1993_11_16,
+    .init = buslogic_init,
+    .close = x54x_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = BT_ISA_Config
 };
 
 const device_t buslogic_445c_device = {
-	"BusLogic BT-445C VLB",
-	"bt445c",
-	DEVICE_VLB,
-	CHIP_BUSLOGIC_VLB_445C_1994_12_01,
-	buslogic_init, x54x_close, NULL,
-	{ NULL }, NULL, NULL,
-	BT_ISA_Config
+    .name = "BusLogic BT-445C VLB",
+    .internal_name = "bt445c",
+    .flags = DEVICE_VLB,
+    .local = CHIP_BUSLOGIC_VLB_445C_1994_12_01,
+    .init = buslogic_init,
+    .close = x54x_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = BT_ISA_Config
 };
 
 const device_t buslogic_958d_pci_device = {
-	"BusLogic BT-958D PCI",
-	"bt958d",
-	DEVICE_PCI,
-	CHIP_BUSLOGIC_PCI_958D_1995_12_30,
-	buslogic_init, x54x_close, NULL,
-	{ NULL }, NULL, NULL,
-	BT958D_Config
+    .name = "BusLogic BT-958D PCI",
+    .internal_name = "bt958d",
+    .flags = DEVICE_PCI,
+    .local = CHIP_BUSLOGIC_PCI_958D_1995_12_30,
+    .init = buslogic_init,
+    .close = x54x_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = BT958D_Config
 };

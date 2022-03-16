@@ -358,44 +358,59 @@ sis_85c4xx_init(const device_t *info)
     return dev;
 }
 
-
 const device_t sis_85c401_device = {
-    "SiS 85c401/85c402",
-    "sis_85c401",
-    0,
-    0x060,
-    sis_85c4xx_init, sis_85c4xx_close, sis_85c4xx_reset,
-    { NULL }, NULL, NULL,
-    NULL
+    .name = "SiS 85c401/85c402",
+    .internal_name = "sis_85c401",
+    .flags = 0,
+    .local = 0x060,
+    .init = sis_85c4xx_init,
+    .close = sis_85c4xx_close,
+    .reset = sis_85c4xx_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
 const device_t sis_85c460_device = {
-    "SiS 85c460",
-    "sis_85c460",
-    0,
-    0x050,
-    sis_85c4xx_init, sis_85c4xx_close, sis_85c4xx_reset,
-    { NULL }, NULL, NULL,
-    NULL
+    .name = "SiS 85c460",
+    .internal_name = "sis_85c460",
+    .flags = 0,
+    .local = 0x050,
+    .init = sis_85c4xx_init,
+    .close = sis_85c4xx_close,
+    .reset = sis_85c4xx_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
 /* TODO: Log to make sure the registers are correct. */
 const device_t sis_85c461_device = {
-    "SiS 85c461",
-    "sis_85c461",
-    0,
-    0x050,
-    sis_85c4xx_init, sis_85c4xx_close, sis_85c4xx_reset,
-    { NULL }, NULL, NULL,
-    NULL
+    .name = "SiS 85c461",
+    .internal_name = "sis_85c461",
+    .flags = 0,
+    .local = 0x050,
+    .init = sis_85c4xx_init,
+    .close = sis_85c4xx_close,
+    .reset = sis_85c4xx_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
 const device_t sis_85c471_device = {
-    "SiS 85c407/85c471",
-    "sis_85c471",
-    0,
-    0x150,
-    sis_85c4xx_init, sis_85c4xx_close, sis_85c4xx_reset,
-    { NULL }, NULL, NULL,
-    NULL
+    .name = "SiS 85c407/85c471",
+    .internal_name = "sis_85c471",
+    .flags = 0,
+    .local = 0x150,
+    .init = sis_85c4xx_init,
+    .close = sis_85c4xx_close,
+    .reset = sis_85c4xx_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };

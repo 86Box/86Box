@@ -317,7 +317,7 @@ fluidsynth_init(const device_t *info)
     dev->play_sysex = fluidsynth_sysex;
     dev->poll       = fluidsynth_poll;
 
-    midi_init(dev);
+    midi_out_init(dev);
 
     data->on = 1;
 
@@ -540,17 +540,17 @@ static const device_config_t fluidsynth_config[] = {
 };
 
 const device_t fluidsynth_device = {
-    "FluidSynth",
-    "fluidsynth",
-    0,
-    0,
-    fluidsynth_init,
-    fluidsynth_close,
-    NULL,
-    { fluidsynth_available },
-    NULL,
-    NULL,
-    fluidsynth_config
+    .name = "FluidSynth",
+    .internal_name = "fluidsynth",
+    .flags = 0,
+    .local = 0,
+    .init = fluidsynth_init,
+    .close = fluidsynth_close,
+    .reset = NULL,
+    { .available = fluidsynth_available },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = fluidsynth_config
 };
 
 #endif /*USE_FLUIDSYNTH*/

@@ -5,6 +5,7 @@ on:
   push:
     paths:
     - src/**
+    - cmake/**
     - "**/CMakeLists.txt"
     - "CMakePresets.json"
     - .github/workflows/cmake.yml
@@ -14,6 +15,7 @@ on:
   pull_request:
     paths:
     - src/**
+    - cmake/**
     - "**/CMakeLists.txt"
     - "CMakePresets.json"
     - .github/workflows/**
@@ -81,7 +83,6 @@ jobs:
           ${{ matrix.environment.prefix }}-ninja
           ${{ matrix.environment.prefix }}-cc
           ${{ matrix.environment.prefix }}-pkg-config
-          ${{ matrix.environment.prefix }}-openal
           ${{ matrix.environment.prefix }}-freetype
           ${{ matrix.environment.prefix }}-SDL2
           ${{ matrix.environment.prefix }}-zlib
@@ -94,7 +95,7 @@ jobs:
         cmake -S . -B build
         --preset ${{ matrix.build.preset }}
         -D CMAKE_INSTALL_PREFIX=./build/artifacts
-        -D VNC=OFF
+        -D QT=OFF
     - name: Build
       run: cmake --build build --target ${{ matrix.build.target }}
     - uses: actions/upload-artifact@v2
@@ -180,6 +181,7 @@ jobs:
         -name "GitHub"
         -username "86Box"
         -password "${{ secrets.GITHUB_TOKEN }}"
+    - run: dir "C:/Program Files/Microsoft Visual Studio/2022/*/VC/Tools/MSVC/*/include" -include stdatomic.h -recurse | del
     - name: vcpkg package restore
       if: false
       run: vcpkg install freetype libpng openal-soft sdl2 rtmidi --triplet ${{ matrix.target.triplet }}
@@ -194,6 +196,7 @@ jobs:
         -D CMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake
         -D VCPKG_CHAINLOAD_TOOLCHAIN_FILE=${{ github.workspace }}/${{ matrix.target.toolchain }}
         -D VCPKG_TARGET_TRIPLET=${{ matrix.target.triplet }}
+        -D QT=OFF
       shell: cmd
     - name: Build
       run: |
@@ -252,14 +255,13 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Install dependencies
-        run: sudo apt update && sudo apt install gcc-11 g++-11 libfreetype-dev libsdl2-dev libpng-dev libopenal-dev libc6-dev librtmidi-dev qtbase5-dev qttools5-dev libfaudio-dev
+        run: sudo apt update && sudo apt install gcc-11 g++-11 libfreetype-dev libsdl2-dev libpng-dev libc6-dev librtmidi-dev qtbase5-dev qttools5-dev libfaudio-dev
       - name: Configure CMake
         run: >-
           cmake -S . -B build
           -D CMAKE_INSTALL_PREFIX=./build/artifacts
           -D DEV_BRANCH=${{ matrix.build.dev-build }}
           -D NEW_DYNAREC=${{ matrix.build.new-dynarec }}
-          -D QT=ON
           -D CMAKE_BUILD_TYPE=${{ matrix.build.type }}
           -D CMAKE_C_COMPILER=gcc-11 -D CMAKE_CXX_COMPILER=g++-11
       - name: Build
@@ -316,18 +318,16 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Install dependencies
-        run: brew install freetype sdl2 libpng openal-soft rtmidi qt@5 faudio
+        run: brew install freetype sdl2 libpng rtmidi qt@5 faudio
       - name: Configure CMake
         run: >-
           cmake -S . -B build
           --toolchain cmake/flags-gcc-x86_64.cmake
           -D DEV_BRANCH=${{ matrix.build.dev-build }}
           -D NEW_DYNAREC=${{ matrix.build.new-dynarec }}
-          -D VNC=OFF
           -D CMAKE_BUILD_TYPE=${{ matrix.build.type }}
-          -D QT=ON
-          -D Qt5_DIR=/usr/local/Cellar/qt@5/5.15.2_1/lib/cmake/Qt5
-          -D Qt5LinguistTools_DIR=/usr/local/Cellar/qt@5/5.15.2_1/lib/cmake/Qt5LinguistTools/
+          -D Qt5_DIR=/usr/local/opt/qt@5/lib/cmake/Qt5
+          -D Qt5LinguistTools_DIR=/usr/local/opt/qt@5/lib/cmake/Qt5LinguistTools/
       - name: Build
         run: cmake --build build
       - name: Generate package

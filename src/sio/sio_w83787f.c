@@ -125,27 +125,27 @@ w83787f_serial_handler(w83787f_t *dev, int uart)
     int urs0 = !!(dev->regs[1] & (1 << uart));
     int urs1 = !!(dev->regs[1] & (4 << uart));
     int urs2 = !!(dev->regs[3] & (8 >> uart));
-    int urs, irq = 4;
-    uint16_t addr = 0x3f8, enable = 1;
+    int urs, irq = COM1_IRQ;
+    uint16_t addr = COM1_ADDR, enable = 1;
 
     urs = (urs1 << 1) | urs0;
 
     if (urs2) {
-	addr = uart ? 0x3f8 : 0x2f8;
-	irq = uart ? 4 : 3;
+	addr = uart ? COM1_ADDR : COM2_ADDR;
+	irq = uart ? COM1_IRQ : COM2_IRQ;
     } else {
 	switch (urs) {
 		case 0:
-			addr = uart ? 0x3e8 : 0x2e8;
-			irq = uart ? 4 : 3;
+			addr = uart ? COM3_ADDR : COM4_ADDR;
+			irq = uart ? COM3_IRQ : COM4_IRQ;
 			break;
 		case 1:
-			addr = uart ? 0x2e8 : 0x3e8;
-			irq = uart ? 3 : 4;
+			addr = uart ? COM4_ADDR : COM3_ADDR;
+			irq = uart ? COM4_IRQ : COM3_IRQ;
 			break;
 		case 2:
-			addr = uart ? 0x2f8 : 0x3f8;
-			irq = uart ? 3 : 4;
+			addr = uart ? COM2_ADDR : COM1_ADDR;
+			irq = uart ? COM2_IRQ : COM1_IRQ;
 			break;
 		case 3:
 		default:
@@ -167,21 +167,21 @@ static void
 w83787f_lpt_handler(w83787f_t *dev)
 {
     int ptras = (dev->regs[1] >> 4) & 0x03;
-    int irq = 7;
-    uint16_t addr = 0x378, enable = 1;
+    int irq = LPT1_IRQ;
+    uint16_t addr = LPT1_ADDR, enable = 1;
 
     switch (ptras) {
 	case 0x00:
-		addr = 0x3bc;
-		irq = 7;
+		addr = LPT_MDA_ADDR;
+		irq = LPT_MDA_IRQ;
 		break;
 	case 0x01:
-		addr = 0x278;
-		irq = 5;
+		addr = LPT2_ADDR;
+		irq = LPT2_IRQ;
 		break;
 	case 0x02:
-		addr = 0x378;
-		irq = 7;
+		addr = LPT1_ADDR;
+		irq = LPT1_IRQ;
 		break;
 	case 0x03:
 	default:
@@ -205,7 +205,7 @@ w83787f_fdc_handler(w83787f_t *dev)
 {
     fdc_remove(dev->fdc);
     if (!(dev->regs[0] & 0x20) && !(dev->regs[6] & 0x08))
-	fdc_set_base(dev->fdc, (dev->regs[0] & 0x10) ? 0x03f0 : 0x0370);
+	fdc_set_base(dev->fdc, (dev->regs[0] & 0x10) ? FDC_PRIMARY_ADDR : FDC_SECONDARY_ADDR);
 }
 
 
@@ -361,8 +361,8 @@ static void
 w83787f_reset(w83787f_t *dev)
 {
     lpt1_remove();
-    lpt1_init(0x378);
-    lpt1_irq(7);
+    lpt1_init(LPT1_ADDR);
+    lpt1_irq(LPT1_IRQ);
 
     memset(dev->regs, 0, 0x2A);
 
@@ -399,8 +399,8 @@ w83787f_reset(w83787f_t *dev)
     dev->regs[0x0c] = 0x2C;
     dev->regs[0x0d] = 0xA3;
 
-    serial_setup(dev->uart[0], SERIAL1_ADDR, SERIAL1_IRQ);
-    serial_setup(dev->uart[1], SERIAL2_ADDR, SERIAL2_IRQ);
+    serial_setup(dev->uart[0], COM1_ADDR, COM1_IRQ);
+    serial_setup(dev->uart[1], COM2_ADDR, COM2_IRQ);
 
     dev->key = 0x89;
 
@@ -444,43 +444,58 @@ w83787f_init(const device_t *info)
     return dev;
 }
 
-
 const device_t w83787f_device = {
-    "Winbond W83787F/IF Super I/O",
-    "w83787f",
-    0,
-    0x09,
-    w83787f_init, w83787f_close, NULL,
-    { NULL }, NULL, NULL,
-    NULL
+    .name = "Winbond W83787F/IF Super I/O",
+    .internal_name = "w83787f",
+    .flags = 0,
+    .local = 0x09,
+    .init = w83787f_init,
+    .close = w83787f_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
 const device_t w83787f_ide_device = {
-    "Winbond W83787F/IF Super I/O (With IDE)",
-    "w83787f_ide",
-    0,
-    0x19,
-    w83787f_init, w83787f_close, NULL,
-    { NULL }, NULL, NULL,
-    NULL
+    .name = "Winbond W83787F/IF Super I/O (With IDE)",
+    .internal_name = "w83787f_ide",
+    .flags = 0,
+    .local = 0x19,
+    .init = w83787f_init,
+    .close = w83787f_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
 const device_t w83787f_ide_en_device = {
-    "Winbond W83787F/IF Super I/O (With IDE Enabled)",
-    "w83787f_ide_en",
-    0,
-    0x59,
-    w83787f_init, w83787f_close, NULL,
-    { NULL }, NULL, NULL,
-    NULL
+    .name = "Winbond W83787F/IF Super I/O (With IDE Enabled)",
+    .internal_name = "w83787f_ide_en",
+    .flags = 0,
+    .local = 0x59,
+    .init = w83787f_init,
+    .close = w83787f_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
 const device_t w83787f_ide_sec_device = {
-    "Winbond W83787F/IF Super I/O (With Secondary IDE)",
-    "w83787f_ide_sec",
-    0,
-    0x39,
-    w83787f_init, w83787f_close, NULL,
-    { NULL }, NULL, NULL,
-    NULL
+    .name = "Winbond W83787F/IF Super I/O (With Secondary IDE)",
+    .internal_name = "w83787f_ide_sec",
+    .flags = 0,
+    .local = 0x39,
+    .init = w83787f_init,
+    .close = w83787f_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };

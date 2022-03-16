@@ -124,7 +124,7 @@ inital(void)
     alutInit(0, 0);
     atexit(closeal);
 
-    mdn = midi_device_get_internal_name(midi_device_current);
+    mdn = midi_out_device_get_internal_name(midi_output_device_current);
     if (strcmp(mdn, "none") && strcmp(mdn, SYSTEM_MIDI_INTERNAL_NAME))
         init_midi = 1; /* If the device is neither none, nor system MIDI, initialize the
                 MIDI buffer and source, otherwise, do not. */

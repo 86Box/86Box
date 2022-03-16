@@ -301,6 +301,7 @@ hasp_close(void *priv)
 
 const lpt_device_t lpt_hasp_savquest_device = {
     .name = "Protection Dongle for Savage Quest",
+    .internal_name = "dongle_savquest",
     .init = hasp_init_savquest,
     .close = hasp_close,
     .write_data = hasp_write_data,

@@ -14,6 +14,7 @@
  *      Copyright 2022 Teemu Korhonen
  */
 
+#include <QByteArray>
 #include <QFile>
 #include <QRegularExpression>
 #include <QStringBuilder>
@@ -45,9 +46,14 @@ void main() {\n\
     color = texture(texsampler, tex);\n\
 }\n";
 
-OpenGLOptions::OpenGLOptions(QObject *parent, bool loadConfig)
+OpenGLOptions::OpenGLOptions(QObject *parent, bool loadConfig, const QString &glslVersion)
     : QObject(parent)
+    , m_glslVersion(glslVersion)
 {
+    m_filter = video_filter_method == 0
+        ? FilterType::Nearest
+        : FilterType::Linear;
+
     if (!loadConfig)
         return;
 
@@ -58,10 +64,6 @@ OpenGLOptions::OpenGLOptions(QObject *parent, bool loadConfig)
     m_renderBehavior = video_framerate == -1
         ? RenderBehaviorType::SyncWithVideo
         : RenderBehaviorType::TargetFramerate;
-
-    m_filter = video_filter_method == 0
-        ? FilterType::Nearest
-        : FilterType::Linear;
 
     QString shaderPath(video_shader);
 
@@ -88,7 +90,7 @@ OpenGLOptions::save() const
     auto path = m_shaders.first().path().toLocal8Bit();
 
     if (!path.isEmpty())
-        strcpy(video_shader, path.constData());
+        qstrncpy(video_shader, path.constData(), sizeof(video_shader));
     else
         video_shader[0] = '\0';
 }
@@ -143,11 +145,14 @@ OpenGLOptions::addShader(const QString &path)
 
     shader_file.close();
 
+    /* Remove parameter lines */
+    shader_text.remove(QRegularExpression("^\\s*#pragma parameter.*?\\n", QRegularExpression::MultilineOption));
+
     QRegularExpression version("^\\s*(#version\\s+\\w+)", QRegularExpression::MultilineOption);
 
     auto match = version.match(shader_text);
 
-    QString version_line("#version 130");
+    QString version_line(m_glslVersion);
 
     if (match.hasMatch()) {
         /* Extract existing version and remove it. */
@@ -155,10 +160,6 @@ OpenGLOptions::addShader(const QString &path)
         shader_text.remove(version);
     }
 
-    if (QOpenGLContext::currentContext() && QOpenGLContext::currentContext()->isOpenGLES()) {
-        /* Force #version 300 es (the default of #version 100 es is too old and too limited) */
-        version_line = "#version 300 es";
-    }
     auto shader = new QOpenGLShaderProgram(this);
 
     auto throw_shader_error = [path, shader](const QString &what) {
@@ -169,10 +170,12 @@ OpenGLOptions::addShader(const QString &path)
                 .toStdString());
     };
 
-    if (!shader->addShaderFromSourceCode(QOpenGLShader::Vertex, version_line % "\n#extension GL_ARB_shading_language_420pack : enable\n" % "\n#define VERTEX\n" % shader_text))
+    static const char *extension = "\n#extension GL_ARB_shading_language_420pack : enable\n";
+
+    if (!shader->addShaderFromSourceCode(QOpenGLShader::Vertex, version_line % extension % "\n#define VERTEX\n#line 1\n" % shader_text))
         throw_shader_error(tr("Error compiling vertex shader in file \"%1\""));
 
-    if (!shader->addShaderFromSourceCode(QOpenGLShader::Fragment, version_line % "\n#extension GL_ARB_shading_language_420pack : enable\n"  "\n#define FRAGMENT\n" % shader_text))
+    if (!shader->addShaderFromSourceCode(QOpenGLShader::Fragment, version_line % extension % "\n#define FRAGMENT\n#line 1\n" % shader_text))
         throw_shader_error(tr("Error compiling fragment shader in file \"%1\""));
 
     if (!shader->link())
@@ -184,13 +187,9 @@ OpenGLOptions::addShader(const QString &path)
 void
 OpenGLOptions::addDefaultShader()
 {
-    QString version = QOpenGLContext::currentContext() && QOpenGLContext::currentContext()->isOpenGLES()
-        ? "#version 300 es\n"
-        : "#version 130\n";
-
     auto shader = new QOpenGLShaderProgram(this);
-    shader->addShaderFromSourceCode(QOpenGLShader::Vertex, version % vertex_shader);
-    shader->addShaderFromSourceCode(QOpenGLShader::Fragment, version % fragment_shader);
+    shader->addShaderFromSourceCode(QOpenGLShader::Vertex, m_glslVersion % "\n" % vertex_shader);
+    shader->addShaderFromSourceCode(QOpenGLShader::Fragment, m_glslVersion % "\n" % fragment_shader);
     shader->link();
     m_shaders << OpenGLShaderPass(shader, QString());
 }

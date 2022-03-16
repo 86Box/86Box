@@ -743,15 +743,15 @@ pas16_close(void *p)
 }
 
 const device_t pas16_device = {
-    "Pro Audio Spectrum 16",
-    "pas16",
-    DEVICE_ISA | DEVICE_NOT_WORKING,
-    0,
-    pas16_init,
-    pas16_close,
-    NULL,
-    { NULL },
-    NULL,
-    NULL,
-    NULL
+    .name = "Pro Audio Spectrum 16",
+    .internal_name = "pas16",
+    .flags = DEVICE_ISA | DEVICE_NOT_WORKING,
+    .local = 0,
+    .init = pas16_init,
+    .close = pas16_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };

@@ -741,7 +741,7 @@ fdc37c93x_reset(fdc37c93x_t *dev)
     dev->ld_regs[4][0x61] = 0xf8;
     dev->ld_regs[4][0x70] = 4;
     dev->ld_regs[4][0xF0] = 3;
-    serial_setup(dev->uart[0], 0x3f8, dev->ld_regs[4][0x70]);
+    serial_setup(dev->uart[0], COM1_ADDR, dev->ld_regs[4][0x70]);
 
     /* Logical device 5: Serial Port 2 */
     dev->ld_regs[5][0x30] = 1;
@@ -751,7 +751,7 @@ fdc37c93x_reset(fdc37c93x_t *dev)
     dev->ld_regs[5][0x74] = 4;
     dev->ld_regs[5][0xF1] = 2;
     dev->ld_regs[5][0xF2] = 3;
-    serial_setup(dev->uart[1], 0x2f8, dev->ld_regs[5][0x70]);
+    serial_setup(dev->uart[1], COM2_ADDR, dev->ld_regs[5][0x70]);
 
     /* Logical device 6: RTC */
     dev->ld_regs[6][0x30] = 1;
@@ -873,9 +873,9 @@ fdc37c93x_init(const device_t *info)
 	io_sethandler(0x0fb, 0x0001,
 		      fdc37c93x_read, NULL, NULL, fdc37c93x_write, NULL, NULL, dev);
     } else {
-	io_sethandler(0x370, 0x0002,
+	io_sethandler(FDC_SECONDARY_ADDR, 0x0002,
 		      fdc37c93x_read, NULL, NULL, fdc37c93x_write, NULL, NULL, dev);
-	io_sethandler(0x3f0, 0x0002,
+	io_sethandler(FDC_PRIMARY_ADDR, 0x0002,
 		      fdc37c93x_read, NULL, NULL, fdc37c93x_write, NULL, NULL, dev);
     }
 
@@ -884,53 +884,72 @@ fdc37c93x_init(const device_t *info)
     return dev;
 }
 
-
 const device_t fdc37c931apm_device = {
-    "SMC FDC37C932QF Super I/O",
-    "fdc37c931apm",
-    0,
-    0x130,	/* Share the same ID with the 932QF. */
-    fdc37c93x_init, fdc37c93x_close, NULL,
-    { NULL }, NULL, NULL,
-    NULL
+    .name = "SMC FDC37C932QF Super I/O",
+    .internal_name = "fdc37c931apm",
+    .flags = 0,
+    .local = 0x130, /* Share the same ID with the 932QF. */
+    .init = fdc37c93x_init,
+    .close = fdc37c93x_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
 const device_t fdc37c931apm_compaq_device = {
-    "SMC FDC37C932QF Super I/O (Compaq Presario 4500)",
-    "fdc37c931apm_compaq",
-    0,
-    0x330,	/* Share the same ID with the 932QF. */
-    fdc37c93x_init, fdc37c93x_close, NULL,
-    { NULL }, NULL, NULL,
-    NULL
+    .name = "SMC FDC37C932QF Super I/O (Compaq Presario 4500)",
+    .internal_name = "fdc37c931apm_compaq",
+    .flags = 0,
+    .local = 0x330, /* Share the same ID with the 932QF. */
+    .init = fdc37c93x_init,
+    .close = fdc37c93x_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
 const device_t fdc37c932fr_device = {
-    "SMC FDC37C932FR Super I/O",
-    "fdc37c932fr",
-    0,
-    0x03,
-    fdc37c93x_init, fdc37c93x_close, NULL,
-    { NULL }, NULL, NULL,
-    NULL
+    .name = "SMC FDC37C932FR Super I/O",
+    .internal_name = "fdc37c932fr",
+    .flags = 0,
+    .local = 0x03,
+    .init = fdc37c93x_init,
+    .close = fdc37c93x_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
 const device_t fdc37c932qf_device = {
-    "SMC FDC37C932QF Super I/O",
-    "fdc37c932qf",
-    0,
-    0x30,
-    fdc37c93x_init, fdc37c93x_close, NULL,
-    { NULL }, NULL, NULL,
-    NULL
+    .name = "SMC FDC37C932QF Super I/O",
+    .internal_name = "fdc37c932qf",
+    .flags = 0,
+    .local = 0x30,
+    .init = fdc37c93x_init,
+    .close = fdc37c93x_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
 const device_t fdc37c935_device = {
-    "SMC FDC37C935 Super I/O",
-    "fdc37c935",
-    0,
-    0x02,
-    fdc37c93x_init, fdc37c93x_close, NULL,
-    { NULL }, NULL, NULL,
-    NULL
+    .name = "SMC FDC37C935 Super I/O",
+    .internal_name = "fdc37c935",
+    .flags = 0,
+    .local = 0x02,
+    .init = fdc37c93x_init,
+    .close = fdc37c93x_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };

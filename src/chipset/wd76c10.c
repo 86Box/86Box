@@ -172,7 +172,7 @@ static void wd76c10_disk_chip_select(wd76c10_t *dev)
 
     fdc_remove(dev->fdc_controller);
     if (!(dev->disk_chip_select & 2))
-        fdc_set_base(dev->fdc_controller, !(dev->disk_chip_select & 0x0010) ? 0x3f0 : 0x370);
+        fdc_set_base(dev->fdc_controller, !(dev->disk_chip_select & 0x0010) ? FDC_PRIMARY_ADDR : FDC_SECONDARY_ADDR);
 }
 
 static void wd76c10_shadow_recalc(wd76c10_t *dev)
@@ -538,14 +538,15 @@ wd76c10_init(const device_t *info)
 }
 
 const device_t wd76c10_device = {
-    "Western Digital WD76C10",
-    "wd76c10",
-    0,
-    0,
-    wd76c10_init,
-    wd76c10_close,
-    NULL,
-    {NULL},
-    NULL,
-    NULL,
-    NULL};
+    .name = "Western Digital WD76C10",
+    .internal_name = "wd76c10",
+    .flags = 0,
+    .local = 0,
+    .init = wd76c10_init,
+    .close = wd76c10_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
+};

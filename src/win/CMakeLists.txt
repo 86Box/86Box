@@ -27,6 +27,10 @@ if(NOT CPPTHREADS)
     target_sources(plat PRIVATE win_thread.c)
 endif()
 
+if(RTMIDI)
+    target_compile_definitions(ui PRIVATE USE_RTMIDI)
+endif()
+
 # CMake 3.22 messed this up for clang/clang++
 # See https://gitlab.kitware.com/cmake/cmake/-/issues/23066
 if(MSVC OR (NOT MINGW AND CMAKE_VERSION VERSION_GREATER_EQUAL 3.22))

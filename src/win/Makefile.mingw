@@ -191,6 +191,9 @@ endif
 ifndef CPPTHREADS
  CPPTHREADS	:= y
 endif
+ifndef RTMIDI
+ RTMIDI		:= y
+endif
 ifeq ($(DYNAREC), y)
  ifeq ($(ARM), y)
   ifeq ($(NEW_DYNAREC), n)
@@ -650,7 +653,7 @@ SNDOBJ		:= sound.o \
 		     wave6581_P_T.o wave6581_PS_.o wave6581_PST.o \
 		     wave8580__ST.o wave8580_P_T.o wave8580_PS_.o \
 		     wave8580_PST.o wave.o \
-		    midi.o midi_rtmidi.o \
+		    midi.o \
 		    snd_speaker.o \
 		    snd_pssj.o \
 		    snd_ps1.o \
@@ -747,7 +750,13 @@ ifdef EXOBJ
 OBJ		+= $(EXOBJ)
 endif
 
-LIBS		:= -mwindows -lcomctl32 -lSDL2 -lrtmidi -limagehlp -ldinput8 -ldxguid  -ldxerr8 -luser32 -lgdi32 -lwinmm -limm32 -lole32 -loleaut32 -lshell32 -lversion -luuid
+LIBS		:= -mwindows -lcomctl32 -lSDL2 -limagehlp -ldinput8 -ldxguid -ldxerr8 -luser32 -lgdi32 -lwinmm -limm32 -lole32 -loleaut32 -lshell32 -lversion -luuid
+
+ifeq ($(RTMIDI), y)
+ SNDOBJ		+= midi_rtmidi.o
+ OPTS		+= -DUSE_RTMIDI
+ LIBS		+= -lrtmidi
+endif
 
 ifeq ($(VNC), y)
 LIBS		+= $(VNCLIB) -lws2_32

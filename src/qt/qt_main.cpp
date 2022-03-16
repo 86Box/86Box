@@ -168,6 +168,8 @@ int main(int argc, char* argv[]) {
     {
         return 0;
     }
+
+    fprintf(stderr, "Qt: version %s, platform \"%s\"\n", qVersion(), QApplication::platformName().toUtf8().data());
     ProgSettings::loadTranslators(&app);
 #ifdef Q_OS_WINDOWS
     auto font_name = QObject::tr("FONT_NAME");
@@ -249,7 +251,7 @@ int main(int argc, char* argv[]) {
     {
         QObject::connect(&socket, &UnixManagerSocket::showsettings, main_window, &MainWindow::showSettings);
         QObject::connect(&socket, &UnixManagerSocket::pause, main_window, &MainWindow::togglePause);
-        QObject::connect(&socket, &UnixManagerSocket::reset, main_window, &MainWindow::hardReset);
+        QObject::connect(&socket, &UnixManagerSocket::resetVM, main_window, &MainWindow::hardReset);
         QObject::connect(&socket, &UnixManagerSocket::request_shutdown, main_window, &MainWindow::close);
         QObject::connect(&socket, &UnixManagerSocket::force_shutdown, [](){
             do_stop();

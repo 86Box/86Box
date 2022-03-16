@@ -1144,58 +1144,63 @@ vid_init(tandy_t *dev)
 
 static const device_config_t vid_config[] = {
     {
-	"display_type", "Display type", CONFIG_SELECTION, "", TANDY_RGB, "", { 0 },
-	{
-		{
-			"RGB", TANDY_RGB
-		},
-		{
-			"Composite", TANDY_COMPOSITE
-		},
-		{
-			""
-		}
-	}
+        .name = "display_type",
+        .description = "Display type",
+        .type = CONFIG_SELECTION,
+        .default_string = "",
+        .default_int = TANDY_RGB,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "RGB",       .value = TANDY_RGB       },
+            { .description = "Composite", .value = TANDY_COMPOSITE },
+            { .description = ""                                    }
+        }
     },
-    {
-	"", "", -1
-    }
+    { .name = "", .description = "", .type = -1 }
 };
 
-
 static const device_t vid_device = {
-    "Tandy 1000",
-    "tandy1000_video",
-    0, 0,
-    NULL, vid_close, NULL,
-    { NULL },
-    vid_speed_changed,
-    NULL,
-    vid_config
+    .name = "Tandy 1000",
+    .internal_name = "tandy1000_video",
+    .flags = 0,
+    .local = 0,
+    .init = NULL,
+    .close = vid_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = vid_speed_changed,
+    .force_redraw = NULL,
+    .config = vid_config
 };
 
 static const device_t vid_device_hx = {
-    "Tandy 1000 HX",
-    "tandy1000_hx_video",
-    0, 0,
-    NULL, vid_close, NULL,
-    { NULL },
-    vid_speed_changed,
-    NULL,
-    vid_config
+    .name = "Tandy 1000 HX",
+    .internal_name = "tandy1000_hx_video",
+    .flags = 0,
+    .local = 0,
+    .init = NULL,
+    .close = vid_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = vid_speed_changed,
+    .force_redraw = NULL,
+    .config = vid_config
 };
 
 static const device_t vid_device_sl = {
-    "Tandy 1000SL2",
-    "tandy1000_sl_video",
-    0, 1,
-    NULL, vid_close, NULL,
-    { NULL },
-    vid_speed_changed,
-    NULL,
-    NULL
+    .name = "Tandy 1000SL2",
+    .internal_name = "tandy1000_sl_video",
+    .flags = 0,
+    .local = 1,
+    .init = NULL,
+    .close = vid_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = vid_speed_changed,
+    .force_redraw = NULL,
+    .config = NULL
 };
-
 
 const device_t *
 tandy1k_get_device(void)
@@ -1344,26 +1349,33 @@ eep_close(void *priv)
     free(eep);
 }
 
-
 static const device_t eep_1000hx_device = {
-    "Tandy 1000HX EEPROM",
-    "eep_1000hx",
-    0, TYPE_TANDY1000HX,
-    eep_init, eep_close, NULL,
-    { NULL }, NULL, NULL,
-    NULL
+    .name = "Tandy 1000HX EEPROM",
+    .internal_name = "eep_1000hx",
+    .flags = 0,
+    .local = TYPE_TANDY1000HX,
+    .init = eep_init,
+    .close = eep_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
-
 
 static const device_t eep_1000sl2_device = {
-    "Tandy 1000SL2 EEPROM",
-    "eep_1000sl2",
-    0, TYPE_TANDY1000SL2,
-    eep_init, eep_close, NULL,
-    { NULL }, NULL, NULL,
-    NULL
+    .name = "Tandy 1000SL2 EEPROM",
+    .internal_name = "eep_1000sl2",
+    .flags = 0,
+    .local = TYPE_TANDY1000SL2,
+    .init = eep_init,
+    .close = eep_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
-
 
 static void
 tandy_write(uint16_t addr, uint8_t val, void *priv)

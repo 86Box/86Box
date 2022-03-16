@@ -142,29 +142,29 @@ adlib_close(void *p)
 }
 
 const device_t adlib_device = {
-    "AdLib",
-    "adlib",
-    DEVICE_ISA,
-    0,
-    adlib_init,
-    adlib_close,
-    NULL,
-    { NULL },
-    NULL,
-    NULL,
-    NULL
+    .name = "AdLib",
+    .internal_name = "adlib",
+    .flags = DEVICE_ISA,
+    .local = 0,
+    .init = adlib_init,
+    .close = adlib_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
 const device_t adlib_mca_device = {
-    "AdLib (MCA)",
-    "adlib_mca",
-    DEVICE_MCA,
-    0,
-    adlib_init,
-    adlib_close,
-    NULL,
-    { NULL },
-    NULL,
-    NULL,
-    NULL
+    .name = "AdLib (MCA)",
+    .internal_name = "adlib_mca",
+    .flags = DEVICE_MCA,
+    .local = 0,
+    .init = adlib_init,
+    .close = adlib_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };

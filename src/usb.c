@@ -409,18 +409,16 @@ usb_init(const device_t *info)
     return dev;
 }
 
-
-const device_t usb_device =
-{
-    "Universal Serial Bus",
-    "usb",
-    DEVICE_PCI,
-    0,
-    usb_init,
-    usb_close,
-    usb_reset,
-    { NULL },
-    NULL,
-    NULL,
-    NULL
+const device_t usb_device = {
+    .name = "Universal Serial Bus",
+    .internal_name = "usb",
+    .flags = DEVICE_PCI,
+    .local = 0,
+    .init = usb_init,
+    .close = usb_close,
+    .reset = usb_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };

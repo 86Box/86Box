@@ -242,14 +242,16 @@ catalyst_flash_close(void *p)
 }
 
 
-const device_t catalyst_flash_device =
-{
-    "Catalyst 28F010-D Flash BIOS",
-    "catalyst_flash",
-    DEVICE_PCI,
-    0,
-    catalyst_flash_init,
-    catalyst_flash_close,
-    catalyst_flash_reset,
-    { NULL }, NULL, NULL, NULL
+const device_t catalyst_flash_device = {
+    .name = "Catalyst 28F010-D Flash BIOS",
+    .internal_name = "catalyst_flash",
+    .flags = DEVICE_PCI,
+    .local = 0,
+    .init = catalyst_flash_init,
+    .close = catalyst_flash_close,
+    .reset = catalyst_flash_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };

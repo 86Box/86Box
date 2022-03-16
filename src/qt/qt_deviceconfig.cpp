@@ -67,6 +67,7 @@ void DeviceConfig::ConfigureDevice(const _device_* device, int instance, Setting
             dc.ui->formLayout->addRow(config->description, cbox);
             break;
         }
+#ifdef USE_RTMIDI
         case CONFIG_MIDI_OUT:
         {
             auto* cbox = new QComboBox();
@@ -74,9 +75,9 @@ void DeviceConfig::ConfigureDevice(const _device_* device, int instance, Setting
             auto* model = cbox->model();
             int currentIndex = -1;
             int selected = config_get_int(device_context.name, const_cast<char*>(config->name), config->default_int);
-            for (int i = 0; i < rtmidi_get_num_devs(); i++) {
+            for (int i = 0; i < rtmidi_out_get_num_devs(); i++) {
                 char midiName[512] = { 0 };
-                rtmidi_get_dev_name(i, midiName);
+                rtmidi_out_get_dev_name(i, midiName);
 
                 Models::AddEntry(model, midiName, i);
                 if (selected == i) {
@@ -107,6 +108,7 @@ void DeviceConfig::ConfigureDevice(const _device_* device, int instance, Setting
             cbox->setCurrentIndex(currentIndex);
             break;
         }
+#endif
         case CONFIG_SELECTION:
         case CONFIG_HEX16:
         case CONFIG_HEX20:

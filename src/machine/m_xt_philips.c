@@ -134,15 +134,18 @@ philips_init(const device_t *info)
 }
 
 const device_t philips_device = {
-    "Philips XT Mainboard",
-    "philips",
-    0,
-    0,
-    philips_init, philips_close, NULL,
-    { NULL }, NULL, NULL,
-    NULL
+    .name = "Philips XT Mainboard",
+    .internal_name = "philips",
+    .flags = 0,
+    .local = 0,
+    .init = philips_init,
+    .close = philips_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
-
 
 void
 machine_xt_philips_common_init(const machine_t *model)

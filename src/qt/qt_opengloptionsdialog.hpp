@@ -19,6 +19,8 @@
 
 #include <QDialog>
 
+#include <functional>
+
 #include "qt_opengloptions.hpp"
 
 namespace Ui {
@@ -29,7 +31,7 @@ class OpenGLOptionsDialog : public QDialog {
     Q_OBJECT
 
 public:
-    explicit OpenGLOptionsDialog(QWidget *parent, const OpenGLOptions &options);
+    explicit OpenGLOptionsDialog(QWidget *parent, const OpenGLOptions &options, std::function<OpenGLOptions *()> optionsFactory);
     ~OpenGLOptionsDialog();
 
 signals:
@@ -40,6 +42,8 @@ public slots:
 
 private:
     Ui::OpenGLOptionsDialog *ui;
+
+    std::function<OpenGLOptions *()> createOptions;
 
 private slots:
     void on_addShader_clicked();

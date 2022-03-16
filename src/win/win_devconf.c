@@ -93,13 +93,14 @@ deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 
 					id += 2;
 					break;
+#ifdef USE_RTMIDI
 				case CONFIG_MIDI_OUT:
 					val_int = config_get_int((char *) config_device.name,
 								 (char *) config->name, config->default_int);
 
-					num  = rtmidi_get_num_devs();
+					num  = rtmidi_out_get_num_devs();
 					for (c = 0; c < num; c++) {
-						rtmidi_get_dev_name(c, s);
+						rtmidi_out_get_dev_name(c, s);
 						mbstowcs(lptsTemp, s, strlen(s) + 1);
 						SendMessage(h, CB_ADDSTRING, 0, (LPARAM)(LPCSTR)lptsTemp);
 						if (val_int == c)
@@ -123,6 +124,7 @@ deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 
 					id += 2;
 					break;
+#endif
 				case CONFIG_SPINNER:
 					val_int = config_get_int((char *) config_device.name,
 								 (char *) config->name, config->default_int);

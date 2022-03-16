@@ -2143,12 +2143,13 @@ escp_close(void *priv)
 
 
 const lpt_device_t lpt_prt_escp_device = {
-    "Generic ESC/P Dot-Matrix",
-    escp_init,
-    escp_close,
-    write_data,
-    write_ctrl,
-    read_data,
-    read_status,
-    read_ctrl
+    .name = "Generic ESC/P Dot-Matrix",
+    .internal_name = "dot_matrix",
+    .init = escp_init,
+    .close = escp_close,
+    .write_data = write_data,
+    .write_ctrl = write_ctrl,
+    .read_data = read_data,
+    .read_status = read_status,
+    .read_ctrl = read_ctrl
 };

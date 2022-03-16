@@ -685,13 +685,13 @@ serial_init(const device_t *info)
 	dev->sd->serial = dev;
 	serial_reset_port(dev);
 	if (next_inst == 3)
-		serial_setup(dev, SERIAL4_ADDR, SERIAL4_IRQ);
+		serial_setup(dev, COM4_ADDR, COM4_IRQ);
 	else if (next_inst == 2)
-		serial_setup(dev, SERIAL3_ADDR, SERIAL3_IRQ);
+		serial_setup(dev, COM3_ADDR, COM3_IRQ);
 	else if ((next_inst == 1) || (info->flags & DEVICE_PCJR))
-		serial_setup(dev, SERIAL2_ADDR, SERIAL2_IRQ);
+		serial_setup(dev, COM2_ADDR, COM2_IRQ);
 	else if (next_inst == 0)
-		serial_setup(dev, SERIAL1_ADDR, SERIAL1_IRQ);
+		serial_setup(dev, COM1_ADDR, COM1_IRQ);
 
 	/* Default to 1200,N,7. */
 	dev->dlab = 96;
@@ -717,87 +717,118 @@ serial_set_next_inst(int ni)
 
 void
 serial_standalone_init(void) {
-	for ( ; next_inst < 4; )
+	for ( ; next_inst < SERIAL_MAX; )
 		device_add_inst(&ns8250_device, next_inst + 1);
 };
 
-
 const device_t ns8250_device = {
-    "National Semiconductor 8250(-compatible) UART",
-    "ns8250",
-    0,
-    SERIAL_8250,
-    serial_init, serial_close, NULL,
-    { NULL }, serial_speed_changed, NULL,
-    NULL
+    .name = "National Semiconductor 8250(-compatible) UART",
+    .internal_name = "ns8250",
+    .flags = 0,
+    .local = SERIAL_8250,
+    .init = serial_init,
+    .close = serial_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = serial_speed_changed,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
 const device_t ns8250_pcjr_device = {
-    "National Semiconductor 8250(-compatible) UART for PCjr",
-    "ns8250_pcjr",
-    DEVICE_PCJR,
-    SERIAL_8250_PCJR,
-    serial_init, serial_close, NULL,
-    { NULL }, serial_speed_changed, NULL,
-    NULL
+    .name = "National Semiconductor 8250(-compatible) UART for PCjr",
+    .internal_name = "ns8250_pcjr",
+    .flags = DEVICE_PCJR,
+    .local = SERIAL_8250_PCJR,
+    .init = serial_init,
+    .close = serial_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = serial_speed_changed,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
 const device_t ns16450_device = {
-    "National Semiconductor NS16450(-compatible) UART",
-    "ns16450",
-    0,
-    SERIAL_16450,
-    serial_init, serial_close, NULL,
-    { NULL }, serial_speed_changed, NULL,
-    NULL
+    .name = "National Semiconductor NS16450(-compatible) UART",
+    .internal_name = "ns16450",
+    .flags = 0,
+    .local = SERIAL_16450,
+    .init = serial_init,
+    .close = serial_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = serial_speed_changed,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
 const device_t ns16550_device = {
-    "National Semiconductor NS16550(-compatible) UART",
-    "ns16550",
-    0,
-    SERIAL_16550,
-    serial_init, serial_close, NULL,
-    { NULL }, serial_speed_changed, NULL,
-    NULL
+    .name = "National Semiconductor NS16550(-compatible) UART",
+    .internal_name = "ns16550",
+    .flags = 0,
+    .local = SERIAL_16550,
+    .init = serial_init,
+    .close = serial_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = serial_speed_changed,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
 const device_t ns16650_device = {
-    "Startech Semiconductor 16650(-compatible) UART",
-    "ns16650",
-    0,
-    SERIAL_16650,
-    serial_init, serial_close, NULL,
-    { NULL }, serial_speed_changed, NULL,
-    NULL
+    .name = "Startech Semiconductor 16650(-compatible) UART",
+    .internal_name = "ns16650",
+    .flags = 0,
+    .local = SERIAL_16650,
+    .init = serial_init,
+    .close = serial_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = serial_speed_changed,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
 const device_t ns16750_device = {
-    "Texas Instruments 16750(-compatible) UART",
-    "ns16750",
-    0,
-    SERIAL_16750,
-    serial_init, serial_close, NULL,
-    { NULL }, serial_speed_changed, NULL,
-    NULL
+    .name = "Texas Instruments 16750(-compatible) UART",
+    .internal_name = "ns16750",
+    .flags = 0,
+    .local = SERIAL_16750,
+    .init = serial_init,
+    .close = serial_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = serial_speed_changed,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
 const device_t ns16850_device = {
-    "Exar Corporation NS16850(-compatible) UART",
-    "ns16850",
-    0,
-    SERIAL_16850,
-    serial_init, serial_close, NULL,
-    { NULL }, serial_speed_changed, NULL,
-    NULL
+    .name = "Exar Corporation NS16850(-compatible) UART",
+    .internal_name = "ns16850",
+    .flags = 0,
+    .local = SERIAL_16850,
+    .init = serial_init,
+    .close = serial_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = serial_speed_changed,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
 const device_t ns16950_device = {
-    "Oxford Semiconductor NS16950(-compatible) UART",
-    "ns16950",
-    0,
-    SERIAL_16950,
-    serial_init, serial_close, NULL,
-    { NULL }, serial_speed_changed, NULL,
-    NULL
+    .name = "Oxford Semiconductor NS16950(-compatible) UART",
+    .internal_name = "ns16950",
+    .flags = 0,
+    .local = SERIAL_16950,
+    .init = serial_init,
+    .close = serial_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = serial_speed_changed,
+    .force_redraw = NULL,
+    .config = NULL
 };

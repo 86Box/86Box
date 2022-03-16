@@ -684,43 +684,58 @@ headland_init(const device_t *info)
     return(dev);
 }
 
-
 const device_t headland_gc10x_device = {
-    "Headland GC101/102/103",
-    "headland_gc10x",
-    0,
-    0,
-    headland_init, headland_close, NULL,
-    { NULL }, NULL, NULL,
-    NULL
+    .name = "Headland GC101/102/103",
+    .internal_name = "headland_gc10x",
+    .flags = 0,
+    .local = 0,
+    .init = headland_init,
+    .close = headland_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
 const device_t headland_ht18a_device = {
-    "Headland HT18 Rev. A",
-    "headland_ht18a",
-    0,
-    1,
-    headland_init, headland_close, NULL,
-    { NULL }, NULL, NULL,
-    NULL
+    .name = "Headland HT18 Rev. A",
+    .internal_name = "headland_ht18a",
+    .flags = 0,
+    .local = 1,
+    .init = headland_init,
+    .close = headland_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
 const device_t headland_ht18b_device = {
-    "Headland HT18 Rev. B",
-    "headland_ht18b",
-    0,
-    2,
-    headland_init, headland_close, NULL,
-    { NULL }, NULL, NULL,
-    NULL
+    .name = "Headland HT18 Rev. B",
+    .internal_name = "headland_ht18b",
+    .flags = 0,
+    .local = 2,
+    .init = headland_init,
+    .close = headland_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
 const device_t headland_ht18c_device = {
-    "Headland HT18 Rev. C",
-    "headland_ht18c",
-    0,
-    8,
-    headland_init, headland_close, NULL,
-    { NULL }, NULL, NULL,
-    NULL
+    .name = "Headland HT18 Rev. C",
+    .internal_name = "headland_ht18c",
+    .flags = 0,
+    .local = 8,
+    .init = headland_init,
+    .close = headland_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };

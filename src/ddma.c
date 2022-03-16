@@ -184,18 +184,16 @@ ddma_init(const device_t *info)
     return dev;
 }
 
-
-const device_t ddma_device =
-{
-    "Distributed DMA",
-    "ddma",
-    DEVICE_PCI,
-    0,
-    ddma_init,
-    ddma_close,
-    NULL,
-    { NULL },
-    NULL,
-    NULL,
-    NULL
+const device_t ddma_device = {
+    .name = "Distributed DMA",
+    .internal_name = "ddma",
+    .flags = DEVICE_PCI,
+    .local = 0,
+    .init = ddma_init,
+    .close = ddma_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };

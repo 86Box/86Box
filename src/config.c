@@ -300,6 +300,27 @@ config_detect_bom(char *fn)
 	return 0;
 }
 
+#ifdef __HAIKU__
+/* Local version of fgetws to avoid a crash */
+static wchar_t*
+config_fgetws(wchar_t *str, int count, FILE* stream)
+{
+    int i = 0;
+    if (feof(stream)) return NULL;
+    for (i = 0; i < count; i++) {
+        wint_t curChar = fgetwc(stream);
+        if (curChar == WEOF) {
+            if (i + 1 < count) str[i + 1] = 0;
+            return feof(stream) ? str : NULL;
+        }
+        str[i] = curChar;
+        if (curChar == '\n') break;
+    }
+    if (i + 1 < count) str[i + 1] = 0;
+    return str;
+}
+#endif
+
 /* Read and parse the configuration file into memory. */
 static int
 config_read(char *fn)
@@ -328,7 +349,11 @@ config_read(char *fn)
 
     while (1) {
 	memset(buff, 0x00, sizeof(buff));
+#ifdef __HAIKU__
+	config_fgetws(buff, sizeof_w(buff), f);
+#else
 	fgetws(buff, sizeof_w(buff), f);
+#endif
 	if (feof(f)) break;
 
 	/* Make sure there are no stray newlines or hard-returns in there. */
@@ -1011,9 +1036,9 @@ load_sound(void)
 
     p = config_get_string(cat, "midi_device", NULL);
     if (p != NULL)
-	midi_device_current = midi_device_get_from_internal_name(p);
+	midi_output_device_current = midi_out_device_get_from_internal_name(p);
       else
-	midi_device_current = 0;
+	midi_output_device_current = 0;
 
     p = config_get_string(cat, "midi_in_device", NULL);
     if (p != NULL)
@@ -2081,13 +2106,17 @@ config_load(void)
 	video_fullscreen_first = 1;
 	time_sync = TIME_SYNC_ENABLED;
 	hdc_current = hdc_get_from_internal_name("none");
+
 	serial_enabled[0] = 1;
 	serial_enabled[1] = 1;
-	serial_enabled[2] = 0;
-	serial_enabled[3] = 0;
+	for (i = 2 ; i < SERIAL_MAX; i++)
+		serial_enabled[i] = 0;
+
 	lpt_ports[0].enabled = 1;
-	lpt_ports[1].enabled = 0;
-	lpt_ports[2].enabled = 0;
+
+	for (i = 1 ; i < PARALLEL_MAX; i++)
+		lpt_ports[i].enabled = 0;
+
 	for (i = 0; i < FDD_NUM; i++) {
 		if (i < 2)
 			fdd_set_type(i, 2);
@@ -2501,10 +2530,10 @@ save_sound(void)
       else
 	config_set_string(cat, "sndcard", sound_card_get_internal_name(sound_card_current));
 
-    if (!strcmp(midi_device_get_internal_name(midi_device_current), "none"))
+    if (!strcmp(midi_out_device_get_internal_name(midi_output_device_current), "none"))
 	config_delete_var(cat, "midi_device");
       else
-	config_set_string(cat, "midi_device", midi_device_get_internal_name(midi_device_current));
+	config_set_string(cat, "midi_device", midi_out_device_get_internal_name(midi_output_device_current));
 
     if (!strcmp(midi_in_device_get_internal_name(midi_input_device_current), "none"))
 	config_delete_var(cat, "midi_in_device");

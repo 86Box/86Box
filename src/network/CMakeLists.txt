@@ -27,3 +27,7 @@ else()
     add_subdirectory(slirp)
     target_link_libraries(86Box slirp)
 endif()
+
+if (HAIKU)
+    target_link_libraries(86Box network)
+endif()

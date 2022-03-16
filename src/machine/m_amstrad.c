@@ -670,88 +670,72 @@ vid_speed_change_1512(void *priv)
 }
 
 
-device_config_t vid_1512_config[] =
-{
-	{
-		"display_type", "Display type", CONFIG_SELECTION, "", 0, "", { 0 },
-		{
-			{
-				"PC-CM (Colour)", 0
-			},
-			{
-				"PC-MM (Monochrome)", 3
-			},
-			{
-				""
-			}
-		}
-	},
-	{
-        "codepage", "Hardware font", CONFIG_SELECTION, "", 3, "", { 0 },
-		{
-			{
-				"US English", 3
-			},
-			{
-				"Danish", 1
-			},
-			{
-				"Greek", 0
-			},
-			{
-                ""
-			}
-		}
-	},
-	{
-        "language", "BIOS language", CONFIG_SELECTION, "", 7, "", { 0 },
-		{
-			{
-				"English", 7
-			},
-			{
-				"German", 6
-			},
-			{
-				"French", 5
-			},
-			{
-				"Spanish", 4
-			},
-			{
-				"Danish", 3
-			},
-			{
-				"Swedish", 2
-			},
-			{
-				"Italian", 1
-			},
-			{
-				"Diagnostic mode", 0
-			},
-			{
-                ""
-			}
-		}
-	},
-	{
-			"", "", -1
-	}
+device_config_t vid_1512_config[] = {
+    {
+        .name = "display_type",
+        .description = "Display type",
+        .type = CONFIG_SELECTION,
+        .default_string = "",
+        .default_int = 0,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "PC-CM (Colour)",     .value = 0 },
+            { .description = "PC-MM (Monochrome)", .value = 3 },
+            { .description = ""                               }
+        }
+    },
+    {
+        .name = "codepage",
+        .description = "Hardware font",
+        .type = CONFIG_SELECTION,
+        .default_string = "",
+        .default_int = 3,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "US English", .value = 3 },
+            { .description = "Danish",     .value = 1 },
+            { .description = "Greek",      .value = 0 },
+            { .description = ""                       }
+        }
+    },
+    {
+        .name = "language",
+        .description = "BIOS language",
+        .type = CONFIG_SELECTION,
+        .default_string = "",
+        .default_int = 7,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "English",         .value = 7 },
+            { .description = "German",          .value = 6 },
+            { .description = "French",          .value = 5 },
+            { .description = "Spanish",         .value = 4 },
+            { .description = "Danish",          .value = 3 },
+            { .description = "Swedish",         .value = 2 },
+            { .description = "Italian",         .value = 1 },
+            { .description = "Diagnostic mode", .value = 0 },
+            { .description = ""                            }
+        }
+    },
+    { .name = "", .description = "", .type = -1 }
 };
-
 
 static const device_t vid_1512_device = {
-    "Amstrad PC1512 (video)",
-    "vid_1512",
-    0, 0,
-    NULL, vid_close_1512, NULL,
-    { NULL },
-    vid_speed_change_1512,
-    NULL,
-    vid_1512_config
+    .name = "Amstrad PC1512 (video)",
+    .internal_name = "vid_1512",
+    .flags = 0,
+    .local = 0,
+    .init = NULL,
+    .close = vid_close_1512,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = vid_speed_change_1512,
+    .force_redraw = NULL,
+    .config = vid_1512_config
 };
-
 
 const device_t *
 pc1512_get_device(void)
@@ -898,55 +882,42 @@ vid_speed_changed_1640(void *priv)
     recalc_timings_1640(vid);
 }
 
-
-device_config_t vid_1640_config[] =
-{
-	{
-        "language", "BIOS language", CONFIG_SELECTION, "", 7, "", { 0 },
-		{
-			{
-				"English", 7
-			},
-			{
-				"German", 6
-			},
-			{
-				"French", 5
-			},
-			{
-				"Spanish", 4
-			},
-			{
-				"Danish", 3
-			},
-			{
-				"Swedish", 2
-			},
-			{
-				"Italian", 1
-			},
-			{
-				"Diagnostic mode", 0
-			},
-			{
-                ""
-			}
-		}
-	},
-        {
-                "", "", -1
+device_config_t vid_1640_config[] = {
+    {
+        .name = "language",
+        .description = "BIOS language",
+        .type = CONFIG_SELECTION,
+        .default_string = "",
+        .default_int = 7,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "English",         .value = 7 },
+            { .description = "German",          .value = 6 },
+            { .description = "French",          .value = 5 },
+            { .description = "Spanish",         .value = 4 },
+            { .description = "Danish",          .value = 3 },
+            { .description = "Swedish",         .value = 2 },
+            { .description = "Italian",         .value = 1 },
+            { .description = "Diagnostic mode", .value = 0 },
+            { .description = ""                            }
         }
+    },
+    { .name = "", .description = "", .type = -1 }
 };
 
 static const device_t vid_1640_device = {
-    "Amstrad PC1640 (video)",
-    "vid_1640",
-    0, 0,
-    NULL, vid_close_1640, NULL,
-    { NULL },
-    vid_speed_changed_1640,
-    NULL,
-    vid_1640_config
+    .name = "Amstrad PC1640 (video)",
+    .internal_name = "vid_1640",
+    .flags = 0,
+    .local = 0,
+    .init = NULL,
+    .close = vid_close_1640,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = vid_speed_changed_1640,
+    .force_redraw = NULL,
+    .config = vid_1640_config
 };
 
 const device_t *
@@ -1744,121 +1715,95 @@ vid_close_200(void *priv)
 }
 
 
-device_config_t vid_200_config[] =
-{
-	/* TODO: Should have options here for:
-	*
-	*	> Display port (TTL or RF)
-	*/
-	{
-		"video_emulation", "Display type", CONFIG_SELECTION, "", PC200_CGA, "", { 0 },
-		{
-			{
-				"CGA monitor", PC200_CGA
-			},
-			{
-				"MDA monitor", PC200_MDA
-			},
-			{
-				"Television", PC200_TV
-			},
-			{
-				""
-			}
-		}
-	},
-        {
-		"display_type", "Monitor type", CONFIG_SELECTION, "", 0, "", { 0 },
-		{
-			{
-					"RGB", 0
-			},
-			{
-					"RGB (no brown)", 4
-			},
-			{
-					"Green Monochrome", 1
-			},
-			{
-					"Amber Monochrome", 2
-			},
-			{
-					"White Monochrome", 3
-			},
-			{
-				   ""
-			}
-		}
-        },
-        {
-		"codepage", "Hardware font", CONFIG_SELECTION, "", 3, "", { 0 },
-		{
-			{
-				"US English", 3
-			},
-			{
-				"Portugese", 2
-			},
-			{
-				"Norwegian", 1
-			},
-			{
-				"Greek", 0
-			},
-			{
-				""
-			}
-		}
-	},
-	{
-        "language", "BIOS language", CONFIG_SELECTION, "", 7, "", { 0 },
-		{
-			{
-				"English", 7
-			},
-			{
-				"German", 6
-			},
-			{
-				"French", 5
-			},
-			{
-				"Spanish", 4
-			},
-			{
-				"Danish", 3
-			},
-			{
-				"Swedish", 2
-			},
-			{
-				"Italian", 1
-			},
-			{
-				"Diagnostic mode", 0
-			},
-			{
-                ""
-			}
-		}
-	},
-        {
-                "", "", -1
+device_config_t vid_200_config[] = {
+    /* TODO: Should have options here for:
+     *
+     * > Display port (TTL or RF)
+     */
+    {
+        .name = "video_emulation",
+        .description = "Display type",
+        .type = CONFIG_SELECTION,
+        .default_string = "",
+        .default_int = PC200_CGA,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "CGA monitor", .value = PC200_CGA },
+            { .description = "MDA monitor", .value = PC200_MDA },
+            { .description = "Television",  .value = PC200_TV  },
+            { .description = ""                                }
         }
+    },
+    {
+        .name = "display_type",
+        .description = "Monitor type",
+        .type = CONFIG_SELECTION,
+        .default_string = "",
+        .default_int = 0,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "RGB",              .value = 0 },
+            { .description = "RGB (no brown)",   .value = 4 },
+            { .description = "Green Monochrome", .value = 1 },
+            { .description = "Amber Monochrome", .value = 2 },
+            { .description = "White Monochrome", .value = 3 },
+            { .description = ""                             }
+        }
+    },
+    {
+        .name = "codepage",
+        .description = "Hardware font",
+        .type = CONFIG_SELECTION,
+        .default_string = "",
+        .default_int = 3,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "US English", .value = 3 },
+            { .description = "Portugese",  .value = 2 },
+            { .description = "Norwegian",  .value = 1 },
+            { .description = "Greek",      .value = 0 },
+            { .description = ""                       }
+        }
+    },
+    {
+        .name = "language",
+        .description = "BIOS language",
+        .type = CONFIG_SELECTION,
+        .default_string = "",
+        .default_int = 7,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "English",         .value = 7 },
+            { .description = "German",          .value = 6 },
+            { .description = "French",          .value = 5 },
+            { .description = "Spanish",         .value = 4 },
+            { .description = "Danish",          .value = 3 },
+            { .description = "Swedish",         .value = 2 },
+            { .description = "Italian",         .value = 1 },
+            { .description = "Diagnostic mode", .value = 0 },
+            { .description = ""                            }
+        }
+    },
+    { .name = "", .description = "", .type = -1 }
 };
-
 
 static const device_t vid_200_device = {
-    "Amstrad PC200 (video)",
-    "vid_200",
-    0, 0,
-    NULL, vid_close_200, NULL,
-    { NULL },
-    vid_speed_changed_200,
-    NULL,
-    vid_200_config
+    .name = "Amstrad PC200 (video)",
+    .internal_name = "vid_200",
+    .flags = 0,
+    .local = 0,
+    .init = NULL,
+    .close = vid_close_200,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = vid_speed_changed_200,
+    .force_redraw = NULL,
+    .config = vid_200_config
 };
-
 
 const device_t *
 pc200_get_device(void)
@@ -1866,127 +1811,103 @@ pc200_get_device(void)
     return(&vid_200_device);
 }
 
-
-device_config_t vid_ppc512_config[] =
-{
-	/* TODO: Should have options here for:
-	*
-	*	> Display port (TTL or RF)
-	*/
-	{
-		"video_emulation", "Display type", CONFIG_SELECTION, "", PC200_LCDC, "", { 0 },
-		{
-			{
-				"CGA monitor", PC200_CGA
-			},
-			{
-				"MDA monitor", PC200_MDA
-			},
-			{
-				"LCD (CGA mode)", PC200_LCDC
-			},
-			{
-				"LCD (MDA mode)", PC200_LCDM
-			},
-		{
-				""
-			}
-		},
-	},
-        {
-                "display_type", "Monitor type", CONFIG_SELECTION, "", 0, "", { 0 },
-                {
-                        {
-                                "RGB", 0
-                        },
-                        {
-                                "RGB (no brown)", 4
-                        },
-                        {
-                                "Green Monochrome", 1
-                        },
-                        {
-                                "Amber Monochrome", 2
-                        },
-                        {
-                                "White Monochrome", 3
-                        },
-                        {
-                                ""
-                        }
-                },
+device_config_t vid_ppc512_config[] = {
+    /* TODO: Should have options here for:
+     *
+     * > Display port (TTL or RF)
+     */
+    {
+        .name = "video_emulation",
+        .description = "Display type",
+        .type = CONFIG_SELECTION,
+        .default_string = "",
+        .default_int = PC200_LCDC,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "CGA monitor",    .value = PC200_CGA  },
+            { .description = "MDA monitor",    .value = PC200_MDA  },
+            { .description = "LCD (CGA mode)", .value = PC200_LCDC },
+            { .description = "LCD (MDA mode)", .value = PC200_LCDM },
+            { .description = ""                                    }
         },
-        {
-                "codepage", "Hardware font", CONFIG_SELECTION, "", 3, "", { 0 },
-				{
-					{
-						"US English", 3
-					},
-					{
-						"Portugese", 2
-					},
-					{
-						"Norwegian",1
-					},
-					{
-						"Greek", 0
-					},
-					{
-						""
-					}
-				},
+    },
+    {
+        .name = "display_type",
+        .description = "Monitor type",
+        .type = CONFIG_SELECTION,
+        .default_string = "",
+        .default_int = 0,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "RGB",              .value = 0 },
+            { .description = "RGB (no brown)",   .value = 4 },
+            { .description = "Green Monochrome", .value = 1 },
+            { .description = "Amber Monochrome", .value = 2 },
+            { .description = "White Monochrome", .value = 3 },
+            { .description = ""                             }
         },
-	{
-        "language", "BIOS language", CONFIG_SELECTION, "", 7, "", { 0 },
-		{
-			{
-				"English", 7
-			},
-			{
-				"German", 6
-			},
-			{
-				"French", 5
-			},
-			{
-				"Spanish", 4
-			},
-			{
-				"Danish", 3
-			},
-			{
-				"Swedish", 2
-			},
-			{
-				"Italian", 1
-			},
-			{
-				"Diagnostic mode", 0
-			},
-			{
-                ""
-			}
-		}
-	},
-	{
-		"invert", "Invert LCD colors", CONFIG_BINARY, "", 0
-	},
-        {
-                "", "", -1
+    },
+    {
+        .name = "codepage",
+        .description = "Hardware font",
+        .type = CONFIG_SELECTION,
+        .default_string = "",
+        .default_int = 3,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "US English", .value = 3 },
+            { .description = "Portugese",  .value = 2 },
+            { .description = "Norwegian",  .value = 1 },
+            { .description = "Greek",      .value = 0 },
+            { .description = ""                       }
+        },
+    },
+    {
+        .name = "language",
+        .description = "BIOS language",
+        .type = CONFIG_SELECTION,
+        .default_string = "",
+        .default_int = 7,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "English",         .value = 7 },
+            { .description = "German",          .value = 6 },
+            { .description = "French",          .value = 5 },
+            { .description = "Spanish",         .value = 4 },
+            { .description = "Danish",          .value = 3 },
+            { .description = "Swedish",         .value = 2 },
+            { .description = "Italian",         .value = 1 },
+            { .description = "Diagnostic mode", .value = 0 },
+            { .description = ""                            }
         }
+    },
+    {
+        .name = "invert",
+        .description = "Invert LCD colors",
+        .type = CONFIG_BINARY,
+        .default_string = "",
+        .default_int = 0
+    },
+    { .name = "", .description = "", .type = -1 }
 };
 
 static const device_t vid_ppc512_device = {
-    "Amstrad PPC512 (video)",
-    "vid_ppc512",
-    0, 0,
-    NULL, vid_close_200, NULL,
-    { NULL },
-    vid_speed_changed_200,
-    NULL,
-    vid_ppc512_config
+    .name = "Amstrad PPC512 (video)",
+    .internal_name = "vid_ppc512",
+    .flags = 0,
+    .local = 0,
+    .init = NULL,
+    .close = vid_close_200,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = vid_speed_changed_200,
+    .force_redraw = NULL,
+    .config = vid_ppc512_config
 };
-
 
 const device_t *
 ppc512_get_device(void)
@@ -1994,39 +1915,37 @@ ppc512_get_device(void)
     return(&vid_ppc512_device);
 }
 
-
-device_config_t vid_pc2086_config[] =
-{
-	{
-        "language", "BIOS language", CONFIG_SELECTION, "", 7, "", { 0 },
-		{
-			{
-				"English", 7
-			},
-			{
-				"Diagnostic mode", 0
-			},
-			{
-                ""
-			}
-		}
-	},
-        {
-                "", "", -1
+device_config_t vid_pc2086_config[] = {
+    {
+        .name = "language",
+        .description = "BIOS language",
+        .type = CONFIG_SELECTION,
+        .default_string = "",
+        .default_int = 7,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "English",         .value = 7 },
+            { .description = "Diagnostic mode", .value = 0 },
+            { .description = ""                            }
         }
+    },
+    { "", "", -1 }
 };
 
 static const device_t vid_pc2086_device = {
-    "Amstrad PC2086",
-    "vid_pc2086",
-    0, 0,
-    NULL, NULL, NULL,
-    { NULL },
-    NULL,
-    NULL,
-    vid_pc2086_config
+    .name = "Amstrad PC2086",
+    .internal_name = "vid_pc2086",
+    .flags = 0,
+    .local = 0,
+    .init = NULL,
+    .close = NULL,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = vid_pc2086_config
 };
-
 
 const device_t *
 pc2086_get_device(void)
@@ -2034,39 +1953,37 @@ pc2086_get_device(void)
     return(&vid_pc2086_device);
 }
 
-
-device_config_t vid_pc3086_config[] =
-{
-	{
-        "language", "BIOS language", CONFIG_SELECTION, "", 7, "", { 0 },
-		{
-			{
-				"English", 7
-			},
-			{
-				"Diagnostic mode", 3
-			},
-			{
-                ""
-			}
-		}
-	},
-        {
-                "", "", -1
+device_config_t vid_pc3086_config[] = {
+    {
+        .name = "language",
+        .description = "BIOS language",
+        .type = CONFIG_SELECTION,
+        .default_string = "",
+        .default_int = 7,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "English",         .value = 7 },
+            { .description = "Diagnostic mode", .value = 3 },
+            { .description = ""                            }
         }
+    },
+    { .name = "", .description = "", .type = -1 }
 };
 
 static const device_t vid_pc3086_device = {
-    "Amstrad PC3086",
-    "vid_pc3086",
-    0, 0,
-    NULL, NULL, NULL,
-    { NULL },
-    NULL,
-    NULL,
-    vid_pc3086_config
+    .name = "Amstrad PC3086",
+    .internal_name = "vid_pc3086",
+    .flags = 0,
+    .local = 0,
+    .init = NULL,
+    .close = NULL,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = vid_pc3086_config
 };
-
 
 const device_t *
 pc3086_get_device(void)

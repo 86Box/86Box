@@ -1613,79 +1613,72 @@ acpi_init(const device_t *info)
     return dev;
 }
 
-const device_t acpi_ali_device =
-{
-    "ALi M7101 ACPI",
-    "acpi_ali",
-    DEVICE_PCI,
-    VEN_ALI,
-    acpi_init,
-    acpi_close,
-    acpi_reset,
-    { NULL },
-    acpi_speed_changed,
-    NULL,
-    NULL
+const device_t acpi_ali_device = {
+    .name = "ALi M7101 ACPI",
+    .internal_name = "acpi_ali",
+    .flags = DEVICE_PCI,
+    .local = VEN_ALI,
+    .init = acpi_init,
+    .close = acpi_close,
+    .reset = acpi_reset,
+    { .available = NULL },
+    .speed_changed = acpi_speed_changed,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
-const device_t acpi_intel_device =
-{
-    "Intel ACPI",
-    "acpi_intel",
-    DEVICE_PCI,
-    VEN_INTEL,
-    acpi_init,
-    acpi_close,
-    acpi_reset,
-    { NULL },
-    acpi_speed_changed,
-    NULL,
-    NULL
+const device_t acpi_intel_device = {
+    .name = "Intel ACPI",
+    .internal_name = "acpi_intel",
+    .flags = DEVICE_PCI,
+    .local = VEN_INTEL,
+    .init = acpi_init,
+    .close = acpi_close,
+    .reset = acpi_reset,
+    { .available = NULL },
+    .speed_changed = acpi_speed_changed,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
-const device_t acpi_via_device =
-{
-    "VIA ACPI",
-    "acpi_via",
-    DEVICE_PCI,
-    VEN_VIA,
-    acpi_init,
-    acpi_close,
-    acpi_reset,
-    { NULL },
-    acpi_speed_changed,
-    NULL,
-    NULL
+const device_t acpi_via_device = {
+    .name = "VIA ACPI",
+    .internal_name = "acpi_via",
+    .flags = DEVICE_PCI,
+    .local = VEN_VIA,
+    .init = acpi_init,
+    .close = acpi_close,
+    .reset = acpi_reset,
+    { .available = NULL },
+    .speed_changed = acpi_speed_changed,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
-
-const device_t acpi_via_596b_device =
-{
-    "VIA VT82C596 ACPI",
-    "acpi_via_596b",
-    DEVICE_PCI,
-    VEN_VIA_596B,
-    acpi_init,
-    acpi_close,
-    acpi_reset,
-    { NULL },
-    acpi_speed_changed,
-    NULL,
-    NULL
+const device_t acpi_via_596b_device = {
+    .name = "VIA VT82C596 ACPI",
+    .internal_name = "acpi_via_596b",
+    .flags = DEVICE_PCI,
+    .local = VEN_VIA_596B,
+    .init = acpi_init,
+    .close = acpi_close,
+    .reset = acpi_reset,
+    { .available = NULL },
+    .speed_changed = acpi_speed_changed,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
-
-const device_t acpi_smc_device =
-{
-    "SMC FDC73C931APM ACPI",
-    "acpi_smc",
-    DEVICE_PCI,
-    VEN_SMC,
-    acpi_init,
-    acpi_close,
-    acpi_reset,
-    { NULL },
-    acpi_speed_changed,
-    NULL,
-    NULL
+const device_t acpi_smc_device = {
+    .name = "SMC FDC73C931APM ACPI",
+    .internal_name = "acpi_smc",
+    .flags = DEVICE_PCI,
+    .local = VEN_SMC,
+    .init = acpi_init,
+    .close = acpi_close,
+    .reset = acpi_reset,
+    { .available = NULL },
+    .speed_changed = acpi_speed_changed,
+    .force_redraw = NULL,
+    .config = NULL
 };

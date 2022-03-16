@@ -310,14 +310,15 @@ opti822_init(const device_t *info)
 }
 
 const device_t opti822_device = {
-    "OPTi 82C822 PCIB",
-    "opti822",
-    DEVICE_PCI,
-    0,
-    opti822_init,
-    opti822_close,
-    opti822_reset,
-    {NULL},
-    NULL,
-    NULL,
-    NULL};
+    .name = "OPTi 82C822 PCIB",
+    .internal_name = "opti822",
+    .flags = DEVICE_PCI,
+    .local = 0,
+    .init = opti822_init,
+    .close = opti822_close,
+    .reset = opti822_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
+};
