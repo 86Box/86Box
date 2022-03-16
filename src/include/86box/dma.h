@@ -66,6 +66,7 @@ typedef struct {
 
 extern dma_t	dma[8];
 extern uint8_t	dma_e;
+extern uint8_t	dma_m;
 
 
 extern void	dma_init(void);

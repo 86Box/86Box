@@ -82,7 +82,9 @@ int JoystickConfiguration::selectedPov(int pov) {
 void JoystickConfiguration::on_comboBoxDevice_currentIndexChanged(int index) {
     for (auto w : widgets) {
         ui->ct->removeWidget(w);
+        w->deleteLater();
     }
+    widgets.clear();
 
     if (index == 0) {
         return;

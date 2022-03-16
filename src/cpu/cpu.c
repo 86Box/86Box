@@ -36,6 +36,7 @@
 #include <86box/nmi.h>
 #include <86box/pic.h>
 #include <86box/pci.h>
+#include <86box/gdbstub.h>
 #ifdef USE_DYNAREC
 # include "codegen.h"
 #endif
@@ -1383,6 +1384,7 @@ cpu_set(void)
 	cpu_exec = exec386;
     else
 	cpu_exec = execx86;
+    gdbstub_cpu_init();
 }
 
 

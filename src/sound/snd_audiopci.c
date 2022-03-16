@@ -2087,6 +2087,17 @@ static const device_config_t es1371_config[] = {
 // clang-format on
 };
 
+static const device_config_t es1371_onboard_config[] = {
+// clang-format off
+    {
+        "receive_input", "Receive input (MIDI)", CONFIG_BINARY, "", 1
+    },
+    {
+    "", "", -1
+    }
+// clang-format on
+};
+
 const device_t es1371_device = {
     .name = "Ensoniq AudioPCI (ES1371)",
     .internal_name = "es1371",
@@ -2112,5 +2123,5 @@ const device_t es1371_onboard_device = {
     { .available = NULL },
     .speed_changed = es1371_speed_changed,
     .force_redraw = NULL,
-    .config = NULL
+    .config = es1371_onboard_config
 };

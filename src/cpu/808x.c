@@ -34,6 +34,7 @@
 #include <86box/pic.h>
 #include <86box/ppi.h>
 #include <86box/timer.h>
+#include <86box/gdbstub.h>
 
 /* Is the CPU 8088 or 8086. */
 int is8086 = 0;
@@ -2832,5 +2833,10 @@ execx86(int cycs)
 
 		cpu_alu_op = 0;
 	}
+
+#ifdef USE_GDBSTUB
+	if (gdbstub_instruction())
+		return;
+#endif
     }
 }

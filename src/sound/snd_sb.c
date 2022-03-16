@@ -376,9 +376,14 @@ sb_get_buffer_sb16_awe32(int32_t *buffer, int len, void *p)
         in_r = (mixer->input_selector_right & INPUT_MIDI_L) ? ((int32_t) out_l) : 0 + (mixer->input_selector_right & INPUT_MIDI_R) ? ((int32_t) out_r)
                                                                                                                                    : 0;
 
-        /* We divide by 3 to get the volume down to normal. */
-        out_l += (low_fir_sb16(0, 0, (double) sb->dsp.buffer[c]) * mixer->voice_l) / 3.0;
-        out_r += (low_fir_sb16(0, 1, (double) sb->dsp.buffer[c + 1]) * mixer->voice_r) / 3.0;
+        if (mixer->output_filter) {
+                /* We divide by 3 to get the volume down to normal. */
+                out_l += (low_fir_sb16(0, 0, (double) sb->dsp.buffer[c]) * mixer->voice_l) / 3.0;
+                out_r += (low_fir_sb16(0, 1, (double) sb->dsp.buffer[c + 1]) * mixer->voice_r) / 3.0;
+        } else {
+                out_l += (((double) sb->dsp.buffer[c]) * mixer->voice_l) / 3.0;
+                out_r += (((double) sb->dsp.buffer[c + 1]) * mixer->voice_r) / 3.0;
+        }
 
         out_l *= mixer->master_l;
         out_r *= mixer->master_r;
@@ -459,7 +464,7 @@ sb_get_buffer_sb16_awe32(int32_t *buffer, int len, void *p)
         sb->emu8k.pos = 0;
 }
 
-static void
+void
 sb16_awe32_filter_cd_audio(int channel, double *buffer, void *p)
 {
     sb_t              *sb    = (sb_t *) p;
@@ -472,7 +477,10 @@ sb16_awe32_filter_cd_audio(int channel, double *buffer, void *p)
     double             bass_treble;
     double             output_gain = (channel ? mixer->output_gain_R : mixer->output_gain_L);
 
-    c = (low_fir_sb16(1, channel, *buffer) * cd) / 3.0;
+    if (mixer->output_filter)
+        c = (low_fir_sb16(1, channel, *buffer) * cd) / 3.0;
+    else
+        c = ((*buffer) * cd) / 3.0;
     c *= master;
 
     /* This is not exactly how one does bass/treble controls, but the end result is like it.
@@ -706,7 +714,7 @@ sb_ct1345_mixer_reset(sb_t *sb)
     sb_ct1345_mixer_write(5, 0, sb);
 }
 
-static void
+void
 sb_ct1745_mixer_write(uint16_t addr, uint8_t val, void *p)
 {
     sb_t              *sb    = (sb_t *) p;
@@ -876,7 +884,7 @@ sb_ct1745_mixer_write(uint16_t addr, uint8_t val, void *p)
     }
 }
 
-static uint8_t
+uint8_t
 sb_ct1745_mixer_read(uint16_t addr, void *p)
 {
     sb_t              *sb    = (sb_t *) p;
@@ -1046,7 +1054,7 @@ sb_ct1745_mixer_read(uint16_t addr, void *p)
     return ret;
 }
 
-static void
+void
 sb_ct1745_mixer_reset(sb_t *sb)
 {
     sb_ct1745_mixer_write(4, 0, sb);
@@ -1757,10 +1765,9 @@ sb_16_init(const device_t *info)
     }
 
     sb->mixer_enabled = 1;
-    io_sethandler(addr + 4, 0x0002,
-                  sb_ct1745_mixer_read, NULL, NULL,
-                  sb_ct1745_mixer_write, NULL, NULL,
-                  sb);
+    sb->mixer_sb16.output_filter = 1;
+    io_sethandler(addr + 4, 0x0002, sb_ct1745_mixer_read,  NULL, NULL,
+                                    sb_ct1745_mixer_write, NULL, NULL, sb);
     sound_add_handler(sb_get_buffer_sb16_awe32, sb);
     sound_set_cd_audio_filter(sb16_awe32_filter_cd_audio, sb);
 
@@ -1791,6 +1798,7 @@ sb_16_pnp_init(const device_t *info)
     sb_ct1745_mixer_reset(sb);
 
     sb->mixer_enabled = 1;
+    sb->mixer_sb16.output_filter = 1;
     sound_add_handler(sb_get_buffer_sb16_awe32, sb);
     sound_set_cd_audio_filter(sb16_awe32_filter_cd_audio, sb);
 
@@ -1810,6 +1818,29 @@ sb_16_pnp_init(const device_t *info)
 
     return sb;
 }
+
+static void *
+sb_16_compat_init(const device_t *info)
+{
+    sb_t *sb = malloc(sizeof(sb_t));
+    memset(sb, 0, sizeof(sb_t));
+
+    opl3_init(&sb->opl);
+
+    sb_dsp_init(&sb->dsp, SB16, SB_SUBTYPE_DEFAULT, sb);
+    sb_ct1745_mixer_reset(sb);
+
+    sb->mixer_enabled = 1;
+    sound_add_handler(sb_get_buffer_sb16_awe32, sb);
+
+    sb->mpu = (mpu_t *) malloc(sizeof(mpu_t));
+    memset(sb->mpu, 0, sizeof(mpu_t));
+    mpu401_init(sb->mpu, 0, 0, M_UART, info->local);
+    sb_dsp_set_mpu(&sb->dsp, sb->mpu);
+
+    return sb;
+}
+
 
 static int
 sb_awe32_available()
@@ -1885,10 +1916,9 @@ sb_awe32_init(const device_t *info)
     }
 
     sb->mixer_enabled = 1;
-    io_sethandler(addr + 4, 0x0002,
-                  sb_ct1745_mixer_read, NULL, NULL,
-                  sb_ct1745_mixer_write, NULL, NULL,
-                  sb);
+    sb->mixer_sb16.output_filter = 1;
+    io_sethandler(addr + 4, 0x0002, sb_ct1745_mixer_read,  NULL, NULL,
+                                    sb_ct1745_mixer_write, NULL, NULL, sb);
     sound_add_handler(sb_get_buffer_sb16_awe32, sb);
     sound_set_cd_audio_filter(sb16_awe32_filter_cd_audio, sb);
 
@@ -1923,6 +1953,7 @@ sb_awe32_pnp_init(const device_t *info)
     sb_ct1745_mixer_reset(sb);
 
     sb->mixer_enabled = 1;
+    sb->mixer_sb16.output_filter = 1;
     sound_add_handler(sb_get_buffer_sb16_awe32, sb);
     sound_set_cd_audio_filter(sb16_awe32_filter_cd_audio, sb);
 
@@ -2531,6 +2562,36 @@ const device_t sb_16_pnp_device = {
     .speed_changed = sb_speed_changed,
     .force_redraw = NULL,
     .config = sb_16_pnp_config
+};
+
+const device_t sb_16_compat_device =
+{
+    .name = "Sound Blaster 16 (Compatibility)",
+    .internal_name = "sb16_compat",
+    .flags = DEVICE_ISA | DEVICE_AT,
+    .local = 1,
+    .init = sb_16_compat_init,
+    .close = sb_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = sb_speed_changed,
+    .force_redraw = NULL,
+    .config = NULL
+};
+
+const device_t sb_16_compat_nompu_device =
+{
+    .name = "Sound Blaster 16 (Compatibility - MPU-401 Off)",
+    .internal_name = "sb16_compat",
+    .flags = DEVICE_ISA | DEVICE_AT,
+    .local = 0,
+    .init = sb_16_compat_init,
+    .close = sb_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed =sb_speed_changed,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
 const device_t sb_32_pnp_device = {

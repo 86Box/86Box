@@ -213,7 +213,7 @@ const machine_t machines[] = {
     { "[8088] Tandy 1000",			"tandy",		MACHINE_TYPE_8088,	MACHINE_CHIPSET_PROPRIETARY,			   machine_tandy_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_8088_EUROPC, 0, 0, 0, 0, 0, 0, 0,									MACHINE_PC,		MACHINE_VIDEO_FIXED,					  128,   640, 128,    0, KBC_TANDY,			0xff00, 0xffffffff,	NULL,				tandy1k_get_device		},
     { "[8088] Tandy 1000 HX",			"tandy1000hx",		MACHINE_TYPE_8088,	MACHINE_CHIPSET_PROPRIETARY,		     machine_tandy1000hx_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_8088_EUROPC, 0, 0, 0, 0, 0, 0, 0,									MACHINE_PC,		MACHINE_VIDEO_FIXED,					  256,   640, 128,    0, KBC_TANDY,			0xff00, 0xffffffff,	NULL,				tandy1k_hx_get_device		},
     { "[8088] Toshiba T1000",			"t1000",		MACHINE_TYPE_8088,	MACHINE_CHIPSET_PROPRIETARY,			machine_xt_t1000_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_8088, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC,		MACHINE_VIDEO,						  512,  1280, 768,   63, KBC_IBM_PC_XT,			0xff00, 0xffffffff,	NULL,				t1000_get_device		},
-    { "[8088] Vendex HeadStart Turbo 888-XT","vendex",		MACHINE_TYPE_8088,		CPU_PKG_8088, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC,									   256,   768, 256,    0,		machine_xt_vendex_init, NULL			},
+    { "[8088] Vendex HeadStart Turbo 888-XT",	"vendex",		MACHINE_TYPE_8088,	MACHIEN_CHIPSET_PROPRIETARY		       machine_xt_vendex_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_8088, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC,									  256,   768, 256,    0, KBC_IBM_PC_XT,			0xff00, 0xffffffff,	NULL,				NULL				},
 #if defined(DEV_BRANCH) && defined(USE_LASERXT)
     { "[8088] VTech Laser Turbo XT",		"ltxt",			MACHINE_TYPE_8088,	MACHINE_CHIPSET_DISCRETE,		      machine_xt_laserxt_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_8088, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC,		0,							  256,   640, 256,    0, KBC_IBM_PC_XT,			0xff00, 0xffffffff,	NULL,				NULL				},
 #endif
@@ -998,7 +998,7 @@ const machine_t machines[] = {
     { "[VIA Apollo Pro 133A] Acorp 6VIA90AP",	"6via90ap",		MACHINE_TYPE_SOCKET370,	MACHINE_CHIPSET_VIA_APOLLO_PRO_133A,	     machine_at_6via90ap_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_SOCKET370, 0, 66666667, 150000000, 1300, 3500, MACHINE_MULTIPLIER_FIXED,				MACHINE_PS2_A97,	MACHINE_IDE_DUAL | MACHINE_AG,				16384,3145728, 8192, 255, NULL				},
     /* Has the VIA VT82C686B southbridge with on-chip KBC identical to the VIA
        VT82C42N. */
-    { "[VIA Apollo Pro 133A] ASUS CUV4X-LS",	"cuv4xls",		MACHINE_TYPE_SOCKET370,	MACHINE_CHIPSET_VIA_APOLLO_PRO_133A,	      machine_at_cuv4xls_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_SOCKET370, 0, 66666667, 150000000, 1300, 3500, 1.5, 8.0,						MACHINE_PS2_NOI97,	MACHINE_IDE_DUAL,					16384,4194304, 8192, 255, NULL				},
+    { "[VIA Apollo Pro 133A] ASUS CUV4X-LS",	"cuv4xls",		MACHINE_TYPE_SOCKET370,	MACHINE_CHIPSET_VIA_APOLLO_PRO_133A,	      machine_at_cuv4xls_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_SOCKET370, 0, 66666667, 150000000, 1300, 3500, 1.5, 8.0,						MACHINE_PS2_NOI97,	MACHINE_IDE_DUAL,					16384,4194304, 8192, 255, at_cuv4xls_get_device		},
     /* Has a Winbond W83977EF Super I/O chip with on-chip KBC with AMIKey-2 KBC
        firmware. */
     { "[VIA Apollo Pro 133A] BCM GT694VA",	"gt694va",		MACHINE_TYPE_SOCKET370,	MACHINE_CHIPSET_VIA_APOLLO_PRO_133A,	      machine_at_gt694va_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_SOCKET370, 0, 66666667, 133333333, 1300, 3500, 1.5, 8.0,						MACHINE_PS2_AGP,	MACHINE_IDE_DUAL | MACHINE_SOUND,			16384,3145728, 8192, 255, at_gt694va_get_device		},

@@ -26,6 +26,7 @@
 #include <86box/fdd.h>
 #include <86box/fdc.h>
 #include <86box/machine.h>
+#include <86box/gdbstub.h>
 #ifdef USE_DYNAREC
 #include "codegen.h"
 #ifdef USE_NEW_DYNAREC
@@ -858,6 +859,11 @@ exec386_dynarec(int cycs)
 			if (TIMER_VAL_LESS_THAN_VAL(timer_target, (uint32_t) tsc))
 				timer_process_inline();
 		}
+
+#ifdef USE_GDBSTUB
+		if (gdbstub_instruction())
+			return;
+#endif
 	}
 
 	cycles_main -= (cycles_start - cycles);
