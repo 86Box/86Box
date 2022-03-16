@@ -283,7 +283,7 @@ then
 		if [ $? -ne 0 ]
 		then
 			# Install packages individually if installing them all together failed.
-			for pkg in pkgs
+			for pkg in $pkgs
 			do
 				yes | pacman -U --needed "$pkg"
 			done
@@ -306,7 +306,7 @@ then
 	if [ $? -ne 0 ]
 	then
 		# Install packages individually if installing them all together failed.
-		for pkg in pkgs
+		for pkg in $pkgs
 		do
 			yes | pacman -S --needed "$pkg"
 		done
