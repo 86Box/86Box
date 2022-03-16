@@ -222,6 +222,7 @@ then
 	echo -n [-] Downloading dependencies:
 	pkg_dir="/var/cache/pacman/pkg"
 	repo_base="https://repo.msys2.org/mingw/$(echo $MSYSTEM | tr '[:upper:]' '[:lower:]')"
+	cat .ci/dependencies_msys.txt | tr -d '\r' > deps.txt
 	pkgs=""
 	while IFS=" " read pkg version
 	do
@@ -269,7 +270,7 @@ then
 			fi
 			echo -n "]"
 		fi
-	done < <(cat .ci/dependencies_msys.txt | tr -d '\r')
+	done < deps.txt
 	[ -z "$pkgs" ] && echo -n none required
 	echo
 
@@ -299,8 +300,8 @@ then
 	do
 		prefixed_pkg="$MINGW_PACKAGE_PREFIX-$pkg"
 		grep -qE "^$prefixed_pkg " pacman.txt || pkgs="$pkgs $prefixed_pkg"
-	done < <(cat .ci/dependencies_msys.txt | tr -d '\r')
-	rm -f pacman.txt
+	done < deps.txt
+	rm -f pacman.txt deps.txt
 	yes | pacman -S --needed $pkgs
 	if [ $? -ne 0 ]
 	then
