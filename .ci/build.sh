@@ -271,7 +271,7 @@ then
 			echo -n "]"
 		fi
 	done < deps.txt
-	[ -z "$pkgs" ] && echo -n none required
+	[ -z "$pkgs" ] && echo -n ' none required'
 	echo
 
 	# Install the downloaded architecture-specific dependencies.
