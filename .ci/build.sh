@@ -301,7 +301,7 @@ then
 		prefixed_pkg="$MINGW_PACKAGE_PREFIX-$pkg"
 		grep -qE "^$prefixed_pkg " pacman.txt || pkgs="$pkgs $prefixed_pkg"
 	done < deps.txt
-	rm -f deps.txt pacman.txt
+	rm -f pacman.txt deps.txt
 	yes | pacman -S --needed $pkgs
 	if [ $? -ne 0 ]
 	then
