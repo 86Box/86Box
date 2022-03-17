@@ -668,36 +668,35 @@ cmi8x38_write(uint16_t addr, uint8_t val, void *priv)
             break;
 
         case 0x02:
-            /* Reset DMA channels if requested. */
-            if (val & 0x04) {
-                val &= ~0x01;
+            /* Reset or start DMA channels if requested. */
+            dev->io_regs[addr] = val & 0x03;
+            for (int i = 0; i < (sizeof(dev->dma) / sizeof(dev->dma[0])); i++) {
+                if (val & (0x04 << i)) {
+                    /* Reset DMA channel. */
+                    val &= ~(0x01 << i);
+                    dev->io_regs[0x10] &= ~(0x01 << i); /* clear interrupt */
 
-                if (dev->sb->dsp.sb_8_enable || dev->sb->dsp.sb_16_enable || dev->sb->dsp.sb_irq8 || dev->sb->dsp.sb_irq16) {
-                    dev->sb->dsp.sb_8_enable = dev->sb->dsp.sb_16_enable = dev->sb->dsp.sb_irq8 = dev->sb->dsp.sb_irq16 = 0;
-                    cmi8x38_update_irqs(dev);
+                    /* Reset Sound Blaster as well when resetting channel 0. */
+                    if ((i == 0) && (dev->sb->dsp.sb_8_enable || dev->sb->dsp.sb_16_enable || dev->sb->dsp.sb_irq8 || dev->sb->dsp.sb_irq16))
+                        dev->sb->dsp.sb_8_enable = dev->sb->dsp.sb_16_enable = dev->sb->dsp.sb_irq8 = dev->sb->dsp.sb_irq16 = 0;
+                } else if (val & (0x01 << i)) {
+                    /* Start DMA channel. */
+                    cmi8x38_log("CMI8x38: DMA %d trigger\n", i);
+                    dev->dma[i].restart = 1;
+                    cmi8x38_dma_process(&dev->dma[i]);
                 }
             }
-            if (val & 0x08)
-                val &= ~0x02;
 
+            /* Clear reset bits. */
             val &= 0x03;
-            dev->io_regs[addr] = val;
-
-            /* Start DMA channels if requested. */
-            if (val & 0x01) {
-                cmi8x38_log("CMI8x38: DMA 0 trigger\n");
-                dev->dma[0].restart = 1;
-                cmi8x38_dma_process(&dev->dma[0]);
-            }
-            if (val & 0x02) {
-                cmi8x38_log("CMI8x38: DMA 1 trigger\n");
-                dev->dma[1].restart = 1;
-                cmi8x38_dma_process(&dev->dma[1]);
-            }
 
             /* Start playback along with DMA channels. */
             if (val & 0x03)
                 cmi8x38_start_playback(dev);
+
+            /* Update interrupts. */
+            dev->io_regs[addr] = val;
+            cmi8x38_update_irqs(dev);
             break;
 
         case 0x04:
@@ -1083,9 +1082,7 @@ cmi8x38_poll(void *priv)
     int16_t       *out_l, *out_r, *out_ol, *out_or; /* o = opposite */
 
     /* Schedule next run if playback is enabled. */
-    if (dev->io_regs[0x00] & (1 << dma->id))
-        dma->playback_enabled = 0;
-    else
+    if (dma->playback_enabled)
         timer_advance_u64(&dma->poll_timer, dma->timer_latch);
 
     /* Update audio buffer. */
@@ -1134,7 +1131,7 @@ cmi8x38_poll(void *priv)
             break;
 
         case 0x03: /* Stereo, 16-bit PCM */
-            switch (dma->channels) {
+            switch (dma->channels) { /* multi-channel requires this data format */
                 case 2:
                     if ((dma->fifo_end - dma->fifo_pos) >= 4) {
                         *out_l = *((uint16_t *) &dma->fifo[dma->fifo_pos & (sizeof(dma->fifo) - 1)]);
@@ -1202,8 +1199,14 @@ cmi8x38_poll(void *priv)
 
     /* Feed silence if the FIFO is empty. */
     *out_l = *out_r = 0;
-    return;
 
+    /* Stop playback if DMA is disabled. */
+    if ((*((uint32_t *) &dev->io_regs[0x00]) & (0x00010001 << dma->id)) != (0x00010000 << dma->id)) {
+        cmi8x38_log("CMI8x38: Stopping playback of DMA channel %d\n", dma->id);
+        dma->playback_enabled = 0;
+    }
+
+    return;
 n4spk3d:
     /* Mirror front and rear channels if requested. */
     if (dev->io_regs[0x1b] & 0x04) {
@@ -1347,12 +1350,11 @@ cmi8x38_reset(void *priv)
     /* Reset DMA channels. */
     for (int i = 0; i < (sizeof(dev->dma) / sizeof(dev->dma[0])); i++) {
         dev->dma[i].playback_enabled = 0;
-
         dev->dma[i].fifo_pos = dev->dma[i].fifo_end = 0;
         memset(dev->dma[i].fifo, 0, sizeof(dev->dma[i].fifo));
     }
 
-    /* Reset legacy DMA channel. */
+    /* Reset TDMA channel. */
     dev->tdma_8    = 1;
     dev->tdma_16   = 5;
     dev->tdma_mask = 0;
