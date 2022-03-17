@@ -1263,9 +1263,11 @@ cmi8x38_speed_changed(void *priv)
             case 0x02:
                 freq = 96000.0;
                 break;
+#if 0
             case 0x03:
                 freq = 128000.0;
                 break;
+#endif
             default:
                 freq = freqs[freqreg & 0x07];
                 break;
