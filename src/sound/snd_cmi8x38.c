@@ -1,18 +1,18 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		C-Media CMI8x38 PCI audio controller emulation.
+ *          C-Media CMI8x38 PCI audio controller emulation.
  *
  *
  *
- * Authors:	RichardG, <richardg867@gmail.com>
+ * Authors: RichardG, <richardg867@gmail.com>
  *
- *		Copyright 2022 RichardG.
+ *          Copyright 2022 RichardG.
  */
 #include <stdarg.h>
 #include <stdio.h>
@@ -81,11 +81,12 @@ typedef struct _cmi8x38_ {
 
     cmi8x38_dma_t dma[2];
     uint16_t      tdma_base_addr, tdma_base_count;
-    int           tdma_8, tdma_16, tdma_mask, prev_mask;
+    int           tdma_8, tdma_16, tdma_mask, prev_mask, tdma_irq_mask;
 
     int master_vol_l, master_vol_r, cd_vol_l, cd_vol_r;
 } cmi8x38_t;
 
+#define ENABLE_CMI8X38_LOG 1
 #ifdef ENABLE_CMI8X38_LOG
 int cmi8x38_do_log = ENABLE_CMI8X38_LOG;
 
@@ -178,6 +179,18 @@ cmi8x38_sb_dma_post(cmi8x38_t *dev, uint16_t *addr, uint16_t *count, int channel
         dma[channel].cc = dma[channel].cb = *count;
     }
 
+    /* Check TDMA position update interrupt if enabled. */
+    if (dev->io_regs[0x0e] & 0x04) {
+        /* Nothing uses this; I assume it goes by the SB DSP sample counter (forwards instead of backwards). */
+        int origlength = (channel & 4) ? dev->sb->dsp.sb_16_origlength : dev->sb->dsp.sb_8_origlength,
+            length     = (channel & 4) ? dev->sb->dsp.sb_16_length : dev->sb->dsp.sb_8_length;
+        if ((origlength != length) && (((origlength - length) & dev->tdma_irq_mask) == 0)) { /* skip initial sample */
+            /* Fire the interrupt. */
+            dev->io_regs[0x11] |= (channel & 4) ? 0x40 : 0x80;
+            cmi8x38_update_irqs(dev);
+        }
+    }
+
     /* Handle end of DMA. */
     if (*count == 0xffff) {
         if (dma[channel].mode & 0x10) { /* auto-init */
@@ -193,8 +206,8 @@ cmi8x38_sb_dma_post(cmi8x38_t *dev, uint16_t *addr, uint16_t *count, int channel
             dev->tdma_mask |= 1 << channel;
         }
 
-        /* Set the mysterious LHBTOG bit, assuming it corresponds to
-           the 8237 channel status bit. Nothing appears to read it. */
+        /* Set the mysterious LHBTOG bit, assuming it corresponds
+           to the 8237 channel status bit. Nothing reads it. */
         dev->io_regs[0x10] |= 0x40;
 
         return DMA_OVER;
@@ -330,8 +343,8 @@ cmi8x38_dma_write(uint16_t addr, uint8_t val, void *priv)
                 (channel & 4) ? ((dma[channel].ab & 0xfffe0000) | ((*daddr) << 1)) : ((dma[channel].ab & 0xffff0000) | *daddr),
                 *count);
 
-    /* Clear the mysterious LHBTOG bit, assuming it corresponds to
-       the 8237 channel status bit. Nothing appears to read it. */
+    /* Clear the mysterious LHBTOG bit, assuming it corresponds
+       to the 8237 channel status bit. Nothing reads it. */
     dev->io_regs[0x10] &= ~0x40;
 }
 
@@ -445,7 +458,7 @@ cmi8x38_sb_mixer_write(uint16_t addr, uint8_t val, void *priv)
         if ((mixer->index == 0x00) || (mixer->index == 0x0e))
             sb_dsp_set_stereo(&dev->sb->dsp, mixer->regs[0x0e] & 2);
 
-        /* Set TDMA channels if autodetection is enabled. */
+        /* Set TDMA channels if auto-detection is enabled. */
         if ((dev->io_regs[0x27] & 0x01) && (mixer->index == 0x81)) {
             dev->tdma_8 = dev->sb->dsp.sb_8_dmanum;
             if (dev->sb->dsp.sb_type >= SB16)
@@ -712,8 +725,8 @@ cmi8x38_write(uint16_t addr, uint8_t val, void *priv)
 
         case 0x09:
 #if 0 /* actual CMI8338 behavior unconfirmed; this register is required for the Windows XP driver which outputs 96K */
-		if (dev->type == CMEDIA_CMI8338)
-			return;
+        if (dev->type == CMEDIA_CMI8338)
+            return;
 #endif
             /* Update sample rate. */
             dev->io_regs[addr] = val;
@@ -794,6 +807,9 @@ cmi8x38_write(uint16_t addr, uint8_t val, void *priv)
                 val &= 0x0f;
             else
                 val &= 0xdf;
+
+            /* Update the TDMA position update interrupt's sample interval. */
+            dev->tdma_irq_mask = 2047 >> ((val >> 2) & 3);
             break;
 
         case 0x19:
@@ -1008,8 +1024,7 @@ cmi8x38_dma_process(void *priv)
         /* Start DMA if requested. */
         if (dma->restart) {
             /* Set up base address and counters.
-               I have no idea how sample_count_out is supposed to work,
-               nothing consumes it, so it's implemented as an assumption. */
+               Nothing reads sample_count_out; it's implemented as an assumption. */
             dma->restart         = 0;
             dma->sample_ptr      = *((uint32_t *) &dev->io_regs[dma->reg]);
             dma->frame_count_dma = dma->sample_count_out = *((uint16_t *) &dev->io_regs[dma->reg | 0x4]) + 1;
@@ -1321,6 +1336,7 @@ cmi8x38_reset(void *priv)
     memset(dev->io_regs, 0, sizeof(dev->io_regs));
     dev->io_regs[0x0b] = (dev->type >> 8) & 0x1f;
     dev->io_regs[0x0f] = dev->type >> 16;
+    dev->tdma_irq_mask = 2047;
 
     /* Reset I/O mappings. */
     cmi8x38_remap(dev);
@@ -1422,8 +1438,8 @@ cmi8x38_close(void *priv)
 
 static const device_config_t cmi8x38_config[] = {
   // clang-format off
-    {"receive_input", "Receive input (MPU-401)", CONFIG_BINARY, "", 1 },
-    { "",             "",                                          -1 }
+    { "receive_input", "Receive input (MPU-401)", CONFIG_BINARY, "", 1 },
+    { "",              "",                                          -1 }
   // clang-format on
 };
 

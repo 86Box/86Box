@@ -349,7 +349,7 @@ sb_start_dma(sb_dsp_t *dsp, int dma8, int autoinit, uint8_t format, int len)
     dsp->sb_pausetime = -1;
 
     if (dma8) {
-        dsp->sb_8_length   = len;
+        dsp->sb_8_length   = dsp->sb_8_origlength = len;
         dsp->sb_8_format   = format;
         dsp->sb_8_autoinit = autoinit;
         dsp->sb_8_pause    = 0;
@@ -363,7 +363,7 @@ sb_start_dma(sb_dsp_t *dsp, int dma8, int autoinit, uint8_t format, int len)
         dsp->sbleftright = dsp->sbleftright_default;
         dsp->sbdacpos    = 0;
     } else {
-        dsp->sb_16_length   = len;
+        dsp->sb_16_length   = dsp->sb_16_origlength = len;
         dsp->sb_16_format   = format;
         dsp->sb_16_autoinit = autoinit;
         dsp->sb_16_pause    = 0;
@@ -380,7 +380,7 @@ void
 sb_start_dma_i(sb_dsp_t *dsp, int dma8, int autoinit, uint8_t format, int len)
 {
     if (dma8) {
-        dsp->sb_8_length   = len;
+        dsp->sb_8_length   = dsp->sb_8_origlength = len;
         dsp->sb_8_format   = format;
         dsp->sb_8_autoinit = autoinit;
         dsp->sb_8_pause    = 0;
@@ -391,7 +391,7 @@ sb_start_dma_i(sb_dsp_t *dsp, int dma8, int autoinit, uint8_t format, int len)
         if (!timer_is_enabled(&dsp->input_timer))
             timer_set_delay_u64(&dsp->input_timer, dsp->sblatchi);
     } else {
-        dsp->sb_16_length   = len;
+        dsp->sb_16_length   = dsp->sb_16_origlength = len;
         dsp->sb_16_format   = format;
         dsp->sb_16_autoinit = autoinit;
         dsp->sb_16_pause    = 0;
@@ -1383,7 +1383,7 @@ pollsb(void *p)
 
         if (dsp->sb_8_length < 0) {
             if (dsp->sb_8_autoinit)
-                dsp->sb_8_length = dsp->sb_8_autolen;
+                dsp->sb_8_length = dsp->sb_8_origlength = dsp->sb_8_autolen;
             else {
                 dsp->sb_8_enable = 0;
                 timer_disable(&dsp->output_timer);
@@ -1432,7 +1432,7 @@ pollsb(void *p)
         if (dsp->sb_16_length < 0) {
             sb_dsp_log("16DMA over %i\n", dsp->sb_16_autoinit);
             if (dsp->sb_16_autoinit)
-                dsp->sb_16_length = dsp->sb_16_autolen;
+                dsp->sb_16_length = dsp->sb_16_origlength = dsp->sb_16_autolen;
             else {
                 dsp->sb_16_enable = 0;
                 timer_disable(&dsp->output_timer);
@@ -1491,7 +1491,7 @@ sb_poll_i(void *p)
 
         if (dsp->sb_8_length < 0) {
             if (dsp->sb_8_autoinit)
-                dsp->sb_8_length = dsp->sb_8_autolen;
+                dsp->sb_8_length = dsp->sb_8_origlength = dsp->sb_8_autolen;
             else {
                 dsp->sb_8_enable = 0;
                 timer_disable(&dsp->input_timer);
@@ -1536,7 +1536,7 @@ sb_poll_i(void *p)
 
         if (dsp->sb_16_length < 0) {
             if (dsp->sb_16_autoinit)
-                dsp->sb_16_length = dsp->sb_16_autolen;
+                dsp->sb_16_length = dsp->sb_16_origlength = dsp->sb_16_autolen;
             else {
                 dsp->sb_16_enable = 0;
                 timer_disable(&dsp->input_timer);
