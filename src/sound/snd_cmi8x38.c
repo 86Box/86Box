@@ -1279,7 +1279,7 @@ stereo:
         freqreg >>= 3;
     }
 
-#ifdef ENABLE_CMI8X38_LOG
+#if 0
     if (cmi8x38_do_log)
         ui_sb_bugui(buf);
 #endif
