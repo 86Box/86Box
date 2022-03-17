@@ -1276,7 +1276,7 @@ cmi8x38_speed_changed(void *priv)
         dev->dma[i].timer_latch = (uint64_t) ((double) TIMER_USEC * freq);
 
         /* Calculate channel count and set DMA timer period. */
-        if ((dev->type == CMEDIA_CMI8338) || (i == 0)) {
+        if ((dev->type == CMEDIA_CMI8338) || (i == 0)) { /* multi-channel requires channel 1 */
 stereo:
             dev->dma[i].channels = 2;
         } else {
@@ -1297,7 +1297,7 @@ stereo:
         freqreg >>= 3;
     }
 
-#if 0
+#ifdef ENABLE_CMI8X38_LOG
     if (cmi8x38_do_log)
         ui_sb_bugui(buf);
 #endif
