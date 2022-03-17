@@ -83,6 +83,8 @@ typedef struct {
 #define KBC_AMI_MEGAKEY_1993		0x0050		/* AMI 'P' MegaKey 1993 */
 #define KBC_AMI_MEGAKEY_1994		0x0052		/* AMI 'R' MegaKey 1994 - 0xA0 returns 1993 copyright */
 #define KBC_AMI_TRIGEM			0x005A		/* TriGem AMI 'Z' (1990 AMI copyright) */
+/* AMI 0x6x */
+#define KBC_TANDON			0x0061		/* Tandon 'a' - Temporary classification until we get a dump */
 /* Holtek */
 #define KBC_HT_REGIONAL_6542		0x1046		/* Holtek 'F' (Regional 6542) */
 #define KBC_HT_HT6542B_BESTKEY		0x1048		/* Holtek 'H' (Holtek HT6542B, BestKey) */
