@@ -1,18 +1,18 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		C-Media CMI8x38 PCI audio controller emulation.
+ *          C-Media CMI8x38 PCI audio controller emulation.
  *
  *
  *
- * Authors:	RichardG, <richardg867@gmail.com>
+ * Authors: RichardG, <richardg867@gmail.com>
  *
- *		Copyright 2022 RichardG.
+ *          Copyright 2022 RichardG.
  */
 #include <stdarg.h>
 #include <stdio.h>
@@ -81,7 +81,7 @@ typedef struct _cmi8x38_ {
 
     cmi8x38_dma_t dma[2];
     uint16_t      tdma_base_addr, tdma_base_count;
-    int           tdma_8, tdma_16, tdma_mask, prev_mask;
+    int           tdma_8, tdma_16, tdma_mask, prev_mask, tdma_irq_mask;
 
     int master_vol_l, master_vol_r, cd_vol_l, cd_vol_r;
 } cmi8x38_t;
@@ -178,6 +178,18 @@ cmi8x38_sb_dma_post(cmi8x38_t *dev, uint16_t *addr, uint16_t *count, int channel
         dma[channel].cc = dma[channel].cb = *count;
     }
 
+    /* Check TDMA position update interrupt if enabled. */
+    if (dev->io_regs[0x0e] & 0x04) {
+        /* Nothing uses this; I assume it goes by the SB DSP sample counter (forwards instead of backwards). */
+        int origlength = (channel & 4) ? dev->sb->dsp.sb_16_origlength : dev->sb->dsp.sb_8_origlength,
+            length     = (channel & 4) ? dev->sb->dsp.sb_16_length : dev->sb->dsp.sb_8_length;
+        if ((origlength != length) && (((origlength - length) & dev->tdma_irq_mask) == 0)) { /* skip initial sample */
+            /* Fire the interrupt. */
+            dev->io_regs[0x11] |= (channel & 4) ? 0x40 : 0x80;
+            cmi8x38_update_irqs(dev);
+        }
+    }
+
     /* Handle end of DMA. */
     if (*count == 0xffff) {
         if (dma[channel].mode & 0x10) { /* auto-init */
@@ -193,8 +205,8 @@ cmi8x38_sb_dma_post(cmi8x38_t *dev, uint16_t *addr, uint16_t *count, int channel
             dev->tdma_mask |= 1 << channel;
         }
 
-        /* Set the mysterious LHBTOG bit, assuming it corresponds to
-           the 8237 channel status bit. Nothing appears to read it. */
+        /* Set the mysterious LHBTOG bit, assuming it corresponds
+           to the 8237 channel status bit. Nothing reads it. */
         dev->io_regs[0x10] |= 0x40;
 
         return DMA_OVER;
@@ -330,8 +342,8 @@ cmi8x38_dma_write(uint16_t addr, uint8_t val, void *priv)
                 (channel & 4) ? ((dma[channel].ab & 0xfffe0000) | ((*daddr) << 1)) : ((dma[channel].ab & 0xffff0000) | *daddr),
                 *count);
 
-    /* Clear the mysterious LHBTOG bit, assuming it corresponds to
-       the 8237 channel status bit. Nothing appears to read it. */
+    /* Clear the mysterious LHBTOG bit, assuming it corresponds
+       to the 8237 channel status bit. Nothing reads it. */
     dev->io_regs[0x10] &= ~0x40;
 }
 
@@ -445,7 +457,7 @@ cmi8x38_sb_mixer_write(uint16_t addr, uint8_t val, void *priv)
         if ((mixer->index == 0x00) || (mixer->index == 0x0e))
             sb_dsp_set_stereo(&dev->sb->dsp, mixer->regs[0x0e] & 2);
 
-        /* Set TDMA channels if autodetection is enabled. */
+        /* Set TDMA channels if auto-detection is enabled. */
         if ((dev->io_regs[0x27] & 0x01) && (mixer->index == 0x81)) {
             dev->tdma_8 = dev->sb->dsp.sb_8_dmanum;
             if (dev->sb->dsp.sb_type >= SB16)
@@ -655,36 +667,35 @@ cmi8x38_write(uint16_t addr, uint8_t val, void *priv)
             break;
 
         case 0x02:
-            /* Reset DMA channels if requested. */
-            if (val & 0x04) {
-                val &= ~0x01;
+            /* Reset or start DMA channels if requested. */
+            dev->io_regs[addr] = val & 0x03;
+            for (int i = 0; i < (sizeof(dev->dma) / sizeof(dev->dma[0])); i++) {
+                if (val & (0x04 << i)) {
+                    /* Reset DMA channel. */
+                    val &= ~(0x01 << i);
+                    dev->io_regs[0x10] &= ~(0x01 << i); /* clear interrupt */
 
-                if (dev->sb->dsp.sb_8_enable || dev->sb->dsp.sb_16_enable || dev->sb->dsp.sb_irq8 || dev->sb->dsp.sb_irq16) {
-                    dev->sb->dsp.sb_8_enable = dev->sb->dsp.sb_16_enable = dev->sb->dsp.sb_irq8 = dev->sb->dsp.sb_irq16 = 0;
-                    cmi8x38_update_irqs(dev);
+                    /* Reset Sound Blaster as well when resetting channel 0. */
+                    if ((i == 0) && (dev->sb->dsp.sb_8_enable || dev->sb->dsp.sb_16_enable || dev->sb->dsp.sb_irq8 || dev->sb->dsp.sb_irq16))
+                        dev->sb->dsp.sb_8_enable = dev->sb->dsp.sb_16_enable = dev->sb->dsp.sb_irq8 = dev->sb->dsp.sb_irq16 = 0;
+                } else if (val & (0x01 << i)) {
+                    /* Start DMA channel. */
+                    cmi8x38_log("CMI8x38: DMA %d trigger\n", i);
+                    dev->dma[i].restart = 1;
+                    cmi8x38_dma_process(&dev->dma[i]);
                 }
             }
-            if (val & 0x08)
-                val &= ~0x02;
 
+            /* Clear reset bits. */
             val &= 0x03;
-            dev->io_regs[addr] = val;
-
-            /* Start DMA channels if requested. */
-            if (val & 0x01) {
-                cmi8x38_log("CMI8x38: DMA 0 trigger\n");
-                dev->dma[0].restart = 1;
-                cmi8x38_dma_process(&dev->dma[0]);
-            }
-            if (val & 0x02) {
-                cmi8x38_log("CMI8x38: DMA 1 trigger\n");
-                dev->dma[1].restart = 1;
-                cmi8x38_dma_process(&dev->dma[1]);
-            }
 
             /* Start playback along with DMA channels. */
             if (val & 0x03)
                 cmi8x38_start_playback(dev);
+
+            /* Update interrupts. */
+            dev->io_regs[addr] = val;
+            cmi8x38_update_irqs(dev);
             break;
 
         case 0x04:
@@ -712,8 +723,8 @@ cmi8x38_write(uint16_t addr, uint8_t val, void *priv)
 
         case 0x09:
 #if 0 /* actual CMI8338 behavior unconfirmed; this register is required for the Windows XP driver which outputs 96K */
-		if (dev->type == CMEDIA_CMI8338)
-			return;
+        if (dev->type == CMEDIA_CMI8338)
+            return;
 #endif
             /* Update sample rate. */
             dev->io_regs[addr] = val;
@@ -794,6 +805,9 @@ cmi8x38_write(uint16_t addr, uint8_t val, void *priv)
                 val &= 0x0f;
             else
                 val &= 0xdf;
+
+            /* Update the TDMA position update interrupt's sample interval. */
+            dev->tdma_irq_mask = 2047 >> ((val >> 2) & 3);
             break;
 
         case 0x19:
@@ -1008,8 +1022,7 @@ cmi8x38_dma_process(void *priv)
         /* Start DMA if requested. */
         if (dma->restart) {
             /* Set up base address and counters.
-               I have no idea how sample_count_out is supposed to work,
-               nothing consumes it, so it's implemented as an assumption. */
+               Nothing reads sample_count_out; it's implemented as an assumption. */
             dma->restart         = 0;
             dma->sample_ptr      = *((uint32_t *) &dev->io_regs[dma->reg]);
             dma->frame_count_dma = dma->sample_count_out = *((uint16_t *) &dev->io_regs[dma->reg | 0x4]) + 1;
@@ -1068,9 +1081,7 @@ cmi8x38_poll(void *priv)
     int16_t       *out_l, *out_r, *out_ol, *out_or; /* o = opposite */
 
     /* Schedule next run if playback is enabled. */
-    if (dev->io_regs[0x00] & (1 << dma->id))
-        dma->playback_enabled = 0;
-    else
+    if (dma->playback_enabled)
         timer_advance_u64(&dma->poll_timer, dma->timer_latch);
 
     /* Update audio buffer. */
@@ -1119,7 +1130,7 @@ cmi8x38_poll(void *priv)
             break;
 
         case 0x03: /* Stereo, 16-bit PCM */
-            switch (dma->channels) {
+            switch (dma->channels) { /* multi-channel requires this data format */
                 case 2:
                     if ((dma->fifo_end - dma->fifo_pos) >= 4) {
                         *out_l = *((uint16_t *) &dma->fifo[dma->fifo_pos & (sizeof(dma->fifo) - 1)]);
@@ -1187,8 +1198,14 @@ cmi8x38_poll(void *priv)
 
     /* Feed silence if the FIFO is empty. */
     *out_l = *out_r = 0;
-    return;
 
+    /* Stop playback if DMA is disabled. */
+    if ((*((uint32_t *) &dev->io_regs[0x00]) & (0x00010001 << dma->id)) != (0x00010000 << dma->id)) {
+        cmi8x38_log("CMI8x38: Stopping playback of DMA channel %d\n", dma->id);
+        dma->playback_enabled = 0;
+    }
+
+    return;
 n4spk3d:
     /* Mirror front and rear channels if requested. */
     if (dev->io_regs[0x1b] & 0x04) {
@@ -1245,9 +1262,11 @@ cmi8x38_speed_changed(void *priv)
             case 0x02:
                 freq = 96000.0;
                 break;
+#if 0
             case 0x03:
                 freq = 128000.0;
                 break;
+#endif
             default:
                 freq = freqs[freqreg & 0x07];
                 break;
@@ -1258,7 +1277,7 @@ cmi8x38_speed_changed(void *priv)
         dev->dma[i].timer_latch = (uint64_t) ((double) TIMER_USEC * freq);
 
         /* Calculate channel count and set DMA timer period. */
-        if ((dev->type == CMEDIA_CMI8338) || (i == 0)) {
+        if ((dev->type == CMEDIA_CMI8338) || (i == 0)) { /* multi-channel requires channel 1 */
 stereo:
             dev->dma[i].channels = 2;
         } else {
@@ -1321,6 +1340,7 @@ cmi8x38_reset(void *priv)
     memset(dev->io_regs, 0, sizeof(dev->io_regs));
     dev->io_regs[0x0b] = (dev->type >> 8) & 0x1f;
     dev->io_regs[0x0f] = dev->type >> 16;
+    dev->tdma_irq_mask = 2047;
 
     /* Reset I/O mappings. */
     cmi8x38_remap(dev);
@@ -1331,12 +1351,11 @@ cmi8x38_reset(void *priv)
     /* Reset DMA channels. */
     for (int i = 0; i < (sizeof(dev->dma) / sizeof(dev->dma[0])); i++) {
         dev->dma[i].playback_enabled = 0;
-
         dev->dma[i].fifo_pos = dev->dma[i].fifo_end = 0;
         memset(dev->dma[i].fifo, 0, sizeof(dev->dma[i].fifo));
     }
 
-    /* Reset legacy DMA channel. */
+    /* Reset TDMA channel. */
     dev->tdma_8    = 1;
     dev->tdma_16   = 5;
     dev->tdma_mask = 0;
@@ -1422,8 +1441,8 @@ cmi8x38_close(void *priv)
 
 static const device_config_t cmi8x38_config[] = {
   // clang-format off
-    {"receive_input", "Receive input (MPU-401)", CONFIG_BINARY, "", 1 },
-    { "",             "",                                          -1 }
+    { "receive_input", "Receive input (MPU-401)", CONFIG_BINARY, "", 1 },
+    { "",              "",                                          -1 }
   // clang-format on
 };
 

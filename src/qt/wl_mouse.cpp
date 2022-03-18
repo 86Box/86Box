@@ -98,8 +98,8 @@ void wl_mouse_capture(QWindow *window)
 
 void wl_mouse_uncapture()
 {
-    zwp_locked_pointer_v1_destroy(conf_pointer);
-    zwp_relative_pointer_v1_destroy(rel_pointer);
+    if (conf_pointer) zwp_locked_pointer_v1_destroy(conf_pointer);
+    if (rel_pointer) zwp_relative_pointer_v1_destroy(rel_pointer);
     rel_pointer = nullptr;
     conf_pointer = nullptr;
 }

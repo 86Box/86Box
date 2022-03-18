@@ -133,7 +133,7 @@ option(NEW_DYNAREC  "Use the PCem v15 (\"new\") dynamic recompiler"             
 option(MINITRACE    "Enable Chrome tracing using the modified minitrace library"    OFF)
 option(GDBSTUB      "Enable GDB stub server for debugging"                          OFF)
 option(DEV_BRANCH   "Development branch"                                            OFF)
-option(QT           "QT GUI"                                                        ON)
+option(QT           "Qt GUI"                                                        ON)
 
 # Development branch features
 #
