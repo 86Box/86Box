@@ -1421,15 +1421,13 @@ void mach64_blit(uint32_t cpu_dat, int count, mach64_t *mach64)
                                                 break;
                                         }
 
-                                        {
-                                            if (!cmp_clr) {
-                                                old_dest_dat = dest_dat;
-                                                MIX
-                                                dest_dat = (dest_dat & mach64->accel.write_mask) | (old_dest_dat & ~mach64->accel.write_mask);
-                                            }
-
-                                            WRITE(mach64->accel.dst_offset + (dst_y * mach64->accel.dst_pitch) + dst_x, mach64->accel.dst_size);
+                                        if (!cmp_clr) {
+                                            old_dest_dat = dest_dat;
+                                            MIX
+                                            dest_dat = (dest_dat & mach64->accel.write_mask) | (old_dest_dat & ~mach64->accel.write_mask);
                                         }
+
+                                        WRITE(mach64->accel.dst_offset + (dst_y * mach64->accel.dst_pitch) + dst_x, mach64->accel.dst_size);
                                 }
                         }
 
