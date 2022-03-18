@@ -716,14 +716,11 @@ static const device_config_t ati28800_config[] = {
             { ""             }
         }
     },
-    {
-        "", "", -1
-    }
+    { "", "", -1 }
 };
 
 #if defined(DEV_BRANCH) && defined(USE_XL24)
-static const device_config_t ati28800_wonderxl_config[] =
-{
+static const device_config_t ati28800_wonderxl_config[] = {
     {
         "memory", "Memory size", CONFIG_SELECTION, "", 512, "", { 0 },
         {
@@ -733,87 +730,93 @@ static const device_config_t ati28800_wonderxl_config[] =
             { ""             }
         }
     },
-    {
-        "", "", -1
-    }
+    { "", "", -1 }
 };
 #endif
 // clang-format on
 
-const device_t ati28800_device =
-{
-        "ATI 28800-5 (ATI VGA Charger)",
-        "ati28800",
-        DEVICE_ISA,
-    0,
-        ati28800_init, ati28800_close, NULL,
-        { ati28800_available },
-        ati28800_speed_changed,
-        ati28800_force_redraw,
-	ati28800_config
+const device_t ati28800_device = {
+    .name = "ATI 28800-5 (ATI VGA Charger)",
+    .internal_name = "ati28800",
+    .flags = DEVICE_ISA,
+    .local = 0,
+    .init = ati28800_init,
+    .close = ati28800_close,
+    .reset = NULL,
+    { .available = ati28800_available },
+    .speed_changed = ati28800_speed_changed,
+    .force_redraw = ati28800_force_redraw,
+    .config = ati28800_config
 };
 
-const device_t ati28800k_device =
-{
-        "ATI Korean VGA",
-        "ati28800k",
-        DEVICE_ISA,
-    0,
-        ati28800k_init, ati28800_close, NULL,
-        { ati28800k_available },
-        ati28800_speed_changed,
-        ati28800_force_redraw,
-    ati28800_config
+const device_t ati28800k_device = {
+    .name = "ATI Korean VGA",
+    .internal_name = "ati28800k",
+    .flags = DEVICE_ISA,
+    .local = 0,
+    .init = ati28800k_init,
+    .close = ati28800_close,
+    .reset = NULL,
+    { .available = ati28800k_available },
+    .speed_changed = ati28800_speed_changed,
+    .force_redraw = ati28800_force_redraw,
+    .config = ati28800_config
 };
 
-const device_t ati28800k_spc4620p_device =
-{
-        "ATI Korean VGA On-Board SPC-4620P",
-        "ati28800k_spc4620p",
-        DEVICE_ISA,
-    1,
-        ati28800k_init, ati28800_close, NULL,
-        { NULL },
-        ati28800_speed_changed,
-        ati28800_force_redraw
+const device_t ati28800k_spc4620p_device = {
+    .name = "ATI Korean VGA On-Board SPC-4620P",
+    .internal_name = "ati28800k_spc4620p",
+    .flags = DEVICE_ISA,
+    .local = 1,
+    .init = ati28800k_init,
+    .close = ati28800_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = ati28800_speed_changed,
+    .force_redraw = ati28800_force_redraw,
+    .config = NULL
 };
 
-const device_t ati28800k_spc6033p_device =
-{
-        "ATI Korean VGA On-Board SPC-6033P",
-        "ati28800k_spc6033p",
-        DEVICE_ISA,
-    2,
-        ati28800k_init, ati28800_close, NULL,
-        { NULL },
-        ati28800_speed_changed,
-        ati28800_force_redraw
+const device_t ati28800k_spc6033p_device = {
+    .name = "ATI Korean VGA On-Board SPC-6033P",
+    .internal_name = "ati28800k_spc6033p",
+    .flags = DEVICE_ISA,
+    .local = 2,
+    .init = ati28800k_init,
+    .close = ati28800_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = ati28800_speed_changed,
+    .force_redraw = ati28800_force_redraw,
+    .config = NULL
 };
 
-const device_t compaq_ati28800_device =
-{
-        "ATI 28800-5 (ATI VGA Wonder XL)",
-        "compaq_ati28800",
-        DEVICE_ISA,
-    VGAWONDERXL,
-        ati28800_init, ati28800_close, NULL,
-        { compaq_ati28800_available },
-        ati28800_speed_changed,
-        ati28800_force_redraw,
-    ati28800_config
+const device_t compaq_ati28800_device = {
+    .name = "ATI 28800-5 (ATI VGA Wonder XL)",
+    .internal_name = "compaq_ati28800",
+    .flags = DEVICE_ISA,
+    .local = VGAWONDERXL,
+    .init = ati28800_init,
+    .close = ati28800_close,
+    .reset = NULL,
+    { .available = compaq_ati28800_available },
+    .speed_changed = ati28800_speed_changed,
+    .force_redraw = ati28800_force_redraw,
+    .config = ati28800_config
 };
 
 #if defined(DEV_BRANCH) && defined(USE_XL24)
-const device_t ati28800_wonderxl24_device =
-{
-        "ATI-28800 (VGA Wonder XL24)",
-        "ati28800w",
-        DEVICE_ISA,
-    VGAWONDERXL24,
-        ati28800_init, ati28800_close, NULL,
-        { ati28800_wonderxl24_available },
-        ati28800_speed_changed,
-        ati28800_force_redraw,
-    ati28800_wonderxl_config
+const device_t ati28800_wonderxl24_device = {
+    .name = "ATI-28800 (VGA Wonder XL24)",
+    .internal_name = "ati28800w",
+    .flags = DEVICE_ISA,
+    .local = VGAWONDERXL24,
+    .init = ati28800_init,
+    .close = ati28800_close,
+    .reset = NULL,
+    { .available = ati28800_wonderxl24_available },
+    .speed_changed = ati28800_speed_changed,
+    .force_redraw = ati28800_force_redraw,
+    .config = ati28800_wonderxl_config
 };
 #endif

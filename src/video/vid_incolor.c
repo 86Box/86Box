@@ -1091,15 +1091,16 @@ speed_changed(void *priv)
     recalc_timings(dev);
 }
 
-
 const device_t incolor_device = {
-    "Hercules InColor",
-    "incolor",
-    DEVICE_ISA,
-    0,
-    incolor_init, incolor_close, NULL,
-    { NULL },
-    speed_changed,
-    NULL,
-    NULL
+    .name = "Hercules InColor",
+    .internal_name = "incolor",
+    .flags = DEVICE_ISA,
+    .local = 0,
+    .init = incolor_init,
+    .close = incolor_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = speed_changed,
+    .force_redraw = NULL,
+    .config = NULL
 };

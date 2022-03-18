@@ -662,12 +662,15 @@ static void f82c425_speed_changed(void *p)
 }
 
 const device_t f82c425_video_device = {
-	"82C425 CGA LCD/CRT Controller",
-	"f82c425_video",
-	0, 0,
-	f82c425_init, f82c425_close, NULL,
-	{ NULL },
-	f82c425_speed_changed,
-	NULL,
-	NULL
+    .name = "82C425 CGA LCD/CRT Controller",
+    .internal_name = "f82c425_video",
+    .flags = 0,
+    .local = 0,
+    .init = f82c425_init,
+    .close = f82c425_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = f82c425_speed_changed,
+    .force_redraw = NULL,
+    .config = NULL
 };

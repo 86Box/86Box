@@ -165,22 +165,30 @@ icd2061_close(void *priv)
 	free(icd2061);
 }
 
-
-const device_t icd2061_device =
-{
-        "ICD2061 Clock Generator",
-        "icd2061",
-        0, 0,
-        icd2061_init, icd2061_close,
-	NULL, { NULL }, NULL, NULL
+const device_t icd2061_device = {
+    .name = "ICD2061 Clock Generator",
+    .internal_name = "icd2061",
+    .flags = 0,
+    .local = 0,
+    .init = icd2061_init,
+    .close = icd2061_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
-
-const device_t ics9161_device =
-{
-        "ICS9161 Clock Generator",
-        "ics9161",
-        0, 0,
-        icd2061_init, icd2061_close,
-	NULL, { NULL }, NULL, NULL
+const device_t ics9161_device = {
+    .name = "ICS9161 Clock Generator",
+    .internal_name = "ics9161",
+    .flags = 0,
+    .local = 0,
+    .init = icd2061_init,
+    .close = icd2061_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };

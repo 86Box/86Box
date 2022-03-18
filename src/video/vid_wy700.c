@@ -1007,16 +1007,16 @@ void wy700_speed_changed(void *p)
         wy700_recalctimings(wy700);
 }
 
-const device_t wy700_device =
-{
-        "Wyse 700",
-        "wy700",
-        DEVICE_ISA, 0,
-        wy700_init,
-        wy700_close,
-    NULL,
-        { NULL },
-        wy700_speed_changed,
-    NULL,
-        NULL
+const device_t wy700_device = {
+    .name = "Wyse 700",
+    .internal_name = "wy700",
+    .flags = DEVICE_ISA,
+    .local = 0,
+    .init = wy700_init,
+    .close = wy700_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = wy700_speed_changed,
+    .force_redraw = NULL,
+    .config = NULL
 };
