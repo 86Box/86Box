@@ -35,11 +35,11 @@
 
 dma_t		dma[8];
 uint8_t		dma_e;
+uint8_t		dma_m;
 
 
 static uint8_t	dmaregs[3][16];
 static int	dma_wp[2];
-static uint8_t	dma_m;
 static uint8_t	dma_stat;
 static uint8_t	dma_stat_rq;
 static uint8_t	dma_stat_rq_pc;

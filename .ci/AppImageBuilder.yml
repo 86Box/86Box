@@ -51,45 +51,26 @@ AppDir:
     - libsndio7.0
     - libwayland-client0
     - libx11-6
+    - libx11-xcb1
     - libxcb1
+    - libxcb-render0
+    - libxcb-shape0
+    - libxcb-shm0
+    - libxcb-xfixes0
     - zlib1g
   files:
     exclude:
     - etc
     - lib/udev
     - opt/libc/usr/share
-    - usr/bin
-    - usr/include
+    - usr/[a-km-rt-zA-Z]*
     - usr/lib/*/libasound.so.*
+    - usr/lib/*.a
     - usr/lib/cmake
     - usr/lib/pkgconfig
-    - usr/sbin
-    - usr/share/aclocal
-    - usr/share/alsa
-    - usr/share/apport
-    - usr/share/bug
-    - usr/share/color
-    - usr/share/doc
-    - usr/share/doc-base
-    - usr/share/fontconfig
-    - usr/share/fonts
-    - usr/share/ghostscript
-    - usr/share/glib-2.0
-    - usr/share/info
-    - usr/share/libinput
-    - usr/share/libwacom
-    - usr/share/lintian
-    - usr/share/locale
-    - usr/share/man
-    - usr/share/metainfo
-    - usr/share/openal
-    - usr/share/pkgconfig
-    - usr/share/poppler
-    - usr/share/readline
-    - usr/share/rtmidi
-    - usr/share/sounds
-    - usr/share/X11
-    - usr/share/xml
+    - usr/s[a-gi-zA-Z]*
+    - usr/share/[a-hj-zA-Z]*
+    - usr/share/i[a-bd-zA-Z]*
     - var
 AppImage:
   arch: !ENV '${arch_appimage}'

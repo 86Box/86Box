@@ -37,6 +37,10 @@
 static int    ad1848_vols_7bits[128];
 static double ad1848_vols_5bits_aux_gain[32];
 
+/* Borrowed from snd_sb_dsp */
+extern int8_t  scaleMap4[64];
+extern uint8_t adjustMap4[64];
+
 void
 ad1848_setirq(ad1848_t *ad1848, int irq)
 {
@@ -232,6 +236,7 @@ ad1848_write(uint16_t addr, uint8_t val, void *priv)
 
                 case 9:
                     if (!ad1848->enable && (val & 0x41) == 0x01) {
+                        ad1848->adpcm_pos = 0;
                         if (ad1848->timer_latch)
                             timer_set_delay_u64(&ad1848->timer_count, ad1848->timer_latch);
                         else
@@ -257,7 +262,8 @@ ad1848_write(uint16_t addr, uint8_t val, void *priv)
                     break;
 
                 case 17:
-                    if (ad1848->type >= AD1848_TYPE_CS4231) /* enable additional data formats on modes 2 and 3 */
+                    /* Enable additional data formats on modes 2 and 3 where supported. */
+                    if ((ad1848->type == AD1848_TYPE_CS4231) || (ad1848->type == AD1848_TYPE_CS4236))
                         ad1848->fmt_mask = (val & 0x40) ? 0xf0 : 0x70;
                     break;
 
@@ -414,6 +420,64 @@ ad1848_update(ad1848_t *ad1848)
     }
 }
 
+static int16_t
+ad1848_process_mulaw(uint8_t byte)
+{
+    byte        = ~byte;
+    int16_t dec = ((byte & 0x0f) << 3) + 0x84;
+    dec <<= (byte & 0x70) >> 4;
+    return (byte & 0x80) ? (0x84 - dec) : (dec - 0x84);
+}
+
+static int16_t
+ad1848_process_alaw(uint8_t byte)
+{
+    byte ^= 0x55;
+    int16_t dec = (byte & 0x0f) << 4;
+    int     seg = (byte & 0x70) >> 4;
+    switch (seg) {
+        case 0:
+            dec |= 0x8;
+            break;
+
+        case 1:
+            dec |= 0x108;
+            break;
+
+        default:
+            dec |= 0x108;
+            dec <<= seg - 1;
+            break;
+    }
+    return (byte & 0x80) ? dec : -dec;
+}
+
+static int16_t
+ad1848_process_adpcm(ad1848_t *ad1848)
+{
+    int temp;
+    if (ad1848->adpcm_pos++ & 1) {
+        temp = (ad1848->adpcm_data & 0x0f) + ad1848->adpcm_step;
+    } else {
+        ad1848->adpcm_data = dma_channel_read(ad1848->dma);
+        temp               = (ad1848->adpcm_data >> 4) + ad1848->adpcm_step;
+    }
+    if (temp < 0)
+        temp = 0;
+    else if (temp > 63)
+        temp = 63;
+
+    ad1848->adpcm_ref += scaleMap4[temp];
+    if (ad1848->adpcm_ref > 0xff)
+        ad1848->adpcm_ref = 0xff;
+    else if (ad1848->adpcm_ref < 0x00)
+        ad1848->adpcm_ref = 0x00;
+
+    ad1848->adpcm_step = (ad1848->adpcm_step + adjustMap4[temp]) & 0xff;
+
+    return (ad1848->adpcm_ref ^ 0x80) << 8;
+}
+
 static void
 ad1848_poll(void *priv)
 {
@@ -431,12 +495,21 @@ ad1848_poll(void *priv)
 
         switch (ad1848->regs[8] & ad1848->fmt_mask) {
             case 0x00: /* Mono, 8-bit PCM */
-                ad1848->out_l = ad1848->out_r = (dma_channel_read(ad1848->dma) ^ 0x80) * 256;
+                ad1848->out_l = ad1848->out_r = (dma_channel_read(ad1848->dma) ^ 0x80) << 8;
                 break;
 
             case 0x10: /* Stereo, 8-bit PCM */
-                ad1848->out_l = (dma_channel_read(ad1848->dma) ^ 0x80) * 256;
-                ad1848->out_r = (dma_channel_read(ad1848->dma) ^ 0x80) * 256;
+                ad1848->out_l = (dma_channel_read(ad1848->dma) ^ 0x80) << 8;
+                ad1848->out_r = (dma_channel_read(ad1848->dma) ^ 0x80) << 8;
+                break;
+
+            case 0x20: /* Mono, 8-bit Mu-Law */
+                ad1848->out_l = ad1848->out_r = ad1848_process_mulaw(dma_channel_read(ad1848->dma));
+                break;
+
+            case 0x30: /* Stereo, 8-bit Mu-Law */
+                ad1848->out_l = ad1848_process_mulaw(dma_channel_read(ad1848->dma));
+                ad1848->out_r = ad1848_process_mulaw(dma_channel_read(ad1848->dma));
                 break;
 
             case 0x40: /* Mono, 16-bit PCM little endian */
@@ -451,6 +524,26 @@ ad1848_poll(void *priv)
                 ad1848->out_r = (dma_channel_read(ad1848->dma) << 8) | temp;
                 break;
 
+            case 0x60: /* Mono, 8-bit A-Law */
+                ad1848->out_l = ad1848->out_r = ad1848_process_alaw(dma_channel_read(ad1848->dma));
+                break;
+
+            case 0x70: /* Stereo, 8-bit A-Law */
+                ad1848->out_l = ad1848_process_alaw(dma_channel_read(ad1848->dma));
+                ad1848->out_r = ad1848_process_alaw(dma_channel_read(ad1848->dma));
+                break;
+
+                /* 0x80 and 0x90 reserved */
+
+            case 0xa0: /* Mono, 4-bit ADPCM */
+                ad1848->out_l = ad1848->out_r = ad1848_process_adpcm(ad1848);
+                break;
+
+            case 0xb0: /* Stereo, 4-bit ADPCM */
+                ad1848->out_l = ad1848_process_adpcm(ad1848);
+                ad1848->out_r = ad1848_process_adpcm(ad1848);
+                break;
+
             case 0xc0: /* Mono, 16-bit PCM big endian */
                 temp          = dma_channel_read(ad1848->dma);
                 ad1848->out_l = ad1848->out_r = dma_channel_read(ad1848->dma) | (temp << 8);
@@ -462,6 +555,8 @@ ad1848_poll(void *priv)
                 temp          = dma_channel_read(ad1848->dma);
                 ad1848->out_r = dma_channel_read(ad1848->dma) | (temp << 8);
                 break;
+
+                /* 0xe0 and 0xf0 reserved */
         }
 
         if (ad1848->regs[6] & 0x80)
@@ -475,7 +570,8 @@ ad1848_poll(void *priv)
             ad1848->out_r = (ad1848->out_r * ad1848_vols_7bits[ad1848->regs[7] & ad1848->wave_vol_mask]) >> 16;
 
         if (ad1848->count < 0) {
-            ad1848->count = ad1848->regs[15] | (ad1848->regs[14] << 8);
+            ad1848->count     = ad1848->regs[15] | (ad1848->regs[14] << 8);
+            ad1848->adpcm_pos = 0;
             if (!(ad1848->status & 0x01)) {
                 ad1848->status |= 0x01;
                 ad1848->regs[24] |= 0x10;
@@ -484,7 +580,8 @@ ad1848_poll(void *priv)
             }
         }
 
-        ad1848->count--;
+        if (!(ad1848->adpcm_pos & 7)) /* ADPCM counts down every 4 bytes */
+            ad1848->count--;
     } else {
         ad1848->out_l = ad1848->out_r = 0;
         ad1848->cd_vol_l = ad1848->cd_vol_r = 0;
@@ -563,7 +660,10 @@ ad1848_init(ad1848_t *ad1848, uint8_t type)
     ad1848->out_l = ad1848->out_r = 0;
     ad1848->fm_vol_l = ad1848->fm_vol_r = 65536;
     ad1848_updatevolmask(ad1848);
-    ad1848->fmt_mask = 0x70;
+    if (type == AD1848_TYPE_CS4235)
+        ad1848->fmt_mask = 0x50;
+    else
+        ad1848->fmt_mask = 0x70;
 
     for (c = 0; c < 128; c++) {
         attenuation = 0.0;

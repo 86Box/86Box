@@ -214,6 +214,11 @@ MainWindow::MainWindow(QWidget *parent) :
         }
     });
 
+    connect(qApp, &QGuiApplication::applicationStateChanged, [this](Qt::ApplicationState state) {
+        if (mouse_capture && state != Qt::ApplicationState::ApplicationActive)
+            emit setMouseCapture(false);
+    });
+
     connect(this, &MainWindow::resizeContents, this, [this](int w, int h) {
         if (!QApplication::platformName().contains("eglfs") && vid_resize == 0) {
             w = qRound(w / (!dpi_scale ? util::screenOfWidget(this)->devicePixelRatio() : 1.));
@@ -243,7 +248,7 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(this, &MainWindow::updateStatusBarTip, status.get(), &MachineStatus::updateTip);
     connect(this, &MainWindow::updateStatusBarActivity, status.get(), &MachineStatus::setActivity);
     connect(this, &MainWindow::updateStatusBarEmpty, status.get(), &MachineStatus::setEmpty);
-    connect(this, &MainWindow::statusBarMessage, status.get(), &MachineStatus::message);
+    connect(this, &MainWindow::statusBarMessage, status.get(), &MachineStatus::message, Qt::QueuedConnection);
 
     ui->actionKeyboard_requires_capture->setChecked(kbd_req_capture);
     ui->actionRight_CTRL_is_left_ALT->setChecked(rctrl_is_lalt);
@@ -1265,6 +1270,8 @@ void MainWindow::on_actionFullscreen_triggered() {
     } else {
         if (video_fullscreen_first)
         {
+            bool wasCaptured = mouse_capture == 1;
+
             QMessageBox questionbox(QMessageBox::Icon::Information, tr("Entering fullscreen mode"), tr("Press Ctrl+Alt+PgDn to return to windowed mode."), QMessageBox::Ok, this);
             QCheckBox *chkbox = new QCheckBox(tr("Don't show this message again"));
             questionbox.setCheckBox(chkbox);
@@ -1275,6 +1282,10 @@ void MainWindow::on_actionFullscreen_triggered() {
             });
             questionbox.exec();
             config_save();
+
+            /* (re-capture mouse after dialog. */
+            if (wasCaptured)
+                emit setMouseCapture(true);
         }
         video_fullscreen = 1;
         setFixedSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
@@ -1305,22 +1316,27 @@ bool MainWindow::eventFilter(QObject* receiver, QEvent* event)
     if (this->keyboardGrabber() == this) {
         if (event->type() == QEvent::KeyPress) {
             event->accept();
-            this->keyPressEvent((QKeyEvent*)event);
+            this->keyPressEvent((QKeyEvent *) event);
             return true;
         }
         if (event->type() == QEvent::KeyRelease) {
             event->accept();
-            this->keyReleaseEvent((QKeyEvent*)event);
+            this->keyReleaseEvent((QKeyEvent *) event);
             return true;
         }
     }
 
-    if (receiver == this)
-    {
+    if (receiver == this) {
         static auto curdopause = dopause;
-        if (event->type() == QEvent::WindowBlocked) { curdopause = dopause; plat_pause(1); }
-        else if (event->type() == QEvent::WindowUnblocked) { plat_pause(curdopause); }
+        if (event->type() == QEvent::WindowBlocked) {
+            curdopause = dopause;
+            plat_pause(1);
+            emit setMouseCapture(false);
+        } else if (event->type() == QEvent::WindowUnblocked) {
+            plat_pause(curdopause);
+        }
     }
+
     return QMainWindow::eventFilter(receiver, event);
 }
 

@@ -32,6 +32,7 @@
 #include <86box/timer.h>
 #include <86box/nvr.h>
 #include <86box/ui.h>
+#include <86box/gdbstub.h>
 
 static int	first_use = 1;
 static uint64_t	StartingTime;
@@ -229,19 +230,23 @@ wchar_t* plat_get_string(int i)
     switch (i)
     {
         case IDS_2077:
-            return L"Click to capture mouse.";
+            return L"Click to capture mouse";
         case IDS_2078:
             return L"Press CTRL-END to release mouse";
         case IDS_2079:
             return L"Press CTRL-END or middle button to release mouse";
         case IDS_2080:
             return L"Failed to initialize FluidSynth";
+        case IDS_2130:
+            return L"Invalid configuration";
         case IDS_4099:
             return L"MFM/RLL or ESDI CD-ROM drives never existed";
         case IDS_2093:
             return L"Failed to set up PCap";
         case IDS_2094:
             return L"No PCap devices found";
+        case IDS_2095:
+            return L"Invalid PCap device";
         case IDS_2110:
             return L"Unable to initialize FreeType";
         case IDS_2111:
@@ -250,6 +255,8 @@ wchar_t* plat_get_string(int i)
             return L"libfreetype is required for ESC/P printer emulation.";
         case IDS_2132:
             return L"libgs is required for automatic conversion of PostScript files to PDF.\n\nAny documents sent to the generic PostScript printer will be saved as PostScript (.ps) files.";
+        case IDS_2133:
+            return L"libfluidsynth is required for FluidSynth MIDI output.";
         case IDS_2129:
             return L"Make sure libpcap is installed and that you are on a libpcap-compatible network connection.";
         case IDS_2114:
@@ -260,6 +267,8 @@ wchar_t* plat_get_string(int i)
             return L"Video card \"%hs\" is not available due to missing ROMs in the roms/video directory. Switching to an available video card.";
         case IDS_2128:
             return L"Hardware not available";
+        case IDS_2142:
+            return L"Monitor in sleep mode";
     }
     return L"";
 }
@@ -519,6 +528,11 @@ main_thread(void *param)
     while (!is_quit && cpu_thread_run) {
 	/* See if it is time to run a frame of code. */
 	new_time = SDL_GetTicks();
+#ifdef USE_GDBSTUB
+	if (gdbstub_next_asap && (drawits <= 0))
+		drawits = 10;
+	else
+#endif
 	drawits += (new_time - old_time);
 	old_time = new_time;
 	if (drawits > 0 && !dopause) {

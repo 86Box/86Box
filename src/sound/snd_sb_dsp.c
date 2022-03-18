@@ -169,6 +169,16 @@ recalc_sb16_filter(int c, int playback_freq)
         low_fir_sb16_coef[c][n] /= gain;
 }
 
+static void
+sb_irq_update_pic(void *priv, int set)
+{
+    sb_dsp_t *dsp = (sb_dsp_t *) priv;
+    if (set)
+        picint(1 << dsp->sb_irqnum);
+    else
+        picintc(1 << dsp->sb_irqnum);
+}
+
 void
 sb_update_mask(sb_dsp_t *dsp, int irqm8, int irqm16, int irqm401)
 {
@@ -185,7 +195,7 @@ sb_update_mask(sb_dsp_t *dsp, int irqm8, int irqm16, int irqm401)
     dsp->sb_irqm401 = irqm401;
 
     if (clear)
-        picintc(1 << dsp->sb_irqnum);
+        dsp->irq_update(dsp->irq_priv, 0);
 }
 
 void
@@ -210,9 +220,9 @@ sb_update_status(sb_dsp_t *dsp, int bit, int set)
     }
 
     if (set && !masked)
-        picint(1 << dsp->sb_irqnum);
+        dsp->irq_update(dsp->irq_priv, 1);
     else if (!set)
-        picintc(1 << dsp->sb_irqnum);
+        dsp->irq_update(dsp->irq_priv, 0);
 }
 
 void
@@ -281,7 +291,7 @@ sb_dsp_reset(sb_dsp_t *dsp)
     dsp->record_pos_read  = 0;
     dsp->record_pos_write = SB_DSP_REC_SAFEFTY_MARGIN;
 
-    picintc(1 << dsp->sb_irqnum);
+    dsp->irq_update(dsp->irq_priv, 0);
 
     dsp->asp_data_len = 0;
 }
@@ -339,7 +349,7 @@ sb_start_dma(sb_dsp_t *dsp, int dma8, int autoinit, uint8_t format, int len)
     dsp->sb_pausetime = -1;
 
     if (dma8) {
-        dsp->sb_8_length   = len;
+        dsp->sb_8_length   = dsp->sb_8_origlength = len;
         dsp->sb_8_format   = format;
         dsp->sb_8_autoinit = autoinit;
         dsp->sb_8_pause    = 0;
@@ -350,10 +360,10 @@ sb_start_dma(sb_dsp_t *dsp, int dma8, int autoinit, uint8_t format, int len)
         dsp->sb_8_output = 1;
         if (!timer_is_enabled(&dsp->output_timer))
             timer_set_delay_u64(&dsp->output_timer, dsp->sblatcho);
-        dsp->sbleftright = 0;
+        dsp->sbleftright = dsp->sbleftright_default;
         dsp->sbdacpos    = 0;
     } else {
-        dsp->sb_16_length   = len;
+        dsp->sb_16_length   = dsp->sb_16_origlength = len;
         dsp->sb_16_format   = format;
         dsp->sb_16_autoinit = autoinit;
         dsp->sb_16_pause    = 0;
@@ -370,7 +380,7 @@ void
 sb_start_dma_i(sb_dsp_t *dsp, int dma8, int autoinit, uint8_t format, int len)
 {
     if (dma8) {
-        dsp->sb_8_length   = len;
+        dsp->sb_8_length   = dsp->sb_8_origlength = len;
         dsp->sb_8_format   = format;
         dsp->sb_8_autoinit = autoinit;
         dsp->sb_8_pause    = 0;
@@ -381,7 +391,7 @@ sb_start_dma_i(sb_dsp_t *dsp, int dma8, int autoinit, uint8_t format, int len)
         if (!timer_is_enabled(&dsp->input_timer))
             timer_set_delay_u64(&dsp->input_timer, dsp->sblatchi);
     } else {
-        dsp->sb_16_length   = len;
+        dsp->sb_16_length   = dsp->sb_16_origlength = len;
         dsp->sb_16_format   = format;
         dsp->sb_16_autoinit = autoinit;
         dsp->sb_16_pause    = 0;
@@ -397,29 +407,31 @@ sb_start_dma_i(sb_dsp_t *dsp, int dma8, int autoinit, uint8_t format, int len)
 }
 
 int
-sb_8_read_dma(sb_dsp_t *dsp)
+sb_8_read_dma(void *priv)
 {
+    sb_dsp_t *dsp = (sb_dsp_t *) priv;
     return dma_channel_read(dsp->sb_8_dmanum);
 }
 
-void
-sb_8_write_dma(sb_dsp_t *dsp, uint8_t val)
+int
+sb_8_write_dma(void *priv, uint8_t val)
 {
-    dma_channel_write(dsp->sb_8_dmanum, val);
+    sb_dsp_t *dsp = (sb_dsp_t *) priv;
+    return dma_channel_write(dsp->sb_8_dmanum, val) == DMA_NODATA;
 }
 
 int
-sb_16_read_dma(sb_dsp_t *dsp)
+sb_16_read_dma(void *priv)
 {
+    sb_dsp_t *dsp = (sb_dsp_t *) priv;
     return dma_channel_read(dsp->sb_16_dmanum);
 }
 
 int
-sb_16_write_dma(sb_dsp_t *dsp, uint16_t val)
+sb_16_write_dma(void *priv, uint16_t val)
 {
-    int ret = dma_channel_write(dsp->sb_16_dmanum, val);
-
-    return (ret == DMA_NODATA);
+    sb_dsp_t *dsp = (sb_dsp_t *) priv;
+    return dma_channel_write(dsp->sb_16_dmanum, val) == DMA_NODATA;
 }
 
 void
@@ -469,12 +481,12 @@ sb_exec_command(sb_dsp_t *dsp)
             sb_start_dma(dsp, 1, 0, 0, dsp->sb_data[0] + (dsp->sb_data[1] << 8));
             break;
         case 0x17: /* 2-bit ADPCM output with reference */
-            dsp->sbref  = sb_8_read_dma(dsp);
+            dsp->sbref  = dsp->dma_readb(dsp->dma_priv);
             dsp->sbstep = 0;
             /* Fall through */
         case 0x16: /* 2-bit ADPCM output */
             sb_start_dma(dsp, 1, 0, ADPCM_2, dsp->sb_data[0] + (dsp->sb_data[1] << 8));
-            dsp->sbdat2 = sb_8_read_dma(dsp);
+            dsp->sbdat2 = dsp->dma_readb(dsp->dma_priv);
             dsp->sb_8_length--;
             if (dsp->sb_command == 0x17)
                 dsp->sb_8_length--;
@@ -486,7 +498,7 @@ sb_exec_command(sb_dsp_t *dsp)
         case 0x1F: /* 2-bit ADPCM autoinit output */
             if (dsp->sb_type >= SB15) {
                 sb_start_dma(dsp, 1, 1, ADPCM_2, dsp->sb_data[0] + (dsp->sb_data[1] << 8));
-                dsp->sbdat2 = sb_8_read_dma(dsp);
+                dsp->sbdat2 = dsp->dma_readb(dsp->dma_priv);
                 dsp->sb_8_length--;
             }
             break;
@@ -581,23 +593,23 @@ sb_exec_command(sb_dsp_t *dsp)
             dsp->sb_8_autolen = dsp->sb_data[0] + (dsp->sb_data[1] << 8);
             break;
         case 0x75: /* 4-bit ADPCM output with reference */
-            dsp->sbref  = sb_8_read_dma(dsp);
+            dsp->sbref  = dsp->dma_readb(dsp->dma_priv);
             dsp->sbstep = 0;
             /* Fall through */
         case 0x74: /* 4-bit ADPCM output */
             sb_start_dma(dsp, 1, 0, ADPCM_4, dsp->sb_data[0] + (dsp->sb_data[1] << 8));
-            dsp->sbdat2 = sb_8_read_dma(dsp);
+            dsp->sbdat2 = dsp->dma_readb(dsp->dma_priv);
             dsp->sb_8_length--;
             if (dsp->sb_command == 0x75)
                 dsp->sb_8_length--;
             break;
         case 0x77: /* 2.6-bit ADPCM output with reference */
-            dsp->sbref  = sb_8_read_dma(dsp);
+            dsp->sbref  = dsp->dma_readb(dsp->dma_priv);
             dsp->sbstep = 0;
             /* Fall through */
         case 0x76: /* 2.6-bit ADPCM output */
             sb_start_dma(dsp, 1, 0, ADPCM_26, dsp->sb_data[0] + (dsp->sb_data[1] << 8));
-            dsp->sbdat2 = sb_8_read_dma(dsp);
+            dsp->sbdat2 = dsp->dma_readb(dsp->dma_priv);
             dsp->sb_8_length--;
             if (dsp->sb_command == 0x77)
                 dsp->sb_8_length--;
@@ -605,14 +617,14 @@ sb_exec_command(sb_dsp_t *dsp)
         case 0x7D: /* 4-bit ADPCM autoinit output */
             if (dsp->sb_type >= SB15) {
                 sb_start_dma(dsp, 1, 1, ADPCM_4, dsp->sb_data[0] + (dsp->sb_data[1] << 8));
-                dsp->sbdat2 = sb_8_read_dma(dsp);
+                dsp->sbdat2 = dsp->dma_readb(dsp->dma_priv);
                 dsp->sb_8_length--;
             }
             break;
         case 0x7F: /* 2.6-bit ADPCM autoinit output */
             if (dsp->sb_type >= SB15) {
                 sb_start_dma(dsp, 1, 1, ADPCM_26, dsp->sb_data[0] + (dsp->sb_data[1] << 8));
-                dsp->sbdat2 = sb_8_read_dma(dsp);
+                dsp->sbdat2 = dsp->dma_readb(dsp->dma_priv);
                 dsp->sb_8_length--;
             }
             break;
@@ -757,7 +769,7 @@ sb_exec_command(sb_dsp_t *dsp)
             }
             dsp->sbe2 += sbe2dat[dsp->sbe2count & 3][8];
             dsp->sbe2count++;
-            sb_8_write_dma(dsp, dsp->sbe2);
+            dsp->dma_writeb(dsp->dma_priv, dsp->sbe2);
             break;
         case 0xE3: /* DSP copyright */
             if (dsp->sb_type >= SB16) {
@@ -1016,7 +1028,7 @@ sb_read(uint16_t a, void *priv)
             }
             break;
         case 0xE: /* Read data ready */
-            picintc(1 << dsp->sb_irqnum);
+            dsp->irq_update(dsp->irq_priv, 0);
             dsp->sb_irq8 = dsp->sb_irq16 = 0;
             /* Only bit 7 is defined but aztech diagnostics fail if the others are set. Keep the original behavior to not interfere with what's already working. */
             if (IS_AZTECH(dsp)) {
@@ -1030,7 +1042,7 @@ sb_read(uint16_t a, void *priv)
         case 0xF: /* 16-bit ack */
             dsp->sb_irq16 = 0;
             if (!dsp->sb_irq8)
-                picintc(1 << dsp->sb_irqnum);
+                dsp->irq_update(dsp->irq_priv, 0);
             sb_dsp_log("SB 16-bit ACK read 0xFF\n");
             ret = 0xff;
             break;
@@ -1108,6 +1120,16 @@ sb_dsp_init(sb_dsp_t *dsp, int type, int subtype, void *parent)
     dsp->sb_16_dmanum = 5;
     dsp->mpu          = NULL;
 
+    dsp->sbleftright_default = 0;
+
+    dsp->irq_update = sb_irq_update_pic;
+    dsp->irq_priv   = dsp;
+    dsp->dma_readb  = sb_8_read_dma;
+    dsp->dma_readw  = sb_16_read_dma;
+    dsp->dma_writeb = sb_8_write_dma;
+    dsp->dma_writew = sb_16_write_dma;
+    dsp->dma_priv   = dsp;
+
     sb_doreset(dsp);
 
     timer_add(&dsp->output_timer, pollsb, dsp, 0);
@@ -1150,6 +1172,28 @@ sb_dsp_set_stereo(sb_dsp_t *dsp, int stereo)
 }
 
 void
+sb_dsp_irq_attach(sb_dsp_t *dsp, void (*irq_update)(void *priv, int set), void *priv)
+{
+    dsp->irq_update = irq_update;
+    dsp->irq_priv   = priv;
+}
+
+void
+sb_dsp_dma_attach(sb_dsp_t *dsp,
+                  int (*dma_readb)(void *priv),
+                  int (*dma_readw)(void *priv),
+                  int (*dma_writeb)(void *priv, uint8_t val),
+                  int (*dma_writew)(void *priv, uint16_t val),
+                  void *priv)
+{
+    dsp->dma_readb  = dma_readb;
+    dsp->dma_readw  = dma_readw;
+    dsp->dma_writeb = dma_writeb;
+    dsp->dma_writew = dma_writew;
+    dsp->dma_priv   = priv;
+}
+
+void
 pollsb(void *p)
 {
     sb_dsp_t *dsp = (sb_dsp_t *) p;
@@ -1162,13 +1206,13 @@ pollsb(void *p)
 
         switch (dsp->sb_8_format) {
             case 0x00: /* Mono unsigned */
-                data[0] = sb_8_read_dma(dsp);
+                data[0] = dsp->dma_readb(dsp->dma_priv);
                 /* Needed to prevent clicking in Worms, which programs the DSP to
                    auto-init DMA but programs the DMA controller to single cycle */
                 if (data[0] == DMA_NODATA)
                     break;
                 dsp->sbdat = (data[0] ^ 0x80) << 8;
-                if ((dsp->sb_type >= SBPRO) && (dsp->sb_type < SB16) && dsp->stereo) {
+                if (dsp->stereo) {
                     sb_dsp_log("pollsb: Mono unsigned, dsp->stereo, %s channel, %04X\n",
                                dsp->sbleftright ? "left" : "right", dsp->sbdat);
                     if (dsp->sbleftright)
@@ -1181,11 +1225,11 @@ pollsb(void *p)
                 dsp->sb_8_length--;
                 break;
             case 0x10: /* Mono signed */
-                data[0] = sb_8_read_dma(dsp);
+                data[0] = dsp->dma_readb(dsp->dma_priv);
                 if (data[0] == DMA_NODATA)
                     break;
                 dsp->sbdat = data[0] << 8;
-                if ((dsp->sb_type >= SBPRO) && (dsp->sb_type < SB16) && dsp->stereo) {
+                if (dsp->stereo) {
                     sb_dsp_log("pollsb: Mono signed, dsp->stereo, %s channel, %04X\n",
                                dsp->sbleftright ? "left" : "right", data[0], dsp->sbdat);
                     if (dsp->sbleftright)
@@ -1198,8 +1242,8 @@ pollsb(void *p)
                 dsp->sb_8_length--;
                 break;
             case 0x20: /* Stereo unsigned */
-                data[0] = sb_8_read_dma(dsp);
-                data[1] = sb_8_read_dma(dsp);
+                data[0] = dsp->dma_readb(dsp->dma_priv);
+                data[1] = dsp->dma_readb(dsp->dma_priv);
                 if ((data[0] == DMA_NODATA) || (data[1] == DMA_NODATA))
                     break;
                 dsp->sbdatl = (data[0] ^ 0x80) << 8;
@@ -1207,8 +1251,8 @@ pollsb(void *p)
                 dsp->sb_8_length -= 2;
                 break;
             case 0x30: /* Stereo signed */
-                data[0] = sb_8_read_dma(dsp);
-                data[1] = sb_8_read_dma(dsp);
+                data[0] = dsp->dma_readb(dsp->dma_priv);
+                data[1] = dsp->dma_readb(dsp->dma_priv);
                 if ((data[0] == DMA_NODATA) || (data[1] == DMA_NODATA))
                     break;
                 dsp->sbdatl = data[0] << 8;
@@ -1241,11 +1285,11 @@ pollsb(void *p)
 
                 if (dsp->sbdacpos >= 2) {
                     dsp->sbdacpos = 0;
-                    dsp->sbdat2   = sb_8_read_dma(dsp);
+                    dsp->sbdat2   = dsp->dma_readb(dsp->dma_priv);
                     dsp->sb_8_length--;
                 }
 
-                if ((dsp->sb_type >= SBPRO) && (dsp->sb_type < SB16) && dsp->stereo) {
+                if (dsp->stereo) {
                     sb_dsp_log("pollsb: ADPCM 4, dsp->stereo, %s channel, %04X\n",
                                dsp->sbleftright ? "left" : "right", dsp->sbdat);
                     if (dsp->sbleftright)
@@ -1284,11 +1328,11 @@ pollsb(void *p)
                 dsp->sbdacpos++;
                 if (dsp->sbdacpos >= 3) {
                     dsp->sbdacpos = 0;
-                    dsp->sbdat2   = sb_8_read_dma(dsp);
+                    dsp->sbdat2   = dsp->dma_readb(dsp->dma_priv);
                     dsp->sb_8_length--;
                 }
 
-                if ((dsp->sb_type >= SBPRO) && (dsp->sb_type < SB16) && dsp->stereo) {
+                if (dsp->stereo) {
                     sb_dsp_log("pollsb: ADPCM 26, dsp->stereo, %s channel, %04X\n",
                                dsp->sbleftright ? "left" : "right", dsp->sbdat);
                     if (dsp->sbleftright)
@@ -1321,10 +1365,10 @@ pollsb(void *p)
                 dsp->sbdacpos++;
                 if (dsp->sbdacpos >= 4) {
                     dsp->sbdacpos = 0;
-                    dsp->sbdat2   = sb_8_read_dma(dsp);
+                    dsp->sbdat2   = dsp->dma_readb(dsp->dma_priv);
                 }
 
-                if ((dsp->sb_type >= SBPRO) && (dsp->sb_type < SB16) && dsp->stereo) {
+                if (dsp->stereo) {
                     sb_dsp_log("pollsb: ADPCM 2, dsp->stereo, %s channel, %04X\n",
                                dsp->sbleftright ? "left" : "right", dsp->sbdat);
                     if (dsp->sbleftright)
@@ -1339,7 +1383,7 @@ pollsb(void *p)
 
         if (dsp->sb_8_length < 0) {
             if (dsp->sb_8_autoinit)
-                dsp->sb_8_length = dsp->sb_8_autolen;
+                dsp->sb_8_length = dsp->sb_8_origlength = dsp->sb_8_autolen;
             else {
                 dsp->sb_8_enable = 0;
                 timer_disable(&dsp->output_timer);
@@ -1352,22 +1396,22 @@ pollsb(void *p)
 
         switch (dsp->sb_16_format) {
             case 0x00: /* Mono unsigned */
-                data[0] = sb_16_read_dma(dsp);
+                data[0] = dsp->dma_readw(dsp->dma_priv);
                 if (data[0] == DMA_NODATA)
                     break;
                 dsp->sbdatl = dsp->sbdatr = data[0] ^ 0x8000;
                 dsp->sb_16_length--;
                 break;
             case 0x10: /* Mono signed */
-                data[0] = sb_16_read_dma(dsp);
+                data[0] = dsp->dma_readw(dsp->dma_priv);
                 if (data[0] == DMA_NODATA)
                     break;
                 dsp->sbdatl = dsp->sbdatr = data[0];
                 dsp->sb_16_length--;
                 break;
             case 0x20: /* Stereo unsigned */
-                data[0] = sb_16_read_dma(dsp);
-                data[1] = sb_16_read_dma(dsp);
+                data[0] = dsp->dma_readw(dsp->dma_priv);
+                data[1] = dsp->dma_readw(dsp->dma_priv);
                 if ((data[0] == DMA_NODATA) || (data[1] == DMA_NODATA))
                     break;
                 dsp->sbdatl = data[0] ^ 0x8000;
@@ -1375,8 +1419,8 @@ pollsb(void *p)
                 dsp->sb_16_length -= 2;
                 break;
             case 0x30: /* Stereo signed */
-                data[0] = sb_16_read_dma(dsp);
-                data[1] = sb_16_read_dma(dsp);
+                data[0] = dsp->dma_readw(dsp->dma_priv);
+                data[1] = dsp->dma_readw(dsp->dma_priv);
                 if ((data[0] == DMA_NODATA) || (data[1] == DMA_NODATA))
                     break;
                 dsp->sbdatl = data[0];
@@ -1388,7 +1432,7 @@ pollsb(void *p)
         if (dsp->sb_16_length < 0) {
             sb_dsp_log("16DMA over %i\n", dsp->sb_16_autoinit);
             if (dsp->sb_16_autoinit)
-                dsp->sb_16_length = dsp->sb_16_autolen;
+                dsp->sb_16_length = dsp->sb_16_origlength = dsp->sb_16_autolen;
             else {
                 dsp->sb_16_enable = 0;
                 timer_disable(&dsp->output_timer);
@@ -1418,27 +1462,27 @@ sb_poll_i(void *p)
     if (dsp->sb_8_enable && !dsp->sb_8_pause && dsp->sb_pausetime < 0 && !dsp->sb_8_output) {
         switch (dsp->sb_8_format) {
             case 0x00: /* Mono unsigned As the manual says, only the left channel is recorded */
-                sb_8_write_dma(dsp, (dsp->record_buffer[dsp->record_pos_read] >> 8) ^ 0x80);
+                dsp->dma_writeb(dsp->dma_priv, (dsp->record_buffer[dsp->record_pos_read] >> 8) ^ 0x80);
                 dsp->sb_8_length--;
                 dsp->record_pos_read += 2;
                 dsp->record_pos_read &= 0xFFFF;
                 break;
             case 0x10: /* Mono signed As the manual says, only the left channel is recorded */
-                sb_8_write_dma(dsp, (dsp->record_buffer[dsp->record_pos_read] >> 8));
+                dsp->dma_writeb(dsp->dma_priv, (dsp->record_buffer[dsp->record_pos_read] >> 8));
                 dsp->sb_8_length--;
                 dsp->record_pos_read += 2;
                 dsp->record_pos_read &= 0xFFFF;
                 break;
             case 0x20: /* Stereo unsigned */
-                sb_8_write_dma(dsp, (dsp->record_buffer[dsp->record_pos_read] >> 8) ^ 0x80);
-                sb_8_write_dma(dsp, (dsp->record_buffer[dsp->record_pos_read + 1] >> 8) ^ 0x80);
+                dsp->dma_writeb(dsp->dma_priv, (dsp->record_buffer[dsp->record_pos_read] >> 8) ^ 0x80);
+                dsp->dma_writeb(dsp->dma_priv, (dsp->record_buffer[dsp->record_pos_read + 1] >> 8) ^ 0x80);
                 dsp->sb_8_length -= 2;
                 dsp->record_pos_read += 2;
                 dsp->record_pos_read &= 0xFFFF;
                 break;
             case 0x30: /* Stereo signed */
-                sb_8_write_dma(dsp, (dsp->record_buffer[dsp->record_pos_read] >> 8));
-                sb_8_write_dma(dsp, (dsp->record_buffer[dsp->record_pos_read + 1] >> 8));
+                dsp->dma_writeb(dsp->dma_priv, (dsp->record_buffer[dsp->record_pos_read] >> 8));
+                dsp->dma_writeb(dsp->dma_priv, (dsp->record_buffer[dsp->record_pos_read + 1] >> 8));
                 dsp->sb_8_length -= 2;
                 dsp->record_pos_read += 2;
                 dsp->record_pos_read &= 0xFFFF;
@@ -1447,7 +1491,7 @@ sb_poll_i(void *p)
 
         if (dsp->sb_8_length < 0) {
             if (dsp->sb_8_autoinit)
-                dsp->sb_8_length = dsp->sb_8_autolen;
+                dsp->sb_8_length = dsp->sb_8_origlength = dsp->sb_8_autolen;
             else {
                 dsp->sb_8_enable = 0;
                 timer_disable(&dsp->input_timer);
@@ -1459,31 +1503,31 @@ sb_poll_i(void *p)
     if (dsp->sb_16_enable && !dsp->sb_16_pause && (dsp->sb_pausetime < 0LL) && !dsp->sb_16_output) {
         switch (dsp->sb_16_format) {
             case 0x00: /* Unsigned mono. As the manual says, only the left channel is recorded */
-                if (sb_16_write_dma(dsp, dsp->record_buffer[dsp->record_pos_read] ^ 0x8000))
+                if (dsp->dma_writew(dsp->dma_priv, dsp->record_buffer[dsp->record_pos_read] ^ 0x8000))
                     return;
                 dsp->sb_16_length--;
                 dsp->record_pos_read += 2;
                 dsp->record_pos_read &= 0xFFFF;
                 break;
             case 0x10: /* Signed mono. As the manual says, only the left channel is recorded */
-                if (sb_16_write_dma(dsp, dsp->record_buffer[dsp->record_pos_read]))
+                if (dsp->dma_writew(dsp->dma_priv, dsp->record_buffer[dsp->record_pos_read]))
                     return;
                 dsp->sb_16_length--;
                 dsp->record_pos_read += 2;
                 dsp->record_pos_read &= 0xFFFF;
                 break;
             case 0x20: /* Unsigned stereo */
-                if (sb_16_write_dma(dsp, dsp->record_buffer[dsp->record_pos_read] ^ 0x8000))
+                if (dsp->dma_writew(dsp->dma_priv, dsp->record_buffer[dsp->record_pos_read] ^ 0x8000))
                     return;
-                sb_16_write_dma(dsp, dsp->record_buffer[dsp->record_pos_read + 1] ^ 0x8000);
+                dsp->dma_writew(dsp->dma_priv, dsp->record_buffer[dsp->record_pos_read + 1] ^ 0x8000);
                 dsp->sb_16_length -= 2;
                 dsp->record_pos_read += 2;
                 dsp->record_pos_read &= 0xFFFF;
                 break;
             case 0x30: /* Signed stereo */
-                if (sb_16_write_dma(dsp, dsp->record_buffer[dsp->record_pos_read]))
+                if (dsp->dma_writew(dsp->dma_priv, dsp->record_buffer[dsp->record_pos_read]))
                     return;
-                sb_16_write_dma(dsp, dsp->record_buffer[dsp->record_pos_read + 1]);
+                dsp->dma_writew(dsp->dma_priv, dsp->record_buffer[dsp->record_pos_read + 1]);
                 dsp->sb_16_length -= 2;
                 dsp->record_pos_read += 2;
                 dsp->record_pos_read &= 0xFFFF;
@@ -1492,7 +1536,7 @@ sb_poll_i(void *p)
 
         if (dsp->sb_16_length < 0) {
             if (dsp->sb_16_autoinit)
-                dsp->sb_16_length = dsp->sb_16_autolen;
+                dsp->sb_16_length = dsp->sb_16_origlength = dsp->sb_16_autolen;
             else {
                 dsp->sb_16_enable = 0;
                 timer_disable(&dsp->input_timer);

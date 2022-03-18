@@ -15,11 +15,16 @@ typedef struct sb_dsp_t {
     int   sb_subtype; /* which clone */
     void *parent;     /* "sb_t *" if default subtype, "azt2316a_t *" if aztech. */
 
-    int sb_8_length, sb_8_format, sb_8_autoinit, sb_8_pause, sb_8_enable, sb_8_autolen, sb_8_output;
+    int sb_8_length, sb_8_origlength, sb_8_format, sb_8_autoinit, sb_8_pause, sb_8_enable, sb_8_autolen, sb_8_output;
     int sb_8_dmanum;
-    int sb_16_length, sb_16_format, sb_16_autoinit, sb_16_pause, sb_16_enable, sb_16_autolen, sb_16_output;
+    int sb_16_length, sb_16_origlength, sb_16_format, sb_16_autoinit, sb_16_pause, sb_16_enable, sb_16_autolen, sb_16_output;
     int sb_16_dmanum;
     int sb_pausetime;
+    int (*dma_readb)(void *priv),
+        (*dma_readw)(void *priv),
+        (*dma_writeb)(void *priv, uint8_t val),
+        (*dma_writew)(void *priv, uint16_t val);
+    void *dma_priv;
 
     uint8_t sb_read_data[256];
     int     sb_read_wp, sb_read_rp;
@@ -36,6 +41,8 @@ typedef struct sb_dsp_t {
     int midi_in_timestamp;
 
     int sb_irqnum;
+    void (*irq_update)(void *priv, int set),
+         *irq_priv;
 
     uint8_t sbe2;
     int     sbe2count;
@@ -53,7 +60,7 @@ typedef struct sb_dsp_t {
 
     int sbdacpos;
 
-    int sbleftright;
+    int sbleftright, sbleftright_default;
 
     int     sbreset;
     uint8_t sbreaddat;
@@ -122,5 +129,13 @@ void sb_dsp_set_stereo(sb_dsp_t *dsp, int stereo);
 
 void sb_dsp_update(sb_dsp_t *dsp);
 void sb_update_mask(sb_dsp_t *dsp, int irqm8, int irqm16, int irqm401);
+
+void sb_dsp_irq_attach(sb_dsp_t *dsp, void (*irq_update)(void *priv, int set), void *priv);
+void sb_dsp_dma_attach(sb_dsp_t *dsp,
+                       int (*dma_readb)(void *priv),
+                       int (*dma_readw)(void *priv),
+                       int (*dma_writeb)(void *priv, uint8_t val),
+                       int (*dma_writew)(void *priv, uint16_t val),
+                       void *priv);
 
 #endif /* SOUND_SND_SB_DSP_H */

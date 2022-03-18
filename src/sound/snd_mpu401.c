@@ -1222,7 +1222,7 @@ MPU401_ReadData(mpu_t *mpu)
     return ret;
 }
 
-static void
+void
 mpu401_write(uint16_t addr, uint8_t val, void *priv)
 {
     mpu_t *mpu = (mpu_t *) priv;
@@ -1241,7 +1241,7 @@ mpu401_write(uint16_t addr, uint8_t val, void *priv)
     }
 }
 
-static uint8_t
+uint8_t
 mpu401_read(uint16_t addr, void *priv)
 {
     mpu_t  *mpu = (mpu_t *) priv;

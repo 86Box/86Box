@@ -36,6 +36,7 @@
 #include <86box/mem.h>
 #include <86box/plat.h>
 #include <86box/rom.h>
+#include <86box/gdbstub.h>
 #ifdef USE_DYNAREC
 # include "codegen_public.h"
 #else
@@ -783,6 +784,8 @@ readmembl(uint32_t addr)
     mem_mapping_t *map;
     uint64_t a;
 
+    GDBSTUB_MEM_ACCESS(addr, GDBSTUB_MEM_READ, 1);
+
     addr64 = (uint64_t) addr;
     mem_logical_addr = addr;
 
@@ -810,6 +813,8 @@ writemembl(uint32_t addr, uint8_t val)
 {
     mem_mapping_t *map;
     uint64_t a;
+
+    GDBSTUB_MEM_ACCESS(addr, GDBSTUB_MEM_WRITE, 1);
 
     addr64 = (uint64_t) addr;
     mem_logical_addr = addr;
@@ -842,6 +847,8 @@ readmembl_no_mmut(uint32_t addr, uint32_t a64)
 {
     mem_mapping_t *map;
 
+    GDBSTUB_MEM_ACCESS(addr, GDBSTUB_MEM_READ, 1);
+
     mem_logical_addr = addr;
 
     if (cr0 >> 31) {
@@ -865,6 +872,8 @@ void
 writemembl_no_mmut(uint32_t addr, uint32_t a64, uint8_t val)
 {
     mem_mapping_t *map;
+
+    GDBSTUB_MEM_ACCESS(addr, GDBSTUB_MEM_WRITE, 1);
 
     mem_logical_addr = addr;
 
@@ -896,6 +905,7 @@ readmemwl(uint32_t addr)
 
     addr64a[0] = addr;
     addr64a[1] = addr + 1;
+    GDBSTUB_MEM_ACCESS_FAST(addr64a, GDBSTUB_MEM_READ, 2);
 
     mem_logical_addr = addr;
 
@@ -957,6 +967,7 @@ writememwl(uint32_t addr, uint16_t val)
 
     addr64a[0] = addr;
     addr64a[1] = addr + 1;
+    GDBSTUB_MEM_ACCESS_FAST(addr64a, GDBSTUB_MEM_WRITE, 2);
 
     mem_logical_addr = addr;
 
@@ -1029,6 +1040,8 @@ readmemwl_no_mmut(uint32_t addr, uint32_t *a64)
 {
     mem_mapping_t *map;
 
+    GDBSTUB_MEM_ACCESS(addr, GDBSTUB_MEM_READ, 2);
+
     mem_logical_addr = addr;
 
     if (addr & 1) {
@@ -1075,6 +1088,8 @@ void
 writememwl_no_mmut(uint32_t addr, uint32_t *a64, uint16_t val)
 {
     mem_mapping_t *map;
+
+    GDBSTUB_MEM_ACCESS(addr, GDBSTUB_MEM_WRITE, 2);
 
     mem_logical_addr = addr;
 
@@ -1135,6 +1150,7 @@ readmemll(uint32_t addr)
 
     for (i = 0; i < 4; i++)
 	addr64a[i] = (uint64_t) (addr + i);
+    GDBSTUB_MEM_ACCESS_FAST(addr64a, GDBSTUB_MEM_READ, 4);
 
     mem_logical_addr = addr;
 
@@ -1214,6 +1230,7 @@ writememll(uint32_t addr, uint32_t val)
 
     for (i = 0; i < 4; i++)
 	addr64a[i] = (uint64_t) (addr + i);
+    GDBSTUB_MEM_ACCESS_FAST(addr64a, GDBSTUB_MEM_WRITE, 4);
 
     mem_logical_addr = addr;
 
@@ -1305,6 +1322,8 @@ readmemll_no_mmut(uint32_t addr, uint32_t *a64)
 #ifndef NO_MMUT
     mem_mapping_t *map;
 
+    GDBSTUB_MEM_ACCESS(addr, GDBSTUB_MEM_READ, 4);
+
     mem_logical_addr = addr;
 
     if (addr & 3) {
@@ -1360,6 +1379,8 @@ writememll_no_mmut(uint32_t addr, uint32_t *a64, uint32_t val)
 {
 #ifndef NO_MMUT
     mem_mapping_t *map;
+
+    GDBSTUB_MEM_ACCESS(addr, GDBSTUB_MEM_WRITE, 4);
 
     mem_logical_addr = addr;
 
@@ -1429,6 +1450,7 @@ readmemql(uint32_t addr)
 
     for (i = 0; i < 8; i++)
 	addr64a[i] = (uint64_t) (addr + i);
+    GDBSTUB_MEM_ACCESS_FAST(addr64a, GDBSTUB_MEM_READ, 8);
 
     mem_logical_addr = addr;
 
@@ -1496,6 +1518,7 @@ writememql(uint32_t addr, uint64_t val)
 
     for (i = 0; i < 8; i++)
 	addr64a[i] = (uint64_t) (addr + i);
+    GDBSTUB_MEM_ACCESS_FAST(addr64a, GDBSTUB_MEM_WRITE, 8);
 
     mem_logical_addr = addr;
 

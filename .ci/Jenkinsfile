@@ -12,7 +12,7 @@
  *
  * Authors:	RichardG, <richardg867@gmail.com>
  *
- *		Copyright 2021 RichardG.
+ *		Copyright 2021-2022 RichardG.
  */
 
 def repository = 'https://github.com/86Box/86Box.git'
@@ -84,8 +84,6 @@ def presetFlags = [
 	'Dev': '--preset=experimental -D CMAKE_BUILD_TYPE=Debug -D VNC=OFF'
 ]
 
-def anyFailure = false
-
 def gitClone(repository, branch) {
 	/* Clean workspace. */
 	cleanWs()
@@ -105,9 +103,9 @@ def gitClone(repository, branch) {
 		} else if (env.GIT_COMMIT != scmVars.GIT_COMMIT) {
 			/* Checkout the commit read from the polling log. */
 			if (isUnix())
-				sh "git checkout ${env.GIT_COMMIT} || exit 0"
+				sh returnStatus: true, script: "git checkout ${env.GIT_COMMIT}"
 			else
-				bat "git checkout ${env.GIT_COMMIT} || exit /b 0"
+				bat returnStatus: true, script: "git checkout ${env.GIT_COMMIT}"
 		}
 		println "[-] Using git commit [${env.GIT_COMMIT}]"
 
@@ -122,16 +120,23 @@ def gitClone(repository, branch) {
 
 def removeDir(dir) {
 	if (isUnix())
-		sh "rm -rf \"$dir\" || exit 0"
+		return sh(returnStatus: true, script: "rm -rf \"$dir\"")
 	else
-		bat "if exist \"$dir\" rd /s /q \"$dir\" & exit /b 0"
+		return bat(returnStatus: true, script: "rd /s /q \"$dir\"")
 }
 
 def runBuild(args) {
 	if (isUnix())
-		sh "chmod u+x \"$WORKSPACE/.ci/build.sh\" && exec \"$WORKSPACE/.ci/build.sh\" $args"
+		return sh(returnStatus: true, script: "chmod u+x \"$WORKSPACE/.ci/build.sh\" && exec \"$WORKSPACE/.ci/build.sh\" $args")
 	else
-		bat "C:\\msys64\\msys2_shell.cmd -msys2 -defterm -here -no-start -c 'exec \"\$(cygpath -u \\'%WORKSPACE%\\')/.ci/build.sh\" $args'"
+		return bat(returnStatus: true, script: "C:\\msys64\\msys2_shell.cmd -msys2 -defterm -here -no-start -c 'exec \"\$(cygpath -u \\'%WORKSPACE%\\')/.ci/build.sh\" $args'")
+}
+
+def failStage() {
+	/* Force this stage to fail. */
+	catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+		def x = 1 / 0
+	}
 }
 
 pipeline {
@@ -142,7 +147,6 @@ pipeline {
 	}
 
 	options {
-		disableConcurrentBuilds()
 		quietPeriod(0)
 	}
 
@@ -155,6 +159,7 @@ pipeline {
 	stages {
 		stage('Source Tarball') {
 			agent none
+			failFast false
 
 			steps {
 				script {
@@ -178,78 +183,84 @@ pipeline {
 
 					/* Adding to the above, run a git clone as soon as possible on any node
 					   to further avoid race conditions caused by busy node executor delays. */
-					node('!Windows') {
-						/* Run git clone. */
-						gitClone(repository, branch)
-
-						/* Clean workspace, in case this is running in a non-build node. */
-						cleanWs()
-					}
-
-					/* Create source tarball. */
-					node('Linux') {
-						try {
+					retry(10) {
+						node('citadel && !Windows') {
 							/* Run git clone. */
 							gitClone(repository, branch)
 
-							/* Switch to temp directory. */
-							dir("${env.WORKSPACE_TMP}/output") {
-								/* Run source tarball creation process. */
-								def packageName = "${env.JOB_BASE_NAME}-Source-b${env.BUILD_NUMBER}"
-								runBuild("-s \"$packageName\"")
+							/* Clean workspace, in case this is running in a non-build node. */
+							cleanWs()
+						}
+					}
 
-								/* Archive resulting artifacts. */
-								archiveArtifacts artifacts: "$packageName*"
-							}
+					/* Create source tarball. */
+					try {
+						retry(10) {
+							node('Linux') {
+								/* Run git clone. */
+								gitClone(repository, branch)
 
-							/* Clean up. */
-							removeDir("${env.WORKSPACE_TMP}/output")
-						} catch (e) {
-							/* Mark that a failure occurred. */
-							anyFailure = true
+								/* Switch to temp directory. */
+								dir("${env.WORKSPACE_TMP}/output") {
+									/* Run source tarball creation process. */
+									def packageName = "${env.JOB_BASE_NAME}-Source-b${env.BUILD_NUMBER}"
+									if (runBuild("-s \"$packageName\"") == 0) {
+										/* Archive resulting artifacts. */
+										archiveArtifacts artifacts: "$packageName*"
+									} else {
+										/* Fail this stage. */
+										failStage()
+									}
+								}
 
-							/* Force this stage to fail. */
-							catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
-								throw e;
+								/* Clean up. */
+								removeDir("${env.WORKSPACE_TMP}/output")
 							}
 						}
+					} catch (e) {
+						/* Fail this stage. */
+						failStage()
 					}
 
 					/* Build here to avoid creating a redundant parent stage on the stage view. */
 					osArchs.each { os, thisOsArchs ->
+						def combinations = [:]
 						thisOsArchs.each { arch ->
 							def thisArchDynarecs = dynarecArchs[arch]
 							if (!thisArchDynarecs)
 								thisArchDynarecs = ['NoDR']
 							thisArchDynarecs.each { dynarec ->
 								presets.each { preset ->
-									node(os) {
-										stage("$os $arch $dynarec $preset") {
-											try {
-												/* Run git clone. */
-												gitClone(repository, branch)
+									def combination = "$os $arch $dynarec $preset"
+									combinations[combination] = {
+										catchError(buildResult: 'FAILURE', stageResult: 'SUCCESS') {
+											retry(10) {
+												node(os) {
+													stage(combination) {
+														/* Run git clone. */
+														gitClone(repository, branch)
 
-												/* Switch to output directory. */
-												dir("${env.WORKSPACE_TMP}/output") {
-													/* Run build process. */
-													def packageName = "${env.JOB_BASE_NAME}${dynarecSlugs[dynarec]}${presetSlugs[preset]}-$os-$arch-b${env.BUILD_NUMBER}"
-													dir("${dynarecNames[dynarec]}/$os - ${archNames[arch]}") {
-														runBuild("-b \"$packageName\" \"$arch\" ${presetFlags[preset]} ${dynarecFlags[dynarec]} ${osFlags[os]} -D \"BUILD_TYPE=$BUILD_TYPE\" -D \"EMU_BUILD=build ${env.BUILD_NUMBER}\" -D \"EMU_BUILD_NUM=${env.BUILD_NUMBER}\"")
+														/* Switch to output directory. */
+														dir("${env.WORKSPACE_TMP}/output") {
+															/* Run build process. */
+															def packageName = "${env.JOB_BASE_NAME}${dynarecSlugs[dynarec]}${presetSlugs[preset]}-$os-$arch-b${env.BUILD_NUMBER}"
+															def ret = -1
+															dir("${dynarecNames[dynarec]}/$os - ${archNames[arch]}") {
+																ret = runBuild("-b \"$packageName\" \"$arch\" ${presetFlags[preset]} ${dynarecFlags[dynarec]} ${osFlags[os]} -D \"BUILD_TYPE=$BUILD_TYPE\" -D \"EMU_BUILD=build ${env.BUILD_NUMBER}\" -D \"EMU_BUILD_NUM=${env.BUILD_NUMBER}\"")
+															}
+
+															if (ret == 0) {
+																/* Archive resulting artifacts. */
+																archiveArtifacts artifacts: "**/**/$packageName*"
+															} else {
+																/* Fail this stage. */
+																failStage()
+															}
+														}
+
+														/* Clean up. */
+														removeDir("${env.WORKSPACE_TMP}/output")
 													}
-
-													/* Archive resulting artifacts. */
-													archiveArtifacts artifacts: "**/**/$packageName*"
-												}
-
-												/* Clean up. */
-												removeDir("${env.WORKSPACE_TMP}/output")
-											} catch (e) {
-												/* Mark that a failure occurred. */
-												anyFailure = true
-
-												/* Force this stage to fail. */
-												catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
-													throw e;
 												}
 											}
 										}
@@ -257,6 +268,7 @@ pipeline {
 								}
 							}
 						}
+						parallel combinations
 					}
 				}
 			}
@@ -266,12 +278,6 @@ pipeline {
 	post {
 		always {
 			script {
-				/* Mark build as failed if any step has failed. */
-				if (anyFailure) {
-					println "[!] Failing build because a build stage failed"
-					currentBuild.result = 'FAILURE'
-				}
-
 				/* Send out build notifications. */
 				if (!env.JOB_BASE_NAME.contains('TestBuildPleaseIgnore')) {
 					try {
@@ -287,7 +293,7 @@ pipeline {
 							    scmWebUrl: commitBrowser
 
 						/* Notify IRC, which needs a node for whatever reason. */
-						node {
+						node('citadel') {
 							ircNotify()
 						}
 					} catch (e) {

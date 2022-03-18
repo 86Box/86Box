@@ -139,6 +139,8 @@ static const SOUND_CARD sound_cards[] = {
     { &ncr_business_audio_device },
     { &sb_mcv_device             },
     { &sb_pro_mcv_device         },
+    { &cmi8338_device            },
+    { &cmi8738_device            },
     { &es1371_device             },
     { &ad1881_device             },
     { &cs4297a_device            },

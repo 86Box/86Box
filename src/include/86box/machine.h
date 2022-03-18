@@ -613,6 +613,9 @@ extern int	machine_at_s370sba_init(const machine_t *);
 extern int	machine_at_apas3_init(const machine_t *);
 extern int	machine_at_gt694va_init(const machine_t *);
 extern int	machine_at_cuv4xls_init(const machine_t *);
+#ifdef EMU_DEVICE_H
+extern const device_t 	*at_cuv4xls_get_device(void);
+#endif
 extern int	machine_at_6via90ap_init(const machine_t *);
 extern int	machine_at_s1857_init(const machine_t *);
 extern int	machine_at_p6bap_init(const machine_t *);
