@@ -114,6 +114,7 @@ int		isa_cycles, cpu_inited,
 		cpu_override, cpu_effective, cpu_multi, cpu_16bitbus, cpu_64bitbus, cpu_busspeed,
 		cpu_cyrix_alignment, CPUID,
 
+		is186, is_nec,
  		is286, is386, is486 = 1,
 		cpu_isintel, cpu_iscyrix, hascache, isibm486, israpidcad, is_vpc,
 		is_am486, is_am486dxl, is_pentium, is_k5, is_k6, is_p6, is_cxsmm, hasfpu,
@@ -373,8 +374,8 @@ cpu_set(void)
 
     CPUID        = cpu_s->cpuid_model;
     is8086       = (cpu_s->cpu_type > CPU_8088);
-    is_nec       = (cpu->type == CPU_V20) || (cpu->type == CPU_V30);
-    is186        = (cpu->type == CPU_186) || (cpu->type == CPU_V30);
+    is_nec       = (cpu_s->cpu_type == CPU_V20) || (cpu_s->cpu_type == CPU_V30);
+    is186        = (cpu_s->cpu_type == CPU_186) || (cpu_s->cpu_type == CPU_V20) || (cpu_s->cpu_type == CPU_V30);
     is286        = (cpu_s->cpu_type >= CPU_286);
     is386        = (cpu_s->cpu_type >= CPU_386SX);
     israpidcad   = (cpu_s->cpu_type == CPU_RAPIDCAD);
