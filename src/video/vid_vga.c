@@ -181,47 +181,44 @@ void vga_force_redraw(void *p)
         vga->svga.fullchange = changeframecount;
 }
 
-const device_t vga_device =
-{
-        "VGA",
-        "vga",
-        DEVICE_ISA,
-    0,
-        vga_init,
-        vga_close,
-    NULL,
-        { vga_available },
-        vga_speed_changed,
-        vga_force_redraw,
-        NULL
+const device_t vga_device = {
+    .name = "VGA",
+    .internal_name = "vga",
+    .flags = DEVICE_ISA,
+    .local = 0,
+    .init = vga_init,
+    .close = vga_close,
+    .reset = NULL,
+    { .available = vga_available },
+    .speed_changed = vga_speed_changed,
+    .force_redraw = vga_force_redraw,
+    .config = NULL
 };
 
-const device_t ps1vga_device =
-{
-        "PS/1 VGA",
-        "ps1vga",
-        DEVICE_ISA,
-    0,
-        ps1vga_init,
-        vga_close,
-    NULL,
-        { vga_available },
-        vga_speed_changed,
-        vga_force_redraw,
-        NULL
+const device_t ps1vga_device = {
+    .name = "PS/1 VGA",
+    .internal_name = "ps1vga",
+    .flags = DEVICE_ISA,
+    .local = 0,
+    .init = ps1vga_init,
+    .close = vga_close,
+    .reset = NULL,
+    { .available = vga_available },
+    .speed_changed = vga_speed_changed,
+    .force_redraw = vga_force_redraw,
+    .config = NULL
 };
 
-const device_t ps1vga_mca_device =
-{
-        "PS/1 VGA",
-        "ps1vga_mca",
-        DEVICE_MCA,
-    0,
-        ps1vga_init,
-        vga_close,
-    NULL,
-        { vga_available },
-        vga_speed_changed,
-        vga_force_redraw,
-        NULL
+const device_t ps1vga_mca_device = {
+    .name = "PS/1 VGA",
+    .internal_name = "ps1vga_mca",
+    .flags = DEVICE_MCA,
+    .local = 0,
+    .init = ps1vga_init,
+    .close = vga_close,
+    .reset = NULL,
+    { .available = vga_available },
+    .speed_changed = vga_speed_changed,
+    .force_redraw = vga_force_redraw,
+    .config = NULL
 };

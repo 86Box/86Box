@@ -213,7 +213,7 @@ const machine_t machines[] = {
     { "[8088] Tandy 1000",			"tandy",		MACHINE_TYPE_8088,	MACHINE_CHIPSET_PROPRIETARY,			   machine_tandy_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_8088_EUROPC, 0, 0, 0, 0, 0, 0, 0,									MACHINE_PC,		MACHINE_VIDEO_FIXED,					  128,   640, 128,    0, KBC_TANDY,			0xff00, 0xffffffff,	NULL,				tandy1k_get_device		},
     { "[8088] Tandy 1000 HX",			"tandy1000hx",		MACHINE_TYPE_8088,	MACHINE_CHIPSET_PROPRIETARY,		     machine_tandy1000hx_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_8088_EUROPC, 0, 0, 0, 0, 0, 0, 0,									MACHINE_PC,		MACHINE_VIDEO_FIXED,					  256,   640, 128,    0, KBC_TANDY,			0xff00, 0xffffffff,	NULL,				tandy1k_hx_get_device		},
     { "[8088] Toshiba T1000",			"t1000",		MACHINE_TYPE_8088,	MACHINE_CHIPSET_PROPRIETARY,			machine_xt_t1000_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_8088, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC,		MACHINE_VIDEO,						  512,  1280, 768,   63, KBC_IBM_PC_XT,			0xff00, 0xffffffff,	NULL,				t1000_get_device		},
-    { "[8088] Vendex HeadStart Turbo 888-XT",	"vendex",		MACHINE_TYPE_8088,	MACHIEN_CHIPSET_PROPRIETARY		       machine_xt_vendex_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_8088, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC,									  256,   768, 256,    0, KBC_IBM_PC_XT,			0xff00, 0xffffffff,	NULL,				NULL				},
+    { "[8088] Vendex HeadStart Turbo 888-XT",	"vendex",		MACHINE_TYPE_8088,	MACHIEN_CHIPSET_PROPRIETARY		       machine_xt_vendex_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_8088, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC,		0,							  256,   768, 256,    0, KBC_IBM_PC_XT,			0xff00, 0xffffffff,	NULL,				NULL				},
 #if defined(DEV_BRANCH) && defined(USE_LASERXT)
     { "[8088] VTech Laser Turbo XT",		"ltxt",			MACHINE_TYPE_8088,	MACHINE_CHIPSET_DISCRETE,		      machine_xt_laserxt_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_8088, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC,		0,							  256,   640, 256,    0, KBC_IBM_PC_XT,			0xff00, 0xffffffff,	NULL,				NULL				},
 #endif
@@ -387,6 +387,7 @@ const machine_t machines[] = {
     /* Has IBM AT KBC firmware. */
     { "[C&T 386] Samsung SPC-6000A",		"spc6000a",		MACHINE_TYPE_386DX,	MACHINE_CHIPSET_CT_386,			     machine_at_spc6000a_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_386DX, 0, 0, 0, 0, 0, 0, 0,										MACHINE_AT,		MACHINE_IDE,						 1024, 32768, 1024, 127, NULL				},
     /* Uses Compaq KBC firmware. */
+    { "[ISA] Compaq Deskpro 386",		"deskpro386",		MACHINE_TYPE_386DX,	MACHINE_CHIPSET_DISCRETE,		   machine_at_deskpro386_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_386DX, 0, 0, 0, 0, 0, 0, 0,										MACHINE_AT,		MACHINE_IDE,					 	 1024, 14336, 1024, 127, NULL				},
     { "[ISA] Compaq Portable III (386)",	"portableiii386",       MACHINE_TYPE_386DX,	MACHINE_CHIPSET_DISCRETE,	       machine_at_portableiii386_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_386DX, 0, 0, 0, 0, 0, 0, 0,										MACHINE_AT,		MACHINE_IDE | MACHINE_VIDEO,				 1024, 14336, 1024, 127, at_cpqiii_get_device		},
     /* Has IBM AT KBC firmware. */
     { "[ISA] Micronics 09-00021",		"micronics386",		MACHINE_TYPE_386DX,	MACHINE_CHIPSET_DISCRETE,		 machine_at_micronics386_init,	0,	0,	MACHINE_AVAILABLE,	CPU_PKG_386DX, 0, 0, 0, 0, 0, 0, 0,										MACHINE_AT,		0,							  512,  8192,  128, 127, NULL				},

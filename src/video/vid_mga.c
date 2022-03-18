@@ -5369,47 +5369,47 @@ static const device_config_t mystique_config[] = {
 
 const device_t millennium_device =
 {
-    "Matrox Millennium",
-    "millennium",
-    DEVICE_PCI,
-    MGA_2064W,
-    mystique_init,
-    mystique_close,
-    NULL,
-    { millennium_available },
-    mystique_speed_changed,
-    mystique_force_redraw,
-    mystique_config
+    .name = "Matrox Millennium",
+    .internal_name = "millennium",
+    .flags = DEVICE_PCI,
+    .local = MGA_2064W,
+    .init = mystique_init,
+    .close = mystique_close,
+    .reset = NULL,
+    { .available = millennium_available },
+    .speed_changed = mystique_speed_changed,
+    .force_redraw = mystique_force_redraw,
+    .config = mystique_config
 };
 
 
 const device_t mystique_device =
 {
-    "Matrox Mystique",
-    "mystique",
-    DEVICE_PCI,
-    MGA_1064SG,
-    mystique_init,
-    mystique_close,
-    NULL,
-    { mystique_available },
-    mystique_speed_changed,
-    mystique_force_redraw,
-    mystique_config
+    .name = "Matrox Mystique",
+    .internal_name = "mystique",
+    .flags = DEVICE_PCI,
+    .local = MGA_1064SG,
+    .init = mystique_init,
+    .close = mystique_close,
+    .reset = NULL,
+    { .available = mystique_available },
+    .speed_changed = mystique_speed_changed,
+    .force_redraw = mystique_force_redraw,
+    .config = mystique_config
 };
 
 
 const device_t mystique_220_device =
 {
-    "Matrox Mystique 220",
-    "mystique_220",
-    DEVICE_PCI,
-    MGA_1164SG,
-    mystique_init,
-    mystique_close,
-    NULL,
-    { mystique_220_available },
-    mystique_speed_changed,
-    mystique_force_redraw,
-    mystique_config
+    .name = "Matrox Mystique 220",
+    .internal_name = "mystique_220",
+    .flags = DEVICE_PCI,
+    .local = MGA_1164SG,
+    .init = mystique_init,
+    .close = mystique_close,
+    .reset = NULL,
+    { .available = mystique_220_available },
+    .speed_changed = mystique_speed_changed,
+    .force_redraw = mystique_force_redraw,
+    .config = mystique_config
 };

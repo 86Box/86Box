@@ -15,9 +15,9 @@ typedef struct sb_dsp_t {
     int   sb_subtype; /* which clone */
     void *parent;     /* "sb_t *" if default subtype, "azt2316a_t *" if aztech. */
 
-    int sb_8_length, sb_8_format, sb_8_autoinit, sb_8_pause, sb_8_enable, sb_8_autolen, sb_8_output;
+    int sb_8_length, sb_8_origlength, sb_8_format, sb_8_autoinit, sb_8_pause, sb_8_enable, sb_8_autolen, sb_8_output;
     int sb_8_dmanum;
-    int sb_16_length, sb_16_format, sb_16_autoinit, sb_16_pause, sb_16_enable, sb_16_autolen, sb_16_output;
+    int sb_16_length, sb_16_origlength, sb_16_format, sb_16_autoinit, sb_16_pause, sb_16_enable, sb_16_autolen, sb_16_output;
     int sb_16_dmanum;
     int sb_pausetime;
     int (*dma_readb)(void *priv),

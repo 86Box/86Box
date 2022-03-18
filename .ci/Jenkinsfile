@@ -84,8 +84,6 @@ def presetFlags = [
 	'Dev': '--preset=experimental -D CMAKE_BUILD_TYPE=Debug -D VNC=OFF'
 ]
 
-def anyFailure = false
-
 def gitClone(repository, branch) {
 	/* Clean workspace. */
 	cleanWs()
@@ -135,11 +133,8 @@ def runBuild(args) {
 }
 
 def failStage() {
-	/* Mark that a failure occurred. */
-	anyFailure = true
-
 	/* Force this stage to fail. */
-	catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
+	catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
 		def x = 1 / 0
 	}
 }
@@ -238,7 +233,7 @@ pipeline {
 								presets.each { preset ->
 									def combination = "$os $arch $dynarec $preset"
 									combinations[combination] = {
-										try {
+										catchError(buildResult: 'FAILURE', stageResult: 'SUCCESS') {
 											retry(10) {
 												node(os) {
 													stage(combination) {
@@ -268,9 +263,6 @@ pipeline {
 													}
 												}
 											}
-										} catch (e) {
-											/* Fail this stage. */
-											failStage()
 										}
 									}
 								}
@@ -286,12 +278,6 @@ pipeline {
 	post {
 		always {
 			script {
-				/* Mark build as failed if any step has failed. */
-				if (anyFailure) {
-					println "[!] Failing build because a build stage failed"
-					currentBuild.result = 'FAILURE'
-				}
-
 				/* Send out build notifications. */
 				if (!env.JOB_BASE_NAME.contains('TestBuildPleaseIgnore')) {
 					try {

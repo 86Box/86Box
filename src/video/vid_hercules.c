@@ -627,13 +627,15 @@ static const device_config_t hercules_config[] = {
 };
 
 const device_t hercules_device = {
-    "Hercules",
-    "hercules",
-    DEVICE_ISA,
-    0,
-    hercules_init, hercules_close, NULL,
-    { NULL },
-    speed_changed,
-    NULL,
-    hercules_config
+    .name = "Hercules",
+    .internal_name = "hercules",
+    .flags = DEVICE_ISA,
+    .local = 0,
+    .init = hercules_init,
+    .close = hercules_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = speed_changed,
+    .force_redraw = NULL,
+    .config = hercules_config
 };

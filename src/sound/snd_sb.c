@@ -377,12 +377,12 @@ sb_get_buffer_sb16_awe32(int32_t *buffer, int len, void *p)
                                                                                                                                    : 0;
 
         if (mixer->output_filter) {
-                /* We divide by 3 to get the volume down to normal. */
-                out_l += (low_fir_sb16(0, 0, (double) sb->dsp.buffer[c]) * mixer->voice_l) / 3.0;
-                out_r += (low_fir_sb16(0, 1, (double) sb->dsp.buffer[c + 1]) * mixer->voice_r) / 3.0;
+            /* We divide by 3 to get the volume down to normal. */
+            out_l += (low_fir_sb16(0, 0, (double) sb->dsp.buffer[c]) * mixer->voice_l) / 3.0;
+            out_r += (low_fir_sb16(0, 1, (double) sb->dsp.buffer[c + 1]) * mixer->voice_r) / 3.0;
         } else {
-                out_l += (((double) sb->dsp.buffer[c]) * mixer->voice_l) / 3.0;
-                out_r += (((double) sb->dsp.buffer[c + 1]) * mixer->voice_r) / 3.0;
+            out_l += (((double) sb->dsp.buffer[c]) * mixer->voice_l) / 3.0;
+            out_r += (((double) sb->dsp.buffer[c + 1]) * mixer->voice_r) / 3.0;
         }
 
         out_l *= mixer->master_l;
@@ -1764,10 +1764,10 @@ sb_16_init(const device_t *info)
                       &sb->opl);
     }
 
-    sb->mixer_enabled = 1;
+    sb->mixer_enabled            = 1;
     sb->mixer_sb16.output_filter = 1;
-    io_sethandler(addr + 4, 0x0002, sb_ct1745_mixer_read,  NULL, NULL,
-                                    sb_ct1745_mixer_write, NULL, NULL, sb);
+    io_sethandler(addr + 4, 0x0002, sb_ct1745_mixer_read, NULL, NULL,
+                  sb_ct1745_mixer_write, NULL, NULL, sb);
     sound_add_handler(sb_get_buffer_sb16_awe32, sb);
     sound_set_cd_audio_filter(sb16_awe32_filter_cd_audio, sb);
 
@@ -1797,7 +1797,7 @@ sb_16_pnp_init(const device_t *info)
     sb_dsp_init(&sb->dsp, SB16, SB_SUBTYPE_DEFAULT, sb);
     sb_ct1745_mixer_reset(sb);
 
-    sb->mixer_enabled = 1;
+    sb->mixer_enabled            = 1;
     sb->mixer_sb16.output_filter = 1;
     sound_add_handler(sb_get_buffer_sb16_awe32, sb);
     sound_set_cd_audio_filter(sb16_awe32_filter_cd_audio, sb);
@@ -1840,7 +1840,6 @@ sb_16_compat_init(const device_t *info)
 
     return sb;
 }
-
 
 static int
 sb_awe32_available()
@@ -1915,10 +1914,10 @@ sb_awe32_init(const device_t *info)
                       &sb->opl);
     }
 
-    sb->mixer_enabled = 1;
+    sb->mixer_enabled            = 1;
     sb->mixer_sb16.output_filter = 1;
-    io_sethandler(addr + 4, 0x0002, sb_ct1745_mixer_read,  NULL, NULL,
-                                    sb_ct1745_mixer_write, NULL, NULL, sb);
+    io_sethandler(addr + 4, 0x0002, sb_ct1745_mixer_read, NULL, NULL,
+                  sb_ct1745_mixer_write, NULL, NULL, sb);
     sound_add_handler(sb_get_buffer_sb16_awe32, sb);
     sound_set_cd_audio_filter(sb16_awe32_filter_cd_audio, sb);
 
@@ -1952,7 +1951,7 @@ sb_awe32_pnp_init(const device_t *info)
     sb_dsp_init(&sb->dsp, ((info->local == 2) || (info->local == 3) || (info->local == 4)) ? SBAWE64 : SBAWE32, SB_SUBTYPE_DEFAULT, sb);
     sb_ct1745_mixer_reset(sb);
 
-    sb->mixer_enabled = 1;
+    sb->mixer_enabled            = 1;
     sb->mixer_sb16.output_filter = 1;
     sound_add_handler(sb_get_buffer_sb16_awe32, sb);
     sound_set_cd_audio_filter(sb16_awe32_filter_cd_audio, sb);
@@ -2425,255 +2424,253 @@ static const device_config_t sb_awe64_gold_config[] = {
 // clang-format on
 
 const device_t sb_1_device = {
-    .name = "Sound Blaster v1.0",
+    .name          = "Sound Blaster v1.0",
     .internal_name = "sb",
-    .flags = DEVICE_ISA,
-    .local = 0,
-    .init = sb_1_init,
-    .close = sb_close,
-    .reset = NULL,
+    .flags         = DEVICE_ISA,
+    .local         = 0,
+    .init          = sb_1_init,
+    .close         = sb_close,
+    .reset         = NULL,
     { .available = NULL },
     .speed_changed = sb_speed_changed,
-    .force_redraw = NULL,
-    .config = sb_config
+    .force_redraw  = NULL,
+    .config        = sb_config
 };
 
 const device_t sb_15_device = {
-    .name = "Sound Blaster v1.5",
+    .name          = "Sound Blaster v1.5",
     .internal_name = "sb1.5",
-    .flags = DEVICE_ISA,
-    .local = 0,
-    .init = sb_15_init,
-    .close = sb_close,
-    .reset = NULL,
+    .flags         = DEVICE_ISA,
+    .local         = 0,
+    .init          = sb_15_init,
+    .close         = sb_close,
+    .reset         = NULL,
     { .available = NULL },
     .speed_changed = sb_speed_changed,
-    .force_redraw = NULL,
-    .config = sb15_config
+    .force_redraw  = NULL,
+    .config        = sb15_config
 };
 
 const device_t sb_mcv_device = {
-    .name = "Sound Blaster MCV",
+    .name          = "Sound Blaster MCV",
     .internal_name = "sbmcv",
-    .flags = DEVICE_MCA,
-    .local = 0,
-    .init = sb_mcv_init,
-    .close = sb_close,
-    .reset = NULL,
+    .flags         = DEVICE_MCA,
+    .local         = 0,
+    .init          = sb_mcv_init,
+    .close         = sb_close,
+    .reset         = NULL,
     { .available = NULL },
     .speed_changed = sb_speed_changed,
-    .force_redraw = NULL,
-    .config = sb_mcv_config
+    .force_redraw  = NULL,
+    .config        = sb_mcv_config
 };
 
 const device_t sb_2_device = {
-    .name = "Sound Blaster v2.0",
+    .name          = "Sound Blaster v2.0",
     .internal_name = "sb2.0",
-    .flags = DEVICE_ISA,
-    .local = 0,
-    .init = sb_2_init,
-    .close = sb_close,
-    .reset = NULL,
+    .flags         = DEVICE_ISA,
+    .local         = 0,
+    .init          = sb_2_init,
+    .close         = sb_close,
+    .reset         = NULL,
     { .available = NULL },
     .speed_changed = sb_speed_changed,
-    .force_redraw = NULL,
-    .config = sb2_config
+    .force_redraw  = NULL,
+    .config        = sb2_config
 };
 
 const device_t sb_pro_v1_device = {
-    .name = "Sound Blaster Pro v1",
+    .name          = "Sound Blaster Pro v1",
     .internal_name = "sbprov1",
-    .flags = DEVICE_ISA,
-    .local = 0,
-    .init = sb_pro_v1_init,
-    .close = sb_close,
-    .reset = NULL,
+    .flags         = DEVICE_ISA,
+    .local         = 0,
+    .init          = sb_pro_v1_init,
+    .close         = sb_close,
+    .reset         = NULL,
     { .available = NULL },
     .speed_changed = sb_speed_changed,
-    .force_redraw = NULL,
-    .config = sb_pro_config
+    .force_redraw  = NULL,
+    .config        = sb_pro_config
 };
 
 const device_t sb_pro_v2_device = {
-    .name = "Sound Blaster Pro v2",
+    .name          = "Sound Blaster Pro v2",
     .internal_name = "sbprov2",
-    .flags = DEVICE_ISA,
-    .local = 0,
-    .init = sb_pro_v2_init,
-    .close = sb_close,
-    .reset = NULL,
+    .flags         = DEVICE_ISA,
+    .local         = 0,
+    .init          = sb_pro_v2_init,
+    .close         = sb_close,
+    .reset         = NULL,
     { .available = NULL },
     .speed_changed = sb_speed_changed,
-    .force_redraw = NULL,
-    .config = sb_pro_config
+    .force_redraw  = NULL,
+    .config        = sb_pro_config
 };
 
 const device_t sb_pro_mcv_device = {
-    .name = "Sound Blaster Pro MCV",
+    .name          = "Sound Blaster Pro MCV",
     .internal_name = "sbpromcv",
-    .flags = DEVICE_MCA,
-    .local = 0,
-    .init = sb_pro_mcv_init,
-    .close = sb_close,
-    .reset = NULL,
+    .flags         = DEVICE_MCA,
+    .local         = 0,
+    .init          = sb_pro_mcv_init,
+    .close         = sb_close,
+    .reset         = NULL,
     { .available = NULL },
     .speed_changed = sb_speed_changed,
-    .force_redraw = NULL,
-    .config = NULL
+    .force_redraw  = NULL,
+    .config        = NULL
 };
 
 const device_t sb_pro_compat_device = {
-    .name = "Sound Blaster Pro (Compatibility)",
+    .name          = "Sound Blaster Pro (Compatibility)",
     .internal_name = "sbpro_compat",
-    .flags = DEVICE_ISA | DEVICE_AT,
-    .local = 0,
-    .init = sb_pro_compat_init,
-    .close = sb_close,
-    .reset = NULL,
+    .flags         = DEVICE_ISA | DEVICE_AT,
+    .local         = 0,
+    .init          = sb_pro_compat_init,
+    .close         = sb_close,
+    .reset         = NULL,
     { .available = NULL },
     .speed_changed = sb_speed_changed,
-    .force_redraw = NULL,
-    .config = NULL
+    .force_redraw  = NULL,
+    .config        = NULL
 };
 
 const device_t sb_16_device = {
-    .name = "Sound Blaster 16",
+    .name          = "Sound Blaster 16",
     .internal_name = "sb16",
-    .flags = DEVICE_ISA | DEVICE_AT,
-    .local = 0,
-    .init = sb_16_init,
-    .close = sb_close,
-    .reset = NULL,
+    .flags         = DEVICE_ISA | DEVICE_AT,
+    .local         = 0,
+    .init          = sb_16_init,
+    .close         = sb_close,
+    .reset         = NULL,
     { .available = NULL },
     .speed_changed = sb_speed_changed,
-    .force_redraw = NULL,
-    .config = sb_16_config
+    .force_redraw  = NULL,
+    .config        = sb_16_config
 };
 
 const device_t sb_16_pnp_device = {
-    .name = "Sound Blaster 16 PnP",
+    .name          = "Sound Blaster 16 PnP",
     .internal_name = "sb16_pnp",
-    .flags = DEVICE_ISA | DEVICE_AT,
-    .local = 0,
-    .init = sb_16_pnp_init,
-    .close = sb_close,
-    .reset = NULL,
+    .flags         = DEVICE_ISA | DEVICE_AT,
+    .local         = 0,
+    .init          = sb_16_pnp_init,
+    .close         = sb_close,
+    .reset         = NULL,
     { .available = NULL },
     .speed_changed = sb_speed_changed,
-    .force_redraw = NULL,
-    .config = sb_16_pnp_config
+    .force_redraw  = NULL,
+    .config        = sb_16_pnp_config
 };
 
-const device_t sb_16_compat_device =
-{
-    .name = "Sound Blaster 16 (Compatibility)",
+const device_t sb_16_compat_device = {
+    .name          = "Sound Blaster 16 (Compatibility)",
     .internal_name = "sb16_compat",
-    .flags = DEVICE_ISA | DEVICE_AT,
-    .local = 1,
-    .init = sb_16_compat_init,
-    .close = sb_close,
-    .reset = NULL,
+    .flags         = DEVICE_ISA | DEVICE_AT,
+    .local         = 1,
+    .init          = sb_16_compat_init,
+    .close         = sb_close,
+    .reset         = NULL,
     { .available = NULL },
     .speed_changed = sb_speed_changed,
-    .force_redraw = NULL,
-    .config = NULL
+    .force_redraw  = NULL,
+    .config        = NULL
 };
 
-const device_t sb_16_compat_nompu_device =
-{
-    .name = "Sound Blaster 16 (Compatibility - MPU-401 Off)",
+const device_t sb_16_compat_nompu_device = {
+    .name          = "Sound Blaster 16 (Compatibility - MPU-401 Off)",
     .internal_name = "sb16_compat",
-    .flags = DEVICE_ISA | DEVICE_AT,
-    .local = 0,
-    .init = sb_16_compat_init,
-    .close = sb_close,
-    .reset = NULL,
+    .flags         = DEVICE_ISA | DEVICE_AT,
+    .local         = 0,
+    .init          = sb_16_compat_init,
+    .close         = sb_close,
+    .reset         = NULL,
     { .available = NULL },
-    .speed_changed =sb_speed_changed,
-    .force_redraw = NULL,
-    .config = NULL
+    .speed_changed = sb_speed_changed,
+    .force_redraw  = NULL,
+    .config        = NULL
 };
 
 const device_t sb_32_pnp_device = {
-    .name = "Sound Blaster 32 PnP",
+    .name          = "Sound Blaster 32 PnP",
     .internal_name = "sb32_pnp",
-    .flags = DEVICE_ISA | DEVICE_AT,
-    .local = 0,
-    .init = sb_awe32_pnp_init,
-    .close = sb_awe32_close,
-    .reset = NULL,
+    .flags         = DEVICE_ISA | DEVICE_AT,
+    .local         = 0,
+    .init          = sb_awe32_pnp_init,
+    .close         = sb_awe32_close,
+    .reset         = NULL,
     { .available = sb_32_pnp_available },
     .speed_changed = sb_speed_changed,
-    .force_redraw = NULL,
-    .config = sb_32_pnp_config
+    .force_redraw  = NULL,
+    .config        = sb_32_pnp_config
 };
 
 const device_t sb_awe32_device = {
-    .name = "Sound Blaster AWE32",
+    .name          = "Sound Blaster AWE32",
     .internal_name = "sbawe32",
-    .flags = DEVICE_ISA | DEVICE_AT,
-    .local = 0,
-    .init = sb_awe32_init,
-    .close = sb_awe32_close,
-    .reset = NULL,
+    .flags         = DEVICE_ISA | DEVICE_AT,
+    .local         = 0,
+    .init          = sb_awe32_init,
+    .close         = sb_awe32_close,
+    .reset         = NULL,
     { .available = sb_awe32_available },
     .speed_changed = sb_speed_changed,
-    .force_redraw = NULL,
-    .config = sb_awe32_config
+    .force_redraw  = NULL,
+    .config        = sb_awe32_config
 };
 
 const device_t sb_awe32_pnp_device = {
-    .name = "Sound Blaster AWE32 PnP",
+    .name          = "Sound Blaster AWE32 PnP",
     .internal_name = "sbawe32_pnp",
-    .flags = DEVICE_ISA | DEVICE_AT,
-    .local = 1,
-    .init = sb_awe32_pnp_init,
-    .close = sb_awe32_close,
-    .reset = NULL,
+    .flags         = DEVICE_ISA | DEVICE_AT,
+    .local         = 1,
+    .init          = sb_awe32_pnp_init,
+    .close         = sb_awe32_close,
+    .reset         = NULL,
     { .available = sb_awe32_pnp_available },
     .speed_changed = sb_speed_changed,
-    .force_redraw = NULL,
-    .config = sb_awe32_pnp_config
+    .force_redraw  = NULL,
+    .config        = sb_awe32_pnp_config
 };
 
 const device_t sb_awe64_value_device = {
-    .name = "Sound Blaster AWE64 Value",
+    .name          = "Sound Blaster AWE64 Value",
     .internal_name = "sbawe64_value",
-    .flags = DEVICE_ISA | DEVICE_AT,
-    .local = 2,
-    .init = sb_awe32_pnp_init,
-    .close = sb_awe32_close,
-    .reset = NULL,
+    .flags         = DEVICE_ISA | DEVICE_AT,
+    .local         = 2,
+    .init          = sb_awe32_pnp_init,
+    .close         = sb_awe32_close,
+    .reset         = NULL,
     { .available = sb_awe64_value_available },
     .speed_changed = sb_speed_changed,
-    .force_redraw = NULL,
-    .config = sb_awe64_value_config
+    .force_redraw  = NULL,
+    .config        = sb_awe64_value_config
 };
 
 const device_t sb_awe64_device = {
-    .name = "Sound Blaster AWE64",
+    .name          = "Sound Blaster AWE64",
     .internal_name = "sbawe64",
-    .flags = DEVICE_ISA | DEVICE_AT,
-    .local = 3,
-    .init = sb_awe32_pnp_init,
-    .close = sb_awe32_close,
-    .reset = NULL,
+    .flags         = DEVICE_ISA | DEVICE_AT,
+    .local         = 3,
+    .init          = sb_awe32_pnp_init,
+    .close         = sb_awe32_close,
+    .reset         = NULL,
     { .available = sb_awe64_available },
     .speed_changed = sb_speed_changed,
-    .force_redraw = NULL,
-    .config = sb_awe64_config
+    .force_redraw  = NULL,
+    .config        = sb_awe64_config
 };
 
 const device_t sb_awe64_gold_device = {
-    .name = "Sound Blaster AWE64 Gold",
+    .name          = "Sound Blaster AWE64 Gold",
     .internal_name = "sbawe64_gold",
-    .flags = DEVICE_ISA | DEVICE_AT,
-    .local = 4,
-    .init = sb_awe32_pnp_init,
-    .close = sb_awe32_close,
-    .reset = NULL,
+    .flags         = DEVICE_ISA | DEVICE_AT,
+    .local         = 4,
+    .init          = sb_awe32_pnp_init,
+    .close         = sb_awe32_close,
+    .reset         = NULL,
     { .available = sb_awe64_gold_available },
     .speed_changed = sb_speed_changed,
-    .force_redraw = NULL,
-    .config = sb_awe64_gold_config
+    .force_redraw  = NULL,
+    .config        = sb_awe64_gold_config
 };

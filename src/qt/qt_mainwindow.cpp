@@ -248,7 +248,7 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(this, &MainWindow::updateStatusBarTip, status.get(), &MachineStatus::updateTip);
     connect(this, &MainWindow::updateStatusBarActivity, status.get(), &MachineStatus::setActivity);
     connect(this, &MainWindow::updateStatusBarEmpty, status.get(), &MachineStatus::setEmpty);
-    connect(this, &MainWindow::statusBarMessage, status.get(), &MachineStatus::message);
+    connect(this, &MainWindow::statusBarMessage, status.get(), &MachineStatus::message, Qt::QueuedConnection);
 
     ui->actionKeyboard_requires_capture->setChecked(kbd_req_capture);
     ui->actionRight_CTRL_is_left_ALT->setChecked(rctrl_is_lalt);
