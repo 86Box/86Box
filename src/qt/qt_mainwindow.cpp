@@ -82,6 +82,14 @@ extern "C" {
 #undef KeyRelease
 #endif
 
+#ifdef Q_OS_MACOS
+// The namespace is required to avoid clashing typedefs; we only use this
+// header for its #defines anyway.
+namespace IOKit {
+    #include <IOKit/hidsystem/IOLLEvent.h>
+}
+#endif
+
 #ifdef __HAIKU__
 #include <os/AppKit.h>
 #include <os/InterfaceKit.h>
@@ -1215,7 +1223,7 @@ uint16_t x11_keycode_to_keysym(uint32_t keycode)
     uint16_t finalkeycode = 0;
 #if defined(Q_OS_WINDOWS)
     finalkeycode = (keycode & 0xFFFF);
-#elif defined(__APPLE__)
+#elif defined(Q_OS_MACOS)
     finalkeycode = darwin_to_xt[keycode];
 #elif defined(__HAIKU__)
     finalkeycode = be_to_xt[keycode];
@@ -1251,6 +1259,68 @@ uint16_t x11_keycode_to_keysym(uint32_t keycode)
     }
     return finalkeycode;
 }
+
+#ifdef Q_OS_MACOS
+// These modifiers are listed as "device-dependent" in IOLLEvent.h, but
+// that's followed up with "(really?)". It's the only way to distinguish
+// left and right modifiers with Qt 6 on macOS, so let's just roll with it.
+static std::unordered_map<uint32_t, uint16_t> mac_modifiers_to_xt = {
+    {NX_DEVICELCTLKEYMASK, 0x1D},
+    {NX_DEVICELSHIFTKEYMASK, 0x2A},
+    {NX_DEVICERSHIFTKEYMASK, 0x36},
+    {NX_DEVICELCMDKEYMASK, 0x15B},
+    {NX_DEVICERCMDKEYMASK, 0x15C},
+    {NX_DEVICELALTKEYMASK, 0x38},
+    {NX_DEVICERALTKEYMASK, 0x138},
+    {NX_DEVICE_ALPHASHIFT_STATELESS_MASK, 0x3A},
+    {NX_DEVICERCTLKEYMASK, 0x11D},
+};
+
+void MainWindow::processMacKeyboardInput(bool down, const QKeyEvent* event) {
+    // Per QTBUG-69608 (https://bugreports.qt.io/browse/QTBUG-69608),
+    // QKeyEvents QKeyEvents for presses/releases of modifiers on macOS give
+    // nativeVirtualKey() == 0 (at least in Qt 6). Handle this by manually
+    // processing the nativeModifiers(). We need to check whether the key() is
+    // a known modifier because because kVK_ANSI_A is also 0, so the
+    // nativeVirtualKey() == 0 condition is ambiguous...
+    if (event->nativeVirtualKey() == 0
+        && (event->key() == Qt::Key_Shift
+            || event->key() == Qt::Key_Control
+            || event->key() == Qt::Key_Meta
+            || event->key() == Qt::Key_Alt
+            || event->key() == Qt::Key_AltGr
+            || event->key() == Qt::Key_CapsLock)) {
+        // We only process one modifier at a time since events from Qt seem to
+        // always be non-coalesced (NX_NONCOALESCEDMASK is always set).
+        uint32_t changed_modifiers = last_modifiers ^ event->nativeModifiers();
+        for (auto const& pair : mac_modifiers_to_xt) {
+            if (changed_modifiers & pair.first) {
+                last_modifiers ^= pair.first;
+                keyboard_input(down, pair.second);
+                return;
+            }
+        }
+
+        // Caps Lock seems to be delivered as a single key press event when
+        // enabled and a single key release event when disabled, so we can't
+        // detect Caps Lock being held down; just send an infinitesimally-long
+        // press and release as a compromise.
+        //
+        // The event also doesn't get delivered if you turn Caps Lock off after
+        // turning it on when the window isn't focused. Doing better than this
+        // probably requires bypassing Qt input processing.
+        //
+        // It's possible that other lock keys get delivered in this way, but
+        // standard Apple keyboards don't have them, so this is untested.
+        if (event->key() == Qt::Key_CapsLock) {
+            keyboard_input(1, 0x3A);
+            keyboard_input(0, 0x3A);
+        }
+    } else {
+        keyboard_input(down, x11_keycode_to_keysym(event->nativeVirtualKey()));
+    }
+}
+#endif
 
 void MainWindow::on_actionFullscreen_triggered() {
     if (video_fullscreen > 0) {
@@ -1370,8 +1440,8 @@ void MainWindow::keyPressEvent(QKeyEvent* event)
 {
     if (send_keyboard_input && !(kbd_req_capture && !mouse_capture && !video_fullscreen))
     {
-#ifdef __APPLE__
-        keyboard_input(1, x11_keycode_to_keysym(event->nativeVirtualKey()));
+#ifdef Q_OS_MACOS
+        processMacKeyboardInput(true, event);
 #else
         keyboard_input(1, x11_keycode_to_keysym(event->nativeScanCode()));
 #endif
@@ -1397,8 +1467,8 @@ void MainWindow::keyReleaseEvent(QKeyEvent* event)
     if (!send_keyboard_input)
         return;
 
-#ifdef __APPLE__
-    keyboard_input(0, x11_keycode_to_keysym(event->nativeVirtualKey()));
+#ifdef Q_OS_MACOS
+    processMacKeyboardInput(false, event);
 #else
     keyboard_input(0, x11_keycode_to_keysym(event->nativeScanCode()));
 #endif
