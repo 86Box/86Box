@@ -286,12 +286,16 @@ ati68860_ramdac_close(void *priv)
 	free(ramdac);
 }
 
-
-const device_t ati68860_ramdac_device =
-{
-        "ATI-68860 RAMDAC",
-        "ati68860_ramdac",
-        0, 0,
-        ati68860_ramdac_init, ati68860_ramdac_close,
-	NULL, { NULL }, NULL, NULL
+const device_t ati68860_ramdac_device = {
+    .name = "ATI-68860 RAMDAC",
+    .internal_name = "ati68860_ramdac",
+    .flags = 0,
+    .local = 0,
+    .init = ati68860_ramdac_init,
+    .close = ati68860_ramdac_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };

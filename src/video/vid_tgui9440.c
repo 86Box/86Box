@@ -3227,92 +3227,86 @@ static const device_config_t tgui96xx_config[] = {
 };
 // clang-format on
 
-const device_t tgui9400cxi_device =
-{
-        "Trident TGUI 9400CXi",
-        "tgui9400cxi_vlb",
-        DEVICE_VLB,
-        TGUI_9400CXI,
-        tgui_init,
-        tgui_close,
-    NULL,
-        { tgui9400cxi_available },
-        tgui_speed_changed,
-        tgui_force_redraw,
-        tgui9440_config
+const device_t tgui9400cxi_device = {
+    .name = "Trident TGUI 9400CXi",
+    .internal_name = "tgui9400cxi_vlb",
+    .flags = DEVICE_VLB,
+    .local = TGUI_9400CXI,
+    .init = tgui_init,
+    .close = tgui_close,
+    .reset = NULL,
+    { .available = tgui9400cxi_available },
+    .speed_changed = tgui_speed_changed,
+    .force_redraw = tgui_force_redraw,
+    .config = tgui9440_config
 };
 
-const device_t tgui9440_vlb_device =
-{
-        "Trident TGUI 9440AGi VLB",
-        "tgui9440_vlb",
-        DEVICE_VLB,
-    TGUI_9440,
-        tgui_init,
-        tgui_close,
-    NULL,
-        { tgui9440_available },
-        tgui_speed_changed,
-        tgui_force_redraw,
-        tgui9440_config
+const device_t tgui9440_vlb_device = {
+    .name = "Trident TGUI 9440AGi VLB",
+    .internal_name = "tgui9440_vlb",
+    .flags = DEVICE_VLB,
+    .local = TGUI_9440,
+    .init = tgui_init,
+    .close = tgui_close,
+    .reset = NULL,
+    { .available = tgui9440_available },
+    .speed_changed = tgui_speed_changed,
+    .force_redraw = tgui_force_redraw,
+    .config = tgui9440_config
 };
 
-const device_t tgui9440_pci_device =
-{
-        "Trident TGUI 9440AGi PCI",
-        "tgui9440_pci",
-        DEVICE_PCI,
-    TGUI_9440,
-        tgui_init,
-        tgui_close,
-    NULL,
-        { tgui9440_available },
-        tgui_speed_changed,
-        tgui_force_redraw,
-        tgui9440_config
+const device_t tgui9440_pci_device = {
+    .name = "Trident TGUI 9440AGi PCI",
+    .internal_name = "tgui9440_pci",
+    .flags = DEVICE_PCI,
+    .local = TGUI_9440,
+    .init = tgui_init,
+    .close = tgui_close,
+    .reset = NULL,
+    { .available = tgui9440_available },
+    .speed_changed = tgui_speed_changed,
+    .force_redraw = tgui_force_redraw,
+    .config = tgui9440_config
 };
 
-const device_t tgui9440_onboard_pci_device =
-{
-        "Trident TGUI 9440AGi On-Board PCI",
-        "tgui9440_onboard_pci",
-        DEVICE_PCI,
-    TGUI_9440 | ONBOARD,
-        tgui_init,
-        tgui_close,
-    NULL,
-        { NULL },
-        tgui_speed_changed,
-        tgui_force_redraw,
-        tgui9440_config
+const device_t tgui9440_onboard_pci_device = {
+    .name = "Trident TGUI 9440AGi On-Board PCI",
+    .internal_name = "tgui9440_onboard_pci",
+    .flags = DEVICE_PCI,
+    .local = TGUI_9440 | ONBOARD,
+    .init = tgui_init,
+    .close = tgui_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = tgui_speed_changed,
+    .force_redraw = tgui_force_redraw,
+    .config = tgui9440_config
 };
 
-const device_t tgui9660_pci_device =
-{
-        "Trident TGUI 9660XGi PCI",
-        "tgui9660_pci",
-        DEVICE_PCI,
-    TGUI_9660,
-        tgui_init,
-        tgui_close,
-    NULL,
-        { tgui96xx_available },
-        tgui_speed_changed,
-        tgui_force_redraw,
-        tgui96xx_config
+const device_t tgui9660_pci_device = {
+    .name = "Trident TGUI 9660XGi PCI",
+    .internal_name = "tgui9660_pci",
+    .flags = DEVICE_PCI,
+    .local = TGUI_9660,
+    .init = tgui_init,
+    .close = tgui_close,
+    .reset = NULL,
+    { .available = tgui96xx_available },
+    .speed_changed = tgui_speed_changed,
+    .force_redraw = tgui_force_redraw,
+    .config = tgui96xx_config
 };
 
-const device_t tgui9680_pci_device =
-{
-        "Trident TGUI 9680XGi PCI",
-        "tgui9680_pci",
-        DEVICE_PCI,
-    TGUI_9680,
-        tgui_init,
-        tgui_close,
-    NULL,
-        { tgui96xx_available },
-        tgui_speed_changed,
-        tgui_force_redraw,
-        tgui96xx_config
+const device_t tgui9680_pci_device = {
+    .name = "Trident TGUI 9680XGi PCI",
+    .internal_name = "tgui9680_pci",
+    .flags = DEVICE_PCI,
+    .local = TGUI_9680,
+    .init = tgui_init,
+    .close = tgui_close,
+    .reset = NULL,
+    { .available = tgui96xx_available },
+    .speed_changed = tgui_speed_changed,
+    .force_redraw = tgui_force_redraw,
+    .config = tgui96xx_config
 };

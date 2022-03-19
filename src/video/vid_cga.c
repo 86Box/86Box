@@ -614,15 +614,15 @@ const device_config_t cga_config[] = {
 // clang-format on
 
 const device_t cga_device = {
-    "CGA",
-    "cga",
-    DEVICE_ISA,
-    0,
-    cga_standalone_init,
-    cga_close,
-    NULL,
-    { NULL },
-    cga_speed_changed,
-    NULL,
-    cga_config
+    .name = "CGA",
+    .internal_name = "cga",
+    .flags = DEVICE_ISA,
+    .local = 0,
+    .init = cga_standalone_init,
+    .close = cga_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = cga_speed_changed,
+    .force_redraw = NULL,
+    .config = cga_config
 };

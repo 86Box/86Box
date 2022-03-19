@@ -88,11 +88,13 @@
 
 #define ISAMEM_IBMXT_CARD 0
 #define ISAMEM_GENXT_CARD 1
-#define ISAMEM_IBMAT_CARD 2
-#define ISAMEM_GENAT_CARD 3
-#define ISAMEM_P5PAK_CARD 4
-#define ISAMEM_A6PAK_CARD 5
-#define ISAMEM_EMS5150_CARD 6
+#define ISAMEM_RAMCARD_CARD 2
+#define ISAMEM_SYSTEMCARD_CARD 3
+#define ISAMEM_IBMAT_CARD 4
+#define ISAMEM_GENAT_CARD 5
+#define ISAMEM_P5PAK_CARD 6
+#define ISAMEM_A6PAK_CARD 7
+#define ISAMEM_EMS5150_CARD 8
 #define ISAMEM_EV159_CARD 10
 #define ISAMEM_RAMPAGEXT_CARD 11
 #define ISAMEM_ABOVEBOARD_CARD 12
@@ -416,6 +418,8 @@ isamem_init(const device_t *info)
     switch(dev->board) {
 	case ISAMEM_IBMXT_CARD:		/* IBM PC/XT Memory Expansion Card */
 	case ISAMEM_GENXT_CARD:		/* Generic PC/XT Memory Expansion Card */
+	case ISAMEM_RAMCARD_CARD:	/* Microsoft RAMCard for IBM PC */
+	case ISAMEM_SYSTEMCARD_CARD:	/* Microsoft SystemCard */
 	case ISAMEM_P5PAK_CARD:		/* Paradise Systems 5-PAK */
 	case ISAMEM_A6PAK_CARD:		/* AST SixPakPlus */
 		dev->total_size = device_get_config_int("size");
@@ -734,6 +738,66 @@ static const device_t genericxt_device = {
     .speed_changed = NULL,
     .force_redraw = NULL,
     .config = genericxt_config
+};
+
+static const device_config_t msramcard_config[] = {
+// clang-format off
+    {
+        "size", "Memory Size", CONFIG_SPINNER, "", 64, "",
+        { 0, 256, 64 },
+        { { 0 } }
+    },
+    {
+        "start", "Start Address", CONFIG_SPINNER, "", 0, "",
+        { 0, 624, 64 },
+        { { 0 } }
+    },
+    { "", "", -1 }
+// clang-format on
+};
+
+static const device_t msramcard_device = {
+    .name = "Microsoft RAMCard for IBM PC",
+    .internal_name = "msramcard",
+    .flags = DEVICE_ISA,
+    .local = ISAMEM_RAMCARD_CARD,
+    .init = isamem_init,
+    .close = isamem_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = msramcard_config
+};
+
+static const device_config_t mssystemcard_config[] = {
+// clang-format off
+    {
+        "size", "Memory Size", CONFIG_SPINNER, "", 64, "",
+        { 0, 256, 64 },
+        { { 0 } }
+    },
+    {
+        "start", "Start Address", CONFIG_SPINNER, "", 0, "",
+        { 0, 624, 64 },
+        { { 0 } }
+    },
+    { "", "", -1 }
+// clang-format on
+};
+
+static const device_t mssystemcard_device = {
+    .name = "Microsoft SystemCard",
+    .internal_name = "mssystemcard",
+    .flags = DEVICE_ISA,
+    .local = ISAMEM_SYSTEMCARD_CARD,
+    .init = isamem_init,
+    .close = isamem_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = mssystemcard_config
 };
 
 static const device_config_t ibmat_config[] = {
@@ -1178,25 +1242,27 @@ static const struct {
     const device_t	*dev;
 } boards[] = {
 // clang-format off
-    { &isa_none_device  },
-    { &ibmxt_device     },
-    { &genericxt_device },
-    { &ibmat_device     },
-    { &genericat_device },
-    { &p5pak_device     },
-    { &a6pak_device     },
-    { &ems5150_device   },
-    { &ev159_device     },
+    { &isa_none_device     },
+    { &ibmxt_device        },
+    { &genericxt_device    },
+    { &msramcard_device    },
+    { &mssystemcard_device },
+    { &ibmat_device        },
+    { &genericat_device    },
+    { &p5pak_device        },
+    { &a6pak_device        },
+    { &ems5150_device      },
+    { &ev159_device        },
 #if defined(DEV_BRANCH) && defined(USE_ISAMEM_BRAT)
-    { &brat_device      },
+    { &brat_device         },
 #endif
 #if defined(DEV_BRANCH) && defined(USE_ISAMEM_RAMPAGE)
-    { &rampage_device   },
+    { &rampage_device      },
 #endif
 #if defined(DEV_BRANCH) && defined(USE_ISAMEM_IAB)
-    { &iab_device       },
+    { &iab_device          },
 #endif
-    { NULL              }
+    { NULL                 }
 // clang-format on
 };
 

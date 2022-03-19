@@ -653,30 +653,30 @@ const device_config_t ogc_m24_config[] = {
 // clang-format on
 };
 
-const device_t ogc_m24_device =
-{
-	"Olivetti M21/M24/M28 (GO317/318/380/709) video card",
-	"ogc_m24",
-	DEVICE_ISA, 0,
-	ogc_init,
-	ogc_close,
-	NULL,
-	{ NULL },
-	ogc_speed_changed,
-	NULL,
-	ogc_m24_config
+const device_t ogc_m24_device = {
+    .name = "Olivetti M21/M24/M28 (GO317/318/380/709) video card",
+    .internal_name = "ogc_m24",
+    .flags = DEVICE_ISA,
+    .local = 0,
+    .init = ogc_init,
+    .close = ogc_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = ogc_speed_changed,
+    .force_redraw = NULL,
+    .config = ogc_m24_config
 };
 
-const device_t ogc_device =
-{
-	"Olivetti OGC (GO708)",
-	"ogc",
-	DEVICE_ISA, 0,
-	ogc_init,
-	ogc_close,
-	NULL,
-	{ NULL },
-	ogc_speed_changed,
-	NULL,
-	cga_config
+const device_t ogc_device =  {
+    .name = "Olivetti OGC (GO708)",
+    .internal_name = "ogc",
+    .flags = DEVICE_ISA,
+    .local = 0,
+    .init = ogc_init,
+    .close = ogc_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = ogc_speed_changed,
+    .force_redraw = NULL,
+    .config = cga_config
 };

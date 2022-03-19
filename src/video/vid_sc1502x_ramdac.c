@@ -153,12 +153,16 @@ sc1502x_ramdac_close(void *priv)
 	free(ramdac);
 }
 
-
-const device_t sc1502x_ramdac_device =
-{
-        "Sierra SC1502x RAMDAC",
-        "sc1502x_ramdac",
-        0, 0,
-        sc1502x_ramdac_init, sc1502x_ramdac_close,
-	NULL, { NULL }, NULL, NULL
+const device_t sc1502x_ramdac_device = {
+    .name = "Sierra SC1502x RAMDAC",
+    .internal_name = "sc1502x_ramdac",
+    .flags = 0,
+    .local = 0,
+    .init = sc1502x_ramdac_init,
+    .close = sc1502x_ramdac_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
