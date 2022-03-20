@@ -1,3 +1,5 @@
+%global romver 20220319
+
 Name:		86Box
 Version:	3.3
 Release:	1%{?dist}
@@ -6,6 +8,7 @@ License:	GPLv2
 URL:		https://86box.net
 
 Source0:	https://github.com/86Box/86Box/archive/refs/tags/v%%{version}.tar.gz
+Source1:	https://github.com/86Box/roms/archive/refs/tags/%{romver}.tar.gz
 
 BuildRequires: cmake
 BuildRequires: desktop-file-utils
@@ -26,6 +29,7 @@ BuildRequires: SDL2-devel
 
 Requires: hicolor-icon-theme
 Requires: fluid-soundfont-gm
+Requires: 86Box-roms
 
 %description
 86Box is a hypervisor and IBM PC system emulator that specializes in
@@ -35,18 +39,28 @@ system designs based on the PCI bus.
 
 It supports various models of PCs, graphics and sound cards, and CPUs.
 
+%package	roms
+Summary:	ROMs for use with 86Box
+Version:	%{romver}
+License:	Proprietary
+BuildArch:	noarch
+
+%description	roms
+Collection of ROMs for use with 86Box.
+
 %prep
-%autosetup -p1
+%autosetup -p1 -a1
 
 %build
-%ifarch x86_64
-%cmake -DRELEASE=on
+%ifarch i386 x86_64
+%cmake -DRELEASE=on #-DNEW_DYNAREC=on
 %else
-%cmake -DRELEASE=on -DDYNAREC=off
+%cmake -DRELEASE=on -DDYNAREC=off #-DNEW_DYNAREC=on
 %endif
 %cmake_build
 
 %install
+# install base package
 %cmake_install
 
 # install icons
@@ -55,11 +69,24 @@ for i in 48 64 72 96 128 192 256 512; do
   cp src/unix/assets/${i}x${i}/net.86box.86Box.png $RPM_BUILD_ROOT%{_datadir}/icons/hicolor/${i}x${i}/apps/net.86box.86Box.png
 done
 
+# install desktop file
 desktop-file-install --dir=%{buildroot}%{_datadir}/applications src/unix/assets/net.86box.86Box.desktop
+
+# install metadata
 mkdir -p %{buildroot}%{_metainfodir}
 cp src/unix/assets/net.86box.86Box.metainfo.xml %{buildroot}%{_metainfodir}
 appstream-util validate-relax --nonet %{buildroot}%{_metainfodir}/net.86box.86Box.metainfo.xml
 
+# install roms
+pushd roms-%{romver}
+  mkdir -p %{buildroot}%{_datadir}/%{name}/roms
+  cp -a * %{buildroot}%{_datadir}/%{name}/roms/
+  # hack to create symlink in /usr/bin
+  cd %{buildroot}%{_bindir}
+  ln -s ../share/%{name}/roms roms
+popd
+
+# files part of the main package
 %files
 %license COPYING
 %{_bindir}/86Box
@@ -67,6 +94,12 @@ appstream-util validate-relax --nonet %{buildroot}%{_metainfodir}/net.86box.86Bo
 %{_metainfodir}/net.86box.86Box.metainfo.xml
 %{_datadir}/icons/hicolor/*/apps/net.86box.86Box.png
 
+# files part of the rom package
+%files roms
+%license  roms-%{romver}/LICENSE
+%{_datadir}/%{name}/roms
+%{_bindir}/roms
+
 %changelog
-* Thu Mar 17 2022 Robert de Rooy <robert.de.rooy[AT]gmail.com> 3.2.1-1
+* Sat Mar 19 2022 Robert de Rooy <robert.de.rooy[AT]gmail.com> 3.3-1
 - Initial RPM release
