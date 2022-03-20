@@ -1,3 +1,17 @@
+# Fedora RPM spec file for 86Box including roms
+#
+# To create RPM files from this spec file, run the following commands:
+#  sudo dnf install rpm-build
+#  mkdir -p ~/rpmbuild/{BUILD,RPMS,SOURCES,SPECS,SRPMS}
+#
+# copy this 86Box.spec file to ~/rpmbuild/SPECS and run the following commands:
+#  cd ~/rpmbuild
+#  sudo dnf builddep SPECS/86Box.spec
+#  rpmbuild --undefine=_disable_source_fetch -ba SPECS/86Box.spec
+#
+# After a successful build, you can install the RPMs as follows:
+#  sudo dnf install RPMS/$(uname -m)/86Box-3* RPMS/noarch/86Box-roms*
+
 %global romver 20220319
 
 Name:		86Box
