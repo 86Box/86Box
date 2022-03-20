@@ -55,7 +55,7 @@ Collection of ROMs for use with 86Box.
 %ifarch i386 x86_64
 %cmake -DRELEASE=on #-DNEW_DYNAREC=on
 %else
-%cmake -DRELEASE=on -DDYNAREC=off #-DNEW_DYNAREC=on
+%cmake -DRELEASE=on -DDYNAREC=off -DNEW_DYNAREC=on
 %endif
 %cmake_build
 
