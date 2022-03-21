@@ -328,7 +328,7 @@ else
 	esac
 
 	# Establish general dependencies.
-	pkgs="cmake ninja-build pkg-config git imagemagick wget p7zip-full wayland-protocols tar gzip file"
+	pkgs="cmake ninja-build pkg-config git wget p7zip-full wayland-protocols tar gzip file"
 	if [ "$(dpkg --print-architecture)" = "$arch_deb" ]
 	then
 		pkgs="$pkgs build-essential"
@@ -608,11 +608,11 @@ else
 		echo $pkg $version >> archive_tmp/README
 	done
 
-	# Archive icon, while also shrinking it to 512x512 if necessary.
-	convert src/win/assets/$project_lower.png -resize '512x512>' icon.png
-	icon_base="$(identify -format 'archive_tmp/usr/share/icons/%wx%h' icon.png)"
+	# Archive icons.
+	icon_base=archive_tmp/usr/share/icons
 	mkdir -p "$icon_base"
-	mv icon.png "$icon_base/$project_lower.png"
+	cp -rp src/unix/assets/[0-9]*x[0-9]* "$icon_base/"
+	icon_name=$(ls "$icon_base/"[0-9]*x[0-9]*/* | head -1 | grep -oP '/\K([^/]+)(?=\.[^\.]+$)')
 
 	# Archive executable, while also stripping it if requested.
 	mkdir -p archive_tmp/usr/local/bin
@@ -669,8 +669,8 @@ else
 	rm -rf "$project-"*".AppImage"
 
 	# Run appimage-builder in extract-and-run mode for Docker compatibility.
-	project="$project" project_lower="$project_lower" project_version="$project_version" arch_deb="$arch_deb" arch_appimage="$arch_appimage" \
-		APPIMAGE_EXTRACT_AND_RUN=1 ./appimage-builder.AppImage --recipe .ci/AppImageBuilder.yml
+	project="$project" project_lower="$project_lower" project_version="$project_version" project_icon="$icon_name" arch_deb="$arch_deb" \
+		arch_appimage="$arch_appimage" APPIMAGE_EXTRACT_AND_RUN=1 ./appimage-builder.AppImage --recipe .ci/AppImageBuilder.yml
 	status=$?
 
 	# Rename AppImage to the final name if the build succeeded.
