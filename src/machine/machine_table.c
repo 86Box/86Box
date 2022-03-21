@@ -303,6 +303,7 @@ const machine_t machines[] = {
     /* Has IBM AT KBC firmware. */
     { "[C&T 386] Samsung SPC-6000A",		"spc6000a",		MACHINE_TYPE_386DX,		CPU_PKG_386DX, 0, 0, 0, 0, 0, 0, 0,										MACHINE_AT | MACHINE_IDE,							 1024, 32768, 1024, 127,	     machine_at_spc6000a_init, NULL			},
     /* Uses Compaq KBC firmware. */
+    { "[ISA] Compaq Deskpro 386",       "deskpro386",       MACHINE_TYPE_386DX,		CPU_PKG_386DX, 0, 0, 0, 0, 0, 0, 0,										MACHINE_AT | MACHINE_IDE,					 1024, 14336, 1024, 127,       machine_at_deskpro386_init, NULL	},
     { "[ISA] Compaq Portable III (386)",	"portableiii386",       MACHINE_TYPE_386DX,		CPU_PKG_386DX, 0, 0, 0, 0, 0, 0, 0,										MACHINE_AT | MACHINE_IDE | MACHINE_VIDEO,					 1024, 14336, 1024, 127,       machine_at_portableiii386_init, at_cpqiii_get_device	},
     /* Has IBM AT KBC firmware. */
     { "[ISA] Micronics 09-00021",		"micronics386",		MACHINE_TYPE_386DX,		CPU_PKG_386DX, 0, 0, 0, 0, 0, 0, 0,										MACHINE_AT,									  512,  8192,  128, 127,	 machine_at_micronics386_init, NULL			},

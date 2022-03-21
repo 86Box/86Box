@@ -176,12 +176,16 @@ att498_ramdac_close(void *priv)
 	free(ramdac);
 }
 
-
-const device_t att498_ramdac_device =
-{
-        "AT&T 22c498 RAMDAC",
-        "att498_ramdac",
-        0, 0,
-        att498_ramdac_init, att498_ramdac_close,
-	NULL, { NULL }, NULL, NULL
+const device_t att498_ramdac_device = {
+    .name = "AT&T 22c498 RAMDAC",
+    .internal_name = "att498_ramdac",
+    .flags = 0,
+    .local = 0,
+    .init = att498_ramdac_init,
+    .close = att498_ramdac_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };

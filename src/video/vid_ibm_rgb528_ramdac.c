@@ -953,11 +953,16 @@ ibm_rgb528_ramdac_close(void *priv)
 	free(ramdac);
 }
 
-
 const device_t ibm_rgb528_ramdac_device = {
-    "IBM RGB528 RAMDAC",
-    "ibm_rgb528_ramdac",
-    0, 0,
-    ibm_rgb528_ramdac_init, ibm_rgb528_ramdac_close,
-    NULL, { NULL }, NULL, NULL, NULL
+    .name = "IBM RGB528 RAMDAC",
+    .internal_name = "ibm_rgb528_ramdac",
+    .flags = 0,
+    .local = 0,
+    .init = ibm_rgb528_ramdac_init,
+    .close = ibm_rgb528_ramdac_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };

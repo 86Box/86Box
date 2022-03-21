@@ -117,12 +117,16 @@ tkd8001_ramdac_close(void *priv)
 	free(ramdac);
 }
 
-
-const device_t tkd8001_ramdac_device =
-{
-        "Trident TKD8001 RAMDAC",
-        "tkd8001_ramdac",
-        0, 0,
-        tkd8001_ramdac_init, tkd8001_ramdac_close,
-	NULL, { NULL }, NULL, NULL
+const device_t tkd8001_ramdac_device = {
+    .name = "Trident TKD8001 RAMDAC",
+    .internal_name = "tkd8001_ramdac",
+    .flags = 0,
+    .local = 0,
+    .init = tkd8001_ramdac_init,
+    .close = tkd8001_ramdac_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };

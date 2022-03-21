@@ -407,6 +407,7 @@ extern int	machine_at_cmdpc_init(const machine_t *);
 extern int	machine_at_portableii_init(const machine_t *);
 extern int	machine_at_portableiii_init(const machine_t *);
 extern int	machine_at_portableiii386_init(const machine_t *);
+extern int	machine_at_deskpro386_init(const machine_t *);
 #ifdef EMU_DEVICE_H
 extern const device_t 	*at_cpqiii_get_device(void);
 #endif

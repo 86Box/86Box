@@ -303,39 +303,58 @@ sdac_ramdac_close(void *priv)
 	free(ramdac);
 }
 
-
-const device_t gendac_ramdac_device =
-{
-    "S3 GENDAC 86c708 RAMDAC",
-    "gendac_ramdac",
-    0, S3_86C708,
-    sdac_ramdac_init, sdac_ramdac_close,
-    NULL, { NULL }, NULL, NULL
+const device_t gendac_ramdac_device = {
+    .name = "S3 GENDAC 86c708 RAMDAC",
+    .internal_name = "gendac_ramdac",
+    .flags = 0,
+    .local = S3_86C708,
+    .init = sdac_ramdac_init,
+    .close = sdac_ramdac_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
-const device_t tseng_ics5301_ramdac_device =
-{
-    "Tseng ICS5301 GENDAC RAMDAC",
-    "tseng_ics5301_ramdac",
-    0, ICS_5301,
-    sdac_ramdac_init, sdac_ramdac_close,
-    NULL, { NULL }, NULL, NULL
+const device_t tseng_ics5301_ramdac_device = {
+    .name = "Tseng ICS5301 GENDAC RAMDAC",
+    .internal_name = "tseng_ics5301_ramdac",
+    .flags = 0,
+    .local = ICS_5301,
+    .init = sdac_ramdac_init,
+    .close = sdac_ramdac_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
-const device_t tseng_ics5341_ramdac_device =
-{
-    "Tseng ICS5341 GENDAC RAMDAC",
-    "tseng_ics5341_ramdac",
-    0, ICS_5341,
-    sdac_ramdac_init, sdac_ramdac_close,
-    NULL, { NULL }, NULL, NULL
+const device_t tseng_ics5341_ramdac_device = {
+    .name = "Tseng ICS5341 GENDAC RAMDAC",
+    .internal_name = "tseng_ics5341_ramdac",
+    .flags = 0,
+    .local = ICS_5341,
+    .init = sdac_ramdac_init,
+    .close = sdac_ramdac_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
-const device_t sdac_ramdac_device =
-{
-    "S3 SDAC 86c716 RAMDAC",
-    "sdac_ramdac",
-    0, S3_86C716,
-    sdac_ramdac_init, sdac_ramdac_close,
-    NULL, { NULL }, NULL, NULL
+const device_t sdac_ramdac_device = {
+    .name = "S3 SDAC 86c716 RAMDAC",
+    .internal_name = "sdac_ramdac",
+    .flags = 0,
+    .local = S3_86C716,
+    .init = sdac_ramdac_init,
+    .close = sdac_ramdac_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };

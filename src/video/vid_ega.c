@@ -1233,81 +1233,86 @@ static const device_config_t ega_config[] = {
 // clang-format on
 };
 
-
-const device_t ega_device =
-{
-        "EGA",
-        "ega",
-        DEVICE_ISA,
-    EGA_IBM,
-        ega_standalone_init, ega_close, NULL,
-        { ega_standalone_available },
-        ega_speed_changed,
-        NULL,
-        ega_config
+const device_t ega_device = {
+    .name = "EGA",
+    .internal_name = "ega",
+    .flags = DEVICE_ISA,
+    .local = EGA_IBM,
+    .init = ega_standalone_init,
+    .close = ega_close,
+    .reset = NULL,
+    { .available = ega_standalone_available },
+    .speed_changed = ega_speed_changed,
+    .force_redraw = NULL,
+    .config = ega_config
 };
 
-const device_t cpqega_device =
-{
-        "Compaq EGA",
-        "compaq_ega",
-        DEVICE_ISA,
-    EGA_COMPAQ,
-        ega_standalone_init, ega_close, NULL,
-        { cpqega_standalone_available },
-        ega_speed_changed,
-        NULL,
-        ega_config
+const device_t cpqega_device = {
+    .name = "Compaq EGA",
+    .internal_name = "compaq_ega",
+    .flags = DEVICE_ISA,
+    .local = EGA_COMPAQ,
+    .init = ega_standalone_init,
+    .close = ega_close,
+    .reset = NULL,
+    { .available = cpqega_standalone_available },
+    .speed_changed = ega_speed_changed,
+    .force_redraw = NULL,
+    .config = ega_config
 };
 
-const device_t sega_device =
-{
-        "SuperEGA",
-        "superega",
-        DEVICE_ISA,
-    EGA_SUPEREGA,
-        ega_standalone_init, ega_close, NULL,
-        { sega_standalone_available },
-        ega_speed_changed,
-        NULL,
-        ega_config
+const device_t sega_device = {
+    .name = "SuperEGA",
+    .internal_name = "superega",
+    .flags = DEVICE_ISA,
+    .local = EGA_SUPEREGA,
+    .init = ega_standalone_init,
+    .close = ega_close,
+    .reset = NULL,
+    { .available = sega_standalone_available },
+    .speed_changed = ega_speed_changed,
+    .force_redraw = NULL,
+    .config = ega_config
 };
 
-const device_t atiega_device =
-{
-        "ATI EGA Wonder 800+",
-        "egawonder800",
-        DEVICE_ISA,
-    EGA_ATI,
-        ega_standalone_init, ega_close, NULL,
-        { atiega_standalone_available },
-        ega_speed_changed,
-        NULL,
-        ega_config
+const device_t atiega_device = {
+    .name = "ATI EGA Wonder 800+",
+    .internal_name = "egawonder800",
+    .flags = DEVICE_ISA,
+    .local = EGA_ATI,
+    .init = ega_standalone_init,
+    .close = ega_close,
+    .reset = NULL,
+    { .available = atiega_standalone_available },
+    .speed_changed = ega_speed_changed,
+    .force_redraw = NULL,
+    .config = ega_config
 };
 
-const device_t iskra_ega_device =
-{
-        "Iskra EGA (Cyrillic ROM)",
-        "iskra_ega",
-        DEVICE_ISA,
-    EGA_ISKRA,
-        ega_standalone_init, ega_close, NULL,
-        { iskra_ega_standalone_available },
-        ega_speed_changed,
-        NULL,
-        ega_config
+const device_t iskra_ega_device = {
+    .name = "Iskra EGA (Cyrillic ROM)",
+    .internal_name = "iskra_ega",
+    .flags = DEVICE_ISA,
+    .local = EGA_ISKRA,
+    .init = ega_standalone_init,
+    .close = ega_close,
+    .reset = NULL,
+    { .available = iskra_ega_standalone_available },
+    .speed_changed = ega_speed_changed,
+    .force_redraw = NULL,
+    .config = ega_config
 };
 
-const device_t et2000_device =
-{
-        "Tseng Labs ET2000",
-        "et2000",
-        DEVICE_ISA,
-    EGA_TSENG,
-        ega_standalone_init, ega_close, NULL,
-        { et2000_standalone_available },
-        ega_speed_changed,
-        NULL,
-        ega_config
+const device_t et2000_device = {
+    .name = "Tseng Labs ET2000",
+    .internal_name = "et2000",
+    .flags = DEVICE_ISA,
+    .local = EGA_TSENG,
+    .init = ega_standalone_init,
+    .close = ega_close,
+    .reset = NULL,
+    { .available = et2000_standalone_available },
+    .speed_changed = ega_speed_changed,
+    .force_redraw = NULL,
+    .config = ega_config
 };

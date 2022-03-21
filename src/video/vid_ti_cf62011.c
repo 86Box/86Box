@@ -262,15 +262,16 @@ vid_init(const device_t *info)
     return(ti);
 }
 
-
 const device_t ibm_ps1_2121_device = {
-    "IBM PS/1 Model 2121 SVGA",
-    "ibm_ps1_2121",
-    DEVICE_ISA,
-    512,
-    vid_init, vid_close, NULL,
-    { NULL },
-    vid_speed_changed,
-    vid_force_redraw,
-    NULL
+    .name = "IBM PS/1 Model 2121 SVGA",
+    .internal_name = "ibm_ps1_2121",
+    .flags = DEVICE_ISA,
+    .local = 512,
+    .init = vid_init,
+    .close = vid_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = vid_speed_changed,
+    .force_redraw = vid_force_redraw,
+    .config = NULL
 };

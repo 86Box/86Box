@@ -2190,7 +2190,6 @@ et4000w32p_force_redraw(void *p)
     et4000->svga.fullchange = changeframecount;
 }
 
-
 static const device_config_t et4000w32p_config[] = {
 // clang-format off
     {
@@ -2205,172 +2204,184 @@ static const device_config_t et4000w32p_config[] = {
 // clang-format on
 };
 
-
-const device_t et4000w32_device =
-{
-        "Tseng Labs ET4000/w32 ISA",
-        "et4000w32",
-        DEVICE_ISA | DEVICE_AT, ET4000W32,
-        et4000w32p_init, et4000w32p_close, NULL,
-        { et4000w32_available },
-        et4000w32p_speed_changed,
-        et4000w32p_force_redraw,
-        NULL
+const device_t et4000w32_device = {
+    .name = "Tseng Labs ET4000/w32 ISA",
+    .internal_name = "et4000w32",
+    .flags = DEVICE_ISA | DEVICE_AT, ET4000W32,
+    .init = et4000w32p_init,
+    .close = et4000w32p_close,
+    .reset = NULL,
+    { .available = et4000w32_available },
+    .speed_changed = et4000w32p_speed_changed,
+    .force_redraw = et4000w32p_force_redraw,
+    .config = NULL
 };
 
-const device_t et4000w32_onboard_device =
-{
-        "Tseng Labs ET4000/w32 (ISA) (On-Board)",
-        "et4000w32_onboard",
-        DEVICE_ISA | DEVICE_AT, ET4000W32,
-        et4000w32p_init, et4000w32p_close, NULL,
-        { et4000w32_available },
-        et4000w32p_speed_changed,
-        et4000w32p_force_redraw,
-        NULL
+const device_t et4000w32_onboard_device = {
+    .name = "Tseng Labs ET4000/w32 (ISA) (On-Board)",
+    .internal_name = "et4000w32_onboard",
+    .flags = DEVICE_ISA | DEVICE_AT, ET4000W32,
+    .init = et4000w32p_init,
+    .close = et4000w32p_close,
+    .reset = NULL,
+    { .available = et4000w32_available },
+    .speed_changed = et4000w32p_speed_changed,
+    .force_redraw = et4000w32p_force_redraw,
+    .config = NULL
 };
 
-const device_t et4000w32i_isa_device =
-{
-        "Tseng Labs ET4000/w32i Rev. B ISA",
-        "et4000w32i",
-        DEVICE_ISA | DEVICE_AT, ET4000W32I,
-        et4000w32p_init, et4000w32p_close, NULL,
-        { et4000w32i_isa_available },
-        et4000w32p_speed_changed,
-        et4000w32p_force_redraw,
-        NULL
+const device_t et4000w32i_isa_device = {
+    .name = "Tseng Labs ET4000/w32i Rev. B ISA",
+    .internal_name = "et4000w32i",
+    .flags = DEVICE_ISA | DEVICE_AT, ET4000W32I,
+    .init = et4000w32p_init,
+    .close = et4000w32p_close,
+    .reset = NULL,
+    { .available = et4000w32i_isa_available },
+    .speed_changed = et4000w32p_speed_changed,
+    .force_redraw = et4000w32p_force_redraw,
+    .config = NULL
 };
 
-const device_t et4000w32i_vlb_device =
-{
-        "Tseng Labs ET4000/w32i Rev. B VLB",
-        "et4000w32i_vlb",
-        DEVICE_VLB, ET4000W32I,
-        et4000w32p_init, et4000w32p_close, NULL,
-        { et4000w32i_vlb_available },
-        et4000w32p_speed_changed,
-        et4000w32p_force_redraw,
-        et4000w32p_config
+const device_t et4000w32i_vlb_device = {
+    .name = "Tseng Labs ET4000/w32i Rev. B VLB",
+    .internal_name = "et4000w32i_vlb",
+    .flags = DEVICE_VLB, ET4000W32I,
+    .init = et4000w32p_init,
+    .close = et4000w32p_close,
+    .reset = NULL,
+    { .available = et4000w32i_vlb_available },
+    .speed_changed = et4000w32p_speed_changed,
+    .force_redraw = et4000w32p_force_redraw,
+    .config = et4000w32p_config
 };
 
-const device_t et4000w32p_videomagic_revb_vlb_device =
-{
-        "Tseng Labs ET4000/w32p Rev. B VLB (VideoMagic)",
-        "et4000w32p_videomagic_revb_vlb",
-        DEVICE_VLB, ET4000W32P_VIDEOMAGIC_REVB,
-        et4000w32p_init, et4000w32p_close, NULL,
-        { et4000w32p_videomagic_revb_vlb_available },
-        et4000w32p_speed_changed,
-        et4000w32p_force_redraw,
-        et4000w32p_config
+const device_t et4000w32p_videomagic_revb_vlb_device = {
+    .name = "Tseng Labs ET4000/w32p Rev. B VLB (VideoMagic)",
+    .internal_name = "et4000w32p_videomagic_revb_vlb",
+    .flags = DEVICE_VLB, ET4000W32P_VIDEOMAGIC_REVB,
+    .init = et4000w32p_init,
+    .close = et4000w32p_close,
+    .reset = NULL,
+    { .available = et4000w32p_videomagic_revb_vlb_available },
+    .speed_changed = et4000w32p_speed_changed,
+    .force_redraw = et4000w32p_force_redraw,
+    .config = et4000w32p_config
 };
 
-const device_t et4000w32p_videomagic_revb_pci_device =
-{
-        "Tseng Labs ET4000/w32p Rev. B PCI (VideoMagic)",
-        "et4000w32p_videomagic_revb_pci",
-        DEVICE_PCI, ET4000W32P_VIDEOMAGIC_REVB,
-        et4000w32p_init, et4000w32p_close, NULL,
-        { et4000w32p_videomagic_revb_vlb_available },
-        et4000w32p_speed_changed,
-        et4000w32p_force_redraw,
-        et4000w32p_config
+const device_t et4000w32p_videomagic_revb_pci_device = {
+    .name = "Tseng Labs ET4000/w32p Rev. B PCI (VideoMagic)",
+    .internal_name = "et4000w32p_videomagic_revb_pci",
+    .flags = DEVICE_PCI, ET4000W32P_VIDEOMAGIC_REVB,
+    .init = et4000w32p_init,
+    .close = et4000w32p_close,
+    .reset = NULL,
+    { .available = et4000w32p_videomagic_revb_vlb_available },
+    .speed_changed = et4000w32p_speed_changed,
+    .force_redraw = et4000w32p_force_redraw,
+    .config = et4000w32p_config
 };
 
-
-const device_t et4000w32p_revc_vlb_device =
-{
-        "Tseng Labs ET4000/w32p Rev. C VLB (Cardex)",
-        "et4000w32p_revc_vlb",
-        DEVICE_VLB, ET4000W32P_REVC,
-        et4000w32p_init, et4000w32p_close, NULL,
-        { et4000w32p_revc_available },
-        et4000w32p_speed_changed,
-        et4000w32p_force_redraw,
-        et4000w32p_config
+const device_t et4000w32p_revc_vlb_device = {
+    .name = "Tseng Labs ET4000/w32p Rev. C VLB (Cardex)",
+    .internal_name = "et4000w32p_revc_vlb",
+    .flags = DEVICE_VLB, ET4000W32P_REVC,
+    .init = et4000w32p_init,
+    .close = et4000w32p_close,
+    .reset = NULL,
+    { .available = et4000w32p_revc_available },
+    .speed_changed = et4000w32p_speed_changed,
+    .force_redraw = et4000w32p_force_redraw,
+    .config = et4000w32p_config
 };
 
-const device_t et4000w32p_revc_pci_device =
-{
-        "Tseng Labs ET4000/w32p Rev. C PCI (Cardex)",
-        "et4000w32p_revc_pci",
-        DEVICE_PCI, ET4000W32P_REVC,
-        et4000w32p_init, et4000w32p_close, NULL,
-        { et4000w32p_revc_available },
-        et4000w32p_speed_changed,
-        et4000w32p_force_redraw,
-        et4000w32p_config
+const device_t et4000w32p_revc_pci_device = {
+    .name = "Tseng Labs ET4000/w32p Rev. C PCI (Cardex)",
+    .internal_name = "et4000w32p_revc_pci",
+    .flags = DEVICE_PCI, ET4000W32P_REVC,
+    .init = et4000w32p_init,
+    .close = et4000w32p_close,
+    .reset = NULL,
+    { .available = et4000w32p_revc_available },
+    .speed_changed = et4000w32p_speed_changed,
+    .force_redraw = et4000w32p_force_redraw,
+    .config = et4000w32p_config
 };
 
-const device_t et4000w32p_noncardex_vlb_device =
-{
-        "Tseng Labs ET4000/w32p Rev. D VLB",
-        "et4000w32p_nc_vlb",
-        DEVICE_VLB, ET4000W32P,
-        et4000w32p_init, et4000w32p_close, NULL,
-        { et4000w32p_noncardex_available },
-        et4000w32p_speed_changed,
-        et4000w32p_force_redraw,
-        et4000w32p_config
+const device_t et4000w32p_noncardex_vlb_device = {
+    .name = "Tseng Labs ET4000/w32p Rev. D VLB",
+    .internal_name = "et4000w32p_nc_vlb",
+    .flags = DEVICE_VLB, ET4000W32P,
+    .init = et4000w32p_init,
+    .close = et4000w32p_close,
+    .reset = NULL,
+    { .available = et4000w32p_noncardex_available },
+    .speed_changed = et4000w32p_speed_changed,
+    .force_redraw = et4000w32p_force_redraw,
+    .config = et4000w32p_config
 };
 
-const device_t et4000w32p_noncardex_pci_device =
-{
-        "Tseng Labs ET4000/w32p Rev. D PCI",
-        "et4000w32p_nc_pci",
-        DEVICE_PCI, ET4000W32P,
-        et4000w32p_init, et4000w32p_close, NULL,
-        { et4000w32p_noncardex_available },
-        et4000w32p_speed_changed,
-        et4000w32p_force_redraw,
-        et4000w32p_config
+const device_t et4000w32p_noncardex_pci_device = {
+    .name = "Tseng Labs ET4000/w32p Rev. D PCI",
+    .internal_name = "et4000w32p_nc_pci",
+    .flags = DEVICE_PCI, ET4000W32P,
+    .init = et4000w32p_init,
+    .close = et4000w32p_close,
+    .reset = NULL,
+    { .available = et4000w32p_noncardex_available },
+    .speed_changed = et4000w32p_speed_changed,
+    .force_redraw = et4000w32p_force_redraw,
+    .config = et4000w32p_config
 };
 
-const device_t et4000w32p_cardex_vlb_device =
-{
-        "Tseng Labs ET4000/w32p Rev. D VLB (Cardex)",
-        "et4000w32p_vlb",
-        DEVICE_VLB, ET4000W32P_CARDEX,
-        et4000w32p_init, et4000w32p_close, NULL,
-        { et4000w32p_cardex_available },
-        et4000w32p_speed_changed,
-        et4000w32p_force_redraw,
-        et4000w32p_config
+const device_t et4000w32p_cardex_vlb_device = {
+    .name = "Tseng Labs ET4000/w32p Rev. D VLB (Cardex)",
+    .internal_name = "et4000w32p_vlb",
+    .flags = DEVICE_VLB, ET4000W32P_CARDEX,
+    .init = et4000w32p_init,
+    .close = et4000w32p_close,
+    .reset = NULL,
+    { .available = et4000w32p_cardex_available },
+    .speed_changed = et4000w32p_speed_changed,
+    .force_redraw = et4000w32p_force_redraw,
+    .config = et4000w32p_config
 };
 
-const device_t et4000w32p_cardex_pci_device =
-{
-        "Tseng Labs ET4000/w32p Rev. D PCI (Cardex)",
-        "et4000w32p_pci",
-        DEVICE_PCI, ET4000W32P_CARDEX,
-        et4000w32p_init, et4000w32p_close, NULL,
-        { et4000w32p_cardex_available },
-        et4000w32p_speed_changed,
-        et4000w32p_force_redraw,
-        et4000w32p_config
+const device_t et4000w32p_cardex_pci_device = {
+    .name = "Tseng Labs ET4000/w32p Rev. D PCI (Cardex)",
+    .internal_name = "et4000w32p_pci",
+    .flags = DEVICE_PCI, ET4000W32P_CARDEX,
+    .init = et4000w32p_init,
+    .close = et4000w32p_close,
+    .reset = NULL,
+    { .available = et4000w32p_cardex_available },
+    .speed_changed = et4000w32p_speed_changed,
+    .force_redraw = et4000w32p_force_redraw,
+    .config = et4000w32p_config
 };
 
-const device_t et4000w32p_vlb_device =
-{
-        "Tseng Labs ET4000/w32p Rev. D VLB (Diamond Stealth32)",
-        "stealth32_vlb",
-        DEVICE_VLB, ET4000W32P_DIAMOND,
-        et4000w32p_init, et4000w32p_close, NULL,
-        { et4000w32p_available },
-        et4000w32p_speed_changed,
-        et4000w32p_force_redraw,
-        et4000w32p_config
+const device_t et4000w32p_vlb_device = {
+    .name = "Tseng Labs ET4000/w32p Rev. D VLB (Diamond Stealth32)",
+    .internal_name = "stealth32_vlb",
+    .flags = DEVICE_VLB, ET4000W32P_DIAMOND,
+    .init = et4000w32p_init,
+    .close = et4000w32p_close,
+    .reset = NULL,
+    { .available = et4000w32p_available },
+    .speed_changed = et4000w32p_speed_changed,
+    .force_redraw = et4000w32p_force_redraw,
+    .config = et4000w32p_config
 };
 
-const device_t et4000w32p_pci_device =
-{
-        "Tseng Labs ET4000/w32p Rev. D PCI (Diamond Stealth32)",
-        "stealth32_pci",
-        DEVICE_PCI, ET4000W32P_DIAMOND,
-        et4000w32p_init, et4000w32p_close, NULL,
-        { et4000w32p_available },
-        et4000w32p_speed_changed,
-        et4000w32p_force_redraw,
-        et4000w32p_config
+const device_t et4000w32p_pci_device = {
+    .name = "Tseng Labs ET4000/w32p Rev. D PCI (Diamond Stealth32)",
+    .internal_name = "stealth32_pci",
+    .flags = DEVICE_PCI, ET4000W32P_DIAMOND,
+    .init = et4000w32p_init,
+    .close = et4000w32p_close,
+    .reset = NULL,
+    { .available = et4000w32p_available },
+    .speed_changed = et4000w32p_speed_changed,
+    .force_redraw = et4000w32p_force_redraw,
+    .config = et4000w32p_config
 };

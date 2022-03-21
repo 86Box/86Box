@@ -499,48 +499,72 @@ bt48x_ramdac_close(void *priv)
 	free(ramdac);
 }
 
-
-const device_t bt484_ramdac_device =
-{
-        "Brooktree Bt484 RAMDAC",
-        "bt484_ramdac",
-        0, BT484,
-        bt48x_ramdac_init, bt48x_ramdac_close,
-	NULL, { NULL }, NULL, NULL
+const device_t bt484_ramdac_device = {
+    .name = "Brooktree Bt484 RAMDAC",
+    .internal_name = "bt484_ramdac",
+    .flags = 0,
+    .local = BT484,
+    .init = bt48x_ramdac_init,
+    .close = bt48x_ramdac_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
-const device_t att20c504_ramdac_device =
-{
-        "AT&T 20c504 RAMDAC",
-        "att20c504_ramdac",
-        0, ATT20C504,
-        bt48x_ramdac_init, bt48x_ramdac_close,
-	NULL, { NULL }, NULL, NULL
+const device_t att20c504_ramdac_device = {
+    .name = "AT&T 20c504 RAMDAC",
+    .internal_name = "att20c504_ramdac",
+    .flags = 0,
+    .local = ATT20C504,
+    .init = bt48x_ramdac_init,
+    .close = bt48x_ramdac_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
-const device_t bt485_ramdac_device =
-{
-        "Brooktree Bt485 RAMDAC",
-        "bt485_ramdac",
-        0, BT485,
-        bt48x_ramdac_init, bt48x_ramdac_close,
-	NULL, { NULL }, NULL, NULL
+const device_t bt485_ramdac_device = {
+    .name = "Brooktree Bt485 RAMDAC",
+    .internal_name = "bt485_ramdac",
+    .flags = 0,
+    .local = BT485,
+    .init = bt48x_ramdac_init,
+    .close = bt48x_ramdac_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
-const device_t att20c505_ramdac_device =
-{
-        "AT&T 20c505 RAMDAC",
-        "att20c505_ramdac",
-        0, ATT20C505,
-        bt48x_ramdac_init, bt48x_ramdac_close,
-	NULL, { NULL }, NULL, NULL
+const device_t att20c505_ramdac_device = {
+    .name = "AT&T 20c505 RAMDAC",
+    .internal_name = "att20c505_ramdac",
+    .flags = 0,
+    .local = ATT20C505,
+    .init = bt48x_ramdac_init,
+    .close = bt48x_ramdac_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
-const device_t bt485a_ramdac_device =
-{
-        "Brooktree Bt485A RAMDAC",
-        "bt485a_ramdac",
-        0, BT485A,
-        bt48x_ramdac_init, bt48x_ramdac_close,
-	NULL, { NULL }, NULL, NULL
+const device_t bt485a_ramdac_device = {
+    .name = "Brooktree Bt485A RAMDAC",
+    .internal_name = "bt485a_ramdac",
+    .flags = 0,
+    .local = BT485A,
+    .init = bt48x_ramdac_init,
+    .close = bt48x_ramdac_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };

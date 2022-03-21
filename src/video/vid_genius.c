@@ -788,15 +788,16 @@ genius_speed_changed(void *p)
     genius_recalctimings(genius);
 }
 
-
-const device_t genius_device =
-{
-        "Genius VHR",
-        "genius",
-        DEVICE_ISA, 0,
-        genius_init, genius_close, NULL,
-        { genius_available },
-        genius_speed_changed,
-    NULL,
-        NULL
+const device_t genius_device = {
+    .name = "Genius VHR",
+    .internal_name = "genius",
+    .flags = DEVICE_ISA,
+    .local = 0,
+    .init = genius_init,
+    .close = genius_close,
+    .reset = NULL,
+    { .available = genius_available },
+    .speed_changed = genius_speed_changed,
+    .force_redraw = NULL,
+    .config = NULL
 };

@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop">
+    <id>net.86box.86Box</id>
+    <metadata_license>CC0-1.0</metadata_license>
+    <project_license>GPL-2.0-or-later</project_license>
+    <name>86Box</name>
+    <summary>An emulator for classic IBM PC clones</summary>
+    <categories>
+      <category>Emulation</category>
+    </categories>
+    <launchable type="desktop-id">net.86box.86Box.desktop</launchable>
+    <releases>
+      <release version="3.3" date="2022-03-19"/>
+    </releases>
+    <content_rating type="oars-1.1" />
+    <description>
+        <p>
+            86Box is a hypervisor and IBM PC system emulator that specializes
+            in running old operating systems and software designed for IBM
+            PC systems and compatibles from 1981 through fairly recent
+            system designs based on the PCI bus.
+
+            It supports various models of PCs, graphics and sound
+            cards, and CPUs.
+        </p>
+        <p>
+            To use 86Box you will need to dump BIOS ROMs for each machine you
+            want to emulate.
+        </p>
+    </description>
+    <url type="homepage">https://86box.net</url>
+</component>

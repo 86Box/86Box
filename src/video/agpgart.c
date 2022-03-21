@@ -179,16 +179,16 @@ agpgart_close(void *priv)
     free(dev);
 }
 
-
-const device_t agpgart_device =
-{
-    "AGP Graphics Address Remapping Table",
-    "agpgart",
-    DEVICE_PCI,
-    0,
-    agpgart_init, agpgart_close, NULL,
-    { NULL },
-    NULL,
-    NULL,
-    NULL
+const device_t agpgart_device = {
+    .name = "AGP Graphics Address Remapping Table",
+    .internal_name = "agpgart",
+    .flags = DEVICE_PCI,
+    .local = 0,
+    .init = agpgart_init,
+    .close = agpgart_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
