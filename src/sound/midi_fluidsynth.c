@@ -5,6 +5,9 @@
 #    include <stdlib.h>
 #    include <string.h>
 #    include <wchar.h>
+#    ifdef __unix__
+#        include <unistd.h>
+#    endif
 
 #    include <86box/86box.h>
 #    include <86box/config.h>
@@ -248,7 +251,12 @@ fluidsynth_init(const device_t *info)
 
     data->synth = f_new_fluid_synth(data->settings);
 
-    char *sound_font = (char *) device_get_config_string("sound_font");
+    const char *sound_font = (char *) device_get_config_string("sound_font");
+#    ifdef __unix__
+    if (!sound_font || sound_font[0] == 0)
+        sound_font = (access("/usr/share/sounds/sf2/FluidR3_GM.sf2", F_OK) == 0 ? "/usr/share/sounds/sf2/FluidR3_GM.sf2" :
+                      (access("/usr/share/soundfonts/default.sf2", F_OK) == 0 ? "/usr/share/soundfonts/default.sf2" : ""));
+#    endif
     data->sound_font = f_fluid_synth_sfload(data->synth, sound_font, 1);
 
     if (device_get_config_int("chorus")) {
