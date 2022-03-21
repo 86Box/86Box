@@ -2,7 +2,7 @@
 <component type="desktop">
     <id>net.86box.86Box</id>
     <metadata_license>CC0-1.0</metadata_license>
-    <project_license>GPL-2.0</project_license>
+    <project_license>GPL-2.0-or-later</project_license>
     <name>86Box</name>
     <summary>An emulator for classic IBM PC clones</summary>
     <categories>
