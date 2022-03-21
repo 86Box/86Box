@@ -1313,7 +1313,14 @@ void MainWindow::getTitle(wchar_t *title)
 
 bool MainWindow::eventFilter(QObject* receiver, QEvent* event)
 {
-    if (this->keyboardGrabber() == this) {
+    if (!dopause && (mouse_capture || !kbd_req_capture)) {
+        if (event->type() == QEvent::Shortcut) {
+            auto shortcutEvent = (QShortcutEvent*)event;
+            if (shortcutEvent->key() == ui->actionExit->shortcut()) {
+                event->accept();
+                return true;
+            }
+        }
         if (event->type() == QEvent::KeyPress) {
             event->accept();
             this->keyPressEvent((QKeyEvent *) event);
