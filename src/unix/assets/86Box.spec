@@ -70,7 +70,7 @@ Collection of ROMs for use with 86Box.
   %cmake -DRELEASE=on
 %else
   %ifarch arm aarch64
-    %cmake -DRELEASE=on -DDYNAREC=off -DNEW_DYNAREC=on
+    %cmake -DRELEASE=on -DNEW_DYNAREC=on
   %else
     %cmake -DRELEASE=on -DDYNAREC=off
   %endif
