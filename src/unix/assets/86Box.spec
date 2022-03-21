@@ -18,7 +18,7 @@ Name:		86Box
 Version:	3.3
 Release:	1%{?dist}
 Summary:	Classic PC emulator
-License:	GPLv2
+License:	GPLv2+
 URL:		https://86box.net
 
 Source0:	https://github.com/86Box/86Box/archive/refs/tags/v%%{version}.tar.gz
