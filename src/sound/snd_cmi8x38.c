@@ -722,10 +722,9 @@ cmi8x38_write(uint16_t addr, uint8_t val, void *priv)
             break;
 
         case 0x09:
-#if 0 /* actual CMI8338 behavior unconfirmed; this register is required for the Windows XP driver which outputs 96K */
-        if (dev->type == CMEDIA_CMI8338)
-            return;
-#endif
+            if (dev->type == CMEDIA_CMI8338)
+                return;
+
             /* Update sample rate. */
             dev->io_regs[addr] = val;
             cmi8x38_speed_changed(dev);
