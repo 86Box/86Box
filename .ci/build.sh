@@ -295,7 +295,7 @@ then
 	fi
 
 	# Install the latest versions for any missing packages (if the specified version couldn't be installed).
-	pkgs="make"
+	pkgs="git"
 	while IFS=" " read pkg version
 	do
 		prefixed_pkg="$MINGW_PACKAGE_PREFIX-$pkg"
