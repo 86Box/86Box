@@ -2348,7 +2348,16 @@ machine_amstrad_init(const machine_t *model, int type)
     memset(ams, 0x00, sizeof(amstrad_t));
     ams->type = type;
 
-    device_add(&amstrad_nvr_device);
+    switch(type) {
+	case AMS_PC200:
+	case AMS_PPC512:
+		device_add(&amstrad_no_nmi_nvr_device);
+		break;
+
+	default:
+		device_add(&amstrad_nvr_device);
+		break;
+    }
 
     machine_common_init(model);
 

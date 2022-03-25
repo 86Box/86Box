@@ -130,7 +130,7 @@ void DeviceConfig::ConfigureDevice(const _device_* device, int instance, Setting
                 break;
             }
 
-            for (auto* sel = config->selection; (sel->description != nullptr) && (strlen(sel->description) > 0); ++sel) {
+            for (auto* sel = config->selection; (sel != nullptr) && (sel->description != nullptr) && (strlen(sel->description) > 0); ++sel) {
                 int row = Models::AddEntry(model, sel->description, sel->value);
                 if (selected == sel->value) {
                     currentIndex = row;
