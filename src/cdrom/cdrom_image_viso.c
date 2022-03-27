@@ -77,8 +77,12 @@ typedef struct _viso_entry_ {
         uint64_t pt_offsets[4];
         FILE    *file;
     };
-    uint64_t dr_offsets[2], data_offset;
-    uint16_t name_joliet[111], pt_idx;
+    union {
+        uint64_t dr_offsets[2];
+        uint64_t data_offset;
+    };
+    uint16_t name_joliet[111], pt_idx; /* name_joliet size limited by maximum directory record size */
+    uint8_t  name_joliet_len;
 
     struct stat stats;
 
@@ -151,7 +155,7 @@ viso_pwrite(const void *ptr, uint64_t offset, size_t size, size_t count, FILE *s
                                                                                      \
                 case 'a' ... 'z':                                                    \
                     /* Convert to uppercase on A and D. */                           \
-                    if (charset >= VISO_CHARSET_FN)                                  \
+                    if (charset > VISO_CHARSET_A)                                    \
                         *dest = *src;                                                \
                     else                                                             \
                         *dest = *src - 32;                                           \
@@ -411,13 +415,9 @@ viso_fill_dir_record(viso_entry_t *entry, uint8_t *data, int type)
         case VISO_DIR_JOLIET:
             q = p++; /* save location of the file ID length for later */
 
-            uint16_t *s = entry->name_joliet;
-            *q          = 0;
-            while (*s) {
-                *((uint16_t *) p) = *s++; /* file ID */
-                p += 2;
-                *q += 2;
-            }
+            *q = entry->name_joliet_len * sizeof(entry->name_joliet[0]);
+            memcpy(p, entry->name_joliet, *q); /* file ID */
+            p += *q;
 
             if (!((*q) & 1)) /* padding for even file ID lengths */
                 *p++ = 0;
@@ -455,7 +455,7 @@ viso_read(void *p, uint8_t *buffer, uint64_t seek, size_t count)
                     /* Close any existing FIFO entry's file. */
                     viso_entry_t *other_entry = viso->file_fifo[viso->file_fifo_pos];
                     if (other_entry && other_entry->file) {
-                        cdrom_image_viso_log("VISO: Displacing [%s]\n", other_entry->path);
+                        cdrom_image_viso_log("VISO: Closing [%s]\n", other_entry->path);
                         fclose(other_entry->file);
                         other_entry->file = NULL;
                     }
@@ -688,6 +688,7 @@ viso_init(const char *dirname, int *error)
             }
             viso_write_wstring(last_entry->name_joliet, wtemp, len, VISO_CHARSET_FN);
             last_entry->name_joliet[len] = '\0';
+            last_entry->name_joliet_len  = len;
 
             cdrom_image_viso_log("[%08X] %s => [%-12s] %s\n", last_entry, dir->path, last_entry->name_short, last_entry->name_rr);
 
@@ -878,7 +879,7 @@ next_dir:
             if (dir == &viso->root_dir) /* directory ID length */
                 data[0] = 1;
             else if (i & 2)
-                data[0] = MIN(254, wcslen(dir->name_joliet) << 1);
+                data[0] = dir->name_joliet_len;
             else
                 data[0] = strlen(dir->name_short);
 
@@ -1041,14 +1042,14 @@ next_dir:
             continue;
         }
 
-        /* Set this file's starting offset. */
-        entry->data_offset = ((uint64_t) viso->all_sectors) * viso->sector_size;
-
         /* Write this file's starting sector offset to its directory entries. */
         p = data;
         VISO_LBE_32(p, viso->all_sectors);
         for (int i = 0; i < (sizeof(entry->dr_offsets) / sizeof(entry->dr_offsets[0])); i++)
             viso_pwrite(data, entry->dr_offsets[i] + 2, 8, 1, viso->tf.file);
+
+        /* Set this file's starting offset. This overwrites dr_offsets in the union. */
+        entry->data_offset = ((uint64_t) viso->all_sectors) * viso->sector_size;
 
         /* Determine how many sectors this file will take. */
         uint32_t size = entry->stats.st_size / viso->sector_size;
