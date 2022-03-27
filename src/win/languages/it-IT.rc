@@ -178,6 +178,7 @@ BEGIN
         MENUITEM "&Ricarica l'immagine precedente",			IDM_CDROM_RELOAD
         MENUITEM SEPARATOR
         MENUITEM "&Immagine",					IDM_CDROM_IMAGE
+        MENUITEM "&Folder",					IDM_CDROM_DIR
     END
 END
 

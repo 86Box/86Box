@@ -180,6 +180,7 @@ BEGIN
         MENUITEM "&Recarregar imagem anterior",			IDM_CDROM_RELOAD
         MENUITEM SEPARATOR
         MENUITEM "&Imagem",					IDM_CDROM_IMAGE
+        MENUITEM "&Pasta",					IDM_CDROM_DIR
     END
 END
 

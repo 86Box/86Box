@@ -182,6 +182,7 @@ BEGIN
         MENUITEM "Előző képfájl &újratöltése",			IDM_CDROM_RELOAD
         MENUITEM SEPARATOR
         MENUITEM "&Meglévő képfájl &megnyitása...",					IDM_CDROM_IMAGE
+        MENUITEM "&Folder",					IDM_CDROM_DIR
     END
 END
 

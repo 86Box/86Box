@@ -177,6 +177,7 @@ BEGIN
         MENUITEM "&Önceki imajı seç",			IDM_CDROM_RELOAD
         MENUITEM SEPARATOR
         MENUITEM "&İmaj seç",					IDM_CDROM_IMAGE
+        MENUITEM "&Folder",					IDM_CDROM_DIR
     END
 END
 

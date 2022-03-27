@@ -177,6 +177,7 @@ BEGIN
         MENUITEM "&Lataa edellinen levykuva uudelleen",                 IDM_CDROM_RELOAD
         MENUITEM SEPARATOR
         MENUITEM "L&evykuva",                                           IDM_CDROM_IMAGE
+        MENUITEM "&Folder",					IDM_CDROM_DIR
     END
 END
 

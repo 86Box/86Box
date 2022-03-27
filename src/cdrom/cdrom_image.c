@@ -290,10 +290,11 @@ cdrom_image_open(cdrom_t *dev, const char *fn)
         return image_open_abort(dev);
 
     /* All good, reset state. */
-    if (i == 2)
+    if (i >= 2)
 	dev->cd_status = CD_STATUS_DATA_ONLY;
     else
 	dev->cd_status = CD_STATUS_STOPPED;
+    dev->is_dir = (i == 3);
     dev->seek_pos = 0;
     dev->cd_buflen = 0;
     dev->cdrom_capacity = image_get_capacity(dev);

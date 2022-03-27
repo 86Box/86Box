@@ -36,7 +36,7 @@ public:
     void floppyUpdateMenu(int i);
 
     void cdromMute(int i);
-    void cdromMount(int i);
+    void cdromMount(int i, int dir);
     void cdromEject(int i);
     void cdromReload(int i);
     void cdromUpdateMenu(int i);
@@ -79,6 +79,7 @@ private:
     int cdromEmptyPos;
     int cdromReloadPos;
     int cdromImagePos;
+    int cdromDirPos;
 
     int zipEjectPos;
     int zipReloadPos;

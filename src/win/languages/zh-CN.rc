@@ -177,6 +177,7 @@ BEGIN
         MENUITEM "载入上一个镜像(&R)",			IDM_CDROM_RELOAD
         MENUITEM SEPARATOR
         MENUITEM "镜像(&I)",					IDM_CDROM_IMAGE
+        MENUITEM "&Folder",					IDM_CDROM_DIR
     END
 END
 

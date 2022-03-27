@@ -222,11 +222,13 @@ cdi_close(cd_img_t *cdi)
 int
 cdi_set_device(cd_img_t *cdi, const char *path)
 {
-    if (cdi_load_cue(cdi, path))
-        return 1;
+    int ret;
 
-    if (cdi_load_iso(cdi, path))
-        return 2;
+    if ((ret = cdi_load_cue(cdi, path)))
+        return ret;
+
+    if ((ret = cdi_load_iso(cdi, path)))
+        return ret;
 
     return 0;
 }
@@ -528,7 +530,7 @@ cdi_track_push_back(cd_img_t *cdi, track_t *trk)
 int
 cdi_load_iso(cd_img_t *cdi, const char *filename)
 {
-    int     error;
+    int     error, ret = 2;
     track_t trk;
 
     cdi->tracks     = NULL;
@@ -541,6 +543,7 @@ cdi_load_iso(cd_img_t *cdi, const char *filename)
     if (error) {
         if ((trk.file != NULL) && (trk.file->close != NULL))
             trk.file->close(trk.file);
+        ret = 3;
         trk.file = viso_init(filename, &error);
         if (error) {
             if ((trk.file != NULL) && (trk.file->close != NULL))
@@ -586,7 +589,7 @@ cdi_load_iso(cd_img_t *cdi, const char *filename)
     trk.file         = NULL;
     cdi_track_push_back(cdi, &trk);
 
-    return 1;
+    return ret;
 }
 
 static int

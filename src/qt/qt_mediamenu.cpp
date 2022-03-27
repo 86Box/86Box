@@ -119,7 +119,9 @@ void MediaMenu::refresh(QMenu *parentMenu) {
         menu->addAction(tr("&Reload previous image"), [this, i]() { cdromReload(i); });
         menu->addSeparator();
         cdromImagePos = menu->children().count();
-        menu->addAction(tr("&Image"), [this, i]() { cdromMount(i); })->setCheckable(true);
+        menu->addAction(tr("&Image"), [this, i]() { cdromMount(i, 0); })->setCheckable(true);
+        cdromDirPos = menu->children().count();
+        menu->addAction(tr("&Folder"), [this, i]() { cdromMount(i, 1); })->setCheckable(true);
         cdromMenus[i] = menu;
         cdromUpdateMenu(i);
     });
@@ -358,18 +360,23 @@ void MediaMenu::cdromMute(int i) {
     sound_cd_thread_reset();
 }
 
-void MediaMenu::cdromMount(int i) {
-    QString dir;
+void MediaMenu::cdromMount(int i, int dir) {
+    QString filename;
     QFileInfo fi(cdrom[i].image_path);
 
-    auto filename = QFileDialog::getOpenFileName(
-        parentWidget,
-        QString(),
-        QString(),
-        tr("CD-ROM images") %
-        util::DlgFilter({ "iso","cue" }) %
-        tr("All files") %
-        util::DlgFilter({ "*" }, true));
+    if (dir) {
+        filename = QFileDialog::getExistingDirectory(
+            parentWidget);
+    } else {
+        filename = QFileDialog::getOpenFileName(
+            parentWidget,
+            QString(),
+            QString(),
+            tr("CD-ROM images") %
+            util::DlgFilter({ "iso","cue" }) %
+            tr("All files") %
+            util::DlgFilter({ "*" }, true));
+    }
 
     if (filename.isEmpty()) {
         return;
@@ -419,8 +426,10 @@ void MediaMenu::cdromUpdateMenu(int i) {
     muteMenu->setChecked(cdrom[i].sound_on == 0);
 
     auto* imageMenu = dynamic_cast<QAction*>(childs[cdromImagePos]);
+    auto* dirMenu = dynamic_cast<QAction*>(childs[cdromDirPos]);
     auto* emptyMenu = dynamic_cast<QAction*>(childs[cdromEmptyPos]);
-    imageMenu->setChecked(cdrom[i].host_drive == 200);
+    imageMenu->setChecked((cdrom[i].host_drive == 200) && !cdrom[i].is_dir);
+    dirMenu->setChecked((cdrom[i].host_drive == 200) && cdrom[i].is_dir);
     emptyMenu->setChecked(cdrom[i].host_drive != 200);
 
     auto* prevMenu = dynamic_cast<QAction*>(childs[cdromReloadPos]);
