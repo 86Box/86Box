@@ -455,9 +455,10 @@ viso_read(void *p, uint8_t *buffer, uint64_t seek, size_t count)
                     /* Close any existing FIFO entry's file. */
                     viso_entry_t *other_entry = viso->file_fifo[viso->file_fifo_pos];
                     if (other_entry && other_entry->file) {
-                        cdrom_image_viso_log("VISO: Closing [%s]\n", other_entry->path);
+                        cdrom_image_viso_log("VISO: Closing [%s]", other_entry->path);
                         fclose(other_entry->file);
                         other_entry->file = NULL;
+                        cdrom_image_viso_log("\n");
                     }
 
                     /* Open file. */
@@ -879,7 +880,7 @@ next_dir:
             if (dir == &viso->root_dir) /* directory ID length */
                 data[0] = 1;
             else if (i & 2)
-                data[0] = dir->name_joliet_len;
+                data[0] = dir->name_joliet_len * sizeof(dir->name_joliet[0]);
             else
                 data[0] = strlen(dir->name_short);
 
@@ -890,11 +891,13 @@ next_dir:
             else
                 *((uint16_t *) &data[6]) = cpu_to_le16(dir->parent->pt_idx);
 
-            if (i & 2) /* directory ID */
+            if (dir == &viso->root_dir) /* directory ID */
+                data[8] = 0;
+            else if (i & 2)
                 memcpy(&data[8], dir->name_joliet, data[0]);
             else
                 memcpy(&data[8], dir->name_short, data[0]);
-            data[data[0] + 8] = 0; /* padding for odd directory ID lengths */
+            data[8 + data[0]] = 0; /* padding for odd directory ID lengths */
 
             /* Write path table entry. */
             fwrite(data, 8 + data[0] + (data[0] & 1), 1, viso->tf.file);
@@ -1048,7 +1051,7 @@ next_dir:
         for (int i = 0; i < (sizeof(entry->dr_offsets) / sizeof(entry->dr_offsets[0])); i++)
             viso_pwrite(data, entry->dr_offsets[i] + 2, 8, 1, viso->tf.file);
 
-        /* Set this file's starting offset. This overwrites dr_offsets in the union. */
+        /* Save this file's starting offset. This overwrites dr_offsets in the union. */
         entry->data_offset = ((uint64_t) viso->all_sectors) * viso->sector_size;
 
         /* Determine how many sectors this file will take. */
