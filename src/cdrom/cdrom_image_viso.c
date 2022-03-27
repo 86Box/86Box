@@ -661,7 +661,7 @@ viso_init(const char *dirname, int *error)
             }
 
             /* Detect El Torito boot code file and set it accordingly. */
-            if (!strnicmp(readdir_entry->d_name, "eltorito.", 9) && (!stricmp(readdir_entry->d_name + 9, "com") || !stricmp(readdir_entry->d_name + 9, "img")))
+            if ((dir == &viso->root_dir) && !strnicmp(readdir_entry->d_name, "eltorito.", 9) && (!stricmp(readdir_entry->d_name + 9, "com") || !stricmp(readdir_entry->d_name + 9, "img")))
                 viso->eltorito_entry = last_entry;
 
             /* Set short filename. */
@@ -886,7 +886,7 @@ next_dir:
         *p++ = 0x00;
         VISO_SKIP(p, 24);
         strncpy((char *) (p - 24), EMU_NAME, 24); /* ID string */
-        *p++ = 0x00; /* checksum */
+        *p++ = 0x00;                              /* checksum */
         *p++ = 0x00;
         *p++ = 0x55; /* key bytes */
         *p++ = 0xaa;
