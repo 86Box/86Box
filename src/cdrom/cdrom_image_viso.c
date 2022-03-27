@@ -1115,6 +1115,9 @@ next_dir:
             viso_pwrite(data, dir->pt_offsets[i << 1] + 2, 4, 1, viso->tf.file);           /* little endian */
             viso_pwrite(data + 4, dir->pt_offsets[(i << 1) | 1] + 2, 4, 1, viso->tf.file); /* big endian */
 
+            if (i) /* clear union if we no longer need path table offsets */
+                dir->file = NULL;
+
             /* Go through entries in this directory. */
             viso_entry_t *entry    = dir->first_child;
             int           dir_type = (dir == &viso->root_dir) ? VISO_DIR_CURRENT_ROOT : VISO_DIR_CURRENT;
@@ -1246,7 +1249,8 @@ next_entry:
             *entry_map_p++ = entry;
 
         /* Move on to the next entry. */
-        entry = entry->next;
+        prev_entry = entry;
+        entry      = entry->next;
     }
 
     /* Write final volume size to all volume descriptors. */
