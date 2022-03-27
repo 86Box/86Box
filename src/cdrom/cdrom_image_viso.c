@@ -888,6 +888,8 @@ next_dir:
         /* Write El Torito boot descriptor. This is an awkward spot for
            that, but the spec requires it to be the second descriptor. */
         if (!i && viso->eltorito_entry) {
+            cdrom_image_viso_log("VISO: Writing El Torito boot descriptor for entry [%08X]\n", viso->eltorito_entry);
+
             p    = data;
             *p++ = 0;              /* type */
             memcpy(p, "CD001", 5); /* standard ID */
@@ -959,9 +961,9 @@ next_dir:
         /* Now fill the default boot entry. */
         *p++ = 0x88; /* bootable flag */
 
-        if (viso->eltorito_entry->name_short[9] == 'C') { /* boot media type */
+        if (viso->eltorito_entry->name_short[9] == 'C') { /* boot media type: non-emulation */
             *p++ = 0x00;
-        } else {
+        } else { /* boot media type: emulation */
             /* This could use with a decoupling of fdd_img's algorithms
                for loading non-raw images and detecting raw image sizes. */
             switch (viso->eltorito_entry->stats.st_size) {
@@ -1217,12 +1219,12 @@ next_entry:
         if (entry == viso->eltorito_entry) {
             /* Load the entire file if not emulating, or just the first virtual
                sector (which usually contains all the boot code) if emulating. */
-            if (entry->name_short[9] == 'C') {
+            if (entry->name_short[9] == 'C') { /* non-emulation */
                 uint32_t boot_size = entry->stats.st_size;
                 if (boot_size % 512) /* round up */
                     boot_size += 512 - (boot_size % 512);
                 *((uint16_t *) &data[0]) = boot_size / 512;
-            } else {
+            } else { /* emulation */
                 *((uint16_t *) &data[0]) = 1;
             }
             *((uint32_t *) &data[2]) = viso->all_sectors;
