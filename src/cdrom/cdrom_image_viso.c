@@ -1194,7 +1194,9 @@ next_entry:
     }
 
     /* Allocate entry map for sector->file lookups. */
-    viso->entry_map        = (viso_entry_t **) calloc(viso->entry_map_size, sizeof(viso_entry_t *));
+    viso->entry_map = (viso_entry_t **) calloc(viso->entry_map_size, sizeof(viso_entry_t *));
+    if (!viso->entry_map)
+        goto end;
     viso->metadata_sectors = ftello64(viso->tf.file) / viso->sector_size;
     viso->all_sectors      = viso->metadata_sectors;
 
