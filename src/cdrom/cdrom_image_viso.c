@@ -37,22 +37,28 @@
 #include <86box/nvr.h>
 // clang-format on
 
-#define VISO_SKIP(p, n) \
-    memset(p, 0x00, n); \
-    p += n;
+#define VISO_SKIP(p, n)     \
+    {                       \
+        memset(p, 0x00, n); \
+        p += n;             \
+    }
 
 /* ISO 9660 defines "both endian" data formats, which are
    stored as little endian followed by big endian. */
-#define VISO_LBE_16(p, x)               \
-    *((uint16_t *) p) = cpu_to_le16(x); \
-    p += 2;                             \
-    *((uint16_t *) p) = cpu_to_be16(x); \
-    p += 2;
-#define VISO_LBE_32(p, x)               \
-    *((uint32_t *) p) = cpu_to_le32(x); \
-    p += 4;                             \
-    *((uint32_t *) p) = cpu_to_be32(x); \
-    p += 4;
+#define VISO_LBE_16(p, x)                   \
+    {                                       \
+        *((uint16_t *) p) = cpu_to_le16(x); \
+        p += 2;                             \
+        *((uint16_t *) p) = cpu_to_be16(x); \
+        p += 2;                             \
+    }
+#define VISO_LBE_32(p, x)                   \
+    {                                       \
+        *((uint32_t *) p) = cpu_to_le32(x); \
+        p += 4;                             \
+        *((uint32_t *) p) = cpu_to_be32(x); \
+        p += 4;                             \
+    }
 
 #define VISO_SECTOR_SIZE COOKED_SECTOR_SIZE
 #define VISO_OPEN_FILES  32
@@ -66,14 +72,15 @@ enum {
 
 enum {
     VISO_DIR_CURRENT = 0,
-    VISO_DIR_PARENT  = 1,
+    VISO_DIR_CURRENT_ROOT,
+    VISO_DIR_PARENT,
     VISO_DIR_REGULAR,
     VISO_DIR_JOLIET
 };
 
 typedef struct _viso_entry_ {
-    char *path, name_short[13], name_rr[256];
-    union { /* save some memory */
+    char *path, name_short[13], name_rr[257]; /* name_rr size limited by at least Linux */
+    union {                                   /* save some memory */
         uint64_t pt_offsets[4];
         FILE    *file;
     };
@@ -82,7 +89,7 @@ typedef struct _viso_entry_ {
         uint64_t data_offset;
     };
     uint16_t name_joliet[111], pt_idx; /* name_joliet size limited by maximum directory record size */
-    uint8_t  name_joliet_len;
+    uint8_t  name_rr_len, name_joliet_len;
 
     struct stat stats;
 
@@ -98,6 +105,9 @@ typedef struct {
     track_file_t tf;
     viso_entry_t root_dir, *eltorito_entry, **entry_map, *file_fifo[VISO_OPEN_FILES];
 } viso_t;
+
+static const char rr_eid[]   = "RRIP_1991A"; /* identifiers used in ER field for Rock Ridge */
+static const char rr_edesc[] = "THE ROCK RIDGE INTERCHANGE PROTOCOL PROVIDES SUPPORT FOR POSIX FILE SYSTEM SEMANTICS.";
 
 #define ENABLE_CDROM_IMAGE_VISO_LOG 1
 #ifdef ENABLE_CDROM_IMAGE_VISO_LOG
@@ -288,26 +298,33 @@ viso_get_short_filename(viso_entry_t *dir, char *dest, const char *src)
     return 1;
 }
 
-static void
-viso_fill_dir_record(viso_entry_t *entry, uint8_t *data, int type)
+static int
+viso_fill_time(uint8_t *data, time_t time)
+{
+    uint8_t   *p      = data;
+    struct tm *time_s = gmtime(&time); /* use UTC as timezones are not portable */
+
+    *p++ = time_s->tm_year;    /* year since 1900 */
+    *p++ = 1 + time_s->tm_mon; /* month */
+    *p++ = time_s->tm_mday;    /* day */
+    *p++ = time_s->tm_hour;    /* hour */
+    *p++ = time_s->tm_min;     /* minute */
+    *p++ = time_s->tm_sec;     /* second */
+    *p++ = 0;                  /* timezone */
+
+    return p - data;
+}
+
+static int
+viso_fill_dir_record(uint8_t *data, viso_entry_t *entry, int type)
 {
     uint8_t *p = data, *q;
 
-    *p++ = 0;                             /* size (filled in later) */
-    *p++ = 0;                             /* extended attribute length */
-    VISO_SKIP(p, 8);                      /* sector offset */
-    VISO_LBE_32(p, entry->stats.st_size); /* size (filled in later if this is a directory) */
-
-    time_t     secs   = entry->stats.st_mtime;
-    struct tm *time_s = gmtime(&secs);      /* time, use UTC as timezones are not portable */
-    *p++              = time_s->tm_year;    /* year since 1900 */
-    *p++              = 1 + time_s->tm_mon; /* month */
-    *p++              = time_s->tm_mday;    /* day */
-    *p++              = time_s->tm_hour;    /* hour */
-    *p++              = time_s->tm_min;     /* minute */
-    *p++              = time_s->tm_sec;     /* second */
-    *p++              = 0;                  /* timezone */
-
+    *p++ = 0;                                           /* size (filled in later) */
+    *p++ = 0;                                           /* extended attribute length */
+    VISO_SKIP(p, 8);                                    /* sector offset */
+    VISO_LBE_32(p, entry->stats.st_size);               /* size (filled in later if this is a directory) */
+    p += viso_fill_time(p, entry->stats.st_mtime);      /* time */
     *p++ = S_ISDIR(entry->stats.st_mode) ? 0x02 : 0x00; /* flags */
 
     VISO_SKIP(p, 2);   /* interleave unit/gap size */
@@ -315,9 +332,30 @@ viso_fill_dir_record(viso_entry_t *entry, uint8_t *data, int type)
 
     switch (type) {
         case VISO_DIR_CURRENT:
+        case VISO_DIR_CURRENT_ROOT:
         case VISO_DIR_PARENT:
-            *p++ = 1;                                  /* file ID length */
-            *p++ = (type == VISO_DIR_CURRENT) ? 0 : 1; /* magic value corresponding to . or .. */
+            *p++ = 1;                                 /* file ID length */
+            *p++ = (type == VISO_DIR_PARENT) ? 1 : 0; /* magic value corresponding to . or .. */
+
+            /* Fill Extension Record for the root directory's . entry. */
+            if (type == VISO_DIR_CURRENT_ROOT) {
+                *p++ = 'E';
+                *p++ = 'R';
+                *p++ = 8 + (sizeof(rr_eid) - 1) + (sizeof(rr_edesc) - 1); /* length */
+                *p++ = 1;                                                 /* version */
+
+                *p++ = sizeof(rr_eid) - 1;   /* ID length */
+                *p++ = sizeof(rr_edesc) - 1; /* description length */
+                *p++ = 0;                    /* source length (source is recommended but won't fit here) */
+                *p++ = 1;                    /* extension version */
+
+                memcpy(p, rr_eid, sizeof(rr_eid) - 1); /* ID */
+                p += sizeof(rr_eid) - 1;
+                memcpy(p, rr_edesc, sizeof(rr_edesc) - 1); /* description */
+                p += sizeof(rr_edesc) - 1;
+
+                goto pad_susp;
+            }
             break;
 
         case VISO_DIR_REGULAR:
@@ -341,18 +379,6 @@ viso_fill_dir_record(viso_entry_t *entry, uint8_t *data, int type)
             *p++ = 1; /* version */
 
             q = p++; /* save location of Rock Ridge flags for later */
-
-            if (strcmp(entry->name_short, entry->name_rr)) {
-                *q |= 0x08; /* NM = alternate name */
-                *p++ = 'N';
-                *p++ = 'M';
-                *p++ = 5 + MIN(128, strlen(entry->name_rr)); /* length */
-                *p++ = 1;                                    /* version */
-
-                *p++ = 0;                                /* flags */
-                memcpy(p, entry->name_rr, *(p - 3) - 5); /* name */
-                p += *(p - 3) - 5;
-            }
 
             *q |= 0x01; /* PX = POSIX attributes */
             *p++ = 'P';
@@ -399,16 +425,45 @@ viso_fill_dir_record(viso_entry_t *entry, uint8_t *data, int type)
                 *q |= 0x80; /* TF = timestamps */
                 *p++ = 'T';
                 *p++ = 'F';
-                *p++ = 29; /* length */
-                *p++ = 1;  /* version */
+                *p++ = 5 + (7 * (!!entry->stats.st_mtime + !!entry->stats.st_atime + !!entry->stats.st_ctime)); /* length */
+                *p++ = 1;                                                                                       /* version */
 
-                *p++ = 0x0e;                           /* flags: modified | access | attributes */
-                VISO_LBE_32(p, entry->stats.st_mtime); /* modified */
-                VISO_LBE_32(p, entry->stats.st_atime); /* access */
-                VISO_LBE_32(p, entry->stats.st_ctime); /* attributes */
+                *p++ = (!!entry->stats.st_mtime << 1) | /* flags: modified */
+                    (!!entry->stats.st_atime << 2) |    /* flags: access */
+                    (!!entry->stats.st_ctime << 3);     /* flags: attributes */
+                if (entry->stats.st_mtime)              /* modified */
+                    p += viso_fill_time(p, entry->stats.st_mtime);
+                if (entry->stats.st_atime) /* access */
+                    p += viso_fill_time(p, entry->stats.st_atime);
+                if (entry->stats.st_ctime) /* attributes */
+                    p += viso_fill_time(p, entry->stats.st_ctime);
             }
 
-            if ((p - data) & 1) /* padding for odd Rock Ridge section lengths */
+            /* Trim Rock Ridge name to available space. */
+            int max_len = 254 - (p - data) - 5;
+            if (entry->name_rr_len > max_len) {
+                /* Relocate extension if this is a file whose name exceeds the maximum length. */
+                if (!S_ISDIR(entry->stats.st_mode)) {
+                    char *ext = strrchr(entry->name_rr, '.');
+                    if (ext) {
+                        entry->name_rr_len = strlen(ext);
+                        memmove(entry->name_rr + (max_len - entry->name_rr_len), ext, entry->name_rr_len);
+                    }
+                }
+                entry->name_rr_len = max_len;
+            }
+
+            *q |= 0x08; /* NM = alternate name */
+            *p++ = 'N';
+            *p++ = 'M';
+            *p++ = 5 + entry->name_rr_len; /* length */
+            *p++ = 1;                      /* version */
+
+            *p++ = 0;                                      /* flags */
+            memcpy(p, entry->name_rr, entry->name_rr_len); /* name */
+            p += entry->name_rr_len;
+pad_susp:
+            if ((p - data) & 1) /* padding for odd SUSP section lengths */
                 *p++ = 0;
             break;
 
@@ -424,7 +479,11 @@ viso_fill_dir_record(viso_entry_t *entry, uint8_t *data, int type)
             break;
     }
 
+    if ((p - data) > 255)
+        fatal("VISO: Directory record overflow (%d) on entry %08X\n", p - data, entry);
+
     data[0] = p - data; /* length */
+    return data[0];
 }
 
 int
@@ -672,6 +731,7 @@ viso_init(const char *dirname, int *error)
             len = MIN(name_len, sizeof(last_entry->name_rr) - 1);
             viso_write_string((uint8_t *) last_entry->name_rr, readdir_entry->d_name, len, VISO_CHARSET_FN);
             last_entry->name_rr[len] = '\0';
+            last_entry->name_rr_len  = len;
 
             /* Set Joliet long filename. */
             if (wtemp_len < (name_len + 1)) { /* grow wchar buffer if needed */
@@ -771,8 +831,7 @@ next_dir:
         VISO_LBE_32(p, 0); /* big endian path table and optional path table sector (VISO_LBE_32 is a shortcut to set both) */
 
         viso->root_dir.dr_offsets[i] = ftello64(viso->tf.file) + (p - data);
-        viso_fill_dir_record(&viso->root_dir, p, VISO_DIR_CURRENT); /* root directory */
-        p += p[0];
+        p += viso_fill_dir_record(p, &viso->root_dir, VISO_DIR_CURRENT); /* root directory */
 
         if (i) {
             viso_write_wstring((uint16_t *) p, L"", 64, VISO_CHARSET_D); /* volume set ID */
@@ -1056,12 +1115,9 @@ next_dir:
             viso_pwrite(data, dir->pt_offsets[i << 1] + 2, 4, 1, viso->tf.file);           /* little endian */
             viso_pwrite(data + 4, dir->pt_offsets[(i << 1) | 1] + 2, 4, 1, viso->tf.file); /* big endian */
 
-            if (i) /* clear union if we no longer need path table offsets */
-                dir->file = NULL;
-
             /* Go through entries in this directory. */
             viso_entry_t *entry    = dir->first_child;
-            int           dir_type = VISO_DIR_CURRENT;
+            int           dir_type = (dir == &viso->root_dir) ? VISO_DIR_CURRENT_ROOT : VISO_DIR_CURRENT;
             while (entry) {
                 /* Skip the El Torito boot code entry if present. */
                 if (entry == viso->eltorito_entry)
@@ -1072,7 +1128,7 @@ next_dir:
                                      i ? entry->name_rr : entry->name_short);
 
                 /* Fill directory record. */
-                viso_fill_dir_record(entry, data, dir_type);
+                viso_fill_dir_record(data, entry, dir_type);
 
                 /* Entries cannot cross sector boundaries, so pad to the next sector if needed. */
                 write = viso->sector_size - (ftello64(viso->tf.file) % viso->sector_size);
@@ -1087,7 +1143,7 @@ next_dir:
 
                 /* Write data related to the . and .. pseudo-subdirectories,
                    while advancing the current directory type. */
-                if (dir_type == VISO_DIR_CURRENT) {
+                if (dir_type < VISO_DIR_PARENT) {
                     /* Write a self-referential pointer to this entry. */
                     p = data + 2;
                     VISO_LBE_32(p, dir_temp);
