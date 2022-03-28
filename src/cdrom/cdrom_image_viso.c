@@ -421,17 +421,17 @@ viso_fill_dir_record(uint8_t *data, viso_entry_t *entry, int type)
                 *p++ = 0; /* flags */
             }
 #endif
-            if (entry->stats.st_atime || entry->stats.st_mtime || entry->stats.st_ctime) {
+            if (entry->stats.st_mtime || entry->stats.st_atime || entry->stats.st_ctime) {
                 *q |= 0x80; /* TF = timestamps */
                 *p++ = 'T';
                 *p++ = 'F';
                 *p++ = 5 + (7 * (!!entry->stats.st_mtime + !!entry->stats.st_atime + !!entry->stats.st_ctime)); /* length */
                 *p++ = 1;                                                                                       /* version */
 
-                *p++ = (!!entry->stats.st_mtime << 1) | /* flags: modified */
+                *p++ = (!!entry->stats.st_mtime << 1) | /* flags: modify */
                     (!!entry->stats.st_atime << 2) |    /* flags: access */
                     (!!entry->stats.st_ctime << 3);     /* flags: attributes */
-                if (entry->stats.st_mtime)              /* modified */
+                if (entry->stats.st_mtime)              /* modify */
                     p += viso_fill_time(p, entry->stats.st_mtime);
                 if (entry->stats.st_atime) /* access */
                     p += viso_fill_time(p, entry->stats.st_atime);
@@ -1194,14 +1194,15 @@ next_entry:
     }
 
     /* Allocate entry map for sector->file lookups. */
+    cdrom_image_viso_log("VISO: Allocating %d-sector entry map\n", viso->entry_map_size);
     viso->entry_map = (viso_entry_t **) calloc(viso->entry_map_size, sizeof(viso_entry_t *));
     if (!viso->entry_map)
         goto end;
     viso->metadata_sectors = ftello64(viso->tf.file) / viso->sector_size;
     viso->all_sectors      = viso->metadata_sectors;
 
-    /* Go through files, allocating them to sectors. */
-    cdrom_image_viso_log("VISO: Allocating sectors for files (entry map size %d):\n", viso->entry_map_size);
+    /* Go through files, assigning sectors to them. */
+    cdrom_image_viso_log("VISO: Assigning sectors to files:\n");
     viso_entry_t *prev_entry   = &viso->root_dir,
                  *entry        = prev_entry->next,
                  **entry_map_p = viso->entry_map;
