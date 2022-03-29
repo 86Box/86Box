@@ -1817,3 +1817,33 @@ machine_at_spc7700plw_init(const machine_t *model)
 
     return ret;
 }
+
+
+int
+machine_at_apc9486_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/apc9486/Amstrad_PC9486.BIN",
+			   0x000e0000, 131072, 0);
+
+    if (bios_only || !ret)
+	return ret;
+
+    machine_at_common_init(model);
+
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x10, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x12, PCI_CARD_SOUTHBRIDGE, 1, 2, 3, 4);
+    pci_register_slot(0x0C, PCI_CARD_NORMAL, 2, 3, 4, 1);
+    pci_register_slot(0x0D, PCI_CARD_NORMAL, 1, 2, 3, 4);
+    pci_register_slot(0x0E, PCI_CARD_NORMAL, 3, 4, 1, 2);
+
+    device_add(&umc_hb4_device);
+    device_add(&umc_8886af_device);
+    device_add(&fdc37c665_device);
+    device_add(&intel_flash_bxt_device);
+    device_add(&keyboard_at_ami_device);
+
+    return ret;
+}
