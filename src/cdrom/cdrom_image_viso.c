@@ -150,85 +150,108 @@ viso_pwrite(const void *ptr, uint64_t offset, size_t size, size_t count, FILE *s
     return ret;
 }
 
-#define VISO_WRITE_STR_FUNC(n, t, st, cnv)                                           \
-    static void                                                                      \
-    n(t *dest, const st *src, int buf_size, int charset)                             \
-    {                                                                                \
-        while (*src && (buf_size-- > 0)) {                                           \
-            switch (*src) {                                                          \
-                case 'A' ... 'Z':                                                    \
-                case '0' ... '9':                                                    \
-                case '_':                                                            \
-                    /* Valid on all sets. */                                         \
-                    *dest = *src;                                                    \
-                    break;                                                           \
-                                                                                     \
-                case 'a' ... 'z':                                                    \
-                    /* Convert to uppercase on A and D. */                           \
-                    if (charset > VISO_CHARSET_A)                                    \
-                        *dest = *src;                                                \
-                    else                                                             \
-                        *dest = *src - 32;                                           \
-                    break;                                                           \
-                                                                                     \
-                case ' ':                                                            \
-                case '!':                                                            \
-                case '"':                                                            \
-                case '%':                                                            \
-                case '&':                                                            \
-                case '(':                                                            \
-                case ')':                                                            \
-                case '+':                                                            \
-                case ',':                                                            \
-                case '-':                                                            \
-                case '.':                                                            \
-                case '<':                                                            \
-                case '=':                                                            \
-                case '>':                                                            \
-                    /* Valid for A and filenames but not for D. */                   \
-                    if (charset >= VISO_CHARSET_A)                                   \
-                        *dest = *src;                                                \
-                    else                                                             \
-                        *dest = '_';                                                 \
-                    break;                                                           \
-                                                                                     \
-                case '*':                                                            \
-                case '/':                                                            \
-                case ':':                                                            \
-                case ';':                                                            \
-                case '?':                                                            \
-                case '\'':                                                           \
-                    /* Valid for A but not for filenames or D. */                    \
-                    if ((charset >= VISO_CHARSET_A) && (charset != VISO_CHARSET_FN)) \
-                        *dest = *src;                                                \
-                    else                                                             \
-                        *dest = '_';                                                 \
-                    break;                                                           \
-                                                                                     \
-                case 0x00 ... 0x1f:                                                  \
-                    /* Not valid for A, D or filenames. */                           \
-                    if (charset > VISO_CHARSET_FN)                                   \
-                        *dest = *src;                                                \
-                    else                                                             \
-                        *dest = '_';                                                 \
-                                                                                     \
-                default:                                                             \
-                    /* Not valid for A or D, but valid for filenames. */             \
-                    if ((charset >= VISO_CHARSET_FN) && (*src <= 0xffff))            \
-                        *dest = *src;                                                \
-                    else                                                             \
-                        *dest = '_';                                                 \
-            }                                                                        \
-                                                                                     \
-            *dest = cnv(*dest);                                                      \
-                                                                                     \
-            dest++;                                                                  \
-            src++;                                                                   \
-        }                                                                            \
-                                                                                     \
-        /* Apply space padding. */                                                   \
-        while (buf_size-- > 0)                                                       \
-            *dest++ = cnv(' ');                                                      \
+static size_t
+viso_convert_utf8(wchar_t *dest, const char *src, int buf_size)
+{
+    wchar_t c, *p = dest;
+    int     next;
+
+    while (buf_size-- > 0) {
+        c = *src;
+        if (!c) {
+            /* Terminator. */
+            *p = 0;
+            break;
+        } else if (c & 0x80) {
+            /* Convert UTF-8 codepoints. */
+            next = 0;
+            while (c & 0x40) {
+                next++;
+                c <<= 1;
+            }
+            c = *src++ & (0x3f >> next);
+            while ((next-- > 0) && (buf_size-- > 0))
+                c = (c << 6) | (*src++ & 0x3f);
+        } else {
+            /* Pass through sub-UTF-8 codepoints. */
+            src++;
+        }
+        *p++ = c;
+    }
+
+    return p - dest;
+}
+
+#define VISO_WRITE_STR_FUNC(n, dt, st, cnv)                                         \
+    static void                                                                     \
+    n(dt *dest, const st *src, int buf_size, int charset)                           \
+    {                                                                               \
+        st c;                                                                       \
+        while (buf_size-- > 0) {                                                    \
+            c = *src++;                                                             \
+            switch (c) {                                                            \
+                case 0x00:                                                          \
+                    /* Terminator, apply space padding. */                          \
+                    while (buf_size-- >= 0)                                         \
+                        *dest++ = cnv(' ');                                         \
+                    return;                                                         \
+                                                                                    \
+                case 'A' ... 'Z':                                                   \
+                case '0' ... '9':                                                   \
+                case '_':                                                           \
+                    /* Valid on all sets. */                                        \
+                    break;                                                          \
+                                                                                    \
+                case 'a' ... 'z':                                                   \
+                    /* Convert to uppercase on D and A. */                          \
+                    if (charset <= VISO_CHARSET_A)                                  \
+                        c -= 'a' - 'A';                                             \
+                    break;                                                          \
+                                                                                    \
+                case ' ':                                                           \
+                case '!':                                                           \
+                case '"':                                                           \
+                case '%':                                                           \
+                case '&':                                                           \
+                case '(':                                                           \
+                case ')':                                                           \
+                case '+':                                                           \
+                case ',':                                                           \
+                case '-':                                                           \
+                case '.':                                                           \
+                case '<':                                                           \
+                case '=':                                                           \
+                case '>':                                                           \
+                    /* Valid for A and filenames but not for D. */                  \
+                    if (charset < VISO_CHARSET_A)                                   \
+                        c = '_';                                                    \
+                    break;                                                          \
+                                                                                    \
+                case '*':                                                           \
+                case '/':                                                           \
+                case ':':                                                           \
+                case ';':                                                           \
+                case '?':                                                           \
+                case '\'':                                                          \
+                    /* Valid for A but not for filenames or D. */                   \
+                    if ((charset < VISO_CHARSET_A) || (charset == VISO_CHARSET_FN)) \
+                        c = '_';                                                    \
+                    break;                                                          \
+                                                                                    \
+                case 0x01 ... 0x1f:                                                 \
+                    /* Not valid for A, D or filenames. */                          \
+                    if (charset <= VISO_CHARSET_FN)                                 \
+                        c = '_';                                                    \
+                    break;                                                          \
+                                                                                    \
+                default:                                                            \
+                    /* Not valid for A or D, but valid for filenames. */            \
+                    if ((charset < VISO_CHARSET_FN) || (c > 0xffff))                \
+                        c = '_';                                                    \
+                    break;                                                          \
+            }                                                                       \
+            *dest++ = cnv(c);                                                       \
+        }                                                                           \
     }
 VISO_WRITE_STR_FUNC(viso_write_string, uint8_t, char, )
 VISO_WRITE_STR_FUNC(viso_write_wstring, uint16_t, wchar_t, cpu_to_be16)
@@ -250,16 +273,18 @@ viso_get_short_filename(viso_entry_t *dir, char *dest, const char *src)
     /* Copy name. */
     int name_copy_len = MIN(8, name_len);
     viso_write_string((uint8_t *) dest, src, name_copy_len, VISO_CHARSET_D);
-    dest[name_copy_len] = 0;
+    dest[name_copy_len] = '\0';
 
     /* Copy extension to temporary buffer. */
     char ext[5]     = { 0 };
     int  force_tail = (name_len > 8) || (ext_len == 1);
     if (ext_len > 1) {
         ext[0] = '.';
-        if (ext_len > 4)
+        if (ext_len > 4) {
+            ext_len = 4;
             force_tail = 1;
-        viso_write_string((uint8_t *) &ext[1], &ext_pos[1], MIN(ext_len, 4) - 1, VISO_CHARSET_D);
+        }
+        viso_write_string((uint8_t *) &ext[1], &ext_pos[1], ext_len - 1, VISO_CHARSET_D);
     }
 
     /* Check if this filename is unique, and add a tail if required, while also adding the extension. */
@@ -739,7 +764,7 @@ viso_init(const char *dirname, int *error)
                 wtemp     = realloc(wtemp, wtemp_len * sizeof(wchar_t));
             }
             max_len = (sizeof(last_entry->name_joliet) / sizeof(last_entry->name_joliet[0])) - 1;
-            len     = mbstowcs(wtemp, readdir_entry->d_name, wtemp_len - 1);
+            len     = viso_convert_utf8(wtemp, readdir_entry->d_name, wtemp_len);
             if (len > max_len) {
                 /* Relocate extension if this is a file whose name exceeds the maximum length. */
                 if (!S_ISDIR(last_entry->stats.st_mode)) {
