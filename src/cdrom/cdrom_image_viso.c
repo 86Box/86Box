@@ -452,12 +452,14 @@ viso_fill_dir_record(uint8_t *data, viso_entry_t *entry, int type)
                 *q |= 0x80; /* TF = timestamps */
                 *p++ = 'T';
                 *p++ = 'F';
-                *p++ = 5 + (7 * (!!entry->stats.st_mtime + !!entry->stats.st_atime + !!entry->stats.st_ctime)); /* length */
-                *p++ = 1;                                                                                       /* version */
+                *p++ = 5 + (7 * (VISO_TIME_VALID(entry->stats.st_mtime) +  /* length: modified */
+                                 VISO_TIME_VALID(entry->stats.st_atime) +  /* + access */
+                                 VISO_TIME_VALID(entry->stats.st_ctime))); /* + attributes */
+                *p++ = 1;                                                  /* version */
 
                 *p++ = (VISO_TIME_VALID(entry->stats.st_mtime) << 1) | /* flags: modify */
-                    (VISO_TIME_VALID(entry->stats.st_atime) << 2) |    /* flags: access */
-                    (VISO_TIME_VALID(entry->stats.st_ctime) << 3);     /* flags: attributes */
+                    (VISO_TIME_VALID(entry->stats.st_atime) << 2) |    /* + access */
+                    (VISO_TIME_VALID(entry->stats.st_ctime) << 3);     /* + attributes */
                 if (VISO_TIME_VALID(entry->stats.st_mtime))
                     p += viso_fill_time(p, entry->stats.st_mtime, 0); /* modify */
                 if (VISO_TIME_VALID(entry->stats.st_atime))
