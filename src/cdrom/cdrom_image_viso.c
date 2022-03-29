@@ -42,6 +42,7 @@
         memset(p, 0x00, n); \
         p += n;             \
     }
+#define VISO_TIME_VALID(t) (((t) != 0) && ((t) != ((time_t) -1)))
 
 /* ISO 9660 defines "both endian" data formats, which
    are stored as little endian followed by big endian. */
@@ -108,6 +109,7 @@ typedef struct {
 
 static const char rr_eid[]   = "RRIP_1991A"; /* identifiers used in ER field for Rock Ridge */
 static const char rr_edesc[] = "THE ROCK RIDGE INTERCHANGE PROTOCOL PROVIDES SUPPORT FOR POSIX FILE SYSTEM SEMANTICS.";
+static int8_t     tz_offset  = 0;
 
 #define ENABLE_CDROM_IMAGE_VISO_LOG 1
 #ifdef ENABLE_CDROM_IMAGE_VISO_LOG
@@ -324,18 +326,26 @@ viso_get_short_filename(viso_entry_t *dir, char *dest, const char *src)
 }
 
 static int
-viso_fill_time(uint8_t *data, time_t time)
+viso_fill_time(uint8_t *data, time_t time, int longform)
 {
     uint8_t   *p      = data;
-    struct tm *time_s = gmtime(&time); /* use UTC as timezones are not portable */
+    struct tm *time_s = localtime(&time);
+    if (!time_s)
+        fatal("VISO: localtime(%d) = NULL\n", time);
 
-    *p++ = time_s->tm_year;    /* year since 1900 */
-    *p++ = 1 + time_s->tm_mon; /* month */
-    *p++ = time_s->tm_mday;    /* day */
-    *p++ = time_s->tm_hour;    /* hour */
-    *p++ = time_s->tm_min;     /* minute */
-    *p++ = time_s->tm_sec;     /* second */
-    *p++ = 0;                  /* timezone */
+    if (longform) {
+        p += sprintf((char *) p, "%04d%02d%02d%02d%02d%02d%02d",
+                     1900 + time_s->tm_year, 1 + time_s->tm_mon, time_s->tm_mday,
+                     time_s->tm_hour, time_s->tm_min, time_s->tm_sec, 0);
+    } else {
+        *p++ = time_s->tm_year;    /* year since 1900 */
+        *p++ = 1 + time_s->tm_mon; /* month */
+        *p++ = time_s->tm_mday;    /* day */
+        *p++ = time_s->tm_hour;    /* hour */
+        *p++ = time_s->tm_min;     /* minute */
+        *p++ = time_s->tm_sec;     /* second */
+    }
+    *p++ = tz_offset; /* timezone */
 
     return p - data;
 }
@@ -349,7 +359,7 @@ viso_fill_dir_record(uint8_t *data, viso_entry_t *entry, int type)
     *p++ = 0;                                           /* extended attribute length */
     VISO_SKIP(p, 8);                                    /* sector offset */
     VISO_LBE_32(p, entry->stats.st_size);               /* size (filled in later if this is a directory) */
-    p += viso_fill_time(p, entry->stats.st_mtime);      /* time */
+    p += viso_fill_time(p, entry->stats.st_mtime, 0);   /* time */
     *p++ = S_ISDIR(entry->stats.st_mode) ? 0x02 : 0x00; /* flags */
 
     VISO_SKIP(p, 2);   /* interleave unit/gap size */
@@ -438,22 +448,22 @@ viso_fill_dir_record(uint8_t *data, viso_entry_t *entry, int type)
             }
 #    endif
 #endif
-            if (entry->stats.st_mtime || entry->stats.st_atime || entry->stats.st_ctime) {
+            if (VISO_TIME_VALID(entry->stats.st_mtime) || VISO_TIME_VALID(entry->stats.st_atime) || VISO_TIME_VALID(entry->stats.st_ctime)) {
                 *q |= 0x80; /* TF = timestamps */
                 *p++ = 'T';
                 *p++ = 'F';
                 *p++ = 5 + (7 * (!!entry->stats.st_mtime + !!entry->stats.st_atime + !!entry->stats.st_ctime)); /* length */
                 *p++ = 1;                                                                                       /* version */
 
-                *p++ = (!!entry->stats.st_mtime << 1) | /* flags: modify */
-                    (!!entry->stats.st_atime << 2) |    /* flags: access */
-                    (!!entry->stats.st_ctime << 3);     /* flags: attributes */
-                if (entry->stats.st_mtime)              /* modify */
-                    p += viso_fill_time(p, entry->stats.st_mtime);
-                if (entry->stats.st_atime) /* access */
-                    p += viso_fill_time(p, entry->stats.st_atime);
-                if (entry->stats.st_ctime) /* attributes */
-                    p += viso_fill_time(p, entry->stats.st_ctime);
+                *p++ = (VISO_TIME_VALID(entry->stats.st_mtime) << 1) | /* flags: modify */
+                    (VISO_TIME_VALID(entry->stats.st_atime) << 2) |    /* flags: access */
+                    (VISO_TIME_VALID(entry->stats.st_ctime) << 3);     /* flags: attributes */
+                if (VISO_TIME_VALID(entry->stats.st_mtime))
+                    p += viso_fill_time(p, entry->stats.st_mtime, 0); /* modify */
+                if (VISO_TIME_VALID(entry->stats.st_atime))
+                    p += viso_fill_time(p, entry->stats.st_atime, 0); /* access */
+                if (VISO_TIME_VALID(entry->stats.st_ctime))
+                    p += viso_fill_time(p, entry->stats.st_ctime, 0); /* attributes */
             }
 
             /* Trim Rock Ridge name to fit available space. */
@@ -791,9 +801,10 @@ next_dir:
     for (int i = 0; i < 16; i++)
         fwrite(data, viso->sector_size, 1, viso->tf.file);
 
-    /* Get current time for the volume descriptors. */
-    time_t     secs   = time(NULL);
-    struct tm *time_s = gmtime(&secs);
+    /* Get current time for the volume descriptors, and calculate
+       the timezone offset for descriptors and file times to use. */
+    time_t now = time(NULL);
+    tz_offset  = (now - mktime(gmtime(&now))) / (3600 / 4);
 
     /* Get root directory basename for the volume ID. */
     char *basename = plat_get_basename(dirname);
@@ -884,14 +895,10 @@ next_dir:
             p += 37;
         }
 
-        /* For the created/modified time, the string's NUL
-           terminator will act as our timezone offset of 0. */
-        sprintf((char *) p, "%04d%02d%02d%02d%02d%02d%02d", /* volume created */
-                1900 + time_s->tm_year, 1 + time_s->tm_mon, time_s->tm_mday,
-                time_s->tm_hour, time_s->tm_min, time_s->tm_sec, 0);
-        strcpy((char *) (p + 17), (char *) p); /* volume modified */
-        p += 34;
-        VISO_SKIP(p, 34); /* volume expires/effective */
+        len = viso_fill_time(p, now, 1); /* volume created */
+        memcpy(p + len, p, len);         /* volume modified */
+        p += len * 2;
+        VISO_SKIP(p, len * 2); /* volume expires/effective */
 
         *p++ = 1; /* file structure version */
         *p++ = 0; /* unused */
