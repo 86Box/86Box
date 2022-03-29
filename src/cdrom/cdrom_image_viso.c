@@ -805,6 +805,7 @@ next_dir:
 
     /* Get current time for the volume descriptors, and calculate
        the timezone offset for descriptors and file times to use. */
+    tzset();
     time_t now = time(NULL);
     tz_offset  = (now - mktime(gmtime(&now))) / (3600 / 4);
 
