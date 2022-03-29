@@ -16,9 +16,9 @@
  */
 
 /* ['main builds', 'branch builds'] */
-def repository = ['https://github.com/86Box/86Box.git', GIT_URL]
+def repository = ['https://github.com/86Box/86Box.git', env.GIT_URL]
 def commitBrowser = ['https://github.com/86Box/86Box/commit/%s', null]
-def branch = ['master', GIT_BRANCH]
+def branch = ['master', env.GIT_BRANCH]
 def buildType = ['beta', 'alpha']
 def buildBranch = env.JOB_BASE_NAME.contains('-') ? 1 : 0
 
