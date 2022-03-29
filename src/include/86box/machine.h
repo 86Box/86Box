@@ -259,6 +259,8 @@ extern int	machine_at_ama932j_init(const machine_t *);
 extern int	machine_at_px286_init(const machine_t *);
 extern int	machine_at_quadt286_init(const machine_t *);
 extern int	machine_at_mr286_init(const machine_t *);
+extern int	machine_at_ca286_init(const machine_t *);
+extern int	machine_at_cat102_init(const machine_t *);
 
 extern int	machine_at_neat_init(const machine_t *);
 extern int	machine_at_neat_ami_init(const machine_t *);
@@ -390,6 +392,7 @@ extern int	machine_at_atc1415_init(const machine_t *);
 extern int	machine_at_actionpc2600_init(const machine_t *);
 extern int	machine_at_m919_init(const machine_t *);
 extern int	machine_at_spc7700plw_init(const machine_t *);
+extern int	machine_at_apc9486_init(const machine_t *);
 
 #ifdef EMU_DEVICE_H
 extern const device_t 	*at_acera1g_get_device(void);
@@ -709,6 +712,12 @@ extern int	machine_xt_pc700_init(const machine_t *);
 extern int	machine_xt_pc500_init(const machine_t *);
 extern int	machine_xt_vendex_init(const machine_t *);
 extern int	machine_xt_znic_init(const machine_t *);
+extern int	machine_xt_super16t_init(const machine_t *);
+extern int	machine_xt_super16te_init(const machine_t *);
+extern int	machine_xt_top88_init(const machine_t *);
+extern int	machine_xt_kaypropc_init(const machine_t *);
+extern int	machine_xt_sansx16_init(const machine_t *);
+extern int	machine_xt_bw230_init(const machine_t *);
 
 extern int	machine_xt_iskra3104_init(const machine_t *);
 
