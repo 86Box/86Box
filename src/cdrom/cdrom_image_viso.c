@@ -43,8 +43,8 @@
         p += n;             \
     }
 
-/* ISO 9660 defines "both endian" data formats, which are
-   stored as little endian followed by big endian. */
+/* ISO 9660 defines "both endian" data formats, which
+   are stored as little endian followed by big endian. */
 #define VISO_LBE_16(p, x)                   \
     {                                       \
         *((uint16_t *) p) = cpu_to_le16(x); \
@@ -281,7 +281,7 @@ viso_get_short_filename(viso_entry_t *dir, char *dest, const char *src)
     if (ext_len > 1) {
         ext[0] = '.';
         if (ext_len > 4) {
-            ext_len = 4;
+            ext_len    = 4;
             force_tail = 1;
         }
         viso_write_string((uint8_t *) &ext[1], &ext_pos[1], ext_len - 1, VISO_CHARSET_D);
@@ -405,6 +405,7 @@ viso_fill_dir_record(uint8_t *data, viso_entry_t *entry, int type)
 
             q = p++; /* save location of Rock Ridge flags for later */
 
+#ifndef _WIN32          /* attributes reported by MinGW don't really make sense because it's Windows */
             *q |= 0x01; /* PX = POSIX attributes */
             *p++ = 'P';
             *p++ = 'X';
@@ -416,14 +417,14 @@ viso_fill_dir_record(uint8_t *data, viso_entry_t *entry, int type)
             VISO_LBE_32(p, entry->stats.st_uid);   /* owner UID */
             VISO_LBE_32(p, entry->stats.st_gid);   /* owner GID */
 
-#if defined(S_ISCHR) || defined(S_ISBLK)
-#    if defined(S_ISCHR) && defined(S_ISBLK)
+#    if defined(S_ISCHR) || defined(S_ISBLK)
+#        if defined(S_ISCHR) && defined(S_ISBLK)
             if (S_ISCHR(entry->stats.st_mode) || S_ISBLK(entry->stats.st_mode))
-#    elif defined(S_ISCHR)
+#        elif defined(S_ISCHR)
             if (S_ISCHR(entry->stats.st_mode))
-#    else
+#        else
             if (S_ISBLK(entry->stats.st_mode))
-#    endif
+#        endif
             {
                 *q |= 0x02; /* PN = POSIX device */
                 *p++ = 'P';
@@ -431,20 +432,11 @@ viso_fill_dir_record(uint8_t *data, viso_entry_t *entry, int type)
                 *p++ = 20; /* length */
                 *p++ = 1;  /* version */
 
-                VISO_LBE_32(p, 0);                    /* device high 32 bits */
-                VISO_LBE_32(p, entry->stats.st_rdev); /* device low 32 bits */
+                uint64_t dev = entry->stats.st_rdev; /* avoid warning if <= 32 bits */
+                VISO_LBE_32(p, dev >> 32);           /* device number (high 32 bits) */
+                VISO_LBE_32(p, dev);                 /* device number (low 32 bits) */
             }
-#endif
-#ifdef S_ISLNK
-            if (S_ISLNK(entry->stats.st_mode)) { /* TODO: rather complex path splitting system */
-                *q |= 0x04;                      /* SL = symlink */
-                *p++ = 'S';
-                *p++ = 'L';
-                *p++ = 5; /* length */
-                *p++ = 1; /* version */
-
-                *p++ = 0; /* flags */
-            }
+#    endif
 #endif
             if (entry->stats.st_mtime || entry->stats.st_atime || entry->stats.st_ctime) {
                 *q |= 0x80; /* TF = timestamps */
@@ -464,7 +456,7 @@ viso_fill_dir_record(uint8_t *data, viso_entry_t *entry, int type)
                     p += viso_fill_time(p, entry->stats.st_ctime);
             }
 
-            /* Trim Rock Ridge name to available space. */
+            /* Trim Rock Ridge name to fit available space. */
             int max_len = 254 - (p - data) - 5;
             if (entry->name_rr_len > max_len) {
                 /* Relocate extension if this is a file whose name exceeds the maximum length. */
