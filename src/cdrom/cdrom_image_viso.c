@@ -80,8 +80,8 @@ enum {
 };
 
 typedef struct _viso_entry_ {
-    char *path, name_short[13], name_rr[257]; /* name_rr size limited by at least Linux */
-    union {                                   /* save some memory */
+    char name_short[13], name_rr[257]; /* name_rr size limited by at least Linux */
+    union {                            /* save some memory */
         uint64_t pt_offsets[4];
         FILE    *file;
     };
@@ -95,6 +95,8 @@ typedef struct _viso_entry_ {
     struct stat stats;
 
     struct _viso_entry_ *parent, *next, *next_dir, *first_child;
+
+    char path[];
 } viso_entry_t;
 
 typedef struct {
@@ -103,8 +105,8 @@ typedef struct {
     unsigned int sector_size, file_fifo_pos;
     uint8_t     *metadata;
 
-    track_file_t tf;
-    viso_entry_t root_dir, *eltorito_entry, **entry_map, *file_fifo[VISO_OPEN_FILES];
+    track_file_t  tf;
+    viso_entry_t *root_dir, *eltorito_entry, **entry_map, *file_fifo[VISO_OPEN_FILES];
 } viso_t;
 
 static const char rr_eid[]   = "RRIP_1991A"; /* identifiers used in ER field for Rock Ridge */
@@ -607,15 +609,12 @@ viso_close(void *p)
     if (tf->file)
         fclose(tf->file);
 
-    viso_entry_t *entry = &viso->root_dir, *next_entry;
+    viso_entry_t *entry = viso->root_dir, *next_entry;
     while (entry) {
-        if (entry->path)
-            free(entry->path);
         if (entry->file)
             fclose(entry->file);
         next_entry = entry->next;
-        if (entry != &viso->root_dir)
-            free(entry);
+        free(entry);
         entry = next_entry;
     }
 
@@ -643,7 +642,7 @@ viso_init(const char *dirname, int *error)
 
     /* Prepare temporary data buffers. */
     data          = calloc(2, viso->sector_size);
-    int wtemp_len = MIN(64, sizeof(viso->root_dir.name_joliet) / sizeof(viso->root_dir.name_joliet[0])) + 1;
+    int wtemp_len = MIN(64, sizeof(viso->root_dir->name_joliet) / sizeof(viso->root_dir->name_joliet[0])) + 1;
     wtemp         = malloc(wtemp_len * sizeof(wchar_t));
     if (!data || !wtemp)
         goto end;
@@ -660,14 +659,15 @@ viso_init(const char *dirname, int *error)
 
     /* Set up directory traversal. */
     cdrom_image_viso_log("VISO: Traversing directories:\n");
-    viso_entry_t  *dir = &viso->root_dir, *last_dir = dir, *last_entry = dir;
+    viso_entry_t  *dir, *last_dir, *last_entry;
     struct dirent *readdir_entry;
     int            max_len, len, name_len;
-    char          *path;
+    size_t         dir_path_len;
 
     /* Fill root directory entry. */
-    dir->path = (char *) malloc(strlen(dirname) + 1);
-    if (!dir->path)
+    dir_path_len = strlen(dirname);
+    dir = last_dir = last_entry = viso->root_dir = (viso_entry_t *) calloc(1, sizeof(viso_entry_t) + dir_path_len + 1);
+    if (!dir)
         goto end;
     strcpy(dir->path, dirname);
     stat(dirname, &dir->stats);
@@ -684,8 +684,9 @@ viso_init(const char *dirname, int *error)
             goto next_dir;
 
         /* Add . and .. pseudo-directories. */
+        dir_path_len = strlen(dir->path);
         for (int i = 0; i < 2; i++) {
-            last_entry->next = (viso_entry_t *) calloc(1, sizeof(viso_entry_t));
+            last_entry->next = (viso_entry_t *) calloc(1, sizeof(viso_entry_t) + 1);
             if (!last_entry->next)
                 goto end;
             last_entry         = last_entry->next;
@@ -705,33 +706,24 @@ viso_init(const char *dirname, int *error)
         }
 
         /* Iterate through this directory's children. */
-        size_t dir_path_len = strlen(dir->path);
         while ((readdir_entry = readdir(dirp))) {
             /* Ignore . and .. pseudo-directories. */
             if (readdir_entry->d_name[0] == '.' && (readdir_entry->d_name[1] == '\0' || (readdir_entry->d_name[1] == '.' && readdir_entry->d_name[2] == '\0')))
                 continue;
 
-            /* Save full file path. */
-            name_len = strlen(readdir_entry->d_name);
-            path     = (char *) malloc(dir_path_len + name_len + 2);
-            if (!path)
-                goto end;
-            strcpy(path, dir->path);
-            plat_path_slash(path);
-            strcat(path, readdir_entry->d_name);
-
             /* Add and fill entry. */
-            last_entry->next = (viso_entry_t *) calloc(1, sizeof(viso_entry_t));
-            if (!last_entry->next) {
-                free(path);
+            name_len         = strlen(readdir_entry->d_name);
+            last_entry->next = (viso_entry_t *) calloc(1, sizeof(viso_entry_t) + dir_path_len + name_len + 2);
+            if (!last_entry->next)
                 goto end;
-            }
             last_entry         = last_entry->next;
-            last_entry->path   = path;
             last_entry->parent = dir;
+            strcpy(last_entry->path, dir->path);
+            plat_path_slash(&last_entry->path[dir_path_len]);
+            strcpy(&last_entry->path[dir_path_len + 1], readdir_entry->d_name);
 
             /* Stat this child. */
-            if (stat(path, &last_entry->stats) != 0) {
+            if (stat(last_entry->path, &last_entry->stats) != 0) {
                 /* Use a blank structure if stat failed. */
                 memset(&last_entry->stats, 0x00, sizeof(struct stat));
             }
@@ -749,7 +741,7 @@ viso_init(const char *dirname, int *error)
             }
 
             /* Detect El Torito boot code file and set it accordingly. */
-            if ((dir == &viso->root_dir) && !strnicmp(readdir_entry->d_name, "eltorito.", 9) && (!stricmp(readdir_entry->d_name + 9, "com") || !stricmp(readdir_entry->d_name + 9, "img")))
+            if ((dir == viso->root_dir) && !strnicmp(readdir_entry->d_name, "eltorito.", 9) && (!stricmp(readdir_entry->d_name + 9, "com") || !stricmp(readdir_entry->d_name + 9, "img")))
                 viso->eltorito_entry = last_entry;
 
             /* Set short filename. */
@@ -861,8 +853,8 @@ next_dir:
         VISO_LBE_32(p, 0); /* little endian path table and optional path table sector (VISO_LBE_32 is a shortcut to set both) */
         VISO_LBE_32(p, 0); /* big endian path table and optional path table sector (VISO_LBE_32 is a shortcut to set both) */
 
-        viso->root_dir.dr_offsets[i] = ftello64(viso->tf.file) + (p - data);
-        p += viso_fill_dir_record(p, &viso->root_dir, VISO_DIR_CURRENT); /* root directory */
+        viso->root_dir->dr_offsets[i] = ftello64(viso->tf.file) + (p - data);
+        p += viso_fill_dir_record(p, viso->root_dir, VISO_DIR_CURRENT); /* root directory */
 
         if (i) {
             viso_write_wstring((uint16_t *) p, L"", 64, VISO_CHARSET_D); /* volume set ID */
@@ -1047,7 +1039,7 @@ next_dir:
         viso_pwrite(data, viso->pt_meta_offsets[i >> 1] + 8 + (8 * (i & 1)), 4, 1, viso->tf.file);
 
         /* Go through directories. */
-        dir             = &viso->root_dir;
+        dir             = viso->root_dir;
         uint16_t pt_idx = 1;
         while (dir) {
             /* Ignore . and .. pseudo-directories. */
@@ -1063,7 +1055,7 @@ next_dir:
             dir->pt_offsets[i] = ftello64(viso->tf.file);
 
             /* Fill path table entry. */
-            if (dir == &viso->root_dir) /* directory ID length */
+            if (dir == viso->root_dir) /* directory ID length */
                 data[0] = 1;
             else if (i & 2)
                 data[0] = dir->name_joliet_len * sizeof(dir->name_joliet[0]);
@@ -1075,7 +1067,7 @@ next_dir:
 
             *((uint16_t *) &data[6]) = (i & 1) ? cpu_to_be16(dir->parent->pt_idx) : cpu_to_le16(dir->parent->pt_idx); /* parent directory number */
 
-            if (dir == &viso->root_dir) /* directory ID */
+            if (dir == viso->root_dir) /* directory ID */
                 data[8] = 0;
             else if (i & 2)
                 memcpy(&data[8], dir->name_joliet, data[0]);
@@ -1114,7 +1106,7 @@ next_dir:
         cdrom_image_viso_log("VISO: Generating directory record set #%d:\n", i);
 
         /* Go through directories. */
-        dir = &viso->root_dir;
+        dir = viso->root_dir;
         while (dir) {
             /* Pad to the next sector if required. */
             write = ftello64(viso->tf.file) % viso->sector_size;
@@ -1142,7 +1134,7 @@ next_dir:
 
             /* Go through entries in this directory. */
             viso_entry_t *entry    = dir->first_child;
-            int           dir_type = (dir == &viso->root_dir) ? VISO_DIR_CURRENT_ROOT : VISO_DIR_CURRENT;
+            int           dir_type = (dir == viso->root_dir) ? VISO_DIR_CURRENT_ROOT : VISO_DIR_CURRENT;
             while (entry) {
                 /* Skip the El Torito boot code entry if present. */
                 if (entry == viso->eltorito_entry)
@@ -1223,7 +1215,7 @@ next_entry:
 
     /* Go through files, assigning sectors to them. */
     cdrom_image_viso_log("VISO: Assigning sectors to files:\n");
-    viso_entry_t *prev_entry   = &viso->root_dir,
+    viso_entry_t *prev_entry   = viso->root_dir,
                  *entry        = prev_entry->next,
                  **entry_map_p = viso->entry_map;
     while (entry) {
