@@ -1102,11 +1102,12 @@ next_dir:
     }
 
     /* Write directory records for each type. */
+    int dir_type = VISO_DIR_CURRENT_ROOT;
     for (int i = 0; i < 2; i++) {
         cdrom_image_viso_log("VISO: Generating directory record set #%d:\n", i);
 
         /* Go through directories. */
-        dir = viso->root_dir;
+        dir          = viso->root_dir;
         while (dir) {
             /* Pad to the next sector if required. */
             write = ftello64(viso->tf.file) % viso->sector_size;
@@ -1133,8 +1134,7 @@ next_dir:
                 dir->file = NULL;
 
             /* Go through entries in this directory. */
-            viso_entry_t *entry    = dir->first_child;
-            int           dir_type = (dir == viso->root_dir) ? VISO_DIR_CURRENT_ROOT : VISO_DIR_CURRENT;
+            viso_entry_t *entry = dir->first_child;
             while (entry) {
                 /* Skip the El Torito boot code entry if present. */
                 if (entry == viso->eltorito_entry)
@@ -1193,7 +1193,8 @@ next_entry:
                 viso_pwrite(data, dir->first_child->next->dr_offsets[i] + 10, 8, 1, viso->tf.file);
 
             /* Move on to the next directory. */
-            dir = dir->next_dir;
+            dir_type = VISO_DIR_CURRENT;
+            dir      = dir->next_dir;
         }
 
         /* Pad to the next even sector. */
