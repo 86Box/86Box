@@ -486,15 +486,13 @@ viso_fill_dir_record(uint8_t *data, viso_entry_t *entry, int type)
             VISO_LBE_32(p, entry->stats.st_uid);   /* owner UID */
             VISO_LBE_32(p, entry->stats.st_gid);   /* owner GID */
 
-#    if defined(S_ISCHR) || defined(S_ISBLK)
-#        if defined(S_ISCHR) && defined(S_ISBLK)
-            if (S_ISCHR(entry->stats.st_mode) || S_ISBLK(entry->stats.st_mode))
-#        elif defined(S_ISCHR)
-            if (S_ISCHR(entry->stats.st_mode))
-#        else
-            if (S_ISBLK(entry->stats.st_mode))
-#        endif
-            {
+#    ifndef S_ISCHR
+#        define S_ISCHR(x) 0
+#    endif
+#    ifndef S_ISBLK
+#        define S_ISBLK(x) 0
+#    endif
+            if (S_ISCHR(entry->stats.st_mode) || S_ISBLK(entry->stats.st_mode)) {
                 *q |= 0x02; /* PN = POSIX device */
                 *p++ = 'P';
                 *p++ = 'N';
@@ -505,7 +503,6 @@ viso_fill_dir_record(uint8_t *data, viso_entry_t *entry, int type)
                 VISO_LBE_32(p, dev >> 32);           /* device number (high 32 bits) */
                 VISO_LBE_32(p, dev);                 /* device number (low 32 bits) */
             }
-#    endif
 #endif
             if (VISO_TIME_VALID(entry->stats.st_mtime) || VISO_TIME_VALID(entry->stats.st_atime) || VISO_TIME_VALID(entry->stats.st_ctime)) {
                 *q |= 0x80; /* TF = timestamps */
