@@ -1167,7 +1167,7 @@ next_dir:
                     fwrite(p, write, 1, viso->tf.file);
                 }
 
-                /* Write this entry's record's offset. This overwrites name_short in the union. */
+                /* Save this entry's record's offset. This overwrites name_short in the union. */
                 entry->dr_offsets[i] = ftello64(viso->tf.file);
 
                 /* Write data related to the . and .. pseudo-subdirectories,
@@ -1219,15 +1219,51 @@ next_entry:
     }
 
     /* Allocate entry map for sector->file lookups. */
-    cdrom_image_viso_log("VISO: Allocating %d-sector entry map\n", viso->entry_map_size);
-    viso->entry_map = (viso_entry_t **) calloc(viso->entry_map_size, sizeof(viso_entry_t *));
-    if (!viso->entry_map)
-        goto end;
+    size_t orig_sector_size = viso->sector_size;
+    while (1) {
+        cdrom_image_viso_log("VISO: Allocating entry map for %d %d-byte sectors\n", viso->entry_map_size, viso->sector_size);
+        viso->entry_map = (viso_entry_t **) calloc(viso->entry_map_size, sizeof(viso_entry_t *));
+        if (viso->entry_map) {
+            /* Successfully allocated. */
+            break;
+        } else {
+            /* Blank data buffer for padding if this is the first run. */
+            if (orig_sector_size == viso->sector_size)
+                memset(data, 0x00, orig_sector_size);
+
+            /* If we don't have enough memory, double the sector size. */
+            viso->sector_size *= 2;
+            if (viso->sector_size == 0) /* give up if sectors become too big */
+                goto end;
+
+            /* Go through files, recalculating the entry map size. */
+            size_t orig_entry_map_size = viso->entry_map_size;
+            viso->entry_map_size       = 0;
+            viso_entry_t *entry        = viso->root_dir;
+            while (entry) {
+                if (!S_ISDIR(entry->stats.st_mode)) {
+                    viso->entry_map_size += entry->stats.st_size / viso->sector_size;
+                    if (entry->stats.st_size % viso->sector_size)
+                        viso->entry_map_size++; /* round up to the next sector */
+                }
+                entry = entry->next;
+            }
+            if (orig_entry_map_size == viso->entry_map_size) /* give up if there was no change in map size */
+                goto end;
+
+            /* Pad metadata to the new size's next sector. */
+            while (ftello64(viso->tf.file) % viso->sector_size)
+                fwrite(data, orig_sector_size, 1, viso->tf.file);
+        }
+    }
+
+    /* Start sector counts. */
     viso->metadata_sectors = ftello64(viso->tf.file) / viso->sector_size;
     viso->all_sectors      = viso->metadata_sectors;
 
     /* Go through files, assigning sectors to them. */
     cdrom_image_viso_log("VISO: Assigning sectors to files:\n");
+    size_t        base_factor  = viso->sector_size / orig_sector_size;
     viso_entry_t *prev_entry   = viso->root_dir,
                  *entry        = prev_entry->next,
                  **entry_map_p = viso->entry_map;
@@ -1241,7 +1277,7 @@ next_entry:
             continue;
         }
 
-        /* Write this file's starting sector offset to its directory
+        /* Write this file's base sector offset to its directory
            entries, unless this is the El Torito boot code entry,
            in which case, write offset and size to the boot entry. */
         if (entry == viso->eltorito_entry) {
@@ -1255,16 +1291,16 @@ next_entry:
             } else { /* emulation */
                 *((uint16_t *) &data[0]) = cpu_to_le16(1);
             }
-            *((uint32_t *) &data[2]) = cpu_to_le32(viso->all_sectors);
+            *((uint32_t *) &data[2]) = cpu_to_le32(viso->all_sectors * base_factor);
             viso_pwrite(data, viso->eltorito_offset, 6, 1, viso->tf.file);
         } else {
             p = data;
-            VISO_LBE_32(p, viso->all_sectors);
+            VISO_LBE_32(p, viso->all_sectors * base_factor);
             for (int i = 0; i < (sizeof(entry->dr_offsets) / sizeof(entry->dr_offsets[0])); i++)
                 viso_pwrite(data, entry->dr_offsets[i] + 2, 8, 1, viso->tf.file);
         }
 
-        /* Save this file's starting offset. This overwrites dr_offsets in the union. */
+        /* Save this file's base offset. This overwrites dr_offsets in the union. */
         entry->data_offset = ((uint64_t) viso->all_sectors) * viso->sector_size;
 
         /* Determine how many sectors this file will take. */
@@ -1290,14 +1326,14 @@ next_entry:
         viso_pwrite(data, viso->vol_size_offsets[i], 8, 1, viso->tf.file);
 
     /* Metadata processing is finished, read it back to memory. */
-    cdrom_image_viso_log("VISO: Reading back %d sectors of metadata\n", viso->metadata_sectors);
+    cdrom_image_viso_log("VISO: Reading back %d %d-byte sectors of metadata\n", viso->metadata_sectors, viso->sector_size);
     viso->metadata = (uint8_t *) calloc(viso->metadata_sectors, viso->sector_size);
     if (!viso->metadata)
         goto end;
     fseeko64(viso->tf.file, 0, SEEK_SET);
     uint64_t metadata_size = viso->metadata_sectors * viso->sector_size, metadata_remain = metadata_size;
     while (metadata_remain > 0)
-        metadata_remain -= fread(viso->metadata + (metadata_size - metadata_remain), 1, MIN(metadata_remain, 2048), viso->tf.file);
+        metadata_remain -= fread(viso->metadata + (metadata_size - metadata_remain), 1, MIN(metadata_remain, viso->sector_size), viso->tf.file);
 
     /* We no longer need the temporary file; close and delete it. */
     fclose(viso->tf.file);
