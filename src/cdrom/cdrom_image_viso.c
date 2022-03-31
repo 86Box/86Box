@@ -42,7 +42,7 @@
         memset(p, 0x00, n); \
         p += n;             \
     }
-#define VISO_TIME_VALID(t) (((t) != 0) && ((t) != ((time_t) -1)))
+#define VISO_TIME_VALID(t) (((t) - 1) < ((time_t) -2))
 
 /* ISO 9660 defines "both endian" data formats, which
    are stored as little endian followed by big endian. */
@@ -673,7 +673,7 @@ viso_init(const char *dirname, int *error)
     stat(dirname, &dir->stats);
     if (!S_ISDIR(dir->stats.st_mode))
         goto end;
-    dir->parent = dir; /* for path table filling */
+    dir->parent = dir; /* for the root's path table and .. entries */
     cdrom_image_viso_log("[%08X] %s => [root]\n", dir, dir->path);
 
     /* Traverse directories, starting with the root. */
@@ -963,7 +963,7 @@ next_dir:
     /* Handle El Torito boot catalog. */
     if (viso->eltorito_entry) {
         /* Write a pointer to this boot catalog to the boot descriptor. */
-        *((uint32_t *) data) = ftello64(viso->tf.file) / viso->sector_size;
+        *((uint32_t *) data) = cpu_to_le32(ftello64(viso->tf.file) / viso->sector_size);
         viso_pwrite(data, viso->eltorito_offset, 4, 1, viso->tf.file);
 
         /* Fill boot catalog validation entry. */
@@ -982,8 +982,8 @@ next_dir:
         /* Calculate checksum. */
         uint16_t eltorito_checksum = 0;
         for (int i = 0; i < (p - data); i += 2)
-            eltorito_checksum -= *((uint16_t *) &data[i]);
-        *((uint16_t *) &data[28]) = eltorito_checksum;
+            eltorito_checksum -= le16_to_cpu(*((uint16_t *) &data[i]));
+        *((uint16_t *) &data[28]) = cpu_to_le16(eltorito_checksum);
 
         /* Now fill the default boot entry. */
         *p++ = 0x88; /* bootable flag */
@@ -1045,10 +1045,7 @@ next_dir:
 
         /* Write this table's sector offset to the corresponding volume descriptor. */
         uint32_t pt_temp = pt_start / viso->sector_size;
-        if (i & 1)
-            *((uint32_t *) data) = cpu_to_be32(pt_temp);
-        else
-            *((uint32_t *) data) = cpu_to_le32(pt_temp);
+        *((uint32_t *) data) = (i & 1) ? cpu_to_be32(pt_temp) : cpu_to_le32(pt_temp);
         viso_pwrite(data, viso->pt_meta_offsets[i >> 1] + 8 + (8 * (i & 1)), 4, 1, viso->tf.file);
 
         /* Go through directories. */
@@ -1077,10 +1074,8 @@ next_dir:
 
             data[1]                  = 0; /* extended attribute length */
             *((uint32_t *) &data[2]) = 0; /* extent location (filled in later) */
-            if (i & 1)                    /* parent directory number */
-                *((uint16_t *) &data[6]) = cpu_to_be16(dir->parent->pt_idx);
-            else
-                *((uint16_t *) &data[6]) = cpu_to_le16(dir->parent->pt_idx);
+
+            *((uint16_t *) &data[6]) = (i & 1) ? cpu_to_be16(dir->parent->pt_idx) : cpu_to_le16(dir->parent->pt_idx); /* parent directory number */
 
             if (dir == &viso->root_dir) /* directory ID */
                 data[8] = 0;
@@ -1253,11 +1248,11 @@ next_entry:
                 uint32_t boot_size = entry->stats.st_size;
                 if (boot_size % 512) /* round up */
                     boot_size += 512 - (boot_size % 512);
-                *((uint16_t *) &data[0]) = boot_size / 512;
+                *((uint16_t *) &data[0]) = cpu_to_le16(boot_size / 512);
             } else { /* emulation */
-                *((uint16_t *) &data[0]) = 1;
+                *((uint16_t *) &data[0]) = cpu_to_le16(1);
             }
-            *((uint32_t *) &data[2]) = viso->all_sectors;
+            *((uint32_t *) &data[2]) = cpu_to_le32(viso->all_sectors);
             viso_pwrite(data, viso->eltorito_offset, 6, 1, viso->tf.file);
         } else {
             p = data;
