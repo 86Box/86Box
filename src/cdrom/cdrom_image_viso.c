@@ -42,7 +42,7 @@
         memset(p, 0x00, n); \
         p += n;             \
     }
-#define VISO_TIME_VALID(t) (((t) -1) < ((time_t) -2))
+#define VISO_TIME_VALID(t) ((t) > 0)
 
 /* ISO 9660 defines "both endian" data formats, which
    are stored as little endian followed by big endian. */
@@ -80,8 +80,8 @@ enum {
 };
 
 typedef struct _viso_entry_ {
-    char name_short[13], name_rr[257]; /* name_rr size limited by at least Linux */
-    union {                            /* save some memory */
+    char name_short[13];
+    union { /* save some memory */
         uint64_t pt_offsets[4];
         FILE    *file;
     };
@@ -90,13 +90,13 @@ typedef struct _viso_entry_ {
         uint64_t data_offset;
     };
     uint16_t name_joliet[111], pt_idx; /* name_joliet size limited by maximum directory record size */
-    uint8_t  name_rr_len, name_joliet_len;
+    uint8_t  name_joliet_len;
 
     struct stat stats;
 
     struct _viso_entry_ *parent, *next, *next_dir, *first_child;
 
-    char path[];
+    char *basename, path[];
 } viso_entry_t;
 
 typedef struct {
@@ -355,7 +355,7 @@ viso_fill_time(uint8_t *data, time_t time, int longform)
 static int
 viso_fill_dir_record(uint8_t *data, viso_entry_t *entry, int type)
 {
-    uint8_t *p = data, *q;
+    uint8_t *p = data, *q, *r;
 
     *p++ = 0;                                           /* size (filled in later) */
     *p++ = 0;                                           /* extended attribute length */
@@ -470,29 +470,38 @@ viso_fill_dir_record(uint8_t *data, viso_entry_t *entry, int type)
                     p += viso_fill_time(p, entry->stats.st_ctime, 0); /* attributes */
             }
 
-            /* Trim Rock Ridge name to fit available space. */
-            int max_len = 254 - (p - data) - 5;
-            if (entry->name_rr_len > max_len) {
-                /* Relocate extension if this is a file whose name exceeds the maximum length. */
-                if (!S_ISDIR(entry->stats.st_mode)) {
-                    char *ext = strrchr(entry->name_rr, '.');
-                    if (ext) {
-                        entry->name_rr_len = strlen(ext);
-                        memmove(entry->name_rr + (max_len - entry->name_rr_len), ext, entry->name_rr_len);
-                    }
-                }
-                entry->name_rr_len = max_len;
-            }
-
             *q |= 0x08; /* NM = alternate name */
             *p++ = 'N';
             *p++ = 'M';
-            *p++ = 5 + entry->name_rr_len; /* length */
-            *p++ = 1;                      /* version */
+            r    = p++; /* save location of the length for later */
+            *r   = 5;   /* length */
+            *p++ = 1;   /* version */
 
-            *p++ = 0;                                      /* flags */
-            memcpy(p, entry->name_rr, entry->name_rr_len); /* name */
-            p += entry->name_rr_len;
+            *p++ = 0; /* flags */
+
+            /* Trim Rock Ridge name to fit available space. */
+            size_t len     = strlen(entry->basename),
+                   max_len = 254 - (p - data);
+            if (len > max_len) {
+                *r += max_len;
+                viso_write_string(p, entry->basename, max_len, VISO_CHARSET_FN);
+                p += max_len;
+
+                /* Relocate extension if this is a file whose name exceeds the maximum length. */
+                if (!S_ISDIR(entry->stats.st_mode)) {
+                    char *ext = strrchr(entry->basename, '.');
+                    if (ext > entry->basename) {
+                        len = strlen(ext);
+                        if (len >= max_len)
+                            len = max_len - 1; /* avoid creating a dotfile where there isn't one */
+                        viso_write_string(p - len, ext, len, VISO_CHARSET_FN);
+                    }
+                }
+            } else {
+                *r += len;
+                viso_write_string(p, entry->basename, len, VISO_CHARSET_FN);
+                p += len;
+            }
 pad_susp:
             if ((p - data) & 1) /* padding for odd SUSP section lengths */
                 *p++ = 0;
@@ -699,7 +708,6 @@ viso_init(const char *dirname, int *error)
 
             /* Set short and long filenames. */
             strcpy(last_entry->name_short, i ? ".." : ".");
-            strcpy(last_entry->name_rr, i ? ".." : ".");
             wcscpy(last_entry->name_joliet, i ? L".." : L".");
 
             cdrom_image_viso_log("[%08X] %s => %s\n", last_entry, dir->path, last_entry->name_short);
@@ -720,7 +728,8 @@ viso_init(const char *dirname, int *error)
             last_entry->parent = dir;
             strcpy(last_entry->path, dir->path);
             plat_path_slash(&last_entry->path[dir_path_len]);
-            strcpy(&last_entry->path[dir_path_len + 1], readdir_entry->d_name);
+            last_entry->basename = &last_entry->path[dir_path_len + 1];
+            strcpy(last_entry->basename, readdir_entry->d_name);
 
             /* Stat this child. */
             if (stat(last_entry->path, &last_entry->stats) != 0) {
@@ -748,12 +757,6 @@ viso_init(const char *dirname, int *error)
             if (viso_get_short_filename(dir, last_entry->name_short, readdir_entry->d_name))
                 goto end;
 
-            /* Set Rock Ridge long filename. */
-            len = MIN(name_len, sizeof(last_entry->name_rr) - 1);
-            viso_write_string((uint8_t *) last_entry->name_rr, readdir_entry->d_name, len, VISO_CHARSET_FN);
-            last_entry->name_rr[len] = '\0';
-            last_entry->name_rr_len  = len;
-
             /* Set Joliet long filename. */
             if (wtemp_len < (name_len + 1)) { /* grow wchar buffer if needed */
                 wtemp_len = name_len + 1;
@@ -776,7 +779,7 @@ viso_init(const char *dirname, int *error)
             last_entry->name_joliet[len] = '\0';
             last_entry->name_joliet_len  = len;
 
-            cdrom_image_viso_log("[%08X] %s => [%-12s] %s\n", last_entry, dir->path, last_entry->name_short, last_entry->name_rr);
+            cdrom_image_viso_log("[%08X] %s => [%-12s] %s\n", last_entry, dir->path, last_entry->name_short, last_entry->basename);
 
             /* If this is a directory, add it to the traversal list. */
             if (S_ISDIR(last_entry->stats.st_mode)) {
@@ -1048,7 +1051,7 @@ next_dir:
                 continue;
             }
 
-            cdrom_image_viso_log("[%08X] %s => %s\n", dir, dir->path, (i & 2) ? dir->name_rr : dir->name_short);
+            cdrom_image_viso_log("[%08X] %s => %s\n", dir, dir->path, (i & 2) ? dir->basename : dir->name_short);
 
             /* Save this directory's path table index and offset. */
             dir->pt_idx        = pt_idx;
@@ -1107,7 +1110,7 @@ next_dir:
         cdrom_image_viso_log("VISO: Generating directory record set #%d:\n", i);
 
         /* Go through directories. */
-        dir          = viso->root_dir;
+        dir = viso->root_dir;
         while (dir) {
             /* Pad to the next sector if required. */
             write = ftello64(viso->tf.file) % viso->sector_size;
@@ -1142,7 +1145,7 @@ next_dir:
 
                 cdrom_image_viso_log("[%08X] %s => %s\n", entry,
                                      entry->path ? entry->path : ((dir_type == VISO_DIR_PARENT) ? dir->parent->path : dir->path),
-                                     i ? entry->name_rr : entry->name_short);
+                                     i ? entry->basename : entry->name_short);
 
                 /* Fill directory record. */
                 viso_fill_dir_record(data, entry, dir_type);
