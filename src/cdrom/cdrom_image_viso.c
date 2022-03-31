@@ -42,7 +42,7 @@
         memset(p, 0x00, n); \
         p += n;             \
     }
-#define VISO_TIME_VALID(t) (((t) - 1) < ((time_t) -2))
+#define VISO_TIME_VALID(t) (((t) -1) < ((time_t) -2))
 
 /* ISO 9660 defines "both endian" data formats, which
    are stored as little endian followed by big endian. */
@@ -400,8 +400,8 @@ viso_fill_dir_record(uint8_t *data, viso_entry_t *entry, int type)
             memcpy(p, entry->name_short, *q); /* file ID */
             p += *q;
             if (!S_ISDIR(entry->stats.st_mode)) {
-                memcpy(p, ";1", 2); /* version suffix for files */
-                p += 2;
+                *p++ = ';'; /* version suffix for files */
+                *p++ = '1';
                 *q += 2;
             }
 
@@ -871,8 +871,7 @@ next_dir:
             p += 128;
             viso_write_wstring((uint16_t *) p, L"", 64, VISO_CHARSET_A); /* data preparer ID */
             p += 128;
-            swprintf(wtemp, 64, L"%ls %ls VIRTUAL ISO", EMU_NAME_W, EMU_VERSION_W);
-            viso_write_wstring((uint16_t *) p, wtemp, 64, VISO_CHARSET_A); /* application ID */
+            viso_write_wstring((uint16_t *) p, EMU_NAME_W L" " EMU_VERSION_W L" VIRTUAL ISO", 64, VISO_CHARSET_A); /* application ID */
             p += 128;
             viso_write_wstring((uint16_t *) p, L"", 18, VISO_CHARSET_D); /* copyright file ID */
             p += 37;
@@ -887,8 +886,7 @@ next_dir:
             p += 128;
             viso_write_string(p, "", 128, VISO_CHARSET_A); /* data preparer ID */
             p += 128;
-            snprintf((char *) p, 128, "%s %s VIRTUAL ISO", EMU_NAME, EMU_VERSION);
-            viso_write_string(p, (char *) p, 128, VISO_CHARSET_A); /* application ID */
+            viso_write_string(p, EMU_NAME " " EMU_VERSION " VIRTUAL ISO", 128, VISO_CHARSET_A); /* application ID */
             p += 128;
             viso_write_string(p, "", 37, VISO_CHARSET_D); /* copyright file ID */
             p += 37;
@@ -1044,7 +1042,7 @@ next_dir:
         uint64_t pt_start = ftello64(viso->tf.file);
 
         /* Write this table's sector offset to the corresponding volume descriptor. */
-        uint32_t pt_temp = pt_start / viso->sector_size;
+        uint32_t pt_temp     = pt_start / viso->sector_size;
         *((uint32_t *) data) = (i & 1) ? cpu_to_be32(pt_temp) : cpu_to_le32(pt_temp);
         viso_pwrite(data, viso->pt_meta_offsets[i >> 1] + 8 + (8 * (i & 1)), 4, 1, viso->tf.file);
 
