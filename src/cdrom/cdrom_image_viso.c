@@ -375,10 +375,12 @@ viso_fill_fn_joliet(uint8_t *data, const viso_entry_t *entry, size_t max_len) /*
         if (!S_ISDIR(entry->stats.st_mode)) {
             wchar_t *ext = wcsrchr(utf8dec, L'.');
             if (ext > utf8dec) {
-                len = wcslen(ext);
+                len = 0;
+                for (size_t i = 0; ext[i]; i++)
+                    len += 1 + ((ext[i] >= 0x10000) && (ext[i] <= 0x10ffff));
                 if (len > max_len)
                     len = max_len;
-                else if ((len < max_len) && ((be16_to_cpu(data[max_len - len]) & 0xfc00) == 0xdc00)) /* don't break an UTF-16 pair */
+                else if ((len < max_len) && ((be16_to_cpu(((uint16_t *) data)[max_len - len]) & 0xfc00) == 0xdc00)) /* don't break an UTF-16 pair */
                     max_len--;
                 viso_write_wstring(((uint16_t *) data) + (max_len - len), ext, len, VISO_CHARSET_FN);
             }
