@@ -153,12 +153,14 @@ viso_pwrite(const void *ptr, uint64_t offset, size_t size, size_t count, FILE *s
 }
 
 static size_t
-viso_convert_utf8(wchar_t *dest, const char *src, int buf_size)
+viso_convert_utf8(wchar_t *dest, const char *src, ssize_t buf_size)
 {
-    wchar_t c, *p = dest;
-    int     next;
+    uint32_t c;
+    wchar_t *p = dest;
+    size_t   next;
 
     while (buf_size-- > 0) {
+        /* Interpret source codepoint. */
         c = *src;
         if (!c) {
             /* Terminator. */
@@ -178,6 +180,23 @@ viso_convert_utf8(wchar_t *dest, const char *src, int buf_size)
             /* Pass through sub-UTF-8 codepoints. */
             src++;
         }
+
+        /* Convert codepoints >= U+10000 to UTF-16 surrogate pairs.
+           This has to be done here because wchar_t on some platforms
+           (Windows) is not wide enough to store such high codepoints. */
+        if (c >= 0x10000) {
+            if ((c <= 0x10ffff) && (buf_size-- > 0)) {
+                /* Encode surrogate pair. */
+                c -= 0x10000;
+                *p++ = 0xd800 | (c >> 10);
+                c    = 0xdc00 | (c & 0x3ff);
+            } else {
+                /* Codepoint overflow or no room for a pair. */
+                c = '_';
+            }
+        }
+
+        /* Write destination codepoint. */
         *p++ = c;
     }
 
@@ -190,6 +209,7 @@ viso_convert_utf8(wchar_t *dest, const char *src, int buf_size)
     {                                                                               \
         st c;                                                                       \
         while (buf_size-- > 0) {                                                    \
+            /* Interpret source codepoint. */                                       \
             c = *src++;                                                             \
             switch (c) {                                                            \
                 case 0x00:                                                          \
@@ -249,22 +269,12 @@ viso_convert_utf8(wchar_t *dest, const char *src, int buf_size)
                                                                                     \
                 default:                                                            \
                     /* Not valid for D or A, but valid for filenames. */            \
-                    if ((charset < VISO_CHARSET_FN) || (c > 0x10ffff)) {            \
+                    if ((charset < VISO_CHARSET_FN) || (c > 0xffff))                \
                         c = '_';                                                    \
-                    } else if (c >= 0x10000) {                                      \
-                        /* Outside 16-bit UCS-2 space, but within 20-bit UTF-16. */ \
-                        if (buf_size-- > 0) {                                       \
-                            /* Encode UTF-16 surrogate pair. */                     \
-                            c -= 0x10000;                                           \
-                            *dest++ = cnv(0xd800 | (c >> 10));                      \
-                            c       = 0xdc00 | (c & 0x3ff);                         \
-                        } else {                                                    \
-                            /* No room for an UTF-16 pair. */                       \
-                            c = '_';                                                \
-                        }                                                           \
-                    }                                                               \
                     break;                                                          \
             }                                                                       \
+                                                                                    \
+            /* Write destination codepoint with conversion function applied. */     \
             *dest++ = cnv(c);                                                       \
         }                                                                           \
     }
