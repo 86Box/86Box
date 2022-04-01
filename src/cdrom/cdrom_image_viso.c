@@ -259,7 +259,7 @@ viso_convert_utf8(wchar_t *dest, const char *src, int buf_size)
                             *dest++ = cnv(0xd800 | (c >> 10));                      \
                             c       = 0xdc00 | (c & 0x3ff);                         \
                         } else {                                                    \
-                            /* Not enough room for UTF-16 pair. */                  \
+                            /* No room for an UTF-16 pair. */                       \
                             c = '_';                                                \
                         }                                                           \
                     }                                                               \
@@ -346,7 +346,7 @@ viso_fill_fn_rr(uint8_t *data, const viso_entry_t *entry, size_t max_len)
             if (ext > entry->basename) {
                 len = strlen(ext);
                 if (len >= max_len)
-                    len = max_len - 1; /* avoid creating a dotfile where there isn't one */
+                    len = max_len - 1; /* don't create a dotfile where there isn't one */
                 viso_write_string(data + (max_len - len), ext, len, VISO_CHARSET_FN);
             }
         }
@@ -378,6 +378,8 @@ viso_fill_fn_joliet(uint8_t *data, const viso_entry_t *entry, size_t max_len) /*
                 len = wcslen(ext);
                 if (len > max_len)
                     len = max_len;
+                else if ((len < max_len) && ((be16_to_cpu(data[max_len - len]) & 0xfc00) == 0xdc00)) /* don't break an UTF-16 pair */
+                    max_len--;
                 viso_write_wstring(((uint16_t *) data) + (max_len - len), ext, len, VISO_CHARSET_FN);
             }
         }
