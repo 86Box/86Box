@@ -186,7 +186,7 @@ viso_convert_utf8(wchar_t *dest, const char *src, int buf_size)
 
 #define VISO_WRITE_STR_FUNC(n, dt, st, cnv)                                         \
     static void                                                                     \
-    n(dt *dest, const st *src, int buf_size, int charset)                           \
+    n(dt *dest, const st *src, ssize_t buf_size, int charset)                       \
     {                                                                               \
         st c;                                                                       \
         while (buf_size-- > 0) {                                                    \
@@ -242,15 +242,27 @@ viso_convert_utf8(wchar_t *dest, const char *src, int buf_size)
                                                                                     \
                 case 0x01 ... 0x1f:                                                 \
                 case '\\':                                                          \
-                    /* Not valid for A, D or filenames. */                          \
+                    /* Not valid for D, A or filenames. */                          \
                     if (charset <= VISO_CHARSET_FN)                                 \
                         c = '_';                                                    \
                     break;                                                          \
                                                                                     \
                 default:                                                            \
-                    /* Not valid for A or D, but valid for filenames. */            \
-                    if ((charset < VISO_CHARSET_FN) || (c > 0xffff))                \
+                    /* Not valid for D or A, but valid for filenames. */            \
+                    if ((charset < VISO_CHARSET_FN) || (c > 0x10ffff)) {            \
                         c = '_';                                                    \
+                    } else if (c >= 0x10000) {                                      \
+                        /* Outside 16-bit UCS-2 space, but within 20-bit UTF-16. */ \
+                        if (buf_size-- > 0) {                                       \
+                            /* Encode UTF-16 surrogate pair. */                     \
+                            c -= 0x10000;                                           \
+                            *dest++ = cnv(0xd800 | (c >> 10));                      \
+                            c       = 0xdc00 | (c & 0x3ff);                         \
+                        } else {                                                    \
+                            /* Not enough room for UTF-16 pair. */                  \
+                            c = '_';                                                \
+                        }                                                           \
+                    }                                                               \
                     break;                                                          \
             }                                                                       \
             *dest++ = cnv(c);                                                       \
