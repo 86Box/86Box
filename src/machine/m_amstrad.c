@@ -669,7 +669,6 @@ vid_speed_change_1512(void *priv)
     recalc_timings_1512(vid);
 }
 
-
 device_config_t vid_1512_config[] = {
     {
         .name = "display_type",
@@ -720,7 +719,7 @@ device_config_t vid_1512_config[] = {
             { .description = ""                            }
         }
     },
-    { .name = "", .description = "", .type = -1 }
+    { .name = "", .description = "", .type = CONFIG_END }
 };
 
 static const device_t vid_1512_device = {
@@ -903,7 +902,7 @@ device_config_t vid_1640_config[] = {
             { .description = ""                            }
         }
     },
-    { .name = "", .description = "", .type = -1 }
+    { .name = "", .description = "", .type = CONFIG_END }
 };
 
 static const device_t vid_1640_device = {
@@ -1788,7 +1787,7 @@ device_config_t vid_200_config[] = {
             { .description = ""                            }
         }
     },
-    { .name = "", .description = "", .type = -1 }
+    { .name = "", .description = "", .type = CONFIG_END }
 };
 
 static const device_t vid_200_device = {
@@ -1892,7 +1891,7 @@ device_config_t vid_ppc512_config[] = {
         .default_string = "",
         .default_int = 0
     },
-    { .name = "", .description = "", .type = -1 }
+    { .name = "", .description = "", .type = CONFIG_END }
 };
 
 static const device_t vid_ppc512_device = {
@@ -1930,7 +1929,7 @@ device_config_t vid_pc2086_config[] = {
             { .description = ""                            }
         }
     },
-    { "", "", -1 }
+    { .name = "", .description = "", .type = CONFIG_END }
 };
 
 static const device_t vid_pc2086_device = {
@@ -1968,7 +1967,7 @@ device_config_t vid_pc3086_config[] = {
             { .description = ""                            }
         }
     },
-    { .name = "", .description = "", .type = -1 }
+    { .name = "", .description = "", .type = CONFIG_END }
 };
 
 static const device_t vid_pc3086_device = {

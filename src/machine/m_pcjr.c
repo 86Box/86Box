@@ -784,7 +784,7 @@ static const device_config_t pcjr_config[] = {
             { .description = ""                                   }
         }
     },
-    { .name = "", .description = "", .type = -1 }
+    { .name = "", .description = "", .type = CONFIG_END }
 };
 
 static const device_t pcjr_device = {
