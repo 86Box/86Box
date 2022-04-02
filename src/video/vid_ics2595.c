@@ -123,12 +123,16 @@ ics2595_setclock(void *p, double clock)
     ics2595->output_clock = clock;
 }
 
-
-const device_t ics2595_device =
-{
-        "ICS2595 clock chip",
-        "ics2595",
-        0, 0,
-        ics2595_init, ics2595_close,
-	NULL, { NULL }, NULL, NULL
+const device_t ics2595_device = {
+    .name = "ICS2595 clock chip",
+    .internal_name = "ics2595",
+    .flags = 0,
+    .local = 0,
+    .init = ics2595_init,
+    .close = ics2595_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };

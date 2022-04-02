@@ -820,61 +820,71 @@ static const device_config_t et4000_config[] = {
 };
 
 const device_t et4000_isa_device = {
-    "Tseng Labs ET4000AX (ISA)",
-    "et4000ax",
-    DEVICE_ISA,
-    0,
-    et4000_init, et4000_close, NULL,
-    { et4000_available },
-    et4000_speed_changed,
-    et4000_force_redraw,
-    et4000_config
+    .name = "Tseng Labs ET4000AX (ISA)",
+    .internal_name = "et4000ax",
+    .flags = DEVICE_ISA,
+    .local = 0,
+    .init = et4000_init,
+    .close = et4000_close,
+    .reset = NULL,
+    { .available = et4000_available },
+    .speed_changed = et4000_speed_changed,
+    .force_redraw = et4000_force_redraw,
+    .config = et4000_config
 };
 
 const device_t et4000_mca_device = {
-    "Tseng Labs ET4000AX (MCA)",
-    "et4000mca",
-    DEVICE_MCA,
-    1,
-    et4000_init, et4000_close, NULL,
-    { et4000_available },
-    et4000_speed_changed,
-    et4000_force_redraw,
-    et4000_config
+    .name = "Tseng Labs ET4000AX (MCA)",
+    .internal_name = "et4000mca",
+    .flags = DEVICE_MCA,
+    .local = 1,
+    .init = et4000_init,
+    .close = et4000_close,
+    .reset = NULL,
+    { .available = et4000_available },
+    .speed_changed = et4000_speed_changed,
+    .force_redraw = et4000_force_redraw,
+    .config = et4000_config
 };
 
 const device_t et4000k_isa_device = {
-    "Trigem Korean VGA (Tseng Labs ET4000AX Korean)",
-    "tgkorvga",
-    DEVICE_ISA,
-    2,
-    et4000_init, et4000_close, NULL,
-    { et4000k_available },
-    et4000_speed_changed,
-    et4000_force_redraw,
-    et4000_config
+    .name = "Trigem Korean VGA (Tseng Labs ET4000AX Korean)",
+    .internal_name = "tgkorvga",
+    .flags = DEVICE_ISA,
+    .local = 2,
+    .init = et4000_init,
+    .close = et4000_close,
+    .reset = NULL,
+    { .available = et4000k_available },
+    .speed_changed = et4000_speed_changed,
+    .force_redraw = et4000_force_redraw,
+    .config = et4000_config
 };
 
 const device_t et4000k_tg286_isa_device = {
-    "Trigem Korean VGA (Trigem 286M)",
-    "et4000k_tg286_isa",
-    DEVICE_ISA,
-    3,
-    et4000_init, et4000_close, NULL,
-    { et4000k_available },
-    et4000_speed_changed,
-    et4000_force_redraw,
-    et4000_config
+    .name = "Trigem Korean VGA (Trigem 286M)",
+    .internal_name = "et4000k_tg286_isa",
+    .flags = DEVICE_ISA,
+    .local = 3,
+    .init = et4000_init,
+    .close = et4000_close,
+    .reset = NULL,
+    { .available = et4000k_available },
+    .speed_changed = et4000_speed_changed,
+    .force_redraw = et4000_force_redraw,
+    .config = et4000_config
 };
 
 const device_t et4000_kasan_isa_device = {
-    "Kasan Hangulmadang-16 VGA (Tseng Labs ET4000AX Korean)",
-    "kasan16vga",
-    DEVICE_ISA,
-    4,
-    et4000_init, et4000_close, NULL,
-    { et4000_kasan_available },
-    et4000_speed_changed,
-    et4000_force_redraw,
-    et4000_config
+    .name = "Kasan Hangulmadang-16 VGA (Tseng Labs ET4000AX Korean)",
+    .internal_name = "kasan16vga",
+    .flags = DEVICE_ISA,
+    .local = 4,
+    .init = et4000_init,
+    .close = et4000_close,
+    .reset = NULL,
+    { .available = et4000_kasan_available },
+    .speed_changed = et4000_speed_changed,
+    .force_redraw = et4000_force_redraw,
+    .config = et4000_config
 };

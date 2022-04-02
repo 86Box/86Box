@@ -104,12 +104,16 @@ ics2494_close(void *priv)
 	free(ics2494);
 }
 
-
-const device_t ics2494an_305_device =
-{
-        "ICS2494AN-305 Clock Generator",
-        "ics2494an_305",
-        0, 305,
-        ics2494_init, ics2494_close,
-	NULL, { NULL }, NULL, NULL
+const device_t ics2494an_305_device = {
+    .name = "ICS2494AN-305 Clock Generator",
+    .internal_name = "ics2494an_305",
+    .flags = 0,
+    .local = 305,
+    .init = ics2494_init,
+    .close = ics2494_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };

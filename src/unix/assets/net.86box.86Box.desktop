@@ -1,0 +1,9 @@
+[Desktop Entry]
+Name=86Box
+GenericName=Classic PC emulator
+Comment=An emulator for classic IBM PC clones
+Exec=86Box
+Icon=net.86box.86Box
+Terminal=false
+Type=Application
+Categories=System;Emulator

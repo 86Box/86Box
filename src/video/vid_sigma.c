@@ -916,16 +916,16 @@ device_config_t sigma_config[] = {
 // clang-format on
 };
 
-const device_t sigma_device =
-{
-        "Sigma Color 400",
-        "sigma400",
-        DEVICE_ISA, 0,
-        sigma_init,
-        sigma_close,
-        NULL,
-        { sigma_available },
-        sigma_speed_changed,
-        NULL,
-        sigma_config
+const device_t sigma_device = {
+    .name = "Sigma Color 400",
+    .internal_name = "sigma400",
+    .flags = DEVICE_ISA,
+    .local = 0,
+    .init = sigma_init,
+    .close = sigma_close,
+    .reset = NULL,
+    { .available = sigma_available },
+    .speed_changed = sigma_speed_changed,
+    .force_redraw = NULL,
+    .config = sigma_config
 };

@@ -40,6 +40,7 @@
 # define EMU_DEVICE_H
 
 
+#define CONFIG_END			-1
 #define CONFIG_STRING		 0
 #define CONFIG_INT			 1
 #define CONFIG_BINARY		 2

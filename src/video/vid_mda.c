@@ -344,12 +344,15 @@ static const device_config_t mda_config[] = {
 };
 
 const device_t mda_device = {
-        "MDA",
-        "mda",
-        DEVICE_ISA, 0,
-        mda_standalone_init, mda_close, NULL,
-        { NULL },
-        mda_speed_changed,
-        NULL,
-    mda_config
+    .name = "MDA",
+    .internal_name = "mda",
+    .flags = DEVICE_ISA,
+    .local = 0,
+    .init = mda_standalone_init,
+    .close = mda_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = mda_speed_changed,
+    .force_redraw = NULL,
+    .config = mda_config
 };

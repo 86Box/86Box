@@ -892,3 +892,19 @@ machine_at_portableiii386_init(const machine_t *model)
 
     return ret;
 }
+
+int
+machine_at_deskpro386_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linearr("roms/machines/deskpro386/1986-09-04-HI.json.bin",
+				0x000fc000, 65536, 0);
+
+    if (bios_only || !ret)
+	return ret;
+
+    machine_at_compaq_init(model, COMPAQ_DESKPRO386);
+
+    return ret;
+}

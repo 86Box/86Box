@@ -476,30 +476,30 @@ compaq_cga_speed_changed(void *p)
 
 extern const device_config_t cga_config[];
 
-const device_t compaq_cga_device =
-{
-        "Compaq CGA",
-        "compaq_cga",
-        DEVICE_ISA, 0,
-        compaq_cga_init,
-        compaq_cga_close,
-        NULL,
-	{ NULL },
-        compaq_cga_speed_changed,
-        NULL,
-        cga_config
+const device_t compaq_cga_device = {
+    .name = "Compaq CGA",
+    .internal_name = "compaq_cga",
+    .flags = DEVICE_ISA,
+    .local = 0,
+    .init = compaq_cga_init,
+    .close = compaq_cga_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = compaq_cga_speed_changed,
+    .force_redraw = NULL,
+    .config = cga_config
 };
 
-const device_t compaq_cga_2_device =
-{
-        "Compaq CGA 2",
-        "compaq_cga_2",
-        DEVICE_ISA, 1,
-        compaq_cga_init,
-        compaq_cga_close,
-        NULL,
-	{ NULL },
-        compaq_cga_speed_changed,
-        NULL,
-        cga_config
+const device_t compaq_cga_2_device = {
+    .name = "Compaq CGA 2",
+    .internal_name = "compaq_cga_2",
+    .flags = DEVICE_ISA,
+    .local = 1,
+    .init = compaq_cga_init,
+    .close = compaq_cga_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = compaq_cga_speed_changed,
+    .force_redraw = NULL,
+    .config = cga_config
 };

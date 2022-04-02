@@ -453,14 +453,15 @@ static const device_config_t colorplus_config[] = {
 
 const device_t colorplus_device =
 {
-    "Colorplus",
-    "plantronics",
-    DEVICE_ISA, 0,
-    colorplus_standalone_init,
-    colorplus_close,
-    NULL,
-    { NULL },
-    colorplus_speed_changed,
-    NULL,
-    colorplus_config
+    .name = "Colorplus",
+    .internal_name = "plantronics",
+    .flags = DEVICE_ISA,
+    .local = 0,
+    .init = colorplus_standalone_init,
+    .close = colorplus_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = colorplus_speed_changed,
+    .force_redraw = NULL,
+    .config = colorplus_config
 };

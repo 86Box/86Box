@@ -1662,90 +1662,87 @@ static const device_config_t radius_svga_multiview_config[] = {
 };
 // clang-format on
 
-const device_t g2_gc205_device =
-{
-    "G2 GC205",
-    "g2_gc205",
-    DEVICE_ISA,
-    0x7070,
-    g2_gc205_init,
-    ht216_close,
-    NULL,
-    { g2_gc205_available },
-    ht216_speed_changed,
-    ht216_force_redraw
+const device_t g2_gc205_device = {
+    .name = "G2 GC205",
+    .internal_name = "g2_gc205",
+    .flags = DEVICE_ISA,
+    .local = 0x7070,
+    .init = g2_gc205_init,
+    .close = ht216_close,
+    .reset = NULL,
+    { .available = g2_gc205_available },
+    .speed_changed = ht216_speed_changed,
+    .force_redraw = ht216_force_redraw,
+    .config = NULL
 };
 
-const device_t v7_vga_1024i_device =
-{
-    "Video 7 VGA 1024i (HT208)",
-    "v7_vga_1024i",
-    DEVICE_ISA,
-    0x7140,
-    v7_vga_1024i_init,
-    ht216_close,
-    NULL,
-    { v7_vga_1024i_available },
-    ht216_speed_changed,
-    ht216_force_redraw,
-    v7_vga_1024i_config
+const device_t v7_vga_1024i_device = {
+    .name = "Video 7 VGA 1024i (HT208)",
+    .internal_name = "v7_vga_1024i",
+    .flags = DEVICE_ISA,
+    .local = 0x7140,
+    .init = v7_vga_1024i_init,
+    .close = ht216_close,
+    .reset = NULL,
+    { .available = v7_vga_1024i_available },
+    .speed_changed = ht216_speed_changed,
+    .force_redraw = ht216_force_redraw,
+    .config = v7_vga_1024i_config
 };
 
-const device_t ht216_32_pb410a_device =
-{
-    "Headland HT216-32 (Packard Bell PB410A)",
-    "ht216_32_pb410a",
-    DEVICE_VLB,
-    0x7861,	/*HT216-32*/
-    ht216_pb410a_init,
-    ht216_close,
-    NULL,
-    { NULL },
-    ht216_speed_changed,
-    ht216_force_redraw
+const device_t ht216_32_pb410a_device = {
+    .name = "Headland HT216-32 (Packard Bell PB410A)",
+    .internal_name = "ht216_32_pb410a",
+    .flags = DEVICE_VLB,
+    .local = 0x7861,	/*HT216-32*/
+    .init = ht216_pb410a_init,
+    .close = ht216_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = ht216_speed_changed,
+    .force_redraw = ht216_force_redraw,
+    .config = NULL
 };
 
-const device_t ht216_32_standalone_device =
-{
-    "Headland HT216-32",
-    "ht216_32",
-    DEVICE_VLB,
-    0x7861,	/*HT216-32*/
-    ht216_standalone_init,
-    ht216_close,
-    NULL,
-    { ht216_standalone_available },
-    ht216_speed_changed,
-    ht216_force_redraw,
-    ht216_32_standalone_config
+const device_t ht216_32_standalone_device = {
+    .name = "Headland HT216-32",
+    .internal_name = "ht216_32",
+    .flags = DEVICE_VLB,
+    .local = 0x7861,	/*HT216-32*/
+    .init = ht216_standalone_init,
+    .close = ht216_close,
+    .reset = NULL,
+    { .available = ht216_standalone_available },
+    .speed_changed = ht216_speed_changed,
+    .force_redraw = ht216_force_redraw,
+    .config = ht216_32_standalone_config
 };
 
-const device_t radius_svga_multiview_isa_device =
-{
-    "Radius SVGA Multiview ISA (HT209)",
-    "radius_isa",
-    DEVICE_ISA | DEVICE_AT,
-    0x7152,	/*HT209*/
-    radius_svga_multiview_init,
-    ht216_close,
-    NULL,
-    { radius_svga_multiview_available },
-    ht216_speed_changed,
-    ht216_force_redraw,
-    radius_svga_multiview_config
+const device_t radius_svga_multiview_isa_device = {
+    .name = "Radius SVGA Multiview ISA (HT209)",
+    .internal_name = "radius_isa",
+    .flags = DEVICE_ISA | DEVICE_AT,
+    .local = 0x7152,	/*HT209*/
+    .init = radius_svga_multiview_init,
+    .close = ht216_close,
+    .reset = NULL,
+    { .available = radius_svga_multiview_available },
+    .speed_changed = ht216_speed_changed,
+    .force_redraw = ht216_force_redraw,
+    radius_svga_multiview_config,
+    .config = NULL
 };
 
-const device_t radius_svga_multiview_mca_device =
-{
-    "Radius SVGA Multiview MCA (HT209)",
-    "radius_mc",
-    DEVICE_MCA,
-    0x7152,	/*HT209*/
-    radius_svga_multiview_init,
-    ht216_close,
-    NULL,
-    { radius_svga_multiview_available },
-    ht216_speed_changed,
-    ht216_force_redraw,
-    NULL
+const device_t radius_svga_multiview_mca_device = {
+    .name = "Radius SVGA Multiview MCA (HT209)",
+    .internal_name = "radius_mc",
+    .flags = DEVICE_MCA,
+    .local = 0x7152,	/*HT209*/
+    .init = radius_svga_multiview_init,
+    .close = ht216_close,
+    .reset = NULL,
+    { .available = radius_svga_multiview_available },
+    .speed_changed = ht216_speed_changed,
+    .force_redraw = ht216_force_redraw,
+    .config = NULL
 };

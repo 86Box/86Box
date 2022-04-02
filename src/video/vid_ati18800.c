@@ -281,45 +281,47 @@ static void ati18800_force_redraw(void *p)
 }
 
 #if defined(DEV_BRANCH) && defined(USE_VGAWONDER)
-const device_t ati18800_wonder_device =
-{
-        "ATI-18800",
-        "ati18800w",
-        DEVICE_ISA, ATI18800_WONDER,
-        ati18800_init,
-        ati18800_close,
-	NULL,
-        { ati18800_wonder_available },
-        ati18800_speed_changed,
-        ati18800_force_redraw,
-	NULL
+const device_t ati18800_wonder_device = {
+    .name = "ATI-18800",
+    .internal_name = "ati18800w",
+    .flags = DEVICE_ISA,
+    .local = ATI18800_WONDER,
+    .init = ati18800_init,
+    .close = ati18800_close,
+    .reset = NULL,
+    { .available = ati18800_wonder_available },
+    .speed_changed = ati18800_speed_changed,
+    .force_redraw = ati18800_force_redraw,
+    .config = NULL
 };
 #endif
 
 const device_t ati18800_vga88_device =
 {
-        "ATI-18800-1",
-        "ati18800v",
-        DEVICE_ISA, ATI18800_VGA88,
-        ati18800_init,
-        ati18800_close,
-	NULL,
-        { ati18800_vga88_available },
-        ati18800_speed_changed,
-        ati18800_force_redraw,
-	NULL
+    .name = "ATI-18800-1",
+    .internal_name = "ati18800v",
+    .flags = DEVICE_ISA,
+    .local = ATI18800_VGA88,
+    .init = ati18800_init,
+    .close = ati18800_close,
+    .reset = NULL,
+    { .available = ati18800_vga88_available },
+    .speed_changed = ati18800_speed_changed,
+    .force_redraw = ati18800_force_redraw,
+    .config = NULL
 };
 
 const device_t ati18800_device =
 {
-        "ATI-18800-5",
-        "ati18800",
-        DEVICE_ISA, ATI18800_EDGE16,
-        ati18800_init,
-        ati18800_close,
-	NULL,
-        { ati18800_available },
-        ati18800_speed_changed,
-        ati18800_force_redraw,
-	NULL
+    .name = "ATI-18800-5",
+    .internal_name = "ati18800",
+    .flags = DEVICE_ISA,
+    .local = ATI18800_EDGE16,
+    .init = ati18800_init,
+    .close = ati18800_close,
+    .reset = NULL,
+    { .available = ati18800_available },
+    .speed_changed = ati18800_speed_changed,
+    .force_redraw = ati18800_force_redraw,
+    .config = NULL
 };

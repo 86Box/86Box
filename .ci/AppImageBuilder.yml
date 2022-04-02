@@ -18,9 +18,9 @@ version: 1
 AppDir:
   path: ./archive_tmp
   app_info:
-    id: !ENV 'net.${project_lower}.${project_lower}'
+    id: !ENV 'net.${project_lower}.${project}'
     name: !ENV '${project}'
-    icon: !ENV '${project_lower}'
+    icon: !ENV '${project_icon}'
     version: !ENV '${project_version}'
     exec: !ENV 'usr/local/bin/${project}'
     exec_args: $@

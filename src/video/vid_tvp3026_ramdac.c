@@ -590,12 +590,16 @@ tvp3026_ramdac_close(void *priv)
 	free(ramdac);
 }
 
-
-const device_t tvp3026_ramdac_device =
-{
-        "TI TVP3026 RAMDAC",
-        "tvp3026_ramdac",
-        0, 0,
-        tvp3026_ramdac_init, tvp3026_ramdac_close,
-	NULL, { NULL }, NULL, NULL
+const device_t tvp3026_ramdac_device = {
+    .name = "TI TVP3026 RAMDAC",
+    .internal_name = "tvp3026_ramdac",
+    .flags = 0,
+    .local = 0,
+    .init = tvp3026_ramdac_init,
+    .close = tvp3026_ramdac_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
