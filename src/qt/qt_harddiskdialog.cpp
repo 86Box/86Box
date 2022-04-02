@@ -252,7 +252,7 @@ static MVHDGeom create_drive_vhd_dynamic(const QString& fileName, uint16_t cyl, 
 static MVHDGeom create_drive_vhd_diff(const QString& fileName, const QString& parentFileName, int blocksize) {
     int vhd_error = 0;
     QByteArray filenameBytes = fileName.toUtf8();
-    QByteArray parentFilenameBytes = fileName.toUtf8();
+    QByteArray parentFilenameBytes = parentFileName.toUtf8();
     MVHDCreationOptions options;
     options.block_size_in_sectors = blocksize;
     options.path = filenameBytes.data();
