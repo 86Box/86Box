@@ -174,7 +174,7 @@ viso_convert_utf8(wchar_t *dest, const char *src, ssize_t buf_size)
                 c <<= 1;
             }
             c = *src++ & (0x3f >> next);
-            while ((next-- > 0) && (buf_size-- > 0))
+            while ((next-- > 0) && ((*src & 0xc0) == 0x80))
                 c = (c << 6) | (*src++ & 0x3f);
         } else {
             /* Pass through sub-UTF-8 codepoints. */
@@ -483,7 +483,7 @@ viso_fill_dir_record(uint8_t *data, viso_entry_t *entry, int type)
                 *q += 2;
             }
 
-            if (!((*q) & 1)) /* padding for even file ID lengths */
+            if (!(*q & 1)) /* padding for even file ID lengths */
                 *p++ = 0;
 
             *p++ = 'R'; /* RR = present Rock Ridge entries (only documented by RRIP revision 1.09!) */
@@ -552,7 +552,7 @@ viso_fill_dir_record(uint8_t *data, viso_entry_t *entry, int type)
 
             *p++ = 0;                                          /* flags */
             *r += viso_fill_fn_rr(p, entry, 254 - (p - data)); /* name */
-            p += (*r) - 5;
+            p += *r - 5;
 pad_susp:
             if ((p - data) & 1) /* padding for odd SUSP section lengths */
                 *p++ = 0;
@@ -564,7 +564,7 @@ pad_susp:
             *q = viso_fill_fn_joliet(p, entry, 254 - (p - data));
             p += *q;
 
-            if (!((*q) & 1)) /* padding for even file ID lengths */
+            if (!(*q & 1)) /* padding for even file ID lengths */
                 *p++ = 0;
             break;
     }
