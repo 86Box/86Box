@@ -397,7 +397,7 @@ viso_fill_fn_joliet(uint8_t *data, const viso_entry_t *entry, size_t max_len) /*
                     len += 1 + ((ext[i] >= 0x10000) && (ext[i] <= 0x10ffff));
                 if (len > max_len)
                     len = max_len;
-                else if ((len < max_len) && ((be16_to_cpu(((uint16_t *) data)[max_len - len]) & 0xfc00) == 0xdc00)) /* don't break an UTF-16 pair */
+                else if ((len < max_len) && ((((uint16_t *) data)[max_len - len] & be16_to_cpu(0xfc00)) == be16_to_cpu(0xdc00))) /* don't break an UTF-16 pair */
                     max_len--;
                 viso_write_wstring(((uint16_t *) data) + (max_len - len), ext, len, VISO_CHARSET_FN);
             }
@@ -419,9 +419,9 @@ viso_fill_time(uint8_t *data, time_t time, int format, int longform)
         fatal("VISO: localtime(%d) = NULL\n", time);
 
     if (longform) {
-        p += sprintf((char *) p, "%04d%02d%02d%02d%02d%02d%02d",
+        p += sprintf((char *) p, "%04d%02d%02d%02d%02d%02d00",
                      1900 + time_s->tm_year, 1 + time_s->tm_mon, time_s->tm_mday,
-                     time_s->tm_hour, time_s->tm_min, time_s->tm_sec, /* hundredths */ 0);
+                     time_s->tm_hour, time_s->tm_min, time_s->tm_sec);
     } else {
         *p++ = time_s->tm_year;    /* year since 1900 */
         *p++ = 1 + time_s->tm_mon; /* month */
@@ -431,7 +431,7 @@ viso_fill_time(uint8_t *data, time_t time, int format, int longform)
         *p++ = time_s->tm_sec;     /* second */
     }
     if (format >= VISO_FORMAT_ISO)
-        *p++ = tz_offset; /* timezone */
+        *p++ = tz_offset; /* timezone (ISO only) */
 
     return p - data;
 }
@@ -485,8 +485,8 @@ viso_fill_dir_record(uint8_t *data, viso_entry_t *entry, int format, int type)
             *q = strlen(entry->name_short);
             memcpy(p, entry->name_short, *q); /* file ID */
             p += *q;
-            if (!S_ISDIR(entry->stats.st_mode)) {
-                *p++ = ';'; /* version suffix for files */
+            if ((format >= VISO_FORMAT_ISO) && !S_ISDIR(entry->stats.st_mode)) {
+                *p++ = ';'; /* version suffix for files (ISO only?) */
                 *p++ = '1';
                 *q += 2;
             }
@@ -901,7 +901,7 @@ next_dir:
         /* Fill volume descriptor. */
         p = data;
         if (viso->format <= VISO_FORMAT_HSF)
-            VISO_LBE_32(p, ftello64(viso->tf.file) / viso->sector_size);     /* sector offset */
+            VISO_LBE_32(p, ftello64(viso->tf.file) / viso->sector_size);     /* sector offset (HSF only) */
         *p++ = 1 + i;                                                        /* type */
         memcpy(p, (viso->format <= VISO_FORMAT_HSF) ? "CDROM" : "CD001", 5); /* standard ID */
         p += 5;
@@ -961,7 +961,7 @@ next_dir:
             viso_write_wstring((uint16_t *) p, L"", (viso->format <= VISO_FORMAT_HSF) ? 16 : 18, VISO_CHARSET_D); /* abstract file ID */
             p += (viso->format <= VISO_FORMAT_HSF) ? 32 : 37;
             if (viso->format >= VISO_FORMAT_ISO) {
-                viso_write_wstring((uint16_t *) p, L"", 18, VISO_CHARSET_D); /* bibliography file ID */
+                viso_write_wstring((uint16_t *) p, L"", 18, VISO_CHARSET_D); /* bibliography file ID (ISO only) */
                 p += 37;
             }
         } else {
@@ -978,7 +978,7 @@ next_dir:
             viso_write_string(p, "", (viso->format <= VISO_FORMAT_HSF) ? 32 : 37, VISO_CHARSET_D); /* abstract file ID */
             p += (viso->format <= VISO_FORMAT_HSF) ? 32 : 37;
             if (viso->format >= VISO_FORMAT_ISO) {
-                viso_write_string(p, "", 37, VISO_CHARSET_D); /* bibliography file ID */
+                viso_write_string(p, "", 37, VISO_CHARSET_D); /* bibliography file ID (ISO only) */
                 p += 37;
             }
         }
@@ -1004,7 +1004,7 @@ next_dir:
 
             p = data;
             if (viso->format <= VISO_FORMAT_HSF)
-                VISO_LBE_32(p, ftello64(viso->tf.file) / viso->sector_size);     /* sector offset */
+                VISO_LBE_32(p, ftello64(viso->tf.file) / viso->sector_size);     /* sector offset (HSF only) */
             *p++ = 0;                                                            /* type */
             memcpy(p, (viso->format <= VISO_FORMAT_HSF) ? "CDROM" : "CD001", 5); /* standard ID */
             p += 5;
@@ -1028,7 +1028,7 @@ next_dir:
     /* Fill terminator. */
     p = data;
     if (viso->format <= VISO_FORMAT_HSF)
-        VISO_LBE_32(p, ftello64(viso->tf.file) / viso->sector_size);     /* sector offset */
+        VISO_LBE_32(p, ftello64(viso->tf.file) / viso->sector_size);     /* sector offset (HSF only) */
     *p++ = 0xff;                                                         /* type */
     memcpy(p, (viso->format <= VISO_FORMAT_HSF) ? "CDROM" : "CD001", 5); /* standard ID */
     p += 5;
