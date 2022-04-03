@@ -2636,15 +2636,21 @@ ncr53c8xx_close(void *priv)
 static const device_config_t ncr53c8xx_pci_config[] = {
 // clang-format off
     {
-        "bios", "BIOS", CONFIG_SELECTION, "", 1, "", { 0 },
-        {
-            { "SDMS 4.x BIOS", 2 },
-            { "SDMS 3.x BIOS", 1 },
-            { "Disable BIOS",  0 },
-            { ""                 }
+        .name = "bios",
+        .description = "BIOS",
+        .type = CONFIG_SELECTION,
+        .default_string = "",
+        .default_int = 1,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "SDMS 4.x BIOS", .value = 2 },
+            { .description = "SDMS 3.x BIOS", .value = 1 },
+            { .description = "Disable BIOS",  .value = 0 },
+            { .description = ""                          }
         },
     },
-    { "", "", -1 }
+    { .name = "", .description = "", .type = CONFIG_END }
 // clang-format on
 };
 

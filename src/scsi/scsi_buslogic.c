@@ -1805,54 +1805,84 @@ buslogic_init(const device_t *info)
 // clang-format off
 static const device_config_t BT_ISA_Config[] = {
     {
-        "base", "Address", CONFIG_HEX16, "", 0x334, "", { 0 },
-        {
-            { "0x330", 0x330 },
-            { "0x334", 0x334 },
-            { "0x230", 0x230 },
-            { "0x234", 0x234 },
-            { "0x130", 0x130 },
-            { "0x134", 0x134 },
-            { "", 0 }
+        .name = "base",
+        .description = "Address",
+        .type = CONFIG_HEX16,
+        .default_string = "",
+        .default_int = 0x334,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "0x330", .value = 0x330 },
+            { .description = "0x334", .value = 0x334 },
+            { .description = "0x230", .value = 0x230 },
+            { .description = "0x234", .value = 0x234 },
+            { .description = "0x130", .value = 0x130 },
+            { .description = "0x134", .value = 0x134 },
+            { .description = "",      .value =     0 }
         },
     },
     {
-        "irq", "IRQ", CONFIG_SELECTION, "", 11, "", { 0 },
-        {
-            { "IRQ 9", 9 },
-            { "IRQ 10", 10 },
-            { "IRQ 11", 11 },
-            { "IRQ 12", 12 },
-            { "IRQ 14", 14 },
-            { "IRQ 15", 15 },
-            { "", 0 }
+        .name = "irq",
+        .description = "IRQ",
+        .type = CONFIG_SELECTION,
+        .default_string = "",
+        .default_int = 11,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "IRQ 9",  .value =  9 },
+            { .description = "IRQ 10", .value = 10 },
+            { .description = "IRQ 11", .value = 11 },
+            { .description = "IRQ 12", .value = 12 },
+            { .description = "IRQ 14", .value = 14 },
+            { .description = "IRQ 15", .value = 15 },
+            { .description = "", 0                 }
         },
     },
     {
-        "dma", "DMA channel", CONFIG_SELECTION, "", 6, "", { 0 },
-        {
-            { "DMA 5", 5 },
-            { "DMA 6", 6 },
-            { "DMA 7", 7 },
-            { "", 0 }
+        .name = "dma",
+        .description = "DMA channel",
+        .type = CONFIG_SELECTION,
+        .default_string = "",
+        .default_int = 6,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "DMA 5", .value = 5 },
+            { .description = "DMA 6", .value = 6 },
+            { .description = "DMA 7", .value = 7 },
+            { .description = "",      .value = 0 }
         },
     },
     {
-        "bios_addr", "BIOS Address", CONFIG_HEX20, "", 0, "", { 0 },
-        {
-            { "Disabled", 0       },
-            { "C800H",    0xc8000 },
-            { "D000H",    0xd0000 },
-            { "D800H",    0xd8000 },
-            { "", 0 }
+        .name = "bios_addr",
+        .description = "BIOS Address",
+        .type = CONFIG_HEX20,
+        .default_string = "",
+        .default_int = 0,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "Disabled", .value =       0 },
+            { .description = "C800H",    .value = 0xc8000 },
+            { .description = "D000H",    .value = 0xd0000 },
+            { .description = "D800H",    .value = 0xd8000 },
+            { .description = "",         .value =       0 }
         },
     },
-    { "", "", -1 }
+    { .name = "", .description = "", .type = CONFIG_END }
 };
 
 static const device_config_t BT958D_Config[] = {
-    { "bios", "Enable BIOS", CONFIG_BINARY, "",  0 },
-    { "",     "",                               -1 }
+    {
+        .name = "bios",
+        .description = "Enable BIOS",
+        .type = CONFIG_BINARY,
+        .default_string = "",
+        .default_int = 0
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
 };
 // clang-format on
 

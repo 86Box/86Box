@@ -2002,11 +2002,13 @@ esp_close(void *priv)
 static const device_config_t bios_enable_config[] = {
 // clang-format off
     {
-        "bios", "Enable BIOS", CONFIG_BINARY, "", 0
+        .name = "bios",
+        .description = "Enable BIOS",
+        .type = CONFIG_BINARY,
+        .default_string = "",
+        .default_int = 0
     },
-    {
-        "", "", -1
-    }
+    { .name = "", .description = "", .type = CONFIG_END }
 // clang-format on
 };
 
