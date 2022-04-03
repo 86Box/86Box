@@ -738,156 +738,246 @@ wd_close(void *priv)
 // clang-format off
 static const device_config_t wd8003_config[] = {
     {
-        "base", "Address", CONFIG_HEX16, "", 0x300, "", { 0 },
-        {
-            { "0x240", 0x240 },
-            { "0x280", 0x280 },
-            { "0x300", 0x300 },
-            { "0x380", 0x380 },
-            { ""             }
+        .name = "base",
+        .description = "Address",
+        .type = CONFIG_HEX16,
+        .default_string = "",
+        .default_int = 0x300,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "0x240", .value = 0x240 },
+            { .description = "0x280", .value = 0x280 },
+            { .description = "0x300", .value = 0x300 },
+            { .description = "0x380", .value = 0x380 },
+            { .description = ""                      }
         },
     },
     {
-        "irq", "IRQ", CONFIG_SELECTION, "", 3, "", { 0 },
-        {
-            { "IRQ 2", 2 },
-            { "IRQ 3", 3 },
-            { "IRQ 5", 5 },
-            { "IRQ 7", 7 },
-            { ""         }
+        .name = "irq",
+        .description = "IRQ",
+        .type = CONFIG_SELECTION,
+        .default_string = "",
+        .default_int = 3,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "IRQ 2", .value = 2 },
+            { .description = "IRQ 3", .value = 3 },
+            { .description = "IRQ 5", .value = 5 },
+            { .description = "IRQ 7", .value = 7 },
+            { .description = ""                  }
         },
     },
     {
-        "ram_addr", "RAM address", CONFIG_HEX20, "", 0xD0000, "", { 0 },
-        {
-            { "C800", 0xC8000 },
-            { "CC00", 0xCC000 },
-            { "D000", 0xD0000 },
-            { "D400", 0xD4000 },
-            { "D800", 0xD8000 },
-            { "DC00", 0xDC000 },
-            { ""              }
+        .name = "ram_addr",
+        .description = "RAM address",
+        .type = CONFIG_HEX20,
+        .default_string = "",
+        .default_int = 0xD0000,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "C800", .value = 0xC8000 },
+            { .description = "CC00", .value = 0xCC000 },
+            { .description = "D000", .value = 0xD0000 },
+            { .description = "D400", .value = 0xD4000 },
+            { .description = "D800", .value = 0xD8000 },
+            { .description = "DC00", .value = 0xDC000 },
+            { .description = ""                       }
         },
     },
-    { "mac", "MAC Address", CONFIG_MAC, "", -1 },
-    { "",    "",                            -1 }
+    {
+        .name = "mac",
+        .description = "MAC Address",
+        .type = CONFIG_MAC,
+        .default_string = "",
+        .default_int = -1
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
 };
 
 static const device_config_t wd8003eb_config[] = {
     {
-        "base", "Address", CONFIG_HEX16, "", 0x280, "", { 0 },
-        {
-            { "0x200", 0x200 },
-            { "0x220", 0x220 },
-            { "0x240", 0x240 },
-            { "0x260", 0x260 },
-            { "0x280", 0x280 },
-            { "0x2A0", 0x2A0 },
-            { "0x2C0", 0x2C0 },
-            { "0x300", 0x300 },
-            { "0x340", 0x340 },
-            { "0x380", 0x380 },
-            { ""             }
+        .name = "base",
+        .description = "Address",
+        .type = CONFIG_HEX16,
+        .default_string = "",
+        .default_int = 0x280,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "0x200", .value = 0x200 },
+            { .description = "0x220", .value = 0x220 },
+            { .description = "0x240", .value = 0x240 },
+            { .description = "0x260", .value = 0x260 },
+            { .description = "0x280", .value = 0x280 },
+            { .description = "0x2A0", .value = 0x2A0 },
+            { .description = "0x2C0", .value = 0x2C0 },
+            { .description = "0x300", .value = 0x300 },
+            { .description = "0x340", .value = 0x340 },
+            { .description = "0x380", .value = 0x380 },
+            { .description = ""                      }
         },
     },
     {
-        "irq", "IRQ", CONFIG_SELECTION, "", 3, "", { 0 },
-        {
-            { "IRQ 2/9", 9 },
-            { "IRQ 3",   3 },
-            { "IRQ 4",   4 },
-            { "IRQ 7",   7 },
-            { ""           }
+        .name = "irq",
+        .description = "IRQ",
+        .type = CONFIG_SELECTION,
+        .default_string = "",
+        .default_int = 3,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "IRQ 2/9", .value = 9 },
+            { .description = "IRQ 3",   .value = 3 },
+            { .description = "IRQ 4",   .value = 4 },
+            { .description = "IRQ 7",   .value = 7 },
+            { .description = ""                    }
         },
     },
     {
-        "ram_addr", "RAM address", CONFIG_HEX20, "", 0xD0000, "", { 0 },
-        {
-            { "C000", 0xC0000 },
-            { "C400", 0xC4000 },
-            { "C800", 0xC8000 },
-            { "CC00", 0xCC000 },
-            { "D000", 0xD0000 },
-            { "D400", 0xD4000 },
-            { "D800", 0xD8000 },
-            { "DC00", 0xDC000 },
-            { ""              }
+        .name = "ram_addr",
+        .description = "RAM address",
+        .type = CONFIG_HEX20,
+        .default_string = "",
+        .default_int = 0xD0000,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "C000", .value = 0xC0000 },
+            { .description = "C400", .value = 0xC4000 },
+            { .description = "C800", .value = 0xC8000 },
+            { .description = "CC00", .value = 0xCC000 },
+            { .description = "D000", .value = 0xD0000 },
+            { .description = "D400", .value = 0xD4000 },
+            { .description = "D800", .value = 0xD8000 },
+            { .description = "DC00", .value = 0xDC000 },
+            { .description = ""                       }
         },
     },
     {
-        "ram_size", "RAM size", CONFIG_SELECTION, "", 8192, "", { 0 },
-        {
-            { "8 kB",   8192 },
-            { "32 kB", 32768 },
-            { ""             }
+        .name = "ram_size",
+        .description = "RAM size",
+        .type = CONFIG_SELECTION,
+        .default_string = "",
+        .default_int = 8192,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "8 kB",  .value =  8192 },
+            { .description = "32 kB", .value = 32768 },
+            { .description = ""                      }
         },
     },
-    { "mac", "MAC Address", CONFIG_MAC, "", -1 },
-    { "",    "",                            -1 }
+    {
+        .name = "mac",
+        .description = "MAC Address",
+        .type = CONFIG_MAC,
+        .default_string = "",
+        .default_int = -1
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
 };
 
 /* WD8013EBT configuration and defaults set according to this site:
    http://www.stack.nl/~marcolz/network/wd80x3.html#WD8013EBT */
 static const device_config_t wd8013_config[] = {
     {
-        "base", "Address", CONFIG_HEX16, "", 0x280, "", { 0 },
-        {
-            { "0x200", 0x200 },
-            { "0x220", 0x220 },
-            { "0x240", 0x240 },
-            { "0x260", 0x260 },
-            { "0x280", 0x280 },
-            { "0x2A0", 0x2A0 },
-            { "0x2C0", 0x2C0 },
-            { "0x300", 0x300 },
-            { "0x340", 0x340 },
-            { "0x380", 0x380 },
-            { ""             }
+        .name = "base",
+        .description = "Address",
+        .type = CONFIG_HEX16,
+        .default_string = "",
+        .default_int = 0x280,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "0x200", .value = 0x200 },
+            { .description = "0x220", .value = 0x220 },
+            { .description = "0x240", .value = 0x240 },
+            { .description = "0x260", .value = 0x260 },
+            { .description = "0x280", .value = 0x280 },
+            { .description = "0x2A0", .value = 0x2A0 },
+            { .description = "0x2C0", .value = 0x2C0 },
+            { .description = "0x300", .value = 0x300 },
+            { .description = "0x340", .value = 0x340 },
+            { .description = "0x380", .value = 0x380 },
+            { .description = ""                      }
         },
     },
     {
-        "irq", "IRQ", CONFIG_SELECTION, "", 3, "", { 0 },
-        {
-            { "IRQ 2/9", 9 },
-            { "IRQ 3",   3 },
-            { "IRQ 4",   4 },
-            { "IRQ 5",   5 },
-            { "IRQ 7",   7 },
-            { "IRQ 10", 10 },
-            { "IRQ 11", 11 },
-            { "IRQ 15", 15 },
-            { ""           }
+        .name = "irq",
+        .description = "IRQ",
+        .type = CONFIG_SELECTION,
+        .default_string = "",
+        .default_int = 3,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "IRQ 2/9", .value =  9 },
+            { .description = "IRQ 3",   .value =  3 },
+            { .description = "IRQ 4",   .value =  4 },
+            { .description = "IRQ 5",   .value =  5 },
+            { .description = "IRQ 7",   .value =  7 },
+            { .description = "IRQ 10",  .value = 10 },
+            { .description = "IRQ 11",  .value = 11 },
+            { .description = "IRQ 15",  .value = 15 },
+            { .description = ""                     }
         },
     },
     {
-        "ram_addr", "RAM address", CONFIG_HEX20, "", 0xD0000, "", { 0 },
-        {
-            { "C000", 0xC0000 },
-            { "C400", 0xC4000 },
-            { "C800", 0xC8000 },
-            { "CC00", 0xCC000 },
-            { "D000", 0xD0000 },
-            { "D400", 0xD4000 },
-            { "D800", 0xD8000 },
-            { "DC00", 0xDC000 },
-            { ""              }
+        .name = "ram_addr",
+        .description = "RAM address",
+        .type = CONFIG_HEX20,
+        .default_string = "",
+        .default_int = 0xD0000,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "C000", .value = 0xC0000 },
+            { .description = "C400", .value = 0xC4000 },
+            { .description = "C800", .value = 0xC8000 },
+            { .description = "CC00", .value = 0xCC000 },
+            { .description = "D000", .value = 0xD0000 },
+            { .description = "D400", .value = 0xD4000 },
+            { .description = "D800", .value = 0xD8000 },
+            { .description = "DC00", .value = 0xDC000 },
+            { .description = ""                       }
         },
     },
     {
-        "ram_size", "RAM size", CONFIG_SELECTION, "", 16384, "", { 0 },
-        {
-            { "16 kB", 16384 },
-            { "64 kB", 65536 },
-            { ""             }
+        .name = "ram_size",
+        .description = "RAM size",
+        .type = CONFIG_SELECTION,
+        .default_string = "",
+        .default_int = 16384,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "16 kB", .value = 16384 },
+            { .description = "64 kB", .value = 65536 },
+            { .description = ""                      }
         },
     },
-    { "mac", "MAC Address", CONFIG_MAC, "", -1 },
-    { "",    "",                            -1 }
+    {
+        .name = "mac",
+        .description = "MAC Address",
+        .type = CONFIG_MAC,
+        .default_string = "",
+        .default_int = -1
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
 };
 
 static const device_config_t mca_mac_config[] = {
-    { "mac", "MAC Address", CONFIG_MAC, "", -1 },
-    { "",    "",                            -1 }
+    {
+        .name = "mac",
+        .description = "MAC Address",
+        .type = CONFIG_MAC,
+        .default_string = "",
+        .default_int = -1
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
 };
 // clang-format on
 

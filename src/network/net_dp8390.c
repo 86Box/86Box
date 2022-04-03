@@ -1110,7 +1110,6 @@ dp8390_close(void *priv)
     }
 }
 
-
 const device_t dp8390_device = {
     .name = "DP8390 Network Interface Controller",
     .internal_name = "dp8390",
