@@ -1729,8 +1729,7 @@ const device_t radius_svga_multiview_isa_device = {
     { .available = radius_svga_multiview_available },
     .speed_changed = ht216_speed_changed,
     .force_redraw = ht216_force_redraw,
-    radius_svga_multiview_config,
-    .config = NULL
+    .config = radius_svga_multiview_config
 };
 
 const device_t radius_svga_multiview_mca_device = {
