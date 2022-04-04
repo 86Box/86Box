@@ -630,7 +630,7 @@ network_card_has_config(int card)
 {
     if (! net_cards[card].device) return(0);
 
-    return(net_cards[card].device->config ? 1 : 0);
+    return(device_has_config(net_cards[card].device) ? 1 : 0);
 }
 
 
