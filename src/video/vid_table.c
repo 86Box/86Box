@@ -364,7 +364,7 @@ video_card_has_config(int card)
 {
     if (video_cards[card].device == NULL) return(0);
 
-    return(video_cards[card].device->config ? 1 : 0);
+    return(device_has_config(video_cards[card].device) ? 1 : 0);
 }
 
 

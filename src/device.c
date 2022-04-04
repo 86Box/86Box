@@ -340,6 +340,29 @@ device_available(const device_t *d)
 
 
 int
+device_has_config(const device_t *d)
+{
+    int c = 0;
+
+    if (d == NULL)
+	return 0;
+
+    if (d->config == NULL)
+	return 0;
+
+    config = d->config;
+
+    while (config->type != -1) {
+	if (config->type != CONFIG_MAC)
+		c++;
+	config++;
+    }
+
+    return (c > 0) ? 1 : 0;
+}
+
+
+int
 device_poll(const device_t *d, int x, int y, int z, int b)
 {
     int c;
