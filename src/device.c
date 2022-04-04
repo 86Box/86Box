@@ -343,6 +343,7 @@ int
 device_has_config(const device_t *d)
 {
     int c = 0;
+    device_config_t *config;
 
     if (d == NULL)
 	return 0;
@@ -350,7 +351,7 @@ device_has_config(const device_t *d)
     if (d->config == NULL)
 	return 0;
 
-    config = d->config;
+    config = (device_config_t *) d->config;
 
     while (config->type != -1) {
 	if (config->type != CONFIG_MAC)
