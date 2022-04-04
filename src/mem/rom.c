@@ -69,11 +69,19 @@ rom_fopen(char *fn, char *mode)
 	fn2 = (char *) malloc(strlen(fn) + 1);
 	memcpy(fn2, fn, strlen(fn) + 1);
 
-	if (rom_path[0] != '\0') {
+    if (rom_paths.next) {
+        rom_path_t* cur_rom_path = &rom_paths;
 		memset(fn2, 0x00, strlen(fn) + 1);
 		memcpy(fn2, &(fn[5]), strlen(fn) - 4);
 
-		plat_append_filename(temp, rom_path, fn2);
+        while (cur_rom_path->next) {
+            memset(temp, 0, sizeof(temp));
+            plat_append_filename(temp, cur_rom_path->rom_path, fn2);
+            if (rom_present(temp)) {
+                break;
+            }
+            cur_rom_path = cur_rom_path->next;
+        }
 	} else {
 		/* Make sure to make it a backslash, just in case there's malformed
 		   code calling us that assumes Windows. */

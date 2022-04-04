@@ -32,6 +32,7 @@
 
 #ifndef _WIN32
 #include <pwd.h>
+#include <unistd.h>
 #endif
 #ifdef __APPLE__
 #include <string.h>
@@ -125,6 +126,7 @@ uint64_t	unique_id = 0;
 uint64_t	source_hwnd = 0;
 #endif
 char	rom_path[1024] = { '\0'};		/* (O) full path to ROMs */
+rom_path_t rom_paths = { "", NULL };    /* (O) full paths to ROMs */
 char	log_path[1024] = { '\0'};		/* (O) full path of logfile */
 char	vm_name[1024]  = { '\0'};		/* (O) display name of the VM */
 
@@ -383,6 +385,48 @@ pc_log(const char *fmt, ...)
 #define pc_log(fmt, ...)
 #endif
 
+static void
+add_rom_path(const char* path)
+{
+    static char cwd[1024];
+    memset(cwd, 0x00, sizeof(cwd));
+    rom_path_t* cur_rom_path = &rom_paths;
+    while (cur_rom_path->next != NULL) {
+        cur_rom_path = cur_rom_path->next;
+    }
+    if (!plat_path_abs((char*)path)) {
+        /*
+         * This looks like a relative path.
+         *
+         * Add it to the current working directory
+         * to convert it (back) to an absolute path.
+         */
+        plat_getcwd(cwd, 1024);
+        plat_path_slash(cwd);
+        snprintf(cur_rom_path->rom_path, 1024, "%s%s%c", cwd, path, 0);
+    }
+    else {
+        /*
+         * The user-provided path seems like an
+         * absolute path, so just use that.
+         */
+        strncpy(cur_rom_path->rom_path, path, 1024);
+    }
+    plat_path_slash(cur_rom_path->rom_path);
+    cur_rom_path->next = calloc(1, sizeof(rom_path_t));
+}
+
+// Copied over from Unix code, which in turn is lifted from musl. Needed for parsing XDG_DATA_DIRS.
+static char *local_strsep(char **str, const char *sep)
+{
+    char *s = *str, *end;
+    if (!s) return NULL;
+    end = s + strcspn(s, sep);
+    if (*end) *end++ = 0;
+    else end = 0;
+    *str = end;
+    return s;
+}
 
 /*
  * Perform initial startup of the PC.
@@ -496,6 +540,7 @@ usage:
 			if ((c+1) == argc) goto usage;
 
 			strcpy(path2, argv[++c]);
+            add_rom_path(path2);
 		} else if (!strcasecmp(argv[c], "--config") ||
 			   !strcasecmp(argv[c], "-C")) {
 			if ((c+1) == argc) goto usage;
@@ -591,26 +636,77 @@ usage:
 			plat_dir_create(usr_path);
 	}
 
-	if (path2[0] == '\0') {
+    if (vmrp) {
+        char vmrppath[1024] = { 0 };
+        strcpy(vmrppath, usr_path);
+        plat_path_slash(vmrppath);
+        strcat(vmrppath, "roms");
+        plat_path_slash(vmrppath);
+        add_rom_path(vmrppath);
+        if (path2[0] == '\0') {
+            strcpy(path2, vmrppath);
+        }
+    }
+
+    {
+        char default_rom_path[1024] = { 0 };
 #if defined(__APPLE__)
-		getDefaultROMPath(path2);
+        getDefaultROMPath(default_rom_path);
 #elif !defined(_WIN32)
 		appimage = getenv("APPIMAGE");
 		if (appimage && (appimage[0] != '\0')) {
-			plat_get_dirname(path2, appimage);
-			plat_path_slash(path2);
-			strcat(path2, "roms");
-			plat_path_slash(path2);
+            plat_get_dirname(default_rom_path, appimage);
+            plat_path_slash(default_rom_path);
+            strcat(default_rom_path, "roms");
+            plat_path_slash(default_rom_path);
 		}
 #endif
+        if (default_rom_path[0] == '\0') {
+            plat_getcwd(default_rom_path, 1024);
+            plat_path_slash(default_rom_path);
+            snprintf(default_rom_path, 1024, "%s%s%c", default_rom_path, "roms", 0);
+            plat_path_slash(default_rom_path);
+        }
+        add_rom_path(default_rom_path);
+        if (path2[0] == '\0') {
+            strcpy(path2, default_rom_path);
+        }
 	}
 
-	if (vmrp && (path2[0] == '\0')) {
-		strcpy(path2, usr_path);
-		plat_path_slash(path2);
-		strcat(path2, "roms");
-		plat_path_slash(path2);
-	}
+#if !defined __APPLE__ && !defined _WIN32
+    if (getenv("XDG_DATA_HOME")) {
+        char xdg_rom_path[1024] = { 0 };
+        strncpy(xdg_rom_path, getenv("XDG_DATA_HOME"), 1024);
+        plat_path_slash(xdg_rom_path);
+        strcat(xdg_rom_path, "86Box/roms/");
+        add_rom_path(xdg_rom_path);
+    } else {
+        char home_rom_path[1024] = { 0 };
+        snprintf(home_rom_path, 1024, "%s/.local/share/86Box/roms/", getenv("HOME") ? getenv("HOME") : getpwuid(getuid())->pw_dir);
+        add_rom_path(home_rom_path);
+    }
+    if (getenv("XDG_DATA_DIRS")) {
+        char* xdg_rom_paths = strdup(getenv("XDG_DATA_DIRS"));
+        char* xdg_rom_paths_orig = xdg_rom_paths;
+        char* cur_xdg_rom_path = NULL;
+        if (xdg_rom_paths) {
+            while (xdg_rom_paths[strlen(xdg_rom_paths) - 1] == ':') {
+                xdg_rom_paths[strlen(xdg_rom_paths) - 1] = '\0';
+            }
+            while ((cur_xdg_rom_path = local_strsep(&xdg_rom_paths, ";")) != NULL) {
+                char real_xdg_rom_path[1024] = { '\0' };
+                strcat(real_xdg_rom_path, cur_xdg_rom_path);
+                plat_path_slash(real_xdg_rom_path);
+                strcat(real_xdg_rom_path, "86Box/roms/");
+                add_rom_path(real_xdg_rom_path);
+            }
+        }
+        free(xdg_rom_paths_orig);
+    } else {
+        add_rom_path("/usr/local/share/86Box/roms/");
+        add_rom_path("/usr/share/86Box/roms/");
+    }
+#endif
 
 	/*
 	 * If the user provided a path for ROMs, use that
@@ -708,8 +804,13 @@ usage:
 	pclog("# VM: %s\n#\n", vm_name);
 	pclog("# Emulator path: %s\n", exe_path);
 	pclog("# Userfiles path: %s\n", usr_path);
-	if (rom_path[0] != '\0')
-		pclog("# ROM path: %s\n", rom_path);
+    if (rom_paths.next) {
+        rom_path_t* cur_rom_path = &rom_paths;
+        while (cur_rom_path->next) {
+            pclog("# ROM path: %s\n", cur_rom_path->rom_path);
+            cur_rom_path = cur_rom_path->next;
+        }
+    }
 	else
 #ifndef _WIN32
 	pclog("# ROM path: %sroms/\n", exe_path);
