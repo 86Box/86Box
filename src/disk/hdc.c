@@ -202,7 +202,7 @@ hdc_has_config(int hdc)
 
     if (dev == NULL) return(0);
 
-    if (dev->config == NULL) return(0);
+    if (!device_has_config(dev)) return(0);
 
     return(1);
 }
