@@ -295,7 +295,7 @@ then
 	fi
 
 	# Install the latest versions for any missing packages (if the specified version couldn't be installed).
-	pkgs="make git"
+	pkgs="git"
 	while IFS=" " read pkg version
 	do
 		prefixed_pkg="$MINGW_PACKAGE_PREFIX-$pkg"
@@ -328,7 +328,7 @@ else
 	esac
 
 	# Establish general dependencies.
-	pkgs="cmake pkg-config git imagemagick wget p7zip-full wayland-protocols tar gzip file"
+	pkgs="cmake ninja-build pkg-config git wget p7zip-full wayland-protocols tar gzip file"
 	if [ "$(dpkg --print-architecture)" = "$arch_deb" ]
 	then
 		pkgs="$pkgs build-essential"
@@ -405,7 +405,7 @@ fi
 echo [-] Cleaning workspace
 if [ -d "build" ]
 then
-	MAKEFLAGS=-j$(nproc) cmake --build build --target clean 2> /dev/null
+	cmake --build build -j$(nproc) --target clean 2> /dev/null
 	rm -rf build
 fi
 find . \( -name Makefile -o -name CMakeCache.txt -o -name CMakeFiles \) -exec rm -rf "{}" \; 2> /dev/null
@@ -438,7 +438,7 @@ year=$(date +%Y)
 
 # Run CMake.
 echo [-] Running CMake with flags [$cmake_flags $cmake_flags_extra]
-eval cmake -G \"Unix Makefiles\" -B build $cmake_flags $cmake_flags_extra .
+eval cmake -G Ninja $cmake_flags $cmake_flags_extra -S . -B build
 status=$?
 if [ $status -ne 0 ]
 then
@@ -447,13 +447,12 @@ then
 fi
 
 # Run actual build.
-make_flags=-j$(nproc)
-echo [-] Running build with make flags [$make_flags]
-MAKEFLAGS=$make_flags cmake --build build
+echo [-] Running build
+cmake --build build -j$(nproc)
 status=$?
 if [ $status -ne 0 ]
 then
-	echo [!] Make failed with status [$status]
+	echo [!] Build failed with status [$status]
 	exit 4
 fi
 
@@ -536,15 +535,13 @@ else
 		# workaround until a newer version of openal-soft trickles down to Debian repos.
 		if [ -d "openal-soft-1.21.1" ]
 		then
-			rm -rf openal-soft-1.21.1/build/*
+			rm -rf openal-soft-1.21.1/build
 		else
 			wget -qO - https://github.com/kcat/openal-soft/archive/refs/tags/1.21.1.tar.gz | tar zxf -
 		fi
-		cd openal-soft-1.21.1/build
-		[ -e Makefile ] && make clean
-		cmake -G "Unix Makefiles" -D "CMAKE_TOOLCHAIN_FILE=$cwd_root/toolchain.cmake" -D "CMAKE_INSTALL_PREFIX=$cwd_root/archive_tmp/usr" ..
-		make -j$(nproc) install || exit 99
-		cd "$cwd_root"
+		cmake -G Ninja -D "CMAKE_TOOLCHAIN_FILE=$cwd_root/toolchain.cmake" -D "CMAKE_INSTALL_PREFIX=$cwd_root/archive_tmp/usr" -S openal-soft-1.21.1 -B openal-soft-1.21.1/build || exit 99
+		cmake --build openal-soft-1.21.1/build -j$(nproc) || exit 99
+		cmake --install openal-soft-1.21.1/build || exit 99
 
 		# Build SDL2 without sound systems.
 		sdl_ss=OFF
@@ -557,11 +554,9 @@ else
 		else
 			wget -qO - https://github.com/FNA-XNA/FAudio/archive/refs/tags/22.03.tar.gz | tar zxf -
 		fi
-		mkdir FAudio-22.03/build
-		cd FAudio-22.03/build
-		cmake -G "Unix Makefiles" -D "CMAKE_TOOLCHAIN_FILE=$cwd_root/toolchain.cmake" -D "CMAKE_INSTALL_PREFIX=$cwd_root/archive_tmp/usr" ..
-		make -j$(nproc) install || exit 99
-		cd "$cwd_root"
+		cmake -G Ninja -D "CMAKE_TOOLCHAIN_FILE=$cwd_root/toolchain.cmake" -D "CMAKE_INSTALL_PREFIX=$cwd_root/archive_tmp/usr" -S FAudio-22.03 -B FAudio-22.03/build || exit 99
+		cmake --build FAudio-22.03/build -j$(nproc) || exit 99
+		cmake --install FAudio-22.03/build || exit 99
 
 		# Build SDL2 with sound systems.
 		sdl_ss=ON
@@ -570,35 +565,33 @@ else
 	# Build rtmidi without JACK support to remove the dependency on libjack.
 	if [ -d "rtmidi-4.0.0" ]
 	then
-		rm -rf rtmidi-4.0.0/CMakeCache.txt rtmidi-4.0.0/CMakeFiles
+		rm -rf rtmidi-4.0.0/build
 	else
 		wget -qO - http://www.music.mcgill.ca/~gary/rtmidi/release/rtmidi-4.0.0.tar.gz | tar zxf -
 	fi
-	cwd_root=$(pwd)
-	cd rtmidi-4.0.0
-	[ -e Makefile ] && make clean
-	cmake -G "Unix Makefiles" -D RTMIDI_API_JACK=OFF -D "CMAKE_TOOLCHAIN_FILE=$cwd_root/toolchain.cmake" -D "CMAKE_INSTALL_PREFIX=$cwd_root/archive_tmp/usr" .
-	make -j$(nproc) install || exit 99
-	cd "$cwd_root"
+	cmake -G Ninja -D RTMIDI_API_JACK=OFF -D "CMAKE_TOOLCHAIN_FILE=$cwd_root/toolchain.cmake" -D "CMAKE_INSTALL_PREFIX=$cwd_root/archive_tmp/usr" -S rtmidi-4.0.0 -B rtmidi-4.0.0/build || exit 99
+	cmake --build rtmidi-4.0.0/build -j$(nproc) || exit 99
+	cmake --install rtmidi-4.0.0/build || exit 99
 
-	# Build SDL2 for joystick support with most components disabled to remove the dependencies on PulseAudio and libdrm.
+	# Build SDL2 for joystick and FAudio support, with most components
+	# disabled to remove the dependencies on PulseAudio and libdrm.
 	if [ ! -d "SDL2-2.0.20" ]
 	then
 		wget -qO - https://www.libsdl.org/release/SDL2-2.0.20.tar.gz | tar zxf -
 	fi
 	rm -rf sdlbuild
 	mkdir sdlbuild
-	cd sdlbuild
-	cmake -G "Unix Makefiles" -D SDL_DISKAUDIO=OFF -D SDL_DIRECTFB_SHARED=OFF -D SDL_OPENGL=OFF -D SDL_OPENGLES=OFF -D SDL_OSS=OFF -D SDL_ALSA=$sdl_ss \
-		-D SDL_ALSA_SHARED=$sdl_ss -D SDL_JACK=$sdl_ss -D SDL_JACK_SHARED=$sdl_ss -D SDL_ESD=OFF -D SDL_ESD_SHARED=OFF -D SDL_PIPEWIRE=$sdl_ss -D SDL_PIPEWIRE_SHARED=$sdl_ss \
-		-D SDL_PULSEAUDIO=$sdl_ss -D SDL_PULSEAUDIO_SHARED=$sdl_ss -D SDL_ARTS=OFF -D SDL_ARTS_SHARED=OFF -D SDL_NAS=$sdl_ss -D SDL_NAS_SHARED=$sdl_ss -D SDL_SNDIO=$sdl_ss \
-		-D SDL_SNDIO_SHARED=$sdl_ss -D SDL_FUSIONSOUND=OFF -D SDL_FUSIONSOUND_SHARED=OFF -D SDL_LIBSAMPLERATE=$sdl_ss -D SDL_LIBSAMPLERATE_SHARED=$sdl_ss -D SDL_X11=OFF \
-		-D SDL_X11_SHARED=OFF -D SDL_WAYLAND=OFF -D SDL_WAYLAND_SHARED=OFF -D SDL_WAYLAND_LIBDECOR=OFF -D SDL_WAYLAND_LIBDECOR_SHARED=OFF \
-		-D SDL_WAYLAND_QT_TOUCH=OFF -D SDL_RPI=OFF -D SDL_VIVANTE=OFF -D SDL_VULKAN=OFF -D SDL_KMSDRM=OFF -D SDL_KMSDRM_SHARED=OFF -D SDL_OFFSCREEN=OFF \
-		-D SDL_HIDAPI_JOYSTICK=ON -D SDL_VIRTUAL_JOYSTICK=ON -D SDL_SHARED=ON -D SDL_STATIC=OFF -S "$cwd_root/SDL2-2.0.20" \
-		-D "CMAKE_TOOLCHAIN_FILE=$cwd_root/toolchain.cmake" -D "CMAKE_INSTALL_PREFIX=$cwd_root/archive_tmp/usr"
-	make -j$(nproc) install || exit 99
-	cd "$cwd_root"
+	cmake -G Ninja -D SDL_DISKAUDIO=OFF -D SDL_DIRECTFB_SHARED=OFF -D SDL_OPENGL=OFF -D SDL_OPENGLES=OFF -D SDL_OSS=OFF -D SDL_ALSA=$sdl_ss \
+		-D SDL_ALSA_SHARED=$sdl_ss -D SDL_JACK=$sdl_ss -D SDL_JACK_SHARED=$sdl_ss -D SDL_ESD=OFF -D SDL_ESD_SHARED=OFF -D SDL_PIPEWIRE=$sdl_ss \
+		-D SDL_PIPEWIRE_SHARED=$sdl_ss -D SDL_PULSEAUDIO=$sdl_ss -D SDL_PULSEAUDIO_SHARED=$sdl_ss -D SDL_ARTS=OFF -D SDL_ARTS_SHARED=OFF \
+		-D SDL_NAS=$sdl_ss -D SDL_NAS_SHARED=$sdl_ss -D SDL_SNDIO=$sdl_ss -D SDL_SNDIO_SHARED=$sdl_ss -D SDL_FUSIONSOUND=OFF \
+		-D SDL_FUSIONSOUND_SHARED=OFF -D SDL_LIBSAMPLERATE=$sdl_ss -D SDL_LIBSAMPLERATE_SHARED=$sdl_ss -D SDL_X11=OFF -D SDL_X11_SHARED=OFF \
+		-D SDL_WAYLAND=OFF -D SDL_WAYLAND_SHARED=OFF -D SDL_WAYLAND_LIBDECOR=OFF -D SDL_WAYLAND_LIBDECOR_SHARED=OFF -D SDL_WAYLAND_QT_TOUCH=OFF \
+		-D SDL_RPI=OFF -D SDL_VIVANTE=OFF -D SDL_VULKAN=OFF -D SDL_KMSDRM=OFF -D SDL_KMSDRM_SHARED=OFF -D SDL_OFFSCREEN=OFF \
+		-D SDL_HIDAPI_JOYSTICK=ON -D SDL_VIRTUAL_JOYSTICK=ON -D SDL_SHARED=ON -D SDL_STATIC=OFF -S SDL2-2.0.20 -B sdlbuild \
+		-D "CMAKE_TOOLCHAIN_FILE=$cwd_root/toolchain.cmake" -D "CMAKE_INSTALL_PREFIX=$cwd_root/archive_tmp/usr" || exit 99
+	cmake --build sdlbuild -j$(nproc) || exit 99
+	cmake --install sdlbuild || exit 99
 
 	# Archive Discord Game SDK library.
 	7z e -y -o"archive_tmp/usr/lib" discord_game_sdk.zip "lib/$arch_discord/discord_game_sdk.so"
@@ -615,11 +608,11 @@ else
 		echo $pkg $version >> archive_tmp/README
 	done
 
-	# Archive icon, while also shrinking it to 512x512 if necessary.
-	convert src/win/assets/$project_lower.png -resize '512x512>' icon.png
-	icon_base="$(identify -format 'archive_tmp/usr/share/icons/%wx%h' icon.png)"
+	# Archive icons.
+	icon_base=archive_tmp/usr/share/icons
 	mkdir -p "$icon_base"
-	mv icon.png "$icon_base/$project_lower.png"
+	cp -rp src/unix/assets/[0-9]*x[0-9]* "$icon_base/"
+	icon_name=$(ls "$icon_base/"[0-9]*x[0-9]*/* | head -1 | grep -oP '/\K([^/]+)(?=\.[^\.]+$)')
 
 	# Archive executable, while also stripping it if requested.
 	mkdir -p archive_tmp/usr/local/bin
@@ -676,8 +669,8 @@ else
 	rm -rf "$project-"*".AppImage"
 
 	# Run appimage-builder in extract-and-run mode for Docker compatibility.
-	project="$project" project_lower="$project_lower" project_version="$project_version" arch_deb="$arch_deb" arch_appimage="$arch_appimage" \
-		APPIMAGE_EXTRACT_AND_RUN=1 ./appimage-builder.AppImage --recipe .ci/AppImageBuilder.yml
+	project="$project" project_lower="$project_lower" project_version="$project_version" project_icon="$icon_name" arch_deb="$arch_deb" \
+		arch_appimage="$arch_appimage" APPIMAGE_EXTRACT_AND_RUN=1 ./appimage-builder.AppImage --recipe .ci/AppImageBuilder.yml
 	status=$?
 
 	# Rename AppImage to the final name if the build succeeded.

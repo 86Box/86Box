@@ -560,12 +560,12 @@ cmi8x38_start_playback(cmi8x38_t *dev)
 
     i = !(val & 0x01);
     if (!dev->dma[0].playback_enabled && i)
-        timer_advance_u64(&dev->dma[0].poll_timer, dev->dma[0].timer_latch);
+        timer_set_delay_u64(&dev->dma[0].poll_timer, dev->dma[0].timer_latch);
     dev->dma[0].playback_enabled = i;
 
     i = !(val & 0x02);
     if (!dev->dma[1].playback_enabled && i)
-        timer_advance_u64(&dev->dma[1].poll_timer, dev->dma[1].timer_latch);
+        timer_set_delay_u64(&dev->dma[1].poll_timer, dev->dma[1].timer_latch);
     dev->dma[1].playback_enabled = i;
 }
 
@@ -722,10 +722,9 @@ cmi8x38_write(uint16_t addr, uint8_t val, void *priv)
             break;
 
         case 0x09:
-#if 0 /* actual CMI8338 behavior unconfirmed; this register is required for the Windows XP driver which outputs 96K */
-        if (dev->type == CMEDIA_CMI8338)
-            return;
-#endif
+            if (dev->type == CMEDIA_CMI8338)
+                return;
+
             /* Update sample rate. */
             dev->io_regs[addr] = val;
             cmi8x38_speed_changed(dev);
@@ -1043,22 +1042,28 @@ cmi8x38_dma_process(void *priv)
 
         /* Check if the fragment size was reached. */
         if (--dma->frame_count_fragment <= 0) {
-            cmi8x38_log("CMI8x38: DMA %d fragment size reached at %04X frames left", dma->id, dma->frame_count_dma - 1);
-
             /* Reset fragment counter. */
             dma->frame_count_fragment = *((uint16_t *) &dev->io_regs[dma->reg | 0x6]) + 1;
-
+#ifdef ENABLE_CMI8X38_LOG
+            if (dma->frame_count_fragment > 1) /* avoid log spam if fragment counting is unused, like on the newer WDM drivers (cmudax3) */
+                cmi8x38_log("CMI8x38: DMA %d fragment size reached at %04X frames left", dma->id, dma->frame_count_dma - 1);
+#endif
             /* Fire interrupt if requested. */
             if (dev->io_regs[0x0e] & dma_bit) {
-                cmi8x38_log(", firing interrupt\n");
-
+#ifdef ENABLE_CMI8X38_LOG
+                if (dma->frame_count_fragment > 1)
+                    cmi8x38_log(", firing interrupt\n");
+#endif
                 /* Set channel interrupt flag. */
                 dev->io_regs[0x10] |= dma_bit;
 
                 /* Fire interrupt. */
                 cmi8x38_update_irqs(dev);
             } else {
-                cmi8x38_log("\n");
+#ifdef ENABLE_CMI8X38_LOG
+                if (dma->frame_count_fragment > 1)
+                    cmi8x38_log("\n");
+#endif
             }
         }
 
@@ -1129,8 +1134,8 @@ cmi8x38_poll(void *priv)
             }
             break;
 
-        case 0x03: /* Stereo, 16-bit PCM */
-            switch (dma->channels) { /* multi-channel requires this data format */
+        case 0x03: /* Stereo, 16-bit PCM, with multi-channel capability */
+            switch (dma->channels) {
                 case 2:
                     if ((dma->fifo_end - dma->fifo_pos) >= 4) {
                         *out_l = *((uint16_t *) &dma->fifo[dma->fifo_pos & (sizeof(dma->fifo) - 1)]);
