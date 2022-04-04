@@ -13,7 +13,7 @@ gcc-objc 11.2.0-4
 gcc 11.2.0-4
 libgccjit 11.2.0-4
 tools-git 9.0.0.6357.eac8c38c1-1
-make 4.3-1
+ninja 1.10.2-3
 pkgconf 1.8.0-2
 openal 1.21.1-3
 libpng 1.6.37-6

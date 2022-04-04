@@ -15,9 +15,12 @@
  *		Copyright 2021-2022 RichardG.
  */
 
-def repository = 'https://github.com/86Box/86Box.git'
-def commitBrowser = 'https://github.com/86Box/86Box/commit/%s'
-def branch = 'master'
+/* ['main builds', 'branch builds'] */
+def repository = ['https://github.com/86Box/86Box.git', 'https://github.com/richardg867/86Box.git']
+def commitBrowser = ['https://github.com/86Box/86Box/commit/%s', null]
+def branch = ['master', 'cleanup30']
+def buildType = ['beta', 'alpha']
+def buildBranch = env.JOB_BASE_NAME.contains('-') ? 1 : 0
 
 def osArchs = [
 	'Windows': ['32', '64'],
@@ -152,8 +155,8 @@ pipeline {
 
 	parameters {
 		string(name: 'BUILD_TYPE',
-		       defaultValue: 'beta', /* !!! CHANGE HERE !!! for build type */
-		       description: "Build type to pass on to CMake. Should only be changed for one-off builds, otherwise change the default on .ci/Jenkinsfile")
+		       defaultValue: buildType[buildBranch],
+		       description: "Build type to pass on to CMake (on main builds) or feature branch identifier (on branch builds).")
 	}
 
 	stages {
@@ -186,11 +189,20 @@ pipeline {
 					retry(10) {
 						node('citadel && !Windows') {
 							/* Run git clone. */
-							gitClone(repository, branch)
+							gitClone(repository[buildBranch], branch[buildBranch])
 
 							/* Clean workspace, in case this is running in a non-build node. */
 							cleanWs()
 						}
+					}
+
+					/* Determine build metadata. */
+					def buildFlags = "-D \"BUILD_TYPE=$BUILD_TYPE\" -D \"EMU_BUILD=build ${env.BUILD_NUMBER}\" -D \"EMU_BUILD_NUM=${env.BUILD_NUMBER}\""
+					def buildSuffix = "-b${env.BUILD_NUMBER}"
+					if (buildBranch > 0) {
+						def date = new Date().format("yyyyMMdd")
+						buildFlags = "-D \"BUILD_TYPE=${buildType[buildBranch]}\" -D \"EMU_BUILD=${env.JOB_BASE_NAME.split('-')[1]} build $date.$BUILD_TYPE\""
+						buildSuffix = "-$date-$BUILD_TYPE"
 					}
 
 					/* Create source tarball. */
@@ -198,12 +210,12 @@ pipeline {
 						retry(10) {
 							node('Linux') {
 								/* Run git clone. */
-								gitClone(repository, branch)
+								gitClone(repository[buildBranch], branch[buildBranch])
 
 								/* Switch to temp directory. */
 								dir("${env.WORKSPACE_TMP}/output") {
 									/* Run source tarball creation process. */
-									def packageName = "${env.JOB_BASE_NAME}-Source-b${env.BUILD_NUMBER}"
+									def packageName = "${env.JOB_BASE_NAME}-Source$buildSuffix"
 									if (runBuild("-s \"$packageName\"") == 0) {
 										/* Archive resulting artifacts. */
 										archiveArtifacts artifacts: "$packageName*"
@@ -238,15 +250,15 @@ pipeline {
 												node(os) {
 													stage(combination) {
 														/* Run git clone. */
-														gitClone(repository, branch)
+														gitClone(repository[buildBranch], branch[buildBranch])
 
 														/* Switch to output directory. */
 														dir("${env.WORKSPACE_TMP}/output") {
 															/* Run build process. */
-															def packageName = "${env.JOB_BASE_NAME}${dynarecSlugs[dynarec]}${presetSlugs[preset]}-$os-$arch-b${env.BUILD_NUMBER}"
+															def packageName = "${env.JOB_BASE_NAME}${dynarecSlugs[dynarec]}${presetSlugs[preset]}-$os-$arch$buildSuffix"
 															def ret = -1
 															dir("${dynarecNames[dynarec]}/$os - ${archNames[arch]}") {
-																ret = runBuild("-b \"$packageName\" \"$arch\" ${presetFlags[preset]} ${dynarecFlags[dynarec]} ${osFlags[os]} -D \"BUILD_TYPE=$BUILD_TYPE\" -D \"EMU_BUILD=build ${env.BUILD_NUMBER}\" -D \"EMU_BUILD_NUM=${env.BUILD_NUMBER}\"")
+																ret = runBuild("-b \"$packageName\" \"$arch\" ${presetFlags[preset]} ${dynarecFlags[dynarec]} ${osFlags[os]} $buildFlags")
 															}
 
 															if (ret == 0) {
@@ -279,7 +291,7 @@ pipeline {
 		always {
 			script {
 				/* Send out build notifications. */
-				if (!env.JOB_BASE_NAME.contains('TestBuildPleaseIgnore')) {
+				if (commitBrowser[buildBranch]) {
 					try {
 						/* Notify Discord. */
 						def result = currentBuild.currentResult.toLowerCase()
@@ -290,7 +302,7 @@ pipeline {
 							    description: "**Status:** ${result}\n\u2060", /* word joiner character forces a blank line */
 							    enableArtifactsList: false,
 							    showChangeset: true,
-							    scmWebUrl: commitBrowser
+							    scmWebUrl: commitBrowser[buildBranch]
 
 						/* Notify IRC, which needs a node for whatever reason. */
 						node('citadel') {
