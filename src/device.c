@@ -374,6 +374,7 @@ int
 device_has_config(const device_t *d)
 {
     int c = 0;
+    device_config_t *config;
 
     if (d == NULL)
 	return 0;
