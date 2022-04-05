@@ -678,11 +678,25 @@ usage:
         char xdg_rom_path[1024] = { 0 };
         strncpy(xdg_rom_path, getenv("XDG_DATA_HOME"), 1024);
         plat_path_slash(xdg_rom_path);
-        strcat(xdg_rom_path, "86Box/roms/");
+        strncat(xdg_rom_path, "86Box/", 1024);
+
+        if (!plat_dir_check(xdg_rom_path))
+            plat_dir_create(xdg_rom_path);
+        strcat(xdg_rom_path, "roms/");
+
+        if (!plat_dir_check(xdg_rom_path))
+            plat_dir_create(xdg_rom_path);
         add_rom_path(xdg_rom_path);
     } else {
         char home_rom_path[1024] = { 0 };
-        snprintf(home_rom_path, 1024, "%s/.local/share/86Box/roms/", getenv("HOME") ? getenv("HOME") : getpwuid(getuid())->pw_dir);
+        snprintf(home_rom_path, 1024, "%s/.local/share/86Box/", getenv("HOME") ? getenv("HOME") : getpwuid(getuid())->pw_dir);
+
+        if (!plat_dir_check(home_rom_path))
+            plat_dir_create(home_rom_path);
+        strcat(home_rom_path, "roms/");
+
+        if (!plat_dir_check(home_rom_path))
+            plat_dir_create(home_rom_path);
         add_rom_path(home_rom_path);
     }
     if (getenv("XDG_DATA_DIRS")) {
