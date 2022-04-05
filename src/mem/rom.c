@@ -105,17 +105,54 @@ rom_fopen(char *fn, char *mode)
 int
 rom_getfile(char *fn, char *s, int size)
 {
-    FILE *f;
+    char temp[1024] = {'\0'};
+    char *fn2;
+    int retval = 0;
 
-    plat_append_filename(s, exe_path, fn);
+    if ((strstr(fn, "roms/") == fn) || (strstr(fn, "roms\\") == fn)) {
+    /* Relative path */
+    fn2 = (char *) malloc(strlen(fn) + 1);
+    memcpy(fn2, fn, strlen(fn) + 1);
 
-    f = plat_fopen(s, "rb");
-    if (f != NULL) {
-	(void)fclose(f);
-	return(1);
+    if (rom_paths.next) {
+        rom_path_t* cur_rom_path = &rom_paths;
+        memset(fn2, 0x00, strlen(fn) + 1);
+        memcpy(fn2, &(fn[5]), strlen(fn) - 4);
+
+        while (cur_rom_path->next) {
+            memset(temp, 0, sizeof(temp));
+            plat_append_filename(temp, cur_rom_path->rom_path, fn2);
+            if (rom_present(temp)) {
+                strncpy(s, temp, size);
+                retval = 1;
+                break;
+            }
+            cur_rom_path = cur_rom_path->next;
+        }
+    } else {
+        /* Make sure to make it a backslash, just in case there's malformed
+           code calling us that assumes Windows. */
+        if (fn2[4] == '\\')
+            fn2[4] = '/';
+
+        plat_append_filename(temp, exe_path, fn2);
+        if (rom_present(temp)) {
+            strncpy(s, temp, size);
+            retval = 1;
+        }
     }
 
-    return(0);
+    free(fn2);
+    fn2 = NULL;
+    } else {
+        /* Absolute path */
+        if (rom_present(fn)) {
+            strncpy(s, fn, size);
+            retval = 1;
+        }
+    }
+
+    return(retval);
 }
 
 
