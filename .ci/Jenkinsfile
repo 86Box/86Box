@@ -16,20 +16,22 @@
  */
 
 /* ['main builds', 'branch builds'] */
-def repository = ['https://github.com/86Box/86Box.git', 'https://github.com/richardg867/86Box.git']
+def repository = ['https://github.com/86Box/86Box.git', scm.userRemoteConfigs[0].url]
 def commitBrowser = ['https://github.com/86Box/86Box/commit/%s', null]
-def branch = ['master', 'cleanup30']
+def branch = ['master', scm.branches[0].name]
 def buildType = ['beta', 'alpha']
 def buildBranch = env.JOB_BASE_NAME.contains('-') ? 1 : 0
 
 def osArchs = [
 	'Windows': ['32', '64'],
-	'Linux': ['x86', 'x86_64', 'arm32', 'arm64']
+	'Linux': ['x86', 'x86_64', 'arm32', 'arm64'],
+	'macOS': ['x86_64']
 ]
 
 def osFlags = [
 	'Windows': '-D QT=ON',
-	'Linux': '-D QT=ON'
+	'Linux': '-D QT=ON',
+	'macOS': '-D QT=ON'
 ]
 
 def archNames = [
@@ -39,6 +41,11 @@ def archNames = [
 	'x86_64': 'x64 (64-bit)',
 	'arm32': 'ARM (32-bit)',
 	'arm64': 'ARM (64-bit)'
+]
+
+def archNamesMac = [
+	'x86_64': 'Intel',
+	'arm64': 'Apple Silicon'
 ]
 
 def dynarecNames = [
@@ -53,9 +60,7 @@ def dynarecArchs = [
 	'64': ['ODR', 'NDR'],
 	'x86_64': ['ODR', 'NDR'],
 	'arm32': ['NDR'],
-	'ARM32': ['NDR'],
-	'arm64': ['NDR'],
-	'ARM64': ['NDR']
+	'arm64': ['NDR']
 ]
 
 def dynarecFlags = [
@@ -238,7 +243,7 @@ pipeline {
 					osArchs.each { os, thisOsArchs ->
 						def combinations = [:]
 						thisOsArchs.each { arch ->
-							def thisArchDynarecs = dynarecArchs[arch]
+							def thisArchDynarecs = dynarecArchs[arch.toLowerCase()]
 							if (!thisArchDynarecs)
 								thisArchDynarecs = ['NoDR']
 							thisArchDynarecs.each { dynarec ->
@@ -257,7 +262,10 @@ pipeline {
 															/* Run build process. */
 															def packageName = "${env.JOB_BASE_NAME}${dynarecSlugs[dynarec]}${presetSlugs[preset]}-$os-$arch$buildSuffix"
 															def ret = -1
-															dir("${dynarecNames[dynarec]}/$os - ${archNames[arch]}") {
+															def archName = archNames[arch]
+															if (os == 'macOS')
+																archName = archNamesMac[arch]
+															dir("${dynarecNames[dynarec]}/$os - $archName") {
 																ret = runBuild("-b \"$packageName\" \"$arch\" ${presetFlags[preset]} ${dynarecFlags[dynarec]} ${osFlags[os]} $buildFlags")
 															}
 
