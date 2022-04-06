@@ -333,6 +333,9 @@ then
 
 	# Point CMake to the toolchain file.
 	[ -e "cmake/$toolchain.cmake" ] && cmake_flags_extra="$cmake_flags_extra -D \"CMAKE_TOOLCHAIN_FILE=cmake/$toolchain.cmake\""
+
+	# Use OpenAL.
+	cmake_flags_extra="$cmake_flags_extra -D OPENAL=ON"
 else
 	# Determine Debian architecture.
 	case $arch in
