@@ -589,7 +589,10 @@ plat_chdir(char *path)
 void
 plat_init_rom_paths()
 {
-#if !defined __APPLE__ && !defined _WIN32
+#if defined __APPLE__
+    QDir::root().mkpath(QStringLiteral("%1/Documents/86Box/roms/").arg(QDir::homePath()));
+    add_rom_path(QStringLiteral("%1/Documents/86Box/roms/").arg(QDir::homePath()).toUtf8().constData());
+#elif !defined _WIN32
     if (getenv("XDG_DATA_HOME")) {
         char xdg_rom_path[1024] = { 0 };
         strncpy(xdg_rom_path, getenv("XDG_DATA_HOME"), 1024);

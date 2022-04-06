@@ -796,6 +796,13 @@ plat_init_rom_paths()
         add_rom_path("/usr/local/share/86Box/roms/");
         add_rom_path("/usr/share/86Box/roms/");
     }
+#else
+    char home_rom_path[1024] = { '\0' };
+    snprintf(home_rom_path, 1024, "%s/Documents/86Box/", getenv("HOME") ? getenv("HOME") : getpwuid(getuid())->pw_dir);
+    plat_dir_create(home_rom_path);
+    strcat(home_rom_path, "roms/");
+    plat_dir_create(home_rom_path);
+    add_rom_path(home_rom_path);
 #endif
 }
 
