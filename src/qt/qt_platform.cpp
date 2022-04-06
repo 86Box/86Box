@@ -623,7 +623,7 @@ plat_init_rom_paths()
             while (xdg_rom_paths[strlen(xdg_rom_paths) - 1] == ':') {
                 xdg_rom_paths[strlen(xdg_rom_paths) - 1] = '\0';
             }
-            QStringList path_list = QString(xdg_rom_paths).split(":", Qt::SkipEmptyParts);
+            QStringList path_list = QString(xdg_rom_paths).split(":");
             for (auto& cur_path : path_list) {
                 if (cur_path.right(1) != '/')
                     cur_path.push_back('/');
