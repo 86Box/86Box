@@ -48,6 +48,8 @@ typedef struct rom_path_t {
 
 extern rom_path_t rom_paths;
 
+extern void add_rom_path(const char* path);
+
 extern uint8_t	rom_read(uint32_t addr, void *p);
 extern uint16_t	rom_readw(uint32_t addr, void *p);
 extern uint32_t	rom_readl(uint32_t addr, void *p);
