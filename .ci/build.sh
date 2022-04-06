@@ -32,7 +32,11 @@
 #     are configured as NOPASSWD in /etc/sudoers if you're doing unattended builds
 # - For macOS builds:
 #   - A standard MacPorts installation is required, with the following macports.conf settings:
-#       
+#       buildfromsource always
+#       build_arch x86_64 (or arm64)
+#       universal_archs (blank)
+#       ui_interactive no
+#       macosx_deployment_target 10.13
 #   - port is called through sudo to manage dependencies; make sure it is configured
 #     as NOPASSWD in /etc/sudoers if you're doing unattended builds
 #
@@ -551,7 +555,7 @@ then
 	if [ $status -eq 0 ]
 	then
 		# Archive Discord Game SDK library.
-		unzip discord_game_sdk.zip "lib/$arch_discord/discord_game_sdk.dylib" -d "archive_tmp/"*".app/Contents/Frameworks"
+		unzip -j discord_game_sdk.zip "lib/$arch_discord/discord_game_sdk.dylib" -d "archive_tmp/"*".app/Contents/Frameworks"
 		[ ! -e "archive_tmp/"*".app/Contents/Frameworks/discord_game_sdk.dylib" ] && echo [!] No Discord Game SDK for architecture [$arch_discord]
 
 		# Sign app bundle.
