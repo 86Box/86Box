@@ -377,7 +377,7 @@ extern "C++"
     {
         {0x0405, {"cs-CZ", "Czech (Czech Republic)"} },
         {0x0407, {"de-DE", "German (Germany)"} },
-        {0x0408, {"en-US", "English (United States)"} },
+        {0x0409, {"en-US", "English (United States)"} },
         {0x0809, {"en-GB", "English (United Kingdom)"} },
         {0x0C0A, {"es-ES", "Spanish (Spain)"} },
         {0x040B, {"fi-FI", "Finnish (Finland)"} },
@@ -594,7 +594,7 @@ plat_init_rom_paths()
     add_rom_path(QStringLiteral("%1/Documents/86Box/roms/").arg(QDir::homePath()).toUtf8().constData());
 #elif !defined _WIN32
     if (getenv("XDG_DATA_HOME")) {
-        char xdg_rom_path[1024] = { 0 };
+        char xdg_rom_path[1024 + 1] = { 0 };
         strncpy(xdg_rom_path, getenv("XDG_DATA_HOME"), 1024);
         plat_path_slash(xdg_rom_path);
         strncat(xdg_rom_path, "86Box/", 1024);
