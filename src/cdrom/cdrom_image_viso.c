@@ -358,7 +358,7 @@ viso_fill_fn_rr(uint8_t *data, const viso_entry_t *entry, size_t max_len)
         viso_write_string(data, entry->basename, max_len, VISO_CHARSET_FN);
 
         /* Relocate extension if the original name exceeds the maximum length. */
-        if (!S_ISDIR(entry->stats.st_mode)) {
+        if (!S_ISDIR(entry->stats.st_mode)) { /* do this on files only */
             char *ext = strrchr(entry->basename, '.');
             if (ext > entry->basename) {
                 len = strlen(ext);
@@ -389,16 +389,14 @@ viso_fill_fn_joliet(uint8_t *data, const viso_entry_t *entry, size_t max_len) /*
         viso_write_wstring((uint16_t *) data, utf8dec, max_len, VISO_CHARSET_FN);
 
         /* Relocate extension if the original name exceeds the maximum length. */
-        if (!S_ISDIR(entry->stats.st_mode)) {
+        if (!S_ISDIR(entry->stats.st_mode)) { /* do this on files only */
             wchar_t *ext = wcsrchr(utf8dec, L'.');
             if (ext > utf8dec) {
-                len = 0;
-                for (size_t i = 0; ext[i]; i++)
-                    len += 1 + ((ext[i] >= 0x10000) && (ext[i] <= 0x10ffff));
+                len = wcslen(ext);
                 if (len > max_len)
                     len = max_len;
-                else if ((len < max_len) && ((((uint16_t *) data)[max_len - len] & be16_to_cpu(0xfc00)) == be16_to_cpu(0xdc00))) /* don't break an UTF-16 pair */
-                    max_len--;
+                else if ((len < max_len) && ((((uint16_t *) data)[max_len - len] & be16_to_cpu(0xfc00)) == be16_to_cpu(0xdc00)))
+                    max_len--; /* don't break an UTF-16 pair */
                 viso_write_wstring(((uint16_t *) data) + (max_len - len), ext, len, VISO_CHARSET_FN);
             }
         }
@@ -480,7 +478,7 @@ viso_fill_dir_record(uint8_t *data, viso_entry_t *entry, int format, int type)
             break;
 
         case VISO_DIR_REGULAR:
-            q = p++; /* save location of the file ID length for later */
+            q = p++; /* save file ID length location for later */
 
             *q = strlen(entry->name_short);
             memcpy(p, entry->name_short, *q); /* file ID */
@@ -501,7 +499,7 @@ viso_fill_dir_record(uint8_t *data, viso_entry_t *entry, int format, int type)
                 *p++ = 5; /* length */
                 *p++ = 1; /* version */
 
-                q = p++; /* save location of Rock Ridge flags for later */
+                q = p++; /* save Rock Ridge flags location for later */
 
 #ifndef _WIN32              /* attributes reported by MinGW don't really make sense because it's Windows */
                 *q |= 0x01; /* PX = POSIX attributes */
@@ -533,36 +531,39 @@ viso_fill_dir_record(uint8_t *data, viso_entry_t *entry, int format, int type)
                     VISO_LBE_32(p, dev);                 /* device number (low 32 bits) */
                 }
 #endif
-                if (VISO_TIME_VALID(entry->stats.st_mtime) || VISO_TIME_VALID(entry->stats.st_atime) || VISO_TIME_VALID(entry->stats.st_ctime)) {
+                int times = (VISO_TIME_VALID(entry->stats.st_mtime) << 1) | /* modify */
+                    (VISO_TIME_VALID(entry->stats.st_atime) << 2) |         /* access */
+                    (VISO_TIME_VALID(entry->stats.st_ctime) << 3);          /* attributes */
+                if (times) {
                     *q |= 0x80; /* TF = timestamps */
                     *p++ = 'T';
                     *p++ = 'F';
-                    *p++ = 5 + (7 * (VISO_TIME_VALID(entry->stats.st_mtime) +  /* length: modify */
-                                     VISO_TIME_VALID(entry->stats.st_atime) +  /* + access */
-                                     VISO_TIME_VALID(entry->stats.st_ctime))); /* + attributes */
-                    *p++ = 1;                                                  /* version */
+                    r    = p; /* save length location for later */
+                    *p++ = 2; /* length (added to later) */
+                    *p++ = 1; /* version */
 
-                    *p++ = (VISO_TIME_VALID(entry->stats.st_mtime) << 1) | /* flags: modify */
-                        (VISO_TIME_VALID(entry->stats.st_atime) << 2) |    /* + access */
-                        (VISO_TIME_VALID(entry->stats.st_ctime) << 3);     /* + attributes */
-                    if (VISO_TIME_VALID(entry->stats.st_mtime))
+                    *p++ = times; /* flags */
+                    if (times & (1 << 1))
                         p += viso_fill_time(p, entry->stats.st_mtime, format, 0); /* modify */
-                    if (VISO_TIME_VALID(entry->stats.st_atime))
+                    if (times & (1 << 2))
                         p += viso_fill_time(p, entry->stats.st_atime, format, 0); /* access */
-                    if (VISO_TIME_VALID(entry->stats.st_ctime))
+                    if (times & (1 << 3))
                         p += viso_fill_time(p, entry->stats.st_ctime, format, 0); /* attributes */
+
+                    *r += p - r; /* add to length */
                 }
 
                 *q |= 0x08; /* NM = alternate name */
                 *p++ = 'N';
                 *p++ = 'M';
-                r    = p++; /* save location of the length for later */
-                *r   = 5;   /* length */
-                *p++ = 1;   /* version */
+                r    = p; /* save length location for later */
+                *p++ = 2; /* length (added to later) */
+                *p++ = 1; /* version */
 
-                *p++ = 0;                                          /* flags */
-                *r += viso_fill_fn_rr(p, entry, 254 - (p - data)); /* name */
-                p += *r - 5;
+                *p++ = 0;                                         /* flags */
+                p += viso_fill_fn_rr(p, entry, 254 - (p - data)); /* name */
+
+                *r += p - r; /* add to length */
 pad_susp:
                 if ((p - data) & 1) /* padding for odd SUSP section lengths */
                     *p++ = 0;
@@ -570,7 +571,7 @@ pad_susp:
             break;
 
         case VISO_DIR_JOLIET:
-            q = p++; /* save location of the file ID length for later */
+            q = p++; /* save file ID length location for later */
 
             *q = viso_fill_fn_joliet(p, entry, 254 - (p - data));
             p += *q;
