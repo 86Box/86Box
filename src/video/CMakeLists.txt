@@ -47,9 +47,3 @@ add_library(voodoo OBJECT vid_voodoo.c vid_voodoo_banshee.c
 if(NOT MSVC AND (ARCH STREQUAL "i386" OR ARCH STREQUAL "x86_64"))
     target_compile_options(voodoo PRIVATE "-msse2")
 endif()
-
-# Suppress GCC false positive warnings in vid_voodoo_codegen_x86[-64].h
-# that cause ~3000 lines to be output into the logs each time
-if(CMAKE_C_COMPILER_ID STREQUAL "GNU")
-    target_compile_options(voodoo PRIVATE "-Wstringop-overflow=0")
-endif()
