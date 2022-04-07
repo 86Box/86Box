@@ -384,48 +384,6 @@ pc_log(const char *fmt, ...)
 #define pc_log(fmt, ...)
 #endif
 
-void
-add_rom_path(const char* path)
-{
-    static char cwd[1024];
-    memset(cwd, 0x00, sizeof(cwd));
-    rom_path_t* cur_rom_path = &rom_paths;
-    while (cur_rom_path->next != NULL) {
-        cur_rom_path = cur_rom_path->next;
-    }
-    if (!plat_path_abs((char*)path)) {
-        /*
-         * This looks like a relative path.
-         *
-         * Add it to the current working directory
-         * to convert it (back) to an absolute path.
-         */
-        plat_getcwd(cwd, 1024);
-        plat_path_slash(cwd);
-        snprintf(cur_rom_path->rom_path, 1024, "%s%s%c", cwd, path, 0);
-    }
-    else {
-        /*
-         * The user-provided path seems like an
-         * absolute path, so just use that.
-         */
-        strncpy(cur_rom_path->rom_path, path, 1024);
-    }
-    plat_path_slash(cur_rom_path->rom_path);
-    cur_rom_path->next = calloc(1, sizeof(rom_path_t));
-}
-
-// Copied over from Unix code, which in turn is lifted from musl. Needed for parsing XDG_DATA_DIRS.
-static char *local_strsep(char **str, const char *sep)
-{
-    char *s = *str, *end;
-    if (!s) return NULL;
-    end = s + strcspn(s, sep);
-    if (*end) *end++ = 0;
-    else end = 0;
-    *str = end;
-    return s;
-}
 
 /*
  * Perform initial startup of the PC.
@@ -539,7 +497,7 @@ usage:
 			if ((c+1) == argc) goto usage;
 
 			strcpy(path2, argv[++c]);
-            add_rom_path(path2);
+            rom_add_path(path2);
 		} else if (!strcasecmp(argv[c], "--config") ||
 			   !strcasecmp(argv[c], "-C")) {
 			if ((c+1) == argc) goto usage;
@@ -641,7 +599,7 @@ usage:
         plat_path_slash(vmrppath);
         strcat(vmrppath, "roms");
         plat_path_slash(vmrppath);
-        add_rom_path(vmrppath);
+        rom_add_path(vmrppath);
         if (path2[0] == '\0') {
             strcpy(path2, vmrppath);
         }
@@ -650,13 +608,13 @@ usage:
     {
         char default_rom_path[1024] = { 0 };
 #if !defined(_WIN32) && !defined(__APPLE__)
-		appimage = getenv("APPIMAGE");
-		if (appimage && (appimage[0] != '\0')) {
+        appimage = getenv("APPIMAGE");
+        if (appimage && (appimage[0] != '\0')) {
             plat_get_dirname(default_rom_path, appimage);
             plat_path_slash(default_rom_path);
             strcat(default_rom_path, "roms");
             plat_path_slash(default_rom_path);
-		}
+        }
 #endif
         if (default_rom_path[0] == '\0') {
             plat_getcwd(default_rom_path, 1024);
@@ -664,11 +622,11 @@ usage:
             snprintf(default_rom_path, 1024, "%s%s%c", default_rom_path, "roms", 0);
             plat_path_slash(default_rom_path);
         }
-        add_rom_path(default_rom_path);
+        rom_add_path(default_rom_path);
         if (path2[0] == '\0') {
             strcpy(path2, default_rom_path);
         }
-	}
+    }
 
     plat_init_rom_paths();
 
@@ -771,7 +729,7 @@ usage:
     if (rom_paths.next) {
         rom_path_t* cur_rom_path = &rom_paths;
         while (cur_rom_path->next) {
-            pclog("# ROM path: %s\n", cur_rom_path->rom_path);
+            pclog("# ROM path: %s\n", cur_rom_path->path);
             cur_rom_path = cur_rom_path->next;
         }
     }

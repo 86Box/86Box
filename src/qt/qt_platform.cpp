@@ -602,6 +602,6 @@ plat_init_rom_paths()
 #endif
 
     for (auto& path : paths) {
-        add_rom_path(QDir(path).filePath("86Box/roms").toUtf8().constData());
+        rom_add_path(QDir(path).filePath("86Box/roms").toUtf8().constData());
     }
 }

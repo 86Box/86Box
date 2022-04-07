@@ -766,7 +766,7 @@ plat_init_rom_paths()
 
         if (!plat_dir_check(xdg_rom_path))
             plat_dir_create(xdg_rom_path);
-        add_rom_path(xdg_rom_path);
+        rom_add_path(xdg_rom_path);
     } else {
         char home_rom_path[1024] = { 0 };
         snprintf(home_rom_path, 1024, "%s/.local/share/86Box/", getenv("HOME") ? getenv("HOME") : getpwuid(getuid())->pw_dir);
@@ -777,7 +777,7 @@ plat_init_rom_paths()
 
         if (!plat_dir_check(home_rom_path))
             plat_dir_create(home_rom_path);
-        add_rom_path(home_rom_path);
+        rom_add_path(home_rom_path);
     }
     if (getenv("XDG_DATA_DIRS")) {
         char* xdg_rom_paths = strdup(getenv("XDG_DATA_DIRS"));
@@ -792,18 +792,18 @@ plat_init_rom_paths()
                 strcat(real_xdg_rom_path, cur_xdg_rom_path);
                 plat_path_slash(real_xdg_rom_path);
                 strcat(real_xdg_rom_path, "86Box/roms/");
-                add_rom_path(real_xdg_rom_path);
+                rom_add_path(real_xdg_rom_path);
             }
         }
         free(xdg_rom_paths_orig);
     } else {
-        add_rom_path("/usr/local/share/86Box/roms/");
-        add_rom_path("/usr/share/86Box/roms/");
+        rom_add_path("/usr/local/share/86Box/roms/");
+        rom_add_path("/usr/share/86Box/roms/");
     }
 #else
     char default_rom_path[1024] = { '\0 '};
     getDefaultROMPath(default_rom_path);
-    add_rom_path(default_rom_path);
+    rom_path_add(default_rom_path);
 #endif
 }
 
