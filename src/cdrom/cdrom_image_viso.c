@@ -417,7 +417,7 @@ viso_fill_time(uint8_t *data, time_t time, int format, int longform)
         fatal("VISO: localtime(%d) = NULL\n", time);
 
     if (longform) {
-        p += sprintf((char *) p, "%04d%02d%02d%02d%02d%02d00",
+        p += sprintf((char *) p, "%04u%02u%02u%02u%02u%02u00",
                      1900 + time_s->tm_year, 1 + time_s->tm_mon, time_s->tm_mday,
                      time_s->tm_hour, time_s->tm_min, time_s->tm_sec);
     } else {
@@ -533,7 +533,12 @@ viso_fill_dir_record(uint8_t *data, viso_entry_t *entry, int format, int type)
 #endif
                 int times = (VISO_TIME_VALID(entry->stats.st_mtime) << 1) | /* modify */
                     (VISO_TIME_VALID(entry->stats.st_atime) << 2) |         /* access */
-                    (VISO_TIME_VALID(entry->stats.st_ctime) << 3);          /* attributes */
+                    (VISO_TIME_VALID(entry->stats.st_ctime) << 3) |         /* attributes */
+#ifdef st_birthtime
+                    (VISO_TIME_VALID(entry->stats.st_birthtime) << 0); /* creation (assume the platform remaps st_birthtime to something else) */
+#else
+                    0;
+#endif
                 if (times) {
                     *q |= 0x80; /* TF = timestamps */
                     *p++ = 'T';
@@ -543,6 +548,10 @@ viso_fill_dir_record(uint8_t *data, viso_entry_t *entry, int format, int type)
                     *p++ = 1; /* version */
 
                     *p++ = times; /* flags */
+#ifdef st_birthtime
+                    if (times & (1 << 0))
+                        p += viso_fill_time(p, entry->stats.st_birthtime, format, 0); /* creation */
+#endif
                     if (times & (1 << 1))
                         p += viso_fill_time(p, entry->stats.st_mtime, format, 0); /* modify */
                     if (times & (1 << 2))
