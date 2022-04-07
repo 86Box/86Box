@@ -330,15 +330,20 @@ then
 	# macOS lacks nproc, but sysctl can do the same job.
 	alias nproc='sysctl -n hw.logicalcpu'
 
+	# Locate the MacPorts prefix.
+	macports="/opt/local"
+	[ -e "/opt/$arch/bin/port" ] && macports="/opt/$arch"
+	[ "$arch" = "x86_64" -a -e "/opt/intel/bin/port" ] && macports="/opt/intel"
+
 	# Install dependencies.
 	echo [-] Installing dependencies through MacPorts
-	sudo port selfupdate
-	sudo port install $(cat .ci/dependencies_macports.txt)
+	sudo $macports/bin/port selfupdate
+	sudo $macports/bin/port install $(cat .ci/dependencies_macports.txt)
 
 	# Point CMake to the toolchain file.
 	[ -e "cmake/$toolchain.cmake" ] && cmake_flags_extra="$cmake_flags_extra -D \"CMAKE_TOOLCHAIN_FILE=cmake/$toolchain.cmake\""
 
-	# Use OpenAL.
+	# Use OpenAL as MacPorts doesn't package FAudio.
 	cmake_flags_extra="$cmake_flags_extra -D OPENAL=ON"
 else
 	# Determine Debian architecture.
