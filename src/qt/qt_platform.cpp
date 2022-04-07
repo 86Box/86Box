@@ -88,6 +88,8 @@ extern "C" {
 #include <86box/timer.h>
 #include <86box/nvr.h>
 #include <86box/plat_dynld.h>
+#include <86box/mem.h>
+#include <86box/rom.h>
 #include <86box/config.h>
 #include <86box/ui.h>
 #include <86box/discord.h>
@@ -382,7 +384,7 @@ extern "C++"
     {
         {0x0405, {"cs-CZ", "Czech (Czech Republic)"} },
         {0x0407, {"de-DE", "German (Germany)"} },
-        {0x0408, {"en-US", "English (United States)"} },
+        {0x0409, {"en-US", "English (United States)"} },
         {0x0809, {"en-GB", "English (United Kingdom)"} },
         {0x0C0A, {"es-ES", "Spanish (Spain)"} },
         {0x040B, {"fi-FI", "Finnish (Finland)"} },
@@ -589,4 +591,64 @@ int
 plat_chdir(char *path)
 {
     return QDir::setCurrent(QString(path)) ? 0 : -1;
+}
+
+void
+plat_init_rom_paths()
+{
+#if defined __APPLE__
+    QDir::root().mkpath(QStringLiteral("%1/Documents/86Box/roms/").arg(QDir::homePath()));
+    add_rom_path(QStringLiteral("%1/Documents/86Box/roms/").arg(QDir::homePath()).toUtf8().constData());
+#elif !defined _WIN32
+    if (getenv("XDG_DATA_HOME")) {
+        char xdg_rom_path[1024 + 1] = { 0 };
+        strncpy(xdg_rom_path, getenv("XDG_DATA_HOME"), 1024);
+        plat_path_slash(xdg_rom_path);
+        strncat(xdg_rom_path, "86Box/", 1024);
+
+        if (!plat_dir_check(xdg_rom_path))
+            plat_dir_create(xdg_rom_path);
+        strcat(xdg_rom_path, "roms/");
+
+        if (!plat_dir_check(xdg_rom_path))
+            plat_dir_create(xdg_rom_path);
+        add_rom_path(xdg_rom_path);
+    } else {
+        char home_rom_path[1024] = { 0 };
+        snprintf(home_rom_path, 1024, "%s/.local/share/86Box/", getenv("HOME") ? getenv("HOME") : QDir::homePath().toUtf8().constData());
+
+        if (!plat_dir_check(home_rom_path))
+            plat_dir_create(home_rom_path);
+        strcat(home_rom_path, "roms/");
+
+        if (!plat_dir_check(home_rom_path))
+            plat_dir_create(home_rom_path);
+        add_rom_path(home_rom_path);
+    }
+    if (getenv("XDG_DATA_DIRS")) {
+        char* xdg_rom_paths = strdup(getenv("XDG_DATA_DIRS"));
+        char* xdg_rom_paths_orig = xdg_rom_paths;
+        char* cur_xdg_rom_path = NULL;
+        if (xdg_rom_paths) {
+            while (xdg_rom_paths[strlen(xdg_rom_paths) - 1] == ':') {
+                xdg_rom_paths[strlen(xdg_rom_paths) - 1] = '\0';
+            }
+            QStringList path_list = QString(xdg_rom_paths).split(":");
+            for (auto& cur_path : path_list) {
+                if (cur_path.right(1) != '/')
+                    cur_path.push_back('/');
+                add_rom_path((cur_path + "86Box/roms").toUtf8().constData());
+            }
+        }
+        free(xdg_rom_paths_orig);
+    } else {
+        add_rom_path("/usr/local/share/86Box/roms/");
+        add_rom_path("/usr/share/86Box/roms/");
+    }
+#elif _WIN32
+    auto appDataDir = QDir(qEnvironmentVariable("LOCALAPPDATA"));
+    appDataDir.mkdir("86Box");
+    appDataDir.mkdir("86Box/roms");
+    add_rom_path((appDataDir.path().replace("\\","/") + "/86Box/roms").toUtf8().constData());
+#endif
 }

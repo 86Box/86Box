@@ -104,6 +104,7 @@ extern int	plat_getcwd(char *bufp, int max);
 extern int	plat_chdir(char *path);
 extern void	plat_tempfile(char *bufp, char *prefix, char *suffix);
 extern void	plat_get_exe_name(char *s, int size);
+extern void plat_init_rom_paths();
 extern char	*plat_get_basename(const char *path);
 extern void	plat_get_dirname(char *dest, const char *path);
 extern char	*plat_get_filename(char *s);
