@@ -62,14 +62,18 @@ rom_add_path(const char* path)
 {
     char cwd[1024] = { 0 };
 
-    // Iterate to the end of the list.
     rom_path_t* rom_path = &rom_paths;
-    while (rom_path->next != NULL) {
-        rom_path = rom_path->next;
-    }
 
-    // Allocate the new entry.
-    rom_path = rom_path->next = calloc(1, sizeof(rom_path_t));
+    if (rom_paths.path[0] != '\0')
+    {
+        // Iterate to the end of the list.
+        while (rom_path->next != NULL) {
+            rom_path = rom_path->next;
+        }
+
+        // Allocate the new entry.
+        rom_path = rom_path->next = calloc(1, sizeof(rom_path_t));
+    }
 
     // Save the path, turning it into absolute if needed.
     if (!plat_path_abs((char*) path)) {
