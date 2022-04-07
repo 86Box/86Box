@@ -531,14 +531,13 @@ viso_fill_dir_record(uint8_t *data, viso_entry_t *entry, int format, int type)
                     VISO_LBE_32(p, dev);                 /* device number (low 32 bits) */
                 }
 #endif
-                int times = (VISO_TIME_VALID(entry->stats.st_mtime) << 1) | /* modify */
-                    (VISO_TIME_VALID(entry->stats.st_atime) << 2) |         /* access */
-                    (VISO_TIME_VALID(entry->stats.st_ctime) << 3) |         /* attributes */
+                int times =
 #ifdef st_birthtime
-                    (VISO_TIME_VALID(entry->stats.st_birthtime) << 0); /* creation (assume the platform remaps st_birthtime to something else) */
-#else
-                    0;
+                    (VISO_TIME_VALID(entry->stats.st_birthtime) << 0) | /* creation (hack: assume the platform remaps st_birthtime at header level) */
 #endif
+                    (VISO_TIME_VALID(entry->stats.st_mtime) << 1) | /* modify */
+                    (VISO_TIME_VALID(entry->stats.st_atime) << 2) | /* access */
+                    (VISO_TIME_VALID(entry->stats.st_ctime) << 3);  /* attributes */
                 if (times) {
                     *q |= 0x80; /* TF = timestamps */
                     *p++ = 'T';
