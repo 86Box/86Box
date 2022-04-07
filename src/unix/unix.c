@@ -36,6 +36,10 @@
 #include <86box/ui.h>
 #include <86box/gdbstub.h>
 
+#ifdef __APPLE__
+#include "macOSXGlue.h"
+#endif
+
 static int	first_use = 1;
 static uint64_t	StartingTime;
 static uint64_t Frequency;
@@ -797,12 +801,9 @@ plat_init_rom_paths()
         add_rom_path("/usr/share/86Box/roms/");
     }
 #else
-    char home_rom_path[1024] = { '\0' };
-    snprintf(home_rom_path, 1024, "%s/Documents/86Box/", getenv("HOME") ? getenv("HOME") : getpwuid(getuid())->pw_dir);
-    plat_dir_create(home_rom_path);
-    strcat(home_rom_path, "roms/");
-    plat_dir_create(home_rom_path);
-    add_rom_path(home_rom_path);
+    char default_rom_path[1024] = { '\0 '};
+    getDefaultROMPath(default_rom_path);
+    add_rom_path(default_rom_path);
 #endif
 }
 

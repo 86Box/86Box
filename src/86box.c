@@ -37,7 +37,6 @@
 #ifdef __APPLE__
 #include <string.h>
 #include <dispatch/dispatch.h>
-#include "mac/macOSXGlue.h"
 #ifdef __aarch64__
 #include <pthread.h>
 #endif
@@ -650,9 +649,7 @@ usage:
 
     {
         char default_rom_path[1024] = { 0 };
-#if defined(__APPLE__)
-        getDefaultROMPath(default_rom_path);
-#elif !defined(_WIN32)
+#if !defined(_WIN32) && !defined(__APPLE__)
 		appimage = getenv("APPIMAGE");
 		if (appimage && (appimage[0] != '\0')) {
             plat_get_dirname(default_rom_path, appimage);
