@@ -413,6 +413,14 @@ pc_init(int argc, char *argv[])
 	p = plat_get_filename(exe_path);
 	*p = '\0';
 
+#if !defined(_WIN32) && !defined(__APPLE__)
+    /* Grab the actual path if we are an AppImage. */
+    appimage = getenv("APPIMAGE");
+    if (appimage && (appimage[0] != '\0')) {
+        plat_get_dirname(exe_path, appimage);
+    }
+#endif
+
 	/*
 	 * Get the current working directory.
 	 *
@@ -591,21 +599,10 @@ usage:
 
     // Add the VM-local ROM path.
     plat_append_filename(temp, usr_path, "roms");
-    plat_path_slash(temp);
     rom_add_path(temp);
 
     // Add the standard ROM path in the same directory as the executable.
-#if !defined(_WIN32) && !defined(__APPLE__)
-    appimage = getenv("APPIMAGE");
-    if (appimage && (appimage[0] != '\0')) {
-        plat_append_filename(temp, appimage, "roms");
-    } else {
-#endif
-        plat_append_filename(temp, exe_path, "roms");
-#if !defined(_WIN32) && !defined(__APPLE__)
-    }
-#endif
-
+    plat_append_filename(temp, exe_path, "roms");
     rom_add_path(temp);
 
     plat_init_rom_paths();
