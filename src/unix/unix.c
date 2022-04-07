@@ -21,6 +21,8 @@
 #include <stdatomic.h>
 
 #include <86box/86box.h>
+#include <86box/mem.h>
+#include <86box/rom.h>
 #include <86box/keyboard.h>
 #include <86box/mouse.h>
 #include <86box/config.h>
@@ -742,6 +744,66 @@ plat_pause(int p)
     } else {
 	ui_window_title(oldtitle);
     }
+}
+
+void
+plat_init_rom_paths()
+{
+#ifndef __APPLE__
+    if (getenv("XDG_DATA_HOME")) {
+        char xdg_rom_path[1024] = { 0 };
+        strncpy(xdg_rom_path, getenv("XDG_DATA_HOME"), 1024);
+        plat_path_slash(xdg_rom_path);
+        strncat(xdg_rom_path, "86Box/", 1024);
+
+        if (!plat_dir_check(xdg_rom_path))
+            plat_dir_create(xdg_rom_path);
+        strcat(xdg_rom_path, "roms/");
+
+        if (!plat_dir_check(xdg_rom_path))
+            plat_dir_create(xdg_rom_path);
+        add_rom_path(xdg_rom_path);
+    } else {
+        char home_rom_path[1024] = { 0 };
+        snprintf(home_rom_path, 1024, "%s/.local/share/86Box/", getenv("HOME") ? getenv("HOME") : getpwuid(getuid())->pw_dir);
+
+        if (!plat_dir_check(home_rom_path))
+            plat_dir_create(home_rom_path);
+        strcat(home_rom_path, "roms/");
+
+        if (!plat_dir_check(home_rom_path))
+            plat_dir_create(home_rom_path);
+        add_rom_path(home_rom_path);
+    }
+    if (getenv("XDG_DATA_DIRS")) {
+        char* xdg_rom_paths = strdup(getenv("XDG_DATA_DIRS"));
+        char* xdg_rom_paths_orig = xdg_rom_paths;
+        char* cur_xdg_rom_path = NULL;
+        if (xdg_rom_paths) {
+            while (xdg_rom_paths[strlen(xdg_rom_paths) - 1] == ':') {
+                xdg_rom_paths[strlen(xdg_rom_paths) - 1] = '\0';
+            }
+            while ((cur_xdg_rom_path = local_strsep(&xdg_rom_paths, ";")) != NULL) {
+                char real_xdg_rom_path[1024] = { '\0' };
+                strcat(real_xdg_rom_path, cur_xdg_rom_path);
+                plat_path_slash(real_xdg_rom_path);
+                strcat(real_xdg_rom_path, "86Box/roms/");
+                add_rom_path(real_xdg_rom_path);
+            }
+        }
+        free(xdg_rom_paths_orig);
+    } else {
+        add_rom_path("/usr/local/share/86Box/roms/");
+        add_rom_path("/usr/share/86Box/roms/");
+    }
+#else
+    char home_rom_path[1024] = { '\0' };
+    snprintf(home_rom_path, 1024, "%s/Documents/86Box/", getenv("HOME") ? getenv("HOME") : getpwuid(getuid())->pw_dir);
+    plat_dir_create(home_rom_path);
+    strcat(home_rom_path, "roms/");
+    plat_dir_create(home_rom_path);
+    add_rom_path(home_rom_path);
+#endif
 }
 
 bool process_media_commands_3(uint8_t* id, char* fn, uint8_t* wp, int cmdargc)
