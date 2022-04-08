@@ -545,7 +545,7 @@ void ProgSettings::reloadStrings()
     translatedstrings[IDS_2128] = QCoreApplication::translate("", "Hardware not available").toStdWString();
     translatedstrings[IDS_2142] = QCoreApplication::translate("", "Monitor in sleep mode").toStdWString();
     translatedstrings[IDS_2120] = QCoreApplication::translate("", "No ROMs found").toStdWString();
-    translatedstrings[IDS_2056] = QCoreApplication::translate("", "86Box could not find any usable ROM images.\n\nPlease <a href=\"https://github.com/86Box/roms/releases/latest\">download</a> a ROM set and extract it into  directory.").toStdWString();
+    translatedstrings[IDS_2056] = QCoreApplication::translate("", "86Box could not find any usable ROM images.\n\nPlease <a href=\"https://github.com/86Box/roms/releases/latest\">download</a> a ROM set and extract it into the \"roms\" directory.").toStdWString();
 
     auto flsynthstr = QCoreApplication::translate("", " is required for FluidSynth MIDI output.");
     if (flsynthstr.contains("libfluidsynth"))
