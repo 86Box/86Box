@@ -407,6 +407,7 @@ pc_init(int argc, char *argv[])
 	int ng = 0, lvmp = 0;
 	uint32_t *uid, *shwnd;
 	uint32_t lang_init = 0;
+    rom_path_t *rom_path = &rom_path;
 
 	/* Grab the executable's full path. */
 	plat_get_exe_name(exe_path, sizeof(exe_path)-1);
@@ -703,19 +704,10 @@ usage:
 	pclog("# VM: %s\n#\n", vm_name);
 	pclog("# Emulator path: %s\n", exe_path);
 	pclog("# Userfiles path: %s\n", usr_path);
-    if (rom_paths.next) {
-        rom_path_t* cur_rom_path = &rom_paths;
-        while (cur_rom_path->next) {
-            pclog("# ROM path: %s\n", cur_rom_path->path);
-            cur_rom_path = cur_rom_path->next;
-        }
-    }
-	else
-#ifndef _WIN32
-	pclog("# ROM path: %sroms/\n", exe_path);
-#else
-	pclog("# ROM path: %sroms\\\n", exe_path);
-#endif
+    do {
+        pclog("# ROM path: %s\n", rom_path->path);
+    } while (rom_path = rom_path->next);
+
 	pclog("# Configuration file: %s\n#\n\n", cfg_path);
 	/*
 	 * We are about to read the configuration file, which MAY
