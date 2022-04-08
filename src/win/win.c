@@ -932,7 +932,7 @@ plat_init_rom_paths()
         CreateDirectoryW(appdata_dir, NULL);
         wcscat(appdata_dir, "\\");
         c16stombs(appdata_dir_a, appdata_dir, 1024);
-        add_rom_path(appdata_dir_a);
+        rom_add_path(appdata_dir_a);
     }
 }
 

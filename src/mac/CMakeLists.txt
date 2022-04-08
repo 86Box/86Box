@@ -19,17 +19,16 @@
 
 # Pick the bundle icon depending on the release channel
 if(RELEASE_BUILD)
-    set(APP_ICON_MACOSX icons/release/86Box.icns)
+    target_sources(86Box PRIVATE icons/release/86Box.icns)
 elseif(BETA_BUILD)
-    set(APP_ICON_MACOSX icons/beta/86Box.icns)
+    target_sources(86Box PRIVATE icons/beta/86Box.icns)
 elseif(ALPHA_BUILD)
-    set(APP_ICON_MACOSX icons/dev/86Box.icns)
+    target_sources(86Box PRIVATE icons/dev/86Box.icns)
 else()
-    set(APP_ICON_MACOSX icons/branch/86Box.icns)
+    target_sources(86Box PRIVATE icons/branch/86Box.icns)
 endif()
 
 target_link_libraries(86Box "-framework AppKit")
-target_sources(86Box PRIVATE macOSXGlue.m ${APP_ICON_MACOSX})
 
 # Make sure the icon is copied to the bundle
 set_source_files_properties(${APP_ICON_MACOSX}
