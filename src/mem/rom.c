@@ -77,11 +77,11 @@ rom_add_path(const char* path)
 
     // Save the path, turning it into absolute if needed.
     if (!plat_path_abs((char*) path)) {
-        plat_getcwd(cwd, 1024);
+        plat_getcwd(cwd, sizeof(cwd));
         plat_path_slash(cwd);
-        snprintf(rom_path->path, 1024, "%s%s%c", cwd, path, 0);
+        snprintf(rom_path->path, sizeof(rom_path->path), "%s%s", cwd, path);
     } else {
-        strncpy(rom_path->path, path, 1024);
+        snprintf(rom_path->path, sizeof(rom_path->path), "%s", path);
     }
 
     // Ensure the path ends with a separator.
@@ -98,13 +98,13 @@ rom_fopen(char *fn, char *mode)
 
     if (strstr(fn, "roms/") == fn) {
         /* Relative path */
-        do {
+        for(rom_path_t *rom_path = &rom_paths; rom_path != NULL; rom_path = rom_path->next) {
             plat_append_filename(temp, rom_path->path, fn + 5);
 
-            if (fp = plat_fopen(temp, mode)) {
+            if ((fp = plat_fopen(temp, mode)) != NULL) {
                 return fp;
             }
-        } while(rom_path = rom_path->next);
+        }
 
         return fp;
     } else {
@@ -122,14 +122,14 @@ rom_getfile(char *fn, char *s, int size)
 
     if (strstr(fn, "roms/") == fn) {
         /* Relative path */
-        do {
+        for(rom_path_t *rom_path = &rom_paths; rom_path != NULL; rom_path = rom_path->next) {
             plat_append_filename(temp, rom_path->path, fn + 5);
 
             if (rom_present(temp)) {
                 strncpy(s, temp, size);
                 return 1;
             }
-        } while(rom_path = rom_path->next);
+        }
 
         return 0;
     } else {
