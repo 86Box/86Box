@@ -18,6 +18,7 @@
 #include <inttypes.h>
 #include <dlfcn.h>
 #include <wchar.h>
+#include <pwd.h>
 #include <stdatomic.h>
 
 #include <86box/86box.h>
