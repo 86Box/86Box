@@ -22,6 +22,14 @@ endif()
 find_package(Threads REQUIRED)
 find_package(Qt${QT_MAJOR} COMPONENTS Core Widgets Network OpenGL REQUIRED)
 find_package(Qt${QT_MAJOR}LinguistTools REQUIRED)
+# TODO: Is this the correct way to do this, and is it required on any
+# other platforms or with Qt 5?
+if(APPLE AND USE_QT6)
+    find_package(Qt6Gui/Qt6QCocoaIntegrationPlugin REQUIRED)
+    find_package(Qt6Widgets/Qt6QMacStylePlugin REQUIRED)
+    find_package(Qt6Gui/Qt6QICOPlugin REQUIRED)
+    find_package(Qt6Gui/Qt6QICNSPlugin REQUIRED)
+endif()
 
 add_library(plat STATIC
     qt.c
@@ -232,17 +240,13 @@ if (APPLE AND CMAKE_MACOSX_BUNDLE)
     set(INSTALL_CMAKE_DIR "${prefix}/Resources")
 
     # using the install_qt5_plugin to add Qt plugins into the macOS app bundle
-    if (USE_QT6)
-        install_qt5_plugin("Qt6::QCocoaIntegrationPlugin" QT_PLUGINS ${prefix})
-    else()
-        install_qt5_plugin("Qt5::QCocoaIntegrationPlugin" QT_PLUGINS ${prefix})
-        install_qt5_plugin("Qt5::QMacStylePlugin" QT_PLUGINS ${prefix})
-        install_qt5_plugin("Qt5::QICOPlugin" QT_PLUGINS ${prefix})
-        install_qt5_plugin("Qt5::QICNSPlugin" QT_PLUGINS ${prefix})
-    endif()
+    install_qt5_plugin("Qt${QT_MAJOR}::QCocoaIntegrationPlugin" QT_PLUGINS ${prefix})
+    install_qt5_plugin("Qt${QT_MAJOR}::QMacStylePlugin" QT_PLUGINS ${prefix})
+    install_qt5_plugin("Qt${QT_MAJOR}::QICOPlugin" QT_PLUGINS ${prefix})
+    install_qt5_plugin("Qt${QT_MAJOR}::QICNSPlugin" QT_PLUGINS ${prefix})
     
     file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/qt.conf"
-        "[Paths]\nPlugins = ${_qt_plugin_dir}\n")
+        "[Paths]\nPlugins = PlugIns\n")
     install(FILES "${CMAKE_CURRENT_BINARY_DIR}/qt.conf"
         DESTINATION "${INSTALL_CMAKE_DIR}")
 
@@ -253,8 +257,8 @@ if (APPLE AND CMAKE_MACOSX_BUNDLE)
         endforeach()
     endif()
 
-    # Append Qt's lib folder which is two levels above Qt5Widgets_DIR
-    list(APPEND DIRS "${Qt5Widgets_DIR}/../..")
+    # Append Qt's lib folder which is two levels above Qt*Widgets_DIR
+    list(APPEND DIRS "${Qt${QT_MAJOR}Widgets_DIR}/../..")
 
     include(InstallRequiredSystemLibraries)
 
