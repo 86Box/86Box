@@ -19,16 +19,17 @@
 
 # Pick the bundle icon depending on the release channel
 if(RELEASE_BUILD)
-    target_sources(86Box PRIVATE icons/release/86Box.icns)
+    set(APP_ICON_MACOSX icons/release/86Box.icns)
 elseif(BETA_BUILD)
-    target_sources(86Box PRIVATE icons/beta/86Box.icns)
+    set(APP_ICON_MACOSX icons/beta/86Box.icns)
 elseif(ALPHA_BUILD)
-    target_sources(86Box PRIVATE icons/dev/86Box.icns)
+    set(APP_ICON_MACOSX icons/dev/86Box.icns)
 else()
-    target_sources(86Box PRIVATE icons/branch/86Box.icns)
+    set(APP_ICON_MACOSX icons/branch/86Box.icns)
 endif()
 
 target_link_libraries(86Box "-framework AppKit")
+target_sources(86Box PRIVATE ${APP_ICON_MACOSX})
 
 # Make sure the icon is copied to the bundle
 set_source_files_properties(${APP_ICON_MACOSX}
@@ -47,7 +48,6 @@ configure_file(Info.plist.in Info.plist @ONLY)
 set_target_properties(86Box
     PROPERTIES MACOSX_BUNDLE_INFO_PLIST ${CMAKE_CURRENT_BINARY_DIR}/Info.plist)
 
-set(CMAKE_XCODE_ATTRIBUTE_OTHER_CODE_SIGN_FLAGS "-o linker-signed")
-set(XCODE_ATTRIBUTE_CODE_SIGNING_REQUIRED "YES")
-set(XCODE_ATTRIBUTE_CODE_SIGN_IDENTITY "-")
-#set(XCODE_ATTRIBUTE_CODE_SIGN_ENTITLEMENTS ${CMAKE_CURRENT_SOURCE_DIR}/mac/codesign/dev/app.entitlements)
+#set(XCODE_ATTRIBUTE_CODE_SIGNING_REQUIRED "YES")
+#set(XCODE_ATTRIBUTE_CODE_SIGN_IDENTITY "-")
+#set(XCODE_ATTRIBUTE_CODE_SIGN_ENTITLEMENTS ${CMAKE_CURRENT_SOURCE_DIR}/mac/codesign/dev/app.entitlements)  
