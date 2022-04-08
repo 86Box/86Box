@@ -592,6 +592,11 @@ plat_init_rom_paths()
 {
     auto paths = QStandardPaths::standardLocations(QStandardPaths::GenericDataLocation);
 
+#ifdef __APPLE__
+    // Add the old path as a fallback.
+    rom_add_path(QDir::home().filePath("Library/Application Support/net.86Box.86Box/roms").toUtf8().constData());
+#endif
+
 #ifdef _WIN32
     // HACK: The standard locations returned for GenericDataLocation include
     // the EXE path and a `data` directory within it as the last two entries.
