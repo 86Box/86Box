@@ -520,11 +520,6 @@ size_t c16stombs(char dst[], const uint16_t src[], int len)
 #define LIB_NAME_FREETYPE "libfreetype"
 #define MOUSE_CAPTURE_KEYSEQ "CTRL-END"
 #endif
-#ifdef Q_OS_MACOS
-#define ROMDIR "~/Library/Application Support/net.86box.86box/roms"
-#else
-#define ROMDIR "roms"
-#endif
 
 
 QMap<int, std::wstring> ProgSettings::translatedstrings;
@@ -602,6 +597,10 @@ plat_init_rom_paths()
 #endif
 
     for (auto& path : paths) {
+#ifdef __APPLE__
+        rom_add_path(QDir(path).filePath("net.86Box.86Box/roms").toUtf8().constData());
+#else
         rom_add_path(QDir(path).filePath("86Box/roms").toUtf8().constData());
+#endif
     }
 }
