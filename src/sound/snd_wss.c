@@ -228,17 +228,42 @@ wss_speed_changed(void *priv)
 
 static const device_config_t wss_config[] = {
 // clang-format off
-    { "base", "Address", CONFIG_HEX16, "", 0x530, "", { 0 },
-        {
-            { "0x530", 0x530 },
-            { "0x604", 0x604 },
-            { "0xe80", 0xe80 },
-            { "0xf40", 0xf40 },
-            { ""             }
+    {
+        .name = "base",
+        .description = "Address",
+        .type = CONFIG_HEX16,
+        .default_string = "",
+        .default_int = 0x530,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            {
+                .description = "0x530",
+                .value = 0x530
+            },
+            {
+                .description = "0x604",
+                .value = 0x604
+            },
+            {
+                .description = "0xe80",
+                .value = 0xe80
+            },
+            {
+                .description = "0xf40",
+                .value = 0xf40
+            },
+            { .description = "" }
         }
     },
-    { "opl", "Enable OPL", CONFIG_BINARY, "", 1 },
-    { "", "", -1 }
+    {
+        .name = "opl",
+        .description = "Enable OPL",
+        .type = CONFIG_BINARY,
+        .default_string = "",
+        .default_int = 1
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
 // clang-format on
 };
 

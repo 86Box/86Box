@@ -247,15 +247,30 @@ sn76489_device_close(void *p)
 static const device_config_t tndy_config[] = {
 // clang-format off
     {
-        "base", "Address", CONFIG_HEX16, "", 0x0C0, "", { 0 },
-        {
-            { "0x0C0", 0x0C0 },
-            { "0x1E0", 0x1E0 },
-            { "0x2C0", 0x2C0 },
-            { ""             }
+        .name = "base",
+        .description = "Address",
+        .type = CONFIG_HEX16,
+        .default_string = "",
+        .default_int = 0x0C0,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            {
+                .description = "0x0C0",
+                .value = 0x0C0
+            },
+            {
+                .description = "0x1E0",
+                .value = 0x1E0
+            },
+            {
+                .description = "0x2C0",
+                .value = 0x2C0
+            },
+            { .description = "" }
         }
     },
-    { "", "", -1 }
+    { .name = "", .description = "", .type = CONFIG_END }
 // clang-format on
 };
 #endif

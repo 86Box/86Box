@@ -982,10 +982,28 @@ adgold_close(void *p)
 
 static const device_config_t adgold_config[] = {
 // clang-format off
-    { "gameport",      "Enable Game port",     CONFIG_BINARY, "",  1 },
-    { "surround",      "Surround module",      CONFIG_BINARY, "",  1 },
-    { "receive_input", "Receive input (MIDI)", CONFIG_BINARY, "",  1 },
-    { "",              "",                                        -1 }
+    {
+        .name = "gameport",
+        .description = "Enable Game port",
+        .type = CONFIG_BINARY,
+        .default_string = "",
+        .default_int = 1
+    },
+    {
+        .name = "surround",
+        .description = "Surround module",
+        .type = CONFIG_BINARY,
+        .default_string = "",
+        .default_int = 1
+    },
+    {
+        .name = "receive_input",
+        .description = "Receive input (MIDI)",
+        .type = CONFIG_BINARY,
+        .default_string = "",
+        .default_int = 1
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
 // clang-format on
 };
 
