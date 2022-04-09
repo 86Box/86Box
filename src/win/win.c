@@ -926,11 +926,11 @@ plat_init_rom_paths()
             appdata_dir[len] = L'\\';
             appdata_dir[len + 1] = L'\0';
         }
-        wcscat(appdata_dir, "86box");
+        wcscat(appdata_dir, L"86box");
         CreateDirectoryW(appdata_dir, NULL);
-        wcscat(appdata_dir, "\\roms");
+        wcscat(appdata_dir, L"\\roms");
         CreateDirectoryW(appdata_dir, NULL);
-        wcscat(appdata_dir, "\\");
+        wcscat(appdata_dir, L"\\");
         c16stombs(appdata_dir_a, appdata_dir, 1024);
         rom_add_path(appdata_dir_a);
     }
