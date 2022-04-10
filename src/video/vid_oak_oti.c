@@ -500,43 +500,84 @@ oti067_m300_available(void)
         return(rom_present(BIOS_067_M300_08_PATH));
 }
 
-
 // clang-format off
 static const device_config_t oti067_config[] = {
     {
-        "memory", "Memory size", CONFIG_SELECTION, "", 512, "", { 0 },
-        {
-            { "256 kB", 256 },
-            { "512 kB", 512 },
-            { ""            }
+        .name = "memory",
+        .description = "Memory size",
+        .type = CONFIG_SELECTION,
+        .default_int = 512,
+        .selection = {
+            {
+                .description = "256 kB",
+                .value = 256
+            },
+            {
+                .description = "512 kB",
+                .value = 512
+            },
+            {
+                .description = ""
+            }
         }
     },
-    { "", "", -1 }
+    {
+        .type = CONFIG_END
+    }
 };
 
 static const device_config_t oti067_ama932j_config[] = {
     {
-        "memory", "Memory size", CONFIG_SELECTION, "", 256, "", { 0 },
-        {
-            { "256 kB", 256 },
-            { "512 kB", 512 },
-            { ""            }
+        .name = "memory",
+        .description = "Memory size",
+        .type = CONFIG_SELECTION,
+        .default_int = 256,
+        .selection = {
+            {
+                .description = "256 kB",
+                .value = 256
+            },
+            {
+                .description = "512 kB",
+                .value = 512
+            },
+            {
+                .description = ""
+            }
         }
     },
-    { "", "", -1 }
+    {
+        .type = CONFIG_END
+    }
 };
 
 static const device_config_t oti077_config[] = {
     {
-        "memory", "Memory size", CONFIG_SELECTION, "", 1024, "", { 0 },
-        {
-            { "256 kB", 256 },
-            { "512 kB", 512 },
-            { "1 MB", 1024 },
-            { "" }
+        .name = "memory",
+        .description = "Memory size",
+        .type = CONFIG_SELECTION,
+        .default_int = 1024,
+        .selection = {
+            {
+                .description = "256 kB",
+                .value = 256
+            },
+            {
+                .description = "512 kB",
+                .value = 512
+            },
+            {
+                .description = "1 MB",
+                .value = 1024
+            },
+            {
+                .description = ""
+            }
         }
     },
-    { "", "", -1 }
+    {
+        .type = CONFIG_END
+    }
 };
 // clang-format on
 

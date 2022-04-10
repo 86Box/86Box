@@ -4219,51 +4219,135 @@ static void s3_virge_force_redraw(void *p)
 
 static const device_config_t s3_virge_config[] = {
     {
-        "memory", "Memory size", CONFIG_SELECTION, "", 4, "", { 0 },
-        {
-            { "2 MB", 2 },
-            { "4 MB", 4 },
-            { ""    }
+        .name = "memory",
+        .description = "Memory size",
+        .type = CONFIG_SELECTION,
+        .default_int = 4,
+        .selection = {
+            {
+                .description = "2 MB",
+                .value = 2
+            },
+            {
+                .description = "4 MB",
+                .value = 4
+            },
+            {
+                .description = ""
+            }
         }
     },
-    { "bilinear", "Bilinear filtering", CONFIG_BINARY, "", 1 },
-    { "dithering", "Dithering", CONFIG_BINARY, "", 1 },
-    { "", "", -1 }
+    {
+        .name = "bilinear",
+        .description = "Bilinear filtering",
+        .type = CONFIG_BINARY,
+        .default_int = 1
+    },
+    {
+        .name = "dithering",
+        .description = "Dithering",
+        .type = CONFIG_BINARY,
+        .default_int = 1
+    },
+    {
+        .type = CONFIG_END
+    }
 };
 
 static const device_config_t s3_virge_stb_config[] = {
     {
-        "memory", "Memory size", CONFIG_SELECTION, "", 4, "", { 0 },
-        {
-            { "2 MB", 2 },
-            { "4 MB", 4 },
-            { "8 MB", 8 },
-            { ""    }
+        .name = "memory",
+        .description = "Memory size",
+        .type = CONFIG_SELECTION,
+        .default_int = 4,
+        .selection = {
+            {
+                .description = "2 MB",
+                .value = 2
+            },
+            {
+                .description = "4 MB",
+                .value = 4
+            },
+            {
+                .description = "8 MB",
+                .value = 8
+            },
+            {
+                .description = ""
+            }
         }
     },
-    { "bilinear", "Bilinear filtering", CONFIG_BINARY, "", 1 },
-    { "dithering", "Dithering", CONFIG_BINARY, "", 1 },
-    { "", "", -1 }
+    {
+        .name = "bilinear",
+        .description = "Bilinear filtering",
+        .type = CONFIG_BINARY,
+        .default_int = 1
+    },
+    {
+        .name = "dithering",
+        .description = "Dithering",
+        .type = CONFIG_BINARY,
+        .default_int = 1
+    },
+    {
+        .type = CONFIG_END
+    }
 };
 
 static const device_config_t s3_virge_357_config[] = {
-    { "bilinear", "Bilinear filtering", CONFIG_BINARY, "", 1 },
-    { "dithering", "Dithering", CONFIG_BINARY, "", 1 },
-    { "", "", -1 }
+    {
+        .name = "bilinear",
+        .description = "Bilinear filtering",
+        .type = CONFIG_BINARY,
+        .default_int = 1
+    },
+    {
+        .name = "dithering",
+        .description = "Dithering",
+        .type = CONFIG_BINARY,
+        .default_int = 1
+    },
+    {
+        .type = CONFIG_END
+    }
 };
 
 static const device_config_t s3_trio3d2x_config[] = {
     {
-        "memory", "Memory size", CONFIG_SELECTION, "", 4, "", { 0 },
-        {
-            { "4 MB", 4 },
-            { "8 MB", 8 },
-            { ""    }
+        .name = "memory",
+        .description = "Memory size",
+        .type = CONFIG_SELECTION,
+        .default_int = 4,
+        .selection = {
+            {
+                .description = "4 MB",
+                .value = 4
+            },
+            {
+                .description = "8 MB",
+                .value = 8
+            },
+            {
+                .description = ""
+            }
         }
     },
-    { "bilinear", "Bilinear filtering", CONFIG_BINARY, "", 1 },
-    { "dithering", "Dithering", CONFIG_BINARY, "", 1 },
-    { "", "", -1 }
+    {
+        .name = "bilinear",
+        .description = "Bilinear filtering",
+        .type = CONFIG_BINARY,
+        .default_int = 1
+    },
+    {
+        .name = "dithering",
+        .description = "Dithering",
+        .type = CONFIG_BINARY,
+        .default_int = 1
+    },
+    {
+        .type = CONFIG_END
+    }
 };
 
 const device_t s3_virge_325_pci_device = {

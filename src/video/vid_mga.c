@@ -5336,7 +5336,6 @@ mystique_force_redraw(void *p)
     mystique->svga.fullchange = changeframecount;
 }
 
-
 static const device_config_t mystique_config[] = {
 // clang-format off
     {
@@ -5363,7 +5362,9 @@ static const device_config_t mystique_config[] = {
         },
         .default_int = 8
     },
-    { .type = -1 }
+    {
+        .type = CONFIG_END
+    }
 // clang-format on
 };
 

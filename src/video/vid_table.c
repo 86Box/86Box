@@ -47,31 +47,31 @@ static video_timings_t timing_default = {VIDEO_ISA, 8, 16, 32,   8, 16, 32};
 
 static int was_reset = 0;
 
-
 static const device_t vid_none_device = {
-    "None",
-    "none",
-    0,
-    0,
-    NULL,
-    NULL,
-    NULL,
-    { NULL },
-    NULL,
-    NULL,
-    NULL
+    .name = "None",
+    .internal_name = "none",
+    .flags = 0,
+    .local = 0,
+    .init = NULL,
+    .close = NULL,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 static const device_t vid_internal_device = {
-    "Internal",
-    "internal",
-    0,
-    0,
-    NULL,
-    NULL, NULL,
-    { NULL },
-    NULL,
-    NULL,
-    NULL
+    .name = "Internal",
+    .internal_name = "internal",
+    .flags = 0,
+    .local = 0,
+    .init = NULL,
+    .close = NULL,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
 static const VIDEO_CARD

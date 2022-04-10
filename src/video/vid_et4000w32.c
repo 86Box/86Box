@@ -2193,14 +2193,27 @@ et4000w32p_force_redraw(void *p)
 static const device_config_t et4000w32p_config[] = {
 // clang-format off
     {
-        "memory", "Memory size", CONFIG_SELECTION, "", 2, "", { 0 },
-        {
-            { "1 MB", 1 },
-            { "2 MB", 2 },
-            { ""        }
+        .name = "memory",
+        .description = "Memory size",
+        .type = CONFIG_SELECTION,
+        .default_int = 2,
+        .selection = {
+            {
+                .description = "1 MB",
+                .value = 1
+            },
+            {
+                .description = "2 MB",
+                .value = 2
+            },
+            {
+                .description = ""
+            }
         }
     },
-    { "", "", -1 }
+    {
+        .type = CONFIG_END
+    }
 // clang-format on
 };
 

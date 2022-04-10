@@ -1179,13 +1179,30 @@ ega_speed_changed(void *p)
 static const device_config_t ega_config[] = {
 // clang-format off
     {
-        "memory", "Memory size", CONFIG_SELECTION, "", 256, "", { 0 },
-        {
-            { "32 kB",   32 },
-            { "64 kB",   64 },
-            { "128 kB", 128 },
-            { "256 kB", 256 },
-            { ""            }
+        .name = "memory",
+        .description = "Memory size",
+        .type = CONFIG_SELECTION,
+        .default_int = 256,
+        .selection = {
+            {
+                .description = "32 kB",
+                .value = 32
+            },
+            {
+                .description = "64 kB",
+                .value = 64
+            },
+            {
+                .description = "128 kB",
+                .value = 128
+            },
+            {
+                .description = "256 kB",
+                .value = 256
+            },
+            {
+                .description = ""
+            }
         }
     },
     {
@@ -1228,7 +1245,7 @@ static const device_config_t ega_config[] = {
         .default_int = 9
     },
     {
-        .type = -1
+        .type = CONFIG_END
     }
 // clang-format on
 };
