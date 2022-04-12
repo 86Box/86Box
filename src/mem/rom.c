@@ -138,7 +138,7 @@ rom_getfile(char *fn, char *s, int size)
             strncpy(s, fn, size);
             return 1;
         }
-        
+
         return 0;
     }
 }

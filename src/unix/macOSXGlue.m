@@ -15,12 +15,12 @@ void getDefaultROMPath(char* Path)
 											 inDomains:NSUserDomainMask];
 	NSURL* appSupportDir = nil;
 	NSURL* appDirectory = nil;
-	
+
 	if ([possibleURLs count] >= 1) {
 		// Use the first directory (if multiple are returned)
 		appSupportDir = [possibleURLs objectAtIndex:0];
 	}
-	
+
 	// If a valid app support directory exists, add the
 	// app's bundle ID to it to specify the final directory.
 	if (appSupportDir) {
@@ -29,7 +29,7 @@ void getDefaultROMPath(char* Path)
 		appDirectory=[appDirectory URLByAppendingPathComponent:@"roms"];
 	}
     // create ~/Library/Application Support/... stuff
-	
+
 	NSError*    theError = nil;
 	if (![sharedFM createDirectoryAtURL:appDirectory withIntermediateDirectories:YES
 					   attributes:nil error:&theError])
@@ -37,7 +37,7 @@ void getDefaultROMPath(char* Path)
 		// Handle the error.
 		NSLog(@"Error creating user library rom path");
 	} else NSLog(@"Create user rom path sucessfull");
-	
+
 	strcpy(Path,[appDirectory fileSystemRepresentation]);
 	// return appDirectory;
 }
