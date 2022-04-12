@@ -37,6 +37,9 @@ ifeq ($(DEV_BUILD), y)
  ifndef AMD_K5
   AMD_K5	:= y
  endif
+ ifndef AN430TX
+  AN430TX	:= y
+ endif
  ifndef CYRIX_6X86
   CYRIX_6X86	:= y
  endif
@@ -60,9 +63,6 @@ ifeq ($(DEV_BUILD), y)
  endif
  ifndef MGA
   MGA		:= y
- endif
- ifndef NO_SIO
-  NO_SIO	:= y
  endif
  ifndef OPEN_AT
   OPEN_AT	:= y
@@ -101,6 +101,9 @@ else
  ifndef AMD_K5
   AMD_K5	:= n
  endif
+ ifndef AN430TX
+  AN430TX	:= n
+ endif
  ifndef CYRIX_6X86
   CYRIX_6X86	:= n
  endif
@@ -124,9 +127,6 @@ else
  endif
  ifndef MGA
   MGA		:= n
- endif
- ifndef NO_SIO
-  NO_SIO	:= n
  endif
  ifndef OPEN_AT
   OPEN_AT	:= n
@@ -433,6 +433,10 @@ ifeq ($(AMD_K5), y)
 OPTS		+= -DUSE_AMD_K5
 endif
 
+ifeq ($(AN430TX), y)
+OPTS		+= -DUSE_AN430TX
+endif
+
 ifeq ($(CYRIX_6X86), y)
 OPTS		+= -DUSE_CYRIX_6X86
 endif
@@ -465,10 +469,6 @@ endif
 ifeq ($(MGA), y)
 OPTS		+= -DUSE_MGA
 DEVBROBJ	+= vid_mga.o
-endif
-
-ifeq ($(NO_SIO), y)
-OPTS		+= -DNO_SIO
 endif
 
 ifeq ($(OPEN_AT), y)

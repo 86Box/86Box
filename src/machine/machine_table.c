@@ -775,7 +775,7 @@ const machine_t machines[] = {
     { "[i430TX] ADLink NuPRO-592",                     "nupro592",         MACHINE_TYPE_SOCKET7,    MACHINE_CHIPSET_INTEL_430TX,         machine_at_nupro592_init,         0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET5_7,                 CPU_BLOCK_NONE, 66666667, 66666667, 1900, 2800, 1.5, 5.5, MACHINE_PS2_PCI, MACHINE_IDE_DUAL, 8192, 262144, 8192, 255, NULL, NULL },
     /* This has the AMIKey KBC firmware, which is an updated 'F' type (YM430TX is based on the TX97). */
     { "[i430TX] ASUS TX97",                            "tx97",             MACHINE_TYPE_SOCKET7,    MACHINE_CHIPSET_INTEL_430TX,         machine_at_tx97_init,             0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET5_7,                 CPU_BLOCK_NONE, 50000000, 75000000, 2500, 3520, 1.5, 3.0, MACHINE_PS2_PCI, MACHINE_IDE_DUAL, 8192, 262144, 8192, 255, NULL, NULL },
-#if defined(DEV_BRANCH) && defined(NO_SIO)
+#if defined(DEV_BRANCH) && defined(USE_AN430TX)
     /* This has the Phoenix MultiKey KBC firmware. */
     { "[i430TX] Intel AN430TX",                        "an430tx",          MACHINE_TYPE_SOCKET7,    MACHINE_CHIPSET_INTEL_430TX,         machine_at_an430tx_init,          0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET5_7,                 CPU_BLOCK_NONE, 60000000, 66666667, 2800, 3520, 1.5, 3.0, MACHINE_PS2_PCI, MACHINE_IDE_DUAL, 8192, 262144, 8192, 255, NULL, NULL },
 #endif
