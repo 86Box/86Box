@@ -79,9 +79,6 @@ ifeq ($(DEV_BUILD), y)
  ifndef TANDY_ISA
   TANDY_ISA	:= y
  endif
- ifndef VNC
-  VNC		:= y
- endif
  ifndef XL24
   XL24		:= y
  endif
@@ -143,9 +140,6 @@ else
  ifndef TANDY_ISA
   TANDY_ISA	:= n
  endif
- ifndef VNC
-  VNC		:= n
- endif
  ifndef XL24
   XL24		:= n
  endif
@@ -187,6 +181,9 @@ FLUIDSYNTH	:= y
 endif
 ifndef MUNT
 MUNT		:= y
+endif
+ifndef VNC
+ VNC		:= n
 endif
 ifndef NEW_DYNAREC
  NEW_DYNAREC	:= n
