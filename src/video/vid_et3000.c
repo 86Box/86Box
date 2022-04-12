@@ -272,38 +272,45 @@ et3000_available(void)
     return rom_present(BIOS_ROM_PATH);
 }
 
-static const device_config_t et3000_config[] =
-{
-	{
-		"memory", "Memory size", CONFIG_SELECTION, "", 512, "", { 0 },
-		{
-			{
-				"256 KB", 256
-			},
-			{
-				"512 KB", 512
-			},
-			{
-				"1 MB", 1024
-			},
-			{
-				""
-			}
-		}
-	},
-	{
-		"", "", -1
-	}
+static const device_config_t et3000_config[] = {
+    {
+        .name = "memory",
+        .description = "Memory size",
+        .type = CONFIG_SELECTION,
+        .default_int = 512,
+        .selection = {
+            {
+                .description = "256 KB",
+                .value = 256
+            },
+            {
+                .description = "512 KB",
+                .value = 512
+            },
+            {
+                .description = "1 MB",
+                .value = 1024
+            },
+            {
+                .description = ""
+            }
+        }
+    },
+    {
+        .type = CONFIG_END
+    }
 };
 
 const device_t et3000_isa_device = {
-    "Tseng Labs ET3000AX (ISA)",
-    "et3000ax",
-    DEVICE_ISA,
-    0,
-    et3000_init, et3000_close, NULL,
-    { et3000_available },
-    et3000_speed_changed,
-    et3000_force_redraw,
-    et3000_config
+    .name = "Tseng Labs ET3000AX (ISA)",
+    .internal_name = "et3000ax",
+    .flags = DEVICE_ISA,
+    .local = 0,
+    .init = et3000_init,
+    .close = et3000_close,
+    .reset = NULL,
+    { .available = et3000_available },
+    .speed_changed = et3000_speed_changed,
+    .force_redraw = et3000_force_redraw,
+    .config = et3000_config
 };
