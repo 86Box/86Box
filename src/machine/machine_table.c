@@ -384,7 +384,9 @@ const machine_t machines[] = {
     /* Has IBM AT KBC firmware. */
     { "[C&T 386] Samsung SPC-6000A",                   "spc6000a",         MACHINE_TYPE_386DX,      MACHINE_CHIPSET_CT_386,              machine_at_spc6000a_init,         0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_386DX,                                   CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_AT, MACHINE_IDE, 1024, 32768, 1024, 127, NULL, NULL },
     /* Uses Compaq KBC firmware. */
+#if defined(DEV_BRANCH) && defined(USE_DESKPRO386)
     { "[ISA] Compaq Deskpro 386",                      "deskpro386",       MACHINE_TYPE_386DX,      MACHINE_CHIPSET_DISCRETE,            machine_at_deskpro386_init,       0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_386DX,                                   CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_AT, MACHINE_IDE, 1024, 14336, 1024, 127, NULL, NULL },
+#endif
     { "[ISA] Compaq Portable III (386)",               "portableiii386",   MACHINE_TYPE_386DX,      MACHINE_CHIPSET_DISCRETE,            machine_at_portableiii386_init,   0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_386DX,                                   CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_AT, MACHINE_IDE | MACHINE_VIDEO, 1024, 14336, 1024, 127, at_cpqiii_get_device },
     /* Has IBM AT KBC firmware. */
     { "[ISA] Micronics 09-00021",                      "micronics386",     MACHINE_TYPE_386DX,      MACHINE_CHIPSET_DISCRETE,            machine_at_micronics386_init,     0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_386DX,                                   CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_AT, MACHINE_FLAGS_NONE, 512,  8192,  128, 127, NULL, NULL },

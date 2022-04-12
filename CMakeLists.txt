@@ -141,6 +141,7 @@ option(QT           "Qt GUI"                                                    
 #                      ------         -----------                                   ----    ---------       ---------
 cmake_dependent_option(AMD_K5         "AMD K5"                                      ON      "DEV_BRANCH"    OFF)
 cmake_dependent_option(CYRIX_6X86     "Cyrix 6x86"                                  ON      "DEV_BRANCH"    OFF)
+cmake_dependent_option(DESKPRO386     "Compaq Deskpro 386"                          ON      "DEV_BRANCH"    OFF)
 cmake_dependent_option(GUSMAX         "Gravis UltraSound MAX"                       ON      "DEV_BRANCH"    OFF)
 cmake_dependent_option(ISAMEM_RAMPAGE "AST Rampage"                                 ON      "DEV_BRANCH"    OFF)
 cmake_dependent_option(ISAMEM_IAB     "Intel Above Board"                           ON      "DEV_BRANCH"    OFF)

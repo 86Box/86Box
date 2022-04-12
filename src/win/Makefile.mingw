@@ -40,6 +40,9 @@ ifeq ($(DEV_BUILD), y)
  ifndef CYRIX_6X86
   CYRIX_6X86	:= y
  endif
+ ifndef DESKPRO386
+  DESKPRO386	:= y
+ endif
  ifndef GUSMAX
   GUSMAX	:= y
  endif
@@ -100,6 +103,9 @@ else
  endif
  ifndef CYRIX_6X86
   CYRIX_6X86	:= n
+ endif
+ ifndef DESKPRO386
+  DESKPRO386	:= n
  endif
  ifndef GUSMAX
   GUSMAX	:= n
@@ -429,6 +435,10 @@ endif
 
 ifeq ($(CYRIX_6X86), y)
 OPTS		+= -DUSE_CYRIX_6X86
+endif
+
+ifeq ($(DESKPRO386), y)
+OPTS		+= -DUSE_DESKPRO386
 endif
 
 ifeq ($(GUSMAX), y)
