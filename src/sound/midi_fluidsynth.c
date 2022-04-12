@@ -541,9 +541,7 @@ static const device_config_t fluidsynth_config[] = {
         },
         .default_int = 2
     },
-    {
-        .type = -1
-    }
+    { .name = "", .description = "", .type = CONFIG_END }
   // clang-format on
 };
 

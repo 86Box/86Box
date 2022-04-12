@@ -406,7 +406,6 @@ cmd646_init(const device_t *info)
     return dev;
 }
 
-
 const device_t ide_cmd646_device = {
     .name = "CMD PCI-0646",
     .internal_name = "ide_cmd646",

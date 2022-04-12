@@ -1142,86 +1142,152 @@ nic_close(void *priv)
 // clang-format off
 static const device_config_t ne1000_config[] = {
     {
-        "base", "Address", CONFIG_HEX16, "", 0x300, "", { 0 },
-        {
-            { "0x280", 0x280 },
-            { "0x300", 0x300 },
-            { "0x320", 0x320 },
-            { "0x340", 0x340 },
-            { "0x360", 0x360 },
-            { "0x380", 0x380 },
-            { ""             }
+        .name = "base",
+        .description = "Address",
+        .type = CONFIG_HEX16,
+        .default_string = "",
+        .default_int = 0x300,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "0x280", .value = 0x280 },
+            { .description = "0x300", .value = 0x300 },
+            { .description = "0x320", .value = 0x320 },
+            { .description = "0x340", .value = 0x340 },
+            { .description = "0x360", .value = 0x360 },
+            { .description = "0x380", .value = 0x380 },
+            { .description = ""                      }
         },
     },
     {
-        "irq", "IRQ", CONFIG_SELECTION, "", 3, "", { 0 },
-        {
-            { "IRQ 2",   2 },
-            { "IRQ 3",   3 },
-            { "IRQ 5",   5 },
-            { "IRQ 7",   7 },
-            { "IRQ 10", 10 },
-            { "IRQ 11", 11 },
-            { ""           }
+        .name = "irq",
+        .description = "IRQ",
+        .type = CONFIG_SELECTION,
+        .default_string = "",
+        .default_int = 3,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "IRQ 2",  .value =  2 },
+            { .description = "IRQ 3",  .value =  3 },
+            { .description = "IRQ 5",  .value =  5 },
+            { .description = "IRQ 7",  .value =  7 },
+            { .description = "IRQ 10", .value = 10 },
+            { .description = "IRQ 11", .value = 11 },
+            { .description = ""                    }
         },
     },
-    { "mac", "MAC Address", CONFIG_MAC, "", -1 },
-    { "",    "",                            -1 }
+    {
+        .name = "mac",
+        .description = "MAC Address",
+        .type = CONFIG_MAC,
+        .default_string = "",
+        .default_int = -1
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
 };
 
 static const device_config_t ne2000_config[] = {
     {
-        "base", "Address", CONFIG_HEX16, "", 0x300, "", { 0 },
-        {
-            { "0x280", 0x280 },
-            { "0x300", 0x300 },
-            { "0x320", 0x320 },
-            { "0x340", 0x340 },
-            { "0x360", 0x360 },
-            { "0x380", 0x380 },
-            { ""             }
+        .name = "base",
+        .description = "Address",
+        .type = CONFIG_HEX16,
+        .default_string = "",
+        .default_int = 0x300,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "0x280", .value = 0x280 },
+            { .description = "0x300", .value = 0x300 },
+            { .description = "0x320", .value = 0x320 },
+            { .description = "0x340", .value = 0x340 },
+            { .description = "0x360", .value = 0x360 },
+            { .description = "0x380", .value = 0x380 },
+            { .description = ""                      }
         },
     },
     {
-        "irq", "IRQ", CONFIG_SELECTION, "", 10, "", { 0 },
-        {
-            { "IRQ 2",   2 },
-            { "IRQ 3",   3 },
-            { "IRQ 5",   5 },
-            { "IRQ 7",   7 },
-            { "IRQ 10", 10 },
-            { "IRQ 11", 11 },
-            { ""           }
+        .name = "irq",
+        .description = "IRQ",
+        .type = CONFIG_SELECTION,
+        .default_string = "",
+        .default_int = 10,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "IRQ 2",  .value =  2 },
+            { .description = "IRQ 3",  .value =  3 },
+            { .description = "IRQ 5",  .value =  5 },
+            { .description = "IRQ 7",  .value =  7 },
+            { .description = "IRQ 10", .value = 10 },
+            { .description = "IRQ 11", .value = 11 },
+            { .description = ""                    }
         },
     },
-    { "mac", "MAC Address", CONFIG_MAC, "", -1 },
     {
-        "bios_addr", "BIOS address", CONFIG_HEX20, "", 0, "", { 0 },
-        {
-            { "Disabled", 0x00000 },
-            { "D000",     0xD0000 },
-            { "D800",     0xD8000 },
-            { "C800",     0xC8000 },
-            { ""                  }
+        .name = "mac",
+        .description = "MAC Address",
+        .type = CONFIG_MAC,
+        .default_string = "",
+        .default_int = -1
+    },
+    {
+        .name = "bios_addr",
+        .description = "BIOS address",
+        .type = CONFIG_HEX20,
+        .default_string = "",
+        .default_int = 0,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "Disabled", .value = 0x00000 },
+            { .description = "D000",     .value = 0xD0000 },
+            { .description = "D800",     .value = 0xD8000 },
+            { .description = "C800",     .value = 0xC8000 },
+            { .description = ""                           }
         },
     },
-    { "", "", -1 }
+    { .name = "", .description = "", .type = CONFIG_END }
 };
 
 static const device_config_t rtl8019as_config[] = {
-    { "mac", "MAC Address", CONFIG_MAC, "", -1 },
-    { "",    "",                            -1 }
+    {
+        .name = "mac",
+        .description = "MAC Address",
+        .type = CONFIG_MAC,
+        .default_string = "",
+        .default_int = -1
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
 };
 
 static const device_config_t rtl8029as_config[] = {
-    { "bios", "Enable BIOS", CONFIG_BINARY, "",  0 },
-    { "mac",  "MAC Address", CONFIG_MAC, "",    -1 },
-    { "",     "",                               -1 }
+    {
+        .name = "bios",
+        .description = "Enable BIOS",
+        .type = CONFIG_BINARY,
+        .default_string = "",
+        .default_int = 0
+    },
+    {
+        .name = "mac",
+        .description = "MAC Address",
+        .type = CONFIG_MAC,
+        .default_string = "",
+        .default_int = -1
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
 };
 
 static const device_config_t mca_mac_config[] = {
-    { "mac", "MAC Address", CONFIG_MAC, "", -1 },
-    { "",    "",                            -1 }
+    {
+        .name = "mac",
+        .description = "MAC Address",
+        .type = CONFIG_MAC,
+        .default_string = "",
+        .default_int = -1
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
 };
 // clang-format on
 

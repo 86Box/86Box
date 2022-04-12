@@ -828,50 +828,76 @@ sermouse_init(const device_t *info)
     return(dev);
 }
 
-
 static const device_config_t mssermouse_config[] = {
 // clang-format off
     {
-        "port", "Serial Port", CONFIG_SELECTION, "", 0, "", { 0 }, {
-            { "COM1", 0 },
-            { "COM2", 1 },
-            { "COM3", 2 },
-            { "COM4", 3 },
-            { ""        }
+        .name = "port",
+        .description = "Serial Port",
+        .type = CONFIG_SELECTION,
+        .default_string = "",
+        .default_int = 0,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "COM1", .value = 0 },
+            { .description = "COM2", .value = 1 },
+            { .description = "COM3", .value = 2 },
+            { .description = "COM4", .value = 3 },
+            { .description = ""                 }
         }
     },
     {
-        "buttons", "Buttons", CONFIG_SELECTION, "", 2, "", { 0 }, {
-            { "Two",   2 },
-            { "Three", 3 },
-            { "Wheel", 4 },
-            { ""         }
+        .name = "buttons",
+        .description = "Buttons",
+        .type = CONFIG_SELECTION,
+        .default_string = "",
+        .default_int = 2,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "Two",   .value = 2 },
+            { .description = "Three", .value = 3 },
+            { .description = "Wheel", .value = 4 },
+            { .description = ""                  }
         }
     },
-    { "", "", -1 }
+    { .name = "", .description = "", .type = CONFIG_END }
 // clang-format on
 };
-
 
 static const device_config_t ltsermouse_config[] = {
 // clang-format off
     {
-        "port", "Serial Port", CONFIG_SELECTION, "", 0, "", { 0 }, {
-            { "COM1", 0 },
-            { "COM2", 1 },
-            { "COM3", 2 },
-            { "COM4", 3 },
-            { ""        }
+        .name = "port",
+        .description = "Serial Port",
+        .type = CONFIG_SELECTION,
+        .default_string = "",
+        .default_int = 0,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "COM1", .value = 0 },
+            { .description = "COM2", .value = 1 },
+            { .description = "COM3", .value = 2 },
+            { .description = "COM4", .value = 3 },
+            { .description = ""                 }
         }
     },
     {
-        "buttons", "Buttons", CONFIG_SELECTION, "", 2, "", { 0 }, {
-            { "Two",   2 },
-            { "Three", 3 },
-            { ""         }
+        .name = "buttons",
+        .description = "Buttons",
+        .type = CONFIG_SELECTION,
+        .default_string = "",
+        .default_int = 2,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "Two",   .value = 2 },
+            { .description = "Three", .value = 3 },
+            { .description = ""                  }
         }
     },
-    { "", "", -1 }
+    { .name = "", .description = "", .type = CONFIG_END }
 // clang-format on
 };
 

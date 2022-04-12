@@ -693,21 +693,44 @@ speed_changed(void *priv)
     recalc_timings(dev);
 }
 
-
 static const device_config_t herculesplus_config[] = {
 // clang-format off
     {
-        "rgb_type", "Display type", CONFIG_SELECTION, "", 0, "", { 0 },
-        {
-            { "Default", 0 },
-            { "Green",   1 },
-            { "Amber",   2 },
-            { "Gray",    3 },
-            { ""           }
+        .name = "rgb_type",
+        .description = "Display type",
+        .type = CONFIG_SELECTION,
+        .default_int = 0,
+        .selection = {
+            {
+                .description = "Default",
+                .value = 0
+            },
+            {
+                .description = "Green",
+                .value = 1
+            },
+            {
+                .description = "Amber",
+                .value = 2
+            },
+            {
+                .description = "Gray",
+                .value = 3
+            },
+            {
+                .description = ""
+            }
         }
     },
-    { "blend", "Blend", CONFIG_BINARY, "",  1 },
-    { "",      "",                         -1 }
+    {
+        .name = "blend",
+        .description = "Blend",
+        .type = CONFIG_BINARY,
+        .default_int = 1
+    },
+    {
+        .type = CONFIG_END
+    }
 // clang-format on
 };
 

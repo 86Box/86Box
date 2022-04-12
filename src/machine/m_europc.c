@@ -678,10 +678,10 @@ static const device_config_t europc_config[] = {
         .selection = {
             { .description = "Disabled (250h)", .value = 0 },
             { .description = "Enabled (350h)",  .value = 1 },
-            { ""                                           }
+            { .description = ""                            }
         },
     },
-    { .name = "", .description = "", .type = -1 }
+    { .name = "", .description = "", .type = CONFIG_END }
 };
 
 const device_t europc_device = {

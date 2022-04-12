@@ -1594,116 +1594,180 @@ corel_ls2000_available(void)
 // clang-format off
 static const device_config_t ncr5380_mmio_config[] = {
     {
-        "bios_addr", "BIOS Address", CONFIG_HEX20, "", 0xD8000, "", { 0 },
-        {
-            { "C800H", 0xc8000 },
-            { "CC00H", 0xcc000 },
-            { "D800H", 0xd8000 },
-            { "DC00H", 0xdc000 },
-            { ""               }
+        .name = "bios_addr",
+        .description = "BIOS Address",
+        .type = CONFIG_HEX20,
+        .default_string = "",
+        .default_int = 0xD8000,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "C800H", .value = 0xc8000 },
+            { .description = "CC00H", .value = 0xcc000 },
+            { .description = "D800H", .value = 0xd8000 },
+            { .description = "DC00H", .value = 0xdc000 },
+            { .description = ""                        }
         },
     },
     {
-        "irq", "IRQ", CONFIG_SELECTION, "", 5, "", { 0 },
-        {
-            { "IRQ 3", 3 },
-            { "IRQ 5", 5 },
-            { "IRQ 7", 7 },
-            { ""         }
+        .name = "irq",
+        .description = "IRQ",
+        .type = CONFIG_SELECTION,
+        .default_string = "",
+        .default_int = 5,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "IRQ 3", .value = 3 },
+            { .description = "IRQ 5", .value = 5 },
+            { .description = "IRQ 7", .value = 7 },
+            { .description = ""                  }
         },
     },
-    { "", "", -1 }
+    { .name = "", .description = "", .type = CONFIG_END }
 };
 
 static const device_config_t rancho_config[] = {
     {
-        "bios_addr", "BIOS Address", CONFIG_HEX20, "", 0xD8000, "", { 0 },
-        {
-            { "C800H", 0xc8000 },
-            { "CC00H", 0xcc000 },
-            { "D800H", 0xd8000 },
-            { "DC00H", 0xdc000 },
-            { ""               }
+        .name = "bios_addr",
+        .description = "BIOS Address",
+        .type = CONFIG_HEX20,
+        .default_string = "",
+        .default_int = 0xD8000,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "C800H", .value = 0xc8000 },
+            { .description = "CC00H", .value = 0xcc000 },
+            { .description = "D800H", .value = 0xd8000 },
+            { .description = "DC00H", .value = 0xdc000 },
+            { .description = ""                        }
         },
     },
     {
-        "irq", "IRQ", CONFIG_SELECTION, "", 5, "", { 0 },
-        {
-            { "IRQ 3", 3 },
-            { "IRQ 5", 5 },
-            { "IRQ 7", 7 },
-            { ""         }
+        .name = "irq",
+        .description = "IRQ",
+        .type = CONFIG_SELECTION,
+        .default_string = "",
+        .default_int = 5,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "IRQ 3", .value = 3 },
+            { .description = "IRQ 5", .value = 5 },
+            { .description = "IRQ 7", .value = 7 },
+            { .description = ""                  }
         },
     },
     {
-        "bios_ver", "BIOS Version", CONFIG_SELECTION, "", 1, "", { 0 },
-        {
-            { "8.20R", 1 },
-            { "8.10R", 0 },
-            { ""         }
+        .name = "bios_ver",
+        .description = "BIOS Version",
+        .type = CONFIG_SELECTION,
+        .default_string = "",
+        .default_int = 1,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "8.20R", .value = 1 },
+            { .description = "8.10R", .value = 0 },
+            { .description = ""                  }
         },
     },
-    { "", "", -1 }
+    { .name = "", .description = "", .type = CONFIG_END }
 };
 
 static const device_config_t t130b_config[] = {
     {
-        "bios_addr", "BIOS Address", CONFIG_HEX20, "", 0xD8000, "", { 0 },
-        {
-            { "Disabled", 0 },
-            { "C800H", 0xc8000 },
-            { "CC00H", 0xcc000 },
-            { "D800H", 0xd8000 },
-            { "DC00H", 0xdc000 },
-            { ""               }
+        .name = "bios_addr",
+        .description = "BIOS Address",
+        .type = CONFIG_HEX20,
+        .default_string = "",
+        .default_int = 0xD8000,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "Disabled", .value =       0 },
+            { .description = "C800H",    .value = 0xc8000 },
+            { .description = "CC00H",    .value = 0xcc000 },
+            { .description = "D800H",    .value = 0xd8000 },
+            { .description = "DC00H",    .value = 0xdc000 },
+            { .description = ""                           }
         },
     },
     {
-        "base", "Address", CONFIG_HEX16, "", 0x0350, "", { 0 },
-        {
-            { "240H", 0x0240 },
-            { "250H", 0x0250 },
-            { "340H", 0x0340 },
-            { "350H", 0x0350 },
-            { ""             }
+        .name = "base",
+        .description = "Address",
+        .type = CONFIG_HEX16,
+        .default_string = "",
+        .default_int = 0x0350,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "240H", .value = 0x0240 },
+            { .description = "250H", .value = 0x0250 },
+            { .description = "340H", .value = 0x0340 },
+            { .description = "350H", .value = 0x0350 },
+            { .description = ""                      }
         },
     },
     {
-        "irq", "IRQ", CONFIG_SELECTION, "", 5, "", { 0 },
-        {
-            { "IRQ 3", 3 },
-            { "IRQ 5", 5 },
-            { "IRQ 7", 7 },
-            { ""         }
+        .name = "irq",
+        .description = "IRQ",
+        .type = CONFIG_SELECTION,
+        .default_string = "",
+        .default_int = 5,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "IRQ 3", .value = 3 },
+            { .description = "IRQ 5", .value = 5 },
+            { .description = "IRQ 7", .value = 7 },
+            { .description = ""                  }
         },
     },
-    { "", "", -1 }
+    { .name = "", .description = "", .type = CONFIG_END }
 };
 
 static const device_config_t t128_config[] = {
     {
-        "bios_addr", "BIOS Address", CONFIG_HEX20, "", 0xD8000, "", { 0 },
-        {
-            { "C800H", 0xc8000 },
-            { "CC00H", 0xcc000 },
-            { "D800H", 0xd8000 },
-            { "DC00H", 0xdc000 },
-            { ""               }
+        .name = "bios_addr",
+        .description = "BIOS Address",
+        .type = CONFIG_HEX20,
+        .default_string = "",
+        .default_int = 0xD8000,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "C800H", .value = 0xc8000 },
+            { .description = "CC00H", .value = 0xcc000 },
+            { .description = "D800H", .value = 0xd8000 },
+            { .description = "DC00H", .value = 0xdc000 },
+            { .description = ""                        }
         },
     },
     {
-        "irq", "IRQ", CONFIG_SELECTION, "", 5, "", { 0 },
-        {
-            { "IRQ 3", 3 },
-            { "IRQ 5", 5 },
-            { "IRQ 7", 7 },
-            { ""         }
+        .name = "irq",
+        .description = "IRQ",
+        .type = CONFIG_SELECTION,
+        .default_string = "",
+        .default_int = 5,
+        .file_filter = "",
+        .spinner ={ 0 },
+        .selection = {
+            { .description = "IRQ 3", .value = 3 },
+            { .description = "IRQ 5", .value = 5 },
+            { .description = "IRQ 7", .value = 7 },
+            { .description = ""                  }
         },
     },
     {
-        "boot", "Enable Boot ROM", CONFIG_BINARY, "", 1
+        .name = "boot",
+        .description = "Enable Boot ROM",
+        .type = CONFIG_BINARY,
+        .default_string = "",
+        .default_int = 1
     },
-    { "", "", -1 }
+    { .name = "", .description = "", .type = CONFIG_END }
 };
 // clang-format on
 

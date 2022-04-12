@@ -639,17 +639,41 @@ const device_config_t ogc_m24_config[] = {
 // clang-format off
     {
         /* Olivetti / ATT compatible displays */
-        "rgb_type", "RGB type", CONFIG_SELECTION, "", CGA_RGB, "", { 0 },
-        {
-            { "Color",            0 },
-            { "Green Monochrome", 1 },
-            { "Amber Monochrome", 2 },
-            { "Gray Monochrome",  3 },
-            { ""                    }
+        .name = "rgb_type",
+        .description = "RGB type",
+        .type = CONFIG_SELECTION,
+        .default_int = CGA_RGB,
+        .selection = {
+            {
+                .description = "Color",
+                .value = 0
+            },
+            {
+                .description = "Green Monochrome",
+                .value = 1
+            },
+            {
+                .description = "Amber Monochrome",
+                .value = 2
+            },
+            {
+                .description = "Gray Monochrome",
+                .value = 3
+            },
+            {
+                .description = ""
+            }
         }
     },
-    { "snow_enabled", "Snow emulation", CONFIG_BINARY, "",  1, },
-    { "",             "",                                  -1  }
+    {
+        .name = "snow_enabled",
+        .description = "Snow emulation",
+        .type = CONFIG_BINARY,
+        .default_int = 1,
+    },
+    {
+        .type = CONFIG_END
+    }
 // clang-format on
 };
 

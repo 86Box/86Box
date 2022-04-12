@@ -745,16 +745,9 @@ static const device_config_t t1000_config[] = {
         .name = "display_language",
         .description = "Language",
         .type = CONFIG_SELECTION,
-        .selection =
-        {
-            {
-                .description = "USA",
-                .value = 0
-            },
-            {
-                .description = "Danish",
-                .value = 1
-            }
+        .selection = {
+            { .description = "USA", .value = 0 },
+            { .description = "Danish", .value = 1 }
         },
         .default_int = 0
     },
@@ -763,7 +756,8 @@ static const device_config_t t1000_config[] = {
         .description = "Enable backlight",
         .type = CONFIG_BINARY,
         .default_string = "",
-        .default_int = 1 },
+        .default_int = 1
+    },
     {
         .name = "invert",
         .description = "Invert colors",
@@ -771,7 +765,7 @@ static const device_config_t t1000_config[] = {
         .default_string = "",
         .default_int = 0
     },
-    { .type = -1 }
+    { .name = "", .description = "", .type = CONFIG_END }
 };
 
 const device_t t1000_video_device = {

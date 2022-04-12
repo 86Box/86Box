@@ -1621,44 +1621,88 @@ ht216_force_redraw(void *p)
     ht216->svga.fullchange = changeframecount;
 }
 
-
 static const device_config_t v7_vga_1024i_config[] = {
     {
-        "memory", "Memory size", CONFIG_SELECTION, "", 512, "", { 0 },
-        {
-            { "256 kB", 256 },
-            { "512 kB", 512 },
-            { ""            }
+        .name = "memory",
+        .description = "Memory size",
+        .type = CONFIG_SELECTION,
+        .default_int = 512,
+        .selection = {
+            {
+                .description = "256 kB",
+                .value = 256
+            },
+            {
+                .description = "512 kB",
+                .value = 512
+            },
+            {
+                .description = ""
+            }
         }
     },
-    { "", "", -1 }
+    {
+        .type = CONFIG_END
+    }
 };
 
 // clang-format off
 static const device_config_t ht216_32_standalone_config[] = {
     {
-        "monitor_type", "Monitor type", CONFIG_SELECTION, "", 0x18, "", { 0 },
-        {
-            { "Mono Interlaced",      0x00 },
-            { "Mono Non-Interlaced",  0x08 },
-            { "Color Interlaced",     0x10 },
-            { "Color Non-Interlaced", 0x18 },
-            { ""                           }
+        .name = "monitor_type",
+        .description = "Monitor type",
+        .type = CONFIG_SELECTION,
+        .default_int = 0x18,
+        .selection = {
+            {
+                .description = "Mono Interlaced",
+                .value = 0x00
+            },
+            {
+                .description = "Mono Non-Interlaced",
+                .value = 0x08
+            },
+            {
+                .description = "Color Interlaced",
+                .value = 0x10
+            },
+            {
+                .description = "Color Non-Interlaced",
+                .value = 0x18
+            },
+            {
+                .description = ""
+            }
         }
     },
-    { "", "", -1 }
+    {
+        .type = CONFIG_END
+    }
 };
 
 static const device_config_t radius_svga_multiview_config[] = {
     {
-        "extensions", "Extensions", CONFIG_SELECTION, "", 0x00, "", { 0 },
-        {
-            { "Extensions Enabled", 0x00  },
-            { "Extensions Disabled", 0x02 },
-            { ""                          }
+        .name = "extensions",
+        .description = "Extensions",
+        .type = CONFIG_SELECTION,
+        .default_int = 0x00,
+        .selection = {
+            {
+                .description = "Extensions Enabled",
+                .value = 0x00
+            },
+            {
+                .description = "Extensions Disabled",
+                .value = 0x02
+            },
+            {
+                .description = ""
+            }
         }
     },
-    { "", "", -1 }
+    {
+        .type = CONFIG_END
+    }
 };
 // clang-format on
 
@@ -1729,8 +1773,7 @@ const device_t radius_svga_multiview_isa_device = {
     { .available = radius_svga_multiview_available },
     .speed_changed = ht216_speed_changed,
     .force_redraw = ht216_force_redraw,
-    radius_svga_multiview_config,
-    .config = NULL
+    .config = radius_svga_multiview_config
 };
 
 const device_t radius_svga_multiview_mca_device = {

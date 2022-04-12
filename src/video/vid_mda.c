@@ -330,16 +330,35 @@ void mda_speed_changed(void *p)
 static const device_config_t mda_config[] = {
 // clang-format off
     {
-        "rgb_type", "Display type", CONFIG_SELECTION, "", 0, "", { 0 },
-        {
-            { "Default", 0 },
-            { "Green", 1 },
-            { "Amber", 2 },
-            { "Gray", 3 },
-            { "" }
+        .name = "rgb_type",
+        .description = "Display type",
+        .type = CONFIG_SELECTION,
+        .default_int = 0,
+        .selection = {
+            {
+                .description = "Default",
+                .value = 0
+            },
+            {
+                .description = "Green",
+                .value = 1
+            },
+            {
+                .description = "Amber",
+                .value = 2
+            },
+            {
+                .description = "Gray",
+                .value = 3
+            },
+            {
+                .description = ""
+            }
         }
     },
-    { "", "", -1 }
+    {
+        .type = CONFIG_END
+    }
 // clang-format on
 };
 

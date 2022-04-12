@@ -586,7 +586,6 @@ m19_vid_init(m19_vid_t *vid)
     device_context_restore();
 }
 
-
 const device_t m24_kbd_device = {
     .name = "Olivetti M24 keyboard and mouse",
     .internal_name = "m24_kbd",
@@ -616,7 +615,7 @@ const device_config_t m19_vid_config[] = {
             { .description = "Green Monochrome", .value = 1 },
             { .description = "Amber Monochrome", .value = 2 },
             { .description = "Gray Monochrome",  .value = 3 },
-            { .description = ""                    }
+            { .description = ""                             }
         }
     },
     {
@@ -626,7 +625,7 @@ const device_config_t m19_vid_config[] = {
         .default_string = "",
         .default_int = 1,
     },
-    { .name = "", .description = "", .type = -1 }
+    { .name = "", .description = "", .type = CONFIG_END }
 };
 
 const device_t m19_vid_device = {

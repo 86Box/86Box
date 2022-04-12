@@ -81,7 +81,7 @@ deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 								 (char *) config->name, config->default_int);
 
 					c = 0;
-					while (selection->description && selection->description[0]) {
+					while (selection && selection->description && selection->description[0]) {
 						mbstowcs(lptsTemp, selection->description,
 							 strlen(selection->description) + 1);
 						SendMessage(h, CB_ADDSTRING, 0, (LPARAM)(LPCSTR)lptsTemp);
@@ -146,7 +146,7 @@ deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 								   (char *) config->name, config->default_int);
 
 					c = 0;
-					while (selection->description && selection->description[0]) {
+					while (selection && selection->description && selection->description[0]) {
 						mbstowcs(lptsTemp, selection->description,
 							 strlen(selection->description) + 1);
 						SendMessage(h, CB_ADDSTRING, 0, (LPARAM)(LPCSTR)lptsTemp);
@@ -163,7 +163,7 @@ deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 								   (char *) config->name, config->default_int);
 
 					c = 0;
-					while (selection->description && selection->description[0]) {
+					while (selection && selection->description && selection->description[0]) {
 						mbstowcs(lptsTemp, selection->description,
 							 strlen(selection->description) + 1);
 						SendMessage(h, CB_ADDSTRING, 0, (LPARAM)(LPCSTR)lptsTemp);
@@ -391,6 +391,8 @@ deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 						id++;
 						break;
 					case CONFIG_SELECTION:
+					case CONFIG_HEX16:
+					case CONFIG_HEX20:
 					case CONFIG_MIDI_OUT:
 					case CONFIG_MIDI_IN:
 					case CONFIG_SPINNER:

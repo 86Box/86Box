@@ -1251,12 +1251,29 @@ static const device_config_t azt1605_config[] = {
         .default_int = 0
     },
     {
-        "addr", "SB Address", CONFIG_HEX16, "", 0, "", { 0 },
-        {
-            { "0x220",              0x220 },
-            { "0x240",              0x240 },
-            { "Use EEPROM setting", 0     },
-            { ""                          }
+        .name = "addr",
+        .description = "SB Address",
+        .type = CONFIG_HEX16,
+        .default_string = "",
+        .default_int = 0,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            {
+                .description = "0x220",
+                .value = 0x220
+            },
+            {
+                .description = "0x240",
+                .value = 0x240
+            },
+            {
+                .description = "Use EEPROM setting",
+                .value = 0
+            },
+            {
+                .description = ""
+            }
         }
     },
     {
@@ -1328,10 +1345,28 @@ static const device_config_t azt1605_config[] = {
             },
             .default_int = 0
         },
-    { "opl",              "Enable OPL",              CONFIG_BINARY, "",  1 },
-    { "receive_input",    "Receive input (SB MIDI)", CONFIG_BINARY, "",  1 },
-    { "receive_input401", "Receive input (MPU-401)", CONFIG_BINARY, "",  0 },
-    { "",                 "",                                           -1 }
+    {
+        .name = "opl",
+        .description = "Enable OPL",
+        .type = CONFIG_BINARY,
+        .default_string = "",
+        .default_int = 1
+    },
+    {
+        .name = "receive_input",
+        .description = "Receive input (SB MIDI)",
+        .type = CONFIG_BINARY,
+        .default_string = "",
+        .default_int = 1
+    },
+    {
+        .name = "receive_input401",
+        .description = "Receive input (MPU-401)",
+        .type = CONFIG_BINARY,
+        .default_string = "",
+        .default_int = 0
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
     // clang-format on
 };
 
@@ -1341,8 +1376,7 @@ static const device_config_t azt2316a_config[] = {
         .name = "codec",
         .description = "CODEC",
         .type = CONFIG_SELECTION,
-        .selection =
-        {
+        .selection = {
             {
                 .description = "CS4248",
                 .value = AD1848_TYPE_CS4248
@@ -1361,20 +1395,36 @@ static const device_config_t azt2316a_config[] = {
         .default_int = 0
     },
     {
-        "addr", "SB Address", CONFIG_HEX16, "", 0, "", { 0 },
-        {
-            { "0x220",              0x220 },
-            { "0x240",              0x240 },
-            { "Use EEPROM setting", 0     },
-            { ""                          }
+        .name = "addr",
+        .description = "SB Address",
+        .type = CONFIG_HEX16,
+        .default_string = "",
+        .default_int = 0,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            {
+                .description = "0x220",
+                .value = 0x220
+            },
+            {
+                .description = "0x240",
+                .value = 0x240
+            },
+            {
+                .description = "Use EEPROM setting",
+                .value = 0
+            },
+            {
+                .description = ""
+            }
         }
     },
     {
         .name = "wss_irq",
         .description = "WSS IRQ",
         .type = CONFIG_SELECTION,
-        .selection =
-        {
+        .selection = {
             {
                 .description = "IRQ 11",
                 .value = 11
@@ -1397,8 +1447,7 @@ static const device_config_t azt2316a_config[] = {
         .name = "wss_dma",
         .description = "WSS DMA",
         .type = CONFIG_SELECTION,
-        .selection =
-        {
+        .selection = {
             {
                 .description = "DMA 0",
                 .value = 0
@@ -1417,10 +1466,28 @@ static const device_config_t azt2316a_config[] = {
         },
         .default_int = 0
     },
-    { "opl",              "Enable OPL",              CONFIG_BINARY, "",  1 },
-    { "receive_input",    "Receive input (SB MIDI)", CONFIG_BINARY, "",  1 },
-    { "receive_input401", "Receive input (MPU-401)", CONFIG_BINARY, "",  0 },
-    { "",                 "",                                           -1 }
+    {
+        .name = "opl",
+        .description = "Enable OPL",
+        .type = CONFIG_BINARY,
+        .default_string = "",
+        .default_int = 1
+    },
+    {
+        .name = "receive_input",
+        .description = "Receive input (SB MIDI)",
+        .type = CONFIG_BINARY,
+        .default_string = "",
+        .default_int = 1
+    },
+    {
+        .name = "receive_input401",
+        .description = "Receive input (MPU-401)",
+        .type = CONFIG_BINARY,
+        .default_string = "",
+        .default_int = 0
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
   // clang-format on
 };
 

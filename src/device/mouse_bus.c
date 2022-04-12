@@ -696,71 +696,120 @@ bm_init(const device_t *info)
 static const device_config_t lt_config[] = {
 // clang-format off
     {
-        "base", "Address", CONFIG_HEX16, "", 0x23c, "", { 0 }, {
-            { "0x230", 0x230 },
-            { "0x234", 0x234 },
-            { "0x238", 0x238 },
-            { "0x23C", 0x23c },
-            { ""             }
+        .name = "base",
+        .description = "Address",
+        .type = CONFIG_HEX16,
+        .default_string = "",
+        .default_int = 0x23c,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "0x230", .value = 0x230 },
+            { .description = "0x234", .value = 0x234 },
+            { .description = "0x238", .value = 0x238 },
+            { .description = "0x23C", .value = 0x23c },
+            { .description = ""                      }
         }
     },
     {
-        "irq", "IRQ", CONFIG_SELECTION, "", 5, "", { 0 }, {
-            { "IRQ 2", 2 },
-            { "IRQ 3", 3 },
-            { "IRQ 4", 4 },
-            { "IRQ 5", 5 },
-            { "" }
+        .name = "irq",
+        .description = "IRQ",
+        .type = CONFIG_SELECTION,
+        .default_string = "",
+        .default_int = 5,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "IRQ 2", .value = 2 },
+            { .description = "IRQ 3", .value = 3 },
+            { .description = "IRQ 4", .value = 4 },
+            { .description = "IRQ 5", .value = 5 },
+            { .description = ""                  }
         }
     },
     {
-        "hz", "Hz", CONFIG_SELECTION, "", 45, "", { 0 }, {
-            { "Non-timed (original)",        0 },
-            { "30 Hz (JMP2 = 1)",           30 },
-            { "45 Hz (JMP2 not populated)", 45 },
-            { "60 Hz (JMP 2 = 2)",          60 },
-            { ""                               }
+        .name = "hz",
+        .description = "Hz",
+        .type = CONFIG_SELECTION,
+        .default_string = "",
+        .default_int = 45,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "Non-timed (original)",       .value =  0 },
+            { .description = "30 Hz (JMP2 = 1)",           .value = 30 },
+            { .description = "45 Hz (JMP2 not populated)", .value = 45 },
+            { .description = "60 Hz (JMP 2 = 2)",          .value = 60 },
+            { .description = ""                                        }
         }
     },
     {
-        "buttons", "Buttons", CONFIG_SELECTION, "", 2, "", { 0 }, {
-            { "Two",   2 },
-            { "Three", 3 },
-            { ""         }
+        .name = "buttons",
+        .description = "Buttons",
+        .type = CONFIG_SELECTION,
+        .default_string = "",
+        .default_int = 2,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "Two",   .value = 2 },
+            { .description = "Three", .value = 3 },
+            { .description = ""                  }
         }
     },
-    { "", "", -1 }
+    { .name = "", .description = "", .type = CONFIG_END }
 // clang-format on
 };
 
 static const device_config_t ms_config[] = {
 // clang-format off
     {
-        "base", "Address", CONFIG_HEX16, "", 0x23c, "", { 0 }, {
-            { "0x230", 0x230 },
-            { "0x234", 0x234 },
-            { "0x238", 0x238 },
-            { "0x23C", 0x23c },
-            { ""             }
+        .name = "base",
+        .description = "Address",
+        .type = CONFIG_HEX16,
+        .default_string = "",
+        .default_int = 0x23c,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "0x230", .value = 0x230 },
+            { .description = "0x234", .value = 0x234 },
+            { .description = "0x238", .value = 0x238 },
+            { .description = "0x23C", .value = 0x23c },
+            { .description = ""                      }
         }
     },
     {
-        "irq", "IRQ", CONFIG_SELECTION, "", 5, "", { 0 }, {
-            { "IRQ 2", 2 },
-            { "IRQ 3", 3 },
-            { "IRQ 4", 4 },
-            { "IRQ 5", 5 },
-            { "" }
+        .name = "irq",
+        .description = "IRQ",
+        .type = CONFIG_SELECTION,
+        .default_string = "",
+        .default_int = 5,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "IRQ 2", .value = 2 },
+            { .description = "IRQ 3", .value = 3 },
+            { .description = "IRQ 4", .value = 4 },
+            { .description = "IRQ 5", .value = 5 },
+            { .description = ""                  }
         }
     },
     {
-        "buttons", "Buttons", CONFIG_SELECTION, "", 2, "", { 0 }, {
-            { "Two",   2 },
-            { "Three", 3 },
-            { ""         }
+        .name = "buttons",
+        .description = "Buttons",
+        .type = CONFIG_SELECTION,
+        .default_string = "",
+        .default_int = 2,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "Two",   .value = 2 },
+            { .description = "Three", .value = 3 },
+            { .description = ""                  }
         }
     },
-    { "", "", -1 }
+    { .name = "", .description = "", .type = CONFIG_END }
 // clang-format on
 };
 

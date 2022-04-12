@@ -1348,7 +1348,7 @@ machine_ps2_common_init(const machine_t *model)
 
         dma16_init();
         ps2_dma_init();
-	device_add(&ps_nvr_device);
+        device_add(&ps_no_nmi_nvr_device);
         pic2_init();
 
         pit_ps2_init();

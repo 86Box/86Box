@@ -3684,27 +3684,56 @@ void mach64_force_redraw(void *p)
 // clang-format off
 static const device_config_t mach64gx_config[] = {
     {
-        "memory", "Memory size", CONFIG_SELECTION, "", 4, "", { 0 },
-        {
-            { "1 MB", 1 },
-            { "2 MB", 2 },
-            { "4 MB", 4 },
-            { ""        }
+        .name = "memory",
+        .description = "Memory size",
+        .type = CONFIG_SELECTION,
+        .default_int = 4,
+        .selection = {
+            {
+                .description = "1 MB",
+                .value = 1
+            },
+            {
+                .description = "2 MB",
+                .value = 2
+            },
+            {
+                .description = "4 MB",
+                .value = 4
+            },
+            {
+                .description = ""
+            }
         }
     },
-    { "", "", -1 }
+    {
+        .type = CONFIG_END
+    }
 };
 
 static const device_config_t mach64vt2_config[] = {
     {
-        "memory", "Memory size", CONFIG_SELECTION, "", 4, "", { 0 },
-        {
-            { "2 MB", 2 },
-            { "4 MB", 4 },
-            { ""        }
+        .name = "memory",
+        .description = "Memory size",
+        .type = CONFIG_SELECTION,
+        .default_int = 4,
+        .selection = {
+            {
+                .description = "2 MB",
+                .value = 2
+            },
+            {
+                .description = "4 MB",
+                .value = 4
+            },
+            {
+                .description = ""
+            }
         }
     },
-    { "", "", -1 }
+    {
+        .type = CONFIG_END
+    }
 };
 // clang-format on
 

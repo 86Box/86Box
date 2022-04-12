@@ -332,15 +332,22 @@ ps2_close(void *priv)
 static const device_config_t ps2_config[] = {
 // clang-format off
     {
-        "buttons", "Buttons", CONFIG_SELECTION, "", 2, "", { 0 }, {
-            { "Two",   2 },
-            { "Three", 3 },
-            { "Wheel", 4 },
-            { ""         }
+        .name = "buttons",
+        .description = "Buttons",
+        .type = CONFIG_SELECTION,
+        .default_string = "",
+        .default_int = 2,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "Two",   .value = 2 },
+            { .description = "Three", .value = 3 },
+            { .description = "Wheel", .value = 4 },
+            { .description = ""                  }
         }
     },
     {
-        "", "", -1
+        .name = "", .description = "", .type = CONFIG_END
     }
 // clang-format on
 };

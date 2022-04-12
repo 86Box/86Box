@@ -234,57 +234,73 @@ rtmidi_in_get_dev_name(int num, char *s)
 
 static const device_config_t system_midi_config[] = {
     {
-    "midi", "MIDI out device", CONFIG_MIDI_OUT, "", 0
+        .name = "midi",
+        .description = "MIDI out device",
+        .type = CONFIG_MIDI_OUT,
+        .default_string = "",
+        .default_int = 0
     },
-    {
-    "", "", -1
-    }
+    { .name = "", .description = "", .type = CONFIG_END }
 };
 
 static const device_config_t midi_input_config[] = {
     {
-    "midi_input", "MIDI in device", CONFIG_MIDI_IN, "", 0
+        .name = "midi_input",
+        .description = "MIDI in device",
+        .type = CONFIG_MIDI_IN,
+        .default_string = "",
+        .default_int = 0
     },
     {
-    "realtime", "MIDI Real time", CONFIG_BINARY, "", 0
+        .name = "realtime",
+        .description = "MIDI Real time",
+        .type = CONFIG_BINARY,
+        .default_string = "",
+        .default_int = 0
     },
     {
-    "thruchan", "MIDI Thru", CONFIG_BINARY, "", 1
+        .name = "thruchan",
+        .description = "MIDI Thru",
+        .type = CONFIG_BINARY,
+        .default_string = "",
+        .default_int = 1
     },
     {
-    "clockout", "MIDI Clockout", CONFIG_BINARY, "", 1
+        .name = "clockout",
+        .description = "MIDI Clockout",
+        .type = CONFIG_BINARY,
+        .default_string = "",
+        .default_int = 1
     },
-    {
-    "", "", -1
-    }
+    { .name = "", .description = "", .type = CONFIG_END }
 };
 
 const device_t rtmidi_output_device = {
-    SYSTEM_MIDI_NAME,
-    SYSTEM_MIDI_INTERNAL_NAME,
-    0, 0,
-    rtmidi_output_init,
-    rtmidi_output_close,
-    NULL,
-    { rtmidi_out_get_num_devs },
-    NULL,
-    NULL,
-    system_midi_config
+    .name = SYSTEM_MIDI_NAME,
+    .internal_name = SYSTEM_MIDI_INTERNAL_NAME,
+    .flags = 0,
+    .local = 0,
+    .init = rtmidi_output_init,
+    .close = rtmidi_output_close,
+    .reset = NULL,
+    { .available = rtmidi_out_get_num_devs },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = system_midi_config
 };
 
-
-const device_t rtmidi_input_device =
-{
-    MIDI_INPUT_NAME,
-    MIDI_INPUT_INTERNAL_NAME,
-    0, 0,
-    rtmidi_input_init,
-    rtmidi_input_close,
-    NULL,
-    { rtmidi_in_get_num_devs },
-    NULL,
-    NULL,
-    midi_input_config
+const device_t rtmidi_input_device = {
+    .name = MIDI_INPUT_NAME,
+    .internal_name = MIDI_INPUT_INTERNAL_NAME,
+    .flags = 0,
+    .local = 0,
+    .init = rtmidi_input_init,
+    .close = rtmidi_input_close,
+    .reset = NULL,
+    { .available = rtmidi_in_get_num_devs },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = midi_input_config
 };
 
 }

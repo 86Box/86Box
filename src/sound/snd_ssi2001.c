@@ -92,13 +92,32 @@ ssi2001_close(void *p)
 
 static const device_config_t ssi2001_config[] = {
 // clang-format off
-    { "base", "Address", CONFIG_HEX16, "", 0x280, "", { 0 },
-        {
-            { "0x280", 0x280 },
-            { "0x2A0", 0x2A0 },
-            { "0x2C0", 0x2C0 },
-            { "0x2E0", 0x2E0 },
-            { ""             }
+    {
+        .name = "base",
+        .description = "Address",
+        .type = CONFIG_HEX16,
+        .default_string = "",
+        .default_int = 0x280,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            {
+                .description = "0x280",
+                .value = 0x280
+            },
+            {
+                .description = "0x2A0",
+                .value = 0x2A0
+            },
+            {
+                .description = "0x2C0",
+                .value = 0x2C0
+            },
+            {
+                .description = "0x2E0",
+                .value = 0x2E0
+            },
+            { .description = "" }
         }
     },
     { "gameport", "Enable Game port", CONFIG_BINARY, "",  1 },
