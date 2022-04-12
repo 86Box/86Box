@@ -598,42 +598,94 @@ nga_init(const device_t *info)
     return nga;
 }
 
-
 const device_config_t nga_config[] = {
 // clang-format off
     {
-        "rgb_type", "RGB type", CONFIG_SELECTION, "", 0, "", { 0 },
-        {
-            { "Color",            0 },
-            { "Green Monochrome", 1 },
-            { "Amber Monochrome", 2 },
-            { "Gray Monochrome",  3 },
-            { "Color (no brown)", 4 },
-            { ""                    }
+        .name = "rgb_type",
+        .description = "RGB type",
+        .type = CONFIG_SELECTION,
+        .default_int = 0,
+        .selection = {
+            {
+                .description = "Color",
+                .value = 0
+            },
+            {
+                .description = "Green Monochrome",
+                .value = 1
+            },
+            {
+                .description = "Amber Monochrome",
+                .value = 2
+            },
+            {
+                .description = "Gray Monochrome",
+                .value = 3
+            },
+            {
+                .description = "Color (no brown)",
+                .value = 4
+            },
+            {
+                .description = ""
+            }
         }
     },
     {
-        "snow_enabled", "Snow emulation", CONFIG_BINARY, "", 1
+        .name = "snow_enabled",
+        .description = "Snow emulation",
+        .type = CONFIG_BINARY,
+        .default_int = 1
     },
     {
-        "memory", "Memory size", CONFIG_SELECTION, "", 64, "", { 0 },
-        {
-            { "32 KB", 32 },
-            { "64 KB", 64 },
-            { ""          }
+        .name = "memory",
+        .description = "Memory size",
+        .type = CONFIG_SELECTION,
+        .default_int = 64,
+        .selection = {
+            {
+                .description = "32 KB",
+                .value = 32
+            },
+            {
+                .description = "64 KB",
+                .value = 64
+            },
+            {
+                .description = ""
+            }
         }
     },
     {
-        "charset", "Character set", CONFIG_SELECTION, "", 0, "", { 0 },
-        {
-            { "U.S. English",    0 },
-            { "Scandinavian",    1 },
-            { "Other languages", 2 },
-            { "E.F. Hutton",     3 },
-            { ""                   }
+        .name = "charset",
+        .description = "Character set",
+        .type = CONFIG_SELECTION,
+        .default_int = 0,
+        .selection = {
+            {
+                .description = "U.S. English",
+                .value = 0
+            },
+            {
+                .description = "Scandinavian",
+                .value = 1
+            },
+            {
+                .description = "Other languages",
+                .value = 2
+            },
+            {
+                .description = "E.F. Hutton",
+                .value = 3
+            },
+            {
+                .description = ""
+            }
         }
     },
-    { "", "", -1 }
+    {
+        .type = CONFIG_END
+    }
 // clang-format on
 };
 

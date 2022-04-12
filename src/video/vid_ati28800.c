@@ -708,29 +708,61 @@ ati28800_force_redraw(void *priv)
 // clang-format off
 static const device_config_t ati28800_config[] = {
     {
-        "memory", "Memory size", CONFIG_SELECTION, "", 512, "", { 0 },
-        {
-            { "256 kB",  256 },
-            { "512 kB",  512 },
-            { "1 MB",   1024 },
-            { ""             }
+        .name = "memory",
+        .description = "Memory size",
+        .type = CONFIG_SELECTION,
+        .default_int = 512,
+        .selection = {
+            {
+                .description = "256 kB",
+                .value = 256
+            },
+            {
+                .description = "512 kB",
+                .value = 512
+            },
+            {
+                .description = "1 MB",
+                .value = 1024
+            },
+            {
+                .description = ""
+            }
         }
     },
-    { "", "", -1 }
+    {
+        .type = CONFIG_END
+    }
 };
 
 #if defined(DEV_BRANCH) && defined(USE_XL24)
 static const device_config_t ati28800_wonderxl_config[] = {
     {
-        "memory", "Memory size", CONFIG_SELECTION, "", 512, "", { 0 },
-        {
-            { "256 kB",  256 },
-            { "512 kB",  512 },
-            { "1 MB",   1024 },
-            { ""             }
+        .name = "memory",
+        .description = "Memory size",
+        .type = CONFIG_SELECTION,
+        .default_int = 512,
+        .selection = {
+            {
+                .description = "256 kB",
+                .value = 256
+            },
+            {
+                .description = "512 kB",
+                .value = 512
+            },
+            {
+                .description = "1 MB",
+                .value = 1024
+            },
+            {
+                .description = ""
+            }
         }
     },
-    { "", "", -1 }
+    {
+        .type = CONFIG_END
+    }
 };
 #endif
 // clang-format on

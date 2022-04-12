@@ -99,7 +99,7 @@ typedef struct {
     const char *default_string;
     int default_int;
     const char *file_filter;
-    device_config_spinner_t spinner;
+    const device_config_spinner_t spinner;
     const device_config_selection_t *selection;
     const device_config_bios_t *bios;
 } device_config_t;

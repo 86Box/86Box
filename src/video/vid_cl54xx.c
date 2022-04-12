@@ -4326,7 +4326,7 @@ static const device_config_t gd542x_config[] = {
         .default_int = 512
     },
     {
-        .type = -1
+        .type = CONFIG_END
     }
 };
 
@@ -4355,7 +4355,7 @@ static const device_config_t gd5426_config[] = {
         .default_int = 2048
     },
     {
-        .type = -1
+        .type = CONFIG_END
     }
 };
 
@@ -4384,7 +4384,7 @@ static const device_config_t gd5428_onboard_config[] = {
         .default_int = 2048
     },
     {
-        .type = -1
+        .type = CONFIG_END
     }
 };
 
@@ -4409,7 +4409,7 @@ static const device_config_t gd5429_config[] = {
         .default_int = 2
     },
     {
-        .type = -1
+        .type = CONFIG_END
     }
 };
 
@@ -4434,7 +4434,7 @@ static const device_config_t gd5440_onboard_config[] = {
         .default_int = 2
     },
     {
-        .type = -1
+        .type = CONFIG_END
     }
 };
 
@@ -4463,7 +4463,7 @@ static const device_config_t gd5434_config[] = {
         .default_int = 4
     },
     {
-        .type = -1
+        .type = CONFIG_END
     }
 };
 
@@ -4492,7 +4492,7 @@ static const device_config_t gd5434_onboard_config[] = {
         .default_int = 4
     },
     {
-        .type = -1
+        .type = CONFIG_END
     }
 };
 

@@ -368,9 +368,7 @@ static const device_config_t mt32_config[] = {
         .type = CONFIG_BINARY,
         .default_int = 1
     },
-    {
-        .type = -1
-    }
+    { .name = "", .description = "", .type = CONFIG_END }
 // clang-format on
 };
 

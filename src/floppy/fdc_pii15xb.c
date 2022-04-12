@@ -124,16 +124,22 @@ static int pii_158_available(void)
 static const device_config_t pii_config[] = {
 // clang-format off
     {
-        "bios_addr", "BIOS Address:", CONFIG_HEX20, "", 0xce000, "", { 0 },
-        {
-            { "Disabled", 0 },
-            { "CA00H",    0xca000 },
-            { "CC00H",    0xcc000 },
-            { "CE00H",    0xce000 },
-            { "" }
+        .name = "bios_addr",
+        .description = "BIOS Address:",
+        .type = CONFIG_HEX20,
+        .default_string = "",
+        .default_int = 0xce000,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "Disabled", .value = 0 },
+            { .description = "CA00H",    .value = 0xca000 },
+            { .description = "CC00H",    .value = 0xcc000 },
+            { .description = "CE00H",    .value = 0xce000 },
+            { .description = ""                           }
         }
     },
-    { "", "", -1 }
+    { .name = "", .description = "", .type = CONFIG_END }
 // clang-format on
 };
 

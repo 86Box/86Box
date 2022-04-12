@@ -45,6 +45,8 @@
 #include <86box/timer.h>
 #include <86box/nvr.h>
 #include <86box/video.h>
+#include <86box/mem.h>
+#include <86box/rom.h>
 #define GLOBAL
 #include <86box/plat.h>
 #include <86box/ui.h>
@@ -909,6 +911,30 @@ plat_mmap(size_t size, uint8_t executable)
     return VirtualAlloc(NULL, size, MEM_COMMIT, executable ? PAGE_EXECUTE_READWRITE : PAGE_READWRITE);
 }
 
+
+void
+plat_init_rom_paths()
+{
+    wchar_t appdata_dir[1024] = { L'\0' };
+
+    if (_wgetenv("LOCALAPPDATA") && _wgetenv("LOCALAPPDATA")[0] != L'\0') {
+        char appdata_dir_a[1024] = { '\0' };
+        size_t len = 0;
+        wcsncpy(appdata_dir, _wgetenv("LOCALAPPDATA"), 1024);
+        len = wcslen(appdata_dir);
+        if (appdata_dir[len - 1] != L'\\') {
+            appdata_dir[len] = L'\\';
+            appdata_dir[len + 1] = L'\0';
+        }
+        wcscat(appdata_dir, L"86box");
+        CreateDirectoryW(appdata_dir, NULL);
+        wcscat(appdata_dir, L"\\roms");
+        CreateDirectoryW(appdata_dir, NULL);
+        wcscat(appdata_dir, L"\\");
+        c16stombs(appdata_dir_a, appdata_dir, 1024);
+        rom_add_path(appdata_dir_a);
+    }
+}
 
 void
 plat_munmap(void *ptr, size_t size)

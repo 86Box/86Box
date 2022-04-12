@@ -1,0 +1,10 @@
+cmake@3.22.3_0
+pkgconfig@0.29.2_0
+ninja@1.10.2_4
+freetype@2.11.1_0
+libsdl2@2.0.20_0
+libpng@1.6.37_0
+openal-soft@1.21.1_0
+rtmidi@5.0.0_0
+qt5@5.15.3_0
+wget

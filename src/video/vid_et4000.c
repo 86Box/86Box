@@ -897,15 +897,31 @@ static const device_config_t et4000_tc6058af_config[] = {
 static const device_config_t et4000_config[] = {
 // clang-format off
     {
-        "memory", "Memory size", CONFIG_SELECTION, "", 1024, "", { 0 },
-        {
-            { "256 KB",  256 },
-            { "512 KB",  512 },
-            { "1 MB",   1024 },
-            { ""             }
+        .name = "memory",
+        .description = "Memory size",
+        .type = CONFIG_SELECTION,
+        .default_int = 1024,
+        .selection = {
+            {
+                .description = "256 KB",
+                .value = 256
+            },
+            {
+                .description = "512 KB",
+                .value = 512
+            },
+            {
+                .description = "1 MB",
+                .value = 1024
+            },
+            {
+                .description = ""
+            }
         }
     },
-    { "", "", -1 }
+    {
+        .type = CONFIG_END
+    }
 // clang-format on
 };
 

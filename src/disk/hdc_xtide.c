@@ -259,7 +259,6 @@ xtide_at_close(void *priv)
     free(xtide);
 }
 
-
 const device_t xtide_device = {
     .name = "PC/XT XTIDE",
     .internal_name = "xtide",

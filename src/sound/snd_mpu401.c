@@ -1806,30 +1806,87 @@ mpu401_standalone_close(void *priv)
 static const device_config_t mpu401_standalone_config[] = {
     // clang-format off
     {
-        "base", "MPU-401 Address", CONFIG_HEX16, "", 0x330, "", { 0 },
-        {
-            { "0x220", 0x220 },
-            { "0x230", 0x230 },
-            { "0x240", 0x240 },
-            { "0x250", 0x250 },
-            { "0x300", 0x300 },
-            { "0x320", 0x320 },
-            { "0x330", 0x330 },
-            { "0x340", 0x340 },
-            { "0x350", 0x350 },
-            { ""             }
+        .name = "base",
+        .description = "MPU-401 Address",
+        .type = CONFIG_HEX16,
+        .default_string = "",
+        .default_int = 0x330,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            {
+                .description = "0x220",
+                .value = 0x220
+            },
+            {
+                .description = "0x230",
+                .value = 0x230
+            },
+            {
+                .description = "0x240",
+                .value = 0x240
+            },
+            {
+                .description = "0x250",
+                .value = 0x250
+            },
+            {
+                .description = "0x300",
+                .value = 0x300
+            },
+            {
+                .description = "0x320",
+                .value = 0x320
+            },
+            {
+                .description = "0x330",
+                .value = 0x330
+            },
+            {
+                .description = "0x340",
+                .value = 0x340
+            },
+            {
+                .description = "0x350",
+                .value = 0x350
+            },
+            { .description = "" }
         }
     },
     {
-        "irq", "MPU-401 IRQ", CONFIG_SELECTION, "", 2, "", { 0 },
-        {
-            { "IRQ 2", 2 },
-            { "IRQ 3", 3 },
-            { "IRQ 4", 4 },
-            { "IRQ 5", 5 },
-            { "IRQ 6", 6 },
-            { "IRQ 7", 7 },
-            { ""         }
+        .name = "irq",
+        .description = "MPU-401 IRQ",
+        .type = CONFIG_SELECTION,
+        .default_string = "",
+        .default_int = 2,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            {
+                .description = "IRQ 2",
+                .value = 2
+            },
+            {
+                .description = "IRQ 3",
+                .value = 3
+            },
+            {
+                .description = "IRQ 4",
+                .value = 4
+            },
+            {
+                .description = "IRQ 5",
+                .value = 5
+            },
+            {
+                .description = "IRQ 6",
+                .value = 6
+            },
+            {
+                .description = "IRQ 7",
+                .value = 7
+            },
+            { .description = "" }
         }
     },
     {
@@ -1838,7 +1895,7 @@ static const device_config_t mpu401_standalone_config[] = {
         .type = CONFIG_BINARY,
         .default_int = 1
     },
-    { "", "", -1 }
+    { .name = "", .description = "", .type = CONFIG_END }
     // clang-format on
 };
 
@@ -1850,9 +1907,7 @@ static const device_config_t mpu401_standalone_mca_config[] = {
         .type = CONFIG_BINARY,
         .default_int = 1
     },
-    {
-        "", "", -1
-    }
+    { .name = "", .description = "", .type = CONFIG_END }
     // clang-format on
 };
 

@@ -28,9 +28,17 @@
 #   - Packaging the Discord DLL requires wget (MSYS should come with it)
 # - For Linux builds:
 #   - Only Debian and derivatives are supported
-#   - dpkg and apt-get are called through sudo to manage dependencies
+#   - dpkg and apt-get are called through sudo to manage dependencies; make sure those
+#     are configured as NOPASSWD in /etc/sudoers if you're doing unattended builds
 # - For macOS builds:
-#   - TBD
+#   - A standard MacPorts installation is required, with the following macports.conf settings:
+#       buildfromsource always
+#       build_arch x86_64 (or arm64)
+#       universal_archs (blank)
+#       ui_interactive no
+#       macosx_deployment_target 10.13
+#   - port is called through sudo to manage dependencies; make sure it is configured
+#     as NOPASSWD in /etc/sudoers if you're doing unattended builds
 #
 
 # Define common functions.
@@ -178,13 +186,16 @@ fi
 echo [-] Building [$package_name] for [$arch] with flags [$cmake_flags]
 
 # Determine CMake toolchain file for this architecture.
+toolchain_prefix=flags-gcc
+is_mac && toolchain_prefix=llvm-macos
 case $arch in
-	32 | x86)	toolchain="flags-gcc-i686";;
-	64 | x86_64)	toolchain="flags-gcc-x86_64";;
-	ARM32 | arm32)	toolchain="flags-gcc-armv7";;
-	ARM64 | arm64)	toolchain="flags-gcc-aarch64";;
-	*)		toolchain="flags-gcc-$arch";;
+	32 | x86)	toolchain="$toolchain_prefix-i686";;
+	64 | x86_64)	toolchain="$toolchain_prefix-x86_64";;
+	ARM32 | arm32)	toolchain="$toolchain_prefix-armv7";;
+	ARM64 | arm64)	toolchain="$toolchain_prefix-aarch64";;
+	*)		toolchain="$toolchain_prefix-$arch";;
 esac
+[ ! -e "cmake/$toolchain.cmake" ] && toolchain=flags-gcc
 
 # Perform platform-specific setup.
 strip_binary=strip
@@ -313,11 +324,27 @@ then
 	fi
 
 	# Point CMake to the toolchain file.
-	cmake_flags_extra="$cmake_flags_extra -D \"CMAKE_TOOLCHAIN_FILE=cmake/$toolchain.cmake\""
+	[ -e "cmake/$toolchain.cmake" ] && cmake_flags_extra="$cmake_flags_extra -D \"CMAKE_TOOLCHAIN_FILE=cmake/$toolchain.cmake\""
 elif is_mac
 then
 	# macOS lacks nproc, but sysctl can do the same job.
 	alias nproc='sysctl -n hw.logicalcpu'
+
+	# Locate the MacPorts prefix.
+	macports="/opt/local"
+	[ -e "/opt/$arch/bin/port" ] && macports="/opt/$arch"
+	[ "$arch" = "x86_64" -a -e "/opt/intel/bin/port" ] && macports="/opt/intel"
+
+	# Install dependencies.
+	echo [-] Installing dependencies through MacPorts
+	sudo $macports/bin/port selfupdate
+	sudo $macports/bin/port install $(cat .ci/dependencies_macports.txt)
+
+	# Point CMake to the toolchain file.
+	[ -e "cmake/$toolchain.cmake" ] && cmake_flags_extra="$cmake_flags_extra -D \"CMAKE_TOOLCHAIN_FILE=cmake/$toolchain.cmake\""
+
+	# Use OpenAL as MacPorts doesn't package FAudio.
+	cmake_flags_extra="$cmake_flags_extra -D OPENAL=ON"
 else
 	# Determine Debian architecture.
 	case $arch in
@@ -350,18 +377,18 @@ else
 		[ $length -gt $longest_libpkg ] && longest_libpkg=$length
 	done
 
-	# Determine GNU toolchain architecture.
+	# Determine toolchain architecture triplet.
 	case $arch in
-		x86)	arch_gnu="i686-linux-gnu";;
-		arm32)	arch_gnu="arm-linux-gnueabihf";;
-		arm64)	arch_gnu="aarch64-linux-gnu";;
-		*)	arch_gnu="$arch-linux-gnu";;
+		x86)	arch_triplet="i686-linux-gnu";;
+		arm32)	arch_triplet="arm-linux-gnueabihf";;
+		arm64)	arch_triplet="aarch64-linux-gnu";;
+		*)	arch_triplet="$arch-linux-gnu";;
 	esac
 
 	# Determine library directory name for this architecture.
 	case $arch in
 		x86)	libdir="i386-linux-gnu";;
-		*)	libdir="$arch_gnu";;
+		*)	libdir="$arch_triplet";;
 	esac
 
 	# Create CMake toolchain file.
@@ -369,15 +396,15 @@ else
 set(CMAKE_SYSTEM_NAME Linux)
 set(CMAKE_SYSTEM_PROCESSOR $arch)
 
-set(CMAKE_AR $arch_gnu-ar)
-set(CMAKE_ASM_COMPILER $arch_gnu-gcc)
-set(CMAKE_C_COMPILER $arch_gnu-gcc)
-set(CMAKE_CXX_COMPILER $arch_gnu-g++)
-set(CMAKE_LINKER $arch_gnu-ld)
-set(CMAKE_OBJCOPY $arch_gnu-objcopy)
-set(CMAKE_RANLIB $arch_gnu-ranlib)
-set(CMAKE_SIZE $arch_gnu-size)
-set(CMAKE_STRIP $arch_gnu-strip)
+set(CMAKE_AR $arch_triplet-ar)
+set(CMAKE_ASM_COMPILER $arch_triplet-gcc)
+set(CMAKE_C_COMPILER $arch_triplet-gcc)
+set(CMAKE_CXX_COMPILER $arch_triplet-g++)
+set(CMAKE_LINKER $arch_triplet-ld)
+set(CMAKE_OBJCOPY $arch_triplet-objcopy)
+set(CMAKE_RANLIB $arch_triplet-ranlib)
+set(CMAKE_SIZE $arch_triplet-size)
+set(CMAKE_STRIP $arch_triplet-strip)
 
 set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)
 set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)
@@ -389,7 +416,7 @@ set(ENV{PKG_CONFIG_LIBDIR} "/usr/lib/$libdir/pkgconfig:/usr/share/$libdir/pkgcon
 include("$(pwd)/cmake/$toolchain.cmake")
 EOF
 	cmake_flags_extra="$cmake_flags_extra -D CMAKE_TOOLCHAIN_FILE=toolchain.cmake"
-	strip_binary="$arch_gnu-strip"
+	strip_binary="$arch_triplet-strip"
 
 	# Install or update dependencies.
 	echo [-] Installing dependencies through apt
@@ -524,8 +551,21 @@ then
 	fi
 elif is_mac
 then
-	# TBD
-	:
+	# Archive app bundle with libraries.
+	cmake_flags_install=
+	[ $strip -ne 0 ] && cmake_flags_install="$cmake_flags_install --strip"
+	cmake --install build --prefix "$(pwd)/archive_tmp" $cmake_flags_install
+	status=$?
+
+	if [ $status -eq 0 ]
+	then
+		# Archive Discord Game SDK library.
+		unzip -j discord_game_sdk.zip "lib/$arch_discord/discord_game_sdk.dylib" -d "archive_tmp/"*".app/Contents/Frameworks"
+		[ ! -e "archive_tmp/"*".app/Contents/Frameworks/discord_game_sdk.dylib" ] && echo [!] No Discord Game SDK for architecture [$arch_discord]
+
+		# Sign app bundle.
+		codesign --force --deep -s - "archive_tmp/"*".app"
+	fi
 else
 	cwd_root=$(pwd)
 
@@ -643,8 +683,10 @@ then
 	status=$?
 elif is_mac
 then
-	# TBD
-	:
+	# Create zip. (TODO: dmg)
+	cd archive_tmp
+	zip -r "$cwd/$package_name.zip" .
+	status=$?
 else
 	# Determine AppImage runtime architecture.
 	case $arch in
