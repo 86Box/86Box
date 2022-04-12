@@ -147,6 +147,7 @@ extern void		device_register_pci_slot(const device_t *d, int device, int type, i
 extern void		device_speed_changed(void);
 extern void		device_force_redraw(void);
 extern void		device_get_name(const device_t *d, int bus, char *name);
+extern int		device_has_config(const device_t *d);
 
 extern int		device_is_valid(const device_t *, int m);
 

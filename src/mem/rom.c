@@ -57,39 +57,59 @@ rom_log(const char *fmt, ...)
 #define rom_log(fmt, ...)
 #endif
 
+void
+rom_add_path(const char* path)
+{
+    char cwd[1024] = { 0 };
+
+    rom_path_t* rom_path = &rom_paths;
+
+    if (rom_paths.path[0] != '\0')
+    {
+        // Iterate to the end of the list.
+        while (rom_path->next != NULL) {
+            rom_path = rom_path->next;
+        }
+
+        // Allocate the new entry.
+        rom_path = rom_path->next = calloc(1, sizeof(rom_path_t));
+    }
+
+    // Save the path, turning it into absolute if needed.
+    if (!plat_path_abs((char*) path)) {
+        plat_getcwd(cwd, sizeof(cwd));
+        plat_path_slash(cwd);
+        snprintf(rom_path->path, sizeof(rom_path->path), "%s%s", cwd, path);
+    } else {
+        snprintf(rom_path->path, sizeof(rom_path->path), "%s", path);
+    }
+
+    // Ensure the path ends with a separator.
+    plat_path_slash(rom_path->path);
+}
+
 
 FILE *
 rom_fopen(char *fn, char *mode)
 {
     char temp[1024];
-    char *fn2;
+    rom_path_t *rom_path = &rom_paths;
+    FILE *fp;
 
-    if ((strstr(fn, "roms/") == fn) || (strstr(fn, "roms\\") == fn)) {
-	/* Relative path */
-	fn2 = (char *) malloc(strlen(fn) + 1);
-	memcpy(fn2, fn, strlen(fn) + 1);
+    if (strstr(fn, "roms/") == fn) {
+        /* Relative path */
+        for(rom_path_t *rom_path = &rom_paths; rom_path != NULL; rom_path = rom_path->next) {
+            plat_append_filename(temp, rom_path->path, fn + 5);
 
-	if (rom_path[0] != '\0') {
-		memset(fn2, 0x00, strlen(fn) + 1);
-		memcpy(fn2, &(fn[5]), strlen(fn) - 4);
+            if ((fp = plat_fopen(temp, mode)) != NULL) {
+                return fp;
+            }
+        }
 
-		plat_append_filename(temp, rom_path, fn2);
-	} else {
-		/* Make sure to make it a backslash, just in case there's malformed
-		   code calling us that assumes Windows. */
-		if (fn2[4] == '\\')
-			fn2[4] = '/';
-
-		plat_append_filename(temp, exe_path, fn2);
-	}
-
-	free(fn2);
-	fn2 = NULL;
-
-	return(plat_fopen(temp, mode));
+        return fp;
     } else {
-	/* Absolute path */
-	return(plat_fopen(fn, mode));
+        /* Absolute path */
+        return plat_fopen(fn, mode);
     }
 }
 
@@ -97,17 +117,30 @@ rom_fopen(char *fn, char *mode)
 int
 rom_getfile(char *fn, char *s, int size)
 {
-    FILE *f;
+    char temp[1024];
+    rom_path_t *rom_path = &rom_paths;
 
-    plat_append_filename(s, exe_path, fn);
+    if (strstr(fn, "roms/") == fn) {
+        /* Relative path */
+        for(rom_path_t *rom_path = &rom_paths; rom_path != NULL; rom_path = rom_path->next) {
+            plat_append_filename(temp, rom_path->path, fn + 5);
 
-    f = plat_fopen(s, "rb");
-    if (f != NULL) {
-	(void)fclose(f);
-	return(1);
+            if (rom_present(temp)) {
+                strncpy(s, temp, size);
+                return 1;
+            }
+        }
+
+        return 0;
+    } else {
+        /* Absolute path */
+        if (rom_present(fn)) {
+            strncpy(s, fn, size);
+            return 1;
+        }
+        
+        return 0;
     }
-
-    return(0);
 }
 
 
@@ -118,8 +151,8 @@ rom_present(char *fn)
 
     f = rom_fopen(fn, "rb");
     if (f != NULL) {
-	(void)fclose(f);
-	return(1);
+        (void)fclose(f);
+        return(1);
     }
 
     return(0);

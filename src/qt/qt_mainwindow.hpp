@@ -118,6 +118,11 @@ private:
     std::unique_ptr<MachineStatus> status;
     std::shared_ptr<MediaMenu> mm;
 
+#ifdef Q_OS_MACOS
+    uint32_t last_modifiers = 0;
+    void processMacKeyboardInput(bool down, const QKeyEvent* event);
+#endif
+
     /* If main window should send keyboard input */
     bool send_keyboard_input = true;
     bool shownonce = false;

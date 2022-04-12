@@ -30,6 +30,7 @@
 #include <QDir>
 #include <QFileInfo>
 #include <QTemporaryFile>
+#include <QStandardPaths>
 #include <QCoreApplication>
 #include <QDateTime>
 #include <QLocalSocket>
@@ -88,6 +89,8 @@ extern "C" {
 #include <86box/timer.h>
 #include <86box/nvr.h>
 #include <86box/plat_dynld.h>
+#include <86box/mem.h>
+#include <86box/rom.h>
 #include <86box/config.h>
 #include <86box/ui.h>
 #include <86box/discord.h>
@@ -375,7 +378,7 @@ extern "C++"
     {
         {0x0405, {"cs-CZ", "Czech (Czech Republic)"} },
         {0x0407, {"de-DE", "German (Germany)"} },
-        {0x0408, {"en-US", "English (United States)"} },
+        {0x0409, {"en-US", "English (United States)"} },
         {0x0809, {"en-GB", "English (United Kingdom)"} },
         {0x0C0A, {"es-ES", "Spanish (Spain)"} },
         {0x040B, {"fi-FI", "Finnish (Finland)"} },
@@ -517,11 +520,6 @@ size_t c16stombs(char dst[], const uint16_t src[], int len)
 #define LIB_NAME_FREETYPE "libfreetype"
 #define MOUSE_CAPTURE_KEYSEQ "CTRL-END"
 #endif
-#ifdef Q_OS_MACOS
-#define ROMDIR "~/Library/Application Support/net.86box.86box/roms"
-#else
-#define ROMDIR "roms"
-#endif
 
 
 QMap<int, std::wstring> ProgSettings::translatedstrings;
@@ -547,7 +545,7 @@ void ProgSettings::reloadStrings()
     translatedstrings[IDS_2128] = QCoreApplication::translate("", "Hardware not available").toStdWString();
     translatedstrings[IDS_2142] = QCoreApplication::translate("", "Monitor in sleep mode").toStdWString();
     translatedstrings[IDS_2120] = QCoreApplication::translate("", "No ROMs found").toStdWString();
-    translatedstrings[IDS_2056] = QCoreApplication::translate("", "86Box could not find any usable ROM images.\n\nPlease <a href=\"https://github.com/86Box/roms/releases/latest\">download</a> a ROM set and extract it into the \"roms\" directory.").replace("roms", ROMDIR).toStdWString();
+    translatedstrings[IDS_2056] = QCoreApplication::translate("", "86Box could not find any usable ROM images.\n\nPlease <a href=\"https://github.com/86Box/roms/releases/latest\">download</a> a ROM set and extract it into the \"roms\" directory.").toStdWString();
 
     auto flsynthstr = QCoreApplication::translate("", " is required for FluidSynth MIDI output.");
     if (flsynthstr.contains("libfluidsynth"))
@@ -582,4 +580,27 @@ int
 plat_chdir(char *path)
 {
     return QDir::setCurrent(QString(path)) ? 0 : -1;
+}
+
+void
+plat_init_rom_paths()
+{
+    auto paths = QStandardPaths::standardLocations(QStandardPaths::GenericDataLocation);
+
+#ifdef _WIN32
+    // HACK: The standard locations returned for GenericDataLocation include
+    // the EXE path and a `data` directory within it as the last two entries.
+
+    // Remove the entries as we don't need them.
+    paths.removeLast();
+    paths.removeLast();
+#endif
+
+    for (auto& path : paths) {
+#ifdef __APPLE__
+        rom_add_path(QDir(path).filePath("net.86Box.86Box/roms").toUtf8().constData());
+#else
+        rom_add_path(QDir(path).filePath("86Box/roms").toUtf8().constData());
+#endif
+    }
 }

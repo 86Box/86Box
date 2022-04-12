@@ -29,7 +29,7 @@ else()
 endif()
 
 target_link_libraries(86Box "-framework AppKit")
-target_sources(86Box PRIVATE macOSXGlue.m ${APP_ICON_MACOSX})
+target_sources(86Box PRIVATE ${APP_ICON_MACOSX})
 
 # Make sure the icon is copied to the bundle
 set_source_files_properties(${APP_ICON_MACOSX}
@@ -48,7 +48,6 @@ configure_file(Info.plist.in Info.plist @ONLY)
 set_target_properties(86Box
     PROPERTIES MACOSX_BUNDLE_INFO_PLIST ${CMAKE_CURRENT_BINARY_DIR}/Info.plist)
 
-set(CMAKE_XCODE_ATTRIBUTE_OTHER_CODE_SIGN_FLAGS "-o linker-signed")
-set(XCODE_ATTRIBUTE_CODE_SIGNING_REQUIRED "YES")
-set(XCODE_ATTRIBUTE_CODE_SIGN_IDENTITY "-")
-#set(XCODE_ATTRIBUTE_CODE_SIGN_ENTITLEMENTS ${CMAKE_CURRENT_SOURCE_DIR}/mac/codesign/dev/app.entitlements)
+#set(XCODE_ATTRIBUTE_CODE_SIGNING_REQUIRED "YES")
+#set(XCODE_ATTRIBUTE_CODE_SIGN_IDENTITY "-")
+#set(XCODE_ATTRIBUTE_CODE_SIGN_ENTITLEMENTS ${CMAKE_CURRENT_SOURCE_DIR}/mac/codesign/dev/app.entitlements)  

@@ -174,7 +174,7 @@ RendererStack::mouseMoveEvent(QMouseEvent *event)
         event->ignore();
         return;
     }
-#ifdef __APPLE__
+#if defined __APPLE__ || defined _WIN32
     event->accept();
     return;
 #else
