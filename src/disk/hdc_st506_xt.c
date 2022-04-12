@@ -67,9 +67,6 @@
  *   Boston, MA 02111-1307
  *   USA.
  */
-#define __USE_LARGEFILE64
-#define _LARGEFILE_SOURCE
-#define _LARGEFILE64_SOURCE
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdint.h>

@@ -17,9 +17,6 @@
  *		Copyright 2008-2020 Sarah Walker.
  *		Copyright 2016-2020 Miran Grca.
  */
-#define __USE_LARGEFILE64
-#define _LARGEFILE_SOURCE
-#define _LARGEFILE64_SOURCE
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdint.h>
