@@ -127,7 +127,7 @@ static const device_config_t b215_config[] = {
             { .description = ""                        }
         }
     },
-    { "", "", -1 }
+    { .name = "", .description = "", .type = CONFIG_END }
 // clang-format on
 };
 
