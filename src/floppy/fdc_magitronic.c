@@ -114,14 +114,20 @@ static int b215_available(void)
 static const device_config_t b215_config[] = {
 // clang-format off
     {
-        "bios_addr", "BIOS Address:", CONFIG_HEX20, "", 0xca000, "", { 0 },
-        {
-            { "CA00H", 0xca000 },
-            { "CC00H", 0xcc000 },
-            { "" }
+        .name = "bios_addr",
+        .description = "BIOS Address:",
+        .type = CONFIG_HEX20,
+        .default_string = "",
+        .default_int = 0xca000,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "CA00H", .value = 0xca000 },
+            { .description = "CC00H", .value = 0xcc000 },
+            { .description = ""                        }
         }
     },
-    { "", "", -1 }
+    { .name = "", .description = "", .type = CONFIG_END }
 // clang-format on
 };
 
@@ -138,4 +144,3 @@ const device_t fdc_b215_device = {
     .force_redraw = NULL,
     .config = b215_config
 };
-

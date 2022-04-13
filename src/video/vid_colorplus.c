@@ -427,27 +427,55 @@ void colorplus_speed_changed(void *p)
         cga_recalctimings(&colorplus->cga);
 }
 
-
 static const device_config_t colorplus_config[] = {
 // clang-format off
     {
-        "display_type", "Display type", CONFIG_SELECTION, "", CGA_RGB, "", { 0 },
-        {
-            { "RGB",       CGA_RGB       },
-            { "Composite", CGA_COMPOSITE },
-            { ""                         }
+        .name = "display_type",
+        .description = "Display type",
+        .type = CONFIG_SELECTION,
+        .default_int = CGA_RGB,
+        .selection = {
+            {
+                .description = "RGB",
+                .value = CGA_RGB
+            },
+            {
+                .description = "Composite",
+                .value = CGA_COMPOSITE
+            },
+            {
+                .description = ""
+            }
         }
     },
     {
-        "composite_type", "Composite type", CONFIG_SELECTION, "", COMPOSITE_OLD, "", { 0 },
-        {
-            { "Old", COMPOSITE_OLD },
-            { "New", COMPOSITE_NEW },
-            { ""                   }
+        .name = "composite_type",
+        .description = "Composite type",
+        .type = CONFIG_SELECTION,
+        .default_int = COMPOSITE_OLD,
+        .selection = {
+            {
+                .description = "Old",
+                .value = COMPOSITE_OLD
+            },
+            {
+                .description = "New",
+                .value = COMPOSITE_NEW
+            },
+            {
+                .description = ""
+            }
         }
     },
-    { "snow_enabled", "Snow emulation", CONFIG_BINARY, "",  1 },
-    { "",             "",                                  -1 }
+    {
+        .name = "snow_enabled",
+        .description = "Snow emulation",
+        .type = CONFIG_BINARY,
+        .default_int = 1
+    },
+    {
+        .type = CONFIG_END
+    }
 // clang-format on
 };
 

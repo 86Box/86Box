@@ -139,7 +139,6 @@ postcard_close(UNUSED(void *priv))
 		     NULL, NULL, NULL, postcard_write, NULL, NULL,  NULL);
 }
 
-
 const device_t postcard_device = {
     .name = "POST Card",
     .internal_name = "postcard",

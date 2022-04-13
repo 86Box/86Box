@@ -767,7 +767,6 @@ mfm_close(void *priv)
     ui_sb_update_icon(SB_HDD|HDD_BUS_MFM, 0);
 }
 
-
 const device_t st506_at_wd1003_device = {
     .name = "WD1003 AT MFM/RLL Controller",
     .internal_name = "st506_at",

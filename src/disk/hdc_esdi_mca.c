@@ -1178,7 +1178,6 @@ esdi_available(void)
     return(rom_present(BIOS_FILE_L) && rom_present(BIOS_FILE_H));
 }
 
-
 const device_t esdi_ps2_device = {
     .name = "IBM PS/2 ESDI Fixed Disk Adapter (MCA)",
     .internal_name = "esdi_mca",

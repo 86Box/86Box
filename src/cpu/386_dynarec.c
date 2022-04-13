@@ -33,6 +33,11 @@
 #include "codegen_backend.h"
 #endif
 #endif
+
+#ifdef IS_DYNAREC
+#undef IS_DYNAREC
+#endif
+
 #include "386_common.h"
 
 #if defined(__APPLE__) && defined(__aarch64__)

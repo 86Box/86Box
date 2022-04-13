@@ -1204,37 +1204,94 @@ gus_speed_changed(void *p)
 static const device_config_t gus_config[] = {
     // clang-format off
     {
-        "type", "GUS type", CONFIG_SELECTION, "", 0, "", { 0 },
-        {
-            { "Classic", GUS_CLASSIC },
+        .name = "type",
+        .description = "GUS type",
+        .type = CONFIG_SELECTION,
+        .default_string = "",
+        .default_int = 0,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            {
+                .description = "Classic",
+                .value = GUS_CLASSIC
+        },
 #if defined(DEV_BRANCH) && defined(USE_GUSMAX)
-            { "MAX",     GUS_MAX     },
+            {
+                .description = "MAX",
+                .value = GUS_MAX
+            },
 #endif
-            { NULL                   }
+            { NULL }
         },
     },
     {
-        "base", "Address", CONFIG_HEX16, "", 0x220, "", { 0 },
-        {
-            { "210H", 0x210 },
-            { "220H", 0x220 },
-            { "230H", 0x230 },
-            { "240H", 0x240 },
-            { "250H", 0x250 },
-            { "260H", 0x260 },
+        .name = "base",
+        .description = "Address",
+        .type = CONFIG_HEX16,
+        .default_string = "",
+        .default_int = 0x220,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            {
+                .description = "210H",
+                .value = 0x210
+            },
+            {
+                .description = "220H",
+                .value = 0x220
+            },
+            {
+                .description = "230H",
+                .value = 0x230
+            },
+            {
+                .description = "240H",
+                .value = 0x240
+            },
+            {
+                .description = "250H",
+                .value = 0x250
+            },
+            {
+                .description = "260H",
+                .value = 0x260
+            },
         },
     },
     {
-         "gus_ram", "Onboard RAM", CONFIG_SELECTION, "", 0, "", { 0 },
-        {
-            { "256 KB", 0 },
-            { "512 KB", 1 },
-            { "1 MB",   2 },
-            { NULL        }
+        .name = "gus_ram",
+        "Onboard RAM",
+        .type = CONFIG_SELECTION,
+        .default_string = "",
+        .default_int = 0,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            {
+                .description = "256 KB",
+                .value = 0
+            },
+            {
+                .description = "512 KB",
+                .value = 1
+            },
+            {
+                .description = "1 MB",
+                .value = 2
+            },
+            { NULL }
         }
     },
-    { "receive_input", "Receive input (SB MIDI)", CONFIG_BINARY, "",  1 },
-    { "",              "",                                           -1 }
+    {
+        .name = "receive_input",
+        .description = "Receive input (SB MIDI)",
+        .type = CONFIG_BINARY,
+        .default_string = "",
+        .default_int = 1
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
 // clang-format off
 };
 

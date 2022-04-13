@@ -578,37 +578,82 @@ cga_speed_changed(void *p)
 // clang-format off
 const device_config_t cga_config[] = {
     {
-        "display_type", "Display type", CONFIG_SELECTION, "", CGA_RGB, "", { 0 },
-        {
-            { "RGB", CGA_RGB             },
-            { "Composite", CGA_COMPOSITE },
-            { ""                         }
+        .name = "display_type",
+        .description = "Display type",
+        .type = CONFIG_SELECTION,
+        .default_int = CGA_RGB,
+        .selection = {
+            {
+                .description = "RGB",
+                .value = CGA_RGB
+            },
+            {
+                .description = "Composite",
+                .value = CGA_COMPOSITE
+            },
+            {
+                .description = ""
+            }
         }
     },
     {
-        "composite_type", "Composite type", CONFIG_SELECTION, "", COMPOSITE_OLD, "", { 0 },
-        {
-            { "Old", COMPOSITE_OLD },
-            { "New", COMPOSITE_NEW },
-            { ""                   }
+        .name = "composite_type",
+        .description = "Composite type",
+        .type = CONFIG_SELECTION,
+        .default_int = COMPOSITE_OLD,
+        .selection = {
+            {
+                .description = "Old",
+                .value = COMPOSITE_OLD
+            },
+            {
+                .description = "New",
+                .value = COMPOSITE_NEW
+            },
+            {
+                .description = ""
+            }
         }
     },
     {
-        "rgb_type", "RGB type", CONFIG_SELECTION, "", 0, "", { 0 },
-        {
-            { "Color",            0 },
-            { "Green Monochrome", 1 },
-            { "Amber Monochrome", 2 },
-            { "Gray Monochrome",  3 },
-            { "Color (no brown)", 4 },
-            { ""                    }
+        .name = "rgb_type",
+        .description = "RGB type",
+        .type = CONFIG_SELECTION,
+        .default_int = 0,
+        .selection = {
+            {
+                .description = "Color",
+                .value = 0
+            },
+            {
+                .description = "Green Monochrome",
+                .value = 1
+            },
+            {
+                .description = "Amber Monochrome",
+                .value = 2
+            },
+            {
+                .description = "Gray Monochrome",
+                .value = 3
+            },
+            {
+                .description = "Color (no brown)",
+                .value = 4
+            },
+            {
+                .description = ""
+            }
         }
     },
     {
-        "snow_enabled", "Snow emulation", CONFIG_BINARY, "", 1
+        .name = "snow_enabled",
+        .description = "Snow emulation",
+        .type = CONFIG_BINARY,
+        .default_int = 1
     },
     {
-        "", "", -1
+        .type = CONFIG_END
     }
 };
 // clang-format on

@@ -843,7 +843,6 @@ wd1007vse1_available(void)
     return(rom_present(BIOS_FILE));
 }
 
-
 const device_t esdi_at_wd1007vse1_device = {
     .name = "Western Digital WD1007V-SE1 (ESDI)",
     .internal_name = "esdi_at",

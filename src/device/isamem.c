@@ -683,16 +683,34 @@ isamem_close(void *priv)
 static const device_config_t ibmxt_config[] = {
 // clang-format off
     {
-        "size", "Memory Size", CONFIG_SPINNER, "", 128, "",
-        { 0, 512, 16 },
-        { { 0 } }
+        .name = "size",
+        .description = "Memory Size",
+        .type = CONFIG_SPINNER,
+        .default_string = "",
+        .default_int = 128,
+        .file_filter = "",
+        .spinner = {
+            .min = 0,
+            .max = 512,
+            .step = 16
+        },
+        .selection = { { 0 } }
     },
     {
-        "start", "Start Address", CONFIG_SPINNER, "", 256, "",
-        { 0, 576, 64 },
-        { { 0 } }
+        .name = "start",
+        .description = "Start Address",
+        .type = CONFIG_SPINNER,
+        .default_string = "",
+        .default_int = 256,
+        .file_filter = "",
+        .spinner = {
+            .min = 0,
+            .max = 576,
+            .step = 64
+        },
+        .selection = { { 0 } }
     },
-    { "", "", -1 }
+    { .name = "", .description = "", .type = CONFIG_END }
 // clang-format on
 };
 
@@ -713,16 +731,34 @@ static const device_t ibmxt_device = {
 static const device_config_t genericxt_config[] = {
 // clang-format off
     {
-        "size", "Memory Size", CONFIG_SPINNER, "", 16, "",
-        { 0, 640, 16 },
-        { { 0 } }
+        .name = "size",
+        .description = "Memory Size",
+        .type = CONFIG_SPINNER,
+        .default_string = "",
+        .default_int = 16,
+        .file_filter = "",
+        .spinner = {
+            .min = 0,
+            .max = 640,
+            .step = 16
+        },
+        .selection = { { 0 } }
     },
     {
-        "start", "Start Address", CONFIG_SPINNER, "", 0, "",
-        { 0, 624, 16 },
-        { { 0 } }
+        .name = "start",
+        .description = "Start Address",
+        .type = CONFIG_SPINNER,
+        .default_string = "",
+        .default_int = 0,
+        .file_filter = "",
+        .spinner = {
+            .min = 0,
+            .max = 624,
+            .step = 16
+        },
+        .selection = { { 0 } }
     },
-    { "", "", -1 }
+    { .name = "", .description = "", .type = CONFIG_END }
 // clang-format on
 };
 
@@ -743,16 +779,34 @@ static const device_t genericxt_device = {
 static const device_config_t msramcard_config[] = {
 // clang-format off
     {
-        "size", "Memory Size", CONFIG_SPINNER, "", 64, "",
-        { 0, 256, 64 },
-        { { 0 } }
+        .name = "size",
+        .description = "Memory Size",
+        .type = CONFIG_SPINNER,
+        .default_string = "",
+        .default_int = 64,
+        .file_filter = "",
+        .spinner = {
+            .min = 0,
+            .max = 256,
+            .step = 64
+        },
+        .selection = { { 0 } }
     },
     {
-        "start", "Start Address", CONFIG_SPINNER, "", 0, "",
-        { 0, 624, 64 },
-        { { 0 } }
+        .name = "start",
+        .description = "Start Address",
+        .type = CONFIG_SPINNER,
+        .default_string = "",
+        .default_int = 0,
+        .file_filter = "",
+        .spinner = {
+            .min = 0,
+            .max = 624,
+            .step = 64
+        },
+        .selection = { { 0 } }
     },
-    { "", "", -1 }
+    { .name = "", .description = "", .type = CONFIG_END }
 // clang-format on
 };
 
@@ -773,16 +827,34 @@ static const device_t msramcard_device = {
 static const device_config_t mssystemcard_config[] = {
 // clang-format off
     {
-        "size", "Memory Size", CONFIG_SPINNER, "", 64, "",
-        { 0, 256, 64 },
-        { { 0 } }
+        .name = "size",
+        .description = "Memory Size",
+        .type = CONFIG_SPINNER,
+        .default_string = "",
+        .default_int = 64,
+        .file_filter = "",
+        .spinner = {
+            .min = 0,
+            .max = 256,
+            .step = 64
+        },
+        .selection = { { 0 } }
     },
     {
-        "start", "Start Address", CONFIG_SPINNER, "", 0, "",
-        { 0, 624, 64 },
-        { { 0 } }
+        .name = "start",
+        .description = "Start Address",
+        .type = CONFIG_SPINNER,
+        .default_string = "",
+        .default_int = 0,
+        .file_filter = "",
+        .spinner = {
+            .min = 0,
+            .max = 624,
+            .step = 64
+        },
+        .selection = { { 0 } }
     },
-    { "", "", -1 }
+    { .name = "", .description = "", .type = CONFIG_END }
 // clang-format on
 };
 
@@ -803,16 +875,34 @@ static const device_t mssystemcard_device = {
 static const device_config_t ibmat_config[] = {
 // clang-format off
     {
-        "size", "Memory Size", CONFIG_SPINNER, "", 512, "",
-        { 0, 12288, 512 },
-        { { 0 } }
+        .name = "size",
+        .description = "Memory Size",
+        .type = CONFIG_SPINNER,
+        .default_string = "",
+        .default_int = 512,
+        .file_filter = "",
+        .spinner = {
+            .min = 0,
+            .max = 12288,
+            .step = 512
+        },
+        .selection = { { 0 } }
     },
     {
-        "start", "Start Address", CONFIG_SPINNER, "", 512, "",
-        { 0, 15872, 512 },
-        { { 0 } }
+        .name = "start",
+        .description = "Start Address",
+        .type = CONFIG_SPINNER,
+        .default_string = "",
+        .default_int = 512,
+        .file_filter = "",
+        .spinner = {
+            .min = 0,
+            .max = 15872,
+            .step = 512
+        },
+        .selection = { { 0 } }
     },
-    { "", "", -1 }
+    { .name = "", .description = "", .type = CONFIG_END }
 // clang-format on
 };
 
@@ -833,16 +923,34 @@ static const device_t ibmat_device = {
 static const device_config_t genericat_config[] = {
 // clang-format off
     {
-        "size", "Memory Size", CONFIG_SPINNER, "", 512, "",
-        { 0, 16384, 512 },
-        { { 0 } }
+        .name = "size",
+        .description = "Memory Size",
+        .type = CONFIG_SPINNER,
+        .default_string = "",
+        .default_int = 512,
+        .file_filter = "",
+        .spinner = {
+            .min = 0,
+            .max = 16384,
+            .step = 512
+        },
+        .selection = { { 0 } }
     },
     {
-        "start", "Start Address", CONFIG_SPINNER, "", 512, "",
-        { 0, 15872, 128 },
-        { { 0 } }
+        .name = "start",
+        .description = "Start Address",
+        .type = CONFIG_SPINNER,
+        .default_string = "",
+        .default_int = 512,
+        .file_filter = "",
+        .spinner = {
+            .min = 0,
+            .max = 15872,
+            .step = 128
+        },
+        .selection = { { 0 } }
     },
-    { "", "", -1 }
+    { .name = "", .description = "", .type = CONFIG_END }
 // clang-format on
 };
 
@@ -863,16 +971,34 @@ static const device_t genericat_device = {
 static const device_config_t p5pak_config[] = {
 // clang-format off
     {
-        "size", "Memory Size", CONFIG_SPINNER, "", 128, "",
-        { 0, 384, 64 },
-        { { 0 } }
+        .name = "size",
+        .description = "Memory Size",
+        .type = CONFIG_SPINNER,
+        .default_string = "",
+        .default_int = 128,
+        .file_filter = "",
+        .spinner = {
+            .min = 0,
+            .max = 384,
+            .step = 64
+        },
+        .selection = { { 0 } }
     },
     {
-        "start", "Start Address", CONFIG_SPINNER, "", 512, "",
-        { 64, 576, 64 },
-        { { 0 } }
+        .name = "start",
+        .description = "Start Address",
+        .type = CONFIG_SPINNER,
+        .default_string = "",
+        .default_int = 512,
+        .file_filter = "",
+        .spinner = {
+            .min = 64,
+            .max = 576,
+            .step = 64
+        },
+        .selection = { { 0 } }
     },
-    { "", "", -1 }
+    { .name = "", .description = "", .type = CONFIG_END }
 // clang-format on
 };
 
@@ -894,16 +1020,34 @@ static const device_t p5pak_device = {
 static const device_config_t a6pak_config[] = {
 // clang-format off
     {
-        "size", "Memory Size", CONFIG_SPINNER, "", 64, "",
-        { 0, 576, 64 },
-        { { 0 } }
+        .name = "size",
+        .description = "Memory Size",
+        .type = CONFIG_SPINNER,
+        .default_string = "",
+        .default_int = 64,
+        .file_filter = "",
+        .spinner = {
+            .min = 0,
+            .max = 576,
+            .step = 64
+        },
+        .selection = { { 0 } }
     },
     {
-        "start", "Start Address", CONFIG_SPINNER, "", 256, "",
-        { 64, 512, 64 },
-        { { 0 } }
+        .name = "start",
+        .description = "Start Address",
+        .type = CONFIG_SPINNER,
+        .default_string = "",
+        .default_int = 256,
+        .file_filter = "",
+        .spinner = {
+            .min = 64,
+            .max = 512,
+            .step = 64
+        },
+        .selection = { { 0 } }
     },
-    { "", "", -1 }
+    { .name = "", .description = "", .type = CONFIG_END }
 // clang-format on
 };
 
@@ -924,22 +1068,37 @@ static const device_t a6pak_device = {
 static const device_config_t ems5150_config[] = {
 // clang-format off
     {
-        "size", "Memory Size", CONFIG_SPINNER, "", 256, "",
-        { 0, 2048, 64 },
-        { { 0 } }
+        .name = "size",
+        .description = "Memory Size",
+        .type = CONFIG_SPINNER,
+        .default_string = "",
+        .default_int = 256,
+        .file_filter = "",
+        .spinner = {
+            .min = 0,
+            .max = 2048,
+            .step = 64
+        },
+        .selection = { { 0 } }
     },
     {
-        "base", "Address", CONFIG_HEX16, "", 0, "", { 0 },
-        {
-            { "Disabled", 0x0000 },
-            { "Board 1",  0x0208 },
-            { "Board 2",  0x020a },
-            { "Board 3",  0x020c },
-            { "Board 4",  0x020e },
-            { "" }
+        .name = "base",
+        .description = "Address",
+        .type = CONFIG_HEX16,
+        .default_string = "",
+        .default_int = 0,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "Disabled", .value = 0x0000 },
+            { .description = "Board 1",  .value = 0x0208 },
+            { .description = "Board 2",  .value = 0x020a },
+            { .description = "Board 3",  .value = 0x020c },
+            { .description = "Board 4",  .value = 0x020e },
+            { .description = ""                          }
         },
     },
-    { "", "", -1 }
+    { .name = "", .description = "", .type = CONFIG_END }
 // clang-format on
 };
 
@@ -960,58 +1119,109 @@ static const device_t ems5150_device = {
 static const device_config_t ev159_config[] = {
 // clang-format off
     {
-        "size", "Memory Size", CONFIG_SPINNER, "", 512, "",
-        { 0, 3072, 512 },
-        { { 0 } }
+        .name = "size",
+        .description = "Memory Size",
+        .type = CONFIG_SPINNER,
+        .default_string = "",
+        .default_int = 512,
+        .file_filter = "",
+        .spinner = {
+            .min = 0,
+            .max = 3072,
+            .step = 512
+        },
+        .selection = { { 0 } }
     },
     {
-        "start", "Start Address", CONFIG_SPINNER, "", 0, "",
-        { 0, 16128, 128 },
-        { { 0 } }
+        .name = "start",
+        .description = "Start Address",
+        .type = CONFIG_SPINNER,
+        .default_string = "",
+        .default_int = 0,
+        .file_filter = "",
+        .spinner = {
+            .min = 0,
+            .max = 16128,
+            .step = 128
+        },
+        .selection = { { 0 } }
     },
     {
-        "length", "Contiguous Size", CONFIG_SPINNER, "", 0, "",
-        { 0, 16384, 128 },
-        { { 0 } }
+        .name = "length",
+        .description = "Contiguous Size",
+        .type = CONFIG_SPINNER,
+        .default_string = "",
+        .default_int = 0,
+        .file_filter = "",
+        .spinner = {
+            .min = 0,
+            .max = 16384,
+            .step = 128
+        },
+        .selection = { { 0 } }
     },
     {
-        "width", "I/O Width", CONFIG_SELECTION, "", 0, "", { 0 },
-        {
-            { "8-bit",  0 },
-            { "16-bit", 1 },
-            { ""          }
+        .name = "width",
+        .description = "I/O Width",
+        .type = CONFIG_SELECTION,
+        .default_string = "",
+        .default_int = 0,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "8-bit",  .value = 0 },
+            { .description = "16-bit", .value = 1 },
+            { .description = ""                   }
         },
     },
     {
-        "speed", "Transfer Speed", CONFIG_SELECTION, "", 0, "", { 0 },
-        {
-            { "Standard (150ns)",   0 },
-            { "High-Speed (120ns)", 1 },
-            { ""                      }
+        .name = "speed",
+        .description = "Transfer Speed",
+        .type = CONFIG_SELECTION,
+        .default_string = "",
+        .default_int = 0,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "Standard (150ns)",   .value = 0 },
+            { .description = "High-Speed (120ns)", .value = 1 },
+            { .description = ""                               }
         }
     },
     {
-        "ems", "EMS mode", CONFIG_SELECTION, "", 0, "", { 0 },
-        {
-            { "Disabled", 0 },
-            { "Enabled",  1 },
-            { "" }
+        .name = "ems",
+        .description = "EMS mode",
+        .type = CONFIG_SELECTION,
+        .default_string = "",
+        .default_int = 0,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "Disabled", .value = 0 },
+            { .description = "Enabled",  .value = 1 },
+            { .description = ""                     }
         },
     },
     {
-        "base", "Address", CONFIG_HEX16, "", 0x0258, "", { 0 },
-        {
-            { "208H", 0x0208 },
-            { "218H", 0x0218 },
-            { "258H", 0x0258 },
-            { "268H", 0x0268 },
-            { "2A8H", 0x02A8 },
-            { "2B8H", 0x02B8 },
-            { "2E8H", 0x02E8 },
-            { ""             }
+        .name = "base",
+        .description = "Address",
+        .type = CONFIG_HEX16,
+        .default_string = "",
+        .default_int = 0x0258,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "208H", .value = 0x0208 },
+            { .description = "218H", .value = 0x0218 },
+            { .description = "258H", .value = 0x0258 },
+            { .description = "268H", .value = 0x0268 },
+            { .description = "2A8H", .value = 0x02A8 },
+            { .description = "2B8H", .value = 0x02B8 },
+            { .description = "2E8H", .value = 0x02E8 },
+            { .description = ""                      }
         },
     },
-    { "", "", -1 }
+    { .name = "", .description = "", .type = CONFIG_END }
 // clang-format on
 };
 
@@ -1033,47 +1243,79 @@ static const device_t ev159_device = {
 static const device_config_t brat_config[] = {
 // clang-format off
     {
-        "base", "Address", CONFIG_HEX16, "", 0x0258, "", { 0 },
-        {
-            { "208H", 0x0208 },
-            { "218H", 0x0218 },
-            { "258H", 0x0258 },
-            { "268H", 0x0268 },
-            { ""             }
+        .name = "base",
+        .description = "Address",
+        .type = CONFIG_HEX16,
+        .default_string = "",
+        .default_int = 0x0258,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "208H", .value = 0x0208 },
+            { .description = "218H", .value = 0x0218 },
+            { .description = "258H", .value = 0x0258 },
+            { .description = "268H", .value = 0x0268 },
+            { .description = ""                      }
         },
     },
     {
-        "frame", "Frame Address", CONFIG_HEX20, "", 0, "", { 0 },
-        {
-            { "Disabled", 0x00000 },
-            { "D000H",    0xD0000 },
-            { "E000H",    0xE0000 },
-            { ""                  }
+        .name = "frame",
+        .description = "Frame Address",
+        .type = CONFIG_HEX20,
+        .default_string = "",
+        .default_int = 0,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "Disabled", .value = 0x00000 },
+            { .description = "D000H",    .value = 0xD0000 },
+            { .description = "E000H",    .value = 0xE0000 },
+            { .description = ""                           }
         },
     },
     {
-        "width", "I/O Width", CONFIG_SELECTION, "", 8, "", { 0 },
-        {
-            { "8-bit",   8 },
-            { "16-bit", 16 },
-            { ""           }
+        .name = "width",
+        .description = "I/O Width",
+        .type = CONFIG_SELECTION,
+        .default_string = "",
+        .default_int = 8,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "8-bit",  .value =  8 },
+            { .description = "16-bit", .value = 16 },
+            { .description = ""                    }
         },
     },
     {
-        "speed", "Transfer Speed", CONFIG_SELECTION, "", 0, "", { 0 },
-        {
-            { "Standard",   0 },
-            { "High-Speed", 1 },
-            { ""              }
+        .name = "speed",
+        .description = "Transfer Speed",
+        .type = CONFIG_SELECTION,
+        .default_string = "",
+        .default_int = 0,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "Standard",   .value = 0 },
+            { .description = "High-Speed", .value = 1 },
+            { .description = ""                       }
         }
     },
     {
-        "size", "Memory Size", CONFIG_SPINNER, "", 128,
-        "",
-        { 0, 8192, 512 },
-        { { 0 } }
+        .name = "size",
+        .description = "Memory Size",
+        .type = CONFIG_SPINNER,
+        .default_string = "",
+        .default_int = 128,
+        .file_filter = "",
+        .spinner = {
+            .min = 0,
+            .max = 8192,
+            .step = 512
+        },
+        .selection = { { 0 } }
     },
-    { "", "", -1 }
+    { .name = "", .description = "", .type = CONFIG_END }
 // clang-format on
 };
 
@@ -1096,50 +1338,83 @@ static const device_t brat_device = {
 static const device_config_t rampage_config[] = {
 // clang-format off
     {
-        "base", "Address", CONFIG_HEX16, "", 0x0258, "", { 0 },
-        {
-            { "208H", 0x0208 },
-            { "218H", 0x0218 },
-            { "258H", 0x0258 },
-            { "268H", 0x0268 },
-            { "2A8H", 0x02A8 },
-            { "2B8H", 0x02B8 },
-            { "2E8H", 0x02E8 },
-            { ""             }
+        .name = "base",
+        .description = "Address",
+        .type = CONFIG_HEX16,
+        .default_string = "",
+        .default_int = 0x0258,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "208H", .value = 0x0208 },
+            { .description = "218H", .value = 0x0218 },
+            { .description = "258H", .value = 0x0258 },
+            { .description = "268H", .value = 0x0268 },
+            { .description = "2A8H", .value = 0x02A8 },
+            { .description = "2B8H", .value = 0x02B8 },
+            { .description = "2E8H", .value = 0x02E8 },
+            { .description = ""                      }
         },
     },
     {
-        "frame", "Frame Address", CONFIG_HEX20, "", 0, "", { 0 },
-        {
-            { "Disabled", 0x00000 },
-            { "C000H",    0xC0000 },
-            { "D000H",    0xD0000 },
-            { "E000H",    0xE0000 },
-            { ""                  }
+        .name = "frame",
+        .description = "Frame Address",
+        .type = CONFIG_HEX20,
+        .default_string = "",
+        .default_int = 0,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "Disabled", .value = 0x00000 },
+            { .description = "C000H",    .value = 0xC0000 },
+            { .description = "D000H",    .value = 0xD0000 },
+            { .description = "E000H",    .value = 0xE0000 },
+            { .description = ""                           }
         },
     },
     {
-        "width", "I/O Width", CONFIG_SELECTION, "", 8, "", { 0 },
-        {
-            { "8-bit",   8 },
-            { "16-bit", 16 },
-            { ""           }
+        .name = "width",
+        .description = "I/O Width",
+        .type = CONFIG_SELECTION,
+        .default_string = "",
+        .default_int = 8,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "8-bit",  .value =  8 },
+            { .description = "16-bit", .value = 16 },
+            { .description = ""                    }
         },
     },
     {
-        "speed", "Transfer Speed", CONFIG_SELECTION, "", 0, "", { 0 },
-        {
-            { "Standard",   0 },
-            { "High-Speed", 1 },
-            { ""              }
+        .name = "speed",
+        .description = "Transfer Speed",
+        .type = CONFIG_SELECTION,
+        .default_string = "",
+        .default_int = 0,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "Standard",   .value = 0 },
+            { .description = "High-Speed", .value = 1 },
+            { .description = ""                       }
         }
     },
     {
-        "size", "Memory Size", CONFIG_SPINNER, "", 128, "",
-        { 0, 8192, 128 },
-        { { 0 } }
+        .name = "size",
+        .description = "Memory Size",
+        .type = CONFIG_SPINNER,
+        .default_string = "",
+        .default_int = 128,
+        .file_filter = "",
+        .spinner = {
+            .min = 0,
+            .max = 8192,
+            .step = 128
+        },
+        .selection = { { 0 } }
     },
-    { "", "", -1 }
+    { .name = "", .description = "", .type = CONFIG_END }
 // clang-format on
 };
 
@@ -1162,50 +1437,83 @@ static const device_t rampage_device = {
 static const device_config_t iab_config[] = {
 // clang-format off
     {
-        "base", "Address", CONFIG_HEX16, "", 0x0258, "", { 0 },
-        {
-            { "208H", 0x0208 },
-            { "218H", 0x0218 },
-            { "258H", 0x0258 },
-            { "268H", 0x0268 },
-            { "2A8H", 0x02A8 },
-            { "2B8H", 0x02B8 },
-            { "2E8H", 0x02E8 },
-            { ""             }
+        .name = "base",
+        .description = "Address",
+        .type = CONFIG_HEX16,
+        .default_string = "",
+        .default_int = 0x0258,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "208H", .value = 0x0208 },
+            { .description = "218H", .value = 0x0218 },
+            { .description = "258H", .value = 0x0258 },
+            { .description = "268H", .value = 0x0268 },
+            { .description = "2A8H", .value = 0x02A8 },
+            { .description = "2B8H", .value = 0x02B8 },
+            { .description = "2E8H", .value = 0x02E8 },
+            { .description = ""                      }
         },
     },
     {
-        "frame", "Frame Address", CONFIG_HEX20, "", 0, "", { 0 },
-        {
-            { "Disabled", 0x00000 },
-            { "C000H",    0xC0000 },
-            { "D000H",    0xD0000 },
-            { "E000H",    0xE0000 },
-            { ""                  }
+        .name = "frame",
+        .description = "Frame Address",
+        .type = CONFIG_HEX20,
+        .default_string = "",
+        .default_int = 0,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "Disabled", .value = 0x00000 },
+            { .description = "C000H",    .value = 0xC0000 },
+            { .description = "D000H",    .value = 0xD0000 },
+            { .description = "E000H",    .value = 0xE0000 },
+            { .description = ""                           }
         },
     },
     {
-        "width", "I/O Width", CONFIG_SELECTION, "", 8, "", { 0 },
-        {
-            { "8-bit",   8 },
-            { "16-bit", 16 },
-            { ""           }
+        .name = "width",
+        .description = "I/O Width",
+        .type = CONFIG_SELECTION,
+        .default_string = "",
+        .default_int = 8,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "8-bit",  .value =  8 },
+            { .description = "16-bit", .value = 16 },
+            { .description = ""                    }
         },
     },
     {
-        "speed", "Transfer Speed", CONFIG_SELECTION, "", 0, "", { 0 },
-        {
-            { "Standard",   0 },
-            { "High-Speed", 1 },
-            { ""              }
+        .name = "speed",
+        .description = "Transfer Speed",
+        .type = CONFIG_SELECTION,
+        .default_string = "",
+        .default_int = 0,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "Standard",   .value = 0 },
+            { .description = "High-Speed", .value = 1 },
+            { .description = ""                       }
         }
     },
     {
-        "size", "Memory Size", CONFIG_SPINNER, "", 128, "",
-        { 0, 8192, 128 },
-        { { 0 } }
+        .name = "size",
+        .description = "Memory Size",
+        .type = CONFIG_SPINNER,
+        .default_string = "",
+        .default_int = 128,
+        .file_filter = "",
+        .spinner = {
+            .min = 0,
+            .max = 8192,
+            .step = 128
+        },
+        .selection = { { 0 } }
     },
-    { "", "", -1 }
+    { .name = "", .description = "", .type = CONFIG_END }
 // clang-format on
 };
 

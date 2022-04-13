@@ -584,7 +584,6 @@ static void
     return dev;
 }
 
-
 const device_t sff8038i_device =
 {
     .name = "SFF-8038i IDE Bus Master",

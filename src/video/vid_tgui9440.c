@@ -3193,7 +3193,7 @@ static const device_config_t tgui9440_config[] = {
         .default_int = 2
     },
     {
-        .type = -1
+        .type = CONFIG_END
     }
 };
 
@@ -3222,7 +3222,7 @@ static const device_config_t tgui96xx_config[] = {
         .default_int = 4
     },
     {
-        .type = -1
+        .type = CONFIG_END
     }
 };
 // clang-format on

@@ -717,126 +717,139 @@ void paradise_force_redraw(void *p)
         paradise->svga.fullchange = changeframecount;
 }
 
-const device_t paradise_pvga1a_pc2086_device =
-{
-        "Paradise PVGA1A (Amstrad PC2086)",
-        "pvga1a_pc2086",
-        0,
-	PVGA1A,
-        paradise_pvga1a_pc2086_init,
-        paradise_close,
-        NULL,
-	{ NULL },
-        paradise_speed_changed,
-        paradise_force_redraw,
-	NULL
+const device_t paradise_pvga1a_pc2086_device = {
+    .name = "Paradise PVGA1A (Amstrad PC2086)",
+    .internal_name = "pvga1a_pc2086",
+    .flags = 0,
+    .local = PVGA1A,
+    .init = paradise_pvga1a_pc2086_init,
+    .close = paradise_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = paradise_speed_changed,
+    .force_redraw = paradise_force_redraw,
+    .config = NULL
 };
 
-const device_t paradise_pvga1a_pc3086_device =
-{
-        "Paradise PVGA1A (Amstrad PC3086)",
-        "pvga1a_pc3086",
-        0,
-	PVGA1A,
-        paradise_pvga1a_pc3086_init,
-        paradise_close,
-	NULL,
-        { NULL },
-        paradise_speed_changed,
-        paradise_force_redraw,
-	NULL
+const device_t paradise_pvga1a_pc3086_device = {
+    .name = "Paradise PVGA1A (Amstrad PC3086)",
+    .internal_name = "pvga1a_pc3086",
+    .flags = 0,
+    .local = PVGA1A,
+    .init = paradise_pvga1a_pc3086_init,
+    .close = paradise_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = paradise_speed_changed,
+    .force_redraw = paradise_force_redraw,
+    .config = NULL
 };
 
-static const device_config_t paradise_pvga1a_config[] =
-{
-        {
-                "memory", "Memory size", CONFIG_SELECTION, "", 512, "", { 0 },
-                {
-                        {
-                                "256 kB", 256
-                        },
-                        {
-                                "512 kB", 512
-                        },
-                        {
-                                ""
-                        }
-                }
-        },
-        {
-                "", "", -1
+static const device_config_t paradise_pvga1a_config[] = {
+    {
+        .name = "memory",
+        .description = "Memory size",
+        .type = CONFIG_SELECTION,
+        .default_int = 512,
+        .selection = {
+            {
+                .description = "256 kB",
+                .value = 256
+            },
+            {
+                .description = "512 kB",
+                .value = 512
+            },
+            {
+                .description = ""
+            }
         }
+    },
+    {
+        .type = CONFIG_END
+    }
 };
 
-const device_t paradise_pvga1a_ncr3302_device =
-{
-        "Paradise PVGA1A (NCR 3302)",
-        "pvga1a_ncr3302",
-        0,
-	PVGA1A,
-        paradise_pvga1a_ncr3302_init,
-        paradise_close,
-        NULL,
-	{ NULL },
-        paradise_speed_changed,
-        paradise_force_redraw,
-	paradise_pvga1a_config
+const device_t paradise_pvga1a_ncr3302_device = {
+    .name = "Paradise PVGA1A (NCR 3302)",
+    .internal_name = "pvga1a_ncr3302",
+    .flags = 0,
+    .local = PVGA1A,
+    .init = paradise_pvga1a_ncr3302_init,
+    .close = paradise_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = paradise_speed_changed,
+    .force_redraw = paradise_force_redraw,
+    .config = paradise_pvga1a_config
 };
 
-const device_t paradise_pvga1a_device =
-{
-        "Paradise PVGA1A",
-        "pvga1a",
-        DEVICE_ISA,
-	PVGA1A,
-        paradise_pvga1a_standalone_init,
-        paradise_close,
-	NULL,
-        { paradise_pvga1a_standalone_available },
-        paradise_speed_changed,
-        paradise_force_redraw,
-	paradise_pvga1a_config
+const device_t paradise_pvga1a_device = {
+    .name = "Paradise PVGA1A",
+    .internal_name = "pvga1a",
+    .flags = DEVICE_ISA,
+    .local = PVGA1A,
+    .init = paradise_pvga1a_standalone_init,
+    .close = paradise_close,
+    .reset = NULL,
+    { .available = paradise_pvga1a_standalone_available },
+    .speed_changed = paradise_speed_changed,
+    .force_redraw = paradise_force_redraw,
+    .config = paradise_pvga1a_config
 };
-const device_t paradise_wd90c11_megapc_device =
-{
-        "Paradise WD90C11 (Amstrad MegaPC)",
-        "wd90c11_megapc",
-        0,
-	WD90C11,
-        paradise_wd90c11_megapc_init,
-        paradise_close,
-	NULL,
-        { NULL },
-        paradise_speed_changed,
-        paradise_force_redraw,
-	NULL
+
+const device_t paradise_wd90c11_megapc_device = {
+    .name = "Paradise WD90C11 (Amstrad MegaPC)",
+    .internal_name = "wd90c11_megapc",
+    .flags = 0,
+    .local = WD90C11,
+    .init = paradise_wd90c11_megapc_init,
+    .close = paradise_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = paradise_speed_changed,
+    .force_redraw = paradise_force_redraw,
+    .config = NULL
 };
-const device_t paradise_wd90c11_device =
-{
-        "Paradise WD90C11-LR",
-        "wd90c11",
-        DEVICE_ISA,
-	WD90C11,
-        paradise_wd90c11_standalone_init,
-        paradise_close,
-	NULL,
-        { paradise_wd90c11_standalone_available },
-        paradise_speed_changed,
-        paradise_force_redraw,
-	NULL
+
+const device_t paradise_wd90c11_device = {
+    .name = "Paradise WD90C11-LR",
+    .internal_name = "wd90c11",
+    .flags = DEVICE_ISA,
+    .local = WD90C11,
+    .init = paradise_wd90c11_standalone_init,
+    .close = paradise_close,
+    .reset = NULL,
+    { .available = paradise_wd90c11_standalone_available },
+    .speed_changed = paradise_speed_changed,
+    .force_redraw = paradise_force_redraw,
+    .config = NULL
 };
 
 static const device_config_t paradise_wd90c30_config[] = {
 // clang-format off
     {
-        "memory", "Memory size", CONFIG_SELECTION, "", 1024, "", { 0 },
-        {
-            { "512 kB",  512 },
-            { "1 MB",   1024 },
-            { ""             }
+        .name = "memory",
+        .description = "Memory size",
+        .type = CONFIG_SELECTION,
+        .default_int = 1024,
+        .selection = {
+            {
+                .description = "512 kB",
+                .value = 512
+            },
+            {
+                .description = "1 MB",
+                .value = 1024
+            },
+            {
+                .description = ""
+            }
         }
     },
-    { "", "", -1 }
+    {
+        .type = CONFIG_END
+    }
 // clang-format on
 };
 

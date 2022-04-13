@@ -160,7 +160,7 @@ static const device_config_t xi8088_config[] = {
         .type = CONFIG_BINARY,
         .default_int = 0
     },
-    { .type = -1 }
+    { .name = "", .description = "", .type = CONFIG_END }
 };
 
 const device_t xi8088_device = {
