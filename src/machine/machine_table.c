@@ -144,7 +144,6 @@ const machine_filter_t machine_chipsets[] = {
 
 /* Machines to add before machine freeze:
    - PCChips M773 (440BX + SMSC with AMI BIOS);
-   - Rise R418 (was removed on my end, has to be re-added);
    - TMC Mycomp PCI54ST;
    - Zeos Quadtel 486.
 
@@ -177,9 +176,6 @@ const machine_filter_t machine_chipsets[] = {
  respectively. Also, AMI KBC command C1, mysteriously missing
  from the technical references of AMI MegaKey and earlier, is
  Write Input Port, same as on AMIKey-3.
-
-   Machines to remove:
-   - Hedaka HED-919.
 */
 
 
