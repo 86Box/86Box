@@ -48,6 +48,8 @@
 #include <86box/config.h>
 #include <86box/device.h>
 #include <86box/machine.h>
+#include <86box/mem.h>
+#include <86box/rom.h>
 #include <86box/sound.h>
 
 
@@ -338,10 +340,10 @@ device_available(const device_t *d)
     if (d->flags & DEVICE_NOT_WORKING) return(0);
 #endif
     if (d != NULL) {
-	config = d->config;
+	config = (device_config_t *) d->config;
 	while (config->type != -1) {
 		if (config->type == CONFIG_BIOS) {
-			bios = config->bios;
+			bios = (device_config_bios_t *) config->bios;
 
 			/* Go through the ROM's in the device configuration. */
 			while (bios->files_no != 0) {
@@ -367,30 +369,6 @@ device_available(const device_t *d)
 
     /* A NULL device is never available. */
     return(0);
-}
-
-
-int
-device_has_config(const device_t *d)
-{
-    int c = 0;
-    device_config_t *config;
-
-    if (d == NULL)
-	return 0;
-
-    if (d->config == NULL)
-	return 0;
-
-    config = d->config;
-
-    while (config->type != -1) {
-	if (config->type != CONFIG_MAC)
-		c++;
-	config++;
-    }
-
-    return (c > 0) ? 1 : 0;
 }
 
 
