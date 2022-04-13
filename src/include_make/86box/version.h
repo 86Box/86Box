@@ -20,11 +20,11 @@
 #define EMU_NAME	"86Box"
 #define EMU_NAME_W	LSTR(EMU_NAME)
 
-#define EMU_VERSION	"3.3"
+#define EMU_VERSION	"3.4"
 #define EMU_VERSION_W	LSTR(EMU_VERSION)
-#define EMU_VERSION_EX	"3.30"
+#define EMU_VERSION_EX	"3.40"
 #define EMU_VERSION_MAJ	3
-#define EMU_VERSION_MIN	3
+#define EMU_VERSION_MIN	4
 #define EMU_VERSION_PATCH 0
 
 #define EMU_BUILD_NUM	0
