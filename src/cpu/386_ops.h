@@ -195,7 +195,11 @@ extern void	x386_dynarec_log(const char *fmt, ...);
 #include "x86_ops_mul.h"
 #include "x86_ops_pmode.h"
 #include "x86_ops_prefix.h"
+#ifdef IS_DYNAREC
+#include "x86_ops_rep_dyn.h"
+#else
 #include "x86_ops_rep.h"
+#endif
 #include "x86_ops_ret.h"
 #include "x86_ops_set.h"
 #include "x86_ops_stack.h"
