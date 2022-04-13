@@ -358,9 +358,9 @@ device_available(const device_t *d)
 		config++;
 	}
 
-	/* No CONFIG_BIOS field present, use the classic available(). */
+    /* No CONFIG_BIOS field present, use the classic available(). */
 	if (d->available != NULL)
-		return(d->available());
+        return(d->available());
 	else
 		return(1);
     }

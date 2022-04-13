@@ -1150,13 +1150,16 @@ kbd_init(const device_t *info)
     return(dev);
 }
 
-
 const device_t keyboard_at_kbd_device = {
-    "PC/AT Keyboard (Actual keyboard!)",
-    0,
-    0,
-    kbd_init,
-    kbd_close,
-    kbd_reset,
-    { NULL }, NULL, NULL, NULL
+    .name = "PC/AT Keyboard (Actual keyboard!)",
+    .internal_name = "",
+    .flags = 0,
+    .local = 0,
+    .init = kbd_init,
+    .close = kbd_close,
+    .reset = kbd_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };

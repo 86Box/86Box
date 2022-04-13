@@ -884,14 +884,27 @@ et4000_kasan_available(void)
 
 static const device_config_t et4000_tc6058af_config[] = {
     {
-        "memory", "Memory size", CONFIG_SELECTION, "", 1024, "", { 0 },
-        {
-            { "256 KB", 256 },
-            { "512 KB", 512 },
-            { ""            }
+        .name = "memory",
+        .description = "Memory size",
+        .type = CONFIG_SELECTION,
+        .default_int = 1024,
+        .selection = {
+            {
+                .description = "256 KB",
+                .value = 256
+            },
+            {
+                .description = "512 KB",
+                .value = 512
+            },
+            {
+                .description = ""
+            }
         }
     },
-    { "", "", -1 }
+    {
+        .type = CONFIG_END
+    }
 };
 
 static const device_config_t et4000_config[] = {

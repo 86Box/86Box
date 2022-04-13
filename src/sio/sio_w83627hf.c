@@ -934,21 +934,29 @@ w83627hf_init(const device_t *info)
 }
 
 const device_t w83627hf_device = {
-    "Winbond W83627HF",
-    "w83627hf",
-    0,
-    1,
-    w83627hf_init, w83627hf_close, w83627hf_reset,
-    { NULL }, NULL, NULL,
-    NULL
+    .name = "Winbond W83627HF",
+    .internal_name = "w83627hf",
+    .flags = 0,
+    .local = 1,
+    .init = w83627hf_init,
+    .close = w83627hf_close,
+    .reset = w83627hf_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
 const device_t w83627hf_no_hwm_device = {
-    "Winbond W83627HF with no Hardware Monitor",
-    "w83627hf_nohwm",
-    0,
-    0,
-    w83627hf_init, w83627hf_close, w83627hf_reset,
-    { NULL }, NULL, NULL,
-    NULL
+    .name = "Winbond W83627HF with no Hardware Monitor",
+    .internal_name = "w83627hf_nohwm",
+    .flags = 0,
+    .local = 0,
+    .init = w83627hf_init,
+    .close = w83627hf_close,
+    .reset = w83627hf_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
