@@ -34,8 +34,8 @@
 #endif
 #endif
 
-#ifndef IS_DYNAREC
-#define IS_DYNAREC
+#ifdef IS_DYNAREC
+#undef IS_DYNAREC
 #endif
 
 #include "386_common.h"
