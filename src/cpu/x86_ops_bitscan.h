@@ -8,7 +8,6 @@
                 for (c = start; c != end; c += dir)                             \
                 {                                                               \
                         CLOCK_CYCLES(time);                                     \
-                        instr_cycles += time;                                   \
                         if (temp & (1 << c))                                    \
                         {                                                       \
                                 dest = c;                                       \
