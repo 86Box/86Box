@@ -123,7 +123,6 @@ extern int	confirm_reset,			/* (C) enable reset confirmation */
 		confirm_exit,			/* (C) enable exit confirmation */
 		confirm_save;			/* (C) enable save confirmation */
 extern int	enable_discord;			/* (C) enable Discord integration */
-extern int	enable_crashdump;		/* (C) enable crash dump */
 
 extern int	is_pentium;			/* TODO: Move back to cpu/cpu.h when it's figured out,
 							 how to remove that hack from the ET4000/W32p. */

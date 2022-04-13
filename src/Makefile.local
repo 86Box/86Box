@@ -172,7 +172,6 @@ EXTRAS		:=
 
 
 AUTODEP		:= n
-CRASHDUMP	:= n
 DEBUG		:= n
 OPTIM		:= n
 X64		:= n

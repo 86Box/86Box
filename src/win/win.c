@@ -493,10 +493,6 @@ WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR lpszArg, int nCmdShow)
 	return(1);
     }
 
-    /* Enable crash dump services. */
-    if (enable_crashdump)
-	InitCrashDump();
-
     /* Create console window. */
     if (force_debug) {
 	CreateConsole(1);

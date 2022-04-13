@@ -727,7 +727,6 @@ VOODOOOBJ	:= vid_voodoo.o vid_voodoo_banshee.o \
 PLATOBJ		:= win.o \
 		    win_dynld.o \
 		    win_cdrom.o win_keyboard.o \
-		    win_crashdump.o \
 		    win_mouse.o
 
 UIOBJ		:= win_ui.o win_icon.o win_stbar.o discord.o \

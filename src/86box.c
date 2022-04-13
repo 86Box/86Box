@@ -172,7 +172,6 @@ int	confirm_reset = 1;			/* (C) enable reset confirmation */
 int confirm_exit = 1;				/* (C) enable exit confirmation */
 int confirm_save = 1;				/* (C) enable save confirmation */
 int	enable_discord = 0;			/* (C) enable Discord integration */
-int	enable_crashdump = 0;			/* (C) enable crash dump */
 
 /* Statistics. */
 extern int mmuflush;
@@ -440,9 +439,6 @@ usage:
 			printf("\nUsage: 86box [options] [cfg-file]\n\n");
 			printf("Valid options are:\n\n");
 			printf("-? or --help         - show this information\n");
-#ifdef _WIN32
-			printf("-A or --crashdump    - enables crashdump on exception\n");
-#endif
 			printf("-C or --config path  - set 'path' to be config file\n");
 #ifdef _WIN32
 			printf("-D or --debug        - force debug output logging\n");
@@ -519,9 +515,6 @@ usage:
 			   !strcasecmp(argv[c], "-N")) {
 			confirm_exit_cmdl = 0;
 #ifdef _WIN32
-		} else if (!strcasecmp(argv[c], "--crashdump") ||
-			   !strcasecmp(argv[c], "-A")) {
-			enable_crashdump = 1;
 		} else if (!strcasecmp(argv[c], "--hwnd") ||
 			   !strcasecmp(argv[c], "-H")) {
 
