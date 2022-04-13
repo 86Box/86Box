@@ -59,7 +59,7 @@ static int opBSF_w_a16(uint32_t fetchdat)
 #ifndef IS_DYNAREC
         instr_cycles += ((is486) ? 6 : 10);
         PREFETCH_RUN(instr_cycles, 2, rmdat, (cpu_mod == 3) ? 0:1,0,0,0, 0);
-#enif
+#endif
         return 0;
 }
 static int opBSF_w_a32(uint32_t fetchdat)
@@ -173,7 +173,7 @@ static int opBSR_l_a16(uint32_t fetchdat)
         uint32_t temp;
 #ifndef IS_DYNAREC
         int instr_cycles = 0;
-#enif
+#endif
 
         fetch_ea_16(fetchdat);
         if (cpu_mod != 3)
@@ -207,6 +207,6 @@ static int opBSR_l_a32(uint32_t fetchdat)
 #ifndef IS_DYNAREC
         instr_cycles += ((is486) ? 6 : 10);
         PREFETCH_RUN(instr_cycles, 2, rmdat, 0,(cpu_mod == 3) ? 0:1,0,0, 1);
-#enif
+#endif
         return 0;
 }
