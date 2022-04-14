@@ -88,6 +88,8 @@ discord_update_activity(int paused)
     if (paren)
 	*(paren - 1) = '\0';
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wformat-truncation"
     if (strlen(vm_name) < 100)
     {
 	snprintf(activity.details, sizeof(activity.details), "Running \"%s\"", vm_name);
@@ -98,6 +100,7 @@ discord_update_activity(int paused)
 	strncpy(activity.details, strchr(machine_getname(), ']') + 2, sizeof(activity.details) - 1);
 	snprintf(activity.state, sizeof(activity.state), "%s/%s", cpufamily, cpu_s->name);
     }
+#pragma GCC diagnostic pop
 
     activity.timestamps.start = time(NULL);
 
