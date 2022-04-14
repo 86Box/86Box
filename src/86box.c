@@ -1169,7 +1169,7 @@ pc_close(thread_t *ptr)
 #ifdef __APPLE__
 static void _ui_window_title(void *s)
 {
-    ui_window_title((const wchar_t *) s);
+    ui_window_title((wchar_t *) s);
     free(s);
 }
 #endif

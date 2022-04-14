@@ -564,7 +564,7 @@ void HarddiskDialog::onExistingFileSelected(const QString &fileName) {
             else if (((size % 3072) == 0) && (size <= 53477376))
                 heads = 6;
             else {
-                int i;
+                uint32_t i;
                 for (i = 5; i < 16; i++) {
                     if (((size % (i << 9)) == 0) && (size <= ((i * 17) << 19)))
                         break;

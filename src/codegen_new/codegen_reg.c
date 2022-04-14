@@ -513,7 +513,7 @@ void codegen_reg_write_imm(codeblock_t *block, ir_reg_t ir_reg, uint32_t imm_dat
 
                 case REG_DWORD:
                 if ((uintptr_t)p < 256)
-                        codegen_direct_write_32_imm_stack(block, (int)p, imm_data);
+                        codegen_direct_write_32_imm_stack(block, (int)((uintptr_t) p), imm_data);
                 else
                         codegen_direct_write_32_imm(block, p, imm_data);
                 break;
