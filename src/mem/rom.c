@@ -94,7 +94,7 @@ rom_fopen(char *fn, char *mode)
 {
     char temp[1024];
     rom_path_t *rom_path = &rom_paths;
-    FILE *fp;
+    FILE *fp = NULL;
 
     if (strstr(fn, "roms/") == fn) {
         /* Relative path */
