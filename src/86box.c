@@ -404,7 +404,9 @@ pc_init(int argc, char *argv[])
 	time_t now;
 	int c;
 	int ng = 0, lvmp = 0;
+#ifdef _WIN32
 	uint32_t *uid, *shwnd;
+#endif
 	uint32_t lang_init = 0;
 
 	/* Grab the executable's full path. */
