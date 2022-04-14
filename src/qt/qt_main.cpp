@@ -31,6 +31,7 @@
 #include <QFileDialog>
 #include <QStandardPaths>
 #include <QMessageBox>
+#include <QProgressDialog>
 #include <zip.h>
 
 #ifdef QT_STATIC
@@ -182,12 +183,13 @@ int main(int argc, char* argv[]) {
     SetCurrentProcessExplicitAppUserModelID(L"86Box.86Box");
 #endif
     if (! pc_init_modules()) {
+        bool extractSuccess = false;
         QString zipName;
         QMessageBox messageBox(QMessageBox::Icon::Warning,
                                QString::fromWCharArray(plat_get_string(IDS_2120)),
 R"(86Box could not find any usable ROM images.
 
-Please <a href="https://github.com/86Box/roms/releases/latest">download</a> a ROM set and extract it into the "roms" directory. Or press OK to select the downloaded ROM set to extract.)");
+Please <a href="https://github.com/86Box/roms/releases/latest">download</a> a ROM set and extract it into the "roms" directory. If you have already downloaded it, press OK to select the downloaded ROM set to extract.)");
         messageBox.setTextFormat(Qt::RichText);
         messageBox.setStandardButtons(QMessageBox::Ok | QMessageBox::Close);
         messageBox.exec();
@@ -198,6 +200,10 @@ Please <a href="https://github.com/86Box/roms/releases/latest">download</a> a RO
                 char dirname[1024] = { 0 };
                 memset(dirname, 0, sizeof(dirname));
                 auto numofentries = zip_get_num_entries(zipfile, 0);
+                QProgressDialog progressDialog("Preparing to extract...", QString(), 0, 0);
+                progressDialog.setAutoClose(false);
+                progressDialog.setAutoReset(false);
+                progressDialog.show();
                 for (zip_int64_t i = 0; i < numofentries; i++) {
                     const char* name = zip_get_name(zipfile, i, ZIP_FL_ENC_GUESS);
                     if (strstr(name, "README.md")) {
@@ -206,7 +212,12 @@ Please <a href="https://github.com/86Box/roms/releases/latest">download</a> a RO
                         }
                         break;
                     }
+                    QApplication::processEvents();
                 }
+                progressDialog.setLabelText("Extracting...");
+                progressDialog.setMinimum(0);
+                progressDialog.setMaximum(numofentries);
+                progressDialog.setValue(0);
                 for (zip_int64_t i = 0; i < numofentries; i++) {
                     const char* name = zip_get_name(zipfile, i, ZIP_FL_ENC_GUESS);
                     if (!name) continue;
@@ -221,30 +232,47 @@ Please <a href="https://github.com/86Box/roms/releases/latest">download</a> a RO
                     auto file = zip_fopen_index(zipfile, i, 0);
                     if (file) {
                         auto romDirectory = QDir(QStandardPaths::standardLocations(QStandardPaths::GenericDataLocation)[0] + "/86Box/roms/");
-                        romDirectory.mkpath(".");
+                        if (romDirectory.mkpath(".") == false) {
+                            QMessageBox::critical(nullptr, "86Box", "Failed to create directory " + romDirectory.path());
+                        }
                         auto destPath = romDirectory.absolutePath() + "/" + name;
                         if (dirname[0] != '\0') destPath.remove(dirname);
                         QFileInfo fileInfo(destPath);
                         fileInfo.dir().mkpath(".");
+                        progressDialog.setLabelText(QString("Extracting\n%1\ninto\n%2").arg(name, destPath));
                         QFile destFile(destPath);
                         if (destFile.open(QIODevice::ReadWrite)) {
                             auto zipData = new uint8_t[entryInfo.size];
                             zip_fread(file, zipData, entryInfo.size);
-                            destFile.write((const char*)zipData, entryInfo.size);
+                            if (-1 == destFile.write((const char*)zipData, entryInfo.size)) {
+                                QMessageBox::critical(&progressDialog, "86Box", "Failed to write file: " + destFile.errorString());
+                                delete[] zipData;
+                                return 6;
+                            }
                             destFile.close();
                             delete[] zipData;
                         }
-                        else qDebug() << destPath << ": Failed to open for writing";
+                        else {
+                            QMessageBox::critical(&progressDialog, "86Box", QString(name) + ": Failed to open for writing");
+                            return 6;
+                        }
+                        progressDialog.setValue(i);
+                        QApplication::processEvents();
                         zip_fclose(file);
                     }
                     else qDebug() << name << ": " << zip_strerror(zipfile);
                 }
                 zip_close(zipfile);
-                QMessageBox::information(nullptr, "86Box", "ROM set has been extracted successfully.");
+                progressDialog.close();
+                if (pc_init_modules()) {
+                    QMessageBox::information(nullptr, "86Box", "ROM set has been extracted successfully. Emulator will now start.");
+                    extractSuccess = true;
+                }
+                else QMessageBox::critical(nullptr, "86Box", "ROM set is invalid or corrupted.", QMessageBox::Ok);
             }
             else QMessageBox::critical(nullptr, "86Box", "Failed to open ROM set.", QMessageBox::Ok);
         }
-        return 6;
+        if (!extractSuccess) return 6;
     }
 
     if (settings_only)
