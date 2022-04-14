@@ -402,7 +402,7 @@ pc_init(int argc, char *argv[])
 	char temp[2048];
 	struct tm *info;
 	time_t now;
-	int c, vmrp = 0;
+	int c;
 	int ng = 0, lvmp = 0;
 	uint32_t *uid, *shwnd;
 	uint32_t lang_init = 0;
@@ -459,9 +459,6 @@ usage:
 			printf("-Z or --lastvmpath   - the last parameter is VM path rather than config\n");
 			printf("\nA config file can be specified. If none is, the default file will be used.\n");
 			return(0);
-		} else if (!strcasecmp(argv[c], "--vmrompath") ||
-			   !strcasecmp(argv[c], "-M")) {
-			vmrp = 1;
 		} else if (!strcasecmp(argv[c], "--lastvmpath") ||
 			   !strcasecmp(argv[c], "-Z")) {
 			lvmp = 1;
