@@ -893,6 +893,7 @@ machine_at_portableiii386_init(const machine_t *model)
     return ret;
 }
 
+#if defined(DEV_BRANCH) && defined(USE_DESKPRO386)
 int
 machine_at_deskpro386_init(const machine_t *model)
 {
@@ -908,3 +909,4 @@ machine_at_deskpro386_init(const machine_t *model)
 
     return ret;
 }
+#endif

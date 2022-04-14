@@ -56,7 +56,7 @@ void evdev_thread_func()
 {
     while (!stopped)
     {
-        for (int i = 0; i < evdev_mice.size(); i++)
+        for (unsigned int i = 0; i < evdev_mice.size(); i++)
         {
             struct input_event ev;
             int rc = libevdev_next_event(evdev_mice[i].second, LIBEVDEV_READ_FLAG_NORMAL, &ev);
@@ -67,7 +67,7 @@ void evdev_thread_func()
             }
         }
     }
-    for (int i = 0; i < evdev_mice.size(); i++)
+    for (unsigned int i = 0; i < evdev_mice.size(); i++)
     {
         libevdev_free(evdev_mice[i].second);
         close(evdev_mice[i].first);

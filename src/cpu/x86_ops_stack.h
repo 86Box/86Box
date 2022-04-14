@@ -321,7 +321,9 @@ static int opENTER_w(uint32_t fetchdat)
 	uint16_t offset;
 	int count;
         uint32_t tempEBP, tempESP, frame_ptr;
+#ifndef IS_DYNAREC
         int reads = 0, writes = 1, instr_cycles = 0;
+#endif
 	uint16_t tempw;
 
         offset = getwordf();
@@ -342,20 +344,26 @@ static int opENTER_w(uint32_t fetchdat)
                         PUSH_W(tempw);
                         if (cpu_state.abrt) { ESP = tempESP; EBP = tempEBP; return 1; }
                         CLOCK_CYCLES((is486) ? 3 : 4);
+#ifndef IS_DYNAREC
                         reads++; writes++; instr_cycles += (is486) ? 3 : 4;
+#endif
                 }
                 PUSH_W(frame_ptr);
                 if (cpu_state.abrt) { ESP = tempESP; EBP = tempEBP; return 1; }
                 CLOCK_CYCLES((is486) ? 3 : 5);
+#ifndef IS_DYNAREC
                 writes++; instr_cycles += (is486) ? 3 : 5;
+#endif
         }
         BP = frame_ptr;
 
         if (stack32) ESP -= offset;
         else          SP -= offset;
         CLOCK_CYCLES((is486) ? 14 : 10);
+#ifndef IS_DYNAREC
         instr_cycles += (is486) ? 14 : 10;
         PREFETCH_RUN(instr_cycles, 3, -1, reads,0,writes,0, 0);
+#endif
         return 0;
 }
 static int opENTER_l(uint32_t fetchdat)
@@ -363,7 +371,9 @@ static int opENTER_l(uint32_t fetchdat)
         uint16_t offset;
         int count;
         uint32_t tempEBP, tempESP, frame_ptr;
+#ifndef IS_DYNAREC
         int reads = 0, writes = 1, instr_cycles = 0;
+#endif
 	uint32_t templ;
 
 	offset = getwordf();
@@ -383,20 +393,26 @@ static int opENTER_l(uint32_t fetchdat)
                         PUSH_L(templ);
                         if (cpu_state.abrt) { ESP = tempESP; EBP = tempEBP; return 1; }
                         CLOCK_CYCLES((is486) ? 3 : 4);
+#ifndef IS_DYNAREC
                         reads++; writes++; instr_cycles += (is486) ? 3 : 4;
+#endif
                 }
                 PUSH_L(frame_ptr);
                 if (cpu_state.abrt) { ESP = tempESP; EBP = tempEBP; return 1; }
                 CLOCK_CYCLES((is486) ? 3 : 5);
+#ifndef IS_DYNAREC
                 writes++; instr_cycles += (is486) ? 3 : 5;
+#endif
         }
         EBP = frame_ptr;
 
         if (stack32) ESP -= offset;
         else          SP -= offset;
         CLOCK_CYCLES((is486) ? 14 : 10);
+#ifndef IS_DYNAREC
         instr_cycles += (is486) ? 14 : 10;
         PREFETCH_RUN(instr_cycles, 3, -1, reads,0,writes,0, 0);
+#endif
         return 0;
 }
 

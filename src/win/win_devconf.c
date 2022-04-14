@@ -45,8 +45,11 @@ deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 {
     HWND h;
 
-    int val_int, id, c, d, num;
+    int val_int, id, c, d;
     int p, q;
+#ifdef USE_RTMIDI
+    int num;
+#endif
     int changed, cid;
     const device_config_t *config;
     const device_config_selection_t *selection;

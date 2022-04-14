@@ -546,13 +546,7 @@ gd54xx_overlay_draw(svga_t *svga, int displine)
     int bpp = svga->bpp;
     int bytesperpix = (bpp + 7) / 8;
     uint8_t *src2 = &svga->vram[(svga->ma - (svga->hdisp * bytesperpix))  & svga->vram_display_mask];
-    int w = gd54xx->overlay.r2sdz;
     int occl, ckval;
-
-    if (gd54xx->overlay.mode == 2)
-	w *= 4;
-    else
-	w *= 2;
 
     p = &((uint32_t *)buffer32->line[displine])[gd54xx->overlay.region1size + svga->x_add];
     src2 += gd54xx->overlay.region1size * bytesperpix;

@@ -20,6 +20,11 @@
 
 #define LOD_MASK (LOD_TMIRROR_S | LOD_TMIRROR_T)
 
+/* Suppress a false positive warning on gcc that causes excessive build log spam */
+#if __GNUC__ >= 10
+#pragma GCC diagnostic ignored "-Wstringop-overflow"
+#endif
+
 typedef struct voodoo_x86_data_t
 {
         uint8_t code_block[BLOCK_SIZE];

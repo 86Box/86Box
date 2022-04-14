@@ -74,7 +74,6 @@ static void build_load_routine(codeblock_t *block, int size, int is_float)
 {
         uint32_t *branch_offset;
         uint32_t *misaligned_offset;
-	int offset;
 
         /*In - W0 = address
           Out - W0 = data, W1 = abrt*/
@@ -143,7 +142,6 @@ static void build_store_routine(codeblock_t *block, int size, int is_float)
 {
         uint32_t *branch_offset;
         uint32_t *misaligned_offset;
-	int offset;
 
         /*In - R0 = address, R1 = data
           Out - R1 = abrt*/
@@ -283,12 +281,6 @@ void codegen_backend_init()
 {
 	codeblock_t *block;
         int c;
-#if defined(__linux__) || defined(__APPLE__)
-	void *start;
-	size_t len;
-	long pagesize = sysconf(_SC_PAGESIZE);
-	long pagemask = ~(pagesize - 1);
-#endif
 
 	codeblock = malloc(BLOCK_SIZE * sizeof(codeblock_t));
         codeblock_hash = malloc(HASH_SIZE * sizeof(codeblock_t *));

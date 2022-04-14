@@ -493,10 +493,6 @@ WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR lpszArg, int nCmdShow)
 	return(1);
     }
 
-    /* Enable crash dump services. */
-    if (enable_crashdump)
-	InitCrashDump();
-
     /* Create console window. */
     if (force_debug) {
 	CreateConsole(1);
@@ -917,10 +913,10 @@ plat_init_rom_paths()
 {
     wchar_t appdata_dir[1024] = { L'\0' };
 
-    if (_wgetenv("LOCALAPPDATA") && _wgetenv("LOCALAPPDATA")[0] != L'\0') {
+    if (_wgetenv(L"LOCALAPPDATA") && _wgetenv(L"LOCALAPPDATA")[0] != L'\0') {
         char appdata_dir_a[1024] = { '\0' };
         size_t len = 0;
-        wcsncpy(appdata_dir, _wgetenv("LOCALAPPDATA"), 1024);
+        wcsncpy(appdata_dir, _wgetenv(L"LOCALAPPDATA"), 1024);
         len = wcslen(appdata_dir);
         if (appdata_dir[len - 1] != L'\\') {
             appdata_dir[len] = L'\\';

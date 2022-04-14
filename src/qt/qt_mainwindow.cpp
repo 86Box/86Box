@@ -625,6 +625,7 @@ void MainWindow::on_actionSettings_triggered() {
     plat_pause(currentPause);
 }
 
+#if defined(__unix__) && !defined(__HAIKU__)
 std::array<uint32_t, 256> x11_to_xt_base
 {
     0,
@@ -952,7 +953,9 @@ std::array<uint32_t, 256> x11_to_xt_vnc
     0x14B,
     0x14D,
 };
+#endif
 
+#ifdef Q_OS_MACOS
 std::array<uint32_t, 256> darwin_to_xt
 {
     0x1E,
@@ -1084,7 +1087,9 @@ std::array<uint32_t, 256> darwin_to_xt
     0x148,
     0,
 };
+#endif
 
+#if defined(__unix__) && !defined(__HAIKU__)
 static std::unordered_map<uint32_t, uint16_t> evdev_to_xt =
     {
         {96, 0x11C},
@@ -1104,6 +1109,7 @@ static std::unordered_map<uint32_t, uint16_t> evdev_to_xt =
         {110, 0x152},
         {111, 0x153}
 };
+#endif
 
 #ifdef __HAIKU__
 static std::unordered_map<uint8_t, uint16_t> be_to_xt =
@@ -1216,7 +1222,9 @@ static std::unordered_map<uint8_t, uint16_t> be_to_xt =
 };
 #endif
 
+#if defined(__unix__) && !defined(__HAIKU__)
 static std::array<uint32_t, 256>& selected_keycode = x11_to_xt_base;
+#endif
 
 uint16_t x11_keycode_to_keysym(uint32_t keycode)
 {

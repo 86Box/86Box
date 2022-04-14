@@ -17,8 +17,6 @@
  *		Copyright 2017-2020 Fred N. van Kempen.
  *		Copyright 2002-2020 The DOSBox Team.
  */
-#define _LARGEFILE_SOURCE
-#define _LARGEFILE64_SOURCE
 #define __STDC_FORMAT_MACROS
 #include <stdarg.h>
 #include <inttypes.h>
