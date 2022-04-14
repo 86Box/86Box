@@ -43,7 +43,7 @@ if(DYNAREC)
         target_sources(dynarec PRIVATE codegen_backend_arm.c
             codegen_backend_arm_ops.c codegen_backend_arm_uops.c)
     else()
-        message(SEND_ERROR 
+        message(SEND_ERROR
             "Dynarec is incompatible with target platform ${ARCH}")
     endif()
 

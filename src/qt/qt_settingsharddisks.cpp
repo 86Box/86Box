@@ -151,7 +151,7 @@ void SettingsHarddisks::save() {
         hdd[i].spt = idx.siblingAtColumn(ColumnSectors).data().toUInt();
 
         QByteArray fileName = idx.siblingAtColumn(ColumnFilename).data(Qt::UserRole).toString().toUtf8();
-        strncpy(hdd[i].fn, fileName.data(), sizeof(hdd[i].fn));
+        strncpy(hdd[i].fn, fileName.data(), sizeof(hdd[i].fn) - 1);
         hdd[i].priv = nullptr;
     }
 }
@@ -247,12 +247,14 @@ static void addDriveFromDialog(Ui::SettingsHarddisks* ui, const HarddiskDialog& 
     QByteArray fn = dlg.fileName().toUtf8();
 
     hard_disk_t hd;
+    memset(&hd, 0, sizeof(hd));
+
     hd.bus = dlg.bus();
     hd.channel = dlg.channel();
     hd.tracks = dlg.cylinders();
     hd.hpc = dlg.heads();
     hd.spt = dlg.sectors();
-    strncpy(hd.fn, fn.data(), sizeof(hd.fn));
+    strncpy(hd.fn, fn.data(), sizeof(hd.fn) - 1);
 
     addRow(ui->tableView->model(), &hd);
     ui->tableView->resizeColumnsToContents();

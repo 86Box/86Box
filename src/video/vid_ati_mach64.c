@@ -1283,7 +1283,7 @@ void mach64_blit(uint32_t cpu_dat, int count, mach64_t *mach64)
                 case OP_RECT:
 				while (count)
                 {
-                        uint32_t src_dat, dest_dat;
+                        uint32_t src_dat = 0, dest_dat;
                         uint32_t host_dat = 0;
                         uint32_t old_dest_dat;
                         int mix = 0;

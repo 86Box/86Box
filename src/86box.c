@@ -172,7 +172,6 @@ int	confirm_reset = 1;			/* (C) enable reset confirmation */
 int confirm_exit = 1;				/* (C) enable exit confirmation */
 int confirm_save = 1;				/* (C) enable save confirmation */
 int	enable_discord = 0;			/* (C) enable Discord integration */
-int	enable_crashdump = 0;			/* (C) enable crash dump */
 
 /* Statistics. */
 extern int mmuflush;
@@ -403,9 +402,11 @@ pc_init(int argc, char *argv[])
 	char temp[2048];
 	struct tm *info;
 	time_t now;
-	int c, vmrp = 0;
+	int c;
 	int ng = 0, lvmp = 0;
+#ifdef _WIN32
 	uint32_t *uid, *shwnd;
+#endif
 	uint32_t lang_init = 0;
 
 	/* Grab the executable's full path. */
@@ -440,9 +441,6 @@ usage:
 			printf("\nUsage: 86box [options] [cfg-file]\n\n");
 			printf("Valid options are:\n\n");
 			printf("-? or --help         - show this information\n");
-#ifdef _WIN32
-			printf("-A or --crashdump    - enables crashdump on exception\n");
-#endif
 			printf("-C or --config path  - set 'path' to be config file\n");
 #ifdef _WIN32
 			printf("-D or --debug        - force debug output logging\n");
@@ -463,9 +461,6 @@ usage:
 			printf("-Z or --lastvmpath   - the last parameter is VM path rather than config\n");
 			printf("\nA config file can be specified. If none is, the default file will be used.\n");
 			return(0);
-		} else if (!strcasecmp(argv[c], "--vmrompath") ||
-			   !strcasecmp(argv[c], "-M")) {
-			vmrp = 1;
 		} else if (!strcasecmp(argv[c], "--lastvmpath") ||
 			   !strcasecmp(argv[c], "-Z")) {
 			lvmp = 1;
@@ -519,9 +514,6 @@ usage:
 			   !strcasecmp(argv[c], "-N")) {
 			confirm_exit_cmdl = 0;
 #ifdef _WIN32
-		} else if (!strcasecmp(argv[c], "--crashdump") ||
-			   !strcasecmp(argv[c], "-A")) {
-			enable_crashdump = 1;
 		} else if (!strcasecmp(argv[c], "--hwnd") ||
 			   !strcasecmp(argv[c], "-H")) {
 
@@ -1177,7 +1169,7 @@ pc_close(thread_t *ptr)
 #ifdef __APPLE__
 static void _ui_window_title(void *s)
 {
-    ui_window_title((const wchar_t *) s);
+    ui_window_title((wchar_t *) s);
     free(s);
 }
 #endif

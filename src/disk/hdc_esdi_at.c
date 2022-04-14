@@ -18,8 +18,6 @@
  *		Copyright 2016-2019 Miran Grca.
  *		Copyright 2017-2019 Fred N. van Kempen.
  */
-#define _LARGEFILE_SOURCE
-#define _LARGEFILE64_SOURCE
 #define _GNU_SOURCE
 #include <stdarg.h>
 #include <stdint.h>

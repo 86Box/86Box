@@ -514,7 +514,9 @@ extern int	machine_at_cmdpc_init(const machine_t *);
 extern int	machine_at_portableii_init(const machine_t *);
 extern int	machine_at_portableiii_init(const machine_t *);
 extern int	machine_at_portableiii386_init(const machine_t *);
+#if defined(DEV_BRANCH) && defined(USE_DESKPRO386)
 extern int	machine_at_deskpro386_init(const machine_t *);
+#endif
 #ifdef EMU_DEVICE_H
 extern const device_t 	*at_cpqiii_get_device(void);
 #endif
@@ -620,7 +622,7 @@ extern int	machine_at_i430vx_init(const machine_t *);
 
 extern int	machine_at_nupro592_init(const machine_t *);
 extern int	machine_at_tx97_init(const machine_t *);
-#if defined(DEV_BRANCH) && defined(NO_SIO)
+#if defined(DEV_BRANCH) && defined(USE_AN430TX)
 extern int	machine_at_an430tx_init(const machine_t *);
 #endif
 extern int	machine_at_ym430tx_init(const machine_t *);

@@ -88,6 +88,8 @@
 
 #ifdef _WIN32
 # define PATH_FREETYPE_DLL	"freetype.dll"
+#elif defined __APPLE__
+# define PATH_FREETYPE_DLL	"libfreetype.dylib"
 #else
 # define PATH_FREETYPE_DLL	"libfreetype.so.6"
 #endif

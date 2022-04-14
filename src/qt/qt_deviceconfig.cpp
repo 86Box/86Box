@@ -117,7 +117,7 @@ void DeviceConfig::ConfigureDevice(const _device_* device, int instance, Setting
             cbox->setObjectName(config->name);
             auto* model = cbox->model();
             int currentIndex = -1;
-            int selected;
+            int selected = 0;
             switch (config->type) {
             case CONFIG_SELECTION:
                 selected = config_get_int(device_context.name, const_cast<char*>(config->name), config->default_int);

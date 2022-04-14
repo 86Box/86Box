@@ -93,12 +93,12 @@ FILE *
 rom_fopen(char *fn, char *mode)
 {
     char temp[1024];
-    rom_path_t *rom_path = &rom_paths;
-    FILE *fp;
+    rom_path_t *rom_path;
+    FILE *fp = NULL;
 
     if (strstr(fn, "roms/") == fn) {
         /* Relative path */
-        for(rom_path_t *rom_path = &rom_paths; rom_path != NULL; rom_path = rom_path->next) {
+        for (rom_path = &rom_paths; rom_path != NULL; rom_path = rom_path->next) {
             plat_append_filename(temp, rom_path->path, fn + 5);
 
             if ((fp = plat_fopen(temp, mode)) != NULL) {
@@ -118,11 +118,11 @@ int
 rom_getfile(char *fn, char *s, int size)
 {
     char temp[1024];
-    rom_path_t *rom_path = &rom_paths;
+    rom_path_t *rom_path;
 
     if (strstr(fn, "roms/") == fn) {
         /* Relative path */
-        for(rom_path_t *rom_path = &rom_paths; rom_path != NULL; rom_path = rom_path->next) {
+        for (rom_path = &rom_paths; rom_path != NULL; rom_path = rom_path->next) {
             plat_append_filename(temp, rom_path->path, fn + 5);
 
             if (rom_present(temp)) {
@@ -138,7 +138,7 @@ rom_getfile(char *fn, char *s, int size)
             strncpy(s, fn, size);
             return 1;
         }
-        
+
         return 0;
     }
 }
