@@ -188,7 +188,7 @@ void MediaMenu::cassetteMount(const QString& filename, bool wp) {
 
     if (! filename.isEmpty()) {
         QByteArray filenameBytes = filename.toUtf8();
-        strncpy(cassette_fname, filenameBytes.data(), sizeof(cassette_fname));
+        strncpy(cassette_fname, filenameBytes.data(), sizeof(cassette_fname) - 1);
         pc_cas_set_fname(cassette, cassette_fname);
     }
 
