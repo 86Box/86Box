@@ -31,6 +31,8 @@ if(APPLE AND USE_QT6)
     find_package(Qt6Gui/Qt6QICNSPlugin REQUIRED)
 endif()
 
+find_package(libzip REQUIRED)
+
 add_library(plat STATIC
     qt.c
     qt_main.cpp
@@ -153,6 +155,7 @@ if(RTMIDI)
     target_compile_definitions(ui PRIVATE USE_RTMIDI)
 endif()
 
+target_link_libraries(ui PUBLIC libzip::zip)
 
 if(WIN32)
     enable_language(RC)

@@ -28,6 +28,10 @@
 #include <QLibraryInfo>
 #include <QString>
 #include <QFont>
+#include <QFileDialog>
+#include <QStandardPaths>
+#include <QMessageBox>
+#include <zip.h>
 
 #ifdef QT_STATIC
 /* Static builds need plugin imports */
@@ -178,7 +182,68 @@ int main(int argc, char* argv[]) {
     SetCurrentProcessExplicitAppUserModelID(L"86Box.86Box");
 #endif
     if (! pc_init_modules()) {
-        ui_msgbox_header(MBX_FATAL, (void*)IDS_2120, (void*)IDS_2056);
+        QString zipName;
+        QMessageBox messageBox(QMessageBox::Icon::Warning,
+                               QString::fromWCharArray(plat_get_string(IDS_2120)),
+R"(86Box could not find any usable ROM images.
+
+Please <a href="https://github.com/86Box/roms/releases/latest">download</a> a ROM set and extract it into the "roms" directory. Or press OK to select the downloaded ROM set to extract.)");
+        messageBox.setTextFormat(Qt::RichText);
+        messageBox.setStandardButtons(QMessageBox::Ok | QMessageBox::Close);
+        messageBox.exec();
+        if (messageBox.result() == QMessageBox::Close || messageBox.result() == QMessageBox::Escape) return 6;
+        if ((zipName = QFileDialog::getOpenFileName(nullptr, QString(), QString(), "*.zip", nullptr)).isNull() == false) {
+            auto zipfile = zip_open(zipName.toUtf8().constData(), ZIP_RDONLY, nullptr);
+            if (zipfile) {
+                char dirname[1024] = { 0 };
+                memset(dirname, 0, sizeof(dirname));
+                auto numofentries = zip_get_num_entries(zipfile, 0);
+                for (zip_int64_t i = 0; i < numofentries; i++) {
+                    const char* name = zip_get_name(zipfile, i, ZIP_FL_ENC_GUESS);
+                    if (strstr(name, "README.md")) {
+                        if (strstr(name, "/")) {
+                            memccpy(dirname, name, '/', 1024);
+                        }
+                        break;
+                    }
+                }
+                for (zip_int64_t i = 0; i < numofentries; i++) {
+                    const char* name = zip_get_name(zipfile, i, ZIP_FL_ENC_GUESS);
+                    if (!name) continue;
+                    if (name[strlen(name) - 1] == '/') continue;
+                    zip_stat_t entryInfo{};
+                    zip_stat_init(&entryInfo);
+                    zip_stat_index(zipfile, i, 0, &entryInfo);
+                    if (!(entryInfo.valid & ZIP_STAT_SIZE)) {
+                        qDebug() << name << ": Size not available";
+                        continue;
+                    }
+                    auto file = zip_fopen_index(zipfile, i, 0);
+                    if (file) {
+                        auto romDirectory = QDir(QStandardPaths::standardLocations(QStandardPaths::GenericDataLocation)[0] + "/86Box/roms/");
+                        romDirectory.mkpath(".");
+                        auto destPath = romDirectory.absolutePath() + "/" + name;
+                        if (dirname[0] != '\0') destPath.remove(dirname);
+                        QFileInfo fileInfo(destPath);
+                        fileInfo.dir().mkpath(".");
+                        QFile destFile(destPath);
+                        if (destFile.open(QIODevice::ReadWrite)) {
+                            auto zipData = new uint8_t[entryInfo.size];
+                            zip_fread(file, zipData, entryInfo.size);
+                            destFile.write((const char*)zipData, entryInfo.size);
+                            destFile.close();
+                            delete[] zipData;
+                        }
+                        else qDebug() << destPath << ": Failed to open for writing";
+                        zip_fclose(file);
+                    }
+                    else qDebug() << name << ": " << zip_strerror(zipfile);
+                }
+                zip_close(zipfile);
+                QMessageBox::information(nullptr, "86Box", "ROM set has been extracted successfully.");
+            }
+            else QMessageBox::critical(nullptr, "86Box", "Failed to open ROM set.", QMessageBox::Ok);
+        }
         return 6;
     }
 
