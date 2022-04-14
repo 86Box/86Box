@@ -1183,3 +1183,5 @@ msgstr "2% below perfect RPM"
 msgid "(System Default)"
 msgstr "(System Default)"
 
+msgid "86Box could not find any usable ROM images.\n\nPlease <a href=\"https://github.com/86Box/roms/releases/latest\">download</a> a ROM set and extract it into the \"roms\" directory. If you have already downloaded it, press OK to select the downloaded ROM set to extract."
+msgstr "86Box could not find any usable ROM images.\n\nPlease <a href=\"https://github.com/86Box/roms/releases/latest\">download</a> a ROM set and extract it into the \"roms\" directory. If you have already downloaded it, press OK to select the downloaded ROM set to extract."
