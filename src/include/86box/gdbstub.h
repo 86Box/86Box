@@ -16,6 +16,7 @@
  */
 #ifndef EMU_GDBSTUB_H
 #define EMU_GDBSTUB_H
+#include <stdint.h>
 #include <86box/mem.h>
 
 #define GDBSTUB_MEM_READ   0
