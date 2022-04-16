@@ -53,7 +53,7 @@ deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
     int changed, cid;
     const device_config_t *config;
     const device_config_selection_t *selection;
-    const device_config_bios_t *bio;
+    const device_config_bios_t *bios;
     char s[512], file_filter[512];
     char *str, *val_str;
     wchar_t ws[512], *wstr;
@@ -102,7 +102,7 @@ deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 					id += 2;
 					break;
 				case CONFIG_BIOS:
-					val_string = config_get_string((char *) config_device.name,
+					val_str = config_get_string((char *) config_device.name,
 								       (char *) config->name, config->default_string);
 
 					c = 0;

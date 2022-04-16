@@ -281,7 +281,7 @@ typedef struct _machine_ {
 	7-0	Set bits are forced set on P1 (no forced set = 0x00);
 	15-8	Clear bits are forced clear on P1 (no foced clear = 0xff). */
     uint16_t        kbc_p1;
-    uint32_t        gpi;
+    uint32_t        gpio;
 #ifdef EMU_DEVICE_H
     const device_t *(*get_device)(void);
     const device_t *(*get_vid_device)(void);
