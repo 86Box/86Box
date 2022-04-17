@@ -163,6 +163,7 @@ enum {
     MACHINE_TYPE_SLOT1_370,
     MACHINE_TYPE_SLOT2,
     MACHINE_TYPE_SOCKET370,
+    MACHINE_TYPE_ICH2,
     MACHINE_TYPE_MISC,
     MACHINE_TYPE_MAX
 };
@@ -208,6 +209,7 @@ enum {
     MACHINE_CHIPSET_INTEL_440BX,
     MACHINE_CHIPSET_INTEL_440ZX,
     MACHINE_CHIPSET_INTEL_440GX,
+    MACHINE_CHIPSET_INTEL_I815EP,
     MACHINE_CHIPSET_OPTI_283,
     MACHINE_CHIPSET_OPTI_291,
     MACHINE_CHIPSET_OPTI_493,
@@ -281,7 +283,7 @@ typedef struct _machine_ {
 	7-0	Set bits are forced set on P1 (no forced set = 0x00);
 	15-8	Clear bits are forced clear on P1 (no foced clear = 0xff). */
     uint16_t        kbc_p1;
-    uint32_t        gpi;
+    uint32_t        gpio;
 #ifdef EMU_DEVICE_H
     const device_t *(*get_device)(void);
     const device_t *(*get_vid_device)(void);
@@ -746,6 +748,9 @@ extern int	machine_at_p6bap_init(const machine_t *);
 
 /* m_at_misc.c */
 extern int	machine_at_vpc2007_init(const machine_t *);
+
+/* m_at_ich2.c */
+extern int	machine_at_s2080_init(const machine_t *);
 
 /* m_at_t3100e.c */
 extern int	machine_at_t3100e_init(const machine_t *);

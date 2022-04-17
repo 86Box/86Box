@@ -110,6 +110,8 @@
 /* Olivetti - proprietary commands and port 62h with switches
    readout */
 #define KBC_VEN_OLIVETTI	0x20
+/* Samsung - TODO */
+#define KBC_VEN_SAMSUNG		0x24
 /* Toshiba T3100e - has a bunch of proprietary commands, also sets
    IFULL on command AA */
 #define KBC_VEN_TOSHIBA		0x28
@@ -3147,6 +3149,11 @@ kbd_init(const device_t *info)
 		dev->write64_ven = write64_quadtel;
 		break;
 
+	case KBC_VEN_SAMSUNG:
+//		dev->write60_ven = write60_samsung;
+//		dev->write64_ven = write64_samsung;
+		break;
+
 	case KBC_VEN_TOSHIBA:
 		dev->write60_ven = write60_toshiba;
 		dev->write64_ven = write64_toshiba;
@@ -3285,7 +3292,7 @@ const device_t keyboard_ps2_ps1_pci_device = {
     .speed_changed = NULL,
     .force_redraw = NULL,
     .config = NULL
-];
+};
 
 const device_t keyboard_ps2_xi8088_device = {
     .name = "PS/2 Keyboard (Xi8088)",
