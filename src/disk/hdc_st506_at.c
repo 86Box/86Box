@@ -20,9 +20,6 @@
  *		Copyright 2008-2019 Sarah Walker.
  *		Copyright 2017-2019 Fred N. van Kempen.
  */
-#define __USE_LARGEFILE64
-#define _LARGEFILE_SOURCE
-#define _LARGEFILE64_SOURCE
 #include <stdarg.h>
 #include <stdint.h>
 #include <stdio.h>

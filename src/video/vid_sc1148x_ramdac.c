@@ -42,12 +42,11 @@ void
 sc1148x_ramdac_out(uint16_t addr, int rs2, uint8_t val, void *p, svga_t *svga)
 {
     sc1148x_ramdac_t *ramdac = (sc1148x_ramdac_t *) p;
-    uint8_t rs = (addr & 0x03);
-    rs |= ((!!rs2) << 2);
-	int oldbpp = 0;
+    uint8_t rs = (addr & 0x03) | ((!!rs2) << 2);
+    int oldbpp = 0;
 
-    switch (addr) {
-	case 0x3c6:
+    switch (rs) {
+	case 2: case 6:
 		switch (ramdac->state) {
 			case 4:
 				ramdac->state = 0;
@@ -84,8 +83,7 @@ sc1148x_ramdac_out(uint16_t addr, int rs2, uint8_t val, void *p, svga_t *svga)
 		}
 		break;
 
-	case 0x3c7: case 0x3c8:
-	case 0x3c9:
+	default:
 		ramdac->state = 0;
 		svga_out(addr, val, svga);
 		break;
@@ -97,12 +95,10 @@ uint8_t
 sc1148x_ramdac_in(uint16_t addr, int rs2, void *p, svga_t *svga)
 {
     sc1148x_ramdac_t *ramdac = (sc1148x_ramdac_t *) p;
-    uint8_t ret = 0xff;
-    uint8_t rs = (addr & 0x03);
-    rs |= ((!!rs2) << 2);
+    uint8_t ret = 0xff, rs = (addr & 0x03) | ((!!rs2) << 2);
 
-    switch (addr) {
-	case 0x3c6:
+    switch (rs) {
+	case 2: case 6:
 		switch (ramdac->state) {
 			case 1:
 			case 2: case 3:
@@ -120,8 +116,7 @@ sc1148x_ramdac_in(uint16_t addr, int rs2, void *p, svga_t *svga)
 		}
 		break;
 
-	case 0x3c7: case 0x3c8:
-	case 0x3c9:
+	default:
 		ret = svga_in(addr, svga);
 		ramdac->state = 0;
 		break;

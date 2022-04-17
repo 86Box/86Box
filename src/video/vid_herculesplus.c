@@ -265,7 +265,7 @@ draw_char_rom(herculesplus_t *dev, int x, uint8_t chr, uint8_t attr)
 static void
 draw_char_ram4(herculesplus_t *dev, int x, uint8_t chr, uint8_t attr)
 {
-    unsigned ull, val, ifg, ibg, cfg;
+    unsigned ull, val, ibg, cfg;
     const uint8_t *fnt;
     int i, elg, blk;
     int cw = HERCULESPLUS_CW;
@@ -280,17 +280,13 @@ draw_char_ram4(herculesplus_t *dev, int x, uint8_t chr, uint8_t attr)
 
     /* MDA-compatible attributes */
     ibg = 0;
-    ifg = 7;
     if ((attr & 0x77) == 0x70) {	/* Invert */
-	ifg = 0;
 	ibg = 7;
     }
     if (attr & 8)
-	ifg |= 8;			/* High intensity FG */
     if (attr & 0x80)
 	ibg |= 8;			/* High intensity BG */
     if ((attr & 0x77) == 0)		/* Blank */
-	ifg = ibg;
     ull = ((attr & 0x07) == 1) ? 13 : 0xffff;
     if (dev->crtc[HERCULESPLUS_CRTC_XMODE] & HERCULESPLUS_XMODE_90COL)
 	elg = 0;

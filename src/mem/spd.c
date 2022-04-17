@@ -405,7 +405,7 @@ void
 spd_write_drbs_with_ext(uint8_t *regs, uint8_t reg_min, uint8_t reg_max, uint8_t drb_unit)
 {
     uint8_t row, dimm, drb;
-    uint16_t size, row_val, rows[SPD_MAX_SLOTS];
+    uint16_t size, row_val = 0, rows[SPD_MAX_SLOTS];
     int shift;
 
     /* No SPD: split SIMMs into pairs as if they were "DIMM"s. */

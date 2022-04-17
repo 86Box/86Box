@@ -689,7 +689,7 @@ machine_at_tx97_init(const machine_t *model)
 }
 
 
-#if defined(DEV_BRANCH) && defined(NO_SIO)
+#if defined(DEV_BRANCH) && defined(USE_AN430TX)
 int
 machine_at_an430tx_init(const machine_t *model)
 {

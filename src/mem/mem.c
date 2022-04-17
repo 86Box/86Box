@@ -2210,8 +2210,6 @@ void
 mem_invalidate_range(uint32_t start_addr, uint32_t end_addr)
 {
 #ifdef USE_NEW_DYNAREC
-    int byte_offset;
-    uint64_t byte_mask;
     page_t *p;
 
     start_addr &= ~PAGE_MASK_MASK;

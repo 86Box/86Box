@@ -23,12 +23,12 @@ static inline int find_host_xmm_reg()
 }
 static inline void call(codeblock_t *block, uintptr_t func)
 {
-	uintptr_t diff = func - (uintptr_t)&block->data[block_pos + 5];
+	intptr_t diff = (intptr_t)(func - (uintptr_t)&block->data[block_pos + 5]);
 
         codegen_reg_loaded[0] = codegen_reg_loaded[1] = codegen_reg_loaded[2] = codegen_reg_loaded[3] = 0;
         codegen_reg_loaded[4] = codegen_reg_loaded[5] = codegen_reg_loaded[6] = codegen_reg_loaded[7] = 0;
 
-	if (diff >= -0x80000000ULL && diff < 0x7fffffffULL)
+	if (diff >= -0x80000000LL && diff < 0x7fffffffLL)
 	{
 	        addbyte(0xE8); /*CALL*/
 	        addlong((uint32_t)diff);

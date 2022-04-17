@@ -294,12 +294,6 @@ void codegen_backend_init()
 {
         codeblock_t *block;
         int c;
-#if defined(__linux__) || defined(__APPLE__)
-	void *start;
-	size_t len;
-	long pagesize = sysconf(_SC_PAGESIZE);
-	long pagemask = ~(pagesize - 1);
-#endif
 
         codeblock = malloc(BLOCK_SIZE * sizeof(codeblock_t));
         codeblock_hash = malloc(HASH_SIZE * sizeof(codeblock_t *));

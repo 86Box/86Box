@@ -31,8 +31,7 @@
 
 #define CLAMP(a, min, max)		(((a) < (min)) ? (min) : (((a) > (max)) ? (max) : (a)))
 /* Formulas and factors derived from Linux's gl518sm.c driver. */
-#define GL518SM_RPMDIV(r, d)		(CLAMP((r), 1, 960000) * (d))
-#define GL518SM_RPM_TO_REG(r, d)	((r) ? CLAMP((480000 + GL518SM_RPMDIV(r, d) / 2) / GL518SM_RPMDIV(r, d), 1, 255) : 0)
+#define GL518SM_RPM_TO_REG(r, d)	((r) ? CLAMP((480000 + (r) * (d) / 2) / (r) * (d), 1, 255) : 0)
 #define GL518SM_VOLTAGE_TO_REG(v)	((uint8_t) round((v) / 19.0))
 #define GL518SM_VDD_TO_REG(v)		((uint8_t) (((v) * 4) / 95.0))
 

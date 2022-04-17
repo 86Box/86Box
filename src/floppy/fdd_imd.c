@@ -148,8 +148,6 @@ track_is_xdf(int drive, int side, int track)
     int max_high_id, expected_high_count, expected_low_count;
     uint8_t *r_map;
     uint8_t *n_map;
-    char *data_base;
-    char *cur_data;
 
     effective_sectors = xdf_sectors = high_sectors = low_sectors = 0;
 
@@ -162,7 +160,6 @@ track_is_xdf(int drive, int side, int track)
 	(dev->tracks[track][side].params[3] != 19)) return(0);
 
     r_map = (uint8_t *)(dev->buffer + dev->tracks[track][side].r_map_offs);
-    data_base = dev->buffer + dev->tracks[track][side].data_offs;
 
     if (! track) {
 	if (dev->tracks[track][side].params[4] != 2) return(0);
@@ -197,7 +194,6 @@ track_is_xdf(int drive, int side, int track)
 
 	n_map = (uint8_t *) (dev->buffer + dev->tracks[track][side].n_map_offs);
 
-	cur_data = data_base;
 	for (i = 0; i < dev->tracks[track][side].params[3]; i++) {
 		effective_sectors++;
 		if (!(r_map[i]) && !(n_map[i]))
@@ -207,7 +203,6 @@ track_is_xdf(int drive, int side, int track)
 			xdf_sectors++;
 			dev->xdf_ordered_pos[(int) r_map[i]][side] = i;
 		}
-		cur_data += (128 << ((uint32_t) n_map[i]));
 	}
 
 	if ((effective_sectors == 3) && (xdf_sectors == 3)) {

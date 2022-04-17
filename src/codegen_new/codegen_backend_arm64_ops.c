@@ -270,12 +270,6 @@ static inline int imm_is_imm16(uint32_t imm_data)
 		return 1;
 	return 0;
 }
-static inline int imm_is_imm12(uint32_t imm_data)
-{
-	if (!(imm_data & 0xfffff000) || !(imm_data & 0xff000fff))
-		return 1;
-	return 0;
-}
 
 static void codegen_allocate_new_block(codeblock_t *block);
 

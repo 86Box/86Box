@@ -22,6 +22,7 @@
 #if defined WIN32 || defined _WIN32 || defined _WIN32
 #include <windows.h>
 #endif
+#include <string.h>
 
 void *codegen_mem_load_byte;
 void *codegen_mem_load_word;
@@ -310,7 +311,7 @@ void codegen_backend_init()
         block->data = codeblock_allocator_get_ptr(block->head_mem_block);
         block_write_data = block->data;
         build_loadstore_routines(&codeblock[block_current]);
-printf("block_pos=%i\n", block_pos);
+//pclog("block_pos=%i\n", block_pos);
 
         codegen_fp_round = &block_write_data[block_pos];
 	build_fp_round_routine(&codeblock[block_current]);

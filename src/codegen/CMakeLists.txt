@@ -23,7 +23,7 @@ if(DYNAREC)
         target_sources(dynarec PRIVATE codegen_x86-64.c
             codegen_accumulate_x86-64.c)
     else()
-        message(SEND_ERROR 
+        message(SEND_ERROR
             "Dynarec is incompatible with target platform ${ARCH}")
     endif()
 
