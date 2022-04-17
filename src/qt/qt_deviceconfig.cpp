@@ -52,7 +52,7 @@ void DeviceConfig::ConfigureDevice(const _device_* device, int instance, Setting
     DeviceConfig dc(settings);
     dc.setWindowTitle(QString("%1 Device Configuration").arg(device->name));
     int combo_to_struct[256];
-    int c, d, p;
+    int c, d, p, q;
 
     device_context_t device_context;
     device_set_context(&device_context, device, instance);
@@ -149,7 +149,7 @@ void DeviceConfig::ConfigureDevice(const _device_* device, int instance, Setting
             auto* model = cbox->model();
             int currentIndex = -1;
             char *selected;
-            selected = config_get_int(device_context.name, const_cast<char*>(config->name), config->default_string);
+            selected = config_get_string(device_context.name, const_cast<char*>(config->name), config->default_string);
 
             c = q = 0;
             for (auto* bios = config->bios; (bios != nullptr) && (bios->name != nullptr) && (strlen(bios->name) > 0); ++bios) {
@@ -157,7 +157,7 @@ void DeviceConfig::ConfigureDevice(const _device_* device, int instance, Setting
                 for (d = 0; d < bios->files_no; d++)
                     p += !!rom_present(bios->files[d]);
                 if (p == bios->files_no) {
-                    int row = Models::AddEntry(model, bios->name, bios->internal_name);
+                    int row = Models::AddEntry(model, bios->name, q);
                     if (!strcmp(selected, q)) {
                         currentIndex = row;
                     }
@@ -221,7 +221,7 @@ void DeviceConfig::ConfigureDevice(const _device_* device, int instance, Setting
             {
                 auto* cbox = dc.findChild<QComboBox*>(config->name);
                 int idx = cbox->currentData().toInt();
-                config_set_int(device_context.name, const_cast<char*>(config->name), config->bios[idx].internal_name);
+                config_set_string(device_context.name, const_cast<char*>(config->name), config->bios[idx].internal_name);
                 break;
             }
             case CONFIG_HEX16:
