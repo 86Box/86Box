@@ -59,6 +59,7 @@ const machine_filter_t machine_types[] = {
     { "Slot 1/Socket 370",         MACHINE_TYPE_SLOT1_370  },
     { "Slot 2",                    MACHINE_TYPE_SLOT2      },
     { "Socket 370",                MACHINE_TYPE_SOCKET370  },
+    { "Intel ICH2",                MACHINE_TYPE_ICH2       },
     { "Miscellaneous",             MACHINE_TYPE_MISC       }
 };
 
@@ -103,6 +104,7 @@ const machine_filter_t machine_chipsets[] = {
     { "Intel 440BX",                MACHINE_CHIPSET_INTEL_440BX         },
     { "Intel 440ZX",                MACHINE_CHIPSET_INTEL_440ZX         },
     { "Intel 440GX",                MACHINE_CHIPSET_INTEL_440GX         },
+    { "Intel i815EP",               MACHINE_CHIPSET_INTEL_I815EP        },
     { "OPTi 283",                   MACHINE_CHIPSET_OPTI_283            },
     { "OPTi 291",                   MACHINE_CHIPSET_OPTI_291            },
     { "OPTi 493",                   MACHINE_CHIPSET_OPTI_493            },
@@ -1006,6 +1008,10 @@ const machine_t machines[] = {
     /* Has a Winbond W83977F Super I/O chip with on-chip KBC with AMIKey-2 KBC
        firmware. */
     { "[i440BX] Microsoft Virtual PC 2007",            "vpc2007",          MACHINE_TYPE_MISC,       MACHINE_CHIPSET_INTEL_440BX,         machine_at_vpc2007_init,          0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SLOT1,                     CPU_BLOCK(CPU_PENTIUM2, CPU_CYRIX3S),        0, 66666667, 0, 0, 0, 0, MACHINE_PS2_PCI,   MACHINE_IDE_DUAL, 8192, 1048576, 8192, 255, KBC_UNKNOWN, 0, 0, NULL, NULL },
+
+    /* Intel ICH2 */
+    /* Has a NSC PC87366 LPC Super I/O with on-chip AMIKey-2 KBC firmware*/
+    { "[Intel i815EP] Tyan Tomcat i815T",              "s2080",            MACHINE_TYPE_ICH2,       MACHINE_CHIPSET_INTEL_I815EP,        machine_at_s2080_init,            0, 0, MACHINE_AVAILABLE, 0,  CPU_PKG_SOCKET370,                 CPU_BLOCK_NONE,                       66666667, 133333333, 1300, 3500, 1.5, 8.0, MACHINE_PS2_AGP,   MACHINE_IDE_DUAL, 32768, 524288, 32768, 255, KBC_UNKNOWN, 0, 0, NULL, NULL },
 
     { NULL,                                            NULL,               MACHINE_TYPE_NONE,       MACHINE_CHIPSET_NONE,                NULL,                             0, 0, MACHINE_AVAILABLE, 0 , 0,                                 CPU_BLOCK_NONE,                              0, 0, 0, 0, 0, 0, MACHINE_BUS_NONE,  MACHINE_FLAGS_NONE, 0, 0, 0, 0, KBC_UNKNOWN, 0, 0, NULL, NULL }
 };

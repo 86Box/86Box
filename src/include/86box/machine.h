@@ -163,6 +163,7 @@ enum {
     MACHINE_TYPE_SLOT1_370,
     MACHINE_TYPE_SLOT2,
     MACHINE_TYPE_SOCKET370,
+    MACHINE_TYPE_ICH2,
     MACHINE_TYPE_MISC,
     MACHINE_TYPE_MAX
 };
@@ -208,6 +209,7 @@ enum {
     MACHINE_CHIPSET_INTEL_440BX,
     MACHINE_CHIPSET_INTEL_440ZX,
     MACHINE_CHIPSET_INTEL_440GX,
+    MACHINE_CHIPSET_INTEL_I815EP,
     MACHINE_CHIPSET_OPTI_283,
     MACHINE_CHIPSET_OPTI_291,
     MACHINE_CHIPSET_OPTI_493,
@@ -746,6 +748,9 @@ extern int	machine_at_p6bap_init(const machine_t *);
 
 /* m_at_misc.c */
 extern int	machine_at_vpc2007_init(const machine_t *);
+
+/* m_at_ich2.c */
+extern int	machine_at_s2080_init(const machine_t *);
 
 /* m_at_t3100e.c */
 extern int	machine_at_t3100e_init(const machine_t *);

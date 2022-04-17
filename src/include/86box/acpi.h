@@ -22,6 +22,7 @@
 extern "C" {
 #endif
 
+#include <86box/tco.h>
 #define ACPI_TIMER_FREQ	3579545
 #define PM_FREQ		ACPI_TIMER_FREQ
 
@@ -49,12 +50,13 @@ extern "C" {
 #define ACPI_ENABLE	0xf1
 #define	ACPI_DISABLE	0xf0
 
-#define VEN_ALI		0x010b9
-#define VEN_INTEL	0x08086
-#define VEN_SIS		0x01039
-#define VEN_SMC		0x01055
-#define VEN_VIA		0x01106
-#define VEN_VIA_596B	0x11106
+#define VEN_ALI        0x010b9
+#define VEN_INTEL      0x08086
+#define VEN_INTEL_ICH2 0x18086
+#define VEN_SIS        0x01039
+#define VEN_SMC        0x01055
+#define VEN_VIA        0x01106
+#define VEN_VIA_596B   0x11106
 
 
 typedef struct
@@ -98,7 +100,8 @@ typedef struct
     pc_timer_t		timer, resume_timer;
     nvr_t		*nvr;
     apm_t		*apm;
-    void		*i2c,
+    tco_t       *tco;
+	void		*i2c,
 			(*trap_update)(void *priv), *trap_priv;
 } acpi_t;
 
@@ -108,6 +111,7 @@ extern int		acpi_rtc_status;
 
 extern const device_t	acpi_ali_device;
 extern const device_t	acpi_intel_device;
+extern const device_t	acpi_intel_ich2_device;
 extern const device_t	acpi_smc_device;
 extern const device_t	acpi_via_device;
 extern const device_t	acpi_via_596b_device;
@@ -127,6 +131,7 @@ extern void		acpi_set_irq_line(acpi_t *dev, int irq_line);
 extern void		acpi_set_mirq_is_level(acpi_t *dev, int mirq_is_level);
 extern void		acpi_set_gpireg2_default(acpi_t *dev, uint8_t gpireg2_default);
 extern void		acpi_set_nvr(acpi_t *dev, nvr_t *nvr);
+extern void		acpi_set_tco(acpi_t *dev, tco_t *tco);
 extern void		acpi_set_trap_update(acpi_t *dev, void (*update)(void *priv), void *priv);
 extern uint8_t		acpi_ali_soft_smi_status_read(acpi_t *dev);
 extern void		acpi_ali_soft_smi_status_write(acpi_t *dev, uint8_t soft_smi);

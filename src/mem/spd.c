@@ -636,6 +636,80 @@ spd_write_drbs_ali1621(uint8_t *regs, uint8_t reg_min, uint8_t reg_max)
 }
 
 
+void
+spd_write_drbs_intel_mch(uint8_t *regs)
+{
+    /* All Intel MCH based boards demand SPD so we ignore completely the non-SPD calculations */
+    int size;
+    int reg_apply;
+
+    /* Clear previous configurations */
+    regs[0x52] = regs[0x54] = 0;
+
+    /* Write DRBs for each row. */
+    for (int slot = 0; slot < 3; slot++) {
+        size = spd_modules[slot]->row1 + spd_modules[slot]->row2;
+        pclog("Intel MCH: Registering Slot %d with size %dMB.\n", slot, size);
+
+        /* Calculate Size. Nullify if the size is illegal. */
+        switch(size)
+        {
+            default:
+                reg_apply = 0;
+                pclog("Illegal Size on Slot %d. Size not divisible by 32.\n", slot);
+            break;
+
+            case 32:
+                reg_apply = 1;
+            break;
+
+            case 48:
+                reg_apply = 3;
+            break;
+
+            case 64:
+                reg_apply = 4;
+            break;
+
+            case 96:
+                reg_apply = 6;
+            break;
+
+            case 128:
+                reg_apply = 7;
+            break;
+
+            case 192:
+                reg_apply = 11;
+            break;
+
+            case 256:
+                reg_apply = 12;
+            break;
+
+            case 512:
+                reg_apply = 15;
+            break;
+        }
+
+        /* Write on the representative register */
+        switch(slot)
+        {
+            case 0:
+                regs[0x52] |= reg_apply;
+            break;
+
+            case 1:
+                regs[0x52] |= reg_apply << 4;
+            break;
+
+            case 2:
+                regs[0x54] |= reg_apply;
+            break;
+        }
+	}
+}
+
 static const device_t spd_device = {
     .name = "Serial Presence Detect ROMs",
     .internal_name = "spd",
