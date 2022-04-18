@@ -31,6 +31,8 @@ extern "C" {
 #include <86box/config.h>
 #include <86box/device.h>
 #include <86box/midi_rtmidi.h>
+#include <86box/mem.h>
+#include <86box/rom.h>
 }
 
 #include "qt_filefield.hpp"
@@ -149,7 +151,7 @@ void DeviceConfig::ConfigureDevice(const _device_* device, int instance, Setting
             auto* model = cbox->model();
             int currentIndex = -1;
             char *selected;
-            selected = config_get_string(device_context.name, const_cast<char*>(config->name), config->default_string);
+            selected = config_get_string(device_context.name, const_cast<char*>(config->name), const_cast<char*>(config->default_string));
 
             c = q = 0;
             for (auto* bios = config->bios; (bios != nullptr) && (bios->name != nullptr) && (strlen(bios->name) > 0); ++bios) {
@@ -158,7 +160,7 @@ void DeviceConfig::ConfigureDevice(const _device_* device, int instance, Setting
                     p += !!rom_present(bios->files[d]);
                 if (p == bios->files_no) {
                     int row = Models::AddEntry(model, bios->name, q);
-                    if (!strcmp(selected, q)) {
+                    if (!strcmp(selected, bios->internal_name)) {
                         currentIndex = row;
                     }
                     c++;
@@ -221,7 +223,7 @@ void DeviceConfig::ConfigureDevice(const _device_* device, int instance, Setting
             {
                 auto* cbox = dc.findChild<QComboBox*>(config->name);
                 int idx = cbox->currentData().toInt();
-                config_set_string(device_context.name, const_cast<char*>(config->name), config->bios[idx].internal_name);
+                config_set_string(device_context.name, const_cast<char*>(config->name), const_cast<char*>(config->bios[idx].internal_name));
                 break;
             }
             case CONFIG_HEX16:
