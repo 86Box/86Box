@@ -64,6 +64,9 @@ ifeq ($(DEV_BUILD), y)
  ifndef MGA
   MGA		:= y
  endif
+ ifndef OLIVETTI
+  OLIVETTI	:= y
+ endif
  ifndef OPEN_AT
   OPEN_AT	:= y
  endif
@@ -73,17 +76,14 @@ ifeq ($(DEV_BUILD), y)
  ifndef SIO_DETECT
   SIO_DETECT	:= y
  endif
- ifndef VGAWONDER
-  VGAWONDER	:= y
- endif
  ifndef TANDY_ISA
   TANDY_ISA	:= y
  endif
+ ifndef VGAWONDER
+  VGAWONDER	:= y
+ endif
  ifndef XL24
   XL24		:= y
- endif
- ifndef OLIVETTI
-  OLIVETTI	:= y
  endif
  ifndef NEW_KBC
   NEW_KBC	:= n
@@ -125,6 +125,9 @@ else
  ifndef MGA
   MGA		:= n
  endif
+ ifndef OLIVETTI
+  OLIVETTI	:= n
+ endif
  ifndef OPEN_AT
   OPEN_AT	:= n
  endif
@@ -134,17 +137,14 @@ else
  ifndef SIO_DETECT
   SIO_DETECT	:= n
  endif
- ifndef VGAWONDER
-  VGAWONDER	:= n
- endif
  ifndef TANDY_ISA
   TANDY_ISA	:= n
  endif
+ ifndef VGAWONDER
+  VGAWONDER	:= n
+ endif
  ifndef XL24
   XL24		:= n
- endif
- ifndef OLIVETTI
-  OLIVETTI	:= n
  endif
  ifndef NEW_KBC
   NEW_KBC	:= n
