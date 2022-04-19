@@ -157,7 +157,7 @@ void DeviceConfig::ConfigureDevice(const _device_* device, int instance, Setting
             for (auto* bios = config->bios; (bios != nullptr) && (bios->name != nullptr) && (strlen(bios->name) > 0); ++bios) {
                 p = 0;
                 for (d = 0; d < bios->files_no; d++)
-                    p += !!rom_present(bios->files[d]);
+                    p += !!rom_present(const_cast<char*>(bios->files[d]));
                 if (p == bios->files_no) {
                     int row = Models::AddEntry(model, bios->name, q);
                     if (!strcmp(selected, bios->internal_name)) {
