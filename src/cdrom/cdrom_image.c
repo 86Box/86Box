@@ -26,6 +26,7 @@
 #define HAVE_STDARG_H
 #include <86box/86box.h>
 #include <86box/config.h>
+#include <86box/path.h>
 #include <86box/plat.h>
 #include <86box/scsi_device.h>
 #include <86box/cdrom_image_backend.h>
@@ -286,7 +287,7 @@ cdrom_image_open(cdrom_t *dev, const char *fn)
         return image_open_abort(dev);
 
     /* All good, reset state. */
-    if (! strcasecmp(plat_get_extension((char *) fn), "ISO"))
+    if (! strcasecmp(path_get_extension((char *) fn), "ISO"))
 	dev->cd_status = CD_STATUS_DATA_ONLY;
     else
 	dev->cd_status = CD_STATUS_STOPPED;

@@ -15,6 +15,7 @@
 #    include <86box/midi.h>
 #    include <86box/plat.h>
 #    include <86box/plat_dynld.h>
+#    include <86box/thread.h>
 #    include <86box/sound.h>
 #    include <86box/ui.h>
 

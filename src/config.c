@@ -63,6 +63,7 @@
 #include <86box/midi.h>
 #include <86box/snd_mpu401.h>
 #include <86box/video.h>
+#include <86box/path.h>
 #include <86box/plat.h>
 #include <86box/plat_dir.h>
 #include <86box/ui.h>
@@ -1422,12 +1423,12 @@ load_hard_disks(void)
 		wcsncpy(hdd[c].fn, &wp[wcslen(usr_path)], sizeof_w(hdd[c].fn));
 	} else
 #endif
-	if (plat_path_abs(p)) {
+	if (path_abs(p)) {
 		strncpy(hdd[c].fn, p, sizeof(hdd[c].fn) - 1);
 	} else {
-		plat_append_filename(hdd[c].fn, usr_path, p);
+		path_append_filename(hdd[c].fn, usr_path, p);
 	}
-	plat_path_normalize(hdd[c].fn);
+	path_normalize(hdd[c].fn);
 
 	/* If disk is empty or invalid, mark it for deletion. */
 	if (! hdd_is_valid(c)) {
@@ -2841,7 +2842,7 @@ save_hard_disks(void)
 
 	sprintf(temp, "hdd_%02i_fn", c+1);
 	if (hdd_is_valid(c) && (strlen(hdd[c].fn) != 0)) {
-		plat_path_normalize(hdd[c].fn);
+		path_normalize(hdd[c].fn);
 		if (!strnicmp(hdd[c].fn, usr_path, strlen(usr_path)))
 			config_set_string(cat, temp, &hdd[c].fn[strlen(usr_path)]);
 		else

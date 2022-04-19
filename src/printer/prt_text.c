@@ -60,6 +60,7 @@
 #include <86box/device.h>
 #include <86box/timer.h>
 #include <86box/pit.h>
+#include <86box/path.h>
 #include <86box/plat.h>
 #include <86box/lpt.h>
 #include <86box/printer.h>
@@ -150,10 +151,10 @@ dump_page(prnt_t *dev)
 
     /* Create the full path for this file. */
     memset(path, 0x00, sizeof(path));
-    plat_append_filename(path, usr_path, "printer");
+    path_append_filename(path, usr_path, "printer");
     if (! plat_dir_check(path))
         plat_dir_create(path);
-    plat_path_slash(path);
+    path_slash(path);
     strcat(path, dev->filename);
 
     /* Create the file. */

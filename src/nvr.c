@@ -58,6 +58,7 @@
 #include <86box/machine.h>
 #include <86box/mem.h>
 #include <86box/timer.h>
+#include <86box/path.h>
 #include <86box/plat.h>
 #include <86box/nvr.h>
 
@@ -213,7 +214,7 @@ nvr_path(char *str)
 	plat_dir_create(temp);
 
     /* Now append the actual filename. */
-    plat_path_slash(temp);
+    path_slash(temp);
     strcat(temp, str);
 
     return(temp);

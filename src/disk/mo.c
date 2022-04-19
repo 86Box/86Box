@@ -33,6 +33,7 @@
 #include <86box/device.h>
 #include <86box/scsi_device.h>
 #include <86box/nvr.h>
+#include <86box/path.h>
 #include <86box/plat.h>
 #include <86box/ui.h>
 #include <86box/hdc.h>
@@ -332,7 +333,7 @@ mo_load_abort(mo_t *dev)
 int
 image_is_mdi(const char *s)
 {
-    if (! strcasecmp(plat_get_extension((char *) s), "MDI"))
+    if (! strcasecmp(path_get_extension((char *) s), "MDI"))
 	return 1;
     else
 	return 0;

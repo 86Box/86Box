@@ -66,7 +66,9 @@
 #include <86box/rom.h>
 #include <86box/config.h>
 #include <86box/timer.h>
+#include <86box/path.h>
 #include <86box/plat.h>
+#include <86box/thread.h>
 #include <86box/video.h>
 #include <86box/vid_svga.h>
 
@@ -404,12 +406,12 @@ video_screenshot(uint32_t *buf, int start_x, int start_y, int row_len)
     memset(fn, 0, sizeof(fn));
     memset(path, 0, sizeof(path));
 
-    plat_append_filename(path, usr_path, SCREENSHOT_PATH);
+    path_append_filename(path, usr_path, SCREENSHOT_PATH);
 
     if (! plat_dir_check(path))
 	plat_dir_create(path);
 
-    plat_path_slash(path);
+    path_slash(path);
 
     plat_tempfile(fn, NULL, ".png");
     strcat(path, fn);
