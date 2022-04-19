@@ -424,6 +424,8 @@ pc_init(int argc, char *argv[])
     }
 #endif
 
+	path_slash(exe_path);
+
 	/*
 	 * Get the current working directory.
 	 *
