@@ -448,6 +448,8 @@ usage:
 			printf("-C or --config path  - set 'path' to be config file\n");
 #ifdef _WIN32
 			printf("-D or --debug        - force debug output logging\n");
+#endif
+#if 0
 			printf("-E or --nographic    - forces the old behavior\n");
 #endif
 			printf("-F or --fullscreen   - start in fullscreen mode\n");
