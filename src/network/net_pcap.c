@@ -123,6 +123,9 @@ static const unsigned char
 			*(*f_pcap_next)(void *,void *);
 static int		(*f_pcap_sendpacket)(void *,const unsigned char *,int);
 static void		(*f_pcap_close)(void *);
+#ifndef _WIN32
+static int              (*f_pcap_setnonblock)(void*, int, char*);
+#endif
 static dllimp_t pcap_imports[] = {
   { "pcap_lib_version",	&f_pcap_lib_version	},
   { "pcap_findalldevs",	&f_pcap_findalldevs	},
@@ -133,6 +136,9 @@ static dllimp_t pcap_imports[] = {
   { "pcap_next",	&f_pcap_next		},
   { "pcap_sendpacket",	&f_pcap_sendpacket	},
   { "pcap_close",	&f_pcap_close		},
+#ifndef _WIN32
+  { "pcap_setnonblock",	&f_pcap_setnonblock	},
+#endif
   { NULL,		NULL			},
 };
 
@@ -383,6 +389,11 @@ net_pcap_reset(const netcard_t *card, uint8_t *mac)
 	pcap_log(" Unable to open device: %s!\n", network_host);
 	return(-1);
     }
+#ifndef _WIN32
+    if (f_pcap_setnonblock((void*)pcap, 1, errbuf) != 0)
+        pcap_log("PCAP: failed nonblock %s\n", errbuf);
+#endif
+
     pcap_log("PCAP: interface: %s\n", network_host);
 
     /* Create a MAC address based packet filter. */
