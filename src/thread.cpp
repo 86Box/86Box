@@ -3,6 +3,7 @@
 #include <condition_variable>
 
 #include <86box/plat.h>
+#include <86box/thread.h>
 
 struct event_cpp11_t
 {

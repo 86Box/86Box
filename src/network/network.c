@@ -61,6 +61,7 @@
 #include <86box/device.h>
 #include <86box/timer.h>
 #include <86box/plat.h>
+#include <86box/thread.h>
 #include <86box/ui.h>
 #include <86box/network.h>
 #include <86box/net_3c503.h>

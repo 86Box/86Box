@@ -47,8 +47,10 @@
 #include <86box/video.h>
 #include <86box/mem.h>
 #include <86box/rom.h>
+#include <86box/path.h>
 #define GLOBAL
 #include <86box/plat.h>
+#include <86box/thread.h>
 #include <86box/ui.h>
 #ifdef USE_VNC
 # include <86box/vnc.h>
@@ -736,14 +738,14 @@ plat_remove(char *path)
 }
 
 void
-plat_path_normalize(char* path)
+path_normalize(char* path)
 {
     /* No-op */
 }
 
 /* Make sure a path ends with a trailing (back)slash. */
 void
-plat_path_slash(char *path)
+path_slash(char *path)
 {
     if ((path[strlen(path)-1] != '\\') &&
 	(path[strlen(path)-1] != '/')) {
@@ -754,7 +756,7 @@ plat_path_slash(char *path)
 
 /* Check if the given path is absolute or not. */
 int
-plat_path_abs(char *path)
+path_abs(char *path)
 {
     if ((path[1] == ':') || (path[0] == '\\') || (path[0] == '/'))
 	return(1);
@@ -781,7 +783,7 @@ plat_get_basename(const char *path)
 
 /* Return the 'directory' element of a pathname. */
 void
-plat_get_dirname(char *dest, const char *path)
+path_get_dirname(char *dest, const char *path)
 {
     int c = (int)strlen(path);
     char *ptr;
@@ -804,7 +806,7 @@ plat_get_dirname(char *dest, const char *path)
 
 
 char *
-plat_get_filename(char *s)
+path_get_filename(char *s)
 {
     int c = strlen(s) - 1;
 
@@ -819,7 +821,7 @@ plat_get_filename(char *s)
 
 
 char *
-plat_get_extension(char *s)
+path_get_extension(char *s)
 {
     int c = strlen(s) - 1;
 
@@ -837,10 +839,10 @@ plat_get_extension(char *s)
 
 
 void
-plat_append_filename(char *dest, const char *s1, const char *s2)
+path_append_filename(char *dest, const char *s1, const char *s2)
 {
     strcpy(dest, s1);
-    plat_path_slash(dest);
+    path_slash(dest);
     strcat(dest, s2);
 }
 

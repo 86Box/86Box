@@ -38,6 +38,7 @@
 #include <86box/io.h>
 #include <86box/mem.h>
 #include <86box/plat.h>
+#include <86box/thread.h>
 #include <86box/gdbstub.h>
 
 #define FAST_RESPONSE(s)         \
