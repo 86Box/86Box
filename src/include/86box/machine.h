@@ -126,11 +126,9 @@
 #define IS_AT(m)		(((machines[m].bus_flags & (MACHINE_BUS_ISA16 | MACHINE_BUS_EISA | MACHINE_BUS_VLB | MACHINE_BUS_MCA | MACHINE_BUS_PCI | MACHINE_BUS_PCMCIA | MACHINE_BUS_AGP | MACHINE_BUS_AC97)) && !(machines[m].bus_flags & MACHINE_PC98)) ? 1 : 0)
 
 #define CPU_BLOCK(...)		(const uint8_t[]) {__VA_ARGS__, 0}
-#define MACHINE_MULTIPLIER_FIXED -1, -1
+#define MACHINE_MULTIPLIER_FIXED -1
 
 #define CPU_BLOCK_NONE       0
-#define CPU_BLOCK_QDI_FMB	 CPU_BLOCK(CPU_WINCHIP, CPU_WINCHIP2, CPU_Cx6x86, CPU_Cx6x86L, CPU_Cx6x86MX)
-#define CPU_BLOCK_SOYO_4SAW2 CPU_BLOCK(CPU_i486SX, CPU_i486DX, CPU_Am486SX, CPU_Am486DX)
 
 /* Make sure it's always an invalid value to avoid misdetections. */
 #if (defined __amd64__ || defined _M_X64 || defined __aarch64__ || defined _M_ARM64)

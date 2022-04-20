@@ -42,6 +42,8 @@ typedef struct {
 
 
 /* KBC #define's */
+#define KBC_UNKNOWN 0x0000 /* As yet unknown keyboard */
+
 /* IBM-style controllers */
 #define KBC_IBM_PC_XT			0x0000		/* IBM PC/XT */
 #define KBC_IBM_PCJR			0x0001		/* IBM PCjr */
