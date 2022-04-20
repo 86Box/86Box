@@ -88,6 +88,7 @@ extern "C" {
 #include <86box/gameport.h>
 #include <86box/timer.h>
 #include <86box/nvr.h>
+#include <86box/path.h>
 #include <86box/plat_dynld.h>
 #include <86box/mem.h>
 #include <86box/rom.h>
@@ -140,7 +141,7 @@ void plat_get_exe_name(char *s, int size)
 
     memcpy(s, exepath_temp.data(), std::min((qsizetype)exepath_temp.size(),(qsizetype)size));
 
-    plat_path_slash(s);
+    path_slash(s);
 }
 
 uint32_t
@@ -188,14 +189,14 @@ plat_getcwd(char *bufp, int max)
 }
 
 void
-plat_get_dirname(char *dest, const char *path)
+path_get_dirname(char *dest, const char *path)
 {
     QFileInfo fi(path);
     CharPointer(dest, -1) = fi.dir().path().toUtf8();
 }
 
 char *
-plat_get_extension(char *s)
+path_get_extension(char *s)
 {
     auto len = strlen(s);
     auto idx = QByteArray::fromRawData(s, len).lastIndexOf('.');
@@ -206,7 +207,7 @@ plat_get_extension(char *s)
 }
 
 char *
-plat_get_filename(char *s)
+path_get_filename(char *s)
 {
 #ifdef Q_OS_WINDOWS
     int c = strlen(s) - 1;
@@ -228,7 +229,7 @@ plat_get_filename(char *s)
 }
 
 int
-plat_path_abs(char *path)
+path_abs(char *path)
 {
 #ifdef Q_OS_WINDOWS
     if ((path[1] == ':') || (path[0] == '\\') || (path[0] == '/'))
@@ -241,7 +242,7 @@ plat_path_abs(char *path)
 }
 
 void
-plat_path_normalize(char* path)
+path_normalize(char* path)
 {
 #ifdef Q_OS_WINDOWS
     while (*path++ != 0)
@@ -252,7 +253,7 @@ plat_path_normalize(char* path)
 }
 
 void
-plat_path_slash(char *path)
+path_slash(char *path)
 {
     auto len = strlen(path);
     auto separator = '/';
@@ -260,14 +261,14 @@ plat_path_slash(char *path)
         path[len] = separator;
         path[len+1] = 0;
     }
-    plat_path_normalize(path);
+    path_normalize(path);
 }
 
 void
-plat_append_filename(char *dest, const char *s1, const char *s2)
+path_append_filename(char *dest, const char *s1, const char *s2)
 {
     strcpy(dest, s1);
-    plat_path_slash(dest);
+    path_slash(dest);
     strcat(dest, s2);
 }
 

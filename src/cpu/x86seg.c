@@ -258,9 +258,6 @@ do_seg_load(x86seg *s, uint16_t *segdat)
 	else
 		cpu_cur_status |= CPU_STATUS_NOTFLATSS;
     }
-
-    if (s->base == 0xffffffff)
-	fatal("do_seg_load(): %04X%04X%04X%04X\n", segdat[3], segdat[2], segdat[1], segdat[0]);
 }
 
 

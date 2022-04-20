@@ -27,6 +27,7 @@
 #include <86box/lpt.h>
 #include <86box/timer.h>
 #include <86box/pit.h>
+#include <86box/path.h>
 #include <86box/plat.h>
 #include <86box/plat_dynld.h>
 #include <86box/ui.h>
@@ -152,7 +153,7 @@ convert_to_pdf(ps_t *dev)
     char input_fn[1024], output_fn[1024], *gsargv[9];
 
     strcpy(input_fn, dev->printer_path);
-    plat_path_slash(input_fn);
+    path_slash(input_fn);
     strcat(input_fn, dev->filename);
 
     strcpy(output_fn, input_fn);
@@ -206,7 +207,7 @@ write_buffer(ps_t *dev, bool finish)
 	plat_tempfile(dev->filename, NULL, ".ps");
 
     strcpy(path, dev->printer_path);
-    plat_path_slash(path);
+    path_slash(path);
     strcat(path, dev->filename);
 
     fp = plat_fopen(path, "a");
@@ -365,10 +366,10 @@ ps_init(void *lpt)
 
     /* Cache print folder path. */
     memset(dev->printer_path, 0x00, sizeof(dev->printer_path));
-    plat_append_filename(dev->printer_path, usr_path, "printer");
+    path_append_filename(dev->printer_path, usr_path, "printer");
     if (!plat_dir_check(dev->printer_path))
 	plat_dir_create(dev->printer_path);
-    plat_path_slash(dev->printer_path);
+    path_slash(dev->printer_path);
 
     timer_add(&dev->pulse_timer, pulse_timer, dev, 0);
     timer_add(&dev->timeout_timer, timeout_timer, dev, 0);

@@ -27,6 +27,7 @@
 #include <errno.h>
 #define HAVE_STDARG_H
 #include <86box/86box.h>
+#include <86box/path.h>
 #include <86box/plat.h>
 #include <86box/random.h>
 #include <86box/hdd.h>
@@ -76,7 +77,7 @@ hdd_image_log(const char *fmt, ...)
 int
 image_is_hdi(const char *s)
 {
-	if (! strcasecmp(plat_get_extension((char *) s), "HDI"))
+	if (! strcasecmp(path_get_extension((char *) s), "HDI"))
 		return 1;
 	else
 		return 0;
@@ -90,7 +91,7 @@ image_is_hdx(const char *s, int check_signature)
 	uint64_t filelen;
 	uint64_t signature;
 
-	if (! strcasecmp(plat_get_extension((char *) s), "HDX")) {
+	if (! strcasecmp(path_get_extension((char *) s), "HDX")) {
 		if (check_signature) {
 			f = plat_fopen(s, "rb");
 			if (!f)
@@ -124,7 +125,7 @@ image_is_vhd(const char *s, int check_signature)
 {
 	FILE* f;
 
-	if (! strcasecmp(plat_get_extension((char *) s), "VHD")) {
+	if (! strcasecmp(path_get_extension((char *) s), "VHD")) {
 		if (check_signature) {
 			f = plat_fopen(s, "rb");
 			if (!f)
@@ -251,7 +252,7 @@ hdd_image_load(int id)
 
 	memset(empty_sector, 0, sizeof(empty_sector));
 	if (fn) {
-		plat_path_normalize(fn);
+		path_normalize(fn);
 	}
 
 

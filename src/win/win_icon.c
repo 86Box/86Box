@@ -23,6 +23,7 @@
 #include <wchar.h>
 #include <86box/86box.h>
 #include <86box/config.h>
+#include <86box/path.h>
 #include <86box/plat.h>
 #include <86box/ui.h>
 #include <86box/win.h>
@@ -116,10 +117,10 @@ void win_get_icons_path(char* path_root)
 	if (rom_path[0])
 		strcpy(roms_root, rom_path);
 	else
-		plat_append_filename(roms_root, exe_path, "roms");
+		path_append_filename(roms_root, exe_path, "roms");
 
-	plat_append_filename(path_root, roms_root, "icons");
-	plat_path_slash(path_root);
+	path_append_filename(path_root, roms_root, "icons");
+	path_slash(path_root);
 }
 
 void win_load_icon_set()
@@ -137,13 +138,13 @@ void win_load_icon_set()
 
 	win_get_icons_path(path_root);
 	strcat(path_root, icon_set);
-	plat_path_slash(path_root);
+	path_slash(path_root);
 
 	int i, count = sizeof(icon_files) / sizeof(_ICON_DATA),
 	    x = win_get_system_metrics(SM_CXSMICON, dpi), y = win_get_system_metrics(SM_CYSMICON, dpi);
 	for (i = 0; i < count; i++)
 	{
-		plat_append_filename(temp, path_root, icon_files[i].filename);
+		path_append_filename(temp, path_root, icon_files[i].filename);
 		mbstoc16s(wtemp, temp, strlen(temp) + 1);
 
 		HICON ictemp;
