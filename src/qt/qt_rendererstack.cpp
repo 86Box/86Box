@@ -42,6 +42,7 @@ extern "C" {
 #include <86box/video.h>
 }
 
+extern "C" void macos_poll_mouse();
 extern MainWindow *main_window;
 RendererStack::RendererStack(QWidget *parent)
     : QStackedWidget(parent)
@@ -65,30 +66,30 @@ RendererStack::RendererStack(QWidget *parent)
 
 #    ifdef WAYLAND
     if (!stricmp(mouse_type, "wayland")) {
-        this->mouse_init = wl_init;
-        this->mouse_poll = wl_mouse_poll;
-        this->mouse_capture = wl_mouse_capture;
-        this->mouse_uncapture = wl_mouse_uncapture;
+        wl_init();
+        this->mouse_poll_func = wl_mouse_poll;
+        this->mouse_capture_func = wl_mouse_capture;
+        this->mouse_uncapture_func = wl_mouse_uncapture;
     } else
 #    endif
 #    ifdef EVDEV_INPUT
     if (!stricmp(mouse_type, "evdev")) {
-        this->mouse_init = evdev_init;
-        this->mouse_poll = evdev_mouse_poll;
+        evdev_init();
+        this->mouse_poll_func = evdev_mouse_poll;
     } else
 #    endif
     if (!stricmp(mouse_type, "xinput2")) {
         extern void xinput2_init();
         extern void xinput2_poll();
         extern void xinput2_exit();
-        this->mouse_init = xinput2_init;
-        this->mouse_poll = xinput2_poll;
-        this->mouse_exit = xinput2_exit;
+        xinput2_init();
+        this->mouse_poll_func = xinput2_poll;
+        this->mouse_exit_func = xinput2_exit;
     }
 #endif
-
-    if (this->mouse_init)
-        this->mouse_init();
+#ifdef __APPLE__
+    this->mouse_poll_func = macos_poll_mouse;
+#endif
 }
 
 RendererStack::~RendererStack()
@@ -96,7 +97,6 @@ RendererStack::~RendererStack()
     delete ui;
 }
 
-extern "C" void macos_poll_mouse();
 void
 qt_mouse_capture(int on)
 {
@@ -119,18 +119,16 @@ qt_mouse_capture(int on)
 void
 RendererStack::mousePoll()
 {
-#ifdef __APPLE__
-    return macos_poll_mouse();
-#else /* !defined __APPLE__ */
+#ifndef __APPLE__
     mouse_x          = mousedata.deltax;
     mouse_y          = mousedata.deltay;
     mouse_z          = mousedata.deltaz;
     mousedata.deltax = mousedata.deltay = mousedata.deltaz = 0;
-    mouse_buttons                                          = mousedata.mousebuttons;
+    mouse_buttons    = mousedata.mousebuttons;
 
-    if (this->mouse_poll)
-        this->mouse_poll();
-#endif /* !defined __APPLE__ */
+    if (this->mouse_poll_func)
+#endif
+        this->mouse_poll_func();
 }
 
 int ignoreNextMouseEvent = 1;
