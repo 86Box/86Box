@@ -80,8 +80,10 @@ RendererStack::RendererStack(QWidget *parent)
     if (!stricmp(mouse_type, "xinput2")) {
         extern void xinput2_init();
         extern void xinput2_poll();
+        extern void xinput2_exit();
         this->mouse_init = xinput2_init;
         this->mouse_poll = xinput2_poll;
+        this->mouse_exit = xinput2_exit;
     }
 #endif
 
