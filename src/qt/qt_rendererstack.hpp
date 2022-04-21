@@ -68,6 +68,7 @@ public:
     void (*mouse_poll)() = nullptr;
     void (*mouse_capture)(QWindow *window) = nullptr;
     void (*mouse_uncapture)() = nullptr;
+    void (*mouse_exit)() = nullptr;
 
 signals:
     void blitToRenderer(int buf_idx, int x, int y, int w, int h);
