@@ -47,6 +47,8 @@ plat_vidapi(char* api) {
         return 2;
     } else if (!strcasecmp(api, "qt_opengl3")) {
         return 3;
+    } else if (!strcasecmp(api, "qt_vulkan")) {
+        return 4;
     }
 
     return 0;
@@ -67,6 +69,9 @@ char* plat_vidapi_name(int api) {
         break;
     case 3:
         name = "qt_opengl3";
+        break;
+    case 4:
+        name = "qt_vulkan";
         break;
     default:
         fatal("Unknown renderer: %i\n", api);

@@ -24,6 +24,7 @@
 #include "qt_hardwarerenderer.hpp"
 #include "qt_openglrenderer.hpp"
 #include "qt_softwarerenderer.hpp"
+#include "qt_vulkanwindowrenderer.hpp"
 
 #include "qt_mainwindow.hpp"
 #include "qt_util.hpp"
@@ -284,6 +285,21 @@ RendererStack::createRenderer(Renderer renderer)
                 current.reset(this->createWindowContainer(hw, this));
                 break;
             }
+        case Renderer::Vulkan:
+        {
+            this->createWinId();
+            auto hw        = new VulkanWindowRenderer(this);
+            rendererWindow = hw;
+            connect(this, &RendererStack::blitToRenderer, hw, &VulkanWindowRenderer::onBlit, Qt::QueuedConnection);
+            connect(hw, &VulkanWindowRenderer::rendererInitialized, [=]() {
+                /* Buffers are awailable only after initialization. */
+                imagebufs = rendererWindow->getBuffers();
+                endblit();
+                emit rendererChanged();
+            });
+            current.reset(this->createWindowContainer(hw, this));
+            break;
+        }
     }
 
     current->setFocusPolicy(Qt::NoFocus);
@@ -294,7 +310,7 @@ RendererStack::createRenderer(Renderer renderer)
 
     currentBuf = 0;
 
-    if (renderer != Renderer::OpenGL3) {
+    if (renderer != Renderer::OpenGL3 && renderer != Renderer::Vulkan) {
         imagebufs = rendererWindow->getBuffers();
         endblit();
         emit rendererChanged();
@@ -315,7 +331,7 @@ RendererStack::blit(int x, int y, int w, int h)
     sh = this->h       = h;
     uint8_t *imagebits = std::get<uint8_t *>(imagebufs[currentBuf]);
     for (int y1 = y; y1 < (y + h); y1++) {
-        auto scanline = imagebits + (y1 * (2048) * 4) + (x * 4);
+        auto scanline = imagebits + (y1 * rendererWindow->getBytesPerRow()) + (x * 4);
         video_copy(scanline, &(buffer32->line[y1][x]), w * 4);
     }
 

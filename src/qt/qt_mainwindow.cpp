@@ -282,6 +282,7 @@ MainWindow::MainWindow(QWidget *parent) :
         vid_api = 0;
         ui->actionHardware_Renderer_OpenGL->setVisible(false);
         ui->actionHardware_Renderer_OpenGL_ES->setVisible(false);
+        ui->actionVulkan->setVisible(false);
         ui->actionOpenGL_3_0_Core->setVisible(false);
     }
 
@@ -292,6 +293,7 @@ MainWindow::MainWindow(QWidget *parent) :
     actGroup->addAction(ui->actionHardware_Renderer_OpenGL);
     actGroup->addAction(ui->actionHardware_Renderer_OpenGL_ES);
     actGroup->addAction(ui->actionOpenGL_3_0_Core);
+    actGroup->addAction(ui->actionVulkan);
     actGroup->setExclusive(true);
 
     connect(actGroup, &QActionGroup::triggered, [this](QAction* action) {
@@ -309,6 +311,9 @@ MainWindow::MainWindow(QWidget *parent) :
             break;
         case 3:
             ui->stackedWidget->switchRenderer(RendererStack::Renderer::OpenGL3);
+            break;
+        case 4:
+            ui->stackedWidget->switchRenderer(RendererStack::Renderer::Vulkan);
             break;
         }
     });
