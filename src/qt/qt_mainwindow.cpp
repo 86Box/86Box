@@ -509,10 +509,8 @@ void MainWindow::closeEvent(QCloseEvent *event) {
     }
     qt_nvr_save();
     config_save();
-#if defined __unix__ && !defined __HAIKU__
-    extern void xinput2_exit();
-    if (QApplication::platformName() == "xcb") xinput2_exit();
-#endif
+    if (ui->stackedWidget->mouse_exit)
+        ui->stackedWidget->mouse_exit();
     event->accept();
 }
 
