@@ -7,16 +7,15 @@
 
 #include <array>
 
-#define VMA_IMPLEMENTATION
-#include "vk_mem_alloc.h"
 #include "qt_mainwindow.hpp"
+#include "qt_vulkanrenderer.hpp"
 
 extern "C"
 {
 #include <86box/86box.h>
 #include <86box/video.h>
 }
-
+#if 0
 extern MainWindow* main_window;
 /*
 #version 450
@@ -194,7 +193,7 @@ void main()
 static const uint8_t fragShaderCode[]
 {
     0x03, 0x02, 0x23, 0x07, 0x00, 0x00, 0x01, 0x00, 0x0a, 0x00, 0x08, 0x00,
-    0x14, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x11, 0x00, 0x02, 0x00,
+    0x19, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x11, 0x00, 0x02, 0x00,
     0x01, 0x00, 0x00, 0x00, 0x0b, 0x00, 0x06, 0x00, 0x01, 0x00, 0x00, 0x00,
     0x47, 0x4c, 0x53, 0x4c, 0x2e, 0x73, 0x74, 0x64, 0x2e, 0x34, 0x35, 0x30,
     0x00, 0x00, 0x00, 0x00, 0x0e, 0x00, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -231,18 +230,26 @@ static const uint8_t fragShaderCode[]
     0x02, 0x00, 0x00, 0x00, 0x20, 0x00, 0x04, 0x00, 0x10, 0x00, 0x00, 0x00,
     0x01, 0x00, 0x00, 0x00, 0x0f, 0x00, 0x00, 0x00, 0x3b, 0x00, 0x04, 0x00,
     0x10, 0x00, 0x00, 0x00, 0x11, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
-    0x36, 0x00, 0x05, 0x00, 0x02, 0x00, 0x00, 0x00, 0x04, 0x00, 0x00, 0x00,
-    0x00, 0x00, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00, 0xf8, 0x00, 0x02, 0x00,
-    0x05, 0x00, 0x00, 0x00, 0x3d, 0x00, 0x04, 0x00, 0x0b, 0x00, 0x00, 0x00,
-    0x0e, 0x00, 0x00, 0x00, 0x0d, 0x00, 0x00, 0x00, 0x3d, 0x00, 0x04, 0x00,
-    0x0f, 0x00, 0x00, 0x00, 0x12, 0x00, 0x00, 0x00, 0x11, 0x00, 0x00, 0x00,
-    0x57, 0x00, 0x05, 0x00, 0x07, 0x00, 0x00, 0x00, 0x13, 0x00, 0x00, 0x00,
-    0x0e, 0x00, 0x00, 0x00, 0x12, 0x00, 0x00, 0x00, 0x3e, 0x00, 0x03, 0x00,
-    0x09, 0x00, 0x00, 0x00, 0x13, 0x00, 0x00, 0x00, 0xfd, 0x00, 0x01, 0x00,
+    0x2b, 0x00, 0x04, 0x00, 0x06, 0x00, 0x00, 0x00, 0x14, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x80, 0x3f, 0x15, 0x00, 0x04, 0x00, 0x15, 0x00, 0x00, 0x00,
+    0x20, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x2b, 0x00, 0x04, 0x00,
+    0x15, 0x00, 0x00, 0x00, 0x16, 0x00, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00,
+    0x20, 0x00, 0x04, 0x00, 0x17, 0x00, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00,
+    0x06, 0x00, 0x00, 0x00, 0x36, 0x00, 0x05, 0x00, 0x02, 0x00, 0x00, 0x00,
+    0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00,
+    0xf8, 0x00, 0x02, 0x00, 0x05, 0x00, 0x00, 0x00, 0x3d, 0x00, 0x04, 0x00,
+    0x0b, 0x00, 0x00, 0x00, 0x0e, 0x00, 0x00, 0x00, 0x0d, 0x00, 0x00, 0x00,
+    0x3d, 0x00, 0x04, 0x00, 0x0f, 0x00, 0x00, 0x00, 0x12, 0x00, 0x00, 0x00,
+    0x11, 0x00, 0x00, 0x00, 0x57, 0x00, 0x05, 0x00, 0x07, 0x00, 0x00, 0x00,
+    0x13, 0x00, 0x00, 0x00, 0x0e, 0x00, 0x00, 0x00, 0x12, 0x00, 0x00, 0x00,
+    0x3e, 0x00, 0x03, 0x00, 0x09, 0x00, 0x00, 0x00, 0x13, 0x00, 0x00, 0x00,
+    0x41, 0x00, 0x05, 0x00, 0x17, 0x00, 0x00, 0x00, 0x18, 0x00, 0x00, 0x00,
+    0x09, 0x00, 0x00, 0x00, 0x16, 0x00, 0x00, 0x00, 0x3e, 0x00, 0x03, 0x00,
+    0x18, 0x00, 0x00, 0x00, 0x14, 0x00, 0x00, 0x00, 0xfd, 0x00, 0x01, 0x00,
     0x38, 0x00, 0x01, 0x00
 };
 
-class VulkanRenderer : public QVulkanWindowRenderer
+class VulkanRendererEmu : public QVulkanWindowRenderer
 {
     VulkanWindowRenderer* m_window{nullptr};
     QVulkanDeviceFunctions* m_devFuncs{nullptr};
@@ -308,7 +315,7 @@ private:
 public:
     void* mappedPtr = nullptr;
     uint32_t imagePitch{2048 * 4};
-    VulkanRenderer(VulkanWindowRenderer *w) : m_window(w), m_devFuncs(nullptr) { }
+    VulkanRendererEmu(VulkanWindowRenderer *w) : m_window(w), m_devFuncs(nullptr) { }
 
     void initResources() override
     {
@@ -344,8 +351,8 @@ public:
         VmaAllocationCreateInfo allocInfo{};
         allocInfo.pUserData = allocInfo.pool = nullptr;
         allocInfo.requiredFlags = allocInfo.preferredFlags = 0;
-        allocInfo.usage = VmaMemoryUsage::VMA_MEMORY_USAGE_UNKNOWN;
-        allocInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT |
+        allocInfo.usage = VmaMemoryUsage::VMA_MEMORY_USAGE_AUTO;
+        allocInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT |
             VMA_ALLOCATION_CREATE_MAPPED_BIT;
 
         if ((res = vmaCreateImage(allocator, &imageInfo, &allocInfo, &image, &allocation, &allocatedInfo)) != VK_SUCCESS) {
@@ -363,6 +370,10 @@ public:
         imageViewInfo.subresourceRange.levelCount = 1;
         imageViewInfo.subresourceRange.baseArrayLayer = 0;
         imageViewInfo.subresourceRange.layerCount = 1;
+        imageViewInfo.components.r = VK_COMPONENT_SWIZZLE_R;
+        imageViewInfo.components.g = VK_COMPONENT_SWIZZLE_G;
+        imageViewInfo.components.b = VK_COMPONENT_SWIZZLE_B;
+        imageViewInfo.components.a = VK_COMPONENT_SWIZZLE_A;
 
         if ((res = m_devFuncs->vkCreateImageView(m_window->device(), &imageViewInfo, nullptr, &imageView)) != VK_SUCCESS) {
             QMessageBox::critical(main_window, "86Box", "Could not create Vulkan image view. Switch to another renderer. " + Vulkan_GetResultString(res));
@@ -408,7 +419,7 @@ public:
             rasterizer.rasterizerDiscardEnable = VK_FALSE;
             rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
             rasterizer.lineWidth = 1.0f;
-            rasterizer.cullMode = VK_CULL_MODE_NONE;
+            rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
             rasterizer.frontFace = VK_FRONT_FACE_CLOCKWISE;
             rasterizer.depthBiasEnable = VK_FALSE;
             rasterizer.depthBiasConstantFactor = 0.0f;
@@ -426,12 +437,12 @@ public:
 
             VkPipelineColorBlendAttachmentState colorBlendAttachment{};
             colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
-            colorBlendAttachment.blendEnable = VK_FALSE;
+            colorBlendAttachment.blendEnable = VK_TRUE;
             colorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_ONE;
-            colorBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ZERO;
+            colorBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
             colorBlendAttachment.colorBlendOp = VK_BLEND_OP_ADD;
             colorBlendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
-            colorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
+            colorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
             colorBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD;
 
             VkPipelineColorBlendStateCreateInfo colorBlending{};
@@ -521,10 +532,10 @@ public:
             VkPipelineDepthStencilStateCreateInfo depthInfo{};
             depthInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
             depthInfo.pNext = nullptr;
-            depthInfo.depthTestEnable = VK_FALSE;
+            depthInfo.depthTestEnable = VK_TRUE;
             depthInfo.depthWriteEnable = VK_TRUE;
             depthInfo.depthBoundsTestEnable = VK_FALSE;
-            depthInfo.depthCompareOp = VK_COMPARE_OP_ALWAYS;
+            depthInfo.depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL;
             depthInfo.stencilTestEnable = VK_FALSE;
             depthInfo.maxDepthBounds = 1.0f;
 
@@ -543,8 +554,6 @@ public:
             pipelineInfo.layout = pipelineLayout;
             pipelineInfo.renderPass = m_window->defaultRenderPass();
             pipelineInfo.subpass = 0;
-            pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
-            pipelineInfo.basePipelineIndex = -1;
 
             if ((res = m_devFuncs->vkCreateGraphicsPipelines(m_window->device(), VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &pipeline)) != VK_SUCCESS) {
                 m_devFuncs->vkDestroyShaderModule(m_window->device(), vertModule, nullptr);
@@ -560,18 +569,17 @@ public:
         samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
         samplerInfo.magFilter = VK_FILTER_LINEAR;
         samplerInfo.minFilter = VK_FILTER_LINEAR;
-        samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-        samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-        samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+        samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+        samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+        samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
         samplerInfo.anisotropyEnable = VK_FALSE;
-        samplerInfo.borderColor = VK_BORDER_COLOR_FLOAT_TRANSPARENT_BLACK;
         samplerInfo.unnormalizedCoordinates = VK_FALSE;
-        samplerInfo.compareEnable = VK_TRUE;
+        samplerInfo.compareEnable = VK_FALSE;
         samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
         samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
         samplerInfo.mipLodBias = 0.0f;
         samplerInfo.minLod = 0.0f;
-        samplerInfo.maxLod = 0.25f;
+        samplerInfo.maxLod = 0.0;
 
         if ((res = m_devFuncs->vkCreateSampler(m_window->device(), &samplerInfo, nullptr, &sampler)) != VK_SUCCESS) {
             QMessageBox::critical(main_window, "86Box", "Could not create linear image sampler. Switch to another renderer. " + Vulkan_GetResultString(res));
@@ -716,9 +724,12 @@ public:
 
     void startNextFrame() override
     {
+        m_devFuncs->vkDeviceWaitIdle(m_window->device());
         VkClearValue values[2];
         auto cmdBufs = m_window->currentCommandBuffer();
         memset(values, 0, sizeof(values));
+        values[0].depthStencil = { 1, 0 };
+        values[1].depthStencil = { 1, 0 };
         VkRenderPassBeginInfo info{};
         VkSubpassDependency deps{};
         info.pClearValues = values;
@@ -749,8 +760,8 @@ public:
 
             m_devFuncs->vkCmdPipelineBarrier(cmdBufs, srcflags, dstflags, 0, 0, nullptr, 0, nullptr, 1, &barrier);
             imageLayoutTransitioned = true;
-            return m_window->frameReady();
         }
+        vmaFlushAllocation(allocator, allocation, 0, VK_WHOLE_SIZE);
         VkViewport viewport{};
         viewport.x = m_window->destination.x();
         viewport.y = m_window->destination.y();
@@ -776,6 +787,7 @@ public:
         m_devFuncs->vkDeviceWaitIdle(m_window->device());
     }
 };
+#endif
 
 VulkanWindowRenderer::VulkanWindowRenderer(QWidget* parent)
     : QVulkanWindow(parent->windowHandle())
@@ -783,9 +795,17 @@ VulkanWindowRenderer::VulkanWindowRenderer(QWidget* parent)
     parentWidget = parent;
     instance.setLayers(QByteArrayList() << "VK_LAYER_KHRONOS_validation");
     instance.setExtensions(QByteArrayList() << "VK_EXT_debug_report");
-    instance.create();
+    if (!instance.create()) {
+        throw std::runtime_error("Could not create Vulkan instance");
+    }
+    uint32_t physicalDevices = 0;
+    instance.functions()->vkEnumeratePhysicalDevices(instance.vkInstance(), &physicalDevices, nullptr);
+    if (physicalDevices == 0) {
+        throw std::runtime_error("No physical devices available.");
+    }
     qDebug() << instance.layers();
     setVulkanInstance(&instance);
+    setPhysicalDeviceIndex(0);
     setFlags(Flag::PersistentResources);
     buf_usage = std::vector<std::atomic_flag>(1);
     buf_usage[0].clear();
@@ -793,7 +813,7 @@ VulkanWindowRenderer::VulkanWindowRenderer(QWidget* parent)
 
 QVulkanWindowRenderer* VulkanWindowRenderer::createRenderer()
 {
-    renderer = new VulkanRenderer(this);
+    renderer = new VulkanRenderer2(this);
     return renderer;
 }
 

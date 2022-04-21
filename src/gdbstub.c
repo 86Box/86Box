@@ -27,6 +27,7 @@
 #else
 #    include <arpa/inet.h>
 #    include <sys/socket.h>
+#    include <errno.h>
 #endif
 #define HAVE_STDARG_H
 #include <86box/86box.h>
@@ -37,6 +38,7 @@
 #include <86box/io.h>
 #include <86box/mem.h>
 #include <86box/plat.h>
+#include <86box/thread.h>
 #include <86box/gdbstub.h>
 
 #define FAST_RESPONSE(s)         \
@@ -954,7 +956,7 @@ e14:
                 /* Add our supported features to the end. */
                 if (client->response_pos < (sizeof(client->response) - 1))
                     client->response_pos += snprintf(&client->response[client->response_pos], sizeof(client->response) - client->response_pos,
-                                                     "PacketSize=%X;swbreak+;hwbreak+;qXfer:features:read+", sizeof(client->packet) - 1);
+                                                     "PacketSize=%lX;swbreak+;hwbreak+;qXfer:features:read+", sizeof(client->packet) - 1);
                 break;
             } else if (!strcmp(client->response, "Xfer")) {
                 /* Read the transfer object. */
@@ -1101,6 +1103,7 @@ unknown:
 
         case 'z': /* remove break/watchpoint */
         case 'Z': /* insert break/watchpoint */
+        {
             gdbstub_breakpoint_t *breakpoint, *prev_breakpoint = NULL, **first_breakpoint;
 
             /* Parse breakpoint type. */
@@ -1222,6 +1225,7 @@ unknown:
 
             /* Respond positively. */
             goto ok;
+        }
     }
 end:
     /* Send response. */
@@ -1655,7 +1659,11 @@ gdbstub_init()
         .sin_port   = htons(port)
     };
     if (bind(gdbstub_socket, (struct sockaddr *) &bind_addr, sizeof(bind_addr)) == -1) {
+#ifdef _WIN32
         pclog("GDB Stub: Failed to bind on port %d (%d)\n", port, WSAGetLastError());
+#else 
+        pclog("GDB Stup: Failed to bind on port %d (%d)\n", port, errno);
+#endif
         gdbstub_socket = -1;
         return;
     }

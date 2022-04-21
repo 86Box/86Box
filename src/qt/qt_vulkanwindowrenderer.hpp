@@ -4,8 +4,9 @@
 #include <QVulkanWindow>
 
 #include "qt_renderercommon.hpp"
+#include "qt_vulkanrenderer.hpp"
 
-class VulkanRenderer;
+class VulkanRenderer2;
 
 class VulkanWindowRenderer : public QVulkanWindow, public RendererCommon
 {
@@ -16,6 +17,7 @@ public slots:
     void onBlit(int buf_idx, int x, int y, int w, int h);
 signals:
     void rendererInitialized();
+    void errorInitializing();
 protected:
     virtual std::vector<std::tuple<uint8_t *, std::atomic_flag *>> getBuffers() override;
     void resizeEvent(QResizeEvent*) override;
@@ -26,9 +28,10 @@ private:
 
     QVulkanWindowRenderer* createRenderer() override;
 
-    friend class VulkanRenderer;
+    friend class VulkanRendererEmu;
+    friend class VulkanRenderer2;
 
-    VulkanRenderer* renderer;
+    VulkanRenderer2* renderer;
 };
 
 #endif // VULKANWINDOWRENDERER_HPP

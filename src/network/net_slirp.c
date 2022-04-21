@@ -30,6 +30,7 @@
 #include <86box/86box.h>
 #include <86box/device.h>
 #include <86box/plat.h>
+#include <86box/thread.h>
 #include <86box/network.h>
 #include <86box/machine.h>
 #include <86box/timer.h>

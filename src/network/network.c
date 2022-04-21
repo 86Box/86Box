@@ -61,6 +61,7 @@
 #include <86box/device.h>
 #include <86box/timer.h>
 #include <86box/plat.h>
+#include <86box/thread.h>
 #include <86box/ui.h>
 #include <86box/network.h>
 #include <86box/net_3c503.h>
@@ -541,12 +542,12 @@ network_reset(void)
 
     network_log("NETWORK: set up for %s, card='%s'\n",
 	(network_type==NET_TYPE_SLIRP)?"SLiRP":"Pcap",
-			net_cards[network_card].name);
+			net_cards[network_card].device->name);
 
     /* Add the (new?) card to the I/O system. */
     if (net_cards[network_card].device) {
 	network_log("NETWORK: adding device '%s'\n",
-		net_cards[network_card].name);
+		net_cards[network_card].device->name);
 	device_add(net_cards[network_card].device);
     }
 }

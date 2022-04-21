@@ -148,6 +148,9 @@ add_library(ui STATIC
     qt_vulkanwindowrenderer.hpp
     qt_vulkanwindowrenderer.cpp
 
+    qt_vulkanrenderer.hpp
+    qt_vulkanrenderer.cpp
+
     ../qt_resources.qrc
 )
 
