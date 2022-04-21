@@ -184,7 +184,12 @@ plat_dir_check(char *path)
 int
 plat_getcwd(char *bufp, int max)
 {
+#ifdef __APPLE__
+    /* Working directory for .app bundles is undefined. */
+    strncpy(bufp, exe_path, max);
+#else
     CharPointer(bufp, max) = QDir::currentPath().toUtf8();
+#endif
     return 0;
 }
 

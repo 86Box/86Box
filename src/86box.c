@@ -398,9 +398,6 @@ pc_init(int argc, char *argv[])
 {
 	char *ppath = NULL, *rpath = NULL;
 	char *cfg = NULL, *p;
-#if !defined(__APPLE__) && !defined(_WIN32)
-	char *appimage;
-#endif
 	char temp[2048];
 	struct tm *info;
 	time_t now;
@@ -413,15 +410,20 @@ pc_init(int argc, char *argv[])
 
 	/* Grab the executable's full path. */
 	plat_get_exe_name(exe_path, sizeof(exe_path)-1);
-	p = path_get_filename(exe_path);
+    p = path_get_filename(exe_path);
 	*p = '\0';
-
-#if !defined(_WIN32) && !defined(__APPLE__)
-    /* Grab the actual path if we are an AppImage. */
-    appimage = getenv("APPIMAGE");
-    if (appimage && (appimage[0] != '\0')) {
-        path_get_dirname(exe_path, appimage);
+#if defined(__APPLE__)
+    c = strlen(exe_path);
+    if ((c >= 16) && !strcmp(&exe_path[c - 16], "/Contents/MacOS/")) {
+        exe_path[c - 16] = '\0';
+        p = path_get_filename(exe_path);
+	    *p = '\0';
     }
+#elif !defined(_WIN32)
+    /* Grab the actual path if we are an AppImage. */
+    p = getenv("APPIMAGE");
+    if (p && (p[0] != '\0'))
+        path_get_dirname(exe_path, p);
 #endif
 
 	path_slash(exe_path);

@@ -207,18 +207,12 @@ MainWindow::MainWindow(QWidget *parent) :
         qt_mouse_capture(mouse_capture);
         if (mouse_capture) {
             this->grabKeyboard();
-#ifdef WAYLAND
-            if (QGuiApplication::platformName().contains("wayland")) {
-                wl_mouse_capture(this->windowHandle());
-            }
-#endif
+            if (ui->stackedWidget->mouse_capture_func)
+                ui->stackedWidget->mouse_capture_func(this->windowHandle());
         } else {
             this->releaseKeyboard();
-#ifdef WAYLAND
-            if (QGuiApplication::platformName().contains("wayland")) {
-                wl_mouse_uncapture();
-            }
-#endif
+            if (ui->stackedWidget->mouse_uncapture_func)
+                ui->stackedWidget->mouse_uncapture_func();
         }
     });
 
@@ -515,10 +509,8 @@ void MainWindow::closeEvent(QCloseEvent *event) {
     }
     qt_nvr_save();
     config_save();
-#if defined __unix__ && !defined __HAIKU__
-    extern void xinput2_exit();
-    if (QApplication::platformName() == "xcb") xinput2_exit();
-#endif
+    if (ui->stackedWidget->mouse_exit_func)
+        ui->stackedWidget->mouse_exit_func();
     event->accept();
 }
 

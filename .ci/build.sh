@@ -568,59 +568,64 @@ then
 	fi
 else
 	cwd_root=$(pwd)
+	cache_dir="$HOME/86box-build-cache"
+	[ ! -d "$cache_dir" ] && mkdir -p "$cache_dir"
 
 	if grep -q "OPENAL:BOOL=ON" build/CMakeCache.txt
 	then
 		# Build openal-soft 1.21.1 manually to fix audio issues. This is a temporary
 		# workaround until a newer version of openal-soft trickles down to Debian repos.
-		if [ -d "openal-soft-1.21.1" ]
+		prefix="$cache_dir/openal-soft-1.21.1"
+		if [ -d "$prefix" ]
 		then
-			rm -rf openal-soft-1.21.1/build
+			rm -rf "$prefix/build"
 		else
-			wget -qO - https://github.com/kcat/openal-soft/archive/refs/tags/1.21.1.tar.gz | tar zxf -
+			wget -qO - https://github.com/kcat/openal-soft/archive/refs/tags/1.21.1.tar.gz | tar zxf - -C "$cache_dir" || rm -rf "$prefix"
 		fi
-		cmake -G Ninja -D "CMAKE_TOOLCHAIN_FILE=$cwd_root/toolchain.cmake" -D "CMAKE_INSTALL_PREFIX=$cwd_root/archive_tmp/usr" -S openal-soft-1.21.1 -B openal-soft-1.21.1/build || exit 99
-		cmake --build openal-soft-1.21.1/build -j$(nproc) || exit 99
-		cmake --install openal-soft-1.21.1/build || exit 99
+		cmake -G Ninja -D "CMAKE_TOOLCHAIN_FILE=$cwd_root/toolchain.cmake" -D "CMAKE_INSTALL_PREFIX=$cwd_root/archive_tmp/usr" -S "$prefix" -B "$prefix/build" || exit 99
+		cmake --build "$prefix/build" -j$(nproc) || exit 99
+		cmake --install "$prefix/build" || exit 99
 
 		# Build SDL2 without sound systems.
 		sdl_ss=OFF
 	else
 		# Build FAudio 22.03 manually to remove the dependency on GStreamer. This is a temporary
 		# workaround until a newer version of FAudio trickles down to Debian repos.
-		if [ -d "FAudio-22.03" ]
+		prefix="$cache_dir/FAudio-22.03"
+		if [ -d "$prefix" ]
 		then
-			rm -rf FAudio-22.03/build
+			rm -rf "$prefix/build"
 		else
-			wget -qO - https://github.com/FNA-XNA/FAudio/archive/refs/tags/22.03.tar.gz | tar zxf -
+			wget -qO - https://github.com/FNA-XNA/FAudio/archive/refs/tags/22.03.tar.gz | tar zxf - -C "$cache_dir" || rm -rf "$prefix"
 		fi
-		cmake -G Ninja -D "CMAKE_TOOLCHAIN_FILE=$cwd_root/toolchain.cmake" -D "CMAKE_INSTALL_PREFIX=$cwd_root/archive_tmp/usr" -S FAudio-22.03 -B FAudio-22.03/build || exit 99
-		cmake --build FAudio-22.03/build -j$(nproc) || exit 99
-		cmake --install FAudio-22.03/build || exit 99
+		cmake -G Ninja -D "CMAKE_TOOLCHAIN_FILE=$cwd_root/toolchain.cmake" -D "CMAKE_INSTALL_PREFIX=$cwd_root/archive_tmp/usr" -S "$prefix" -B "$prefix/build" || exit 99
+		cmake --build "$prefix/build" -j$(nproc) || exit 99
+		cmake --install "$prefix/build" || exit 99
 
 		# Build SDL2 with sound systems.
 		sdl_ss=ON
 	fi
 
 	# Build rtmidi without JACK support to remove the dependency on libjack.
-	if [ -d "rtmidi-4.0.0" ]
+	prefix="$cache_dir/rtmidi-4.0.0"
+	if [ -d "$prefix" ]
 	then
-		rm -rf rtmidi-4.0.0/build
+		rm -rf "$prefix/build"
 	else
-		wget -qO - http://www.music.mcgill.ca/~gary/rtmidi/release/rtmidi-4.0.0.tar.gz | tar zxf -
+		wget -qO - https://github.com/thestk/rtmidi/archive/refs/tags/4.0.0.tar.gz | tar zxf - -C "$cache_dir" || rm -rf "$prefix"
 	fi
-	cmake -G Ninja -D RTMIDI_API_JACK=OFF -D "CMAKE_TOOLCHAIN_FILE=$cwd_root/toolchain.cmake" -D "CMAKE_INSTALL_PREFIX=$cwd_root/archive_tmp/usr" -S rtmidi-4.0.0 -B rtmidi-4.0.0/build || exit 99
-	cmake --build rtmidi-4.0.0/build -j$(nproc) || exit 99
-	cmake --install rtmidi-4.0.0/build || exit 99
+	cmake -G Ninja -D RTMIDI_API_JACK=OFF -D "CMAKE_TOOLCHAIN_FILE=$cwd_root/toolchain.cmake" -D "CMAKE_INSTALL_PREFIX=$cwd_root/archive_tmp/usr" -S "$prefix" -B "$prefix/build" || exit 99
+	cmake --build "$prefix/build" -j$(nproc) || exit 99
+	cmake --install "$prefix/build" || exit 99
 
 	# Build SDL2 for joystick and FAudio support, with most components
 	# disabled to remove the dependencies on PulseAudio and libdrm.
-	if [ ! -d "SDL2-2.0.20" ]
+	prefix="$cache_dir/SDL2-2.0.20"
+	if [ ! -d "$prefix" ]
 	then
-		wget -qO - https://www.libsdl.org/release/SDL2-2.0.20.tar.gz | tar zxf -
+		wget -qO - https://www.libsdl.org/release/SDL2-2.0.20.tar.gz | tar zxf - -C "$cache_dir" || rm -rf "$prefix"
 	fi
-	rm -rf sdlbuild
-	mkdir sdlbuild
+	rm -rf "$cache_dir/sdlbuild"
 	cmake -G Ninja -D SDL_DISKAUDIO=OFF -D SDL_DIRECTFB_SHARED=OFF -D SDL_OPENGL=OFF -D SDL_OPENGLES=OFF -D SDL_OSS=OFF -D SDL_ALSA=$sdl_ss \
 		-D SDL_ALSA_SHARED=$sdl_ss -D SDL_JACK=$sdl_ss -D SDL_JACK_SHARED=$sdl_ss -D SDL_ESD=OFF -D SDL_ESD_SHARED=OFF -D SDL_PIPEWIRE=$sdl_ss \
 		-D SDL_PIPEWIRE_SHARED=$sdl_ss -D SDL_PULSEAUDIO=$sdl_ss -D SDL_PULSEAUDIO_SHARED=$sdl_ss -D SDL_ARTS=OFF -D SDL_ARTS_SHARED=OFF \
@@ -628,10 +633,10 @@ else
 		-D SDL_FUSIONSOUND_SHARED=OFF -D SDL_LIBSAMPLERATE=$sdl_ss -D SDL_LIBSAMPLERATE_SHARED=$sdl_ss -D SDL_X11=OFF -D SDL_X11_SHARED=OFF \
 		-D SDL_WAYLAND=OFF -D SDL_WAYLAND_SHARED=OFF -D SDL_WAYLAND_LIBDECOR=OFF -D SDL_WAYLAND_LIBDECOR_SHARED=OFF -D SDL_WAYLAND_QT_TOUCH=OFF \
 		-D SDL_RPI=OFF -D SDL_VIVANTE=OFF -D SDL_VULKAN=OFF -D SDL_KMSDRM=OFF -D SDL_KMSDRM_SHARED=OFF -D SDL_OFFSCREEN=OFF \
-		-D SDL_HIDAPI_JOYSTICK=ON -D SDL_VIRTUAL_JOYSTICK=ON -D SDL_SHARED=ON -D SDL_STATIC=OFF -S SDL2-2.0.20 -B sdlbuild \
+		-D SDL_HIDAPI_JOYSTICK=ON -D SDL_VIRTUAL_JOYSTICK=ON -D SDL_SHARED=ON -D SDL_STATIC=OFF -S "$prefix" -B "$cache_dir/sdlbuild" \
 		-D "CMAKE_TOOLCHAIN_FILE=$cwd_root/toolchain.cmake" -D "CMAKE_INSTALL_PREFIX=$cwd_root/archive_tmp/usr" || exit 99
-	cmake --build sdlbuild -j$(nproc) || exit 99
-	cmake --install sdlbuild || exit 99
+	cmake --build "$cache_dir/sdlbuild" -j$(nproc) || exit 99
+	cmake --install "$cache_dir/sdlbuild" || exit 99
 
 	# Archive Discord Game SDK library.
 	7z e -y -o"archive_tmp/usr/lib" discord_game_sdk.zip "lib/$arch_discord/discord_game_sdk.so"
