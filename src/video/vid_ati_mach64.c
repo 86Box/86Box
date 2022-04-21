@@ -31,6 +31,7 @@
 #include <86box/pci.h>
 #include <86box/rom.h>
 #include <86box/plat.h>
+#include <86box/thread.h>
 #include <86box/video.h>
 #include <86box/i2c.h>
 #include <86box/vid_ddc.h>
@@ -1283,7 +1284,7 @@ void mach64_blit(uint32_t cpu_dat, int count, mach64_t *mach64)
                 case OP_RECT:
 				while (count)
                 {
-                        uint32_t src_dat, dest_dat;
+                        uint32_t src_dat = 0, dest_dat;
                         uint32_t host_dat = 0;
                         uint32_t old_dest_dat;
                         int mix = 0;
@@ -3684,27 +3685,56 @@ void mach64_force_redraw(void *p)
 // clang-format off
 static const device_config_t mach64gx_config[] = {
     {
-        "memory", "Memory size", CONFIG_SELECTION, "", 4, "", { 0 },
-        {
-            { "1 MB", 1 },
-            { "2 MB", 2 },
-            { "4 MB", 4 },
-            { ""        }
+        .name = "memory",
+        .description = "Memory size",
+        .type = CONFIG_SELECTION,
+        .default_int = 4,
+        .selection = {
+            {
+                .description = "1 MB",
+                .value = 1
+            },
+            {
+                .description = "2 MB",
+                .value = 2
+            },
+            {
+                .description = "4 MB",
+                .value = 4
+            },
+            {
+                .description = ""
+            }
         }
     },
-    { "", "", -1 }
+    {
+        .type = CONFIG_END
+    }
 };
 
 static const device_config_t mach64vt2_config[] = {
     {
-        "memory", "Memory size", CONFIG_SELECTION, "", 4, "", { 0 },
-        {
-            { "2 MB", 2 },
-            { "4 MB", 4 },
-            { ""        }
+        .name = "memory",
+        .description = "Memory size",
+        .type = CONFIG_SELECTION,
+        .default_int = 4,
+        .selection = {
+            {
+                .description = "2 MB",
+                .value = 2
+            },
+            {
+                .description = "4 MB",
+                .value = 4
+            },
+            {
+                .description = ""
+            }
         }
     },
-    { "", "", -1 }
+    {
+        .type = CONFIG_END
+    }
 };
 // clang-format on
 

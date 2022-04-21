@@ -26,6 +26,7 @@
 #define HAVE_STDARG_H
 #include <86box/86box.h>
 #include <86box/timer.h>
+#include <86box/path.h>
 #include <86box/plat.h>
 #include <86box/ui.h>
 #include <86box/fdd.h>
@@ -485,7 +486,7 @@ fdd_load(int drive, char *fn)
 
     if (!fn)
 	return;
-    p = plat_get_extension(fn);
+    p = path_get_extension(fn);
     if (!p)
 	return;
     f = plat_fopen(fn, "rb");

@@ -50,21 +50,45 @@ RendererStack::RendererStack(QWidget *parent)
     ui->setupUi(this);
 
 #if defined __unix__ && !defined __HAIKU__
-#    ifdef WAYLAND
-    if (QApplication::platformName().contains("wayland")) {
-        wl_init();
+    char *mouse_type = getenv("EMU86BOX_MOUSE"), auto_mouse_type[16];
+    if (!mouse_type || (mouse_type[0] == '\0') || !stricmp(mouse_type, "auto")) {
+        if (QApplication::platformName().contains("wayland"))
+            strcpy(auto_mouse_type, "wayland");
+        else if (QApplication::platformName() == "eglfs")
+            strcpy(auto_mouse_type, "evdev");
+        else if (QApplication::platformName() == "xcb")
+            strcpy(auto_mouse_type, "xinput2");
+        else
+            auto_mouse_type[0] = '\0';
+        mouse_type = auto_mouse_type;
     }
+
+#    ifdef WAYLAND
+    if (!stricmp(mouse_type, "wayland")) {
+        this->mouse_init = wl_init;
+        this->mouse_poll = wl_mouse_poll;
+        this->mouse_capture = wl_mouse_capture;
+        this->mouse_uncapture = wl_mouse_uncapture;
+    } else
 #    endif
 #    ifdef EVDEV_INPUT
-    if (QApplication::platformName() == "eglfs") {
-        evdev_init();
-    }
+    if (!stricmp(mouse_type, "evdev")) {
+        this->mouse_init = evdev_init;
+        this->mouse_poll = evdev_mouse_poll;
+    } else
 #    endif
-    if (QApplication::platformName() == "xcb") {
+    if (!stricmp(mouse_type, "xinput2")) {
         extern void xinput2_init();
-        xinput2_init();
+        extern void xinput2_poll();
+        extern void xinput2_exit();
+        this->mouse_init = xinput2_init;
+        this->mouse_poll = xinput2_poll;
+        this->mouse_exit = xinput2_exit;
     }
 #endif
+
+    if (this->mouse_init)
+        this->mouse_init();
 }
 
 RendererStack::~RendererStack()
@@ -104,23 +128,9 @@ RendererStack::mousePoll()
     mousedata.deltax = mousedata.deltay = mousedata.deltaz = 0;
     mouse_buttons                                          = mousedata.mousebuttons;
 
-#    if defined __unix__ && !defined __HAIKU__
-#        ifdef WAYLAND
-    if (QApplication::platformName().contains("wayland"))
-        wl_mouse_poll();
-#        endif
-
-#        ifdef EVDEV_INPUT
-    if (QApplication::platformName() == "eglfs")
-        evdev_mouse_poll();
-    else
-#        endif
-        if (QApplication::platformName() == "xcb") {
-        extern void xinput2_poll();
-        xinput2_poll();
-    }
-#    endif /* defined __unix__ */
-#endif     /* !defined __APPLE__ */
+    if (this->mouse_poll)
+        this->mouse_poll();
+#endif /* !defined __APPLE__ */
 }
 
 int ignoreNextMouseEvent = 1;
@@ -174,7 +184,7 @@ RendererStack::mouseMoveEvent(QMouseEvent *event)
         event->ignore();
         return;
     }
-#ifdef __APPLE__
+#if defined __APPLE__ || defined _WIN32
     event->accept();
     return;
 #else

@@ -33,6 +33,7 @@
 #include "cpu.h"
 #include <86box/mem.h>
 #include <86box/rom.h>
+#include <86box/path.h>
 #include <86box/plat.h>
 #include <86box/machine.h>
 #include <86box/m_xt_xi8088.h>
@@ -57,47 +58,59 @@ rom_log(const char *fmt, ...)
 #define rom_log(fmt, ...)
 #endif
 
+void
+rom_add_path(const char* path)
+{
+    char cwd[1024] = { 0 };
+
+    rom_path_t* rom_path = &rom_paths;
+
+    if (rom_paths.path[0] != '\0')
+    {
+        // Iterate to the end of the list.
+        while (rom_path->next != NULL) {
+            rom_path = rom_path->next;
+        }
+
+        // Allocate the new entry.
+        rom_path = rom_path->next = calloc(1, sizeof(rom_path_t));
+    }
+
+    // Save the path, turning it into absolute if needed.
+    if (!path_abs((char*) path)) {
+        plat_getcwd(cwd, sizeof(cwd));
+        path_slash(cwd);
+        snprintf(rom_path->path, sizeof(rom_path->path), "%s%s", cwd, path);
+    } else {
+        snprintf(rom_path->path, sizeof(rom_path->path), "%s", path);
+    }
+
+    // Ensure the path ends with a separator.
+    path_slash(rom_path->path);
+}
+
 
 FILE *
 rom_fopen(char *fn, char *mode)
 {
     char temp[1024];
-    char *fn2;
+    rom_path_t *rom_path;
+    FILE *fp = NULL;
 
-    if ((strstr(fn, "roms/") == fn) || (strstr(fn, "roms\\") == fn)) {
-	/* Relative path */
-	fn2 = (char *) malloc(strlen(fn) + 1);
-	memcpy(fn2, fn, strlen(fn) + 1);
+    if (strstr(fn, "roms/") == fn) {
+        /* Relative path */
+        for (rom_path = &rom_paths; rom_path != NULL; rom_path = rom_path->next) {
+            path_append_filename(temp, rom_path->path, fn + 5);
 
-    if (rom_paths.next) {
-        rom_path_t* cur_rom_path = &rom_paths;
-		memset(fn2, 0x00, strlen(fn) + 1);
-		memcpy(fn2, &(fn[5]), strlen(fn) - 4);
-
-        while (cur_rom_path->next) {
-            memset(temp, 0, sizeof(temp));
-            plat_append_filename(temp, cur_rom_path->rom_path, fn2);
-            if (rom_present(temp)) {
-                break;
+            if ((fp = plat_fopen(temp, mode)) != NULL) {
+                return fp;
             }
-            cur_rom_path = cur_rom_path->next;
         }
-	} else {
-		/* Make sure to make it a backslash, just in case there's malformed
-		   code calling us that assumes Windows. */
-		if (fn2[4] == '\\')
-			fn2[4] = '/';
 
-		plat_append_filename(temp, exe_path, fn2);
-	}
-
-	free(fn2);
-	fn2 = NULL;
-
-	return(plat_fopen(temp, mode));
+        return fp;
     } else {
-	/* Absolute path */
-	return(plat_fopen(fn, mode));
+        /* Absolute path */
+        return plat_fopen(fn, mode);
     }
 }
 
@@ -105,54 +118,30 @@ rom_fopen(char *fn, char *mode)
 int
 rom_getfile(char *fn, char *s, int size)
 {
-    char temp[1024] = {'\0'};
-    char *fn2;
-    int retval = 0;
+    char temp[1024];
+    rom_path_t *rom_path;
 
-    if ((strstr(fn, "roms/") == fn) || (strstr(fn, "roms\\") == fn)) {
-    /* Relative path */
-    fn2 = (char *) malloc(strlen(fn) + 1);
-    memcpy(fn2, fn, strlen(fn) + 1);
+    if (strstr(fn, "roms/") == fn) {
+        /* Relative path */
+        for (rom_path = &rom_paths; rom_path != NULL; rom_path = rom_path->next) {
+            path_append_filename(temp, rom_path->path, fn + 5);
 
-    if (rom_paths.next) {
-        rom_path_t* cur_rom_path = &rom_paths;
-        memset(fn2, 0x00, strlen(fn) + 1);
-        memcpy(fn2, &(fn[5]), strlen(fn) - 4);
-
-        while (cur_rom_path->next) {
-            memset(temp, 0, sizeof(temp));
-            plat_append_filename(temp, cur_rom_path->rom_path, fn2);
             if (rom_present(temp)) {
                 strncpy(s, temp, size);
-                retval = 1;
-                break;
+                return 1;
             }
-            cur_rom_path = cur_rom_path->next;
         }
-    } else {
-        /* Make sure to make it a backslash, just in case there's malformed
-           code calling us that assumes Windows. */
-        if (fn2[4] == '\\')
-            fn2[4] = '/';
 
-        plat_append_filename(temp, exe_path, fn2);
-        if (rom_present(temp)) {
-            strncpy(s, temp, size);
-            retval = 1;
-        }
-    }
-
-    free(fn2);
-    fn2 = NULL;
+        return 0;
     } else {
         /* Absolute path */
         if (rom_present(fn)) {
             strncpy(s, fn, size);
-            retval = 1;
+            return 1;
         }
-    }
 
-    return(retval);
+        return 0;
+    }
 }
 
 
@@ -163,8 +152,8 @@ rom_present(char *fn)
 
     f = rom_fopen(fn, "rb");
     if (f != NULL) {
-	(void)fclose(f);
-	return(1);
+        (void)fclose(f);
+        return(1);
     }
 
     return(0);

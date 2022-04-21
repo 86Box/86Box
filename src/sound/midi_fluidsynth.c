@@ -15,6 +15,7 @@
 #    include <86box/midi.h>
 #    include <86box/plat.h>
 #    include <86box/plat_dynld.h>
+#    include <86box/thread.h>
 #    include <86box/sound.h>
 #    include <86box/ui.h>
 
@@ -541,9 +542,7 @@ static const device_config_t fluidsynth_config[] = {
         },
         .default_int = 2
     },
-    {
-        .type = -1
-    }
+    { .name = "", .description = "", .type = CONFIG_END }
   // clang-format on
 };
 

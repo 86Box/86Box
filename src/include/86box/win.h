@@ -120,7 +120,6 @@ extern uint8_t		filterindex;
 
 
 extern void	ResizeWindowByClientArea(HWND hwnd, int width, int height);
-extern void	InitCrashDump(void);
 
 /* Emulator start/stop support functions. */
 extern void	do_start(void);

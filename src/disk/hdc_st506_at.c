@@ -20,9 +20,6 @@
  *		Copyright 2008-2019 Sarah Walker.
  *		Copyright 2017-2019 Fred N. van Kempen.
  */
-#define __USE_LARGEFILE64
-#define _LARGEFILE_SOURCE
-#define _LARGEFILE64_SOURCE
 #include <stdarg.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -766,7 +763,6 @@ mfm_close(void *priv)
 
     ui_sb_update_icon(SB_HDD|HDD_BUS_MFM, 0);
 }
-
 
 const device_t st506_at_wd1003_device = {
     .name = "WD1003 AT MFM/RLL Controller",

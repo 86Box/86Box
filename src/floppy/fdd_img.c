@@ -33,6 +33,7 @@
 #include <86box/86box.h>
 #include <86box/timer.h>
 #include <86box/config.h>
+#include <86box/path.h>
 #include <86box/plat.h>
 #include <86box/fdd.h>
 #include <86box/fdd_86f.h>
@@ -644,7 +645,7 @@ img_load(int drive, char *fn)
     int size;
     int i;
 
-    ext = plat_get_extension(fn);
+    ext = path_get_extension(fn);
 
     d86f_unregister(drive);
 

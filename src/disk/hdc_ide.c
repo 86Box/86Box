@@ -17,9 +17,6 @@
  *		Copyright 2008-2020 Sarah Walker.
  *		Copyright 2016-2020 Miran Grca.
  */
-#define __USE_LARGEFILE64
-#define _LARGEFILE_SOURCE
-#define _LARGEFILE64_SOURCE
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdint.h>
@@ -3062,7 +3059,6 @@ ide_close(void *priv)
     }
 }
 
-
 const device_t ide_isa_device = {
     .name = "ISA PC/AT IDE Controller",
     .internal_name = "ide_isa",
@@ -3150,42 +3146,54 @@ const device_t ide_pci_2ch_device = {
 // clang-format off
 static const device_config_t ide_ter_config[] = {
     {
-        "irq", "IRQ", CONFIG_SELECTION, "", 10, "", { 0 },
-        {
-            { "Plug and Play", -1 },
-            { "IRQ 2",          2 },
-            { "IRQ 3",          3 },
-            { "IRQ 4",          4 },
-            { "IRQ 5",          5 },
-            { "IRQ 7",          7 },
-            { "IRQ 9",          9 },
-            { "IRQ 10",        10 },
-            { "IRQ 11",        11 },
-            { "IRQ 12",        12 },
-            { ""                  }
+        .name = "irq",
+        .description = "IRQ",
+        .type = CONFIG_SELECTION,
+        .default_string = "",
+        .default_int = 10,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "Plug and Play", .value = -1 },
+            { .description = "IRQ 2",         .value =  2 },
+            { .description = "IRQ 3",         .value =  3 },
+            { .description = "IRQ 4",         .value =  4 },
+            { .description = "IRQ 5",         .value =  5 },
+            { .description = "IRQ 7",         .value =  7 },
+            { .description = "IRQ 9",         .value =  9 },
+            { .description = "IRQ 10",        .value = 10 },
+            { .description = "IRQ 11",        .value = 11 },
+            { .description = "IRQ 12",        .value = 12 },
+            { .description = ""                           }
         }
     },
-    { "", "", -1 }
+    { .name = "", .description = "", .type = CONFIG_END }
 };
 
 static const device_config_t ide_qua_config[] = {
     {
-        "irq", "IRQ", CONFIG_SELECTION, "", 11, "", { 0 },
-        {
-            { "Plug and Play", -1 },
-            { "IRQ 2",          2 },
-            { "IRQ 3",          3 },
-            { "IRQ 4",          4 },
-            { "IRQ 5",          5 },
-            { "IRQ 7",          7 },
-            { "IRQ 9",          9 },
-            { "IRQ 10",        10 },
-            { "IRQ 11",        11 },
-            { "IRQ 12",        12 },
-            { ""                  }
+        .name = "irq",
+        .description = "IRQ",
+        .type = CONFIG_SELECTION,
+        .default_string = "",
+        .default_int = 11,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "Plug and Play", .value = -1 },
+            { .description = "IRQ 2",         .value =  2 },
+            { .description = "IRQ 3",         .value =  3 },
+            { .description = "IRQ 4",         .value =  4 },
+            { .description = "IRQ 5",         .value =  5 },
+            { .description = "IRQ 7",         .value =  7 },
+            { .description = "IRQ 9",         .value =  9 },
+            { .description = "IRQ 10",        .value = 10 },
+            { .description = "IRQ 11",        .value = 11 },
+            { .description = "IRQ 12",        .value = 12 },
+            { .description = ""                           }
         }
     },
-    { "", "", -1 }
+    { .name = "", .description = "", .type = CONFIG_END }
 };
 // clang-format on
 

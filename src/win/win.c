@@ -47,8 +47,10 @@
 #include <86box/video.h>
 #include <86box/mem.h>
 #include <86box/rom.h>
+#include <86box/path.h>
 #define GLOBAL
 #include <86box/plat.h>
+#include <86box/thread.h>
 #include <86box/ui.h>
 #ifdef USE_VNC
 # include <86box/vnc.h>
@@ -493,10 +495,6 @@ WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR lpszArg, int nCmdShow)
 	return(1);
     }
 
-    /* Enable crash dump services. */
-    if (enable_crashdump)
-	InitCrashDump();
-
     /* Create console window. */
     if (force_debug) {
 	CreateConsole(1);
@@ -740,14 +738,14 @@ plat_remove(char *path)
 }
 
 void
-plat_path_normalize(char* path)
+path_normalize(char* path)
 {
     /* No-op */
 }
 
 /* Make sure a path ends with a trailing (back)slash. */
 void
-plat_path_slash(char *path)
+path_slash(char *path)
 {
     if ((path[strlen(path)-1] != '\\') &&
 	(path[strlen(path)-1] != '/')) {
@@ -758,7 +756,7 @@ plat_path_slash(char *path)
 
 /* Check if the given path is absolute or not. */
 int
-plat_path_abs(char *path)
+path_abs(char *path)
 {
     if ((path[1] == ':') || (path[0] == '\\') || (path[0] == '/'))
 	return(1);
@@ -785,7 +783,7 @@ plat_get_basename(const char *path)
 
 /* Return the 'directory' element of a pathname. */
 void
-plat_get_dirname(char *dest, const char *path)
+path_get_dirname(char *dest, const char *path)
 {
     int c = (int)strlen(path);
     char *ptr;
@@ -808,7 +806,7 @@ plat_get_dirname(char *dest, const char *path)
 
 
 char *
-plat_get_filename(char *s)
+path_get_filename(char *s)
 {
     int c = strlen(s) - 1;
 
@@ -823,7 +821,7 @@ plat_get_filename(char *s)
 
 
 char *
-plat_get_extension(char *s)
+path_get_extension(char *s)
 {
     int c = strlen(s) - 1;
 
@@ -841,10 +839,10 @@ plat_get_extension(char *s)
 
 
 void
-plat_append_filename(char *dest, const char *s1, const char *s2)
+path_append_filename(char *dest, const char *s1, const char *s2)
 {
     strcpy(dest, s1);
-    plat_path_slash(dest);
+    path_slash(dest);
     strcat(dest, s2);
 }
 
@@ -917,22 +915,22 @@ plat_init_rom_paths()
 {
     wchar_t appdata_dir[1024] = { L'\0' };
 
-    if (_wgetenv("LOCALAPPDATA") && _wgetenv("LOCALAPPDATA")[0] != L'\0') {
+    if (_wgetenv(L"LOCALAPPDATA") && _wgetenv(L"LOCALAPPDATA")[0] != L'\0') {
         char appdata_dir_a[1024] = { '\0' };
         size_t len = 0;
-        wcsncpy(appdata_dir, _wgetenv("LOCALAPPDATA"), 1024);
+        wcsncpy(appdata_dir, _wgetenv(L"LOCALAPPDATA"), 1024);
         len = wcslen(appdata_dir);
         if (appdata_dir[len - 1] != L'\\') {
             appdata_dir[len] = L'\\';
             appdata_dir[len + 1] = L'\0';
         }
-        wcscat(appdata_dir, "86box");
+        wcscat(appdata_dir, L"86box");
         CreateDirectoryW(appdata_dir, NULL);
-        wcscat(appdata_dir, "\\roms");
+        wcscat(appdata_dir, L"\\roms");
         CreateDirectoryW(appdata_dir, NULL);
-        wcscat(appdata_dir, "\\");
+        wcscat(appdata_dir, L"\\");
         c16stombs(appdata_dir_a, appdata_dir, 1024);
-        add_rom_path(appdata_dir_a);
+        rom_add_path(appdata_dir_a);
     }
 }
 

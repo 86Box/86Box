@@ -32,6 +32,7 @@
 #include <86box/timer.h>
 #include <86box/device.h>
 #include <86box/plat.h>
+#include <86box/thread.h>
 #include <86box/video.h>
 #include <86box/i2c.h>
 #include <86box/vid_ddc.h>
@@ -2601,8 +2602,7 @@ static void banshee_pci_write(int func, int addr, uint8_t val, void *p)
 }
 
 // clang-format off
-static const device_config_t banshee_sgram_config[] =
-{
+static const device_config_t banshee_sgram_config[] = {
     {
         .name = "memory",
         .description = "Memory size",
@@ -2672,12 +2672,11 @@ static const device_config_t banshee_sgram_config[] =
     },
 #endif
     {
-        .type = -1
+        .type = CONFIG_END
     }
 };
 
-static const device_config_t banshee_sdram_config[] =
-{
+static const device_config_t banshee_sdram_config[] = {
     {
         .name = "bilinear",
         .description = "Bilinear filtering",
@@ -2728,7 +2727,7 @@ static const device_config_t banshee_sdram_config[] =
     },
 #endif
     {
-        .type = -1
+        .type = CONFIG_END
     }
 };
 // clang-format on
@@ -2954,123 +2953,114 @@ static void banshee_force_redraw(void *p)
         banshee->svga.fullchange = changeframecount;
 }
 
-
-const device_t voodoo_banshee_device =
-{
-        "3dfx Voodoo Banshee",
-        "voodoo_banshee_pci",
-        DEVICE_PCI,
-	0,
-        banshee_init,
-        banshee_close,
-	NULL,
-        { banshee_available },
-        banshee_speed_changed,
-        banshee_force_redraw,
-        banshee_sgram_config
+const device_t voodoo_banshee_device = {
+    .name = "3dfx Voodoo Banshee",
+    .internal_name = "voodoo_banshee_pci",
+    .flags = DEVICE_PCI,
+    .local = 0,
+    .init = banshee_init,
+    .close = banshee_close,
+    .reset = NULL,
+    { .available = banshee_available },
+    .speed_changed = banshee_speed_changed,
+    .force_redraw = banshee_force_redraw,
+    banshee_sgram_config
 };
 
-const device_t creative_voodoo_banshee_device =
-{
-        "Creative 3D Blaster Banshee",
-        "ctl3d_banshee_pci",
-        DEVICE_PCI,
-	0,
-        creative_banshee_init,
-        banshee_close,
-	NULL,
-        { creative_banshee_available },
-        banshee_speed_changed,
-        banshee_force_redraw,
-        banshee_sdram_config
+const device_t creative_voodoo_banshee_device = {
+    .name = "Creative 3D Blaster Banshee",
+    .internal_name = "ctl3d_banshee_pci",
+    .flags = DEVICE_PCI,
+    .local = 0,
+    .init = creative_banshee_init,
+    .close = banshee_close,
+    .reset = NULL,
+    { .available = creative_banshee_available },
+    .speed_changed = banshee_speed_changed,
+    .force_redraw = banshee_force_redraw,
+    banshee_sdram_config
 };
 
-const device_t voodoo_3_2000_device =
-{
-        "3dfx Voodoo3 2000",
-        "voodoo3_2k_pci",
-        DEVICE_PCI,
-        0,
-	v3_2000_init,
-        banshee_close,
-	NULL,
-        { v3_2000_available },
-        banshee_speed_changed,
-        banshee_force_redraw,
-        banshee_sdram_config
+const device_t voodoo_3_2000_device = {
+    .name = "3dfx Voodoo3 2000",
+    .internal_name = "voodoo3_2k_pci",
+    .flags = DEVICE_PCI,
+    .local = 0,
+    .init = v3_2000_init,
+    .close = banshee_close,
+    .reset = NULL,
+    { .available = v3_2000_available },
+    .speed_changed = banshee_speed_changed,
+    .force_redraw = banshee_force_redraw,
+    banshee_sdram_config
 };
 
-const device_t voodoo_3_2000_agp_device =
-{
-        "3dfx Voodoo3 2000",
-        "voodoo3_2k_agp",
-        DEVICE_AGP,
-        0,
-	v3_2000_agp_init,
-        banshee_close,
-	NULL,
-        { v3_2000_agp_available },
-        banshee_speed_changed,
-        banshee_force_redraw,
-        banshee_sdram_config
+const device_t voodoo_3_2000_agp_device = {
+    .name = "3dfx Voodoo3 2000",
+    .internal_name = "voodoo3_2k_agp",
+    .flags = DEVICE_AGP,
+    .local = 0,
+    .init = v3_2000_agp_init,
+    .close = banshee_close,
+    .reset = NULL,
+    { .available = v3_2000_agp_available },
+    .speed_changed = banshee_speed_changed,
+    .force_redraw = banshee_force_redraw,
+    banshee_sdram_config
 };
 
-const device_t voodoo_3_2000_agp_onboard_8m_device =
-{
-        "3dfx Voodoo3 2000 (On-Board 8MB SGRAM)",
-        "voodoo3_2k_agp_onboard_8m",
-        DEVICE_AGP,
-        8,
-	v3_2000_agp_onboard_init,
-        banshee_close,
-	NULL,
-        { NULL },
-        banshee_speed_changed,
-        banshee_force_redraw,
-        banshee_sdram_config
+const device_t voodoo_3_2000_agp_onboard_8m_device = {
+    .name = "3dfx Voodoo3 2000 (On-Board 8MB SGRAM)",
+    .internal_name = "voodoo3_2k_agp_onboard_8m",
+    .flags = DEVICE_AGP,
+    .local = 8,
+    .init = v3_2000_agp_onboard_init,
+    .close = banshee_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = banshee_speed_changed,
+    .force_redraw = banshee_force_redraw,
+    banshee_sdram_config
 };
 
-const device_t voodoo_3_3000_device =
-{
-        "3dfx Voodoo3 3000",
-        "voodoo3_3k_pci",
-        DEVICE_PCI,
-	0,
-        v3_3000_init,
-        banshee_close,
-	NULL,
-        { v3_3000_available },
-        banshee_speed_changed,
-        banshee_force_redraw,
-        banshee_sdram_config
+const device_t voodoo_3_3000_device = {
+    .name = "3dfx Voodoo3 3000",
+    .internal_name = "voodoo3_3k_pci",
+    .flags = DEVICE_PCI,
+    .local = 0,
+    .init = v3_3000_init,
+    .close = banshee_close,
+    .reset = NULL,
+    { .available = v3_3000_available },
+    .speed_changed = banshee_speed_changed,
+    .force_redraw = banshee_force_redraw,
+    banshee_sdram_config
 };
 
-const device_t voodoo_3_3000_agp_device =
-{
-        "3dfx Voodoo3 3000",
-        "voodoo3_3k_agp",
-        DEVICE_AGP,
-	0,
-        v3_3000_agp_init,
-        banshee_close,
-	NULL,
-        { v3_3000_agp_available },
-        banshee_speed_changed,
-        banshee_force_redraw,
-        banshee_sdram_config
+const device_t voodoo_3_3000_agp_device = {
+    .name = "3dfx Voodoo3 3000",
+    .internal_name = "voodoo3_3k_agp",
+    .flags = DEVICE_AGP,
+    .local = 0,
+    .init = v3_3000_agp_init,
+    .close = banshee_close,
+    .reset = NULL,
+    { .available = v3_3000_agp_available },
+    .speed_changed = banshee_speed_changed,
+    .force_redraw = banshee_force_redraw,
+    banshee_sdram_config
 };
 
-const device_t velocity_100_agp_device =
-{
-        "3dfx Velocity 100",
-        "velocity100_agp",
-        DEVICE_AGP,
-        0,
-	velocity_100_agp_init,
-        banshee_close,
-	NULL,
-        { velocity_100_available },
-        banshee_speed_changed,
-        banshee_force_redraw,
-        banshee_sdram_config
+const device_t velocity_100_agp_device = {
+    .name = "3dfx Velocity 100",
+    .internal_name = "velocity100_agp",
+    .flags = DEVICE_AGP,
+    .local = 0,
+    .init = velocity_100_agp_init,
+    .close = banshee_close,
+    .reset = NULL,
+    { .available = velocity_100_available },
+    .speed_changed = banshee_speed_changed,
+    .force_redraw = banshee_force_redraw,
+    banshee_sdram_config
 };

@@ -24,13 +24,17 @@ add_library(mch OBJECT machine.c machine_table.c m_xt.c m_xt_compaq.c
     m_at_sockets7.c m_at_socket8.c m_at_slot1.c m_at_slot2.c m_at_socket370.c
     m_at_misc.c)
 
+if(AN430TX)
+    target_compile_definitions(mch PRIVATE USE_AN430TX)
+endif()
+
+if(DESKPRO386)
+    target_compile_definitions(mch PRIVATE USE_DESKPRO386)
+endif()
+
 if(LASERXT)
     target_sources(mch PRIVATE m_xt_laserxt.c)
     target_compile_definitions(mch PRIVATE USE_LASERXT)
-endif()
-
-if(NO_SIO)
-    target_compile_definitions(mch PRIVATE NO_SIO)
 endif()
 
 if(OPEN_AT)

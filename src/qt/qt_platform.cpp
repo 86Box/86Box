@@ -30,6 +30,7 @@
 #include <QDir>
 #include <QFileInfo>
 #include <QTemporaryFile>
+#include <QStandardPaths>
 #include <QCoreApplication>
 #include <QDateTime>
 #include <QLocalSocket>
@@ -87,6 +88,7 @@ extern "C" {
 #include <86box/gameport.h>
 #include <86box/timer.h>
 #include <86box/nvr.h>
+#include <86box/path.h>
 #include <86box/plat_dynld.h>
 #include <86box/mem.h>
 #include <86box/rom.h>
@@ -139,7 +141,7 @@ void plat_get_exe_name(char *s, int size)
 
     memcpy(s, exepath_temp.data(), std::min((qsizetype)exepath_temp.size(),(qsizetype)size));
 
-    plat_path_slash(s);
+    path_slash(s);
 }
 
 uint32_t
@@ -182,7 +184,12 @@ plat_dir_check(char *path)
 int
 plat_getcwd(char *bufp, int max)
 {
+#ifdef __APPLE__
+    /* Working directory for .app bundles is undefined. */
+    strncpy(bufp, exe_path, max);
+#else
     CharPointer(bufp, max) = QDir::currentPath().toUtf8();
+#endif
     return 0;
 }
 
@@ -194,14 +201,14 @@ plat_get_basename(const char *path)
 }
 
 void
-plat_get_dirname(char *dest, const char *path)
+path_get_dirname(char *dest, const char *path)
 {
     QFileInfo fi(path);
     CharPointer(dest, -1) = fi.dir().path().toUtf8();
 }
 
 char *
-plat_get_extension(char *s)
+path_get_extension(char *s)
 {
     auto len = strlen(s);
     auto idx = QByteArray::fromRawData(s, len).lastIndexOf('.');
@@ -212,7 +219,7 @@ plat_get_extension(char *s)
 }
 
 char *
-plat_get_filename(char *s)
+path_get_filename(char *s)
 {
 #ifdef Q_OS_WINDOWS
     int c = strlen(s) - 1;
@@ -234,7 +241,7 @@ plat_get_filename(char *s)
 }
 
 int
-plat_path_abs(char *path)
+path_abs(char *path)
 {
 #ifdef Q_OS_WINDOWS
     if ((path[1] == ':') || (path[0] == '\\') || (path[0] == '/'))
@@ -247,7 +254,7 @@ plat_path_abs(char *path)
 }
 
 void
-plat_path_normalize(char* path)
+path_normalize(char* path)
 {
 #ifdef Q_OS_WINDOWS
     while (*path++ != 0)
@@ -258,7 +265,7 @@ plat_path_normalize(char* path)
 }
 
 void
-plat_path_slash(char *path)
+path_slash(char *path)
 {
     auto len = strlen(path);
     auto separator = '/';
@@ -266,14 +273,14 @@ plat_path_slash(char *path)
         path[len] = separator;
         path[len+1] = 0;
     }
-    plat_path_normalize(path);
+    path_normalize(path);
 }
 
 void
-plat_append_filename(char *dest, const char *s1, const char *s2)
+path_append_filename(char *dest, const char *s1, const char *s2)
 {
     strcpy(dest, s1);
-    plat_path_slash(dest);
+    path_slash(dest);
     strcat(dest, s2);
 }
 
@@ -526,11 +533,6 @@ size_t c16stombs(char dst[], const uint16_t src[], int len)
 #define LIB_NAME_FREETYPE "libfreetype"
 #define MOUSE_CAPTURE_KEYSEQ "CTRL-END"
 #endif
-#ifdef Q_OS_MACOS
-#define ROMDIR "~/Library/Application Support/net.86box.86box/roms"
-#else
-#define ROMDIR "roms"
-#endif
 
 
 QMap<int, std::wstring> ProgSettings::translatedstrings;
@@ -556,7 +558,7 @@ void ProgSettings::reloadStrings()
     translatedstrings[IDS_2128] = QCoreApplication::translate("", "Hardware not available").toStdWString();
     translatedstrings[IDS_2142] = QCoreApplication::translate("", "Monitor in sleep mode").toStdWString();
     translatedstrings[IDS_2120] = QCoreApplication::translate("", "No ROMs found").toStdWString();
-    translatedstrings[IDS_2056] = QCoreApplication::translate("", "86Box could not find any usable ROM images.\n\nPlease <a href=\"https://github.com/86Box/roms/releases/latest\">download</a> a ROM set and extract it into the \"roms\" directory.").replace("roms", ROMDIR).toStdWString();
+    translatedstrings[IDS_2056] = QCoreApplication::translate("", "86Box could not find any usable ROM images.\n\nPlease <a href=\"https://github.com/86Box/roms/releases/latest\">download</a> a ROM set and extract it into the \"roms\" directory.").toStdWString();
 
     auto flsynthstr = QCoreApplication::translate("", " is required for FluidSynth MIDI output.");
     if (flsynthstr.contains("libfluidsynth"))
@@ -596,59 +598,22 @@ plat_chdir(char *path)
 void
 plat_init_rom_paths()
 {
-#if defined __APPLE__
-    QDir::root().mkpath(QStringLiteral("%1/Documents/86Box/roms/").arg(QDir::homePath()));
-    add_rom_path(QStringLiteral("%1/Documents/86Box/roms/").arg(QDir::homePath()).toUtf8().constData());
-#elif !defined _WIN32
-    if (getenv("XDG_DATA_HOME")) {
-        char xdg_rom_path[1024 + 1] = { 0 };
-        strncpy(xdg_rom_path, getenv("XDG_DATA_HOME"), 1024);
-        plat_path_slash(xdg_rom_path);
-        strncat(xdg_rom_path, "86Box/", 1024);
+    auto paths = QStandardPaths::standardLocations(QStandardPaths::GenericDataLocation);
 
-        if (!plat_dir_check(xdg_rom_path))
-            plat_dir_create(xdg_rom_path);
-        strcat(xdg_rom_path, "roms/");
+#ifdef _WIN32
+    // HACK: The standard locations returned for GenericDataLocation include
+    // the EXE path and a `data` directory within it as the last two entries.
 
-        if (!plat_dir_check(xdg_rom_path))
-            plat_dir_create(xdg_rom_path);
-        add_rom_path(xdg_rom_path);
-    } else {
-        char home_rom_path[1024] = { 0 };
-        snprintf(home_rom_path, 1024, "%s/.local/share/86Box/", getenv("HOME") ? getenv("HOME") : QDir::homePath().toUtf8().constData());
-
-        if (!plat_dir_check(home_rom_path))
-            plat_dir_create(home_rom_path);
-        strcat(home_rom_path, "roms/");
-
-        if (!plat_dir_check(home_rom_path))
-            plat_dir_create(home_rom_path);
-        add_rom_path(home_rom_path);
-    }
-    if (getenv("XDG_DATA_DIRS")) {
-        char* xdg_rom_paths = strdup(getenv("XDG_DATA_DIRS"));
-        char* xdg_rom_paths_orig = xdg_rom_paths;
-        char* cur_xdg_rom_path = NULL;
-        if (xdg_rom_paths) {
-            while (xdg_rom_paths[strlen(xdg_rom_paths) - 1] == ':') {
-                xdg_rom_paths[strlen(xdg_rom_paths) - 1] = '\0';
-            }
-            QStringList path_list = QString(xdg_rom_paths).split(":");
-            for (auto& cur_path : path_list) {
-                if (cur_path.right(1) != '/')
-                    cur_path.push_back('/');
-                add_rom_path((cur_path + "86Box/roms").toUtf8().constData());
-            }
-        }
-        free(xdg_rom_paths_orig);
-    } else {
-        add_rom_path("/usr/local/share/86Box/roms/");
-        add_rom_path("/usr/share/86Box/roms/");
-    }
-#elif _WIN32
-    auto appDataDir = QDir(qEnvironmentVariable("LOCALAPPDATA"));
-    appDataDir.mkdir("86Box");
-    appDataDir.mkdir("86Box/roms");
-    add_rom_path((appDataDir.path().replace("\\","/") + "/86Box/roms").toUtf8().constData());
+    // Remove the entries as we don't need them.
+    paths.removeLast();
+    paths.removeLast();
 #endif
+
+    for (auto& path : paths) {
+#ifdef __APPLE__
+        rom_add_path(QDir(path).filePath("net.86Box.86Box/roms").toUtf8().constData());
+#else
+        rom_add_path(QDir(path).filePath("86Box/roms").toUtf8().constData());
+#endif
+    }
 }

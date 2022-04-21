@@ -27,6 +27,7 @@
 #include <86box/device.h>
 #include <86box/dma.h>
 #include <86box/plat.h>
+#include <86box/thread.h>
 #include <86box/video.h>
 #include <86box/i2c.h>
 #include <86box/vid_ddc.h>
@@ -5336,7 +5337,6 @@ mystique_force_redraw(void *p)
     mystique->svga.fullchange = changeframecount;
 }
 
-
 static const device_config_t mystique_config[] = {
 // clang-format off
     {
@@ -5363,7 +5363,9 @@ static const device_config_t mystique_config[] = {
         },
         .default_int = 8
     },
-    { .type = -1 }
+    {
+        .type = CONFIG_END
+    }
 // clang-format on
 };
 

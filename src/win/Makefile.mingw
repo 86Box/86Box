@@ -37,8 +37,14 @@ ifeq ($(DEV_BUILD), y)
  ifndef AMD_K5
   AMD_K5	:= y
  endif
+ ifndef AN430TX
+  AN430TX	:= y
+ endif
  ifndef CYRIX_6X86
   CYRIX_6X86	:= y
+ endif
+ ifndef DESKPRO386
+  DESKPRO386	:= y
  endif
  ifndef GUSMAX
   GUSMAX	:= y
@@ -58,8 +64,8 @@ ifeq ($(DEV_BUILD), y)
  ifndef MGA
   MGA		:= y
  endif
- ifndef NO_SIO
-  NO_SIO	:= y
+ ifndef OLIVETTI
+  OLIVETTI	:= y
  endif
  ifndef OPEN_AT
   OPEN_AT	:= y
@@ -70,20 +76,14 @@ ifeq ($(DEV_BUILD), y)
  ifndef SIO_DETECT
   SIO_DETECT	:= y
  endif
- ifndef VGAWONDER
-  VGAWONDER	:= y
- endif
  ifndef TANDY_ISA
   TANDY_ISA	:= y
  endif
- ifndef VNC
-  VNC		:= y
+ ifndef VGAWONDER
+  VGAWONDER	:= y
  endif
  ifndef XL24
   XL24		:= y
- endif
- ifndef OLIVETTI
-  OLIVETTI	:= y
  endif
  ifndef NEW_KBC
   NEW_KBC	:= n
@@ -98,8 +98,14 @@ else
  ifndef AMD_K5
   AMD_K5	:= n
  endif
+ ifndef AN430TX
+  AN430TX	:= n
+ endif
  ifndef CYRIX_6X86
   CYRIX_6X86	:= n
+ endif
+ ifndef DESKPRO386
+  DESKPRO386	:= n
  endif
  ifndef GUSMAX
   GUSMAX	:= n
@@ -119,8 +125,8 @@ else
  ifndef MGA
   MGA		:= n
  endif
- ifndef NO_SIO
-  NO_SIO	:= n
+ ifndef OLIVETTI
+  OLIVETTI	:= n
  endif
  ifndef OPEN_AT
   OPEN_AT	:= n
@@ -131,20 +137,14 @@ else
  ifndef SIO_DETECT
   SIO_DETECT	:= n
  endif
- ifndef VGAWONDER
-  VGAWONDER	:= n
- endif
  ifndef TANDY_ISA
   TANDY_ISA	:= n
  endif
- ifndef VNC
-  VNC		:= n
+ ifndef VGAWONDER
+  VGAWONDER	:= n
  endif
  ifndef XL24
   XL24		:= n
- endif
- ifndef OLIVETTI
-  OLIVETTI	:= n
  endif
  ifndef NEW_KBC
   NEW_KBC	:= n
@@ -181,6 +181,9 @@ FLUIDSYNTH	:= y
 endif
 ifndef MUNT
 MUNT		:= y
+endif
+ifndef VNC
+ VNC		:= n
 endif
 ifndef NEW_DYNAREC
  NEW_DYNAREC	:= n
@@ -427,8 +430,16 @@ ifeq ($(AMD_K5), y)
 OPTS		+= -DUSE_AMD_K5
 endif
 
+ifeq ($(AN430TX), y)
+OPTS		+= -DUSE_AN430TX
+endif
+
 ifeq ($(CYRIX_6X86), y)
 OPTS		+= -DUSE_CYRIX_6X86
+endif
+
+ifeq ($(DESKPRO386), y)
+OPTS		+= -DUSE_DESKPRO386
 endif
 
 ifeq ($(GUSMAX), y)
@@ -455,10 +466,6 @@ endif
 ifeq ($(MGA), y)
 OPTS		+= -DUSE_MGA
 DEVBROBJ	+= vid_mga.o
-endif
-
-ifeq ($(NO_SIO), y)
-OPTS		+= -DNO_SIO
 endif
 
 ifeq ($(OPEN_AT), y)
@@ -720,7 +727,6 @@ VOODOOOBJ	:= vid_voodoo.o vid_voodoo_banshee.o \
 PLATOBJ		:= win.o \
 		    win_dynld.o \
 		    win_cdrom.o win_keyboard.o \
-		    win_crashdump.o \
 		    win_mouse.o
 
 UIOBJ		:= win_ui.o win_icon.o win_stbar.o discord.o \

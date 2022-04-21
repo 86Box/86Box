@@ -18,8 +18,6 @@
  *		Copyright 2016-2019 Miran Grca.
  *		Copyright 2017-2019 Fred N. van Kempen.
  */
-#define _LARGEFILE_SOURCE
-#define _LARGEFILE64_SOURCE
 #define _GNU_SOURCE
 #include <stdarg.h>
 #include <stdint.h>
@@ -842,7 +840,6 @@ wd1007vse1_available(void)
 {
     return(rom_present(BIOS_FILE));
 }
-
 
 const device_t esdi_at_wd1007vse1_device = {
     .name = "Western Digital WD1007V-SE1 (ESDI)",

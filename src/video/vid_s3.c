@@ -30,6 +30,7 @@
 #include <86box/pci.h>
 #include <86box/rom.h>
 #include <86box/plat.h>
+#include <86box/thread.h>
 #include <86box/video.h>
 #include <86box/i2c.h>
 #include <86box/vid_ddc.h>
@@ -406,7 +407,7 @@ dword_remap(svga_t *svga, uint32_t in_addr)
 {
 		if (svga->packed_chain4 || svga->force_old_addr)
 			return in_addr;
-	
+
         return ((in_addr << 2) & 0x3fff0) |
                 ((in_addr >> 14) & 0xc) |
                 (in_addr & ~0x3fffc);
@@ -415,8 +416,8 @@ static __inline uint32_t
 dword_remap_w(svga_t *svga, uint32_t in_addr)
 {
 		if (svga->packed_chain4 || svga->force_old_addr)
-			return in_addr;	
-	
+			return in_addr;
+
         return ((in_addr << 2) & 0x1fff8) |
                 ((in_addr >> 14) & 0x6) |
                 (in_addr & ~0x1fffe);
@@ -425,8 +426,8 @@ static __inline uint32_t
 dword_remap_l(svga_t *svga, uint32_t in_addr)
 {
 		if (svga->packed_chain4 || svga->force_old_addr)
-			return in_addr;	
-	
+			return in_addr;
+
         return ((in_addr << 2) & 0xfffc) |
                 ((in_addr >> 14) & 0x3) |
                 (in_addr & ~0xffff);
@@ -3379,7 +3380,7 @@ s3_updatemapping(s3_t *s3)
 		} else {
 			if (s3->chip >= S3_TRIO64V)
 				svga->fb_only = 0;
-			
+
 			mem_mapping_disable(&s3->linear_mapping);
 		}
 
@@ -7611,67 +7612,144 @@ static void s3_force_redraw(void *p)
 
 static const device_config_t s3_orchid_86c911_config[] = {
     {
-        "memory", "Memory size", CONFIG_SELECTION, "", 1, "", { 0 },
-        {
-            { "512 KB", 0 },
-            { "1 MB",   1 },
-            { ""          }
+        .name = "memory",
+        .description = "Memory size",
+        .type = CONFIG_SELECTION,
+        .default_int = 1,
+        .selection = {
+            {
+                .description = "512 KB",
+                .value = 0
+            },
+            {
+                .description = "1 MB",
+                .value = 1
+            },
+            {
+                .description = ""
+            }
         }
     },
-    { "", "", -1 }
+    {
+        .type = CONFIG_END
+    }
 };
 
 static const device_config_t s3_9fx_config[] = {
     {
-        "memory", "Memory size", CONFIG_SELECTION, "", 2, "", { 0 },
-        {
-            { "1 MB", 1 },
-            { "2 MB", 2 },
+        .name = "memory",
+        .description = "Memory size",
+        .type = CONFIG_SELECTION,
+        .default_int = 2,
+        .selection = {
+            {
+                .description = "1 MB",
+                .value = 1
+            },
+            {
+                .description = "2 MB",
+                .value = 2
+            },
             /*Trio64 also supports 4 MB, however the Number Nine BIOS does not*/
-            { "" }
+            {
+                .description = ""
+            }
         }
     },
-    { "", "", -1 }
+    {
+        .type = CONFIG_END
+    }
 };
 
 static const device_config_t s3_phoenix_trio32_config[] = {
     {
-        "memory", "Memory size", CONFIG_SELECTION, "", 2, "", { 0 },
-        {
-            { "512 KB", 0 },
-            { "1 MB",   1 },
-            { "2 MB",   2 },
-            { ""          }
+        .name = "memory",
+        .description = "Memory size",
+        .type = CONFIG_SELECTION,
+        .default_int = 2,
+        .selection = {
+            {
+                .description = "512 KB",
+                .value = 0
+            },
+            {
+                .description = "1 MB",
+                .value = 1
+            },
+            {
+                .description = "2 MB",
+                .value = 2
+            },
+            {
+                .description = ""
+            }
         }
     },
-    { "", "", -1 }
+    {
+        .type = CONFIG_END
+    }
 };
 
 static const device_config_t s3_standard_config[] = {
     {
-        "memory", "Memory size", CONFIG_SELECTION, "", 4, "", { 0 },
-        {
-            { "1 MB", 1 },
-            { "2 MB", 2 },
-            { "4 MB", 4 },
-            { ""        }
+        .name = "memory",
+        .description = "Memory size",
+        .type = CONFIG_SELECTION,
+        .default_int = 4,
+        .selection = {
+            {
+                .description = "1 MB",
+                .value = 1
+            },
+            {
+                .description = "2 MB",
+                .value = 2
+            },
+            {
+                .description = "4 MB",
+                .value = 4
+            },
+            {
+                .description = ""
+            }
         }
     },
-    { "", "", -1 }
+    {
+        .type = CONFIG_END
+    }
 };
 
 static const device_config_t s3_968_config[] = {
     {
-        "memory", "Memory size", CONFIG_SELECTION, "", 4, "", { 0 },
-        {
-            { "1 MB", 1 },
-            { "2 MB", 2 },
-            { "4 MB", 4 },
-            { "8 MB", 8 },
-            { ""        }
+        .name = "memory",
+        .description = "Memory size",
+        .type = CONFIG_SELECTION,
+        .default_int = 4,
+        .selection = {
+            {
+                .description = "1 MB",
+                .value = 1
+            },
+            {
+                .description = "2 MB",
+                .value = 2
+            },
+            {
+                .description = "4 MB",
+                .value = 4
+            },
+            {
+                .description = "8 MB",
+                .value = 8
+            },
+            {
+                .description = ""
+            }
         }
     },
-    { "", "", -1 }
+    {
+        .type = CONFIG_END
+    }
 };
 
 const device_t s3_orchid_86c911_isa_device = {

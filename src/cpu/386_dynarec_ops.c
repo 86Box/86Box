@@ -24,6 +24,10 @@
 
 #define CPU_BLOCK_END() cpu_block_end = 1
 
+#ifndef IS_DYNAREC
+#define IS_DYNAREC
+#endif
+
 #include "386_common.h"
 
 

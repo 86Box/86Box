@@ -117,7 +117,7 @@ void DeviceConfig::ConfigureDevice(const _device_* device, int instance, Setting
             cbox->setObjectName(config->name);
             auto* model = cbox->model();
             int currentIndex = -1;
-            int selected;
+            int selected = 0;
             switch (config->type) {
             case CONFIG_SELECTION:
                 selected = config_get_int(device_context.name, const_cast<char*>(config->name), config->default_int);
@@ -130,7 +130,7 @@ void DeviceConfig::ConfigureDevice(const _device_* device, int instance, Setting
                 break;
             }
 
-            for (auto* sel = config->selection; (sel->description != nullptr) && (strlen(sel->description) > 0); ++sel) {
+            for (auto* sel = config->selection; (sel != nullptr) && (sel->description != nullptr) && (strlen(sel->description) > 0); ++sel) {
                 int row = Models::AddEntry(model, sel->description, sel->value);
                 if (selected == sel->value) {
                     currentIndex = row;

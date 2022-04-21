@@ -401,7 +401,10 @@ static void model_50_write(uint16_t port, uint8_t val)
 
 static void model_55sx_mem_recalc(void)
 {
-	int i, j, state, enabled_mem = 0;
+	int i, j, state;
+#ifdef ENABLE_PS2_MCA_LOG
+	int enabled_mem = 0;
+#endif
 	int base = 0, remap_size = (ps2.option[3] & 0x10) ? 384 : 256;
 	int bit_mask = 0x00, max_rows = 4;
 	int bank_to_rows[16] = { 4, 2, 1, 0, 0, 2, 1, 0, 0, 0, 0, 0, 0, 2, 1, 0 };
@@ -424,14 +427,18 @@ static void model_55sx_mem_recalc(void)
 			if (ps2.memory_bank[i] & (1 << j)) {
 				ps2_mca_log("Set memory at %06X-%06X to internal\n", (base * 1024), (base * 1024) + (((base > 0) ? 1024 : 640) * 1024) - 1);
 				mem_set_mem_state(base * 1024, ((base > 0) ? 1024 : 640) * 1024, MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
+#ifdef ENABLE_PS2_MCA_LOG
 				enabled_mem += 1024;
+#endif
 				bit_mask |= (1 << (j + (i << 2)));
 			}
 			base += 1024;
 		}
 	}
 
+#ifdef ENABLE_PS2_MCA_LOG
 	ps2_mca_log("Enabled memory: %i kB (%02X)\n", enabled_mem, bit_mask);
+#endif
 
 	if (ps2.option[3] & 0x10)
 	{
@@ -1348,7 +1355,7 @@ machine_ps2_common_init(const machine_t *model)
 
         dma16_init();
         ps2_dma_init();
-	device_add(&ps_nvr_device);
+        device_add(&ps_no_nmi_nvr_device);
         pic2_init();
 
         pit_ps2_init();

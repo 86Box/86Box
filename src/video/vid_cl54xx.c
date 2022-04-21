@@ -546,13 +546,7 @@ gd54xx_overlay_draw(svga_t *svga, int displine)
     int bpp = svga->bpp;
     int bytesperpix = (bpp + 7) / 8;
     uint8_t *src2 = &svga->vram[(svga->ma - (svga->hdisp * bytesperpix))  & svga->vram_display_mask];
-    int w = gd54xx->overlay.r2sdz;
     int occl, ckval;
-
-    if (gd54xx->overlay.mode == 2)
-	w *= 4;
-    else
-	w *= 2;
 
     p = &((uint32_t *)buffer32->line[displine])[gd54xx->overlay.region1size + svga->x_add];
     src2 += gd54xx->overlay.region1size * bytesperpix;
@@ -4304,7 +4298,7 @@ static const device_config_t gd542x_config[] = {
         .default_int = 512
     },
     {
-        .type = -1
+        .type = CONFIG_END
     }
 };
 
@@ -4333,7 +4327,7 @@ static const device_config_t gd5426_config[] = {
         .default_int = 2048
     },
     {
-        .type = -1
+        .type = CONFIG_END
     }
 };
 
@@ -4362,7 +4356,7 @@ static const device_config_t gd5428_onboard_config[] = {
         .default_int = 2048
     },
     {
-        .type = -1
+        .type = CONFIG_END
     }
 };
 
@@ -4387,7 +4381,7 @@ static const device_config_t gd5429_config[] = {
         .default_int = 2
     },
     {
-        .type = -1
+        .type = CONFIG_END
     }
 };
 
@@ -4412,7 +4406,7 @@ static const device_config_t gd5440_onboard_config[] = {
         .default_int = 2
     },
     {
-        .type = -1
+        .type = CONFIG_END
     }
 };
 
@@ -4441,7 +4435,7 @@ static const device_config_t gd5434_config[] = {
         .default_int = 4
     },
     {
-        .type = -1
+        .type = CONFIG_END
     }
 };
 
@@ -4470,7 +4464,7 @@ static const device_config_t gd5434_onboard_config[] = {
         .default_int = 4
     },
     {
-        .type = -1
+        .type = CONFIG_END
     }
 };
 

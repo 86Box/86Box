@@ -16,9 +16,6 @@
  *		Copyright 2015-2019 Miran Grca.
  *		Copyright 2017-2019 bit.
  */
-#define __USE_LARGEFILE64
-#define _LARGEFILE_SOURCE
-#define _LARGEFILE64_SOURCE
 #include <inttypes.h>
 #include <stdarg.h>
 #include <stdio.h>
@@ -29,6 +26,7 @@
 #define HAVE_STDARG_H
 #include <86box/86box.h>
 #include <86box/config.h>
+#include <86box/path.h>
 #include <86box/plat.h>
 #include <86box/scsi_device.h>
 #include <86box/cdrom_image_backend.h>

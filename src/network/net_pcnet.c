@@ -3078,68 +3078,116 @@ pcnet_close(void *priv)
 
 // clang-format off
 static const device_config_t pcnet_pci_config[] = {
-    { "mac", "MAC Address", CONFIG_MAC, "", -1 },
-    { "",    "",                            -1 }
+    {
+        .name = "mac",
+        .description = "MAC Address",
+        .type = CONFIG_MAC,
+        .default_string = "",
+        .default_int = -1
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
 };
 
 static const device_config_t pcnet_isa_config[] = {
     {
-        "base", "Address", CONFIG_HEX16, "", 0x300, "", { 0 },
-        {
-            { "0x300", 0x300 },
-            { "0x320", 0x320 },
-            { "0x340", 0x340 },
-            { "0x360", 0x360 },
-            { ""             }
+        .name = "base",
+        .description = "Address",
+        .type = CONFIG_HEX16,
+        .default_string = "",
+        .default_int = 0x300,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "0x300", .value = 0x300 },
+            { .description = "0x320", .value = 0x320 },
+            { .description = "0x340", .value = 0x340 },
+            { .description = "0x360", .value = 0x360 },
+            { .description = ""                      }
         },
     },
     {
-        "irq", "IRQ", CONFIG_SELECTION, "", 3, "", { 0 },
-        {
-            { "IRQ 3", 3 },
-            { "IRQ 4", 4 },
-            { "IRQ 5", 5 },
-            { "IRQ 9", 9 },
-            { ""         }
+        .name = "irq",
+        .description = "IRQ",
+        .type = CONFIG_SELECTION,
+        .default_string = "",
+        .default_int = 3,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "IRQ 3", .value = 3 },
+            { .description = "IRQ 4", .value = 4 },
+            { .description = "IRQ 5", .value = 5 },
+            { .description = "IRQ 9", .value = 9 },
+            { .description = ""                  }
         },
     },
     {
-        "dma", "DMA channel", CONFIG_SELECTION, "", 5, "", { 0 },
-        {
-            { "DMA 3", 3 },
-            { "DMA 5", 5 },
-            { "DMA 6", 6 },
-            { "DMA 7", 7 },
-            { ""         }
+        .name = "dma",
+        .description = "DMA channel",
+        .type = CONFIG_SELECTION,
+        .default_string = "",
+        .default_int = 5,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "DMA 3", .value = 3 },
+            { .description = "DMA 5", .value = 5 },
+            { .description = "DMA 6", .value = 6 },
+            { .description = "DMA 7", .value = 7 },
+            { .description = ""                  }
         },
     },
-    { "mac", "MAC Address", CONFIG_MAC, "", -1 },
-    { "", "", -1 }
+    {
+        .name = "mac",
+        .description = "MAC Address",
+        .type = CONFIG_MAC,
+        .default_string = "",
+        .default_int = -1
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
 };
 
 static const device_config_t pcnet_vlb_config[] = {
     {
-        "base", "Address", CONFIG_HEX16, "", 0x300, "", { 0 },
-        {
-            { "0x300", 0x300 },
-            { "0x320", 0x320 },
-            { "0x340", 0x340 },
-            { "0x360", 0x360 },
-            { ""             }
+        .name = "base",
+        .description = "Address",
+        .type = CONFIG_HEX16,
+        .default_string = "",
+        .default_int = 0x300,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "0x300", .value = 0x300 },
+            { .description = "0x320", .value = 0x320 },
+            { .description = "0x340", .value = 0x340 },
+            { .description = "0x360", .value = 0x360 },
+            { .description = ""                      }
         },
     },
     {
-        "irq", "IRQ", CONFIG_SELECTION, "", 3, "", { 0 },
-        {
-            { "IRQ 3", 3 },
-            { "IRQ 4", 4 },
-            { "IRQ 5", 5 },
-            { "IRQ 9", 9 },
-            { ""         }
+        .name = "irq",
+        .description = "IRQ",
+        .type = CONFIG_SELECTION,
+        .default_string = "",
+        .default_int = 3,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "IRQ 3", .value = 3 },
+            { .description = "IRQ 4", .value = 4 },
+            { .description = "IRQ 5", .value = 5 },
+            { .description = "IRQ 9", .value = 9 },
+            { .description = ""                  }
         },
     },
-    { "mac", "MAC Address", CONFIG_MAC, "", -1 },
-    { "", "", -1 }
+    {
+        .name = "mac",
+        .description = "MAC Address",
+        .type = CONFIG_MAC,
+        .default_string = "",
+        .default_int = -1
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
 };
 // clang-format on
 

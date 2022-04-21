@@ -32,6 +32,7 @@
 #include <86box/timer.h>
 #include <86box/device.h>
 #include <86box/plat.h>
+#include <86box/thread.h>
 #include <86box/video.h>
 #include <86box/vid_svga.h>
 #include <86box/vid_voodoo_common.h>
@@ -1418,22 +1419,22 @@ static const device_config_t voodoo_config[] = {
     },
 #endif
     {
-        .type = -1
+        .type = CONFIG_END
     }
 // clang-format on
 };
 
 const device_t voodoo_device =
 {
-        "3DFX Voodoo Graphics",
-        "voodoo",
-        DEVICE_PCI,
-    0,
-        voodoo_init,
-        voodoo_close,
-    NULL,
-        { NULL },
-        voodoo_speed_changed,
-        voodoo_force_blit,
-        voodoo_config
+    .name = "3DFX Voodoo Graphics",
+    .internal_name = "voodoo",
+    .flags = DEVICE_PCI,
+    .local = 0,
+    .init = voodoo_init,
+    .close = voodoo_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = voodoo_speed_changed,
+    .force_redraw = voodoo_force_blit,
+    .config = voodoo_config
 };

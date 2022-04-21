@@ -5,6 +5,7 @@
 #include <inttypes.h>
 #include <86box/86box.h>
 #include <86box/plat.h>
+#include <86box/thread.h>
 
 
 typedef struct event_pthread_t

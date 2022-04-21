@@ -491,7 +491,6 @@ cmd640_init(const device_t *info)
     return dev;
 }
 
-
 const device_t ide_cmd640_vlb_device = {
     .name = "CMD PCI-0640B VLB",
     .internal_name = "ide_cmd640_vlb",

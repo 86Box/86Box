@@ -1446,16 +1446,34 @@ cmi8x38_close(void *priv)
 
 static const device_config_t cmi8x38_config[] = {
   // clang-format off
-    { "receive_input", "Receive input (MPU-401)", CONFIG_BINARY, "", 1 },
-    { "",              "",                                          -1 }
+    {
+        .name = "receive_input",
+        .description = "Receive input (MPU-401)",
+        .type = CONFIG_BINARY,
+        .default_string = "",
+        .default_int = 1
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
   // clang-format on
 };
 
 static const device_config_t cmi8738_config[] = {
   // clang-format off
-    { "six_channel",   "6CH variant (6-channel)", CONFIG_BINARY, "", 1 },
-    { "receive_input", "Receive input (MPU-401)", CONFIG_BINARY, "", 1 },
-    { "",              "",                                          -1 }
+    {
+        .name = "six_channel",
+        .description = "6CH variant (6-channel)",
+        .type = CONFIG_BINARY,
+        .default_string = "",
+        .default_int = 1
+    },
+    {
+        .name = "receive_input",
+        .description = "Receive input (MPU-401)",
+        .type = CONFIG_BINARY,
+        .default_string = "",
+        .default_int = 1
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
   // clang-format on
 };
 

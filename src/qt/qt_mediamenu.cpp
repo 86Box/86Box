@@ -190,7 +190,7 @@ void MediaMenu::cassetteMount(const QString& filename, bool wp) {
 
     if (! filename.isEmpty()) {
         QByteArray filenameBytes = filename.toUtf8();
-        strncpy(cassette_fname, filenameBytes.data(), sizeof(cassette_fname));
+        strncpy(cassette_fname, filenameBytes.data(), sizeof(cassette_fname) - 1);
         pc_cas_set_fname(cassette, cassette_fname);
     }
 
@@ -340,6 +340,9 @@ void MediaMenu::floppyExportTo86f(int i) {
 void MediaMenu::floppyUpdateMenu(int i) {
     QString name = floppyfns[i];
 
+    if (!floppyMenus.contains(i))
+        return;
+
     auto* menu = floppyMenus[i];
     auto childs = menu->children();
 
@@ -419,6 +422,8 @@ void MediaMenu::cdromReload(int i) {
 
 void MediaMenu::cdromUpdateMenu(int i) {
     QString name = cdrom[i].image_path;
+    if (!cdromMenus.contains(i))
+        return;
     auto* menu = cdromMenus[i];
     auto childs = menu->children();
 
@@ -524,6 +529,8 @@ void MediaMenu::zipReload(int i) {
 void MediaMenu::zipUpdateMenu(int i) {
     QString name = zip_drives[i].image_path;
     QString prev_name = zip_drives[i].prev_image_path;
+    if (!zipMenus.contains(i))
+        return;
     auto* menu = zipMenus[i];
     auto childs = menu->children();
 
@@ -621,6 +628,8 @@ void MediaMenu::moReload(int i) {
 void MediaMenu::moUpdateMenu(int i) {
     QString name = mo_drives[i].image_path;
     QString prev_name = mo_drives[i].prev_image_path;
+    if (!moMenus.contains(i))
+        return;
     auto* menu = moMenus[i];
     auto childs = menu->children();
 

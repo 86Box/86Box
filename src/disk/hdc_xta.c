@@ -84,9 +84,6 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING  IN ANY  WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#define __USE_LARGEFILE64
-#define _LARGEFILE_SOURCE
-#define _LARGEFILE64_SOURCE
 #include <stdarg.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -1102,34 +1099,51 @@ xta_close(void *priv)
     free(dev);
 }
 
-
 static const device_config_t wdxt150_config[] = {
 // clang-format off
     {
-        "base", "Address", CONFIG_HEX16, "", 0x0320, "", { 0 }, /*W2*/
-        {
-                        { "320H", 0x0320 },
-                        { "324H", 0x0324 },
-                        { ""             }
+        .name = "base",
+        .description = "Address",
+        .type = CONFIG_HEX16,
+        .default_string = "",
+        .default_int = 0x0320,
+        .file_filter = "",
+        .spinner = { 0 }, /*W2*/
+        .selection = {
+            { .description = "320H", .value = 0x0320 },
+            { .description = "324H", .value = 0x0324 },
+            { .description = ""                      }
         },
     },
     {
-        "irq", "IRQ", CONFIG_SELECTION, "", 5, "", { 0 }, /*W3*/
-        {
-                        { "IRQ 5", 5 },
-                        { "IRQ 4", 4 },
-                        { ""         }
+        .name = "irq",
+        .description = "IRQ",
+        .type = CONFIG_SELECTION,
+        .default_string = "",
+        .default_int = 5,
+        .file_filter = "",
+        .spinner = { 0 }, /*W3*/
+        .selection = {
+            { .description = "IRQ 5", .value = 5 },
+            { .description = "IRQ 4", .value = 4 },
+            { .description = ""                  }
         },
     },
     {
-        "bios_addr", "BIOS Address", CONFIG_HEX20, "", 0xc8000, "", { 0 }, /*W1*/
-        {
-                        { "C800H", 0xc8000 },
-                        { "CA00H", 0xca000 },
-                        { ""               }
+        .name = "bios_addr",
+        .description = "BIOS Address",
+        .type = CONFIG_HEX20,
+        .default_string = "",
+        .default_int = 0xc8000,
+        .file_filter = "",
+        .spinner = { 0 }, /*W1*/
+        .selection = {
+            { .description = "C800H", .value = 0xc8000 },
+            { .description = "CA00H", .value = 0xca000 },
+            { .description = ""                        }
         },
     },
-	{ "", "", -1 }
+    { .name = "", .description = "", .type = CONFIG_END }
 // clang-format off
 };
 

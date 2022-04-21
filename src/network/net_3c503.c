@@ -635,59 +635,88 @@ threec503_nic_close(void *priv)
     free(dev);
 }
 
-
 static const device_config_t threec503_config[] = {
 // clang-format off
     {
-        "base", "Address", CONFIG_HEX16, "", 0x300, "", { 0 },
-        {
-            { "0x250", 0x250 },
-            { "0x280", 0x280 },
-            { "0x2a0", 0x2a0 },
-            { "0x2e0", 0x2e0 },
-            { "0x300", 0x300 },
-            { "0x310", 0x310 },
-            { "0x330", 0x330 },
-            { "0x350", 0x350 },
-            { "", 0 }
+        .name = "base",
+        .description = "Address",
+        .type = CONFIG_HEX16,
+        .default_string = "",
+        .default_int = 0x300,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "0x250", .value = 0x250 },
+            { .description = "0x280", .value = 0x280 },
+            { .description = "0x2a0", .value = 0x2a0 },
+            { .description = "0x2e0", .value = 0x2e0 },
+            { .description = "0x300", .value = 0x300 },
+            { .description = "0x310", .value = 0x310 },
+            { .description = "0x330", .value = 0x330 },
+            { .description = "0x350", .value = 0x350 },
+            { .description = "",      .value =     0 }
         },
     },
     {
-        "irq", "IRQ", CONFIG_SELECTION, "", 3, "", { 0 },
-        {
-            { "IRQ 2", 2 },
-            { "IRQ 3", 3 },
-            { "IRQ 4", 4 },
-            { "IRQ 5", 5 },
-            { "", 0 }
+        .name = "irq",
+        .description = "IRQ",
+        .type = CONFIG_SELECTION,
+        .default_string = "",
+        .default_int = 3,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "IRQ 2", .value = 2 },
+            { .description = "IRQ 3", .value = 3 },
+            { .description = "IRQ 4", .value = 4 },
+            { .description = "IRQ 5", .value = 5 },
+            { .description = "",      .value = 0 }
         },
     },
     {
-        "dma", "DMA", CONFIG_SELECTION, "", 3, "", { 0 },
-        {
-            { "DMA 1", 1 },
-            { "DMA 2", 2 },
-            { "DMA 3", 3 },
-            { "", 0 }
+        .name = "dma",
+        .description = "DMA",
+        .type = CONFIG_SELECTION,
+        .default_string = "",
+        .default_int = 3,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "DMA 1", .value = 1 },
+            { .description = "DMA 2", .value = 2 },
+            { .description = "DMA 3", .value = 3 },
+            { .description = "",      .value = 0 }
         },
     },
     {
-        "mac", "MAC Address", CONFIG_MAC, "", -1, "", { 0 },
-        {
-            { "", 0 }
+        .name = "mac",
+        .description = "MAC Address",
+        .type = CONFIG_MAC,
+        .default_string = "",
+        .default_int = -1,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "", .value = 0 }
         },
     },
     {
-        "bios_addr", "BIOS address", CONFIG_HEX20, "", 0xCC000, "", { 0 },
-        {
-            { "DC00", 0xDC000 },
-            { "D800", 0xD8000 },
-            { "C800", 0xC8000 },
-            { "CC00", 0xCC000 },
-            { "", 0 }
+        .name = "bios_addr",
+        .description = "BIOS address",
+        .type = CONFIG_HEX20,
+        .default_string = "",
+        .default_int = 0xCC000,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "DC00", .value = 0xDC000 },
+            { .description = "D800", .value = 0xD8000 },
+            { .description = "C800", .value = 0xC8000 },
+            { .description = "CC00", .value = 0xCC000 },
+            { .description = "",     .value = 0 }
         },
     },
-    { "", "", -1 }
+    { .name = "", .description = "", .type = CONFIG_END }
 // clang-format off
 };
 

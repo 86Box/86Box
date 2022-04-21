@@ -265,7 +265,7 @@ draw_char_rom(herculesplus_t *dev, int x, uint8_t chr, uint8_t attr)
 static void
 draw_char_ram4(herculesplus_t *dev, int x, uint8_t chr, uint8_t attr)
 {
-    unsigned ull, val, ifg, ibg, cfg;
+    unsigned ull, val, ibg, cfg;
     const uint8_t *fnt;
     int i, elg, blk;
     int cw = HERCULESPLUS_CW;
@@ -280,17 +280,13 @@ draw_char_ram4(herculesplus_t *dev, int x, uint8_t chr, uint8_t attr)
 
     /* MDA-compatible attributes */
     ibg = 0;
-    ifg = 7;
     if ((attr & 0x77) == 0x70) {	/* Invert */
-	ifg = 0;
 	ibg = 7;
     }
     if (attr & 8)
-	ifg |= 8;			/* High intensity FG */
     if (attr & 0x80)
 	ibg |= 8;			/* High intensity BG */
     if ((attr & 0x77) == 0)		/* Blank */
-	ifg = ibg;
     ull = ((attr & 0x07) == 1) ? 13 : 0xffff;
     if (dev->crtc[HERCULESPLUS_CRTC_XMODE] & HERCULESPLUS_XMODE_90COL)
 	elg = 0;
@@ -693,21 +689,44 @@ speed_changed(void *priv)
     recalc_timings(dev);
 }
 
-
 static const device_config_t herculesplus_config[] = {
 // clang-format off
     {
-        "rgb_type", "Display type", CONFIG_SELECTION, "", 0, "", { 0 },
-        {
-            { "Default", 0 },
-            { "Green",   1 },
-            { "Amber",   2 },
-            { "Gray",    3 },
-            { ""           }
+        .name = "rgb_type",
+        .description = "Display type",
+        .type = CONFIG_SELECTION,
+        .default_int = 0,
+        .selection = {
+            {
+                .description = "Default",
+                .value = 0
+            },
+            {
+                .description = "Green",
+                .value = 1
+            },
+            {
+                .description = "Amber",
+                .value = 2
+            },
+            {
+                .description = "Gray",
+                .value = 3
+            },
+            {
+                .description = ""
+            }
         }
     },
-    { "blend", "Blend", CONFIG_BINARY, "",  1 },
-    { "",      "",                         -1 }
+    {
+        .name = "blend",
+        .description = "Blend",
+        .type = CONFIG_BINARY,
+        .default_int = 1
+    },
+    {
+        .type = CONFIG_END
+    }
 // clang-format on
 };
 

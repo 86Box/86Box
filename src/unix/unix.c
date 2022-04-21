@@ -18,6 +18,7 @@
 #include <inttypes.h>
 #include <dlfcn.h>
 #include <wchar.h>
+#include <pwd.h>
 #include <stdatomic.h>
 
 #include <86box/86box.h>
@@ -26,8 +27,10 @@
 #include <86box/keyboard.h>
 #include <86box/mouse.h>
 #include <86box/config.h>
+#include <86box/path.h>
 #include <86box/plat.h>
 #include <86box/plat_dynld.h>
+#include <86box/thread.h>
 #include <86box/device.h>
 #include <86box/gameport.h>
 #include <86box/unix_sdl.h>
@@ -35,6 +38,10 @@
 #include <86box/nvr.h>
 #include <86box/ui.h>
 #include <86box/gdbstub.h>
+
+#ifdef __APPLE__
+#include "macOSXGlue.h"
+#endif
 
 static int	first_use = 1;
 static uint64_t	StartingTime;
@@ -288,24 +295,24 @@ plat_fopen64(const char *path, const char *mode)
 }
 
 int
-plat_path_abs(char *path)
+path_abs(char *path)
 {
     return path[0] == '/';
 }
 
 void
-plat_path_normalize(char* path)
+path_normalize(char* path)
 {
     /* No-op. */
 }
 
 void
-plat_path_slash(char *path)
+path_slash(char *path)
 {
     if ((path[strlen(path)-1] != '/')) {
 	strcat(path, "/");
     }
-    plat_path_normalize(path);
+    path_normalize(path);
 }
 
 void
@@ -332,7 +339,7 @@ plat_get_basename(const char *path)
     return((char *)path);
 }
 char *
-plat_get_filename(char *s)
+path_get_filename(char *s)
 {
     int c = strlen(s) - 1;
 
@@ -347,7 +354,7 @@ plat_get_filename(char *s)
 
 
 char *
-plat_get_extension(char *s)
+path_get_extension(char *s)
 {
     int c = strlen(s) - 1;
 
@@ -365,10 +372,10 @@ plat_get_extension(char *s)
 
 
 void
-plat_append_filename(char *dest, const char *s1, const char *s2)
+path_append_filename(char *dest, const char *s1, const char *s2)
 {
     strcpy(dest, s1);
-    plat_path_slash(dest);
+    path_slash(dest);
     strcat(dest, s2);
 }
 
@@ -480,7 +487,7 @@ ui_sb_update_text()
 }
 
 void
-plat_get_dirname(char *dest, const char *path)
+path_get_dirname(char *dest, const char *path)
 {
     int c = (int)strlen(path);
     char *ptr;
@@ -753,7 +760,7 @@ plat_init_rom_paths()
     if (getenv("XDG_DATA_HOME")) {
         char xdg_rom_path[1024] = { 0 };
         strncpy(xdg_rom_path, getenv("XDG_DATA_HOME"), 1024);
-        plat_path_slash(xdg_rom_path);
+        path_slash(xdg_rom_path);
         strncat(xdg_rom_path, "86Box/", 1024);
 
         if (!plat_dir_check(xdg_rom_path))
@@ -762,7 +769,7 @@ plat_init_rom_paths()
 
         if (!plat_dir_check(xdg_rom_path))
             plat_dir_create(xdg_rom_path);
-        add_rom_path(xdg_rom_path);
+        rom_add_path(xdg_rom_path);
     } else {
         char home_rom_path[1024] = { 0 };
         snprintf(home_rom_path, 1024, "%s/.local/share/86Box/", getenv("HOME") ? getenv("HOME") : getpwuid(getuid())->pw_dir);
@@ -773,7 +780,7 @@ plat_init_rom_paths()
 
         if (!plat_dir_check(home_rom_path))
             plat_dir_create(home_rom_path);
-        add_rom_path(home_rom_path);
+        rom_add_path(home_rom_path);
     }
     if (getenv("XDG_DATA_DIRS")) {
         char* xdg_rom_paths = strdup(getenv("XDG_DATA_DIRS"));
@@ -786,23 +793,20 @@ plat_init_rom_paths()
             while ((cur_xdg_rom_path = local_strsep(&xdg_rom_paths, ";")) != NULL) {
                 char real_xdg_rom_path[1024] = { '\0' };
                 strcat(real_xdg_rom_path, cur_xdg_rom_path);
-                plat_path_slash(real_xdg_rom_path);
+                path_slash(real_xdg_rom_path);
                 strcat(real_xdg_rom_path, "86Box/roms/");
-                add_rom_path(real_xdg_rom_path);
+                rom_add_path(real_xdg_rom_path);
             }
         }
         free(xdg_rom_paths_orig);
     } else {
-        add_rom_path("/usr/local/share/86Box/roms/");
-        add_rom_path("/usr/share/86Box/roms/");
+        rom_add_path("/usr/local/share/86Box/roms/");
+        rom_add_path("/usr/share/86Box/roms/");
     }
 #else
-    char home_rom_path[1024] = { '\0' };
-    snprintf(home_rom_path, 1024, "%s/Documents/86Box/", getenv("HOME") ? getenv("HOME") : getpwuid(getuid())->pw_dir);
-    plat_dir_create(home_rom_path);
-    strcat(home_rom_path, "roms/");
-    plat_dir_create(home_rom_path);
-    add_rom_path(home_rom_path);
+    char default_rom_path[1024] = { '\0 '};
+    getDefaultROMPath(default_rom_path);
+    rom_path_add(default_rom_path);
 #endif
 }
 

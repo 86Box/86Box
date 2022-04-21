@@ -2055,46 +2055,54 @@ es1371_speed_changed(void *p)
 static const device_config_t es1371_config[] = {
 // clang-format off
     {
-    .name = "codec",
-    .description = "CODEC",
-    .type = CONFIG_SELECTION,
-    .selection = {
-        {
-            .description = "Asahi Kasei AK4540",
-            .value = AC97_CODEC_AK4540
-        }, {
-            .description = "Crystal CS4297",
-            .value = AC97_CODEC_CS4297
-        }, {
-            .description = "Crystal CS4297A",
-            .value = AC97_CODEC_CS4297A
-        }, {
-            .description = "SigmaTel STAC9708",
-            .value = AC97_CODEC_STAC9708
-        }, {
-            .description = "SigmaTel STAC9721",
-            .value = AC97_CODEC_STAC9721
-        }
-    },
-    .default_int = AC97_CODEC_CS4297A
+        .name = "codec",
+        .description = "CODEC",
+        .type = CONFIG_SELECTION,
+        .selection = {
+            {
+                .description = "Asahi Kasei AK4540",
+                .value = AC97_CODEC_AK4540
+            },
+            {
+                .description = "Crystal CS4297",
+                .value = AC97_CODEC_CS4297
+            },
+            {
+                .description = "Crystal CS4297A",
+                .value = AC97_CODEC_CS4297A
+            },
+            {
+                .description = "SigmaTel STAC9708",
+                .value = AC97_CODEC_STAC9708
+            },
+            {
+                .description = "SigmaTel STAC9721",
+                .value = AC97_CODEC_STAC9721
+            }
+        },
+        .default_int = AC97_CODEC_CS4297A
     },
     {
-        "receive_input", "Receive input (MIDI)", CONFIG_BINARY, "", 1
+        .name = "receive_input",
+        .description = "Receive input (MIDI)",
+        .type = CONFIG_BINARY,
+        .default_string = "",
+        .default_int = 1
     },
-    {
-    "", "", -1
-    }
+    { .name = "", .description = "", .type = CONFIG_END }
 // clang-format on
 };
 
 static const device_config_t es1371_onboard_config[] = {
 // clang-format off
     {
-        "receive_input", "Receive input (MIDI)", CONFIG_BINARY, "", 1
+        .name = "receive_input",
+        .description = "Receive input (MIDI)",
+        .type = CONFIG_BINARY,
+        .default_string = "",
+        .default_int = 1
     },
-    {
-    "", "", -1
-    }
+    { .name = "", .description = "", .type = CONFIG_END }
 // clang-format on
 };
 

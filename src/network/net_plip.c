@@ -490,7 +490,6 @@ plip_close(void *priv)
     free(priv);
 }
 
-
 const lpt_device_t lpt_plip_device = {
     .name = "Parallel Line Internet Protocol",
     .internal_name = "plip",

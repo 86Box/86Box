@@ -63,6 +63,7 @@
 #include <86box/mem.h>
 #include <86box/rom.h>
 #include <86box/pit.h>
+#include <86box/path.h>
 #include <86box/plat.h>
 #include <86box/plat_dynld.h>
 #include <86box/ui.h>
@@ -88,6 +89,8 @@
 
 #ifdef _WIN32
 # define PATH_FREETYPE_DLL	"freetype.dll"
+#elif defined __APPLE__
+# define PATH_FREETYPE_DLL	"libfreetype.dylib"
 #else
 # define PATH_FREETYPE_DLL	"libfreetype.so.6"
 #endif
@@ -594,7 +597,7 @@ update_font(escp_t *dev)
 
     /* Create a full pathname for the ROM file. */
     strcpy(path, dev->fontpath);
-    plat_path_slash(path);
+    path_slash(path);
     strcat(path, fn);
 
     escp_log("Temp file=%s\n", path);
@@ -2060,14 +2063,14 @@ escp_init(void *lpt)
     }
 
     strcpy(dev->fontpath, exe_path);
-    plat_path_slash(dev->fontpath);
+    path_slash(dev->fontpath);
     strcat(dev->fontpath, "roms/printer/fonts/");
 
     /* Create the full path for the page images. */
-    plat_append_filename(dev->pagepath, usr_path, "printer");
+    path_append_filename(dev->pagepath, usr_path, "printer");
     if (! plat_dir_check(dev->pagepath))
         plat_dir_create(dev->pagepath);
-    plat_path_slash(dev->pagepath);
+    path_slash(dev->pagepath);
 
     dev->page_width = PAGE_WIDTH;
     dev->page_height = PAGE_HEIGHT;
