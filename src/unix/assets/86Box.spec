@@ -12,6 +12,7 @@
 # After a successful build, you can install the RPMs as follows:
 #  sudo dnf install RPMS/$(uname -m)/86Box-3* RPMS/noarch/86Box-roms*
 
+%global date 2022-04-22
 %global romver 20220319
 
 Name:		86Box
@@ -27,6 +28,7 @@ Source1:	https://github.com/86Box/roms/archive/refs/tags/%{romver}.tar.gz
 BuildRequires: cmake
 BuildRequires: desktop-file-utils
 BuildRequires: extra-cmake-modules
+BuildRequires: freetype-devel
 BuildRequires: gcc-c++
 BuildRequires: libFAudio-devel
 BuildRequires: libappstream-glib
@@ -84,7 +86,7 @@ Collection of ROMs for use with 86Box.
 # install icons
 for i in 48 64 72 96 128 192 256 512; do
   mkdir -p $RPM_BUILD_ROOT%{_datadir}/icons/hicolor/${i}x${i}/apps
-  cp src/unix/assets/${i}x${i}/net.86box.86Box.png $RPM_BUILD_ROOT%{_datadir}/icons/hicolor/${i}x${i}/apps/net.86box.86Box.png
+  cp src/unix/assets/${i}x${i}/net.86box.86Box.png $RPM_BUILD_ROOT%{_datadir}/icons/hicolor/${i}x${i}/apps
 done
 
 # install desktop file
@@ -93,6 +95,7 @@ desktop-file-install --dir=%{buildroot}%{_datadir}/applications src/unix/assets/
 # install metadata
 mkdir -p %{buildroot}%{_metainfodir}
 cp src/unix/assets/net.86box.86Box.metainfo.xml %{buildroot}%{_metainfodir}
+sed -i 's/<release version.*/<release version="%{version}" date="%{date}"\/>/' %{buildroot}%{_metainfodir}/net.86box.86Box.metainfo.xml
 appstream-util validate-relax --nonet %{buildroot}%{_metainfodir}/net.86box.86Box.metainfo.xml
 
 # install roms
@@ -119,5 +122,5 @@ popd
 %{_bindir}/roms
 
 %changelog
-* Sat Mar 19 2022 Robert de Rooy <robert.de.rooy[AT]gmail.com> 3.3-1
-- Initial RPM release
+* Fri Apr 22 2022 Robert de Rooy <robert.de.rooy[AT]gmail.com> 3.4.1-1
+- Bump release
