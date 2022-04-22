@@ -16,7 +16,7 @@
 %global romver 20220319
 
 Name:		86Box
-Version:	3.4
+Version:	3.4.1
 Release:	1%{?dist}
 Summary:	Classic PC emulator
 License:	GPLv2+
