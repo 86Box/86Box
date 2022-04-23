@@ -36,6 +36,13 @@ extern "C"
 #include <86box/midi_rtmidi.h>
 #include <86box/config.h>
 
+// Disable c99-designator to avoid the warnings in rtmidi_*_device
+#ifdef __clang__
+#if __has_warning("-Wc99-designator")
+#pragma clang diagnostic ignored "-Wc99-designator"
+#endif
+#endif
+
 static RtMidiOut *  midiout = nullptr;
 static RtMidiIn *   midiin = nullptr;
 static int          midi_out_id = 0, midi_in_id = 0;
