@@ -6,6 +6,7 @@
 #include <QWindow>
 
 #include <array>
+#include <stdexcept>
 
 #include "qt_mainwindow.hpp"
 #include "qt_vulkanrenderer.hpp"

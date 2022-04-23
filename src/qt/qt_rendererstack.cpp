@@ -31,6 +31,8 @@
 
 #include "evdev_mouse.hpp"
 
+#include <stdexcept>
+
 #include <QScreen>
 #include <QMessageBox>
 
