@@ -65,11 +65,10 @@ public:
             rendererWindow->onResize(width, height);
     }
 
-    void (*mouse_init)() = nullptr;
-    void (*mouse_poll)() = nullptr;
-    void (*mouse_capture)(QWindow *window) = nullptr;
-    void (*mouse_uncapture)() = nullptr;
-    void (*mouse_exit)() = nullptr;
+    void (*mouse_poll_func)() = nullptr;
+    void (*mouse_capture_func)(QWindow *window) = nullptr;
+    void (*mouse_uncapture_func)() = nullptr;
+    void (*mouse_exit_func)() = nullptr;
 
 signals:
     void blitToRenderer(int buf_idx, int x, int y, int w, int h);

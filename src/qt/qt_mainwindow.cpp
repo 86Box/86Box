@@ -207,12 +207,12 @@ MainWindow::MainWindow(QWidget *parent) :
         qt_mouse_capture(mouse_capture);
         if (mouse_capture) {
             this->grabKeyboard();
-            if (ui->stackedWidget->mouse_capture)
-                ui->stackedWidget->mouse_capture(this->windowHandle());
+            if (ui->stackedWidget->mouse_capture_func)
+                ui->stackedWidget->mouse_capture_func(this->windowHandle());
         } else {
             this->releaseKeyboard();
-            if (ui->stackedWidget->mouse_uncapture)
-                ui->stackedWidget->mouse_uncapture();
+            if (ui->stackedWidget->mouse_uncapture_func)
+                ui->stackedWidget->mouse_uncapture_func();
         }
     });
 
@@ -514,11 +514,11 @@ void MainWindow::closeEvent(QCloseEvent *event) {
     }
     qt_nvr_save();
     config_save();
-    if (ui->stackedWidget->mouse_exit)
-        ui->stackedWidget->mouse_exit();
+
+    if (ui->stackedWidget->mouse_exit_func)
+        ui->stackedWidget->mouse_exit_func();
 
     ui->stackedWidget->switchRenderer(RendererStack::Renderer::Software);
-
     event->accept();
 }
 
