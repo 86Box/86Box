@@ -507,7 +507,7 @@ usage:
 			rom_add_path(rpath);
 		} else if (!strcasecmp(argv[c], "--config") ||
 			   !strcasecmp(argv[c], "-C")) {
-			if ((c+1) == argc) goto usage;
+			if ((c+1) == argc || plat_dir_check(argv[c + 1])) goto usage;
 
 			cfg = argv[++c];
 		} else if (!strcasecmp(argv[c], "--vmname") ||
