@@ -145,6 +145,12 @@ add_library(ui STATIC
     qt_unixmanagerfilter.cpp
     qt_unixmanagerfilter.hpp
 
+    qt_vulkanwindowrenderer.hpp
+    qt_vulkanwindowrenderer.cpp
+
+    qt_vulkanrenderer.hpp
+    qt_vulkanrenderer.cpp
+
     ../qt_resources.qrc
 )
 
