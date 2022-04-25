@@ -72,7 +72,7 @@ RendererStack::RendererStack(QWidget *parent)
         this->mouse_poll_func = wl_mouse_poll;
         this->mouse_capture_func = wl_mouse_capture;
         this->mouse_uncapture_func = wl_mouse_uncapture;
-    } else
+    }
 #    endif
 #    ifdef EVDEV_INPUT
     if (!stricmp(mouse_type, "evdev")) {
