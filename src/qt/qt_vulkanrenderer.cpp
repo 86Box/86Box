@@ -101,7 +101,7 @@ bool VulkanRenderer2::createTexture()
     QVulkanFunctions *f = m_window->vulkanInstance()->functions();
     VkDevice dev = m_window->device();
 
-    m_texFormat = VK_FORMAT_B8G8R8A8_SRGB;
+    m_texFormat = VK_FORMAT_B8G8R8A8_UNORM;
 
     // Now we can either map and copy the image data directly, or have to go
     // through a staging buffer to copy and convert into the internal optimal
