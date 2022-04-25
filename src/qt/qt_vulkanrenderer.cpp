@@ -34,6 +34,7 @@
 #include <QCoreApplication>
 #include <QFile>
 #include "qt_vulkanrenderer.hpp"
+#if QT_CONFIG(vulkan)
 #include <QVulkanFunctions>
 
 extern "C"
@@ -1003,3 +1004,4 @@ void VulkanRenderer2::startNextFrame()
     m_window->frameReady();
     m_window->requestUpdate(); // render continuously, throttled by the presentation rate
 }
+#endif

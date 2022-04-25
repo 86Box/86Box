@@ -245,6 +245,7 @@ void
 RendererStack::createRenderer(Renderer renderer)
 {
     switch (renderer) {
+        default:
         case Renderer::Software:
             {
                 auto sw        = new SoftwareRenderer(this);
@@ -296,6 +297,7 @@ RendererStack::createRenderer(Renderer renderer)
                 current.reset(this->createWindowContainer(hw, this));
                 break;
             }
+#if QT_CONFIG(vulkan)
         case Renderer::Vulkan:
         {
             this->createWinId();
@@ -331,6 +333,7 @@ RendererStack::createRenderer(Renderer renderer)
             current.reset(this->createWindowContainer(hw, this));
             break;
         }
+#endif
     }
 
     current->setFocusPolicy(Qt::NoFocus);

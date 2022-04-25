@@ -3,6 +3,7 @@
 
 #include <QVulkanWindow>
 
+#if QT_CONFIG(vulkan)
 #include "qt_renderercommon.hpp"
 #include "qt_vulkanrenderer.hpp"
 
@@ -33,5 +34,6 @@ private:
 
     VulkanRenderer2* renderer;
 };
+#endif
 
 #endif // VULKANWINDOWRENDERER_HPP

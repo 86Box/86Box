@@ -35,6 +35,7 @@
 #include <QVulkanWindow>
 #include <QImage>
 
+#if QT_CONFIG(vulkan)
 #include "qt_vulkanwindowrenderer.hpp"
 
 class VulkanRenderer2 : public QVulkanWindowRenderer
@@ -91,3 +92,4 @@ private:
     QMatrix4x4 m_proj;
     float m_rotation = 0.0f;
 };
+#endif

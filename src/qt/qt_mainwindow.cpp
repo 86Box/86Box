@@ -280,6 +280,11 @@ MainWindow::MainWindow(QWidget *parent) :
         ui->actionOpenGL_3_0_Core->setVisible(false);
     }
 
+#if !QT_CONFIG(vulkan)
+    if (vid_api == 4) vid_api = 0;
+    ui->actionVulkan->setVisible(false);
+#endif
+
     QActionGroup* actGroup = nullptr;
 
     actGroup = new QActionGroup(this);

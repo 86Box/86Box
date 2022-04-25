@@ -5,6 +5,7 @@
 #include <QMessageBox>
 #include <QWindow>
 
+#if QT_CONFIG(vulkan)
 #include <array>
 #include <stdexcept>
 
@@ -847,3 +848,4 @@ std::vector<std::tuple<uint8_t *, std::atomic_flag *>> VulkanWindowRenderer::get
 {
     return std::vector{std::make_tuple((uint8_t*)renderer->mappedPtr, &this->buf_usage[0])};
 }
+#endif
