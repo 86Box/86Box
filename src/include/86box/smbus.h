@@ -28,6 +28,7 @@
 
 enum {
     SMBUS_PIIX4 = 0,
+    SMBUS_INTEL_ICH2,
     SMBUS_VIA
 };
 
@@ -54,7 +55,8 @@ typedef struct {
     void	*i2c;
 } smbus_ali7101_t;
 
-
+extern void smbus_piix4_get_irq(uint8_t irq, smbus_piix4_t *dev);
+extern void smbus_piix4_smi_en(uint8_t smi_en, smbus_piix4_t *dev);
 extern void	smbus_piix4_remap(smbus_piix4_t *dev, uint16_t new_io_base, uint8_t enable);
 extern void	smbus_piix4_setclock(smbus_piix4_t *dev, int clock);
 
@@ -63,6 +65,7 @@ extern void	smbus_ali7101_remap(smbus_ali7101_t *dev, uint16_t new_io_base, uint
 
 #ifdef EMU_DEVICE_H
 extern const device_t piix4_smbus_device;
+extern const device_t intel_ich2_smbus_device;
 extern const device_t via_smbus_device;
 
 extern const device_t ali7101_smbus_device;

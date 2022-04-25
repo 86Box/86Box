@@ -21,6 +21,7 @@
 #include <86box/hwm.h>
 #include <86box/keyboard.h>
 #include <86box/lpt.h>
+#include <86box/nsc366.h>
 #include <86box/serial.h>
 #include <86box/fdd.h>
 #include <86box/fdc.h>
@@ -29,11 +30,11 @@
 
 #include <86box/sio.h>
 
-
 typedef struct
 {
     fdc_t *fdc;
     serial_t *uart[2];
+    nsc366_hwm_t *hwm;
 
     uint8_t index, ldn, sio_config[14],
     ld_activate[15],
@@ -116,6 +117,39 @@ nsc366_uart(int uart, nsc366_t *dev)
 }
 
 static void
+nsc366_fscm(nsc366_t *dev)
+{
+    uint16_t base = (dev->io_base0[0][9] << 8) | (dev->io_base0[1][9] & 0xf0);
+
+    if(dev->ld_activate[9])
+        nsc366_log("NSC 366-Fan Control: Reconfigured with Base 0x%04x\n", base);
+
+    nsc366_update_fscm_io(dev->ld_activate[9], base, dev->hwm);
+}
+
+static void
+nsc366_vlm(nsc366_t *dev)
+{
+    uint16_t base = (dev->io_base0[0][13] << 8) | (dev->io_base0[1][13] & 0xf0);
+
+    if(dev->ld_activate[13])
+        nsc366_log("NSC 366-Voltage Monitor: Reconfigured with Base 0x%04x\n", base);
+
+    nsc366_update_vlm_io(dev->ld_activate[13], base, dev->hwm);
+}
+
+static void
+nsc366_tms(nsc366_t *dev)
+{
+    uint16_t base = (dev->io_base0[0][14] << 8) | (dev->io_base0[1][14] & 0xf0);
+
+    if(dev->ld_activate[14])
+        nsc366_log("NSC 366-Temperature Monitor: Reconfigured with Base 0x%04x\n", base);
+
+    nsc366_update_tms_io(dev->ld_activate[14], base, dev->hwm);
+}
+
+static void
 nsc366_ldn_redirect(nsc366_t *dev)
 {
 switch(dev->ldn)
@@ -130,6 +164,18 @@ switch(dev->ldn)
 
     case 2 ... 3:
         nsc366_uart(dev->ldn == 3, dev);
+    break;
+
+    case 9:
+        nsc366_fscm(dev);
+    break;
+
+    case 13:
+        nsc366_vlm(dev);
+    break;
+
+    case 14:
+        nsc366_tms(dev);
     break;
 }
 }
@@ -203,7 +249,7 @@ nsc366_write(uint16_t addr, uint8_t val, void *priv)
         
         /* Logical Devices */
         case 0x30:
-            dev->ld_activate[dev->ldn] = val & 1;
+            dev->ld_activate[dev->ldn] = (val & 1) && (dev->sio_config[0] & 1);
             nsc366_ldn_redirect(dev);
         break;
 
@@ -251,7 +297,45 @@ nsc366_read(uint16_t addr, void *priv)
 {
     nsc366_t *dev = (nsc366_t *)priv;
 
-    return 0;
+    if(addr & 1)
+    {
+        switch(dev->index)
+        {
+            case 0x07:
+                return dev->ldn;
+
+            case 0x20 ... 0x2d:
+                return dev->sio_config[dev->index - 0x20];
+
+            case 0x30:
+                return dev->ld_activate[dev->ldn];
+
+            case 0x60 ... 0x61:
+                return dev->io_base0[dev->index & 1][dev->ldn];
+        
+            case 0x62 ... 0x63:
+                return dev->io_base1[dev->index & 1][dev->ldn];
+
+            case 0x70:
+                return dev->int_num_irq[dev->ldn];
+
+            case 0x71:
+                return dev->irq[dev->ldn];
+
+            case 0x74: 
+                return dev->dma_select0[dev->ldn];
+
+            case 0x75:
+                return dev->dma_select1[dev->ldn];
+
+            case 0xf0 ... 0xf2:
+                return dev->dev_specific_config[dev->index - 0xf0][dev->ldn];
+
+            default:
+                return 0;
+        }
+    }
+    else return dev->index;
 }
 
 
@@ -341,9 +425,27 @@ nsc366_reset(void *priv)
     dev->dma_select1[7] = 0x04;
 
     /* ACB */
-    dev->irq[7] = 0x03;
-    dev->dma_select0[7] = 0x04;
-    dev->dma_select1[7] = 0x04;
+    dev->irq[8] = 0x03;
+    dev->dma_select0[8] = 0x04;
+    dev->dma_select1[8] = 0x04;
+
+    /* Fan Speed Monitor & Control */
+    dev->irq[9] = 0x03;
+    dev->dma_select0[9] = 0x04;
+    dev->dma_select1[9] = 0x04;
+    nsc366_fscm(dev);
+
+    /* Voltage Level Monitor */
+    dev->irq[13] = 0x03;
+    dev->dma_select0[13] = 0x04;
+    dev->dma_select1[13] = 0x04;
+    nsc366_vlm(dev);
+
+    /* Temperature Monitor */
+    dev->irq[14] = 0x03;
+    dev->dma_select0[14] = 0x04;
+    dev->dma_select1[14] = 0x04;
+    nsc366_tms(dev);
 }
 
 
@@ -366,6 +468,9 @@ nsc366_init(const device_t *info)
 
     /* FDC */
     dev->fdc = device_add(&fdc_at_nsc_device);
+
+    /* Hardware Monitor Setup */
+    dev->hwm = device_add(&nsc366_hwm_device);
 
     /* Keyboard Controller */
     device_add(&keyboard_ps2_ami_pci_device);

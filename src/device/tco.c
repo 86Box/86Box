@@ -45,8 +45,15 @@ tco_log(const char *fmt, ...)
 #endif
 
 void
+tco_timer_handler(void *priv)
+{
+pclog("Timing\n");
+}
+
+void
 tco_irq_update(tco_t *dev, uint16_t new_irq)
 {
+    tco_log("TCO: Update IRQ to %d.\n", new_irq);
     dev->tco_irq = new_irq;
 }
 
@@ -91,10 +98,15 @@ tco_write(uint16_t addr, uint8_t val, tco_t *dev)
         break;
 
         case 0x09:
-            dev->regs[addr] = 0x0f;
+            if(val & 1) {
+                if(!nmi) /* If we're already on NMI */
+                    nmi = 1;
 
-            //if(val & 1)
-            //    nmi = 1;
+                dev->regs[addr] = (dev->regs[addr] & 1) | val;
+                dev->regs[addr] &= val;
+            }
+            else
+                dev->regs[addr] = 0x0f;
         break;
 
         case 0x0a:
@@ -129,8 +141,12 @@ static void
 tco_reset(void *priv)
 {
     tco_t *dev = (tco_t *) priv;
+    memset(dev->regs, 0, sizeof(dev->regs));
 
     dev->tco_irq = 9;
+
+    dev->regs[0x01] = 0x04;
+    dev->regs[0x10] = 0x03;
 }
 
 
@@ -149,7 +165,10 @@ tco_init(const device_t *info)
     tco_t *dev = (tco_t *) malloc(sizeof(tco_t));
     memset(dev, 0, sizeof(tco_t));
 
+//    timer_add(dev->tco_timer, tco_timer_handler, dev, 0);
+
     tco_reset(dev);
+
     return dev;
 }
 

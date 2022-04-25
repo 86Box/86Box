@@ -106,10 +106,11 @@ switch(val)
 static void
 intel_ich2_pirq_update(int reset, int addr, uint8_t val)
 {
-    int pirq = ((addr >= 0x68) ? (addr - 0x63) : (addr - 0x59)) & 0xff;
+    int pirq = (addr >= 0x68) ? (addr - 0x63) : (addr - 0x5f);
+
     if(((val & 0x80) != 0x80) && !reset) {                                             /* 86Box doesn't have an APIC yet.                          */ 
         intel_ich2_log("Intel ICH2 LPC: Update PIRQ %c to IRQ %d\n", '@' + pirq, val); /* Under normal circumstances on an APIC enabled motherboard*/
-        pci_set_irq_routing(pirq, intel_ich2_pirq_table(val));                         /* this remains disabled and the IRQ is handed by the APIC  */  
+        pci_set_irq_routing(pirq, intel_ich2_pirq_table(val));                         /* this remains disabled and the IRQ are handed by the APIC */  
     }                                                                                  /* itself.                                                  */
     else if(reset)
         for(int i = 1; i <= 8; i++)
@@ -154,15 +155,8 @@ if(dev->pci_conf[0][0xf2] & 0x10) {
 static void
 intel_ich2_ide_setup(intel_ich2_t *dev)
 {
-    uint16_t bm_base = (dev->pci_conf[1][0x21] & 0xf0) | (dev->pci_conf[1][0x20] & 0xf0);
-    int bm_enable = ((dev->pci_conf[1][0x04] & 0x05) == 0x05);
-
     ide_pri_disable();
     ide_sec_disable();
-
-    intel_ich2_log("Intel ICH2 IDE: IDE Bus Mastering is %s.\n", bm_enable ? "Enabled" : "Disabled");
-    sff_bus_master_handler(dev->ide_drive[0], bm_enable, bm_base);
-    sff_bus_master_handler(dev->ide_drive[1], bm_enable, bm_base);
 
     intel_ich2_log("Intel ICH2 IDE: Primary Channel is %s.\n", !!(dev->pci_conf[1][0x41] & 0x80) ? "Enabled" : "Disabled");
     if(dev->pci_conf[1][0x41] & 0x80) {
@@ -175,6 +169,14 @@ intel_ich2_ide_setup(intel_ich2_t *dev)
     }
 }
 
+static void
+intel_ich2_bus_master_setup(intel_ich2_t *dev)
+{
+    uint16_t bm_base = ((dev->pci_conf[1][0x21] & 0xf0) << 8) | (dev->pci_conf[1][0x20] & 0xf0);
+    intel_ich2_log("Intel ICH2 IDE: IDE Bus Master address is 0x%04x.\n", bm_base);
+    sff_bus_master_handler(dev->ide_drive[0], dev->pci_conf[1][0x04] & 1, bm_base);
+    sff_bus_master_handler(dev->ide_drive[1], dev->pci_conf[1][0x04] & 1, bm_base + 8);
+}
 /* USB Controller functions */
 static void
 intel_ich2_usb_setup(int func, intel_ich2_t* dev)
@@ -206,6 +208,18 @@ intel_ich2_write(int func, int addr, uint8_t val, void *priv)
         intel_ich2_log("Intel ICH2 LPC: dev->regs[%02x] = %02x\n", addr, val);
         switch(addr)
         {
+            case 0x04:
+                dev->pci_conf[func][addr] = (val & 0x40) | 0x0f;
+            break;
+
+            case 0x05:
+                dev->pci_conf[func][addr] = val & 0x01;
+            break;
+
+            case 0x07:
+                dev->pci_conf[func][addr] &= val & 0xf9;
+            break;
+
             case 0x40 ... 0x41:
                 dev->pci_conf[func][addr] = val & ((addr & 1) ? 0xff : (0x80 | 1));
                 intel_ich2_acpi_setup(dev);
@@ -224,12 +238,41 @@ intel_ich2_write(int func, int addr, uint8_t val, void *priv)
 
             case 0x54:
                 dev->pci_conf[func][addr] = val & 0x0f;
+                intel_ich2_tco_interrupt(dev);
+            break;
+
+            case 0x58 ... 0x59:
+                dev->pci_conf[func][addr] = val & ((addr & 1) ? 0xff : (0xc0 | 1));
+            break;
+
+            case 0x5c:
+                dev->pci_conf[func][addr] = val & 0x10;
             break;
 
             case 0x60 ... 0x63:
             case 0x68 ... 0x6b:
                 dev->pci_conf[func][addr] = val & 0x8f;
                 intel_ich2_pirq_update(0, addr, val);
+            break;
+
+            case 0x64:
+                dev->pci_conf[func][addr] = val;
+            break;
+
+            case 0x88:
+                dev->pci_conf[func][addr] = val & 6;
+            break;
+
+            case 0x8a:
+                dev->pci_conf[func][addr] &= val & 6;
+            break;
+
+            case 0x90:
+                dev->pci_conf[func][addr] = val;
+            break;
+
+            case 0x91:
+                dev->pci_conf[func][addr] = val & 0xfc;
             break;
 
             case 0xd0:
@@ -240,18 +283,74 @@ intel_ich2_write(int func, int addr, uint8_t val, void *priv)
                 dev->pci_conf[func][addr] = val & 0x38; /* Brute force APIC support as disabled */
             break;
 
+            case 0xd3:
+                dev->pci_conf[func][addr] = val & 0x03;
+            break;
+
+            case 0xd4:
+                dev->pci_conf[func][addr] = val & 0x02;
+            break;
+
+            case 0xd5:
+                dev->pci_conf[func][addr] = val & 0x3f;
+            break;
+
             case 0xd8:
                 dev->pci_conf[func][addr] = val & 0x1c;
                 intel_ich2_nvr_handler(dev);
             break;
 
+            case 0xe0:
+                dev->pci_conf[func][addr] = val & 0x77;
+            break;
+
+            case 0xe1:
+                dev->pci_conf[func][addr] = val & 0x13;
+            break;
+
+            case 0xe2:
+                dev->pci_conf[func][addr] = val & 0x3b;
+            break;
+
+            case 0xe3:
+                dev->pci_conf[func][addr] = val;
+            break;
+
+            case 0xe4:
+                dev->pci_conf[func][addr] = val & 0x81;
+            break;
+
+            case 0xe5 ... 0xe6:
+                dev->pci_conf[func][addr] = val;
+            break;
+
+            case 0xe7:
+                dev->pci_conf[func][addr] = val & 0x3f;
+            break;
+
+            case 0xe8 ... 0xeb:
+                dev->pci_conf[func][addr] = val;
+            break;
+
+            case 0xec:
+                dev->pci_conf[func][addr] = val & 0xf1;
+            break;
+
+            case 0xed:
+                dev->pci_conf[func][addr] = val;
+            break;
+
+            case 0xee ... 0xef:
+                dev->pci_conf[func][addr] = val;
+            break;
+
+            case 0xf0:
+                dev->pci_conf[func][addr] = val & 0x0f;
+            break;
+
             case 0xf2 ... 0xf3:
                 dev->pci_conf[func][addr] = val & ((addr & 1) ? 0x01 : 0xfe);
                 intel_ich2_function_disable(dev);
-            break;
-
-            default:
-                dev->pci_conf[func][addr] = val;
             break;
         }
     }
@@ -262,11 +361,12 @@ intel_ich2_write(int func, int addr, uint8_t val, void *priv)
             case 0x04:
                 dev->pci_conf[func][addr] = val & 5;
                 intel_ich2_ide_setup(dev);
+                intel_ich2_bus_master_setup(dev);
             break;
 
             case 0x20 ... 0x21:
                 dev->pci_conf[func][addr] = val & ((addr & 1) ? 0xff : (0xf0 | 1));
-                intel_ich2_ide_setup(dev);
+                intel_ich2_bus_master_setup(dev);
             break;
 
             case 0x40 ... 0x43:
@@ -316,9 +416,15 @@ intel_ich2_write(int func, int addr, uint8_t val, void *priv)
                 intel_ich2_smbus_setup(dev);
             break;
 
+            case 0x3c:
+                dev->pci_conf[func][addr] = val;
+                smbus_piix4_get_irq(val, dev->smbus);
+            break;
+
             case 0x40:
                 dev->pci_conf[func][addr] = val & 7;
                 intel_ich2_smbus_setup(dev);
+                smbus_piix4_smi_en(!!(val & 2), dev->smbus);
             break;
 
             default:
@@ -550,7 +656,7 @@ intel_ich2_init(const device_t *info)
     device_add(&intel_ich2_hub_device);
 
     /* SMBus */
-    dev->smbus = device_add(&piix4_smbus_device);
+    dev->smbus = device_add(&intel_ich2_smbus_device);
 
     /* SFF Compatible IDE Drives */
     dev->ide_drive[0] = device_add_inst(&sff8038i_device, 1);

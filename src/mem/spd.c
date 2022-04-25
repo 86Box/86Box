@@ -649,14 +649,14 @@ spd_write_drbs_intel_mch(uint8_t *regs)
     /* Write DRBs for each row. */
     for (int slot = 0; slot < 3; slot++) {
         size = spd_modules[slot]->row1 + spd_modules[slot]->row2;
-        pclog("Intel MCH: Registering Slot %d with size %dMB.\n", slot, size);
+        spd_log("Intel MCH: Registering Slot %d with size %dMB.\n", slot, size);
 
         /* Calculate Size. Nullify if the size is illegal. */
         switch(size)
         {
             default:
                 reg_apply = 0;
-                pclog("Illegal Size on Slot %d. Size not divisible by 32.\n", slot);
+                spd_log("Illegal Size on Slot %d. Size not divisible by 32.\n", slot);
             break;
 
             case 32:

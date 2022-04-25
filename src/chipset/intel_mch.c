@@ -25,7 +25,7 @@
 #include <86box/smram.h>
 #include <86box/spd.h>
 #include <86box/chipset.h>
-#define ENABLE_INTEL_MCH_LOG 1
+
 #ifdef ENABLE_INTEL_MCH_LOG
 int intel_mch_do_log = ENABLE_INTEL_MCH_LOG;
 static void
@@ -46,8 +46,27 @@ intel_mch_log(const char *fmt, ...)
 typedef struct intel_mch_t
 {
     uint8_t pci_conf[256];
-    smram_t *lsmm_segment;
+    smram_t *lsmm_segment, *h_segment, *usmm_segment;
 } intel_mch_t;
+
+static void
+intel_usmm_segment_recalc(intel_mch_t *dev, uint8_t val)
+{
+    intel_mch_log("Intel MCH: USMM update to status %d\n", val); /* Check the i815EP datasheet for status */
+
+    if(val != 0)
+        smram_enable(dev->h_segment, 0xfeea0000, 0x000a0000, 0x20000, 0, 1);
+    else
+        smram_disable(dev->h_segment);
+
+    if(val >= 2) { /* TOM recalc based on intel_4x0.c by OBattler */
+    uint32_t tom = (mem_size << 10);
+    mem_set_mem_state_smm(tom, 0x100000, MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
+    uint32_t size = (val != 3) ? 0x100000 : 0x80000;
+    smram_enable(dev->usmm_segment, tom + 0x10000000, tom, size, 0, 1);
+    mem_set_mem_state_smm(tom, size, MEM_READ_EXTANY | MEM_WRITE_EXTANY);
+    } else smram_disable(dev->usmm_segment);
+}
 
 static void
 intel_lsmm_segment_recalc(intel_mch_t *dev, uint8_t val)
@@ -97,14 +116,45 @@ intel_mch_write(int func, int addr, uint8_t val, void *priv)
 
     switch(addr)
     {
+        case 0x05:
+            dev->pci_conf[addr] = val & 3;
+        break;
+
+        case 0x07:
+            dev->pci_conf[addr] &= val & 0x70;
+        break;
+
+        case 0x2c ... 0x2f:
+            if(dev->pci_conf[addr] != 0)
+                dev->pci_conf[addr] = val;
+        break;
+ 
+        case 0x13:
+            dev->pci_conf[addr] = val & 0xfe;
+        break;
+
+        case 0x50:
+            dev->pci_conf[addr] = val & 0xdc;
+        break;
+
         case 0x51:
             dev->pci_conf[addr] = val & 2; // Brute force to AGP Mode
         break;
 
         case 0x52:
         case 0x54:
-            dev->pci_conf[addr] = val & ((addr & 4) ? 0x0f : 0xff);
-            spd_write_drbs_intel_mch(dev->pci_conf);
+            if (!(dev->pci_conf[0x70] & 2)) {
+                dev->pci_conf[addr] = val & ((addr & 4) ? 0x0f : 0xff);
+                spd_write_drbs_intel_mch(dev->pci_conf);
+            }
+        break;
+
+        case 0x53:
+            dev->pci_conf[addr] = val;
+        break;
+
+        case 0x58:
+            dev->pci_conf[addr] = val & 0x80;
         break;
 
         case 0x59 ... 0x5f:
@@ -113,12 +163,92 @@ intel_mch_write(int func, int addr, uint8_t val, void *priv)
         break;
 
         case 0x70:
-            dev->pci_conf[addr] = val;
+            if(!(dev->pci_conf[0x70] & 2)) {
+                dev->pci_conf[addr] = val & 0xfe;
+                intel_usmm_segment_recalc(dev, (val >> 4) & 3);
+            }
+            else {
+                dev->pci_conf[addr] = (dev->pci_conf[addr] & 0xfa) | (val & 4);
+            }
+
             intel_lsmm_segment_recalc(dev, (val >> 2) & 3);
         break;
 
-        default:
+        case 0x72:
+            dev->pci_conf[addr] = val & 0xfb;
+        break;
+
+        case 0x73:
+            dev->pci_conf[addr] = val & 0xa8;
+        break;
+
+        case 0x92 ... 0x93:
             dev->pci_conf[addr] = val;
+        break;
+
+        case 0x94:
+            dev->pci_conf[addr] = val & 0x3f;
+        break;
+
+        case 0x98:
+            dev->pci_conf[addr] = val & 0x77;
+        break;
+
+        case 0x99:
+            dev->pci_conf[addr] = val & 0x80;
+        break;
+
+        case 0x9a:
+            dev->pci_conf[addr] = val & 0xef;
+        break;
+
+        case 0x9b:
+        case 0x9d:
+            dev->pci_conf[addr] = val & 0x80;
+        break;
+
+        case 0xa4:
+            dev->pci_conf[addr] = val & 7;
+        break;
+
+        case 0xa8:
+            dev->pci_conf[addr] = val & 0x37;
+        break;
+
+        case 0xa9:
+            dev->pci_conf[addr] = val & 3;
+        break;
+
+        case 0xb0:
+            dev->pci_conf[addr] = val & 0x81;
+        break;
+
+        case 0xb4:
+            dev->pci_conf[addr] = val & 8;
+        break;
+
+        case 0xb9:
+            dev->pci_conf[addr] = val & 0xf0;
+        break;
+
+        case 0xba:
+            dev->pci_conf[addr] = val;
+        break;
+
+        case 0xbb:
+            dev->pci_conf[addr] = val & 0x1f;
+        break;
+
+        case 0xbc ... 0xbd:
+            dev->pci_conf[addr] = val & 0xf8;
+        break;
+
+        case 0xbe:
+            dev->pci_conf[addr] = val & 0x28;
+        break;
+
+        case 0xcb:
+            dev->pci_conf[addr] = val & 0x3f;
         break;
     }
 }
@@ -177,6 +307,7 @@ intel_mch_reset(void *priv)
 
 
     intel_lsmm_segment_recalc(dev, 0); /* Reset LSMM SMRAM to defaults */
+    intel_usmm_segment_recalc(dev, 0); /* Reset USMM SMRAM to defaults */
 
 }
 
@@ -187,6 +318,8 @@ intel_mch_close(void *priv)
     intel_mch_t *dev = (intel_mch_t *)priv;
 
     smram_del(dev->lsmm_segment);
+    smram_del(dev->h_segment);
+    smram_del(dev->usmm_segment);
     free(dev);
 }
 
@@ -207,8 +340,10 @@ intel_mch_init(const device_t *info)
     cpu_cache_ext_enabled = 1;
     cpu_update_waitstates();
 
-    /* LSMM SMRAM Segment */
+    /* SMRAM Segments */
     dev->lsmm_segment = smram_add();
+    dev->h_segment = smram_add();
+    dev->usmm_segment = smram_add();
 
     intel_mch_reset(dev);
     return dev;
