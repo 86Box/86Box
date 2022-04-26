@@ -301,6 +301,7 @@ RendererStack::createRenderer(Renderer renderer)
                 imagebufs = {};
                 endblit();
                 QTimer::singleShot(0, this, [this]() { switchRenderer(Renderer::Software); });
+                current.reset(nullptr);
                 break;
             };
             rendererWindow = hw;
@@ -325,7 +326,7 @@ RendererStack::createRenderer(Renderer renderer)
         }
 #endif
     }
-
+    if (current.get() == nullptr) return;
     current->setFocusPolicy(Qt::NoFocus);
     current->setFocusProxy(this);
     addWidget(current.get());
