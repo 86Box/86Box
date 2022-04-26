@@ -964,10 +964,10 @@ void VulkanRenderer2::startNextFrame()
     m_devFuncs->vkCmdBindVertexBuffers(cb, 0, 1, &m_buf, &vbOffset);
 
     VkViewport viewport;
-    viewport.x = destination.x();
-    viewport.y = destination.y();
-    viewport.width = destination.width();
-    viewport.height = destination.height();
+    viewport.x = destination.x() * m_window->devicePixelRatio();
+    viewport.y = destination.y() * m_window->devicePixelRatio();
+    viewport.width = destination.width() * m_window->devicePixelRatio();
+    viewport.height = destination.height() * m_window->devicePixelRatio();
     viewport.minDepth = 0;
     viewport.maxDepth = 1;
     m_devFuncs->vkCmdSetViewport(cb, 0, 1, &viewport);
