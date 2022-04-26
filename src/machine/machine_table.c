@@ -10626,7 +10626,7 @@ const machine_t machines[] = {
         .gpio = 0,
         .get_device = NULL,
         .get_vid_device = NULL
-        },,
+    },
     /* Has the VIA VT82C686B southbridge with on-chip KBC identical to the VIA
        VT82C42N. */
     {
