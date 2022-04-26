@@ -418,7 +418,7 @@ spd_write_drbs(uint8_t *regs, uint8_t reg_min, uint8_t reg_max, uint8_t drb_unit
     /* No SPD: split SIMMs into pairs as if they were "DIMM"s. */
     if (!spd_present) {
 	dimm = ((reg_max - reg_min) + 1) >> 1; /* amount of "DIMM"s, also used to determine the maximum "DIMM" size */
-	spd_populate(rows, dimm, mem_size >> 10, drb_unit, 1 << (log2i((machines[machine].max_ram >> 10) / dimm)), 0);
+	spd_populate(rows, dimm, mem_size >> 10, drb_unit, 1 << (log2i((machines[machine].ram.max >> 10) / dimm)), 0);
     }
 
     /* Write DRBs for each row. */
@@ -470,7 +470,7 @@ spd_write_drbs_with_ext(uint8_t *regs, uint8_t reg_min, uint8_t reg_max, uint8_t
     /* No SPD: split SIMMs into pairs as if they were "DIMM"s. */
     if (!spd_present) {
 	dimm = ((reg_max - reg_min) + 1) >> 1; /* amount of "DIMM"s, also used to determine the maximum "DIMM" size */
-	spd_populate(rows, dimm, mem_size >> 10, drb_unit, 1 << (log2i((machines[machine].max_ram >> 10) / dimm)), 0);
+	spd_populate(rows, dimm, mem_size >> 10, drb_unit, 1 << (log2i((machines[machine].ram.max >> 10) / dimm)), 0);
     }
 
     /* Write DRBs for each row. */
@@ -521,7 +521,7 @@ spd_write_drbs_interleaved(uint8_t *regs, uint8_t reg_min, uint8_t reg_max, uint
     /* No SPD: split SIMMs into pairs as if they were "DIMM"s. */
     if (!spd_present) {
 	dimm = ((reg_max - reg_min) + 1) >> 2; /* amount of "DIMM"s, also used to determine the maximum "DIMM" size */
-	spd_populate(rows, dimm, mem_size >> 10, drb_unit, 1 << (log2i((machines[machine].max_ram >> 10) / dimm)), 0);
+	spd_populate(rows, dimm, mem_size >> 10, drb_unit, 1 << (log2i((machines[machine].ram.max >> 10) / dimm)), 0);
     }
 
     /* Write DRBs for each row. */
@@ -573,7 +573,7 @@ spd_write_drbs_ali1621(uint8_t *regs, uint8_t reg_min, uint8_t reg_max)
     /* No SPD: split SIMMs into pairs as if they were "DIMM"s. */
     if (!spd_present) {
 	dimm = ((reg_max - reg_min) + 1) >> 2; /* amount of "DIMM"s, also used to determine the maximum "DIMM" size */
-	spd_populate(rows, dimm, mem_size >> 10, 4, 1 << (log2i((machines[machine].max_ram >> 10) / dimm)), 0);
+	spd_populate(rows, dimm, mem_size >> 10, 4, 1 << (log2i((machines[machine].ram.max >> 10) / dimm)), 0);
     }
 
     /* Write DRBs for each row. */
