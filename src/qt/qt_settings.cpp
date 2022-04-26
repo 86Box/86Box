@@ -105,6 +105,11 @@ Settings::Settings(QWidget *parent) :
     ui->setupUi(this);
 
     ui->listView->setModel(new SettingsModel(this));
+    ui->listView->setFlow(QListView::TopToBottom);
+    ui->listView->setWrapping(false);
+    ui->listView->setWordWrap(true);
+    ui->listView->setItemAlignment(Qt::AlignmentFlag::AlignHCenter);
+    ui->listView->setUniformItemSizes(true);
 
     Harddrives::busTrackClass = new SettingsBusTracking;
     machine = new SettingsMachine(this);
@@ -130,8 +135,6 @@ Settings::Settings(QWidget *parent) :
     ui->stackedWidget->addWidget(floppyCdrom);
     ui->stackedWidget->addWidget(otherRemovable);
     ui->stackedWidget->addWidget(otherPeripherals);
-
-    ui->listView->setFixedWidth(ui->listView->sizeHintForColumn(0) + 5);
 
     connect(machine, &SettingsMachine::currentMachineChanged, display, &SettingsDisplay::onCurrentMachineChanged);
     connect(machine, &SettingsMachine::currentMachineChanged, input, &SettingsInput::onCurrentMachineChanged);
