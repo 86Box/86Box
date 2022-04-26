@@ -83,6 +83,7 @@ AppDir:
     - usr/share/[a-hj-ln-zA-Z]*
     - usr/share/i[a-bd-zA-Z]*
     - usr/share/m[a-df-zA-Z]*
+    - usr/share/metainfo/*.metainfo.xml
     - var
 AppImage:
   arch: !ENV '${arch_appimage}'
