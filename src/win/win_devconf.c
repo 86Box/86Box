@@ -25,6 +25,8 @@
 #include <86box/config.h>
 #include <86box/device.h>
 #include <86box/plat.h>
+#include <86box/mem.h>
+#include <86box/rom.h>
 #include <86box/midi_rtmidi.h>
 #include <86box/ui.h>
 #include <86box/win.h>
@@ -103,7 +105,7 @@ deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 					break;
 				case CONFIG_BIOS:
 					val_str = config_get_string((char *) config_device.name,
-								       (char *) config->name, config->default_string);
+								       (char *) config->name, (char *) config->default_string);
 
 					c = 0;
 					q = 0;
@@ -111,7 +113,7 @@ deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 						mbstowcs(lptsTemp, bios->name, strlen(bios->name) + 1);
 						p = 0;
 						for (d = 0; d < bios->files_no; d++)
-							p += !!rom_present(bios->files[d]);
+							p += !!rom_present((char *) bios->files[d]);
 						if (p == bios->files_no) {
 							SendMessage(h, CB_ADDSTRING, 0, (LPARAM)(LPCSTR)lptsTemp);
 							if (!strcmp(val_str, bios->internal_name))
@@ -250,7 +252,7 @@ deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 						break;
 					case CONFIG_BIOS:
 						val_str = config_get_string((char *) config_device.name,
-									    (char *) config->name, config->default_string);
+									    (char *) config->name, (char *) config->default_string);
 
 						c = combo_to_struct[SendMessage(h, CB_GETCURSEL, 0, 0)];
 
@@ -376,7 +378,7 @@ deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 						c = combo_to_struct[SendMessage(h, CB_GETCURSEL, 0, 0)];
 						for (; c > 0; c--)
 							bios++;
-						config_set_string((char *) config_device.name, (char *) config->name, bios->internal_name);
+						config_set_string((char *) config_device.name, (char *) config->name, (char *) bios->internal_name);
 
 						id += 2;
 						break;

@@ -349,7 +349,7 @@ device_available(const device_t *d)
 			while (bios->files_no != 0) {
 				i = 0;
 				for (bf = 0; bf < bios->files_no; bf++)
-					i += !!rom_present(bios->files[bf]);
+					i += !!rom_present((char *) bios->files[bf]);
 				if (i == bios->files_no)
 					roms_present++;
 				bios++;
