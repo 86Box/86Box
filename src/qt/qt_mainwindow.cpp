@@ -1453,6 +1453,10 @@ void MainWindow::keyPressEvent(QKeyEvent* event)
 {
     if (send_keyboard_input && !(kbd_req_capture && !mouse_capture && !video_fullscreen))
     {
+        // Windows keys in Qt have one-to-one mapping.
+        if (event->key() == Qt::Key_Super_L || event->key() == Qt::Key_Super_R) {
+            keyboard_input(1, event->key() == Qt::Key_Super_L ? 0x15B : 0x15C);
+        } else
 #ifdef Q_OS_MACOS
         processMacKeyboardInput(true, event);
 #else
@@ -1480,6 +1484,9 @@ void MainWindow::keyReleaseEvent(QKeyEvent* event)
     if (!send_keyboard_input)
         return;
 
+    if (event->key() == Qt::Key_Super_L || event->key() == Qt::Key_Super_R) {
+        keyboard_input(0, event->key() == Qt::Key_Super_L ? 0x15B : 0x15C);
+    } else
 #ifdef Q_OS_MACOS
     processMacKeyboardInput(false, event);
 #else
