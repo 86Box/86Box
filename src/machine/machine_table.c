@@ -203,14 +203,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_PC,
         .flags = MACHINE_FLAGS_NONE,
         .ram = {
             .min = 16,
             .max = 64,
             .step = 16
-        }
+        },
         .nvrmask = 0,
         .kbc = KBC_IBM_PC_XT,
         .kbc_p1 = 0xff00,
@@ -237,14 +237,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_PC,
         .flags = MACHINE_FLAGS_NONE,
         .ram = {
             .min = 64,
             .max = 256,
             .step = 64
-        }
+        },
         .nvrmask = 0,
         .kbc = KBC_IBM_PC_XT,
         .kbc_p1 = 0xff00,
@@ -271,14 +271,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_PCJR,
         .flags = MACHINE_VIDEO_FIXED,
         .ram = {
             .min = 128,
             .max = 640,
             .step = 128
-        }
+        },
         .nvrmask = 0,
         .kbc = KBC_IBM_PCJR,
         .kbc_p1 = 0xff00,
@@ -305,14 +305,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_PC,
         .flags = MACHINE_FLAGS_NONE,
         .ram = {
             .min = 64,
             .max = 256,
             .step = 64
-        }
+        },
         .nvrmask = 0,
         .kbc = KBC_IBM_PC_XT,
         .kbc_p1 = 0xff00,
@@ -339,14 +339,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_PC,
         .flags = MACHINE_FLAGS_NONE,
         .ram = {
             .min = 256,
             .max = 640,
             .step = 64
-        }
+        },
         .nvrmask = 0,
         .kbc = KBC_IBM_PC_XT,
         .kbc_p1 = 0xff00,
@@ -373,14 +373,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_PC,
         .flags = MACHINE_FLAGS_NONE,
         .ram = {
             .min = 64,
             .max = 640,
             .step = 64
-        }
+        },
         .nvrmask = 0,
         .kbc = KBC_IBM_PC_XT,
         .kbc_p1 = 0xff00,
@@ -407,14 +407,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_PC,
         .flags = MACHINE_FLAGS_NONE,
         .ram = {
             .min = 64,
             .max = 640,
             .step = 64
-        }
+        },
         .nvrmask = 0,
         .kbc = KBC_IBM_PC_XT,
         .kbc_p1 = 0xff00,
@@ -441,14 +441,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_PC,
         .flags = MACHINE_FLAGS_NONE,
         .ram = {
             .min = 128,
             .max = 512,
             .step = 64
-        }
+        },
         .nvrmask = 0,
         .kbc = KBC_IBM_PC_XT,
         .kbc_p1 = 0xff00,
@@ -475,14 +475,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_PC,
         .flags = MACHINE_FLAGS_NONE,
         .ram = {
             .min = 128,
             .max = 640,
             .step = 128
-        }
+        },
         .nvrmask = 0,
         .kbc = KBC_IBM_PC_XT,
         .kbc_p1 = 0xff00,
@@ -509,14 +509,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_PC,
         .flags = MACHINE_FLAGS_NONE,
         .ram = {
             .min = 64,
             .max = 640,
             .step = 64
-        }
+        },
         .nvrmask = 0,
         .kbc = KBC_IBM_PC_XT,
         .kbc_p1 = 0xff00,
@@ -543,14 +543,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_PC,
         .flags = MACHINE_FLAGS_NONE,
         .ram = {
             .min = 128,
             .max = 640,
             .step = 64
-        }
+        },
         .nvrmask = 0,
         .kbc = KBC_IBM_PC_XT,
         .kbc_p1 = 0xff00,
@@ -577,14 +577,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_PC,
         .flags = MACHINE_FLAGS_NONE,
         .ram = {
             .min = 64,
             .max = 640,
             .step = 64
-        }
+        },
         .nvrmask = 0,
         .kbc = KBC_IBM_PC_XT,
         .kbc_p1 = 0xff00,
@@ -611,14 +611,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_PC,
         .flags = MACHINE_FLAGS_NONE,
         .ram = {
             .min = 64,
             .max = 640,
             .step = 64
-        }
+        },
         .nvrmask = 0,
         .kbc = KBC_IBM_PC_XT,
         .kbc_p1 = 0xff00,
@@ -645,14 +645,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_PC,
         .flags = MACHINE_FLAGS_NONE,
         .ram = {
             .min = 128,
             .max = 640,
             .step = 64
-        }
+        },
         .nvrmask = 0,
         .kbc = KBC_IBM_PC_XT,
         .kbc_p1 = 0xff00,
@@ -679,14 +679,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_PC,
         .flags = MACHINE_FLAGS_NONE,
         .ram = {
             .min = 128,
             .max = 640,
             .step = 64
-        }
+        },
         .nvrmask = 0,
         .kbc = KBC_IBM_PC_XT,
         .kbc_p1 = 0xff00,
@@ -713,14 +713,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_PC,
         .flags = MACHINE_FLAGS_NONE,
         .ram = {
             .min = 256,
             .max = 640,
             .step = 256
-        }
+        },
         .nvrmask = 0,
         .kbc = KBC_IBM_PC_XT,
         .kbc_p1 = 0xff00,
@@ -747,14 +747,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_PC,
         .flags = MACHINE_VIDEO_FIXED,
         .ram = {
             .min = 256,
             .max = 640,
             .step = 256
-        }
+        },
         .nvrmask = 0,
         .kbc = KBC_OLIVETTI_XT,
         .kbc_p1 = 0xff00,
@@ -781,14 +781,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_PC,
         .flags = MACHINE_FLAGS_NONE,
         .ram = {
             .min = 64,
             .max = 640,
             .step = 64
-        }
+        },
         .nvrmask = 0,
         .kbc = KBC_IBM_PC_XT,
         .kbc_p1 = 0xff00,
@@ -815,14 +815,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_PC,
         .flags = MACHINE_XTA,
         .ram = {
             .min = 256,
             .max = 768,
             .step = 256
-        }
+        },
         .nvrmask = 0,
         .kbc = KBC_IBM_PC_XT,
         .kbc_p1 = 0xff00,
@@ -849,14 +849,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_PC,
         .flags = MACHINE_FLAGS_NONE,
         .ram = {
             .min = 64,
             .max = 640,
             .step = 64
-        }
+        },
         .nvrmask = 0,
         .kbc = KBC_IBM_PC_XT,
         .kbc_p1 = 0xff00,
@@ -883,14 +883,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_PC,
         .flags = MACHINE_XTA | MACHINE_MOUSE,
         .ram = {
             .min = 512,
             .max = 640,
             .step = 128
-        }
+        },
         .nvrmask = 15,
         .kbc = KBC_IBM_PC_XT,
         .kbc_p1 = 0xff00,
@@ -917,14 +917,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_PC,
         .flags = MACHINE_FLAGS_NONE,
         .ram = {
             .min = 64,
             .max = 640,
             .step = 64
-        }
+        },
         .nvrmask = 0,
         .kbc = KBC_IBM_PC_XT,
         .kbc_p1 = 0xff00,
@@ -951,14 +951,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_PC,
         .flags = MACHINE_VIDEO_FIXED,
         .ram = {
             .min = 128,
             .max = 640,
             .step = 128
-        }
+        },
         .nvrmask = 0,
         .kbc = KBC_TANDY,
         .kbc_p1 = 0xff00,
@@ -985,14 +985,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_PC,
         .flags = MACHINE_VIDEO_FIXED,
         .ram = {
             .min = 256,
             .max = 640,
             .step = 128
-        }
+        },
         .nvrmask = 0,
         .kbc = KBC_TANDY,
         .kbc_p1 = 0xff00,
@@ -1019,14 +1019,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_PC,
         .flags = MACHINE_VIDEO,
         .ram = {
             .min = 512,
             .max = 1280,
             .step = 768
-        }
+        },
         .nvrmask = 63,
         .kbc = KBC_IBM_PC_XT,
         .kbc_p1 = 0xff00,
@@ -1053,14 +1053,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_PC,
         .flags = MACHINE_FLAGS_NONE,
         .ram = {
             .min = 256,
             .max = 768,
             .step = 256
-        }
+        },
         .nvrmask = 0,
         .kbc = KBC_IBM_PC_XT,
         .kbc_p1 = 0xff00,
@@ -1088,14 +1088,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_PC,
         .flags = MACHINE_FLAGS_NONE,
         .ram = {
             .min = 256,
             .max = 640,
             .step = 256
-        }
+        },
         .nvrmask = 0,
         .kbc = KBC_IBM_PC_XT,
         .kbc_p1 = 0xff00,
@@ -1124,14 +1124,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_PS2,
         .flags = MACHINE_FLAGS_NONE,
         .ram = {
             .min = 64,
             .max = 1024,
             .step = 128
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_VIA_VT82C4XN_XI8088,
         .kbc_p1 = 0xff04,
@@ -1158,14 +1158,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_PC,
         .flags = MACHINE_FLAGS_NONE,
         .ram = {
             .min = 64,
             .max = 640,
             .step = 64
-        }
+        },
         .nvrmask = 0,
         .kbc = KBC_IBM_PC_XT,
         .kbc_p1 = 0xff00,
@@ -1192,14 +1192,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_PC,
         .flags = MACHINE_FLAGS_NONE,
         .ram = {
             .min = 128,
             .max = 640,
             .step = 64
-        }
+        },
         .nvrmask = 0,
         .kbc = KBC_IBM_PC_XT,
         .kbc_p1 = 0xff00,
@@ -1226,14 +1226,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_PC,
         .flags = MACHINE_FLAGS_NONE,
         .ram = {
             .min = 128,
             .max = 640,
             .step = 64
-        }
+        },
         .nvrmask = 0,
         .kbc = KBC_IBM_PC_XT,
         .kbc_p1 = 0xff00,
@@ -1260,14 +1260,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_PC,
         .flags = MACHINE_VIDEO_FIXED,
         .ram = {
             .min = 128,
             .max = 640,
             .step = 128
-        }
+        },
         .nvrmask = 0,
         .kbc = KBC_IBM_PC_XT,
         .kbc_p1 = 0xff00,
@@ -1294,14 +1294,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_PC,
         .flags = MACHINE_XTA,
         .ram = {
             .min = 256,
             .max = 768,
             .step = 256
-        }
+        },
         .nvrmask = 0,
         .kbc = KBC_IBM_PC_XT,
         .kbc_p1 = 0xff00,
@@ -1330,14 +1330,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_PC,
         .flags = MACHINE_VIDEO_FIXED | MACHINE_MOUSE,
         .ram = {
             .min = 512,
             .max = 640,
             .step = 128
-        }
+        },
         .nvrmask = 63,
         .kbc = KBC_AMSTRAD,
         .kbc_p1 = 0xff00,
@@ -1364,14 +1364,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_PC,
         .flags = MACHINE_VIDEO | MACHINE_MOUSE,
         .ram = {
             .min = 640,
             .max = 640,
             .step = 640
-        }
+        },
         .nvrmask = 63,
         .kbc = KBC_AMSTRAD,
         .kbc_p1 = 0xff00,
@@ -1398,14 +1398,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_PC,
         .flags = MACHINE_VIDEO_FIXED | MACHINE_MOUSE,
         .ram = {
             .min = 640,
             .max = 640,
             .step = 640
-        }
+        },
         .nvrmask = 63,
         .kbc = KBC_AMSTRAD,
         .kbc_p1 = 0xff00,
@@ -1432,14 +1432,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_PC,
         .flags = MACHINE_VIDEO_FIXED | MACHINE_MOUSE,
         .ram = {
             .min = 640,
             .max = 640,
             .step = 640
-        }
+        },
         .nvrmask = 63,
         .kbc = KBC_AMSTRAD,
         .kbc_p1 = 0xff00,
@@ -1466,14 +1466,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_PC,
         .flags = MACHINE_VIDEO | MACHINE_MOUSE,
         .ram = {
             .min = 512,
             .max = 640,
             .step = 128
-        }
+        },
         .nvrmask = 63,
         .kbc = KBC_AMSTRAD,
         .kbc_p1 = 0xff00,
@@ -1500,14 +1500,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_PC,
         .flags = MACHINE_VIDEO | MACHINE_MOUSE,
         .ram = {
             .min = 512,
             .max = 640,
             .step = 128
-        }
+        },
         .nvrmask = 63,
         .kbc = KBC_AMSTRAD,
         .kbc_p1 = 0xff00,
@@ -1534,14 +1534,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_PC,
         .flags = MACHINE_FLAGS_NONE,
         .ram = {
             .min = 128,
             .max = 640,
             .step = 128
-        }
+        },
         .nvrmask = 0,
         .kbc = KBC_IBM_PC_XT,
         .kbc_p1 = 0xff00,
@@ -1568,14 +1568,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_PC,
         .flags = MACHINE_VIDEO | MACHINE_MOUSE,
         .ram = {
             .min = 128,
             .max = 640,
             .step = 128
-        }
+        },
         .nvrmask = 0,
         .kbc = KBC_OLIVETTI_XT,
         .kbc_p1 = 0xff00,
@@ -1603,14 +1603,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_PC,
         .flags = MACHINE_FLAGS_NONE,
         .ram = {
             .min = 128,
             .max = 640,
             .step = 128
-        }
+        },
         .nvrmask = 0,
         .kbc = KBC_OLIVETTI,
         .kbc_p1 = 0xff04,
@@ -1637,14 +1637,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_PC,
         .flags = MACHINE_FLAGS_NONE,
         .ram = {
             .min = 128,
             .max = 640,
             .step = 128
-        }
+        },
         .nvrmask = 0,
         .kbc = KBC_IBM_PC_XT,
         .kbc_p1 = 0xff00,
@@ -1671,14 +1671,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_PC,
         .flags = MACHINE_VIDEO_FIXED,
         .ram = {
             .min = 512,
             .max = 768,
             .step = 128
-        }
+        },
         .nvrmask = 0,
         .kbc = KBC_TANDY_SL2,
         .kbc_p1 = 0xff00,
@@ -1705,14 +1705,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_PC,
         .flags = MACHINE_VIDEO,
         .ram = {
             .min = 512,
             .max = 1024,
             .step = 128
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_IBM_PC_XT,
         .kbc_p1 = 0xff00,
@@ -1739,14 +1739,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_PC,
         .flags = MACHINE_VIDEO,
         .ram = {
             .min = 1024,
             .max = 2048,
             .step = 1024
-        }
+        },
         .nvrmask = 63,
         .kbc = KBC_IBM_PC_XT,
         .kbc_p1 = 0xff00,
@@ -1775,14 +1775,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_PC,
         .flags = MACHINE_FLAGS_NONE,
         .ram = {
             .min = 256,
             .max = 640,
             .step = 256
-        }
+        },
         .nvrmask = 0,
         .kbc = KBC_IBM_PC_XT,
         .kbc_p1 = 0xff00,
@@ -1813,14 +1813,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_AT,
         .flags = MACHINE_FLAGS_NONE,
         .ram = {
             .min = 256,
             .max = 15872,
             .step = 128
-        }
+        },
         .nvrmask = 63,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -1848,14 +1848,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_PS2,
         .flags = MACHINE_XTA | MACHINE_VIDEO_FIXED,
         .ram = {
             .min = 512,
             .max = 16384,
             .step = 512
-        }
+        },
         .nvrmask = 63,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -1883,14 +1883,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_PS2,
         .flags = MACHINE_XTA | MACHINE_VIDEO_FIXED,
         .ram = {
             .min = 1024,
             .max = 16384,
             .step = 1024
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -1918,14 +1918,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_AT,
         .flags = MACHINE_FLAGS_NONE,
         .ram = {
             .min = 256,
             .max = 15872,
             .step = 128
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -1953,14 +1953,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_AT,
         .flags = MACHINE_FLAGS_NONE,
         .ram = {
             .min = 256,
             .max = 15872,
             .step = 128
-        }
+        },
         .nvrmask = 63,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -1989,14 +1989,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_AT,
         .flags = MACHINE_FLAGS_NONE,
         .ram = {
             .min = 640,
             .max = 16384,
             .step = 128
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -2024,14 +2024,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_AT,
         .flags = MACHINE_FLAGS_NONE,
         .ram = {
             .min = 640,
             .max = 16384,
             .step = 128
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -2059,14 +2059,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_AT,
         .flags = MACHINE_VIDEO,
         .ram = {
             .min = 640,
             .max = 16384,
             .step = 128
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -2094,14 +2094,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_AT,
         .flags = MACHINE_IDE,
         .ram = {
             .min = 512,
             .max = 16384,
             .step = 128
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -2129,14 +2129,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_AT,
         .flags = MACHINE_FLAGS_NONE,
         .ram = {
             .min = 512,
             .max = 16384,
             .step = 128
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -2165,14 +2165,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_AT,
         .flags = MACHINE_FLAGS_NONE,
         .ram = {
             .min = 640,
             .max = 16384,
             .step = 128
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -2202,14 +2202,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_AT,
         .flags = MACHINE_FLAGS_NONE,
         .ram = {
             .min = 256,
             .max = 15872,
             .step = 128
-        }
+        },
         .nvrmask = 63,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -2238,14 +2238,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_AT,
         .flags = MACHINE_FLAGS_NONE,
         .ram = {
             .min = 256,
             .max = 15872,
             .step = 128
-        }
+        },
         .nvrmask = 63,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -2273,14 +2273,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_AT,
         .flags = MACHINE_FLAGS_NONE,
         .ram = {
             .min = 256,
             .max = 15872,
             .step = 128
-        }
+        },
         .nvrmask = 63,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -2308,14 +2308,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_AT,
         .flags = MACHINE_FLAGS_NONE,
         .ram = {
             .min = 256,
             .max = 15872,
             .step = 128
-        }
+        },
         .nvrmask = 63,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -2343,14 +2343,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_AT,
         .flags = MACHINE_IDE | MACHINE_VIDEO_FIXED,
         .ram = {
             .min = 1024,
             .max = 5120,
             .step = 256
-        }
+        },
         .nvrmask = 63,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -2378,14 +2378,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_AT,
         .flags = MACHINE_FLAGS_NONE,
         .ram = {
             .min = 512,
             .max = 16384,
             .step = 128
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -2413,14 +2413,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_AT,
         .flags = MACHINE_IDE,
         .ram = {
             .min = 512,
             .max = 8192,
             .step = 128
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -2448,14 +2448,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_AT,
         .flags = MACHINE_FLAGS_NONE,
         .ram = {
             .min = 512,
             .max = 8192,
             .step = 128
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -2483,14 +2483,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_AT,
         .flags = MACHINE_VIDEO,
         .ram = {
             .min = 512,
             .max = 16384,
             .step = 128
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -2518,14 +2518,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_AT,
         .flags = MACHINE_FLAGS_NONE,
         .ram = {
             .min = 512,
             .max = 16384,
             .step = 128
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -2553,14 +2553,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_AT,
         .flags = MACHINE_IDE,
         .ram = {
             .min = 512,
             .max = 16384,
             .step = 128
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -2588,14 +2588,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_PS2,
         .flags = MACHINE_IDE,
         .ram = {
             .min = 512,
             .max = 4096,
             .step = 512
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -2623,14 +2623,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_AT,
         .flags = MACHINE_FLAGS_NONE,
         .ram = {
             .min = 512,
             .max = 8192,
             .step = 128
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -2658,14 +2658,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_AT,
         .flags = MACHINE_FLAGS_NONE,
         .ram = {
             .min = 512,
             .max = 8192,
             .step = 128
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -2693,14 +2693,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_PS2,
         .flags = MACHINE_FLAGS_NONE,
         .ram = {
             .min = 512,
             .max = 2048,
             .step = 128
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -2728,14 +2728,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_PS2,
         .flags = MACHINE_FLAGS_NONE,
         .ram = {
             .min = 1024,
             .max = 5120,
             .step = 1024
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -2763,14 +2763,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_PS2,
         .flags = MACHINE_VIDEO,
         .ram = {
             .min = 1024,
             .max = 5120,
             .step = 1024
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -2798,14 +2798,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_AT,
         .flags = MACHINE_FLAGS_NONE,
         .ram = {
             .min = 512,
             .max = 16384,
             .step = 128
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -2835,14 +2835,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_PS2_MCA,
         .flags = MACHINE_VIDEO,
         .ram = {
             .min = 1024,
             .max = 10240,
             .step = 1024
-        }
+        },
         .nvrmask = 63,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -2873,14 +2873,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_PS2,
         .flags = MACHINE_IDE | MACHINE_VIDEO,
         .ram = {
             .min = 2048,
             .max = 6144,
             .step = 1024
-        }
+        },
         .nvrmask = 63,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -2908,14 +2908,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_AT,
         .flags = MACHINE_FLAGS_NONE,
         .ram = {
             .min = 1024,
             .max = 16384,
             .step = 128
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -2943,14 +2943,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_AT,
         .flags = MACHINE_FLAGS_NONE,
         .ram = {
             .min = 1024,
             .max = 16384,
             .step = 128
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -2978,14 +2978,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_PS2,
         .flags = MACHINE_IDE,
         .ram = {
             .min = 1024,
             .max = 32768,
             .step = 1024
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -3013,14 +3013,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_PS2,
         .flags = MACHINE_IDE,
         .ram = {
             .min = 1024,
             .max = 16384,
             .step = 1024
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -3050,14 +3050,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_PS2,
         .flags = MACHINE_IDE | MACHINE_VIDEO,
         .ram = {
             .min = 1024,
             .max = 16384,
             .step = 1024
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -3086,14 +3086,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_PS2,
         .flags = MACHINE_IDE | MACHINE_VIDEO,
         .ram = {
             .min = 1024,
             .max = 16384,
             .step = 1024
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -3121,14 +3121,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_PS2,
         .flags = MACHINE_IDE,
         .ram = {
             .min = 1024,
             .max = 32768,
             .step = 1024
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -3156,14 +3156,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_PS2,
         .flags = MACHINE_IDE,
         .ram = {
             .min = 1024,
             .max = 32768,
             .step = 1024
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -3193,14 +3193,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_AT,
         .flags = MACHINE_IDE | MACHINE_VIDEO,
         .ram = {
             .min = 512,
             .max = 8192,
             .step = 128
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -3230,14 +3230,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_AT,
         .flags = MACHINE_FLAGS_NONE,
         .ram = {
             .min = 512,
             .max = 8192,
             .step = 128
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -3264,14 +3264,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_AT,
         .flags = MACHINE_FLAGS_NONE,
         .ram = {
             .min = 512,
             .max = 8192,
             .step = 128
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -3301,14 +3301,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_PS2,
         .flags = MACHINE_IDE,
         .ram = {
             .min = 1024,
             .max = 8192,
             .step = 512
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -3336,14 +3336,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_AT,
         .flags = MACHINE_FLAGS_NONE,
         .ram = {
             .min = 512,
             .max = 8192,
             .step = 128
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -3371,14 +3371,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_AT,
         .flags = MACHINE_FLAGS_NONE,
         .ram = {
             .min = 1024,
             .max = 16384,
             .step = 1024
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -3408,14 +3408,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_PS2,
         .flags = MACHINE_IDE | MACHINE_VIDEO,
         .ram = {
             .min = 1024,
             .max = 8192,
             .step = 512
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -3445,14 +3445,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_AT,
         .flags = MACHINE_FLAGS_NONE,
         .ram = {
             .min = 1024,
             .max = 16384,
             .step = 1024
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -3480,14 +3480,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_PS2,
         .flags = MACHINE_IDE | MACHINE_VIDEO,
         .ram = {
             .min = 2048,
             .max = 12288,
             .step = 2048
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -3516,14 +3516,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_AT,
         .flags = MACHINE_FLAGS_NONE,
         .ram = {
             .min = 512,
             .max = 16384,
             .step = 512
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -3551,14 +3551,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_PS2,
         .flags = MACHINE_IDE | MACHINE_VIDEO,
         .ram = {
             .min = 1024,
             .max = 32768,
             .step = 1024
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -3588,14 +3588,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_PS2_MCA,
         .flags = MACHINE_VIDEO,
         .ram = {
             .min = 1024,
             .max = 8192,
             .step = 1024
-        }
+        },
         .nvrmask = 63,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -3626,14 +3626,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_AT,
         .flags = MACHINE_FLAGS_NONE,
         .ram = {
             .min = 1024,
             .max = 16384,
             .step = 1024
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -3662,14 +3662,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_AT,
         .flags = MACHINE_FLAGS_NONE,
         .ram = {
             .min = 1024,
             .max = 16384,
             .step = 1024
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -3697,14 +3697,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_AT,
         .flags = MACHINE_FLAGS_NONE,
         .ram = {
             .min = 1024,
             .max = 16384,
             .step = 1024
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -3732,14 +3732,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_AT,
         .flags = MACHINE_IDE,
         .ram = {
             .min = 1024,
             .max = 32768,
             .step = 1024
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -3768,14 +3768,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_AT,
         .flags = MACHINE_IDE,
         .ram = {
             .min = 1024,
             .max = 14336,
             .step = 1024
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -3803,14 +3803,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_AT,
         .flags = MACHINE_IDE | MACHINE_VIDEO,
         .ram = {
             .min = 1024,
             .max = 14336,
             .step = 1024
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -3838,14 +3838,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_AT,
         .flags = MACHINE_FLAGS_NONE,
         .ram = {
             .min = 512,
             .max = 8192,
             .step = 128
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -3873,14 +3873,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_AT,
         .flags = MACHINE_FLAGS_NONE,
         .ram = {
             .min = 1024,
             .max = 65536,
             .step = 1024
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -3910,14 +3910,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_PS2_MCA,
         .flags = MACHINE_VIDEO,
         .ram = {
             .min = 2048,
             .max = 65536,
             .step = 2048
-        }
+        },
         .nvrmask = 63,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -3945,14 +3945,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_PS2_MCA,
         .flags = MACHINE_VIDEO,
         .ram = {
             .min = 1024,
             .max = 65536,
             .step = 1024
-        }
+        },
         .nvrmask = 63,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -3980,14 +3980,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_PS2_MCA,
         .flags = MACHINE_VIDEO,
         .ram = {
             .min = 2048,
             .max = 65536,
             .step = 2048
-        }
+        },
         .nvrmask = 63,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -4018,14 +4018,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_VLB,
         .flags = MACHINE_IDE,
         .ram = {
             .min = 1024,
             .max = 32768,
             .step = 1024
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -4053,14 +4053,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_VLB,
         .flags = MACHINE_IDE,
         .ram = {
             .min = 1024,
             .max = 32768,
             .step = 1024
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -4088,14 +4088,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_VLB,
         .flags = MACHINE_IDE,
         .ram = {
             .min = 1024,
             .max = 32768,
             .step = 1024
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -4129,14 +4129,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_VLB,
         .flags = MACHINE_IDE,
         .ram = {
             .min = 1024,
             .max = 32768,
             .step = 1024
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -4166,14 +4166,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_VLB,
         .flags = MACHINE_FLAGS_NONE,
         .ram = {
             .min = 1024,
             .max = 65536,
             .step = 1024
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -4202,14 +4202,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_VLB,
         .flags = MACHINE_IDE_DUAL,
         .ram = {
             .min = 1024,
             .max = 65536,
             .step = 1024
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -4237,14 +4237,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_AT,
         .flags = MACHINE_IDE,
         .ram = {
             .min = 1024,
             .max = 65536,
             .step = 1024
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -4272,14 +4272,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_AT,
         .flags = MACHINE_IDE,
         .ram = {
             .min = 1024,
             .max = 65536,
             .step = 1024
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -4308,14 +4308,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_VLB,
         .flags = MACHINE_IDE,
         .ram = {
             .min = 1024,
             .max = 65536,
             .step = 1024
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -4343,14 +4343,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_VLB,
         .flags = MACHINE_IDE,
         .ram = {
             .min = 1024,
             .max = 131072,
             .step = 1024
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -4381,14 +4381,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_AT,
         .flags = MACHINE_FLAGS_NONE,
         .ram = {
             .min = 1024,
             .max = 64512,
             .step = 1024
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -4418,14 +4418,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_PS2,
         .flags = MACHINE_IDE | MACHINE_VIDEO,
         .ram = {
             .min = 2048,
             .max = 32768,
             .step = 2048
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -4453,14 +4453,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_PS2,
         .flags = MACHINE_IDE | MACHINE_VIDEO,
         .ram = {
             .min = 2048,
             .max = 32768,
             .step = 2048
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -4492,14 +4492,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_PS2,
         .flags = MACHINE_IDE | MACHINE_VIDEO,
         .ram = {
             .min = 4096,
             .max = 36864,
             .step = 1024
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -4527,14 +4527,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_PS2,
         .flags = MACHINE_IDE_DUAL | MACHINE_VIDEO,
         .ram = {
             .min = 4096,
             .max = 36864,
             .step = 1024
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -4562,14 +4562,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_VLB,
         .flags = MACHINE_IDE,
         .ram = {
             .min = 1024,
             .max = 32768,
             .step = 1024
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -4597,14 +4597,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_PS2,
         .flags = MACHINE_IDE_DUAL | MACHINE_VIDEO,
         .ram = {
             .min = 1024,
             .max = 32768,
             .step = 1024
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -4632,14 +4632,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_PS2,
         .flags = MACHINE_IDE_DUAL | MACHINE_VIDEO,
         .ram = {
             .min = 1024,
             .max = 32768,
             .step = 1024
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -4668,14 +4668,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_PS2,
         .flags = MACHINE_IDE | MACHINE_VIDEO,
         .ram = {
             .min = 1024,
             .max = 65536,
             .step = 1024
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -4705,14 +4705,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_VLB,
         .flags = MACHINE_IDE,
         .ram = {
             .min = 1024,
             .max = 65536,
             .step = 1024
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -4743,14 +4743,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_VLB,
         .flags = MACHINE_FLAGS_NONE,
         .ram = {
             .min = 1024,
             .max = 65536,
             .step = 1024
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -4778,14 +4778,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_VLB,
         .flags = MACHINE_FLAGS_NONE,
         .ram = {
             .min = 1024,
             .max = 65536,
             .step = 1024
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -4813,14 +4813,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_VLB,
         .flags = MACHINE_FLAGS_NONE,
         .ram = {
             .min = 1024,
             .max = 65536,
             .step = 1024
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -4848,14 +4848,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_VLB,
         .flags = MACHINE_FLAGS_NONE,
         .ram = {
             .min = 1024,
             .max = 65536,
             .step = 1024
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -4883,14 +4883,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_VLB,
         .flags = MACHINE_IDE,
         .ram = {
             .min = 1024,
             .max = 65536,
             .step = 1024
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -4918,14 +4918,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_PS2_VLB,
         .flags = MACHINE_IDE_DUAL,
         .ram = {
             .min = 1024,
             .max = 65536,
             .step = 1024
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -4953,14 +4953,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_VLB,
         .flags = MACHINE_IDE,
         .ram = {
             .min = 1024,
             .max = 65536,
             .step = 1024
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -4988,14 +4988,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_VLB,
         .flags = MACHINE_IDE,
         .ram = {
             .min = 1024,
             .max = 65536,
             .step = 1024
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -5025,14 +5025,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_PS2_PCI,
         .flags = MACHINE_IDE_DUAL | MACHINE_VIDEO,
         .ram = {
             .min = 1024,
             .max = 65536,
             .step = 1024
-        }
+        },
         .nvrmask = 255,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -5061,14 +5061,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_PCI,
         .flags = MACHINE_IDE_DUAL,
         .ram = {
             .min = 1024,
             .max = 65536,
             .step = 1024
-        }
+        },
         .nvrmask = 255,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -5100,14 +5100,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_PCI,
         .flags = MACHINE_IDE_DUAL,
         .ram = {
             .min = 1024,
             .max = 65536,
             .step = 1024
-        }
+        },
         .nvrmask = 255,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -5139,14 +5139,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_PCI,
         .flags = MACHINE_IDE_DUAL,
         .ram = {
             .min = 1024,
             .max = 65536,
             .step = 1024
-        }
+        },
         .nvrmask = 255,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -5174,14 +5174,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_PS2_PCI,
         .flags = MACHINE_IDE_DUAL,
         .ram = {
             .min = 1024,
             .max = 65536,
             .step = 1024
-        }
+        },
         .nvrmask = 255,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -5209,14 +5209,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 2.0,
            .max_multi = 3.0,
-        }
+        },
         .bus_flags = MACHINE_PS2_PCI,
         .flags = MACHINE_IDE,
         .ram = {
             .min = 1024,
             .max = 65536,
             .step = 1024
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -5244,14 +5244,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_PS2_PCIV,
         .flags = MACHINE_IDE_DUAL,
         .ram = {
             .min = 1024,
             .max = 131072,
             .step = 1024
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -5279,14 +5279,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_PS2_PCI,
         .flags = MACHINE_IDE_DUAL,
         .ram = {
             .min = 1024,
             .max = 131072,
             .step = 1024
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -5314,14 +5314,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_PCI,
         .flags = MACHINE_IDE_DUAL | MACHINE_SCSI,
         .ram = {
             .min = 1024,
             .max = 131072,
             .step = 1024
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -5349,14 +5349,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_PS2_PCI,
         .flags = MACHINE_IDE_DUAL,
         .ram = {
             .min = 2048,
             .max = 131072,
             .step = 2048
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -5385,14 +5385,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_PS2_PCI,
         .flags = MACHINE_IDE_DUAL | MACHINE_SCSI,
         .ram = {
             .min = 1024,
             .max = 131072,
             .step = 1024
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -5420,14 +5420,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_PS2_PCI,
         .flags = MACHINE_IDE_DUAL,
         .ram = {
             .min = 2048,
             .max = 131072,
             .step = 2048
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -5455,14 +5455,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_PS2_PCI,
         .flags = MACHINE_IDE_DUAL,
         .ram = {
             .min = 2048,
             .max = 131072,
             .step = 2048
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -5490,14 +5490,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_PS2_PCIV,
         .flags = MACHINE_IDE_DUAL,
         .ram = {
             .min = 1024,
             .max = 261120,
             .step = 1024
-        }
+        },
         .nvrmask = 255,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -5525,14 +5525,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_PCI,
         .flags = MACHINE_IDE_DUAL,
         .ram = {
             .min = 1024,
             .max = 131072,
             .step = 1024
-        }
+        },
         .nvrmask = 255,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -5560,14 +5560,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_PS2_PCI,
         .flags = MACHINE_IDE_DUAL,
         .ram = {
             .min = 1024,
             .max = 131072,
             .step = 1024
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -5595,14 +5595,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_PCI,
         .flags = MACHINE_IDE_DUAL,
         .ram = {
             .min = 1024,
             .max = 261120,
             .step = 1024
-        }
+        },
         .nvrmask = 255,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -5631,14 +5631,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_PS2_PCIV,
         .flags = MACHINE_IDE_DUAL,
         .ram = {
             .min = 1024,
             .max = 261120,
             .step = 1024
-        }
+        },
         .nvrmask = 255,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -5667,14 +5667,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_PS2_PCI,
         .flags = MACHINE_IDE_DUAL,
         .ram = {
             .min = 1024,
             .max = 261120,
             .step = 1024
-        }
+        },
         .nvrmask = 255,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -5702,14 +5702,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_PCI,
         .flags = MACHINE_IDE_DUAL,
         .ram = {
             .min = 1024,
             .max = 65536,
             .step = 1024
-        }
+        },
         .nvrmask = 255,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -5737,14 +5737,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_PCI,
         .flags = MACHINE_IDE_DUAL,
         .ram = {
             .min = 1024,
             .max = 131072,
             .step = 1024
-        }
+        },
         .nvrmask = 255,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -5772,14 +5772,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_PCI,
         .flags = MACHINE_IDE_DUAL,
         .ram = {
             .min = 1024,
             .max = 262144,
             .step = 1024
-        }
+        },
         .nvrmask = 255,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -5808,14 +5808,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_PCIV,
         .flags = MACHINE_IDE_DUAL,
         .ram = {
             .min = 1024,
             .max = 131072,
             .step = 1024
-        }
+        },
         .nvrmask = 255,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -5843,14 +5843,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_PS2_PCI,
         .flags = MACHINE_IDE_DUAL,
         .ram = {
             .min = 1024,
             .max = 131072,
             .step = 1024
-        }
+        },
         .nvrmask = 255,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -5878,14 +5878,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_PCI,
         .flags = MACHINE_IDE_DUAL,
         .ram = {
             .min = 1024,
             .max = 262144,
             .step = 1024
-        }
+        },
         .nvrmask = 255,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -5913,14 +5913,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_PCIV,
         .flags = MACHINE_IDE_DUAL,
         .ram = {
             .min = 1024,
             .max = 131072,
             .step = 1024
-        }
+        },
         .nvrmask = 255,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -5948,14 +5948,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_PS2_PCIV,
         .flags = MACHINE_IDE_DUAL,
         .ram = {
             .min = 1024,
             .max = 131072,
             .step = 1024
-        }
+        },
         .nvrmask = 255,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -5987,14 +5987,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 1.0,
            .max_multi = 1.0,
-        }
+        },
         .bus_flags = MACHINE_PS2_PCI,
         .flags = MACHINE_IDE_DUAL,
         .ram = {
             .min = 8192,
             .max = 131072,
             .step = 8192
-        }
+        },
         .nvrmask = 255,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -6023,14 +6023,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 2.0,
            .max_multi = 2.0,
-        }
+        },
         .bus_flags = MACHINE_PS2_PCI,
         .flags = MACHINE_IDE_DUAL,
         .ram = {
             .min = 32768,
             .max = 163840,
             .step = 8192
-        }
+        },
         .nvrmask = 255,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -6059,14 +6059,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 2.0,
            .max_multi = 2.0,
-        }
+        },
         .bus_flags = MACHINE_PS2_PCI,
         .flags = MACHINE_IDE_DUAL,
         .ram = {
             .min = 32768,
             .max = 163840,
             .step = 8192
-        }
+        },
         .nvrmask = 255,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -6095,14 +6095,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 2.0,
            .max_multi = 2.0,
-        }
+        },
         .bus_flags = MACHINE_PS2_PCI,
         .flags = MACHINE_IDE_DUAL,
         .ram = {
             .min = 32768,
             .max = 98304,
             .step = 8192
-        }
+        },
         .nvrmask = 255,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -6131,14 +6131,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 2.0,
            .max_multi = 2.0,
-        }
+        },
         .bus_flags = MACHINE_PS2_PCI,
         .flags = MACHINE_IDE_DUAL,
         .ram = {
             .min = 32768,
             .max = 131072,
             .step = 32768
-        }
+        },
         .nvrmask = 255,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -6173,14 +6173,14 @@ const machine_t machines[] = {
            .max_voltage = 5000,
            .min_multi = MACHINE_MULTIPLIER_FIXED,
            .max_multi = MACHINE_MULTIPLIER_FIXED,
-        }
+        },
         .bus_flags = MACHINE_PS2_PCI,
         .flags = MACHINE_IDE_DUAL,
         .ram = {
             .min = 2048,
             .max = 131072,
             .step = 2048
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -6208,14 +6208,14 @@ const machine_t machines[] = {
            .max_voltage = 5000,
            .min_multi = MACHINE_MULTIPLIER_FIXED,
            .max_multi = MACHINE_MULTIPLIER_FIXED,
-        }
+        },
         .bus_flags = MACHINE_PS2_PCI,
         .flags = MACHINE_IDE,
         .ram = {
             .min = 2048,
             .max = 196608,
             .step = 2048
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -6243,14 +6243,14 @@ const machine_t machines[] = {
            .max_voltage = 5000,
            .min_multi = MACHINE_MULTIPLIER_FIXED,
            .max_multi = MACHINE_MULTIPLIER_FIXED,
-        }
+        },
         .bus_flags = MACHINE_PS2_PCI,
         .flags = MACHINE_IDE,
         .ram = {
             .min = 2048,
             .max = 131072,
             .step = 2048
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -6278,14 +6278,14 @@ const machine_t machines[] = {
            .max_voltage = 5000,
            .min_multi = MACHINE_MULTIPLIER_FIXED,
            .max_multi = MACHINE_MULTIPLIER_FIXED,
-        }
+        },
         .bus_flags = MACHINE_PS2_PCI,
         .flags = MACHINE_IDE_DUAL,
         .ram = {
             .min = 2048,
             .max = 131072,
             .step = 2048
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -6315,14 +6315,14 @@ const machine_t machines[] = {
            .max_voltage = 5000,
            .min_multi = MACHINE_MULTIPLIER_FIXED,
            .max_multi = MACHINE_MULTIPLIER_FIXED,
-        }
+        },
         .bus_flags = MACHINE_PS2_PCI,
         .flags = MACHINE_IDE_DUAL,
         .ram = {
             .min = 2048,
             .max = 131072,
             .step = 2048
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -6350,14 +6350,14 @@ const machine_t machines[] = {
            .max_voltage = 5000,
            .min_multi = MACHINE_MULTIPLIER_FIXED,
            .max_multi = MACHINE_MULTIPLIER_FIXED,
-        }
+        },
         .bus_flags = MACHINE_PS2_PCI,
         .flags = MACHINE_IDE_DUAL,
         .ram = {
             .min = 2048,
             .max = 131072,
             .step = 2048
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -6385,14 +6385,14 @@ const machine_t machines[] = {
            .max_voltage = 5000,
            .min_multi = MACHINE_MULTIPLIER_FIXED,
            .max_multi = MACHINE_MULTIPLIER_FIXED,
-        }
+        },
         .bus_flags = MACHINE_PS2_PCI,
         .flags = MACHINE_IDE_DUAL,
         .ram = {
             .min = 2048,
             .max = 131072,
             .step = 2048
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -6420,14 +6420,14 @@ const machine_t machines[] = {
            .max_voltage = 5000,
            .min_multi = MACHINE_MULTIPLIER_FIXED,
            .max_multi = MACHINE_MULTIPLIER_FIXED,
-        }
+        },
         .bus_flags = MACHINE_PS2_PCI,
         .flags = MACHINE_IDE_DUAL,
         .ram = {
             .min = 2048,
             .max = 131072,
             .step = 2048
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -6455,14 +6455,14 @@ const machine_t machines[] = {
            .max_voltage = 5000,
            .min_multi = MACHINE_MULTIPLIER_FIXED,
            .max_multi = MACHINE_MULTIPLIER_FIXED,
-        }
+        },
         .bus_flags = MACHINE_PS2_PCI,
         .flags = MACHINE_IDE_DUAL | MACHINE_VIDEO,
         .ram = {
             .min = 8192,
             .max = 139264,
             .step = 2048
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -6494,14 +6494,14 @@ const machine_t machines[] = {
            .max_voltage = 5000,
            .min_multi = MACHINE_MULTIPLIER_FIXED,
            .max_multi = MACHINE_MULTIPLIER_FIXED,
-        }
+        },
         .bus_flags = MACHINE_PS2_VLB,
         .flags = MACHINE_IDE,
         .ram = {
             .min = 2048,
             .max = 65536,
             .step = 2048
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -6531,14 +6531,14 @@ const machine_t machines[] = {
            .max_voltage = 5000,
            .min_multi = MACHINE_MULTIPLIER_FIXED,
            .max_multi = MACHINE_MULTIPLIER_FIXED,
-        }
+        },
         .bus_flags = MACHINE_PCIV,
         .flags = MACHINE_FLAGS_NONE,
         .ram = {
             .min = 8192,
             .max = 131072,
             .step = 8192
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -6568,14 +6568,14 @@ const machine_t machines[] = {
            .max_voltage = 5000,
            .min_multi = MACHINE_MULTIPLIER_FIXED,
            .max_multi = MACHINE_MULTIPLIER_FIXED,
-        }
+        },
         .bus_flags = MACHINE_PS2_PCI,
         .flags = MACHINE_IDE_DUAL,
         .ram = {
             .min = 8192,
             .max = 131072,
             .step = 8192
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -6603,14 +6603,14 @@ const machine_t machines[] = {
            .max_voltage = 5000,
            .min_multi = MACHINE_MULTIPLIER_FIXED,
            .max_multi = MACHINE_MULTIPLIER_FIXED,
-        }
+        },
         .bus_flags = MACHINE_PS2_PCI,
         .flags = MACHINE_IDE_DUAL,
         .ram = {
             .min = 8192,
             .max = 131072,
             .step = 8192
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -6641,14 +6641,14 @@ const machine_t machines[] = {
            .max_voltage = 3520,
            .min_multi = 1.5,
            .max_multi = 1.5,
-        }
+        },
         .bus_flags = MACHINE_PS2_PCI,
         .flags = MACHINE_IDE_DUAL,
         .ram = {
             .min = 2048,
             .max = 131072,
             .step = 2048
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -6677,14 +6677,14 @@ const machine_t machines[] = {
            .max_voltage = 3520,
            .min_multi = 1.5,
            .max_multi = 1.5,
-        }
+        },
         .bus_flags = MACHINE_PS2_PCI,
         .flags = MACHINE_IDE_DUAL,
         .ram = {
             .min = 2048,
             .max = 131072,
             .step = 2048
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -6712,14 +6712,14 @@ const machine_t machines[] = {
            .max_voltage = 3520,
            .min_multi = 1.5,
            .max_multi = 1.5,
-        }
+        },
         .bus_flags = MACHINE_PS2_PCI,
         .flags = MACHINE_IDE_DUAL,
         .ram = {
             .min = 2048,
             .max = 131072,
             .step = 2048
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -6749,14 +6749,14 @@ const machine_t machines[] = {
            .max_voltage = 3520,
            .min_multi = 1.5,
            .max_multi = 2.0,
-        }
+        },
         .bus_flags = MACHINE_PS2_PCI,
         .flags = MACHINE_IDE_DUAL,
         .ram = {
             .min = 8192,
             .max = 131072,
             .step = 8192
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -6784,14 +6784,14 @@ const machine_t machines[] = {
            .max_voltage = 3520,
            .min_multi = 1.5,
            .max_multi = 2.0,
-        }
+        },
         .bus_flags = MACHINE_PS2_PCI,
         .flags = MACHINE_IDE_DUAL,
         .ram = {
             .min = 8192,
             .max = 131072,
             .step = 8192
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -6819,14 +6819,14 @@ const machine_t machines[] = {
            .max_voltage = 3520,
            .min_multi = 1.5,
            .max_multi = 3.0,
-        }
+        },
         .bus_flags = MACHINE_PS2_PCI,
         .flags = MACHINE_IDE_DUAL,
         .ram = {
             .min = 8192,
             .max = 131072,
             .step = 8192
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -6856,14 +6856,14 @@ const machine_t machines[] = {
            .max_voltage = 3520,
            .min_multi = 1.5,
            .max_multi = 2.0,
-        }
+        },
         .bus_flags = MACHINE_PS2_PCI,
         .flags = MACHINE_IDE_DUAL,
         .ram = {
             .min = 8192,
             .max = 131072,
             .step = 8192
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -6891,14 +6891,14 @@ const machine_t machines[] = {
            .max_voltage = 3520,
            .min_multi = 1.5,
            .max_multi = 2.0,
-        }
+        },
         .bus_flags = MACHINE_PS2_PCI,
         .flags = MACHINE_IDE_DUAL,
         .ram = {
             .min = 8192,
             .max = 131072,
             .step = 8192
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -6926,14 +6926,14 @@ const machine_t machines[] = {
            .max_voltage = 3520,
            .min_multi = 1.5,
            .max_multi = 3.0,
-        }
+        },
         .bus_flags = MACHINE_PCI,
         .flags = MACHINE_IDE_DUAL,
         .ram = {
             .min = 8192,
             .max = 131072,
             .step = 8192
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -6961,14 +6961,14 @@ const machine_t machines[] = {
            .max_voltage = 3520,
            .min_multi = 1.5,
            .max_multi = 2.0,
-        }
+        },
         .bus_flags = MACHINE_PS2_PCI,
         .flags = MACHINE_IDE_DUAL,
         .ram = {
             .min = 8192,
             .max = 131072,
             .step = 8192
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -7000,14 +7000,14 @@ const machine_t machines[] = {
            .max_voltage = 3520,
            .min_multi = 1.5,
            .max_multi = 1.5,
-        }
+        },
         .bus_flags = MACHINE_VLB,
         .flags = MACHINE_FLAGS_NONE,
         .ram = {
             .min = 2048,
             .max = 65536,
             .step = 2048
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -7036,14 +7036,14 @@ const machine_t machines[] = {
            .max_voltage = 3520,
            .min_multi = 1.5,
            .max_multi = 2.0,
-        }
+        },
         .bus_flags = MACHINE_PCIV,
         .flags = MACHINE_FLAGS_NONE,
         .ram = {
             .min = 8192,
             .max = 131072,
             .step = 8192
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -7073,14 +7073,14 @@ const machine_t machines[] = {
            .max_voltage = 3520,
            .min_multi = 1.5,
            .max_multi = 1.5,
-        }
+        },
         .bus_flags = MACHINE_PS2_PCI,
         .flags = MACHINE_IDE_DUAL,
         .ram = {
             .min = 8192,
             .max = 131072,
             .step = 8192
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -7108,14 +7108,14 @@ const machine_t machines[] = {
            .max_voltage = 3520,
            .min_multi = 1.5,
            .max_multi = 1.5,
-        }
+        },
         .bus_flags = MACHINE_PS2_PCI,
         .flags = MACHINE_IDE_DUAL,
         .ram = {
             .min = 8192,
             .max = 131072,
             .step = 8192
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -7146,14 +7146,14 @@ const machine_t machines[] = {
            .max_voltage = 3600,
            .min_multi = 1.5,
            .max_multi = 3.0,
-        }
+        },
         .bus_flags = MACHINE_PS2_PCI,
         .flags = MACHINE_IDE_DUAL,
         .ram = {
             .min = 8192,
             .max = 131072,
             .step = 8192
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -7181,14 +7181,14 @@ const machine_t machines[] = {
            .max_voltage = 3600,
            .min_multi = 1.5,
            .max_multi = 3.0,
-        }
+        },
         .bus_flags = MACHINE_PS2_PCI,
         .flags = MACHINE_IDE_DUAL,
         .ram = {
             .min = 8192,
             .max = 131072,
             .step = 8192
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -7218,14 +7218,14 @@ const machine_t machines[] = {
            .max_voltage = 3520,
            .min_multi = 1.5,
            .max_multi = 3.0,
-        }
+        },
         .bus_flags = MACHINE_PS2_PCI,
         .flags = MACHINE_IDE_DUAL,
         .ram = {
             .min = 8192,
             .max = 131072,
             .step = 8192
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -7254,14 +7254,14 @@ const machine_t machines[] = {
            .max_voltage = 3520,
            .min_multi = 1.5,
            .max_multi = 2.0,
-        }
+        },
         .bus_flags = MACHINE_PS2_PCI,
         .flags = MACHINE_IDE_DUAL | MACHINE_VIDEO,
         .ram = {
             .min = 8192,
             .max = 131072,
             .step = 8192
-        }
+        },
         .nvrmask = 511,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -7291,14 +7291,14 @@ const machine_t machines[] = {
            .max_voltage = 3520,
            .min_multi = 1.5,
            .max_multi = 3.0,
-        }
+        },
         .bus_flags = MACHINE_PS2_PCI,
         .flags = MACHINE_IDE_DUAL | MACHINE_VIDEO,
         .ram = {
             .min = 8192,
             .max = 131072,
             .step = 8192
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -7328,14 +7328,14 @@ const machine_t machines[] = {
            .max_voltage = 3520,
            .min_multi = 1.5,
            .max_multi = 3.0,
-        }
+        },
         .bus_flags = MACHINE_PS2_PCI,
         .flags = MACHINE_IDE_DUAL,
         .ram = {
             .min = 8192,
             .max = 131072,
             .step = 8192
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -7365,14 +7365,14 @@ const machine_t machines[] = {
            .max_voltage = 3520,
            .min_multi = 1.5,
            .max_multi = 3.0,
-        }
+        },
         .bus_flags = MACHINE_PS2_PCI,
         .flags = MACHINE_IDE_DUAL | MACHINE_VIDEO,
         .ram = {
             .min = 8192,
             .max = 131072,
             .step = 8192
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -7400,14 +7400,14 @@ const machine_t machines[] = {
            .max_voltage = 3520,
            .min_multi = 1.5,
            .max_multi = 3.0,
-        }
+        },
         .bus_flags = MACHINE_PS2_PCI,
         .flags = MACHINE_IDE_DUAL,
         .ram = {
             .min = 8192,
             .max = 131072,
             .step = 8192
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -7436,14 +7436,14 @@ const machine_t machines[] = {
            .max_voltage = 3520,
            .min_multi = 1.5,
            .max_multi = 3.0,
-        }
+        },
         .bus_flags = MACHINE_PS2_PCI,
         .flags = MACHINE_IDE_DUAL | MACHINE_VIDEO,
         .ram = {
             .min = 8192,
             .max = 131072,
             .step = 8192
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -7471,14 +7471,14 @@ const machine_t machines[] = {
            .max_voltage = 3520,
            .min_multi = 1.5,
            .max_multi = 3.0,
-        }
+        },
         .bus_flags = MACHINE_PS2_PCI,
         .flags = MACHINE_IDE_DUAL,
         .ram = {
             .min = 8192,
             .max = 131072,
             .step = 8192
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -7510,14 +7510,14 @@ const machine_t machines[] = {
            .max_voltage = 3520,
            .min_multi = 1.5,
            .max_multi = 3.0,
-        }
+        },
         .bus_flags = MACHINE_PS2_PCI,
         .flags = MACHINE_IDE_DUAL,
         .ram = {
             .min = 8192,
             .max = 196608,
             .step = 8192
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -7545,14 +7545,14 @@ const machine_t machines[] = {
            .max_voltage = 3520,
            .min_multi = 1.5,
            .max_multi = 3.0,
-        }
+        },
         .bus_flags = MACHINE_PS2_PCI,
         .flags = MACHINE_IDE_DUAL,
         .ram = {
             .min = 8192,
             .max = 524288,
             .step = 8192
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -7580,14 +7580,14 @@ const machine_t machines[] = {
            .max_voltage = 3520,
            .min_multi = 1.5,
            .max_multi = 3.0,
-        }
+        },
         .bus_flags = MACHINE_PS2_PCI,
         .flags = MACHINE_IDE_DUAL,
         .ram = {
             .min = 8192,
             .max = 524288,
             .step = 8192
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -7616,14 +7616,14 @@ const machine_t machines[] = {
            .max_voltage = 3520,
            .min_multi = 1.5,
            .max_multi = 3.0,
-        }
+        },
         .bus_flags = MACHINE_PS2_PCI,
         .flags = MACHINE_IDE_DUAL,
         .ram = {
             .min = 8192,
             .max = 786432,
             .step = 8192
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -7653,14 +7653,14 @@ const machine_t machines[] = {
            .max_voltage = 3520,
            .min_multi = 1.5,
            .max_multi = 3.0,
-        }
+        },
         .bus_flags = MACHINE_PS2_PCI,
         .flags = MACHINE_IDE_DUAL,
         .ram = {
             .min = 8192,
             .max = 131072,
             .step = 8192
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -7690,14 +7690,14 @@ const machine_t machines[] = {
            .max_voltage = 3520,
            .min_multi = 1.5,
            .max_multi = 3.0,
-        }
+        },
         .bus_flags = MACHINE_PS2_PCI,
         .flags = MACHINE_IDE_DUAL,
         .ram = {
             .min = 8192,
             .max = 131072,
             .step = 8192
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -7727,14 +7727,14 @@ const machine_t machines[] = {
            .max_voltage = 3520,
            .min_multi = 1.5,
            .max_multi = 3.0,
-        }
+        },
         .bus_flags = MACHINE_PS2_PCI,
         .flags = MACHINE_IDE_DUAL,
         .ram = {
             .min = 8192,
             .max = 524288,
             .step = 8192
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -7765,14 +7765,14 @@ const machine_t machines[] = {
            .max_voltage = 3520,
            .min_multi = 1.5,
            .max_multi = 3.0,
-        }
+        },
         .bus_flags = MACHINE_PS2_PCI,
         .flags = MACHINE_IDE_DUAL,
         .ram = {
             .min = 8192,
             .max = 196608,
             .step = 8192
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -7800,14 +7800,14 @@ const machine_t machines[] = {
            .max_voltage = 3520,
            .min_multi = 1.5,
            .max_multi = 3.0,
-        }
+        },
         .bus_flags = MACHINE_PS2_PCI,
         .flags = MACHINE_IDE_DUAL,
         .ram = {
             .min = 8192,
             .max = 262144,
             .step = 8192
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -7835,14 +7835,14 @@ const machine_t machines[] = {
            .max_voltage = 3520,
            .min_multi = 1.5,
            .max_multi = 3.0,
-        }
+        },
         .bus_flags = MACHINE_PS2_PCI,
         .flags = MACHINE_IDE_DUAL,
         .ram = {
             .min = 8192,
             .max = 131072,
             .step = 8192
-        }
+        },
         .nvrmask = 511,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -7872,14 +7872,14 @@ const machine_t machines[] = {
            .max_voltage = 3520,
            .min_multi = 1.5,
            .max_multi = 3.0,
-        }
+        },
         .bus_flags = MACHINE_PS2_PCI,
         .flags = MACHINE_IDE_DUAL,
         .ram = {
             .min = 8192,
             .max = 131072,
             .step = 8192
-        }
+        },
         .nvrmask = 255,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -7909,14 +7909,14 @@ const machine_t machines[] = {
            .max_voltage = 3520,
            .min_multi = 1.5,
            .max_multi = 3.0,
-        }
+        },
         .bus_flags = MACHINE_PS2_PCI,
         .flags = MACHINE_IDE_DUAL,
         .ram = {
             .min = 8192,
             .max = 196608,
             .step = 8192
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -7947,14 +7947,14 @@ const machine_t machines[] = {
            .max_voltage = 3520,
            .min_multi = 1.5,
            .max_multi = 3.0,
-        }
+        },
         .bus_flags = MACHINE_PS2_PCI,
         .flags = MACHINE_IDE_DUAL,
         .ram = {
             .min = 8192,
             .max = 196608,
             .step = 8192
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -7982,14 +7982,14 @@ const machine_t machines[] = {
            .max_voltage = 3520,
            .min_multi = 1.5,
            .max_multi = 3.0,
-        }
+        },
         .bus_flags = MACHINE_PS2_PCI,
         .flags = MACHINE_IDE_DUAL,
         .ram = {
             .min = 8192,
             .max = 524288,
             .step = 8192
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -8019,14 +8019,14 @@ const machine_t machines[] = {
            .max_voltage = 3520,
            .min_multi = 1.5,
            .max_multi = 3.0,
-        }
+        },
         .bus_flags = MACHINE_PS2_PCI,
         .flags = MACHINE_IDE_DUAL | MACHINE_SCSI,
         .ram = {
             .min = 8192,
             .max = 131072,
             .step = 8192
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -8054,14 +8054,14 @@ const machine_t machines[] = {
            .max_voltage = 3520,
            .min_multi = 1.5,
            .max_multi = 3.0,
-        }
+        },
         .bus_flags = MACHINE_PS2_PCI,
         .flags = MACHINE_IDE_DUAL,
         .ram = {
             .min = 8192,
             .max = 131072,
             .step = 8192
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -8090,14 +8090,14 @@ const machine_t machines[] = {
            .max_voltage = 3520,
            .min_multi = 1.5,
            .max_multi = 3.0,
-        }
+        },
         .bus_flags = MACHINE_PS2_PCI,
         .flags = MACHINE_IDE_DUAL,
         .ram = {
             .min = 8192,
             .max = 131072,
             .step = 8192
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -8125,14 +8125,14 @@ const machine_t machines[] = {
            .max_voltage = 3520,
            .min_multi = 1.5,
            .max_multi = 3.0,
-        }
+        },
         .bus_flags = MACHINE_PS2_PCI,
         .flags = MACHINE_IDE_DUAL,
         .ram = {
             .min = 8192,
             .max = 131072,
             .step = 8192
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -8161,14 +8161,14 @@ const machine_t machines[] = {
            .max_voltage = 3520,
            .min_multi = 1.5,
            .max_multi = 3.0,
-        }
+        },
         .bus_flags = MACHINE_PS2_PCI,
         .flags = MACHINE_IDE_DUAL | MACHINE_VIDEO,
         .ram = {
             .min = 8192,
             .max = 131072,
             .step = 8192
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -8196,14 +8196,14 @@ const machine_t machines[] = {
            .max_voltage = 3520,
            .min_multi = 1.5,
            .max_multi = 3.0,
-        }
+        },
         .bus_flags = MACHINE_PS2_PCI,
         .flags = MACHINE_IDE_DUAL | MACHINE_VIDEO,
         .ram = {
             .min = 8192,
             .max = 131072,
             .step = 8192
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -8231,14 +8231,14 @@ const machine_t machines[] = {
            .max_voltage = 3520,
            .min_multi = 1.5,
            .max_multi = 3.0,
-        }
+        },
         .bus_flags = MACHINE_PS2_PCI,
         .flags = MACHINE_IDE_DUAL,
         .ram = {
             .min = 8192,
             .max = 131072,
             .step = 8192
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -8266,14 +8266,14 @@ const machine_t machines[] = {
            .max_voltage = 3520,
            .min_multi = 1.5,
            .max_multi = 3.0,
-        }
+        },
         .bus_flags = MACHINE_PS2_PCI,
         .flags = MACHINE_IDE_DUAL,
         .ram = {
             .min = 8192,
             .max = 131072,
             .step = 8192
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -8303,14 +8303,14 @@ const machine_t machines[] = {
            .max_voltage = 3520,
            .min_multi = 1.5,
            .max_multi = 3.0,
-        }
+        },
         .bus_flags = MACHINE_PS2_PCI,
         .flags = MACHINE_IDE_DUAL,
         .ram = {
             .min = 8192,
             .max = 131072,
             .step = 8192
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -8339,14 +8339,14 @@ const machine_t machines[] = {
            .max_voltage = 3520,
            .min_multi = 1.5,
            .max_multi = 3.0,
-        }
+        },
         .bus_flags = MACHINE_PS2_PCI,
         .flags = MACHINE_IDE_DUAL,
         .ram = {
             .min = 8192,
             .max = 131072,
             .step = 8192
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -8375,14 +8375,14 @@ const machine_t machines[] = {
            .max_voltage = 3520,
            .min_multi = 1.5,
            .max_multi = 3.0,
-        }
+        },
         .bus_flags = MACHINE_PS2_PCI,
         .flags = MACHINE_IDE_DUAL | MACHINE_GAMEPORT,
         .ram = {
             .min = 8192,
             .max = 131072,
             .step = 8192
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -8412,14 +8412,14 @@ const machine_t machines[] = {
            .max_voltage = 2800,
            .min_multi = 1.5,
            .max_multi = 5.5,
-        }
+        },
         .bus_flags = MACHINE_PS2_PCI,
         .flags = MACHINE_IDE_DUAL,
         .ram = {
             .min = 8192,
             .max = 262144,
             .step = 8192
-        }
+        },
         .nvrmask = 255,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -8447,14 +8447,14 @@ const machine_t machines[] = {
            .max_voltage = 3520,
            .min_multi = 1.5,
            .max_multi = 3.0,
-        }
+        },
         .bus_flags = MACHINE_PS2_PCI,
         .flags = MACHINE_IDE_DUAL,
         .ram = {
             .min = 8192,
             .max = 262144,
             .step = 8192
-        }
+        },
         .nvrmask = 255,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -8483,14 +8483,14 @@ const machine_t machines[] = {
            .max_voltage = 3520,
            .min_multi = 1.5,
            .max_multi = 3.0,
-        }
+        },
         .bus_flags = MACHINE_PS2_PCI,
         .flags = MACHINE_IDE_DUAL,
         .ram = {
             .min = 8192,
             .max = 262144,
             .step = 8192
-        }
+        },
         .nvrmask = 255,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -8519,14 +8519,14 @@ const machine_t machines[] = {
            .max_voltage = 3520,
            .min_multi = 1.5,
            .max_multi = 3.0,
-        }
+        },
         .bus_flags = MACHINE_PS2_PCI,
         .flags = MACHINE_IDE_DUAL,
         .ram = {
             .min = 8192,
             .max = 262144,
             .step = 8192
-        }
+        },
         .nvrmask = 255,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -8554,14 +8554,14 @@ const machine_t machines[] = {
            .max_voltage = 3520,
            .min_multi = 1.5,
            .max_multi = 3.0,
-        }
+        },
         .bus_flags = MACHINE_PS2_PCI,
         .flags = MACHINE_IDE_DUAL,
         .ram = {
             .min = 8192,
             .max = 262144,
             .step = 8192
-        }
+        },
         .nvrmask = 255,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -8589,14 +8589,14 @@ const machine_t machines[] = {
            .max_voltage = 3520,
            .min_multi = 1.5,
            .max_multi = 3.0,
-        }
+        },
         .bus_flags = MACHINE_PS2_PCI,
         .flags = MACHINE_IDE_DUAL,
         .ram = {
             .min = 8192,
             .max = 262144,
             .step = 8192
-        }
+        },
         .nvrmask = 255,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -8627,14 +8627,14 @@ const machine_t machines[] = {
            .max_voltage = 3520,
            .min_multi = 1.5,
            .max_multi = 3.0,
-        }
+        },
         .bus_flags = MACHINE_PS2_PCI,
         .flags = MACHINE_IDE_DUAL,
         .ram = {
             .min = 8192,
             .max = 524288,
             .step = 8192
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -8665,14 +8665,14 @@ const machine_t machines[] = {
            .max_voltage = 3520,
            .min_multi = 1.5,
            .max_multi = 5.5,
-        }
+        },
         .bus_flags = MACHINE_PS2_AGP,
         .flags = MACHINE_IDE_DUAL,
         .ram = {
             .min = 8192,
             .max = 1048576,
             .step = 8192
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -8702,14 +8702,14 @@ const machine_t machines[] = {
            .max_voltage = 3520,
            .min_multi = 1.5,
            .max_multi = 3.0,
-        }
+        },
         .bus_flags = MACHINE_PS2_PCI,
         .flags = MACHINE_IDE_DUAL,
         .ram = {
             .min = 8192,
             .max = 393216,
             .step = 8192
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -8737,14 +8737,14 @@ const machine_t machines[] = {
            .max_voltage = 3520,
            .min_multi = 1.5,
            .max_multi = 3.0,
-        }
+        },
         .bus_flags = MACHINE_PS2_PCI,
         .flags = MACHINE_IDE_DUAL,
         .ram = {
             .min = 8192,
             .max = 262144,
             .step = 8192
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -8774,14 +8774,14 @@ const machine_t machines[] = {
            .max_voltage = 3520,
            .min_multi = 1.5,
            .max_multi = 3.0,
-        }
+        },
         .bus_flags = MACHINE_PS2_PCI,
         .flags = MACHINE_IDE_DUAL,
         .ram = {
             .min = 8192,
             .max = 786432,
             .step = 8192
-        }
+        },
         .nvrmask = 255,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -8809,14 +8809,14 @@ const machine_t machines[] = {
            .max_voltage = 3520,
            .min_multi = 1.5,
            .max_multi = 3.0,
-        }
+        },
         .bus_flags = MACHINE_PS2_PCI,
         .flags = MACHINE_IDE_DUAL,
         .ram = {
             .min = 8192,
             .max = 1048576,
             .step = 8192
-        }
+        },
         .nvrmask = 255,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -8847,14 +8847,14 @@ const machine_t machines[] = {
            .max_voltage = 3520,
            .min_multi = 1.5,
            .max_multi = 5.5,
-        }
+        },
         .bus_flags = MACHINE_PS2_AGP,
         .flags = MACHINE_IDE_DUAL,
         .ram = {
             .min = 1024,
             .max = 1572864,
             .step = 8192
-        }
+        },
         .nvrmask = 255,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -8883,14 +8883,14 @@ const machine_t machines[] = {
            .max_voltage = 3520,
            .min_multi = 1.5,
            .max_multi = 5.5,
-        }
+        },
         .bus_flags = MACHINE_PS2_AGP,
         .flags = MACHINE_IDE_DUAL,
         .ram = {
             .min = 1024,
             .max = 1572864,
             .step = 8192
-        }
+        },
         .nvrmask = 255,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -8918,14 +8918,14 @@ const machine_t machines[] = {
            .max_voltage = 3520,
            .min_multi = 1.5,
            .max_multi = 5.5,
-        }
+        },
         .bus_flags = MACHINE_PS2_AGP,
         .flags = MACHINE_IDE_DUAL,
         .ram = {
             .min = 1024,
             .max = 1572864,
             .step = 8192
-        }
+        },
         .nvrmask = 255,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -8953,14 +8953,14 @@ const machine_t machines[] = {
            .max_voltage = 3520,
            .min_multi = 1.5,
            .max_multi = 5.5,
-        }
+        },
         .bus_flags = MACHINE_PS2_AGP,
         .flags = MACHINE_IDE_DUAL,
         .ram = {
             .min = 1024,
             .max = 1572864,
             .step = 8192
-        }
+        },
         .nvrmask = 255,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -8991,14 +8991,14 @@ const machine_t machines[] = {
            .max_voltage = 3520,
            .min_multi = 1.5,
            .max_multi = 5.5,
-        }
+        },
         .bus_flags = MACHINE_PS2_AGP,
         .flags = MACHINE_IDE_DUAL,
         .ram = {
             .min = 8192,
             .max = 1048576,
             .step = 8192
-        }
+        },
         .nvrmask = 255,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -9027,14 +9027,14 @@ const machine_t machines[] = {
            .max_voltage = 3200,
            .min_multi = 1.5,
            .max_multi = 5.5,
-        }
+        },
         .bus_flags = MACHINE_PS2_AGP,
         .flags = MACHINE_IDE_DUAL,
         .ram = {
             .min = 8192,
             .max = 1048576,
             .step = 8192
-        }
+        },
         .nvrmask = 255,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -9063,14 +9063,14 @@ const machine_t machines[] = {
            .max_voltage = 3100,
            .min_multi = 1.5,
            .max_multi = 5.5,
-        }
+        },
         .bus_flags = MACHINE_PS2_A97,
         .flags = MACHINE_IDE_DUAL | MACHINE_SOUND,
         .ram = {
             .min = 8192,
             .max = 786432,
             .step = 8192
-        }
+        },
         .nvrmask = 255,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -9099,14 +9099,14 @@ const machine_t machines[] = {
            .max_voltage = 3520,
            .min_multi = 1.5,
            .max_multi = 5.5,
-        }
+        },
         .bus_flags = MACHINE_PS2_AGP,
         .flags = MACHINE_IDE_DUAL,
         .ram = {
             .min = 8192,
             .max = 786432,
             .step = 8192
-        }
+        },
         .nvrmask = 255,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -9137,14 +9137,14 @@ const machine_t machines[] = {
            .max_voltage = 3500,
            .min_multi = 1.5,
            .max_multi = 8.0,
-        }
+        },
         .bus_flags = MACHINE_PS2_PCI,
         .flags = MACHINE_IDE_DUAL,
         .ram = {
             .min = 8192,
             .max = 524288,
             .step = 8192
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -9174,14 +9174,14 @@ const machine_t machines[] = {
            .max_voltage = 3500,
            .min_multi = 1.5,
            .max_multi = 8.0,
-        }
+        },
         .bus_flags = MACHINE_PS2_PCI,
         .flags = MACHINE_IDE_DUAL,
         .ram = {
             .min = 8192,
             .max = 524288,
             .step = 8192
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -9209,14 +9209,14 @@ const machine_t machines[] = {
            .max_voltage = 3500,
            .min_multi = 1.5,
            .max_multi = 8.0,
-        }
+        },
         .bus_flags = MACHINE_PS2_PCI,
         .flags = MACHINE_IDE_DUAL,
         .ram = {
             .min = 8192,
             .max = 1048576,
             .step = 8192
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -9245,14 +9245,14 @@ const machine_t machines[] = {
            .max_voltage = 3300,
            .min_multi = 2.0,
            .max_multi = 5.5,
-        }
+        },
         .bus_flags = MACHINE_PS2_PCI,
         .flags = MACHINE_IDE_DUAL,
         .ram = {
             .min = 8192,
             .max = 1048576,
             .step = 8192
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -9279,14 +9279,14 @@ const machine_t machines[] = {
            .max_voltage = 3500,
            .min_multi = 2.0,
            .max_multi = 5.5,
-        }
+        },
         .bus_flags = MACHINE_PS2_PCI,
         .flags = MACHINE_IDE_DUAL,
         .ram = {
             .min = 8192,
             .max = 524288,
             .step = 8192
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -9316,14 +9316,14 @@ const machine_t machines[] = {
            .max_voltage = 3500,
            .min_multi = 2.0,
            .max_multi = 3.5,
-        }
+        },
         .bus_flags = MACHINE_PS2_PCI,
         .flags = MACHINE_IDE_DUAL,
         .ram = {
             .min = 8192,
             .max = 131072,
             .step = 8192
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -9353,14 +9353,14 @@ const machine_t machines[] = {
            .max_voltage = 3500,
            .min_multi = 2.0,
            .max_multi = 3.5,
-        }
+        },
         .bus_flags = MACHINE_PS2_PCI,
         .flags = MACHINE_IDE_DUAL,
         .ram = {
             .min = 8192,
             .max = 524288,
             .step = 8192
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -9388,14 +9388,14 @@ const machine_t machines[] = {
            .max_voltage = 3300,
            .min_multi = 1.5,
            .max_multi = 8.0,
-        }
+        },
         .bus_flags = MACHINE_PS2_PCI,
         .flags = MACHINE_IDE_DUAL,
         .ram = {
             .min = 8192,
             .max = 786432,
             .step = 8192
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -9425,14 +9425,14 @@ const machine_t machines[] = {
            .max_voltage = 3500,
            .min_multi = 1.5,
            .max_multi = 8.0,
-        }
+        },
         .bus_flags = MACHINE_PS2_PCI,
         .flags = MACHINE_IDE_DUAL,
         .ram = {
             .min = 8192,
             .max = 524288,
             .step = 8192
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -9463,14 +9463,14 @@ const machine_t machines[] = {
            .max_voltage = 3500,
            .min_multi = 1.5,
            .max_multi = 8.0,
-        }
+        },
         .bus_flags = MACHINE_PS2_AGP,
         .flags = MACHINE_IDE_DUAL,
         .ram = {
             .min = 1024,
             .max = 1572864,
             .step = 8192
-        }
+        },
         255,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -9500,14 +9500,14 @@ const machine_t machines[] = {
            .max_voltage = 3500,
            .min_multi = 1.5,
            .max_multi = 8.0,
-        }
+        },
         .bus_flags = MACHINE_PS2_PCI,
         .flags = MACHINE_IDE_DUAL,
         .ram = {
             .min = 8192,
             .max = 1048576,
             .step = 8192
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -9536,14 +9536,14 @@ const machine_t machines[] = {
            .max_voltage = 3500,
            .min_multi = 1.5,
            .max_multi = 8.0,
-        }
+        },
         .bus_flags = MACHINE_PS2_PCI,
         .flags = MACHINE_IDE_DUAL,
         .ram = {
             .min = 8192,
             .max = 786432,
             .step = 8192
-        }
+        },
         .nvrmask = 127,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -9574,14 +9574,14 @@ const machine_t machines[] = {
            .max_voltage = 3500,
            .min_multi = 2.0,
            .max_multi = 5.5,
-        }
+        },
         .bus_flags = MACHINE_PS2_AGP,
         .flags = MACHINE_IDE_DUAL,
         .ram = {
             .min = 8192,
             .max = 1048576,
             .step = 8192
-        }
+        },
         .nvrmask = 255,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -9610,14 +9610,14 @@ const machine_t machines[] = {
            .max_voltage = 3500,
            .min_multi = 1.5,
            .max_multi = 8.0,
-        }
+        },
         .bus_flags = MACHINE_PS2_AGP,
         .flags = MACHINE_IDE_DUAL,
         .ram = {
             .min = 8192,
             .max = 1048576,
             .step = 8192
-        }
+        },
         .nvrmask = 255,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -9648,14 +9648,14 @@ const machine_t machines[] = {
            .max_voltage = 3500,
            .min_multi = 3.0,
            .max_multi = 8.0,
-        }
+        },
         .bus_flags = MACHINE_PS2_PCI,
         .flags = MACHINE_IDE_DUAL,
         .ram = {
             .min = 8192,
             .max = 524288,
             .step = 8192
-        }
+        },
         .nvrmask = 255,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -9686,14 +9686,14 @@ const machine_t machines[] = {
            .max_voltage = 3500,
            .min_multi = 1.5,
            .max_multi = 8.0,
-        }
+        },
         .bus_flags = MACHINE_PS2_AGP,
         .flags = MACHINE_IDE_DUAL,
         .ram = {
             .min = 8192,
             .max = 1048576,
             .step = 8192
-        }
+        },
         .nvrmask = 255,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -9722,14 +9722,14 @@ const machine_t machines[] = {
            .max_voltage = 3500,
            .min_multi = 1.5,
            .max_multi = 8.0,
-        }
+        },
         .bus_flags = MACHINE_PS2_AGP,
         .flags = MACHINE_IDE_DUAL,
         .ram = {
             .min = 8192,
             .max = 1048576,
             .step = 8192
-        }
+        },
         .nvrmask = 255,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -9758,14 +9758,14 @@ const machine_t machines[] = {
            .max_voltage = 3500,
            .min_multi = 1.5,
            .max_multi = 8.0,
-        }
+        },
         .bus_flags = MACHINE_PS2_AGP,
         .flags = MACHINE_IDE_DUAL,
         .ram = {
             .min = 8192,
             .max = 786432,
             .step = 8192
-        }
+        },
         .nvrmask = 255,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -9794,14 +9794,14 @@ const machine_t machines[] = {
            .max_voltage = 3500,
            .min_multi = 1.5,
            .max_multi = 8.0,
-        }
+        },
         .bus_flags = MACHINE_PS2_AGP,
         .flags = MACHINE_IDE_DUAL,
         .ram = {
             .min = 8192,
             .max = 786432,
             .step = 8192
-        }
+        },
         .nvrmask = 255,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -9830,14 +9830,14 @@ const machine_t machines[] = {
            .max_voltage = 3500,
            .min_multi = 1.5,
            .max_multi = 8.0,
-        }
+        },
         .bus_flags = MACHINE_PS2_AGP,
         .flags = MACHINE_IDE_DUAL,
         .ram = {
             .min = 8192,
             .max = 1048576,
             .step = 8192
-        }
+        },
         .nvrmask = 255,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -9866,14 +9866,14 @@ const machine_t machines[] = {
            .max_voltage = 3500,
            .min_multi = 1.5,
            .max_multi = 8.0,
-        }
+        },
         .bus_flags = MACHINE_PS2_AGP,
         .flags = MACHINE_IDE_DUAL,
         .ram = {
             .min = 8192,
             .max = 1048576,
             .step = 8192
-        }
+        },
         .nvrmask = 255,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -9902,14 +9902,14 @@ const machine_t machines[] = {
            .max_voltage = 3500,
            .min_multi = 1.5,
            .max_multi = 8.0,
-        }
+        },
         .bus_flags = MACHINE_PS2_AGP,
         .flags = MACHINE_IDE_DUAL | MACHINE_SOUND,
         .ram = {
             .min = 8192,
             .max = 1048576,
             .step = 8192
-        }
+        },
         .nvrmask = 255,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -9938,14 +9938,14 @@ const machine_t machines[] = {
            .max_voltage = 3500,
            .min_multi = 1.5,
            .max_multi = 8.0,
-        }
+        },
         .bus_flags = MACHINE_PS2_AGP,
         .flags = MACHINE_IDE_DUAL,
         .ram = {
             .min = 8192,
             .max = 786432,
             .step = 8192
-        }
+        },
         .nvrmask = 255,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -9976,14 +9976,14 @@ const machine_t machines[] = {
            .max_voltage = 3500,
            .min_multi = 1.5,
            .max_multi = 8.0,
-        }
+        },
         .bus_flags = MACHINE_PS2_AGP,
         .flags = MACHINE_IDE_DUAL | MACHINE_AV,
         .ram = {
             .min = 8192,
             .max = 524288,
             .step = 8192
-        }
+        },
         .nvrmask = 255,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -10012,14 +10012,14 @@ const machine_t machines[] = {
            .max_voltage = 3500,
            .min_multi = 1.5,
            .max_multi = 8.0,
-        }
+        },
         .bus_flags = MACHINE_PS2_AGP,
         .flags = MACHINE_IDE_DUAL | MACHINE_AV,
         .ram = {
             .min = 8192,
             .max = 524288,
             .step = 8192
-        }
+        },
         .nvrmask = 255,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -10050,14 +10050,14 @@ const machine_t machines[] = {
            .max_voltage = 3500,
            .min_multi = 1.5,
            .max_multi = 8.0,
-        }
+        },
         .bus_flags = MACHINE_PS2_AGP,
         .flags = MACHINE_IDE_DUAL,
         .ram = {
             .min = 8192,
             .max = 786432,
             .step = 8192
-        }
+        },
         .nvrmask = 255,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -10088,14 +10088,14 @@ const machine_t machines[] = {
            .max_voltage = 3500,
            .min_multi = 1.5,
            .max_multi = 8.0,
-        }
+        },
         .bus_flags = MACHINE_PS2_AGP,
         .flags = MACHINE_IDE_DUAL,
         .ram = {
             .min = 8192,
             .max = 524288,
             .step = 8192
-        }
+        },
         .nvrmask = 255,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -10124,14 +10124,14 @@ const machine_t machines[] = {
            .max_voltage = 3500,
            .min_multi = 1.5,
            .max_multi = 8.0,
-        }
+        },
         .bus_flags = MACHINE_PS2_AGP,
         .flags = MACHINE_IDE_DUAL,
         .ram = {
             .min = 8192,
             .max = 1572864,
             .step = 8192
-        }
+        },
         .nvrmask = 255,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -10160,14 +10160,14 @@ const machine_t machines[] = {
            .max_voltage = 3500,
            .min_multi = 1.5,
            .max_multi = 8.0,
-        }
+        },
         .bus_flags = MACHINE_PS2_AGP,
         .flags = MACHINE_IDE_DUAL,
         .ram = {
             .min = 8192,
             .max = 2097152,
             .step = 8192
-        }
+        },
         .nvrmask = 255,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -10199,14 +10199,14 @@ const machine_t machines[] = {
            .max_voltage = 3500,
            .min_multi = 3.0,
            .max_multi = 8.0,
-        }
+        },
         .bus_flags = MACHINE_PS2_NOISA,
         .flags = MACHINE_IDE_DUAL,
         .ram = {
             .min = 16384,
             .max = 2080768,
             .step = 16384
-        }
+        },
         .nvrmask = 511,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -10238,14 +10238,14 @@ const machine_t machines[] = {
            .max_voltage = 3500,
            .min_multi = 1.5,
            .max_multi = 8.0,
-        }
+        },
         .bus_flags = MACHINE_PS2_AGP,
         .flags = MACHINE_IDE_DUAL,
         .ram = {
             .min = 8192,
             .max = 786432,
             .step = 8192
-        }
+        },
         .nvrmask = 255,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -10277,14 +10277,14 @@ const machine_t machines[] = {
            .max_voltage = 3500,
            .min_multi = 1.5,
            .max_multi = 8.0,
-        }
+        },
         .bus_flags = MACHINE_PS2_AGP,
         .flags = MACHINE_IDE_DUAL,
         .ram = {
             .min = 16384,
             .max = 2097152,
             .step = 16384
-        }
+        },
         .nvrmask = 511,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -10313,14 +10313,14 @@ const machine_t machines[] = {
            .max_voltage = 3500,
            .min_multi = 1.5,
            .max_multi = 8.0,
-        }
+        },
         .bus_flags = MACHINE_PS2_AGP,
         .flags = MACHINE_IDE_DUAL,
         .ram = {
             .min = 16384,
             .max = 2097152,
             .step = 16384
-        }
+        },
         .nvrmask = 511,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -10352,14 +10352,14 @@ const machine_t machines[] = {
            .max_voltage = 3500,
            .min_multi = MACHINE_MULTIPLIER_FIXED,
            .max_multi = MACHINE_MULTIPLIER_FIXED,
-        }
+        },
         .bus_flags = MACHINE_PS2_AGP,
         .flags = MACHINE_IDE_DUAL,
         .ram = {
             .min = 8192,
             .max = 786432,
             .step = 8192
-        }
+        },
         .nvrmask = 255,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -10390,14 +10390,14 @@ const machine_t machines[] = {
            .max_voltage = 3500,
            .min_multi = 1.5,
            .max_multi = 8.0, /* limits assumed */
-        }
+        },
         .bus_flags = MACHINE_PS2_AGP,
         .flags = MACHINE_IDE_DUAL,
         .ram = {
             .min = 8192,
             .max = 524288,
             .step = 8192
-        }
+        },
         .nvrmask = 255,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -10426,14 +10426,14 @@ const machine_t machines[] = {
            .max_voltage = 3500,
            .min_multi = 1.5,
            .max_multi = 8.0,
-        }
+        },
         .bus_flags = MACHINE_PS2_AGP,
         .flags = MACHINE_IDE_DUAL,
         .ram = {
             .min = 8192,
             .max = 1048576,
             .step = 8192
-        }
+        },
         .nvrmask = 255,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -10462,14 +10462,14 @@ const machine_t machines[] = {
            .max_voltage = 3500,
            .min_multi = 1.5,
            .max_multi = 8.0, /* limits assumed */ 
-        }
+        },
         .bus_flags = MACHINE_PS2_AGP,
         .flags = MACHINE_IDE_DUAL,
         .ram = {
             .min = 8192,
             .max = 786432,
             .step = 8192
-        }
+        },
         .nvrmask = 255,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -10500,14 +10500,14 @@ const machine_t machines[] = {
            .max_voltage = 3500,
            .min_multi = 1.5,
            .max_multi = 8.0,
-        }
+        },
         .bus_flags = MACHINE_PS2_AGP,
         .flags = MACHINE_IDE_DUAL,
         .ram = {
             .min = 8192,
             .max = 524288,
             .step = 8192
-        }
+        },
         .nvrmask = 255,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -10538,14 +10538,14 @@ const machine_t machines[] = {
            .max_voltage = 3500,
            .min_multi = 1.5,
            .max_multi = 8.0,
-        }
+        },
         .bus_flags = MACHINE_PS2_AGP,
         .flags = MACHINE_IDE_DUAL,
         .ram = {
             .min = 8192,
             .max = 1048576,
             .step = 8192
-        }
+        },
         .nvrmask = 255,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -10576,14 +10576,14 @@ const machine_t machines[] = {
            .max_voltage = 3500,
            .min_multi = 1.5,
            .max_multi = 8.0,
-        }
+        },
         .bus_flags = MACHINE_PS2_AGP,
         .flags = MACHINE_IDE_DUAL,
         .ram = {
             .min = 8192,
             .max = 786432,
             .step = 8192
-        }
+        },
         .nvrmask = 255,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -10612,21 +10612,21 @@ const machine_t machines[] = {
            .max_voltage = 3500,
            .min_multi = 1.5,
            .max_multi = 8.0,
-        }
+        },
         .bus_flags = MACHINE_PS2_AGP,
         .flags = MACHINE_IDE_DUAL,
         .ram = {
             .min = 8192,
             .max = 1572864,
             .step = 8192
-        }
+        },
         .nvrmask = 255,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
         .gpio = 0,
         .get_device = NULL,
         .get_vid_device = NULL
-        },
+        },,
     /* Has the VIA VT82C686B southbridge with on-chip KBC identical to the VIA
        VT82C42N. */
     {
@@ -10648,14 +10648,14 @@ const machine_t machines[] = {
            .max_voltage = 3500,
            .min_multi = MACHINE_MULTIPLIER_FIXED,
            .max_multi = MACHINE_MULTIPLIER_FIXED,
-        }
+        },
         .bus_flags = MACHINE_PS2_A97,
         .flags = MACHINE_IDE_DUAL | MACHINE_AG,
         .ram = {
             .min = 16384,
             .max = 3145728,
             .step = 8192
-        }
+        },
         .nvrmask = 255,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -10684,20 +10684,20 @@ const machine_t machines[] = {
            .max_voltage = 3500,
            .min_multi = 1.5,
            .max_multi = 8.0,
-        }
+        },
         .bus_flags = MACHINE_PS2_NOI97,
         .flags = MACHINE_IDE_DUAL | MACHINE_SOUND,
         .ram = {
             .min = 16384,
             .max = 4194304,
             .step = 8192
-        }
+        },
         .nvrmask = 255,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
         .gpio = 0,
-        at_cuv4xls_get_device,
-        NULL
+        .get_device = at_cuv4xls_get_device,
+        .get_vid_device = NULL
     },
     /* Has a Winbond W83977EF Super I/O chip with on-chip KBC with AMIKey-2 KBC
        firmware. */
@@ -10720,20 +10720,20 @@ const machine_t machines[] = {
            .max_voltage = 3500,
            .min_multi = 1.5,
            .max_multi = 8.0,
-        }
+        },
         .bus_flags = MACHINE_PS2_AGP,
         .flags = MACHINE_IDE_DUAL | MACHINE_SOUND,
         .ram = {
             .min = 16384,
             .max = 3145728,
             .step = 8192
-        }
+        },
         .nvrmask = 255,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
         .gpio = 0,
-        at_gt694va_get_device,
-        NULL
+        .get_device = at_gt694va_get_device,
+        .get_vid_device = NULL
     },
 
     /* Miscellaneous/Fake/Hypervisor machines */
@@ -10758,14 +10758,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_PS2_PCI,
         .flags = MACHINE_IDE_DUAL,
         .ram = {
             .min = 8192,
             .max = 1048576,
             .step = 8192
-        }
+        },
         .nvrmask = 255,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -10795,14 +10795,14 @@ const machine_t machines[] = {
            .max_voltage = 3500,
            .min_multi = 1.5,
            .max_multi = 8.0,
-        }
+        },
         .bus_flags = MACHINE_PS2_AGP,
         .flags = MACHINE_IDE_DUAL,
         .ram = {
             .min = 32768,
             .max = 524288,
             .step = 32768
-        }
+        },
         .nvrmask = 255,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
@@ -10829,14 +10829,14 @@ const machine_t machines[] = {
            .max_voltage = 0,
            .min_multi = 0,
            .max_multi = 0,
-        }
+        },
         .bus_flags = MACHINE_BUS_NONE,
         .flags = MACHINE_FLAGS_NONE,
         .ram = {
             .min = 0,
             .max = 0,
             .step = 0
-        }
+        },
         .nvrmask = 0,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
