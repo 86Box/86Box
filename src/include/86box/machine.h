@@ -256,6 +256,22 @@ typedef struct _machine_filter_ {
     const char  id;
 } machine_filter_t;
 
+typedef struct _machine_cpu_ {
+    uint32_t        package;
+    const uint8_t  *block;
+    uint32_t        min_bus;
+    uint32_t        max_bus;
+    uint16_t        min_voltage;
+    uint16_t        max_voltage;
+    float           min_multi;
+    float           max_multi;
+} machine_cpu_t;
+
+typedef struct _machine_memory_ {
+    uint32_t        min, max;
+    int             step;
+} machine_memory_t;
+
 typedef struct _machine_ {
     const char     *name;
     const char     *internal_name;
@@ -263,17 +279,10 @@ typedef struct _machine_ {
     uint32_t        chipset;
     int             (*init)(const struct _machine_ *);
     uintptr_t       pad, pad0, pad1, pad2;
-    uint32_t        cpu_package;
-    const uint8_t  *cpu_block;
-    uint32_t        cpu_min_bus;
-    uint32_t        cpu_max_bus;
-    uint16_t        cpu_min_voltage;
-    uint16_t        cpu_max_voltage;
-    float           cpu_min_multi;
-    float           cpu_max_multi;
+    const machine_cpu_t cpu;
     uintptr_t       bus_flags;
     uintptr_t       flags;
-    uint32_t        min_ram, max_ram;
+    const machine_memory_t ram;
     int             ram_granularity;
     int             nvrmask;
     uint16_t        kbc;
