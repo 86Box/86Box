@@ -754,8 +754,10 @@ EOF
 		https://github.com/AppImageCrafters/appimage-builder/releases/download/v0.9.2/appimage-builder-0.9.2-35e3eab-x86_64.AppImage
 	chmod u+x appimage-builder.AppImage
 
-	# Remove any dangling AppImages which may interfere with the renaming process.
-	rm -rf "$project-"*".AppImage"
+	# Symlink global cache directory.
+	rm -rf appimage-builder-cache "$project-"*".AppImage" # also remove any dangling AppImages which may interfere with the renaming process
+	mkdir -p "$cache_dir/appimage-builder-cache"
+	ln -s "$cache_dir/appimage-builder-cache" appimage-builder-cache
 
 	# Run appimage-builder in extract-and-run mode for Docker compatibility.
 	project="$project" project_id="$project_id" project_version="$project_version" project_icon="$project_icon" arch_deb="$arch_deb" \
