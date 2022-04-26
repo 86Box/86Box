@@ -727,6 +727,28 @@ else
 	build_num=$(grep -oP '#define\s+EMU_BUILD_NUM\s+\K([0-9]+)' "build/src/include/"*"/version.h" 2> /dev/null)
 	[ -n "$build_num" -a "$build_num" != "0" ] && project_version="$project_version-b$build_num"
 
+	# Generate modified AppImage metadata to suit build requirements.
+	cat << EOF > AppImageBuilder-generated.yml
+# This file is generated automatically by .ci/build.sh and will be
+# overwritten if edited. Please edit .ci/AppImageBuilder.yml instead.
+EOF
+	while IFS= read line
+	do
+		# Skip blank or comment lines.
+		echo "$line" | grep -qE '^(#|$)' && continue
+
+		# Parse "# if OPTION VALUE" condition lines.
+		condition=$(echo "$line" | grep -oP '# if \K(.+)')
+		if [ -n "$condition" ]
+		then
+			# Skip line if the condition is not matched.
+			grep -qiE "^$condition" build/CMakeCache.txt || continue
+		fi
+
+		# Copy line.
+		echo "$line" >> AppImageBuilder-generated.yml
+	done < .ci/AppImageBuilder.yml
+
 	# Download appimage-builder if necessary.
 	[ ! -e "appimage-builder.AppImage" ] && wget -qO appimage-builder.AppImage \
 		https://github.com/AppImageCrafters/appimage-builder/releases/download/v0.9.2/appimage-builder-0.9.2-35e3eab-x86_64.AppImage
@@ -737,7 +759,7 @@ else
 
 	# Run appimage-builder in extract-and-run mode for Docker compatibility.
 	project="$project" project_id="$project_id" project_version="$project_version" project_icon="$project_icon" arch_deb="$arch_deb" \
-		arch_appimage="$arch_appimage" APPIMAGE_EXTRACT_AND_RUN=1 ./appimage-builder.AppImage --recipe .ci/AppImageBuilder.yml
+		arch_appimage="$arch_appimage" APPIMAGE_EXTRACT_AND_RUN=1 ./appimage-builder.AppImage --recipe AppImageBuilder-generated.yml
 	status=$?
 
 	# Rename AppImage to the final name if the build succeeded.
