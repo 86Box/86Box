@@ -797,6 +797,7 @@ VulkanWindowRenderer::VulkanWindowRenderer(QWidget* parent)
     parentWidget = parent;
     instance.setLayers(QByteArrayList() << "VK_LAYER_KHRONOS_validation");
     instance.setExtensions(QByteArrayList() << "VK_EXT_debug_report");
+    instance.setApiVersion(QVersionNumber(1, 0));
     if (!instance.create()) {
         throw std::runtime_error("Could not create Vulkan instance");
     }
@@ -808,6 +809,7 @@ VulkanWindowRenderer::VulkanWindowRenderer(QWidget* parent)
     qDebug() << instance.layers();
     setVulkanInstance(&instance);
     setPhysicalDeviceIndex(0);
+    setPreferredColorFormats({VK_FORMAT_B8G8R8A8_UNORM, VK_FORMAT_R8G8B8A8_UNORM, VK_FORMAT_A8B8G8R8_UNORM_PACK32});
     setFlags(Flag::PersistentResources);
     buf_usage = std::vector<std::atomic_flag>(1);
     buf_usage[0].clear();
