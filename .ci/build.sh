@@ -20,6 +20,7 @@
 # to produce Jenkins-like builds on your local machine by following these notes:
 #
 # - Run build.sh without parameters to see its usage
+# - Any boolean CMake definitions (-D ...=ON/OFF) must be ON or OFF to ensure correct behavior
 # - For Windows (MSYS MinGW) builds:
 #   - Packaging requires 7-Zip on Program Files
 #   - Packaging the Ghostscript DLL requires 32-bit and/or 64-bit Ghostscript on Program Files
@@ -93,7 +94,6 @@ make_tar() {
 
 # Set common variables.
 project=86Box
-project_lower=86box
 cwd=$(pwd)
 
 # Parse arguments.
@@ -355,7 +355,7 @@ else
 	esac
 
 	# Establish general dependencies.
-	pkgs="cmake ninja-build pkg-config git wget p7zip-full wayland-protocols tar gzip file"
+	pkgs="cmake ninja-build pkg-config git wget p7zip-full wayland-protocols tar gzip file appstream"
 	if [ "$(dpkg --print-architecture)" = "$arch_deb" ]
 	then
 		pkgs="$pkgs build-essential"
@@ -606,6 +606,10 @@ else
 		sdl_ss=ON
 	fi
 
+	# Build SDL2 with video systems (and some dependencies) only if the SDL interface is used.
+	sdl_ui=OFF
+	grep -qiE "^QT:BOOL=ON" build/CMakeCache.txt || sdl_ui=ON
+
 	# Build rtmidi without JACK support to remove the dependency on libjack.
 	prefix="$cache_dir/rtmidi-4.0.0"
 	if [ -d "$prefix" ]
@@ -626,15 +630,25 @@ else
 		wget -qO - https://www.libsdl.org/release/SDL2-2.0.20.tar.gz | tar zxf - -C "$cache_dir" || rm -rf "$prefix"
 	fi
 	rm -rf "$cache_dir/sdlbuild"
-	cmake -G Ninja -D SDL_DISKAUDIO=OFF -D SDL_DIRECTFB_SHARED=OFF -D SDL_OPENGL=OFF -D SDL_OPENGLES=OFF -D SDL_OSS=OFF -D SDL_ALSA=$sdl_ss \
-		-D SDL_ALSA_SHARED=$sdl_ss -D SDL_JACK=$sdl_ss -D SDL_JACK_SHARED=$sdl_ss -D SDL_ESD=OFF -D SDL_ESD_SHARED=OFF -D SDL_PIPEWIRE=$sdl_ss \
+	cmake -G Ninja -D SDL_SHARED=ON -D SDL_STATIC=OFF \
+		\
+		-D SDL_AUDIO=$sdl_ss -D SDL_DUMMYAUDIO=$sdl_ss -D SDL_DISKAUDIO=OFF -D SDL_OSS=OFF -D SDL_ALSA=$sdl_ss -D SDL_ALSA_SHARED=$sdl_ss \
+		-D SDL_JACK=$sdl_ss -D SDL_JACK_SHARED=$sdl_ss -D SDL_ESD=OFF -D SDL_ESD_SHARED=OFF -D SDL_PIPEWIRE=$sdl_ss \
 		-D SDL_PIPEWIRE_SHARED=$sdl_ss -D SDL_PULSEAUDIO=$sdl_ss -D SDL_PULSEAUDIO_SHARED=$sdl_ss -D SDL_ARTS=OFF -D SDL_ARTS_SHARED=OFF \
 		-D SDL_NAS=$sdl_ss -D SDL_NAS_SHARED=$sdl_ss -D SDL_SNDIO=$sdl_ss -D SDL_SNDIO_SHARED=$sdl_ss -D SDL_FUSIONSOUND=OFF \
-		-D SDL_FUSIONSOUND_SHARED=OFF -D SDL_LIBSAMPLERATE=$sdl_ss -D SDL_LIBSAMPLERATE_SHARED=$sdl_ss -D SDL_X11=OFF -D SDL_X11_SHARED=OFF \
-		-D SDL_WAYLAND=OFF -D SDL_WAYLAND_SHARED=OFF -D SDL_WAYLAND_LIBDECOR=OFF -D SDL_WAYLAND_LIBDECOR_SHARED=OFF -D SDL_WAYLAND_QT_TOUCH=OFF \
-		-D SDL_RPI=OFF -D SDL_VIVANTE=OFF -D SDL_VULKAN=OFF -D SDL_KMSDRM=OFF -D SDL_KMSDRM_SHARED=OFF -D SDL_OFFSCREEN=OFF \
-		-D SDL_HIDAPI_JOYSTICK=ON -D SDL_VIRTUAL_JOYSTICK=ON -D SDL_SHARED=ON -D SDL_STATIC=OFF -S "$prefix" -B "$cache_dir/sdlbuild" \
-		-D "CMAKE_TOOLCHAIN_FILE=$cwd_root/toolchain.cmake" -D "CMAKE_INSTALL_PREFIX=$cwd_root/archive_tmp/usr" || exit 99
+		-D SDL_FUSIONSOUND_SHARED=OFF -D SDL_LIBSAMPLERATE=$sdl_ss -D SDL_LIBSAMPLERATE_SHARED=$sdl_ss \
+		\
+		-D SDL_VIDEO=$sdl_ui -D SDL_X11=$sdl_ui -D SDL_X11_SHARED=$sdl_ui -D SDL_WAYLAND=$sdl_ui -D SDL_WAYLAND_SHARED=$sdl_ui \
+		-D SDL_WAYLAND_LIBDECOR=$sdl_ui -D SDL_WAYLAND_LIBDECOR_SHARED=$sdl_ui -D SDL_WAYLAND_QT_TOUCH=OFF -D SDL_RPI=OFF -D SDL_VIVANTE=OFF \
+		-D SDL_VULKAN=OFF -D SDL_KMSDRM=$sdl_ui -D SDL_KMSDRM_SHARED=$sdl_ui -D SDL_OFFSCREEN=$sdl_ui -D SDL_RENDER=$sdl_ui \
+		\
+		-D SDL_JOYSTICK=ON -D SDL_HIDAPI_JOYSTICK=ON -D SDL_VIRTUAL_JOYSTICK=ON \
+		\
+		-D SDL_ATOMIC=OFF -D SDL_EVENTS=ON -D SDL_HAPTIC=OFF -D SDL_POWER=OFF -D SDL_THREADS=$sdl_ui -D SDL_TIMERS=ON -D SDL_FILE=OFF \
+		-D SDL_LOADSO=ON -D SDL_CPUINFO=OFF -D SDL_FILESYSTEM=$sdl_ui -D SDL_DLOPEN=OFF -D SDL_SENSOR=OFF -D SDL_LOCALE=OFF \
+		\
+		-D "CMAKE_TOOLCHAIN_FILE=$cwd_root/toolchain.cmake" -D "CMAKE_INSTALL_PREFIX=$cwd_root/archive_tmp/usr" \
+		-S "$prefix" -B "$cache_dir/sdlbuild" || exit 99
 	cmake --build "$cache_dir/sdlbuild" -j$(nproc) || exit 99
 	cmake --install "$cache_dir/sdlbuild" || exit 99
 
@@ -653,11 +667,17 @@ else
 		echo $pkg $version >> archive_tmp/README
 	done
 
+	# Archive metadata.
+	project_id=$(ls src/unix/assets/*.*.xml | head -1 | grep -oP '/\K([^/]+)(?=\.[^\.]+\.[^\.]+$)')
+	metainfo_base=archive_tmp/usr/share/metainfo
+	mkdir -p "$metainfo_base"
+	cp -p "src/unix/assets/$project_id."*".xml" "$metainfo_base/$project_id.appdata.xml"
+
 	# Archive icons.
 	icon_base=archive_tmp/usr/share/icons
 	mkdir -p "$icon_base"
 	cp -rp src/unix/assets/[0-9]*x[0-9]* "$icon_base/"
-	icon_name=$(ls "$icon_base/"[0-9]*x[0-9]*/* | head -1 | grep -oP '/\K([^/]+)(?=\.[^\.]+$)')
+	project_icon=$(ls "$icon_base/"[0-9]*x[0-9]*/* | head -1 | grep -oP '/\K([^/]+)(?=\.[^\.]+$)')
 
 	# Archive executable, while also stripping it if requested.
 	mkdir -p archive_tmp/usr/local/bin
@@ -702,9 +722,9 @@ else
 	esac
 
 	# Get version for AppImage metadata.
-	project_version=$(grep -oP '#define\s+EMU_VERSION\s+"\K([^"]+)' "build/src/include/$project_lower/version.h" 2> /dev/null)
+	project_version=$(grep -oP '#define\s+EMU_VERSION\s+"\K([^"]+)' "build/src/include/"*"/version.h" 2> /dev/null)
 	[ -z "$project_version" ] && project_version=unknown
-	build_num=$(grep -oP '#define\s+EMU_BUILD_NUM\s+\K([0-9]+)' "build/src/include/$project_lower/version.h" 2> /dev/null)
+	build_num=$(grep -oP '#define\s+EMU_BUILD_NUM\s+\K([0-9]+)' "build/src/include/"*"/version.h" 2> /dev/null)
 	[ -n "$build_num" -a "$build_num" != "0" ] && project_version="$project_version-b$build_num"
 
 	# Download appimage-builder if necessary.
@@ -716,7 +736,7 @@ else
 	rm -rf "$project-"*".AppImage"
 
 	# Run appimage-builder in extract-and-run mode for Docker compatibility.
-	project="$project" project_lower="$project_lower" project_version="$project_version" project_icon="$icon_name" arch_deb="$arch_deb" \
+	project="$project" project_id="$project_id" project_version="$project_version" project_icon="$project_icon" arch_deb="$arch_deb" \
 		arch_appimage="$arch_appimage" APPIMAGE_EXTRACT_AND_RUN=1 ./appimage-builder.AppImage --recipe .ci/AppImageBuilder.yml
 	status=$?
 
