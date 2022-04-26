@@ -797,6 +797,7 @@ VulkanWindowRenderer::VulkanWindowRenderer(QWidget* parent)
     parentWidget = parent;
     instance.setLayers(QByteArrayList() << "VK_LAYER_KHRONOS_validation");
     instance.setExtensions(QByteArrayList() << "VK_EXT_debug_report");
+    instance.setApiVersion(QVersionNumber(1, 0));
     if (!instance.create()) {
         throw std::runtime_error("Could not create Vulkan instance");
     }
