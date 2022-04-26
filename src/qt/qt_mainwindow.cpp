@@ -207,18 +207,12 @@ MainWindow::MainWindow(QWidget *parent) :
         qt_mouse_capture(mouse_capture);
         if (mouse_capture) {
             this->grabKeyboard();
-#ifdef WAYLAND
-            if (QGuiApplication::platformName().contains("wayland")) {
-                wl_mouse_capture(this->windowHandle());
-            }
-#endif
+            if (ui->stackedWidget->mouse_capture_func)
+                ui->stackedWidget->mouse_capture_func(this->windowHandle());
         } else {
             this->releaseKeyboard();
-#ifdef WAYLAND
-            if (QGuiApplication::platformName().contains("wayland")) {
-                wl_mouse_uncapture();
-            }
-#endif
+            if (ui->stackedWidget->mouse_uncapture_func)
+                ui->stackedWidget->mouse_uncapture_func();
         }
     });
 
@@ -282,8 +276,14 @@ MainWindow::MainWindow(QWidget *parent) :
         vid_api = 0;
         ui->actionHardware_Renderer_OpenGL->setVisible(false);
         ui->actionHardware_Renderer_OpenGL_ES->setVisible(false);
+        ui->actionVulkan->setVisible(false);
         ui->actionOpenGL_3_0_Core->setVisible(false);
     }
+
+#if !QT_CONFIG(vulkan)
+    if (vid_api == 4) vid_api = 0;
+    ui->actionVulkan->setVisible(false);
+#endif
 
     QActionGroup* actGroup = nullptr;
 
@@ -292,6 +292,7 @@ MainWindow::MainWindow(QWidget *parent) :
     actGroup->addAction(ui->actionHardware_Renderer_OpenGL);
     actGroup->addAction(ui->actionHardware_Renderer_OpenGL_ES);
     actGroup->addAction(ui->actionOpenGL_3_0_Core);
+    actGroup->addAction(ui->actionVulkan);
     actGroup->setExclusive(true);
 
     connect(actGroup, &QActionGroup::triggered, [this](QAction* action) {
@@ -309,6 +310,9 @@ MainWindow::MainWindow(QWidget *parent) :
             break;
         case 3:
             ui->stackedWidget->switchRenderer(RendererStack::Renderer::OpenGL3);
+            break;
+        case 4:
+            ui->stackedWidget->switchRenderer(RendererStack::Renderer::Vulkan);
             break;
         }
     });
@@ -515,10 +519,11 @@ void MainWindow::closeEvent(QCloseEvent *event) {
     }
     qt_nvr_save();
     config_save();
-#if defined __unix__ && !defined __HAIKU__
-    extern void xinput2_exit();
-    if (QApplication::platformName() == "xcb") xinput2_exit();
-#endif
+
+    if (ui->stackedWidget->mouse_exit_func)
+        ui->stackedWidget->mouse_exit_func();
+
+    ui->stackedWidget->switchRenderer(RendererStack::Renderer::Software);
     event->accept();
 }
 
@@ -1448,6 +1453,10 @@ void MainWindow::keyPressEvent(QKeyEvent* event)
 {
     if (send_keyboard_input && !(kbd_req_capture && !mouse_capture && !video_fullscreen))
     {
+        // Windows keys in Qt have one-to-one mapping.
+        if (event->key() == Qt::Key_Super_L || event->key() == Qt::Key_Super_R) {
+            keyboard_input(1, event->key() == Qt::Key_Super_L ? 0x15B : 0x15C);
+        } else
 #ifdef Q_OS_MACOS
         processMacKeyboardInput(true, event);
 #else
@@ -1475,6 +1484,9 @@ void MainWindow::keyReleaseEvent(QKeyEvent* event)
     if (!send_keyboard_input)
         return;
 
+    if (event->key() == Qt::Key_Super_L || event->key() == Qt::Key_Super_R) {
+        keyboard_input(0, event->key() == Qt::Key_Super_L ? 0x15B : 0x15C);
+    } else
 #ifdef Q_OS_MACOS
     processMacKeyboardInput(false, event);
 #else
