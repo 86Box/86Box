@@ -30,6 +30,7 @@
 #include <86box/86box.h>
 #include <86box/bswap.h>
 #include <86box/cdrom_image_backend.h>
+#include <86box/path.h>
 #include <86box/plat.h>
 #include <86box/plat_dir.h>
 #include <86box/version.h>
@@ -830,7 +831,7 @@ viso_init(const char *dirname, int *error)
                 break;
             entry->parent = dir;
             strcpy(entry->path, dir->path);
-            plat_path_slash(&entry->path[dir_path_len]);
+            path_slash(&entry->path[dir_path_len]);
             entry->basename = &entry->path[dir_path_len + 1];
             strcpy(entry->basename, readdir_entry->d_name);
 

@@ -37,6 +37,8 @@
 #include <86box/cdrom_image_backend.h>
 
 
+#define CDROM_BCD(x)      (((x) % 10) | (((x) / 10) << 4))
+
 #define MAX_LINE_LENGTH     512
 #define MAX_FILENAME_LENGTH 256
 #define CROSS_LEN           512
