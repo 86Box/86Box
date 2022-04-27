@@ -291,12 +291,17 @@ typedef struct _machine_ {
 	15-8	Clear bits are forced clear on P1 (no foced clear = 0xff). */
     uint16_t        kbc_p1;
     uint32_t        gpio;
+    uint32_t        gpio_acpi;
 #ifdef EMU_DEVICE_H
-    const device_t *(*get_device)(void);
-    const device_t *(*get_vid_device)(void);
+    const device_t *device;
+    const device_t *vid_device;
+    const device_t *snd_device;
+    const device_t *net_device;
 #else
-    void           *get_device;
-    void           *get_vid_device;
+    void           *device;
+    void           *vid_device;
+    void           *snd_device;
+    void           *net_device;
 #endif
 } machine_t;
 

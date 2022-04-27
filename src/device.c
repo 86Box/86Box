@@ -341,23 +341,25 @@ device_available(const device_t *d)
 #endif
     if (d != NULL) {
 	config = (device_config_t *) d->config;
-	while (config->type != -1) {
-		if (config->type == CONFIG_BIOS) {
-			bios = (device_config_bios_t *) config->bios;
+    if (config != NULL) {
+		while (config->type != -1) {
+			if (config->type == CONFIG_BIOS) {
+				bios = (device_config_bios_t *) config->bios;
 
-			/* Go through the ROM's in the device configuration. */
-			while (bios->files_no != 0) {
-				i = 0;
-				for (bf = 0; bf < bios->files_no; bf++)
-					i += !!rom_present((char *) bios->files[bf]);
-				if (i == bios->files_no)
-					roms_present++;
-				bios++;
+				/* Go through the ROM's in the device configuration. */
+				while (bios->files_no != 0) {
+					i = 0;
+					for (bf = 0; bf < bios->files_no; bf++)
+						i += !!rom_present((char *) bios->files[bf]);
+					if (i == bios->files_no)
+						roms_present++;
+					bios++;
+				}
+
+				return(roms_present ? -1 : 0);
 			}
-
-			return(roms_present ? -1 : 0);
+			config++;
 		}
-		config++;
 	}
 
     /* No CONFIG_BIOS field present, use the classic available(). */
