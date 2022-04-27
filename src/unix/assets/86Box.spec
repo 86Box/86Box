@@ -12,7 +12,6 @@
 # After a successful build, you can install the RPMs as follows:
 #  sudo dnf install RPMS/$(uname -m)/86Box-3* RPMS/noarch/86Box-roms*
 
-%global date 2022-04-26
 %global romver 20220319
 
 Name:		86Box
@@ -95,7 +94,6 @@ desktop-file-install --dir=%{buildroot}%{_datadir}/applications src/unix/assets/
 # install metadata
 mkdir -p %{buildroot}%{_metainfodir}
 cp src/unix/assets/net.86box.86Box.metainfo.xml %{buildroot}%{_metainfodir}
-sed -i 's/<release version.*/<release version="%{version}" date="%{date}"\/>/' %{buildroot}%{_metainfodir}/net.86box.86Box.metainfo.xml
 appstream-util validate-relax --nonet %{buildroot}%{_metainfodir}/net.86box.86Box.metainfo.xml
 
 # install roms
