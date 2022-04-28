@@ -105,6 +105,7 @@ Settings::Settings(QWidget *parent) :
     ui(new Ui::Settings)
 {
     ui->setupUi(this);
+    ui->listView->setModel(new SettingsModel(this));
 
     Harddrives::busTrackClass = new SettingsBusTracking;
     machine = new SettingsMachine(this);
