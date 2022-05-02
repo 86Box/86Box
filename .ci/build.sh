@@ -219,9 +219,10 @@ then
 			# Call build with the correct MSYSTEM.
 			echo [-] Switching to MSYSTEM [$msys]
 			cd "$cwd"
-			strip_arg=
-			[ $strip -ne 0 ] && strip_arg="-t "
-			CHERE_INVOKING=yes MSYSTEM="$msys" bash -lc 'exec "'"$0"'" -b "'"$package_name"'" "'"$arch"'" '"$strip_arg""$cmake_flags"
+			args=
+			[ $strip -ne 0 ] && args="-t $args"
+			[ $skiparchive -ne 0 ] && args="-n $args"
+			CHERE_INVOKING=yes MSYSTEM="$msys" bash -lc 'exec "'"$0"'" -b "'"$package_name"'" "'"$arch"'" '"$args""$cmake_flags"
 			exit $?
 		fi
 	else
@@ -350,13 +351,13 @@ then
 		for arch_universal in $(echo "$arch" | tr '+' ' ')
 		do
 			# Run build for the architecture.
-			strip_arg=
-			[ $strip -ne 0 ] && strip_arg="-t "
+			args=
+			[ $strip -ne 0 ] && args="-t $args"
 			case $arch_universal in # workaround: force new dynarec on for ARM
 				arm32 | arm64)	cmake_flags_extra="-D NEW_DYNAREC=ON";;
 				*)		cmake_flags_extra=;;
 			esac
-			zsh -lc 'exec "'"$0"'" -n -b "universal part" "'"$arch_universal"'" '"$strip_arg""$cmake_flags"' '"$cmake_flags_extra"
+			zsh -lc 'exec "'"$0"'" -n -b "universal part" "'"$arch_universal"'" '"$args""$cmake_flags"' '"$cmake_flags_extra"
 			status=$?
 
 			if [ $status -eq 0 ]
@@ -479,9 +480,10 @@ then
 		# Call build with the correct architecture.
 		echo [-] Switching to architecture [$arch]
 		cd "$cwd"
-		strip_arg=
-		[ $strip -ne 0 ] && strip_arg="-t "
-		arch -"$arch" zsh -lc 'exec "'"$0"'" -b "'"$package_name"'" "'"$arch"'" '"$strip_arg""$cmake_flags"
+		args=
+		[ $strip -ne 0 ] && args="-t $args"
+		[ $skiparchive -ne 0 ] && args="-n $args"
+		arch -"$arch" zsh -lc 'exec "'"$0"'" -b "'"$package_name"'" "'"$arch"'" '"$args""$cmake_flags"
 		exit $?
 	fi
 	echo [-] Using architecture [$(arch)]
