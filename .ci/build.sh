@@ -388,7 +388,7 @@ then
 					# Create merged file listing.
 					(cd "archive_tmp_universal/$merge_src.app" && find . -type f && cd "../../archive_tmp_universal/$arch_universal.app" && find . -type f && cd ../..) | sort > universal_listing.txt
 
-					# Move files that only exist on one bundle.
+					# Copy files that only exist on one bundle.
 					cat universal_listing.txt | uniq -u | while IFS= read line
 					do
 						if [ -e "archive_tmp_universal/$merge_src.app/$line" ]
@@ -401,10 +401,9 @@ then
 						cp -p "archive_tmp_universal/$file_src.app/$line" "archive_tmp_universal/$merge_dest.app/$line"
 					done
 
-					# Move or lipo files that exist on both bundles.
+					# Copy or lipo files that exist on both bundles.
 					cat universal_listing.txt | uniq -d | while IFS= read line
 					do
-						# Merge identical files.
 						if cmp -s "archive_tmp_universal/$merge_src.app/$line" "archive_tmp_universal/$arch_universal.app/$line"
 						then
 							echo "> Identical: $line"
@@ -422,14 +421,33 @@ then
 					(cd "archive_tmp_universal/$merge_src.app" && find . -type l && cd "../../archive_tmp_universal/$arch_universal.app" && find . -type l && cd ../..) | sort > universal_listing.txt
 					cat universal_listing.txt | uniq | while IFS= read line
 					do
+						# Get symlink destinations.
+						other_link_dest=
 						if [ -e "archive_tmp_universal/$merge_src.app/$line" ]
 						then
 							file_src="$merge_src"
+							other_link_path="archive_tmp_universal/$arch_universal.app/$line"
+							if [ -L "$other_link_path" ]
+							then
+								other_link_dest="$(readlink "$other_link_path")"
+							elif [ -e "$other_link_path" ]
+							then
+								other_link_dest='[not a symlink]'
+							fi
 						else
 							file_src="$arch_universal"
 						fi
 						link_dest="$(readlink "archive_tmp_universal/$file_src.app/$line")"
-						echo "> Symlink: $line => $link_dest"
+
+						# Warn if destinations differ.
+						if [ -n "$other_link_dest" -a "$link_dest" != "$other_link_dest" ]
+						then
+							echo "> Symlink: $line => WARNING: different targets"
+							echo ">> Using: [$merge_src] $link_dest"
+							echo ">> Other: [$arch_universal] $other_link_dest"
+						else
+							echo "> Symlink: $line => $link_dest"
+						fi
 						ln -s "$link_dest" "archive_tmp_universal/$merge_dest.app/$line"
 					done
 
