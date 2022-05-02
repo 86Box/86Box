@@ -221,7 +221,7 @@ then
 			cd "$cwd"
 			args=
 			[ $strip -ne 0 ] && args="-t $args"
-			[ $skiparchive -ne 0 ] && args="-n $args"
+			[ $skip_archive -ne 0 ] && args="-n $args"
 			CHERE_INVOKING=yes MSYSTEM="$msys" bash -lc 'exec "'"$0"'" -b "'"$package_name"'" "'"$arch"'" '"$args""$cmake_flags"
 			exit $?
 		fi
@@ -482,7 +482,7 @@ then
 		cd "$cwd"
 		args=
 		[ $strip -ne 0 ] && args="-t $args"
-		[ $skiparchive -ne 0 ] && args="-n $args"
+		[ $skip_archive -ne 0 ] && args="-n $args"
 		arch -"$arch" zsh -lc 'exec "'"$0"'" -b "'"$package_name"'" "'"$arch"'" '"$args""$cmake_flags"
 		exit $?
 	fi
