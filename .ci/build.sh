@@ -381,7 +381,7 @@ then
 					(cd "archive_tmp_universal/$merge_src.app" && find . -type d && cd "../../archive_tmp_universal/$arch_universal.app" && find . -type d && cd ../..) | sort > universal_listing.txt
 					cat universal_listing.txt | uniq | while IFS= read line
 					do
-						echo '> Directory:' "$line"
+						echo "> Directory: $line"
 						mkdir -p "archive_tmp_universal/$merge_dest.app/$line"
 					done
 
@@ -397,7 +397,7 @@ then
 						else
 							file_src="$arch_universal"
 						fi
-						echo '> Only on' "[$file_src]:" "$line"
+						echo "> Only on [$file_src]: $line"
 						cp -p "archive_tmp_universal/$file_src.app/$line" "archive_tmp_universal/$merge_dest.app/$line"
 					done
 
@@ -407,13 +407,13 @@ then
 						# Merge identical files.
 						if cmp -s "archive_tmp_universal/$merge_src.app/$line" "archive_tmp_universal/$arch_universal.app/$line"
 						then
-							echo '> Identical:' "$line"
+							echo "> Identical: $line"
 							cp -p "archive_tmp_universal/$merge_src.app/$line" "archive_tmp_universal/$merge_dest.app/$line"
 						elif lipo -create -output "archive_tmp_universal/$merge_dest.app/$line" "archive_tmp_universal/$merge_src.app/$line" "archive_tmp_universal/$arch_universal.app/$line" 2> /dev/null
 						then
-							echo '> Merged:' "$line"
+							echo "> Merged: $line"
 						else
-							echo '> Copied from' "[$merge_src]:" "$line"
+							echo "> Copied from [$merge_src]: $line"
 							cp -p "archive_tmp_universal/$merge_src.app/$line" "archive_tmp_universal/$merge_dest.app/$line"
 						fi
 					done
@@ -429,7 +429,7 @@ then
 							file_src="$arch_universal"
 						fi
 						link_dest="$(readlink "archive_tmp_universal/$file_src.app/$line")"
-						echo '> Symlink:' "$line" '=>' "$link_dest"
+						echo "> Symlink: $line => $link_dest"
 						ln -s "$link_dest" "archive_tmp_universal/$merge_dest.app/$line"
 					done
 
@@ -451,9 +451,10 @@ then
 		mv "archive_tmp_universal/$merge_src.app" "$app_bundle_name"
 
 		# Sign final app bundle.
-		codesign --force --deep -s - "$app_bundle_name"
+		arch -"$(uname -m)" codesign --force --deep -s - "$app_bundle_name"
 
 		# Create zip.
+		echo [-] Creating artifact archive
 		cd archive_tmp
 		zip -r "$cwd/$package_name.zip" .
 		status=$?
