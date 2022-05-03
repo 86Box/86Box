@@ -474,7 +474,7 @@ then
 		# Create zip.
 		echo [-] Creating artifact archive
 		cd archive_tmp
-		zip -r "$cwd/$package_name.zip" .
+		zip --symlinks -r "$cwd/$package_name.zip" .
 		status=$?
 
 		# Check if the archival succeeded.
@@ -895,7 +895,7 @@ elif is_mac
 then
 	# Create zip.
 	cd archive_tmp
-	zip -r "$cwd/$package_name.zip" .
+	zip --symlinks -r "$cwd/$package_name.zip" .
 	status=$?
 else
 	# Determine AppImage runtime architecture.
