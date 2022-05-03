@@ -49,6 +49,7 @@ else()
         # Use FAudio, a reimplementation of XAudio2
         pkg_check_modules(FAUDIO IMPORTED_TARGET FAudio)
         if(FAUDIO_FOUND)
+            include_directories(${FAUDIO_INCLUDE_DIRS})
             target_link_libraries(86Box PkgConfig::FAUDIO)
         else()
             find_path(FAUDIO_INCLUDE_DIR NAMES "FAudio.h")
