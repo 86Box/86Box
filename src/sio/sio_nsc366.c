@@ -49,7 +49,6 @@ typedef struct
     int siofc_lock;
 } nsc366_t;
 
-#define ENABLE_NSC366_LOG 1
 #ifdef ENABLE_NSC366_LOG
 int nsc366_do_log = ENABLE_NSC366_LOG;
 
@@ -79,7 +78,7 @@ nsc366_fdc(nsc366_t *dev)
     int dma_ch = dev->dma_select0[0] & 7;
 
     if(dev->ld_activate[0]) {
-        nsc366_log("NSC 366-FDC: Reconfigured with Base: 0x%04x IRQ: %d DMA Channel: %d\n", base, irq, dma_ch);
+        nsc366_log("NSC 366 FDC: Reconfigured with Base: 0x%04x IRQ: %d DMA Channel: %d\n", base, irq, dma_ch);
         fdc_set_base(dev->fdc, base);
         fdc_set_irq(dev->fdc, irq);
         fdc_set_dma_ch(dev->fdc, dma_ch);
@@ -97,7 +96,7 @@ nsc366_lpt(nsc366_t *dev)
     int irq = (dev->int_num_irq[1] & 0x0f);
 
     if(dev->ld_activate[1]) {
-        nsc366_log("NSC 366-LPT: Reconfigured with Base 0x%04x IRQ: %d\n", base ,irq);
+        nsc366_log("NSC 366 LPT: Reconfigured with Base 0x%04x IRQ: %d\n", base ,irq);
         lpt1_init(base);
         lpt1_irq(irq);
     }
@@ -111,7 +110,7 @@ nsc366_uart(int uart, nsc366_t *dev)
     int irq = (dev->int_num_irq[2 + uart] & 0x0f);
 
     if(dev->ld_activate[2 + uart]) {
-        nsc366_log("NSC 366-UART Serial %d: Reconfigured with Base 0x%04x IRQ: %d\n", uart, base ,irq);
+        nsc366_log("NSC 366 UART Serial %d: Reconfigured with Base 0x%04x IRQ: %d\n", uart, base ,irq);
         serial_setup(dev->uart[uart], base, irq);
     }
 }
@@ -122,7 +121,7 @@ nsc366_fscm(nsc366_t *dev)
     uint16_t base = (dev->io_base0[0][9] << 8) | (dev->io_base0[1][9] & 0xf0);
 
     if(dev->ld_activate[9])
-        nsc366_log("NSC 366-Fan Control: Reconfigured with Base 0x%04x\n", base);
+        nsc366_log("NSC 366 Fan Control: Reconfigured with Base 0x%04x\n", base);
 
     nsc366_update_fscm_io(dev->ld_activate[9], base, dev->hwm);
 }
@@ -133,7 +132,7 @@ nsc366_vlm(nsc366_t *dev)
     uint16_t base = (dev->io_base0[0][13] << 8) | (dev->io_base0[1][13] & 0xf0);
 
     if(dev->ld_activate[13])
-        nsc366_log("NSC 366-Voltage Monitor: Reconfigured with Base 0x%04x\n", base);
+        nsc366_log("NSC 366 Voltage Monitor: Reconfigured with Base 0x%04x\n", base);
 
     nsc366_update_vlm_io(dev->ld_activate[13], base, dev->hwm);
 }
@@ -144,7 +143,7 @@ nsc366_tms(nsc366_t *dev)
     uint16_t base = (dev->io_base0[0][14] << 8) | (dev->io_base0[1][14] & 0xf0);
 
     if(dev->ld_activate[14])
-        nsc366_log("NSC 366-Temperature Monitor: Reconfigured with Base 0x%04x\n", base);
+        nsc366_log("NSC 366 Temperature Monitor: Reconfigured with Base 0x%04x\n", base);
 
     nsc366_update_tms_io(dev->ld_activate[14], base, dev->hwm);
 }

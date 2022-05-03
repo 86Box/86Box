@@ -27,8 +27,10 @@
 #include <86box/pic.h>
 #include <86box/timer.h>
 #include <86box/i2c.h>
+#include <86box/apm.h>
+#include <86box/nvr.h>
+#include <86box/acpi.h>
 #include <86box/smbus.h>
-
 
 #ifdef ENABLE_SMBUS_PIIX4_LOG
 int smbus_piix4_do_log = ENABLE_SMBUS_PIIX4_LOG;
@@ -50,6 +52,12 @@ smbus_piix4_log(const char *fmt, ...)
 #endif
 
 void
+smbus_piix4_get_acpi(smbus_piix4_t *dev, acpi_t *acpi)
+{
+    dev->acpi = acpi;
+}
+
+void
 smbus_piix4_get_irq(uint8_t irq, smbus_piix4_t *dev)
 {
     dev->irq = irq;
@@ -64,8 +72,10 @@ smbus_piix4_smi_en(uint8_t smi_en, smbus_piix4_t *dev)
 static void
 smbus_piix4_raise_smi(smbus_piix4_t *dev)
 {
-    if(dev->smi_en) // Raise SMI when needed if it's enabled by the Chipset.
-        smi_line = 1;
+    if (dev->smi_en) { /* Raise SMI when needed if it's enabled by the Chipset */
+        dev->acpi->regs.smi_sts |= 0x00010000;
+        acpi_raise_smi(dev->acpi, 1);
+    }
     else
         picint(1 << dev->irq);
 }

@@ -6,9 +6,8 @@
  * Copyright 2022 Tiseno100.
  */
 
-#ifndef TCO_H
-# define TCO_H
-
+#ifndef EMU_TCO_H
+# define EMU_TCO_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -18,6 +17,7 @@ typedef struct
 {
     uint8_t regs[17];
     uint16_t tco_irq;
+    pc_timer_t *tco_timer;
 } tco_t;
 
 extern const device_t   tco_device;
@@ -30,5 +30,4 @@ extern uint8_t tco_read(uint16_t addr, tco_t *dev);
 }
 #endif
 
-
-#endif
+#endif /* EMU_TCO_H */

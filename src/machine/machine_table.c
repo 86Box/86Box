@@ -10797,6 +10797,37 @@ const machine_t machines[] = {
     /* Intel ICH2 */
     /* Has a NSC PC87366 LPC Super I/O with on-chip AMIKey-2 KBC firmware*/
     {
+        .name = "[Intel i815E] Biostar M6TSL",
+        .internal_name = "m6tsl",
+        .type = MACHINE_TYPE_ICH2,
+        .chipset = MACHINE_CHIPSET_INTEL_I815EP,
+        .init = machine_at_m6tsl_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET370,
+            .block= CPU_BLOCK(CPU_CYRIX3S),
+            .min_bus = 66666667,
+            .max_bus = 133333333,
+            .min_voltage = 1300,
+            .max_voltage = 3500,
+            .min_multi = 1.5,
+            .max_multi = 8.0,
+        },
+        .bus_flags = MACHINE_PS2_NOISA,
+        .flags = MACHINE_IDE_DUAL,
+        .ram = {
+            .min = 32768,
+            .max = 524288,
+            .step = 32768,
+        },
+        .nvrmask = 255,
+        .device = NULL,
+        .vid_device = NULL
+    },
+    {
         .name = "[Intel i815EP] Biostar M6TSS",
         .internal_name = "m6tss",
         .type = MACHINE_TYPE_ICH2,
@@ -10815,13 +10846,14 @@ const machine_t machines[] = {
             .max_voltage = 3500,
             .min_multi = 1.5,
             .max_multi = 8.0,
-        }
+        },
         .bus_flags = MACHINE_PS2_AGP,
         .flags = MACHINE_IDE_DUAL,
         .ram = {
             .min = 32768,
             .max = 524288,
             .step = 32768,
+        },
         .nvrmask = 255,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,

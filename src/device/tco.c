@@ -6,6 +6,8 @@
  * Copyright 2022 Tiseno100.
  */
 
+/* Note: There's a TCO Timer too but for now it's of no use thus not implemented */
+
 #include <stdarg.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -24,7 +26,6 @@
 #include <86box/pit.h>
 #include <86box/tco.h>
 
-#define ENABLE_TCO_LOG 1
 #ifdef ENABLE_TCO_LOG
 int tco_do_log = ENABLE_TCO_LOG;
 
@@ -47,13 +48,13 @@ tco_log(const char *fmt, ...)
 void
 tco_timer_handler(void *priv)
 {
-pclog("Timing\n");
+    tco_t *dev = (tco_t *) priv;
 }
 
 void
 tco_irq_update(tco_t *dev, uint16_t new_irq)
 {
-    tco_log("TCO: Update IRQ to %d.\n", new_irq);
+    tco_log("TCO: Update IRQ to %d\n", new_irq);
     dev->tco_irq = new_irq;
 }
 
@@ -164,8 +165,6 @@ tco_init(const device_t *info)
 {
     tco_t *dev = (tco_t *) malloc(sizeof(tco_t));
     memset(dev, 0, sizeof(tco_t));
-
-//    timer_add(dev->tco_timer, tco_timer_handler, dev, 0);
 
     tco_reset(dev);
 

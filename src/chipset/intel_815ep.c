@@ -26,38 +26,39 @@
 #include <86box/spd.h>
 #include <86box/chipset.h>
 
-#ifdef ENABLE_INTEL_MCH_LOG
-int intel_mch_do_log = ENABLE_INTEL_MCH_LOG;
+#ifdef ENABLE_INTEL_815EP_LOG
+int intel_815ep_do_log = ENABLE_INTEL_815EP_LOG;
 static void
-intel_mch_log(const char *fmt, ...)
+intel_815ep_log(const char *fmt, ...)
 {
     va_list ap;
 
-    if (intel_mch_do_log) {
+    if (intel_815ep_do_log) {
 	va_start(ap, fmt);
 	pclog_ex(fmt, ap);
 	va_end(ap);
     }
 }
 #else
-#define intel_mch_log(fmt, ...)
+#define intel_815ep_log(fmt, ...)
 #endif
 
-typedef struct intel_mch_t
+typedef struct intel_815ep_t
 {
     uint8_t pci_conf[256];
     smram_t *lsmm_segment, *h_segment, *usmm_segment;
-} intel_mch_t;
+} intel_815ep_t;
 
 static void
-intel_usmm_segment_recalc(intel_mch_t *dev, uint8_t val)
+intel_usmm_segment_recalc(intel_815ep_t *dev, uint8_t val)
 {
-    intel_mch_log("Intel MCH: USMM update to status %d\n", val); /* Check the i815EP datasheet for status */
+    intel_815ep_log("Intel 815EP MCH: USMM update to status %d\n", val); /* Check the 815EP datasheet for status */
+
+    smram_disable(dev->h_segment);
+    smram_disable(dev->usmm_segment);
 
     if(val != 0)
         smram_enable(dev->h_segment, 0xfeea0000, 0x000a0000, 0x20000, 0, 1);
-    else
-        smram_disable(dev->h_segment);
 
     if(val >= 2) { /* TOM recalc based on intel_4x0.c by OBattler */
     uint32_t tom = (mem_size << 10);
@@ -65,20 +66,18 @@ intel_usmm_segment_recalc(intel_mch_t *dev, uint8_t val)
     uint32_t size = (val != 3) ? 0x100000 : 0x80000;
     smram_enable(dev->usmm_segment, tom + 0x10000000, tom, size, 0, 1);
     mem_set_mem_state_smm(tom, size, MEM_READ_EXTANY | MEM_WRITE_EXTANY);
-    } else smram_disable(dev->usmm_segment);
+    }
 }
 
 static void
-intel_lsmm_segment_recalc(intel_mch_t *dev, uint8_t val)
+intel_lsmm_segment_recalc(intel_815ep_t *dev, uint8_t val)
 {
-    intel_mch_log("Intel MCH: LSMM update to status %d\n", val); /* Check the i815EP datasheet for status */
+    intel_815ep_log("Intel 815EP MCH: LSMM update to status %d\n", val); /* Check the 815EP datasheet for status */
+
+    smram_disable(dev->lsmm_segment);
 
     switch(val)
     {
-    case 0:
-        smram_disable(dev->lsmm_segment);
-    break;
-
     case 1:
         smram_enable(dev->lsmm_segment, 0x000a0000, 0x000a0000, 0x20000, 1, 0);
     break;
@@ -108,11 +107,11 @@ intel_pam_recalc(int addr, uint8_t val)
 }
 
 static void
-intel_mch_write(int func, int addr, uint8_t val, void *priv)
+intel_815ep_write(int func, int addr, uint8_t val, void *priv)
 {
-    intel_mch_t *dev = (intel_mch_t *)priv;
+    intel_815ep_t *dev = (intel_815ep_t *)priv;
 
-    intel_mch_log("Intel MCH: dev->regs[%02x] = %02x\n", addr, val);
+    intel_815ep_log("Intel 815EP MCH: dev->regs[%02x] = %02x\n", addr, val);
 
     switch(addr)
     {
@@ -145,7 +144,7 @@ intel_mch_write(int func, int addr, uint8_t val, void *priv)
         case 0x54:
             if (!(dev->pci_conf[0x70] & 2)) {
                 dev->pci_conf[addr] = val & ((addr & 4) ? 0x0f : 0xff);
-                spd_write_drbs_intel_mch(dev->pci_conf);
+                spd_write_drbs_intel_815ep(dev->pci_conf);
             }
         break;
 
@@ -216,7 +215,7 @@ intel_mch_write(int func, int addr, uint8_t val, void *priv)
         break;
 
         case 0xa9:
-            dev->pci_conf[addr] = val & 3;
+            dev->pci_conf[addr] = (val & 2) | 1;
         break;
 
         case 0xb0:
@@ -255,19 +254,23 @@ intel_mch_write(int func, int addr, uint8_t val, void *priv)
 
 
 static uint8_t
-intel_mch_read(int func, int addr, void *priv)
+intel_815ep_read(int func, int addr, void *priv)
 {
-    intel_mch_t *dev = (intel_mch_t *)priv;
+    intel_815ep_t *dev = (intel_815ep_t *)priv;
 
-    intel_mch_log("Intel MCH: dev->regs[%02x] (%02x)\n", addr, dev->pci_conf[addr]);
-    return dev->pci_conf[addr];
+    intel_815ep_log("Intel 815EP MCH: dev->regs[%02x] (%02x)\n", addr, dev->pci_conf[addr]);
+
+    if(addr == 0x51) // Bit 2 is Write Only. It cannot be read.
+        return dev->pci_conf[addr] & 3;
+    else
+        return dev->pci_conf[addr];
 }
 
 
 static void
-intel_mch_reset(void *priv)
+intel_815ep_reset(void *priv)
 {
-    intel_mch_t *dev = (intel_mch_t *)priv;
+    intel_815ep_t *dev = (intel_815ep_t *)priv;
     memset(dev->pci_conf, 0x00, sizeof(dev->pci_conf)); /* Wash out the registers */
 
     dev->pci_conf[0x00] = 0x86;    /* Intel */
@@ -302,9 +305,10 @@ intel_mch_reset(void *priv)
     dev->pci_conf[0xa5] = 0x02;
     dev->pci_conf[0xa7] = 0x1f;
 
+    dev->pci_conf[0xa9] = 0x01; /* Hack: Brute Force AGP Enabled */
+
     for(int i = 0x58; i <= 0x5f; i++)  /* Reset PAM to defaults */
         intel_pam_recalc(i, 0);
-
 
     intel_lsmm_segment_recalc(dev, 0); /* Reset LSMM SMRAM to defaults */
     intel_usmm_segment_recalc(dev, 0); /* Reset USMM SMRAM to defaults */
@@ -313,9 +317,9 @@ intel_mch_reset(void *priv)
 
 
 static void
-intel_mch_close(void *priv)
+intel_815ep_close(void *priv)
 {
-    intel_mch_t *dev = (intel_mch_t *)priv;
+    intel_815ep_t *dev = (intel_815ep_t *)priv;
 
     smram_del(dev->lsmm_segment);
     smram_del(dev->h_segment);
@@ -325,18 +329,19 @@ intel_mch_close(void *priv)
 
 
 static void *
-intel_mch_init(const device_t *info)
+intel_815ep_init(const device_t *info)
 {
-    intel_mch_t *dev = (intel_mch_t *)malloc(sizeof(intel_mch_t));
-    memset(dev, 0, sizeof(intel_mch_t));
+    intel_815ep_t *dev = (intel_815ep_t *)malloc(sizeof(intel_815ep_t));
+    memset(dev, 0, sizeof(intel_815ep_t));
 
     /* Device */
-    pci_add_card(PCI_ADD_NORTHBRIDGE, intel_mch_read, intel_mch_write, dev); /* Device 0: Intel i815EP MCH */
+    pci_add_card(PCI_ADD_NORTHBRIDGE, intel_815ep_read, intel_815ep_write, dev); /* Device 0: Intel 815EP MCH */
 
     /* AGP Bridge */
-    device_add(&intel_mch_agp_device);
+    device_add(&intel_815ep_agp_device);
 
-    /* L2 Cache */
+    /* L1 & L2 Cache */
+    cpu_cache_int_enabled = 1;
     cpu_cache_ext_enabled = 1;
     cpu_update_waitstates();
 
@@ -345,18 +350,18 @@ intel_mch_init(const device_t *info)
     dev->h_segment = smram_add();
     dev->usmm_segment = smram_add();
 
-    intel_mch_reset(dev);
+    intel_815ep_reset(dev);
     return dev;
 }
 
-const device_t intel_mch_device = {
+const device_t intel_815ep_device = {
     .name = "Intel 815EP MCH Bridge",
-    .internal_name = "intel_mch",
+    .internal_name = "intel_815ep",
     .flags = DEVICE_PCI,
     .local = 0,
-    .init = intel_mch_init,
-    .close = intel_mch_close,
-    .reset = intel_mch_reset,
+    .init = intel_815ep_init,
+    .close = intel_815ep_close,
+    .reset = intel_815ep_reset,
     { .available = NULL },
     .speed_changed = NULL,
     .force_redraw = NULL,

@@ -637,11 +637,15 @@ spd_write_drbs_ali1621(uint8_t *regs, uint8_t reg_min, uint8_t reg_max)
 
 
 void
-spd_write_drbs_intel_mch(uint8_t *regs)
+spd_write_drbs_intel_815ep(uint8_t *regs)
 {
     /* All Intel MCH based boards demand SPD so we ignore completely the non-SPD calculations */
     int size;
     int reg_apply;
+    uint16_t rows[SPD_MAX_SLOTS];
+
+    if(!spd_present)
+        spd_populate(rows, 3, mem_size << 10, 32, 512, 0);
 
     /* Clear previous configurations */
     regs[0x52] = regs[0x54] = 0;
@@ -649,14 +653,14 @@ spd_write_drbs_intel_mch(uint8_t *regs)
     /* Write DRBs for each row. */
     for (int slot = 0; slot < 3; slot++) {
         size = spd_modules[slot]->row1 + spd_modules[slot]->row2;
-        spd_log("Intel MCH: Registering Slot %d with size %dMB.\n", slot, size);
+        spd_log("Intel 815EP SPD: Registering Slot %d with size %dMB.\n", slot, size);
 
         /* Calculate Size. Nullify if the size is illegal. */
         switch(size)
         {
             default:
                 reg_apply = 0;
-                spd_log("Illegal Size on Slot %d. Size not divisible by 32.\n", slot);
+                spd_log("Intel 815EP SPD: Illegal Size on Slot %d. Size not divisible by 32.\n", slot);
             break;
 
             case 32:
