@@ -1142,7 +1142,7 @@ vid_init(tandy_t *dev)
 }
 
 
-static const device_config_t vid_config[] = {
+const device_config_t vid_config[] = {
     {
         .name = "display_type",
         .description = "Display type",
@@ -1160,7 +1160,7 @@ static const device_config_t vid_config[] = {
     { .name = "", .description = "", .type = CONFIG_END }
 };
 
-static const device_t vid_device = {
+const device_t vid_device = {
     .name = "Tandy 1000",
     .internal_name = "tandy1000_video",
     .flags = 0,
@@ -1174,7 +1174,7 @@ static const device_t vid_device = {
     .config = vid_config
 };
 
-static const device_t vid_device_hx = {
+const device_t vid_device_hx = {
     .name = "Tandy 1000 HX",
     .internal_name = "tandy1000_hx_video",
     .flags = 0,
@@ -1188,7 +1188,7 @@ static const device_t vid_device_hx = {
     .config = vid_config
 };
 
-static const device_t vid_device_sl = {
+const device_t vid_device_sl = {
     .name = "Tandy 1000SL2",
     .internal_name = "tandy1000_sl_video",
     .flags = 0,

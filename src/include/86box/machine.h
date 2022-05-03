@@ -126,11 +126,9 @@
 #define IS_AT(m)		(((machines[m].bus_flags & (MACHINE_BUS_ISA16 | MACHINE_BUS_EISA | MACHINE_BUS_VLB | MACHINE_BUS_MCA | MACHINE_BUS_PCI | MACHINE_BUS_PCMCIA | MACHINE_BUS_AGP | MACHINE_BUS_AC97)) && !(machines[m].bus_flags & MACHINE_PC98)) ? 1 : 0)
 
 #define CPU_BLOCK(...)		(const uint8_t[]) {__VA_ARGS__, 0}
-#define MACHINE_MULTIPLIER_FIXED -1, -1
+#define MACHINE_MULTIPLIER_FIXED -1
 
 #define CPU_BLOCK_NONE       0
-#define CPU_BLOCK_QDI_FMB	 CPU_BLOCK(CPU_WINCHIP, CPU_WINCHIP2, CPU_Cx6x86, CPU_Cx6x86L, CPU_Cx6x86MX)
-#define CPU_BLOCK_SOYO_4SAW2 CPU_BLOCK(CPU_i486SX, CPU_i486DX, CPU_Am486SX, CPU_Am486DX)
 
 /* Make sure it's always an invalid value to avoid misdetections. */
 #if (defined __amd64__ || defined _M_X64 || defined __aarch64__ || defined _M_ARM64)
@@ -258,6 +256,22 @@ typedef struct _machine_filter_ {
     const char  id;
 } machine_filter_t;
 
+typedef struct _machine_cpu_ {
+    uint32_t        package;
+    const uint8_t  *block;
+    uint32_t        min_bus;
+    uint32_t        max_bus;
+    uint16_t        min_voltage;
+    uint16_t        max_voltage;
+    float           min_multi;
+    float           max_multi;
+} machine_cpu_t;
+
+typedef struct _machine_memory_ {
+    uint32_t        min, max;
+    int             step;
+} machine_memory_t;
+
 typedef struct _machine_ {
     const char     *name;
     const char     *internal_name;
@@ -265,17 +279,10 @@ typedef struct _machine_ {
     uint32_t        chipset;
     int             (*init)(const struct _machine_ *);
     uintptr_t       pad, pad0, pad1, pad2;
-    uint32_t        cpu_package;
-    const uint8_t  *cpu_block;
-    uint32_t        cpu_min_bus;
-    uint32_t        cpu_max_bus;
-    uint16_t        cpu_min_voltage;
-    uint16_t        cpu_max_voltage;
-    float           cpu_min_multi;
-    float           cpu_max_multi;
+    const machine_cpu_t cpu;
     uintptr_t       bus_flags;
     uintptr_t       flags;
-    uint32_t        min_ram, max_ram;
+    const machine_memory_t ram;
     int             ram_granularity;
     int             nvrmask;
     uint16_t        kbc;
@@ -284,12 +291,17 @@ typedef struct _machine_ {
 	15-8	Clear bits are forced clear on P1 (no foced clear = 0xff). */
     uint16_t        kbc_p1;
     uint32_t        gpio;
+    uint32_t        gpio_acpi;
 #ifdef EMU_DEVICE_H
-    const device_t *(*get_device)(void);
-    const device_t *(*get_vid_device)(void);
+    const device_t *device;
+    const device_t *vid_device;
+    const device_t *snd_device;
+    const device_t *net_device;
 #else
-    void           *get_device;
-    void           *get_vid_device;
+    void           *device;
+    void           *vid_device;
+    void           *snd_device;
+    void           *net_device;
 #endif
 } machine_t;
 

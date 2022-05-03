@@ -44,7 +44,8 @@ public:
         Software,
         OpenGL,
         OpenGLES,
-        OpenGL3
+        OpenGL3,
+        Vulkan
     };
     void switchRenderer(Renderer renderer);
 
@@ -63,6 +64,11 @@ public:
         if (rendererWindow)
             rendererWindow->onResize(width, height);
     }
+
+    void (*mouse_poll_func)() = nullptr;
+    void (*mouse_capture_func)(QWindow *window) = nullptr;
+    void (*mouse_uncapture_func)() = nullptr;
+    void (*mouse_exit_func)() = nullptr;
 
 signals:
     void blitToRenderer(int buf_idx, int x, int y, int w, int h);

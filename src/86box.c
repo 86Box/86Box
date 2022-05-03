@@ -97,6 +97,13 @@
 #include <86box/version.h>
 #include <86box/gdbstub.h>
 
+// Disable c99-designator to avoid the warnings about int ng
+#ifdef __clang__
+#if __has_warning("-Wunused-but-set-variable")
+#pragma clang diagnostic ignored "-Wunused-but-set-variable"
+#endif
+#endif
+
 
 /* Stuff that used to be globally declared in plat.h but is now extern there
    and declared here instead. */
@@ -398,9 +405,6 @@ pc_init(int argc, char *argv[])
 {
 	char *ppath = NULL, *rpath = NULL;
 	char *cfg = NULL, *p;
-#if !defined(__APPLE__) && !defined(_WIN32)
-	char *appimage;
-#endif
 	char temp[2048];
 	struct tm *info;
 	time_t now;
@@ -413,15 +417,20 @@ pc_init(int argc, char *argv[])
 
 	/* Grab the executable's full path. */
 	plat_get_exe_name(exe_path, sizeof(exe_path)-1);
-	p = path_get_filename(exe_path);
+    p = path_get_filename(exe_path);
 	*p = '\0';
-
-#if !defined(_WIN32) && !defined(__APPLE__)
-    /* Grab the actual path if we are an AppImage. */
-    appimage = getenv("APPIMAGE");
-    if (appimage && (appimage[0] != '\0')) {
-        path_get_dirname(exe_path, appimage);
+#if defined(__APPLE__)
+    c = strlen(exe_path);
+    if ((c >= 16) && !strcmp(&exe_path[c - 16], "/Contents/MacOS/")) {
+        exe_path[c - 16] = '\0';
+        p = path_get_filename(exe_path);
+	    *p = '\0';
     }
+#elif !defined(_WIN32)
+    /* Grab the actual path if we are an AppImage. */
+    p = getenv("APPIMAGE");
+    if (p && (p[0] != '\0'))
+        path_get_dirname(exe_path, p);
 #endif
 
 	path_slash(exe_path);
@@ -505,7 +514,7 @@ usage:
 			rom_add_path(rpath);
 		} else if (!strcasecmp(argv[c], "--config") ||
 			   !strcasecmp(argv[c], "-C")) {
-			if ((c+1) == argc) goto usage;
+			if ((c+1) == argc || plat_dir_check(argv[c + 1])) goto usage;
 
 			cfg = argv[++c];
 		} else if (!strcasecmp(argv[c], "--vmname") ||
