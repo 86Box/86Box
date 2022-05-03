@@ -35,7 +35,7 @@ if(MUNT_EXTERNAL)
 endif()
 
 project(86Box
-    VERSION 3.4.1
+    VERSION 3.5
     DESCRIPTION "Emulator of x86-based systems"
     HOMEPAGE_URL "https://86box.net"
     LANGUAGES C CXX)
@@ -188,6 +188,7 @@ endif()
 if(NOT CMAKE_PROJECT_VERSION_PATCH)
     set(CMAKE_PROJECT_VERSION_PATCH 0)
 endif()
+set(EMU_VERSION_EX "3.50")
 if(NOT EMU_BUILD_NUM)
     set(EMU_BUILD_NUM 0)
 endif()

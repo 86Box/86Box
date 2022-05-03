@@ -24,13 +24,17 @@
 #include "qt_hardwarerenderer.hpp"
 #include "qt_openglrenderer.hpp"
 #include "qt_softwarerenderer.hpp"
+#include "qt_vulkanwindowrenderer.hpp"
 
 #include "qt_mainwindow.hpp"
 #include "qt_util.hpp"
 
 #include "evdev_mouse.hpp"
 
+#include <stdexcept>
+
 #include <QScreen>
+#include <QMessageBox>
 
 #ifdef __APPLE__
 #    include <CoreGraphics/CoreGraphics.h>
@@ -55,10 +59,8 @@ RendererStack::RendererStack(QWidget *parent)
     if (!mouse_type || (mouse_type[0] == '\0') || !stricmp(mouse_type, "auto")) {
         if (QApplication::platformName().contains("wayland"))
             strcpy(auto_mouse_type, "wayland");
-        else if (QApplication::platformName() == "eglfs")
+        else if (QApplication::platformName() == "eglfs" || QApplication::platformName() == "xcb")
             strcpy(auto_mouse_type, "evdev");
-        else if (QApplication::platformName() == "xcb")
-            strcpy(auto_mouse_type, "xinput2");
         else
             auto_mouse_type[0] = '\0';
         mouse_type = auto_mouse_type;
@@ -70,22 +72,14 @@ RendererStack::RendererStack(QWidget *parent)
         this->mouse_poll_func = wl_mouse_poll;
         this->mouse_capture_func = wl_mouse_capture;
         this->mouse_uncapture_func = wl_mouse_uncapture;
-    } else
+    }
 #    endif
 #    ifdef EVDEV_INPUT
     if (!stricmp(mouse_type, "evdev")) {
         evdev_init();
         this->mouse_poll_func = evdev_mouse_poll;
-    } else
-#    endif
-    if (!stricmp(mouse_type, "xinput2")) {
-        extern void xinput2_init();
-        extern void xinput2_poll();
-        extern void xinput2_exit();
-        xinput2_init();
-        this->mouse_poll_func = xinput2_poll;
-        this->mouse_exit_func = xinput2_exit;
     }
+#    endif
 #endif
 #ifdef __APPLE__
     this->mouse_poll_func = macos_poll_mouse;
@@ -241,6 +235,7 @@ void
 RendererStack::createRenderer(Renderer renderer)
 {
     switch (renderer) {
+        default:
         case Renderer::Software:
             {
                 auto sw        = new SoftwareRenderer(this);
@@ -278,13 +273,13 @@ RendererStack::createRenderer(Renderer renderer)
                 rendererWindow = hw;
                 connect(this, &RendererStack::blitToRenderer, hw, &OpenGLRenderer::onBlit, Qt::QueuedConnection);
                 connect(hw, &OpenGLRenderer::initialized, [=]() {
-                    /* Buffers are awailable only after initialization. */
+                    /* Buffers are available only after initialization. */
                     imagebufs = rendererWindow->getBuffers();
                     endblit();
                     emit rendererChanged();
                 });
                 connect(hw, &OpenGLRenderer::errorInitializing, [=]() {
-                    /* Renderer could initialize, fallback to software. */
+                    /* Renderer not could initialize, fallback to software. */
                     imagebufs = {};
                     endblit();
                     QTimer::singleShot(0, this, [this]() { switchRenderer(Renderer::Software); });
@@ -292,8 +287,46 @@ RendererStack::createRenderer(Renderer renderer)
                 current.reset(this->createWindowContainer(hw, this));
                 break;
             }
+#if QT_CONFIG(vulkan)
+        case Renderer::Vulkan:
+        {
+            this->createWinId();
+            VulkanWindowRenderer *hw = nullptr;
+            try {
+                hw        = new VulkanWindowRenderer(this);
+            } catch(std::runtime_error& e) {
+                auto msgBox = new QMessageBox(QMessageBox::Critical, "86Box", e.what() + QString("\nFalling back to software rendering."), QMessageBox::Ok);
+                msgBox->setAttribute(Qt::WA_DeleteOnClose);
+                msgBox->show();
+                imagebufs = {};
+                endblit();
+                QTimer::singleShot(0, this, [this]() { switchRenderer(Renderer::Software); });
+                current.reset(nullptr);
+                break;
+            };
+            rendererWindow = hw;
+            connect(this, &RendererStack::blitToRenderer, hw, &VulkanWindowRenderer::onBlit, Qt::QueuedConnection);
+            connect(hw, &VulkanWindowRenderer::rendererInitialized, [=]() {
+                /* Buffers are available only after initialization. */
+                imagebufs = rendererWindow->getBuffers();
+                endblit();
+                emit rendererChanged();
+            });
+            connect(hw, &VulkanWindowRenderer::errorInitializing, [=]() {
+                /* Renderer could not initialize, fallback to software. */
+                auto msgBox = new QMessageBox(QMessageBox::Critical, "86Box", QString("Failed to initialize Vulkan renderer.\nFalling back to software rendering."), QMessageBox::Ok);
+                msgBox->setAttribute(Qt::WA_DeleteOnClose);
+                msgBox->show();
+                imagebufs = {};
+                endblit();
+                QTimer::singleShot(0, this, [this]() { switchRenderer(Renderer::Software); });
+            });
+            current.reset(this->createWindowContainer(hw, this));
+            break;
+        }
+#endif
     }
-
+    if (current.get() == nullptr) return;
     current->setFocusPolicy(Qt::NoFocus);
     current->setFocusProxy(this);
     addWidget(current.get());
@@ -302,7 +335,7 @@ RendererStack::createRenderer(Renderer renderer)
 
     currentBuf = 0;
 
-    if (renderer != Renderer::OpenGL3) {
+    if (renderer != Renderer::OpenGL3 && renderer != Renderer::Vulkan) {
         imagebufs = rendererWindow->getBuffers();
         endblit();
         emit rendererChanged();
@@ -323,7 +356,7 @@ RendererStack::blit(int x, int y, int w, int h)
     sh = this->h       = h;
     uint8_t *imagebits = std::get<uint8_t *>(imagebufs[currentBuf]);
     for (int y1 = y; y1 < (y + h); y1++) {
-        auto scanline = imagebits + (y1 * (2048) * 4) + (x * 4);
+        auto scanline = imagebits + (y1 * rendererWindow->getBytesPerRow()) + (x * 4);
         video_copy(scanline, &(buffer32->line[y1][x]), w * 4);
     }
 

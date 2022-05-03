@@ -43,6 +43,8 @@ extern "C"
 #include <QDebug>
 #include <QMessageBox>
 #include <QCheckBox>
+#include <QApplication>
+#include <QStyle>
 
 class SettingsModel : public QAbstractListModel {
 public:
@@ -103,7 +105,6 @@ Settings::Settings(QWidget *parent) :
     ui(new Ui::Settings)
 {
     ui->setupUi(this);
-
     ui->listView->setModel(new SettingsModel(this));
 
     Harddrives::busTrackClass = new SettingsBusTracking;
@@ -131,8 +132,6 @@ Settings::Settings(QWidget *parent) :
     ui->stackedWidget->addWidget(otherRemovable);
     ui->stackedWidget->addWidget(otherPeripherals);
 
-    ui->listView->setFixedWidth(ui->listView->sizeHintForColumn(0) + 5);
-
     connect(machine, &SettingsMachine::currentMachineChanged, display, &SettingsDisplay::onCurrentMachineChanged);
     connect(machine, &SettingsMachine::currentMachineChanged, input, &SettingsInput::onCurrentMachineChanged);
     connect(machine, &SettingsMachine::currentMachineChanged, sound, &SettingsSound::onCurrentMachineChanged);
@@ -143,6 +142,8 @@ Settings::Settings(QWidget *parent) :
     connect(ui->listView->selectionModel(), &QItemSelectionModel::currentChanged, this, [this](const QModelIndex &current, const QModelIndex &previous) {
         ui->stackedWidget->setCurrentIndex(current.row());
     });
+
+    ui->listView->setMaximumWidth(ui->listView->sizeHintForColumn(0) + qApp->style()->pixelMetric(QStyle::PM_ScrollBarExtent));
 
     Settings::settings = this;
 }

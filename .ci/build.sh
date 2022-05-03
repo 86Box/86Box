@@ -20,6 +20,7 @@
 # to produce Jenkins-like builds on your local machine by following these notes:
 #
 # - Run build.sh without parameters to see its usage
+# - Any boolean CMake definitions (-D ...=ON/OFF) must be ON or OFF to ensure correct behavior
 # - For Windows (MSYS MinGW) builds:
 #   - Packaging requires 7-Zip on Program Files
 #   - Packaging the Ghostscript DLL requires 32-bit and/or 64-bit Ghostscript on Program Files
@@ -36,7 +37,9 @@
 #       build_arch x86_64 (or arm64)
 #       universal_archs (blank)
 #       ui_interactive no
-#       macosx_deployment_target 10.13
+#       macosx_deployment_target 10.13 (for x86_64, or 11.0 for arm64)
+#   - For universal building on Apple Silicon hardware, install native MacPorts on the default
+#     /opt/local and Intel MacPorts on /opt/intel, then tell build.sh to build for "x86_64+arm64"
 #   - port is called through sudo to manage dependencies; make sure it is configured
 #     as NOPASSWD in /etc/sudoers if you're doing unattended builds
 #
@@ -93,13 +96,13 @@ make_tar() {
 
 # Set common variables.
 project=86Box
-project_lower=86box
 cwd=$(pwd)
 
 # Parse arguments.
 package_name=
 arch=
 tarball_name=
+skip_archive=0
 strip=0
 cmake_flags=
 while [ $# -gt 0 ]
@@ -111,6 +114,11 @@ do
 			shift
 			arch="$1"
 			shift
+			;;
+
+		-n)
+			shift
+			skip_archive=1
 			;;
 
 		-s)
@@ -211,9 +219,10 @@ then
 			# Call build with the correct MSYSTEM.
 			echo [-] Switching to MSYSTEM [$msys]
 			cd "$cwd"
-			strip_arg=
-			[ $strip -ne 0 ] && strip_arg="-t "
-			CHERE_INVOKING=yes MSYSTEM="$msys" bash -lc 'exec "'"$0"'" -b "'"$package_name"'" "'"$arch"'" '"$strip_arg""$cmake_flags"
+			args=
+			[ $strip -ne 0 ] && args="-t $args"
+			[ $skip_archive -ne 0 ] && args="-n $args"
+			CHERE_INVOKING=yes MSYSTEM="$msys" bash -lc 'exec "'"$0"'" -b "'"$package_name"'" "'"$arch"'" '"$args""$cmake_flags"
 			exit $?
 		fi
 	else
@@ -330,15 +339,184 @@ then
 	# macOS lacks nproc, but sysctl can do the same job.
 	alias nproc='sysctl -n hw.logicalcpu'
 
+	# Handle universal build.
+	if echo "$arch" | grep -q '+'
+	then
+		# Create temporary directory for merging app bundles.
+		rm -rf archive_tmp_universal
+		mkdir archive_tmp_universal
+
+		# Build for each architecture.
+		merge_src=
+		for arch_universal in $(echo "$arch" | tr '+' ' ')
+		do
+			# Run build for the architecture.
+			args=
+			[ $strip -ne 0 ] && args="-t $args"
+			case $arch_universal in # workaround: force new dynarec on for ARM
+				arm32 | arm64)	cmake_flags_extra="-D NEW_DYNAREC=ON";;
+				*)		cmake_flags_extra=;;
+			esac
+			zsh -lc 'exec "'"$0"'" -n -b "universal part" "'"$arch_universal"'" '"$args""$cmake_flags"' '"$cmake_flags_extra"
+			status=$?
+
+			if [ $status -eq 0 ]
+			then
+				# Move app bundle to the temporary directory.
+				app_bundle_name="archive_tmp/$(ls archive_tmp | grep '.app$')"
+				mv "$app_bundle_name" "archive_tmp_universal/$arch_universal.app"
+				status=$?
+
+				# Merge app bundles.
+				if [ -z "$merge_src" ]
+				then
+					# This is the first bundle, nothing to merge with.
+					merge_src="$arch_universal"
+				else
+					# Merge previous bundle with this one.
+					merge_dest="$merge_src+$arch_universal"
+					echo [-] Merging app bundles [$merge_src] and [$arch_universal] into [$merge_dest]
+
+					# Merge directory structures.
+					(cd "archive_tmp_universal/$merge_src.app" && find . -type d && cd "../../archive_tmp_universal/$arch_universal.app" && find . -type d && cd ../..) | sort > universal_listing.txt
+					cat universal_listing.txt | uniq | while IFS= read line
+					do
+						echo "> Directory: $line"
+						mkdir -p "archive_tmp_universal/$merge_dest.app/$line"
+					done
+
+					# Create merged file listing.
+					(cd "archive_tmp_universal/$merge_src.app" && find . -type f && cd "../../archive_tmp_universal/$arch_universal.app" && find . -type f && cd ../..) | sort > universal_listing.txt
+
+					# Copy files that only exist on one bundle.
+					cat universal_listing.txt | uniq -u | while IFS= read line
+					do
+						if [ -e "archive_tmp_universal/$merge_src.app/$line" ]
+						then
+							file_src="$merge_src"
+						else
+							file_src="$arch_universal"
+						fi
+						echo "> Only on [$file_src]: $line"
+						cp -p "archive_tmp_universal/$file_src.app/$line" "archive_tmp_universal/$merge_dest.app/$line"
+					done
+
+					# Copy or lipo files that exist on both bundles.
+					cat universal_listing.txt | uniq -d | while IFS= read line
+					do
+						if cmp -s "archive_tmp_universal/$merge_src.app/$line" "archive_tmp_universal/$arch_universal.app/$line"
+						then
+							echo "> Identical: $line"
+							cp -p "archive_tmp_universal/$merge_src.app/$line" "archive_tmp_universal/$merge_dest.app/$line"
+						elif lipo -create -output "archive_tmp_universal/$merge_dest.app/$line" "archive_tmp_universal/$merge_src.app/$line" "archive_tmp_universal/$arch_universal.app/$line" 2> /dev/null
+						then
+							echo "> Merged: $line"
+						else
+							echo "> Copied from [$merge_src]: $line"
+							cp -p "archive_tmp_universal/$merge_src.app/$line" "archive_tmp_universal/$merge_dest.app/$line"
+						fi
+					done
+
+					# Merge symlinks.
+					(cd "archive_tmp_universal/$merge_src.app" && find . -type l && cd "../../archive_tmp_universal/$arch_universal.app" && find . -type l && cd ../..) | sort > universal_listing.txt
+					cat universal_listing.txt | uniq | while IFS= read line
+					do
+						# Get symlink destinations.
+						other_link_dest=
+						if [ -e "archive_tmp_universal/$merge_src.app/$line" ]
+						then
+							file_src="$merge_src"
+							other_link_path="archive_tmp_universal/$arch_universal.app/$line"
+							if [ -L "$other_link_path" ]
+							then
+								other_link_dest="$(readlink "$other_link_path")"
+							elif [ -e "$other_link_path" ]
+							then
+								other_link_dest='[not a symlink]'
+							fi
+						else
+							file_src="$arch_universal"
+						fi
+						link_dest="$(readlink "archive_tmp_universal/$file_src.app/$line")"
+
+						# Warn if destinations differ.
+						if [ -n "$other_link_dest" -a "$link_dest" != "$other_link_dest" ]
+						then
+							echo "> Symlink: $line => WARNING: different targets"
+							echo ">> Using: [$merge_src] $link_dest"
+							echo ">> Other: [$arch_universal] $other_link_dest"
+						else
+							echo "> Symlink: $line => $link_dest"
+						fi
+						ln -s "$link_dest" "archive_tmp_universal/$merge_dest.app/$line"
+					done
+
+					# Merge a subsequent bundle with this one.
+					merge_src="$merge_dest"	
+				fi
+			fi
+
+			if [ $status -ne 0 ]
+			then
+				echo [!] Aborting universal build: [$arch_universal] failed with status [$status]
+				exit $status
+			fi
+		done
+
+		# Rename final app bundle.
+		rm -rf archive_tmp
+		mkdir archive_tmp
+		mv "archive_tmp_universal/$merge_src.app" "$app_bundle_name"
+
+		# Sign final app bundle.
+		arch -"$(uname -m)" codesign --force --deep -s - "$app_bundle_name"
+
+		# Create zip.
+		echo [-] Creating artifact archive
+		cd archive_tmp
+		zip --symlinks -r "$cwd/$package_name.zip" .
+		status=$?
+
+		# Check if the archival succeeded.
+		if [ $status -ne 0 ]
+		then
+			echo [!] Artifact archive creation failed with status [$status]
+			exit 7
+		fi
+
+		# All good.
+		echo [-] Universal build of [$package_name] for [$arch] with flags [$cmake_flags] successful
+		exit 0
+	fi
+
+	# Switch into the correct architecture if required.
+	case $arch in
+		x86_64)	arch_mac="i386";;
+		*)	arch_mac="$arch";;
+	esac
+	if [ "$(arch)" != "$arch" -a "$(arch)" != "$arch_mac" ]
+	then
+		# Call build with the correct architecture.
+		echo [-] Switching to architecture [$arch]
+		cd "$cwd"
+		args=
+		[ $strip -ne 0 ] && args="-t $args"
+		[ $skip_archive -ne 0 ] && args="-n $args"
+		arch -"$arch" zsh -lc 'exec "'"$0"'" -b "'"$package_name"'" "'"$arch"'" '"$args""$cmake_flags"
+		exit $?
+	fi
+	echo [-] Using architecture [$(arch)]
+
 	# Locate the MacPorts prefix.
 	macports="/opt/local"
 	[ -e "/opt/$arch/bin/port" ] && macports="/opt/$arch"
 	[ "$arch" = "x86_64" -a -e "/opt/intel/bin/port" ] && macports="/opt/intel"
+	export PATH="$macports/bin:$macports/sbin:$PATH"
 
 	# Install dependencies.
 	echo [-] Installing dependencies through MacPorts
-	sudo $macports/bin/port selfupdate
-	sudo $macports/bin/port install $(cat .ci/dependencies_macports.txt)
+	sudo "$macports/bin/port" selfupdate
+	sudo "$macports/bin/port" install $(cat .ci/dependencies_macports.txt)
 
 	# Point CMake to the toolchain file.
 	[ -e "cmake/$toolchain.cmake" ] && cmake_flags_extra="$cmake_flags_extra -D \"CMAKE_TOOLCHAIN_FILE=cmake/$toolchain.cmake\""
@@ -355,7 +533,7 @@ else
 	esac
 
 	# Establish general dependencies.
-	pkgs="cmake ninja-build pkg-config git wget p7zip-full wayland-protocols tar gzip file"
+	pkgs="cmake ninja-build pkg-config git wget p7zip-full wayland-protocols tar gzip file appstream"
 	if [ "$(dpkg --print-architecture)" = "$arch_deb" ]
 	then
 		pkgs="$pkgs build-essential"
@@ -563,8 +741,8 @@ then
 		unzip -j discord_game_sdk.zip "lib/$arch_discord/discord_game_sdk.dylib" -d "archive_tmp/"*".app/Contents/Frameworks"
 		[ ! -e "archive_tmp/"*".app/Contents/Frameworks/discord_game_sdk.dylib" ] && echo [!] No Discord Game SDK for architecture [$arch_discord]
 
-		# Sign app bundle.
-		codesign --force --deep -s - "archive_tmp/"*".app"
+		# Sign app bundle, unless we're in an universal build.
+		[ $skip_archive -eq 0 ] && codesign --force --deep -s - "archive_tmp/"*".app"
 	fi
 else
 	cwd_root=$(pwd)
@@ -606,6 +784,10 @@ else
 		sdl_ss=ON
 	fi
 
+	# Build SDL2 with video systems (and some dependencies) only if the SDL interface is used.
+	sdl_ui=OFF
+	grep -qiE "^QT:BOOL=ON" build/CMakeCache.txt || sdl_ui=ON
+
 	# Build rtmidi without JACK support to remove the dependency on libjack.
 	prefix="$cache_dir/rtmidi-4.0.0"
 	if [ -d "$prefix" ]
@@ -626,15 +808,25 @@ else
 		wget -qO - https://www.libsdl.org/release/SDL2-2.0.20.tar.gz | tar zxf - -C "$cache_dir" || rm -rf "$prefix"
 	fi
 	rm -rf "$cache_dir/sdlbuild"
-	cmake -G Ninja -D SDL_DISKAUDIO=OFF -D SDL_DIRECTFB_SHARED=OFF -D SDL_OPENGL=OFF -D SDL_OPENGLES=OFF -D SDL_OSS=OFF -D SDL_ALSA=$sdl_ss \
-		-D SDL_ALSA_SHARED=$sdl_ss -D SDL_JACK=$sdl_ss -D SDL_JACK_SHARED=$sdl_ss -D SDL_ESD=OFF -D SDL_ESD_SHARED=OFF -D SDL_PIPEWIRE=$sdl_ss \
+	cmake -G Ninja -D SDL_SHARED=ON -D SDL_STATIC=OFF \
+		\
+		-D SDL_AUDIO=$sdl_ss -D SDL_DUMMYAUDIO=$sdl_ss -D SDL_DISKAUDIO=OFF -D SDL_OSS=OFF -D SDL_ALSA=$sdl_ss -D SDL_ALSA_SHARED=$sdl_ss \
+		-D SDL_JACK=$sdl_ss -D SDL_JACK_SHARED=$sdl_ss -D SDL_ESD=OFF -D SDL_ESD_SHARED=OFF -D SDL_PIPEWIRE=$sdl_ss \
 		-D SDL_PIPEWIRE_SHARED=$sdl_ss -D SDL_PULSEAUDIO=$sdl_ss -D SDL_PULSEAUDIO_SHARED=$sdl_ss -D SDL_ARTS=OFF -D SDL_ARTS_SHARED=OFF \
 		-D SDL_NAS=$sdl_ss -D SDL_NAS_SHARED=$sdl_ss -D SDL_SNDIO=$sdl_ss -D SDL_SNDIO_SHARED=$sdl_ss -D SDL_FUSIONSOUND=OFF \
-		-D SDL_FUSIONSOUND_SHARED=OFF -D SDL_LIBSAMPLERATE=$sdl_ss -D SDL_LIBSAMPLERATE_SHARED=$sdl_ss -D SDL_X11=OFF -D SDL_X11_SHARED=OFF \
-		-D SDL_WAYLAND=OFF -D SDL_WAYLAND_SHARED=OFF -D SDL_WAYLAND_LIBDECOR=OFF -D SDL_WAYLAND_LIBDECOR_SHARED=OFF -D SDL_WAYLAND_QT_TOUCH=OFF \
-		-D SDL_RPI=OFF -D SDL_VIVANTE=OFF -D SDL_VULKAN=OFF -D SDL_KMSDRM=OFF -D SDL_KMSDRM_SHARED=OFF -D SDL_OFFSCREEN=OFF \
-		-D SDL_HIDAPI_JOYSTICK=ON -D SDL_VIRTUAL_JOYSTICK=ON -D SDL_SHARED=ON -D SDL_STATIC=OFF -S "$prefix" -B "$cache_dir/sdlbuild" \
-		-D "CMAKE_TOOLCHAIN_FILE=$cwd_root/toolchain.cmake" -D "CMAKE_INSTALL_PREFIX=$cwd_root/archive_tmp/usr" || exit 99
+		-D SDL_FUSIONSOUND_SHARED=OFF -D SDL_LIBSAMPLERATE=$sdl_ss -D SDL_LIBSAMPLERATE_SHARED=$sdl_ss \
+		\
+		-D SDL_VIDEO=$sdl_ui -D SDL_X11=$sdl_ui -D SDL_X11_SHARED=$sdl_ui -D SDL_WAYLAND=$sdl_ui -D SDL_WAYLAND_SHARED=$sdl_ui \
+		-D SDL_WAYLAND_LIBDECOR=$sdl_ui -D SDL_WAYLAND_LIBDECOR_SHARED=$sdl_ui -D SDL_WAYLAND_QT_TOUCH=OFF -D SDL_RPI=OFF -D SDL_VIVANTE=OFF \
+		-D SDL_VULKAN=OFF -D SDL_KMSDRM=$sdl_ui -D SDL_KMSDRM_SHARED=$sdl_ui -D SDL_OFFSCREEN=$sdl_ui -D SDL_RENDER=$sdl_ui \
+		\
+		-D SDL_JOYSTICK=ON -D SDL_HIDAPI_JOYSTICK=ON -D SDL_VIRTUAL_JOYSTICK=ON \
+		\
+		-D SDL_ATOMIC=OFF -D SDL_EVENTS=ON -D SDL_HAPTIC=OFF -D SDL_POWER=OFF -D SDL_THREADS=ON -D SDL_TIMERS=ON -D SDL_FILE=OFF \
+		-D SDL_LOADSO=ON -D SDL_CPUINFO=ON -D SDL_FILESYSTEM=$sdl_ui -D SDL_DLOPEN=OFF -D SDL_SENSOR=OFF -D SDL_LOCALE=OFF \
+		\
+		-D "CMAKE_TOOLCHAIN_FILE=$cwd_root/toolchain.cmake" -D "CMAKE_INSTALL_PREFIX=$cwd_root/archive_tmp/usr" \
+		-S "$prefix" -B "$cache_dir/sdlbuild" || exit 99
 	cmake --build "$cache_dir/sdlbuild" -j$(nproc) || exit 99
 	cmake --install "$cache_dir/sdlbuild" || exit 99
 
@@ -653,11 +845,17 @@ else
 		echo $pkg $version >> archive_tmp/README
 	done
 
+	# Archive metadata.
+	project_id=$(ls src/unix/assets/*.*.xml | head -1 | grep -oP '/\K([^/]+)(?=\.[^\.]+\.[^\.]+$)')
+	metainfo_base=archive_tmp/usr/share/metainfo
+	mkdir -p "$metainfo_base"
+	cp -p "src/unix/assets/$project_id."*".xml" "$metainfo_base/$project_id.appdata.xml"
+
 	# Archive icons.
 	icon_base=archive_tmp/usr/share/icons
 	mkdir -p "$icon_base"
 	cp -rp src/unix/assets/[0-9]*x[0-9]* "$icon_base/"
-	icon_name=$(ls "$icon_base/"[0-9]*x[0-9]*/* | head -1 | grep -oP '/\K([^/]+)(?=\.[^\.]+$)')
+	project_icon=$(ls "$icon_base/"[0-9]*x[0-9]*/* | head -1 | grep -oP '/\K([^/]+)(?=\.[^\.]+$)')
 
 	# Archive executable, while also stripping it if requested.
 	mkdir -p archive_tmp/usr/local/bin
@@ -678,6 +876,13 @@ then
 	exit 6
 fi
 
+# Stop if artifact archive creation was disabled.
+if [ $skip_archive -ne 0 ]
+then
+	echo [-] Skipping artifact archive creation
+	exit 0
+fi
+
 # Produce artifact archive.
 echo [-] Creating artifact archive
 if is_windows
@@ -688,9 +893,9 @@ then
 	status=$?
 elif is_mac
 then
-	# Create zip. (TODO: dmg)
+	# Create zip.
 	cd archive_tmp
-	zip -r "$cwd/$package_name.zip" .
+	zip --symlinks -r "$cwd/$package_name.zip" .
 	status=$?
 else
 	# Determine AppImage runtime architecture.
@@ -702,22 +907,46 @@ else
 	esac
 
 	# Get version for AppImage metadata.
-	project_version=$(grep -oP '#define\s+EMU_VERSION\s+"\K([^"]+)' "build/src/include/$project_lower/version.h" 2> /dev/null)
+	project_version=$(grep -oP '#define\s+EMU_VERSION\s+"\K([^"]+)' "build/src/include/"*"/version.h" 2> /dev/null)
 	[ -z "$project_version" ] && project_version=unknown
-	build_num=$(grep -oP '#define\s+EMU_BUILD_NUM\s+\K([0-9]+)' "build/src/include/$project_lower/version.h" 2> /dev/null)
+	build_num=$(grep -oP '#define\s+EMU_BUILD_NUM\s+\K([0-9]+)' "build/src/include/"*"/version.h" 2> /dev/null)
 	[ -n "$build_num" -a "$build_num" != "0" ] && project_version="$project_version-b$build_num"
+
+	# Generate modified AppImage metadata to suit build requirements.
+	cat << EOF > AppImageBuilder-generated.yml
+# This file is generated automatically by .ci/build.sh and will be
+# overwritten if edited. Please edit .ci/AppImageBuilder.yml instead.
+EOF
+	while IFS= read line
+	do
+		# Skip blank or comment lines.
+		echo "$line" | grep -qE '^(#|$)' && continue
+
+		# Parse "# if OPTION VALUE" condition lines.
+		condition=$(echo "$line" | grep -oP '# if \K(.+)')
+		if [ -n "$condition" ]
+		then
+			# Skip line if the condition is not matched.
+			grep -qiE "^$condition" build/CMakeCache.txt || continue
+		fi
+
+		# Copy line.
+		echo "$line" >> AppImageBuilder-generated.yml
+	done < .ci/AppImageBuilder.yml
 
 	# Download appimage-builder if necessary.
 	[ ! -e "appimage-builder.AppImage" ] && wget -qO appimage-builder.AppImage \
 		https://github.com/AppImageCrafters/appimage-builder/releases/download/v0.9.2/appimage-builder-0.9.2-35e3eab-x86_64.AppImage
 	chmod u+x appimage-builder.AppImage
 
-	# Remove any dangling AppImages which may interfere with the renaming process.
-	rm -rf "$project-"*".AppImage"
+	# Symlink global cache directory.
+	rm -rf appimage-builder-cache "$project-"*".AppImage" # also remove any dangling AppImages which may interfere with the renaming process
+	mkdir -p "$cache_dir/appimage-builder-cache"
+	ln -s "$cache_dir/appimage-builder-cache" appimage-builder-cache
 
 	# Run appimage-builder in extract-and-run mode for Docker compatibility.
-	project="$project" project_lower="$project_lower" project_version="$project_version" project_icon="$icon_name" arch_deb="$arch_deb" \
-		arch_appimage="$arch_appimage" APPIMAGE_EXTRACT_AND_RUN=1 ./appimage-builder.AppImage --recipe .ci/AppImageBuilder.yml
+	project="$project" project_id="$project_id" project_version="$project_version" project_icon="$project_icon" arch_deb="$arch_deb" \
+		arch_appimage="$arch_appimage" APPIMAGE_EXTRACT_AND_RUN=1 ./appimage-builder.AppImage --recipe AppImageBuilder-generated.yml
 	status=$?
 
 	# Rename AppImage to the final name if the build succeeded.
@@ -727,7 +956,6 @@ else
 		status=$?
 	fi
 fi
-cd ..
 
 # Check if the archival succeeded.
 if [ $status -ne 0 ]

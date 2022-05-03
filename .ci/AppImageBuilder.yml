@@ -8,6 +8,15 @@
 #
 #               Recipe file for appimage-builder.
 #
+#               build.sh processes conditional comments based on CMakeCache
+#               options at the end of each line. For example, a line ending in:
+#
+#                 # if QT:BOOL=ON
+#
+#               will be removed from the dynamically-generated copy of this
+#               file if "QT" is not a boolean option set to ON, either through
+#               a -D definition or the option's default value in CMakeLists.
+#
 #
 # Authors:      RichardG, <richardg867@gmail.com>
 #
@@ -18,7 +27,7 @@ version: 1
 AppDir:
   path: ./archive_tmp
   app_info:
-    id: !ENV 'net.${project_lower}.${project}'
+    id: !ENV '${project_id}'
     name: !ENV '${project}'
     icon: !ENV '${project_icon}'
     version: !ENV '${project_version}'
@@ -34,29 +43,31 @@ AppDir:
     - sourceline: 'deb http://deb.debian.org/debian bullseye-updates main'
       key_url: 'https://keyserver.ubuntu.com/pks/lookup?op=get&search=0xac530d520f2f3269f5e98313a48449044aad5c5d'
     include:
-    - libevdev2
+    - libedit2 # if (CLI:BOOL=ON|QT:BOOL=OFF)
+    - libevdev2 # if QT:BOOL=ON
     - libfluidsynth2
     - libfreetype6
-    - libgbm1
-    - libgl1
-    - libgles2
-    - libglvnd0
-    - libglx0
+    - libgbm1 # if QT:BOOL=ON
+    - libgl1 # if QT:BOOL=ON
+    - libgles2 # if QT:BOOL=ON
+    - libglvnd0 # if QT:BOOL=ON
+    - libglx0 # if QT:BOOL=ON
     - libgs9
     - libpng16-16
-    - libqt5core5a
-    - libqt5gui5
-    - libqt5widgets5
-    - libslirp0
-    - libsndio7.0
-    - libwayland-client0
-    - libx11-6
-    - libx11-xcb1
-    - libxcb1
-    - libxcb-render0
-    - libxcb-shape0
-    - libxcb-shm0
-    - libxcb-xfixes0
+    - libqt5core5a # if QT:BOOL=ON
+    - libqt5gui5 # if QT:BOOL=ON
+    - libqt5widgets5 # if QT:BOOL=ON
+    - libsixel1 # if CLI:BOOL=ON
+    - libslirp0 # if SLIRP_EXTERNAL:BOOL=ON
+    - libsndio7.0 # if OPENAL:BOOL=ON
+    - libwayland-client0 # if QT:BOOL=ON
+    - libx11-6 # if QT:BOOL=ON
+    - libx11-xcb1 # if QT:BOOL=ON
+    - libxcb1 # if QT:BOOL=ON
+    - libxcb-render0 # if QT:BOOL=ON
+    - libxcb-shape0 # if QT:BOOL=ON
+    - libxcb-shm0 # if QT:BOOL=ON
+    - libxcb-xfixes0 # if QT:BOOL=ON
     - zlib1g
   files:
     exclude:
@@ -69,8 +80,11 @@ AppDir:
     - usr/lib/cmake
     - usr/lib/pkgconfig
     - usr/s[a-gi-zA-Z]*
-    - usr/share/[a-hj-zA-Z]*
+    - usr/share/[a-hj-ln-zA-Z]*
     - usr/share/i[a-bd-zA-Z]*
+    - usr/share/m[a-df-zA-Z]*
+    - usr/share/metainfo/*.metainfo.xml
     - var
 AppImage:
   arch: !ENV '${arch_appimage}'
+  file_name: '-n' # nasty hack to disable metainfo validation

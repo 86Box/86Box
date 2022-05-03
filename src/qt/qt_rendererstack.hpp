@@ -44,7 +44,8 @@ public:
         Software,
         OpenGL,
         OpenGLES,
-        OpenGL3
+        OpenGL3,
+        Vulkan
     };
     void switchRenderer(Renderer renderer);
 

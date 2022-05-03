@@ -97,6 +97,13 @@
 #include <86box/version.h>
 #include <86box/gdbstub.h>
 
+// Disable c99-designator to avoid the warnings about int ng
+#ifdef __clang__
+#if __has_warning("-Wunused-but-set-variable")
+#pragma clang diagnostic ignored "-Wunused-but-set-variable"
+#endif
+#endif
+
 
 /* Stuff that used to be globally declared in plat.h but is now extern there
    and declared here instead. */
@@ -507,7 +514,7 @@ usage:
 			rom_add_path(rpath);
 		} else if (!strcasecmp(argv[c], "--config") ||
 			   !strcasecmp(argv[c], "-C")) {
-			if ((c+1) == argc) goto usage;
+			if ((c+1) == argc || plat_dir_check(argv[c + 1])) goto usage;
 
 			cfg = argv[++c];
 		} else if (!strcasecmp(argv[c], "--vmname") ||

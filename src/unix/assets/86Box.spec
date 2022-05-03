@@ -15,7 +15,7 @@
 %global romver 20220319
 
 Name:		86Box
-Version:	3.4
+Version:	3.5
 Release:	1%{?dist}
 Summary:	Classic PC emulator
 License:	GPLv2+
@@ -27,6 +27,7 @@ Source1:	https://github.com/86Box/roms/archive/refs/tags/%{romver}.tar.gz
 BuildRequires: cmake
 BuildRequires: desktop-file-utils
 BuildRequires: extra-cmake-modules
+BuildRequires: freetype-devel
 BuildRequires: gcc-c++
 BuildRequires: libFAudio-devel
 BuildRequires: libappstream-glib
@@ -84,7 +85,7 @@ Collection of ROMs for use with 86Box.
 # install icons
 for i in 48 64 72 96 128 192 256 512; do
   mkdir -p $RPM_BUILD_ROOT%{_datadir}/icons/hicolor/${i}x${i}/apps
-  cp src/unix/assets/${i}x${i}/net.86box.86Box.png $RPM_BUILD_ROOT%{_datadir}/icons/hicolor/${i}x${i}/apps/net.86box.86Box.png
+  cp src/unix/assets/${i}x${i}/net.86box.86Box.png $RPM_BUILD_ROOT%{_datadir}/icons/hicolor/${i}x${i}/apps
 done
 
 # install desktop file
@@ -119,5 +120,5 @@ popd
 %{_bindir}/roms
 
 %changelog
-* Sat Mar 19 2022 Robert de Rooy <robert.de.rooy[AT]gmail.com> 3.3-1
-- Initial RPM release
+* Fri Apr 22 2022 Robert de Rooy <robert.de.rooy[AT]gmail.com> 3.4.1-1
+- Bump release
