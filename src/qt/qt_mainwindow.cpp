@@ -524,6 +524,7 @@ void MainWindow::closeEvent(QCloseEvent *event) {
         ui->stackedWidget->mouse_exit_func();
 
     ui->stackedWidget->switchRenderer(RendererStack::Renderer::Software);
+    QApplication::processEvents();
     event->accept();
 }
 
