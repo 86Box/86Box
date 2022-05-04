@@ -4,7 +4,7 @@ ninja
 freetype
 libsdl2
 libpng
-openal-soft
+FAudio
 rtmidi
 qt5
 wget
