@@ -451,9 +451,6 @@ machine_xt_vendex_init(const machine_t *model)
 
     machine_xt_clone_init(model);
 
-    /* On-board FDC cannot be disabled */
-	device_add(&fdc_xt_device);
-
     return ret;
 }
 
