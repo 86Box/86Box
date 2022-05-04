@@ -60,6 +60,7 @@ patch_file() {
 }
 patch_file CMakeLists.txt VERSION 's/^(\s*VERSION ).+/\1'"$newversion"'/'
 patch_file CMakeLists.txt EMU_VERSION_EX 's/(\s*set\(EMU_VERSION_EX\s+")[^"]+/\1'"$newversion_maj_base36.$newversion_min_base36$newversion_patch_base36"'/'
+patch_file vcpkg.json version-string 's/(^\s*"version-string"\s*:\s*")[^"]+/\1'"$newversion"'/'
 patch_file src/include_make/*/version.h EMU_VERSION 's/(#\s*define\s+EMU_VERSION\s+")[^"]+/\1'"$newversion"'/'
 patch_file src/include_make/*/version.h EMU_VERSION_EX 's/(#\s*define\s+EMU_VERSION_EX\s+")[^"]+/\1'"$newversion_maj_base36.$newversion_min_base36$newversion_patch_base36"'/'
 patch_file src/include_make/*/version.h EMU_VERSION_MAJ 's/(#\s*define\s+EMU_VERSION_MAJ\s+)[0-9]+/\1'"$newversion_maj"'/'
