@@ -1,8 +1,8 @@
 # CMake
-/CMakeUserPresets.json
-/CMakeCache.txt
-/build
+CMakeUserPresets.json
+CMakeCache.txt
 CMakeFiles
+/build
 Makefile
 *.a
 /src/*.exe
@@ -26,9 +26,11 @@ Makefile
 
 # Build scripts
 /archive_tmp
+/archive_tmp_universal
 /static2dll.*
 /pacman.txt
 /deps.txt
+/universal_listing.txt
 /VERSION
 *.zip
 *.tar

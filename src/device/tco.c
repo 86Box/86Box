@@ -6,6 +6,8 @@
  * Copyright 2022 Tiseno100.
  */
 
+/* Note: There's a TCO Timer too but for now it's of no use thus not implemented */
+
 #include <stdarg.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -24,7 +26,6 @@
 #include <86box/pit.h>
 #include <86box/tco.h>
 
-#define ENABLE_TCO_LOG 1
 #ifdef ENABLE_TCO_LOG
 int tco_do_log = ENABLE_TCO_LOG;
 
@@ -45,8 +46,15 @@ tco_log(const char *fmt, ...)
 #endif
 
 void
+tco_timer_handler(void *priv)
+{
+    tco_t *dev = (tco_t *) priv;
+}
+
+void
 tco_irq_update(tco_t *dev, uint16_t new_irq)
 {
+    tco_log("TCO: Update IRQ to %d\n", new_irq);
     dev->tco_irq = new_irq;
 }
 
@@ -91,10 +99,15 @@ tco_write(uint16_t addr, uint8_t val, tco_t *dev)
         break;
 
         case 0x09:
-            dev->regs[addr] = 0x0f;
+            if(val & 1) {
+                if(!nmi) /* If we're already on NMI */
+                    nmi = 1;
 
-            //if(val & 1)
-            //    nmi = 1;
+                dev->regs[addr] = (dev->regs[addr] & 1) | val;
+                dev->regs[addr] &= val;
+            }
+            else
+                dev->regs[addr] = 0x0f;
         break;
 
         case 0x0a:
@@ -129,8 +142,12 @@ static void
 tco_reset(void *priv)
 {
     tco_t *dev = (tco_t *) priv;
+    memset(dev->regs, 0, sizeof(dev->regs));
 
     dev->tco_irq = 9;
+
+    dev->regs[0x01] = 0x04;
+    dev->regs[0x10] = 0x03;
 }
 
 
@@ -150,6 +167,7 @@ tco_init(const device_t *info)
     memset(dev, 0, sizeof(tco_t));
 
     tco_reset(dev);
+
     return dev;
 }
 

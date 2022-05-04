@@ -343,16 +343,24 @@ acpi_reg_read_intel_ich2(int size, uint16_t addr, void *p)
 		break;
 	case 0x40: case 0x41:
 		/* MON_SMI—Device Monitor SMI Status and Enable Register */
-		ret = (dev->regs.monsmi >> shift16) & 0xff;
+		ret = (dev->regs.mon_smi >> shift16) & 0xff;
 		break;
 	case 0x44: case 0x45:
 		/* DEVACT_STS—Device Activity Status Register */
-		ret = (dev->regs.devactsts >> shift16) & 0xff;
+		ret = (dev->regs.devact_sts >> shift16) & 0xff;
 		break;
 	case 0x48: case 0x49:
 		/* DEVTRAP_EN—Device Trap Enable Register */
-		ret = (dev->regs.devtrapen >> shift16) & 0xff;
+		ret = (dev->regs.devtrap_en >> shift16) & 0xff;
 		break;
+    case 0x4c ... 0x4d:
+        /* BUS_ADDR_TRACK—Bus Address Tracker Register */
+        ret = (dev->regs.bus_addr_track >> shift16) & 0xff;
+        break;
+    case 0x4e:
+        /* BUS_CYC_TRACK—Bus Cycle Tracker Register */
+        ret = dev->regs.bus_cyc_track;
+        break;
     case 0x60 ... 0x70:
         /* TCO Registers */
         ret = tco_read(addr, dev->tco);
@@ -878,18 +886,26 @@ acpi_reg_write_intel_ich2(int size, uint16_t addr, uint8_t val, void *p)
 		break;
 	case 0x40: case 0x41:
 		/* MON_SMI—Device Monitor SMI Status and Enable Register */
-		dev->regs.monsmi = ((dev->regs.monsmi & ~(0xff << shift16)) | (val << shift16)) & 0x097d;
+		dev->regs.mon_smi = ((dev->regs.mon_smi & ~(0xff << shift16)) | (val << shift16)) & 0x097d;
 		break;
 	case 0x44: case 0x45:
 		/* DEVACT_STS—Device Activity Status Register */
-		dev->regs.devactsts &= ~((val << shift16) & 0x3fef);
+		dev->regs.devact_sts &= ~((val << shift16) & 0x3fef);
 		break;
 	case 0x48: case 0x49:
 		/* DEVTRAP_EN—Device Trap Enable Register */
-		dev->regs.devtrapen = ((dev->regs.devtrapen & ~(0xff << shift16)) | (val << shift16)) & 0x3c2f;
-//		if (dev->trap_update)
-//			dev->trap_update(dev->trap_priv);
+		dev->regs.devtrap_en = ((dev->regs.devtrap_en & ~(0xff << shift16)) | (val << shift16)) & 0x3c2f;
+		if (dev->trap_update)
+			dev->trap_update(dev->trap_priv);
 		break;
+    case 0x4c ... 0x4d:
+        /* BUS_ADDR_TRACK—Bus Address Tracker Register */
+        dev->regs.bus_addr_track = ((dev->regs.bus_addr_track & ~(0xff << shift16)) | (val << shift16)) & 0x097d;
+        break;
+    case 0x4e:
+        /* BUS_CYC_TRACK—Bus Cycle Tracker Register */
+        dev->regs.bus_cyc_track = val;
+        break;
     case 0x60 ... 0x70:
         /* TCO Registers */
         tco_write(addr, val, dev->tco);
@@ -1615,7 +1631,7 @@ acpi_apm_out(uint16_t port, uint8_t val, void *p)
 			dev->regs.glbsts |= 0x20;
         else if (dev->vendor == VEN_INTEL_ICH2)
             dev->regs.smi_sts |= 0x00000020;
-		acpi_raise_smi(dev, dev->apm->do_smi);
+        acpi_raise_smi(dev, dev->apm->do_smi);
 	} else
 		dev->apm->stat = val;
     }
@@ -1783,6 +1799,7 @@ acpi_init(const device_t *info)
         dev->suspend_types[5] = SUS_SUSPEND | SUS_NVR | SUS_RESET_CPU | SUS_RESET_PCI;
         dev->suspend_types[6] = SUS_POWER_OFF;
         dev->suspend_types[7] = SUS_POWER_OFF;
+        break;
     }
 
     timer_add(&dev->timer, acpi_timer_count, dev, 0);

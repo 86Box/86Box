@@ -32,18 +32,18 @@
 #include <86box/pci.h>
 
 
-#define PCI_BRIDGE_DEC_21150	0x10110022
-#define PCI_BRIDGE_INTEL_ICH2	0x8086244e
-#define AGP_BRIDGE_ALI_M5243	0x10b95243
-#define AGP_BRIDGE_ALI_M5247	0x10b95247
-#define AGP_BRIDGE_INTEL_440LX	0x80867181
-#define AGP_BRIDGE_INTEL_440BX	0x80867191
-#define AGP_BRIDGE_INTEL_440GX	0x808671a1
-#define AGP_BRIDGE_INTEL_MCH	0x80861131
-#define AGP_BRIDGE_VIA_597	0x11068597
-#define AGP_BRIDGE_VIA_598	0x11068598
-#define AGP_BRIDGE_VIA_691	0x11068691
-#define AGP_BRIDGE_VIA_8601	0x11068601
+#define PCI_BRIDGE_DEC_21150   0x10110022
+#define PCI_BRIDGE_INTEL_ICH2  0x8086244e
+#define AGP_BRIDGE_ALI_M5243   0x10b95243
+#define AGP_BRIDGE_ALI_M5247   0x10b95247
+#define AGP_BRIDGE_INTEL_440LX 0x80867181
+#define AGP_BRIDGE_INTEL_440BX 0x80867191
+#define AGP_BRIDGE_INTEL_440GX 0x808671a1
+#define AGP_BRIDGE_INTEL_815EP 0x80861131
+#define AGP_BRIDGE_VIA_597     0x11068597
+#define AGP_BRIDGE_VIA_598     0x11068598
+#define AGP_BRIDGE_VIA_691     0x11068691
+#define AGP_BRIDGE_VIA_8601    0x11068601
 
 #define AGP_BRIDGE_ALI(x)	(((x) >> 16) == 0x10b9)
 #define AGP_BRIDGE_INTEL(x)	((((x) >> 16) == 0x8086) && ((x) != PCI_BRIDGE_INTEL_ICH2))
@@ -62,7 +62,6 @@ typedef struct
 } pci_bridge_t;
 
 
-#define ENABLE_PCI_BRIDGE_LOG 1
 #ifdef ENABLE_PCI_BRIDGE_LOG
 int pci_bridge_do_log = ENABLE_PCI_BRIDGE_LOG;
 
@@ -119,7 +118,7 @@ pci_bridge_write(int func, int addr, uint8_t val, void *priv)
 		if (AGP_BRIDGE_INTEL(dev->local)) {
 			if (dev->local == AGP_BRIDGE_INTEL_440BX)
 				val &= 0x1f;
-            else if (dev->local == AGP_BRIDGE_INTEL_MCH)
+            else if (dev->local == AGP_BRIDGE_INTEL_815EP)
                 val &= 0x17;
             else if (dev->local == PCI_BRIDGE_INTEL_ICH2)
                 val &= 0x47;
@@ -143,7 +142,7 @@ pci_bridge_write(int func, int addr, uint8_t val, void *priv)
 		break;
 
 	case 0x07:
-		if ((dev->local == AGP_BRIDGE_INTEL_440LX) || (dev->local == AGP_BRIDGE_INTEL_MCH))
+		if ((dev->local == AGP_BRIDGE_INTEL_440LX) || (dev->local == AGP_BRIDGE_INTEL_815EP))
 			dev->regs[addr] &= ~(val & 0x40);
         else if (dev->local == PCI_BRIDGE_INTEL_ICH2)
             dev->regs[addr] &= ~(val & 0xf9);
@@ -181,14 +180,14 @@ pci_bridge_write(int func, int addr, uint8_t val, void *priv)
 			else if ((dev->local == AGP_BRIDGE_INTEL_440BX) ||
 				 (dev->local == AGP_BRIDGE_INTEL_440GX))
 				dev->regs[addr] &= ~(val & 0xf0);
-            else if (dev->local == AGP_BRIDGE_INTEL_MCH)
+            else if (dev->local == AGP_BRIDGE_INTEL_815EP)
                 dev->regs[addr] &= ~(val & 0xb2);
 		} else if (AGP_BRIDGE_ALI(dev->local))
 			dev->regs[addr] &= ~(val & 0xf0);
 		return;
 
     case 0x1b:
-        if ((dev->local == AGP_BRIDGE_INTEL_MCH) || (dev->local == PCI_BRIDGE_INTEL_ICH2))
+        if ((dev->local == AGP_BRIDGE_INTEL_815EP) || (dev->local == PCI_BRIDGE_INTEL_ICH2))
             val &= 0xf8;
         break;
 
@@ -239,7 +238,7 @@ pci_bridge_write(int func, int addr, uint8_t val, void *priv)
 	case 0x40:
 		if (dev->local == PCI_BRIDGE_DEC_21150)
 			val &= 0x32;
-        else if ((dev->local == AGP_BRIDGE_INTEL_MCH) || (dev->local == PCI_BRIDGE_INTEL_ICH2))
+        else if ((dev->local == AGP_BRIDGE_INTEL_815EP) || (dev->local == PCI_BRIDGE_INTEL_ICH2))
             val &= 0x01;
 		break;
 
@@ -463,7 +462,7 @@ pci_bridge_reset(void *priv)
 		dev->regs[0x07] = dev->regs[0x08] = 0x02;
 		break;
 
-	case AGP_BRIDGE_INTEL_MCH:
+	case AGP_BRIDGE_INTEL_815EP:
 		dev->regs[0x06] = 0x20;
 		dev->regs[0x08] = 0x02;
 		break;
@@ -532,7 +531,7 @@ pci_bridge_init(const device_t *info)
 
     dev->slot = pci_add_card(AGP_BRIDGE(dev->local) ? PCI_ADD_AGPBRIDGE : PCI_ADD_BRIDGE, pci_bridge_read, pci_bridge_write, dev);
 
-    if (info->local != PCI_BRIDGE_INTEL_ICH2) /* ICH2 Hub slot configuration depends on the motherboard */
+    if ((info->local != PCI_BRIDGE_INTEL_ICH2) && (info->local != AGP_BRIDGE_INTEL_815EP)) /* Let the machine configuration slot handle the absurd interrupt tables */
     {
         interrupt_count = sizeof(interrupts);
         interrupt_mask = interrupt_count - 1;
@@ -663,11 +662,11 @@ const device_t intel_ich2_hub_device = {
     .config = NULL
 };
 
-const device_t intel_mch_agp_device = {
+const device_t intel_815ep_agp_device = {
     .name = "Intel 815EP MCH AGP Bridge",
-    .internal_name = "intel_mch_agp",
+    .internal_name = "intel_815ep_agp",
     .flags = DEVICE_PCI,
-    .local = AGP_BRIDGE_INTEL_MCH,
+    .local = AGP_BRIDGE_INTEL_815EP,
     .init = pci_bridge_init,
     .close = NULL,
     .reset = pci_bridge_reset,
