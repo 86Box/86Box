@@ -37,7 +37,9 @@
 #       build_arch x86_64 (or arm64)
 #       universal_archs (blank)
 #       ui_interactive no
-#       macosx_deployment_target 10.13
+#       macosx_deployment_target 10.13 (for x86_64, or 11.0 for arm64)
+#   - For universal building on Apple Silicon hardware, install native MacPorts on the default
+#     /opt/local and Intel MacPorts on /opt/intel, then tell build.sh to build for "x86_64+arm64"
 #   - port is called through sudo to manage dependencies; make sure it is configured
 #     as NOPASSWD in /etc/sudoers if you're doing unattended builds
 #
@@ -100,6 +102,7 @@ cwd=$(pwd)
 package_name=
 arch=
 tarball_name=
+skip_archive=0
 strip=0
 cmake_flags=
 while [ $# -gt 0 ]
@@ -111,6 +114,11 @@ do
 			shift
 			arch="$1"
 			shift
+			;;
+
+		-n)
+			shift
+			skip_archive=1
 			;;
 
 		-s)
@@ -211,9 +219,10 @@ then
 			# Call build with the correct MSYSTEM.
 			echo [-] Switching to MSYSTEM [$msys]
 			cd "$cwd"
-			strip_arg=
-			[ $strip -ne 0 ] && strip_arg="-t "
-			CHERE_INVOKING=yes MSYSTEM="$msys" bash -lc 'exec "'"$0"'" -b "'"$package_name"'" "'"$arch"'" '"$strip_arg""$cmake_flags"
+			args=
+			[ $strip -ne 0 ] && args="-t $args"
+			[ $skip_archive -ne 0 ] && args="-n $args"
+			CHERE_INVOKING=yes MSYSTEM="$msys" bash -lc 'exec "'"$0"'" -b "'"$package_name"'" "'"$arch"'" '"$args""$cmake_flags"
 			exit $?
 		fi
 	else
@@ -330,15 +339,184 @@ then
 	# macOS lacks nproc, but sysctl can do the same job.
 	alias nproc='sysctl -n hw.logicalcpu'
 
+	# Handle universal build.
+	if echo "$arch" | grep -q '+'
+	then
+		# Create temporary directory for merging app bundles.
+		rm -rf archive_tmp_universal
+		mkdir archive_tmp_universal
+
+		# Build for each architecture.
+		merge_src=
+		for arch_universal in $(echo "$arch" | tr '+' ' ')
+		do
+			# Run build for the architecture.
+			args=
+			[ $strip -ne 0 ] && args="-t $args"
+			case $arch_universal in # workaround: force new dynarec on for ARM
+				arm32 | arm64)	cmake_flags_extra="-D NEW_DYNAREC=ON";;
+				*)		cmake_flags_extra=;;
+			esac
+			zsh -lc 'exec "'"$0"'" -n -b "universal part" "'"$arch_universal"'" '"$args""$cmake_flags"' '"$cmake_flags_extra"
+			status=$?
+
+			if [ $status -eq 0 ]
+			then
+				# Move app bundle to the temporary directory.
+				app_bundle_name="archive_tmp/$(ls archive_tmp | grep '.app$')"
+				mv "$app_bundle_name" "archive_tmp_universal/$arch_universal.app"
+				status=$?
+
+				# Merge app bundles.
+				if [ -z "$merge_src" ]
+				then
+					# This is the first bundle, nothing to merge with.
+					merge_src="$arch_universal"
+				else
+					# Merge previous bundle with this one.
+					merge_dest="$merge_src+$arch_universal"
+					echo [-] Merging app bundles [$merge_src] and [$arch_universal] into [$merge_dest]
+
+					# Merge directory structures.
+					(cd "archive_tmp_universal/$merge_src.app" && find . -type d && cd "../../archive_tmp_universal/$arch_universal.app" && find . -type d && cd ../..) | sort > universal_listing.txt
+					cat universal_listing.txt | uniq | while IFS= read line
+					do
+						echo "> Directory: $line"
+						mkdir -p "archive_tmp_universal/$merge_dest.app/$line"
+					done
+
+					# Create merged file listing.
+					(cd "archive_tmp_universal/$merge_src.app" && find . -type f && cd "../../archive_tmp_universal/$arch_universal.app" && find . -type f && cd ../..) | sort > universal_listing.txt
+
+					# Copy files that only exist on one bundle.
+					cat universal_listing.txt | uniq -u | while IFS= read line
+					do
+						if [ -e "archive_tmp_universal/$merge_src.app/$line" ]
+						then
+							file_src="$merge_src"
+						else
+							file_src="$arch_universal"
+						fi
+						echo "> Only on [$file_src]: $line"
+						cp -p "archive_tmp_universal/$file_src.app/$line" "archive_tmp_universal/$merge_dest.app/$line"
+					done
+
+					# Copy or lipo files that exist on both bundles.
+					cat universal_listing.txt | uniq -d | while IFS= read line
+					do
+						if cmp -s "archive_tmp_universal/$merge_src.app/$line" "archive_tmp_universal/$arch_universal.app/$line"
+						then
+							echo "> Identical: $line"
+							cp -p "archive_tmp_universal/$merge_src.app/$line" "archive_tmp_universal/$merge_dest.app/$line"
+						elif lipo -create -output "archive_tmp_universal/$merge_dest.app/$line" "archive_tmp_universal/$merge_src.app/$line" "archive_tmp_universal/$arch_universal.app/$line" 2> /dev/null
+						then
+							echo "> Merged: $line"
+						else
+							echo "> Copied from [$merge_src]: $line"
+							cp -p "archive_tmp_universal/$merge_src.app/$line" "archive_tmp_universal/$merge_dest.app/$line"
+						fi
+					done
+
+					# Merge symlinks.
+					(cd "archive_tmp_universal/$merge_src.app" && find . -type l && cd "../../archive_tmp_universal/$arch_universal.app" && find . -type l && cd ../..) | sort > universal_listing.txt
+					cat universal_listing.txt | uniq | while IFS= read line
+					do
+						# Get symlink destinations.
+						other_link_dest=
+						if [ -e "archive_tmp_universal/$merge_src.app/$line" ]
+						then
+							file_src="$merge_src"
+							other_link_path="archive_tmp_universal/$arch_universal.app/$line"
+							if [ -L "$other_link_path" ]
+							then
+								other_link_dest="$(readlink "$other_link_path")"
+							elif [ -e "$other_link_path" ]
+							then
+								other_link_dest='[not a symlink]'
+							fi
+						else
+							file_src="$arch_universal"
+						fi
+						link_dest="$(readlink "archive_tmp_universal/$file_src.app/$line")"
+
+						# Warn if destinations differ.
+						if [ -n "$other_link_dest" -a "$link_dest" != "$other_link_dest" ]
+						then
+							echo "> Symlink: $line => WARNING: different targets"
+							echo ">> Using: [$merge_src] $link_dest"
+							echo ">> Other: [$arch_universal] $other_link_dest"
+						else
+							echo "> Symlink: $line => $link_dest"
+						fi
+						ln -s "$link_dest" "archive_tmp_universal/$merge_dest.app/$line"
+					done
+
+					# Merge a subsequent bundle with this one.
+					merge_src="$merge_dest"	
+				fi
+			fi
+
+			if [ $status -ne 0 ]
+			then
+				echo [!] Aborting universal build: [$arch_universal] failed with status [$status]
+				exit $status
+			fi
+		done
+
+		# Rename final app bundle.
+		rm -rf archive_tmp
+		mkdir archive_tmp
+		mv "archive_tmp_universal/$merge_src.app" "$app_bundle_name"
+
+		# Sign final app bundle.
+		arch -"$(uname -m)" codesign --force --deep -s - "$app_bundle_name"
+
+		# Create zip.
+		echo [-] Creating artifact archive
+		cd archive_tmp
+		zip --symlinks -r "$cwd/$package_name.zip" .
+		status=$?
+
+		# Check if the archival succeeded.
+		if [ $status -ne 0 ]
+		then
+			echo [!] Artifact archive creation failed with status [$status]
+			exit 7
+		fi
+
+		# All good.
+		echo [-] Universal build of [$package_name] for [$arch] with flags [$cmake_flags] successful
+		exit 0
+	fi
+
+	# Switch into the correct architecture if required.
+	case $arch in
+		x86_64)	arch_mac="i386";;
+		*)	arch_mac="$arch";;
+	esac
+	if [ "$(arch)" != "$arch" -a "$(arch)" != "$arch_mac" ]
+	then
+		# Call build with the correct architecture.
+		echo [-] Switching to architecture [$arch]
+		cd "$cwd"
+		args=
+		[ $strip -ne 0 ] && args="-t $args"
+		[ $skip_archive -ne 0 ] && args="-n $args"
+		arch -"$arch" zsh -lc 'exec "'"$0"'" -b "'"$package_name"'" "'"$arch"'" '"$args""$cmake_flags"
+		exit $?
+	fi
+	echo [-] Using architecture [$(arch)]
+
 	# Locate the MacPorts prefix.
 	macports="/opt/local"
 	[ -e "/opt/$arch/bin/port" ] && macports="/opt/$arch"
 	[ "$arch" = "x86_64" -a -e "/opt/intel/bin/port" ] && macports="/opt/intel"
+	export PATH="$macports/bin:$macports/sbin:$PATH"
 
 	# Install dependencies.
 	echo [-] Installing dependencies through MacPorts
-	sudo $macports/bin/port selfupdate
-	sudo $macports/bin/port install $(cat .ci/dependencies_macports.txt)
+	sudo "$macports/bin/port" selfupdate
+	sudo "$macports/bin/port" install $(cat .ci/dependencies_macports.txt)
 
 	# Point CMake to the toolchain file.
 	[ -e "cmake/$toolchain.cmake" ] && cmake_flags_extra="$cmake_flags_extra -D \"CMAKE_TOOLCHAIN_FILE=cmake/$toolchain.cmake\""
@@ -563,8 +741,8 @@ then
 		unzip -j discord_game_sdk.zip "lib/$arch_discord/discord_game_sdk.dylib" -d "archive_tmp/"*".app/Contents/Frameworks"
 		[ ! -e "archive_tmp/"*".app/Contents/Frameworks/discord_game_sdk.dylib" ] && echo [!] No Discord Game SDK for architecture [$arch_discord]
 
-		# Sign app bundle.
-		codesign --force --deep -s - "archive_tmp/"*".app"
+		# Sign app bundle, unless we're in an universal build.
+		[ $skip_archive -eq 0 ] && codesign --force --deep -s - "archive_tmp/"*".app"
 	fi
 else
 	cwd_root=$(pwd)
@@ -698,6 +876,13 @@ then
 	exit 6
 fi
 
+# Stop if artifact archive creation was disabled.
+if [ $skip_archive -ne 0 ]
+then
+	echo [-] Skipping artifact archive creation
+	exit 0
+fi
+
 # Produce artifact archive.
 echo [-] Creating artifact archive
 if is_windows
@@ -708,9 +893,9 @@ then
 	status=$?
 elif is_mac
 then
-	# Create zip. (TODO: dmg)
+	# Create zip.
 	cd archive_tmp
-	zip -r "$cwd/$package_name.zip" .
+	zip --symlinks -r "$cwd/$package_name.zip" .
 	status=$?
 else
 	# Determine AppImage runtime architecture.
@@ -771,7 +956,6 @@ EOF
 		status=$?
 	fi
 fi
-cd ..
 
 # Check if the archival succeeded.
 if [ $status -ne 0 ]

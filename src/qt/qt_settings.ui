@@ -32,7 +32,7 @@
       <item>
        <widget class="QListView" name="listView">
         <property name="viewMode">
-         <enum>QListView::IconMode</enum>
+         <enum>QListView::ListMode</enum>
         </property>
        </widget>
       </item>
