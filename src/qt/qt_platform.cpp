@@ -34,6 +34,7 @@
 #include <QCoreApplication>
 #include <QDateTime>
 #include <QLocalSocket>
+#include <QTimer>
 
 #include <QLibrary>
 #include <QElapsedTimer>
@@ -371,7 +372,7 @@ plat_power_off(void)
     cycles -= 99999999;
 
     cpu_thread_run = 0;
-    main_window->close();
+    QTimer::singleShot(0, main_window, &QMainWindow::close);
 }
 
 void set_language(uint32_t id) {
