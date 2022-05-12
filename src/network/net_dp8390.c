@@ -706,7 +706,7 @@ dp8390_page0_write(dp8390_t *dev, uint32_t off, uint32_t val, unsigned len)
 		dev->DCR.longaddr = ((val & 0x04) == 0x04); /* illegal ? */
 		dev->DCR.loop     = ((val & 0x08) == 0x08);
 		dev->DCR.auto_rx  = ((val & 0x10) == 0x10); /* also illegal ? */
-		dev->DCR.fifo_size = (val & 0x50) >> 5;
+		dev->DCR.fifo_size = (val & 0x60) >> 5;
 		break;
 
 	case 0x0f:  /* IMR */
