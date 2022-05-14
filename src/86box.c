@@ -171,6 +171,7 @@ int GAMEBLASTER = 0;				/* (C) sound option */
 int GUS = 0;					/* (C) sound option */
 int SSI2001 = 0;				/* (C) sound option */
 int voodoo_enabled = 0;				/* (C) video option */
+int ibm8514_enabled = 0;			/* (C) video option */
 uint32_t mem_size = 0;				/* (C) memory size (Installed on system board)*/
 uint32_t isa_mem_size = 0;	/* (C) memory size (ISA Memory Cards) */
 int	cpu_use_dynarec = 0;			/* (C) cpu uses/needs Dyna */

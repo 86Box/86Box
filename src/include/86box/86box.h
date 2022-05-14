@@ -111,7 +111,8 @@ extern int	sound_is_float,			/* (C) sound uses FP values */
 		GAMEBLASTER,			/* (C) sound option */
 		GUS, GUSMAX,			/* (C) sound option */
 		SSI2001,			/* (C) sound option */
-		voodoo_enabled;			/* (C) video option */
+		voodoo_enabled,			/* (C) video option */
+		ibm8514_enabled;        /* (C) video option */
 extern uint32_t	mem_size;			/* (C) memory size (Installed on system board) */
 extern uint32_t	isa_mem_size;		/* (C) memory size (ISA Memory Cards) */
 extern int	cpu,				/* (C) cpu type */

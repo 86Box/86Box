@@ -200,6 +200,9 @@ extern void	agpgart_set_gart(void *handle, uint32_t base);
 
 
 #ifdef EMU_DEVICE_H
+/* IBM 8514/A and generic clones*/
+extern void ibm8514_device_add(void);
+
 /* ATi Mach64 */
 extern const device_t mach64gx_isa_device;
 extern const device_t mach64gx_vlb_device;
