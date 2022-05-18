@@ -55,20 +55,21 @@ typedef struct ibm8514_t
         uint16_t frgd_mix;
         uint16_t multifunc_cntl;
         uint16_t multifunc[16];
+        int16_t clip_left, clip_top;
         uint8_t pix_trans[2];
         int poly_draw;
         int ssv_state;
         int x1, x2, y1, y2;
         int sys_cnt, sys_cnt2;
         int temp_cnt;
-        int cx, cy;
+        int16_t cx, cy;
         int sx, sy;
         int dx, dy;
         uint32_t src, dest;
         uint32_t newsrc_blt, newdest_blt;
         uint32_t newdest_in, newdest_out;
         uint8_t *writemono, *nibbleset;
-        int x_count, y_count;
+        int x_count, xx_count, y_count;
         int input, output;
 
         uint16_t cur_x_bit12, cur_y_bit12;
@@ -78,6 +79,7 @@ typedef struct ibm8514_t
         int odd_in, odd_out;
 
         uint16_t scratch;
+        int fill_state, fill_drop;
     } accel;
 
     uint16_t test;
