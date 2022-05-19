@@ -958,8 +958,8 @@ ibm8514_accel_out(uint16_t port, uint32_t val, svga_t *svga, int len)
 
             case 0x4ae8:
                 dev->accel.advfunc_cntl = val & 7;
-                svga->vga_on = ((dev->accel.advfunc_cntl & 1) == 0) ? 1 : 0;
-                //pclog("IBM 8514/A: VGA ON = %i, val = %02x\n", svga->vga_on, val);
+                vga_on = ((dev->accel.advfunc_cntl & 1) == 0) ? 1 : 0;
+                //pclog("IBM 8514/A: VGA ON = %i, val = %02x\n", vga_on, val);
                 svga_recalctimings(svga);
                 break;
         }

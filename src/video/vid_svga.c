@@ -53,7 +53,7 @@ uint8_t		svga_rotate[8][256];
 /*Primary SVGA device. As multiple video cards are not yet supported this is the
   only SVGA device.*/
 static svga_t	*svga_pri;
-
+int vga_on;
 
 svga_t
 *svga_get_pri()
@@ -554,7 +554,7 @@ svga_recalctimings(svga_t *svga)
     } else
 	overscan_x  = 16;
 
-    if (svga->vga_on) {
+    if (vga_on) {
         if (svga->recalctimings_ex) {
             svga->recalctimings_ex(svga);
         }
@@ -657,7 +657,7 @@ svga_poll(void *p)
     int wx, wy;
     int ret, old_ma;
 
-    if (!svga->vga_on) {
+    if (!vga_on) {
         ibm8514_poll(&svga->dev8514, svga);
         return;
     }
@@ -968,7 +968,7 @@ svga_init(const device_t *info, svga_t *svga, void *p, int memsize,
     svga->translate_address = NULL;
     svga->ksc5601_english_font_type = 0;
 
-    svga->vga_on = 1;
+    vga_on = 1;
 
     if ((info->flags & DEVICE_PCI) || (info->flags & DEVICE_VLB) || (info->flags & DEVICE_MCA)) {
 	    mem_mapping_add(&svga->mapping, 0xa0000, 0x20000,
