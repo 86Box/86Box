@@ -165,8 +165,6 @@ typedef struct svga_t
 
 	int force_old_addr;
 
-    int vga_on;
-
 	int remap_required;
 	uint32_t (*remap_func)(struct svga_t *svga, uint32_t in_addr);
 
@@ -174,6 +172,7 @@ typedef struct svga_t
 } svga_t;
 
 extern svga_t *svga_8514;
+extern int vga_on;
 
 extern void ibm8514_poll(ibm8514_t *dev, svga_t *svga);
 extern void ibm8514_recalctimings(svga_t *svga);
