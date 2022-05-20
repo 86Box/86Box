@@ -3606,7 +3606,7 @@ ibm8514_recalctimings(svga_t *svga)
     dev->v_syncstart = (dev->vsyncstart + 1);
     dev->rowcount = !!(dev->disp_cntl & 0x08);
 
-    if (((dev->disp_cntl & 0x60) == 0) || ((dev->disp_cntl == 0x60) >= 0x40))
+    if (((dev->disp_cntl & 0x60) == 0) || ((dev->disp_cntl & 0x60) >= 0x40))
         return;
 
     if (dev->accel.advfunc_cntl & 4) {
