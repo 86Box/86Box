@@ -271,6 +271,7 @@ END
 
 #define STR_VIDEO		"Відеокарта:"
 #define STR_VOODOO		"Прискорювач Voodoo"
+#define STR_IBM8514		"IBM 8514/a Graphics"
 
 #define STR_MOUSE		"Миша:"
 #define STR_JOYSTICK		"Джойстик:"
