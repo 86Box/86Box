@@ -361,22 +361,8 @@ void MediaMenu::cdromMute(int i) {
     sound_cd_thread_reset();
 }
 
-void MediaMenu::cdromMount(int i) {
-    QString dir;
-    QFileInfo fi(cdrom[i].image_path);
-
-    auto filename = QFileDialog::getOpenFileName(
-        parentWidget,
-        QString(),
-        QString(),
-        tr("CD-ROM images") %
-        util::DlgFilter({ "iso","cue" }) %
-        tr("All files") %
-        util::DlgFilter({ "*" }, true));
-
-    if (filename.isEmpty()) {
-        return;
-    }
+void MediaMenu::cdromMount(int i, const QString &filename)
+{
     QByteArray fn = filename.toUtf8().data();
 
     cdrom[i].prev_host_drive = cdrom[i].host_drive;
@@ -399,6 +385,26 @@ void MediaMenu::cdromMount(int i) {
     cdromUpdateMenu(i);
     ui_sb_update_tip(SB_CDROM | i);
     config_save();
+}
+
+void MediaMenu::cdromMount(int i) {
+    QString dir;
+    QFileInfo fi(cdrom[i].image_path);
+
+    auto filename = QFileDialog::getOpenFileName(
+        parentWidget,
+        QString(),
+        QString(),
+        tr("CD-ROM images") %
+        util::DlgFilter({ "iso","cue" }) %
+        tr("All files") %
+        util::DlgFilter({ "*" }, true));
+
+    if (filename.isEmpty()) {
+        return;
+    }
+
+    cdromMount(i, filename);
 }
 
 void MediaMenu::cdromEject(int i) {

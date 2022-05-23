@@ -392,7 +392,11 @@ void MachineStatus::refresh(QStatusBar* sbar) {
         connect((ClickableLabel*)d->fdd[i].label.get(), &ClickableLabel::clicked, [i](QPoint pos) {
             MediaMenu::ptr->floppyMenus[i]->popup(pos - QPoint(0, MediaMenu::ptr->floppyMenus[i]->sizeHint().height()));
         });
+        connect((ClickableLabel*)d->fdd[i].label.get(), &ClickableLabel::dropped, [i](QString str) {
+            MediaMenu::ptr->floppyMount(i, str, false);
+        });
         d->fdd[i].label->setToolTip(MediaMenu::ptr->floppyMenus[i]->title());
+        d->fdd[i].label->setAcceptDrops(true);
         sbar->addWidget(d->fdd[i].label.get());
     });
 
@@ -403,7 +407,11 @@ void MachineStatus::refresh(QStatusBar* sbar) {
         connect((ClickableLabel*)d->cdrom[i].label.get(), &ClickableLabel::clicked, [i](QPoint pos) {
             MediaMenu::ptr->cdromMenus[i]->popup(pos - QPoint(0, MediaMenu::ptr->cdromMenus[i]->sizeHint().height()));
         });
+        connect((ClickableLabel*)d->cdrom[i].label.get(), &ClickableLabel::dropped, [i](QString str) {
+            MediaMenu::ptr->cdromMount(i, str);
+        });
         d->cdrom[i].label->setToolTip(MediaMenu::ptr->cdromMenus[i]->title());
+        d->cdrom[i].label->setAcceptDrops(true);
         sbar->addWidget(d->cdrom[i].label.get());
     });
 
@@ -414,7 +422,11 @@ void MachineStatus::refresh(QStatusBar* sbar) {
         connect((ClickableLabel*)d->zip[i].label.get(), &ClickableLabel::clicked, [i](QPoint pos) {
             MediaMenu::ptr->zipMenus[i]->popup(pos - QPoint(0, MediaMenu::ptr->zipMenus[i]->sizeHint().height()));
         });
+        connect((ClickableLabel*)d->zip[i].label.get(), &ClickableLabel::dropped, [i](QString str) {
+            MediaMenu::ptr->zipMount(i, str, false);
+        });
         d->zip[i].label->setToolTip(MediaMenu::ptr->zipMenus[i]->title());
+        d->zip[i].label->setAcceptDrops(true);
         sbar->addWidget(d->zip[i].label.get());
     });
 
@@ -425,7 +437,11 @@ void MachineStatus::refresh(QStatusBar* sbar) {
         connect((ClickableLabel*)d->mo[i].label.get(), &ClickableLabel::clicked, [i](QPoint pos) {
             MediaMenu::ptr->moMenus[i]->popup(pos - QPoint(0, MediaMenu::ptr->moMenus[i]->sizeHint().height()));
         });
+        connect((ClickableLabel*)d->mo[i].label.get(), &ClickableLabel::dropped, [i](QString str) {
+            MediaMenu::ptr->moMount(i, str, false);
+        });
         d->mo[i].label->setToolTip(MediaMenu::ptr->moMenus[i]->title());
+        d->mo[i].label->setAcceptDrops(true);
         sbar->addWidget(d->mo[i].label.get());
     });
 

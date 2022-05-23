@@ -37,6 +37,7 @@ public:
 
     void cdromMute(int i);
     void cdromMount(int i);
+    void cdromMount(int i, const QString& filename);
     void cdromEject(int i);
     void cdromReload(int i);
     void cdromUpdateMenu(int i);
