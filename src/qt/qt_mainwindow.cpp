@@ -26,6 +26,7 @@
 #include "qt_specifydimensions.h"
 #include "qt_soundgain.hpp"
 #include "qt_progsettings.hpp"
+#include "qt_mcadevicelist.hpp"
 
 #include "qt_rendererstack.hpp"
 #include "qt_renderercommon.hpp"
@@ -1875,3 +1876,12 @@ void MainWindow::on_actionRenderer_options_triggered()
     if (dlg)
         dlg->exec();
 }
+
+void MainWindow::on_actionMCA_devices_triggered()
+{
+    auto dlg = new MCADeviceList(this);
+
+    if (dlg)
+        dlg->exec();
+}
+

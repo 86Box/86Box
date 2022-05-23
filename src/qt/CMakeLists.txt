@@ -151,6 +151,10 @@ add_library(ui STATIC
     qt_vulkanrenderer.hpp
     qt_vulkanrenderer.cpp
 
+    qt_mcadevicelist.hpp
+    qt_mcadevicelist.cpp
+    qt_mcadevicelist.ui
+
     ../qt_resources.qrc
 )
 
