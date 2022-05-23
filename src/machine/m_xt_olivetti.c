@@ -752,8 +752,8 @@ machine_xt_m24_init(const machine_t *model)
     int ret;
     m24_kbd_t *m24_kbd;
 
-    ret = bios_load_interleaved("roms/machines/m24/olivetti_m24_version_1.43_low.bin",
-				"roms/machines/m24/olivetti_m24_version_1.43_high.bin",
+    ret = bios_load_interleaved("roms/machines/m24/olivetti_m24_bios_version_1.44_low_even.bin",
+				"roms/machines/m24/olivetti_m24_bios_version_1.44_high_odd.bin",
 				0x000fc000, 16384, 0);
 
     if (bios_only || !ret)

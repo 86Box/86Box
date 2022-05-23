@@ -114,6 +114,12 @@ machine_init_ex(int m)
     if (bios_only || !ret)
 	return ret;
 
+    if (gfxcard != VID_NONE) {
+        if (ibm8514_enabled) {
+            ibm8514_device_add();
+        }
+    }
+
     /* Reset the graphics card (or do nothing if it was already done
        by the machine's init function). */
     video_reset(gfxcard);

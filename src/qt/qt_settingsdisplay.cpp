@@ -46,6 +46,7 @@ SettingsDisplay::~SettingsDisplay()
 void SettingsDisplay::save() {
     gfxcard = ui->comboBoxVideo->currentData().toInt();
     voodoo_enabled = ui->checkBoxVoodoo->isChecked() ? 1 : 0;
+    ibm8514_enabled = ui->checkBox8514->isChecked() ? 1 : 0;
 }
 
 void SettingsDisplay::onCurrentMachineChanged(int machineId) {
@@ -113,6 +114,13 @@ void SettingsDisplay::on_comboBoxVideo_currentIndexChanged(int index) {
         ui->checkBoxVoodoo->setChecked(voodoo_enabled);
     }
     ui->pushButtonConfigureVoodoo->setEnabled(machineHasPci && ui->checkBoxVoodoo->isChecked());
+
+    bool hasIsa16 = machine_has_bus(machineId, MACHINE_BUS_ISA | MACHINE_AT) > 0;
+    bool has_MCA = machine_has_bus(machineId, MACHINE_BUS_MCA) > 0;
+    ui->checkBox8514->setEnabled(hasIsa16 || has_MCA);
+    if (hasIsa16 || has_MCA) {
+        ui->checkBox8514->setChecked(ibm8514_enabled > 0);
+    }
 }
 
 void SettingsDisplay::on_checkBoxVoodoo_stateChanged(int state) {

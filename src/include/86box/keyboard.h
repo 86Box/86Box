@@ -73,6 +73,7 @@ extern const device_t	keyboard_xt_olivetti_device;
 extern const device_t	keyboard_xt_zenith_device;
 extern const device_t	keyboard_at_device;
 extern const device_t	keyboard_at_ami_device;
+extern const device_t	keyboard_at_samsung_device;
 extern const device_t	keyboard_at_toshiba_device;
 extern const device_t	keyboard_at_olivetti_device;
 extern const device_t	keyboard_at_ncr_device;

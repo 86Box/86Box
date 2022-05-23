@@ -43,6 +43,8 @@
 
 void svga_doblit(int wx, int wy, svga_t *svga);
 
+svga_t *svga_8514;
+
 extern int	cyc_total;
 extern uint8_t	edatlookup[4][4];
 
@@ -51,7 +53,7 @@ uint8_t		svga_rotate[8][256];
 /*Primary SVGA device. As multiple video cards are not yet supported this is the
   only SVGA device.*/
 static svga_t	*svga_pri;
-
+int vga_on;
 
 svga_t
 *svga_get_pri()
@@ -552,8 +554,13 @@ svga_recalctimings(svga_t *svga)
     } else
 	overscan_x  = 16;
 
-    if (svga->recalctimings_ex)
-	svga->recalctimings_ex(svga);
+    if (vga_on) {
+        if (svga->recalctimings_ex) {
+            svga->recalctimings_ex(svga);
+        }
+    } else {
+        ibm8514_recalctimings(svga);
+    }
 
     svga->y_add = (overscan_y >> 1) - (svga->crtc[8] & 0x1f);
     svga->x_add = (overscan_x >> 1);
@@ -649,6 +656,11 @@ svga_poll(void *p)
     uint32_t x, blink_delay;
     int wx, wy;
     int ret, old_ma;
+
+    if (!vga_on) {
+        ibm8514_poll(&svga->dev8514, svga);
+        return;
+    }
 
     if (!svga->linepos) {
 	if (svga->displine == svga->hwcursor_latch.y && svga->hwcursor_latch.ena) {
@@ -956,6 +968,8 @@ svga_init(const device_t *info, svga_t *svga, void *p, int memsize,
     svga->translate_address = NULL;
     svga->ksc5601_english_font_type = 0;
 
+    vga_on = 1;
+
     if ((info->flags & DEVICE_PCI) || (info->flags & DEVICE_VLB) || (info->flags & DEVICE_MCA)) {
 	    mem_mapping_add(&svga->mapping, 0xa0000, 0x20000,
 			    svga_read, svga_readw, svga_readl,
@@ -976,6 +990,11 @@ svga_init(const device_t *info, svga_t *svga, void *p, int memsize,
     timer_add(&svga->timer, svga_poll, svga, 1);
 
     svga_pri = svga;
+
+    if (ibm8514_enabled)
+        svga_8514 = svga;
+    else
+        svga_8514 = NULL;
 
     svga->ramdac_type = RAMDAC_6BIT;
 
