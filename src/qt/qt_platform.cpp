@@ -342,7 +342,7 @@ plat_pause(int p)
     if (p) {
         wcsncpy(oldtitle, ui_window_title(NULL), sizeof_w(oldtitle) - 1);
         wcscpy(title, oldtitle);
-        QObject::tr(" - PAUSED").toWCharArray(paused_msg);
+        paused_msg[QObject::tr(" - PAUSED").toWCharArray(paused_msg)] = 0;
         wcscat(title, paused_msg);
         ui_window_title(title);
     } else {
