@@ -45,6 +45,18 @@ newversion_patch_base36=$(base36 $newversion_patch)
 # Switch to the repository root directory.
 cd "$(dirname "$0")"
 
+get_latest_rom_release() {
+    # get the latest ROM release from GitHub api
+    curl --silent "https://api.github.com/repos/86Box/roms/releases/latest" |
+        grep '"tag_name":' |
+        sed -E 's/.*"([^"]+)".*/\1/'
+}
+
+pretty_date() {
+    # Ensure we get the date in English
+    LANG=en_US.UTF-8 date '+%a %b %d %Y'
+}
+
 # Patch files.
 patch_file() {
 	# Stop if the file doesn't exist.
@@ -69,4 +81,7 @@ patch_file src/include_make/*/version.h EMU_VERSION_PATCH 's/(#\s*define\s+EMU_V
 patch_file src/include_make/*/version.h COPYRIGHT_YEAR 's/(#\s*define\s+COPYRIGHT_YEAR\s+)[0-9]+/\1'"$(date +%Y)"'/'
 patch_file src/include_make/*/version.h EMU_DOCS_URL 's/(#\s*define\s+EMU_DOCS_URL\s+"https:\/\/[^\/]+\/en\/v)[^\/]+/\1'"$newversion_maj.$newversion_min"'/'
 patch_file src/unix/assets/*.spec Version 's/(Version:\s+)[0-9].+/\1'"$newversion"'/'
+patch_file src/unix/assets/*.spec '%global romver' 's/(^%global\ romver\s+)[0-9]{8}/'"$(get_latest_rom_release)"'/'
+patch_file src/unix/assets/*.spec 'changelog version' 's/(^[*]\s.*>\s+)[0-9].+/\1'"$newversion"-1'/'
+patch_file src/unix/assets/*.spec 'changelog date' 's/(^[*]\s)[a-zA-Z]{3}\s[a-zA-Z]{3}\s[0-9]{2}\s[0-9]{4}/\1'"$(pretty_date)"'/'
 patch_file src/unix/assets/*.metainfo.xml release 's/(<release version=")[^"]+(" date=")[^"]+/\1'"$newversion"'\2'"$(date +%Y-%m-%d)"'/'
