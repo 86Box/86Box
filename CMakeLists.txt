@@ -61,6 +61,9 @@ if(VCPKG_TOOLCHAIN)
         set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
         set(STATIC_BUILD OFF)
     endif()
+
+    # `vcpkg.json` defaults to Qt6
+    set(USE_QT6 ON)
 endif()
 
 if(WIN32)

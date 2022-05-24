@@ -14,8 +14,8 @@
         "qt-ui": {
             "description": "Qt User Interface",
             "dependencies": [
-                "qt5-base",
-                "qt5-translations"
+                "qtbase",
+                "qttranslations"
             ]
         },
         "munt": {
