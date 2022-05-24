@@ -1,11 +1,11 @@
 #include "qt_vulkanwindowrenderer.hpp"
 
-#include <QVulkanWindowRenderer>
-#include <QVulkanDeviceFunctions>
 #include <QMessageBox>
 #include <QWindow>
 
 #if QT_CONFIG(vulkan)
+#include <QVulkanWindowRenderer>
+#include <QVulkanDeviceFunctions>
 #include <array>
 #include <stdexcept>
 
