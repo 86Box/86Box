@@ -115,7 +115,7 @@ void SettingsDisplay::on_comboBoxVideo_currentIndexChanged(int index) {
     }
     ui->pushButtonConfigureVoodoo->setEnabled(machineHasPci && ui->checkBoxVoodoo->isChecked());
 
-    bool hasIsa16 = machine_has_bus(machineId, MACHINE_BUS_ISA | MACHINE_AT) > 0;
+    bool hasIsa16 = machine_has_bus(machineId, MACHINE_BUS_ISA16) > 0;
     bool has_MCA = machine_has_bus(machineId, MACHINE_BUS_MCA) > 0;
     ui->checkBox8514->setEnabled(hasIsa16 || has_MCA);
     if (hasIsa16 || has_MCA) {

@@ -144,7 +144,7 @@ void SettingsSound::onCurrentMachineChanged(int machineId) {
     ui->checkBoxFloat32->setChecked(sound_is_float > 0);
 
     bool hasIsa = machine_has_bus(machineId, MACHINE_BUS_ISA) > 0;
-    bool hasIsa16 = machine_has_bus(machineId, MACHINE_BUS_ISA) > 0;
+    bool hasIsa16 = machine_has_bus(machineId, MACHINE_BUS_ISA16) > 0;
     ui->checkBoxCMS->setEnabled(hasIsa);
     ui->pushButtonConfigureCMS->setEnabled((GAMEBLASTER > 0) && hasIsa);
     ui->checkBoxGUS->setEnabled(hasIsa16);
