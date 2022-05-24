@@ -176,7 +176,7 @@ if(WIN32)
         # MSVC linker adds its own manifest to the executable, which fails if
         # we include ours in 86Box.rc. We therefore need to pass the manifest
         # directly as as a source file, so the linker can use that instead.
-        set_property(SOURCE ../win/86Box-qt.rc PROPERTY COMPILE_DEFINITIONS NO_INCLUDE_MANIFEST)
+        set_property(SOURCE ../win/86Box-qt.rc DIRECTORY .. PROPERTY COMPILE_DEFINITIONS NO_INCLUDE_MANIFEST)
         target_sources(86Box PRIVATE ../win/86Box.manifest)
     endif()
 
@@ -220,6 +220,7 @@ target_link_libraries(
     Qt${QT_MAJOR}::Gui
     Qt${QT_MAJOR}::OpenGL
     Qt${QT_MAJOR}::Network
+
     Threads::Threads
 )
 
