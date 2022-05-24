@@ -361,7 +361,11 @@ void MachineStatus::refresh(QStatusBar* sbar) {
         connect((ClickableLabel*)d->cassette.label.get(), &ClickableLabel::clicked, [](QPoint pos) {
             MediaMenu::ptr->cassetteMenu->popup(pos - QPoint(0, MediaMenu::ptr->cassetteMenu->sizeHint().height()));
         });
+        connect((ClickableLabel*)d->cassette.label.get(), &ClickableLabel::dropped, [](QString str) {
+            MediaMenu::ptr->cassetteMount(str, false);
+        });
         d->cassette.label->setToolTip(MediaMenu::ptr->cassetteMenu->title());
+        d->cassette.label->setAcceptDrops(true);
         sbar->addWidget(d->cassette.label.get());
     }
 
@@ -372,7 +376,11 @@ void MachineStatus::refresh(QStatusBar* sbar) {
             connect((ClickableLabel*)d->cartridge[i].label.get(), &ClickableLabel::clicked, [i](QPoint pos) {
                 MediaMenu::ptr->cartridgeMenus[i]->popup(pos - QPoint(0, MediaMenu::ptr->cartridgeMenus[i]->sizeHint().height()));
             });
+            connect((ClickableLabel*)d->cartridge[i].label.get(), &ClickableLabel::dropped, [i](QString str) {
+                MediaMenu::ptr->cartridgeMount(i, str);
+            });
             d->cartridge[i].label->setToolTip(MediaMenu::ptr->cartridgeMenus[i]->title());
+            d->cartridge[i].label->setAcceptDrops(true);
             sbar->addWidget(d->cartridge[i].label.get());
         }
     }
