@@ -183,6 +183,7 @@
 #define IDC_COMBO_VIDEO		1021
 #define IDC_CHECK_VOODOO	1022
 #define IDC_BUTTON_VOODOO	1023
+#define IDC_CHECK_IBM8514	1024
 
 #define IDC_INPUT		1030	/* input config */
 #define IDC_COMBO_MOUSE		1031

@@ -271,6 +271,7 @@ END
 
 #define STR_VIDEO		"显卡:"
 #define STR_VOODOO		"Voodoo Graphics"
+#define STR_IBM8514		"IBM 8514/a Graphics"
 
 #define STR_MOUSE		"鼠标:"
 #define STR_JOYSTICK		"操纵杆:"
