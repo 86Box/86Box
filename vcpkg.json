@@ -14,8 +14,28 @@
         "qt-ui": {
             "description": "Qt User Interface",
             "dependencies": [
-                "qtbase",
-                "qttranslations"
+                {
+                    "name": "qtbase",
+                    "default-features": false,
+                    "features": [
+                        "concurrent",
+                        "default-features",
+                        "gui",
+                        "harfbuzz",
+                        "network",
+                        "vulkan",
+                        "widgets",
+                        "zstd"
+                    ]
+                },
+                {
+                    "name": "qttools",
+                    "default-features": false,
+                    "features": [
+                        "linguist"
+                    ],
+                    "host": true
+                }
             ]
         },
         "munt": {

@@ -19,9 +19,14 @@ if(QT_STATIC AND MINGW)
     set(CMAKE_PREFIX_PATH "$ENV{MSYSTEM_PREFIX}/qt${QT_MAJOR}-static")
 endif()
 
+if(VCPKG_TOOLCHAIN AND VCPKG_HOST_TRIPLET)
+    set(QT_HOST_PATH "${VCPKG_INSTALLED_DIR}/${VCPKG_HOST_TRIPLET}/tools/Qt${QT_MAJOR}")
+    set(QT_HOST_PATH_CMAKE_DIR ${VCPKG_INSTALLED_DIR}/${VCPKG_HOST_TRIPLET})
+endif()
+
 find_package(Threads REQUIRED)
 find_package(Qt${QT_MAJOR} COMPONENTS Core Widgets Network OpenGL REQUIRED)
-find_package(Qt${QT_MAJOR}LinguistTools REQUIRED)
+
 # TODO: Is this the correct way to do this, and is it required on any
 # other platforms or with Qt 5?
 if(APPLE AND USE_QT6)
@@ -312,9 +317,7 @@ endif()
 set(QM_FILES)
 file(GLOB po_files "${CMAKE_CURRENT_SOURCE_DIR}/languages/*.po")
 foreach(po_file ${po_files})
-    get_target_property(LCONVERT_EXECUTABLE Qt${QT_MAJOR}::lconvert IMPORTED_LOCATION)
-    get_filename_component(_lconvert_bin_dir "${LCONVERT_EXECUTABLE}" DIRECTORY)
-    find_program(LCONVERT_EXECUTABLE lconvert HINTS "${_lconvert_bin_dir}")
+    find_program(LCONVERT_EXECUTABLE lconvert REQUIRED)
 
     get_filename_component(PO_FILE_NAME ${po_file} NAME_WE)
     add_custom_command(OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/86box_${PO_FILE_NAME}.qm"
