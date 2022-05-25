@@ -26,6 +26,7 @@
 #include "qt_specifydimensions.h"
 #include "qt_soundgain.hpp"
 #include "qt_progsettings.hpp"
+#include "qt_machineoverview.hpp"
 
 #include "qt_rendererstack.hpp"
 #include "qt_renderercommon.hpp"
@@ -1875,3 +1876,13 @@ void MainWindow::on_actionRenderer_options_triggered()
     if (dlg)
         dlg->exec();
 }
+
+void MainWindow::on_actionMachine_overview_triggered()
+{
+    auto dlg = new MachineOverview;
+    if (dlg) {
+        dlg->show();
+        dlg->setAttribute(Qt::WA_DeleteOnClose);
+    }
+}
+

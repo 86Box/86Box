@@ -50,13 +50,10 @@
 #include <86box/machine.h>
 #include <86box/sound.h>
 
-
-#define DEVICE_MAX	256			/* max # of devices */
-
-
 static device_t		*devices[DEVICE_MAX];
 static void		*device_priv[DEVICE_MAX];
 static device_context_t	device_current, device_prev;
+static device_context_t device_contexts[DEVICE_MAX];
 
 
 #ifdef ENABLE_DEVICE_LOG
@@ -84,6 +81,7 @@ void
 device_init(void)
 {
     memset(devices, 0x00, sizeof(devices));
+    memset(device_contexts, 0x00, sizeof(device_contexts));
 }
 
 
@@ -131,6 +129,19 @@ device_context_inst(const device_t *d, int inst)
     device_context_common(d, inst);
 }
 
+device_context_t*
+device_get_context(int index)
+{
+    if (index >= DEVICE_MAX) {
+        return NULL;
+    }
+
+    if (device_contexts[index].dev == NULL) {
+        return NULL;
+    }
+
+    return &device_contexts[index];
+}
 
 void
 device_context_restore(void)
@@ -183,6 +194,7 @@ device_add_common(const device_t *d, const device_t *cd, void *p, int inst)
 	else
 		device_log("DEVICE: device init successful\n");
 
+	memcpy(&device_contexts[c], &device_current, sizeof(device_context_t));
 	memcpy(&device_current, &device_prev, sizeof(device_context_t));
 	device_priv[c] = priv;
     } else

@@ -103,6 +103,8 @@ private slots:
     void showMessage_(const QString& header, const QString& message);
     void getTitle_(wchar_t* title);
 
+    void on_actionMachine_overview_triggered();
+
 protected:
     void keyPressEvent(QKeyEvent* event) override;
     void keyReleaseEvent(QKeyEvent* event) override;

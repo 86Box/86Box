@@ -53,6 +53,8 @@
 #define CONFIG_MAC			 9
 #define CONFIG_MIDI_IN		10
 
+#define DEVICE_MAX	256			/* max # of devices */
+
 
 enum {
     DEVICE_NOT_WORKING = 1,	/* does not currently work correctly and will be disabled in a release build */
@@ -129,6 +131,7 @@ extern void		device_set_context(device_context_t *c, const device_t *d, int inst
 extern void		device_context(const device_t *d);
 extern void		device_context_inst(const device_t *d, int inst);
 extern void		device_context_restore(void);
+extern device_context_t* device_get_context(int index);
 extern void		*device_add(const device_t *d);
 extern void		device_add_ex(const device_t *d, void *priv);
 extern void		*device_add_inst(const device_t *d, int inst);
