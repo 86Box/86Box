@@ -89,6 +89,8 @@
     <addaction name="separator"/>
     <addaction name="actionBegin_trace"/>
     <addaction name="actionEnd_trace"/>
+    <addaction name="separator"/>
+    <addaction name="actionMCA_devices"/>
    </widget>
    <widget class="QMenu" name="menuView">
     <property name="title">
@@ -736,6 +738,11 @@
    </property>
    <property name="vid_api" stdset="0">
     <number>4</number>
+   </property>
+  </action>
+  <action name="actionMCA_devices">
+   <property name="text">
+    <string>MCA devices...</string>
    </property>
   </action>
  </widget>
