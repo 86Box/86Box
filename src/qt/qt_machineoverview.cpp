@@ -94,7 +94,7 @@ void MachineOverview::refresh()
                         {
                             mcaDevIdSet.insert(priv);
                             QString hexRepresentation = QString::number(deviceId, 16).toUpper();
-                            deviceItem->addChild(new QTreeWidgetItem({QString("MCA Slot: ") + QString::number(i)}));
+                            deviceItem->addChild(new QTreeWidgetItem({QString("MCA Slot: ") + QString::number(i + 1)}));
                             deviceItem->addChild(new QTreeWidgetItem({QString("MCA Device ID: 0x") + hexRepresentation}));
                             break;
                         }
@@ -204,7 +204,7 @@ void MachineOverview::refresh()
         if (deviceId != 0xFFFF && !mcaDevIdSet.contains(mca_priv[i]))
         {
             QString hexRepresentation = QString::number(deviceId, 16).toUpper();
-            devicesItem->addChild(new QTreeWidgetItem({QString("Unknown MCA device: Slot %1: Device ID: 0x%2").arg(i).arg(hexRepresentation)}));
+            devicesItem->addChild(new QTreeWidgetItem({QString("Unknown MCA device: Slot %1: Device ID: 0x%2").arg(i + 1).arg(hexRepresentation)}));
         }
     }
 }
