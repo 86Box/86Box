@@ -230,6 +230,18 @@ void MediaMenu::cassetteUpdateMenu() {
     cassetteMenu->setTitle(QString::asprintf(tr("Cassette: %s").toUtf8().constData(), (name.isEmpty() ? tr("(empty)") : name).toUtf8().constData()));
 }
 
+void MediaMenu::cartridgeMount(int i, const QString &filename)
+{
+    cart_close(i);
+    QByteArray filenameBytes = filename.toUtf8();
+    cart_load(i, filenameBytes.data());
+
+    ui_sb_update_icon_state(SB_CARTRIDGE | i, filename.isEmpty() ? 1 : 0);
+    cartridgeUpdateMenu(i);
+    ui_sb_update_tip(SB_CARTRIDGE | i);
+    config_save();
+}
+
 void MediaMenu::cartridgeSelectImage(int i) {
     auto filename = QFileDialog::getOpenFileName(
         parentWidget,
@@ -243,14 +255,7 @@ void MediaMenu::cartridgeSelectImage(int i) {
     if (filename.isEmpty()) {
         return;
     }
-    cart_close(i);
-    QByteArray filenameBytes = filename.toUtf8();
-    cart_load(i, filenameBytes.data());
-
-    ui_sb_update_icon_state(SB_CARTRIDGE | i, filename.isEmpty() ? 1 : 0);
-    cartridgeUpdateMenu(i);
-    ui_sb_update_tip(SB_CARTRIDGE | i);
-    config_save();
+    cartridgeMount(i, filename);
 }
 
 void MediaMenu::cartridgeEject(int i) {
@@ -361,22 +366,8 @@ void MediaMenu::cdromMute(int i) {
     sound_cd_thread_reset();
 }
 
-void MediaMenu::cdromMount(int i) {
-    QString dir;
-    QFileInfo fi(cdrom[i].image_path);
-
-    auto filename = QFileDialog::getOpenFileName(
-        parentWidget,
-        QString(),
-        QString(),
-        tr("CD-ROM images") %
-        util::DlgFilter({ "iso","cue" }) %
-        tr("All files") %
-        util::DlgFilter({ "*" }, true));
-
-    if (filename.isEmpty()) {
-        return;
-    }
+void MediaMenu::cdromMount(int i, const QString &filename)
+{
     QByteArray fn = filename.toUtf8().data();
 
     cdrom[i].prev_host_drive = cdrom[i].host_drive;
@@ -399,6 +390,26 @@ void MediaMenu::cdromMount(int i) {
     cdromUpdateMenu(i);
     ui_sb_update_tip(SB_CDROM | i);
     config_save();
+}
+
+void MediaMenu::cdromMount(int i) {
+    QString dir;
+    QFileInfo fi(cdrom[i].image_path);
+
+    auto filename = QFileDialog::getOpenFileName(
+        parentWidget,
+        QString(),
+        QString(),
+        tr("CD-ROM images") %
+        util::DlgFilter({ "iso","cue" }) %
+        tr("All files") %
+        util::DlgFilter({ "*" }, true));
+
+    if (filename.isEmpty()) {
+        return;
+    }
+
+    cdromMount(i, filename);
 }
 
 void MediaMenu::cdromEject(int i) {

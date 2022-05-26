@@ -4,6 +4,7 @@
 #include <QWidget>
 #include <QLabel>
 #include <QMouseEvent>
+#include <QMimeData>
 
 #include <memory>
 
@@ -19,10 +20,35 @@ class ClickableLabel : public QLabel {
     signals:
         void clicked(QPoint);
         void doubleClicked(QPoint);
+        void dropped(QString);
 
     protected:
         void mousePressEvent(QMouseEvent* event) override { emit clicked(event->globalPos()); }
         void mouseDoubleClickEvent(QMouseEvent* event) override { emit doubleClicked(event->globalPos()); }
+        void dragEnterEvent(QDragEnterEvent* event) override
+        {
+            if (event->mimeData()->hasUrls() && event->mimeData()->urls().size() == 1) {
+                event->setDropAction(Qt::CopyAction);
+                event->acceptProposedAction();
+            }
+            else event->ignore();
+        }
+        void dragMoveEvent(QDragMoveEvent* event) override
+        {
+            if (event->mimeData()->hasUrls() && event->mimeData()->urls().size() == 1) {
+                event->setDropAction(Qt::CopyAction);
+                event->acceptProposedAction();
+            }
+            else event->ignore();
+        }
+        void dropEvent(QDropEvent* event) override
+        {
+            if (event->dropAction() == Qt::CopyAction)
+            {
+                emit dropped(event->mimeData()->urls()[0].toLocalFile());
+            }
+            else event->ignore();
+        }
 };
 
 class MachineStatus : public QObject
