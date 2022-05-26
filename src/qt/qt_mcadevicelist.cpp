@@ -29,7 +29,7 @@ MCADeviceList::MCADeviceList(QWidget *parent) :
             if (deviceId != 0xFFFF)
             {
                 QString hexRepresentation = QString::number(deviceId, 16).toUpper();
-                ui->listWidget->addItem(QString("Slot %1: 0x%2 (@%3.ADF)").arg(i).arg(hexRepresentation, hexRepresentation));
+                ui->listWidget->addItem(QString("Slot %1: 0x%2 (@%3.ADF)").arg(i + 1).arg(hexRepresentation, hexRepresentation));
             }
         }
     }
