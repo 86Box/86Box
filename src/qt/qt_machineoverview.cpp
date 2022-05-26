@@ -64,6 +64,7 @@ void MachineOverview::refresh()
     }
     auto devicesItem = new QTreeWidgetItem(machineItem, {QObject::tr("Devices")});
     uint32_t index = 0;
+    QSet<void*> mcaDevIdSet;
 
     while (index < 256)
     {
@@ -78,7 +79,6 @@ void MachineOverview::refresh()
             continue;
         }
 
-        QSet<void*> mcaDevIdSet;
         auto deviceItem = new QTreeWidgetItem(devicesItem, {QString(context->name)});
         if (context->dev->flags & DEVICE_MCA)
         {
@@ -197,6 +197,15 @@ void MachineOverview::refresh()
             }
         }
         index++;
+    }
+    for (int i = 0; i < mca_get_nr_cards(); i++)
+    {
+        uint32_t deviceId = (mca_read_index(0x00, i) | (mca_read_index(0x01, i) << 8));
+        if (deviceId != 0xFFFF && !mcaDevIdSet.contains(mca_priv[i]))
+        {
+            QString hexRepresentation = QString::number(deviceId, 16).toUpper();
+            devicesItem->addChild(new QTreeWidgetItem({QString("Unknown MCA device: Slot %1: Device ID: 0x%2").arg(i).arg(hexRepresentation)}));
+        }
     }
 }
 
