@@ -19,10 +19,14 @@ if(QT_STATIC AND MINGW)
     set(CMAKE_PREFIX_PATH "$ENV{MSYSTEM_PREFIX}/qt${QT_MAJOR}-static")
 endif()
 
-if(VCPKG_TOOLCHAIN AND VCPKG_HOST_TRIPLET)
+if(VCPKG_TOOLCHAIN AND VCPKG_USE_HOST_TOOLS)
     set(QT_HOST_PATH "${VCPKG_INSTALLED_DIR}/${VCPKG_HOST_TRIPLET}/tools/Qt${QT_MAJOR}")
     set(QT_HOST_PATH_CMAKE_DIR ${VCPKG_INSTALLED_DIR}/${VCPKG_HOST_TRIPLET})
 endif()
+
+# CMake is a bitch and calls the Harfbuzz config twice on MinGW + Qt6
+# if config mode is preferred :)
+set(CMAKE_FIND_PACKAGE_PREFER_CONFIG OFF)
 
 find_package(Threads REQUIRED)
 find_package(Qt${QT_MAJOR} COMPONENTS Core Widgets Network OpenGL REQUIRED)
@@ -229,9 +233,18 @@ target_link_libraries(
     Threads::Threads
 )
 
-# needed for static builds
-if (WIN32)
-    qt_import_plugins(plat INCLUDE Qt${QT_MAJOR}::QWindowsIntegrationPlugin Qt${QT_MAJOR}::QICOPlugin QWindowsVistaStylePlugin)
+if(WIN32)
+    if(STATIC_BUILD)
+        # needed for static builds
+        qt_import_plugins(plat INCLUDE Qt${QT_MAJOR}::QWindowsIntegrationPlugin Qt${QT_MAJOR}::QICOPlugin Qt${QT_MAJOR}::QWindowsVistaStylePlugin)
+    else()
+        install(CODE "
+            get_filename_component(CMAKE_INSTALL_PREFIX_ABSOLUTE \${CMAKE_INSTALL_PREFIX} ABSOLUTE)
+            execute_process(
+                COMMAND $<TARGET_FILE:Qt${QT_MAJOR}::windeployqt>
+                \"\${CMAKE_INSTALL_PREFIX_ABSOLUTE}/$<TARGET_FILE_NAME:86Box>\")
+        ")
+    endif()
 endif()
 
 # loads a macro to install Qt5 plugins on macOS
