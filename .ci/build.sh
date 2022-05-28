@@ -511,7 +511,7 @@ then
 	macports="/opt/local"
 	[ -e "/opt/$arch/bin/port" ] && macports="/opt/$arch"
 	[ "$arch" = "x86_64" -a -e "/opt/intel/bin/port" ] && macports="/opt/intel"
-	export PATH="$macports/bin:$macports/sbin:$PATH"
+	export PATH="$macports/bin:$macports/sbin:$macports/libexec/qt5/bin:$PATH"
 
 	# Install dependencies.
 	echo [-] Installing dependencies through MacPorts
