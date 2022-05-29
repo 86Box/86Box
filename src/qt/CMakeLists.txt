@@ -22,6 +22,7 @@ endif()
 if(VCPKG_TOOLCHAIN AND VCPKG_USE_HOST_TOOLS)
     set(QT_HOST_PATH "${VCPKG_INSTALLED_DIR}/${VCPKG_HOST_TRIPLET}/tools/Qt${QT_MAJOR}")
     set(QT_HOST_PATH_CMAKE_DIR ${VCPKG_INSTALLED_DIR}/${VCPKG_HOST_TRIPLET})
+    set(Qt${QT_MAJOR}LinguistTools_ROOT ${QT_HOST_PATH_CMAKE_DIR})
 endif()
 
 # CMake is a bitch and calls the Harfbuzz config twice on MinGW + Qt6
@@ -30,6 +31,7 @@ set(CMAKE_FIND_PACKAGE_PREFER_CONFIG OFF)
 
 find_package(Threads REQUIRED)
 find_package(Qt${QT_MAJOR} COMPONENTS Core Widgets Network OpenGL REQUIRED)
+find_package(Qt${QT_MAJOR}LinguistTools REQUIRED NO_CMAKE_FIND_ROOT_PATH)
 
 # TODO: Is this the correct way to do this, and is it required on any
 # other platforms or with Qt 5?
@@ -229,7 +231,6 @@ target_link_libraries(
     Qt${QT_MAJOR}::Gui
     Qt${QT_MAJOR}::OpenGL
     Qt${QT_MAJOR}::Network
-
     Threads::Threads
 )
 
@@ -330,11 +331,9 @@ endif()
 set(QM_FILES)
 file(GLOB po_files "${CMAKE_CURRENT_SOURCE_DIR}/languages/*.po")
 foreach(po_file ${po_files})
-    find_program(LCONVERT_EXECUTABLE lconvert REQUIRED)
-
     get_filename_component(PO_FILE_NAME ${po_file} NAME_WE)
     add_custom_command(OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/86box_${PO_FILE_NAME}.qm"
-                       COMMAND ${LCONVERT_EXECUTABLE} -i ${po_file} -o ${CMAKE_CURRENT_BINARY_DIR}/86box_${PO_FILE_NAME}.qm
+                       COMMAND "$<TARGET_FILE:Qt${QT_MAJOR}::lconvert>" -i ${po_file} -o ${CMAKE_CURRENT_BINARY_DIR}/86box_${PO_FILE_NAME}.qm
                        WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
                        DEPENDS "${po_file}")
     list(APPEND QM_FILES "${CMAKE_CURRENT_BINARY_DIR}/86box_${PO_FILE_NAME}.qm")
