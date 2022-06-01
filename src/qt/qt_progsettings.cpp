@@ -203,3 +203,10 @@ void ProgSettings::on_horizontalSlider_valueChanged(int value)
     mouseSensitivity = (double)value / 100.;
 }
 
+
+void ProgSettings::on_pushButton_2_clicked()
+{
+    mouseSensitivity = 1.0;
+    ui->horizontalSlider->setValue(100);
+}
+
