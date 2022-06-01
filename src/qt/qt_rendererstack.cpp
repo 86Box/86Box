@@ -44,6 +44,8 @@ extern "C" {
 #include <86box/mouse.h>
 #include <86box/plat.h>
 #include <86box/video.h>
+
+double mouse_sensitivity = 1.0;
 }
 
 extern "C" void macos_poll_mouse();
@@ -123,6 +125,9 @@ RendererStack::mousePoll()
     if (this->mouse_poll_func)
 #endif
         this->mouse_poll_func();
+
+    mouse_x *= mouse_sensitivity;
+    mouse_y *= mouse_sensitivity;
 }
 
 int ignoreNextMouseEvent = 1;
