@@ -25,6 +25,11 @@
 #include <QWindow>
 #include <QGuiApplication>
 
+extern "C"
+{
+#include <86box/plat.h>
+}
+
 static zwp_relative_pointer_manager_v1* rel_manager = nullptr;
 static zwp_relative_pointer_v1* rel_pointer = nullptr;
 static zwp_pointer_constraints_v1* conf_pointer_interface = nullptr;
@@ -70,9 +75,15 @@ display_handle_global(void *data, struct wl_registry *registry, uint32_t id,
     }
 }
 
+static void
+display_global_remove(void *data, struct wl_registry *wl_registry, uint32_t name)
+{
+    plat_mouse_capture(0);
+}
+
 static const struct wl_registry_listener registry_listener = {
     display_handle_global,
-    nullptr
+    display_global_remove
 };
 
 void wl_init()
