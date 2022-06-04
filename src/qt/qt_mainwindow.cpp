@@ -38,6 +38,7 @@ extern "C" {
 #include <86box/plat.h>
 #include <86box/discord.h>
 #include <86box/video.h>
+#include <86box/machine.h>
 #include <86box/vid_ega.h>
 #include <86box/version.h>
 
@@ -1435,6 +1436,7 @@ bool MainWindow::eventFilter(QObject* receiver, QEvent* event)
 void MainWindow::refreshMediaMenu() {
     mm->refresh(ui->menuMedia);
     status->refresh(ui->statusbar);
+    ui->actionMCA_devices->setVisible(machine_has_bus(machine, MACHINE_BUS_MCA));
 }
 
 void MainWindow::showMessage(const QString& header, const QString& message) {
