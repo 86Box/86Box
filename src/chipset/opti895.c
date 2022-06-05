@@ -43,7 +43,6 @@ typedef struct
 } opti895_t;
 
 
-#define ENABLE_OPTI895_LOG 1
 #ifdef ENABLE_OPTI895_LOG
 int opti895_do_log = ENABLE_OPTI895_LOG;
 
