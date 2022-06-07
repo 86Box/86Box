@@ -806,7 +806,7 @@ plat_init_rom_paths()
 #else
     char default_rom_path[1024] = { '\0 '};
     getDefaultROMPath(default_rom_path);
-    rom_path_add(default_rom_path);
+    rom_add_path(default_rom_path);
 #endif
 }
 

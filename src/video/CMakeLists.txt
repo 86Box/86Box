@@ -16,7 +16,7 @@
 add_library(vid OBJECT agpgart.c video.c vid_table.c vid_cga.c vid_cga_comp.c
     vid_compaq_cga.c vid_mda.c vid_hercules.c vid_herculesplus.c
     vid_incolor.c vid_colorplus.c vid_genius.c vid_pgc.c vid_im1024.c
-    vid_sigma.c vid_wy700.c vid_ega.c vid_ega_render.c vid_svga.c
+    vid_sigma.c vid_wy700.c vid_ega.c vid_ega_render.c vid_svga.c vid_8514a.c
     vid_svga_render.c vid_ddc.c vid_vga.c vid_ati_eeprom.c vid_ati18800.c
     vid_ati28800.c vid_ati_mach64.c vid_ati68860_ramdac.c vid_bt48x_ramdac.c
     vid_av9194.c vid_icd2061.c vid_ics2494.c vid_ics2595.c vid_cl54xx.c

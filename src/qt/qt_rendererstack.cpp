@@ -24,13 +24,17 @@
 #include "qt_hardwarerenderer.hpp"
 #include "qt_openglrenderer.hpp"
 #include "qt_softwarerenderer.hpp"
+#include "qt_vulkanwindowrenderer.hpp"
 
 #include "qt_mainwindow.hpp"
 #include "qt_util.hpp"
 
 #include "evdev_mouse.hpp"
 
+#include <stdexcept>
+
 #include <QScreen>
+#include <QMessageBox>
 
 #ifdef __APPLE__
 #    include <CoreGraphics/CoreGraphics.h>
@@ -40,8 +44,11 @@ extern "C" {
 #include <86box/mouse.h>
 #include <86box/plat.h>
 #include <86box/video.h>
+
+double mouse_sensitivity = 1.0;
 }
 
+extern "C" void macos_poll_mouse();
 extern MainWindow *main_window;
 RendererStack::RendererStack(QWidget *parent)
     : QStackedWidget(parent)
@@ -54,10 +61,8 @@ RendererStack::RendererStack(QWidget *parent)
     if (!mouse_type || (mouse_type[0] == '\0') || !stricmp(mouse_type, "auto")) {
         if (QApplication::platformName().contains("wayland"))
             strcpy(auto_mouse_type, "wayland");
-        else if (QApplication::platformName() == "eglfs")
+        else if (QApplication::platformName() == "eglfs" || QApplication::platformName() == "xcb")
             strcpy(auto_mouse_type, "evdev");
-        else if (QApplication::platformName() == "xcb")
-            strcpy(auto_mouse_type, "xinput2");
         else
             auto_mouse_type[0] = '\0';
         mouse_type = auto_mouse_type;
@@ -65,30 +70,22 @@ RendererStack::RendererStack(QWidget *parent)
 
 #    ifdef WAYLAND
     if (!stricmp(mouse_type, "wayland")) {
-        this->mouse_init = wl_init;
-        this->mouse_poll = wl_mouse_poll;
-        this->mouse_capture = wl_mouse_capture;
-        this->mouse_uncapture = wl_mouse_uncapture;
-    } else
+        wl_init();
+        this->mouse_poll_func = wl_mouse_poll;
+        this->mouse_capture_func = wl_mouse_capture;
+        this->mouse_uncapture_func = wl_mouse_uncapture;
+    }
 #    endif
 #    ifdef EVDEV_INPUT
     if (!stricmp(mouse_type, "evdev")) {
-        this->mouse_init = evdev_init;
-        this->mouse_poll = evdev_mouse_poll;
-    } else
-#    endif
-    if (!stricmp(mouse_type, "xinput2")) {
-        extern void xinput2_init();
-        extern void xinput2_poll();
-        extern void xinput2_exit();
-        this->mouse_init = xinput2_init;
-        this->mouse_poll = xinput2_poll;
-        this->mouse_exit = xinput2_exit;
+        evdev_init();
+        this->mouse_poll_func = evdev_mouse_poll;
     }
+#    endif
 #endif
-
-    if (this->mouse_init)
-        this->mouse_init();
+#ifdef __APPLE__
+    this->mouse_poll_func = macos_poll_mouse;
+#endif
 }
 
 RendererStack::~RendererStack()
@@ -96,7 +93,6 @@ RendererStack::~RendererStack()
     delete ui;
 }
 
-extern "C" void macos_poll_mouse();
 void
 qt_mouse_capture(int on)
 {
@@ -119,18 +115,19 @@ qt_mouse_capture(int on)
 void
 RendererStack::mousePoll()
 {
-#ifdef __APPLE__
-    return macos_poll_mouse();
-#else /* !defined __APPLE__ */
+#ifndef __APPLE__
     mouse_x          = mousedata.deltax;
     mouse_y          = mousedata.deltay;
     mouse_z          = mousedata.deltaz;
     mousedata.deltax = mousedata.deltay = mousedata.deltaz = 0;
-    mouse_buttons                                          = mousedata.mousebuttons;
+    mouse_buttons    = mousedata.mousebuttons;
 
-    if (this->mouse_poll)
-        this->mouse_poll();
-#endif /* !defined __APPLE__ */
+    if (this->mouse_poll_func)
+#endif
+        this->mouse_poll_func();
+
+    mouse_x *= mouse_sensitivity;
+    mouse_y *= mouse_sensitivity;
 }
 
 int ignoreNextMouseEvent = 1;
@@ -243,6 +240,7 @@ void
 RendererStack::createRenderer(Renderer renderer)
 {
     switch (renderer) {
+        default:
         case Renderer::Software:
             {
                 auto sw        = new SoftwareRenderer(this);
@@ -280,13 +278,13 @@ RendererStack::createRenderer(Renderer renderer)
                 rendererWindow = hw;
                 connect(this, &RendererStack::blitToRenderer, hw, &OpenGLRenderer::onBlit, Qt::QueuedConnection);
                 connect(hw, &OpenGLRenderer::initialized, [=]() {
-                    /* Buffers are awailable only after initialization. */
+                    /* Buffers are available only after initialization. */
                     imagebufs = rendererWindow->getBuffers();
                     endblit();
                     emit rendererChanged();
                 });
                 connect(hw, &OpenGLRenderer::errorInitializing, [=]() {
-                    /* Renderer could initialize, fallback to software. */
+                    /* Renderer not could initialize, fallback to software. */
                     imagebufs = {};
                     endblit();
                     QTimer::singleShot(0, this, [this]() { switchRenderer(Renderer::Software); });
@@ -294,8 +292,46 @@ RendererStack::createRenderer(Renderer renderer)
                 current.reset(this->createWindowContainer(hw, this));
                 break;
             }
+#if QT_CONFIG(vulkan)
+        case Renderer::Vulkan:
+        {
+            this->createWinId();
+            VulkanWindowRenderer *hw = nullptr;
+            try {
+                hw        = new VulkanWindowRenderer(this);
+            } catch(std::runtime_error& e) {
+                auto msgBox = new QMessageBox(QMessageBox::Critical, "86Box", e.what() + QString("\nFalling back to software rendering."), QMessageBox::Ok);
+                msgBox->setAttribute(Qt::WA_DeleteOnClose);
+                msgBox->show();
+                imagebufs = {};
+                endblit();
+                QTimer::singleShot(0, this, [this]() { switchRenderer(Renderer::Software); });
+                current.reset(nullptr);
+                break;
+            };
+            rendererWindow = hw;
+            connect(this, &RendererStack::blitToRenderer, hw, &VulkanWindowRenderer::onBlit, Qt::QueuedConnection);
+            connect(hw, &VulkanWindowRenderer::rendererInitialized, [=]() {
+                /* Buffers are available only after initialization. */
+                imagebufs = rendererWindow->getBuffers();
+                endblit();
+                emit rendererChanged();
+            });
+            connect(hw, &VulkanWindowRenderer::errorInitializing, [=]() {
+                /* Renderer could not initialize, fallback to software. */
+                auto msgBox = new QMessageBox(QMessageBox::Critical, "86Box", QString("Failed to initialize Vulkan renderer.\nFalling back to software rendering."), QMessageBox::Ok);
+                msgBox->setAttribute(Qt::WA_DeleteOnClose);
+                msgBox->show();
+                imagebufs = {};
+                endblit();
+                QTimer::singleShot(0, this, [this]() { switchRenderer(Renderer::Software); });
+            });
+            current.reset(this->createWindowContainer(hw, this));
+            break;
+        }
+#endif
     }
-
+    if (current.get() == nullptr) return;
     current->setFocusPolicy(Qt::NoFocus);
     current->setFocusProxy(this);
     addWidget(current.get());
@@ -304,7 +340,7 @@ RendererStack::createRenderer(Renderer renderer)
 
     currentBuf = 0;
 
-    if (renderer != Renderer::OpenGL3) {
+    if (renderer != Renderer::OpenGL3 && renderer != Renderer::Vulkan) {
         imagebufs = rendererWindow->getBuffers();
         endblit();
         emit rendererChanged();
@@ -315,7 +351,7 @@ RendererStack::createRenderer(Renderer renderer)
 void
 RendererStack::blit(int x, int y, int w, int h)
 {
-    if ((w <= 0) || (h <= 0) || (w > 2048) || (h > 2048) || (buffer32 == NULL) || imagebufs.empty() || std::get<std::atomic_flag *>(imagebufs[currentBuf])->test_and_set()) {
+    if ((x < 0) || (y < 0) || (w <= 0) || (h <= 0) || (w > 2048) || (h > 2048) || (buffer32 == NULL) || imagebufs.empty() || std::get<std::atomic_flag *>(imagebufs[currentBuf])->test_and_set()) {
         video_blit_complete();
         return;
     }
@@ -325,7 +361,7 @@ RendererStack::blit(int x, int y, int w, int h)
     sh = this->h       = h;
     uint8_t *imagebits = std::get<uint8_t *>(imagebufs[currentBuf]);
     for (int y1 = y; y1 < (y + h); y1++) {
-        auto scanline = imagebits + (y1 * (2048) * 4) + (x * 4);
+        auto scanline = imagebits + (y1 * rendererWindow->getBytesPerRow()) + (x * 4);
         video_copy(scanline, &(buffer32->line[y1][x]), w * 4);
     }
 

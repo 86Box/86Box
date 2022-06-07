@@ -20,6 +20,8 @@ public:
     void         onResize(int width, int height);
     virtual void finalize() { }
 
+    virtual uint32_t getBytesPerRow() { return 2048 * 4; }
+
     virtual std::vector<std::tuple<uint8_t *, std::atomic_flag *>> getBuffers() = 0;
 
     /* Does renderer implement options dialog */

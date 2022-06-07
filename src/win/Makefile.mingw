@@ -689,6 +689,7 @@ VIDOBJ		:= agpgart.o video.o \
 		    vid_wy700.o \
 		    vid_ega.o vid_ega_render.o \
 		    vid_svga.o vid_svga_render.o \
+			vid_8514a.o \
 		    vid_ddc.o \
 		    vid_vga.o \
 		    vid_ati_eeprom.o \
