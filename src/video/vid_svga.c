@@ -9,7 +9,7 @@
  *		Generic SVGA handling.
  *
  *		This is intended to be used by another SVGA driver,
- *		and not as a card in it's own right.
+ *		and not as a card in its own right.
  *
  *
  *
@@ -40,7 +40,6 @@
 #include <86box/vid_svga.h>
 #include <86box/vid_svga_render.h>
 
-
 void svga_doblit(int wx, int wy, svga_t *svga);
 
 svga_t *svga_8514;
@@ -48,12 +47,12 @@ svga_t *svga_8514;
 extern int	cyc_total;
 extern uint8_t	edatlookup[4][4];
 
-uint8_t		svga_rotate[8][256];
+uint8_t svga_rotate[8][256];
 
 /*Primary SVGA device. As multiple video cards are not yet supported this is the
   only SVGA device.*/
-static svga_t	*svga_pri;
-int vga_on;
+static svga_t *svga_pri;
+int vga_on, ibm8514_on;
 
 svga_t
 *svga_get_pri()
@@ -559,7 +558,8 @@ svga_recalctimings(svga_t *svga)
             svga->recalctimings_ex(svga);
         }
     } else {
-        ibm8514_recalctimings(svga);
+        if (ibm8514_on && ibm8514_enabled)
+            ibm8514_recalctimings(svga);
     }
 
     svga->y_add = (overscan_y >> 1) - (svga->crtc[8] & 0x1f);
@@ -657,7 +657,7 @@ svga_poll(void *p)
     int wx, wy;
     int ret, old_ma;
 
-    if (!vga_on) {
+    if (!vga_on && ibm8514_enabled && ibm8514_on) {
         ibm8514_poll(&svga->dev8514, svga);
         return;
     }
@@ -710,7 +710,7 @@ svga_poll(void *p)
 
 		if (svga->hwcursor_on || svga->dac_hwcursor_on || svga->overlay_on) {
 			svga->changedvram[svga->ma >> 12] = svga->changedvram[(svga->ma >> 12) + 1] =
-							    svga->interlace ? 3 : 2;
+                                svga->interlace ? 3 : 2;
 		}
 
 		if (svga->vertical_linedbl) {
@@ -956,7 +956,7 @@ svga_init(const device_t *info, svga_t *svga, void *p, int memsize,
     svga->decode_mask = 0x7fffff;
     svga->changedvram = calloc(memsize >> 12, 1);
     svga->recalctimings_ex = recalctimings_ex;
-    svga->video_in  = video_in;
+    svga->video_in = video_in;
     svga->video_out = video_out;
     svga->hwcursor_draw = hwcursor_draw;
     svga->overlay_draw = overlay_draw;
@@ -990,11 +990,6 @@ svga_init(const device_t *info, svga_t *svga, void *p, int memsize,
     timer_add(&svga->timer, svga_poll, svga, 1);
 
     svga_pri = svga;
-
-    if (ibm8514_enabled)
-        svga_8514 = svga;
-    else
-        svga_8514 = NULL;
 
     svga->ramdac_type = RAMDAC_6BIT;
 
