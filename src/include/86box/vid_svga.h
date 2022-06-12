@@ -171,8 +171,7 @@ typedef struct svga_t
     void *ramdac, *clock_gen;
 } svga_t;
 
-extern svga_t *svga_8514;
-extern int vga_on;
+extern int vga_on, ibm8514_on;
 
 extern void ibm8514_poll(ibm8514_t *dev, svga_t *svga);
 extern void ibm8514_recalctimings(svga_t *svga);
