@@ -24,7 +24,8 @@ add_library(vid OBJECT agpgart.c video.c vid_table.c vid_cga.c vid_cga_comp.c
     vid_stg_ramdac.c vid_ht216.c vid_oak_oti.c vid_paradise.c vid_rtg310x.c
     vid_f82c425.c vid_ti_cf62011.c vid_tvga.c vid_tgui9440.c vid_tkd8001_ramdac.c
     vid_att20c49x_ramdac.c vid_s3.c vid_s3_virge.c vid_ibm_rgb528_ramdac.c
-    vid_sdac_ramdac.c vid_ogc.c vid_nga.c vid_tvp3026_ramdac.c vid_att2xc498_ramdac.c)
+    vid_sdac_ramdac.c vid_ogc.c vid_nga.c vid_tvp3026_ramdac.c vid_att2xc498_ramdac.c
+    vid_xga.c)
 
 if(MGA)
     target_compile_definitions(vid PRIVATE USE_MGA)
