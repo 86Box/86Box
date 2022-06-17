@@ -560,6 +560,8 @@ svga_recalctimings(svga_t *svga)
     } else {
         if (ibm8514_on && ibm8514_enabled)
             ibm8514_recalctimings(svga);
+        if (xga_enabled)
+            xga_recalctimings(svga);
     }
 
     svga->y_add = (overscan_y >> 1) - (svga->crtc[8] & 0x1f);
@@ -659,6 +661,9 @@ svga_poll(void *p)
 
     if (!vga_on && ibm8514_enabled && ibm8514_on) {
         ibm8514_poll(&svga->dev8514, svga);
+        return;
+    } else if (!vga_on && xga_enabled && svga->xga.on) {
+        xga_poll(&svga->xga, svga);
         return;
     }
 
@@ -1070,6 +1075,23 @@ svga_write_common(uint32_t addr, uint8_t val, uint8_t linear, void *p)
     cycles -= video_timing_write_b;
 
     if (!linear) {
+	if (xga_enabled) {
+        if (((svga->xga.op_mode & 7) == 4) && (svga->xga.aperture_cntl == 1)) {
+            if (val == 0xa5) { /*Memory size test of XGA*/
+                svga->xga.test = val;
+                return;
+            } else if (val == 0x5a) {
+                svga->xga.test = val;
+                return;
+            } else if (val == 0x12 || val == 0x34) {
+                addr += svga->xga.write_bank;
+                svga->xga.vram[addr & svga->xga.vram_mask] = val;
+                svga->xga.op_mode_reset = 1;
+                return;
+            }
+        } else
+            svga->xga.on = 0;
+	}
 	addr = svga_decode_addr(svga, addr, 1);
 
 	if (addr == 0xffffffff)
@@ -1254,6 +1276,21 @@ svga_read_common(uint32_t addr, uint8_t linear, void *p)
     cycles -= video_timing_read_b;
 
     if (!linear) {
+	if (xga_enabled) {
+        if (((svga->xga.op_mode & 7) == 4) && (svga->xga.aperture_cntl == 1)) {
+            if (svga->xga.test == 0xa5) { /*Memory size test of XGA*/
+                svga->xga.on = 1;
+                return svga->xga.test;
+            } else if (svga->xga.test == 0x5a) {
+                svga->xga.on = 1;
+                return svga->xga.test;
+            } else if (addr == 0xa0000 || addr == 0xa0010) {
+                addr += svga->xga.read_bank;
+                return svga->xga.vram[addr & svga->xga.vram_mask];
+            }
+        } else
+            svga->xga.on = 0;
+	}
 	addr = svga_decode_addr(svga, addr, 0);
 
 	if (addr == 0xffffffff)
