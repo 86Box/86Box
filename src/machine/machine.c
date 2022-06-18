@@ -118,6 +118,8 @@ machine_init_ex(int m)
         if (ibm8514_enabled) {
             ibm8514_device_add();
         }
+        if (xga_enabled)
+            xga_device_add();
     }
 
     /* Reset the graphics card (or do nothing if it was already done
