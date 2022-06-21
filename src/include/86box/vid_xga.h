@@ -91,9 +91,10 @@ typedef struct xga_t
     int op_mode_reset;
     int sprite_pos, sprite_pos_prefetch, cursor_data_on;
     int pal_test;
+    int dma_channel;
     int from_to_vram;
 
-    uint32_t linear_base, linear_size;
+    uint32_t linear_base, linear_size, banked_mask;
     uint32_t base_addr_1mb;
     uint32_t hwc_color0, hwc_color1;
     uint32_t disp_start_addr;
