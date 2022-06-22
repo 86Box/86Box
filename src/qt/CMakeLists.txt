@@ -179,7 +179,8 @@ if(WIN32)
     enable_language(RC)
     target_sources(86Box PUBLIC ../win/86Box-qt.rc)
     target_sources(plat PRIVATE win_joystick_rawinput.c)
-    target_link_libraries(86Box hid)
+    target_sources(ui PRIVATE qt_d3d9renderer.hpp qt_d3d9renderer.cpp)
+    target_link_libraries(86Box hid d3d9)
 
     # CMake 3.22 messed this up for clang/clang++
     # See https://gitlab.kitware.com/cmake/cmake/-/issues/22611
