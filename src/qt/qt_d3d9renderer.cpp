@@ -112,7 +112,7 @@ void D3D9Renderer::paintEvent(QPaintEvent *event)
     result = d3d9dev->EndScene();
     surfaceInUse = false;
     if (SUCCEEDED(result)) {
-        if (FAILED(d3d9dev->PresentEx(nullptr, nullptr, 0, nullptr, D3DPRESENT_FORCEIMMEDIATE))) {
+        if (FAILED(d3d9dev->PresentEx(nullptr, nullptr, 0, nullptr, 0))) {
             finalize();
             showEvent(nullptr);
         }
