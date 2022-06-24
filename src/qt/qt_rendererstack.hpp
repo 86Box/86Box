@@ -79,6 +79,7 @@ signals:
 public slots:
     void blitCommon(int x, int y, int w, int h);
     void blitRenderer(int x, int y, int w, int h);
+    void blitDummy(int x, int y, int w, int h);
     void mousePoll();
 
 private:
@@ -101,7 +102,7 @@ private:
 
     RendererCommon          *rendererWindow { nullptr };
     std::unique_ptr<QWidget> current;
-    std::atomic<bool> directBlitting{false};
+    std::atomic<bool> directBlitting{false}, blitDummied{false};
 };
 
 #endif // QT_RENDERERCONTAINER_HPP

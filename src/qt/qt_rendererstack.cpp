@@ -226,20 +226,27 @@ RendererStack::switchRenderer(Renderer renderer)
 {
     startblit();
     if (current) {
+        rendererWindow->finalize();
         if (rendererWindow->hasBlitFunc()) {
             while (directBlitting) {}
+            connect(this, &RendererStack::blit, this, &RendererStack::blitDummy, Qt::DirectConnection);
             disconnect(this, &RendererStack::blit, this, &RendererStack::blitRenderer);
-            video_blit_complete();
+        } else {
+            connect(this, &RendererStack::blit, this, &RendererStack::blitDummy, Qt::DirectConnection);
+            disconnect(this, &RendererStack::blit, this, &RendererStack::blitCommon);
         }
-        rendererWindow->finalize();
 
         removeWidget(current.get());
         disconnect(this, &RendererStack::blitToRenderer, nullptr, nullptr);
 
         /* Create new renderer only after previous is destroyed! */
-        connect(current.get(), &QObject::destroyed, [this, renderer](QObject *) { video_blit_complete(); createRenderer(renderer); video_blit_complete(); });
+        connect(current.get(), &QObject::destroyed, [this, renderer](QObject *) {
+            createRenderer(renderer);
+            disconnect(this, &RendererStack::blit, this, &RendererStack::blitDummy);
+            blitDummied = false;
+        });
 
-        current.release()->deleteLater();
+        rendererWindow->hasBlitFunc() ? current.reset() : current.release()->deleteLater();
     } else {
         createRenderer(renderer);
     }
@@ -318,7 +325,6 @@ RendererStack::createRenderer(Renderer renderer)
             });
             connect(hw, &D3D9Renderer::initialized, this, [this]()
             {
-                qDebug() << "initialized";
                 endblit();
                 emit rendererChanged();
             });
@@ -389,8 +395,16 @@ RendererStack::createRenderer(Renderer renderer)
 }
 
 void
+RendererStack::blitDummy(int x, int y, int w, int h)
+{
+    video_blit_complete();
+    blitDummied = true;
+}
+
+void
 RendererStack::blitRenderer(int x, int y, int w, int h)
 {
+    if (blitDummied) { blitDummied = false; video_blit_complete(); return; }
     directBlitting = true;
     rendererWindow->blit(x, y, w, h);
     directBlitting = false;
@@ -400,7 +414,7 @@ RendererStack::blitRenderer(int x, int y, int w, int h)
 void
 RendererStack::blitCommon(int x, int y, int w, int h)
 {
-    if ((x < 0) || (y < 0) || (w <= 0) || (h <= 0) || (w > 2048) || (h > 2048) || (buffer32 == NULL) || imagebufs.empty() || std::get<std::atomic_flag *>(imagebufs[currentBuf])->test_and_set()) {
+    if ((x < 0) || (y < 0) || (w <= 0) || (h <= 0) || (w > 2048) || (h > 2048) || (buffer32 == NULL) || imagebufs.empty() || std::get<std::atomic_flag *>(imagebufs[currentBuf])->test_and_set() || blitDummied) {
         video_blit_complete();
         return;
     }
