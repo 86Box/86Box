@@ -501,6 +501,7 @@ void MediaMenu::zipEject(int i) {
     zip_t *dev = (zip_t *) zip_drives[i].priv;
 
     zip_disk_close(dev);
+    zip_drives[i].image_path[0] = 0;
     if (zip_drives[i].bus_type) {
         /* Signal disk change to the emulated machine. */
         zip_insert(dev);
@@ -600,6 +601,7 @@ void MediaMenu::moEject(int i) {
     mo_t *dev = (mo_t *) mo_drives[i].priv;
 
     mo_disk_close(dev);
+    mo_drives[i].image_path[0] = 0;
     if (mo_drives[i].bus_type) {
         /* Signal disk change to the emulated machine. */
         mo_insert(dev);

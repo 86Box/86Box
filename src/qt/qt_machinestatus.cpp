@@ -583,24 +583,25 @@ void MachineStatus::updateTip(int tag)
 {
     int category = tag & 0xfffffff0;
     int item = tag & 0xf;
+    if (!MediaMenu::ptr) return;
     switch (category) {
     case SB_CASSETTE:
-        d->cassette.label->setToolTip(MediaMenu::ptr->cassetteMenu->title());
+        if (d->cassette.label && MediaMenu::ptr->cassetteMenu) d->cassette.label->setToolTip(MediaMenu::ptr->cassetteMenu->title());
         break;
     case SB_CARTRIDGE:
-        d->cartridge[item].label->setToolTip(MediaMenu::ptr->cartridgeMenus[item]->title());
+        if (d->cartridge[item].label && MediaMenu::ptr->cartridgeMenus[item]) d->cartridge[item].label->setToolTip(MediaMenu::ptr->cartridgeMenus[item]->title());
         break;
     case SB_FLOPPY:
-        d->fdd[item].label->setToolTip(MediaMenu::ptr->floppyMenus[item]->title());
+        if (d->fdd[item].label && MediaMenu::ptr->floppyMenus[item]) d->fdd[item].label->setToolTip(MediaMenu::ptr->floppyMenus[item]->title());
         break;
     case SB_CDROM:
-        d->cdrom[item].label->setToolTip(MediaMenu::ptr->cdromMenus[item]->title());
+        if (d->cdrom[item].label && MediaMenu::ptr->cdromMenus[item]) d->cdrom[item].label->setToolTip(MediaMenu::ptr->cdromMenus[item]->title());
         break;
     case SB_ZIP:
-        d->zip[item].label->setToolTip(MediaMenu::ptr->zipMenus[item]->title());
+        if (d->zip[item].label && MediaMenu::ptr->zipMenus[item]) d->zip[item].label->setToolTip(MediaMenu::ptr->zipMenus[item]->title());
         break;
     case SB_MO:
-        d->mo[item].label->setToolTip(MediaMenu::ptr->moMenus[item]->title());
+        if (d->mo[item].label && MediaMenu::ptr->moMenus[item]) d->mo[item].label->setToolTip(MediaMenu::ptr->moMenus[item]->title());
         break;
     case SB_HDD:
         break;

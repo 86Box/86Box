@@ -142,6 +142,7 @@ void D3D9Renderer::blit(int x, int y, int w, int h)
         video_blit_complete();
         return;
     }
+    surfaceInUse = true;
     source.setRect(x, y, w, h);
     RECT srcRect;
     D3DLOCKED_RECT lockRect;
@@ -150,7 +151,6 @@ void D3D9Renderer::blit(int x, int y, int w, int h)
     srcRect.left = source.left();
     srcRect.right = source.right();
 
-    surfaceInUse = true;
     if (screenshots) {
         video_screenshot((uint32_t *) &(buffer32->line[y][x]), 0, 0, 2048);
     }
