@@ -61,8 +61,8 @@ void D3D9Renderer::showEvent(QShowEvent *event)
 
     params.Windowed                   = true;
     params.SwapEffect                 = D3DSWAPEFFECT_FLIPEX;
-    params.BackBufferWidth            = width();
-    params.BackBufferHeight           = height();
+    params.BackBufferWidth            = width() * devicePixelRatioF();
+    params.BackBufferHeight           = height() * devicePixelRatioF();
     params.BackBufferCount            = 1;
     params.FullScreen_RefreshRateInHz = D3DPRESENT_RATE_DEFAULT;
     params.PresentationInterval       = D3DPRESENT_INTERVAL_IMMEDIATE;
@@ -128,10 +128,10 @@ bool D3D9Renderer::event(QEvent *event)
 
 void D3D9Renderer::resizeEvent(QResizeEvent *event)
 {
-    onResize(width(), height());
+    onResize(event->size().width() * devicePixelRatioF(), event->size().height() * devicePixelRatioF());
 
-    params.BackBufferWidth = event->size().width();
-    params.BackBufferHeight = event->size().height();
+    params.BackBufferWidth = event->size().width() * devicePixelRatioF();
+    params.BackBufferHeight = event->size().height() * devicePixelRatioF();
     if (d3d9dev) d3d9dev->Reset(&params);
     QWidget::resizeEvent(event);
 }
