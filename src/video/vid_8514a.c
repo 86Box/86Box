@@ -1245,11 +1245,6 @@ ibm8514_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat
 	/*Bit 4 of the Command register is the draw yes bit, which enables writing to memory/reading from memory when enabled.
 	  When this bit is disabled, no writing to memory/reading from memory is allowed. (This bit is almost meaningless on
 	  the NOP command)*/
-    if (dev->accel.cmd == 0x41f0) {
-        pclog("CMD = %d, full = %04x, pixcntl = %d, curx = %d, cury = %d, cl = %d, cr = %d, ct = %d, cb = %d, len = %d, sx = %d, sy = %d, BX = %04X, CX = %02X\n", cmd, dev->accel.cmd, pixcntl, dev->accel.cur_x, dev->accel.cur_y, dev->accel.multifunc[2], dev->accel.multifunc[4], dev->accel.multifunc[1], dev->accel.multifunc[3], dev->accel.maj_axis_pcnt, dev->accel.sx, dev->accel.sy, BX, CH);
-        pclog("\n");
-    }
-
     switch (cmd) {
         case 0: /*NOP (Short Stroke Vectors)*/
         if (dev->accel.ssv_state == 0)
