@@ -187,11 +187,10 @@ elseif(BUILD_TYPE_LOWER STREQUAL "alpha")
     add_compile_definitions(ALPHA_BUILD)
 endif()
 
-# Variables introduced by richardg867 for versioning stuff
+# Versioning variables
 if(NOT CMAKE_PROJECT_VERSION_PATCH)
     set(CMAKE_PROJECT_VERSION_PATCH 0)
 endif()
-set(EMU_VERSION_EX "3.50")
 if(NOT EMU_BUILD_NUM)
     set(EMU_BUILD_NUM 0)
 endif()
