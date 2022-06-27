@@ -749,6 +749,8 @@ ncr_read(uint16_t port, void *priv)
 		break;
 
 	case 2:		/* Mode register */
+        if (((ncr->mode & 0x30) == 0x30) && (ncr_dev->type <= 1))
+            ncr->mode = 0;
 		ncr_log("Read: Mode register\n");
 		ret = ncr->mode;
 		break;
@@ -764,6 +766,10 @@ ncr_read(uint16_t port, void *priv)
 		ncr_bus_read(ncr_dev);
 		ncr_log("NCR cur bus stat=%02x\n", ncr->cur_bus & 0xff);
 		ret |= (ncr->cur_bus & 0xff);
+		if ((ncr->icr & ICR_SEL) && (ncr_dev->type != 3))
+            ret |= 0x02;
+        if ((ncr->icr & ICR_BSY) && (ncr_dev->type != 3))
+            ret |= 0x40;
 		break;
 
 	case 5:		/* Bus and Status register */
@@ -782,9 +788,9 @@ ncr_read(uint16_t port, void *priv)
 		ncr_bus_read(ncr_dev);
 		bus = ncr->cur_bus;
 
-		if (bus & BUS_ACK)
+		if ((bus & BUS_ACK) || ((ncr->icr & ICR_ACK) && (ncr_dev->type != 3)))
 			ret |= STATUS_ACK;
-		if (bus & BUS_ATN)
+		if ((bus & BUS_ATN) || ((ncr->icr & ICR_ATN) && (ncr_dev->type != 3)))
 			ret |= 0x02;
 
 		if ((bus & BUS_REQ) && (ncr->mode & MODE_DMA)) {
@@ -919,8 +925,6 @@ memio_write(uint32_t addr, uint8_t val, void *priv)
 	scsi_device_t *dev = &scsi_devices[ncr_dev->bus][ncr->target_id];
 
     addr &= 0x3fff;
-
-    ncr_log("memio_write(%08x,%02x)  %i %02x\n", addr, val,  ncr_dev->buffer_host_pos, ncr_dev->status_ctrl);
 
     if (addr >= 0x3a00)
 	ncr_dev->ext_ram[addr - 0x3a00] = val;
