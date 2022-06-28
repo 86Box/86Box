@@ -276,6 +276,7 @@ END
 
 #define STR_VIDEO		"Videokártya:"
 #define STR_VOODOO		"Voodoo-gyorsítókártya"
+#define STR_IBM8514		"IBM 8514/a Graphics"
 
 #define STR_MOUSE		"Egér:"
 #define STR_JOYSTICK		"Játékvezérlő:"

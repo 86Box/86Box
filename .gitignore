@@ -41,7 +41,9 @@ Makefile
 # Visual Studio Code
 /.vs
 /.vscode
-src/win/RCa04980
+
+# Windows resource compiler
+RC*
 
 # Qt Creator
 CMakeLists.txt.user

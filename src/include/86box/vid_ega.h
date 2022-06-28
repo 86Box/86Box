@@ -65,6 +65,9 @@ typedef struct ega_t {
 
     double clock;
 
+	int remap_required;
+	uint32_t (*remap_func)(struct ega_t *ega, uint32_t in_addr);
+
     void (*render)(struct ega_t *svga);
 
     void *eeprom;
@@ -94,6 +97,7 @@ extern int update_overscan;
 #if defined(EMU_MEM_H) && defined(EMU_ROM_H)
 extern void	ega_init(ega_t *ega, int monitor_type, int is_mono);
 extern void	ega_recalctimings(struct ega_t *ega);
+extern void ega_recalc_remap_func(struct ega_t *ega);
 #endif
 
 extern void	ega_out(uint16_t addr, uint8_t val, void *p);

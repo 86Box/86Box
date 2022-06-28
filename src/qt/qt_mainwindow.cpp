@@ -26,6 +26,7 @@
 #include "qt_specifydimensions.h"
 #include "qt_soundgain.hpp"
 #include "qt_progsettings.hpp"
+#include "qt_mcadevicelist.hpp"
 
 #include "qt_rendererstack.hpp"
 #include "qt_renderercommon.hpp"
@@ -37,6 +38,7 @@ extern "C" {
 #include <86box/plat.h>
 #include <86box/discord.h>
 #include <86box/video.h>
+#include <86box/machine.h>
 #include <86box/vid_ega.h>
 #include <86box/version.h>
 
@@ -279,6 +281,10 @@ MainWindow::MainWindow(QWidget *parent) :
         ui->actionVulkan->setVisible(false);
         ui->actionOpenGL_3_0_Core->setVisible(false);
     }
+#if !defined Q_OS_WINDOWS
+    ui->actionDirect3D_9->setVisible(false);
+    if (vid_api == 5) vid_api = 0;
+#endif
 
 #if !QT_CONFIG(vulkan)
     if (vid_api == 4) vid_api = 0;
@@ -293,6 +299,7 @@ MainWindow::MainWindow(QWidget *parent) :
     actGroup->addAction(ui->actionHardware_Renderer_OpenGL_ES);
     actGroup->addAction(ui->actionOpenGL_3_0_Core);
     actGroup->addAction(ui->actionVulkan);
+    actGroup->addAction(ui->actionDirect3D_9);
     actGroup->setExclusive(true);
 
     connect(actGroup, &QActionGroup::triggered, [this](QAction* action) {
@@ -313,6 +320,9 @@ MainWindow::MainWindow(QWidget *parent) :
             break;
         case 4:
             ui->stackedWidget->switchRenderer(RendererStack::Renderer::Vulkan);
+            break;
+        case 5:
+            ui->stackedWidget->switchRenderer(RendererStack::Renderer::Direct3D9);
             break;
         }
     });
@@ -1339,6 +1349,7 @@ void MainWindow::processMacKeyboardInput(bool down, const QKeyEvent* event) {
 void MainWindow::on_actionFullscreen_triggered() {
     if (video_fullscreen > 0) {
         showNormal();
+        if (vid_api == 5) ui->stackedWidget->switchRenderer(RendererStack::Renderer::Direct3D9);
         ui->menubar->show();
         if (!hide_status_bar) ui->statusbar->show();
         if (!hide_tool_bar) ui->toolBar->show();
@@ -1434,6 +1445,7 @@ bool MainWindow::eventFilter(QObject* receiver, QEvent* event)
 void MainWindow::refreshMediaMenu() {
     mm->refresh(ui->menuMedia);
     status->refresh(ui->statusbar);
+    ui->actionMCA_devices->setVisible(machine_has_bus(machine, MACHINE_BUS_MCA));
 }
 
 void MainWindow::showMessage(const QString& header, const QString& message) {
@@ -1875,3 +1887,12 @@ void MainWindow::on_actionRenderer_options_triggered()
     if (dlg)
         dlg->exec();
 }
+
+void MainWindow::on_actionMCA_devices_triggered()
+{
+    auto dlg = new MCADeviceList(this);
+
+    if (dlg)
+        dlg->exec();
+}
+

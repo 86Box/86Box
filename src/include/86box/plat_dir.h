@@ -60,11 +60,7 @@ typedef struct {
 
 
 /* Function prototypes. */
-#ifdef UNICODE
-extern DIR		*opendirw(const wchar_t *);
-#else
 extern DIR		*opendir(const char *);
-#endif
 extern struct dirent	*readdir(DIR *);
 extern long		telldir(DIR *);
 extern void		seekdir(DIR *, long);

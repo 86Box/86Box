@@ -200,6 +200,9 @@ extern void	agpgart_set_gart(void *handle, uint32_t base);
 
 
 #ifdef EMU_DEVICE_H
+/* IBM XGA */
+extern void xga_device_add(void);
+
 /* IBM 8514/A and generic clones*/
 extern void ibm8514_device_add(void);
 

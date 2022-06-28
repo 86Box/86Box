@@ -271,6 +271,7 @@ END
 
 #define STR_VIDEO		"Wideo:"
 #define STR_VOODOO		"Grafika Voodoo"
+#define STR_IBM8514		"IBM 8514/a Graphics"
 
 #define STR_MOUSE		"Mysz:"
 #define STR_JOYSTICK		"Joystick:"

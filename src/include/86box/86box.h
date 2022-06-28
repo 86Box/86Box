@@ -112,7 +112,8 @@ extern int	sound_is_float,			/* (C) sound uses FP values */
 		GUS, GUSMAX,			/* (C) sound option */
 		SSI2001,			/* (C) sound option */
 		voodoo_enabled,			/* (C) video option */
-		ibm8514_enabled;        /* (C) video option */
+		ibm8514_enabled,        /* (C) video option */
+		xga_enabled;            /* (C) video option */
 extern uint32_t	mem_size;			/* (C) memory size (Installed on system board) */
 extern uint32_t	isa_mem_size;		/* (C) memory size (ISA Memory Cards) */
 extern int	cpu,				/* (C) cpu type */
@@ -131,6 +132,7 @@ extern int	enable_discord;			/* (C) enable Discord integration */
 extern int	is_pentium;			/* TODO: Move back to cpu/cpu.h when it's figured out,
 							 how to remove that hack from the ET4000/W32p. */
 extern int	fixed_size_x, fixed_size_y;
+extern double mouse_sensitivity; /* (C) Mouse sensitivity scale */
 
 
 extern char	exe_path[2048];			/* path (dir) of executable */

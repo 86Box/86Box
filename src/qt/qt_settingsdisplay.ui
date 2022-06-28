@@ -70,7 +70,14 @@
      </property>
     </widget>
    </item>
-   <item row="3" column="0">
+   <item row="3" column="0" colspan="2">
+    <widget class="QCheckBox" name="checkBoxXga">
+     <property name="text">
+      <string>XGA</string>
+     </property>
+    </widget>
+   </item>
+   <item row="4" column="0">
     <spacer name="verticalSpacer">
      <property name="orientation">
       <enum>Qt::Vertical</enum>

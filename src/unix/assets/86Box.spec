@@ -12,10 +12,10 @@
 # After a successful build, you can install the RPMs as follows:
 #  sudo dnf install RPMS/$(uname -m)/86Box-3* RPMS/noarch/86Box-roms*
 
-%global romver 20220319
+20220523
 
 Name:		86Box
-Version:	3.5
+Version:	3.6
 Release:	1%{?dist}
 Summary:	Classic PC emulator
 License:	GPLv2+
@@ -120,5 +120,5 @@ popd
 %{_bindir}/roms
 
 %changelog
-* Fri Apr 22 2022 Robert de Rooy <robert.de.rooy[AT]gmail.com> 3.4.1-1
+* Mon Jun 27 2022 Robert de Rooy <robert.de.rooy[AT]gmail.com> 3.6-1
 - Bump release

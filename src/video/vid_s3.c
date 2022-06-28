@@ -2984,6 +2984,9 @@ static void s3_recalctimings(svga_t *svga)
 							(s3->chip != S3_TRIO64) && (s3->chip != S3_VISION964) && (s3->chip != S3_VISION968)) {
 					if (s3->width == 1280 || s3->width == 1600)
 						svga->hdisp <<= 1;
+				} else if ((s3->card_type == S3_ELSAWIN2KPROX_964) || (s3->card_type == S3_ELSAWIN2KPROX)) {
+					if (s3->width == 1280 || s3->width == 1600)
+						svga->hdisp <<= 1;
 				} else if (s3->card_type == S3_SPEA_MERCURY_P64V) {
 					if (s3->width == 1280 || s3->width == 1600)
 						svga->hdisp <<= 1;

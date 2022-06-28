@@ -9,7 +9,7 @@
  *		Generic SVGA handling.
  *
  *		This is intended to be used by another SVGA driver,
- *		and not as a card in it's own right.
+ *		and not as a card in its own right.
  *
  *
  *
@@ -40,7 +40,6 @@
 #include <86box/vid_svga.h>
 #include <86box/vid_svga_render.h>
 
-
 void svga_doblit(int wx, int wy, svga_t *svga);
 
 svga_t *svga_8514;
@@ -48,12 +47,12 @@ svga_t *svga_8514;
 extern int	cyc_total;
 extern uint8_t	edatlookup[4][4];
 
-uint8_t		svga_rotate[8][256];
+uint8_t svga_rotate[8][256];
 
 /*Primary SVGA device. As multiple video cards are not yet supported this is the
   only SVGA device.*/
-static svga_t	*svga_pri;
-int vga_on;
+static svga_t *svga_pri;
+int vga_on, ibm8514_on;
 
 svga_t
 *svga_get_pri()
@@ -559,7 +558,10 @@ svga_recalctimings(svga_t *svga)
             svga->recalctimings_ex(svga);
         }
     } else {
-        ibm8514_recalctimings(svga);
+        if (ibm8514_on && ibm8514_enabled)
+            ibm8514_recalctimings(svga);
+        if (xga_enabled)
+            xga_recalctimings(svga);
     }
 
     svga->y_add = (overscan_y >> 1) - (svga->crtc[8] & 0x1f);
@@ -657,8 +659,11 @@ svga_poll(void *p)
     int wx, wy;
     int ret, old_ma;
 
-    if (!vga_on) {
+    if (!vga_on && ibm8514_enabled && ibm8514_on) {
         ibm8514_poll(&svga->dev8514, svga);
+        return;
+    } else if (!vga_on && xga_enabled && svga->xga.on) {
+        xga_poll(&svga->xga, svga);
         return;
     }
 
@@ -710,7 +715,7 @@ svga_poll(void *p)
 
 		if (svga->hwcursor_on || svga->dac_hwcursor_on || svga->overlay_on) {
 			svga->changedvram[svga->ma >> 12] = svga->changedvram[(svga->ma >> 12) + 1] =
-							    svga->interlace ? 3 : 2;
+                                svga->interlace ? 3 : 2;
 		}
 
 		if (svga->vertical_linedbl) {
@@ -956,7 +961,7 @@ svga_init(const device_t *info, svga_t *svga, void *p, int memsize,
     svga->decode_mask = 0x7fffff;
     svga->changedvram = calloc(memsize >> 12, 1);
     svga->recalctimings_ex = recalctimings_ex;
-    svga->video_in  = video_in;
+    svga->video_in = video_in;
     svga->video_out = video_out;
     svga->hwcursor_draw = hwcursor_draw;
     svga->overlay_draw = overlay_draw;
@@ -990,11 +995,6 @@ svga_init(const device_t *info, svga_t *svga, void *p, int memsize,
     timer_add(&svga->timer, svga_poll, svga, 1);
 
     svga_pri = svga;
-
-    if (ibm8514_enabled)
-        svga_8514 = svga;
-    else
-        svga_8514 = NULL;
 
     svga->ramdac_type = RAMDAC_6BIT;
 
@@ -1075,6 +1075,23 @@ svga_write_common(uint32_t addr, uint8_t val, uint8_t linear, void *p)
     cycles -= video_timing_write_b;
 
     if (!linear) {
+	if (xga_enabled) {
+        if (((svga->xga.op_mode & 7) == 4) && (svga->xga.aperture_cntl == 1)) {
+            if (val == 0xa5) { /*Memory size test of XGA*/
+                svga->xga.test = val;
+                return;
+            } else if (val == 0x5a) {
+                svga->xga.test = val;
+                return;
+            } else if (val == 0x12 || val == 0x34) {
+                addr += svga->xga.write_bank;
+                svga->xga.vram[addr & svga->xga.vram_mask] = val;
+                svga->xga.op_mode_reset = 1;
+                return;
+            }
+        } else
+            svga->xga.on = 0;
+	}
 	addr = svga_decode_addr(svga, addr, 1);
 
 	if (addr == 0xffffffff)
@@ -1259,6 +1276,21 @@ svga_read_common(uint32_t addr, uint8_t linear, void *p)
     cycles -= video_timing_read_b;
 
     if (!linear) {
+	if (xga_enabled) {
+        if (((svga->xga.op_mode & 7) == 4) && (svga->xga.aperture_cntl == 1)) {
+            if (svga->xga.test == 0xa5) { /*Memory size test of XGA*/
+                svga->xga.on = 1;
+                return svga->xga.test;
+            } else if (svga->xga.test == 0x5a) {
+                svga->xga.on = 1;
+                return svga->xga.test;
+            } else if (addr == 0xa0000 || addr == 0xa0010) {
+                addr += svga->xga.read_bank;
+                return svga->xga.vram[addr & svga->xga.vram_mask];
+            }
+        } else
+            svga->xga.on = 0;
+	}
 	addr = svga_decode_addr(svga, addr, 0);
 
 	if (addr == 0xffffffff)

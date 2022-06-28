@@ -22,12 +22,15 @@ public:
 
     virtual uint32_t getBytesPerRow() { return 2048 * 4; }
 
-    virtual std::vector<std::tuple<uint8_t *, std::atomic_flag *>> getBuffers() = 0;
+    virtual std::vector<std::tuple<uint8_t *, std::atomic_flag *>> getBuffers() { std::vector<std::tuple<uint8_t*, std::atomic_flag*>> buffers; return buffers; }
 
     /* Does renderer implement options dialog */
     virtual bool hasOptions() const { return false; }
     /* Returns options dialog for renderer */
     virtual QDialog *getOptions(QWidget *parent) { return nullptr; }
+
+    virtual bool hasBlitFunc() { return false; }
+    virtual void blit(int x, int y, int w, int h) {}
 
 protected:
     bool eventDelegate(QEvent *event, bool &result);

@@ -19,9 +19,20 @@ if(QT_STATIC AND MINGW)
     set(CMAKE_PREFIX_PATH "$ENV{MSYSTEM_PREFIX}/qt${QT_MAJOR}-static")
 endif()
 
+if(VCPKG_TOOLCHAIN AND VCPKG_USE_HOST_TOOLS)
+    set(QT_HOST_PATH "${VCPKG_INSTALLED_DIR}/${VCPKG_HOST_TRIPLET}/tools/Qt${QT_MAJOR}")
+    set(QT_HOST_PATH_CMAKE_DIR ${VCPKG_INSTALLED_DIR}/${VCPKG_HOST_TRIPLET})
+    set(Qt${QT_MAJOR}LinguistTools_ROOT ${QT_HOST_PATH_CMAKE_DIR})
+endif()
+
+# CMake is a bitch and calls the Harfbuzz config twice on MinGW + Qt6
+# if config mode is preferred :)
+set(CMAKE_FIND_PACKAGE_PREFER_CONFIG OFF)
+
 find_package(Threads REQUIRED)
 find_package(Qt${QT_MAJOR} COMPONENTS Core Widgets Network OpenGL REQUIRED)
-find_package(Qt${QT_MAJOR}LinguistTools REQUIRED)
+find_package(Qt${QT_MAJOR}LinguistTools REQUIRED NO_CMAKE_FIND_ROOT_PATH)
+
 # TODO: Is this the correct way to do this, and is it required on any
 # other platforms or with Qt 5?
 if(APPLE AND USE_QT6)
@@ -151,6 +162,10 @@ add_library(ui STATIC
     qt_vulkanrenderer.hpp
     qt_vulkanrenderer.cpp
 
+    qt_mcadevicelist.hpp
+    qt_mcadevicelist.cpp
+    qt_mcadevicelist.ui
+
     ../qt_resources.qrc
 )
 
@@ -164,7 +179,8 @@ if(WIN32)
     enable_language(RC)
     target_sources(86Box PUBLIC ../win/86Box-qt.rc)
     target_sources(plat PRIVATE win_joystick_rawinput.c)
-    target_link_libraries(86Box hid)
+    target_sources(ui PRIVATE qt_d3d9renderer.hpp qt_d3d9renderer.cpp)
+    target_link_libraries(86Box hid d3d9)
 
     # CMake 3.22 messed this up for clang/clang++
     # See https://gitlab.kitware.com/cmake/cmake/-/issues/22611
@@ -172,7 +188,7 @@ if(WIN32)
         # MSVC linker adds its own manifest to the executable, which fails if
         # we include ours in 86Box.rc. We therefore need to pass the manifest
         # directly as as a source file, so the linker can use that instead.
-        set_property(SOURCE ../win/86Box-qt.rc PROPERTY COMPILE_DEFINITIONS NO_INCLUDE_MANIFEST)
+        set_property(SOURCE ../win/86Box-qt.rc DIRECTORY .. PROPERTY COMPILE_DEFINITIONS NO_INCLUDE_MANIFEST)
         target_sources(86Box PRIVATE ../win/86Box.manifest)
     endif()
 
@@ -219,9 +235,18 @@ target_link_libraries(
     Threads::Threads
 )
 
-# needed for static builds
-if (WIN32)
-    qt_import_plugins(plat INCLUDE Qt${QT_MAJOR}::QWindowsIntegrationPlugin Qt${QT_MAJOR}::QICOPlugin QWindowsVistaStylePlugin)
+if(WIN32)
+    if(STATIC_BUILD)
+        # needed for static builds
+        qt_import_plugins(plat INCLUDE Qt${QT_MAJOR}::QWindowsIntegrationPlugin Qt${QT_MAJOR}::QICOPlugin Qt${QT_MAJOR}::QWindowsVistaStylePlugin)
+    else()
+        install(CODE "
+            get_filename_component(CMAKE_INSTALL_PREFIX_ABSOLUTE \${CMAKE_INSTALL_PREFIX} ABSOLUTE)
+            execute_process(
+                COMMAND $<TARGET_FILE:Qt${QT_MAJOR}::windeployqt>
+                \"\${CMAKE_INSTALL_PREFIX_ABSOLUTE}/$<TARGET_FILE_NAME:86Box>\")
+        ")
+    endif()
 endif()
 
 # loads a macro to install Qt5 plugins on macOS
@@ -307,13 +332,9 @@ endif()
 set(QM_FILES)
 file(GLOB po_files "${CMAKE_CURRENT_SOURCE_DIR}/languages/*.po")
 foreach(po_file ${po_files})
-    get_target_property(LCONVERT_EXECUTABLE Qt${QT_MAJOR}::lconvert IMPORTED_LOCATION)
-    get_filename_component(_lconvert_bin_dir "${LCONVERT_EXECUTABLE}" DIRECTORY)
-    find_program(LCONVERT_EXECUTABLE lconvert HINTS "${_lconvert_bin_dir}")
-
     get_filename_component(PO_FILE_NAME ${po_file} NAME_WE)
     add_custom_command(OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/86box_${PO_FILE_NAME}.qm"
-                       COMMAND ${LCONVERT_EXECUTABLE} -i ${po_file} -o ${CMAKE_CURRENT_BINARY_DIR}/86box_${PO_FILE_NAME}.qm
+                       COMMAND "$<TARGET_FILE:Qt${QT_MAJOR}::lconvert>" -i ${po_file} -o ${CMAKE_CURRENT_BINARY_DIR}/86box_${PO_FILE_NAME}.qm
                        WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
                        DEPENDS "${po_file}")
     list(APPEND QM_FILES "${CMAKE_CURRENT_BINARY_DIR}/86box_${PO_FILE_NAME}.qm")

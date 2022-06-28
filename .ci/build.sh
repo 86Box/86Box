@@ -511,7 +511,7 @@ then
 	macports="/opt/local"
 	[ -e "/opt/$arch/bin/port" ] && macports="/opt/$arch"
 	[ "$arch" = "x86_64" -a -e "/opt/intel/bin/port" ] && macports="/opt/intel"
-	export PATH="$macports/bin:$macports/sbin:$PATH"
+	export PATH="$macports/bin:$macports/sbin:$macports/libexec/qt5/bin:$PATH"
 
 	# Install dependencies.
 	echo [-] Installing dependencies through MacPorts
@@ -662,7 +662,7 @@ fi
 if [ ! -e "discord_game_sdk.zip" ]
 then
 	echo [-] Downloading Discord Game SDK
-	wget -qO discord_game_sdk.zip "https://dl-game-sdk.discordapp.net/2.5.6/discord_game_sdk.zip"
+	wget -qO discord_game_sdk.zip "https://dl-game-sdk.discordapp.net/latest/discord_game_sdk.zip"
 	status=$?
 	if [ $status -ne 0 ]
 	then
@@ -673,9 +673,10 @@ fi
 
 # Determine Discord Game SDK architecture.
 case $arch in
-	32)	arch_discord="x86";;
-	64)	arch_discord="x86_64";;
-	*)	arch_discord="$arch";;
+	32)		arch_discord="x86";;
+	64)		arch_discord="x86_64";;
+	arm64 | ARM64)	arch_discord="aarch64";;
+	*)		arch_discord="$arch";;
 esac
 
 # Create temporary directory for archival.

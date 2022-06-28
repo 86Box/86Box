@@ -54,7 +54,7 @@
      <x>0</x>
      <y>0</y>
      <width>724</width>
-     <height>23</height>
+     <height>21</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuAction">
@@ -89,6 +89,8 @@
     <addaction name="separator"/>
     <addaction name="actionBegin_trace"/>
     <addaction name="actionEnd_trace"/>
+    <addaction name="separator"/>
+    <addaction name="actionMCA_devices"/>
    </widget>
    <widget class="QMenu" name="menuView">
     <property name="title">
@@ -103,6 +105,7 @@
      <addaction name="actionHardware_Renderer_OpenGL_ES"/>
      <addaction name="actionOpenGL_3_0_Core"/>
      <addaction name="actionVulkan"/>
+     <addaction name="actionDirect3D_9"/>
     </widget>
     <widget class="QMenu" name="menuWindow_scale_factor">
      <property name="title">
@@ -736,6 +739,22 @@
    </property>
    <property name="vid_api" stdset="0">
     <number>4</number>
+   </property>
+  </action>
+  <action name="actionMCA_devices">
+   <property name="text">
+    <string>MCA devices...</string>
+   </property>
+  </action>
+  <action name="actionDirect3D_9">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Direct3D 9</string>
+   </property>
+   <property name="vid_api" stdset="0">
+    <number>5</number>
    </property>
   </action>
  </widget>

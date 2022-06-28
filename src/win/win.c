@@ -549,8 +549,7 @@ main_thread(void *param)
 			frames = 0;
 		}
 	} else	/* Just so we dont overload the host OS. */
-		Sleep((drawits < -1) ? 1 : 0);
-		// Sleep(1);
+		Sleep(1);
 
 	/* If needed, handle a screen resize. */
 	if (!atomic_flag_test_and_set(&doresize) && !video_fullscreen && !is_quit) {
