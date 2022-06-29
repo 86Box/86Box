@@ -240,12 +240,24 @@ if(WIN32)
         # needed for static builds
         qt_import_plugins(plat INCLUDE Qt${QT_MAJOR}::QWindowsIntegrationPlugin Qt${QT_MAJOR}::QICOPlugin Qt${QT_MAJOR}::QWindowsVistaStylePlugin)
     else()
-        install(CODE "
-            get_filename_component(CMAKE_INSTALL_PREFIX_ABSOLUTE \${CMAKE_INSTALL_PREFIX} ABSOLUTE)
-            execute_process(
-                COMMAND $<TARGET_FILE:Qt${QT_MAJOR}::windeployqt>
-                \"\${CMAKE_INSTALL_PREFIX_ABSOLUTE}/$<TARGET_FILE_NAME:86Box>\")
-        ")
+        if(USE_QT6)
+            install(CODE "
+                get_filename_component(CMAKE_INSTALL_PREFIX_ABSOLUTE \${CMAKE_INSTALL_PREFIX} ABSOLUTE)
+                execute_process(
+                    COMMAND $<TARGET_FILE:Qt${QT_MAJOR}::windeployqt>
+                    \"\${CMAKE_INSTALL_PREFIX_ABSOLUTE}/$<TARGET_FILE_NAME:86Box>\")
+            ")
+        else()
+            find_program(WINDEPLOYQT_EXECUTABLE windeployqt)
+            if(WINDEPLOYQT_EXECUTABLE)
+                install(CODE "
+                    get_filename_component(CMAKE_INSTALL_PREFIX_ABSOLUTE \${CMAKE_INSTALL_PREFIX} ABSOLUTE)
+                    execute_process(
+                        COMMAND ${WINDEPLOYQT_EXECUTABLE}
+                        \"\${CMAKE_INSTALL_PREFIX_ABSOLUTE}/$<TARGET_FILE_NAME:86Box>\")
+                ")
+            endif()
+        endif()
     endif()
 endif()
 
