@@ -115,6 +115,9 @@ xga_recalctimings(svga_t *svga)
         xga->h_total = (xga->htotal + 1) << 3;
 
         xga->rowoffset = (xga->hdisp + 1);
+        if ((xga->disp_cntl_2 & 7) == 4) {
+            xga->rowoffset = 0x80;
+        }
 
         xga->interlace = !!(xga->disp_cntl_1 & 0x08);
         xga->rowcount = (xga->disp_cntl_2 & 0xc0) >> 6;
@@ -311,8 +314,10 @@ xga_ext_out_reg(xga_t *xga, svga_t *svga, uint8_t idx, uint8_t val)
                     xga->cursor_data_on = 1;
                 else if (xga->sprite_pos >= 1)
                     xga->cursor_data_on = 1;
-                else if (xga->aperture_cntl == 0)
-                    xga->cursor_data_on = 0;
+                else if (xga->aperture_cntl == 0) {
+                    if (xga->linear_endian_reverse)
+                        xga->cursor_data_on = 0;
+                }
             }
             if ((xga->sprite_pos > 16) && (xga->sprite_pos <= 0x1ff))
                 xga->cursor_data_on = 0;
@@ -803,7 +808,6 @@ xga_accel_read_map_pixel(svga_t *svga, int x, int y, int map, uint32_t base, int
             byte2 = byte;
             return byte2;
         case 4: /*16-bit*/
-            width >>= 1;
             addr += (y * (width) << 1);
             addr += (x << 1);
             if (!skip) {
@@ -867,7 +871,6 @@ xga_accel_write_map_pixel(svga_t *svga, int x, int y, int map, uint32_t base, ui
             mem_writeb_phys(addr, pixel & 0xff);
             break;
         case 4: /*16-bit*/
-            width >>= 1;
             addr += (y * (width) << 1);
             addr += (x << 1);
             if (!skip) {
@@ -2151,7 +2154,7 @@ xga_render_16bpp(xga_t *xga, svga_t *svga)
         xga->lastline_draw = xga->displine;
 
         for (x = 0; x <= (xga->h_disp); x += 8) {
-            uint32_t dat = *(uint32_t *)(&xga->vram[(xga->ma + (x << 1)) & xga->vram_mask]);
+            dat = *(uint32_t *)(&xga->vram[(xga->ma + (x << 1)) & xga->vram_mask]);
             p[x]     = video_16to32[dat & 0xffff];
             p[x + 1] = video_16to32[dat >> 16];
 
