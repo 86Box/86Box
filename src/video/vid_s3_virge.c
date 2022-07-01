@@ -777,7 +777,6 @@ static void s3_virge_recalctimings(svga_t *svga)
 
         if ((svga->crtc[0x67] & 0xc) != 0xc) /*VGA mode*/
         {
-				svga->fb_only = 0;
                 svga->ma_latch |= (virge->ma_ext << 16);
                 if (svga->crtc[0x51] & 0x30)      svga->rowoffset += (svga->crtc[0x51] & 0x30) << 4;
                 else if (svga->crtc[0x43] & 0x04) svga->rowoffset += 0x100;
@@ -820,8 +819,6 @@ static void s3_virge_recalctimings(svga_t *svga)
         }
         else /*Streams mode*/
         {
-				svga->fb_only = 1;
-
                 if (virge->streams.buffer_ctrl & 1)
                         svga->ma_latch = virge->streams.pri_fb1 >> 2;
                 else

@@ -30,31 +30,19 @@ newversion_min=$(echo $newversion | cut -d. -f2)
 newversion_patch=$(echo $newversion | cut -d. -f3)
 [ -z "$newversion_patch" ] && newversion_patch=0
 
-base36() {
-	if [ $1 -lt 10 ]
-	then
-		echo $1
-	else
-		printf '%b' $(printf '\\%03o' $((55 + $1)))
-	fi
-}
-newversion_maj_base36=$(base36 $newversion_maj)
-newversion_min_base36=$(base36 $newversion_min)
-newversion_patch_base36=$(base36 $newversion_patch)
-
 # Switch to the repository root directory.
 cd "$(dirname "$0")"
 
 get_latest_rom_release() {
-    # get the latest ROM release from GitHub api
-    curl --silent "https://api.github.com/repos/86Box/roms/releases/latest" |
-        grep '"tag_name":' |
-        sed -E 's/.*"([^"]+)".*/\1/'
+	# Get the latest ROM release from the GitHub API.
+	curl --silent "https://api.github.com/repos/86Box/roms/releases/latest" |
+		grep '"tag_name":' |
+		sed -E 's/.*"([^"]+)".*/\1/'
 }
 
 pretty_date() {
-    # Ensure we get the date in English
-    LANG=en_US.UTF-8 date '+%a %b %d %Y'
+	# Ensure we get the date in English.
+	LANG=en_US.UTF-8 date '+%a %b %d %Y'
 }
 
 # Patch files.
@@ -71,10 +59,8 @@ patch_file() {
 	fi
 }
 patch_file CMakeLists.txt VERSION 's/^(\s*VERSION ).+/\1'"$newversion"'/'
-patch_file CMakeLists.txt EMU_VERSION_EX 's/(\s*set\(EMU_VERSION_EX\s+")[^"]+/\1'"$newversion_maj_base36.$newversion_min_base36$newversion_patch_base36"'/'
 patch_file vcpkg.json version-string 's/(^\s*"version-string"\s*:\s*")[^"]+/\1'"$newversion"'/'
 patch_file src/include_make/*/version.h EMU_VERSION 's/(#\s*define\s+EMU_VERSION\s+")[^"]+/\1'"$newversion"'/'
-patch_file src/include_make/*/version.h EMU_VERSION_EX 's/(#\s*define\s+EMU_VERSION_EX\s+")[^"]+/\1'"$newversion_maj_base36.$newversion_min_base36$newversion_patch_base36"'/'
 patch_file src/include_make/*/version.h EMU_VERSION_MAJ 's/(#\s*define\s+EMU_VERSION_MAJ\s+)[0-9]+/\1'"$newversion_maj"'/'
 patch_file src/include_make/*/version.h EMU_VERSION_MIN 's/(#\s*define\s+EMU_VERSION_MIN\s+)[0-9]+/\1'"$newversion_min"'/'
 patch_file src/include_make/*/version.h EMU_VERSION_PATCH 's/(#\s*define\s+EMU_VERSION_PATCH\s+)[0-9]+/\1'"$newversion_patch"'/'
