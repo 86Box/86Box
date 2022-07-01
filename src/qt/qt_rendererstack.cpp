@@ -53,11 +53,20 @@ double mouse_sensitivity = 1.0;
 
 extern "C" void macos_poll_mouse();
 extern MainWindow *main_window;
-RendererStack::RendererStack(QWidget *parent)
+
+struct mouseinputdata {
+    int deltax, deltay, deltaz;
+    int mousebuttons;
+};
+mouseinputdata mousedata;
+
+RendererStack::RendererStack(QWidget *parent, bool secondary)
     : QStackedWidget(parent)
     , ui(new Ui::RendererStack)
+    , m_secondary(secondary)
 {
     ui->setupUi(this);
+    setAutoFillBackground(true);
 
 #if defined __unix__ && !defined __HAIKU__
     char *mouse_type = getenv("EMU86BOX_MOUSE"), auto_mouse_type[16];
@@ -312,7 +321,7 @@ RendererStack::createRenderer(Renderer renderer)
         case Renderer::Direct3D9:
         {
             this->createWinId();
-            auto hw = new D3D9Renderer(this);
+            auto hw = new D3D9Renderer(this, m_secondary);
             rendererWindow = hw;
             connect(hw, &D3D9Renderer::error, this, [this](QString str)
             {
@@ -397,14 +406,16 @@ RendererStack::createRenderer(Renderer renderer)
 void
 RendererStack::blitDummy(int x, int y, int w, int h)
 {
-    video_blit_complete();
+    auto blit_complete = m_secondary ? video_blit_complete_secondary : video_blit_complete;
+    blit_complete();
     blitDummied = true;
 }
 
 void
 RendererStack::blitRenderer(int x, int y, int w, int h)
 {
-    if (blitDummied) { blitDummied = false; video_blit_complete(); return; }
+    auto blit_complete = m_secondary ? video_blit_complete_secondary : video_blit_complete;
+    if (blitDummied) { blitDummied = false; blit_complete(); return; }
     directBlitting = true;
     rendererWindow->blit(x, y, w, h);
     directBlitting = false;
@@ -414,24 +425,28 @@ RendererStack::blitRenderer(int x, int y, int w, int h)
 void
 RendererStack::blitCommon(int x, int y, int w, int h)
 {
-    if ((x < 0) || (y < 0) || (w <= 0) || (h <= 0) || (w > 2048) || (h > 2048) || (buffer32 == NULL) || imagebufs.empty() || std::get<std::atomic_flag *>(imagebufs[currentBuf])->test_and_set() || blitDummied) {
-        video_blit_complete();
+    bitmap_t* targetbuffer32 = m_secondary ? buffer32_2nd : buffer32;
+    auto blit_complete = m_secondary ? video_blit_complete_secondary : video_blit_complete;
+    auto take_screenshot = m_secondary ? video_screenshot_secondary : video_screenshot;
+    auto& screenshots_cntr = m_secondary ? screenshots_2 : screenshots;
+    if ((x < 0) || (y < 0) || (w <= 0) || (h <= 0) || (w > 2048) || (h > 2048) || (targetbuffer32 == NULL) || imagebufs.empty() || std::get<std::atomic_flag *>(imagebufs[currentBuf])->test_and_set() || blitDummied) {
+        blit_complete();
         return;
     }
     sx = x;
     sy = y;
     sw = this->w = w;
-    sh = this->h       = h;
+    sh = this->h = h;
     uint8_t *imagebits = std::get<uint8_t *>(imagebufs[currentBuf]);
     for (int y1 = y; y1 < (y + h); y1++) {
         auto scanline = imagebits + (y1 * rendererWindow->getBytesPerRow()) + (x * 4);
-        video_copy(scanline, &(buffer32->line[y1][x]), w * 4);
+        video_copy(scanline, &(targetbuffer32->line[y1][x]), w * 4);
     }
 
-    if (screenshots) {
-        video_screenshot((uint32_t *) imagebits, x, y, 2048);
+    if (screenshots_cntr) {
+        take_screenshot((uint32_t *) imagebits, x, y, 2048);
     }
-    video_blit_complete();
+    blit_complete();
     emit blitToRenderer(currentBuf, sx, sy, sw, sh);
     currentBuf = (currentBuf + 1) % imagebufs.size();
 }

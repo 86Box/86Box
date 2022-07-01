@@ -54,7 +54,7 @@
      <x>0</x>
      <y>0</y>
      <width>724</width>
-     <height>21</height>
+     <height>23</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuAction">
@@ -83,6 +83,7 @@
     <addaction name="actionEnable_Discord_integration"/>
     <addaction name="separator"/>
     <addaction name="actionTake_screenshot"/>
+    <addaction name="actionTake_screenshot_second_monitor"/>
     <addaction name="actionSound_gain"/>
     <addaction name="separator"/>
     <addaction name="actionPreferences"/>
@@ -755,6 +756,11 @@
    </property>
    <property name="vid_api" stdset="0">
     <number>5</number>
+   </property>
+  </action>
+  <action name="actionTake_screenshot_second_monitor">
+   <property name="text">
+    <string>Take screenshot (second monitor)</string>
    </property>
   </action>
  </widget>

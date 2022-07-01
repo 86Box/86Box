@@ -23,7 +23,7 @@ class RendererStack : public QStackedWidget {
     Q_OBJECT
 
 public:
-    explicit RendererStack(QWidget *parent = nullptr);
+    explicit RendererStack(QWidget *parent = nullptr, bool secondary = false);
     ~RendererStack();
 
     void mousePressEvent(QMouseEvent *event) override;
@@ -38,6 +38,12 @@ public:
     void keyReleaseEvent(QKeyEvent *event) override
     {
         event->ignore();
+    }
+    void resizeEvent(QResizeEvent* event) override
+    {
+        if (current) {
+            current->setMaximumSize(event->size());
+        }
     }
 
     enum class Renderer {
@@ -87,22 +93,17 @@ private:
 
     Ui::RendererStack *ui;
 
-    struct mouseinputdata {
-        int deltax, deltay, deltaz;
-        int mousebuttons;
-    };
-    mouseinputdata mousedata;
-
     int x, y, w, h, sx, sy, sw, sh;
 
     int currentBuf  = 0;
     int isMouseDown = 0;
+    bool m_secondary = false;
 
     std::vector<std::tuple<uint8_t *, std::atomic_flag *>> imagebufs;
 
     RendererCommon          *rendererWindow { nullptr };
     std::unique_ptr<QWidget> current;
-    std::atomic<bool> directBlitting{false}, blitDummied{false};
+    std::atomic<bool>        directBlitting{false}, blitDummied{false};
 };
 
 #endif // QT_RENDERERCONTAINER_HPP

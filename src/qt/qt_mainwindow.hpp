@@ -8,6 +8,8 @@
 
 #include <memory>
 
+#include "qt_rendererstack.hpp"
+
 class MediaMenu;
 
 namespace Ui {
@@ -27,11 +29,13 @@ public:
     void showMessage(const QString& header, const QString& message);
     void getTitle(wchar_t* title);
     void blitToWidget(int x, int y, int w, int h);
+    void blitToSecondaryWidget(int x, int y, int w, int h);
     QSize getRenderWidgetSize();
     void setSendKeyboardInput(bool enabled);
 signals:
     void paint(const QImage& image);
     void resizeContents(int w, int h);
+    void resizeContentsSecondary(int w, int h);
     void pollMouse();
     void statusBarMessage(const QString& msg);
     void updateStatusBarPanes();
@@ -40,6 +44,7 @@ signals:
     void updateStatusBarTip(int tag);
     void updateMenuResizeOptions();
     void updateWindowRememberOption();
+    void setEnableSecondaryOutput(int enable);
 
     void setTitle(const QString& title);
     void setFullscreen(bool state);
@@ -47,6 +52,7 @@ signals:
 
     void showMessageForNonQtThread(const QString& header, const QString& message);
     void getTitleForNonQtThread(wchar_t* title);
+    void setEnableSecondaryOutputForNonQtThread(int enable);
 public slots:
     void showSettings();
     void hardReset();
@@ -115,9 +121,13 @@ protected:
     void closeEvent(QCloseEvent* event) override;
     void changeEvent(QEvent* event) override;
 
+private slots:
+    void on_actionTake_screenshot_second_monitor_triggered();
+
 private:
     Ui::MainWindow *ui;
     std::unique_ptr<MachineStatus> status;
+    std::unique_ptr<RendererStack> secondaryRenderer;
     std::shared_ptr<MediaMenu> mm;
 
 #ifdef Q_OS_MACOS

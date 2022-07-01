@@ -557,11 +557,18 @@ load_general(void)
 	if (p == NULL)
 		p = "0, 0, 0, 0";
 	sscanf(p, "%i, %i, %i, %i", &window_w, &window_h, &window_x, &window_y);
+
+    p = config_get_string(cat, "window_coordinates_2", NULL);
+    if (p == NULL)
+        p = "0, 0, 0, 0";
+    sscanf(p, "%i, %i, %i, %i", &window_w_2, &window_h_2, &window_x_2, &window_y_2);
     } else {
 	config_delete_var(cat, "window_remember");
 	config_delete_var(cat, "window_coordinates");
+    config_delete_var(cat, "window_coordinates_2");
 
 	window_w = window_h = window_x = window_y = 0;
+    window_w_2 = window_h_2 = window_x_2 = window_y_2 = 0;
     }
 
     if (vid_resize & 2) {
@@ -932,6 +939,7 @@ load_video(void)
     voodoo_enabled = !!config_get_int(cat, "voodoo", 0);
     ibm8514_enabled = !!config_get_int(cat, "8514a", 0);
     xga_enabled = !!config_get_int(cat, "xga", 0);
+    herc_enabled = !!config_get_int(cat, "herc_enabled", 0);
 }
 
 
@@ -2268,9 +2276,13 @@ save_general(void)
 
 	sprintf(temp, "%i, %i, %i, %i", window_w, window_h, window_x, window_y);
 	config_set_string(cat, "window_coordinates", temp);
+    temp[0] = 0;
+    sprintf(temp, "%i, %i, %i, %i", window_w_2, window_h_2, window_x_2, window_y_2);
+    config_set_string(cat, "window_coordinates_2", temp);
     } else {
 	config_delete_var(cat, "window_remember");
 	config_delete_var(cat, "window_coordinates");
+    config_delete_var(cat, "window_coordinates_2");
     }
 
     if (vid_resize & 2) {
@@ -2479,6 +2491,11 @@ save_video(void)
 	config_delete_var(cat, "xga");
       else
 	config_set_int(cat, "xga", xga_enabled);
+
+    if (herc_enabled == 0)
+    config_delete_var(cat, "herc_enabled");
+    else
+    config_set_int(cat, "herc_enabled", herc_enabled);
 
     delete_section_if_empty(cat);
 }

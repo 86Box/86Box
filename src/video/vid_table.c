@@ -29,6 +29,7 @@
 #include <86box/mem.h>
 #include <86box/device.h>
 #include <86box/plat.h>
+#include <86box/ui.h>
 #include <86box/video.h>
 #include <86box/vid_svga.h>
 
@@ -276,6 +277,8 @@ void
 video_reset_close(void)
 {
     video_inform(VIDEO_FLAG_TYPE_NONE, &timing_default);
+    ui_set_second_window(0);
+    video_close_secondary();
     was_reset = 0;
 }
 
@@ -332,6 +335,13 @@ video_reset(int card)
 
     /* Initialize the video card. */
     device_add(video_cards[card].device);
+    }
+
+    /* Initialize the secondary Hercules card. */
+    if (herc_enabled) {
+    ui_set_second_window(1);
+    video_init_secondary();
+    device_add(&hercules_device_secondary);
     }
 
     /* Enable the Voodoo if configured. */
@@ -408,4 +418,24 @@ int
 video_is_ega_vga(void)
 {
     return (video_get_type() == VIDEO_FLAG_TYPE_SPECIAL);
+}
+
+int
+video_is_mda_secondary(void)
+{
+    return (video_get_type_secondary() == VIDEO_FLAG_TYPE_MDA);
+}
+
+
+int
+video_is_cga_secondary(void)
+{
+    return (video_get_type_secondary() == VIDEO_FLAG_TYPE_CGA);
+}
+
+
+int
+video_is_ega_vga_secondary(void)
+{
+    return (video_get_type_secondary() == VIDEO_FLAG_TYPE_SPECIAL);
 }

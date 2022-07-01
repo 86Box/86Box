@@ -1580,3 +1580,9 @@ plat_mouse_capture(int on)
 	mouse_capture = 0;
     }
 }
+
+
+void
+ui_set_second_window(int enable)
+{
+}

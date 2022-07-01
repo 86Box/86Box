@@ -60,12 +60,21 @@ extern "C" void qt_blit(int x, int y, int w, int h)
     main_window->blitToWidget(x, y, w, h);
 }
 
+extern "C" void qt_blit_secondary(int x, int y, int w, int h)
+{
+    main_window->blitToSecondaryWidget(x, y, w, h);
+}
+
 void mouse_poll() {
     main_window->pollMouse();
 }
 
 void plat_resize(int w, int h) {
     main_window->resizeContents(w, h);
+}
+
+void plat_resize_secondary(int w, int h) {
+    main_window->resizeContentsSecondary(w, h);
 }
 
 void plat_setfullscreen(int on) {
@@ -156,6 +165,15 @@ void
 ui_sb_update_icon(int tag, int active) {
     if (!update_icons) return;
     main_window->updateStatusBarActivity(tag, active > 0 ? true : false);
+}
+
+void
+ui_set_second_window(int enabled) {
+    if (!main_window) return;
+    if (QThread::currentThread() != main_window->thread()) {
+        emit main_window->setEnableSecondaryOutputForNonQtThread(enabled);
+    }
+    else emit main_window->setEnableSecondaryOutput(enabled);
 }
 
 }

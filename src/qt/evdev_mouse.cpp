@@ -83,6 +83,7 @@ void evdev_stop()
 
 void evdev_init()
 {
+    if (evdev_thread) return;
     for (int i = 0; i < 256; i++)
     {
         std::string evdev_device_path = "/dev/input/event" + std::to_string(i);

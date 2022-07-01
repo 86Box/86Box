@@ -48,6 +48,7 @@ void SettingsDisplay::save() {
     voodoo_enabled = ui->checkBoxVoodoo->isChecked() ? 1 : 0;
     ibm8514_enabled = ui->checkBox8514->isChecked() ? 1 : 0;
     xga_enabled = ui->checkBoxXga->isChecked() ? 1 : 0;
+    herc_enabled = ui->checkBox->isChecked();
 }
 
 void SettingsDisplay::onCurrentMachineChanged(int machineId) {
@@ -126,8 +127,24 @@ void SettingsDisplay::on_comboBoxVideo_currentIndexChanged(int index) {
     ui->checkBoxXga->setEnabled(hasIsa16 || has_MCA);
     if (hasIsa16 || has_MCA)
         ui->checkBoxXga->setChecked(xga_enabled);
+
+    ui->checkBox->setEnabled(ui->comboBoxVideo->currentText().contains("CGA"));
+    ui->checkBox->setChecked(herc_enabled);
 }
 
 void SettingsDisplay::on_checkBoxVoodoo_stateChanged(int state) {
     ui->pushButtonConfigureVoodoo->setEnabled(state == Qt::Checked);
 }
+
+void SettingsDisplay::on_checkBox_toggled(bool checked)
+{
+    herc_enabled = checked;
+    ui->pushButtonHercConfigure->setEnabled(herc_enabled);
+}
+
+
+void SettingsDisplay::on_pushButtonHercConfigure_clicked()
+{
+    DeviceConfig::ConfigureDevice(&hercules_device_secondary, 0, qobject_cast<Settings*>(Settings::settings));
+}
+

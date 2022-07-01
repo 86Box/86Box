@@ -108,7 +108,7 @@
 /* Stuff that used to be globally declared in plat.h but is now extern there
    and declared here instead. */
 int		dopause;		/* system is paused */
-atomic_flag		doresize;			/* screen resize requested */
+atomic_flag		doresize, doresize_2;			/* screen resize requested */
 volatile int		is_quit;				/* system exit requested */
 uint64_t	timer_freq;
 char        emu_version[200];		/* version ID string */
@@ -143,6 +143,8 @@ int	window_w;   /* (C) window size and */
 int window_h;   /*     position info */
 int	window_x;
 int window_y;
+int window_w_2, window_h_2,
+window_x_2, window_y_2;
 int window_remember;
 int vid_resize;			/* (C) allow resizing */
 int invert_display = 0;		/* (C) invert the display */
@@ -202,7 +204,9 @@ char	usr_path[1024];				/* path (dir) of user data */
 char	cfg_path[1024];				/* full path of config file */
 FILE	*stdlog = NULL;				/* file to log output to */
 int	scrnsz_x = SCREEN_RES_X;		/* current screen size, X */
-int scrnsz_y = SCREEN_RES_Y;			/* current screen size, Y */
+int scrnsz_y = SCREEN_RES_Y;		/* current screen size, Y */
+int scrnsz_x_2 = SCREEN_RES_X;      /* current screen size, X (secondary) */
+int scrnsz_y_2 = SCREEN_RES_X;      /* current screen size, Y (secondary) */
 int	config_changed;				/* config has changed */
 int	title_update;
 int	framecountx = 0;
@@ -211,7 +215,10 @@ int	hard_reset_pending = 0;
 
 int	unscaled_size_x = SCREEN_RES_X;	/* current unscaled size X */
 int unscaled_size_y = SCREEN_RES_Y;	/* current unscaled size Y */
+int	unscaled_size_x_2 = SCREEN_RES_X;	/* current unscaled size X (secondary) */
+int unscaled_size_y_2 = SCREEN_RES_Y;	/* current unscaled size Y (secondary) */
 int efscrnsz_y = SCREEN_RES_Y;
+int efscrnsz_y_2 = SCREEN_RES_Y;
 
 
 static wchar_t	mouse_msg[3][200];
@@ -1332,9 +1339,90 @@ set_screen_size(int x, int y)
 
 
 void
+set_screen_size_secondary(int x, int y)
+{
+    int owsx = scrnsz_x_2;
+    int owsy = scrnsz_y_2;
+    int temp_overscan_x = overscan_x_2;
+    int temp_overscan_y = overscan_y_2;
+    double dx, dy, dtx, dty;
+
+    /* Make sure we keep usable values. */
+#if 0
+    pc_log("SetScreenSize(%d, %d) resize=%d\n", x, y, vid_resize);
+#endif
+    if (x < 320) x = 320;
+    if (y < 200) y = 200;
+    if (x > 2048) x = 2048;
+    if (y > 2048) y = 2048;
+
+    /* Save the new values as "real" (unscaled) resolution. */
+    unscaled_size_x_2 = x;
+    efscrnsz_y_2 = y;
+
+    if (suppress_overscan)
+    temp_overscan_x = temp_overscan_y = 0;
+
+    if (force_43) {
+    dx = (double)x;
+    dtx = (double)temp_overscan_x;
+
+    dy = (double)y;
+    dty = (double)temp_overscan_y;
+
+    /* Account for possible overscan. */
+    if (!(video_is_ega_vga_secondary()) && (temp_overscan_y == 16)) {
+        /* CGA */
+        dy = (((dx - dtx) / 4.0) * 3.0) + dty;
+    } else if (!(video_is_ega_vga_secondary()) && (temp_overscan_y < 16)) {
+        /* MDA/Hercules */
+        dy = (x / 4.0) * 3.0;
+    } else {
+        if (enable_overscan) {
+            /* EGA/(S)VGA with overscan */
+            dy = (((dx - dtx) / 4.0) * 3.0) + dty;
+        } else {
+            /* EGA/(S)VGA without overscan */
+            dy = (x / 4.0) * 3.0;
+        }
+    }
+    unscaled_size_y_2 = (int)dy;
+    } else
+    unscaled_size_y_2 = efscrnsz_y_2;
+
+    switch(scale) {
+    case 0:		/* 50% */
+        scrnsz_x_2 = (unscaled_size_x_2>>1);
+        scrnsz_y_2 = (unscaled_size_y_2>>1);
+        break;
+
+    case 1:		/* 100% */
+        scrnsz_x_2 = unscaled_size_x_2;
+        scrnsz_y_2 = unscaled_size_y_2;
+        break;
+
+    case 2:		/* 150% */
+        scrnsz_x_2 = ((unscaled_size_x_2*3)>>1);
+        scrnsz_y_2 = ((unscaled_size_y_2*3)>>1);
+        break;
+
+    case 3:		/* 200% */
+        scrnsz_x_2 = (unscaled_size_x_2<<1);
+        scrnsz_y_2 = (unscaled_size_y_2<<1);
+        break;
+    }
+
+    /* If the resolution has changed, let the main thread handle it. */
+    if ((owsx != scrnsz_x_2) || (owsy != scrnsz_y_2))
+        atomic_flag_clear(&doresize_2);
+}
+
+
+void
 reset_screen_size(void)
 {
 	set_screen_size(unscaled_size_x, efscrnsz_y);
+    set_screen_size_secondary(unscaled_size_x_2, efscrnsz_y_2);
 }
 
 
@@ -1342,6 +1430,7 @@ void
 set_screen_size_natural(void)
 {
 	set_screen_size(unscaled_size_x, unscaled_size_y);
+    set_screen_size_secondary(unscaled_size_x_2, unscaled_size_y_2);
 }
 
 

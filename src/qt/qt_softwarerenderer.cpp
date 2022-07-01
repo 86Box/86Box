@@ -18,6 +18,7 @@
  *      Copyright 2021-2022 Cacodemon345
  *      Copyright 2021-2022 Teemu Korhonen
  */
+#include <QDebug>
 #include "qt_softwarerenderer.hpp"
 #include <QApplication>
 #include <QPainter>
@@ -62,6 +63,7 @@ void SoftwareRenderer::onBlit(int buf_idx, int x, int y, int w, int h) {
     buf_usage[(buf_idx + 1) % 2].clear();
 
     source.setRect(x, y, w, h);
+    if (w != this->width()) qDebug() << QString::number(w) << "," << this->width();
     update();
 }
 
@@ -72,6 +74,7 @@ void SoftwareRenderer::resizeEvent(QResizeEvent *event) {
 #else
     QRasterWindow::resizeEvent(event);
 #endif
+    setMaximumSize(parentWidget->size());
 }
 
 bool SoftwareRenderer::event(QEvent *event)

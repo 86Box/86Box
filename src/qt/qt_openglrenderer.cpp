@@ -90,6 +90,8 @@ OpenGLRenderer::resizeEvent(QResizeEvent *event)
         destination.y(),
         destination.width() * devicePixelRatio(),
         destination.height() * devicePixelRatio());
+
+    setMaximumSize(parentWidget->size());
 }
 
 bool

@@ -8,7 +8,7 @@ extern "C"
 #include <86box/video.h>
 }
 
-D3D9Renderer::D3D9Renderer(QWidget *parent)
+D3D9Renderer::D3D9Renderer(QWidget *parent, bool secondary)
     : QWidget{parent}, RendererCommon()
 {
     QPalette pal = palette();
@@ -23,6 +23,7 @@ D3D9Renderer::D3D9Renderer(QWidget *parent)
 
     windowHandle = (HWND)winId();
     surfaceInUse = true;
+    m_secondary = secondary;
 
     RendererCommon::parentWidget = parent;
 
@@ -138,8 +139,12 @@ void D3D9Renderer::resizeEvent(QResizeEvent *event)
 
 void D3D9Renderer::blit(int x, int y, int w, int h)
 {
-    if ((x < 0) || (y < 0) || (w <= 0) || (h <= 0) || (w > 2048) || (h > 2048) || (buffer32 == NULL) || surfaceInUse) {
-        video_blit_complete();
+    bitmap_t* targetbuffer32 = m_secondary ? buffer32_2nd : buffer32;
+    auto blit_complete = m_secondary ? video_blit_complete_secondary : video_blit_complete;
+    auto take_screenshot = m_secondary ? video_screenshot_secondary : video_screenshot;
+    auto& screenshots_cntr = m_secondary ? screenshots_2 : screenshots;
+    if ((x < 0) || (y < 0) || (w <= 0) || (h <= 0) || (w > 2048) || (h > 2048) || (targetbuffer32 == NULL) || surfaceInUse) {
+        blit_complete();
         return;
     }
     surfaceInUse = true;
@@ -151,17 +156,17 @@ void D3D9Renderer::blit(int x, int y, int w, int h)
     srcRect.left = source.left();
     srcRect.right = source.right();
 
-    if (screenshots) {
-        video_screenshot((uint32_t *) &(buffer32->line[y][x]), 0, 0, 2048);
+    if (screenshots_cntr) {
+        take_screenshot((uint32_t *) &(targetbuffer32->line[y][x]), 0, 0, 2048);
     }
     if (SUCCEEDED(d3d9surface->LockRect(&lockRect, &srcRect, 0))) {
         for (int y1 = 0; y1 < h; y1++) {
-            video_copy(((uint8_t*)lockRect.pBits) + (y1 * lockRect.Pitch), &(buffer32->line[y + y1][x]), w * 4);
+            video_copy(((uint8_t*)lockRect.pBits) + (y1 * lockRect.Pitch), &(targetbuffer32->line[y + y1][x]), w * 4);
         }
-        video_blit_complete();
+        blit_complete();
         d3d9surface->UnlockRect();
     }
-    else video_blit_complete();
+    else blit_complete();
     surfaceInUse = false;
     QTimer::singleShot(0, this, [this] { this->update(); });
 }

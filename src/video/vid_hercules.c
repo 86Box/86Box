@@ -257,7 +257,7 @@ hercules_render_overscan_left(hercules_t *dev)
 	return;
 
     for (i = 0; i < 8; i++)
-	buffer32->line[dev->displine + 14][i] = 0x00000000;
+    dev->target32->line[dev->displine + 14][i] = 0x00000000;
 }
 
 
@@ -279,7 +279,7 @@ hercules_render_overscan_right(hercules_t *dev)
 	return;
 
     for (i = 0; i < 8; i++)
-	buffer32->line[dev->displine + 14][8 + width + i] = 0x00000000;
+    dev->target32->line[dev->displine + 14][8 + width + i] = 0x00000000;
 }
 
 
@@ -309,7 +309,7 @@ hercules_poll(void *priv)
 	if (dev->dispon) {
 		if (dev->displine < dev->firstline) {
 			dev->firstline = dev->displine;
-			video_wait_for_buffer();
+            dev->wait_for_buffer();
 		}
 		dev->lastline = dev->displine;
 
@@ -327,9 +327,9 @@ hercules_poll(void *priv)
 					dat = 0;
 				dev->ma++;
 				for (c = 0; c < 16; c++)
-					buffer32->line[dev->displine + 14][(x << 4) + c + 8] = (dat & (32768 >> c)) ? 7 : 0;
+                    dev->target32->line[dev->displine + 14][(x << 4) + c + 8] = (dat & (32768 >> c)) ? 7 : 0;
 				for (c = 0; c < 16; c += 8)
-					video_blend((x << 4) + c + 8, dev->displine + 14);
+                    video_blend_target((x << 4) + c + 8, dev->displine + 14, dev->target32);
 			}
 		} else {
 			for (x = 0; x < dev->crtc[1]; x++) {
@@ -345,15 +345,15 @@ hercules_poll(void *priv)
 
 				if (dev->sc == 12 && ((attr & 7) == 1)) {
 					for (c = 0; c < 9; c++)
-						buffer32->line[dev->displine + 14][(x * 9) + c + 8] = dev->cols[attr][blink][1];
+                        dev->target32->line[dev->displine + 14][(x * 9) + c + 8] = dev->cols[attr][blink][1];
 				} else {
 					for (c = 0; c < 8; c++)
-						buffer32->line[dev->displine + 14][(x * 9) + c + 8] = dev->cols[attr][blink][(fontdatm[chr][dev->sc] & (1 << (c ^ 7))) ? 1 : 0];
+                        dev->target32->line[dev->displine + 14][(x * 9) + c + 8] = dev->cols[attr][blink][(fontdatm[chr][dev->sc] & (1 << (c ^ 7))) ? 1 : 0];
 
 					if ((chr & ~0x1f) == 0xc0)
-						buffer32->line[dev->displine + 14][(x * 9) + 8 + 8] = dev->cols[attr][blink][fontdatm[chr][dev->sc] & 1];
+                        dev->target32->line[dev->displine + 14][(x * 9) + 8 + 8] = dev->cols[attr][blink][fontdatm[chr][dev->sc] & 1];
 					else
-						buffer32->line[dev->displine + 14][(x * 9) + 8 + 8] = dev->cols[attr][blink][0];
+                        dev->target32->line[dev->displine + 14][(x * 9) + 8 + 8] = dev->cols[attr][blink][0];
 				}
 				if (dev->ctrl2 & 0x01)
 					dev->ma = (dev->ma + 1) & 0x3fff;
@@ -362,7 +362,7 @@ hercules_poll(void *priv)
 
 				if (drawcursor) {
 					for (c = 0; c < 9; c++)
-						buffer32->line[dev->displine + 14][(x * 9) + c + 8] ^= dev->cols[attr][0][1];
+                        dev->target32->line[dev->displine + 14][(x * 9) + c + 8] ^= dev->cols[attr][0][1];
 				}
 			}
 		}
@@ -451,29 +451,29 @@ hercules_poll(void *priv)
 				dev->lastline++;
 				y = (dev->lastline - dev->firstline);
 
-				if ((dev->ctrl & 8) && x && y && ((x != xsize) || (y != ysize) || video_force_resize_get())) {
-					xsize = x;
-					ysize = y;
-					if (xsize < 64) xsize = enable_overscan ? 640 : 656;
-					if (ysize < 32) ysize = 200;
+                if ((dev->ctrl & 8) && x && y && ((x != *dev->xsize) || (y != *dev->ysize) || dev->force_resize_get())) {
+                    *dev->xsize = x;
+                    *dev->ysize = y;
+                    if (*dev->xsize < 64) *dev->xsize = enable_overscan ? 640 : 656;
+                    if (*dev->ysize < 32) *dev->ysize = 200;
 
-					set_screen_size(xsize + (enable_overscan ? 16 : 0), ysize + (enable_overscan ? 28 : 0));
+                    dev->vid_set_screen_size(*dev->xsize + (enable_overscan ? 16 : 0), *dev->ysize + (enable_overscan ? 28 : 0));
 
-					if (video_force_resize_get())
-						video_force_resize_set(0);
+                    if (dev->force_resize_get())
+                        dev->force_resize_set(0);
 				}
 
 				if ((x >= 160) && ((y + 1) >= 120)) {
 					/* Draw (overscan_size) lines of overscan on top and bottom. */
 					for (yy = 0; yy < 14; yy++) {
-						p = &(buffer32->line[(dev->firstline + yy) & 0x7ff][0]);
+                        p = &(dev->target32->line[(dev->firstline + yy) & 0x7ff][0]);
 
 						for (xx = 0; xx < (x + 16); xx++)
 							p[xx] = 0x00000000;
 					}
 
 					for (yy = 0; yy < 14; yy++) {
-						p = &(buffer32->line[(dev->firstline + 14 + y + yy) & 0x7ff][0]);
+                        p = &(dev->target32->line[(dev->firstline + 14 + y + yy) & 0x7ff][0]);
 
 						for (xx = 0; xx < (x + 16); xx++)
 							p[xx] = 0x00000000;
@@ -481,19 +481,19 @@ hercules_poll(void *priv)
 				}
 
 				if (enable_overscan)
-					video_blit_memtoscreen_8(0, dev->firstline, xsize + 16, ysize + 28);
+                    dev->blit_memtoscreen_8(0, dev->firstline, *dev->xsize + 16, *dev->ysize + 28);
 				else
-					video_blit_memtoscreen_8(8, dev->firstline + 14, xsize, ysize);
+                    dev->blit_memtoscreen_8(8, dev->firstline + 14, *dev->xsize, *dev->ysize);
 				frames++;
 				// if ((dev->ctrl & 2) && (dev->ctrl2 & 1)) {
 				if (dev->ctrl & 0x02) {
-					video_res_x = dev->crtc[1] * 16;
-					video_res_y = dev->crtc[6] * 4;
-					video_bpp = 1;
+                    *dev->video_res_x = dev->crtc[1] * 16;
+                    *dev->video_res_y = dev->crtc[6] * 4;
+                    *dev->video_bpp = 1;
 				} else {
-					video_res_x = dev->crtc[1];
-					video_res_y = dev->crtc[6];
-					video_bpp = 0;
+                    *dev->video_res_x = dev->crtc[1];
+                    *dev->video_res_y = dev->crtc[6];
+                    *dev->video_bpp = 0;
 				}
 			}
 			dev->firstline = 1000;
@@ -519,53 +519,74 @@ hercules_poll(void *priv)
 }
 
 
-static void *
-hercules_init(const device_t *info)
+static void
+hercules_init_common(hercules_t *dev)
 {
-    hercules_t *dev;
-    int c;
-
-    dev = (hercules_t *)malloc(sizeof(hercules_t));
-    memset(dev, 0x00, sizeof(hercules_t));
-
-    overscan_x = 16;
-    overscan_y = 28;
+    int c = 0;
 
     dev->vram = (uint8_t *)malloc(0x10000);
 
     timer_add(&dev->timer, hercules_poll, dev, 1);
 
     mem_mapping_add(&dev->mapping, 0xb0000, 0x08000,
-		    hercules_read,NULL,NULL, hercules_write,NULL,NULL,
-		    NULL /*dev->vram*/, MEM_MAPPING_EXTERNAL, dev);
+            hercules_read,NULL,NULL, hercules_write,NULL,NULL,
+            NULL /*dev->vram*/, MEM_MAPPING_EXTERNAL, dev);
 
     io_sethandler(0x03b0, 16,
-		  hercules_in,NULL,NULL, hercules_out,NULL,NULL, dev);
+          hercules_in,NULL,NULL, hercules_out,NULL,NULL, dev);
 
     for (c = 0; c < 256; c++) {
-	dev->cols[c][0][0] = dev->cols[c][1][0] = dev->cols[c][1][1] = 16;
+    dev->cols[c][0][0] = dev->cols[c][1][0] = dev->cols[c][1][1] = 16;
 
-	if (c & 0x08)
-		dev->cols[c][0][1] = 15 + 16;
-	  else
-		dev->cols[c][0][1] =  7 + 16;
+    if (c & 0x08)
+        dev->cols[c][0][1] = 15 + 16;
+      else
+        dev->cols[c][0][1] =  7 + 16;
     }
     dev->cols[0x70][0][1] = 16;
     dev->cols[0x70][0][0] = dev->cols[0x70][1][0] =
-		dev->cols[0x70][1][1] = 16 + 15;
+        dev->cols[0x70][1][1] = 16 + 15;
     dev->cols[0xF0][0][1] = 16;
     dev->cols[0xF0][0][0] = dev->cols[0xF0][1][0] =
-		dev->cols[0xF0][1][1] = 16 + 15;
+        dev->cols[0xF0][1][1] = 16 + 15;
     dev->cols[0x78][0][1] = 16 + 7;
     dev->cols[0x78][0][0] = dev->cols[0x78][1][0] =
-		dev->cols[0x78][1][1] = 16 + 15;
+        dev->cols[0x78][1][1] = 16 + 15;
     dev->cols[0xF8][0][1] = 16 + 7;
     dev->cols[0xF8][0][0] = dev->cols[0xF8][1][0] =
-		dev->cols[0xF8][1][1] = 16 + 15;
+        dev->cols[0xF8][1][1] = 16 + 15;
     dev->cols[0x00][0][1] = dev->cols[0x00][1][1] = 16;
     dev->cols[0x08][0][1] = dev->cols[0x08][1][1] = 16;
     dev->cols[0x80][0][1] = dev->cols[0x80][1][1] = 16;
     dev->cols[0x88][0][1] = dev->cols[0x88][1][1] = 16;
+}
+
+
+static void *
+hercules_init(const device_t *info)
+{
+    hercules_t *dev;
+
+    dev = (hercules_t *)malloc(sizeof(hercules_t));
+    memset(dev, 0x00, sizeof(hercules_t));
+
+    dev->overscan_x = &overscan_x;
+    dev->overscan_y = &overscan_y;
+    dev->target32 = buffer32;
+    dev->video_bpp = &video_bpp;
+    dev->video_res_x = &video_res_x;
+    dev->video_res_y = &video_res_y;
+    dev->xsize = &xsize;
+    dev->ysize = &ysize;
+    dev->wait_for_buffer = &video_wait_for_buffer;
+    dev->blit_memtoscreen_8 = &video_blit_memtoscreen_8;
+    dev->vid_set_screen_size = &set_screen_size;
+    dev->force_resize_get = &video_force_resize_get;
+    dev->force_resize_set = &video_force_resize_set;
+    overscan_x = 16;
+    overscan_y = 28;
+
+    hercules_init_common(dev);
 
     overscan_x = overscan_y = 0;
 
@@ -577,6 +598,50 @@ hercules_init(const device_t *info)
     herc_blend = device_get_config_int("blend");
 
     video_inform(VIDEO_FLAG_TYPE_MDA, &timing_hercules);
+
+    /* Force the LPT3 port to be enabled. */
+    lpt3_init(0x3BC);
+
+    return(dev);
+}
+
+
+static void *
+hercules_init_secondary(const device_t *info)
+{
+    hercules_t *dev;
+
+    dev = (hercules_t *)malloc(sizeof(hercules_t));
+    memset(dev, 0x00, sizeof(hercules_t));
+
+    dev->overscan_x = &overscan_x_2;
+    dev->overscan_y = &overscan_y_2;
+    dev->target32 = buffer32_2nd;
+    dev->video_bpp = &video_bpp_2;
+    dev->video_res_x = &video_res_x_2;
+    dev->video_res_y = &video_res_y_2;
+    dev->xsize = &xsize_2;
+    dev->ysize = &ysize_2;
+    dev->wait_for_buffer = &video_wait_for_buffer_secondary;
+    dev->blit_memtoscreen_8 = &video_blit_memtoscreen_8_secondary;
+    dev->vid_set_screen_size = &set_screen_size_secondary;
+    dev->force_resize_get = &video_force_resize_get_secondary;
+    dev->force_resize_set = &video_force_resize_set_secondary;
+    overscan_x_2 = 16;
+    overscan_y_2 = 28;
+
+    hercules_init_common(dev);
+
+    overscan_x_2 = overscan_y_2 = 0;
+
+    cga_palette_2 = device_get_config_int("rgb_type") << 1;
+    if (cga_palette_2 > 6)
+    cga_palette_2 = 0;
+    cgapal_rebuild_secondary();
+
+    herc_blend = device_get_config_int("blend");
+
+    video_inform_secondary(VIDEO_FLAG_TYPE_MDA, &timing_hercules);
 
     /* Force the LPT3 port to be enabled. */
     lpt3_init(0x3BC);
@@ -655,6 +720,20 @@ const device_t hercules_device = {
     .flags = DEVICE_ISA,
     .local = 0,
     .init = hercules_init,
+    .close = hercules_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = speed_changed,
+    .force_redraw = NULL,
+    .config = hercules_config
+};
+
+const device_t hercules_device_secondary = {
+    .name = "Hercules (secondary)",
+    .internal_name = "hercules_secondary",
+    .flags = DEVICE_ISA,
+    .local = 0,
+    .init = hercules_init_secondary,
     .close = hercules_close,
     .reset = NULL,
     { .available = NULL },

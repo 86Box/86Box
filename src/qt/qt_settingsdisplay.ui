@@ -26,8 +26,25 @@
    <property name="bottomMargin">
     <number>0</number>
    </property>
-   <item row="0" column="1">
-    <widget class="QComboBox" name="comboBoxVideo"/>
+   <item row="1" column="2">
+    <widget class="QPushButton" name="pushButtonConfigureVoodoo">
+     <property name="text">
+      <string>Configure</string>
+     </property>
+    </widget>
+   </item>
+   <item row="5" column="0">
+    <spacer name="verticalSpacer">
+     <property name="orientation">
+      <enum>Qt::Vertical</enum>
+     </property>
+     <property name="sizeHint" stdset="0">
+      <size>
+       <width>20</width>
+       <height>40</height>
+      </size>
+     </property>
+    </spacer>
    </item>
    <item row="0" column="0">
     <widget class="QLabel" name="label">
@@ -35,6 +52,16 @@
       <string>Video:</string>
      </property>
     </widget>
+   </item>
+   <item row="1" column="0" colspan="2">
+    <widget class="QCheckBox" name="checkBoxVoodoo">
+     <property name="text">
+      <string>Voodoo Graphics</string>
+     </property>
+    </widget>
+   </item>
+   <item row="0" column="1">
+    <widget class="QComboBox" name="comboBoxVideo"/>
    </item>
    <item row="0" column="2">
     <widget class="QPushButton" name="pushButtonConfigure">
@@ -46,20 +73,6 @@
      </property>
      <property name="text">
       <string>Configure</string>
-     </property>
-    </widget>
-   </item>
-   <item row="1" column="2">
-    <widget class="QPushButton" name="pushButtonConfigureVoodoo">
-     <property name="text">
-      <string>Configure</string>
-     </property>
-    </widget>
-   </item>
-   <item row="1" column="0" colspan="2">
-    <widget class="QCheckBox" name="checkBoxVoodoo">
-     <property name="text">
-      <string>Voodoo Graphics</string>
      </property>
     </widget>
    </item>
@@ -78,17 +91,18 @@
     </widget>
    </item>
    <item row="4" column="0">
-    <spacer name="verticalSpacer">
-     <property name="orientation">
-      <enum>Qt::Vertical</enum>
+    <widget class="QCheckBox" name="checkBox">
+     <property name="text">
+      <string>Hercules (secondary)</string>
      </property>
-     <property name="sizeHint" stdset="0">
-      <size>
-       <width>20</width>
-       <height>40</height>
-      </size>
+    </widget>
+   </item>
+   <item row="4" column="2">
+    <widget class="QPushButton" name="pushButtonHercConfigure">
+     <property name="text">
+      <string>Configure</string>
      </property>
-    </spacer>
+    </widget>
    </item>
   </layout>
  </widget>

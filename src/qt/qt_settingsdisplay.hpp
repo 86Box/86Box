@@ -21,6 +21,12 @@ public slots:
     void onCurrentMachineChanged(int machineId);
 
 private slots:
+    void on_pushButtonHercConfigure_clicked();
+
+private slots:
+    void on_checkBox_toggled(bool checked);
+
+private slots:
     void on_checkBoxVoodoo_stateChanged(int state);
     void on_comboBoxVideo_currentIndexChanged(int index);
     void on_pushButtonConfigureVoodoo_clicked();

@@ -55,6 +55,15 @@ typedef struct {
     int		cols[256][2][2];
 
     uint8_t	*vram;
+    bitmap_t* target32;
+    int* overscan_x, *overscan_y,
+         *video_bpp, *video_res_x, *video_res_y,
+         *xsize, *ysize;
+    void (*blit_memtoscreen_8)(int,int,int,int);
+    void (*wait_for_buffer)();
+    uint8_t (*force_resize_get)();
+    void (*force_resize_set)(uint8_t);
+    void (*vid_set_screen_size)(int,int);
 } hercules_t;
 
 static void *hercules_init(const device_t *info);

@@ -1360,3 +1360,8 @@ void
 ui_sb_mt32lcd(char* str)
 {
 }
+
+void
+ui_set_second_window(int enabled)
+{
+}

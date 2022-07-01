@@ -52,7 +52,7 @@ extern MainWindow* main_window;
 QElapsedTimer elapsed_timer;
 
 static std::atomic_int blitmx_contention = 0;
-static std::mutex blitmx;
+static std::recursive_mutex blitmx;
 
 class CharPointer {
 public:

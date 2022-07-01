@@ -85,10 +85,12 @@ typedef rgb_t PALETTE[256];
 extern int	changeframecount;
 
 extern volatile int screenshots;
-extern bitmap_t	*buffer32;
+extern volatile int screenshots_2;
+extern bitmap_t	*buffer32, *buffer32_2nd;
 extern PALETTE	cgapal,
 		cgapal_mono[6];
 extern uint32_t	pal_lookup[256];
+extern uint32_t	pal_lookup_2[256];
 extern int	video_fullscreen,
 		video_fullscreen_scale,
 		video_fullscreen_first;
@@ -105,10 +107,12 @@ extern uint32_t	*video_6to8,
 		*video_8to32,
 		*video_15to32,
 		*video_16to32;
-extern int	xsize,ysize;
+extern int	xsize, ysize, xsize_2, ysize_2;
 extern int	enable_overscan;
 extern int	overscan_x,
-		overscan_y;
+        overscan_y,
+        overscan_x_2,
+        overscan_y_2;
 extern int	force_43;
 extern int	video_timing_read_b,
 		video_timing_read_w,
@@ -118,9 +122,13 @@ extern int	video_timing_write_b,
 		video_timing_write_l;
 extern int	video_res_x,
 		video_res_y,
-		video_bpp;
+        video_bpp,
+        video_res_x_2,
+        video_res_y_2,
+        video_bpp_2;
 extern int	vid_resize;
 extern int	cga_palette,
+        cga_palette_2,
 		herc_blend;
 extern int	vid_cga_contrast;
 extern int	video_grayscale;
@@ -135,6 +143,7 @@ extern int	readflash;
 /* Function handler pointers. */
 extern void	(*video_recalctimings)(void);
 extern void	video_screenshot(uint32_t *buf, int start_x, int start_y, int row_len);
+extern void	video_screenshot_secondary(uint32_t *buf, int start_x, int start_y, int row_len);
 
 #ifdef _WIN32
 extern void * __cdecl	(*video_copy)(void *_Dst, const void *_Src, size_t _Size);
@@ -156,32 +165,50 @@ extern int	video_get_video_from_internal_name(char *s);
 extern int 	video_is_mda(void);
 extern int 	video_is_cga(void);
 extern int 	video_is_ega_vga(void);
+extern int 	video_is_mda_secondary(void);
+extern int 	video_is_cga_secondary(void);
+extern int 	video_is_ega_vga_secondary(void);
 extern void	video_inform(int type, const video_timings_t *ptr);
 extern int	video_get_type(void);
+extern void	video_inform_secondary(int type, const video_timings_t *ptr);
+extern int	video_get_type_secondary(void);
 
 
 extern void	video_setblit(void(*blit)(int,int,int,int));
+extern void	video_setblit_secondary(void(*blit)(int,int,int,int));
 extern void	video_blend(int x, int y);
+extern void video_blend_target(int x, int y, bitmap_t* bitmap);
 extern void	video_blit_memtoscreen_8(int x, int y, int w, int h);
 extern void	video_blit_memtoscreen(int x, int y, int w, int h);
 extern void	video_blit_complete(void);
 extern void	video_wait_for_blit(void);
 extern void	video_wait_for_buffer(void);
+extern void	video_blit_memtoscreen_8_secondary(int x, int y, int w, int h);
+extern void	video_blit_memtoscreen_secondary(int x, int y, int w, int h);
+extern void	video_blit_complete_secondary(void);
+extern void	video_wait_for_blit_secondary(void);
+extern void	video_wait_for_buffer_secondary(void);
 
 extern bitmap_t	*create_bitmap(int w, int h);
 extern void	destroy_bitmap(bitmap_t *b);
 extern void	cgapal_rebuild(void);
+extern void cgapal_rebuild_secondary(void);
 extern void	hline(bitmap_t *b, int x1, int y, int x2, uint32_t col);
 extern void	updatewindowsize(int x, int y);
 
 extern void	video_init(void);
+extern void video_init_secondary(void);
 extern void	video_close(void);
+extern void video_close_secondary(void);
 extern void	video_reset_close(void);
 extern void	video_pre_reset(int card);
 extern void	video_reset(int card);
 extern uint8_t	video_force_resize_get(void);
+extern uint8_t	video_force_resize_get_secondary(void);
 extern void	video_force_resize_set(uint8_t res);
+extern void	video_force_resize_set_secondary(uint8_t res);
 extern void	video_update_timing(void);
+extern void	video_update_timing_secondary(void);
 
 extern void	loadfont_ex(char *s, int format, int offset);
 extern void	loadfont(char *s, int format);
@@ -307,6 +334,7 @@ extern const device_t genius_device;
 
 /* Hercules */
 extern const device_t hercules_device;
+extern const device_t hercules_device_secondary;
 extern const device_t herculesplus_device;
 extern const device_t incolor_device;
 

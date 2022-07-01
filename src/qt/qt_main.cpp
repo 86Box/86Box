@@ -128,10 +128,21 @@ main_thread_fn()
 
         /* If needed, handle a screen resize. */
         if (!atomic_flag_test_and_set(&doresize) && !video_fullscreen && !is_quit) {
-            if (vid_resize & 2)
+            if (vid_resize & 2) {
                 plat_resize(fixed_size_x, fixed_size_y);
-            else
+            }
+            else {
                 plat_resize(scrnsz_x, scrnsz_y);
+            }
+        }
+
+        if (!atomic_flag_test_and_set(&doresize_2) && !video_fullscreen && !is_quit) {
+            if (vid_resize & 2) {
+                plat_resize_secondary(fixed_size_x, fixed_size_y);
+            }
+            else {
+                plat_resize_secondary(scrnsz_x_2, scrnsz_y_2);
+            }
         }
     }
 

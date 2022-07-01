@@ -120,6 +120,7 @@ static BMessageFilter* filter;
 
 extern void qt_mouse_capture(int);
 extern "C" void qt_blit(int x, int y, int w, int h);
+extern "C" void qt_blit_secondary(int x, int y, int w, int h);
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
@@ -135,6 +136,7 @@ MainWindow::MainWindow(QWidget *parent) :
 #endif
     setUnifiedTitleAndToolBarOnMac(true);
     ui->setupUi(this);
+    ui->actionTake_screenshot_second_monitor->setVisible(false);
     ui->stackedWidget->setMouseTracking(true);
     statusBar()->setVisible(!hide_status_bar);
     statusBar()->setStyleSheet("QStatusBar::item {border: None; } QStatusBar QLabel { margin-right: 2px; margin-bottom: 1px; }");
@@ -237,6 +239,19 @@ MainWindow::MainWindow(QWidget *parent) :
         }
     });
 
+    connect(this, &MainWindow::resizeContentsSecondary, this, [this](int w, int h) {
+        if (!QApplication::platformName().contains("eglfs") && vid_resize == 0) {
+            w = (w / (!dpi_scale ? util::screenOfWidget(this)->devicePixelRatio() : 1.));
+
+            h = (h / (!dpi_scale ? util::screenOfWidget(this)->devicePixelRatio() : 1.));
+            if (secondaryRenderer) {
+                secondaryRenderer->setFixedSize(w, h);
+            }
+        }
+        if (vid_resize == 1 && secondaryRenderer) secondaryRenderer->setFixedSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
+        if (vid_resize == 2 && secondaryRenderer) secondaryRenderer->setFixedSize(fixed_size_x, fixed_size_y);
+    });
+
     connect(ui->menubar, &QMenuBar::triggered, this, [this] {
         config_save();
         if (QApplication::activeWindow() == this)
@@ -304,27 +319,30 @@ MainWindow::MainWindow(QWidget *parent) :
 
     connect(actGroup, &QActionGroup::triggered, [this](QAction* action) {
         vid_api = action->property("vid_api").toInt();
+        RendererStack::Renderer newVidApi = RendererStack::Renderer::Software;
         switch (vid_api)
         {
         case 0:
-            ui->stackedWidget->switchRenderer(RendererStack::Renderer::Software);
+            newVidApi = RendererStack::Renderer::Software;
             break;
         case 1:
-            ui->stackedWidget->switchRenderer(RendererStack::Renderer::OpenGL);
+            newVidApi = (RendererStack::Renderer::OpenGL);
             break;
         case 2:
-            ui->stackedWidget->switchRenderer(RendererStack::Renderer::OpenGLES);
+            newVidApi = (RendererStack::Renderer::OpenGLES);
             break;
         case 3:
-            ui->stackedWidget->switchRenderer(RendererStack::Renderer::OpenGL3);
+            newVidApi = (RendererStack::Renderer::OpenGL3);
             break;
         case 4:
-            ui->stackedWidget->switchRenderer(RendererStack::Renderer::Vulkan);
+            newVidApi = (RendererStack::Renderer::Vulkan);
             break;
         case 5:
-            ui->stackedWidget->switchRenderer(RendererStack::Renderer::Direct3D9);
+            newVidApi = (RendererStack::Renderer::Direct3D9);
             break;
         }
+        ui->stackedWidget->switchRenderer(newVidApi);
+        if (secondaryRenderer) secondaryRenderer->switchRenderer(newVidApi);
     });
 
     connect(ui->stackedWidget, &RendererStack::rendererChanged, [this]() {
@@ -442,6 +460,7 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->actionTake_screenshot->setShortcutVisibleInContextMenu(true);
 #endif
     video_setblit(qt_blit);
+    video_setblit_secondary(qt_blit_secondary);
 
     if (start_in_fullscreen) {
         connect(ui->stackedWidget, &RendererStack::blitToRenderer, this, [this] () {
@@ -493,6 +512,52 @@ MainWindow::MainWindow(QWidget *parent) :
     }
 #endif
 
+    connect(this, &MainWindow::setEnableSecondaryOutput, this, [this] (int enable)
+    {
+        if (!enable) {
+            if (secondaryRenderer) {
+                if (window_remember) {
+                    window_w_2 = secondaryRenderer->width();
+                    window_h_2 = secondaryRenderer->height();
+                    if (!QApplication::platformName().contains("wayland")) {
+                        window_x_2 = secondaryRenderer->geometry().x();
+                        window_y_2 = secondaryRenderer->geometry().y();
+                    }
+                }
+                secondaryRenderer.release()->deleteLater();
+            }
+            ui->actionTake_screenshot_second_monitor->setVisible(false);
+            return;
+        }
+        secondaryRenderer.reset(new RendererStack(nullptr, true));
+        if (secondaryRenderer) {
+            connect(this, &MainWindow::pollMouse, secondaryRenderer.get(), &RendererStack::mousePoll, Qt::DirectConnection);
+            connect(secondaryRenderer.get(), &RendererStack::rendererChanged, this, [this]
+            {
+                secondaryRenderer->show();
+            });
+            secondaryRenderer->setWindowFlags(Qt::CustomizeWindowHint | Qt::WindowTitleHint);
+            secondaryRenderer->setWindowTitle(QObject::tr("86Box Monitor #2"));
+            if (window_remember) {
+                secondaryRenderer->setGeometry(window_x_2, window_y_2, window_w_2, window_h_2);
+            }
+            if (vid_resize == 2) {
+                secondaryRenderer->setFixedSize(fixed_size_x, fixed_size_y);
+            }
+            secondaryRenderer->show();
+            secondaryRenderer->switchRenderer((RendererStack::Renderer)vid_api);
+            secondaryRenderer->setWindowIcon(this->windowIcon());
+            ui->actionTake_screenshot_second_monitor->setVisible(true);
+
+            video_force_resize_set(1);
+            video_force_resize_set_secondary(1);
+        }
+    }, Qt::DirectConnection);
+    connect(this, &MainWindow::setEnableSecondaryOutputForNonQtThread, this, [this] (int enable)
+    {
+        this->setEnableSecondaryOutput(enable);
+    }, Qt::BlockingQueuedConnection);
+
     setContextMenuPolicy(Qt::PreventContextMenu);
 }
 
@@ -526,6 +591,14 @@ void MainWindow::closeEvent(QCloseEvent *event) {
             window_x = this->geometry().x();
             window_y = this->geometry().y();
         }
+        if (secondaryRenderer) {
+            window_w_2 = secondaryRenderer->width();
+            window_h_2 = secondaryRenderer->height();
+            if (!QApplication::platformName().contains("wayland")) {
+                window_x_2 = secondaryRenderer->geometry().x();
+                window_y_2 = secondaryRenderer->geometry().y();
+            }
+        }
     }
     qt_nvr_save();
     config_save();
@@ -533,6 +606,7 @@ void MainWindow::closeEvent(QCloseEvent *event) {
     if (ui->stackedWidget->mouse_exit_func)
         ui->stackedWidget->mouse_exit_func();
 
+    if (secondaryRenderer) secondaryRenderer->close();
     ui->stackedWidget->switchRenderer(RendererStack::Renderer::Software);
     QApplication::processEvents();
     event->accept();
@@ -1433,9 +1507,11 @@ bool MainWindow::eventFilter(QObject* receiver, QEvent* event)
         if (event->type() == QEvent::WindowBlocked) {
             curdopause = dopause;
             plat_pause(1);
+            if (secondaryRenderer) secondaryRenderer->setEnabled(false);
             emit setMouseCapture(false);
         } else if (event->type() == QEvent::WindowUnblocked) {
             plat_pause(curdopause);
+            if (secondaryRenderer) secondaryRenderer->setEnabled(true);
         }
     }
 
@@ -1492,6 +1568,14 @@ void MainWindow::blitToWidget(int x, int y, int w, int h)
     ui->stackedWidget->blit(x, y, w, h);
 }
 
+void MainWindow::blitToSecondaryWidget(int x, int y, int w, int h)
+{
+    if (secondaryRenderer) {
+        secondaryRenderer->blit(x, y, w, h);
+    }
+    else video_blit_complete_secondary();
+}
+
 void MainWindow::keyReleaseEvent(QKeyEvent* event)
 {
     if (!send_keyboard_input)
@@ -1528,13 +1612,27 @@ void MainWindow::on_actionResizable_window_triggered(bool checked) {
         setWindowFlag(Qt::WindowMaximizeButtonHint);
         setWindowFlag(Qt::MSWindowsFixedSizeDialogHint, false);
         setFixedSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
+        if (secondaryRenderer) {
+            secondaryRenderer->setWindowFlag(Qt::WindowMaximizeButtonHint);
+            secondaryRenderer->setWindowFlag(Qt::MSWindowsFixedSizeDialogHint, false);
+            secondaryRenderer->setFixedSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
+        }
     } else {
         vid_resize = 0;
         setWindowFlag(Qt::WindowMaximizeButtonHint, false);
         setWindowFlag(Qt::MSWindowsFixedSizeDialogHint);
+        if (secondaryRenderer) {
+            secondaryRenderer->setWindowFlag(Qt::WindowMaximizeButtonHint, false);
+            secondaryRenderer->setWindowFlag(Qt::MSWindowsFixedSizeDialogHint);
+            //secondaryRenderer->setFixedSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
+        }
     }
     show();
     ui->stackedWidget->switchRenderer((RendererStack::Renderer)vid_api);
+    if (secondaryRenderer) {
+        secondaryRenderer->show();
+        secondaryRenderer->switchRenderer((RendererStack::Renderer)vid_api);
+    }
 
     ui->menuWindow_scale_factor->setEnabled(! checked);
     emit resizeContents(scrnsz_x, scrnsz_y);
@@ -1565,7 +1663,9 @@ static void update_scaled_checkboxes(Ui::MainWindow* ui, QAction* selected) {
     reset_screen_size();
     device_force_redraw();
     video_force_resize_set(1);
+    video_force_resize_set_secondary(1);
     atomic_flag_clear(&doresize);
+    atomic_flag_clear(&doresize_2);
     config_save();
 }
 
@@ -1745,6 +1845,7 @@ void MainWindow::on_actionChange_contrast_for_monochrome_display_triggered() {
 void MainWindow::on_actionForce_4_3_display_ratio_triggered() {
     video_toggle_option(ui->actionForce_4_3_display_ratio, &force_43);
     video_force_resize_set(1);
+    video_force_resize_set_secondary(1);
 }
 
 void MainWindow::on_actionRemember_size_and_position_triggered()
@@ -1884,8 +1985,11 @@ void MainWindow::on_actionRenderer_options_triggered()
 {
     auto dlg = ui->stackedWidget->getOptions(this);
 
-    if (dlg)
-        dlg->exec();
+    if (dlg) {
+        if (dlg->exec() && secondaryRenderer) {
+            secondaryRenderer->switchRenderer((RendererStack::Renderer)vid_api);
+        }
+    }
 }
 
 void MainWindow::on_actionMCA_devices_triggered()
@@ -1894,5 +1998,11 @@ void MainWindow::on_actionMCA_devices_triggered()
 
     if (dlg)
         dlg->exec();
+}
+
+
+void MainWindow::on_actionTake_screenshot_second_monitor_triggered()
+{
+    screenshots_2++;
 }
 

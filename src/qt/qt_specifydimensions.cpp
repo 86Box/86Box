@@ -20,9 +20,12 @@
 #include "qt_mainwindow.hpp"
 #include "ui_qt_mainwindow.h"
 
+#include "qt_util.hpp"
+
 #include <QStatusBar>
 #include <QMenuBar>
 #include <QTimer>
+#include <QScreen>
 
 extern "C"
 {
@@ -71,6 +74,13 @@ void SpecifyDimensions::on_SpecifyDimensions_accepted()
         emit main_window->updateMenuResizeOptions();
         main_window->show();
         main_window->ui->stackedWidget->switchRenderer((RendererStack::Renderer)vid_api);
+        if (main_window->secondaryRenderer) {
+            main_window->secondaryRenderer->setWindowFlag(Qt::WindowMaximizeButtonHint, false);
+            main_window->secondaryRenderer->setWindowFlag(Qt::MSWindowsFixedSizeDialogHint);
+            main_window->secondaryRenderer->setFixedSize(fixed_size_x, fixed_size_y);
+            main_window->secondaryRenderer->show();
+            main_window->secondaryRenderer->switchRenderer((RendererStack::Renderer)vid_api);
+        }
     }
     else
     {
@@ -81,8 +91,18 @@ void SpecifyDimensions::on_SpecifyDimensions_accepted()
         window_remember = 1;
         window_w = ui->spinBoxWidth->value();
         window_h = ui->spinBoxHeight->value();
+        main_window->setWindowFlag(Qt::WindowMaximizeButtonHint);
+        main_window->setWindowFlag(Qt::MSWindowsFixedSizeDialogHint, false);
         main_window->setFixedSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
-        emit main_window->resizeContents(ui->spinBoxWidth->value(), ui->spinBoxHeight->value());
+        auto w = ui->spinBoxWidth->value() / (!dpi_scale ? util::screenOfWidget(this)->devicePixelRatio() : 1.);
+        auto h = ui->spinBoxHeight->value() / (!dpi_scale ? util::screenOfWidget(this)->devicePixelRatio() : 1.)
+                + main_window->menuBar()->height()
+                + (main_window->statusBar()->height() * !hide_status_bar)
+                + (main_window->ui->toolBar->height() * !hide_tool_bar);
+        main_window->resize(w, h);
+        if (main_window->secondaryRenderer) {
+            emit main_window->resizeContentsSecondary(ui->spinBoxWidth->value(), ui->spinBoxHeight->value());
+        }
         vid_resize = 1;
         emit main_window->updateMenuResizeOptions();
     }

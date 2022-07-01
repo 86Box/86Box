@@ -203,6 +203,7 @@ void HardwareRenderer::resizeEvent(QResizeEvent *event) {
     onResize(width(), height());
 
     QOpenGLWindow::resizeEvent(event);
+    setMaximumSize(parentWidget->size());
 }
 
 bool HardwareRenderer::event(QEvent *event)

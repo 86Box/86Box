@@ -82,6 +82,8 @@ extern char	vm_name[1024];			/* (O) display name of the VM */
 
 extern int	window_w, window_h,		/* (C) window size and */
 		window_x, window_y,		/*     position info */
+        window_w_2, window_h_2,
+        window_x_2, window_y_2,
 		window_remember,
 		vid_resize,			/* (C) allow resizing */
 		invert_display,			/* (C) invert the display */
@@ -100,7 +102,8 @@ extern int	vid_cga_contrast,		/* (C) video */
 		video_filter_method,		/* (C) video */
 		video_vsync,			/* (C) video */
 		video_framerate,		/* (C) video */
-		gfxcard;			/* (C) graphics/video card */
+        gfxcard,			/* (C) graphics/video card */
+        herc_enabled;       /* (C) secondary Hercules card */
 extern char	video_shader[512];		/* (C) video */
 extern int	serial_enabled[],		/* (C) enable serial ports */
 		bugger_enabled,			/* (C) enable ISAbugger */
@@ -142,8 +145,10 @@ extern char	cfg_path[1024];			/* full path of config file */
 extern FILE	*stdlog;			/* file to log output to */
 #endif
 extern int	scrnsz_x,			/* current screen size, X */
-		scrnsz_y;			/* current screen size, Y */
-extern int	efscrnsz_y;
+        scrnsz_y,               /* current screen size, Y */
+        scrnsz_x_2,
+        scrnsz_y_2;
+extern int	efscrnsz_y, efscrnsz_y_2;
 extern int	config_changed;			/* config has changed */
 
 
@@ -156,6 +161,7 @@ extern void	pclog_toggle_suppr(void);
 extern void	pclog(const char *fmt, ...);
 extern void	fatal(const char *fmt, ...);
 extern void	set_screen_size(int x, int y);
+extern void set_screen_size_secondary(int x, int y);
 extern void	reset_screen_size(void);
 extern void	set_screen_size_natural(void);
 extern void update_mouse_msg();
