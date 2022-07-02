@@ -28,6 +28,7 @@
 #include <86box/86box.h>
 #include <86box/config.h>
 #include <86box/plat.h>
+#include <86box/video.h>
 #include <86box/sound.h>
 #include <86box/win.h>
 
