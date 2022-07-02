@@ -141,9 +141,6 @@ extern char	cfg_path[1024];			/* full path of config file */
 #ifndef USE_NEW_DYNAREC
 extern FILE	*stdlog;			/* file to log output to */
 #endif
-extern int	scrnsz_x,			/* current screen size, X */
-		scrnsz_y;			/* current screen size, Y */
-extern int	efscrnsz_y;
 extern int	config_changed;			/* config has changed */
 
 

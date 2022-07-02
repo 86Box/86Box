@@ -90,9 +90,6 @@ extern char	emu_version[200];		/* version ID string */
 extern int	rctrl_is_lalt;
 extern int	update_icons;
 
-extern int	unscaled_size_x,		/* current unscaled size X */
-		unscaled_size_y;		/* current unscaled size Y */
-
 extern int	kbd_req_capture, hide_status_bar, hide_tool_bar;
 
 /* System-related functions. */

@@ -119,7 +119,7 @@ static BMessageFilter* filter;
 #endif
 
 extern void qt_mouse_capture(int);
-extern "C" void qt_blit(int x, int y, int w, int h);
+extern "C" void qt_blit(int x, int y, int w, int h, int monitor_index);
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),

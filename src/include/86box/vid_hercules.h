@@ -51,6 +51,7 @@ typedef struct {
     int		vadj;
 
     int		lp_ff;
+    int		fullchange;
 
     int		cols[256][2][2];
 

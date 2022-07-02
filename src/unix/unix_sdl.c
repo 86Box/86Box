@@ -128,7 +128,7 @@ sdl_stretch(int *w, int *h, int *x, int *y)
 
 
 void
-sdl_blit_shim(int x, int y, int w, int h)
+sdl_blit_shim(int x, int y, int w, int h, int monitor_index)
 {
     params.x = x;
     params.y = y;

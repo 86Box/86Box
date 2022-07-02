@@ -830,7 +830,7 @@ static void s3_virge_recalctimings(svga_t *svga)
 
                 svga->overlay.x = virge->streams.sec_x - virge->streams.pri_x;
                 svga->overlay.y = virge->streams.sec_y - virge->streams.pri_y;
-                svga->overlay.ysize = virge->streams.sec_h;
+                svga->overlay.cur_ysize = virge->streams.sec_h;
 
                 if (virge->streams.buffer_ctrl & 2)
                         svga->overlay.addr = virge->streams.sec_fb1;
@@ -3958,7 +3958,7 @@ static void *s3_virge_init(const device_t *info)
                    s3_virge_in, s3_virge_out,
                    s3_virge_hwcursor_draw,
                    s3_virge_overlay_draw);
-	virge->svga.hwcursor.ysize = 64;
+    virge->svga.hwcursor.cur_ysize = 64;
 
 	if (info->local == S3_VIRGE_GX2)
 		rom_init(&virge->bios_rom, (char *) bios_fn, 0xc0000, 0x10000, 0xffff, 0, MEM_MAPPING_EXTERNAL);

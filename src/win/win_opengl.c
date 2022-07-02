@@ -871,7 +871,7 @@ static void opengl_main(void* param)
 	CoUninitialize();
 }
 
-static void opengl_blit(int x, int y, int w, int h)
+static void opengl_blit(int x, int y, int w, int h, int monitor_index)
 {
 	int row;
 

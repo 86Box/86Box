@@ -636,7 +636,7 @@ ibm_rgb528_ramdac_out(uint16_t addr, int rs2, uint8_t val, void *p, svga_t *svga
 						break;
 				}
 				svga->dac_hwcursor.addr = ramdac->smlc_part;
-				svga->dac_hwcursor.xsize = svga->dac_hwcursor.ysize = (val & 0x04) ? 64 : 32;
+                svga->dac_hwcursor.cur_xsize = svga->dac_hwcursor.cur_ysize = (val & 0x04) ? 64 : 32;
 				svga->dac_hwcursor.ena = ((val & 0x03) != 0x00);
 				break;
 			case 0x031:
@@ -681,14 +681,14 @@ ibm_rgb528_ramdac_out(uint16_t addr, int rs2, uint8_t val, void *p, svga_t *svga
 				}
 				break;
 			case 0x035:
-				if (svga->dac_hwcursor.xsize == 64)
+                if (svga->dac_hwcursor.cur_xsize == 64)
 					ramdac->cursor_hotspot_x = (val & 0x3f);
 				else
 					ramdac->cursor_hotspot_x = (val & 0x1f);
 				svga->dac_hwcursor.x = ((int) ramdac->hwc_x) - ramdac->cursor_hotspot_x;
 				break;
 			case 0x036:
-				if (svga->dac_hwcursor.xsize == 64)
+                if (svga->dac_hwcursor.cur_xsize == 64)
 					ramdac->cursor_hotspot_y = (val & 0x3f);
 				else
 					ramdac->cursor_hotspot_y = (val & 0x1f);
@@ -852,7 +852,7 @@ ibm_rgb528_hwcursor_draw(svga_t *svga, int displine)
     /* The planes come in one part, and each plane is 2bpp,
        so a 32x32 cursor has 8 bytes per line, and a 64x64
        cursor has 16 bytes per line. */
-    pitch = (svga->dac_hwcursor_latch.xsize >> 2);			/* Bytes per line. */
+    pitch = (svga->dac_hwcursor_latch.cur_xsize >> 2);			/* Bytes per line. */
 
     if ((ramdac->indexed_data[0x071] & 0x20) && svga->dac_hwcursor_oddeven)
 	svga->dac_hwcursor_latch.addr += pitch;
@@ -861,7 +861,7 @@ ibm_rgb528_hwcursor_draw(svga_t *svga, int displine)
     x_pos = offset + svga->x_add;
     p = buffer32->line[y_pos];
 
-    for (x = 0; x < svga->dac_hwcursor_latch.xsize; x++) {
+    for (x = 0; x < svga->dac_hwcursor_latch.cur_xsize; x++) {
 	if (!(x & 3))
 		four_pixels = ramdac->indexed_data[svga->dac_hwcursor_latch.addr];
 

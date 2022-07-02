@@ -92,7 +92,7 @@ hercules_out(uint16_t addr, uint8_t val, void *priv)
 
 		if (old != val) {
 			if ((dev->crtcreg < 0xe) || (dev->crtcreg > 0x10)) {
-				fullchange = changeframecount;
+                dev->fullchange = changeframecount;
 				recalc_timings(dev);
 			}
 		}

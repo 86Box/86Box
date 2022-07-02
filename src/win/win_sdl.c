@@ -229,7 +229,7 @@ sdl_stretch(int *w, int *h, int *x, int *y)
 
 
 static void
-sdl_blit(int x, int y, int w, int h)
+sdl_blit(int x, int y, int w, int h, int monitor_index)
 {
     SDL_Rect r_src;
     int ret;
@@ -269,7 +269,7 @@ sdl_blit(int x, int y, int w, int h)
 
 
 static void
-sdl_blit_ex(int x, int y, int w, int h)
+sdl_blit_ex(int x, int y, int w, int h, int monitor_index)
 {
     SDL_Rect r_src;
     void *pixeldata;

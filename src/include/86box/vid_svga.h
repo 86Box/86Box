@@ -35,7 +35,7 @@
 
 typedef struct {
     int ena,
-	x, y, xoff, yoff, xsize, ysize,
+    x, y, xoff, yoff, cur_xsize, cur_ysize,
 	v_acc, h_acc;
     uint32_t addr, pitch;
 } hwcursor_t;

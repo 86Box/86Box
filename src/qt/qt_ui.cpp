@@ -55,7 +55,7 @@ wchar_t* ui_window_title(wchar_t* str)
     return str;
 }
 
-extern "C" void qt_blit(int x, int y, int w, int h)
+extern "C" void qt_blit(int x, int y, int w, int h, int monitor_index)
 {
     main_window->blitToWidget(x, y, w, h);
 }

@@ -119,6 +119,7 @@ typedef struct {
 		cursoron,
 		cgablink;
     int	vsynctime;
+    int fullchange;
     int		vadj;
     uint16_t	ma, maback;
     int		dispon;
@@ -242,7 +243,7 @@ vid_out_1512(uint16_t addr, uint8_t val, void *priv)
 		vid->crtc[vid->crtcreg] = val & crtc_mask[vid->crtcreg];
 		if (old != val) {
 			if (vid->crtcreg < 0xe || vid->crtcreg > 0x10) {
-				fullchange = changeframecount;
+                vid->fullchange = changeframecount;
 				recalc_timings_1512(vid);
 			}
 		}
@@ -1113,7 +1114,7 @@ vid_out_200(uint16_t addr, uint8_t val, void *priv)
 		mda->crtc[mda->crtcreg] = val & crtc_mask[mda->crtcreg];
 		if (old != val) {
 			if (mda->crtcreg < 0xe || mda->crtcreg > 0x10) {
-				fullchange = changeframecount;
+                vid->fullchange = changeframecount;
 				mda_recalctimings(mda);
 			}
 		}
@@ -1145,7 +1146,7 @@ vid_out_200(uint16_t addr, uint8_t val, void *priv)
 		cga->crtc[cga->crtcreg] = val & crtc_mask[cga->crtcreg];
 		if (old != val) {
 			if (cga->crtcreg < 0xe || cga->crtcreg > 0x10) {
-				fullchange = changeframecount;
+                vid->fullchange = changeframecount;
 				cga_recalctimings(cga);
 			}
 		}

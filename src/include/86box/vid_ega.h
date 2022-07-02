@@ -46,14 +46,14 @@ typedef struct ega_t {
 	readmode, writemode, readplane, vrammask,
 	chain4, chain2_read, chain2_write, con,
 	oddeven_page, oddeven_chain, vc, sc,
-	dispon, hdisp_on, cursoron, blink,
+    dispon, hdisp_on, cursoron, blink, fullchange,
 	linepos, vslines, linecountff, oddeven,
 	lowres, interlace, linedbl, lindebl, rowcount,
 	vtotal, dispend, vsyncstart, split,
 	hdisp,  hdisp_old, htotal, hdisp_time, rowoffset,
 	vblankstart, scrollcache, firstline, lastline,
 	firstline_draw, lastline_draw, x_add, y_add,
-	displine, video_res_x, video_res_y, video_bpp, index;
+    displine, res_x, res_y, bpp, index;
 
     uint32_t charseta, charsetb, ma_latch, ma,
 	     maback, ca, vram_limit, overscan_color;
