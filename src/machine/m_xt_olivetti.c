@@ -721,7 +721,7 @@ m24_read(uint16_t port, void *priv)
 			ret |= ((fdd_count - 1) << 6);
 
 		/* Switches 5, 6 - monitor type */
-		if (video_is_ega_vga())
+		if (video_is_mda())
 			ret |= 0x30;
 		else if (video_is_cga())
 			ret |= 0x20;	/* 0x10 would be 40x25 */
