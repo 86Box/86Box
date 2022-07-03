@@ -64,6 +64,7 @@ typedef struct xga_t
     uint8_t pal_b, pal_b_prefetch;
     uint8_t sprite_data[1024];
     uint8_t scrollcache;
+    uint8_t direct_color;
     uint8_t *vram, *changedvram;
 
     int16_t hwc_pos_x;
@@ -92,6 +93,7 @@ typedef struct xga_t
     int op_mode_reset, linear_endian_reverse;
     int sprite_pos, sprite_pos_prefetch, cursor_data_on;
     int pal_test;
+    int type, bus;
 
     uint32_t linear_base, linear_size, banked_mask;
     uint32_t base_addr_1mb;
