@@ -23,7 +23,7 @@ class RendererStack : public QStackedWidget {
     Q_OBJECT
 
 public:
-    explicit RendererStack(QWidget *parent = nullptr);
+    explicit RendererStack(QWidget *parent = nullptr, int monitor_index = 0);
     ~RendererStack();
 
     void mousePressEvent(QMouseEvent *event) override;
@@ -87,16 +87,11 @@ private:
 
     Ui::RendererStack *ui;
 
-    struct mouseinputdata {
-        int deltax, deltay, deltaz;
-        int mousebuttons;
-    };
-    mouseinputdata mousedata;
-
     int x, y, w, h, sx, sy, sw, sh;
 
     int currentBuf  = 0;
     int isMouseDown = 0;
+    int m_monitor_index = 0;
 
     std::vector<std::tuple<uint8_t *, std::atomic_flag *>> imagebufs;
 

@@ -139,7 +139,7 @@ MainWindow::MainWindow(QWidget *parent) :
     statusBar()->setVisible(!hide_status_bar);
     statusBar()->setStyleSheet("QStatusBar::item {border: None; } QStatusBar QLabel { margin-right: 2px; margin-bottom: 1px; }");
     ui->toolBar->setVisible(!hide_tool_bar);
-
+    renderers[0].reset(nullptr);
     auto toolbar_spacer = new QWidget();
     toolbar_spacer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
     ui->toolBar->addWidget(toolbar_spacer);
@@ -494,6 +494,11 @@ MainWindow::MainWindow(QWidget *parent) :
 #endif
 
     setContextMenuPolicy(Qt::PreventContextMenu);
+
+    connect(this, &MainWindow::initRendererMonitor, this, &MainWindow::initRendererMonitorSlot);
+    connect(this, &MainWindow::initRendererMonitorForNonQtThread, this, &MainWindow::initRendererMonitorSlot, Qt::BlockingQueuedConnection);
+    connect(this, &MainWindow::destroyRendererMonitor, this, &MainWindow::destroyRendererMonitorSlot);
+    connect(this, &MainWindow::destroyRendererMonitorForNonQtThread, this, &MainWindow::destroyRendererMonitorSlot, Qt::BlockingQueuedConnection);
 }
 
 void MainWindow::closeEvent(QCloseEvent *event) {
@@ -534,8 +539,39 @@ void MainWindow::closeEvent(QCloseEvent *event) {
         ui->stackedWidget->mouse_exit_func();
 
     ui->stackedWidget->switchRenderer(RendererStack::Renderer::Software);
+    for (int i = 1; i < MONITORS_NUM; i++) {
+        if (renderers[i]) renderers[i]->close();
+    }
     QApplication::processEvents();
     event->accept();
+}
+
+void MainWindow::initRendererMonitorSlot(int monitor_index)
+{
+    auto& secondaryRenderer = this->renderers[monitor_index];
+    secondaryRenderer.reset(new RendererStack(nullptr, monitor_index));
+    if (secondaryRenderer) {
+        connect(this, &MainWindow::pollMouse, secondaryRenderer.get(), &RendererStack::mousePoll, Qt::DirectConnection);
+        connect(secondaryRenderer.get(), &RendererStack::rendererChanged, this, [this, monitor_index]
+        {
+            this->renderers[monitor_index]->show();
+        });
+        secondaryRenderer->setWindowFlags(Qt::CustomizeWindowHint | Qt::WindowTitleHint);
+        secondaryRenderer->setWindowTitle(QObject::tr("86Box Monitor #") + QString::number(monitor_index + 1));
+        if (vid_resize == 2) {
+            secondaryRenderer->setFixedSize(fixed_size_x, fixed_size_y);
+        }
+        secondaryRenderer->show();
+        secondaryRenderer->switchRenderer((RendererStack::Renderer)vid_api);
+        secondaryRenderer->setWindowIcon(this->windowIcon());
+    }
+}
+
+void MainWindow::destroyRendererMonitorSlot(int monitor_index)
+{
+    if (this->renderers[monitor_index]) {
+        this->renderers[monitor_index].release()->deleteLater();
+    }
 }
 
 MainWindow::~MainWindow() {
@@ -554,15 +590,15 @@ void MainWindow::showEvent(QShowEvent *event) {
             + (hide_status_bar ? 0 : statusBar()->height())
             + (hide_tool_bar ? 0 : ui->toolBar->height()));
 
-        scrnsz_x = fixed_size_x;
-        scrnsz_y = fixed_size_y;
+        monitors[0].mon_scrnsz_x = fixed_size_x;
+        monitors[0].mon_scrnsz_y = fixed_size_y;
     }
     else if (window_remember && vid_resize == 1) {
         ui->stackedWidget->setFixedSize(window_w, window_h);
         adjustSize();
         ui->stackedWidget->setFixedSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
-        scrnsz_x = window_w;
-        scrnsz_y = window_h;
+        monitors[0].mon_scrnsz_x = window_w;
+        monitors[0].mon_scrnsz_y = window_h;
     }
 }
 
@@ -1360,7 +1396,7 @@ void MainWindow::on_actionFullscreen_triggered() {
                 + (!hide_status_bar ? statusBar()->height() : 0)
                 + (!hide_tool_bar ? ui->toolBar->height() : 0));
 
-            emit resizeContents(scrnsz_x, scrnsz_y);
+            emit resizeContents(monitors[0].mon_scrnsz_x, monitors[0].mon_scrnsz_y);
         }
     } else {
         if (video_fullscreen_first)
@@ -1487,9 +1523,13 @@ void MainWindow::keyPressEvent(QKeyEvent* event)
     event->accept();
 }
 
-void MainWindow::blitToWidget(int x, int y, int w, int h)
+void MainWindow::blitToWidget(int x, int y, int w, int h, int monitor_index)
 {
-    ui->stackedWidget->blit(x, y, w, h);
+    if (monitor_index >= 1) {
+        if (renderers[monitor_index]) renderers[monitor_index]->blit(x, y, w, h);
+        else video_blit_complete_monitor(monitor_index);
+    }
+    else ui->stackedWidget->blit(x, y, w, h);
 }
 
 void MainWindow::keyReleaseEvent(QKeyEvent* event)
@@ -1537,7 +1577,7 @@ void MainWindow::on_actionResizable_window_triggered(bool checked) {
     ui->stackedWidget->switchRenderer((RendererStack::Renderer)vid_api);
 
     ui->menuWindow_scale_factor->setEnabled(! checked);
-    emit resizeContents(scrnsz_x, scrnsz_y);
+    emit resizeContents(monitors[0].mon_scrnsz_x, monitors[0].mon_scrnsz_y);
 }
 
 static void
@@ -1770,7 +1810,7 @@ void MainWindow::on_actionHiDPI_scaling_triggered()
 {
     dpi_scale ^= 1;
     ui->actionHiDPI_scaling->setChecked(dpi_scale);
-    emit resizeContents(scrnsz_x, scrnsz_y);
+    emit resizeContents(monitors[0].mon_scrnsz_x, monitors[0].mon_scrnsz_y);
 }
 
 void MainWindow::on_actionHide_status_bar_triggered()
@@ -1786,7 +1826,7 @@ void MainWindow::on_actionHide_status_bar_triggered()
     } else {
         int vid_resize_orig = vid_resize;
         vid_resize = 0;
-        emit resizeContents(scrnsz_x, scrnsz_y);
+        emit resizeContents(monitors[0].mon_scrnsz_x, monitors[0].mon_scrnsz_y);
         vid_resize = vid_resize_orig;
     }
 }
@@ -1804,7 +1844,7 @@ void MainWindow::on_actionHide_tool_bar_triggered()
     } else {
         int vid_resize_orig = vid_resize;
         vid_resize = 0;
-        emit resizeContents(scrnsz_x, scrnsz_y);
+        emit resizeContents(monitors[0].mon_scrnsz_x, monitors[0].mon_scrnsz_y);
         vid_resize = vid_resize_orig;
     }
 }

@@ -275,6 +275,10 @@ vid_table_log(const char *fmt, ...)
 void
 video_reset_close(void)
 {
+    for (int i = 1; i < MONITORS_NUM; i++)
+        video_monitor_close(i);
+
+    monitor_index_global = 0;
     video_inform(VIDEO_FLAG_TYPE_NONE, &timing_default);
     was_reset = 0;
 }
@@ -321,6 +325,7 @@ video_reset(int card)
     vid_table_log("VIDEO: reset (gfxcard=%d, internal=%d)\n",
           card, machine_has_flags(machine, MACHINE_VIDEO) ? 1 : 0);
 
+    monitor_index_global = 0;
     loadfont("roms/video/mda/mda.rom", 0);
 
     /* Do not initialize internal cards here. */
@@ -332,6 +337,13 @@ video_reset(int card)
 
     /* Initialize the video card. */
     device_add(video_cards[card].device);
+
+    if (herc_enabled) {
+        video_monitor_init(1);
+        monitor_index_global = 1;
+        device_add(&hercules_device);
+        monitor_index_global = 0;
+    }
     }
 
     /* Enable the Voodoo if configured. */

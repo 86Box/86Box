@@ -117,7 +117,7 @@ extern char	*plat_vidapi_name(int api);
 extern int	plat_setvid(int api);
 extern void	plat_vidsize(int x, int y);
 extern void	plat_setfullscreen(int on);
-extern void	plat_resize(int x, int y);
+extern void	plat_resize_monitor(int x, int y, int monitor_index);
 extern void	plat_vidapi_enable(int enabled);
 extern void	plat_vidapi_reload(void);
 extern void	plat_vid_reload_options(void);

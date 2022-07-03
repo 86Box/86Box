@@ -126,6 +126,7 @@ typedef struct monitor_t
 #define MONITORS_NUM 8
 extern monitor_t monitors[MONITORS_NUM];
 extern int monitor_index_global;
+extern int herc_enabled;
 
 typedef rgb_t PALETTE[256];
 
@@ -239,6 +240,8 @@ extern void	cgapal_rebuild(void);
 extern void	hline(bitmap_t *b, int x1, int y, int x2, uint32_t col);
 extern void	updatewindowsize(int x, int y);
 
+extern void video_monitor_init(int);
+extern void video_monitor_close(int);
 extern void	video_init(void);
 extern void	video_close(void);
 extern void	video_reset_close(void);

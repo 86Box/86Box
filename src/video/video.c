@@ -68,6 +68,7 @@
 #include <86box/timer.h>
 #include <86box/path.h>
 #include <86box/plat.h>
+#include <86box/ui.h>
 #include <86box/thread.h>
 #include <86box/video.h>
 #include <86box/vid_svga.h>
@@ -101,6 +102,7 @@ static uint32_t cga_2_table[16];
 static uint8_t	thread_run = 0;
 monitor_t monitors[MONITORS_NUM];
 int monitor_index_global = 0;
+int herc_enabled = 0;
 
 #ifdef _WIN32
 void * __cdecl	(*video_copy)(void *_Dst, const void *_Src, size_t _Size) = memcpy;
@@ -926,8 +928,10 @@ video_monitor_init(int index)
     monitors[index].mon_blit_data_ptr->blit_complete = thread_create_event();
     monitors[index].mon_blit_data_ptr->buffer_not_in_use = thread_create_event();
     monitors[index].mon_blit_data_ptr->thread_run = 1;
+    monitors[index].mon_blit_data_ptr->monitor_index = index;
     monitors[index].mon_pal_lookup = calloc(sizeof(uint32_t), 256);
     monitors[index].mon_cga_palette = calloc(1, sizeof(int));
+    if (index >= 1) ui_init_monitor(index);
     thread_create(blit_thread, monitors[index].mon_blit_data_ptr);
 }
 
@@ -938,6 +942,7 @@ video_monitor_close(int monitor_index)
     monitors[monitor_index].mon_blit_data_ptr->thread_run = 0;
     thread_set_event(monitors[monitor_index].mon_blit_data_ptr->wake_blit_thread);
     thread_wait(monitors[monitor_index].mon_blit_data_ptr->blit_thread);
+    if (monitor_index >= 1) ui_deinit_monitor(monitor_index);
     thread_destroy_event(monitors[monitor_index].mon_blit_data_ptr->buffer_not_in_use);
     thread_destroy_event(monitors[monitor_index].mon_blit_data_ptr->blit_complete);
     thread_destroy_event(monitors[monitor_index].mon_blit_data_ptr->wake_blit_thread);

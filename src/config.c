@@ -932,6 +932,7 @@ load_video(void)
     voodoo_enabled = !!config_get_int(cat, "voodoo", 0);
     ibm8514_enabled = !!config_get_int(cat, "8514a", 0);
     xga_enabled = !!config_get_int(cat, "xga", 0);
+    herc_enabled = !!config_get_int(cat, "herc_enabled", 0);
 }
 
 
@@ -2479,6 +2480,11 @@ save_video(void)
 	config_delete_var(cat, "xga");
       else
 	config_set_int(cat, "xga", xga_enabled);
+
+    if (herc_enabled == 0)
+    config_delete_var(cat, "herc_enabled");
+    else
+    config_set_int(cat, "herc_enabled", herc_enabled);
 
     delete_section_if_empty(cat);
 }

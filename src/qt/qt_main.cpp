@@ -126,14 +126,16 @@ main_thread_fn()
         /* If needed, handle a screen resize. */
         if (!atomic_flag_test_and_set(&doresize) && !video_fullscreen && !is_quit) {
             if (vid_resize & 2)
-                plat_resize(fixed_size_x, fixed_size_y);
+                plat_resize_monitor(fixed_size_x, fixed_size_y, 0);
             else
-                plat_resize(scrnsz_x, scrnsz_y);
+                plat_resize_monitor(scrnsz_x, scrnsz_y, 0);
         }
     }
 
     is_quit = 1;
 }
+
+static std::thread* main_thread;
 
 int main(int argc, char* argv[]) {
 #if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
@@ -258,7 +260,7 @@ int main(int argc, char* argv[]) {
         main_window->installEventFilter(&socket);
         socket.connectToServer(qgetenv("86BOX_MANAGER_SOCKET"));
     }
-    pc_reset_hard_init();
+    //pc_reset_hard_init();
 
     /* Set the PAUSE mode depending on the renderer. */
     // plat_pause(0);
@@ -284,13 +286,15 @@ int main(int argc, char* argv[]) {
     }
 
     /* Initialize the rendering window, or fullscreen. */
-    auto main_thread = std::thread([] {
-       main_thread_fn();
+    QTimer::singleShot(0, &app, []
+    {
+        pc_reset_hard_init();
+        main_thread = new std::thread(main_thread_fn);
     });
 
     auto ret = app.exec();
     cpu_thread_run = 0;
-    main_thread.join();
+    main_thread->join();
 
     socket.close();
     return ret;
