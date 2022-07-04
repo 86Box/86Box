@@ -224,7 +224,7 @@ MainWindow::MainWindow(QWidget *parent) :
     });
 
     connect(this, &MainWindow::resizeContents, this, [this](int w, int h) {
-        if (!QApplication::platformName().contains("eglfs") && vid_resize == 0) {
+        if (!QApplication::platformName().contains("eglfs") && vid_resize != 1) {
             w = (w / (!dpi_scale ? util::screenOfWidget(this)->devicePixelRatio() : 1.));
 
             int modifiedHeight = (h / (!dpi_scale ? util::screenOfWidget(this)->devicePixelRatio() : 1.))
@@ -234,6 +234,17 @@ MainWindow::MainWindow(QWidget *parent) :
 
             ui->stackedWidget->resize(w, h);
             setFixedSize(w, modifiedHeight);
+        }
+    });
+
+    connect(this, &MainWindow::resizeContentsMonitor, this, [this](int w, int h, int monitor_index)
+    {
+        if (!QApplication::platformName().contains("eglfs") && vid_resize != 1) {
+            w = (w / (!dpi_scale ? util::screenOfWidget(renderers[monitor_index].get())->devicePixelRatio() : 1.));
+
+            int modifiedHeight = (h / (!dpi_scale ? util::screenOfWidget(renderers[monitor_index].get())->devicePixelRatio() : 1.));
+
+            renderers[monitor_index]->setFixedSize(w, modifiedHeight);
         }
     });
 
@@ -1605,7 +1616,8 @@ static void update_scaled_checkboxes(Ui::MainWindow* ui, QAction* selected) {
     reset_screen_size();
     device_force_redraw();
     video_force_resize_set(1);
-    atomic_flag_clear(&doresize);
+    for (int i = 0; i < MONITORS_NUM; i++)
+        atomic_flag_clear(&doresize_monitors[i]);
     config_save();
 }
 

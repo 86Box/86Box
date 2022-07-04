@@ -77,7 +77,6 @@ extern "C" {
 /* Global variables residing in the platform module. */
 extern int	dopause,			/* system is paused */
 		mouse_capture;			/* mouse is captured in app */
-extern atomic_flag_t doresize;			/* screen resize requested */
 extern volatile int	is_quit;				/* system exit requested */
 
 #ifdef MTR_ENABLED

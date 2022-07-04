@@ -1284,10 +1284,10 @@ set_screen_size(int x, int y)
 	dty = (double)temp_overscan_y;
 
 	/* Account for possible overscan. */
-	if (!(video_is_ega_vga()) && (temp_overscan_y == 16)) {
+	if (video_get_type_monitor(monitor_index_global) != VIDEO_FLAG_TYPE_SPECIAL && (temp_overscan_y == 16)) {
 		/* CGA */
 		dy = (((dx - dtx) / 4.0) * 3.0) + dty;
-	} else if (!(video_is_ega_vga()) && (temp_overscan_y < 16)) {
+	} else if (video_get_type_monitor(monitor_index_global) != VIDEO_FLAG_TYPE_SPECIAL && (temp_overscan_y < 16)) {
 		/* MDA/Hercules */
 		dy = (x / 4.0) * 3.0;
 	} else {
@@ -1327,7 +1327,7 @@ set_screen_size(int x, int y)
 
     /* If the resolution has changed, let the main thread handle it. */
     if ((owsx != scrnsz_x) || (owsy != scrnsz_y))
-		atomic_flag_clear(&doresize);
+		atomic_flag_clear(&doresize_monitors[monitor_index_global]);
 }
 
 

@@ -48,6 +48,7 @@
  *		Copyright 2008-2019 Sarah Walker.
  *		Copyright 2016-2019 Miran Grca.
  */
+#include <stdatomic.h>
 #define PNG_DEBUG 0
 #include <png.h>
 #include <stdarg.h>
@@ -101,6 +102,17 @@ static const video_timings_t	*vid_timings;
 static uint32_t cga_2_table[16];
 static uint8_t	thread_run = 0;
 monitor_t monitors[MONITORS_NUM];
+atomic_flag doresize_monitors[MONITORS_NUM] =
+{
+    [0] = ATOMIC_FLAG_INIT,
+    [1] = ATOMIC_FLAG_INIT,
+    [2] = ATOMIC_FLAG_INIT,
+    [3] = ATOMIC_FLAG_INIT,
+    [4] = ATOMIC_FLAG_INIT,
+    [5] = ATOMIC_FLAG_INIT,
+    [6] = ATOMIC_FLAG_INIT,
+    [7] = ATOMIC_FLAG_INIT
+};
 int monitor_index_global = 0;
 int herc_enabled = 0;
 
@@ -922,7 +934,6 @@ video_monitor_init(int index)
     monitors[index].mon_bpp = 8;
     monitors[index].mon_changeframecount = 2;
     monitors[index].target_buffer = create_bitmap(2048, 2048);
-    atomic_init(&monitors[index].mon_doresize, 0);
     monitors[index].mon_blit_data_ptr = calloc(1, sizeof(struct blit_data_struct));
     monitors[index].mon_blit_data_ptr->wake_blit_thread = thread_create_event();
     monitors[index].mon_blit_data_ptr->blit_complete = thread_create_event();

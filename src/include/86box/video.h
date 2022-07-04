@@ -24,7 +24,7 @@
 
 #ifdef __cplusplus
 #include <atomic>
-using atomic_bool = std::atomic_bool;
+using atomic_flag = std::atomic_flag;
 #else
 #include <stdatomic.h>
 #endif
@@ -112,7 +112,6 @@ typedef struct monitor_t
     int mon_force_resize;
     int mon_fullchange;
     int mon_changeframecount;
-    atomic_bool mon_doresize;
     int mon_screenshots;
     uint32_t* mon_pal_lookup;
     int* mon_cga_palette;
@@ -125,6 +124,7 @@ typedef struct monitor_t
 
 #define MONITORS_NUM 8
 extern monitor_t monitors[MONITORS_NUM];
+extern atomic_flag doresize_monitors[MONITORS_NUM];
 extern int monitor_index_global;
 extern int herc_enabled;
 

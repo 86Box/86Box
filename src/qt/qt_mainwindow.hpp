@@ -33,6 +33,7 @@ public:
 signals:
     void paint(const QImage& image);
     void resizeContents(int w, int h);
+    void resizeContentsMonitor(int w, int h, int monitor_index);
     void pollMouse();
     void statusBarMessage(const QString& msg);
     void updateStatusBarPanes();

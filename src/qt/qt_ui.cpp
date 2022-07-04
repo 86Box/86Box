@@ -65,7 +65,8 @@ void mouse_poll() {
 }
 
 void plat_resize_monitor(int w, int h, int monitor_index) {
-    main_window->resizeContents(w, h);
+    if (monitor_index >= 1) main_window->resizeContentsMonitor(w, h, monitor_index);
+    else main_window->resizeContents(w, h);
 }
 
 void plat_setfullscreen(int on) {

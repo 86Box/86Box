@@ -122,14 +122,6 @@ main_thread_fn()
             /* Just so we dont overload the host OS. */
             std::this_thread::sleep_for(std::chrono::milliseconds(1));
         }
-
-        /* If needed, handle a screen resize. */
-        if (!atomic_flag_test_and_set(&doresize) && !video_fullscreen && !is_quit) {
-            if (vid_resize & 2)
-                plat_resize_monitor(fixed_size_x, fixed_size_y, 0);
-            else
-                plat_resize_monitor(scrnsz_x, scrnsz_y, 0);
-        }
     }
 
     is_quit = 1;
@@ -291,6 +283,22 @@ int main(int argc, char* argv[]) {
         pc_reset_hard_init();
         main_thread = new std::thread(main_thread_fn);
     });
+
+    QTimer resizeTimer;
+    resizeTimer.setInterval(0);
+    resizeTimer.callOnTimeout([]()
+    {
+        /* If needed, handle a screen resize. */
+        for (int i = 0; i < MONITORS_NUM; i++) {
+            if (!atomic_flag_test_and_set(&doresize_monitors[i]) && !video_fullscreen && !is_quit) {
+                if (vid_resize & 2)
+                    plat_resize_monitor(fixed_size_x, fixed_size_y, i);
+                else
+                    plat_resize_monitor(monitors[i].mon_scrnsz_x, monitors[i].mon_scrnsz_y, i);
+            }
+        }
+    });
+    resizeTimer.start();
 
     auto ret = app.exec();
     cpu_thread_run = 0;
