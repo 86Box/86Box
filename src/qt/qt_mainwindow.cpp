@@ -315,26 +315,31 @@ MainWindow::MainWindow(QWidget *parent) :
 
     connect(actGroup, &QActionGroup::triggered, [this](QAction* action) {
         vid_api = action->property("vid_api").toInt();
+        RendererStack::Renderer newVidApi = RendererStack::Renderer::Software;
         switch (vid_api)
         {
         case 0:
-            ui->stackedWidget->switchRenderer(RendererStack::Renderer::Software);
+            newVidApi = RendererStack::Renderer::Software;
             break;
         case 1:
-            ui->stackedWidget->switchRenderer(RendererStack::Renderer::OpenGL);
+            newVidApi = (RendererStack::Renderer::OpenGL);
             break;
         case 2:
-            ui->stackedWidget->switchRenderer(RendererStack::Renderer::OpenGLES);
+            newVidApi = (RendererStack::Renderer::OpenGLES);
             break;
         case 3:
-            ui->stackedWidget->switchRenderer(RendererStack::Renderer::OpenGL3);
+            newVidApi = (RendererStack::Renderer::OpenGL3);
             break;
         case 4:
-            ui->stackedWidget->switchRenderer(RendererStack::Renderer::Vulkan);
+            newVidApi = (RendererStack::Renderer::Vulkan);
             break;
         case 5:
-            ui->stackedWidget->switchRenderer(RendererStack::Renderer::Direct3D9);
+            newVidApi = (RendererStack::Renderer::Direct3D9);
             break;
+        }
+        ui->stackedWidget->switchRenderer(newVidApi);
+        for (int i = 1; i < MONITORS_NUM; i++) {
+            if (renderers[i]) renderers[i]->switchRenderer(newVidApi);
         }
     });
 
@@ -1579,16 +1584,36 @@ void MainWindow::on_actionResizable_window_triggered(bool checked) {
         setWindowFlag(Qt::WindowMaximizeButtonHint);
         setWindowFlag(Qt::MSWindowsFixedSizeDialogHint, false);
         setFixedSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
+        for (int i = 1; i < MONITORS_NUM; i++) {
+            if (monitors[i].target_buffer) {
+                renderers[i]->setWindowFlag(Qt::WindowMaximizeButtonHint);
+                renderers[i]->setWindowFlag(Qt::MSWindowsFixedSizeDialogHint, false);
+                renderers[i]->setFixedSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
+            }
+        }
     } else {
         vid_resize = 0;
         setWindowFlag(Qt::WindowMaximizeButtonHint, false);
         setWindowFlag(Qt::MSWindowsFixedSizeDialogHint);
+        for (int i = 1; i < MONITORS_NUM; i++) {
+            if (monitors[i].target_buffer) {
+                renderers[i]->setWindowFlag(Qt::WindowMaximizeButtonHint);
+                renderers[i]->setWindowFlag(Qt::MSWindowsFixedSizeDialogHint, false);
+                emit resizeContentsMonitor(monitors[i].mon_scrnsz_x, monitors[i].mon_scrnsz_y, i);
+            }
+        }
     }
     show();
-    ui->stackedWidget->switchRenderer((RendererStack::Renderer)vid_api);
-
     ui->menuWindow_scale_factor->setEnabled(! checked);
     emit resizeContents(monitors[0].mon_scrnsz_x, monitors[0].mon_scrnsz_y);
+    ui->stackedWidget->switchRenderer((RendererStack::Renderer)vid_api);
+    for (int i = 1; i < MONITORS_NUM; i++) {
+        if (monitors[i].target_buffer) {
+            renderers[i]->show();
+            renderers[i]->switchRenderer((RendererStack::Renderer)vid_api);
+            QApplication::processEvents();
+        }
+    }
 }
 
 static void
@@ -1601,6 +1626,9 @@ video_toggle_option(QAction* action, int *val)
     endblit();
     config_save();
     device_force_redraw();
+    for (int i = 0; i < MONITORS_NUM; i++) {
+        if (monitors[i].target_buffer) video_force_resize_set_monitor(1, i);
+    }
 }
 
 void MainWindow::on_actionInverted_VGA_monitor_triggered() {
@@ -1615,9 +1643,9 @@ static void update_scaled_checkboxes(Ui::MainWindow* ui, QAction* selected) {
 
     reset_screen_size();
     device_force_redraw();
-    video_force_resize_set(1);
-    for (int i = 0; i < MONITORS_NUM; i++)
-        if (monitors[i].target_buffer) atomic_flag_clear(&doresize_monitors[i]);
+    for (int i = 0; i < MONITORS_NUM; i++) {
+        if (monitors[i].target_buffer) video_force_resize_set_monitor(1, i);
+    }
     config_save();
 }
 
@@ -1796,7 +1824,6 @@ void MainWindow::on_actionChange_contrast_for_monochrome_display_triggered() {
 
 void MainWindow::on_actionForce_4_3_display_ratio_triggered() {
     video_toggle_option(ui->actionForce_4_3_display_ratio, &force_43);
-    video_force_resize_set(1);
 }
 
 void MainWindow::on_actionRemember_size_and_position_triggered()

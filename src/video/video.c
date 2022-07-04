@@ -943,7 +943,7 @@ video_monitor_init(int index)
     monitors[index].mon_pal_lookup = calloc(sizeof(uint32_t), 256);
     monitors[index].mon_cga_palette = calloc(1, sizeof(int));
     if (index >= 1) ui_init_monitor(index);
-    thread_create(blit_thread, monitors[index].mon_blit_data_ptr);
+    monitors[index].mon_blit_data_ptr->blit_thread = thread_create(blit_thread, monitors[index].mon_blit_data_ptr);
 }
 
 void
@@ -960,6 +960,8 @@ video_monitor_close(int monitor_index)
     free(monitors[monitor_index].mon_blit_data_ptr);
     if (!monitors[monitor_index].mon_pal_lookup_static) free(monitors[monitor_index].mon_pal_lookup);
     if (!monitors[monitor_index].mon_cga_palette_static) free(monitors[monitor_index].mon_cga_palette);
+    destroy_bitmap(monitors[monitor_index].target_buffer);
+    monitors[monitor_index].target_buffer = NULL;
     memset(&monitors[monitor_index], 0, sizeof(monitor_t));
 }
 
