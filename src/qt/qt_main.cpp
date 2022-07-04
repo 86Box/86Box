@@ -290,6 +290,7 @@ int main(int argc, char* argv[]) {
     {
         /* If needed, handle a screen resize. */
         for (int i = 0; i < MONITORS_NUM; i++) {
+            if (!monitors[i].target_buffer) continue;
             if (!atomic_flag_test_and_set(&doresize_monitors[i]) && !video_fullscreen && !is_quit) {
                 if (vid_resize & 2)
                     plat_resize_monitor(fixed_size_x, fixed_size_y, i);

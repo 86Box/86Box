@@ -1617,7 +1617,7 @@ static void update_scaled_checkboxes(Ui::MainWindow* ui, QAction* selected) {
     device_force_redraw();
     video_force_resize_set(1);
     for (int i = 0; i < MONITORS_NUM; i++)
-        atomic_flag_clear(&doresize_monitors[i]);
+        if (monitors[i].target_buffer) atomic_flag_clear(&doresize_monitors[i]);
     config_save();
 }
 
