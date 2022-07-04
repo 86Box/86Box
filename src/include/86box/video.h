@@ -109,6 +109,10 @@ typedef struct monitor_t
             mon_video_timing_write_l;
     int mon_overscan_x;
     int mon_overscan_y;
+    int mon_window_x;
+    int mon_window_y;
+    int mon_window_w;
+    int mon_window_h;
     int mon_force_resize;
     int mon_fullchange;
     int mon_changeframecount;

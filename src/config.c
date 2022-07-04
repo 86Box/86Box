@@ -936,6 +936,37 @@ load_video(void)
 }
 
 
+static void
+load_monitor(int monitor_index)
+{
+    char monitor_config_name[sizeof("Monitor #") + 12] = { [0] = 0 };
+    snprintf(monitor_config_name, sizeof(monitor_config_name), "Monitor #%i", monitor_index + 1);
+
+    char* ptr = config_get_string(monitor_config_name, "window_coordinates", "0, 0, 0, 0");
+    sscanf(ptr, "%i, %i, %i, %i", &monitors[monitor_index].mon_window_x, &monitors[monitor_index].mon_window_y,
+                                  &monitors[monitor_index].mon_window_w, &monitors[monitor_index].mon_window_h);
+}
+
+static void
+save_monitor(int monitor_index)
+{
+    char monitor_config_name[sizeof("Monitor #") + 12] = { [0] = 0 };
+    char saved_coordinates[12 * 4 + 8 + 1] = { [0] = 0 };
+
+    snprintf(monitor_config_name, sizeof(monitor_config_name), "Monitor #%i", monitor_index + 1);
+    if (!(monitors[monitor_index].mon_window_x == 0
+        && monitors[monitor_index].mon_window_y == 0
+        && monitors[monitor_index].mon_window_w == 0
+        && monitors[monitor_index].mon_window_h == 0)) {
+        snprintf(saved_coordinates, sizeof(saved_coordinates), "%i, %i, %i, %i", monitors[monitor_index].mon_window_x, monitors[monitor_index].mon_window_y,
+                                                                                 monitors[monitor_index].mon_window_w, monitors[monitor_index].mon_window_h);
+
+        config_set_string(monitor_config_name, "window_coordinates", saved_coordinates);
+    }
+    else config_delete_var(monitor_config_name, "window_coordinates");
+}
+
+
 /* Load "Input Devices" section. */
 static void
 load_input_devices(void)
