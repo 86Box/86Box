@@ -20,6 +20,8 @@
  *      Copyright 2021-2022 Teemu Korhonen
  *      Copyright 2022 dob205
  */
+#include <QDebug>
+
 #include "qt_mainwindow.hpp"
 #include "ui_qt_mainwindow.h"
 
@@ -576,10 +578,10 @@ void MainWindow::initRendererMonitorSlot(int monitor_index)
         secondaryRenderer->setWindowFlags(Qt::CustomizeWindowHint | Qt::WindowTitleHint);
         secondaryRenderer->setWindowTitle(QObject::tr("86Box Monitor #") + QString::number(monitor_index + 1));
         if (window_remember) {
-            secondaryRenderer->setGeometry(monitor_settings[monitor_index].mon_window_w,
-            monitor_settings[monitor_index].mon_window_h,
-            monitor_settings[monitor_index].mon_window_x,
-            monitor_settings[monitor_index].mon_window_y);
+            secondaryRenderer->setGeometry(monitor_settings[monitor_index].mon_window_x,
+            monitor_settings[monitor_index].mon_window_y,
+            monitor_settings[monitor_index].mon_window_w,
+            monitor_settings[monitor_index].mon_window_h);
         }
         if (vid_resize == 2) {
             secondaryRenderer->setFixedSize(fixed_size_x, fixed_size_y);
