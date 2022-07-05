@@ -583,7 +583,7 @@ void MainWindow::initRendererMonitorSlot(int monitor_index)
         {
             this->renderers[monitor_index]->show();
         });
-        secondaryRenderer->setWindowFlags(Qt::CustomizeWindowHint | Qt::WindowTitleHint);
+        secondaryRenderer->setWindowFlags(Qt::CustomizeWindowHint | Qt::WindowTitleHint | Qt::WindowCloseButtonHint);
         secondaryRenderer->setWindowTitle(QObject::tr("86Box Monitor #") + QString::number(monitor_index + 1));
 
         if (vid_resize == 2) {

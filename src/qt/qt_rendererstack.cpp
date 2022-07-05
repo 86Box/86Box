@@ -443,3 +443,10 @@ RendererStack::blitCommon(int x, int y, int w, int h)
     emit blitToRenderer(currentBuf, sx, sy, sw, sh);
     currentBuf = (currentBuf + 1) % imagebufs.size();
 }
+
+void RendererStack::closeEvent(QCloseEvent* event)
+{
+    event->ignore();
+    main_window->close();
+}
+
