@@ -139,10 +139,6 @@ char	log_path[1024] = { '\0'};		/* (O) full path of logfile */
 char	vm_name[1024]  = { '\0'};		/* (O) display name of the VM */
 
 /* Configuration values. */
-int	window_w;   /* (C) window size and */
-int window_h;   /*     position info */
-int	window_x;
-int window_y;
 int window_remember;
 int vid_resize;			/* (C) allow resizing */
 int invert_display = 0;		/* (C) invert the display */
@@ -1325,9 +1321,7 @@ set_screen_size(int x, int y)
 		break;
     }
 
-    /* If the resolution has changed, let the main thread handle it. */
-    if ((owsx != scrnsz_x) || (owsy != scrnsz_y))
-		atomic_flag_clear(&doresize_monitors[monitor_index_global]);
+    atomic_flag_clear(&doresize_monitors[monitor_index_global]);
 }
 
 

@@ -80,9 +80,11 @@ extern char	log_path[1024];			/* (O) full path of logfile */
 extern char	vm_name[1024];			/* (O) display name of the VM */
 
 
-extern int	window_w, window_h,		/* (C) window size and */
-		window_x, window_y,		/*     position info */
-		window_remember,
+#define window_x monitor_settings[0].mon_window_x
+#define window_y monitor_settings[0].mon_window_y
+#define window_w monitor_settings[0].mon_window_w
+#define window_h monitor_settings[0].mon_window_h
+extern int	window_remember,
 		vid_resize,			/* (C) allow resizing */
 		invert_display,			/* (C) invert the display */
 		suppress_overscan;		/* (C) suppress overscans */

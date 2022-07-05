@@ -109,10 +109,6 @@ typedef struct monitor_t
             mon_video_timing_write_l;
     int mon_overscan_x;
     int mon_overscan_y;
-    int mon_window_x;
-    int mon_window_y;
-    int mon_window_w;
-    int mon_window_h;
     int mon_force_resize;
     int mon_fullchange;
     int mon_changeframecount;
@@ -126,8 +122,16 @@ typedef struct monitor_t
     struct blit_data_struct* mon_blit_data_ptr;
 } monitor_t;
 
+typedef struct monitor_settings_t {
+    int mon_window_x; /* (C) window size and position info. */
+    int mon_window_y;
+    int mon_window_w;
+    int mon_window_h;
+} monitor_settings_t;
+
 #define MONITORS_NUM 8
 extern monitor_t monitors[MONITORS_NUM];
+extern monitor_settings_t monitor_settings[MONITORS_NUM];
 extern atomic_flag doresize_monitors[MONITORS_NUM];
 extern int monitor_index_global;
 extern int herc_enabled;

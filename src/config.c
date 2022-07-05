@@ -552,14 +552,8 @@ load_general(void)
     if (window_remember || (vid_resize & 2)) {
 	if (!window_remember)
 		config_delete_var(cat, "window_remember");
-
-	p = config_get_string(cat, "window_coordinates", NULL);
-	if (p == NULL)
-		p = "0, 0, 0, 0";
-	sscanf(p, "%i, %i, %i, %i", &window_w, &window_h, &window_x, &window_y);
     } else {
 	config_delete_var(cat, "window_remember");
-	config_delete_var(cat, "window_coordinates");
 
 	window_w = window_h = window_x = window_y = 0;
     }
@@ -940,11 +934,19 @@ static void
 load_monitor(int monitor_index)
 {
     char monitor_config_name[sizeof("Monitor #") + 12] = { [0] = 0 };
-    snprintf(monitor_config_name, sizeof(monitor_config_name), "Monitor #%i", monitor_index + 1);
+    char* ptr = NULL;
 
-    char* ptr = config_get_string(monitor_config_name, "window_coordinates", "0, 0, 0, 0");
-    sscanf(ptr, "%i, %i, %i, %i", &monitors[monitor_index].mon_window_x, &monitors[monitor_index].mon_window_y,
-                                  &monitors[monitor_index].mon_window_w, &monitors[monitor_index].mon_window_h);
+	if (monitor_index == 0) {
+		/* Migrate configs */
+		ptr = config_get_string("General", "window_coordinates", "0, 0, 0, 0");
+		
+		config_delete_var("General", "window_coordinates");
+	}
+	if (!ptr) ptr = config_get_string(monitor_config_name, "window_coordinates", "0, 0, 0, 0");
+	snprintf(monitor_config_name, sizeof(monitor_config_name), "Monitor #%i", monitor_index + 1);
+    if (window_remember || (vid_resize & 2)) sscanf(ptr, "%i, %i, %i, %i",
+	&monitor_settings[monitor_index].mon_window_x, &monitor_settings[monitor_index].mon_window_y,
+    &monitor_settings[monitor_index].mon_window_w, &monitor_settings[monitor_index].mon_window_h);
 }
 
 static void
@@ -954,12 +956,12 @@ save_monitor(int monitor_index)
     char saved_coordinates[12 * 4 + 8 + 1] = { [0] = 0 };
 
     snprintf(monitor_config_name, sizeof(monitor_config_name), "Monitor #%i", monitor_index + 1);
-    if (!(monitors[monitor_index].mon_window_x == 0
-        && monitors[monitor_index].mon_window_y == 0
-        && monitors[monitor_index].mon_window_w == 0
-        && monitors[monitor_index].mon_window_h == 0)) {
-        snprintf(saved_coordinates, sizeof(saved_coordinates), "%i, %i, %i, %i", monitors[monitor_index].mon_window_x, monitors[monitor_index].mon_window_y,
-                                                                                 monitors[monitor_index].mon_window_w, monitors[monitor_index].mon_window_h);
+    if (!(monitor_settings[monitor_index].mon_window_x == 0
+        && monitor_settings[monitor_index].mon_window_y == 0
+        && monitor_settings[monitor_index].mon_window_w == 0
+        && monitor_settings[monitor_index].mon_window_h == 0) && (window_remember || (vid_resize & 2))) {
+        snprintf(saved_coordinates, sizeof(saved_coordinates), "%i, %i, %i, %i", monitor_settings[monitor_index].mon_window_x, monitor_settings[monitor_index].mon_window_y,
+                                                                                 monitor_settings[monitor_index].mon_window_w, monitor_settings[monitor_index].mon_window_h);
 
         config_set_string(monitor_config_name, "window_coordinates", saved_coordinates);
     }
@@ -2188,6 +2190,8 @@ config_load(void)
 	config_log("Config file not present or invalid!\n");
     } else {
 	load_general();			/* General */
+	for (i = 0; i < MONITORS_NUM; i++)
+		load_monitor(i);
 	load_machine();			/* Machine */
 	load_video();			/* Video */
 	load_input_devices();		/* Input devices */
@@ -2297,12 +2301,8 @@ save_general(void)
 		config_set_int(cat, "window_remember", window_remember);
 	else
 		config_delete_var(cat, "window_remember");
-
-	sprintf(temp, "%i, %i, %i, %i", window_w, window_h, window_x, window_y);
-	config_set_string(cat, "window_coordinates", temp);
     } else {
 	config_delete_var(cat, "window_remember");
-	config_delete_var(cat, "window_coordinates");
     }
 
     if (vid_resize & 2) {
@@ -3116,7 +3116,11 @@ save_other_removable_devices(void)
 void
 config_save(void)
 {
+	int i;
+
     save_general();			/* General */
+	for (i = 0; i < MONITORS_NUM; i++)
+		save_monitor(i);
     save_machine();			/* Machine */
     save_video();			/* Video */
     save_input_devices();		/* Input devices */

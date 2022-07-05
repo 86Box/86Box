@@ -240,6 +240,7 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(this, &MainWindow::resizeContentsMonitor, this, [this](int w, int h, int monitor_index)
     {
         if (!QApplication::platformName().contains("eglfs") && vid_resize != 1) {
+            qDebug() << "Resize";
             w = (w / (!dpi_scale ? util::screenOfWidget(renderers[monitor_index].get())->devicePixelRatio() : 1.));
 
             int modifiedHeight = (h / (!dpi_scale ? util::screenOfWidget(renderers[monitor_index].get())->devicePixelRatio() : 1.));
@@ -574,6 +575,12 @@ void MainWindow::initRendererMonitorSlot(int monitor_index)
         });
         secondaryRenderer->setWindowFlags(Qt::CustomizeWindowHint | Qt::WindowTitleHint);
         secondaryRenderer->setWindowTitle(QObject::tr("86Box Monitor #") + QString::number(monitor_index + 1));
+        if (window_remember) {
+            secondaryRenderer->setGeometry(monitor_settings[monitor_index].mon_window_w,
+            monitor_settings[monitor_index].mon_window_h,
+            monitor_settings[monitor_index].mon_window_x,
+            monitor_settings[monitor_index].mon_window_y);
+        }
         if (vid_resize == 2) {
             secondaryRenderer->setFixedSize(fixed_size_x, fixed_size_y);
         }
@@ -586,6 +593,13 @@ void MainWindow::initRendererMonitorSlot(int monitor_index)
 void MainWindow::destroyRendererMonitorSlot(int monitor_index)
 {
     if (this->renderers[monitor_index]) {
+        if (window_remember) {
+            monitor_settings[monitor_index].mon_window_w = renderers[monitor_index]->geometry().width();
+            monitor_settings[monitor_index].mon_window_h = renderers[monitor_index]->geometry().height();
+            monitor_settings[monitor_index].mon_window_x = renderers[monitor_index]->geometry().x();
+            monitor_settings[monitor_index].mon_window_y = renderers[monitor_index]->geometry().y();
+        }
+        config_save();
         this->renderers[monitor_index].release()->deleteLater();
     }
 }

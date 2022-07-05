@@ -102,6 +102,7 @@ static const video_timings_t	*vid_timings;
 static uint32_t cga_2_table[16];
 static uint8_t	thread_run = 0;
 monitor_t monitors[MONITORS_NUM];
+monitor_settings_t monitor_settings[MONITORS_NUM];
 atomic_flag doresize_monitors[MONITORS_NUM] =
 {
     [0] = ATOMIC_FLAG_INIT,
@@ -942,6 +943,8 @@ video_monitor_init(int index)
     monitors[index].mon_blit_data_ptr->monitor_index = index;
     monitors[index].mon_pal_lookup = calloc(sizeof(uint32_t), 256);
     monitors[index].mon_cga_palette = calloc(1, sizeof(int));
+    monitors[index].mon_force_resize = 1;
+    monitors[index].mon_vid_type = VIDEO_FLAG_TYPE_NONE;
     if (index >= 1) ui_init_monitor(index);
     monitors[index].mon_blit_data_ptr->blit_thread = thread_create(blit_thread, monitors[index].mon_blit_data_ptr);
 }
