@@ -550,18 +550,26 @@ void MainWindow::closeEvent(QCloseEvent *event) {
             window_x = this->geometry().x();
             window_y = this->geometry().y();
         }
+        for (int i = 1; i < MONITORS_NUM; i++) {
+            if (renderers[i]) {
+                monitor_settings[i].mon_window_w = renderers[i]->geometry().width();
+                monitor_settings[i].mon_window_h = renderers[i]->geometry().height();
+                if (!QApplication::platformName().contains("wayland")) continue;
+                monitor_settings[i].mon_window_x = renderers[i]->geometry().x();
+                monitor_settings[i].mon_window_y = renderers[i]->geometry().y();
+            }
+        }
     }
-    qt_nvr_save();
-    config_save();
 
     if (ui->stackedWidget->mouse_exit_func)
         ui->stackedWidget->mouse_exit_func();
 
     ui->stackedWidget->switchRenderer(RendererStack::Renderer::Software);
-    for (int i = 1; i < MONITORS_NUM; i++) {
-        if (renderers[i]) renderers[i]->close();
-    }
+
+    qt_nvr_save();
+    config_save();
     QApplication::processEvents();
+    cpu_thread_run = 0;
     event->accept();
 }
 
@@ -577,16 +585,17 @@ void MainWindow::initRendererMonitorSlot(int monitor_index)
         });
         secondaryRenderer->setWindowFlags(Qt::CustomizeWindowHint | Qt::WindowTitleHint);
         secondaryRenderer->setWindowTitle(QObject::tr("86Box Monitor #") + QString::number(monitor_index + 1));
-        if (window_remember) {
-            secondaryRenderer->setGeometry(monitor_settings[monitor_index].mon_window_x,
-            monitor_settings[monitor_index].mon_window_y,
-            monitor_settings[monitor_index].mon_window_w,
-            monitor_settings[monitor_index].mon_window_h);
-        }
+
         if (vid_resize == 2) {
             secondaryRenderer->setFixedSize(fixed_size_x, fixed_size_y);
         }
         secondaryRenderer->show();
+        if (window_remember) {
+            secondaryRenderer->setGeometry(monitor_settings[monitor_index].mon_window_x < 120 ? 120 : monitor_settings[monitor_index].mon_window_x,
+            monitor_settings[monitor_index].mon_window_y < 120 ? 120 : monitor_settings[monitor_index].mon_window_y,
+            monitor_settings[monitor_index].mon_window_w > 2048 ? 2048 : monitor_settings[monitor_index].mon_window_w,
+            monitor_settings[monitor_index].mon_window_h > 2048 ? 2048 : monitor_settings[monitor_index].mon_window_h);
+        }
         secondaryRenderer->switchRenderer((RendererStack::Renderer)vid_api);
         secondaryRenderer->setWindowIcon(this->windowIcon());
     }
@@ -614,6 +623,7 @@ void MainWindow::showEvent(QShowEvent *event) {
     if (shownonce) return;
     shownonce = true;
     if (window_remember && !QApplication::platformName().contains("wayland")) {
+        fprintf(stderr, "Geom: %i, %i, %i, %i\n", window_x, window_y, window_w, window_h);
         setGeometry(window_x, window_y, window_w, window_h + menuBar()->height() + (hide_status_bar ? 0 : statusBar()->height()) + (hide_tool_bar ? 0 : ui->toolBar->height()));
     }
     if (vid_resize == 2) {
@@ -624,13 +634,6 @@ void MainWindow::showEvent(QShowEvent *event) {
 
         monitors[0].mon_scrnsz_x = fixed_size_x;
         monitors[0].mon_scrnsz_y = fixed_size_y;
-    }
-    else if (window_remember && vid_resize == 1) {
-        ui->stackedWidget->setFixedSize(window_w, window_h);
-        adjustSize();
-        ui->stackedWidget->setFixedSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
-        monitors[0].mon_scrnsz_x = window_w;
-        monitors[0].mon_scrnsz_y = window_h;
     }
 }
 
@@ -1603,7 +1606,6 @@ void MainWindow::on_actionResizable_window_triggered(bool checked) {
         for (int i = 1; i < MONITORS_NUM; i++) {
             if (monitors[i].target_buffer) {
                 renderers[i]->setWindowFlag(Qt::WindowMaximizeButtonHint);
-                renderers[i]->setWindowFlag(Qt::MSWindowsFixedSizeDialogHint, false);
                 renderers[i]->setFixedSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
             }
         }
@@ -1613,8 +1615,7 @@ void MainWindow::on_actionResizable_window_triggered(bool checked) {
         setWindowFlag(Qt::MSWindowsFixedSizeDialogHint);
         for (int i = 1; i < MONITORS_NUM; i++) {
             if (monitors[i].target_buffer) {
-                renderers[i]->setWindowFlag(Qt::WindowMaximizeButtonHint);
-                renderers[i]->setWindowFlag(Qt::MSWindowsFixedSizeDialogHint, false);
+                renderers[i]->setWindowFlag(Qt::WindowMaximizeButtonHint, false);
                 emit resizeContentsMonitor(monitors[i].mon_scrnsz_x, monitors[i].mon_scrnsz_y, i);
             }
         }
@@ -1850,6 +1851,14 @@ void MainWindow::on_actionRemember_size_and_position_triggered()
     if (!QApplication::platformName().contains("wayland")) {
         window_x = geometry().x();
         window_y = geometry().y();
+    }
+    for (int i = 1; i < MONITORS_NUM; i++) {
+        if (window_remember && renderers[i]) {
+            monitor_settings[i].mon_window_w = renderers[i]->geometry().width();
+            monitor_settings[i].mon_window_h = renderers[i]->geometry().height();
+            monitor_settings[i].mon_window_x = renderers[i]->geometry().x();
+            monitor_settings[i].mon_window_y = renderers[i]->geometry().y();
+        }
     }
     ui->actionRemember_size_and_position->setChecked(window_remember);
 }

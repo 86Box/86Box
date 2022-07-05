@@ -298,12 +298,17 @@ int main(int argc, char* argv[]) {
                     plat_resize_monitor(monitors[i].mon_scrnsz_x, monitors[i].mon_scrnsz_y, i);
             }
         }
+
+        if (is_quit) {
+            QApplication::quit();
+        }
     });
     resizeTimer.start();
 
     auto ret = app.exec();
     cpu_thread_run = 0;
     main_thread->join();
+    pc_close(nullptr);
 
     socket.close();
     return ret;

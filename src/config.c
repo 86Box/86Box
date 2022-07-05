@@ -938,12 +938,12 @@ load_monitor(int monitor_index)
 
 	if (monitor_index == 0) {
 		/* Migrate configs */
-		ptr = config_get_string("General", "window_coordinates", "0, 0, 0, 0");
+        ptr = config_get_string("General", "window_coordinates", NULL);
 		
 		config_delete_var("General", "window_coordinates");
 	}
-	if (!ptr) ptr = config_get_string(monitor_config_name, "window_coordinates", "0, 0, 0, 0");
-	snprintf(monitor_config_name, sizeof(monitor_config_name), "Monitor #%i", monitor_index + 1);
+    snprintf(monitor_config_name, sizeof(monitor_config_name), "Monitor #%i", monitor_index + 1);
+    if (!ptr) ptr = config_get_string(monitor_config_name, "window_coordinates", "0, 0, 0, 0");
     if (window_remember || (vid_resize & 2)) sscanf(ptr, "%i, %i, %i, %i",
 	&monitor_settings[monitor_index].mon_window_x, &monitor_settings[monitor_index].mon_window_y,
     &monitor_settings[monitor_index].mon_window_w, &monitor_settings[monitor_index].mon_window_h);
