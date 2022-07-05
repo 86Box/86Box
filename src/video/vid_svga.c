@@ -1076,7 +1076,7 @@ svga_write_common(uint32_t addr, uint8_t val, uint8_t linear, void *p)
 
     if (!linear) {
 	if (xga_enabled) {
-        if (((svga->xga.op_mode & 7) == 4) && (svga->xga.aperture_cntl == 1)) {
+        if (((svga->xga.op_mode & 7) >= 4) && (svga->xga.aperture_cntl == 1)) {
             if (val == 0xa5) { /*Memory size test of XGA*/
                 svga->xga.test = val;
                 return;
@@ -1086,7 +1086,7 @@ svga_write_common(uint32_t addr, uint8_t val, uint8_t linear, void *p)
             } else if (val == 0x12 || val == 0x34) {
                 addr += svga->xga.write_bank;
                 svga->xga.vram[addr & svga->xga.vram_mask] = val;
-                svga->xga.op_mode_reset = 1;
+                svga->xga.linear_endian_reverse = 1;
                 return;
             }
         } else
@@ -1277,7 +1277,7 @@ svga_read_common(uint32_t addr, uint8_t linear, void *p)
 
     if (!linear) {
 	if (xga_enabled) {
-        if (((svga->xga.op_mode & 7) == 4) && (svga->xga.aperture_cntl == 1)) {
+        if (((svga->xga.op_mode & 7) >= 4) && (svga->xga.aperture_cntl == 1)) {
             if (svga->xga.test == 0xa5) { /*Memory size test of XGA*/
                 svga->xga.on = 1;
                 return svga->xga.test;

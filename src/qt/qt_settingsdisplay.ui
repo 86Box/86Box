@@ -70,6 +70,13 @@
      </property>
     </widget>
    </item>
+   <item row="3" column="2">
+    <widget class="QPushButton" name="pushButtonConfigureXga">
+     <property name="text">
+      <string>Configure</string>
+     </property>
+    </widget>
+   </item>
    <item row="3" column="0" colspan="2">
     <widget class="QCheckBox" name="checkBoxXga">
      <property name="text">
