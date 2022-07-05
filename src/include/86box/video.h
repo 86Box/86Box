@@ -24,7 +24,7 @@
 
 #ifdef __cplusplus
 #include <atomic>
-using atomic_flag = std::atomic_flag;
+using atomic_bool = std::atomic_bool;
 #else
 #include <stdatomic.h>
 #endif
@@ -132,7 +132,7 @@ typedef struct monitor_settings_t {
 #define MONITORS_NUM 8
 extern monitor_t monitors[MONITORS_NUM];
 extern monitor_settings_t monitor_settings[MONITORS_NUM];
-extern atomic_flag doresize_monitors[MONITORS_NUM];
+extern atomic_bool doresize_monitors[MONITORS_NUM];
 extern int monitor_index_global;
 extern int herc_enabled;
 

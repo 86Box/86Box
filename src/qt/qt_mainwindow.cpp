@@ -1875,6 +1875,9 @@ void MainWindow::on_actionHiDPI_scaling_triggered()
     dpi_scale ^= 1;
     ui->actionHiDPI_scaling->setChecked(dpi_scale);
     emit resizeContents(monitors[0].mon_scrnsz_x, monitors[0].mon_scrnsz_y);
+    for (int i = 1; i < MONITORS_NUM; i++) {
+        if (renderers[i]) emit resizeContentsMonitor(monitors[i].mon_scrnsz_x, monitors[i].mon_scrnsz_y, i);
+    }
 }
 
 void MainWindow::on_actionHide_status_bar_triggered()

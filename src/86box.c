@@ -1321,7 +1321,7 @@ set_screen_size(int x, int y)
 		break;
     }
 
-    atomic_flag_clear(&doresize_monitors[monitor_index_global]);
+    atomic_store(&doresize_monitors[monitor_index_global], 1);
 }
 
 

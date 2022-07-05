@@ -103,17 +103,7 @@ static uint32_t cga_2_table[16];
 static uint8_t	thread_run = 0;
 monitor_t monitors[MONITORS_NUM];
 monitor_settings_t monitor_settings[MONITORS_NUM];
-atomic_flag doresize_monitors[MONITORS_NUM] =
-{
-    [0] = ATOMIC_FLAG_INIT,
-    [1] = ATOMIC_FLAG_INIT,
-    [2] = ATOMIC_FLAG_INIT,
-    [3] = ATOMIC_FLAG_INIT,
-    [4] = ATOMIC_FLAG_INIT,
-    [5] = ATOMIC_FLAG_INIT,
-    [6] = ATOMIC_FLAG_INIT,
-    [7] = ATOMIC_FLAG_INIT
-};
+atomic_bool doresize_monitors[MONITORS_NUM];
 int monitor_index_global = 0;
 int herc_enabled = 0;
 
@@ -945,6 +935,7 @@ video_monitor_init(int index)
     monitors[index].mon_cga_palette = calloc(1, sizeof(int));
     monitors[index].mon_force_resize = 1;
     monitors[index].mon_vid_type = VIDEO_FLAG_TYPE_NONE;
+    atomic_init(&doresize_monitors[index], 0);
     if (index >= 1) ui_init_monitor(index);
     monitors[index].mon_blit_data_ptr->blit_thread = thread_create(blit_thread, monitors[index].mon_blit_data_ptr);
 }
