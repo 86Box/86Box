@@ -40,6 +40,7 @@
 
 typedef struct {
     const device_t    *device;
+    int flags;
 } VIDEO_CARD;
 
 
@@ -293,16 +294,18 @@ video_prepare(void)
     fontdatksc5601 = NULL;
     }
 
-    /* Reset the CGA palette. */
-    cga_palette = 0;
-    cgapal_rebuild();
-
     /* Reset the blend. */
     herc_blend = 0;
 
-    /* Do an inform on the default values, so that that there's some sane values initialized
-       even if the device init function does not do an inform of its own. */
-    video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_default);
+    for (int i = 0; i < MONITORS_NUM; i++) {
+        /* Reset the CGA palette. */
+        monitors[i].mon_cga_palette = 0;
+        cgapal_rebuild_monitor(i);
+
+        /* Do an inform on the default values, so that that there's some sane values initialized
+           even if the device init function does not do an inform of its own. */
+        video_inform_monitor(VIDEO_FLAG_TYPE_SPECIAL, &timing_default, i);
+    }
 }
 
 

@@ -223,6 +223,7 @@ extern int 	video_is_mda(void);
 extern int 	video_is_cga(void);
 extern int 	video_is_ega_vga(void);
 extern void	video_inform(int type, const video_timings_t *ptr);
+extern void	video_inform_monitor(int type, const video_timings_t *ptr, int monitor_index);
 extern int	video_get_type(void);
 extern int	video_get_type_monitor(int monitor_index);
 
