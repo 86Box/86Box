@@ -1247,14 +1247,13 @@ pc_onesec(void)
 	title_update = 1;
 }
 
-
 void
-set_screen_size(int x, int y)
+set_screen_size_monitor(int x, int y, int monitor_index)
 {
-    int owsx = scrnsz_x;
-    int owsy = scrnsz_y;
-    int temp_overscan_x = overscan_x;
-    int temp_overscan_y = overscan_y;
+    int owsx = monitors[monitor_index].mon_scrnsz_x;
+    int owsy = monitors[monitor_index].mon_scrnsz_y;
+    int temp_overscan_x = monitors[monitor_index].mon_overscan_x;
+    int temp_overscan_y = monitors[monitor_index].mon_overscan_y;
     double dx, dy, dtx, dty;
 
     /* Make sure we keep usable values. */
@@ -1267,76 +1266,89 @@ set_screen_size(int x, int y)
     if (y > 2048) y = 2048;
 
     /* Save the new values as "real" (unscaled) resolution. */
-    unscaled_size_x = x;
-    efscrnsz_y = y;
+    monitors[monitor_index].mon_unscaled_size_x = x;
+    monitors[monitor_index].mon_efscrnsz_y = y;
 
     if (suppress_overscan)
-	temp_overscan_x = temp_overscan_y = 0;
+    temp_overscan_x = temp_overscan_y = 0;
 
     if (force_43) {
-	dx = (double)x;
-	dtx = (double)temp_overscan_x;
+    dx = (double)x;
+    dtx = (double)temp_overscan_x;
 
-	dy = (double)y;
-	dty = (double)temp_overscan_y;
+    dy = (double)y;
+    dty = (double)temp_overscan_y;
 
-	/* Account for possible overscan. */
-	if (video_get_type_monitor(monitor_index_global) != VIDEO_FLAG_TYPE_SPECIAL && (temp_overscan_y == 16)) {
-		/* CGA */
-		dy = (((dx - dtx) / 4.0) * 3.0) + dty;
-	} else if (video_get_type_monitor(monitor_index_global) != VIDEO_FLAG_TYPE_SPECIAL && (temp_overscan_y < 16)) {
-		/* MDA/Hercules */
-		dy = (x / 4.0) * 3.0;
-	} else {
-		if (enable_overscan) {
-			/* EGA/(S)VGA with overscan */
-			dy = (((dx - dtx) / 4.0) * 3.0) + dty;
-		} else {
-			/* EGA/(S)VGA without overscan */
-			dy = (x / 4.0) * 3.0;
-		}
-	}
-	unscaled_size_y = (int)dy;
+    /* Account for possible overscan. */
+    if (video_get_type_monitor(monitor_index) != VIDEO_FLAG_TYPE_SPECIAL && (temp_overscan_y == 16)) {
+        /* CGA */
+        dy = (((dx - dtx) / 4.0) * 3.0) + dty;
+    } else if (video_get_type_monitor(monitor_index) != VIDEO_FLAG_TYPE_SPECIAL && (temp_overscan_y < 16)) {
+        /* MDA/Hercules */
+        dy = (x / 4.0) * 3.0;
+    } else {
+        if (enable_overscan) {
+            /* EGA/(S)VGA with overscan */
+            dy = (((dx - dtx) / 4.0) * 3.0) + dty;
+        } else {
+            /* EGA/(S)VGA without overscan */
+            dy = (x / 4.0) * 3.0;
+        }
+    }
+    monitors[monitor_index].mon_unscaled_size_y = (int)dy;
     } else
-	unscaled_size_y = efscrnsz_y;
+    monitors[monitor_index].mon_unscaled_size_y = monitors[monitor_index].mon_efscrnsz_y;
 
     switch(scale) {
-	case 0:		/* 50% */
-		scrnsz_x = (unscaled_size_x>>1);
-		scrnsz_y = (unscaled_size_y>>1);
-		break;
+    case 0:		/* 50% */
+        monitors[monitor_index].mon_scrnsz_x = (monitors[monitor_index].mon_unscaled_size_x>>1);
+        monitors[monitor_index].mon_scrnsz_y = (monitors[monitor_index].mon_unscaled_size_y>>1);
+        break;
 
-	case 1:		/* 100% */
-		scrnsz_x = unscaled_size_x;
-		scrnsz_y = unscaled_size_y;
-		break;
+    case 1:		/* 100% */
+        monitors[monitor_index].mon_scrnsz_x = monitors[monitor_index].mon_unscaled_size_x;
+        monitors[monitor_index].mon_scrnsz_y = monitors[monitor_index].mon_unscaled_size_y;
+        break;
 
-	case 2:		/* 150% */
-		scrnsz_x = ((unscaled_size_x*3)>>1);
-		scrnsz_y = ((unscaled_size_y*3)>>1);
-		break;
+    case 2:		/* 150% */
+        monitors[monitor_index].mon_scrnsz_x = ((monitors[monitor_index].mon_unscaled_size_x*3)>>1);
+        monitors[monitor_index].mon_scrnsz_y = ((monitors[monitor_index].mon_unscaled_size_y*3)>>1);
+        break;
 
-	case 3:		/* 200% */
-		scrnsz_x = (unscaled_size_x<<1);
-		scrnsz_y = (unscaled_size_y<<1);
-		break;
+    case 3:		/* 200% */
+        monitors[monitor_index].mon_scrnsz_x = (monitors[monitor_index].mon_unscaled_size_x<<1);
+        monitors[monitor_index].mon_scrnsz_y = (monitors[monitor_index].mon_unscaled_size_y<<1);
+        break;
     }
 
-    atomic_store(&doresize_monitors[monitor_index_global], 1);
+    atomic_store(&doresize_monitors[monitor_index], 1);
 }
 
+void
+set_screen_size(int x, int y)
+{
+    set_screen_size_monitor(x, y, monitor_index_global);
+}
+
+void
+reset_screen_size_monitor(int monitor_index)
+{
+    set_screen_size(monitors[monitor_index].mon_unscaled_size_x, monitors[monitor_index].mon_efscrnsz_y);
+}
 
 void
 reset_screen_size(void)
 {
-	set_screen_size(unscaled_size_x, efscrnsz_y);
+    for (int i = 0; i < MONITORS_NUM; i++)
+        set_screen_size(monitors[i].mon_unscaled_size_x, monitors[i].mon_efscrnsz_y);
 }
 
 
 void
 set_screen_size_natural(void)
 {
-	set_screen_size(unscaled_size_x, unscaled_size_y);
+    for (int i = 0; i < MONITORS_NUM; i++)
+        set_screen_size(monitors[i].mon_unscaled_size_x, monitors[i].mon_unscaled_size_y);
 }
 
 

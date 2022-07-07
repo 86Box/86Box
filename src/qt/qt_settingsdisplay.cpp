@@ -46,6 +46,7 @@ SettingsDisplay::~SettingsDisplay()
 
 void SettingsDisplay::save() {
     gfxcard = ui->comboBoxVideo->currentData().toInt();
+    gfxcard_2 = ui->comboBoxVideoSecondary->currentData().toInt();
     voodoo_enabled = ui->checkBoxVoodoo->isChecked() ? 1 : 0;
     ibm8514_enabled = ui->checkBox8514->isChecked() ? 1 : 0;
     xga_enabled = ui->checkBoxXga->isChecked() ? 1 : 0;
