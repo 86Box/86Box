@@ -144,9 +144,15 @@ void SettingsDisplay::on_comboBoxVideo_currentIndexChanged(int index) {
     ui->pushButtonConfigureXga->setEnabled((hasIsa16 || has_MCA) && ui->checkBoxXga->isChecked());
 
     int c = 2;
+
     ui->comboBoxVideoSecondary->clear();
     ui->comboBoxVideoSecondary->addItem(QObject::tr("None"), 0);
 
+    // TODO: Implement support for selecting non-MDA secondary cards properly when MDA cards are the primary ones.
+    if (video_card_get_flags(videoCard) == VIDEO_FLAG_TYPE_MDA) {
+        ui->comboBoxVideoSecondary->setCurrentIndex(0);
+        return;
+    }
     while (true) {
         const device_t* video_dev = video_card_getdevice(c);
         QString name = DeviceConfig::DeviceName(video_dev, video_get_internal_name(c), 1);
