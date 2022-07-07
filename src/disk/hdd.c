@@ -340,7 +340,6 @@ hdd_timing_read(hard_disk_t *hdd, uint32_t addr, uint32_t len)
 				uint32_t space_needed = (addr + len) - (segment->lba_addr + cache->segment_size);
 				segment->lba_addr += space_needed;
 			}
-			hit = true;
 			goto update_lru;
 		} else {
 			if (segment->lru > active_seg->lru) {
