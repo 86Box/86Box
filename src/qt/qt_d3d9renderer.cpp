@@ -153,7 +153,7 @@ void D3D9Renderer::blit(int x, int y, int w, int h)
     srcRect.right = source.right();
 
     if (screenshots) {
-        video_screenshot((uint32_t *) &(buffer32->line[y][x]), 0, 0, 2048);
+        video_screenshot_monitor((uint32_t *) &(monitors[m_monitor_index].target_buffer->line[y][x]), 0, 0, 2048, m_monitor_index);
     }
     if (SUCCEEDED(d3d9surface->LockRect(&lockRect, &srcRect, 0))) {
         for (int y1 = 0; y1 < h; y1++) {

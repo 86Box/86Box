@@ -420,7 +420,7 @@ video_take_screenshot_monitor(const char *fn, uint32_t *buf, int start_x, int st
 void
 video_screenshot_monitor(uint32_t *buf, int start_x, int start_y, int row_len, int monitor_index)
 {
-    char path[1024], fn[128];
+    char path[1024], fn[256];
 
     memset(fn, 0, sizeof(fn));
     memset(path, 0, sizeof(path));
@@ -431,6 +431,8 @@ video_screenshot_monitor(uint32_t *buf, int start_x, int start_y, int row_len, i
     plat_dir_create(path);
 
     path_slash(path);
+    strcat(path, "Monitor_");
+    snprintf(&path[strlen(path)], 42, "%d_", monitor_index + 1);
 
     plat_tempfile(fn, NULL, ".png");
     strcat(path, fn);
@@ -446,7 +448,7 @@ video_screenshot_monitor(uint32_t *buf, int start_x, int start_y, int row_len, i
 void
 video_screenshot(uint32_t *buf, int start_x, int start_y, int row_len)
 {
-    video_screenshot_monitor(buf, start_x, start_y, row_len, monitor_index_global);
+    video_screenshot_monitor(buf, start_x, start_y, row_len, 0);
 }
 
 

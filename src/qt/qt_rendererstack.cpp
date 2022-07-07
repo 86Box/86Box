@@ -437,8 +437,8 @@ RendererStack::blitCommon(int x, int y, int w, int h)
         video_copy(scanline, &(monitors[m_monitor_index].target_buffer->line[y1][x]), w * 4);
     }
 
-    if (screenshots) {
-        video_screenshot((uint32_t *) imagebits, x, y, 2048);
+    if (monitors[m_monitor_index].mon_screenshots) {
+        video_screenshot_monitor((uint32_t *) imagebits, x, y, 2048, m_monitor_index);
     }
     video_blit_complete_monitor(m_monitor_index);
     emit blitToRenderer(currentBuf, sx, sy, sw, sh);

@@ -1925,7 +1925,8 @@ void MainWindow::on_actionUpdate_status_bar_icons_triggered()
 void MainWindow::on_actionTake_screenshot_triggered()
 {
     startblit();
-    screenshots++;
+    for (int i = 0; i < MONITORS_NUM; i++)
+        monitors[i].mon_screenshots++;
     endblit();
     device_force_redraw();
 }
