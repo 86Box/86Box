@@ -552,11 +552,12 @@ main_thread(void *param)
 		Sleep(1);
 
 	/* If needed, handle a screen resize. */
-	if (!atomic_flag_test_and_set(&doresize) && !video_fullscreen && !is_quit) {
+	if (atomic_load(&doresize_monitors[0]) && !video_fullscreen && !is_quit) {
 		if (vid_resize & 2)
 			plat_resize(fixed_size_x, fixed_size_y);
 		else
 			plat_resize(scrnsz_x, scrnsz_y);
+		atomic_store(&doresize_monitors[0]);
 	}
     }
 
