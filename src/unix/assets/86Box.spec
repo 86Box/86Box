@@ -12,7 +12,7 @@
 # After a successful build, you can install the RPMs as follows:
 #  sudo dnf install RPMS/$(uname -m)/86Box-3* RPMS/noarch/86Box-roms*
 
-20220523
+%global romver 20220701
 
 Name:		86Box
 Version:	3.6
@@ -120,5 +120,5 @@ popd
 %{_bindir}/roms
 
 %changelog
-* Mon Jun 27 2022 Robert de Rooy <robert.de.rooy[AT]gmail.com> 3.6-1
+* Fri Jul 01 2022 Robert de Rooy <robert.de.rooy[AT]gmail.com> 3.6-1
 - Bump release

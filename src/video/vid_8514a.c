@@ -3438,71 +3438,6 @@ ibm8514_render_overscan_right(ibm8514_t *dev, svga_t *svga)
         buffer32->line[dev->displine + svga->y_add][svga->x_add + dev->h_disp + i] = svga->overscan_color;
 }
 
-static void
-ibm8514_doblit(int wx, int wy, ibm8514_t *dev, svga_t *svga)
-{
-    int y_add, x_add, y_start, x_start, bottom;
-    uint32_t *p;
-    int i, j;
-    int xs_temp, ys_temp;
-
-    y_add = (enable_overscan) ? overscan_y : 0;
-    x_add = (enable_overscan) ? overscan_x : 0;
-    y_start = (enable_overscan) ? 0 : (overscan_y >> 1);
-    x_start = (enable_overscan) ? 0 : (overscan_x >> 1);
-    bottom = (overscan_y >> 1) + (svga->crtc[8] & 0x1f);
-
-    if ((wx <= 0) || (wy <= 0))
-        return;
-
-    xs_temp = wx;
-    ys_temp = wy + 1;
-    if (xs_temp < 64)
-        xs_temp = 640;
-    if (ys_temp < 32)
-        ys_temp = 200;
-
-    if ((svga->crtc[0x17] & 0x80) && ((xs_temp != xsize) || (ys_temp != ysize) || video_force_resize_get())) {
-        /* Screen res has changed.. fix up, and let them know. */
-        xsize = xs_temp;
-        ysize = ys_temp;
-
-        if ((xsize > 1984) || (ysize > 2016)) {
-            /* 2048x2048 is the biggest safe render texture, to account for overscan,
-               we suppress overscan starting from x 1984 and y 2016. */
-            x_add = 0;
-            y_add = 0;
-            suppress_overscan = 1;
-        } else
-            suppress_overscan = 0;
-
-        /* Block resolution changes while in DPMS mode to avoid getting a bogus
-           screen width (320). We're already rendering a blank screen anyway. */
-        set_screen_size(xsize + x_add, ysize + y_add);
-
-        if (video_force_resize_get())
-            video_force_resize_set(0);
-    }
-
-    if ((wx >= 160) && ((wy + 1) >= 120)) {
-        /* Draw (overscan_size - scroll size) lines of overscan on top and bottom. */
-        for (i  = 0; i < svga->y_add; i++) {
-            p = &buffer32->line[i & 0x7ff][0];
-
-            for (j = 0; j < (xsize + x_add); j++)
-                p[j] = svga->overscan_color;
-        }
-
-        for (i  = 0; i < bottom; i++) {
-            p = &buffer32->line[(ysize + svga->y_add + i) & 0x7ff][0];
-
-            for (j = 0; j < (xsize + x_add); j++)
-                p[j] = svga->overscan_color;
-        }
-    }
-    video_blit_memtoscreen(x_start, y_start, xsize + x_add, ysize + y_add);
-}
-
 void
 ibm8514_poll(ibm8514_t *dev, svga_t *svga)
 {
@@ -3588,7 +3523,7 @@ ibm8514_poll(ibm8514_t *dev, svga_t *svga)
             wx = x;
 
             wy = dev->lastline - dev->firstline;
-            ibm8514_doblit(wx, wy, dev, svga);
+            svga_doblit(wx, wy, svga);
 
             dev->firstline = 2000;
             dev->lastline = 0;

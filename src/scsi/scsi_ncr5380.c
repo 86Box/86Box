@@ -749,8 +749,11 @@ ncr_read(uint16_t port, void *priv)
 		break;
 
 	case 2:		/* Mode register */
-        if (((ncr->mode & 0x30) == 0x30) && (ncr_dev->type <= 1))
+        if (((ncr->mode & 0x30) == 0x30) && ((ncr_dev->type == 1) && (ncr_dev->bios_ver == 1)))
             ncr->mode = 0;
+		if (((ncr->mode & 0x20) == 0x20) && (ncr_dev->type == 0))
+            ncr->mode = 0;
+
 		ncr_log("Read: Mode register\n");
 		ret = ncr->mode;
 		break;
@@ -766,9 +769,9 @@ ncr_read(uint16_t port, void *priv)
 		ncr_bus_read(ncr_dev);
 		ncr_log("NCR cur bus stat=%02x\n", ncr->cur_bus & 0xff);
 		ret |= (ncr->cur_bus & 0xff);
-		if ((ncr->icr & ICR_SEL) && (ncr_dev->type != 3))
+		if ((ncr->icr & ICR_SEL) && ((ncr_dev->type == 1) && (ncr_dev->bios_ver == 1)))
             ret |= 0x02;
-        if ((ncr->icr & ICR_BSY) && (ncr_dev->type != 3))
+        if ((ncr->icr & ICR_BSY) && ((ncr_dev->type == 1) && (ncr_dev->bios_ver == 1)))
             ret |= 0x40;
 		break;
 
@@ -788,9 +791,9 @@ ncr_read(uint16_t port, void *priv)
 		ncr_bus_read(ncr_dev);
 		bus = ncr->cur_bus;
 
-		if ((bus & BUS_ACK) || ((ncr->icr & ICR_ACK) && (ncr_dev->type != 3)))
+		if ((bus & BUS_ACK) || ((ncr->icr & ICR_ACK) && ((ncr_dev->type == 1) && (ncr_dev->bios_ver == 1))))
 			ret |= STATUS_ACK;
-		if ((bus & BUS_ATN) || ((ncr->icr & ICR_ATN) && (ncr_dev->type != 3)))
+		if ((bus & BUS_ATN) || ((ncr->icr & ICR_ATN) && ((ncr_dev->type == 1) && (ncr_dev->bios_ver == 1))))
 			ret |= 0x02;
 
 		if ((bus & BUS_REQ) && (ncr->mode & MODE_DMA)) {
