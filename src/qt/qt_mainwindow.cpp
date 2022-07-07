@@ -622,8 +622,8 @@ MainWindow::~MainWindow() {
 void MainWindow::showEvent(QShowEvent *event) {
     if (shownonce) return;
     shownonce = true;
+    if (window_remember) resize(window_w, window_h + menuBar()->height() + (hide_status_bar ? 0 : statusBar()->height()) + (hide_tool_bar ? 0 : ui->toolBar->height()));
     if (window_remember && !QApplication::platformName().contains("wayland")) {
-        fprintf(stderr, "Geom: %i, %i, %i, %i\n", window_x, window_y, window_w, window_h);
         setGeometry(window_x, window_y, window_w, window_h + menuBar()->height() + (hide_status_bar ? 0 : statusBar()->height()) + (hide_tool_bar ? 0 : ui->toolBar->height()));
     }
     if (vid_resize == 2) {
@@ -1991,8 +1991,13 @@ void MainWindow::on_actionRenderer_options_triggered()
 {
     auto dlg = ui->stackedWidget->getOptions(this);
 
-    if (dlg)
-        dlg->exec();
+    if (dlg) {
+        if (dlg->exec() == QDialog::Accepted) {
+            for (int i = 1; i < MONITORS_NUM; i++) {
+                if (renderers[i] && renderers[i]->hasOptions()) renderers[i]->reloadOptions();
+            }
+        }
+    }
 }
 
 void MainWindow::on_actionMCA_devices_triggered()

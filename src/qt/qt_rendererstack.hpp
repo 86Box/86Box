@@ -53,6 +53,8 @@ public:
 
     /* Does current renderer implement options dialog */
     bool hasOptions() const { return rendererWindow ? rendererWindow->hasOptions() : false; }
+    /* Reloads options of current renderer */
+    void reloadOptions() const { return rendererWindow->reloadOptions(); }
     /* Returns options dialog for current renderer */
     QDialog *getOptions(QWidget *parent) { return rendererWindow ? rendererWindow->getOptions(parent) : nullptr; }
 

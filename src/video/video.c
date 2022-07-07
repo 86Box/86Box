@@ -105,7 +105,6 @@ monitor_t monitors[MONITORS_NUM];
 monitor_settings_t monitor_settings[MONITORS_NUM];
 atomic_bool doresize_monitors[MONITORS_NUM];
 int monitor_index_global = 0;
-int herc_enabled = 0;
 
 #ifdef _WIN32
 void * __cdecl	(*video_copy)(void *_Dst, const void *_Src, size_t _Size) = memcpy;
@@ -621,10 +620,15 @@ cgapal_rebuild_monitor(int monitor_index)
 {
     int c;
     uint32_t* palette_lookup = monitors[monitor_index].mon_pal_lookup;
-    int cga_palette_monitor = *monitors[monitor_index].mon_cga_palette;
+    int cga_palette_monitor = 0;
 
     /* We cannot do this (yet) if we have not been enabled yet. */
     if (video_6to8 == NULL) return;
+
+    if (monitors[monitor_index].target_buffer == NULL ||
+        monitors[monitor_index].mon_cga_palette == NULL) return;
+
+    cga_palette_monitor = *monitors[monitor_index].mon_cga_palette;
 
     for (c=0; c<256; c++) {
     palette_lookup[c] = makecol(video_6to8[cgapal[c].r],
@@ -737,14 +741,14 @@ video_update_timing(void)
         *vid_timing_write_b = ISA_CYCLES(monitor_vid_timings->write_b);
         *vid_timing_write_w = ISA_CYCLES(monitor_vid_timings->write_w);
         *vid_timing_write_l = ISA_CYCLES(monitor_vid_timings->write_l);
-        } else if (vid_timings->type == VIDEO_PCI) {
+        } else if (monitor_vid_timings->type == VIDEO_PCI) {
         *vid_timing_read_b = (int)(pci_timing * monitor_vid_timings->read_b);
         *vid_timing_read_w = (int)(pci_timing * monitor_vid_timings->read_w);
         *vid_timing_read_l = (int)(pci_timing * monitor_vid_timings->read_l);
         *vid_timing_write_b = (int)(pci_timing * monitor_vid_timings->write_b);
         *vid_timing_write_w = (int)(pci_timing * monitor_vid_timings->write_w);
         *vid_timing_write_l = (int)(pci_timing * monitor_vid_timings->write_l);
-        } else if (vid_timings->type == VIDEO_AGP) {
+        } else if (monitor_vid_timings->type == VIDEO_AGP) {
         *vid_timing_read_b = (int)(agp_timing * monitor_vid_timings->read_b);
         *vid_timing_read_w = (int)(agp_timing * monitor_vid_timings->read_w);
         *vid_timing_read_l = (int)(agp_timing * monitor_vid_timings->read_l);

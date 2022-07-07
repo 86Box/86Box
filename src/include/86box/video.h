@@ -134,7 +134,7 @@ extern monitor_t monitors[MONITORS_NUM];
 extern monitor_settings_t monitor_settings[MONITORS_NUM];
 extern atomic_bool doresize_monitors[MONITORS_NUM];
 extern int monitor_index_global;
-extern int herc_enabled;
+extern int gfxcard_2;
 
 typedef rgb_t PALETTE[256];
 
@@ -219,6 +219,7 @@ extern const device_t	*video_card_getdevice(int card);
 extern int	video_card_has_config(int card);
 extern char	*video_get_internal_name(int card);
 extern int	video_get_video_from_internal_name(char *s);
+extern int  video_card_get_flags(int card);
 extern int 	video_is_mda(void);
 extern int 	video_is_cga(void);
 extern int 	video_is_ega_vga(void);

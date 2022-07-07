@@ -162,6 +162,7 @@ int postcard_enabled = 0;			/* (C) enable POST card */
 int isamem_type[ISAMEM_MAX] = { 0,0,0,0 };	/* (C) enable ISA mem cards */
 int isartc_type = 0;				/* (C) enable ISA RTC card */
 int	gfxcard = 0;				/* (C) graphics/video card */
+int	gfxcard_2 = 0;				/* (C) graphics/video card */
 int	sound_is_float = 1;			/* (C) sound uses FP values */
 int GAMEBLASTER = 0;				/* (C) sound option */
 int GUS = 0;					/* (C) sound option */

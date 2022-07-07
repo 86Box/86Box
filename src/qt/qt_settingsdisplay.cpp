@@ -87,9 +87,13 @@ void SettingsDisplay::onCurrentMachineChanged(int machineId) {
 
     if (machine_has_flags(machineId, MACHINE_VIDEO_ONLY) > 0) {
         ui->comboBoxVideo->setEnabled(false);
+        ui->comboBoxVideoSecondary->setEnabled(false);
+        ui->pushButtonConfigureSecondary->setEnabled(false);
         selectedRow = 1;
     } else {
         ui->comboBoxVideo->setEnabled(true);
+        ui->comboBoxVideoSecondary->setEnabled(true);
+        ui->pushButtonConfigureSecondary->setEnabled(true);
     }
     ui->comboBoxVideo->setCurrentIndex(selectedRow);
 }
@@ -137,6 +141,30 @@ void SettingsDisplay::on_comboBoxVideo_currentIndexChanged(int index) {
         ui->checkBoxXga->setChecked(xga_enabled);
 
     ui->pushButtonConfigureXga->setEnabled((hasIsa16 || has_MCA) && ui->checkBoxXga->isChecked());
+
+    int c = 2;
+    ui->comboBoxVideoSecondary->clear();
+    ui->comboBoxVideoSecondary->addItem(QObject::tr("None"), 0);
+
+    while (true) {
+        const device_t* video_dev = video_card_getdevice(c);
+        QString name = DeviceConfig::DeviceName(video_dev, video_get_internal_name(c), 1);
+        if (name.isEmpty()) {
+            break;
+        }
+
+        if (video_card_available(c) &&
+            device_is_valid(video_dev, machineId) &&
+            !(video_card_get_flags(c) == video_card_get_flags(videoCard))) {
+                ui->comboBoxVideoSecondary->addItem(name, c);
+                if (c == gfxcard_2)
+                    ui->comboBoxVideoSecondary->setCurrentIndex(ui->comboBoxVideoSecondary->count() - 1);
+        }
+
+        c++;
+    }
+
+    if (gfxcard_2 == 0 || (machine_has_flags(machineId, MACHINE_VIDEO_ONLY) > 0)) ui->comboBoxVideoSecondary->setCurrentIndex(0);
 }
 
 void SettingsDisplay::on_checkBoxVoodoo_stateChanged(int state) {
@@ -146,3 +174,20 @@ void SettingsDisplay::on_checkBoxVoodoo_stateChanged(int state) {
 void SettingsDisplay::on_checkBoxXga_stateChanged(int state) {
     ui->pushButtonConfigureXga->setEnabled(state == Qt::Checked);
 }
+
+void SettingsDisplay::on_comboBoxVideoSecondary_currentIndexChanged(int index)
+{
+    if (index < 0) {
+        return;
+    }
+    int videoCard = ui->comboBoxVideoSecondary->currentData().toInt();
+    ui->pushButtonConfigureSecondary->setEnabled(video_card_has_config(videoCard) > 0);
+}
+
+
+void SettingsDisplay::on_pushButtonConfigureSecondary_clicked()
+{
+    auto* device = video_card_getdevice(ui->comboBoxVideoSecondary->currentData().toInt());
+    DeviceConfig::ConfigureDevice(device, 0, qobject_cast<Settings*>(Settings::settings));
+}
+

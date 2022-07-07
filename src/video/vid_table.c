@@ -110,13 +110,13 @@ video_cards[] = {
     { &cpqega_device                                 },
     { &ega_device                                    },
     { &g2_gc205_device                               },
-    { &hercules_device                               },
-    { &herculesplus_device                           },
+    { &hercules_device,          VIDEO_FLAG_TYPE_MDA },
+    { &herculesplus_device,      VIDEO_FLAG_TYPE_MDA },
     { &incolor_device                                },
     { &im1024_device                                 },
     { &iskra_ega_device                              },
     { &et4000_kasan_isa_device                       },
-    { &mda_device                                    },
+    { &mda_device,               VIDEO_FLAG_TYPE_MDA },
     { &genius_device                                 },
     { &nga_device                                    },
     { &ogc_device                                    },
@@ -299,7 +299,7 @@ video_prepare(void)
 
     for (int i = 0; i < MONITORS_NUM; i++) {
         /* Reset the CGA palette. */
-        monitors[i].mon_cga_palette = 0;
+        if (monitors[i].mon_cga_palette) *monitors[i].mon_cga_palette = 0;
         cgapal_rebuild_monitor(i);
 
         /* Do an inform on the default values, so that that there's some sane values initialized
@@ -340,13 +340,16 @@ video_reset(int card)
 
     /* Initialize the video card. */
     device_add(video_cards[card].device);
+    }
 
-    if (herc_enabled) {
+    if (!(card == VID_NONE)
+        && !machine_has_flags(machine, MACHINE_VIDEO_ONLY)
+        && gfxcard_2 != 0
+        && (video_cards[gfxcard_2].flags != video_cards[gfxcard].flags)) {
         video_monitor_init(1);
         monitor_index_global = 1;
         device_add(&hercules_device);
         monitor_index_global = 0;
-    }
     }
 
     /* Enable the Voodoo if configured. */
@@ -366,6 +369,11 @@ video_card_available(int card)
     return(1);
 }
 
+int
+video_card_get_flags(int card)
+{
+    return video_cards[card].flags;
+}
 
 const device_t *
 video_card_getdevice(int card)
