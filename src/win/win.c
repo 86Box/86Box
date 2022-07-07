@@ -495,6 +495,9 @@ WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR lpszArg, int nCmdShow)
 	return(1);
     }
 
+    extern int gfxcard_2;
+    gfxcard_2 = 0;
+
     /* Create console window. */
     if (force_debug) {
 	CreateConsole(1);
@@ -557,7 +560,7 @@ main_thread(void *param)
 			plat_resize(fixed_size_x, fixed_size_y);
 		else
 			plat_resize(scrnsz_x, scrnsz_y);
-		atomic_store(&doresize_monitors[0]);
+		atomic_store(&doresize_monitors[0], 0);
 	}
     }
 
@@ -1190,7 +1193,7 @@ plat_setfullscreen(int on)
     video_fullscreen &= 1;
     video_force_resize_set(1);
     if (!(on & 1))
-        atomic_flag_clear(&doresize);
+        atomic_store(&doresize_monitors[0], 1);
 
     win_mouse_init();
 

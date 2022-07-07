@@ -134,12 +134,12 @@ sdl_blit_shim(int x, int y, int w, int h, int monitor_index)
     params.y = y;
     params.w = w;
     params.h = h;
-    if (!(!sdl_enabled || (x < 0) || (y < 0) || (w <= 0) || (h <= 0) || (w > 2048) || (h > 2048) || (buffer32 == NULL) || (sdl_render == NULL) || (sdl_tex == NULL)))
+    if (!(!sdl_enabled || (x < 0) || (y < 0) || (w <= 0) || (h <= 0) || (w > 2048) || (h > 2048) || (buffer32 == NULL) || (sdl_render == NULL) || (sdl_tex == NULL)) || (monitor_index >= 1))
 	video_copy(interpixels, &(buffer32->line[y][x]), h * 2048 * sizeof(uint32_t));
     if (screenshots)
 	video_screenshot(interpixels, 0, 0, 2048);
     blitreq = 1;
-    video_blit_complete();
+    video_blit_complete_monitor(monitor_index);
 }
 
 void ui_window_title_real();
