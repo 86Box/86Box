@@ -1580,3 +1580,6 @@ plat_mouse_capture(int on)
 	mouse_capture = 0;
     }
 }
+
+void ui_init_monitor(int monitor_index) {}
+void ui_deinit_monitor(int monitor_index) {}
