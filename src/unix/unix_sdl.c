@@ -516,3 +516,6 @@ wchar_t* ui_window_title(wchar_t* str)
 #endif
     return str;
 }
+
+void ui_init_monitor(int monitor_index) {}
+void ui_deinit_monitor(int monitor_index) {}
