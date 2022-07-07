@@ -49,7 +49,7 @@ typedef struct ide_s {
 	blocksize, blockcount,
 	hdd_num, channel,
 	pos, sector_pos,
-	lba, skip512,
+	lba,
 	reset, mdma_mode,
 	do_initial_read;
     uint32_t secount, sector,
@@ -67,6 +67,7 @@ typedef struct ide_s {
     /* Stuff mostly used by ATAPI */
     scsi_common_t	*sc;
     int		interrupt_drq;
+    double pending_delay;
 
     int		(*get_max)(int ide_has_dma, int type);
     int		(*get_timings)(int ide_has_dma, int type);
