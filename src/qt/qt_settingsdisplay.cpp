@@ -24,6 +24,7 @@ extern "C" {
 #include <86box/device.h>
 #include <86box/machine.h>
 #include <86box/video.h>
+#include <86box/vid_xga_device.h>
 }
 
 #include "qt_deviceconfig.hpp"
@@ -46,6 +47,8 @@ SettingsDisplay::~SettingsDisplay()
 void SettingsDisplay::save() {
     gfxcard = ui->comboBoxVideo->currentData().toInt();
     voodoo_enabled = ui->checkBoxVoodoo->isChecked() ? 1 : 0;
+    ibm8514_enabled = ui->checkBox8514->isChecked() ? 1 : 0;
+    xga_enabled = ui->checkBoxXga->isChecked() ? 1 : 0;
 }
 
 void SettingsDisplay::onCurrentMachineChanged(int machineId) {
@@ -100,6 +103,14 @@ void SettingsDisplay::on_pushButtonConfigureVoodoo_clicked() {
     DeviceConfig::ConfigureDevice(&voodoo_device, 0, qobject_cast<Settings*>(Settings::settings));
 }
 
+void SettingsDisplay::on_pushButtonConfigureXga_clicked() {
+    if (machine_has_bus(machineId, MACHINE_BUS_MCA) > 0) {
+        DeviceConfig::ConfigureDevice(&xga_device, 0, qobject_cast<Settings*>(Settings::settings));
+    } else {
+        DeviceConfig::ConfigureDevice(&xga_isa_device, 0, qobject_cast<Settings*>(Settings::settings));
+    }
+}
+
 void SettingsDisplay::on_comboBoxVideo_currentIndexChanged(int index) {
     if (index < 0) {
         return;
@@ -113,8 +124,25 @@ void SettingsDisplay::on_comboBoxVideo_currentIndexChanged(int index) {
         ui->checkBoxVoodoo->setChecked(voodoo_enabled);
     }
     ui->pushButtonConfigureVoodoo->setEnabled(machineHasPci && ui->checkBoxVoodoo->isChecked());
+
+    bool hasIsa16 = machine_has_bus(machineId, MACHINE_BUS_ISA16) > 0;
+    bool has_MCA = machine_has_bus(machineId, MACHINE_BUS_MCA) > 0;
+    ui->checkBox8514->setEnabled(hasIsa16 || has_MCA);
+    if (hasIsa16 || has_MCA) {
+        ui->checkBox8514->setChecked(ibm8514_enabled);
+    }
+
+    ui->checkBoxXga->setEnabled(hasIsa16 || has_MCA);
+    if (hasIsa16 || has_MCA)
+        ui->checkBoxXga->setChecked(xga_enabled);
+
+    ui->pushButtonConfigureXga->setEnabled((hasIsa16 || has_MCA) && ui->checkBoxXga->isChecked());
 }
 
 void SettingsDisplay::on_checkBoxVoodoo_stateChanged(int state) {
     ui->pushButtonConfigureVoodoo->setEnabled(state == Qt::Checked);
+}
+
+void SettingsDisplay::on_checkBoxXga_stateChanged(int state) {
+    ui->pushButtonConfigureXga->setEnabled(state == Qt::Checked);
 }

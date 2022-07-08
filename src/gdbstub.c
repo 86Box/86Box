@@ -43,7 +43,7 @@
 
 #define FAST_RESPONSE(s)         \
     strcpy(client->response, s); \
-    client->response_pos = sizeof(s);
+    client->response_pos = sizeof(s) - 1;
 #define FAST_RESPONSE_HEX(s) gdbstub_client_respond_hex(client, (uint8_t *) s, sizeof(s));
 
 enum {
@@ -118,7 +118,7 @@ typedef struct _gdbstub_client_ {
 
     event_t *processed_event, *response_event;
 
-    uint16_t last_io_base, last_io_len;
+    uint16_t last_io_base, last_io_len, last_io_value;
 
     struct _gdbstub_client_ *next;
 } gdbstub_client_t;
@@ -155,20 +155,23 @@ gdbstub_log(const char *fmt, ...)
 static x86seg    *segment_regs[] = { &cpu_state.seg_cs, &cpu_state.seg_ss, &cpu_state.seg_ds, &cpu_state.seg_es, &cpu_state.seg_fs, &cpu_state.seg_gs };
 static uint32_t  *cr_regs[]      = { &cpu_state.CR0.l, &cr2, &cr3, &cr4 };
 static void      *fpu_regs[]     = { &cpu_state.npxc, &cpu_state.npxs, NULL, &x87_pc_seg, &x87_pc_off, &x87_op_seg, &x87_op_off };
-static const char target_xml[]   = /* based on qemu's i386-32bit.xml */
+static const char target_xml[]   = /* QEMU gdb-xml/i386-32bit.xml with modifications (described in comments) */
     // clang-format off
     "<?xml version=\"1.0\"?>"
     "<!DOCTYPE target SYSTEM \"gdb-target.dtd\">"
     "<target>"
-        "<architecture>i8086</architecture>"
+        "<architecture>i8086</architecture>" /* start in 16-bit mode to work around known GDB bug preventing 32->16 switching */
+        ""
         "<feature name=\"org.gnu.gdb.i386.core\">"
             "<flags id=\"i386_eflags\" size=\"4\">"
+                "<field name=\"\" start=\"22\" end=\"31\"/>"
                 "<field name=\"ID\" start=\"21\" end=\"21\"/>"
                 "<field name=\"VIP\" start=\"20\" end=\"20\"/>"
                 "<field name=\"VIF\" start=\"19\" end=\"19\"/>"
                 "<field name=\"AC\" start=\"18\" end=\"18\"/>"
                 "<field name=\"VM\" start=\"17\" end=\"17\"/>"
                 "<field name=\"RF\" start=\"16\" end=\"16\"/>"
+                "<field name=\"\" start=\"15\" end=\"15\"/>"
                 "<field name=\"NT\" start=\"14\" end=\"14\"/>"
                 "<field name=\"IOPL\" start=\"12\" end=\"13\"/>"
                 "<field name=\"OF\" start=\"11\" end=\"11\"/>"
@@ -177,12 +180,14 @@ static const char target_xml[]   = /* based on qemu's i386-32bit.xml */
                 "<field name=\"TF\" start=\"8\" end=\"8\"/>"
                 "<field name=\"SF\" start=\"7\" end=\"7\"/>"
                 "<field name=\"ZF\" start=\"6\" end=\"6\"/>"
+                "<field name=\"\" start=\"5\" end=\"5\"/>"
                 "<field name=\"AF\" start=\"4\" end=\"4\"/>"
                 "<field name=\"PF\" start=\"2\" end=\"2\"/>"
+                "<field name=\"\" start=\"1\" end=\"1\"/>"
                 "<field name=\"CF\" start=\"0\" end=\"0\"/>"
             "</flags>"
             ""
-            "<reg name=\"eax\" bitsize=\"32\" type=\"int32\"/>"
+            "<reg name=\"eax\" bitsize=\"32\" type=\"int32\" regnum=\"0\"/>"
             "<reg name=\"ecx\" bitsize=\"32\" type=\"int32\"/>"
             "<reg name=\"edx\" bitsize=\"32\" type=\"int32\"/>"
             "<reg name=\"ebx\" bitsize=\"32\" type=\"int32\"/>"
@@ -190,6 +195,7 @@ static const char target_xml[]   = /* based on qemu's i386-32bit.xml */
             "<reg name=\"ebp\" bitsize=\"32\" type=\"data_ptr\"/>"
             "<reg name=\"esi\" bitsize=\"32\" type=\"int32\"/>"
             "<reg name=\"edi\" bitsize=\"32\" type=\"int32\"/>"
+            ""
             "<reg name=\"eip\" bitsize=\"32\" type=\"code_ptr\"/>"
             "<reg name=\"eflags\" bitsize=\"32\" type=\"i386_eflags\"/>"
             ""
@@ -199,9 +205,6 @@ static const char target_xml[]   = /* based on qemu's i386-32bit.xml */
             "<reg name=\"es\" bitsize=\"16\" type=\"int32\"/>"
             "<reg name=\"fs\" bitsize=\"16\" type=\"int32\"/>"
             "<reg name=\"gs\" bitsize=\"16\" type=\"int32\"/>"
-            ""
-            "<reg name=\"fs_base\" bitsize=\"32\" type=\"int32\"/>"
-            "<reg name=\"gs_base\" bitsize=\"32\" type=\"int32\"/>"
             ""
             "<flags id=\"i386_cr0\" size=\"4\">"
                 "<field name=\"PG\" start=\"31\" end=\"31\"/>"
@@ -363,7 +366,7 @@ gdbstub_hex_encode(int c)
     if (c < 10)
         return c + '0';
     else
-        return c - 10 + 'A';
+        return c - 10 + 'a';
 }
 
 static int
@@ -564,12 +567,20 @@ gdbstub_client_write_reg(int index, uint8_t *buf)
 
         case GDB_REG_MM0 ... GDB_REG_MM7:
             width                               = 8;
-            cpu_state.MM[index - GDB_REG_MM0].q = *((uint64_t *) &buf);
+            cpu_state.MM[index - GDB_REG_MM0].q = *((uint64_t *) buf);
             break;
 
         default:
             width = 0;
     }
+
+#ifdef ENABLE_GDBSTUB_LOG
+    char logbuf[256], *p = logbuf + sprintf(logbuf, "GDB Stub: Setting register %d to ", index);
+    for (int i = width - 1; i >= 0; i--)
+        p += sprintf(p, "%02X", buf[i]);
+    sprintf(p, "\n");
+    gdbstub_log(logbuf);
+#endif
 
     return width;
 }
@@ -681,8 +692,8 @@ gdbstub_client_read_reg(int index, uint8_t *buf)
             break;
 
         case GDB_REG_MM0 ... GDB_REG_MM7:
-            width                               = 8;
-            cpu_state.MM[index - GDB_REG_MM0].q = *((uint64_t *) &buf);
+            width               = 8;
+            *((uint64_t *) buf) = cpu_state.MM[index - GDB_REG_MM0].q;
             break;
 
         default:
@@ -735,7 +746,7 @@ gdbstub_client_packet(gdbstub_client_t *client)
     send(client->socket, "+", 1, 0);
 
     /* Block other responses from being written while this one (if any is produced) isn't acknowledged. */
-    if ((client->packet[0] != 'c') && (client->packet[0] != 's')) {
+    if ((client->packet[0] != 'c') && (client->packet[0] != 's') && (client->packet[0] != 'v')) {
         thread_wait_event(client->response_event, -1);
         thread_reset_event(client->response_event);
     }
@@ -783,11 +794,15 @@ ok:
         case 'G': /* write all registers */
             /* Write the values of all registers. */
             for (i = 0; i < GDB_REG_MAX; i++) {
+                if (i == GDB_REG_MAX)
+                    goto e22;
                 if (!gdbstub_client_read_hex(client, buf, sizeof(buf)))
                     break;
-                client->packet_pos += gdbstub_client_write_reg(i, buf);
+                client->packet_pos += gdbstub_client_write_reg(i, buf) << 1;
             }
-            break;
+
+            /* Respond positively. */
+            goto ok;
 
         case 'H': /* set thread */
             /* Read operation type and thread ID. */
@@ -1016,6 +1031,10 @@ e00:
                         break;
                     }
                 }
+            } else if (!strncmp(client->response, "Attached", 8)) {
+                FAST_RESPONSE("1");
+            } else if (!strcmp(client->response, "C")) {
+                FAST_RESPONSE("QC1");
             } else if (!strcmp(client->response, "Rcmd")) {
                 /* Read and decode command in-place. */
                 i                 = gdbstub_client_read_hex(client, (uint8_t *) client->packet, strlen(client->packet) - client->packet_pos);
@@ -1027,19 +1046,24 @@ e00:
                 p = strtok_r(client->packet, " ", &strtok_save);
                 if (!p)
                     goto ok;
+                i = strlen(p) - 1; /* get last character offset */
 
                 /* Interpret the command. */
                 if (p[0] == 'i') {
                     /* Read I/O operation width. */
-                    l = (p[1] == 'n') ? p[2] : p[1];
+                    l = (i < 1) ? '\0' : p[i];
 
                     /* Read optional I/O port. */
                     if (!(p = strtok_r(NULL, " ", &strtok_save)) || !gdbstub_num_decode(p, &j, GDB_MODE_HEX) || (j < 0) || (j >= 65536))
                         j = client->last_io_base;
+                    else
+                        client->last_io_base = j;
 
                     /* Read optional length. */
                     if (!(p = strtok_r(NULL, " ", &strtok_save)) || !gdbstub_num_decode(p, &k, GDB_MODE_BASE10))
                         k = client->last_io_len;
+                    else
+                        client->last_io_len = k;
 
                     /* Clamp length. */
                     if (k < 1)
@@ -1091,6 +1115,57 @@ e00:
                     client->response_pos = 0;
                     gdbstub_client_respond_hex(client, (uint8_t *) &client->packet, client->packet_pos);
                     break;
+                } else if (p[0] == 'o') {
+                    /* Read I/O operation width. */
+                    l = (i < 1) ? '\0' : p[i];
+
+                    /* Read optional I/O port. */
+                    if (!(p = strtok_r(NULL, " ", &strtok_save)) || !gdbstub_num_decode(p, &j, GDB_MODE_HEX) || (j < 0) || (j >= 65536))
+                        j = -1;
+
+                    /* Read optional value. */
+                    if (!(p = strtok_r(NULL, " ", &strtok_save)) || !gdbstub_num_decode(p, &k, GDB_MODE_HEX)) {
+                        if (j == -1)
+                            k = client->last_io_value;
+                        else
+                            k = j; /* only one specified = treat as value on last port */
+                        j = -1;
+                    }
+                    if (j == -1)
+                        j = client->last_io_base;
+                    else
+                        client->last_io_base = j;
+                    client->last_io_value = k;
+
+                    /* Write port. */
+                    switch (l) {
+                        case 'd':
+                        case 'l':
+                            outl(j, k);
+                            break;
+
+                        case 'w':
+                            outw(j, k);
+                            break;
+
+                        case 'b':
+                        case 't':
+                        case '\0':
+                            outb(j, k);
+                            break;
+
+                        default:
+                            goto unknown;
+                    }
+                } else if (p[0] == 'r') {
+                    pc_reset_hard();
+                } else if ((p[0] == '?') || !strcmp(p, "help")) {
+                    FAST_RESPONSE_HEX(
+                        "Commands:\n"
+                        "- ib/iw/il [port [length]] - Read {length} (default 1) I/O ports starting from {port} (default last)\n"
+                        "- ob/ow/ol [[port] value] - Write {value} to I/O {port} (both default last)\n"
+                        "- r - Hard reset the emulated machine\n");
+                    break;
                 } else {
 unknown:
                     FAST_RESPONSE_HEX("Unknown command\n");
@@ -1103,7 +1178,6 @@ unknown:
 
         case 'z': /* remove break/watchpoint */
         case 'Z': /* insert break/watchpoint */
-        {
             gdbstub_breakpoint_t *breakpoint, *prev_breakpoint = NULL, **first_breakpoint;
 
             /* Parse breakpoint type. */
@@ -1225,7 +1299,6 @@ unknown:
 
             /* Respond positively. */
             goto ok;
-        }
     }
 end:
     /* Send response. */
@@ -1268,7 +1341,7 @@ gdbstub_cpu_exec(int cycs)
     /* Populate stop reason if we have stopped. */
     stop_reason_len = 0;
     if (gdbstub_step > GDBSTUB_EXEC) {
-        /* Assemble stop reason manually (avoiding sprintf and friends) for performance. */
+        /* Assemble stop reason manually, avoiding sprintf and friends for performance. */
         stop_reason[stop_reason_len++] = 'T';
         stop_reason[stop_reason_len++] = '0';
         stop_reason[stop_reason_len++] = '0' + ((gdbstub_step == GDBSTUB_BREAK) ? GDB_SIGINT : GDB_SIGTRAP);
@@ -1659,11 +1732,13 @@ gdbstub_init()
         .sin_port   = htons(port)
     };
     if (bind(gdbstub_socket, (struct sockaddr *) &bind_addr, sizeof(bind_addr)) == -1) {
+        pclog("GDB Stub: Failed to bind on port %d (%d)\n", port,
 #ifdef _WIN32
-        pclog("GDB Stub: Failed to bind on port %d (%d)\n", port, WSAGetLastError());
-#else 
-        pclog("GDB Stup: Failed to bind on port %d (%d)\n", port, errno);
+              WSAGetLastError()
+#else
+              errno
 #endif
+        );
         gdbstub_socket = -1;
         return;
     }

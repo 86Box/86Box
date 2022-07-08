@@ -43,6 +43,7 @@ int title_set = 0;
 int resize_pending = 0;
 int resize_w = 0;
 int resize_h = 0;
+double mouse_sensitivity = 1.0; /* Unused. */
 static uint8_t interpixels[17842176];
 
 extern void RenderImGui();

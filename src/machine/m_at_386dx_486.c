@@ -236,7 +236,7 @@ machine_at_spc6000a_init(const machine_t *model)
     if (fdc_type == FDC_INTERNAL)
 	device_add(&fdc_at_device);
 
-    device_add(&keyboard_at_ami_device);
+    device_add(&keyboard_at_samsung_device);
 
     return ret;
 }

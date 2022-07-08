@@ -85,7 +85,7 @@ static int temp_dynarec;
 #endif
 
 /* Video category */
-static int temp_gfxcard, temp_voodoo;
+static int temp_gfxcard, temp_ibm8514, temp_voodoo;
 
 /* Input devices category */
 static int temp_mouse, temp_joystick;
@@ -332,6 +332,7 @@ win_settings_init(void)
     /* Video category */
     temp_gfxcard = gfxcard;
     temp_voodoo = voodoo_enabled;
+    temp_ibm8514 = ibm8514_enabled;
 
     /* Input devices category */
     temp_mouse = mouse_type;
@@ -456,6 +457,7 @@ win_settings_changed(void)
     /* Video category */
     i = i || (gfxcard != temp_gfxcard);
     i = i || (voodoo_enabled != temp_voodoo);
+    i = i || (ibm8514_enabled != temp_ibm8514);
 
     /* Input devices category */
     i = i || (mouse_type != temp_mouse);
@@ -546,6 +548,7 @@ win_settings_save(void)
     /* Video category */
     gfxcard = temp_gfxcard;
     voodoo_enabled = temp_voodoo;
+    ibm8514_enabled = temp_ibm8514;
 
     /* Input devices category */
     mouse_type = temp_mouse;
@@ -1106,9 +1109,13 @@ win_settings_video_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 		settings_enable_window(hdlg, IDC_COMBO_VIDEO, !machine_has_flags(temp_machine, MACHINE_VIDEO_ONLY));
 		e = settings_list_to_device[0][settings_get_cur_sel(hdlg, IDC_COMBO_VIDEO)];
 		settings_enable_window(hdlg, IDC_CONFIGURE_VID, video_card_has_config(e));
+
 		settings_enable_window(hdlg, IDC_CHECK_VOODOO, machine_has_bus(temp_machine, MACHINE_BUS_PCI));
 		settings_set_check(hdlg, IDC_CHECK_VOODOO, temp_voodoo);
 		settings_enable_window(hdlg, IDC_BUTTON_VOODOO, machine_has_bus(temp_machine, MACHINE_BUS_PCI) && temp_voodoo);
+
+		settings_enable_window(hdlg, IDC_CHECK_IBM8514, machine_has_bus(temp_machine, MACHINE_BUS_ISA16) || machine_has_bus(temp_machine, MACHINE_BUS_MCA));
+		settings_set_check(hdlg, IDC_CHECK_IBM8514, temp_ibm8514);
 		return TRUE;
 
 	case WM_COMMAND:
@@ -1121,6 +1128,10 @@ win_settings_video_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 			case IDC_CHECK_VOODOO:
 				temp_voodoo = settings_get_check(hdlg, IDC_CHECK_VOODOO);
 				settings_enable_window(hdlg, IDC_BUTTON_VOODOO, temp_voodoo);
+				break;
+
+			case IDC_CHECK_IBM8514:
+				temp_ibm8514 = settings_get_check(hdlg, IDC_CHECK_IBM8514);
 				break;
 
 			case IDC_BUTTON_VOODOO:
@@ -1137,6 +1148,7 @@ win_settings_video_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 	case WM_SAVESETTINGS:
 		temp_gfxcard = settings_list_to_device[0][settings_get_cur_sel(hdlg, IDC_COMBO_VIDEO)];
 		temp_voodoo = settings_get_check(hdlg, IDC_CHECK_VOODOO);
+		temp_ibm8514 = settings_get_check(hdlg, IDC_CHECK_IBM8514);
 
 	default:
 		return FALSE;

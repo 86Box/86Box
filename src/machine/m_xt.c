@@ -451,8 +451,113 @@ machine_xt_vendex_init(const machine_t *model)
 
     machine_xt_clone_init(model);
 
+    return ret;
+}
+
+int
+machine_xt_super16t_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/super16t/Hyundai SUPER-16T - System BIOS HEA v1.12Ta (16k)(MBM27128)(1986).BIN",
+			   0x000fc000, 16384, 0);
+
+    if (bios_only || !ret)
+	return ret;
+
+    machine_xt_clone_init(model);
+
     /* On-board FDC cannot be disabled */
 	device_add(&fdc_xt_device);
+
+    return ret;
+}
+
+int
+machine_xt_super16te_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/super16te/Hyundai SUPER-16TE - System BIOS v2.00Id (16k)(D27128A)(1989).BIN",
+			   0x000fc000, 16384, 0);
+
+    if (bios_only || !ret)
+	return ret;
+
+    machine_xt_clone_init(model);
+
+    /* On-board FDC cannot be disabled */
+	device_add(&fdc_xt_device);
+
+    return ret;
+}
+
+int
+machine_xt_top88_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/top88/Hyosung Topstar 88T - BIOS version 3.0.bin",
+			   0x000fc000, 16384, 0);
+
+    if (bios_only || !ret)
+	return ret;
+
+    machine_xt_clone_init(model);
+
+    /* On-board FDC cannot be disabled */
+	device_add(&fdc_xt_device);
+
+    return ret;
+}
+
+int
+machine_xt_kaypropc_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/kaypropc/Kaypro_v2.03K.bin",
+			   0x000fe000, 8192, 0);
+
+    if (bios_only || !ret)
+	return ret;
+
+    machine_xt_clone_init(model);
+
+    return ret;
+}
+
+int
+machine_xt_sansx16_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/sansx16/tmm27128ad.bin.bin",
+			   0x000fc000, 16384, 0);
+
+    if (bios_only || !ret)
+	return ret;
+
+    machine_xt_clone_init(model);
+
+    /* On-board FDC cannot be disabled */
+	device_add(&fdc_xt_device);
+
+    return ret;
+}
+
+int
+machine_xt_bw230_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/bw230/bondwell.bin",
+			   0x000fe000, 8192, 0);
+
+    if (bios_only || !ret)
+	return ret;
+
+    machine_xt_clone_init(model);
 
     return ret;
 }

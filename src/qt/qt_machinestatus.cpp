@@ -361,7 +361,11 @@ void MachineStatus::refresh(QStatusBar* sbar) {
         connect((ClickableLabel*)d->cassette.label.get(), &ClickableLabel::clicked, [](QPoint pos) {
             MediaMenu::ptr->cassetteMenu->popup(pos - QPoint(0, MediaMenu::ptr->cassetteMenu->sizeHint().height()));
         });
+        connect((ClickableLabel*)d->cassette.label.get(), &ClickableLabel::dropped, [](QString str) {
+            MediaMenu::ptr->cassetteMount(str, false);
+        });
         d->cassette.label->setToolTip(MediaMenu::ptr->cassetteMenu->title());
+        d->cassette.label->setAcceptDrops(true);
         sbar->addWidget(d->cassette.label.get());
     }
 
@@ -372,7 +376,11 @@ void MachineStatus::refresh(QStatusBar* sbar) {
             connect((ClickableLabel*)d->cartridge[i].label.get(), &ClickableLabel::clicked, [i](QPoint pos) {
                 MediaMenu::ptr->cartridgeMenus[i]->popup(pos - QPoint(0, MediaMenu::ptr->cartridgeMenus[i]->sizeHint().height()));
             });
+            connect((ClickableLabel*)d->cartridge[i].label.get(), &ClickableLabel::dropped, [i](QString str) {
+                MediaMenu::ptr->cartridgeMount(i, str);
+            });
             d->cartridge[i].label->setToolTip(MediaMenu::ptr->cartridgeMenus[i]->title());
+            d->cartridge[i].label->setAcceptDrops(true);
             sbar->addWidget(d->cartridge[i].label.get());
         }
     }
@@ -392,7 +400,11 @@ void MachineStatus::refresh(QStatusBar* sbar) {
         connect((ClickableLabel*)d->fdd[i].label.get(), &ClickableLabel::clicked, [i](QPoint pos) {
             MediaMenu::ptr->floppyMenus[i]->popup(pos - QPoint(0, MediaMenu::ptr->floppyMenus[i]->sizeHint().height()));
         });
+        connect((ClickableLabel*)d->fdd[i].label.get(), &ClickableLabel::dropped, [i](QString str) {
+            MediaMenu::ptr->floppyMount(i, str, false);
+        });
         d->fdd[i].label->setToolTip(MediaMenu::ptr->floppyMenus[i]->title());
+        d->fdd[i].label->setAcceptDrops(true);
         sbar->addWidget(d->fdd[i].label.get());
     });
 
@@ -403,7 +415,11 @@ void MachineStatus::refresh(QStatusBar* sbar) {
         connect((ClickableLabel*)d->cdrom[i].label.get(), &ClickableLabel::clicked, [i](QPoint pos) {
             MediaMenu::ptr->cdromMenus[i]->popup(pos - QPoint(0, MediaMenu::ptr->cdromMenus[i]->sizeHint().height()));
         });
+        connect((ClickableLabel*)d->cdrom[i].label.get(), &ClickableLabel::dropped, [i](QString str) {
+            MediaMenu::ptr->cdromMount(i, str);
+        });
         d->cdrom[i].label->setToolTip(MediaMenu::ptr->cdromMenus[i]->title());
+        d->cdrom[i].label->setAcceptDrops(true);
         sbar->addWidget(d->cdrom[i].label.get());
     });
 
@@ -414,7 +430,11 @@ void MachineStatus::refresh(QStatusBar* sbar) {
         connect((ClickableLabel*)d->zip[i].label.get(), &ClickableLabel::clicked, [i](QPoint pos) {
             MediaMenu::ptr->zipMenus[i]->popup(pos - QPoint(0, MediaMenu::ptr->zipMenus[i]->sizeHint().height()));
         });
+        connect((ClickableLabel*)d->zip[i].label.get(), &ClickableLabel::dropped, [i](QString str) {
+            MediaMenu::ptr->zipMount(i, str, false);
+        });
         d->zip[i].label->setToolTip(MediaMenu::ptr->zipMenus[i]->title());
+        d->zip[i].label->setAcceptDrops(true);
         sbar->addWidget(d->zip[i].label.get());
     });
 
@@ -425,7 +445,11 @@ void MachineStatus::refresh(QStatusBar* sbar) {
         connect((ClickableLabel*)d->mo[i].label.get(), &ClickableLabel::clicked, [i](QPoint pos) {
             MediaMenu::ptr->moMenus[i]->popup(pos - QPoint(0, MediaMenu::ptr->moMenus[i]->sizeHint().height()));
         });
+        connect((ClickableLabel*)d->mo[i].label.get(), &ClickableLabel::dropped, [i](QString str) {
+            MediaMenu::ptr->moMount(i, str, false);
+        });
         d->mo[i].label->setToolTip(MediaMenu::ptr->moMenus[i]->title());
+        d->mo[i].label->setAcceptDrops(true);
         sbar->addWidget(d->mo[i].label.get());
     });
 
@@ -559,24 +583,25 @@ void MachineStatus::updateTip(int tag)
 {
     int category = tag & 0xfffffff0;
     int item = tag & 0xf;
+    if (!MediaMenu::ptr) return;
     switch (category) {
     case SB_CASSETTE:
-        d->cassette.label->setToolTip(MediaMenu::ptr->cassetteMenu->title());
+        if (d->cassette.label && MediaMenu::ptr->cassetteMenu) d->cassette.label->setToolTip(MediaMenu::ptr->cassetteMenu->title());
         break;
     case SB_CARTRIDGE:
-        d->cartridge[item].label->setToolTip(MediaMenu::ptr->cartridgeMenus[item]->title());
+        if (d->cartridge[item].label && MediaMenu::ptr->cartridgeMenus[item]) d->cartridge[item].label->setToolTip(MediaMenu::ptr->cartridgeMenus[item]->title());
         break;
     case SB_FLOPPY:
-        d->fdd[item].label->setToolTip(MediaMenu::ptr->floppyMenus[item]->title());
+        if (d->fdd[item].label && MediaMenu::ptr->floppyMenus[item]) d->fdd[item].label->setToolTip(MediaMenu::ptr->floppyMenus[item]->title());
         break;
     case SB_CDROM:
-        d->cdrom[item].label->setToolTip(MediaMenu::ptr->cdromMenus[item]->title());
+        if (d->cdrom[item].label && MediaMenu::ptr->cdromMenus[item]) d->cdrom[item].label->setToolTip(MediaMenu::ptr->cdromMenus[item]->title());
         break;
     case SB_ZIP:
-        d->zip[item].label->setToolTip(MediaMenu::ptr->zipMenus[item]->title());
+        if (d->zip[item].label && MediaMenu::ptr->zipMenus[item]) d->zip[item].label->setToolTip(MediaMenu::ptr->zipMenus[item]->title());
         break;
     case SB_MO:
-        d->mo[item].label->setToolTip(MediaMenu::ptr->moMenus[item]->title());
+        if (d->mo[item].label && MediaMenu::ptr->moMenus[item]) d->mo[item].label->setToolTip(MediaMenu::ptr->moMenus[item]->title());
         break;
     case SB_HDD:
         break;

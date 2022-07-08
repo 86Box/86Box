@@ -387,9 +387,9 @@ static __inline uint16_t x87_ucompare(double a, double b)
 #if !defined(_MSC_VER) || defined(__clang__)
         /* Memory barrier, to force GCC to write to the input parameters
          * before the compare rather than after */
-        asm volatile ("" : : : "memory");
+        __asm volatile ("" : : : "memory");
 
-        asm(
+        __asm(
                 "fldl %2\n"
                 "fldl %1\n"
                 "fclex\n"

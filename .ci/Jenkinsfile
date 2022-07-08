@@ -90,8 +90,8 @@ def presetSlugs = [
 
 def presetFlags = [
 	'Regular': '-t --preset=regular -D CMAKE_BUILD_TYPE=Release',
-	'Debug': '--preset=debug -D CMAKE_BUILD_TYPE=Debug',
-	'Dev': '--preset=experimental -D CMAKE_BUILD_TYPE=Debug -D VNC=OFF'
+	'Debug': '--preset=debug -D CMAKE_BUILD_TYPE=Debug -D STATIC_BUILD=OFF',
+	'Dev': '--preset=experimental -D CMAKE_BUILD_TYPE=Debug -D VNC=OFF -D STATIC_BUILD=OFF'
 ]
 
 def gitClone(repository, branch) {

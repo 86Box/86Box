@@ -35,7 +35,7 @@ if(MUNT_EXTERNAL)
 endif()
 
 project(86Box
-    VERSION 3.5
+    VERSION 3.6
     DESCRIPTION "Emulator of x86-based systems"
     HOMEPAGE_URL "https://86box.net"
     LANGUAGES C CXX)
@@ -61,6 +61,9 @@ if(VCPKG_TOOLCHAIN)
         set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
         set(STATIC_BUILD OFF)
     endif()
+
+    # `vcpkg.json` defaults to Qt6
+    set(USE_QT6 ON)
 endif()
 
 if(WIN32)
@@ -184,11 +187,10 @@ elseif(BUILD_TYPE_LOWER STREQUAL "alpha")
     add_compile_definitions(ALPHA_BUILD)
 endif()
 
-# Variables introduced by richardg867 for versioning stuff
+# Versioning variables
 if(NOT CMAKE_PROJECT_VERSION_PATCH)
     set(CMAKE_PROJECT_VERSION_PATCH 0)
 endif()
-set(EMU_VERSION_EX "3.50")
 if(NOT EMU_BUILD_NUM)
     set(EMU_BUILD_NUM 0)
 endif()
