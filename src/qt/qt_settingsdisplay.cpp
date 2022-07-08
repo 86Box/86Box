@@ -97,6 +97,7 @@ void SettingsDisplay::onCurrentMachineChanged(int machineId) {
         ui->pushButtonConfigureSecondary->setEnabled(true);
     }
     ui->comboBoxVideo->setCurrentIndex(selectedRow);
+    if (gfxcard_2 == 0) ui->pushButtonConfigureSecondary->setEnabled(false);
 }
 
 void SettingsDisplay::on_pushButtonConfigure_clicked() {
@@ -148,6 +149,7 @@ void SettingsDisplay::on_comboBoxVideo_currentIndexChanged(int index) {
     ui->comboBoxVideoSecondary->clear();
     ui->comboBoxVideoSecondary->addItem(QObject::tr("None"), 0);
 
+    ui->comboBoxVideoSecondary->setCurrentIndex(0);
     // TODO: Implement support for selecting non-MDA secondary cards properly when MDA cards are the primary ones.
     if (video_card_get_flags(videoCard) == VIDEO_FLAG_TYPE_MDA) {
         ui->comboBoxVideoSecondary->setCurrentIndex(0);
@@ -171,7 +173,11 @@ void SettingsDisplay::on_comboBoxVideo_currentIndexChanged(int index) {
         c++;
     }
 
-    if (gfxcard_2 == 0 || (machine_has_flags(machineId, MACHINE_VIDEO_ONLY) > 0)) ui->comboBoxVideoSecondary->setCurrentIndex(0);
+    if (gfxcard_2 == 0 || (machine_has_flags(machineId, MACHINE_VIDEO_ONLY) > 0))
+    {
+        ui->comboBoxVideoSecondary->setCurrentIndex(0);
+        ui->pushButtonConfigureSecondary->setEnabled(false);
+    }
 }
 
 void SettingsDisplay::on_checkBoxVoodoo_stateChanged(int state) {
@@ -185,10 +191,11 @@ void SettingsDisplay::on_checkBoxXga_stateChanged(int state) {
 void SettingsDisplay::on_comboBoxVideoSecondary_currentIndexChanged(int index)
 {
     if (index < 0) {
+        ui->pushButtonConfigureSecondary->setEnabled(false);
         return;
     }
     int videoCard = ui->comboBoxVideoSecondary->currentData().toInt();
-    ui->pushButtonConfigureSecondary->setEnabled(video_card_has_config(videoCard) > 0);
+    ui->pushButtonConfigureSecondary->setEnabled(index != 0 && video_card_has_config(videoCard) > 0);
 }
 
 
