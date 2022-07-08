@@ -599,6 +599,12 @@ load_general(void)
 		lang_id = plat_language_code(p);
 	}
 
+    mouse_sensitivity = config_get_double(cat, "mouse_sensitivity", 1.0);
+    if (mouse_sensitivity < 0.5)
+        mouse_sensitivity = 0.5;
+    else if (mouse_sensitivity > 2.0)
+        mouse_sensitivity = 2.0;
+
 	p = config_get_string(cat, "iconset", NULL);
 	if (p != NULL)
 		strcpy(icon_set, p);
@@ -924,6 +930,8 @@ load_video(void)
     }
 
     voodoo_enabled = !!config_get_int(cat, "voodoo", 0);
+    ibm8514_enabled = !!config_get_int(cat, "8514a", 0);
+    xga_enabled = !!config_get_int(cat, "xga", 0);
 }
 
 
@@ -2306,6 +2314,11 @@ save_general(void)
     else
 	config_delete_var(cat, "confirm_save");
 
+    if (mouse_sensitivity != 1.0)
+    config_set_double(cat, "mouse_sensitivity", mouse_sensitivity);
+    else
+    config_delete_var(cat, "mouse_sensitivity");
+
     if (lang_id == DEFAULT_LANGUAGE)
 	config_delete_var(cat, "language");
       else
@@ -2456,6 +2469,16 @@ save_video(void)
 	config_delete_var(cat, "voodoo");
       else
 	config_set_int(cat, "voodoo", voodoo_enabled);
+
+    if (ibm8514_enabled == 0)
+	config_delete_var(cat, "8514a");
+      else
+	config_set_int(cat, "8514a", ibm8514_enabled);
+
+    if (xga_enabled == 0)
+	config_delete_var(cat, "xga");
+      else
+	config_set_int(cat, "xga", xga_enabled);
 
     delete_section_if_empty(cat);
 }

@@ -28,6 +28,7 @@
 #include <86box/win.h>
 
 int mouse_capture;
+double mouse_sensitivity = 1.0; /* Unused. */
 
 typedef struct {
 	int buttons;

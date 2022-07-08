@@ -25,6 +25,7 @@ public:
     void cassetteUpdateMenu();
 
     void cartridgeSelectImage(int i);
+    void cartridgeMount(int i, const QString& filename);
     void cartridgeEject(int i);
     void cartridgeUpdateMenu(int i);
 
@@ -37,6 +38,7 @@ public:
 
     void cdromMute(int i);
     void cdromMount(int i);
+    void cdromMount(int i, const QString& filename);
     void cdromEject(int i);
     void cdromReload(int i);
     void cdromUpdateMenu(int i);

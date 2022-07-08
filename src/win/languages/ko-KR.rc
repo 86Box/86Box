@@ -271,6 +271,7 @@ END
 
 #define STR_VIDEO		"비디오 카드:"
 #define STR_VOODOO		"Voodoo 그래픽"
+#define STR_IBM8514		"IBM 8514/a Graphics"
 
 #define STR_MOUSE		"마우스:"
 #define STR_JOYSTICK		"조이스틱:"

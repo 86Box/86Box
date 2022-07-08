@@ -25,6 +25,9 @@
 #include "qt_openglrenderer.hpp"
 #include "qt_softwarerenderer.hpp"
 #include "qt_vulkanwindowrenderer.hpp"
+#ifdef Q_OS_WIN
+#include "qt_d3d9renderer.hpp"
+#endif
 
 #include "qt_mainwindow.hpp"
 #include "qt_util.hpp"
@@ -44,6 +47,8 @@ extern "C" {
 #include <86box/mouse.h>
 #include <86box/plat.h>
 #include <86box/video.h>
+
+double mouse_sensitivity = 1.0;
 }
 
 extern "C" void macos_poll_mouse();
@@ -123,6 +128,9 @@ RendererStack::mousePoll()
     if (this->mouse_poll_func)
 #endif
         this->mouse_poll_func();
+
+    mouse_x *= mouse_sensitivity;
+    mouse_y *= mouse_sensitivity;
 }
 
 int ignoreNextMouseEvent = 1;
@@ -219,13 +227,27 @@ RendererStack::switchRenderer(Renderer renderer)
     startblit();
     if (current) {
         rendererWindow->finalize();
+        if (rendererWindow->hasBlitFunc()) {
+            while (directBlitting) {}
+            connect(this, &RendererStack::blit, this, &RendererStack::blitDummy, Qt::DirectConnection);
+            disconnect(this, &RendererStack::blit, this, &RendererStack::blitRenderer);
+        } else {
+            connect(this, &RendererStack::blit, this, &RendererStack::blitDummy, Qt::DirectConnection);
+            disconnect(this, &RendererStack::blit, this, &RendererStack::blitCommon);
+        }
+
         removeWidget(current.get());
         disconnect(this, &RendererStack::blitToRenderer, nullptr, nullptr);
 
         /* Create new renderer only after previous is destroyed! */
-        connect(current.get(), &QObject::destroyed, [this, renderer](QObject *) { createRenderer(renderer); });
+        connect(current.get(), &QObject::destroyed, [this, renderer](QObject *) {
+            createRenderer(renderer);
+            disconnect(this, &RendererStack::blit, this, &RendererStack::blitDummy);
+            blitDummied = false;
+            QTimer::singleShot(1000, this, [this]() { this->blitDummied = false; } );
+        });
 
-        current.release()->deleteLater();
+        rendererWindow->hasBlitFunc() ? current.reset() : current.release()->deleteLater();
     } else {
         createRenderer(renderer);
     }
@@ -287,6 +309,30 @@ RendererStack::createRenderer(Renderer renderer)
                 current.reset(this->createWindowContainer(hw, this));
                 break;
             }
+#ifdef Q_OS_WIN
+        case Renderer::Direct3D9:
+        {
+            this->createWinId();
+            auto hw = new D3D9Renderer(this);
+            rendererWindow = hw;
+            connect(hw, &D3D9Renderer::error, this, [this](QString str)
+            {
+                auto msgBox = new QMessageBox(QMessageBox::Critical, "86Box", QString("Failed to initialize D3D9 renderer. Falling back to software rendering.\n\n") + str, QMessageBox::Ok);
+                msgBox->setAttribute(Qt::WA_DeleteOnClose);
+                msgBox->show();
+                imagebufs = {};
+                endblit();
+                QTimer::singleShot(0, this, [this]() { switchRenderer(Renderer::Software); });
+            });
+            connect(hw, &D3D9Renderer::initialized, this, [this]()
+            {
+                endblit();
+                emit rendererChanged();
+            });
+            current.reset(hw);
+            break;
+        }
+#endif
 #if QT_CONFIG(vulkan)
         case Renderer::Vulkan:
         {
@@ -335,18 +381,41 @@ RendererStack::createRenderer(Renderer renderer)
 
     currentBuf = 0;
 
-    if (renderer != Renderer::OpenGL3 && renderer != Renderer::Vulkan) {
+    if (rendererWindow->hasBlitFunc()) {
+        connect(this, &RendererStack::blit, this, &RendererStack::blitRenderer, Qt::DirectConnection);
+    }
+    else {
+        connect(this, &RendererStack::blit, this, &RendererStack::blitCommon, Qt::DirectConnection);
+    }
+
+    if (renderer != Renderer::OpenGL3 && renderer != Renderer::Vulkan && renderer != Renderer::Direct3D9) {
         imagebufs = rendererWindow->getBuffers();
         endblit();
         emit rendererChanged();
     }
 }
 
+void
+RendererStack::blitDummy(int x, int y, int w, int h)
+{
+    video_blit_complete();
+    blitDummied = true;
+}
+
+void
+RendererStack::blitRenderer(int x, int y, int w, int h)
+{
+    if (blitDummied) { blitDummied = false; video_blit_complete(); return; }
+    directBlitting = true;
+    rendererWindow->blit(x, y, w, h);
+    directBlitting = false;
+}
+
 // called from blitter thread
 void
-RendererStack::blit(int x, int y, int w, int h)
+RendererStack::blitCommon(int x, int y, int w, int h)
 {
-    if ((w <= 0) || (h <= 0) || (w > 2048) || (h > 2048) || (buffer32 == NULL) || imagebufs.empty() || std::get<std::atomic_flag *>(imagebufs[currentBuf])->test_and_set()) {
+    if ((x < 0) || (y < 0) || (w <= 0) || (h <= 0) || (w > 2048) || (h > 2048) || (buffer32 == NULL) || imagebufs.empty() || std::get<std::atomic_flag *>(imagebufs[currentBuf])->test_and_set() || blitDummied) {
         video_blit_complete();
         return;
     }

@@ -158,6 +158,18 @@ thread_wait_mutex(mutex_t *_mutex)
 
 
 int
+thread_test_mutex(mutex_t *_mutex)
+{
+    if (_mutex == NULL)
+	return(0);
+    pt_mutex_t *mutex = (pt_mutex_t *)_mutex;
+
+    return
+	pthread_mutex_trylock(&mutex->mutex) != 0;
+}
+
+
+int
 thread_release_mutex(mutex_t *_mutex)
 {
     if (_mutex == NULL)

@@ -461,6 +461,8 @@ ega_recalctimings(ega_t *ega)
 	ega->dispontime = TIMER_USEC;
     if (ega->dispofftime < TIMER_USEC)
 	ega->dispofftime = TIMER_USEC;
+
+    ega_recalc_remap_func(ega);
 }
 
 
@@ -561,7 +563,7 @@ ega_poll(void *p)
 		}
 	}
 	ega->vc++;
-	ega->vc &= 1023;
+	ega->vc &= 511;
 	if (ega->vc == ega->split) {
 		if (ega->interlace && ega->oddeven)
 			ega->ma = ega->maback = ega->ma_latch + (ega->rowoffset << 1);

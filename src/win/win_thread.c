@@ -46,6 +46,16 @@ thread_create(void (*func)(void *param), void *param)
 
 
 int
+thread_test_mutex(thread_t *arg)
+{
+    if (arg == NULL) return(0);
+
+    return (WaitForSingleObject(arg, 0) == WAIT_OBJECT_0) ? 1 : 0;
+}
+
+
+
+int
 thread_wait(thread_t *arg)
 {
     if (arg == NULL) return(0);

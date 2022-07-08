@@ -245,6 +245,7 @@ machine_at_px286_init(const machine_t *model)
     return ret;
 }
 
+
 int
 machine_at_micronics386_init(const machine_t *model)
 {
@@ -252,17 +253,15 @@ machine_at_micronics386_init(const machine_t *model)
 
     ret = bios_load_interleaved("roms/machines/micronics386/386-Micronics-09-00021-EVEN.BIN",
 				"roms/machines/micronics386/386-Micronics-09-00021-ODD.BIN",
-				0x000f0000, 131072, 0);
+				0x000f0000, 65536, 0);
 
     if (bios_only || !ret)
 	return ret;
 
     machine_at_init(model);
 
-    device_add(&neat_device);
-
     if (fdc_type == FDC_INTERNAL)
-    device_add(&fdc_at_device);
+	device_add(&fdc_at_device);
 
     return ret;
 }

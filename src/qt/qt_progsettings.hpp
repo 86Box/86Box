@@ -57,10 +57,15 @@ private slots:
     void on_pushButton_released();
     void on_pushButtonLanguage_released();
 
+    void on_horizontalSlider_valueChanged(int value);
+
+    void on_pushButton_2_clicked();
+
 private:
     Ui::ProgSettings *ui;
 
     friend class MainWindow;
+    double mouseSensitivity;
 };
 
 #endif // QT_PROGSETTINGS_HPP

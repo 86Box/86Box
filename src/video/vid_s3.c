@@ -2985,6 +2985,9 @@ static void s3_recalctimings(svga_t *svga)
 							(s3->chip != S3_TRIO64) && (s3->chip != S3_VISION964) && (s3->chip != S3_VISION968)) {
 					if (s3->width == 1280 || s3->width == 1600)
 						svga->hdisp <<= 1;
+				} else if ((s3->card_type == S3_ELSAWIN2KPROX_964) || (s3->card_type == S3_ELSAWIN2KPROX)) {
+					if (s3->width == 1280 || s3->width == 1600)
+						svga->hdisp <<= 1;
 				} else if (s3->card_type == S3_SPEA_MERCURY_P64V) {
 					if (s3->width == 1280 || s3->width == 1600)
 						svga->hdisp <<= 1;
@@ -3126,6 +3129,10 @@ static void s3_recalctimings(svga_t *svga)
 			if (s3->width == 1280 || s3->width == 1600 || (s3->card_type == S3_SPEA_MERCURY_P64V ||
 				s3->card_type == S3_NUMBER9_9FX_771))
 				svga->hdisp <<= 1;
+            if (s3->card_type == S3_NUMBER9_9FX_771) {
+                if (svga->hdisp == 832)
+                    svga->hdisp -= 32;
+            }
 			if (s3->card_type == S3_MIROVIDEO40SV_ERGO_968 || s3->card_type == S3_MIROCRYSTAL20SV_964 ||
 				s3->card_type == S3_MIROCRYSTAL20SD_864 || s3->card_type == S3_PHOENIX_VISION968 ||
 				s3->card_type == S3_SPEA_MERCURY_P64V) {
@@ -3398,12 +3405,9 @@ s3_updatemapping(s3_t *s3)
 
 				mem_mapping_set_addr(&s3->linear_mapping, s3->linear_base, s3->linear_size);
 			}
-			if (s3->chip >= S3_TRIO64V)
-				svga->fb_only = 1;
+			svga->fb_only = 1;
 		} else {
-			if (s3->chip >= S3_TRIO64V)
-				svga->fb_only = 0;
-
+			svga->fb_only = 0;
 			mem_mapping_disable(&s3->linear_mapping);
 		}
 
