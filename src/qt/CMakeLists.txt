@@ -179,7 +179,8 @@ if(WIN32)
     enable_language(RC)
     target_sources(86Box PUBLIC ../win/86Box-qt.rc)
     target_sources(plat PRIVATE win_joystick_rawinput.c)
-    target_link_libraries(86Box hid)
+    target_sources(ui PRIVATE qt_d3d9renderer.hpp qt_d3d9renderer.cpp)
+    target_link_libraries(86Box hid d3d9)
 
     # CMake 3.22 messed this up for clang/clang++
     # See https://gitlab.kitware.com/cmake/cmake/-/issues/22611
@@ -239,12 +240,24 @@ if(WIN32)
         # needed for static builds
         qt_import_plugins(plat INCLUDE Qt${QT_MAJOR}::QWindowsIntegrationPlugin Qt${QT_MAJOR}::QICOPlugin Qt${QT_MAJOR}::QWindowsVistaStylePlugin)
     else()
-        install(CODE "
-            get_filename_component(CMAKE_INSTALL_PREFIX_ABSOLUTE \${CMAKE_INSTALL_PREFIX} ABSOLUTE)
-            execute_process(
-                COMMAND $<TARGET_FILE:Qt${QT_MAJOR}::windeployqt>
-                \"\${CMAKE_INSTALL_PREFIX_ABSOLUTE}/$<TARGET_FILE_NAME:86Box>\")
-        ")
+        if(USE_QT6)
+            install(CODE "
+                get_filename_component(CMAKE_INSTALL_PREFIX_ABSOLUTE \${CMAKE_INSTALL_PREFIX} ABSOLUTE)
+                execute_process(
+                    COMMAND $<TARGET_FILE:Qt${QT_MAJOR}::windeployqt>
+                    \"\${CMAKE_INSTALL_PREFIX_ABSOLUTE}/$<TARGET_FILE_NAME:86Box>\")
+            ")
+        else()
+            find_program(WINDEPLOYQT_EXECUTABLE windeployqt)
+            if(WINDEPLOYQT_EXECUTABLE)
+                install(CODE "
+                    get_filename_component(CMAKE_INSTALL_PREFIX_ABSOLUTE \${CMAKE_INSTALL_PREFIX} ABSOLUTE)
+                    execute_process(
+                        COMMAND ${WINDEPLOYQT_EXECUTABLE}
+                        \"\${CMAKE_INSTALL_PREFIX_ABSOLUTE}/$<TARGET_FILE_NAME:86Box>\")
+                ")
+            endif()
+        endif()
     endif()
 endif()
 

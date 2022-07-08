@@ -16,6 +16,7 @@
  *		Copyright 2016-2019 Miran Grca.
  *		Copyright 2018,2019 David Hrdlička.
  *		Copyright 2021 Laci bá'
+ *		Copyright 2021-2022 Jasmine Iwanek.
  */
 #define UNICODE
 #define BITMAP WINDOWS_BITMAP
@@ -63,6 +64,7 @@
 #include <86box/midi.h>
 #include <86box/snd_mpu401.h>
 #include <86box/video.h>
+#include <86box/vid_xga_device.h>
 #include <86box/plat.h>
 #include <86box/ui.h>
 #include <86box/win.h>
@@ -85,7 +87,7 @@ static int temp_dynarec;
 #endif
 
 /* Video category */
-static int temp_gfxcard, temp_ibm8514, temp_voodoo;
+static int temp_gfxcard, temp_ibm8514, temp_voodoo, temp_xga;
 
 /* Input devices category */
 static int temp_mouse, temp_joystick;
@@ -333,6 +335,7 @@ win_settings_init(void)
     temp_gfxcard = gfxcard;
     temp_voodoo = voodoo_enabled;
     temp_ibm8514 = ibm8514_enabled;
+    temp_xga = xga_enabled;
 
     /* Input devices category */
     temp_mouse = mouse_type;
@@ -458,6 +461,7 @@ win_settings_changed(void)
     i = i || (gfxcard != temp_gfxcard);
     i = i || (voodoo_enabled != temp_voodoo);
     i = i || (ibm8514_enabled != temp_ibm8514);
+    i = i || (xga_enabled != temp_xga);
 
     /* Input devices category */
     i = i || (mouse_type != temp_mouse);
@@ -549,6 +553,7 @@ win_settings_save(void)
     gfxcard = temp_gfxcard;
     voodoo_enabled = temp_voodoo;
     ibm8514_enabled = temp_ibm8514;
+    xga_enabled = temp_xga;
 
     /* Input devices category */
     mouse_type = temp_mouse;
@@ -1116,6 +1121,11 @@ win_settings_video_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 
 		settings_enable_window(hdlg, IDC_CHECK_IBM8514, machine_has_bus(temp_machine, MACHINE_BUS_ISA16) || machine_has_bus(temp_machine, MACHINE_BUS_MCA));
 		settings_set_check(hdlg, IDC_CHECK_IBM8514, temp_ibm8514);
+
+		settings_enable_window(hdlg, IDC_CHECK_XGA, machine_has_bus(temp_machine, MACHINE_BUS_ISA16) || machine_has_bus(temp_machine, MACHINE_BUS_MCA));
+		settings_set_check(hdlg, IDC_CHECK_XGA, temp_xga);
+		settings_enable_window(hdlg, IDC_BUTTON_XGA, (machine_has_bus(temp_machine, MACHINE_BUS_ISA16) || machine_has_bus(temp_machine, MACHINE_BUS_MCA)) && temp_xga);
+
 		return TRUE;
 
 	case WM_COMMAND:
@@ -1134,8 +1144,21 @@ win_settings_video_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 				temp_ibm8514 = settings_get_check(hdlg, IDC_CHECK_IBM8514);
 				break;
 
+			case IDC_CHECK_XGA:
+				temp_xga = settings_get_check(hdlg, IDC_CHECK_XGA);
+				settings_enable_window(hdlg, IDC_BUTTON_XGA, temp_xga);
+				break;
+
 			case IDC_BUTTON_VOODOO:
 				temp_deviceconfig |= deviceconfig_open(hdlg, (void *)&voodoo_device);
+				break;
+
+			case IDC_BUTTON_XGA:
+				if (machine_has_bus(temp_machine, MACHINE_BUS_MCA) > 0) {
+					temp_deviceconfig |= deviceconfig_open(hdlg, (void *)&xga_device);
+				} else {
+					temp_deviceconfig |= deviceconfig_open(hdlg, (void *)&xga_isa_device);
+				}
 				break;
 
 			case IDC_CONFIGURE_VID:
@@ -1149,6 +1172,7 @@ win_settings_video_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 		temp_gfxcard = settings_list_to_device[0][settings_get_cur_sel(hdlg, IDC_COMBO_VIDEO)];
 		temp_voodoo = settings_get_check(hdlg, IDC_CHECK_VOODOO);
 		temp_ibm8514 = settings_get_check(hdlg, IDC_CHECK_IBM8514);
+		temp_xga = settings_get_check(hdlg, IDC_CHECK_XGA);
 
 	default:
 		return FALSE;

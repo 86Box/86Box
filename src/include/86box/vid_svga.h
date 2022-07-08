@@ -19,6 +19,7 @@
 
 #include <86box/thread.h>
 #include <86box/vid_8514a.h>
+#include <86box/vid_xga.h>
 
 #ifndef VIDEO_SVGA_H
 # define VIDEO_SVGA_H
@@ -49,6 +50,7 @@ typedef union {
 typedef struct svga_t
 {
     ibm8514_t dev8514;
+    xga_t xga;
     mem_mapping_t mapping;
 
     uint8_t fast, chain4, chain2_write, chain2_read,
@@ -171,11 +173,13 @@ typedef struct svga_t
     void *ramdac, *clock_gen;
 } svga_t;
 
-extern svga_t *svga_8514;
-extern int vga_on;
+extern int vga_on, ibm8514_on;
 
 extern void ibm8514_poll(ibm8514_t *dev, svga_t *svga);
 extern void ibm8514_recalctimings(svga_t *svga);
+
+extern void xga_poll(xga_t *xga, svga_t *svga);
+extern void xga_recalctimings(svga_t *svga);
 
 extern int	svga_init(const device_t *info, svga_t *svga, void *p, int memsize,
 			  void (*recalctimings_ex)(struct svga_t *svga),
