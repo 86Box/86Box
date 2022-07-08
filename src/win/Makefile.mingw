@@ -71,7 +71,7 @@ ifeq ($(DEV_BUILD), y)
   OPEN_AT	:= y
  endif
  ifndef PAS16
-  PAS16		:= n
+  PAS16		:= y
  endif
  ifndef SIO_DETECT
   SIO_DETECT	:= y
