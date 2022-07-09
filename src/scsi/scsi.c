@@ -86,6 +86,7 @@ static SCSI_CARD scsi_cards[] = {
     { &scsi_ls2000_device,       },
     { &scsi_lcs6821n_device,     },
     { &scsi_rt1000b_device,      },
+    { &scsi_rt1000mc_device,     },
     { &scsi_t128_device,         },
     { &scsi_t130b_device,        },
 #ifdef WALTJE
