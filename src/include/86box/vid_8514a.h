@@ -62,9 +62,10 @@ typedef struct ibm8514_t
         int x1, x2, y1, y2;
         int sys_cnt, sys_cnt2;
         int temp_cnt;
-        int16_t cx, cy;
-        int sx, sy;
-        int dx, dy;
+        int16_t cx, cy, oldcy;
+        int16_t sx, sy;
+        int16_t dx, dy;
+        int16_t err;
         uint32_t src, dest;
         uint32_t newsrc_blt, newdest_blt;
         uint32_t newdest_in, newdest_out;
@@ -79,7 +80,7 @@ typedef struct ibm8514_t
         int odd_in, odd_out;
 
         uint16_t scratch;
-        int fill_state, fill_drop;
+        int fill_state, xdir, ydir;
     } accel;
 
     uint16_t test;
