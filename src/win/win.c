@@ -764,22 +764,6 @@ path_abs(char *path)
 }
 
 
-/* Return the last element of a pathname. */
-char *
-plat_get_basename(const char *path)
-{
-    int c = (int)strlen(path);
-
-    while (c > 0) {
-	if (path[c] == '/' || path[c] == '\\')
-	   return((char *)&path[c + 1]);
-       c--;
-    }
-
-    return((char *)path);
-}
-
-
 /* Return the 'directory' element of a pathname. */
 void
 path_get_dirname(char *dest, const char *path)

@@ -902,7 +902,7 @@ next_dir:
     tz_offset  = (now - mktime(gmtime(&now))) / (3600 / 4);
 
     /* Get root directory basename for the volume ID. */
-    char *basename = plat_get_basename(dirname);
+    char *basename = path_get_filename(viso->root_dir->path);
     if (!basename || (basename[0] == '\0'))
         basename = EMU_NAME;
 

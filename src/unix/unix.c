@@ -326,19 +326,6 @@ plat_put_backslash(char *s)
 
 /* Return the last element of a pathname. */
 char *
-plat_get_basename(const char *path)
-{
-    int c = (int)strlen(path);
-
-    while (c > 0) {
-	if (path[c] == '/')
-	   return((char *)&path[c + 1]);
-       c--;
-    }
-
-    return((char *)path);
-}
-char *
 path_get_filename(char *s)
 {
     int c = strlen(s) - 1;
