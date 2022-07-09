@@ -93,7 +93,7 @@ int	ui_msgbox_header(int flags, void *header, void* message) {
         msgBox.exec();
     } else {
         // else scope it to main_window
-        main_window->showMessage(hdr, msg);
+        main_window->showMessage(flags, hdr, msg);
     }
     return 0;
 }
