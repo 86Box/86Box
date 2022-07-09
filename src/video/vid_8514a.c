@@ -2555,18 +2555,12 @@ rect_fill:
         if (!cpu_input) {
             dev->accel.cx = dev->accel.cur_x;
             dev->accel.cy = dev->accel.cur_y;
+            dev->accel.oldcy = dev->accel.cy;
 
-            dev->accel.sy = dev->accel.maj_axis_pcnt;
+            dev->accel.xdir = (dev->accel.cmd & 0x20) ? 1 : -1;
+            dev->accel.ydir = (dev->accel.cmd & 0x80) ? 1 : -1;
 
-            if (dev->accel.cx < dev->accel.clip_left)
-                dev->accel.cx = dev->accel.clip_left;
-            else if (dev->accel.cx > clip_r)
-                dev->accel.cx = dev->accel.clip_left;
-
-            dev->accel.sx = dev->accel.sy;
-            dev->accel.dx = dev->accel.destx_distp;
-            dev->accel.dy = dev->accel.desty_axstp;
-            dev->accel.err = dev->accel.err_term;
+            dev->accel.sy = 0;
 
             if (ibm8514_cpu_src(dev)) {
                 dev->data_available = 0;
@@ -2579,237 +2573,70 @@ rect_fill:
             }
         }
 
-        if (dev->accel.cmd & 8) { /*Vector Line*/
-            while (count-- && (dev->accel.sy >= 0)) {
-                if ((dev->accel.cx >= dev->accel.clip_left && dev->accel.cx <= clip_r &&
-                    dev->accel.cy >= dev->accel.clip_top && dev->accel.cy <= clip_b)) {
-                    if (ibm8514_cpu_dest(dev) && (pixcntl == 0)) {
-                        mix_dat = mix_mask; /* Mix data = forced to foreground register. */
-                    } else if (ibm8514_cpu_dest(dev) && (pixcntl == 3)) {
-                        /* Mix data = current video memory value. */
-                        READ((dev->accel.cy * dev->h_disp) + dev->accel.cx, mix_dat);
-                        mix_dat = ((mix_dat & rd_mask) == rd_mask);
-                        mix_dat = mix_dat ? mix_mask : 0;
-                    }
+        while (count-- && (dev->accel.sy >= 0)) {
+            if (((dev->accel.cx) >= dev->accel.clip_left && (dev->accel.cx <= clip_r) &&
+                (dev->accel.cy) >= dev->accel.clip_top && (dev->accel.cy) <= clip_b)) {
+                switch ((mix_dat & mix_mask) ? frgd_mix : bkgd_mix) {
+                    case 0: src_dat = bkgd_color; break;
+                    case 1: src_dat = frgd_color; break;
+                    case 2: src_dat = cpu_dat & 0xff; break;
+                    case 3: src_dat = 0; break;
+                }
 
-                    if (ibm8514_cpu_dest(dev)) {
-                        READ((dev->accel.cy * dev->h_disp) + dev->accel.cx, src_dat);
-                        if (pixcntl == 3)
-                            src_dat = ((src_dat & rd_mask) == rd_mask);
-                    } else switch ((mix_dat & mix_mask) ? frgd_mix : bkgd_mix) {
-                        case 0: src_dat = bkgd_color; break;
-                        case 1: src_dat = frgd_color; break;
-                        case 2: src_dat = cpu_dat & 0xff; break;
-                        case 3: src_dat = 0; break;
-                    }
+                READ((dev->accel.cy * dev->h_disp) + dev->accel.cx, dest_dat);
 
-                    READ((dev->accel.cy * dev->h_disp) + dev->accel.cx, dest_dat);
-
-                    if ((compare_mode == 0) ||
-                        ((compare_mode == 0x10) && (dest_dat >= compare)) ||
-                        ((compare_mode == 0x18) && (dest_dat < compare)) ||
-                        ((compare_mode == 0x20) && (dest_dat != compare)) ||
-                        ((compare_mode == 0x28) && (dest_dat == compare)) ||
-                        ((compare_mode == 0x30) && (dest_dat <= compare)) ||
-                        ((compare_mode == 0x38) && (dest_dat > compare))) {
-                        old_dest_dat = dest_dat;
-                        MIX(mix_dat & mix_mask, dest_dat, src_dat);
-                        dest_dat = (dest_dat & wrt_mask) | (old_dest_dat & ~wrt_mask);
-                        if ((dev->accel.cmd & 4) && dev->accel.sy) {
+                if ((compare_mode == 0) ||
+                    ((compare_mode == 0x10) && (dest_dat >= compare)) ||
+                    ((compare_mode == 0x18) && (dest_dat < compare)) ||
+                    ((compare_mode == 0x20) && (dest_dat != compare)) ||
+                    ((compare_mode == 0x28) && (dest_dat == compare)) ||
+                    ((compare_mode == 0x30) && (dest_dat <= compare)) ||
+                    ((compare_mode == 0x38) && (dest_dat > compare))) {
+                    old_dest_dat = dest_dat;
+                    MIX(mix_dat & mix_mask, dest_dat, src_dat);
+                    dest_dat = (dest_dat & wrt_mask) | (old_dest_dat & ~wrt_mask);
+                    if ((dev->accel.cmd & 4) && (dev->accel.sy < dev->accel.maj_axis_pcnt)) {
+                        if (!dev->accel.sy) {
                             WRITE((dev->accel.cy * dev->h_disp) + dev->accel.cx, dest_dat);
-                        } else if (!(dev->accel.cmd & 4)) {
+                        } else if ((dev->accel.cmd & 0x40) && dev->accel.sy && (dev->accel.cy == dev->accel.oldcy + 1)) {
+                            WRITE((dev->accel.cy * dev->h_disp) + dev->accel.cx, dest_dat);
+                        } else if (!(dev->accel.cmd & 0x40) && dev->accel.sy && (dev->accel.err_term >= 0) && (dev->accel.cy == (dev->accel.oldcy + 1))) {
                             WRITE((dev->accel.cy * dev->h_disp) + dev->accel.cx, dest_dat);
                         }
                     }
                 }
-                mix_dat <<= 1;
-                mix_dat |= 1;
-                cpu_dat >>= 8;
-
-                if (dev->accel.sy == 0) {
-                    break;
-                }
-
-                switch (dev->accel.cmd & 0xe0) {
-                    case 0x00: dev->accel.cx++; break;
-                    case 0x20: dev->accel.cx++; dev->accel.cy--; break;
-                    case 0x40: dev->accel.cy--; break;
-                    case 0x60: dev->accel.cx--; dev->accel.cy--; break;
-                    case 0x80: dev->accel.cx--; break;
-                    case 0xa0: dev->accel.cx--; dev->accel.cy++; break;
-                    case 0xc0: dev->accel.cy++; break;
-                    case 0xe0: dev->accel.cx++; dev->accel.cy++; break;
-                }
-
-                dev->accel.sy--;
             }
-        } else { /*Bresenham*/
-            if (pixcntl == 1) {
-                dev->accel.temp_cnt = 8;
-                while (count-- && (dev->accel.sy >= 0)) {
-                    if (dev->accel.temp_cnt == 0) {
-                        dev->accel.temp_cnt = 8;
-                        mix_dat = old_mix_dat;
-                    }
-                    if ((dev->accel.cx >= dev->accel.clip_left && dev->accel.cx <= clip_r &&
-                        dev->accel.cy >= dev->accel.clip_top && dev->accel.cy <= clip_b)) {
-                        if (ibm8514_cpu_dest(dev)) {
-                            READ((dev->accel.cy * dev->h_disp) + dev->accel.cx, src_dat);
-                        } else switch ((mix_dat & 1) ? frgd_mix : bkgd_mix) {
-                            case 0: src_dat = bkgd_color; break;
-                            case 1: src_dat = frgd_color; break;
-                            case 2: src_dat = cpu_dat & 0xff; break;
-                            case 3: src_dat = 0; break;
-                        }
 
-                        READ((dev->accel.cy * dev->h_disp) + dev->accel.cx, dest_dat);
+            mix_dat <<= 1;
+            mix_dat |= 1;
+            cpu_dat >>= 8;
 
-                        if ((compare_mode == 0) ||
-                            ((compare_mode == 0x10) && (dest_dat >= compare)) ||
-                            ((compare_mode == 0x18) && (dest_dat < compare)) ||
-                            ((compare_mode == 0x20) && (dest_dat != compare)) ||
-                            ((compare_mode == 0x28) && (dest_dat == compare)) ||
-                            ((compare_mode == 0x30) && (dest_dat <= compare)) ||
-                            ((compare_mode == 0x38) && (dest_dat > compare))) {
-                            old_dest_dat = dest_dat;
-                            MIX(mix_dat & 1, dest_dat, src_dat);
-                            dest_dat = (dest_dat & wrt_mask) | (old_dest_dat & ~wrt_mask);
-                            if ((dev->accel.cmd & 4) && dev->accel.sy) {
-                                WRITE((dev->accel.cy * dev->h_disp) + dev->accel.cx, dest_dat);
-                            } else if (!(dev->accel.cmd & 4)) {
-                                WRITE((dev->accel.cy * dev->h_disp) + dev->accel.cx, dest_dat);
-                            }
-                        }
-                    }
-                    dev->accel.temp_cnt--;
-                    mix_dat >>= 1;
-                    cpu_dat >>= 8;
+            if (dev->accel.sy == dev->accel.maj_axis_pcnt) {
+                return;
+            }
 
-                    if (dev->accel.sy == 0) {
-                        break;
-                    }
-
-                    if (dev->accel.err_term >= dev->accel.maj_axis_pcnt) {
-                        dev->accel.err_term += dev->accel.destx_distp;
-                        /*Step minor axis*/
-                        switch (dev->accel.cmd & 0xe0) {
-                            case 0x00: dev->accel.cy--; break;
-                            case 0x20: dev->accel.cy--; break;
-                            case 0x40: dev->accel.cx--; break;
-                            case 0x60: dev->accel.cx++; break;
-                            case 0x80: dev->accel.cy++; break;
-                            case 0xa0: dev->accel.cy++; break;
-                            case 0xc0: dev->accel.cx--; break;
-                            case 0xe0: dev->accel.cx++; break;
-                        }
-                    } else
-                        dev->accel.err_term += dev->accel.desty_axstp;
-
-                    /*Step major axis*/
-                    switch (dev->accel.cmd & 0xe0) {
-                        case 0x00: dev->accel.cx--; break;
-                        case 0x20: dev->accel.cx++; break;
-                        case 0x40: dev->accel.cy--; break;
-                        case 0x60: dev->accel.cy--; break;
-                        case 0x80: dev->accel.cx--; break;
-                        case 0xa0: dev->accel.cx++; break;
-                        case 0xc0: dev->accel.cy++; break;
-                        case 0xe0: dev->accel.cy++; break;
-                    }
-
-                    dev->accel.sy--;
+            if (dev->accel.cmd & 0x40) {
+                dev->accel.oldcy = dev->accel.cy;
+                dev->accel.cy += dev->accel.ydir;
+                if (dev->accel.err_term >= 0) {
+                    dev->accel.err_term += dev->accel.destx_distp;
+                    dev->accel.cx += dev->accel.xdir;
+                } else {
+                    dev->accel.err_term += dev->accel.desty_axstp;
                 }
             } else {
-                while (count-- && (dev->accel.sy >= 0)) {
-                    if (dev->accel.cx < dev->accel.clip_left)
-                        dev->accel.cx = dev->accel.clip_left;
-                    else if (dev->accel.cx > clip_r)
-                        dev->accel.cx = dev->accel.clip_left;
-
-                    if (((dev->accel.cx) >= dev->accel.clip_left && (dev->accel.cx) <= clip_r &&
-                        (dev->accel.cy) >= dev->accel.clip_top && (dev->accel.cy) <= clip_b)) {
-                        if (ibm8514_cpu_dest(dev) && (pixcntl == 0)) {
-                            mix_dat = mix_mask; /* Mix data = forced to foreground register. */
-                        } else if (ibm8514_cpu_dest(dev) && (pixcntl == 3)) {
-                            /* Mix data = current video memory value. */
-                            READ((dev->accel.cy * dev->h_disp) + dev->accel.cx, mix_dat);
-                            mix_dat = ((mix_dat & rd_mask) == rd_mask);
-                            mix_dat = mix_dat ? mix_mask : 0;
-                        }
-
-                        if (ibm8514_cpu_dest(dev)) {
-                            READ((dev->accel.cy * dev->h_disp) + dev->accel.cx, src_dat);
-                            if (pixcntl == 3)
-                                src_dat = ((src_dat & rd_mask) == rd_mask);
-                        } else switch ((mix_dat & mix_mask) ? frgd_mix : bkgd_mix) {
-                            case 0: src_dat = bkgd_color; break;
-                            case 1: src_dat = frgd_color; break;
-                            case 2: src_dat = cpu_dat & 0xff; break;
-                            case 3: src_dat = 0; break;
-                        }
-
-                        READ((dev->accel.cy * dev->h_disp) + dev->accel.cx, dest_dat);
-
-                        if ((compare_mode == 0) ||
-                            ((compare_mode == 0x10) && (dest_dat >= compare)) ||
-                            ((compare_mode == 0x18) && (dest_dat < compare)) ||
-                            ((compare_mode == 0x20) && (dest_dat != compare)) ||
-                            ((compare_mode == 0x28) && (dest_dat == compare)) ||
-                            ((compare_mode == 0x30) && (dest_dat <= compare)) ||
-                            ((compare_mode == 0x38) && (dest_dat > compare))) {
-                            old_dest_dat = dest_dat;
-                            MIX(mix_dat & mix_mask, dest_dat, src_dat);
-                            dest_dat = (dest_dat & wrt_mask) | (old_dest_dat & ~wrt_mask);
-                            if ((dev->accel.cmd & 4) && dev->accel.sy) {
-                                WRITE((dev->accel.cy * dev->h_disp) + dev->accel.cx, dest_dat);
-                            } else if (!(dev->accel.cmd & 4)) {
-                                WRITE((dev->accel.cy * dev->h_disp) + dev->accel.cx, dest_dat);
-                            }
-                        }
-                    }
-
-                    mix_dat <<= 1;
-                    mix_dat |= 1;
-                    cpu_dat >>= 8;
-
-                    if (dev->accel.sy == 0) {
-                        break;
-                    }
-
-                    if (dev->accel.err >= dev->accel.sx) {
-                        dev->accel.err += dev->accel.dx;
-                        /*Step minor axis*/
-                        switch (dev->accel.cmd & 0xe0) {
-                            case 0x00: dev->accel.cy--; break;
-                            case 0x20: dev->accel.cy--; break;
-                            case 0x40: dev->accel.cx--; break;
-                            case 0x60: dev->accel.cx++; break;
-                            case 0x80: dev->accel.cy++; break;
-                            case 0xa0: dev->accel.cy++; break;
-                            case 0xc0: dev->accel.cx--; break;
-                            case 0xe0: dev->accel.cx++; break;
-                        }
-                    } else
-                        dev->accel.err += dev->accel.dy;
-
-                    /*Step major axis*/
-                    switch (dev->accel.cmd & 0xe0) {
-                        case 0x00: dev->accel.cx--; break;
-                        case 0x20: dev->accel.cx++; break;
-                        case 0x40: dev->accel.cy--; break;
-                        case 0x60: dev->accel.cy--; break;
-                        case 0x80: dev->accel.cx--; break;
-                        case 0xa0: dev->accel.cx++; break;
-                        case 0xc0: dev->accel.cy++; break;
-                        case 0xe0: dev->accel.cy++; break;
-                    }
-
-                    dev->accel.sy--;
+                dev->accel.cx += dev->accel.xdir;
+                if (dev->accel.err_term >= 0) {
+                    dev->accel.err_term += dev->accel.destx_distp;
+                    dev->accel.oldcy = dev->accel.cy;
+                    dev->accel.cy += dev->accel.ydir;
+                } else {
+                    dev->accel.err_term += dev->accel.desty_axstp;
                 }
             }
+
+            dev->accel.sy++;
         }
-        dev->accel.cur_x = dev->accel.cx;
-        dev->accel.cur_y = dev->accel.cy;
         break;
 
         case 6: /*BitBlt*/
