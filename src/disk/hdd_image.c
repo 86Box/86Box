@@ -495,8 +495,11 @@ hdd_image_seek(uint8_t id, uint32_t sector)
 void
 hdd_image_read(uint8_t id, uint32_t sector, uint32_t count, uint8_t *buffer)
 {
+	int non_transferred_sectors;
+	size_t num_read;
+
 	if (hdd_images[id].type == HDD_IMAGE_VHD) {
-		int non_transferred_sectors = mvhd_read_sectors(hdd_images[id].vhd, sector, count, buffer);
+		non_transferred_sectors = mvhd_read_sectors(hdd_images[id].vhd, sector, count, buffer);
 		hdd_images[id].pos = sector + count - non_transferred_sectors - 1;
 	} else {
 		if (fseeko64(hdd_images[id].file, ((uint64_t)(sector) << 9LL) + hdd_images[id].base, SEEK_SET) == -1) {
@@ -504,10 +507,7 @@ hdd_image_read(uint8_t id, uint32_t sector, uint32_t count, uint8_t *buffer)
 			return;
 		}
 
-		size_t num_read = fread(buffer, 512, count, hdd_images[id].file);
-		if (num_read != count) {
-			fatal("Hard disk image %i: Read error\n", id);
-		}
+		num_read = fread(buffer, 512, count, hdd_images[id].file);
 		hdd_images[id].pos = sector + num_read;
 	}
 }
@@ -547,8 +547,11 @@ hdd_image_read_ex(uint8_t id, uint32_t sector, uint32_t count, uint8_t *buffer)
 void
 hdd_image_write(uint8_t id, uint32_t sector, uint32_t count, uint8_t *buffer)
 {
+	int non_transferred_sectors;
+	size_t num_write;
+
 	if (hdd_images[id].type == HDD_IMAGE_VHD) {
-		int non_transferred_sectors = mvhd_write_sectors(hdd_images[id].vhd, sector, count, buffer);
+		non_transferred_sectors = mvhd_write_sectors(hdd_images[id].vhd, sector, count, buffer);
 		hdd_images[id].pos = sector + count - non_transferred_sectors - 1;
 	} else {
 		if (fseeko64(hdd_images[id].file, ((uint64_t)(sector) << 9LL) + hdd_images[id].base, SEEK_SET) == -1) {
@@ -556,10 +559,7 @@ hdd_image_write(uint8_t id, uint32_t sector, uint32_t count, uint8_t *buffer)
 			return;
 		}
 
-		size_t num_write = fwrite(buffer, 512, count, hdd_images[id].file);
-		if (num_write != count) {
-			fatal("Hard disk image %i: Write error\n", id);
-		}
+		num_write = fwrite(buffer, 512, count, hdd_images[id].file);
 		hdd_images[id].pos = sector + num_write;
 	}
 }
