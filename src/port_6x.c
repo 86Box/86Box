@@ -170,19 +170,23 @@ port_6x_init(const device_t *info)
 
     dev->flags = info->local & 0xff;
 
-    if (!(dev->flags & PORT_6X_TURBO) || (dev->flags & PORT_6X_EXT_REF))
-        io_sethandler(0x0061, 1, port_61_read_simple, NULL, NULL, port_6x_write, NULL, NULL, dev);
-    else
+    if (dev->flags & (PORT_6X_TURBO | PORT_6X_EXT_REF)) {
         io_sethandler(0x0061, 1, port_61_read, NULL, NULL, port_6x_write, NULL, NULL, dev);
+
+	if (dev->flags & PORT_6X_EXT_REF)
+		timer_add(&dev->refresh_timer, port_6x_refresh, dev, 1);
+
+	if (dev->flags & PORT_6X_MIRROR)
+		io_sethandler(0x0063, 1, port_61_read, NULL, NULL, port_6x_write, NULL, NULL, dev);
+    } else {
+        io_sethandler(0x0061, 1, port_61_read_simple, NULL, NULL, port_6x_write, NULL, NULL, dev);
+
+	if (dev->flags & PORT_6X_MIRROR)
+		io_sethandler(0x0063, 1, port_61_read_simple, NULL, NULL, port_6x_write, NULL, NULL, dev);
+    }
 
     if (dev->flags & PORT_6X_SWA)
         io_sethandler(0x0062, 1, port_62_read, NULL, NULL, NULL, NULL, NULL, dev);
-
-    if (dev->flags & PORT_6X_MIRROR)
-        io_sethandler(0x0063, 1, port_61_read, NULL, NULL, port_6x_write, NULL, NULL, dev);
-
-    if (dev->flags & PORT_6X_EXT_REF)
-	   timer_add(&dev->refresh_timer, port_6x_refresh, dev, 1);
 
     return dev;
 }
