@@ -445,7 +445,12 @@ cdi_read_sectors(cd_img_t *cdi, uint8_t *buffer, int raw, uint32_t sector, uint3
     for (i = 0; i < num; i++) {
         success = cdi_read_sector(cdi, &buf[i * sector_size], raw, sector + i);
         if (!success)
-            break;
+		break;
+	/* Based on the DOSBox patch, but check all 8 bytes and makes sure it's not an
+	   audio track. */
+	if (raw && sector < cdi->tracks[0].length && !cdi->tracks[0].mode2 &&
+	    (cdi->tracks[0].attr != AUDIO_TRACK) && *(uint64_t *) &(buf[i * sector_size + 2068]))
+		return 0;
     }
 
     memcpy((void *) buffer, buf, buf_len);
