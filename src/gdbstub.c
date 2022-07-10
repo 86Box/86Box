@@ -1035,6 +1035,10 @@ e00:
                 FAST_RESPONSE("1");
             } else if (!strcmp(client->response, "C")) {
                 FAST_RESPONSE("QC1");
+            } else if (!strcmp(client->response, "fThreadInfo")) {
+                FAST_RESPONSE("m 1");
+            } else if (!strcmp(client->response, "sThreadInfo")) {
+                FAST_RESPONSE("l");
             } else if (!strcmp(client->response, "Rcmd")) {
                 /* Read and decode command in-place. */
                 i                 = gdbstub_client_read_hex(client, (uint8_t *) client->packet, strlen(client->packet) - client->packet_pos);
