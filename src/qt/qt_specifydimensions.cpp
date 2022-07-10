@@ -79,7 +79,7 @@ void SpecifyDimensions::on_SpecifyDimensions_accepted()
                 main_window->renderers[i]->setWindowFlag(Qt::WindowMaximizeButtonHint, false);
                 main_window->renderers[i]->setWindowFlag(Qt::MSWindowsFixedSizeDialogHint);
                 emit main_window->resizeContentsMonitor(fixed_size_x, fixed_size_y, i);
-                main_window->renderers[i]->show();
+                if (show_second_monitors) main_window->renderers[i]->show();
                 main_window->renderers[i]->switchRenderer((RendererStack::Renderer)vid_api);
             }
         }
@@ -102,7 +102,7 @@ void SpecifyDimensions::on_SpecifyDimensions_accepted()
                 main_window->renderers[i]->setWindowFlag(Qt::MSWindowsFixedSizeDialogHint, false);
                 emit main_window->resizeContentsMonitor(ui->spinBoxWidth->value(), ui->spinBoxHeight->value(), i);
                 main_window->renderers[i]->setFixedSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
-                main_window->renderers[i]->show();
+                if (show_second_monitors) main_window->renderers[i]->show();
                 main_window->renderers[i]->switchRenderer((RendererStack::Renderer)vid_api);
             }
         }
