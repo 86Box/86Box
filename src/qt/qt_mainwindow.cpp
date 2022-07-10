@@ -579,8 +579,8 @@ void MainWindow::on_actionHard_Reset_triggered() {
     if (confirm_reset)
     {
         QMessageBox questionbox(QMessageBox::Icon::Question, "86Box", tr("Are you sure you want to hard reset the emulated machine?"), QMessageBox::NoButton, this);
-        questionbox.addButton(tr("Don't reset"), QMessageBox::AcceptRole);
         questionbox.addButton(tr("Reset"), QMessageBox::RejectRole);
+        questionbox.addButton(tr("Don't reset"), QMessageBox::AcceptRole);
         QCheckBox *chkbox = new QCheckBox(tr("Don't show this message again"));
         questionbox.setCheckBox(chkbox);
         chkbox->setChecked(!confirm_reset);
