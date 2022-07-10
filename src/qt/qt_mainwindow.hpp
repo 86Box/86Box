@@ -123,6 +123,9 @@ protected:
     void closeEvent(QCloseEvent* event) override;
     void changeEvent(QEvent* event) override;
 
+private slots:
+    void on_actionShow_non_primary_monitors_triggered();
+
 private:
     Ui::MainWindow *ui;
     std::unique_ptr<MachineStatus> status;

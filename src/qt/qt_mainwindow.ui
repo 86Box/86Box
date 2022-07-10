@@ -54,7 +54,7 @@
      <x>0</x>
      <y>0</y>
      <width>724</width>
-     <height>21</height>
+     <height>23</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuAction">
@@ -161,6 +161,7 @@
     <addaction name="actionHide_tool_bar"/>
     <addaction name="actionHide_status_bar"/>
     <addaction name="separator"/>
+    <addaction name="actionShow_non_primary_monitors"/>
     <addaction name="actionResizable_window"/>
     <addaction name="actionRemember_size_and_position"/>
     <addaction name="separator"/>
@@ -755,6 +756,14 @@
    </property>
    <property name="vid_api" stdset="0">
     <number>5</number>
+   </property>
+  </action>
+  <action name="actionShow_non_primary_monitors">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Show non-primary monitors</string>
    </property>
   </action>
  </widget>

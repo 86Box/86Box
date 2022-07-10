@@ -447,7 +447,7 @@ RendererStack::blitCommon(int x, int y, int w, int h)
 
 void RendererStack::closeEvent(QCloseEvent* event)
 {
-    if (cpu_thread_run == 0 || is_quit == 0) { event->accept(); return; }
+    if (cpu_thread_run == 0 || is_quit == 1) { event->accept(); return; }
     event->ignore();
     main_window->close();
 }

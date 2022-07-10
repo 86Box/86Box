@@ -62,6 +62,7 @@ extern "C" {
 #include <QPushButton>
 #include <QDesktopServices>
 #include <QUrl>
+#include <QMenuBar>
 #include <QCheckBox>
 #include <QActionGroup>
 #include <QOpenGLContext>
@@ -276,6 +277,7 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->actionHiDPI_scaling->setChecked(dpi_scale);
     ui->actionHide_status_bar->setChecked(hide_status_bar);
     ui->actionHide_tool_bar->setChecked(hide_tool_bar);
+    ui->actionShow_non_primary_monitors->setChecked(show_second_monitors);
     ui->actionUpdate_status_bar_icons->setChecked(update_icons);
     ui->actionEnable_Discord_integration->setChecked(enable_discord);
 
@@ -589,15 +591,18 @@ void MainWindow::initRendererMonitorSlot(int monitor_index)
         if (vid_resize == 2) {
             secondaryRenderer->setFixedSize(fixed_size_x, fixed_size_y);
         }
-        secondaryRenderer->show();
-        if (window_remember) {
-            secondaryRenderer->setGeometry(monitor_settings[monitor_index].mon_window_x < 120 ? 120 : monitor_settings[monitor_index].mon_window_x,
-            monitor_settings[monitor_index].mon_window_y < 120 ? 120 : monitor_settings[monitor_index].mon_window_y,
-            monitor_settings[monitor_index].mon_window_w > 2048 ? 2048 : monitor_settings[monitor_index].mon_window_w,
-            monitor_settings[monitor_index].mon_window_h > 2048 ? 2048 : monitor_settings[monitor_index].mon_window_h);
-        }
-        secondaryRenderer->switchRenderer((RendererStack::Renderer)vid_api);
         secondaryRenderer->setWindowIcon(this->windowIcon());
+        if (show_second_monitors) {
+            secondaryRenderer->show();
+            if (window_remember) {
+                secondaryRenderer->setGeometry(monitor_settings[monitor_index].mon_window_x < 120 ? 120 : monitor_settings[monitor_index].mon_window_x,
+                monitor_settings[monitor_index].mon_window_y < 120 ? 120 : monitor_settings[monitor_index].mon_window_y,
+                monitor_settings[monitor_index].mon_window_w > 2048 ? 2048 : monitor_settings[monitor_index].mon_window_w,
+                monitor_settings[monitor_index].mon_window_h > 2048 ? 2048 : monitor_settings[monitor_index].mon_window_h);
+            }
+            secondaryRenderer->switchRenderer((RendererStack::Renderer)vid_api);
+        }
+
     }
 }
 
@@ -2007,5 +2012,38 @@ void MainWindow::on_actionMCA_devices_triggered()
 
     if (dlg)
         dlg->exec();
+}
+
+
+void MainWindow::on_actionShow_non_primary_monitors_triggered()
+{
+    show_second_monitors ^= 1;
+
+    if (show_second_monitors) {
+        for (int monitor_index = 1; monitor_index < MONITORS_NUM; monitor_index++) {
+            auto& secondaryRenderer = renderers[monitor_index];
+            if (!renderers[monitor_index]) continue;
+            secondaryRenderer->show();
+            if (window_remember) {
+                secondaryRenderer->setGeometry(monitor_settings[monitor_index].mon_window_x < 120 ? 120 : monitor_settings[monitor_index].mon_window_x,
+                monitor_settings[monitor_index].mon_window_y < 120 ? 120 : monitor_settings[monitor_index].mon_window_y,
+                monitor_settings[monitor_index].mon_window_w > 2048 ? 2048 : monitor_settings[monitor_index].mon_window_w,
+                monitor_settings[monitor_index].mon_window_h > 2048 ? 2048 : monitor_settings[monitor_index].mon_window_h);
+            }
+            secondaryRenderer->switchRenderer((RendererStack::Renderer)vid_api);
+        }
+    } else {
+        for (int monitor_index = 1; monitor_index < MONITORS_NUM; monitor_index++) {
+            auto& secondaryRenderer = renderers[monitor_index];
+            if (!renderers[monitor_index]) continue;
+            secondaryRenderer->hide();
+            if (window_remember && renderers[monitor_index]) {
+                monitor_settings[monitor_index].mon_window_w = renderers[monitor_index]->geometry().width();
+                monitor_settings[monitor_index].mon_window_h = renderers[monitor_index]->geometry().height();
+                monitor_settings[monitor_index].mon_window_x = renderers[monitor_index]->geometry().x();
+                monitor_settings[monitor_index].mon_window_y = renderers[monitor_index]->geometry().y();
+            }
+        }
+    }
 }
 

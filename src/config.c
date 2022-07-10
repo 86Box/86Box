@@ -926,6 +926,7 @@ load_video(void)
     voodoo_enabled = !!config_get_int(cat, "voodoo", 0);
     ibm8514_enabled = !!config_get_int(cat, "8514a", 0);
     xga_enabled = !!config_get_int(cat, "xga", 0);
+    show_second_monitors = !!config_get_int(cat, "show_second_monitors", 1);
     p = config_get_string(cat, "gfxcard_2", NULL);
     if (!p) p = "none";
     gfxcard_2 = video_get_video_from_internal_name(p);
@@ -2518,6 +2519,11 @@ save_video(void)
     config_delete_var(cat, "gfxcard_2");
     else
     config_set_string(cat, "gfxcard_2", video_get_internal_name(gfxcard_2));
+
+    if (show_second_monitors == 1)
+        config_delete_var(cat, "show_second_monitors");
+    else
+        config_set_int(cat, "show_second_monitors", show_second_monitors);
 
     delete_section_if_empty(cat);
 }
