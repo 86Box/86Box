@@ -1639,7 +1639,7 @@ void MainWindow::on_actionResizable_window_triggered(bool checked) {
     ui->stackedWidget->switchRenderer((RendererStack::Renderer)vid_api);
     for (int i = 1; i < MONITORS_NUM; i++) {
         if (monitors[i].target_buffer) {
-            renderers[i]->show();
+            if (show_second_monitors) renderers[i]->show();
             renderers[i]->switchRenderer((RendererStack::Renderer)vid_api);
             QApplication::processEvents();
         }
