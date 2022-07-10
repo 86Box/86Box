@@ -733,7 +733,7 @@ BEGIN
     LTEXT           STR_CD_SPEED, IDT_CD_SPEED,
                     CFG_HMARGIN, 207, 34, CFG_PANE_LTEXT_HEIGHT
     COMBOBOX        IDC_COMBO_CD_SPEED,
-                    43, 205, 328, 12,
+                    33, 205, 328, 12,
                     CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
 END
 
