@@ -344,6 +344,7 @@ MainWindow::MainWindow(QWidget *parent) :
             break;
         }
         ui->stackedWidget->switchRenderer(newVidApi);
+        if (!show_second_monitors) return;
         for (int i = 1; i < MONITORS_NUM; i++) {
             if (renderers[i]) renderers[i]->switchRenderer(newVidApi);
         }
