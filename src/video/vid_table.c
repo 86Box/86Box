@@ -345,10 +345,11 @@ video_reset(int card)
     if (!(card == VID_NONE)
         && !machine_has_flags(machine, MACHINE_VIDEO_ONLY)
         && gfxcard_2 != 0
-        && (video_cards[gfxcard_2].flags != video_cards[gfxcard].flags)) {
+        && (video_cards[gfxcard_2].flags != video_cards[gfxcard].flags)
+        && device_is_valid(video_card_getdevice(gfxcard_2), machine)) {
         video_monitor_init(1);
         monitor_index_global = 1;
-        device_add(&hercules_device);
+        device_add(video_cards[gfxcard_2].device);
         monitor_index_global = 0;
     }
 
