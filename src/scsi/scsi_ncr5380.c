@@ -156,6 +156,7 @@ typedef struct {
     double	period;
 
     int		ncr_busy;
+    uint8_t pos_regs[8];
 } ncr5380_t;
 
 #define STATE_IDLE	0
@@ -1435,6 +1436,64 @@ t128_write(uint32_t addr, uint8_t val, void *priv)
 	}
 }
 
+static uint8_t
+rt1000b_mc_read(int port, void *priv)
+{
+    ncr5380_t *ncr_dev = (ncr5380_t *)priv;
+
+    return(ncr_dev->pos_regs[port & 7]);
+}
+
+
+static void
+rt1000b_mc_write(int port, uint8_t val, void *priv)
+{
+    ncr5380_t *ncr_dev = (ncr5380_t *)priv;
+
+    /* MCA does not write registers below 0x0100. */
+    if (port < 0x0102) return;
+
+    mem_mapping_disable(&ncr_dev->bios_rom.mapping);
+    mem_mapping_disable(&ncr_dev->mapping);
+
+    /* Save the MCA register value. */
+    ncr_dev->pos_regs[port & 7] = val;
+
+    if (ncr_dev->pos_regs[2] & 1) {
+        switch (ncr_dev->pos_regs[2] & 0xe0) {
+            case 0:
+                ncr_dev->rom_addr = 0xd4000;
+                break;
+            case 0x20:
+                ncr_dev->rom_addr = 0xd0000;
+                break;
+            case 0x40:
+                ncr_dev->rom_addr = 0xcc000;
+                break;
+            case 0x60:
+                ncr_dev->rom_addr = 0xc8000;
+                break;
+            case 0xc0:
+                ncr_dev->rom_addr = 0xdc000;
+                break;
+            case 0xe0:
+                ncr_dev->rom_addr = 0xd8000;
+                break;
+        }
+
+        mem_mapping_set_addr(&ncr_dev->bios_rom.mapping, ncr_dev->rom_addr, 0x4000);
+        mem_mapping_set_addr(&ncr_dev->mapping, ncr_dev->rom_addr, 0x4000);
+    }
+}
+
+static uint8_t
+rt1000b_mc_feedb(void *priv)
+{
+    ncr5380_t *ncr_dev = (ncr5380_t *)priv;
+
+    return ncr_dev->pos_regs[2] & 1;
+}
+
 static void *
 ncr_init(const device_t *info)
 {
@@ -1462,10 +1521,14 @@ ncr_init(const device_t *info)
 				ncr_dev->bios_rom.rom, MEM_MAPPING_EXTERNAL, ncr_dev);
 		break;
 
-	case 1:		/* Rancho RT1000B */
+	case 1:		/* Rancho RT1000B/MC */
 		ncr_dev->rom_addr = device_get_config_hex20("bios_addr");
 		ncr_dev->irq = device_get_config_int("irq");
 		ncr_dev->bios_ver = device_get_config_int("bios_ver");
+		if (info->flags & DEVICE_MCA) {
+            ncr_dev->rom_addr = 0xd8000;
+            ncr_dev->bios_ver = 1;
+		}
 
 		if (ncr_dev->bios_ver == 1)
 			fn = RT1000B_820R_ROM;
@@ -1475,10 +1538,20 @@ ncr_init(const device_t *info)
 		rom_init(&ncr_dev->bios_rom, fn,
 			 ncr_dev->rom_addr, 0x4000, 0x3fff, 0, MEM_MAPPING_EXTERNAL);
 
-		mem_mapping_add(&ncr_dev->mapping, ncr_dev->rom_addr, 0x4000,
-				memio_read, NULL, NULL,
-				memio_write, NULL, NULL,
-				ncr_dev->bios_rom.rom, MEM_MAPPING_EXTERNAL, ncr_dev);
+        if (info->flags & DEVICE_MCA) {
+            mem_mapping_add(&ncr_dev->mapping, 0, 0,
+                    memio_read, NULL, NULL,
+                    memio_write, NULL, NULL,
+                    ncr_dev->bios_rom.rom, MEM_MAPPING_EXTERNAL, ncr_dev);
+            ncr_dev->pos_regs[0] = 0x8d;
+            ncr_dev->pos_regs[1] = 0x70;
+            mca_add(rt1000b_mc_read, rt1000b_mc_write, rt1000b_mc_feedb, NULL, ncr_dev);
+        } else {
+            mem_mapping_add(&ncr_dev->mapping, ncr_dev->rom_addr, 0x4000,
+                    memio_read, NULL, NULL,
+                    memio_write, NULL, NULL,
+                    ncr_dev->bios_rom.rom, MEM_MAPPING_EXTERNAL, ncr_dev);
+        }
 		break;
 
 	case 2:		/* Trantor T130B */
@@ -1581,6 +1654,12 @@ rt1000b_available(void)
 }
 
 static int
+rt1000b_820_available(void)
+{
+    return(rom_present(RT1000B_820R_ROM));
+}
+
+static int
 t130b_available(void)
 {
     return(rom_present(T130B_ROM));
@@ -1611,6 +1690,8 @@ static const device_config_t ncr5380_mmio_config[] = {
         .selection = {
             { .description = "C800H", .value = 0xc8000 },
             { .description = "CC00H", .value = 0xcc000 },
+            { .description = "D000H", .value = 0xd0000 },
+            { .description = "D400H", .value = 0xd4000 },
             { .description = "D800H", .value = 0xd8000 },
             { .description = "DC00H", .value = 0xdc000 },
             { .description = ""                        }
@@ -1646,6 +1727,8 @@ static const device_config_t rancho_config[] = {
         .selection = {
             { .description = "C800H", .value = 0xc8000 },
             { .description = "CC00H", .value = 0xcc000 },
+            { .description = "D000H", .value = 0xd0000 },
+            { .description = "D400H", .value = 0xd4000 },
             { .description = "D800H", .value = 0xd8000 },
             { .description = "DC00H", .value = 0xdc000 },
             { .description = ""                        }
@@ -1677,6 +1760,25 @@ static const device_config_t rancho_config[] = {
         .selection = {
             { .description = "8.20R", .value = 1 },
             { .description = "8.10R", .value = 0 },
+            { .description = ""                  }
+        },
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+};
+
+static const device_config_t rancho_mc_config[] = {
+    {
+        .name = "irq",
+        .description = "IRQ",
+        .type = CONFIG_SELECTION,
+        .default_string = "",
+        .default_int = 5,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "IRQ 3", .value = 3 },
+            { .description = "IRQ 5", .value = 5 },
+            { .description = "IRQ 7", .value = 7 },
             { .description = ""                  }
         },
     },
@@ -1747,6 +1849,8 @@ static const device_config_t t128_config[] = {
         .selection = {
             { .description = "C800H", .value = 0xc8000 },
             { .description = "CC00H", .value = 0xcc000 },
+            { .description = "D000H", .value = 0xd0000 },
+            { .description = "D400H", .value = 0xd4000 },
             { .description = "D800H", .value = 0xd8000 },
             { .description = "DC00H", .value = 0xdc000 },
             { .description = ""                        }
@@ -1804,6 +1908,20 @@ const device_t scsi_rt1000b_device = {
     .speed_changed = NULL,
     .force_redraw = NULL,
     .config = rancho_config
+};
+
+const device_t scsi_rt1000mc_device = {
+    .name = "Rancho RT1000B-MC",
+    .internal_name = "rt1000mc",
+    .flags = DEVICE_MCA,
+    .local = 1,
+    .init = ncr_init,
+    .close = ncr_close,
+    .reset = NULL,
+    { .available = rt1000b_820_available },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = rancho_mc_config
 };
 
 const device_t scsi_t130b_device = {

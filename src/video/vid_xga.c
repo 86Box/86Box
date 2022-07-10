@@ -2704,7 +2704,7 @@ static void
     xga->on = 0;
     xga->hwcursor.cur_xsize = 64;
     xga->hwcursor.cur_ysize = 64;
-    xga->bios_rom.sz = 0x2000;
+    xga->bios_rom.sz = 0x8000;
 
     f = rom_fopen(xga->type ? XGA2_BIOS_PATH : XGA_BIOS_PATH, "rb");
     (void)fseek(f, 0L, SEEK_END);
@@ -2729,7 +2729,7 @@ static void
         xga->instance = 0;
         xga->rom_addr = 0;
         mem_mapping_add(&xga->bios_rom.mapping,
-                0xdc000, xga->bios_rom.sz,
+                0xd8000, xga->bios_rom.sz,
                 rom_read, rom_readw, rom_readl,
                 NULL, NULL, NULL,
                 xga->bios_rom.rom, MEM_MAPPING_EXTERNAL, &xga->bios_rom);

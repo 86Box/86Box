@@ -2363,7 +2363,12 @@ pgc_cga_text(pgc_t *dev, int w)
 			val = cols[(fontdatm[chr + dev->fontbase][sc] & (1 << (c ^ 7))) ? 1 : 0] ^ 0x0f;
 		else
 			val = cols[(fontdatm[chr + dev->fontbase][sc] & (1 << (c ^ 7))) ? 1 : 0];
-		buffer32->line[dev->displine][(x * cw) + c] = val;
+        if (cw == 8) /* 80x25 CGA text screen. */
+            buffer32->line[dev->displine][(x * cw) + c] = val;
+        else { /* 40x25 CGA text screen. */
+            buffer32->line[dev->displine][(x * cw) + (c * 2)] = val;
+            buffer32->line[dev->displine][(x * cw) + (c * 2) + 1] = val;
+        }
 	}
 
 	ma++;

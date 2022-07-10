@@ -326,7 +326,7 @@ void
 plat_pause(int p)
 {
     static wchar_t oldtitle[512];
-    wchar_t title[512], paused_msg[64];
+    wchar_t title[1024], paused_msg[512];
 
     if (p == dopause) {
 #ifdef Q_OS_WINDOWS
