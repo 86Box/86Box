@@ -2899,6 +2899,8 @@ static void s3_recalctimings(svga_t *svga)
 		if (svga->crtc[0x5e] & 0x04) svga->vblankstart |= 0x400;
 		if (svga->crtc[0x5e] & 0x10) svga->vsyncstart  |= 0x400;
 		if (svga->crtc[0x5e] & 0x40) svga->split       |= 0x400;
+		if (s3->accel.advfunc_cntl & 0x01)
+			svga->split = 0x7fff;
 		if (svga->crtc[0x51] & 0x30)      svga->rowoffset  |= (svga->crtc[0x51] & 0x30) << 4;
 		else if (svga->crtc[0x43] & 0x04) svga->rowoffset  |= 0x100;
 	}
