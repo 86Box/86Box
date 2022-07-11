@@ -40,6 +40,7 @@
 
 typedef struct {
     const device_t    *device;
+    int flags;
 } VIDEO_CARD;
 
 
@@ -109,13 +110,13 @@ video_cards[] = {
     { &cpqega_device                                 },
     { &ega_device                                    },
     { &g2_gc205_device                               },
-    { &hercules_device                               },
-    { &herculesplus_device                           },
+    { &hercules_device,          VIDEO_FLAG_TYPE_MDA },
+    { &herculesplus_device,      VIDEO_FLAG_TYPE_MDA },
     { &incolor_device                                },
     { &im1024_device                                 },
     { &iskra_ega_device                              },
     { &et4000_kasan_isa_device                       },
-    { &mda_device                                    },
+    { &mda_device,               VIDEO_FLAG_TYPE_MDA },
     { &genius_device                                 },
     { &nga_device                                    },
     { &ogc_device                                    },
@@ -275,6 +276,10 @@ vid_table_log(const char *fmt, ...)
 void
 video_reset_close(void)
 {
+    for (int i = 1; i < MONITORS_NUM; i++)
+        video_monitor_close(i);
+
+    monitor_index_global = 0;
     video_inform(VIDEO_FLAG_TYPE_NONE, &timing_default);
     was_reset = 0;
 }
@@ -289,16 +294,18 @@ video_prepare(void)
     fontdatksc5601 = NULL;
     }
 
-    /* Reset the CGA palette. */
-    cga_palette = 0;
-    cgapal_rebuild();
-
     /* Reset the blend. */
     herc_blend = 0;
 
-    /* Do an inform on the default values, so that that there's some sane values initialized
-       even if the device init function does not do an inform of its own. */
-    video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_default);
+    for (int i = 0; i < MONITORS_NUM; i++) {
+        /* Reset the CGA palette. */
+        if (monitors[i].mon_cga_palette) *monitors[i].mon_cga_palette = 0;
+        cgapal_rebuild_monitor(i);
+
+        /* Do an inform on the default values, so that that there's some sane values initialized
+           even if the device init function does not do an inform of its own. */
+        video_inform_monitor(VIDEO_FLAG_TYPE_SPECIAL, &timing_default, i);
+    }
 }
 
 
@@ -321,6 +328,7 @@ video_reset(int card)
     vid_table_log("VIDEO: reset (gfxcard=%d, internal=%d)\n",
           card, machine_has_flags(machine, MACHINE_VIDEO) ? 1 : 0);
 
+    monitor_index_global = 0;
     loadfont("roms/video/mda/mda.rom", 0);
 
     /* Do not initialize internal cards here. */
@@ -332,6 +340,17 @@ video_reset(int card)
 
     /* Initialize the video card. */
     device_add(video_cards[card].device);
+    }
+
+    if (!(card == VID_NONE)
+        && !machine_has_flags(machine, MACHINE_VIDEO_ONLY)
+        && gfxcard_2 != 0
+        && (video_cards[gfxcard_2].flags != video_cards[gfxcard].flags)
+        && device_is_valid(video_card_getdevice(gfxcard_2), machine)) {
+        video_monitor_init(1);
+        monitor_index_global = 1;
+        device_add(video_cards[gfxcard_2].device);
+        monitor_index_global = 0;
     }
 
     /* Enable the Voodoo if configured. */
@@ -351,6 +370,11 @@ video_card_available(int card)
     return(1);
 }
 
+int
+video_card_get_flags(int card)
+{
+    return video_cards[card].flags;
+}
 
 const device_t *
 video_card_getdevice(int card)

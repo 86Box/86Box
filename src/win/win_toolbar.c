@@ -8,6 +8,7 @@
 #include <86box/plat.h>
 #include <86box/resource.h>
 #include <86box/ui.h>
+#include <86box/video.h>
 #include <86box/win.h>
 
 HWND			hwndRebar = NULL;

@@ -20,9 +20,12 @@
 #include "qt_mainwindow.hpp"
 #include "ui_qt_mainwindow.h"
 
+#include "qt_util.hpp"
+
 #include <QStatusBar>
 #include <QMenuBar>
 #include <QTimer>
+#include <QScreen>
 
 extern "C"
 {
@@ -44,6 +47,11 @@ SpecifyDimensions::SpecifyDimensions(QWidget *parent) :
     ui->spinBoxWidth->setValue(main_window->getRenderWidgetSize().width());
     ui->spinBoxHeight->setRange(16, 2048);
     ui->spinBoxHeight->setValue(main_window->getRenderWidgetSize().height());
+
+    if (dpi_scale == 0) {
+        ui->spinBoxWidth->setValue(main_window->getRenderWidgetSize().width() * util::screenOfWidget(main_window)->devicePixelRatio());
+        ui->spinBoxHeight->setValue(main_window->getRenderWidgetSize().height() * util::screenOfWidget(main_window)->devicePixelRatio());
+    }
 }
 
 SpecifyDimensions::~SpecifyDimensions()
@@ -62,14 +70,21 @@ void SpecifyDimensions::on_SpecifyDimensions_accepted()
         fixed_size_x = ui->spinBoxWidth->value();
         fixed_size_y = ui->spinBoxHeight->value();
 
-        main_window->setFixedSize(ui->spinBoxWidth->value(),
-            ui->spinBoxHeight->value()
-            + (!hide_status_bar ? main_window->statusBar()->height() : 0)
-            + (!hide_tool_bar ? main_window->ui->toolBar->height() : 0)
-            + main_window->menuBar()->height());
+        main_window->resizeContents(fixed_size_x, fixed_size_y);
 
         emit main_window->updateMenuResizeOptions();
         main_window->show();
+        for (int i = 1; i < MONITORS_NUM; i++) {
+            if (main_window->renderers[i]) {
+                main_window->renderers[i]->setWindowFlag(Qt::WindowMaximizeButtonHint, false);
+                main_window->renderers[i]->setWindowFlag(Qt::MSWindowsFixedSizeDialogHint);
+                emit main_window->resizeContentsMonitor(fixed_size_x, fixed_size_y, i);
+                if (show_second_monitors) {
+                    main_window->renderers[i]->show();
+                    main_window->renderers[i]->switchRenderer((RendererStack::Renderer)vid_api);
+                }
+            }
+        }
         main_window->ui->stackedWidget->switchRenderer((RendererStack::Renderer)vid_api);
     }
     else
@@ -83,6 +98,16 @@ void SpecifyDimensions::on_SpecifyDimensions_accepted()
         window_h = ui->spinBoxHeight->value();
         main_window->setFixedSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
         emit main_window->resizeContents(ui->spinBoxWidth->value(), ui->spinBoxHeight->value());
+        for (int i = 1; i < MONITORS_NUM; i++) {
+            if (main_window->renderers[i]) {
+                main_window->renderers[i]->setWindowFlag(Qt::WindowMaximizeButtonHint);
+                main_window->renderers[i]->setWindowFlag(Qt::MSWindowsFixedSizeDialogHint, false);
+                emit main_window->resizeContentsMonitor(ui->spinBoxWidth->value(), ui->spinBoxHeight->value(), i);
+                main_window->renderers[i]->setFixedSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
+                if (show_second_monitors) { main_window->renderers[i]->show();
+                main_window->renderers[i]->switchRenderer((RendererStack::Renderer)vid_api); }
+            }
+        }
         vid_resize = 1;
         emit main_window->updateMenuResizeOptions();
     }

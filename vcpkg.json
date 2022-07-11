@@ -25,6 +25,7 @@
                         "network",
                         "vulkan",
                         "widgets",
+                        "png",
                         "zstd"
                     ]
                 },

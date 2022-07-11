@@ -80,9 +80,11 @@ extern char	log_path[1024];			/* (O) full path of logfile */
 extern char	vm_name[1024];			/* (O) display name of the VM */
 
 
-extern int	window_w, window_h,		/* (C) window size and */
-		window_x, window_y,		/*     position info */
-		window_remember,
+#define window_x monitor_settings[0].mon_window_x
+#define window_y monitor_settings[0].mon_window_y
+#define window_w monitor_settings[0].mon_window_w
+#define window_h monitor_settings[0].mon_window_h
+extern int	window_remember,
 		vid_resize,			/* (C) allow resizing */
 		invert_display,			/* (C) invert the display */
 		suppress_overscan;		/* (C) suppress overscans */
@@ -141,9 +143,6 @@ extern char	cfg_path[1024];			/* full path of config file */
 #ifndef USE_NEW_DYNAREC
 extern FILE	*stdlog;			/* file to log output to */
 #endif
-extern int	scrnsz_x,			/* current screen size, X */
-		scrnsz_y;			/* current screen size, Y */
-extern int	efscrnsz_y;
 extern int	config_changed;			/* config has changed */
 
 
@@ -156,7 +155,9 @@ extern void	pclog_toggle_suppr(void);
 extern void	pclog(const char *fmt, ...);
 extern void	fatal(const char *fmt, ...);
 extern void	set_screen_size(int x, int y);
+extern void	set_screen_size_monitor(int x, int y, int monitor_index);
 extern void	reset_screen_size(void);
+extern void	reset_screen_size_monitor(int monitor_index);
 extern void	set_screen_size_natural(void);
 extern void update_mouse_msg();
 #if 0

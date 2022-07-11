@@ -55,17 +55,18 @@ wchar_t* ui_window_title(wchar_t* str)
     return str;
 }
 
-extern "C" void qt_blit(int x, int y, int w, int h)
+extern "C" void qt_blit(int x, int y, int w, int h, int monitor_index)
 {
-    main_window->blitToWidget(x, y, w, h);
+    main_window->blitToWidget(x, y, w, h, monitor_index);
 }
 
 void mouse_poll() {
     main_window->pollMouse();
 }
 
-void plat_resize(int w, int h) {
-    main_window->resizeContents(w, h);
+void plat_resize_monitor(int w, int h, int monitor_index) {
+    if (monitor_index >= 1) main_window->resizeContentsMonitor(w, h, monitor_index);
+    else main_window->resizeContents(w, h);
 }
 
 void plat_setfullscreen(int on) {
@@ -93,9 +94,23 @@ int	ui_msgbox_header(int flags, void *header, void* message) {
         msgBox.exec();
     } else {
         // else scope it to main_window
-        main_window->showMessage(hdr, msg);
+        main_window->showMessage(flags, hdr, msg);
     }
     return 0;
+}
+
+void ui_init_monitor(int monitor_index) {
+    if (QThread::currentThread() == main_window->thread()) {
+        emit main_window->initRendererMonitor(monitor_index);
+    }
+    else emit main_window->initRendererMonitorForNonQtThread(monitor_index);
+}
+
+void ui_deinit_monitor(int monitor_index) {
+    if (QThread::currentThread() == main_window->thread()) {
+        emit main_window->destroyRendererMonitor(monitor_index);
+    }
+    else emit main_window->destroyRendererMonitorForNonQtThread(monitor_index);
 }
 
 int	ui_msgbox(int flags, void *message) {

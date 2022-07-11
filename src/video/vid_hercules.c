@@ -66,6 +66,7 @@ hercules_out(uint16_t addr, uint8_t val, void *priv)
     hercules_t *dev = (hercules_t *)priv;
     uint8_t old;
 
+    VIDEO_MONITOR_PROLOGUE()
     switch (addr) {
 	case 0x03b0:
 	case 0x03b2:
@@ -92,7 +93,7 @@ hercules_out(uint16_t addr, uint8_t val, void *priv)
 
 		if (old != val) {
 			if ((dev->crtcreg < 0xe) || (dev->crtcreg > 0x10)) {
-				fullchange = changeframecount;
+                dev->fullchange = changeframecount;
 				recalc_timings(dev);
 			}
 		}
@@ -146,6 +147,8 @@ hercules_out(uint16_t addr, uint8_t val, void *priv)
 	default:
 		break;
     }
+
+    VIDEO_MONITOR_EPILOGUE()
 }
 
 
@@ -295,6 +298,7 @@ hercules_poll(void *priv)
     int drawcursor;
     uint32_t *p;
 
+    VIDEO_MONITOR_PROLOGUE()
     ca = (dev->crtc[15] | (dev->crtc[14] << 8)) & 0x3fff;
 
     if (! dev->linepos) {
@@ -516,6 +520,7 @@ hercules_poll(void *priv)
 		}
 	}
     }
+    VIDEO_MONITOR_EPILOGUE()
 }
 
 
@@ -527,6 +532,7 @@ hercules_init(const device_t *info)
 
     dev = (hercules_t *)malloc(sizeof(hercules_t));
     memset(dev, 0x00, sizeof(hercules_t));
+    dev->monitor_index = monitor_index_global;
 
     overscan_x = 16;
     overscan_y = 28;

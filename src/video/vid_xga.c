@@ -2048,7 +2048,7 @@ xga_hwcursor_draw(svga_t *svga, int displine)
     x_pos = offset + svga->x_add;
     p = buffer32->line[y_pos];
 
-    for (x = 0; x < xga->hwcursor_latch.xsize; x++) {
+    for (x = 0; x < xga->hwcursor_latch.cur_xsize; x++) {
     if (x >= idx) {
         if (!(x & 0x03))
             dat = xga->sprite_data[xga->hwcursor_latch.addr & 0x3ff];
@@ -2476,13 +2476,13 @@ xga_poll(xga_t *xga, svga_t *svga)
 
     if (!xga->linepos) {
     if (xga->displine == xga->hwcursor_latch.y && xga->hwcursor_latch.ena) {
-        xga->hwcursor_on = xga->hwcursor_latch.ysize - (xga->cursor_data_on ? 32 : 0);
+        xga->hwcursor_on = xga->hwcursor_latch.cur_ysize - (xga->cursor_data_on ? 32 : 0);
         xga->hwcursor_oddeven = 0;
     }
 
     if (xga->displine == (xga->hwcursor_latch.y + 1) && xga->hwcursor_latch.ena &&
                    xga->interlace) {
-        xga->hwcursor_on = xga->hwcursor_latch.ysize - (xga->cursor_data_on ? 33 : 1);
+        xga->hwcursor_on = xga->hwcursor_latch.cur_ysize - (xga->cursor_data_on ? 33 : 1);
         xga->hwcursor_oddeven = 1;
     }
 
@@ -2702,9 +2702,9 @@ static void
     xga->vram = calloc(xga->vram_size, 1);
     xga->changedvram = calloc(xga->vram_size >> 12, 1);
     xga->on = 0;
-    xga->hwcursor.xsize = 64;
-    xga->hwcursor.ysize = 64;
-    xga->bios_rom.sz = 0x2000;
+    xga->hwcursor.cur_xsize = 64;
+    xga->hwcursor.cur_ysize = 64;
+    xga->bios_rom.sz = 0x8000;
 
     f = rom_fopen(xga->type ? XGA2_BIOS_PATH : XGA_BIOS_PATH, "rb");
     (void)fseek(f, 0L, SEEK_END);
@@ -2729,7 +2729,7 @@ static void
         xga->instance = 0;
         xga->rom_addr = 0;
         mem_mapping_add(&xga->bios_rom.mapping,
-                0xdc000, xga->bios_rom.sz,
+                0xd8000, xga->bios_rom.sz,
                 rom_read, rom_readw, rom_readl,
                 NULL, NULL, NULL,
                 xga->bios_rom.rom, MEM_MAPPING_EXTERNAL, &xga->bios_rom);

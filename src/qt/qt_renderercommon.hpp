@@ -28,6 +28,8 @@ public:
     virtual bool hasOptions() const { return false; }
     /* Returns options dialog for renderer */
     virtual QDialog *getOptions(QWidget *parent) { return nullptr; }
+    /* Reloads options of renderer */
+    virtual void reloadOptions() {}
 
     virtual bool hasBlitFunc() { return false; }
     virtual void blit(int x, int y, int w, int h) {}

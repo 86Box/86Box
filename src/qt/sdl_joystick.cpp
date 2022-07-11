@@ -107,6 +107,8 @@ void joystick_process()
 {
     int c, d;
 
+    if (!joystick_type) return;
+
     SDL_JoystickUpdate();
     for (c = 0; c < joysticks_present; c++)
     {

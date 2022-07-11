@@ -110,6 +110,8 @@ void mda_poll(void *p)
         uint8_t chr, attr;
         int oldsc;
         int blink;
+
+        VIDEO_MONITOR_PROLOGUE()
         if (!mda->linepos)
         {
 		timer_advance_u64(&mda->timer, mda->dispofftime);
@@ -252,6 +254,7 @@ void mda_poll(void *p)
                         mda->con = 1;
                 }
         }
+        VIDEO_MONITOR_EPILOGUE();
 }
 
 void mda_init(mda_t *mda)
@@ -278,6 +281,7 @@ void mda_init(mda_t *mda)
         mdacols[0x88][0][1] = mdacols[0x88][1][1] = 16;
 
 	overscan_x = overscan_y = 0;
+    mda->monitor_index = monitor_index_global;
 
         cga_palette = device_get_config_int("rgb_type") << 1;
 	if (cga_palette > 6)

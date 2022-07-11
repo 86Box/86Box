@@ -53,6 +53,7 @@ public:
     void     finalize() override final;
     bool     hasOptions() const override { return true; }
     QDialog *getOptions(QWidget *parent) override;
+    void     reloadOptions() override;
 
 signals:
     void initialized();

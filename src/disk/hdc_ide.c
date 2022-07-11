@@ -220,7 +220,7 @@ ide_get_drive(int ch)
 
 
 double
-ide_get_period(ide_t *ide, int size)
+ide_get_xfer_time(ide_t *ide, int size)
 {
     double period = (10.0 / 3.0);
 
@@ -313,7 +313,7 @@ ide_atapi_get_period(uint8_t channel)
 	return -1.0;
     }
 
-    return ide_get_period(ide, 1);
+    return ide_get_xfer_time(ide, 1);
 }
 
 
@@ -535,7 +535,7 @@ static void ide_hd_identify(ide_t *ide)
     ide_padstr((char *) (ide->buffer + 27), device_identify, 40); /* Model */
 	ide->buffer[0] = (1 << 6); /*Fixed drive*/
     ide->buffer[20] = 3;   /*Buffer type*/
-    ide->buffer[21] = 512; /*Buffer size*/
+    ide->buffer[21] = hdd[ide->hdd_num].cache.num_segments * hdd[ide->hdd_num].cache.segment_size; /*Buffer size*/
     ide->buffer[50] = 0x4000; /* Capabilities */
     ide->buffer[59] = ide->blocksize ? (ide->blocksize | 0x100) : 0;
 
@@ -577,12 +577,11 @@ static void ide_hd_identify(ide_t *ide)
 	ide_log("Current CHS translation: %i, %i, %i\n", ide->buffer[54], ide->buffer[55], ide->buffer[56]);
     }
 
+    ide->buffer[47] = hdd[ide->hdd_num].max_multiple_block | 0x8000;  /*Max sectors on multiple transfer command*/
     if (!ide_boards[ide->board]->force_ata3 && ide_bm[ide->board]) {
-	ide->buffer[47] = 32 | 0x8000;  /*Max sectors on multiple transfer command*/
 	ide->buffer[80] = 0x7e; /*ATA-1 to ATA-6 supported*/
 	ide->buffer[81] = 0x19; /*ATA-6 revision 3a supported*/
     } else {
-	ide->buffer[47] = 16 | 0x8000;  /*Max sectors on multiple transfer command*/
 	ide->buffer[80] = 0x0e; /*ATA-1 to ATA-3 supported*/
     }
 }
@@ -692,13 +691,15 @@ ide_get_sector(ide_t *ide)
     uint32_t heads, sectors;
 
     if (ide->lba)
-	return (off64_t)ide->lba_addr + ide->skip512;
+	return (off64_t)ide->lba_addr;
     else {
 	heads = ide->cfg_hpc;
 	sectors = ide->cfg_spt;
 
+	uint8_t sector = ide->sector ? ide->sector : 1;
+
 	return ((((off64_t) ide->cylinder * heads) + ide->head) *
-		sectors) + (ide->sector - 1) + ide->skip512;
+		sectors) + (sector - 1);
     }
 }
 
@@ -732,6 +733,8 @@ loadhd(ide_t *ide, int d, const char *fn)
 	ide->type = IDE_NONE;
 	return;
     }
+
+    hdd_preset_auto(&hdd[d]);
 
     ide->spt = ide->cfg_spt = hdd[d].spt;
     ide->hpc = ide->cfg_hpc = hdd[d].hpc;
@@ -1226,31 +1229,41 @@ ide_write_data(ide_t *ide, uint32_t val, int length)
 	if (ide->type == IDE_ATAPI)
 		ide_atapi_packet_write(ide, val, length);
     } else {
-	switch(length) {
-		case 1:
-			idebufferb[ide->pos] = val & 0xff;
-			ide->pos++;
-			break;
-		case 2:
-			idebufferw[ide->pos >> 1] = val & 0xffff;
-			ide->pos += 2;
-			break;
-		case 4:
-			idebufferl[ide->pos >> 2] = val;
-			ide->pos += 4;
-			break;
-		default:
-			return;
-	}
+		switch(length) {
+			case 1:
+				idebufferb[ide->pos] = val & 0xff;
+				ide->pos++;
+				break;
+			case 2:
+				idebufferw[ide->pos >> 1] = val & 0xffff;
+				ide->pos += 2;
+				break;
+			case 4:
+				idebufferl[ide->pos >> 2] = val;
+				ide->pos += 4;
+				break;
+			default:
+				return;
+		}
 
-	if (ide->pos >= 512) {
-		ide->pos=0;
-		ide->atastat = BSY_STAT;
-		if (ide->command == WIN_WRITE_MULTIPLE)
-			ide_callback(ide);
-		else
-			ide_set_callback(ide, ide_get_period(ide, 512));
-	}
+		if (ide->pos >= 512) {
+			ide->pos=0;
+			ide->atastat = BSY_STAT;
+			double seek_time = hdd_timing_write(&hdd[ide->hdd_num], ide_get_sector(ide), 1);
+			double xfer_time = ide_get_xfer_time(ide, 512);
+			double wait_time = seek_time + xfer_time;
+			if (ide->command == WIN_WRITE_MULTIPLE) {
+				if ((ide->blockcount+1) >= ide->blocksize || ide->secount == 1) {
+					ide_set_callback(ide, seek_time + xfer_time + ide->pending_delay);
+					ide->pending_delay = 0;
+				} else {
+					ide->pending_delay += wait_time;
+					ide_callback(ide);
+				}
+			} else {
+				ide_set_callback(ide, wait_time);
+			}
+		}
     }
 }
 
@@ -1601,9 +1614,13 @@ ide_writeb(uint16_t addr, uint8_t val, void *priv)
 			else
 				ide->atastat = READY_STAT | BSY_STAT;
 
-			if (ide->type == IDE_ATAPI)
+			if (ide->type == IDE_ATAPI) {
 				ide->sc->callback = 100.0 * IDE_TIME;
-			ide_set_callback(ide, 100.0 * IDE_TIME);
+				ide_set_callback(ide, 100.0 * IDE_TIME);
+			} else {
+				double seek_time = hdd_seek_get_time(&hdd[ide->hdd_num], ide_get_sector(ide), HDD_OP_SEEK, 0, 0.0);
+				ide_set_callback(ide, seek_time);
+			}
 			return;
 		}
 
@@ -1641,15 +1658,26 @@ ide_writeb(uint16_t addr, uint8_t val, void *priv)
 					ide->atastat = BSY_STAT;
 
 				if (ide->type == IDE_HDD) {
+					uint32_t sec_count;
+					double wait_time;
 					if ((val == WIN_READ_DMA) || (val == WIN_READ_DMA_ALT)) {
-						if (ide->secount)
-							ide_set_callback(ide, ide_get_period(ide, (int) ide->secount << 9));
-						else
-							ide_set_callback(ide, ide_get_period(ide, 131072));
-					} else if (val == WIN_READ_MULTIPLE)
-						ide_set_callback(ide, 200.0 * IDE_TIME);
-					else
-						ide_set_callback(ide, ide_get_period(ide, 512));
+						// TODO make DMA timing more accurate
+						sec_count = ide->secount ? ide->secount : 256;
+						double seek_time = hdd_timing_read(&hdd[ide->hdd_num], ide_get_sector(ide), sec_count);
+						double xfer_time = ide_get_xfer_time(ide, 512 * sec_count);
+						wait_time = seek_time > xfer_time ? seek_time : xfer_time;
+					} else if (val == WIN_READ_MULTIPLE) {
+						sec_count = (ide->secount < ide->blocksize) ? ide->secount : ide->blocksize;
+						double seek_time = hdd_timing_read(&hdd[ide->hdd_num], ide_get_sector(ide), sec_count);
+						double xfer_time = ide_get_xfer_time(ide, 512 * sec_count);
+						wait_time = seek_time + xfer_time;
+					} else {
+						sec_count = 1;
+						double seek_time = hdd_timing_read(&hdd[ide->hdd_num], ide_get_sector(ide), sec_count);
+						double xfer_time = ide_get_xfer_time(ide, 512 * sec_count);
+						wait_time = seek_time + xfer_time;
+					}
+					ide_set_callback(ide, wait_time);
 				} else
 					ide_set_callback(ide, 200.0 * IDE_TIME);
 				ide->do_initial_read = 1;
@@ -1690,14 +1718,16 @@ ide_writeb(uint16_t addr, uint8_t val, void *priv)
 
 				if ((ide->type == IDE_HDD) &&
 				    ((val == WIN_WRITE_DMA) || (val == WIN_WRITE_DMA_ALT))) {
-					if (ide->secount)
-						ide_set_callback(ide, ide_get_period(ide, (int) ide->secount << 9));
-					else
-						ide_set_callback(ide, ide_get_period(ide, 131072));
+					uint32_t sec_count = ide->secount ? ide->secount : 256;
+					double seek_time = hdd_timing_read(&hdd[ide->hdd_num], ide_get_sector(ide), sec_count);
+					double xfer_time = ide_get_xfer_time(ide, 512 * sec_count);
+					double wait_time = seek_time > xfer_time ? seek_time : xfer_time;
+					ide_set_callback(ide, wait_time);
 				} else if ((ide->type == IDE_HDD) &&
-					   ((val == WIN_VERIFY) || (val == WIN_VERIFY_ONCE)))
-					ide_set_callback(ide, ide_get_period(ide, 512));
-				else if (val == WIN_IDENTIFY)
+					   ((val == WIN_VERIFY) || (val == WIN_VERIFY_ONCE))) {
+					double seek_time = hdd_timing_read(&hdd[ide->hdd_num], ide_get_sector(ide), ide->secount);
+					ide_set_callback(ide, seek_time + ide_get_xfer_time(ide, 2));
+				} else if (val == WIN_IDENTIFY)
 					ide_callback(ide);
 				else
 					ide_set_callback(ide, 200.0 * IDE_TIME);
@@ -1864,10 +1894,20 @@ ide_read_data(ide_t *ide, int length)
 		if (ide->secount) {
 			ide_next_sector(ide);
 			ide->atastat = BSY_STAT | READY_STAT | DSC_STAT;
-			if (ide->command == WIN_READ_MULTIPLE)
-				ide_callback(ide);
-			else
-				ide_set_callback(ide, ide_get_period(ide, 512));
+			if (ide->command == WIN_READ_MULTIPLE) {
+				if (!ide->blockcount) {
+					uint32_t sec_count = (ide->secount < ide->blocksize) ? ide->secount : ide->blocksize;
+					double seek_time = hdd_timing_read(&hdd[ide->hdd_num], ide_get_sector(ide), sec_count);
+					double xfer_time = ide_get_xfer_time(ide, 512 * sec_count);
+					ide_set_callback(ide, seek_time + xfer_time);
+				} else {
+					ide_callback(ide);
+				}
+			} else {
+				double seek_time = hdd_timing_read(&hdd[ide->hdd_num], ide_get_sector(ide), 1);
+				double xfer_time = ide_get_xfer_time(ide, 512);
+				ide_set_callback(ide, seek_time + xfer_time);
+			}
 		} else if (ide->command != WIN_READ_MULTIPLE)
 			ui_sb_update_icon(SB_HDD | hdd[ide->hdd_num].bus, 0);
 	}

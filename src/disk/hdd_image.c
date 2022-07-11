@@ -495,24 +495,20 @@ hdd_image_seek(uint8_t id, uint32_t sector)
 void
 hdd_image_read(uint8_t id, uint32_t sector, uint32_t count, uint8_t *buffer)
 {
+	int non_transferred_sectors;
+	size_t num_read;
+
 	if (hdd_images[id].type == HDD_IMAGE_VHD) {
-		int non_transferred_sectors = mvhd_read_sectors(hdd_images[id].vhd, sector, count, buffer);
+		non_transferred_sectors = mvhd_read_sectors(hdd_images[id].vhd, sector, count, buffer);
 		hdd_images[id].pos = sector + count - non_transferred_sectors - 1;
 	} else {
-		int i;
-
 		if (fseeko64(hdd_images[id].file, ((uint64_t)(sector) << 9LL) + hdd_images[id].base, SEEK_SET) == -1) {
 			fatal("Hard disk image %i: Read error during seek\n", id);
 			return;
 		}
 
-		for (i = 0; i < count; i++) {
-			if (feof(hdd_images[id].file))
-				break;
-
-			hdd_images[id].pos = sector + i;
-			fread(buffer + (i << 9), 1, 512, hdd_images[id].file);
-		}
+		num_read = fread(buffer, 512, count, hdd_images[id].file);
+		hdd_images[id].pos = sector + num_read;
 	}
 }
 
@@ -551,24 +547,20 @@ hdd_image_read_ex(uint8_t id, uint32_t sector, uint32_t count, uint8_t *buffer)
 void
 hdd_image_write(uint8_t id, uint32_t sector, uint32_t count, uint8_t *buffer)
 {
+	int non_transferred_sectors;
+	size_t num_write;
+
 	if (hdd_images[id].type == HDD_IMAGE_VHD) {
-		int non_transferred_sectors = mvhd_write_sectors(hdd_images[id].vhd, sector, count, buffer);
+		non_transferred_sectors = mvhd_write_sectors(hdd_images[id].vhd, sector, count, buffer);
 		hdd_images[id].pos = sector + count - non_transferred_sectors - 1;
 	} else {
-		int i;
-
 		if (fseeko64(hdd_images[id].file, ((uint64_t)(sector) << 9LL) + hdd_images[id].base, SEEK_SET) == -1) {
 			fatal("Hard disk image %i: Write error during seek\n", id);
 			return;
 		}
 
-		for (i = 0; i < count; i++) {
-			if (feof(hdd_images[id].file))
-				break;
-
-			hdd_images[id].pos = sector + i;
-			fwrite(buffer + (i << 9), 512, 1, hdd_images[id].file);
-		}
+		num_write = fwrite(buffer, 512, count, hdd_images[id].file);
+		hdd_images[id].pos = sector + num_write;
 	}
 }
 

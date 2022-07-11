@@ -26,6 +26,7 @@ thread_create(void (*thread_rout)(void *param), void *param)
 int
 thread_wait(thread_t *arg)
 {
+    if (!arg) return 0;
     auto thread = reinterpret_cast<std::thread*>(arg);
     thread->join();
     return 0;

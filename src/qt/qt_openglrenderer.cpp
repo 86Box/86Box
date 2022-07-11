@@ -29,6 +29,7 @@
 OpenGLRenderer::OpenGLRenderer(QWidget *parent)
     : QWindow(parent->windowHandle())
     , renderTimer(new QTimer(this))
+    , options(nullptr)
 {
     renderTimer->setTimerType(Qt::PreciseTimer);
     /* TODO: need's more accuracy, maybe target 1ms earlier and spin yield */
@@ -165,9 +166,7 @@ OpenGLRenderer::initialize()
 
         glTexImage2D(GL_TEXTURE_2D, 0, QOpenGLTexture::RGBA8_UNorm, INIT_WIDTH, INIT_HEIGHT, 0, QOpenGLTexture::BGRA, QOpenGLTexture::UInt32_RGBA8_Rev, NULL);
 
-        options = new OpenGLOptions(this, true, glslVersion);
-
-        applyOptions();
+        reloadOptions();
 
         glClearColor(0.f, 0.f, 0.f, 1.f);
 
@@ -302,6 +301,15 @@ OpenGLRenderer::applyOptions()
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, filter);
 
     currentFilter = options->filter();
+}
+
+void
+OpenGLRenderer::reloadOptions()
+{
+    if (options) { delete options; options = nullptr; }
+    options = new OpenGLOptions(this, true, glslVersion);
+
+    applyOptions();
 }
 
 void
