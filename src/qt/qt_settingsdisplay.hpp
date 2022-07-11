@@ -21,6 +21,12 @@ public slots:
     void onCurrentMachineChanged(int machineId);
 
 private slots:
+    void on_pushButtonConfigureSecondary_clicked();
+
+private slots:
+    void on_comboBoxVideoSecondary_currentIndexChanged(int index);
+
+private slots:
     void on_checkBoxVoodoo_stateChanged(int state);
     void on_checkBoxXga_stateChanged(int state);
     void on_comboBoxVideo_currentIndexChanged(int index);

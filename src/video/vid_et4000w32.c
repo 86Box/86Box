@@ -269,7 +269,7 @@ et4000w32p_out(uint16_t addr, uint8_t val, void *p)
 	case 0x210b: case 0x211b: case 0x212b: case 0x213b:
 	case 0x214b: case 0x215b: case 0x216b: case 0x217b:
 		et4000->regs[et4000->index] = val;
-		svga->hwcursor.xsize = svga->hwcursor.ysize = ((et4000->regs[0xEF] & 4) || (et4000->type == ET4000W32)) ? 128 : 64;
+        svga->hwcursor.cur_xsize = svga->hwcursor.cur_ysize = ((et4000->regs[0xEF] & 4) || (et4000->type == ET4000W32)) ? 128 : 64;
 		svga->hwcursor.x     = et4000->regs[0xE0] | ((et4000->regs[0xE1] & 7) << 8);
 		svga->hwcursor.y     = et4000->regs[0xE4] | ((et4000->regs[0xE5] & 7) << 8);
 		svga->hwcursor.ena   = !!(et4000->regs[0xF7] & 0x80);
@@ -284,7 +284,7 @@ et4000w32p_out(uint16_t addr, uint8_t val, void *p)
 			}
 		}
 
-		if (svga->hwcursor.xsize == 128) {
+        if (svga->hwcursor.cur_xsize == 128) {
 			svga->hwcursor.xoff &= 0x7f;
 			svga->hwcursor.yoff &= 0x7f;
 			if (et4000->type > ET4000W32P_REVC) {
@@ -303,7 +303,7 @@ et4000w32p_out(uint16_t addr, uint8_t val, void *p)
 		}
 		svga->hwcursor.addr  = (et4000->regs[0xe8] | (et4000->regs[0xe9] << 8) | ((et4000->regs[0xea] & 7) << 16)) << 2;
 
-		add2addr = svga->hwcursor.yoff * ((svga->hwcursor.xsize == 128) ? 32 : 16);
+        add2addr = svga->hwcursor.yoff * ((svga->hwcursor.cur_xsize == 128) ? 32 : 16);
 		svga->hwcursor.addr += add2addr;
 		return;
     }
@@ -1764,8 +1764,8 @@ et4000w32p_hwcursor_draw(svga_t *svga, int displine)
     et4000w32p_t *et4000 = (et4000w32p_t *)svga->p;
     int x, offset, xx, xx2;
     int shift = (et4000->adjust_cursor + 1);
-    int width = (svga->hwcursor_latch.xsize - svga->hwcursor_latch.xoff);
-    int pitch = (svga->hwcursor_latch.xsize == 128) ? 32 : 16;
+    int width = (svga->hwcursor_latch.cur_xsize - svga->hwcursor_latch.xoff);
+    int pitch = (svga->hwcursor_latch.cur_xsize == 128) ? 32 : 16;
 	int x_acc = 4;
 	int minus_width = 0;
     uint8_t dat;

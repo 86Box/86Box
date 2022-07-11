@@ -70,7 +70,7 @@ cga_out(uint16_t addr, uint8_t val, void *p)
 		cga->crtc[cga->crtcreg] = val & crtcmask[cga->crtcreg];
 		if (old != val) {
 			if ((cga->crtcreg < 0xe) || (cga->crtcreg > 0x10)) {
-				fullchange = changeframecount;
+                cga->fullchange = changeframecount;
 				cga_recalctimings(cga);
 			}
 		}

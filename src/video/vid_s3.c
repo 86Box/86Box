@@ -3250,7 +3250,7 @@ static void s3_trio64v_recalctimings(svga_t *svga)
 
                 svga->overlay.x = s3->streams.sec_x - s3->streams.pri_x;
                 svga->overlay.y = s3->streams.sec_y - s3->streams.pri_y;
-                svga->overlay.ysize = s3->streams.sec_h;
+                svga->overlay.cur_ysize = s3->streams.sec_h;
 
                 if (s3->streams.buffer_ctrl & 2)
                         svga->overlay.addr = s3->streams.sec_fb1;
@@ -7069,7 +7069,7 @@ static void *s3_init(const device_t *info)
 		}
 	}
 
-	svga->hwcursor.ysize = 64;
+    svga->hwcursor.cur_ysize = 64;
 
 	if (chip == S3_VISION964 && info->local != S3_ELSAWIN2KPROX_964)
 		svga->dac_hwcursor_draw = bt48x_hwcursor_draw;

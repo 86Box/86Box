@@ -44,6 +44,7 @@
 #endif
 
 extern "C" {
+#include <86box/86box.h>
 #include <86box/mouse.h>
 #include <86box/plat.h>
 #include <86box/video.h>
@@ -51,14 +52,21 @@ extern "C" {
 double mouse_sensitivity = 1.0;
 }
 
+struct mouseinputdata {
+    int deltax, deltay, deltaz;
+    int mousebuttons;
+};
+static mouseinputdata mousedata;
+
 extern "C" void macos_poll_mouse();
 extern MainWindow *main_window;
-RendererStack::RendererStack(QWidget *parent)
+RendererStack::RendererStack(QWidget *parent, int monitor_index)
     : QStackedWidget(parent)
     , ui(new Ui::RendererStack)
 {
     ui->setupUi(this);
 
+    m_monitor_index = monitor_index;
 #if defined __unix__ && !defined __HAIKU__
     char *mouse_type = getenv("EMU86BOX_MOUSE"), auto_mouse_type[16];
     if (!mouse_type || (mouse_type[0] == '\0') || !stricmp(mouse_type, "auto")) {
@@ -313,7 +321,7 @@ RendererStack::createRenderer(Renderer renderer)
         case Renderer::Direct3D9:
         {
             this->createWinId();
-            auto hw = new D3D9Renderer(this);
+            auto hw = new D3D9Renderer(this, m_monitor_index);
             rendererWindow = hw;
             connect(hw, &D3D9Renderer::error, this, [this](QString str)
             {
@@ -398,14 +406,14 @@ RendererStack::createRenderer(Renderer renderer)
 void
 RendererStack::blitDummy(int x, int y, int w, int h)
 {
-    video_blit_complete();
+    video_blit_complete_monitor(m_monitor_index);
     blitDummied = true;
 }
 
 void
 RendererStack::blitRenderer(int x, int y, int w, int h)
 {
-    if (blitDummied) { blitDummied = false; video_blit_complete(); return; }
+    if (blitDummied) { blitDummied = false; video_blit_complete_monitor(m_monitor_index); return; }
     directBlitting = true;
     rendererWindow->blit(x, y, w, h);
     directBlitting = false;
@@ -415,8 +423,8 @@ RendererStack::blitRenderer(int x, int y, int w, int h)
 void
 RendererStack::blitCommon(int x, int y, int w, int h)
 {
-    if ((x < 0) || (y < 0) || (w <= 0) || (h <= 0) || (w > 2048) || (h > 2048) || (buffer32 == NULL) || imagebufs.empty() || std::get<std::atomic_flag *>(imagebufs[currentBuf])->test_and_set() || blitDummied) {
-        video_blit_complete();
+    if ((x < 0) || (y < 0) || (w <= 0) || (h <= 0) || (w > 2048) || (h > 2048) || (monitors[m_monitor_index].target_buffer == NULL) || imagebufs.empty() || std::get<std::atomic_flag *>(imagebufs[currentBuf])->test_and_set() || blitDummied) {
+        video_blit_complete_monitor(m_monitor_index);
         return;
     }
     sx = x;
@@ -426,13 +434,21 @@ RendererStack::blitCommon(int x, int y, int w, int h)
     uint8_t *imagebits = std::get<uint8_t *>(imagebufs[currentBuf]);
     for (int y1 = y; y1 < (y + h); y1++) {
         auto scanline = imagebits + (y1 * rendererWindow->getBytesPerRow()) + (x * 4);
-        video_copy(scanline, &(buffer32->line[y1][x]), w * 4);
+        video_copy(scanline, &(monitors[m_monitor_index].target_buffer->line[y1][x]), w * 4);
     }
 
-    if (screenshots) {
-        video_screenshot((uint32_t *) imagebits, x, y, 2048);
+    if (monitors[m_monitor_index].mon_screenshots) {
+        video_screenshot_monitor((uint32_t *) imagebits, x, y, 2048, m_monitor_index);
     }
-    video_blit_complete();
+    video_blit_complete_monitor(m_monitor_index);
     emit blitToRenderer(currentBuf, sx, sy, sw, sh);
     currentBuf = (currentBuf + 1) % imagebufs.size();
 }
+
+void RendererStack::closeEvent(QCloseEvent* event)
+{
+    if (cpu_thread_run == 0 || is_quit == 1) { event->accept(); return; }
+    event->ignore();
+    main_window->close();
+}
+

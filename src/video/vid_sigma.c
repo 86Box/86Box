@@ -179,6 +179,7 @@ typedef struct sigma_t
 
     int plane;
     int revision;
+    int fullchange;
 } sigma_t;
 
 #define COMPOSITE_OLD 0
@@ -228,7 +229,7 @@ sigma_out(uint16_t addr, uint8_t val, void *p)
 		sigma->crtc[sigma->crtcreg] = val & crtcmask[sigma->crtcreg];
 		if (old != val) {
 			if (sigma->crtcreg < 0xe || sigma->crtcreg > 0x10) {
-				fullchange = changeframecount;
+                sigma->fullchange = changeframecount;
 				sigma_recalctimings(sigma);
 			}
 		}

@@ -8,7 +8,7 @@ extern "C"
 #include <86box/video.h>
 }
 
-D3D9Renderer::D3D9Renderer(QWidget *parent)
+D3D9Renderer::D3D9Renderer(QWidget *parent, int monitor_index)
     : QWidget{parent}, RendererCommon()
 {
     QPalette pal = palette();
@@ -27,6 +27,7 @@ D3D9Renderer::D3D9Renderer(QWidget *parent)
     RendererCommon::parentWidget = parent;
 
     this->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+    this->m_monitor_index = monitor_index;
 }
 
 D3D9Renderer::~D3D9Renderer()
@@ -138,8 +139,8 @@ void D3D9Renderer::resizeEvent(QResizeEvent *event)
 
 void D3D9Renderer::blit(int x, int y, int w, int h)
 {
-    if ((x < 0) || (y < 0) || (w <= 0) || (h <= 0) || (w > 2048) || (h > 2048) || (buffer32 == NULL) || surfaceInUse) {
-        video_blit_complete();
+    if ((x < 0) || (y < 0) || (w <= 0) || (h <= 0) || (w > 2048) || (h > 2048) || (monitors[m_monitor_index].target_buffer == NULL) || surfaceInUse) {
+        video_blit_complete_monitor(m_monitor_index);
         return;
     }
     surfaceInUse = true;
@@ -152,16 +153,16 @@ void D3D9Renderer::blit(int x, int y, int w, int h)
     srcRect.right = source.right();
 
     if (screenshots) {
-        video_screenshot((uint32_t *) &(buffer32->line[y][x]), 0, 0, 2048);
+        video_screenshot_monitor((uint32_t *) &(monitors[m_monitor_index].target_buffer->line[y][x]), 0, 0, 2048, m_monitor_index);
     }
     if (SUCCEEDED(d3d9surface->LockRect(&lockRect, &srcRect, 0))) {
         for (int y1 = 0; y1 < h; y1++) {
-            video_copy(((uint8_t*)lockRect.pBits) + (y1 * lockRect.Pitch), &(buffer32->line[y + y1][x]), w * 4);
+            video_copy(((uint8_t*)lockRect.pBits) + (y1 * lockRect.Pitch), &(monitors[m_monitor_index].target_buffer->line[y + y1][x]), w * 4);
         }
-        video_blit_complete();
+        video_blit_complete_monitor(m_monitor_index);
         d3d9surface->UnlockRect();
     }
-    else video_blit_complete();
+    else video_blit_complete_monitor(m_monitor_index);
     surfaceInUse = false;
     QTimer::singleShot(0, this, [this] { this->update(); });
 }

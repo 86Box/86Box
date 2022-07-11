@@ -22,6 +22,12 @@
 #ifndef EMU_VIDEO_H
 # define EMU_VIDEO_H
 
+#ifdef __cplusplus
+#include <atomic>
+using atomic_bool = std::atomic_bool;
+#else
+#include <stdatomic.h>
+#endif
 
 #define makecol(r, g, b)    ((b) | ((g) << 8) | ((r) << 16))
 #define makecol32(r, g, b)  ((b) | ((g) << 8) | ((r) << 16))
@@ -79,20 +85,93 @@ typedef struct {
     uint8_t	chr[32];
 } dbcs_font_t;
 
+struct blit_data_struct;
+
+typedef struct monitor_t
+{
+    char name[512];
+    int mon_xsize;
+    int mon_ysize;
+    int mon_scrnsz_x;
+    int mon_scrnsz_y;
+    int mon_efscrnsz_y;
+    int mon_unscaled_size_x;
+    int mon_unscaled_size_y;
+    int mon_res_x;
+    int mon_res_y;
+    int mon_bpp;
+    bitmap_t* target_buffer;
+    int mon_video_timing_read_b,
+            mon_video_timing_read_w,
+            mon_video_timing_read_l;
+    int     mon_video_timing_write_b,
+            mon_video_timing_write_w,
+            mon_video_timing_write_l;
+    int mon_overscan_x;
+    int mon_overscan_y;
+    int mon_force_resize;
+    int mon_fullchange;
+    int mon_changeframecount;
+    int mon_screenshots;
+    uint32_t* mon_pal_lookup;
+    int* mon_cga_palette;
+    int mon_pal_lookup_static; /* Whether it should not be freed by the API. */
+    int mon_cga_palette_static; /* Whether it should not be freed by the API. */
+    const video_timings_t* mon_vid_timings;
+    int mon_vid_type;
+    struct blit_data_struct* mon_blit_data_ptr;
+} monitor_t;
+
+typedef struct monitor_settings_t {
+    int mon_window_x; /* (C) window size and position info. */
+    int mon_window_y;
+    int mon_window_w;
+    int mon_window_h;
+} monitor_settings_t;
+
+#define MONITORS_NUM 8
+extern monitor_t monitors[MONITORS_NUM];
+extern monitor_settings_t monitor_settings[MONITORS_NUM];
+extern atomic_bool doresize_monitors[MONITORS_NUM];
+extern int monitor_index_global;
+extern int gfxcard_2;
+extern int show_second_monitors;
+
 typedef rgb_t PALETTE[256];
 
 
-extern int	changeframecount;
+//extern int	changeframecount;
 
 extern volatile int screenshots;
-extern bitmap_t	*buffer32;
+//extern bitmap_t	*buffer32;
+#define buffer32 (monitors[monitor_index_global].target_buffer)
+#define pal_lookup (monitors[monitor_index_global].mon_pal_lookup)
+#define overscan_x (monitors[monitor_index_global].mon_overscan_x)
+#define overscan_y (monitors[monitor_index_global].mon_overscan_y)
+#define video_timing_read_b (monitors[monitor_index_global].mon_video_timing_read_b)
+#define video_timing_read_l (monitors[monitor_index_global].mon_video_timing_read_l)
+#define video_timing_read_w (monitors[monitor_index_global].mon_video_timing_read_w)
+#define video_timing_write_b (monitors[monitor_index_global].mon_video_timing_write_b)
+#define video_timing_write_l (monitors[monitor_index_global].mon_video_timing_write_l)
+#define video_timing_write_w (monitors[monitor_index_global].mon_video_timing_write_w)
+#define video_res_x (monitors[monitor_index_global].mon_res_x)
+#define video_res_y (monitors[monitor_index_global].mon_res_y)
+#define video_bpp (monitors[monitor_index_global].mon_bpp)
+#define xsize (monitors[monitor_index_global].mon_xsize)
+#define ysize (monitors[monitor_index_global].mon_ysize)
+#define cga_palette (*monitors[monitor_index_global].mon_cga_palette)
+#define changeframecount (monitors[monitor_index_global].mon_changeframecount)
+#define scrnsz_x (monitors[monitor_index_global].mon_scrnsz_x)
+#define scrnsz_y (monitors[monitor_index_global].mon_scrnsz_y)
+#define efscrnsz_y (monitors[monitor_index_global].mon_efscrnsz_y)
+#define unscaled_size_x (monitors[monitor_index_global].mon_unscaled_size_x)
+#define unscaled_size_y (monitors[monitor_index_global].mon_unscaled_size_y)
 extern PALETTE	cgapal,
 		cgapal_mono[6];
-extern uint32_t	pal_lookup[256];
+//extern uint32_t	pal_lookup[256];
 extern int	video_fullscreen,
 		video_fullscreen_scale,
-		video_fullscreen_first;
-extern int	fullchange;
+        video_fullscreen_first;
 extern uint8_t	fontdat[2048][8];
 extern uint8_t	fontdatm[2048][16];
 extern uint8_t	fontdatw[512][32];
@@ -104,24 +183,11 @@ extern uint32_t	*video_6to8,
 		*video_8togs,
 		*video_8to32,
 		*video_15to32,
-		*video_16to32;
-extern int	xsize,ysize;
+        *video_16to32;
 extern int	enable_overscan;
-extern int	overscan_x,
-		overscan_y;
 extern int	force_43;
-extern int	video_timing_read_b,
-		video_timing_read_w,
-		video_timing_read_l;
-extern int	video_timing_write_b,
-		video_timing_write_w,
-		video_timing_write_l;
-extern int	video_res_x,
-		video_res_y,
-		video_bpp;
 extern int	vid_resize;
-extern int	cga_palette,
-		herc_blend;
+extern int	herc_blend;
 extern int	vid_cga_contrast;
 extern int	video_grayscale;
 extern int	video_graytype;
@@ -134,6 +200,7 @@ extern int	readflash;
 
 /* Function handler pointers. */
 extern void	(*video_recalctimings)(void);
+extern void	video_screenshot_monitor(uint32_t *buf, int start_x, int start_y, int row_len, int monitor_index);
 extern void	video_screenshot(uint32_t *buf, int start_x, int start_y, int row_len);
 
 #ifdef _WIN32
@@ -153,34 +220,48 @@ extern const device_t	*video_card_getdevice(int card);
 extern int	video_card_has_config(int card);
 extern char	*video_get_internal_name(int card);
 extern int	video_get_video_from_internal_name(char *s);
+extern int  video_card_get_flags(int card);
 extern int 	video_is_mda(void);
 extern int 	video_is_cga(void);
 extern int 	video_is_ega_vga(void);
 extern void	video_inform(int type, const video_timings_t *ptr);
+extern void	video_inform_monitor(int type, const video_timings_t *ptr, int monitor_index);
 extern int	video_get_type(void);
+extern int	video_get_type_monitor(int monitor_index);
 
 
-extern void	video_setblit(void(*blit)(int,int,int,int));
+extern void	video_setblit(void(*blit)(int,int,int,int,int));
 extern void	video_blend(int x, int y);
+extern void	video_blend_monitor(int x, int y, int monitor_index);
 extern void	video_blit_memtoscreen_8(int x, int y, int w, int h);
+extern void	video_blit_memtoscreen_8_monitor(int x, int y, int w, int h, int monitor_index);
 extern void	video_blit_memtoscreen(int x, int y, int w, int h);
+extern void	video_blit_memtoscreen_monitor(int x, int y, int w, int h, int monitor_index);
 extern void	video_blit_complete(void);
 extern void	video_wait_for_blit(void);
 extern void	video_wait_for_buffer(void);
+extern void	video_blit_complete_monitor(int monitor_index);
+extern void	video_wait_for_blit_monitor(int monitor_index);
+extern void	video_wait_for_buffer_monitor(int monitor_index);
 
 extern bitmap_t	*create_bitmap(int w, int h);
 extern void	destroy_bitmap(bitmap_t *b);
+extern void	cgapal_rebuild_monitor(int monitor_index);
 extern void	cgapal_rebuild(void);
 extern void	hline(bitmap_t *b, int x1, int y, int x2, uint32_t col);
 extern void	updatewindowsize(int x, int y);
 
+extern void video_monitor_init(int);
+extern void video_monitor_close(int);
 extern void	video_init(void);
 extern void	video_close(void);
 extern void	video_reset_close(void);
 extern void	video_pre_reset(int card);
 extern void	video_reset(int card);
 extern uint8_t	video_force_resize_get(void);
+extern uint8_t	video_force_resize_get_monitor(int monitor_index);
 extern void	video_force_resize_set(uint8_t res);
+extern void	video_force_resize_set_monitor(uint8_t res, int monitor_index);
 extern void	video_update_timing(void);
 
 extern void	loadfont_ex(char *s, int format, int offset);

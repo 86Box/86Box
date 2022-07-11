@@ -1479,7 +1479,7 @@ void
 		break;
     }
 
-    svga->hwcursor.ysize = 32;
+    svga->hwcursor.cur_ysize = 32;
     ht216->vram_mask = mem_size - 1;
     svga->decode_mask = mem_size - 1;
 
