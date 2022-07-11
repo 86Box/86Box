@@ -7,6 +7,7 @@
 #include <QFocusEvent>
 
 #include <memory>
+#include <array>
 
 class MediaMenu;
 class RendererStack;
