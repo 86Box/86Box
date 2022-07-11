@@ -3067,6 +3067,10 @@ static void s3_recalctimings(svga_t *svga)
 			break;
 			case 16:
 			svga->render = svga_render_16bpp_highres;
+			if ((s3->card_type == S3_ELSAWIN2KPROX_964) || (s3->card_type == S3_ELSAWIN2KPROX)) {
+				if (s3->width == 1280 || s3->width == 1600)
+					svga->hdisp <<= 1;
+			}
 			if ((s3->chip != S3_VISION964) && (s3->card_type != S3_SPEA_MIRAGE_86C801) &&
 				(s3->card_type != S3_SPEA_MIRAGE_86C805)) {
 				if (s3->chip == S3_86C928)
