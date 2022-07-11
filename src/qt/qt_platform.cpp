@@ -39,6 +39,7 @@
 #include <QLibrary>
 #include <QElapsedTimer>
 
+#include "qt_rendererstack.hpp"
 #include "qt_mainwindow.hpp"
 #include "qt_progsettings.hpp"
 
@@ -372,7 +373,7 @@ plat_power_off(void)
     cycles -= 99999999;
 
     cpu_thread_run = 0;
-    QTimer::singleShot(0, main_window, &QMainWindow::close);
+    QTimer::singleShot(0, (const QWidget *) main_window, &QMainWindow::close);
 }
 
 void set_language(uint32_t id) {
