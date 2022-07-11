@@ -425,7 +425,7 @@ OpenGLRenderer::onBlit(int buf_idx, int x, int y, int w, int h)
     }
 
     if (!hasBufferStorage)
-        glBufferSubData(GL_PIXEL_UNPACK_BUFFER, BUFFERBYTES * buf_idx, h * ROW_LENGTH * sizeof(uint32_t), (uint8_t *) unpackBuffer + BUFFERBYTES * buf_idx);
+        glBufferSubData(GL_PIXEL_UNPACK_BUFFER, BUFFERBYTES * buf_idx, h * ROW_LENGTH * sizeof(uint32_t) + (y * ROW_LENGTH * sizeof(uint32_t)), (uint8_t *) unpackBuffer + BUFFERBYTES * buf_idx);
 
     glPixelStorei(GL_UNPACK_SKIP_PIXELS, BUFFERPIXELS * buf_idx + y * ROW_LENGTH + x);
     glPixelStorei(GL_UNPACK_ROW_LENGTH, ROW_LENGTH);
