@@ -18,6 +18,15 @@ cmake_minimum_required(VERSION 3.16)
 cmake_policy(SET CMP0091 NEW)
 cmake_policy(SET CMP0079 NEW)
 
+# if(HAIKU)
+    # set(OPENAL ON)
+    # set(RTMIDI OFF)
+# endif()
+set(OPENAL ON)
+if(HAIKU)
+    set(RTMIDI OFF)
+endif()
+
 if(NOT DEFINED QT OR QT)
     list(APPEND VCPKG_MANIFEST_FEATURES "qt-ui")
 endif()
@@ -110,11 +119,6 @@ if(WIN32)
 
     # Disables WinSock deprecation warnings
     add_compile_definitions(_WINSOCK_DEPRECATED_NO_WARNINGS)
-endif()
-
-if(HAIKU)
-    set(OPENAL ON)
-    set(RTMIDI OFF)
 endif()
 
 set(CMAKE_C_STANDARD 11)
