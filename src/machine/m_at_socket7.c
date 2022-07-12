@@ -799,6 +799,36 @@ machine_at_mb540n_init(const machine_t *model)
     return ret;
 }
 
+int
+machine_at_56a5_init(const machine_t* model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/56a5/54p5b6b.bin",
+            0x000e0000, 131072, 0);
+
+    if (bios_only || !ret)
+    return ret;
+
+    machine_at_common_init_ex(model, 2);
+
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x11, PCI_CARD_NORMAL, 1, 2, 3, 4);
+    pci_register_slot(0x12, PCI_CARD_NORMAL, 2, 3, 4, 1);
+    pci_register_slot(0x13, PCI_CARD_NORMAL, 3, 4, 1, 2);
+    pci_register_slot(0x14, PCI_CARD_NORMAL, 4, 1, 2, 3);
+    pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 1, 2, 3, 4);   /* PIIX4 */
+    pci_register_slot(0x10, PCI_CARD_NORMAL, 1, 2, 3, 4);
+    device_add(&i430tx_device);
+    device_add(&piix4_device);
+    device_add(&keyboard_ps2_pci_device);
+    device_add(&w83877f_device);
+    device_add(&sst_flash_29ee010_device);
+    spd_register(SPD_TYPE_SDRAM, 0x3, 128);
+
+    return ret;
+}
 
 int
 machine_at_p5mms98_init(const machine_t *model)

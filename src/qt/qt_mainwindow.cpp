@@ -642,6 +642,13 @@ void MainWindow::showEvent(QShowEvent *event) {
         monitors[0].mon_scrnsz_x = fixed_size_x;
         monitors[0].mon_scrnsz_y = fixed_size_y;
     }
+    if (window_remember && vid_resize == 1) {
+        ui->stackedWidget->setFixedSize(window_w, window_h);
+        adjustSize();
+        ui->stackedWidget->setFixedSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
+        monitors[0].mon_scrnsz_x = window_w;
+        monitors[0].mon_scrnsz_y = window_h;
+    }
 }
 
 void MainWindow::on_actionKeyboard_requires_capture_triggered() {

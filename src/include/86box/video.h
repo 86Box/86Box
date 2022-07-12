@@ -25,6 +25,7 @@
 #ifdef __cplusplus
 #include <atomic>
 using atomic_bool = std::atomic_bool;
+using atomic_int = std::atomic_int;
 #else
 #include <stdatomic.h>
 #endif
@@ -112,7 +113,7 @@ typedef struct monitor_t
     int mon_force_resize;
     int mon_fullchange;
     int mon_changeframecount;
-    int mon_screenshots;
+    atomic_int mon_screenshots;
     uint32_t* mon_pal_lookup;
     int* mon_cga_palette;
     int mon_pal_lookup_static; /* Whether it should not be freed by the API. */
