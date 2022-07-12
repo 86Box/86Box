@@ -1297,8 +1297,7 @@ ui_init(int nCmdShow)
     ToolBarCreate(hwndMain, hinstance);
 
     /* Get the actual height of the toolbar */
-    GetWindowRect(hwndRebar, &rect);
-    tbar_height = rect.bottom - rect.top;
+    tbar_height = SendMessage(hwndRebar, RB_GETROWHEIGHT, 0, 0);
     if (hide_tool_bar)
 	ShowWindow(hwndRebar, SW_HIDE);
 
