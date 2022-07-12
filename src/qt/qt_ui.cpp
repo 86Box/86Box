@@ -32,6 +32,7 @@ static QString sb_text, sb_buguitext, sb_mt32lcdtext;
 
 extern "C" {
 
+#include "86box/86box.h"
 #include <86box/plat.h>
 #include <86box/ui.h>
 #include <86box/mouse.h>
@@ -62,6 +63,17 @@ extern "C" void qt_blit(int x, int y, int w, int h, int monitor_index)
 
 void mouse_poll() {
     main_window->pollMouse();
+}
+
+extern "C" int vid_resize;
+void plat_resize_request(int w, int h, int monitor_index)
+{
+    if (vid_resize & 2) {
+        plat_resize_monitor(fixed_size_x, fixed_size_y, monitor_index);
+    }
+    else {
+        plat_resize_monitor(w, h, monitor_index);
+    }
 }
 
 void plat_resize_monitor(int w, int h, int monitor_index) {

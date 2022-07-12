@@ -1331,7 +1331,7 @@ set_screen_size_monitor(int x, int y, int monitor_index)
         break;
     }
 
-    atomic_store(&doresize_monitors[monitor_index], 1);
+    plat_resize_request(monitors[monitor_index].mon_scrnsz_x, monitors[monitor_index].mon_scrnsz_y, monitor_index);
 }
 
 void
