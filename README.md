@@ -1,5 +1,7 @@
-86Box [![Build Status](http://ci.86box.net/job/86Box/badge/icon)](http://ci.86box.net/job/86Box)
+86Box
 =====
+[![Build Status](http://ci.86box.net/job/86Box/badge/icon)](http://ci.86box.net/job/86Box)
+
 **86Box** is a low level x86 emulator that runs older operating systems and software designed for IBM PC systems and compatibles from 1981 through fairly recent system designs based on the PCI bus.
 
 Features
@@ -21,12 +23,10 @@ System requirements and recommendations
 
 Performance may vary depending on both host and guest configuration. Most emulation logic is executed in a single thread, therefore generally systems with better IPC (instructions per clock) should be able to emulate higher clock speeds.
 
-It is also recommended to use a manager application (**Windows only**) with 86Box for easier handling of multiple virtual machines.
-* [WinBox for 86Box](https://github.com/86Box/WinBox-for-86Box) by Laci bá'
-  * The new manager with improved new user experience; installer, automatic updates of emulator files and more.
-  * While development is suspended and the repository is archived, the latest version is fully functional.
-* [86Box Manager](https://github.com/86Box/86BoxManager) by [daviunic](https://github.com/daviunic) (Overdoze)
-  * The traditional 86Box manager with simple interface.
+It is also recommended to use a manager application with 86Box for easier handling of multiple virtual machines.
+* [86Box Manager](https://github.com/86Box/86BoxManager) by [Overdoze](https://github.com/daviunic) (Windows only)
+* [86Box Manager Lite](https://github.com/insanemal/86box_manager_py) by [Insanemal](https://github.com/insanemal)
+* [WinBox for 86Box](https://github.com/86Box/WinBox-for-86Box) by Laci bá' (Windows only)
 
 However, it is also possible to use 86Box on its own with the `--vmpath`/`-P` command line option.
 
