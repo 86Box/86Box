@@ -102,6 +102,7 @@ namespace {
                 return;
             }
             label->setPixmap(active ? pixmaps->active : pixmaps->normal);
+            timer.setSingleShot(true);
             timer.start(75);
         }
     };
@@ -128,6 +129,7 @@ namespace {
         void setActive(bool b) {
             active = b;
             refresh();
+            timer.setSingleShot(true);
             timer.start(75);
         }
         void setEmpty(bool b) {
