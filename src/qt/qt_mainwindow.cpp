@@ -229,6 +229,7 @@ MainWindow::MainWindow(QWidget *parent) :
     });
 
     connect(this, &MainWindow::resizeContents, this, [this](int w, int h) {
+        ui->stackedWidget->setFixedSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
         if (!QApplication::platformName().contains("eglfs") && vid_resize != 1) {
             w = (w / (!dpi_scale ? util::screenOfWidget(this)->devicePixelRatio() : 1.));
 
@@ -630,7 +631,6 @@ MainWindow::~MainWindow() {
 void MainWindow::showEvent(QShowEvent *event) {
     if (shownonce) return;
     shownonce = true;
-    if (window_remember) resize(window_w, window_h + menuBar()->height() + (hide_status_bar ? 0 : statusBar()->height()) + (hide_tool_bar ? 0 : ui->toolBar->height()));
     if (window_remember && !QApplication::platformName().contains("wayland")) {
         setGeometry(window_x, window_y, window_w, window_h + menuBar()->height() + (hide_status_bar ? 0 : statusBar()->height()) + (hide_tool_bar ? 0 : ui->toolBar->height()));
     }
@@ -645,10 +645,8 @@ void MainWindow::showEvent(QShowEvent *event) {
     }
     if (window_remember && vid_resize == 1) {
         ui->stackedWidget->setFixedSize(window_w, window_h);
-        adjustSize();
-        ui->stackedWidget->setFixedSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
-        monitors[0].mon_scrnsz_x = window_w;
-        monitors[0].mon_scrnsz_y = window_h;
+        QApplication::processEvents();
+        this->adjustSize();
     }
 }
 
