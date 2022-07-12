@@ -46,6 +46,8 @@ typedef struct cga_t
 
         int drawcursor;
 
+        int fullchange;
+
         uint8_t *vram;
 
         uint8_t charbuffer[256];

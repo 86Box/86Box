@@ -503,7 +503,7 @@ tgui_out(uint16_t addr, uint8_t val, void *p)
 					case 0x50:
 						if (tgui->type >= TGUI_9440) {
 							svga->hwcursor.ena = !!(val & 0x80);
-							svga->hwcursor.xsize = svga->hwcursor.ysize = ((val & 1) ? 64 : 32);
+                            svga->hwcursor.cur_xsize = svga->hwcursor.cur_ysize = ((val & 1) ? 64 : 32);
 						}
 						break;
 				}
@@ -887,7 +887,7 @@ tgui_hwcursor_draw(svga_t *svga, int displine)
 	uint32_t dat[2];
 	int xx;
 	int offset = svga->hwcursor_latch.x + svga->hwcursor_latch.xoff;
-	int pitch = (svga->hwcursor_latch.xsize == 64) ? 16 : 8;
+    int pitch = (svga->hwcursor_latch.cur_xsize == 64) ? 16 : 8;
 
 	if (svga->interlace && svga->hwcursor_oddeven)
 		svga->hwcursor_latch.addr += pitch;

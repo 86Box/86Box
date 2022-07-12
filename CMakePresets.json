@@ -2,113 +2,44 @@
     "version": 3,
     "cmakeMinimumRequired": {
         "major": 3,
-        "minor": 21,
-        "patch": 0
+        "minor": 21
     },
     "configurePresets": [
         {
-            "name": "flags-base",
-            "cacheVariables": {
-                "CMAKE_CONFIGURATION_TYPES": "Debug;Release;Optimized"
-            },
-            "hidden": true,
-            "binaryDir": "build"
-        },
-        {
             "name": "regular",
-            "inherits": [
-                "flags-base"
-            ],
-            "generator": "Ninja",
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "Release",
                 "DEV_BRANCH": "OFF",
                 "NEW_DYNAREC": "OFF"
-            }
-        },
-        {
-            "name": "regularndr",
-            "inherits": [
-                "flags-base"
-            ],
-            "generator": "Ninja",
-            "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "Release",
-                "DEV_BRANCH": "OFF",
-                "NEW_DYNAREC": "ON"
-            }
+            },
+            "generator": "Ninja"
         },
         {
             "name": "optimized",
-            "inherits": [
-                "flags-base"
-            ],
-            "generator": "Ninja",
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "Optimized",
                 "DEV_BRANCH": "OFF",
                 "NEW_DYNAREC": "OFF"
-            }
-        },
-        {
-            "name": "optimizedndr",
-            "inherits": [
-                "flags-base"
-            ],
-            "generator": "Ninja",
-            "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "Optimized",
-                "DEV_BRANCH": "OFF",
-                "NEW_DYNAREC": "ON"
-            }
+            },
+            "generator": "Ninja"
         },
         {
             "name": "debug",
-            "inherits": [
-                "flags-base"
-            ],
-            "generator": "Ninja",
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "Debug",
                 "DEV_BRANCH": "OFF",
                 "NEW_DYNAREC": "OFF"
-            }
-        },
-        {
-            "name": "debugndr",
-            "inherits": [
-                "flags-base"
-            ],
-            "generator": "Ninja",
-            "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "Debug",
-                "DEV_BRANCH": "OFF",
-                "NEW_DYNAREC": "ON"
-            }
+            },
+            "generator": "Ninja"
         },
         {
             "name": "experimental",
-            "inherits": [
-                "flags-base"
-            ],
-            "generator": "Ninja",
-            "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "Debug",
-                "DEV_BRANCH": "ON",
-                "NEW_DYNAREC": "OFF"
-            }
-        },
-        {
-            "name": "experimentalndr",
-            "inherits": [
-                "flags-base"
-            ],
-            "generator": "Ninja",
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "Debug",
                 "DEV_BRANCH": "ON",
                 "NEW_DYNAREC": "ON"
-            }
+            },
+            "generator": "Ninja"
         }
     ]
 }

@@ -29,6 +29,7 @@
 OpenGLRenderer::OpenGLRenderer(QWidget *parent)
     : QWindow(parent->windowHandle())
     , renderTimer(new QTimer(this))
+    , options(nullptr)
 {
     renderTimer->setTimerType(Qt::PreciseTimer);
     /* TODO: need's more accuracy, maybe target 1ms earlier and spin yield */
@@ -165,9 +166,7 @@ OpenGLRenderer::initialize()
 
         glTexImage2D(GL_TEXTURE_2D, 0, QOpenGLTexture::RGBA8_UNorm, INIT_WIDTH, INIT_HEIGHT, 0, QOpenGLTexture::BGRA, QOpenGLTexture::UInt32_RGBA8_Rev, NULL);
 
-        options = new OpenGLOptions(this, true, glslVersion);
-
-        applyOptions();
+        reloadOptions();
 
         glClearColor(0.f, 0.f, 0.f, 1.f);
 
@@ -305,6 +304,15 @@ OpenGLRenderer::applyOptions()
 }
 
 void
+OpenGLRenderer::reloadOptions()
+{
+    if (options) { delete options; options = nullptr; }
+    options = new OpenGLOptions(this, true, glslVersion);
+
+    applyOptions();
+}
+
+void
 OpenGLRenderer::applyShader(const OpenGLShaderPass &shader)
 {
     if (!shader.bind())
@@ -417,7 +425,7 @@ OpenGLRenderer::onBlit(int buf_idx, int x, int y, int w, int h)
     }
 
     if (!hasBufferStorage)
-        glBufferSubData(GL_PIXEL_UNPACK_BUFFER, BUFFERBYTES * buf_idx, h * ROW_LENGTH * sizeof(uint32_t), (uint8_t *) unpackBuffer + BUFFERBYTES * buf_idx);
+        glBufferSubData(GL_PIXEL_UNPACK_BUFFER, BUFFERBYTES * buf_idx, h * ROW_LENGTH * sizeof(uint32_t) + (y * ROW_LENGTH * sizeof(uint32_t)), (uint8_t *) unpackBuffer + BUFFERBYTES * buf_idx);
 
     glPixelStorei(GL_UNPACK_SKIP_PIXELS, BUFFERPIXELS * buf_idx + y * ROW_LENGTH + x);
     glPixelStorei(GL_UNPACK_ROW_LENGTH, ROW_LENGTH);

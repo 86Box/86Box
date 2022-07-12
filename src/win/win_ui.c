@@ -19,6 +19,7 @@
  *		Copyright 2017-2020 Fred N. van Kempen.
  *		Copyright 2019,2020 GH Cao.
  */
+#include <stdatomic.h>
 #define UNICODE
 #include <windows.h>
 #include <commctrl.h>
@@ -646,7 +647,7 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 				scrnsz_x = unscaled_size_x;
 				scrnsz_y = unscaled_size_y;
-				atomic_flag_clear(&doresize);
+				atomic_store(&doresize_monitors[0], 1);
 				config_save();
 				break;
 
@@ -745,7 +746,7 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 				reset_screen_size();
 				device_force_redraw();
 				video_force_resize_set(1);
-				atomic_flag_clear(&doresize);
+				atomic_store(&doresize_monitors[0], 1);
 				config_save();
 				break;
 
@@ -760,7 +761,7 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 			case IDM_VID_HIDPI:
 				dpi_scale = !dpi_scale;
 				CheckMenuItem(hmenu, IDM_VID_HIDPI, dpi_scale ? MF_CHECKED : MF_UNCHECKED);
-				atomic_flag_clear(&doresize);
+				atomic_store(&doresize_monitors[0], 1);
 				config_save();
 				break;
 
@@ -860,7 +861,7 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 			/* Main Window. */
 			ResizeWindowByClientArea(hwndMain, temp_x, temp_y + (hide_status_bar ? 0 : sbar_height) + (hide_tool_bar ? 0 : tbar_height));
 		} else if (!user_resize)
-			atomic_flag_clear(&doresize);
+			atomic_store(&doresize_monitors[0], 1);
 		break;
 
 	case WM_WINDOWPOSCHANGED:
@@ -909,13 +910,13 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 				if (temp_x != scrnsz_x || temp_y != scrnsz_y) {
 					scrnsz_x = temp_x;
 					scrnsz_y = temp_y;
-					atomic_flag_clear(&doresize);
+					atomic_store(&doresize_monitors[0], 1);
 				}
 			} else {
 				if (rect.right != scrnsz_x || rect.bottom != scrnsz_y) {
 					scrnsz_x = rect.right;
 					scrnsz_y = rect.bottom;
-					atomic_flag_clear(&doresize);
+					atomic_store(&doresize_monitors[0], 1);
 				}
 			}
 
@@ -1092,7 +1093,7 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 		/* If window is not resizable, then tell the main thread to
 		   resize it, as sometimes, moves can mess up the window size. */
 		if (!vid_resize)
-			atomic_flag_clear(&doresize);
+			atomic_store(&doresize_monitors[0], 1);
 		break;
     }
 
@@ -1297,8 +1298,7 @@ ui_init(int nCmdShow)
     ToolBarCreate(hwndMain, hinstance);
 
     /* Get the actual height of the toolbar */
-    GetWindowRect(hwndRebar, &rect);
-    tbar_height = rect.bottom - rect.top;
+    tbar_height = SendMessage(hwndRebar, RB_GETROWHEIGHT, 0, 0);
     if (hide_tool_bar)
 	ShowWindow(hwndRebar, SW_HIDE);
 
@@ -1557,6 +1557,12 @@ plat_resize(int x, int y)
 }
 
 
+void plat_resize_request(int w, int h, int monitor_index)
+{
+    atomic_store((&doresize_monitors[monitor_index]), 1);
+}
+
+
 void
 plat_mouse_capture(int on)
 {
@@ -1580,3 +1586,6 @@ plat_mouse_capture(int on)
 	mouse_capture = 0;
     }
 }
+
+void ui_init_monitor(int monitor_index) {}
+void ui_deinit_monitor(int monitor_index) {}

@@ -139,10 +139,6 @@ char	log_path[1024] = { '\0'};		/* (O) full path of logfile */
 char	vm_name[1024]  = { '\0'};		/* (O) display name of the VM */
 
 /* Configuration values. */
-int	window_w;   /* (C) window size and */
-int window_h;   /*     position info */
-int	window_x;
-int window_y;
 int window_remember;
 int vid_resize;			/* (C) allow resizing */
 int invert_display = 0;		/* (C) invert the display */
@@ -166,6 +162,8 @@ int postcard_enabled = 0;			/* (C) enable POST card */
 int isamem_type[ISAMEM_MAX] = { 0,0,0,0 };	/* (C) enable ISA mem cards */
 int isartc_type = 0;				/* (C) enable ISA RTC card */
 int	gfxcard = 0;				/* (C) graphics/video card */
+int	gfxcard_2 = 0;				/* (C) graphics/video card */
+int show_second_monitors = 1;   /* (C) show non-primary monitors */
 int	sound_is_float = 1;			/* (C) sound uses FP values */
 int GAMEBLASTER = 0;				/* (C) sound option */
 int GUS = 0;					/* (C) sound option */
@@ -201,17 +199,17 @@ char	exe_path[2048];				/* path (dir) of executable */
 char	usr_path[1024];				/* path (dir) of user data */
 char	cfg_path[1024];				/* full path of config file */
 FILE	*stdlog = NULL;				/* file to log output to */
-int	scrnsz_x = SCREEN_RES_X;		/* current screen size, X */
-int scrnsz_y = SCREEN_RES_Y;			/* current screen size, Y */
+//int	scrnsz_x = SCREEN_RES_X;		/* current screen size, X */
+//int scrnsz_y = SCREEN_RES_Y;			/* current screen size, Y */
 int	config_changed;				/* config has changed */
 int	title_update;
 int	framecountx = 0;
 int	hard_reset_pending = 0;
 
 
-int	unscaled_size_x = SCREEN_RES_X;	/* current unscaled size X */
-int unscaled_size_y = SCREEN_RES_Y;	/* current unscaled size Y */
-int efscrnsz_y = SCREEN_RES_Y;
+//int	unscaled_size_x = SCREEN_RES_X;	/* current unscaled size X */
+//int unscaled_size_y = SCREEN_RES_Y;	/* current unscaled size Y */
+//int efscrnsz_y = SCREEN_RES_Y;
 
 
 static wchar_t	mouse_msg[3][200];
@@ -855,6 +853,15 @@ pc_init_modules(void)
 	}
 	}
 
+    if (! video_card_available(gfxcard_2)) {
+        char temp[1024] = { 0 };
+        char tempc[1024] = { 0 };
+        device_get_name(video_card_getdevice(gfxcard_2), 0, tempc);
+        snprintf(temp, sizeof(temp), "Video card #2 \"%s\" is not available due to missing ROMs in the roms/video directory. Disabling the second video card.", tempc);
+        ui_msgbox_header(MBX_INFO, (wchar_t *) IDS_2128, temp);
+        gfxcard_2 = 0;
+    }
+
 	atfullspeed = 0;
 
 	random_init();
@@ -1250,14 +1257,13 @@ pc_onesec(void)
 	title_update = 1;
 }
 
-
 void
-set_screen_size(int x, int y)
+set_screen_size_monitor(int x, int y, int monitor_index)
 {
-    int owsx = scrnsz_x;
-    int owsy = scrnsz_y;
-    int temp_overscan_x = overscan_x;
-    int temp_overscan_y = overscan_y;
+    int owsx = monitors[monitor_index].mon_scrnsz_x;
+    int owsy = monitors[monitor_index].mon_scrnsz_y;
+    int temp_overscan_x = monitors[monitor_index].mon_overscan_x;
+    int temp_overscan_y = monitors[monitor_index].mon_overscan_y;
     double dx, dy, dtx, dty;
 
     /* Make sure we keep usable values. */
@@ -1270,78 +1276,89 @@ set_screen_size(int x, int y)
     if (y > 2048) y = 2048;
 
     /* Save the new values as "real" (unscaled) resolution. */
-    unscaled_size_x = x;
-    efscrnsz_y = y;
+    monitors[monitor_index].mon_unscaled_size_x = x;
+    monitors[monitor_index].mon_efscrnsz_y = y;
 
     if (suppress_overscan)
-	temp_overscan_x = temp_overscan_y = 0;
+    temp_overscan_x = temp_overscan_y = 0;
 
     if (force_43) {
-	dx = (double)x;
-	dtx = (double)temp_overscan_x;
+    dx = (double)x;
+    dtx = (double)temp_overscan_x;
 
-	dy = (double)y;
-	dty = (double)temp_overscan_y;
+    dy = (double)y;
+    dty = (double)temp_overscan_y;
 
-	/* Account for possible overscan. */
-	if (!(video_is_ega_vga()) && (temp_overscan_y == 16)) {
-		/* CGA */
-		dy = (((dx - dtx) / 4.0) * 3.0) + dty;
-	} else if (!(video_is_ega_vga()) && (temp_overscan_y < 16)) {
-		/* MDA/Hercules */
-		dy = (x / 4.0) * 3.0;
-	} else {
-		if (enable_overscan) {
-			/* EGA/(S)VGA with overscan */
-			dy = (((dx - dtx) / 4.0) * 3.0) + dty;
-		} else {
-			/* EGA/(S)VGA without overscan */
-			dy = (x / 4.0) * 3.0;
-		}
-	}
-	unscaled_size_y = (int)dy;
+    /* Account for possible overscan. */
+    if (video_get_type_monitor(monitor_index) != VIDEO_FLAG_TYPE_SPECIAL && (temp_overscan_y == 16)) {
+        /* CGA */
+        dy = (((dx - dtx) / 4.0) * 3.0) + dty;
+    } else if (video_get_type_monitor(monitor_index) != VIDEO_FLAG_TYPE_SPECIAL && (temp_overscan_y < 16)) {
+        /* MDA/Hercules */
+        dy = (x / 4.0) * 3.0;
+    } else {
+        if (enable_overscan) {
+            /* EGA/(S)VGA with overscan */
+            dy = (((dx - dtx) / 4.0) * 3.0) + dty;
+        } else {
+            /* EGA/(S)VGA without overscan */
+            dy = (x / 4.0) * 3.0;
+        }
+    }
+    monitors[monitor_index].mon_unscaled_size_y = (int)dy;
     } else
-	unscaled_size_y = efscrnsz_y;
+    monitors[monitor_index].mon_unscaled_size_y = monitors[monitor_index].mon_efscrnsz_y;
 
     switch(scale) {
-	case 0:		/* 50% */
-		scrnsz_x = (unscaled_size_x>>1);
-		scrnsz_y = (unscaled_size_y>>1);
-		break;
+    case 0:		/* 50% */
+        monitors[monitor_index].mon_scrnsz_x = (monitors[monitor_index].mon_unscaled_size_x>>1);
+        monitors[monitor_index].mon_scrnsz_y = (monitors[monitor_index].mon_unscaled_size_y>>1);
+        break;
 
-	case 1:		/* 100% */
-		scrnsz_x = unscaled_size_x;
-		scrnsz_y = unscaled_size_y;
-		break;
+    case 1:		/* 100% */
+        monitors[monitor_index].mon_scrnsz_x = monitors[monitor_index].mon_unscaled_size_x;
+        monitors[monitor_index].mon_scrnsz_y = monitors[monitor_index].mon_unscaled_size_y;
+        break;
 
-	case 2:		/* 150% */
-		scrnsz_x = ((unscaled_size_x*3)>>1);
-		scrnsz_y = ((unscaled_size_y*3)>>1);
-		break;
+    case 2:		/* 150% */
+        monitors[monitor_index].mon_scrnsz_x = ((monitors[monitor_index].mon_unscaled_size_x*3)>>1);
+        monitors[monitor_index].mon_scrnsz_y = ((monitors[monitor_index].mon_unscaled_size_y*3)>>1);
+        break;
 
-	case 3:		/* 200% */
-		scrnsz_x = (unscaled_size_x<<1);
-		scrnsz_y = (unscaled_size_y<<1);
-		break;
+    case 3:		/* 200% */
+        monitors[monitor_index].mon_scrnsz_x = (monitors[monitor_index].mon_unscaled_size_x<<1);
+        monitors[monitor_index].mon_scrnsz_y = (monitors[monitor_index].mon_unscaled_size_y<<1);
+        break;
     }
 
-    /* If the resolution has changed, let the main thread handle it. */
-    if ((owsx != scrnsz_x) || (owsy != scrnsz_y))
-		atomic_flag_clear(&doresize);
+    plat_resize_request(monitors[monitor_index].mon_scrnsz_x, monitors[monitor_index].mon_scrnsz_y, monitor_index);
 }
 
+void
+set_screen_size(int x, int y)
+{
+    set_screen_size_monitor(x, y, monitor_index_global);
+}
+
+void
+reset_screen_size_monitor(int monitor_index)
+{
+    set_screen_size(monitors[monitor_index].mon_unscaled_size_x, monitors[monitor_index].mon_efscrnsz_y);
+}
 
 void
 reset_screen_size(void)
 {
-	set_screen_size(unscaled_size_x, efscrnsz_y);
+    for (int i = 0; i < MONITORS_NUM; i++)
+        set_screen_size(monitors[i].mon_unscaled_size_x, monitors[i].mon_efscrnsz_y);
 }
 
 
 void
 set_screen_size_natural(void)
 {
-	set_screen_size(unscaled_size_x, unscaled_size_y);
+    for (int i = 0; i < MONITORS_NUM; i++)
+        set_screen_size(monitors[i].mon_unscaled_size_x, monitors[i].mon_unscaled_size_y);
 }
 
 

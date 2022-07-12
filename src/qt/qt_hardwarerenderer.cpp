@@ -32,6 +32,7 @@ extern "C" {
 
 void HardwareRenderer::resizeGL(int w, int h)
 {
+    m_context->makeCurrent(this);
     glViewport(0, 0, qRound(w * devicePixelRatio()), qRound(h * devicePixelRatio()));
 }
 

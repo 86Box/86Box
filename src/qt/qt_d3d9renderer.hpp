@@ -12,7 +12,7 @@ class D3D9Renderer : public QWidget, public RendererCommon
 {
     Q_OBJECT
 public:
-    explicit D3D9Renderer(QWidget *parent = nullptr);
+    explicit D3D9Renderer(QWidget *parent = nullptr, int monitor_index = 0);
     ~D3D9Renderer();
     bool hasBlitFunc() override { return true; }
     void blit(int x, int y, int w, int h) override;
@@ -39,6 +39,7 @@ private:
 
     std::atomic<bool> surfaceInUse{false}, finalized{false};
     bool alreadyInitialized = false;
+    int m_monitor_index = 0;
 };
 
 #endif // D3D9RENDERER_HPP

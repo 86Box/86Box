@@ -123,7 +123,7 @@ ega_render_text_40(ega_t *ega)
 	ega->firstline_draw = ega->displine;
     ega->lastline_draw = ega->displine;
 
-    if (fullchange) {
+    if (ega->fullchange) {
 	p = &buffer32->line[ega->displine + ega->y_add][ega->x_add];
 	xinc = (ega->seqregs[1] & 1) ? 16 : 18;
 
@@ -195,7 +195,7 @@ ega_render_text_80(ega_t *ega)
 	ega->firstline_draw = ega->displine;
     ega->lastline_draw = ega->displine;
 
-    if (fullchange) {
+    if (ega->fullchange) {
         p = &buffer32->line[ega->displine + ega->y_add][ega->x_add];
         xinc = (ega->seqregs[1] & 1) ? 8 : 9;
 

@@ -596,7 +596,7 @@ gd54xx_update_overlay(gd54xx_t *gd54xx)
     svga_t *svga = &gd54xx->svga;
     int bpp = svga->bpp;
 
-    svga->overlay.ysize = gd54xx->overlay.wve - gd54xx->overlay.wvs + 1;
+    svga->overlay.cur_ysize = gd54xx->overlay.wve - gd54xx->overlay.wvs + 1;
     gd54xx->overlay.region1size = 32 * gd54xx->overlay.r1sz / bpp + (gd54xx->overlay.r1adjust * 8 / bpp);
     gd54xx->overlay.region2size = 32 * gd54xx->overlay.r2sz / bpp + (gd54xx->overlay.r2adjust * 8 / bpp);
 
@@ -741,10 +741,10 @@ gd54xx_out(uint16_t addr, uint8_t val, void *p)
 					svga_recalctimings(svga);
 					svga->hwcursor.ena = val & CIRRUS_CURSOR_SHOW;
 					if (svga->crtc[0x27] >= CIRRUS_ID_CLGD5422)
-						svga->hwcursor.xsize = svga->hwcursor.ysize =
+                        svga->hwcursor.cur_xsize = svga->hwcursor.cur_ysize =
 								       ((val & CIRRUS_CURSOR_LARGE) && (svga->crtc[0x27] >= CIRRUS_ID_CLGD5422)) ? 64 : 32;
 					else
-						svga->hwcursor.xsize = 32;
+                        svga->hwcursor.cur_xsize = 32;
 
 					if ((svga->seqregs[0x12] & CIRRUS_CURSOR_LARGE) && (svga->crtc[0x27] >= CIRRUS_ID_CLGD5422))
 						svga->hwcursor.addr = ((gd54xx->vram_size - 0x4000) + ((svga->seqregs[0x13] & 0x3c) * 256));
@@ -1837,7 +1837,7 @@ void gd54xx_hwcursor_draw(svga_t *svga, int displine)
     int x, xx, comb, b0, b1;
     uint8_t dat[2];
     int offset = svga->hwcursor_latch.x - svga->hwcursor_latch.xoff;
-    int pitch = (svga->hwcursor.xsize == 64) ? 16 : 4;
+    int pitch = (svga->hwcursor.cur_xsize == 64) ? 16 : 4;
     uint32_t bgcol = gd54xx->extpallook[0x00];
     uint32_t fgcol = gd54xx->extpallook[0x0f];
     uint8_t linedbl = svga->dispend * 9 / 10 >= svga->hdisp;
@@ -1847,9 +1847,9 @@ void gd54xx_hwcursor_draw(svga_t *svga, int displine)
     if (svga->interlace && svga->hwcursor_oddeven)
 	svga->hwcursor_latch.addr += pitch;
 
-    for (x = 0; x < svga->hwcursor.xsize; x += 8) {
+    for (x = 0; x < svga->hwcursor.cur_xsize; x += 8) {
 	dat[0] = svga->vram[svga->hwcursor_latch.addr & svga->vram_display_mask];
-	if (svga->hwcursor.xsize == 64)
+    if (svga->hwcursor.cur_xsize == 64)
 		dat[1] = svga->vram[(svga->hwcursor_latch.addr + 0x08) & svga->vram_display_mask];
 	else
 		dat[1] = svga->vram[(svga->hwcursor_latch.addr + 0x80) & svga->vram_display_mask];
@@ -1883,7 +1883,7 @@ void gd54xx_hwcursor_draw(svga_t *svga, int displine)
 	svga->hwcursor_latch.addr++;
     }
 
-    if (svga->hwcursor.xsize == 64)
+    if (svga->hwcursor.cur_xsize == 64)
 	svga->hwcursor_latch.addr += 8;
 
     if (svga->interlace && !svga->hwcursor_oddeven)

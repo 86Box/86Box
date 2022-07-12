@@ -39,6 +39,7 @@
 #include <QLibrary>
 #include <QElapsedTimer>
 
+#include "qt_rendererstack.hpp"
 #include "qt_mainwindow.hpp"
 #include "qt_progsettings.hpp"
 
@@ -52,7 +53,7 @@ extern MainWindow* main_window;
 QElapsedTimer elapsed_timer;
 
 static std::atomic_int blitmx_contention = 0;
-static std::mutex blitmx;
+static std::recursive_mutex blitmx;
 
 class CharPointer {
 public:
@@ -326,7 +327,7 @@ void
 plat_pause(int p)
 {
     static wchar_t oldtitle[512];
-    wchar_t title[512], paused_msg[64];
+    wchar_t title[1024], paused_msg[512];
 
     if (p == dopause) {
 #ifdef Q_OS_WINDOWS
@@ -372,7 +373,7 @@ plat_power_off(void)
     cycles -= 99999999;
 
     cpu_thread_run = 0;
-    QTimer::singleShot(0, main_window, &QMainWindow::close);
+    QTimer::singleShot(0, (const QWidget *) main_window, &QMainWindow::close);
 }
 
 void set_language(uint32_t id) {
