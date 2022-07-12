@@ -823,7 +823,7 @@ machine_at_56a5_init(const machine_t* model)
     device_add(&i430tx_device);
     device_add(&piix4_device);
     device_add(&keyboard_ps2_pci_device);
-    device_add(&w83877tf_acorp_device);
+    device_add(&w83877f_device);
     device_add(&sst_flash_29ee010_device);
     spd_register(SPD_TYPE_SDRAM, 0x3, 128);
 
