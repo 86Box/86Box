@@ -70,14 +70,14 @@ public:
     QString getMessage();
 public slots:
     void refresh(QStatusBar* sbar);
-    void setActivity(int tag, bool active);
-    void setEmpty(int tag, bool active);
     void message(const QString& msg);
     void updateTip(int tag);
+    void refreshIcons();
 
 private:
     struct States;
     std::unique_ptr<States> d;
+    QTimer *refreshTimer;
 };
 
 #endif // QT_MACHINESTATUS_HPP
