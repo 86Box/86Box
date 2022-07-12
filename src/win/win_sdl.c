@@ -247,7 +247,7 @@ sdl_blit(int x, int y, int w, int h, int monitor_index)
     r_src.h = h;
     SDL_UpdateTexture(sdl_tex, &r_src, &(buffer32->line[y][x]), 2048 * sizeof(uint32_t));
 
-    if (screenshots)
+    if (monitors[0].mon_screenshots)
 	video_screenshot((uint32_t *) buffer32->dat, x, y, 2048);
 
     video_blit_complete();
@@ -288,7 +288,7 @@ sdl_blit_ex(int x, int y, int w, int h, int monitor_index)
     for (row = 0; row < h; ++row)
 	video_copy(&(((uint8_t *) pixeldata)[row * 2048 * sizeof(uint32_t)]), &(buffer32->line[y + row][x]), w * sizeof(uint32_t));
 
-    if (screenshots)
+    if (monitors[0].mon_screenshots)
 	video_screenshot((uint32_t *) pixeldata, 0, 0, 2048);
 
     SDL_UnlockTexture(sdl_tex);

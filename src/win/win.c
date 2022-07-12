@@ -1271,7 +1271,7 @@ void
 take_screenshot(void)
 {
     startblit();
-    screenshots++;
+    monitors[0].mon_screenshots++;
     endblit();
     device_force_redraw();
 }
