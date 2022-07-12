@@ -130,7 +130,7 @@ typedef struct monitor_settings_t {
     int mon_window_h;
 } monitor_settings_t;
 
-#define MONITORS_NUM 8
+#define MONITORS_NUM 2
 extern monitor_t monitors[MONITORS_NUM];
 extern monitor_settings_t monitor_settings[MONITORS_NUM];
 extern atomic_bool doresize_monitors[MONITORS_NUM];
