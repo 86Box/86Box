@@ -77,6 +77,7 @@ jobs:
             ${{ matrix.environment.prefix }}-libpng
             ${{ matrix.environment.prefix }}-libvncserver
             ${{ matrix.environment.prefix }}-openal
+            ${{ matrix.environment.prefix }}-rtmidi
       - uses: actions/checkout@v2
       - name: Configure CMake
         run: >-
