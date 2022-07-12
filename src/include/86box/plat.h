@@ -21,6 +21,8 @@
 #ifndef EMU_PLAT_H
 # define EMU_PLAT_H
 
+#include <stdint.h>
+#include <stdio.h>
 #include "86box/device.h"
 #include "86box/machine.h"
 #ifndef GLOBAL
@@ -117,6 +119,7 @@ extern int	plat_setvid(int api);
 extern void	plat_vidsize(int x, int y);
 extern void	plat_setfullscreen(int on);
 extern void	plat_resize_monitor(int x, int y, int monitor_index);
+extern void plat_resize_request(int x, int y, int monitor_index);
 extern void     plat_resize(int x, int y);
 extern void	plat_vidapi_enable(int enabled);
 extern void	plat_vidapi_reload(void);

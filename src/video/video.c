@@ -286,27 +286,6 @@ video_setblit(void(*blit)(int,int,int,int,int))
 
 
 void
-video_blit_complete(void)
-{
-    video_blit_complete_monitor(monitor_index_global);
-}
-
-
-void
-video_wait_for_blit(void)
-{
-    video_wait_for_blit_monitor(monitor_index_global);
-}
-
-
-void
-video_wait_for_buffer(void)
-{
-    video_wait_for_buffer_monitor(monitor_index_global);
-}
-
-
-void
 video_blit_complete_monitor(int monitor_index)
 {
     struct blit_data_struct* blit_data_ptr = monitors[monitor_index].mon_blit_data_ptr;
@@ -499,13 +478,6 @@ void blit_thread(void *param)
 
 
 void
-video_blit_memtoscreen(int x, int y, int w, int h)
-{
-    video_blit_memtoscreen_monitor(x, y, w, h, monitor_index_global);
-}
-
-
-void
 video_blit_memtoscreen_monitor(int x, int y, int w, int h, int monitor_index)
 {
     MTR_BEGIN("video", "video_blit_memtoscreen");
@@ -581,12 +553,6 @@ video_blend_monitor(int x, int y, int monitor_index)
 }
 
 
-void
-video_blend(int x, int y)
-{
-    video_blend_monitor(x, y, monitor_index_global);
-}
-
 
 void
 video_blit_memtoscreen_8_monitor(int x, int y, int w, int h, int monitor_index)
@@ -607,13 +573,6 @@ video_blit_memtoscreen_8_monitor(int x, int y, int w, int h, int monitor_index)
     }
 
     video_blit_memtoscreen_monitor(x, y, w, h, monitor_index);
-}
-
-
-void
-video_blit_memtoscreen_8(int x, int y, int w, int h)
-{
-    video_blit_memtoscreen_8_monitor(x, y, w, h, monitor_index_global);
 }
 
 
@@ -676,12 +635,6 @@ cgapal_rebuild_monitor(int monitor_index)
     palette_lookup[0x16] = makecol(video_6to8[42],video_6to8[42],video_6to8[0]);
 }
 
-void
-cgapal_rebuild(void)
-{
-    cgapal_rebuild_monitor(monitor_index_global);
-}
-
 
 void
 video_inform_monitor(int type, const video_timings_t *ptr, int monitor_index)
@@ -692,24 +645,10 @@ video_inform_monitor(int type, const video_timings_t *ptr, int monitor_index)
 }
 
 
-void
-video_inform(int type, const video_timings_t *ptr)
-{
-    video_inform_monitor(type, ptr, monitor_index_global);
-}
-
-
 int
 video_get_type_monitor(int monitor_index)
 {
     return monitors[monitor_index].mon_vid_type;
-}
-
-
-int
-video_get_type(void)
-{
-    return video_get_type_monitor(0);
 }
 
 
@@ -1053,11 +992,6 @@ video_force_resize_get_monitor(int monitor_index)
     return monitors[monitor_index].mon_force_resize;
 }
 
-uint8_t
-video_force_resize_get(void)
-{
-    return monitors[monitor_index_global].mon_force_resize;
-}
 
 void
 video_force_resize_set_monitor(uint8_t res, int monitor_index)
@@ -1065,12 +999,6 @@ video_force_resize_set_monitor(uint8_t res, int monitor_index)
     monitors[monitor_index].mon_force_resize = res;
 }
 
-
-void
-video_force_resize_set(uint8_t res)
-{
-    monitors[monitor_index_global].mon_force_resize = res;
-}
 
 void
 loadfont_common(FILE *f, int format)
