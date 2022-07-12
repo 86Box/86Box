@@ -131,15 +131,15 @@ inital(void)
     sources = 2 + !!init_midi;
 
     if (sound_is_float) {
-        buf    = (float *) malloc((BUFLEN << 1) * sizeof(float));
-        cd_buf = (float *) malloc((CD_BUFLEN << 1) * sizeof(float));
+        buf    = (float *) calloc((BUFLEN << 1), sizeof(float));
+        cd_buf = (float *) calloc((CD_BUFLEN << 1), sizeof(float));
         if (init_midi)
-            midi_buf = (float *) malloc(midi_buf_size * sizeof(float));
+            midi_buf = (float *) calloc(midi_buf_size, sizeof(float));
     } else {
-        buf_int16    = (int16_t *) malloc((BUFLEN << 1) * sizeof(int16_t));
-        cd_buf_int16 = (int16_t *) malloc((CD_BUFLEN << 1) * sizeof(int16_t));
+        buf_int16    = (int16_t *) calloc((BUFLEN << 1), sizeof(int16_t));
+        cd_buf_int16 = (int16_t *) calloc((CD_BUFLEN << 1), sizeof(int16_t));
         if (init_midi)
-            midi_buf_int16 = (int16_t *) malloc(midi_buf_size * sizeof(int16_t));
+            midi_buf_int16 = (int16_t *) calloc(midi_buf_size, sizeof(int16_t));
     }
 
     alGenBuffers(4, buffers);
