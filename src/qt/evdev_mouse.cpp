@@ -70,6 +70,7 @@ void evdev_thread_func()
     for (unsigned int i = 0; i < evdev_mice.size(); i++)
     {
         libevdev_free(evdev_mice[i].second);
+        evdev_mice[i].second = nullptr;
         close(evdev_mice[i].first);
     }
     evdev_mice.clear();
@@ -77,12 +78,16 @@ void evdev_thread_func()
 
 void evdev_stop()
 {
-    stopped = true;
-    evdev_thread->wait();
+    if (evdev_thread) {
+        stopped = true;
+        evdev_thread->wait();
+        evdev_thread = nullptr;
+    }
 }
 
 void evdev_init()
 {
+    if (evdev_thread) return;
     for (int i = 0; i < 256; i++)
     {
         std::string evdev_device_path = "/dev/input/event" + std::to_string(i);
