@@ -27,7 +27,7 @@ if(NOT DEFINED QT OR QT)
     list(APPEND VCPKG_MANIFEST_FEATURES "qt-ui")
 endif()
 
-if(OPENAL)
+if(NOT DEFINED OPENAL OR OPENAL)
     list(APPEND VCPKG_MANIFEST_FEATURES "openal")
 endif()
 
