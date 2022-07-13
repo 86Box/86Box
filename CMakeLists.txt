@@ -18,11 +18,16 @@ cmake_minimum_required(VERSION 3.16)
 cmake_policy(SET CMP0091 NEW)
 cmake_policy(SET CMP0079 NEW)
 
+if(HAIKU)
+    set(OPENAL ON)
+    set(RTMIDI OFF)
+endif()
+
 if(NOT DEFINED QT OR QT)
     list(APPEND VCPKG_MANIFEST_FEATURES "qt-ui")
 endif()
 
-if(OPENAL)
+if(NOT DEFINED OPENAL OR OPENAL)
     list(APPEND VCPKG_MANIFEST_FEATURES "openal")
 endif()
 
@@ -112,11 +117,6 @@ if(WIN32)
     add_compile_definitions(_WINSOCK_DEPRECATED_NO_WARNINGS)
 endif()
 
-if(HAIKU)
-    set(OPENAL ON)
-    set(RTMIDI OFF)
-endif()
-
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_FIND_PACKAGE_PREFER_CONFIG ON)
@@ -127,7 +127,7 @@ set(CMAKE_FIND_PACKAGE_PREFER_CONFIG ON)
 #      ------       -----------                                                     ----
 option(RELEASE      "Release build"                                                 OFF)
 option(DYNAREC      "Dynamic recompiler"                                            ON)
-option(OPENAL       "OpenAL"                                                        OFF)
+option(OPENAL       "OpenAL"                                                        ON)
 option(RTMIDI       "RtMidi"                                                        ON)
 option(FLUIDSYNTH   "FluidSynth"                                                    ON)
 option(MUNT         "MUNT"                                                          ON)

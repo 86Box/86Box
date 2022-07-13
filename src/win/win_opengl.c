@@ -885,7 +885,7 @@ static void opengl_blit(int x, int y, int w, int h, int monitor_index)
 	for (row = 0; row < h; ++row)
 		video_copy(&(((uint8_t *) blit_info[write_pos].buffer)[row * ROW_LENGTH * sizeof(uint32_t)]), &(buffer32->line[y + row][x]), w * sizeof(uint32_t));
 
-	if (screenshots)
+	if (monitors[0].mon_screenshots)
 		video_screenshot(blit_info[write_pos].buffer, 0, 0, ROW_LENGTH);
 
 	video_blit_complete();

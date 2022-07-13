@@ -165,6 +165,12 @@ hdd_seek_get_time(hard_disk_t *hdd, uint32_t dst_addr, uint8_t operation, uint8_
 			break;
 	}
 
+#ifndef OLD_CODE
+	double continuous_times[2][2] = {	{ hdd->head_switch_usec, hdd->cyl_switch_usec },
+						{ zone->sector_time_usec, zone->sector_time_usec } };
+	double times[2] = { 50.0, hdd->avg_rotation_lat_usec };
+#endif
+
 	uint32_t new_track = zone->start_track + ((dst_addr - zone->start_sector) / zone->sectors_per_track);
 	uint32_t new_cylinder = new_track / hdd->phy_heads;
 	uint32_t cylinder_diff = abs((int)hdd->cur_cylinder - (int)new_cylinder);
@@ -174,6 +180,7 @@ hdd_seek_get_time(hard_disk_t *hdd, uint32_t dst_addr, uint8_t operation, uint8_
 
 	double seek_time = 0.0;
 	if (continuous) {
+#ifdef OLD_CODE
 		if (new_track == hdd->cur_track) {
 			// Same track
 			seek_time = zone->sector_time_usec;
@@ -184,19 +191,31 @@ hdd_seek_get_time(hard_disk_t *hdd, uint32_t dst_addr, uint8_t operation, uint8_
 			// Sequential cylinder
 			seek_time = hdd->cyl_switch_usec;
 		}
+#else
+		seek_time = continuous_times[new_track == hdd->cur_track][!!cylinder_diff];
+#endif
 	} else {
 		if (!cylinder_diff) {
+#ifdef OLD_CODE
 			if (operation != HDD_OP_SEEK) {
 				seek_time = hdd->avg_rotation_lat_usec;
 			} else {
 				//seek_time = hdd->cyl_switch_usec;
 				seek_time = 50.0;
 			}
+#else
+			seek_time = times[operation != HDD_OP_SEEK];
+#endif
 		} else {
+#ifdef OLD_CODE
 			seek_time = hdd->cyl_switch_usec + (hdd->full_stroke_usec * (double)cylinder_diff / (double)hdd->phy_cyl);
 			if (operation != HDD_OP_SEEK) {
 				seek_time += hdd->avg_rotation_lat_usec;
 			}
+#else
+			seek_time = hdd->cyl_switch_usec + (hdd->full_stroke_usec * (double)cylinder_diff / (double)hdd->phy_cyl) +
+				    ((operation != HDD_OP_SEEK) * hdd->avg_rotation_lat_usec);
+#endif
 		}
 	}
 

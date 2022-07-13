@@ -19,6 +19,7 @@
  *		Copyright 2017-2020 Fred N. van Kempen.
  *		Copyright 2019,2020 GH Cao.
  */
+#include <stdatomic.h>
 #define UNICODE
 #include <windows.h>
 #include <commctrl.h>
@@ -1297,8 +1298,7 @@ ui_init(int nCmdShow)
     ToolBarCreate(hwndMain, hinstance);
 
     /* Get the actual height of the toolbar */
-    GetWindowRect(hwndRebar, &rect);
-    tbar_height = rect.bottom - rect.top;
+    tbar_height = SendMessage(hwndRebar, RB_GETROWHEIGHT, 0, 0);
     if (hide_tool_bar)
 	ShowWindow(hwndRebar, SW_HIDE);
 
@@ -1554,6 +1554,12 @@ plat_resize(int x, int y)
 	}
 	ResizeWindowByClientArea(hwndMain, x, y + (hide_status_bar ? 0 : sbar_height) + (hide_tool_bar ? 0 : tbar_height));
     }
+}
+
+
+void plat_resize_request(int w, int h, int monitor_index)
+{
+    atomic_store((&doresize_monitors[monitor_index]), 1);
 }
 
 

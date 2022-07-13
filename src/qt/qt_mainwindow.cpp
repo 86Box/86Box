@@ -40,6 +40,7 @@ extern "C" {
 #include <86box/plat.h>
 #include <86box/ui.h>
 #include <86box/discord.h>
+#include <86box/device.h>
 #include <86box/video.h>
 #include <86box/machine.h>
 #include <86box/vid_ega.h>
@@ -228,6 +229,7 @@ MainWindow::MainWindow(QWidget *parent) :
     });
 
     connect(this, &MainWindow::resizeContents, this, [this](int w, int h) {
+        ui->stackedWidget->setFixedSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
         if (!QApplication::platformName().contains("eglfs") && vid_resize != 1) {
             w = (w / (!dpi_scale ? util::screenOfWidget(this)->devicePixelRatio() : 1.));
 
@@ -266,8 +268,6 @@ MainWindow::MainWindow(QWidget *parent) :
     });
     connect(this, &MainWindow::updateStatusBarPanes, this, &MainWindow::refreshMediaMenu);
     connect(this, &MainWindow::updateStatusBarTip, status.get(), &MachineStatus::updateTip);
-    connect(this, &MainWindow::updateStatusBarActivity, status.get(), &MachineStatus::setActivity);
-    connect(this, &MainWindow::updateStatusBarEmpty, status.get(), &MachineStatus::setEmpty);
     connect(this, &MainWindow::statusBarMessage, status.get(), &MachineStatus::message, Qt::QueuedConnection);
 
     ui->actionKeyboard_requires_capture->setChecked(kbd_req_capture);
@@ -629,7 +629,6 @@ MainWindow::~MainWindow() {
 void MainWindow::showEvent(QShowEvent *event) {
     if (shownonce) return;
     shownonce = true;
-    if (window_remember) resize(window_w, window_h + menuBar()->height() + (hide_status_bar ? 0 : statusBar()->height()) + (hide_tool_bar ? 0 : ui->toolBar->height()));
     if (window_remember && !QApplication::platformName().contains("wayland")) {
         setGeometry(window_x, window_y, window_w, window_h + menuBar()->height() + (hide_status_bar ? 0 : statusBar()->height()) + (hide_tool_bar ? 0 : ui->toolBar->height()));
     }
@@ -644,10 +643,8 @@ void MainWindow::showEvent(QShowEvent *event) {
     }
     if (window_remember && vid_resize == 1) {
         ui->stackedWidget->setFixedSize(window_w, window_h);
-        adjustSize();
-        ui->stackedWidget->setFixedSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
-        monitors[0].mon_scrnsz_x = window_w;
-        monitors[0].mon_scrnsz_y = window_h;
+        QApplication::processEvents();
+        this->adjustSize();
     }
 }
 
@@ -1440,12 +1437,7 @@ void MainWindow::on_actionFullscreen_triggered() {
         if (!hide_tool_bar) ui->toolBar->show();
         video_fullscreen = 0;
         if (vid_resize != 1) {
-            if (vid_resize == 2) setFixedSize(fixed_size_x, fixed_size_y
-                + menuBar()->height()
-                + (!hide_status_bar ? statusBar()->height() : 0)
-                + (!hide_tool_bar ? ui->toolBar->height() : 0));
-
-            emit resizeContents(monitors[0].mon_scrnsz_x, monitors[0].mon_scrnsz_y);
+            emit resizeContents(vid_resize == 2 ? fixed_size_x : monitors[0].mon_scrnsz_x, vid_resize == 2 ? fixed_size_y : monitors[0].mon_scrnsz_y);
         }
     } else {
         if (video_fullscreen_first)

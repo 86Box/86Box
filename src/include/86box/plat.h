@@ -21,6 +21,8 @@
 #ifndef EMU_PLAT_H
 # define EMU_PLAT_H
 
+#include <stdint.h>
+#include <stdio.h>
 #include "86box/device.h"
 #include "86box/machine.h"
 #ifndef GLOBAL
@@ -68,10 +70,12 @@ extern int strnicmp(const char* s1, const char* s2, size_t n);
 #ifdef __cplusplus
 #include <atomic>
 #define atomic_flag_t std::atomic_flag
+#define atomic_bool_t std::atomic_bool
 extern "C" {
 #else
 #include <stdatomic.h>
 #define atomic_flag_t atomic_flag
+#define atomic_bool_t atomic_bool
 #endif
 
 /* Global variables residing in the platform module. */
@@ -117,6 +121,7 @@ extern int	plat_setvid(int api);
 extern void	plat_vidsize(int x, int y);
 extern void	plat_setfullscreen(int on);
 extern void	plat_resize_monitor(int x, int y, int monitor_index);
+extern void plat_resize_request(int x, int y, int monitor_index);
 extern void     plat_resize(int x, int y);
 extern void	plat_vidapi_enable(int enabled);
 extern void	plat_vidapi_reload(void);

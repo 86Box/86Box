@@ -130,7 +130,7 @@ typedef struct monitor_settings_t {
     int mon_window_h;
 } monitor_settings_t;
 
-#define MONITORS_NUM 8
+#define MONITORS_NUM 2
 extern monitor_t monitors[MONITORS_NUM];
 extern monitor_settings_t monitor_settings[MONITORS_NUM];
 extern atomic_bool doresize_monitors[MONITORS_NUM];
@@ -225,22 +225,16 @@ extern int  video_card_get_flags(int card);
 extern int 	video_is_mda(void);
 extern int 	video_is_cga(void);
 extern int 	video_is_ega_vga(void);
-extern void	video_inform(int type, const video_timings_t *ptr);
 extern void	video_inform_monitor(int type, const video_timings_t *ptr, int monitor_index);
-extern int	video_get_type(void);
 extern int	video_get_type_monitor(int monitor_index);
 
 
 extern void	video_setblit(void(*blit)(int,int,int,int,int));
 extern void	video_blend(int x, int y);
-extern void	video_blend_monitor(int x, int y, int monitor_index);
 extern void	video_blit_memtoscreen_8(int x, int y, int w, int h);
+extern void	video_blend_monitor(int x, int y, int monitor_index);
 extern void	video_blit_memtoscreen_8_monitor(int x, int y, int w, int h, int monitor_index);
-extern void	video_blit_memtoscreen(int x, int y, int w, int h);
 extern void	video_blit_memtoscreen_monitor(int x, int y, int w, int h, int monitor_index);
-extern void	video_blit_complete(void);
-extern void	video_wait_for_blit(void);
-extern void	video_wait_for_buffer(void);
 extern void	video_blit_complete_monitor(int monitor_index);
 extern void	video_wait_for_blit_monitor(int monitor_index);
 extern void	video_wait_for_buffer_monitor(int monitor_index);
@@ -248,7 +242,6 @@ extern void	video_wait_for_buffer_monitor(int monitor_index);
 extern bitmap_t	*create_bitmap(int w, int h);
 extern void	destroy_bitmap(bitmap_t *b);
 extern void	cgapal_rebuild_monitor(int monitor_index);
-extern void	cgapal_rebuild(void);
 extern void	hline(bitmap_t *b, int x1, int y, int x2, uint32_t col);
 extern void	updatewindowsize(int x, int y);
 
@@ -259,9 +252,7 @@ extern void	video_close(void);
 extern void	video_reset_close(void);
 extern void	video_pre_reset(int card);
 extern void	video_reset(int card);
-extern uint8_t	video_force_resize_get(void);
 extern uint8_t	video_force_resize_get_monitor(int monitor_index);
-extern void	video_force_resize_set(uint8_t res);
 extern void	video_force_resize_set_monitor(uint8_t res, int monitor_index);
 extern void	video_update_timing(void);
 
@@ -275,6 +266,18 @@ extern uint32_t	video_color_transform(uint32_t color);
 
 extern void	agpgart_set_aperture(void *handle, uint32_t base, uint32_t size, int enable);
 extern void	agpgart_set_gart(void *handle, uint32_t base);
+
+#define video_inform(type, video_timings_ptr) video_inform_monitor(type, video_timings_ptr, monitor_index_global)
+#define video_get_type() video_get_type_monitor(0)
+#define video_blend(x, y) video_blend_monitor(x, y, monitor_index_global)
+#define video_blit_memtoscreen(x, y, w, h) video_blit_memtoscreen_monitor(x, y, w, h, monitor_index_global)
+#define video_blit_memtoscreen_8(x, y, w, h) video_blit_memtoscreen_8_monitor(x, y, w, h, monitor_index_global)
+#define video_blit_complete() video_blit_complete_monitor(monitor_index_global)
+#define video_wait_for_blit() video_wait_for_blit_monitor(monitor_index_global)
+#define video_wait_for_buffer() video_wait_for_buffer_monitor(monitor_index_global)
+#define cgapal_rebuild() cgapal_rebuild_monitor(monitor_index_global)
+#define video_force_resize_get() video_force_resize_get_monitor(monitor_index_global)
+#define video_force_resize_set(val) video_force_resize_set_monitor(val, monitor_index_global)
 
 #ifdef __cplusplus
 }

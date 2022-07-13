@@ -125,6 +125,7 @@ main_thread_fn()
     }
 
     is_quit = 1;
+    QTimer::singleShot(0, QApplication::instance(), [] () { QApplication::instance()->quit(); });
 }
 
 static std::thread* main_thread;
@@ -283,28 +284,6 @@ int main(int argc, char* argv[]) {
         pc_reset_hard_init();
         main_thread = new std::thread(main_thread_fn);
     });
-
-    QTimer resizeTimer;
-    resizeTimer.setInterval(0);
-    resizeTimer.callOnTimeout([]()
-    {
-        /* If needed, handle a screen resize. */
-        for (int i = 0; i < MONITORS_NUM; i++) {
-            if (!monitors[i].target_buffer) continue;
-            if (atomic_load(&doresize_monitors[i]) == 1 && !video_fullscreen && !is_quit) {
-                if (vid_resize & 2)
-                    plat_resize_monitor(fixed_size_x, fixed_size_y, i);
-                else
-                    plat_resize_monitor(monitors[i].mon_scrnsz_x, monitors[i].mon_scrnsz_y, i);
-                atomic_store(&doresize_monitors[i], 0);
-            }
-        }
-
-        if (is_quit) {
-            QApplication::quit();
-        }
-    });
-    resizeTimer.start();
 
     auto ret = app.exec();
     cpu_thread_run = 0;

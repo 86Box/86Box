@@ -31,9 +31,10 @@ if(OPENAL)
     if(TARGET OpenAL::OpenAL)
         target_link_libraries(86Box OpenAL::OpenAL)
     else()
-        include_directories(${OPENAL_INCLUDE_DIR})
         target_link_libraries(86Box ${OPENAL_LIBRARY})
     endif()
+
+    include_directories(${OPENAL_INCLUDE_DIR})
 
     target_sources(snd PRIVATE openal.c)
 else()
@@ -49,15 +50,15 @@ else()
         # Use FAudio, a reimplementation of XAudio2
         pkg_check_modules(FAUDIO IMPORTED_TARGET FAudio)
         if(FAUDIO_FOUND)
-            include_directories(${FAUDIO_INCLUDE_DIRS})
             target_link_libraries(86Box PkgConfig::FAUDIO)
         else()
             find_path(FAUDIO_INCLUDE_DIR NAMES "FAudio.h")
             find_library(FAUDIO_LIBRARY FAudio)
 
-            include_directories(${FAUDIO_INCLUDE_DIR})
             target_link_libraries(86Box ${FAUDIO_LIBRARY})
         endif()
+
+        include_directories(${FAUDIO_INCLUDE_DIRS})
 
         set_property(SOURCE xaudio2.c PROPERTY COMPILE_DEFINITIONS USE_FAUDIO)
     endif()

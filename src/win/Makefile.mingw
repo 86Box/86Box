@@ -423,6 +423,10 @@ RFLAGS		+= -DMTR_ENABLED
 MINITRACEOBJ	:= minitrace.o
 endif
 
+ifeq ($(FAUDIO), y)
+OPTS		+= -DUSE_FAUDIO
+endif
+
 # Options for the DEV branch.
 ifeq ($(DEV_BRANCH), y)
 OPTS		+= -DDEV_BRANCH
@@ -522,7 +526,7 @@ CXXFLAGS	:= $(CFLAGS)
 #########################################################################
 MAINOBJ		:= 86box.o config.o log.o random.o timer.o io.o acpi.o apm.o dma.o ddma.o \
 		   nmi.o pic.o pit.o port_6x.o port_92.o ppi.o pci.o mca.o fifo8.o \
-		   usb.o device.o nvr.o nvr_at.o nvr_ps2.o \
+		   usb.o device.o nvr.o nvr_at.o nvr_ps2.o machine_status.o \
 		   $(VNCOBJ)
 
 MEMOBJ		:= catalyst_flash.o i2c_eeprom.o intel_flash.o mem.o rom.o smram.o spd.o sst_flash.o
@@ -750,9 +754,6 @@ endif
 ifeq ($(OPENAL), y)
  SNDOBJ		+= openal.o
 else
- ifeq ($(FAUDIO), y)
-  OPTS		+= -DUSE_FAUDIO
- endif
  SNDOBJ		+= xaudio2.o
 endif
 
@@ -767,7 +768,11 @@ endif
 ifeq ($(OPENAL), y)
 LIBS		:= -mwindows -lopenal -lcomctl32 -lSDL2 -limagehlp -ldinput8 -ldxguid -ldxerr8 -luser32 -lgdi32 -lwinmm -limm32 -lole32 -loleaut32 -lshell32 -lversion -luuid
 else
+ifeq ($(FAUDIO), y)
+LIBS		:= -mwindows -lfaudio -lcomctl32 -lSDL2 -limagehlp -ldinput8 -ldxguid -ldxerr8 -luser32 -lgdi32 -lwinmm -limm32 -lole32 -loleaut32 -lshell32 -lversion -luuid
+else
 LIBS		:= -mwindows -lcomctl32 -lSDL2 -limagehlp -ldinput8 -ldxguid -ldxerr8 -luser32 -lgdi32 -lwinmm -limm32 -lole32 -loleaut32 -lshell32 -lversion -luuid
+endif
 endif
 
 ifeq ($(RTMIDI), y)

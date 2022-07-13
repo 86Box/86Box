@@ -4,28 +4,28 @@ on:
 
   push:
     paths:
-    - src/**
-    - cmake/**
-    - "**/CMakeLists.txt"
-    - "CMakePresets.json"
-    - .github/workflows/cmake.yml
-    - vcpkg.json
-    - "!**/Makefile*"
+      - src/**
+      - cmake/**
+      - "**/CMakeLists.txt"
+      - "CMakePresets.json"
+      - .github/workflows/cmake.yml
+      - vcpkg.json
+      - "!**/Makefile*"
 
   pull_request:
     paths:
-    - src/**
-    - cmake/**
-    - "**/CMakeLists.txt"
-    - "CMakePresets.json"
-    - .github/workflows/**
-    - .github/workflows/cmake.yml
-    - vcpkg.json
-    - "!**/Makefile*"
+      - src/**
+      - cmake/**
+      - "**/CMakeLists.txt"
+      - "CMakePresets.json"
+      - .github/workflows/**
+      - .github/workflows/cmake.yml
+      - vcpkg.json
+      - "!**/Makefile*"
 
 jobs:
   msys2:
-    name: MSYS2 ${{ matrix.build.name }} build (${{ matrix.environment.msystem }})
+    name: MSYS2 ${{ matrix.build.name }} ${{ matrix.dynarec.name }} build (${{ matrix.environment.msystem }})
 
     runs-on: windows-2022
 
@@ -37,71 +37,63 @@ jobs:
       fail-fast: true
       matrix:
         build:
-#        - name: Regular ODR
-#          slug: -ODR
-#          preset: regular
-#          target: install/strip
-        - name: Debug ODR
-          slug: -ODR-Debug
-          preset: debug
-          target: install
-        - name: Dev ODR
-          slug: -ODR-Dev
-          preset: experimental
-          target: install
-#        - name: Regular NDR
-#          slug: -NDR
-#          preset: regularndr
-#          target: install/strip
-        - name: Debug NDR
-          slug: -NDR-Debug
-          preset: debugndr
-          target: install
-        - name: Dev NDR
-          slug: -NDR-Dev
-          preset: experimentalndr
-          target: install
+          - name: Debug
+            preset: debug
+            slug: -Debug
+          - name: Dev
+            preset: experimental
+            slug: -Dev
+        dynarec:
+          - name: ODR
+            new: off
+            slug: -ODR
+          - name: NDR
+            new: on
+            slug: -NDR
         environment:
           - msystem: MINGW32
             prefix: mingw-w64-i686
+            toolchain: ./cmake/flags-gcc-i686.cmake
           - msystem: MINGW64
             prefix: mingw-w64-x86_64
+            toolchain: ./cmake/flags-gcc-x86_64.cmake
           - msystem: UCRT64
             prefix: mingw-w64-ucrt-x86_64
-#          - msystem: CLANG32
-#            prefix: mingw-w64-clang-i686
-#          - msystem: CLANG64
-#            prefix: mingw-w64-clang-x86_64
+            toolchain: ./cmake/flags-gcc-x86_64.cmake
 
     steps:
-    - uses: msys2/setup-msys2@v2
-      with:
-        path-type: inherit
-        update: true
-        msystem: ${{ matrix.environment.msystem }}
-        install: >-
-          ${{ matrix.environment.prefix }}-ninja
-          ${{ matrix.environment.prefix }}-cc
-          ${{ matrix.environment.prefix }}-pkg-config
-          ${{ matrix.environment.prefix }}-freetype
-          ${{ matrix.environment.prefix }}-SDL2
-          ${{ matrix.environment.prefix }}-zlib
-          ${{ matrix.environment.prefix }}-libpng
-          ${{ matrix.environment.prefix }}-libvncserver
-          ${{ matrix.environment.prefix }}-rtmidi
-    - uses: actions/checkout@v2
-    - name: Configure CMake
-      run: >-
-        cmake -S . -B build
-        --preset ${{ matrix.build.preset }}
-        -D CMAKE_INSTALL_PREFIX=./build/artifacts
-        -D QT=OFF
-    - name: Build
-      run: cmake --build build --target ${{ matrix.build.target }}
-    - uses: actions/upload-artifact@v2
-      with:
-        name: '86Box${{ matrix.build.slug }}-Windows-${{ matrix.environment.msystem }}-gha${{ github.run_number }}'
-        path: build/artifacts/**
+      - uses: msys2/setup-msys2@v2
+        with:
+          path-type: inherit
+          update: true
+          msystem: ${{ matrix.environment.msystem }}
+          install: >-
+            ${{ matrix.environment.prefix }}-ninja
+            ${{ matrix.environment.prefix }}-cc
+            ${{ matrix.environment.prefix }}-pkg-config
+            ${{ matrix.environment.prefix }}-freetype
+            ${{ matrix.environment.prefix }}-SDL2
+            ${{ matrix.environment.prefix }}-zlib
+            ${{ matrix.environment.prefix }}-libpng
+            ${{ matrix.environment.prefix }}-libvncserver
+            ${{ matrix.environment.prefix }}-openal
+            ${{ matrix.environment.prefix }}-rtmidi
+      - uses: actions/checkout@v2
+      - name: Configure CMake
+        run: >-
+          cmake -G Ninja -S . -B build --preset ${{ matrix.build.preset }}
+          --toolchain ${{ matrix.environment.toolchain }}
+          -D NEW_DYNAREC=${{ matrix.dynarec.new }}
+          -D CMAKE_INSTALL_PREFIX=./build/artifacts
+          -D QT=OFF
+      - name: Build
+        run: cmake --build build
+      - name: Generate package
+        run: cmake --install build
+      - uses: actions/upload-artifact@v2
+        with:
+          name: '86Box${{ matrix.dynarec.slug }}${{ matrix.build.slug }}-Windows-${{ matrix.environment.msystem }}-gha${{ github.run_number }}'
+          path: build/artifacts/**
 
   llvm-windows:
     name: "Windows vcpkg/LLVM (${{ matrix.ui.name }}, ${{ matrix.build.name }}, ${{ matrix.dynarec.name }}, ${{ matrix.target.name }})"
@@ -115,156 +107,144 @@ jobs:
       fail-fast: true
       matrix:
         build:
-        - name: Debug
-          dev: off
-          slug: -Debug
-        - name: Dev
-          dev: on
-          slug: -Dev
+          - name: Debug
+            preset: debug
+            slug: -Debug
+          - name: Dev
+            preset: experimental
+            slug: -Dev
         dynarec:
-        - name: ODR
-          new: off
-          slug: -ODR
-        - name: NDR
-          new: on
-          slug: -NDR
-        ui:
-        - name: Win32 GUI
-          qt: off
-        - name: Qt GUI
-          qt: on
-          slug: -Qt
-        target:
-        - name: x86
-          triplet: x86-windows-static
-          toolchain: cmake/llvm-win32-i686.cmake
-          vcvars: x64_x86
-        - name: x64
-          triplet: x64-windows-static
-          toolchain: cmake/llvm-win32-x86_64.cmake
-          vcvars: x64
-        - name: ARM64
-          triplet: arm64-windows-static
-          toolchain: cmake/llvm-win32-aarch64.cmake
-          vcvars: x64_arm64
-        exclude:
-        - dynarec: 
+          - name: ODR
             new: off
-          target:
-            name: ARM64
+            slug: -ODR
+          - name: NDR
+            new: on
+            slug: -NDR
+        ui:
+          - name: Win32 GUI
+            qt: off
+          - name: Qt GUI
+            qt: on
+            slug: -Qt
+        target:
+          - name: x86
+            triplet: x86-windows-static
+            toolchain: cmake/llvm-win32-i686.cmake
+            vcvars: x64_x86
+          - name: x64
+            triplet: x64-windows-static
+            toolchain: cmake/llvm-win32-x86_64.cmake
+            vcvars: x64
+          - name: ARM64
+            triplet: arm64-windows-static
+            toolchain: cmake/llvm-win32-aarch64.cmake
+            vcvars: x64_arm64
+        exclude:
+          - dynarec: 
+              new: off
+            target:
+              name: ARM64
 
     steps:
-    - uses: actions/checkout@v2
-    - name: Prepare VS environment
-      uses: ilammy/msvc-dev-cmd@v1
-      with:
-        arch: ${{ matrix.target.vcvars }}
-    - name: Add LLVM to path
-      run: echo "C:/Program Files/LLVM/bin" >> $env:GITHUB_PATH
-    - name: Download Ninja
-      run: >
-        Invoke-WebRequest https://github.com/ninja-build/ninja/releases/download/v1.10.2/ninja-win.zip -OutFile ninja-win.zip && 
-        Expand-Archive ninja-win.zip -DestinationPath .
-    - name: Setup NuGet Credentials
-      run: >
-        & (C:/vcpkg/vcpkg fetch nuget | tail -n 2)
-        sources add
-        -source "https://nuget.pkg.github.com/86Box/index.json"
-        -storepasswordincleartext
-        -name "GitHub"
-        -username "86Box"
-        -password "${{ secrets.GITHUB_TOKEN }}"
-    - name: Fix MSVC atomic headers
-      run: dir "C:/Program Files/Microsoft Visual Studio/2022/*/VC/Tools/MSVC/*/include" -include stdatomic.h -recurse | del
-    - name: Configure CMake
-      run: >
-        cmake -G Ninja -S . -B build
-        -D DEV_BUILD=${{ matrix.build.dev}} -D NEW_DYNAREC=${{ matrix.dynarec.new }} -D QT=${{ matrix.ui.qt }}
-        -D CMAKE_BUILD_TYPE=Debug
-        -D CMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake
-        -D VCPKG_CHAINLOAD_TOOLCHAIN_FILE=${{ github.workspace }}/${{ matrix.target.toolchain }}
-        -D VCPKG_TARGET_TRIPLET=${{ matrix.target.triplet }}
-        -D VCPKG_HOST_TRIPLET=x64-windows
-        -D VCPKG_USE_HOST_TOOLS=ON
-    - name: Fix Qt
-      if: matrix.ui.qt == 'on'
-      run: |
-       $qtTargetsPath = "${{ github.workspace }}/build/vcpkg_installed/${{ matrix.target.triplet }}/share/Qt6/Qt6Targets.cmake"
-       (Get-Content $qtTargetsPath) -replace "^.*-Zc:__cplusplus;-permissive-.*$","#$&" | Set-Content $qtTargetsPath
-    - name: Reconfigure CMake
-      if: matrix.ui.qt == 'on'
-      run: cmake clean build
-    - name: Build
-      run: cmake --build build
-    - name: Generate package
-      run: cmake --install build --prefix ./build/artifacts
-    - uses: actions/upload-artifact@v2
-      with:
-        name: '86Box${{ matrix.ui.slug }}${{ matrix.dynarec.slug }}${{ matrix.build.slug }}-Windows-LLVM-${{ matrix.target.name }}-gha${{ github.run_number }}'
-        path: build/artifacts/**
+      - uses: actions/checkout@v2
+      - name: Prepare VS environment
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: ${{ matrix.target.vcvars }}
+      - name: Add LLVM to path
+        run: echo "C:/Program Files/LLVM/bin" >> $env:GITHUB_PATH
+      - name: Download Ninja
+        run: >
+          Invoke-WebRequest https://github.com/ninja-build/ninja/releases/download/v1.10.2/ninja-win.zip -OutFile ninja-win.zip && 
+          Expand-Archive ninja-win.zip -DestinationPath .
+      - name: Setup NuGet Credentials
+        run: >
+          & (C:/vcpkg/vcpkg fetch nuget | tail -n 2)
+          sources add
+          -source "https://nuget.pkg.github.com/86Box/index.json"
+          -storepasswordincleartext
+          -name "GitHub"
+          -username "86Box"
+          -password "${{ secrets.GITHUB_TOKEN }}"
+      - name: Fix MSVC atomic headers
+        run: dir "C:/Program Files/Microsoft Visual Studio/2022/*/VC/Tools/MSVC/*/include" -include stdatomic.h -recurse | del
+      - name: Configure CMake
+        run: >
+          cmake -G Ninja -S . -B build --preset ${{ matrix.build.preset }}
+          --toolchain C:/vcpkg/scripts/buildsystems/vcpkg.cmake
+          -D NEW_DYNAREC=${{ matrix.dynarec.new }} -D QT=${{ matrix.ui.qt }}
+          -D VCPKG_CHAINLOAD_TOOLCHAIN_FILE=${{ github.workspace }}/${{ matrix.target.toolchain }}
+          -D VCPKG_TARGET_TRIPLET=${{ matrix.target.triplet }}
+          -D VCPKG_HOST_TRIPLET=x64-windows
+          -D VCPKG_USE_HOST_TOOLS=ON
+      - name: Fix Qt
+        if: matrix.ui.qt == 'on'
+        run: |
+         $qtTargetsPath = "${{ github.workspace }}/build/vcpkg_installed/${{ matrix.target.triplet }}/share/Qt6/Qt6Targets.cmake"
+         (Get-Content $qtTargetsPath) -replace "^.*-Zc:__cplusplus;-permissive-.*$","#$&" | Set-Content $qtTargetsPath
+      - name: Reconfigure CMake
+        if: matrix.ui.qt == 'on'
+        run: cmake clean build
+      - name: Build
+        run: cmake --build build
+      - name: Generate package
+        run: cmake --install build --prefix ./build/artifacts
+      - uses: actions/upload-artifact@v2
+        with:
+          name: '86Box${{ matrix.ui.slug }}${{ matrix.dynarec.slug }}${{ matrix.build.slug }}-Windows-LLVM-${{ matrix.target.name }}-gha${{ github.run_number }}'
+          path: build/artifacts/**
 
   linux:
-    name: "Linux GCC 11 (${{ matrix.build.name }} x86_64)"
+    name: "Linux GCC 11 (${{ matrix.build.name }} ${{ matrix.dynarec.name }} x86_64)"
 
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
 
     strategy:
       fail-fast: true
       matrix:
         build:
-#        - name: Regular ODR
-#          slug: -ODR
-#          type: Release
-#          dev-build: off
-#          new-dynarec: off
-#          strip: --strip
-        - name: Debug ODR
-          slug: -ODR-Debug
-          type: Debug
-          dev-build: off
-          new-dynarec: off
-        - name: Dev ODR
-          slug: -ODR-Dev
-          type: Debug
-          dev-build: on
-          new-dynarec: off
-#        - name: Regular NDR
-#          slug: -NDR
-#          type: Release
-#          strip: --strip
-#          dev-build: off
-#          new-dynarec: on
-        - name: Debug NDR
-          slug: -NDR-Debug
-          type: Debug
-          dev-build: off
-          new-dynarec: on
-        - name: Dev NDR
-          slug: -NDR-Dev
-          type: Debug
-          dev-build: on
-          new-dynarec: on
+          - name: Debug
+            preset: debug
+            slug: -Debug
+          - name: Dev
+            preset: experimental
+            slug: -Dev
+        dynarec:
+          - name: ODR
+            new: off
+            slug: -ODR
+          - name: NDR
+            new: on
+            slug: -NDR
 
     steps:
       - uses: actions/checkout@v2
       - name: Install dependencies
-        run: sudo apt update && sudo apt install gcc-11 g++-11 libfreetype-dev libsdl2-dev libpng-dev libc6-dev librtmidi-dev qtbase5-dev qttools5-dev libfaudio-dev
+        run: >-
+          sudo apt update && sudo apt install
+          build-essential
+          ninja-build
+          libfreetype-dev
+          libsdl2-dev
+          libpng-dev
+          libc6-dev
+          librtmidi-dev
+          qtbase5-dev
+          qttools5-dev
+          libopenal-dev
       - name: Configure CMake
         run: >-
-          cmake -S . -B build
-          -D CMAKE_INSTALL_PREFIX=./build/artifacts
-          -D DEV_BRANCH=${{ matrix.build.dev-build }}
-          -D NEW_DYNAREC=${{ matrix.build.new-dynarec }}
-          -D CMAKE_BUILD_TYPE=${{ matrix.build.type }}
-          -D CMAKE_C_COMPILER=gcc-11 -D CMAKE_CXX_COMPILER=g++-11
+          cmake -G Ninja -S . -B build --preset ${{ matrix.build.preset }}
+          --toolchain ./cmake/flags-gcc-x86_64.cmake
+          -D NEW_DYNAREC=${{ matrix.dynarec.new }}
       - name: Build
         run: cmake --build build
-      - name: Generate package
-        run: cmake --install build --prefix ./build/artifacts ${{ matrix.build.strip }}
-      - uses: actions/upload-artifact@v2
-        with:
-          name: '86Box${{ matrix.build.slug }}-UbuntuFocal-x86_64-gha${{ github.run_number }}'
-          path: build/artifacts/**
+#     - name: Generate package
+#       run: cmake --install build --prefix ./build/artifacts
+#     - uses: actions/upload-artifact@v2
+#       with:
+#         name: '86Box${{ matrix.build.slug }}-UbuntuJammy-x86_64-gha${{ github.run_number }}'
+#         path: build/artifacts/**
 
   macos11:
     name: "macOS 11 (${{ matrix.build.name }} x86_64)"
@@ -275,56 +255,36 @@ jobs:
       fail-fast: true
       matrix:
         build:
-#        - name: Regular ODR
-#          slug: -ODR
-#          type: Release
-#          dev-build: off
-#          new-dynarec: off
-#          strip: --strip
-        - name: Debug ODR
-          slug: -ODR-Debug
-          type: Debug
-          dev-build: off
-          new-dynarec: off
-        - name: Dev ODR
-          slug: -ODR-Dev
-          type: Debug
-          dev-build: on
-          new-dynarec: off
-#        - name: Regular NDR
-#          slug: -NDR
-#          type: Release
-#          strip: --strip
-#          dev-build: off
-#          new-dynarec: on
-        - name: Debug NDR
-          slug: -NDR-Debug
-          type: Debug
-          dev-build: off
-          new-dynarec: on
-        - name: Dev NDR
-          slug: -NDR-Dev
-          type: Debug
-          dev-build: on
-          new-dynarec: on
+          - name: Debug
+            preset: debug
+            slug: -Debug
+          - name: Dev
+            preset: experimental
+            slug: -Dev
+        dynarec:
+          - name: ODR
+            new: off
+            slug: -ODR
+          - name: NDR
+            new: on
+            slug: -NDR
 
     steps:
       - uses: actions/checkout@v2
       - name: Install dependencies
-        run: brew install freetype sdl2 libpng rtmidi qt@5 faudio
+        run: brew install freetype sdl2 libpng rtmidi qt@5 openal-soft ninja
       - name: Configure CMake
         run: >-
-          PATH=/usr/local/opt/qt@5/bin:$PATH
-          cmake -S . -B build
+          cmake -G Ninja -S . -B build --preset ${{ matrix.build.preset }}
           --toolchain cmake/flags-gcc-x86_64.cmake
-          -D DEV_BRANCH=${{ matrix.build.dev-build }}
           -D NEW_DYNAREC=${{ matrix.build.new-dynarec }}
-          -D CMAKE_BUILD_TYPE=${{ matrix.build.type }}
-          -D CMAKE_FIND_ROOT_PATH=/usr/local/opt/qt@5
+          -D Qt5_ROOT=$(brew --prefix qt@5)
+          -D Qt5LinguistTools_ROOT=$(brew --prefix qt@5)
+          -D OpenAL_ROOT=$(brew --prefix openal-soft)
       - name: Build
         run: cmake --build build
       - name: Generate package
-        run: cmake --install build --prefix ./build/artifacts ${{ matrix.build.strip }}
+        run: cmake --install build --prefix ./build/artifacts
       - uses: actions/upload-artifact@v2
         with:
           name: '86Box${{ matrix.build.slug }}-macOS-x86_64-gha${{ github.run_number }}'
