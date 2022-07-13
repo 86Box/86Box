@@ -1437,12 +1437,7 @@ void MainWindow::on_actionFullscreen_triggered() {
         if (!hide_tool_bar) ui->toolBar->show();
         video_fullscreen = 0;
         if (vid_resize != 1) {
-            if (vid_resize == 2) setFixedSize(fixed_size_x, fixed_size_y
-                + menuBar()->height()
-                + (!hide_status_bar ? statusBar()->height() : 0)
-                + (!hide_tool_bar ? ui->toolBar->height() : 0));
-
-            emit resizeContents(monitors[0].mon_scrnsz_x, monitors[0].mon_scrnsz_y);
+            emit resizeContents(vid_resize == 2 ? fixed_size_x : monitors[0].mon_scrnsz_x, vid_resize == 2 ? fixed_size_y : monitors[0].mon_scrnsz_y);
         }
     } else {
         if (video_fullscreen_first)
