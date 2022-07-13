@@ -96,6 +96,7 @@
 #include <86box/thread.h>
 #include <86box/version.h>
 #include <86box/gdbstub.h>
+#include <86box/machine_status.h>
 
 // Disable c99-designator to avoid the warnings about int ng
 #ifdef __clang__
@@ -890,6 +891,8 @@ pc_init_modules(void)
 	hdc_init();
 
 	video_reset_close();
+
+	machine_status_init();
 
 	return(1);
 }

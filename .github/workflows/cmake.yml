@@ -76,6 +76,7 @@ jobs:
             ${{ matrix.environment.prefix }}-zlib
             ${{ matrix.environment.prefix }}-libpng
             ${{ matrix.environment.prefix }}-libvncserver
+            ${{ matrix.environment.prefix }}-openal
             ${{ matrix.environment.prefix }}-rtmidi
       - uses: actions/checkout@v2
       - name: Configure CMake
@@ -230,7 +231,7 @@ jobs:
           librtmidi-dev
           qtbase5-dev
           qttools5-dev
-          libfaudio-dev
+          libopenal-dev
       - name: Configure CMake
         run: >-
           cmake -G Ninja -S . -B build --preset ${{ matrix.build.preset }}
@@ -271,7 +272,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Install dependencies
-        run: brew install freetype sdl2 libpng rtmidi qt@5 faudio ninja
+        run: brew install freetype sdl2 libpng rtmidi qt@5 openal-soft ninja
       - name: Configure CMake
         run: >-
           PATH=/usr/local/opt/qt@5/bin:$PATH

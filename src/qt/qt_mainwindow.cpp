@@ -268,8 +268,6 @@ MainWindow::MainWindow(QWidget *parent) :
     });
     connect(this, &MainWindow::updateStatusBarPanes, this, &MainWindow::refreshMediaMenu);
     connect(this, &MainWindow::updateStatusBarTip, status.get(), &MachineStatus::updateTip);
-    connect(this, &MainWindow::updateStatusBarActivity, status.get(), &MachineStatus::setActivity);
-    connect(this, &MainWindow::updateStatusBarEmpty, status.get(), &MachineStatus::setEmpty);
     connect(this, &MainWindow::statusBarMessage, status.get(), &MachineStatus::message, Qt::QueuedConnection);
 
     ui->actionKeyboard_requires_capture->setChecked(kbd_req_capture);

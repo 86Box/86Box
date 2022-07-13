@@ -1642,9 +1642,6 @@ ide_writeb(uint16_t addr, uint8_t val, void *priv)
 				   disabled, the Read Multiple operation is rejected with an Aborted Com-
 				   mand error. */
 				ide->blockcount = 0;
-				/* Turn on the activity indicator *here* so that it gets turned on
-				   less times. */
-				ui_sb_update_icon(SB_HDD | hdd[ide->hdd_num].bus, 1);
 				/*FALLTHROUGH*/
 
 			case WIN_READ:
@@ -1658,6 +1655,7 @@ ide_writeb(uint16_t addr, uint8_t val, void *priv)
 					ide->atastat = BSY_STAT;
 
 				if (ide->type == IDE_HDD) {
+					ui_sb_update_icon(SB_HDD | hdd[ide->hdd_num].bus, 1);
 					uint32_t sec_count;
 					double wait_time;
 					if ((val == WIN_READ_DMA) || (val == WIN_READ_DMA_ALT)) {
@@ -1908,7 +1906,7 @@ ide_read_data(ide_t *ide, int length)
 				double xfer_time = ide_get_xfer_time(ide, 512);
 				ide_set_callback(ide, seek_time + xfer_time);
 			}
-		} else if (ide->command != WIN_READ_MULTIPLE)
+		} else
 			ui_sb_update_icon(SB_HDD | hdd[ide->hdd_num].bus, 0);
 	}
     }
