@@ -20,10 +20,16 @@
 #include <string.h>
 
 #ifdef UPI42_STANDALONE
-#    define fatal(...)          \
-        upi42_log(__VA_ARGS__); \
-        abort();
-#    define upi42_log printf
+#    define fatal(...)              \
+        {                           \
+            upi42_log(__VA_ARGS__); \
+            abort();                \
+        }
+#    define upi42_log(...)       \
+        {                        \
+            printf(__VA_ARGS__); \
+            fflush(stdout);      \
+        }
 #endif
 
 #define UPI42_REG(upi42, r, op) ((upi42->psw & 0x10) ? (upi42->ram[24 + ((r) &7)] op) : (upi42->ram[(r) &7] op))
@@ -1053,10 +1059,11 @@ main(int argc, char **argv)
         if (type & UPI42_TYPE_UPI) {
             upi42_log("  STS=%02X", upi42->sts);
             for (val = 0; val < 8; val++) {
-                if (upi42->sts & (1 << val))
+                if (upi42->sts & (1 << val)) {
                     upi42_log(" [%s]", flags_8042[val]);
-                else
+                } else {
                     upi42_log("  %s ", flags_8042[val]);
+                }
             }
         }
         upi42_log("\n");
