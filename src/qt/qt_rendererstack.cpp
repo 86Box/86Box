@@ -447,7 +447,11 @@ RendererStack::blitCommon(int x, int y, int w, int h)
 
 void RendererStack::closeEvent(QCloseEvent* event)
 {
-    if (cpu_thread_run == 0 || is_quit == 1) { event->accept(); return; }
+    if (cpu_thread_run == 0 || is_quit == 0) {
+        event->accept();
+        show_second_monitors = 0; // TODO: This isn't actually the right fix, so fix this properly.
+        return;
+    }
     event->ignore();
     main_window->close();
 }
