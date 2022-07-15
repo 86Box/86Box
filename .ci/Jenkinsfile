@@ -194,7 +194,7 @@ pipeline {
 					/* Adding to the above, run a git clone as soon as possible on any node
 					   to further avoid race conditions caused by busy node executor delays. */
 					retry(10) {
-						node('citadel && !Windows') {
+						node('!Windows') {
 							/* Run git clone. */
 							gitClone(repository[buildBranch], branch[buildBranch])
 
