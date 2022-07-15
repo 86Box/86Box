@@ -88,24 +88,24 @@ static uint32_t (*address_remap_funcs[16])(ega_t *ega, uint32_t in_addr) =
 
 void ega_recalc_remap_func(ega_t *ega)
 {
-        int func_nr;
+    int func_nr;
 
-        if (ega->crtc[0x14] & 0x40)
-                func_nr = VAR_DWORD_MODE;
-        else if (ega->crtc[0x17] & 0x40)
-                func_nr = VAR_BYTE_MODE;
-        else if (ega->crtc[0x17] & 0x20)
-                func_nr = VAR_WORD_MODE_MA15;
-        else
-                func_nr = VAR_WORD_MODE_MA13;
+    if (ega->crtc[0x14] & 0x40)
+        func_nr = VAR_DWORD_MODE;
+    else if (ega->crtc[0x17] & 0x40)
+        func_nr = VAR_BYTE_MODE;
+    else if (ega->crtc[0x17] & 0x20)
+        func_nr = VAR_WORD_MODE_MA15;
+    else
+        func_nr = VAR_WORD_MODE_MA13;
 
-        if (!(ega->crtc[0x17] & 0x01))
-                func_nr |= VAR_ROW0_MA13;
-        if (!(ega->crtc[0x17] & 0x02))
-                func_nr |= VAR_ROW1_MA14;
+    if (!(ega->crtc[0x17] & 0x01))
+        func_nr |= VAR_ROW0_MA13;
+    if (!(ega->crtc[0x17] & 0x02))
+        func_nr |= VAR_ROW1_MA14;
 
-		ega->remap_required = (func_nr != 0);
-        ega->remap_func = address_remap_funcs[func_nr];
+    ega->remap_required = (func_nr != 0);
+    ega->remap_func = address_remap_funcs[func_nr];
 }
 
 #endif /*VIDEO_RENDER_REMAP_H*/
