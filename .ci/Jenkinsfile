@@ -130,7 +130,7 @@ def gitClone(repository, branch) {
 
 def removeDir(dir) {
 	if (isUnix())
-		return sh(returnStatus: true, script: "rm -rf \"$dir\"")
+		return sh(returnStatus: true, script: "rm -rf '$dir'")
 	else
 		return bat(returnStatus: true, script: "rd /s /q \"$dir\"")
 }
