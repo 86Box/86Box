@@ -37,22 +37,6 @@
 #include <86box/vid_svga_render.h>
 #include "cpu.h"
 
-#define INT_VSY (1 << 0)
-#define INT_GE_BSY (1 << 1)
-#define INT_FIFO_OVR (1 << 2)
-#define INT_FIFO_EMP (1 << 3)
-#define INT_MASK 0xf
-
-#define FIFO_MASK (FIFO_SIZE - 1)
-#define FIFO_ENTRY_SIZE (1 << 31)
-
-#define FIFO_ENTRIES_8514 (dev->fifo_write_idx - dev->fifo_read_idx)
-#define FIFO_FULL_8514 ((dev->fifo_write_idx - dev->fifo_read_idx) >= FIFO_SIZE)
-#define FIFO_EMPTY_8514 (dev->fifo_read_idx == dev->fifo_write_idx)
-
-#define FIFO_TYPE_8514 0xff000000
-#define FIFO_ADDR_8514 0x00ffffff
-
 static void ibm8514_accel_out_fifo(ibm8514_t *dev, uint16_t port, uint32_t val, int len);
 static void ibm8514_accel_outb(uint16_t port, uint8_t val, void *p);
 static void ibm8514_accel_outw(uint16_t port, uint16_t val, void *p);
@@ -368,17 +352,14 @@ ibm8514_accel_out_fifo(ibm8514_t *dev, uint16_t port, uint32_t val, int len)
         case 0x82e8:
         case 0xc2e8:
             if (len == 1) {
-                dev->accel.cur_y_bit12 = (dev->accel.cur_y_bit12 & 0xf00) | val;
                 dev->accel.cur_y = (dev->accel.cur_y & 0x700) | val;
             } else {
-                dev->accel.cur_y_bit12 = val & 0xfff;
                 dev->accel.cur_y = val & 0x7ff;
             }
             break;
         case 0x82e9:
         case 0xc2e9:
             if (len == 1) {
-                dev->accel.cur_y_bit12 = (dev->accel.cur_y_bit12 & 0xff) | ((val & 0x0f) << 8);
                 dev->accel.cur_y = (dev->accel.cur_y & 0xff) | ((val & 0x07) << 8);
             }
             break;
@@ -386,17 +367,14 @@ ibm8514_accel_out_fifo(ibm8514_t *dev, uint16_t port, uint32_t val, int len)
         case 0x86e8:
         case 0xc6e8:
             if (len == 1) {
-                dev->accel.cur_x_bit12 = (dev->accel.cur_x_bit12 & 0xf00) | val;
                 dev->accel.cur_x = (dev->accel.cur_x & 0x700) | val;
             } else {
-                dev->accel.cur_x_bit12 = val & 0xfff;
                 dev->accel.cur_x = val & 0x7ff;
             }
             break;
         case 0x86e9:
         case 0xc6e9:
             if (len == 1) {
-                dev->accel.cur_x_bit12 = (dev->accel.cur_x_bit12 & 0xff) | ((val & 0x0f) << 8);
                 dev->accel.cur_x = (dev->accel.cur_x & 0xff) | ((val & 0x07) << 8);
             }
             break;
@@ -448,7 +426,7 @@ ibm8514_accel_out_fifo(ibm8514_t *dev, uint16_t port, uint32_t val, int len)
             else {
                 dev->accel.err_term = val & 0x3fff;
                 if (val & 0x2000)
-                    dev->accel.err_term |= ~0x3fff;
+                    dev->accel.err_term |= ~0x1fff;
             }
             break;
         case 0x92e9:
@@ -456,7 +434,7 @@ ibm8514_accel_out_fifo(ibm8514_t *dev, uint16_t port, uint32_t val, int len)
             if (len == 1) {
                 dev->accel.err_term = (dev->accel.err_term & 0xff) | ((val & 0x3f) << 8);
                 if (val & 0x20)
-                    dev->accel.err_term |= ~0x3fff;
+                    dev->accel.err_term |= ~0x1fff;
             }
             break;
 
@@ -684,7 +662,6 @@ static void
 ibm8514_ramdac_out(uint16_t port, uint8_t val, void *p)
 {
     svga_t *svga = (svga_t *)p;
-    uint8_t index;
 
     switch (port) {
         case 0x2ea:
@@ -707,7 +684,6 @@ ibm8514_ramdac_in(uint16_t port, void *p)
 {
     svga_t *svga = (svga_t *)p;
     uint8_t ret = 0xff;
-    uint8_t index;
 
     switch (port) {
         case 0x2ea:
@@ -725,62 +701,6 @@ ibm8514_ramdac_in(uint16_t port, void *p)
 
     }
     return ret;
-}
-
-static void
-ibm8514_io_remove(svga_t *svga)
-{
-    io_removehandler(0x2e8, 0x0002, ibm8514_accel_inb, ibm8514_accel_inw, NULL, ibm8514_accel_outb, ibm8514_accel_outw, NULL, svga);
-    io_removehandler(0x2ea, 0x0004, ibm8514_ramdac_in, NULL, NULL, ibm8514_ramdac_out, NULL, NULL, svga);
-    io_removehandler(0x6e8, 0x0002, ibm8514_accel_inb, ibm8514_accel_inw, NULL, ibm8514_accel_outb, ibm8514_accel_outw, NULL, svga);
-    io_removehandler(0xae8, 0x0002, ibm8514_accel_inb, ibm8514_accel_inw, NULL, ibm8514_accel_outb, ibm8514_accel_outw, NULL, svga);
-    io_removehandler(0xee8, 0x0002, ibm8514_accel_inb, ibm8514_accel_inw, NULL, ibm8514_accel_outb, ibm8514_accel_outw, NULL, svga);
-    io_removehandler(0x12e8, 0x0002, ibm8514_accel_inb, ibm8514_accel_inw, NULL, ibm8514_accel_outb, ibm8514_accel_outw, NULL, svga);
-    io_removehandler(0x16e8, 0x0002, ibm8514_accel_inb, ibm8514_accel_inw, NULL, ibm8514_accel_outb, ibm8514_accel_outw, NULL, svga);
-    io_removehandler(0x1ae8, 0x0002, ibm8514_accel_inb, ibm8514_accel_inw, NULL, ibm8514_accel_outb, ibm8514_accel_outw, NULL, svga);
-    io_removehandler(0x1ee8, 0x0002, ibm8514_accel_inb, ibm8514_accel_inw, NULL, ibm8514_accel_outb, ibm8514_accel_outw, NULL, svga);
-    io_removehandler(0x22e8, 0x0002, ibm8514_accel_inb, ibm8514_accel_inw, NULL, ibm8514_accel_outb, ibm8514_accel_outw, NULL, svga);
-    io_removehandler(0x26e8, 0x0002, ibm8514_accel_inb, ibm8514_accel_inw, NULL, ibm8514_accel_outb, ibm8514_accel_outw, NULL, svga);
-    io_removehandler(0x2ee8, 0x0002, ibm8514_accel_inb, ibm8514_accel_inw, NULL, ibm8514_accel_outb, ibm8514_accel_outw, NULL, svga);
-    io_removehandler(0x42e8, 0x0002, ibm8514_accel_inb, ibm8514_accel_inw, NULL, ibm8514_accel_outb, ibm8514_accel_outw, NULL, svga);
-    io_removehandler(0x4ae8, 0x0002, ibm8514_accel_inb, ibm8514_accel_inw, NULL, ibm8514_accel_outb, ibm8514_accel_outw, NULL, svga);
-    io_removehandler(0x52e8, 0x0002, ibm8514_accel_inb, ibm8514_accel_inw, NULL, ibm8514_accel_outb, ibm8514_accel_outw, NULL, svga);
-    io_removehandler(0x56e8, 0x0002, ibm8514_accel_inb, ibm8514_accel_inw, NULL, ibm8514_accel_outb, ibm8514_accel_outw, NULL, svga);
-    io_removehandler(0x5ae8, 0x0002, ibm8514_accel_inb, ibm8514_accel_inw, NULL, ibm8514_accel_outb, ibm8514_accel_outw, NULL, svga);
-    io_removehandler(0x5ee8, 0x0002, ibm8514_accel_inb, ibm8514_accel_inw, NULL, ibm8514_accel_outb, ibm8514_accel_outw, NULL, svga);
-    io_removehandler(0x82e8, 0x0002, ibm8514_accel_inb, ibm8514_accel_inw, NULL, ibm8514_accel_outb, ibm8514_accel_outw, NULL, svga);
-    io_removehandler(0x86e8, 0x0002, ibm8514_accel_inb, ibm8514_accel_inw, NULL, ibm8514_accel_outb, ibm8514_accel_outw, NULL, svga);
-    io_removehandler(0x8ae8, 0x0002, ibm8514_accel_inb, ibm8514_accel_inw, NULL, ibm8514_accel_outb, ibm8514_accel_outw, NULL, svga);
-    io_removehandler(0x8ee8, 0x0002, ibm8514_accel_inb, ibm8514_accel_inw, NULL, ibm8514_accel_outb, ibm8514_accel_outw, NULL, svga);
-    io_removehandler(0x92e8, 0x0002, ibm8514_accel_inb, ibm8514_accel_inw, NULL, ibm8514_accel_outb, ibm8514_accel_outw, NULL, svga);
-    io_removehandler(0x96e8, 0x0002, ibm8514_accel_inb, ibm8514_accel_inw, NULL, ibm8514_accel_outb, ibm8514_accel_outw, NULL, svga);
-    io_removehandler(0x9ae8, 0x0002, ibm8514_accel_inb, ibm8514_accel_inw, NULL, ibm8514_accel_outb, ibm8514_accel_outw, NULL, svga);
-    io_removehandler(0x9ee8, 0x0002, ibm8514_accel_inb, ibm8514_accel_inw, NULL, ibm8514_accel_outb, ibm8514_accel_outw, NULL, svga);
-    io_removehandler(0xa2e8, 0x0002, ibm8514_accel_inb, ibm8514_accel_inw, NULL, ibm8514_accel_outb, ibm8514_accel_outw, NULL, svga);
-    io_removehandler(0xa6e8, 0x0002, ibm8514_accel_inb, ibm8514_accel_inw, NULL, ibm8514_accel_outb, ibm8514_accel_outw, NULL, svga);
-    io_removehandler(0xaae8, 0x0002, ibm8514_accel_inb, ibm8514_accel_inw, NULL, ibm8514_accel_outb, ibm8514_accel_outw, NULL, svga);
-    io_removehandler(0xaee8, 0x0002, ibm8514_accel_inb, ibm8514_accel_inw, NULL, ibm8514_accel_outb, ibm8514_accel_outw, NULL, svga);
-    io_removehandler(0xb2e8, 0x0002, ibm8514_accel_inb, ibm8514_accel_inw, NULL, ibm8514_accel_outb, ibm8514_accel_outw, NULL, svga);
-    io_removehandler(0xb6e8, 0x0002, ibm8514_accel_inb, ibm8514_accel_inw, NULL, ibm8514_accel_outb, ibm8514_accel_outw, NULL, svga);
-    io_removehandler(0xbae8, 0x0002, ibm8514_accel_inb, ibm8514_accel_inw, NULL, ibm8514_accel_outb, ibm8514_accel_outw, NULL, svga);
-    io_removehandler(0xbee8, 0x0002, ibm8514_accel_inb, ibm8514_accel_inw, NULL, ibm8514_accel_outb, ibm8514_accel_outw, NULL, svga);
-    io_removehandler(0xe2e8, 0x0002, ibm8514_accel_inb, ibm8514_accel_inw, NULL, ibm8514_accel_outb, ibm8514_accel_outw, NULL, svga);
-
-    io_removehandler(0xc2e8, 0x0002, ibm8514_accel_inb, ibm8514_accel_inw, NULL, ibm8514_accel_outb, ibm8514_accel_outw, NULL, svga);
-    io_removehandler(0xc6e8, 0x0002, ibm8514_accel_inb, ibm8514_accel_inw, NULL, ibm8514_accel_outb, ibm8514_accel_outw, NULL, svga);
-    io_removehandler(0xcae8, 0x0002, ibm8514_accel_inb, ibm8514_accel_inw, NULL, ibm8514_accel_outb, ibm8514_accel_outw, NULL, svga);
-    io_removehandler(0xcee8, 0x0002, ibm8514_accel_inb, ibm8514_accel_inw, NULL, ibm8514_accel_outb, ibm8514_accel_outw, NULL, svga);
-    io_removehandler(0xd2e8, 0x0002, ibm8514_accel_inb, ibm8514_accel_inw, NULL, ibm8514_accel_outb, ibm8514_accel_outw, NULL, svga);
-    io_removehandler(0xd6e8, 0x0002, ibm8514_accel_inb, ibm8514_accel_inw, NULL, ibm8514_accel_outb, ibm8514_accel_outw, NULL, svga);
-    io_removehandler(0xdae8, 0x0002, ibm8514_accel_inb, ibm8514_accel_inw, NULL, ibm8514_accel_outb, ibm8514_accel_outw, NULL, svga);
-    io_removehandler(0xdee8, 0x0002, ibm8514_accel_inb, ibm8514_accel_inw, NULL, ibm8514_accel_outb, ibm8514_accel_outw, NULL, svga);
-    io_removehandler(0xe6e8, 0x0002, ibm8514_accel_inb, ibm8514_accel_inw, NULL, ibm8514_accel_outb, ibm8514_accel_outw, NULL, svga);
-    io_removehandler(0xeae8, 0x0002, ibm8514_accel_inb, ibm8514_accel_inw, NULL, ibm8514_accel_outb, ibm8514_accel_outw, NULL, svga);
-    io_removehandler(0xeee8, 0x0002, ibm8514_accel_inb, ibm8514_accel_inw, NULL, ibm8514_accel_outb, ibm8514_accel_outw, NULL, svga);
-    io_removehandler(0xf2e8, 0x0002, ibm8514_accel_inb, ibm8514_accel_inw, NULL, ibm8514_accel_outb, ibm8514_accel_outw, NULL, svga);
-    io_removehandler(0xf6e8, 0x0002, ibm8514_accel_inb, ibm8514_accel_inw, NULL, ibm8514_accel_outb, ibm8514_accel_outw, NULL, svga);
-    io_removehandler(0xfae8, 0x0002, ibm8514_accel_inb, ibm8514_accel_inw, NULL, ibm8514_accel_outb, ibm8514_accel_outw, NULL, svga);
-    io_removehandler(0xfee8, 0x0002, ibm8514_accel_inb, ibm8514_accel_inw, NULL, ibm8514_accel_outb, ibm8514_accel_outw, NULL, svga);
 }
 
 static void
@@ -1117,8 +1037,6 @@ ibm8514_short_stroke_start(int count, int cpu_input, uint32_t mix_dat, uint32_t 
     ibm8514_accel_start(count, cpu_input, mix_dat, cpu_dat, dev, len);
 }
 
-#define SWAP(a,b) { tmpswap = a; a = b; b = tmpswap; }
-
 static void
 ibm8514_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat, ibm8514_t *dev, int len)
 {
@@ -1139,7 +1057,6 @@ ibm8514_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat
 	uint32_t old_mix_dat;
 	int and3 = dev->accel.cur_x & 3;
 	uint8_t poly_src = 0;
-	int16_t tmpswap;
 
 	if (dev->accel.cmd & 0x100) {
 		dev->force_busy = 1;
@@ -2717,7 +2634,7 @@ bitblt_pix:
                                     break;
                             }
 
-                            READ(dev->accel.dest + dev->accel.cx, dest_dat);
+                            READ(dev->accel.dest + dev->accel.dx, dest_dat);
 
                             if ((compare_mode == 0) ||
                                 ((compare_mode == 0x10) && (dest_dat >= compare)) ||
@@ -2729,7 +2646,7 @@ bitblt_pix:
                                 old_dest_dat = dest_dat;
                                 MIX(mix_dat & mix_mask, dest_dat, src_dat);
                                 dest_dat = (dest_dat & wrt_mask) | (old_dest_dat & ~wrt_mask);
-                                WRITE(dev->accel.dest + dev->accel.cx, dest_dat);
+                                WRITE(dev->accel.dest + dev->accel.dx, dest_dat);
                             }
                         }
 

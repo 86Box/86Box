@@ -445,7 +445,6 @@ xga_ext_inb(uint16_t addr, void *p)
     svga_t *svga = (svga_t *)p;
     xga_t *xga = &svga->xga;
     uint8_t ret, index;
-    uint16_t sprite_idx;
 
     switch (addr & 0x0f) {
         case 0:
@@ -898,7 +897,7 @@ xga_short_stroke(svga_t *svga, uint8_t ssv)
     uint32_t srcbase = xga->accel.px_map_base[xga->accel.src_map];
     int y = ssv & 0x0f;
     int x = 0;
-    int dx, dy, dirx, diry;
+    int dx, dy, dirx = 0, diry = 0;
 
     dx = xga->accel.dst_map_x & 0x1fff;
     if (xga->accel.dst_map_x & 0x1800)
@@ -1916,7 +1915,7 @@ xga_memio_writel(uint32_t addr, uint32_t val, void *p)
 static uint8_t
 xga_mem_read(uint32_t addr, xga_t *xga, svga_t *svga)
 {
-    uint8_t temp;
+    uint8_t temp = 0xff;
 
     addr &= 0x1fff;
 
@@ -2031,18 +2030,15 @@ static void
 xga_hwcursor_draw(svga_t *svga, int displine)
 {
     xga_t *xga = &svga->xga;
-    uint8_t dat;
+    uint8_t dat = 0;
     int offset = xga->hwcursor_latch.x - xga->hwcursor_latch.xoff;
     int x, x_pos, y_pos;
-    int comb;
+    int comb = 0;
     uint32_t *p;
-    uint8_t *cd;
     int idx = (xga->cursor_data_on) ? 32 : 0;
 
     if (xga->interlace && xga->hwcursor_oddeven)
 	xga->hwcursor_latch.addr += 16;
-
-    cd = (uint8_t *) xga->sprite_data;
 
     y_pos = displine;
     x_pos = offset + svga->x_add;
@@ -2155,7 +2151,6 @@ xga_render_16bpp(xga_t *xga, svga_t *svga)
     int x;
     uint32_t *p;
 	uint32_t dat;
-	uint32_t addr;
 
     if ((xga->displine + svga->y_add) < 0)
 		return;
@@ -2169,7 +2164,7 @@ xga_render_16bpp(xga_t *xga, svga_t *svga)
 
         for (x = 0; x <= (xga->h_disp); x += 8) {
             dat = *(uint32_t *)(&xga->vram[(xga->ma + (x << 1)) & xga->vram_mask]);
-            p[x]     = video_16to32[dat & 0xffff];
+            p[x] = video_16to32[dat & 0xffff];
             p[x + 1] = video_16to32[dat >> 16];
 
             dat = *(uint32_t *)(&xga->vram[(xga->ma + (x << 1) + 4) & xga->vram_mask]);
@@ -2215,9 +2210,6 @@ xga_write(uint32_t addr, uint8_t val, void *p)
 static void
 xga_writeb(uint32_t addr, uint8_t val, void *p)
 {
-    svga_t *svga = (svga_t *)p;
-    xga_t *xga = &svga->xga;
-
     //pclog("[%04X:%08X]: WriteB\n", CS, cpu_state.pc);
     xga_write(addr, val, p);
 }
@@ -2225,9 +2217,6 @@ xga_writeb(uint32_t addr, uint8_t val, void *p)
 static void
 xga_writew(uint32_t addr, uint16_t val, void *p)
 {
-    svga_t *svga = (svga_t *)p;
-    xga_t *xga = &svga->xga;
-
     //pclog("[%04X:%08X]: WriteW\n", CS, cpu_state.pc);
     xga_write(addr, val, p);
     xga_write(addr + 1, val >> 8, p);
@@ -2236,9 +2225,6 @@ xga_writew(uint32_t addr, uint16_t val, void *p)
 static void
 xga_writel(uint32_t addr, uint32_t val, void *p)
 {
-    svga_t *svga = (svga_t *)p;
-    xga_t *xga = &svga->xga;
-
     //pclog("[%04X:%08X]: WriteL\n", CS, cpu_state.pc);
     xga_write(addr, val, p);
     xga_write(addr + 1, val >> 8, p);
@@ -2344,8 +2330,6 @@ xga_read(uint32_t addr, void *p)
 static uint8_t
 xga_readb(uint32_t addr, void *p)
 {
-    svga_t *svga = (svga_t *)p;
-    xga_t *xga = &svga->xga;
     uint8_t ret;
 
     ret = xga_read(addr, p);
@@ -2356,8 +2340,6 @@ xga_readb(uint32_t addr, void *p)
 static uint16_t
 xga_readw(uint32_t addr, void *p)
 {
-    svga_t *svga = (svga_t *)p;
-    xga_t *xga = &svga->xga;
     uint16_t ret;
 
     ret = xga_read(addr, p);
@@ -2369,8 +2351,6 @@ xga_readw(uint32_t addr, void *p)
 static uint32_t
 xga_readl(uint32_t addr, void *p)
 {
-    svga_t *svga = (svga_t *)p;
-    xga_t *xga = &svga->xga;
     uint32_t ret;
 
     ret = xga_read(addr, p);
@@ -2665,16 +2645,11 @@ xga_mca_feedb(void *priv)
 }
 
 static void
-xga_pos_out(uint16_t addr, uint8_t val, void *priv)
+xga_mca_reset(void *p)
 {
-    svga_t *svga = (svga_t *)priv;
-    xga_t *xga = &svga->xga;
+    svga_t *svga = (svga_t *)p;
 
-    mem_mapping_disable(&svga->mapping);
-    if (val & 0x08) {
-        mem_mapping_enable(&svga->mapping);
-        xga_updatemapping(svga);
-    }
+    xga_mca_write(0x102, 0, svga);
 }
 
 static uint8_t
@@ -2692,6 +2667,7 @@ static void
     xga_t *xga = &svga->xga;
     FILE *f;
     uint32_t temp;
+    uint32_t initial_bios_addr = device_get_config_hex20("init_bios_addr");
     uint8_t *rom = NULL;
 
     xga->type = device_get_config_int("type");
@@ -2704,7 +2680,7 @@ static void
     xga->on = 0;
     xga->hwcursor.cur_xsize = 64;
     xga->hwcursor.cur_ysize = 64;
-    xga->bios_rom.sz = 0x8000;
+    xga->bios_rom.sz = 0x2000;
 
     f = rom_fopen(xga->type ? XGA2_BIOS_PATH : XGA_BIOS_PATH, "rb");
     (void)fseek(f, 0L, SEEK_END);
@@ -2729,7 +2705,7 @@ static void
         xga->instance = 0;
         xga->rom_addr = 0;
         mem_mapping_add(&xga->bios_rom.mapping,
-                0xd8000, xga->bios_rom.sz,
+                initial_bios_addr, xga->bios_rom.sz,
                 rom_read, rom_readw, rom_readl,
                 NULL, NULL, NULL,
                 xga->bios_rom.rom, MEM_MAPPING_EXTERNAL, &xga->bios_rom);
@@ -2759,7 +2735,7 @@ static void
     xga->pos_regs[1] = 0x8f;
 
     if (xga->bus & DEVICE_MCA) {
-        mca_add(xga_mca_read, xga_mca_write, xga_mca_feedb, NULL, svga);
+        mca_add(xga_mca_read, xga_mca_write, xga_mca_feedb, xga_mca_reset, svga);
     } else {
         io_sethandler(0x0100, 0x0008, xga_pos_in, NULL, NULL, NULL, NULL, NULL, svga);
         io_sethandler(0x2100 + (xga->instance << 4), 0x0010, xga_ext_inb, NULL, NULL, xga_ext_outb, NULL, NULL, svga);
@@ -2805,6 +2781,25 @@ xga_force_redraw(void *p)
 
 static const device_config_t xga_configuration[] = {
     // clang-format off
+    {
+        .name = "init_bios_addr",
+        .description = "Initial MCA BIOS Address (before POS configuration)",
+        .type = CONFIG_HEX20,
+        .default_string = "",
+        .default_int = 0xc0000,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "C000H", .value = 0xc0000 },
+            { .description = "C800H", .value = 0xc8000 },
+            { .description = "CC00H", .value = 0xcc000 },
+            { .description = "D000H", .value = 0xd0000 },
+            { .description = "D400H", .value = 0xd4000 },
+            { .description = "D800H", .value = 0xd8000 },
+            { .description = "DC00H", .value = 0xdc000 },
+            { .description = ""                        }
+        },
+    },
     {
         .name = "type",
         .description = "XGA type",
