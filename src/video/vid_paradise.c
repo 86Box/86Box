@@ -718,7 +718,7 @@ void paradise_force_redraw(void *p)
 }
 
 const device_t paradise_pvga1a_pc2086_device = {
-    .name = "Paradise PVGA1A (Amstrad PC2086)",
+    .name = "Paradise PVGA1A for Amstrad PC2086",
     .internal_name = "pvga1a_pc2086",
     .flags = 0,
     .local = PVGA1A,
@@ -732,7 +732,7 @@ const device_t paradise_pvga1a_pc2086_device = {
 };
 
 const device_t paradise_pvga1a_pc3086_device = {
-    .name = "Paradise PVGA1A (Amstrad PC3086)",
+    .name = "Paradise PVGA1A for Amstrad PC3086",
     .internal_name = "pvga1a_pc3086",
     .flags = 0,
     .local = PVGA1A,
@@ -771,7 +771,7 @@ static const device_config_t paradise_pvga1a_config[] = {
 };
 
 const device_t paradise_pvga1a_ncr3302_device = {
-    .name = "Paradise PVGA1A (NCR 3302)",
+    .name = "Paradise PVGA1A for NCR 3302",
     .internal_name = "pvga1a_ncr3302",
     .flags = 0,
     .local = PVGA1A,
@@ -799,7 +799,7 @@ const device_t paradise_pvga1a_device = {
 };
 
 const device_t paradise_wd90c11_megapc_device = {
-    .name = "Paradise WD90C11 (Amstrad MegaPC)",
+    .name = "Paradise WD90C11 for Amstrad MegaPC",
     .internal_name = "wd90c11_megapc",
     .flags = 0,
     .local = WD90C11,

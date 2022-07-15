@@ -1721,7 +1721,7 @@ const device_t g2_gc205_device = {
 };
 
 const device_t v7_vga_1024i_device = {
-    .name = "Video 7 VGA 1024i (HT208)",
+    .name = "Headland HT208: Video 7 VGA 1024i (ISA)",
     .internal_name = "v7_vga_1024i",
     .flags = DEVICE_ISA,
     .local = 0x7140,
@@ -1735,7 +1735,7 @@ const device_t v7_vga_1024i_device = {
 };
 
 const device_t ht216_32_pb410a_device = {
-    .name = "Headland HT216-32 (Packard Bell PB410A)",
+    .name = "Headland HT216-32: On-Board for Packard Bell PB410A",
     .internal_name = "ht216_32_pb410a",
     .flags = DEVICE_VLB,
     .local = 0x7861,	/*HT216-32*/
@@ -1763,7 +1763,7 @@ const device_t ht216_32_standalone_device = {
 };
 
 const device_t radius_svga_multiview_isa_device = {
-    .name = "Radius SVGA Multiview ISA (HT209)",
+    .name = "Headland HT209: Radius SVGA Multiview (ISA)",
     .internal_name = "radius_isa",
     .flags = DEVICE_ISA | DEVICE_AT,
     .local = 0x7152,	/*HT209*/
@@ -1777,7 +1777,7 @@ const device_t radius_svga_multiview_isa_device = {
 };
 
 const device_t radius_svga_multiview_mca_device = {
-    .name = "Radius SVGA Multiview MCA (HT209)",
+    .name = "Headland HT209: Radius SVGA Multiview (MCA)",
     .internal_name = "radius_mc",
     .flags = DEVICE_MCA,
     .local = 0x7152,	/*HT209*/

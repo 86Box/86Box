@@ -3228,7 +3228,7 @@ static const device_config_t tgui96xx_config[] = {
 // clang-format on
 
 const device_t tgui9400cxi_device = {
-    .name = "Trident TGUI 9400CXi",
+    .name = "Trident TGUI 9400CXi: Generic (VLB)",
     .internal_name = "tgui9400cxi_vlb",
     .flags = DEVICE_VLB,
     .local = TGUI_9400CXI,
@@ -3242,7 +3242,7 @@ const device_t tgui9400cxi_device = {
 };
 
 const device_t tgui9440_vlb_device = {
-    .name = "Trident TGUI 9440AGi VLB",
+    .name = "Trident TGUI 9440AGi: Generic (VLB)",
     .internal_name = "tgui9440_vlb",
     .flags = DEVICE_VLB,
     .local = TGUI_9440,
@@ -3256,7 +3256,7 @@ const device_t tgui9440_vlb_device = {
 };
 
 const device_t tgui9440_pci_device = {
-    .name = "Trident TGUI 9440AGi PCI",
+    .name = "Trident TGUI 9440AGi: Generic (PCI)",
     .internal_name = "tgui9440_pci",
     .flags = DEVICE_PCI,
     .local = TGUI_9440,
@@ -3270,7 +3270,7 @@ const device_t tgui9440_pci_device = {
 };
 
 const device_t tgui9440_onboard_pci_device = {
-    .name = "Trident TGUI 9440AGi On-Board PCI",
+    .name = "Trident TGUI 9440AGi: On-Board (PCI)",
     .internal_name = "tgui9440_onboard_pci",
     .flags = DEVICE_PCI,
     .local = TGUI_9440 | ONBOARD,
@@ -3284,7 +3284,7 @@ const device_t tgui9440_onboard_pci_device = {
 };
 
 const device_t tgui9660_pci_device = {
-    .name = "Trident TGUI 9660XGi PCI",
+    .name = "Trident TGUI 9660XGi: Generic (PCI)",
     .internal_name = "tgui9660_pci",
     .flags = DEVICE_PCI,
     .local = TGUI_9660,
@@ -3298,7 +3298,7 @@ const device_t tgui9660_pci_device = {
 };
 
 const device_t tgui9680_pci_device = {
-    .name = "Trident TGUI 9680XGi PCI",
+    .name = "Trident TGUI 9680XGi: Generic (PCI)",
     .internal_name = "tgui9680_pci",
     .flags = DEVICE_PCI,
     .local = TGUI_9680,

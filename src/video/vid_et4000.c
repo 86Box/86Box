@@ -836,7 +836,7 @@ static const device_config_t et4000_config[] = {
 };
 
 const device_t et4000_isa_device = {
-    .name = "Tseng Labs ET4000AX (ISA)",
+    .name = "Tseng Labs ET4000AX: Generic Tseng OEM (ISA)",
     .internal_name = "et4000ax",
     .flags = DEVICE_ISA,
     .local = 0,
@@ -850,7 +850,7 @@ const device_t et4000_isa_device = {
 };
 
 const device_t et4000_mca_device = {
-    .name = "Tseng Labs ET4000AX (MCA)",
+    .name = "Tseng Labs ET4000AX: Generic Tseng OEM (MCA)",
     .internal_name = "et4000mca",
     .flags = DEVICE_MCA,
     .local = 1,
@@ -864,7 +864,7 @@ const device_t et4000_mca_device = {
 };
 
 const device_t et4000k_isa_device = {
-    .name = "Trigem Korean VGA (Tseng Labs ET4000AX Korean)",
+    .name = "Tseng Labs ET4000AX: Trigem Korean VGA (ISA)",
     .internal_name = "tgkorvga",
     .flags = DEVICE_ISA,
     .local = 2,
@@ -878,7 +878,7 @@ const device_t et4000k_isa_device = {
 };
 
 const device_t et4000k_tg286_isa_device = {
-    .name = "Trigem Korean VGA (Trigem 286M)",
+    .name = "Tseng Labs ET4000AX: Trigem Korean VGA for Trigem 286M (ISA)",
     .internal_name = "et4000k_tg286_isa",
     .flags = DEVICE_ISA,
     .local = 3,
@@ -892,7 +892,7 @@ const device_t et4000k_tg286_isa_device = {
 };
 
 const device_t et4000_kasan_isa_device = {
-    .name = "Kasan Hangulmadang-16 VGA (Tseng Labs ET4000AX Korean)",
+    .name = "Tseng Labs ET4000AX: Kasan Hangulmadang-16 VGA (ISA)",
     .internal_name = "kasan16vga",
     .flags = DEVICE_ISA,
     .local = 4,

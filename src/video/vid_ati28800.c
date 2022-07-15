@@ -768,7 +768,7 @@ static const device_config_t ati28800_wonderxl_config[] = {
 // clang-format on
 
 const device_t ati28800_device = {
-    .name = "ATI 28800-5 (ATI VGA Charger)",
+    .name = "ATI 28800-5: ATI VGA Charger",
     .internal_name = "ati28800",
     .flags = DEVICE_ISA,
     .local = 0,
@@ -782,7 +782,7 @@ const device_t ati28800_device = {
 };
 
 const device_t ati28800k_device = {
-    .name = "ATI Korean VGA",
+    .name = "ATI 28800-4: ATI Korean VGA",
     .internal_name = "ati28800k",
     .flags = DEVICE_ISA,
     .local = 0,
@@ -796,7 +796,7 @@ const device_t ati28800k_device = {
 };
 
 const device_t ati28800k_spc4620p_device = {
-    .name = "ATI Korean VGA On-Board SPC-4620P",
+    .name = "ATI 28800-4: ATI Korean VGA On-Board SPC-4620P",
     .internal_name = "ati28800k_spc4620p",
     .flags = DEVICE_ISA,
     .local = 1,
@@ -810,7 +810,7 @@ const device_t ati28800k_spc4620p_device = {
 };
 
 const device_t ati28800k_spc6033p_device = {
-    .name = "ATI Korean VGA On-Board SPC-6033P",
+    .name = "ATI 28800-4: ATI Korean VGA On-Board SPC-6033P",
     .internal_name = "ati28800k_spc6033p",
     .flags = DEVICE_ISA,
     .local = 2,
@@ -824,7 +824,7 @@ const device_t ati28800k_spc6033p_device = {
 };
 
 const device_t compaq_ati28800_device = {
-    .name = "ATI 28800-5 (ATI VGA Wonder XL)",
+    .name = "ATI 28800-5: ATI VGA Wonder XL Compaq OEM",
     .internal_name = "compaq_ati28800",
     .flags = DEVICE_ISA,
     .local = VGAWONDERXL,

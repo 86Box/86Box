@@ -610,7 +610,7 @@ const device_t oti067_device = {
 };
 
 const device_t oti067_m300_device = {
-    .name = "Oak OTI-067 (Olivetti M300-08/15)",
+    .name = "Oak OTI-067 for Olivetti M300-08/15",
     .internal_name = "oti067_m300",
     .flags = DEVICE_ISA,
     .local = 4,
@@ -624,7 +624,7 @@ const device_t oti067_m300_device = {
 };
 
 const device_t oti067_ama932j_device = {
-    .name = "Oak OTI-067 (AMA-932J)",
+    .name = "Oak OTI-067 for AMA-932J",
     .internal_name = "oti067_ama932j",
     .flags = DEVICE_ISA,
     .local = 3,

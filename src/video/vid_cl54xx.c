@@ -4495,7 +4495,7 @@ static const device_config_t gd5480_config[] = {
 // clang-format on
 
 const device_t gd5401_isa_device = {
-    .name = "Cirrus Logic GD5401 (ISA) (ACUMOS AVGA1)",
+    .name = "Cirrus Logic GD5401: Acumos AVGA1 (ISA)",
     .internal_name = "cl_gd5401_isa",
     .flags = DEVICE_ISA,
     .local = CIRRUS_ID_CLGD5401,
@@ -4509,7 +4509,7 @@ const device_t gd5401_isa_device = {
 };
 
 const device_t gd5402_isa_device = {
-    .name = "Cirrus Logic GD5402 (ISA) (ACUMOS AVGA2)",
+    .name = "Cirrus Logic GD5402: Acumos AVGA2 (ISA)",
     .internal_name = "cl_gd5402_isa",
     .flags = DEVICE_ISA,
     .local = CIRRUS_ID_CLGD5402,
@@ -4523,7 +4523,7 @@ const device_t gd5402_isa_device = {
 };
 
 const device_t gd5402_onboard_device = {
-    .name = "Cirrus Logic GD5402 (ISA) (ACUMOS AVGA2) (On-Board)",
+    .name = "Cirrus Logic GD5402: Acumos AVGA2 On-Board (ISA)",
     .internal_name = "cl_gd5402_onboard",
     .flags = DEVICE_AT | DEVICE_ISA,
     .local = CIRRUS_ID_CLGD5402 | 0x200,
@@ -4594,7 +4594,7 @@ const device_t gd5426_isa_device = {
 
 /*According to a Diamond bios file listing and vgamuseum*/
 const device_t gd5426_diamond_speedstar_pro_a1_isa_device = {
-    .name = "Cirrus Logic GD5426 (ISA) (Diamond SpeedStar Pro Rev. A1)",
+    .name = "Cirrus Logic GD5426: Diamond SpeedStar Pro Rev. A1 (ISA)",
     .internal_name = "cl_gd5426_diamond_a1_isa",
     .flags = DEVICE_AT | DEVICE_ISA,
     .local = CIRRUS_ID_CLGD5426 | 0x100,
@@ -4622,7 +4622,7 @@ const device_t gd5426_vlb_device = {
 };
 
 const device_t gd5426_onboard_device = {
-    .name = "Cirrus Logic GD5426 (VLB) (On-Board)",
+    .name = "Cirrus Logic GD5426 On-Board (VLB)",
     .internal_name = "cl_gd5426_onboard",
     .flags = DEVICE_VLB,
     .local = CIRRUS_ID_CLGD5426 | 0x200,
@@ -4665,7 +4665,7 @@ const device_t gd5428_vlb_device = {
 
 /*According to a Diamond bios file listing and vgamuseum*/
 const device_t gd5428_diamond_speedstar_pro_b1_vlb_device = {
-    .name = "Cirrus Logic GD5428 (VLB) (Diamond SpeedStar Pro Rev. B1)",
+    .name = "Cirrus Logic GD5428: Diamond SpeedStar Pro Rev. B1 (VLB)",
     .internal_name = "cl_gd5428_diamond_b1_vlb",
     .flags = DEVICE_VLB,
     .local = CIRRUS_ID_CLGD5428 | 0x100,
@@ -4679,7 +4679,7 @@ const device_t gd5428_diamond_speedstar_pro_b1_vlb_device = {
 };
 
 const device_t gd5428_mca_device = {
-    .name = "Cirrus Logic GD5428 (MCA) (IBM SVGA Adapter/A)",
+    .name = "Cirrus Logic GD5428: IBM SVGA Adapter/A (MCA)",
     .internal_name = "ibm1mbsvga",
     .flags = DEVICE_MCA,
     .local = CIRRUS_ID_CLGD5428,
@@ -4693,7 +4693,7 @@ const device_t gd5428_mca_device = {
 };
 
 const device_t gd5428_onboard_device = {
-    .name = "Cirrus Logic GD5428 (ISA) (On-Board)",
+    .name = "Cirrus Logic GD5428 On-Board (ISA)",
     .internal_name = "cl_gd5428_onboard",
     .flags = DEVICE_AT | DEVICE_ISA,
     .local = CIRRUS_ID_CLGD5428,
@@ -4736,7 +4736,7 @@ const device_t gd5429_vlb_device = {
 
 /*According to a Diamond bios file listing and vgamuseum*/
 const device_t gd5430_diamond_speedstar_pro_se_a8_vlb_device = {
-    .name = "Cirrus Logic GD5430 (VLB) (Diamond SpeedStar Pro SE Rev. A8)",
+    .name = "Cirrus Logic GD5430: Diamond SpeedStar Pro SE Rev. A8 (VLB)",
     .internal_name = "cl_gd5430_vlb",
     .flags = DEVICE_VLB,
     .local = CIRRUS_ID_CLGD5430,
@@ -4779,7 +4779,7 @@ const device_t gd5434_isa_device = {
 
 /*According to a Diamond bios file listing and vgamuseum*/
 const device_t gd5434_diamond_speedstar_64_a3_isa_device = {
-    .name = "Cirrus Logic GD5434 (ISA) (Diamond SpeedStar 64 Rev. A3)",
+    .name = "Cirrus Logic GD5434: Diamond SpeedStar 64 Rev. A3 (ISA)",
     .internal_name = "cl_gd5434_diamond_a3_isa",
     .flags = DEVICE_AT | DEVICE_ISA,
     .local = CIRRUS_ID_CLGD5434 | 0x100,
@@ -4793,7 +4793,7 @@ const device_t gd5434_diamond_speedstar_64_a3_isa_device = {
 };
 
 const device_t gd5434_onboard_pci_device = {
-    .name = "Cirrus Logic GD5434-4 (PCI) (On-Board)",
+    .name = "Cirrus Logic GD5434-4 On-Board (PCI)",
     .internal_name = "cl_gd5434_onboard_pci",
     .flags = DEVICE_PCI,
     .local = CIRRUS_ID_CLGD5434 | 0x200,
@@ -4849,7 +4849,7 @@ const device_t gd5436_pci_device = {
 };
 
 const device_t gd5440_onboard_pci_device = {
-    .name = "Cirrus Logic GD5440 (PCI) (On-Board)",
+    .name = "Cirrus Logic GD5440 On-Board (PCI)",
     .internal_name = "cl_gd5440_onboard_pci",
     .flags = DEVICE_PCI,
     .local = CIRRUS_ID_CLGD5440 | 0x600,
@@ -4891,7 +4891,7 @@ const device_t gd5446_pci_device = {
 };
 
 const device_t gd5446_stb_pci_device = {
-    .name = "Cirrus Logic GD5446 (PCI) (STB Nitro 64V)",
+    .name = "Cirrus Logic GD5446: STB Nitro 64V (PCI)",
     .internal_name = "cl_gd5446_stb_pci",
     .flags = DEVICE_PCI,
     .local = CIRRUS_ID_CLGD5446 | 0x100,

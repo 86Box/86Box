@@ -3739,7 +3739,7 @@ static const device_config_t mach64vt2_config[] = {
 // clang-format on
 
 const device_t mach64gx_isa_device = {
-    .name = "ATI Mach64GX ISA",
+    .name = "ATI Mach64GX: ATI Graphics Pro Turbo (ISA)",
     .internal_name = "mach64gx_isa",
     .flags = DEVICE_AT | DEVICE_ISA,
     .local = 0,
@@ -3753,7 +3753,7 @@ const device_t mach64gx_isa_device = {
 };
 
 const device_t mach64gx_vlb_device = {
-    .name = "ATI Mach64GX VLB",
+    .name = "ATI Mach64GX: ATI Graphics Pro Turbo (VLB)",
     .internal_name = "mach64gx_vlb",
     .flags = DEVICE_VLB,
     .local = 0,
@@ -3767,7 +3767,7 @@ const device_t mach64gx_vlb_device = {
 };
 
 const device_t mach64gx_pci_device = {
-    .name = "ATI Mach64GX PCI",
+    .name = "ATI Mach64GX: ATI WinTurbo (PCI)",
     .internal_name = "mach64gx_pci",
     .flags = DEVICE_PCI,
     .local = 0,
@@ -3781,7 +3781,7 @@ const device_t mach64gx_pci_device = {
 };
 
 const device_t mach64vt2_device = {
-    .name = "ATI Mach64VT2",
+    .name = "ATI Mach64VT2: Generic ATI OEM (PCI)",
     .internal_name = "mach64vt2",
     .flags = DEVICE_PCI,
     .local = 0,

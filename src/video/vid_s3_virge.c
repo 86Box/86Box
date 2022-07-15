@@ -4349,7 +4349,7 @@ static const device_config_t s3_trio3d2x_config[] = {
 };
 
 const device_t s3_virge_325_pci_device = {
-    .name = "S3 ViRGE (325) PCI",
+    .name = "S3 ViRGE (325): Generic S3 OEM (PCI)",
     .internal_name = "virge325_pci",
     .flags = DEVICE_PCI,
     .local = S3_VIRGE_325,
@@ -4363,7 +4363,7 @@ const device_t s3_virge_325_pci_device = {
 };
 
 const device_t s3_diamond_stealth_2000_pci_device = {
-    .name = "S3 ViRGE (Diamond Stealth 3D 2000) PCI",
+    .name = "S3 ViRGE (325): Diamond Stealth 3D 2000 (PCI)",
     .internal_name = "stealth3d_2000_pci",
     .flags = DEVICE_PCI,
     .local = S3_DIAMOND_STEALTH3D_2000,
@@ -4377,7 +4377,7 @@ const device_t s3_diamond_stealth_2000_pci_device = {
 };
 
 const device_t s3_diamond_stealth_3000_pci_device = {
-    .name = "S3 ViRGE/VX (Diamond Stealth 3D 3000) PCI",
+    .name = "S3 ViRGE/VX (988): Diamond Stealth 3D 3000 (PCI)",
     .internal_name = "stealth3d_3000_pci",
     .flags = DEVICE_PCI,
     .local = S3_DIAMOND_STEALTH3D_3000,
@@ -4391,7 +4391,7 @@ const device_t s3_diamond_stealth_3000_pci_device = {
 };
 
 const device_t s3_stb_velocity_3d_pci_device = {
-    .name = "S3 ViRGE/VX (STB Velocity 3D) PCI",
+    .name = "S3 ViRGE/VX (988): STB Velocity 3D (PCI)",
     .internal_name = "stb_velocity3d_pci",
     .flags = DEVICE_PCI,
     .local = S3_STB_VELOCITY_3D,
@@ -4405,7 +4405,7 @@ const device_t s3_stb_velocity_3d_pci_device = {
 };
 
 const device_t s3_virge_375_pci_device = {
-    .name = "S3 ViRGE/DX (375) PCI",
+    .name = "S3 ViRGE/DX (375): Generic S3 OEM (PCI)",
     .internal_name = "virge375_pci",
     .flags = DEVICE_PCI,
     .local = S3_VIRGE_DX,
@@ -4419,7 +4419,7 @@ const device_t s3_virge_375_pci_device = {
 };
 
 const device_t s3_diamond_stealth_2000pro_pci_device = {
-    .name = "S3 ViRGE/DX (Diamond Stealth 3D 2000 Pro) PCI",
+    .name = "S3 ViRGE/DX (375): Diamond Stealth 3D 2000 Pro (PCI)",
     .internal_name = "stealth3d_2000pro_pci",
     .flags = DEVICE_PCI,
     .local = S3_DIAMOND_STEALTH3D_2000PRO,
@@ -4433,7 +4433,7 @@ const device_t s3_diamond_stealth_2000pro_pci_device = {
 };
 
 const device_t s3_virge_385_pci_device = {
-    .name = "S3 ViRGE/GX (385) PCI",
+    .name = "S3 ViRGE/GX (385): Generic S3 OEM (PCI)",
     .internal_name = "virge385_pci",
     .flags = DEVICE_PCI,
     .local = S3_VIRGE_GX,
@@ -4447,7 +4447,7 @@ const device_t s3_virge_385_pci_device = {
 };
 
 const device_t s3_virge_357_pci_device = {
-    .name = "S3 ViRGE/GX2 (357) PCI",
+    .name = "S3 ViRGE/GX2 (357): Generic S3 OEM (PCI)",
     .internal_name = "virge357_pci",
     .flags = DEVICE_PCI,
     .local = S3_VIRGE_GX2,
@@ -4461,7 +4461,7 @@ const device_t s3_virge_357_pci_device = {
 };
 
 const device_t s3_virge_357_agp_device = {
-    .name = "S3 ViRGE/GX2 (357) AGP",
+    .name = "S3 ViRGE/GX2 (357): Generic S3 OEM (AGP)",
     .internal_name = "virge357_agp",
     .flags = DEVICE_AGP,
     .local = S3_VIRGE_GX2,
@@ -4475,7 +4475,7 @@ const device_t s3_virge_357_agp_device = {
 };
 
 const device_t s3_diamond_stealth_4000_pci_device = {
-    .name = "S3 ViRGE/GX2 (Diamond Stealth 3D 4000) PCI",
+    .name = "S3 ViRGE/GX2 (357): Diamond Stealth 3D 4000 (PCI)",
     .internal_name = "stealth3d_4000_pci",
     .flags = DEVICE_PCI,
     .local = S3_DIAMOND_STEALTH3D_4000,
@@ -4489,7 +4489,7 @@ const device_t s3_diamond_stealth_4000_pci_device = {
 };
 
 const device_t s3_diamond_stealth_4000_agp_device = {
-    .name = "S3 ViRGE/GX2 (Diamond Stealth 3D 4000) AGP",
+    .name = "S3 ViRGE/GX2 (357): Diamond Stealth 3D 4000 (AGP)",
     .internal_name = "stealth3d_4000_agp",
     .flags = DEVICE_AGP,
     .local = S3_DIAMOND_STEALTH3D_4000,
@@ -4503,7 +4503,7 @@ const device_t s3_diamond_stealth_4000_agp_device = {
 };
 
 const device_t s3_trio3d2x_pci_device = {
-    .name = "S3 Trio3D/2X (362) PCI",
+    .name = "S3 Trio3D/2X (362): Generic S3 OEM (PCI)",
     .internal_name = "trio3d2x",
     .flags = DEVICE_PCI,
     .local = S3_TRIO_3D2X,
@@ -4517,7 +4517,7 @@ const device_t s3_trio3d2x_pci_device = {
 };
 
 const device_t s3_trio3d2x_agp_device = {
-    .name = "S3 Trio3D/2X (362) AGP",
+    .name = "S3 Trio3D/2X (362): Generic S3 OEM (AGP)",
     .internal_name = "trio3d2x_agp",
     .flags = DEVICE_AGP,
     .local = S3_TRIO_3D2X,

@@ -3010,7 +3010,7 @@ const device_t voodoo_3_2000_agp_device = {
 };
 
 const device_t voodoo_3_2000_agp_onboard_8m_device = {
-    .name = "3dfx Voodoo3 2000 (On-Board 8MB SGRAM)",
+    .name = "3dfx Voodoo3 2000 On-Board 8MB SGRAM",
     .internal_name = "voodoo3_2k_agp_onboard_8m",
     .flags = DEVICE_AGP,
     .local = 8,
