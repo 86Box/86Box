@@ -662,7 +662,6 @@ static void
 ibm8514_ramdac_out(uint16_t port, uint8_t val, void *p)
 {
     svga_t *svga = (svga_t *)p;
-    uint8_t index;
 
     switch (port) {
         case 0x2ea:
@@ -1038,8 +1037,6 @@ ibm8514_short_stroke_start(int count, int cpu_input, uint32_t mix_dat, uint32_t 
     ibm8514_accel_start(count, cpu_input, mix_dat, cpu_dat, dev, len);
 }
 
-#define SWAP(a,b) { tmpswap = a; a = b; b = tmpswap; }
-
 static void
 ibm8514_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat, ibm8514_t *dev, int len)
 {
@@ -1060,7 +1057,6 @@ ibm8514_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat
 	uint32_t old_mix_dat;
 	int and3 = dev->accel.cur_x & 3;
 	uint8_t poly_src = 0;
-	int16_t tmpswap = 0;
 
 	if (dev->accel.cmd & 0x100) {
 		dev->force_busy = 1;

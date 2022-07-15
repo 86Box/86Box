@@ -2210,8 +2210,6 @@ xga_write(uint32_t addr, uint8_t val, void *p)
 static void
 xga_writeb(uint32_t addr, uint8_t val, void *p)
 {
-    svga_t *svga = (svga_t *)p;
-
     //pclog("[%04X:%08X]: WriteB\n", CS, cpu_state.pc);
     xga_write(addr, val, p);
 }
@@ -2219,8 +2217,6 @@ xga_writeb(uint32_t addr, uint8_t val, void *p)
 static void
 xga_writew(uint32_t addr, uint16_t val, void *p)
 {
-    svga_t *svga = (svga_t *)p;
-
     //pclog("[%04X:%08X]: WriteW\n", CS, cpu_state.pc);
     xga_write(addr, val, p);
     xga_write(addr + 1, val >> 8, p);
@@ -2229,8 +2225,6 @@ xga_writew(uint32_t addr, uint16_t val, void *p)
 static void
 xga_writel(uint32_t addr, uint32_t val, void *p)
 {
-    svga_t *svga = (svga_t *)p;
-
     //pclog("[%04X:%08X]: WriteL\n", CS, cpu_state.pc);
     xga_write(addr, val, p);
     xga_write(addr + 1, val >> 8, p);
@@ -2336,7 +2330,6 @@ xga_read(uint32_t addr, void *p)
 static uint8_t
 xga_readb(uint32_t addr, void *p)
 {
-    svga_t *svga = (svga_t *)p;
     uint8_t ret;
 
     ret = xga_read(addr, p);
@@ -2347,7 +2340,6 @@ xga_readb(uint32_t addr, void *p)
 static uint16_t
 xga_readw(uint32_t addr, void *p)
 {
-    svga_t *svga = (svga_t *)p;
     uint16_t ret;
 
     ret = xga_read(addr, p);
@@ -2359,7 +2351,6 @@ xga_readw(uint32_t addr, void *p)
 static uint32_t
 xga_readl(uint32_t addr, void *p)
 {
-    svga_t *svga = (svga_t *)p;
     uint32_t ret;
 
     ret = xga_read(addr, p);
