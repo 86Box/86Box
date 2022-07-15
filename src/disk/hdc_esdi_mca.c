@@ -86,8 +86,8 @@
 #define ESDI_IOADDR_SEC	0x3518
 #define ESDI_IRQCHAN	14
 
-#define BIOS_FILE_L	"roms/hdd/esdi/62-000193-036.BIN"
-#define BIOS_FILE_H	"roms/hdd/esdi/62-000194-036.BIN"
+#define BIOS_FILE_L	"roms/hdd/esdi/90x8969.bin"
+#define BIOS_FILE_H	"roms/hdd/esdi/90x8970.bin"
 
 
 #define ESDI_TIME	512
@@ -133,7 +133,7 @@ typedef struct esdi_t {
     int		command;
     int		cmd_state;
 
-    int		in_reset, in_reset2;
+    int		in_reset;
     uint64_t	callback;
 	pc_timer_t timer;
 
@@ -825,13 +825,6 @@ esdi_read(uint16_t port, void *priv)
 
     switch (port & 7) {
 	case 2: /*Basic status register*/
-	    if (!dev->status) {
-            if (((dev->command == CMD_WRITE) || dev->in_reset2) && !dev->cmd_dev) {
-                dev->in_reset2 = 0;
-                dev->status |= STATUS_STATUS_OUT_FULL;
-            } else if (dev->command && (dev->cmd_dev == ATTN_HOST_ADAPTER))
-                dev->status |= STATUS_STATUS_OUT_FULL;
-	    }
 		ret = dev->status;
 		break;
 
@@ -859,7 +852,6 @@ esdi_write(uint16_t port, uint8_t val, void *priv)
 	case 2:					/*Basic control register*/
 		if ((dev->basic_ctrl & CTRL_RESET) && !(val & CTRL_RESET)) {
 			dev->in_reset = 1;
-			dev->in_reset2 = 1;
 			esdi_mca_set_callback(dev, ESDI_TIME * 50);
 			dev->status = STATUS_BUSY;
 		}
@@ -891,7 +883,6 @@ esdi_write(uint16_t port, uint8_t val, void *priv)
 
                                		case ATTN_RESET:
                                			dev->in_reset = 1;
-                               			dev->in_reset2 = 1;
                                			esdi_mca_set_callback(dev, ESDI_TIME * 50);
                                			dev->status = STATUS_BUSY;
                                			break;
@@ -1152,7 +1143,6 @@ esdi_init(const device_t *info)
 
     /* Mark for a reset. */
     dev->in_reset = 1;
-    dev->in_reset2 = 1;
     esdi_mca_set_callback(dev, ESDI_TIME * 50);
     dev->status = STATUS_BUSY;
 
