@@ -306,7 +306,9 @@ es1371_reset(void *p)
     es1371_t *dev = (es1371_t *) p;
     int       i;
 
+#ifdef OLD_NMI_BEHAVIOR
     nmi = 0;
+#endif
 
     /* Interrupt/Chip Select Control Register, Address 00H
        Addressable as byte, word, longword */
@@ -1240,7 +1242,7 @@ capture_event(es1371_t *dev, int type, int rw, uint16_t port)
         dev->legacy_ctrl &= ~LEGACY_EVENT_TYPE_RW;
     dev->legacy_ctrl |= ((port << LEGACY_EVENT_ADDR_SHIFT) & LEGACY_EVENT_ADDR_MASK);
     dev->legacy_ctrl &= ~LEGACY_INT;
-    nmi = 1;
+    nmi_raise();
 }
 
 static void
