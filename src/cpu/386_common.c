@@ -72,7 +72,7 @@ int smm_in_hlt = 0, smi_block = 0;
 uint32_t addr64, addr64_2;
 uint32_t addr64a[8], addr64a_2[8];
 
-static timer_t *cpu_fast_off_timer = NULL;
+static pc_timer_t *cpu_fast_off_timer = NULL;
 static double cpu_fast_off_period = 0.0;
 
 
@@ -1844,7 +1844,7 @@ sysret(uint32_t fetchdat)
 void
 cpu_register_fast_off_handler(void *timer)
 {
-    cpu_fast_off_timer = (timer_t *) timer;
+    cpu_fast_off_timer = (pc_timer_t *) timer;
 }
 
 
@@ -1868,7 +1868,7 @@ cpu_fast_off_period_set(uint16_t val, double period)
 void
 cpu_fast_off_reset(void)
 {
-    if (cpu-fast_off_timer)
+    if (cpu_fast_off_timer)
 	timer_disable(cpu_fast_off_timer);
 
     cpu_register_fast_off_handler(NULL);
