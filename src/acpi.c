@@ -144,12 +144,12 @@ acpi_raise_smi(void *priv, int do_smi)
 	if ((dev->vendor == VEN_VIA) || (dev->vendor == VEN_VIA_596B)) {
 		if ((!dev->regs.smi_lock || !dev->regs.smi_active)) {
 			if (do_smi)
-				smi_line = 1;
+				smi_raise();
 			dev->regs.smi_active = 1;
 		}
 	} else if ((dev->vendor == VEN_INTEL) || (dev->vendor == VEN_ALI)) {
 		if (do_smi)
-			smi_line = 1;
+			smi_raise();
 		/* Clear bit 16 of GLBCTL. */
 		if (dev->vendor == VEN_INTEL)
 			dev->regs.glbctl &= ~0x00010000;
@@ -157,7 +157,7 @@ acpi_raise_smi(void *priv, int do_smi)
 			dev->regs.ali_soft_smi = 1;
 	} else if (dev->vendor == VEN_SMC) {
 		if (do_smi)
-			smi_line = 1;
+			smi_raise();
 	}
     }
 }
@@ -1449,7 +1449,7 @@ acpi_apm_out(uint16_t port, uint8_t val, void *p)
 		dev->apm->cmd = val;
 		// acpi_raise_smi(dev, dev->apm->do_smi);
 		if (dev->apm->do_smi)
-			smi_line = 1;
+			smi_raise();
 		dev->regs.ali_soft_smi = 1;
 	} else if (port == 0x0003)
 		dev->apm->stat = val;

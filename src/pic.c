@@ -608,7 +608,7 @@ picint_common(uint16_t num, int level, int set)
 
     if (set) {
 	if (smi_irq_mask & num) {
-		smi_line = 1;
+		smi_raise();
 		smi_irq_status |= num;
 	}
 
