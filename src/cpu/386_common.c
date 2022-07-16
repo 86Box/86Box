@@ -1838,7 +1838,7 @@ sysret(uint32_t fetchdat)
 
 
 void
-raise_smi(void)
+smi_raise(void)
 {
     if (is486 && (cpu_fast_off_flags & 0x80000000))
 	cpu_fast_off_count = cpu_fast_off_val + 1;
@@ -1848,7 +1848,7 @@ raise_smi(void)
 
 
 void
-raise_nmi(void)
+nmi_raise(void)
 {
     if (is486 && (cpu_fast_off_flags & 0x20000000))
 	cpu_fast_off_count = cpu_fast_off_val + 1;

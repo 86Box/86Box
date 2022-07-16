@@ -733,4 +733,7 @@ extern uint8_t	do_translate, do_translate2;
 
 extern void	reset_808x(int hard);
 
+extern void	smi_raise();
+extern void	nmi_raise();
+
 #endif	/*EMU_CPU_H*/

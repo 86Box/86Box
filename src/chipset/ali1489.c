@@ -319,7 +319,7 @@ ali1489_write(uint16_t addr, uint8_t val, void *priv)
 								smi_line = 1;
 								break;
 							case 0x10:
-								nmi = 1;
+								nmi_raise();
 								break;
 							case 0x20:
 								picint(1 << 15);
