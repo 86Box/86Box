@@ -215,7 +215,7 @@ pipeline {
 					/* Create source tarball. */
 					try {
 						retry(10) {
-							node('Linux') {
+							node('Linux || macOS') {
 								/* Run git clone. */
 								gitClone(repository[buildBranch], branch[buildBranch])
 
