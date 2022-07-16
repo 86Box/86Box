@@ -65,7 +65,7 @@ make_tar() {
 	
 	# Prefer gnutar on macOS.
 	local tar_cmd=tar
-	which gnutar > /dev/null 2>&1 && tar_cmd=gnutar
+	which gnutar > /dev/null 2>&1 && local tar_cmd=gnutar
 
 	# Determine the best supported compression type.
 	local compression_flag=
