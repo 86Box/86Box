@@ -223,7 +223,7 @@ find_best_interrupt(pic_t *dev)
 		intr += 8;
 
 	if (cpu_fast_off_flags & (1u << intr))
-		cpu_fast_off_count = cpu_fast_off_val + 1;
+		cpu_fast_off_advance();
     }
 
     return ret;
