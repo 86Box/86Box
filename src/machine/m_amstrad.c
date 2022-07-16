@@ -1068,9 +1068,7 @@ vid_in_200(uint16_t addr, void *priv)
 	case 0x03dd:
 		ret = vid->crtc_index;		/* Read NMI reason */
 		vid->crtc_index &= 0x1f;	/* Reset NMI reason */
-#ifdef OLD_NMI_BEHAVIOR
 		nmi = 0;			/* And reset NMI flag */
-#endif
 		return(ret);
 
 	case 0x03de:
