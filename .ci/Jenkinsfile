@@ -113,9 +113,9 @@ def gitClone(repository, branch) {
 		} else if (env.GIT_COMMIT != scmVars.GIT_COMMIT) {
 			/* Checkout the commit read from the polling log. */
 			if (isUnix())
-				sh returnStatus: true, script: "git checkout ${env.GIT_COMMIT}"
+				sh(returnStatus: true, script: "git checkout ${env.GIT_COMMIT}")
 			else
-				bat returnStatus: true, script: "git checkout ${env.GIT_COMMIT}"
+				bat(returnStatus: true, script: "git checkout ${env.GIT_COMMIT}")
 		}
 		println "[-] Using git commit [${env.GIT_COMMIT}]"
 
@@ -130,14 +130,14 @@ def gitClone(repository, branch) {
 
 def removeDir(dir) {
 	if (isUnix())
-		return sh(returnStatus: true, script: "rm -rf \"$dir\"")
+		return sh(returnStatus: true, script: "rm -rf '$dir'")
 	else
 		return bat(returnStatus: true, script: "rd /s /q \"$dir\"")
 }
 
 def runBuild(args) {
 	if (isUnix())
-		return sh(returnStatus: true, script: "chmod u+x \"$WORKSPACE/.ci/build.sh\" && exec \"$WORKSPACE/.ci/build.sh\" $args")
+		return sh(returnStatus: true, script: "chmod u+x '$WORKSPACE/.ci/build.sh' && exec '$WORKSPACE/.ci/build.sh' $args")
 	else
 		return bat(returnStatus: true, script: "C:\\msys64\\msys2_shell.cmd -msys2 -defterm -here -no-start -c 'exec \"\$(cygpath -u \\'%WORKSPACE%\\')/.ci/build.sh\" $args'")
 }
@@ -173,8 +173,10 @@ pipeline {
 
 			steps {
 				script {
-					/* Extract the polled commit from the polling log, so that git checkout can be used
-					   to avoid JENKINS-20518 race conditions caused by two pushes too close together. */
+					/* Extract the polled commit from the polling log, so that git checkout
+					   can be used to avoid JENKINS-20518 race conditions caused by the
+					   webhook being triggered more than once in a short period of time.
+					   This is a backup strategy for FilterProxy's webhook queuing. */
 					node('master') { /* must run on master node to read polling log */
 						/* Ignore exceptions as this is not really critical. */
 						try {
@@ -215,7 +217,7 @@ pipeline {
 					/* Create source tarball. */
 					try {
 						retry(10) {
-							node('Linux') {
+							node('Linux || macOS') {
 								/* Run git clone. */
 								gitClone(repository[buildBranch], branch[buildBranch])
 

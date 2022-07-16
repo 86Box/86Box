@@ -208,7 +208,7 @@ sigma_out(uint16_t addr, uint8_t val, void *p)
 	/* If set to NMI on video I/O... */
 	if (sigma->enable_nmi && (sigma->sigma_ctl & CTL_NMI)) {
 		sigma->lastport |= 0x80; 	/* Card raised NMI */
-		nmi = 1;
+		nmi_raise();
 	}
 	/* For CRTC emulation, the card BIOS sets the value to be
 	 * read from port 0x3D1 like this */
@@ -245,7 +245,9 @@ sigma_out(uint16_t addr, uint8_t val, void *p)
 		sigma->lastport &= 0x7F;
 		return;
 	case 0x2DC:	/* Reset NMI */
+#ifdef OLD_NMI_BEHAVIOR
 		nmi = 0;
+#endif
 		sigma->lastport &= 0x7F;
 		return;
 	case 0x2DD:	/* Page in RAM at 0xC1800 */

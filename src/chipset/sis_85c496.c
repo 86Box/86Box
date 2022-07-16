@@ -390,7 +390,7 @@ sis_85c49x_pci_write(int func, int addr, uint8_t val, void *priv)
 			if (dev->pci_conf[0x80] & 0x10)
 				picint(1 << smm_irq[dev->pci_conf[0x81] & 0x03]);
 			else
-				smi_line = 1;
+				smi_raise();
 			smi_block = 1;
 			dev->pci_conf[0xa0] |= 0x10;
 		}

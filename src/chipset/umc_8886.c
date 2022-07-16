@@ -232,7 +232,7 @@ umc_8886_write(int func, int addr, uint8_t val, void *priv)
 					if (dev->pci_conf_sb[0][0x46] & 0x40)
 						picint(1 << ((dev->pci_conf_sb[0][0x46] & 0x80) ? 15 : 10));
 					else
-						smi_line = 1;
+						smi_raise();
 					dev->pci_conf_sb[0][0xa3] |= 0x04;
 				}
 

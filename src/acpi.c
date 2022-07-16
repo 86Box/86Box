@@ -20,6 +20,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <wchar.h>
+#include <stdbool.h>
 #define HAVE_STDARG_H
 #include <86box/86box.h>
 #include "cpu.h"
@@ -37,10 +38,11 @@
 #include <86box/acpi.h>
 #include <86box/machine.h>
 #include <86box/i2c.h>
-
+#include <86box/video.h>
 
 int acpi_rtc_status = 0;
 
+static double cpu_to_acpi;
 
 #ifdef ENABLE_ACPI_LOG
 int acpi_do_log = ENABLE_ACPI_LOG;
@@ -61,6 +63,50 @@ acpi_log(const char *fmt, ...)
 #define acpi_log(fmt, ...)
 #endif
 
+static uint64_t acpi_clock_get() {
+    return tsc * cpu_to_acpi;
+}
+
+static uint32_t acpi_timer_get(acpi_t *dev) {
+    uint64_t clock = acpi_clock_get();
+    if (dev->regs.timer32)
+        return clock & 0xffffffff;
+    else
+        return clock & 0xffffff;
+}
+
+static double acpi_get_overflow_period(acpi_t *dev) {
+    uint64_t timer = acpi_clock_get();
+    uint64_t overflow_time;
+
+    if (dev->regs.timer32) {
+        overflow_time = (timer + 0x80000000LL) & ~0x7fffffffLL;
+    } else {
+        overflow_time = (timer + 0x800000LL) & ~0x7fffffLL;
+    }
+
+    uint64_t time_to_overflow = overflow_time - timer;
+
+    return ((double)time_to_overflow / (double)ACPI_TIMER_FREQ) * 1000000.0;
+}
+
+static void
+acpi_timer_overflow(void *priv)
+{
+    acpi_t *dev = (acpi_t *) priv;
+    dev->regs.pmsts |= TMROF_STS;
+    acpi_update_irq(dev);
+}
+
+static void
+acpi_timer_update(acpi_t *dev, bool enable)
+{
+    if (enable) {
+        timer_on_auto(&dev->timer, acpi_get_overflow_period(dev));
+    } else {
+        timer_stop(&dev->timer);
+    }
+}
 
 void
 acpi_update_irq(acpi_t *dev)
@@ -84,6 +130,8 @@ acpi_update_irq(acpi_t *dev)
 	else
 		pci_clear_mirq(0xf0 | dev->irq_line, 1);
     }
+
+    acpi_timer_update(dev, (dev->regs.pmen & TMROF_EN) && !(dev->regs.pmsts & TMROF_STS));
 }
 
 
@@ -96,12 +144,12 @@ acpi_raise_smi(void *priv, int do_smi)
 	if ((dev->vendor == VEN_VIA) || (dev->vendor == VEN_VIA_596B)) {
 		if ((!dev->regs.smi_lock || !dev->regs.smi_active)) {
 			if (do_smi)
-				smi_line = 1;
+				smi_raise();
 			dev->regs.smi_active = 1;
 		}
 	} else if ((dev->vendor == VEN_INTEL) || (dev->vendor == VEN_ALI)) {
 		if (do_smi)
-			smi_line = 1;
+			smi_raise();
 		/* Clear bit 16 of GLBCTL. */
 		if (dev->vendor == VEN_INTEL)
 			dev->regs.glbctl &= ~0x00010000;
@@ -109,7 +157,7 @@ acpi_raise_smi(void *priv, int do_smi)
 			dev->regs.ali_soft_smi = 1;
 	} else if (dev->vendor == VEN_SMC) {
 		if (do_smi)
-			smi_line = 1;
+			smi_raise();
 	}
     }
 }
@@ -145,7 +193,7 @@ acpi_reg_read_common_regs(int size, uint16_t addr, void *p)
 		break;
 	case 0x08: case 0x09: case 0x0a: case 0x0b:
 		/* PMTMR - Power Management Timer Register (IO) */
-		ret = (dev->regs.timer_val >> shift32) & 0xff;
+		ret = (acpi_timer_get(dev) >> shift32) & 0xff;
 #ifdef USE_DYNAREC
 		if (cpu_use_dynarec)
 			update_tsc();
@@ -1282,33 +1330,6 @@ acpi_update_aux_io_mapping(acpi_t *dev, uint32_t base, int chipset_en)
     }
 }
 
-
-static void
-acpi_timer_count(void *priv)
-{
-    acpi_t *dev = (acpi_t *) priv;
-    int overflow;
-    uint32_t old;
-
-    old = dev->regs.timer_val;
-    dev->regs.timer_val++;
-
-    if (dev->regs.timer32)
-	overflow = (old ^ dev->regs.timer_val) & 0x80000000;
-    else {
-	dev->regs.timer_val &= 0x00ffffff;
-	overflow = (old ^ dev->regs.timer_val) & 0x00800000;
-    }
-
-    if (overflow) {
-	dev->regs.pmsts |= TMROF_EN;
-	acpi_update_irq(dev);
-    }
-
-    timer_advance_u64(&dev->timer, ACPICONST);
-}
-
-
 static void
 acpi_timer_resume(void *priv)
 {
@@ -1338,9 +1359,6 @@ void
 acpi_set_timer32(acpi_t *dev, uint8_t timer32)
 {
     dev->regs.timer32 = timer32;
-
-    if (!dev->regs.timer32)
-	dev->regs.timer_val &= 0x00ffffff;
 }
 
 
@@ -1431,7 +1449,7 @@ acpi_apm_out(uint16_t port, uint8_t val, void *p)
 		dev->apm->cmd = val;
 		// acpi_raise_smi(dev, dev->apm->do_smi);
 		if (dev->apm->do_smi)
-			smi_line = 1;
+			smi_raise();
 		dev->regs.ali_soft_smi = 1;
 	} else if (port == 0x0003)
 		dev->apm->stat = val;
@@ -1524,9 +1542,12 @@ static void
 acpi_speed_changed(void *priv)
 {
     acpi_t *dev = (acpi_t *) priv;
+    cpu_to_acpi = ACPI_TIMER_FREQ / cpuclock;
+    bool timer_enabled = timer_is_enabled(&dev->timer);
+    timer_stop(&dev->timer);
 
-    timer_disable(&dev->timer);
-    timer_set_delay_u64(&dev->timer, ACPICONST);
+    if (timer_enabled)
+        timer_on_auto(&dev->timer, acpi_get_overflow_period(dev));
 }
 
 
@@ -1541,7 +1562,7 @@ acpi_close(void *priv)
 	i2c_gpio_close(dev->i2c);
     }
 
-    timer_disable(&dev->timer);
+    timer_stop(&dev->timer);
 
     free(dev);
 }
@@ -1556,6 +1577,7 @@ acpi_init(const device_t *info)
     if (dev == NULL) return(NULL);
     memset(dev, 0x00, sizeof(acpi_t));
 
+    cpu_to_acpi = ACPI_TIMER_FREQ / cpuclock;
     dev->vendor = info->local;
 
     dev->irq_line = 9;
@@ -1604,8 +1626,7 @@ acpi_init(const device_t *info)
 		break;
     }
 
-    timer_add(&dev->timer, acpi_timer_count, dev, 0);
-    timer_set_delay_u64(&dev->timer, ACPICONST);
+    timer_add(&dev->timer, acpi_timer_overflow, dev, 0);
     timer_add(&dev->resume_timer, acpi_timer_resume, dev, 0);
 
     acpi_reset(dev);

@@ -67,7 +67,7 @@ apm_out(uint16_t port, uint8_t val, void *p)
     if (port == 0x0000) {
 	dev->cmd = val;
 	if (dev->do_smi)
-    		smi_line = 1;
+    		smi_raise();
     } else
 	dev->stat = val;
 }

@@ -176,7 +176,7 @@ sis_85c50x_write(int func, int addr, uint8_t val, void *priv)
 	case 0x60:	/* SMI */
 		if ((dev->pci_conf[0x68] & 0x01) && !(dev->pci_conf[addr] & 0x02) && (val & 0x02)) {
 			dev->pci_conf[0x69] |= 0x01;
-			smi_line = 1;
+			smi_raise();
 		}
 		dev->pci_conf[addr] = val & 0x3e;
 		break;

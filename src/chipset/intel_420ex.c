@@ -19,6 +19,7 @@
 #include <string.h>
 #include <wchar.h>
 #include <86box/86box.h>
+#include "cpu.h"
 #include <86box/device.h>
 #include <86box/io.h>
 #include <86box/apm.h>
@@ -316,10 +317,8 @@ i420ex_write(int func, int addr, uint8_t val, void *priv)
 				dev->fast_off_period = PCICLK * 32768.0;
 				break;
 		}
-		cpu_fast_off_count = dev->regs[0xa8] + 1;
-		timer_disable(&dev->fast_off_timer);
-		if (dev->fast_off_period != 0.0)
-			timer_on_auto(&dev->fast_off_timer, dev->fast_off_period);
+		cpu_fast_off_count = cpu_fast_off_val + 1;
+		cpu_fast_off_period_set(cpu_fast_off_val, dev->fast_off_period);
 		break;
 	case 0xa2:
 		dev->regs[addr] = val & 0xff;
@@ -347,9 +346,7 @@ i420ex_write(int func, int addr, uint8_t val, void *priv)
 		dev->regs[addr] = val & 0xff;
 		cpu_fast_off_val = val;
 		cpu_fast_off_count = val + 1;
-		timer_disable(&dev->fast_off_timer);
-		if (dev->fast_off_period != 0.0)
-			timer_on_auto(&dev->fast_off_timer, dev->fast_off_period);
+		cpu_fast_off_period_set(cpu_fast_off_val, dev->fast_off_period);
 		break;
     }
 }
@@ -422,13 +419,8 @@ i420ex_fast_off_count(void *priv)
 
     cpu_fast_off_count--;
 
-    if (cpu_fast_off_count == 0) {
-	smi_line = 1;
-	dev->regs[0xaa] |= 0x20;
-	cpu_fast_off_count = dev->regs[0xa8] + 1;
-    }
-
-    timer_on_auto(&dev->fast_off_timer, dev->fast_off_period);
+    smi_raise();
+    dev->regs[0xaa] |= 0x20;
 }
 
 
@@ -512,6 +504,8 @@ i420ex_init(const device_t *info)
 
     cpu_fast_off_val = dev->regs[0xa8];
     cpu_fast_off_count = cpu_fast_off_val + 1;
+
+    cpu_register_fast_off_handler(&dev->fast_off_timer);
 
     dev->apm = device_add(&apm_pci_device);
     /* APM intercept handler to update 82420EX SMI status on APM SMI. */

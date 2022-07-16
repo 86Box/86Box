@@ -288,7 +288,7 @@ memory_pci_bridge_write(int func, int addr, uint8_t val, void *priv)
 
 		if ((dev->pci_conf[0x9b] & 1) && !!(val & 2))
 		{
-			smi_line = 1;
+			smi_raise();
 			dev->pci_conf[0x9d] |= 1;
 		}
 		break;

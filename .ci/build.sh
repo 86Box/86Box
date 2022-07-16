@@ -52,8 +52,21 @@ make_tar() {
 	# Install dependencies.
 	if ! which tar xz > /dev/null 2>&1
 	then
-		which apt-get > /dev/null 2>&1 && DEBIAN_FRONTEND=noninteractive sudo apt-get install -y tar xz-utils
+		if which apt-get > /dev/null 2>&1
+		then
+			sudo apt-get update
+			DEBIAN_FRONTEND=noninteractive sudo apt-get install -y tar xz-utils
+			sudo apt-get clean
+		elif which port > /dev/null 2>&1
+		then
+			sudo port selfupdate
+			sudo port install gnutar xz
+		fi
 	fi
+
+	# Use MacPorts gnutar (if installed) on macOS.
+	local tar_cmd=tar
+	which gnutar > /dev/null 2>&1 && local tar_cmd=gnutar
 
 	# Determine the best supported compression type.
 	local compression_flag=
@@ -80,7 +93,7 @@ make_tar() {
 	# --uid/gid (bsdtar) or even none at all (MSYS2 bsdtar). Account for such
 	# flag differences by checking if they're mentioned on the help text.
 	local ownership_flags=
-	local tar_help=$(tar --help 2>&1)
+	local tar_help=$("$tar_cmd" --help 2>&1)
 	if echo $tar_help | grep -q -- --owner
 	then
 		local ownership_flags="--owner=0 --group=0"
@@ -90,7 +103,7 @@ make_tar() {
 	fi
 
 	# Run tar.
-	tar -c $compression_flag -f "$1$compression_ext" $ownership_flags *
+	"$tar_cmd" -c $compression_flag -f "$1$compression_ext" $ownership_flags *
 	return $?
 }
 

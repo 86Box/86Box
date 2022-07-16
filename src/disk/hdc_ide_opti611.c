@@ -152,7 +152,7 @@ opti611_ide_write(uint16_t addr, uint8_t val, void *priv)
     uint8_t smibe = (addr & 0x0003);
 
     if (dev->regs[0x03] & 0x02) {
-	smi_line = 1;
+	smi_raise();
 	dev->regs[0x02] = smia9 | smia2 | smibe;
 	dev->regs[0x04] = val;
     }
@@ -169,7 +169,7 @@ opti611_ide_writew(uint16_t addr, uint16_t val, void *priv)
     uint8_t smibe = (addr & 0x0002) | 0x0001;
 
     if (dev->regs[0x03] & 0x02) {
-	smi_line = 1;
+	smi_raise();
 	dev->regs[0x02] = smia9 | smia2 | smibe;
 	dev->regs[0x04] = 0x00;
     }
@@ -185,7 +185,7 @@ opti611_ide_writel(uint16_t addr, uint32_t val, void *priv)
     uint8_t smia2 = (!!(addr & 0x0004)) << 4;
 
     if (dev->regs[0x03] & 0x02) {
-	smi_line = 1;
+	smi_raise();
 	dev->regs[0x02] = smia9 | smia2 | 0x0003;
 	dev->regs[0x04] = 0x00;
     }
@@ -202,7 +202,7 @@ opti611_ide_read(uint16_t addr, void *priv)
     uint8_t smibe = (addr & 0x0003);
 
     if (dev->regs[0x03] & 0x02) {
-	smi_line = 1;
+	smi_raise();
 	dev->regs[0x02] = smia9 | smia2 | smibe;
 	dev->regs[0x04] = 0x00;
     }
@@ -229,7 +229,7 @@ opti611_ide_readw(uint16_t addr, void *priv)
     }
 
     if (dev->regs[0x03] & 0x02) {
-	smi_line = 1;
+	smi_raise();
 	dev->regs[0x02] = smia9 | smia2 | smibe;
 	dev->regs[0x04] = 0x00;
     }
@@ -247,7 +247,7 @@ opti611_ide_readl(uint16_t addr, void *priv)
     uint8_t smia2 = (!!(addr & 0x0004)) << 4;
 
     if (dev->regs[0x03] & 0x02) {
-	smi_line = 1;
+	smi_raise();
 	dev->regs[0x02] = smia9 | smia2 | 0x0003;
 	dev->regs[0x04] = 0x00;
     }

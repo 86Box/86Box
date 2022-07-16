@@ -743,4 +743,12 @@ extern uint8_t	do_translate, do_translate2;
 
 extern void	reset_808x(int hard);
 
+extern void	cpu_register_fast_off_handler(void *timer);
+extern void	cpu_fast_off_advance(void);
+extern void	cpu_fast_off_period_set(uint16_t vla, double period);
+extern void	cpu_fast_off_reset(void);
+
+extern void	smi_raise();
+extern void	nmi_raise();
+
 #endif	/*EMU_CPU_H*/

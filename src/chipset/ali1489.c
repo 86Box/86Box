@@ -197,7 +197,9 @@ ali1489_defaults(ali1489_t *dev)
 
     picintc(1 << 10);
     picintc(1 << 15);
+#ifdef OLD_NMI_BEHAVIOR
     nmi = 0;
+#endif
     smi_line = 0;
     in_smm = 0;
 
@@ -316,10 +318,10 @@ ali1489_write(uint16_t addr, uint8_t val, void *priv)
 					if (((val & 0x14) == 0x14) && !(old & 0x08) && (val & 0x08)) {
 						switch (dev->regs[0x35] & 0x30) {
 							case 0x00:
-								smi_line = 1;
+								smi_raise();
 								break;
 							case 0x10:
-								nmi = 1;
+								nmi_raise();
 								break;
 							case 0x20:
 								picint(1 << 15);

@@ -1068,7 +1068,9 @@ vid_in_200(uint16_t addr, void *priv)
 	case 0x03dd:
 		ret = vid->crtc_index;		/* Read NMI reason */
 		vid->crtc_index &= 0x1f;	/* Reset NMI reason */
+#ifdef OLD_NMI_BEHAVIOR
 		nmi = 0;			/* And reset NMI flag */
+#endif
 		return(ret);
 
 	case 0x03de:
@@ -1106,7 +1108,7 @@ vid_out_200(uint16_t addr, uint8_t val, void *priv)
 		if (!(vid->operation_ctrl & 0x40) && mda->crtcreg <= 11) {
 			vid->crtc_index = 0x20 | (mda->crtcreg & 0x1f);
 			if (vid->operation_ctrl & 0x80)
-				nmi = 1;
+				nmi_raise();
 			vid->reg_3df = val;
 			return;
 		}
@@ -1127,7 +1129,7 @@ vid_out_200(uint16_t addr, uint8_t val, void *priv)
 		vid->crtc_index &= 0x1F;
 		vid->crtc_index |= 0x80;
 		if (vid->operation_ctrl & 0x80)
-			nmi = 1;
+			nmi_raise();
 		return;
 
 /* 	CGA writes ============================================================== */
@@ -1138,7 +1140,7 @@ vid_out_200(uint16_t addr, uint8_t val, void *priv)
 		if (!(vid->operation_ctrl & 0x40) && cga->crtcreg <= 11) {
 			vid->crtc_index = 0x20 | (cga->crtcreg & 0x1f);
 			if (vid->operation_ctrl & 0x80)
-				nmi = 1;
+				nmi_raise();
 			vid->reg_3df = val;
 			return;
 		}
@@ -1160,7 +1162,7 @@ vid_out_200(uint16_t addr, uint8_t val, void *priv)
 		vid->crtc_index &= 0x1f;
 		vid->crtc_index |= 0x80;
 		if (vid->operation_ctrl & 0x80)
-			nmi = 1;
+			nmi_raise();
 		else
 			set_lcd_cols(val);
 		return;
@@ -1174,7 +1176,7 @@ vid_out_200(uint16_t addr, uint8_t val, void *priv)
 		if (val & 0x80) {
 			vid->operation_ctrl = val;
 			vid->crtc_index |= 0x40;
-			nmi = 1;
+			nmi_raise();
 			return;
 		}
                 timer_disable(&vid->cga.timer);
