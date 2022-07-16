@@ -1499,7 +1499,7 @@ static void
     if (dev->type < 4) {
 	cpu_fast_off_val = dev->regs[0][0xa8];
 	cpu_fast_off_count = cpu_fast_off_val + 1;
-	cpu_fast_off_register(&dev->fast_off_timer);
+	cpu_register_fast_off_handler(&dev->fast_off_timer);
     } else
 	cpu_fast_off_val = cpu_fast_off_count = 0;
 
