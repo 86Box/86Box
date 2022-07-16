@@ -73,7 +73,7 @@ uint32_t addr64, addr64_2;
 uint32_t addr64a[8], addr64a_2[8];
 
 static timer_t *cpu_fast_off_timer = NULL;
-static double *cpu_fast_off_period = NULL;
+static double cpu_fast_off_period = 0.0;
 
 
 #define AMD_SYSCALL_EIP	(msr.star & 0xFFFFFFFF)
@@ -1842,28 +1842,35 @@ sysret(uint32_t fetchdat)
 
 
 void
-cpu_register_fast_off_handler(void *timer, double *period)
+cpu_register_fast_off_handler(void *timer)
 {
     cpu_fast_off_timer = (timer_t *) timer;
-    cpu_fast_off_period = period;
 }
 
 
 void
 cpu_fast_off_advance(void)
 {
-    if (cpu_fast_off_period && (*cpu_fast_off_period != 0.0))
-	timer_on_auto(cpu_fast_off_timer, *cpu_fast_off_period);
+    timer_disable(cpu_fast_off_timer);
+    if (cpu_fast_off_period != 0.0)
+	timer_on_auto(cpu_fast_off_timer, cpu_fast_off_period);
 }
 
 
 void
 cpu_fast_off_period_set(uint16_t val, double period)
 {
-    if (cpu_fast_off_period) {
-	*cpu_fast_off_period = ((double) (val + 1)) * period;
-	cpu_fast_off_advance();
-    }
+    cpu_fast_off_period = ((double) (val + 1)) * period;
+    cpu_fast_off_advance();
+}
+
+
+void
+cpu_fast_off_reset(void)
+{
+    cpu_register_fast_off_handler(NULL);
+    cpu_fast_off_period = 0.0;
+    cpu_fast_off_advance();
 }
 
 
