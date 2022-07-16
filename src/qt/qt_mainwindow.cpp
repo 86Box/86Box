@@ -229,7 +229,10 @@ MainWindow::MainWindow(QWidget *parent) :
     });
 
     connect(this, &MainWindow::resizeContents, this, [this](int w, int h) {
-        ui->stackedWidget->setFixedSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
+        if (shownonce) {
+            if (resizableonce == false) ui->stackedWidget->setFixedSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
+            resizableonce = true;
+        }
         if (!QApplication::platformName().contains("eglfs") && vid_resize != 1) {
             w = (w / (!dpi_scale ? util::screenOfWidget(this)->devicePixelRatio() : 1.));
 
@@ -558,7 +561,7 @@ void MainWindow::closeEvent(QCloseEvent *event) {
             if (renderers[i]) {
                 monitor_settings[i].mon_window_w = renderers[i]->geometry().width();
                 monitor_settings[i].mon_window_h = renderers[i]->geometry().height();
-                if (!QApplication::platformName().contains("wayland")) continue;
+                if (QApplication::platformName().contains("wayland")) continue;
                 monitor_settings[i].mon_window_x = renderers[i]->geometry().x();
                 monitor_settings[i].mon_window_y = renderers[i]->geometry().y();
             }
@@ -582,7 +585,6 @@ void MainWindow::initRendererMonitorSlot(int monitor_index)
     auto& secondaryRenderer = this->renderers[monitor_index];
     secondaryRenderer.reset(new RendererStack(nullptr, monitor_index));
     if (secondaryRenderer) {
-        connect(this, &MainWindow::pollMouse, secondaryRenderer.get(), &RendererStack::mousePoll, Qt::DirectConnection);
         connect(secondaryRenderer.get(), &RendererStack::rendererChanged, this, [this, monitor_index]
         {
             this->renderers[monitor_index]->show();
