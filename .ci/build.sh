@@ -59,11 +59,12 @@ make_tar() {
 			sudo apt-get clean
 		elif which port > /dev/null 2>&1
 		then
+			sudo port selfupdate
 			sudo port install gnutar xz
 		fi
 	fi
-	
-	# Prefer gnutar on macOS.
+
+	# Use MacPorts gnutar (if installed) on macOS.
 	local tar_cmd=tar
 	which gnutar > /dev/null 2>&1 && local tar_cmd=gnutar
 
