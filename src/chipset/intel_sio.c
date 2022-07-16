@@ -432,7 +432,7 @@ sio_fast_off_count(void *priv)
     cpu_fast_off_count--;
 
     if (cpu_fast_off_count == 0) {
-	smi_line = 1;
+	smi_raise();
 	dev->regs[0xaa] |= 0x20;
 	cpu_fast_off_count = dev->regs[0xa8] + 1;
     }

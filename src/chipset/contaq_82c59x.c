@@ -242,7 +242,7 @@ contaq_82c59x_write(uint16_t addr, uint8_t val, void *priv)
 				dev->regs[dev->index] = val;
 				if (val & 0x80) {
 					if (dev->regs[0x65] & 0x80)
-						smi_line = 1;
+						smi_raise();
 					dev->smi_status[0] |= 0x10;
 				}
 				break;

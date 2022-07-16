@@ -230,7 +230,7 @@ ims8848_write(uint16_t addr, uint8_t val, void *priv)
 					if (dev->idx == 0x1b) {
 						ims8848_smram(dev);
 						if (!(old & 0x10) && (val & 0x10))
-							smi_line = 1;
+							smi_raise();
 					} else if (dev->idx == 0x1c)
 						pci_set_irq_routing(PCI_INTA, (val >> 4) ? (val >> 4) : PCI_IRQ_DISABLED);
 					break;

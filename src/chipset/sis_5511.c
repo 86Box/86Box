@@ -225,7 +225,7 @@ sis_5511_write(int func, int addr, uint8_t val, void *priv)
 	case 0x60:
 		dev->pci_conf[addr] = val & 0x3e;
 		if ((dev->pci_conf[0x68] & 1) && (val & 2)) {
-			smi_line = 1;
+			smi_raise();
 			dev->pci_conf[0x69] |= 1;
 		}
 		break;
