@@ -22,6 +22,7 @@
 #include <86box/fdd.h>
 #include <86box/fdc.h>
 #include <86box/keyboard.h>
+#include <86box/timer.h>
 #include "386_common.h"
 #include "x86_flags.h"
 #include "x86seg.h"
@@ -70,6 +71,9 @@ int smm_in_hlt = 0, smi_block = 0;
 
 uint32_t addr64, addr64_2;
 uint32_t addr64a[8], addr64a_2[8];
+
+static timer_t *cpu_fast_off_timer = NULL;
+static double *cpu_fast_off_period = NULL;
 
 
 #define AMD_SYSCALL_EIP	(msr.star & 0xFFFFFFFF)
@@ -1838,10 +1842,36 @@ sysret(uint32_t fetchdat)
 
 
 void
+cpu_register_fast_off_handler(void *timer, double *period)
+{
+    cpu_fast_off_timer = (timer_t *) timer;
+    cpu_fast_off_period = period;
+}
+
+
+void
+cpu_fast_off_advance(void)
+{
+    if (cpu_fast_off_period && (*cpu_fast_off_period != 0.0))
+	timer_on_auto(cpu_fast_off_timer, *cpu_fast_off_period);
+}
+
+
+void
+cpu_fast_off_period_set(uint16_t val, double period)
+{
+    if (cpu_fast_off_period) {
+	*cpu_fast_off_period = ((double) (val + 1)) * period;
+	cpu_fast_off_advance();
+    }
+}
+
+
+void
 smi_raise(void)
 {
     if (is486 && (cpu_fast_off_flags & 0x80000000))
-	cpu_fast_off_count = cpu_fast_off_val + 1;
+	cpu_fast_off_advance();
 
     smi_line = 1;
 }
@@ -1851,7 +1881,7 @@ void
 nmi_raise(void)
 {
     if (is486 && (cpu_fast_off_flags & 0x20000000))
-	cpu_fast_off_count = cpu_fast_off_val + 1;
+	cpu_fast_off_advance();
 }
 
 
