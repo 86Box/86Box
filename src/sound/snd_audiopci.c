@@ -306,9 +306,7 @@ es1371_reset(void *p)
     es1371_t *dev = (es1371_t *) p;
     int       i;
 
-#ifdef OLD_NMI_BEHAVIOR
     nmi = 0;
-#endif
 
     /* Interrupt/Chip Select Control Register, Address 00H
        Addressable as byte, word, longword */
