@@ -245,7 +245,7 @@ sigma_out(uint16_t addr, uint8_t val, void *p)
 		sigma->lastport &= 0x7F;
 		return;
 	case 0x2DC:	/* Reset NMI */
-#idef OLD_NMI_BEHAVIOR
+#ifdef OLD_NMI_BEHAVIOR
 		nmi = 0;
 #endif
 		sigma->lastport &= 0x7F;
