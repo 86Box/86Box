@@ -1183,9 +1183,6 @@ enter_smm(int in_hlt)
 void
 enter_smm_check(int in_hlt)
 {
-    if (smi_line && (cpu_fast_off_flags & 0x80000000))
-	cpu_fast_off_count = cpu_fast_off_val + 1;
-
     if ((in_smm == 0) && smi_line) {
 #ifdef ENABLE_386_COMMON_LOG
 	x386_common_log("SMI while not in SMM\n");
@@ -1837,6 +1834,24 @@ sysret(uint32_t fetchdat)
     in_sys = 0;
 
     return 1;
+}
+
+
+void
+raise_smi(void)
+{
+    if (is486 && (cpu_fast_off_flags & 0x80000000))
+	cpu_fast_off_count = cpu_fast_off_val + 1;
+
+    smi_line = 1;
+}
+
+
+void
+raise_nmi(void)
+{
+    if (is486 && (cpu_fast_off_flags & 0x20000000))
+	cpu_fast_off_count = cpu_fast_off_val + 1;
 }
 
 
