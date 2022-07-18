@@ -197,9 +197,7 @@ ali1489_defaults(ali1489_t *dev)
 
     picintc(1 << 10);
     picintc(1 << 15);
-#ifdef OLD_NMI_BEHAVIOR
     nmi = 0;
-#endif
     smi_line = 0;
     in_smm = 0;
 

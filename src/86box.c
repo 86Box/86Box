@@ -409,8 +409,10 @@ pc_init(int argc, char *argv[])
 	char temp[2048];
 	struct tm *info;
 	time_t now;
-	int c;
-	int ng = 0, lvmp = 0;
+	int c, lvmp = 0;
+#ifdef ENABLE_NG
+	int ng = 0;
+#endif
 #ifdef _WIN32
 	uint32_t *uid, *shwnd;
 #endif
@@ -492,12 +494,14 @@ usage:
 			   !strcasecmp(argv[c], "-D")) {
 			force_debug = 1;
 #endif
+#ifdef ENABLE_NG
 		} else if (!strcasecmp(argv[c], "--nographic") ||
 			   !strcasecmp(argv[c], "-E")) {
 			/* Currently does nothing, but if/when we implement a built-in manager,
 			   it's going to force the manager not to run, allowing the old usage
 			   without parameter. */
 			ng = 1;
+#endif
 		} else if (!strcasecmp(argv[c], "--fullscreen") ||
 			   !strcasecmp(argv[c], "-F")) {
 			start_in_fullscreen = 1;
@@ -1263,8 +1267,6 @@ pc_onesec(void)
 void
 set_screen_size_monitor(int x, int y, int monitor_index)
 {
-    int owsx = monitors[monitor_index].mon_scrnsz_x;
-    int owsy = monitors[monitor_index].mon_scrnsz_y;
     int temp_overscan_x = monitors[monitor_index].mon_overscan_x;
     int temp_overscan_y = monitors[monitor_index].mon_overscan_y;
     double dx, dy, dtx, dty;

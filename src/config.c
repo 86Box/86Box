@@ -587,11 +587,9 @@ load_general(void)
     confirm_exit = config_get_int(cat, "confirm_exit", 1);
     confirm_save = config_get_int(cat, "confirm_save", 1);
 
-	p = config_get_string(cat, "language", NULL);
-	if (p != NULL)
-	{
-		lang_id = plat_language_code(p);
-	}
+    p = config_get_string(cat, "language", NULL);
+    if (p != NULL)
+	lang_id = plat_language_code(p);
 
     mouse_sensitivity = config_get_double(cat, "mouse_sensitivity", 1.0);
     if (mouse_sensitivity < 0.5)
@@ -599,11 +597,11 @@ load_general(void)
     else if (mouse_sensitivity > 2.0)
         mouse_sensitivity = 2.0;
 
-	p = config_get_string(cat, "iconset", NULL);
-	if (p != NULL)
-		strcpy(icon_set, p);
-	else
-		strcpy(icon_set, "");
+    p = config_get_string(cat, "iconset", NULL);
+    if (p != NULL)
+	strcpy(icon_set, p);
+    else
+	strcpy(icon_set, "");
 
     enable_discord = !!config_get_int(cat, "enable_discord", 0);
 
@@ -2224,7 +2222,7 @@ static void
 save_general(void)
 {
     char *cat = "General";
-    char temp[512];
+    char temp[512], buffer[512] = {0};
 
     char *va_name;
 
@@ -2233,11 +2231,10 @@ save_general(void)
 	config_delete_var(cat, "vid_resize");
 
     va_name = plat_vidapi_name(vid_api);
-    if (!strcmp(va_name, "default")) {
+    if (!strcmp(va_name, "default"))
 	config_delete_var(cat, "vid_renderer");
-    } else {
+    else
 	config_set_string(cat, "vid_renderer", va_name);
-    }
 
     if (video_fullscreen_scale == 0)
 	config_delete_var(cat, "video_fullscreen_scale");
@@ -2304,9 +2301,8 @@ save_general(void)
 		config_set_int(cat, "window_remember", window_remember);
 	else
 		config_delete_var(cat, "window_remember");
-    } else {
+    } else
 	config_delete_var(cat, "window_remember");
-    }
 
     if (vid_resize & 2) {
 	sprintf(temp, "%ix%i", fixed_size_x, fixed_size_y);
@@ -2356,17 +2352,15 @@ save_general(void)
 
     if (lang_id == DEFAULT_LANGUAGE)
 	config_delete_var(cat, "language");
-      else
-	  {
-		char buffer[512] = {0};
-		plat_language_code_r(lang_id, buffer, 511);
-		config_set_string(cat, "language", buffer);
-	  }
+    else {
+	plat_language_code_r(lang_id, buffer, 511);
+	config_set_string(cat, "language", buffer);
+    }
 
-	if (!strcmp(icon_set, ""))
-		config_delete_var(cat, "iconset");
-	else
-		config_set_string(cat, "iconset", icon_set);
+    if (!strcmp(icon_set, ""))
+	config_delete_var(cat, "iconset");
+    else
+	config_set_string(cat, "iconset", icon_set);
 
     if (enable_discord)
 	config_set_int(cat, "enable_discord", enable_discord);
