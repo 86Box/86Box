@@ -272,6 +272,8 @@ reset_common(int hard)
 	loadcs(0xF000);
 	cpu_state.pc = 0xFFF0;
 	rammask = cpu_16bitbus ? 0xFFFFFF : 0xFFFFFFFF;
+	if (is6117)
+		rammask |= 0x03000000;
     }
     idt.base = 0;
     cpu_state.flags = 2;

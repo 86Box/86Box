@@ -1173,6 +1173,8 @@ enter_smm(int in_hlt)
     if (unmask_a20_in_smm) {
 	old_rammask = rammask;
 	rammask = cpu_16bitbus ? 0xFFFFFF : 0xFFFFFFFF;
+	if (is6117)
+		rammask |= 0x3000000;
 
 	flushmmucache();
     }
