@@ -41,10 +41,47 @@ typedef struct ali6117_t
     uint32_t	local;
 
     /* Main registers (port 22h/23h) */
-    uint8_t	unlocked;
+    uint8_t	unlocked, mode;
     uint8_t	reg_offset;
     uint8_t	regs[256];
 } ali6117_t;
+
+
+/* Total size, Bank 0 size, Bank 1 size, Bank 2 size, Bank 3 size. */
+static uint32_t ali6117_modes[32][5] = {
+    {  1024,   512,   512,     0,     0 },
+    {  2048,   512,   512,   512,   512 },
+    {  3072,   512,   512,  2048,     0 },
+    {  5120,   512,   512,  2048,  2048 },
+    {  9216,   512,   512,  8192,     0 },
+    {  1024,  1024,     0,     0,     0 },
+    {  2048,  1024,  1024,     0,     0 },
+    {  4096,  1024,  1024,  2048,     0 },
+    {  6144,  1024,  1024,  2048,  2048 },
+    { 10240,  1024,  1024,  8192,     0 },
+    { 18432,  1024,  1024,  8192,  8192 },
+    {  3072,  1024,  2048,     0,     0 },
+    {  5120,  1024,  2048,  2048,     0 },
+    {  9216,  1024,  8192,     0,     0 },
+    {  2048,  2048,     0,     0,     0 },
+    {  4096,  2048,  2048,     0,     0 },
+    {  6144,  2048,  2048,  2048,     0 },
+    {  8192,  2048,  2048,  2048,  2048 },
+    { 12288,  2048,  2048,  8192,     0 },
+    { 20480,  2048,  2048,  8192,  8192 },
+    { 10240,  2048,  8192,     0,     0 },
+    { 18432,  2048,  8192,  8192,     0 },
+    { 26624,  2048,  8192,  8192,  8192 },
+    {  4096,  4096,     0,     0,     0 },
+    {  8192,  4096,  4096,     0,     0 },
+    { 24576,  4096,  4096,  8192,  8192 },
+    { 12288,  4096,  8192,     0,     0 },
+    {  8192,  8192,     0,     0,     0 },
+    { 16384,  8192,  8192,     0,     0 },
+    { 24576,  8192,  8192,  8192,     0 },
+    { 32768,  8192,  8192,  8192,  8192 },
+    { 65536, 32768, 32768,     0,     0 }
+};
 
 
 #ifdef ENABLE_ALI6117_LOG
@@ -114,9 +151,55 @@ ali6117_recalcmapping(ali6117_t *dev)
 
 
 static void
+ali6117_bank_recalc(ali6117_t *dev)
+{
+    int i;
+    uint32_t bank, addr;
+
+    for (i = 0x00000000; i < (mem_size << 10); i += 4096) {
+	if ((i >= 0x000a0000) && (i < 0x00100000))
+		continue;
+
+	if (!is6117 && (i >= 0x00f00000) && (i < 0x01000000))
+		continue;
+
+	if (is6117 && (i >= 0x03f00000) && (i < 0x04000000))
+		continue;
+
+	switch (dev->regs[0x10] & 0xf8) {
+		case 0xe8:
+			bank = (i >> 12) & 3;
+			addr = (i & 0xfff) | ((i >> 14) << 12);
+			ali6117_log("E8 (%08X): Bank %i, address %08X vs. bank size %08X\n", i, bank, addr, ali6117_modes[dev->mode][bank + 1] * 1024);
+			if (addr < (ali6117_modes[dev->mode][bank + 1] * 1024))
+				mem_set_mem_state_both(i, 4096, MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
+			else
+				mem_set_mem_state_both(i, 4096, MEM_READ_EXTANY | MEM_WRITE_EXTANY);
+			break;
+		case 0xf8:
+			bank = (i >> 12) & 1;
+			addr = (i & 0xfff) | ((i >> 13) << 12);
+			ali6117_log("F8 (%08X): Bank %i, address %08X vs. bank size %08X\n", i, bank, addr, ali6117_modes[dev->mode][bank + 1] * 1024);
+			if (addr < (ali6117_modes[dev->mode][bank + 1] * 1024))
+				mem_set_mem_state_both(i, 4096, MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
+			else
+				mem_set_mem_state_both(i, 4096, MEM_READ_EXTANY | MEM_WRITE_EXTANY);
+			break;
+		default:
+			mem_set_mem_state_both(i, 4096, MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
+			break;
+	}
+    }
+
+    flushmmucache();
+}
+
+
+static void
 ali6117_reg_write(uint16_t addr, uint8_t val, void *priv)
 {
     ali6117_t *dev = (ali6117_t *) priv;
+    int i;
 
     ali6117_log("ALI6117: reg_write(%04X, %02X)\n", addr, val);
 
@@ -135,6 +218,14 @@ ali6117_reg_write(uint16_t addr, uint8_t val, void *priv)
 
 		case 0x10:
 			refresh_at_enable = !(val & 0x02) || !!(dev->regs[0x20] & 0x80);
+			dev->regs[dev->reg_offset] = val;
+
+			if (val & 0x04)
+				mem_set_mem_state_both(0x00f00000, 0x00100000, MEM_READ_EXTANY | MEM_WRITE_EXTANY);
+			else
+				mem_set_mem_state_both(0x00f00000, 0x00100000, MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
+
+			ali6117_bank_recalc(dev);
 			break;
 
 		case 0x12:
@@ -326,6 +417,10 @@ ali6117_reset(void *priv)
     cpu_set_isa_speed(7159091);
 
     refresh_at_enable = 1;
+
+    /* On-board memory 15-16M is enabled by default. */
+    mem_set_mem_state_both(0x00f00000, 0x00100000, MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
+    ali6117_bank_recalc(dev);
 }
 
 
@@ -357,6 +452,8 @@ ali6117_close(void *priv)
 static void *
 ali6117_init(const device_t *info)
 {
+    int i, last_match = 0;
+
     ali6117_log("ALI6117: init()\n");
 
     ali6117_t *dev = (ali6117_t *) malloc(sizeof(ali6117_t));
@@ -367,6 +464,14 @@ ali6117_init(const device_t *info)
     device_add(&ide_isa_device);
 
     ali6117_setup(dev);
+
+    for (i = 31; i >= 0; i--) {
+	if ((mem_size >= ali6117_modes[i][0]) && (ali6117_modes[i][0] > last_match)) {
+		last_match = ali6117_modes[i][0];
+		dev->mode = i;
+	}
+    }
+
     ali6117_reset(dev);
 
     if (!(dev->local & 0x08))
