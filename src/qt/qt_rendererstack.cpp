@@ -314,7 +314,6 @@ RendererStack::createRenderer(Renderer renderer)
                 connect(hw, &OpenGLRenderer::errorInitializing, [=]() {
                     /* Renderer not could initialize, fallback to software. */
                     imagebufs = {};
-                    endblit();
                     QTimer::singleShot(0, this, [this]() { switchRenderer(Renderer::Software); });
                 });
                 current.reset(this->createWindowContainer(hw, this));
@@ -332,7 +331,6 @@ RendererStack::createRenderer(Renderer renderer)
                 msgBox->setAttribute(Qt::WA_DeleteOnClose);
                 msgBox->show();
                 imagebufs = {};
-                endblit();
                 QTimer::singleShot(0, this, [this]() { switchRenderer(Renderer::Software); });
             });
             connect(hw, &D3D9Renderer::initialized, this, [this]()
@@ -356,7 +354,6 @@ RendererStack::createRenderer(Renderer renderer)
                 msgBox->setAttribute(Qt::WA_DeleteOnClose);
                 msgBox->show();
                 imagebufs = {};
-                endblit();
                 QTimer::singleShot(0, this, [this]() { switchRenderer(Renderer::Software); });
                 current.reset(nullptr);
                 break;
@@ -375,7 +372,6 @@ RendererStack::createRenderer(Renderer renderer)
                 msgBox->setAttribute(Qt::WA_DeleteOnClose);
                 msgBox->show();
                 imagebufs = {};
-                endblit();
                 QTimer::singleShot(0, this, [this]() { switchRenderer(Renderer::Software); });
             });
             current.reset(this->createWindowContainer(hw, this));
