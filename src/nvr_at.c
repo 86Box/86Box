@@ -466,11 +466,11 @@ timer_update(void *priv)
 		check_alarm_via(nvr, RTC_MONTH, RTC_ALMONT_SIS)*/) {
 		nvr->regs[RTC_REGC] |= REGC_AF;
 		if (nvr->regs[RTC_REGB] & REGB_AIE) {
-			nvr->regs[RTC_REGC] |= REGC_IRQF;
-
 			/* Generate an interrupt. */
-			if (nvr->irq != -1)
+			if ((nvr->irq != -1) && (!(nvr->regs[RTC_REGC] & REGC_IRQF)))
 				picint(1 << nvr->irq);
+
+			nvr->regs[RTC_REGC] |= REGC_IRQF;
 		}
 	}
 
@@ -480,11 +480,11 @@ timer_update(void *priv)
 	 */
 	nvr->regs[RTC_REGC] |= REGC_UF;
 	if (nvr->regs[RTC_REGB] & REGB_UIE) {
-		nvr->regs[RTC_REGC] |= REGC_IRQF;
-
 		/* Generate an interrupt. */
-		if (nvr->irq != -1)
+		if ((nvr->irq != -1) && (!(nvr->regs[RTC_REGC] & REGC_IRQF)))
 			picint(1 << nvr->irq);
+
+		nvr->regs[RTC_REGC] |= REGC_IRQF;
 	}
     }
 }
@@ -532,11 +532,11 @@ timer_intr(void *priv)
 
 	nvr->regs[RTC_REGC] |= REGC_PF;
 	if (nvr->regs[RTC_REGB] & REGB_PIE) {
-		nvr->regs[RTC_REGC] |= REGC_IRQF;
-
 		/* Generate an interrupt. */
-		if (nvr->irq != -1)
+		if ((nvr->irq != -1) && (!(nvr->regs[RTC_REGC] & REGC_IRQF)))
 			picint(1 << nvr->irq);
+
+		nvr->regs[RTC_REGC] |= REGC_IRQF;
 	}
     }
 }
