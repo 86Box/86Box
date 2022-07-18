@@ -141,6 +141,7 @@ private:
     /* If main window should send keyboard input */
     bool send_keyboard_input = true;
     bool shownonce = false;
+    bool resizableonce = false;
 
     friend class SpecifyDimensions;
     friend class ProgSettings;

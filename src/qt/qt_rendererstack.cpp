@@ -34,6 +34,7 @@
 
 #include "evdev_mouse.hpp"
 
+#include <atomic>
 #include <stdexcept>
 
 #include <QScreen>
@@ -53,8 +54,8 @@ double mouse_sensitivity = 1.0;
 }
 
 struct mouseinputdata {
-    int deltax, deltay, deltaz;
-    int mousebuttons;
+    atomic_int deltax, deltay, deltaz;
+    atomic_int mousebuttons;
 };
 static mouseinputdata mousedata;
 
@@ -145,7 +146,7 @@ int ignoreNextMouseEvent = 1;
 void
 RendererStack::mouseReleaseEvent(QMouseEvent *event)
 {
-    if (this->geometry().contains(event->pos()) && event->button() == Qt::LeftButton && !mouse_capture && (isMouseDown & 1)) {
+    if (this->geometry().contains(event->pos()) && event->button() == Qt::LeftButton && !mouse_capture && (isMouseDown & 1) && mouse_get_buttons() != 0) {
         plat_mouse_capture(1);
         this->setCursor(Qt::BlankCursor);
         if (!ignoreNextMouseEvent)
@@ -164,6 +165,7 @@ RendererStack::mouseReleaseEvent(QMouseEvent *event)
     }
     isMouseDown &= ~1;
 }
+
 void
 RendererStack::mousePressEvent(QMouseEvent *event)
 {
@@ -173,6 +175,7 @@ RendererStack::mousePressEvent(QMouseEvent *event)
     }
     event->accept();
 }
+
 void
 RendererStack::wheelEvent(QWheelEvent *event)
 {

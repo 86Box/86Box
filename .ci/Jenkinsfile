@@ -113,9 +113,9 @@ def gitClone(repository, branch) {
 		} else if (env.GIT_COMMIT != scmVars.GIT_COMMIT) {
 			/* Checkout the commit read from the polling log. */
 			if (isUnix())
-				sh returnStatus: true, script: "git checkout ${env.GIT_COMMIT}"
+				sh(returnStatus: true, script: "git checkout ${env.GIT_COMMIT}")
 			else
-				bat returnStatus: true, script: "git checkout ${env.GIT_COMMIT}"
+				bat(returnStatus: true, script: "git checkout ${env.GIT_COMMIT}")
 		}
 		println "[-] Using git commit [${env.GIT_COMMIT}]"
 
@@ -173,8 +173,10 @@ pipeline {
 
 			steps {
 				script {
-					/* Extract the polled commit from the polling log, so that git checkout can be used
-					   to avoid JENKINS-20518 race conditions caused by two pushes too close together. */
+					/* Extract the polled commit from the polling log, so that git checkout
+					   can be used to avoid JENKINS-20518 race conditions caused by the
+					   webhook being triggered more than once in a short period of time.
+					   This is a backup strategy for FilterProxy's webhook queuing. */
 					node('master') { /* must run on master node to read polling log */
 						/* Ignore exceptions as this is not really critical. */
 						try {

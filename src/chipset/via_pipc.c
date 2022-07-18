@@ -728,10 +728,8 @@ pipc_fmnmi_read(uint16_t addr, void *priv)
     if  (dev->ac97_regs[0][0x48] & 0x01) {
 	if (dev->ac97_regs[0][0x48] & 0x04)
 		smi_line = 0;
-#ifdef OLD_NMI_BEHAVIOR
 	else
 		nmi = 0;
-#endif
     }
 #endif
 
