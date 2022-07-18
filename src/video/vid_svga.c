@@ -460,7 +460,7 @@ svga_recalctimings(svga_t *svga)
 
     svga->hdisp_time = svga->hdisp;
     svga->render = svga_render_blank;
-    if (!svga->scrblank && svga->attr_palette_enable) {
+    if (!svga->scrblank && (svga->crtc[0x17] & 0x80) && svga->attr_palette_enable) {
 	if (!(svga->gdcreg[6] & 1) && !(svga->attrregs[0x10] & 1)) { /*Text mode*/
 		if (svga->seqregs[1] & 8) /*40 column*/ {
 			svga->render = svga_render_text_40;
@@ -658,6 +658,7 @@ svga_poll(void *p)
     uint32_t x, blink_delay;
     int wx, wy;
     int ret, old_ma;
+    int old_vc;
 
     if (!vga_on && ibm8514_enabled && ibm8514_on) {
         ibm8514_poll(&svga->dev8514, svga);
@@ -786,6 +787,7 @@ svga_poll(void *p)
 	        return;
 
 	svga->vc++;
+	old_vc = svga->vc;
 	svga->vc &= 2047;
 
 	if (svga->vc == svga->split) {
