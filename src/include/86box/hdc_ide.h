@@ -143,6 +143,9 @@ extern void	win_cdrom_reload(uint8_t id);
 extern void	ide_set_base(int board, uint16_t port);
 extern void	ide_set_side(int board, uint16_t port);
 
+extern void	ide_set_handlers(uint8_t board);
+extern void	ide_remove_handlers(uint8_t board);
+
 extern void	ide_pri_enable(void);
 extern void	ide_pri_disable(void);
 extern void	ide_sec_enable(void);

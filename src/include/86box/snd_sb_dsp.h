@@ -83,7 +83,7 @@ typedef struct sb_dsp_t {
 
     pc_timer_t output_timer, input_timer;
 
-    uint64_t sblatcho, sblatchi;
+    double sblatcho, sblatchi;
 
     uint16_t sb_addr;
 
