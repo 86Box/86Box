@@ -3079,8 +3079,11 @@ static void *tgui_init(const device_t *info)
 
 	tgui->has_bios = (bios_fn != NULL);
 
-	if (tgui->has_bios)
+	if (tgui->has_bios) {
 		rom_init(&tgui->bios_rom, (char *) bios_fn, 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
+		if (tgui->pci)
+			mem_mapping_disable(&tgui->bios_rom.mapping);
+	}
 
 	if (tgui->pci)
 		video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_tgui_pci);
@@ -3107,7 +3110,7 @@ static void *tgui_init(const device_t *info)
 
         if (tgui->pci && (tgui->type >= TGUI_9440)) {
 		if (tgui->has_bios)
-		tgui->card = pci_add_card(PCI_ADD_VIDEO, tgui_pci_read, tgui_pci_write, tgui);
+			tgui->card = pci_add_card(PCI_ADD_VIDEO, tgui_pci_read, tgui_pci_write, tgui);
 		else
 			tgui->card = pci_add_card(PCI_ADD_VIDEO | PCI_ADD_STRICT, tgui_pci_read, tgui_pci_write, tgui);
 	}

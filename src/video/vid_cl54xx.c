@@ -3708,6 +3708,11 @@ cl_pci_write(int func, int addr, uint8_t val, void *p)
 			io_sethandler(0x03c0, 0x0020, gd54xx_in, NULL, NULL, gd54xx_out, NULL, NULL, gd54xx);
 		if ((val & PCI_COMMAND_MEM) && (gd54xx->vgablt_base != 0x00000000) && (gd54xx->vgablt_base < 0xfff00000))
 			mem_mapping_set_addr(&gd54xx->vgablt_mapping, gd54xx->vgablt_base, 0x1000);
+		if ((gd54xx->pci_regs[PCI_REG_COMMAND] & PCI_COMMAND_MEM) && (gd54xx->pci_regs[0x30] & 0x01)) {
+			uint32_t addr = (gd54xx->pci_regs[0x32] << 16) | (gd54xx->pci_regs[0x33] << 24);
+			mem_mapping_set_addr(&gd54xx->bios_rom.mapping, addr, 0x8000);
+		} else
+			mem_mapping_disable(&gd54xx->bios_rom.mapping);
 		gd543x_recalc_mapping(gd54xx);
 		break;
 
@@ -3735,7 +3740,7 @@ cl_pci_write(int func, int addr, uint8_t val, void *p)
 
 	case 0x30: case 0x32: case 0x33:
 		gd54xx->pci_regs[addr] = val;
-		if (gd54xx->pci_regs[0x30] & 0x01) {
+		if ((gd54xx->pci_regs[PCI_REG_COMMAND] & PCI_COMMAND_MEM) && (gd54xx->pci_regs[0x30] & 0x01)) {
 			uint32_t addr = (gd54xx->pci_regs[0x32] << 16) | (gd54xx->pci_regs[0x33] << 24);
 			mem_mapping_set_addr(&gd54xx->bios_rom.mapping, addr, 0x8000);
 		} else
@@ -4061,8 +4066,10 @@ static void
     }
     io_sethandler(0x03c0, 0x0020, gd54xx_in, NULL, NULL, gd54xx_out, NULL, NULL, gd54xx);
 
-    if (gd54xx->pci && id >= CIRRUS_ID_CLGD5430)
+    if (gd54xx->pci && id >= CIRRUS_ID_CLGD5430) {
 	pci_add_card(PCI_ADD_VIDEO, cl_pci_read, cl_pci_write, gd54xx);
+	mem_mapping_disable(&gd54xx->bios_rom.mapping);
+    }
 
     mem_mapping_set_p(&svga->mapping, gd54xx);
     mem_mapping_disable(&gd54xx->mmio_mapping);
