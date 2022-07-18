@@ -698,3 +698,17 @@ const device_t gameport_sio_device = {
     .force_redraw = NULL,
     .config = NULL
 };
+
+const device_t gameport_sio_1io_device = {
+    .name = "Game port (Super I/O, 1 I/O port)",
+    .internal_name = "gameport_sio",
+    .flags = 0,
+    .local = 0x1010000,
+    .init = gameport_init,
+    .close = gameport_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
+};
