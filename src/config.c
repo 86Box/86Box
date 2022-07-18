@@ -593,9 +593,9 @@ load_general(void)
 
     mouse_sensitivity = config_get_double(cat, "mouse_sensitivity", 1.0);
     if (mouse_sensitivity < 0.5)
-        mouse_sensitivity = 0.5;
+	mouse_sensitivity = 0.5;
     else if (mouse_sensitivity > 2.0)
-        mouse_sensitivity = 2.0;
+	mouse_sensitivity = 2.0;
 
     p = config_get_string(cat, "iconset", NULL);
     if (p != NULL)
