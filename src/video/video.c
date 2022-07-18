@@ -76,35 +76,30 @@
 
 #include <minitrace/minitrace.h>
 
-volatile int	screenshots = 0;
-//bitmap_t	*buffer32 = NULL;
-uint8_t		fontdat[2048][8];		/* IBM CGA font */
-uint8_t		fontdatm[2048][16];		/* IBM MDA font */
-uint8_t		fontdatw[512][32];		/* Wyse700 font */
-uint8_t		fontdat8x12[256][16];		/* MDSI Genius font */
-uint8_t		fontdat12x18[256][36];		/* IM1024 font */
-dbcs_font_t	*fontdatksc5601 = NULL;		/* Korean KSC-5601 font */
-dbcs_font_t	*fontdatksc5601_user = NULL;	/* Korean KSC-5601 user defined font */
-int		herc_blend = 0;
-uint32_t	*video_6to8 = NULL,
-		*video_8togs = NULL,
-		*video_8to32 = NULL,
-		*video_15to32 = NULL,
-        *video_16to32 = NULL;
-int		frames = 0;
-int		fullchange = 0;
-uint8_t		edatlookup[4][4];
-static int	video_force_resize;
-int		video_grayscale = 0;
-int		video_graytype = 0;
-static int	vid_type;
-static const video_timings_t	*vid_timings;
-static uint32_t cga_2_table[16];
-static uint8_t	thread_run = 0;
-monitor_t monitors[MONITORS_NUM];
-monitor_settings_t monitor_settings[MONITORS_NUM];
-atomic_bool doresize_monitors[MONITORS_NUM];
-int monitor_index_global = 0;
+volatile int		screenshots = 0;
+uint8_t			edatlookup[4][4];
+uint8_t			fontdat[2048][8];		/* IBM CGA font */
+uint8_t			fontdatm[2048][16];		/* IBM MDA font */
+uint8_t			fontdatw[512][32];		/* Wyse700 font */
+uint8_t			fontdat8x12[256][16];		/* MDSI Genius font */
+uint8_t			fontdat12x18[256][36];		/* IM1024 font */
+dbcs_font_t		*fontdatksc5601 = NULL;		/* Korean KSC-5601 font */
+dbcs_font_t		*fontdatksc5601_user = NULL;	/* Korean KSC-5601 user defined font */
+int			herc_blend = 0;
+int			frames = 0;
+int			fullchange = 0;
+int			video_grayscale = 0;
+int			video_graytype = 0;
+int			monitor_index_global = 0;
+uint32_t		*video_6to8 = NULL,
+			*video_8togs = NULL,
+			*video_8to32 = NULL,
+			*video_15to32 = NULL,
+			*video_16to32 = NULL;
+monitor_t		monitors[MONITORS_NUM];
+monitor_settings_t	monitor_settings[MONITORS_NUM];
+atomic_bool		doresize_monitors[MONITORS_NUM];
+
 
 #ifdef _WIN32
 void * __cdecl	(*video_copy)(void *_Dst, const void *_Src, size_t _Size) = memcpy;
@@ -241,18 +236,21 @@ const uint32_t shade[5][256] =
 };
 
 
-static struct blit_data_struct {
+typedef struct blit_data_struct {
     int		x, y, w, h;
     int		busy;
     int		buffer_in_use;
     int		thread_run;
-    int     monitor_index;
+    int		monitor_index;
 
     thread_t	*blit_thread;
     event_t	*wake_blit_thread;
     event_t	*blit_complete;
     event_t	*buffer_not_in_use;
-}		blit_data;
+} blit_data_t;
+
+
+static uint32_t		cga_2_table[16];
 
 
 static void (*blit_func)(int x, int y, int w, int h, int monitor_index);
@@ -288,7 +286,7 @@ video_setblit(void(*blit)(int,int,int,int,int))
 void
 video_blit_complete_monitor(int monitor_index)
 {
-    struct blit_data_struct* blit_data_ptr = monitors[monitor_index].mon_blit_data_ptr;
+    blit_data_t* blit_data_ptr = monitors[monitor_index].mon_blit_data_ptr;
     blit_data_ptr->buffer_in_use = 0;
 
     thread_set_event(blit_data_ptr->buffer_not_in_use);
@@ -298,7 +296,7 @@ video_blit_complete_monitor(int monitor_index)
 void
 video_wait_for_blit_monitor(int monitor_index)
 {
-    struct blit_data_struct* blit_data_ptr = monitors[monitor_index].mon_blit_data_ptr;
+    blit_data_t* blit_data_ptr = monitors[monitor_index].mon_blit_data_ptr;
 
     while (blit_data_ptr->busy)
     thread_wait_event(blit_data_ptr->blit_complete, -1);
@@ -309,7 +307,7 @@ video_wait_for_blit_monitor(int monitor_index)
 void
 video_wait_for_buffer_monitor(int monitor_index)
 {
-    struct blit_data_struct* blit_data_ptr = monitors[monitor_index].mon_blit_data_ptr;
+    blit_data_t* blit_data_ptr = monitors[monitor_index].mon_blit_data_ptr;
 
     while (blit_data_ptr->buffer_in_use)
     thread_wait_event(blit_data_ptr->buffer_not_in_use, -1);
@@ -328,7 +326,7 @@ video_take_screenshot_monitor(const char *fn, uint32_t *buf, int start_x, int st
     png_bytep *b_rgb = NULL;
     FILE *fp = NULL;
     uint32_t temp = 0x00000000;
-    struct blit_data_struct* blit_data_ptr = monitors[monitor_index].mon_blit_data_ptr;
+    blit_data_t* blit_data_ptr = monitors[monitor_index].mon_blit_data_ptr;
 
     /* create file */
     fp = plat_fopen((char *) fn, (char *) "wb");
@@ -460,7 +458,7 @@ video_transform_copy(void *__restrict _Dst, const void *__restrict _Src, size_t 
 static
 void blit_thread(void *param)
 {
-    struct blit_data_struct* data = param;
+    blit_data_t* data = param;
     while (data->thread_run) {
     thread_wait_event(data->wake_blit_thread, -1);
     thread_reset_event(data->wake_blit_thread);
@@ -870,7 +868,7 @@ video_monitor_init(int index)
     monitors[index].mon_bpp = 8;
     monitors[index].mon_changeframecount = 2;
     monitors[index].target_buffer = create_bitmap(2048, 2048);
-    monitors[index].mon_blit_data_ptr = calloc(1, sizeof(struct blit_data_struct));
+    monitors[index].mon_blit_data_ptr = calloc(1, sizeof(blit_data_t));
     monitors[index].mon_blit_data_ptr->wake_blit_thread = thread_create_event();
     monitors[index].mon_blit_data_ptr->blit_complete = thread_create_event();
     monitors[index].mon_blit_data_ptr->buffer_not_in_use = thread_create_event();
