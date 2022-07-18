@@ -633,7 +633,7 @@ const machine_t machines[] = {
     /* Has AMIKey F KBC firmware. */
     { "[i430FX] AMI Apollo",                           "apollo",           MACHINE_TYPE_SOCKET5,    MACHINE_CHIPSET_INTEL_430FX,         machine_at_apollo_init,           0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET5_7,                 CPU_BLOCK_NONE, 50000000, 66666667, 3380, 3520, 1.5, 2.0, MACHINE_PS2_PCI, MACHINE_IDE_DUAL, 8192, 131072, 8192, 127, NULL, NULL },
     /* Has AMIKey H KBC firmware. */
-    { "[i430FX] DataExpert EXP8551",                   "exp8551",          MACHINE_TYPE_SOCKET5,    MACHINE_CHIPSET_INTEL_430FX,         machine_at_exp8551_init,          0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET5_7,                 CPU_BLOCK_NONE, 50000000, 66666667, 3380, 3520, 1.5, 3.0, MACHINE_PS2_PCI, MACHINE_IDE_DUAL, 8192, 131072, 8192, 127, NULL, NULL },
+    { "[i430FX] DataExpert EXP8551",                   "exp8551",          MACHINE_TYPE_SOCKET5,    MACHINE_CHIPSET_INTEL_430FX,         machine_at_exp8551_init,          0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET5_7,                 CPU_BLOCK_NONE, 50000000, 66666667, 3380, 3520, 1.5, 3.0, MACHINE_PS2_PCI, MACHINE_IDE_DUAL | MACHINE_GAMEPORT, 8192, 131072, 8192, 127, NULL, NULL },
     /* According to tests from real hardware: This has AMI MegaKey KBC firmware on the
        PC87306 Super I/O chip, command 0xA1 returns '5'.
        Command 0xA0 copyright string: (C)1994 AMI . */
@@ -842,6 +842,10 @@ const machine_t machines[] = {
     /* 450KX */
     /* This has an AMIKey-2, which is an updated version of type 'H'. */
     { "[i450KX] ASUS P/I-P6RP4",                       "p6rp4",            MACHINE_TYPE_SOCKET8,    MACHINE_CHIPSET_INTEL_450KX,         machine_at_p6rp4_init,            0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET8,                   CPU_BLOCK_NONE, 60000000, 66666667, 2100, 3500, 1.5, 8.0, MACHINE_PS2_PCI, MACHINE_IDE_DUAL, 8192, 524288, 8192, 127, NULL, NULL },
+    /* According to tests from real hardware: This has AMI MegaKey KBC firmware on the
+       PC87306 Super I/O chip, command 0xA1 returns '5'.
+       Command 0xA0 copyright string: (C)1994 AMI . */
+    { "[i450KX] Intel Performance/AU",                 "aurora",           MACHINE_TYPE_SOCKET8,    MACHINE_CHIPSET_INTEL_450KX,         machine_at_aurora_init,           0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET8,                   CPU_BLOCK_NONE, 60000000, 66666667, 2100, 3500, 1.5, 8.0, MACHINE_PS2_PCI, MACHINE_IDE_DUAL, 8192, 524288, 8192, 127, NULL, NULL },
 
     /* 440FX */
     /* Has the SMC FDC73C935's on-chip KBC with Phoenix MultiKey firmware. */
