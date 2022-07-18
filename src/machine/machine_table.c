@@ -842,10 +842,6 @@ const machine_t machines[] = {
     /* 450KX */
     /* This has an AMIKey-2, which is an updated version of type 'H'. */
     { "[i450KX] ASUS P/I-P6RP4",                       "p6rp4",            MACHINE_TYPE_SOCKET8,    MACHINE_CHIPSET_INTEL_450KX,         machine_at_p6rp4_init,            0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET8,                   CPU_BLOCK_NONE, 60000000, 66666667, 2100, 3500, 1.5, 8.0, MACHINE_PS2_PCI, MACHINE_IDE_DUAL, 8192, 524288, 8192, 127, NULL, NULL },
-    /* According to tests from real hardware: This has AMI MegaKey KBC firmware on the
-       PC87306 Super I/O chip, command 0xA1 returns '5'.
-       Command 0xA0 copyright string: (C)1994 AMI . */
-    { "[i450KX] Intel Performance/AU",                 "aurora",           MACHINE_TYPE_SOCKET8,    MACHINE_CHIPSET_INTEL_450KX,         machine_at_aurora_init,           0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET8,                   CPU_BLOCK_NONE, 60000000, 66666667, 2100, 3500, 1.5, 8.0, MACHINE_PS2_PCI, MACHINE_IDE_DUAL, 8192, 524288, 8192, 127, NULL, NULL },
 
     /* 440FX */
     /* Has the SMC FDC73C935's on-chip KBC with Phoenix MultiKey firmware. */
