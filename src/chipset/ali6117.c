@@ -199,7 +199,6 @@ static void
 ali6117_reg_write(uint16_t addr, uint8_t val, void *priv)
 {
     ali6117_t *dev = (ali6117_t *) priv;
-    int i;
 
     ali6117_log("ALI6117: reg_write(%04X, %02X)\n", addr, val);
 
