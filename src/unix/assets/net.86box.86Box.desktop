@@ -6,4 +6,4 @@ Exec=86Box
 Icon=net.86box.86Box
 Terminal=false
 Type=Application
-Categories=System;Emulator
+Categories=System;Emulator;
