@@ -658,7 +658,6 @@ svga_poll(void *p)
     uint32_t x, blink_delay;
     int wx, wy;
     int ret, old_ma;
-    int old_vc;
 
     if (!vga_on && ibm8514_enabled && ibm8514_on) {
         ibm8514_poll(&svga->dev8514, svga);
@@ -787,7 +786,6 @@ svga_poll(void *p)
 	        return;
 
 	svga->vc++;
-	old_vc = svga->vc;
 	svga->vc &= 2047;
 
 	if (svga->vc == svga->split) {
