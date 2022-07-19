@@ -82,12 +82,12 @@ enum {
 #define HDD_MAX_CACHE_SEG 16
 
 typedef struct {
-    uint32_t match_max_mbyte;
+    const char *name;
+    const char *internal_name;
     uint32_t zones;
     uint32_t avg_spt;
     uint32_t heads;
     uint32_t rpm;
-    uint32_t target_year;
     uint32_t rcache_num_seg;
     uint32_t rcache_seg_size;
     uint32_t max_multiple;
@@ -169,6 +169,8 @@ typedef struct {
     uint32_t cur_track;
     uint32_t cur_addr;
 
+    uint32_t speed_preset;
+
     double avg_rotation_lat_usec;
     double full_stroke_usec;
     double head_switch_usec;
@@ -207,7 +209,10 @@ extern int	image_is_vhd(const char *s, int check_signature);
 extern double hdd_timing_write(hard_disk_t *hdd, uint32_t addr, uint32_t len);
 extern double hdd_timing_read(hard_disk_t *hdd, uint32_t addr, uint32_t len);
 extern double hdd_seek_get_time(hard_disk_t *hdd, uint32_t dst_addr, uint8_t operation, uint8_t continuous, double max_seek_time);
-extern void hdd_preset_apply(hard_disk_t *hdd, hdd_preset_t *preset);
-extern void hdd_preset_auto(hard_disk_t *hdd);
+int hdd_preset_get_num();
+char * hdd_preset_getname(int preset);
+extern char *hdd_preset_get_internal_name(int preset);
+extern int hdd_preset_get_from_internal_name(char *s);
+extern void hdd_preset_apply(int hdd_id);
 
 #endif	/*EMU_HDD_H*/

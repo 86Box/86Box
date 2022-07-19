@@ -1376,6 +1376,18 @@ load_hard_disks(void)
 	if (hdd[c].tracks > max_tracks)
 		hdd[c].tracks = max_tracks;
 
+	sprintf(temp, "hdd_%02i_speed", c+1);
+	switch (hdd[c].bus) {
+		case HDD_BUS_IDE:
+			sprintf(tmp2, "1997_5400rpm");
+			break;
+		default:
+			sprintf(tmp2, "ramdisk");
+			break;
+	}
+	p = config_get_string(cat, temp, tmp2);
+	hdd[c].speed_preset = hdd_preset_get_from_internal_name(p);
+
 	/* MFM/RLL */
 	sprintf(temp, "hdd_%02i_mfm_channel", c+1);
 	if (hdd[c].bus == HDD_BUS_MFM)
@@ -2912,6 +2924,13 @@ save_hard_disks(void)
 	}
 	else
 		config_delete_var(cat, temp);
+
+	sprintf(temp, "hdd_%02i_speed", c+1);
+	if (!hdd_is_valid(c) || (hdd[c].bus != HDD_BUS_IDE))
+		config_delete_var(cat, temp);
+	else
+		config_set_string(cat, temp, hdd_preset_get_internal_name(hdd[c].speed_preset));
+
     }
 
     delete_section_if_empty(cat);

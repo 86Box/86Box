@@ -734,7 +734,7 @@ loadhd(ide_t *ide, int d, const char *fn)
 	return;
     }
 
-    hdd_preset_auto(&hdd[d]);
+    hdd_preset_apply(d);
 
     ide->spt = ide->cfg_spt = hdd[d].spt;
     ide->hpc = ide->cfg_hpc = hdd[d].hpc;

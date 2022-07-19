@@ -19,6 +19,7 @@ public:
 
 private slots:
     void on_comboBoxChannel_currentIndexChanged(int index);
+    void on_comboBoxSpeed_currentIndexChanged(int index);
 
 private slots:
     void on_pushButtonRemove_clicked();

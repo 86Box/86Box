@@ -31,8 +31,9 @@
 #include <86box/video.h>
 #include "cpu.h"
 
-hard_disk_t	hdd[HDD_NUM];
+#define HDD_OVERHEAD_TIME 50.0
 
+hard_disk_t	hdd[HDD_NUM];
 
 int
 hdd_init(void)
@@ -158,6 +159,9 @@ hdd_is_valid(int c)
 double
 hdd_seek_get_time(hard_disk_t *hdd, uint32_t dst_addr, uint8_t operation, uint8_t continuous, double max_seek_time)
 {
+    if (!hdd->speed_preset)
+        return HDD_OVERHEAD_TIME;
+
 	hdd_zone_t *zone = NULL;
 	for (int i = 0; i < hdd->num_zones; i++) {
 		zone = &hdd->zones[i];
@@ -168,7 +172,7 @@ hdd_seek_get_time(hard_disk_t *hdd, uint32_t dst_addr, uint8_t operation, uint8_
 #ifndef OLD_CODE
 	double continuous_times[2][2] = {	{ hdd->head_switch_usec, hdd->cyl_switch_usec },
 						{ zone->sector_time_usec, zone->sector_time_usec } };
-	double times[2] = { 50.0, hdd->avg_rotation_lat_usec };
+	double times[2] = { HDD_OVERHEAD_TIME, hdd->avg_rotation_lat_usec };
 #endif
 
 	uint32_t new_track = zone->start_track + ((dst_addr - zone->start_sector) / zone->sectors_per_track);
@@ -201,7 +205,7 @@ hdd_seek_get_time(hard_disk_t *hdd, uint32_t dst_addr, uint8_t operation, uint8_
 				seek_time = hdd->avg_rotation_lat_usec;
 			} else {
 				//seek_time = hdd->cyl_switch_usec;
-				seek_time = 50.0;
+				seek_time = HDD_OVERHEAD_TIME;
 			}
 #else
 			seek_time = times[operation != HDD_OP_SEEK];
@@ -292,6 +296,9 @@ hdd_writecache_update(hard_disk_t *hdd)
 double
 hdd_timing_write(hard_disk_t *hdd, uint32_t addr, uint32_t len)
 {
+    if (!hdd->speed_preset)
+        return HDD_OVERHEAD_TIME;
+
 	hdd_readahead_update(hdd);
 	hdd_writecache_update(hdd);
 
@@ -327,6 +334,9 @@ hdd_timing_write(hard_disk_t *hdd, uint32_t addr, uint32_t len)
 double
 hdd_timing_read(hard_disk_t *hdd, uint32_t addr, uint32_t len)
 {
+    if (!hdd->speed_preset)
+        return HDD_OVERHEAD_TIME;
+
 	hdd_readahead_update(hdd);
 	hdd_writecache_update(hdd);
 
@@ -388,7 +398,7 @@ update_lru:
 	cache->ra_ongoing = 1;
 	cache->ra_segment = active_seg->id;
 	cache->ra_start_time = tsc + (uint32_t)(seek_time * cpuclock / 1000000.0);
-	
+
 	return seek_time;
 }
 
@@ -414,7 +424,7 @@ hdd_zones_init(hard_disk_t *hdd)
 {
 	uint32_t lba = 0;
 	uint32_t track = 0;
-	
+
 	double revolution_usec = 60.0 / (double)hdd->rpm * 1000000.0;
 	for (uint32_t i = 0; i < hdd->num_zones; i++) {
 		hdd_zone_t *zone = &hdd->zones[i];
@@ -428,53 +438,98 @@ hdd_zones_init(hard_disk_t *hdd)
 	}
 }
 
-hdd_preset_t hdd_presets[] = {
-	{ .target_year = 1989, .match_max_mbyte = 99,   .zones = 1,  .avg_spt = 35,  .heads = 2, .rpm = 3500, .full_stroke_ms = 40, .track_seek_ms = 8,
-		.rcache_num_seg = 1,  .rcache_seg_size = 16,  .max_multiple = 8 },
+static hdd_preset_t hdd_speed_presets[] = {
+    { .name = "RAM Disk (max. speed)", .internal_name = "ramdisk", .rcache_num_seg = 16, .rcache_seg_size = 128, .max_multiple = 32 },
 
-	{ .target_year = 1992, .match_max_mbyte = 249,   .zones = 1,  .avg_spt = 45,  .heads = 2, .rpm = 3500, .full_stroke_ms = 30, .track_seek_ms = 6,
-		.rcache_num_seg = 4,  .rcache_seg_size = 16,  .max_multiple = 8 },
+    { .name = "[1989] 3500 RPM", .internal_name = "1989_3500rpm", .zones = 1,  .avg_spt = 35, .heads = 2, .rpm = 3500,
+        .full_stroke_ms = 40, .track_seek_ms = 8, .rcache_num_seg = 1,  .rcache_seg_size = 16,  .max_multiple = 8 },
 
-	{ .target_year = 1994, .match_max_mbyte = 999,   .zones = 8,  .avg_spt = 80,  .heads = 4, .rpm = 4500, .full_stroke_ms = 26, .track_seek_ms = 5,
-		.rcache_num_seg = 4,  .rcache_seg_size = 32,  .max_multiple = 16 },
+    { .name = "[1992] 3600 RPM", .internal_name = "1992_3600rpm", .zones = 1,  .avg_spt = 45, .heads = 2, .rpm = 3600,
+        .full_stroke_ms = 30, .track_seek_ms = 6, .rcache_num_seg = 4,  .rcache_seg_size = 16,  .max_multiple = 8 },
 
-	{ .target_year = 1996, .match_max_mbyte = 1999,  .zones = 16, .avg_spt = 135, .heads = 4, .rpm = 5400, .full_stroke_ms = 24, .track_seek_ms = 3,
-		.rcache_num_seg = 4,  .rcache_seg_size = 64,  .max_multiple = 16 },
+    { .name = "[1994] 4500 RPM", .internal_name = "1994_4500rpm", .zones = 8,  .avg_spt = 80, .heads = 4, .rpm = 4500,
+        .full_stroke_ms = 26, .track_seek_ms = 5, .rcache_num_seg = 4,  .rcache_seg_size = 32,  .max_multiple = 16 },
 
-	{ .target_year = 1997, .match_max_mbyte = 4999,  .zones = 16, .avg_spt = 185, .heads = 6, .rpm = 5400, .full_stroke_ms = 20, .track_seek_ms = 2.5,
-		.rcache_num_seg = 8,  .rcache_seg_size = 64,  .max_multiple = 32 },
+    { .name = "[1996] 5400 RPM", .internal_name = "1996_5400rpm", .zones = 16, .avg_spt = 135, .heads = 4, .rpm = 5400,
+        .full_stroke_ms = 24, .track_seek_ms = 3, .rcache_num_seg = 4,  .rcache_seg_size = 64,  .max_multiple = 16 },
 
-	{ .target_year = 1998, .match_max_mbyte = 9999,  .zones = 16, .avg_spt = 300, .heads = 8, .rpm = 5400, .full_stroke_ms = 20, .track_seek_ms = 2,
-		.rcache_num_seg = 8,  .rcache_seg_size = 128, .max_multiple = 32 },
+    { .name = "[1997] 5400 RPM", .internal_name = "1997_5400rpm", .zones = 16, .avg_spt = 185, .heads = 6, .rpm = 5400,
+        .full_stroke_ms = 20, .track_seek_ms = 2.5, .rcache_num_seg = 8,  .rcache_seg_size = 64,  .max_multiple = 32 },
 
-	{ .target_year = 2000, .match_max_mbyte = 99999, .zones = 16, .avg_spt = 350, .heads = 6, .rpm = 7200, .full_stroke_ms = 15, .track_seek_ms = 2,
-		.rcache_num_seg = 16, .rcache_seg_size = 128, .max_multiple = 32 },
+    { .name = "[1998] 5400 RPM", .internal_name = "1998_5400rpm", .zones = 16, .avg_spt = 300, .heads = 8, .rpm = 5400,
+        .full_stroke_ms = 20, .track_seek_ms = 2, .rcache_num_seg = 8,  .rcache_seg_size = 128, .max_multiple = 32 },
+
+    { .name = "[2000] 7200 RPM", .internal_name = "2000_7200rpm", .zones = 16, .avg_spt = 350, .heads = 6, .rpm = 7200,
+        .full_stroke_ms = 15, .track_seek_ms = 2, .rcache_num_seg = 16, .rcache_seg_size = 128, .max_multiple = 32 },
 };
 
-void
-hdd_preset_apply(hard_disk_t *hdd, hdd_preset_t *preset)
+int
+hdd_preset_get_num()
 {
-	hdd->phy_heads = preset->heads;
-	hdd->rpm = preset->rpm;
+    return sizeof(hdd_speed_presets) / sizeof(hdd_preset_t);
+}
 
-	double revolution_usec = 60.0 / (double)hdd->rpm * 1000000.0;
-	hdd->avg_rotation_lat_usec = revolution_usec / 2;
-	hdd->full_stroke_usec = preset->full_stroke_ms * 1000;
-	hdd->head_switch_usec = preset->track_seek_ms * 1000;
-	hdd->cyl_switch_usec = preset->track_seek_ms * 1000;
+char *
+hdd_preset_getname(int preset)
+{
+    return (char *)hdd_speed_presets[preset].name;
+}
 
-	hdd->cache.num_segments = preset->rcache_num_seg;
-	hdd->cache.segment_size = preset->rcache_seg_size;
-	hdd->max_multiple_block = preset->max_multiple;
+char *
+hdd_preset_get_internal_name(int preset)
+{
+    return (char *)hdd_speed_presets[preset].internal_name;
+}
 
-	hdd->cache.write_size = 64;
+int
+hdd_preset_get_from_internal_name(char *s)
+{
+    int c = 0;
 
-	hdd->num_zones = preset->zones;
 
-	uint32_t disk_sectors = hdd->tracks * hdd->hpc * hdd->spt;
-	uint32_t sectors_per_surface = (uint32_t)ceil((double)disk_sectors / (double)hdd->phy_heads);
+    for (int i = 0; i < (sizeof(hdd_speed_presets) / sizeof(hdd_preset_t)); i++) {
+        if (!strcmp((char *)hdd_speed_presets[c].internal_name, s))
+            return c;
+        c++;
+    }
+
+    return 0;
+}
+
+void
+hdd_preset_apply(int hdd_id)
+{
+	hard_disk_t *hd = &hdd[hdd_id];
+
+	if (hd->speed_preset >= hdd_preset_get_num())
+		hd->speed_preset = 0;
+
+	hdd_preset_t *preset = &hdd_speed_presets[hd->speed_preset];
+
+	hd->cache.num_segments = preset->rcache_num_seg;
+	hd->cache.segment_size = preset->rcache_seg_size;
+	hd->max_multiple_block = preset->max_multiple;
+
+	if (!hd->speed_preset)
+		return;
+
+	hd->phy_heads = preset->heads;
+	hd->rpm = preset->rpm;
+
+	double revolution_usec = 60.0 / (double)hd->rpm * 1000000.0;
+	hd->avg_rotation_lat_usec = revolution_usec / 2;
+	hd->full_stroke_usec = preset->full_stroke_ms * 1000;
+	hd->head_switch_usec = preset->track_seek_ms * 1000;
+	hd->cyl_switch_usec = preset->track_seek_ms * 1000;
+
+	hd->cache.write_size = 64;
+
+	hd->num_zones = preset->zones;
+
+	uint32_t disk_sectors = hd->tracks * hd->hpc * hd->spt;
+	uint32_t sectors_per_surface = (uint32_t)ceil((double)disk_sectors / (double)hd->phy_heads);
 	uint32_t cylinders = (uint32_t)ceil((double)sectors_per_surface / (double)preset->avg_spt);
-	hdd->phy_cyl = cylinders;
+	hd->phy_cyl = cylinders;
 	uint32_t cylinders_per_zone = cylinders / preset->zones;
 
 	uint32_t total_sectors = 0;
@@ -493,26 +548,10 @@ hdd_preset_apply(hard_disk_t *hdd, hdd_preset_t *preset)
 		uint32_t zone_sectors = spt * cylinders_per_zone * preset->heads;
 		total_sectors += zone_sectors;
 
-		hdd->zones[i].cylinders = cylinders_per_zone;
-		hdd->zones[i].sectors_per_track = spt;
+		hd->zones[i].cylinders = cylinders_per_zone;
+		hd->zones[i].sectors_per_track = spt;
 	}
 
-	hdd_zones_init(hdd);
-	hdd_cache_init(hdd);
-}
-
-void
-hdd_preset_auto(hard_disk_t *hdd)
-{
-	uint32_t disk_sectors = hdd->tracks * hdd->hpc * hdd->spt;
-	uint32_t disk_size_mb = disk_sectors * 512 / 1024 / 1024;
-	int i;
-	for (i = 0; i < (sizeof(hdd_presets) / sizeof(hdd_presets[0])); i++) {
-		if (hdd_presets[i].match_max_mbyte >= disk_size_mb)
-			break;
-	}
-
-	hdd_preset_t *preset = &hdd_presets[i];
-
-	hdd_preset_apply(hdd, preset);
+	hdd_zones_init(hd);
+	hdd_cache_init(hd);
 }
