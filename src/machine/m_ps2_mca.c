@@ -1018,17 +1018,16 @@ static void ps2_mca_board_model_55sx_init(int has_sec_nvram, int slots)
         mca_init(slots);
 	device_add(&keyboard_ps2_mca_device);
 
-    if (has_sec_nvram == 1)
-        device_add(&ps2_nvr_55ls_device);
-    else if (has_sec_nvram == 2) {
-        device_add(&ps2_nvr_device);
-    }
+	if (has_sec_nvram == 1)
+		device_add(&ps2_nvr_55ls_device);
+	else if (has_sec_nvram == 2)
+		device_add(&ps2_nvr_device);
 
-        ps2.planar_read = model_55sx_read;
-        ps2.planar_write = model_55sx_write;
+	ps2.planar_read = model_55sx_read;
+	ps2.planar_write = model_55sx_write;
 
-    if (gfxcard == VID_INTERNAL)
-        device_add(&ps1vga_mca_device);
+	if (gfxcard == VID_INTERNAL)
+		device_add(&ps1vga_mca_device);
 
 	model_55sx_mem_recalc();
 }
