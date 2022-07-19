@@ -592,7 +592,7 @@ static uint8_t
 dma_ps2_read(uint16_t addr, void *priv)
 {
     dma_t *dma_c = &dma[dma_ps2.xfr_channel];
-    uint8_t temp = 0;
+    uint8_t temp = 0xff;
 
     switch (addr) {
 	case 0x1a:
