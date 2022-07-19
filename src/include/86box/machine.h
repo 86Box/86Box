@@ -806,16 +806,16 @@ extern const device_t ps1_hdc_device;
 #endif
 
 /* m_ps2_isa.c */
-extern int	machine_ps2_m30_286_init(const machine_t *);
+extern int  machine_ps2_m30_286_init(const machine_t *);
 
 /* m_ps2_mca.c */
-extern int	machine_ps2_model_50_init(const machine_t *);
+extern int  machine_ps2_model_50_init(const machine_t *);
 extern int  machine_ps2_model_60_init(const machine_t *);
-extern int	machine_ps2_model_55sx_init(const machine_t *);
-extern int	machine_ps2_model_65sx_init(const machine_t *);
-extern int	machine_ps2_model_70_type3_init(const machine_t *);
-extern int	machine_ps2_model_80_init(const machine_t *);
-extern int	machine_ps2_model_80_axx_init(const machine_t *);
+extern int  machine_ps2_model_55sx_init(const machine_t *);
+extern int  machine_ps2_model_65sx_init(const machine_t *);
+extern int  machine_ps2_model_70_type3_init(const machine_t *);
+extern int  machine_ps2_model_80_init(const machine_t *);
+extern int  machine_ps2_model_80_axx_init(const machine_t *);
 
 /* m_tandy.c */
 extern int	tandy1k_eeprom_read(void);

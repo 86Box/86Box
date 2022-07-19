@@ -177,13 +177,6 @@ const device_t xi8088_device = {
     .config = xi8088_config
 };
 
-const device_t *
-xi8088_get_device(void)
-{
-    return &xi8088_device;
-}
-
-
 int
 machine_xt_xi8088_init(const machine_t *model)
 {

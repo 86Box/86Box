@@ -28,5 +28,10 @@
             want to emulate.
         </p>
     </description>
+    <screenshots>
+      <screenshot type="default">
+        <image type="source">https://raw.githubusercontent.com/86Box/86Box/master/src/unix/assets/screenshots/86Box.png</image>
+      </screenshot>
+    </screenshots>
     <url type="homepage">https://86box.net</url>
 </component>

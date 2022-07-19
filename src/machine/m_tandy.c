@@ -1203,26 +1203,6 @@ const device_t vid_device_sl = {
     .config = NULL
 };
 
-const device_t *
-tandy1k_get_device(void)
-{
-    return &vid_device;
-}
-
-
-const device_t *
-tandy1k_hx_get_device(void)
-{
-    return &vid_device_hx;
-}
-
-const device_t *
-tandy1k_sl_get_device(void)
-{
-    return &vid_device_sl;
-}
-
-
 static void
 eep_write(uint16_t addr, uint8_t val, void *priv)
 {

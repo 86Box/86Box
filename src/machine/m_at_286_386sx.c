@@ -99,14 +99,6 @@ machine_at_tg286m_init(const machine_t *model)
     return ret;
 }
 
-
-const device_t *
-at_ama932j_get_device(void)
-{
-    return &oti067_ama932j_device;
-}
-
-
 int
 machine_at_ama932j_init(const machine_t *model)
 {
@@ -417,14 +409,6 @@ machine_at_spc4216p_init(const machine_t *model)
 
     return ret;
 }
-
-
-const device_t *
-at_spc4620p_get_device(void)
-{
-    return &ati28800k_spc4620p_device;
-}
-
 
 int
 machine_at_spc4620p_init(const machine_t *model)

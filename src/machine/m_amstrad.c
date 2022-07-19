@@ -737,13 +737,6 @@ const device_t vid_1512_device = {
     .config = vid_1512_config
 };
 
-const device_t *
-pc1512_get_device(void)
-{
-    return(&vid_1512_device);
-}
-
-
 static void
 recalc_timings_1640(amsvid_t *vid)
 {
@@ -919,12 +912,6 @@ const device_t vid_1640_device = {
     .force_redraw = NULL,
     .config = vid_1640_config
 };
-
-const device_t *
-pc1640_get_device(void)
-{
-    return(&vid_1640_device);
-}
 
 /* Display type */
 #define PC200_CGA  0	/* CGA monitor */
@@ -1805,12 +1792,6 @@ const device_t vid_200_device = {
     .config = vid_200_config
 };
 
-const device_t *
-pc200_get_device(void)
-{
-    return(&vid_200_device);
-}
-
 const device_config_t vid_ppc512_config[] = {
     /* TODO: Should have options here for:
      *
@@ -1909,12 +1890,6 @@ const device_t vid_ppc512_device = {
     .config = vid_ppc512_config
 };
 
-const device_t *
-ppc512_get_device(void)
-{
-    return(&vid_ppc512_device);
-}
-
 const device_config_t vid_pc2086_config[] = {
     {
         .name = "language",
@@ -1947,12 +1922,6 @@ const device_t vid_pc2086_device = {
     .config = vid_pc2086_config
 };
 
-const device_t *
-pc2086_get_device(void)
-{
-    return(&vid_pc2086_device);
-}
-
 const device_config_t vid_pc3086_config[] = {
     {
         .name = "language",
@@ -1984,13 +1953,6 @@ const device_t vid_pc3086_device = {
     .force_redraw = NULL,
     .config = vid_pc3086_config
 };
-
-const device_t *
-pc3086_get_device(void)
-{
-    return(&vid_pc3086_device);
-}
-
 
 static void
 ms_write(uint16_t addr, uint8_t val, void *priv)

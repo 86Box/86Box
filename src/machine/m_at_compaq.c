@@ -792,12 +792,6 @@ write_raml(uint32_t addr, uint32_t val, void *priv)
     mem_write_raml_page(addr, val, &pages[addr >> 12]);
 }
 
-const device_t *
-at_cpqiii_get_device(void)
-{
-	return &compaq_plasma_device;
-}
-
 static void
 machine_at_compaq_init(const machine_t *model, int type)
 {
