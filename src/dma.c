@@ -1447,7 +1447,7 @@ dma_channel_read(int channel)
 		dma_sg_next_addr(dma_c);
 	else {
 		tc = 1;
-		if ((dma_c->mode & 0x10) || dma_ps2.is_ps2) { /*Auto-init*/
+		if (dma_c->mode & 0x10) { /*Auto-init*/
 			dma_c->cc = dma_c->cb;
 			dma_c->ac = dma_c->ab;
 		} else
@@ -1535,7 +1535,7 @@ dma_channel_write(int channel, uint16_t val)
 	if (dma_advanced && (dma_c->sg_status & 1) && !(dma_c->sg_status & 6))
 		dma_sg_next_addr(dma_c);
 	else {
-		if ((dma_c->mode & 0x10) || dma_ps2.is_ps2) { /*Auto-init*/
+		if (dma_c->mode & 0x10) { /*Auto-init*/
 			dma_c->cc = dma_c->cb;
 			dma_c->ac = dma_c->ab;
 		} else
