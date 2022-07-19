@@ -8659,6 +8659,41 @@ const machine_t machines[] = {
         .device = NULL,
         .vid_device = NULL
     },
+    /* Award BIOS, PS2, EDO, SDRAM, 4 PCI, 4 ISA, VIA VT82C42N KBC */
+    {
+        .name = "[i430TX] Soltek SL-56A5",
+        .internal_name = "56a5",
+        .type = MACHINE_TYPE_SOCKET7,
+        .chipset = MACHINE_CHIPSET_INTEL_430TX,
+        .init = machine_at_56a5_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+           .package = CPU_PKG_SOCKET5_7,
+           .block = CPU_BLOCK_NONE,
+           .min_bus = 55000000,
+           .max_bus = 75000000,
+           .min_voltage = 2800,
+           .max_voltage = 3520,
+           .min_multi = 1.5,
+           .max_multi = 5.5,
+        },
+        .bus_flags = MACHINE_PS2_PCI,
+        .flags = MACHINE_IDE_DUAL,
+        .ram = {
+            .min = 8192,
+            .max = 262144,
+            .step = 8192
+        },
+        .nvrmask = 255,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* [TEST] Has AMIKey 'H' KBC firmware. */
     {
         .name = "[i430TX] Supermicro P5MMS98",
