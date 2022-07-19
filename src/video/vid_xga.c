@@ -577,7 +577,7 @@ xga_ext_inb(uint16_t addr, void *p)
                     ret = 0x0b;
                     break;
                 case 0x53:
-                    ret = 0xb0;
+                    ret = 0x70;
                     break;
                 case 0x54:
                     ret = xga->clk_sel_1;
