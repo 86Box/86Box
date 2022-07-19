@@ -31,9 +31,12 @@
 #include <86box/video.h>
 #include "cpu.h"
 
+
 #define HDD_OVERHEAD_TIME 50.0
 
+
 hard_disk_t	hdd[HDD_NUM];
+
 
 int
 hdd_init(void)
@@ -156,287 +159,277 @@ hdd_is_valid(int c)
     return(1);
 }
 
+
 double
 hdd_seek_get_time(hard_disk_t *hdd, uint32_t dst_addr, uint8_t operation, uint8_t continuous, double max_seek_time)
 {
     if (!hdd->speed_preset)
         return HDD_OVERHEAD_TIME;
 
-	hdd_zone_t *zone = NULL;
-	for (int i = 0; i < hdd->num_zones; i++) {
-		zone = &hdd->zones[i];
-		if (zone->end_sector >= dst_addr)
-			break;
+    hdd_zone_t *zone = NULL;
+    for (int i = 0; i < hdd->num_zones; i++) {
+	zone = &hdd->zones[i];
+	if (zone->end_sector >= dst_addr)
+		break;
+    }
+
+    double continuous_times[2][2] = {	{ hdd->head_switch_usec, hdd->cyl_switch_usec },
+					{ zone->sector_time_usec, zone->sector_time_usec } };
+    double times[2] = { HDD_OVERHEAD_TIME, hdd->avg_rotation_lat_usec };
+
+    uint32_t new_track = zone->start_track + ((dst_addr - zone->start_sector) / zone->sectors_per_track);
+    uint32_t new_cylinder = new_track / hdd->phy_heads;
+    uint32_t cylinder_diff = abs((int)hdd->cur_cylinder - (int)new_cylinder);
+
+    bool sequential = dst_addr == hdd->cur_addr + 1;
+    continuous = continuous && sequential;
+
+    double seek_time = 0.0;
+    if (continuous)
+	seek_time = continuous_times[new_track == hdd->cur_track][!!cylinder_diff];
+    else {
+	if (!cylinder_diff)
+		seek_time = times[operation != HDD_OP_SEEK];
+	else {
+		seek_time = hdd->cyl_switch_usec + (hdd->full_stroke_usec * (double)cylinder_diff / (double)hdd->phy_cyl) +
+			    ((operation != HDD_OP_SEEK) * hdd->avg_rotation_lat_usec);
 	}
+    }
 
-#ifndef OLD_CODE
-	double continuous_times[2][2] = {	{ hdd->head_switch_usec, hdd->cyl_switch_usec },
-						{ zone->sector_time_usec, zone->sector_time_usec } };
-	double times[2] = { HDD_OVERHEAD_TIME, hdd->avg_rotation_lat_usec };
-#endif
+    if (!max_seek_time || seek_time <= max_seek_time) {
+	hdd->cur_addr = dst_addr;
+	hdd->cur_track = new_track;
+	hdd->cur_cylinder = new_cylinder;
+    }
 
-	uint32_t new_track = zone->start_track + ((dst_addr - zone->start_sector) / zone->sectors_per_track);
-	uint32_t new_cylinder = new_track / hdd->phy_heads;
-	uint32_t cylinder_diff = abs((int)hdd->cur_cylinder - (int)new_cylinder);
-
-	bool sequential = dst_addr == hdd->cur_addr + 1;
-	continuous = continuous && sequential;
-
-	double seek_time = 0.0;
-	if (continuous) {
-#ifdef OLD_CODE
-		if (new_track == hdd->cur_track) {
-			// Same track
-			seek_time = zone->sector_time_usec;
-		} else if (!cylinder_diff) {
-			// Same cylinder, sequential track
-			seek_time = hdd->head_switch_usec;
-		} else {
-			// Sequential cylinder
-			seek_time = hdd->cyl_switch_usec;
-		}
-#else
-		seek_time = continuous_times[new_track == hdd->cur_track][!!cylinder_diff];
-#endif
-	} else {
-		if (!cylinder_diff) {
-#ifdef OLD_CODE
-			if (operation != HDD_OP_SEEK) {
-				seek_time = hdd->avg_rotation_lat_usec;
-			} else {
-				//seek_time = hdd->cyl_switch_usec;
-				seek_time = HDD_OVERHEAD_TIME;
-			}
-#else
-			seek_time = times[operation != HDD_OP_SEEK];
-#endif
-		} else {
-#ifdef OLD_CODE
-			seek_time = hdd->cyl_switch_usec + (hdd->full_stroke_usec * (double)cylinder_diff / (double)hdd->phy_cyl);
-			if (operation != HDD_OP_SEEK) {
-				seek_time += hdd->avg_rotation_lat_usec;
-			}
-#else
-			seek_time = hdd->cyl_switch_usec + (hdd->full_stroke_usec * (double)cylinder_diff / (double)hdd->phy_cyl) +
-				    ((operation != HDD_OP_SEEK) * hdd->avg_rotation_lat_usec);
-#endif
-		}
-	}
-
-	if (!max_seek_time || seek_time <= max_seek_time) {
-		hdd->cur_addr = dst_addr;
-		hdd->cur_track = new_track;
-		hdd->cur_cylinder = new_cylinder;
-	}
-
-	return seek_time;
+    return seek_time;
 }
+
 
 static void
 hdd_readahead_update(hard_disk_t *hdd)
 {
-	hdd_cache_t *cache = &hdd->cache;
-	if (cache->ra_ongoing) {
-		hdd_cache_seg_t *segment = &cache->segments[cache->ra_segment];
+    uint64_t elapsed_cycles;
+    double elapsed_us, seek_time;
+    uint32_t max_read_ahead, i;
+    uint32_t space_needed;
 
-		uint64_t elapsed_cycles = tsc - cache->ra_start_time;
-		double elapsed_us = (double)elapsed_cycles / cpuclock * 1000000.0;
-		// Do not overwrite data not yet read by host
-		uint32_t max_read_ahead = (segment->host_addr + cache->segment_size) - segment->ra_addr;
+    hdd_cache_t *cache = &hdd->cache;
+    if (cache->ra_ongoing) {
+	hdd_cache_seg_t *segment = &cache->segments[cache->ra_segment];
 
-		double seek_time = 0.0;
+	elapsed_cycles = tsc - cache->ra_start_time;
+	elapsed_us = (double)elapsed_cycles / cpuclock * 1000000.0;
+	/* Do not overwrite data not yet read by host */
+	max_read_ahead = (segment->host_addr + cache->segment_size) - segment->ra_addr;
 
-		for (uint32_t i = 0; i < max_read_ahead; i++) {
-			seek_time += hdd_seek_get_time(hdd, segment->ra_addr, HDD_OP_READ, 1, elapsed_us - seek_time);
-			if (seek_time > elapsed_us)
-				break;
+	seek_time = 0.0;
 
-			segment->ra_addr++;
-		}
+	for (i = 0; i < max_read_ahead; i++) {
+		seek_time += hdd_seek_get_time(hdd, segment->ra_addr, HDD_OP_READ, 1, elapsed_us - seek_time);
+		if (seek_time > elapsed_us)
+			break;
 
-		if (segment->ra_addr > segment->lba_addr + cache->segment_size) {
-			uint32_t space_needed = segment->ra_addr - (segment->lba_addr + cache->segment_size);
-			segment->lba_addr += space_needed;
-		}
+		segment->ra_addr++;
 	}
+
+	if (segment->ra_addr > segment->lba_addr + cache->segment_size) {
+		space_needed = segment->ra_addr - (segment->lba_addr + cache->segment_size);
+		segment->lba_addr += space_needed;
+	}
+    }
 }
+
 
 static double
 hdd_writecache_flush(hard_disk_t *hdd)
 {
-	double seek_time = 0.0;
-	while (hdd->cache.write_pending) {
-		seek_time += hdd_seek_get_time(hdd, hdd->cache.write_addr, HDD_OP_WRITE, 1, 0);
-		hdd->cache.write_addr++;
-		hdd->cache.write_pending--;
-	}
+    double seek_time = 0.0;
 
-	return seek_time;
+    while (hdd->cache.write_pending) {
+	seek_time += hdd_seek_get_time(hdd, hdd->cache.write_addr, HDD_OP_WRITE, 1, 0);
+	hdd->cache.write_addr++;
+	hdd->cache.write_pending--;
+    }
+
+    return seek_time;
 }
+
 
 static void
 hdd_writecache_update(hard_disk_t *hdd)
 {
-	if (hdd->cache.write_pending) {
-		uint64_t elapsed_cycles = tsc - hdd->cache.write_start_time;
-		double elapsed_us = (double)elapsed_cycles / cpuclock * 1000000.0;
-		double seek_time = 0.0;
+    uint64_t elapsed_cycles;
+    double elapsed_us, seek_time;
 
-		while (hdd->cache.write_pending) {
-			seek_time += hdd_seek_get_time(hdd, hdd->cache.write_addr, HDD_OP_WRITE, 1, elapsed_us - seek_time);
-			if (seek_time > elapsed_us)
-				break;
+    if (hdd->cache.write_pending) {
+	elapsed_cycles = tsc - hdd->cache.write_start_time;
+	elapsed_us = (double)elapsed_cycles / cpuclock * 1000000.0;
+	seek_time = 0.0;
 
-			hdd->cache.write_addr++;
-			hdd->cache.write_pending--;
-		}
+	while (hdd->cache.write_pending) {
+		seek_time += hdd_seek_get_time(hdd, hdd->cache.write_addr, HDD_OP_WRITE, 1, elapsed_us - seek_time);
+		if (seek_time > elapsed_us)
+			break;
+
+		hdd->cache.write_addr++;
+		hdd->cache.write_pending--;
 	}
+    }
 }
+
 
 double
 hdd_timing_write(hard_disk_t *hdd, uint32_t addr, uint32_t len)
 {
+    double seek_time = 0.0;
+    uint32_t flush_needed;
+
     if (!hdd->speed_preset)
         return HDD_OVERHEAD_TIME;
 
-	hdd_readahead_update(hdd);
-	hdd_writecache_update(hdd);
+    hdd_readahead_update(hdd);
+    hdd_writecache_update(hdd);
 
-	hdd->cache.ra_ongoing = 0;
+    hdd->cache.ra_ongoing = 0;
 
-	double seek_time = 0.0;
+    if (hdd->cache.write_pending && (addr != (hdd->cache.write_addr + hdd->cache.write_pending))) {
+	/* New request is not sequential to existing cache, need to flush it */
+	seek_time += hdd_writecache_flush(hdd);
+    }
 
-	if (hdd->cache.write_pending && (addr != (hdd->cache.write_addr + hdd->cache.write_pending))) {
-		// New request is not sequential to existing cache, need to flush it
-		seek_time += hdd_writecache_flush(hdd);
+    if (!hdd->cache.write_pending) {
+	/* Cache is empty */
+	hdd->cache.write_addr = addr;
+    }
+
+    hdd->cache.write_pending += len;
+    if (hdd->cache.write_pending > hdd->cache.write_size) {
+	/* If request is bigger than free cache, flush some data first */
+	flush_needed = hdd->cache.write_pending - hdd->cache.write_size;
+	for (uint32_t i = 0; i < flush_needed; i++) {
+		seek_time += hdd_seek_get_time(hdd, hdd->cache.write_addr, HDD_OP_WRITE, 1, 0);
+		hdd->cache.write_addr++;
 	}
+    }
 
-	if (!hdd->cache.write_pending) {
-		// Cache is empty
-		hdd->cache.write_addr = addr;
-	}
+    hdd->cache.write_start_time = tsc + (uint32_t)(seek_time * cpuclock / 1000000.0);
 
-	hdd->cache.write_pending += len;
-	if (hdd->cache.write_pending > hdd->cache.write_size) {
-		// If request is bigger than free cache, flush some data first
-		uint32_t flush_needed = hdd->cache.write_pending - hdd->cache.write_size;
-		for (uint32_t i = 0; i < flush_needed; i++) {
-			seek_time += hdd_seek_get_time(hdd, hdd->cache.write_addr, HDD_OP_WRITE, 1, 0);
-			hdd->cache.write_addr++;
-		}
-	}
-
-	hdd->cache.write_start_time = tsc + (uint32_t)(seek_time * cpuclock / 1000000.0);
-
-	return seek_time;
+    return seek_time;
 }
+
 
 double
 hdd_timing_read(hard_disk_t *hdd, uint32_t addr, uint32_t len)
 {
+    double seek_time = 0.0;
+
     if (!hdd->speed_preset)
         return HDD_OVERHEAD_TIME;
 
-	hdd_readahead_update(hdd);
-	hdd_writecache_update(hdd);
+    hdd_readahead_update(hdd);
+    hdd_writecache_update(hdd);
 
-	double seek_time = 0.0;
-	seek_time += hdd_writecache_flush(hdd);
+    seek_time += hdd_writecache_flush(hdd);
 
-	hdd_cache_t *cache = &hdd->cache;
-	hdd_cache_seg_t *active_seg = &cache->segments[0];
+    hdd_cache_t *cache = &hdd->cache;
+    hdd_cache_seg_t *active_seg = &cache->segments[0];
 
-	for (uint32_t i = 0; i < cache->num_segments; i++) {
-		hdd_cache_seg_t *segment = &cache->segments[i];
-		if (!segment->valid) {
-			active_seg = segment;
-			continue;
-		}
-
-		if (segment->lba_addr <= addr && (segment->lba_addr + cache->segment_size) >= addr) {
-			// Cache HIT
-			segment->host_addr = addr;
-			active_seg = segment;
-			if (addr + len > segment->ra_addr) {
-				uint32_t need_read = (addr + len) - segment->ra_addr;
-				for (uint32_t j = 0; j < need_read; j++) {
-					seek_time += hdd_seek_get_time(hdd, segment->ra_addr, HDD_OP_READ, 1, 0.0);
-					segment->ra_addr++;
-				}
-			}
-			if (addr + len > segment->lba_addr + cache->segment_size) {
-				// Need to erase some previously cached data
-				uint32_t space_needed = (addr + len) - (segment->lba_addr + cache->segment_size);
-				segment->lba_addr += space_needed;
-			}
-			goto update_lru;
-		} else {
-			if (segment->lru > active_seg->lru) {
-				active_seg = segment;
-			}
-		}
+    for (uint32_t i = 0; i < cache->num_segments; i++) {
+	hdd_cache_seg_t *segment = &cache->segments[i];
+	if (!segment->valid) {
+		active_seg = segment;
+		continue;
 	}
 
-	// Cache MISS
-	active_seg->lba_addr = addr;
-	active_seg->valid = 1;
-	active_seg->host_addr = addr;
-	active_seg->ra_addr = addr;
-
-	for (uint32_t i = 0; i < len; i++) {
-		seek_time += hdd_seek_get_time(hdd, active_seg->ra_addr, HDD_OP_READ, i != 0, 0.0);
-		active_seg->ra_addr++;
+	if (segment->lba_addr <= addr && (segment->lba_addr + cache->segment_size) >= addr) {
+		/* Cache HIT */
+		segment->host_addr = addr;
+		active_seg = segment;
+		if (addr + len > segment->ra_addr) {
+			uint32_t need_read = (addr + len) - segment->ra_addr;
+			for (uint32_t j = 0; j < need_read; j++) {
+				seek_time += hdd_seek_get_time(hdd, segment->ra_addr, HDD_OP_READ, 1, 0.0);
+				segment->ra_addr++;
+			}
+		}
+		if (addr + len > segment->lba_addr + cache->segment_size) {
+			/* Need to erase some previously cached data */
+			uint32_t space_needed = (addr + len) - (segment->lba_addr + cache->segment_size);
+			segment->lba_addr += space_needed;
+		}
+		goto update_lru;
+	} else {
+		if (segment->lru > active_seg->lru)
+			active_seg = segment;
 	}
+    }
+
+    /* Cache MISS */
+    active_seg->lba_addr = addr;
+    active_seg->valid = 1;
+    active_seg->host_addr = addr;
+    active_seg->ra_addr = addr;
+
+    for (uint32_t i = 0; i < len; i++) {
+	seek_time += hdd_seek_get_time(hdd, active_seg->ra_addr, HDD_OP_READ, i != 0, 0.0);
+	active_seg->ra_addr++;
+    }
 
 update_lru:
-	for (uint32_t i = 0; i < cache->num_segments; i++) {
-		cache->segments[i].lru++;
-	}
+    for (uint32_t i = 0; i < cache->num_segments; i++)
+	cache->segments[i].lru++;
 
-	active_seg->lru = 0;
+    active_seg->lru = 0;
 
-	cache->ra_ongoing = 1;
-	cache->ra_segment = active_seg->id;
-	cache->ra_start_time = tsc + (uint32_t)(seek_time * cpuclock / 1000000.0);
+    cache->ra_ongoing = 1;
+    cache->ra_segment = active_seg->id;
+    cache->ra_start_time = tsc + (uint32_t)(seek_time * cpuclock / 1000000.0);
 
-	return seek_time;
+    return seek_time;
 }
+
 
 static void
 hdd_cache_init(hard_disk_t *hdd)
 {
-	hdd_cache_t *cache = &hdd->cache;
-	cache->ra_segment = 0;
-	cache->ra_ongoing = 0;
-	cache->ra_start_time = 0;
+    hdd_cache_t *cache = &hdd->cache;
+    uint32_t i;
 
-	for (uint32_t i = 0; i < cache->num_segments; i++) {
-		cache->segments[i].valid = 0;
-		cache->segments[i].lru = 0;
-		cache->segments[i].id = i;
-		cache->segments[i].ra_addr = 0;
-		cache->segments[i].host_addr = 0;
-	}
+    cache->ra_segment = 0;
+    cache->ra_ongoing = 0;
+    cache->ra_start_time = 0;
+
+    for (i = 0; i < cache->num_segments; i++) {
+	cache->segments[i].valid = 0;
+	cache->segments[i].lru = 0;
+	cache->segments[i].id = i;
+	cache->segments[i].ra_addr = 0;
+	cache->segments[i].host_addr = 0;
+    }
 }
+
 
 static void
 hdd_zones_init(hard_disk_t *hdd)
 {
-	uint32_t lba = 0;
-	uint32_t track = 0;
+    uint32_t lba = 0, track = 0;
+    uint32_t i, tracks;
+    double revolution_usec = 60.0 / (double)hdd->rpm * 1000000.0;
+    hdd_zone_t *zone;
 
-	double revolution_usec = 60.0 / (double)hdd->rpm * 1000000.0;
-	for (uint32_t i = 0; i < hdd->num_zones; i++) {
-		hdd_zone_t *zone = &hdd->zones[i];
-		zone->start_sector = lba;
-		zone->start_track = track;
-		zone->sector_time_usec = revolution_usec / (double)zone->sectors_per_track;
-		uint32_t tracks = zone->cylinders * hdd->phy_heads;
-		lba += tracks * zone->sectors_per_track;
-		zone->end_sector = lba - 1;
-		track += tracks - 1;
-	}
+    for (i = 0; i < hdd->num_zones; i++) {
+	zone = &hdd->zones[i];
+	zone->start_sector = lba;
+	zone->start_track = track;
+	zone->sector_time_usec = revolution_usec / (double)zone->sectors_per_track;
+	tracks = zone->cylinders * hdd->phy_heads;
+	lba += tracks * zone->sectors_per_track;
+	zone->end_sector = lba - 1;
+	track += tracks - 1;
+    }
 }
+
 
 static hdd_preset_t hdd_speed_presets[] = {
     { .name = "RAM Disk (max. speed)", .internal_name = "ramdisk", .rcache_num_seg = 16, .rcache_seg_size = 128, .max_multiple = 32 },
@@ -463,11 +456,13 @@ static hdd_preset_t hdd_speed_presets[] = {
         .full_stroke_ms = 15, .track_seek_ms = 2, .rcache_num_seg = 16, .rcache_seg_size = 128, .max_multiple = 32 },
 };
 
+
 int
 hdd_preset_get_num()
 {
     return sizeof(hdd_speed_presets) / sizeof(hdd_preset_t);
 }
+
 
 char *
 hdd_preset_getname(int preset)
@@ -475,17 +470,18 @@ hdd_preset_getname(int preset)
     return (char *)hdd_speed_presets[preset].name;
 }
 
+
 char *
 hdd_preset_get_internal_name(int preset)
 {
     return (char *)hdd_speed_presets[preset].internal_name;
 }
 
+
 int
 hdd_preset_get_from_internal_name(char *s)
 {
     int c = 0;
-
 
     for (int i = 0; i < (sizeof(hdd_speed_presets) / sizeof(hdd_preset_t)); i++) {
         if (!strcmp((char *)hdd_speed_presets[c].internal_name, s))
@@ -496,62 +492,64 @@ hdd_preset_get_from_internal_name(char *s)
     return 0;
 }
 
+
 void
 hdd_preset_apply(int hdd_id)
 {
-	hard_disk_t *hd = &hdd[hdd_id];
+    hard_disk_t *hd = &hdd[hdd_id];
+    double revolution_usec, zone_percent;
+    uint32_t disk_sectors, sectors_per_surface, cylinders, cylinders_per_zone;
+    uint32_t total_sectors = 0, i;
+    uint32_t spt, zone_sectors;
 
-	if (hd->speed_preset >= hdd_preset_get_num())
-		hd->speed_preset = 0;
+    if (hd->speed_preset >= hdd_preset_get_num())
+	hd->speed_preset = 0;
 
-	hdd_preset_t *preset = &hdd_speed_presets[hd->speed_preset];
+    hdd_preset_t *preset = &hdd_speed_presets[hd->speed_preset];
 
-	hd->cache.num_segments = preset->rcache_num_seg;
-	hd->cache.segment_size = preset->rcache_seg_size;
-	hd->max_multiple_block = preset->max_multiple;
+    hd->cache.num_segments = preset->rcache_num_seg;
+    hd->cache.segment_size = preset->rcache_seg_size;
+    hd->max_multiple_block = preset->max_multiple;
 
-	if (!hd->speed_preset)
-		return;
+    if (!hd->speed_preset)
+	return;
 
-	hd->phy_heads = preset->heads;
-	hd->rpm = preset->rpm;
+    hd->phy_heads = preset->heads;
+    hd->rpm = preset->rpm;
 
-	double revolution_usec = 60.0 / (double)hd->rpm * 1000000.0;
-	hd->avg_rotation_lat_usec = revolution_usec / 2;
-	hd->full_stroke_usec = preset->full_stroke_ms * 1000;
-	hd->head_switch_usec = preset->track_seek_ms * 1000;
-	hd->cyl_switch_usec = preset->track_seek_ms * 1000;
+    revolution_usec = 60.0 / (double)hd->rpm * 1000000.0;
+    hd->avg_rotation_lat_usec = revolution_usec / 2;
+    hd->full_stroke_usec = preset->full_stroke_ms * 1000;
+    hd->head_switch_usec = preset->track_seek_ms * 1000;
+    hd->cyl_switch_usec = preset->track_seek_ms * 1000;
 
-	hd->cache.write_size = 64;
+    hd->cache.write_size = 64;
 
-	hd->num_zones = preset->zones;
+    hd->num_zones = preset->zones;
 
-	uint32_t disk_sectors = hd->tracks * hd->hpc * hd->spt;
-	uint32_t sectors_per_surface = (uint32_t)ceil((double)disk_sectors / (double)hd->phy_heads);
-	uint32_t cylinders = (uint32_t)ceil((double)sectors_per_surface / (double)preset->avg_spt);
-	hd->phy_cyl = cylinders;
-	uint32_t cylinders_per_zone = cylinders / preset->zones;
+    disk_sectors = hd->tracks * hd->hpc * hd->spt;
+    sectors_per_surface = (uint32_t)ceil((double)disk_sectors / (double)hd->phy_heads);
+    cylinders = (uint32_t)ceil((double)sectors_per_surface / (double)preset->avg_spt);
+    hd->phy_cyl = cylinders;
+    cylinders_per_zone = cylinders / preset->zones;
 
-	uint32_t total_sectors = 0;
-	for (uint32_t i = 0; i < preset->zones; i++) {
-		uint32_t spt;
-		double zone_percent = i * 100 / (double)preset->zones;
+    for (i = 0; i < preset->zones; i++) {
+	zone_percent = i * 100 / (double)preset->zones;
 
-		if (i < preset->zones - 1) {
-			// Function for realistic zone sector density
-			double spt_percent = -0.00341684 * pow(zone_percent, 2) - 0.175811 * zone_percent + 118.48;
-			spt = (uint32_t)ceil((double)preset->avg_spt * spt_percent / 100);
-		} else {
-			spt = (uint32_t)ceil((double)(disk_sectors - total_sectors) / (double)(cylinders_per_zone*preset->heads));
-		}
+	if (i < preset->zones - 1) {
+		/* Function for realistic zone sector density */
+		double spt_percent = -0.00341684 * pow(zone_percent, 2) - 0.175811 * zone_percent + 118.48;
+		spt = (uint32_t)ceil((double)preset->avg_spt * spt_percent / 100);
+	} else
+		spt = (uint32_t)ceil((double)(disk_sectors - total_sectors) / (double)(cylinders_per_zone*preset->heads));
 
-		uint32_t zone_sectors = spt * cylinders_per_zone * preset->heads;
-		total_sectors += zone_sectors;
+	zone_sectors = spt * cylinders_per_zone * preset->heads;
+	total_sectors += zone_sectors;
 
-		hd->zones[i].cylinders = cylinders_per_zone;
-		hd->zones[i].sectors_per_track = spt;
-	}
+	hd->zones[i].cylinders = cylinders_per_zone;
+	hd->zones[i].sectors_per_track = spt;
+    }
 
-	hdd_zones_init(hd);
-	hdd_cache_init(hd);
+    hdd_zones_init(hd);
+    hdd_cache_init(hd);
 }
