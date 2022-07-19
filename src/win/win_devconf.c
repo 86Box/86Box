@@ -33,9 +33,10 @@
 #include <windowsx.h>
 
 
-static device_context_t config_device;
+static device_context_t	config_device;
 
-static uint8_t deviceconfig_changed = 0;
+static uint8_t		deviceconfig_changed = 0;
+static int		combo_to_struct[256];
 
 
 #if defined(__amd64__) || defined(__aarch64__)
@@ -60,7 +61,6 @@ deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
     char *str, *val_str;
     wchar_t ws[512], *wstr;
     LPTSTR lptsTemp;
-    int combo_to_struct[256];
 
     config = config_device.dev->config;
 
@@ -219,6 +219,7 @@ deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 		if (cid == IDOK) {
 			id = IDC_CONFIG_BASE;
 			config = config_device.dev->config;
+			bios = config->bios;
 			changed = 0;
 			char s[512];
 

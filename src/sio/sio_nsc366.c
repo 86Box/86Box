@@ -1,11 +1,17 @@
 /*
- * National Semiconductor PC87366(NSC366)
+ * 86Box	A hypervisor and IBM PC system emulator that specializes in
+ *		running old operating systems and software designed for IBM
+ *		PC systems and compatibles from 1981 through fairly recent
+ *		system designs based on the PCI bus.
  *
- * Authors:	Tiseno100,
+ *		This file is part of the 86Box distribution.
  *
- * Copyright 2022 Tiseno100.
+ *		Emulation of the National Semiconductor PC87366 (NSC366)
+ *		Super I/O chip.
+ *
+ * Author:	Tiseno100,
+ *		Copyright 2022 Tiseno100.
  */
-
 #include <stdarg.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -17,7 +23,6 @@
 #include <86box/io.h>
 #include <86box/timer.h>
 #include <86box/device.h>
-
 #include <86box/hwm.h>
 #include <86box/keyboard.h>
 #include <86box/lpt.h>
@@ -27,8 +32,8 @@
 #include <86box/fdc.h>
 #include <86box/fdd_common.h>
 #include <86box/port_92.h>
-
 #include <86box/sio.h>
+
 
 typedef struct
 {
@@ -77,16 +82,17 @@ nsc366_fdc(nsc366_t *dev)
     int irq = dev->int_num_irq[0] & 0x0f;
     int dma_ch = dev->dma_select0[0] & 7;
 
-    if(dev->ld_activate[0]) {
-        nsc366_log("NSC 366 FDC: Reconfigured with Base: 0x%04x IRQ: %d DMA Channel: %d\n", base, irq, dma_ch);
-        fdc_set_base(dev->fdc, base);
-        fdc_set_irq(dev->fdc, irq);
-        fdc_set_dma_ch(dev->fdc, dma_ch);
-        fdc_update_densel_polarity(dev->fdc, !!(dev->dev_specific_config[0][0] & 0x20));
-        if(dev->dev_specific_config[0][0] & 8)
-            fdc_writeprotect(dev->fdc);
+    if (dev->ld_activate[0]) {
+	nsc366_log("NSC 366 FDC: Reconfigured with Base: 0x%04x IRQ: %d DMA Channel: %d\n", base, irq, dma_ch);
+	fdc_set_base(dev->fdc, base);
+	fdc_set_irq(dev->fdc, irq);
+	fdc_set_dma_ch(dev->fdc, dma_ch);
+	fdc_update_densel_polarity(dev->fdc, !!(dev->dev_specific_config[0][0] & 0x20));
+	if (dev->dev_specific_config[0][0] & 8)
+		fdc_writeprotect(dev->fdc);
     }
 }
+
 
 void
 nsc366_lpt(nsc366_t *dev)
@@ -95,12 +101,13 @@ nsc366_lpt(nsc366_t *dev)
     int base = ((dev->io_base0[0][1] & 7) << 8) | (dev->io_base0[1][1] & 0xfc);
     int irq = (dev->int_num_irq[1] & 0x0f);
 
-    if(dev->ld_activate[1]) {
-        nsc366_log("NSC 366 LPT: Reconfigured with Base 0x%04x IRQ: %d\n", base ,irq);
-        lpt1_init(base);
-        lpt1_irq(irq);
+    if (dev->ld_activate[1]) {
+	nsc366_log("NSC 366 LPT: Reconfigured with Base 0x%04x IRQ: %d\n", base ,irq);
+	lpt1_init(base);
+	lpt1_irq(irq);
     }
 }
+
 
 static void
 nsc366_uart(int uart, nsc366_t *dev)
@@ -109,185 +116,184 @@ nsc366_uart(int uart, nsc366_t *dev)
     int base = ((dev->io_base0[0][2 + uart] & 7) << 8) | (dev->io_base0[1][2 + uart] & 0xf8);
     int irq = (dev->int_num_irq[2 + uart] & 0x0f);
 
-    if(dev->ld_activate[2 + uart]) {
-        nsc366_log("NSC 366 UART Serial %d: Reconfigured with Base 0x%04x IRQ: %d\n", uart, base ,irq);
-        serial_setup(dev->uart[uart], base, irq);
+    if (dev->ld_activate[2 + uart]) {
+	nsc366_log("NSC 366 UART Serial %d: Reconfigured with Base 0x%04x IRQ: %d\n", uart, base ,irq);
+	serial_setup(dev->uart[uart], base, irq);
     }
 }
+
 
 static void
 nsc366_fscm(nsc366_t *dev)
 {
     uint16_t base = (dev->io_base0[0][9] << 8) | (dev->io_base0[1][9] & 0xf0);
 
-    if(dev->ld_activate[9])
-        nsc366_log("NSC 366 Fan Control: Reconfigured with Base 0x%04x\n", base);
+    if (dev->ld_activate[9])
+	nsc366_log("NSC 366 Fan Control: Reconfigured with Base 0x%04x\n", base);
 
     nsc366_update_fscm_io(dev->ld_activate[9], base, dev->hwm);
 }
+
 
 static void
 nsc366_vlm(nsc366_t *dev)
 {
     uint16_t base = (dev->io_base0[0][13] << 8) | (dev->io_base0[1][13] & 0xf0);
 
-    if(dev->ld_activate[13])
-        nsc366_log("NSC 366 Voltage Monitor: Reconfigured with Base 0x%04x\n", base);
+    if (dev->ld_activate[13])
+	nsc366_log("NSC 366 Voltage Monitor: Reconfigured with Base 0x%04x\n", base);
 
     nsc366_update_vlm_io(dev->ld_activate[13], base, dev->hwm);
 }
+
 
 static void
 nsc366_tms(nsc366_t *dev)
 {
     uint16_t base = (dev->io_base0[0][14] << 8) | (dev->io_base0[1][14] & 0xf0);
 
-    if(dev->ld_activate[14])
-        nsc366_log("NSC 366 Temperature Monitor: Reconfigured with Base 0x%04x\n", base);
+    if (dev->ld_activate[14])
+	nsc366_log("NSC 366 Temperature Monitor: Reconfigured with Base 0x%04x\n", base);
 
     nsc366_update_tms_io(dev->ld_activate[14], base, dev->hwm);
 }
 
+
 static void
 nsc366_ldn_redirect(nsc366_t *dev)
 {
-switch(dev->ldn)
-{
-    case 0:
-        nsc366_fdc(dev);
-    break;
+    switch(dev->ldn) {
+	case 0:
+		nsc366_fdc(dev);
+		break;
 
-    case 1:
-        nsc366_lpt(dev);
-    break;
+	case 1:
+		nsc366_lpt(dev);
+		break;
 
-    case 2 ... 3:
-        nsc366_uart(dev->ldn == 3, dev);
-    break;
+	case 2 ... 3:
+		nsc366_uart(dev->ldn == 3, dev);
+		break;
 
-    case 9:
-        nsc366_fscm(dev);
-    break;
+	case 9:
+		nsc366_fscm(dev);
+		break;
 
-    case 13:
-        nsc366_vlm(dev);
-    break;
+	case 13:
+		nsc366_vlm(dev);
+		break;
 
-    case 14:
-        nsc366_tms(dev);
-    break;
+	case 14:
+		nsc366_tms(dev);
+		break;
+    }
 }
-}
+
 
 static void
 nsc366_write(uint16_t addr, uint8_t val, void *priv)
 {
     nsc366_t *dev = (nsc366_t *)priv;
 
-    if(addr & 1)
-    switch(dev->index)
-    {
-        /* LDN */
-        case 0x07:
-            if(val <= 0x0e)
-                dev->ldn = val;
-        break;
+    if (addr & 1)  switch(dev->index) {
+	/* LDN */
+	case 0x07:
+		if (val <= 0x0e)
+			dev->ldn = val;
+		break;
 
-        /* Super I/O Configuration */
-        case 0x20:
-            switch(dev->index - 0x20)
-            {
-                case 0x21:
-                    if(!dev->siofc_lock)
-                        if(val & 0x80) {
-                            dev->sio_config[dev->index - 0x20] = val | 0x80;
-                            dev->siofc_lock = 1;
-                            } 
-                        else
-                            dev->sio_config[dev->index - 0x20] = val;
-                break;
+	/* Super I/O Configuration */
+	case 0x21:
+		if (!dev->siofc_lock) {
+			if (val & 0x80) {
+				dev->sio_config[dev->index - 0x20] = val | 0x80;
+				dev->siofc_lock = 1;
+			} else
+				dev->sio_config[dev->index - 0x20] = val;
+		}
+		break;
 
-                case 0x22:
-                    if(!dev->siofc_lock)
-                        dev->sio_config[dev->index - 0x20] = val;
-                break;
+	case 0x22:
+		if (!dev->siofc_lock)
+			dev->sio_config[dev->index - 0x20] = val;
+		break;
 
-                case 0x23:
-                    if(!dev->siofc_lock)
-                        dev->sio_config[dev->index - 0x20] = val & 0xf7;
-                break;
+	case 0x23:
+		if (!dev->siofc_lock)
+			dev->sio_config[dev->index - 0x20] = val & 0xf7;
+		break;
 
-                case 0x24:
-                    if(!dev->siofc_lock)
-                        dev->sio_config[dev->index - 0x20] = val;
-                break;
+	case 0x24:
+		if (!dev->siofc_lock)
+			dev->sio_config[dev->index - 0x20] = val;
+		break;
 
-                case 0x25:
-                    if(!dev->siofc_lock)
-                        dev->sio_config[dev->index - 0x20] = val & 0xf3;
-                break;
+	case 0x25:
+		if (!dev->siofc_lock)
+			dev->sio_config[dev->index - 0x20] = val & 0xf3;
+		break;
 
-                case 0x28:
-                    dev->sio_config[dev->index - 0x20] = val & 0xf3;
-                break;
+	case 0x28:
+		dev->sio_config[dev->index - 0x20] = val & 0xf3;
+		break;
 
-                case 0x2a:
-                    if(!dev->siofc_lock)
-                        dev->sio_config[dev->index - 0x20] = val;
-                break;
+	case 0x2a:
+		if (!dev->siofc_lock)
+			dev->sio_config[dev->index - 0x20] = val;
+		break;
 
-                case 0x2b:
-                    if(!dev->siofc_lock)
-                        dev->sio_config[dev->index - 0x20] = val & 0x4f; // Force Case Intrusion to always off
-                break;
+	case 0x2b:
+		if (!dev->siofc_lock)
+			/* Force Case Intrusion to always off */
+			dev->sio_config[dev->index - 0x20] = val & 0x4f;
+		break;
 
-                case 0x2c ... 0x2d:
-                    dev->sio_config[dev->index - 0x20] = val & 0xf3;
-                break;
-            }
-        
-        /* Logical Devices */
-        case 0x30:
-            dev->ld_activate[dev->ldn] = (val & 1) && (dev->sio_config[0] & 1);
-            nsc366_ldn_redirect(dev);
-        break;
+	case 0x2c ... 0x2d:
+		dev->sio_config[dev->index - 0x20] = val & 0xf3;
+		break;
 
-        case 0x60 ... 0x61:
-            dev->io_base0[dev->index & 1][dev->ldn] = val;
-            nsc366_ldn_redirect(dev);
-        break;
-        
-        case 0x62 ... 0x63:
-            dev->io_base1[dev->index & 1][dev->ldn] = val;
-            nsc366_ldn_redirect(dev);
-        break;
+	/* Logical Devices */
+	case 0x30:
+		dev->ld_activate[dev->ldn] = (val & 1) && (dev->sio_config[0] & 1);
+		nsc366_ldn_redirect(dev);
+		break;
 
-        case 0x70:
-            dev->int_num_irq[dev->ldn] = val & 0x1f;
-            nsc366_ldn_redirect(dev);
-        break;
+	case 0x60 ... 0x61:
+		dev->io_base0[dev->index & 1][dev->ldn] = val;
+		nsc366_ldn_redirect(dev);
+		break;
 
-        case 0x71:
-            dev->irq[dev->ldn] = val;
-            nsc366_ldn_redirect(dev);
-        break;
+	case 0x62 ... 0x63:
+		dev->io_base1[dev->index & 1][dev->ldn] = val;
+		nsc366_ldn_redirect(dev);
+		break;
 
-        case 0x74: 
-            dev->dma_select0[dev->ldn] = val & 0x1f;
-            nsc366_ldn_redirect(dev);
-        break;
+	case 0x70:
+		dev->int_num_irq[dev->ldn] = val & 0x1f;
+		nsc366_ldn_redirect(dev);
+		break;
 
-        case 0x75:
-            dev->dma_select1[dev->ldn] = val & 0x1f;
-            nsc366_ldn_redirect(dev);
-        break;
+	case 0x71:
+		dev->irq[dev->ldn] = val;
+		nsc366_ldn_redirect(dev);
+		break;
 
-        case 0xf0 ... 0xf2:
-            dev->dev_specific_config[dev->index - 0xf0][dev->ldn] = val;
-            nsc366_ldn_redirect(dev);
-        break;
-    }
-    else dev->index = val;
+	case 0x74: 
+		dev->dma_select0[dev->ldn] = val & 0x1f;
+		nsc366_ldn_redirect(dev);
+		break;
+
+	case 0x75:
+		dev->dma_select1[dev->ldn] = val & 0x1f;
+		nsc366_ldn_redirect(dev);
+		break;
+
+	case 0xf0 ... 0xf2:
+		dev->dev_specific_config[dev->index - 0xf0][dev->ldn] = val;
+		nsc366_ldn_redirect(dev);
+		break;
+    } else
+	dev->index = val;
 }
 
 
@@ -295,46 +301,54 @@ static uint8_t
 nsc366_read(uint16_t addr, void *priv)
 {
     nsc366_t *dev = (nsc366_t *)priv;
+    uint8_t ret = 0x00;
 
-    if(addr & 1)
-    {
-        switch(dev->index)
-        {
-            case 0x07:
-                return dev->ldn;
+    if (addr & 1) {
+	switch (dev->index) {
+		case 0x07:
+			ret = dev->ldn;
+			break;
 
-            case 0x20 ... 0x2d:
-                return dev->sio_config[dev->index - 0x20];
+		case 0x20 ... 0x2d:
+			ret = dev->sio_config[dev->index - 0x20];
+			break;
 
-            case 0x30:
-                return dev->ld_activate[dev->ldn];
+		case 0x30:
+			ret = dev->ld_activate[dev->ldn];
+			break;
 
-            case 0x60 ... 0x61:
-                return dev->io_base0[dev->index & 1][dev->ldn];
-        
-            case 0x62 ... 0x63:
-                return dev->io_base1[dev->index & 1][dev->ldn];
+		case 0x60 ... 0x61:
+			ret = dev->io_base0[dev->index & 1][dev->ldn];
+			break;
 
-            case 0x70:
-                return dev->int_num_irq[dev->ldn];
+		case 0x62 ... 0x63:
+			ret = dev->io_base1[dev->index & 1][dev->ldn];
+			break;
 
-            case 0x71:
-                return dev->irq[dev->ldn];
+		case 0x70:
+			ret = dev->int_num_irq[dev->ldn];
+			break;
 
-            case 0x74: 
-                return dev->dma_select0[dev->ldn];
+		case 0x71:
+			ret = dev->irq[dev->ldn];
+			break;
 
-            case 0x75:
-                return dev->dma_select1[dev->ldn];
+		case 0x74: 
+			ret = dev->dma_select0[dev->ldn];
+			break;
 
-            case 0xf0 ... 0xf2:
-                return dev->dev_specific_config[dev->index - 0xf0][dev->ldn];
+		case 0x75:
+			ret = dev->dma_select1[dev->ldn];
+			break;
 
-            default:
-                return 0;
-        }
-    }
-    else return dev->index;
+		case 0xf0 ... 0xf2:
+			ret = dev->dev_specific_config[dev->index - 0xf0][dev->ldn];
+			break;
+	}
+    } else
+	ret = dev->index;
+
+    return ret;
 }
 
 
@@ -485,6 +499,7 @@ nsc366_init(const device_t *info)
 
     return dev;
 }
+
 
 const device_t nsc366_device = {
     .name = "National Semiconductor NSC366",

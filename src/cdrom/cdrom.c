@@ -742,7 +742,7 @@ cdrom_get_q(cdrom_t *dev, uint8_t *buf, int *curtoctrk, uint8_t mode)
 	if (*curtoctrk >= (last_track + 1))
 		*curtoctrk = 0;
 	else if (mode)
-		*curtoctrk++;
+		*curtoctrk = *curtoctrk + 1;
     } else
 	memset(buf, 0x00, 10);
 }
@@ -752,7 +752,6 @@ uint8_t
 cdrom_mitsumi_audio_play(cdrom_t *dev, uint32_t pos, uint32_t len)
 {
     track_info_t ti;
-    int m = 0, s = 0, f = 0;
 
     if (dev->cd_status == CD_STATUS_DATA_ONLY)
 	return 0;
