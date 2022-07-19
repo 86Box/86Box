@@ -31,6 +31,27 @@
 #include <86box/rom.h>
 #include <86box/device.h>
 #include <86box/machine.h>
+#include <86box/keyboard.h>
+#include <86box/sound.h>
+#include <86box/video.h>
+
+// Temporarily here till we move everything out into the right files
+extern const device_t pcjr_device;
+extern const device_t m19_vid_device;
+extern const device_t vid_device;
+extern const device_t vid_device_hx;
+extern const device_t t1000_video_device;
+extern const device_t xi8088_device;
+extern const device_t cga_device;
+extern const device_t vid_1512_device;
+extern const device_t vid_1640_device;
+extern const device_t vid_pc2086_device;
+extern const device_t vid_pc3086_device;
+extern const device_t vid_200_device;
+extern const device_t vid_ppc512_device;
+extern const device_t vid_device_sl;
+extern const device_t t1200_video_device;
+extern const device_t compaq_plasma_device;
 
 const machine_filter_t machine_types[] = {
     { "None",                      MACHINE_TYPE_NONE       },
@@ -148,273 +169,4028 @@ const machine_filter_t machine_chipsets[] = {
    - Zeos Quadtel 486.
 
    NOTE: The AMI MegaKey tests were done on a real Intel Advanced/ATX
- (thanks, MrKsoft for running my AMIKEY.COM on it), but the
- technical specifications of the other Intel machines confirm
- that the other boards also have the MegaKey.
+     (thanks, MrKsoft for running my AMIKEY.COM on it), but the
+     technical specifications of the other Intel machines confirm
+     that the other boards also have the MegaKey.
 
    NOTE: The later (ie. not AMI Color) Intel AMI BIOS'es execute a
- sequence of commands (B8, BA, BB) during one of the very first
- phases of POST, in a way that is only valid on the AMIKey-3
- KBC firmware, that includes the Classic PCI/ED (Ninja) BIOS
- which otherwise does not execute any AMI KBC commands, which
- indicates that the sequence is a leftover of whatever AMI
- BIOS (likely a laptop one since the AMIKey-3 is a laptop KBC
- firmware!) Intel forked.
+     sequence of commands (B8, BA, BB) during one of the very first
+     phases of POST, in a way that is only valid on the AMIKey-3
+     KBC firmware, that includes the Classic PCI/ED (Ninja) BIOS
+     which otherwise does not execute any AMI KBC commands, which
+     indicates that the sequence is a leftover of whatever AMI
+     BIOS (likely a laptop one since the AMIKey-3 is a laptop KBC
+     firmware!) Intel forked.
 
    NOTE: The VIA VT82C42N returns 0x46 ('F') in command 0xA1 (so it
- emulates the AMI KF/AMIKey KBC firmware), and 0x42 ('B') in
- command 0xAF.
- The version on the VIA VT82C686B southbridge also returns
- 'F' in command 0xA1, but 0x45 ('E') in command 0xAF.
- The version on the VIA VT82C586B southbridge also returns
- 'F' in command 0xA1, but 0x44 ('D') in command 0xAF.
- The version on the VIA VT82C586A southbridge also returns
- 'F' in command 0xA1, but 0x43 ('C') in command 0xAF.
+     emulates the AMI KF/AMIKey KBC firmware), and 0x42 ('B') in
+     command 0xAF.
+     The version on the VIA VT82C686B southbridge also returns
+     'F' in command 0xA1, but 0x45 ('E') in command 0xAF.
+     The version on the VIA VT82C586B southbridge also returns
+     'F' in command 0xA1, but 0x44 ('D') in command 0xAF.
+     The version on the VIA VT82C586A southbridge also returns
+     'F' in command 0xA1, but 0x43 ('C') in command 0xAF.
 
    NOTE: The AMI MegaKey commands blanked in the technical reference
- are CC and and C4, which are Set P14 High and Set P14 Low,
- respectively. Also, AMI KBC command C1, mysteriously missing
- from the technical references of AMI MegaKey and earlier, is
- Write Input Port, same as on AMIKey-3.
+     are CC and and C4, which are Set P14 High and Set P14 Low,
+     respectively. Also, AMI KBC command C1, mysteriously missing
+     from the technical references of AMI MegaKey and earlier, is
+     Write Input Port, same as on AMIKey-3.
 */
 
 
 const machine_t machines[] = {
     /* 8088 Machines */
-    { "[8088] IBM PC (1981)",                          "ibmpc",            MACHINE_TYPE_8088,       MACHINE_CHIPSET_DISCRETE,            machine_pc_init,                  0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_8088,                                    CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_PC,        MACHINE_FLAGS_NONE,   16,    64,  16,    0, NULL, NULL },
-    { "[8088] IBM PC (1982)",                          "ibmpc82",          MACHINE_TYPE_8088,       MACHINE_CHIPSET_DISCRETE,            machine_pc82_init,                0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_8088,                                    CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_PC,        MACHINE_FLAGS_NONE,   64,   256,  64,    0, NULL, NULL },
-    { "[8088] IBM PCjr",                               "ibmpcjr",          MACHINE_TYPE_8088,       MACHINE_CHIPSET_DISCRETE,            machine_pcjr_init,                0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_8088,                                    CPU_BLOCK_NONE, 4772728, 4772728, 0, 0, 0, 0, MACHINE_PCJR,      MACHINE_VIDEO_FIXED, 128,   640, 128,    0, pcjr_get_device, NULL },
-    { "[8088] IBM XT (1982)",                          "ibmxt",            MACHINE_TYPE_8088,       MACHINE_CHIPSET_DISCRETE,            machine_xt_init,                  0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_8088,                                    CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_PC,        MACHINE_FLAGS_NONE,   64,   256,  64,    0, NULL, NULL },
-    { "[8088] IBM XT (1986)",                          "ibmxt86",          MACHINE_TYPE_8088,       MACHINE_CHIPSET_DISCRETE,            machine_xt86_init,                0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_8088,                                    CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_PC,        MACHINE_FLAGS_NONE,  256,   640,  64,    0, NULL, NULL },
-    { "[8088] American XT Computer",                   "americxt",         MACHINE_TYPE_8088,       MACHINE_CHIPSET_DISCRETE,            machine_xt_americxt_init,         0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_8088,                                    CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_PC,        MACHINE_FLAGS_NONE,   64,   640,  64,    0, NULL, NULL },
-    { "[8088] AMI XT clone",                           "amixt",            MACHINE_TYPE_8088,       MACHINE_CHIPSET_DISCRETE,            machine_xt_amixt_init,            0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_8088,                                    CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_PC,        MACHINE_FLAGS_NONE,   64,   640,  64,    0, NULL, NULL },
-    { "[8088] Bondwell BW230",                         "bw230",            MACHINE_TYPE_8088,       MACHINE_CHIPSET_DISCRETE,            machine_xt_bw230_init,            0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_8088,                                    CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_PC,        MACHINE_FLAGS_NONE,   64,   640,  64,    0, NULL, NULL },
-    { "[8088] Columbia Data Products MPC-1600",        "mpc1600",          MACHINE_TYPE_8088,       MACHINE_CHIPSET_DISCRETE,            machine_xt_mpc1600_init,          0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_8088,                                    CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_PC,        MACHINE_FLAGS_NONE,  128,   512,  64,    0, NULL, NULL },
-    { "[8088] Compaq Portable",                        "portable",         MACHINE_TYPE_8088,       MACHINE_CHIPSET_DISCRETE,            machine_xt_compaq_portable_init,  0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_8088,                                    CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_PC,        MACHINE_FLAGS_NONE,  128,   640, 128,    0, NULL, NULL },
-    { "[8088] DTK PIM-TB10-Z",                         "dtk",              MACHINE_TYPE_8088,       MACHINE_CHIPSET_DISCRETE,            machine_xt_dtk_init,              0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_8088,                                    CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_PC,        MACHINE_FLAGS_NONE,   64,   640,  64,    0, NULL, NULL },
-    { "[8088] Eagle PC Spirit",                        "pcspirit",         MACHINE_TYPE_8088,       MACHINE_CHIPSET_DISCRETE,            machine_xt_pcspirit_init,         0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_8088,                                    CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_PC,        MACHINE_FLAGS_NONE,  128,   640,  64,    0, NULL, NULL },
-    { "[8088] Generic XT clone",                       "genxt",            MACHINE_TYPE_8088,       MACHINE_CHIPSET_DISCRETE,            machine_genxt_init,               0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_8088,                                    CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_PC,        MACHINE_FLAGS_NONE,   64,   640,  64,    0, NULL, NULL },
-    { "[8088] Hyosung Topstar 88T",                    "top88",            MACHINE_TYPE_8088,       MACHINE_CHIPSET_DISCRETE,            machine_xt_top88_init,            0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_8088,                                    CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_PC,        MACHINE_FLAGS_NONE,  128,   640,  64,    0, NULL, NULL },
-    { "[8088] Hyundai SUPER-16T",                      "super16t",         MACHINE_TYPE_8088,       MACHINE_CHIPSET_DISCRETE,            machine_xt_super16t_init,         0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_8088,                                    CPU_BLOCK_NONE, 4772728, 7159092, 0, 0, 0, 0, MACHINE_PC,        MACHINE_FLAGS_NONE,  128,   640,  64,    0, NULL, NULL },
-    { "[8088] Hyundai SUPER-16TE",                     "super16te",        MACHINE_TYPE_8088,       MACHINE_CHIPSET_DISCRETE,            machine_xt_super16te_init,        0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_8088,                                    CPU_BLOCK_NONE, 0, 10000000, 0, 0, 0, 0, MACHINE_PC,        MACHINE_FLAGS_NONE,  128,   640,  64,    0, NULL, NULL },
-    { "[8088] Juko ST",                                "jukopc",           MACHINE_TYPE_8088,       MACHINE_CHIPSET_DISCRETE,            machine_xt_jukopc_init,           0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_8088,                                    CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_PC,        MACHINE_FLAGS_NONE,   64,   640,  64,    0, NULL, NULL },
-    { "[8088] Kaypro PC",                              "kaypropc",         MACHINE_TYPE_8088,       MACHINE_CHIPSET_DISCRETE,            machine_xt_kaypropc_init,         0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_8088,                                    CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_PC,        MACHINE_FLAGS_NONE,  128,   640,  64,    0, NULL, NULL },
-    { "[8088] Multitech PC-500",                       "pc500",            MACHINE_TYPE_8088,       MACHINE_CHIPSET_DISCRETE,            machine_xt_pc500_init,            0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_8088,                                    CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_PC,        MACHINE_FLAGS_NONE,  128,   640,  64,    0, NULL, NULL },
-    { "[8088] Multitech PC-700",                       "pc700",            MACHINE_TYPE_8088,       MACHINE_CHIPSET_DISCRETE,            machine_xt_pc700_init,            0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_8088,                                    CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_PC,        MACHINE_FLAGS_NONE,  128,   640,  64,    0, NULL, NULL },
-    { "[8088] NCR PC4i",                               "pc4i",             MACHINE_TYPE_8088,       MACHINE_CHIPSET_DISCRETE,            machine_xt_pc4i_init,             0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_8088,                                    CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_PC,        MACHINE_FLAGS_NONE,  256,   640, 256,    0, NULL, NULL },
-    { "[8088] Olivetti M19",                           "m19",              MACHINE_TYPE_8088,       MACHINE_CHIPSET_PROPRIETARY,         machine_xt_m19_init,              0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_8088,                                    CPU_BLOCK_NONE, 4772728, 7159092, 0, 0, 0, 0, MACHINE_PC,        MACHINE_VIDEO_FIXED, 256,   640, 256,    0, m19_get_device, NULL },
-    { "[8088] OpenXT",                                 "openxt",           MACHINE_TYPE_8088,       MACHINE_CHIPSET_DISCRETE,            machine_xt_openxt_init,           0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_8088,                                    CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_PC,        MACHINE_FLAGS_NONE,   64,   640,  64,    0, NULL, NULL },
-    { "[8088] Philips P3105/NMS9100",                  "p3105",            MACHINE_TYPE_8088,       MACHINE_CHIPSET_DISCRETE,            machine_xt_p3105_init,            0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_8088,                                    CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_PC,        MACHINE_XTA,         256,   768, 256,    0, NULL, NULL },
-    { "[8088] Phoenix XT clone",                       "pxxt",             MACHINE_TYPE_8088,       MACHINE_CHIPSET_DISCRETE,            machine_xt_pxxt_init,             0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_8088,                                    CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_PC,        MACHINE_FLAGS_NONE,   64,   640,  64,    0, NULL, NULL },
-    { "[8088] Sanyo SX-16",                            "sansx16",          MACHINE_TYPE_8088,       MACHINE_CHIPSET_DISCRETE,            machine_xt_sansx16_init,          0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_8088,                                    CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_PC,        MACHINE_FLAGS_NONE,  256,   640, 256,    0, NULL, NULL },
-    { "[8088] Schneider EuroPC",                       "europc",           MACHINE_TYPE_8088,       MACHINE_CHIPSET_PROPRIETARY,         machine_europc_init,              0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_8088_EUROPC,                             CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_PC,        MACHINE_XTA | MACHINE_MOUSE, 512,   640, 128,   15, NULL, NULL },
-    { "[8088] Super PC/Turbo XT",                      "pcxt",             MACHINE_TYPE_8088,       MACHINE_CHIPSET_DISCRETE,            machine_xt_pcxt_init,             0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_8088,                                    CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_PC,        MACHINE_FLAGS_NONE,   64,   640,  64,    0, NULL, NULL },
-    { "[8088] Tandy 1000",                             "tandy",            MACHINE_TYPE_8088,       MACHINE_CHIPSET_PROPRIETARY,         machine_tandy_init,               0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_8088_EUROPC,                             CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_PC,        MACHINE_VIDEO_FIXED, 128,   640, 128,    0, tandy1k_get_device, NULL },
-    { "[8088] Tandy 1000 HX",                          "tandy1000hx",      MACHINE_TYPE_8088,       MACHINE_CHIPSET_PROPRIETARY,         machine_tandy1000hx_init,         0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_8088_EUROPC,                             CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_PC,        MACHINE_VIDEO_FIXED, 256,   640, 128,    0, tandy1k_hx_get_device, NULL },
-    { "[8088] Toshiba T1000",                          "t1000",            MACHINE_TYPE_8088,       MACHINE_CHIPSET_PROPRIETARY,         machine_xt_t1000_init,            0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_8088,                                    CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_PC,        MACHINE_VIDEO,       512,  1280, 768,   63, t1000_get_device, NULL },
-    { "[8088] Vendex HeadStart Turbo 888-XT",          "vendex",           MACHINE_TYPE_8088,       MACHINE_CHIPSET_PROPRIETARY,         machine_xt_vendex_init,           0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_8088,                                    CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_PC,        MACHINE_FLAGS_NONE,  256,   768, 256,    0, NULL, NULL },
+    {
+        .name = "[8088] IBM PC (1981)",
+        .internal_name = "ibmpc",
+        .type = MACHINE_TYPE_8088,
+        .chipset = MACHINE_CHIPSET_DISCRETE,
+        .init = machine_pc_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_8088,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_PC,
+        .flags = MACHINE_FLAGS_NONE,
+        .ram = {
+            .min = 16,
+            .max = 64,
+            .step = 16
+        },
+        .nvrmask = 0,
+        .kbc = KBC_IBM_PC_XT,
+        .kbc_p1 = 0xff00,
+        .gpio = 0xffffffff,
+        .device = NULL,
+        .vid_device = NULL
+    },
+    {
+        .name = "[8088] IBM PC (1982)",
+        .internal_name = "ibmpc82",
+        .type = MACHINE_TYPE_8088,
+        .chipset = MACHINE_CHIPSET_DISCRETE,
+        .init = machine_pc82_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_8088,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_PC,
+        .flags = MACHINE_FLAGS_NONE,
+        .ram = {
+            .min = 64,
+            .max = 256,
+            .step = 64
+        },
+        .nvrmask = 0,
+        .kbc = KBC_IBM_PC_XT,
+        .kbc_p1 = 0xff00,
+        .gpio = 0xffffffff,
+        .device = NULL,
+        .vid_device = NULL
+    },
+    {
+        .name = "[8088] IBM PCjr",
+        .internal_name = "ibmpcjr",
+        .type = MACHINE_TYPE_8088,
+        .chipset = MACHINE_CHIPSET_DISCRETE,
+        .init = machine_pcjr_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_8088,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 4772728,
+            .max_bus = 4772728,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_PCJR,
+        .flags = MACHINE_VIDEO_FIXED,
+        .ram = {
+            .min = 128,
+            .max = 640,
+            .step = 128
+        },
+        .nvrmask = 0,
+        .kbc = KBC_IBM_PCJR,
+        .kbc_p1 = 0xff00,
+        .gpio = 0xffffffff,
+        .device = &pcjr_device,
+        .vid_device = NULL
+    },
+    {
+        .name = "[8088] IBM XT (1982)",
+        .internal_name = "ibmxt",
+        .type = MACHINE_TYPE_8088,
+        .chipset = MACHINE_CHIPSET_DISCRETE,
+        .init = machine_xt_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_8088,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_PC,
+        .flags = MACHINE_FLAGS_NONE,
+        .ram = {
+            .min = 64,
+            .max = 256,
+            .step = 64
+        },
+        .nvrmask = 0,
+        .kbc = KBC_IBM_PC_XT,
+        .kbc_p1 = 0xff00,
+        .gpio = 0xffffffff,
+        .device = NULL,
+        .vid_device = NULL
+    },
+    {
+        .name = "[8088] IBM XT (1986)",
+        .internal_name = "ibmxt86",
+        .type = MACHINE_TYPE_8088,
+        .chipset = MACHINE_CHIPSET_DISCRETE,
+        .init = machine_xt86_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_8088,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_PC,
+        .flags = MACHINE_FLAGS_NONE,
+        .ram = {
+            .min = 256,
+            .max = 640,
+            .step = 64
+        },
+        .nvrmask = 0,
+        .kbc = KBC_IBM_PC_XT,
+        .kbc_p1 = 0xff00,
+        .gpio = 0xffffffff,
+        .device = NULL,
+        .vid_device = NULL
+    },
+    {
+        .name = "[8088] American XT Computer",
+        .internal_name = "americxt",
+        .type = MACHINE_TYPE_8088,
+        .chipset = MACHINE_CHIPSET_DISCRETE,
+        .init = machine_xt_americxt_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_8088,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_PC,
+        .flags = MACHINE_FLAGS_NONE,
+        .ram = {
+            .min = 64,
+            .max = 640,
+            .step = 64
+        },
+        .nvrmask = 0,
+        .kbc = KBC_IBM_PC_XT,
+        .kbc_p1 = 0xff00,
+        .gpio = 0xffffffff,
+        .device = NULL,
+        .vid_device = NULL
+    },
+    {
+        .name = "[8088] AMI XT clone",
+        .internal_name = "amixt",
+        .type = MACHINE_TYPE_8088,
+        .chipset = MACHINE_CHIPSET_DISCRETE,
+        .init = machine_xt_amixt_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_8088,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_PC,
+        .flags = MACHINE_FLAGS_NONE,
+        .ram = {
+            .min = 64,
+            .max = 640,
+            .step = 64
+        },
+        .nvrmask = 0,
+        .kbc = KBC_IBM_PC_XT,
+        .kbc_p1 = 0xff00,
+        .gpio = 0xffffffff,
+        .device = NULL,
+        .vid_device = NULL
+    },
+    {
+        .name = "[8088] Columbia Data Products MPC-1600",
+        .internal_name = "mpc1600",
+        .type = MACHINE_TYPE_8088,
+        .chipset = MACHINE_CHIPSET_DISCRETE,
+        .init = machine_xt_mpc1600_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_8088,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_PC,
+        .flags = MACHINE_FLAGS_NONE,
+        .ram = {
+            .min = 128,
+            .max = 512,
+            .step = 64
+        },
+        .nvrmask = 0,
+        .kbc = KBC_IBM_PC_XT,
+        .kbc_p1 = 0xff00,
+        .gpio = 0xffffffff,
+        .device = NULL,
+        .vid_device = NULL
+    },
+    {
+        .name = "[8088] Compaq Portable",
+        .internal_name = "portable",
+        .type = MACHINE_TYPE_8088,
+        .chipset = MACHINE_CHIPSET_DISCRETE,
+        .init = machine_xt_compaq_portable_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_8088,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_PC,
+        .flags = MACHINE_FLAGS_NONE,
+        .ram = {
+            .min = 128,
+            .max = 640,
+            .step = 128
+        },
+        .nvrmask = 0,
+        .kbc = KBC_IBM_PC_XT,
+        .kbc_p1 = 0xff00,
+        .gpio = 0xffffffff,
+        .device = NULL,
+        .vid_device = NULL
+    },
+    {
+        .name = "[8088] DTK PIM-TB10-Z",
+        .internal_name = "dtk",
+        .type = MACHINE_TYPE_8088,
+        .chipset = MACHINE_CHIPSET_DISCRETE,
+        .init = machine_xt_dtk_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_8088,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_PC,
+        .flags = MACHINE_FLAGS_NONE,
+        .ram = {
+            .min = 64,
+            .max = 640,
+            .step = 64
+        },
+        .nvrmask = 0,
+        .kbc = KBC_IBM_PC_XT,
+        .kbc_p1 = 0xff00,
+        .gpio = 0xffffffff,
+        .device = NULL,
+        .vid_device = NULL
+    },
+    {
+        .name = "[8088] Eagle PC Spirit",
+        .internal_name = "pcspirit",
+        .type = MACHINE_TYPE_8088,
+        .chipset = MACHINE_CHIPSET_DISCRETE,
+        .init = machine_xt_pcspirit_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_8088,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_PC,
+        .flags = MACHINE_FLAGS_NONE,
+        .ram = {
+            .min = 128,
+            .max = 640,
+            .step = 64
+        },
+        .nvrmask = 0,
+        .kbc = KBC_IBM_PC_XT,
+        .kbc_p1 = 0xff00,
+        .gpio = 0xffffffff,
+        .device = NULL,
+        .vid_device = NULL
+    },
+    {
+        .name = "[8088] Generic XT clone",
+        .internal_name = "genxt",
+        .type = MACHINE_TYPE_8088,
+        .chipset = MACHINE_CHIPSET_DISCRETE,
+        .init = machine_genxt_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_8088,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_PC,
+        .flags = MACHINE_FLAGS_NONE,
+        .ram = {
+            .min = 64,
+            .max = 640,
+            .step = 64
+        },
+        .nvrmask = 0,
+        .kbc = KBC_IBM_PC_XT,
+        .kbc_p1 = 0xff00,
+        .gpio = 0xffffffff,
+        .device = NULL,
+        .vid_device = NULL
+    },
+    {
+        .name = "[8088] Juko ST",
+        .internal_name = "jukopc",
+        .type = MACHINE_TYPE_8088,
+        .chipset = MACHINE_CHIPSET_DISCRETE,
+        .init = machine_xt_jukopc_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_8088,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_PC,
+        .flags = MACHINE_FLAGS_NONE,
+        .ram = {
+            .min = 64,
+            .max = 640,
+            .step = 64
+        },
+        .nvrmask = 0,
+        .kbc = KBC_IBM_PC_XT,
+        .kbc_p1 = 0xff00,
+        .gpio = 0xffffffff,
+        .device = NULL,
+        .vid_device = NULL
+    },
+    {
+        .name = "[8088] Multitech PC-500",
+        .internal_name = "pc500",
+        .type = MACHINE_TYPE_8088,
+        .chipset = MACHINE_CHIPSET_DISCRETE,
+        .init = machine_xt_pc500_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_8088,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_PC,
+        .flags = MACHINE_FLAGS_NONE,
+        .ram = {
+            .min = 128,
+            .max = 640,
+            .step = 64
+        },
+        .nvrmask = 0,
+        .kbc = KBC_IBM_PC_XT,
+        .kbc_p1 = 0xff00,
+        .gpio = 0xffffffff,
+        .device = NULL,
+        .vid_device = NULL
+    },
+    {
+        .name = "[8088] Multitech PC-700",
+        .internal_name = "pc700",
+        .type = MACHINE_TYPE_8088,
+        .chipset = MACHINE_CHIPSET_DISCRETE,
+        .init = machine_xt_pc700_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_8088,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_PC,
+        .flags = MACHINE_FLAGS_NONE,
+        .ram = {
+            .min = 128,
+            .max = 640,
+            .step = 64
+        },
+        .nvrmask = 0,
+        .kbc = KBC_IBM_PC_XT,
+        .kbc_p1 = 0xff00,
+        .gpio = 0xffffffff,
+        .device = NULL,
+        .vid_device = NULL
+    },
+    {
+        .name = "[8088] NCR PC4i",
+        .internal_name = "pc4i",
+        .type = MACHINE_TYPE_8088,
+        .chipset = MACHINE_CHIPSET_DISCRETE,
+        .init = machine_xt_pc4i_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_8088,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_PC,
+        .flags = MACHINE_FLAGS_NONE,
+        .ram = {
+            .min = 256,
+            .max = 640,
+            .step = 256
+        },
+        .nvrmask = 0,
+        .kbc = KBC_IBM_PC_XT,
+        .kbc_p1 = 0xff00,
+        .gpio = 0xffffffff,
+        .device = NULL,
+        .vid_device = NULL
+    },
+    {
+        .name = "[8088] Olivetti M19",
+        .internal_name = "m19",
+        .type = MACHINE_TYPE_8088,
+        .chipset = MACHINE_CHIPSET_PROPRIETARY,
+        .init = machine_xt_m19_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_8088,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 4772728,
+            .max_bus = 7159092,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_PC,
+        .flags = MACHINE_VIDEO_FIXED,
+        .ram = {
+            .min = 256,
+            .max = 640,
+            .step = 256
+        },
+        .nvrmask = 0,
+        .kbc = KBC_OLIVETTI_XT,
+        .kbc_p1 = 0xff00,
+        .gpio = 0xffffffff,
+        .device = &m19_vid_device,
+        .vid_device = NULL
+    },
+    {
+        .name = "[8088] OpenXT",
+        .internal_name = "openxt",
+        .type = MACHINE_TYPE_8088,
+        .chipset = MACHINE_CHIPSET_DISCRETE,
+        .init = machine_xt_openxt_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_8088,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_PC,
+        .flags = MACHINE_FLAGS_NONE,
+        .ram = {
+            .min = 64,
+            .max = 640,
+            .step = 64
+        },
+        .nvrmask = 0,
+        .kbc = KBC_IBM_PC_XT,
+        .kbc_p1 = 0xff00,
+        .gpio = 0xffffffff,
+        .device = NULL,
+        .vid_device = NULL
+    },
+    {
+        .name = "[8088] Philips P3105/NMS9100",
+        .internal_name = "p3105",
+        .type = MACHINE_TYPE_8088,
+        .chipset = MACHINE_CHIPSET_DISCRETE,
+        .init = machine_xt_p3105_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_8088,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_PC,
+        .flags = MACHINE_XTA,
+        .ram = {
+            .min = 256,
+            .max = 768,
+            .step = 256
+        },
+        .nvrmask = 0,
+        .kbc = KBC_IBM_PC_XT,
+        .kbc_p1 = 0xff00,
+        .gpio = 0xffffffff,
+        .device = NULL,
+        .vid_device = NULL
+    },
+    {
+        .name = "[8088] Phoenix XT clone",
+        .internal_name = "pxxt",
+        .type = MACHINE_TYPE_8088,
+        .chipset = MACHINE_CHIPSET_DISCRETE,
+        .init = machine_xt_pxxt_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_8088,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_PC,
+        .flags = MACHINE_FLAGS_NONE,
+        .ram = {
+            .min = 64,
+            .max = 640,
+            .step = 64
+        },
+        .nvrmask = 0,
+        .kbc = KBC_IBM_PC_XT,
+        .kbc_p1 = 0xff00,
+        .gpio = 0xffffffff,
+        .device = NULL,
+        .vid_device = NULL
+    },
+    {
+        .name = "[8088] Schneider EuroPC",
+        .internal_name = "europc",
+        .type = MACHINE_TYPE_8088,
+        .chipset = MACHINE_CHIPSET_PROPRIETARY,
+        .init = machine_europc_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_8088_EUROPC,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_PC,
+        .flags = MACHINE_XTA | MACHINE_MOUSE,
+        .ram = {
+            .min = 512,
+            .max = 640,
+            .step = 128
+        },
+        .nvrmask = 15,
+        .kbc = KBC_IBM_PC_XT,
+        .kbc_p1 = 0xff00,
+        .gpio = 0xffffffff,
+        .device = NULL,
+        .vid_device = NULL
+    },
+    {
+        .name = "[8088] Super PC/Turbo XT",
+        .internal_name = "pcxt",
+        .type = MACHINE_TYPE_8088,
+        .chipset = MACHINE_CHIPSET_DISCRETE,
+        .init = machine_xt_pcxt_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_8088,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_PC,
+        .flags = MACHINE_FLAGS_NONE,
+        .ram = {
+            .min = 64,
+            .max = 640,
+            .step = 64
+        },
+        .nvrmask = 0,
+        .kbc = KBC_IBM_PC_XT,
+        .kbc_p1 = 0xff00,
+        .gpio = 0xffffffff,
+        .device = NULL,
+        .vid_device = NULL
+    },
+    {
+        .name = "[8088] Tandy 1000",
+        .internal_name = "tandy",
+        .type = MACHINE_TYPE_8088,
+        .chipset = MACHINE_CHIPSET_PROPRIETARY,
+        .init = machine_tandy_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_8088_EUROPC,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_PC,
+        .flags = MACHINE_VIDEO_FIXED,
+        .ram = {
+            .min = 128,
+            .max = 640,
+            .step = 128
+        },
+        .nvrmask = 0,
+        .kbc = KBC_TANDY,
+        .kbc_p1 = 0xff00,
+        .gpio = 0xffffffff,
+        .device = &vid_device,
+        .vid_device = NULL
+    },
+    {
+        .name = "[8088] Tandy 1000 HX",
+        .internal_name = "tandy1000hx",
+        .type = MACHINE_TYPE_8088,
+        .chipset = MACHINE_CHIPSET_PROPRIETARY,
+        .init = machine_tandy1000hx_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_8088_EUROPC,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_PC,
+        .flags = MACHINE_VIDEO_FIXED,
+        .ram = {
+            .min = 256,
+            .max = 640,
+            .step = 128
+        },
+        .nvrmask = 0,
+        .kbc = KBC_TANDY,
+        .kbc_p1 = 0xff00,
+        .gpio = 0xffffffff,
+        .device = &vid_device_hx,
+        .vid_device = NULL
+    },
+    {
+        .name = "[8088] Toshiba T1000",
+        .internal_name = "t1000",
+        .type = MACHINE_TYPE_8088,
+        .chipset = MACHINE_CHIPSET_PROPRIETARY,
+        .init = machine_xt_t1000_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_8088,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_PC,
+        .flags = MACHINE_VIDEO,
+        .ram = {
+            .min = 512,
+            .max = 1280,
+            .step = 768
+        },
+        .nvrmask = 63,
+        .kbc = KBC_IBM_PC_XT,
+        .kbc_p1 = 0xff00,
+        .gpio = 0xffffffff,
+        .device = &t1000_video_device,
+        .vid_device = NULL
+    },
+    {
+        .name = "[8088] Vendex HeadStart Turbo 888-XT",
+        .internal_name = "vendex",
+        .type = MACHINE_TYPE_8088,
+        .chipset = MACHINE_CHIPSET_PROPRIETARY,
+        .init = machine_xt_vendex_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_8088,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_PC,
+        .flags = MACHINE_FLAGS_NONE,
+        .ram = {
+            .min = 256,
+            .max = 768,
+            .step = 256
+        },
+        .nvrmask = 0,
+        .kbc = KBC_IBM_PC_XT,
+        .kbc_p1 = 0xff00,
+        .gpio = 0xffffffff,
+        .device = NULL,
+        .vid_device = NULL
+    },
 #if defined(DEV_BRANCH) && defined(USE_LASERXT)
-    { "[8088] VTech Laser Turbo XT",                   "ltxt",             MACHINE_TYPE_8088,       MACHINE_CHIPSET_DISCRETE,            machine_xt_laserxt_init,          0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_8088,                                    CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_PC,        MACHINE_FLAGS_NONE,  256,   640, 256,    0,NULL, NULL },
+    {
+        .name = "[8088] VTech Laser Turbo XT",
+        .internal_name = "ltxt",
+        .type = MACHINE_TYPE_8088,
+        .chipset = MACHINE_CHIPSET_DISCRETE,
+        .init = machine_xt_laserxt_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_8088,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_PC,
+        .flags = MACHINE_FLAGS_NONE,
+        .ram = {
+            .min = 256,
+            .max = 640,
+            .step = 256
+        },
+        .nvrmask = 0,
+        .kbc = KBC_IBM_PC_XT,
+        .kbc_p1 = 0xff00,
+        .gpio = 0xffffffff,
+        .device = NULL,
+        .vid_device = NULL
+    },
 #endif
     /* Has a standard PS/2 KBC (so, use IBM PS/2 Type 1). */
-    { "[8088] Xi8088",                                 "xi8088",           MACHINE_TYPE_8088,       MACHINE_CHIPSET_DISCRETE,            machine_xt_xi8088_init,           0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_8088,                                    CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_PS2,       MACHINE_FLAGS_NONE,   64,  1024, 128,  127, xi8088_get_device, NULL },
-    { "[8088] Z-NIX PC-1600",                          "znic",             MACHINE_TYPE_8088,       MACHINE_CHIPSET_DISCRETE,            machine_xt_znic_init,             0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_8088,                                    CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_PC,        MACHINE_FLAGS_NONE,   64,   640,  64,    0, NULL, NULL },
-    { "[8088] Zenith Data Systems Z-151/152/161",      "zdsz151",          MACHINE_TYPE_8088,       MACHINE_CHIPSET_DISCRETE,            machine_xt_z151_init,             0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_8088,                                    CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_PC,        MACHINE_FLAGS_NONE,  128,   640,  64,    0, NULL, NULL },
-    { "[8088] Zenith Data Systems Z-159",              "zdsz159",          MACHINE_TYPE_8088,       MACHINE_CHIPSET_DISCRETE,            machine_xt_z159_init,             0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_8088,                                    CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_PC,        MACHINE_FLAGS_NONE,  128,   640,  64,    0, NULL, NULL },
-    { "[8088] Zenith Data Systems SupersPort (Z-184)", "zdsupers",         MACHINE_TYPE_8088,       MACHINE_CHIPSET_DISCRETE,            machine_xt_z184_init,             0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_8088,                                    CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_PC,        MACHINE_VIDEO_FIXED, 128,   640, 128,    0, z184_get_device, NULL },
-    { "[GC100A] Philips P3120",                        "p3120",            MACHINE_TYPE_8088,       MACHINE_CHIPSET_GC100A,              machine_xt_p3120_init,            0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_8088,                                    CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_PC,        MACHINE_XTA,         256,   768, 256,    0, NULL, NULL },
+    {
+        .name = "[8088] Xi8088",
+        .internal_name = "xi8088",
+        .type = MACHINE_TYPE_8088,
+        .chipset = MACHINE_CHIPSET_DISCRETE,
+        .init = machine_xt_xi8088_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_8088,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_PS2,
+        .flags = MACHINE_FLAGS_NONE,
+        .ram = {
+            .min = 64,
+            .max = 1024,
+            .step = 128
+        },
+        .nvrmask = 127,
+        .kbc = KBC_VIA_VT82C4XN_XI8088,
+        .kbc_p1 = 0xff04,
+        .gpio = 0xffffffff,
+        .device = &xi8088_device,
+        .vid_device = NULL
+    },
+    {
+        .name = "[8088] Z-NIX PC-1600",
+        .internal_name = "znic",
+        .type = MACHINE_TYPE_8088,
+        .chipset = MACHINE_CHIPSET_DISCRETE,
+        .init = machine_xt_znic_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_8088,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_PC,
+        .flags = MACHINE_FLAGS_NONE,
+        .ram = {
+            .min = 64,
+            .max = 640,
+            .step = 64
+        },
+        .nvrmask = 0,
+        .kbc = KBC_IBM_PC_XT,
+        .kbc_p1 = 0xff00,
+        .gpio = 0xffffffff,
+        .device = NULL,
+        .vid_device = NULL
+    },
+    {
+        .name = "[8088] Zenith Data Systems Z-151/152/161",
+        .internal_name = "zdsz151",
+        .type = MACHINE_TYPE_8088,
+        .chipset = MACHINE_CHIPSET_DISCRETE,
+        .init = machine_xt_z151_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_8088,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_PC,
+        .flags = MACHINE_FLAGS_NONE,
+        .ram = {
+            .min = 128,
+            .max = 640,
+            .step = 64
+        },
+        .nvrmask = 0,
+        .kbc = KBC_IBM_PC_XT,
+        .kbc_p1 = 0xff00,
+        .gpio = 0xffffffff,
+        .device = NULL,
+        .vid_device = NULL
+    },
+    {
+        .name = "[8088] Zenith Data Systems Z-159",
+        .internal_name = "zdsz159",
+        .type = MACHINE_TYPE_8088,
+        .chipset = MACHINE_CHIPSET_DISCRETE,
+        .init = machine_xt_z159_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_8088,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_PC,
+        .flags = MACHINE_FLAGS_NONE,
+        .ram = {
+            .min = 128,
+            .max = 640,
+            .step = 64
+        },
+        .nvrmask = 0,
+        .kbc = KBC_IBM_PC_XT,
+        .kbc_p1 = 0xff00,
+        .gpio = 0xffffffff,
+        .device = NULL,
+        .vid_device = NULL
+    },
+    {
+        .name = "[8088] Zenith Data Systems SupersPort (Z-184)",
+        .internal_name = "zdsupers",
+        .type = MACHINE_TYPE_8088,
+        .chipset = MACHINE_CHIPSET_DISCRETE,
+        .init = machine_xt_z184_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_8088,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_PC,
+        .flags = MACHINE_VIDEO_FIXED,
+        .ram = {
+            .min = 128,
+            .max = 640,
+            .step = 128
+        },
+        .nvrmask = 0,
+        .kbc = KBC_IBM_PC_XT,
+        .kbc_p1 = 0xff00,
+        .gpio = 0xffffffff,
+        .device = &cga_device,
+        .vid_device = NULL
+    },
+    {
+        .name = "[GC100A] Philips P3120",
+        .internal_name = "p3120",
+        .type = MACHINE_TYPE_8088,
+        .chipset = MACHINE_CHIPSET_GC100A,
+        .init = machine_xt_p3120_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_8088,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_PC,
+        .flags = MACHINE_XTA,
+        .ram = {
+            .min = 256,
+            .max = 768,
+            .step = 256
+        },
+        .nvrmask = 0,
+        .kbc = KBC_IBM_PC_XT,
+        .kbc_p1 = 0xff00,
+        .gpio = 0xffffffff,
+        .device = NULL,
+        .vid_device = NULL
+    },
 
     /* 8086 Machines */
-    { "[8086] Amstrad PC1512",                         "pc1512",           MACHINE_TYPE_8086,       MACHINE_CHIPSET_PROPRIETARY,         machine_pc1512_init,              0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_8086,                                    CPU_BLOCK_NONE, 8000000, 8000000, 0, 0, 0, 0, MACHINE_PC,        MACHINE_VIDEO_FIXED | MACHINE_MOUSE, 512,   640, 128,   63, pc1512_get_device, NULL },
-    { "[8086] Amstrad PC1640",                         "pc1640",           MACHINE_TYPE_8086,       MACHINE_CHIPSET_PROPRIETARY,         machine_pc1640_init,              0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_8086,                                    CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_PC,        MACHINE_VIDEO | MACHINE_MOUSE,        640,   640, 640,   63, pc1640_get_device, NULL },
-    { "[8086] Amstrad PC2086",                         "pc2086",           MACHINE_TYPE_8086,       MACHINE_CHIPSET_PROPRIETARY,         machine_pc2086_init,              0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_8086,                                    CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_PC,        MACHINE_VIDEO_FIXED | MACHINE_MOUSE,  640,   640, 640,   63, pc2086_get_device, NULL },
-    { "[8086] Amstrad PC3086",                         "pc3086",           MACHINE_TYPE_8086,       MACHINE_CHIPSET_PROPRIETARY,         machine_pc3086_init,              0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_8086,                                    CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_PC,        MACHINE_VIDEO_FIXED | MACHINE_MOUSE,  640,   640, 640,   63, pc3086_get_device, NULL },
-    { "[8086] Amstrad PC20(0)",                        "pc200",            MACHINE_TYPE_8086,       MACHINE_CHIPSET_PROPRIETARY,         machine_pc200_init,               0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_8086,                                    CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_PC,        MACHINE_VIDEO | MACHINE_MOUSE,        512,   640, 128,   63, pc200_get_device, NULL },
-    { "[8086] Amstrad PPC512/640",                     "ppc512",           MACHINE_TYPE_8086,       MACHINE_CHIPSET_PROPRIETARY,         machine_ppc512_init,              0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_8086,                                    CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_PC,        MACHINE_VIDEO | MACHINE_MOUSE,        512,   640, 128,   63, ppc512_get_device, NULL },
-    { "[8086] Compaq Deskpro",                         "deskpro",          MACHINE_TYPE_8086,       MACHINE_CHIPSET_PROPRIETARY,         machine_xt_compaq_deskpro_init,   0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_8086,                                    CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_PC,        MACHINE_FLAGS_NONE,                   128,   640, 128,    0, NULL, NULL },
-    { "[8086] Olivetti M21/24/24SP",                   "m24",              MACHINE_TYPE_8086,       MACHINE_CHIPSET_PROPRIETARY,         machine_xt_m24_init,              0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_8086,                                    CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_PC,        MACHINE_VIDEO | MACHINE_MOUSE,        128,   640, 128,    0, m24_get_device, NULL },
+    {
+        .name = "[8086] Amstrad PC1512",
+        .internal_name = "pc1512",
+        .type = MACHINE_TYPE_8086,
+        .chipset = MACHINE_CHIPSET_PROPRIETARY,
+        .init = machine_pc1512_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_8086,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 8000000,
+            .max_bus = 8000000,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_PC,
+        .flags = MACHINE_VIDEO_FIXED | MACHINE_MOUSE,
+        .ram = {
+            .min = 512,
+            .max = 640,
+            .step = 128
+        },
+        .nvrmask = 63,
+        .kbc = KBC_AMSTRAD,
+        .kbc_p1 = 0xff00,
+        .gpio = 0xffffffff,
+        .device = &vid_1512_device,
+        .vid_device = NULL
+    },
+    {
+        .name = "[8086] Amstrad PC1640",
+        .internal_name = "pc1640",
+        .type = MACHINE_TYPE_8086,
+        .chipset = MACHINE_CHIPSET_PROPRIETARY,
+        .init = machine_pc1640_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_8086,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_PC,
+        .flags = MACHINE_VIDEO | MACHINE_MOUSE,
+        .ram = {
+            .min = 640,
+            .max = 640,
+            .step = 640
+        },
+        .nvrmask = 63,
+        .kbc = KBC_AMSTRAD,
+        .kbc_p1 = 0xff00,
+        .gpio = 0xffffffff,
+        .device = &vid_1640_device,
+        .vid_device = NULL
+    },
+    {
+        .name = "[8086] Amstrad PC2086",
+        .internal_name = "pc2086",
+        .type = MACHINE_TYPE_8086,
+        .chipset = MACHINE_CHIPSET_PROPRIETARY,
+        .init = machine_pc2086_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_8086,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_PC,
+        .flags = MACHINE_VIDEO_FIXED | MACHINE_MOUSE,
+        .ram = {
+            .min = 640,
+            .max = 640,
+            .step = 640
+        },
+        .nvrmask = 63,
+        .kbc = KBC_AMSTRAD,
+        .kbc_p1 = 0xff00,
+        .gpio = 0xffffffff,
+        .device = &vid_pc2086_device,
+        .vid_device = NULL
+    },
+    {
+        .name = "[8086] Amstrad PC3086",
+        .internal_name = "pc3086",
+        .type = MACHINE_TYPE_8086,
+        .chipset = MACHINE_CHIPSET_PROPRIETARY,
+        .init = machine_pc3086_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_8086,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_PC,
+        .flags = MACHINE_VIDEO_FIXED | MACHINE_MOUSE,
+        .ram = {
+            .min = 640,
+            .max = 640,
+            .step = 640
+        },
+        .nvrmask = 63,
+        .kbc = KBC_AMSTRAD,
+        .kbc_p1 = 0xff00,
+        .gpio = 0xffffffff,
+        .device = &vid_pc3086_device,
+        .vid_device = NULL
+    },
+    {
+        .name = "[8086] Amstrad PC20(0)",
+        .internal_name = "pc200",
+        .type = MACHINE_TYPE_8086,
+        .chipset = MACHINE_CHIPSET_PROPRIETARY,
+        .init = machine_pc200_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_8086,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_PC,
+        .flags = MACHINE_VIDEO | MACHINE_MOUSE,
+        .ram = {
+            .min = 512,
+            .max = 640,
+            .step = 128
+        },
+        .nvrmask = 63,
+        .kbc = KBC_AMSTRAD,
+        .kbc_p1 = 0xff00,
+        .gpio = 0xffffffff,
+        .device = &vid_200_device,
+        .vid_device = NULL
+    },
+    {
+        .name = "[8086] Amstrad PPC512/640",
+        .internal_name = "ppc512",
+        .type = MACHINE_TYPE_8086,
+        .chipset = MACHINE_CHIPSET_PROPRIETARY,
+        .init = machine_ppc512_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_8086,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_PC,
+        .flags = MACHINE_VIDEO | MACHINE_MOUSE,
+        .ram = {
+            .min = 512,
+            .max = 640,
+            .step = 128
+        },
+        .nvrmask = 63,
+        .kbc = KBC_AMSTRAD,
+        .kbc_p1 = 0xff00,
+        .gpio = 0xffffffff,
+        .device = &vid_ppc512_device,
+        .vid_device = NULL
+    },
+    {
+        .name = "[8086] Compaq Deskpro",
+        .internal_name = "deskpro",
+        .type = MACHINE_TYPE_8086,
+        .chipset = MACHINE_CHIPSET_PROPRIETARY,
+        .init = machine_xt_compaq_deskpro_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_8086,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_PC,
+        .flags = MACHINE_FLAGS_NONE,
+        .ram = {
+            .min = 128,
+            .max = 640,
+            .step = 128
+        },
+        .nvrmask = 0,
+        .kbc = KBC_IBM_PC_XT,
+        .kbc_p1 = 0xff00,
+        .gpio = 0xffffffff,
+        .device = NULL,
+        .vid_device = NULL
+    },
+    {
+        .name = "[8086] Olivetti M21/24/24SP",
+        .internal_name = "m24",
+        .type = MACHINE_TYPE_8086,
+        .chipset = MACHINE_CHIPSET_PROPRIETARY,
+        .init = machine_xt_m24_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_8086,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_PC,
+        .flags = MACHINE_VIDEO | MACHINE_MOUSE,
+        .ram = {
+            .min = 128,
+            .max = 640,
+            .step = 128
+        },
+        .nvrmask = 0,
+        .kbc = KBC_OLIVETTI_XT,
+        .kbc_p1 = 0xff00,
+        .gpio = 0xffffffff,
+        .device = &ogc_m24_device,
+        .vid_device = NULL
+    },
     /* Has Olivetti KBC firmware. */
-    { "[8086] Olivetti M240",                          "m240",             MACHINE_TYPE_8086,       MACHINE_CHIPSET_PROPRIETARY,         machine_xt_m240_init,             0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_8086,                                    CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_PC,        MACHINE_FLAGS_NONE,                   128,   640, 128,    0, NULL, NULL },
-    { "[8086] Schetmash Iskra-3104",                   "iskra3104",        MACHINE_TYPE_8086,       MACHINE_CHIPSET_DISCRETE,            machine_xt_iskra3104_init,        0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_8086,                                    CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_PC,        MACHINE_FLAGS_NONE,                   128,   640, 128,    0, NULL, NULL },
-    { "[8086] Tandy 1000 SL/2",                        "tandy1000sl2",     MACHINE_TYPE_8086,       MACHINE_CHIPSET_PROPRIETARY,         machine_tandy1000sl2_init,        0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_8086,                                    CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_PC,        MACHINE_VIDEO_FIXED,                  512,   768, 128,    0, tandy1k_sl_get_device, NULL },
-    { "[8086] Victor V86P",                            "v86p",             MACHINE_TYPE_8086,       MACHINE_CHIPSET_PROPRIETARY,         machine_v86p_init,                0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_8086,                                    CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_PC,        MACHINE_VIDEO,                        512,  1024, 128,  127, NULL, NULL },
-    { "[8086] Toshiba T1200",                          "t1200",            MACHINE_TYPE_8086,       MACHINE_CHIPSET_PROPRIETARY,         machine_xt_t1200_init,            0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_8086,                                    CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_PC,        MACHINE_VIDEO,                       1024,  2048,1024,   63, t1200_get_device, NULL },
+    {
+        .name = "[8086] Olivetti M240",
+        .internal_name = "m240",
+        .type = MACHINE_TYPE_8086,
+        .chipset = MACHINE_CHIPSET_PROPRIETARY,
+        .init = machine_xt_m240_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_8086,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_PC,
+        .flags = MACHINE_FLAGS_NONE,
+        .ram = {
+            .min = 128,
+            .max = 640,
+            .step = 128
+        },
+        .nvrmask = 0,
+        .kbc = KBC_OLIVETTI,
+        .kbc_p1 = 0xff04,
+        .gpio = 0xffffffff,
+        .device = NULL,
+        .vid_device = NULL
+    },
+    {
+        .name = "[8086] Schetmash Iskra-3104",
+        .internal_name = "iskra3104",
+        .type = MACHINE_TYPE_8086,
+        .chipset = MACHINE_CHIPSET_DISCRETE,
+        .init = machine_xt_iskra3104_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_8086,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_PC,
+        .flags = MACHINE_FLAGS_NONE,
+        .ram = {
+            .min = 128,
+            .max = 640,
+            .step = 128
+        },
+        .nvrmask = 0,
+        .kbc = KBC_IBM_PC_XT,
+        .kbc_p1 = 0xff00,
+        .gpio = 0xffffffff,
+        .device = NULL,
+        .vid_device = NULL
+    },
+    {
+        .name = "[8086] Tandy 1000 SL/2",
+        .internal_name = "tandy1000sl2",
+        .type = MACHINE_TYPE_8086,
+        .chipset = MACHINE_CHIPSET_PROPRIETARY,
+        .init = machine_tandy1000sl2_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_8086,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_PC,
+        .flags = MACHINE_VIDEO_FIXED,
+        .ram = {
+            .min = 512,
+            .max = 768,
+            .step = 128
+        },
+        .nvrmask = 0,
+        .kbc = KBC_TANDY_SL2,
+        .kbc_p1 = 0xff00,
+        .gpio = 0xffffffff,
+        .device = &vid_device_sl,
+        .vid_device = NULL
+    },
+    {
+        .name = "[8086] Victor V86P",
+        .internal_name = "v86p",
+        .type = MACHINE_TYPE_8086,
+        .chipset = MACHINE_CHIPSET_PROPRIETARY,
+        .init = machine_v86p_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_8086,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_PC,
+        .flags = MACHINE_VIDEO,
+        .ram = {
+            .min = 512,
+            .max = 1024,
+            .step = 128
+        },
+        .nvrmask = 127,
+        .kbc = KBC_IBM_PC_XT,
+        .kbc_p1 = 0xff00,
+        .gpio = 0xffffffff,
+        .device = NULL,
+        .vid_device = NULL
+    },
+    {
+        .name = "[8086] Toshiba T1200",
+        .internal_name = "t1200",
+        .type = MACHINE_TYPE_8086,
+        .chipset = MACHINE_CHIPSET_PROPRIETARY,
+        .init = machine_xt_t1200_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_8086,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_PC,
+        .flags = MACHINE_VIDEO,
+        .ram = {
+            .min = 1024,
+            .max = 2048,
+            .step = 1024
+        },
+        .nvrmask = 63,
+        .kbc = KBC_IBM_PC_XT,
+        .kbc_p1 = 0xff00,
+        .gpio = 0xffffffff,
+        .device = &t1200_video_device,
+        .vid_device = NULL
+    },
 
 #if defined(DEV_BRANCH) && defined(USE_LASERXT)
-    { "[8086] VTech Laser XT3",                        "lxt3",             MACHINE_TYPE_8086,       MACHINE_CHIPSET_DISCRETE,            machine_xt_lxt3_init,             0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_8086,                                    CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_PC,        MACHINE_FLAGS_NONE,                   256,   640, 256,    0, NULL, NULL },
+    {
+        .name = "[8086] VTech Laser XT3",
+        .internal_name = "lxt3",
+        .type = MACHINE_TYPE_8086,
+        .chipset = MACHINE_CHIPSET_DISCRETE,
+        .init = machine_xt_lxt3_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_8086,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_PC,
+        .flags = MACHINE_FLAGS_NONE,
+        .ram = {
+            .min = 256,
+            .max = 640,
+            .step = 256
+        },
+        .nvrmask = 0,
+        .kbc = KBC_IBM_PC_XT,
+        .kbc_p1 = 0xff00,
+        .gpio = 0xffffffff,
+        .device = NULL,
+        .vid_device = NULL
+    },
 #endif
 
     /* 286 AT machines */
     /* Has IBM AT KBC firmware. */
-    { "[ISA] IBM AT",                                  "ibmat",            MACHINE_TYPE_286,        MACHINE_CHIPSET_DISCRETE,            machine_at_ibm_init,              0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_286,                                     CPU_BLOCK_NONE, 6000000, 8000000, 0, 0, 0, 0, MACHINE_AT, MACHINE_FLAGS_NONE, 256, 15872, 128,   63, NULL, NULL },
+    {
+        .name = "[ISA] IBM AT",
+        .internal_name = "ibmat",
+        .type = MACHINE_TYPE_286,
+        .chipset = MACHINE_CHIPSET_DISCRETE,
+        .init = machine_at_ibm_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_286,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 6000000,
+            .max_bus = 8000000,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_AT,
+        .flags = MACHINE_FLAGS_NONE,
+        .ram = {
+            .min = 256,
+            .max = 15872,
+            .step = 128
+        },
+        .nvrmask = 63,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* Has IBM PS/2 Type 1 KBC firmware. */
-    { "[ISA] IBM PS/1 model 2011",                     "ibmps1es",         MACHINE_TYPE_286,        MACHINE_CHIPSET_PROPRIETARY,         machine_ps1_m2011_init,           0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_286,                                     CPU_BLOCK_NONE, 10000000, 10000000, 0, 0, 0, 0, MACHINE_PS2, MACHINE_XTA | MACHINE_VIDEO_FIXED, 512, 16384, 512,   63, NULL, NULL },
+    {
+        .name = "[ISA] IBM PS/1 model 2011",
+        .internal_name = "ibmps1es",
+        .type = MACHINE_TYPE_286,
+        .chipset = MACHINE_CHIPSET_PROPRIETARY,
+        .init = machine_ps1_m2011_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_286,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 10000000,
+            .max_bus = 10000000,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_PS2,
+        .flags = MACHINE_XTA | MACHINE_VIDEO_FIXED,
+        .ram = {
+            .min = 512,
+            .max = 16384,
+            .step = 512
+        },
+        .nvrmask = 63,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* Has IBM PS/2 Type 1 KBC firmware. */
-    { "[ISA] IBM PS/2 model 30-286",                   "ibmps2_m30_286",   MACHINE_TYPE_286,        MACHINE_CHIPSET_PROPRIETARY,         machine_ps2_m30_286_init,         0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_286 | CPU_PKG_486SLC_IBM,                CPU_BLOCK_NONE, 10000000, 0, 0, 0, 0, 0, MACHINE_PS2, MACHINE_XTA | MACHINE_VIDEO_FIXED, 1024, 16384,1024,  127, NULL, NULL },
+    {
+        .name = "[ISA] IBM PS/2 model 30-286",
+        .internal_name = "ibmps2_m30_286",
+        .type = MACHINE_TYPE_286,
+        .chipset = MACHINE_CHIPSET_PROPRIETARY,
+        .init = machine_ps2_m30_286_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_286 | CPU_PKG_486SLC_IBM,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 10000000,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_PS2,
+        .flags = MACHINE_XTA | MACHINE_VIDEO_FIXED,
+        .ram = {
+            .min = 1024,
+            .max = 16384,
+            .step = 1024
+        },
+        .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* Has IBM AT KBC firmware. */
-    { "[ISA] IBM XT Model 286",                        "ibmxt286",         MACHINE_TYPE_286,        MACHINE_CHIPSET_DISCRETE,            machine_at_ibmxt286_init,         0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_286,                                     CPU_BLOCK_NONE, 6000000, 6000000, 0, 0, 0, 0, MACHINE_AT, MACHINE_FLAGS_NONE, 256, 15872, 128,  127, NULL, NULL },
+    {
+        .name = "[ISA] IBM XT Model 286",
+        .internal_name = "ibmxt286",
+        .type = MACHINE_TYPE_286,
+        .chipset = MACHINE_CHIPSET_DISCRETE,
+        .init = machine_at_ibmxt286_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_286,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 6000000,
+            .max_bus = 6000000,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_AT,
+        .flags = MACHINE_FLAGS_NONE,
+        .ram = {
+            .min = 256,
+            .max = 15872,
+            .step = 128
+        },
+        .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* AMI BIOS for a chipset-less machine, most likely has AMI 'F' KBC firmware. */
-    { "[ISA] AMI IBM AT",                              "ibmatami",         MACHINE_TYPE_286,        MACHINE_CHIPSET_DISCRETE,            machine_at_ibmatami_init,         0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_286,                                     CPU_BLOCK_NONE, 6000000, 8000000, 0, 0, 0, 0, MACHINE_AT, MACHINE_FLAGS_NONE, 256, 15872, 128,   63, NULL, NULL },
+    {
+        .name = "[ISA] AMI IBM AT",
+        .internal_name = "ibmatami",
+        .type = MACHINE_TYPE_286,
+        .chipset = MACHINE_CHIPSET_DISCRETE,
+        .init = machine_at_ibmatami_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_286,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 6000000,
+            .max_bus = 8000000,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_AT,
+        .flags = MACHINE_FLAGS_NONE,
+        .ram = {
+            .min = 256,
+            .max = 15872,
+            .step = 128
+        },
+        .nvrmask = 63,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* Uses Commodore (CBM) KBC firmware, to be implemented as identical to the
        IBM AT KBC firmware unless evidence emerges of any proprietary commands. */
-    { "[ISA] Commodore PC 30 III",                     "cmdpc30",          MACHINE_TYPE_286,        MACHINE_CHIPSET_PROPRIETARY,         machine_at_cmdpc_init,            0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_286,                                     CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_AT, MACHINE_FLAGS_NONE, 640, 16384, 128,  127, NULL, NULL },
+    {
+        .name = "[ISA] Commodore PC 30 III",
+        .internal_name = "cmdpc30",
+        .type = MACHINE_TYPE_286,
+        .chipset = MACHINE_CHIPSET_PROPRIETARY,
+        .init = machine_at_cmdpc_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_286,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_AT,
+        .flags = MACHINE_FLAGS_NONE,
+        .ram = {
+            .min = 640,
+            .max = 16384,
+            .step = 128
+        },
+        .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* Uses Compaq KBC firmware. */
-    { "[ISA] Compaq Portable II",                      "portableii",       MACHINE_TYPE_286,        MACHINE_CHIPSET_PROPRIETARY,         machine_at_portableii_init,       0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_286,                                     CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_AT, MACHINE_FLAGS_NONE, 640, 16384, 128,  127, NULL, NULL },
+    {
+        .name = "[ISA] Compaq Portable II",
+        .internal_name = "portableii",
+        .type = MACHINE_TYPE_286,
+        .chipset = MACHINE_CHIPSET_PROPRIETARY,
+        .init = machine_at_portableii_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_286,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_AT,
+        .flags = MACHINE_FLAGS_NONE,
+        .ram = {
+            .min = 640,
+            .max = 16384,
+            .step = 128
+        },
+        .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* Uses Compaq KBC firmware. */
-    { "[ISA] Compaq Portable III",                     "portableiii",      MACHINE_TYPE_286,        MACHINE_CHIPSET_PROPRIETARY,         machine_at_portableiii_init,      0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_286,                                     CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_AT, MACHINE_VIDEO, 640, 16384, 128,  127, at_cpqiii_get_device, NULL },
+    {
+        .name = "[ISA] Compaq Portable III",
+        .internal_name = "portableiii",
+        .type = MACHINE_TYPE_286,
+        .chipset = MACHINE_CHIPSET_PROPRIETARY,
+        .init = machine_at_portableiii_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_286,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_AT,
+        .flags = MACHINE_VIDEO,
+        .ram = {
+            .min = 640,
+            .max = 16384,
+            .step = 128
+        },
+        .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = &compaq_plasma_device,
+        .vid_device = NULL
+    },
     /* Has IBM AT KBC firmware. */
-    { "[ISA] MR BIOS 286 clone",                       "mr286",            MACHINE_TYPE_286,        MACHINE_CHIPSET_DISCRETE,            machine_at_mr286_init,            0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_286,                                     CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_AT, MACHINE_IDE, 512, 16384, 128,  127, NULL, NULL },
+    {
+        .name = "[ISA] MR BIOS 286 clone",
+        .internal_name = "mr286",
+        .type = MACHINE_TYPE_286,
+        .chipset = MACHINE_CHIPSET_DISCRETE,
+        .init = machine_at_mr286_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_286,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_AT,
+        .flags = MACHINE_IDE,
+        .ram = {
+            .min = 512,
+            .max = 16384,
+            .step = 128
+        },
+        .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* Has IBM AT KBC firmware. */
-    { "[ISA] NCR PC8/810/710/3390/3392",               "pc8",              MACHINE_TYPE_286,        MACHINE_CHIPSET_DISCRETE,            machine_at_pc8_init,              0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_286,                                     CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_AT, MACHINE_FLAGS_NONE, 512, 16384, 128,  127, NULL, NULL },
+    {
+        .name = "[ISA] NCR PC8/810/710/3390/3392",
+        .internal_name = "pc8",
+        .type = MACHINE_TYPE_286,
+        .chipset = MACHINE_CHIPSET_DISCRETE,
+        .init = machine_at_pc8_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_286,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_AT,
+        .flags = MACHINE_FLAGS_NONE,
+        .ram = {
+            .min = 512,
+            .max = 16384,
+            .step = 128
+        },
+        .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
 #if defined(DEV_BRANCH) && defined(USE_OLIVETTI)
     /* Has Olivetti KBC firmware. */
-    { "[ISA] Olivetti M290",                           "m290",             MACHINE_TYPE_286,        MACHINE_CHIPSET_PROPRIETARY,         machine_at_m290_init,             0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_286,                                     CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_AT, MACHINE_FLAGS_NONE, 640, 16384, 128, 127, NULL, NULL },
+    {
+        .name = "[ISA] Olivetti M290",
+        .internal_name = "m290",
+        .type = MACHINE_TYPE_286,
+        .chipset = MACHINE_CHIPSET_PROPRIETARY,
+        .init = machine_at_m290_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_286,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_AT,
+        .flags = MACHINE_FLAGS_NONE,
+        .ram = {
+            .min = 640,
+            .max = 16384,
+            .step = 128
+        },
+        .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
 #endif
 #if defined(DEV_BRANCH) && defined(USE_OPEN_AT)
     /* Has IBM AT KBC firmware. */
-    { "[ISA] OpenAT",                                  "openat",           MACHINE_TYPE_286,        MACHINE_CHIPSET_DISCRETE,            machine_at_openat_init,           0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_286,                                     CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_AT, MACHINE_FLAGS_NONE, 256, 15872, 128,   63, NULL, NULL },
+    {
+        .name = "[ISA] OpenAT",
+        .internal_name = "openat",
+        .type = MACHINE_TYPE_286,
+        .chipset = MACHINE_CHIPSET_DISCRETE,
+        .init = machine_at_openat_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_286,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_AT,
+        .flags = MACHINE_FLAGS_NONE,
+        .ram = {
+            .min = 256,
+            .max = 15872,
+            .step = 128
+        },
+        .nvrmask = 63,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
 #endif
     /* Has IBM AT KBC firmware. */
-    { "[ISA] Phoenix IBM AT",                          "ibmatpx",          MACHINE_TYPE_286,        MACHINE_CHIPSET_DISCRETE,            machine_at_ibmatpx_init,          0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_286,                                     CPU_BLOCK_NONE, 6000000, 8000000, 0, 0, 0, 0, MACHINE_AT, MACHINE_FLAGS_NONE, 256, 15872, 128,   63, NULL, NULL },
+    {
+        .name = "[ISA] Phoenix IBM AT",
+        .internal_name = "ibmatpx",
+        .type = MACHINE_TYPE_286,
+        .chipset = MACHINE_CHIPSET_DISCRETE,
+        .init = machine_at_ibmatpx_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_286,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 6000000,
+            .max_bus = 8000000,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_AT,
+        .flags = MACHINE_FLAGS_NONE,
+        .ram = {
+            .min = 256,
+            .max = 15872,
+            .step = 128
+        },
+        .nvrmask = 63,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* Has Quadtel KBC firmware. */
-    { "[ISA] Quadtel IBM AT",                          "ibmatquadtel",     MACHINE_TYPE_286,        MACHINE_CHIPSET_DISCRETE,            machine_at_ibmatquadtel_init,     0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_286,                                     CPU_BLOCK_NONE, 6000000, 8000000, 0, 0, 0, 0, MACHINE_AT, MACHINE_FLAGS_NONE, 256, 15872, 128,   63, NULL, NULL },
+    {
+        .name = "[ISA] Quadtel IBM AT",
+        .internal_name = "ibmatquadtel",
+        .type = MACHINE_TYPE_286,
+        .chipset = MACHINE_CHIPSET_DISCRETE,
+        .init = machine_at_ibmatquadtel_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_286,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 6000000,
+            .max_bus = 8000000,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_AT,
+        .flags = MACHINE_FLAGS_NONE,
+        .ram = {
+            .min = 256,
+            .max = 15872,
+            .step = 128
+        },
+        .nvrmask = 63,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* This has a Siemens proprietary KBC which is completely undocumented. */
-    { "[ISA] Siemens PCD-2L",                          "siemens",          MACHINE_TYPE_286,        MACHINE_CHIPSET_DISCRETE,            machine_at_siemens_init,          0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_286,                                     CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_AT, MACHINE_FLAGS_NONE, 256, 15872, 128,   63, NULL, NULL },
+    {
+        .name = "[ISA] Siemens PCD-2L",
+        .internal_name = "siemens",
+        .type = MACHINE_TYPE_286,
+        .chipset = MACHINE_CHIPSET_DISCRETE,
+        .init = machine_at_siemens_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_286,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_AT,
+        .flags = MACHINE_FLAGS_NONE,
+        .ram = {
+            .min = 256,
+            .max = 15872,
+            .step = 128
+        },
+        .nvrmask = 63,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* This has Toshiba's proprietary KBC, which is already implemented. */
-    { "[ISA] Toshiba T3100e",                          "t3100e",           MACHINE_TYPE_286,        MACHINE_CHIPSET_PROPRIETARY,         machine_at_t3100e_init,           0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_286,                                     CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_AT, MACHINE_IDE | MACHINE_VIDEO_FIXED, 1024,  5120, 256,   63, NULL, NULL },
+    {
+        .name = "[ISA] Toshiba T3100e",
+        .internal_name = "t3100e",
+        .type = MACHINE_TYPE_286,
+        .chipset = MACHINE_CHIPSET_PROPRIETARY,
+        .init = machine_at_t3100e_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_286,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_AT,
+        .flags = MACHINE_IDE | MACHINE_VIDEO_FIXED,
+        .ram = {
+            .min = 1024,
+            .max = 5120,
+            .step = 256
+        },
+        .nvrmask = 63,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* Has Quadtel KBC firmware. */
-    { "[GC103] Quadtel 286 clone",                     "quadt286",         MACHINE_TYPE_286,        MACHINE_CHIPSET_GC103,               machine_at_quadt286_init,         0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_286,                                     CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_AT, MACHINE_FLAGS_NONE, 512, 16384, 128,  127, NULL, NULL },
+    {
+        .name = "[GC103] Quadtel 286 clone",
+        .internal_name = "quadt286",
+        .type = MACHINE_TYPE_286,
+        .chipset = MACHINE_CHIPSET_GC103,
+        .init = machine_at_quadt286_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_286,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_AT,
+        .flags = MACHINE_FLAGS_NONE,
+        .ram = {
+            .min = 512,
+            .max = 16384,
+            .step = 128
+        },
+        .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* Most likely has AMI 'F' KBC firmware. */
-    { "[GC103] TriGem 286M",                           "tg286m",           MACHINE_TYPE_286,        MACHINE_CHIPSET_GC103,               machine_at_tg286m_init,           0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_286,                                     CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_AT, MACHINE_IDE, 512,  8192, 128,  127, NULL, NULL },
+    {
+        .name = "[GC103] TriGem 286M",
+        .internal_name = "tg286m",
+        .type = MACHINE_TYPE_286,
+        .chipset = MACHINE_CHIPSET_GC103,
+        .init = machine_at_tg286m_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_286,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_AT,
+        .flags = MACHINE_IDE,
+        .ram = {
+            .min = 512,
+            .max = 8192,
+            .step = 128
+        },
+        .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* This has "AMI KEYBOARD BIOS", most likely 'F'. */
-    { "[NEAT] DataExpert 286",                         "ami286",           MACHINE_TYPE_286,        MACHINE_CHIPSET_NEAT,                machine_at_neat_ami_init,         0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_286,                                     CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_AT, MACHINE_FLAGS_NONE, 512,  8192, 128,  127, NULL, NULL },
+    {
+        .name = "[NEAT] DataExpert 286",
+        .internal_name = "ami286",
+        .type = MACHINE_TYPE_286,
+        .chipset = MACHINE_CHIPSET_NEAT,
+        .init = machine_at_neat_ami_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_286,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_AT,
+        .flags = MACHINE_FLAGS_NONE,
+        .ram = {
+            .min = 512,
+            .max = 8192,
+            .step = 128
+        },
+        .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* Has IBM AT KBC firmware. */
-    { "[NEAT] NCR 3302",                               "3302",             MACHINE_TYPE_286,        MACHINE_CHIPSET_NEAT,                machine_at_3302_init,             0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_286,                                     CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_AT, MACHINE_VIDEO, 512, 16384, 128,  127, NULL, NULL },
+    {
+        .name = "[NEAT] NCR 3302",
+        .internal_name = "3302",
+        .type = MACHINE_TYPE_286,
+        .chipset = MACHINE_CHIPSET_NEAT,
+        .init = machine_at_3302_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_286,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_AT,
+        .flags = MACHINE_VIDEO,
+        .ram = {
+            .min = 512,
+            .max = 16384,
+            .step = 128
+        },
+        .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* Has IBM AT KBC firmware. */
-    { "[NEAT] Phoenix 286 clone",                      "px286",            MACHINE_TYPE_286,        MACHINE_CHIPSET_NEAT,                machine_at_px286_init,            0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_286,                                     CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_AT, MACHINE_FLAGS_NONE, 512, 16384, 128,  127, NULL, NULL },
+    {
+        .name = "[NEAT] Phoenix 286 clone",
+        .internal_name = "px286",
+        .type = MACHINE_TYPE_286,
+        .chipset = MACHINE_CHIPSET_NEAT,
+        .init = machine_at_px286_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_286,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_AT,
+        .flags = MACHINE_FLAGS_NONE,
+        .ram = {
+            .min = 512,
+            .max = 16384,
+            .step = 128
+        },
+        .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* Has Chips & Technologies KBC firmware. */
-    { "[SCAT] GW-286CT GEAR",                          "gw286ct",          MACHINE_TYPE_286,        MACHINE_CHIPSET_SCAT,                machine_at_gw286ct_init,          0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_286,                                     CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_AT, MACHINE_IDE, 512, 16384, 128,  127, NULL, NULL },
+    {
+        .name = "[SCAT] GW-286CT GEAR",
+        .internal_name = "gw286ct",
+        .type = MACHINE_TYPE_286,
+        .chipset = MACHINE_CHIPSET_SCAT,
+        .init = machine_at_gw286ct_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_286,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_AT,
+        .flags = MACHINE_IDE,
+        .ram = {
+            .min = 512,
+            .max = 16384,
+            .step = 128
+        },
+        .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* Has IBM PS/2 Type 1 KBC firmware. */
-    { "[SCAT] Goldstar GDC-212M",                      "gdc212m",          MACHINE_TYPE_286,        MACHINE_CHIPSET_SCAT,                machine_at_gdc212m_init,          0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_286,                                     CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_PS2, MACHINE_IDE, 512,  4096, 512,  127, NULL, NULL },
+    {
+        .name = "[SCAT] Goldstar GDC-212M",
+        .internal_name = "gdc212m",
+        .type = MACHINE_TYPE_286,
+        .chipset = MACHINE_CHIPSET_SCAT,
+        .init = machine_at_gdc212m_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_286,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_PS2,
+        .flags = MACHINE_IDE,
+        .ram = {
+            .min = 512,
+            .max = 4096,
+            .step = 512
+        },
+        .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* Has a VIA VT82C42N KBC. */
-    { "[SCAT] Hyundai Solomon 286KP",                  "award286",         MACHINE_TYPE_286,        MACHINE_CHIPSET_SCAT,                machine_at_award286_init,         0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_286,                                     CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_AT, MACHINE_FLAGS_NONE, 512, 16384, 128,  127, NULL, NULL },
+    {
+        .name = "[SCAT] Hyundai Solomon 286KP",
+        .internal_name = "award286",
+        .type = MACHINE_TYPE_286,
+        .chipset = MACHINE_CHIPSET_SCAT,
+        .init = machine_at_award286_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_286,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_AT,
+        .flags = MACHINE_FLAGS_NONE,
+        .ram = {
+            .min = 512,
+            .max = 16384,
+            .step = 128
+        },
+        .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* Has a VIA VT82C42N KBC. */
-    { "[SCAT] Hyundai Super-286TR",                    "super286tr",       MACHINE_TYPE_286,        MACHINE_CHIPSET_SCAT,                machine_at_super286tr_init,       0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_286,                                     CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_AT, MACHINE_FLAGS_NONE, 512, 16384, 128,  127, NULL, NULL },
+    {
+        .name = "[SCAT] Hyundai Super-286TR",
+        .internal_name = "super286tr",
+        .type = MACHINE_TYPE_286,
+        .chipset = MACHINE_CHIPSET_SCAT,
+        .init = machine_at_super286tr_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_286,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_AT,
+        .flags = MACHINE_FLAGS_NONE,
+        .ram = {
+            .min = 512,
+            .max = 16384,
+            .step = 128
+        },
+        .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* Has IBM PS/2 Type 1 KBC firmware. */
-    { "[SCAT] Samsung SPC-4200P",                      "spc4200p",         MACHINE_TYPE_286,        MACHINE_CHIPSET_SCAT,                machine_at_spc4200p_init,         0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_286,                                     CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_PS2, MACHINE_FLAGS_NONE, 512,  2048, 128,  127, NULL, NULL },
+    {
+        .name = "[SCAT] Samsung SPC-4200P",
+        .internal_name = "spc4200p",
+        .type = MACHINE_TYPE_286,
+        .chipset = MACHINE_CHIPSET_SCAT,
+        .init = machine_at_spc4200p_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_286,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_PS2,
+        .flags = MACHINE_FLAGS_NONE,
+        .ram = {
+            .min = 512,
+            .max = 2048,
+            .step = 128
+        },
+        .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* Has IBM PS/2 Type 1 KBC firmware. */
-    { "[SCAT] Samsung SPC-4216P",                      "spc4216p",         MACHINE_TYPE_286,        MACHINE_CHIPSET_SCAT,                machine_at_spc4216p_init,         0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_286,                                     CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_PS2, MACHINE_FLAGS_NONE, 1024,  5120,1024,  127, NULL, NULL },
+    {
+        .name = "[SCAT] Samsung SPC-4216P",
+        .internal_name = "spc4216p",
+        .type = MACHINE_TYPE_286,
+        .chipset = MACHINE_CHIPSET_SCAT,
+        .init = machine_at_spc4216p_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_286,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_PS2,
+        .flags = MACHINE_FLAGS_NONE,
+        .ram = {
+            .min = 1024,
+            .max = 5120,
+            .step = 1024
+        },
+        .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* Has IBM PS/2 Type 1 KBC firmware. */
-    { "[SCAT] Samsung SPC-4620P",                      "spc4620p",         MACHINE_TYPE_286,        MACHINE_CHIPSET_SCAT,                machine_at_spc4620p_init,         0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_286,                                     CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_PS2, MACHINE_VIDEO, 1024,  5120,1024,  127, NULL, NULL },
+    {
+        .name = "[SCAT] Samsung SPC-4620P",
+        .internal_name = "spc4620p",
+        .type = MACHINE_TYPE_286,
+        .chipset = MACHINE_CHIPSET_SCAT,
+        .init = machine_at_spc4620p_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_286,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_PS2,
+        .flags = MACHINE_VIDEO,
+        .ram = {
+            .min = 1024,
+            .max = 5120,
+            .step = 1024
+        },
+        .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* Has IBM AT KBC firmware. */
-    { "[SCAT] Samsung Deskmaster 286",                 "deskmaster286",    MACHINE_TYPE_286,        MACHINE_CHIPSET_SCAT,                machine_at_deskmaster286_init,    0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_286,                                     CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_AT, MACHINE_FLAGS_NONE, 512, 16384, 128,  127, NULL, NULL },
+    {
+        .name = "[SCAT] Samsung Deskmaster 286",
+        .internal_name = "deskmaster286",
+        .type = MACHINE_TYPE_286,
+        .chipset = MACHINE_CHIPSET_SCAT,
+        .init = machine_at_deskmaster286_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_286,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_AT,
+        .flags = MACHINE_FLAGS_NONE,
+        .ram = {
+            .min = 512,
+            .max = 16384,
+            .step = 128
+        },
+        .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
 
     /* 286 machines that utilize the MCA bus */
     /* Has IBM PS/2 Type 2 KBC firmware. */
-    { "[MCA] IBM PS/2 model 50",                       "ibmps2_m50",       MACHINE_TYPE_286,        MACHINE_CHIPSET_PROPRIETARY,         machine_ps2_model_50_init,        0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_286 | CPU_PKG_486SLC_IBM,                CPU_BLOCK_NONE, 10000000, 0, 0, 0, 0, 0, MACHINE_PS2_MCA, MACHINE_VIDEO, 1024, 10240, 1024,   63, NULL, NULL },
+    {
+        .name = "[MCA] IBM PS/2 model 50",
+        .internal_name = "ibmps2_m50",
+        .type = MACHINE_TYPE_286,
+        .chipset = MACHINE_CHIPSET_PROPRIETARY,
+        .init = machine_ps2_model_50_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_286 | CPU_PKG_486SLC_IBM,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 10000000,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_PS2_MCA,
+        .flags = MACHINE_VIDEO,
+        .ram = {
+            .min = 1024,
+            .max = 10240,
+            .step = 1024
+        },
+        .nvrmask = 63,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* Has IBM PS/2 Type 2 KBC firmware. */
-    { "[MCA] IBM PS/2 model 60",                       "ibmps2_m60",       MACHINE_TYPE_286,        MACHINE_CHIPSET_PROPRIETARY,         machine_ps2_model_60_init,        0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_286 | CPU_PKG_486SLC_IBM,                CPU_BLOCK_NONE, 10000000, 0, 0, 0, 0, 0, MACHINE_PS2_MCA, MACHINE_VIDEO, 1024, 10240, 1024,   63, NULL, NULL },
+    {
+        .name = "[MCA] IBM PS/2 model 60",
+        .internal_name = "ibmps2_m60",
+        .type = MACHINE_TYPE_286,
+        .chipset = MACHINE_CHIPSET_PROPRIETARY,
+        .init = machine_ps2_model_60_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_286 | CPU_PKG_486SLC_IBM,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 10000000,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_PS2_MCA,
+        .flags = MACHINE_VIDEO,
+        .ram = {
+            .min = 1024,
+            .max = 10240,
+            .step = 1024
+        },
+        .nvrmask = 63,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
 
     /* 386SX machines */
     /* ISA slots available because an official IBM expansion for that existed. */
     /* Has IBM PS/2 Type 1 KBC firmware. */
-    { "[ISA] IBM PS/1 model 2121",                     "ibmps1_2121",      MACHINE_TYPE_386SX,      MACHINE_CHIPSET_PROPRIETARY,         machine_ps1_m2121_init,           0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_386SX,                                   CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_PS2, MACHINE_IDE | MACHINE_VIDEO, 2048,  6144,1024,   63, NULL, NULL },
+    {
+        .name = "[ISA] IBM PS/1 model 2121",
+        .internal_name = "ibmps1_2121",
+        .type = MACHINE_TYPE_386SX,
+        .chipset = MACHINE_CHIPSET_PROPRIETARY,
+        .init = machine_ps1_m2121_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_386SX,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_PS2,
+        .flags = MACHINE_IDE | MACHINE_VIDEO,
+        .ram = {
+            .min = 2048,
+            .max = 6144,
+            .step = 1024
+        },
+        .nvrmask = 63,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* Has IBM AT KBC firmware. */
-    { "[ISA] NCR PC916SX",                             "pc916sx",          MACHINE_TYPE_386SX,      MACHINE_CHIPSET_DISCRETE,            machine_at_pc916sx_init,          0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_386SX,                                   CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_AT, MACHINE_FLAGS_NONE, 1024, 16384, 128,  127, NULL, NULL },
+    {
+        .name = "[ISA] NCR PC916SX",
+        .internal_name = "pc916sx",
+        .type = MACHINE_TYPE_386SX,
+        .chipset = MACHINE_CHIPSET_DISCRETE,
+        .init = machine_at_pc916sx_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_386SX,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_AT,
+        .flags = MACHINE_FLAGS_NONE,
+        .ram = {
+            .min = 1024,
+            .max = 16384,
+            .step = 128
+        },
+        .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* Has Quadtel KBC firmware. */
-    { "[ISA] QTC-SXM KT X20T02/HI",                    "quadt386sx",       MACHINE_TYPE_386SX,      MACHINE_CHIPSET_DISCRETE,            machine_at_quadt386sx_init,       0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_386SX,                                   CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_AT, MACHINE_FLAGS_NONE, 1024, 16384, 128,  127, NULL, NULL },
+    {
+        .name = "[ISA] QTC-SXM KT X20T02/HI",
+        .internal_name = "quadt386sx",
+        .type = MACHINE_TYPE_386SX,
+        .chipset = MACHINE_CHIPSET_DISCRETE,
+        .init = machine_at_quadt386sx_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_386SX,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_AT,
+        .flags = MACHINE_FLAGS_NONE,
+        .ram = {
+            .min = 1024,
+            .max = 16384,
+            .step = 128
+        },
+        .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* This has an AMIKey-2, which is an updated version of type 'H'. */
-    { "[ALi M1217] Acrosser AR-B1374",                 "arb1374",          MACHINE_TYPE_386SX,      MACHINE_CHIPSET_ALI_M1217,           machine_at_arb1374_init,          0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_386SX,                                   CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_PS2, MACHINE_IDE, 1024, 32768,1024,  127, NULL, NULL },
+    {
+        .name = "[ALi M1217] Acrosser AR-B1374",
+        .internal_name = "arb1374",
+        .type = MACHINE_TYPE_386SX,
+        .chipset = MACHINE_CHIPSET_ALI_M1217,
+        .init = machine_at_arb1374_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_386SX,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_PS2,
+        .flags = MACHINE_IDE,
+        .ram = {
+            .min = 1024,
+            .max = 32768,
+            .step = 1024
+        },
+        .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* Has the AMIKey KBC firmware, which is an updated 'F' type. */
-    { "[ALi M1217] AAEON SBC-350A",                    "sbc350a",          MACHINE_TYPE_386SX,      MACHINE_CHIPSET_ALI_M1217,           machine_at_sbc350a_init,          0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_386SX,                                   CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_PS2, MACHINE_IDE, 1024, 16384, 1024, 127, NULL, NULL },
+    {
+        .name = "[ALi M1217] AAEON SBC-350A",
+        .internal_name = "sbc350a",
+        .type = MACHINE_TYPE_386SX,
+        .chipset = MACHINE_CHIPSET_ALI_M1217,
+        .init = machine_at_sbc350a_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_386SX,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_PS2,
+        .flags = MACHINE_IDE,
+        .ram = {
+            .min = 1024,
+            .max = 16384,
+            .step = 1024
+        },
+        .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* Has an AMI KBC firmware, the only photo of this is too low resolution
        for me to read what's on the KBC chip, so I'm going to assume AMI 'F'
        based on the other known HT18 AMI BIOS strings. */
-    { "[ALi M1217] Flytech 386",                       "flytech386",       MACHINE_TYPE_386SX,      MACHINE_CHIPSET_ALI_M1217,           machine_at_flytech386_init,       0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_386SX,                                   CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_PS2, MACHINE_IDE | MACHINE_VIDEO, 1024, 16384, 1024, 127, at_flytech386_get_device, NULL },
+    {
+        .name = "[ALi M1217] Flytech 386",
+        .internal_name = "flytech386",
+        .type = MACHINE_TYPE_386SX,
+        .chipset = MACHINE_CHIPSET_ALI_M1217,
+        .init = machine_at_flytech386_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_386SX,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_PS2,
+        .flags = MACHINE_IDE | MACHINE_VIDEO,
+        .ram = {
+            .min = 1024,
+            .max = 16384,
+            .step = 1024
+        },
+        .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = &tvga8900d_device,
+        .vid_device = NULL
+    },
     /* I'm going to assume this has a standard/generic IBM-compatible AT KBC
        firmware until the board is identified. */
-    { "[ALi M1217] MR BIOS 386SX clone",               "mr1217",           MACHINE_TYPE_386SX,      MACHINE_CHIPSET_ALI_M1217,           machine_at_mr1217_init,           0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_386SX,                                   CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_PS2, MACHINE_IDE | MACHINE_VIDEO, 1024, 16384, 1024, 127, NULL, NULL },
+    {
+        .name = "[ALi M1217] MR BIOS 386SX clone",
+        .internal_name = "mr1217",
+        .type = MACHINE_TYPE_386SX,
+        .chipset = MACHINE_CHIPSET_ALI_M1217,
+        .init = machine_at_mr1217_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_386SX,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_PS2,
+        .flags = MACHINE_IDE | MACHINE_VIDEO,
+        .ram = {
+            .min = 1024,
+            .max = 16384,
+            .step = 1024
+        },
+        .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* Has IBM PS/2 Type 1 KBC firmware. */
-    { "[ALi M6117] Acrosser PJ-A511M",                 "pja511m",          MACHINE_TYPE_386SX,      MACHINE_CHIPSET_ALI_M6117,           machine_at_pja511m_init,          0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_M6117,                                   CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_PS2, MACHINE_IDE, 1024, 32768, 1024, 127, NULL, NULL },
+    {
+        .name = "[ALi M6117] Acrosser PJ-A511M",
+        .internal_name = "pja511m",
+        .type = MACHINE_TYPE_386SX,
+        .chipset = MACHINE_CHIPSET_ALI_M6117,
+        .init = machine_at_pja511m_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_M6117,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_PS2,
+        .flags = MACHINE_IDE,
+        .ram = {
+            .min = 1024,
+            .max = 32768,
+            .step = 1024
+        },
+        .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* Has IBM PS/2 Type 1 KBC firmware. */
-    { "[ALi M6117] Protech ProX-1332",                 "prox1332",         MACHINE_TYPE_386SX,      MACHINE_CHIPSET_ALI_M6117,           machine_at_prox1332_init,         0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_M6117,                                   CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_PS2, MACHINE_IDE, 1024, 32768, 1024, 127, NULL, NULL },
+    {
+        .name = "[ALi M6117] Protech ProX-1332",
+        .internal_name = "prox1332",
+        .type = MACHINE_TYPE_386SX,
+        .chipset = MACHINE_CHIPSET_ALI_M6117,
+        .init = machine_at_prox1332_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_M6117,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_PS2,
+        .flags = MACHINE_IDE,
+        .ram = {
+            .min = 1024,
+            .max = 32768,
+            .step = 1024
+        },
+        .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* Has an AMI KBC firmware, the only photo of this is too low resolution
        for me to read what's on the KBC chip, so I'm going to assume AMI 'F'
        based on the other known HT18 AMI BIOS strings. */
-    { "[HT18] AMA-932J",                               "ama932j",          MACHINE_TYPE_386SX,      MACHINE_CHIPSET_HT18,                machine_at_ama932j_init,          0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_386SX,                                   CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_AT, MACHINE_IDE | MACHINE_VIDEO, 512,  8192,  128, 127, at_ama932j_get_device, NULL },
+    {
+        .name = "[HT18] AMA-932J",
+        .internal_name = "ama932j",
+        .type = MACHINE_TYPE_386SX,
+        .chipset = MACHINE_CHIPSET_HT18,
+        .init = machine_at_ama932j_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_386SX,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_AT,
+        .flags = MACHINE_IDE | MACHINE_VIDEO,
+        .ram = {
+            .min = 512,
+            .max = 8192,
+            .step = 128
+        },
+        .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = &oti067_ama932j_device,
+        .vid_device = NULL
+    },
     /* Has an unknown KBC firmware with commands B8 and BB in the style of
        Phoenix MultiKey and AMIKey-3(!), but also commands E1 and EA with
        unknown functions. */
-    { "[Intel 82335] ADI 386SX",                       "adi386sx",         MACHINE_TYPE_386SX,      MACHINE_CHIPSET_INTEL_82335,         machine_at_adi386sx_init,         0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_386SX,                                   CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_AT, MACHINE_FLAGS_NONE, 512,  8192,  128, 127, NULL, NULL },
+    {
+        .name = "[Intel 82335] ADI 386SX",
+        .internal_name = "adi386sx",
+        .type = MACHINE_TYPE_386SX,
+        .chipset = MACHINE_CHIPSET_INTEL_82335,
+        .init = machine_at_adi386sx_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_386SX,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_AT,
+        .flags = MACHINE_FLAGS_NONE,
+        .ram = {
+            .min = 512,
+            .max = 8192,
+            .step = 128
+        },
+        .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* Has an AMI Keyboard BIOS PLUS KBC firmware ('8'). */
-    { "[Intel 82335] Shuttle 386SX",                   "shuttle386sx",     MACHINE_TYPE_386SX,      MACHINE_CHIPSET_INTEL_82335,         machine_at_shuttle386sx_init,     0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_386SX,                                   CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_AT, MACHINE_FLAGS_NONE, 512,  8192,  128, 127, NULL, NULL },
+    { .name = "[Intel 82335] Shuttle 386SX",
+        .internal_name = "shuttle386sx",
+        .type = MACHINE_TYPE_386SX,
+        .chipset = MACHINE_CHIPSET_INTEL_82335,
+        .init = machine_at_shuttle386sx_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_386SX,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_AT,
+        .flags = MACHINE_FLAGS_NONE,
+        .ram = {
+            .min = 512,
+            .max = 8192,
+            .step = 128
+        },
+        .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* Uses Commodore (CBM) KBC firmware, to be implemented as identical to
        the IBM PS/2 Type 1 KBC firmware unless evidence emerges of any
        proprietary commands. */
-    { "[NEAT] Commodore SL386SX-16",                   "cmdsl386sx16",     MACHINE_TYPE_386SX,      MACHINE_CHIPSET_NEAT,                machine_at_cmdsl386sx16_init,     0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_386SX,                                   CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_PS2, MACHINE_IDE, 1024,  8192,  512, 127, NULL, NULL },
+    {
+        .name = "[NEAT] Commodore SL386SX-16",
+        .internal_name = "cmdsl386sx16",
+        .type = MACHINE_TYPE_386SX,
+        .chipset = MACHINE_CHIPSET_NEAT,
+        .init = machine_at_cmdsl386sx16_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_386SX,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_PS2,
+        .flags = MACHINE_IDE,
+        .ram = {
+            .min = 1024,
+            .max = 8192,
+            .step = 512
+        },
+        .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* Has IBM AT KBC firmware. */
-    { "[NEAT] DTK 386SX clone",                        "dtk386",           MACHINE_TYPE_386SX,      MACHINE_CHIPSET_NEAT,                machine_at_neat_init,             0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_386SX,                                   CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_AT, MACHINE_FLAGS_NONE, 512,  8192,  128, 127, NULL, NULL },
+    {
+        .name = "[NEAT] DTK 386SX clone",
+        .internal_name = "dtk386",
+        .type = MACHINE_TYPE_386SX,
+        .chipset = MACHINE_CHIPSET_NEAT,
+        .init = machine_at_neat_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_386SX,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_AT,
+        .flags = MACHINE_FLAGS_NONE,
+        .ram = {
+            .min = 512,
+            .max = 8192,
+            .step = 128
+        },
+        .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* Has IBM AT KBC firmware. */
-    { "[OPTi 291] DTK PPM-3333P",                      "awardsx",          MACHINE_TYPE_386SX,      MACHINE_CHIPSET_OPTI_291,            machine_at_awardsx_init,          0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_386SX,                                   CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_AT, MACHINE_FLAGS_NONE, 1024, 16384, 1024, 127, NULL, NULL },
+    {
+        .name = "[OPTi 291] DTK PPM-3333P",
+        .internal_name = "awardsx",
+        .type = MACHINE_TYPE_386SX,
+        .chipset = MACHINE_CHIPSET_OPTI_291,
+        .init = machine_at_awardsx_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_386SX,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_AT,
+        .flags = MACHINE_FLAGS_NONE,
+        .ram = {
+            .min = 1024,
+            .max = 16384,
+            .step = 1024
+        },
+        .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* Uses Commodore (CBM) KBC firmware, to be implemented as identical to
        the IBM PS/2 Type 1 KBC firmware unless evidence emerges of any
        proprietary commands. */
-    { "[SCAMP] Commodore SL386SX-25",                  "cmdsl386sx25",     MACHINE_TYPE_386SX,      MACHINE_CHIPSET_VLSI_SCAMP,          machine_at_cmdsl386sx25_init,     0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_386SX,                                   CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_PS2, MACHINE_IDE | MACHINE_VIDEO, 1024,  8192,  512, 127, at_cmdsl386sx25_get_device, NULL },
+    {
+        .name = "[SCAMP] Commodore SL386SX-25",
+        .internal_name = "cmdsl386sx25",
+        .type = MACHINE_TYPE_386SX,
+        .chipset = MACHINE_CHIPSET_VLSI_SCAMP,
+        .init = machine_at_cmdsl386sx25_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_386SX,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_PS2,
+        .flags = MACHINE_IDE | MACHINE_VIDEO,
+        .ram = {
+            .min = 1024,
+            .max = 8192,
+            .step = 512
+        },
+        .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = &gd5402_onboard_device,
+        .vid_device = NULL
+    },
     /* The closest BIOS string I find to this one's, differs only in one part,
        and ends in -8, so I'm going to assume that this, too, has an AMI '8'
        (AMI Keyboard BIOS Plus) KBC firmware. */
-    { "[SCAMP] DataExpert 386SX",                      "dataexpert386sx",  MACHINE_TYPE_386SX,      MACHINE_CHIPSET_VLSI_SCAMP,          machine_at_dataexpert386sx_init,  0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_386SX,                                   CPU_BLOCK_NONE, 10000000, 25000000, 0, 0, 0, 0, MACHINE_AT, MACHINE_FLAGS_NONE, 1024, 16384, 1024, 127, NULL, NULL },
+    {
+        .name = "[SCAMP] DataExpert 386SX",
+        .internal_name = "dataexpert386sx",
+        .type = MACHINE_TYPE_386SX,
+        .chipset = MACHINE_CHIPSET_VLSI_SCAMP,
+        .init = machine_at_dataexpert386sx_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_386SX,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 10000000,
+            .max_bus = 25000000,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_AT,
+        .flags = MACHINE_FLAGS_NONE,
+        .ram = {
+            .min = 1024,
+            .max = 16384,
+            .step = 1024
+        },
+        .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* Has IBM PS/2 Type 1 KBC firmware. */
-    { "[SCAMP] Samsung SPC-6033P",                     "spc6033p",         MACHINE_TYPE_386SX,      MACHINE_CHIPSET_VLSI_SCAMP,          machine_at_spc6033p_init,         0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_386SX,                                   CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_PS2, MACHINE_IDE | MACHINE_VIDEO, 2048, 12288, 2048, 127, at_spc6033p_get_device, NULL },
+    {
+        .name = "[SCAMP] Samsung SPC-6033P",
+        .internal_name = "spc6033p",
+        .type = MACHINE_TYPE_386SX,
+        .chipset = MACHINE_CHIPSET_VLSI_SCAMP,
+        .init = machine_at_spc6033p_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_386SX,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_PS2,
+        .flags = MACHINE_IDE | MACHINE_VIDEO,
+        .ram = {
+            .min = 2048,
+            .max = 12288,
+            .step = 2048
+        },
+        .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = &ati28800k_spc6033p_device,
+        .vid_device = NULL
+    },
     /* Has an unknown AMI KBC firmware, I'm going to assume 'F' until a
        photo or real hardware BIOS string is found. */
-    { "[SCAT] KMX-C-02",                               "kmxc02",           MACHINE_TYPE_386SX,      MACHINE_CHIPSET_SCAT,                machine_at_kmxc02_init,           0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_386SX,                                   CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_AT, MACHINE_FLAGS_NONE, 512, 16384,  512, 127, NULL, NULL },
+    {
+        .name = "[SCAT] KMX-C-02",
+        .internal_name = "kmxc02",
+        .type = MACHINE_TYPE_386SX,
+        .chipset = MACHINE_CHIPSET_SCAT,
+        .init = machine_at_kmxc02_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_386SX,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_AT,
+        .flags = MACHINE_FLAGS_NONE,
+        .ram = {
+            .min = 512,
+            .max = 16384,
+            .step = 512
+        },
+        .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* Has Quadtel KBC firmware. */
-    { "[WD76C10] Amstrad MegaPC",                      "megapc",           MACHINE_TYPE_386SX,      MACHINE_CHIPSET_WD76C10,             machine_at_wd76c10_init,          0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_386SX,                                   CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_PS2, MACHINE_IDE | MACHINE_VIDEO, 1024, 32768, 1024, 127, NULL, NULL },
+    {
+        .name = "[WD76C10] Amstrad MegaPC",
+        .internal_name = "megapc",
+        .type = MACHINE_TYPE_386SX,
+        .chipset = MACHINE_CHIPSET_WD76C10,
+        .init = machine_at_wd76c10_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_386SX,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_PS2,
+        .flags = MACHINE_IDE | MACHINE_VIDEO,
+        .ram = {
+            .min = 1024,
+            .max = 32768,
+            .step = 1024
+        },
+        .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
 
     /* 386SX machines which utilize the MCA bus */
     /* Has IBM PS/2 Type 1 KBC firmware. */
-    { "[MCA] IBM PS/2 model 55SX",                     "ibmps2_m55sx",     MACHINE_TYPE_386SX,      MACHINE_CHIPSET_PROPRIETARY,         machine_ps2_model_55sx_init,      0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_386SX,                                   CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_PS2_MCA, MACHINE_VIDEO, 1024,  8192, 1024,  63, NULL, NULL },
+    {
+        .name = "[MCA] IBM PS/2 model 55SX",
+        .internal_name = "ibmps2_m55sx",
+        .type = MACHINE_TYPE_386SX,
+        .chipset = MACHINE_CHIPSET_PROPRIETARY,
+        .init = machine_ps2_model_55sx_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_386SX,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_PS2_MCA,
+        .flags = MACHINE_VIDEO,
+        .ram = {
+            .min = 1024,
+            .max = 8192,
+            .step = 1024
+        },
+        .nvrmask = 63,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* Has IBM PS/2 Type 1 KBC firmware. */
-    { "[MCA] IBM PS/2 model 65SX",                     "ibmps2_m65sx",     MACHINE_TYPE_386SX,      MACHINE_CHIPSET_PROPRIETARY,         machine_ps2_model_65sx_init,      0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_386SX,                                   CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_PS2_MCA, MACHINE_VIDEO, 1024,  8192, 1024,  63, NULL, NULL },
+    {
+        .name = "[MCA] IBM PS/2 model 65SX",
+        .internal_name = "ibmps2_m65sx",
+        .type = MACHINE_TYPE_386SX,
+        .chipset = MACHINE_CHIPSET_PROPRIETARY,
+        .init = machine_ps2_model_65sx_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_386SX,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_PS2_MCA,
+        .flags = MACHINE_VIDEO,
+        .ram = {
+            .min = 1024,
+            .max = 8192,
+            .step = 1024
+        },
+        .nvrmask = 63,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
 
     /* 486SLC machines */
     /* 486SLC machines with just the ISA slot */
     /* Has AMIKey H KBC firmware. */
-    { "[OPTi 283] RYC Leopard LX",                     "rycleopardlx",     MACHINE_TYPE_486SLC,     MACHINE_CHIPSET_OPTI_283,            machine_at_rycleopardlx_init,     0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_486SLC_IBM,                              CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_AT, MACHINE_FLAGS_NONE, 1024, 16384, 1024, 127, NULL, NULL },
+    {
+        .name = "[OPTi 283] RYC Leopard LX",
+        .internal_name = "rycleopardlx",
+        .type = MACHINE_TYPE_486SLC,
+        .chipset = MACHINE_CHIPSET_OPTI_283,
+        .init = machine_at_rycleopardlx_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_486SLC_IBM,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_AT,
+        .flags = MACHINE_FLAGS_NONE,
+        .ram = {
+            .min = 1024,
+            .max = 16384,
+            .step = 1024
+        },
+        .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
 
     /* 386DX machines */
-    { "[ACC 2168] AMI 386DX clone",                    "acc386",           MACHINE_TYPE_386DX,      MACHINE_CHIPSET_ACC_2168,            machine_at_acc386_init,           0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_386DX,                                   CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_AT, MACHINE_FLAGS_NONE, 1024, 16384, 1024, 127, NULL, NULL },
+    {
+        .name = "[ACC 2168] AMI 386DX clone",
+        .internal_name = "acc386",
+        .type = MACHINE_TYPE_386DX,
+        .chipset = MACHINE_CHIPSET_ACC_2168,
+        .init = machine_at_acc386_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_386DX,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_AT,
+        .flags = MACHINE_FLAGS_NONE,
+        .ram = {
+            .min = 1024,
+            .max = 16384,
+            .step = 1024
+        },
+        .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* Has an AMI Keyboard BIOS PLUS KBC firmware ('8'). */
-    { "[C&T 386] ECS 386/32",                          "ecs386",           MACHINE_TYPE_386DX,      MACHINE_CHIPSET_CT_386,              machine_at_ecs386_init,           0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_386DX,                                   CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_AT, MACHINE_FLAGS_NONE, 1024, 16384, 1024, 127, NULL, NULL },
+    {
+        .name = "[C&T 386] ECS 386/32",
+        .internal_name = "ecs386",
+        .type = MACHINE_TYPE_386DX,
+        .chipset = MACHINE_CHIPSET_CT_386,
+        .init = machine_at_ecs386_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_386DX,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_AT,
+        .flags = MACHINE_FLAGS_NONE,
+        .ram = {
+            .min = 1024,
+            .max = 16384,
+            .step = 1024
+        },
+        .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* Has IBM AT KBC firmware. */
-    { "[C&T 386] Samsung SPC-6000A",                   "spc6000a",         MACHINE_TYPE_386DX,      MACHINE_CHIPSET_CT_386,              machine_at_spc6000a_init,         0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_386DX,                                   CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_AT, MACHINE_IDE, 1024, 32768, 1024, 127, NULL, NULL },
+    {
+        .name = "[C&T 386] Samsung SPC-6000A",
+        .internal_name = "spc6000a",
+        .type = MACHINE_TYPE_386DX,
+        .chipset = MACHINE_CHIPSET_CT_386,
+        .init = machine_at_spc6000a_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_386DX,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_AT,
+        .flags = MACHINE_IDE,
+        .ram = {
+            .min = 1024,
+            .max = 32768,
+            .step = 1024
+        },
+        .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* Uses Compaq KBC firmware. */
 #if defined(DEV_BRANCH) && defined(USE_DESKPRO386)
-    { "[ISA] Compaq Deskpro 386",                      "deskpro386",       MACHINE_TYPE_386DX,      MACHINE_CHIPSET_DISCRETE,            machine_at_deskpro386_init,       0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_386DX,                                   CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_AT, MACHINE_IDE, 1024, 14336, 1024, 127, NULL, NULL },
+    {
+        .name = "[ISA] Compaq Deskpro 386",
+        .internal_name = "deskpro386",
+        .type = MACHINE_TYPE_386DX,
+        .chipset = MACHINE_CHIPSET_DISCRETE,
+        .init = machine_at_deskpro386_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_386DX,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_AT,
+        .flags = MACHINE_IDE,
+        .ram = {
+            .min = 1024,
+            .max = 14336,
+            .step = 1024
+        },
+        .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
 #endif
-    { "[ISA] Compaq Portable III (386)",               "portableiii386",   MACHINE_TYPE_386DX,      MACHINE_CHIPSET_DISCRETE,            machine_at_portableiii386_init,   0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_386DX,                                   CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_AT, MACHINE_IDE | MACHINE_VIDEO, 1024, 14336, 1024, 127, at_cpqiii_get_device, NULL },
+    {
+        .name = "[ISA] Compaq Portable III (386)",
+        .internal_name = "portableiii386",
+        .type = MACHINE_TYPE_386DX,
+        .chipset = MACHINE_CHIPSET_DISCRETE,
+        .init = machine_at_portableiii386_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_386DX,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_AT,
+        .flags = MACHINE_IDE | MACHINE_VIDEO,
+        .ram = {
+            .min = 1024,
+            .max = 14336,
+            .step = 1024
+        },
+        .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = &compaq_plasma_device,
+        .vid_device = NULL
+    },
     /* Has IBM AT KBC firmware. */
-    { "[ISA] Micronics 09-00021",                      "micronics386",     MACHINE_TYPE_386DX,      MACHINE_CHIPSET_DISCRETE,            machine_at_micronics386_init,     0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_386DX,                                   CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_AT, MACHINE_FLAGS_NONE, 512,  8192,  128, 127, NULL, NULL },
+    {
+        .name = "[ISA] Micronics 09-00021",
+        .internal_name = "micronics386",
+        .type = MACHINE_TYPE_386DX,
+        .chipset = MACHINE_CHIPSET_DISCRETE,
+        .init = machine_at_micronics386_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_386DX,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_AT,
+        .flags = MACHINE_FLAGS_NONE,
+        .ram = {
+            .min = 512,
+            .max = 8192,
+            .step = 128
+        },
+        .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* Has AMIKey F KBC firmware. */
-    { "[SiS 310] ASUS ISA-386C",                       "asus386",          MACHINE_TYPE_386DX,      MACHINE_CHIPSET_SIS_310,             machine_at_asus386_init,          0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_386DX,                                   CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_AT, MACHINE_FLAGS_NONE, 1024, 65536, 1024, 127, NULL, NULL },
+    {
+        .name = "[SiS 310] ASUS ISA-386C",
+        .internal_name = "asus386",
+        .type = MACHINE_TYPE_386DX,
+        .chipset = MACHINE_CHIPSET_SIS_310,
+        .init = machine_at_asus386_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_386DX,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_AT,
+        .flags = MACHINE_FLAGS_NONE,
+        .ram = {
+            .min = 1024,
+            .max = 65536,
+            .step = 1024
+        },
+        .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
 
     /* 386DX machines which utilize the MCA bus */
     /* Has IBM PS/2 Type 1 KBC firmware. */
-    { "[MCA] IBM PS/2 model 80 (type 2)",              "ibmps2_m80",       MACHINE_TYPE_386DX,      MACHINE_CHIPSET_PROPRIETARY,         machine_ps2_model_80_init,        0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_386DX | CPU_PKG_486BL,                   CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_PS2_MCA, MACHINE_VIDEO, 1024, 65536, 1024,  63, NULL, NULL },
+    {
+        .name = "[MCA] IBM PS/2 model 80 (type 2)",
+        .internal_name = "ibmps2_m80",
+        .type = MACHINE_TYPE_386DX,
+        .chipset = MACHINE_CHIPSET_PROPRIETARY,
+        .init = machine_ps2_model_80_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_386DX | CPU_PKG_486BL,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_PS2_MCA,
+        .flags = MACHINE_VIDEO,
+        .ram = {
+            .min = 1024,
+            .max = 65536,
+            .step = 1024
+        },
+        .nvrmask = 63,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
 
     /* 386DX/486 machines */
     /* The BIOS sends commands C9 without a parameter and D5, both of which are
        Phoenix MultiKey commands. */
-    { "[OPTi 495] Award 486 clone",                    "award495",         MACHINE_TYPE_386DX_486,  MACHINE_CHIPSET_OPTI_495,            machine_at_opti495_init,          0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_386DX | CPU_PKG_SOCKET1,                 CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_VLB, MACHINE_IDE, 1024, 32768, 1024, 127, NULL, NULL },
+    {
+        .name = "[OPTi 495] Award 486 clone",
+        .internal_name = "award495",
+        .type = MACHINE_TYPE_386DX_486,
+        .chipset = MACHINE_CHIPSET_OPTI_495,
+        .init = machine_at_opti495_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_386DX | CPU_PKG_SOCKET1,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_VLB,
+        .flags = MACHINE_IDE,
+        .ram = {
+            .min = 1024,
+            .max = 32768,
+            .step = 1024
+        },
+        .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* Has AMIKey F KBC firmware. */
-    { "[OPTi 495] DataExpert SX495",                   "ami495",           MACHINE_TYPE_386DX_486,  MACHINE_CHIPSET_OPTI_495,            machine_at_opti495_ami_init,      0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_386DX | CPU_PKG_SOCKET1,                 CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_VLB, MACHINE_IDE, 1024, 32768, 1024, 127, NULL, NULL },
+    {
+        .name = "[OPTi 495] DataExpert SX495",
+        .internal_name = "ami495",
+        .type = MACHINE_TYPE_386DX_486,
+        .chipset = MACHINE_CHIPSET_OPTI_495,
+        .init = machine_at_opti495_ami_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_386DX | CPU_PKG_SOCKET1,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_VLB,
+        .flags = MACHINE_IDE,
+        .ram = {
+            .min = 1024,
+            .max = 32768,
+            .step = 1024
+        },
+        .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* Has AMIKey F KBC firmware (it's just the MR BIOS for the above machine). */
-    { "[OPTi 495] DataExpert SX495 (MR BIOS)",         "mr495",            MACHINE_TYPE_386DX_486,  MACHINE_CHIPSET_OPTI_495,            machine_at_opti495_mr_init,       0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_386DX | CPU_PKG_SOCKET1,                 CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_VLB, MACHINE_IDE, 1024, 32768, 1024, 127, NULL, NULL },
+    {
+        .name = "[OPTi 495] DataExpert SX495 (MR BIOS)",
+        .internal_name = "mr495",
+        .type = MACHINE_TYPE_386DX_486,
+        .chipset = MACHINE_CHIPSET_OPTI_495,
+        .init = machine_at_opti495_mr_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_386DX | CPU_PKG_SOCKET1,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_VLB,
+        .flags = MACHINE_IDE,
+        .ram = {
+            .min = 1024,
+            .max = 32768,
+            .step = 1024
+        },
+        .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* Has IBM PS/2 Type 1 KBC firmware. */
-    { "[MCA] IBM PS/2 model 70 (type 3)",              "ibmps2_m70_type3", MACHINE_TYPE_386DX_486,  MACHINE_CHIPSET_PROPRIETARY,         machine_ps2_model_70_type3_init,  0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_386DX | CPU_PKG_486BL | CPU_PKG_SOCKET1, CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_PS2_MCA, MACHINE_VIDEO, 2048, 65536, 2048,  63, NULL, NULL },
+    {
+        .name = "[MCA] IBM PS/2 model 70 (type 3)",
+        .internal_name = "ibmps2_m70_type3",
+        .type = MACHINE_TYPE_386DX_486,
+        .chipset = MACHINE_CHIPSET_PROPRIETARY,
+        .init = machine_ps2_model_70_type3_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_386DX | CPU_PKG_486BL | CPU_PKG_SOCKET1,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .flags = MACHINE_PS2_MCA,
+        .bus_flags = MACHINE_VIDEO,
+        .ram = {
+            .min = 2048,
+            .max = 65536,
+            .step = 2048
+        },
+        .nvrmask = 63,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* Has IBM PS/2 Type 1 KBC firmware. */
-    { "[MCA] IBM PS/2 model 80 (type 3)",              "ibmps2_m80_type3", MACHINE_TYPE_386DX_486,  MACHINE_CHIPSET_PROPRIETARY,         machine_ps2_model_80_axx_init,    0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_386DX | CPU_PKG_486BL | CPU_PKG_SOCKET1, CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_PS2_MCA, MACHINE_VIDEO, 2048, 65536, 2048,  63, NULL, NULL },
+    {
+        .name = "[MCA] IBM PS/2 model 80 (type 3)",
+        .internal_name = "ibmps2_m80_type3",
+        .type = MACHINE_TYPE_386DX_486,
+        .chipset = MACHINE_CHIPSET_PROPRIETARY,
+        .init = machine_ps2_model_80_axx_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_386DX | CPU_PKG_486BL | CPU_PKG_SOCKET1,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_PS2_MCA,
+        .flags = MACHINE_VIDEO,
+        .ram = {
+            .min = 2048,
+            .max = 65536,
+            .step = 2048
+        },
+        .nvrmask = 63,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
 
     /* 486 machines - Socket 1 */
     /* Has JetKey 5 KBC Firmware which looks like it is a clone of AMIKey type F.
@@ -422,161 +4198,2042 @@ const machine_t machines[] = {
        supposedly sends command EF.
        The board was also seen in 2003 with a -H string - perhaps someone swapped
        the KBC? */
-    { "[ALi M1429] Olystar LIL1429",                   "ali1429",          MACHINE_TYPE_486,        MACHINE_CHIPSET_ALI_M1429,           machine_at_ali1429_init,          0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET1,                                 CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_VLB, MACHINE_IDE, 1024, 32768, 1024, 127, NULL, NULL },
+    {
+        .name = "[ALi M1429] Olystar LIL1429",
+        .internal_name = "ali1429",
+        .type = MACHINE_TYPE_486,
+        .chipset = MACHINE_CHIPSET_ALI_M1429,
+        .init = machine_at_ali1429_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET1,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_VLB,
+        .flags = MACHINE_IDE,
+        .ram = {
+            .min = 1024,
+            .max = 32768,
+            .step = 1024
+        },
+        .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* Has JetKey 5 KBC Firmware - but the BIOS string ends in a hardcoded -F, and
        the BIOS also explicitly expects command A1 to return a 'F', so it looks like
        the JetKey 5 is a clone of AMIKey type F. */
-    { "[CS4031] AMI 486 CS4031",                       "cs4031",           MACHINE_TYPE_486,        MACHINE_CHIPSET_CT_CS4031,           machine_at_cs4031_init,           0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET1,                                 CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_VLB, MACHINE_FLAGS_NONE, 1024, 65536, 1024, 127, NULL, NULL },
+    {
+        .name = "[CS4031] AMI 486 CS4031",
+        .internal_name = "cs4031",
+        .type = MACHINE_TYPE_486,
+        .chipset = MACHINE_CHIPSET_CT_CS4031,
+        .init = machine_at_cs4031_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET1,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_VLB,
+        .flags = MACHINE_FLAGS_NONE,
+        .ram = {
+            .min = 1024,
+            .max = 65536,
+            .step = 1024
+        },
+        .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* Uses some variant of Phoenix MultiKey/42 as the Intel 8242 chip has a Phoenix
        copyright. */
-    { "[OPTi 895] Mylex MVI486",                       "mvi486",           MACHINE_TYPE_486,        MACHINE_CHIPSET_OPTI_895_802G,       machine_at_mvi486_init,           0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET1,                                 CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_VLB, MACHINE_IDE_DUAL, 1024, 65536, 1024, 127, NULL, NULL },
+    {
+        .name = "[OPTi 895] Mylex MVI486",
+        .internal_name = "mvi486",
+        .type = MACHINE_TYPE_486,
+        .chipset = MACHINE_CHIPSET_OPTI_895_802G,
+        .init = machine_at_mvi486_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET1,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_VLB,
+        .flags = MACHINE_IDE_DUAL,
+        .ram = {
+            .min = 1024,
+            .max = 65536,
+            .step = 1024
+        },
+        .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* Has AMI KF KBC firmware. */
-    { "[SiS 401] ASUS ISA-486",                        "isa486",           MACHINE_TYPE_486,        MACHINE_CHIPSET_SIS_401,             machine_at_isa486_init,           0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET1,                                 CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_AT, MACHINE_IDE, 1024, 65536, 1024, 127, NULL, NULL },
+    {
+        .name = "[SiS 401] ASUS ISA-486",
+        .internal_name = "isa486",
+        .type = MACHINE_TYPE_486,
+        .chipset = MACHINE_CHIPSET_SIS_401,
+        .init = machine_at_isa486_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET1,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_AT,
+        .flags = MACHINE_IDE,
+        .ram = {
+            .min = 1024,
+            .max = 65536,
+            .step = 1024
+        },
+        .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* Has AMIKey H KBC firmware, per the screenshot in "How computers & MS-DOS work". */
-    { "[SiS 401] Chaintech 433SC",                     "sis401",           MACHINE_TYPE_486,        MACHINE_CHIPSET_SIS_401,             machine_at_sis401_init,           0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET1,                                 CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_AT, MACHINE_IDE, 1024, 65536, 1024, 127, NULL, NULL },
+    {
+        .name = "[SiS 401] Chaintech 433SC",
+        .internal_name = "sis401",
+        .type = MACHINE_TYPE_486,
+        .chipset = MACHINE_CHIPSET_SIS_401,
+        .init = machine_at_sis401_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET1,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_AT,
+        .flags = MACHINE_IDE,
+        .ram = {
+            .min = 1024,
+            .max = 65536,
+            .step = 1024
+        },
+        .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* Has AMIKey F KBC firmware, per a photo of a monitor with the BIOS screen on
        eBay. */
-    { "[SiS 460] ABIT AV4",                            "av4",              MACHINE_TYPE_486,        MACHINE_CHIPSET_SIS_460,             machine_at_av4_init,              0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET1,                                 CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_VLB, MACHINE_IDE, 1024, 65536, 1024, 127, NULL, NULL },
+    {
+        .name = "[SiS 460] ABIT AV4",
+        .internal_name = "av4",
+        .type = MACHINE_TYPE_486,
+        .chipset = MACHINE_CHIPSET_SIS_460,
+        .init = machine_at_av4_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET1,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_VLB,
+        .flags = MACHINE_IDE,
+        .ram = {
+            .min = 1024,
+            .max = 65536,
+            .step = 1024
+        },
+        .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* Has a MR (!) KBC firmware, which is a clone of the standard IBM PS/2 KBC firmware. */
-    { "[SiS 471] SiS VL-BUS 471 REV. A1",              "px471",            MACHINE_TYPE_486,        MACHINE_CHIPSET_SIS_471,             machine_at_px471_init,            0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET1,                                 CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_VLB, MACHINE_IDE, 1024, 131072, 1024, 127, NULL, NULL },
+    {
+        .name = "[SiS 471] SiS VL-BUS 471 REV. A1",
+        .internal_name = "px471",
+        .type = MACHINE_TYPE_486,
+        .chipset = MACHINE_CHIPSET_SIS_471,
+        .init = machine_at_px471_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET1,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_VLB,
+        .flags = MACHINE_IDE,
+        .ram = {
+            .min = 1024,
+            .max = 131072,
+            .step = 1024
+        },
+        .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* The chip is a Lance LT38C41, a clone of the Intel 8041, and the BIOS sends
        commands BC, BD, and C9 which exist on both AMIKey and Phoenix MultiKey/42,
        but it does not write a byte after C9, which is consistent with AMIKey, so
        this must have some form of AMIKey. */
-    { "[VIA VT82C495] FIC 486-VC-HD",                  "486vchd",          MACHINE_TYPE_486,        MACHINE_CHIPSET_VIA_VT82C495,        machine_at_486vchd_init,          0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET1,                                 CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_AT, MACHINE_FLAGS_NONE, 1024, 64512, 1024, 127, NULL, NULL },
+    {
+        .name = "[VIA VT82C495] FIC 486-VC-HD",
+        .internal_name = "486vchd",
+        .type = MACHINE_TYPE_486,
+        .chipset = MACHINE_CHIPSET_VIA_VT82C495,
+        .init = machine_at_486vchd_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET1,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_AT,
+        .flags = MACHINE_FLAGS_NONE,
+        .ram = {
+            .min = 1024,
+            .max = 64512,
+            .step = 1024
+        },
+        .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* According to Deksor on the Win3x.org forum, the BIOS string ends in a -0,
        indicating an unknown KBC firmware. But it does send the AMIKey get version
        command, so it must expect an AMIKey. */
-    { "[VLSI 82C480] HP Vectra 486VL",                 "vect486vl",        MACHINE_TYPE_486,        MACHINE_CHIPSET_VLSI_VL82C480,       machine_at_vect486vl_init,        0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET1,                                 CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_PS2, MACHINE_IDE | MACHINE_VIDEO, 2048, 32768, 2048, 127, at_vect486vl_get_device, NULL },
+    {
+        .name = "[VLSI 82C480] HP Vectra 486VL",
+        .internal_name = "vect486vl",
+        .type = MACHINE_TYPE_486,
+        .chipset = MACHINE_CHIPSET_VLSI_VL82C480,
+        .init = machine_at_vect486vl_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET1,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_PS2,
+        .flags = MACHINE_IDE | MACHINE_VIDEO,
+        .ram = {
+            .min = 2048,
+            .max = 32768,
+            .step = 2048
+        },
+        .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = &gd5428_onboard_device,
+        .vid_device = NULL
+    },
     /* Has a standard IBM PS/2 KBC firmware or a clone thereof. */
-    { "[VLSI 82C481] Siemens Nixdorf D824",            "d824",             MACHINE_TYPE_486,        MACHINE_CHIPSET_VLSI_VL82C481,       machine_at_d824_init,             0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET1,                                 CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_PS2, MACHINE_IDE | MACHINE_VIDEO, 2048, 32768, 2048, 127, at_d824_get_device, NULL },
+    {
+        .name = "[VLSI 82C481] Siemens Nixdorf D824",
+        .internal_name = "d824",
+        .type = MACHINE_TYPE_486,
+        .chipset = MACHINE_CHIPSET_VLSI_VL82C481,
+        .init = machine_at_d824_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET1,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_PS2,
+        .flags = MACHINE_IDE | MACHINE_VIDEO,
+        .ram = {
+            .min = 2048,
+            .max = 32768,
+            .step = 2048
+        },
+        .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = &gd5428_onboard_device,
+        .vid_device = NULL
+    },
 
     /* 486 machines - Socket 2 */
     /* 486 machines with just the ISA slot */
     /* Uses some variant of Phoenix MultiKey/42 as the BIOS sends keyboard controller
        command C7 (OR input byte with received data byte). */
-    { "[ACC 2168] Packard Bell PB410A",                "pb410a",           MACHINE_TYPE_486_S2,     MACHINE_CHIPSET_ACC_2168,            machine_at_pb410a_init,           0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET3,                   CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_PS2, MACHINE_IDE | MACHINE_VIDEO, 4096, 36864, 1024, 127, NULL, NULL },
+    {
+        .name = "[ACC 2168] Packard Bell PB410A",
+        .internal_name = "pb410a",
+        .type = MACHINE_TYPE_486_S2,
+        .chipset = MACHINE_CHIPSET_ACC_2168,
+        .init = machine_at_pb410a_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET3,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_PS2,
+        .flags = MACHINE_IDE | MACHINE_VIDEO,
+        .ram = {
+            .min = 4096,
+            .max = 36864,
+            .step = 1024
+        },
+        .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* Uses an ACER/NEC 90M002A (UPD82C42C, 8042 clone) with unknown firmware (V4.01H). */
-    { "[ALi M1429G] Acer A1G",                         "acera1g",          MACHINE_TYPE_486_S2,     MACHINE_CHIPSET_ALI_M1429G,          machine_at_acera1g_init,          0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET3,                   CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_PS2, MACHINE_IDE_DUAL | MACHINE_VIDEO, 4096, 36864, 1024, 127, at_acera1g_get_device, NULL },
+    {
+        .name = "[ALi M1429G] Acer A1G",
+        .internal_name = "acera1g",
+        .type = MACHINE_TYPE_486_S2,
+        .chipset = MACHINE_CHIPSET_ALI_M1429G,
+        .init = machine_at_acera1g_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET3,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_PS2,
+        .flags = MACHINE_IDE_DUAL | MACHINE_VIDEO,
+        .ram = {
+            .min = 4096,
+            .max = 36864,
+            .step = 1024
+        },
+        .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = &gd5428_onboard_device,
+        .vid_device = NULL
+    },
     /* This has an AMIKey-2, which is an updated version of type 'H'. */
-    { "[ALi M1429G] Kaimei SA-486 VL-BUS M.B.",        "win486",           MACHINE_TYPE_486_S2,     MACHINE_CHIPSET_ALI_M1429G,          machine_at_winbios1429_init,      0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET3,                   CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_VLB, MACHINE_IDE, 1024, 32768, 1024, 127, NULL, NULL },
+    {
+        .name = "[ALi M1429G] Kaimei SA-486 VL-BUS M.B.",
+        .internal_name = "win486",
+        .type = MACHINE_TYPE_486_S2,
+        .chipset = MACHINE_CHIPSET_ALI_M1429G,
+        .init = machine_at_winbios1429_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET3,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_VLB,
+        .flags = MACHINE_IDE,
+        .ram = {
+            .min = 1024,
+            .max = 32768,
+            .step = 1024
+        },
+        .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* Uses an Intel KBC with Phoenix MultiKey KBC firmware. */
-    { "[SiS 461] DEC DECpc LPV",                       "decpclpv",         MACHINE_TYPE_486_S2,     MACHINE_CHIPSET_SIS_461,             machine_at_decpclpv_init,         0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET3,                   CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_PS2, MACHINE_IDE_DUAL | MACHINE_VIDEO, 1024, 32768, 1024, 127, NULL, NULL },
+    {
+        .name = "[SiS 461] DEC DECpc LPV",
+        .internal_name = "decpclpv",
+        .type = MACHINE_TYPE_486_S2,
+        .chipset = MACHINE_CHIPSET_SIS_461,
+        .init = machine_at_decpclpv_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET3,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_PS2,
+        .flags = MACHINE_IDE_DUAL | MACHINE_VIDEO,
+        .ram = {
+            .min = 1024,
+            .max = 32768,
+            .step = 1024
+        },
+        .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* Uses an NEC 90M002A (UPD82C42C, 8042 clone) with unknown firmware. */
-    { "[SiS 461] Acer V10",                            "acerv10",          MACHINE_TYPE_486_S2,     MACHINE_CHIPSET_SIS_461,             machine_at_acerv10_init,          0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET3,                   CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_PS2, MACHINE_IDE_DUAL | MACHINE_VIDEO, 1024, 32768, 1024, 127, NULL, NULL },
+    {
+        .name = "[SiS 461] Acer V10",
+        .internal_name = "acerv10",
+        .type = MACHINE_TYPE_486_S2,
+        .chipset = MACHINE_CHIPSET_SIS_461,
+        .init = machine_at_acerv10_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET3,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_PS2,
+        .flags = MACHINE_IDE_DUAL | MACHINE_VIDEO,
+        .ram = {
+            .min = 1024,
+            .max = 32768,
+            .step = 1024
+        },
+        .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* The BIOS does not send any non-standard keyboard controller commands and wants
        a PS/2 mouse, so it's an IBM PS/2 KBC (Type 1) firmware. */
-    { "[SiS 461] IBM PS/ValuePoint 433DX/Si",          "valuepoint433",    MACHINE_TYPE_486_S2,     MACHINE_CHIPSET_SIS_461,             machine_at_valuepoint433_init,    0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET3,                   CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_PS2, MACHINE_IDE | MACHINE_VIDEO, 1024, 65536, 1024, 127, NULL, NULL },
+    {
+        .name = "[SiS 461] IBM PS/ValuePoint 433DX/Si",
+        .internal_name = "valuepoint433",
+        .type = MACHINE_TYPE_486_S2,
+        .chipset = MACHINE_CHIPSET_SIS_461,
+        .init = machine_at_valuepoint433_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET3,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_PS2,
+        .flags = MACHINE_IDE | MACHINE_VIDEO,
+        .ram = {
+            .min = 1024,
+            .max = 65536,
+            .step = 1024
+        },
+        .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* The BIOS string ends in -U, unless command 0xA1 (AMIKey get version) returns an
        'F', in which case, it ends in -F, so it has an AMIKey F KBC firmware.
        The photo of the board shows an AMIKey KBC which is indeed F. */
-    { "[SiS 471] ABit AB-AH4",                         "win471",           MACHINE_TYPE_486_S2,     MACHINE_CHIPSET_SIS_471,             machine_at_win471_init,           0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET3,                   CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_VLB, MACHINE_IDE, 1024, 65536, 1024, 127, NULL, NULL },
+    {
+        .name = "[SiS 471] ABit AB-AH4",
+        .internal_name = "win471",
+        .type = MACHINE_TYPE_486_S2,
+        .chipset = MACHINE_CHIPSET_SIS_471,
+        .init = machine_at_win471_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET3,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_VLB,
+        .flags = MACHINE_IDE,
+        .ram = {
+            .min = 1024,
+            .max = 65536,
+            .step = 1024
+        },
+        .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
 
     /* 486 machines - Socket 3 */
     /* 486 machines with just the ISA slot */
     /* Has AMI MegaKey KBC firmware. */
-    { "[Contaq 82C597] Green-B",                       "greenb",           MACHINE_TYPE_486_S3,     MACHINE_CHIPSET_CONTAQ_82C597,       machine_at_greenb_init,           0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET3,                   CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_VLB, MACHINE_FLAGS_NONE, 1024, 65536, 1024, 127, NULL, NULL },
+    {
+        .name = "[Contaq 82C597] Green-B",
+        .internal_name = "greenb",
+        .type = MACHINE_TYPE_486_S3,
+        .chipset = MACHINE_CHIPSET_CONTAQ_82C597,
+        .init = machine_at_greenb_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET3,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_VLB,
+        .flags = MACHINE_FLAGS_NONE,
+        .ram = {
+            .min = 1024,
+            .max = 65536,
+            .step = 1024
+        },
+        .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* Has a VIA VT82C42N KBC. */
-    { "[OPTi 895] Jetway J-403TG",                     "403tg",            MACHINE_TYPE_486_S3,     MACHINE_CHIPSET_OPTI_895_802G,       machine_at_403tg_init,            0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET3,                   CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_VLB, MACHINE_FLAGS_NONE, 1024, 65536, 1024, 127, NULL, NULL },
+    {
+        .name = "[OPTi 895] Jetway J-403TG",
+        .internal_name = "403tg",
+        .type = MACHINE_TYPE_486_S3,
+        .chipset = MACHINE_CHIPSET_OPTI_895_802G,
+        .init = machine_at_403tg_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET3,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_VLB,
+        .flags = MACHINE_FLAGS_NONE,
+        .ram = {
+            .min = 1024,
+            .max = 65536,
+            .step = 1024
+        },
+        .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* Has JetKey 5 KBC Firmware which looks like it is a clone of AMIKey type F. */
-    { "[OPTi 895] Jetway J-403TG Rev D",               "403tg_d",          MACHINE_TYPE_486_S3,     MACHINE_CHIPSET_OPTI_895_802G,       machine_at_403tg_d_init,          0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET3,                   CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_VLB, MACHINE_FLAGS_NONE, 1024, 65536, 1024, 127, NULL, NULL },
+    {
+        .name = "[OPTi 895] Jetway J-403TG Rev D",
+        .internal_name = "403tg_d",
+        .type = MACHINE_TYPE_486_S3,
+        .chipset = MACHINE_CHIPSET_OPTI_895_802G,
+        .init = machine_at_403tg_d_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET3,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_VLB,
+        .flags = MACHINE_FLAGS_NONE,
+        .ram = {
+            .min = 1024,
+            .max = 65536,
+            .step = 1024
+        },
+        .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* Has JetKey 5 KBC Firmware which looks like it is a clone of AMIKey type F. */
-    { "[OPTi 895] Jetway J-403TG Rev D (MR BIOS)",     "403tg_d_mr",       MACHINE_TYPE_486_S3,     MACHINE_CHIPSET_OPTI_895_802G,       machine_at_403tg_d_mr_init,       0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET3,                   CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_VLB, MACHINE_FLAGS_NONE, 1024, 65536, 1024, 127, NULL, NULL },
+    {
+        .name = "[OPTi 895] Jetway J-403TG Rev D (MR BIOS)",
+        .internal_name = "403tg_d_mr",
+        .type = MACHINE_TYPE_486_S3,
+        .chipset = MACHINE_CHIPSET_OPTI_895_802G,
+        .init = machine_at_403tg_d_mr_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET3,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_VLB,
+        .flags = MACHINE_FLAGS_NONE,
+        .ram = {
+            .min = 1024,
+            .max = 65536,
+            .step = 1024
+        },
+        .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* Has AMIKey H keyboard BIOS. */
-    { "[SiS 471] AOpen Vi15G",                         "vi15g",            MACHINE_TYPE_486_S3,     MACHINE_CHIPSET_SIS_471,             machine_at_vi15g_init,            0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET3,                   CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_VLB, MACHINE_IDE, 1024, 65536, 1024, 127, NULL, NULL },
+    {
+        .name = "[SiS 471] AOpen Vi15G",
+        .internal_name = "vi15g",
+        .type = MACHINE_TYPE_486_S3,
+        .chipset = MACHINE_CHIPSET_SIS_471,
+        .init = machine_at_vi15g_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET3,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_VLB,
+        .flags = MACHINE_IDE,
+        .ram = {
+            .min = 1024,
+            .max = 65536,
+            .step = 1024
+        },
+        .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* This has an AMIKey-2, which is an updated version of type 'H'. */
-    { "[SiS 471] ASUS VL/I-486SV2G (GX4)",             "vli486sv2g",       MACHINE_TYPE_486_S3,     MACHINE_CHIPSET_SIS_471,             machine_at_vli486sv2g_init,       0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET3,                   CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_PS2_VLB, MACHINE_IDE_DUAL, 1024, 65536, 1024, 127, NULL, NULL },
+    {
+        .name = "[SiS 471] ASUS VL/I-486SV2G (GX4)",
+        .internal_name = "vli486sv2g",
+        .type = MACHINE_TYPE_486_S3,
+        .chipset = MACHINE_CHIPSET_SIS_471,
+        .init = machine_at_vli486sv2g_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET3,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_PS2_VLB,
+        .flags = MACHINE_IDE_DUAL,
+        .ram = {
+            .min = 1024,
+            .max = 65536,
+            .step = 1024
+        },
+        .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* Has JetKey 5 KBC Firmware which looks like it is a clone of AMIKey type F. */
-    { "[SiS 471] DTK PKM-0038S E-2",                   "dtk486",           MACHINE_TYPE_486_S3,     MACHINE_CHIPSET_SIS_471,             machine_at_dtk486_init,           0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET3,                   CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_VLB, MACHINE_IDE, 1024, 65536, 1024, 127, NULL, NULL },
+    {
+        .name = "[SiS 471] DTK PKM-0038S E-2",
+        .internal_name = "dtk486",
+        .type = MACHINE_TYPE_486_S3,
+        .chipset = MACHINE_CHIPSET_SIS_471,
+        .init = machine_at_dtk486_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET3,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_VLB,
+        .flags = MACHINE_IDE,
+        .ram = {
+            .min = 1024,
+            .max = 65536,
+            .step = 1024
+        },
+        .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* Unknown Epox VLB Socket 3 board, has AMIKey F keyboard BIOS. */
-    { "[SiS 471] Epox 486SX/DX Green",                 "ami471",           MACHINE_TYPE_486_S3,     MACHINE_CHIPSET_SIS_471,             machine_at_ami471_init,           0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET3,                   CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_VLB, MACHINE_IDE, 1024, 65536, 1024, 127, NULL, NULL },
+    {
+        .name = "[SiS 471] Epox 486SX/DX Green",
+        .internal_name = "ami471",
+        .type = MACHINE_TYPE_486_S3,
+        .chipset = MACHINE_CHIPSET_SIS_471,
+        .init = machine_at_ami471_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET3,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_VLB,
+        .flags = MACHINE_IDE,
+        .ram = {
+            .min = 1024,
+            .max = 65536,
+            .step = 1024
+        },
+        .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
 
     /* 486 machines which utilize the PCI bus */
     /* This has an AMIKey-2, which is an updated version of type 'H'. */
-    { "[ALi M1489] AAEON SBC-490",                     "sbc490",           MACHINE_TYPE_486_S3,     MACHINE_CHIPSET_ALI_M1489,           machine_at_sbc490_init,           0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET3,                   CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_PS2_PCI, MACHINE_IDE_DUAL | MACHINE_VIDEO, 1024,  65536, 1024, 255, at_sbc490_get_device, NULL },
+    {
+        .name = "[ALi M1489] AAEON SBC-490",
+        .internal_name = "sbc490",
+        .type = MACHINE_TYPE_486_S3,
+        .chipset = MACHINE_CHIPSET_ALI_M1489,
+        .init = machine_at_sbc490_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET3,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_PS2_PCI,
+        .flags = MACHINE_IDE_DUAL | MACHINE_VIDEO,
+        .ram = {
+            .min = 1024,
+            .max = 65536,
+            .step = 1024
+        },
+        .nvrmask = 255,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = &tgui9440_onboard_pci_device,
+        .vid_device = NULL
+    },
     /* Has the ALi M1487/9's on-chip keyboard controller which clones a standard AT
        KBC. */
-    { "[ALi M1489] ABIT AB-PB4",                       "abpb4",            MACHINE_TYPE_486_S3,     MACHINE_CHIPSET_ALI_M1489,           machine_at_abpb4_init,            0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET3,                   CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_PCI, MACHINE_IDE_DUAL, 1024, 65536, 1024, 255, NULL, NULL },
+    {
+        .name = "[ALi M1489] ABIT AB-PB4",
+        .internal_name = "abpb4",
+        .type = MACHINE_TYPE_486_S3,
+        .chipset = MACHINE_CHIPSET_ALI_M1489,
+        .init = machine_at_abpb4_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET3,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_PCI,
+        .flags = MACHINE_IDE_DUAL,
+        .ram = {
+            .min = 1024,
+            .max = 65536,
+            .step = 1024
+        },
+        .nvrmask = 255,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* Has the ALi M1487/9's on-chip keyboard controller which clones a standard AT
        KBC.
        The BIOS string always ends in -U, but the BIOS will send AMIKey commands 0xCA
        and 0xCB if command 0xA1 returns a letter in the 0x5x or 0x7x ranges, so I'm
        going to give it an AMI 'U' KBC. */
-    { "[ALi M1489] AMI WinBIOS 486 PCI",               "win486pci",        MACHINE_TYPE_486_S3,     MACHINE_CHIPSET_ALI_M1489,           machine_at_win486pci_init,        0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET3,                   CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_PCI, MACHINE_IDE_DUAL, 1024, 65536, 1024, 255, NULL, NULL },
+    {
+        .name = "[ALi M1489] AMI WinBIOS 486 PCI",
+        .internal_name = "win486pci",
+        .type = MACHINE_TYPE_486_S3,
+        .chipset = MACHINE_CHIPSET_ALI_M1489,
+        .init = machine_at_win486pci_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET3,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_PCI,
+        .flags = MACHINE_IDE_DUAL,
+        .ram = {
+            .min = 1024,
+            .max = 65536,
+            .step = 1024
+        },
+        .nvrmask = 255,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* Has the ALi M1487/9's on-chip keyboard controller which clones a standard AT
        KBC.
        The known BIOS string ends in -E, and the BIOS returns whatever command 0xA1
        returns (but only if command 0xA1 is instant response), so said ALi keyboard
        controller likely returns 'E'. */
-    { "[ALi M1489] MSI MS-4145",                       "ms4145",           MACHINE_TYPE_486_S3,     MACHINE_CHIPSET_ALI_M1489,           machine_at_ms4145_init,           0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET3,                   CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_PCI, MACHINE_IDE_DUAL, 1024, 65536, 1024, 255, NULL, NULL },
+    {
+        .name = "[ALi M1489] MSI MS-4145",
+        .internal_name = "ms4145",
+        .type = MACHINE_TYPE_486_S3,
+        .chipset = MACHINE_CHIPSET_ALI_M1489,
+        .init = machine_at_ms4145_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET3,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_PCI,
+        .flags = MACHINE_IDE_DUAL,
+        .ram = {
+            .min = 1024,
+            .max = 65536,
+            .step = 1024
+        },
+        .nvrmask = 255,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* Has an ALi M5042 keyboard controller with Phoenix MultiKey/42 v1.40 firmware. */
-    { "[ALi M1489] ESA TF-486",                        "tf486",            MACHINE_TYPE_486_S3,     MACHINE_CHIPSET_ALI_M1489,           machine_at_tf486_init,            0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET3,                   CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_PS2_PCI, MACHINE_IDE_DUAL, 1024, 65536, 1024, 255, NULL, NULL },
+    {
+        .name = "[ALi M1489] ESA TF-486",
+        .internal_name = "tf486",
+        .type = MACHINE_TYPE_486_S3,
+        .chipset = MACHINE_CHIPSET_ALI_M1489,
+        .init = machine_at_tf486_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET3,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_PS2_PCI,
+        .flags = MACHINE_IDE_DUAL,
+        .ram = {
+            .min = 1024,
+            .max = 65536,
+            .step = 1024
+        },
+        .nvrmask = 255,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* Has IBM PS/2 Type 1 KBC firmware. */
-    { "[OPTi 802G] IBM PC 330 (type 6573)",            "pc330_6573",       MACHINE_TYPE_486_S3,     MACHINE_CHIPSET_OPTI_895_802G,       machine_at_pc330_6573_init,       0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET3_PC330,             CPU_BLOCK_NONE, 25000000, 33333333, 0, 0, 2.0, 3.0, MACHINE_PS2_PCI, MACHINE_IDE, 1024, 65536, 1024, 127, NULL, NULL },
+    {
+        .name = "[OPTi 802G] IBM PC 330 (type 6573)",
+        .internal_name = "pc330_6573",
+        .type = MACHINE_TYPE_486_S3,
+        .chipset = MACHINE_CHIPSET_OPTI_895_802G,
+        .init = machine_at_pc330_6573_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET3_PC330,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 25000000,
+            .max_bus = 33333333,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 2.0,
+            .max_multi = 3.0
+        },
+        .bus_flags = MACHINE_PS2_PCI,
+        .flags = MACHINE_IDE,
+        .ram = {
+            .min = 1024,
+            .max = 65536,
+            .step = 1024
+        },
+        .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* This has an AMIKey-2, which is an updated version of type 'H'. */
-    { "[i420EX] ASUS PVI-486AP4",                      "486ap4",           MACHINE_TYPE_486_S3,     MACHINE_CHIPSET_INTEL_420EX,         machine_at_486ap4_init,           0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET3,                   CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_PS2_PCIV, MACHINE_IDE_DUAL, 1024, 131072, 1024, 127, NULL, NULL },
+    {
+        .name = "[i420EX] ASUS PVI-486AP4",
+        .internal_name = "486ap4",
+        .type = MACHINE_TYPE_486_S3,
+        .chipset = MACHINE_CHIPSET_INTEL_420EX,
+        .init = machine_at_486ap4_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET3,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_PS2_PCIV,
+        .flags = MACHINE_IDE_DUAL,
+        .ram = {
+            .min = 1024,
+            .max = 131072,
+            .step = 1024
+        },
+        .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* This has the Phoenix MultiKey KBC firmware. */
-    { "[i420EX] Intel Classic/PCI ED",                 "ninja",            MACHINE_TYPE_486_S3,     MACHINE_CHIPSET_INTEL_420EX,         machine_at_ninja_init,            0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET3,                   CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_PS2_PCI, MACHINE_IDE_DUAL, 1024, 131072, 1024, 127, NULL, NULL },
+    {
+        .name = "[i420EX] Intel Classic/PCI ED",
+        .internal_name = "ninja",
+        .type = MACHINE_TYPE_486_S3,
+        .chipset = MACHINE_CHIPSET_INTEL_420EX,
+        .init = machine_at_ninja_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET3,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_PS2_PCI,
+        .flags = MACHINE_IDE_DUAL,
+        .ram = {
+            .min = 1024,
+            .max = 131072,
+            .step = 1024
+        },
+        .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* I'm going to assume this as an AMIKey-2 like the other two 486SP3's. */
-    { "[i420TX] ASUS PCI/I-486SP3",                    "486sp3",           MACHINE_TYPE_486_S3,     MACHINE_CHIPSET_INTEL_420TX,         machine_at_486sp3_init,           0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET3,                   CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_PCI, MACHINE_IDE_DUAL | MACHINE_SCSI, 1024, 131072, 1024, 127, NULL, NULL },
+    {
+        .name = "[i420TX] ASUS PCI/I-486SP3",
+        .internal_name = "486sp3",
+        .type = MACHINE_TYPE_486_S3,
+        .chipset = MACHINE_CHIPSET_INTEL_420TX,
+        .init = machine_at_486sp3_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET3,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_PCI,
+        .flags = MACHINE_IDE_DUAL | MACHINE_SCSI,
+        .ram = {
+            .min = 1024,
+            .max = 131072,
+            .step = 1024
+        },
+        .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* This has the Phoenix MultiKey KBC firmware. */
-    { "[i420TX] Intel Classic/PCI",                    "alfredo",          MACHINE_TYPE_486_S3,     MACHINE_CHIPSET_INTEL_420TX,         machine_at_alfredo_init,          0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET3,                   CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_PS2_PCI, MACHINE_IDE_DUAL, 2048, 131072, 2048, 127, NULL, NULL },
+    {
+        .name = "[i420TX] Intel Classic/PCI",
+        .internal_name = "alfredo",
+        .type = MACHINE_TYPE_486_S3,
+        .chipset = MACHINE_CHIPSET_INTEL_420TX,
+        .init = machine_at_alfredo_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET3,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_PS2_PCI,
+        .flags = MACHINE_IDE_DUAL,
+        .ram = {
+            .min = 2048,
+            .max = 131072,
+            .step = 2048
+        },
+        .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* This has an AMIKey-2, which is an updated version of type 'H'. Also has a
        SST 29EE010 Flash chip. */
-    { "[i420ZX] ASUS PCI/I-486SP3G",                   "486sp3g",          MACHINE_TYPE_486_S3,     MACHINE_CHIPSET_INTEL_420ZX,         machine_at_486sp3g_init,          0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET3,                   CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_PS2_PCI, MACHINE_IDE_DUAL | MACHINE_SCSI, 1024, 131072, 1024, 127, NULL, NULL },
+    {
+        .name = "[i420ZX] ASUS PCI/I-486SP3G",
+        .internal_name = "486sp3g",
+        .type = MACHINE_TYPE_486_S3,
+        .chipset = MACHINE_CHIPSET_INTEL_420ZX,
+        .init = machine_at_486sp3g_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET3,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_PS2_PCI,
+        .flags = MACHINE_IDE_DUAL | MACHINE_SCSI,
+        .ram = {
+            .min = 1024,
+            .max = 131072,
+            .step = 1024
+        },
+        .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* This most likely has a standalone AMI Megakey 1993, which is type 'P', like the below Tekram board. */
-    { "[IMS 8848] J-Bond PCI400C-B",                   "pci400cb",         MACHINE_TYPE_486_S3,     MACHINE_CHIPSET_IMS_8848,            machine_at_pci400cb_init,         0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET3,                   CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_PS2_PCI, MACHINE_IDE_DUAL, 2048, 131072, 2048, 127, NULL, NULL },
+    {
+        .name = "[IMS 8848] J-Bond PCI400C-B",
+        .internal_name = "pci400cb",
+        .type = MACHINE_TYPE_486_S3,
+        .chipset = MACHINE_CHIPSET_IMS_8848,
+        .init = machine_at_pci400cb_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET3,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_PS2_PCI,
+        .flags = MACHINE_IDE_DUAL,
+        .ram = {
+            .min = 2048,
+            .max = 131072,
+            .step = 2048
+        },
+        .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* This has a standalone AMI Megakey 1993, which is type 'P'. */
-    { "[IMS 8848] Tekram G486IP",                      "g486ip",           MACHINE_TYPE_486_S3,     MACHINE_CHIPSET_IMS_8848,            machine_at_g486ip_init,           0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET3,                   CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_PS2_PCI, MACHINE_IDE_DUAL, 2048, 131072, 2048, 127, NULL, NULL },
+    {
+        .name = "[IMS 8848] Tekram G486IP",
+        .internal_name = "g486ip",
+        .type = MACHINE_TYPE_486_S3,
+        .chipset = MACHINE_CHIPSET_IMS_8848,
+        .init = machine_at_g486ip_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET3,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_PS2_PCI,
+        .flags = MACHINE_IDE_DUAL,
+        .ram = {
+            .min = 2048,
+            .max = 131072,
+            .step = 2048
+        },
+        .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* This has an AMIKey-2, which is an updated version of type 'H'. */
-    { "[SiS 496] ASUS PVI-486SP3C",                    "486sp3c",          MACHINE_TYPE_486_S3,     MACHINE_CHIPSET_SIS_496,             machine_at_486sp3c_init,          0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET3,                   CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_PS2_PCIV, MACHINE_IDE_DUAL, 1024, 261120, 1024, 255, NULL, NULL },
+    {
+        .name = "[SiS 496] ASUS PVI-486SP3C",
+        .internal_name = "486sp3c",
+        .type = MACHINE_TYPE_486_S3,
+        .chipset = MACHINE_CHIPSET_SIS_496,
+        .init = machine_at_486sp3c_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET3,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_PS2_PCIV,
+        .flags = MACHINE_IDE_DUAL,
+        .ram = {
+            .min = 1024,
+            .max = 261120,
+            .step = 1024
+        },
+        .nvrmask = 255,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* This has an AMIKey-2, which is an updated version of type 'H'. */
-    { "[SiS 496] Lucky Star LS-486E",                  "ls486e",           MACHINE_TYPE_486_S3,     MACHINE_CHIPSET_SIS_496,             machine_at_ls486e_init,           0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET3,                   CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_PCI, MACHINE_IDE_DUAL, 1024, 131072, 1024, 255, NULL, NULL },
+    {
+        .name = "[SiS 496] Lucky Star LS-486E",
+        .internal_name = "ls486e",
+        .type = MACHINE_TYPE_486_S3,
+        .chipset = MACHINE_CHIPSET_SIS_496,
+        .init = machine_at_ls486e_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET3,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_PCI,
+        .flags = MACHINE_IDE_DUAL,
+        .ram = {
+            .min = 1024,
+            .max = 131072,
+            .step = 1024
+        },
+        .nvrmask = 255,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* The BIOS does not send a single non-standard KBC command, so it has a standard PS/2 KBC. */
-    { "[SiS 496] Micronics M4Li",                      "m4li",             MACHINE_TYPE_486_S3,     MACHINE_CHIPSET_SIS_496,             machine_at_m4li_init,             0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET3,                   CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_PS2_PCI, MACHINE_IDE_DUAL, 1024, 131072, 1024, 127, NULL, NULL },
+    {
+        .name = "[SiS 496] Micronics M4Li",
+        .internal_name = "m4li",
+        .type = MACHINE_TYPE_486_S3,
+        .chipset = MACHINE_CHIPSET_SIS_496,
+        .init = machine_at_m4li_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET3,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_PS2_PCI,
+        .flags = MACHINE_IDE_DUAL,
+        .ram = {
+            .min = 1024,
+            .max = 131072,
+            .step = 1024
+        },
+        .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* Has a BestKey KBC which clones AMI type 'H'. */
-    { "[SiS 496] Rise Computer R418",                  "r418",             MACHINE_TYPE_486_S3,     MACHINE_CHIPSET_SIS_496,             machine_at_r418_init,             0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET3,                   CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_PCI, MACHINE_IDE_DUAL, 1024, 261120, 1024, 255, NULL, NULL },
+    {
+        .name = "[SiS 496] Rise Computer R418",
+        .internal_name = "r418",
+        .type = MACHINE_TYPE_486_S3,
+        .chipset = MACHINE_CHIPSET_SIS_496,
+        .init = machine_at_r418_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET3,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_PCI,
+        .flags = MACHINE_IDE_DUAL,
+        .ram = {
+            .min = 1024,
+            .max = 261120,
+            .step = 1024
+        },
+        .nvrmask = 255,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* This has a Holtek KBC and the BIOS does not send a single non-standard KBC command, so it
        must be an ASIC that clones the standard IBM PS/2 KBC. */
-    { "[SiS 496] Soyo 4SAW2",                          "4saw2",            MACHINE_TYPE_486_S3,     MACHINE_CHIPSET_SIS_496,             machine_at_4saw2_init,            0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET3,                   CPU_BLOCK_SOYO_4SAW2, 0, 0, 0, 0, 0, 0, MACHINE_PS2_PCIV, MACHINE_IDE_DUAL, 1024, 261120, 1024, 255, NULL, NULL },
+    {
+        .name = "[SiS 496] Soyo 4SAW2",
+        .internal_name = "4saw2",
+        .type = MACHINE_TYPE_486_S3,
+        .chipset = MACHINE_CHIPSET_SIS_496,
+        .init = machine_at_4saw2_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET3,
+            .block = CPU_BLOCK(CPU_i486SX, CPU_i486DX, CPU_Am486SX, CPU_Am486DX),
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_PS2_PCIV,
+        .flags = MACHINE_IDE_DUAL,
+        .ram = {
+            .min = 1024,
+            .max = 261120,
+            .step = 1024
+        },
+        .nvrmask = 255,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* According to MrKsoft, his real 4DPS has an AMIKey-2, which is an updated version
        of type 'H'. */
-    { "[SiS 496] Zida Tomato 4DP",                     "4dps",             MACHINE_TYPE_486_S3,     MACHINE_CHIPSET_SIS_496,             machine_at_4dps_init,             0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET3,                   CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_PS2_PCI, MACHINE_IDE_DUAL, 1024, 261120, 1024, 255, NULL, NULL },
+    {
+        .name = "[SiS 496] Zida Tomato 4DP",
+        .internal_name = "4dps",
+        .type = MACHINE_TYPE_486_S3,
+        .chipset = MACHINE_CHIPSET_SIS_496,
+        .init = machine_at_4dps_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET3,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_PS2_PCI,
+        .flags = MACHINE_IDE_DUAL,
+        .ram = {
+            .min = 1024,
+            .max = 261120,
+            .step = 1024
+        },
+        .nvrmask = 255,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* This has the UMC 88xx on-chip KBC. */
-    { "[UMC 8881] A-Trend ATC-1415",                   "atc1415",          MACHINE_TYPE_486_S3,     MACHINE_CHIPSET_UMC_UM8881,          machine_at_atc1415_init,          0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET3,                   CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_PCI, MACHINE_IDE_DUAL, 1024,  65536, 1024, 255, NULL, NULL },
+    {
+        .name = "[UMC 8881] A-Trend ATC-1415",
+        .internal_name = "atc1415",
+        .type = MACHINE_TYPE_486_S3,
+        .chipset = MACHINE_CHIPSET_UMC_UM8881,
+        .init = machine_at_atc1415_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET3,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_PCI,
+        .flags = MACHINE_IDE_DUAL,
+        .ram = {
+            .min = 1024,
+            .max = 65536,
+            .step = 1024
+        },
+        .nvrmask = 255,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* This has an AMIKey-2, which is an updated version of type 'H'. */
-    { "[UMC 8881] ECS Elite UM8810PAIO",               "ecs486",           MACHINE_TYPE_486_S3,     MACHINE_CHIPSET_UMC_UM8881,          machine_at_ecs486_init,           0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET3,                   CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_PCI, MACHINE_IDE_DUAL, 1024, 131072, 1024, 255, NULL, NULL },
+    {
+        .name = "[UMC 8881] ECS Elite UM8810PAIO",
+        .internal_name = "ecs486",
+        .type = MACHINE_TYPE_486_S3,
+        .chipset = MACHINE_CHIPSET_UMC_UM8881,
+        .init = machine_at_ecs486_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET3,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_PCI,
+        .flags = MACHINE_IDE_DUAL,
+        .ram = {
+            .min = 1024,
+            .max = 131072,
+            .step = 1024
+        },
+        .nvrmask = 255,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* Has AMIKey Z(!) KBC firmware. */
-    { "[UMC 8881] Epson Action PC 2600",               "actionpc2600",     MACHINE_TYPE_486_S3,     MACHINE_CHIPSET_UMC_UM8881,          machine_at_actionpc2600_init,     0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET3,                   CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_PCI, MACHINE_IDE_DUAL, 1024, 262144, 1024, 255, NULL, NULL },
+    {
+        .name = "[UMC 8881] Epson Action PC 2600",
+        .internal_name = "actionpc2600",
+        .type = MACHINE_TYPE_486_S3,
+        .chipset = MACHINE_CHIPSET_UMC_UM8881,
+        .init = machine_at_actionpc2600_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET3,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_PCI,
+        .flags = MACHINE_IDE_DUAL,
+        .ram = {
+            .min = 1024,
+            .max = 262144,
+            .step = 1024
+        },
+        .nvrmask = 255,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* This has the UMC 88xx on-chip KBC. All the copies of the BIOS string I can find, end in
        in -H, so the UMC on-chip KBC likely emulates the AMI 'H' KBC firmware. */
-    { "[UMC 8881] PC Chips M919",                      "m919",             MACHINE_TYPE_486_S3,     MACHINE_CHIPSET_UMC_UM8881,          machine_at_m919_init,             0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET3,                   CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_PCIV, MACHINE_IDE_DUAL, 1024, 131072, 1024, 255, NULL, NULL },
+    {
+        .name = "[UMC 8881] PC Chips M919",
+        .internal_name = "m919",
+        .type = MACHINE_TYPE_486_S3,
+        .chipset = MACHINE_CHIPSET_UMC_UM8881,
+        .init = machine_at_m919_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET3,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_PCIV,
+        .flags = MACHINE_IDE_DUAL,
+        .ram = {
+            .min = 1024,
+            .max = 131072,
+            .step = 1024
+        },
+        .nvrmask = 255,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* Has IBM PS/2 Type 1 KBC firmware. Uses a mysterious I/O port C05. */
-    { "[UMC 8881] Samsung SPC7700P-LW",                "spc7700plw",       MACHINE_TYPE_486_S3,     MACHINE_CHIPSET_UMC_UM8881,          machine_at_spc7700plw_init,       0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET3,                   CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_PS2_PCI, MACHINE_IDE_DUAL, 1024, 131072, 1024, 255, NULL, NULL },
+    {
+        .name = "[UMC 8881] Samsung SPC7700P-LW",
+        .internal_name = "spc7700plw",
+        .type = MACHINE_TYPE_486_S3,
+        .chipset = MACHINE_CHIPSET_UMC_UM8881,
+        .init = machine_at_spc7700plw_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET3,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_PS2_PCI,
+        .flags = MACHINE_IDE_DUAL,
+        .ram = {
+            .min = 1024,
+            .max = 131072,
+            .step = 1024
+        },
+        .nvrmask = 255,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* This has a Holtek KBC. */
-    { "[UMC 8881] Shuttle HOT-433A",                   "hot433",           MACHINE_TYPE_486_S3,     MACHINE_CHIPSET_UMC_UM8881,          machine_at_hot433_init,           0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET3,                   CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_PCI, MACHINE_IDE_DUAL, 1024, 262144, 1024, 255, NULL, NULL },
+    {
+        .name = "[UMC 8881] Shuttle HOT-433A",
+        .internal_name = "hot433",
+        .type = MACHINE_TYPE_486_S3,
+        .chipset = MACHINE_CHIPSET_UMC_UM8881,
+        .init = machine_at_hot433_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET3,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_PCI,
+        .flags = MACHINE_IDE_DUAL,
+        .ram = {
+            .min = 1024,
+            .max = 262144,
+            .step = 1024
+        },
+        .nvrmask = 255,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* Has a VIA VT82C406 KBC+RTC that likely has identical commands to the VT82C42N. */
-    { "[VIA VT82C496G] DFI G486VPA",                   "g486vpa",          MACHINE_TYPE_486_S3,     MACHINE_CHIPSET_VIA_VT82C496G,       machine_at_g486vpa_init,          0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET3,                   CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_PCIV, MACHINE_IDE_DUAL, 1024, 131072, 1024, 255, NULL, NULL },
+    {
+        .name = "[VIA VT82C496G] DFI G486VPA",
+        .internal_name = "g486vpa",
+        .type = MACHINE_TYPE_486_S3,
+        .chipset = MACHINE_CHIPSET_VIA_VT82C496G,
+        .init = machine_at_g486vpa_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET3,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_PCIV,
+        .flags = MACHINE_IDE_DUAL,
+        .ram = {
+            .min = 1024,
+            .max = 131072,
+            .step = 1024
+        },
+        .nvrmask = 255,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* Has a VIA VT82C42N KBC. */
-    { "[VIA VT82C496G] FIC VIP-IO2",                   "486vipio2",        MACHINE_TYPE_486_S3,     MACHINE_CHIPSET_VIA_VT82C496G,       machine_at_486vipio2_init,        0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET3,                   CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_PS2_PCIV, MACHINE_IDE_DUAL, 1024, 131072, 1024, 255, NULL, NULL },
+    {
+        .name = "[VIA VT82C496G] FIC VIP-IO2",
+        .internal_name = "486vipio2",
+        .type = MACHINE_TYPE_486_S3,
+        .chipset = MACHINE_CHIPSET_VIA_VT82C496G,
+        .init = machine_at_486vipio2_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET3,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_PS2_PCIV,
+        .flags = MACHINE_IDE_DUAL,
+        .ram = {
+            .min = 1024,
+            .max = 131072,
+            .step = 1024
+        },
+        .nvrmask = 255,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
 
     /* 486 machines - Miscellaneous */
     /* 486 machines which utilize the PCI bus */
     /* Has a Winbond W83977F Super I/O chip with on-chip KBC with AMIKey-2 KBC
        firmware. */
-    { "[STPC Client] ITOX STAR",                       "itoxstar",         MACHINE_TYPE_486_MISC,   MACHINE_CHIPSET_STPC_CLIENT,         machine_at_itoxstar_init,         0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_STPC,                      CPU_BLOCK_NONE, 66666667, 75000000, 0, 0, 1.0, 1.0, MACHINE_PS2_PCI, MACHINE_IDE_DUAL, 8192, 131072, 8192, 255, NULL, NULL },
+    {
+        .name = "[STPC Client] ITOX STAR",
+        .internal_name = "itoxstar",
+        .type = MACHINE_TYPE_486_MISC,
+        .chipset = MACHINE_CHIPSET_STPC_CLIENT,
+        .init = machine_at_itoxstar_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_STPC,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 66666667,
+            .max_bus = 75000000,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 1.0,
+            .max_multi = 1.0
+        },
+        .bus_flags = MACHINE_PS2_PCI,
+        .flags = MACHINE_IDE_DUAL,
+        .ram = {
+            .min = 8192,
+            .max = 131072,
+            .step = 8192
+        },
+        .nvrmask = 255,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* Has a Winbond W83977F Super I/O chip with on-chip KBC with AMIKey-2 KBC
        firmware. */
-    { "[STPC Consumer-II] Acrosser AR-B1423C",         "arb1423c",         MACHINE_TYPE_486_MISC,   MACHINE_CHIPSET_STPC_CONSUMER_II,    machine_at_arb1423c_init,         0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_STPC,                      CPU_BLOCK_NONE, 66666667, 66666667, 0, 0, 2.0, 2.0, MACHINE_PS2_PCI, MACHINE_IDE_DUAL, 32768, 163840, 8192, 255, NULL, NULL },
+    {
+        .name = "[STPC Consumer-II] Acrosser AR-B1423C",
+        .internal_name = "arb1423c",
+        .type = MACHINE_TYPE_486_MISC,
+        .chipset = MACHINE_CHIPSET_STPC_CONSUMER_II,
+        .init = machine_at_arb1423c_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_STPC,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 66666667,
+            .max_bus = 66666667,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 2.0,
+            .max_multi = 2.0
+        },
+        .bus_flags = MACHINE_PS2_PCI,
+        .flags = MACHINE_IDE_DUAL,
+        .ram = {
+            .min = 32768,
+            .max = 163840,
+            .step = 8192
+        },
+        .nvrmask = 255,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* Has a Winbond W83977F Super I/O chip with on-chip KBC with AMIKey-2 KBC
        firmware. */
-    { "[STPC Consumer-II] Acrosser AR-B1479",          "arb1479",          MACHINE_TYPE_486_MISC,   MACHINE_CHIPSET_STPC_CONSUMER_II,    machine_at_arb1479_init,          0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_STPC,                      CPU_BLOCK_NONE, 66666667, 66666667, 0, 0, 2.0, 2.0, MACHINE_PS2_PCI, MACHINE_IDE_DUAL, 32768, 163840, 8192, 255, NULL, NULL },
+    {
+        .name = "[STPC Consumer-II] Acrosser AR-B1479",
+        .internal_name = "arb1479",
+        .type = MACHINE_TYPE_486_MISC,
+        .chipset = MACHINE_CHIPSET_STPC_CONSUMER_II,
+        .init = machine_at_arb1479_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_STPC,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 66666667,
+            .max_bus = 66666667,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 2.0,
+            .max_multi = 2.0
+        },
+        .bus_flags = MACHINE_PS2_PCI,
+        .flags = MACHINE_IDE_DUAL,
+        .ram = {
+            .min = 32768,
+            .max = 163840,
+            .step = 8192
+        },
+        .nvrmask = 255,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* Has a Winbond W83977F Super I/O chip with on-chip KBC with AMIKey-2 KBC
        firmware. */
-    { "[STPC Elite] Advantech PCM-9340",               "pcm9340",          MACHINE_TYPE_486_MISC,   MACHINE_CHIPSET_STPC_ELITE,          machine_at_pcm9340_init,          0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_STPC,                      CPU_BLOCK_NONE, 66666667, 66666667, 0, 0, 2.0, 2.0, MACHINE_PS2_PCI, MACHINE_IDE_DUAL, 32768, 98304, 8192, 255, NULL, NULL },
+    {
+        .name = "[STPC Elite] Advantech PCM-9340",
+        .internal_name = "pcm9340",
+        .type = MACHINE_TYPE_486_MISC,
+        .chipset = MACHINE_CHIPSET_STPC_ELITE,
+        .init = machine_at_pcm9340_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_STPC,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 66666667,
+            .max_bus = 66666667,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 2.0,
+            .max_multi = 2.0
+        },
+        .bus_flags = MACHINE_PS2_PCI,
+        .flags = MACHINE_IDE_DUAL,
+        .ram = {
+            .min = 32768,
+            .max = 98304,
+            .step = 8192
+        },
+        .nvrmask = 255,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* Has a Winbond W83977F Super I/O chip with on-chip KBC with AMIKey-2 KBC
        firmware. */
-    { "[STPC Atlas] AAEON PCM-5330",                   "pcm5330",          MACHINE_TYPE_486_MISC,   MACHINE_CHIPSET_STPC_ATLAS,          machine_at_pcm5330_init,          0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_STPC,                      CPU_BLOCK_NONE, 66666667, 66666667, 0, 0, 2.0, 2.0, MACHINE_PS2_PCI, MACHINE_IDE_DUAL, 32768, 131072,32768, 255, NULL, NULL },
+    {
+        .name = "[STPC Atlas] AAEON PCM-5330",
+        .internal_name = "pcm5330",
+        .type = MACHINE_TYPE_486_MISC,
+        .chipset = MACHINE_CHIPSET_STPC_ATLAS,
+        .init = machine_at_pcm5330_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_STPC,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 66666667,
+            .max_bus = 66666667,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 2.0,
+            .max_multi = 2.0
+        },
+        .bus_flags = MACHINE_PS2_PCI,
+        .flags = MACHINE_IDE_DUAL,
+        .ram = {
+            .min = 32768,
+            .max = 131072,
+            .step = 32768
+        },
+        .nvrmask = 255,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
 
     /* Socket 4 machines */
     /* 430LX */
@@ -585,438 +6242,4660 @@ const machine_t machines[] = {
        connector.
        The boot block for BIOS recovery requires an unknown bit on port 805h
        to be clear. */
-    { "[i430LX] AMI Excalibur PCI Pentium",            "excaliburpci",     MACHINE_TYPE_SOCKET4,    MACHINE_CHIPSET_INTEL_430LX,         machine_at_excaliburpci_init,     0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET4,                   CPU_BLOCK_NONE, 60000000, 66666667, 5000, 5000, MACHINE_MULTIPLIER_FIXED, MACHINE_PS2_PCI, MACHINE_IDE_DUAL, 2048, 131072, 2048, 127, NULL, NULL },
+    {
+        .name = "[i430LX] AMI Excalibur PCI Pentium",
+        .internal_name = "excaliburpci",
+        .type = MACHINE_TYPE_SOCKET4,
+        .chipset = MACHINE_CHIPSET_INTEL_430LX,
+        .init = machine_at_excaliburpci_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET4,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 60000000,
+            .max_bus = 66666667,
+            .min_voltage = 5000,
+            .max_voltage = 5000,
+            .min_multi = MACHINE_MULTIPLIER_FIXED,
+            .max_multi = MACHINE_MULTIPLIER_FIXED
+        },
+        .bus_flags = MACHINE_PS2_PCI,
+        .flags = MACHINE_IDE_DUAL,
+        .ram = {
+            .min = 2048,
+            .max = 131072,
+            .step = 2048
+        },
+        .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* Has AMIKey F KBC firmware (AMIKey). */
-    { "[i430LX] ASUS P/I-P5MP3",                       "p5mp3",            MACHINE_TYPE_SOCKET4,    MACHINE_CHIPSET_INTEL_430LX,         machine_at_p5mp3_init,            0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET4,                   CPU_BLOCK_NONE, 60000000, 66666667, 5000, 5000, MACHINE_MULTIPLIER_FIXED, MACHINE_PS2_PCI, MACHINE_IDE, 2048, 196608, 2048, 127, NULL, NULL },
+    {
+        .name = "[i430LX] ASUS P/I-P5MP3",
+        .internal_name = "p5mp3",
+        .type = MACHINE_TYPE_SOCKET4,
+        .chipset = MACHINE_CHIPSET_INTEL_430LX,
+        .init = machine_at_p5mp3_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET4,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 60000000,
+            .max_bus = 66666667,
+            .min_voltage = 5000,
+            .max_voltage = 5000,
+            .min_multi = MACHINE_MULTIPLIER_FIXED,
+            .max_multi = MACHINE_MULTIPLIER_FIXED
+        },
+        .bus_flags = MACHINE_PS2_PCI,
+        .flags = MACHINE_IDE,
+        .ram = {
+            .min = 2048,
+            .max = 196608,
+            .step = 2048
+        },
+        .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* Has IBM PS/2 Type 1 KBC firmware. */
-    { "[i430LX] Dell Dimension XPS P60",               "dellxp60",         MACHINE_TYPE_SOCKET4,    MACHINE_CHIPSET_INTEL_430LX,         machine_at_dellxp60_init,         0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET4,                   CPU_BLOCK_NONE, 60000000, 66666667, 5000, 5000, MACHINE_MULTIPLIER_FIXED, MACHINE_PS2_PCI, MACHINE_IDE, 2048, 131072, 2048, 127, NULL, NULL },
+    {
+        .name = "[i430LX] Dell Dimension XPS P60",
+        .internal_name = "dellxp60",
+        .type = MACHINE_TYPE_SOCKET4,
+        .chipset = MACHINE_CHIPSET_INTEL_430LX,
+        .init = machine_at_dellxp60_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET4,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 60000000,
+            .max_bus = 66666667,
+            .min_voltage = 5000,
+            .max_voltage = 5000,
+            .min_multi = MACHINE_MULTIPLIER_FIXED,
+            .max_multi = MACHINE_MULTIPLIER_FIXED
+        },
+        .bus_flags = MACHINE_PS2_PCI,
+        .flags = MACHINE_IDE,
+        .ram = {
+            .min = 2048,
+            .max = 131072,
+            .step = 2048
+        },
+        .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* Has IBM PS/2 Type 1 KBC firmware. */
-    { "[i430LX] Dell OptiPlex 560/L",                  "opti560l",         MACHINE_TYPE_SOCKET4,    MACHINE_CHIPSET_INTEL_430LX,         machine_at_opti560l_init,         0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET4,                   CPU_BLOCK_NONE, 60000000, 66666667, 5000, 5000, MACHINE_MULTIPLIER_FIXED, MACHINE_PS2_PCI, MACHINE_IDE_DUAL, 2048, 131072, 2048, 127, NULL, NULL },
+    {
+        .name = "[i430LX] Dell OptiPlex 560/L",
+        .internal_name = "opti560l",
+        .type = MACHINE_TYPE_SOCKET4,
+        .chipset = MACHINE_CHIPSET_INTEL_430LX,
+        .init = machine_at_opti560l_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET4,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 60000000,
+            .max_bus = 66666667,
+            .min_voltage = 5000,
+            .max_voltage = 5000,
+            .min_multi = MACHINE_MULTIPLIER_FIXED,
+            .max_multi = MACHINE_MULTIPLIER_FIXED
+        },
+        .bus_flags = MACHINE_PS2_PCI,
+        .flags = MACHINE_IDE_DUAL,
+        .ram = {
+            .min = 2048,
+            .max = 131072,
+            .step = 2048
+        },
+        .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* This has the Phoenix MultiKey KBC firmware.
        This is basically an Intel Batman (*NOT* Batman's Revenge) with a fancier
        POST screen */
-    { "[i430LX] AMBRA DP60 PCI",                       "ambradp60",        MACHINE_TYPE_SOCKET4,    MACHINE_CHIPSET_INTEL_430LX,         machine_at_ambradp60_init,        0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET4,                   CPU_BLOCK_NONE, 60000000, 66666667, 5000, 5000, MACHINE_MULTIPLIER_FIXED, MACHINE_PS2_PCI, MACHINE_IDE_DUAL, 2048, 131072, 2048, 127, NULL, NULL },
+    {
+        .name = "[i430LX] AMBRA DP60 PCI",
+        .internal_name = "ambradp60",
+        .type = MACHINE_TYPE_SOCKET4,
+        .chipset = MACHINE_CHIPSET_INTEL_430LX,
+        .init = machine_at_ambradp60_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET4,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 60000000,
+            .max_bus = 66666667,
+            .min_voltage = 5000,
+            .max_voltage = 5000,
+            .min_multi = MACHINE_MULTIPLIER_FIXED,
+            .max_multi = MACHINE_MULTIPLIER_FIXED
+        },
+        .bus_flags = MACHINE_PS2_PCI,
+        .flags = MACHINE_IDE_DUAL,
+        .ram = {
+            .min = 2048,
+            .max = 131072,
+            .step = 2048
+        },
+        .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* Has IBM PS/2 Type 1 KBC firmware. */
-    { "[i430LX] IBM PS/ValuePoint P60",                "valuepointp60",    MACHINE_TYPE_SOCKET4,    MACHINE_CHIPSET_INTEL_430LX,         machine_at_valuepointp60_init,    0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET4,                   CPU_BLOCK_NONE, 60000000, 66666667, 5000, 5000, MACHINE_MULTIPLIER_FIXED, MACHINE_PS2_PCI, MACHINE_IDE_DUAL, 2048, 131072, 2048, 127, NULL, NULL },
+    {
+        .name = "[i430LX] IBM PS/ValuePoint P60",
+        .internal_name = "valuepointp60",
+        .type = MACHINE_TYPE_SOCKET4,
+        .chipset = MACHINE_CHIPSET_INTEL_430LX,
+        .init = machine_at_valuepointp60_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET4,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 60000000,
+            .max_bus = 66666667,
+            .min_voltage = 5000,
+            .max_voltage = 5000,
+            .min_multi = MACHINE_MULTIPLIER_FIXED,
+            .max_multi = MACHINE_MULTIPLIER_FIXED
+        },
+        .bus_flags = MACHINE_PS2_PCI,
+        .flags = MACHINE_IDE_DUAL,
+        .ram = {
+            .min = 2048,
+            .max = 131072,
+            .step = 2048
+        },
+        .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* This has the Phoenix MultiKey KBC firmware. */
-    { "[i430LX] Intel Premiere/PCI",                   "revenge",          MACHINE_TYPE_SOCKET4,    MACHINE_CHIPSET_INTEL_430LX,         machine_at_revenge_init,          0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET4,                   CPU_BLOCK_NONE, 60000000, 66666667, 5000, 5000, MACHINE_MULTIPLIER_FIXED, MACHINE_PS2_PCI, MACHINE_IDE_DUAL, 2048, 131072, 2048, 127, NULL, NULL },
+    {
+        .name = "[i430LX] Intel Premiere/PCI",
+        .internal_name = "revenge",
+        .type = MACHINE_TYPE_SOCKET4,
+        .chipset = MACHINE_CHIPSET_INTEL_430LX,
+        .init = machine_at_revenge_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET4,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 60000000,
+            .max_bus = 66666667,
+            .min_voltage = 5000,
+            .max_voltage = 5000,
+            .min_multi = MACHINE_MULTIPLIER_FIXED,
+            .max_multi = MACHINE_MULTIPLIER_FIXED
+        },
+        .bus_flags = MACHINE_PS2_PCI,
+        .flags = MACHINE_IDE_DUAL,
+        .ram = {
+            .min = 2048,
+            .max = 131072,
+            .step = 2048
+        },
+        .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* Has AMI MegaKey KBC firmware. */
-    { "[i430LX] Micro Star 586MC1",                    "586mc1",           MACHINE_TYPE_SOCKET4,    MACHINE_CHIPSET_INTEL_430LX,         machine_at_586mc1_init,           0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET4,                   CPU_BLOCK_NONE, 60000000, 66666667, 5000, 5000, MACHINE_MULTIPLIER_FIXED, MACHINE_PS2_PCI, MACHINE_IDE_DUAL, 2048, 131072, 2048, 127, NULL, NULL },
+    {
+        .name = "[i430LX] Micro Star 586MC1",
+        .internal_name = "586mc1",
+        .type = MACHINE_TYPE_SOCKET4,
+        .chipset = MACHINE_CHIPSET_INTEL_430LX,
+        .init = machine_at_586mc1_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET4,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 60000000,
+            .max_bus = 66666667,
+            .min_voltage = 5000,
+            .max_voltage = 5000,
+            .min_multi = MACHINE_MULTIPLIER_FIXED,
+            .max_multi = MACHINE_MULTIPLIER_FIXED
+        },
+        .bus_flags = MACHINE_PS2_PCI,
+        .flags = MACHINE_IDE_DUAL,
+        .ram = {
+            .min = 2048,
+            .max = 131072,
+            .step = 2048
+        },
+        .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* This has the Phoenix MultiKey KBC firmware. */
-    { "[i430LX] Packard Bell PB520R",                  "pb520r",           MACHINE_TYPE_SOCKET4,    MACHINE_CHIPSET_INTEL_430LX,         machine_at_pb520r_init,           0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET4,                   CPU_BLOCK_NONE, 60000000, 66666667, 5000, 5000, MACHINE_MULTIPLIER_FIXED, MACHINE_PS2_PCI, MACHINE_IDE_DUAL | MACHINE_VIDEO, 8192, 139264, 2048, 127, at_pb520r_get_device, NULL },
+    {
+        .name = "[i430LX] Packard Bell PB520R",
+        .internal_name = "pb520r",
+        .type = MACHINE_TYPE_SOCKET4,
+        .chipset = MACHINE_CHIPSET_INTEL_430LX,
+        .init = machine_at_pb520r_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET4,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 60000000,
+            .max_bus = 66666667,
+            .min_voltage = 5000,
+            .max_voltage = 5000,
+            .min_multi = MACHINE_MULTIPLIER_FIXED,
+            .max_multi = MACHINE_MULTIPLIER_FIXED
+        },
+        .bus_flags = MACHINE_PS2_PCI,
+        .flags = MACHINE_IDE_DUAL | MACHINE_VIDEO,
+        .ram = {
+            .min = 8192,
+            .max = 139264,
+            .step = 2048
+        },
+        .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = &gd5434_onboard_pci_device,
+        .vid_device = NULL
+    },
 
     /* OPTi 596/597 */
     /* This uses an AMI KBC firmware in PS/2 mode (it sends command A5 with the
        PS/2 "Load Security" meaning), most likely MegaKey as it sends command AF
        (Set Extended Controller RAM) just like the later Intel AMI BIOS'es. */
-    { "[OPTi 597] AMI Excalibur VLB",                  "excalibur",        MACHINE_TYPE_SOCKET4,    MACHINE_CHIPSET_OPTI_547_597,        machine_at_excalibur_init,        0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET4,                   CPU_BLOCK_NONE, 60000000, 60000000, 5000, 5000, MACHINE_MULTIPLIER_FIXED, MACHINE_PS2_VLB, MACHINE_IDE, 2048, 65536, 2048, 127, NULL, NULL },
+    {
+        .name = "[OPTi 597] AMI Excalibur VLB",
+        .internal_name = "excalibur",
+        .type = MACHINE_TYPE_SOCKET4,
+        .chipset = MACHINE_CHIPSET_OPTI_547_597,
+        .init = machine_at_excalibur_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET4,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 60000000,
+            .max_bus = 60000000,
+            .min_voltage = 5000,
+            .max_voltage = 5000,
+            .min_multi = MACHINE_MULTIPLIER_FIXED,
+            .max_multi = MACHINE_MULTIPLIER_FIXED
+        },
+        .bus_flags = MACHINE_PS2_VLB,
+        .flags = MACHINE_IDE,
+        .ram = {
+            .min = 2048,
+            .max = 65536,
+            .step = 2048
+        },
+        .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
 
     /* OPTi 596/597/822 */
     /* This has AMIKey 'F' KBC firmware. */
-    { "[OPTi 597] Supermicro P5VL-PCI",                "p5vl",             MACHINE_TYPE_SOCKET4,    MACHINE_CHIPSET_OPTI_547_597,        machine_at_p5vl_init,             0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET4,                   CPU_BLOCK_NONE, 60000000, 66666667, 5000, 5000, MACHINE_MULTIPLIER_FIXED, MACHINE_PCIV, MACHINE_FLAGS_NONE, 8192, 131072, 8192, 127, NULL, NULL },
+    {
+        .name = "[OPTi 597] Supermicro P5VL-PCI",
+        .internal_name = "p5vl",
+        .type = MACHINE_TYPE_SOCKET4,
+        .chipset = MACHINE_CHIPSET_OPTI_547_597,
+        .init = machine_at_p5vl_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET4,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 60000000,
+            .max_bus = 66666667,
+            .min_voltage = 5000,
+            .max_voltage = 5000,
+            .min_multi = MACHINE_MULTIPLIER_FIXED,
+            .max_multi = MACHINE_MULTIPLIER_FIXED
+        },
+        .bus_flags = MACHINE_PCIV,
+        .flags = MACHINE_FLAGS_NONE,
+        .ram = {
+            .min = 8192,
+            .max = 131072,
+            .step = 8192
+        },
+        .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
 
     /* SiS 50x */
     /* This has some form of AMI MegaKey as it uses keyboard controller command 0xCC. */
-    { "[SiS 501] AMI Excalibur PCI-II Pentium ISA",    "excaliburpci2",    MACHINE_TYPE_SOCKET4,    MACHINE_CHIPSET_SIS_501,             machine_at_excaliburpci2_init,    0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET4,                   CPU_BLOCK_NONE, 60000000, 66666667, 5000, 5000, MACHINE_MULTIPLIER_FIXED, MACHINE_PS2_PCI, MACHINE_IDE_DUAL, 8192, 131072, 8192, 127, NULL, NULL },
+    {
+        .name = "[SiS 501] AMI Excalibur PCI-II Pentium ISA",
+        .internal_name = "excaliburpci2",
+        .type = MACHINE_TYPE_SOCKET4,
+        .chipset = MACHINE_CHIPSET_SIS_501,
+        .init = machine_at_excaliburpci2_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET4,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 60000000,
+            .max_bus = 66666667,
+            .min_voltage = 5000,
+            .max_voltage = 5000,
+            .min_multi = MACHINE_MULTIPLIER_FIXED,
+            .max_multi = MACHINE_MULTIPLIER_FIXED
+        },
+        .bus_flags = MACHINE_PS2_PCI,
+        .flags = MACHINE_IDE_DUAL,
+        .ram = {
+            .min = 8192,
+            .max = 131072,
+            .step = 8192
+        },
+        .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* This has an AMIKey-2, which is an updated version of type 'H'. */
-    { "[SiS 501] ASUS PCI/I-P5SP4",                    "p5sp4",            MACHINE_TYPE_SOCKET4,    MACHINE_CHIPSET_SIS_501,             machine_at_p5sp4_init,            0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET4,                   CPU_BLOCK_NONE, 60000000, 66666667, 5000, 5000, MACHINE_MULTIPLIER_FIXED, MACHINE_PS2_PCI, MACHINE_IDE_DUAL, 8192, 131072, 8192, 127, NULL, NULL },
+    {
+        .name = "[SiS 501] ASUS PCI/I-P5SP4",
+        .internal_name = "p5sp4",
+        .type = MACHINE_TYPE_SOCKET4,
+        .chipset = MACHINE_CHIPSET_SIS_501,
+        .init = machine_at_p5sp4_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET4,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 60000000,
+            .max_bus = 66666667,
+            .min_voltage = 5000,
+            .max_voltage = 5000,
+            .min_multi = MACHINE_MULTIPLIER_FIXED,
+            .max_multi = MACHINE_MULTIPLIER_FIXED
+        },
+        .bus_flags = MACHINE_PS2_PCI,
+        .flags = MACHINE_IDE_DUAL,
+        .ram = {
+            .min = 8192,
+            .max = 131072,
+            .step = 8192
+        },
+        .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
 
     /* Socket 5 machines */
     /* 430NX */
     /* This has the Phoenix MultiKey KBC firmware. */
-    { "[i430NX] Intel Premiere/PCI II",                "plato",            MACHINE_TYPE_SOCKET5,    MACHINE_CHIPSET_INTEL_430NX,         machine_at_plato_init,            0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET5_7,                 CPU_BLOCK_NONE, 50000000, 66666667, 3520, 3520, 1.5, 1.5, MACHINE_PS2_PCI, MACHINE_IDE_DUAL, 2048, 131072, 2048, 127, NULL, NULL },
+    {
+        .name = "[i430NX] Intel Premiere/PCI II",
+        .internal_name = "plato",
+        .type = MACHINE_TYPE_SOCKET5,
+        .chipset = MACHINE_CHIPSET_INTEL_430NX,
+        .init = machine_at_plato_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET5_7,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 50000000,
+            .max_bus = 66666667,
+            .min_voltage = 3520,
+            .max_voltage = 3520,
+            .min_multi = 1.5,
+            .max_multi = 1.5
+        },
+        .bus_flags = MACHINE_PS2_PCI,
+        .flags = MACHINE_IDE_DUAL,
+        .ram = {
+            .min = 2048,
+            .max = 131072,
+            .step = 2048
+        },
+        .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* This has the Phoenix MultiKey KBC firmware.
        This is basically an Intel Premiere/PCI II with a fancier POST screen. */
-    { "[i430NX] AMBRA DP90 PCI",                       "ambradp90",        MACHINE_TYPE_SOCKET5,    MACHINE_CHIPSET_INTEL_430NX,         machine_at_ambradp90_init,        0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET5_7,                 CPU_BLOCK_NONE, 50000000, 66666667, 3380, 3520, 1.5, 1.5, MACHINE_PS2_PCI, MACHINE_IDE_DUAL, 2048, 131072, 2048, 127, NULL, NULL },
+    {
+        .name = "[i430NX] AMBRA DP90 PCI",
+        .internal_name = "ambradp90",
+        .type = MACHINE_TYPE_SOCKET5,
+        .chipset = MACHINE_CHIPSET_INTEL_430NX,
+        .init = machine_at_ambradp90_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET5_7,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 50000000,
+            .max_bus = 66666667,
+            .min_voltage = 3380,
+            .max_voltage = 3520,
+            .min_multi = 1.5,
+            .max_multi = 1.5
+        },
+        .bus_flags = MACHINE_PS2_PCI,
+        .flags = MACHINE_IDE_DUAL,
+        .ram = {
+            .min = 2048,
+            .max = 131072,
+            .step = 2048
+        },
+        .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* Has AMI MegaKey KBC firmware. */
-    { "[i430NX] Gigabyte GA-586IP",                    "430nx",            MACHINE_TYPE_SOCKET5,    MACHINE_CHIPSET_INTEL_430NX,         machine_at_430nx_init,            0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET5_7,                 CPU_BLOCK_NONE, 60000000, 66666667, 3520, 3520, 1.5, 1.5, MACHINE_PS2_PCI, MACHINE_IDE_DUAL, 2048, 131072, 2048, 127, NULL, NULL },
+    {
+        .name = "[i430NX] Gigabyte GA-586IP",
+        .internal_name = "430nx",
+        .type = MACHINE_TYPE_SOCKET5,
+        .chipset = MACHINE_CHIPSET_INTEL_430NX,
+        .init = machine_at_430nx_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET5_7,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 60000000,
+            .max_bus = 66666667,
+            .min_voltage = 3520,
+            .max_voltage = 3520,
+            .min_multi = 1.5,
+            .max_multi = 1.5
+        },
+        .bus_flags = MACHINE_PS2_PCI,
+        .flags = MACHINE_IDE_DUAL,
+        .ram = {
+            .min = 2048,
+            .max = 131072,
+            .step = 2048
+        },
+        .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
 
     /* 430FX */
     /* Uses an ACER/NEC 90M002A (UPD82C42C, 8042 clone) with unknown firmware (V5.0). */
-    { "[i430FX] Acer V30",                             "acerv30",          MACHINE_TYPE_SOCKET5,    MACHINE_CHIPSET_INTEL_430FX,         machine_at_acerv30_init,          0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET5_7,                 CPU_BLOCK_NONE, 50000000, 66666667, 3380, 3520, 1.5, 2.0, MACHINE_PS2_PCI, MACHINE_IDE_DUAL, 8192, 131072, 8192, 127, NULL, NULL },
+    {
+        .name = "[i430FX] Acer V30",
+        .internal_name = "acerv30",
+        .type = MACHINE_TYPE_SOCKET5,
+        .chipset = MACHINE_CHIPSET_INTEL_430FX,
+        .init = machine_at_acerv30_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET5_7,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 50000000,
+            .max_bus = 66666667,
+            .min_voltage = 3380,
+            .max_voltage = 3520,
+            .min_multi = 1.5,
+            .max_multi = 2.0
+        },
+        .bus_flags = MACHINE_PS2_PCI,
+        .flags = MACHINE_IDE_DUAL,
+        .ram = {
+            .min = 8192,
+            .max = 131072,
+            .step = 8192
+        },
+        .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* Has AMIKey F KBC firmware. */
-    { "[i430FX] AMI Apollo",                           "apollo",           MACHINE_TYPE_SOCKET5,    MACHINE_CHIPSET_INTEL_430FX,         machine_at_apollo_init,           0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET5_7,                 CPU_BLOCK_NONE, 50000000, 66666667, 3380, 3520, 1.5, 2.0, MACHINE_PS2_PCI, MACHINE_IDE_DUAL, 8192, 131072, 8192, 127, NULL, NULL },
+    {
+        .name = "[i430FX] AMI Apollo",
+        .internal_name = "apollo",
+        .type = MACHINE_TYPE_SOCKET5,
+        .chipset = MACHINE_CHIPSET_INTEL_430FX,
+        .init = machine_at_apollo_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET5_7,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 50000000,
+            .max_bus = 66666667,
+            .min_voltage = 3380,
+            .max_voltage = 3520,
+            .min_multi = 1.5,
+            .max_multi = 2.0
+        },
+        .bus_flags = MACHINE_PS2_PCI,
+        .flags = MACHINE_IDE_DUAL,
+        .ram = {
+            .min = 8192,
+            .max = 131072,
+            .step = 8192
+        },
+        .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* Has AMIKey H KBC firmware. */
-    { "[i430FX] DataExpert EXP8551",                   "exp8551",          MACHINE_TYPE_SOCKET5,    MACHINE_CHIPSET_INTEL_430FX,         machine_at_exp8551_init,          0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET5_7,                 CPU_BLOCK_NONE, 50000000, 66666667, 3380, 3520, 1.5, 3.0, MACHINE_PS2_PCI, MACHINE_IDE_DUAL | MACHINE_GAMEPORT, 8192, 131072, 8192, 127, NULL, NULL },
+    {
+        .name = "[i430FX] DataExpert EXP8551",
+        .internal_name = "exp8551",
+        .type = MACHINE_TYPE_SOCKET5,
+        .chipset = MACHINE_CHIPSET_INTEL_430FX,
+        .init = machine_at_exp8551_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET5_7,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 50000000,
+            .max_bus = 66666667,
+            .min_voltage = 3380,
+            .max_voltage = 3520,
+            .min_multi = 1.5,
+            .max_multi = 3.0
+        },
+        .bus_flags = MACHINE_PS2_PCI,
+        .flags = MACHINE_IDE_DUAL | MACHINE_GAMEPORT,
+        .ram = {
+            .min = 8192,
+            .max = 131072,
+            .step = 8192
+        },
+        .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* According to tests from real hardware: This has AMI MegaKey KBC firmware on the
        PC87306 Super I/O chip, command 0xA1 returns '5'.
        Command 0xA0 copyright string: (C)1994 AMI . */
-    { "[i430FX] Intel Advanced/ZP",                    "zappa",            MACHINE_TYPE_SOCKET5,    MACHINE_CHIPSET_INTEL_430FX,         machine_at_zappa_init,            0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET5_7,                 CPU_BLOCK_NONE, 50000000, 66666667, 3380, 3520, 1.5, 2.0, MACHINE_PS2_PCI, MACHINE_IDE_DUAL, 8192, 131072, 8192, 127, NULL, NULL },
+    {
+        .name = "[i430FX] Intel Advanced/ZP",
+        .internal_name = "zappa",
+        .type = MACHINE_TYPE_SOCKET5,
+        .chipset = MACHINE_CHIPSET_INTEL_430FX,
+        .init = machine_at_zappa_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET5_7,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 50000000,
+            .max_bus = 66666667,
+            .min_voltage = 3380,
+            .max_voltage = 3520,
+            .min_multi = 1.5,
+            .max_multi = 2.0
+        },
+        .bus_flags = MACHINE_PS2_PCI,
+        .flags = MACHINE_IDE_DUAL,
+        .ram = {
+            .min = 8192,
+            .max = 131072,
+            .step = 8192
+        },
+        .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* The BIOS sends KBC command B3 which indicates an AMI (or VIA VT82C42N) KBC. */
-    { "[i430FX] NEC PowerMate V",                      "powermatev",       MACHINE_TYPE_SOCKET5,    MACHINE_CHIPSET_INTEL_430FX,         machine_at_powermatev_init,       0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET5_7,                 CPU_BLOCK_NONE, 50000000, 66666667, 3380, 3520, 1.5, 2.0, MACHINE_PS2_PCI, MACHINE_IDE_DUAL, 8192, 131072, 8192, 127, NULL, NULL },
+    {
+        .name = "[i430FX] NEC PowerMate V",
+        .internal_name = "powermatev",
+        .type = MACHINE_TYPE_SOCKET5,
+        .chipset = MACHINE_CHIPSET_INTEL_430FX,
+        .init = machine_at_powermatev_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET5_7,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 50000000,
+            .max_bus = 66666667,
+            .min_voltage = 3380,
+            .max_voltage = 3520,
+            .min_multi = 1.5,
+            .max_multi = 2.0
+        },
+        .bus_flags = MACHINE_PS2_PCI,
+        .flags = MACHINE_IDE_DUAL,
+        .ram = {
+            .min = 8192,
+            .max = 131072,
+            .step = 8192
+        },
+        .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* Has a VIA VT82C42N KBC. */
-    { "[i430FX] PC Partner MB500N",                    "mb500n",           MACHINE_TYPE_SOCKET5,    MACHINE_CHIPSET_INTEL_430FX,         machine_at_mb500n_init,           0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET5_7,                 CPU_BLOCK_NONE, 50000000, 66666667, 3380, 3520, 1.5, 3.0, MACHINE_PCI, MACHINE_IDE_DUAL, 8192, 131072, 8192, 127, NULL, NULL },
+    {
+        .name = "[i430FX] PC Partner MB500N",
+        .internal_name = "mb500n",
+        .type = MACHINE_TYPE_SOCKET5,
+        .chipset = MACHINE_CHIPSET_INTEL_430FX,
+        .init = machine_at_mb500n_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET5_7,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 50000000,
+            .max_bus = 66666667,
+            .min_voltage = 3380,
+            .max_voltage = 3520,
+            .min_multi = 1.5,
+            .max_multi = 3.0
+        },
+        .bus_flags = MACHINE_PCI,
+        .flags = MACHINE_IDE_DUAL,
+        .ram = {
+            .min = 8192,
+            .max = 131072,
+            .step = 8192
+        },
+        .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* Has AMIKey Z(!) KBC firmware. */
-    { "[i430FX] TriGem Hawk",                          "hawk",             MACHINE_TYPE_SOCKET5,    MACHINE_CHIPSET_INTEL_430FX,         machine_at_hawk_init,             0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET5_7,                 CPU_BLOCK_NONE, 50000000, 66666667, 3380, 3520, 1.5, 2.0, MACHINE_PS2_PCI, MACHINE_IDE_DUAL, 8192, 131072, 8192, 127, NULL, NULL },
+    {
+        .name = "[i430FX] TriGem Hawk",
+        .internal_name = "hawk",
+        .type = MACHINE_TYPE_SOCKET5,
+        .chipset = MACHINE_CHIPSET_INTEL_430FX,
+        .init = machine_at_hawk_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET5_7,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 50000000,
+            .max_bus = 66666667,
+            .min_voltage = 3380,
+            .max_voltage = 3520,
+            .min_multi = 1.5,
+            .max_multi = 2.0
+        },
+        .bus_flags = MACHINE_PS2_PCI,
+        .flags = MACHINE_IDE_DUAL,
+        .ram = {
+            .min = 8192,
+            .max = 131072,
+            .step = 8192
+        },
+        .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
 
     /* OPTi 596/597 */
     /* This uses an AMI KBC firmware in PS/2 mode (it sends command A5 with the
        PS/2 "Load Security" meaning), most likely MegaKey as it sends command AF
        (Set Extended Controller RAM) just like the later Intel AMI BIOS'es. */
-    { "[OPTi 597] TMC PAT54PV",                        "pat54pv",          MACHINE_TYPE_SOCKET5,    MACHINE_CHIPSET_OPTI_547_597,        machine_at_pat54pv_init,          0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET5_7,                 CPU_BLOCK(CPU_K5, CPU_5K86), 50000000, 66666667, 3520, 3520, 1.5, 1.5, MACHINE_VLB, MACHINE_FLAGS_NONE, 2048, 65536, 2048, 127, NULL, NULL },
+    {
+        .name = "[OPTi 597] TMC PAT54PV",
+        .internal_name = "pat54pv",
+        .type = MACHINE_TYPE_SOCKET5,
+        .chipset = MACHINE_CHIPSET_OPTI_547_597,
+        .init = machine_at_pat54pv_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET5_7,
+            .block = CPU_BLOCK(CPU_K5, CPU_5K86),
+            .min_bus = 50000000,
+            .max_bus = 66666667,
+            .min_voltage = 3520,
+            .max_voltage = 3520,
+            .min_multi = 1.5,
+            .max_multi = 1.5
+        },
+        .bus_flags = MACHINE_VLB,
+        .flags = MACHINE_FLAGS_NONE,
+        .ram = {
+            .min = 2048,
+            .max = 65536,
+            .step = 2048
+        },
+        .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
 
     /* OPTi 596/597/822 */
-    { "[OPTi 597] Shuttle HOT-543",                    "hot543",           MACHINE_TYPE_SOCKET5,    MACHINE_CHIPSET_OPTI_547_597,        machine_at_hot543_init,           0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET5_7,                 CPU_BLOCK_NONE,              50000000, 66666667, 3520, 3520, 1.5, 2.0, MACHINE_PCIV, MACHINE_FLAGS_NONE, 8192, 131072, 8192, 127, NULL, NULL },
+    {
+        .name = "[OPTi 597] Shuttle HOT-543",
+        .internal_name = "hot543",
+        .type = MACHINE_TYPE_SOCKET5,
+        .chipset = MACHINE_CHIPSET_OPTI_547_597,
+        .init = machine_at_hot543_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET5_7,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 50000000,
+            .max_bus = 66666667,
+            .min_voltage = 3520,
+            .max_voltage = 3520,
+            .min_multi = 1.5,
+            .max_multi = 2.0
+        },
+        .bus_flags = MACHINE_PCIV,
+        .flags = MACHINE_FLAGS_NONE,
+        .ram = {
+            .min = 8192,
+            .max = 131072,
+            .step = 8192
+        },
+        .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
 
     /* SiS 85C50x */
     /* This has an AMIKey-2, which is an updated version of type 'H'. */
-    { "[SiS 501] ASUS PCI/I-P54SP4",                   "p54sp4",           MACHINE_TYPE_SOCKET5,    MACHINE_CHIPSET_SIS_501,             machine_at_p54sp4_init,           0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET5_7,                 CPU_BLOCK(CPU_K5, CPU_5K86), 40000000, 66666667, 3380, 3520, 1.5, 1.5, MACHINE_PS2_PCI, MACHINE_IDE_DUAL, 8192, 131072, 8192, 127, NULL, NULL },
+    {
+        .name = "[SiS 501] ASUS PCI/I-P54SP4",
+        .internal_name = "p54sp4",
+        .type = MACHINE_TYPE_SOCKET5,
+        .chipset = MACHINE_CHIPSET_SIS_501,
+        .init = machine_at_p54sp4_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET5_7,
+            .block = CPU_BLOCK(CPU_K5, CPU_5K86),
+            .min_bus = 40000000,
+            .max_bus = 66666667,
+            .min_voltage = 3380,
+            .max_voltage = 3520,
+            .min_multi = 1.5,
+            .max_multi = 1.5
+        },
+        .bus_flags = MACHINE_PS2_PCI,
+        .flags = MACHINE_IDE_DUAL,
+        .ram = {
+            .min = 8192,
+            .max = 131072,
+            .step = 8192
+        },
+        .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* This has an AMIKey-2, which is an updated version of type 'H'. */
-    { "[SiS 501] BCM SQ-588",                          "sq588",            MACHINE_TYPE_SOCKET5,    MACHINE_CHIPSET_SIS_501,             machine_at_sq588_init,            0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET5_7,                 CPU_BLOCK(CPU_PENTIUMMMX),   50000000, 66666667, 3520, 3520, 1.5, 1.5, MACHINE_PS2_PCI, MACHINE_IDE_DUAL, 8192, 131072, 8192, 127, NULL, NULL },
+    {
+        .name = "[SiS 501] BCM SQ-588",
+        .internal_name = "sq588",
+        .type = MACHINE_TYPE_SOCKET5,
+        .chipset = MACHINE_CHIPSET_SIS_501,
+        .init = machine_at_sq588_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET5_7,
+        CPU_BLOCK(CPU_PENTIUMMMX),
+            .min_bus = 50000000,
+            .max_bus = 66666667,
+            .min_voltage = 3520,
+            .max_voltage = 3520,
+            .min_multi = 1.5,
+            .max_multi = 1.5
+        },
+        .bus_flags = MACHINE_PS2_PCI,
+        .flags = MACHINE_IDE_DUAL,
+        .ram = {
+            .min = 8192,
+            .max = 131072,
+            .step = 8192
+        },
+        .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
 
     /* Socket 7 (Single Voltage) machines */
     /* 430FX */
     /* This has an AMIKey-2, which is an updated version of type 'H'. */
-    { "[i430FX] ASUS P/I-P54TP4XE",                    "p54tp4xe",         MACHINE_TYPE_SOCKET7_3V, MACHINE_CHIPSET_INTEL_430FX,         machine_at_p54tp4xe_init,         0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET5_7,                 CPU_BLOCK_NONE,              50000000, 66666667, 3380, 3600, 1.5, 3.0, MACHINE_PS2_PCI, MACHINE_IDE_DUAL, 8192, 131072, 8192, 127, NULL, NULL },
+    {
+        .name = "[i430FX] ASUS P/I-P54TP4XE",
+        .internal_name = "p54tp4xe",
+        .type = MACHINE_TYPE_SOCKET7_3V,
+        .chipset = MACHINE_CHIPSET_INTEL_430FX,
+        .init = machine_at_p54tp4xe_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET5_7,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 50000000,
+            .max_bus = 66666667,
+            .min_voltage = 3380,
+            .max_voltage = 3600,
+            .min_multi = 1.5,
+            .max_multi = 3.0
+        },
+        .bus_flags = MACHINE_PS2_PCI,
+        .flags = MACHINE_IDE_DUAL,
+        .ram = {
+            .min = 8192,
+            .max = 131072,
+            .step = 8192
+        },
+        .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* This has an AMIKey-2, which is an updated version of type 'H'. */
-    { "[i430FX] ASUS P/I-P54TP4XE (MR BIOS)",          "p54tp4xe_mr",      MACHINE_TYPE_SOCKET7_3V, MACHINE_CHIPSET_INTEL_430FX,         machine_at_p54tp4xe_mr_init,      0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET5_7,                 CPU_BLOCK_NONE, 50000000, 66666667, 3380, 3600, 1.5, 3.0, MACHINE_PS2_PCI, MACHINE_IDE_DUAL, 8192, 131072, 8192, 127, NULL, NULL },
+    {
+        .name = "[i430FX] ASUS P/I-P54TP4XE (MR BIOS)",
+        .internal_name = "p54tp4xe_mr",
+        .type = MACHINE_TYPE_SOCKET7_3V,
+        .chipset = MACHINE_CHIPSET_INTEL_430FX,
+        .init = machine_at_p54tp4xe_mr_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET5_7,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 50000000,
+            .max_bus = 66666667,
+            .min_voltage = 3380,
+            .max_voltage = 3600,
+            .min_multi = 1.5,
+            .max_multi = 3.0
+        },
+        .bus_flags = MACHINE_PS2_PCI,
+        .flags = MACHINE_IDE_DUAL,
+        .ram = {
+            .min = 8192,
+            .max = 131072,
+            .step = 8192
+        },
+        .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* According to tests from real hardware: This has AMI MegaKey KBC firmware on the
        PC87306 Super I/O chip, command 0xA1 returns '5'.
        Command 0xA0 copyright string: (C)1994 AMI . */
-    { "[i430FX] Gateway 2000 Thor",                    "gw2katx",          MACHINE_TYPE_SOCKET7_3V, MACHINE_CHIPSET_INTEL_430FX,         machine_at_gw2katx_init,          0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET5_7,                 CPU_BLOCK_NONE, 50000000, 66666667, 3380, 3520, 1.5, 3.0, MACHINE_PS2_PCI, MACHINE_IDE_DUAL, 8192, 131072, 8192, 127, NULL, NULL },
+    {
+        .name = "[i430FX] Gateway 2000 Thor",
+        .internal_name = "gw2katx",
+        .type = MACHINE_TYPE_SOCKET7_3V,
+        .chipset = MACHINE_CHIPSET_INTEL_430FX,
+        .init = machine_at_gw2katx_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET5_7,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 50000000,
+            .max_bus = 66666667,
+            .min_voltage = 3380,
+            .max_voltage = 3520,
+            .min_multi = 1.5,
+            .max_multi = 3.0
+        },
+        .bus_flags = MACHINE_PS2_PCI,
+        .flags = MACHINE_IDE_DUAL,
+        .ram = {
+            .min = 8192,
+            .max = 131072,
+            .step = 8192
+        },
+        .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* The BIOS does not send a single non-standard KBC command, but the board has a SMC Super I/O
        chip with on-chip KBC and AMI MegaKey KBC firmware. */
-    { "[i430FX] HP Vectra VL 5 Series 4",              "vectra54",         MACHINE_TYPE_SOCKET7_3V, MACHINE_CHIPSET_INTEL_430FX,         machine_at_vectra54_init,         0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET5_7,                 CPU_BLOCK_NONE, 50000000, 66666667, 3380, 3520, 1.5, 2.0, MACHINE_PS2_PCI, MACHINE_IDE_DUAL | MACHINE_VIDEO, 8192, 131072, 8192, 511, at_vectra54_get_device, NULL },
+    {
+        .name = "[i430FX] HP Vectra VL 5 Series 4",
+        .internal_name = "vectra54",
+        .type = MACHINE_TYPE_SOCKET7_3V,
+        .chipset = MACHINE_CHIPSET_INTEL_430FX,
+        .init = machine_at_vectra54_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET5_7,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 50000000,
+            .max_bus = 66666667,
+            .min_voltage = 3380,
+            .max_voltage = 3520,
+            .min_multi = 1.5,
+            .max_multi = 2.0
+        },
+        .bus_flags = MACHINE_PS2_PCI,
+        .flags = MACHINE_IDE_DUAL | MACHINE_VIDEO,
+        .ram = {
+            .min = 8192,
+            .max = 131072,
+            .step = 8192
+        },
+        .nvrmask = 511,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = &s3_phoenix_trio64_onboard_pci_device,
+        .vid_device = NULL
+    },
     /* According to tests from real hardware: This has AMI MegaKey KBC firmware on the
        PC87306 Super I/O chip, command 0xA1 returns '5'.
        Command 0xA0 copyright string: (C)1994 AMI . */
-    { "[i430FX] Intel Advanced/ATX",                   "thor",             MACHINE_TYPE_SOCKET7_3V, MACHINE_CHIPSET_INTEL_430FX,         machine_at_thor_init,             0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET5_7,                 CPU_BLOCK_NONE, 50000000, 66666667, 3380, 3520, 1.5, 3.0, MACHINE_PS2_PCI, MACHINE_IDE_DUAL | MACHINE_VIDEO, 8192, 131072, 8192, 127, at_thor_get_device, NULL },
+    {
+        .name = "[i430FX] Intel Advanced/ATX",
+        .internal_name = "thor",
+        .type = MACHINE_TYPE_SOCKET7_3V,
+        .chipset = MACHINE_CHIPSET_INTEL_430FX,
+        .init = machine_at_thor_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET5_7,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 50000000,
+            .max_bus = 66666667,
+            .min_voltage = 3380,
+            .max_voltage = 3520,
+            .min_multi = 1.5,
+            .max_multi = 3.0
+        },
+        .bus_flags = MACHINE_PS2_PCI,
+        .flags = MACHINE_IDE_DUAL | MACHINE_VIDEO,
+        .ram = {
+            .min = 8192,
+            .max = 131072,
+            .step = 8192
+        },
+        .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = &s3_phoenix_trio64vplus_onboard_pci_device,
+        .vid_device = NULL
+    },
     /* According to tests from real hardware: This has AMI MegaKey KBC firmware on the
        PC87306 Super I/O chip, command 0xA1 returns '5'.
        Command 0xA0 copyright string: (C)1994 AMI . */
-    { "[i430FX] Intel Advanced/ATX (MR BIOS)",         "mrthor",           MACHINE_TYPE_SOCKET7_3V, MACHINE_CHIPSET_INTEL_430FX,         machine_at_mrthor_init,           0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET5_7,                 CPU_BLOCK_NONE, 50000000, 66666667, 3380, 3520, 1.5, 3.0, MACHINE_PS2_PCI, MACHINE_IDE_DUAL, 8192, 131072, 8192, 127, at_mrthor_get_device, NULL },
+    {
+        .name = "[i430FX] Intel Advanced/ATX (MR BIOS)",
+        .internal_name = "mrthor",
+        .type = MACHINE_TYPE_SOCKET7_3V,
+        .chipset = MACHINE_CHIPSET_INTEL_430FX,
+        .init = machine_at_mrthor_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET5_7,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 50000000,
+            .max_bus = 66666667,
+            .min_voltage = 3380,
+            .max_voltage = 3520,
+            .min_multi = 1.5,
+            .max_multi = 3.0
+        },
+        .bus_flags = MACHINE_PS2_PCI,
+        .flags = MACHINE_IDE_DUAL,
+        .ram = {
+            .min = 8192,
+            .max = 131072,
+            .step = 8192
+        },
+        .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = &s3_phoenix_trio64vplus_onboard_pci_device,
+        .vid_device = NULL
+    },
     /* According to tests from real hardware: This has AMI MegaKey KBC firmware on the
        PC87306 Super I/O chip, command 0xA1 returns '5'.
        Command 0xA0 copyright string: (C)1994 AMI . */
-    { "[i430FX] Intel Advanced/EV",                    "endeavor",         MACHINE_TYPE_SOCKET7_3V, MACHINE_CHIPSET_INTEL_430FX,         machine_at_endeavor_init,         0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET5_7,                 CPU_BLOCK_NONE, 50000000, 66666667, 3380, 3520, 1.5, 3.0, MACHINE_PS2_PCI, MACHINE_IDE_DUAL | MACHINE_VIDEO, 8192, 131072, 8192, 127, at_endeavor_get_device, NULL },
+    {
+        .name = "[i430FX] Intel Advanced/EV",
+        .internal_name = "endeavor",
+        .type = MACHINE_TYPE_SOCKET7_3V,
+        .chipset = MACHINE_CHIPSET_INTEL_430FX,
+        .init = machine_at_endeavor_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET5_7,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 50000000,
+            .max_bus = 66666667,
+            .min_voltage = 3380,
+            .max_voltage = 3520,
+            .min_multi = 1.5,
+            .max_multi = 3.0
+        },
+        .bus_flags = MACHINE_PS2_PCI,
+        .flags = MACHINE_IDE_DUAL | MACHINE_VIDEO,
+        .ram = {
+            .min = 8192,
+            .max = 131072,
+            .step = 8192
+        },
+        .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = &s3_phoenix_trio64_onboard_pci_device,
+        .vid_device = NULL
+    },
     /* This has an AMIKey-2, which is an updated version of type 'H'. */
-    { "[i430FX] MSI MS-5119",                          "ms5119",           MACHINE_TYPE_SOCKET7_3V, MACHINE_CHIPSET_INTEL_430FX,         machine_at_ms5119_init,           0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET5_7,                 CPU_BLOCK_NONE, 50000000, 66666667, 2500, 3520, 1.5, 3.0, MACHINE_PS2_PCI, MACHINE_IDE_DUAL, 8192, 131072, 8192, 127, NULL, NULL },
+    {
+        .name = "[i430FX] MSI MS-5119",
+        .internal_name = "ms5119",
+        .type = MACHINE_TYPE_SOCKET7_3V,
+        .chipset = MACHINE_CHIPSET_INTEL_430FX,
+        .init = machine_at_ms5119_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET5_7,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 50000000,
+            .max_bus = 66666667,
+            .min_voltage = 2500,
+            .max_voltage = 3520,
+            .min_multi = 1.5,
+            .max_multi = 3.0
+        },
+        .bus_flags = MACHINE_PS2_PCI,
+        .flags = MACHINE_IDE_DUAL,
+        .ram = {
+            .min = 8192,
+            .max = 131072,
+            .step = 8192
+        },
+        .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* This most likely uses AMI MegaKey KBC firmware as well due to having the same
        Super I/O chip (that has the KBC firmware on it) as eg. the Advanced/EV. */
-    { "[i430FX] Packard Bell PB640",                   "pb640",            MACHINE_TYPE_SOCKET7_3V, MACHINE_CHIPSET_INTEL_430FX,         machine_at_pb640_init,            0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET5_7,                 CPU_BLOCK_NONE,    50000000, 66666667, 3380, 3520, 1.5, 3.0, MACHINE_PS2_PCI, MACHINE_IDE_DUAL | MACHINE_VIDEO, 8192, 131072, 8192, 127, at_pb640_get_device, NULL },
+    {
+        .name = "[i430FX] Packard Bell PB640",
+        .internal_name = "pb640",
+        .type = MACHINE_TYPE_SOCKET7_3V,
+        .chipset = MACHINE_CHIPSET_INTEL_430FX,
+        .init = machine_at_pb640_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET5_7,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 50000000,
+            .max_bus = 66666667,
+            .min_voltage = 3380,
+            .max_voltage = 3520,
+            .min_multi = 1.5,
+            .max_multi = 3.0
+        },
+        .bus_flags = MACHINE_PS2_PCI,
+        .flags = MACHINE_IDE_DUAL | MACHINE_VIDEO,
+        .ram = {
+            .min = 8192,
+            .max = 131072,
+            .step = 8192
+        },
+        .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = &gd5440_onboard_pci_device,
+        .vid_device = NULL
+    },
     /* Has an AMI 'H' KBC firmware (1992). */
-    { "[i430FX] QDI FMB",                              "fmb",              MACHINE_TYPE_SOCKET7_3V, MACHINE_CHIPSET_INTEL_430FX,         machine_at_fmb_init,              0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET5_7,                 CPU_BLOCK_QDI_FMB, 50000000, 66666667, 3380, 3520, 1.5, 3.0, MACHINE_PS2_PCI, MACHINE_IDE_DUAL, 8192, 131072, 8192, 127, NULL, NULL },
+    {
+        .name = "[i430FX] QDI FMB",
+        .internal_name = "fmb",
+        .type = MACHINE_TYPE_SOCKET7_3V,
+        .chipset = MACHINE_CHIPSET_INTEL_430FX,
+        .init = machine_at_fmb_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET5_7,
+            .block = CPU_BLOCK(CPU_WINCHIP, CPU_WINCHIP2, CPU_Cx6x86, CPU_Cx6x86L, CPU_Cx6x86MX),
+            .min_bus = 50000000,
+            .max_bus = 66666667,
+            .min_voltage = 3380,
+            .max_voltage = 3520,
+            .min_multi = 1.5,
+            .max_multi = 3.0
+        },
+        .bus_flags = MACHINE_PS2_PCI,
+        .flags = MACHINE_IDE_DUAL,
+        .ram = {
+            .min = 8192,
+            .max = 131072,
+            .step = 8192
+        },
+        .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
 
     /* 430HX */
     /* I can't determine what KBC firmware this has, but given that the Acer V35N and
        V60 have Phoenix MultiKey KBC firmware on the chip, I'm going to assume so
        does the M3A. */
-    { "[i430HX] Acer M3A",                             "acerm3a",          MACHINE_TYPE_SOCKET7_3V, MACHINE_CHIPSET_INTEL_430HX,         machine_at_acerm3a_init,          0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET5_7,                 CPU_BLOCK_NONE, 50000000, 66666667, 3300, 3520, 1.5, 3.0, MACHINE_PS2_PCI, MACHINE_IDE_DUAL, 8192, 196608, 8192, 127, NULL, NULL },
+    {
+        .name = "[i430HX] Acer M3A",
+        .internal_name = "acerm3a",
+        .type = MACHINE_TYPE_SOCKET7_3V,
+        .chipset = MACHINE_CHIPSET_INTEL_430HX,
+        .init = machine_at_acerm3a_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET5_7,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 50000000,
+            .max_bus = 66666667,
+            .min_voltage = 3300,
+            .max_voltage = 3520,
+            .min_multi = 1.5,
+            .max_multi = 3.0
+        },
+        .bus_flags = MACHINE_PS2_PCI,
+        .flags = MACHINE_IDE_DUAL,
+        .ram = {
+            .min = 8192,
+            .max = 196608,
+            .step = 8192
+        },
+        .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* Has AMIKey F KBC firmware. */
-    { "[i430HX] AOpen AP53",                           "ap53",             MACHINE_TYPE_SOCKET7_3V, MACHINE_CHIPSET_INTEL_430HX,         machine_at_ap53_init,             0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET5_7,                 CPU_BLOCK_NONE, 50000000, 66666667, 3450, 3520, 1.5, 3.0, MACHINE_PS2_PCI, MACHINE_IDE_DUAL, 8192, 524288, 8192, 127, NULL, NULL },
+    {
+        .name = "[i430HX] AOpen AP53",
+        .internal_name = "ap53",
+        .type = MACHINE_TYPE_SOCKET7_3V,
+        .chipset = MACHINE_CHIPSET_INTEL_430HX,
+        .init = machine_at_ap53_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET5_7,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 50000000,
+            .max_bus = 66666667,
+            .min_voltage = 3450,
+            .max_voltage = 3520,
+            .min_multi = 1.5,
+            .max_multi = 3.0
+        },
+        .bus_flags = MACHINE_PS2_PCI,
+        .flags = MACHINE_IDE_DUAL,
+        .ram = {
+            .min = 8192,
+            .max = 524288,
+            .step = 8192
+        },
+        .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* [TEST] Has a VIA 82C42N KBC, with AMIKey F KBC firmware. */
-    { "[i430HX] Biostar MB-8500TUC",                   "8500tuc",          MACHINE_TYPE_SOCKET7_3V, MACHINE_CHIPSET_INTEL_430HX,         machine_at_8500tuc_init,          0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET5_7,                 CPU_BLOCK_NONE, 50000000, 66666667, 3380, 3520, 1.5, 3.0, MACHINE_PS2_PCI, MACHINE_IDE_DUAL, 8192, 524288, 8192, 127, NULL, NULL },
+    {
+        .name = "[i430HX] Biostar MB-8500TUC",
+        .internal_name = "8500tuc",
+        .type = MACHINE_TYPE_SOCKET7_3V,
+        .chipset = MACHINE_CHIPSET_INTEL_430HX,
+        .init = machine_at_8500tuc_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET5_7,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 50000000,
+            .max_bus = 66666667,
+            .min_voltage = 3380,
+            .max_voltage = 3520,
+            .min_multi = 1.5,
+            .max_multi = 3.0
+        },
+        .bus_flags = MACHINE_PS2_PCI,
+        .flags = MACHINE_IDE_DUAL,
+        .ram = {
+            .min = 8192,
+            .max = 524288,
+            .step = 8192
+        },
+        .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* [TEST] Unable to determine what KBC this has. A list on a Danish site shows
        the BIOS as having a -0 string, indicating non-AMI KBC firmware. */
-    { "[i430HX] Supermicro P55T2S",                    "p55t2s",           MACHINE_TYPE_SOCKET7_3V, MACHINE_CHIPSET_INTEL_430HX,         machine_at_p55t2s_init,           0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET5_7,                 CPU_BLOCK_NONE, 50000000, 66666667, 3300, 3520, 1.5, 3.0, MACHINE_PS2_PCI, MACHINE_IDE_DUAL, 8192, 786432, 8192, 127, NULL, NULL },
+    {
+        .name = "[i430HX] Supermicro P55T2S",
+        .internal_name = "p55t2s",
+        .type = MACHINE_TYPE_SOCKET7_3V,
+        .chipset = MACHINE_CHIPSET_INTEL_430HX,
+        .init = machine_at_p55t2s_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET5_7,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 50000000,
+            .max_bus = 66666667,
+            .min_voltage = 3300,
+            .max_voltage = 3520,
+            .min_multi = 1.5,
+            .max_multi = 3.0
+        },
+        .bus_flags = MACHINE_PS2_PCI,
+        .flags = MACHINE_IDE_DUAL,
+        .ram = {
+            .min = 8192,
+            .max = 786432,
+            .step = 8192
+        },
+        .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
 
     /* 430VX */
     /* Has AMIKey H KBC firmware (AMIKey-2). */
-    { "[i430VX] ECS P5VX-B",                           "p5vxb",            MACHINE_TYPE_SOCKET7_3V, MACHINE_CHIPSET_INTEL_430VX,         machine_at_p5vxb_init,            0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET5_7,                 CPU_BLOCK_NONE, 50000000, 66666667, 3380, 3520, 1.5, 3.0, MACHINE_PS2_PCI, MACHINE_IDE_DUAL, 8192, 131072, 8192, 127, NULL, NULL },
+    {
+        .name = "[i430VX] ECS P5VX-B",
+        .internal_name = "p5vxb",
+        .type = MACHINE_TYPE_SOCKET7_3V,
+        .chipset = MACHINE_CHIPSET_INTEL_430VX,
+        .init = machine_at_p5vxb_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET5_7,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 50000000,
+            .max_bus = 66666667,
+            .min_voltage = 3380,
+            .max_voltage = 3520,
+            .min_multi = 1.5,
+            .max_multi = 3.0
+        },
+        .bus_flags = MACHINE_PS2_PCI,
+        .flags = MACHINE_IDE_DUAL,
+        .ram = {
+            .min = 8192,
+            .max = 131072,
+            .step = 8192
+        },
+        .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* According to tests from real hardware: This has AMI MegaKey KBC firmware on the
        PC87306 Super I/O chip, command 0xA1 returns '5'.
        Command 0xA0 copyright string: (C)1994 AMI . */
-    { "[i430VX] Gateway 2000 Tigereye",                "gw2kte",           MACHINE_TYPE_SOCKET7_3V, MACHINE_CHIPSET_INTEL_430VX,         machine_at_gw2kte_init,           0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET5_7,                 CPU_BLOCK_NONE, 50000000, 66666667, 3380, 3520, 1.5, 3.0, MACHINE_PS2_PCI, MACHINE_IDE_DUAL, 8192, 131072, 8192, 127, NULL, NULL },
+    {
+        .name = "[i430VX] Gateway 2000 Tigereye",
+        .internal_name = "gw2kte",
+        .type = MACHINE_TYPE_SOCKET7_3V,
+        .chipset = MACHINE_CHIPSET_INTEL_430VX,
+        .init = machine_at_gw2kte_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET5_7,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 50000000,
+            .max_bus = 66666667,
+            .min_voltage = 3380,
+            .max_voltage = 3520,
+            .min_multi = 1.5,
+            .max_multi = 3.0
+        },
+        .bus_flags = MACHINE_PS2_PCI,
+        .flags = MACHINE_IDE_DUAL,
+        .ram = {
+            .min = 8192,
+            .max = 131072,
+            .step = 8192
+        },
+        .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
 
     /* SiS 5511 */
     /* Has AMIKey H KBC firmware (AMIKey-2). */
-    { "[SiS 5511] AOpen AP5S",                         "ap5s",             MACHINE_TYPE_SOCKET7_3V, MACHINE_CHIPSET_SIS_5511,            machine_at_ap5s_init,             0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET5_7,                 CPU_BLOCK_NONE, 50000000, 66666667, 3380, 3520, 1.5, 3.0, MACHINE_PS2_PCI, MACHINE_IDE_DUAL, 8192, 524288, 8192, 127, NULL, NULL },
+    {
+        .name = "[SiS 5511] AOpen AP5S",
+        .internal_name = "ap5s",
+        .type = MACHINE_TYPE_SOCKET7_3V,
+        .chipset = MACHINE_CHIPSET_SIS_5511,
+        .init = machine_at_ap5s_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET5_7,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 50000000,
+            .max_bus = 66666667,
+            .min_voltage = 3380,
+            .max_voltage = 3520,
+            .min_multi = 1.5,
+            .max_multi = 3.0
+        },
+        .bus_flags = MACHINE_PS2_PCI,
+        .flags = MACHINE_IDE_DUAL,
+        .ram = {
+            .min = 8192,
+            .max = 524288,
+            .step = 8192
+        },
+        .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
 
     /* Socket 7 (Dual Voltage) machines */
     /* 430HX */
     /* Has SST flash and the SMC FDC73C935's on-chip KBC with Phoenix MultiKey firmware. */
-    { "[i430HX] Acer V35N",                            "acerv35n",         MACHINE_TYPE_SOCKET7,    MACHINE_CHIPSET_INTEL_430HX,         machine_at_acerv35n_init,         0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET5_7,                 CPU_BLOCK(CPU_Cx6x86MX), 50000000, 66666667, 2800, 3520, 1.5, 3.0, MACHINE_PS2_PCI, MACHINE_IDE_DUAL, 8192, 196608, 8192, 127, NULL, NULL },
+    {
+        .name = "[i430HX] Acer V35N",
+        .internal_name = "acerv35n",
+        .type = MACHINE_TYPE_SOCKET7,
+        .chipset = MACHINE_CHIPSET_INTEL_430HX,
+        .init = machine_at_acerv35n_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET5_7,
+            .block = CPU_BLOCK(CPU_Cx6x86MX),
+            .min_bus = 50000000,
+            .max_bus = 66666667,
+            .min_voltage = 2800,
+            .max_voltage = 3520,
+            .min_multi = 1.5,
+            .max_multi = 3.0
+        },
+        .bus_flags = MACHINE_PS2_PCI,
+        .flags = MACHINE_IDE_DUAL,
+        .ram = {
+            .min = 8192,
+            .max = 196608,
+            .step = 8192
+        },
+        .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* Has AMIKey H KBC firmware (AMIKey-2). */
-    { "[i430HX] ASUS P/I-P55T2P4",                     "p55t2p4",          MACHINE_TYPE_SOCKET7,    MACHINE_CHIPSET_INTEL_430HX,         machine_at_p55t2p4_init,          0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET5_7,                 CPU_BLOCK_NONE, 50000000, 83333333, 2500, 3520, 1.5, 3.0, MACHINE_PS2_PCI, MACHINE_IDE_DUAL, 8192, 262144, 8192, 127, NULL, NULL },
+    {
+        .name = "[i430HX] ASUS P/I-P55T2P4",
+        .internal_name = "p55t2p4",
+        .type = MACHINE_TYPE_SOCKET7,
+        .chipset = MACHINE_CHIPSET_INTEL_430HX,
+        .init = machine_at_p55t2p4_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET5_7,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 50000000,
+            .max_bus = 83333333,
+            .min_voltage = 2500,
+            .max_voltage = 3520,
+            .min_multi = 1.5,
+            .max_multi = 3.0
+        },
+        .bus_flags = MACHINE_PS2_PCI,
+        .flags = MACHINE_IDE_DUAL,
+        .ram = {
+            .min = 8192,
+            .max = 262144,
+            .step = 8192
+        },
+        .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* Has the SMC FDC73C935's on-chip KBC with Phoenix MultiKey firmware. */
-    { "[i430HX] Micronics M7S-Hi",                     "m7shi",            MACHINE_TYPE_SOCKET7,    MACHINE_CHIPSET_INTEL_430HX,         machine_at_m7shi_init,            0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET5_7,                 CPU_BLOCK_NONE, 50000000, 66666667, 2800, 3520, 1.5, 3.0, MACHINE_PS2_PCI, MACHINE_IDE_DUAL, 8192, 131072, 8192, 511, NULL, NULL },
+    {
+        .name = "[i430HX] Micronics M7S-Hi",
+        .internal_name = "m7shi",
+        .type = MACHINE_TYPE_SOCKET7,
+        .chipset = MACHINE_CHIPSET_INTEL_430HX,
+        .init = machine_at_m7shi_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET5_7,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 50000000,
+            .max_bus = 66666667,
+            .min_voltage = 2800,
+            .max_voltage = 3520,
+            .min_multi = 1.5,
+            .max_multi = 3.0
+        },
+        .bus_flags = MACHINE_PS2_PCI,
+        .flags = MACHINE_IDE_DUAL,
+        .ram = {
+            .min = 8192,
+            .max = 131072,
+            .step = 8192
+        },
+        .nvrmask = 511,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* According to tests from real hardware: This has AMI MegaKey KBC firmware on the
        PC87306 Super I/O chip, command 0xA1 returns '5'.
        Command 0xA0 copyright string: (C)1994 AMI . */
-    { "[i430HX] Intel TC430HX",                        "tc430hx",          MACHINE_TYPE_SOCKET7,    MACHINE_CHIPSET_INTEL_430HX,         machine_at_tc430hx_init,          0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET5_7,                 CPU_BLOCK_NONE, 50000000, 66666667, 2800, 3520, 1.5, 3.0, MACHINE_PS2_PCI, MACHINE_IDE_DUAL, 8192, 131072, 8192, 255, NULL, NULL },
+    {
+        .name = "[i430HX] Intel TC430HX",
+        .internal_name = "tc430hx",
+        .type = MACHINE_TYPE_SOCKET7,
+        .chipset = MACHINE_CHIPSET_INTEL_430HX,
+        .init = machine_at_tc430hx_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET5_7,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 50000000,
+            .max_bus = 66666667,
+            .min_voltage = 2800,
+            .max_voltage = 3520,
+            .min_multi = 1.5,
+            .max_multi = 3.0
+        },
+        .bus_flags = MACHINE_PS2_PCI,
+        .flags = MACHINE_IDE_DUAL,
+        .ram = {
+            .min = 8192,
+            .max = 131072,
+            .step = 8192
+        },
+        .nvrmask = 255,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* According to tests from real hardware: This has AMI MegaKey KBC firmware on the
        PC87306 Super I/O chip, command 0xA1 returns '5'.
        Command 0xA0 copyright string: (C)1994 AMI . */
-    { "[i430HX] Toshiba Equium 5200D",                 "equium5200",       MACHINE_TYPE_SOCKET7,    MACHINE_CHIPSET_INTEL_430HX,         machine_at_equium5200_init,       0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET5_7,                 CPU_BLOCK_NONE, 50000000, 66666667, 2800, 3520, 1.5, 3.0, MACHINE_PS2_PCI, MACHINE_IDE_DUAL, 8192, 196608, 8192, 127, NULL, NULL },
+    {
+        .name = "[i430HX] Toshiba Equium 5200D",
+        .internal_name = "equium5200",
+        .type = MACHINE_TYPE_SOCKET7,
+        .chipset = MACHINE_CHIPSET_INTEL_430HX,
+        .init = machine_at_equium5200_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET5_7,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 50000000,
+            .max_bus = 66666667,
+            .min_voltage = 2800,
+            .max_voltage = 3520,
+            .min_multi = 1.5,
+            .max_multi = 3.0
+        },
+        .bus_flags = MACHINE_PS2_PCI,
+        .flags = MACHINE_IDE_DUAL,
+        .ram = {
+            .min = 8192,
+            .max = 196608,
+            .step = 8192
+        },
+        .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* According to tests from real hardware: This has AMI MegaKey KBC firmware on the
        PC87306 Super I/O chip, command 0xA1 returns '5'.
        Command 0xA0 copyright string: (C)1994 AMI .
        Yes, this is an Intel AMI BIOS with a fancy splash screen. */
-    { "[i430HX] Sony Vaio PCV-90",                     "pcv90",            MACHINE_TYPE_SOCKET7,    MACHINE_CHIPSET_INTEL_430HX,         machine_at_pcv90_init,            0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET5_7,                 CPU_BLOCK_NONE, 50000000, 66666667, 2800, 3520, 1.5, 3.0, MACHINE_PS2_PCI, MACHINE_IDE_DUAL, 8192, 196608, 8192, 127, NULL, NULL },
+    {
+        .name = "[i430HX] Sony Vaio PCV-90",
+        .internal_name = "pcv90",
+        .type = MACHINE_TYPE_SOCKET7,
+        .chipset = MACHINE_CHIPSET_INTEL_430HX,
+        .init = machine_at_pcv90_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET5_7,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 50000000,
+            .max_bus = 66666667,
+            .min_voltage = 2800,
+            .max_voltage = 3520,
+            .min_multi = 1.5,
+            .max_multi = 3.0
+        },
+        .bus_flags = MACHINE_PS2_PCI,
+        .flags = MACHINE_IDE_DUAL,
+        .ram = {
+            .min = 8192,
+            .max = 196608,
+            .step = 8192
+        },
+        .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* The base board has AMIKey-2 (updated 'H') KBC firmware. */
-    { "[i430HX] ASUS P/I-P65UP5 (C-P55T2D)",           "p65up5_cp55t2d",   MACHINE_TYPE_SOCKET7,    MACHINE_CHIPSET_INTEL_430HX,         machine_at_p65up5_cp55t2d_init,   0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET5_7,                 CPU_BLOCK_NONE, 50000000, 66666667, 2500, 3520, 1.5, 3.0, MACHINE_PS2_PCI, MACHINE_IDE_DUAL, 8192, 524288, 8192, 127, NULL, NULL },
+    {
+        .name = "[i430HX] ASUS P/I-P65UP5 (C-P55T2D)",
+        .internal_name = "p65up5_cp55t2d",
+        .type = MACHINE_TYPE_SOCKET7,
+        .chipset = MACHINE_CHIPSET_INTEL_430HX,
+        .init = machine_at_p65up5_cp55t2d_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET5_7,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 50000000,
+            .max_bus = 66666667,
+            .min_voltage = 2500,
+            .max_voltage = 3520,
+            .min_multi = 1.5,
+            .max_multi = 3.0
+        },
+        .bus_flags = MACHINE_PS2_PCI,
+        .flags = MACHINE_IDE_DUAL,
+        .ram = {
+            .min = 8192,
+            .max = 524288,
+            .step = 8192
+        },
+        .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
 
     /* 430VX */
     /* This has the VIA VT82C42N KBC. */
-    { "[i430VX] AOpen AP5VM",                          "ap5vm",            MACHINE_TYPE_SOCKET7,    MACHINE_CHIPSET_INTEL_430VX,         machine_at_ap5vm_init,            0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET5_7,                 CPU_BLOCK_NONE, 50000000, 66666667, 2600, 3520, 1.5, 3.0, MACHINE_PS2_PCI, MACHINE_IDE_DUAL | MACHINE_SCSI, 8192, 131072, 8192, 127, NULL, NULL },
+    {
+        .name = "[i430VX] AOpen AP5VM",
+        .internal_name = "ap5vm",
+        .type = MACHINE_TYPE_SOCKET7,
+        .chipset = MACHINE_CHIPSET_INTEL_430VX,
+        .init = machine_at_ap5vm_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET5_7,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 50000000,
+            .max_bus = 66666667,
+            .min_voltage = 2600,
+            .max_voltage = 3520,
+            .min_multi = 1.5,
+            .max_multi = 3.0
+        },
+        .bus_flags = MACHINE_PS2_PCI,
+        .flags = MACHINE_IDE_DUAL | MACHINE_SCSI,
+        .ram = {
+            .min = 8192,
+            .max = 131072,
+            .step = 8192
+        },
+        .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* Has AMIKey H KBC firmware (AMIKey-2). */
-    { "[i430VX] ASUS P/I-P55TVP4",                     "p55tvp4",          MACHINE_TYPE_SOCKET7,    MACHINE_CHIPSET_INTEL_430VX,         machine_at_p55tvp4_init,          0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET5_7,                 CPU_BLOCK_NONE, 50000000, 66666667, 2500, 3520, 1.5, 3.0, MACHINE_PS2_PCI, MACHINE_IDE_DUAL, 8192, 131072, 8192, 127, NULL, NULL },
+    {
+        .name = "[i430VX] ASUS P/I-P55TVP4",
+        .internal_name = "p55tvp4",
+        .type = MACHINE_TYPE_SOCKET7,
+        .chipset = MACHINE_CHIPSET_INTEL_430VX,
+        .init = machine_at_p55tvp4_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET5_7,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 50000000,
+            .max_bus = 66666667,
+            .min_voltage = 2500,
+            .max_voltage = 3520,
+            .min_multi = 1.5,
+            .max_multi = 3.0
+        },
+        .bus_flags = MACHINE_PS2_PCI,
+        .flags = MACHINE_IDE_DUAL,
+        .ram = {
+            .min = 8192,
+            .max = 131072,
+            .step = 8192
+        },
+        .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* The BIOS does not send a single non-standard KBC command, so it must have a standard IBM
        PS/2 KBC firmware or a clone thereof. */
-    { "[i430VX] Azza PT-5IV",                          "5ivg",             MACHINE_TYPE_SOCKET7,    MACHINE_CHIPSET_INTEL_430VX,         machine_at_5ivg_init,             0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET5_7,                 CPU_BLOCK_NONE, 50000000, 66666667, 2500, 3520, 1.5, 3.0, MACHINE_PS2_PCI, MACHINE_IDE_DUAL, 8192, 131072, 8192, 127, NULL, NULL },
+    {
+        .name = "[i430VX] Azza PT-5IV",
+        .internal_name = "5ivg",
+        .type = MACHINE_TYPE_SOCKET7,
+        .chipset = MACHINE_CHIPSET_INTEL_430VX,
+        .init = machine_at_5ivg_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET5_7,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 50000000,
+            .max_bus = 66666667,
+            .min_voltage = 2500,
+            .max_voltage = 3520,
+            .min_multi = 1.5,
+            .max_multi = 3.0
+        },
+        .bus_flags = MACHINE_PS2_PCI,
+        .flags = MACHINE_IDE_DUAL,
+        .ram = {
+            .min = 8192,
+            .max = 131072,
+            .step = 8192
+        },
+        .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* [TEST] Has AMIKey 'F' KBC firmware. */
-    { "[i430VX] Biostar MB-8500TVX-A",                 "8500tvxa",         MACHINE_TYPE_SOCKET7,    MACHINE_CHIPSET_INTEL_430VX,         machine_at_8500tvxa_init,         0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET5_7,                 CPU_BLOCK_NONE, 50000000, 66666667, 2600, 3520, 1.5, 3.0, MACHINE_PS2_PCI, MACHINE_IDE_DUAL, 8192, 131072, 8192, 127, NULL, NULL },
+    {
+        .name = "[i430VX] Biostar MB-8500TVX-A",
+        .internal_name = "8500tvxa",
+        .type = MACHINE_TYPE_SOCKET7,
+        .chipset = MACHINE_CHIPSET_INTEL_430VX,
+        .init = machine_at_8500tvxa_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET5_7,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 50000000,
+            .max_bus = 66666667,
+            .min_voltage = 2600,
+            .max_voltage = 3520,
+            .min_multi = 1.5,
+            .max_multi = 3.0
+        },
+        .bus_flags = MACHINE_PS2_PCI,
+        .flags = MACHINE_IDE_DUAL,
+        .ram = {
+            .min = 8192,
+            .max = 131072,
+            .step = 8192
+        },
+        .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* The BIOS does not send a single non-standard KBC command, but the board has a SMC Super I/O
        chip with on-chip KBC and AMI MegaKey KBC firmware. */
-    { "[i430VX] Compaq Presario 2240",                 "presario2240",     MACHINE_TYPE_SOCKET7,    MACHINE_CHIPSET_INTEL_430VX,         machine_at_presario2240_init,     0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET5_7,                 CPU_BLOCK_NONE, 50000000, 66666667, 2800, 3520, 1.5, 3.0, MACHINE_PS2_PCI, MACHINE_IDE_DUAL | MACHINE_VIDEO, 8192, 131072, 8192, 127, at_presario2240_get_device, NULL },
+    {
+        .name = "[i430VX] Compaq Presario 2240",
+        .internal_name = "presario2240",
+        .type = MACHINE_TYPE_SOCKET7,
+        .chipset = MACHINE_CHIPSET_INTEL_430VX,
+        .init = machine_at_presario2240_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET5_7,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 50000000,
+            .max_bus = 66666667,
+            .min_voltage = 2800,
+            .max_voltage = 3520,
+            .min_multi = 1.5,
+            .max_multi = 3.0
+        },
+        .bus_flags = MACHINE_PS2_PCI,
+        .flags = MACHINE_IDE_DUAL | MACHINE_VIDEO,
+        .ram = {
+            .min = 8192,
+            .max = 131072,
+            .step = 8192
+        },
+        .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = &s3_trio64v2_dx_onboard_pci_device,
+        .vid_device = NULL
+    },
     /* This most likely has AMI MegaKey as above. */
-    { "[i430VX] Compaq Presario 4500",                 "presario4500",     MACHINE_TYPE_SOCKET7,    MACHINE_CHIPSET_INTEL_430VX,         machine_at_presario4500_init,     0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET5_7,                 CPU_BLOCK_NONE, 50000000, 66666667, 2800, 3520, 1.5, 3.0, MACHINE_PS2_PCI, MACHINE_IDE_DUAL | MACHINE_VIDEO, 8192, 131072, 8192, 127, at_presario4500_get_device, NULL },
+    {
+        .name = "[i430VX] Compaq Presario 4500",
+        .internal_name = "presario4500",
+        .type = MACHINE_TYPE_SOCKET7,
+        .chipset = MACHINE_CHIPSET_INTEL_430VX,
+        .init = machine_at_presario4500_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET5_7,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 50000000,
+            .max_bus = 66666667,
+            .min_voltage = 2800,
+            .max_voltage = 3520,
+            .min_multi = 1.5,
+            .max_multi = 3.0
+        },
+        .bus_flags = MACHINE_PS2_PCI,
+        .flags = MACHINE_IDE_DUAL | MACHINE_VIDEO,
+        .ram = {
+            .min = 8192,
+            .max = 131072,
+            .step = 8192
+        },
+        .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = &s3_trio64v2_dx_onboard_pci_device,
+        .vid_device = NULL
+    },
     /* The BIOS sends KBC command CB which is an AMI KBC command, so it has an AMI KBC firmware. */
-    { "[i430VX] Epox P55-VA",                          "p55va",            MACHINE_TYPE_SOCKET7,    MACHINE_CHIPSET_INTEL_430VX,         machine_at_p55va_init,            0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET5_7,                 CPU_BLOCK_NONE, 50000000, 66666667, 2500, 3520, 1.5, 3.0, MACHINE_PS2_PCI, MACHINE_IDE_DUAL, 8192, 131072, 8192, 127, NULL, NULL },
+    {
+        .name = "[i430VX] Epox P55-VA",
+        .internal_name = "p55va",
+        .type = MACHINE_TYPE_SOCKET7,
+        .chipset = MACHINE_CHIPSET_INTEL_430VX,
+        .init = machine_at_p55va_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET5_7,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 50000000,
+            .max_bus = 66666667,
+            .min_voltage = 2500,
+            .max_voltage = 3520,
+            .min_multi = 1.5,
+            .max_multi = 3.0
+        },
+        .bus_flags = MACHINE_PS2_PCI,
+        .flags = MACHINE_IDE_DUAL,
+        .ram = {
+            .min = 8192,
+            .max = 131072,
+            .step = 8192
+        },
+        .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* The BIOS does not send a single non-standard KBC command. */
-    { "[i430VX] HP Brio 80xx",                         "brio80xx",         MACHINE_TYPE_SOCKET7,    MACHINE_CHIPSET_INTEL_430VX,         machine_at_brio80xx_init,         0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET5_7,                 CPU_BLOCK_NONE, 66666667, 66666667, 2200, 3520, 1.5, 3.0, MACHINE_PS2_PCI, MACHINE_IDE_DUAL, 8192, 131072, 8192, 127, NULL, NULL },
+    {
+        .name = "[i430VX] HP Brio 80xx",
+        .internal_name = "brio80xx",
+        .type = MACHINE_TYPE_SOCKET7,
+        .chipset = MACHINE_CHIPSET_INTEL_430VX,
+        .init = machine_at_brio80xx_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET5_7,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 66666667,
+            .max_bus = 66666667,
+            .min_voltage = 2200,
+            .max_voltage = 3520,
+            .min_multi = 1.5,
+            .max_multi = 3.0
+        },
+        .bus_flags = MACHINE_PS2_PCI,
+        .flags = MACHINE_IDE_DUAL,
+        .ram = {
+            .min = 8192,
+            .max = 131072,
+            .step = 8192
+        },
+        .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* According to tests from real hardware: This has AMI MegaKey KBC firmware on the
        PC87306 Super I/O chip, command 0xA1 returns '5'.
        Command 0xA0 copyright string: (C)1994 AMI . */
-    { "[i430VX] Packard Bell PB680",                   "pb680",            MACHINE_TYPE_SOCKET7,    MACHINE_CHIPSET_INTEL_430VX,         machine_at_pb680_init,            0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET5_7,                 CPU_BLOCK_NONE, 50000000, 66666667, 2800, 3520, 1.5, 3.0, MACHINE_PS2_PCI, MACHINE_IDE_DUAL, 8192, 131072, 8192, 127, NULL, NULL },
+    {
+        .name = "[i430VX] Packard Bell PB680",
+        .internal_name = "pb680",
+        .type = MACHINE_TYPE_SOCKET7,
+        .chipset = MACHINE_CHIPSET_INTEL_430VX,
+        .init = machine_at_pb680_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET5_7,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 50000000,
+            .max_bus = 66666667,
+            .min_voltage = 2800,
+            .max_voltage = 3520,
+            .min_multi = 1.5,
+            .max_multi = 3.0
+        },
+        .bus_flags = MACHINE_PS2_PCI,
+        .flags = MACHINE_IDE_DUAL,
+        .ram = {
+            .min = 8192,
+            .max = 131072,
+            .step = 8192
+        },
+        .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* This has the AMIKey 'H' firmware, possibly AMIKey-2. Photos show it with a BestKey, so it
        likely clones the behavior of AMIKey 'H'. */
-    { "[i430VX] PC Partner MB520N",                    "mb520n",           MACHINE_TYPE_SOCKET7,    MACHINE_CHIPSET_INTEL_430VX,         machine_at_mb520n_init,           0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET5_7,                 CPU_BLOCK_NONE, 50000000, 66666667, 2600, 3520, 1.5, 3.0, MACHINE_PS2_PCI, MACHINE_IDE_DUAL, 8192, 131072, 8192, 127, NULL, NULL },
+    {
+        .name = "[i430VX] PC Partner MB520N",
+        .internal_name = "mb520n",
+        .type = MACHINE_TYPE_SOCKET7,
+        .chipset = MACHINE_CHIPSET_INTEL_430VX,
+        .init = machine_at_mb520n_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET5_7,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 50000000,
+            .max_bus = 66666667,
+            .min_voltage = 2600,
+            .max_voltage = 3520,
+            .min_multi = 1.5,
+            .max_multi = 3.0
+        },
+        .bus_flags = MACHINE_PS2_PCI,
+        .flags = MACHINE_IDE_DUAL,
+        .ram = {
+            .min = 8192,
+            .max = 131072,
+            .step = 8192
+        },
+        .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* This has a Holtek KBC and the BIOS does not send a single non-standard KBC command, so it
        must be an ASIC that clones the standard IBM PS/2 KBC. */
-    { "[i430VX] Shuttle HOT-557",                      "430vx",            MACHINE_TYPE_SOCKET7,    MACHINE_CHIPSET_INTEL_430VX,         machine_at_i430vx_init,           0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET5_7,                 CPU_BLOCK_NONE, 50000000, 66666667, 2500, 3520, 1.5, 3.0, MACHINE_PS2_PCI, MACHINE_IDE_DUAL | MACHINE_GAMEPORT, 8192, 131072, 8192, 127, NULL, NULL },
+    {
+        .name = "[i430VX] Shuttle HOT-557",
+        .internal_name = "430vx",
+        .type = MACHINE_TYPE_SOCKET7,
+        .chipset = MACHINE_CHIPSET_INTEL_430VX,
+        .init = machine_at_i430vx_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET5_7,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 50000000,
+            .max_bus = 66666667,
+            .min_voltage = 2500,
+            .max_voltage = 3520,
+            .min_multi = 1.5,
+            .max_multi = 3.0
+        },
+        .bus_flags = MACHINE_PS2_PCI,
+        .flags = MACHINE_IDE_DUAL | MACHINE_GAMEPORT,
+        .ram = {
+            .min = 8192,
+            .max = 131072,
+            .step = 8192
+        },
+        .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
 
     /* 430TX */
     /* The BIOS sends KBC command B8, CA, and CB, so it has an AMI KBC firmware. */
-    { "[i430TX] ADLink NuPRO-592",                     "nupro592",         MACHINE_TYPE_SOCKET7,    MACHINE_CHIPSET_INTEL_430TX,         machine_at_nupro592_init,         0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET5_7,                 CPU_BLOCK_NONE, 66666667, 66666667, 1900, 2800, 1.5, 5.5, MACHINE_PS2_PCI, MACHINE_IDE_DUAL, 8192, 262144, 8192, 255, NULL, NULL },
+    {
+        .name = "[i430TX] ADLink NuPRO-592",
+        .internal_name = "nupro592",
+        .type = MACHINE_TYPE_SOCKET7,
+        .chipset = MACHINE_CHIPSET_INTEL_430TX,
+        .init = machine_at_nupro592_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET5_7,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 66666667,
+            .max_bus = 66666667,
+            .min_voltage = 1900,
+            .max_voltage = 2800,
+            .min_multi = 1.5,
+            .max_multi = 5.5
+        },
+        .bus_flags = MACHINE_PS2_PCI,
+        .flags = MACHINE_IDE_DUAL,
+        .ram = {
+            .min = 8192,
+            .max = 262144,
+            .step = 8192
+        },
+        .nvrmask = 255,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* This has the AMIKey KBC firmware, which is an updated 'F' type (YM430TX is based on the TX97). */
-    { "[i430TX] ASUS TX97",                            "tx97",             MACHINE_TYPE_SOCKET7,    MACHINE_CHIPSET_INTEL_430TX,         machine_at_tx97_init,             0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET5_7,                 CPU_BLOCK_NONE, 50000000, 75000000, 2500, 3520, 1.5, 3.0, MACHINE_PS2_PCI, MACHINE_IDE_DUAL, 8192, 262144, 8192, 255, NULL, NULL },
+    {
+        .name = "[i430TX] ASUS TX97",
+        .internal_name = "tx97",
+        .type = MACHINE_TYPE_SOCKET7,
+        .chipset = MACHINE_CHIPSET_INTEL_430TX,
+        .init = machine_at_tx97_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET5_7,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 50000000,
+            .max_bus = 75000000,
+            .min_voltage = 2500,
+            .max_voltage = 3520,
+            .min_multi = 1.5,
+            .max_multi = 3.0
+        },
+        .bus_flags = MACHINE_PS2_PCI,
+        .flags = MACHINE_IDE_DUAL,
+        .ram = {
+            .min = 8192,
+            .max = 262144,
+            .step = 8192
+        },
+        .nvrmask = 255,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
 #if defined(DEV_BRANCH) && defined(USE_AN430TX)
     /* This has the Phoenix MultiKey KBC firmware. */
-    { "[i430TX] Intel AN430TX",                        "an430tx",          MACHINE_TYPE_SOCKET7,    MACHINE_CHIPSET_INTEL_430TX,         machine_at_an430tx_init,          0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET5_7,                 CPU_BLOCK_NONE, 60000000, 66666667, 2800, 3520, 1.5, 3.0, MACHINE_PS2_PCI, MACHINE_IDE_DUAL, 8192, 262144, 8192, 255, NULL, NULL },
+    {
+        .name = "[i430TX] Intel AN430TX",
+        .internal_name = "an430tx",
+        .type = MACHINE_TYPE_SOCKET7,
+        .chipset = MACHINE_CHIPSET_INTEL_430TX,
+        .init = machine_at_an430tx_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET5_7,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 60000000,
+            .max_bus = 66666667,
+            .min_voltage = 2800,
+            .max_voltage = 3520,
+            .min_multi = 1.5,
+            .max_multi = 3.0
+        },
+        .bus_flags = MACHINE_PS2_PCI,
+        .flags = MACHINE_IDE_DUAL,
+        .ram = {
+            .min = 8192,
+            .max = 262144,
+            .step = 8192
+        },
+        .nvrmask = 255,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
 #endif
     /* This has the AMIKey KBC firmware, which is an updated 'F' type. */
-    { "[i430TX] Intel YM430TX",                        "ym430tx",          MACHINE_TYPE_SOCKET7,    MACHINE_CHIPSET_INTEL_430TX,         machine_at_ym430tx_init,          0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET5_7,                 CPU_BLOCK_NONE, 60000000, 66666667, 2800, 3520, 1.5, 3.0, MACHINE_PS2_PCI, MACHINE_IDE_DUAL, 8192, 262144, 8192, 255, NULL, NULL },
+    {
+        .name = "[i430TX] Intel YM430TX",
+        .internal_name = "ym430tx",
+        .type = MACHINE_TYPE_SOCKET7,
+        .chipset = MACHINE_CHIPSET_INTEL_430TX,
+        .init = machine_at_ym430tx_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET5_7,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 60000000,
+            .max_bus = 66666667,
+            .min_voltage = 2800,
+            .max_voltage = 3520,
+            .min_multi = 1.5,
+            .max_multi = 3.0
+        },
+        .bus_flags = MACHINE_PS2_PCI,
+        .flags = MACHINE_IDE_DUAL,
+        .ram = {
+            .min = 8192,
+            .max = 262144,
+            .step = 8192
+        },
+        .nvrmask = 255,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* The BIOS sends KBC command BB and expects it to output a byte, which is AMI KBC behavior. */
-    { "[i430TX] PC Partner MB540N",                    "mb540n",           MACHINE_TYPE_SOCKET7,    MACHINE_CHIPSET_INTEL_430TX,         machine_at_mb540n_init,           0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET5_7,                 CPU_BLOCK_NONE, 60000000, 66666667, 2700, 3520, 1.5, 3.0, MACHINE_PS2_PCI, MACHINE_IDE_DUAL, 8192, 262144, 8192, 255, NULL, NULL },
-    /* Award BIOS, PS2, EDO, SDRAM, 4 PCI, 4 ISA, VIA VT82C42N KBC */
-    { "[i430TX] Soltek SL-56A5",                       "56a5",             MACHINE_TYPE_SOCKET7,    MACHINE_CHIPSET_INTEL_430TX,         machine_at_56a5_init,             0, 0, MACHINE_AVAILABLE, 0,  CPU_PKG_SOCKET5_7,                 CPU_BLOCK_NONE, 55000000, 75000000, 2800, 3520, 1.5, 5.5, MACHINE_PS2_PCI, MACHINE_IDE_DUAL, 8192, 262144, 8192, 255, NULL, NULL },
+    {
+        .name = "[i430TX] PC Partner MB540N",
+        .internal_name = "mb540n",
+        .type = MACHINE_TYPE_SOCKET7,
+        .chipset = MACHINE_CHIPSET_INTEL_430TX,
+        .init = machine_at_mb540n_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET5_7,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 60000000,
+            .max_bus = 66666667,
+            .min_voltage = 2700,
+            .max_voltage = 3520,
+            .min_multi = 1.5,
+            .max_multi = 3.0
+        },
+        .bus_flags = MACHINE_PS2_PCI,
+        .flags = MACHINE_IDE_DUAL,
+        .ram = {
+            .min = 8192,
+            .max = 262144,
+            .step = 8192
+        },
+        .nvrmask = 255,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* [TEST] Has AMIKey 'H' KBC firmware. */
-    { "[i430TX] Supermicro P5MMS98",                   "p5mms98",          MACHINE_TYPE_SOCKET7,    MACHINE_CHIPSET_INTEL_430TX,         machine_at_p5mms98_init,          0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET5_7,                 CPU_BLOCK_NONE, 50000000, 66666667, 2100, 3520, 1.5, 3.0, MACHINE_PS2_PCI, MACHINE_IDE_DUAL, 8192, 262144, 8192, 255, NULL, NULL },
+    {
+        .name = "[i430TX] Supermicro P5MMS98",
+        .internal_name = "p5mms98",
+        .type = MACHINE_TYPE_SOCKET7,
+        .chipset = MACHINE_CHIPSET_INTEL_430TX,
+        .init = machine_at_p5mms98_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET5_7,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 50000000,
+            .max_bus = 66666667,
+            .min_voltage = 2100,
+            .max_voltage = 3520,
+            .min_multi = 1.5,
+            .max_multi = 3.0
+        },
+        .bus_flags = MACHINE_PS2_PCI,
+        .flags = MACHINE_IDE_DUAL,
+        .ram = {
+            .min = 8192,
+            .max = 262144,
+            .step = 8192
+        },
+        .nvrmask = 255,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
 
     /* Apollo VPX */
     /* Has the VIA VT82C586B southbridge with on-chip KBC identical to the VIA
        VT82C42N. */
-    { "[VIA VPX] FIC VA-502",                          "ficva502",         MACHINE_TYPE_SOCKET7,    MACHINE_CHIPSET_VIA_APOLLO_VPX,      machine_at_ficva502_init,         0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET5_7,                 CPU_BLOCK_NONE, 50000000, 75000000, 2800, 3520, 1.5, 3.0, MACHINE_PS2_PCI, MACHINE_IDE_DUAL, 8192, 524288, 8192, 127, NULL, NULL },
+    {
+        .name = "[VIA VPX] FIC VA-502",
+        .internal_name = "ficva502",
+        .type = MACHINE_TYPE_SOCKET7,
+        .chipset = MACHINE_CHIPSET_VIA_APOLLO_VPX,
+        .init = machine_at_ficva502_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET5_7,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 50000000,
+            .max_bus = 75000000,
+            .min_voltage = 2800,
+            .max_voltage = 3520,
+            .min_multi = 1.5,
+            .max_multi = 3.0
+        },
+        .bus_flags = MACHINE_PS2_PCI,
+        .flags = MACHINE_IDE_DUAL,
+        .ram = {
+            .min = 8192,
+            .max = 524288,
+            .step = 8192
+        },
+        .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
 
     /* Apollo VP3 */
     /* Has the VIA VT82C586B southbridge with on-chip KBC identical to the VIA
        VT82C42N. */
-    { "[VIA VP3] FIC PA-2012",                         "ficpa2012",        MACHINE_TYPE_SOCKET7,    MACHINE_CHIPSET_VIA_APOLLO_VP3,      machine_at_ficpa2012_init,        0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET5_7,                 CPU_BLOCK_NONE, 55000000, 75000000, 2100, 3520, 1.5, 5.5, MACHINE_PS2_AGP, MACHINE_IDE_DUAL, 8192, 1048576, 8192, 127, NULL, NULL },
+    {
+        .name = "[VIA VP3] FIC PA-2012",
+        .internal_name = "ficpa2012",
+        .type = MACHINE_TYPE_SOCKET7,
+        .chipset = MACHINE_CHIPSET_VIA_APOLLO_VP3,
+        .init = machine_at_ficpa2012_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET5_7,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 55000000,
+            .max_bus = 75000000,
+            .min_voltage = 2100,
+            .max_voltage = 3520,
+            .min_multi = 1.5,
+            .max_multi = 5.5
+        },
+        .bus_flags = MACHINE_PS2_AGP,
+        .flags = MACHINE_IDE_DUAL,
+        .ram = {
+            .min = 8192,
+            .max = 1048576,
+            .step = 8192
+        },
+        .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
 
     /* SiS 5571 */
     /* Has the SiS 5571 chipset with on-chip KBC. */
-    { "[SiS 5571] Rise R534F",                         "r534f",            MACHINE_TYPE_SOCKET7,    MACHINE_CHIPSET_SIS_5571,            machine_at_r534f_init,            0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET5_7,                 CPU_BLOCK_NONE, 55000000, 83333333, 2500, 3520, 1.5, 3.0, MACHINE_PS2_PCI, MACHINE_IDE_DUAL, 8192, 393216, 8192, 127, NULL, NULL },
+    {
+        .name = "[SiS 5571] Rise R534F",
+        .internal_name = "r534f",
+        .type = MACHINE_TYPE_SOCKET7,
+        .chipset = MACHINE_CHIPSET_SIS_5571,
+        .init = machine_at_r534f_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET5_7,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 55000000,
+            .max_bus = 83333333,
+            .min_voltage = 2500,
+            .max_voltage = 3520,
+            .min_multi = 1.5,
+            .max_multi = 3.0
+        },
+        .bus_flags = MACHINE_PS2_PCI,
+        .flags = MACHINE_IDE_DUAL,
+        .ram = {
+            .min = 8192,
+            .max = 393216,
+            .step = 8192
+        },
+        .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* Has the SiS 5571 chipset with on-chip KBC. */
-    { "[SiS 5571] MSI MS-5146",                        "ms5146",           MACHINE_TYPE_SOCKET7,    MACHINE_CHIPSET_SIS_5571,            machine_at_ms5146_init,           0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET5_7,                 CPU_BLOCK_NONE, 50000000, 75000000, 2800, 3520, 1.5, 3.0, MACHINE_PS2_PCI, MACHINE_IDE_DUAL, 8192, 262144, 8192, 127, NULL, NULL },
+    {
+        .name = "[SiS 5571] MSI MS-5146",
+        .internal_name = "ms5146",
+        .type = MACHINE_TYPE_SOCKET7,
+        .chipset = MACHINE_CHIPSET_SIS_5571,
+        .init = machine_at_ms5146_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET5_7,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 50000000,
+            .max_bus = 75000000,
+            .min_voltage = 2800,
+            .max_voltage = 3520,
+            .min_multi = 1.5,
+            .max_multi = 3.0
+        },
+        .bus_flags = MACHINE_PS2_PCI,
+        .flags = MACHINE_IDE_DUAL,
+        .ram = {
+            .min = 8192,
+            .max = 262144,
+            .step = 8192
+        },
+        .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
 
     /* ALi ALADDiN IV+ */
     /* Has the ALi M1543 southbridge with on-chip KBC. */
-    { "[ALi ALADDiN IV+] PC Chips M560",               "m560",             MACHINE_TYPE_SOCKET7,    MACHINE_CHIPSET_ALI_ALADDIN_IV_PLUS, machine_at_m560_init,             0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET5_7,                 CPU_BLOCK_NONE, 50000000, 83333333, 2500, 3520, 1.5, 3.0, MACHINE_PS2_PCI, MACHINE_IDE_DUAL, 8192, 786432, 8192, 255, NULL, NULL },
+    {
+        .name = "[ALi ALADDiN IV+] PC Chips M560",
+        .internal_name = "m560",
+        .type = MACHINE_TYPE_SOCKET7,
+        .chipset = MACHINE_CHIPSET_ALI_ALADDIN_IV_PLUS,
+        .init = machine_at_m560_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET5_7,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 50000000,
+            .max_bus = 83333333,
+            .min_voltage = 2500,
+            .max_voltage = 3520,
+            .min_multi = 1.5,
+            .max_multi = 3.0
+        },
+        .bus_flags = MACHINE_PS2_PCI,
+        .flags = MACHINE_IDE_DUAL,
+        .ram = {
+            .min = 8192,
+            .max = 786432,
+            .step = 8192
+        },
+        .nvrmask = 255,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* Has the ALi M1543 southbridge with on-chip KBC. */
-    { "[ALi ALADDiN IV+] MSI MS-5164",                 "ms5164",           MACHINE_TYPE_SOCKET7,    MACHINE_CHIPSET_ALI_ALADDIN_IV_PLUS, machine_at_ms5164_init,           0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET5_7,                 CPU_BLOCK_NONE, 60000000, 83333333, 2100, 3520, 1.5, 3.0, MACHINE_PS2_PCI, MACHINE_IDE_DUAL, 8192, 1048576, 8192, 255, NULL, NULL },
+    {
+        .name = "[ALi ALADDiN IV+] MSI MS-5164",
+        .internal_name = "ms5164",
+        .type = MACHINE_TYPE_SOCKET7,
+        .chipset = MACHINE_CHIPSET_ALI_ALADDIN_IV_PLUS,
+        .init = machine_at_ms5164_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET5_7,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 60000000,
+            .max_bus = 83333333,
+            .min_voltage = 2100,
+            .max_voltage = 3520,
+            .min_multi = 1.5,
+            .max_multi = 3.0
+        },
+        .bus_flags = MACHINE_PS2_PCI,
+        .flags = MACHINE_IDE_DUAL,
+        .ram = {
+            .min = 8192,
+            .max = 1048576,
+            .step = 8192
+        },
+        .nvrmask = 255,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
 
     /* Super Socket 7 machines */
     /* ALi ALADDiN V */
     /* Has the ALi M1543C southbridge with on-chip KBC. */
-    { "[ALi ALADDiN V] ASUS P5A",                      "p5a",              MACHINE_TYPE_SOCKETS7,   MACHINE_CHIPSET_ALI_ALADDIN_V,       machine_at_p5a_init,              0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET5_7,                 CPU_BLOCK_NONE, 60000000, 120000000, 2000, 3520, 1.5, 5.5, MACHINE_PS2_AGP, MACHINE_IDE_DUAL, 1024, 1572864, 8192, 255, NULL, NULL },
+    {
+        .name = "[ALi ALADDiN V] ASUS P5A",
+        .internal_name = "p5a",
+        .type = MACHINE_TYPE_SOCKETS7,
+        .chipset = MACHINE_CHIPSET_ALI_ALADDIN_V,
+        .init = machine_at_p5a_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET5_7,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 60000000,
+            .max_bus = 120000000,
+            .min_voltage = 2000,
+            .max_voltage = 3520,
+            .min_multi = 1.5,
+            .max_multi = 5.5
+        },
+        .bus_flags = MACHINE_PS2_AGP,
+        .flags = MACHINE_IDE_DUAL,
+        .ram = {
+            .min = 1024,
+            .max = 1572864,
+            .step = 8192
+        },
+        .nvrmask = 255,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* Is the exact same as the Matsonic MS6260S. Has the ALi M1543C southbridge
        with on-chip KBC. */
-    { "[ALi ALADDiN V] PC Chips M579",                 "m579",             MACHINE_TYPE_SOCKETS7,   MACHINE_CHIPSET_ALI_ALADDIN_V,       machine_at_m579_init,             0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET5_7,                 CPU_BLOCK_NONE, 66666667, 100000000, 2000, 3520, 1.5, 5.5, MACHINE_PS2_AGP, MACHINE_IDE_DUAL, 1024, 1572864, 8192, 255, NULL, NULL },
+    {
+        .name = "[ALi ALADDiN V] PC Chips M579",
+        .internal_name = "m579",
+        .type = MACHINE_TYPE_SOCKETS7,
+        .chipset = MACHINE_CHIPSET_ALI_ALADDIN_V,
+        .init = machine_at_m579_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET5_7,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 66666667,
+            .max_bus = 100000000,
+            .min_voltage = 2000,
+            .max_voltage = 3520,
+            .min_multi = 1.5,
+            .max_multi = 5.5
+        },
+        .bus_flags = MACHINE_PS2_AGP,
+        .flags = MACHINE_IDE_DUAL,
+        .ram = {
+            .min = 1024,
+            .max = 1572864,
+            .step = 8192
+        },
+        .nvrmask = 255,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* Has the ALi M1543C southbridge with on-chip KBC. */
-    { "[ALi ALADDiN V] Gigabyte GA-5AA",               "5aa",              MACHINE_TYPE_SOCKETS7,   MACHINE_CHIPSET_ALI_ALADDIN_V,       machine_at_5aa_init,              0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET5_7,                 CPU_BLOCK_NONE, 66666667, 140000000, 1300, 3520, 1.5, 5.5, MACHINE_PS2_AGP, MACHINE_IDE_DUAL, 1024, 1572864, 8192, 255, NULL, NULL },
+    {
+        .name = "[ALi ALADDiN V] Gigabyte GA-5AA",
+        .internal_name = "5aa",
+        .type = MACHINE_TYPE_SOCKETS7,
+        .chipset = MACHINE_CHIPSET_ALI_ALADDIN_V,
+        .init = machine_at_5aa_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET5_7,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 66666667,
+            .max_bus = 140000000,
+            .min_voltage = 1300,
+            .max_voltage = 3520,
+            .min_multi = 1.5,
+            .max_multi = 5.5
+        },
+        .bus_flags = MACHINE_PS2_AGP,
+        .flags = MACHINE_IDE_DUAL,
+        .ram = {
+            .min = 1024,
+            .max = 1572864,
+            .step = 8192
+        },
+        .nvrmask = 255,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* Has the ALi M1543C southbridge with on-chip KBC. */
-    { "[ALi ALADDiN V] Gigabyte GA-5AX",               "5ax",              MACHINE_TYPE_SOCKETS7,   MACHINE_CHIPSET_ALI_ALADDIN_V,       machine_at_5ax_init,              0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET5_7,                 CPU_BLOCK_NONE, 66666667, 140000000, 1300, 3520, 1.5, 5.5, MACHINE_PS2_AGP, MACHINE_IDE_DUAL, 1024, 1572864, 8192, 255, NULL, NULL },
+    {
+        .name = "[ALi ALADDiN V] Gigabyte GA-5AX",
+        .internal_name = "5ax",
+        .type = MACHINE_TYPE_SOCKETS7,
+        .chipset = MACHINE_CHIPSET_ALI_ALADDIN_V,
+        .init = machine_at_5ax_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET5_7,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 66666667,
+            .max_bus = 140000000,
+            .min_voltage = 1300,
+            .max_voltage = 3520,
+            .min_multi = 1.5,
+            .max_multi = 5.5
+        },
+        .bus_flags = MACHINE_PS2_AGP,
+        .flags = MACHINE_IDE_DUAL,
+        .ram = {
+            .min = 1024,
+            .max = 1572864,
+            .step = 8192
+        },
+        .nvrmask = 255,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
 
     /* Apollo MVP3 */
     /* Has the VIA VT82C586B southbridge with on-chip KBC identical to the VIA
        VT82C42N. */
-    { "[VIA MVP3] AOpen AX59 Pro",                     "ax59pro",          MACHINE_TYPE_SOCKETS7,   MACHINE_CHIPSET_VIA_APOLLO_MVP3,     machine_at_ax59pro_init,          0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET5_7,                 CPU_BLOCK_NONE, 66666667, 124242424, 1300, 3520, 1.5, 5.5, MACHINE_PS2_AGP, MACHINE_IDE_DUAL, 8192, 1048576, 8192, 255, NULL, NULL },
+    {
+        .name = "[VIA MVP3] AOpen AX59 Pro",
+        .internal_name = "ax59pro",
+        .type = MACHINE_TYPE_SOCKETS7,
+        .chipset = MACHINE_CHIPSET_VIA_APOLLO_MVP3,
+        .init = machine_at_ax59pro_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET5_7,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 66666667,
+            .max_bus = 124242424,
+            .min_voltage = 1300,
+            .max_voltage = 3520,
+            .min_multi = 1.5,
+            .max_multi = 5.5
+        },
+        .bus_flags = MACHINE_PS2_AGP,
+        .flags = MACHINE_IDE_DUAL,
+        .ram = {
+            .min = 8192,
+            .max = 1048576,
+            .step = 8192
+        },
+        .nvrmask = 255,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* Has the VIA VT82C586B southbridge with on-chip KBC identical to the VIA
        VT82C42N. */
-    { "[VIA MVP3] FIC VA-503+",                        "ficva503p",        MACHINE_TYPE_SOCKETS7,   MACHINE_CHIPSET_VIA_APOLLO_MVP3,     machine_at_mvp3_init,             0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET5_7,                 CPU_BLOCK_NONE, 66666667, 124242424, 2000, 3200, 1.5, 5.5, MACHINE_PS2_AGP, MACHINE_IDE_DUAL, 8192, 1048576, 8192, 255, NULL, NULL },
+    {
+        .name = "[VIA MVP3] FIC VA-503+",
+        .internal_name = "ficva503p",
+        .type = MACHINE_TYPE_SOCKETS7,
+        .chipset = MACHINE_CHIPSET_VIA_APOLLO_MVP3,
+        .init = machine_at_mvp3_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET5_7,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 66666667,
+            .max_bus = 124242424,
+            .min_voltage = 2000,
+            .max_voltage = 3200,
+            .min_multi = 1.5,
+            .max_multi = 5.5
+        },
+        .bus_flags = MACHINE_PS2_AGP,
+        .flags = MACHINE_IDE_DUAL,
+        .ram = {
+            .min = 8192,
+            .max = 1048576,
+            .step = 8192
+        },
+        .nvrmask = 255,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* Has the VIA VT82C686A southbridge with on-chip KBC identical to the VIA
        VT82C42N. */
-    { "[VIA MVP3] FIC VA-503A",                        "ficva503a",        MACHINE_TYPE_SOCKETS7,   MACHINE_CHIPSET_VIA_APOLLO_MVP3,     machine_at_ficva503a_init,        0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET5_7,                 CPU_BLOCK_NONE, 66666667, 124242424, 1800, 3100, 1.5, 5.5, MACHINE_PS2_A97, MACHINE_IDE_DUAL | MACHINE_SOUND, 8192, 786432, 8192, 255, NULL, NULL },
+    {
+        .name = "[VIA MVP3] FIC VA-503A",
+        .internal_name = "ficva503a",
+        .type = MACHINE_TYPE_SOCKETS7,
+        .chipset = MACHINE_CHIPSET_VIA_APOLLO_MVP3,
+        .init = machine_at_ficva503a_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET5_7,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 66666667,
+            .max_bus = 124242424,
+            .min_voltage = 1800,
+            .max_voltage = 3100,
+            .min_multi = 1.5,
+            .max_multi = 5.5
+        },
+        .bus_flags = MACHINE_PS2_A97,
+        .flags = MACHINE_IDE_DUAL | MACHINE_SOUND,
+        .ram = {
+            .min = 8192,
+            .max = 786432,
+            .step = 8192
+        },
+        .nvrmask = 255,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* Has the VIA VT82C686A southbridge with on-chip KBC identical to the VIA
        VT82C42N. */
-    { "[VIA MVP3] Soyo 5EMA PRO",                      "5emapro",          MACHINE_TYPE_SOCKETS7,   MACHINE_CHIPSET_VIA_APOLLO_MVP3,     machine_at_5emapro_init,          0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET5_7,                 CPU_BLOCK_NONE, 66666667, 124242424, 2000, 3520, 1.5, 5.5, MACHINE_PS2_AGP, MACHINE_IDE_DUAL, 8192, 786432, 8192, 255, NULL, NULL },
+    {
+        .name = "[VIA MVP3] Soyo 5EMA PRO",
+        .internal_name = "5emapro",
+        .type = MACHINE_TYPE_SOCKETS7,
+        .chipset = MACHINE_CHIPSET_VIA_APOLLO_MVP3,
+        .init = machine_at_5emapro_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET5_7,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 66666667,
+            .max_bus = 124242424,
+            .min_voltage = 2000,
+            .max_voltage = 3520,
+            .min_multi = 1.5,
+            .max_multi = 5.5
+        },
+        .bus_flags = MACHINE_PS2_AGP,
+        .flags = MACHINE_IDE_DUAL,
+        .ram = {
+            .min = 8192,
+            .max = 786432,
+            .step = 8192
+        },
+        .nvrmask = 255,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
 
     /* Socket 8 machines */
     /* 450KX */
     /* This has an AMIKey-2, which is an updated version of type 'H'. */
-    { "[i450KX] ASUS P/I-P6RP4",                       "p6rp4",            MACHINE_TYPE_SOCKET8,    MACHINE_CHIPSET_INTEL_450KX,         machine_at_p6rp4_init,            0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET8,                   CPU_BLOCK_NONE, 60000000, 66666667, 2100, 3500, 1.5, 8.0, MACHINE_PS2_PCI, MACHINE_IDE_DUAL, 8192, 524288, 8192, 127, NULL, NULL },
+    {
+        .name = "[i450KX] ASUS P/I-P6RP4",
+        .internal_name = "p6rp4",
+        .type = MACHINE_TYPE_SOCKET8,
+        .chipset = MACHINE_CHIPSET_INTEL_450KX,
+        .init = machine_at_p6rp4_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET8,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 60000000,
+            .max_bus = 66666667,
+            .min_voltage = 2100,
+            .max_voltage = 3500,
+            .min_multi = 1.5,
+            .max_multi = 8.0
+        },
+        .bus_flags = MACHINE_PS2_PCI,
+        .flags = MACHINE_IDE_DUAL,
+        .ram = {
+            .min = 8192,
+            .max = 524288,
+            .step = 8192
+        },
+        .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
 
     /* 440FX */
     /* Has the SMC FDC73C935's on-chip KBC with Phoenix MultiKey firmware. */
-    { "[i440FX] Acer V60N",                            "acerv60n",         MACHINE_TYPE_SOCKET8,    MACHINE_CHIPSET_INTEL_440FX,         machine_at_acerv60n_init,         0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET8,                   CPU_BLOCK_NONE, 60000000, 66666667, 2500, 3500, 1.5, 8.0, MACHINE_PS2_PCI, MACHINE_IDE_DUAL, 8192, 524288, 8192, 127, NULL, NULL },
+    {
+        .name = "[i440FX] Acer V60N",
+        .internal_name = "acerv60n",
+        .type = MACHINE_TYPE_SOCKET8,
+        .chipset = MACHINE_CHIPSET_INTEL_440FX,
+        .init = machine_at_acerv60n_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET8,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 60000000,
+            .max_bus = 66666667,
+            .min_voltage = 2500,
+            .max_voltage = 3500,
+            .min_multi = 1.5,
+            .max_multi = 8.0
+        },
+        .bus_flags = MACHINE_PS2_PCI,
+        .flags = MACHINE_IDE_DUAL,
+        .ram = {
+            .min = 8192,
+            .max = 524288,
+            .step = 8192
+        },
+        .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* The base board has AMIKey-2 (updated 'H') KBC firmware. */
-    { "[i440FX] ASUS P/I-P65UP5 (C-P6ND)",             "p65up5_cp6nd",     MACHINE_TYPE_SOCKET8,    MACHINE_CHIPSET_INTEL_440FX,         machine_at_p65up5_cp6nd_init,     0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET8,                   CPU_BLOCK_NONE, 60000000, 66666667, 2100, 3500, 1.5, 8.0, MACHINE_PS2_PCI, MACHINE_IDE_DUAL, 8192, 1048576, 8192, 127, NULL, NULL },
+    {
+        .name = "[i440FX] ASUS P/I-P65UP5 (C-P6ND)",
+        .internal_name = "p65up5_cp6nd",
+        .type = MACHINE_TYPE_SOCKET8,
+        .chipset = MACHINE_CHIPSET_INTEL_440FX,
+        .init = machine_at_p65up5_cp6nd_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET8,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 60000000,
+            .max_bus = 66666667,
+            .min_voltage = 2100,
+            .max_voltage = 3500,
+            .min_multi = 1.5,
+            .max_multi = 8.0
+        },
+        .bus_flags = MACHINE_PS2_PCI,
+        .flags = MACHINE_IDE_DUAL,
+        .ram = {
+            .min = 8192,
+            .max = 1048576,
+            .step = 8192
+        },
+        .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* The MB-8600TTX has an AMIKey 'F' KBC firmware, so I'm going to assume so does
        the MB-8600TTC until someone can actually identify it. */
-    { "[i440FX] Biostar MB-8600TTC",                   "8600ttc",          MACHINE_TYPE_SOCKET8,    MACHINE_CHIPSET_INTEL_440FX,         machine_at_8600ttc_init,          0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET8,                   CPU_BLOCK_NONE, 50000000, 66666667, 2900, 3300, 2.0, 5.5, MACHINE_PS2_PCI, MACHINE_IDE_DUAL, 8192, 1048576, 8192, 127, NULL, NULL },
-    { "[i440FX] Gigabyte GA-686NX",                    "686nx",            MACHINE_TYPE_SOCKET8,    MACHINE_CHIPSET_INTEL_440FX,         machine_at_686nx_init,            0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET8,                   CPU_BLOCK_NONE, 60000000, 66666667, 2100, 3500, 2.0, 5.5, MACHINE_PS2_PCI, MACHINE_IDE_DUAL, 8192, 524288, 8192, 127, NULL, NULL },
+    {
+        .name = "[i440FX] Biostar MB-8600TTC",
+        .internal_name = "8600ttc",
+        .type = MACHINE_TYPE_SOCKET8,
+        .chipset = MACHINE_CHIPSET_INTEL_440FX,
+        .init = machine_at_8600ttc_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET8,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 50000000,
+            .max_bus = 66666667,
+            .min_voltage = 2900,
+            .max_voltage = 3300,
+            .min_multi = 2.0,
+            .max_multi = 5.5
+        },
+        .bus_flags = MACHINE_PS2_PCI,
+        .flags = MACHINE_IDE_DUAL,
+        .ram = {
+            .min = 8192,
+            .max = 1048576,
+            .step = 8192
+        },
+        .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
+    {
+        .name = "[i440FX] Gigabyte GA-686NX",
+        .internal_name = "686nx",
+        .type = MACHINE_TYPE_SOCKET8,
+        .chipset = MACHINE_CHIPSET_INTEL_440FX,
+        .init = machine_at_686nx_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET8,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 60000000,
+            .max_bus = 66666667,
+            .min_voltage = 2100,
+            .max_voltage = 3500,
+            .min_multi = 2.0,
+            .max_multi = 5.5
+        },
+        .bus_flags = MACHINE_PS2_PCI,
+        .flags = MACHINE_IDE_DUAL,
+        .ram = {
+            .min = 8192,
+            .max = 524288,
+            .step = 8192
+        },
+        .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* According to tests from real hardware: This has AMI MegaKey KBC firmware on the
        PC87306 Super I/O chip, command 0xA1 returns '5'.
        Command 0xA0 copyright string: (C)1994 AMI . */
-    { "[i440FX] Intel AP440FX",                        "ap440fx",          MACHINE_TYPE_SOCKET8,    MACHINE_CHIPSET_INTEL_440FX,         machine_at_ap440fx_init,          0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET8,                   CPU_BLOCK_NONE, 60000000, 66666667, 2100, 3500, 2.0, 3.5, MACHINE_PS2_PCI, MACHINE_IDE_DUAL, 8192, 131072, 8192, 127, NULL, NULL },
+    {
+        .name = "[i440FX] Intel AP440FX",
+        .internal_name = "ap440fx",
+        .type = MACHINE_TYPE_SOCKET8,
+        .chipset = MACHINE_CHIPSET_INTEL_440FX,
+        .init = machine_at_ap440fx_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET8,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 60000000,
+            .max_bus = 66666667,
+            .min_voltage = 2100,
+            .max_voltage = 3500,
+            .min_multi = 2.0,
+            .max_multi = 3.5
+        },
+        .bus_flags = MACHINE_PS2_PCI,
+        .flags = MACHINE_IDE_DUAL,
+        .ram = {
+            .min = 8192,
+            .max = 131072,
+            .step = 8192
+        },
+        .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* According to tests from real hardware: This has AMI MegaKey KBC firmware on the
        PC87306 Super I/O chip, command 0xA1 returns '5'.
        Command 0xA0 copyright string: (C)1994 AMI . */
-    { "[i440FX] Intel VS440FX",                        "vs440fx",          MACHINE_TYPE_SOCKET8,    MACHINE_CHIPSET_INTEL_440FX,         machine_at_vs440fx_init,          0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET8,                   CPU_BLOCK_NONE, 60000000, 66666667, 2100, 3500, 2.0, 3.5, MACHINE_PS2_PCI, MACHINE_IDE_DUAL, 8192, 524288, 8192, 127, NULL, NULL },
+    {
+        .name = "[i440FX] Intel VS440FX",
+        .internal_name = "vs440fx",
+        .type = MACHINE_TYPE_SOCKET8,
+        .chipset = MACHINE_CHIPSET_INTEL_440FX,
+        .init = machine_at_vs440fx_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET8,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 60000000,
+            .max_bus = 66666667,
+            .min_voltage = 2100,
+            .max_voltage = 3500,
+            .min_multi = 2.0,
+            .max_multi = 3.5
+        },
+        .bus_flags = MACHINE_PS2_PCI,
+        .flags = MACHINE_IDE_DUAL,
+        .ram = {
+            .min = 8192,
+            .max = 524288,
+            .step = 8192
+        },
+        .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* Has the SMC FDC73C935's on-chip KBC with Phoenix MultiKey firmware. */
-    { "[i440FX] Micronics M6Mi",                       "m6mi",             MACHINE_TYPE_SOCKET8,    MACHINE_CHIPSET_INTEL_440FX,         machine_at_m6mi_init,             0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET8,                   CPU_BLOCK_NONE, 60000000, 66666667, 2900, 3300, 1.5, 8.0, MACHINE_PS2_PCI, MACHINE_IDE_DUAL, 8192, 786432, 8192, 127, NULL, NULL },
+    {
+        .name = "[i440FX] Micronics M6Mi",
+        .internal_name = "m6mi",
+        .type = MACHINE_TYPE_SOCKET8,
+        .chipset = MACHINE_CHIPSET_INTEL_440FX,
+        .init = machine_at_m6mi_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET8,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 60000000,
+            .max_bus = 66666667,
+            .min_voltage = 2900,
+            .max_voltage = 3300,
+            .min_multi = 1.5,
+            .max_multi = 8.0
+        },
+        .bus_flags = MACHINE_PS2_PCI,
+        .flags = MACHINE_IDE_DUAL,
+        .ram = {
+            .min = 8192,
+            .max = 786432,
+            .step = 8192
+        },
+        .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* I found a BIOS string of it that ends in -S, but it could be a typo for -5
        (there's quite a few AMI BIOS strings around with typo'd KBC codes), so I'm
        going to give it an AMI MegaKey. */
-    { "[i440FX] PC Partner MB600N",                    "mb600n",           MACHINE_TYPE_SOCKET8,    MACHINE_CHIPSET_INTEL_440FX,         machine_at_mb600n_init,           0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET8,                   CPU_BLOCK_NONE, 60000000, 66666667, 2100, 3500, 1.5, 8.0, MACHINE_PS2_PCI, MACHINE_IDE_DUAL, 8192, 524288, 8192, 127, NULL, NULL },
+    {
+        .name = "[i440FX] PC Partner MB600N",
+        .internal_name = "mb600n",
+        .type = MACHINE_TYPE_SOCKET8,
+        .chipset = MACHINE_CHIPSET_INTEL_440FX,
+        .init = machine_at_mb600n_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET8,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 60000000,
+            .max_bus = 66666667,
+            .min_voltage = 2100,
+            .max_voltage = 3500,
+            .min_multi = 1.5,
+            .max_multi = 8.0
+        },
+        .bus_flags = MACHINE_PS2_PCI,
+        .flags = MACHINE_IDE_DUAL,
+        .ram = {
+            .min = 8192,
+            .max = 524288,
+            .step = 8192
+        },
+        .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
 
     /* Slot 1 machines */
     /* ALi ALADDiN V */
     /* Has the ALi M1543C southbridge with on-chip KBC. */
-    { "[ALi ALADDiN-PRO II] PC Chips M729",            "m729",             MACHINE_TYPE_SLOT1,      MACHINE_CHIPSET_ALI_ALADDIN_PRO_II,  machine_at_m729_init,             0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SLOT1,                     CPU_BLOCK_NONE, 66666667, 100000000, 1800, 3500, 1.5, 8.0, MACHINE_PS2_AGP, MACHINE_IDE_DUAL, 1024, 1572864, 8192, 255, NULL, NULL },
+    {
+        .name = "[ALi ALADDiN-PRO II] PC Chips M729",
+        .internal_name = "m729",
+        .type = MACHINE_TYPE_SLOT1,
+        .chipset = MACHINE_CHIPSET_ALI_ALADDIN_PRO_II,
+        .init = machine_at_m729_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SLOT1,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 66666667,
+            .max_bus = 100000000,
+            .min_voltage = 1800,
+            .max_voltage = 3500,
+            .min_multi = 1.5,
+            .max_multi = 8.0
+        },
+        .bus_flags = MACHINE_PS2_AGP,
+        .flags = MACHINE_IDE_DUAL,
+        .ram = {
+            .min = 1024,
+            .max = 1572864,
+            .step = 8192
+        },
+        255,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
 
     /* 440FX */
     /* The base board has AMIKey-2 (updated 'H') KBC firmware. */
-    { "[i440FX] ASUS P/I-P65UP5 (C-PKND)",             "p65up5_cpknd",     MACHINE_TYPE_SLOT1,      MACHINE_CHIPSET_INTEL_440FX,         machine_at_p65up5_cpknd_init,     0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SLOT1,                     CPU_BLOCK_NONE,                       50000000, 66666667, 1800, 3500, 1.5, 8.0, MACHINE_PS2_PCI, MACHINE_IDE_DUAL, 8192, 1048576, 8192, 127, NULL, NULL },
+    {
+        .name = "[i440FX] ASUS P/I-P65UP5 (C-PKND)",
+        .internal_name = "p65up5_cpknd",
+        .type = MACHINE_TYPE_SLOT1,
+        .chipset = MACHINE_CHIPSET_INTEL_440FX,
+        .init = machine_at_p65up5_cpknd_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SLOT1,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 50000000,
+            .max_bus = 66666667,
+            .min_voltage = 1800,
+            .max_voltage = 3500,
+            .min_multi = 1.5,
+            .max_multi = 8.0
+        },
+        .bus_flags = MACHINE_PS2_PCI,
+        .flags = MACHINE_IDE_DUAL,
+        .ram = {
+            .min = 8192,
+            .max = 1048576,
+            .step = 8192
+        },
+        .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* This has a Holtek KBC and the BIOS does not send a single non-standard KBC command, so it
        must be an ASIC that clones the standard IBM PS/2 KBC. */
-    { "[i440FX] ASUS KN97",                            "kn97",             MACHINE_TYPE_SLOT1,      MACHINE_CHIPSET_INTEL_440FX,         machine_at_kn97_init,             0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SLOT1,                     CPU_BLOCK_NONE,                       60000000, 83333333, 1800, 3500, 1.5, 8.0, MACHINE_PS2_PCI, MACHINE_IDE_DUAL, 8192, 786432, 8192, 127, NULL, NULL },
+    {
+        .name = "[i440FX] ASUS KN97",
+        .internal_name = "kn97",
+        .type = MACHINE_TYPE_SLOT1,
+        .chipset = MACHINE_CHIPSET_INTEL_440FX,
+        .init = machine_at_kn97_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SLOT1,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 60000000,
+            .max_bus = 83333333,
+            .min_voltage = 1800,
+            .max_voltage = 3500,
+            .min_multi = 1.5,
+            .max_multi = 8.0
+        },
+        .bus_flags = MACHINE_PS2_PCI,
+        .flags = MACHINE_IDE_DUAL,
+        .ram = {
+            .min = 8192,
+            .max = 786432,
+            .step = 8192
+        },
+        .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
 
     /* 440LX */
     /* Has a Winbond W83977TF Super I/O chip with on-chip KBC with AMIKey-2 KBC
        firmware. */
-    { "[i440LX] ABIT LX6",                             "lx6",              MACHINE_TYPE_SLOT1,      MACHINE_CHIPSET_INTEL_440LX,         machine_at_lx6_init,              0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SLOT1,                     CPU_BLOCK_NONE,                       60000000, 100000000, 1500, 3500, 2.0, 5.5, MACHINE_PS2_AGP, MACHINE_IDE_DUAL, 8192, 1048576, 8192, 255, NULL, NULL },
+    {
+        .name = "[i440LX] ABIT LX6",
+        .internal_name = "lx6",
+        .type = MACHINE_TYPE_SLOT1,
+        .chipset = MACHINE_CHIPSET_INTEL_440LX,
+        .init = machine_at_lx6_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SLOT1,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 60000000,
+            .max_bus = 100000000,
+            .min_voltage = 1500,
+            .max_voltage = 3500,
+            .min_multi = 2.0,
+            .max_multi = 5.5
+        },
+        .bus_flags = MACHINE_PS2_AGP,
+        .flags = MACHINE_IDE_DUAL,
+        .ram = {
+            .min = 8192,
+            .max = 1048576,
+            .step = 8192
+        },
+        .nvrmask = 255,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* Has a SM(S)C FDC37C935 Super I/O chip with on-chip KBC with Phoenix
        MultiKey KBC firmware. */
-    { "[i440LX] Micronics Spitfire",                   "spitfire",         MACHINE_TYPE_SLOT1,      MACHINE_CHIPSET_INTEL_440LX,         machine_at_spitfire_init,         0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SLOT1,                     CPU_BLOCK_NONE,                       66666667, 66666667, 1800, 3500, 1.5, 8.0, MACHINE_PS2_AGP, MACHINE_IDE_DUAL, 8192, 1048576, 8192, 255, NULL, NULL },
+    {
+        .name = "[i440LX] Micronics Spitfire",
+        .internal_name = "spitfire",
+        .type = MACHINE_TYPE_SLOT1,
+        .chipset = MACHINE_CHIPSET_INTEL_440LX,
+        .init = machine_at_spitfire_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SLOT1,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 66666667,
+            .max_bus = 66666667,
+            .min_voltage = 1800,
+            .max_voltage = 3500,
+            .min_multi = 1.5,
+            .max_multi = 8.0
+        },
+        .bus_flags = MACHINE_PS2_AGP,
+        .flags = MACHINE_IDE_DUAL,
+        .ram = {
+            .min = 8192,
+            .max = 1048576,
+            .step = 8192
+        },
+        .nvrmask = 255,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
 
     /* 440EX */
     /* Has a Winbond W83977TF Super I/O chip with on-chip KBC with AMIKey-2 KBC
        firmware. */
-    { "[i440EX] QDI EXCELLENT II",                     "p6i440e2",         MACHINE_TYPE_SLOT1,      MACHINE_CHIPSET_INTEL_440EX,         machine_at_p6i440e2_init,         0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SLOT1,                     CPU_BLOCK_NONE,                       66666667, 83333333, 1800, 3500, 3.0, 8.0, MACHINE_PS2_PCI, MACHINE_IDE_DUAL, 8192, 524288, 8192, 255, NULL, NULL },
+    {
+        .name = "[i440EX] QDI EXCELLENT II",
+        .internal_name = "p6i440e2",
+        .type = MACHINE_TYPE_SLOT1,
+        .chipset = MACHINE_CHIPSET_INTEL_440EX,
+        .init = machine_at_p6i440e2_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SLOT1,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 66666667,
+            .max_bus = 83333333,
+            .min_voltage = 1800,
+            .max_voltage = 3500,
+            .min_multi = 3.0,
+            .max_multi = 8.0
+        },
+        .bus_flags = MACHINE_PS2_PCI,
+        .flags = MACHINE_IDE_DUAL,
+        .ram = {
+            .min = 8192,
+            .max = 524288,
+            .step = 8192
+        },
+        .nvrmask = 255,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
 
     /* 440BX */
     /* Has a Winbond W83977EF Super I/O chip with on-chip KBC with AMIKey-2 KBC
        firmware. */
-    { "[i440BX] ASUS P2B-LS",                          "p2bls",            MACHINE_TYPE_SLOT1,      MACHINE_CHIPSET_INTEL_440BX,         machine_at_p2bls_init,            0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SLOT1,                     CPU_BLOCK_NONE,                       50000000, 112121212, 1300, 3500, 1.5, 8.0, MACHINE_PS2_AGP, MACHINE_IDE_DUAL, 8192, 1048576, 8192, 255, NULL, NULL },
+    {
+        .name = "[i440BX] ASUS P2B-LS",
+        .internal_name = "p2bls",
+        .type = MACHINE_TYPE_SLOT1,
+        .chipset = MACHINE_CHIPSET_INTEL_440BX,
+        .init = machine_at_p2bls_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SLOT1,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 50000000,
+            .max_bus = 112121212,
+            .min_voltage = 1300,
+            .max_voltage = 3500,
+            .min_multi = 1.5,
+            .max_multi = 8.0
+        },
+        .bus_flags = MACHINE_PS2_AGP,
+        .flags = MACHINE_IDE_DUAL,
+        .ram = {
+            .min = 8192,
+            .max = 1048576,
+            .step = 8192
+        },
+        .nvrmask = 255,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* Has a Winbond W83977EF Super I/O chip with on-chip KBC with AMIKey-2 KBC
        firmware. */
-    { "[i440BX] ASUS P3B-F",                           "p3bf",             MACHINE_TYPE_SLOT1,      MACHINE_CHIPSET_INTEL_440BX,         machine_at_p3bf_init,             0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SLOT1,                     CPU_BLOCK_NONE,                       66666667, 150000000, 1300, 3500, 1.5, 8.0, MACHINE_PS2_AGP, MACHINE_IDE_DUAL, 8192, 1048576, 8192, 255, NULL, NULL },
+    {
+        .name = "[i440BX] ASUS P3B-F",
+        .internal_name = "p3bf",
+        .type = MACHINE_TYPE_SLOT1,
+        .chipset = MACHINE_CHIPSET_INTEL_440BX,
+        .init = machine_at_p3bf_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SLOT1,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 66666667,
+            .max_bus = 150000000,
+            .min_voltage = 1300,
+            .max_voltage = 3500,
+            .min_multi = 1.5,
+            .max_multi = 8.0
+        },
+        .bus_flags = MACHINE_PS2_AGP,
+        .flags = MACHINE_IDE_DUAL,
+        .ram = {
+            .min = 8192,
+            .max = 1048576,
+            .step = 8192
+        },
+        .nvrmask = 255,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* Has a Winbond W83977EF Super I/O chip with on-chip KBC with AMIKey-2 KBC
        firmware. */
-    { "[i440BX] ABIT BF6",                             "bf6",              MACHINE_TYPE_SLOT1,      MACHINE_CHIPSET_INTEL_440BX,         machine_at_bf6_init,              0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SLOT1,                     CPU_BLOCK_NONE,                       66666667, 133333333, 1800, 3500, 1.5, 8.0, MACHINE_PS2_AGP, MACHINE_IDE_DUAL, 8192, 786432, 8192, 255, NULL, NULL },
+    {
+        .name = "[i440BX] ABIT BF6",
+        .internal_name = "bf6",
+        .type = MACHINE_TYPE_SLOT1,
+        .chipset = MACHINE_CHIPSET_INTEL_440BX,
+        .init = machine_at_bf6_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SLOT1,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 66666667,
+            .max_bus = 133333333,
+            .min_voltage = 1800,
+            .max_voltage = 3500,
+            .min_multi = 1.5,
+            .max_multi = 8.0
+        },
+        .bus_flags = MACHINE_PS2_AGP,
+        .flags = MACHINE_IDE_DUAL,
+        .ram = {
+            .min = 8192,
+            .max = 786432,
+            .step = 8192
+        },
+        .nvrmask = 255,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* Has a Winbond W83977TF Super I/O chip with on-chip KBC with AMIKey-2 KBC
        firmware. */
-    { "[i440BX] AOpen AX6BC",                          "ax6bc",            MACHINE_TYPE_SLOT1,      MACHINE_CHIPSET_INTEL_440BX,         machine_at_ax6bc_init,            0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SLOT1,                     CPU_BLOCK_NONE,                       66666667, 112121212, 1800, 3500, 1.5, 8.0, MACHINE_PS2_AGP, MACHINE_IDE_DUAL, 8192, 786432, 8192, 255, NULL, NULL },
+    {
+        .name = "[i440BX] AOpen AX6BC",
+        .internal_name = "ax6bc",
+        .type = MACHINE_TYPE_SLOT1,
+        .chipset = MACHINE_CHIPSET_INTEL_440BX,
+        .init = machine_at_ax6bc_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SLOT1,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 66666667,
+            .max_bus = 112121212,
+            .min_voltage = 1800,
+            .max_voltage = 3500,
+            .min_multi = 1.5,
+            .max_multi = 8.0
+        },
+        .bus_flags = MACHINE_PS2_AGP,
+        .flags = MACHINE_IDE_DUAL,
+        .ram = {
+            .min = 8192,
+            .max = 786432,
+            .step = 8192
+        },
+        .nvrmask = 255,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* Has a Winbond W83977TF Super I/O chip with on-chip KBC with AMIKey-2 KBC
        firmware. */
-    { "[i440BX] Gigabyte GA-686BX",                    "686bx",            MACHINE_TYPE_SLOT1,      MACHINE_CHIPSET_INTEL_440BX,         machine_at_686bx_init,            0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SLOT1,                     CPU_BLOCK_NONE,                       66666667, 100000000, 1800, 3500, 1.5, 8.0, MACHINE_PS2_AGP, MACHINE_IDE_DUAL, 8192,1048576, 8192, 255, NULL, NULL },
+    {
+        .name = "[i440BX] Gigabyte GA-686BX",
+        .internal_name = "686bx",
+        .type = MACHINE_TYPE_SLOT1,
+        .chipset = MACHINE_CHIPSET_INTEL_440BX,
+        .init = machine_at_686bx_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SLOT1,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 66666667,
+            .max_bus = 100000000,
+            .min_voltage = 1800,
+            .max_voltage = 3500,
+            .min_multi = 1.5,
+            .max_multi = 8.0
+        },
+        .bus_flags = MACHINE_PS2_AGP,
+        .flags = MACHINE_IDE_DUAL,
+        .ram = {
+            .min = 8192,
+            .max = 1048576,
+            .step = 8192
+        },
+        .nvrmask = 255,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* Has a SM(S)C FDC37M60x Super I/O chip with on-chip KBC with most likely
        AMIKey-2 KBC firmware. */
-    { "[i440BX] HP Vectra VEi 8",                      "vei8",             MACHINE_TYPE_SLOT1,      MACHINE_CHIPSET_INTEL_440BX,         machine_at_vei8_init,             0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SLOT1,                     CPU_BLOCK_NONE,                       66666667, 100000000, 1800, 3500, 1.5, 8.0, MACHINE_PS2_AGP, MACHINE_IDE_DUAL, 8192,1048576, 8192, 255, NULL, NULL },
+    {
+        .name = "[i440BX] HP Vectra VEi 8",
+        .internal_name = "vei8",
+        .type = MACHINE_TYPE_SLOT1,
+        .chipset = MACHINE_CHIPSET_INTEL_440BX,
+        .init = machine_at_vei8_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SLOT1,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 66666667,
+            .max_bus = 100000000,
+            .min_voltage = 1800,
+            .max_voltage = 3500,
+            .min_multi = 1.5,
+            .max_multi = 8.0
+        },
+        .bus_flags = MACHINE_PS2_AGP,
+        .flags = MACHINE_IDE_DUAL,
+        .ram = {
+            .min = 8192,
+            .max = 1048576,
+            .step = 8192
+        },
+        .nvrmask = 255,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* Has a National Semiconductors PC87309 Super I/O chip with on-chip KBC
        with most likely AMIKey-2 KBC firmware. */
-    { "[i440BX] Tyan Tsunami ATX",                     "s1846",            MACHINE_TYPE_SLOT1,      MACHINE_CHIPSET_INTEL_440BX,         machine_at_s1846_init,            0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SLOT1,                     CPU_BLOCK_NONE,                       66666667, 112121212, 1800, 3500, 1.5, 8.0, MACHINE_PS2_AGP, MACHINE_IDE_DUAL | MACHINE_SOUND, 8192,1048576, 8192, 255, at_s1846_get_device, NULL },
+    {
+        .name = "[i440BX] Tyan Tsunami ATX",
+        .internal_name = "s1846",
+        .type = MACHINE_TYPE_SLOT1,
+        .chipset = MACHINE_CHIPSET_INTEL_440BX,
+        .init = machine_at_s1846_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SLOT1,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 66666667,
+            .max_bus = 112121212,
+            .min_voltage = 1800,
+            .max_voltage = 3500,
+            .min_multi = 1.5,
+            .max_multi = 8.0
+        },
+        .bus_flags = MACHINE_PS2_AGP,
+        .flags = MACHINE_IDE_DUAL | MACHINE_SOUND,
+        .ram = {
+            .min = 8192,
+            .max = 1048576,
+            .step = 8192
+        },
+        .nvrmask = 255,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = &es1371_onboard_device,
+        .vid_device = NULL
+    },
     /* Has a Winbond W83977TF Super I/O chip with on-chip KBC with AMIKey-2 KBC
        firmware. */
-    { "[i440BX] Supermicro P6SBA",                     "p6sba",            MACHINE_TYPE_SLOT1,      MACHINE_CHIPSET_INTEL_440BX,         machine_at_p6sba_init,            0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SLOT1,                     CPU_BLOCK_NONE,                       66666667, 100000000, 1800, 3500, 1.5, 8.0, MACHINE_PS2_AGP, MACHINE_IDE_DUAL, 8192, 786432, 8192, 255, NULL, NULL },
+    {
+        .name = "[i440BX] Supermicro P6SBA",
+        .internal_name = "p6sba",
+        .type = MACHINE_TYPE_SLOT1,
+        .chipset = MACHINE_CHIPSET_INTEL_440BX,
+        .init = machine_at_p6sba_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SLOT1,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 66666667,
+            .max_bus = 100000000,
+            .min_voltage = 1800,
+            .max_voltage = 3500,
+            .min_multi = 1.5,
+            .max_multi = 8.0
+        },
+        .bus_flags = MACHINE_PS2_AGP,
+        .flags = MACHINE_IDE_DUAL,
+        .ram = {
+            .min = 8192,
+            .max = 786432,
+            .step = 8192
+        },
+        .nvrmask = 255,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
 
     /* 440ZX */
     /* Has a Winbond W83977EF Super I/O chip with on-chip KBC with AMIKey-2 KBC
        firmware. */
-    { "[i440ZX] MSI MS-6168",                          "ms6168",           MACHINE_TYPE_SLOT1,      MACHINE_CHIPSET_INTEL_440ZX,         machine_at_ms6168_init,           0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SLOT1,                     CPU_BLOCK_NONE,                       66666667, 100000000, 1800, 3500, 1.5, 8.0, MACHINE_PS2_AGP, MACHINE_IDE_DUAL | MACHINE_AV, 8192, 524288, 8192, 255, at_ms6168_get_device, NULL },
+    {
+        .name = "[i440ZX] MSI MS-6168",
+        .internal_name = "ms6168",
+        .type = MACHINE_TYPE_SLOT1,
+        .chipset = MACHINE_CHIPSET_INTEL_440ZX,
+        .init = machine_at_ms6168_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SLOT1,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 66666667,
+            .max_bus = 100000000,
+            .min_voltage = 1800,
+            .max_voltage = 3500,
+            .min_multi = 1.5,
+            .max_multi = 8.0
+        },
+        .bus_flags = MACHINE_PS2_AGP,
+        .flags = MACHINE_IDE_DUAL | MACHINE_AV,
+        .ram = {
+            .min = 8192,
+            .max = 524288,
+            .step = 8192
+        },
+        .nvrmask = 255,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = &voodoo_3_2000_agp_onboard_8m_device,
+        .vid_device = NULL
+    },
     /* Has a Winbond W83977EF Super I/O chip with on-chip KBC with AMIKey-2 KBC
        firmware. */
-    { "[i440ZX] Packard Bell Bora Pro",                "borapro",          MACHINE_TYPE_SLOT1,      MACHINE_CHIPSET_INTEL_440ZX,         machine_at_borapro_init,          0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SLOT1,                     CPU_BLOCK_NONE,                       66666667, 66666667, 1800, 3500, 1.5, 8.0, MACHINE_PS2_AGP, MACHINE_IDE_DUAL | MACHINE_AV, 8192, 524288, 8192, 255, at_borapro_get_device, NULL },
+    {
+        .name = "[i440ZX] Packard Bell Bora Pro",
+        .internal_name = "borapro",
+        .type = MACHINE_TYPE_SLOT1,
+        .chipset = MACHINE_CHIPSET_INTEL_440ZX,
+        .init = machine_at_borapro_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SLOT1,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 66666667,
+            .max_bus = 66666667,
+            .min_voltage = 1800,
+            .max_voltage = 3500,
+            .min_multi = 1.5,
+            .max_multi = 8.0
+        },
+        .bus_flags = MACHINE_PS2_AGP,
+        .flags = MACHINE_IDE_DUAL | MACHINE_AV,
+        .ram = {
+            .min = 8192,
+            .max = 524288,
+            .step = 8192
+        },
+        .nvrmask = 255,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = &voodoo_3_2000_agp_onboard_8m_device,
+        .vid_device = NULL
+    },
 
     /* SMSC VictoryBX-66 */
     /* Has a Winbond W83977EF Super I/O chip with on-chip KBC with AMIKey-2 KBC
        firmware. */
-    { "[SMSC VictoryBX-66] A-Trend ATC6310BXII",       "atc6310bxii",      MACHINE_TYPE_SLOT1,      MACHINE_CHIPSET_SMSC_VICTORYBX_66,   machine_at_atc6310bxii_init,      0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SLOT1,                     CPU_BLOCK_NONE,                       66666667, 133333333, 1300, 3500, 1.5, 8.0, MACHINE_PS2_AGP, MACHINE_IDE_DUAL, 8192, 786432, 8192, 255, NULL, NULL },
+    {
+        .name = "[SMSC VictoryBX-66] A-Trend ATC6310BXII",
+        .internal_name = "atc6310bxii",
+        .type = MACHINE_TYPE_SLOT1,
+        .chipset = MACHINE_CHIPSET_SMSC_VICTORYBX_66,
+        .init = machine_at_atc6310bxii_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SLOT1,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 66666667,
+            .max_bus = 133333333,
+            .min_voltage = 1300,
+            .max_voltage = 3500,
+            .min_multi = 1.5,
+            .max_multi = 8.0
+        },
+        .bus_flags = MACHINE_PS2_AGP,
+        .flags = MACHINE_IDE_DUAL,
+        .ram = {
+            .min = 8192,
+            .max = 786432,
+            .step = 8192
+        },
+        .nvrmask = 255,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
 
     /* VIA Apollo Pro */
     /* Has the VIA VT82C596B southbridge with on-chip KBC identical to the VIA
        VT82C42N. */
-    { "[VIA Apollo Pro] FIC KA-6130",                  "ficka6130",        MACHINE_TYPE_SLOT1,      MACHINE_CHIPSET_VIA_APOLLO_PRO,      machine_at_ficka6130_init,        0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SLOT1,                     CPU_BLOCK_NONE,                       66666667, 100000000, 1800, 3500, 1.5, 8.0, MACHINE_PS2_AGP, MACHINE_IDE_DUAL, 8192, 524288, 8192, 255, NULL, NULL },
+    {
+        .name = "[VIA Apollo Pro] FIC KA-6130",
+        .internal_name = "ficka6130",
+        .type = MACHINE_TYPE_SLOT1,
+        .chipset = MACHINE_CHIPSET_VIA_APOLLO_PRO,
+        .init = machine_at_ficka6130_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SLOT1,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 66666667,
+            .max_bus = 100000000,
+            .min_voltage = 1800,
+            .max_voltage = 3500,
+            .min_multi = 1.5,
+            .max_multi = 8.0
+        },
+        .bus_flags = MACHINE_PS2_AGP,
+        .flags = MACHINE_IDE_DUAL,
+        .ram = {
+            .min = 8192,
+            .max = 524288,
+            .step = 8192
+        },
+        .nvrmask = 255,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* Has a Winbond W83977EF Super I/O chip with on-chip KBC with AMIKey-2 KBC
        firmware. */
-    { "[VIA Apollo Pro 133] ASUS P3V133",              "p3v133",           MACHINE_TYPE_SLOT1,      MACHINE_CHIPSET_VIA_APOLLO_PRO_133,  machine_at_p3v133_init,           0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SLOT1,                     CPU_BLOCK_NONE,                       66666667, 150000000, 1300, 3500, 1.5, 8.0, MACHINE_PS2_AGP, MACHINE_IDE_DUAL, 8192, 1572864, 8192, 255, NULL, NULL },
+    {
+        .name = "[VIA Apollo Pro 133] ASUS P3V133",
+        .internal_name = "p3v133",
+        .type = MACHINE_TYPE_SLOT1,
+        .chipset = MACHINE_CHIPSET_VIA_APOLLO_PRO_133,
+        .init = machine_at_p3v133_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SLOT1,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 66666667,
+            .max_bus = 150000000,
+            .min_voltage = 1300,
+            .max_voltage = 3500,
+            .min_multi = 1.5,
+            .max_multi = 8.0
+        },
+        .bus_flags = MACHINE_PS2_AGP,
+        .flags = MACHINE_IDE_DUAL,
+        .ram = {
+            .min = 8192,
+            .max = 1572864,
+            .step = 8192
+        },
+        .nvrmask = 255,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* Has a Winbond W83977EF Super I/O chip with on-chip KBC with AMIKey-2 KBC
        firmware. */
-    { "[VIA Apollo Pro 133A] ASUS P3V4X",              "p3v4x",            MACHINE_TYPE_SLOT1,      MACHINE_CHIPSET_VIA_APOLLO_PRO_133A, machine_at_p3v4x_init,            0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SLOT1,                     CPU_BLOCK_NONE,                       66666667, 150000000, 1300, 3500, 1.5, 8.0, MACHINE_PS2_AGP, MACHINE_IDE_DUAL, 8192, 2097152, 8192, 255, NULL, NULL },
+    {
+        .name = "[VIA Apollo Pro 133A] ASUS P3V4X",
+        .internal_name = "p3v4x",
+        .type = MACHINE_TYPE_SLOT1,
+        .chipset = MACHINE_CHIPSET_VIA_APOLLO_PRO_133A,
+        .init = machine_at_p3v4x_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SLOT1,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 66666667,
+            .max_bus = 150000000,
+            .min_voltage = 1300,
+            .max_voltage = 3500,
+            .min_multi = 1.5,
+            .max_multi = 8.0
+        },
+        .bus_flags = MACHINE_PS2_AGP,
+        .flags = MACHINE_IDE_DUAL,
+        .ram = {
+            .min = 8192,
+            .max = 2097152,
+            .step = 8192
+        },
+        .nvrmask = 255,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
 
     /* Slot 1/2 machines */
     /* 440GX */
     /* Has a National Semiconductors PC87309 Super I/O chip with on-chip KBC
        with most likely AMIKey-2 KBC firmware. */
-    { "[i440GX] Freeway FW-6400GX",                    "fw6400gx",         MACHINE_TYPE_SLOT1_2,    MACHINE_CHIPSET_INTEL_440GX,         machine_at_fw6400gx_init,         0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SLOT1 | CPU_PKG_SLOT2,     CPU_BLOCK_NONE,                       100000000, 150000000, 1800, 3500, 3.0, 8.0, MACHINE_PS2_NOISA, MACHINE_IDE_DUAL, 16384, 2080768, 16384, 511, NULL, NULL },
+    {
+        .name = "[i440GX] Freeway FW-6400GX",
+        .internal_name = "fw6400gx",
+        .type = MACHINE_TYPE_SLOT1_2,
+        .chipset = MACHINE_CHIPSET_INTEL_440GX,
+        .init = machine_at_fw6400gx_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SLOT1 | CPU_PKG_SLOT2,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 100000000,
+            .max_bus = 150000000,
+            .min_voltage = 1800,
+            .max_voltage = 3500,
+            .min_multi = 3.0,
+            .max_multi = 8.0
+        },
+        .bus_flags = MACHINE_PS2_NOISA,
+        .flags = MACHINE_IDE_DUAL,
+        .ram = {
+            .min = 16384,
+            .max = 2080768,
+            .step = 16384
+        },
+        .nvrmask = 511,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
 
     /* Slot 1/Socket 370 machines */
     /* 440BX */
     /* Has a Winbond W83977EF Super I/O chip with on-chip KBC with AMIKey-2 KBC
        firmware. */
-    { "[i440BX] Tyan Trinity 371",                     "s1857",            MACHINE_TYPE_SLOT1_370,  MACHINE_CHIPSET_INTEL_440BX,         machine_at_s1857_init,            0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SLOT1 | CPU_PKG_SOCKET370, CPU_BLOCK_NONE,                       66666667, 133333333, 1300, 3500, 1.5, 8.0, MACHINE_PS2_AGP, MACHINE_IDE_DUAL, 8192, 786432, 8192, 255, at_s1857_get_device, NULL },
+    {
+        .name = "[i440BX] Tyan Trinity 371",
+        .internal_name = "s1857",
+        .type = MACHINE_TYPE_SLOT1_370,
+        .chipset = MACHINE_CHIPSET_INTEL_440BX,
+        .init = machine_at_s1857_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SLOT1 | CPU_PKG_SOCKET370,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 66666667,
+            .max_bus = 133333333,
+            .min_voltage = 1300,
+            .max_voltage = 3500,
+            .min_multi = 1.5,
+            .max_multi = 8.0
+        },
+        .bus_flags = MACHINE_PS2_AGP,
+        .flags = MACHINE_IDE_DUAL,
+        .ram = {
+            .min = 8192,
+            .max = 786432,
+            .step = 8192
+        },
+        .nvrmask = 255,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = &es1371_onboard_device,
+        .vid_device = NULL
+    },
 
     /* Slot 2 machines */
     /* 440GX */
     /* Has a Winbond W83977EF Super I/O chip with on-chip KBC with AMIKey-2 KBC
        firmware. */
-    { "[i440GX] Gigabyte GA-6GXU",                     "6gxu",             MACHINE_TYPE_SLOT2,      MACHINE_CHIPSET_INTEL_440GX,         machine_at_6gxu_init,             0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SLOT2,                     CPU_BLOCK_NONE,                       100000000, 133333333, 1800, 3500, 1.5, 8.0, MACHINE_PS2_AGP, MACHINE_IDE_DUAL, 16384,2097152,16384, 511, NULL, NULL },
+    {
+        .name = "[i440GX] Gigabyte GA-6GXU",
+        .internal_name = "6gxu",
+        .type = MACHINE_TYPE_SLOT2,
+        .chipset = MACHINE_CHIPSET_INTEL_440GX,
+        .init = machine_at_6gxu_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SLOT2,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 100000000,
+            .max_bus = 133333333,
+            .min_voltage = 1800,
+            .max_voltage = 3500,
+            .min_multi = 1.5,
+            .max_multi = 8.0
+        },
+        .bus_flags = MACHINE_PS2_AGP,
+        .flags = MACHINE_IDE_DUAL,
+        .ram = {
+            .min = 16384,
+            .max = 2097152,
+            .step = 16384
+        },
+        .nvrmask = 511,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* Has a Winbond W83977TF Super I/O chip with on-chip KBC with AMIKey-2 KBC
        firmware. */
-    { "[i440GX] Supermicro S2DGE",                     "s2dge",            MACHINE_TYPE_SLOT2,      MACHINE_CHIPSET_INTEL_440GX,         machine_at_s2dge_init,            0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SLOT2,                     CPU_BLOCK_NONE,                       66666667, 100000000, 1800, 3500, 1.5, 8.0, MACHINE_PS2_AGP, MACHINE_IDE_DUAL, 16384,2097152,16384, 511, NULL, NULL },
+    {
+        .name = "[i440GX] Supermicro S2DGE",
+        .internal_name = "s2dge",
+        .type = MACHINE_TYPE_SLOT2,
+        .chipset = MACHINE_CHIPSET_INTEL_440GX,
+        .init = machine_at_s2dge_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SLOT2,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 66666667,
+            .max_bus = 100000000,
+            .min_voltage = 1800,
+            .max_voltage = 3500,
+            .min_multi = 1.5,
+            .max_multi = 8.0
+        },
+        .bus_flags = MACHINE_PS2_AGP,
+        .flags = MACHINE_IDE_DUAL,
+        .ram = {
+            .min = 16384,
+            .max = 2097152,
+            .step = 16384
+        },
+        .nvrmask = 511,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
 
     /* PGA370 machines */
     /* 440LX */
     /* Has a Winbond W83977TF Super I/O chip with on-chip KBC with AMIKey-2 KBC
        firmware. */
-    { "[i440LX] Supermicro 370SLM",                    "s370slm",          MACHINE_TYPE_SOCKET370,  MACHINE_CHIPSET_INTEL_440LX,         machine_at_s370slm_init,          0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET370,                 CPU_BLOCK_NONE,                       66666667, 100000000, 1800, 3500, MACHINE_MULTIPLIER_FIXED, MACHINE_PS2_AGP, MACHINE_IDE_DUAL, 8192, 786432, 8192, 255, NULL, NULL },
+    {
+        .name = "[i440LX] Supermicro 370SLM",
+        .internal_name = "s370slm",
+        .type = MACHINE_TYPE_SOCKET370,
+        .chipset = MACHINE_CHIPSET_INTEL_440LX,
+        .init = machine_at_s370slm_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET370,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 66666667,
+            .max_bus = 100000000,
+            .min_voltage = 1800,
+            .max_voltage = 3500,
+            .min_multi = MACHINE_MULTIPLIER_FIXED,
+            .max_multi = MACHINE_MULTIPLIER_FIXED,
+        },
+        .bus_flags = MACHINE_PS2_AGP,
+        .flags = MACHINE_IDE_DUAL,
+        .ram = {
+            .min = 8192,
+            .max = 786432,
+            .step = 8192
+        },
+        .nvrmask = 255,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
 
     /* 440BX */
     /* Has a Winbond W83977EF Super I/O chip with on-chip KBC with AMIKey-2 KBC
        firmware. */
-    { "[i440BX] AEWIN AW-O671R",                       "awo671r",          MACHINE_TYPE_SOCKET370,  MACHINE_CHIPSET_INTEL_440BX,         machine_at_awo671r_init,          0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET370,                 CPU_BLOCK_NONE,                       66666667, 133333333, 1300, 3500, 1.5, 8.0, /* limits assumed */ MACHINE_PS2_AGP, MACHINE_IDE_DUAL, 8192, 524288, 8192, 255, NULL, NULL },
+    {
+        .name = "[i440BX] AEWIN AW-O671R",
+        .internal_name = "awo671r",
+        .type = MACHINE_TYPE_SOCKET370,
+        .chipset = MACHINE_CHIPSET_INTEL_440BX,
+        .init = machine_at_awo671r_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET370,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 66666667,
+            .max_bus = 133333333,
+            .min_voltage = 1300,
+            .max_voltage = 3500,
+            .min_multi = 1.5,
+            .max_multi = 8.0 /* limits assumed */
+        },
+        .bus_flags = MACHINE_PS2_AGP,
+        .flags = MACHINE_IDE_DUAL,
+        .ram = {
+            .min = 8192,
+            .max = 524288,
+            .step = 8192
+        },
+        .nvrmask = 255,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* Has a Winbond W83977EF Super I/O chip with on-chip KBC with AMIKey-2 KBC
        firmware. */
-    { "[i440BX] ASUS CUBX",                            "cubx",             MACHINE_TYPE_SOCKET370,  MACHINE_CHIPSET_INTEL_440BX,         machine_at_cubx_init,             0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET370,                 CPU_BLOCK_NONE,                       66666667, 150000000, 1300, 3500, 1.5, 8.0, MACHINE_PS2_AGP, MACHINE_IDE_DUAL, 8192, 1048576, 8192, 255, NULL, NULL },
+    {
+        .name = "[i440BX] ASUS CUBX",
+        .internal_name = "cubx",
+        .type = MACHINE_TYPE_SOCKET370,
+        .chipset = MACHINE_CHIPSET_INTEL_440BX,
+        .init = machine_at_cubx_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET370,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 66666667,
+            .max_bus = 150000000,
+            .min_voltage = 1300,
+            .max_voltage = 3500,
+            .min_multi = 1.5,
+            .max_multi = 8.0
+        },
+        .bus_flags = MACHINE_PS2_AGP,
+        .flags = MACHINE_IDE_DUAL,
+        .ram = {
+            .min = 8192,
+            .max = 1048576,
+            .step = 8192
+        },
+        .nvrmask = 255,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* Has a Winbond W83977EF Super I/O chip with on-chip KBC with AMIKey-2 KBC
        firmware. */
-    { "[i440BX] AmazePC AM-BX133",                     "ambx133",          MACHINE_TYPE_SOCKET370,  MACHINE_CHIPSET_INTEL_440BX,         machine_at_ambx133_init,          0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET370,                 CPU_BLOCK_NONE,                       66666667, 133333333, 1300, 3500, 1.5, 8.0, /* limits assumed */ MACHINE_PS2_AGP, MACHINE_IDE_DUAL, 8192, 786432, 8192, 255, NULL, NULL },
+    {
+        .name = "[i440BX] AmazePC AM-BX133",
+        .internal_name = "ambx133",
+        .type = MACHINE_TYPE_SOCKET370,
+        .chipset = MACHINE_CHIPSET_INTEL_440BX,
+        .init = machine_at_ambx133_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET370,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 66666667,
+            .max_bus = 133333333,
+            .min_voltage = 1300,
+            .max_voltage = 3500,
+            .min_multi = 1.5,
+            .max_multi = 8.0 /* limits assumed */ 
+        },
+        .bus_flags = MACHINE_PS2_AGP,
+        .flags = MACHINE_IDE_DUAL,
+        .ram = {
+            .min = 8192,
+            .max = 786432,
+            .step = 8192
+        },
+        .nvrmask = 255,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
 
     /* 440ZX */
     /* Has a Winbond W83977TF Super I/O chip with on-chip KBC with AMIKey-2 KBC
        firmware. */
-    { "[i440ZX] Soltek SL-63A1",                       "63a1",             MACHINE_TYPE_SOCKET370,  MACHINE_CHIPSET_INTEL_440ZX,         machine_at_63a1_init,             0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET370,                 CPU_BLOCK_NONE,                       66666667, 100000000, 1800, 3500, 1.5, 8.0, MACHINE_PS2_AGP, MACHINE_IDE_DUAL, 8192, 524288, 8192, 255, NULL, NULL },
+    {
+        .name = "[i440ZX] Soltek SL-63A1",
+        .internal_name = "63a1",
+        .type = MACHINE_TYPE_SOCKET370,
+        .chipset = MACHINE_CHIPSET_INTEL_440ZX,
+        .init = machine_at_63a1_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET370,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 66666667,
+            .max_bus = 100000000,
+            .min_voltage = 1800,
+            .max_voltage = 3500,
+            .min_multi = 1.5,
+            .max_multi = 8.0
+        },
+        .bus_flags = MACHINE_PS2_AGP,
+        .flags = MACHINE_IDE_DUAL,
+        .ram = {
+            .min = 8192,
+            .max = 524288,
+            .step = 8192
+        },
+        .nvrmask = 255,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
 
     /* SMSC VictoryBX-66 */
     /* Has a Winbond W83977EF Super I/O chip with on-chip KBC with AMIKey-2 KBC
        firmware. */
-    { "[SMSC VictoryBX-66] A-Trend ATC7020BXII",       "atc7020bxii",      MACHINE_TYPE_SOCKET370,  MACHINE_CHIPSET_SMSC_VICTORYBX_66,   machine_at_atc7020bxii_init,      0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET370,                 CPU_BLOCK_NONE,                       66666667, 133333333, 1300, 3500, 1.5, 8.0, MACHINE_PS2_AGP, MACHINE_IDE_DUAL, 8192, 1048576, 8192, 255, NULL, NULL },
+    {
+        .name = "[SMSC VictoryBX-66] A-Trend ATC7020BXII",
+        .internal_name = "atc7020bxii",
+        .type = MACHINE_TYPE_SOCKET370,
+        .chipset = MACHINE_CHIPSET_SMSC_VICTORYBX_66,
+        .init = machine_at_atc7020bxii_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET370,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 66666667,
+            .max_bus = 133333333,
+            .min_voltage = 1300,
+            .max_voltage = 3500,
+            .min_multi = 1.5,
+            .max_multi = 8.0
+        },
+        .bus_flags = MACHINE_PS2_AGP,
+        .flags = MACHINE_IDE_DUAL,
+        .ram = {
+            .min = 8192,
+            .max = 1048576,
+            .step = 8192
+        },
+        .nvrmask = 255,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
 
     /* VIA Apollo Pro */
     /* Has the VIA VT82C586B southbridge with on-chip KBC identical to the VIA
        VT82C42N. */
-    { "[VIA Apollo Pro] PC Partner APAS3",             "apas3",            MACHINE_TYPE_SOCKET370,  MACHINE_CHIPSET_VIA_APOLLO_PRO,      machine_at_apas3_init,            0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET370,                 CPU_BLOCK_NONE,                       66666667, 100000000, 1800, 3500, 1.5, 8.0, MACHINE_PS2_AGP, MACHINE_IDE_DUAL, 8192, 786432, 8192, 255, NULL, NULL },
+    {
+        .name = "[VIA Apollo Pro] PC Partner APAS3",
+        .internal_name = "apas3",
+        .type = MACHINE_TYPE_SOCKET370,
+        .chipset = MACHINE_CHIPSET_VIA_APOLLO_PRO,
+        .init = machine_at_apas3_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET370,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 66666667,
+            .max_bus = 100000000,
+            .min_voltage = 1800,
+            .max_voltage = 3500,
+            .min_multi = 1.5,
+            .max_multi = 8.0
+        },
+        .bus_flags = MACHINE_PS2_AGP,
+        .flags = MACHINE_IDE_DUAL,
+        .ram = {
+            .min = 8192,
+            .max = 786432,
+            .step = 8192
+        },
+        .nvrmask = 255,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* Has a Winbond W83977EF Super I/O chip with on-chip KBC with AMIKey-2 KBC
        firmware. */
-    { "[VIA Apollo Pro 133] ECS P6BAP",                "p6bap",            MACHINE_TYPE_SOCKET370,  MACHINE_CHIPSET_VIA_APOLLO_PRO_133,  machine_at_p6bap_init,            0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET370,                 CPU_BLOCK_NONE,                       66666667, 150000000, 1300, 3500, 1.5, 8.0, MACHINE_PS2_AGP, MACHINE_IDE_DUAL, 8192, 1572864, 8192, 255, NULL, NULL },
+    {
+        .name = "[VIA Apollo Pro 133] ECS P6BAP",
+        .internal_name = "p6bap",
+        .type = MACHINE_TYPE_SOCKET370,
+        .chipset = MACHINE_CHIPSET_VIA_APOLLO_PRO_133,
+        .init = machine_at_p6bap_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET370,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 66666667,
+            .max_bus = 150000000,
+            .min_voltage = 1300,
+            .max_voltage = 3500,
+            .min_multi = 1.5,
+            .max_multi = 8.0
+        },
+        .bus_flags = MACHINE_PS2_AGP,
+        .flags = MACHINE_IDE_DUAL,
+        .ram = {
+            .min = 8192,
+            .max = 1572864,
+            .step = 8192
+        },
+        .nvrmask = 255,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* Has the VIA VT82C686B southbridge with on-chip KBC identical to the VIA
        VT82C42N. */
-    { "[VIA Apollo Pro 133A] Acorp 6VIA90AP",          "6via90ap",         MACHINE_TYPE_SOCKET370,  MACHINE_CHIPSET_VIA_APOLLO_PRO_133A, machine_at_6via90ap_init,         0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET370,                 CPU_BLOCK_NONE,                       66666667, 150000000, 1300, 3500, MACHINE_MULTIPLIER_FIXED, MACHINE_PS2_A97, MACHINE_IDE_DUAL | MACHINE_AG, 16384, 3145728, 8192, 255, NULL, NULL },
+    {
+        .name = "[VIA Apollo Pro 133A] Acorp 6VIA90AP",
+        .internal_name = "6via90ap",
+        .type = MACHINE_TYPE_SOCKET370,
+        .chipset = MACHINE_CHIPSET_VIA_APOLLO_PRO_133A,
+        .init = machine_at_6via90ap_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET370,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 66666667,
+            .max_bus = 150000000,
+            .min_voltage = 1300,
+            .max_voltage = 3500,
+            .min_multi = MACHINE_MULTIPLIER_FIXED,
+            .max_multi = MACHINE_MULTIPLIER_FIXED,
+        },
+        .bus_flags = MACHINE_PS2_A97,
+        .flags = MACHINE_IDE_DUAL | MACHINE_AG,
+        .ram = {
+            .min = 16384,
+            .max = 3145728,
+            .step = 8192
+        },
+        .nvrmask = 255,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
     /* Has the VIA VT82C686B southbridge with on-chip KBC identical to the VIA
        VT82C42N. */
-    { "[VIA Apollo Pro 133A] ASUS CUV4X-LS",           "cuv4xls",          MACHINE_TYPE_SOCKET370,  MACHINE_CHIPSET_VIA_APOLLO_PRO_133A, machine_at_cuv4xls_init,          0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET370,                 CPU_BLOCK_NONE,                       66666667, 150000000, 1300, 3500, 1.5, 8.0, MACHINE_PS2_NOI97, MACHINE_IDE_DUAL | MACHINE_SOUND, 16384, 4194304, 8192, 255, at_cuv4xls_get_device, NULL },
+    {
+        .name = "[VIA Apollo Pro 133A] ASUS CUV4X-LS",
+        .internal_name = "cuv4xls",
+        .type = MACHINE_TYPE_SOCKET370,
+        .chipset = MACHINE_CHIPSET_VIA_APOLLO_PRO_133A,
+        .init = machine_at_cuv4xls_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET370,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 66666667,
+            .max_bus = 150000000,
+            .min_voltage = 1300,
+            .max_voltage = 3500,
+            .min_multi = 1.5,
+            .max_multi = 8.0
+        },
+        .bus_flags = MACHINE_PS2_NOI97,
+        .flags = MACHINE_IDE_DUAL | MACHINE_SOUND,
+        .ram = {
+            .min = 16384,
+            .max = 4194304,
+            .step = 8192
+        },
+        .nvrmask = 255,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = &cmi8738_onboard_device,
+        .vid_device = NULL
+    },
     /* Has a Winbond W83977EF Super I/O chip with on-chip KBC with AMIKey-2 KBC
        firmware. */
-    { "[VIA Apollo Pro 133A] BCM GT694VA",             "gt694va",          MACHINE_TYPE_SOCKET370,  MACHINE_CHIPSET_VIA_APOLLO_PRO_133A, machine_at_gt694va_init,          0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SOCKET370,                 CPU_BLOCK_NONE,                       66666667, 133333333, 1300, 3500, 1.5, 8.0, MACHINE_PS2_AGP,   MACHINE_IDE_DUAL | MACHINE_SOUND, 16384, 3145728, 8192, 255, at_gt694va_get_device, NULL },
+    {
+        .name = "[VIA Apollo Pro 133A] BCM GT694VA",
+        .internal_name = "gt694va",
+        .type = MACHINE_TYPE_SOCKET370,
+        .chipset = MACHINE_CHIPSET_VIA_APOLLO_PRO_133A,
+        .init = machine_at_gt694va_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET370,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 66666667,
+            .max_bus = 133333333,
+            .min_voltage = 1300,
+            .max_voltage = 3500,
+            .min_multi = 1.5,
+            .max_multi = 8.0
+        },
+        .bus_flags = MACHINE_PS2_AGP,
+        .flags = MACHINE_IDE_DUAL | MACHINE_SOUND,
+        .ram = {
+            .min = 16384,
+            .max = 3145728,
+            .step = 8192
+        },
+        .nvrmask = 255,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = &es1371_onboard_device,
+        .vid_device = NULL
+    },
 
     /* Miscellaneous/Fake/Hypervisor machines */
     /* Has a Winbond W83977F Super I/O chip with on-chip KBC with AMIKey-2 KBC
        firmware. */
-    { "[i440BX] Microsoft Virtual PC 2007",            "vpc2007",          MACHINE_TYPE_MISC,       MACHINE_CHIPSET_INTEL_440BX,         machine_at_vpc2007_init,          0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_SLOT1,                     CPU_BLOCK(CPU_PENTIUM2, CPU_CYRIX3S),        0, 66666667, 0, 0, 0, 0, MACHINE_PS2_PCI,   MACHINE_IDE_DUAL, 8192, 1048576, 8192, 255, NULL, NULL },
+    {
+        .name = "[i440BX] Microsoft Virtual PC 2007",
+        .internal_name = "vpc2007",
+        .type = MACHINE_TYPE_MISC,
+        .chipset = MACHINE_CHIPSET_INTEL_440BX,
+        .init = machine_at_vpc2007_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SLOT1,
+            .block = CPU_BLOCK(CPU_PENTIUM2, CPU_CYRIX3S),
+            .min_bus = 0,
+            .max_bus = 66666667,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_PS2_PCI,
+        .flags = MACHINE_IDE_DUAL,
+        .ram = {
+            .min = 8192,
+            .max = 1048576,
+            .step = 8192
+        },
+        .nvrmask = 255,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
 
-    { NULL,                                            NULL,               MACHINE_TYPE_NONE,       MACHINE_CHIPSET_NONE,                NULL,                             0, 0, MACHINE_AVAILABLE, 0 , 0,                                 CPU_BLOCK_NONE,                              0, 0, 0, 0, 0, 0, MACHINE_BUS_NONE,  MACHINE_FLAGS_NONE, 0, 0, 0, 0, NULL, NULL }
+    {
+        .name = NULL,
+        .internal_name = NULL,
+        .type = MACHINE_TYPE_NONE,
+        .chipset = MACHINE_CHIPSET_NONE,
+        .init = NULL,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = 0,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_BUS_NONE,
+        .flags = MACHINE_FLAGS_NONE,
+        .ram = {
+            .min = 0,
+            .max = 0,
+            .step = 0
+        },
+        .nvrmask = 0,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    }
 };
 
 int
@@ -1040,8 +10919,8 @@ machine_getname_ex(int m)
 const device_t *
 machine_getdevice(int m)
 {
-    if (machines[m].get_device)
-        return(machines[m].get_device());
+    if (machines[m].device)
+        return(machines[m].device);
 
     return(NULL);
 }
@@ -1049,8 +10928,8 @@ machine_getdevice(int m)
 const device_t *
 machine_getviddevice(int m)
 {
-    if (machines[m].get_vid_device)
-        return(machines[m].get_vid_device());
+    if (machines[m].vid_device)
+        return(machines[m].vid_device);
 
     return(NULL);
 }
@@ -1094,23 +10973,23 @@ machine_has_cartridge(int m)
 int
 machine_get_min_ram(int m)
 {
-    return(machines[m].min_ram);
+    return(machines[m].ram.min);
 }
 
 int
 machine_get_max_ram(int m)
 {
 #if (!(defined __amd64__ || defined _M_X64 || defined __aarch64__ || defined _M_ARM64))
-    return MIN(((int) machines[m].max_ram), 2097152);
+    return MIN(((int) machines[m].ram.max), 2097152);
 #else
-    return MIN(((int) machines[m].max_ram), 3145728);
+    return MIN(((int) machines[m].ram.max), 3145728);
 #endif
 }
 
 int
 machine_get_ram_granularity(int m)
 {
-    return(machines[m].ram_granularity);
+    return(machines[m].ram.step);
 }
 
 int

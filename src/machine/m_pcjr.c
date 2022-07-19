@@ -788,7 +788,7 @@ static const device_config_t pcjr_config[] = {
     { .name = "", .description = "", .type = CONFIG_END }
 };
 
-static const device_t pcjr_device = {
+const device_t pcjr_device = {
     "IBM PCjr",
     "pcjr",
     0,
@@ -801,13 +801,6 @@ static const device_t pcjr_device = {
     NULL,
     pcjr_config
 };
-
-const device_t *
-pcjr_get_device(void)
-{
-    return &pcjr_device;
-}
-
 
 int
 machine_pcjr_init(const machine_t *model)

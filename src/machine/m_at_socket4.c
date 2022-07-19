@@ -363,14 +363,6 @@ machine_at_pb520r_init(const machine_t *model)
     return ret;
 }
 
-
-const device_t *
-at_pb520r_get_device(void)
-{
-    return &gd5434_onboard_pci_device;
-}
-
-
 int
 machine_at_excalibur_init(const machine_t *model)
 {

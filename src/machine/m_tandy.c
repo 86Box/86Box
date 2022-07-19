@@ -1143,7 +1143,7 @@ vid_init(tandy_t *dev)
 }
 
 
-static const device_config_t vid_config[] = {
+const device_config_t vid_config[] = {
     {
         .name = "display_type",
         .description = "Display type",
@@ -1161,7 +1161,7 @@ static const device_config_t vid_config[] = {
     { .name = "", .description = "", .type = CONFIG_END }
 };
 
-static const device_t vid_device = {
+const device_t vid_device = {
     .name = "Tandy 1000",
     .internal_name = "tandy1000_video",
     .flags = 0,
@@ -1175,7 +1175,7 @@ static const device_t vid_device = {
     .config = vid_config
 };
 
-static const device_t vid_device_hx = {
+const device_t vid_device_hx = {
     .name = "Tandy 1000 HX",
     .internal_name = "tandy1000_hx_video",
     .flags = 0,
@@ -1189,7 +1189,7 @@ static const device_t vid_device_hx = {
     .config = vid_config
 };
 
-static const device_t vid_device_sl = {
+const device_t vid_device_sl = {
     .name = "Tandy 1000SL2",
     .internal_name = "tandy1000_sl_video",
     .flags = 0,
@@ -1202,26 +1202,6 @@ static const device_t vid_device_sl = {
     .force_redraw = NULL,
     .config = NULL
 };
-
-const device_t *
-tandy1k_get_device(void)
-{
-    return &vid_device;
-}
-
-
-const device_t *
-tandy1k_hx_get_device(void)
-{
-    return &vid_device_hx;
-}
-
-const device_t *
-tandy1k_sl_get_device(void)
-{
-    return &vid_device_sl;
-}
-
 
 static void
 eep_write(uint16_t addr, uint8_t val, void *priv)

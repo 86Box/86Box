@@ -418,13 +418,6 @@ machine_at_presario2240_init(const machine_t *model)
 }
 
 
-const device_t *
-at_presario2240_get_device(void)
-{
-    return &s3_trio64v2_dx_onboard_pci_device;
-}
-
-
 int
 machine_at_presario4500_init(const machine_t *model)
 {

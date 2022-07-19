@@ -130,12 +130,6 @@ machine_zenith_init(const machine_t *model){
 
 }
 
-const device_t *
-z184_get_device(void)
-{
-    return &cga_device;
-}
-
 /*
  * Current bugs and limitations:
  * - missing NVRAM implementation

@@ -642,13 +642,6 @@ const device_t m19_vid_device = {
     .config = m19_vid_config
 };
 
-const device_t *
-m19_get_device(void)
-{
-    return &m19_vid_device;
-}
-
-
 static uint8_t
 m24_read(uint16_t port, void *priv)
 {
@@ -737,14 +730,6 @@ m24_read(uint16_t port, void *priv)
 
     return(ret);
 }
-
-
-const device_t *
-m24_get_device(void)
-{
-    return &ogc_m24_device;
-}
-
 
 int
 machine_xt_m24_init(const machine_t *model)

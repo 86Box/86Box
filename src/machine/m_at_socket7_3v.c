@@ -159,14 +159,6 @@ machine_at_thor_init(const machine_t *model)
     return ret;
 }
 
-
-const device_t *
-at_thor_get_device(void)
-{
-    return &s3_phoenix_trio64vplus_onboard_pci_device;
-}
-
-
 int
 machine_at_mrthor_init(const machine_t *model)
 {
@@ -217,14 +209,6 @@ machine_at_endeavor_init(const machine_t *model)
 
     return ret;
 }
-
-
-const device_t *
-at_endeavor_get_device(void)
-{
-    return &s3_phoenix_trio64_onboard_pci_device;
-}
-
 
 int
 machine_at_ms5119_init(const machine_t *model)
@@ -288,14 +272,6 @@ machine_at_pb640_init(const machine_t *model)
 
     return ret;
 }
-
-
-const device_t *
-at_pb640_get_device(void)
-{
-    return &gd5440_onboard_pci_device;
-}
-
 
 int
 machine_at_fmb_init(const machine_t *model)
