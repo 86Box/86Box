@@ -628,10 +628,8 @@ piix_write(int func, int addr, uint8_t val, void *priv)
 					dev->fast_off_period = PCICLK * 32768.0;
 					break;
 			}
-			cpu_fast_off_count = fregs[0xa8] + 1;
-			timer_disable(&dev->fast_off_timer);
-			if (dev->fast_off_period != 0.0)
-				timer_on_auto(&dev->fast_off_timer, dev->fast_off_period);
+			cpu_fast_off_count = cpu_fast_off_val + 1;
+			cpu_fast_off_period_set(cpu_fast_off_val, dev->fast_off_period);
 		}
 		break;
 	case 0xa2:
@@ -679,9 +677,7 @@ piix_write(int func, int addr, uint8_t val, void *priv)
 			fregs[addr] = val & 0xff;
 			cpu_fast_off_val = val;
 			cpu_fast_off_count = val + 1;
-			timer_disable(&dev->fast_off_timer);
-			if (dev->fast_off_period != 0.0)
-				timer_on_auto(&dev->fast_off_timer, dev->fast_off_period);
+			cpu_fast_off_period_set(cpu_fast_off_val, dev->fast_off_period);
 		}
 		break;
 	case 0xaa:
@@ -1331,15 +1327,8 @@ piix_fast_off_count(void *priv)
 {
     piix_t *dev = (piix_t *) priv;
 
-    cpu_fast_off_count--;
-
-    if (cpu_fast_off_count == 0) {
-	smi_line = 1;
-	dev->regs[0][0xaa] |= 0x20;
-	cpu_fast_off_count = dev->regs[0][0xa8] + 1;
-    }
-
-    timer_on_auto(&dev->fast_off_timer, dev->fast_off_period);
+    smi_raise();
+    dev->regs[0][0xaa] |= 0x20;
 }
 
 
@@ -1446,7 +1435,7 @@ piix_speed_changed(void *priv)
 
     timer_stop(&dev->fast_off_timer);
     if (te)
-	timer_on_auto(&dev->fast_off_timer, dev->fast_off_period);
+	timer_on_auto(&dev->fast_off_timer, ((double) cpu_fast_off_val + 1) * dev->fast_off_period);
 }
 
 
@@ -1510,6 +1499,7 @@ static void
     if (dev->type < 4) {
 	cpu_fast_off_val = dev->regs[0][0xa8];
 	cpu_fast_off_count = cpu_fast_off_val + 1;
+	cpu_register_fast_off_handler(&dev->fast_off_timer);
     } else
 	cpu_fast_off_val = cpu_fast_off_count = 0;
 

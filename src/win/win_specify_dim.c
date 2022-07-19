@@ -28,6 +28,7 @@
 #include <86box/86box.h>
 #include <86box/config.h>
 #include <86box/plat.h>
+#include <86box/video.h>
 #include <86box/sound.h>
 #include <86box/win.h>
 
@@ -133,7 +134,7 @@ SpecifyDimensionsDialogProcedure(HWND hdlg, UINT message, WPARAM wParam, LPARAM 
 
 				scrnsz_x = fixed_size_x;
 				scrnsz_y = fixed_size_y;
-				atomic_flag_clear(&doresize);
+				atomic_store(&doresize_monitors[0], 1);
 
 				GetWindowRect(hwndMain, &r);
 

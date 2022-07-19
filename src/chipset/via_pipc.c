@@ -788,9 +788,9 @@ pipc_fm_write(uint16_t addr, uint8_t val, void *priv)
 	/* Fire NMI/SMI if enabled. */
 	if (dev->ac97_regs[0][0x48] & 0x01) {
 		if (dev->ac97_regs[0][0x48] & 0x04)
-			smi_line = 1;
+			smi_raise();
 		else
-			nmi = 1;
+			nmi_raise();
 	}
     }
 #else

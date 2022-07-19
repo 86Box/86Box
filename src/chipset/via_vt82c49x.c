@@ -234,7 +234,7 @@ vt82c49x_write(uint16_t addr, uint8_t val, void *priv)
 			case 0x54:
 				if ((dev->regs[0x5b] & 0x80) && (valxor & 0x01) && (val & 0x01)) {
 					if (dev->regs[0x5b] & 0x20)
-						smi_line = 1;
+						smi_raise();
 					else
 						picint(1 << 15);
 					dev->regs[0x55] = 0x01;

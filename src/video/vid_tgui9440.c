@@ -503,7 +503,7 @@ tgui_out(uint16_t addr, uint8_t val, void *p)
 					case 0x50:
 						if (tgui->type >= TGUI_9440) {
 							svga->hwcursor.ena = !!(val & 0x80);
-							svga->hwcursor.xsize = svga->hwcursor.ysize = ((val & 1) ? 64 : 32);
+                            svga->hwcursor.cur_xsize = svga->hwcursor.cur_ysize = ((val & 1) ? 64 : 32);
 						}
 						break;
 				}
@@ -887,7 +887,7 @@ tgui_hwcursor_draw(svga_t *svga, int displine)
 	uint32_t dat[2];
 	int xx;
 	int offset = svga->hwcursor_latch.x + svga->hwcursor_latch.xoff;
-	int pitch = (svga->hwcursor_latch.xsize == 64) ? 16 : 8;
+    int pitch = (svga->hwcursor_latch.cur_xsize == 64) ? 16 : 8;
 
 	if (svga->interlace && svga->hwcursor_oddeven)
 		svga->hwcursor_latch.addr += pitch;
@@ -3079,8 +3079,11 @@ static void *tgui_init(const device_t *info)
 
 	tgui->has_bios = (bios_fn != NULL);
 
-	if (tgui->has_bios)
+	if (tgui->has_bios) {
 		rom_init(&tgui->bios_rom, (char *) bios_fn, 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
+		if (tgui->pci)
+			mem_mapping_disable(&tgui->bios_rom.mapping);
+	}
 
 	if (tgui->pci)
 		video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_tgui_pci);
@@ -3107,7 +3110,7 @@ static void *tgui_init(const device_t *info)
 
         if (tgui->pci && (tgui->type >= TGUI_9440)) {
 		if (tgui->has_bios)
-		tgui->card = pci_add_card(PCI_ADD_VIDEO, tgui_pci_read, tgui_pci_write, tgui);
+			tgui->card = pci_add_card(PCI_ADD_VIDEO, tgui_pci_read, tgui_pci_write, tgui);
 		else
 			tgui->card = pci_add_card(PCI_ADD_VIDEO | PCI_ADD_STRICT, tgui_pci_read, tgui_pci_write, tgui);
 	}

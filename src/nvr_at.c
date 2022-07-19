@@ -466,11 +466,11 @@ timer_update(void *priv)
 		check_alarm_via(nvr, RTC_MONTH, RTC_ALMONT_SIS)*/) {
 		nvr->regs[RTC_REGC] |= REGC_AF;
 		if (nvr->regs[RTC_REGB] & REGB_AIE) {
-			nvr->regs[RTC_REGC] |= REGC_IRQF;
-
 			/* Generate an interrupt. */
-			if (nvr->irq != -1)
+			if ((nvr->irq != -1) && (!(nvr->regs[RTC_REGC] & REGC_IRQF)))
 				picint(1 << nvr->irq);
+
+			nvr->regs[RTC_REGC] |= REGC_IRQF;
 		}
 	}
 
@@ -480,11 +480,11 @@ timer_update(void *priv)
 	 */
 	nvr->regs[RTC_REGC] |= REGC_UF;
 	if (nvr->regs[RTC_REGB] & REGB_UIE) {
-		nvr->regs[RTC_REGC] |= REGC_IRQF;
-
 		/* Generate an interrupt. */
-		if (nvr->irq != -1)
+		if ((nvr->irq != -1) && (!(nvr->regs[RTC_REGC] & REGC_IRQF)))
 			picint(1 << nvr->irq);
+
+		nvr->regs[RTC_REGC] |= REGC_IRQF;
 	}
     }
 }
@@ -495,6 +495,8 @@ timer_load_count(nvr_t *nvr)
 {
     int c = nvr->regs[RTC_REGA] & REGA_RS;
     local_t *local = (local_t *) nvr->data;
+
+    timer_disable(&local->rtc_timer);
 
     if ((nvr->regs[RTC_REGA] & 0x70) != 0x20) {
 	local->state = 0;
@@ -509,9 +511,11 @@ timer_load_count(nvr_t *nvr)
 		break;
 	case 1: case 2:
 		local->count = 1 << (c + 6);
+		timer_set_delay_u64(&local->rtc_timer, (local->count) * RTCCONST);
 		break;
 	default:
 		local->count = 1 << (c - 1);
+		timer_set_delay_u64(&local->rtc_timer, (local->count) * RTCCONST);
 		break;
     }
 }
@@ -523,20 +527,16 @@ timer_intr(void *priv)
     nvr_t *nvr = (nvr_t *)priv;
     local_t *local = (local_t *)nvr->data;
 
-    timer_advance_u64(&local->rtc_timer, RTCCONST);
-
     if (local->state == 1) {
-	if (--local->count == 0) {
-		timer_load_count(nvr);
+	timer_load_count(nvr);
 
-		nvr->regs[RTC_REGC] |= REGC_PF;
-		if (nvr->regs[RTC_REGB] & REGB_PIE) {
-			nvr->regs[RTC_REGC] |= REGC_IRQF;
+	nvr->regs[RTC_REGC] |= REGC_PF;
+	if (nvr->regs[RTC_REGB] & REGB_PIE) {
+		/* Generate an interrupt. */
+		if ((nvr->irq != -1) && (!(nvr->regs[RTC_REGC] & REGC_IRQF)))
+			picint(1 << nvr->irq);
 
-			/* Generate an interrupt. */
-			if (nvr->irq != -1)
-				picint(1 << nvr->irq);
-		}
+		nvr->regs[RTC_REGC] |= REGC_IRQF;
 	}
     }
 }
@@ -809,6 +809,7 @@ nvr_read(uint16_t addr, void *priv)
     return(ret);
 }
 
+
 /* Secondary NVR write - used by SMC. */
 static void
 nvr_sec_write(uint16_t addr, uint8_t val, void *priv)
@@ -823,6 +824,7 @@ nvr_sec_read(uint16_t addr, void *priv)
 {
     return nvr_read(0x72 + (addr & 1), priv);
 }
+
 
 /* Reset the RTC state to 1980/01/01 00:00. */
 static void
@@ -883,8 +885,7 @@ nvr_at_speed_changed(void *priv)
     nvr_t *nvr = (nvr_t *) priv;
     local_t *local = (local_t *) nvr->data;
 
-    timer_disable(&local->rtc_timer);
-    timer_set_delay_u64(&local->rtc_timer, RTCCONST);
+    timer_load_count(nvr);
 
     timer_disable(&local->update_timer);
     if (local->ecount > 0ULL)
@@ -1081,7 +1082,6 @@ nvr_at_init(const device_t *info)
 		nvr->regs[RTC_REGA] = (nvr->regs[RTC_REGA] & 0x8f) | 0x20;
 	nvr_at_reset(nvr);
 	timer_load_count(nvr);
-	timer_set_delay_u64(&local->rtc_timer, RTCCONST);
 
 	/* Set up the I/O handler for this device. */
 	io_sethandler(0x0070, 2,

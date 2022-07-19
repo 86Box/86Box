@@ -2870,6 +2870,41 @@ const machine_t machines[] = {
         .device = NULL,
         .vid_device = NULL
     },
+    /* Has IBM PS/2 Type 2 KBC firmware. */
+    {
+        .name = "[MCA] IBM PS/2 model 60",
+        .internal_name = "ibmps2_m60",
+        .type = MACHINE_TYPE_286,
+        .chipset = MACHINE_CHIPSET_PROPRIETARY,
+        .init = machine_ps2_model_60_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+           .package = CPU_PKG_286 | CPU_PKG_486SLC_IBM,
+           .block = CPU_BLOCK_NONE,
+           .min_bus = 10000000,
+           .max_bus = 0,
+           .min_voltage = 0,
+           .max_voltage = 0,
+           .min_multi = 0,
+           .max_multi = 0,
+        },
+        .bus_flags = MACHINE_PS2_MCA,
+        .flags = MACHINE_VIDEO,
+        .ram = {
+            .min = 1024,
+            .max = 10240,
+            .step = 1024
+        },
+        .nvrmask = 63,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
 
     /* 386SX machines */
     /* ISA slots available because an official IBM expansion for that existed. */
@@ -3623,6 +3658,41 @@ const machine_t machines[] = {
         .device = NULL,
         .vid_device = NULL
     },
+    /* Has IBM PS/2 Type 1 KBC firmware. */
+    {
+        .name = "[MCA] IBM PS/2 model 65SX",
+        .internal_name = "ibmps2_m65sx",
+        .type = MACHINE_TYPE_386SX,
+        .chipset = MACHINE_CHIPSET_PROPRIETARY,
+        .init = machine_ps2_model_65sx_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+           .package = CPU_PKG_386SX,
+           .block = CPU_BLOCK_NONE,
+           .min_bus = 0,
+           .max_bus = 0,
+           .min_voltage = 0,
+           .max_voltage = 0,
+           .min_multi = 0,
+           .max_multi = 0,
+        },
+        .bus_flags = MACHINE_PS2_MCA,
+        .flags = MACHINE_VIDEO,
+        .ram = {
+            .min = 1024,
+            .max = 8192,
+            .step = 1024
+        },
+        .nvrmask = 63,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
 
     /* 486SLC machines */
     /* 486SLC machines with just the ISA slot */
@@ -3912,41 +3982,6 @@ const machine_t machines[] = {
     /* 386DX machines which utilize the MCA bus */
     /* Has IBM PS/2 Type 1 KBC firmware. */
     {
-        .name = "[MCA] IBM PS/2 model 70 (type 3)",
-        .internal_name = "ibmps2_m70_type3",
-        .type = MACHINE_TYPE_386DX,
-        .chipset = MACHINE_CHIPSET_PROPRIETARY,
-        .init = machine_ps2_model_70_type3_init,
-        .pad = 0,
-        .pad0 = 0,
-        .pad1 = MACHINE_AVAILABLE,
-        .pad2 = 0,
-        .cpu = {
-           .package = CPU_PKG_386DX | CPU_PKG_486BL,
-           .block = CPU_BLOCK_NONE,
-           .min_bus = 0,
-           .max_bus = 0,
-           .min_voltage = 0,
-           .max_voltage = 0,
-           .min_multi = 0,
-           .max_multi = 0,
-        },
-        .bus_flags = MACHINE_PS2_MCA,
-        .flags = MACHINE_VIDEO,
-        .ram = {
-            .min = 2048,
-            .max = 65536,
-            .step = 2048
-        },
-        .nvrmask = 63,
-        .kbc = KBC_UNKNOWN,
-        .kbc_p1 = 0,
-        .gpio = 0,
-        .device = NULL,
-        .vid_device = NULL
-    },
-    /* Has IBM PS/2 Type 1 KBC firmware. */
-    {
         .name = "[MCA] IBM PS/2 model 80 (type 2)",
         .internal_name = "ibmps2_m80",
         .type = MACHINE_TYPE_386DX,
@@ -3972,41 +4007,6 @@ const machine_t machines[] = {
             .min = 1024,
             .max = 65536,
             .step = 1024
-        },
-        .nvrmask = 63,
-        .kbc = KBC_UNKNOWN,
-        .kbc_p1 = 0,
-        .gpio = 0,
-        .device = NULL,
-        .vid_device = NULL
-    },
-    /* Has IBM PS/2 Type 1 KBC firmware. */
-    {
-        .name = "[MCA] IBM PS/2 model 80 (type 3)",
-        .internal_name = "ibmps2_m80_type3",
-        .type = MACHINE_TYPE_386DX,
-        .chipset = MACHINE_CHIPSET_PROPRIETARY,
-        .init = machine_ps2_model_80_axx_init,
-        .pad = 0,
-        .pad0 = 0,
-        .pad1 = MACHINE_AVAILABLE,
-        .pad2 = 0,
-        .cpu = {
-           .package = CPU_PKG_386DX | CPU_PKG_486BL | CPU_PKG_SOCKET1,
-           .block = CPU_BLOCK_NONE,
-           .min_bus = 0,
-           .max_bus = 0,
-           .min_voltage = 0,
-           .max_voltage = 0,
-           .min_multi = 0,
-           .max_multi = 0,
-        },
-        .bus_flags = MACHINE_PS2_MCA,
-        .flags = MACHINE_VIDEO,
-        .ram = {
-            .min = 2048,
-            .max = 65536,
-            .step = 2048
         },
         .nvrmask = 63,
         .kbc = KBC_UNKNOWN,
@@ -4117,6 +4117,76 @@ const machine_t machines[] = {
             .step = 1024
         },
         .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
+    /* Has IBM PS/2 Type 1 KBC firmware. */
+    {
+        .name = "[MCA] IBM PS/2 model 70 (type 3)",
+        .internal_name = "ibmps2_m70_type3",
+        .type = MACHINE_TYPE_386DX_486,
+        .chipset = MACHINE_CHIPSET_PROPRIETARY,
+        .init = machine_ps2_model_70_type3_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+           .package = CPU_PKG_386DX | CPU_PKG_486BL | CPU_PKG_SOCKET1,
+           .block = CPU_BLOCK_NONE,
+           .min_bus = 0,
+           .max_bus = 0,
+           .min_voltage = 0,
+           .max_voltage = 0,
+           .min_multi = 0,
+           .max_multi = 0,
+        },
+        .bus_flags = MACHINE_PS2_MCA,
+        .flags = MACHINE_VIDEO,
+        .ram = {
+            .min = 2048,
+            .max = 65536,
+            .step = 2048
+        },
+        .nvrmask = 63,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
+    /* Has IBM PS/2 Type 1 KBC firmware. */
+    {
+        .name = "[MCA] IBM PS/2 model 80 (type 3)",
+        .internal_name = "ibmps2_m80_type3",
+        .type = MACHINE_TYPE_386DX_486,
+        .chipset = MACHINE_CHIPSET_PROPRIETARY,
+        .init = machine_ps2_model_80_axx_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+           .package = CPU_PKG_386DX | CPU_PKG_486BL | CPU_PKG_SOCKET1,
+           .block = CPU_BLOCK_NONE,
+           .min_bus = 0,
+           .max_bus = 0,
+           .min_voltage = 0,
+           .max_voltage = 0,
+           .min_multi = 0,
+           .max_multi = 0,
+        },
+        .bus_flags = MACHINE_PS2_MCA,
+        .flags = MACHINE_VIDEO,
+        .ram = {
+            .min = 2048,
+            .max = 65536,
+            .step = 2048
+        },
+        .nvrmask = 63,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
         .gpio = 0,
@@ -6841,7 +6911,7 @@ const machine_t machines[] = {
            .max_multi = 3.0,
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL,
+        .flags = MACHINE_IDE_DUAL | MACHINE_GAMEPORT,
         .ram = {
             .min = 8192,
             .max = 131072,
@@ -8574,6 +8644,41 @@ const machine_t machines[] = {
            .max_voltage = 3520,
            .min_multi = 1.5,
            .max_multi = 3.0,
+        },
+        .bus_flags = MACHINE_PS2_PCI,
+        .flags = MACHINE_IDE_DUAL,
+        .ram = {
+            .min = 8192,
+            .max = 262144,
+            .step = 8192
+        },
+        .nvrmask = 255,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
+    /* Award BIOS, PS2, EDO, SDRAM, 4 PCI, 4 ISA, VIA VT82C42N KBC */
+    {
+        .name = "[i430TX] Soltek SL-56A5",
+        .internal_name = "56a5",
+        .type = MACHINE_TYPE_SOCKET7,
+        .chipset = MACHINE_CHIPSET_INTEL_430TX,
+        .init = machine_at_56a5_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+           .package = CPU_PKG_SOCKET5_7,
+           .block = CPU_BLOCK_NONE,
+           .min_bus = 55000000,
+           .max_bus = 75000000,
+           .min_voltage = 2800,
+           .max_voltage = 3520,
+           .min_multi = 1.5,
+           .max_multi = 5.5,
         },
         .bus_flags = MACHINE_PS2_PCI,
         .flags = MACHINE_IDE_DUAL,

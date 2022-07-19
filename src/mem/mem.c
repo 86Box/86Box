@@ -1319,7 +1319,6 @@ writememll(uint32_t addr, uint32_t val)
 uint32_t
 readmemll_no_mmut(uint32_t addr, uint32_t *a64)
 {
-#ifndef NO_MMUT
     mem_mapping_t *map;
 
     GDBSTUB_MEM_ACCESS(addr, GDBSTUB_MEM_READ, 4);
@@ -1367,9 +1366,6 @@ readmemll_no_mmut(uint32_t addr, uint32_t *a64)
 	       ((uint32_t) (map->read_b(addr + 3, map->p)) << 24);
 
     return 0xffffffff;
-#else
-    return readmemll(addr);
-#endif
 }
 
 
@@ -1377,7 +1373,6 @@ readmemll_no_mmut(uint32_t addr, uint32_t *a64)
 void
 writememll_no_mmut(uint32_t addr, uint32_t *a64, uint32_t val)
 {
-#ifndef NO_MMUT
     mem_mapping_t *map;
 
     GDBSTUB_MEM_ACCESS(addr, GDBSTUB_MEM_WRITE, 4);
@@ -1435,9 +1430,6 @@ writememll_no_mmut(uint32_t addr, uint32_t *a64, uint32_t val)
 	map->write_b(addr + 3, val >> 24, map->p);
 	return;
     }
-#else
-    writememll(addr, val);
-#endif
 }
 
 
@@ -1668,7 +1660,7 @@ mem_readb_phys(uint32_t addr)
 
     if (map) {
 	if (map->exec)
-		ret = map->exec[addr - map->base];
+		ret = map->exec[(addr - map->base) & map->mask];
 	else if (map->read_b)
 		ret = map->read_b(addr, map->p);
     }
@@ -1686,7 +1678,7 @@ mem_readw_phys(uint32_t addr)
     mem_logical_addr = 0xffffffff;
 
     if (((addr & MEM_GRANULARITY_MASK) <= MEM_GRANULARITY_HBOUND) && (map && map->exec)) {
-	p = (uint16_t *) &(map->exec[addr - map->base]);
+	p = (uint16_t *) &(map->exec[(addr - map->base) & map->mask]);
 	ret = *p;
     } else if (((addr & MEM_GRANULARITY_MASK) <= MEM_GRANULARITY_HBOUND) && (map && map->read_w))
 	ret = map->read_w(addr, map->p);
@@ -1708,7 +1700,7 @@ mem_readl_phys(uint32_t addr)
     mem_logical_addr = 0xffffffff;
 
     if (((addr & MEM_GRANULARITY_MASK) <= MEM_GRANULARITY_QBOUND) && (map && map->exec)) {
-	p = (uint32_t *) &(map->exec[addr - map->base]);
+	p = (uint32_t *) &(map->exec[(addr - map->base) & map->mask]);
 	ret = *p;
     } else if (((addr & MEM_GRANULARITY_MASK) <= MEM_GRANULARITY_QBOUND) && (map && map->read_l))
 	ret = map->read_l(addr, map->p);
@@ -1750,7 +1742,7 @@ mem_writeb_phys(uint32_t addr, uint8_t val)
 
     if (map) {
 	if (map->exec)
-		map->exec[addr - map->base] = val;
+		map->exec[(addr - map->base) & map->mask] = val;
 	else if (map->write_b)
 		map->write_b(addr, val, map->p);
    }
@@ -1766,7 +1758,7 @@ mem_writew_phys(uint32_t addr, uint16_t val)
     mem_logical_addr = 0xffffffff;
 
     if (((addr & MEM_GRANULARITY_MASK) <= MEM_GRANULARITY_HBOUND) && (map && map->exec)) {
-	p = (uint16_t *) &(map->exec[addr - map->base]);
+	p = (uint16_t *) &(map->exec[(addr - map->base) & map->mask]);
 	*p = val;
     } else if (((addr & MEM_GRANULARITY_MASK) <= MEM_GRANULARITY_HBOUND) && (map && map->write_w))
 	map->write_w(addr, val, map->p);
@@ -1786,7 +1778,7 @@ mem_writel_phys(uint32_t addr, uint32_t val)
     mem_logical_addr = 0xffffffff;
 
     if (((addr & MEM_GRANULARITY_MASK) <= MEM_GRANULARITY_QBOUND) && (map && map->exec)) {
-	p = (uint32_t *) &(map->exec[addr - map->base]);
+	p = (uint32_t *) &(map->exec[(addr - map->base) & map->mask]);
 	*p = val;
     } else if (((addr & MEM_GRANULARITY_MASK) <= MEM_GRANULARITY_QBOUND) && (map && map->write_l))
 	map->write_l(addr, val, map->p);
@@ -2362,6 +2354,7 @@ mem_mapping_set(mem_mapping_t *map,
 	map->enable  = 0;
     map->base    = base;
     map->size    = size;
+    map->mask    = (map->size ? 0xffffffff : 0x00000000);
     map->read_b  = read_b;
     map->read_w  = read_w;
     map->read_l  = read_l;
@@ -2480,6 +2473,15 @@ mem_mapping_set_exec(mem_mapping_t *map, uint8_t *exec)
 
 
 void
+mem_mapping_set_mask(mem_mapping_t *map, uint32_t mask)
+{
+    map->mask = mask;
+
+    mem_mapping_recalc(map->base, map->size);
+}
+
+
+void
 mem_mapping_set_p(mem_mapping_t *map, void *p)
 {
     map->p = p;
@@ -2560,6 +2562,8 @@ mem_a20_init(void)
 {
     if (is286) {
 	rammask = cpu_16bitbus ? 0xefffff : 0xffefffff;
+	if (is6117)
+		rammask |= 0x03000000;
 	flushmmucache();
 	mem_a20_state = mem_a20_key | mem_a20_alt;
     } else {
@@ -2690,6 +2694,9 @@ mem_reset(void)
 	if (cpu_16bitbus) {
 		/* 80286/386SX; maximum address space is 16MB. */
 		m = 4096;
+		/* ALi M6117; maximum address space is 64MB. */
+		if (is6117)
+			m <<= 2;
 	} else {
 		/* 80386DX+; maximum address space is 4GB. */
 		m = 1048576;
@@ -2761,8 +2768,10 @@ mem_reset(void)
     mem_init_ram_mapping(&ram_low_mapping, 0x000000, (mem_size > 640) ? 0xa0000 : mem_size * 1024);
 
     if (mem_size > 1024) {
-	if (cpu_16bitbus && mem_size > 16256)
+	if (cpu_16bitbus && !is6117 && mem_size > 16256)
 		mem_init_ram_mapping(&ram_high_mapping, 0x100000, (16256 - 1024) * 1024);
+	else if (cpu_16bitbus && is6117 && mem_size > 65408)
+		mem_init_ram_mapping(&ram_high_mapping, 0x100000, (65408 - 1024) * 1024);
 	else {
 		if (mem_size > 1048576) {
 			mem_init_ram_mapping(&ram_high_mapping, 0x100000, (1048576 - 1024) * 1024);
@@ -2904,9 +2913,13 @@ mem_a20_recalc(void)
     state = mem_a20_key | mem_a20_alt;
     if (state && !mem_a20_state) {
 	rammask = (cpu_16bitbus) ? 0xffffff : 0xffffffff;
+	if (is6117)
+		rammask |= 0x03000000;
 	flushmmucache();
     } else if (!state && mem_a20_state) {
 	rammask = (cpu_16bitbus) ? 0xefffff : 0xffefffff;
+	if (is6117)
+		rammask |= 0x03000000;
 	flushmmucache();
     }
 

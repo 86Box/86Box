@@ -494,7 +494,7 @@ svga_recalctimings(svga_t *svga)
 
     svga->hdisp_time = svga->hdisp;
     svga->render = svga_render_blank;
-    if (!svga->scrblank && svga->attr_palette_enable) {
+    if (!svga->scrblank && (svga->crtc[0x17] & 0x80) && svga->attr_palette_enable) {
 	/* TODO: In case of bug reports, disable 9-dots-wide character clocks in graphics modes. */
 	if (svga->seqregs[1] & 8)
 		svga->hdisp *= (svga->seqregs[1] & 1) ? 16 : 18;
@@ -761,8 +761,7 @@ svga_poll(void *p)
     uint32_t x, blink_delay;
     int wx, wy;
     int ret, old_ma;
-    // int lines_num = (svga->vtotal > svga->vsyncstart) ? svga->vtotal : svga->vsyncstart;
-    // int lines_num = svga->vsyncstart + 3 + 19;
+    int old_vc;
 
     if (!vga_on && ibm8514_enabled && ibm8514_on) {
         ibm8514_poll(&svga->dev8514, svga);
@@ -774,34 +773,34 @@ svga_poll(void *p)
 
     if (!svga->linepos) {
 	if (svga->displine == svga->hwcursor_latch.y && svga->hwcursor_latch.ena) {
-		svga->hwcursor_on = svga->hwcursor.ysize - svga->hwcursor_latch.yoff;
+        svga->hwcursor_on = svga->hwcursor.cur_ysize - svga->hwcursor_latch.yoff;
 		svga->hwcursor_oddeven = 0;
 	}
 
 	if (svga->displine == (svga->hwcursor_latch.y + 1) && svga->hwcursor_latch.ena &&
 			       svga->interlace) {
-		svga->hwcursor_on = svga->hwcursor.ysize - (svga->hwcursor_latch.yoff + 1);
+        svga->hwcursor_on = svga->hwcursor.cur_ysize - (svga->hwcursor_latch.yoff + 1);
 		svga->hwcursor_oddeven = 1;
 	}
 
 	if (svga->displine == svga->dac_hwcursor_latch.y && svga->dac_hwcursor_latch.ena) {
-		svga->dac_hwcursor_on = svga->dac_hwcursor.ysize - svga->dac_hwcursor_latch.yoff;
+        svga->dac_hwcursor_on = svga->dac_hwcursor.cur_ysize - svga->dac_hwcursor_latch.yoff;
 		svga->dac_hwcursor_oddeven = 0;
 	}
 
 	if (svga->displine == (svga->dac_hwcursor_latch.y + 1) && svga->dac_hwcursor_latch.ena &&
 			       svga->interlace) {
-		svga->dac_hwcursor_on = svga->dac_hwcursor.ysize - (svga->dac_hwcursor_latch.yoff + 1);
+        svga->dac_hwcursor_on = svga->dac_hwcursor.cur_ysize - (svga->dac_hwcursor_latch.yoff + 1);
 		svga->dac_hwcursor_oddeven = 1;
 	}
 
 	if (svga->displine == svga->overlay_latch.y && svga->overlay_latch.ena) {
-		svga->overlay_on = svga->overlay_latch.ysize - svga->overlay_latch.yoff;
+        svga->overlay_on = svga->overlay_latch.cur_ysize - svga->overlay_latch.yoff;
 		svga->overlay_oddeven = 0;
 	}
 
 	if (svga->displine == svga->overlay_latch.y+1 && svga->overlay_latch.ena && svga->interlace) {
-		svga->overlay_on = svga->overlay_latch.ysize - svga->overlay_latch.yoff;
+        svga->overlay_on = svga->overlay_latch.cur_ysize - svga->overlay_latch.yoff;
 		svga->overlay_oddeven = 1;
 	}
 
@@ -891,6 +890,7 @@ svga_poll(void *p)
 	        return;
 
 	svga->vc++;
+	old_vc = svga->vc;
 	svga->vc &= 2047;
 
 	if (svga->vc == svga->split) {
@@ -1072,9 +1072,9 @@ svga_init(const device_t *info, svga_t *svga, void *p, int memsize,
     svga->hwcursor_draw = hwcursor_draw;
     svga->overlay_draw = overlay_draw;
 
-    svga->hwcursor.xsize = svga->hwcursor.ysize = 32;
+    svga->hwcursor.cur_xsize = svga->hwcursor.cur_ysize = 32;
 
-    svga->dac_hwcursor.xsize = svga->dac_hwcursor.ysize = 32;
+    svga->dac_hwcursor.cur_xsize = svga->dac_hwcursor.cur_ysize = 32;
 
     svga->translate_address = NULL;
     svga->ksc5601_english_font_type = 0;

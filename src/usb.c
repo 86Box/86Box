@@ -173,7 +173,7 @@ ohci_mmio_write(uint32_t addr, uint8_t val, void *p)
     		if (val & 0x08) {
     			dev->ohci_mmio[0x0f] = 0x40;
 			if ((dev->ohci_mmio[0x13] & 0xc0) == 0xc0)
-				smi_line = 1;
+				smi_raise();
 		}
 
     		/* bit HostControllerReset must be cleared for the controller to be seen as initialized */

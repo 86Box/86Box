@@ -18,6 +18,7 @@
 #include <string.h>
 #include <wchar.h>
 #include <86box/86box.h>
+#include "cpu.h"
 #include <86box/device.h>
 #include <86box/io.h>
 #include <86box/apm.h>
@@ -264,10 +265,8 @@ sio_write(int func, int addr, uint8_t val, void *priv)
 					dev->fast_off_period = PCICLK * 32768.0;
 					break;
 			}
-			cpu_fast_off_count = dev->regs[0xa8] + 1;
-			timer_disable(&dev->fast_off_timer);
-			if (dev->fast_off_period != 0.0)
-				timer_on_auto(&dev->fast_off_timer, dev->fast_off_period);
+			cpu_fast_off_count = cpu_fast_off_val + 1;
+			cpu_fast_off_period_set(cpu_fast_off_val, dev->fast_off_period);
 		}
 		break;
 	case 0xa2:
@@ -306,9 +305,7 @@ sio_write(int func, int addr, uint8_t val, void *priv)
 		dev->regs[addr] = val & 0xff;
 		cpu_fast_off_val = val;
 		cpu_fast_off_count = val + 1;
-		timer_disable(&dev->fast_off_timer);
-		if (dev->fast_off_period != 0.0)
-			timer_on_auto(&dev->fast_off_timer, dev->fast_off_period);
+		cpu_fast_off_period_set(cpu_fast_off_val, dev->fast_off_period);
 		break;
     }
 }
@@ -429,15 +426,8 @@ sio_fast_off_count(void *priv)
 {
     sio_t *dev = (sio_t *) priv;
 
-    cpu_fast_off_count--;
-
-    if (cpu_fast_off_count == 0) {
-	smi_line = 1;
-	dev->regs[0xaa] |= 0x20;
-	cpu_fast_off_count = dev->regs[0xa8] + 1;
-    }
-
-    timer_on_auto(&dev->fast_off_timer, dev->fast_off_period);
+    smi_raise();
+    dev->regs[0xaa] |= 0x20;
 }
 
 
@@ -513,6 +503,8 @@ sio_init(const device_t *info)
     if (dev->id == 0x03) {
 	cpu_fast_off_val = dev->regs[0xa8];
 	cpu_fast_off_count = cpu_fast_off_val + 1;
+
+	cpu_register_fast_off_handler(&dev->fast_off_timer);
     } else
 	cpu_fast_off_val = cpu_fast_off_count = 0;
 

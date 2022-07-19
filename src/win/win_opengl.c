@@ -871,21 +871,21 @@ static void opengl_main(void* param)
 	CoUninitialize();
 }
 
-static void opengl_blit(int x, int y, int w, int h)
+static void opengl_blit(int x, int y, int w, int h, int monitor_index)
 {
 	int row;
 
 	if ((x < 0) || (y < 0) || (w <= 0) || (h <= 0) || (w > 2048) || (h > 2048) || (buffer32 == NULL) || (thread == NULL) ||
-		atomic_flag_test_and_set(&blit_info[write_pos].in_use))
+		atomic_flag_test_and_set(&blit_info[write_pos].in_use) || monitor_index >= 1)
 	{
-		video_blit_complete();
+		video_blit_complete_monitor(monitor_index);
 		return;
 	}
 
 	for (row = 0; row < h; ++row)
 		video_copy(&(((uint8_t *) blit_info[write_pos].buffer)[row * ROW_LENGTH * sizeof(uint32_t)]), &(buffer32->line[y + row][x]), w * sizeof(uint32_t));
 
-	if (screenshots)
+	if (monitors[0].mon_screenshots)
 		video_screenshot(blit_info[write_pos].buffer, 0, 0, ROW_LENGTH);
 
 	video_blit_complete();

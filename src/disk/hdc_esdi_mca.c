@@ -90,11 +90,11 @@
 #define BIOS_FILE_H	"roms/hdd/esdi/90x8970.bin"
 
 
-#define ESDI_TIME	(200*TIMER_USEC)
+#define ESDI_TIME	512
 #define CMD_ADAPTER	0
 
 
-typedef struct esdi_drive {
+typedef struct esdi_drive_t {
     int spt, hpc;
     int tracks;
     int sectors;
@@ -102,7 +102,7 @@ typedef struct esdi_drive {
     int hdd_num;
 } drive_t;
 
-typedef struct esdi {
+typedef struct esdi_t {
     int8_t	dma;
 
     uint32_t	bios;
@@ -240,10 +240,10 @@ esdi_mca_set_callback(esdi_t *dev, uint64_t callback)
 
     if (callback) {
 	dev->callback = callback;
-	timer_set_delay_u64(&dev->timer, dev->callback);
+	timer_on_auto(&dev->timer, dev->callback);
 	} else {
 	dev->callback = 0;
-	timer_disable(&dev->timer);
+	timer_stop(&dev->timer);
 	}
 }
 
@@ -824,11 +824,11 @@ esdi_read(uint16_t port, void *priv)
     uint8_t ret = 0xff;
 
     switch (port & 7) {
-	case 2:					/*Basic status register*/
+	case 2: /*Basic status register*/
 		ret = dev->status;
 		break;
 
-	case 3:					/*IRQ status*/
+	case 3: /*IRQ status*/
 		dev->status &= ~STATUS_IRQ;
 		ret = dev->irq_status;
 		break;

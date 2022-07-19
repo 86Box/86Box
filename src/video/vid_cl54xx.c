@@ -596,7 +596,7 @@ gd54xx_update_overlay(gd54xx_t *gd54xx)
     svga_t *svga = &gd54xx->svga;
     int bpp = svga->bpp;
 
-    svga->overlay.ysize = gd54xx->overlay.wve - gd54xx->overlay.wvs + 1;
+    svga->overlay.cur_ysize = gd54xx->overlay.wve - gd54xx->overlay.wvs + 1;
     gd54xx->overlay.region1size = 32 * gd54xx->overlay.r1sz / bpp + (gd54xx->overlay.r1adjust * 8 / bpp);
     gd54xx->overlay.region2size = 32 * gd54xx->overlay.r2sz / bpp + (gd54xx->overlay.r2adjust * 8 / bpp);
 
@@ -741,10 +741,10 @@ gd54xx_out(uint16_t addr, uint8_t val, void *p)
 					svga_recalctimings(svga);
 					svga->hwcursor.ena = val & CIRRUS_CURSOR_SHOW;
 					if (svga->crtc[0x27] >= CIRRUS_ID_CLGD5422)
-						svga->hwcursor.xsize = svga->hwcursor.ysize =
+                        svga->hwcursor.cur_xsize = svga->hwcursor.cur_ysize =
 								       ((val & CIRRUS_CURSOR_LARGE) && (svga->crtc[0x27] >= CIRRUS_ID_CLGD5422)) ? 64 : 32;
 					else
-						svga->hwcursor.xsize = 32;
+                        svga->hwcursor.cur_xsize = 32;
 
 					if ((svga->seqregs[0x12] & CIRRUS_CURSOR_LARGE) && (svga->crtc[0x27] >= CIRRUS_ID_CLGD5422))
 						svga->hwcursor.addr = ((gd54xx->vram_size - 0x4000) + ((svga->seqregs[0x13] & 0x3c) * 256));
@@ -1859,7 +1859,7 @@ void gd54xx_hwcursor_draw(svga_t *svga, int displine)
     int x, xx, comb, b0, b1;
     uint8_t dat[2];
     int offset = svga->hwcursor_latch.x - svga->hwcursor_latch.xoff;
-    int pitch = (svga->hwcursor.xsize == 64) ? 16 : 4;
+    int pitch = (svga->hwcursor.cur_xsize == 64) ? 16 : 4;
     uint32_t bgcol = gd54xx->extpallook[0x00];
     uint32_t fgcol = gd54xx->extpallook[0x0f];
     uint8_t linedbl = svga->dispend * 9 / 10 >= svga->hdisp;
@@ -1869,9 +1869,9 @@ void gd54xx_hwcursor_draw(svga_t *svga, int displine)
     if (svga->interlace && svga->hwcursor_oddeven)
 	svga->hwcursor_latch.addr += pitch;
 
-    for (x = 0; x < svga->hwcursor.xsize; x += 8) {
+    for (x = 0; x < svga->hwcursor.cur_xsize; x += 8) {
 	dat[0] = svga->vram[svga->hwcursor_latch.addr & svga->vram_display_mask];
-	if (svga->hwcursor.xsize == 64)
+    if (svga->hwcursor.cur_xsize == 64)
 		dat[1] = svga->vram[(svga->hwcursor_latch.addr + 0x08) & svga->vram_display_mask];
 	else
 		dat[1] = svga->vram[(svga->hwcursor_latch.addr + 0x80) & svga->vram_display_mask];
@@ -1905,7 +1905,7 @@ void gd54xx_hwcursor_draw(svga_t *svga, int displine)
 	svga->hwcursor_latch.addr++;
     }
 
-    if (svga->hwcursor.xsize == 64)
+    if (svga->hwcursor.cur_xsize == 64)
 	svga->hwcursor_latch.addr += 8;
 
     if (svga->interlace && !svga->hwcursor_oddeven)
@@ -3730,6 +3730,11 @@ cl_pci_write(int func, int addr, uint8_t val, void *p)
 			io_sethandler(0x03c0, 0x0020, gd54xx_in, NULL, NULL, gd54xx_out, NULL, NULL, gd54xx);
 		if ((val & PCI_COMMAND_MEM) && (gd54xx->vgablt_base != 0x00000000) && (gd54xx->vgablt_base < 0xfff00000))
 			mem_mapping_set_addr(&gd54xx->vgablt_mapping, gd54xx->vgablt_base, 0x1000);
+		if ((gd54xx->pci_regs[PCI_REG_COMMAND] & PCI_COMMAND_MEM) && (gd54xx->pci_regs[0x30] & 0x01)) {
+			uint32_t addr = (gd54xx->pci_regs[0x32] << 16) | (gd54xx->pci_regs[0x33] << 24);
+			mem_mapping_set_addr(&gd54xx->bios_rom.mapping, addr, 0x8000);
+		} else
+			mem_mapping_disable(&gd54xx->bios_rom.mapping);
 		gd543x_recalc_mapping(gd54xx);
 		break;
 
@@ -3757,7 +3762,7 @@ cl_pci_write(int func, int addr, uint8_t val, void *p)
 
 	case 0x30: case 0x32: case 0x33:
 		gd54xx->pci_regs[addr] = val;
-		if (gd54xx->pci_regs[0x30] & 0x01) {
+		if ((gd54xx->pci_regs[PCI_REG_COMMAND] & PCI_COMMAND_MEM) && (gd54xx->pci_regs[0x30] & 0x01)) {
 			uint32_t addr = (gd54xx->pci_regs[0x32] << 16) | (gd54xx->pci_regs[0x33] << 24);
 			mem_mapping_set_addr(&gd54xx->bios_rom.mapping, addr, 0x8000);
 		} else
@@ -4083,8 +4088,10 @@ static void
     }
     io_sethandler(0x03c0, 0x0020, gd54xx_in, NULL, NULL, gd54xx_out, NULL, NULL, gd54xx);
 
-    if (gd54xx->pci && id >= CIRRUS_ID_CLGD5430)
+    if (gd54xx->pci && id >= CIRRUS_ID_CLGD5430) {
 	pci_add_card(PCI_ADD_VIDEO, cl_pci_read, cl_pci_write, gd54xx);
+	mem_mapping_disable(&gd54xx->bios_rom.mapping);
+    }
 
     mem_mapping_set_p(&svga->mapping, gd54xx);
     mem_mapping_disable(&gd54xx->mmio_mapping);

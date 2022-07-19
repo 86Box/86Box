@@ -62,14 +62,16 @@ extern void	ui_check_menu_item(int id, int checked);
 
 extern wchar_t  *ui_window_title(wchar_t *s);
 extern void	ui_status_update(void);
+extern void ui_init_monitor(int monitor_index);
+extern void ui_deinit_monitor(int monitor_index);
 extern int	ui_sb_find_part(int tag);
 extern void	ui_sb_set_ready(int ready);
 extern void	ui_sb_update_panes(void);
 extern void	ui_sb_update_text(void);
 extern void	ui_sb_update_tip(int meaning);
 extern void	ui_sb_timer_callback(int pane);
-extern void	ui_sb_update_icon(int tag, int val);
-extern void	ui_sb_update_icon_state(int tag, int active);
+extern void	ui_sb_update_icon(int tag, int active);
+extern void	ui_sb_update_icon_state(int tag, int state);
 extern void	ui_sb_set_text_w(wchar_t *wstr);
 extern void	ui_sb_set_text(char *str);
 extern void	ui_sb_bugui(char *str);

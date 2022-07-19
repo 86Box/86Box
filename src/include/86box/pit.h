@@ -70,8 +70,8 @@ extern uint64_t	PITCONST, ISACONST,
 		HERCCONST,
 		VGACONST1,
 		VGACONST2,
-		RTCCONST, ACPICONST,
-        TCOCONST;
+		RTCCONST,
+		TCOCONST;
 
 extern int	refresh_at_enable;
 

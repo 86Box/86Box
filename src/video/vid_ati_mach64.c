@@ -1926,8 +1926,8 @@ static void mach64_vblank_start(svga_t *svga)
         svga->overlay.x = (mach64->overlay_y_x_start >> 16) & 0x7ff;
         svga->overlay.y = mach64->overlay_y_x_start & 0x7ff;
 
-        svga->overlay.xsize = ((mach64->overlay_y_x_end >> 16) & 0x7ff) - svga->overlay.x;
-        svga->overlay.ysize = (mach64->overlay_y_x_end & 0x7ff) - svga->overlay.y;
+        svga->overlay.cur_xsize = ((mach64->overlay_y_x_end >> 16) & 0x7ff) - svga->overlay.x;
+        svga->overlay.cur_ysize = (mach64->overlay_y_x_end & 0x7ff) - svga->overlay.y;
 
         svga->overlay.addr = mach64->buf_offset[0] & 0x3ffff8;
         svga->overlay.pitch = mach64->buf_pitch[0] & 0xfff;
@@ -3050,7 +3050,7 @@ uint32_t mach64_readl(uint32_t addr, void *p)
 #define DECODE_ARGB1555()                                               \
         do                                                              \
         {                                                               \
-                for (x = 0; x < mach64->svga.overlay_latch.xsize; x++)  \
+                for (x = 0; x < mach64->svga.overlay_latch.cur_xsize; x++)  \
                 {                                                       \
                         uint16_t dat = ((uint16_t *)src)[x];            \
                                                                         \
@@ -3069,7 +3069,7 @@ uint32_t mach64_readl(uint32_t addr, void *p)
 #define DECODE_RGB565()                                                 \
         do                                                              \
         {                                                               \
-                for (x = 0; x < mach64->svga.overlay_latch.xsize; x++)  \
+                for (x = 0; x < mach64->svga.overlay_latch.cur_xsize; x++)  \
                 {                                                       \
                         uint16_t dat = ((uint16_t *)src)[x];            \
                                                                         \
@@ -3088,7 +3088,7 @@ uint32_t mach64_readl(uint32_t addr, void *p)
 #define DECODE_ARGB8888()                                               \
         do                                                              \
         {                                                               \
-                for (x = 0; x < mach64->svga.overlay_latch.xsize; x++)  \
+                for (x = 0; x < mach64->svga.overlay_latch.cur_xsize; x++)  \
                 {                                                       \
                         int b = src[0];                                 \
                         int g = src[1];                                 \
@@ -3102,7 +3102,7 @@ uint32_t mach64_readl(uint32_t addr, void *p)
 #define DECODE_VYUY422()                                                  \
         do                                                              \
         {                                                               \
-                for (x = 0; x < mach64->svga.overlay_latch.xsize; x += 2)  \
+                for (x = 0; x < mach64->svga.overlay_latch.cur_xsize; x += 2)  \
                 {                                                       \
                         uint8_t y1, y2;                                 \
                         int8_t u, v;                                    \
@@ -3140,7 +3140,7 @@ uint32_t mach64_readl(uint32_t addr, void *p)
 #define DECODE_YVYU422()                                                  \
         do                                                              \
         {                                                               \
-                for (x = 0; x < mach64->svga.overlay_latch.xsize; x += 2)  \
+                for (x = 0; x < mach64->svga.overlay_latch.cur_xsize; x += 2)  \
                 {                                                       \
                         uint8_t y1, y2;                                 \
                         int8_t u, v;                                    \
@@ -3217,7 +3217,7 @@ void mach64_overlay_draw(svga_t *svga, int displine)
                         default:
                         mach64_log("Unknown Mach64 scaler format %x\n", mach64->scaler_format);
                         /*Fill buffer with something recognisably wrong*/
-                        for (x = 0; x < mach64->svga.overlay_latch.xsize; x++)
+                        for (x = 0; x < mach64->svga.overlay_latch.cur_xsize; x++)
                                 mach64->overlay_dat[x] = 0xff00ff;
                         break;
                 }
@@ -3225,7 +3225,7 @@ void mach64_overlay_draw(svga_t *svga, int displine)
 
         if (overlay_cmp_mix == 2)
         {
-                for (x = 0; x < mach64->svga.overlay_latch.xsize; x++)
+                for (x = 0; x < mach64->svga.overlay_latch.cur_xsize; x++)
                 {
                         int h = h_acc >> 12;
 
@@ -3238,7 +3238,7 @@ void mach64_overlay_draw(svga_t *svga, int displine)
         }
         else
         {
-                for (x = 0; x < mach64->svga.overlay_latch.xsize; x++)
+                for (x = 0; x < mach64->svga.overlay_latch.cur_xsize; x++)
                 {
                         int h = h_acc >> 12;
                         int gr_cmp = 0, vid_cmp = 0;
@@ -3530,15 +3530,12 @@ static void *mach64_common_init(const device_t *info)
                    mach64_in, mach64_out,
                    NULL,
                    mach64_overlay_draw);
-	mach64->svga.dac_hwcursor.ysize = 64;
+    mach64->svga.dac_hwcursor.cur_ysize = 64;
 
-        if (info->flags & DEVICE_PCI)
-                mem_mapping_disable(&mach64->bios_rom.mapping);
-
-			mem_mapping_add(&mach64->linear_mapping,        0,       0,       svga_read_linear, svga_readw_linear, svga_readl_linear, svga_write_linear, svga_writew_linear, svga_writel_linear, NULL, MEM_MAPPING_EXTERNAL, &mach64->svga);
-        	mem_mapping_add(&mach64->mmio_linear_mapping,   0,       0,       mach64_ext_readb, mach64_ext_readw,  mach64_ext_readl,  mach64_ext_writeb, mach64_ext_writew,  mach64_ext_writel,  NULL, MEM_MAPPING_EXTERNAL,  mach64);
-	        mem_mapping_add(&mach64->mmio_linear_mapping_2, 0,       0,       mach64_ext_readb, mach64_ext_readw,  mach64_ext_readl,  mach64_ext_writeb, mach64_ext_writew,  mach64_ext_writel,  NULL, MEM_MAPPING_EXTERNAL,  mach64);
-        	mem_mapping_add(&mach64->mmio_mapping,          0xbc000, 0x04000, mach64_ext_readb, mach64_ext_readw,  mach64_ext_readl,  mach64_ext_writeb, mach64_ext_writew,  mach64_ext_writel,  NULL, MEM_MAPPING_EXTERNAL,  mach64);
+	mem_mapping_add(&mach64->linear_mapping,        0,       0,       svga_read_linear, svga_readw_linear, svga_readl_linear, svga_write_linear, svga_writew_linear, svga_writel_linear, NULL, MEM_MAPPING_EXTERNAL, &mach64->svga);
+       	mem_mapping_add(&mach64->mmio_linear_mapping,   0,       0,       mach64_ext_readb, mach64_ext_readw,  mach64_ext_readl,  mach64_ext_writeb, mach64_ext_writew,  mach64_ext_writel,  NULL, MEM_MAPPING_EXTERNAL,  mach64);
+        mem_mapping_add(&mach64->mmio_linear_mapping_2, 0,       0,       mach64_ext_readb, mach64_ext_readw,  mach64_ext_readl,  mach64_ext_writeb, mach64_ext_writew,  mach64_ext_writel,  NULL, MEM_MAPPING_EXTERNAL,  mach64);
+       	mem_mapping_add(&mach64->mmio_mapping,          0xbc000, 0x04000, mach64_ext_readb, mach64_ext_readw,  mach64_ext_readl,  mach64_ext_writeb, mach64_ext_writew,  mach64_ext_writel,  NULL, MEM_MAPPING_EXTERNAL,  mach64);
         mem_mapping_disable(&mach64->mmio_mapping);
 
         mach64_io_set(mach64);
@@ -3604,6 +3601,9 @@ static void *mach64gx_init(const device_t *info)
 	else if (info->flags & DEVICE_ISA)
 	        rom_init(&mach64->bios_rom, BIOS_ISA_ROM_PATH, 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
 
+        if (info->flags & DEVICE_PCI)
+                mem_mapping_disable(&mach64->bios_rom.mapping);
+
         return mach64;
 }
 static void *mach64vt2_init(const device_t *info)
@@ -3627,6 +3627,9 @@ static void *mach64vt2_init(const device_t *info)
         ati_eeprom_load(&mach64->eeprom, "mach64vt.nvr", 1);
 
         rom_init(&mach64->bios_rom, BIOS_ROMVT2_PATH, 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
+
+        if (info->flags & DEVICE_PCI)
+                mem_mapping_disable(&mach64->bios_rom.mapping);
 
         svga->vblank_start = mach64_vblank_start;
 

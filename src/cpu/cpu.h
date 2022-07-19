@@ -501,7 +501,7 @@ extern double   fpu_multi;
 extern int	cpu_cyrix_alignment;	/*Cyrix 5x86/6x86 only has data misalignment
 					  penalties when crossing 8-byte boundaries*/
 
-extern int	is8086,	is286, is386, is486;
+extern int	is8086,	is286, is386, is6117, is486;
 extern int	is_am486, is_am486dxl, is_pentium, is_k5, is_k6, is_p6, is_cxsmm;
 extern int	hascache;
 extern int	isibm486;
@@ -738,5 +738,13 @@ extern void	(*cpu_exec)(int cycs);
 extern uint8_t	do_translate, do_translate2;
 
 extern void	reset_808x(int hard);
+
+extern void	cpu_register_fast_off_handler(void *timer);
+extern void	cpu_fast_off_advance(void);
+extern void	cpu_fast_off_period_set(uint16_t vla, double period);
+extern void	cpu_fast_off_reset(void);
+
+extern void	smi_raise();
+extern void	nmi_raise();
 
 #endif	/*EMU_CPU_H*/

@@ -40,6 +40,7 @@
 
 
 extern const device_t	ps2_nvr_device;
+extern const device_t   ps2_nvr_55ls_device;
 
 
 #endif	/*EMU_NVRPS2_H*/

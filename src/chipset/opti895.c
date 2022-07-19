@@ -175,7 +175,7 @@ opti895_write(uint16_t addr, uint8_t val, void *priv)
 
 				case 0xe1:
 					if ((val & 0x08) && (dev->regs[0xe0] & 0x01)) {
-						smi_line = 1;
+						smi_raise();
 						dev->forced_green = 1;
 						break;
 					}

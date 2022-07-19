@@ -21,6 +21,8 @@
 #ifndef EMU_PLAT_H
 # define EMU_PLAT_H
 
+#include <stdint.h>
+#include <stdio.h>
 #include "86box/device.h"
 #include "86box/machine.h"
 #ifndef GLOBAL
@@ -68,16 +70,17 @@ extern int strnicmp(const char* s1, const char* s2, size_t n);
 #ifdef __cplusplus
 #include <atomic>
 #define atomic_flag_t std::atomic_flag
+#define atomic_bool_t std::atomic_bool
 extern "C" {
 #else
 #include <stdatomic.h>
 #define atomic_flag_t atomic_flag
+#define atomic_bool_t atomic_bool
 #endif
 
 /* Global variables residing in the platform module. */
 extern int	dopause,			/* system is paused */
 		mouse_capture;			/* mouse is captured in app */
-extern atomic_flag_t doresize;			/* screen resize requested */
 extern volatile int	is_quit;				/* system exit requested */
 
 #ifdef MTR_ENABLED
@@ -89,9 +92,6 @@ extern int	infocus;
 extern char	emu_version[200];		/* version ID string */
 extern int	rctrl_is_lalt;
 extern int	update_icons;
-
-extern int	unscaled_size_x,		/* current unscaled size X */
-		unscaled_size_y;		/* current unscaled size Y */
 
 extern int	kbd_req_capture, hide_status_bar, hide_tool_bar;
 
@@ -120,7 +120,9 @@ extern char	*plat_vidapi_name(int api);
 extern int	plat_setvid(int api);
 extern void	plat_vidsize(int x, int y);
 extern void	plat_setfullscreen(int on);
-extern void	plat_resize(int x, int y);
+extern void	plat_resize_monitor(int x, int y, int monitor_index);
+extern void plat_resize_request(int x, int y, int monitor_index);
+extern void     plat_resize(int x, int y);
 extern void	plat_vidapi_enable(int enabled);
 extern void	plat_vidapi_reload(void);
 extern void	plat_vid_reload_options(void);

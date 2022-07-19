@@ -1816,6 +1816,16 @@ sb_16_pnp_init(const device_t *info)
 
     isapnp_add_card(sb_16_pnp_rom, sizeof(sb_16_pnp_rom), sb_16_pnp_config_changed, NULL, NULL, NULL, sb);
 
+    sb_dsp_setaddr(&sb->dsp, 0);
+    sb_dsp_setirq(&sb->dsp, 0);
+    sb_dsp_setdma8(&sb->dsp, ISAPNP_DMA_DISABLED);
+    sb_dsp_setdma16(&sb->dsp, ISAPNP_DMA_DISABLED);
+
+    mpu401_change_addr(sb->mpu, 0);
+    ide_remove_handlers(2);
+
+    gameport_remap(sb->gameport, 0);
+
     return sb;
 }
 
@@ -2016,6 +2026,18 @@ sb_awe32_pnp_init(const device_t *info)
             isapnp_add_card(pnp_rom, sizeof(sb->pnp_rom), sb_awe64_gold_pnp_config_changed, NULL, NULL, NULL, sb);
             break;
     }
+
+    sb_dsp_setaddr(&sb->dsp, 0);
+    sb_dsp_setirq(&sb->dsp, 0);
+    sb_dsp_setdma8(&sb->dsp, ISAPNP_DMA_DISABLED);
+    sb_dsp_setdma16(&sb->dsp, ISAPNP_DMA_DISABLED);
+
+    mpu401_change_addr(sb->mpu, 0);
+    ide_remove_handlers(2);
+
+    emu8k_change_addr(&sb->emu8k, 0);
+
+    gameport_remap(sb->gameport, 0);
 
     return sb;
 }

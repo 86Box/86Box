@@ -1240,7 +1240,7 @@ capture_event(es1371_t *dev, int type, int rw, uint16_t port)
         dev->legacy_ctrl &= ~LEGACY_EVENT_TYPE_RW;
     dev->legacy_ctrl |= ((port << LEGACY_EVENT_ADDR_SHIFT) & LEGACY_EVENT_ADDR_MASK);
     dev->legacy_ctrl &= ~LEGACY_INT;
-    nmi = 1;
+    nmi_raise();
 }
 
 static void

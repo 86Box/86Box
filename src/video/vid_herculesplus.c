@@ -80,13 +80,17 @@ typedef struct {
     uint16_t	ma, maback;
     int		con, coff, cursoron;
     int		dispon, blink;
-    int	vsynctime;
+    int     vsynctime;
     int		vadj;
+    int     monitor_index, prev_monitor_index;
 
     int		cols[256][2][2];
 
     uint8_t	*vram;
 } herculesplus_t;
+
+#define VIDEO_MONITOR_PROLOGUE() { dev->prev_monitor_index = monitor_index_global; monitor_index_global = dev->monitor_index; }
+#define VIDEO_MONITOR_EPILOGUE() { monitor_index_global = dev->prev_monitor_index; }
 
 static video_timings_t timing_herculesplus = {VIDEO_ISA, 8, 16, 32,   8, 16, 32};
 
@@ -180,7 +184,7 @@ herculesplus_in(uint16_t port, void *priv)
 		break;
 
 	case 0x3ba:
-		/* 0x50: InColor card identity */
+        /* 0x10: Hercules Plus card identity */
 		ret = (dev->stat & 0xf) | ((dev->stat & 8) << 4) | 0x10;
 		break;
     }
@@ -489,6 +493,7 @@ herculesplus_poll(void *priv)
     uint16_t ca = (dev->crtc[15] | (dev->crtc[14] << 8)) & 0x3fff;
     int x, oldvc, oldsc;
 
+    VIDEO_MONITOR_PROLOGUE();
     if (! dev->linepos) {
 	timer_advance_u64(&dev->timer, dev->dispofftime);
 	dev->stat |= 1;
@@ -602,6 +607,8 @@ herculesplus_poll(void *priv)
 	if ((dev->sc == (dev->crtc[10] & 31) || ((dev->crtc[8] & 3) == 3 && dev->sc == ((dev->crtc[10] & 31) >> 1))))
 		dev->con = 1;
     }
+
+    VIDEO_MONITOR_EPILOGUE();
 }
 
 
@@ -615,10 +622,11 @@ herculesplus_init(const device_t *info)
     memset(dev, 0, sizeof(herculesplus_t));
 
     dev->vram = (uint8_t *)malloc(0x10000);	/* 64k VRAM */
+    dev->monitor_index = monitor_index_global;
 
     timer_add(&dev->timer, herculesplus_poll, dev, 1);
 
-    mem_mapping_add(&dev->mapping, 0xb0000, 0x10000,
+    mem_mapping_add(&dev->mapping, 0xb0000, 0x08000,
 		    herculesplus_read,NULL,NULL,
 		    herculesplus_write,NULL,NULL,
 		    dev->vram, MEM_MAPPING_EXTERNAL, dev);

@@ -2900,6 +2900,8 @@ static void s3_recalctimings(svga_t *svga)
 		if (svga->crtc[0x5e] & 0x04) svga->vblankstart |= 0x400;
 		if (svga->crtc[0x5e] & 0x10) svga->vsyncstart  |= 0x400;
 		if (svga->crtc[0x5e] & 0x40) svga->split       |= 0x400;
+		if (s3->accel.advfunc_cntl & 0x01)
+			svga->split = 0x7fff;
 		if (svga->crtc[0x51] & 0x30)      svga->rowoffset  |= (svga->crtc[0x51] & 0x30) << 4;
 		else if (svga->crtc[0x43] & 0x04) svga->rowoffset  |= 0x100;
 	} else if (svga->crtc[0x43] & 0x04) svga->rowoffset  |= 0x100;
@@ -3068,6 +3070,10 @@ static void s3_recalctimings(svga_t *svga)
 			break;
 			case 16:
 			svga->render = svga_render_16bpp_highres;
+			if ((s3->card_type == S3_ELSAWIN2KPROX_964) || (s3->card_type == S3_ELSAWIN2KPROX)) {
+				if (s3->width == 1280 || s3->width == 1600)
+					svga->hdisp <<= 1;
+			}
 			if ((s3->chip != S3_VISION964) && (s3->card_type != S3_SPEA_MIRAGE_86C801) &&
 				(s3->card_type != S3_SPEA_MIRAGE_86C805)) {
 				if (s3->chip == S3_86C928)
@@ -3273,7 +3279,7 @@ static void s3_trio64v_recalctimings(svga_t *svga)
 
                 svga->overlay.x = s3->streams.sec_x - s3->streams.pri_x;
                 svga->overlay.y = s3->streams.sec_y - s3->streams.pri_y;
-                svga->overlay.ysize = s3->streams.sec_h;
+                svga->overlay.cur_ysize = s3->streams.sec_h;
 
                 if (s3->streams.buffer_ctrl & 2)
                         svga->overlay.addr = s3->streams.sec_fb1;
@@ -7092,7 +7098,7 @@ static void *s3_init(const device_t *info)
 		}
 	}
 
-	svga->hwcursor.ysize = 64;
+    svga->hwcursor.cur_ysize = 64;
 
 	if (chip == S3_VISION964 && info->local != S3_ELSAWIN2KPROX_964)
 		svga->dac_hwcursor_draw = bt48x_hwcursor_draw;

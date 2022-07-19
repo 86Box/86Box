@@ -552,14 +552,8 @@ load_general(void)
     if (window_remember || (vid_resize & 2)) {
 	if (!window_remember)
 		config_delete_var(cat, "window_remember");
-
-	p = config_get_string(cat, "window_coordinates", NULL);
-	if (p == NULL)
-		p = "0, 0, 0, 0";
-	sscanf(p, "%i, %i, %i, %i", &window_w, &window_h, &window_x, &window_y);
     } else {
 	config_delete_var(cat, "window_remember");
-	config_delete_var(cat, "window_coordinates");
 
 	window_w = window_h = window_x = window_y = 0;
     }
@@ -593,23 +587,21 @@ load_general(void)
     confirm_exit = config_get_int(cat, "confirm_exit", 1);
     confirm_save = config_get_int(cat, "confirm_save", 1);
 
-	p = config_get_string(cat, "language", NULL);
-	if (p != NULL)
-	{
-		lang_id = plat_language_code(p);
-	}
+    p = config_get_string(cat, "language", NULL);
+    if (p != NULL)
+	lang_id = plat_language_code(p);
 
     mouse_sensitivity = config_get_double(cat, "mouse_sensitivity", 1.0);
     if (mouse_sensitivity < 0.5)
-        mouse_sensitivity = 0.5;
+	mouse_sensitivity = 0.5;
     else if (mouse_sensitivity > 2.0)
-        mouse_sensitivity = 2.0;
+	mouse_sensitivity = 2.0;
 
-	p = config_get_string(cat, "iconset", NULL);
-	if (p != NULL)
-		strcpy(icon_set, p);
-	else
-		strcpy(icon_set, "");
+    p = config_get_string(cat, "iconset", NULL);
+    if (p != NULL)
+	strcpy(icon_set, p);
+    else
+	strcpy(icon_set, "");
 
     enable_discord = !!config_get_int(cat, "enable_discord", 0);
 
@@ -932,6 +924,49 @@ load_video(void)
     voodoo_enabled = !!config_get_int(cat, "voodoo", 0);
     ibm8514_enabled = !!config_get_int(cat, "8514a", 0);
     xga_enabled = !!config_get_int(cat, "xga", 0);
+    show_second_monitors = !!config_get_int(cat, "show_second_monitors", 1);
+    p = config_get_string(cat, "gfxcard_2", NULL);
+    if (!p) p = "none";
+    gfxcard_2 = video_get_video_from_internal_name(p);
+}
+
+
+static void
+load_monitor(int monitor_index)
+{
+    char monitor_config_name[sizeof("Monitor #") + 12] = { [0] = 0 };
+    char* ptr = NULL;
+
+	if (monitor_index == 0) {
+		/* Migrate configs */
+        ptr = config_get_string("General", "window_coordinates", NULL);
+		
+		config_delete_var("General", "window_coordinates");
+	}
+    snprintf(monitor_config_name, sizeof(monitor_config_name), "Monitor #%i", monitor_index + 1);
+    if (!ptr) ptr = config_get_string(monitor_config_name, "window_coordinates", "0, 0, 0, 0");
+    if (window_remember || (vid_resize & 2)) sscanf(ptr, "%i, %i, %i, %i",
+	&monitor_settings[monitor_index].mon_window_x, &monitor_settings[monitor_index].mon_window_y,
+    &monitor_settings[monitor_index].mon_window_w, &monitor_settings[monitor_index].mon_window_h);
+}
+
+static void
+save_monitor(int monitor_index)
+{
+    char monitor_config_name[sizeof("Monitor #") + 12] = { [0] = 0 };
+    char saved_coordinates[12 * 4 + 8 + 1] = { [0] = 0 };
+
+    snprintf(monitor_config_name, sizeof(monitor_config_name), "Monitor #%i", monitor_index + 1);
+    if (!(monitor_settings[monitor_index].mon_window_x == 0
+        && monitor_settings[monitor_index].mon_window_y == 0
+        && monitor_settings[monitor_index].mon_window_w == 0
+        && monitor_settings[monitor_index].mon_window_h == 0) && (window_remember || (vid_resize & 2))) {
+        snprintf(saved_coordinates, sizeof(saved_coordinates), "%i, %i, %i, %i", monitor_settings[monitor_index].mon_window_x, monitor_settings[monitor_index].mon_window_y,
+                                                                                 monitor_settings[monitor_index].mon_window_w, monitor_settings[monitor_index].mon_window_h);
+
+        config_set_string(monitor_config_name, "window_coordinates", saved_coordinates);
+    }
+    else config_delete_var(monitor_config_name, "window_coordinates");
 }
 
 
@@ -1340,6 +1375,18 @@ load_hard_disks(void)
 		hdd[c].hpc = max_hpc;
 	if (hdd[c].tracks > max_tracks)
 		hdd[c].tracks = max_tracks;
+
+	sprintf(temp, "hdd_%02i_speed", c+1);
+	switch (hdd[c].bus) {
+		case HDD_BUS_IDE:
+			sprintf(tmp2, "1997_5400rpm");
+			break;
+		default:
+			sprintf(tmp2, "ramdisk");
+			break;
+	}
+	p = config_get_string(cat, temp, tmp2);
+	hdd[c].speed_preset = hdd_preset_get_from_internal_name(p);
 
 	/* MFM/RLL */
 	sprintf(temp, "hdd_%02i_mfm_channel", c+1);
@@ -2156,6 +2203,8 @@ config_load(void)
 	config_log("Config file not present or invalid!\n");
     } else {
 	load_general();			/* General */
+	for (i = 0; i < MONITORS_NUM; i++)
+		load_monitor(i);
 	load_machine();			/* Machine */
 	load_video();			/* Video */
 	load_input_devices();		/* Input devices */
@@ -2185,7 +2234,7 @@ static void
 save_general(void)
 {
     char *cat = "General";
-    char temp[512];
+    char temp[512], buffer[512] = {0};
 
     char *va_name;
 
@@ -2194,11 +2243,10 @@ save_general(void)
 	config_delete_var(cat, "vid_resize");
 
     va_name = plat_vidapi_name(vid_api);
-    if (!strcmp(va_name, "default")) {
+    if (!strcmp(va_name, "default"))
 	config_delete_var(cat, "vid_renderer");
-    } else {
+    else
 	config_set_string(cat, "vid_renderer", va_name);
-    }
 
     if (video_fullscreen_scale == 0)
 	config_delete_var(cat, "video_fullscreen_scale");
@@ -2265,13 +2313,8 @@ save_general(void)
 		config_set_int(cat, "window_remember", window_remember);
 	else
 		config_delete_var(cat, "window_remember");
-
-	sprintf(temp, "%i, %i, %i, %i", window_w, window_h, window_x, window_y);
-	config_set_string(cat, "window_coordinates", temp);
-    } else {
+    } else
 	config_delete_var(cat, "window_remember");
-	config_delete_var(cat, "window_coordinates");
-    }
 
     if (vid_resize & 2) {
 	sprintf(temp, "%ix%i", fixed_size_x, fixed_size_y);
@@ -2321,17 +2364,15 @@ save_general(void)
 
     if (lang_id == DEFAULT_LANGUAGE)
 	config_delete_var(cat, "language");
-      else
-	  {
-		char buffer[512] = {0};
-		plat_language_code_r(lang_id, buffer, 511);
-		config_set_string(cat, "language", buffer);
-	  }
+    else {
+	plat_language_code_r(lang_id, buffer, 511);
+	config_set_string(cat, "language", buffer);
+    }
 
-	if (!strcmp(icon_set, ""))
-		config_delete_var(cat, "iconset");
-	else
-		config_set_string(cat, "iconset", icon_set);
+    if (!strcmp(icon_set, ""))
+	config_delete_var(cat, "iconset");
+    else
+	config_set_string(cat, "iconset", icon_set);
 
     if (enable_discord)
 	config_set_int(cat, "enable_discord", enable_discord);
@@ -2479,6 +2520,16 @@ save_video(void)
 	config_delete_var(cat, "xga");
       else
 	config_set_int(cat, "xga", xga_enabled);
+
+    if (gfxcard_2 == 0)
+    config_delete_var(cat, "gfxcard_2");
+    else
+    config_set_string(cat, "gfxcard_2", video_get_internal_name(gfxcard_2));
+
+    if (show_second_monitors == 1)
+        config_delete_var(cat, "show_second_monitors");
+    else
+        config_set_int(cat, "show_second_monitors", show_second_monitors);
 
     delete_section_if_empty(cat);
 }
@@ -2873,6 +2924,13 @@ save_hard_disks(void)
 	}
 	else
 		config_delete_var(cat, temp);
+
+	sprintf(temp, "hdd_%02i_speed", c+1);
+	if (!hdd_is_valid(c) || (hdd[c].bus != HDD_BUS_IDE))
+		config_delete_var(cat, temp);
+	else
+		config_set_string(cat, temp, hdd_preset_get_internal_name(hdd[c].speed_preset));
+
     }
 
     delete_section_if_empty(cat);
@@ -3079,7 +3137,11 @@ save_other_removable_devices(void)
 void
 config_save(void)
 {
+	int i;
+
     save_general();			/* General */
+	for (i = 0; i < MONITORS_NUM; i++)
+		save_monitor(i);
     save_machine();			/* Machine */
     save_video();			/* Video */
     save_input_devices();		/* Input devices */

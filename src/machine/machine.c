@@ -105,6 +105,9 @@ machine_init_ex(int m)
 
 	/* Reset any ISA memory cards. */
 	isamem_reset();
+
+	/* Reset the fast off stuff. */
+	cpu_fast_off_reset();
     }
 
     /* All good, boot the machine! */

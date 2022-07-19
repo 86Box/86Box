@@ -104,7 +104,7 @@ sis_85c4xx_sw_smi_out(uint16_t port, uint8_t val, void *priv)
 
     if (dev->regs[0x18] & 0x02) {
 	if (dev->regs[0x0b] & 0x10)
-		smi_line = 1;
+		smi_raise();
 	else
 		picint(1 << ((dev->regs[0x0b] & 0x08) ? 15 : 12));
 	soft_reset_mask = 1;

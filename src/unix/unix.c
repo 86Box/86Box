@@ -563,11 +563,12 @@ main_thread(void *param)
 		SDL_Delay(1);
 
 	/* If needed, handle a screen resize. */
-	if (!atomic_flag_test_and_set(&doresize) && !video_fullscreen && !is_quit) {
+	if (atomic_load(&doresize_monitors[0]) && !video_fullscreen && !is_quit) {
 		if (vid_resize & 2)
 			plat_resize(fixed_size_x, fixed_size_y);
 		else
 			plat_resize(scrnsz_x, scrnsz_y);
+		atomic_store(&doresize_monitors[0], 1);
 	}
     }
 
@@ -1114,6 +1115,7 @@ void monitor_thread(void* param)
 #endif
 }
 
+extern int gfxcard_2;
 int main(int argc, char** argv)
 {
     SDL_Event event;
@@ -1127,6 +1129,7 @@ int main(int argc, char** argv)
         return 6;
     }
 
+    gfxcard_2 = 0;
     eventthread = SDL_ThreadID();
     blitmtx = SDL_CreateMutex();
     if (!blitmtx)

@@ -18,6 +18,7 @@
  *		Copyright 2008-2019 Sarah Walker.
  *		Copyright 2016-2019 Miran Grca.
  *		Copyright 2018,2019 David Hrdlička.
+ *		Copyright 2021-2022 Jasmine Iwanek.
  */
 
 #ifndef WIN_RESOURCE_H
@@ -184,6 +185,8 @@
 #define IDC_CHECK_VOODOO	1022
 #define IDC_BUTTON_VOODOO	1023
 #define IDC_CHECK_IBM8514	1024
+#define IDC_CHECK_XGA		1025
+#define IDC_BUTTON_XGA		1026
 
 #define IDC_INPUT		1030	/* input config */
 #define IDC_COMBO_MOUSE		1031

@@ -72,6 +72,62 @@ enum {
 };
 #endif
 
+enum {
+    HDD_OP_SEEK = 0,
+    HDD_OP_READ,
+    HDD_OP_WRITE
+};
+
+#define HDD_MAX_ZONES 16
+#define HDD_MAX_CACHE_SEG 16
+
+typedef struct {
+    const char *name;
+    const char *internal_name;
+    uint32_t zones;
+    uint32_t avg_spt;
+    uint32_t heads;
+    uint32_t rpm;
+    uint32_t rcache_num_seg;
+    uint32_t rcache_seg_size;
+    uint32_t max_multiple;
+    double full_stroke_ms;
+    double track_seek_ms;
+} hdd_preset_t;
+
+typedef struct {
+    uint32_t id;
+    uint32_t lba_addr;
+    uint32_t ra_addr;
+    uint32_t host_addr;
+    uint8_t lru;
+    uint8_t valid;
+} hdd_cache_seg_t;
+
+typedef struct {
+    // Read cache
+    hdd_cache_seg_t segments[HDD_MAX_CACHE_SEG];
+    uint32_t num_segments;
+    uint32_t segment_size;
+    uint32_t ra_segment;
+    uint8_t ra_ongoing;
+    uint64_t ra_start_time;
+
+    // Write cache
+    uint32_t write_addr;
+    uint32_t write_pending;
+    uint32_t write_size;
+    uint64_t write_start_time;
+} hdd_cache_t;
+
+typedef struct {
+    uint32_t cylinders;
+    uint32_t sectors_per_track;
+    double sector_time_usec;
+    uint32_t start_sector;
+    uint32_t end_sector;
+    uint32_t start_track;
+} hdd_zone_t;
 
 /* Define the virtual Hard Disk. */
 typedef struct {
@@ -100,6 +156,25 @@ typedef struct {
 		spt,
 		hpc,			/* Physical geometry parameters */
 		tracks;
+
+    hdd_zone_t zones[HDD_MAX_ZONES];
+    uint32_t num_zones;
+    hdd_cache_t cache;
+    uint32_t phy_cyl;
+    uint32_t phy_heads;
+    uint32_t rpm;
+    uint8_t max_multiple_block;
+
+    uint32_t cur_cylinder;
+    uint32_t cur_track;
+    uint32_t cur_addr;
+
+    uint32_t speed_preset;
+
+    double avg_rotation_lat_usec;
+    double full_stroke_usec;
+    double head_switch_usec;
+    double cyl_switch_usec;
 } hard_disk_t;
 
 
@@ -131,5 +206,13 @@ extern int	image_is_hdi(const char *s);
 extern int	image_is_hdx(const char *s, int check_signature);
 extern int	image_is_vhd(const char *s, int check_signature);
 
+extern double hdd_timing_write(hard_disk_t *hdd, uint32_t addr, uint32_t len);
+extern double hdd_timing_read(hard_disk_t *hdd, uint32_t addr, uint32_t len);
+extern double hdd_seek_get_time(hard_disk_t *hdd, uint32_t dst_addr, uint8_t operation, uint8_t continuous, double max_seek_time);
+int hdd_preset_get_num();
+char * hdd_preset_getname(int preset);
+extern char *hdd_preset_get_internal_name(int preset);
+extern int hdd_preset_get_from_internal_name(char *s);
+extern void hdd_preset_apply(int hdd_id);
 
 #endif	/*EMU_HDD_H*/

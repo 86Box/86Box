@@ -169,9 +169,9 @@ bt48x_ramdac_out(uint16_t addr, int rs2, int rs3, uint8_t val, void *p, svga_t *
 					ramdac->cmd_r3 = val;
 					if (ramdac->type >= BT485A)
 						bt48x_set_bpp(ramdac, svga);
-					svga->dac_hwcursor.xsize = svga->dac_hwcursor.ysize = (val & 4) ? 64 : 32;
-					svga->dac_hwcursor.x = ramdac->hwc_x - svga->dac_hwcursor.xsize;
-					svga->dac_hwcursor.y = ramdac->hwc_y - svga->dac_hwcursor.ysize;
+                    svga->dac_hwcursor.cur_xsize = svga->dac_hwcursor.cur_ysize = (val & 4) ? 64 : 32;
+                    svga->dac_hwcursor.x = ramdac->hwc_x - svga->dac_hwcursor.cur_xsize;
+                    svga->dac_hwcursor.y = ramdac->hwc_y - svga->dac_hwcursor.cur_ysize;
 					svga->dac_addr = (svga->dac_addr & 0x00ff) | ((val & 0x03) << 8);
 					svga_recalctimings(svga);
 					break;
@@ -191,7 +191,7 @@ bt48x_ramdac_out(uint16_t addr, int rs2, int rs3, uint8_t val, void *p, svga_t *
 		break;
 	case 0x0b:	/* Cursor RAM Data Register (RS value = 1011) */
 		index = svga->dac_addr & da_mask;
-		if ((ramdac->type >= BT485) && (svga->dac_hwcursor.xsize == 64))
+        if ((ramdac->type >= BT485) && (svga->dac_hwcursor.cur_xsize == 64))
 			cd = (uint8_t *) ramdac->cursor64_data;
 		else {
 			index &= 0xff;
@@ -204,19 +204,19 @@ bt48x_ramdac_out(uint16_t addr, int rs2, int rs3, uint8_t val, void *p, svga_t *
 		break;
 	case 0x0c:	/* Cursor X Low Register (RS value = 1100) */
 		ramdac->hwc_x = (ramdac->hwc_x & 0x0f00) | val;
-		svga->dac_hwcursor.x = ramdac->hwc_x - svga->dac_hwcursor.xsize;
+        svga->dac_hwcursor.x = ramdac->hwc_x - svga->dac_hwcursor.cur_xsize;
 		break;
 	case 0x0d:	/* Cursor X High Register (RS value = 1101) */
 		ramdac->hwc_x = (ramdac->hwc_x & 0x00ff) | ((val & 0x0f) << 8);
-		svga->dac_hwcursor.x = ramdac->hwc_x - svga->dac_hwcursor.xsize;
+        svga->dac_hwcursor.x = ramdac->hwc_x - svga->dac_hwcursor.cur_xsize;
 		break;
 	case 0x0e:	/* Cursor Y Low Register (RS value = 1110) */
 		ramdac->hwc_y = (ramdac->hwc_y & 0x0f00) | val;
-		svga->dac_hwcursor.y = ramdac->hwc_y - svga->dac_hwcursor.ysize;
+        svga->dac_hwcursor.y = ramdac->hwc_y - svga->dac_hwcursor.cur_ysize;
 		break;
 	case 0x0f:	/* Cursor Y High Register (RS value = 1111) */
 		ramdac->hwc_y = (ramdac->hwc_y & 0x00ff) | ((val & 0x0f) << 8);
-		svga->dac_hwcursor.y = ramdac->hwc_y - svga->dac_hwcursor.ysize;
+        svga->dac_hwcursor.y = ramdac->hwc_y - svga->dac_hwcursor.cur_ysize;
 		break;
     }
 
@@ -318,7 +318,7 @@ bt48x_ramdac_in(uint16_t addr, int rs2, int rs3, void *p, svga_t *svga)
 		break;
 	case 0x0b:	/* Cursor RAM Data Register (RS value = 1011) */
 		index = (svga->dac_addr - 1) & da_mask;
-		if ((ramdac->type >= BT485) && (svga->dac_hwcursor.xsize == 64))
+        if ((ramdac->type >= BT485) && (svga->dac_hwcursor.cur_xsize == 64))
 			cd = (uint8_t *) ramdac->cursor64_data;
 		else {
 			index &= 0xff;
@@ -376,21 +376,21 @@ bt48x_hwcursor_draw(svga_t *svga, int displine)
     /* The planes come in two parts, and each plane is 1bpp,
        so a 32x32 cursor has 4 bytes per line, and a 64x64
        cursor has 8 bytes per line. */
-    pitch = (svga->dac_hwcursor_latch.xsize >> 3);				/* Bytes per line. */
+    pitch = (svga->dac_hwcursor_latch.cur_xsize >> 3);				/* Bytes per line. */
     /* A 32x32 cursor has 128 bytes per line, and a 64x64
        cursor has 512 bytes per line. */
-    bppl = (pitch * svga->dac_hwcursor_latch.ysize);			/* Bytes per plane. */
+    bppl = (pitch * svga->dac_hwcursor_latch.cur_ysize);			/* Bytes per plane. */
     mode = ramdac->cmd_r2 & 0x03;
 
     if (svga->interlace && svga->dac_hwcursor_oddeven)
 	svga->dac_hwcursor_latch.addr += pitch;
 
-    if (svga->dac_hwcursor_latch.xsize == 64)
+    if (svga->dac_hwcursor_latch.cur_xsize == 64)
 	cd = (uint8_t *) ramdac->cursor64_data;
     else
 	cd = (uint8_t *) ramdac->cursor32_data;
 
-    for (x = 0; x < svga->dac_hwcursor_latch.xsize; x += 16) {
+    for (x = 0; x < svga->dac_hwcursor_latch.cur_xsize; x += 16) {
 	dat[0] = (cd[svga->dac_hwcursor_latch.addr]        << 8) |
 		  cd[svga->dac_hwcursor_latch.addr + 1];
 	dat[1] = (cd[svga->dac_hwcursor_latch.addr + bppl] << 8) |

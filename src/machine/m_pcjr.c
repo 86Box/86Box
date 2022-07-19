@@ -81,6 +81,7 @@ typedef struct {
     int		dispon;
     int		con, coff, cursoron, blink;
     int		vsynctime;
+    int		fullchange;
     int		vadj;
     uint16_t	ma, maback;
     uint64_t	dispontime, dispofftime;
@@ -162,7 +163,7 @@ vid_out(uint16_t addr, uint8_t val, void *p)
 		pcjr->crtc[pcjr->crtcreg] = val & crtcmask[pcjr->crtcreg];
 		if (old != val) {
 			if (pcjr->crtcreg < 0xe || pcjr->crtcreg > 0x10) {
-				fullchange = changeframecount;
+                pcjr->fullchange = changeframecount;
 				recalc_timings(pcjr);
 			}
 		}

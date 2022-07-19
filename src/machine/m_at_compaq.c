@@ -97,7 +97,7 @@ typedef struct compaq_plasma_t
 	int linepos, displine;
 	uint8_t *vram;
 	uint64_t dispontime, dispofftime;
-	int dispon;
+    int dispon, fullchange;
 } compaq_plasma_t;
 
 static uint8_t cga_crtcmask[32] =
@@ -375,7 +375,7 @@ compaq_plasma_out(uint16_t addr, uint8_t val, void *priv)
 
 		if (old != val) {
 			if (self->cga.crtcreg < 0xe || self->cga.crtcreg > 0x10) {
-				fullchange = changeframecount;
+                self->fullchange = changeframecount;
 				compaq_plasma_recalctimings(self);
 			}
 		}
