@@ -312,6 +312,8 @@ const machine_t machines[] = {
     /* 286 machines that utilize the MCA bus */
     /* Has IBM PS/2 Type 2 KBC firmware. */
     { "[MCA] IBM PS/2 model 50",                       "ibmps2_m50",       MACHINE_TYPE_286,        MACHINE_CHIPSET_PROPRIETARY,         machine_ps2_model_50_init,        0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_286 | CPU_PKG_486SLC_IBM,                CPU_BLOCK_NONE, 10000000, 0, 0, 0, 0, 0, MACHINE_PS2_MCA, MACHINE_VIDEO, 1024, 10240, 1024,   63, NULL, NULL },
+    /* Has IBM PS/2 Type 2 KBC firmware. */
+    { "[MCA] IBM PS/2 model 60",                       "ibmps2_m60",       MACHINE_TYPE_286,        MACHINE_CHIPSET_PROPRIETARY,         machine_ps2_model_60_init,        0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_286 | CPU_PKG_486SLC_IBM,                CPU_BLOCK_NONE, 10000000, 0, 0, 0, 0, 0, MACHINE_PS2_MCA, MACHINE_VIDEO, 1024, 10240, 1024,   63, NULL, NULL },
 
     /* 386SX machines */
     /* ISA slots available because an official IBM expansion for that existed. */
@@ -373,6 +375,8 @@ const machine_t machines[] = {
     /* 386SX machines which utilize the MCA bus */
     /* Has IBM PS/2 Type 1 KBC firmware. */
     { "[MCA] IBM PS/2 model 55SX",                     "ibmps2_m55sx",     MACHINE_TYPE_386SX,      MACHINE_CHIPSET_PROPRIETARY,         machine_ps2_model_55sx_init,      0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_386SX,                                   CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_PS2_MCA, MACHINE_VIDEO, 1024,  8192, 1024,  63, NULL, NULL },
+    /* Has IBM PS/2 Type 1 KBC firmware. */
+    { "[MCA] IBM PS/2 model 65SX",                     "ibmps2_m65sx",     MACHINE_TYPE_386SX,      MACHINE_CHIPSET_PROPRIETARY,         machine_ps2_model_65sx_init,      0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_386SX,                                   CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_PS2_MCA, MACHINE_VIDEO, 1024,  8192, 1024,  63, NULL, NULL },
 
     /* 486SLC machines */
     /* 486SLC machines with just the ISA slot */
@@ -397,11 +401,7 @@ const machine_t machines[] = {
 
     /* 386DX machines which utilize the MCA bus */
     /* Has IBM PS/2 Type 1 KBC firmware. */
-    { "[MCA] IBM PS/2 model 70 (type 3)",              "ibmps2_m70_type3", MACHINE_TYPE_386DX,      MACHINE_CHIPSET_PROPRIETARY,         machine_ps2_model_70_type3_init,  0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_386DX | CPU_PKG_486BL,                   CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_PS2_MCA, MACHINE_VIDEO, 2048, 65536, 2048,  63, NULL, NULL },
-    /* Has IBM PS/2 Type 1 KBC firmware. */
-    { "[MCA] IBM PS/2 model 80 (type 2)",              "ibmps2_m80",       MACHINE_TYPE_386DX,      MACHINE_CHIPSET_PROPRIETARY,         machine_ps2_model_80_init,        0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_386DX | CPU_PKG_486BL | CPU_PKG_SOCKET1, CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_PS2_MCA, MACHINE_VIDEO, 1024, 65536, 1024,  63, NULL, NULL },
-    /* Has IBM PS/2 Type 1 KBC firmware. */
-    { "[MCA] IBM PS/2 model 80 (type 3)",              "ibmps2_m80_type3", MACHINE_TYPE_386DX,      MACHINE_CHIPSET_PROPRIETARY,         machine_ps2_model_80_axx_init,    0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_386DX | CPU_PKG_486BL | CPU_PKG_SOCKET1, CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_PS2_MCA, MACHINE_VIDEO, 2048, 65536, 2048,  63, NULL, NULL },
+    { "[MCA] IBM PS/2 model 80 (type 2)",              "ibmps2_m80",       MACHINE_TYPE_386DX,      MACHINE_CHIPSET_PROPRIETARY,         machine_ps2_model_80_init,        0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_386DX | CPU_PKG_486BL,                   CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_PS2_MCA, MACHINE_VIDEO, 1024, 65536, 1024,  63, NULL, NULL },
 
     /* 386DX/486 machines */
     /* The BIOS sends commands C9 without a parameter and D5, both of which are
@@ -411,6 +411,10 @@ const machine_t machines[] = {
     { "[OPTi 495] DataExpert SX495",                   "ami495",           MACHINE_TYPE_386DX_486,  MACHINE_CHIPSET_OPTI_495,            machine_at_opti495_ami_init,      0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_386DX | CPU_PKG_SOCKET1,                 CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_VLB, MACHINE_IDE, 1024, 32768, 1024, 127, NULL, NULL },
     /* Has AMIKey F KBC firmware (it's just the MR BIOS for the above machine). */
     { "[OPTi 495] DataExpert SX495 (MR BIOS)",         "mr495",            MACHINE_TYPE_386DX_486,  MACHINE_CHIPSET_OPTI_495,            machine_at_opti495_mr_init,       0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_386DX | CPU_PKG_SOCKET1,                 CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_VLB, MACHINE_IDE, 1024, 32768, 1024, 127, NULL, NULL },
+    /* Has IBM PS/2 Type 1 KBC firmware. */
+    { "[MCA] IBM PS/2 model 70 (type 3)",              "ibmps2_m70_type3", MACHINE_TYPE_386DX_486,  MACHINE_CHIPSET_PROPRIETARY,         machine_ps2_model_70_type3_init,  0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_386DX | CPU_PKG_486BL | CPU_PKG_SOCKET1, CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_PS2_MCA, MACHINE_VIDEO, 2048, 65536, 2048,  63, NULL, NULL },
+    /* Has IBM PS/2 Type 1 KBC firmware. */
+    { "[MCA] IBM PS/2 model 80 (type 3)",              "ibmps2_m80_type3", MACHINE_TYPE_386DX_486,  MACHINE_CHIPSET_PROPRIETARY,         machine_ps2_model_80_axx_init,    0, 0, MACHINE_AVAILABLE, 0 , CPU_PKG_386DX | CPU_PKG_486BL | CPU_PKG_SOCKET1, CPU_BLOCK_NONE, 0, 0, 0, 0, 0, 0, MACHINE_PS2_MCA, MACHINE_VIDEO, 2048, 65536, 2048,  63, NULL, NULL },
 
     /* 486 machines - Socket 1 */
     /* Has JetKey 5 KBC Firmware which looks like it is a clone of AMIKey type F.

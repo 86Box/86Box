@@ -253,9 +253,9 @@ static uint8_t model_50_read(uint16_t port)
         switch (port)
         {
                 case 0x100:
-                return 0xff;
+                return ps2.planar_id & 0xff;
                 case 0x101:
-                return 0xfb;
+                return ps2.planar_id >> 8;
                 case 0x102:
                 return ps2.option[0];
                 case 0x103:
@@ -277,9 +277,9 @@ static uint8_t model_55sx_read(uint16_t port)
         switch (port)
         {
                 case 0x100:
-                return 0xff;
+                return ps2.planar_id & 0xff;
                 case 0x101:
-                return 0xfb;
+                return ps2.planar_id >> 8;
                 case 0x102:
                 return ps2.option[0];
                 case 0x103:
@@ -325,9 +325,9 @@ static uint8_t model_80_read(uint16_t port)
         switch (port)
         {
                 case 0x100:
-                return 0xff;
+                return ps2.planar_id & 0xff;
                 case 0x101:
-                return 0xfd;
+                return ps2.planar_id >> 8;
                 case 0x102:
                 return ps2.option[0];
                 case 0x103:
@@ -829,17 +829,17 @@ static void ps2_mca_write(uint16_t port, uint8_t val, void *p)
 
 static void ps2_mca_board_common_init()
 {
-        io_sethandler(0x0091, 0x0001, ps2_mca_read, NULL, NULL, ps2_mca_write, NULL, NULL, NULL);
-        io_sethandler(0x0094, 0x0001, ps2_mca_read, NULL, NULL, ps2_mca_write, NULL, NULL, NULL);
-        io_sethandler(0x0096, 0x0001, ps2_mca_read, NULL, NULL, ps2_mca_write, NULL, NULL, NULL);
-        io_sethandler(0x0100, 0x0008, ps2_mca_read, NULL, NULL, ps2_mca_write, NULL, NULL, NULL);
+    io_sethandler(0x0091, 0x0001, ps2_mca_read, NULL, NULL, ps2_mca_write, NULL, NULL, NULL);
+    io_sethandler(0x0094, 0x0001, ps2_mca_read, NULL, NULL, ps2_mca_write, NULL, NULL, NULL);
+    io_sethandler(0x0096, 0x0001, ps2_mca_read, NULL, NULL, ps2_mca_write, NULL, NULL, NULL);
+    io_sethandler(0x0100, 0x0008, ps2_mca_read, NULL, NULL, ps2_mca_write, NULL, NULL, NULL);
 
 	device_add(&port_6x_ps2_device);
-	device_add(&port_92_device);
+    device_add(&port_92_device);
 
-        ps2.setup = 0xff;
+    ps2.setup = 0xff;
 
-        lpt1_init(LPT_MDA_ADDR);
+    lpt1_init(LPT_MDA_ADDR);
 }
 
 static uint8_t ps2_mem_expansion_read(int port, void *p)
@@ -951,12 +951,12 @@ static void ps2_mca_mem_d071_init(int start_mb)
 }
 
 
-static void ps2_mca_board_model_50_init()
+static void ps2_mca_board_model_50_init(int slots)
 {
         ps2_mca_board_common_init();
 
         mem_remap_top(384);
-        mca_init(4);
+        mca_init(slots);
 	device_add(&keyboard_ps2_mca_2_device);
 
         ps2.planar_read = model_50_read;
@@ -972,7 +972,7 @@ static void ps2_mca_board_model_50_init()
 		device_add(&ps1vga_mca_device);
 }
 
-static void ps2_mca_board_model_55sx_init()
+static void ps2_mca_board_model_55sx_init(int has_sec_nvram, int slots)
 {
         ps2_mca_board_common_init();
 
@@ -1015,14 +1015,20 @@ static void ps2_mca_board_model_55sx_init()
                 break;
         }
 
-        mca_init(4);
+        mca_init(slots);
 	device_add(&keyboard_ps2_mca_device);
+
+    if (has_sec_nvram == 1)
+        device_add(&ps2_nvr_55ls_device);
+    else if (has_sec_nvram == 2) {
+        device_add(&ps2_nvr_device);
+    }
 
         ps2.planar_read = model_55sx_read;
         ps2.planar_write = model_55sx_write;
 
-	if (gfxcard == VID_INTERNAL)
-		device_add(&ps1vga_mca_device);
+    if (gfxcard == VID_INTERNAL)
+        device_add(&ps1vga_mca_device);
 
 	model_55sx_mem_recalc();
 }
@@ -1383,7 +1389,31 @@ machine_ps2_model_50_init(const machine_t *model)
 
         machine_ps2_common_init(model);
 
-        ps2_mca_board_model_50_init();
+        ps2.planar_id = 0xfbff;
+        ps2_mca_board_model_50_init(4);
+
+	return ret;
+}
+
+int
+machine_ps2_model_60_init(const machine_t *model)
+{
+	int ret;
+
+	ret = bios_load_interleaved("roms/machines/ibmps2_m50/90x7420.zm13",
+				    "roms/machines/ibmps2_m50/90x7429.zm18",
+				    0x000f0000, 131072, 0);
+	ret &= bios_load_aux_interleaved("roms/machines/ibmps2_m50/90x7423.zm14",
+					 "roms/machines/ibmps2_m50/90x7426.zm16",
+					 0x000e0000, 65536, 0);
+
+	if (bios_only || !ret)
+		return ret;
+
+        machine_ps2_common_init(model);
+
+        ps2.planar_id = 0xf7ff;
+        ps2_mca_board_model_50_init(8);
 
 	return ret;
 }
@@ -1403,11 +1433,32 @@ machine_ps2_model_55sx_init(const machine_t *model)
 
         machine_ps2_common_init(model);
 
-        ps2_mca_board_model_55sx_init();
+        ps2.planar_id = 0xfffb;
+        ps2_mca_board_model_55sx_init(0, 4);
 
 	return ret;
 }
 
+
+int
+machine_ps2_model_65sx_init(const machine_t *model)
+{
+	int ret;
+
+	ret = bios_load_interleaved("roms/machines/ibmps2_m65sx/64F3608.BIN",
+				    "roms/machines/ibmps2_m65sx/64F3611.BIN",
+				    0x000e0000, 131072, 0);
+
+	if (bios_only || !ret)
+		return ret;
+
+        machine_ps2_common_init(model);
+
+        ps2.planar_id = 0xe3ff;
+        ps2_mca_board_model_55sx_init(1, 8);
+
+	return ret;
+}
 
 int
 machine_ps2_model_70_type3_init(const machine_t *model)
@@ -1443,9 +1494,10 @@ machine_ps2_model_80_init(const machine_t *model)
 	if (bios_only || !ret)
 		return ret;
 
-        machine_ps2_common_init(model);
+    machine_ps2_common_init(model);
 
-        ps2_mca_board_model_80_type2_init(0);
+    ps2.planar_id = 0xfdff;
+    ps2_mca_board_model_80_type2_init(0);
 
 	return ret;
 }
@@ -1470,3 +1522,5 @@ machine_ps2_model_80_axx_init(const machine_t *model)
 
 	return ret;
 }
+
+
