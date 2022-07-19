@@ -98,6 +98,7 @@ ps2_write(uint16_t port, uint8_t val, void *priv)
     }
 }
 
+
 static uint8_t
 ps2_read(uint16_t port, void *priv)
 {
@@ -137,6 +138,7 @@ ps2_read(uint16_t port, void *priv)
 
     return temp;
 }
+
 
 static void
 ps2_isa_setup(int model, int cpu_type)
@@ -181,6 +183,7 @@ ps2_isa_setup(int model, int cpu_type)
     device_add(&ps1vga_device);
 }
 
+
 static void
 ps2_isa_common_init(const machine_t *model)
 {
@@ -192,27 +195,26 @@ ps2_isa_common_init(const machine_t *model)
     dma16_init();
     pic2_init();
 
-	device_add(&keyboard_ps2_device);
-	device_add(&port_6x_ps2_device);
+    device_add(&keyboard_ps2_device);
+    device_add(&port_6x_ps2_device);
 }
+
 
 int
 machine_ps2_m30_286_init(const machine_t *model)
 {
-	void *priv;
+    int ret;
 
-	int ret;
+    ret = bios_load_linear("roms/machines/ibmps2_m30_286/33f5381a.bin",
+                           0x000e0000, 131072, 0);
 
-	ret = bios_load_linear("roms/machines/ibmps2_m30_286/33f5381a.bin",
-			       0x000e0000, 131072, 0);
-
-	if (bios_only || !ret)
-		return ret;
+    if (bios_only || !ret)
+        return ret;
 
     ps2_isa_common_init(model);
 
     ps2_isa_setup(30, 286);
 
-	return ret;
+    return ret;
 }
 
