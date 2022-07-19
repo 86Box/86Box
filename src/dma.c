@@ -728,7 +728,7 @@ dma_ps2_write(uint16_t addr, uint8_t val, void *priv)
 					mode |= 8;
                 else if ((val & DMA_PS2_XFER_MASK) == DMA_PS2_XFER_IO_TO_MEM)
 					mode |= 4;
-				dma_c->mode = (dma_c->mode & ~0x2c) | 0x10 | mode;
+				dma_c->mode = (dma_c->mode & ~0x2c) | mode;
 				dma_c->ps2_mode = val;
 				dma_c->size = val & DMA_PS2_SIZE16;
 				break;
