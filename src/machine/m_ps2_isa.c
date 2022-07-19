@@ -217,4 +217,3 @@ machine_ps2_m30_286_init(const machine_t *model)
 
     return ret;
 }
-

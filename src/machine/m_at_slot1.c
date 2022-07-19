@@ -481,14 +481,6 @@ machine_at_s1846_init(const machine_t *model)
     return ret;
 }
 
-
-const device_t *
-at_s1846_get_device(void)
-{
-    return &es1371_onboard_device;
-}
-
-
 int
 machine_at_ficka6130_init(const machine_t *model)
 {

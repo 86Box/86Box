@@ -670,7 +670,7 @@ vid_speed_change_1512(void *priv)
     recalc_timings_1512(vid);
 }
 
-device_config_t vid_1512_config[] = {
+const device_config_t vid_1512_config[] = {
     {
         .name = "display_type",
         .description = "Display type",
@@ -723,7 +723,7 @@ device_config_t vid_1512_config[] = {
     { .name = "", .description = "", .type = CONFIG_END }
 };
 
-static const device_t vid_1512_device = {
+const device_t vid_1512_device = {
     .name = "Amstrad PC1512 (video)",
     .internal_name = "vid_1512",
     .flags = 0,
@@ -736,13 +736,6 @@ static const device_t vid_1512_device = {
     .force_redraw = NULL,
     .config = vid_1512_config
 };
-
-const device_t *
-pc1512_get_device(void)
-{
-    return(&vid_1512_device);
-}
-
 
 static void
 recalc_timings_1640(amsvid_t *vid)
@@ -882,7 +875,7 @@ vid_speed_changed_1640(void *priv)
     recalc_timings_1640(vid);
 }
 
-device_config_t vid_1640_config[] = {
+const device_config_t vid_1640_config[] = {
     {
         .name = "language",
         .description = "BIOS language",
@@ -906,7 +899,7 @@ device_config_t vid_1640_config[] = {
     { .name = "", .description = "", .type = CONFIG_END }
 };
 
-static const device_t vid_1640_device = {
+const device_t vid_1640_device = {
     .name = "Amstrad PC1640 (video)",
     .internal_name = "vid_1640",
     .flags = 0,
@@ -919,12 +912,6 @@ static const device_t vid_1640_device = {
     .force_redraw = NULL,
     .config = vid_1640_config
 };
-
-const device_t *
-pc1640_get_device(void)
-{
-    return(&vid_1640_device);
-}
 
 /* Display type */
 #define PC200_CGA  0	/* CGA monitor */
@@ -1715,7 +1702,7 @@ vid_close_200(void *priv)
 }
 
 
-device_config_t vid_200_config[] = {
+const device_config_t vid_200_config[] = {
     /* TODO: Should have options here for:
      *
      * > Display port (TTL or RF)
@@ -1791,7 +1778,7 @@ device_config_t vid_200_config[] = {
     { .name = "", .description = "", .type = CONFIG_END }
 };
 
-static const device_t vid_200_device = {
+const device_t vid_200_device = {
     .name = "Amstrad PC200 (video)",
     .internal_name = "vid_200",
     .flags = 0,
@@ -1805,13 +1792,7 @@ static const device_t vid_200_device = {
     .config = vid_200_config
 };
 
-const device_t *
-pc200_get_device(void)
-{
-    return(&vid_200_device);
-}
-
-device_config_t vid_ppc512_config[] = {
+const device_config_t vid_ppc512_config[] = {
     /* TODO: Should have options here for:
      *
      * > Display port (TTL or RF)
@@ -1895,7 +1876,7 @@ device_config_t vid_ppc512_config[] = {
     { .name = "", .description = "", .type = CONFIG_END }
 };
 
-static const device_t vid_ppc512_device = {
+const device_t vid_ppc512_device = {
     .name = "Amstrad PPC512 (video)",
     .internal_name = "vid_ppc512",
     .flags = 0,
@@ -1909,13 +1890,7 @@ static const device_t vid_ppc512_device = {
     .config = vid_ppc512_config
 };
 
-const device_t *
-ppc512_get_device(void)
-{
-    return(&vid_ppc512_device);
-}
-
-device_config_t vid_pc2086_config[] = {
+const device_config_t vid_pc2086_config[] = {
     {
         .name = "language",
         .description = "BIOS language",
@@ -1933,7 +1908,7 @@ device_config_t vid_pc2086_config[] = {
     { .name = "", .description = "", .type = CONFIG_END }
 };
 
-static const device_t vid_pc2086_device = {
+const device_t vid_pc2086_device = {
     .name = "Amstrad PC2086",
     .internal_name = "vid_pc2086",
     .flags = 0,
@@ -1947,13 +1922,7 @@ static const device_t vid_pc2086_device = {
     .config = vid_pc2086_config
 };
 
-const device_t *
-pc2086_get_device(void)
-{
-    return(&vid_pc2086_device);
-}
-
-device_config_t vid_pc3086_config[] = {
+const device_config_t vid_pc3086_config[] = {
     {
         .name = "language",
         .description = "BIOS language",
@@ -1971,7 +1940,7 @@ device_config_t vid_pc3086_config[] = {
     { .name = "", .description = "", .type = CONFIG_END }
 };
 
-static const device_t vid_pc3086_device = {
+const device_t vid_pc3086_device = {
     .name = "Amstrad PC3086",
     .internal_name = "vid_pc3086",
     .flags = 0,
@@ -1984,13 +1953,6 @@ static const device_t vid_pc3086_device = {
     .force_redraw = NULL,
     .config = vid_pc3086_config
 };
-
-const device_t *
-pc3086_get_device(void)
-{
-    return(&vid_pc3086_device);
-}
-
 
 static void
 ms_write(uint16_t addr, uint8_t val, void *priv)

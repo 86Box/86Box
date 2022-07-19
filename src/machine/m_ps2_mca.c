@@ -1521,5 +1521,3 @@ machine_ps2_model_80_axx_init(const machine_t *model)
 
 	return ret;
 }
-
-
