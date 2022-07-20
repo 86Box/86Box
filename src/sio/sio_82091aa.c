@@ -125,11 +125,13 @@ serial_handler(i82091aa_t *dev, int uart)
 static void
 ide_handler(i82091aa_t *dev)
 {
-    ide_sec_disable();
-    ide_set_base(1, (dev->regs[0x50] & 0x02) ? 0x170 : 0x1f0);
-    ide_set_side(1, (dev->regs[0x50] & 0x02) ? 0x376 : 0x3f6);
+    int board = dev->has_ide - 1;
+
+    ide_remove_handlers(board);
+    ide_set_base(board, (dev->regs[0x50] & 0x02) ? 0x170 : 0x1f0);
+    ide_set_side(board, (dev->regs[0x50] & 0x02) ? 0x376 : 0x3f6);
     if (dev->regs[0x50] & 0x01)
-	ide_sec_enable();
+	ide_set_handlers(board);
 }
 
 
@@ -258,7 +260,7 @@ i82091aa_init(const device_t *info)
     dev->uart[0] = device_add_inst(&ns16550_device, 1);
     dev->uart[1] = device_add_inst(&ns16550_device, 2);
 
-    dev->has_ide = !!(info->local & 0x200);
+    dev->has_ide = (info->local >> 9) & 0x03;
 
     i82091aa_reset(dev);
 
@@ -303,11 +305,25 @@ const device_t i82091aa_398_device = {
     .config = NULL
 };
 
+const device_t i82091aa_ide_pri_device = {
+    .name = "Intel 82091AA Super I/O (With Primary IDE)",
+    .internal_name = "i82091aa_ide",
+    .flags = 0,
+    .local = 0x240,
+    .init = i82091aa_init,
+    .close = i82091aa_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
+};
+
 const device_t i82091aa_ide_device = {
     .name = "Intel 82091AA Super I/O (With IDE)",
     .internal_name = "i82091aa_ide",
     .flags = 0,
-    .local = 0x240,
+    .local = 0x440,
     .init = i82091aa_init,
     .close = i82091aa_close,
     .reset = NULL,

@@ -138,6 +138,10 @@ QString HarddiskDialog::fileName() const {
     return ui->fileField->fileName();
 }
 
+uint32_t HarddiskDialog::speed() const {
+    return static_cast<uint32_t>(ui->comboBoxSpeed->currentData().toUInt());
+}
+
 void HarddiskDialog::on_comboBoxFormat_currentIndexChanged(int index) {
     bool enabled;
     if (index == 5) { /* They switched to a diff VHD; disable the geometry fields. */
@@ -700,6 +704,8 @@ void HarddiskDialog::on_comboBoxBus_currentIndexChanged(int index) {
     ui->lineEditSectors->setValidator(new QIntValidator(1, max_sectors, this));
 
     Harddrives::populateBusChannels(ui->comboBoxChannel->model(), ui->comboBoxBus->currentData().toInt());
+    Harddrives::populateSpeeds(ui->comboBoxSpeed->model(), ui->comboBoxBus->currentData().toInt());
+
     switch (ui->comboBoxBus->currentData().toInt())
     {
         case HDD_BUS_MFM:

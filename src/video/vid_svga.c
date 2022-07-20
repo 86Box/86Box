@@ -460,7 +460,7 @@ svga_recalctimings(svga_t *svga)
 
     svga->hdisp_time = svga->hdisp;
     svga->render = svga_render_blank;
-    if (!svga->scrblank && svga->attr_palette_enable) {
+    if (!svga->scrblank && (svga->crtc[0x17] & 0x80) && svga->attr_palette_enable) {
 	if (!(svga->gdcreg[6] & 1) && !(svga->attrregs[0x10] & 1)) { /*Text mode*/
 		if (svga->seqregs[1] & 8) /*40 column*/ {
 			svga->render = svga_render_text_40;

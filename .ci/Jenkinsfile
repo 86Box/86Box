@@ -317,7 +317,7 @@ pipeline {
 							    scmWebUrl: commitBrowser[buildBranch]
 
 						/* Notify IRC, which needs a node for whatever reason. */
-						node('citadel') {
+						node('citadel || rg || master') {
 							ircNotify()
 						}
 					} catch (e) {

@@ -841,14 +841,6 @@ t1000_read_roml(uint32_t addr, void *priv)
     return(*(uint32_t *)(&sys->romdrive[sys->rom_offset + (addr & 0xffff)]));
 }
 
-
-const device_t *
-t1000_get_device(void)
-{
-    return(&t1000_video_device);
-}
-
-
 int
 machine_xt_t1000_init(const machine_t *model)
 {

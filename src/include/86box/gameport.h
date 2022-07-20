@@ -121,6 +121,7 @@ extern const device_t	gameport_tm_acm_device;
 extern const device_t	gameport_pnp_device;
 extern const device_t	gameport_pnp_6io_device;
 extern const device_t	gameport_sio_device;
+extern const device_t	gameport_sio_1io_device;
 
 extern const device_t	*standalone_gameport_type;
 #endif

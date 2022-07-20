@@ -115,7 +115,7 @@ int		isa_cycles, cpu_inited,
 		cpu_cyrix_alignment, CPUID,
 
 		is186, is_nec,
- 		is286, is386, is486 = 1,
+ 		is286, is386, is6117, is486 = 1,
 		cpu_isintel, cpu_iscyrix, hascache, isibm486, israpidcad, is_vpc,
 		is_am486, is_am486dxl, is_pentium, is_k5, is_k6, is_p6, is_cxsmm, hasfpu,
 
@@ -237,7 +237,7 @@ cpu_is_eligible(const cpu_family_t *cpu_family, int cpu, int machine)
 	return 1;
 
     /* Add implicit CPU package compatibility. */
-    packages = machine_s->cpu_package;
+    packages = machine_s->cpu.package;
     if (packages & CPU_PKG_SOCKET3)
 	packages |= CPU_PKG_SOCKET1;
     else if (packages & CPU_PKG_SLOT1)
@@ -252,11 +252,11 @@ cpu_is_eligible(const cpu_family_t *cpu_family, int cpu, int machine)
 	return 1;
 
     /* Check CPU blocklist. */
-    if (machine_s->cpu_block) {
+    if (machine_s->cpu.block) {
 	i = 0;
 
-	while (machine_s->cpu_block[i]) {
-		if (machine_s->cpu_block[i++] == cpu_s->cpu_type)
+	while (machine_s->cpu.block[i]) {
+		if (machine_s->cpu.block[i++] == cpu_s->cpu_type)
 			return 0;
 	}
     }
@@ -264,19 +264,19 @@ cpu_is_eligible(const cpu_family_t *cpu_family, int cpu, int machine)
     bus_speed = cpu_s->rspeed / cpu_s->multi;
 
     /* Minimum bus speed with ~0.84 MHz (for 8086) tolerance. */
-    if (machine_s->cpu_min_bus && (bus_speed < (machine_s->cpu_min_bus - 840907)))
+    if (machine_s->cpu.min_bus && (bus_speed < (machine_s->cpu.min_bus - 840907)))
 	return 0;
 
     /* Maximum bus speed with ~0.84 MHz (for 8086) tolerance. */
-    if (machine_s->cpu_max_bus && (bus_speed > (machine_s->cpu_max_bus + 840907)))
+    if (machine_s->cpu.max_bus && (bus_speed > (machine_s->cpu.max_bus + 840907)))
 	return 0;
 
     /* Minimum voltage with 0.1V tolerance. */
-    if (machine_s->cpu_min_voltage && (cpu_s->voltage < (machine_s->cpu_min_voltage - 100)))
+    if (machine_s->cpu.min_voltage && (cpu_s->voltage < (machine_s->cpu.min_voltage - 100)))
 	return 0;
 
     /* Maximum voltage with 0.1V tolerance. */
-    if (machine_s->cpu_max_voltage && (cpu_s->voltage > (machine_s->cpu_max_voltage + 100)))
+    if (machine_s->cpu.max_voltage && (cpu_s->voltage > (machine_s->cpu.max_voltage + 100)))
 	return 0;
 
     /* Account for CPUs which use a different internal multiplier than specified by jumpers. */
@@ -286,7 +286,7 @@ cpu_is_eligible(const cpu_family_t *cpu_family, int cpu, int machine)
     if (cpu_s->cpu_flags & CPU_FIXED_MULTIPLIER)
 	return 1;
     else if (cpu_family->package & CPU_PKG_SOCKET5_7) {
-	if ((multi == 1.5) && (cpu_s->cpu_type == CPU_5K86) && (machine_s->cpu_min_multi > 1.5)) /* K5 5k86 */
+	if ((multi == 1.5) && (cpu_s->cpu_type == CPU_5K86) && (machine_s->cpu.min_multi > 1.5)) /* K5 5k86 */
 		multi = 2.0;
 	else if (multi == 1.75)				/* K5 5k86 */
 		multi = 2.5;
@@ -297,7 +297,7 @@ cpu_is_eligible(const cpu_family_t *cpu_family, int cpu, int machine)
 		else if ((cpu_s->cpu_type == CPU_K6_2P) || (cpu_s->cpu_type == CPU_K6_3P))
 			multi = 2.5;
 		else if (((cpu_s->cpu_type == CPU_WINCHIP) || (cpu_s->cpu_type == CPU_WINCHIP2)) &&
-			 (machine_s->cpu_min_multi > 2.0))	/* WinChip (2) */
+			 (machine_s->cpu.min_multi > 2.0))	/* WinChip (2) */
 			multi = 2.5;
 	}
 	else if (multi == (7.0 / 3.0))	/* WinChip 2A - 2.33x */
@@ -313,27 +313,27 @@ cpu_is_eligible(const cpu_family_t *cpu_family, int cpu, int machine)
 	else if (multi == 4.0) {
 		/* WinChip (2) */
 		if ((cpu_s->cpu_type == CPU_WINCHIP) || (cpu_s->cpu_type ==  CPU_WINCHIP2)) {
-			if (machine_s->cpu_min_multi >= 1.5)
+			if (machine_s->cpu.min_multi >= 1.5)
 				multi = 1.5;
-			else if (machine_s->cpu_min_multi >= 3.5)
+			else if (machine_s->cpu.min_multi >= 3.5)
 				multi = 3.5;
-			else if (machine_s->cpu_min_multi >= 4.5)
+			else if (machine_s->cpu.min_multi >= 4.5)
 				multi = 4.5;
 		} else if ((cpu_s->cpu_type == CPU_Cx6x86) || (cpu_s->cpu_type == CPU_Cx6x86L))	/* 6x86(L) */
 			multi = 3.0;
 	} else if ((multi == 5.0) && ((cpu_s->cpu_type == CPU_WINCHIP) || (cpu_s->cpu_type == CPU_WINCHIP2)) &&
-		   (machine_s->cpu_min_multi > 5.0))	/* WinChip (2) */
+		   (machine_s->cpu.min_multi > 5.0))	/* WinChip (2) */
 		multi = 5.5;
 	else if (multi == 6.0)	/* K6-2(+) / K6-3(+) */
 		multi = 2.0;
     }
 
     /* Minimum multiplier, */
-    if (multi < machine_s->cpu_min_multi)
+    if (multi < machine_s->cpu.min_multi)
 	return 0;
 
     /* Maximum multiplier. */
-    if (machine_s->cpu_max_multi && (multi > machine_s->cpu_max_multi))
+    if (machine_s->cpu.max_multi && (multi > machine_s->cpu.max_multi))
 	return 0;
 
     return 1;
@@ -384,6 +384,8 @@ cpu_set(void)
     is486        = (cpu_s->cpu_type >= CPU_RAPIDCAD);
     is_am486     = (cpu_s->cpu_type == CPU_ENH_Am486DX);
     is_am486dxl  = (cpu_s->cpu_type == CPU_Am486DXL);
+
+    is6117      = !strcmp(cpu_f->manufacturer, "ALi");
 
     cpu_isintel = !strcmp(cpu_f->manufacturer, "Intel");
     cpu_iscyrix = !strcmp(cpu_f->manufacturer, "Cyrix") || !strcmp(cpu_f->manufacturer, "ST");

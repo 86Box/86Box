@@ -734,7 +734,7 @@ loadhd(ide_t *ide, int d, const char *fn)
 	return;
     }
 
-    hdd_preset_auto(&hdd[d]);
+    hdd_preset_apply(d);
 
     ide->spt = ide->cfg_spt = hdd[d].spt;
     ide->hpc = ide->cfg_hpc = hdd[d].hpc;
@@ -2614,7 +2614,7 @@ ide_read_ali_76(void)
 }
 
 
-static void
+void
 ide_set_handlers(uint8_t board)
 {
     if (ide_boards[board] == NULL)
@@ -2636,7 +2636,7 @@ ide_set_handlers(uint8_t board)
 }
 
 
-static void
+void
 ide_remove_handlers(uint8_t board)
 {
     if (ide_boards[board] == NULL)
@@ -2878,10 +2878,10 @@ ide_board_init(int board, int irq, int base_main, int side_main, int type)
 void
 ide_pnp_config_changed(uint8_t ld, isapnp_device_config_t *config, void *priv)
 {
+    intptr_t board = (intptr_t) priv;
+
     if (ld)
 	return;
-
-    intptr_t board = (intptr_t) priv;
 
     if (ide_boards[board]->base_main || ide_boards[board]->side_main) {
 	ide_remove_handlers(board);
@@ -2891,10 +2891,10 @@ ide_pnp_config_changed(uint8_t ld, isapnp_device_config_t *config, void *priv)
     ide_boards[board]->irq = -1;
 
     if (config->activate) {
-	ide_boards[board]->base_main = config->io[0].base;
-	ide_boards[board]->side_main = config->io[1].base;
+	ide_boards[board]->base_main = (config->io[0].base != ISAPNP_IO_DISABLED) ? config->io[0].base : 0x0000;
+	ide_boards[board]->side_main = (config->io[1].base != ISAPNP_IO_DISABLED) ? config->io[1].base : 0x0000;
 
-	if ((ide_boards[board]->base_main != ISAPNP_IO_DISABLED) && (ide_boards[board]->side_main != ISAPNP_IO_DISABLED))
+	if (ide_boards[board]->base_main && ide_boards[board]->side_main)
 		ide_set_handlers(board);
 
 	if (config->irq[0].irq != ISAPNP_IRQ_DISABLED)

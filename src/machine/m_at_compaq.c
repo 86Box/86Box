@@ -719,7 +719,7 @@ const device_config_t compaq_plasma_config[] = {
     { .name = "", .description = "", .type = CONFIG_END }
 };
 
-static const device_t compaq_plasma_device = {
+const device_t compaq_plasma_device = {
     .name = "Compaq Plasma",
     .internal_name = "compaq_plasma",
     .flags = 0,
@@ -790,12 +790,6 @@ write_raml(uint32_t addr, uint32_t val, void *priv)
     addwritelookup(mem_logical_addr, addr);
 
     mem_write_raml_page(addr, val, &pages[addr >> 12]);
-}
-
-const device_t *
-at_cpqiii_get_device(void)
-{
-	return &compaq_plasma_device;
 }
 
 static void

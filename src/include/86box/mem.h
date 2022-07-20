@@ -182,6 +182,8 @@ typedef struct _mem_mapping_ {
     uint32_t	base;
     uint32_t	size;
 
+    uint32_t	mask;
+
     uint8_t	(*read_b)(uint32_t addr, void *priv);
     uint16_t	(*read_w)(uint32_t addr, void *priv);
     uint32_t	(*read_l)(uint32_t addr, void *priv);
@@ -270,6 +272,7 @@ extern int		writelookup[256];
 extern uintptr_t *	writelookup2;
 extern int		writelnext;
 extern uint32_t		ram_mapped_addr[64];
+extern uint8_t		page_ff[4096];
 
 extern mem_mapping_t	ram_low_mapping,
 #if 1
@@ -297,6 +300,8 @@ extern int		memspeed[11];
 
 extern int		mmu_perm;
 extern uint8_t		high_page;		/* if a high (> 4 gb) page was detected */
+
+extern uint32_t		pages_sz;		/* #pages in table */
 
 extern int		mem_a20_state,
 			mem_a20_alt,
@@ -370,6 +375,7 @@ extern void	mem_mapping_set_p(mem_mapping_t *, void *p);
 extern void	mem_mapping_set_addr(mem_mapping_t *,
 				     uint32_t base, uint32_t size);
 extern void	mem_mapping_set_exec(mem_mapping_t *, uint8_t *exec);
+extern void	mem_mapping_set_mask(mem_mapping_t *, uint32_t mask);
 extern void	mem_mapping_disable(mem_mapping_t *);
 extern void	mem_mapping_enable(mem_mapping_t *);
 extern void	mem_mapping_recalc(uint64_t base, uint64_t size);

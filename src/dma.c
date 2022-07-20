@@ -622,7 +622,7 @@ dma_ps2_read(uint16_t addr, void *priv)
 				  else
 					temp = dma_c->cc & 0xff;
 				dma_ps2.byte_ptr = (dma_ps2.byte_ptr + 1) & 1;
-				break;
+                break;
 
 			case 6: /*Read DMA status*/
 				if (dma_ps2.byte_ptr) {
@@ -650,7 +650,6 @@ dma_ps2_read(uint16_t addr, void *priv)
 		}
 		break;
     }
-
     return(temp);
 }
 
@@ -719,7 +718,7 @@ dma_ps2_write(uint16_t addr, uint8_t val, void *priv)
 					dma_c->cc = (dma_c->cc & 0xff00) | val;
 				dma_ps2.byte_ptr = (dma_ps2.byte_ptr + 1) & 1;
 				dma_c->cb = dma_c->cc;
-				break;
+                break;
 
 			case 7: /*Mode register*/
 				mode = 0;
@@ -727,7 +726,7 @@ dma_ps2_write(uint16_t addr, uint8_t val, void *priv)
 					mode |= 0x20;
 				if ((val & DMA_PS2_XFER_MASK) == DMA_PS2_XFER_MEM_TO_IO)
 					mode |= 8;
-				  else if ((val & DMA_PS2_XFER_MASK) == DMA_PS2_XFER_IO_TO_MEM)
+                else if ((val & DMA_PS2_XFER_MASK) == DMA_PS2_XFER_IO_TO_MEM)
 					mode |= 4;
 				dma_c->mode = (dma_c->mode & ~0x2c) | mode;
 				dma_c->ps2_mode = val;

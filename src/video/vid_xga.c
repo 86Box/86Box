@@ -577,7 +577,7 @@ xga_ext_inb(uint16_t addr, void *p)
                     ret = 0x0b;
                     break;
                 case 0x53:
-                    ret = 0xb0;
+                    ret = 0x70;
                     break;
                 case 0x54:
                     ret = xga->clk_sel_1;
@@ -1915,7 +1915,7 @@ xga_memio_writel(uint32_t addr, uint32_t val, void *p)
 static uint8_t
 xga_mem_read(uint32_t addr, xga_t *xga, svga_t *svga)
 {
-    uint8_t temp = 0xff;
+    uint8_t temp = 0;
 
     addr &= 0x1fff;
 

@@ -186,14 +186,6 @@ machine_at_valuepoint433_init(const machine_t *model)	// hangs without the PS/2 
     return ret;
 }
 
-
-const device_t *
-at_valuepoint433_get_device(void)
-{
-    return &et4000w32_onboard_device;
-}
-
-
 int
 machine_at_ecs386_init(const machine_t *model)
 {
@@ -361,13 +353,6 @@ machine_at_vect486vl_init(const machine_t *model)	// has HDC problems
     return ret;
 }
 
-const device_t *
-at_vect486vl_get_device(void)
-{
-    return &gd5428_onboard_device;
-}
-
-
 int
 machine_at_d824_init(const machine_t *model)
 {
@@ -391,14 +376,6 @@ machine_at_d824_init(const machine_t *model)
 
     return ret;
 }
-
-
-const device_t *
-at_d824_get_device(void)
-{
-    return &gd5428_onboard_device;
-}
-
 
 int
 machine_at_acera1g_init(const machine_t *model)
@@ -425,14 +402,6 @@ machine_at_acera1g_init(const machine_t *model)
 
     return ret;
 }
-
-
-const device_t *
-at_acera1g_get_device(void)
-{
-    return &gd5428_onboard_device;
-}
-
 
 int
 machine_at_acerv10_init(const machine_t *model)
@@ -1452,14 +1421,6 @@ machine_at_sbc490_init(const machine_t *model)
 
     return ret;
 }
-
-
-const device_t *
-at_sbc490_get_device(void)
-{
-    return &tgui9440_onboard_pci_device;
-}
-
 
 int
 machine_at_tf486_init(const machine_t *model)

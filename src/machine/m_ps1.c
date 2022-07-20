@@ -68,7 +68,7 @@
 typedef struct {
     int		model;
 
-    rom_t	high_rom;
+    rom_t	mid_rom, high_rom;
 
     uint8_t	ps1_91,
 		ps1_92,
@@ -300,6 +300,11 @@ ps1_setup(int model)
 	io_sethandler(0x00e0, 2,
 		      ps1_read, NULL, NULL, ps1_write, NULL, NULL, ps);
 
+	if (rom_present("roms/machines/ibmps1_2121/F80000.BIN")) {
+		rom_init(&ps->mid_rom,
+			 "roms/machines/ibmps1_2121/F80000.BIN",
+			 0xf80000, 0x40000, 0x3ffff, 0, MEM_MAPPING_EXTERNAL);
+	}
 	rom_init(&ps->high_rom,
 		 "roms/machines/ibmps1_2121/FC0000.BIN",
 		 0xfc0000, 0x40000, 0x3ffff, 0, MEM_MAPPING_EXTERNAL);

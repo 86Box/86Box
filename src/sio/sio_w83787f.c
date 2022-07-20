@@ -34,6 +34,7 @@
 #include <86box/fdc.h>
 #include <86box/hdc.h>
 #include <86box/hdc_ide.h>
+#include <86box/gameport.h>
 #include <86box/sio.h>
 
 #ifdef ENABLE_W83787_LOG
@@ -82,6 +83,7 @@ typedef struct {
 	ide_start;
     fdc_t *fdc;
     serial_t *uart[2];
+    void	*gameport;
 } w83787f_t;
 
 
@@ -201,6 +203,16 @@ w83787f_lpt_handler(w83787f_t *dev)
 
 
 static void
+w83787f_gameport_handler(w83787f_t *dev)
+{
+    if (!(dev->regs[3] & 0x40) && !(dev->regs[4] & 0x40))
+	gameport_remap(dev->gameport, 0x201);
+    else
+	gameport_remap(dev->gameport, 0);
+}
+
+
+static void
 w83787f_fdc_handler(w83787f_t *dev)
 {
     fdc_remove(dev->fdc);
@@ -282,6 +294,8 @@ w83787f_write(uint16_t port, uint8_t val, void *priv)
 	case 3:
 		if (valxor & 0x80)
 			w83787f_lpt_handler(dev);
+		if (valxor & 0x40)
+			w83787f_gameport_handler(dev);
 		if (valxor & 0x08)
 			w83787f_serial_handler(dev, 0);
 		if (valxor & 0x04)
@@ -294,6 +308,8 @@ w83787f_write(uint16_t port, uint8_t val, void *priv)
 			w83787f_serial_handler(dev, 0);
 		if (valxor & 0x80)
 			w83787f_lpt_handler(dev);
+		if (valxor & 0x40)
+			w83787f_gameport_handler(dev);
 		break;
 	case 6:
 		if (valxor & 0x08)
@@ -392,15 +408,19 @@ w83787f_reset(w83787f_t *dev)
     fdc_reset(dev->fdc);
 
     dev->regs[0x01] = 0x2C;
-    dev->regs[0x03] = 0x30;
+    dev->regs[0x03] = 0x70;
     dev->regs[0x07] = 0xF5;
     dev->regs[0x09] = dev->reg_init & 0xff;
     dev->regs[0x0a] = 0x1F;
     dev->regs[0x0c] = 0x2C;
     dev->regs[0x0d] = 0xA3;
 
+    gameport_remap(dev->gameport, 0);
+
     serial_setup(dev->uart[0], COM1_ADDR, COM1_IRQ);
     serial_setup(dev->uart[1], COM2_ADDR, COM2_IRQ);
+
+    w83787f_lpt_handler(dev);
 
     dev->key = 0x89;
 
@@ -432,6 +452,8 @@ w83787f_init(const device_t *info)
 
     dev->uart[0] = device_add_inst(&ns16550_device, 1);
     dev->uart[1] = device_add_inst(&ns16550_device, 2);
+
+    dev->gameport = gameport_add(&gameport_sio_1io_device);
 
     if ((dev->ide_function & 0x30) == 0x10)
 	device_add(&ide_isa_device);

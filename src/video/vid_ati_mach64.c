@@ -3532,13 +3532,10 @@ static void *mach64_common_init(const device_t *info)
                    mach64_overlay_draw);
     mach64->svga.dac_hwcursor.cur_ysize = 64;
 
-        if (info->flags & DEVICE_PCI)
-                mem_mapping_disable(&mach64->bios_rom.mapping);
-
-			mem_mapping_add(&mach64->linear_mapping,        0,       0,       svga_read_linear, svga_readw_linear, svga_readl_linear, svga_write_linear, svga_writew_linear, svga_writel_linear, NULL, MEM_MAPPING_EXTERNAL, &mach64->svga);
-        	mem_mapping_add(&mach64->mmio_linear_mapping,   0,       0,       mach64_ext_readb, mach64_ext_readw,  mach64_ext_readl,  mach64_ext_writeb, mach64_ext_writew,  mach64_ext_writel,  NULL, MEM_MAPPING_EXTERNAL,  mach64);
-	        mem_mapping_add(&mach64->mmio_linear_mapping_2, 0,       0,       mach64_ext_readb, mach64_ext_readw,  mach64_ext_readl,  mach64_ext_writeb, mach64_ext_writew,  mach64_ext_writel,  NULL, MEM_MAPPING_EXTERNAL,  mach64);
-        	mem_mapping_add(&mach64->mmio_mapping,          0xbc000, 0x04000, mach64_ext_readb, mach64_ext_readw,  mach64_ext_readl,  mach64_ext_writeb, mach64_ext_writew,  mach64_ext_writel,  NULL, MEM_MAPPING_EXTERNAL,  mach64);
+	mem_mapping_add(&mach64->linear_mapping,        0,       0,       svga_read_linear, svga_readw_linear, svga_readl_linear, svga_write_linear, svga_writew_linear, svga_writel_linear, NULL, MEM_MAPPING_EXTERNAL, &mach64->svga);
+       	mem_mapping_add(&mach64->mmio_linear_mapping,   0,       0,       mach64_ext_readb, mach64_ext_readw,  mach64_ext_readl,  mach64_ext_writeb, mach64_ext_writew,  mach64_ext_writel,  NULL, MEM_MAPPING_EXTERNAL,  mach64);
+        mem_mapping_add(&mach64->mmio_linear_mapping_2, 0,       0,       mach64_ext_readb, mach64_ext_readw,  mach64_ext_readl,  mach64_ext_writeb, mach64_ext_writew,  mach64_ext_writel,  NULL, MEM_MAPPING_EXTERNAL,  mach64);
+       	mem_mapping_add(&mach64->mmio_mapping,          0xbc000, 0x04000, mach64_ext_readb, mach64_ext_readw,  mach64_ext_readl,  mach64_ext_writeb, mach64_ext_writew,  mach64_ext_writel,  NULL, MEM_MAPPING_EXTERNAL,  mach64);
         mem_mapping_disable(&mach64->mmio_mapping);
 
         mach64_io_set(mach64);
@@ -3604,6 +3601,9 @@ static void *mach64gx_init(const device_t *info)
 	else if (info->flags & DEVICE_ISA)
 	        rom_init(&mach64->bios_rom, BIOS_ISA_ROM_PATH, 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
 
+        if (info->flags & DEVICE_PCI)
+                mem_mapping_disable(&mach64->bios_rom.mapping);
+
         return mach64;
 }
 static void *mach64vt2_init(const device_t *info)
@@ -3627,6 +3627,9 @@ static void *mach64vt2_init(const device_t *info)
         ati_eeprom_load(&mach64->eeprom, "mach64vt.nvr", 1);
 
         rom_init(&mach64->bios_rom, BIOS_ROMVT2_PATH, 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
+
+        if (info->flags & DEVICE_PCI)
+                mem_mapping_disable(&mach64->bios_rom.mapping);
 
         svga->vblank_start = mach64_vblank_start;
 
