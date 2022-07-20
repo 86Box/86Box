@@ -1975,6 +1975,7 @@ fdc_data(fdc_t *fdc, uint8_t data, int last)
 			fdc->tc = 1;
 			return -1;
 		}
+		dma_set_drq(fdc->dma_ch, 0);
 	} else {
 		/* FIFO enabled */
 		fdc_fifo_buf_write(fdc, data);
@@ -1997,6 +1998,7 @@ fdc_data(fdc_t *fdc, uint8_t data, int last)
 					return -1;
 				}
 			}
+			dma_set_drq(fdc->dma_ch, 0);
 		}
 	}
     }
@@ -2147,6 +2149,7 @@ int fdc_getdata(fdc_t *fdc, int last)
 					break;
 				}
 			}
+			dma_set_drq(fdc->dma_ch, 0);
 		}
 
 		data = fdc_fifo_buf_read(fdc);
