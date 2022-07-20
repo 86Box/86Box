@@ -314,8 +314,10 @@ fdc_request_next_sector_id(fdc_t *fdc)
 {
     if ((fdc->flags & FDC_FLAG_PCJR) || !fdc->dma)
 	fdc->stat = 0xf0;
-    else
+    else {
+	dma_set_drq(fdc->dma_ch, 1);
 	fdc->stat = 0xd0;
+    }
 }
 
 
@@ -701,6 +703,8 @@ fdc_io_command_phase1(fdc_t *fdc, int out)
     fdc->stat = out ? 0x90 : 0x50;
     if ((fdc->flags & FDC_FLAG_PCJR) || !fdc->dma)
 	fdc->stat |= 0x20;
+    else
+	dma_set_drq(fdc->dma_ch, 1);
     if (out)
 	fdc->pos = 0;
     else
@@ -1062,6 +1066,8 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
 						fdc->specify[0] = fdc->params[0];
 						fdc->specify[1] = fdc->params[1];
 						fdc->dma = (fdc->specify[1] & 1) ^ 1;
+						if (!fdc->dma)
+							dma_set_drq(fdc->dma_ch, 0);
 						break;
 					case 0x04:	/*Sense drive status*/
 						fdd_set_head(real_drive(fdc, fdc->drive), (fdc->params[0] & 4) ? 1 : 0);
@@ -1287,7 +1293,6 @@ fdc_read(uint16_t addr, void *priv)
 			ret = 0x00;
 			/* TODO:
 				Bit 2: INDEX (best return always 0 as it goes by very fast)
-				Bit 6: DRQ
 			*/
 			if (fdc->seek_dir)			/* nDIRECTION */
 				ret |= 0x01;
@@ -1299,6 +1304,8 @@ fdc_read(uint16_t addr, void *priv)
 				ret |= 0x10;
 			if (fdc->step)				/* STEP */
 				ret |= 0x20;
+			if (dma_get_drq(fdc->dma_ch))		/* DRQ */
+				ret |= 0x40;
 			if (fdc->fintr || fdc->reset_stat)	/* INTR */
 				ret |= 0x80;
 		} else
@@ -1504,6 +1511,7 @@ fdc_poll_common_finish(fdc_t *fdc, int compare, int st5)
     fdc_log("Read/write finish (%02X %02X %02X %02X %02X %02X %02X)\n" , fdc->res[4], fdc->res[5], fdc->res[6], fdc->res[7], fdc->res[8], fdc->res[9], fdc->res[10]);
     ui_sb_update_icon(SB_FLOPPY | real_drive(fdc, fdc->drive), 0);
     fdc->paramstogo = 7;
+    dma_set_drq(fdc->dma_ch, 0);
 }
 
 
@@ -1567,8 +1575,10 @@ fdc_callback(void *priv)
 			fdd_readsector(real_drive(fdc, fdc->drive), SECTOR_NEXT, fdc->rw_track, fdc->head, fdc->rate, fdc->params[4]);
 			if ((fdc->flags & FDC_FLAG_PCJR) || !fdc->dma)
 				fdc->stat = 0x70;
-			else
+			else {
+				dma_set_drq(fdc->dma_ch, 1);
 				fdc->stat = 0x50;
+			}
 		}
 		fdc->inread = 1;
 		return;
@@ -1684,8 +1694,10 @@ fdc_callback(void *priv)
 				fdd_writesector(real_drive(fdc, fdc->drive), fdc->sector, fdc->rw_track, fdc->head, fdc->rate, fdc->params[4]);
 				if ((fdc->flags & FDC_FLAG_PCJR) || !fdc->dma)
 					fdc->stat = 0xb0;
-				else
+				else {
+					dma_set_drq(fdc->dma_ch, 1);
 					fdc->stat = 0x90;
+				}
 				break;
 			case 6:
 			case 0xC:
@@ -1693,8 +1705,10 @@ fdc_callback(void *priv)
 				fdd_readsector(real_drive(fdc, fdc->drive), fdc->sector, fdc->rw_track, fdc->head, fdc->rate, fdc->params[4]);
 				if ((fdc->flags & FDC_FLAG_PCJR) || !fdc->dma)
 					fdc->stat = 0x70;
-				else
+				else {
+					dma_set_drq(fdc->dma_ch, 1);
 					fdc->stat = 0x50;
+				}
 				break;
 			case 0x11:
 			case 0x19:
@@ -1702,8 +1716,10 @@ fdc_callback(void *priv)
 				fdd_comparesector(real_drive(fdc, fdc->drive), fdc->sector, fdc->rw_track, fdc->head, fdc->rate, fdc->params[4]);
 				if ((fdc->flags & FDC_FLAG_PCJR) || !fdc->dma)
 					fdc->stat = 0xb0;
-				else
+				else {
+					dma_set_drq(fdc->dma_ch, 1);
 					fdc->stat = 0x90;
+				}
 				break;
 		}
 		fdc->inread = 1;
@@ -1809,6 +1825,7 @@ fdc_callback(void *priv)
 void
 fdc_error(fdc_t *fdc, int st5, int st6)
 {
+    dma_set_drq(fdc->dma_ch, 0);
 #if 1
     timer_disable(&fdc->timer);
 
@@ -1947,12 +1964,14 @@ fdc_data(fdc_t *fdc, uint8_t data, int last)
 	if (!fdc->fifo || (fdc->tfifo < 1)) {
 		fdc->data_ready = 1;
 		fdc->stat = 0xd0;
+		dma_set_drq(fdc->dma_ch, 1);
 
 		fdc->fifobufpos = 0;
 
 		result = dma_channel_write(fdc->dma_ch, data);
 
 		if (result & DMA_OVER) {
+			dma_set_drq(fdc->dma_ch, 0);
 			fdc->tc = 1;
 			return -1;
 		}
@@ -1963,6 +1982,7 @@ fdc_data(fdc_t *fdc, uint8_t data, int last)
 			/* We have wrapped around, means FIFO is over */
 			fdc->data_ready = 1;
 			fdc->stat = 0xd0;
+			dma_set_drq(fdc->dma_ch, 1);
 
 			n = (fdc->fifobufpos > 0) ? (fdc->fifobufpos - 1) : fdc->tfifo;
 			if (fdc->fifobufpos > 0)
@@ -1972,6 +1992,7 @@ fdc_data(fdc_t *fdc, uint8_t data, int last)
 				result = dma_channel_write(fdc->dma_ch, fdc->fifobuf[i]);
 
 				if (result & DMA_OVER) {
+					dma_set_drq(fdc->dma_ch, 0);
 					fdc->tc = 1;
 					return -1;
 				}
@@ -2105,12 +2126,15 @@ int fdc_getdata(fdc_t *fdc, int last)
     } else {
 	if (!fdc->fifo || (fdc->tfifo < 1)) {
 		data = dma_channel_read(fdc->dma_ch);
+		dma_set_drq(fdc->dma_ch, 0);
 
 		if (data & DMA_OVER)
 			fdc->tc = 1;
 
-		if (!last)
+		if (!last) {
 			fdc->stat = 0x90;
+			dma_set_drq(fdc->dma_ch, 1);
+		}
 	} else {
 		if (fdc->fifobufpos == 0) {
 			for (i = 0; i <= fdc->tfifo; i++) {
@@ -2118,6 +2142,7 @@ int fdc_getdata(fdc_t *fdc, int last)
 				fdc->fifobuf[i] = data;
 
 				if (data & DMA_OVER) {
+					dma_set_drq(fdc->dma_ch, 0);
 					fdc->tc = 1;
 					break;
 				}
@@ -2126,8 +2151,10 @@ int fdc_getdata(fdc_t *fdc, int last)
 
 		data = fdc_fifo_buf_read(fdc);
 
-		if (!last && (fdc->fifobufpos == 0))
+		if (!last && (fdc->fifobufpos == 0)) {
+			dma_set_drq(fdc->dma_ch, 1);
 			fdc->stat = 0x90;
+		}
 	}
     }
 
@@ -2149,6 +2176,7 @@ fdc_sectorid(fdc_t *fdc, uint8_t track, uint8_t side, uint8_t sector, uint8_t si
     fdc->res[10] = size;
     ui_sb_update_icon(SB_FLOPPY | real_drive(fdc, fdc->drive), 0);
     fdc->paramstogo = 7;
+    dma_set_drq(fdc->dma_ch, 0);
 }
 
 
