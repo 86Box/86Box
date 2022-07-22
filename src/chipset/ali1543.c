@@ -56,6 +56,7 @@ typedef struct ali1543_t
 			sio_regs[256], device_regs[8][256], sio_index, in_configuration_mode,
 			pci_slot, ide_slot, usb_slot, pmu_slot, usb_dev_enable, ide_dev_enable,
 			pmu_dev_enable, type;
+    int			offset;
 
     apm_t *		apm;
     acpi_t *		acpi;
@@ -274,8 +275,7 @@ ali1533_write(int func, int addr, uint8_t val, void *priv)
 			dev->pci_conf[addr] = val & 0xe0;
 		break;
 
-	/* IDE interface control
-	   TODO: What is IDSEL address? */
+	/* IDE interface control */
 	case 0x58:
 		dev->pci_conf[addr] = val & 0x7f;
 		ali1543_log("PCI58: %02X\n", val);
@@ -294,6 +294,7 @@ ali1533_write(int func, int addr, uint8_t val, void *priv)
 				dev->ide_slot = 0x0d;	/* A24 = slot 13 */
 				break;
 		}
+		pci_relocate_slot(PCI_CARD_SOUTHBRIDGE_IDE, ((int) dev->ide_slot) + dev->offset);
 		ali1543_log("IDE slot = %02X (A%0i)\n", dev->ide_slot/* - 5*/, dev->ide_slot + 11);
 		ali5229_ide_irq_handler(dev);
 		break;
@@ -363,6 +364,7 @@ ali1533_write(int func, int addr, uint8_t val, void *priv)
 				dev->pmu_slot = 0x04;	/* A15 = slot 04 */
 				break;
 		}
+		pci_relocate_slot(PCI_CARD_SOUTHBRIDGE_PMU, ((int) dev->pmu_slot) + dev->offset);
 		ali1543_log("PMU slot = %02X (A%0i)\n", dev->pmu_slot/* - 5*/, dev->pmu_slot + 11);
 		switch (val & 0x03) {
 			case 0x00:
@@ -378,6 +380,7 @@ ali1533_write(int func, int addr, uint8_t val, void *priv)
 				dev->usb_slot = 0x01;	/* A12 = slot 01 */
 				break;
 		}
+		pci_relocate_slot(PCI_CARD_SOUTHBRIDGE_USB, ((int) dev->usb_slot) + dev->offset);
 		ali1543_log("USB slot = %02X (A%0i)\n", dev->usb_slot/* - 5*/, dev->usb_slot + 11);
 		break;
 
@@ -1727,7 +1730,10 @@ ali1543_init(const device_t *info)
     /* USB */
     dev->usb = device_add(&usb_device);
 
-    dev->type = info->local;
+    dev->type = info->local & 0xff;
+    dev->offset = (info->local >> 8) & 0x7f;
+    if (info->local & 0x8000)
+	dev->offset = -dev->offset;
 
     pci_enable_mirq(0);
     pci_enable_mirq(1);
@@ -1746,7 +1752,8 @@ const device_t ali1543_device = {
     .name = "ALi M1543 Desktop South Bridge",
     .internal_name = "ali1543",
     .flags = DEVICE_PCI,
-    .local = 0,
+    .local = 0x8500,	/* -5 slot offset, we can do this because we currently
+			   have no case of M1543 non-C with a different offset */
     .init = ali1543_init,
     .close = ali1543_close,
     .reset = ali1543_reset,
