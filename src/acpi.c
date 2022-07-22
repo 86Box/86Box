@@ -1458,7 +1458,7 @@ acpi_apm_out(uint16_t port, uint8_t val, void *p)
 		dev->apm->cmd = val;
 		if (dev->vendor == VEN_INTEL)
 			dev->regs.glbsts |= 0x20;
-		acpi_raise_smi(dev, dev->apm->do_smi);
+        acpi_raise_smi(dev, dev->apm->do_smi);
 	} else
 		dev->apm->stat = val;
     }

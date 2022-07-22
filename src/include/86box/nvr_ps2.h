@@ -39,7 +39,7 @@
 # define EMU_NVRPS2_H
 
 
-extern const device_t	ps2_nvr_device;
+extern const device_t   ps2_nvr_device;
 extern const device_t   ps2_nvr_55ls_device;
 
 
