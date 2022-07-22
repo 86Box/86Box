@@ -1677,13 +1677,13 @@ ali1543_init(const device_t *info)
     dev->pci_slot = pci_add_card(PCI_ADD_SOUTHBRIDGE, ali1533_read, ali1533_write, dev);
 
     /* Device 0B: M5229 IDE Controller*/
-    dev->ide_slot = pci_add_card(PCI_ADD_SOUTHBRIDGE, ali5229_read, ali5229_write, dev);
+    dev->ide_slot = pci_add_card(PCI_ADD_SOUTHBRIDGE_IDE, ali5229_read, ali5229_write, dev);
 
     /* Device 0C: M7101 Power Managment Controller */
-    dev->pmu_slot = pci_add_card(PCI_ADD_SOUTHBRIDGE, ali7101_read, ali7101_write, dev);
+    dev->pmu_slot = pci_add_card(PCI_ADD_SOUTHBRIDGE_PMU, ali7101_read, ali7101_write, dev);
 
     /* Device 0F: M5237 USB */
-    dev->usb_slot = pci_add_card(PCI_ADD_SOUTHBRIDGE, ali5237_read, ali5237_write, dev);
+    dev->usb_slot = pci_add_card(PCI_ADD_SOUTHBRIDGE_USB, ali5237_read, ali5237_write, dev);
 
     /* Ports 3F0-1h: M1543 Super I/O */
     io_sethandler(FDC_PRIMARY_ADDR, 0x0002, ali1533_sio_read, NULL, NULL, ali1533_sio_write, NULL, NULL, dev);
@@ -1704,7 +1704,8 @@ ali1543_init(const device_t *info)
     dev->ddma = device_add(&ddma_device);
 
     /* Floppy Disk Controller */
-    dev->fdc_controller = device_add(&fdc_at_smc_device);
+    // dev->fdc_controller = device_add(&fdc_at_smc_device);
+    dev->fdc_controller = NULL;
 
     /* IDE Controllers */
     dev->ide_controller[0] = device_add_inst(&sff8038i_device, 1);
