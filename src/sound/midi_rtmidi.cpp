@@ -240,6 +240,7 @@ rtmidi_in_get_dev_name(int num, char *s)
 }
 
 static const device_config_t system_midi_config[] = {
+  // clang-format off
     {
         .name = "midi",
         .description = "MIDI out device",
@@ -248,9 +249,11 @@ static const device_config_t system_midi_config[] = {
         .default_int = 0
     },
     { .name = "", .description = "", .type = CONFIG_END }
+  // clang-format on
 };
 
 static const device_config_t midi_input_config[] = {
+  // clang-format off
     {
         .name = "midi_input",
         .description = "MIDI in device",
@@ -280,6 +283,7 @@ static const device_config_t midi_input_config[] = {
         .default_int = 1
     },
     { .name = "", .description = "", .type = CONFIG_END }
+  // clang-format on
 };
 
 const device_t rtmidi_output_device = {
