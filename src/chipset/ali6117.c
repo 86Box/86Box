@@ -219,12 +219,14 @@ ali6117_reg_write(uint16_t addr, uint8_t val, void *priv)
 			refresh_at_enable = !(val & 0x02) || !!(dev->regs[0x20] & 0x80);
 			dev->regs[dev->reg_offset] = val;
 
-			if (val & 0x04)
-				mem_set_mem_state_both(0x00f00000, 0x00100000, MEM_READ_EXTANY | MEM_WRITE_EXTANY);
-			else
-				mem_set_mem_state_both(0x00f00000, 0x00100000, MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
+			if (dev->local != 0x8) {
+				if (val & 0x04)
+					mem_set_mem_state_both(0x00f00000, 0x00100000, MEM_READ_EXTANY | MEM_WRITE_EXTANY);
+				else
+					mem_set_mem_state_both(0x00f00000, 0x00100000, MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
 
-			ali6117_bank_recalc(dev);
+				ali6117_bank_recalc(dev);
+			}
 			break;
 
 		case 0x12:
@@ -417,9 +419,11 @@ ali6117_reset(void *priv)
 
     refresh_at_enable = 1;
 
-    /* On-board memory 15-16M is enabled by default. */
-    mem_set_mem_state_both(0x00f00000, 0x00100000, MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
-    ali6117_bank_recalc(dev);
+    if (dev->local != 0x8) {
+	/* On-board memory 15-16M is enabled by default. */
+	mem_set_mem_state_both(0x00f00000, 0x00100000, MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
+	ali6117_bank_recalc(dev);
+    }
 }
 
 
