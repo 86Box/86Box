@@ -3150,14 +3150,16 @@ static int tgui96xx_available(void)
 
 void tgui_close(void *p)
 {
-        tgui_t *tgui = (tgui_t *)p;
+    tgui_t *tgui = (tgui_t *)p;
 
-        svga_close(&tgui->svga);
+    svga_close(&tgui->svga);
 
+	if (tgui->type >= TGUI_9440) {
         ddc_close(tgui->ddc);
         i2c_gpio_close(tgui->i2c);
+	};
 
-        free(tgui);
+    free(tgui);
 }
 
 void tgui_speed_changed(void *p)
