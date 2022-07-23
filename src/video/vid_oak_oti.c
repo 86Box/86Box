@@ -41,6 +41,7 @@ enum {
     OTI_037C,
     OTI_067 = 2,
     OTI_067_AMA932J,
+	OTI_067_M300 = 4,
     OTI_077 = 5
 };
 
@@ -392,6 +393,16 @@ oti_init(const device_t *info)
 		oti->chip_id = 2;
 		oti->vram_size = device_get_config_int("memory");
 		oti->dipswitch_val |= 0x20;
+		oti->pos = 0x08;	/* Tell the BIOS the I/O ports are already enabled to avoid a double I/O handler mess. */
+		io_sethandler(0x46e8, 1, oti_pos_in, NULL, NULL, oti_pos_out, NULL, NULL, oti);
+		break;
+
+	case OTI_067_M300:
+		if (rom_present(BIOS_067_M300_15_PATH))
+			romfn = BIOS_067_M300_15_PATH;
+		else
+			romfn = BIOS_067_M300_08_PATH;
+		oti->vram_size = device_get_config_int("memory");
 		oti->pos = 0x08;	/* Tell the BIOS the I/O ports are already enabled to avoid a double I/O handler mess. */
 		io_sethandler(0x46e8, 1, oti_pos_in, NULL, NULL, oti_pos_out, NULL, NULL, oti);
 		break;

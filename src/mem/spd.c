@@ -190,7 +190,6 @@ spd_register(uint8_t ram_type, uint8_t slot_mask, uint16_t max_module_size)
     uint16_t min_module_size, rows[SPD_MAX_SLOTS], asym;
     spd_edo_t *edo_data;
     spd_sdram_t *sdram_data;
-    spd_ddr_t *ddr_data;
 
     /* Determine the minimum module size for this RAM type. */
     switch (ram_type) {
@@ -201,10 +200,6 @@ spd_register(uint8_t ram_type, uint8_t slot_mask, uint16_t max_module_size)
 
 	case SPD_TYPE_SDRAM:
 		min_module_size = SPD_MIN_SIZE_SDRAM;
-		break;
-
-	case SPD_TYPE_DDR:
-		min_module_size = SPD_MIN_SIZE_DDR;
 		break;
 
 	default:
@@ -339,60 +334,6 @@ spd_register(uint8_t ram_type, uint8_t slot_mask, uint16_t max_module_size)
 				sdram_data->checksum += spd_modules[slot]->data[i];
 			for (i = 0; i < 129; i++)
 				sdram_data->checksum2 += spd_modules[slot]->data[i];
-			break;
-
-		case SPD_TYPE_DDR:
-			ddr_data = &spd_modules[slot]->ddr_data;
-
-			ddr_data->bytes_used = 0x80;
-			ddr_data->spd_size = 0x08;
-			ddr_data->mem_type = ram_type;
-			ddr_data->row_bits = SPD_ROLLUP(6 + log2i(spd_modules[slot]->row1)); /* first row */
-			ddr_data->col_bits = 9;
-			if (spd_modules[slot]->row1 != spd_modules[slot]->row2) { /* the upper 4 bits of row_bits/col_bits should be 0 on a symmetric module */
-				ddr_data->row_bits |= SPD_ROLLUP(6 + log2i(spd_modules[slot]->row2)) << 4; /* second row, if different from first */
-				ddr_data->col_bits |= 9 << 4; /* same as first row, but just in case */
-			}
-			ddr_data->rows = 2;
-			ddr_data->data_width_lsb = 64;
-			ddr_data->signal_level = SPD_SIGNAL_LVTTL;
-			ddr_data->tclk = 0x75; /* 7.5 ns = 133.3 MHz */
-			ddr_data->tac = 0x10;
-			ddr_data->refresh_rate = SPD_SDR_REFRESH_SELF | SPD_REFRESH_NORMAL;
-			ddr_data->sdram_width = 8;
-			ddr_data->tccd = 1;
-			ddr_data->burst = SPD_SDR_BURST_PAGE | 1 | 2 | 4 | 8;
-			ddr_data->banks = 4;
-			ddr_data->cas = 0x7f; /* CAS Latency */
-			ddr_data->cslat = ddr_data->we = 0x7f;
-			ddr_data->dev_attr = SPD_SDR_ATTR_EARLY_RAS | SPD_SDR_ATTR_AUTO_PC | SPD_SDR_ATTR_PC_ALL | SPD_SDR_ATTR_W1R_BURST;
-			ddr_data->tclk2 = 0xA0; /* 10 ns = 100 MHz */
-			ddr_data->tclk3 = 0xF0; /* 15 ns = 66.7 MHz */
-			ddr_data->tac2 = ddr_data->tac3 = 0x10;
-			ddr_data->trp = ddr_data->trrd = ddr_data->trcd = ddr_data->tras = 1;
-			if (spd_modules[slot]->row1 != spd_modules[slot]->row2) {
-				/* Utilities interpret bank_density a bit differently on asymmetric modules. */
-				ddr_data->bank_density  = 1 << (log2i(spd_modules[slot]->row1 >> 1) - 2); /* first row */
-				ddr_data->bank_density |= 1 << (log2i(spd_modules[slot]->row2 >> 1) - 2); /* second row */
-			} else {
-				ddr_data->bank_density  = 1 << (log2i(spd_modules[slot]->row1 >> 1) - 1); /* symmetric module = only one bit is set */
-			}
-			ddr_data->ca_setup = ddr_data->data_setup = 0x15;
-			ddr_data->ca_hold = ddr_data->data_hold = 0x08;
-
-			ddr_data->spd_rev = 0x10;
-			for (i = spd_write_part_no(ddr_data->part_no, "DDR", rows[row]);
-			     i < sizeof(ddr_data->part_no); i++)
-				ddr_data->part_no[i] = ' '; /* part number should be space-padded */
-			ddr_data->rev_code[0] = BCD8(EMU_VERSION_MAJ);
-			ddr_data->rev_code[1] = BCD8(EMU_VERSION_MIN);
-			ddr_data->mfg_year = 20;
-			ddr_data->mfg_week = 13;
-
-			for (i = 0; i < 63; i++)
-				ddr_data->checksum += spd_modules[slot]->data[i];
-			for (i = 0; i < 129; i++)
-				ddr_data->checksum2 += spd_modules[slot]->data[i];
 			break;
 	}
 
@@ -577,7 +518,7 @@ spd_write_drbs_ali1621(uint8_t *regs, uint8_t reg_min, uint8_t reg_max)
     }
 
     /* Write DRBs for each row. */
-//    spd_log("SPD: Writing DRBs... regs=[%02X:%02X] unit=%d\n", reg_min, reg_max, drb_unit);
+    spd_log("SPD: Writing DRBs... regs=[%02X:%02X] unit=%d\n", reg_min, reg_max, drb_unit);
     for (dimm = 0; dimm <= ((reg_max - reg_min) >> 2); dimm++) {
 	size = 0;
 	drb = reg_min + (dimm << 2);
@@ -635,84 +576,6 @@ spd_write_drbs_ali1621(uint8_t *regs, uint8_t reg_min, uint8_t reg_max)
     }
 }
 
-
-void
-spd_write_drbs_intel_815ep(uint8_t *regs)
-{
-    /* All Intel MCH based boards demand SPD so we ignore completely the non-SPD calculations */
-    int size;
-    int reg_apply;
-    uint16_t rows[SPD_MAX_SLOTS];
-
-    if(!spd_present)
-        spd_populate(rows, 3, mem_size << 10, 32, 512, 0);
-
-    /* Clear previous configurations */
-    regs[0x52] = regs[0x54] = 0;
-
-    /* Write DRBs for each row. */
-    for (int slot = 0; slot < 3; slot++) {
-        size = spd_modules[slot]->row1 + spd_modules[slot]->row2;
-        spd_log("Intel 815EP SPD: Registering Slot %d with size %dMB.\n", slot, size);
-
-        /* Calculate Size. Nullify if the size is illegal. */
-        switch(size)
-        {
-            default:
-                reg_apply = 0;
-                spd_log("Intel 815EP SPD: Illegal Size on Slot %d. Size not divisible by 32.\n", slot);
-            break;
-
-            case 32:
-                reg_apply = 1;
-            break;
-
-            case 48:
-                reg_apply = 3;
-            break;
-
-            case 64:
-                reg_apply = 4;
-            break;
-
-            case 96:
-                reg_apply = 6;
-            break;
-
-            case 128:
-                reg_apply = 7;
-            break;
-
-            case 192:
-                reg_apply = 11;
-            break;
-
-            case 256:
-                reg_apply = 12;
-            break;
-
-            case 512:
-                reg_apply = 15;
-            break;
-        }
-
-        /* Write on the representative register */
-        switch(slot)
-        {
-            case 0:
-                regs[0x52] |= reg_apply;
-            break;
-
-            case 1:
-                regs[0x52] |= reg_apply << 4;
-            break;
-
-            case 2:
-                regs[0x54] |= reg_apply;
-            break;
-        }
-	}
-}
 
 static const device_t spd_device = {
     .name = "Serial Presence Detect ROMs",
