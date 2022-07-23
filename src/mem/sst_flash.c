@@ -80,6 +80,9 @@ static char	flash_path[1024];
 #define SST39SF020		0xb600
 #define SST39SF040		0xb700
 
+#define SST49LF002      0x5700
+#define SST49LF004      0x6000
+
 #define WINBOND			0xda	/* Winbond Manufacturer's ID */
 #define W29C020			0x4500
 
@@ -556,6 +559,42 @@ const device_t sst_flash_39sf040_device = {
     .internal_name = "sst_flash_39sf040",
     .flags = 0,
     .local = SST | SST39SF040 | SIZE_4M,
+    .init = sst_init,
+    .close = sst_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
+};
+
+/*
+ * Firmware Hubs. The FWH signals are not implemented yet. Firmware Hubs do write cycles
+ * to read/write on the flash. SST Flashes still do traditional flashing via PP Mode. Our 
+ * BIOS firmwares don't seem to utilize FWH R/W thus the FWH ports remain unknown for an 
+ * implementation. We just contain the ID's so the BIOS can do ESCD & DMI writes with no
+ * worries.
+*/
+const device_t sst_flash_49lf002_device = {
+    .name = "SST 49LF002 Firmware Hub",
+    .internal_name = "sst_flash_49lf002",
+    .flags = 0,
+    .local = SST | SST49LF002 | SIZE_2M,
+    .init = sst_init,
+    .close = sst_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
+};
+
+const device_t sst_flash_49lf004_device = {
+    .name = "SST 49LF004 Firmware Hub",
+    .internal_name = "sst_flash_49lf004",
+    .flags = 0,
+    .local = SST | SST49LF004 | SIZE_4M,
+
     .init = sst_init,
     .close = sst_close,
     .reset = NULL,

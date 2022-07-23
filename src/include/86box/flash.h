@@ -30,4 +30,7 @@ extern const device_t sst_flash_39sf010_device;
 extern const device_t sst_flash_39sf020_device;
 extern const device_t sst_flash_39sf040_device;
 
+extern const device_t sst_flash_49lf002_device;
+extern const device_t sst_flash_49lf004_device;
+
 #endif /*EMU_FLASH_H*/

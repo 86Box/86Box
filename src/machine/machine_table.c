@@ -77,6 +77,7 @@ const machine_filter_t machine_types[] = {
     { "Slot 1/Socket 370",         MACHINE_TYPE_SLOT1_370  },
     { "Slot 2",                    MACHINE_TYPE_SLOT2      },
     { "Socket 370",                MACHINE_TYPE_SOCKET370  },
+    { "Intel ICH2",                MACHINE_TYPE_ICH2       },
     { "Miscellaneous",             MACHINE_TYPE_MISC       }
 };
 
@@ -121,6 +122,7 @@ const machine_filter_t machine_chipsets[] = {
     { "Intel 440BX",                MACHINE_CHIPSET_INTEL_440BX         },
     { "Intel 440ZX",                MACHINE_CHIPSET_INTEL_440ZX         },
     { "Intel 440GX",                MACHINE_CHIPSET_INTEL_440GX         },
+    { "Intel i815EP",               MACHINE_CHIPSET_INTEL_I815EP        },
     { "OPTi 283",                   MACHINE_CHIPSET_OPTI_283            },
     { "OPTi 291",                   MACHINE_CHIPSET_OPTI_291            },
     { "OPTi 493",                   MACHINE_CHIPSET_OPTI_493            },
@@ -10931,6 +10933,108 @@ const machine_t machines[] = {
         .vid_device = NULL
     },
 
+    /* Intel ICH2 */
+    /* Has a NSC PC87366 LPC Super I/O with on-chip AMIKey-2 KBC firmware*/
+    {
+        .name = "[Intel i815E] Biostar M6TSL",
+        .internal_name = "m6tsl",
+        .type = MACHINE_TYPE_ICH2,
+        .chipset = MACHINE_CHIPSET_INTEL_I815EP,
+        .init = machine_at_m6tsl_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET370,
+            .block= CPU_BLOCK(CPU_CYRIX3S),
+            .min_bus = 66666667,
+            .max_bus = 133333333,
+            .min_voltage = 1300,
+            .max_voltage = 3500,
+            .min_multi = 1.5,
+            .max_multi = 8.0,
+        },
+        .bus_flags = MACHINE_PS2_NOISA,
+        .flags = MACHINE_IDE_DUAL,
+        .ram = {
+            .min = 32768,
+            .max = 524288,
+            .step = 32768,
+        },
+        .nvrmask = 255,
+        .device = NULL,
+        .vid_device = NULL
+    },
+    {
+        .name = "[Intel i815EP] Biostar M6TSS",
+        .internal_name = "m6tss",
+        .type = MACHINE_TYPE_ICH2,
+        .chipset = MACHINE_CHIPSET_INTEL_I815EP,
+        .init = machine_at_m6tss_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET370,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 66666667,
+            .max_bus = 133333333,
+            .min_voltage = 1300,
+            .max_voltage = 3500,
+            .min_multi = 1.5,
+            .max_multi = 8.0,
+        },
+        .bus_flags = MACHINE_PS2_AGP,
+        .flags = MACHINE_IDE_DUAL,
+        .ram = {
+            .min = 32768,
+            .max = 524288,
+            .step = 32768,
+        },
+        .nvrmask = 255,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
+    {
+        .name = "[Intel i815EP] Tyan Tomcat i815T",
+        .internal_name = "s2080",
+        .type = MACHINE_TYPE_ICH2,
+        .chipset = MACHINE_CHIPSET_INTEL_I815EP,
+        .init = machine_at_s2080_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+           .package =  CPU_PKG_SOCKET370,
+           .block = CPU_BLOCK_NONE,
+           .min_bus = 66666667,
+           .max_bus = 133333333,
+           .min_voltage = 1300,
+           .max_voltage = 3500,
+           .min_multi = 1.5,
+           .max_multi = 8.0,
+        },
+        .bus_flags = MACHINE_PS2_AGP,
+        .flags = MACHINE_IDE_DUAL,
+        .ram = {
+            .min = 32768,
+            .max = 524288,
+            .step = 32768
+        },
+        .nvrmask = 255,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL
+    },
+
     {
         .name = NULL,
         .internal_name = NULL,
@@ -10966,6 +11070,41 @@ const machine_t machines[] = {
         .vid_device = NULL
     }
 };
+
+/* Saved copies - jumpers get applied to these.
+   We use also machine_gpio to store IBM PC/XT jumpers as they need more than one byte. */
+static uint16_t        machine_p1;
+static uint32_t        machine_gpio;
+
+uint8_t
+machine_get_p1(void)
+{
+    return machine_p1;
+}
+
+void
+machine_load_p1(int m)
+{
+    machine_p1 = machines[machine].kbc_p1;
+}
+
+uint32_t
+machine_get_gpio(void)
+{
+    return machine_gpio;
+}
+
+void
+machine_load_gpio(int m)
+{
+    machine_gpio = machines[machine].gpio;
+}
+
+void
+machine_set_gpio(uint32_t gpio)
+{
+    machine_gpio = gpio;
+}
 
 int
 machine_count(void)
