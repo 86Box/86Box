@@ -10967,6 +10967,41 @@ const machine_t machines[] = {
     }
 };
 
+/* Saved copies - jumpers get applied to these.
+   We use also machine_gpio to store IBM PC/XT jumpers as they need more than one byte. */
+static uint16_t        machine_p1;
+static uint32_t        machine_gpio;
+
+uint8_t
+machine_get_p1(void)
+{
+    return machine_p1;
+}
+
+void
+machine_load_p1(int m)
+{
+    machine_p1 = machines[machine].kbc_p1;
+}
+
+uint32_t
+machine_get_gpio(void)
+{
+    return machine_gpio;
+}
+
+void
+machine_load_gpio(int m)
+{
+    machine_gpio = machines[machine].gpio;
+}
+
+void
+machine_set_gpio(uint32_t gpio)
+{
+    machine_gpio = gpio;
+}
+
 int
 machine_count(void)
 {
