@@ -605,7 +605,7 @@ DEVOBJ		:= bugger.o cartridge.o cassette.o hasp.o hwm.o hwm_lm75.o hwm_lm78.o hw
 			phoenix_486_jumper.o
 endif
 
-SIOOBJ		:= sio_acc3221.o \
+SIOOBJ		:= sio_acc3221.o sio_ali5123.o \
 		    sio_f82c710.o sio_82091aa.o sio_fdc37c6xx.o \
 		    sio_fdc37c67x.o sio_fdc37c669.o sio_fdc37c93x.o sio_fdc37m60x.o \
 			sio_it8661f.o \
