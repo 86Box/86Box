@@ -2525,20 +2525,6 @@ const device_t keyboard_ps2_ami_device = {
     .config = NULL
 };
 
-const device_t keyboard_ps2_ali_device = {
-    .name = "PS/2 Keyboard (ALi M5123/M1543C)",
-    .internal_name = "keyboard_ps2_ali",
-    .flags = 0,
-    .local = KBC_TYPE_PS2_NOREF | KBC_VEN_ALI,
-    .init = kbd_init,
-    .close = kbd_close,
-    .reset = kbd_reset,
-    { .available = NULL },
-    .speed_changed = NULL,
-    .force_redraw = NULL,
-    .config = NULL
-};
-
 const device_t keyboard_ps2_olivetti_device = {
     .name = "PS/2 Keyboard (Olivetti)",
     .internal_name = "keyboard_ps2_olivetti",
@@ -2614,6 +2600,20 @@ const device_t keyboard_ps2_ami_pci_device = {
     .internal_name = "keyboard_ps2_ami_pci",
     .flags = DEVICE_PCI,
     .local = KBC_TYPE_PS2_NOREF | KBC_VEN_AMI,
+    .init = kbd_init,
+    .close = kbd_close,
+    .reset = kbd_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
+};
+
+const device_t keyboard_ps2_ali_pci_device = {
+    .name = "PS/2 Keyboard (ALi M5123/M1543C)",
+    .internal_name = "keyboard_ps2_ali_pci",
+    .flags = DEVICE_PCI,
+    .local = KBC_TYPE_PS2_NOREF | KBC_VEN_ALI,
     .init = kbd_init,
     .close = kbd_close,
     .reset = kbd_reset,

@@ -178,6 +178,7 @@ extern const device_t	keyboard_ps2_pci_device;
 extern const device_t	keyboard_ps2_ami_pci_device;
 extern const device_t	keyboard_ps2_intel_ami_pci_device;
 extern const device_t	keyboard_ps2_acer_pci_device;
+extern const device_t	keyboard_ps2_ali_pci_device;
 #endif
 
 extern void	keyboard_init(void);
