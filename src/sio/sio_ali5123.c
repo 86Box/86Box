@@ -456,6 +456,8 @@ ali5123_init(const device_t *info)
     io_sethandler(FDC_PRIMARY_ADDR, 0x0002,
 		  ali5123_read, NULL, NULL, ali5123_write, NULL, NULL, dev);
 
+    device_add(&keyboard_ps2_ali_pci_device);
+
     return dev;
 }
 
