@@ -30,18 +30,15 @@
 #include <86box/apm.h>
 #include <86box/dma.h>
 #include <86box/ddma.h>
-#include <86box/fdd.h>
-#include <86box/fdc.h>
 #include <86box/hdc_ide.h>
 #include <86box/hdc_ide_sff8038i.h>
 #include <86box/keyboard.h>
-#include <86box/lpt.h>
 #include <86box/mem.h>
 #include <86box/nvr.h>
 #include <86box/pci.h>
 #include <86box/pic.h>
 #include <86box/port_92.h>
-#include <86box/serial.h>
+#include <86box/sio.h>
 #include <86box/smbus.h>
 #include <86box/usb.h>
 
@@ -53,7 +50,6 @@
 typedef struct ali1543_t
 {
     uint8_t		pci_conf[256], pmu_conf[256], usb_conf[256], ide_conf[256],
-			sio_regs[256], device_regs[8][256], sio_index, in_configuration_mode,
 			pci_slot, ide_slot, usb_slot, pmu_slot, usb_dev_enable, ide_dev_enable,
 			pmu_dev_enable, type;
     int			offset;
@@ -61,10 +57,8 @@ typedef struct ali1543_t
     apm_t *		apm;
     acpi_t *		acpi;
     ddma_t *		ddma;
-    fdc_t *		fdc_controller;
     nvr_t *		nvr;
     port_92_t *		port_92;
-    serial_t *		uart[2];
     sff8038i_t *	ide_controller[2];
     smbus_ali7101_t *	smbus;
     usb_t *		usb;
@@ -1404,129 +1398,6 @@ ali7101_read(int func, int addr, void *priv)
 
 
 static void
-ali1533_sio_fdc_handler(ali1543_t *dev)
-{
-    fdc_remove(dev->fdc_controller);
-
-    if (dev->device_regs[0][0x30] & 1) {
-	ali1543_log("New FDC base address: %04X\n", dev->device_regs[0][0x61] | (dev->device_regs[0][0x60] << 8));
-	fdc_set_base(dev->fdc_controller, dev->device_regs[0][0x61] | (dev->device_regs[0][0x60] << 8));
-	fdc_set_irq(dev->fdc_controller, dev->device_regs[0][0x70] & 0xf);
-	fdc_set_dma_ch(dev->fdc_controller, dev->device_regs[0][0x74] & 0x07);
-	ali1543_log("M1543-SIO FDC: ADDR %04x IRQ %02x DMA %02x\n", dev->device_regs[0][0x61] | (dev->device_regs[0][0x60] << 8), dev->device_regs[0][0x70] & 0xf, dev->device_regs[0][0x74] & 0x07);
-    }
-}
-
-
-static void
-ali1533_sio_uart_handler(int num, ali1543_t *dev)
-{
-    serial_remove(dev->uart[num]);
-
-    if (dev->device_regs[num + 4][0x30] & 1) {
-	serial_setup(dev->uart[num], dev->device_regs[num + 4][0x61] | (dev->device_regs[num + 4][0x60] << 8), dev->device_regs[num + 4][0x70] & 0xf);
-	ali1543_log("M1543-SIO UART%d: ADDR %04x IRQ %02x\n", num, dev->device_regs[num + 4][0x61] | (dev->device_regs[num + 4][0x60] << 8), dev->device_regs[num + 4][0x70] & 0xf);
-    }
-}
-
-
-void
-ali1533_sio_lpt_handler(ali1543_t *dev)
-{
-    lpt1_remove();
-
-    if (dev->device_regs[3][0x30] & 1) {
-	lpt1_init(dev->device_regs[3][0x61] | (dev->device_regs[3][0x60] << 8));
-	lpt1_irq(dev->device_regs[3][0x70] & 0xf);
-	ali1543_log("M1543-SIO LPT: ADDR %04x IRQ %02x\n", dev->device_regs[3][0x61] | (dev->device_regs[3][0x60] << 8), dev->device_regs[3][0x70] & 0xf);
-    }
-}
-
-
-void
-ali1533_sio_ldn(uint16_t ldn, ali1543_t *dev)
-{
-    /* We don't include all LDN's */
-    switch (ldn) {
-	case 0:		/* FDC */
-		ali1533_sio_fdc_handler(dev);
-		break;
-	case 3: 	/* LPT */
-		ali1533_sio_lpt_handler(dev);
-		break;
-	/* UART */
-	case 4: case 5:
-		ali1533_sio_uart_handler(ldn - 4, dev);
-		break;
-    }
-}
-
-
-static void
-ali1533_sio_write(uint16_t addr, uint8_t val, void *priv)
-{
-    ali1543_t *dev = (ali1543_t *)priv;
-
-    switch (addr) {
-	case FDC_PRIMARY_ADDR:
-		dev->sio_index = val;
-		if (dev->sio_index == 0x51)
-			dev->in_configuration_mode = 1;
-		else if ((dev->sio_index == 0x23) && (dev->in_configuration_mode == 1))
-			dev->in_configuration_mode = 2;
-		else if (dev->sio_index == 0xbb)
-			dev->in_configuration_mode = 0;
-		break;
-
-	case 0x3f1:
-		if (dev->in_configuration_mode == 2) {
-			switch (dev->sio_index) {
-				case 0x07:
-					dev->sio_regs[dev->sio_index] = val & 0x7;
-					break;
-
-				case 0x22:
-					dev->sio_regs[dev->sio_index] = val & 0x39;
-					break;
-
-				case 0x23:
-					dev->sio_regs[dev->sio_index] = val & 0x38;
-					break;
-
-				default:
-					if ((dev->sio_index < 0x30) || (dev->sio_index == 0x51) || (dev->sio_index == 0xbb))
-						dev->sio_regs[dev->sio_index] = val;
-					else if (dev->sio_regs[0x07] <= 7)
-						dev->device_regs[dev->sio_regs[0x07]][dev->sio_index] = val;
-					break;
-			}
-		}
-		break;
-    }
-
-    if ((!dev->in_configuration_mode) && (dev->sio_regs[0x07] <= 7) && (addr == FDC_PRIMARY_ADDR))
-	ali1533_sio_ldn(dev->sio_regs[0x07], dev);
-}
-
-
-static uint8_t
-ali1533_sio_read(uint16_t addr, void *priv)
-{
-    ali1543_t *dev = (ali1543_t *)priv;
-    uint8_t ret = 0xff;
-
-    if (addr == 0x03f1) {
-	if (dev->sio_index >= 0x30)
-		ret = dev->device_regs[dev->sio_regs[0x07]][dev->sio_index];
-	else
-		ret = dev->sio_regs[dev->sio_index];
-    }
-
-    return ret;
-}
-
-
-static void
 ali1543_reset(void *priv)
 {
     ali1543_t *dev = (ali1543_t *)priv;
@@ -1619,44 +1490,6 @@ ali1543_reset(void *priv)
     ali1533_write(0, 0x75, 0x00, dev);
     ali1533_write(0, 0x76, 0x00, dev);
 
-    /* M1543 Super I/O */
-    memset(dev->sio_regs, 0x00, sizeof(dev->sio_regs));
-    for (i = 0; i < 8; i++)
-	memset(dev->device_regs[i], 0x00, sizeof(dev->device_regs[i]));
-
-    dev->device_regs[0][0x60] = 0x03;
-    dev->device_regs[0][0x61] = 0xf0;
-    dev->device_regs[0][0x70] = 0x06;
-    dev->device_regs[0][0x74] = 0x02;
-    dev->device_regs[0][0xf0] = 0x08;
-    dev->device_regs[0][0xf2] = 0xff;
-
-    dev->device_regs[3][0x60] = 0x03;
-    dev->device_regs[3][0x61] = 0x78;
-    dev->device_regs[3][0x70] = 0x05;
-    dev->device_regs[3][0x74] = 0x04;
-    dev->device_regs[3][0xf0] = 0x0c;
-    dev->device_regs[3][0xf1] = 0x05;
-
-    dev->device_regs[4][0x60] = 0x03;
-    dev->device_regs[4][0x61] = 0xf8;
-    dev->device_regs[4][0x70] = 0x04;
-    dev->device_regs[4][0xf1] = 0x02;
-    dev->device_regs[4][0xf2] = 0x0c;
-
-    dev->device_regs[5][0x60] = 0x02;
-    dev->device_regs[5][0x61] = 0xf8;
-    dev->device_regs[5][0x70] = 0x03;
-    dev->device_regs[5][0xf1] = 0x02;
-    dev->device_regs[5][0xf2] = 0x0c;
-
-    dev->device_regs[7][0x70] = 0x01;
-
-    ali1533_sio_fdc_handler(dev);
-    ali1533_sio_uart_handler(0, dev);
-    ali1533_sio_uart_handler(1, dev);
-    ali1533_sio_lpt_handler(dev);
-
     unmask_a20_in_smm = 1;
 }
 
@@ -1706,10 +1539,6 @@ ali1543_init(const device_t *info)
     /* DDMA */
     dev->ddma = device_add(&ddma_device);
 
-    /* Floppy Disk Controller */
-    // dev->fdc_controller = device_add(&fdc_at_smc_device);
-    dev->fdc_controller = NULL;
-
     /* IDE Controllers */
     dev->ide_controller[0] = device_add_inst(&sff8038i_device, 1);
     dev->ide_controller[1] = device_add_inst(&sff8038i_device, 2);
@@ -1717,18 +1546,14 @@ ali1543_init(const device_t *info)
     /* Port 92h */
     dev->port_92 = device_add(&port_92_pci_device);
 
-    /* Serial NS16500 */
-    dev->uart[0] = device_add_inst(&ns16550_device, 1);
-    dev->uart[1] = device_add_inst(&ns16550_device, 2);
-
     /* Standard SMBus */
     dev->smbus = device_add(&ali7101_smbus_device);
 
-    /* Super I/O Configuration Mechanism */
-    dev->in_configuration_mode = 0;
-
     /* USB */
     dev->usb = device_add(&usb_device);
+
+    /* Super I/O chip */
+    device_add(&ali5123_device);
 
     dev->type = info->local & 0xff;
     dev->offset = (info->local >> 8) & 0x7f;
