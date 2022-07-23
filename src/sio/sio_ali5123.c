@@ -24,6 +24,7 @@
 #include <86box/device.h>
 #include <86box/pic.h>
 #include <86box/pci.h>
+#include <86box/keyboard.h>
 #include <86box/lpt.h>
 #include <86box/serial.h>
 #include <86box/hdc.h>
