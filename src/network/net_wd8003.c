@@ -540,7 +540,6 @@ wd_mca_read(int port, void *priv)
 
 #define MCA_6FC0_IRQS { 3, 4, 10, 15 }
 
-
 static void
 wd_mca_write(int port, uint8_t val, void *priv)
 {
@@ -566,6 +565,68 @@ wd_mca_write(int port, uint8_t val, void *priv)
     dev->base_address = (dev->pos_regs[2] & 0xfe) << 4;
     dev->ram_addr = (dev->pos_regs[3] & 0xfc) << 12;
     dev->irq = irq[dev->pos_regs[5] & 0x02];
+
+    /* Initialize the device if fully configured. */
+    /* Register (new) I/O handler. */
+    if (dev->pos_regs[2] & 0x01)
+	wd_io_set(dev, dev->base_address);
+
+    mem_mapping_set_addr(&dev->ram_mapping, dev->ram_addr, dev->ram_size);
+
+    mem_mapping_disable(&dev->ram_mapping);
+    if ((dev->msr & WE_MSR_ENABLE_RAM) && (dev->pos_regs[2] & 0x01))
+	mem_mapping_enable(&dev->ram_mapping);
+
+    wdlog("%s: attached IO=0x%X IRQ=%d, RAM addr=0x%06x\n", dev->name,
+	  dev->base_address, dev->irq, dev->ram_addr);
+}
+
+static void
+wd_8013epa_mca_write(int port, uint8_t val, void *priv)
+{
+    wd_t *dev = (wd_t *)priv;
+
+    /* MCA does not write registers below 0x0100. */
+    if (port < 0x0102) return;
+
+    /* Save the MCA register value. */
+    dev->pos_regs[port & 7] = val;
+
+    /*
+     * The PS/2 Model 80 BIOS always enables a card if it finds one,
+     * even if no resources were assigned yet (because we only added
+     * the card, but have not run AutoConfig yet...)
+     *
+     * So, remove current address, if any.
+     */
+    if (dev->base_address)
+	wd_io_remove(dev, dev->base_address);
+
+    dev->base_address = 0x800 + ((dev->pos_regs[2] & 0xf0) << 8);
+
+    switch (dev->pos_regs[5] & 0x0c) {
+        case 0:
+            dev->irq = 3;
+            break;
+        case 4:
+            dev->irq = 4;
+            break;
+        case 8:
+            dev->irq = 10;
+            break;
+        case 0x0c:
+            dev->irq = 14;
+            break;
+    }
+
+    if (dev->pos_regs[3] & 0x10)
+        dev->ram_size = 0x4000;
+    else
+        dev->ram_size = 0x2000;
+
+    dev->ram_addr = ((dev->pos_regs[3] & 0x0f) << 13) + 0xc0000;
+    if (dev->pos_regs[3] & 0x80)
+        dev->ram_addr += 0xf00000;
 
     /* Initialize the device if fully configured. */
     /* Register (new) I/O handler. */
@@ -624,9 +685,12 @@ wd_init(const device_t *info)
 	dev->maclocal[5] = (mac & 0xff);
     }
 
-    if ((dev->board == WD8003ETA) || (dev->board == WD8003EA))
-	mca_add(wd_mca_read, wd_mca_write, wd_mca_feedb, NULL, dev);
-    else {
+    if ((dev->board == WD8003ETA) || (dev->board == WD8003EA) || dev->board == WD8013EPA) {
+	if (dev->board == WD8013EPA)
+        mca_add(wd_mca_read, wd_8013epa_mca_write, wd_mca_feedb, NULL, dev);
+    else
+        mca_add(wd_mca_read, wd_mca_write, wd_mca_feedb, NULL, dev);
+    } else {
 	dev->base_address = device_get_config_hex16("base");
 	dev->irq = device_get_config_int("irq");
 	dev->ram_addr = device_get_config_hex20("ram_addr");
@@ -679,10 +743,18 @@ wd_init(const device_t *info)
 		dev->board_chip = WE_ID_SOFT_CONFIG;
 	/* Ethernet, MCA, no interface chip, RAM 16k */
 	case WD8003ETA:
-		dev->board_chip |= 0x05 | WE_ID_BUS_MCA;
+		dev->board_chip |= WE_TYPE_WD8013EBT | WE_ID_BUS_MCA;
 		dev->ram_size = 0x4000;
 		dev->pos_regs[0] = 0xC0;
 		dev->pos_regs[1] = 0x6F;
+		dev->bit16 = 3;
+		break;
+
+	case WD8013EPA:
+		dev->board_chip = WE_TYPE_WD8013EP | WE_ID_BUS_MCA;
+		dev->ram_size = device_get_config_int("ram_size");
+		dev->pos_regs[0] = 0xC8;
+		dev->pos_regs[1] = 0x61;
 		dev->bit16 = 3;
 		break;
     }
@@ -969,6 +1041,31 @@ static const device_config_t wd8013_config[] = {
     { .name = "", .description = "", .type = CONFIG_END }
 };
 
+static const device_config_t wd8013epa_config[] = {
+    {
+        .name = "ram_size",
+        .description = "Initial RAM size",
+        .type = CONFIG_SELECTION,
+        .default_string = "",
+        .default_int = 16384,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "8 kB",  .value = 8192  },
+            { .description = "16 kB", .value = 16384 },
+            { .description = ""                      }
+        },
+    },
+    {
+        .name = "mac",
+        .description = "MAC Address",
+        .type = CONFIG_MAC,
+        .default_string = "",
+        .default_int = -1
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+};
+
 static const device_config_t mca_mac_config[] = {
     {
         .name = "mac",
@@ -1049,4 +1146,18 @@ const device_t wd8003ea_device = {
     .speed_changed = NULL,
     .force_redraw = NULL,
     .config = mca_mac_config
+};
+
+const device_t wd8013epa_device = {
+    .name = "Western Digital WD8013EP/A",
+    .internal_name = "wd8013epa",
+    .flags = DEVICE_MCA,
+    .local = WD8013EPA,
+    .init = wd_init,
+    .close = wd_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = wd8013epa_config
 };
