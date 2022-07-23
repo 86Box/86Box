@@ -41,7 +41,7 @@ typedef struct {
     uint8_t chip_id, is_apm,
 	    tries,
 	    regs[48],
-	    ld_regs[11][256];
+	    ld_regs[13][256];
     int locked,
 	cur_reg;
     fdc_t *fdc;
@@ -118,7 +118,7 @@ ali5123_serial_handler(ali5123_t *dev, int uart)
 		serial_setup(dev->uart[uart], ld_port, dev->ld_regs[uart_no][0x70]);
     }
 
-    switch (dev->dev_regs[uart_no][0xc0] & mask) {
+    switch (dev->ld_regs[uart_no][0xf0] & mask) {
 	case 0x00:
 		serial_set_clock_src(dev->uart[uart], 1843200.0);
 		break;
@@ -217,8 +217,8 @@ ali5123_write(uint16_t port, uint8_t val, void *priv)
     uint8_t cur_ld;
 
     if (index) {
-	if (((val == 0x51) && !dev->tries && !dev->locked) ||
-	   ((val == 0x23) && dev->tries && !dev->locked))
+	if (((val == 0x51) && (!dev->tries) && (!dev->locked)) ||
+	   ((val == 0x23) && (dev->tries) && (!dev->locked))) {
 		if (dev->tries) {
 			dev->locked = 1;
 			fdc_3f1_enable(dev->fdc, 0);
@@ -402,10 +402,6 @@ ali5123_read(uint16_t port, void *priv)
     ali5123_t *dev = (ali5123_t *) priv;
     uint8_t index = (port & 1) ? 0 : 1;
     uint8_t ret = 0xff, cur_ld;
-    int f_irq = dev->ld_regs[0][0x70];
-    int p_irq = dev->ld_regs[3][0x70];
-    int s1_irq = dev->ld_regs[4][0x70];
-    int s2_irq = dev->ld_regs[5][0x70];
 
     if (dev->locked) {
 	if (index)
