@@ -887,7 +887,7 @@ static const device_config_t et4000_tc6058af_config[] = {
         .name = "memory",
         .description = "Memory size",
         .type = CONFIG_SELECTION,
-        .default_int = 1024,
+        .default_int = 512,
         .selection = {
             {
                 .description = "256 KB",
