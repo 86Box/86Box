@@ -99,6 +99,9 @@ extern const device_t	slc90e66_device;
 
 extern const device_t	ioapic_device;
 
+extern const device_t	intel_815ep_device;
+extern const device_t   intel_ich2_device;
+
 /* OPTi */
 extern const device_t	opti283_device;
 extern const device_t	opti291_device;
