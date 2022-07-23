@@ -58,9 +58,33 @@ typedef struct PIT {
     uint8_t	ctrl;
 } pit_t;
 
+enum {
+    PIT_8253 = 0,
+    PIT_8254,
+    PIT_8253_FAST,
+    PIT_8254_FAST
+};
 
-extern pit_t	*pit,
-		*pit2;
+typedef struct {
+    uint8_t (*read)(uint16_t addr, void *priv);
+    void (*write)(uint16_t addr, uint8_t val, void *priv);
+    /* Gets a counter's count. */
+    uint16_t (*get_count)(void *data, int counter_id);
+    /* Sets a counter's GATE input. */
+    void (*set_gate)(void *data, int counter_id, int gate);
+    /* Sets if a counter's CLOCK input is from the timer or not - used by PCjr. */
+    void(*set_using_timer)(void *data, int counter_id, int using_timer);
+    /* Sets a counter's OUT output handler. */
+    void (*set_out_func)(void *data, int counter_id, void (*func)(int new_out, int old_out));
+    /* Sets a counter's load count handler. */
+    void  (*set_load_func)(void *data, int counter_id, void (*func)(uint8_t new_m, int new_count));
+    void (*ctr_clock)(void *data, int counter_id);
+    void *data;
+} pit_intf_t;
+
+extern pit_intf_t pit_devs[2];
+extern const pit_intf_t pit_classic_intf;
+
 
 extern double	SYSCLK, PCICLK, AGPCLK;
 
@@ -74,26 +98,13 @@ extern uint64_t	PITCONST, ISACONST,
 
 extern int	refresh_at_enable;
 
-
-/* Gets a counter's count. */
-extern uint16_t	pit_ctr_get_count(ctr_t *ctr);
-/* Sets a counter's load count handler. */
-extern void	pit_ctr_set_load_func(ctr_t *ctr, void (*func)(uint8_t new_m, int new_count));
-/* Sets a counter's OUT output handler. */
-extern void	pit_ctr_set_out_func(ctr_t *ctr, void (*func)(int new_out, int old_out));
-/* Sets a counter's GATE input. */
-extern void	pit_ctr_set_gate(ctr_t *ctr, int gate);
 /* Sets a counter's CLOCK input. */
 extern void	pit_ctr_set_clock(ctr_t *ctr, int clock);
-/* Sets if a counter's CLOCK input is from the timer or not - used by PCjr. */
-extern void	pit_ctr_set_using_timer(ctr_t *ctr, int using_timer);
 
 extern pit_t *	pit_common_init(int type, void (*out0)(int new_out, int old_out), void (*out1)(int new_out, int old_out));
-extern pit_t *	pit_ps2_init(void);
+extern pit_t *	pit_ps2_init(int type);
 extern void	pit_reset(pit_t *dev);
 
-extern void	pit_irq0_timer(int new_out, int old_out);
-extern void	pit_irq0_timer_pcjr(int new_out, int old_out);
 extern void	pit_irq0_timer_ps2(int new_out, int old_out);
 
 extern void	pit_refresh_timer_xt(int new_out, int old_out);

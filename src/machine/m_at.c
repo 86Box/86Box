@@ -66,7 +66,7 @@ machine_at_common_init_ex(const machine_t *model, int type)
     machine_common_init(model);
 
     refresh_at_enable = 1;
-    pit_ctr_set_out_func(&pit->counters[1], pit_refresh_timer_at);
+    pit_devs[0].set_out_func(pit_devs[0].data, 1, pit_refresh_timer_at);
     pic2_init();
     dma16_init();
 
