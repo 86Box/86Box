@@ -750,8 +750,8 @@ picinterrupt()
 		pic.interrupt |= 0x40;		/* Mark slave pending. */
 	}
 
-	if ((pic.interrupt == 0) && (pit2 != NULL))
-		pit_ctr_set_gate(&pit2->counters[0], 0);
+	if ((pic.interrupt == 0) && (pit_devs[1].data != NULL))
+		pit_devs[1].set_gate(pit_devs[1].data, 0, 0);
 
 	/* Two ACK's - do them in a loop to avoid potential compiler misoptimizations. */
 	for (i = 0; i < 2; i++) {

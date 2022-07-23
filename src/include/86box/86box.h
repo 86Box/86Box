@@ -135,6 +135,7 @@ extern int	is_pentium;			/* TODO: Move back to cpu/cpu.h when it's figured out,
 							 how to remove that hack from the ET4000/W32p. */
 extern int	fixed_size_x, fixed_size_y;
 extern double mouse_sensitivity; /* (C) Mouse sensitivity scale */
+extern int	pit_mode;			/* (C) force setting PIT mode */
 
 
 extern char	exe_path[2048];			/* path (dir) of executable */

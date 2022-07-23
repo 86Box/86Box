@@ -886,6 +886,8 @@ load_machine(void)
     } else
         time_sync = !!config_get_int(cat, "enable_sync", 1);
 
+    pit_mode = config_get_int(cat, "pit_mode", -1);
+
     /* Remove this after a while.. */
     config_delete_var(cat, "nvr_path");
     config_delete_var(cat, "enable_sync");
@@ -2478,6 +2480,11 @@ save_machine(void)
             config_set_string(cat, "time_sync", "local");
     else
         config_set_string(cat, "time_sync", "disabled");
+
+    if (pit_mode == -1)
+        config_delete_var(cat, "pit_mode");
+    else
+        config_set_int(cat, "pit_mode", pit_mode);
 
     delete_section_if_empty(cat);
 }
