@@ -535,7 +535,7 @@ CXXFLAGS	:= $(CFLAGS)
 #		Create the (final) list of objects to build.		#
 #########################################################################
 MAINOBJ		:= 86box.o config.o log.o random.o timer.o io.o acpi.o apm.o dma.o ddma.o \
-		   nmi.o pic.o pit.o port_6x.o port_92.o ppi.o pci.o mca.o fifo8.o \
+		   nmi.o pic.o pit.o pit_fast.o port_6x.o port_92.o ppi.o pci.o mca.o fifo8.o \
 		   usb.o device.o nvr.o nvr_at.o nvr_ps2.o machine_status.o \
 		   $(VNCOBJ)
 
