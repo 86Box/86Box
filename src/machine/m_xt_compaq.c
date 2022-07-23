@@ -50,7 +50,7 @@ machine_xt_compaq_deskpro_init(const machine_t *model)
 
     machine_common_init(model);
 
-    pit_ctr_set_out_func(&pit->counters[1], pit_refresh_timer_xt);
+    pit_devs[0].set_out_func(pit_devs[0].data, 1, pit_refresh_timer_xt);
 
     device_add(&keyboard_xt_compaq_device);
     if (fdc_type == FDC_INTERNAL)
@@ -78,7 +78,7 @@ machine_xt_compaq_portable_init(const machine_t *model)
 
     machine_common_init(model);
 
-    pit_ctr_set_out_func(&pit->counters[1], pit_refresh_timer_xt);
+    pit_devs[0].set_out_func(pit_devs[0].data, 1, pit_refresh_timer_xt);
 
     device_add(&keyboard_xt_compaq_device);
     if (fdc_type == FDC_INTERNAL)
