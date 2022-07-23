@@ -1401,7 +1401,6 @@ static void
 ali1543_reset(void *priv)
 {
     ali1543_t *dev = (ali1543_t *)priv;
-    int i;
 
     /* Temporarily enable everything. Register writes will disable the devices. */
     dev->ide_dev_enable = 1;
@@ -1520,9 +1519,6 @@ ali1543_init(const device_t *info)
 
     /* Device 0F: M5237 USB */
     dev->usb_slot = pci_add_card(PCI_ADD_SOUTHBRIDGE_USB, ali5237_read, ali5237_write, dev);
-
-    /* Ports 3F0-1h: M1543 Super I/O */
-    io_sethandler(FDC_PRIMARY_ADDR, 0x0002, ali1533_sio_read, NULL, NULL, ali1533_sio_write, NULL, NULL, dev);
 
     /* ACPI */
     dev->acpi = device_add(&acpi_ali_device);
