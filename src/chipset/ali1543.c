@@ -289,7 +289,7 @@ ali1533_write(int func, int addr, uint8_t val, void *priv)
 				break;
 		}
 		pci_relocate_slot(PCI_CARD_SOUTHBRIDGE_IDE, ((int) dev->ide_slot) + dev->offset);
-		ali1543_log("IDE slot = %02X (A%0i)\n", dev->ide_slot/* - 5*/, dev->ide_slot + 11);
+		ali1543_log("IDE slot = %02X (A%0i)\n", ((int) dev->ide_slot) + dev->offset, dev->ide_slot + 11);
 		ali5229_ide_irq_handler(dev);
 		break;
 
@@ -359,7 +359,7 @@ ali1533_write(int func, int addr, uint8_t val, void *priv)
 				break;
 		}
 		pci_relocate_slot(PCI_CARD_SOUTHBRIDGE_PMU, ((int) dev->pmu_slot) + dev->offset);
-		ali1543_log("PMU slot = %02X (A%0i)\n", dev->pmu_slot/* - 5*/, dev->pmu_slot + 11);
+		ali1543_log("PMU slot = %02X (A%0i)\n", ((int) dev->pmu_slot) + dev->offset, dev->pmu_slot + 11);
 		switch (val & 0x03) {
 			case 0x00:
 				dev->usb_slot = 0x14;	/* A31 = slot 20 */
@@ -375,7 +375,7 @@ ali1533_write(int func, int addr, uint8_t val, void *priv)
 				break;
 		}
 		pci_relocate_slot(PCI_CARD_SOUTHBRIDGE_USB, ((int) dev->usb_slot) + dev->offset);
-		ali1543_log("USB slot = %02X (A%0i)\n", dev->usb_slot/* - 5*/, dev->usb_slot + 11);
+		ali1543_log("USB slot = %02X (A%0i)\n", ((int) dev->usb_slot) + dev->offset, dev->usb_slot + 11);
 		break;
 
 	case 0x73:	/* DDMA Base Address */
@@ -1555,6 +1555,7 @@ ali1543_init(const device_t *info)
     dev->offset = (info->local >> 8) & 0x7f;
     if (info->local & 0x8000)
 	dev->offset = -dev->offset;
+    pclog("Offset = %i\n", dev->offset);
 
     pci_enable_mirq(0);
     pci_enable_mirq(1);
