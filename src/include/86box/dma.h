@@ -93,8 +93,6 @@ extern void	dma_alias_set_piix(void);
 extern void	dma_alias_remove(void);
 extern void	dma_alias_remove_piix(void);
 
-extern void	dma_lpc_init(void);
-
 extern void	dma_bm_read(uint32_t PhysAddress, uint8_t *DataRead, uint32_t TotalSize, int TransferSize);
 extern void	dma_bm_write(uint32_t PhysAddress, const uint8_t *DataWrite, uint32_t TotalSize, int TransferSize);
 

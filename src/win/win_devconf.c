@@ -33,9 +33,9 @@
 #include <windowsx.h>
 
 
-static device_context_t	config_device;
+static device_context_t config_device;
 
-static uint8_t		deviceconfig_changed = 0;
+static uint8_t  deviceconfig_changed = 0;
 static int		combo_to_struct[256];
 
 

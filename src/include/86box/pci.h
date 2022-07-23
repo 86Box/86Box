@@ -138,14 +138,11 @@ extern void	pci_pic_reset(void);
 #ifdef EMU_DEVICE_H
 extern const device_t dec21150_device;
 
-extern const device_t intel_ich2_hub_device;
-
 extern const device_t ali5243_agp_device;
 extern const device_t ali5247_agp_device;
 extern const device_t i440lx_agp_device;
 extern const device_t i440bx_agp_device;
 extern const device_t i440gx_agp_device;
-extern const device_t intel_815ep_agp_device;
 extern const device_t via_vp3_agp_device;
 extern const device_t via_mvp3_agp_device;
 extern const device_t via_apro_agp_device;
