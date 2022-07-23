@@ -51,21 +51,21 @@
 
 
 enum {
-        CPUID_FPU = (1 << 0),
-        CPUID_VME = (1 << 1),
-        CPUID_PSE = (1 << 3),
-        CPUID_TSC = (1 << 4),
-        CPUID_MSR = (1 << 5),
-        CPUID_PAE = (1 << 6),
-        CPUID_MCE = (1 << 7),
-        CPUID_CMPXCHG8B = (1 << 8),
-	CPUID_AMDSEP = (1 << 10),
-	CPUID_SEP = (1 << 11),
-	CPUID_MTRR = (1 << 12),
-        CPUID_MCA = (1 << 14),
-        CPUID_CMOV = (1 << 15),
-        CPUID_MMX = (1 << 23),
-	CPUID_FXSR = (1 << 24)
+    CPUID_FPU = (1 << 0),
+    CPUID_VME = (1 << 1),
+    CPUID_PSE = (1 << 3),
+    CPUID_TSC = (1 << 4),
+    CPUID_MSR = (1 << 5),
+    CPUID_PAE = (1 << 6),
+    CPUID_MCE = (1 << 7),
+    CPUID_CMPXCHG8B = (1 << 8),
+    CPUID_AMDSEP = (1 << 10),
+    CPUID_SEP = (1 << 11),
+    CPUID_MTRR = (1 << 12),
+    CPUID_MCA = (1 << 14),
+    CPUID_CMOV = (1 << 15),
+    CPUID_MMX = (1 << 23),
+    CPUID_FXSR = (1 << 24)
 };
 
 /*Addition flags returned by CPUID function 0x80000001*/

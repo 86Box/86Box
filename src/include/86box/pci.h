@@ -58,6 +58,9 @@ enum {
     PCI_CARD_NORTHBRIDGE = 0,
     PCI_CARD_AGPBRIDGE,
     PCI_CARD_SOUTHBRIDGE,
+    PCI_CARD_SOUTHBRIDGE_IDE,
+    PCI_CARD_SOUTHBRIDGE_PMU,
+    PCI_CARD_SOUTHBRIDGE_USB,
     PCI_CARD_AGP = 0x0f,
     PCI_CARD_NORMAL = 0x10,
     PCI_CARD_VIDEO,
@@ -72,6 +75,9 @@ enum {
     PCI_ADD_NORTHBRIDGE = 0,
     PCI_ADD_AGPBRIDGE,
     PCI_ADD_SOUTHBRIDGE,
+    PCI_ADD_SOUTHBRIDGE_IDE,
+    PCI_ADD_SOUTHBRIDGE_PMU,
+    PCI_ADD_SOUTHBRIDGE_USB,
     PCI_ADD_AGP = 0x0f,
     PCI_ADD_NORMAL = 0x10,
     PCI_ADD_VIDEO,
@@ -111,6 +117,7 @@ extern void	pci_init(int type);
 extern uint8_t	pci_register_bus();
 extern void	pci_set_pmc(uint8_t pmc);
 extern void	pci_remap_bus(uint8_t bus_index, uint8_t bus_number);
+extern void	pci_relocate_slot(int type, int new_slot);
 extern void	pci_register_slot(int card, int type,
 				  int inta, int intb, int intc, int intd);
 extern void	pci_register_bus_slot(int bus, int card, int type,

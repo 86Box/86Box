@@ -3177,7 +3177,7 @@ const machine_t machines[] = {
             .max_multi = 0
         },
         .bus_flags = MACHINE_PS2,
-        .flags = MACHINE_IDE | MACHINE_VIDEO,
+        .flags = MACHINE_IDE,
         .ram = {
             .min = 1024,
             .max = 16384,
@@ -4178,8 +4178,8 @@ const machine_t machines[] = {
             .min_multi = 0,
             .max_multi = 0
         },
-        .flags = MACHINE_PS2_MCA,
-        .bus_flags = MACHINE_VIDEO,
+        .bus_flags = MACHINE_PS2_MCA,
+        .flags = MACHINE_VIDEO,
         .ram = {
             .min = 2048,
             .max = 65536,

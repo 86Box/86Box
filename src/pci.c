@@ -95,6 +95,53 @@ pci_log(const char *fmt, ...)
 
 
 static void
+pci_clear_slot(int card)
+{
+    int i;
+
+    pci_card_to_slot_mapping[pci_cards[card].bus][pci_cards[card].id] = 0xff;
+
+    pci_cards[card].id = 0xff;
+    pci_cards[card].type = 0xff;
+
+    for (i = 0; i < 4; i++)
+	pci_cards[card].irq_routing[i] = 0;
+
+    pci_cards[card].read = NULL;
+    pci_cards[card].write = NULL;
+    pci_cards[card].priv = NULL;
+}
+
+
+void
+pci_relocate_slot(int type, int new_slot)
+{
+    int i, card = -1;
+    int old_slot;
+    uint8_t mapping;
+
+    if ((new_slot < 0) || (new_slot > 31))
+	return;
+
+    for (i = 0; i < 32; i++) {
+	if ((pci_cards[i].bus == 0) && (pci_cards[i].type == type)) {
+		card = i;
+		break;
+	}
+    }
+
+    if (card == -1)
+	return;
+
+    old_slot = pci_cards[card].id;
+    pci_cards[card].id = new_slot;
+    mapping = pci_card_to_slot_mapping[0][old_slot];
+    pci_card_to_slot_mapping[0][old_slot] = 0xff;
+    pci_card_to_slot_mapping[0][new_slot] = mapping;
+}
+
+
+static void
 pci_cf8_write(uint16_t port, uint32_t val, void *priv)
 {
     pci_log("cf8 write: %08X\n", val);
@@ -809,17 +856,8 @@ pci_slots_clear(void)
     last_pci_card = last_normal_pci_card = 0;
     last_pci_bus = 1;
 
-    for (i = 0; i < 32; i++) {
-	pci_cards[i].id = 0xff;
-	pci_cards[i].type = 0xff;
-
-	for (j = 0; j < 4; j++)
-		pci_cards[i].irq_routing[j] = 0;
-
-	pci_cards[i].read = NULL;
-	pci_cards[i].write = NULL;
-	pci_cards[i].priv = NULL;
-    }
+    for (i = 0; i < 32; i++)
+	pci_clear_slot(i);
 
     i = 0;
     do {

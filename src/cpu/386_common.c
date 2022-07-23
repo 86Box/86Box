@@ -1870,9 +1870,6 @@ cpu_fast_off_period_set(uint16_t val, double period)
 void
 cpu_fast_off_reset(void)
 {
-    if (cpu_fast_off_timer)
-	timer_disable(cpu_fast_off_timer);
-
     cpu_register_fast_off_handler(NULL);
     cpu_fast_off_period = 0.0;
     cpu_fast_off_advance();

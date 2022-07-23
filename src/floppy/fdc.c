@@ -930,6 +930,12 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
 					fdc->pos = 0;
 					fdc->mfm = (fdc->command&0x40)?1:0;
 					break;
+				case 0x17: /*Powerdown mode*/
+					if (!(fdc->flags & FDC_FLAG_ALI)) {
+						fdc_bad_command(fdc);
+						break;
+					}
+					/*FALLTHROUGH*/
 				case 0x07: /*Recalibrate*/
 					fdc->pnum=0;
 					fdc->ptot=1;
@@ -1796,6 +1802,12 @@ fdc_callback(void *priv)
 		fdc->paramstogo = 1;
 		fdc->interrupt = 0;
 		return;
+	case 0x17: /*Powerdown mode*/
+		fdc->stat = (fdc->stat & 0xf) | 0xd0;
+		fdc->res[10] = fdc->params[0];
+		fdc->paramstogo = 1;
+		fdc->interrupt = 0;
+		return;
 	case 0x13: /*Configure*/
 		fdc->config = fdc->params[1];
 		fdc->pretrk = fdc->params[2];
@@ -2536,6 +2548,20 @@ const device_t fdc_at_smc_device = {
     .internal_name = "fdc_at_smc",
     .flags = 0,
     .local = FDC_FLAG_AT | FDC_FLAG_SUPERIO,
+    .init = fdc_init,
+    .close = fdc_close,
+    .reset = fdc_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
+};
+
+const device_t fdc_at_ali_device = {
+    .name = "PC/AT Floppy Drive Controller (ALi M512x/M1543C)",
+    .internal_name = "fdc_at_ali",
+    .flags = 0,
+    .local = FDC_FLAG_AT | FDC_FLAG_SUPERIO | FDC_FLAG_ALI,
     .init = fdc_init,
     .close = fdc_close,
     .reset = fdc_reset,

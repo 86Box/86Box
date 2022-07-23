@@ -1647,9 +1647,9 @@ acpi_apm_out(uint16_t port, uint8_t val, void *p)
 		dev->apm->cmd = val;
 		if (dev->vendor == VEN_INTEL)
 			dev->regs.glbsts |= 0x20;
-        else if (dev->vendor == VEN_INTEL_ICH2)
-            dev->regs.smi_sts |= 0x00000020;
-        acpi_raise_smi(dev, dev->apm->do_smi);
+		else if (dev->vendor == VEN_INTEL_ICH2)
+			dev->regs.smi_sts |= 0x00000020;
+		acpi_raise_smi(dev, dev->apm->do_smi);
 	} else
 		dev->apm->stat = val;
     }
