@@ -1548,9 +1548,6 @@ ali1543_init(const device_t *info)
     /* USB */
     dev->usb = device_add(&usb_device);
 
-    /* Super I/O chip */
-    device_add(&ali5123_device);
-
     dev->type = info->local & 0xff;
     dev->offset = (info->local >> 8) & 0x7f;
     if (info->local & 0x8000)
@@ -1564,6 +1561,9 @@ ali1543_init(const device_t *info)
     pci_enable_mirq(4);
     pci_enable_mirq(5);
     pci_enable_mirq(6);
+
+    /* Super I/O chip */
+    device_add(&ali5123_device);
 
     ali1543_reset(dev);
 
