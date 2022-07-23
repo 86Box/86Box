@@ -53,7 +53,6 @@ typedef struct {
     void	*i2c;
 } smbus_ali7101_t;
 
-
 extern void	smbus_piix4_remap(smbus_piix4_t *dev, uint16_t new_io_base, uint8_t enable);
 extern void	smbus_piix4_setclock(smbus_piix4_t *dev, int clock);
 

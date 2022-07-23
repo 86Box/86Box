@@ -332,6 +332,11 @@ extern int   machine_get_ram_granularity(int m);
 extern int   machine_get_type(int m);
 extern void  machine_close(void);
 
+extern uint8_t  machine_get_p1(void);
+extern void     machine_load_p1(int m);
+extern uint32_t machine_get_gpi(void);
+extern void	    machine_load_gpi(int m);
+extern void     machine_set_gpi(uint32_t gpi);
 
 /* Initialization functions for boards and systems. */
 extern void	machine_common_init(const machine_t *);

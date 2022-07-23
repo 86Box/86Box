@@ -28,7 +28,6 @@
 #include <86box/i2c.h>
 #include <86box/smbus.h>
 
-
 #ifdef ENABLE_SMBUS_PIIX4_LOG
 int smbus_piix4_do_log = ENABLE_SMBUS_PIIX4_LOG;
 
@@ -99,7 +98,7 @@ smbus_piix4_write(uint16_t addr, uint8_t val, void *priv)
 {
     smbus_piix4_t *dev = (smbus_piix4_t *) priv;
     uint8_t smbus_addr, cmd, read, block_len, prev_stat;
-    uint16_t timer_bytes = 0, i;
+    uint16_t timer_bytes = 0, i = 0;
 
     smbus_piix4_log("SMBus PIIX4: write(%02X, %02X)\n", addr, val);
 
