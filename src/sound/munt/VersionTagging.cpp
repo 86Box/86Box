@@ -15,18 +15,18 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef MT32EMU_TYPES_H
-#define MT32EMU_TYPES_H
+#include "globals.h"
 
-namespace MT32Emu {
+extern "C" {
+// Here's a list of all tagged minor library versions through global (potentially versioned) symbols.
+// An application that's been linked with an older library version will be able to find a matching tag,
+// while for an application linked with a newer library version there will be no match.
 
-typedef unsigned int       Bit32u;
-typedef   signed int       Bit32s;
-typedef unsigned short int Bit16u;
-typedef   signed short int Bit16s;
-typedef unsigned char      Bit8u;
-typedef   signed char      Bit8s;
+MT32EMU_EXPORT_V(2.5) extern const volatile char mt32emu_2_5 = 0;
+MT32EMU_EXPORT_V(2.6) extern const volatile char mt32emu_2_6 = 0;
+MT32EMU_EXPORT_V(2.7) extern const volatile char mt32emu_2_7 = 0;
 
-}
-
+#if MT32EMU_VERSION_MAJOR > 2 || MT32EMU_VERSION_MINOR > 7
+#error "Missing version tag definition for current library version"
 #endif
+}
