@@ -1235,6 +1235,7 @@ sb_16_reply_mca_write(int port, uint8_t val, void *p)
             addr = 0x280;
             break;
         case 0:
+        default:
             addr = 0;
             break;
     }
@@ -1280,6 +1281,7 @@ sb_16_reply_mca_write(int port, uint8_t val, void *p)
                 addr = 0x280;
                 break;
             case 0:
+            default:
                 addr = 0;
                 break;
         }
@@ -1291,6 +1293,7 @@ sb_16_reply_mca_write(int port, uint8_t val, void *p)
                 mpu401_addr = 0x300;
                 break;
             case 0:
+            default:
                 mpu401_addr = 0;
                 break;
         }
