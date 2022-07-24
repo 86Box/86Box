@@ -107,6 +107,19 @@ make_tar() {
 	return $?
 }
 
+cache_dir="$HOME/86box-build-cache"
+[ ! -d "$cache_dir" ] && mkdir -p "$cache_dir"
+check_buildtag() {
+	[ -z "$BUILD_TAG" -o "$BUILD_TAG" != "$(cat "$cache_dir/buildtag.$1" 2> /dev/null)" ]
+	return $?
+}
+save_buildtag() {
+	local contents="$BUILD_TAG"
+	[ -n "$2" ] && local contents="$2"
+	echo "$contents" > "$cache_dir/buildtag.$1"
+	return $?
+}
+
 # Set common variables.
 project=86Box
 cwd=$(pwd)
@@ -220,8 +233,6 @@ esac
 
 # Perform platform-specific setup.
 strip_binary=strip
-cache_dir="$HOME/86box-build-cache"
-[ ! -d "$cache_dir" ] && mkdir -p "$cache_dir"
 if is_windows
 then
 	# Switch into the correct MSYSTEM if required.
@@ -248,26 +259,34 @@ then
 
 	# Install dependencies only if we're in a new build and/or architecture.
 	freetype_dll="$cache_dir/freetype.$MSYSTEM.dll"
-	buildtag_file="$cache_dir/buildtag.$MSYSTEM"
-	if [ -z "$BUILD_TAG" -o "$(cat "$buildtag_file" 2> /dev/null)" != "$BUILD_TAG" ]
+	if check_buildtag "$MSYSTEM"
 	then
-		# Update keyring, as the package signing keys sometimes change.
-		echo [-] Updating package databases and keyring
-		yes | pacman -Sy --needed msys2-keyring
+		# Update databases and keyring only if we're in a new build.
+		if check_buildtag pacmansync
+		then
+			# Update keyring as well, since the package signing keys sometimes change.
+			echo [-] Updating package databases and keyring
+			yes | pacman -Sy --needed msys2-keyring
+
+			# Save build tag to skip pacman sync/keyring later.
+			save_buildtag pacmansync
+		else
+			echo [-] Not updating package databases and keyring again
+		fi
 
 		# Query installed packages.
-		pacman -Qe > pacman.txt
+		pacman -Qe > "$cache_dir/pacman.txt"
 
 		# Download the specified versions of architecture-specific dependencies.
 		echo -n [-] Downloading dependencies:
 		pkg_dir="/var/cache/pacman/pkg"
 		repo_base="https://repo.msys2.org/mingw/$(echo $MSYSTEM | tr '[:upper:]' '[:lower:]')"
-		cat .ci/dependencies_msys.txt | tr -d '\r' > deps.txt
+		cat .ci/dependencies_msys.txt | tr -d '\r' > "$cache_dir/deps.txt"
 		pkgs=""
 		while IFS=" " read pkg version
 		do
 			prefixed_pkg="$MINGW_PACKAGE_PREFIX-$pkg"
-			installed_version=$(grep -E "^$prefixed_pkg " pacman.txt | cut -d " " -f 2)
+			installed_version=$(grep -E "^$prefixed_pkg " "$cache_dir/pacman.txt" | cut -d " " -f 2)
 			if [ "$installed_version" != "$version" ] # installed_version will be empty if not installed
 			then
 				echo -n " [$pkg"
@@ -310,7 +329,7 @@ then
 				fi
 				echo -n "]"
 			fi
-		done < deps.txt
+		done < "$cache_dir/deps.txt"
 		[ -z "$pkgs" ] && echo -n ' none required'
 		echo
 
@@ -331,7 +350,7 @@ then
 			popd
 
 			# Query installed packages again.
-			pacman -Qe > pacman.txt
+			pacman -Qe > "$cache_dir/pacman.txt"
 		fi
 
 		# Install the latest versions for any missing packages (if the specified version couldn't be installed).
@@ -339,9 +358,9 @@ then
 		while IFS=" " read pkg version
 		do
 			prefixed_pkg="$MINGW_PACKAGE_PREFIX-$pkg"
-			grep -qE "^$prefixed_pkg " pacman.txt || pkgs="$pkgs $prefixed_pkg"
-		done < deps.txt
-		rm -f pacman.txt deps.txt
+			grep -qE "^$prefixed_pkg " "$cache_dir/pacman.txt" || pkgs="$pkgs $prefixed_pkg"
+		done < "$cache_dir/deps.txt"
+		rm -f "$cache_dir/pacman.txt" "$cache_dir/deps.txt"
 		yes | pacman -S --needed $pkgs
 		if [ $? -ne 0 ]
 		then
@@ -357,7 +376,7 @@ then
 
 		# Save build tag to skip this later. Doing it here (once everything is
 		# in place) is important to avoid potential issues with retried builds.
-		echo "$BUILD_TAG" > "$buildtag_file"
+		save_buildtag "$MSYSTEM"
 	else
 		echo [-] Not installing dependencies again
 	fi
@@ -408,18 +427,18 @@ then
 					echo [-] Merging app bundles [$merge_src] and [$arch_universal] into [$merge_dest]
 
 					# Merge directory structures.
-					(cd "archive_tmp_universal/$merge_src.app" && find . -type d && cd "../../archive_tmp_universal/$arch_universal.app" && find . -type d && cd ../..) | sort > universal_listing.txt
-					cat universal_listing.txt | uniq | while IFS= read line
+					(cd "archive_tmp_universal/$merge_src.app" && find . -type d && cd "../../archive_tmp_universal/$arch_universal.app" && find . -type d && cd ../..) | sort > "$cache_dir/universal_listing.txt"
+					cat "$cache_dir/universal_listing.txt" | uniq | while IFS= read line
 					do
 						echo "> Directory: $line"
 						mkdir -p "archive_tmp_universal/$merge_dest.app/$line"
 					done
 
 					# Create merged file listing.
-					(cd "archive_tmp_universal/$merge_src.app" && find . -type f && cd "../../archive_tmp_universal/$arch_universal.app" && find . -type f && cd ../..) | sort > universal_listing.txt
+					(cd "archive_tmp_universal/$merge_src.app" && find . -type f && cd "../../archive_tmp_universal/$arch_universal.app" && find . -type f && cd ../..) | sort > "$cache_dir/universal_listing.txt"
 
 					# Copy files that only exist on one bundle.
-					cat universal_listing.txt | uniq -u | while IFS= read line
+					cat "$cache_dir/universal_listing.txt" | uniq -u | while IFS= read line
 					do
 						if [ -e "archive_tmp_universal/$merge_src.app/$line" ]
 						then
@@ -432,7 +451,7 @@ then
 					done
 
 					# Copy or lipo files that exist on both bundles.
-					cat universal_listing.txt | uniq -d | while IFS= read line
+					cat "$cache_dir/universal_listing.txt" | uniq -d | while IFS= read line
 					do
 						if cmp -s "archive_tmp_universal/$merge_src.app/$line" "archive_tmp_universal/$arch_universal.app/$line"
 						then
@@ -448,8 +467,8 @@ then
 					done
 
 					# Merge symlinks.
-					(cd "archive_tmp_universal/$merge_src.app" && find . -type l && cd "../../archive_tmp_universal/$arch_universal.app" && find . -type l && cd ../..) | sort > universal_listing.txt
-					cat universal_listing.txt | uniq | while IFS= read line
+					(cd "archive_tmp_universal/$merge_src.app" && find . -type l && cd "../../archive_tmp_universal/$arch_universal.app" && find . -type l && cd ../..) | sort > "$cache_dir/universal_listing.txt"
+					cat "$cache_dir/universal_listing.txt" | uniq | while IFS= read line
 					do
 						# Get symlink destinations.
 						other_link_dest=
@@ -544,8 +563,7 @@ then
 	export PATH="$macports/bin:$macports/sbin:$macports/libexec/qt5/bin:$PATH"
 
 	# Install dependencies only if we're in a new build and/or architecture.
-	buildtag_file="$cache_dir/buildtag.$(arch)"
-	if [ -z "$BUILD_TAG" -o "$(cat "$buildtag_file" 2> /dev/null)" != "$BUILD_TAG" ]
+	if check_buildtag "$(arch)"
 	then
 		# Install dependencies.
 		echo [-] Installing dependencies through MacPorts
@@ -554,7 +572,7 @@ then
 
 		# Save build tag to skip this later. Doing it here (once everything is
 		# in place) is important to avoid potential issues with retried builds.
-		echo "$BUILD_TAG" > "$buildtag_file"
+		save_buildtag "$(arch)"
 	else
 		echo [-] Not installing dependencies again
 
@@ -572,7 +590,6 @@ else
 	esac
 
 	# Establish general dependencies.
-	buildtag_aptupdate_file="$cache_dir/buildtag.aptupdate"
 	pkgs="cmake ninja-build pkg-config git wget p7zip-full wayland-protocols tar gzip file appstream"
 	if [ "$(dpkg --print-architecture)" = "$arch_deb" ]
 	then
@@ -584,7 +601,7 @@ else
 			sudo dpkg --add-architecture "$arch_deb"
 			
 			# Force an apt-get update.
-			rm -f "$buildtag_aptupdate_file"
+			save_buildtag aptupdate "arch_$arch_deb"
 		fi
 
 		pkgs="$pkgs crossbuild-essential-$arch_deb"
@@ -645,25 +662,24 @@ EOF
 	strip_binary="$arch_triplet-strip"
 
 	# Install dependencies only if we're in a new build and/or architecture.
-	buildtag_file="$cache_dir/buildtag.$arch_deb"
-	if [ -z "$BUILD_TAG" -o "$(cat "$buildtag_file" 2> /dev/null)" != "$BUILD_TAG" ]
+	if check_buildtag "$arch_deb"
 	then
 		# Install or update dependencies.
 		echo [-] Installing dependencies through apt
-		if [ -z "$BUILD_TAG" -o "$(cat "$buildtag_aptupdate_file" 2> /dev/null)" != "$BUILD_TAG" ]
+		if check_buildtag aptupdate
 		then
 			sudo apt-get update
 
 			# Save build tag to skip apt-get update later, unless a new architecture
-			# is added to dpkg, in which case, this saved tag file gets removed.
-			echo "$BUILD_TAG" > "$buildtag_aptupdate_file"
+			# is added to dpkg, in which case, this saved tag file gets replaced.
+			save_buildtag aptupdate
 		fi
 		DEBIAN_FRONTEND=noninteractive sudo apt-get -y install $pkgs $libpkgs
 		sudo apt-get clean
 
 		# Save build tag to skip this later. Doing it here (once everything is
 		# in place) is important to avoid potential issues with retried builds.
-		echo "$BUILD_TAG" > "$buildtag_file"
+		save_buildtag "$arch_deb"
 	else
 		echo [-] Not installing dependencies again
 	fi
@@ -724,8 +740,7 @@ fi
 
 # Download Discord Game SDK from their CDN if we're in a new build.
 discord_zip="$cache_dir/discord_game_sdk.zip"
-buildtag_file="$cache_dir/buildtag.any"
-if [ -z "$BUILD_TAG" -o "$(cat "$buildtag_file" 2> /dev/null)" != "$BUILD_TAG" ]
+if check_buildtag discord
 then
 	# Download file.
 	echo [-] Downloading Discord Game SDK
@@ -738,7 +753,7 @@ then
 	else
 		# Save build tag to skip this later. Doing it here (once everything is
 		# in place) is important to avoid potential issues with retried builds.
-		echo "$BUILD_TAG" > "$buildtag_file"
+		save_buildtag discord
 	fi
 else
 	echo [-] Not downloading Discord Game SDK again
