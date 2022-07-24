@@ -32,16 +32,16 @@
 #include <86box/pci.h>
 
 
-#define PCI_BRIDGE_DEC_21150	0x10110022
-#define AGP_BRIDGE_ALI_M5243	0x10b95243
-#define AGP_BRIDGE_ALI_M5247	0x10b95247
-#define AGP_BRIDGE_INTEL_440LX	0x80867181
-#define AGP_BRIDGE_INTEL_440BX	0x80867191
-#define AGP_BRIDGE_INTEL_440GX	0x808671a1
-#define AGP_BRIDGE_VIA_597	0x11068597
-#define AGP_BRIDGE_VIA_598	0x11068598
-#define AGP_BRIDGE_VIA_691	0x11068691
-#define AGP_BRIDGE_VIA_8601	0x11068601
+#define PCI_BRIDGE_DEC_21150    0x10110022
+#define AGP_BRIDGE_ALI_M5243    0x10b95243
+#define AGP_BRIDGE_ALI_M5247    0x10b95247
+#define AGP_BRIDGE_INTEL_440LX  0x80867181
+#define AGP_BRIDGE_INTEL_440BX  0x80867191
+#define AGP_BRIDGE_INTEL_440GX  0x808671a1
+#define AGP_BRIDGE_VIA_597      0x11068597
+#define AGP_BRIDGE_VIA_598      0x11068598
+#define AGP_BRIDGE_VIA_691      0x11068691
+#define AGP_BRIDGE_VIA_8601     0x11068601
 
 #define AGP_BRIDGE_ALI(x)	(((x) >> 16) == 0x10b9)
 #define AGP_BRIDGE_INTEL(x)	(((x) >> 16) == 0x8086)
@@ -471,6 +471,7 @@ pci_bridge_init(const device_t *info)
     pci_bridge_reset(dev);
 
     dev->slot = pci_add_card(AGP_BRIDGE(dev->local) ? PCI_ADD_AGPBRIDGE : PCI_ADD_BRIDGE, pci_bridge_read, pci_bridge_write, dev);
+
     interrupt_count = sizeof(interrupts);
     interrupt_mask = interrupt_count - 1;
     if (dev->slot < 32) {

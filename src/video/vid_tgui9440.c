@@ -483,7 +483,8 @@ tgui_out(uint16_t addr, uint8_t val, void *p)
 						break;
 
 					case 0x37:
-						i2c_gpio_set(tgui->i2c, (val & 0x02) || !(val & 0x04), (val & 0x01) || !(val & 0x08));
+						if (tgui->type >= TGUI_9440)
+							i2c_gpio_set(tgui->i2c, (val & 0x02) || !(val & 0x04), (val & 0x01) || !(val & 0x08));
 						break;
 
 					case 0x40: case 0x41: case 0x42: case 0x43:
@@ -609,7 +610,7 @@ tgui_in(uint16_t addr, void *p)
                 return svga->crtcreg;
                 case 0x3D5:
 		temp = svga->crtc[svga->crtcreg];
-		if (svga->crtcreg == 0x37) {
+		if ((svga->crtcreg == 0x37) && (tgui->type >= TGUI_9440)) {
 			if (!(temp & 0x04)) {
                                 temp &= ~0x02;
                                 if (i2c_gpio_get_scl(tgui->i2c))
@@ -3150,14 +3151,16 @@ static int tgui96xx_available(void)
 
 void tgui_close(void *p)
 {
-        tgui_t *tgui = (tgui_t *)p;
+    tgui_t *tgui = (tgui_t *)p;
 
-        svga_close(&tgui->svga);
+    svga_close(&tgui->svga);
 
+	if (tgui->type >= TGUI_9440) {
         ddc_close(tgui->ddc);
         i2c_gpio_close(tgui->i2c);
+	};
 
-        free(tgui);
+    free(tgui);
 }
 
 void tgui_speed_changed(void *p)

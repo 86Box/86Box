@@ -326,14 +326,14 @@ void
 sb_dsp_speed_changed(sb_dsp_t *dsp)
 {
     if (dsp->sb_timeo < 256)
-        dsp->sblatcho = (256.0 - (double) dsp->sb_timeo);
+        dsp->sblatcho = TIMER_USEC * (256 - dsp->sb_timeo);
     else
-        dsp->sblatcho = ((1000000.0 / ((double) dsp->sb_timeo - 256.0)));
+        dsp->sblatcho = (uint64_t) (TIMER_USEC * (1000000.0f / (float) (dsp->sb_timeo - 256)));
 
     if (dsp->sb_timei < 256)
-        dsp->sblatchi = (256.0 - (double) dsp->sb_timei);
+        dsp->sblatchi = TIMER_USEC * (256 - dsp->sb_timei);
     else
-        dsp->sblatchi = ((1000000.0 / ((double) dsp->sb_timei - 256.0)));
+        dsp->sblatchi = (uint64_t) (TIMER_USEC * (1000000.0f / (float) (dsp->sb_timei - 256)));
 }
 
 void
@@ -359,7 +359,7 @@ sb_start_dma(sb_dsp_t *dsp, int dma8, int autoinit, uint8_t format, int len)
             dsp->sb_16_enable = 0;
         dsp->sb_8_output = 1;
         if (!timer_is_enabled(&dsp->output_timer))
-            timer_on_auto(&dsp->output_timer, dsp->sblatcho);
+            timer_set_delay_u64(&dsp->output_timer, dsp->sblatcho);
         dsp->sbleftright = dsp->sbleftright_default;
         dsp->sbdacpos    = 0;
     } else {
@@ -372,7 +372,7 @@ sb_start_dma(sb_dsp_t *dsp, int dma8, int autoinit, uint8_t format, int len)
             dsp->sb_8_enable = 0;
         dsp->sb_16_output = 1;
         if (!timer_is_enabled(&dsp->output_timer))
-            timer_on_auto(&dsp->output_timer, dsp->sblatcho);
+            timer_set_delay_u64(&dsp->output_timer, dsp->sblatcho);
     }
 }
 
@@ -389,7 +389,7 @@ sb_start_dma_i(sb_dsp_t *dsp, int dma8, int autoinit, uint8_t format, int len)
             dsp->sb_16_enable = 0;
         dsp->sb_8_output = 0;
         if (!timer_is_enabled(&dsp->input_timer))
-            timer_on_auto(&dsp->input_timer, dsp->sblatchi);
+            timer_set_delay_u64(&dsp->input_timer, dsp->sblatchi);
     } else {
         dsp->sb_16_length   = dsp->sb_16_origlength = len;
         dsp->sb_16_format   = format;
@@ -400,7 +400,7 @@ sb_start_dma_i(sb_dsp_t *dsp, int dma8, int autoinit, uint8_t format, int len)
             dsp->sb_8_enable = 0;
         dsp->sb_16_output = 0;
         if (!timer_is_enabled(&dsp->input_timer))
-            timer_on_auto(&dsp->input_timer, dsp->sblatchi);
+            timer_set_delay_u64(&dsp->input_timer, dsp->sblatchi);
     }
 
     memset(dsp->record_buffer, 0, sizeof(dsp->record_buffer));
@@ -508,10 +508,10 @@ sb_exec_command(sb_dsp_t *dsp)
                mode does not imply such samplerate. Position is increased in sb_poll_i(). */
             if (!timer_is_enabled(&dsp->input_timer)) {
                 dsp->sb_timei = 256 - 22;
-                dsp->sblatchi = 22.0;
+                dsp->sblatchi = TIMER_USEC * 22;
                 temp          = 1000000 / 22;
                 dsp->sb_freq  = temp;
-                timer_on_auto(&dsp->input_timer, dsp->sblatchi);
+                timer_set_delay_u64(&dsp->input_timer, dsp->sblatchi);
             }
             break;
         case 0x24: /* 8-bit single cycle DMA input */
@@ -561,7 +561,7 @@ sb_exec_command(sb_dsp_t *dsp)
             break;
         case 0x40: /* Set time constant */
             dsp->sb_timei = dsp->sb_timeo = dsp->sb_data[0];
-            dsp->sblatcho = dsp->sblatchi = (256.0 - (double) dsp->sb_data[0]);
+            dsp->sblatcho = dsp->sblatchi = TIMER_USEC * (256 - dsp->sb_data[0]);
             temp                          = 256 - dsp->sb_data[0];
             temp                          = 1000000 / temp;
             sb_dsp_log("Sample rate - %ihz (%i)\n", temp, dsp->sblatcho);
@@ -572,8 +572,8 @@ sb_exec_command(sb_dsp_t *dsp)
         case 0x41: /* Set output sampling rate */
         case 0x42: /* Set input sampling rate */
             if (dsp->sb_type >= SB16) {
-                dsp->sblatcho = ((1000000.0 / (double) (dsp->sb_data[1] + (dsp->sb_data[0] << 8))));
-                sb_dsp_log("Sample rate - %ihz (%lf)\n", dsp->sb_data[1] + (dsp->sb_data[0] << 8), dsp->sblatcho);
+                dsp->sblatcho = (uint64_t) (TIMER_USEC * (1000000.0f / (float) (dsp->sb_data[1] + (dsp->sb_data[0] << 8))));
+                sb_dsp_log("Sample rate - %ihz (%i)\n", dsp->sb_data[1] + (dsp->sb_data[0] << 8), dsp->sblatcho);
                 temp          = dsp->sb_freq;
                 dsp->sb_freq  = dsp->sb_data[1] + (dsp->sb_data[0] << 8);
                 dsp->sb_timeo = 256LL + dsp->sb_freq;
@@ -631,7 +631,7 @@ sb_exec_command(sb_dsp_t *dsp)
         case 0x80: /* Pause DAC */
             dsp->sb_pausetime = dsp->sb_data[0] + (dsp->sb_data[1] << 8);
             if (!timer_is_enabled(&dsp->output_timer))
-                timer_on_auto(&dsp->output_timer, dsp->sblatcho);
+                timer_set_delay_u64(&dsp->output_timer, dsp->sblatcho);
             break;
         case 0x90: /* High speed 8-bit autoinit DMA output */
             if (dsp->sb_type >= SB2)
@@ -1200,7 +1200,7 @@ pollsb(void *p)
     int       tempi, ref;
     int       data[2];
 
-    timer_on_auto(&dsp->output_timer, dsp->sblatcho);
+    timer_advance_u64(&dsp->output_timer, dsp->sblatcho);
     if (dsp->sb_8_enable && !dsp->sb_8_pause && dsp->sb_pausetime < 0 && dsp->sb_8_output) {
         sb_dsp_update(dsp);
 
@@ -1457,7 +1457,7 @@ sb_poll_i(void *p)
     sb_dsp_t *dsp       = (sb_dsp_t *) p;
     int       processed = 0;
 
-    timer_on_auto(&dsp->input_timer, dsp->sblatchi);
+    timer_advance_u64(&dsp->input_timer, dsp->sblatchi);
 
     if (dsp->sb_8_enable && !dsp->sb_8_pause && dsp->sb_pausetime < 0 && !dsp->sb_8_output) {
         switch (dsp->sb_8_format) {

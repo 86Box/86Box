@@ -49,12 +49,12 @@ extern "C" {
 #define ACPI_ENABLE	0xf1
 #define	ACPI_DISABLE	0xf0
 
-#define VEN_ALI		0x010b9
-#define VEN_INTEL	0x08086
-#define VEN_SIS		0x01039
-#define VEN_SMC		0x01055
-#define VEN_VIA		0x01106
-#define VEN_VIA_596B	0x11106
+#define VEN_ALI         0x010b9
+#define VEN_INTEL       0x08086
+#define VEN_SIS         0x01039
+#define VEN_SMC         0x01055
+#define VEN_VIA         0x01106
+#define VEN_VIA_596B    0x11106
 
 
 typedef struct

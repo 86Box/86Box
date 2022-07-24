@@ -2059,7 +2059,7 @@ kbd_write(uint16_t port, uint8_t val, void *priv)
 		speaker_enable = val & 0x02;
 		if (speaker_enable)
 			was_speaker_enable = 1;
-		pit_ctr_set_gate(&pit->counters[2], val & 0x01);
+		pit_devs[0].set_gate(pit_devs[0].data, 2, val & 0x01);
 
 		if (val & 0x80) {
 			/* Keyboard enabled, so enable PA reading. */

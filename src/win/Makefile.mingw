@@ -31,6 +31,9 @@ ifeq ($(DEV_BUILD), y)
  ifndef DEBUG
   DEBUG		:= y
  endif
+ ifndef GDBSTUB
+  GDBSTUB	:= n
+ endif
  ifndef DEV_BRANCH
   DEV_BRANCH	:= y
  endif
@@ -91,6 +94,9 @@ ifeq ($(DEV_BUILD), y)
 else
  ifndef DEBUG
   DEBUG		:= n
+ endif
+ ifndef GDBSTUB
+  GDBSTUB	:= n
  endif
  ifndef DEV_BRANCH
   DEV_BRANCH	:= n
@@ -506,6 +512,10 @@ OPTS		+= -DUSE_OLIVETTI
 DEVBROBJ	+= olivetti_eva.o
 endif
 
+ifeq ($(GDBSTUB), y)
+OPTS		+= -DUSE_GDBSTUB
+DEVBROBJ	+= gdbstub.o
+endif
 
 endif
 
@@ -525,7 +535,7 @@ CXXFLAGS	:= $(CFLAGS)
 #		Create the (final) list of objects to build.		#
 #########################################################################
 MAINOBJ		:= 86box.o config.o log.o random.o timer.o io.o acpi.o apm.o dma.o ddma.o \
-		   nmi.o pic.o pit.o port_6x.o port_92.o ppi.o pci.o mca.o fifo8.o \
+		   nmi.o pic.o pit.o pit_fast.o port_6x.o port_92.o ppi.o pci.o mca.o fifo8.o \
 		   usb.o device.o nvr.o nvr_at.o nvr_ps2.o machine_status.o \
 		   $(VNCOBJ)
 
@@ -595,7 +605,7 @@ DEVOBJ		:= bugger.o cartridge.o cassette.o hasp.o hwm.o hwm_lm75.o hwm_lm78.o hw
 			phoenix_486_jumper.o
 endif
 
-SIOOBJ		:= sio_acc3221.o \
+SIOOBJ		:= sio_acc3221.o sio_ali5123.o \
 		    sio_f82c710.o sio_82091aa.o sio_fdc37c6xx.o \
 		    sio_fdc37c67x.o sio_fdc37c669.o sio_fdc37c93x.o sio_fdc37m60x.o \
 			sio_it8661f.o \

@@ -89,6 +89,7 @@
 #define KBC_VEN_OLIVETTI	0x24
 #define KBC_VEN_NCR		0x28
 #define KBC_VEN_SAMSUNG		0x2c
+#define KBC_VEN_ALI		0x30
 #define KBC_VEN_MASK		0x3c
 
 
@@ -1093,6 +1094,8 @@ write_output(atkbd_t *dev, uint8_t val)
 		softresetx86();		/*Pulse reset!*/
 		cpu_set_edx();
 		flushmmucache();
+		if (kbc_ven == KBC_VEN_ALI)
+			smbase = 0x00030000;
 	}
     }
 
@@ -1353,6 +1356,7 @@ static uint8_t
 write64_ami(void *priv, uint8_t val)
 {
     atkbd_t *dev = (atkbd_t *)priv;
+    uint8_t kbc_ven = dev->flags & KBC_VEN_MASK;
 
     switch (val) {
 	case 0x00: case 0x01: case 0x02: case 0x03:
@@ -1386,7 +1390,15 @@ write64_ami(void *priv, uint8_t val)
 
 	case 0xa1:	/* get controller version */
 		kbd_log("ATkbc: AMI - get controller version\n");
-		add_data(dev, 'H');
+		if ((dev->flags & KBC_TYPE_MASK) >= KBC_TYPE_PS2_NOREF) {
+			if (kbc_ven == KBC_VEN_ALI)
+				add_data(dev, 'F');
+			else if ((dev->flags & KBC_VEN_MASK) == KBC_VEN_INTEL_AMI)
+				add_data(dev, '5');
+			else
+				add_data(dev, 'H');
+		} else
+			add_data(dev, 'F');
 		return 0;
 
 	case 0xa2:	/* clear keyboard controller lines P22/P23 */
@@ -1456,9 +1468,14 @@ write64_ami(void *priv, uint8_t val)
 		break;
 
 	case 0xaf:	/* set extended controller RAM */
-		kbd_log("ATkbc: set extended controller RAM\n");
-		dev->want60 = 1;
-		dev->secr_phase = 1;
+		if (kbc_ven == KBC_VEN_ALI) {
+			kbd_log("ATkbc: Award/ALi/VIA keyboard controller revision\n");
+			add_to_kbc_queue_front(dev, 0x43, 0, 0x00);
+		} else {
+			kbd_log("ATkbc: set extended controller RAM\n");
+			dev->want60 = 1;
+			dev->secr_phase = 1;
+		}
 		return 0;
 
 	case 0xb0: case 0xb1: case 0xb2: case 0xb3:
@@ -1754,8 +1771,7 @@ kbd_write(uint16_t port, uint8_t val, void *priv)
 {
     atkbd_t *dev = (atkbd_t *)priv;
     int i = 0, bad = 1;
-    uint8_t mask, kbc_ven = 0x0;
-    kbc_ven = dev->flags & KBC_VEN_MASK;
+    uint8_t mask, kbc_ven = dev->flags & KBC_VEN_MASK;
 
     switch (port) {
 	case 0x60:
@@ -2315,6 +2331,7 @@ kbd_init(const device_t *info)
 	case KBC_VEN_AMI:
 	case KBC_VEN_INTEL_AMI:
 	case KBC_VEN_SAMSUNG:
+	case KBC_VEN_ALI:
 		dev->write60_ven = write60_ami;
 		dev->write64_ven = write64_ami;
 		break;
@@ -2583,6 +2600,20 @@ const device_t keyboard_ps2_ami_pci_device = {
     .internal_name = "keyboard_ps2_ami_pci",
     .flags = DEVICE_PCI,
     .local = KBC_TYPE_PS2_NOREF | KBC_VEN_AMI,
+    .init = kbd_init,
+    .close = kbd_close,
+    .reset = kbd_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
+};
+
+const device_t keyboard_ps2_ali_pci_device = {
+    .name = "PS/2 Keyboard (ALi M5123/M1543C)",
+    .internal_name = "keyboard_ps2_ali_pci",
+    .flags = DEVICE_PCI,
+    .local = KBC_TYPE_PS2_NOREF | KBC_VEN_ALI,
     .init = kbd_init,
     .close = kbd_close,
     .reset = kbd_reset,

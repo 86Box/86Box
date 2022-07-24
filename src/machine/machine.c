@@ -145,14 +145,31 @@ int
 machine_available(int m)
 {
     int ret;
+    device_t *d = (device_t *) machine_getdevice(m);
 
     bios_only = 1;
-    ret = machine_init_ex(m);
+
+    ret = device_available(d);
+    /* Do not check via machine_init_ex() if the device is not NULL and
+       it has a CONFIG_BIOS field. */
+    if ((d == NULL) || (ret != -1))
+        ret = machine_init_ex(m);
 
     bios_only = 0;
-    return ret;
+
+    return !!ret;
 }
 
+
+void
+pit_irq0_timer(int new_out, int old_out)
+{
+    if (new_out && !old_out)
+    picint(1);
+
+    if (!new_out)
+    picintc(1);
+}
 
 void
 machine_common_init(const machine_t *model)
@@ -161,5 +178,10 @@ machine_common_init(const machine_t *model)
     pic_init();
     dma_init();
 
-    pit_common_init(!!IS_AT(machine), pit_irq0_timer, NULL);
+    int pit_type = IS_AT(machine) ? PIT_8254 : PIT_8253;
+    /* Select fast PIT if needed */
+    if ((pit_mode == -1 && is486) || pit_mode == 1)
+        pit_type += 2;
+
+    pit_common_init(pit_type, pit_irq0_timer, NULL);
 }

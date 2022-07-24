@@ -431,6 +431,7 @@ void plat_language_code_r(uint32_t lcid, char* outbuf, int len) {
     return;
 }
 
+#ifndef Q_OS_WINDOWS
 void* dynld_module(const char *name, dllimp_t *table)
 {
     QString libraryName = name;
@@ -462,6 +463,7 @@ void dynld_close(void *handle)
 {
     delete reinterpret_cast<QLibrary*>(handle);
 }
+#endif
 
 void startblit()
 {

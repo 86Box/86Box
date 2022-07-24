@@ -48,6 +48,8 @@
 #include <86box/config.h>
 #include <86box/device.h>
 #include <86box/machine.h>
+#include <86box/mem.h>
+#include <86box/rom.h>
 #include <86box/sound.h>
 
 
@@ -329,13 +331,46 @@ device_get_priv(const device_t *d)
 int
 device_available(const device_t *d)
 {
+    device_config_t *config;
+    device_config_bios_t *bios;
+    int bf, roms_present = 0;
+    int i = 0;
+
 #ifdef RELEASE_BUILD
     if (d->flags & DEVICE_NOT_WORKING) return(0);
 #endif
-    if (d->available != NULL)
-	return(d->available());
+    if (d != NULL) {
+	config = (device_config_t *) d->config;
+    if (config != NULL) {
+		while (config->type != -1) {
+			if (config->type == CONFIG_BIOS) {
+				bios = (device_config_bios_t *) config->bios;
 
-    return(1);
+				/* Go through the ROM's in the device configuration. */
+				while (bios->files_no != 0) {
+					i = 0;
+					for (bf = 0; bf < bios->files_no; bf++)
+						i += !!rom_present((char *) bios->files[bf]);
+					if (i == bios->files_no)
+						roms_present++;
+					bios++;
+				}
+
+				return(roms_present ? -1 : 0);
+			}
+			config++;
+		}
+	}
+
+    /* No CONFIG_BIOS field present, use the classic available(). */
+	if (d->available != NULL)
+        return(d->available());
+	else
+		return(1);
+    }
+
+    /* A NULL device is never available. */
+    return(0);
 }
 
 

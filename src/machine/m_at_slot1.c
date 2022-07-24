@@ -709,15 +709,14 @@ machine_at_m729_init(const machine_t *model)
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
     pci_register_slot(0x01, PCI_CARD_AGPBRIDGE, 1, 2, 0, 0);
     pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 1, 2, 3, 4);
-    pci_register_slot(0x0F, PCI_CARD_SOUTHBRIDGE, 1, 2, 3, 4);
-    pci_register_slot(0x03, PCI_CARD_SOUTHBRIDGE, 1, 2, 3, 4);
-    pci_register_slot(0x02, PCI_CARD_SOUTHBRIDGE, 1, 2, 3, 4);
+    pci_register_slot(0x0F, PCI_CARD_SOUTHBRIDGE_IDE, 1, 2, 3, 4);
+    pci_register_slot(0x03, PCI_CARD_SOUTHBRIDGE_PMU, 1, 2, 3, 4);
+    pci_register_slot(0x02, PCI_CARD_SOUTHBRIDGE_USB, 1, 2, 3, 4);
     pci_register_slot(0x14, PCI_CARD_NORMAL, 1, 2, 3, 4);
     pci_register_slot(0x12, PCI_CARD_NORMAL, 2, 3, 4, 1);
     pci_register_slot(0x10, PCI_CARD_NORMAL, 3, 4, 1, 2);
     device_add(&ali1621_device);
-    device_add(&ali1543c_device);
-    device_add(&keyboard_ps2_ami_pci_device);
+    device_add(&ali1543c_device);	/* +0 */
     device_add(&sst_flash_29ee010_device);
     spd_register(SPD_TYPE_SDRAM, 0x7, 512);
 

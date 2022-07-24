@@ -167,7 +167,7 @@ machine_xt_lxt3_init(const machine_t *model)
 
     machine_common_init(model);
 
-    pit_ctr_set_out_func(&pit->counters[1], pit_refresh_timer_xt);
+    pit_devs[0].set_out_func(pit_devs[0].data, 1, pit_refresh_timer_xt);
 
     device_add(&keyboard_xt_lxt3_device);
 
