@@ -1,0 +1,1 @@
+add_library(ymfm STATIC ymfm_opl.cpp)
