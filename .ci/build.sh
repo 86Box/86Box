@@ -220,6 +220,8 @@ esac
 
 # Perform platform-specific setup.
 strip_binary=strip
+cache_dir="$HOME/86box-build-cache"
+[ ! -d "$cache_dir" ] && mkdir -p "$cache_dir"
 if is_windows
 then
 	# Switch into the correct MSYSTEM if required.
@@ -244,105 +246,120 @@ then
 	fi
 	echo [-] Using MSYSTEM [$MSYSTEM]
 
-	# Update keyring, as the package signing keys sometimes change.
-	echo [-] Updating package databases and keyring
-	yes | pacman -Sy --needed msys2-keyring
+	# Install dependencies only if we're in a new build and/or architecture.
+	freetype_dll="$cache_dir/freetype.$MSYSTEM.dll"
+	buildtag_file="$cache_dir/buildtag.$MSYSTEM"
+	if [ -z "$BUILD_TAG" -o "$(cat "$buildtag_file" 2> /dev/null)" != "$BUILD_TAG" ]
+	then
+		# Update keyring, as the package signing keys sometimes change.
+		echo [-] Updating package databases and keyring
+		yes | pacman -Sy --needed msys2-keyring
 
-	# Query installed packages.
-	pacman -Qe > pacman.txt
+		# Query installed packages.
+		pacman -Qe > pacman.txt
 
-	# Download the specified versions of architecture-specific dependencies.
-	echo -n [-] Downloading dependencies:
-	pkg_dir="/var/cache/pacman/pkg"
-	repo_base="https://repo.msys2.org/mingw/$(echo $MSYSTEM | tr '[:upper:]' '[:lower:]')"
-	cat .ci/dependencies_msys.txt | tr -d '\r' > deps.txt
-	pkgs=""
-	while IFS=" " read pkg version
-	do
-		prefixed_pkg="$MINGW_PACKAGE_PREFIX-$pkg"
-		installed_version=$(grep -E "^$prefixed_pkg " pacman.txt | cut -d " " -f 2)
-		if [ "$installed_version" != "$version" ] # installed_version will be empty if not installed
-		then
-			echo -n " [$pkg"
-
-			# Download package if not already present in the local cache.
-			pkg_tar="$prefixed_pkg-$version-any.pkg.tar"
-			if [ -s "$pkg_dir/$pkg_tar.xz" ]
+		# Download the specified versions of architecture-specific dependencies.
+		echo -n [-] Downloading dependencies:
+		pkg_dir="/var/cache/pacman/pkg"
+		repo_base="https://repo.msys2.org/mingw/$(echo $MSYSTEM | tr '[:upper:]' '[:lower:]')"
+		cat .ci/dependencies_msys.txt | tr -d '\r' > deps.txt
+		pkgs=""
+		while IFS=" " read pkg version
+		do
+			prefixed_pkg="$MINGW_PACKAGE_PREFIX-$pkg"
+			installed_version=$(grep -E "^$prefixed_pkg " pacman.txt | cut -d " " -f 2)
+			if [ "$installed_version" != "$version" ] # installed_version will be empty if not installed
 			then
-				pkg_fn="$pkg_tar.xz"
-				pkg_dest="$pkg_dir/$pkg_fn"
-			else
-				pkg_fn="$pkg_tar.zst"
-				pkg_dest="$pkg_dir/$pkg_fn"
-				if [ ! -s "$pkg_dest" ]
+				echo -n " [$pkg"
+
+				# Download package if not already present in the local cache.
+				pkg_tar="$prefixed_pkg-$version-any.pkg.tar"
+				if [ -s "$pkg_dir/$pkg_tar.xz" ]
 				then
-					if ! wget -qO "$pkg_dest" "$repo_base/$pkg_fn"
+					pkg_fn="$pkg_tar.xz"
+					pkg_dest="$pkg_dir/$pkg_fn"
+				else
+					pkg_fn="$pkg_tar.zst"
+					pkg_dest="$pkg_dir/$pkg_fn"
+					if [ ! -s "$pkg_dest" ]
 					then
-						rm -f "$pkg_dest"
-						pkg_fn="$pkg_tar.xz"
-						pkg_dest="$pkg_dir/$pkg_fn"
-						wget -qO "$pkg_dest" "$repo_base/$pkg_fn" || rm -f "$pkg_dest"
-					fi
-					if [ -s "$pkg_dest" ]
-					then
-						wget -qO "$pkg_dest.sig" "$repo_base/$pkg_fn.sig" || rm -f "$pkg_dest.sig"
-						[ ! -s "$pkg_dest.sig" ] && rm -f "$pkg_dest.sig"
+						if ! wget -qO "$pkg_dest" "$repo_base/$pkg_fn"
+						then
+							rm -f "$pkg_dest"
+							pkg_fn="$pkg_tar.xz"
+							pkg_dest="$pkg_dir/$pkg_fn"
+							wget -qO "$pkg_dest" "$repo_base/$pkg_fn" || rm -f "$pkg_dest"
+						fi
+						if [ -s "$pkg_dest" ]
+						then
+							wget -qO "$pkg_dest.sig" "$repo_base/$pkg_fn.sig" || rm -f "$pkg_dest.sig"
+							[ ! -s "$pkg_dest.sig" ] && rm -f "$pkg_dest.sig"
+						fi
 					fi
 				fi
-			fi
 
-			# Check if the cached package is valid.
-			if [ -s "$pkg_dest" ]
+				# Check if the cached package is valid.
+				if [ -s "$pkg_dest" ]
+				then
+					# Add cached zst package.
+					pkgs="$pkgs $pkg_fn"
+				else
+					# Not valid, remove if it exists.
+					rm -f "$pkg_dest" "$pkg_dest.sig"
+					echo -n " FAIL"
+				fi
+				echo -n "]"
+			fi
+		done < deps.txt
+		[ -z "$pkgs" ] && echo -n ' none required'
+		echo
+
+		# Install the downloaded architecture-specific dependencies.
+		echo [-] Installing dependencies through pacman
+		if [ -n "$pkgs" ]
+		then
+			pushd "$pkg_dir"
+			yes | pacman -U --needed $pkgs
+			if [ $? -ne 0 ]
 			then
-				# Add cached zst package.
-				pkgs="$pkgs $pkg_fn"
-			else
-				# Not valid, remove if it exists.
-				rm -f "$pkg_dest" "$pkg_dest.sig"
-				echo -n " FAIL"
+				# Install packages individually if installing them all together failed.
+				for pkg in $pkgs
+				do
+					yes | pacman -U --needed "$pkg"
+				done
 			fi
-			echo -n "]"
-		fi
-	done < deps.txt
-	[ -z "$pkgs" ] && echo -n ' none required'
-	echo
+			popd
 
-	# Install the downloaded architecture-specific dependencies.
-	echo [-] Installing dependencies through pacman
-	if [ -n "$pkgs" ]
-	then
-		pushd "$pkg_dir"
-		yes | pacman -U --needed $pkgs
+			# Query installed packages again.
+			pacman -Qe > pacman.txt
+		fi
+
+		# Install the latest versions for any missing packages (if the specified version couldn't be installed).
+		pkgs="git"
+		while IFS=" " read pkg version
+		do
+			prefixed_pkg="$MINGW_PACKAGE_PREFIX-$pkg"
+			grep -qE "^$prefixed_pkg " pacman.txt || pkgs="$pkgs $prefixed_pkg"
+		done < deps.txt
+		rm -f pacman.txt deps.txt
+		yes | pacman -S --needed $pkgs
 		if [ $? -ne 0 ]
 		then
 			# Install packages individually if installing them all together failed.
 			for pkg in $pkgs
 			do
-				yes | pacman -U --needed "$pkg"
+				yes | pacman -S --needed "$pkg"
 			done
 		fi
-		popd
 
-		# Query installed packages again.
-		pacman -Qe > pacman.txt
-	fi
+		# Generate a new freetype DLL for this architecture.
+		rm -f "$freetype_dll"
 
-	# Install the latest versions for any missing packages (if the specified version couldn't be installed).
-	pkgs="git"
-	while IFS=" " read pkg version
-	do
-		prefixed_pkg="$MINGW_PACKAGE_PREFIX-$pkg"
-		grep -qE "^$prefixed_pkg " pacman.txt || pkgs="$pkgs $prefixed_pkg"
-	done < deps.txt
-	rm -f pacman.txt deps.txt
-	yes | pacman -S --needed $pkgs
-	if [ $? -ne 0 ]
-	then
-		# Install packages individually if installing them all together failed.
-		for pkg in $pkgs
-		do
-			yes | pacman -S --needed "$pkg"
-		done
+		# Save build tag to skip this later. Doing it here (once everything is
+		# in place) is important to avoid potential issues with retried builds.
+		echo "$BUILD_TAG" > "$buildtag_file"
+	else
+		echo [-] Not installing dependencies again
 	fi
 
 	# Point CMake to the toolchain file.
@@ -352,7 +369,7 @@ then
 	# macOS lacks nproc, but sysctl can do the same job.
 	alias nproc='sysctl -n hw.logicalcpu'
 
-	# Handle universal build.
+	# Handle universal building.
 	if echo "$arch" | grep -q '+'
 	then
 		# Create temporary directory for merging app bundles.
@@ -526,10 +543,22 @@ then
 	[ "$arch" = "x86_64" -a -e "/opt/intel/bin/port" ] && macports="/opt/intel"
 	export PATH="$macports/bin:$macports/sbin:$macports/libexec/qt5/bin:$PATH"
 
-	# Install dependencies.
-	echo [-] Installing dependencies through MacPorts
-	sudo "$macports/bin/port" selfupdate
-	sudo "$macports/bin/port" install $(cat .ci/dependencies_macports.txt)
+	# Install dependencies only if we're in a new build and/or architecture.
+	buildtag_file="$cache_dir/buildtag.$(arch)"
+	if [ -z "$BUILD_TAG" -o "$(cat "$buildtag_file" 2> /dev/null)" != "$BUILD_TAG" ]
+	then
+		# Install dependencies.
+		echo [-] Installing dependencies through MacPorts
+		sudo "$macports/bin/port" selfupdate
+		sudo "$macports/bin/port" install $(cat .ci/dependencies_macports.txt)
+
+		# Save build tag to skip this later. Doing it here (once everything is
+		# in place) is important to avoid potential issues with retried builds.
+		echo "$BUILD_TAG" > "$buildtag_file"
+	else
+		echo [-] Not installing dependencies again
+
+	fi
 
 	# Point CMake to the toolchain file.
 	[ -e "cmake/$toolchain.cmake" ] && cmake_flags_extra="$cmake_flags_extra -D \"CMAKE_TOOLCHAIN_FILE=cmake/$toolchain.cmake\""
@@ -606,11 +635,22 @@ EOF
 	cmake_flags_extra="$cmake_flags_extra -D CMAKE_TOOLCHAIN_FILE=toolchain.cmake"
 	strip_binary="$arch_triplet-strip"
 
-	# Install or update dependencies.
-	echo [-] Installing dependencies through apt
-	sudo apt-get update
-	DEBIAN_FRONTEND=noninteractive sudo apt-get -y install $pkgs $libpkgs
-	sudo apt-get clean
+	# Install dependencies only if we're in a new build and/or architecture.
+	buildtag_file="$cache_dir/buildtag.$arch_deb"
+	if [ -z "$BUILD_TAG" -o "$(cat "$buildtag_file" 2> /dev/null)" != "$BUILD_TAG" ]
+	then
+		# Install or update dependencies.
+		echo [-] Installing dependencies through apt
+		sudo apt-get update
+		DEBIAN_FRONTEND=noninteractive sudo apt-get -y install $pkgs $libpkgs
+		sudo apt-get clean
+
+		# Save build tag to skip this later. Doing it here (once everything is
+		# in place) is important to avoid potential issues with retried builds.
+		echo "$BUILD_TAG" > "$buildtag_file"
+	else
+		echo [-] Not installing dependencies again
+	fi
 
 	# Link against the system libslirp instead of compiling ours.
 	cmake_flags_extra="$cmake_flags_extra -D SLIRP_EXTERNAL=ON"
@@ -618,12 +658,7 @@ fi
 
 # Clean workspace.
 echo [-] Cleaning workspace
-if [ -d "build" ]
-then
-	cmake --build build -j$(nproc) --target clean 2> /dev/null
-	rm -rf build
-fi
-find . \( -name Makefile -o -name CMakeCache.txt -o -name CMakeFiles \) -exec rm -rf "{}" \; 2> /dev/null
+[ -d "build" ] && rm -rf build
 
 # Add ARCH to skip the arch_detect process.
 case $arch in
@@ -671,17 +706,26 @@ then
 	exit 4
 fi
 
-# Download Discord Game SDK from their CDN if necessary.
-if [ ! -e "discord_game_sdk.zip" ]
+# Download Discord Game SDK from their CDN if we're in a new build.
+discord_zip="$cache_dir/discord_game_sdk.zip"
+buildtag_file="$cache_dir/buildtag.any"
+if [ -z "$BUILD_TAG" -o "$(cat "$buildtag_file" 2> /dev/null)" != "$BUILD_TAG" ]
 then
+	# Download file.
 	echo [-] Downloading Discord Game SDK
-	wget -qO discord_game_sdk.zip "https://dl-game-sdk.discordapp.net/latest/discord_game_sdk.zip"
+	wget -qO "$discord_zip" "https://dl-game-sdk.discordapp.net/latest/discord_game_sdk.zip"
 	status=$?
 	if [ $status -ne 0 ]
 	then
 		echo [!] Discord Game SDK download failed with status [$status]
-		rm -f discord_game_sdk.zip
+		rm -f "$discord_zip"
+	else
+		# Save build tag to skip this later. Doing it here (once everything is
+		# in place) is important to avoid potential issues with retried builds.
+		echo "$BUILD_TAG" > "$buildtag_file"
 	fi
+else
+	echo [-] Not downloading Discord Game SDK again
 fi
 
 # Determine Discord Game SDK architecture.
@@ -713,8 +757,9 @@ then
 	sevenzip="$pf/7-Zip/7z.exe"
 	[ "$arch" = "32" -a -d "/c/Program Files (x86)" ] && pf="/c/Program Files (x86)"
 
-	# Archive freetype from local MSYS installation.
-	.ci/static2dll.sh -p freetype2 /$MSYSTEM/lib/libfreetype.a archive_tmp/freetype.dll
+	# Archive freetype from cache or generate it from local MSYS installation.
+	[ ! -e "$freetype_dll" ] && .ci/static2dll.sh -p freetype2 /$MSYSTEM/lib/libfreetype.a "$freetype_dll"
+	cp -p "$freetype_dll" archive_tmp/freetype.dll
 
 	# Archive Ghostscript DLL from local official distribution installation.
 	for gs in "$pf"/gs/gs*.*.*
@@ -723,7 +768,7 @@ then
 	done
 
 	# Archive Discord Game SDK DLL.
-	"$sevenzip" e -y -o"archive_tmp" discord_game_sdk.zip "lib/$arch_discord/discord_game_sdk.dll"
+	"$sevenzip" e -y -o"archive_tmp" "$discord_zip" "lib/$arch_discord/discord_game_sdk.dll"
 	[ ! -e "archive_tmp/discord_game_sdk.dll" ] && echo [!] No Discord Game SDK for architecture [$arch_discord]
 
 	# Archive other DLLs from local directory.
@@ -749,16 +794,14 @@ then
 	if [ $status -eq 0 ]
 	then
 		# Archive Discord Game SDK library.
-		unzip -j discord_game_sdk.zip "lib/$arch_discord/discord_game_sdk.dylib" -d "archive_tmp/"*".app/Contents/Frameworks"
+		unzip -j "$discord_zip" "lib/$arch_discord/discord_game_sdk.dylib" -d "archive_tmp/"*".app/Contents/Frameworks"
 		[ ! -e "archive_tmp/"*".app/Contents/Frameworks/discord_game_sdk.dylib" ] && echo [!] No Discord Game SDK for architecture [$arch_discord]
 
 		# Sign app bundle, unless we're in an universal build.
 		[ $skip_archive -eq 0 ] && codesign --force --deep -s - "archive_tmp/"*".app"
 	fi
 else
-	cwd_root=$(pwd)
-	cache_dir="$HOME/86box-build-cache"
-	[ ! -d "$cache_dir" ] && mkdir -p "$cache_dir"
+	cwd_root="$(pwd)"
 
 	if grep -q "OPENAL:BOOL=ON" build/CMakeCache.txt
 	then
@@ -842,7 +885,7 @@ else
 	cmake --install "$cache_dir/sdlbuild" || exit 99
 
 	# Archive Discord Game SDK library.
-	7z e -y -o"archive_tmp/usr/lib" discord_game_sdk.zip "lib/$arch_discord/discord_game_sdk.so"
+	7z e -y -o"archive_tmp/usr/lib" "$discord_zip" "lib/$arch_discord/discord_game_sdk.so"
 	[ ! -e "archive_tmp/usr/lib/discord_game_sdk.so" ] && echo [!] No Discord Game SDK for architecture [$arch_discord]
 
 	# Archive readme with library package versions.
