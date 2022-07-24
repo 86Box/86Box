@@ -45,8 +45,6 @@
 #define LOCK dev->lock
 #define UNLOCKED !dev->lock
 
-#define ENABLE_WD76C10_LOG 1
-
 #ifdef ENABLE_WD76C10_LOG
 int wd76c10_do_log = ENABLE_WD76C10_LOG;
 static void
