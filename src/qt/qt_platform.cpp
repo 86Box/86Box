@@ -571,7 +571,7 @@ void ProgSettings::reloadStrings()
         gssynthstr.replace("libgs", LIB_NAME_GS);
     }
     else gssynthstr.prepend(LIB_NAME_GS);
-    translatedstrings[IDS_2132] = flsynthstr.toStdWString();
+    translatedstrings[IDS_2132] = gssynthstr.toStdWString();
     auto ftsynthstr = QCoreApplication::translate("", " is required for ESC/P printer emulation.");
     if (ftsynthstr.contains("libfreetype"))
     {
