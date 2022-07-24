@@ -1005,7 +1005,6 @@ machine_at_m560_init(const machine_t *model)
     pci_register_slot(0x06, PCI_CARD_NORMAL, 4, 1, 2, 3);
     device_add(&ali1531_device);
     device_add(&ali1543_device);	/* -5 */
-    device_add(&keyboard_ps2_ami_pci_device);
     device_add(&sst_flash_29ee010_device);
     spd_register(SPD_TYPE_SDRAM, 0x3, 256);
 
@@ -1040,7 +1039,6 @@ machine_at_ms5164_init(const machine_t *model)
 
     device_add(&ali1531_device);
     device_add(&ali1543_device);	/* -5 */
-    device_add(&keyboard_ps2_ami_pci_device);
     device_add(&sst_flash_29ee010_device);
     spd_register(SPD_TYPE_SDRAM, 0x3, 256);
 

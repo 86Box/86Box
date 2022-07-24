@@ -627,7 +627,7 @@ kbd_write(uint16_t port, uint8_t val, void *priv)
 		speaker_enable = val & 2;
 		if (speaker_enable)
 			was_speaker_enable = 1;
-		pit_ctr_set_gate(&pit->counters[2], val & 1);
+		pit_devs[0].set_gate(pit_devs[0].data, 2, val & 1);
 		sn76489_mute = speaker_mute = 1;
 		switch (val & 0x60) {
 			case 0x00:
@@ -642,7 +642,7 @@ kbd_write(uint16_t port, uint8_t val, void *priv)
 
 	case 0xa0:
 		nmi_mask = val & 0x80;
-		pit_ctr_set_using_timer(&pit->counters[1], !(val & 0x20));
+		pit_devs[0].set_using_timer(pit_devs[0].data, 1, !(val & 0x20));
 		break;
     }
 }
@@ -768,6 +768,18 @@ speed_changed(void *priv)
     pcjr_t *pcjr = (pcjr_t *)priv;
 
     recalc_timings(pcjr);
+}
+
+void
+pit_irq0_timer_pcjr(int new_out, int old_out)
+{
+    if (new_out && !old_out) {
+        picint(1);
+        pit_devs[0].ctr_clock(pit_devs[0].data, 1);
+    }
+
+    if (!new_out)
+        picintc(1);
 }
 
 static const device_config_t pcjr_config[] = {

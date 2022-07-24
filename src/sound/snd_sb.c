@@ -1198,6 +1198,151 @@ sb_pro_mcv_write(int port, uint8_t val, void *p)
     sb_dsp_setdma8(&sb->dsp, sb->pos_regs[4] & 3);
 }
 
+static uint8_t
+sb_16_reply_mca_read(int port, void *p)
+{
+    sb_t   *sb  = (sb_t *) p;
+    uint8_t ret = sb->pos_regs[port & 7];
+
+    sb_log("sb_16_reply_mca_read: port=%04x ret=%02x\n", port, ret);
+
+    return ret;
+}
+
+static void
+sb_16_reply_mca_write(int port, uint8_t val, void *p)
+{
+    uint16_t addr, mpu401_addr;
+    int low_dma, high_dma;
+    sb_t *sb = (sb_t *) p;
+
+    if (port < 0x102)
+        return;
+
+    sb_log("sb_16_reply_mca_write: port=%04x val=%02x\n", port, val);
+
+    switch (sb->pos_regs[2] & 0xc4) {
+        case 4:
+            addr = 0x220;
+            break;
+        case 0x44:
+            addr = 0x240;
+            break;
+        case 0x84:
+            addr = 0x260;
+            break;
+        case 0xc4:
+            addr = 0x280;
+            break;
+        case 0:
+        default:
+            addr = 0;
+            break;
+    }
+
+    if (addr) {
+        io_removehandler(addr, 0x0004,
+                      opl3_read, NULL, NULL,
+                      opl3_write, NULL, NULL,
+                      &sb->opl);
+        io_removehandler(addr + 8, 0x0002,
+                      opl3_read, NULL, NULL,
+                      opl3_write, NULL, NULL,
+                      &sb->opl);
+        io_removehandler(0x0388, 0x0004,
+                      opl3_read, NULL, NULL,
+                      opl3_write, NULL, NULL,
+                      &sb->opl);
+        io_removehandler(addr + 4, 0x0002,
+                     sb_ct1745_mixer_read, NULL, NULL,
+                     sb_ct1745_mixer_write, NULL, NULL,
+                     sb);
+    }
+
+    /* DSP I/O handler is activated in sb_dsp_setaddr */
+    sb_dsp_setaddr(&sb->dsp, 0);
+    mpu401_change_addr(sb->mpu, 0);
+    gameport_remap(sb->gameport, 0);
+
+    sb->pos_regs[port & 7] = val;
+
+    if (sb->pos_regs[2] & 1) {
+        switch (sb->pos_regs[2] & 0xc4) {
+            case 4:
+                addr = 0x220;
+                break;
+            case 0x44:
+                addr = 0x240;
+                break;
+            case 0x84:
+                addr = 0x260;
+                break;
+            case 0xc4:
+                addr = 0x280;
+                break;
+            case 0:
+            default:
+                addr = 0;
+                break;
+        }
+        switch (sb->pos_regs[2] & 0x18) {
+            case 8:
+                mpu401_addr = 0x330;
+                break;
+            case 0x18:
+                mpu401_addr = 0x300;
+                break;
+            case 0:
+            default:
+                mpu401_addr = 0;
+                break;
+        }
+
+        if (addr) {
+            io_sethandler(addr, 0x0004,
+                          opl3_read, NULL, NULL,
+                          opl3_write, NULL, NULL,
+                          &sb->opl);
+            io_sethandler(addr + 8, 0x0002,
+                          opl3_read, NULL, NULL,
+                          opl3_write, NULL, NULL,
+                          &sb->opl);
+            io_sethandler(0x0388, 0x0004,
+                          opl3_read, NULL, NULL,
+                          opl3_write, NULL, NULL, &sb->opl);
+            io_sethandler(addr + 4, 0x0002,
+                          sb_ct1745_mixer_read, NULL, NULL,
+                          sb_ct1745_mixer_write, NULL, NULL,
+                          sb);
+        }
+
+        /* DSP I/O handler is activated in sb_dsp_setaddr */
+        sb_dsp_setaddr(&sb->dsp, addr);
+        mpu401_change_addr(sb->mpu, mpu401_addr);
+        gameport_remap(sb->gameport, (sb->pos_regs[2] & 0x20) ? 0x200 : 0);
+    }
+
+    switch (sb->pos_regs[4] & 0x60) {
+        case 0x20:
+            sb_dsp_setirq(&sb->dsp, 5);
+            break;
+        case 0x40:
+            sb_dsp_setirq(&sb->dsp, 7);
+            break;
+        case 0x60:
+            sb_dsp_setirq(&sb->dsp, 10);
+            break;
+    }
+
+    low_dma = sb->pos_regs[3] & 3;
+    high_dma = (sb->pos_regs[3] >> 4) & 7;
+    if (!high_dma)
+        high_dma = low_dma;
+
+    sb_dsp_setdma8(&sb->dsp, low_dma);
+    sb_dsp_setdma16(&sb->dsp, high_dma);
+}
+
 static void
 sb_16_pnp_config_changed(uint8_t ld, isapnp_device_config_t *config, void *priv)
 {
@@ -1781,6 +1926,41 @@ sb_16_init(const device_t *info)
 
     if (device_get_config_int("receive_input"))
         midi_in_handler(1, sb_dsp_input_msg, sb_dsp_input_sysex, &sb->dsp);
+
+    return sb;
+}
+
+static void *
+sb_16_reply_mca_init(const device_t *info)
+{
+    sb_t *sb = malloc(sizeof(sb_t));
+    memset(sb, 0x00, sizeof(sb_t));
+
+    sb->opl_enabled = 1;
+    opl3_init(&sb->opl);
+
+    sb_dsp_init(&sb->dsp, SB16, SB_SUBTYPE_DEFAULT, sb);
+    sb_ct1745_mixer_reset(sb);
+
+    sb->mixer_enabled = 1;
+    sb->mixer_sb16.output_filter = 1;
+    sound_add_handler(sb_get_buffer_sb16_awe32, sb);
+    sound_set_cd_audio_filter(sb16_awe32_filter_cd_audio, sb);
+
+    sb->mpu = (mpu_t *) malloc(sizeof(mpu_t));
+    memset(sb->mpu, 0, sizeof(mpu_t));
+    mpu401_init(sb->mpu, 0, 0, M_UART, device_get_config_int("receive_input401"));
+    sb_dsp_set_mpu(&sb->dsp, sb->mpu);
+
+    if (device_get_config_int("receive_input"))
+        midi_in_handler(1, sb_dsp_input_msg, sb_dsp_input_sysex, &sb->dsp);
+
+    sb->gameport = gameport_add(&gameport_device);
+
+    /* I/O handlers activated in sb_pro_mcv_write */
+    mca_add(sb_16_reply_mca_read, sb_16_reply_mca_write, sb_mcv_feedb, NULL, sb);
+    sb->pos_regs[0] = 0x38;
+    sb->pos_regs[1] = 0x51;
 
     return sb;
 }
@@ -3369,6 +3549,20 @@ const device_t sb_16_device = {
     .speed_changed = sb_speed_changed,
     .force_redraw  = NULL,
     .config        = sb_16_config
+};
+
+const device_t sb_16_reply_mca_device = {
+    .name          = "Sound Blaster 16 Reply MCA",
+    .internal_name = "sb16_reply_mca",
+    .flags         = DEVICE_MCA,
+    .local         = 0,
+    .init          = sb_16_reply_mca_init,
+    .close         = sb_close,
+    .reset         = NULL,
+    { .available = NULL },
+    .speed_changed = sb_speed_changed,
+    .force_redraw  = NULL,
+    .config        = sb_16_pnp_config
 };
 
 const device_t sb_16_pnp_device = {

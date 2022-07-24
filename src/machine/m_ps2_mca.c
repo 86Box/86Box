@@ -1363,7 +1363,8 @@ machine_ps2_common_init(const machine_t *model)
         device_add(&ps_no_nmi_nvr_device);
         pic2_init();
 
-        pit_ps2_init();
+        int pit_type = ((pit_mode == -1 && is486) || pit_mode == 1) ? PIT_8254_FAST : PIT_8254;
+        pit_ps2_init(pit_type);
 
 	nmi_mask = 0x80;
 

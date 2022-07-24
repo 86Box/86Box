@@ -103,6 +103,7 @@ static netcard_t net_cards[] = {
     { &ethernext_mc_device,       NULL },
     { &wd8003eta_device,          NULL },
     { &wd8003ea_device,           NULL },
+    { &wd8013epa_device,          NULL },
     { &pcnet_am79c973_device,     NULL },
     { &pcnet_am79c970a_device,    NULL },
     { &rtl8029as_device,          NULL },
