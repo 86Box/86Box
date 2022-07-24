@@ -572,12 +572,21 @@ else
 	esac
 
 	# Establish general dependencies.
+	buildtag_aptupdate_file="$cache_dir/buildtag.aptupdate"
 	pkgs="cmake ninja-build pkg-config git wget p7zip-full wayland-protocols tar gzip file appstream"
 	if [ "$(dpkg --print-architecture)" = "$arch_deb" ]
 	then
 		pkgs="$pkgs build-essential"
 	else
-		sudo dpkg --add-architecture "$arch_deb"
+		# Add foreign architecture if required.
+		if ! dpkg --print-foreign-architectures | grep -qE '^'"$arch_deb"'$'
+		then
+			sudo dpkg --add-architecture "$arch_deb"
+			
+			# Force an apt-get update.
+			rm -f "$buildtag_aptupdate_file"
+		fi
+
 		pkgs="$pkgs crossbuild-essential-$arch_deb"
 	fi
 
@@ -641,7 +650,14 @@ EOF
 	then
 		# Install or update dependencies.
 		echo [-] Installing dependencies through apt
-		sudo apt-get update
+		if [ -z "$BUILD_TAG" -o "$(cat "$buildtag_aptupdate_file" 2> /dev/null)" != "$BUILD_TAG" ]
+		then
+			sudo apt-get update
+
+			# Save build tag to skip apt-get update later, unless a new architecture
+			# is added to dpkg, in which case, this saved tag file gets removed.
+			echo "$BUILD_TAG" > "$buildtag_aptupdate_file"
+		fi
 		DEBIAN_FRONTEND=noninteractive sudo apt-get -y install $pkgs $libpkgs
 		sudo apt-get clean
 
@@ -658,7 +674,7 @@ fi
 
 # Clean workspace.
 echo [-] Cleaning workspace
-[ -d "build" ] && rm -rf build
+rm -rf build
 
 # Add ARCH to skip the arch_detect process.
 case $arch in
