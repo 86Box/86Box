@@ -147,28 +147,6 @@ virtual void generate_resampled(int32_t *data, uint32_t num_samples) override
         }
     }
 
-
-    /*virtual void generate_resampled(int32_t *data, uint32_t num_samples) override
-    {
-        for (uint32_t i = 0; i < num_samples; i++) {
-            while (m_samplecnt >= m_rateratio) {
-                m_oldsamples[0] = m_samples[0];
-                m_oldsamples[1] = m_samples[1];
-                generate(m_samples, 1);
-                m_samplecnt -= m_rateratio;
-            }
-
-            *data++ = ((int32_t) ((m_oldsamples[0] * (m_rateratio - m_samplecnt)
-                                  + m_samples[0] * m_samplecnt)
-                                 / m_rateratio)) / 2;
-            *data++ = ((int32_t) ((m_oldsamples[1] * (m_rateratio - m_samplecnt)
-                                  + m_samples[1] * m_samplecnt)
-                                 / m_rateratio)) / 2;
-
-            m_samplecnt += 1 << RSM_FRAC;
-        }
-    }*/
-
     virtual int32_t *update() override
     {
         if (m_buf_pos >= sound_pos_global)
@@ -236,21 +214,18 @@ extern "C"
 #include <86box/snd_opl.h>
 
 #ifdef ENABLE_OPL_LOG
-static int opl_do_log = ENABLE_OPL_LOG;
 
 static void
-opl_log(const char *fmt, ...)
+ymfm_log(const char *fmt, ...)
 {
     va_list ap;
 
-    if (opl_do_log) {
-        va_start(ap, fmt);
-        pclog_ex(fmt, ap);
-        va_end(ap);
-    }
+    va_start(ap, fmt);
+    pclog_ex(fmt, ap);
+    va_end(ap);
 }
 #else
-#    define opl_log(fmt, ...)
+#    define ymfm_log(fmt, ...)
 #endif
 
 static void *
@@ -299,7 +274,7 @@ ymfm_drv_read(uint16_t port, void *priv)
     uint8_t ret = drv->read(port);
     drv->update();
 
-    opl_log("YMFM read port %04x, status = %02x\n", port, ret);
+    ymfm_log("YMFM read port %04x, status = %02x\n", port, ret);
     return ret;
 }
 
@@ -307,7 +282,7 @@ static void
 ymfm_drv_write(uint16_t port, uint8_t val, void *priv)
 {
     YMFMChipBase *drv = (YMFMChipBase *) priv;
-    opl_log("YMFM write port %04x value = %02x\n", port, val);
+    ymfm_log("YMFM write port %04x value = %02x\n", port, val);
     drv->write(port, val);
     drv->update();
 }
