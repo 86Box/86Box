@@ -62,6 +62,7 @@ static struct {
 
 
 #define DMA_PS2_IOA		(1 << 0)
+#define DMA_PS2_AUTOINIT    (1 << 1)
 #define DMA_PS2_XFER_MEM_TO_IO	(1 << 2)
 #define DMA_PS2_XFER_IO_TO_MEM	(3 << 2)
 #define DMA_PS2_XFER_MASK	(3 << 2)
@@ -729,6 +730,8 @@ dma_ps2_write(uint16_t addr, uint8_t val, void *priv)
                 else if ((val & DMA_PS2_XFER_MASK) == DMA_PS2_XFER_IO_TO_MEM)
 					mode |= 4;
 				dma_c->mode = (dma_c->mode & ~0x2c) | mode;
+				if (val & DMA_PS2_AUTOINIT)
+                    dma_c->mode |= 0x10;
 				dma_c->ps2_mode = val;
 				dma_c->size = val & DMA_PS2_SIZE16;
 				break;

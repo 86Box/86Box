@@ -34,14 +34,15 @@
 #include <86box/pic.h>
 #include <86box/timer.h>
 #include <86box/pit.h>
+#include <86box/pit_fast.h>
 #include <86box/ppi.h>
 #include <86box/machine.h>
 #include <86box/sound.h>
 #include <86box/snd_speaker.h>
 #include <86box/video.h>
 
+pit_intf_t pit_devs[2];
 
-pit_t		*pit, *pit2;
 double		cpuclock, PITCONSTD,
 		SYSCLK,
 		isa_timing,
@@ -65,12 +66,6 @@ int64_t		firsttime = 1;
 #define PIT_EXT_IO		32	/* The PIT has externally specified port I/O. */
 #define PIT_CUSTOM_CLOCK	64	/* The PIT uses custom clock inputs provided by another provider. */
 #define PIT_SECONDARY		128	/* The PIT is secondary (ports 0048-004B). */
-
-
-enum {
-    PIT_8253 = 0,
-    PIT_8254
-};
 
 
 #ifdef ENABLE_PIT_LOG
@@ -293,8 +288,11 @@ ctr_tick(ctr_t *ctr)
 
 
 static void
-ctr_clock(ctr_t *ctr)
+ctr_clock(void *data, int counter_id)
 {
+    pit_t *pit = (pit_t *)data;
+    ctr_t *ctr = &pit->counters[counter_id];
+
    /* FIXME: Is this even needed? */
     if ((ctr->state == 3) && (ctr->m != 2) && (ctr->m != 3))
 	return;
@@ -379,35 +377,47 @@ ctr_latch_count(ctr_t *ctr)
 
 
 uint16_t
-pit_ctr_get_count(ctr_t *ctr)
+pit_ctr_get_count(void *data, int counter_id)
 {
+    pit_t *pit = (pit_t *)data;
+    ctr_t *ctr = &pit->counters[counter_id];
+
     return (uint16_t) ctr->l;
 }
 
 
 void
-pit_ctr_set_load_func(ctr_t *ctr, void (*func)(uint8_t new_m, int new_count))
+pit_ctr_set_load_func(void *data, int counter_id, void (*func)(uint8_t new_m, int new_count))
 {
-    if (ctr == NULL)
+    if (data == NULL)
 	return;
+
+    pit_t *pit = (pit_t *)data;
+    ctr_t *ctr = &pit->counters[counter_id];
 
     ctr->load_func = func;
 }
 
 
 void
-pit_ctr_set_out_func(ctr_t *ctr, void (*func)(int new_out, int old_out))
+pit_ctr_set_out_func(void *data, int counter_id, void (*func)(int new_out, int old_out))
 {
-    if (ctr == NULL)
+    if (data == NULL)
 	return;
+
+    pit_t *pit = (pit_t *)data;
+    ctr_t *ctr = &pit->counters[counter_id];
 
     ctr->out_func = func;
 }
 
 
 void
-pit_ctr_set_gate(ctr_t *ctr, int gate)
+pit_ctr_set_gate(void *data, int counter_id, int gate)
 {
+    pit_t *pit = (pit_t *)data;
+    ctr_t *ctr = &pit->counters[counter_id];
+
     int old = ctr->gate;
     uint8_t mode = ctr->m & 3;
 
@@ -470,10 +480,12 @@ pit_ctr_set_clock(ctr_t *ctr, int clock)
 
 
 void
-pit_ctr_set_using_timer(ctr_t *ctr, int using_timer)
+pit_ctr_set_using_timer(void *data, int counter_id, int using_timer)
 {
-    timer_process();
-
+    if (tsc > 0)
+        timer_process();
+    pit_t *pit = (pit_t *)data;
+    ctr_t *ctr = &pit->counters[counter_id];
     ctr->using_timer = using_timer;
 }
 
@@ -673,46 +685,19 @@ pit_read(uint16_t addr, void *priv)
 }
 
 
-/* FIXME: Should be moved to machine.c (default for most machine). */
-void
-pit_irq0_timer(int new_out, int old_out)
-{
-    if (new_out && !old_out)
-	picint(1);
-
-    if (!new_out)
-	picintc(1);
-}
-
-
-void
-pit_irq0_timer_pcjr(int new_out, int old_out)
-{
-    if (new_out && !old_out) {
-	picint(1);
-	ctr_clock(&pit->counters[1]);
-    }
-
-    if (!new_out)
-	picintc(1);
-}
-
-
 void
 pit_irq0_timer_ps2(int new_out, int old_out)
 {
-    ctr_t *ctr = &pit2->counters[0];
-
     if (new_out && !old_out) {
 	picint(1);
-	pit_ctr_set_gate(ctr, 1);
+	pit_devs[1].set_gate(pit_devs[1].data, 0, 1);
     }
 
     if (!new_out)
 	picintc(1);
 
     if (!new_out && old_out)
-	ctr_clock(ctr);
+	pit_devs[1].ctr_clock(pit_devs[1].data, 0);
 }
 
 
@@ -742,7 +727,8 @@ pit_speaker_timer(int new_out, int old_out)
 
     speaker_update();
 
-    l = pit->counters[2].l ? pit->counters[2].l : 0x10000;
+    uint16_t count = pit_devs[0].get_count(pit_devs[0].data, 2);
+    l = count ? count : 0x10000;
     if (l < 25)
 	speakon = 0;
     else
@@ -809,11 +795,11 @@ pit_close(void *priv)
 {
     pit_t *dev = (pit_t *) priv;
 
-    if (dev == pit)
-	pit = NULL;
+    if (dev == pit_devs[0].data)
+	pit_devs[0].data = NULL;
 
-    if (dev == pit2)
-	pit2 = NULL;
+    if (dev == pit_devs[1].data)
+	pit_devs[1].data = NULL;
 
     if (dev != NULL)
 	free(dev);
@@ -915,47 +901,83 @@ pit_t *
 pit_common_init(int type, void (*out0)(int new_out, int old_out), void (*out1)(int new_out, int old_out))
 {
     int i;
+    void *pit;
+
+    pit_intf_t *pit_intf = &pit_devs[0];
 
     switch (type) {
 	case PIT_8253:
 	default:
 		pit = device_add(&i8253_device);
+		*pit_intf = pit_classic_intf;
 		break;
 	case PIT_8254:
 		pit = device_add(&i8254_device);
+		*pit_intf = pit_classic_intf;
 		break;
+	case PIT_8253_FAST:
+		pit = device_add(&i8253_fast_device);
+		*pit_intf = pit_fast_intf;
+		break;
+	case PIT_8254_FAST:
+		pit = device_add(&i8254_fast_device);
+		*pit_intf = pit_fast_intf;
+		break;
+
     }
+
+    pit_intf->data = pit;
 
     for (i = 0; i < 3; i++) {
-	pit->counters[i].gate = 1;
-	pit->counters[i].using_timer = 1;
+	pit_intf->set_gate(pit_intf->data, i, 1);
+	pit_intf->set_using_timer(pit_intf->data, i, 1);
     }
 
-    pit_ctr_set_out_func(&pit->counters[0], out0);
-    pit_ctr_set_out_func(&pit->counters[1], out1);
-    pit_ctr_set_out_func(&pit->counters[2], pit_speaker_timer);
-    pit_ctr_set_load_func(&pit->counters[2], speaker_set_count);
-    pit->counters[2].gate = 0;
+    pit_intf->set_out_func(pit_intf->data, 0, out0);
+    pit_intf->set_out_func(pit_intf->data, 1, out1);
+    pit_intf->set_out_func(pit_intf->data, 2, pit_speaker_timer);
+    pit_intf->set_load_func(pit_intf->data, 2, speaker_set_count);
+
+    pit_intf->set_gate(pit_intf->data, 2, 0);
 
     return pit;
 }
 
 
 pit_t *
-pit_ps2_init(void)
+pit_ps2_init(int type)
 {
-    pit2 = device_add(&i8254_ps2_device);
+    void *pit;
 
-    pit_handler(1, 0x0044, 0x0001, pit2);
-    pit_handler(1, 0x0047, 0x0001, pit2);
+    pit_intf_t *ps2_pit = &pit_devs[1];
 
-    pit2->counters[0].gate = 0;
-    pit2->counters[0].using_timer = pit2->counters[1].using_timer = pit2->counters[2].using_timer = 0;
+    switch (type) {
+        case PIT_8254:
+        default:
+            pit = device_add(&i8254_ps2_device);
+            *ps2_pit = pit_classic_intf;
+            break;
 
-    pit_ctr_set_out_func(&pit->counters[0], pit_irq0_timer_ps2);
-    pit_ctr_set_out_func(&pit2->counters[0], pit_nmi_timer_ps2);
+        case PIT_8254_FAST:
+            pit = device_add(&i8254_ps2_fast_device);
+            *ps2_pit = pit_fast_intf;
+            break;
+    }
 
-    return pit2;
+    ps2_pit->data = pit;
+
+    ps2_pit->set_gate(ps2_pit->data, 0, 0);
+    for (int i = 0; i < 3; i++) {
+        ps2_pit->set_using_timer(ps2_pit->data, i, 0);
+    }
+
+    io_sethandler(0x0044, 0x0001, ps2_pit->read, NULL, NULL, ps2_pit->write, NULL, NULL, pit);
+    io_sethandler(0x0047, 0x0001, ps2_pit->read, NULL, NULL, ps2_pit->write, NULL, NULL, pit);
+
+    pit_devs[0].set_out_func(pit_devs[0].data, 0, pit_irq0_timer_ps2);
+    ps2_pit->set_out_func(ps2_pit->data, 0, pit_nmi_timer_ps2);
+
+    return pit;
 }
 
 
@@ -1063,3 +1085,15 @@ pit_set_clock(int clock)
 
     device_speed_changed();
 }
+
+const pit_intf_t pit_classic_intf = {
+    &pit_read,
+    &pit_write,
+    &pit_ctr_get_count,
+    &pit_ctr_set_gate,
+    &pit_ctr_set_using_timer,
+    &pit_ctr_set_out_func,
+    &pit_ctr_set_load_func,
+    &ctr_clock,
+    NULL,
+};

@@ -1149,7 +1149,7 @@ azt_init(const device_t *info)
         azt2316a->sb->dsp.azt_eeprom[i] = read_eeprom[i];
 
     if (azt2316a->sb->opl_enabled)
-        opl3_init(&azt2316a->sb->opl);
+        fm_driver_get(FM_YMF262, &azt2316a->sb->opl);
 
     sb_dsp_init(&azt2316a->sb->dsp, SBPRO2, azt2316a->type, azt2316a);
     sb_dsp_setaddr(&azt2316a->sb->dsp, azt2316a->cur_addr);
@@ -1158,9 +1158,9 @@ azt_init(const device_t *info)
     sb_ct1345_mixer_reset(azt2316a->sb);
     /* DSP I/O handler is activated in sb_dsp_setaddr */
     if (azt2316a->sb->opl_enabled) {
-        io_sethandler(azt2316a->cur_addr + 0, 0x0004, opl3_read, NULL, NULL, opl3_write, NULL, NULL, &azt2316a->sb->opl);
-        io_sethandler(azt2316a->cur_addr + 8, 0x0002, opl3_read, NULL, NULL, opl3_write, NULL, NULL, &azt2316a->sb->opl);
-        io_sethandler(0x0388, 0x0004, opl3_read, NULL, NULL, opl3_write, NULL, NULL, &azt2316a->sb->opl);
+        io_sethandler(azt2316a->cur_addr + 0, 0x0004, azt2316a->sb->opl.read, NULL, NULL, azt2316a->sb->opl.write, NULL, NULL, azt2316a->sb->opl.priv);
+        io_sethandler(azt2316a->cur_addr + 8, 0x0002, azt2316a->sb->opl.read, NULL, NULL, azt2316a->sb->opl.write, NULL, NULL, azt2316a->sb->opl.priv);
+        io_sethandler(0x0388, 0x0004, azt2316a->sb->opl.read, NULL, NULL, azt2316a->sb->opl.write, NULL, NULL, azt2316a->sb->opl.priv);
     }
 
     io_sethandler(azt2316a->cur_addr + 4, 0x0002, sb_ct1345_mixer_read, NULL, NULL, sb_ct1345_mixer_write, NULL, NULL, azt2316a->sb);

@@ -241,7 +241,7 @@ m24_kbd_write(uint16_t port, uint8_t val, void *priv)
 		speaker_enable = val & 2;
 		if (speaker_enable)
 			was_speaker_enable = 1;
-		pit_ctr_set_gate(&pit->counters[2], val & 1);
+		pit_devs[0].set_gate(pit_devs[0].data, 2, val & 1);
 		break;
     }
 }
@@ -792,7 +792,7 @@ machine_xt_m240_init(const machine_t *model)
 
     machine_common_init(model);
 
-    pit_ctr_set_out_func(&pit->counters[1], pit_refresh_timer_xt);
+    pit_devs[0].set_out_func(pit_devs[0].data, 1, pit_refresh_timer_xt);
 
     /* Address 66-67 = mainboard dip-switch settings */
     io_sethandler(0x0066, 2, m24_read, NULL, NULL, NULL, NULL, NULL, NULL);
@@ -846,7 +846,7 @@ machine_xt_m19_init(const machine_t *model)
 
     machine_common_init(model);
 
-    pit_ctr_set_out_func(&pit->counters[1], pit_refresh_timer_xt);
+    pit_devs[0].set_out_func(pit_devs[0].data, 1, pit_refresh_timer_xt);
 
     /* On-board FDC cannot be disabled */
     device_add(&fdc_xt_device);

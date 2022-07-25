@@ -717,7 +717,6 @@ machine_at_m729_init(const machine_t *model)
     pci_register_slot(0x10, PCI_CARD_NORMAL, 3, 4, 1, 2);
     device_add(&ali1621_device);
     device_add(&ali1543c_device);	/* +0 */
-    device_add(&keyboard_ps2_ami_pci_device);
     device_add(&sst_flash_29ee010_device);
     spd_register(SPD_TYPE_SDRAM, 0x7, 512);
 
