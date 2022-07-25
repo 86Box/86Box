@@ -68,6 +68,7 @@
 #include <86box/plat.h>
 #include <86box/plat_dir.h>
 #include <86box/ui.h>
+#include <86box/snd_opl.h>
 
 
 typedef struct _list_ {
@@ -1110,6 +1111,13 @@ load_sound(void)
         sound_is_float = 1;
     else
         sound_is_float = 0;
+
+    p = config_get_string(cat, "fm_driver", "nuked");
+    if (!strcmp(p, "ymfm")) {
+        fm_driver = FM_DRV_YMFM;
+    } else {
+        fm_driver = FM_DRV_NUKED;
+    }
 }
 
 /* Load "Network" section. */
@@ -2629,6 +2637,8 @@ save_sound(void)
         config_delete_var(cat, "sound_type");
     else
         config_set_string(cat, "sound_type", (sound_is_float == 1) ? "float" : "int16");
+
+    config_set_string(cat, "fm_driver", (fm_driver == FM_DRV_NUKED) ? "nuked" : "ymfm");
 
     delete_section_if_empty(cat);
 }
