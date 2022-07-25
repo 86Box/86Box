@@ -54,6 +54,7 @@ QElapsedTimer elapsed_timer;
 
 static std::atomic_int blitmx_contention = 0;
 static std::recursive_mutex blitmx;
+static thread_local std::unique_lock blit_lock { blitmx, std::defer_lock };
 
 class CharPointer {
 public:
@@ -468,17 +469,17 @@ void dynld_close(void *handle)
 void startblit()
 {
     blitmx_contention++;
-    if (blitmx.try_lock()) {
+    if (blit_lock.try_lock()) {
         return;
     }
 
-    blitmx.lock();
+    blit_lock.lock();
 }
 
 void endblit()
 {
     blitmx_contention--;
-    blitmx.unlock();
+    blit_lock.unlock();
     if (blitmx_contention > 0) {
         // a deadlock has been observed on linux when toggling via video_toggle_option
         // because the mutex is typically unfair on linux
