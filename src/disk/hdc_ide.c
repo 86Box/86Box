@@ -1682,8 +1682,7 @@ ide_writeb(uint16_t addr, uint8_t val, void *priv)
 				return;
 
 			case WIN_WRITE_MULTIPLE:
-				if (!ide->blocksize && (ide->type != IDE_ATAPI))
-					fatal("Write_MULTIPLE - blocksize = 0\n");
+				/* Fatal removed for the same reason as for WIN_READ_MULTIPLE. */
 				ide->blockcount = 0;
 				/* Turn on the activity indicator *here* so that it gets turned on
 				   less times. */
@@ -2410,7 +2409,13 @@ ide_callback(void *priv)
 		return;
 
 	case WIN_WRITE_MULTIPLE:
-		if (ide->type == IDE_ATAPI)
+		/* According to the official ATA reference:
+
+		   If the Read Multiple command is attempted before the Set Multiple Mode
+		   command  has  been  executed  or  when  Read  Multiple  commands  are
+		   disabled, the Read Multiple operation is rejected with an Aborted Com-
+		   mand error. */
+		if ((ide->type == IDE_ATAPI) || !ide->blocksize)
 			goto abort_cmd;
 		if (!ide->lba && (ide->cfg_spt == 0))
 			goto id_not_found;

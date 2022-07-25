@@ -136,7 +136,7 @@ extern int	is_pentium;			/* TODO: Move back to cpu/cpu.h when it's figured out,
 extern int	fixed_size_x, fixed_size_y;
 extern double mouse_sensitivity; /* (C) Mouse sensitivity scale */
 extern int	pit_mode;			/* (C) force setting PIT mode */
-
+extern int	fm_driver;			/* (C) select FM sound driver */
 
 extern char	exe_path[2048];			/* path (dir) of executable */
 extern char	usr_path[1024];			/* path (dir) of user data */

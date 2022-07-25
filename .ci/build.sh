@@ -107,6 +107,19 @@ make_tar() {
 	return $?
 }
 
+cache_dir="$HOME/86box-build-cache"
+[ ! -d "$cache_dir" ] && mkdir -p "$cache_dir"
+check_buildtag() {
+	[ -z "$BUILD_TAG" -o "$BUILD_TAG" != "$(cat "$cache_dir/buildtag.$1" 2> /dev/null)" ]
+	return $?
+}
+save_buildtag() {
+	local contents="$BUILD_TAG"
+	[ -n "$2" ] && local contents="$2"
+	echo "$contents" > "$cache_dir/buildtag.$1"
+	return $?
+}
+
 # Set common variables.
 project=86Box
 cwd=$(pwd)
@@ -220,8 +233,6 @@ esac
 
 # Perform platform-specific setup.
 strip_binary=strip
-cache_dir="$HOME/86box-build-cache"
-[ ! -d "$cache_dir" ] && mkdir -p "$cache_dir"
 if is_windows
 then
 	# Switch into the correct MSYSTEM if required.
@@ -248,26 +259,34 @@ then
 
 	# Install dependencies only if we're in a new build and/or architecture.
 	freetype_dll="$cache_dir/freetype.$MSYSTEM.dll"
-	buildtag_file="$cache_dir/buildtag.$MSYSTEM"
-	if [ -z "$BUILD_TAG" -o "$(cat "$buildtag_file" 2> /dev/null)" != "$BUILD_TAG" ]
+	if check_buildtag "$MSYSTEM"
 	then
-		# Update keyring, as the package signing keys sometimes change.
-		echo [-] Updating package databases and keyring
-		yes | pacman -Sy --needed msys2-keyring
+		# Update databases and keyring only if we're in a new build.
+		if check_buildtag pacmansync
+		then
+			# Update keyring as well, since the package signing keys sometimes change.
+			echo [-] Updating package databases and keyring
+			yes | pacman -Sy --needed msys2-keyring
+
+			# Save build tag to skip pacman sync/keyring later.
+			save_buildtag pacmansync
+		else
+			echo [-] Not updating package databases and keyring again
+		fi
 
 		# Query installed packages.
-		pacman -Qe > pacman.txt
+		pacman -Qe > "$cache_dir/pacman.txt"
 
 		# Download the specified versions of architecture-specific dependencies.
 		echo -n [-] Downloading dependencies:
 		pkg_dir="/var/cache/pacman/pkg"
 		repo_base="https://repo.msys2.org/mingw/$(echo $MSYSTEM | tr '[:upper:]' '[:lower:]')"
-		cat .ci/dependencies_msys.txt | tr -d '\r' > deps.txt
+		cat .ci/dependencies_msys.txt | tr -d '\r' > "$cache_dir/deps.txt"
 		pkgs=""
 		while IFS=" " read pkg version
 		do
 			prefixed_pkg="$MINGW_PACKAGE_PREFIX-$pkg"
-			installed_version=$(grep -E "^$prefixed_pkg " pacman.txt | cut -d " " -f 2)
+			installed_version=$(grep -E "^$prefixed_pkg " "$cache_dir/pacman.txt" | cut -d " " -f 2)
 			if [ "$installed_version" != "$version" ] # installed_version will be empty if not installed
 			then
 				echo -n " [$pkg"
@@ -310,7 +329,7 @@ then
 				fi
 				echo -n "]"
 			fi
-		done < deps.txt
+		done < "$cache_dir/deps.txt"
 		[ -z "$pkgs" ] && echo -n ' none required'
 		echo
 
@@ -331,7 +350,7 @@ then
 			popd
 
 			# Query installed packages again.
-			pacman -Qe > pacman.txt
+			pacman -Qe > "$cache_dir/pacman.txt"
 		fi
 
 		# Install the latest versions for any missing packages (if the specified version couldn't be installed).
@@ -339,9 +358,9 @@ then
 		while IFS=" " read pkg version
 		do
 			prefixed_pkg="$MINGW_PACKAGE_PREFIX-$pkg"
-			grep -qE "^$prefixed_pkg " pacman.txt || pkgs="$pkgs $prefixed_pkg"
-		done < deps.txt
-		rm -f pacman.txt deps.txt
+			grep -qE "^$prefixed_pkg " "$cache_dir/pacman.txt" || pkgs="$pkgs $prefixed_pkg"
+		done < "$cache_dir/deps.txt"
+		rm -f "$cache_dir/pacman.txt" "$cache_dir/deps.txt"
 		yes | pacman -S --needed $pkgs
 		if [ $? -ne 0 ]
 		then
@@ -357,7 +376,7 @@ then
 
 		# Save build tag to skip this later. Doing it here (once everything is
 		# in place) is important to avoid potential issues with retried builds.
-		echo "$BUILD_TAG" > "$buildtag_file"
+		save_buildtag "$MSYSTEM"
 	else
 		echo [-] Not installing dependencies again
 	fi
@@ -408,18 +427,18 @@ then
 					echo [-] Merging app bundles [$merge_src] and [$arch_universal] into [$merge_dest]
 
 					# Merge directory structures.
-					(cd "archive_tmp_universal/$merge_src.app" && find . -type d && cd "../../archive_tmp_universal/$arch_universal.app" && find . -type d && cd ../..) | sort > universal_listing.txt
-					cat universal_listing.txt | uniq | while IFS= read line
+					(cd "archive_tmp_universal/$merge_src.app" && find . -type d && cd "../../archive_tmp_universal/$arch_universal.app" && find . -type d && cd ../..) | sort > "$cache_dir/universal_listing.txt"
+					cat "$cache_dir/universal_listing.txt" | uniq | while IFS= read line
 					do
 						echo "> Directory: $line"
 						mkdir -p "archive_tmp_universal/$merge_dest.app/$line"
 					done
 
 					# Create merged file listing.
-					(cd "archive_tmp_universal/$merge_src.app" && find . -type f && cd "../../archive_tmp_universal/$arch_universal.app" && find . -type f && cd ../..) | sort > universal_listing.txt
+					(cd "archive_tmp_universal/$merge_src.app" && find . -type f && cd "../../archive_tmp_universal/$arch_universal.app" && find . -type f && cd ../..) | sort > "$cache_dir/universal_listing.txt"
 
 					# Copy files that only exist on one bundle.
-					cat universal_listing.txt | uniq -u | while IFS= read line
+					cat "$cache_dir/universal_listing.txt" | uniq -u | while IFS= read line
 					do
 						if [ -e "archive_tmp_universal/$merge_src.app/$line" ]
 						then
@@ -432,7 +451,7 @@ then
 					done
 
 					# Copy or lipo files that exist on both bundles.
-					cat universal_listing.txt | uniq -d | while IFS= read line
+					cat "$cache_dir/universal_listing.txt" | uniq -d | while IFS= read line
 					do
 						if cmp -s "archive_tmp_universal/$merge_src.app/$line" "archive_tmp_universal/$arch_universal.app/$line"
 						then
@@ -448,8 +467,8 @@ then
 					done
 
 					# Merge symlinks.
-					(cd "archive_tmp_universal/$merge_src.app" && find . -type l && cd "../../archive_tmp_universal/$arch_universal.app" && find . -type l && cd ../..) | sort > universal_listing.txt
-					cat universal_listing.txt | uniq | while IFS= read line
+					(cd "archive_tmp_universal/$merge_src.app" && find . -type l && cd "../../archive_tmp_universal/$arch_universal.app" && find . -type l && cd ../..) | sort > "$cache_dir/universal_listing.txt"
+					cat "$cache_dir/universal_listing.txt" | uniq | while IFS= read line
 					do
 						# Get symlink destinations.
 						other_link_dest=
@@ -544,8 +563,7 @@ then
 	export PATH="$macports/bin:$macports/sbin:$macports/libexec/qt5/bin:$PATH"
 
 	# Install dependencies only if we're in a new build and/or architecture.
-	buildtag_file="$cache_dir/buildtag.$(arch)"
-	if [ -z "$BUILD_TAG" -o "$(cat "$buildtag_file" 2> /dev/null)" != "$BUILD_TAG" ]
+	if check_buildtag "$(arch)"
 	then
 		# Install dependencies.
 		echo [-] Installing dependencies through MacPorts
@@ -554,7 +572,7 @@ then
 
 		# Save build tag to skip this later. Doing it here (once everything is
 		# in place) is important to avoid potential issues with retried builds.
-		echo "$BUILD_TAG" > "$buildtag_file"
+		save_buildtag "$(arch)"
 	else
 		echo [-] Not installing dependencies again
 
@@ -572,17 +590,25 @@ else
 	esac
 
 	# Establish general dependencies.
-	pkgs="cmake ninja-build pkg-config git wget p7zip-full wayland-protocols tar gzip file appstream"
+	pkgs="cmake ninja-build pkg-config git wget p7zip-full extra-cmake-modules wayland-protocols tar gzip file appstream"
 	if [ "$(dpkg --print-architecture)" = "$arch_deb" ]
 	then
 		pkgs="$pkgs build-essential"
 	else
-		sudo dpkg --add-architecture "$arch_deb"
+		# Add foreign architecture if required.
+		if ! dpkg --print-foreign-architectures | grep -qE '^'"$arch_deb"'$'
+		then
+			sudo dpkg --add-architecture "$arch_deb"
+			
+			# Force an apt-get update.
+			save_buildtag aptupdate "arch_$arch_deb"
+		fi
+
 		pkgs="$pkgs crossbuild-essential-$arch_deb"
 	fi
 
 	# Establish architecture-specific dependencies we don't want listed on the readme...
-	pkgs="$pkgs linux-libc-dev:$arch_deb extra-cmake-modules:$arch_deb qttools5-dev:$arch_deb qtbase5-private-dev:$arch_deb"
+	pkgs="$pkgs linux-libc-dev:$arch_deb qttools5-dev:$arch_deb qtbase5-private-dev:$arch_deb"
 
 	# ...and the ones we do want listed. Non-dev packages fill missing spots on the list.
 	libpkgs=""
@@ -636,18 +662,24 @@ EOF
 	strip_binary="$arch_triplet-strip"
 
 	# Install dependencies only if we're in a new build and/or architecture.
-	buildtag_file="$cache_dir/buildtag.$arch_deb"
-	if [ -z "$BUILD_TAG" -o "$(cat "$buildtag_file" 2> /dev/null)" != "$BUILD_TAG" ]
+	if check_buildtag "$arch_deb"
 	then
 		# Install or update dependencies.
 		echo [-] Installing dependencies through apt
-		sudo apt-get update
+		if check_buildtag aptupdate
+		then
+			sudo apt-get update
+
+			# Save build tag to skip apt-get update later, unless a new architecture
+			# is added to dpkg, in which case, this saved tag file gets replaced.
+			save_buildtag aptupdate
+		fi
 		DEBIAN_FRONTEND=noninteractive sudo apt-get -y install $pkgs $libpkgs
 		sudo apt-get clean
 
 		# Save build tag to skip this later. Doing it here (once everything is
 		# in place) is important to avoid potential issues with retried builds.
-		echo "$BUILD_TAG" > "$buildtag_file"
+		save_buildtag "$arch_deb"
 	else
 		echo [-] Not installing dependencies again
 	fi
@@ -658,7 +690,7 @@ fi
 
 # Clean workspace.
 echo [-] Cleaning workspace
-[ -d "build" ] && rm -rf build
+rm -rf build
 
 # Add ARCH to skip the arch_detect process.
 case $arch in
@@ -708,8 +740,7 @@ fi
 
 # Download Discord Game SDK from their CDN if we're in a new build.
 discord_zip="$cache_dir/discord_game_sdk.zip"
-buildtag_file="$cache_dir/buildtag.any"
-if [ -z "$BUILD_TAG" -o "$(cat "$buildtag_file" 2> /dev/null)" != "$BUILD_TAG" ]
+if check_buildtag discord
 then
 	# Download file.
 	echo [-] Downloading Discord Game SDK
@@ -722,7 +753,7 @@ then
 	else
 		# Save build tag to skip this later. Doing it here (once everything is
 		# in place) is important to avoid potential issues with retried builds.
-		echo "$BUILD_TAG" > "$buildtag_file"
+		save_buildtag discord
 	fi
 else
 	echo [-] Not downloading Discord Game SDK again
@@ -802,21 +833,21 @@ then
 	fi
 else
 	cwd_root="$(pwd)"
+	check_buildtag "libs.$arch_deb"
 
 	if grep -q "OPENAL:BOOL=ON" build/CMakeCache.txt
 	then
 		# Build openal-soft 1.21.1 manually to fix audio issues. This is a temporary
 		# workaround until a newer version of openal-soft trickles down to Debian repos.
 		prefix="$cache_dir/openal-soft-1.21.1"
-		if [ -d "$prefix" ]
+		if [ ! -d "$prefix" ]
 		then
-			rm -rf "$prefix/build"
-		else
 			wget -qO - https://github.com/kcat/openal-soft/archive/refs/tags/1.21.1.tar.gz | tar zxf - -C "$cache_dir" || rm -rf "$prefix"
 		fi
-		cmake -G Ninja -D "CMAKE_TOOLCHAIN_FILE=$cwd_root/toolchain.cmake" -D "CMAKE_INSTALL_PREFIX=$cwd_root/archive_tmp/usr" -S "$prefix" -B "$prefix/build" || exit 99
-		cmake --build "$prefix/build" -j$(nproc) || exit 99
-		cmake --install "$prefix/build" || exit 99
+		prefix_build="$prefix/build-$arch_deb"
+		cmake -G Ninja -D "CMAKE_TOOLCHAIN_FILE=$cwd_root/toolchain.cmake" -D "CMAKE_INSTALL_PREFIX=$cwd_root/archive_tmp/usr" -S "$prefix" -B "$prefix_build" || exit 99
+		cmake --build "$prefix_build" -j$(nproc) || exit 99
+		cmake --install "$prefix_build" || exit 99
 
 		# Build SDL2 without sound systems.
 		sdl_ss=OFF
@@ -824,15 +855,14 @@ else
 		# Build FAudio 22.03 manually to remove the dependency on GStreamer. This is a temporary
 		# workaround until a newer version of FAudio trickles down to Debian repos.
 		prefix="$cache_dir/FAudio-22.03"
-		if [ -d "$prefix" ]
+		if [ ! -d "$prefix" ]
 		then
-			rm -rf "$prefix/build"
-		else
 			wget -qO - https://github.com/FNA-XNA/FAudio/archive/refs/tags/22.03.tar.gz | tar zxf - -C "$cache_dir" || rm -rf "$prefix"
 		fi
-		cmake -G Ninja -D "CMAKE_TOOLCHAIN_FILE=$cwd_root/toolchain.cmake" -D "CMAKE_INSTALL_PREFIX=$cwd_root/archive_tmp/usr" -S "$prefix" -B "$prefix/build" || exit 99
-		cmake --build "$prefix/build" -j$(nproc) || exit 99
-		cmake --install "$prefix/build" || exit 99
+		prefix_build="$prefix/build-$arch_deb"
+		cmake -G Ninja -D "CMAKE_TOOLCHAIN_FILE=$cwd_root/toolchain.cmake" -D "CMAKE_INSTALL_PREFIX=$cwd_root/archive_tmp/usr" -S "$prefix" -B "$prefix_build" || exit 99
+		cmake --build "$prefix_build" -j$(nproc) || exit 99
+		cmake --install "$prefix_build" || exit 99
 
 		# Build SDL2 with sound systems.
 		sdl_ss=ON
@@ -844,15 +874,14 @@ else
 
 	# Build rtmidi without JACK support to remove the dependency on libjack.
 	prefix="$cache_dir/rtmidi-4.0.0"
-	if [ -d "$prefix" ]
+	if [ ! -d "$prefix" ]
 	then
-		rm -rf "$prefix/build"
-	else
 		wget -qO - https://github.com/thestk/rtmidi/archive/refs/tags/4.0.0.tar.gz | tar zxf - -C "$cache_dir" || rm -rf "$prefix"
 	fi
-	cmake -G Ninja -D RTMIDI_API_JACK=OFF -D "CMAKE_TOOLCHAIN_FILE=$cwd_root/toolchain.cmake" -D "CMAKE_INSTALL_PREFIX=$cwd_root/archive_tmp/usr" -S "$prefix" -B "$prefix/build" || exit 99
-	cmake --build "$prefix/build" -j$(nproc) || exit 99
-	cmake --install "$prefix/build" || exit 99
+	prefix_build="$prefix/build-$arch_deb"
+	cmake -G Ninja -D RTMIDI_API_JACK=OFF -D "CMAKE_TOOLCHAIN_FILE=$cwd_root/toolchain.cmake" -D "CMAKE_INSTALL_PREFIX=$cwd_root/archive_tmp/usr" -S "$prefix" -B "$prefix_build" || exit 99
+	cmake --build "$prefix_build" -j$(nproc) || exit 99
+	cmake --install "$prefix_build" || exit 99
 
 	# Build SDL2 for joystick and FAudio support, with most components
 	# disabled to remove the dependencies on PulseAudio and libdrm.
@@ -861,7 +890,7 @@ else
 	then
 		wget -qO - https://www.libsdl.org/release/SDL2-2.0.20.tar.gz | tar zxf - -C "$cache_dir" || rm -rf "$prefix"
 	fi
-	rm -rf "$cache_dir/sdlbuild"
+	prefix_build="$cache_dir/SDL2-2.0.20-build-$arch_deb"
 	cmake -G Ninja -D SDL_SHARED=ON -D SDL_STATIC=OFF \
 		\
 		-D SDL_AUDIO=$sdl_ss -D SDL_DUMMYAUDIO=$sdl_ss -D SDL_DISKAUDIO=OFF -D SDL_OSS=OFF -D SDL_ALSA=$sdl_ss -D SDL_ALSA_SHARED=$sdl_ss \
@@ -880,9 +909,9 @@ else
 		-D SDL_LOADSO=ON -D SDL_CPUINFO=ON -D SDL_FILESYSTEM=$sdl_ui -D SDL_DLOPEN=OFF -D SDL_SENSOR=OFF -D SDL_LOCALE=OFF \
 		\
 		-D "CMAKE_TOOLCHAIN_FILE=$cwd_root/toolchain.cmake" -D "CMAKE_INSTALL_PREFIX=$cwd_root/archive_tmp/usr" \
-		-S "$prefix" -B "$cache_dir/sdlbuild" || exit 99
-	cmake --build "$cache_dir/sdlbuild" -j$(nproc) || exit 99
-	cmake --install "$cache_dir/sdlbuild" || exit 99
+		-S "$prefix" -B "$prefix_build" || exit 99
+	cmake --build "$prefix_build" -j$(nproc) || exit 99
+	cmake --install "$prefix_build" || exit 99
 
 	# Archive Discord Game SDK library.
 	7z e -y -o"archive_tmp/usr/lib" "$discord_zip" "lib/$arch_discord/discord_game_sdk.so"
