@@ -55,7 +55,7 @@ typedef struct adgold_t {
         int voice_count[2], voice_latch[2];
     } adgold_mma;
 
-    opl_t    opl;
+    fm_drv_t    opl;
     ym7128_t ym7128;
 
     int fm_vol_l, fm_vol_r;
@@ -198,7 +198,7 @@ adgold_write(uint16_t addr, uint8_t val, void *p)
     switch (addr & 7) {
         case 0:
         case 1:
-            opl3_write(addr, val, &adgold->opl);
+            adgold->opl.write(addr, val, adgold->opl.priv);
             break;
 
         case 2:
@@ -213,7 +213,7 @@ adgold_write(uint16_t addr, uint8_t val, void *p)
             if (adgold->adgold_38x_state) /*Write to control chip*/
                 adgold->adgold_38x_addr = val;
             else
-                opl3_write(addr, val, &adgold->opl);
+                adgold->opl.write(addr, val, adgold->opl.priv);
             break;
         case 3:
             if (adgold->adgold_38x_state) {
@@ -279,7 +279,7 @@ adgold_write(uint16_t addr, uint8_t val, void *p)
                         break;
                 }
             } else
-                opl3_write(addr, val, &adgold->opl);
+                adgold->opl.write(addr, val, adgold->opl.priv);
             break;
         case 4:
         case 6:
@@ -512,14 +512,14 @@ adgold_read(uint16_t addr, void *p)
     switch (addr & 7) {
         case 0:
         case 1:
-            temp = opl3_read(addr, &adgold->opl);
+            temp = adgold->opl.read(addr, adgold->opl.priv);
             break;
 
         case 2:
             if (adgold->adgold_38x_state) /*Read from control chip*/
                 temp = adgold->adgold_status;
             else
-                temp = opl3_read(addr, &adgold->opl);
+                temp = adgold->opl.read(addr, adgold->opl.priv);
             break;
 
         case 3:
@@ -539,7 +539,7 @@ adgold_read(uint16_t addr, void *p)
                         break;
                 }
             } else
-                temp = opl3_read(addr, &adgold->opl);
+                temp = adgold->opl.read(addr, adgold->opl.priv);
             break;
 
         case 4:
@@ -725,13 +725,13 @@ adgold_get_buffer(int32_t *buffer, int len, void *p)
 
     int c;
 
-    opl3_update(&adgold->opl);
+    int32_t *opl_buf = adgold->opl.update(adgold->opl.priv);
     adgold_update(adgold);
 
     for (c = 0; c < len * 2; c += 2) {
-        adgold_buffer[c] = ((adgold->opl.buffer[c] * adgold->fm_vol_l) >> 7) / 2;
+        adgold_buffer[c] = ((opl_buf[c] * adgold->fm_vol_l) >> 7) / 2;
         adgold_buffer[c] += ((adgold->mma_buffer[0][c >> 1] * adgold->samp_vol_l) >> 7) / 4;
-        adgold_buffer[c + 1] = ((adgold->opl.buffer[c + 1] * adgold->fm_vol_r) >> 7) / 2;
+        adgold_buffer[c + 1] = ((opl_buf[c + 1] * adgold->fm_vol_r) >> 7) / 2;
         adgold_buffer[c + 1] += ((adgold->mma_buffer[1][c >> 1] * adgold->samp_vol_r) >> 7) / 4;
     }
 
@@ -820,7 +820,7 @@ adgold_get_buffer(int32_t *buffer, int len, void *p)
         buffer[c + 1] += temp;
     }
 
-    adgold->opl.pos = 0;
+    adgold->opl.reset_buffer(adgold->opl.priv);
     adgold->pos     = 0;
 
     free(adgold_buffer);
@@ -894,7 +894,7 @@ adgold_init(const device_t *info)
     adgold->surround_enabled = device_get_config_int("surround");
     adgold->gameport_enabled = device_get_config_int("gameport");
 
-    opl3_init(&adgold->opl);
+    fm_driver_get(FM_YMF262, &adgold->opl);
     if (adgold->surround_enabled)
         ym7128_init(&adgold->ym7128);
 

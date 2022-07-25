@@ -241,7 +241,7 @@ VPATH		:= $(EXPATH) . $(CODEGEN) minitrace cpu \
 		   sio sound \
 		    sound/munt sound/munt/c_interface sound/munt/sha1 \
 		    sound/munt/srchelper sound/munt/srchelper/srctools/src \
-		    sound/resid-fp \
+		    sound/resid-fp sound/ymfm \
 		   scsi video network network/slirp win
 ifeq ($(X64), y)
 TOOL_PREFIX     := x86_64-w64-mingw32-
@@ -670,7 +670,9 @@ PRINTOBJ	:= png.o prt_cpmap.o \
 		    prt_escp.o prt_text.o prt_ps.o
 
 SNDOBJ		:= sound.o \
-		    snd_opl.o snd_opl_nuked.o \
+		    snd_opl.o snd_opl_nuked.o snd_opl_ymfm.o \
+		     ymfm_adpcm.o ymfm_misc.o ymfm_opl.o ymfm_opm.o \
+		     ymfm_opn.o ymfm_opq.o ymfm_opz.o ymfm_pcm.o ymfm_ssg.o \
 		    snd_resid.o \
 		     convolve.o convolve-sse.o envelope.o extfilt.o \
 		     filter.o pot.o sid.o voice.o wave6581__ST.o \

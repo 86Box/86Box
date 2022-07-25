@@ -46,6 +46,8 @@
 #include <86box/snd_opl_nuked.h>
 #include <86box/sound.h>
 #include <86box/timer.h>
+#include <86box/device.h>
+#include <86box/snd_opl.h>
 
 #define WRBUF_SIZE  1024
 #define WRBUF_DELAY 1
@@ -168,6 +170,56 @@ typedef struct chip {
     uint64_t wrbuf_lasttime;
     wrbuf_t  wrbuf[WRBUF_SIZE];
 } nuked_t;
+
+typedef struct {
+    nuked_t opl;
+    int8_t flags, pad;
+
+    uint16_t port;
+    uint8_t  status, timer_ctrl;
+    uint16_t timer_count[2],
+        timer_cur_count[2];
+
+    pc_timer_t timers[2];
+
+    int     pos;
+    int32_t buffer[SOUNDBUFLEN * 2];
+} nuked_drv_t;
+
+enum {
+    FLAG_CYCLES = 0x02,
+    FLAG_OPL3   = 0x01
+};
+
+enum {
+    STAT_TMR_OVER  = 0x60,
+    STAT_TMR1_OVER = 0x40,
+    STAT_TMR2_OVER = 0x20,
+    STAT_TMR_ANY   = 0x80
+};
+
+enum {
+    CTRL_RESET      = 0x80,
+    CTRL_TMR_MASK   = 0x60,
+    CTRL_TMR1_MASK  = 0x40,
+    CTRL_TMR2_MASK  = 0x20,
+    CTRL_TMR2_START = 0x02,
+    CTRL_TMR1_START = 0x01
+};
+
+#ifdef ENABLE_OPL_LOG
+static void
+nuked_log(const char *fmt, ...)
+{
+    va_list ap;
+
+    va_start(ap, fmt);
+    pclog_ex(fmt, ap);
+    va_end(ap);
+}
+#else
+#    define nuked_log(fmt, ...)
+#endif
 
 // logsin table
 static const uint16_t logsinrom[256] = {
@@ -1270,10 +1322,8 @@ nuked_generate(void *priv, int32_t *bufp)
 }
 
 void
-nuked_generate_resampled(void *priv, int32_t *bufp)
+nuked_generate_resampled(nuked_t *dev, int32_t *bufp)
 {
-    nuked_t *dev = (nuked_t *) priv;
-
     while (dev->samplecnt >= dev->rateratio) {
         dev->oldsamples[0] = dev->samples[0];
         dev->oldsamples[1] = dev->samples[1];
@@ -1292,9 +1342,8 @@ nuked_generate_resampled(void *priv, int32_t *bufp)
 }
 
 void
-nuked_generate_stream(void *priv, int32_t *sndptr, uint32_t num)
+nuked_generate_stream(nuked_t *dev, int32_t *sndptr, uint32_t num)
 {
-    nuked_t *dev = (nuked_t *) priv;
     uint32_t i;
 
     for (i = 0; i < num; i++) {
@@ -1303,13 +1352,11 @@ nuked_generate_stream(void *priv, int32_t *sndptr, uint32_t num)
     }
 }
 
-void *
-nuked_init(uint32_t samplerate)
+void
+nuked_init(nuked_t *dev, uint32_t samplerate)
 {
-    nuked_t *dev;
     uint8_t  i;
 
-    dev = (nuked_t *) malloc(sizeof(nuked_t));
     memset(dev, 0x00, sizeof(nuked_t));
 
     for (i = 0; i < 36; i++) {
@@ -1350,14 +1397,222 @@ nuked_init(uint32_t samplerate)
     dev->rateratio    = (samplerate << RSM_FRAC) / 49716;
     dev->tremoloshift = 4;
     dev->vibshift     = 1;
-
-    return (dev);
 }
 
-void
-nuked_close(void *priv)
+static void
+nuked_timer_tick(nuked_drv_t *dev, int tmr)
 {
-    nuked_t *dev = (nuked_t *) priv;
+    dev->timer_cur_count[tmr] = (dev->timer_cur_count[tmr] + 1) & 0xff;
 
+    nuked_log("Ticking timer %i, count now %02X...\n", tmr, dev->timer_cur_count[tmr]);
+
+    if (dev->timer_cur_count[tmr] == 0x00) {
+        dev->status |= ((STAT_TMR1_OVER >> tmr) & ~dev->timer_ctrl);
+        dev->timer_cur_count[tmr] = dev->timer_count[tmr];
+
+        nuked_log("Count wrapped around to zero, reloading timer %i (%02X), status = %02X...\n", tmr, (STAT_TMR1_OVER >> tmr), dev->status);
+    }
+
+    timer_on_auto(&dev->timers[tmr], (tmr == 1) ? 320.0 : 80.0);
+}
+
+static void
+nuked_timer_control(nuked_drv_t *dev, int tmr, int start)
+{
+    timer_on_auto(&dev->timers[tmr], 0.0);
+
+    if (start) {
+        nuked_log("Loading timer %i count: %02X = %02X\n", tmr, dev->timer_cur_count[tmr], dev->timer_count[tmr]);
+        dev->timer_cur_count[tmr] = dev->timer_count[tmr];
+        if (dev->flags & FLAG_OPL3)
+            nuked_timer_tick(dev, tmr); /* Per the YMF 262 datasheet, OPL3 starts counting immediately, unlike OPL2. */
+        else
+            timer_on_auto(&dev->timers[tmr], (tmr == 1) ? 320.0 : 80.0);
+    } else {
+        nuked_log("Timer %i stopped\n", tmr);
+        if (tmr == 1) {
+            dev->status &= ~STAT_TMR2_OVER;
+        } else
+            dev->status &= ~STAT_TMR1_OVER;
+    }
+}
+
+static void
+nuked_timer_1(void *priv)
+{
+    nuked_drv_t *dev = (nuked_drv_t *) priv;
+
+    nuked_timer_tick(dev, 0);
+}
+
+static void
+nuked_timer_2(void *priv)
+{
+    nuked_drv_t *dev = (nuked_drv_t *) priv;
+
+    nuked_timer_tick(dev, 1);
+}
+
+static void
+nuked_drv_set_do_cycles(void *priv, int8_t do_cycles)
+{
+    nuked_drv_t *dev = (nuked_drv_t *)priv;
+
+    if (do_cycles)
+        dev->flags |= FLAG_CYCLES;
+    else
+        dev->flags &= ~FLAG_CYCLES;
+}
+
+static void *
+nuked_drv_init(const device_t *info)
+{
+    nuked_drv_t *dev = (nuked_drv_t *) calloc(1, sizeof(nuked_drv_t));
+    dev->flags = FLAG_CYCLES;
+    if (info->local == FM_YMF262)
+        dev->flags |= FLAG_OPL3;
+    else
+        dev->status = 0x06;
+
+    /* Initialize the NukedOPL object. */
+    nuked_init(&dev->opl, 48000);
+
+    timer_add(&dev->timers[0], nuked_timer_1, dev, 0);
+    timer_add(&dev->timers[1], nuked_timer_2, dev, 0);
+
+    return dev;
+}
+
+static void
+nuked_drv_close(void *priv)
+{
+    nuked_drv_t *dev = (nuked_drv_t *)priv;
     free(dev);
 }
+
+static int32_t *
+nuked_drv_update(void *priv)
+{
+    nuked_drv_t *dev = (nuked_drv_t *)priv;
+
+    if (dev->pos >= sound_pos_global)
+        return dev->buffer;
+
+    nuked_generate_stream(&dev->opl,
+                          &dev->buffer[dev->pos * 2],
+                          sound_pos_global - dev->pos);
+
+    for (; dev->pos < sound_pos_global; dev->pos++) {
+        dev->buffer[dev->pos * 2] /= 2;
+        dev->buffer[(dev->pos * 2) + 1] /= 2;
+    }
+
+    return dev->buffer;
+}
+
+static uint8_t
+nuked_drv_read(uint16_t port, void *priv)
+{
+    nuked_drv_t *dev = (nuked_drv_t *) priv;
+
+    if (dev->flags & FLAG_CYCLES)
+        cycles -= ((int) (isa_timing * 8));
+
+    nuked_drv_update(dev);
+
+    uint8_t ret = 0xff;
+
+    if ((port & 0x0003) == 0x0000) {
+        ret = dev->status;
+        if (dev->status & STAT_TMR_OVER)
+            ret |= STAT_TMR_ANY;
+    }
+
+    nuked_log("OPL statret = %02x, status = %02x\n", ret, dev->status);
+
+    return ret;
+}
+
+static void
+nuked_drv_write(uint16_t port, uint8_t val, void *priv)
+{
+    nuked_drv_t *dev = (nuked_drv_t *)priv;
+    nuked_drv_update(dev);
+
+    if ((port & 0x0001) == 0x0001) {
+        nuked_write_reg_buffered(&dev->opl, dev->port, val);
+
+        switch (dev->port) {
+            case 0x02: /* Timer 1 */
+                dev->timer_count[0] = val;
+                nuked_log("Timer 0 count now: %i\n", dev->timer_count[0]);
+                break;
+
+            case 0x03: /* Timer 2 */
+                dev->timer_count[1] = val;
+                nuked_log("Timer 1 count now: %i\n", dev->timer_count[1]);
+                break;
+
+            case 0x04: /* Timer control */
+                if (val & CTRL_RESET) {
+                    nuked_log("Resetting timer status...\n");
+                    dev->status &= ~STAT_TMR_OVER;
+                } else {
+                    dev->timer_ctrl = val;
+                    nuked_timer_control(dev, 0, val & CTRL_TMR1_START);
+                    nuked_timer_control(dev, 1, val & CTRL_TMR2_START);
+                    nuked_log("Status mask now %02X (val = %02X)\n", (val & ~CTRL_TMR_MASK) & CTRL_TMR_MASK, val);
+                }
+                break;
+        }
+    } else {
+        dev->port = nuked_write_addr(&dev->opl, port, val) & 0x01ff;
+
+        if (!(dev->flags & FLAG_OPL3))
+            dev->port &= 0x00ff;
+    }
+}
+
+static void
+nuked_drv_reset_buffer(void *priv) {
+    nuked_drv_t *dev = (nuked_drv_t *)priv;
+
+    dev->pos = 0;
+}
+
+const device_t ym3812_nuked_device = {
+    .name = "Yamaha YM3812 OPL2 (NUKED)",
+    .internal_name = "ym3812_nuked",
+    .flags = 0,
+    .local = FM_YM3812,
+    .init = nuked_drv_init,
+    .close = nuked_drv_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
+};
+
+const device_t ymf262_nuked_device = {
+    .name = "Yamaha YMF262 OPL3 (NUKED)",
+    .internal_name = "ymf262_nuked",
+    .flags = 0,
+    .local = FM_YMF262,
+    .init = nuked_drv_init,
+    .close = nuked_drv_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
+};
+
+const fm_drv_t nuked_opl_drv = {
+    &nuked_drv_read,
+    &nuked_drv_write,
+    &nuked_drv_update,
+    &nuked_drv_reset_buffer,
+    &nuked_drv_set_do_cycles,
+    NULL,
+};
