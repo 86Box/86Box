@@ -4723,7 +4723,7 @@ const machine_t machines[] = {
             .max_multi = 0
         },
         .bus_flags = MACHINE_PS2,
-        .flags = MACHINE_IDE_DUAL | MACHINE_VIDEO,
+        .flags = MACHINE_IDE_DUAL,    /* No MACHINE_VIDEO yet, because on-board video is not yet implemented. */
         .ram = {
             .min = 1024,
             .max = 32768,
@@ -4758,7 +4758,7 @@ const machine_t machines[] = {
             .max_multi = 0
         },
         .bus_flags = MACHINE_PS2,
-        .flags = MACHINE_IDE_DUAL | MACHINE_VIDEO,
+        .flags = MACHINE_IDE_DUAL,
         .ram = {
             .min = 1024,
             .max = 32768,

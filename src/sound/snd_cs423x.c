@@ -505,18 +505,19 @@ cs423x_get_buffer(int32_t *buffer, int len, void *priv)
 {
     cs423x_t *dev = (cs423x_t *) priv;
     int       c, opl_wss = dev->opl_wss;
+    int32_t *opl_buf = NULL;
 
     /* Output audio from the WSS codec, and also the OPL if we're in charge of it. */
     ad1848_update(&dev->ad1848);
     if (opl_wss)
-        opl3_update(&dev->sb->opl);
+        opl_buf = dev->sb->opl.update(dev->sb->opl.priv);
 
     /* Don't output anything if the analog section is powered down. */
     if (!(dev->indirect_regs[2] & 0xa4)) {
         for (c = 0; c < len * 2; c += 2) {
             if (opl_wss) {
-                buffer[c] += (dev->sb->opl.buffer[c] * dev->ad1848.fm_vol_l) >> 16;
-                buffer[c + 1] += (dev->sb->opl.buffer[c + 1] * dev->ad1848.fm_vol_r) >> 16;
+                buffer[c] += (opl_buf[c] * dev->ad1848.fm_vol_l) >> 16;
+                buffer[c + 1] += (opl_buf[c + 1] * dev->ad1848.fm_vol_r) >> 16;
             }
 
             buffer[c] += dev->ad1848.buffer[c] / 2;
@@ -526,7 +527,7 @@ cs423x_get_buffer(int32_t *buffer, int len, void *priv)
 
     dev->ad1848.pos = 0;
     if (opl_wss)
-        dev->sb->opl.pos = 0;
+        dev->sb->opl.reset_buffer(dev->sb->opl.priv);
 }
 
 static void
@@ -590,14 +591,14 @@ cs423x_pnp_config_changed(uint8_t ld, isapnp_device_config_t *config, void *priv
             }
 
             if (dev->opl_base) {
-                io_removehandler(dev->opl_base, 4, opl3_read, NULL, NULL, opl3_write, NULL, NULL, &dev->sb->opl);
+                io_removehandler(dev->opl_base, 4, dev->sb->opl.read, NULL, NULL, dev->sb->opl.write, NULL, NULL, dev->sb->opl.priv);
                 dev->opl_base = 0;
             }
 
             if (dev->sb_base) {
                 sb_dsp_setaddr(&dev->sb->dsp, 0);
-                io_removehandler(dev->sb_base, 4, opl3_read, NULL, NULL, opl3_write, NULL, NULL, &dev->sb->opl);
-                io_removehandler(dev->sb_base + 8, 2, opl3_read, NULL, NULL, opl3_write, NULL, NULL, &dev->sb->opl);
+                io_removehandler(dev->sb_base, 4, dev->sb->opl.read, NULL, NULL, dev->sb->opl.write, NULL, NULL, dev->sb->opl.priv);
+                io_removehandler(dev->sb_base + 8, 2, dev->sb->opl.read, NULL, NULL, dev->sb->opl.write, NULL, NULL, dev->sb->opl.priv);
                 io_removehandler(dev->sb_base + 4, 2, sb_ct1345_mixer_read, NULL, NULL, sb_ct1345_mixer_write, NULL, NULL, dev->sb);
                 io_removehandler(dev->sb_base, 16, NULL, NULL, NULL, cs423x_ctxswitch_write, NULL, NULL, dev);
                 dev->sb_base = 0;
@@ -618,14 +619,14 @@ cs423x_pnp_config_changed(uint8_t ld, isapnp_device_config_t *config, void *priv
 
                 if (config->io[1].base != ISAPNP_IO_DISABLED) {
                     dev->opl_base = config->io[1].base;
-                    io_sethandler(dev->opl_base, 4, opl3_read, NULL, NULL, opl3_write, NULL, NULL, &dev->sb->opl);
+                    io_sethandler(dev->opl_base, 4, dev->sb->opl.read, NULL, NULL, dev->sb->opl.write, NULL, NULL, dev->sb->opl.priv);
                 }
 
                 if (config->io[2].base != ISAPNP_IO_DISABLED) {
                     dev->sb_base = config->io[2].base;
                     sb_dsp_setaddr(&dev->sb->dsp, dev->sb_base);
-                    io_sethandler(dev->sb_base, 4, opl3_read, NULL, NULL, opl3_write, NULL, NULL, &dev->sb->opl);
-                    io_sethandler(dev->sb_base + 8, 2, opl3_read, NULL, NULL, opl3_write, NULL, NULL, &dev->sb->opl);
+                    io_sethandler(dev->sb_base, 4, dev->sb->opl.read, NULL, NULL, dev->sb->opl.write, NULL, NULL, dev->sb->opl.priv);
+                    io_sethandler(dev->sb_base + 8, 2, dev->sb->opl.read, NULL, NULL, dev->sb->opl.write, NULL, NULL, dev->sb->opl.priv);
                     io_sethandler(dev->sb_base + 4, 2, sb_ct1345_mixer_read, NULL, NULL, sb_ct1345_mixer_write, NULL, NULL, dev->sb);
                     io_sethandler(dev->sb_base, 16, NULL, NULL, NULL, cs423x_ctxswitch_write, NULL, NULL, dev);
                 }

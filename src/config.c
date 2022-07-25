@@ -68,6 +68,7 @@
 #include <86box/plat.h>
 #include <86box/plat_dir.h>
 #include <86box/ui.h>
+#include <86box/snd_opl.h>
 
 
 typedef struct _list_ {
@@ -886,6 +887,8 @@ load_machine(void)
     } else
         time_sync = !!config_get_int(cat, "enable_sync", 1);
 
+    pit_mode = config_get_int(cat, "pit_mode", -1);
+
     /* Remove this after a while.. */
     config_delete_var(cat, "nvr_path");
     config_delete_var(cat, "enable_sync");
@@ -1108,6 +1111,13 @@ load_sound(void)
         sound_is_float = 1;
     else
         sound_is_float = 0;
+
+    p = config_get_string(cat, "fm_driver", "nuked");
+    if (!strcmp(p, "ymfm")) {
+        fm_driver = FM_DRV_YMFM;
+    } else {
+        fm_driver = FM_DRV_NUKED;
+    }
 }
 
 /* Load "Network" section. */
@@ -2479,6 +2489,11 @@ save_machine(void)
     else
         config_set_string(cat, "time_sync", "disabled");
 
+    if (pit_mode == -1)
+        config_delete_var(cat, "pit_mode");
+    else
+        config_set_int(cat, "pit_mode", pit_mode);
+
     delete_section_if_empty(cat);
 }
 
@@ -2622,6 +2637,8 @@ save_sound(void)
         config_delete_var(cat, "sound_type");
     else
         config_set_string(cat, "sound_type", (sound_is_float == 1) ? "float" : "int16");
+
+    config_set_string(cat, "fm_driver", (fm_driver == FM_DRV_NUKED) ? "nuked" : "ymfm");
 
     delete_section_if_empty(cat);
 }

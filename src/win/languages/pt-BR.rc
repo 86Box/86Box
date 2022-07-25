@@ -80,7 +80,7 @@ BEGIN
             MENUITEM "Monitor VGA &invertido",   IDM_VID_INVERT
             POPUP "&Tipo de tela VGA"
             BEGIN
-                MENUITEM "&Cor RGB",          IDM_VID_GRAY_RGB
+                MENUITEM "&Cores RGB",          IDM_VID_GRAY_RGB
                 MENUITEM "Tons de cinza &RGB",      IDM_VID_GRAY_MONO
                 MENUITEM "Monitor &âmbar",      IDM_VID_GRAY_AMBER
                 MENUITEM "Monitor &verde",      IDM_VID_GRAY_GREEN
@@ -267,15 +267,15 @@ END
 #define STR_MB			"MB"
 #define STR_MEMORY		"Memória:"
 #define STR_TIME_SYNC		"Sincronização da hora"
-#define STR_DISABLED		"Desativada"
-#define STR_ENABLED_LOCAL	"Ativada (hora local)"
-#define STR_ENABLED_UTC		"Ativada (UTC)"
+#define STR_DISABLED		"Desativar"
+#define STR_ENABLED_LOCAL	"Ativar (hora local)"
+#define STR_ENABLED_UTC		"Ativar (UTC)"
 #define STR_DYNAREC		"Recompilador dinâmico"
 
 #define STR_VIDEO		"Vídeo:"
 #define STR_VOODOO		"3DFX Voodoo"
-#define STR_IBM8514		"IBM 8514/a Graphics"
-#define STR_XGA			"XGA Graphics"
+#define STR_IBM8514		"Gráficos IBM 8514/a"
+#define STR_XGA			"Gráficos XGA"
 
 #define STR_MOUSE		"Mouse:"
 #define STR_JOYSTICK		"Joystick:"
@@ -340,7 +340,7 @@ END
 #define STR_SIZE_MB		"Tamanho (MB):"
 #define STR_TYPE		"Tipo:"
 #define STR_IMG_FORMAT		"Formato:"
-#define STR_BLOCK_SIZE		"Bloco:"
+#define STR_BLOCK_SIZE		"Blocos:"
 
 #define STR_FLOPPY_DRIVES	"Unidades de disquete:"
 #define STR_TURBO		"Turbo"
@@ -376,7 +376,7 @@ BEGIN
     2048	"86Box"
     IDS_2049	"Erro"
     IDS_2050	"Erro fatal"
-    IDS_2051	" - PAUSED"
+    IDS_2051	" - PAUSADO"
     IDS_2052	"Use Ctrl+Alt+PgDn para retornar ao modo janela"
     IDS_2053	"Velocidade"
     IDS_2054	"ZIP %03i %i (%s): %ls"
@@ -435,7 +435,7 @@ BEGIN
     IDS_2099	"Joystick padrão de 8 botões"
     IDS_2100	"CH Flightstick Pro"
     IDS_2101	"Microsoft SideWinder Pad"
-    IDS_2102	"Thrustmaster Flight Control System"
+    IDS_2102	"Sistema de Controle de Voo Thrustmaster"
     IDS_2103	"Nada"
     IDS_2104	"Não foi possível carregar os aceleradores do teclado."
     IDS_2105	"Não foi possível registrar a entrada bruta."
