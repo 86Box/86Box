@@ -120,6 +120,7 @@ extern const device_t sb_16_device;
 extern const device_t sb_16_pnp_device;
 extern const device_t sb_16_compat_device;
 extern const device_t sb_16_compat_nompu_device;
+extern const device_t sb_16_reply_mca_device;
 extern const device_t sb_32_pnp_device;
 extern const device_t sb_awe32_device;
 extern const device_t sb_awe32_pnp_device;

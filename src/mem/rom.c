@@ -646,7 +646,7 @@ rom_init_oddeven(rom_t *rom, char *fn, uint32_t addr, int sz, int mask, int off,
 		    addr, sz,
 		    rom_read, rom_readw, rom_readl,
 		    NULL, NULL, NULL,
-		    rom->rom, flags | MEM_MAPPING_ROM, rom);
+		    rom->rom, flags | MEM_MAPPING_ROM_WS, rom);
 
     return(0);
 }
@@ -674,7 +674,7 @@ rom_init_interleaved(rom_t *rom, char *fnl, char *fnh, uint32_t addr, int sz, in
 		    addr, sz,
 		    rom_read, rom_readw, rom_readl,
 		    NULL, NULL, NULL,
-		    rom->rom, flags | MEM_MAPPING_ROM, rom);
+		    rom->rom, flags | MEM_MAPPING_ROM_WS, rom);
 
     return(0);
 }
