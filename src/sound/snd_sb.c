@@ -1245,17 +1245,17 @@ sb_16_reply_mca_write(int port, uint8_t val, void *p)
 
     if (addr) {
         io_removehandler(addr, 0x0004,
-                      opl3_read, NULL, NULL,
-                      opl3_write, NULL, NULL,
-                      &sb->opl);
+                      sb->opl.read, NULL, NULL,
+                      sb->opl.write, NULL, NULL,
+                      sb->opl.priv);
         io_removehandler(addr + 8, 0x0002,
-                      opl3_read, NULL, NULL,
-                      opl3_write, NULL, NULL,
-                      &sb->opl);
+                      sb->opl.read, NULL, NULL,
+                      sb->opl.write, NULL, NULL,
+                      sb->opl.priv);
         io_removehandler(0x0388, 0x0004,
-                      opl3_read, NULL, NULL,
-                      opl3_write, NULL, NULL,
-                      &sb->opl);
+                      sb->opl.read, NULL, NULL,
+                      sb->opl.write, NULL, NULL,
+                      sb->opl.priv);
         io_removehandler(addr + 4, 0x0002,
                      sb_ct1745_mixer_read, NULL, NULL,
                      sb_ct1745_mixer_write, NULL, NULL,
@@ -1303,16 +1303,16 @@ sb_16_reply_mca_write(int port, uint8_t val, void *p)
 
         if (addr) {
             io_sethandler(addr, 0x0004,
-                          opl3_read, NULL, NULL,
-                          opl3_write, NULL, NULL,
-                          &sb->opl);
+                          sb->opl.read, NULL, NULL,
+                          sb->opl.write, NULL, NULL,
+                          sb->opl.priv);
             io_sethandler(addr + 8, 0x0002,
-                          opl3_read, NULL, NULL,
-                          opl3_write, NULL, NULL,
-                          &sb->opl);
+                          sb->opl.read, NULL, NULL,
+                          sb->opl.write, NULL, NULL,
+                          sb->opl.priv);
             io_sethandler(0x0388, 0x0004,
-                          opl3_read, NULL, NULL,
-                          opl3_write, NULL, NULL, &sb->opl);
+                          sb->opl.read, NULL, NULL,
+                          sb->opl.write, NULL, NULL, sb->opl.priv);
             io_sethandler(addr + 4, 0x0002,
                           sb_ct1745_mixer_read, NULL, NULL,
                           sb_ct1745_mixer_write, NULL, NULL,
@@ -1940,7 +1940,7 @@ sb_16_reply_mca_init(const device_t *info)
     memset(sb, 0x00, sizeof(sb_t));
 
     sb->opl_enabled = 1;
-    opl3_init(&sb->opl);
+    fm_driver_get(FM_YMF262, &sb->opl);
 
     sb_dsp_init(&sb->dsp, SB16, SB_SUBTYPE_DEFAULT, sb);
     sb_ct1745_mixer_reset(sb);
