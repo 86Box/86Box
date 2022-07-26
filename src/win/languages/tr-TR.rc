@@ -289,6 +289,9 @@ END
 #define STR_CMS			"CMS / Game Blaster"
 #define STR_GUS			"Gravis Ultrasound"
 #define STR_FLOAT		"FLOAT32 ses kullan"
+#define STR_FM_DRIVER		"FM synth driver"
+#define STR_FM_DRV_NUKED	"Nuked (more accurate)"
+#define STR_FM_DRV_YMFM		"YMFM (faster)"
 
 #define STR_NET_TYPE		"Ağ tipi:"
 #define STR_PCAP		"PCap cihazı:"
