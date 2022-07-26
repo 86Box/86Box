@@ -441,11 +441,14 @@ machine_at_decpclpv_init(const machine_t *model)
     machine_at_common_init(model);
 
     device_add(&sis_85c461_device);
+
+    if (gfxcard == VID_INTERNAL)
+	device_add(&s3_86c805_onboard_vlb_device);
+
     /* TODO: Phoenix MultiKey KBC */
     device_add(&keyboard_ps2_ami_pci_device);
     device_add(&ide_isa_2ch_device);
-    device_add(&fdc37c663_device);
-    /* TODO: On-board S3 805 with AT&T 490 RAM DAC. */
+    device_add(&fdc37c663_ide_device);
 
     return ret;
 }

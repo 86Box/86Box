@@ -258,7 +258,7 @@ typedef struct {
     uint32_t cMsLinkUpDelay;
     int transfer_size;
     uint8_t maclocal[6]; /* configured MAC (local) address */
-    pc_timer_t timer_soft_int, timer_restore;
+    pc_timer_t timer, timer_soft_int, timer_restore;
 } nic_t;
 
 /** @todo All structs: big endian? */
@@ -386,7 +386,6 @@ static uint8_t	pcnet_pci_regs[PCI_REGSIZE];
 
 static void     pcnetAsyncTransmit(nic_t *dev);
 static void     pcnetPollRxTx(nic_t *dev);
-static void     pcnetPollTimer(nic_t *dev);
 static void     pcnetUpdateIrq(nic_t *dev);
 static uint16_t	pcnet_bcr_readw(nic_t *dev, uint16_t rap);
 static void	pcnet_bcr_writew(nic_t *dev, uint16_t rap, uint16_t val);
@@ -1038,7 +1037,7 @@ pcnetStart(nic_t *dev)
         dev->aCSR[0] |= 0x0020;    /* set RXON */
     dev->aCSR[0] &= ~0x0004;       /* clear STOP bit */
     dev->aCSR[0] |= 0x0002;       /* STRT */
-    pcnetPollTimer(dev);
+    timer_set_delay_u64(&dev->timer, 2000 * TIMER_USEC);
 }
 
 
@@ -1052,7 +1051,7 @@ pcnetStop(nic_t *dev)
     dev->aCSR[0] = 0x0004;
     dev->aCSR[4] &= ~0x02c2;
     dev->aCSR[5] &= ~0x0011;
-    pcnetPollTimer(dev);
+    timer_disable(&dev->timer);
 }
 
 
@@ -1699,8 +1698,12 @@ pcnetPollRxTx(nic_t *dev)
 
 
 static void
-pcnetPollTimer(nic_t *dev)
+pcnetPollTimer(void *p)
 {
+    nic_t *dev = (nic_t *)p;
+
+    timer_advance_u64(&dev->timer, 2000 * TIMER_USEC);
+
     if (CSR_TDMD(dev))
 	pcnetAsyncTransmit(dev);
 
@@ -2226,7 +2229,7 @@ pcnet_word_write(nic_t *dev, uint32_t addr, uint16_t val)
     if (!BCR_DWIO(dev)) {
         switch (addr & 0x0f) {
 		case 0x00: /* RDP */
-			pcnetPollTimer(dev);
+			timer_set_delay_u64(&dev->timer, 2000 * TIMER_USEC);
 			pcnet_csr_writew(dev, dev->u32RAP, val);
 			pcnetUpdateIrq(dev);
 			break;
@@ -2272,7 +2275,7 @@ pcnet_word_read(nic_t *dev, uint32_t addr)
 			/** @note if we're not polling, then the guest will tell us when to poll by setting TDMD in CSR0 */
 			/** Polling is then useless here and possibly expensive. */
 			if (!CSR_DPOLL(dev))
-				pcnetPollTimer(dev);
+				timer_set_delay_u64(&dev->timer, 2000 * TIMER_USEC);
 
 			val = pcnet_csr_readw(dev, dev->u32RAP);
 			if (dev->u32RAP == 0)
@@ -2306,7 +2309,7 @@ pcnet_dword_write(nic_t *dev, uint32_t addr, uint32_t val)
     if (BCR_DWIO(dev)) {
         switch (addr & 0x0f) {
 		case 0x00: /* RDP */
-			pcnetPollTimer(dev);
+			timer_set_delay_u64(&dev->timer, 2000 * TIMER_USEC);
 			pcnet_csr_writew(dev, dev->u32RAP, val & 0xffff);
 			pcnetUpdateIrq(dev);
 			break;
@@ -2334,7 +2337,7 @@ pcnet_dword_read(nic_t *dev, uint32_t addr)
 	switch (addr & 0x0f) {
 		case 0x00: /* RDP */
 			if (!CSR_DPOLL(dev))
-				pcnetPollTimer(dev);
+				timer_set_delay_u64(&dev->timer, 2000 * TIMER_USEC);
 			val = pcnet_csr_readw(dev, dev->u32RAP);
 			if (dev->u32RAP == 0)
 				goto skip_update_irq;
@@ -3049,6 +3052,8 @@ pcnet_init(const device_t *info)
 
     /* Attach ourselves to the network module. */
     network_attach(dev, dev->aPROM, pcnetReceiveNoSync, pcnetWaitReceiveAvail, pcnetSetLinkState);
+
+    timer_add(&dev->timer, pcnetPollTimer, dev, 0);
 
     if (dev->board == DEV_AM79C973)
         timer_add(&dev->timer_soft_int, pcnetTimerSoftInt, dev, 0);

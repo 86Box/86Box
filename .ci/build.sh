@@ -728,32 +728,46 @@ then
 	exit 3
 fi
 
-# Run actual build.
-echo [-] Running build
-cmake --build build -j$(nproc)
-status=$?
-if [ $status -ne 0 ]
+# Run actual build, unless we're running a dry build to precondition a node.
+if [ "$BUILD_TAG" != "precondition" ]
 then
-	echo [!] Build failed with status [$status]
-	exit 4
+	echo [-] Running build
+	cmake --build build -j$(nproc)
+	status=$?
+	if [ $status -ne 0 ]
+	then
+		echo [!] Build failed with status [$status]
+		exit 4
+	fi
+else
+	# Copy dummy binary into place.
+	echo [-] Preconditioning build node
+	mkdir -p build/src
+	if is_windows
+	then
+		cp "$(which cp)" "build/src/$project.exe"
+	elif is_mac
+	then
+		: # Special check during app bundle generation.
+	else
+		cp "$(which cp)" "build/src/$project"
+	fi
 fi
 
 # Download Discord Game SDK from their CDN if we're in a new build.
-discord_zip="$cache_dir/discord_game_sdk.zip"
-if check_buildtag discord
+discord_version="3.2.1"
+discord_zip="$cache_dir/discord_game_sdk-$discord_version.zip"
+if [ ! -e "$discord_zip" ]
 then
 	# Download file.
 	echo [-] Downloading Discord Game SDK
-	wget -qO "$discord_zip" "https://dl-game-sdk.discordapp.net/latest/discord_game_sdk.zip"
+	rm -f "$cache_dir/discord_game_sdk"* # remove old versions
+	wget -qO "$discord_zip" "https://dl-game-sdk.discordapp.net/$discord_version/discord_game_sdk.zip"
 	status=$?
 	if [ $status -ne 0 ]
 	then
 		echo [!] Discord Game SDK download failed with status [$status]
 		rm -f "$discord_zip"
-	else
-		# Save build tag to skip this later. Doing it here (once everything is
-		# in place) is important to avoid potential issues with retried builds.
-		save_buildtag discord
 	fi
 else
 	echo [-] Not downloading Discord Game SDK again
@@ -830,6 +844,10 @@ then
 
 		# Sign app bundle, unless we're in an universal build.
 		[ $skip_archive -eq 0 ] && codesign --force --deep -s - "archive_tmp/"*".app"
+	elif [ "$BUILD_TAG" = "precondition" ]
+	then
+		# Continue with no app bundle on a dry build.
+		status=0
 	fi
 else
 	cwd_root="$(pwd)"
@@ -842,6 +860,7 @@ else
 		prefix="$cache_dir/openal-soft-1.21.1"
 		if [ ! -d "$prefix" ]
 		then
+			rm -rf "$cache_dir/openal-soft-"* # remove old versions
 			wget -qO - https://github.com/kcat/openal-soft/archive/refs/tags/1.21.1.tar.gz | tar zxf - -C "$cache_dir" || rm -rf "$prefix"
 		fi
 		prefix_build="$prefix/build-$arch_deb"
@@ -857,6 +876,7 @@ else
 		prefix="$cache_dir/FAudio-22.03"
 		if [ ! -d "$prefix" ]
 		then
+			rm -rf "$cache_dir/FAudio-"* # remove old versions
 			wget -qO - https://github.com/FNA-XNA/FAudio/archive/refs/tags/22.03.tar.gz | tar zxf - -C "$cache_dir" || rm -rf "$prefix"
 		fi
 		prefix_build="$prefix/build-$arch_deb"
@@ -876,6 +896,7 @@ else
 	prefix="$cache_dir/rtmidi-4.0.0"
 	if [ ! -d "$prefix" ]
 	then
+		rm -rf "$cache_dir/rtmidi-"* # remove old versions
 		wget -qO - https://github.com/thestk/rtmidi/archive/refs/tags/4.0.0.tar.gz | tar zxf - -C "$cache_dir" || rm -rf "$prefix"
 	fi
 	prefix_build="$prefix/build-$arch_deb"
@@ -888,6 +909,7 @@ else
 	prefix="$cache_dir/SDL2-2.0.20"
 	if [ ! -d "$prefix" ]
 	then
+		rm -rf "$cache_dir/SDL2-"* # remove old versions
 		wget -qO - https://www.libsdl.org/release/SDL2-2.0.20.tar.gz | tar zxf - -C "$cache_dir" || rm -rf "$prefix"
 	fi
 	prefix_build="$cache_dir/SDL2-2.0.20-build-$arch_deb"
@@ -1018,12 +1040,18 @@ EOF
 	done < .ci/AppImageBuilder.yml
 
 	# Download appimage-builder if necessary.
-	[ ! -e "appimage-builder.AppImage" ] && wget -qO appimage-builder.AppImage \
-		https://github.com/AppImageCrafters/appimage-builder/releases/download/v0.9.2/appimage-builder-0.9.2-35e3eab-x86_64.AppImage
-	chmod u+x appimage-builder.AppImage
+	appimage_builder_url="https://github.com/AppImageCrafters/appimage-builder/releases/download/v0.9.2/appimage-builder-0.9.2-35e3eab-x86_64.AppImage"
+	appimage_builder_binary="$cache_dir/$(basename "$appimage_builder_url")"
+	if [ ! -e "$appimage_builder_binary" ]
+	then
+		rm -rf "$cache_dir/"*".AppImage" # remove old versions
+		wget -qO "$appimage_builder_binary" "$appimage_builder_url"
+	fi
 
-	# Symlink global cache directory.
-	rm -rf appimage-builder-cache "$project-"*".AppImage" # also remove any dangling AppImages which may interfere with the renaming process
+	# Symlink appimage-builder binary and global cache directory.
+	rm -rf appimage-builder.AppImage appimage-builder-cache "$project-"*".AppImage" # also remove any dangling AppImages which may interfere with the renaming process
+	ln -s "$appimage_builder_binary" appimage-builder.AppImage
+	chmod u+x appimage-builder.AppImage
 	mkdir -p "$cache_dir/appimage-builder-cache"
 	ln -s "$cache_dir/appimage-builder-cache" appimage-builder-cache
 
@@ -1037,6 +1065,9 @@ EOF
 	then
 		mv "$project-"*".AppImage" "$cwd/$package_name.AppImage"
 		status=$?
+	else
+		# Remove appimage-builder binary just in case it's corrupted.
+		rm -f "$appimage_builder_binary"
 	fi
 fi
 

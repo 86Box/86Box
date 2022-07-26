@@ -442,6 +442,7 @@ extern const device_t s3_metheus_86c928_isa_device;
 extern const device_t s3_metheus_86c928_vlb_device;
 extern const device_t s3_spea_mercury_lite_86c928_pci_device;
 extern const device_t s3_spea_mirage_86c801_isa_device;
+extern const device_t s3_86c805_onboard_vlb_device;
 extern const device_t s3_spea_mirage_86c805_vlb_device;
 extern const device_t s3_mirocrystal_8s_805_vlb_device;
 extern const device_t s3_mirocrystal_10sd_805_vlb_device;
