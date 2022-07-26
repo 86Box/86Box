@@ -129,7 +129,7 @@ typedef struct sb_t {
         opl_enabled,
         mixer_enabled;
     cms_t cms;
-    opl_t opl,
+    fm_drv_t opl,
         opl2;
     sb_dsp_t dsp;
     union {

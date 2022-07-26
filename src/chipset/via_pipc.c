@@ -760,7 +760,7 @@ pipc_fm_read(uint16_t addr, void *priv)
     uint8_t ret = 0x00;
 #else
     pipc_t *dev = (pipc_t *) priv;
-    uint8_t ret = opl3_read(addr, &dev->sb->opl);
+    uint8_t ret = dev->sb->opl.read(addr, dev->sb->opl.priv);
 #endif
 
     pipc_log("PIPC: fm_read(%02X) = %02X\n", addr & 0x03, ret);
@@ -794,7 +794,7 @@ pipc_fm_write(uint16_t addr, uint8_t val, void *priv)
 	}
     }
 #else
-    opl3_write(addr, val, &dev->sb->opl);
+    dev->sb->opl.write(addr, val, dev->sb->opl.priv);
 #endif
 }
 
@@ -807,22 +807,22 @@ pipc_sb_handlers(pipc_t *dev, uint8_t modem)
 
     sb_dsp_setaddr(&dev->sb->dsp, 0);
     if (dev->sb_base) {
-	io_removehandler(dev->sb_base,     4, opl3_read, NULL, NULL, opl3_write, NULL, NULL, &dev->sb->opl);
-	io_removehandler(dev->sb_base + 8, 2, opl3_read, NULL, NULL, opl3_write, NULL, NULL, &dev->sb->opl);
+	io_removehandler(dev->sb_base,     4, dev->sb->opl.read, NULL, NULL, dev->sb->opl.write, NULL, NULL, dev->sb->opl.priv);
+	io_removehandler(dev->sb_base + 8, 2, dev->sb->opl.read, NULL, NULL, dev->sb->opl.write, NULL, NULL, dev->sb->opl.priv);
 	io_removehandler(dev->sb_base + 4, 2, sb_ct1345_mixer_read, NULL, NULL, sb_ct1345_mixer_write, NULL, NULL, dev->sb);
     }
 
     mpu401_change_addr(dev->sb->mpu, 0);
     mpu401_setirq(dev->sb->mpu, 0);
 
-    io_removehandler(0x388, 4, opl3_read, NULL, NULL, opl3_write, NULL, NULL, &dev->sb->opl);
+    io_removehandler(0x388, 4, dev->sb->opl.read, NULL, NULL, dev->sb->opl.write, NULL, NULL, dev->sb->opl.priv);
 
     if (dev->ac97_regs[0][0x42] & 0x01) {
 	dev->sb_base = 0x220 + (0x20 * (dev->ac97_regs[0][0x43] & 0x03));
 	sb_dsp_setaddr(&dev->sb->dsp, dev->sb_base);
 	if (dev->ac97_regs[0][0x42] & 0x04) {
-		io_sethandler(dev->sb_base,     4, opl3_read, NULL, NULL, opl3_write, NULL, NULL, &dev->sb->opl);
-		io_sethandler(dev->sb_base + 8, 2, opl3_read, NULL, NULL, opl3_write, NULL, NULL, &dev->sb->opl);
+		io_sethandler(dev->sb_base,     4, dev->sb->opl.read, NULL, NULL, dev->sb->opl.write, NULL, NULL, dev->sb->opl.priv);
+		io_sethandler(dev->sb_base + 8, 2, dev->sb->opl.read, NULL, NULL, dev->sb->opl.write, NULL, NULL, dev->sb->opl.priv);
 	}
 	io_sethandler(dev->sb_base + 4, 2, sb_ct1345_mixer_read, NULL, NULL, sb_ct1345_mixer_write, NULL, NULL, dev->sb);
 

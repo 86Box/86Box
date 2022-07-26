@@ -183,6 +183,7 @@ int confirm_exit = 1;				/* (C) enable exit confirmation */
 int confirm_save = 1;				/* (C) enable save confirmation */
 int	enable_discord = 0;			/* (C) enable Discord integration */
 int pit_mode = -1;				/* (C) force setting PIT mode */
+int fm_driver = 0;				/* (C) select FM sound driver */
 
 /* Statistics. */
 extern int mmuflush;
