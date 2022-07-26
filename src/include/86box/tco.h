@@ -17,7 +17,6 @@ typedef struct
 {
     uint8_t regs[17];
     uint16_t tco_irq;
-    pc_timer_t *tco_timer;
 } tco_t;
 
 extern const device_t   tco_device;

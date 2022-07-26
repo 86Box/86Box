@@ -15,6 +15,9 @@
  *
  *		Copyright 2022 Tiseno100.
  */
+
+/* Note: There's a TCO Timer too but for now it's of no use thus not implemented */
+
 #include <stdarg.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -32,10 +35,8 @@
 #include <86box/pit.h>
 #include <86box/tco.h>
 
-
 #ifdef ENABLE_TCO_LOG
 int tco_do_log = ENABLE_TCO_LOG;
-
 
 static void
 tco_log(const char *fmt, ...)
@@ -68,7 +69,6 @@ tco_irq_update(tco_t *dev, uint16_t new_irq)
     dev->tco_irq = new_irq;
 }
 
-
 void
 tco_write(uint16_t addr, uint8_t val, tco_t *dev)
 {
@@ -76,60 +76,60 @@ tco_write(uint16_t addr, uint8_t val, tco_t *dev)
     tco_log("TCO: Write 0x%02x to Register 0x%02x\n", val, addr);
 
     switch(addr) {
-	case 0x00:
-		dev->regs[addr] = val;
-		break;
+        case 0x00:
+            dev->regs[addr] = val;
+            break;
 
-	case 0x01:
-		dev->regs[addr] = val & 0x3f;
-		break;
+        case 0x01:
+            dev->regs[addr] = val & 0x3f;
+            break;
 
-	case 0x02:	/* TCO Data in */
-		dev->regs[addr] = val;
-		dev->regs[0x04] |= 2;
-		smi_line = 1;
-		break;
+        case 0x02: /* TCO Data in */
+            dev->regs[addr] = val;
+            dev->regs[0x04] |= 2;
+            smi_line = 1;
+            break;
 
-	case 0x03:	/* TCO Data out */
-		dev->regs[addr] = val;
-		dev->regs[0x04] |= 4;
-		picint(dev->tco_irq);
-		break;
+        case 0x03: /* TCO Data out */
+            dev->regs[addr] = val;
+            dev->regs[0x04] |= 4;
+            picint(1 << dev->tco_irq);
+            break;
 
         case 0x04:
-		dev->regs[addr] &= 0x8f;
-		break;
+            dev->regs[addr] &= 0x8f;
+            break;
 
-	case 0x05:
-		dev->regs[addr] &= 0x1f;
-		break;
+        case 0x05:
+            dev->regs[addr] &= 0x1f;
+            break;
 
-	case 0x06:
-		dev->regs[addr] &= 0x07;
-		break;
+        case 0x06:
+            dev->regs[addr] &= 0x07;
+            break;
 
-	case 0x09:
-		if (val & 1) {
-			if (!nmi)	/* If we're already on NMI */
-				nmi = 1;
+        case 0x09:
+            if (val & 1) {
+                if (!nmi) /* If we're already on NMI */
+                    nmi_raise();
 
-			dev->regs[addr] = (dev->regs[addr] & 1) | val;
-			dev->regs[addr] &= val;
-		} else
-			dev->regs[addr] = 0x0f;
-		break;
+                dev->regs[addr] = (dev->regs[addr] & 1) | val;
+                dev->regs[addr] &= val;
+            } else
+                dev->regs[addr] = 0x0f;
+            break;
 
-	case 0x0a:
-		dev->regs[addr] = val & 0x06; // Intrusion Interrupt or SMI. We never get intruded so we never control it.
-		break;
+        case 0x0a:
+            dev->regs[addr] = val & 0x06; // Intrusion Interrupt or SMI. We never get intruded so we never control it.
+            break;
 
-	case 0x0c ... 0x0d:
-		dev->regs[addr] = val;
-		break;
+        case 0x0c ... 0x0d:
+            dev->regs[addr] = val;
+            break;
 
-	case 0x10:
-		dev->regs[addr] = val & 0x03;
-		break;
+        case 0x10:
+            dev->regs[addr] = val & 0x03;
+            break;
     }
 }
 
@@ -138,14 +138,12 @@ uint8_t
 tco_read(uint16_t addr, tco_t *dev)
 {
     addr -= 0x60;
-    uint8_t ret = 0x00;
 
     if (addr <= 0x10) {
-	tco_log("TCO: Read 0x%02x from Register 0x%02x\n", dev->regs[addr], addr);
-	ret = dev->regs[addr];
+        tco_log("TCO: Read 0x%02x from Register 0x%02x\n", dev->regs[addr], addr);
+        return dev->regs[addr];
     }
-
-    return ret;
+    else return 0;
 }
 
 
@@ -181,7 +179,6 @@ tco_init(const device_t *info)
 
     return dev;
 }
-
 
 const device_t tco_device = {
     .name = "Intel TCO",

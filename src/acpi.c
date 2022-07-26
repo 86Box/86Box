@@ -162,7 +162,7 @@ acpi_raise_smi(void *priv, int do_smi)
 	}
     }
     else if ((dev->vendor == VEN_INTEL_ICH2) && do_smi && (dev->regs.smi_en & 1))
-        smi_line = 1;
+        smi_raise();
 }
 
 
@@ -1459,7 +1459,7 @@ acpi_update_io_mapping(acpi_t *dev, uint32_t base, int chipset_en)
 		break;
 	case VEN_INTEL_ICH2:
 	case VEN_VIA_596B:
-		size = 0x080;
+		size = 0x0080;
 		break;
     }
 
@@ -1648,11 +1648,11 @@ acpi_apm_out(uint16_t port, uint8_t val, void *p)
 		if (dev->vendor == VEN_INTEL)
 			dev->regs.glbsts |= 0x20;
 		else if (dev->vendor == VEN_INTEL_ICH2)
-			dev->regs.smi_sts |= 0x00000020;
+            if(dev->apm->do_smi)
+                dev->regs.smi_sts |= 0x00000020;
         acpi_raise_smi(dev, dev->apm->do_smi);
 	} else
 		dev->apm->stat = val;
-    }
 }
 
 
@@ -1670,10 +1670,10 @@ acpi_apm_in(uint16_t port, void *p)
 	else if (port == 0x0003)
 		ret = dev->apm->stat;
     } else {
-	if (port == 0x0000)
-		ret = dev->apm->cmd;
-	else
-		ret = dev->apm->stat;
+        if (port == 0x0000)
+            ret = dev->apm->cmd;
+        else
+            ret = dev->apm->stat;
     }
 
     acpi_log("[%04X:%08X] APM read: %04X = %02X\n", CS, cpu_state.pc, port, ret);
@@ -1781,7 +1781,7 @@ acpi_init(const device_t *info)
 		acpi_log("Setting I/O handler at port B1\n");
 		io_sethandler(0x00b1, 0x0003, acpi_apm_in, NULL, NULL, acpi_apm_out, NULL, NULL, dev);
 	} else
-		io_sethandler(0x00b2, 0x0002, acpi_apm_in, NULL, NULL, acpi_apm_out, NULL, NULL, dev);
+        io_sethandler(0x00b2, 0x0002, acpi_apm_in, NULL, NULL, acpi_apm_out, NULL, NULL, dev);
     } else if (dev->vendor == VEN_VIA) {
 	dev->i2c = i2c_gpio_init("smbus_vt82c586b");
 	i2c_smbus = i2c_gpio_get_bus(dev->i2c);

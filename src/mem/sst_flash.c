@@ -594,7 +594,6 @@ const device_t sst_flash_49lf004_device = {
     .internal_name = "sst_flash_49lf004",
     .flags = 0,
     .local = SST | SST49LF004 | SIZE_4M,
-
     .init = sst_init,
     .close = sst_close,
     .reset = NULL,

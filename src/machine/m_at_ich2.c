@@ -19,6 +19,7 @@
 #include <86box/device.h>
 #include <86box/chipset.h>
 #include <86box/flash.h>
+#include <86box/hwm.h>
 #include <86box/sio.h>
 #include <86box/spd.h>
 #include <86box/clock.h>
@@ -30,7 +31,7 @@
  * 
  * North Bridge: Intel 815E
  * Super I/O: National Semiconductor NSC366 (PC87366)
- * BIOS: AwardBIOS 6.00PG
+ * BIOS: Award BIOS 6.00PG
  * Notes: No integrated ESS Solo & GPU
 */
 int
@@ -48,27 +49,33 @@ machine_at_m6tsl_init(const machine_t *model)
 
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_bus_slot(0, 0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
-    pci_register_bus_slot(0, 0x01, PCI_CARD_AGPBRIDGE,   1, 2, 3, 4);
+    pci_register_bus_slot(0, 0x01, PCI_CARD_AGPBRIDGE,   1, 2, 0, 0);
     pci_register_bus_slot(0, 0x1e, PCI_CARD_BRIDGE,      0, 0, 0, 0);
     pci_register_bus_slot(0, 0x1f, PCI_CARD_SOUTHBRIDGE, 1, 2, 8, 4);
     pci_register_bus_slot(1, 0x01, PCI_CARD_AGP,         1, 2, 3, 4);
-    pci_register_bus_slot(2, 0x03, PCI_CARD_NORMAL,      1, 2, 3, 4);
-    pci_register_bus_slot(2, 0x04, PCI_CARD_NORMAL,      2, 3, 4, 1);
-    pci_register_bus_slot(2, 0x05, PCI_CARD_NORMAL,      3, 4, 1, 2);
-    pci_register_bus_slot(2, 0x06, PCI_CARD_NORMAL,      4, 1, 2, 3);
-    pci_register_bus_slot(2, 0x07, PCI_CARD_NORMAL,      1, 2, 3, 4);
-    pci_register_bus_slot(2, 0x08, PCI_CARD_NORMAL,      2, 3, 4, 1);
+    pci_register_bus_slot(2, 0x04, PCI_CARD_NORMAL,      3, 4, 5, 6);
+    pci_register_bus_slot(2, 0x05, PCI_CARD_NORMAL,      4, 5, 6, 7);
+    pci_register_bus_slot(2, 0x06, PCI_CARD_NORMAL,      5, 6, 7, 8);
+    pci_register_bus_slot(2, 0x07, PCI_CARD_NORMAL,      6, 7, 8, 1);
 
-    device_add(&intel_815ep_device); /* Intel 815EP MCH (This board has normally an i815E but this doesn't matter on our implementation) */
+    device_add(&intel_815ep_device); /* Intel 815EP MCH */
     device_add(&intel_ich2_device); /* Intel ICH2 */
     device_add(&nsc366_device); /* National Semiconductor NSC366 */
     device_add(&sst_flash_49lf004_device); /* SST 4Mbit Firmware Hub */
-    device_add(ics9xxx_get(ICS9250_08)); /* ICS Clock Chip */
+//    device_add(ics9xxx_get(ICS9250_08)); /* ICS Clock Chip */
     spd_register(SPD_TYPE_SDRAM, 0x7, 512);
 
     return ret;
 }
 
+/*
+ * Biostar M6TSS
+ * 
+ * North Bridge: Intel 815EP
+ * Super I/O: National Semiconductor NSC366 (PC87366)
+ * BIOS: AwardBIOS 6.00PG
+ * Notes: 
+*/
 int
 machine_at_m6tss_init(const machine_t *model)
 {
@@ -135,8 +142,6 @@ machine_at_s2080_init(const machine_t *model)
     pci_register_bus_slot(2, 0x05, PCI_CARD_NORMAL,      3, 4, 5, 6);
     pci_register_bus_slot(2, 0x06, PCI_CARD_NORMAL,      4, 5, 6, 7);
     pci_register_bus_slot(2, 0x07, PCI_CARD_NORMAL,      5, 6, 7, 8);
-    pci_register_bus_slot(2, 0x08, PCI_CARD_NORMAL,      6, 7, 8, 2); // 0x0a
-    pci_register_bus_slot(2, 0x09, PCI_CARD_NORMAL,      7, 8, 2, 3);
 
     device_add(&intel_815ep_device); /* Intel 815EP MCH */
     device_add(&intel_ich2_device); /* Intel ICH2 */

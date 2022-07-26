@@ -22,7 +22,7 @@
 extern "C" {
 #endif
 
-#include <86box/tco.h> /* TCO Header. Needed for Intel ICH chipsets. */
+#include <86box/tco.h> /* TCO Header. Needed for the Intel ICH chipsets. */
 
 #define ACPI_TIMER_FREQ	3579545
 #define PM_FREQ		ACPI_TIMER_FREQ
@@ -66,11 +66,11 @@ typedef struct
 			smicmd, gpio_dir,
 			gpio_val, muxcntrl, ali_soft_smi,
 			timer32, smireg,
-			gpireg[3], gporeg[4], tco[17],
+			gpireg[3], gporeg[4],
 			extiotrapsts, extiotrapen;
     uint16_t		pmsts, pmen,
 			pmcntrl, bus_addr_track, devact_sts,
-			devtrap_en, gpsts, gpsts1,
+            devtrap_en, gpsts, gpsts1,
 			gpen, gpen1, gpscien,
 			gpcntrl, gplvl, gpmux,
 			gpsel, gpsmien, pscntrl,

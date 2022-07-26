@@ -43,53 +43,51 @@ intel_ich2_trap_log(const char *fmt, ...)
 #endif
 
 void
-intel_ich2_trap_set_acpi(intel_ich2_trap_t *trap, acpi_t *acpi)
+intel_ich2_trap_set_acpi(intel_ich2_trap_t *dev, acpi_t *acpi)
 {
-    trap->acpi = acpi;
+    dev->acpi = acpi;
 }
 
 static void
 intel_ich2_trap_kick(int size, uint16_t addr, uint8_t write, uint8_t val, void *priv)
 {
-    intel_ich2_trap_t *trap = (intel_ich2_trap_t *) priv;
+    intel_ich2_trap_t *dev = (intel_ich2_trap_t *) priv;
     intel_ich2_trap_log("Intel ICH2 Trap: Entered an I/O Trap. Provoking an SMI.\n");
-    acpi_raise_smi(trap->acpi, 1);
+    acpi_raise_smi(dev->acpi, 1);
 }
 
 void
-intel_ich2_device_trap_setup(int enable, uint8_t acpi_reg, uint8_t acpi_reg_val, uint16_t addr, uint16_t size, int is_hdd, intel_ich2_trap_t *trap)
+intel_ich2_device_trap_setup(uint8_t acpi_reg, uint8_t acpi_reg_val, uint16_t addr, uint16_t size, intel_ich2_trap_t *dev)
 {
-uint8_t acpi_trap_recieve = ((acpi_reg == 0x49) ? (trap->acpi->regs.devtrap_en >> 8) : (trap->acpi->regs.devtrap_en)) & 0xff; // Check if the decoded range is enabled on ACPIS
-int acpi_enable = !!(acpi_trap_recieve & acpi_reg_val);
-int trap_enabled = acpi_enable && enable;
+    uint8_t acpi_reg_recieve = dev->acpi->regs.devtrap_en >> ((acpi_reg & 1) * 8); /* Trap register is 16-bit on ranged ACPIBASE + 48h-49h */
+    int enable = !!(acpi_reg_recieve & acpi_reg_val); /* If enabled. Settle in the I/O trap */
 
-if(trap_enabled)
-{
-    intel_ich2_trap_log("Intel ICH2 Trap: An I/O has been enabled on range 0x%x\n", addr);
-    io_trap_add(intel_ich2_trap_kick, trap->trap);
-}
+    if(enable)
+        intel_ich2_trap_log("Intel ICH2 Trap: A new trap was setted up on address 0x%x with the size of %d\n", addr, size);
 
-io_trap_remap(trap->trap, trap_enabled, addr, size);
+    io_trap_remap(dev->trap, enable, addr, size);
 }
 
 static void
 intel_ich2_trap_close(void *priv)
 {
-    intel_ich2_trap_t *trap = (intel_ich2_trap_t *) priv;
-    
-    io_trap_remove(trap->trap); // Remove the I/O Trap
-    free(trap);
+    intel_ich2_trap_t *dev = (intel_ich2_trap_t *) priv;
+
+    io_trap_remove(dev->trap); // Remove the I/O Trap
+    free(dev);
 }
 
 static void *
 intel_ich2_trap_init(const device_t *info)
 {
-    intel_ich2_trap_t *trap = (intel_ich2_trap_t *) malloc(sizeof(intel_ich2_trap_t));
-    memset(trap, 0, sizeof(intel_ich2_trap_t));
+    intel_ich2_trap_t *dev = (intel_ich2_trap_t *) malloc(sizeof(intel_ich2_trap_t));
+    memset(dev, 0, sizeof(intel_ich2_trap_t));
 
     intel_ich2_trap_log("Intel ICH2 Trap: Starting a new Trap handler.");
 
-    return trap;
+    io_trap_add(intel_ich2_trap_kick, dev);
+
+    return dev;
 }
 
 const device_t intel_ich2_trap_device = {

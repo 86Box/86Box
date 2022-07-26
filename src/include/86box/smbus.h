@@ -6,7 +6,7 @@
  *
  *		This file is part of the 86Box distribution.
  *
-  *		Definitions for the SMBus host controllers.
+ *		Definitions for the SMBus host controllers.
  *
  *
  *

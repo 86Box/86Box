@@ -33,8 +33,8 @@
 #include <86box/mem.h>
 #include <86box/pci.h>
 #include <86box/pic.h>
-#include <86box/port_92.h>
 #include <86box/smbus.h>
+#include <86box/sound.h>
 #include <86box/tco.h>
 #include <86box/usb.h>
 
@@ -59,7 +59,7 @@ intel_ich2_log(const char *fmt, ...)
 
 typedef struct intel_ich2_t
 {
-    uint8_t pci_conf[5][256];
+    uint8_t pci_conf[7][256];
 
     acpi_t *acpi;
     intel_ich2_gpio_t *gpio;
@@ -85,143 +85,16 @@ intel_ich2_acpi_setup(intel_ich2_t *dev)
 }
 
 static void
-intel_ich2_trap_update(void *priv)
+intel_ich2_bioswe(intel_ich2_t *dev)
 {
-    intel_ich2_t *dev = (intel_ich2_t *) priv;
-    uint16_t temp_addr = 0;
+    int bios_lock_enable = dev->pci_conf[0][0x4e] & 2;
+    int bios_write = dev->pci_conf[0][0x4e] & 1;
 
-    /* Hard Drives */
-    intel_ich2_device_trap_setup(1, 0x48, 0x01, 0x1f0, 8, 1, dev->trap_device[0]); // HDD's don't have a decode bit
-    intel_ich2_device_trap_setup(1, 0x48, 0x01, 0x3f6, 1, 1, dev->trap_device[0]);
-
-    intel_ich2_device_trap_setup(1, 0x48, 0x02, 0x170, 8, 1, dev->trap_device[1]);
-    intel_ich2_device_trap_setup(1, 0x48, 0x02, 0x376, 1, 1, dev->trap_device[1]);
-
-    /* COM A */
-    switch(dev->pci_conf[0][0xe0] & 7)
-    {
-        case 0:
-            temp_addr = 0x3f8;
-        break;
-
-        case 1:
-            temp_addr = 0x2f8;
-        break;
-
-        case 2:
-            temp_addr = 0x220;
-        break;
-
-        case 3:
-            temp_addr = 0x228;
-        break;
-
-        case 4:
-            temp_addr = 0x238;
-        break;
-
-        case 5:
-            temp_addr = 0x2e8;
-        break;
-
-        case 6:
-            temp_addr = 0x338;
-        break;
-
-        case 7:
-            temp_addr = 0x3e8;
-        break;
-    }
-    intel_ich2_device_trap_setup(!!(dev->pci_conf[0][0xe6] & 1), 0x48, 0x10, temp_addr, 8, 0, dev->trap_device[2]);
-
-    /* COM B */
-    switch((dev->pci_conf[0][0xe0] >> 4) & 7)
-    {
-        case 0:
-            temp_addr = 0x3f8;
-        break;
-
-        case 1:
-            temp_addr = 0x2f8;
-        break;
-
-        case 2:
-            temp_addr = 0x220;
-        break;
-
-        case 3:
-            temp_addr = 0x228;
-        break;
-
-        case 4:
-            temp_addr = 0x238;
-        break;
-
-        case 5:
-            temp_addr = 0x2e8;
-        break;
-
-        case 6:
-            temp_addr = 0x338;
-        break;
-
-        case 7:
-            temp_addr = 0x3e8;
-        break;
-    }
-    intel_ich2_device_trap_setup(!!(dev->pci_conf[0][0xe6] & 2), 0x48, 0x10, temp_addr, 8, 0, dev->trap_device[3]);
-
-    /* LPT */
-    switch(dev->pci_conf[0][0xe1] & 3)
-    {
-        case 0:
-            temp_addr = 0x378;
-        break;
-
-        case 1:
-            temp_addr = 0x278;
-        break;
-
-        case 2:
-            temp_addr = 0x3bc;
-        break;
-    }
-    intel_ich2_device_trap_setup(!!(dev->pci_conf[0][0xe6] & 4), 0x48, 0x10, temp_addr, 8, 0, dev->trap_device[4]);
-
-    /* FDC */
-    temp_addr = (dev->pci_conf[0][0xe1] & 0x10) ? 0x3f0 : 0x370;
-    intel_ich2_device_trap_setup(!!(dev->pci_conf[0][0xe6] & 8), 0x48, 0x10, temp_addr, 8, 0, dev->trap_device[5]);
-
-    /* MSS */
-    switch((dev->pci_conf[0][0xe2] >> 4) & 3)
-    {
-        case 0:
-            temp_addr = 0x530;
-        break;
-
-        case 1:
-            temp_addr = 0x604;
-        break;
-
-        case 2:
-            temp_addr = 0xe80;
-        break;
-
-        case 3:
-            temp_addr = 0xf40;
-        break;
-    }
-    intel_ich2_device_trap_setup(!!(dev->pci_conf[0][0xe6] & 0x40), 0x49, 0x04, 0x170, 8, 0, dev->trap_device[6]);
-
-    /* MIDI */
-    temp_addr = (dev->pci_conf[0][0xe2] & 8) ? 0x300 : 0x330;
-    intel_ich2_device_trap_setup(!!(dev->pci_conf[0][0xe6] & 0x20), 0x49, 0x08, temp_addr, 2, 0, dev->trap_device[7]);
-
-    /* KBC */
-    intel_ich2_device_trap_setup(1, 0x49, 0x10, 0x60, 4, 0, dev->trap_device[8]); // KBC doesn't have a decode bit
-
-    /* Adlib */
-    intel_ich2_device_trap_setup(!!(dev->pci_conf[0][0xe6] & 0x80), 0x49, 0x20, 0x388, 4, 0, dev->trap_device[9]);
+    if(bios_lock_enable)
+        if(bios_write) {
+            intel_ich2_log("Intel ICH2 BIOSWE: BIOSWE SMI was raised\n");
+            smi_raise();
+        }
 }
 
 static void
@@ -280,6 +153,146 @@ intel_ich2_nvr_handler(intel_ich2_t *dev)
 }
 
 static void
+intel_ich2_trap_update(void *priv)
+{
+    intel_ich2_t *dev = (intel_ich2_t *) priv;
+    uint16_t temp_addr = 0;
+
+    /* Hard Drives */
+    intel_ich2_device_trap_setup(0x48, 0x01, 0x1f0, 8, dev->trap_device[0]); // HDD's don't have a decode bit
+    intel_ich2_device_trap_setup(0x48, 0x01, 0x3f6, 1, dev->trap_device[0]);
+
+    intel_ich2_device_trap_setup(0x48, 0x02, 0x170, 8, dev->trap_device[1]);
+    intel_ich2_device_trap_setup(0x48, 0x02, 0x376, 1, dev->trap_device[1]);
+
+    /* COM A */
+    switch(dev->pci_conf[0][0xe0] & 7)
+    {
+        case 0:
+            temp_addr = 0x3f8;
+        break;
+
+        case 1:
+            temp_addr = 0x2f8;
+        break;
+
+        case 2:
+            temp_addr = 0x220;
+        break;
+
+        case 3:
+            temp_addr = 0x228;
+        break;
+
+        case 4:
+            temp_addr = 0x238;
+        break;
+
+        case 5:
+            temp_addr = 0x2e8;
+        break;
+
+        case 6:
+            temp_addr = 0x338;
+        break;
+
+        case 7:
+            temp_addr = 0x3e8;
+        break;
+    }
+    intel_ich2_device_trap_setup(0x48, 0x10, temp_addr, 8, dev->trap_device[2]);
+
+    /* COM B */
+    switch((dev->pci_conf[0][0xe0] >> 4) & 7)
+    {
+        case 0:
+            temp_addr = 0x3f8;
+        break;
+
+        case 1:
+            temp_addr = 0x2f8;
+        break;
+
+        case 2:
+            temp_addr = 0x220;
+        break;
+
+        case 3:
+            temp_addr = 0x228;
+        break;
+
+        case 4:
+            temp_addr = 0x238;
+        break;
+
+        case 5:
+            temp_addr = 0x2e8;
+        break;
+
+        case 6:
+            temp_addr = 0x338;
+        break;
+
+        case 7:
+            temp_addr = 0x3e8;
+        break;
+    }
+    intel_ich2_device_trap_setup(0x48, 0x10, temp_addr, 8, dev->trap_device[3]);
+
+    /* LPT */
+    switch(dev->pci_conf[0][0xe1] & 3)
+    {
+        case 0:
+            temp_addr = 0x378;
+        break;
+
+        case 1:
+            temp_addr = 0x278;
+        break;
+
+        case 2:
+            temp_addr = 0x3bc;
+        break;
+    }
+    intel_ich2_device_trap_setup(0x48, 0x10, temp_addr, 8, dev->trap_device[4]);
+
+    /* FDC */
+    temp_addr = (dev->pci_conf[0][0xe1] & 0x10) ? 0x3f0 : 0x370;
+    intel_ich2_device_trap_setup(0x48, 0x10, temp_addr, 8, dev->trap_device[5]);
+
+    /* MSS (Note: There's no clear explaination about the SB Trap so only the MSS Trap is implementated) */
+    switch((dev->pci_conf[0][0xe2] >> 4) & 3)
+    {
+        case 0:
+            temp_addr = 0x530;
+        break;
+
+        case 1:
+            temp_addr = 0x604;
+        break;
+
+        case 2:
+            temp_addr = 0xe80;
+        break;
+
+        case 3:
+            temp_addr = 0xf40;
+        break;
+    }
+    intel_ich2_device_trap_setup(0x49, 0x04, temp_addr, 8, dev->trap_device[6]);
+
+    /* MIDI */
+    temp_addr = (dev->pci_conf[0][0xe2] & 8) ? 0x300 : 0x330;
+    intel_ich2_device_trap_setup(0x49, 0x08, temp_addr, 2, dev->trap_device[7]);
+
+    /* KBC */
+    intel_ich2_device_trap_setup(0x49, 0x10, 0x60, 4, dev->trap_device[8]); // KBC doesn't have a decode bit
+
+    /* Adlib */
+    intel_ich2_device_trap_setup(0x49, 0x20, 0x388, 4, dev->trap_device[9]);
+}
+
+static void
 intel_ich2_function_disable(intel_ich2_t *dev)
 {
 uint16_t smbus_addr = (dev->pci_conf[3][0x21] << 8) | (dev->pci_conf[3][0x20] & 0xf0); // Hold the SMBus Base Address value
@@ -288,6 +301,8 @@ uint16_t smbus_addr = (dev->pci_conf[3][0x21] << 8) | (dev->pci_conf[3][0x20] & 
 if(dev->pci_conf[0][0xf2] & 2) {
     ide_pri_disable();
     ide_sec_disable();
+    sff_bus_master_handler(dev->ide_drive[0], 0, 0);
+    sff_bus_master_handler(dev->ide_drive[1], 0, 0);
 }
 
 /* Disable USB Hub 1 */
@@ -296,7 +311,7 @@ if(dev->pci_conf[0][0xf2] & 4) {
 }
 
 /* Disable SMBus */
-if(dev->pci_conf[0][0xf2] & 8) { //ICH2 Supports the ability of the SMBus Controller to be active even if it's PCI device is disabled
+if(dev->pci_conf[0][0xf2] & 8) { // ICH2 Supports the ability of the SMBus Controller to be active even if it's PCI device is disabled
     smbus_piix4_remap(dev->smbus, smbus_addr, dev->pci_conf[0][0xf3] & 1);
 }
 
@@ -310,28 +325,26 @@ if(dev->pci_conf[0][0xf2] & 0x10) {
 static void
 intel_ich2_ide_setup(intel_ich2_t *dev)
 {
+    uint16_t bm_base = (dev->pci_conf[1][0x21] << 8) | (dev->pci_conf[1][0x20] & 0xf0); /* Get the Bus Master Address */
+
     ide_pri_disable();
     ide_sec_disable();
+    sff_bus_master_handler(dev->ide_drive[0], 0, bm_base);
+    sff_bus_master_handler(dev->ide_drive[1], 0, bm_base + 8);
 
-    intel_ich2_log("Intel ICH2 IDE: Primary Channel is %s.\n", !!(dev->pci_conf[1][0x41] & 0x80) ? "Enabled" : "Disabled");
     if(dev->pci_conf[1][0x41] & 0x80) {
+        intel_ich2_log("Intel ICH2 IDE: Primary Channel is enabled with Bus Master Address 0x%x.\n", bm_base);
         ide_pri_enable();
+        sff_bus_master_handler(dev->ide_drive[0], 1, bm_base);
     }
 
-    intel_ich2_log("Intel ICH2 IDE: Secondary Channel is %s.\n", !!(dev->pci_conf[1][0x43] & 0x80) ? "Enabled" : "Disabled");
     if(dev->pci_conf[1][0x43] & 0x80) {
+        intel_ich2_log("Intel ICH2 IDE: Secondary Channel is enabled with Bus Master Address 0x%x.\n", bm_base + 8);
         ide_sec_enable();
+        sff_bus_master_handler(dev->ide_drive[1], 1, bm_base + 8);
     }
 }
 
-static void
-intel_ich2_bus_master_setup(intel_ich2_t *dev)
-{
-    uint16_t bm_base = ((dev->pci_conf[1][0x21] & 0xf0) << 8) | (dev->pci_conf[1][0x20] & 0xf0);
-    intel_ich2_log("Intel ICH2 IDE: IDE Bus Master address is 0x%04x.\n", bm_base);
-    sff_bus_master_handler(dev->ide_drive[0], dev->pci_conf[1][0x04] & 1, bm_base);
-    sff_bus_master_handler(dev->ide_drive[1], dev->pci_conf[1][0x04] & 1, bm_base + 8);
-}
 /* USB Controller functions */
 static void
 intel_ich2_usb_setup(int func, intel_ich2_t* dev)
@@ -386,9 +399,12 @@ intel_ich2_write(int func, int addr, uint8_t val, void *priv)
             break;
 
             case 0x4e:
-                dev->pci_conf[func][addr] = val & 0x03;
-                if((val & 0x01) && ((val & 0x02) == 0x02))
-                    smi_line = 1;
+                if(!(val & 2))
+                    dev->pci_conf[func][addr] = val & 3;
+                else
+                    dev->pci_conf[func][addr] = (val & 1) | 2;
+
+                intel_ich2_bioswe(dev);
             break;
 
             case 0x54:
@@ -432,6 +448,39 @@ intel_ich2_write(int func, int addr, uint8_t val, void *priv)
                 dev->pci_conf[func][addr] = val & 0xfc;
             break;
 
+            case 0xa0:
+                dev->pci_conf[func][addr] = val & 0x6c;
+            break;
+
+            case 0xa1:
+                dev->pci_conf[func][addr] = val & 6;
+            break;
+
+            case 0xa2:
+                dev->pci_conf[func][addr] &= val & 3;
+            break;
+
+            case 0xa4:
+                dev->pci_conf[func][addr] = val & 1;
+                dev->pci_conf[func][addr] &= val & 6;
+            break;
+
+            case 0xb8 ... 0xbb: 
+                dev->pci_conf[func][addr] = val; /* GPIO Routing */
+            break;
+
+            case 0xc0:
+                dev->pci_conf[func][addr] = val & 0xf0;
+            break;
+
+            case 0xc4 ... 0xcb:
+                dev->pci_conf[func][addr] = val;
+            break;
+
+            case 0xcc ... 0xcd:
+                dev->pci_conf[func][addr] &= val;
+            break;
+
             case 0xd0:
                 dev->pci_conf[func][addr] = val & 0x4f; /* Brute force APIC support as disabled */
             break;
@@ -459,6 +508,7 @@ intel_ich2_write(int func, int addr, uint8_t val, void *priv)
 
             case 0xe0:
                 dev->pci_conf[func][addr] = val & 0x77;
+                intel_ich2_trap_update(dev);
             break;
 
             case 0xe1:
@@ -481,9 +531,6 @@ intel_ich2_write(int func, int addr, uint8_t val, void *priv)
 
             case 0xe5 ... 0xe6:
                 dev->pci_conf[func][addr] = val;
-
-                if(addr == 0xe6)
-                    intel_ich2_trap_update(dev);
             break;
 
             case 0xe7:
@@ -523,7 +570,6 @@ intel_ich2_write(int func, int addr, uint8_t val, void *priv)
             case 0x04:
                 dev->pci_conf[func][addr] = val & 5;
                 intel_ich2_ide_setup(dev);
-                intel_ich2_bus_master_setup(dev);
             break;
 
             case 0x07:
@@ -532,7 +578,7 @@ intel_ich2_write(int func, int addr, uint8_t val, void *priv)
 
             case 0x20 ... 0x21:
                 dev->pci_conf[func][addr] = val & ((addr & 1) ? 0xff : (0xf0 | 1));
-                intel_ich2_bus_master_setup(dev);
+                intel_ich2_ide_setup(dev);
             break;
 
             case 0x2c ... 0x2f:
@@ -542,7 +588,9 @@ intel_ich2_write(int func, int addr, uint8_t val, void *priv)
 
             case 0x40 ... 0x43:
                 dev->pci_conf[func][addr] = val & ((addr & 1) ? 0xf3 : 0xff);
-                intel_ich2_ide_setup(dev);
+
+                if((addr == 0x41) || (addr == 0x43))
+                    intel_ich2_ide_setup(dev);
             break;
 
             case 0x44:
@@ -608,8 +656,9 @@ intel_ich2_write(int func, int addr, uint8_t val, void *priv)
             break;
 
             case 0x3c:
-                dev->pci_conf[func][addr] = val;
-                smbus_piix4_get_irq(val, dev->smbus);
+                dev->pci_conf[func][addr] = val;                       /* 86Box doesn't give any capabilities to take the PCI IRQ pin, also */
+                smbus_piix4_get_irq(pci_get_int(0x1f, 2), dev->smbus); /* can't use pointers as whatever recieved from there is temporary.  */
+                intel_ich2_log("Intel ICH2 SMBus: Got IRQ %d\n", pci_get_int(0x1f, 2));
             break;
 
             case 0x40:
@@ -821,7 +870,6 @@ static void
 intel_ich2_close(void *priv)
 {
     intel_ich2_t *dev = (intel_ich2_t *)priv;
-
     free(dev);
 }
 
