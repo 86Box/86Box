@@ -314,7 +314,7 @@ sb_get_buffer_sbpro(int32_t *buffer, int len, void *p)
 
     if (sb->opl_enabled) {
         sb->opl.reset_buffer(sb->opl.priv);
-        if (sb->dsp.sb_type != SBPRO)
+        if (sb->dsp.sb_type == SBPRO)
             sb->opl2.reset_buffer(sb->opl2.priv);
     }
 
@@ -2749,6 +2749,17 @@ static const device_config_t sb_pro_config[] = {
     { .name = "", .description = "", .type = CONFIG_END }
 };
 
+static const device_config_t sb_pro_mcv_config[] = {
+    {
+        .name = "receive_input",
+        .description = "Receive input (SB MIDI)",
+        .type = CONFIG_BINARY,
+        .default_string = "",
+        .default_int = 1
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+};
+
 static const device_config_t sb_16_config[] = {
     {
         .name = "base",
@@ -3523,7 +3534,7 @@ const device_t sb_pro_mcv_device = {
     { .available = NULL },
     .speed_changed = sb_speed_changed,
     .force_redraw  = NULL,
-    .config        = NULL
+    .config        = sb_pro_mcv_config
 };
 
 const device_t sb_pro_compat_device = {

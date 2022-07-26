@@ -46,6 +46,7 @@
 #define BIOS_GD5420_PATH		"roms/video/cirruslogic/5420.vbi"
 #define BIOS_GD5422_PATH		"roms/video/cirruslogic/cl5422.bin"
 #define BIOS_GD5426_DIAMOND_A1_ISA_PATH	"roms/video/cirruslogic/diamond5426.vbi"
+#define BIOS_GD5426_MCA_PATH		"roms/video/cirruslogic/Reply.BIN"
 #define BIOS_GD5428_DIAMOND_B1_VLB_PATH	"roms/video/cirruslogic/Diamond SpeedStar PRO VLB v3.04.bin"
 #define BIOS_GD5428_ISA_PATH		"roms/video/cirruslogic/5428.bin"
 #define BIOS_GD5428_MCA_PATH		"roms/video/cirruslogic/SVGA141.ROM"
@@ -3902,6 +3903,8 @@ static void
 			else {
 				if (gd54xx->vlb)
 					romfn = BIOS_GD5428_PATH;
+				else if (gd54xx->mca)
+					romfn = BIOS_GD5426_MCA_PATH;
 				else
 					romfn = BIOS_GD5428_ISA_PATH;
 			}
@@ -4115,8 +4118,8 @@ static void
 	gd54xx->unlocked = 1;
 
     if (gd54xx->mca) {
-	gd54xx->pos_regs[0] = 0x7b;
-	gd54xx->pos_regs[1] = 0x91;
+	gd54xx->pos_regs[0] = svga->crtc[0x27] == CIRRUS_ID_CLGD5426 ? 0x82 : 0x7b;
+	gd54xx->pos_regs[1] = svga->crtc[0x27] == CIRRUS_ID_CLGD5426 ? 0x81 : 0x91;
 	mca_add(gd5428_mca_read, gd5428_mca_write, gd5428_mca_feedb, NULL, gd54xx);
 	io_sethandler(0x46e8, 0x0001, gd54xx_in, NULL, NULL, gd54xx_out, NULL, NULL, gd54xx);
     }
@@ -4182,6 +4185,12 @@ static int
 gd5428_isa_available(void)
 {
     return rom_present(BIOS_GD5428_ISA_PATH);
+}
+
+static int
+gd5426_mca_available(void)
+{
+    return rom_present(BIOS_GD5426_MCA_PATH);
 }
 
 static int
@@ -4697,6 +4706,20 @@ const device_t gd5428_mca_device = {
     .speed_changed = gd54xx_speed_changed,
     .force_redraw = gd54xx_force_redraw,
     .config = NULL
+};
+
+const device_t gd5426_mca_device = {
+    .name = "Cirrus Logic GD5426 (MCA) (Reply Video Adapter)",
+    .internal_name = "replymcasvga",
+    .flags = DEVICE_MCA,
+    .local = CIRRUS_ID_CLGD5426,
+    .init = gd54xx_init,
+    .close = gd54xx_close,
+    .reset = gd54xx_reset,
+    { .available = gd5426_mca_available },
+    .speed_changed = gd54xx_speed_changed,
+    .force_redraw = gd54xx_force_redraw,
+    .config = gd5426_config
 };
 
 const device_t gd5428_onboard_device = {
