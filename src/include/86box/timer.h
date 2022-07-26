@@ -56,6 +56,10 @@ typedef struct pc_timer_t
     struct	pc_timer_t *prev, *next;
 } pc_timer_t;
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /*Timestamp of nearest enabled timer. CPU emulation must call timer_process()
   when TSC matches or exceeds this.*/
 extern uint32_t	timer_target;
@@ -236,5 +240,9 @@ timer_process_inline(void)
 
     timer_target = timer_head->ts.ts32.integer;
 }
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /*_TIMER_H_*/
