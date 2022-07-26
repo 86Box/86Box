@@ -372,11 +372,13 @@ esp_get_cmd(esp_t *dev, uint32_t maxlen)
 	if (dmalen == 0)
 	    return 0;
 	if (dev->mca) {
+        dma_set_drq(dev->DmaChannel, 1);
 		while (dev->dma_86c01.pos < dmalen) {
 			int val = dma_channel_read(dev->DmaChannel);
 			buf[dev->dma_86c01.pos++] = val & 0xff;
 		}
 		dev->dma_86c01.pos = 0;
+        dma_set_drq(dev->DmaChannel, 0);
 	} else {
 		esp_pci_dma_memory_rw(dev, buf, dmalen, WRITE_TO_DEVICE);
 		dmalen = MIN(fifo8_num_free(&dev->cmdfifo), dmalen);
@@ -677,11 +679,13 @@ esp_do_dma(esp_t *dev, scsi_device_t *sd)
 	esp_log("ESP Command on DMA\n");
 	count = MIN(count, fifo8_num_free(&dev->cmdfifo));
 	if (dev->mca) {
+        dma_set_drq(dev->DmaChannel, 1);
 		while (dev->dma_86c01.pos < count) {
 			dma_channel_write(dev->DmaChannel, buf[dev->dma_86c01.pos]);
 			dev->dma_86c01.pos++;
 		}
 		dev->dma_86c01.pos = 0;
+        dma_set_drq(dev->DmaChannel, 0);
 	} else
 		esp_pci_dma_memory_rw(dev, buf, count, READ_FROM_DEVICE);
 	fifo8_push_all(&dev->cmdfifo, buf, count);
@@ -719,24 +723,28 @@ esp_do_dma(esp_t *dev, scsi_device_t *sd)
     if (sd->phase == SCSI_PHASE_DATA_IN) {
 	esp_log("ESP SCSI Read, dma cnt = %i, ti size = %i, positive len = %i\n", esp_get_tc(dev), dev->ti_size, count);
 	if (dev->mca) {
+        dma_set_drq(dev->DmaChannel, 1);
 		while (dev->dma_86c01.pos < count) {
 			dma_channel_write(dev->DmaChannel, sd->sc->temp_buffer[dev->buffer_pos + dev->dma_86c01.pos]);
 			esp_log("ESP SCSI DMA read for 53C90: pos = %i, val = %02x\n", dev->dma_86c01.pos, sd->sc->temp_buffer[dev->buffer_pos + dev->dma_86c01.pos]);
 			dev->dma_86c01.pos++;
 		}
 		dev->dma_86c01.pos = 0;
+        dma_set_drq(dev->DmaChannel, 0);
 	} else {
 		esp_pci_dma_memory_rw(dev, sd->sc->temp_buffer + dev->buffer_pos, count, READ_FROM_DEVICE);
 	}
     } else if (sd->phase == SCSI_PHASE_DATA_OUT) {
 	esp_log("ESP SCSI Write, negative len = %i, ti size = %i, dma cnt = %i\n", count, -dev->ti_size, esp_get_tc(dev));
 	if (dev->mca) {
+        dma_set_drq(dev->DmaChannel, 1);
 		while (dev->dma_86c01.pos < count) {
 			int val = dma_channel_read(dev->DmaChannel);
 			esp_log("ESP SCSI DMA write for 53C90: pos = %i, val = %02x\n", dev->dma_86c01.pos, val & 0xff);
 			sd->sc->temp_buffer[dev->buffer_pos + dev->dma_86c01.pos] = val & 0xff;
 			dev->dma_86c01.pos++;
 		}
+        dma_set_drq(dev->DmaChannel, 0);
 		dev->dma_86c01.pos = 0;
 	} else
 		esp_pci_dma_memory_rw(dev, sd->sc->temp_buffer + dev->buffer_pos, count, WRITE_TO_DEVICE);
@@ -922,11 +930,13 @@ esp_write_response(esp_t *dev)
 
     if (dev->dma) {
 	if (dev->mca) {
+        dma_set_drq(dev->DmaChannel, 1);
 		while (dev->dma_86c01.pos < 2) {
 			int val = dma_channel_read(dev->DmaChannel);
 			buf[dev->dma_86c01.pos++] = val & 0xff;
 		}
 		dev->dma_86c01.pos = 0;
+		dma_set_drq(dev->DmaChannel, 0);
 	} else
 		esp_pci_dma_memory_rw(dev, buf, 2, WRITE_TO_DEVICE);
 	dev->rregs[ESP_RSTAT] = STAT_TC | STAT_ST;
