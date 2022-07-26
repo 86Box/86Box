@@ -21,6 +21,7 @@
 #include "ymfm/ymfm_opl.h"
 
 extern "C" {
+#include <86box/86box.h>
 #include <86box/timer.h>
 #include <86box/device.h>
 #include <86box/sound.h>
@@ -81,6 +82,9 @@ public:
         memset(m_oldsamples, 0, sizeof(m_oldsamples));
         m_rateratio = (samplerate << RSM_FRAC) / m_chip.sample_rate(m_clock);
         m_clock_us  = 1000000 / (double) m_clock;
+        m_subtract[0] = 80.0;
+        m_subtract[1] = 320.0;
+        m_type = type;
 
         timer_add(&m_timers[0], YMFMChip::timer1, this, 0);
         timer_add(&m_timers[1], YMFMChip::timer2, this, 0);
@@ -97,11 +101,14 @@ public:
             return;
 
         pc_timer_t *timer = &m_timers[tnum];
-        if (duration_in_clocks < 0) {
+        if (duration_in_clocks < 0)
             timer_stop(timer);
-        } else {
+        else {
             double period = m_clock_us * duration_in_clocks;
-            timer_on_auto(timer, period);
+            if (period < m_subtract[tnum])
+                m_engine->engine_timer_expired(tnum);
+            else
+                timer_on_auto(timer, period);
         }
     }
 
@@ -172,6 +179,11 @@ virtual void generate_resampled(int32_t *data, uint32_t num_samples) override
         return m_chip.read(addr);
     }
 
+    virtual uint32_t get_special_flags(void) override
+    {
+        return ((m_type == FM_YMF262) || (m_type == FM_YMF289B)) ? 0x8000 : 0x0000;
+    }
+
     static void timer1(void *priv)
     {
         YMFMChip<ChipType> *drv = (YMFMChip<ChipType> *) priv;
@@ -187,7 +199,7 @@ virtual void generate_resampled(int32_t *data, uint32_t num_samples) override
 private:
     ChipType   m_chip;
     uint32_t   m_clock;
-    double     m_clock_us;
+    double     m_clock_us, m_subtract[2];
     typename ChipType::output_data m_output;
     pc_timer_t m_timers[2];
 

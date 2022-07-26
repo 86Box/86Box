@@ -148,6 +148,7 @@ video_cards[] = {
     { &vga_device                                    },
     { &v7_vga_1024i_device                           },
     { &wy700_device                                  },
+    { &gd5426_mca_device                             },
     { &gd5428_mca_device                             },
     { &et4000_mca_device                             },
     { &radius_svga_multiview_mca_device              },

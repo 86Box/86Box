@@ -543,6 +543,8 @@ public:
 	// noted busy end time and return true if we haven't yet passed it
 	virtual bool ymfm_is_busy() { return false; }
 
+	virtual uint32_t get_special_flags(void) { return 0x0000; }
+
 	//
 	// I/O functions
 	//
