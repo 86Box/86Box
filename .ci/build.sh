@@ -748,7 +748,7 @@ else
 		cp "$(which cp)" "build/src/$project.exe"
 	elif is_mac
 	then
-		# Special check during app bundle generation.
+		: # Special check during app bundle generation.
 	else
 		cp "$(which cp)" "build/src/$project"
 	fi
