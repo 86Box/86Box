@@ -1472,11 +1472,14 @@ void fm_engine_base<RegisterType>::assign_operators()
 template<class RegisterType>
 void fm_engine_base<RegisterType>::update_timer(uint32_t tnum, uint32_t enable, int32_t delta_clocks)
 {
+	uint32_t subtract = !!(tnum >> 15);
+	tnum &= 0x7fff;
+
 	// if the timer is live, but not currently enabled, set the timer
 	if (enable && !m_timer_running[tnum])
 	{
 		// period comes from the registers, and is different for each
-		uint32_t period = (tnum == 0) ? (1024 - m_regs.timer_a_value()) : 16 * (256 - m_regs.timer_b_value());
+		uint32_t period = (tnum == 0) ? (1024 - subtract - m_regs.timer_a_value()) : 16 * (256 - subtract - m_regs.timer_b_value());
 
 		// caller can also specify a delta to account for other effects
 		period += delta_clocks;
@@ -1581,8 +1584,11 @@ void fm_engine_base<RegisterType>::engine_mode_write(uint8_t data)
 		// load timers; note that timer B gets a small negative adjustment because
 		// the *16 multiplier is free-running, so the first tick of the clock
 		// is a bit shorter
-		update_timer(1, m_regs.load_timer_b(), -(m_total_clocks & 15));
-		update_timer(0, m_regs.load_timer_a(), 0);
+		// OPL3 begins counting immediately instead of after the first period is over.
+		// We use bit 15 of the timer number on those chips to inform that this was a
+		// control register write, and to therefore, subtract 1 counting cycle.
+		update_timer(1 | m_intf.get_special_flags(), m_regs.load_timer_b(), -(m_total_clocks & 15));
+		update_timer(0 | m_intf.get_special_flags(), m_regs.load_timer_a(), 0);
 	}
 }
 
