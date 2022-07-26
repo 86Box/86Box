@@ -63,6 +63,7 @@
 #include <86box/sound.h>
 #include <86box/midi.h>
 #include <86box/snd_mpu401.h>
+#include <86box/snd_opl.h>
 #include <86box/video.h>
 #include <86box/vid_xga_device.h>
 #include <86box/plat.h>
@@ -94,7 +95,7 @@ static int temp_mouse, temp_joystick;
 
 /* Sound category */
 static int temp_sound_card, temp_midi_output_device, temp_midi_input_device, temp_mpu401, temp_SSI2001, temp_GAMEBLASTER, temp_GUS;
-static int temp_float;
+static int temp_float, temp_fm_driver;
 
 /* Network category */
 static int temp_net_type, temp_net_card;
@@ -350,6 +351,7 @@ win_settings_init(void)
     temp_GAMEBLASTER = GAMEBLASTER;
     temp_GUS = GUS;
     temp_float = sound_is_float;
+    temp_fm_driver = fm_driver;
 
     /* Network category */
     temp_net_type = network_type;
@@ -476,6 +478,7 @@ win_settings_changed(void)
     i = i || (GAMEBLASTER != temp_GAMEBLASTER);
     i = i || (GUS != temp_GUS);
     i = i || (sound_is_float != temp_float);
+    i = i || (fm_driver != temp_fm_driver);
 
     /* Network category */
     i = i || (network_type != temp_net_type);
@@ -568,6 +571,7 @@ win_settings_save(void)
     GAMEBLASTER = temp_GAMEBLASTER;
     GUS = temp_GUS;
     sound_is_float = temp_float;
+    fm_driver = temp_fm_driver;
 
     /* Network category */
     network_type = temp_net_type;
@@ -1421,6 +1425,11 @@ win_settings_sound_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 		settings_enable_window(hdlg, IDC_CONFIGURE_SSI, machine_has_bus(temp_machine, MACHINE_BUS_ISA) && temp_SSI2001);
 		settings_set_check(hdlg, IDC_CHECK_FLOAT, temp_float);
 
+		if (temp_fm_driver == FM_DRV_YMFM)
+			settings_set_check(hdlg, IDC_RADIO_FM_DRV_YMFM, BST_CHECKED);
+		else
+			settings_set_check(hdlg, IDC_RADIO_FM_DRV_NUKED, BST_CHECKED);
+
 		free(lptsTemp);
 
 		return TRUE;
@@ -1517,7 +1526,10 @@ win_settings_sound_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 		temp_GUS = settings_get_check(hdlg, IDC_CHECK_GUS);
 		temp_SSI2001 = settings_get_check(hdlg, IDC_CHECK_SSI);
 		temp_float = settings_get_check(hdlg, IDC_CHECK_FLOAT);
-
+		if (settings_get_check(hdlg, IDC_RADIO_FM_DRV_NUKED))
+			temp_fm_driver = FM_DRV_NUKED;
+		if (settings_get_check(hdlg, IDC_RADIO_FM_DRV_YMFM))
+			temp_fm_driver = FM_DRV_YMFM;
 	default:
 		return FALSE;
     }

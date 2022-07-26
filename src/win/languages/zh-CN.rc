@@ -289,6 +289,9 @@ END
 #define STR_CMS			"CMS / Game Blaster"
 #define STR_GUS			"Gravis Ultrasound"
 #define STR_FLOAT		"使用单精度浮点 (FLOAT32)"
+#define STR_FM_DRIVER		"FM synth driver"
+#define STR_FM_DRV_NUKED	"Nuked (more accurate)"
+#define STR_FM_DRV_YMFM		"YMFM (faster)"
 
 #define STR_NET_TYPE		"网络类型:"
 #define STR_PCAP		"PCap 设备:"
