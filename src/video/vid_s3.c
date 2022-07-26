@@ -107,7 +107,8 @@ enum
 	S3_MIROCRYSTAL8S_805,
 	S3_NUMBER9_9FX_531,
 	S3_NUMBER9_9FX_771,
-	S3_SPEA_MERCURY_LITE_PCI
+	S3_SPEA_MERCURY_LITE_PCI,
+	S3_86C805_ONBOARD
 };
 
 
@@ -6803,6 +6804,11 @@ static void *s3_init(const device_t *info)
 			chip = S3_86C801;
 			video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_86c801);
 			break;
+		case S3_86C805_ONBOARD:
+			bios_fn = NULL;
+			chip = S3_86C805;
+			video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_86c805);
+			break;
 		case S3_SPEA_MIRAGE_86C805:
 			bios_fn = ROM_SPEA_MIRAGE_86C805;
 			chip = S3_86C805;
@@ -7200,6 +7206,20 @@ static void *s3_init(const device_t *info)
 
 		case S3_SPEA_MIRAGE_86C801:
 		case S3_SPEA_MIRAGE_86C805:
+			svga->decode_mask = (2 << 20) - 1;
+			stepping = 0xa0; /*86C801/86C805*/
+			s3->id = stepping;
+			s3->id_ext = stepping;
+			s3->id_ext_pci = 0;
+			s3->packed_mmio = 0;
+			svga->crtc[0x5a] = 0x0a;
+
+			svga->ramdac = device_add(&att490_ramdac_device);
+			svga->clock_gen = device_add(&av9194_device);
+			svga->getclock = av9194_getclock;
+			break;
+
+		case S3_86C805_ONBOARD:
 			svga->decode_mask = (2 << 20) - 1;
 			stepping = 0xa0; /*86C801/86C805*/
 			s3->id = stepping;
@@ -7813,6 +7833,20 @@ const device_t s3_spea_mirage_86c801_isa_device = {
     .close = s3_close,
     .reset = s3_reset,
     { .available = s3_spea_mirage_86c801_available },
+    .speed_changed = s3_speed_changed,
+    .force_redraw = s3_force_redraw,
+    .config = s3_9fx_config
+};
+
+const device_t s3_86c805_onboard_vlb_device = {
+    .name = "S3 86c805 VLB On-Board",
+    .internal_name = "px_s3_805_onboard_vlb",
+    .flags = DEVICE_VLB,
+    .local = S3_86C805_ONBOARD,
+    .init = s3_init,
+    .close = s3_close,
+    .reset = s3_reset,
+    { .available = NULL },
     .speed_changed = s3_speed_changed,
     .force_redraw = s3_force_redraw,
     .config = s3_9fx_config
