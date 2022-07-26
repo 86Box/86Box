@@ -314,7 +314,7 @@ sb_get_buffer_sbpro(int32_t *buffer, int len, void *p)
 
     if (sb->opl_enabled) {
         sb->opl.reset_buffer(sb->opl.priv);
-        if (sb->dsp.sb_type != SBPRO)
+        if (sb->dsp.sb_type == SBPRO)
             sb->opl2.reset_buffer(sb->opl2.priv);
     }
 
