@@ -162,18 +162,18 @@
      <property name="title">
       <string>FM synth driver</string>
      </property>
-     <layout class="QHBoxLayout" name="horizontalLayout_1">
+     <layout class="QVBoxLayout" name="verticalLayout_1">
       <item>
        <widget class="QRadioButton" name="radioButtonNuked">
         <property name="text">
-         <string>Nuked</string>
+         <string>Nuked (more accurate)</string>
         </property>
        </widget>
       </item>
       <item>
        <widget class="QRadioButton" name="radioButtonYMFM">
         <property name="text">
-         <string>YMFM</string>
+         <string>YMFM (faster)</string>
         </property>
        </widget>
       </item>
