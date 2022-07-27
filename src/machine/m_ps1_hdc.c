@@ -101,10 +101,8 @@
 #include <86box/ui.h>
 #include <86box/machine.h>
 
-
-#define HDC_TIME	(50*TIMER_USEC)
-#define HDC_TYPE_USER	47			/* user drive type */
-
+#define HDC_TIME      (50 * TIMER_USEC)
+#define HDC_TYPE_USER 47 /* user drive type */
 
 enum {
     STATE_IDLE = 0,
@@ -118,45 +116,43 @@ enum {
     STATE_FDONE
 };
 
-
 /* Command values. These deviate from the XTA ones. */
-#define CMD_READ_SECTORS	0x01		/* regular read-date */
-#define CMD_READ_VERIFY		0x02		/* read for verify, no data */
-#define CMD_READ_EXT		0x03		/* read extended (ecc) */
-#define CMD_READ_ID		0x05		/* read ID mark on cyl */
-#define CMD_RECALIBRATE		0x08		/* recalibrate to track0 */
-#define CMD_WRITE_SECTORS	0x09		/* regular write-data */
-#define CMD_WRITE_VERIFY	0x0a		/* write-data with verify */
-#define CMD_WRITE_EXT		0x0b		/* write extended (ecc) */
-#define CMD_FORMAT_DRIVE	0x0d		/* format entire disk */
-#define CMD_SEEK		0x0e		/* seek */
-#define CMD_FORMAT_TRACK	0x0f		/* format one track */
+#define CMD_READ_SECTORS  0x01 /* regular read-date */
+#define CMD_READ_VERIFY   0x02 /* read for verify, no data */
+#define CMD_READ_EXT      0x03 /* read extended (ecc) */
+#define CMD_READ_ID       0x05 /* read ID mark on cyl */
+#define CMD_RECALIBRATE   0x08 /* recalibrate to track0 */
+#define CMD_WRITE_SECTORS 0x09 /* regular write-data */
+#define CMD_WRITE_VERIFY  0x0a /* write-data with verify */
+#define CMD_WRITE_EXT     0x0b /* write extended (ecc) */
+#define CMD_FORMAT_DRIVE  0x0d /* format entire disk */
+#define CMD_SEEK          0x0e /* seek */
+#define CMD_FORMAT_TRACK  0x0f /* format one track */
 
 /* Attachment Status register (reg 2R) values (IBM PS/1 2011.) */
-#define ASR_TX_EN		0x01		/* transfer enable */
-#define ASR_INT_REQ		0x02		/* interrupt request */
-#define ASR_BUSY		0x04		/* busy */
-#define ASR_DIR			0x08		/* direction */
-#define ASR_DATA_REQ		0x10		/* data request */
+#define ASR_TX_EN    0x01 /* transfer enable */
+#define ASR_INT_REQ  0x02 /* interrupt request */
+#define ASR_BUSY     0x04 /* busy */
+#define ASR_DIR      0x08 /* direction */
+#define ASR_DATA_REQ 0x10 /* data request */
 
 /* Attachment Control register (2W) values (IBM PS/1 2011.) */
-#define ACR_DMA_EN		0x01		/* DMA enable */
-#define ACR_INT_EN		0x02		/* interrupt enable */
-#define ACR_RESET		0x80		/* reset */
+#define ACR_DMA_EN 0x01 /* DMA enable */
+#define ACR_INT_EN 0x02 /* interrupt enable */
+#define ACR_RESET  0x80 /* reset */
 
 /* Interrupt Status register (4R) values (IBM PS/1 2011.) */
-#define ISR_EQUIP_CHECK		0x01		/* internal hardware error */
-#define ISR_ERP_INVOKED		0x02		/* error recovery invoked */
-#define ISR_CMD_REJECT		0x20		/* command reject */
-#define ISR_INVALID_CMD		0x40		/* invalid command */
-#define ISR_TERMINATION		0x80		/* termination error */
+#define ISR_EQUIP_CHECK 0x01 /* internal hardware error */
+#define ISR_ERP_INVOKED 0x02 /* error recovery invoked */
+#define ISR_CMD_REJECT  0x20 /* command reject */
+#define ISR_INVALID_CMD 0x40 /* invalid command */
+#define ISR_TERMINATION 0x80 /* termination error */
 
 /* Attention register (4W) values (IBM PS/1 2011.) */
-#define ATT_DATA		0x10		/* data request */
-#define ATT_SSB			0x20		/* sense summary block */
-#define ATT_CSB			0x40		/* command specify block */
-#define ATT_CCB			0x80		/* command control block */
-
+#define ATT_DATA 0x10 /* data request */
+#define ATT_SSB  0x20 /* sense summary block */
+#define ATT_CSB  0x40 /* command specify block */
+#define ATT_CCB  0x80 /* command control block */
 
 /*
  * Define the Sense Summary Block.
@@ -166,59 +162,59 @@ enum {
  * each command is completed, after an error, or before the
  * block is transferred.
  */
-#pragma pack(push,1)
+#pragma pack(push, 1)
 typedef struct {
     /* Status byte 0. */
-    uint8_t	track_0		:1,		/* T0			*/
-		mbz1		:1,		/* 0			*/
-		mbz2		:1,		/* 0			*/
-		cylinder_err	:1,		/* CE			*/
-		write_fault	:1,		/* WF			*/
-		mbz3		:1,		/* 0			*/
-		seek_end	:1,		/* SE			*/
-		not_ready	:1;		/* NR			*/
+    uint8_t track_0  : 1, /* T0			*/
+        mbz1         : 1, /* 0			*/
+        mbz2         : 1, /* 0			*/
+        cylinder_err : 1, /* CE			*/
+        write_fault  : 1, /* WF			*/
+        mbz3         : 1, /* 0			*/
+        seek_end     : 1, /* SE			*/
+        not_ready    : 1; /* NR			*/
 
     /* Status byte 1. */
-    uint8_t	id_not_found	:1,		/* ID			*/
-		mbz4		:1,		/* 0			*/
-		mbz5		:1,		/* 0			*/
-		wrong_cyl	:1,		/* WC			*/
-		all_bit_set	:1,		/* BT			*/
-		mark_not_found	:1,		/* AM			*/
-		ecc_crc_err	:1,		/* ET			*/
-		ecc_crc_field	:1;		/* EF			*/
+    uint8_t id_not_found : 1, /* ID			*/
+        mbz4             : 1, /* 0			*/
+        mbz5             : 1, /* 0			*/
+        wrong_cyl        : 1, /* WC			*/
+        all_bit_set      : 1, /* BT			*/
+        mark_not_found   : 1, /* AM			*/
+        ecc_crc_err      : 1, /* ET			*/
+        ecc_crc_field    : 1; /* EF			*/
 
     /* Status byte 2. */
-    uint8_t	headsel_state	:4,		/* headsel state[4]	*/
-		defective_sector:1,		/* DS			*/
-		retried_ok	:1,		/* RG			*/
-		need_reset	:1,		/* RR			*/
+    uint8_t headsel_state : 4, /* headsel state[4]	*/
+        defective_sector  : 1, /* DS			*/
+        retried_ok        : 1, /* RG			*/
+        need_reset        : 1, /* RR			*/
 #if 1
-		valid		:1;		/* 0 (abused as VALID)	*/
+        valid : 1; /* 0 (abused as VALID)	*/
 #else
-		mbz6		:1;		/* 0			*/
+        mbz6 : 1; /* 0			*/
 #endif
 
     /* Most recent ID field seen. */
-    uint8_t	last_cyl_low;			/* Cyl_Low[8]		*/
-    uint8_t	last_head	:4,		/* HD[4]		*/
-		mbz7		:1,		/* 0			*/
-		last_cyl_high	:2,		/* Cyl_high[2]		*/
-		last_def_sect	:1;		/* DS			*/
-    uint8_t	last_sect;			/* Sect[8]		*/
+    uint8_t last_cyl_low;  /* Cyl_Low[8]		*/
+    uint8_t last_head : 4, /* HD[4]		*/
+        mbz7          : 1, /* 0			*/
+        last_cyl_high : 2, /* Cyl_high[2]		*/
+        last_def_sect : 1; /* DS			*/
+    uint8_t last_sect;     /* Sect[8]		*/
 
-    uint8_t	sect_size;			/* Size[8] = 02		*/
+    uint8_t sect_size; /* Size[8] = 02		*/
 
     /* Current position. */
-    uint8_t	curr_cyl_high	:2,		/* Cyl_High_[2]		*/
-		mbz8		:1,		/* 0			*/
-		mbz9		:1,		/* 0			*/
-		curr_head	:4;		/* HD_2[4]		*/
-    uint8_t	curr_cyl_low;			/* Cyl_Low_2[8]		*/
+    uint8_t curr_cyl_high : 2, /* Cyl_High_[2]		*/
+        mbz8              : 1, /* 0			*/
+        mbz9              : 1, /* 0			*/
+        curr_head         : 4; /* HD_2[4]		*/
+    uint8_t curr_cyl_low;      /* Cyl_Low_2[8]		*/
 
-    uint8_t	sect_corr;			/* sectors corrected	*/
+    uint8_t sect_corr; /* sectors corrected	*/
 
-    uint8_t	retries;			/* retries		*/
+    uint8_t retries; /* retries		*/
 
     /*
      * This byte shows the progress of the controller through the
@@ -253,11 +249,11 @@ typedef struct {
      * 4.  When the transfer is complete, the low nibble equals hex 4
      *     and the high nibble is unchanged.
      */
-    uint8_t	cmd_syndrome;			/* command syndrome	*/
+    uint8_t cmd_syndrome; /* command syndrome	*/
 
-    uint8_t	drive_type;			/* drive type		*/
+    uint8_t drive_type; /* drive type		*/
 
-    uint8_t	rsvd;				/* reserved byte	*/
+    uint8_t rsvd; /* reserved byte	*/
 } ssb_t;
 #pragma pack(pop)
 
@@ -295,22 +291,22 @@ typedef struct {
  * being formatted, an additional byte is sent with all
  * bits 0.
  */
-#pragma pack(push,1)
+#pragma pack(push, 1)
 typedef struct {
-    uint8_t	cyl_high	:2,		/* cylinder [9:8] bits	*/
-		defective_sector:1,		/* DS			*/
-		mbz1		:1,		/* 0			*/
-		head		:4;		/* head number		*/
+    uint8_t cyl_high     : 2, /* cylinder [9:8] bits	*/
+        defective_sector : 1, /* DS			*/
+        mbz1             : 1, /* 0			*/
+        head             : 4; /* head number		*/
 
-    uint8_t	cyl_low;			/* cylinder [7:0] bits	*/
+    uint8_t cyl_low; /* cylinder [7:0] bits	*/
 
-    uint8_t	sector;				/* sector number	*/
+    uint8_t sector; /* sector number	*/
 
-    uint8_t	mbz2		:1,		/* 0			*/
-		mbo		:1,		/* 1			*/
-		mbz3		:6;		/* 000000		*/
+    uint8_t mbz2 : 1, /* 0			*/
+        mbo      : 1, /* 1			*/
+        mbz3     : 6; /* 000000		*/
 
-    uint8_t	fill;				/* filler byte		*/
+    uint8_t fill; /* filler byte		*/
 } fcb_t;
 #pragma pack(pop)
 
@@ -321,96 +317,94 @@ typedef struct {
  * command control block to the controller. It can be sent
  * through a DMA or PIO operation.
  */
-#pragma pack(push,1)
+#pragma pack(push, 1)
 typedef struct {
-    uint8_t	ec_p		:1,		/* EC/P (ecc/park)	*/
-		mbz1		:1,		/* 0			*/
-		auto_seek	:1,		/* AS (auto-seek)	*/
-		no_data		:1,		/* ND (no data)		*/
-		cmd		:4;		/* command code[4]	*/
+    uint8_t ec_p     : 1, /* EC/P (ecc/park)	*/
+        mbz1         : 1, /* 0			*/
+        auto_seek    : 1, /* AS (auto-seek)	*/
+        no_data      : 1, /* ND (no data)		*/
+        cmd          : 4; /* command code[4]	*/
 
-    uint8_t	cyl_high	:2,		/* cylinder [9:8] bits	*/
-		mbz2		:2,		/* 00			*/
-		head		:4;		/* head number		*/
+    uint8_t cyl_high : 2, /* cylinder [9:8] bits	*/
+        mbz2         : 2, /* 00			*/
+        head         : 4; /* head number		*/
 
-    uint8_t	cyl_low;			/* cylinder [7:0] bits	*/
+    uint8_t cyl_low; /* cylinder [7:0] bits	*/
 
-    uint8_t	sector;				/* sector number	*/
+    uint8_t sector; /* sector number	*/
 
-    uint8_t	mbz3		:1,		/* 0			*/
-		mbo1		:1,		/* 1			*/
-		mbz4		:6;		/* 000000		*/
+    uint8_t mbz3 : 1, /* 0			*/
+        mbo1     : 1, /* 1			*/
+        mbz4     : 6; /* 000000		*/
 
-    uint8_t	count;				/* blk count/interleave	*/
+    uint8_t count; /* blk count/interleave	*/
 } ccb_t;
 #pragma pack(pop)
 
 /* Define the hard drive geometry table. */
 typedef struct {
-    uint16_t	cyl;
-    uint8_t	hpc;
-    uint8_t	spt;
-    int16_t	wpc;
-    int16_t	lz;
+    uint16_t cyl;
+    uint8_t  hpc;
+    uint8_t  spt;
+    int16_t  wpc;
+    int16_t  lz;
 } geom_t;
 
 /* Define an attached drive. */
 typedef struct {
-    int8_t	id,			/* drive ID on bus */
-		present,		/* drive is present */
-		hdd_num,		/* index to global disk table */
-		type;			/* drive type ID */
+    int8_t id,   /* drive ID on bus */
+        present, /* drive is present */
+        hdd_num, /* index to global disk table */
+        type;    /* drive type ID */
 
-    uint16_t	cur_cyl;		/* last known position of heads */
+    uint16_t cur_cyl; /* last known position of heads */
 
-    uint8_t	spt,			/* active drive parameters */
-		hpc;
-    uint16_t	tracks;
+    uint8_t spt, /* active drive parameters */
+        hpc;
+    uint16_t tracks;
 
-    uint8_t	cfg_spt,		/* configured drive parameters */
-		cfg_hpc;
-    uint16_t	cfg_tracks;
+    uint8_t cfg_spt, /* configured drive parameters */
+        cfg_hpc;
+    uint16_t cfg_tracks;
 } drive_t;
 
-
 typedef struct {
-    uint16_t	base;			/* controller base I/O address */
-    int8_t	irq;			/* controller IRQ channel */
-    int8_t	dma;			/* controller DMA channel */
+    uint16_t base; /* controller base I/O address */
+    int8_t   irq;  /* controller IRQ channel */
+    int8_t   dma;  /* controller DMA channel */
 
     /* Registers. */
-    uint8_t	attn,			/* ATTENTION register */
-		ctrl,			/* Control register (ACR) */
-		status,			/* Status register (ASR) */
-		intstat;		/* Interrupt Status register (ISR) */
+    uint8_t attn, /* ATTENTION register */
+        ctrl,     /* Control register (ACR) */
+        status,   /* Status register (ASR) */
+        intstat;  /* Interrupt Status register (ISR) */
 
-    uint8_t	*reg_91;		/* handle to system board's register 0x91 */
+    uint8_t *reg_91; /* handle to system board's register 0x91 */
 
     /* Controller state. */
-    uint64_t	callback;
-	pc_timer_t timer;
-    int8_t	state,			/* controller state */
-		reset;			/* reset state counter */
+    uint64_t   callback;
+    pc_timer_t timer;
+    int8_t     state, /* controller state */
+        reset;        /* reset state counter */
 
     /* Data transfer. */
-    int16_t	buf_idx,		/* buffer index and pointer */
-		buf_len;
-    uint8_t	*buf_ptr;
+    int16_t buf_idx, /* buffer index and pointer */
+        buf_len;
+    uint8_t *buf_ptr;
 
     /* Current operation parameters. */
-    ssb_t	ssb;			/* sense block */
-    ccb_t	ccb;			/* command control block */
-    uint16_t	track;			/* requested track# */
-    uint8_t	head,			/* requested head# */
-		sector;			/* requested sector# */
-    int		count;			/* requested sector count */
+    ssb_t    ssb;   /* sense block */
+    ccb_t    ccb;   /* command control block */
+    uint16_t track; /* requested track# */
+    uint8_t  head,  /* requested head# */
+        sector;     /* requested sector# */
+    int count;      /* requested sector count */
 
-    drive_t	drives[XTA_NUM];	/* the attached drive(s) */
+    drive_t drives[XTA_NUM]; /* the attached drive(s) */
 
-    uint8_t	data[512];		/* data buffer */
-    uint8_t	sector_buf[512];	/* sector buffer */
+    uint8_t data[512];       /* data buffer */
+    uint8_t sector_buf[512]; /* sector buffer */
 } hdc_t;
-
 
 /*
  * IBM hard drive types 1-44.
@@ -422,6 +416,7 @@ typedef struct {
  *                                p-comp  Zone
  */
 static const geom_t ibm_type_table[] = {
+  // clang-format off
     {    0,     0,       0,          0,      0	},	/*  0	(none)	*/
     {  306,     4,      17,        128,    305	},	/*  1	10 MB	*/
     {  615,     4,      17,        300,    615	},	/*  2	20 MB	*/
@@ -467,43 +462,41 @@ static const geom_t ibm_type_table[] = {
     {  654,     2,      32,         -1,    674	},	/* 42	20 MB	*/
     {  923,     5,      36,         -1,   1023	},	/* 43	81 MB	*/
     {  531,     8,      39,         -1,    532	}	/* 44	81 MB	*/
+  // clang-format on
 };
-
 
 #ifdef ENABLE_PS1_HDC_LOG
 int ps1_hdc_do_log = ENABLE_PS1_HDC_LOG;
 
-
 static void
 ps1_hdc_log(const char *fmt, ...)
 {
-   va_list ap;
+    va_list ap;
 
-   if (ps1_hdc_do_log)
-   {
-	va_start(ap, fmt);
-	pclog_ex(fmt, ap);
-	va_end(ap);
-   }
+    if (ps1_hdc_do_log) {
+        va_start(ap, fmt);
+        pclog_ex(fmt, ap);
+        va_end(ap);
+    }
 }
 #else
-#define ps1_hdc_log(fmt, ...)
+#    define ps1_hdc_log(fmt, ...)
 #endif
 
 static void
 hdc_set_callback(hdc_t *dev, uint64_t callback)
 {
     if (!dev) {
-	return;
+        return;
     }
 
     if (callback) {
-	dev->callback = callback;
-	timer_set_delay_u64(&dev->timer, dev->callback);
-	} else {
-	dev->callback = 0;
-	timer_disable(&dev->timer);
-	}
+        dev->callback = callback;
+        timer_set_delay_u64(&dev->timer, dev->callback);
+    } else {
+        dev->callback = 0;
+        timer_disable(&dev->timer);
+    }
 }
 
 /* FIXME: we should use the disk/hdd_table.c code with custom tables! */
@@ -511,79 +504,74 @@ static int
 ibm_drive_type(drive_t *drive)
 {
     const geom_t *ptr;
-    int i;
+    int           i;
 
     for (i = 0; i < (sizeof(ibm_type_table) / sizeof(geom_t)); i++) {
-	ptr = &ibm_type_table[i];
-	if ((drive->tracks == ptr->cyl) &&
-	    (drive->hpc == ptr->hpc) && (drive->spt == ptr->spt)) return(i);
+        ptr = &ibm_type_table[i];
+        if ((drive->tracks == ptr->cyl) && (drive->hpc == ptr->hpc) && (drive->spt == ptr->spt))
+            return (i);
     }
 
-    return(HDC_TYPE_USER);
+    return (HDC_TYPE_USER);
 }
-
 
 static void
 set_intr(hdc_t *dev, int raise)
 {
     if (raise) {
-	dev->status |= ASR_INT_REQ;
-	if (dev->ctrl & ACR_INT_EN)
-		picint(1 << dev->irq);
+        dev->status |= ASR_INT_REQ;
+        if (dev->ctrl & ACR_INT_EN)
+            picint(1 << dev->irq);
     } else {
-	dev->status &= ~ASR_INT_REQ;
-	picintc(1 << dev->irq);
+        dev->status &= ~ASR_INT_REQ;
+        picintc(1 << dev->irq);
     }
 }
-
 
 /* Get the logical (block) address of a CHS triplet. */
 static int
 get_sector(hdc_t *dev, drive_t *drive, off64_t *addr)
 {
     if (drive->cur_cyl != dev->track) {
-	ps1_hdc_log("HDC: get_sector: wrong cylinder %d/%d\n",
-				drive->cur_cyl, dev->track);
-	dev->ssb.wrong_cyl = 1;
-	return(1);
+        ps1_hdc_log("HDC: get_sector: wrong cylinder %d/%d\n",
+                    drive->cur_cyl, dev->track);
+        dev->ssb.wrong_cyl = 1;
+        return (1);
     }
 
     if (dev->head >= drive->hpc) {
-	ps1_hdc_log("HDC: get_sector: past end of heads\n");
-	dev->ssb.cylinder_err = 1;
-	return(1);
+        ps1_hdc_log("HDC: get_sector: past end of heads\n");
+        dev->ssb.cylinder_err = 1;
+        return (1);
     }
 
     if (dev->sector > drive->spt) {
-	ps1_hdc_log("HDC: get_sector: past end of sectors\n");
-	dev->ssb.mark_not_found = 1;
-	return(1);
+        ps1_hdc_log("HDC: get_sector: past end of sectors\n");
+        dev->ssb.mark_not_found = 1;
+        return (1);
     }
 
     /* Calculate logical address (block number) of desired sector. */
-    *addr = ((((off64_t) dev->track*drive->hpc) + \
-	      dev->head)*drive->spt) + dev->sector - 1;
+    *addr = ((((off64_t) dev->track * drive->hpc) + dev->head) * drive->spt) + dev->sector - 1;
 
-    return(0);
+    return (0);
 }
-
 
 static void
 next_sector(hdc_t *dev, drive_t *drive)
 {
     if (++dev->sector > drive->spt) {
-	dev->sector = 1;
-	if (++dev->head >= drive->hpc) {
-		dev->head = 0;
-		dev->track++;
-		if (++drive->cur_cyl >= drive->tracks) {
-			drive->cur_cyl = drive->tracks-1;
-			dev->ssb.cylinder_err = 1;
-		}
-	}
+        dev->sector = 1;
+        if (++dev->head >= drive->hpc) {
+            dev->head = 0;
+            dev->track++;
+            if (++drive->cur_cyl >= drive->tracks) {
+                drive->cur_cyl        = drive->tracks - 1;
+                dev->ssb.cylinder_err = 1;
+            }
+        }
     }
 }
-
 
 /* Finish up. Repeated all over, so a function it is now. */
 static void
@@ -598,29 +586,27 @@ do_finish(hdc_t *dev)
     set_intr(dev, 1);
 }
 
-
 /* Seek to a cylinder. */
 static int
 do_seek(hdc_t *dev, drive_t *drive, uint16_t cyl)
 {
     if (cyl >= drive->tracks) {
-	dev->ssb.cylinder_err = 1;
-	return(1);
+        dev->ssb.cylinder_err = 1;
+        return (1);
     }
 
-    dev->track = cyl;
+    dev->track     = cyl;
     drive->cur_cyl = dev->track;
 
-    return(0);
+    return (0);
 }
-
 
 /* Format a track or an entire drive. */
 static void
 do_format(hdc_t *dev, drive_t *drive, ccb_t *ccb)
 {
-    int start_cyl, end_cyl;
-    int intr = 0, val;
+    int     start_cyl, end_cyl;
+    int     intr = 0, val;
     off64_t addr;
 #if 0
     fcb_t *fcb;
@@ -628,442 +614,440 @@ do_format(hdc_t *dev, drive_t *drive, ccb_t *ccb)
 
     /* Get the parameters from the CCB. */
     if (ccb->cmd == CMD_FORMAT_DRIVE) {
-	start_cyl = 0;
-	end_cyl = drive->tracks;
+        start_cyl = 0;
+        end_cyl   = drive->tracks;
     } else {
-	start_cyl = (ccb->cyl_low | (ccb->cyl_high << 8));
-	end_cyl = start_cyl + 1;
+        start_cyl = (ccb->cyl_low | (ccb->cyl_high << 8));
+        end_cyl   = start_cyl + 1;
     }
 
     switch (dev->state) {
-	case STATE_IDLE:
-		/* Ready to transfer the FCB data in. */
-		dev->state = STATE_RDATA;
-		dev->buf_idx = 0;
-		dev->buf_ptr = dev->data;
-		dev->buf_len = ccb->count * sizeof(fcb_t);
-		if (dev->buf_len & 1)
-			dev->buf_len++;		/* must be even */
+        case STATE_IDLE:
+            /* Ready to transfer the FCB data in. */
+            dev->state   = STATE_RDATA;
+            dev->buf_idx = 0;
+            dev->buf_ptr = dev->data;
+            dev->buf_len = ccb->count * sizeof(fcb_t);
+            if (dev->buf_len & 1)
+                dev->buf_len++; /* must be even */
 
-		/* Enable for PIO or DMA, as needed. */
+                /* Enable for PIO or DMA, as needed. */
 #if NOT_USED
-		if (dev->ctrl & ACR_DMA_EN)
-			hdc_set_callback(dev, HDC_TIME);
-		  else
+            if (dev->ctrl & ACR_DMA_EN)
+                hdc_set_callback(dev, HDC_TIME);
+            else
 #endif
-			dev->status |= ASR_DATA_REQ;
-		break;
+                dev->status |= ASR_DATA_REQ;
+            break;
 
-	case STATE_RDATA:
-		/* Perform DMA. */
-		while (dev->buf_idx < dev->buf_len) {
-			val = dma_channel_read(dev->dma);
-			if (val == DMA_NODATA) {
-				dev->intstat |= ISR_EQUIP_CHECK;
-				dev->ssb.need_reset = 1;
-				intr = 1;
-				break;
-			}
-			dev->buf_ptr[dev->buf_idx] = (val & 0xff);
-			dev->buf_idx++;
-		}
-		dev->state = STATE_RDONE;
-		hdc_set_callback(dev, HDC_TIME);
-		break;
+        case STATE_RDATA:
+            /* Perform DMA. */
+            while (dev->buf_idx < dev->buf_len) {
+                val = dma_channel_read(dev->dma);
+                if (val == DMA_NODATA) {
+                    dev->intstat |= ISR_EQUIP_CHECK;
+                    dev->ssb.need_reset = 1;
+                    intr                = 1;
+                    break;
+                }
+                dev->buf_ptr[dev->buf_idx] = (val & 0xff);
+                dev->buf_idx++;
+            }
+            dev->state = STATE_RDONE;
+            hdc_set_callback(dev, HDC_TIME);
+            break;
 
-	case STATE_RDONE:
-		if (! (dev->ctrl & ACR_DMA_EN))
-			dev->status &= ~ASR_DATA_REQ;
+        case STATE_RDONE:
+            if (!(dev->ctrl & ACR_DMA_EN))
+                dev->status &= ~ASR_DATA_REQ;
 
-		/* Point to the FCB we got. */
+                /* Point to the FCB we got. */
 #if 0
 		fcb = (fcb_t *)dev->data;
 #endif
-		dev->state = STATE_FINIT;
-		/*FALLTHROUGH*/
+            dev->state = STATE_FINIT;
+            /*FALLTHROUGH*/
 
-	case STATE_FINIT:
+        case STATE_FINIT:
 do_fmt:
-		/* Activate the status icon. */
-		ui_sb_update_icon(SB_HDD|HDD_BUS_XTA, 1);
+            /* Activate the status icon. */
+            ui_sb_update_icon(SB_HDD | HDD_BUS_XTA, 1);
 
-		/* Seek to cylinder. */
-		if (do_seek(dev, drive, start_cyl)) {
-			intr = 1;
-			break;
-		}
-		dev->head = ccb->head;
-		dev->sector = 1;
+            /* Seek to cylinder. */
+            if (do_seek(dev, drive, start_cyl)) {
+                intr = 1;
+                break;
+            }
+            dev->head   = ccb->head;
+            dev->sector = 1;
 
-		/* Get address of sector to write. */
-		if (get_sector(dev, drive, &addr)) {
-			intr = 1;
-			break;
-		}
+            /* Get address of sector to write. */
+            if (get_sector(dev, drive, &addr)) {
+                intr = 1;
+                break;
+            }
 
-		/*
-		 * For now, we don't use the info from
-		 * the FCB, although we should at least
-		 * use it's "filler byte" value...
-		 */
+            /*
+             * For now, we don't use the info from
+             * the FCB, although we should at least
+             * use it's "filler byte" value...
+             */
 #if 0
 		hdd_image_zero_ex(drive->hdd_num, addr, fcb->fill, drive->spt);
 #else
-		hdd_image_zero(drive->hdd_num, addr, drive->spt);
+            hdd_image_zero(drive->hdd_num, addr, drive->spt);
 #endif
 
-		/* Done with this track. */
-		dev->state = STATE_FDONE;
-		/*FALLTHROUGH*/
+            /* Done with this track. */
+            dev->state = STATE_FDONE;
+            /*FALLTHROUGH*/
 
-	case STATE_FDONE:
-		/* One more track done. */
-		if (++start_cyl == end_cyl) {
-			intr = 1;
-			break;
-		}
+        case STATE_FDONE:
+            /* One more track done. */
+            if (++start_cyl == end_cyl) {
+                intr = 1;
+                break;
+            }
 
-		/* De-activate the status icon. */
-		ui_sb_update_icon(SB_HDD|HDD_BUS_XTA, 0);
+            /* De-activate the status icon. */
+            ui_sb_update_icon(SB_HDD | HDD_BUS_XTA, 0);
 
-		/* This saves us a LOT of code. */
-		dev->state = STATE_FINIT;
-		goto do_fmt;
+            /* This saves us a LOT of code. */
+            dev->state = STATE_FINIT;
+            goto do_fmt;
     }
 
     /* If we errored out, go back idle. */
     if (intr) {
-	/* De-activate the status icon. */
-	ui_sb_update_icon(SB_HDD|HDD_BUS_XTA, 0);
+        /* De-activate the status icon. */
+        ui_sb_update_icon(SB_HDD | HDD_BUS_XTA, 0);
 
-	do_finish(dev);
+        do_finish(dev);
     }
 }
-
 
 /* Execute the CCB we just received. */
 static void
 hdc_callback(void *priv)
 {
-    hdc_t *dev = (hdc_t *)priv;
-    ccb_t *ccb = &dev->ccb;
+    hdc_t   *dev = (hdc_t *) priv;
+    ccb_t   *ccb = &dev->ccb;
     drive_t *drive;
-    off64_t addr;
-    int no_data = 0;
-    int val;
+    off64_t  addr;
+    int      no_data = 0;
+    int      val;
 
     /* Cancel timer. */
     dev->callback = 0;
 
     /* Clear the SSB error bits. */
-    dev->ssb.track_0 = 0;
-    dev->ssb.cylinder_err = 0;
-    dev->ssb.write_fault = 0;
-    dev->ssb.seek_end = 0;
-    dev->ssb.not_ready = 0;
-    dev->ssb.id_not_found = 0;
-    dev->ssb.wrong_cyl = 0;
-    dev->ssb.all_bit_set = 0;
+    dev->ssb.track_0        = 0;
+    dev->ssb.cylinder_err   = 0;
+    dev->ssb.write_fault    = 0;
+    dev->ssb.seek_end       = 0;
+    dev->ssb.not_ready      = 0;
+    dev->ssb.id_not_found   = 0;
+    dev->ssb.wrong_cyl      = 0;
+    dev->ssb.all_bit_set    = 0;
     dev->ssb.mark_not_found = 0;
-    dev->ssb.ecc_crc_err = 0;
-    dev->ssb.ecc_crc_field = 0;
-    dev->ssb.valid = 1;
+    dev->ssb.ecc_crc_err    = 0;
+    dev->ssb.ecc_crc_field  = 0;
+    dev->ssb.valid          = 1;
 
     /* We really only support one drive, but ohwell. */
     drive = &dev->drives[0];
 
     switch (ccb->cmd) {
-	case CMD_READ_VERIFY:
-		no_data = 1;
-		/*FALLTHROUGH*/
+        case CMD_READ_VERIFY:
+            no_data = 1;
+            /*FALLTHROUGH*/
 
-	case CMD_READ_SECTORS:
-		if (! drive->present) {
-			dev->ssb.not_ready = 1;
-			do_finish(dev);
-			return;
-		}
+        case CMD_READ_SECTORS:
+            if (!drive->present) {
+                dev->ssb.not_ready = 1;
+                do_finish(dev);
+                return;
+            }
 
-		switch (dev->state) {
-			case STATE_IDLE:
-				/* Seek to cylinder if requested. */
-				if (ccb->auto_seek) {
-					if (do_seek(dev, drive,
-						    (ccb->cyl_low|(ccb->cyl_high<<8)))) {
-						do_finish(dev);
-						return;
-					}
-				}
-				dev->head = ccb->head;
-				dev->sector = ccb->sector;
+            switch (dev->state) {
+                case STATE_IDLE:
+                    /* Seek to cylinder if requested. */
+                    if (ccb->auto_seek) {
+                        if (do_seek(dev, drive,
+                                    (ccb->cyl_low | (ccb->cyl_high << 8)))) {
+                            do_finish(dev);
+                            return;
+                        }
+                    }
+                    dev->head   = ccb->head;
+                    dev->sector = ccb->sector;
 
-				/* Get sector count and size. */
-				dev->count = (int)ccb->count;
-				dev->buf_len = (128 << dev->ssb.sect_size);
+                    /* Get sector count and size. */
+                    dev->count   = (int) ccb->count;
+                    dev->buf_len = (128 << dev->ssb.sect_size);
 
-				dev->state = STATE_SEND;
-				/*FALLTHROUGH*/
+                    dev->state = STATE_SEND;
+                    /*FALLTHROUGH*/
 
-			case STATE_SEND:
-				/* Activate the status icon. */
-				ui_sb_update_icon(SB_HDD|HDD_BUS_XTA, 1);
+                case STATE_SEND:
+                    /* Activate the status icon. */
+                    ui_sb_update_icon(SB_HDD | HDD_BUS_XTA, 1);
 
 do_send:
-				/* Get address of sector to load. */
-				if (get_sector(dev, drive, &addr)) {
-					/* De-activate the status icon. */
-					ui_sb_update_icon(SB_HDD|HDD_BUS_XTA, 0);
-					do_finish(dev);
-					return;
-				}
+                    /* Get address of sector to load. */
+                    if (get_sector(dev, drive, &addr)) {
+                        /* De-activate the status icon. */
+                        ui_sb_update_icon(SB_HDD | HDD_BUS_XTA, 0);
+                        do_finish(dev);
+                        return;
+                    }
 
-				/* Read the block from the image. */
-				hdd_image_read(drive->hdd_num, addr, 1,
-					       (uint8_t *)dev->sector_buf);
+                    /* Read the block from the image. */
+                    hdd_image_read(drive->hdd_num, addr, 1,
+                                   (uint8_t *) dev->sector_buf);
 
-				/* Ready to transfer the data out. */
-				dev->state = STATE_SDATA;
-				dev->buf_idx = 0;
-				if (no_data) {
-					/* Delay a bit, no actual transfer. */
-					hdc_set_callback(dev, HDC_TIME);
-				} else {
-					if (dev->ctrl & ACR_DMA_EN) {
-						/* DMA enabled. */
-						dev->buf_ptr = dev->sector_buf;
-						hdc_set_callback(dev, HDC_TIME);
-					} else {
-						/* No DMA, do PIO. */
-						dev->status |= (ASR_DATA_REQ|ASR_DIR);
+                    /* Ready to transfer the data out. */
+                    dev->state   = STATE_SDATA;
+                    dev->buf_idx = 0;
+                    if (no_data) {
+                        /* Delay a bit, no actual transfer. */
+                        hdc_set_callback(dev, HDC_TIME);
+                    } else {
+                        if (dev->ctrl & ACR_DMA_EN) {
+                            /* DMA enabled. */
+                            dev->buf_ptr = dev->sector_buf;
+                            hdc_set_callback(dev, HDC_TIME);
+                        } else {
+                            /* No DMA, do PIO. */
+                            dev->status |= (ASR_DATA_REQ | ASR_DIR);
 
-						/* Copy from sector to data. */
-						memcpy(dev->data,
-						       dev->sector_buf,
-						       dev->buf_len);
-						dev->buf_ptr = dev->data;
-					}
-				}
-				break;
+                            /* Copy from sector to data. */
+                            memcpy(dev->data,
+                                   dev->sector_buf,
+                                   dev->buf_len);
+                            dev->buf_ptr = dev->data;
+                        }
+                    }
+                    break;
 
-			case STATE_SDATA:
-				if (! no_data) {
-					/* Perform DMA. */
-					while (dev->buf_idx < dev->buf_len) {
-						val = dma_channel_write(dev->dma,
-							*dev->buf_ptr++);
-						if (val == DMA_NODATA) {
-							ps1_hdc_log("HDC: CMD_READ_SECTORS out of data (idx=%d, len=%d)!\n", dev->buf_idx, dev->buf_len);
+                case STATE_SDATA:
+                    if (!no_data) {
+                        /* Perform DMA. */
+                        while (dev->buf_idx < dev->buf_len) {
+                            val = dma_channel_write(dev->dma,
+                                                    *dev->buf_ptr++);
+                            if (val == DMA_NODATA) {
+                                ps1_hdc_log("HDC: CMD_READ_SECTORS out of data (idx=%d, len=%d)!\n", dev->buf_idx, dev->buf_len);
 
-							/* De-activate the status icon. */
-							ui_sb_update_icon(SB_HDD|HDD_BUS_XTA, 0);
+                                /* De-activate the status icon. */
+                                ui_sb_update_icon(SB_HDD | HDD_BUS_XTA, 0);
 
-							dev->intstat |= ISR_EQUIP_CHECK;
-							dev->ssb.need_reset = 1;
-							do_finish(dev);
-							return;
-						}
-						dev->buf_idx++;
-					}
-				}
-				dev->state = STATE_SDONE;
-				hdc_set_callback(dev, HDC_TIME);
-				break;
+                                dev->intstat |= ISR_EQUIP_CHECK;
+                                dev->ssb.need_reset = 1;
+                                do_finish(dev);
+                                return;
+                            }
+                            dev->buf_idx++;
+                        }
+                    }
+                    dev->state = STATE_SDONE;
+                    hdc_set_callback(dev, HDC_TIME);
+                    break;
 
-			case STATE_SDONE:
-				dev->buf_idx = 0;
-				if (--dev->count == 0) {
-					/* De-activate the status icon. */
-					ui_sb_update_icon(SB_HDD|HDD_BUS_XTA, 0);
+                case STATE_SDONE:
+                    dev->buf_idx = 0;
+                    if (--dev->count == 0) {
+                        /* De-activate the status icon. */
+                        ui_sb_update_icon(SB_HDD | HDD_BUS_XTA, 0);
 
-					if (! (dev->ctrl & ACR_DMA_EN))
-						dev->status &= ~(ASR_DATA_REQ|ASR_DIR);
-					dev->ssb.cmd_syndrome = 0xD4;
-					do_finish(dev);
-					return;
-				}
+                        if (!(dev->ctrl & ACR_DMA_EN))
+                            dev->status &= ~(ASR_DATA_REQ | ASR_DIR);
+                        dev->ssb.cmd_syndrome = 0xD4;
+                        do_finish(dev);
+                        return;
+                    }
 
-				/* Addvance to next sector. */
-				next_sector(dev, drive);
+                    /* Addvance to next sector. */
+                    next_sector(dev, drive);
 
-				/* This saves us a LOT of code. */
-				dev->state = STATE_SEND;
-				goto do_send;
-		}
-		break;
+                    /* This saves us a LOT of code. */
+                    dev->state = STATE_SEND;
+                    goto do_send;
+            }
+            break;
 
-	case CMD_READ_EXT:			/* READ_EXT */
-	case CMD_READ_ID:			/* READ_ID */
-		if (! drive->present) {
-			dev->ssb.not_ready = 1;
-			do_finish(dev);
-			return;
-		}
+        case CMD_READ_EXT: /* READ_EXT */
+        case CMD_READ_ID:  /* READ_ID */
+            if (!drive->present) {
+                dev->ssb.not_ready = 1;
+                do_finish(dev);
+                return;
+            }
 
-		dev->intstat |= ISR_INVALID_CMD;
-		do_finish(dev);
-		break;
+            dev->intstat |= ISR_INVALID_CMD;
+            do_finish(dev);
+            break;
 
-	case CMD_RECALIBRATE:			/* RECALIBRATE */
-		if (drive->present) {
-			dev->track = drive->cur_cyl = 0;
-		} else {
-			dev->ssb.not_ready = 1;
-			dev->intstat |= ISR_TERMINATION;
-		}
+        case CMD_RECALIBRATE: /* RECALIBRATE */
+            if (drive->present) {
+                dev->track = drive->cur_cyl = 0;
+            } else {
+                dev->ssb.not_ready = 1;
+                dev->intstat |= ISR_TERMINATION;
+            }
 
-		do_finish(dev);
-		break;
+            do_finish(dev);
+            break;
 
-	case CMD_WRITE_VERIFY:
-		no_data = 1;
-		/*FALLTHROUGH*/
+        case CMD_WRITE_VERIFY:
+            no_data = 1;
+            /*FALLTHROUGH*/
 
-	case CMD_WRITE_SECTORS:
-		if (! drive->present) {
-			dev->ssb.not_ready = 1;
-			do_finish(dev);
-			return;
-		}
+        case CMD_WRITE_SECTORS:
+            if (!drive->present) {
+                dev->ssb.not_ready = 1;
+                do_finish(dev);
+                return;
+            }
 
-		switch (dev->state) {
-			case STATE_IDLE:
-				/* Seek to cylinder if requested. */
-				if (ccb->auto_seek) {
-					if (do_seek(dev, drive,
-						    (ccb->cyl_low|(ccb->cyl_high<<8)))) {
-						do_finish(dev);
-						return;
-					}
-				}
-				dev->head = ccb->head;
-				dev->sector = ccb->sector;
+            switch (dev->state) {
+                case STATE_IDLE:
+                    /* Seek to cylinder if requested. */
+                    if (ccb->auto_seek) {
+                        if (do_seek(dev, drive,
+                                    (ccb->cyl_low | (ccb->cyl_high << 8)))) {
+                            do_finish(dev);
+                            return;
+                        }
+                    }
+                    dev->head   = ccb->head;
+                    dev->sector = ccb->sector;
 
-				/* Get sector count and size. */
-				dev->count = (int)ccb->count;
-				dev->buf_len = (128 << dev->ssb.sect_size);
+                    /* Get sector count and size. */
+                    dev->count   = (int) ccb->count;
+                    dev->buf_len = (128 << dev->ssb.sect_size);
 
-				dev->state = STATE_RECV;
-				/*FALLTHROUGH*/
+                    dev->state = STATE_RECV;
+                    /*FALLTHROUGH*/
 
-			case STATE_RECV:
-				/* Activate the status icon. */
-				ui_sb_update_icon(SB_HDD|HDD_BUS_XTA, 1);
+                case STATE_RECV:
+                    /* Activate the status icon. */
+                    ui_sb_update_icon(SB_HDD | HDD_BUS_XTA, 1);
 do_recv:
-				/* Ready to transfer the data in. */
-				dev->state = STATE_RDATA;
-				dev->buf_idx = 0;
-				if (no_data) {
-					/* Delay a bit, no actual transfer. */
-					hdc_set_callback(dev, HDC_TIME);
-				} else {
-					if (dev->ctrl & ACR_DMA_EN) {
-						/* DMA enabled. */
-						dev->buf_ptr = dev->sector_buf;
-						hdc_set_callback(dev, HDC_TIME);
-					} else {
-						/* No DMA, do PIO. */
-						dev->buf_ptr = dev->data;
-						dev->status |= ASR_DATA_REQ;
-					}
-				}
-				break;
+                    /* Ready to transfer the data in. */
+                    dev->state   = STATE_RDATA;
+                    dev->buf_idx = 0;
+                    if (no_data) {
+                        /* Delay a bit, no actual transfer. */
+                        hdc_set_callback(dev, HDC_TIME);
+                    } else {
+                        if (dev->ctrl & ACR_DMA_EN) {
+                            /* DMA enabled. */
+                            dev->buf_ptr = dev->sector_buf;
+                            hdc_set_callback(dev, HDC_TIME);
+                        } else {
+                            /* No DMA, do PIO. */
+                            dev->buf_ptr = dev->data;
+                            dev->status |= ASR_DATA_REQ;
+                        }
+                    }
+                    break;
 
-			case STATE_RDATA:
-				if (! no_data) {
-					/* Perform DMA. */
-					while (dev->buf_idx < dev->buf_len) {
-						val = dma_channel_read(dev->dma);
-						if (val == DMA_NODATA) {
-							ps1_hdc_log("HDC: CMD_WRITE_SECTORS out of data (idx=%d, len=%d)!\n", dev->buf_idx, dev->buf_len);
+                case STATE_RDATA:
+                    if (!no_data) {
+                        /* Perform DMA. */
+                        while (dev->buf_idx < dev->buf_len) {
+                            val = dma_channel_read(dev->dma);
+                            if (val == DMA_NODATA) {
+                                ps1_hdc_log("HDC: CMD_WRITE_SECTORS out of data (idx=%d, len=%d)!\n", dev->buf_idx, dev->buf_len);
 
-							/* De-activate the status icon. */
-							ui_sb_update_icon(SB_HDD|HDD_BUS_XTA, 0);
+                                /* De-activate the status icon. */
+                                ui_sb_update_icon(SB_HDD | HDD_BUS_XTA, 0);
 
-							dev->intstat |= ISR_EQUIP_CHECK;
-							dev->ssb.need_reset = 1;
-							do_finish(dev);
-							return;
-						}
-						dev->buf_ptr[dev->buf_idx] = (val & 0xff);
-						dev->buf_idx++;
-					}
-				}
-				dev->state = STATE_RDONE;
-				hdc_set_callback(dev, HDC_TIME);
-				break;
+                                dev->intstat |= ISR_EQUIP_CHECK;
+                                dev->ssb.need_reset = 1;
+                                do_finish(dev);
+                                return;
+                            }
+                            dev->buf_ptr[dev->buf_idx] = (val & 0xff);
+                            dev->buf_idx++;
+                        }
+                    }
+                    dev->state = STATE_RDONE;
+                    hdc_set_callback(dev, HDC_TIME);
+                    break;
 
-			case STATE_RDONE:
-				/* Copy from data to sector if PIO. */
-				if (! (dev->ctrl & ACR_DMA_EN))
-					memcpy(dev->sector_buf,
-					       dev->data,
-					       dev->buf_len);
+                case STATE_RDONE:
+                    /* Copy from data to sector if PIO. */
+                    if (!(dev->ctrl & ACR_DMA_EN))
+                        memcpy(dev->sector_buf,
+                               dev->data,
+                               dev->buf_len);
 
-				/* Get address of sector to write. */
-				if (get_sector(dev, drive, &addr)) {
-					/* De-activate the status icon. */
-					ui_sb_update_icon(SB_HDD|HDD_BUS_XTA, 0);
+                    /* Get address of sector to write. */
+                    if (get_sector(dev, drive, &addr)) {
+                        /* De-activate the status icon. */
+                        ui_sb_update_icon(SB_HDD | HDD_BUS_XTA, 0);
 
-					do_finish(dev);
-					return;
-				}
+                        do_finish(dev);
+                        return;
+                    }
 
-				/* Write the block to the image. */
-				hdd_image_write(drive->hdd_num, addr, 1,
-						(uint8_t *)dev->sector_buf);
+                    /* Write the block to the image. */
+                    hdd_image_write(drive->hdd_num, addr, 1,
+                                    (uint8_t *) dev->sector_buf);
 
-				dev->buf_idx = 0;
-				if (--dev->count == 0) {
-					/* De-activate the status icon. */
-					ui_sb_update_icon(SB_HDD|HDD_BUS_XTA, 0);
+                    dev->buf_idx = 0;
+                    if (--dev->count == 0) {
+                        /* De-activate the status icon. */
+                        ui_sb_update_icon(SB_HDD | HDD_BUS_XTA, 0);
 
-					if (! (dev->ctrl & ACR_DMA_EN))
-						dev->status &= ~ASR_DATA_REQ;
-					dev->ssb.cmd_syndrome = 0xD4;
-					do_finish(dev);
-					return;
-				}
+                        if (!(dev->ctrl & ACR_DMA_EN))
+                            dev->status &= ~ASR_DATA_REQ;
+                        dev->ssb.cmd_syndrome = 0xD4;
+                        do_finish(dev);
+                        return;
+                    }
 
-				/* Advance to next sector. */
-				next_sector(dev, drive);
+                    /* Advance to next sector. */
+                    next_sector(dev, drive);
 
-				/* This saves us a LOT of code. */
-				dev->state = STATE_RECV;
-				goto do_recv;
-		}
-		break;
+                    /* This saves us a LOT of code. */
+                    dev->state = STATE_RECV;
+                    goto do_recv;
+            }
+            break;
 
-	case CMD_FORMAT_DRIVE:
-	case CMD_FORMAT_TRACK:
-		do_format(dev, drive, ccb);
-		break;
+        case CMD_FORMAT_DRIVE:
+        case CMD_FORMAT_TRACK:
+            do_format(dev, drive, ccb);
+            break;
 
-	case CMD_SEEK:
-		if (! drive->present) {
-			dev->ssb.not_ready = 1;
-			do_finish(dev);
-			return;
-		}
+        case CMD_SEEK:
+            if (!drive->present) {
+                dev->ssb.not_ready = 1;
+                do_finish(dev);
+                return;
+            }
 
-		if (ccb->ec_p == 1) {
-			/* Park the heads. */
-			val = do_seek(dev, drive, drive->tracks-1);
-		} else {
-			/* Seek to cylinder. */
-			val = do_seek(dev, drive,
-				      (ccb->cyl_low|(ccb->cyl_high<<8)));
-		}
-		if (! val)
-			dev->ssb.seek_end = 1;
-		do_finish(dev);
-		break;
+            if (ccb->ec_p == 1) {
+                /* Park the heads. */
+                val = do_seek(dev, drive, drive->tracks - 1);
+            } else {
+                /* Seek to cylinder. */
+                val = do_seek(dev, drive,
+                              (ccb->cyl_low | (ccb->cyl_high << 8)));
+            }
+            if (!val)
+                dev->ssb.seek_end = 1;
+            do_finish(dev);
+            break;
 
-	default:
-		dev->intstat |= ISR_INVALID_CMD;
-		do_finish(dev);
+        default:
+            dev->intstat |= ISR_INVALID_CMD;
+            do_finish(dev);
     }
 }
-
 
 /* Prepare to send the SSB block. */
 static void
@@ -1074,24 +1058,24 @@ hdc_send_ssb(hdc_t *dev)
     /* We only support one drive, really, but ohwell. */
     drive = &dev->drives[0];
 
-    if (! dev->ssb.valid) {
-	/* Create a valid SSB. */
-	memset(&dev->ssb, 0x00, sizeof(dev->ssb));
-	dev->ssb.sect_size = 0x02;	/* 512 bytes */
-	dev->ssb.drive_type = drive->type;
+    if (!dev->ssb.valid) {
+        /* Create a valid SSB. */
+        memset(&dev->ssb, 0x00, sizeof(dev->ssb));
+        dev->ssb.sect_size  = 0x02; /* 512 bytes */
+        dev->ssb.drive_type = drive->type;
     }
 
     /* Update position fields. */
-    dev->ssb.track_0 = !!(dev->track == 0);
-    dev->ssb.last_cyl_low = dev->ssb.curr_cyl_low;
+    dev->ssb.track_0       = !!(dev->track == 0);
+    dev->ssb.last_cyl_low  = dev->ssb.curr_cyl_low;
     dev->ssb.last_cyl_high = dev->ssb.curr_cyl_high;
-    dev->ssb.last_head = dev->ssb.curr_head;
+    dev->ssb.last_head     = dev->ssb.curr_head;
     dev->ssb.curr_cyl_high = ((dev->track >> 8) & 0x03);
-    dev->ssb.curr_cyl_low = (dev->track & 0xff);
-    dev->ssb.curr_head = (dev->head & 0x0f);
+    dev->ssb.curr_cyl_low  = (dev->track & 0xff);
+    dev->ssb.curr_head     = (dev->head & 0x0f);
 
     dev->ssb.headsel_state = dev->ssb.curr_head;
-    dev->ssb.last_sect = dev->sector;
+    dev->ssb.last_sect     = dev->sector;
 
     /* We abuse an unused MBZ bit, so clear it. */
     dev->ssb.valid = 0;
@@ -1099,169 +1083,166 @@ hdc_send_ssb(hdc_t *dev)
     /* Set up the transfer buffer for the SSB. */
     dev->buf_idx = 0;
     dev->buf_len = sizeof(dev->ssb);
-    dev->buf_ptr = (uint8_t *)&dev->ssb;
+    dev->buf_ptr = (uint8_t *) &dev->ssb;
 
     /* Done with the SSB. */
     dev->attn &= ~ATT_SSB;
 }
 
-
 /* Read one of the controller registers. */
 static uint8_t
 hdc_read(uint16_t port, void *priv)
 {
-    hdc_t *dev = (hdc_t *)priv;
+    hdc_t  *dev = (hdc_t *) priv;
     uint8_t ret = 0xff;
 
     /* TRM: tell system board we are alive. */
     *dev->reg_91 |= 0x01;
 
     switch (port & 7) {
-	case 0:		/* DATA register */
-		if (dev->state == STATE_SDATA) {
-			if (dev->buf_idx > dev->buf_len) {
-				ps1_hdc_log("HDC: read with empty buffer!\n");
-				dev->state = STATE_IDLE;
-				dev->intstat |= ISR_INVALID_CMD;
-				dev->status &= (ASR_TX_EN|ASR_DATA_REQ|ASR_DIR);
-				set_intr(dev, 1);
-				break;
-			}
+        case 0: /* DATA register */
+            if (dev->state == STATE_SDATA) {
+                if (dev->buf_idx > dev->buf_len) {
+                    ps1_hdc_log("HDC: read with empty buffer!\n");
+                    dev->state = STATE_IDLE;
+                    dev->intstat |= ISR_INVALID_CMD;
+                    dev->status &= (ASR_TX_EN | ASR_DATA_REQ | ASR_DIR);
+                    set_intr(dev, 1);
+                    break;
+                }
 
-			ret = dev->buf_ptr[dev->buf_idx];
-			if (++dev->buf_idx == dev->buf_len) {
-				/* Data block sent OK. */
-				dev->status &= ~(ASR_TX_EN|ASR_DATA_REQ|ASR_DIR);
-				dev->state = STATE_IDLE;
-			}
-		}
-		break;
+                ret = dev->buf_ptr[dev->buf_idx];
+                if (++dev->buf_idx == dev->buf_len) {
+                    /* Data block sent OK. */
+                    dev->status &= ~(ASR_TX_EN | ASR_DATA_REQ | ASR_DIR);
+                    dev->state = STATE_IDLE;
+                }
+            }
+            break;
 
-	case 2:		/* ASR */
-		ret = dev->status;
-		break;
+        case 2: /* ASR */
+            ret = dev->status;
+            break;
 
-	case 4:		/* ISR */
-		ret = dev->intstat;
-		dev->intstat = 0x00;
-		break;
+        case 4: /* ISR */
+            ret          = dev->intstat;
+            dev->intstat = 0x00;
+            break;
     }
 
-    return(ret);
+    return (ret);
 }
-
 
 static void
 hdc_write(uint16_t port, uint8_t val, void *priv)
 {
-    hdc_t *dev = (hdc_t *)priv;
+    hdc_t *dev = (hdc_t *) priv;
 
     /* TRM: tell system board we are alive. */
     *dev->reg_91 |= 0x01;
 
     switch (port & 7) {
-	case 0:		/* DATA register */
-		if (dev->state == STATE_RDATA) {
-			if (dev->buf_idx >= dev->buf_len) {
-				ps1_hdc_log("HDC: write with full buffer!\n");
-				dev->intstat |= ISR_INVALID_CMD;
-				dev->status &= ~ASR_DATA_REQ;
-				set_intr(dev, 1);
-				break;
-			}
+        case 0: /* DATA register */
+            if (dev->state == STATE_RDATA) {
+                if (dev->buf_idx >= dev->buf_len) {
+                    ps1_hdc_log("HDC: write with full buffer!\n");
+                    dev->intstat |= ISR_INVALID_CMD;
+                    dev->status &= ~ASR_DATA_REQ;
+                    set_intr(dev, 1);
+                    break;
+                }
 
-			/* Store the data into the buffer. */
-			dev->buf_ptr[dev->buf_idx] = val;
-			if (++dev->buf_idx == dev->buf_len) {
-				/* We got all the data we need. */
-				dev->status &= ~ASR_DATA_REQ;
-				dev->state = STATE_IDLE;
+                /* Store the data into the buffer. */
+                dev->buf_ptr[dev->buf_idx] = val;
+                if (++dev->buf_idx == dev->buf_len) {
+                    /* We got all the data we need. */
+                    dev->status &= ~ASR_DATA_REQ;
+                    dev->state = STATE_IDLE;
 
-				/* If we were receiving a CCB, execute it. */
-				if (dev->attn & ATT_CCB) {
-					/*
-					 * If we were already busy with
-					 * a CCB, then it must have had
-					 * some new data using PIO.
-					 */
-					if (dev->status & ASR_BUSY)
-						dev->state = STATE_RDONE;
-					  else
-						dev->status |= ASR_BUSY;
+                    /* If we were receiving a CCB, execute it. */
+                    if (dev->attn & ATT_CCB) {
+                        /*
+                         * If we were already busy with
+                         * a CCB, then it must have had
+                         * some new data using PIO.
+                         */
+                        if (dev->status & ASR_BUSY)
+                            dev->state = STATE_RDONE;
+                        else
+                            dev->status |= ASR_BUSY;
 
-					/* Schedule command execution. */
-					hdc_set_callback(dev, HDC_TIME);
-				}
-			}
-		}
-		break;
+                        /* Schedule command execution. */
+                        hdc_set_callback(dev, HDC_TIME);
+                    }
+                }
+            }
+            break;
 
-	case 2:		/* ACR */
-		dev->ctrl = val;
-		if (val & ACR_INT_EN)
-			set_intr(dev, 0);	/* clear IRQ */
+        case 2: /* ACR */
+            dev->ctrl = val;
+            if (val & ACR_INT_EN)
+                set_intr(dev, 0); /* clear IRQ */
 
-		if (dev->reset != 0) {
-			if (++dev->reset == 3) {
-				dev->reset = 0;
+            if (dev->reset != 0) {
+                if (++dev->reset == 3) {
+                    dev->reset = 0;
 
-				set_intr(dev, 1);
-			}
-			break;
-		}
+                    set_intr(dev, 1);
+                }
+                break;
+            }
 
-		if (val & ACR_RESET)
-			dev->reset = 1;
-		break;
+            if (val & ACR_RESET)
+                dev->reset = 1;
+            break;
 
-	case 4:		/* ATTN */
-		dev->status &= ~ASR_INT_REQ;
-		if (val & ATT_DATA) {
-			/* Dunno. Start PIO/DMA now? */
-		}
+        case 4: /* ATTN */
+            dev->status &= ~ASR_INT_REQ;
+            if (val & ATT_DATA) {
+                /* Dunno. Start PIO/DMA now? */
+            }
 
-		if (val & ATT_SSB) {
-			if (dev->attn & ATT_CCB) {
-				/* Hey now, we're still busy for you! */
-				dev->intstat |= ISR_INVALID_CMD;
-				set_intr(dev, 1);
-				break;
-			}
+            if (val & ATT_SSB) {
+                if (dev->attn & ATT_CCB) {
+                    /* Hey now, we're still busy for you! */
+                    dev->intstat |= ISR_INVALID_CMD;
+                    set_intr(dev, 1);
+                    break;
+                }
 
-			/* OK, prepare for sending an SSB. */
-			dev->attn |= ATT_SSB;
+                /* OK, prepare for sending an SSB. */
+                dev->attn |= ATT_SSB;
 
-			/* Grab or initialize an SSB to send. */
-			hdc_send_ssb(dev);
+                /* Grab or initialize an SSB to send. */
+                hdc_send_ssb(dev);
 
-			dev->state = STATE_SDATA;
-			dev->status |= (ASR_TX_EN|ASR_DATA_REQ|ASR_DIR);
-			set_intr(dev, 1);
-		}
+                dev->state = STATE_SDATA;
+                dev->status |= (ASR_TX_EN | ASR_DATA_REQ | ASR_DIR);
+                set_intr(dev, 1);
+            }
 
-		if (val & ATT_CCB) {
-			dev->attn |= ATT_CCB;
+            if (val & ATT_CCB) {
+                dev->attn |= ATT_CCB;
 
-			/* Set up the transfer buffer for a CCB. */
-			dev->buf_idx = 0;
-			dev->buf_len = sizeof(dev->ccb);
-			dev->buf_ptr = (uint8_t *)&dev->ccb;
+                /* Set up the transfer buffer for a CCB. */
+                dev->buf_idx = 0;
+                dev->buf_len = sizeof(dev->ccb);
+                dev->buf_ptr = (uint8_t *) &dev->ccb;
 
-			dev->state = STATE_RDATA;
-			dev->status |= ASR_DATA_REQ;
-			set_intr(dev, 1);
-		}
-		break;
+                dev->state = STATE_RDATA;
+                dev->status |= ASR_DATA_REQ;
+                set_intr(dev, 1);
+            }
+            break;
     }
 }
-
 
 static void *
 ps1_hdc_init(const device_t *info)
 {
     drive_t *drive;
-    hdc_t *dev;
-    int c, i;
+    hdc_t   *dev;
+    int      c, i;
 
     /* Allocate and initialize device block. */
     dev = malloc(sizeof(hdc_t));
@@ -1269,44 +1250,45 @@ ps1_hdc_init(const device_t *info)
 
     /* Set up controller parameters for PS/1 2011. */
     dev->base = 0x0320;
-    dev->irq = 14;
-    dev->dma = 3;
+    dev->irq  = 14;
+    dev->dma  = 3;
 
     ps1_hdc_log("HDC: initializing (I/O=%04X, IRQ=%d, DMA=%d)\n",
-				dev->base, dev->irq, dev->dma);
+                dev->base, dev->irq, dev->dma);
 
     /* Load any disks for this device class. */
     c = 0;
     for (i = 0; i < HDD_NUM; i++) {
-	if ((hdd[i].bus == HDD_BUS_XTA) && (hdd[i].xta_channel < 1)) {
-		drive = &dev->drives[hdd[i].xta_channel];
+        if ((hdd[i].bus == HDD_BUS_XTA) && (hdd[i].xta_channel < 1)) {
+            drive = &dev->drives[hdd[i].xta_channel];
 
-		if (! hdd_image_load(i)) {
-			drive->present = 0;
-			continue;
-		}
-		drive->id = c;
+            if (!hdd_image_load(i)) {
+                drive->present = 0;
+                continue;
+            }
+            drive->id = c;
 
-		/* These are the "hardware" parameters (from the image.) */
-		drive->cfg_spt = (uint8_t)(hdd[i].spt & 0xff);
-		drive->cfg_hpc = (uint8_t)(hdd[i].hpc & 0xff);
-		drive->cfg_tracks = (uint16_t)hdd[i].tracks;
+            /* These are the "hardware" parameters (from the image.) */
+            drive->cfg_spt    = (uint8_t) (hdd[i].spt & 0xff);
+            drive->cfg_hpc    = (uint8_t) (hdd[i].hpc & 0xff);
+            drive->cfg_tracks = (uint16_t) hdd[i].tracks;
 
-		/* Use them as "active" parameters until overwritten. */
-		drive->spt = drive->cfg_spt;
-		drive->hpc = drive->cfg_hpc;
-		drive->tracks = drive->cfg_tracks;
+            /* Use them as "active" parameters until overwritten. */
+            drive->spt    = drive->cfg_spt;
+            drive->hpc    = drive->cfg_hpc;
+            drive->tracks = drive->cfg_tracks;
 
-		drive->type = ibm_drive_type(drive);
-		drive->hdd_num = i;
-		drive->present = 1;
+            drive->type    = ibm_drive_type(drive);
+            drive->hdd_num = i;
+            drive->present = 1;
 
-		ps1_hdc_log("HDC: drive%d (type %d: cyl=%d,hd=%d,spt=%d), disk %d\n",
-			hdd[i].xta_channel, drive->type,
-			drive->tracks, drive->hpc, drive->spt, i);
+            ps1_hdc_log("HDC: drive%d (type %d: cyl=%d,hd=%d,spt=%d), disk %d\n",
+                        hdd[i].xta_channel, drive->type,
+                        drive->tracks, drive->hpc, drive->spt, i);
 
-		if (++c > 1) break;
-	}
+            if (++c > 1)
+                break;
+        }
     }
 
     /* Sectors are 1-based. */
@@ -1314,32 +1296,31 @@ ps1_hdc_init(const device_t *info)
 
     /* Enable the I/O block. */
     io_sethandler(dev->base, 5,
-		  hdc_read,NULL,NULL, hdc_write,NULL,NULL, dev);
+                  hdc_read, NULL, NULL, hdc_write, NULL, NULL, dev);
 
     /* Create a timer for command delays. */
-	timer_add(&dev->timer, hdc_callback, dev, 0);
+    timer_add(&dev->timer, hdc_callback, dev, 0);
 
-    return(dev);
+    return (dev);
 }
-
 
 static void
 ps1_hdc_close(void *priv)
 {
-    hdc_t *dev = (hdc_t *)priv;
+    hdc_t   *dev = (hdc_t *) priv;
     drive_t *drive;
-    int d;
+    int      d;
 
     /* Remove the I/O handler. */
     io_removehandler(dev->base, 5,
-		     hdc_read,NULL,NULL, hdc_write,NULL,NULL, dev);
+                     hdc_read, NULL, NULL, hdc_write, NULL, NULL, dev);
 
     /* Close all disks and their images. */
     for (d = 0; d < XTA_NUM; d++) {
-	drive = &dev->drives[d];
+        drive = &dev->drives[d];
 
-	if (drive->present)
-		hdd_image_close(drive->hdd_num);
+        if (drive->present)
+            hdd_image_close(drive->hdd_num);
     }
 
     /* Release the device. */
@@ -1347,17 +1328,17 @@ ps1_hdc_close(void *priv)
 }
 
 const device_t ps1_hdc_device = {
-    .name = "PS/1 2011 Fixed Disk Controller",
+    .name          = "PS/1 2011 Fixed Disk Controller",
     .internal_name = "ps1_hdc",
-    .flags = DEVICE_ISA | DEVICE_PS2,
-    .local = 0,
-    .init = ps1_hdc_init,
-    .close = ps1_hdc_close,
-    .reset = NULL,
+    .flags         = DEVICE_ISA | DEVICE_PS2,
+    .local         = 0,
+    .init          = ps1_hdc_init,
+    .close         = ps1_hdc_close,
+    .reset         = NULL,
     { .available = NULL },
     .speed_changed = NULL,
-    .force_redraw = NULL,
-    .config = NULL
+    .force_redraw  = NULL,
+    .config        = NULL
 };
 
 /*
@@ -1375,7 +1356,7 @@ const device_t ps1_hdc_device = {
 void
 ps1_hdc_inform(void *priv, uint8_t *reg_91)
 {
-    hdc_t *dev = (hdc_t *)priv;
+    hdc_t *dev = (hdc_t *) priv;
 
     dev->reg_91 = reg_91;
 }
