@@ -36,19 +36,21 @@
 #include <86box/mem.h>
 #include <86box/pci.h>
 #include <86box/pic.h>
+#include <86box/timer.h>
 #include <86box/hdc.h>
 #include <86box/hdc_ide.h>
 #include <86box/hdc_ide_sff8038i.h>
 #include <86box/zip.h>
+#include <86box/mo.h>
 
 
 static int	next_id = 0;
 
 
-static uint8_t	sff_bus_master_read(uint16_t port, void *priv);
+uint8_t		sff_bus_master_read(uint16_t port, void *priv);
 static uint16_t	sff_bus_master_readw(uint16_t port, void *priv);
 static uint32_t	sff_bus_master_readl(uint16_t port, void *priv);
-static void	sff_bus_master_write(uint16_t port, uint8_t val, void *priv);
+void		sff_bus_master_write(uint16_t port, uint8_t val, void *priv);
 static void	sff_bus_master_writew(uint16_t port, uint16_t val, void *priv);
 static void	sff_bus_master_writel(uint16_t port, uint32_t val, void *priv);
 
@@ -110,7 +112,7 @@ sff_bus_master_next_addr(sff8038i_t *dev)
 }
 
 
-static void
+void
 sff_bus_master_write(uint16_t port, uint8_t val, void *priv)
 {
     sff8038i_t *dev = (sff8038i_t *) priv;
@@ -135,6 +137,9 @@ sff_bus_master_write(uint16_t port, uint8_t val, void *priv)
 		}
 
 		dev->command = val;
+		break;
+	case 1:
+		dev->dma_mode = val & 0x03;
 		break;
 	case 2:
 		sff_log("sff Status: val = %02X, old = %02X\n", val, dev->status);
@@ -175,6 +180,7 @@ sff_bus_master_writew(uint16_t port, uint16_t val, void *priv)
 
     switch (port & 7) {
 	case 0:
+	case 1:
 	case 2:
 		sff_bus_master_write(port, val & 0xff, priv);
 		break;
@@ -200,6 +206,7 @@ sff_bus_master_writel(uint16_t port, uint32_t val, void *priv)
 
     switch (port & 7) {
 	case 0:
+	case 1:
 	case 2:
 		sff_bus_master_write(port, val & 0xff, priv);
 		break;
@@ -212,7 +219,7 @@ sff_bus_master_writel(uint16_t port, uint32_t val, void *priv)
 }
 
 
-static uint8_t
+uint8_t
 sff_bus_master_read(uint16_t port, void *priv)
 {
     sff8038i_t *dev = (sff8038i_t *) priv;
@@ -222,6 +229,9 @@ sff_bus_master_read(uint16_t port, void *priv)
     switch (port & 7) {
 	case 0:
 		ret = dev->command;
+		break;
+	case 1:
+		ret = dev->dma_mode & 0x03;
 		break;
 	case 2:
 		ret = dev->status & 0x67;
@@ -255,6 +265,7 @@ sff_bus_master_readw(uint16_t port, void *priv)
 
     switch (port & 7) {
 	case 0:
+	case 1:
 	case 2:
 		ret = (uint16_t) sff_bus_master_read(port, priv);
 		break;
@@ -281,6 +292,7 @@ sff_bus_master_readl(uint16_t port, void *priv)
 
     switch (port & 7) {
 	case 0:
+	case 1:
 	case 2:
 		ret = (uint32_t) sff_bus_master_read(port, priv);
 		break;
@@ -295,7 +307,7 @@ sff_bus_master_readl(uint16_t port, void *priv)
 }
 
 
-static int
+int
 sff_bus_master_dma(int channel, uint8_t *data, int transfer_length, int out, void *priv)
 {
     sff8038i_t *dev = (sff8038i_t *) priv;
@@ -309,8 +321,10 @@ sff_bus_master_dma(int channel, uint8_t *data, int transfer_length, int out, voi
     sop = out ? "Read" : "Writ";
 #endif
 
-    if (!(dev->status & 1))
+    if (!(dev->status & 1)) {
+	sff_log("DMA disabled\n");
 	return 2;                                    /*DMA disabled*/
+    }
 
     sff_log("SFF-8038i Bus master %s: %i bytes\n", out ? "write" : "read", transfer_length);
 
@@ -368,30 +382,53 @@ void
 sff_bus_master_set_irq(int channel, void *priv)
 {
     sff8038i_t *dev = (sff8038i_t *) priv;
-    dev->status &= ~4;
-    dev->status |= (channel >> 4);
+    uint8_t irq = !!(channel & 0x40);
+
+    if (!(dev->status & 0x04) || (channel & 0x40)) {
+	dev->status &= ~0x04;
+	dev->status |= (channel >> 4);
+    }
 
     channel &= 0x01;
-    if (dev->status & 0x04) {
-	sff_log("SFF8038i: Channel %i IRQ raise\n", channel);
-	if (dev->irq_mode[channel] == 3)
-		picintlevel(1 << dev->irq_line);
-	else if ((dev->irq_mode[channel] == 2) && channel && pci_use_mirq(0))
-		pci_set_mirq(0, 0);
-	else if (dev->irq_mode[channel] == 1)
-		pci_set_irq(dev->slot, dev->irq_pin);
-	else
-		picint(1 << (14 + channel));
-    } else {
-	sff_log("SFF8038i: Channel %i IRQ lower\n", channel);
-	if (dev->irq_mode[channel] == 3)
-		picintc(1 << dev->irq_line);
-	else if ((dev->irq_mode[channel] == 2) && channel && pci_use_mirq(0))
-		pci_clear_mirq(0, 0);
-	else if (dev->irq_mode[channel] == 1)
-		pci_clear_irq(dev->slot, dev->irq_pin);
-	else
-		picintc(1 << (14 + channel));
+
+    switch (dev->irq_mode[channel]) {
+	case 0:
+	default:
+		/* Legacy IRQ mode. */
+		if (irq)
+			picint(1 << (14 + channel));
+		else
+			picintc(1 << (14 + channel));
+		break;
+	case 1:
+		/* Native PCI IRQ mode with interrupt pin. */
+		if (irq)
+			pci_set_irq(dev->slot, dev->irq_pin);
+		else
+			pci_clear_irq(dev->slot, dev->irq_pin);
+		break;
+	case 2:
+	case 5:
+		/* MIRQ 0 or 1. */
+		if (irq)
+			pci_set_mirq(dev->irq_mode[channel] & 1, 0);
+		else
+			pci_clear_mirq(dev->irq_mode[channel] & 1, 0);
+		break;
+	case 3:
+		/* Native PCI IRQ mode with specified interrupt line. */
+		if (irq)
+			picintlevel(1 << dev->irq_line);
+		else
+			picintc(1 << dev->irq_line);
+		break;
+	case 4:
+		/* ALi Aladdin Native PCI INTAJ mode. */
+		if (irq)
+			pci_set_mirq(channel + 2, dev->irq_level[channel]);
+		else
+			pci_clear_mirq(channel + 2, dev->irq_level[channel]);
+		break;
     }
 }
 
@@ -439,6 +476,11 @@ sff_reset(void *p)
 	    (zip_drives[i].ide_channel < 4) && zip_drives[i].priv)
 		zip_reset((scsi_common_t *) zip_drives[i].priv);
     }
+	for (i = 0; i < MO_NUM; i++) {
+	if ((mo_drives[i].bus_type == MO_BUS_ATAPI) &&
+	    (mo_drives[i].ide_channel < 4) && mo_drives[i].priv)
+		mo_reset((scsi_common_t *) mo_drives[i].priv);
+	}
 
     sff_bus_master_set_irq(0x00, p);
     sff_bus_master_set_irq(0x01, p);
@@ -460,9 +502,41 @@ sff_set_irq_line(sff8038i_t *dev, int irq_line)
 
 
 void
+sff_set_irq_level(sff8038i_t *dev, int channel, int irq_level)
+{
+    dev->irq_level[channel] = 0;
+}
+
+
+void
 sff_set_irq_mode(sff8038i_t *dev, int channel, int irq_mode)
 {
     dev->irq_mode[channel] = irq_mode;
+
+    switch (dev->irq_mode[channel]) {
+	case 0:
+	default:
+		/* Legacy IRQ mode. */
+		sff_log("[%08X] Setting channel %i to legacy IRQ %i\n", dev, channel, 14 + channel);
+		break;
+	case 1:
+		/* Native PCI IRQ mode with interrupt pin. */
+		sff_log("[%08X] Setting channel %i to native PCI INT%c\n", dev, channel, '@' + dev->irq_pin);
+		break;
+	case 2:
+	case 5:
+		/* MIRQ 0 or 1. */
+		sff_log("[%08X] Setting channel %i to PCI MIRQ%i\n", dev, channel, irq_mode & 1);
+		break;
+	case 3:
+		/* Native PCI IRQ mode with specified interrupt line. */
+		sff_log("[%08X] Setting channel %i to native PCI IRQ %i\n", dev, channel, dev->irq_line);
+		break;
+	case 4:
+		/* ALi Aladdin Native PCI INTAJ mode. */
+		sff_log("[%08X] Setting channel %i to INT%cJ\n", dev, channel, 'A' + channel);
+		break;
+    }
 }
 
 
@@ -499,26 +573,28 @@ static void
     ide_set_bus_master(next_id, sff_bus_master_dma, sff_bus_master_set_irq, dev);
 
     dev->slot = 7;
-    dev->irq_mode[0] = dev->irq_mode[1] = 2;
+    dev->irq_mode[0] = 0;	/* Channel 0 goes to IRQ 14. */
+    dev->irq_mode[1] = 2;	/* Channel 1 goes to MIRQ0. */
     dev->irq_pin = PCI_INTA;
     dev->irq_line = 14;
+    dev->irq_level[0] = dev->irq_level[1] = 0;
 
     next_id++;
 
     return dev;
 }
 
-
 const device_t sff8038i_device =
 {
-    "SFF-8038i IDE Bus Master",
-    DEVICE_PCI,
-    0,
-    sff_init, 
-    sff_close, 
-    sff_reset,
-    NULL,
-    NULL,
-    NULL,
-    NULL
+    .name = "SFF-8038i IDE Bus Master",
+    .internal_name = "sff8038i",
+    .flags = DEVICE_PCI,
+    .local = 0,
+    .init = sff_init,
+    .close = sff_close,
+    .reset = sff_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };

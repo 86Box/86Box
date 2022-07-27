@@ -17,9 +17,9 @@
  *
  *		Copyright 2020 Miran Grca.
  */
-#ifndef EMU_MO_H
-#define EMU_MO_H
 
+#ifndef EMU_MO_H
+# define EMU_MO_H
 
 #define MO_NUM			  4
 
@@ -31,35 +31,34 @@
 typedef struct {
     uint32_t	sectors;
     uint16_t	bytes_per_sector;
-    int64_t	disk_size;
-    char	name[255];
 } mo_type_t;
 
 #define KNOWN_MO_TYPES 10
 static const mo_type_t mo_types[KNOWN_MO_TYPES] = {
     // 3.5" standard M.O. disks
-    {	248826,  512, 127398912, "3.5\" 128Mb M.O. (ISO 10090)" },
-    {	446325,  512, 228518400, "3.5\" 230Mb M.O. (ISO 13963)" },
-    {	1041500,  512, 533248000, "3.5\" 540Mb M.O. (ISO 15498)" },
-    {	310352,  2048, 635600896, "3.5\" 640Mb M.O. (ISO 15498)" },
-    {	605846,  2048, 1240772608, "3.5\" 1.3Gb M.O. (GigaMO)" },
-    {	1063146,  2048, 2177323008, "3.5\" 2.3Gb M.O. (GigaMO 2)" },
+    {	248826,  512 },
+    {	446325,  512 },
+    {	1041500,  512 },
+    {	310352,  2048 },
+    {	605846,  2048 },
+    {	1063146,  2048 },
     // 5.25" M.O. disks
-    {573624, 512, 293695488, "5.25\" 600Mb M.O."},
-    {314568, 1024, 322117632, "5.25\" 650Mb M.O."},
-    {904995, 512, 463357440, "5.25\" 1Gb M.O."},
-    {637041, 1024, 652329984, "5.25\" 1.3Gb M.O."},
+    {573624, 512 },
+    {314568, 1024 },
+    {904995, 512 },
+    {637041, 1024 },
 };
 
 typedef struct
 {
-    char vendor[8];
-    char model[16];
-    char revision[4];
+    const char vendor[9];
+    const char model[16];
+    const char revision[5];
     int8_t supported_media[KNOWN_MO_TYPES];
 } mo_drive_type_t;
 
-static const mo_drive_type_t mo_drive_types[22] = {
+#define KNOWN_MO_DRIVE_TYPES 22
+static const mo_drive_type_t mo_drive_types[KNOWN_MO_DRIVE_TYPES] = {
     {"86BOX", "MAGNETO OPTICAL", "1.00",{1, 1, 1, 1, 1, 1, 1, 1, 1, 1}},
     {"FUJITSU", "M2512A", "1314",{1, 1, 0, 0, 0, 0, 0, 0, 0}},
     {"FUJITSU", "M2513-MCC3064SS", "1.00",{1, 1, 1, 1, 0, 0, 0, 0, 0, 0}},
@@ -86,66 +85,65 @@ static const mo_drive_type_t mo_drive_types[22] = {
 
 enum {
     MO_BUS_DISABLED = 0,
-    MO_BUS_ATAPI = 4,
+    MO_BUS_ATAPI = 5,
     MO_BUS_SCSI,
     MO_BUS_USB
 };
 
 typedef struct {
-    uint8_t 	id,
-		res, res0,		/* Reserved for other ID's. */
-		res1,
-		ide_channel, scsi_device_id,
-		bus_type,		/* 0 = ATAPI, 1 = SCSI */
+    uint8_t 	id;
+
+    union {
+	uint8_t 	res, res0,		/* Reserved for other ID's. */
+			res1,
+			ide_channel, scsi_device_id;
+    };
+
+    uint8_t 	bus_type,		/* 0 = ATAPI, 1 = SCSI */
 		bus_mode,		/* Bit 0 = PIO suported;
 					   Bit 1 = DMA supportd. */
 		read_only,		/* Struct variable reserved for
 					   media status. */
 		pad, pad0;
 
-    uint32_t	medium_size,
-		base;
-    uint16_t 	sector_size;
-    uint8_t 	type;
-
+    FILE	*f;
     void	*priv;
 
-    FILE	*f;
-
-    wchar_t	image_path[1024],
+    char	image_path[1024],
 		prev_image_path[1024];
+
+    uint32_t	type, medium_size,
+		base;
+    uint16_t 	sector_size;
+
 } mo_drive_t;
 
 typedef struct {
-    uint8_t	id,
-		error, status,
-		phase,
-		features,
-		is_dma,
-		do_page_save,
-		unit_attention;
+  mode_sense_pages_t ms_pages_saved;
 
-    mo_drive_t	*drv;
+    mo_drive_t *drv;
 
-    uint16_t	request_length,
-		max_transfer_len;
+    uint8_t *buffer,
+	    atapi_cdb[16],
+	    current_cdb[16],
+	    sense[256];
 
-    int		requested_blocks, packet_status,
-		request_pos, old_len,
-		total_length;
+    uint8_t status, phase,
+	    error, id,
+	    features, cur_lun,
+	    pad0, pad1;
 
-    uint32_t	sector_pos, sector_len,
-		packet_len, pos,
-		seek_pos;
+    uint16_t request_length, max_transfer_len;
 
-    double	callback;
+    int requested_blocks, packet_status,
+	total_length, do_page_save,
+	unit_attention, request_pos,
+	old_len, pad3;
 
-    mode_sense_pages_t ms_pages_saved;
+    uint32_t sector_pos, sector_len,
+	     packet_len, pos;
 
-    uint8_t	*buffer,
-		atapi_cdb[16],
-		current_cdb[16],
-		sense[256];
+    double callback;
 } mo_t;
 
 
@@ -172,7 +170,7 @@ extern void	mo_global_init(void);
 extern void	mo_hard_reset(void);
 
 extern void	mo_reset(scsi_common_t *sc);
-extern int	mo_load(mo_t *dev, wchar_t *fn);
+extern int	mo_load(mo_t *dev, char *fn);
 extern void	mo_close();
 
 #ifdef __cplusplus

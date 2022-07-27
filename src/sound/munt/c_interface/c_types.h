@@ -1,5 +1,5 @@
 /* Copyright (C) 2003, 2004, 2005, 2006, 2008, 2009 Dean Beeler, Jerome Fisher
- * Copyright (C) 2011-2017 Dean Beeler, Jerome Fisher, Sergey V. Mikayev
+ * Copyright (C) 2011-2020 Dean Beeler, Jerome Fisher, Sergey V. Mikayev
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Lesser General Public License as published by
@@ -121,7 +121,8 @@ typedef enum {
 	MT32EMU_SERVICE_VERSION_0 = 0,
 	MT32EMU_SERVICE_VERSION_1 = 1,
 	MT32EMU_SERVICE_VERSION_2 = 2,
-	MT32EMU_SERVICE_VERSION_CURRENT = MT32EMU_SERVICE_VERSION_2
+	MT32EMU_SERVICE_VERSION_3 = 3,
+	MT32EMU_SERVICE_VERSION_CURRENT = MT32EMU_SERVICE_VERSION_3
 } mt32emu_service_version;
 
 /* === Report Handler Interface === */
@@ -216,11 +217,11 @@ typedef union mt32emu_service_i mt32emu_service_i;
 #define MT32EMU_SERVICE_I_V0 \
 	/** Returns the actual interface version ID */ \
 	mt32emu_service_version (*getVersionID)(mt32emu_service_i i); \
-	mt32emu_report_handler_version (*getSupportedReportHandlerVersionID)(); \
-	mt32emu_midi_receiver_version (*getSupportedMIDIReceiverVersionID)(); \
+	mt32emu_report_handler_version (*getSupportedReportHandlerVersionID)(void); \
+	mt32emu_midi_receiver_version (*getSupportedMIDIReceiverVersionID)(void); \
 \
-	mt32emu_bit32u (*getLibraryVersionInt)(); \
-	const char *(*getLibraryVersionString)(); \
+	mt32emu_bit32u (*getLibraryVersionInt)(void); \
+	const char *(*getLibraryVersionString)(void); \
 \
 	mt32emu_bit32u (*getStereoOutputSamplerate)(const mt32emu_analog_output_mode analog_output_mode); \
 \
@@ -303,6 +304,14 @@ typedef union mt32emu_service_i mt32emu_service_i;
 	void (*setNiceAmpRampEnabled)(mt32emu_const_context context, const mt32emu_boolean enabled); \
 	mt32emu_boolean (*isNiceAmpRampEnabled)(mt32emu_const_context context);
 
+#define MT32EMU_SERVICE_I_V3 \
+	void (*setNicePanningEnabled)(mt32emu_const_context context, const mt32emu_boolean enabled); \
+	mt32emu_boolean (*isNicePanningEnabled)(mt32emu_const_context context); \
+	void (*setNicePartialMixingEnabled)(mt32emu_const_context context, const mt32emu_boolean enabled); \
+	mt32emu_boolean (*isNicePartialMixingEnabled)(mt32emu_const_context context); \
+	void (*preallocateReverbMemory)(mt32emu_const_context context, const mt32emu_boolean enabled); \
+	void (*configureMIDIEventQueueSysexStorage)(mt32emu_const_context context, const mt32emu_bit32u storage_buffer_size);
+
 typedef struct {
 	MT32EMU_SERVICE_I_V0
 } mt32emu_service_i_v0;
@@ -318,6 +327,13 @@ typedef struct {
 	MT32EMU_SERVICE_I_V2
 } mt32emu_service_i_v2;
 
+typedef struct {
+	MT32EMU_SERVICE_I_V0
+	MT32EMU_SERVICE_I_V1
+	MT32EMU_SERVICE_I_V2
+	MT32EMU_SERVICE_I_V3
+} mt32emu_service_i_v3;
+
 /**
  * Extensible interface for all the library services.
  * Union intended to view an interface of any subsequent version as any parent interface not requiring a cast.
@@ -327,10 +343,12 @@ union mt32emu_service_i {
 	const mt32emu_service_i_v0 *v0;
 	const mt32emu_service_i_v1 *v1;
 	const mt32emu_service_i_v2 *v2;
+	const mt32emu_service_i_v3 *v3;
 };
 
 #undef MT32EMU_SERVICE_I_V0
 #undef MT32EMU_SERVICE_I_V1
 #undef MT32EMU_SERVICE_I_V2
+#undef MT32EMU_SERVICE_I_V3
 
 #endif /* #ifndef MT32EMU_C_TYPES_H */

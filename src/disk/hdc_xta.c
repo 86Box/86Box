@@ -23,7 +23,7 @@
  *		disk drives for this bus commonly have an 'A' suffix to
  *		identify them as 'ATBUS'.
  *
- *		In XTA-IDE, which is slightly older, the programming 
+ *		In XTA-IDE, which is slightly older, the programming
  *		interface of the IBM PC/XT (which used the MFM controller
  *		from Xebec) was kept, and, so, it uses an 8bit data path.
  *		Disk drives for this bus commonly have the 'X' suffix to
@@ -38,7 +38,7 @@
  *		data byte per transfer.  XTIDE uses regular IDE drives,
  *		and uses the regular ATA/IDE programming interface, just
  *		with the extra register.
- * 
+ *
  * NOTE:	This driver implements both the 'standard' XTA interface,
  *		sold by Western Digital as the WDXT-140 (no BIOS) and the
  *		WDXT-150 (with BIOS), as well as some variants customized
@@ -84,9 +84,6 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING  IN ANY  WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#define __USE_LARGEFILE64
-#define _LARGEFILE_SOURCE
-#define _LARGEFILE64_SOURCE
 #include <stdarg.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -110,7 +107,7 @@
 
 #define HDC_TIME	(50*TIMER_USEC)
 
-#define WD_BIOS_FILE	L"roms/hdd/xta/idexywd2.bin"
+#define WD_BIOS_FILE	"roms/hdd/xta/idexywd2.bin"
 
 
 enum {
@@ -494,7 +491,7 @@ hdc_callback(void *priv)
 		}
 		set_intr(dev);
 		break;
-		
+
 	case CMD_READ_SENSE:
 		switch(dev->state) {
 			case STATE_IDLE:
@@ -514,7 +511,7 @@ hdc_callback(void *priv)
 			case STATE_SDONE:
 				set_intr(dev);
 		}
-		break;		
+		break;
 
 	case CMD_READ_VERIFY:
 		no_data = 1;
@@ -584,7 +581,7 @@ do_send:
 					}
 				}
 				break;
-			
+
 			case STATE_SDATA:
 				if (! no_data) {
 					/* Perform DMA. */
@@ -882,7 +879,7 @@ hdc_read(uint16_t port, void *priv)
 {
     hdc_t *dev = (hdc_t *)priv;
     uint8_t ret = 0xff;
-	
+
     switch (port & 7) {
 	case 0:		/* DATA register */
 		dev->status &= ~STAT_IRQ;
@@ -920,7 +917,7 @@ xta_log("DCB=%02X  status=%02X comp=%02X\n", dev->dcb.cmd, dev->status, dev->com
 		break;
     }
 
-    return(ret);	
+    return(ret);
 }
 
 
@@ -995,7 +992,7 @@ static void *
 xta_init(const device_t *info)
 {
     drive_t *drive;
-    wchar_t *fn = NULL;
+    char *fn = NULL;
     hdc_t *dev;
     int c, i;
     int max = XTA_NUM;
@@ -1068,12 +1065,13 @@ xta_init(const device_t *info)
 		  hdc_read,NULL,NULL, hdc_write,NULL,NULL, dev);
 
     /* Load BIOS if it has one. */
-    if (dev->rom_addr != 0x000000)
+    if (dev->rom_addr != 0x000000) {
 	rom_init(&dev->bios_rom, fn,
 		 dev->rom_addr, 0x2000, 0x1fff, 0, MEM_MAPPING_EXTERNAL);
-		
+   }
+
     /* Create a timer for command delays. */
-	timer_add(&dev->timer, hdc_callback, dev, 0);
+    timer_add(&dev->timer, hdc_callback, dev, 0);
 
     return(dev);
 }
@@ -1101,71 +1099,78 @@ xta_close(void *priv)
     free(dev);
 }
 
-
 static const device_config_t wdxt150_config[] = {
-        {
-		"base", "Address", CONFIG_HEX16, "", 0x0320,		/*W2*/
-                {
-                        {
-                                "320H", 0x0320
-                        },
-                        {
-                                "324H", 0x0324
-                        },
-                        {
-                                ""
-                        }
-                },
+// clang-format off
+    {
+        .name = "base",
+        .description = "Address",
+        .type = CONFIG_HEX16,
+        .default_string = "",
+        .default_int = 0x0320,
+        .file_filter = "",
+        .spinner = { 0 }, /*W2*/
+        .selection = {
+            { .description = "320H", .value = 0x0320 },
+            { .description = "324H", .value = 0x0324 },
+            { .description = ""                      }
         },
-        {
-		"irq", "IRQ", CONFIG_SELECTION, "", 5,			/*W3*/
-                {
-                        {
-                                "IRQ 5", 5
-                        },
-                        {
-                                "IRQ 4", 4
-                        },
-                        {
-                                ""
-                        }
-                },
+    },
+    {
+        .name = "irq",
+        .description = "IRQ",
+        .type = CONFIG_SELECTION,
+        .default_string = "",
+        .default_int = 5,
+        .file_filter = "",
+        .spinner = { 0 }, /*W3*/
+        .selection = {
+            { .description = "IRQ 5", .value = 5 },
+            { .description = "IRQ 4", .value = 4 },
+            { .description = ""                  }
         },
-        {
-                "bios_addr", "BIOS Address", CONFIG_HEX20, "", 0xc8000, /*W1*/
-                {
-                        {
-                                "C800H", 0xc8000
-                        },
-                        {
-                                "CA00H", 0xca000
-                        },
-                        {
-                                ""
-                        }
-                },
+    },
+    {
+        .name = "bios_addr",
+        .description = "BIOS Address",
+        .type = CONFIG_HEX20,
+        .default_string = "",
+        .default_int = 0xc8000,
+        .file_filter = "",
+        .spinner = { 0 }, /*W1*/
+        .selection = {
+            { .description = "C800H", .value = 0xc8000 },
+            { .description = "CA00H", .value = 0xca000 },
+            { .description = ""                        }
         },
-	{
-		"", "", -1
-	}
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+// clang-format off
 };
-
 
 const device_t xta_wdxt150_device = {
-    "WDXT-150 Fixed Disk Controller",
-    DEVICE_ISA,
-    0,
-    xta_init, xta_close, NULL,
-    xta_available, NULL, NULL,
-    wdxt150_config
+    .name = "WDXT-150 XTA Fixed Disk Controller",
+    .internal_name = "xta_wdxt150",
+    .flags = DEVICE_ISA,
+    .local = 0,
+    .init = xta_init,
+    .close = xta_close,
+    .reset = NULL,
+    { .available = xta_available },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = wdxt150_config
 };
 
-
 const device_t xta_hd20_device = {
-    "EuroPC HD20 Fixed Disk Controller",
-    DEVICE_ISA,
-    1,
-    xta_init, xta_close, NULL,
-    NULL, NULL, NULL,
-    NULL
+    .name = "EuroPC HD20 Fixed Disk Controller",
+    .internal_name = "xta_hd20",
+    .flags = DEVICE_ISA,
+    .local = 1,
+    .init = xta_init,
+    .close = xta_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };

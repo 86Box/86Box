@@ -86,7 +86,7 @@ typedef struct {
 
 
 extern DRIVE		drives[FDD_NUM];
-extern wchar_t		floppyfns[FDD_NUM][512];
+extern char		floppyfns[FDD_NUM][512];
 extern pc_timer_t	fdd_poll_time[FDD_NUM];
 extern int		ui_writeprot[FDD_NUM];
 
@@ -96,7 +96,7 @@ extern int	fdd_time;
 extern int64_t	floppytime;
 
 
-extern void	fdd_load(int drive, wchar_t *fn);
+extern void	fdd_load(int drive, char *fn);
 extern void	fdd_new(int drive, char *fn);
 extern void	fdd_close(int drive);
 extern void	fdd_init(void);
@@ -112,6 +112,7 @@ extern void	fdd_readaddress(int drive, int side, int density);
 extern void	fdd_format(int drive, int side, int density, uint8_t fill);
 extern int	fdd_hole(int drive);
 extern void	fdd_stop(int drive);
+extern void	fdd_do_writeback(int drive);
 
 extern int	motorspin;
 extern uint64_t	motoron[FDD_NUM];

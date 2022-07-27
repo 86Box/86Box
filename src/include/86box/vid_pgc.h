@@ -19,7 +19,6 @@
 #ifndef VID_PGC_H
 # define VID_PGC_H
 
-
 #define PGC_ERROR_RANGE    0x01
 #define PGC_ERROR_INTEGER  0x02
 #define PGC_ERROR_MEMORY   0x03
@@ -49,7 +48,7 @@ typedef struct pgc_cmd {
     uint8_t	hex;
     void	(*handler)(struct pgc *);
     int		(*parser) (struct pgc *, pgc_cl_t *, int);
-    int p;	
+    int p;
 } pgc_cmd_t;
 
 typedef struct pgc {
@@ -99,7 +98,7 @@ typedef struct pgc {
     int		waiting_error_fifo;
     int		ascii_mode;
     int		result_count;
- 
+
     int		fontbase;
     int		linepos,
 		displine;
@@ -117,7 +116,7 @@ typedef struct pgc {
 
     int		drawcursor;
 
-    int		(*inputbyte)(struct pgc *, uint8_t *result); 
+    int		(*inputbyte)(struct pgc *, uint8_t *result);
 } pgc_t;
 
 
@@ -133,6 +132,7 @@ extern void	pgc_wake(pgc_t *);
 extern void	pgc_sleep(pgc_t *);
 extern void	pgc_setdisplay(pgc_t *, int cga);
 extern void	pgc_speed_changed(void *priv);
+extern void	pgc_close_common(void *priv);
 extern void	pgc_close(void *priv);
 extern void	pgc_init(pgc_t *,
 			 int maxw, int maxh, int visw, int vish,
@@ -179,6 +179,5 @@ extern int	pgc_result_coord(pgc_t *, int32_t val);
 /* Special overload functions for non-IBM implementations. */
 extern void	pgc_hndl_lut8(pgc_t *);
 extern void	pgc_hndl_lut8rd(pgc_t *);
-
 
 #endif	/*VID_PGC_H*/

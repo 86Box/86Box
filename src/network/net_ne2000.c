@@ -65,33 +65,33 @@
 #include <86box/net_dp8390.h>
 #include <86box/net_ne2000.h>
 #include <86box/bswap.h>
+#include <86box/isapnp.h>
 
-
-enum {
-	PNP_PHASE_WAIT_FOR_KEY = 0,
-	PNP_PHASE_CONFIG,
-	PNP_PHASE_ISOLATION,
-	PNP_PHASE_SLEEP
-};
 
 /* ROM BIOS file paths. */
-#define ROM_PATH_NE1000		L"roms/network/ne1000/ne1000.rom"
-#define ROM_PATH_NE2000		L"roms/network/ne2000/ne2000.rom"
-#define ROM_PATH_RTL8019	L"roms/network/rtl8019as/rtl8019as.rom"
-#define ROM_PATH_RTL8029	L"roms/network/rtl8029as/rtl8029as.rom"
+#define ROM_PATH_NE1000		"roms/network/ne1000/ne1000.rom"
+#define ROM_PATH_NE2000		"roms/network/ne2000/ne2000.rom"
+#define ROM_PATH_RTL8019	"roms/network/rtl8019as/rtl8019as.rom"
+#define ROM_PATH_RTL8029	"roms/network/rtl8029as/rtl8029as.rom"
 
 /* PCI info. */
-#define PNP_VENDID		0x4a8c		/* Realtek, Inc */
 #define PCI_VENDID		0x10ec		/* Realtek, Inc */
-#define PNP_DEVID		0x8019		/* RTL8029AS */
 #define PCI_DEVID		0x8029		/* RTL8029AS */
 #define PCI_REGSIZE		256		/* size of PCI space */
 
 
-uint8_t pnp_init_key[32] = { 0x6A, 0xB5, 0xDA, 0xED, 0xF6, 0xFB, 0x7D, 0xBE,
-			     0xDF, 0x6F, 0x37, 0x1B, 0x0D, 0x86, 0xC3, 0x61,
-			     0xB0, 0x58, 0x2C, 0x16, 0x8B, 0x45, 0xA2, 0xD1,
-			     0xE8, 0x74, 0x3A, 0x9D, 0xCE, 0xE7, 0x73, 0x39 };
+static uint8_t rtl8019as_pnp_rom[] = {
+    0x4a, 0x8c, 0x80, 0x19, 0x00, 0x00, 0x00, 0x00, 0x00, /* RTL8019, dummy checksum (filled in by isapnp_add_card) */
+    0x0a, 0x10, 0x10, /* PnP version 1.0, vendor version 1.0 */
+    0x82, 0x22, 0x00, 'R', 'E', 'A', 'L', 'T', 'E', 'K', ' ', 'P', 'L', 'U', 'G', ' ', '&', ' ', 'P', 'L', 'A', 'Y', ' ', 'E', 'T', 'H', 'E', 'R', 'N', 'E', 'T', ' ', 'C', 'A', 'R', 'D', 0x00, /* ANSI identifier */
+
+    0x16, 0x4a, 0x8c, 0x80, 0x19, 0x02, 0x00, /* logical device RTL8019 */
+	0x1c, 0x41, 0xd0, 0x80, 0xd6, /* compatible device PNP80D6 */
+	0x47, 0x00, 0x20, 0x02, 0x80, 0x03, 0x20, 0x20, /* I/O 0x220-0x380, decodes 10-bit, 32-byte alignment, 32 addresses */
+	0x23, 0x38, 0x9e, 0x01, /* IRQ 3/4/5/9/10/11/12/15, high true edge sensitive */
+
+    0x79, 0x00 /* end tag, dummy checksum (filled in by isapnp_add_card) */
+};
 
 
 typedef struct {
@@ -106,27 +106,13 @@ typedef struct {
 		bios_mask;
     int		card;			/* PCI card slot */
     int		has_bios, pad;
-    uint8_t	pnp_regs[256];
-    uint8_t	pnp_res_data[256];
     bar_t	pci_bar[2];
     uint8_t	pci_regs[PCI_REGSIZE];
     uint8_t	eeprom[128];		/* for RTL8029AS */
     rom_t	bios_rom;
-    uint8_t	pnp_phase;
-    uint8_t	pnp_magic_count;
-    uint8_t	pnp_address;
-    uint8_t	pnp_res_pos;
-    uint8_t	pnp_csn;
-    uint8_t	pnp_activate;
-    uint8_t	pnp_io_check;
+    void	*pnp_card;
     uint8_t	pnp_csnsav;
-    uint8_t	pnp_id_checksum;
-    uint8_t	pnp_serial_read_pos;
-    uint8_t	pnp_serial_read_pair;
-    uint8_t	pnp_serial_read;
     uint8_t	maclocal[6];		/* configured MAC (local) address */
-    uint16_t	pnp_read;
-    uint64_t	pnp_id;
 
     /* RTL8019AS/RTL8029AS registers */
     uint8_t	config0, config2, config3;
@@ -138,15 +124,15 @@ typedef struct {
 } nic_t;
 
 
-#ifdef ENABLE_NIC_LOG
-int nic_do_log = ENABLE_NIC_LOG;
+#ifdef ENABLE_NE2K_LOG
+int ne2k_do_log = ENABLE_NE2K_LOG;
 
 static void
 nelog(int lvl, const char *fmt, ...)
 {
     va_list ap;
 
-    if (nic_do_log >= lvl) {
+    if (ne2k_do_log >= lvl) {
 	va_start(ap, fmt);
 	pclog_ex(fmt, ap);
 	va_end(ap);
@@ -317,8 +303,8 @@ asic_write(nic_t *dev, uint32_t off, uint32_t val, unsigned len)
 
 	case 0x0f:  /* Reset register */
 		/* end of reset pulse */
-		break;	
-		
+		break;
+
 	default: /* this is invalid, but happens under win95 device detection */
 		nelog(3, "%s: ASIC write invalid address %04x, ignoring\n",
 						dev->name, (unsigned)off);
@@ -330,7 +316,7 @@ asic_write(nic_t *dev, uint32_t off, uint32_t val, unsigned len)
 /* Writes to this page are illegal. */
 static uint32_t
 page3_read(nic_t *dev, uint32_t off, unsigned int len)
-{ 
+{
     if (dev->board >= NE2K_RTL8019AS) switch(off) {
 	case 0x1:	/* 9346CR */
 		return(dev->_9346cr);
@@ -348,10 +334,14 @@ page3_read(nic_t *dev, uint32_t off, unsigned int len)
 		return((dev->board == NE2K_RTL8019AS) ? dev->pnp_csnsav : 0x00);
 
 	case 0xe:	/* 8029ASID0 */
-		return(0x29);
+		if (dev->board == NE2K_RTL8029AS)
+			return(0x29);
+		break;
 
 	case 0xf:	/* 8029ASID1 */
-		return(0x08);
+		if (dev->board == NE2K_RTL8029AS)
+			return(0x80);
+		break;
 
 	default:
 		break;
@@ -508,338 +498,84 @@ nic_writel(uint16_t addr, uint32_t val, void *priv)
 }
 
 
-static void	nic_iocheckset(nic_t *dev, uint16_t addr);
-static void	nic_iocheckremove(nic_t *dev, uint16_t addr);
 static void	nic_ioset(nic_t *dev, uint16_t addr);
 static void	nic_ioremove(nic_t *dev, uint16_t addr);
 
 
+static void
+nic_pnp_config_changed(uint8_t ld, isapnp_device_config_t *config, void *priv)
+{
+    if (ld)
+	return;
+
+    nic_t *dev = (nic_t *) priv;
+
+    if (dev->base_address) {
+	nic_ioremove(dev, dev->base_address);
+	dev->base_address = 0;
+    }
+
+    dev->base_address = config->io[0].base;
+    dev->base_irq = config->irq[0].irq;
+
+    if (config->activate && (dev->base_address != ISAPNP_IO_DISABLED))
+	nic_ioset(dev, dev->base_address);
+}
+
+
+static void
+nic_pnp_csn_changed(uint8_t csn, void *priv)
+{
+    nic_t *dev = (nic_t *) priv;
+
+    dev->pnp_csnsav = csn;
+}
+
+
 static uint8_t
-nic_pnp_io_check_readb(uint16_t addr, void *priv)
+nic_pnp_read_vendor_reg(uint8_t ld, uint8_t reg, void *priv)
 {
+    if (ld != 0)
+	return 0x00;
+
     nic_t *dev = (nic_t *) priv;
 
-    return((dev->pnp_io_check & 0x01) ? 0x55 : 0xAA);
-}
+    switch (reg) {
+	case 0xF0:
+		return dev->config0;
 
+	case 0xF2:
+		return dev->config2;
 
-static uint8_t
-nic_pnp_readb(uint16_t addr, void *priv)
-{
-    nic_t *dev = (nic_t *) priv;
-    uint8_t bit, next_shift;
-    uint8_t ret = 0xFF;
+	case 0xF3:
+		return dev->config3;
 
-    /* Plug and Play Registers */
-    switch(dev->pnp_address) {
-	/* Card Control Registers */
-	case 0x01:	/* Serial Isolation */
-		if (dev->pnp_phase != PNP_PHASE_ISOLATION) {
-			ret = 0x00;
-			break;
-		}
-		if (dev->pnp_serial_read_pair) {
-			dev->pnp_serial_read <<= 1;
-			/* TODO: Support for multiple PnP devices.
-			if (pnp_get_bus_data() != dev->pnp_serial_read)
-				dev->pnp_phase = PNP_PHASE_SLEEP;
-			} else {
-			*/
-			if (!dev->pnp_serial_read_pos) {
-				dev->pnp_res_pos = 0x1B;
-				dev->pnp_phase = PNP_PHASE_CONFIG;
-				nelog(1, "\nASSIGN CSN phase\n");
-			}
-		} else {
-			if (dev->pnp_serial_read_pos < 64) {
-				bit = (dev->pnp_id >> dev->pnp_serial_read_pos) & 0x01;
-				next_shift = (!!(dev->pnp_id_checksum & 0x02) ^ !!(dev->pnp_id_checksum & 0x01) ^ bit) & 0x01;
-				dev->pnp_id_checksum >>= 1;
-				dev->pnp_id_checksum |= (next_shift << 7);
-			} else {
-				if (dev->pnp_serial_read_pos == 64)
-					dev->eeprom[0x1A] = dev->pnp_id_checksum;
-				bit = (dev->pnp_id_checksum >> (dev->pnp_serial_read_pos & 0x07)) & 0x01;
-			}
-			dev->pnp_serial_read = bit ? 0x55 : 0x00;
-			dev->pnp_serial_read_pos = (dev->pnp_serial_read_pos + 1) % 72;
-		}
-		dev->pnp_serial_read_pair ^= 1;
-		ret = dev->pnp_serial_read;
-		break;
-	case 0x04:	/* Resource Data */
-		ret = dev->eeprom[dev->pnp_res_pos];
-		dev->pnp_res_pos++;
-		break;
-	case 0x05:	/* Status */
-		ret = 0x01;
-		break;
-	case 0x06:	/* Card Select Number (CSN) */
-		nelog(1, "Card Select Number (CSN)\n");
-		ret = dev->pnp_csn;
-		break;
-	case 0x07:	/* Logical Device Number */
-		nelog(1, "Logical Device Number\n");
-		ret = 0x00;
-		break;
-	case 0x30:	/* Activate */
-		nelog(1, "Activate\n");
-		ret = dev->pnp_activate;
-		break;
-	case 0x31:	/* I/O Range Check */
-		nelog(1, "I/O Range Check\n");
-		ret = dev->pnp_io_check;
-		break;
-
-	/* Logical Device Configuration Registers */
-	/* Memory Configuration Registers
-	   We currently force them to stay 0x00 because we currently do not
-	   support a RTL8019AS BIOS. */
-	case 0x40:	/* BROM base address bits[23:16] */
-	case 0x41:	/* BROM base address bits[15:0] */
-	case 0x42:	/* Memory Control */
-		ret = 0x00;
-		break;
-
-	/* I/O Configuration Registers */
-	case 0x60:	/* I/O base address bits[15:8] */
-		ret = (dev->base_address >> 8);
-		break;
-	case 0x61:	/* I/O base address bits[7:0] */
-		ret = (dev->base_address & 0xFF);
-		break;
-
-	/* Interrupt Configuration Registers */
-	case 0x70:	/* IRQ level */
-		ret = dev->base_irq;
-		break;
-	case 0x71:	/* IRQ type */
-		ret = 0x02;	/* high, edge */
-		break;
-
-	/* DMA Configuration Registers */
-	case 0x74:	/* DMA channel select 0 */
-	case 0x75:	/* DMA channel select 1 */
-		ret = 0x04;	/* indicating no DMA channel is needed */
-		break;
-
-	/* Vendor Defined Registers */
-	case 0xF0:	/* CONFIG0 */
-	case 0xF1:	/* CONFIG1 */
-		ret = 0x00;
-		break;
-	case 0xF2:	/* CONFIG2 */
-		ret = (dev->config2 & 0xe0);
-		break;
-	case 0xF3:	/* CONFIG3 */
-		ret = (dev->config3 & 0x46);
-		break;
-	case 0xF5:	/* CSNSAV */
-		ret = (dev->pnp_csnsav);
-		break;
+	case 0xF5:
+		return dev->pnp_csnsav;
     }
 
-    nelog(1, "nic_pnp_readb(%04X) = %02X\n", addr, ret);
-    return(ret);
-}
-
-
-static void	nic_pnp_io_set(nic_t *dev, uint16_t read_addr);
-static void	nic_pnp_io_remove(nic_t *dev);
-
-
-static void
-nic_pnp_writeb(uint16_t addr, uint8_t val, void *priv)
-{
-    nic_t *dev = (nic_t *) priv;
-    uint16_t new_addr = 0;
-
-    nelog(1, "nic_pnp_writeb(%04X, %02X)\n", addr, val);
-
-    /* Plug and Play Registers */
-    switch(dev->pnp_address) {
-	/* Card Control Registers */
-	case 0x00:	/* Set RD_DATA port */
-		new_addr = val;
-		new_addr <<= 2;
-		new_addr |= 3;
-		nic_pnp_io_remove(dev);
-		nic_pnp_io_set(dev, new_addr);
-		nelog(1, "PnP read data address now: %04X\n", new_addr);
-		break;
-	case 0x02:	/* Config Control */
-		if (val & 0x01) {
-			/* Reset command */
-			nic_pnp_io_remove(dev);
-			memset(dev->pnp_regs, 0, 256);
-			nelog(1, "All logical devices reset\n");
-		}
-		if (val & 0x02) {
-			/* Wait for Key command */
-			dev->pnp_phase = PNP_PHASE_WAIT_FOR_KEY;
-			nelog(1, "WAIT FOR KEY phase\n");
-		}
-		if (val & 0x04) {
-			/* PnP Reset CSN command */
-			dev->pnp_csn = dev->pnp_csnsav = 0;
-			nelog(1, "CSN reset\n");
-		}
-		break;
-	case 0x03:	/* Wake[CSN] */
-		nelog(1, "Wake[%02X]\n", val);
-		if (val == dev->pnp_csn) {
-			dev->pnp_res_pos = 0x12;
-			dev->pnp_id_checksum = 0x6A;
-			if (dev->pnp_phase == PNP_PHASE_SLEEP) {
-				dev->pnp_phase = val ? PNP_PHASE_CONFIG : PNP_PHASE_ISOLATION;
-			}
-		} else {
-			if ((dev->pnp_phase == PNP_PHASE_CONFIG) || (dev->pnp_phase == PNP_PHASE_ISOLATION))
-				dev->pnp_phase = PNP_PHASE_SLEEP;
-		}
-		break;
-	case 0x06:	/* Card Select Number (CSN) */
-	    	dev->pnp_csn = dev->pnp_csnsav = val;
-		dev->pnp_phase = PNP_PHASE_CONFIG;
-		nelog(1, "CSN set to %02X\n", dev->pnp_csn);
-		break;
-	case 0x30:	/* Activate */
-		if ((dev->pnp_activate ^ val) & 0x01) {
-			nic_ioremove(dev, dev->base_address);
-			if (val & 0x01)
-				nic_ioset(dev, dev->base_address);
-
-			nelog(1, "I/O range %sabled\n", val & 0x02 ? "en" : "dis");
-		}
-		dev->pnp_activate = val;
-		break;
-	case 0x31:	/* I/O Range Check */
-		if ((dev->pnp_io_check ^ val) & 0x02) {
-			nic_iocheckremove(dev, dev->base_address);
-			if (val & 0x02)
-				nic_iocheckset(dev, dev->base_address);
-
-			nelog(1, "I/O range check %sabled\n", val & 0x02 ? "en" : "dis");
-		}
-		dev->pnp_io_check = val;
-		break;
-
-	/* Logical Device Configuration Registers */
-	/* Memory Configuration Registers
-	   We currently force them to stay 0x00 because we currently do not
-	   support a RTL8019AS BIOS. */
-
-	/* I/O Configuration Registers */
-	case 0x60:	/* I/O base address bits[15:8] */
-		if ((dev->pnp_activate & 0x01) || (dev->pnp_io_check & 0x02))
-			nic_ioremove(dev, dev->base_address);
-		dev->base_address &= 0x00ff;
-		dev->base_address |= (((uint16_t) val) << 8);
-		if ((dev->pnp_activate & 0x01) || (dev->pnp_io_check & 0x02))
-			nic_ioset(dev, dev->base_address);
-		nelog(1, "Base address now: %04X\n", dev->base_address);
-		break;
-	case 0x61:	/* I/O base address bits[7:0] */
-		if ((dev->pnp_activate & 0x01) || (dev->pnp_io_check & 0x02))
-			nic_ioremove(dev, dev->base_address);
-		dev->base_address &= 0xff00;
-		dev->base_address |= val;
-		if ((dev->pnp_activate & 0x01) || (dev->pnp_io_check & 0x02))
-			nic_ioset(dev, dev->base_address);
-		nelog(1, "Base address now: %04X\n", dev->base_address);
-		break;
-
-	/* Interrupt Configuration Registers */
-	case 0x70:	/* IRQ level */
-		dev->base_irq = val;
-		nelog(1, "IRQ now: %02i\n", dev->base_irq);
-		break;
-
-	/* Vendor Defined Registers */
-	case 0xF6:	/* Vendor Control */
-		dev->pnp_csn = 0;
-		break;
-    }
-    return;
+    return 0x00;
 }
 
 
 static void
-nic_pnp_io_set(nic_t *dev, uint16_t read_addr)
-{
-	if ((read_addr >= 0x0200) && (read_addr <= 0x03FF)) {
-		io_sethandler(read_addr, 1,
-			      nic_pnp_readb, NULL, NULL,
-			      NULL, NULL, NULL, dev);
-	}
-	dev->pnp_read = read_addr;
-}
-
-
-static void
-nic_pnp_io_remove(nic_t *dev)
-{
-	if ((dev->pnp_read >= 0x0200) && (dev->pnp_read <= 0x03FF)) {
-		io_removehandler(dev->pnp_read, 1,
-			      nic_pnp_readb, NULL, NULL,
-			      NULL, NULL, NULL, dev);
-	}
-}
-
-
-static void
-nic_pnp_address_writeb(uint16_t addr, uint8_t val, void *priv)
+nic_pnp_write_vendor_reg(uint8_t ld, uint8_t reg, uint8_t val, void *priv)
 {
     nic_t *dev = (nic_t *) priv;
 
-    /* nelog(1, "nic_pnp_address_writeb(%04X, %02X)\n", addr, val); */
-
-    switch(dev->pnp_phase) {
-	case PNP_PHASE_WAIT_FOR_KEY:
-		if (val == pnp_init_key[dev->pnp_magic_count]) {
-			dev->pnp_magic_count = (dev->pnp_magic_count + 1) & 0x1f;
-			if (!dev->pnp_magic_count)
-				dev->pnp_phase = PNP_PHASE_SLEEP;
-		} else
-			dev->pnp_magic_count = 0;
-		break;
-	default:
-		dev->pnp_address = val;
-		break;
+    if ((ld == 0) && (reg == 0xf6) && (val & 0x04)) {
+	uint8_t csn = dev->pnp_csnsav;
+	isapnp_set_csn(dev->pnp_card, 0);
+	dev->pnp_csnsav = csn;
     }
-    return;
-}
-
-
-static void
-nic_iocheckset(nic_t *dev, uint16_t addr)
-{
-    io_sethandler(addr, 32,
-		  nic_pnp_io_check_readb, NULL, NULL,
-		  NULL, NULL, NULL, dev);
-}
-
-
-static void
-nic_iocheckremove(nic_t *dev, uint16_t addr)
-{
-    io_removehandler(addr, 32,
-		     nic_pnp_io_check_readb, NULL, NULL,
-		     NULL, NULL, NULL, dev);
 }
 
 
 static void
 nic_ioset(nic_t *dev, uint16_t addr)
-{	
+{
     if (dev->is_pci) {
-	io_sethandler(addr, 16,
-			 nic_readb, nic_readw, nic_readl,
-			 nic_writeb, nic_writew, nic_writel, dev);
-	io_sethandler(addr+16, 16,
-			 nic_readb, nic_readw, nic_readl,
-			 nic_writeb, nic_writew, nic_writel, dev);
-	io_sethandler(addr+0x1f, 1,
+	io_sethandler(addr, 32,
 			 nic_readb, nic_readw, nic_readl,
 			 nic_writeb, nic_writew, nic_writel, dev);
     } else {
@@ -855,9 +591,6 @@ nic_ioset(nic_t *dev, uint16_t addr)
 				 nic_readb, nic_readw, NULL,
 				 nic_writeb, nic_writew, NULL, dev);
 	}
-	io_sethandler(addr+0x1f, 1,
-			 nic_readb, NULL, NULL,
-			 nic_writeb, NULL, NULL, dev);	
     }
 }
 
@@ -866,13 +599,7 @@ static void
 nic_ioremove(nic_t *dev, uint16_t addr)
 {
     if (dev->is_pci) {
-	io_removehandler(addr, 16,
-			 nic_readb, nic_readw, nic_readl,
-			 nic_writeb, nic_writew, nic_writel, dev);
-	io_removehandler(addr+16, 16,
-			 nic_readb, nic_readw, nic_readl,
-			 nic_writeb, nic_writew, nic_writel, dev);
-	io_removehandler(addr+0x1f, 1,
+	io_removehandler(addr, 32,
 			 nic_readb, nic_readw, nic_readl,
 			 nic_writeb, nic_writew, nic_writel, dev);
     } else {
@@ -888,9 +615,6 @@ nic_ioremove(nic_t *dev, uint16_t addr)
 				 nic_readb, nic_readw, NULL,
 				 nic_writeb, nic_writew, NULL, dev);
 	}
-	io_removehandler(addr+0x1f, 1,
-			 nic_readb, NULL, NULL,
-			 nic_writeb, NULL, NULL, dev);	
     }
 }
 
@@ -899,14 +623,14 @@ static void
 nic_update_bios(nic_t *dev)
 {
     int reg_bios_enable;
-	
+
     reg_bios_enable = 1;
 
     if (! dev->has_bios) return;
 
     if (dev->is_pci)
 	reg_bios_enable = dev->pci_bar[1].addr_regs[0] & 0x01;
-	
+
     /* PCI BIOS stuff, just enable_disable. */
     if (reg_bios_enable) {
 	mem_mapping_set_addr(&dev->bios_rom.mapping,
@@ -1085,7 +809,7 @@ nic_pci_write(int func, int addr, uint8_t val, void *priv)
 
 
 static void
-nic_rom_init(nic_t *dev, wchar_t *s)
+nic_rom_init(nic_t *dev, char *s)
 {
     uint32_t temp;
     FILE *f;
@@ -1094,7 +818,7 @@ nic_rom_init(nic_t *dev, wchar_t *s)
 
     if (dev->bios_addr == 0) return;
 
-    if ((f = rom_fopen(s, L"rb")) != NULL) {
+    if ((f = rom_fopen(s, "rb")) != NULL) {
 	fseek(f, 0L, SEEK_END);
 	temp = ftell(f);
 	fclose(f);
@@ -1147,7 +871,7 @@ nic_mca_write(int port, uint8_t val, void *priv)
     /* Save the MCA register value. */
     dev->pos_regs[port & 7] = val;
 
-    nic_ioremove(dev, dev->base_address);	
+    nic_ioremove(dev, dev->base_address);
 
     /* This is always necessary so that the old handler doesn't remain. */
 	/* Get the new assigned I/O base address. */
@@ -1170,13 +894,13 @@ nic_mca_write(int port, uint8_t val, void *priv)
     /* Initialize the device if fully configured. */
     if (dev->pos_regs[2] & 0x01) {
 	/* Card enabled; register (new) I/O handler. */
-	
+
 	nic_ioset(dev, dev->base_address);
-	
+
 	nic_reset(dev);
-	
+
 	nelog(2, "EtherNext/MC: Port=%04x, IRQ=%d\n", dev->base_address, dev->base_irq);
-	
+
     }
 }
 
@@ -1194,20 +918,8 @@ static void *
 nic_init(const device_t *info)
 {
     uint32_t mac;
-    wchar_t *rom;
+    char *rom;
     nic_t *dev;
-#ifdef ENABLE_NIC_LOG
-    int i;
-#endif
-    int c;
-    char *ansi_id = "REALTEK PLUG & PLAY ETHERNET CARD";
-    uint64_t *eeprom_pnp_id;
-
-    /* Get the desired debug level. */
-#ifdef ENABLE_NIC_LOG
-    i = device_get_config_int("debug");
-    if (i > 0) nic_do_log = i;
-#endif
 
     dev = malloc(sizeof(nic_t));
     memset(dev, 0x00, sizeof(nic_t));
@@ -1235,10 +947,10 @@ nic_init(const device_t *info)
 		} else {
 			dev->bios_addr = 0x00000;
 			dev->has_bios = 0;
-		}		
+		}
 	}
 	else {
-		mca_add(nic_mca_read, nic_mca_write, nic_mca_feedb, NULL, dev);	
+		mca_add(nic_mca_read, nic_mca_write, nic_mca_feedb, NULL, dev);
 	}
     }
 
@@ -1285,7 +997,7 @@ nic_init(const device_t *info)
 				    DP8390_FLAG_CLEAR_IRQ);
 		dp8390_mem_alloc(dev->dp8390, 0x4000, 0x4000);
 		break;
-		
+
 	case NE2K_ETHERNEXT_MC:
 		dev->maclocal[0] = 0x00;  /* 00:00:D8 (Networth Inc. OID) */
 		dev->maclocal[1] = 0x00;
@@ -1378,15 +1090,6 @@ nic_init(const device_t *info)
 		/* Add device to the PCI bus, keep its slot number. */
 		dev->card = pci_add_card(PCI_ADD_NORMAL,
 					 nic_pci_read, nic_pci_write, dev);
-	} else {
-		io_sethandler(0x0279, 1,
-			      NULL, NULL, NULL,
-			      nic_pnp_address_writeb, NULL, NULL, dev);
-
-		dev->pnp_id = PNP_DEVID;
-		dev->pnp_id <<= 32LL;
-		dev->pnp_id |= PNP_VENDID;
-		dev->pnp_phase = PNP_PHASE_WAIT_FOR_KEY;
 	}
 
 	/* Initialize the RTL8029 EEPROM. */
@@ -1400,67 +1103,15 @@ nic_init(const device_t *info)
 		 dev->eeprom[0x7E] = (PCI_DEVID&0xff);
 	        dev->eeprom[0x77] =
 		 dev->eeprom[0x7B] =
-		 dev->eeprom[0x7F] = (dev->board == NE2K_RTL8019AS) ? (PNP_DEVID>>8) : (PCI_DEVID>>8);
+		 dev->eeprom[0x7F] = (PCI_DEVID>>8);
         	dev->eeprom[0x78] =
 		 dev->eeprom[0x7C] = (PCI_VENDID&0xff);
         	dev->eeprom[0x79] =
 		 dev->eeprom[0x7D] = (PCI_VENDID>>8);
 	} else {
-		eeprom_pnp_id = (uint64_t *) &dev->eeprom[0x12];
-		*eeprom_pnp_id = dev->pnp_id;
+		memcpy(&dev->eeprom[0x12], rtl8019as_pnp_rom, sizeof(rtl8019as_pnp_rom));
 
-		/* TAG: Plug and Play Version Number. */
-		dev->eeprom[0x1B] = 0x0A;	/* Item byte */
-		dev->eeprom[0x1C] = 0x10;	/* PnP version */
-		dev->eeprom[0x1D] = 0x10;	/* Vendor version */
-
-		/* TAG: ANSI Identifier String. */
-		dev->eeprom[0x1E] = 0x82;	/* Item byte */
-		dev->eeprom[0x1F] = 0x22;	/* Length bits 7-0 */
-		dev->eeprom[0x20] = 0x00;	/* Length bits 15-8 */
-		memcpy(&dev->eeprom[0x21], ansi_id, 0x22);
-
-		/* TAG: Logical Device ID. */
-		dev->eeprom[0x43] = 0x16;	/* Item byte */
-		dev->eeprom[0x44] = 0x4A;	/* Logical device ID0 */
-		dev->eeprom[0x45] = 0x8C;	/* Logical device ID1 */
-		dev->eeprom[0x46] = 0x80;	/* Logical device ID2 */
-		dev->eeprom[0x47] = 0x19;	/* Logical device ID3 */
-		dev->eeprom[0x48] = 0x02;	/* Flag0 (02=BROM/disabled) */
-		dev->eeprom[0x49] = 0x00;	/* Flag 1 */
-
-		/* TAG: Compatible Device ID (NE2000) */
-		dev->eeprom[0x4A] = 0x1C;	/* Item byte			*/
-		dev->eeprom[0x4B] = 0x41;	/* Compatible ID0 */
-		dev->eeprom[0x4C] = 0xD0;	/* Compatible ID1 */
-		dev->eeprom[0x4D] = 0x80;	/* Compatible ID2 */
-		dev->eeprom[0x4E] = 0xD6;	/* Compatible ID3 */
-
-		/* TAG: I/O Format */
-		dev->eeprom[0x4F] = 0x47;	/* Item byte */
-		dev->eeprom[0x50] = 0x00;	/* I/O information */
-		dev->eeprom[0x51] = 0x20;	/* Min. I/O base bits 7-0 */
-		dev->eeprom[0x52] = 0x02;	/* Min. I/O base bits 15-8 */
-		dev->eeprom[0x53] = 0x80;	/* Max. I/O base bits 7-0 */
-		dev->eeprom[0x54] = 0x03;	/* Max. I/O base bits 15-8 */
-		dev->eeprom[0x55] = 0x20;	/* Base alignment */
-		dev->eeprom[0x56] = 0x20;	/* Range length */
-
-		/* TAG: IRQ Format. */
-		dev->eeprom[0x57] = 0x23;	/* Item byte */
-		dev->eeprom[0x58] = 0x38;	/* IRQ mask bits 7-0 */
-		dev->eeprom[0x59] = 0x9E;	/* IRQ mask bits 15-8 */
-		dev->eeprom[0x5A] = 0x01;	/* IRQ information */
-
-		/* TAG: END Tag */
-		dev->eeprom[0x5B] = 0x79;	/* Item byte */
-		for (c = 0x1b; c < 0x5c; c++)	/* Checksum (2's compl) */
-			dev->eeprom[0x5C] += dev->eeprom[c];
-		dev->eeprom[0x5C] = -dev->eeprom[0x5C];
-
-		io_sethandler(0x0A79, 1,
-			      NULL, NULL, NULL,
-			      nic_pnp_writeb, NULL, NULL, dev);
+		dev->pnp_card = isapnp_add_card(&dev->eeprom[0x12], sizeof(rtl8019as_pnp_rom), nic_pnp_config_changed, nic_pnp_csn_changed, nic_pnp_read_vendor_reg, nic_pnp_write_vendor_reg, dev);
 	}
     }
 
@@ -1488,227 +1139,224 @@ nic_close(void *priv)
     free(dev);
 }
 
-
-static const device_config_t ne1000_config[] =
-{
-	{
-		"base", "Address", CONFIG_HEX16, "", 0x300,
-		{
-			{
-				"0x280", 0x280
-			},
-			{
-				"0x300", 0x300
-			},
-			{
-				"0x320", 0x320
-			},
-			{
-				"0x340", 0x340
-			},
-			{
-				"0x360", 0x360
-			},
-			{
-				"0x380", 0x380
-			},
-			{
-				""
-			}
-		},
-	},
-	{
-		"irq", "IRQ", CONFIG_SELECTION, "", 3,
-		{
-			{
-				"IRQ 2", 2
-			},
-			{
-				"IRQ 3", 3
-			},
-			{
-				"IRQ 5", 5
-			},
-			{
-				"IRQ 7", 7
-			},
-			{
-				"IRQ 10", 10
-			},
-			{
-				"IRQ 11", 11
-			},
-			{
-				""
-			}
-		},
-	},
-	{
-		"mac", "MAC Address", CONFIG_MAC, "", -1
-	},
-	{
-		"", "", -1
-	}
+// clang-format off
+static const device_config_t ne1000_config[] = {
+    {
+        .name = "base",
+        .description = "Address",
+        .type = CONFIG_HEX16,
+        .default_string = "",
+        .default_int = 0x300,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "0x280", .value = 0x280 },
+            { .description = "0x300", .value = 0x300 },
+            { .description = "0x320", .value = 0x320 },
+            { .description = "0x340", .value = 0x340 },
+            { .description = "0x360", .value = 0x360 },
+            { .description = "0x380", .value = 0x380 },
+            { .description = ""                      }
+        },
+    },
+    {
+        .name = "irq",
+        .description = "IRQ",
+        .type = CONFIG_SELECTION,
+        .default_string = "",
+        .default_int = 3,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "IRQ 2",  .value =  2 },
+            { .description = "IRQ 3",  .value =  3 },
+            { .description = "IRQ 5",  .value =  5 },
+            { .description = "IRQ 7",  .value =  7 },
+            { .description = "IRQ 10", .value = 10 },
+            { .description = "IRQ 11", .value = 11 },
+            { .description = ""                    }
+        },
+    },
+    {
+        .name = "mac",
+        .description = "MAC Address",
+        .type = CONFIG_MAC,
+        .default_string = "",
+        .default_int = -1
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
 };
 
-static const device_config_t ne2000_config[] =
-{
-	{
-		"base", "Address", CONFIG_HEX16, "", 0x300,
-		{
-			{
-				"0x280", 0x280
-			},
-			{
-				"0x300", 0x300
-			},
-			{
-				"0x320", 0x320
-			},
-			{
-				"0x340", 0x340
-			},
-			{
-				"0x360", 0x360
-			},
-			{
-				"0x380", 0x380
-			},
-			{
-				""
-			}
-		},
-	},
-	{
-		"irq", "IRQ", CONFIG_SELECTION, "", 10,
-		{
-			{
-				"IRQ 2", 2
-			},
-			{
-				"IRQ 3", 3
-			},
-			{
-				"IRQ 5", 5
-			},
-			{
-				"IRQ 7", 7
-			},
-			{
-				"IRQ 10", 10
-			},
-			{
-				"IRQ 11", 11
-			},
-			{
-				""
-			}
-		},
-	},
-	{
-		"mac", "MAC Address", CONFIG_MAC, "", -1
-	},
-	{
-		"bios_addr", "BIOS address", CONFIG_HEX20, "", 0,
-		{
-			{
-				"Disabled", 0x00000
-			},
-			{
-				"D000", 0xD0000
-			},
-			{
-				"D800", 0xD8000
-			},
-			{
-				"C800", 0xC8000
-			},
-			{
-				""
-			}
-		},
-	},
-	{
-		"", "", -1
-	}
+static const device_config_t ne2000_config[] = {
+    {
+        .name = "base",
+        .description = "Address",
+        .type = CONFIG_HEX16,
+        .default_string = "",
+        .default_int = 0x300,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "0x280", .value = 0x280 },
+            { .description = "0x300", .value = 0x300 },
+            { .description = "0x320", .value = 0x320 },
+            { .description = "0x340", .value = 0x340 },
+            { .description = "0x360", .value = 0x360 },
+            { .description = "0x380", .value = 0x380 },
+            { .description = ""                      }
+        },
+    },
+    {
+        .name = "irq",
+        .description = "IRQ",
+        .type = CONFIG_SELECTION,
+        .default_string = "",
+        .default_int = 10,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "IRQ 2",  .value =  2 },
+            { .description = "IRQ 3",  .value =  3 },
+            { .description = "IRQ 5",  .value =  5 },
+            { .description = "IRQ 7",  .value =  7 },
+            { .description = "IRQ 10", .value = 10 },
+            { .description = "IRQ 11", .value = 11 },
+            { .description = ""                    }
+        },
+    },
+    {
+        .name = "mac",
+        .description = "MAC Address",
+        .type = CONFIG_MAC,
+        .default_string = "",
+        .default_int = -1
+    },
+    {
+        .name = "bios_addr",
+        .description = "BIOS address",
+        .type = CONFIG_HEX20,
+        .default_string = "",
+        .default_int = 0,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "Disabled", .value = 0x00000 },
+            { .description = "D000",     .value = 0xD0000 },
+            { .description = "D800",     .value = 0xD8000 },
+            { .description = "C800",     .value = 0xC8000 },
+            { .description = ""                           }
+        },
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
 };
 
-static const device_config_t rtl8019as_config[] =
-{
-	{
-		"mac", "MAC Address", CONFIG_MAC, "", -1
-	},
-	{
-		"", "", -1
-	}
+static const device_config_t rtl8019as_config[] = {
+    {
+        .name = "mac",
+        .description = "MAC Address",
+        .type = CONFIG_MAC,
+        .default_string = "",
+        .default_int = -1
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
 };
 
-static const device_config_t rtl8029as_config[] =
-{
-	{
-		"bios", "Enable BIOS", CONFIG_BINARY, "", 0
-	},
-	{
-		"mac", "MAC Address", CONFIG_MAC, "", -1
-	},
-	{
-		"", "", -1
-	}
+static const device_config_t rtl8029as_config[] = {
+    {
+        .name = "bios",
+        .description = "Enable BIOS",
+        .type = CONFIG_BINARY,
+        .default_string = "",
+        .default_int = 0
+    },
+    {
+        .name = "mac",
+        .description = "MAC Address",
+        .type = CONFIG_MAC,
+        .default_string = "",
+        .default_int = -1
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
 };
 
-static const device_config_t mca_mac_config[] =
-{
-	{
-		"mac", "MAC Address", CONFIG_MAC, "", -1
-	},
-	{
-		"", "", -1
-	}
+static const device_config_t mca_mac_config[] = {
+    {
+        .name = "mac",
+        .description = "MAC Address",
+        .type = CONFIG_MAC,
+        .default_string = "",
+        .default_int = -1
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
 };
-
-
+// clang-format on
 
 const device_t ne1000_device = {
-    "Novell NE1000",
-    DEVICE_ISA,
-    NE2K_NE1000,
-    nic_init, nic_close, NULL,
-    NULL, NULL, NULL,
-    ne1000_config
+    .name = "Novell NE1000",
+    .internal_name = "ne1k",
+    .flags = DEVICE_ISA,
+    .local = NE2K_NE1000,
+    .init = nic_init,
+    .close = nic_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = ne1000_config
 };
 
 const device_t ne2000_device = {
-    "Novell NE2000",
-    DEVICE_ISA | DEVICE_AT,
-    NE2K_NE2000,
-    nic_init, nic_close, NULL,
-    NULL, NULL, NULL,
-    ne2000_config
+    .name = "Novell NE2000",
+    .internal_name = "ne2k",
+    .flags = DEVICE_ISA | DEVICE_AT,
+    .local = NE2K_NE2000,
+    .init = nic_init,
+    .close = nic_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = ne2000_config
 };
 
 const device_t ethernext_mc_device = {
-    "NetWorth EtherNext/MC",
-    DEVICE_MCA,
-    NE2K_ETHERNEXT_MC,
-    nic_init, nic_close, NULL,
-    NULL, NULL, NULL,
-    mca_mac_config
+    .name = "NetWorth EtherNext/MC",
+    .internal_name = "ethernextmc",
+    .flags = DEVICE_MCA,
+    .local = NE2K_ETHERNEXT_MC,
+    .init = nic_init,
+    .close = nic_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = mca_mac_config
 };
 
 const device_t rtl8019as_device = {
-    "Realtek RTL8019AS",
-    DEVICE_ISA | DEVICE_AT,
-    NE2K_RTL8019AS,
-    nic_init, nic_close, NULL,
-    NULL, NULL, NULL,
-    rtl8019as_config
+    .name = "Realtek RTL8019AS",
+    .internal_name = "ne2kpnp",
+    .flags = DEVICE_ISA | DEVICE_AT,
+    .local = NE2K_RTL8019AS,
+    .init = nic_init,
+    .close = nic_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = rtl8019as_config
 };
 
 const device_t rtl8029as_device = {
-    "Realtek RTL8029AS",
-    DEVICE_PCI,
-    NE2K_RTL8029AS,
-    nic_init, nic_close, NULL,
-    NULL, NULL, NULL,
-    rtl8029as_config
+    .name = "Realtek RTL8029AS",
+    .internal_name = "ne2kpci",
+    .flags = DEVICE_PCI,
+    .local = NE2K_RTL8029AS,
+    .init = nic_init,
+    .close = nic_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = rtl8029as_config
 };

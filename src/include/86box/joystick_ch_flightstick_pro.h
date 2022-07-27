@@ -35,4 +35,9 @@
  *   USA.
  */
 
+#ifndef EMU_JOYSTICK_CH_FLIGHTSTICK_PRO_H
+# define EMU_JOYSTICK_CH_FLIGHTSTICK_PRO_H
+
 extern const joystick_if_t joystick_ch_flightstick_pro;
+
+#endif /*EMU_JOYSTICK_CH_FLIGHTSTICK_PRO_H*/

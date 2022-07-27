@@ -1,4 +1,4 @@
-﻿/*
+/*
  * 86Box	A hypervisor and IBM PC system emulator that specializes in
  *		running old operating systems and software designed for IBM
  *		PC systems and compatibles from 1981 through fairly recent
@@ -248,7 +248,7 @@ vid_init(const device_t *info)
 
     video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_ti_cf62011);
 
-    svga_init(&ti->svga, ti,
+    svga_init(info, &ti->svga, ti,
 	      ti->vram_size<<10,
 	      NULL, vid_in, vid_out, NULL, NULL);
 
@@ -262,14 +262,16 @@ vid_init(const device_t *info)
     return(ti);
 }
 
-
 const device_t ibm_ps1_2121_device = {
-    "IBM PS/1 Model 2121 SVGA",
-    DEVICE_ISA,
-    512,
-    vid_init, vid_close, NULL,
-    NULL,
-    vid_speed_changed,
-    vid_force_redraw,
-    NULL
+    .name = "IBM PS/1 Model 2121 SVGA",
+    .internal_name = "ibm_ps1_2121",
+    .flags = DEVICE_ISA,
+    .local = 512,
+    .init = vid_init,
+    .close = vid_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = vid_speed_changed,
+    .force_redraw = vid_force_redraw,
+    .config = NULL
 };

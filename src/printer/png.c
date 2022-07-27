@@ -61,10 +61,15 @@
 
 #ifdef _WIN32
 # define PATH_PNG_DLL		"libpng16-16.dll"
+#elif defined __APPLE__
+# define PATH_PNG_DLL		"libpng16.dylib"
 #else
 # define PATH_PNG_DLL		"libpng16.so"
 #endif
 
+#ifndef PNG_Z_DEFAULT_STRATEGY
+#define PNG_Z_DEFAULT_STRATEGY 1
+#endif
 
 # define PNGFUNC(x)		png_ ## x
 
@@ -105,7 +110,7 @@ warning_handler(png_structp arg, const char *str)
 
 /* Write the given image as an 8-bit GrayScale PNG image file. */
 int
-png_write_gray(wchar_t *fn, int inv, uint8_t *pix, int16_t w, int16_t h)
+png_write_gray(char *fn, int inv, uint8_t *pix, int16_t w, int16_t h)
 {
     png_structp png = NULL;
     png_infop info = NULL;
@@ -114,11 +119,11 @@ png_write_gray(wchar_t *fn, int inv, uint8_t *pix, int16_t w, int16_t h)
     FILE *fp;
 
     /* Create the image file. */
-    fp = plat_fopen(fn, L"wb");
+    fp = plat_fopen(fn, "wb");
     if (fp == NULL) {
 	/* Yes, this looks weird. */
 	if (fp == NULL)
-		png_log("PNG: file %ls could not be opened for writing!\n", fn);
+		png_log("PNG: file %s could not be opened for writing!\n", fn);
 	else
 error:
 		png_log("PNG: fatal error, bailing out, error = %i\n", errno);
@@ -185,7 +190,7 @@ error:
 
 /* Write the given BITMAP-format image as an 8-bit RGBA PNG image file. */
 void
-png_write_rgb(wchar_t *fn, uint8_t *pix, int16_t w, int16_t h, uint16_t pitch, PALETTE palcol)
+png_write_rgb(char *fn, uint8_t *pix, int16_t w, int16_t h, uint16_t pitch, PALETTE palcol)
 {
     png_structp png = NULL;
     png_infop info = NULL;
@@ -195,9 +200,9 @@ png_write_rgb(wchar_t *fn, uint8_t *pix, int16_t w, int16_t h, uint16_t pitch, P
     int i;
 
     /* Create the image file. */
-    fp = plat_fopen(fn, L"wb");
+    fp = plat_fopen(fn, "wb");
     if (fp == NULL) {
-	png_log("PNG: File %ls could not be opened for writing!\n", fn);
+	png_log("PNG: File %s could not be opened for writing!\n", fn);
 error:
 	if (png != NULL)
 		PNGFUNC(destroy_write_struct)(&png, &info);
@@ -229,8 +234,8 @@ error:
     PNGFUNC(set_compression_strategy)(png, PNG_Z_DEFAULT_STRATEGY);
     PNGFUNC(set_compression_window_bits)(png, 15);
     PNGFUNC(set_compression_method)(png, 8);
-    PNGFUNC(set_compression_buffer_size)(png, 8192);    
-    
+    PNGFUNC(set_compression_buffer_size)(png, 8192);
+
     PNGFUNC(set_IHDR)(png, info, w, h, 8, PNG_COLOR_TYPE_PALETTE,
 		      PNG_INTERLACE_NONE, PNG_COMPRESSION_TYPE_DEFAULT,
 		      PNG_FILTER_TYPE_DEFAULT);
@@ -242,7 +247,7 @@ error:
     }
 
     PNGFUNC(set_PLTE)(png, info, palette, 256);
-    
+
     /* Create a buffer for scanlines of pixels. */
     rows = (png_bytep *)malloc(sizeof(png_bytep) * h);
     for (i = 0; i < h; i++) {
@@ -251,14 +256,14 @@ error:
     }
 
     PNGFUNC(set_rows)(png, info, rows);
-    
+
     PNGFUNC(write_png)(png, info, 0, NULL);
 
     /* Clean up. */
-    (void)fclose(fp);    
+    (void)fclose(fp);
 
     PNGFUNC(destroy_write_struct)(&png, &info);
-    
+
     /* No longer need the row buffers. */
     free(rows);
 }

@@ -30,7 +30,8 @@
 
 
 static void	dp8390_tx(dp8390_t *dev, uint32_t val);
-void	dp8390_rx(void *priv, uint8_t *buf, int io_len);
+static int	dp8390_rx_common(void *priv, uint8_t *buf, int io_len);
+int		dp8390_rx(void *priv, uint8_t *buf, int io_len);
 
 
 #ifdef ENABLE_DP8390_LOG
@@ -41,11 +42,11 @@ dp8390_log(const char *fmt, ...)
 {
     va_list ap;
 
-    if (dp8390_do_log >= lvl) {
+//    if (dp8390_do_log >= lvl) {
 	va_start(ap, fmt);
 	pclog_ex(fmt, ap);
 	va_end(ap);
-    }
+//    }
 }
 #else
 #define dp8390_log(lvl, fmt, ...)
@@ -96,8 +97,8 @@ dp8390_chipmem_read(dp8390_t *dev, uint32_t addr, unsigned int len)
     uint32_t retval = 0;
 
 #ifdef ENABLE_DP8390_LOG
-    if ((len > 1) && (addr & (len - 1))
-	dp3890_log("DP8390: unaligned chipmem word read\n");
+    if ((len > 1) && (addr & (len - 1)))
+	dp8390_log("DP8390: unaligned chipmem word read\n");
 #endif
 
     dp8390_log("DP8390: Chipmem Read Address=%04x\n", addr);
@@ -125,7 +126,7 @@ dp8390_chipmem_write(dp8390_t *dev, uint32_t addr, uint32_t val, unsigned len)
     int i;
 
 #ifdef ENABLE_DP8390_LOG
-    if ((len > 1) && (addr & (len - 1))
+    if ((len > 1) && (addr & (len - 1)))
 	dp8390_log("DP8390: unaligned chipmem word write\n");
 #endif
 
@@ -198,13 +199,13 @@ dp8390_write_cr(dp8390_t *dev, uint32_t val)
 	dev->remote_start = dev->remote_dma = dev->bound_ptr * 256;
 	dev->remote_bytes = (uint16_t) dp8390_chipmem_read(dev, dev->bound_ptr * 256 + 2, 2);
 	dp8390_log("DP8390: sending buffer #x%x length %d\n",
-		   dev->dp8390.remote_start, dev->dp8390.remote_bytes);
+		   dev->remote_start, dev->remote_bytes);
     }
 
     /* Check for start-tx */
     if ((val & 0x04) && dev->TCR.loop_cntl) {
 	if (dev->TCR.loop_cntl) {
-	    dp8390_rx(dev, &dev->mem[(dev->tx_page_start * 256) - dev->mem_start],
+	    dp8390_rx_common(dev, &dev->mem[(dev->tx_page_start * 256) - dev->mem_start],
 		dev->tx_bytes);
 	}
     } else if (val & 0x04) {
@@ -223,7 +224,7 @@ dp8390_write_cr(dp8390_t *dev, uint32_t val)
 
 	/* Send the packet to the system driver */
 	dev->CR.tx_packet = 1;
-	
+
 	network_tx(&dev->mem[(dev->tx_page_start * 256) - dev->mem_start], dev->tx_bytes);
 
 	/* some more debug */
@@ -270,8 +271,8 @@ dp8390_tx(dp8390_t *dev, uint32_t val)
  * if it should be accepted, and if the RX ring has enough room,
  * it is copied into it and the receive process is updated.
  */
-void
-dp8390_rx(void *priv, uint8_t *buf, int io_len)
+static int
+dp8390_rx_common(void *priv, uint8_t *buf, int io_len)
 {
     dp8390_t *dev = (dp8390_t *)priv;
     static uint8_t bcast_addr[6] = {0xff,0xff,0xff,0xff,0xff,0xff};
@@ -282,9 +283,10 @@ dp8390_rx(void *priv, uint8_t *buf, int io_len)
     int endbytes;
 
     if (io_len != 60)
-	dp8390_log("%s: rx_frame with length %d\n", dev->name, io_len);
+	dp8390_log("rx_frame with length %d\n", io_len);
 
-    if ((dev->CR.stop != 0) || (dev->page_start == 0)) return;
+    if ((dev->CR.stop != 0) || (dev->page_start == 0))
+	return 0;
 
     /*
      * Add the pkt header + CRC to the length, and work
@@ -312,7 +314,7 @@ dp8390_rx(void *priv, uint8_t *buf, int io_len)
 	dp8390_log("DP8390: no space\n");
 #endif
 
-	return;
+	return 0;
     }
 
     if ((io_len < 40/*60*/) && !dev->RCR.runts_ok) {
@@ -320,7 +322,7 @@ dp8390_rx(void *priv, uint8_t *buf, int io_len)
 	dp8390_log("DP8390: rejected small packet, length %d\n", io_len);
 #endif
 
-	return;
+	return 1;
     }
 
     /* Some computers don't care... */
@@ -341,7 +343,7 @@ dp8390_rx(void *priv, uint8_t *buf, int io_len)
 #ifdef ENABLE_DP8390_LOG
 			dp8390_log("DP8390: RX BC disabled\n");
 #endif
-			return;
+			return 1;
 		}
 	}
 
@@ -352,7 +354,7 @@ dp8390_rx(void *priv, uint8_t *buf, int io_len)
 #ifdef ENABLE_DP8390_LOG
 			dp8390_log("DP8390: RX MC disabled\n");
 #endif
-			return;
+			return 1;
 		}
 
 		/* Are we listening to this multicast address? */
@@ -361,12 +363,13 @@ dp8390_rx(void *priv, uint8_t *buf, int io_len)
 #ifdef ENABLE_DP8390_LOG
 			dp8390_log("DP8390: RX MC not listed\n");
 #endif
-			return;
+			return 1;
 		}
 	}
 
 	/* Unicast, must be for us.. */
-	else if (memcmp(buf, dev->physaddr, 6)) return;
+	else if (memcmp(buf, dev->physaddr, 6))
+		return 1;
     } else {
 #ifdef ENABLE_DP8390_LOG
 	dp8390_log("DP8390: RX promiscuous receive\n");
@@ -407,6 +410,20 @@ dp8390_rx(void *priv, uint8_t *buf, int io_len)
 
     if (dev->IMR.rx_inte && dev->interrupt)
 	dev->interrupt(dev->priv, 1);
+
+    return 1;
+}
+
+
+int
+dp8390_rx(void *priv, uint8_t *buf, int io_len)
+{
+    dp8390_t *dev = (dp8390_t *)priv;
+
+    if ((dev->DCR.loop == 0) || (dev->TCR.loop_cntl != 0))
+	return 0;
+
+   return dp8390_rx_common(priv, buf, io_len);
 }
 
 
@@ -689,7 +706,7 @@ dp8390_page0_write(dp8390_t *dev, uint32_t off, uint32_t val, unsigned len)
 		dev->DCR.longaddr = ((val & 0x04) == 0x04); /* illegal ? */
 		dev->DCR.loop     = ((val & 0x08) == 0x08);
 		dev->DCR.auto_rx  = ((val & 0x10) == 0x10); /* also illegal ? */
-		dev->DCR.fifo_size = (val & 0x50) >> 5;
+		dev->DCR.fifo_size = (val & 0x60) >> 5;
 		break;
 
 	case 0x0f:  /* IMR */
@@ -784,9 +801,9 @@ dp8390_page1_write(dp8390_t *dev, uint32_t off, uint32_t val, unsigned len)
 		dev->physaddr[off - 1] = val;
 		if (off == 6)
 			dp8390_log("DP8390: Physical address set to %02x:%02x:%02x:%02x:%02x:%02x\n",
-			dev->dp8390->physaddr[0], dev->dp8390.physaddr[1],
-			dev->dp8390->physaddr[2], dev->dp8390.physaddr[3],
-			dev->dp8390->physaddr[4], dev->dp8390.physaddr[5]);
+			dev->physaddr[0], dev->physaddr[1],
+			dev->physaddr[2], dev->physaddr[3],
+			dev->physaddr[4], dev->physaddr[5]);
 		break;
 
 	case 0x07:	/* CURR */
@@ -818,7 +835,7 @@ dp8390_page2_read(dp8390_t *dev, uint32_t off, unsigned int len)
 {
     dp8390_log("DP8390: Page2 read from register 0x%02x, len=%u\n",
 	       off, len);
-  
+
     switch(off) {
 	case 0x01:	/* PSTART */
 		return(dev->page_start);
@@ -1093,11 +1110,16 @@ dp8390_close(void *priv)
     }
 }
 
-
-const device_t dp8390_device =
-{
-        "DP8390 Network Interface Controller",
-        0, 0,
-        dp8390_init, dp8390_close,
-	NULL, NULL, NULL, NULL
+const device_t dp8390_device = {
+    .name = "DP8390 Network Interface Controller",
+    .internal_name = "dp8390",
+    .flags = 0,
+    .local = 0,
+    .init = dp8390_init,
+    .close = dp8390_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };

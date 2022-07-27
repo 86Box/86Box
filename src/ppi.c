@@ -20,8 +20,8 @@ PPI ppi;
 int ppispeakon;
 
 
-void ppi_reset(void)
+void
+ppi_reset(void)
 {
-        ppi.pa=0x0;
-        ppi.pb=0x40;
+    memset(&ppi, 0x00, sizeof(PPI));
 }

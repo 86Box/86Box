@@ -10,9 +10,6 @@
  *		Adapters made by NCR and later Symbios and LSI. These
  *		controllers were designed for the PCI bus.
  *
- *		To do: Identify the type of serial EEPROM used and its
- *		interface.
- *
  *
  *
  * Authors:	Paul Brook (QEMU)
@@ -43,18 +40,28 @@
 #include <86box/device.h>
 #include <86box/nvr.h>
 #include <86box/plat.h>
+#include <86box/i2c.h>
 #include <86box/scsi.h>
 #include <86box/scsi_device.h>
 #include <86box/scsi_ncr53c8xx.h>
 
-#define NCR53C8XX_ROM	L"roms/scsi/ncr53c8xx/NCR307.BIN"
+
+#define NCR53C8XX_SDMS3_ROM	"roms/scsi/ncr53c8xx/NCR307.BIN"
+#define SYM53C8XX_SDMS4_ROM	"roms/scsi/ncr53c8xx/8xx_64.rom"
 
 #define HA_ID		  7
 
 #define CHIP_810	  0x01
+#define CHIP_820	  0x02
 #define CHIP_825	  0x03
+#define CHIP_815	  0x04
+#define CHIP_810AP	  0x05
 #define CHIP_860	  0x06
+#define CHIP_895	  0x0c
 #define CHIP_875	  0x0f
+#define CHIP_895A	  0x12
+#define CHIP_875A	  0x13
+#define CHIP_875J	  0x8f
 
 #define NCR_SCNTL0_TRG    0x01
 #define NCR_SCNTL0_AAP    0x02
@@ -178,6 +185,7 @@
 /* Flag set if this is a tagged command.  */
 #define NCR_TAG_VALID     (1 << 16)
 
+#define NCR_NVRAM_SIZE	  2048
 #define NCR_BUF_SIZE	  4096
 
 typedef struct ncr53c8xx_request {
@@ -199,9 +207,9 @@ typedef enum
 } scsi_state_t;
 
 typedef struct {
-    wchar_t	*nvr_path;
+    char	*nvr_path;
     uint8_t	pci_slot;
-    uint8_t	chip;
+    uint8_t	chip, wide;
     int		has_bios;
     int		BIOSBase;
     rom_t	bios;
@@ -218,15 +226,9 @@ typedef struct {
     int msg_action;
     int msg_len;
     uint8_t msg[NCR_MAX_MSGIN_LEN];
-#ifdef USE_NVRAM
-    uint16_t nvram;
-    uint8_t nvram_t;
-    uint8_t nvram_op;
-    uint8_t nvram_param;
-    uint8_t nvram_start;
-    uint8_t nvram_index;
-#endif
-    uint8_t ram[NCR_BUF_SIZE];	/* NCR 53c875 RAM (4 kB). */
+    uint8_t nvram[NCR_NVRAM_SIZE]; /* 24C16 EEPROM (16 Kbit) */
+    void *i2c, *eeprom;
+    uint8_t ram[NCR_BUF_SIZE];	/* NCR 53C875 RAM (4 KB) */
     /* 0 if SCRIPTS are running or stopped.
      * 1 if a Wait Reselect instruction has been issued.
      * 2 if processing DMA from ncr53c8xx_execute_script.
@@ -284,7 +286,7 @@ typedef struct {
     ncr53c8xx_request *current;
 
     int irq;
-	
+
     uint32_t dsa;
     uint32_t temp;
     uint32_t dnad;
@@ -303,6 +305,10 @@ typedef struct {
 
     uint8_t regop;
     uint32_t adder;
+
+    uint32_t bios_mask;
+
+    uint8_t bus;
 
     pc_timer_t timer;
 
@@ -402,7 +408,7 @@ ncr53c8xx_soft_reset(ncr53c8xx_t *dev)
     dev->scntl0 = 0xc0;
     dev->scntl1 = 0;
     dev->scntl2 = 0;
-    if (dev->chip >= CHIP_825)
+    if (dev->wide)
 	dev->scntl3 = 8;
     else
 	dev->scntl3 = 0;
@@ -427,19 +433,16 @@ ncr53c8xx_soft_reset(ncr53c8xx_t *dev)
     dev->gpreg = 0;
     dev->slpar = 0;
     dev->sstop = 1;
-    dev->gpcntl = 0x0f;
-#ifdef USE_NVRAM
-    dev->nvram_t = dev->nvram_index = 0;
-#endif
+    dev->gpcntl = 0x03;
 
-    if (dev->chip >= CHIP_825) {
+    if (dev->wide) {
 	/* This *IS* a wide SCSI controller, so reset all SCSI
 	   devices. */
 	for (i = 0; i < 16; i++) {
 #ifdef USE_WDTR
 		dev->tr_set[i] = 0;
 #endif
-		scsi_device_reset(&scsi_devices[i]);
+		scsi_device_reset(&scsi_devices[dev->bus][i]);
 	}
     } else {
 	/* This is *NOT* a wide SCSI controller, so do not touch
@@ -448,7 +451,7 @@ ncr53c8xx_soft_reset(ncr53c8xx_t *dev)
 #ifdef USE_WDTR
 		dev->tr_set[i] = 0;
 #endif
-		scsi_device_reset(&scsi_devices[i]);
+		scsi_device_reset(&scsi_devices[dev->bus][i]);
 	}
     }
 }
@@ -467,7 +470,7 @@ ncr53c8xx_read(ncr53c8xx_t *dev, uint32_t addr, uint8_t *buf, uint32_t len)
 			buf[i] = inb((uint16_t) (addr + i));
 	} else {
 		ncr53c8xx_log("NCR 810: Reading from memory address %08X\n", addr);
-        	dma_bm_read(addr, buf, len, 4);
+    	dma_bm_read(addr, buf, len, 4);
 	}
 }
 
@@ -485,7 +488,7 @@ ncr53c8xx_write(ncr53c8xx_t *dev, uint32_t addr, uint8_t *buf, uint32_t len)
 			outb((uint16_t) (addr + i), buf[i]);
 	} else {
 		ncr53c8xx_log("NCR 810: Writing to memory address %08X\n", addr);
-        	dma_bm_write(addr, buf, len, 4);
+    	dma_bm_write(addr, buf, len, 4);
 	}
 }
 
@@ -504,10 +507,10 @@ static
 void do_irq(ncr53c8xx_t *dev, int level)
 {
     if (level) {
-    	pci_set_irq(dev->pci_slot, PCI_INTA);
+	pci_set_irq(dev->pci_slot, PCI_INTA);
 	ncr53c8xx_log("Raising IRQ...\n");
     } else {
-    	pci_clear_irq(dev->pci_slot, PCI_INTA);
+	pci_clear_irq(dev->pci_slot, PCI_INTA);
 	ncr53c8xx_log("Lowering IRQ...\n");
     }
 }
@@ -610,10 +613,15 @@ ncr53c8xx_bad_phase(ncr53c8xx_t *dev, int out, int new_phase)
 static void
 ncr53c8xx_disconnect(ncr53c8xx_t *dev)
 {
+    scsi_device_t *sd;
+
+    sd = &scsi_devices[dev->bus][dev->sdid];
+
     dev->scntl1 &= ~NCR_SCNTL1_CON;
     dev->sstat1 &= ~PHASE_MASK;
     if (dev->dcmd & 0x01)		/* Select with ATN */
 	dev->sstat1 |= 0x07;
+    scsi_device_identify(sd, SCSI_LUN_USE_CDB);
 }
 
 
@@ -632,11 +640,11 @@ ncr53c8xx_command_complete(void *priv, uint32_t status)
 {
     ncr53c8xx_t *dev = (ncr53c8xx_t *)priv;
     int out;
-	
+
     out = (dev->sstat1 & PHASE_MASK) == PHASE_DO;
     ncr53c8xx_log("(ID=%02i LUN=%02i) SCSI Command 0x%02x: Command complete status=%d\n", dev->current->tag, dev->current_lun, dev->last_command, (int)status);
     dev->status = status;
-    dev->command_complete = 2;	
+    dev->command_complete = 2;
     if (dev->waiting && dev->dbc != 0) {
 	/* Raise phase mismatch for short transfers.  */
 	ncr53c8xx_bad_phase(dev, out, PHASE_ST);
@@ -653,13 +661,13 @@ ncr53c8xx_do_dma(ncr53c8xx_t *dev, int out, uint8_t id)
     uint32_t addr, tdbc;
     int count;
 
-    scsi_device_t *sd = &scsi_devices[id];
+    scsi_device_t *sd = &scsi_devices[dev->bus][id];
 
     if ((!scsi_device_present(sd))) {
 	ncr53c8xx_log("(ID=%02i LUN=%02i) SCSI Command 0x%02x: Device not present when attempting to do DMA\n", id, dev->current_lun, dev->last_command);
 	return;
     }
-	
+
     if (!dev->current->dma_len) {
 	/* Wait until data is available.  */
 	ncr53c8xx_log("(ID=%02i LUN=%02i) SCSI Command 0x%02x: DMA no data available\n", id, dev->current_lun, dev->last_command);
@@ -691,7 +699,7 @@ ncr53c8xx_do_dma(ncr53c8xx_t *dev, int out, uint8_t id)
     dev->buffer_pos += count;
 
     if (dev->temp_buf_len <= 0) {
-	scsi_device_command_phase1(&scsi_devices[id]);
+	scsi_device_command_phase1(&scsi_devices[dev->bus][id]);
 #ifdef ENABLE_NCR53C8XX_LOG
 	if (out)
 		ncr53c8xx_log("(ID=%02i LUN=%02i) SCSI Command 0x%02x: SCSI Command Phase 1 on PHASE_DO\n", id, dev->current_lun, dev->last_command);
@@ -744,13 +752,13 @@ ncr53c8xx_do_command(ncr53c8xx_t *dev, uint8_t id)
     dev->sfbr = buf[0];
     dev->command_complete = 0;
 
-    sd = &scsi_devices[id];
-    if (!scsi_device_present(sd)) {
+    sd = &scsi_devices[dev->bus][id];
+    if (!scsi_device_present(sd) || (dev->current_lun > 0)) {
 	ncr53c8xx_log("(ID=%02i LUN=%02i) SCSI Command 0x%02x: Bad Selection\n", id, dev->current_lun, buf[0]);
 	ncr53c8xx_bad_selection(dev, id);
 	return 0;
     }
-	
+
     dev->current = (ncr53c8xx_request*)malloc(sizeof(ncr53c8xx_request));
     dev->current->tag = id;
 
@@ -763,7 +771,7 @@ ncr53c8xx_do_command(ncr53c8xx_t *dev, uint8_t id)
     if ((buf[1] & 0xe0) != (dev->current_lun << 5))
 	buf[1] = (buf[1] & 0x1f) | (dev->current_lun << 5);
 
-    scsi_device_command_phase0(&scsi_devices[dev->current->tag], buf);
+    scsi_device_command_phase0(&scsi_devices[dev->bus][dev->current->tag], buf);
     dev->hba_private = (void *)dev->current;
 
     dev->waiting = 0;
@@ -779,12 +787,12 @@ ncr53c8xx_do_command(ncr53c8xx_t *dev, uint8_t id)
     if ((sd->phase == SCSI_PHASE_DATA_IN) && (sd->buffer_length > 0)) {
 	ncr53c8xx_log("(ID=%02i LUN=%02i) SCSI Command 0x%02x: PHASE_DI\n", id, dev->current_lun, buf[0]);
 	ncr53c8xx_set_phase(dev, PHASE_DI);
-	ncr53c8xx_timer_on(dev, sd, scsi_device_get_callback(&scsi_devices[dev->current->tag]));
+	ncr53c8xx_timer_on(dev, sd, scsi_device_get_callback(&scsi_devices[dev->bus][dev->current->tag]));
 	return 1;
     } else if ((sd->phase == SCSI_PHASE_DATA_OUT) && (sd->buffer_length > 0)) {
 	ncr53c8xx_log("(ID=%02i LUN=%02i) SCSI Command 0x%02x: PHASE_DO\n", id, buf[0]);
 	ncr53c8xx_set_phase(dev, PHASE_DO);
-	ncr53c8xx_timer_on(dev, sd, scsi_device_get_callback(&scsi_devices[dev->current->tag]));
+	ncr53c8xx_timer_on(dev, sd, scsi_device_get_callback(&scsi_devices[dev->bus][dev->current->tag]));
 	return 1;
     } else {
 	ncr53c8xx_command_complete(dev, sd->status);
@@ -845,8 +853,8 @@ ncr53c8xx_do_msgin(ncr53c8xx_t *dev)
 	   switch to PHASE_MO.  */
 	switch (dev->msg_action) {
 		case 0:
-            		ncr53c8xx_set_phase(dev, PHASE_CMD);
-            		break;
+			ncr53c8xx_set_phase(dev, PHASE_CMD);
+			break;
 		case 1:
 			ncr53c8xx_disconnect(dev);
 			break;
@@ -907,7 +915,7 @@ ncr53c8xx_do_msgout(ncr53c8xx_t *dev, uint8_t id)
 #endif
     scsi_device_t *sd;
 
-    sd = &scsi_devices[id];
+    sd = &scsi_devices[dev->bus][id];
 
 #ifdef ENABLE_NCR53C8XX_LOG
     current_tag = id;
@@ -996,6 +1004,7 @@ ncr53c8xx_do_msgout(ncr53c8xx_t *dev, uint8_t id)
 				/* 0x80 to 0xff are IDENTIFY messages. */
 				ncr53c8xx_log("MSG: Identify\n");
 				dev->current_lun = msg & 7;
+				scsi_device_identify(sd, msg & 7);
 				ncr53c8xx_log("Select LUN %d\n", dev->current_lun);
 #ifdef USE_WDTR
 				if ((dev->chip == CHIP_875) && !dev->tr_set[dev->sdid])
@@ -1059,7 +1068,7 @@ again:
     dev->dsps = addr;
     dev->dcmd = insn >> 24;
     dev->dsp += 8;
-			
+
     switch (insn >> 30) {
 	case 0: /* Block move.  */
 		ncr53c8xx_log("00: Block move\n");
@@ -1162,7 +1171,7 @@ again:
 					}
 					dev->sstat0 |= NCR_SSTAT0_WOA;
 					dev->scntl1 &= ~NCR_SCNTL1_IARB;
-					if (!scsi_device_present(&scsi_devices[id])) {
+					if (!scsi_device_present(&scsi_devices[dev->bus][id])) {
 						ncr53c8xx_bad_selection(dev, id);
 						break;
 					}
@@ -1437,7 +1446,7 @@ ncr53c8xx_callback(void *p)
 	if (dev->waiting)
 		timer_on_auto(&dev->timer, 40.0);
 	else
-    		ncr53c8xx_process_script(dev);
+		ncr53c8xx_process_script(dev);
     }
 
     if (dev->sstop)
@@ -1445,144 +1454,20 @@ ncr53c8xx_callback(void *p)
 }
 
 
-#ifdef USE_NVRAM
 static void
-ncr53c8xx_eeprom(ncr53c8xx_t *dev, int save)
+ncr53c8xx_eeprom(ncr53c8xx_t *dev, uint8_t save)
 {
     FILE *f;
 
-    if (save)
-	f = nvr_fopen(dev->nvr_path, L"wb");
-    else
-	f = nvr_fopen(dev->nvr_path, L"rb");
-    if (f)
-    {
-	if (save) {
-		fwrite((uint8_t *) &dev->nvram, 1, 1, f);
-		fwrite(((uint8_t *) &dev->nvram) + 1, 1, 1, f);
-	} else {
-		fread((uint8_t *) &dev->nvram, 1, 1, f);
-		fread(((uint8_t *) &dev->nvram) + 1, 1, 1, f);
-	}
+    f = nvr_fopen(dev->nvr_path, save ? "wb": "rb");
+    if (f) {
+	if (save)
+		fwrite(&dev->nvram, sizeof(dev->nvram), 1, f);
+	else
+		fread(&dev->nvram, sizeof(dev->nvram), 1, f);
 	fclose(f);
-	f = NULL;
     }
 }
-
-
-#define ADDRESS_LENGTH	9
-#define ADDRESS_END	(ADDRESS_LENGTH + 2)
-#define ADDRESS_SHIFT	(ADDRESS_LENGTH - 2)
-#define ADDRESS_MASK	0x3f
-#define DATA_LENGTH	8
-#define DATA_START	(ADDRESS_END + 1)
-#define DATA_END	(ADDRESS_END + DATA_LENGTH)
-
-
-static void
-ncr53c8xx_serial_eeprom_write(ncr53c8xx_t *dev, uint8_t val)
-{
-    uint8_t temp, old = dev->nvram_t;
-    dev->nvram_t = val & 0x03;
-
-    if (val & 0x02) {
-	if (!dev->nvram_index) {
-		/* First signal clocked in after clock is high, start bit. */
-		dev->nvram_start = 1;
-		ncr53c8xx_log("[W] Serial EEPROM: Start bit\n");
-		dev->nvram_op = 0;
-	} else if ((dev->nvram_index == 1) || (dev->nvram_index == 2)) {
-		if (!dev->nvram_start)
-			return;
-
-		dev->nvram_op = (val & 0x01) << (dev->nvram_index - 1);
-		if (dev->nvram_index == 2) {
-			// ncr53c8xx_log("[W] Serial EEPROM: Opcode: %01X\n", dev->nvram_op);
-			dev->nvram_param = 0;
-		}
-	} else if ((dev->nvram_index >= 3) && (dev->nvram_index <= ADDRESS_END)) {
-		if (!dev->nvram_start)
-			return;
-
-		dev->nvram_param = (val & 0x01) << (dev->nvram_index - 3);
-		if (dev->nvram_index < ADDRESS_END) {
-			dev->nvram_index++;
-			return;
-		}
-
-		switch (dev->nvram_op) {
-			case 0x00:
-				temp = dev->nvram_param >> ADDRESS_SHIFT;
-				switch(temp) {
-					case 0x00:
-						ncr53c8xx_log("[W] Serial EEPROM: EWDS\n");
-						break;
-					case 0x01:
-						ncr53c8xx_log("[W] Serial EEPROM: WRAL\n");
-						break;
-					case 0x02:
-						ncr53c8xx_log("[W] Serial EEPROM: ERAL\n");
-						break;
-					case 0x03:
-						ncr53c8xx_log("[W] Serial EEPROM: EWEN\n");
-						break;
-					default:
-						ncr53c8xx_log("[W] Serial EEPROM: UNKNOWN 00\n");
-						break;
-				}
-				dev->nvram_start = dev->nvram_index = dev->nvram_op = dev->nvram_param = 0;
-				return;
-			case 0x01:
-				ncr53c8xx_log("[W] Serial EEPROM: WRITE\n");
-				break;
-			case 0x02:
-				ncr53c8xx_log("[W] Serial EEPROM: READ\n");
-				break;
-			case 0x03:
-				ncr53c8xx_log("[W] Serial EEPROM: ERASE\n");
-				break;
-			default:
-				ncr53c8xx_log("[W] Serial EEPROM: UNKNOWN\n");
-				break;
-		}
-	} else if ((dev->nvram_index >= DATA_START) && (dev->nvram_index <= DATA_END)) {
-		if (!dev->nvram_start)
-			return;
-
-		if (dev->nvram_index == DATA_END) {
-			ncr53c8xx_log("[W] Serial EEPROM: Data end\n");
-			dev->nvram_start = dev->nvram_index = dev->nvram_op = dev->nvram_param = 0;
-			return;
-		}
-	}
-	dev->nvram_index++;
-    }
-}
-
-
-static uint8_t
-ncr53c8xx_serial_eeprom_read(ncr53c8xx_t *dev)
-{
-    uint8_t temp = 0;
-
-    if (dev->gpreg & 0x02) {
-	if ((dev->nvram_index >= DATA_START) && (dev->nvram_index <= DATA_END)) {
-		if (!dev->nvram_start)
-			return temp;
-
-		dev->nvram_index++;
-
-		if (dev->nvram_index == DATA_END) {
-			ncr53c8xx_log("[R] Serial EEPROM: Data end\n");
-			dev->nvram_start = dev->nvram_index = dev->nvram_op = dev->nvram_param = 0;
-			return temp;
-		}
-	}
-    }
-
-    return temp;
-}
-#endif
 
 
 static void
@@ -1652,12 +1537,8 @@ ncr53c8xx_reg_writeb(ncr53c8xx_t *dev, uint32_t offset, uint8_t val)
 		break;
 	case 0x07: /* GPREG */
 		ncr53c8xx_log("NCR 810: GPREG write %02X\n", val);
-		tmp = dev->gpreg;
-		dev->gpreg = val & 0xfe;
-#ifdef USE_NVRAM
-		if ((dev->gpcntl & 0xc3) == 0x00)
-			ncr53c8xx_serial_eeprom_write(dev, val & 0x03);
-#endif
+		dev->gpreg = val;
+		i2c_gpio_set(dev->i2c, (dev->gpreg & 0x02) || ((dev->gpcntl & 0x82) == 0x02), (dev->gpreg & 0x01) || ((dev->gpcntl & 0x41) == 0x01));
 		break;
 	case 0x08: /* SFBR */
 		/* The CPU is not allowed to write to this register.  However the
@@ -1792,7 +1673,7 @@ ncr53c8xx_reg_writeb(ncr53c8xx_t *dev, uint32_t offset, uint8_t val)
 		dev->respid0 = val;
 		break;
 	case 0x4b: /* RESPID1 */
-		if (dev->chip >= CHIP_825)
+		if (dev->wide)
 			dev->respid1 = val;
 		break;
 	case 0x4d: /* STEST1 */
@@ -1844,19 +1725,19 @@ ncr53c8xx_reg_readb(ncr53c8xx_t *dev, uint32_t offset)
     case addr + 3: return (dev->name >> 24) & 0xff;
 
 #define CASE_GET_REG32_COND(name, addr) \
-    case addr: if (dev->chip >= CHIP_825) \
+    case addr: if (dev->wide) \
 			return dev->name & 0xff; \
 		else \
 			return 0x00; \
-    case addr + 1: if (dev->chip >= CHIP_825) \
+    case addr + 1: if (dev->wide) \
 			return (dev->name >> 8) & 0xff; \
 		else \
 			return 0x00; \
-    case addr + 2: if (dev->chip >= CHIP_825) \
+    case addr + 2: if (dev->wide) \
 			return (dev->name >> 16) & 0xff; \
 		else \
 			return 0x00; \
-    case addr + 3: if (dev->chip >= CHIP_825) \
+    case addr + 3: if (dev->wide) \
 			return (dev->name >> 24) & 0xff; \
 		else \
 			return 0x00;
@@ -1886,13 +1767,18 @@ ncr53c8xx_reg_readb(ncr53c8xx_t *dev, uint32_t offset)
 		ncr53c8xx_log("NCR 810: Read SDID %02X\n", dev->sdid);
 		return dev->sdid;
 	case 0x07: /* GPREG */
-#ifdef USE_NVRAM
-		tmp = (dev->gpreg & (dev->gpcntl ^ 0x1f)) & 0x1e;
-		if ((dev->gpcntl & 0xc3) == 0x01)
-			tmp |= ncr53c8xx_serial_eeprom_read(dev);
-#else
-		tmp = ((dev->gpreg & (dev->gpcntl ^ 0x1f)) & 0x1e) | 0x01;
-#endif
+		tmp = (dev->gpreg & (dev->gpcntl ^ 0x1f)) & 0x1f;
+		if ((dev->gpcntl & 0x41) == 0x01) {
+			tmp &= 0xfe;
+			if (i2c_gpio_get_sda(dev->i2c))
+				tmp |= 0x01;
+		}
+		if ((dev->gpcntl & 0x82) == 0x02) {
+			tmp &= 0xfd;
+			if (i2c_gpio_get_scl(dev->i2c))
+				tmp |= 0x02;
+		}
+
 		ncr53c8xx_log("NCR 810: Read GPREG %02X\n", tmp);
 		return tmp;
 	case 0x08: /* Revision ID */
@@ -1935,12 +1821,12 @@ ncr53c8xx_reg_readb(ncr53c8xx_t *dev, uint32_t offset)
 		tmp = dev->istat;
 		return tmp;
 	case 0x16: /* MBOX0 */
-		if (dev->chip >= CHIP_825)
+		if (dev->wide)
 			return 0x00;
 		ncr53c8xx_log("NCR 810: Read MBOX0 %02X\n", dev->mbox0);
 		return dev->mbox0;
 	case 0x17: /* MBOX1 */
-		if (dev->chip >= CHIP_825)
+		if (dev->wide)
 			return 0x00;
 		ncr53c8xx_log("NCR 810: Read MBOX1 %02X\n", dev->mbox1);
 		return dev->mbox1;
@@ -2015,12 +1901,12 @@ ncr53c8xx_reg_readb(ncr53c8xx_t *dev, uint32_t offset)
 		ncr53c8xx_log("NCR 810: Read SIST1 %02X\n", tmp);
 		return tmp;
 	case 0x44: /* SLPAR */
-		if (dev->chip < CHIP_825)
+		if (!dev->wide)
 			return 0x00;
 		ncr53c8xx_log("NCR 810: Read SLPAR %02X\n", dev->stime0);
 		return dev->slpar;
 	case 0x45: /* SWIDE */
-		if (dev->chip < CHIP_825)
+		if (!dev->wide)
 			return 0x00;
 		ncr53c8xx_log("NCR 810: Read SWIDE %02X\n", dev->stime0);
 		return dev->swide;
@@ -2034,13 +1920,14 @@ ncr53c8xx_reg_readb(ncr53c8xx_t *dev, uint32_t offset)
 		ncr53c8xx_log("NCR 810: Read STIME0 %02X\n", dev->stime0);
 		return dev->stime0;
 	case 0x4a: /* RESPID0 */
-		if (dev->chip >= CHIP_825)
+		if (dev->wide) {
 			ncr53c8xx_log("NCR 810: Read RESPID0 %02X\n", dev->respid0);
-		else
+		} else {
 			ncr53c8xx_log("NCR 810: Read RESPID %02X\n", dev->respid0);
+		}
 		return dev->respid0;
 	case 0x4b: /* RESPID1 */
-		if (dev->chip < CHIP_825)
+		if (!dev->wide)
 			return 0x00;
 		ncr53c8xx_log("NCR 810: Read RESPID1 %02X\n", dev->respid1);
 		return dev->respid1;
@@ -2059,13 +1946,14 @@ ncr53c8xx_reg_readb(ncr53c8xx_t *dev, uint32_t offset)
 	case 0x50: /* SIDL0 */
 		/* This is needed by the linux drivers.  We currently only update it
 		   during the MSG IN phase.  */
-		if (dev->chip >= CHIP_825)
+		if (dev->wide) {
 			ncr53c8xx_log("NCR 810: Read SIDL0 %02X\n", dev->sidl0);
-		else
+		} else {
 			ncr53c8xx_log("NCR 810: Read SIDL %02X\n", dev->sidl0);
+		}
 		return dev->sidl0;
 	case 0x51: /* SIDL1 */
-		if (dev->chip < CHIP_825)
+		if (!dev->wide)
 			return 0x00;
 		ncr53c8xx_log("NCR 810: Read SIDL1 %02X\n", dev->sidl1);
 		return dev->sidl1;
@@ -2114,7 +2002,7 @@ ncr53c8xx_io_readw(uint16_t addr, void *p)
 {
     ncr53c8xx_t *dev = (ncr53c8xx_t *)p;
     uint16_t val;
-	
+
     addr &= 0xff;
     val = ncr53c8xx_reg_readb(dev, addr);
     val |= ncr53c8xx_reg_readb(dev, addr + 1) << 8;
@@ -2127,7 +2015,7 @@ ncr53c8xx_io_readl(uint16_t addr, void *p)
 {
     ncr53c8xx_t *dev = (ncr53c8xx_t *)p;
     uint32_t val;
-	
+
     addr &= 0xff;
     val = ncr53c8xx_reg_readb(dev, addr);
     val |= ncr53c8xx_reg_readb(dev, addr + 1) << 8;
@@ -2148,7 +2036,7 @@ ncr53c8xx_io_writeb(uint16_t addr, uint8_t val, void *p)
 static void
 ncr53c8xx_io_writew(uint16_t addr, uint16_t val, void *p)
 {
-    ncr53c8xx_t *dev = (ncr53c8xx_t *)p;	
+    ncr53c8xx_t *dev = (ncr53c8xx_t *)p;
 	addr &= 0xff;
 	ncr53c8xx_reg_writeb(dev, addr, val & 0xff);
 	ncr53c8xx_reg_writeb(dev, addr + 1, (val >> 8) & 0xff);
@@ -2232,7 +2120,7 @@ ncr53c8xx_mmio_readl(uint32_t addr, void *p)
     val = ncr53c8xx_reg_readb(dev, addr);
     val |= ncr53c8xx_reg_readb(dev, addr + 1) << 8;
     val |= ncr53c8xx_reg_readb(dev, addr + 2) << 16;
-    val |= ncr53c8xx_reg_readb(dev, addr + 3) << 24;	
+    val |= ncr53c8xx_reg_readb(dev, addr + 3) << 24;
 
     return val;
 }
@@ -2294,7 +2182,7 @@ ncr53c8xx_ram_readl(uint32_t addr, void *p)
     val = ncr53c8xx_ram_readb(addr, p);
     val |= ncr53c8xx_ram_readb(addr + 1, p) << 8;
     val |= ncr53c8xx_ram_readb(addr + 2, p) << 16;
-    val |= ncr53c8xx_ram_readb(addr + 3, p) << 24;	
+    val |= ncr53c8xx_ram_readb(addr + 3, p) << 24;
 
     return val;
 }
@@ -2354,13 +2242,14 @@ ncr53c8xx_ram_set_addr(ncr53c8xx_t *dev, uint32_t base)
 }
 
 
-#ifdef USE_BIOS_BAR
 static void
 ncr53c8xx_bios_set_addr(ncr53c8xx_t *dev, uint32_t base)
 {
-    mem_mapping_set_addr(&dev->bios.mapping, base, 0x10000);
+    if (dev->has_bios == 2)
+	mem_mapping_set_addr(&dev->bios.mapping, base, 0x10000);
+    else if (dev->has_bios == 1)
+	mem_mapping_set_addr(&dev->bios.mapping, base, 0x04000);
 }
-#endif
 
 
 static void
@@ -2377,13 +2266,11 @@ ncr53c8xx_ram_disable(ncr53c8xx_t *dev)
 }
 
 
-#ifdef USE_BIOS_BAR
 static void
 ncr53c8xx_bios_disable(ncr53c8xx_t *dev)
 {
     mem_mapping_disable(&dev->bios.mapping);
 }
-#endif
 
 
 uint8_t	ncr53c8xx_pci_regs[256];
@@ -2447,47 +2334,37 @@ ncr53c8xx_pci_read(int func, int addr, void *p)
 	case 0x18:
 		return 0;			/*Memory space*/
 	case 0x19:
-		if (dev->chip < CHIP_825)
+		if (!dev->wide)
 			return 0;
 		return ncr53c8xx_pci_bar[2].addr_regs[1];
 	case 0x1A:
-		if (dev->chip < CHIP_825)
+		if (!dev->wide)
 			return 0;
 		return ncr53c8xx_pci_bar[2].addr_regs[2];
 	case 0x1B:
-		if (dev->chip < CHIP_825)
+		if (!dev->wide)
 			return 0;
 		return ncr53c8xx_pci_bar[2].addr_regs[3];
 	case 0x2C:
 		return 0x00;
 	case 0x2D:
-		if (dev->chip >= CHIP_825)
+		if (dev->wide)
 			return 0;
 		return 0x10;
 	case 0x2E:
-		if (dev->chip >= CHIP_825)
+		if (dev->wide)
 			return 0;
 		return 0x01;
 	case 0x2F:
 		return 0x00;
-#ifdef USE_BIOS_BAR
 	case 0x30:
-		if ((dev->chip < CHIP_825) || !dev->has_bios)
-			return 0;
-		return ncr53c8xx_pci_bar[3].addr_regs[0];
+		return ncr53c8xx_pci_bar[3].addr_regs[0] & 0x01;
 	case 0x31:
-		if ((dev->chip < CHIP_825) || !dev->has_bios)
-			return 0;
 		return ncr53c8xx_pci_bar[3].addr_regs[1];
 	case 0x32:
-		if ((dev->chip < CHIP_825) || !dev->has_bios)
-			return 0;
 		return ncr53c8xx_pci_bar[3].addr_regs[2];
 	case 0x33:
-		if ((dev->chip < CHIP_825) || !dev->has_bios)
-			return 0;
 		return ncr53c8xx_pci_bar[3].addr_regs[3];
-#endif
 	case 0x3C:
 		return dev->irq;
 	case 0x3D:
@@ -2515,7 +2392,7 @@ ncr53c8xx_pci_write(int func, int addr, uint8_t val, void *p)
 	return;
     }
 
-    switch (addr) 
+    switch (addr)
 	{
 	case 0x04:
 		valxor = (val & 0x57) ^ ncr53c8xx_pci_regs[addr];
@@ -2528,7 +2405,7 @@ ncr53c8xx_pci_write(int func, int addr, uint8_t val, void *p)
 			ncr53c8xx_mem_disable(dev);
 			if ((dev->MMIOBase != 0) && (val & PCI_COMMAND_MEM))
 				ncr53c8xx_mem_set_addr(dev, dev->MMIOBase);
-			if (dev->chip >= CHIP_825) {
+			if (dev->wide) {
 				ncr53c8xx_ram_disable(dev);
 				if ((dev->RAMBase != 0) && (val & PCI_COMMAND_MEM))
 					ncr53c8xx_ram_set_addr(dev, dev->RAMBase);
@@ -2581,10 +2458,10 @@ ncr53c8xx_pci_write(int func, int addr, uint8_t val, void *p)
 			if (dev->MMIOBase != 0)
 				ncr53c8xx_mem_set_addr(dev, dev->MMIOBase);
 		}
-		return;	
+		return;
 
 	case 0x19: case 0x1A: case 0x1B:
-		if (dev->chip < CHIP_825)
+		if (!dev->wide)
 			return;
 		/* RAM Base set. */
 		/* First, remove the old I/O. */
@@ -2592,8 +2469,8 @@ ncr53c8xx_pci_write(int func, int addr, uint8_t val, void *p)
 		/* Then let's set the PCI regs. */
 		ncr53c8xx_pci_bar[2].addr_regs[addr & 3] = val;
 		/* Then let's calculate the new I/O base. */
-		ncr53c8xx_pci_bar[2].addr &= 0xffffc000;
-		dev->RAMBase = ncr53c8xx_pci_bar[2].addr & 0xffffc000;
+		ncr53c8xx_pci_bar[2].addr &= 0xfffff000;
+		dev->RAMBase = ncr53c8xx_pci_bar[2].addr & 0xfffff000;
 		/* Log the new base. */
 		ncr53c8xx_log("NCR53c8xx: New RAM base is %08X\n" , dev->RAMBase);
 		/* We're done, so get out of the here. */
@@ -2601,12 +2478,10 @@ ncr53c8xx_pci_write(int func, int addr, uint8_t val, void *p)
 			if (dev->RAMBase != 0)
 				ncr53c8xx_ram_set_addr(dev, dev->RAMBase);
 		}
-		return;	
-
-#ifdef USE_BIOS_BAR
-	case 0x30: case 0x31: case 0x32: case 0x33:
 		return;
-		if ((dev->chip < CHIP_825) || !dev->has_bios)
+
+	case 0x30: case 0x31: case 0x32: case 0x33:
+		if (dev->has_bios == 0)
 			return;
 		/* BIOS Base set. */
 		/* First, remove the old I/O. */
@@ -2614,15 +2489,15 @@ ncr53c8xx_pci_write(int func, int addr, uint8_t val, void *p)
 		/* Then let's set the PCI regs. */
 		ncr53c8xx_pci_bar[3].addr_regs[addr & 3] = val;
 		/* Then let's calculate the new I/O base. */
-		ncr53c8xx_pci_bar[3].addr &= 0xffff0001;
-		dev->BIOSBase = ncr53c8xx_pci_bar[3].addr & 0xffff0000;
+		ncr53c8xx_pci_bar[3].addr &= (dev->bios_mask | 0x00000001);
+		dev->BIOSBase = ncr53c8xx_pci_bar[3].addr & dev->bios_mask;
+		ncr53c8xx_log("BIOS BAR: %08X\n", dev->BIOSBase | ncr53c8xx_pci_bar[3].addr_regs[0]);
 		/* Log the new base. */
 		ncr53c8xx_log("NCR53c8xx: New BIOS base is %08X\n" , dev->BIOSBase);
 		/* We're done, so get out of the here. */
-		if (ncr53c8xx_pci_bar[3].addr & 0x00000001)
+		if (ncr53c8xx_pci_bar[3].addr_regs[0] & 0x01)
 			ncr53c8xx_bios_set_addr(dev, dev->BIOSBase);
-		return;	
-#endif
+		return;
 
 	case 0x3C:
 		ncr53c8xx_pci_regs[addr] = val;
@@ -2640,55 +2515,95 @@ ncr53c8xx_init(const device_t *info)
     dev = malloc(sizeof(ncr53c8xx_t));
     memset(dev, 0x00, sizeof(ncr53c8xx_t));
 
+    dev->bus = scsi_get_bus();
+
     dev->chip_rev = 0;
-    // dev->pci_slot = pci_add_card(PCI_ADD_SCSI, ncr53c8xx_pci_read, ncr53c8xx_pci_write, dev);
-    dev->pci_slot = pci_add_card(PCI_ADD_NORMAL, ncr53c8xx_pci_read, ncr53c8xx_pci_write, dev);
+    dev->chip = info->local & 0xff;
+
+    if ((dev->chip != CHIP_810) && (dev->chip != CHIP_820) && !(info->local & 0x8000)) {
+	dev->has_bios = device_get_config_int("bios");
+
+	/* We have to auto-patch the BIOS to have the correct PCI Device ID, because for some reason, they all ship with
+	   the PCI Device ID set to that of the NCR 53c825, but for a machine BIOS to load the SCSI BIOS correctly, the
+	   PCI Device ID in the BIOS' PCIR block must match the one returned in the PCI registers. */
+	if (dev->has_bios == 2) {
+	    rom_init(&dev->bios, SYM53C8XX_SDMS4_ROM, 0xd0000, 0x10000, 0xffff, 0, MEM_MAPPING_EXTERNAL);
+	    ncr53c8xx_log("BIOS v4.19: Old BIOS CHIP ID: %02X, old BIOS checksum: %02X\n", dev->bios.rom[0x0022], dev->bios.rom[0xffff]);
+	    dev->bios.rom[0xffff] += (dev->bios.rom[0x0022] - dev->chip);
+	    dev->bios.rom[0x0022] = dev->chip;
+	    ncr53c8xx_log("BIOS v4.19: New BIOS CHIP ID: %02X, old BIOS checksum: %02X\n", dev->bios.rom[0x0022], dev->bios.rom[0xffff]);
+	} else if (dev->has_bios == 1) {
+	    rom_init(&dev->bios, NCR53C8XX_SDMS3_ROM, 0xc8000, 0x4000, 0x3fff, 0, MEM_MAPPING_EXTERNAL);
+	    ncr53c8xx_log("BIOS v3.07: Old BIOS CHIP ID: %02X, old BIOS checksum: %02X\n", dev->bios.rom[0x3fcb], dev->bios.rom[0x3fff]);
+	    dev->bios.rom[0x3fff] += (dev->bios.rom[0x3fcb] - dev->chip);
+	    dev->bios.rom[0x3fcb] = dev->chip;
+	    ncr53c8xx_log("BIOS v3.07: New BIOS CHIP ID: %02X, old BIOS checksum: %02X\n", dev->bios.rom[0x3fcb], dev->bios.rom[0x3fff]);
+	}
+    } else
+	dev->has_bios = 0;
+
+    if (info->local & 0x8000)
+	dev->pci_slot = pci_add_card(PCI_ADD_SCSI, ncr53c8xx_pci_read, ncr53c8xx_pci_write, dev);
+    else
+	dev->pci_slot = pci_add_card(PCI_ADD_NORMAL, ncr53c8xx_pci_read, ncr53c8xx_pci_write, dev);
+
+    if (dev->chip == CHIP_875) {
+	dev->chip_rev = 0x04;
+	dev->nvr_path = "ncr53c875.nvr";
+	dev->wide = 1;
+    } else if (dev->chip == CHIP_860) {
+	dev->chip_rev = 0x04;
+	dev->nvr_path = "ncr53c860.nvr";
+	dev->wide = 1;
+    } else if (dev->chip == CHIP_820) {
+	dev->nvr_path = "ncr53c820.nvr";
+	dev->wide = 1;
+    } else if (dev->chip == CHIP_825) {
+	dev->chip_rev = 0x26;
+	dev->nvr_path = "ncr53c825a.nvr";
+	dev->wide = 1;
+    } else if (dev->chip == CHIP_810) {
+	dev->nvr_path = "ncr53c810.nvr";
+	dev->wide = 0;
+    } else if (dev->chip == CHIP_815) {
+	dev->chip_rev = 0x04;
+	dev->nvr_path = "ncr53c815.nvr";
+	dev->wide = 0;
+    }
 
     ncr53c8xx_pci_bar[0].addr_regs[0] = 1;
     ncr53c8xx_pci_bar[1].addr_regs[0] = 0;
-    dev->chip = info->local;
+    ncr53c8xx_pci_regs[0x04] = 3;
 
-    ncr53c8xx_pci_regs[0x04] = 3;	
+    if (dev->has_bios == 2) {
+	ncr53c8xx_pci_bar[3].addr = 0xffff0000;
+	dev->bios_mask = 0xffff0000;
+    } else if (dev->has_bios == 1) {
+	ncr53c8xx_pci_bar[3].addr = 0xffffc000;
+	dev->bios_mask = 0xffffc000;
+    } else {
+	ncr53c8xx_pci_bar[3].addr = 0x00000000;
+	dev->bios_mask = 0x00000000;
+    }
 
     ncr53c8xx_mem_init(dev, 0x0fffff00);
     ncr53c8xx_mem_disable(dev);
 
-    dev->has_bios = device_get_config_int("bios");
-    if (dev->has_bios)
-	rom_init(&dev->bios, NCR53C8XX_ROM, 0xc8000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
-    if (dev->chip >= CHIP_825) {
-        if (dev->chip == CHIP_875) {
-		dev->chip_rev = 0x04;
-		dev->nvr_path = L"ncr53c875.nvr";
-	} else if (dev->chip == CHIP_860) {
-		dev->chip_rev = 0x04;
-		dev->nvr_path = L"ncr53c860.nvr";
-	} else {
-		dev->chip_rev = 0x26;
-		dev->nvr_path = L"ncr53c825a.nvr";
-	}
-    	ncr53c8xx_pci_bar[2].addr_regs[0] = 0;
-    	ncr53c8xx_pci_bar[3].addr = 0xffff0000;
-	/* Need to make it align on a 16k boundary as that's this emulator's
-	   memory mapping granularity. */
-	ncr53c8xx_ram_init(dev, 0x0fffc000);
+    ncr53c8xx_pci_bar[2].addr_regs[0] = 0;
+
+    if (dev->wide) {
+	ncr53c8xx_ram_init(dev, 0x0ffff000);
 	ncr53c8xx_ram_disable(dev);
-
-#ifdef USE_BIOS_BAR
-	if (dev->has_bios)
-		ncr53c8xx_bios_disable(dev);
-#endif
-    } else {
-	/* if (dev->has_bios)
-		rom_init(&dev->bios, NCR53C8XX_ROM, 0xc8000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL); */
-
-	dev->nvr_path = L"ncr53c810.nvr";
     }
 
-#ifdef USE_NVRAM
+    if (dev->has_bios)
+	ncr53c8xx_bios_disable(dev);
+
+    dev->i2c = i2c_gpio_init("nvr_ncr53c8xx");
+    dev->eeprom = i2c_eeprom_init(i2c_gpio_get_bus(dev->i2c), 0x50, dev->nvram, sizeof(dev->nvram), 1);
+
     /* Load the serial EEPROM. */
     ncr53c8xx_eeprom(dev, 0);
-#endif
 
     ncr53c8xx_soft_reset(dev);
 
@@ -2698,64 +2613,141 @@ ncr53c8xx_init(const device_t *info)
 }
 
 
-static void 
+static void
 ncr53c8xx_close(void *priv)
 {
     ncr53c8xx_t *dev = (ncr53c8xx_t *)priv;
 
     if (dev) {
+	if (dev->eeprom)
+		i2c_eeprom_close(dev->eeprom);
+
+	if (dev->i2c)
+		i2c_gpio_close(dev->i2c);
+
+	/* Save the serial EEPROM. */
+	ncr53c8xx_eeprom(dev, 1);
+
 	free(dev);
 	dev = NULL;
     }
 }
 
-
 static const device_config_t ncr53c8xx_pci_config[] = {
-	{
-		"bios", "Enable BIOS", CONFIG_BINARY, "", 0
-	},
-	{
-		"", "", -1
-	}
+// clang-format off
+    {
+        .name = "bios",
+        .description = "BIOS",
+        .type = CONFIG_SELECTION,
+        .default_string = "",
+        .default_int = 1,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "SDMS 4.x BIOS", .value = 2 },
+            { .description = "SDMS 3.x BIOS", .value = 1 },
+            { .description = "Disable BIOS",  .value = 0 },
+            { .description = ""                          }
+        },
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+// clang-format on
 };
 
+const device_t ncr53c810_pci_device = {
+    .name = "NCR 53c810",
+    .internal_name = "ncr53c810",
+    .flags = DEVICE_PCI,
+    .local = CHIP_810,
+    .init = ncr53c8xx_init,
+    .close = ncr53c8xx_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
+};
 
-const device_t ncr53c810_pci_device =
-{
-    "NCR 53c810 (SCSI)",
-    DEVICE_PCI,
-    0x01,
-    ncr53c8xx_init, ncr53c8xx_close, NULL,
-    NULL, NULL, NULL,
+const device_t ncr53c810_onboard_pci_device = {
+    .name = "NCR 53c810 On-Board",
+    .internal_name = "ncr53c810_onboard",
+    .flags = DEVICE_PCI,
+    .local = 0x8001,
+    .init = ncr53c8xx_init,
+    .close = ncr53c8xx_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
+};
+
+const device_t ncr53c815_pci_device = {
+    .name = "NCR 53c815",
+    .internal_name = "ncr53c815",
+    .flags = DEVICE_PCI,
+    .local = CHIP_815,
+    .init = ncr53c8xx_init,
+    .close = ncr53c8xx_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
     ncr53c8xx_pci_config
 };
 
-const device_t ncr53c825a_pci_device =
-{
-    "NCR 53c825A (SCSI)",
-    DEVICE_PCI,
-    CHIP_825,
-    ncr53c8xx_init, ncr53c8xx_close, NULL,
-    NULL, NULL, NULL,
-    ncr53c8xx_pci_config
+const device_t ncr53c820_pci_device = {
+    .name = "NCR 53c820",
+    .internal_name = "ncr53c820",
+    .flags = DEVICE_PCI,
+    .local = CHIP_820,
+    .init = ncr53c8xx_init,
+    .close = ncr53c8xx_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
-const device_t ncr53c860_pci_device =
-{
-    "NCR 53c860 (SCSI)",
-    DEVICE_PCI,
-    CHIP_860,
-    ncr53c8xx_init, ncr53c8xx_close, NULL,
-    NULL, NULL, NULL,
-    ncr53c8xx_pci_config
+const device_t ncr53c825a_pci_device = {
+    .name = "NCR 53c825A",
+    .internal_name = "ncr53c825a",
+    .flags = DEVICE_PCI,
+    .local = CHIP_825,
+    .init = ncr53c8xx_init,
+    .close = ncr53c8xx_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = ncr53c8xx_pci_config
 };
 
-const device_t ncr53c875_pci_device =
-{
-    "NCR 53c875 (SCSI)",
-    DEVICE_PCI,
-    CHIP_875,
-    ncr53c8xx_init, ncr53c8xx_close, NULL,
-    NULL, NULL, NULL,
-    ncr53c8xx_pci_config
+const device_t ncr53c860_pci_device = {
+    .name = "NCR 53c860",
+    .internal_name = "ncr53c860",
+    .flags = DEVICE_PCI,
+    .local = CHIP_860,
+    .init = ncr53c8xx_init,
+    .close = ncr53c8xx_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = ncr53c8xx_pci_config
+};
+
+const device_t ncr53c875_pci_device = {
+    .name = "NCR 53c875",
+    .internal_name = "ncr53c875",
+    .flags = DEVICE_PCI,
+    .local = CHIP_875,
+    .init = ncr53c8xx_init,
+    .close = ncr53c8xx_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = ncr53c8xx_pci_config
 };

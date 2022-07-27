@@ -45,7 +45,7 @@ static uint32_t		vflags;
 static uint8_t		mdaattr[256][2][2];
 
 
-typedef struct compaq_cga_t 
+typedef struct compaq_cga_t
 {
     cga_t cga;
 } compaq_cga_t;
@@ -115,7 +115,7 @@ compaq_cga_poll(void *p)
 	self->cga.cgastat |= 1;
 	self->cga.linepos = 1;
 	oldsc = self->cga.sc;
-	if ((self->cga.crtc[8] & 3) == 3) 
+	if ((self->cga.crtc[8] & 3) == 3)
 		self->cga.sc = ((self->cga.sc << 1) + self->cga.oddeven) & 7;
 	if (self->cga.cgadispon) {
 		if (self->cga.displine < self->cga.firstline) {
@@ -160,7 +160,7 @@ compaq_cga_poll(void *p)
 						if (blink)
 							cols[1] = cols[0];
 					} else {
-						if ((self->cga.cgablink & 8) && (attr & 0x80) && !self->cga.drawcursor) 
+						if ((self->cga.cgablink & 8) && (attr & 0x80) && !self->cga.drawcursor)
 							cols[1] = cols[0];
 					}
 				} else {
@@ -203,7 +203,7 @@ compaq_cga_poll(void *p)
 						if (blink)
 							cols[1] = cols[0];
 					} else {
-						if ((self->cga.cgablink & 8) && (attr & 0x80) && !self->cga.drawcursor) 
+						if ((self->cga.cgablink & 8) && (attr & 0x80) && !self->cga.drawcursor)
 						cols[1] = cols[0];
 					}
 				} else {
@@ -255,7 +255,7 @@ compaq_cga_poll(void *p)
 	if (self->cga.vc == self->cga.crtc[7] && !self->cga.sc)
 		self->cga.cgastat |= 8;
 	self->cga.displine++;
-	if (self->cga.displine >= 500) 
+	if (self->cga.displine >= 500)
 		self->cga.displine = 0;
     } else {
 	timer_advance_u64(&self->cga.timer, self->cga.dispontime);
@@ -266,9 +266,9 @@ compaq_cga_poll(void *p)
 			self->cga.cgastat &= ~8;
 	}
 
-	if (self->cga.sc == (self->cga.crtc[11] & 31) || ((self->cga.crtc[8] & 3) == 3 && self->cga.sc == ((self->cga.crtc[11] & 31) >> 1))) { 
-		self->cga.con = 0; 
-		self->cga.coff = 1; 
+	if (self->cga.sc == (self->cga.crtc[11] & 31) || ((self->cga.crtc[8] & 3) == 3 && self->cga.sc == ((self->cga.crtc[11] & 31) >> 1))) {
+		self->cga.con = 0;
+		self->cga.coff = 1;
 	}
 	if ((self->cga.crtc[8] & 3) == 3 && self->cga.sc == (self->cga.crtc[9] >> 1))
 		self->cga.maback = self->cga.ma;
@@ -289,7 +289,7 @@ compaq_cga_poll(void *p)
 		self->cga.vc++;
 		self->cga.vc &= 127;
 
-		if (self->cga.vc == self->cga.crtc[6]) 
+		if (self->cga.vc == self->cga.crtc[6])
 			self->cga.cgadispon = 0;
 
 		if (oldvc == self->cga.crtc[4]) {
@@ -315,8 +315,8 @@ compaq_cga_poll(void *p)
 				compaq_cga_log("Lastline %i Firstline %i  %i\n", self->cga.lastline,
 					       self->cga.firstline ,self->cga.lastline - self->cga.firstline);
 
-				if (self->cga.cgamode & 1)	x = (self->cga.crtc[1] << 3);
-				else				x = (self->cga.crtc[1] << 4);
+				if (self->cga.cgamode & 1)	x = (self->cga.crtc[1] << 3) + 16;
+				else				x = (self->cga.crtc[1] << 4) + 16;
 
 				self->cga.lastline++;
 
@@ -324,10 +324,10 @@ compaq_cga_poll(void *p)
 				ys_temp = (self->cga.lastline - self->cga.firstline);
 
 				if ((xs_temp > 0) && (ys_temp > 0)) {
-					if (xsize < 64) xs_temp = 656;
-					if (ysize < 32) ys_temp = 400;
+					if (xs_temp < 64) xs_temp = 656;
+					if (ys_temp < 32) ys_temp = 400;
 					if (!enable_overscan)
-						xsize -= 16;
+						xs_temp -= 16;
 
 					if ((self->cga.cgamode & 8) && ((xs_temp != xsize) || (ys_temp != ysize) || video_force_resize_get())) {
 						xsize = xs_temp;
@@ -339,15 +339,15 @@ compaq_cga_poll(void *p)
 					}
 
 					if (enable_overscan) {
-	                                        if (self->cga.composite) 
-       		                                   video_blit_memtoscreen(0, self->cga.firstline - 8, 0, ysize + 16, xsize + 16, ysize + 16);
-               		                        else          
-                       		                   video_blit_memtoscreen_8(0, self->cga.firstline - 8, 0, ysize + 16, xsize + 16, ysize + 16);
+	                                        if (self->cga.composite)
+       		                                   video_blit_memtoscreen(0, self->cga.firstline - 8, xsize, (self->cga.lastline - self->cga.firstline) + 16);
+               		                        else
+                       		                   video_blit_memtoscreen_8(0, self->cga.firstline - 8, xsize, (self->cga.lastline - self->cga.firstline) + 16);
 					} else {
-	                                        if (self->cga.composite) 
-       		                                   video_blit_memtoscreen(8, self->cga.firstline, 0, ysize, xsize, ysize);
-               		                        else          
-                       		                   video_blit_memtoscreen_8(8, self->cga.firstline, 0, ysize, xsize, ysize);
+	                                        if (self->cga.composite)
+       		                                   video_blit_memtoscreen(8, self->cga.firstline, xsize, self->cga.lastline - self->cga.firstline);
+               		                        else
+                       		                   video_blit_memtoscreen_8(8, self->cga.firstline, xsize, self->cga.lastline - self->cga.firstline);
 					}
 				}
 
@@ -386,7 +386,7 @@ compaq_cga_poll(void *p)
 	if (self->cga.cgadispon)
 		self->cga.cgastat &= ~1;
 
-	if ((self->cga.sc == (self->cga.crtc[10] & 31) || ((self->cga.crtc[8] & 3) == 3 && self->cga.sc == ((self->cga.crtc[10] & 31) >> 1)))) 
+	if ((self->cga.sc == (self->cga.crtc[10] & 31) || ((self->cga.crtc[8] & 3) == 3 && self->cga.sc == ((self->cga.crtc[10] & 31) >> 1))))
 		self->cga.con = 1;
 
 	if (self->cga.cgadispon && (self->cga.cgamode & 1)) {
@@ -476,28 +476,30 @@ compaq_cga_speed_changed(void *p)
 
 extern const device_config_t cga_config[];
 
-const device_t compaq_cga_device =
-{
-        "Compaq CGA",
-        DEVICE_ISA, 0,
-        compaq_cga_init,
-        compaq_cga_close,
-        NULL,
-	NULL,
-        compaq_cga_speed_changed,
-        NULL,
-        cga_config
+const device_t compaq_cga_device = {
+    .name = "Compaq CGA",
+    .internal_name = "compaq_cga",
+    .flags = DEVICE_ISA,
+    .local = 0,
+    .init = compaq_cga_init,
+    .close = compaq_cga_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = compaq_cga_speed_changed,
+    .force_redraw = NULL,
+    .config = cga_config
 };
 
-const device_t compaq_cga_2_device =
-{
-        "Compaq CGA 2",
-        DEVICE_ISA, 1,
-        compaq_cga_init,
-        compaq_cga_close,
-        NULL,
-	NULL,
-        compaq_cga_speed_changed,
-        NULL,
-        cga_config
+const device_t compaq_cga_2_device = {
+    .name = "Compaq CGA 2",
+    .internal_name = "compaq_cga_2",
+    .flags = DEVICE_ISA,
+    .local = 1,
+    .init = compaq_cga_init,
+    .close = compaq_cga_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = compaq_cga_speed_changed,
+    .force_redraw = NULL,
+    .config = cga_config
 };

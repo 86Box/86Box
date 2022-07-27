@@ -15,9 +15,9 @@
  *
  *		Copyright 2018,2019 Miran Grca.
  */
+
 #ifndef EMU_SCSI_CDROM_H
 #define EMU_SCSI_CDROM_H
-
 
 #define CDROM_TIME	10.0
 
@@ -36,8 +36,8 @@ typedef struct {
 
     uint8_t status, phase,
 	    error, id,
-	    features, pad0,
-	    pad1, pad2;
+	    features, cur_lun,
+	    pad0, pad1;
 
     uint16_t request_length, max_transfer_len;
 

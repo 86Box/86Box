@@ -19,7 +19,7 @@
 
 
 extern void	mfm_seek(int drive, int track);
-extern void	mfm_load(int drive, wchar_t *fn);
+extern void	mfm_load(int drive, char *fn);
 extern void	mfm_close(int drive);
 
 

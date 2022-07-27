@@ -27,10 +27,6 @@
 #include <86box/device.h>
 #include "cpu.h"
 #include "x86.h"
-#include <86box/timer.h>
-#include <86box/fdd.h>
-#include <86box/fdc.h>
-#include <86box/keyboard.h>
 #include <86box/io.h>
 #include <86box/mem.h>
 #include <86box/nmi.h>
@@ -84,7 +80,6 @@ typedef struct scat_t {
     ems_page_t		null_page, page[32];
 
     mem_mapping_t	low_mapping[32];
-    mem_mapping_t	high_mapping[16];
     mem_mapping_t	remap_mapping[6];
     mem_mapping_t	efff_mapping[44];
     mem_mapping_t	ems_mapping[32];
@@ -121,28 +116,30 @@ shadow_state_update(scat_t *dev)
 {
     int i, val;
 
-    uint32_t base, bit, romcs, wp, shflags = 0;
+    uint32_t base, bit, romcs, shflags = 0;
+
+    shadowbios = shadowbios_write = 0;
 
     for (i = 0; i < 24; i++) {
-	val = (dev->regs[SCAT_SHADOW_RAM_ENABLE_1 + (i >> 3)] >> (i & 7)) & 1;
+	if ((dev->regs[SCAT_DRAM_CONFIGURATION] & 0xf) < 4)
+		val = 0;
+	else
+		val = (dev->regs[SCAT_SHADOW_RAM_ENABLE_1 + (i >> 3)] >> (i & 7)) & 1;
 
 	base = 0xa0000 + (i << 14);
 	bit = (base - 0xc0000) >> 15;
 	romcs = 0;
-	wp = 0;
 
-	if (base >= 0xc0000) {
+	if (base >= 0xc0000)
 		romcs = dev->regs[SCAT_ROM_ENABLE] & (1 << bit);
 
-		wp = dev->regs[SCAT_RAM_WRITE_PROTECT] & (1 << bit);
+	if (base >= 0xe0000) {
+		shadowbios |= val;
+		shadowbios_write |= val;
 	}
 
-	shflags = val ? MEM_READ_INTERNAL : (romcs ? MEM_READ_ROMCS : MEM_READ_EXTERNAL);
-
-	if (wp)
-		shflags |= MEM_WRITE_DISABLED;
-	else
-		shflags |= (val ? MEM_WRITE_INTERNAL : (romcs ? MEM_WRITE_ROMCS : MEM_WRITE_EXTERNAL));
+	shflags = val ? MEM_READ_INTERNAL : (romcs ? MEM_READ_EXTANY : MEM_READ_EXTERNAL);
+	shflags |= (val ? MEM_WRITE_INTERNAL : (romcs ? MEM_WRITE_EXTANY : MEM_WRITE_EXTERNAL));
 
 	mem_set_mem_state(base, 0x4000, shflags);
     }
@@ -234,7 +231,7 @@ set_xms_bound(scat_t *dev, uint8_t val)
 
 	if (dev->xms_bound < 0x160000)
 		mem_set_mem_state(dev->xms_bound, 0x160000 - dev->xms_bound,
-				  MEM_READ_EXTERNAL | MEM_WRITE_EXTERNAL);
+				  MEM_READ_EXTANY | MEM_WRITE_EXTANY);
     } else {
 	if (dev->xms_bound > xms_max)
 		dev->xms_bound = xms_max;
@@ -245,7 +242,7 @@ set_xms_bound(scat_t *dev, uint8_t val)
 
 	if (dev->xms_bound < ((uint32_t)mem_size << 10))
 		mem_set_mem_state(dev->xms_bound, (mem_size << 10) - dev->xms_bound,
-				  MEM_READ_EXTERNAL | MEM_WRITE_EXTERNAL);
+				  MEM_READ_EXTANY | MEM_WRITE_EXTANY);
     }
 
     mem_mapping_set_addr(&dev->low_mapping[31], 0xf80000,
@@ -254,9 +251,9 @@ set_xms_bound(scat_t *dev, uint8_t val)
     if (dev->regs[SCAT_VERSION] & 0xf0) {
 	for (i = 0; i < 8; i++) {
 		if (val & 0x10)
-			mem_mapping_disable(&dev->high_mapping[i]);
+			mem_mapping_disable(&bios_high_mapping);
 		else
-			mem_mapping_enable(&dev->high_mapping[i]);
+			mem_mapping_enable(&bios_high_mapping);
 	}
     }
 }
@@ -387,7 +384,7 @@ get_addr(scat_t *dev, uint32_t addr, ems_page_t *p)
 		if (mem_size <= ((dev->regs[SCAT_VERSION] & 0x0f) > 3 ? 2048 : 4096) && (((dev->regs[SCAT_DRAM_CONFIGURATION] & 0x0f) < 8) || dev->external_is_RAS)) {
 			nbanks_2048k = 0;
 			nbanks_512k = mem_size >> 9;
-		} else { 
+		} else {
 			nbanks_2048k = mem_size >> 11;
 			nbanks_512k = (mem_size & 1536) >> 9;
 		}
@@ -943,21 +940,21 @@ memmap_state_update(scat_t *dev)
     int i;
 
     for (i = (((dev->regs[SCAT_VERSION] & 0xf0) == 0) ? 0 : 16); i < 44; i++) {
-	addr = get_addr(dev, 0x40000 + (i << 14), NULL);
+	addr = get_addr(dev, 0x40000 + (i << 14), &dev->null_page);
 	mem_mapping_set_exec(&dev->efff_mapping[i],
 			 addr < ((uint32_t)mem_size << 10) ? ram + addr : NULL);
     }
 
-    addr = get_addr(dev, 0, NULL);
+    addr = get_addr(dev, 0, &dev->null_page);
     mem_mapping_set_exec(&dev->low_mapping[0],
 		     addr < ((uint32_t)mem_size << 10) ? ram + addr : NULL);
 
-    addr = get_addr(dev, 0xf0000, NULL);
+    addr = get_addr(dev, 0xf0000, &dev->null_page);
     mem_mapping_set_exec(&dev->low_mapping[1],
 		     addr < ((uint32_t)mem_size << 10) ? ram + addr : NULL);
 
     for (i = 2; i < 32; i++) {
-	addr = get_addr(dev, i << 19, NULL);
+	addr = get_addr(dev, i << 19, &dev->null_page);
 	mem_mapping_set_exec(&dev->low_mapping[i],
 			 addr < ((uint32_t)mem_size << 10) ? ram + addr : NULL);
     }
@@ -999,7 +996,7 @@ memmap_state_update(scat_t *dev)
 		mem_mapping_disable(&dev->low_mapping[2]);
 
 		for (i = 0; i < 6; i++) {
-			addr = get_addr(dev, 0x100000 + (i << 16), NULL);
+			addr = get_addr(dev, 0x100000 + (i << 16), &dev->null_page);
 			mem_mapping_set_exec(&dev->remap_mapping[i],
 					 addr < ((uint32_t)mem_size << 10) ? ram + addr : NULL);
 			mem_mapping_enable(&dev->remap_mapping[i]);
@@ -1094,7 +1091,7 @@ scat_out(uint16_t port, uint8_t val, void *priv)
 				} else
 					set_xms_bound(dev, val & 0x1f);
 
-				mem_set_mem_state(0x40000, 0x60000, (val & 0x20) ? MEM_READ_EXTERNAL | MEM_WRITE_EXTERNAL :
+				mem_set_mem_state(0x40000, 0x60000, (val & 0x20) ? MEM_READ_EXTANY | MEM_WRITE_EXTANY :
 										   MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
 				if ((val ^ dev->regs[SCAT_EXTENDED_BOUNDARY]) & 0xc0)
 					map_update = 1;
@@ -1330,23 +1327,13 @@ static void
 mem_write_scatb(uint32_t addr, uint8_t val, void *priv)
 {
     ems_page_t *page = (ems_page_t *)priv;
-    scat_t *dev;
+    scat_t *dev = (scat_t *)page->scat;
     uint32_t oldaddr = addr, chkaddr;
 
-    if (page == NULL)
-	dev = NULL;
-    else
-	dev = (scat_t *)page->scat;
-
-    if (dev == NULL)
-	chkaddr = oldaddr;
-    else {
-	addr = get_addr(dev, addr, page);
-	chkaddr = addr;
-    }
-
-    if (chkaddr >= 0xc0000 && chkaddr < 0x100000) {
-	if ((dev == NULL) || (dev->regs[SCAT_RAM_WRITE_PROTECT] & (1 << ((chkaddr - 0xc0000) >> 15))))
+    addr = get_addr(dev, addr, page);
+    chkaddr = page->valid ? addr : oldaddr;
+    if ((chkaddr >= 0xc0000) && (chkaddr < 0x100000)) {
+	if (dev->regs[SCAT_RAM_WRITE_PROTECT] & (1 << ((chkaddr - 0xc0000) >> 15)))
 		return;
     }
 
@@ -1359,23 +1346,13 @@ static void
 mem_write_scatw(uint32_t addr, uint16_t val, void *priv)
 {
     ems_page_t *page = (ems_page_t *)priv;
-    scat_t *dev;
+    scat_t *dev = (scat_t *)page->scat;
     uint32_t oldaddr = addr, chkaddr;
 
-    if (page == NULL)
-	dev = NULL;
-    else
-	dev = (scat_t *)page->scat;
-
-    if (dev == NULL)
-	chkaddr = oldaddr;
-    else {
-	addr = get_addr(dev, addr, page);
-	chkaddr = addr;
-    }
-
-    if (chkaddr >= 0xc0000 && chkaddr < 0x100000) {
-	if (dev != NULL && (dev->regs[SCAT_RAM_WRITE_PROTECT] & (1 << ((chkaddr - 0xc0000) >> 15))))
+    addr = get_addr(dev, addr, page);
+    chkaddr = page->valid ? addr : oldaddr;
+    if ((chkaddr >= 0xc0000) && (chkaddr < 0x100000)) {
+	if (dev->regs[SCAT_RAM_WRITE_PROTECT] & (1 << ((chkaddr - 0xc0000) >> 15)))
 		return;
     }
 
@@ -1388,23 +1365,13 @@ static void
 mem_write_scatl(uint32_t addr, uint32_t val, void *priv)
 {
     ems_page_t *page = (ems_page_t *)priv;
-    scat_t *dev;
+    scat_t *dev = (scat_t *)page->scat;
     uint32_t oldaddr = addr, chkaddr;
 
-    if (page == NULL)
-	dev = NULL;
-    else
-	dev = (scat_t *)page->scat;
-
-    if (dev == NULL)
-	chkaddr = oldaddr;
-    else {
-	addr = get_addr(dev, addr, page);
-	chkaddr = addr;
-    }
-
-    if (chkaddr >= 0xc0000 && chkaddr < 0x100000) {
-	if (dev != NULL && (dev->regs[SCAT_RAM_WRITE_PROTECT] & (1 << ((chkaddr - 0xc0000) >> 15))))
+    addr = get_addr(dev, addr, page);
+    chkaddr = page->valid ? addr : oldaddr;
+    if ((chkaddr >= 0xc0000) && (chkaddr < 0x100000)) {
+	if (dev->regs[SCAT_RAM_WRITE_PROTECT] & (1 << ((chkaddr - 0xc0000) >> 15)))
 		return;
     }
 
@@ -1478,9 +1445,6 @@ scat_init(const device_t *info)
     if (! sx)
 	mem_mapping_disable(&ram_mid_mapping);
     mem_mapping_disable(&ram_high_mapping);
-#if 0
-    mem_mapping_disable(&bios_mapping);
-#endif
 
     k = (sx) ? 0x80000 : 0x40000;
 
@@ -1538,14 +1502,6 @@ scat_init(const device_t *info)
 				ram + ((i + 28) << 14), 0, &dev->page[i]);
 		mem_mapping_disable(&dev->ems_mapping[i]);
 	}
-
-	for (i = 0; i < 16; i++) {
-		mem_mapping_add(&dev->high_mapping[i], (i << 14) + 0xfc0000, 0x04000,
-				mem_read_bios, mem_read_biosw, mem_read_biosl,
-				mem_write_null, mem_write_nullw, mem_write_nulll,
-				rom + ((i << 14) & biosmask), 0, NULL);
-		mem_mapping_enable(&dev->high_mapping[i]);
-	}
     } else {
 	for (i = 0; i < 32; i++) {
 		dev->page[i].valid = 1;
@@ -1558,21 +1514,13 @@ scat_init(const device_t *info)
 				ram + ((i + (i >= 24 ? 28 : 16)) << 14),
 				0, &dev->page[i]);
 	}
-
-	for (i = (dev->regs[SCAT_VERSION] < 4 ? 0 : 8); i < 16; i++) {
-		mem_mapping_add(&dev->high_mapping[i], (i << 14) + 0xfc0000, 0x04000,
-				mem_read_bios, mem_read_biosw, mem_read_biosl,
-				mem_write_null, mem_write_nullw, mem_write_nulll,
-				rom + ((i << 14) & biosmask), 0, NULL);
-		mem_mapping_enable(&dev->high_mapping[i]);
-	}
     }
 
     for (i = 0; i < 6; i++) {
 	mem_mapping_add(&dev->remap_mapping[i], 0x100000 + (i << 16), 0x10000,
 			mem_read_scatb, mem_read_scatw, mem_read_scatl,
 			mem_write_scatb, mem_write_scatw, mem_write_scatl,
-			mem_size >= 1024 ? ram + get_addr(dev, 0x100000 + (i << 16), NULL) : NULL,
+			mem_size >= 1024 ? ram + get_addr(dev, 0x100000 + (i << 16), &dev->null_page) : NULL,
 			MEM_MAPPING_INTERNAL, &dev->null_page);
     }
 
@@ -1594,30 +1542,44 @@ scat_init(const device_t *info)
     return(dev);
 }
 
-
 const device_t scat_device = {
-    "C&T SCAT (v1)",
-    0,
-    0,
-    scat_init, scat_close, NULL,
-    NULL, NULL, NULL,
-    NULL
+    .name = "C&T SCAT (v1)",
+    .internal_name = "scat",
+    .flags = 0,
+    .local = 0,
+    .init = scat_init,
+    .close = scat_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
 const device_t scat_4_device = {
-    "C&T SCAT (v4)",
-    0,
-    4,
-    scat_init, scat_close, NULL,
-    NULL, NULL, NULL,
-    NULL
+    .name = "C&T SCAT (v4)",
+    .internal_name = "scat_4",
+    .flags = 0,
+    .local = 4,
+    .init = scat_init,
+    .close = scat_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
 const device_t scat_sx_device = {
-    "C&T SCATsx",
-    0,
-    32,
-    scat_init, scat_close, NULL,
-    NULL, NULL, NULL,
-    NULL
+    .name = "C&T SCATsx",
+    .internal_name = "scat_sx",
+    .flags = 0,
+    .local = 32,
+    .init = scat_init,
+    .close = scat_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };

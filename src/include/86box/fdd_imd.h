@@ -39,7 +39,7 @@
 
 
 extern void imd_init(void);
-extern void imd_load(int drive, wchar_t *fn);
+extern void imd_load(int drive, char *fn);
 extern void imd_close(int drive);
 
 

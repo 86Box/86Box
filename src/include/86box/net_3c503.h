@@ -3,5 +3,4 @@
 
 extern const device_t	threec503_device;
 
-
 #endif	/*NET_3C503_H*/

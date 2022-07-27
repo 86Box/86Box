@@ -149,7 +149,7 @@
  *		  This bit is set after each update cycle. When the UIE
  *		  bit is set to 1, the 1 in UF causes the IRQF bit to be
  *		  a 1, which asserts the !IRQ pin.  This bit can be
- *		  cleared by reading Register C or with a !RESET. 
+ *		  cleared by reading Register C or with a !RESET.
  *
  *		* Alarm Interrupt Flag (AF)
  *		  A 1 in the AF bit indicates that the current time has
@@ -284,17 +284,27 @@
 #define RTC_ALDAY	0x7D		/* VIA VT82C586B - alarm day */
 #define RTC_ALMONTH	0x7E		/* VIA VT82C586B - alarm month */
 #define RTC_CENTURY_VIA	0x7F		/* century register for VIA VT82C586B */
+
+#define RTC_ALDAY_SIS 0x7E		/* Day of Month Alarm for SiS */
+#define RTC_ALMONT_SIS 0x7F		/* Month Alarm for SiS */
+
 #define RTC_REGS	14		/* number of registers */
 
-#define FLAG_LS_HACK	0x01
-#define FLAG_PIIX4	0x02
+#define FLAG_NO_NMI		0x01
+#define FLAG_AMI_1992_HACK	0x02
+#define FLAG_AMI_1994_HACK	0x04
+#define FLAG_AMI_1995_HACK	0x08
+#define FLAG_P6RP4_HACK		0x10
+#define FLAG_PIIX4		0x20
 
 
 typedef struct {
     int8_t      stat;
 
     uint8_t	cent, def,
-		flags, read_addr;
+		flags, read_addr,
+		wp_0d, wp_32,
+		pad, pad0;
 
     uint8_t	addr[8], wp[2],
 		bank[8], *lock;
@@ -422,7 +432,7 @@ check_alarm_via(nvr_t *nvr, int8_t addr, int8_t addr_2)
 	return((nvr->regs[addr_2] == nvr->regs[addr]) ||
 	       ((nvr->regs[addr_2] & AL_DONTCARE) == AL_DONTCARE));
     } else
-	return 0;
+	return 1;
 }
 
 
@@ -451,14 +461,16 @@ timer_update(void *priv)
 	    check_alarm(nvr, RTC_MINUTES) &&
 	    check_alarm(nvr, RTC_HOURS) &&
 	    check_alarm_via(nvr, RTC_DOM, RTC_ALDAY) &&
-	    check_alarm_via(nvr, RTC_MONTH, RTC_ALMONTH)) {
+	    check_alarm_via(nvr, RTC_MONTH, RTC_ALMONTH)/* &&
+		check_alarm_via(nvr, RTC_DOM, RTC_ALDAY_SIS) &&
+		check_alarm_via(nvr, RTC_MONTH, RTC_ALMONT_SIS)*/) {
 		nvr->regs[RTC_REGC] |= REGC_AF;
 		if (nvr->regs[RTC_REGB] & REGB_AIE) {
-			nvr->regs[RTC_REGC] |= REGC_IRQF;
-
 			/* Generate an interrupt. */
-			if (nvr->irq != -1)
+			if ((nvr->irq != -1) && (!(nvr->regs[RTC_REGC] & REGC_IRQF)))
 				picint(1 << nvr->irq);
+
+			nvr->regs[RTC_REGC] |= REGC_IRQF;
 		}
 	}
 
@@ -468,11 +480,11 @@ timer_update(void *priv)
 	 */
 	nvr->regs[RTC_REGC] |= REGC_UF;
 	if (nvr->regs[RTC_REGB] & REGB_UIE) {
-		nvr->regs[RTC_REGC] |= REGC_IRQF;
-
 		/* Generate an interrupt. */
-		if (nvr->irq != -1)
+		if ((nvr->irq != -1) && (!(nvr->regs[RTC_REGC] & REGC_IRQF)))
 			picint(1 << nvr->irq);
+
+		nvr->regs[RTC_REGC] |= REGC_IRQF;
 	}
     }
 }
@@ -483,6 +495,8 @@ timer_load_count(nvr_t *nvr)
 {
     int c = nvr->regs[RTC_REGA] & REGA_RS;
     local_t *local = (local_t *) nvr->data;
+
+    timer_disable(&local->rtc_timer);
 
     if ((nvr->regs[RTC_REGA] & 0x70) != 0x20) {
 	local->state = 0;
@@ -497,9 +511,11 @@ timer_load_count(nvr_t *nvr)
 		break;
 	case 1: case 2:
 		local->count = 1 << (c + 6);
+		timer_set_delay_u64(&local->rtc_timer, (local->count) * RTCCONST);
 		break;
 	default:
 		local->count = 1 << (c - 1);
+		timer_set_delay_u64(&local->rtc_timer, (local->count) * RTCCONST);
 		break;
     }
 }
@@ -511,24 +527,17 @@ timer_intr(void *priv)
     nvr_t *nvr = (nvr_t *)priv;
     local_t *local = (local_t *)nvr->data;
 
-    timer_advance_u64(&local->rtc_timer, RTCCONST);
-
     if (local->state == 1) {
-	local->count--;
-	if (local->count == 0)
-		timer_load_count(nvr);
-	else
-		return;
-    } else
-	return;
+	timer_load_count(nvr);
 
-    nvr->regs[RTC_REGC] |= REGC_PF;
-    if (nvr->regs[RTC_REGB] & REGB_PIE) {
-	nvr->regs[RTC_REGC] |= REGC_IRQF;
+	nvr->regs[RTC_REGC] |= REGC_PF;
+	if (nvr->regs[RTC_REGB] & REGB_PIE) {
+		/* Generate an interrupt. */
+		if ((nvr->irq != -1) && (!(nvr->regs[RTC_REGC] & REGC_IRQF)))
+			picint(1 << nvr->irq);
 
-	/* Generate an interrupt. */
-	if (nvr->irq != -1)
-		picint(1 << nvr->irq);
+		nvr->regs[RTC_REGC] |= REGC_IRQF;
+	}
     }
 }
 
@@ -553,6 +562,28 @@ timer_tick(nvr_t *nvr)
 }
 
 
+static void
+nvr_reg_common_write(uint16_t reg, uint8_t val, nvr_t *nvr, local_t *local)
+{
+    if ((reg == 0x2c) && (local->flags & FLAG_AMI_1994_HACK))
+	nvr->is_new = 0;
+    if ((reg == 0x2d) && (local->flags & FLAG_AMI_1992_HACK))
+	nvr->is_new = 0;
+    if ((reg == 0x52) && (local->flags & FLAG_AMI_1995_HACK))
+	nvr->is_new = 0;
+    if ((reg >= 0x38) && (reg <= 0x3f) && local->wp[0])
+	return;
+    if ((reg >= 0xb8) && (reg <= 0xbf) && local->wp[1])
+	return;
+    if (local->lock[reg])
+	return;
+    if (nvr->regs[reg] != val) {
+	nvr->regs[reg] = val;
+	nvr_dosave = 1;
+    }
+}
+
+
 /* This must be exposed because ACPI uses it. */
 void
 nvr_reg_write(uint16_t reg, uint8_t val, void *priv)
@@ -560,8 +591,7 @@ nvr_reg_write(uint16_t reg, uint8_t val, void *priv)
     nvr_t *nvr = (nvr_t *)priv;
     local_t *local = (local_t *)nvr->data;
     struct tm tm;
-    uint8_t old, i;
-    uint16_t checksum = 0x0000;
+    uint8_t old;
 
     old = nvr->regs[reg];
     switch(reg) {
@@ -572,7 +602,7 @@ nvr_reg_write(uint16_t reg, uint8_t val, void *priv)
 
 	case RTC_REGB:
 		nvr->regs[RTC_REGB] = val;
-		if (((old^val) & REGB_SET) && (val&REGB_SET)) {
+		if (((old^val) & REGB_SET) && (val & REGB_SET)) {
 			/* According to the datasheet... */
 			nvr->regs[RTC_REGA] &= ~REGA_UIP;
 			nvr->regs[RTC_REGB] &= ~REGB_UIE;
@@ -580,32 +610,22 @@ nvr_reg_write(uint16_t reg, uint8_t val, void *priv)
 		break;
 
 	case RTC_REGC:		/* R/O */
-	case RTC_REGD:		/* R/O */
 		break;
 
-	case 0x2e:
-	case 0x2f:
-		if (local->flags & FLAG_LS_HACK) {
-			/* 2E and 2F are a simple sum of the values of 0E to 2D. */
-			for (i = 0x0e; i < 0x2e; i++)
-				checksum += (uint16_t) nvr->regs[i];
-			nvr->regs[0x2e] = checksum >> 8;
-			nvr->regs[0x2f] = checksum & 0xff;
+	case RTC_REGD:		/* R/O */
+		/* This is needed for VIA, where writing to this register changes a write-only
+		   bit whose value is read from power management register 42. */
+		nvr->regs[RTC_REGD] = val & 0x80;
+		break;
+
+	case 0x32:
+		if ((reg == 0x32) && (local->cent == RTC_CENTURY_VIA) && local->wp_32)
 			break;
-		}
-		/*FALLTHROUGH*/
+		nvr_reg_common_write(reg, val, nvr, local);
+		break;
 
 	default:		/* non-RTC registers are just NVRAM */
-		if ((reg >= 0x38) && (reg <= 0x3f) && local->wp[0])
-			break;
-		if ((reg >= 0xb8) && (reg <= 0xbf) && local->wp[1])
-			break;
-		if (local->lock[reg])
-			break;
-		if (nvr->regs[reg] != val) {
-			nvr->regs[reg] = val;
-			nvr_dosave = 1;
-		}
+		nvr_reg_common_write(reg, val, nvr, local);
 		break;
     }
 
@@ -630,11 +650,14 @@ nvr_write(uint16_t addr, uint8_t val, void *priv)
     local_t *local = (local_t *)nvr->data;
     uint8_t addr_id = (addr & 0x0e) >> 1;
 
-    sub_cycles(ISA_CYCLES(8));
+    cycles -= ISA_CYCLES(8);
+
+    if (local->bank[addr_id] == 0xff)
+	return;
 
     if (addr & 1) {
-	if (local->bank[addr_id] == 0xff)
-		return;
+	// if (local->bank[addr_id] == 0xff)
+		// return;
 	nvr_reg_write(local->addr[addr_id], val, priv);
     } else {
 	local->addr[addr_id] = (val & (nvr->size - 1));
@@ -645,8 +668,7 @@ nvr_write(uint16_t addr, uint8_t val, void *priv)
 		local->addr[addr_id] = (local->addr[addr_id] & 0x7f) | 0x80;
 	if (local->bank[addr_id] > 0)
 		local->addr[addr_id] = (local->addr[addr_id] & 0x7f) | (0x80 * local->bank[addr_id]);
-	if (!(machines[machine].flags & MACHINE_MCA) &&
-	    !(machines[machine].flags & MACHINE_NONMI))
+	if (!(local->flags & FLAG_NO_NMI))
 		nmi_mask = (~val & 0x80);
     }
 }
@@ -660,14 +682,13 @@ nvr_read(uint16_t addr, void *priv)
     local_t *local = (local_t *)nvr->data;
     uint8_t ret;
     uint8_t addr_id = (addr & 0x0e) >> 1;
-    uint16_t checksum;
+    uint16_t i, checksum = 0x0000;
 
-    sub_cycles(ISA_CYCLES(8));
+    cycles -= ISA_CYCLES(8);
 
-    if ((addr & 1) && (local->bank[addr_id] == 0xff))
-	return 0xff;
-
-    if (addr & 1)  switch(local->addr[addr_id]) {
+    if (local->bank[addr_id] == 0xff)
+	ret = 0xff;
+    else if (addr & 1)  switch(local->addr[addr_id]) {
 	case RTC_REGA:
 		ret = (nvr->regs[RTC_REGA] & 0x7f) | local->stat;
 		break;
@@ -679,28 +700,98 @@ nvr_read(uint16_t addr, void *priv)
 		break;
 
 	case RTC_REGD:
-		nvr->regs[RTC_REGD] |= REGD_VRT;
-		ret = nvr->regs[RTC_REGD];
+		/* Bits 6-0 of this register always read 0. Bit 7 is battery state,
+		   we should always return it set, as that means the battery is OK. */
+		ret = REGD_VRT;
 		break;
 
 	case 0x2c:
-		if (local->flags & FLAG_LS_HACK)
+		if (!nvr->is_new && (local->flags & FLAG_AMI_1994_HACK))
 			ret = nvr->regs[local->addr[addr_id]] & 0x7f;
+		else
+			ret = nvr->regs[local->addr[addr_id]];
+		break;
+
+	case 0x2d:
+		if (!nvr->is_new && (local->flags & FLAG_AMI_1992_HACK))
+			ret = nvr->regs[local->addr[addr_id]] & 0xf7;
 		else
 			ret = nvr->regs[local->addr[addr_id]];
 		break;
 
 	case 0x2e:
 	case 0x2f:
-		if (local->flags & FLAG_LS_HACK) {
-			checksum = (nvr->regs[0x2e] << 8) | nvr->regs[0x2f];
-			if (nvr->regs[0x2c] & 0x80)
-				checksum -= 0x80;
+		if (!nvr->is_new && (local->flags & FLAG_AMI_1992_HACK)) {
+			for (i = 0x10; i <= 0x2d; i++) {
+				if (i == 0x2d)
+					checksum += (nvr->regs[i] & 0xf7);
+				else
+					checksum += nvr->regs[i];
+			}
+			if (local->addr[addr_id] == 0x2e)
+				ret = checksum >> 8;
+			else
+				ret = checksum & 0xff;
+		} else if (!nvr->is_new && (local->flags & FLAG_AMI_1994_HACK)) {
+			for (i = 0x10; i <= 0x2d; i++) {
+				if (i == 0x2c)
+					checksum += (nvr->regs[i] & 0x7f);
+				else
+					checksum += nvr->regs[i];
+			}
 			if (local->addr[addr_id] == 0x2e)
 				ret = checksum >> 8;
 			else
 				ret = checksum & 0xff;
 		} else
+			ret = nvr->regs[local->addr[addr_id]];
+		break;
+
+	case 0x3e:
+	case 0x3f:
+		if (!nvr->is_new && (local->flags & FLAG_AMI_1995_HACK)) {
+			/* The checksum at 3E-3F is for 37-3D and 40-7F. */
+			for (i = 0x37; i <= 0x3d; i++)
+				checksum += nvr->regs[i];
+			for (i = 0x40; i <= 0x7f; i++) {
+				if (i == 0x52)
+					checksum += (nvr->regs[i] & 0xf3);
+				else
+					checksum += nvr->regs[i];
+			}
+			if (local->addr[addr_id] == 0x3e)
+				ret = checksum >> 8;
+			else
+				ret = checksum & 0xff;
+		} else if (!nvr->is_new && (local->flags & FLAG_P6RP4_HACK)) {
+			/* The checksum at 3E-3F is for 37-3D and 40-51. */
+			for (i = 0x37; i <= 0x3d; i++)
+				checksum += nvr->regs[i];
+			for (i = 0x40; i <= 0x51; i++) {
+				if (i == 0x43)
+					checksum += (nvr->regs[i] | 0x02);
+				else
+					checksum += nvr->regs[i];
+			}
+			if (local->addr[addr_id] == 0x3e)
+				ret = checksum >> 8;
+			else
+				ret = checksum & 0xff;
+		} else
+			ret = nvr->regs[local->addr[addr_id]];
+		break;
+
+	case 0x43:
+		if (!nvr->is_new && (local->flags & FLAG_P6RP4_HACK))
+			ret = nvr->regs[local->addr[addr_id]] | 0x02;
+		else
+			ret = nvr->regs[local->addr[addr_id]];
+		break;
+
+	case 0x52:
+		if (!nvr->is_new && (local->flags & FLAG_AMI_1995_HACK))
+			ret = nvr->regs[local->addr[addr_id]] & 0xf3;
+		else
 			ret = nvr->regs[local->addr[addr_id]];
 		break;
 
@@ -711,6 +802,8 @@ nvr_read(uint16_t addr, void *priv)
 	ret = local->addr[addr_id];
 	if (!local->read_addr)
 		ret &= 0x80;
+	if (alt_access)
+		ret = (ret & 0x7f) | (nmi_mask ? 0x00 : 0x80);
     }
 
     return(ret);
@@ -746,8 +839,9 @@ nvr_reset(nvr_t *nvr)
     nvr->regs[RTC_YEAR] = RTC_BCD(80);
     if (local->cent != 0xFF)
 	nvr->regs[local->cent] = RTC_BCD(19);
-}
 
+    nvr->regs[RTC_REGD] = REGD_VRT;
+}
 
 /* Process after loading from file. */
 static void
@@ -791,8 +885,7 @@ nvr_at_speed_changed(void *priv)
     nvr_t *nvr = (nvr_t *) priv;
     local_t *local = (local_t *) nvr->data;
 
-    timer_disable(&local->rtc_timer);
-    timer_set_delay_u64(&local->rtc_timer, RTCCONST);
+    timer_load_count(nvr);
 
     timer_disable(&local->update_timer);
     if (local->ecount > 0ULL)
@@ -807,7 +900,7 @@ void
 nvr_at_handler(int set, uint16_t base, nvr_t *nvr)
 {
     io_handler(set, base, 2,
-		  nvr_read,NULL,NULL, nvr_write,NULL,NULL, nvr);
+	       nvr_read,NULL,NULL, nvr_write,NULL,NULL, nvr);
 }
 
 
@@ -815,9 +908,8 @@ void
 nvr_at_sec_handler(int set, uint16_t base, nvr_t *nvr)
 {
     io_handler(set, base, 2,
-		  nvr_sec_read,NULL,NULL, nvr_sec_write,NULL,NULL, nvr);
+	       nvr_sec_read,NULL,NULL, nvr_sec_write,NULL,NULL, nvr);
 }
-
 
 void
 nvr_read_addr_set(int set, nvr_t *nvr)
@@ -834,6 +926,18 @@ nvr_wp_set(int set, int h, nvr_t *nvr)
     local_t *local = (local_t *) nvr->data;
 
     local->wp[h] = set;
+}
+
+
+void
+nvr_via_wp_set(int set, int reg, nvr_t *nvr)
+{
+    local_t *local = (local_t *) nvr->data;
+
+    if (reg == 0x0d)
+	local->wp_0d = set;
+    else
+	local->wp_32 = set;
 }
 
 
@@ -857,6 +961,24 @@ nvr_lock_set(int base, int size, int lock, nvr_t *nvr)
 }
 
 
+void
+nvr_irq_set(int irq, nvr_t *nvr)
+{
+    nvr->irq = irq;
+}
+
+
+static void
+nvr_at_reset(void *priv)
+{
+    nvr_t *nvr = (nvr_t *) priv;
+
+    /* These bits are reset on reset. */
+    nvr->regs[RTC_REGB] &= ~(REGB_PIE | REGB_AIE | REGB_UIE | REGB_SQWE);
+    nvr->regs[RTC_REGC] &= ~(REGC_PF | REGC_AF | REGC_UF | REGC_IRQF);
+}
+
+
 static void *
 nvr_at_init(const device_t *info)
 {
@@ -876,21 +998,34 @@ nvr_at_init(const device_t *info)
     nvr->size = machines[machine].nvrmask + 1;
     local->lock = (uint8_t *) malloc(nvr->size);
     memset(local->lock, 0x00, nvr->size);
-    local->def = 0x00;
+    local->def = 0xff /*0x00*/;
     local->flags = 0x00;
     switch(info->local & 7) {
 	case 0:		/* standard AT, no century register */
-		nvr->irq = 8;
-		local->cent = 0xff;
+		if (info->local == 16) {
+			local->flags |= FLAG_P6RP4_HACK;
+			nvr->irq = 8;
+			local->cent = RTC_CENTURY_AT;
+		} else {
+			nvr->irq = 8;
+			local->cent = 0xff;
+		}
 		break;
 
-	case 5:		/* Lucky Star LS-486E */
-		local->flags |= FLAG_LS_HACK;
-		/*FALLTHROUGH*/
-
 	case 1:		/* standard AT */
+	case 5:		/* AMI WinBIOS 1994 */
+	case 6:		/* AMI BIOS 1995 */
 		if (info->local == 9)
 			local->flags |= FLAG_PIIX4;
+		else {
+			local->def = 0x00;
+			if ((info->local & 7) == 5)
+				local->flags |= FLAG_AMI_1994_HACK;
+			else if ((info->local & 7) == 6)
+				local->flags |= FLAG_AMI_1995_HACK;
+			else
+				local->def = 0xff;
+		}
 		nvr->irq = 8;
 		local->cent = RTC_CENTURY_AT;
 		break;
@@ -898,21 +1033,30 @@ nvr_at_init(const device_t *info)
 	case 2:		/* PS/1 or PS/2 */
 		nvr->irq = 8;
 		local->cent = RTC_CENTURY_PS;
+		local->def = 0x00;
+		if (info->local & 8)
+			local->flags |= FLAG_NO_NMI;
 		break;
 
 	case 3:		/* Amstrad PC's */
 		nvr->irq = 1;
 		local->cent = RTC_CENTURY_AT;
 		local->def = 0xff;
+		if (info->local & 8)
+			local->flags |= FLAG_NO_NMI;
 		break;
 
 	case 4:		/* IBM AT */
+		if (info->local == 12) {
+			local->def = 0x00;
+			local->flags |= FLAG_AMI_1992_HACK;
+		} else
+			local->def = 0xff;
 		nvr->irq = 8;
 		local->cent = RTC_CENTURY_AT;
-		local->def = 0xff;
 		break;
 
-	case 6:		/* VIA VT82C586B */
+	case 7:		/* VIA VT82C586B */
 		nvr->irq = 8;
 		local->cent = RTC_CENTURY_VIA;
 		break;
@@ -933,8 +1077,11 @@ nvr_at_init(const device_t *info)
 	timer_add(&local->update_timer, timer_update, nvr, 0);
 
 	timer_add(&local->rtc_timer, timer_intr, nvr, 0);
+	/* On power on, if the oscillator is disabled, it's reenabled. */
+	if ((nvr->regs[RTC_REGA] & 0x70) == 0x00)
+		nvr->regs[RTC_REGA] = (nvr->regs[RTC_REGA] & 0x8f) | 0x20;
+	nvr_at_reset(nvr);
 	timer_load_count(nvr);
-	timer_set_delay_u64(&local->rtc_timer, RTCCONST);
 
 	/* Set up the I/O handler for this device. */
 	io_sethandler(0x0070, 2,
@@ -963,87 +1110,190 @@ nvr_at_close(void *priv)
     timer_disable(&local->update_timer);
     timer_disable(&nvr->onesec_time);
 
-    if (nvr->fn != NULL)
-	free(nvr->fn);
+    if (nvr != NULL) {
+	if (nvr->fn != NULL)
+		free(nvr->fn);
 
-    if (nvr->data != NULL)
-	free(nvr->data);
+	if (nvr->data != NULL)
+		free(nvr->data);
 
-    free(nvr);
+	free(nvr);
+    }
 
     if (nvr_at_inited == 1)
 	nvr_at_inited = 0;
 }
 
-
 const device_t at_nvr_old_device = {
-    "PC/AT NVRAM (No century)",
-    DEVICE_ISA | DEVICE_AT,
-    0,
-    nvr_at_init, nvr_at_close, NULL,
-    NULL, nvr_at_speed_changed,
-    NULL
+    .name = "PC/AT NVRAM (No century)",
+    .internal_name = "at_nvr_old",
+    .flags = DEVICE_ISA | DEVICE_AT,
+    .local = 0,
+    .init = nvr_at_init,
+    .close = nvr_at_close,
+    .reset = nvr_at_reset,
+    { .available = NULL },
+    .speed_changed = nvr_at_speed_changed,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
 const device_t at_nvr_device = {
-    "PC/AT NVRAM",
-    DEVICE_ISA | DEVICE_AT,
-    1,
-    nvr_at_init, nvr_at_close, NULL,
-    NULL, nvr_at_speed_changed,
-    NULL
+    .name = "PC/AT NVRAM",
+    .internal_name = "at_nvr",
+    .flags = DEVICE_ISA | DEVICE_AT,
+    .local = 1,
+    .init = nvr_at_init,
+    .close = nvr_at_close,
+    .reset = nvr_at_reset,
+    { .available = NULL },
+    .speed_changed = nvr_at_speed_changed,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
 const device_t ps_nvr_device = {
-    "PS/1 or PS/2 NVRAM",
-    DEVICE_PS2,
-    2,
-    nvr_at_init, nvr_at_close, NULL,
-    NULL, nvr_at_speed_changed,
-    NULL
+    .name = "PS/1 or PS/2 NVRAM",
+    .internal_name = "ps_nvr",
+    .flags = DEVICE_PS2,
+    .local = 2,
+    .init = nvr_at_init,
+    .close = nvr_at_close,
+    .reset = nvr_at_reset,
+    { .available = NULL },
+    .speed_changed = nvr_at_speed_changed,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
 const device_t amstrad_nvr_device = {
-    "Amstrad NVRAM",
-    MACHINE_ISA | MACHINE_AT,
-    3,
-    nvr_at_init, nvr_at_close, NULL,
-    NULL, nvr_at_speed_changed,
-    NULL
+    .name = "Amstrad NVRAM",
+    .internal_name = "amstrad_nvr",
+    .flags = DEVICE_ISA | DEVICE_AT,
+    .local = 3,
+    .init = nvr_at_init,
+    .close = nvr_at_close,
+    .reset = nvr_at_reset,
+    { .available = NULL },
+    .speed_changed = nvr_at_speed_changed,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
 const device_t ibmat_nvr_device = {
-    "IBM AT NVRAM",
-    DEVICE_ISA | DEVICE_AT,
-    4,
-    nvr_at_init, nvr_at_close, NULL,
-    NULL, nvr_at_speed_changed,
-    NULL
+    .name = "IBM AT NVRAM",
+    .internal_name = "ibmat_nvr",
+    .flags = DEVICE_ISA | DEVICE_AT,
+    .local = 4,
+    .init = nvr_at_init,
+    .close = nvr_at_close,
+    .reset = nvr_at_reset,
+    { .available = NULL },
+    .speed_changed = nvr_at_speed_changed,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
 const device_t piix4_nvr_device = {
-    "Intel PIIX4 PC/AT NVRAM",
-    DEVICE_ISA | DEVICE_AT,
-    9,
-    nvr_at_init, nvr_at_close, NULL,
-    NULL, nvr_at_speed_changed,
+    .name = "Intel PIIX4 PC/AT NVRAM",
+    .internal_name = "piix4_nvr",
+    .flags = DEVICE_ISA | DEVICE_AT,
+    .local = 9,
+    .init = nvr_at_init,
+    .close = nvr_at_close,
+    .reset = nvr_at_reset,
+    { .available = NULL },
+    .speed_changed = nvr_at_speed_changed,
+    .force_redraw = NULL,
+    .config = NULL
+};
+
+const device_t ps_no_nmi_nvr_device = {
+    "PS/1 or PS/2 NVRAM (No NMI)",
+    "ps1_nvr",
+    DEVICE_PS2,
+    10,
+    nvr_at_init, nvr_at_close, nvr_at_reset,
+    { NULL }, nvr_at_speed_changed,
     NULL
 };
 
-const device_t ls486e_nvr_device = {
-    "Lucky Star LS-486E PC/AT NVRAM",
+const device_t amstrad_no_nmi_nvr_device = {
+    "Amstrad NVRAM (No NMI)",
+    "amstrad_nvr",
     DEVICE_ISA | DEVICE_AT,
-    13,
-    nvr_at_init, nvr_at_close, NULL,
-    NULL, nvr_at_speed_changed,
+    11,
+    nvr_at_init, nvr_at_close, nvr_at_reset,
+    { NULL }, nvr_at_speed_changed,
     NULL
+};
+
+const device_t ami_1992_nvr_device = {
+    .name = "AMI Color 1992 PC/AT NVRAM",
+    .internal_name = "ami_1992_nvr",
+    .flags = DEVICE_ISA | DEVICE_AT,
+    .local = 12,
+    .init = nvr_at_init,
+    .close = nvr_at_close,
+    .reset = nvr_at_reset,
+    { .available = NULL },
+    .speed_changed = nvr_at_speed_changed,
+    .force_redraw = NULL,
+    .config = NULL
+};
+
+const device_t ami_1994_nvr_device = {
+    .name = "AMI WinBIOS 1994 PC/AT NVRAM",
+    .internal_name = "ami_1994_nvr",
+    .flags = DEVICE_ISA | DEVICE_AT,
+    .local = 13,
+    .init = nvr_at_init,
+    .close = nvr_at_close,
+    .reset = nvr_at_reset,
+    { .available = NULL },
+    .speed_changed = nvr_at_speed_changed,
+    .force_redraw = NULL,
+    .config = NULL
+};
+
+const device_t ami_1995_nvr_device = {
+    .name = "AMI WinBIOS 1995 PC/AT NVRAM",
+    .internal_name = "ami_1995_nvr",
+    .flags = DEVICE_ISA | DEVICE_AT,
+    .local = 14,
+    .init = nvr_at_init,
+    .close = nvr_at_close,
+    .reset = nvr_at_reset,
+    { .available = NULL },
+    .speed_changed = nvr_at_speed_changed,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
 const device_t via_nvr_device = {
-    "VIA PC/AT NVRAM",
-    DEVICE_ISA | DEVICE_AT,
-    14,
-    nvr_at_init, nvr_at_close, NULL,
-    NULL, nvr_at_speed_changed,
-    NULL
+    .name = "VIA PC/AT NVRAM",
+    .internal_name = "via_nvr",
+    .flags = DEVICE_ISA | DEVICE_AT,
+    .local = 15,
+    .init = nvr_at_init,
+    .close = nvr_at_close,
+    .reset = nvr_at_reset,
+    { .available = NULL },
+    .speed_changed = nvr_at_speed_changed,
+    .force_redraw = NULL,
+    .config = NULL
+};
+
+const device_t p6rp4_nvr_device = {
+    .name = "ASUS P/I-P6RP4 PC/AT NVRAM",
+    .internal_name = "p6rp4_nvr",
+    .flags = DEVICE_ISA | DEVICE_AT,
+    .local = 16,
+    .init = nvr_at_init,
+    .close = nvr_at_close,
+    .reset = nvr_at_reset,
+    { .available = NULL },
+    .speed_changed = nvr_at_speed_changed,
+    .force_redraw = NULL,
+    .config = NULL
 };

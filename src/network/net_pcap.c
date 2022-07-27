@@ -55,11 +55,12 @@
 #include <86box/device.h>
 #include <86box/plat.h>
 #include <86box/plat_dynld.h>
+#include <86box/thread.h>
 #include <86box/network.h>
 
 
-typedef int bpf_int32; 
-typedef unsigned int bpf_u_int32; 
+typedef int bpf_int32;
+typedef unsigned int bpf_u_int32;
 
 /*
  * The instruction data structure.
@@ -79,27 +80,27 @@ struct bpf_program {
     struct bpf_insn	*bf_insns;
 };
 
-typedef struct pcap_if	pcap_if_t; 
+typedef struct pcap_if	pcap_if_t;
 
-typedef struct timeval {
+typedef struct net_timeval {
     long		tv_sec;
     long		tv_usec;
-} timeval;
+} net_timeval;
 
 #define PCAP_ERRBUF_SIZE	256
 
 struct pcap_pkthdr {
-    struct timeval	ts;
+    struct net_timeval	ts;
     bpf_u_int32		caplen;
     bpf_u_int32		len;
 };
 
 struct pcap_if {
-    struct pcap_if *next; 
-    char *name;     
-    char *description;  
-    void *addresses; 
-    unsigned int flags;        
+    struct pcap_if *next;
+    char *name;
+    char *description;
+    void *addresses;
+    unsigned int flags;
 };
 
 
@@ -122,6 +123,7 @@ static const unsigned char
 			*(*f_pcap_next)(void *,void *);
 static int		(*f_pcap_sendpacket)(void *,const unsigned char *,int);
 static void		(*f_pcap_close)(void *);
+static int              (*f_pcap_setnonblock)(void*, int, char*);
 static dllimp_t pcap_imports[] = {
   { "pcap_lib_version",	&f_pcap_lib_version	},
   { "pcap_findalldevs",	&f_pcap_findalldevs	},
@@ -132,6 +134,7 @@ static dllimp_t pcap_imports[] = {
   { "pcap_next",	&f_pcap_next		},
   { "pcap_sendpacket",	&f_pcap_sendpacket	},
   { "pcap_close",	&f_pcap_close		},
+  { "pcap_setnonblock",	&f_pcap_setnonblock	},
   { NULL,		NULL			},
 };
 
@@ -172,6 +175,7 @@ poll_thread(void *arg)
     thread_set_event(poll_state);
 
     /* Create a waitable event. */
+    pcap_log("PCAP: Creating event...\n");
     evt = thread_create_event();
 
     /* As long as the channel is open.. */
@@ -179,14 +183,11 @@ poll_thread(void *arg)
 	/* Request ownership of the device. */
 	network_wait(1);
 
-	/* Wait for a poll request. */
-	network_poll();
-
-	if (pcap == NULL)
+	if (pcap == NULL) {
+		network_wait(0);
 		break;
+	}
 
-	/* Wait for the next packet to arrive. */
-	tx = network_tx_queue_check();
 	if (network_get_wait() || (poll_card->set_link_state && poll_card->set_link_state(poll_card->priv)) || (poll_card->wait && poll_card->wait(poll_card->priv)))
 		data = NULL;
 	else
@@ -200,24 +201,23 @@ poll_thread(void *arg)
 		mac_cmp32[1] = *(uint32_t *)mac;
 		mac_cmp16[1] = *(uint16_t *)(mac+4);
 		if ((mac_cmp32[0] != mac_cmp32[1]) ||
-		    (mac_cmp16[0] != mac_cmp16[1])) {
-
+		    (mac_cmp16[0] != mac_cmp16[1]))
 			network_queue_put(0, poll_card->priv, data, h.caplen);
-		} else {
+		else {
 			/* Mark as invalid packet. */
 			data = NULL;
 		}
 	}
 
-	if (tx)
-		network_do_tx();
-
-	/* If we did not get anything, wait a while. */
-	if ((data == NULL) && !tx)
-		thread_wait_event(evt, 10);
+	/* Wait for the next packet to arrive - network_do_tx() is called from there. */
+	tx = network_tx_queue_check();
 
 	/* Release ownership of the device. */
 	network_wait(0);
+
+	/* If we did not get anything, wait a while. */
+	if (!tx)
+		thread_wait_event(evt, 10);
     }
 
     /* No longer needed. */
@@ -225,7 +225,8 @@ poll_thread(void *arg)
 	thread_destroy_event(evt);
 
     pcap_log("PCAP: polling stopped.\n");
-    thread_set_event(poll_state);
+    if (poll_state != NULL)
+	thread_set_event(poll_state);
 }
 
 
@@ -249,6 +250,8 @@ net_pcap_prepare(netdev_t *list)
     /* Try loading the DLL. */
 #ifdef _WIN32
     pcap_handle = dynld_module("wpcap.dll", pcap_imports);
+#elif defined __APPLE__
+    pcap_handle = dynld_module("libpcap.dylib", pcap_imports);
 #else
     pcap_handle = dynld_module("libpcap.so", pcap_imports);
 #endif
@@ -261,17 +264,21 @@ net_pcap_prepare(netdev_t *list)
     }
 
     for (dev=devlist; dev!=NULL; dev=dev->next) {
-	if (strlen(dev->name) <= 127)
-		strcpy(list->device, dev->name);
-	else
-		strncpy(list->device, dev->name, 127);
-	if (dev->description) {
-		if (strlen(dev->description) <= 127)
-			strcpy(list->description, dev->description);
-		else
-			strncpy(list->description, dev->description, 127);
-	} else
+		/**
+		 * we initialize the strings to NULL first for strncpy
+		 */
+
+		memset(list->device, '\0', sizeof(list->device));
 		memset(list->description, '\0', sizeof(list->description));
+
+		strncpy(list->device, dev->name, sizeof(list->device) - 1);
+		if (dev->description) {
+			strncpy(list->description, dev->description, sizeof(list->description) - 1);
+		} else {
+			/* if description is NULL, set the name. This allows pcap to display *something* useful under WINE */
+			strncpy(list->description, dev->name, sizeof(list->description) - 1);
+		}
+
 	list++; i++;
     }
 
@@ -334,8 +341,6 @@ net_pcap_close(void)
 
     /* Tell the thread to terminate. */
     if (poll_tid != NULL) {
-	network_busy(0);
-
 	/* Wait for the thread to finish. */
 	pcap_log("PCAP: waiting for thread to end...\n");
 	thread_wait_event(poll_state, -1);
@@ -380,6 +385,9 @@ net_pcap_reset(const netcard_t *card, uint8_t *mac)
 	pcap_log(" Unable to open device: %s!\n", network_host);
 	return(-1);
     }
+    if (f_pcap_setnonblock((void*)pcap, 1, errbuf) != 0)
+        pcap_log("PCAP: failed nonblock %s\n", errbuf);
+
     pcap_log("PCAP: interface: %s\n", network_host);
 
     /* Create a MAC address based packet filter. */

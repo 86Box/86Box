@@ -29,6 +29,7 @@
 #include <wchar.h>
 #include <86box/86box.h>
 #include <86box/plat.h>
+#include <86box/thread.h>
 
 
 typedef struct {
@@ -44,24 +45,22 @@ thread_create(void (*func)(void *param), void *param)
 }
 
 
-void
-thread_kill(void *arg)
-{
-    if (arg == NULL) return;
-
-    TerminateThread(arg, 0);
-}
-
-
 int
-thread_wait(thread_t *arg, int timeout)
+thread_test_mutex(thread_t *arg)
 {
     if (arg == NULL) return(0);
 
-    if (timeout == -1)
-	timeout = INFINITE;
+    return (WaitForSingleObject(arg, 0) == WAIT_OBJECT_0) ? 1 : 0;
+}
 
-    if (WaitForSingleObject(arg, timeout)) return(1);
+
+
+int
+thread_wait(thread_t *arg)
+{
+    if (arg == NULL) return(0);
+
+    if (WaitForSingleObject(arg, INFINITE)) return(1);
 
     return(0);
 }
@@ -134,16 +133,11 @@ thread_destroy_event(event_t *arg)
 mutex_t *
 thread_create_mutex(void)
 {
-    return((mutex_t*)CreateMutex(NULL, FALSE, NULL));
-}
+    mutex_t *mutex = malloc(sizeof(CRITICAL_SECTION));
 
+    InitializeCriticalSection(mutex);
 
-void
-thread_close_mutex(mutex_t *mutex)
-{
-    if (mutex == NULL) return;
-
-    CloseHandle((HANDLE)mutex);
+    return mutex;
 }
 
 
@@ -152,11 +146,11 @@ thread_wait_mutex(mutex_t *mutex)
 {
     if (mutex == NULL) return(0);
 
-    DWORD dwres = WaitForSingleObject((HANDLE)mutex, INFINITE);
+    LPCRITICAL_SECTION critsec = (LPCRITICAL_SECTION)mutex;
 
-    if (dwres == WAIT_OBJECT_0) return(1);
+    EnterCriticalSection(critsec);
 
-    return(0);
+    return 1;
 }
 
 
@@ -165,5 +159,22 @@ thread_release_mutex(mutex_t *mutex)
 {
     if (mutex == NULL) return(0);
 
-    return(!!ReleaseMutex((HANDLE)mutex));
+    LPCRITICAL_SECTION critsec = (LPCRITICAL_SECTION)mutex;
+
+    LeaveCriticalSection(critsec);
+
+    return 1;
+}
+
+
+void
+thread_close_mutex(mutex_t *mutex)
+{
+    if (mutex == NULL) return;
+
+    LPCRITICAL_SECTION critsec = (LPCRITICAL_SECTION)mutex;
+
+    DeleteCriticalSection(critsec);
+
+    free(critsec);
 }

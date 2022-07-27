@@ -1,5 +1,5 @@
 /* Copyright (C) 2003, 2004, 2005, 2006, 2008, 2009 Dean Beeler, Jerome Fisher
- * Copyright (C) 2011-2017 Dean Beeler, Jerome Fisher, Sergey V. Mikayev
+ * Copyright (C) 2011-2020 Dean Beeler, Jerome Fisher, Sergey V. Mikayev
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Lesser General Public License as published by
@@ -21,6 +21,7 @@
 
 #include "Partial.h"
 #include "Part.h"
+#include "PartialManager.h"
 #include "Poly.h"
 #include "Synth.h"
 #include "Tables.h"
@@ -36,22 +37,22 @@ static const Bit8u PAN_NUMERATOR_SLAVE[]  = {0, 1, 2, 3, 4, 5, 6, 7, 7, 7, 7, 7,
 // We assume the pan is applied using the same 13-bit multiplier circuit that is also used for ring modulation
 // because of the observed sample overflow, so the panSetting values are likely mapped in a similar way via a LUT.
 // FIXME: Sample analysis suggests that the use of panSetting is linear, but there are some quirks that still need to be resolved.
-static Bit32s getPANFactor(Bit32s panSetting) {
-	static const Bit32s PAN_FACTORS_COUNT = 15;
+static Bit32s getPanFactor(Bit32s panSetting) {
+	static const Bit32u PAN_FACTORS_COUNT = 15;
 	static Bit32s PAN_FACTORS[PAN_FACTORS_COUNT];
 	static bool firstRun = true;
 
 	if (firstRun) {
 		firstRun = false;
-		for (Bit32u i = 1; i < (Bit32u)PAN_FACTORS_COUNT; i++) {
+		for (Bit32u i = 1; i < PAN_FACTORS_COUNT; i++) {
 			PAN_FACTORS[i] = Bit32s(0.5 + i * 8192.0 / double(PAN_FACTORS_COUNT - 1));
 		}
 	}
 	return PAN_FACTORS[panSetting];
 }
 
-Partial::Partial(Synth *useSynth, int useDebugPartialNum) :
-	synth(useSynth), debugPartialNum(useDebugPartialNum), sampleNum(0),
+Partial::Partial(Synth *useSynth, int usePartialIndex) :
+	synth(useSynth), partialIndex(usePartialIndex), sampleNum(0),
 	floatMode(useSynth->getSelectedRendererType() == RendererType_FLOAT) {
 	// Initialisation of tva, tvp and tvf uses 'this' pointer
 	// and thus should not be in the initializer list to avoid a compiler warning
@@ -82,7 +83,7 @@ Partial::~Partial() {
 
 // Only used for debugging purposes
 int Partial::debugGetPartialNum() const {
-	return debugPartialNum;
+	return partialIndex;
 }
 
 // Only used for debugging purposes
@@ -112,11 +113,12 @@ void Partial::deactivate() {
 		return;
 	}
 	ownerPart = -1;
+	synth->partialManager->partialDeactivated(partialIndex);
 	if (poly != NULL) {
 		poly->partialDeactivated(this);
 	}
 #if MT32EMU_MONITOR_PARTIALS > 2
-	synth->printDebug("[+%lu] [Partial %d] Deactivated", sampleNum, debugPartialNum);
+	synth->printDebug("[+%lu] [Partial %d] Deactivated", sampleNum, partialIndex);
 	synth->printPartialUsage(sampleNum);
 #endif
 	if (isRingModulatingSlave()) {
@@ -135,7 +137,7 @@ void Partial::deactivate() {
 
 void Partial::startPartial(const Part *part, Poly *usePoly, const PatchCache *usePatchCache, const MemParams::RhythmTemp *rhythmTemp, Partial *pairPartial) {
 	if (usePoly == NULL || usePatchCache == NULL) {
-		synth->printDebug("[Partial %d] *** Error: Starting partial for owner %d, usePoly=%s, usePatchCache=%s", debugPartialNum, ownerPart, usePoly == NULL ? "*** NULL ***" : "OK", usePatchCache == NULL ? "*** NULL ***" : "OK");
+		synth->printDebug("[Partial %d] *** Error: Starting partial for owner %d, usePoly=%s, usePatchCache=%s", partialIndex, ownerPart, usePoly == NULL ? "*** NULL ***" : "OK", usePatchCache == NULL ? "*** NULL ***" : "OK");
 		return;
 	}
 	patchCache = usePatchCache;
@@ -153,20 +155,18 @@ void Partial::startPartial(const Part *part, Poly *usePoly, const PatchCache *us
 		// Do a normal mix independent of any pair partial.
 		mixType = 0;
 		pairPartial = NULL;
-	} else {
+	} else if (!synth->isNicePanningEnabled()) {
 		// Mok wanted an option for smoother panning, and we love Mok.
-#ifndef INACCURATE_SMOOTH_PAN
-		// CONFIRMED by Mok: exactly bytes like this (right shifted?) are sent to the LA32.
+		// CONFIRMED by Mok: exactly bytes like this (right shifted) are sent to the LA32.
 		panSetting &= 0x0E;
-#endif
 	}
 
 	leftPanValue = synth->reversedStereoEnabled ? 14 - panSetting : panSetting;
 	rightPanValue = 14 - leftPanValue;
 
 	if (!floatMode) {
-		leftPanValue = getPANFactor(leftPanValue);
-		rightPanValue = getPANFactor(rightPanValue);
+		leftPanValue = getPanFactor(leftPanValue);
+		rightPanValue = getPanFactor(rightPanValue);
 	}
 
 	// SEMI-CONFIRMED: From sample analysis:
@@ -174,7 +174,7 @@ void Partial::startPartial(const Part *part, Poly *usePoly, const PatchCache *us
 	// Either partial pairs are added or subtracted, it depends on how the partial pairs are allocated.
 	// It seems that partials are grouped into quarters and if the partial pairs are allocated in different quarters the subtraction happens.
 	// Though, this matters little for the majority of timbres, it becomes crucial for timbres which contain several partials that sound very close.
-	// In this case that timbre can sound totally different depending of the way it is mixed up.
+	// In this case that timbre can sound totally different depending on the way it is mixed up.
 	// Most easily this effect can be displayed with the help of a special timbre consisting of several identical square wave partials (3 or 4).
 	// Say, it is 3-partial timbre. Just play any two notes simultaneously and the polys very probably are mixed differently.
 	// Moreover, the partial allocator retains the last partial assignment it did and all the subsequent notes will sound the same as the last released one.
@@ -182,8 +182,7 @@ void Partial::startPartial(const Part *part, Poly *usePoly, const PatchCache *us
 	// whole-quarter assignment or after some partials got aborted, even 4-partial timbres can be found sounding differently.
 	// This behaviour is also confirmed with two more special timbres: one with identical sawtooth partials, and one with PCM wave 02.
 	// For my personal taste, this behaviour rather enriches the sounding and should be emulated.
-	// Also, the current partial allocator model probably needs to be refined.
-	if (debugPartialNum & 8) {
+	if (!synth->isNicePartialMixingEnabled() && (partialIndex & 4)) {
 		leftPanValue = -leftPanValue;
 		rightPanValue = -rightPanValue;
 	}
@@ -307,7 +306,7 @@ bool Partial::canProduceOutput() {
 		return false;
 	}
 	if (poly == NULL) {
-		synth->printDebug("[Partial %d] *** ERROR: poly is NULL at Partial::produceOutput()!", debugPartialNum);
+		synth->printDebug("[Partial %d] *** ERROR: poly is NULL at Partial::produceOutput()!", partialIndex);
 		return false;
 	}
 	return true;

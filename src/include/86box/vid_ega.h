@@ -17,6 +17,7 @@
  *		Copyright 2008-2020 Sarah Walker.
  *		Copyright 2016-2020 Miran Grca.
  */
+
 #ifndef VIDEO_EGA_H
 # define VIDEO_EGA_H
 
@@ -45,14 +46,14 @@ typedef struct ega_t {
 	readmode, writemode, readplane, vrammask,
 	chain4, chain2_read, chain2_write, con,
 	oddeven_page, oddeven_chain, vc, sc,
-	dispon, hdisp_on, cursoron, blink,
+    dispon, hdisp_on, cursoron, blink, fullchange,
 	linepos, vslines, linecountff, oddeven,
 	lowres, interlace, linedbl, lindebl, rowcount,
 	vtotal, dispend, vsyncstart, split,
 	hdisp,  hdisp_old, htotal, hdisp_time, rowoffset,
 	vblankstart, scrollcache, firstline, lastline,
 	firstline_draw, lastline_draw, x_add, y_add,
-	displine, video_res_x, video_res_y, video_bpp, index;
+    displine, res_x, res_y, bpp, index;
 
     uint32_t charseta, charsetb, ma_latch, ma,
 	     maback, ca, vram_limit, overscan_color;
@@ -63,6 +64,9 @@ typedef struct ega_t {
 	pc_timer_t timer;
 
     double clock;
+
+	int remap_required;
+	uint32_t (*remap_func)(struct ega_t *ega, uint32_t in_addr);
 
     void (*render)(struct ega_t *svga);
 
@@ -76,6 +80,8 @@ extern const device_t ega_device;
 extern const device_t cpqega_device;
 extern const device_t sega_device;
 extern const device_t atiega_device;
+extern const device_t iskra_ega_device;
+extern const device_t et2000_device;
 #endif
 
 extern int update_overscan;
@@ -91,6 +97,7 @@ extern int update_overscan;
 #if defined(EMU_MEM_H) && defined(EMU_ROM_H)
 extern void	ega_init(ega_t *ega, int monitor_type, int is_mono);
 extern void	ega_recalctimings(struct ega_t *ega);
+extern void ega_recalc_remap_func(struct ega_t *ega);
 #endif
 
 extern void	ega_out(uint16_t addr, uint8_t val, void *p);
@@ -126,6 +133,5 @@ void ega_render_2bpp_highres(ega_t *ega);
 void ega_render_4bpp_lowres(ega_t *ega);
 void ega_render_4bpp_highres(ega_t *ega);
 #endif
-
 
 #endif	/*VIDEO_EGA_H*/

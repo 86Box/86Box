@@ -1,4 +1,4 @@
-/* Copyright (C) 2015-2017 Sergey V. Mikayev
+/* Copyright (C) 2015-2020 Sergey V. Mikayev
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Lesser General Public License as published by
@@ -20,7 +20,7 @@
 #include <iostream>
 #endif
 
-#include "SincResampler.h"
+#include "../include/SincResampler.h"
 
 #ifndef M_PI
 static const double M_PI = 3.1415926535897932;

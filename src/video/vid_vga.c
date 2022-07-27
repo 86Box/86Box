@@ -29,16 +29,9 @@
 #include <86box/timer.h>
 #include <86box/video.h>
 #include <86box/vid_svga.h>
+#include <86box/vid_vga.h>
 
 
-typedef struct vga_t
-{
-        svga_t svga;
-        
-        rom_t bios_rom;
-} vga_t;
-
-static video_timings_t timing_vga	   = {VIDEO_ISA, 8, 16, 32, 8, 16, 32};
 static video_timings_t timing_ps1_svga_isa = {VIDEO_ISA, 6,  8, 16, 6,  8, 16};
 static video_timings_t timing_ps1_svga_mca = {VIDEO_MCA, 6,  8, 16, 6,  8, 16};
 
@@ -48,7 +41,7 @@ void vga_out(uint16_t addr, uint8_t val, void *p)
         svga_t *svga = &vga->svga;
         uint8_t old;
 
-        if (((addr & 0xfff0) == 0x3d0 || (addr & 0xfff0) == 0x3b0) && !(svga->miscout & 1)) 
+        if (((addr & 0xfff0) == 0x3d0 || (addr & 0xfff0) == 0x3b0) && !(svga->miscout & 1))
                 addr ^= 0x60;
 
         switch (addr)
@@ -69,8 +62,13 @@ void vga_out(uint16_t addr, uint8_t val, void *p)
                 {
                         if (svga->crtcreg < 0xe || svga->crtcreg > 0x10)
                         {
-                                svga->fullchange = changeframecount;
-                                svga_recalctimings(svga);
+				if ((svga->crtcreg == 0xc) || (svga->crtcreg == 0xd)) {
+                                	svga->fullchange = 3;
+					svga->ma_latch = ((svga->crtc[0xc] << 8) | svga->crtc[0xd]) + ((svga->crtc[8] & 0x60) >> 5);
+				} else {
+					svga->fullchange = changeframecount;
+	                                svga_recalctimings(svga);
+				}
                         }
                 }
                 break;
@@ -84,9 +82,9 @@ uint8_t vga_in(uint16_t addr, void *p)
         svga_t *svga = &vga->svga;
         uint8_t temp;
 
-        if (((addr & 0xfff0) == 0x3d0 || (addr & 0xfff0) == 0x3b0) && !(svga->miscout & 1)) 
+        if (((addr & 0xfff0) == 0x3d0 || (addr & 0xfff0) == 0x3b0) && !(svga->miscout & 1))
                 addr ^= 0x60;
-             
+
         switch (addr)
         {
                 case 0x3D4:
@@ -111,11 +109,11 @@ static void *vga_init(const device_t *info)
         vga_t *vga = malloc(sizeof(vga_t));
         memset(vga, 0, sizeof(vga_t));
 
-        rom_init(&vga->bios_rom, L"roms/video/vga/ibm_vga.bin", 0xc0000, 0x8000, 0x7fff, 0x2000, MEM_MAPPING_EXTERNAL);
+        rom_init(&vga->bios_rom, "roms/video/vga/ibm_vga.bin", 0xc0000, 0x8000, 0x7fff, 0x2000, MEM_MAPPING_EXTERNAL);
 
 	video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_vga);
 
-        svga_init(&vga->svga, vga, 1 << 18, /*256kb*/
+        svga_init(info, &vga->svga, vga, 1 << 18, /*256kb*/
                    NULL,
                    vga_in, vga_out,
                    NULL,
@@ -125,7 +123,7 @@ static void *vga_init(const device_t *info)
 
         vga->svga.bpp = 8;
         vga->svga.miscout = 1;
-        
+
         return vga;
 }
 
@@ -135,13 +133,13 @@ void *ps1vga_init(const device_t *info)
 {
         vga_t *vga = malloc(sizeof(vga_t));
         memset(vga, 0, sizeof(vga_t));
-       
+
 	if (info->flags & DEVICE_MCA)
 		video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_ps1_svga_mca);
 	else
 		video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_ps1_svga_isa);
 
-        svga_init(&vga->svga, vga, 1 << 18, /*256kb*/
+        svga_init(info, &vga->svga, vga, 1 << 18, /*256kb*/
                    NULL,
                    vga_in, vga_out,
                    NULL,
@@ -151,13 +149,13 @@ void *ps1vga_init(const device_t *info)
 
         vga->svga.bpp = 8;
         vga->svga.miscout = 1;
-        
+
         return vga;
 }
 
 static int vga_available(void)
 {
-        return rom_present(L"roms/video/vga/ibm_vga.bin");
+        return rom_present("roms/video/vga/ibm_vga.bin");
 }
 
 void vga_close(void *p)
@@ -165,14 +163,14 @@ void vga_close(void *p)
         vga_t *vga = (vga_t *)p;
 
         svga_close(&vga->svga);
-        
+
         free(vga);
 }
 
 void vga_speed_changed(void *p)
 {
         vga_t *vga = (vga_t *)p;
-        
+
         svga_recalctimings(&vga->svga);
 }
 
@@ -183,44 +181,44 @@ void vga_force_redraw(void *p)
         vga->svga.fullchange = changeframecount;
 }
 
-const device_t vga_device =
-{
-        "VGA",
-        DEVICE_ISA,
-	0,
-        vga_init,
-        vga_close,
-	NULL,
-        vga_available,
-        vga_speed_changed,
-        vga_force_redraw,
-        NULL
+const device_t vga_device = {
+    .name = "VGA",
+    .internal_name = "vga",
+    .flags = DEVICE_ISA,
+    .local = 0,
+    .init = vga_init,
+    .close = vga_close,
+    .reset = NULL,
+    { .available = vga_available },
+    .speed_changed = vga_speed_changed,
+    .force_redraw = vga_force_redraw,
+    .config = NULL
 };
 
-const device_t ps1vga_device =
-{
-        "PS/1 VGA",
-        DEVICE_ISA,
-	0,
-        ps1vga_init,
-        vga_close,
-	NULL,
-        vga_available,
-        vga_speed_changed,
-        vga_force_redraw,
-        NULL
+const device_t ps1vga_device = {
+    .name = "PS/1 VGA",
+    .internal_name = "ps1vga",
+    .flags = DEVICE_ISA,
+    .local = 0,
+    .init = ps1vga_init,
+    .close = vga_close,
+    .reset = NULL,
+    { .available = vga_available },
+    .speed_changed = vga_speed_changed,
+    .force_redraw = vga_force_redraw,
+    .config = NULL
 };
 
-const device_t ps1vga_mca_device =
-{
-        "PS/1 VGA",
-        DEVICE_MCA,
-	0,
-        ps1vga_init,
-        vga_close,
-	NULL,
-        vga_available,
-        vga_speed_changed,
-        vga_force_redraw,
-        NULL
+const device_t ps1vga_mca_device = {
+    .name = "PS/1 VGA",
+    .internal_name = "ps1vga_mca",
+    .flags = DEVICE_MCA,
+    .local = 0,
+    .init = ps1vga_init,
+    .close = vga_close,
+    .reset = NULL,
+    { .available = vga_available },
+    .speed_changed = vga_speed_changed,
+    .force_redraw = vga_force_redraw,
+    .config = NULL
 };

@@ -12,6 +12,8 @@
  *		Copyright 2017,2018 Miran Grca.
  */
 
+#ifndef SCSI_DISK_H
+# define SCSI_DISK_H
 
 typedef struct {
     mode_sense_pages_t ms_pages_saved;
@@ -26,8 +28,8 @@ typedef struct {
 
     uint8_t status, phase,
 	    error, id,
-	    pad0, pad1,
-	    pad2, pad3;
+	    pad0, cur_lun,
+	    pad1, pad2;
 
     uint16_t request_length, pad4;
 
@@ -48,3 +50,5 @@ extern scsi_disk_t *scsi_disk[HDD_NUM];
 
 extern void	scsi_disk_hard_reset(void);
 extern void	scsi_disk_close(void);
+
+#endif /*SCSI_DISK_H*/

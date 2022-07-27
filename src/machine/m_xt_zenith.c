@@ -14,9 +14,11 @@
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *		TheCollector1995, <mariogplayer@gmail.com>
+ *      EngiNerd <webmaster.crrc@yahoo.it>
  *
  *		Copyright 2008-2019 Sarah Walker.
  *		Copyright 2016-2019 Miran Grca.
+ *      Copyright 2020 EngiNerd.
  */
 #include <stdarg.h>
 #include <stdint.h>
@@ -36,11 +38,14 @@
 #include <86box/device.h>
 #include <86box/fdd.h>
 #include <86box/fdc.h>
+#include <86box/fdc_ext.h>
 #include <86box/gameport.h>
 #include <86box/keyboard.h>
 #include <86box/lpt.h>
 #include <86box/serial.h>
 #include <86box/machine.h>
+#include <86box/io.h>
+#include <86box/vid_cga.h>
 
 
 typedef struct {
@@ -71,20 +76,20 @@ zenith_scratchpad_init(const device_t *info)
     zenith_t *dev;
 
     dev = (zenith_t *)malloc(sizeof(zenith_t));
-    memset(dev, 0x00, sizeof(zenith_t));	
-	
+    memset(dev, 0x00, sizeof(zenith_t));
+
     dev->scratchpad_ram = malloc(0x4000);
-    
+
     mem_mapping_add(&dev->scratchpad_mapping, 0xf0000, 0x4000,
 			zenith_scratchpad_read, NULL, NULL,
 			zenith_scratchpad_write, NULL, NULL,
 			dev->scratchpad_ram,  MEM_MAPPING_EXTERNAL, dev);
-			
+
     return dev;
 }
 
 
-static void 
+static void
 zenith_scratchpad_close(void *p)
 {
     zenith_t *dev = (zenith_t *)p;
@@ -93,40 +98,106 @@ zenith_scratchpad_close(void *p)
     free(dev);
 }
 
-
 static const device_t zenith_scratchpad_device = {
-    "Zenith scratchpad RAM",
-    0, 0,
-    zenith_scratchpad_init, zenith_scratchpad_close, NULL,
-    NULL,
-    NULL,
-    NULL
+    .name = "Zenith scratchpad RAM",
+    .internal_name = "zenith_scratchpad",
+    .flags = 0,
+    .local = 0,
+    .init = zenith_scratchpad_init,
+    .close = zenith_scratchpad_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
-
-int
-machine_xt_zenith_init(const machine_t *model)
-{		
-    int ret;
-
-    ret = bios_load_linear(L"roms/machines/zdsupers/z184m v3.1d.10d",
-			   0x000f8000, 32768, 0);
-
-    if (bios_only || !ret)
-	return ret;
+void
+machine_zenith_init(const machine_t *model){
 
     machine_common_init(model);
 
-    device_add(&fdc_xt_device);
+    if (fdc_type == FDC_INTERNAL)
+	    device_add(&fdc_xt_device);
+
+    device_add(&zenith_scratchpad_device);
+
+    pit_devs[0].set_out_func(pit_devs[0].data, 1, pit_refresh_timer_xt);
+
+    device_add(&keyboard_xt_zenith_device);
+
+    nmi_init();
+
+}
+
+/*
+ * Current bugs and limitations:
+ * - missing NVRAM implementation
+ */
+int
+machine_xt_z184_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/zdsupers/z184m v3.1d.10d",
+			   0x000f8000, 32768, 0);
+
+    if (bios_only || !ret)
+	    return ret;
+
+    machine_zenith_init(model);
+
     lpt1_remove();	/* only one parallel port */
     lpt2_remove();
     lpt1_init(0x278);
-    device_add(&i8250_device);
-    serial_set_next_inst(2);	/* So that serial_standalone_init() won't do anything. */
-    device_add(&zenith_scratchpad_device);
-    pit_ctr_set_out_func(&pit->counters[1], pit_refresh_timer_xt);
-    device_add(&keyboard_xt_compaq_device);
-    nmi_init();
+    device_add(&ns8250_device);
+    serial_set_next_inst(SERIAL_MAX);	/* So that serial_standalone_init() won't do anything. */
+
+    device_add(&cga_device);
+
+    return ret;
+}
+
+int
+machine_xt_z151_init(const machine_t *model)
+{
+    int ret;
+    ret = bios_load_linear("roms/machines/zdsz151/444-229-18.bin",
+			   0x000fc000, 32768, 0);
+    if (ret) {
+        bios_load_aux_linear("roms/machines/zdsz151/444-260-18.bin",
+			     0x000f8000, 16384, 0);
+    }
+
+    if (bios_only || !ret)
+	    return ret;
+
+    machine_zenith_init(model);
+
+    return ret;
+}
+
+/*
+ * Current bugs and limitations:
+ * - Memory board support for EMS currently missing
+ */
+int
+machine_xt_z159_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/zdsz159/z159m v2.9e.10d",
+			   0x000f8000, 32768, 0);
+
+    if (bios_only || !ret)
+	    return ret;
+
+    machine_zenith_init(model);
+
+    /* parallel port is on the memory board */
+    lpt1_remove();	/* only one parallel port */
+    lpt2_remove();
+    lpt1_init(0x278);
 
     return ret;
 }

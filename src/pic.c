@@ -6,19 +6,22 @@
  *
  *		This file is part of the 86Box distribution.
  *
- *		Implementation of the Intel PIC chip emulation.
+ *		Implementation of the Intel PIC chip emulation, partially
+ *		ported from reenigne's XTCE.
  *
+ * Authors:	Andrew Jenner, <https://www.reenigne.org>
+ *		Miran Grca, <mgrca8@gmail.com>
  *
- *
- * Author:	Miran Grca, <mgrca8@gmail.com>
- *
+ *		Copyright 2015-2020 Andrew Jenner.
  *		Copyright 2016-2020 Miran Grca.
  */
 #include <stdarg.h>
-#include <stdio.h>
 #include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <wchar.h>
+
 #define HAVE_STDARG_H
 #include <86box/86box.h>
 #include "cpu.h"
@@ -28,17 +31,34 @@
 #include <86box/pic.h>
 #include <86box/timer.h>
 #include <86box/pit.h>
+#include <86box/device.h>
+#include <86box/apm.h>
+#include <86box/nvr.h>
+#include <86box/acpi.h>
 
 
-int		output;
-int		intclear;
-int		keywaiting = 0;
-int		pic_intpending;
-PIC		pic, pic2;
-uint16_t	pic_current;
+enum
+{
+    STATE_NONE = 0,
+    STATE_ICW2,
+    STATE_ICW3,
+    STATE_ICW4
+};
 
 
-static int	shadow = 0;
+pic_t		pic, pic2;
+
+
+static pc_timer_t	pic_timer;
+
+static int	shadow = 0, elcr_enabled = 0,
+		tmr_inited = 0, latched = 0,
+		pic_pci = 0;
+
+static uint16_t	smi_irq_mask = 0x0000,
+		smi_irq_status = 0x0000;
+
+static void	(*update_pending)(void);
 
 
 #ifdef ENABLE_PIC_LOG
@@ -62,42 +82,220 @@ pic_log(const char *fmt, ...)
 
 
 void
-pic_updatepending()
+pic_reset_smi_irq_mask(void)
 {
-    uint16_t temp_pending = 0;
-    if (AT) {
-	if ((pic2.pend & ~pic2.mask) & ~pic2.mask2)
-		pic.pend |= pic.icw3;
+    smi_irq_mask = 0x0000;
+}
+
+
+void
+pic_set_smi_irq_mask(int irq, int set)
+{
+    if ((irq >= 0) && (irq <= 15)) {
+	if (set)
+		smi_irq_mask |= (1 << irq);
 	else
-		pic.pend &= ~pic.icw3;
+		smi_irq_mask &= ~(1 << irq);
     }
-    pic_intpending = (pic.pend & ~pic.mask) & ~pic.mask2;
-    if (AT) {
-	if (!((pic.mask | pic.mask2) & pic.icw3)) {
-		temp_pending = ((pic2.pend&~pic2.mask)&~pic2.mask2);
-		temp_pending <<= 8;
-		pic_intpending |= temp_pending;
+}
+
+uint16_t
+pic_get_smi_irq_status(void)
+{
+    return smi_irq_status;
+}
+
+
+void
+pic_clear_smi_irq_status(int irq)
+{
+    if ((irq >= 0) && (irq <= 15))
+	smi_irq_status &= ~(1 << irq);
+}
+
+
+void
+pic_elcr_write(uint16_t port, uint8_t val, void *priv)
+{
+    pic_t *dev = (pic_t *) priv;
+
+    pic_log("ELCR%i: WRITE %02X\n", port & 1, val);
+
+    if (port & 1)
+	val &= 0xde;
+    else
+	val &= 0xf8;
+
+    dev->elcr = val;
+
+    pic_log("ELCR %i: %c %c %c %c %c %c %c %c\n",
+	    port & 1,
+	    (val & 1) ? 'L' : 'E',
+	    (val & 2) ? 'L' : 'E',
+	    (val & 4) ? 'L' : 'E',
+	    (val & 8) ? 'L' : 'E',
+	    (val & 0x10) ? 'L' : 'E',
+	    (val & 0x20) ? 'L' : 'E',
+	    (val & 0x40) ? 'L' : 'E',
+	    (val & 0x80) ? 'L' : 'E');
+}
+
+
+uint8_t
+pic_elcr_read(uint16_t port, void *priv)
+{
+    pic_t *dev = (pic_t *) priv;
+
+    pic_log("ELCR%i: READ %02X\n", port & 1, dev->elcr);
+
+    return dev->elcr;
+}
+
+
+int
+pic_elcr_get_enabled(void)
+{
+    return elcr_enabled;
+}
+
+
+void
+pic_elcr_set_enabled(int enabled)
+{
+    elcr_enabled = enabled;
+}
+
+
+void
+pic_elcr_io_handler(int set)
+{
+    io_handler(set, 0x04d0, 0x0001,
+	       pic_elcr_read, NULL, NULL,
+	       pic_elcr_write, NULL, NULL, &pic);
+    io_handler(set, 0x04d1, 0x0001,
+	       pic_elcr_read, NULL, NULL,
+	       pic_elcr_write, NULL, NULL, &pic2);
+}
+
+
+static uint8_t
+pic_cascade_mode(pic_t *dev)
+{
+    return !(dev->icw1 & 2);
+}
+
+
+static __inline uint8_t
+pic_slave_on(pic_t *dev, int channel)
+{
+    pic_log("pic_slave_on(%i): %i, %02X, %02X\n", channel, pic_cascade_mode(dev), dev->icw4 & 0x0c, dev->icw3 & (1 << channel));
+
+    return pic_cascade_mode(dev) && (dev->is_master || ((dev->icw4 & 0x0c) == 0x0c)) &&
+	   (dev->icw3 & (1 << channel));
+}
+
+
+static __inline int
+find_best_interrupt(pic_t *dev)
+{
+    uint8_t b;
+    uint8_t intr;
+    int i, j;
+    int ret = -1;
+
+    for (i = 0; i < 8; i++) {
+	j = (i + dev->priority) & 7;
+	b = 1 << j;
+
+	if (dev->isr & b)
+		break;
+	else if ((dev->state == 0) && ((dev->irr & ~dev->imr) & b)) {
+		ret = j;
+		break;
 	}
     }
-    pic_log("pic_intpending = %i  %02X %02X %02X %02X\n", pic_intpending, pic.ins, pic.pend, pic.mask, pic.mask2);
-    pic_log("                    %02X %02X %02X %02X %i %i\n", pic2.ins, pic2.pend, pic2.mask, pic2.mask2, ((pic.mask | pic.mask2) & (1 << 2)), ((pic2.pend&~pic2.mask)&~pic2.mask2));
+
+    intr = dev->interrupt = (ret == -1) ? 0x17 : ret;
+
+    if (dev->at && (ret != 1)) {
+	if (dev == &pic2)
+		intr += 8;
+
+	if (cpu_fast_off_flags & (1u << intr))
+		cpu_fast_off_advance();
+    }
+
+    return ret;
+}
+
+
+static __inline void
+pic_update_pending_xt(void)
+{
+    if (find_best_interrupt(&pic) != -1) {
+	latched++;
+	if (latched == 1)
+		timer_on_auto(&pic_timer, 0.35);
+    } else if (latched == 0)
+	pic.int_pending = 0;
+}
+
+
+static __inline void
+pic_update_pending_at(void)
+{
+    pic2.int_pending = (find_best_interrupt(&pic2) != -1);
+
+    if (pic2.int_pending)
+	pic.irr |= (1 << pic2.icw3);
+    else
+	pic.irr &= ~(1 << pic2.icw3);
+
+    pic.int_pending = (find_best_interrupt(&pic) != -1);
+}
+
+
+static void
+pic_callback(void *priv)
+{
+    pic_t *dev = (pic_t *) priv;
+
+    dev->int_pending = 1;
+
+    latched--;
+    if (latched > 0)
+	timer_on_auto(&pic_timer, 0.35);
 }
 
 
 void
 pic_reset()
 {
-    pic.icw=0;
-    pic.mask=0xFF;
-    pic.mask2=0;
-    pic.pend=pic.ins=0;
-    pic.vector=8;
-    pic.read=1;
-    pic2.icw=0;
-    pic2.mask=0xFF;
-    pic.mask2=0;
-    pic2.pend=pic2.ins=0;
-    pic_intpending = 0;
+    int is_at = IS_AT(machine);
+    is_at = is_at || !strcmp(machine_get_internal_name(), "xi8088");
+
+    memset(&pic, 0, sizeof(pic_t));
+    memset(&pic2, 0, sizeof(pic_t));
+
+    pic.is_master = 1;
+    pic.interrupt = pic2.interrupt = 0x17;
+
+    if (is_at)
+	pic.slaves[2] = &pic2;
+
+    if (tmr_inited)
+	timer_on_auto(&pic_timer, 0.0);
+    memset(&pic_timer, 0x00, sizeof(pc_timer_t));
+    timer_add(&pic_timer, pic_callback, &pic, 0);
+    tmr_inited = 1;
+
+    update_pending = is_at ? pic_update_pending_at : pic_update_pending_xt;
+    pic.at = pic2.at = is_at;
+
+    smi_irq_mask = smi_irq_status = 0x0000;
+
+    shadow = 0;
+    pic_pci = 0;
 }
 
 
@@ -109,493 +307,426 @@ pic_set_shadow(int sh)
 
 
 void
-pic_update_mask(uint8_t *mask, uint8_t ins)
+pic_set_pci_flag(int pci)
 {
-    int c;
-    *mask = 0;
-    for (c = 0; c < 8; c++) {
-	if (ins & (1 << c)) {
-		*mask = 0xff << c;
-		return;
-	}
-    }
+    pic_pci = pci;
 }
 
 
-static int
-picint_is_level(uint16_t irq)
+static uint8_t
+pic_level_triggered(pic_t *dev, int irq)
 {
-    if (PCI)
-	return pci_irq_is_level(irq);
-    else {
-	if (irq < 8)
-		return (pic.icw1 & 8) ? 1 : 0;
-	else
-		return (pic2.icw1 & 8) ? 1 : 0;
-    }
+    if (elcr_enabled)
+	return !!(dev->elcr & (1 << irq));
+    else
+	return !!(dev->icw1 & 8);
 }
 
 
-/* Should this really EOI *ALL* IRQ's at once? */
+int
+picint_is_level(int irq)
+{
+    return pic_level_triggered(((irq > 7) ? &pic2 : &pic), irq & 7);
+}
+
+
 static void
-pic_autoeoi()
+pic_acknowledge(pic_t *dev)
 {
-    int c;
+    int pic_int = dev->interrupt & 7;
+    int pic_int_num = 1 << pic_int;
 
-    for (c = 0; c < 8; c++) {
-	if (pic.ins & ( 1 << c)) {
-		pic.ins &= ~(1 << c);
-		pic_update_mask(&pic.mask2, pic.ins);
+    dev->isr |= pic_int_num;
+    if (!pic_level_triggered(dev, pic_int) || !(dev->lines & pic_int_num))
+	dev->irr &= ~pic_int_num;
+}
 
-		if (AT) {
-			if (((1 << c) == pic.icw3) && (pic2.pend & ~pic2.mask) & ~pic2.mask2)
-				pic.pend |= pic.icw3;
-		}
 
-		pic_updatepending();
-		return;
+/* Find IRQ for non-specific EOI (either by command or automatic) by finding the highest IRQ
+   priority with ISR bit set, that is also not masked if the PIC is in special mask mode. */
+static uint8_t
+pic_non_specific_find(pic_t *dev)
+{
+    int i, j;
+    uint8_t b, irq = 0xff;
+
+    for (i = 0; i < 8; i++) {
+	j = (i + dev->priority) & 7;
+	b = (1 << j);
+
+	if ((dev->isr & b) && (!dev->special_mask_mode || !(dev->imr & b))) {
+		irq = j;
+		break;
 	}
+    }
+
+    return irq;
+}
+
+
+/* Do the EOI and rotation, if either is requested, on the given IRQ. */
+static void
+pic_action(pic_t *dev, uint8_t irq, uint8_t eoi, uint8_t rotate)
+{
+    uint8_t b = (1 << irq);
+
+    if (irq != 0xff) {
+	if (eoi)
+		dev->isr &= ~b;
+	if (rotate)
+		dev->priority = (irq + 1) & 7;
+
+	update_pending();
     }
 }
 
 
-void
-pic_write(uint16_t addr, uint8_t val, void *priv)
+/* Automatic non-specific EOI. */
+static __inline void
+pic_auto_non_specific_eoi(pic_t *dev)
 {
-    int c;
+    uint8_t irq;
 
-    addr &= ~0x06;
+    if (dev->icw4 & 2) {
+	irq = pic_non_specific_find(dev);
 
-    if (addr&1) {
-	pic_log("%04X:%04X: write: %02X\n", CS, cpu_state.pc, val);
-	switch (pic.icw) {
-		case 0: /*OCW1*/
-			pic.mask=val;
-			pic_updatepending();
-			break;
-		case 1: /*ICW2*/
-			pic.vector=val&0xF8;
-			pic_log("ICW%i ->", pic.icw + 1);
-			if (pic.icw1 & 2) pic.icw=3;
-			else		  pic.icw=2;
-			pic_log("ICW%i\n", pic.icw + 1);
-			break;
-		case 2: /*ICW3*/
-			pic.icw3 = val;
-			pic_log("PIC1 ICW3 now %02X\n", val);
-			pic_log("ICW%i ->", pic.icw + 1);
-			if (pic.icw1 & 1) pic.icw=3;
-			else		  pic.icw=0;
-			pic_log("ICW%i\n", pic.icw + 1);
-			break;
-		case 3: /*ICW4*/
-			pic_log("ICW%i ->", pic.icw + 1);
-			pic.icw4 = val;
-			pic.icw=0;
-			pic_log("ICW%i\n", pic.icw + 1);
-			break;
-	}
-    } else {
-	if (val & 16) { /*ICW1*/
-		pic.mask = 0;
-		pic.mask2 = 0;
-		pic_log("ICW%i ->", pic.icw + 1);
-		pic.icw = 1;
-		pic.icw1 = val;
-		pic_log("ICW%i\n", pic.icw + 1);
-		pic.ins = 0;
-		pic.pend = 0;	/* Pending IRQ's are cleared. */
-		pic_updatepending();
-	}
-	else if (!(val & 8)) { /*OCW2*/
-		pic.ocw2 = val;
-		if ((val & 0xE0) == 0x60) {
-			pic.ins &= ~(1 << (val & 7));
-			pic_update_mask(&pic.mask2, pic.ins);
-			if (AT) {
-				if (((val&7) == pic2.icw3) && (pic2.pend&~pic2.mask)&~pic2.mask2)
-					pic.pend |= pic.icw3;
-			}
-
-			pic_updatepending();
-		} else {
-			for (c = 0; c < 8; c++) {
-				if (pic.ins & (1 << c)) {
-					pic.ins &= ~(1 << c);
-					pic_update_mask(&pic.mask2, pic.ins);
-
-					if (AT) {
-						if (((1 << c) == pic.icw3) && (pic2.pend & ~pic2.mask) & ~pic2.mask2)
-							pic.pend |= pic.icw3;
-					}
-
-					if ((c == 1) && keywaiting)
-						intclear &= ~1;
-					pic_updatepending();
-					return;
-				}
-			}
-		}
-	} else {               /*OCW3*/
-		pic.ocw3 = val;
-		if (val & 2)
-			pic.read=(val & 1);
-	}
+	pic_action(dev, irq, 1, dev->auto_eoi_rotate);
     }
+}
+
+
+/* Do the PIC command specified by bits 7-5 of the value written to the OCW2 register. */
+static void
+pic_command(pic_t *dev)
+{
+    uint8_t irq = 0xff;
+
+    if (dev->ocw2 & 0x60) {	/* SL and/or EOI set */
+	if (dev->ocw2 & 0x40)	/* SL set, specific priority level */
+		irq = (dev->ocw2 & 0x07);
+	else			/* SL clear, non-specific priority level (find highest with ISR set) */
+		irq = pic_non_specific_find(dev);
+
+        pic_action(dev, irq, dev->ocw2 & 0x20, dev->ocw2 & 0x80);
+    } else			/* SL and EOI clear */
+	dev->auto_eoi_rotate = !!(dev->ocw2 & 0x80);
 }
 
 
 uint8_t
 pic_read(uint16_t addr, void *priv)
 {
-    uint8_t ret = 0xff;
+    pic_t *dev = (pic_t *) priv;
 
-    if ((addr == 0x20) && shadow) {
-	ret  = ((pic.ocw3   & 0x20) >> 5) << 4;
-	ret |= ((pic.ocw2   & 0x80) >> 7) << 3;
-	ret |= ((pic.icw4   & 0x10) >> 4) << 2;
-	ret |= ((pic.icw4   & 0x02) >> 1) << 1;
-	ret |= ((pic.icw4   & 0x08) >> 3) << 0;
-    } else if ((addr == 0x21) && shadow)
-	ret  = ((pic.vector & 0xf8) >> 3) << 0;
-    else if (addr & 1)
-	ret = pic.mask;
-    else if (pic.read) {
-	if (AT)
-		ret =  pic.ins | (pic2.ins ? 4 : 0);
-	else
-		ret = pic.ins;
-    } else
-	ret = pic.pend;
+    if (shadow) {
+	/* VIA PIC shadow read */
+	if (addr & 0x0001)
+		dev->data_bus  = ((dev->icw2 & 0xf8) >> 3) << 0;
+	else {
+		dev->data_bus  = ((dev->ocw3 & 0x20) >> 5) << 4;
+		dev->data_bus |= ((dev->ocw2 & 0x80) >> 7) << 3;
+		dev->data_bus |= ((dev->icw4 & 0x10) >> 4) << 2;
+		dev->data_bus |= ((dev->icw4 & 0x02) >> 1) << 1;
+		dev->data_bus |= ((dev->icw4 & 0x08) >> 3) << 0;
+	}
+    } else {
+	/* Standard 8259 PIC read */
+#ifndef UNDEFINED_READ
+	/* Put the IRR on to the data bus by default until the real PIC is probed. */
+	dev->data_bus = dev->irr;
+#endif
+	if (dev->ocw3 & 0x04) {
+		if (dev->int_pending) {
+			dev->data_bus = 0x80 | (dev->interrupt & 7);
+			pic_acknowledge(dev);
+			dev->int_pending = 0;
+			update_pending();
+		} else
+			dev->data_bus = 0x00;
+		dev->ocw3 &= ~0x04;
+	} else if (addr & 0x0001)
+		dev->data_bus = dev->imr;
+	else if (dev->ocw3 & 0x02) {
+		if (dev->ocw3 & 0x01)
+			dev->data_bus = dev->isr;
+#ifdef UNDEFINED_READ
+		else
+			dev->data_bus = 0x00;
+#endif
+	}
+	/* If A0 = 0, VIA shadow is disabled, and poll mode is disabled,
+	   simply read whatever is currently on the data bus. */
+    }
 
-    pic_log("%04X:%04X: Read PIC 1 port %04X, value %02X\n", CS, cpu_state.pc, addr, val);
+    pic_log("pic_read(%04X, %08X) = %02X\n", addr, priv, dev->data_bus);
 
-    return ret;
-}
-
-
-void
-pic_init()
-{
-    shadow = 0;
-    io_sethandler(0x0020, 0x0002, pic_read, NULL, NULL, pic_write, NULL, NULL, NULL);
-}
-
-
-void
-pic_init_pcjr()
-{
-    shadow = 0;
-    io_sethandler(0x0020, 0x0008, pic_read, NULL, NULL, pic_write, NULL, NULL, NULL);
+    return dev->data_bus;
 }
 
 
 static void
-pic2_autoeoi()
+pic_write(uint16_t addr, uint8_t val, void *priv)
 {
-    int c;
+    pic_t *dev = (pic_t *) priv;
 
-    for (c = 0; c < 8; c++) {
-	if (pic2.ins & (1 << c)) {
-		pic2.ins &= ~(1 << c);
-		pic_update_mask(&pic2.mask2, pic2.ins);
+    pic_log("pic_write(%04X, %02X, %08X)\n", addr, val, priv);
 
-		pic_updatepending();
-		return;
-	}
-    }
-}
+    dev->data_bus = val;
 
-
-void
-pic2_write(uint16_t addr, uint8_t val, void *priv)
-{
-    int c;
-    if (addr & 1) {
-	switch (pic2.icw) {
-		case 0: /*OCW1*/
-			pic2.mask=val;
-			pic_updatepending();
+    if (addr & 0x0001) {
+	switch (dev->state) {
+		case STATE_ICW2:
+			dev->icw2 = val;
+			if (pic_cascade_mode(dev))
+				dev->state = STATE_ICW3;
+			else
+				dev->state = (dev->icw1 & 1) ? STATE_ICW4 : STATE_NONE;
 			break;
-		case 1: /*ICW2*/
-			pic2.vector=val & 0xF8;
-			pic_log("PIC2 vector now: %02X\n", pic2.vector);
-			if (pic2.icw1 & 2) pic2.icw=3;
-			else		   pic2.icw=2;
+		case STATE_ICW3:
+			dev->icw3 = val;
+			dev->state = (dev->icw1 & 1) ? STATE_ICW4 : STATE_NONE;
 			break;
-		case 2: /*ICW3*/
-			pic2.icw3 = val;
-			pic_log("PIC2 ICW3 now %02X\n", val);
-			if (pic2.icw1 & 1) pic2.icw=3;
-			else		   pic2.icw=0;
+		case STATE_ICW4:
+			dev->icw4 = val;
+			dev->state = STATE_NONE;
 			break;
-		case 3: /*ICW4*/
-			pic2.icw4 = val;
-			pic2.icw=0;
+		case STATE_NONE:
+			dev->imr = val;
+			update_pending();
 			break;
 	}
     } else {
-	if (val & 16) { /*ICW1*/
-		pic2.mask = 0;
-		pic2.mask2 = 0;
-		pic2.icw = 1;
-		pic2.icw1 = val;
-		pic2.ins = 0;
-		pic2.pend = 0;	/* Pending IRQ's are cleared. */
-		pic.pend &= ~4;
-		pic_updatepending();
-	} else if (!(val & 8)) { /*OCW2*/
-#ifdef ENABLE_PIC_LOG
-		switch ((val >> 5) & 0x07) {
-			case 0x00:
-				pic_log("Rotate in automatic EOI mode (clear)\n");
-				break;
-			case 0x01:
-				pic_log("Non-specific EOI command\n");
-				break;
-			case 0x02:
-				pic_log("No operation\n");
-				break;
-			case 0x03:
-				pic_log("Specific EOI command\n");
-				break;
-			case 0x04:
-				pic_log("Rotate in automatic EOI mode (set)\n");
-				break;
-			case 0x05:
-				pic_log("Rotate on on-specific EOI command\n");
-				break;
-			case 0x06:
-				pic_log("Set priority command\n");
-				break;
-			case 0x07:
-				pic_log("Rotate on specific EOI command\n");
-				break;
-		}
-#endif
+	if (val & 0x10) {
+		/* Treat any write with any of the bits 7 to 5 set as invalid if PCI. */
+		if (pic_pci && (val & 0xe0))
+			return;
 
-		pic2.ocw2 = val;
-		if ((val & 0xE0) == 0x60) {
-			pic2.ins &= ~(1 << (val & 7));
-			pic_update_mask(&pic2.mask2, pic2.ins);
-
-			pic_updatepending();
-		} else {
-			for (c = 0; c < 8; c++) {
-				if (pic2.ins&(1<<c)) {
-					pic2.ins &= ~(1<<c);
-					pic_update_mask(&pic2.mask2, pic2.ins);
-					pic_updatepending();
-					return;
-				}
-			}
-		}
-	} else {               /*OCW3*/
-		pic2.ocw3 = val;
-		if (val & 2)
-			pic2.read=(val & 1);
+		dev->icw1 = val;
+		dev->icw2 = dev->icw3 = 0x00;
+		if (!(dev->icw1 & 1))
+			dev->icw4 = 0x00;
+		dev->ocw2 = dev->ocw3 = 0x00;
+		dev->irr = dev->lines;
+		dev->imr = dev->isr = 0x00;
+		dev->ack_bytes = dev->priority = 0x00;
+		dev->auto_eoi_rotate = dev->special_mask_mode = 0x00;
+		dev->interrupt = 0x17;
+		dev->int_pending = 0x00;
+		dev->state = STATE_ICW2;
+		update_pending();
+	} else if (val & 0x08) {
+		dev->ocw3 = val;
+		if (dev->ocw3 & 0x40)
+			dev->special_mask_mode = !!(dev->ocw3 & 0x20);
+	} else {
+		dev->ocw2 = val;
+		pic_command(dev);
 	}
     }
 }
 
 
-uint8_t
-pic2_read(uint16_t addr, void *priv)
+void
+pic_set_pci(void)
 {
-    uint8_t ret = 0xff;
+    int i;
 
-    if ((addr == 0xa0) && shadow) {
-	ret  = ((pic2.ocw3   & 0x20) >> 5) << 4;
-	ret |= ((pic2.ocw2   & 0x80) >> 7) << 3;
-	ret |= ((pic2.icw4   & 0x10) >> 4) << 2;
-	ret |= ((pic2.icw4   & 0x02) >> 1) << 1;
-	ret |= ((pic2.icw4   & 0x08) >> 3) << 0;
-    } else if ((addr == 0xa1) && shadow)
-	ret  = ((pic2.vector & 0xf8) >> 3) << 0;
-    else if (addr & 1)
-	ret = pic2.mask;
-    else if (pic2.read)
-	ret = pic2.ins;
-    else
-	ret = pic2.pend;
+    for (i = 0x0024; i < 0x0040; i += 4) {
+	io_sethandler(i, 0x0002, pic_read, NULL, NULL, pic_write, NULL, NULL, &pic);
+	io_sethandler(i + 0x0080, 0x0002, pic_read, NULL, NULL, pic_write, NULL, NULL, &pic2);
+    }
 
-    pic_log("%04X:%04X: Read PIC 2 port %04X, value %02X\n", CS, cpu_state.pc, addr, val);
-
-    return ret;
+    for (i = 0x1120; i < 0x1140; i += 4) {
+	io_sethandler(i, 0x0002, pic_read, NULL, NULL, pic_write, NULL, NULL, &pic);
+	io_sethandler(i + 0x0080, 0x0002, pic_read, NULL, NULL, pic_write, NULL, NULL, &pic2);
+    }
 }
 
 
 void
-pic2_init()
+pic_init(void)
 {
-    io_sethandler(0x00a0, 0x0002, pic2_read, NULL, NULL, pic2_write, NULL, NULL, NULL);
+    pic_reset();
+
+    shadow = 0;
+    io_sethandler(0x0020, 0x0002, pic_read, NULL, NULL, pic_write, NULL, NULL, &pic);
 }
 
 
 void
-clearpic()
+pic_init_pcjr(void)
 {
-    pic.pend=pic.ins=pic_current=0;
-    pic_updatepending();
+    pic_reset();
+
+    shadow = 0;
+    io_sethandler(0x0020, 0x0008, pic_read, NULL, NULL, pic_write, NULL, NULL, &pic);
 }
 
 
 void
-picint_common(uint16_t num, int level)
+pic2_init(void)
 {
-    int c = 0;
+    io_sethandler(0x00a0, 0x0002, pic_read, NULL, NULL, pic_write, NULL, NULL, &pic2);
+    pic.slaves[2] = &pic2;
+}
+
+
+void
+picint_common(uint16_t num, int level, int set)
+{
+    int i, raise;
+    uint8_t b, slaves = 0;
+
+    /* Make sure to ignore all slave IRQ's, and in case of AT+,
+       translate IRQ 2 to IRQ 9. */
+    for (i = 0; i < 8; i++) {
+	b = (1 << i);
+	raise = num & b;
+
+	if (pic.icw3 & b) {
+		slaves++;
+
+		if (raise) {
+			num &= ~b;
+			if (pic.at && (i == 2))
+				num |= (1 << 9);
+		}
+	}
+    }
+
+    if (!slaves)
+	num &= 0x00ff;
 
     if (!num) {
-	pic_log("Attempting to raise null IRQ\n");
+	pic_log("Attempting to %s null IRQ\n", set ? "raise" : "lower");
 	return;
     }
 
-    if (AT && (num == pic.icw3) && (pic.icw3 == 4))
-	num = 1 << 9;
+    if (num & 0x0100)
+	acpi_rtc_status = !!set;
 
-    while (!(num & (1 << c)))
-	c++;
+    if (set) {
+	if (smi_irq_mask & num) {
+		smi_raise();
+		smi_irq_status |= num;
+	}
 
-    if (AT && (num == pic.icw3) && (pic.icw3 != 4)) {
-	pic_log("Attempting to raise cascaded IRQ %i\n");
-	return;
+	if (num & 0xff00) {
+		if (level)
+			pic2.lines |= (num >> 8);
+
+		pic2.irr |= (num >> 8);
+	}
+
+	if (num & 0x00ff) {
+		if (level)
+			pic.lines |= (num >> 8);
+
+		pic.irr |= num;
+	}
+    } else {
+	smi_irq_status &= ~num;
+
+	if (num & 0xff00) {
+		pic2.lines &= ~(num >> 8);
+		pic2.irr &= ~(num >> 8);
+	}
+
+	if (num & 0x00ff) {
+		pic.lines &= ~num;
+		pic.irr &= ~num;
+	}
     }
 
-    if (!(pic_current & num) || !level) {
-	pic_log("Raising IRQ %i\n", c);
-
-	if (level)
-                pic_current |= num;
-
-	if (AT && (cpu_fast_off_flags & num))
-		cpu_fast_off_count = cpu_fast_off_val + 1;
-
-        if (num>0xFF) {
-		if (!AT)
-			return;
-
-		pic2.pend|=(num>>8);
-		if ((pic2.pend&~pic2.mask)&~pic2.mask2)
-			pic.pend |= (1 << pic2.icw3);
-        } else
-                pic.pend|=num;
-
-        pic_updatepending();
-    }
+    if (!(pic.interrupt & 0x20) && !(pic2.interrupt & 0x20))
+	update_pending();
 }
 
 
 void
 picint(uint16_t num)
 {
-    picint_common(num, 0);
+    picint_common(num, 0, 1);
 }
 
 
 void
 picintlevel(uint16_t num)
 {
-    picint_common(num, 1);
+    picint_common(num, 1, 1);
 }
 
 
 void
 picintc(uint16_t num)
 {
-    int c = 0;
-
-    if (!num) {
-	pic_log("Attempting to lower null IRQ\n");
-	return;
-    }
-
-    if (AT && (num == pic.icw3) && (pic.icw3 == 4))
-	num = 1 << 9;
-
-    while (!(num & (1 << c)))
-	c++;
-
-    if (AT && (num == pic.icw3) && (pic.icw3 != 4)) {
-	pic_log("Attempting to lower cascaded IRQ %i\n");
-	return;
-    }
-
-    if (pic_current & num)
-        pic_current &= ~num;
-
-    pic_log("Lowering IRQ %i\n", c);
-
-    if (num > 0xff) {
-	if (!AT)
-		return;
-
-	pic2.pend &= ~(num >> 8);
-	if (!((pic2.pend&~pic2.mask)&~pic2.mask2))
-		pic.pend &= ~(1 << pic2.icw3);
-    } else
-	pic.pend&=~num;
-
-    pic_updatepending();
+    picint_common(num, 0, 0);
 }
 
 
-static int
-pic_process_interrupt(PIC* target_pic, int c)
+static uint8_t
+pic_i86_mode(pic_t *dev)
 {
-    uint8_t pending = target_pic->pend & ~target_pic->mask;
-    int ret = -1;
-    /* TODO: On init, a PIC need to get a pointer to one of these, and rotate as needed
-	     if in rotate mode. */
-			/*   0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15 */
-    int priority_xt[16] = {  7,  6,  5,  4,  3,  2,  1,  0, -1, -1, -1, -1, -1, -1, -1, -1 };
-    int priority_at[16] = { 14, 13, -1,  4,  3,  2,  1,  0, 12, 11, 10,  9,  8,  7,  6,  5  };
-    int i;
+    return !!(dev->icw4 & 1);
+}
 
-    int pic_int = c & 7;
-    int pic_int_num = 1 << pic_int;
 
-    int in_service = 0;
+static uint8_t
+pic_irq_ack_read(pic_t *dev, int phase)
+{
+    uint8_t intr = dev->interrupt & 0x47;
+    uint8_t slave = intr & 0x40;
+    intr &= 0x07;
+    pic_log("    pic_irq_ack_read(%08X, %i)\n", dev, phase);
 
-    if (AT) {
-	for (i = 0; i < 16; i++) {
-		if ((priority_at[i] != -1) && (priority_at[i] >= priority_at[c])) {
-			if (i < 8)
-				in_service |= (pic.ins & (1 << i));
-			else
-				in_service |= (pic2.ins & (1 << i));
-		}
-	}
-    } else {
-	for (i = 0; i < 16; i++) {
-		if ((priority_xt[i] != -1) && (priority_xt[i] >= priority_xt[c]))
-			in_service |= (pic.ins & (1 << i));
+    if (dev != NULL) {
+	if (phase == 0) {
+		dev->interrupt |= 0x20;		/* Freeze it so it still takes interrupts but they do not
+						   override the one currently being processed. */
+		pic_acknowledge(dev);
+		if (slave)
+			dev->data_bus = pic_irq_ack_read(dev->slaves[intr], phase);
+		else
+			dev->data_bus = pic_i86_mode(dev) ? 0xff : 0xcd;
+	} else if (pic_i86_mode(dev)) {
+		dev->int_pending = 0;
+		if (slave)
+			dev->data_bus = pic_irq_ack_read(dev->slaves[intr], phase);
+		else
+			dev->data_bus = intr + (dev->icw2 & 0xf8);
+		pic_auto_non_specific_eoi(dev);
+	} else if (phase == 1) {
+		if (slave)
+			dev->data_bus = pic_irq_ack_read(dev->slaves[intr], phase);
+		else if (dev->icw1 & 0x04)
+			dev->data_bus = (intr << 2) + (dev->icw1 & 0xe0);
+		else
+			dev->data_bus = (intr << 3) + (dev->icw1 & 0xc0);
+	} else if (phase == 2) {
+		dev->int_pending = 0;
+		if (slave)
+			dev->data_bus = pic_irq_ack_read(dev->slaves[intr], phase);
+		else
+			dev->data_bus = dev->icw2;
+		pic_auto_non_specific_eoi(dev);
 	}
     }
 
-    if ((pending & pic_int_num) && !in_service) {
-	if (!((pic_current & (1 << c)) && picint_is_level(c)))
-		target_pic->pend &= ~pic_int_num;
-	else if (!picint_is_level(c))
-		target_pic->pend &= ~pic_int_num;
-	target_pic->ins |= pic_int_num;
-	pic_update_mask(&target_pic->mask2, target_pic->ins);
+    return dev->data_bus;
+}
 
-	if (AT && (c >= 8)) {
-		if (!((target_pic->pend & ~target_pic->mask) & ~target_pic->mask2))
-			pic.pend &= ~(1 << pic2.icw3);
-		pic.ins |= (1 << pic2.icw3); /*Cascade IRQ*/
-		pic_update_mask(&pic.mask2, pic.ins);
-	}
 
-	pic_updatepending();
+uint8_t
+pic_irq_ack(void)
+{
+    int ret;
 
-	if (target_pic->icw4 & 0x02)
-		(AT && (c >= 8)) ? pic2_autoeoi() : pic_autoeoi();
+    ret = pic_irq_ack_read(&pic, pic.ack_bytes);
+    pic.ack_bytes = (pic.ack_bytes + 1) % (pic_i86_mode(&pic) ? 2 : 3);
 
-	if (!c && (pit2 != NULL))
-		pit_ctr_set_gate(&pit2->counters[0], 0);
-
-	ret = pic_int + target_pic->vector;
+    if (pic.ack_bytes == 0) {
+	pic.interrupt = 0x17;
+	update_pending();
     }
 
     return ret;
@@ -605,28 +736,36 @@ pic_process_interrupt(PIC* target_pic, int c)
 int
 picinterrupt()
 {
-    int c, d;
-    int ret;
+    int i, ret = -1;
 
-    for (c = 0; c <= 7; c++) {
-	if (AT && ((1 << c) == pic.icw3)) {
-		for (d = 8; d <= 15; d++) {
-			ret = pic_process_interrupt(&pic2, d);
-			if (ret != -1)  return ret;
+    if (pic.int_pending) {
+	if (pic_slave_on(&pic, pic.interrupt)) {
+		if (!pic.slaves[pic.interrupt]->int_pending) {
+			/* If we are on AT, IRQ 2 is pending, and we cannot find a pending IRQ on PIC 2, fatal out. */
+			fatal("IRQ %i pending on AT without a pending IRQ on PIC %i (normal)\n", pic.interrupt, pic.interrupt);
+			exit(-1);
+			return -1;
 		}
-	} else {
-		ret = pic_process_interrupt(&pic, c);
-		if (ret != -1)  return ret;
+
+		pic.interrupt |= 0x40;		/* Mark slave pending. */
+	}
+
+	if ((pic.interrupt == 0) && (pit_devs[1].data != NULL))
+		pit_devs[1].set_gate(pit_devs[1].data, 0, 0);
+
+	/* Two ACK's - do them in a loop to avoid potential compiler misoptimizations. */
+	for (i = 0; i < 2; i++) {
+		ret = pic_irq_ack_read(&pic, pic.ack_bytes);
+		pic.ack_bytes = (pic.ack_bytes + 1) % (pic_i86_mode(&pic) ? 2 : 3);
+
+		if (pic.ack_bytes == 0) {
+			if (pic.interrupt & 0x40)
+				pic2.interrupt = 0x17;
+			pic.interrupt = 0x17;
+			update_pending();
+		}
 	}
     }
-    return -1;
-}
 
-
-void
-dumppic()
-{
-    pic_log("PIC1 : MASK %02X PEND %02X INS %02X LEVEL %02X VECTOR %02X CASCADE %02X\n", pic.mask, pic.pend, pic.ins, (pic.icw1 & 8) ? 1 : 0, pic.vector, pic.icw3);
-    if (AT)
-	pic_log("PIC2 : MASK %02X PEND %02X INS %02X LEVEL %02X VECTOR %02X CASCADE %02X\n", pic2.mask, pic2.pend, pic2.ins, (pic2.icw1 & 8) ? 1 : 0, pic2.vector, pic2.icw3);
+    return ret;
 }

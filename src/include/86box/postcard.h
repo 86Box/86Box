@@ -11,11 +11,12 @@
  *
  *
  * Author:	RichardG, <richardg867@gmail.com>
+ *
  *		Copyright 2020 RichardG.
  */
+
 #ifndef POSTCARD_H
 # define POSTCARD_H
-
 
 #ifdef __cplusplus
 extern "C" {

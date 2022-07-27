@@ -25,7 +25,9 @@
 #include <86box/config.h>
 #include <86box/device.h>
 #include <86box/plat.h>
-#include <86box/plat_midi.h>
+#include <86box/mem.h>
+#include <86box/rom.h>
+#include <86box/midi_rtmidi.h>
 #include <86box/ui.h>
 #include <86box/win.h>
 #include <windowsx.h>
@@ -33,7 +35,8 @@
 
 static device_context_t config_device;
 
-static uint8_t deviceconfig_changed = 0;
+static uint8_t  deviceconfig_changed = 0;
+static int		combo_to_struct[256];
 
 
 #if defined(__amd64__) || defined(__aarch64__)
@@ -45,12 +48,17 @@ deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 {
     HWND h;
 
-    int val_int, id, c, d, num;
+    int val_int, id, c, d;
+    int p, q;
+#ifdef USE_RTMIDI
+    int num;
+#endif
     int changed, cid;
     const device_config_t *config;
     const device_config_selection_t *selection;
+    const device_config_bios_t *bios;
     char s[512], file_filter[512];
-    char *str;
+    char *str, *val_str;
     wchar_t ws[512], *wstr;
     LPTSTR lptsTemp;
 
@@ -62,9 +70,11 @@ deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 		config = config_device.dev->config;
 
 		lptsTemp = (LPTSTR) malloc(512);
+		memset(combo_to_struct, 0, 256 * sizeof(int));
 
 		while (config->type != -1) {
 			selection = config->selection;
+			bios = config->bios;
 			h = GetDlgItem(hdlg, id);
 
 			switch (config->type) {
@@ -81,7 +91,7 @@ deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 								 (char *) config->name, config->default_int);
 
 					c = 0;
-					while (selection->description && selection->description[0]) {
+					while (selection && selection->description && selection->description[0]) {
 						mbstowcs(lptsTemp, selection->description,
 							 strlen(selection->description) + 1);
 						SendMessage(h, CB_ADDSTRING, 0, (LPARAM)(LPCSTR)lptsTemp);
@@ -93,13 +103,38 @@ deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 
 					id += 2;
 					break;
-				case CONFIG_MIDI:
+				case CONFIG_BIOS:
+					val_str = config_get_string((char *) config_device.name,
+								       (char *) config->name, (char *) config->default_string);
+
+					c = 0;
+					q = 0;
+					while (bios && bios->name && bios->name[0]) {
+						mbstowcs(lptsTemp, bios->name, strlen(bios->name) + 1);
+						p = 0;
+						for (d = 0; d < bios->files_no; d++)
+							p += !!rom_present((char *) bios->files[d]);
+						if (p == bios->files_no) {
+							SendMessage(h, CB_ADDSTRING, 0, (LPARAM)(LPCSTR)lptsTemp);
+							if (!strcmp(val_str, bios->internal_name))
+								SendMessage(h, CB_SETCURSEL, c, 0);
+							combo_to_struct[c] = q;
+							c++;
+						}
+						q++;
+						bios++;
+					}
+
+					id += 2;
+					break;
+#ifdef USE_RTMIDI
+				case CONFIG_MIDI_OUT:
 					val_int = config_get_int((char *) config_device.name,
 								 (char *) config->name, config->default_int);
 
-					num  = plat_midi_get_num_devs();
+					num  = rtmidi_out_get_num_devs();
 					for (c = 0; c < num; c++) {
-						plat_midi_get_dev_name(c, s);
+						rtmidi_out_get_dev_name(c, s);
 						mbstowcs(lptsTemp, s, strlen(s) + 1);
 						SendMessage(h, CB_ADDSTRING, 0, (LPARAM)(LPCSTR)lptsTemp);
 						if (val_int == c)
@@ -112,9 +147,9 @@ deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 					val_int = config_get_int((char *) config_device.name,
 								 (char *) config->name, config->default_int);
 
-					num  = plat_midi_in_get_num_devs();
+					num  = rtmidi_in_get_num_devs();
 					for (c = 0; c < num; c++) {
-						plat_midi_in_get_dev_name(c, s);
+						rtmidi_in_get_dev_name(c, s);
 						mbstowcs(lptsTemp, s, strlen(s) + 1);
 						SendMessage(h, CB_ADDSTRING, 0, (LPARAM)(LPCSTR)lptsTemp);
 						if (val_int == c)
@@ -122,7 +157,8 @@ deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 					}
 
 					id += 2;
-					break;					
+					break;
+#endif
 				case CONFIG_SPINNER:
 					val_int = config_get_int((char *) config_device.name,
 								 (char *) config->name, config->default_int);
@@ -144,7 +180,7 @@ deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 								   (char *) config->name, config->default_int);
 
 					c = 0;
-					while (selection->description && selection->description[0]) {
+					while (selection && selection->description && selection->description[0]) {
 						mbstowcs(lptsTemp, selection->description,
 							 strlen(selection->description) + 1);
 						SendMessage(h, CB_ADDSTRING, 0, (LPARAM)(LPCSTR)lptsTemp);
@@ -161,7 +197,7 @@ deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 								   (char *) config->name, config->default_int);
 
 					c = 0;
-					while (selection->description && selection->description[0]) {
+					while (selection && selection->description && selection->description[0]) {
 						mbstowcs(lptsTemp, selection->description,
 							 strlen(selection->description) + 1);
 						SendMessage(h, CB_ADDSTRING, 0, (LPARAM)(LPCSTR)lptsTemp);
@@ -183,6 +219,7 @@ deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 		if (cid == IDOK) {
 			id = IDC_CONFIG_BASE;
 			config = config_device.dev->config;
+			bios = config->bios;
 			changed = 0;
 			char s[512];
 
@@ -214,7 +251,21 @@ deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 
 						id += 2;
 						break;
-					case CONFIG_MIDI:
+					case CONFIG_BIOS:
+						val_str = config_get_string((char *) config_device.name,
+									    (char *) config->name, (char *) config->default_string);
+
+						c = combo_to_struct[SendMessage(h, CB_GETCURSEL, 0, 0)];
+
+						for (; c > 0; c--)
+							bios++;
+
+						if (strcmp(val_str, bios->internal_name))
+							changed = 1;
+
+						id += 2;
+						break;
+					case CONFIG_MIDI_OUT:
 						val_int = config_get_int((char *) config_device.name,
 									 (char *) config->name, config->default_int);
 
@@ -324,7 +375,15 @@ deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 
 						id += 2;
 						break;
-					case CONFIG_MIDI:
+					case CONFIG_BIOS:
+						c = combo_to_struct[SendMessage(h, CB_GETCURSEL, 0, 0)];
+						for (; c > 0; c--)
+							bios++;
+						config_set_string((char *) config_device.name, (char *) config->name, (char *) bios->internal_name);
+
+						id += 2;
+						break;
+					case CONFIG_MIDI_OUT:
 						c = SendMessage(h, CB_GETCURSEL, 0, 0);
 						config_set_int((char *) config_device.name, (char *) config->name, c);
 
@@ -389,7 +448,10 @@ deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 						id++;
 						break;
 					case CONFIG_SELECTION:
-					case CONFIG_MIDI:
+					case CONFIG_HEX16:
+					case CONFIG_HEX20:
+					case CONFIG_BIOS:
+					case CONFIG_MIDI_OUT:
 					case CONFIG_MIDI_IN:
 					case CONFIG_SPINNER:
 						id += 2;
@@ -401,31 +463,7 @@ deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 							SendMessage(h, WM_GETTEXT, 511, (LPARAM)s);
 							file_filter[0] = 0;
 
-							c = 0;
-							while (config->file_filter[c].description && config->file_filter[c].description[0]) {
-								if (c > 0)
-									strcat(file_filter, "|");
-								strcat(file_filter, config->file_filter[c].description);
-								strcat(file_filter, " (");
-								d = 0;
-								while (config->file_filter[c].extensions[d] && config->file_filter[c].extensions[d][0]) {
-									if (d > 0)
-										strcat(file_filter, ";");
-									strcat(file_filter, "*.");
-									strcat(file_filter, config->file_filter[c].extensions[d]);
-									d++;
-								}
-								strcat(file_filter, ")|");
-								d = 0;
-								while (config->file_filter[c].extensions[d] && config->file_filter[c].extensions[d][0]) {
-									if (d > 0)
-										strcat(file_filter, ";");
-									strcat(file_filter, "*.");
-									strcat(file_filter, config->file_filter[c].extensions[d]);
-									d++;
-								}
-								c++;
-							}
+							strcat(file_filter, config->file_filter);
 							strcat(file_filter, "|All files (*.*)|*.*|");
 							mbstowcs(ws, file_filter, strlen(file_filter) + 1);
 							d = strlen(file_filter);
@@ -436,7 +474,7 @@ deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 									ws[c] = 0;
 							}
 
-							if (!file_dlg(hdlg, ws, s, 0))
+							if (!file_dlg(hdlg, ws, s, NULL, 0))
 								SendMessage(h, WM_SETTEXT, 0, (LPARAM)wopenfilestring);
 						}
 						break;
@@ -478,7 +516,8 @@ deviceconfig_inst_open(HWND hwnd, const device_t *device, int inst)
 
     *data++ = 0; /*no menu*/
     *data++ = 0; /*predefined dialog box class*/
-    data += MultiByteToWideChar(CP_ACP, 0, "Device Configuration", -1, data, 120);
+
+    data += wsprintf(data, plat_get_string(IDS_2141), device->name) + 1;
 
     *data++ = 9; /*Point*/
     data += MultiByteToWideChar(CP_ACP, 0, "Segoe UI", -1, data, 120);
@@ -494,7 +533,7 @@ deviceconfig_inst_open(HWND hwnd, const device_t *device, int inst)
 			item->y = y;
 			item->id = id++;
 
-			item->cx = 80;
+			item->cx = 100;
 			item->cy = 15;
 
 			item->style = WS_CHILD | WS_VISIBLE | BS_AUTOCHECKBOX;
@@ -510,7 +549,7 @@ deviceconfig_inst_open(HWND hwnd, const device_t *device, int inst)
 			break;
 
 		case CONFIG_SELECTION:
-		case CONFIG_MIDI:
+		case CONFIG_MIDI_OUT:
 		case CONFIG_MIDI_IN:
 		case CONFIG_HEX16:
 		case CONFIG_HEX20:
@@ -523,7 +562,7 @@ deviceconfig_inst_open(HWND hwnd, const device_t *device, int inst)
 			item->cx = 140;
 			item->cy = 150;
 
-			item->style = WS_CHILD | WS_VISIBLE | CBS_DROPDOWN | WS_VSCROLL;
+			item->style = WS_CHILD | WS_VISIBLE | CBS_DROPDOWNLIST | WS_VSCROLL;
 
 			data = (uint16_t *)(item + 1);
 			*data++ = 0xFFFF;
@@ -538,11 +577,11 @@ deviceconfig_inst_open(HWND hwnd, const device_t *device, int inst)
 			/*Static text*/
 			item = (DLGITEMTEMPLATE *)data;
 			item->x = 10;
-			item->y = y;
+			item->y = y + 2;
 			item->id = id++;
 
 			item->cx = 60;
-			item->cy = 15;
+			item->cy = 20;
 
 			item->style = WS_CHILD | WS_VISIBLE;
 
@@ -585,11 +624,11 @@ deviceconfig_inst_open(HWND hwnd, const device_t *device, int inst)
 			/*Static text*/
 			item = (DLGITEMTEMPLATE *)data;
 			item->x = 10;
-			item->y = y;
+			item->y = y + 2;
 			item->id = id++;
 
 			item->cx = 60;
-			item->cy = 15;
+			item->cy = 20;
 
 			item->style = WS_CHILD | WS_VISIBLE;
 
@@ -652,11 +691,11 @@ deviceconfig_inst_open(HWND hwnd, const device_t *device, int inst)
 			/*Static text*/
 			item = (DLGITEMTEMPLATE *)data;
 			item->x = 10;
-			item->y = y;
+			item->y = y + 2;
 			item->id = id++;
 
 			item->cx = 60;
-			item->cy = 15;
+			item->cy = 20;
 
 			item->style = WS_CHILD | WS_VISIBLE;
 
@@ -683,8 +722,8 @@ deviceconfig_inst_open(HWND hwnd, const device_t *device, int inst)
     dlg->cdit = (id - IDC_CONFIG_BASE) + 2;
 
     item = (DLGITEMTEMPLATE *)data;
-    item->x = 20;
-    item->y = y;
+    item->x = 100;
+    item->y = y + 5;
     item->cx = 50;
     item->cy = 14;
     item->id = IDOK;  /* OK button identifier */
@@ -701,8 +740,8 @@ deviceconfig_inst_open(HWND hwnd, const device_t *device, int inst)
 	data++;
 
     item = (DLGITEMTEMPLATE *)data;
-    item->x = 80;
-    item->y = y;
+    item->x = 160;
+    item->y = y + 5;
     item->cx = 50;
     item->cy = 14;
     item->id = IDCANCEL;  /* OK button identifier */
@@ -715,7 +754,7 @@ deviceconfig_inst_open(HWND hwnd, const device_t *device, int inst)
     data += MultiByteToWideChar(CP_ACP, 0, "Cancel", -1, data, 50);
     *data++ = 0;              /* no creation data */
 
-    dlg->cy = y + 20;
+    dlg->cy = y + 25;
 
     device_set_context(&config_device, device, inst);
 

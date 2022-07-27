@@ -17,7 +17,9 @@
  *		Copyright 2008-2019 Sarah Walker.
  *		Copyright 2016-2019 Miran Grca.
  *		Copyright 2017-2019 Fred N. van Kempen.
+ *		Copyright 2021 Laci bá'
  */
+
 #ifndef PLAT_WIN_H
 # define PLAT_WIN_H
 
@@ -33,6 +35,19 @@
 # include "resource.h"
 # undef BITMAP
 
+/* DPI Awareness Context, copied from MinGW-w64 windef.h */
+#ifndef _DPI_AWARENESS_CONTEXTS_
+DECLARE_HANDLE(DPI_AWARENESS_CONTEXT);
+#define DPI_AWARENESS_CONTEXT_UNAWARE              ((DPI_AWARENESS_CONTEXT)-1)
+#define DPI_AWARENESS_CONTEXT_SYSTEM_AWARE         ((DPI_AWARENESS_CONTEXT)-2)
+#define DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE    ((DPI_AWARENESS_CONTEXT)-3)
+#define DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2 ((DPI_AWARENESS_CONTEXT)-4)
+#define DPI_AWARENESS_CONTEXT_UNAWARE_GDISCALED    ((DPI_AWARENESS_CONTEXT)-5)
+#endif
+
+#ifndef WM_DPICHANGED_AFTERPARENT
+#define WM_DPICHANGED_AFTERPARENT 0x02E3
+#endif
 
 /* Class names and such. */
 #define CLASS_NAME		L"86BoxMainWnd"
@@ -42,11 +57,17 @@
 #define SB_CLASS_NAME		L"86BoxStatusBar"
 #define SB_MENU_NAME		L"StatusBarMenu"
 #define FS_CLASS_NAME		L"86BoxFullScreen"
+#define SDL_CLASS_NAME		L"86BoxSDLWnd"
+#define SDL_SUB_CLASS_NAME	L"86BoxSDLSubWnd"
 
+#define CASSETTE_SUBMENU_NAME	L"CassetteSubmenu"
+#define CARTRIDGE_SUBMENU_NAME	L"CartridgeSubmenu"
 #define FLOPPY_SUBMENU_NAME	L"FloppySubmenu"
 #define CDROM_SUBMENU_NAME	L"CdromSubmenu"
 #define ZIP_SUBMENU_NAME	L"ZIPSubmenu"
 #define MO_SUBMENU_NAME		L"MOSubmenu"
+
+#define VID_GL_SUBMENU		L"VidGLSubMenu"
 
 /* Application-specific window messages.
 
@@ -70,9 +91,9 @@
 #define WM_HAS_SHUTDOWN		0x8897
 
 #ifdef USE_VNC
-#define RENDERERS_NUM		3
+#define RENDERERS_NUM		5
 #else
-#define RENDERERS_NUM		2
+#define RENDERERS_NUM		4
 #endif
 
 
@@ -84,8 +105,11 @@ extern HINSTANCE	hinstance;
 extern HWND		hwndMain,
 			hwndRender;
 extern HANDLE		ghMutex;
-extern LCID		lang_id;
 extern HICON		hIcon[256];
+extern int		dpi;
+extern RECT		oldclip;
+extern int		sbar_height, tbar_height, user_resize;
+extern int		acp_utf8;
 
 // extern int		status_is_open;
 
@@ -95,16 +119,15 @@ extern WCHAR		wopenfilestring[512];
 extern uint8_t		filterindex;
 
 
-extern void	InitCrashDump(void);
-
-extern HICON	LoadIconEx(PCTSTR pszIconName);
+extern void	ResizeWindowByClientArea(HWND hwnd, int width, int height);
 
 /* Emulator start/stop support functions. */
 extern void	do_start(void);
 extern void	do_stop(void);
 
 /* Internal platform support functions. */
-extern void	set_language(int id);
+extern int	has_language_changed(uint32_t id);
+extern void	set_language(uint32_t id);
 extern int	get_vidpause(void);
 extern void	show_cursor(int);
 
@@ -119,8 +142,15 @@ extern void     win_joystick_handle(PRAWINPUT raw);
 
 extern void     win_notify_dlg_open(void);
 extern void     win_notify_dlg_closed(void);
+extern int      win_get_dpi(HWND hwnd);
+extern int      win_get_system_metrics(int i, int dpi);
 
 extern LPARAM	win_get_string(int id);
+
+extern void     win_clear_icon_set();
+extern void     win_system_icon_set();
+extern void     win_load_icon_set();
+extern void     win_get_icons_path(char* path_root);
 
 extern intptr_t	fdd_type_to_icon(int type);
 
@@ -139,7 +169,6 @@ extern int	hard_disk_was_added(void);
 
 /* Platform UI support functions. */
 extern int	ui_init(int nCmdShow);
-extern void	plat_set_input(HWND h);
 
 
 /* Functions in win_about.c: */
@@ -154,6 +183,13 @@ extern void	SoundGainDialogCreate(HWND hwnd);
 extern void	NewFloppyDialogCreate(HWND hwnd, int id, int part);
 
 
+/* Functions in win_specify_dim.c: */
+extern void	SpecifyDimensionsDialogCreate(HWND hwnd);
+
+/* Functions in win_preferences.c: */
+extern void	PreferencesDlgCreate(HWND hwnd);
+
+
 /* Functions in win_settings.c: */
 #define SETTINGS_PAGE_MACHINE			0
 #define SETTINGS_PAGE_VIDEO			1
@@ -161,10 +197,11 @@ extern void	NewFloppyDialogCreate(HWND hwnd, int id, int part);
 #define SETTINGS_PAGE_SOUND			3
 #define SETTINGS_PAGE_NETWORK			4
 #define SETTINGS_PAGE_PORTS			5
-#define SETTINGS_PAGE_PERIPHERALS		6
+#define SETTINGS_PAGE_STORAGE			6
 #define SETTINGS_PAGE_HARD_DISKS		7
-#define SETTINGS_PAGE_FLOPPY_DRIVES		8
+#define SETTINGS_PAGE_FLOPPY_AND_CDROM_DRIVES	8
 #define SETTINGS_PAGE_OTHER_REMOVABLE_DEVICES	9
+#define SETTINGS_PAGE_PERIPHERALS		10
 
 extern void	win_settings_open(HWND hwnd);
 extern void	win_settings_open_ex(HWND hwnd, int category);
@@ -176,12 +213,20 @@ extern void	StatusBarCreate(HWND hwndParent, uintptr_t idStatus, HINSTANCE hInst
 extern int	MediaMenuHandler(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);
 
 
+/* Functions in win_toolbar.c */
+extern HWND	hwndRebar;
+extern void	ToolBarCreate(HWND hwndParent, HINSTANCE hInst);
+extern void	ToolBarLoadIcons();
+extern void	ToolBarUpdatePause(int paused);
+
+
 /* Functions in win_dialog.c: */
-extern int	file_dlg_w(HWND hwnd, WCHAR *f, WCHAR *fn, int save);
-extern int	file_dlg(HWND hwnd, WCHAR *f, char *fn, int save);
-extern int	file_dlg_mb(HWND hwnd, char *f, char *fn, int save);
-extern int	file_dlg_w_st(HWND hwnd, int i, WCHAR *fn, int save);
-extern int	file_dlg_st(HWND hwnd, int i, char *fn, int save);
+/* Pass NULL in the title param to use the default title. */
+extern int	file_dlg_w(HWND hwnd, WCHAR *f, WCHAR *fn, WCHAR *title, int save);
+extern int	file_dlg(HWND hwnd, WCHAR *f, char *fn, char *title, int save);
+extern int	file_dlg_mb(HWND hwnd, char *f, char *fn, char *title, int save);
+extern int	file_dlg_w_st(HWND hwnd, int i, WCHAR *fn, char *title, int save);
+extern int	file_dlg_st(HWND hwnd, int i, char *fn, char *title, int save);
 
 extern wchar_t	*BrowseFolder(wchar_t *saved_path, wchar_t *title);
 
@@ -190,19 +235,25 @@ extern wchar_t	*BrowseFolder(wchar_t *saved_path, wchar_t *title);
 extern void	media_menu_init();
 extern void	media_menu_reset();
 extern int	media_menu_proc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);
+extern HMENU	media_menu_get_cassette(void);
+extern HMENU	media_menu_get_cartridge(int id);
 extern HMENU	media_menu_get_floppy(int id);
 extern HMENU	media_menu_get_cdrom(int id);
 extern HMENU	media_menu_get_zip(int id);
 extern HMENU	media_menu_get_mo(int id);
+extern void	media_menu_update_cassette(void);
+extern void	media_menu_update_cartridge(int id);
 extern void	media_menu_update_floppy(int id);
 extern void	media_menu_update_cdrom(int id);
 extern void	media_menu_update_zip(int id);
 extern void	media_menu_update_mo(int id);
 
+/* Functions in win_ui.c */
+extern HMENU	menuMain;
+extern void	ResetAllMenus();
 
 #ifdef __cplusplus
 }
 #endif
-
 
 #endif	/*PLAT_WIN_H*/

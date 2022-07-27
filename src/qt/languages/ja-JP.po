@@ -1,0 +1,1185 @@
+msgid "&Action"
+msgstr "動作(&A)"
+
+msgid "&Keyboard requires capture"
+msgstr "キーボードはキャプチャが必要(&K)"
+
+msgid "&Right CTRL is left ALT"
+msgstr "右CTRLを左ALTへ(&R)"
+
+msgid "&Hard Reset..."
+msgstr "ハードリセット(&H)..."
+
+msgid "&Ctrl+Alt+Del\tCtrl+F12"
+msgstr "Ctrl+Alt+Del(&C)\tCtrl+F12"
+
+msgid "Ctrl+Alt+&Esc"
+msgstr "Ctrl+Alt+Esc(&E)"
+
+msgid "&Pause"
+msgstr "一時停止(&P)"
+
+msgid "E&xit..."
+msgstr "終了(&X)..."
+
+msgid "&View"
+msgstr "表示(&V)"
+
+msgid "&Hide status bar"
+msgstr "ステータスバーを隠す(&H)"
+
+msgid "Hide &toolbar"
+msgstr "ツールバーを隠す(&T)"
+
+msgid "&Resizeable window"
+msgstr "ウィンドウのサイズをリサイズ可能(&R)"
+
+msgid "R&emember size && position"
+msgstr "ウィンドウのサイズと位置を記憶(&E)"
+
+msgid "Re&nderer"
+msgstr "レンダラー(&N)"
+
+msgid "&SDL (Software)"
+msgstr "SDL (ソフトウェア)(&S)"
+
+msgid "SDL (&Hardware)"
+msgstr "SDL (ハードウェア)(&H)"
+
+msgid "SDL (&OpenGL)"
+msgstr "SDL (OpenGL)(&O)"
+
+msgid "Open&GL (3.0 Core)"
+msgstr "OpenGL (3.0コア)(&G)"
+
+msgid "&VNC"
+msgstr "VNC(&V)"
+
+msgid "Specify dimensions..."
+msgstr "ウィンドウのサイズを指定..."
+
+msgid "F&orce 4:3 display ratio"
+msgstr "4:3アスペクト比を固定(&O)"
+
+msgid "&Window scale factor"
+msgstr "ウィンドウの表示倍率(&W)"
+
+msgid "&0.5x"
+msgstr "0.5x(&0)"
+
+msgid "&1x"
+msgstr "1x(&1)"
+
+msgid "1.&5x"
+msgstr "1.5x(&5)"
+
+msgid "&2x"
+msgstr "2x(&2)"
+
+msgid "Filter method"
+msgstr "フィルター方式"
+
+msgid "&Nearest"
+msgstr "最近傍補間(&N)"
+
+msgid "&Linear"
+msgstr "線形補間(&L)"
+
+msgid "Hi&DPI scaling"
+msgstr "HiDPIスケーリング(&D)"
+
+msgid "&Fullscreen\tCtrl+Alt+PgUp"
+msgstr "フルスクリーン(&F)\tCtrl+Alt+PgUp"
+
+msgid "Fullscreen &stretch mode"
+msgstr "フルスクリーンのスケール(&S)"
+
+msgid "&Full screen stretch"
+msgstr "フルスクリーンに拡大(&F)"
+
+msgid "&4:3"
+msgstr "4:3(&4)"
+
+msgid "&Square pixels (Keep ratio)"
+msgstr "正方形ピクセル(アスペクト比を維持)(&S)"
+
+msgid "&Integer scale"
+msgstr "整数倍(&I)"
+
+msgid "E&GA/(S)VGA settings"
+msgstr "E&GA/(S)VGAの設定"
+
+msgid "&Inverted VGA monitor"
+msgstr "色を反転(&I)"
+
+msgid "VGA screen &type"
+msgstr "画面タイプ(&T)"
+
+msgid "RGB &Color"
+msgstr "RGB(カラー)(&C)"
+
+msgid "&RGB Grayscale"
+msgstr "RGB(グレースケール)(&R)"
+
+msgid "&Amber monitor"
+msgstr "モニター(琥珀色)(&A)"
+
+msgid "&Green monitor"
+msgstr "モニター(緑色)(&G)"
+
+msgid "&White monitor"
+msgstr "モニター(白色)(&W)"
+
+msgid "Grayscale &conversion type"
+msgstr "グレースケール変換タイプ(&C)"
+
+msgid "BT&601 (NTSC/PAL)"
+msgstr "BT601 (NTSC/PAL)(&6)"
+
+msgid "BT&709 (HDTV)"
+msgstr "BT709 (HDTV)(&7)"
+
+msgid "&Average"
+msgstr "平均(&A)"
+
+msgid "CGA/PCjr/Tandy/E&GA/(S)VGA overscan"
+msgstr "CGA/PCjr/Tandy/EGA/(S)VGAオーバースキャン(&G)"
+
+msgid "Change contrast for &monochrome display"
+msgstr "単色モニター用コントラストを変更(&M)"
+
+msgid "&Media"
+msgstr "メディア(&M)"
+
+msgid "&Tools"
+msgstr "ツール(&T)"
+
+msgid "&Settings..."
+msgstr "設定(&S)..."
+
+msgid "&Update status bar icons"
+msgstr "ステータスバーのアイコンを更新(&U)"
+
+msgid "Take s&creenshot\tCtrl+F11"
+msgstr "スクリーンショットを撮る(&C)\tCtrl+F11"
+
+msgid "&Preferences..."
+msgstr "環境設定(&P)..."
+
+msgid "Enable &Discord integration"
+msgstr "Discordとの連携機能(&D)"
+
+msgid "Sound &gain..."
+msgstr "音量を調節(&G)..."
+
+msgid "Begin trace\tCtrl+T"
+msgstr "トレース開始\tCtrl+T"
+
+msgid "End trace\tCtrl+T"
+msgstr "トレース終了\tCtrl+T"
+
+msgid "&Help"
+msgstr "ヘルプ(&H)"
+
+msgid "&Documentation..."
+msgstr "ドキュメント(&D)..."
+
+msgid "&About 86Box..."
+msgstr "86Boxのバージョン情報(&A)..."
+
+msgid "&New image..."
+msgstr "新規イメージ(&N)..."
+
+msgid "&Existing image..."
+msgstr "既存のイメージを開く(&E)..."
+
+msgid "Existing image (&Write-protected)..."
+msgstr "既存のイメージを開く(書き込み保護)(&W)..."
+
+msgid "&Record"
+msgstr "録音(&R)"
+
+msgid "&Play"
+msgstr "再生(&P)"
+
+msgid "&Rewind to the beginning"
+msgstr "冒頭に巻き戻す(&R)"
+
+msgid "&Fast forward to the end"
+msgstr "最後まで早送り(&F)"
+
+msgid "E&ject"
+msgstr "取り出す(&J)"
+
+msgid "&Image..."
+msgstr "イメージ(&I)..."
+
+msgid "E&xport to 86F..."
+msgstr "86Fイメージにエクスポート(&X)..."
+
+msgid "&Mute"
+msgstr "ミュート(&M)"
+
+msgid "E&mpty"
+msgstr "空(&M)"
+
+msgid "&Reload previous image"
+msgstr "前のイメージを再読み込み(&R)"
+
+msgid "&Image"
+msgstr "イメージ(&I)"
+
+msgid "Target &framerate"
+msgstr "目標フレームレート(&F)"
+
+msgid "&Sync with video"
+msgstr "ビデオと同期(&S)"
+
+msgid "&25 fps"
+msgstr "25 fps(&2)"
+
+msgid "&30 fps"
+msgstr "30 fps(&3)"
+
+msgid "&50 fps"
+msgstr "50 fps(&5)"
+
+msgid "&60 fps"
+msgstr "60 fps(&6)"
+
+msgid "&75 fps"
+msgstr "75 fps(&7)"
+
+msgid "&VSync"
+msgstr "垂直同期(VSync)(&V)"
+
+msgid "&Select shader..."
+msgstr "シェーダーを選択(&S)..."
+
+msgid "&Remove shader"
+msgstr "シェーダーを削除(&R)"
+
+msgid "Preferences"
+msgstr "環境設定"
+
+msgid "Sound Gain"
+msgstr "音量ゲイン"
+
+msgid "New Image"
+msgstr "新規のイメージ"
+
+msgid "Settings"
+msgstr "設定"
+
+msgid "Specify Main Window Dimensions"
+msgstr "メインウィンドウのサイズ指定"
+
+msgid "OK"
+msgstr "OK"
+
+msgid "Cancel"
+msgstr "キャンセル"
+
+msgid "Save these settings as &global defaults"
+msgstr "これらの設定をグローバル既定値として保存する(&G)"
+
+msgid "&Default"
+msgstr "既定値(&D)"
+
+msgid "Language:"
+msgstr "言語:"
+
+msgid "Icon set:"
+msgstr "アイコンセット:"
+
+msgid "Gain"
+msgstr "ゲイン値"
+
+msgid "File name:"
+msgstr "ファイル名:"
+
+msgid "Disk size:"
+msgstr "ディスクサイズ:"
+
+msgid "RPM mode:"
+msgstr "回転数モード:"
+
+msgid "Progress:"
+msgstr "進行状況:"
+
+msgid "Width:"
+msgstr "幅:"
+
+msgid "Height:"
+msgstr "高さ:"
+
+msgid "Lock to this size"
+msgstr "このサイズをロックする"
+
+msgid "Machine type:"
+msgstr "マシンタイプ:"
+
+msgid "Machine:"
+msgstr "マシン:"
+
+msgid "Configure"
+msgstr "設定"
+
+msgid "CPU type:"
+msgstr "CPUタイプ:"
+
+msgid "Speed:"
+msgstr "速度:"
+
+msgid "FPU:"
+msgstr "FPU:"
+
+msgid "Wait states:"
+msgstr "待機状態:"
+
+msgid "MB"
+msgstr "MB"
+
+msgid "Memory:"
+msgstr "メモリ:"
+
+msgid "Time synchronization"
+msgstr "時刻同期機能"
+
+msgid "Disabled"
+msgstr "無効にする"
+
+msgid "Enabled (local time)"
+msgstr "有効にする (現地時間)"
+
+msgid "Enabled (UTC)"
+msgstr "有効にする (UTC)"
+
+msgid "Dynamic Recompiler"
+msgstr "動的リコンパイラ"
+
+msgid "Video:"
+msgstr "ビデオカード:"
+
+msgid "Voodoo Graphics"
+msgstr "Voodooグラフィック"
+
+msgid "Mouse:"
+msgstr "マウス:"
+
+msgid "Joystick:"
+msgstr "ジョイスティック:"
+
+msgid "Joystick 1..."
+msgstr "ジョイスティック1..."
+
+msgid "Joystick 2..."
+msgstr "ジョイスティック2..."
+
+msgid "Joystick 3..."
+msgstr "ジョイスティック3..."
+
+msgid "Joystick 4..."
+msgstr "ジョイスティック4..."
+
+msgid "Sound card:"
+msgstr "サウンドカード:"
+
+msgid "MIDI Out Device:"
+msgstr "MIDI出力デバイス:"
+
+msgid "MIDI In Device:"
+msgstr "MIDI入力デバイス:"
+
+msgid "Standalone MPU-401"
+msgstr "独立型MPU-401"
+
+msgid "Innovation SSI-2001"
+msgstr "Innovation SSI-2001"
+
+msgid "CMS / Game Blaster"
+msgstr "CMS / Game Blaster"
+
+msgid "Gravis Ultrasound"
+msgstr "Gravis Ultrasound"
+
+msgid "Use FLOAT32 sound"
+msgstr "FLOAT32サウンドを使用する"
+
+msgid "Network type:"
+msgstr "ネットワークタイプ:"
+
+msgid "PCap device:"
+msgstr "PCapデバイス:"
+
+msgid "Network adapter:"
+msgstr "ネットワークアダプター:"
+
+msgid "COM1 Device:"
+msgstr "COM1デバイス:"
+
+msgid "COM2 Device:"
+msgstr "COM2デバイス:"
+
+msgid "COM3 Device:"
+msgstr "COM3デバイス:"
+
+msgid "COM4 Device:"
+msgstr "COM4デバイス:"
+
+msgid "LPT1 Device:"
+msgstr "LPT1デバイス:"
+
+msgid "LPT2 Device:"
+msgstr "LPT2デバイス:"
+
+msgid "LPT3 Device:"
+msgstr "LPT3デバイス:"
+
+msgid "LPT4 Device:"
+msgstr "LPT4デバイス:"
+
+msgid "Serial port 1"
+msgstr "シリアルポート1"
+
+msgid "Serial port 2"
+msgstr "シリアルポート2"
+
+msgid "Serial port 3"
+msgstr "シリアルポート3"
+
+msgid "Serial port 4"
+msgstr "シリアルポート4"
+
+msgid "Parallel port 1"
+msgstr "パラレルポート1"
+
+msgid "Parallel port 2"
+msgstr "パラレルポート2"
+
+msgid "Parallel port 3"
+msgstr "パラレルポート3"
+
+msgid "Parallel port 4"
+msgstr "パラレルポート4"
+
+msgid "HD Controller:"
+msgstr "HDコントローラー:"
+
+msgid "FD Controller:"
+msgstr "FDコントローラー:"
+
+msgid "Tertiary IDE Controller"
+msgstr "第三のIDEコントローラー"
+
+msgid "Quaternary IDE Controller"
+msgstr "第四のIDEコントローラー"
+
+msgid "SCSI"
+msgstr "SCSI"
+
+msgid "Controller 1:"
+msgstr "コントローラー1:"
+
+msgid "Controller 2:"
+msgstr "コントローラー2:"
+
+msgid "Controller 3:"
+msgstr "コントローラー3:"
+
+msgid "Controller 4:"
+msgstr "コントローラー4:"
+
+msgid "Cassette"
+msgstr "カセット"
+
+msgid "Hard disks:"
+msgstr "ハードディスク:"
+
+msgid "&New..."
+msgstr "新規(&N)..."
+
+msgid "&Existing..."
+msgstr "既定(&E)..."
+
+msgid "&Remove"
+msgstr "除去(&R)"
+
+msgid "Bus:"
+msgstr "バス:"
+
+msgid "Channel:"
+msgstr "チャンネル:"
+
+msgid "ID:"
+msgstr "ID:"
+
+msgid "&Specify..."
+msgstr "参照(&S)..."
+
+msgid "Sectors:"
+msgstr "セクター:"
+
+msgid "Heads:"
+msgstr "ヘッド:"
+
+msgid "Cylinders:"
+msgstr "シリンダー:"
+
+msgid "Size (MB):"
+msgstr "サイズ(MB):"
+
+msgid "Type:"
+msgstr "タイプ:"
+
+msgid "Image Format:"
+msgstr "イメージ形式:"
+
+msgid "Block Size:"
+msgstr "ブロックサイズ:"
+
+msgid "Floppy drives:"
+msgstr "フロッピードライブ:"
+
+msgid "Turbo timings"
+msgstr "高速タイミング"
+
+msgid "Check BPB"
+msgstr "BPBをチェック"
+
+msgid "CD-ROM drives:"
+msgstr "CD-ROMドライブ:"
+
+msgid "MO drives:"
+msgstr "光磁気ドライブ:"
+
+msgid "ZIP drives:"
+msgstr "ZIPドライブ:"
+
+msgid "ZIP 250"
+msgstr "ZIP 250"
+
+msgid "ISA RTC:"
+msgstr "ISA RTCカード:"
+
+msgid "ISA Memory Expansion"
+msgstr "ISAメモリー拡張カード"
+
+msgid "Card 1:"
+msgstr "カード1:"
+
+msgid "Card 2:"
+msgstr "カード2:"
+
+msgid "Card 3:"
+msgstr "カード3:"
+
+msgid "Card 4:"
+msgstr "カード4:"
+
+msgid "ISABugger device"
+msgstr "ISABuggerデバイス"
+
+msgid "POST card"
+msgstr "POSTカード"
+
+msgid "FONT_SIZE"
+msgstr "9"
+
+msgid "FONT_NAME"
+msgstr "Meiryo UI"
+
+msgid "86Box"
+msgstr "86Box"
+
+msgid "Error"
+msgstr "エラー"
+
+msgid "Fatal error"
+msgstr "致命的なエラー"
+
+msgid " - PAUSED"
+msgstr " - 一時停止"
+
+msgid "Press Ctrl+Alt+PgDn to return to windowed mode."
+msgstr "Ctrl+Alt+PgDnでウィンドウモードに戻ります。"
+
+msgid "Speed"
+msgstr "速度"
+
+msgid "ZIP %03i %i (%s): %ls"
+msgstr "ZIP %03i %i (%s): %ls"
+
+msgid "ZIP images"
+msgstr "ZIPイメージ"
+
+msgid "86Box could not find any usable ROM images.\n\nPlease <a href=\"https://github.com/86Box/roms/releases/latest\">download</a> a ROM set and extract it into the \"roms\" directory."
+msgstr "86Boxで使用可能なROMイメージが見つかりませんでした。\n\nROMセットを<a href=\"https://github.com/86Box/roms/releases/latest\">ダウンロード</a>して、「roms」ディレクトリに解凍してください。"
+
+msgid "(empty)"
+msgstr "(空)"
+
+msgid "All files"
+msgstr "すべてのファイル"
+
+msgid "Turbo"
+msgstr "高速"
+
+msgid "On"
+msgstr "オン"
+
+msgid "Off"
+msgstr "オフ"
+
+msgid "All images"
+msgstr "すべてのイメージ"
+
+msgid "Basic sector images"
+msgstr "基本的なセクターイメージ"
+
+msgid "Surface images"
+msgstr "表面イメージ"
+
+msgid "Machine \"%hs\" is not available due to missing ROMs in the roms/machines directory. Switching to an available machine."
+msgstr "roms/machinesディレクトリにROMがないため、マシン「%hs」は使用できません。使用可能なマシンに切り替えます。"
+
+msgid "Video card \"%hs\" is not available due to missing ROMs in the roms/video directory. Switching to an available video card."
+msgstr "roms/videoディレクトリにROMがないため、ビデオカード「%hs」は使用できません。使用可能なビデオカードに切り替えます。"
+
+msgid "Machine"
+msgstr "マシン"
+
+msgid "Display"
+msgstr "画面表示"
+
+msgid "Input devices"
+msgstr "入力デバイス"
+
+msgid "Sound"
+msgstr "サウンド"
+
+msgid "Network"
+msgstr "ネットワーク"
+
+msgid "Ports (COM & LPT)"
+msgstr "ポート (COM & LPT)"
+
+msgid "Storage controllers"
+msgstr "ストレージコントローラ"
+
+msgid "Hard disks"
+msgstr "ハードディスク"
+
+msgid "Floppy & CD-ROM drives"
+msgstr "フロッピー/CD-ROMドライブ"
+
+msgid "Other removable devices"
+msgstr "その他のリムーバブルデバイス"
+
+msgid "Other peripherals"
+msgstr "その他の周辺装置"
+
+msgid "Click to capture mouse"
+msgstr "クリックするとマウスをキャプチャします"
+
+msgid "Press F8+F12 to release mouse"
+msgstr "F8+F12キーでマウスを解放します"
+
+msgid "Press F8+F12 or middle button to release mouse"
+msgstr "F8+F12キーまたは中ボタンでマウスを解放します"
+
+msgid "Unable to initialize FluidSynth"
+msgstr "FluidSynthが初期化できません"
+
+msgid "Bus"
+msgstr "バス"
+
+msgid "File"
+msgstr "ファイル"
+
+msgid "C"
+msgstr "C"
+
+msgid "H"
+msgstr "H"
+
+msgid "S"
+msgstr "S"
+
+msgid "KB"
+msgstr "KB"
+
+msgid "Could not initialize the video renderer."
+msgstr "ビデオレンダラーが初期化できません。"
+
+msgid "Default"
+msgstr "既定値"
+
+msgid "%i Wait state(s)"
+msgstr "%iつの待機状態"
+
+msgid "Type"
+msgstr "タイプ"
+
+msgid "Failed to set up PCap"
+msgstr "PCapのセットアップに失敗しました"
+
+msgid "No PCap devices found"
+msgstr "PCapデバイスがありません"
+
+msgid "Invalid PCap device"
+msgstr "不正なPCapデバイスです"
+
+msgid "Standard 2-button joystick(s)"
+msgstr "標準ジョイスティック(2ボタン)"
+
+msgid "Standard 4-button joystick"
+msgstr "標準ジョイスティック(4ボタン)"
+
+msgid "Standard 6-button joystick"
+msgstr "標準ジョイスティック(6ボタン)"
+
+msgid "Standard 8-button joystick"
+msgstr "標準ジョイスティック(8ボタン)"
+
+msgid "CH Flightstick Pro"
+msgstr "CH Flightstick Pro"
+
+msgid "Microsoft SideWinder Pad"
+msgstr "Microsoft SideWinder Pad"
+
+msgid "Thrustmaster Flight Control System"
+msgstr "Thrustmaster Flight Control System"
+
+msgid "None"
+msgstr "なし"
+
+msgid "Unable to load keyboard accelerators."
+msgstr "キーボードアクセラレータを読み込めません。"
+
+msgid "Unable to register raw input."
+msgstr "生の入力が登録できません。"
+
+msgid "%u"
+msgstr "%u"
+
+msgid "%u MB (CHS: %i, %i, %i)"
+msgstr "%u MB (CHS: %i, %i, %i)"
+
+msgid "Floppy %i (%s): %ls"
+msgstr "フロッピー %i (%s): %ls"
+
+msgid "Advanced sector images"
+msgstr "アドバンスドセクターイメージ"
+
+msgid "Flux images"
+msgstr "フラックスイメージ"
+
+msgid "Unable to initialize FreeType"
+msgstr "FreeTypeが初期化できません"
+
+msgid "Unable to initialize SDL, SDL2.dll is required"
+msgstr "SDLが初期化できません。SDL2.dllが必要です"
+
+msgid "Are you sure you want to hard reset the emulated machine?"
+msgstr "使用中のマシンをハードリセットしますか？"
+
+msgid "Are you sure you want to exit 86Box?"
+msgstr "86Boxを終了しますか？"
+
+msgid "Unable to initialize Ghostscript"
+msgstr "Ghostscriptが初期化できません"
+
+msgid "MO %i (%ls): %ls"
+msgstr "光磁気 %i (%ls): %ls"
+
+msgid "MO images"
+msgstr "光磁気イメージ"
+
+msgid "Welcome to 86Box!"
+msgstr "86Boxへようこそ！"
+
+msgid "Internal controller"
+msgstr "内蔵コントローラー"
+
+msgid "Exit"
+msgstr "終了"
+
+msgid "No ROMs found"
+msgstr "ROMが見つかりません"
+
+msgid "Do you want to save the settings?"
+msgstr "設定を保存しますか？"
+
+msgid "This will hard reset the emulated machine."
+msgstr "保存すると使用中のマシンがハードリセットされます。"
+
+msgid "Save"
+msgstr "保存"
+
+msgid "About 86Box"
+msgstr "86Boxのバージョン情報"
+
+msgid "86Box v"
+msgstr "86Box v"
+
+msgid "An emulator of old computers\n\nAuthors: Sarah Walker, Miran Grca, Fred N. van Kempen (waltje), SA1988, Tiseno100, reenigne, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2 or later. See LICENSE for more information."
+msgstr "古いパソコンのエミュレーター\n\n著者: Sarah Walker, Miran Grca, Fred N. van Kempen (waltje), SA1988, Tiseno100, reenigne, leilei, JohnElliott, greatpsycho, and others.\n\nGNU General Public License version 2以降でリリースされています。詳しくは LICENSE をご覧ください。"
+
+msgid "Hardware not available"
+msgstr "ハードウェアが利用できません"
+
+msgid "WinPcap"
+msgstr "WinPcap"
+
+msgid "libpcap"
+msgstr "libpcap"
+
+msgid "Make sure libpcap is installed and that you are on a libpcap-compatible network connection."
+msgstr "がインストールされてるか、libpcapに対応したネットワークに接続されてるか確認してください。"
+
+msgid "Invalid configuration"
+msgstr "不正な設定です"
+
+msgid "freetype.dll"
+msgstr "freetype.dll"
+
+msgid "libfreetype"
+msgstr "libfreetype"
+
+msgid " is required for ESC/P printer emulation."
+msgstr "ESC/Pプリンタのエミュレーションにはlibfreetypeが必要です。"
+
+msgid "gsdll32.dll"
+msgstr "gsdll32.dll"
+
+msgid "libgs"
+msgstr "libgs"
+
+msgid " is required for automatic conversion of PostScript files to PDF.\n\nAny documents sent to the generic PostScript printer will be saved as PostScript (.ps) files."
+msgstr "PostScriptファイルをPDFに自動変換するにはlibgsが必要です。\n\n汎用PostScriptプリンターに送信されたドキュメントは、PostScript(.ps)ファイルとして保存されます。"
+
+msgid "libfluidsynth.dll"
+msgstr "libfluidsynth.dll"
+
+msgid "libfluidsynth"
+msgstr "libfluidsynth"
+
+msgid " is required for FluidSynth MIDI output."
+msgstr "FluidSynthのMIDI出力にはlibfluidsynthが必要です。"
+
+msgid "Entering fullscreen mode"
+msgstr "フルスクリーンに切り替えています"
+
+msgid "Don't show this message again"
+msgstr "今後、このメッセージを表示しない"
+
+msgid "Don't exit"
+msgstr "終了しない"
+
+msgid "Reset"
+msgstr "リセット"
+
+msgid "Don't reset"
+msgstr "リセットしない"
+
+msgid "CD-ROM images"
+msgstr "CD-ROMイメージ"
+
+msgid "%hs Device Configuration"
+msgstr "%hs デバイスの設定"
+
+msgid "Monitor in sleep mode"
+msgstr "モニターのスリープモード"
+
+msgid "OpenGL Shaders"
+msgstr "OpenGLシェーダー"
+
+msgid "OpenGL options"
+msgstr "OpenGL設定"
+
+msgid "You are loading an unsupported configuration"
+msgstr "サポートされていない設定を読み込んでいます"
+
+msgid "CPU type filtering based on selected machine is disabled for this emulated machine.\n\nThis makes it possible to choose a CPU that is otherwise incompatible with the selected machine. However, you may run into incompatibilities with the machine BIOS or other software.\n\nEnabling this setting is not officially supported and any bug reports filed may be closed as invalid."
+msgstr "選択したマシンに基づくCPUタイプのフィルタリングは、このエミュレートされたマシンでは無効になっています。\n\nこれにより、選択したマシンと互換性のないCPUが選択できます。ただし、マシンのBIOSまたは他のソフトウェアとの互換性が失われる可能性があります。\n\nこの設定の有効化は公式サポートができません。また、バグレポートが無効として閉じられる場合があります。"
+
+msgid "Continue"
+msgstr "続行"
+
+msgid "Cassette: %s"
+msgstr "カセット: %s"
+
+msgid "Cassette images"
+msgstr "カセットイメージ"
+
+msgid "Cartridge %i: %ls"
+msgstr "カートリッジ %i: %ls"
+
+msgid "Cartridge images"
+msgstr "カートリッジイメージ"
+
+msgid "Error initializing renderer"
+msgstr "レンダラーの初期化エラー"
+
+msgid "OpenGL (3.0 Core) renderer could not be initialized. Use another renderer."
+msgstr "OpenGL (3.0コア) レンダラーが初期化できませんでした。別のレンダラーを使用してください。"
+
+msgid "Resume execution"
+msgstr "実行を再開"
+
+msgid "Pause execution"
+msgstr "実行を一時停止"
+
+msgid "Press Ctrl+Alt+Del"
+msgstr "Ctrl+Alt+DELを押し"
+
+msgid "Press Ctrl+Alt+Esc"
+msgstr "Ctrl+Alt+Escを押し"
+
+msgid "Hard reset"
+msgstr "ハードリセット"
+
+msgid "ACPI shutdown"
+msgstr "ACPIシャットダウン"
+
+msgid "Hard disk (%s)"
+msgstr "ハードディスク (%s)"
+
+msgid "%01i:%01i"
+msgstr "%01i:%01i"
+
+msgid "%01i"
+msgstr "%01i"
+
+msgid "MFM/RLL or ESDI CD-ROM drives never existed"
+msgstr "MFM/RLLまたはESDIのCD-ROMドライブが存在しません"
+
+msgid "Custom..."
+msgstr "カスタム..."
+
+msgid "Custom (large)..."
+msgstr "カスタム (大型)..."
+
+msgid "Add New Hard Disk"
+msgstr "新規のディスクを追加"
+
+msgid "Add Existing Hard Disk"
+msgstr "既定のディスクを追加"
+
+msgid "HDI disk images cannot be larger than 4 GB."
+msgstr "HDIディスクイメージは4GBを超えることはできません。"
+
+msgid "Disk images cannot be larger than 127 GB."
+msgstr "ディスクイメージは127GBを超えることはできません。"
+
+msgid "Hard disk images"
+msgstr "ハードディスクイメージ"
+
+msgid "Unable to read file"
+msgstr "ファイルの読み込みができません"
+
+msgid "Unable to write file"
+msgstr "ファイルの書き込みができません"
+
+msgid "HDI or HDX images with a sector size other than 512 are not supported."
+msgstr "512以外のセクタサイズを持つHDIまたはHDXイメージはサポートされていません。"
+
+msgid "USB is not yet supported"
+msgstr "USBはまだサポートされていません"
+
+msgid "Disk image file already exists"
+msgstr "ディスクイメージファイルが既に存在します"
+
+msgid "Please specify a valid file name."
+msgstr "有効なファイル名を指定してください。"
+
+msgid "Disk image created"
+msgstr "ディスクイメージが作成されました"
+
+msgid "Make sure the file exists and is readable."
+msgstr "ファイルが存在し、読み取り可能であることを確認してください。"
+
+msgid "Make sure the file is being saved to a writable directory."
+msgstr "ファイルが書き込み可能なディレクトリに保存されていることを確認してください。"
+
+msgid "Disk image too large"
+msgstr "ディスクイメージのサイズが大きすぎます"
+
+msgid "Remember to partition and format the newly-created drive."
+msgstr "新規ドライブをパーティション分割し、フォーマットを必ずしといてください。"
+
+msgid "The selected file will be overwritten. Are you sure you want to use it?"
+msgstr "選択したファイルが上書きされます。使っていいですか？"
+
+msgid "Unsupported disk image"
+msgstr "サポートされていないディスクイメージ"
+
+msgid "Overwrite"
+msgstr "上書き"
+
+msgid "Don't overwrite"
+msgstr "上書きしない"
+
+msgid "Raw image (.img)"
+msgstr "Rawイメージ (.img)"
+
+msgid "HDI image (.hdi)"
+msgstr "HDIイメージ (.hdi)"
+
+msgid "HDX image (.hdx)"
+msgstr "HDXイメージ (.hdx)"
+
+msgid "Fixed-size VHD (.vhd)"
+msgstr "VHD(容量固定)(.vhd)"
+
+msgid "Dynamic-size VHD (.vhd)"
+msgstr "VHD(容量可変)(.vhd)"
+
+msgid "Differencing VHD (.vhd)"
+msgstr "VHD(差分)(.vhd)"
+
+msgid "Large blocks (2 MB)"
+msgstr "大型ブロック (2 MB)"
+
+msgid "Small blocks (512 KB)"
+msgstr "小型ブロック (512 KB)"
+
+msgid "VHD files"
+msgstr "VHDファイル"
+
+msgid "Select the parent VHD"
+msgstr "親VHDの選択"
+
+msgid "This could mean that the parent image was modified after the differencing image was created.\n\nIt can also happen if the image files were moved or copied, or by a bug in the program that created this disk.\n\nDo you want to fix the timestamps?"
+msgstr "親イメージがディファレンシングイメージの作成の後に修正した可能性があります。\n\nイメージファイルの移動、コピーまたはこのディスクを作成したプログラムにバグが発生した可能性があります。\n\nタイムスタンプを修正しますか？"
+
+msgid "Parent and child disk timestamps do not match"
+msgstr "親ディスクと子ディスクのタイムスタンプが一致しません"
+
+msgid "Could not fix VHD timestamp."
+msgstr "VHD のタイムスタンプを修正できませんでした。"
+
+msgid "%01i:%02i"
+msgstr "%01i:%02i"
+
+msgid "MFM/RLL"
+msgstr "MFM/RLL"
+
+msgid "XTA"
+msgstr "XTA"
+
+msgid "ESDI"
+msgstr "ESDI"
+
+msgid "IDE"
+msgstr "IDE"
+
+msgid "ATAPI"
+msgstr "ATAPI"
+
+msgid "MFM/RLL (%01i:%01i)"
+msgstr "MFM/RLL (%01i:%01i)"
+
+msgid "XTA (%01i:%01i)"
+msgstr "XTA (%01i:%01i)"
+
+msgid "ESDI (%01i:%01i)"
+msgstr "ESDI (%01i:%01i)"
+
+msgid "IDE (%01i:%01i)"
+msgstr "IDE (%01i:%01i)"
+
+msgid "ATAPI (%01i:%01i)"
+msgstr "ATAPI (%01i:%01i)"
+
+msgid "SCSI (%01i:%02i)"
+msgstr "SCSI (%01i:%02i)"
+
+msgid "CD-ROM %i (%s): %s"
+msgstr "CD-ROM %i (%s): %s"
+
+msgid "160 kB"
+msgstr "160 kB"
+
+msgid "180 kB"
+msgstr "180 kB"
+
+msgid "320 kB"
+msgstr "320 kB"
+
+msgid "360 kB"
+msgstr "360 kB"
+
+msgid "640 kB"
+msgstr "640 kB"
+
+msgid "720 kB"
+msgstr "720 kB"
+
+msgid "1.2 MB"
+msgstr "1.2 MB"
+
+msgid "1.25 MB"
+msgstr "1.25 MB"
+
+msgid "1.44 MB"
+msgstr "1.44 MB"
+
+msgid "DMF (cluster 1024)"
+msgstr "DMF (クラスター1024)"
+
+msgid "DMF (cluster 2048)"
+msgstr "DMF (クラスター2048)"
+
+msgid "2.88 MB"
+msgstr "2.88 MB"
+
+msgid "ZIP 100"
+msgstr "ZIP 100"
+
+msgid "3.5\" 128 MB (ISO 10090)"
+msgstr "3.5\" 128 MB (ISO 10090)"
+
+msgid "3.5\" 230 MB (ISO 13963)"
+msgstr "3.5\" 230 MB (ISO 13963)"
+
+msgid "3.5\" 540 MB (ISO 15498)"
+msgstr "3.5\" 540 MB (ISO 15498)"
+
+msgid "3.5\" 640 MB (ISO 15498)"
+msgstr "3.5\" 640 MB (ISO 15498)"
+
+msgid "3.5\" 1.3 GB (GigaMO)"
+msgstr "3.5\" 1.3 GB (GigaMO)"
+
+msgid "3.5\" 2.3 GB (GigaMO 2)"
+msgstr "3.5\" 2.3 GB (GigaMO 2)"
+
+msgid "5.25\" 600 MB"
+msgstr "5.25\" 600 MB"
+
+msgid "5.25\" 650 MB"
+msgstr "5.25\" 650 MB"
+
+msgid "5.25\" 1 GB"
+msgstr "5.25\" 1 GB"
+
+msgid "5.25\" 1.3 GB"
+msgstr "5.25\" 1.3 GB"
+
+msgid "Perfect RPM"
+msgstr "規定の回転数"
+
+msgid "1% below perfect RPM"
+msgstr "1%低い回転数"
+
+msgid "1.5% below perfect RPM"
+msgstr "1.5%低い回転数"
+
+msgid "2% below perfect RPM"
+msgstr "2%低い回転数"
+
+msgid "(System Default)"
+msgstr "(システム既定値)"
+

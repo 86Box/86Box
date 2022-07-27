@@ -67,9 +67,6 @@
  *   Boston, MA 02111-1307
  *   USA.
  */
-#define __USE_LARGEFILE64
-#define _LARGEFILE_SOURCE
-#define _LARGEFILE64_SOURCE
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdint.h>
@@ -91,15 +88,18 @@
 #include <86box/hdd.h>
 
 
-#define XEBEC_BIOS_FILE		L"roms/hdd/st506/ibm_xebec_62x0822_1985.bin"
-#define DTC_BIOS_FILE		L"roms/hdd/st506/dtc_cxd21a.bin"
-#define ST11_BIOS_FILE_OLD	L"roms/hdd/st506/st11_bios_vers_1.7.bin"
-#define ST11_BIOS_FILE_NEW	L"roms/hdd/st506/st11_bios_vers_2.0.bin"
-#define WD1002A_WX1_BIOS_FILE	L"roms/hdd/st506/wd1002a_wx1-62-000094-032.bin"
+#define XEBEC_BIOS_FILE		"roms/hdd/st506/ibm_xebec_62x0822_1985.bin"
+#define DTC_BIOS_FILE		"roms/hdd/st506/dtc_cxd21a.bin"
+#define ST11_BIOS_FILE_OLD	"roms/hdd/st506/st11_bios_vers_1.7.bin"
+#define ST11_BIOS_FILE_NEW	"roms/hdd/st506/st11_bios_vers_2.0.bin"
+#define WD1002A_WX1_BIOS_FILE	"roms/hdd/st506/wd1002a_wx1-62-000094-032.bin"
+#define WD1004A_WX1_BIOS_FILE	"roms/hdd/st506/wd1002a_wx1-62-000094-032.bin"
 /* SuperBIOS was for both the WX1 and 27X, users jumpers readout to determine
    if to use 26 sectors per track, 26 -> 17 sectors per track translation, or
    17 sectors per track. */
-#define WD1002A_27X_BIOS_FILE	L"roms/hdd/st506/wd1002a_27x-62-000094-032.bin"
+#define WD1002A_27X_BIOS_FILE	"roms/hdd/st506/wd1002a_27x-62-000094-032.bin"
+#define WD1004_27X_BIOS_FILE	"roms/hdd/st506/western_digital_WD1004A-27X.bin"
+#define WD1004A_27X_BIOS_FILE	"roms/hdd/st506/western_digital_WD1004A-27X.bin"
 
 
 #define ST506_TIME		(250 * TIMER_USEC)
@@ -369,7 +369,7 @@ get_sector(hdc_t *dev, drive_t *drive, off64_t *addr)
     }
 
     *addr = ((((off64_t)dev->cylinder * drive->cfg_hpc) + dev->head) * drive->cfg_spt) + dev->sector;
-	
+
     return(1);
 }
 
@@ -619,7 +619,7 @@ st506_callback(void *priv)
 				st506_complete(dev);
 				break;
 		}
-		break;			       
+		break;
 
 	case CMD_GET_GEOMETRY_ST11:	/* "Get geometry" is really "Read cylinder 0" */
 		if ((dev->type < 11) || (dev->type > 12)) {
@@ -1115,7 +1115,7 @@ st506_read(uint16_t port, void *priv)
 				dev->status = 0x00;
 				dev->state = STATE_IDLE;
 				break;
-			
+
 			case STATE_SEND_DATA:
 				ret = dev->buff[dev->buff_pos++];
 				if (dev->buff_pos == dev->buff_cnt) {
@@ -1305,7 +1305,7 @@ mem_read(uint32_t addr, void *priv)
  * standard 'rom_init' function here.
  */
 static void
-loadrom(hdc_t *dev, const wchar_t *fn)
+loadrom(hdc_t *dev, const char *fn)
 {
     uint32_t size;
     FILE *fp;
@@ -1317,8 +1317,8 @@ loadrom(hdc_t *dev, const wchar_t *fn)
 	return;
     }
 
-    if ((fp = rom_fopen((wchar_t *) fn, L"rb")) == NULL) {
-	st506_xt_log("ST506: BIOS ROM '%ls' not found!\n", fn);
+    if ((fp = rom_fopen((char *) fn, "rb")) == NULL) {
+	st506_xt_log("ST506: BIOS ROM '%s' not found!\n", fn);
 	return;
     }
 
@@ -1349,7 +1349,7 @@ loadrom(hdc_t *dev, const wchar_t *fn)
 
 
 static void
-loadhd(hdc_t *dev, int c, int d, const wchar_t *fn)
+loadhd(hdc_t *dev, int c, int d, const char *fn)
 {
     drive_t *drive = &dev->drives[c];
 
@@ -1357,7 +1357,7 @@ loadhd(hdc_t *dev, int c, int d, const wchar_t *fn)
 	drive->present = 0;
 	return;
     }
-	
+
     /* Make sure we can do this. */
     /* Allow 31 sectors per track on RLL controllers, for the
        ST225R, which is 667/2/31. */
@@ -1423,7 +1423,7 @@ set_switches(hdc_t *dev)
 static void *
 st506_init(const device_t *info)
 {
-    wchar_t *fn = NULL;
+    char *fn = NULL;
     hdc_t *dev;
     int i, c;
 
@@ -1531,7 +1531,7 @@ st506_init(const device_t *info)
 #endif
     for (c = 0, i = 0; i < HDD_NUM; i++) {
 	if ((hdd[i].bus == HDD_BUS_MFM) && (hdd[i].mfm_channel < MFM_NUM)) {
-		st506_xt_log("ST506: disk '%ls' on channel %i\n",
+		st506_xt_log("ST506: disk '%s' on channel %i\n",
 			     hdd[i].fn, hdd[i].mfm_channel);
 		loadhd(dev, hdd[i].mfm_channel, i, hdd[i].fn);
 
@@ -1614,280 +1614,452 @@ wd1002a_27x_available(void)
     return(rom_present(WD1002A_27X_BIOS_FILE));
 }
 
+static int
+wd1004a_wx1_available(void)
+{
+    return(rom_present(WD1004A_WX1_BIOS_FILE));
+}
 
+static int
+wd1004_27x_available(void)
+{
+    return(rom_present(WD1004_27X_BIOS_FILE));
+}
+
+static int
+wd1004a_27x_available(void)
+{
+    return(rom_present(WD1004A_27X_BIOS_FILE));
+}
+
+// clang-format off
 static const device_config_t dtc_config[] = {
     {
-	"bios_addr", "BIOS address", CONFIG_HEX20, "", 0xc8000,
-	{
-		{
-			"Disabled", 0x00000
-		},
-		{
-			"C800H", 0xc8000
-		},
-		{
-			"CA00H", 0xca000
-		},
-		{
-			"D800H", 0xd8000
-		},
-		{
-			"F400H", 0xf4000
-		},
-		{
-			""
-		}
-	}
+        .name = "bios_addr",
+        .description = "BIOS address",
+        .type = CONFIG_HEX20,
+        .default_string = "",
+        .default_int = 0xc8000,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "Disabled", .value = 0x00000 },
+            { .description = "C800H",    .value = 0xc8000 },
+            { .description = "CA00H",    .value = 0xca000 },
+            { .description = "D800H",    .value = 0xd8000 },
+            { .description = "F400H",    .value = 0xf4000 },
+            { .description = ""                           }
+        }
     },
-    {
-	"", "", -1
-    }
+    { .name = "", .description = "", .type = CONFIG_END }
 };
 
 static const device_config_t st11_config[] = {
     {
-	"base", "Address", CONFIG_HEX16, "", 0x0320,
-	{
-		{
-			"320H", 0x0320
-		},
-		{
-			"324H", 0x0324
-		},
-		{
-			"328H", 0x0328
-		},
-		{
-			"32CH", 0x032c
-		},
-		{
-			""
-		}
-	}
+        .name = "base",
+        .description = "Address",
+        .type = CONFIG_HEX16,
+        .default_string = "",
+        .default_int = 0x0320,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "320H", .value = 0x0320 },
+            { .description = "324H", .value = 0x0324 },
+            { .description = "328H", .value = 0x0328 },
+            { .description = "32CH", .value = 0x032c },
+            { .description = ""                      }
+        }
     },
     {
-	"irq", "IRQ", CONFIG_SELECTION, "", 5,
-	{
-		{
-			"IRQ 2", 2
-		},
-		{
-			"IRQ 5", 5
-		},
-		{
-			""
-		}
-	}
+        .name = "irq",
+        .description = "IRQ",
+        .type = CONFIG_SELECTION,
+        .default_string = "",
+        .default_int = 5,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "IRQ 2", .value = 2 },
+            { .description = "IRQ 5", .value = 5 },
+            { .description = ""                  }
+        }
     },
     {
-	"bios_addr", "BIOS address", CONFIG_HEX20, "", 0xc8000,
-	{
-		{
-			"Disabled", 0x00000
-		},
-		{
-			"C800H", 0xc8000
-		},
-		{
-			"D000H", 0xd0000
-		},
-		{
-			"D800H", 0xd8000
-		},
-		{
-			"E000H", 0xe0000
-		},
-		{
-			""
-		}
-	}
+        .name = "bios_addr",
+        .description = "BIOS address",
+        .type = CONFIG_HEX20,
+        .default_string = "",
+        .default_int = 0xc8000,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "Disabled", .value = 0x00000 },
+            { .description = "C800H",    .value = 0xc8000 },
+            { .description = "D000H",    .value = 0xd0000 },
+            { .description = "D800H",    .value = 0xd8000 },
+            { .description = "E000H",    .value = 0xe0000 },
+            { .description = ""                           }
+        }
     },
     {
-	"revision", "Board Revision", CONFIG_SELECTION, "", 19,
-	{
-		{
-			"Rev. 05 (v1.7)", 5
-		},
-		{
-			"Rev. 19 (v2.0)", 19
-		},
-		{
-			""
-		}
-	}
+        .name = "revision",
+        .description = "Board Revision",
+        .type = CONFIG_SELECTION,
+        .default_string = "",
+        .default_int = 19,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "Rev. 05 (v1.7)", .value =  5 },
+            { .description = "Rev. 19 (v2.0)", .value = 19 },
+            { .description = ""                            }
+        }
     },
-    {
-	"", "", -1
-    }
+    { .name = "", .description = "", .type = CONFIG_END }
 };
 
 static const device_config_t wd_config[] = {
     {
-	"bios_addr", "BIOS address", CONFIG_HEX20, "", 0xc8000,
-	{
-		{
-			"Disabled", 0x00000
-		},
-		{
-			"C800H", 0xc8000
-		},
-		{
-			""
-		}
-	}
+        .name = "bios_addr",
+        .description = "BIOS address",
+        .type = CONFIG_HEX20,
+        .default_string = "",
+        .default_int = 0xc8000,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "Disabled", .value = 0x00000 },
+            { .description = "C800H",    .value = 0xc8000 },
+            { .description = ""                           }
+        }
     },
     {
-	"base", "Address", CONFIG_HEX16, "", 0x0320,
-	{
-		{
-			"320H", 0x0320
-		},
-		{
-			"324H", 0x0324
-		},
-		{
-			""
-		}
-	}
+        .name = "base",
+        .description = "Address",
+        .type = CONFIG_HEX16,
+        .default_string = "",
+        .default_int = 0x0320,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "320H", .value = 0x0320 },
+            { .description = "324H", .value = 0x0324 },
+            { .description = ""                      }
+        }
     },
     {
-	"irq", "IRQ", CONFIG_SELECTION, "", 5,
-	{
-		{
-			"IRQ 2", 2
-		},
-		{
-			"IRQ 5", 5
-		},
-		{
-			""
-		}
-	}
+        .name = "irq",
+        .description = "IRQ",
+        .type = CONFIG_SELECTION,
+        .default_string = "",
+        .default_int = 5,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "IRQ 2", .value = 2 },
+            { .description = "IRQ 5", .value = 5 },
+            { .description = ""                  }
+        }
     },
-    {
-	"", "", -1
-    }
+    { .name = "", .description = "", .type = CONFIG_END }
 };
 
 static const device_config_t wd_rll_config[] = {
     {
-	"bios_addr", "BIOS address", CONFIG_HEX20, "", 0xc8000,
-	{
-		{
-			"Disabled", 0x00000
-		},
-		{
-			"C800H", 0xc8000
-		},
-		{
-			""
-		}
-	}
+        .name = "bios_addr",
+        .description = "BIOS address",
+        .type = CONFIG_HEX20,
+        .default_string = "",
+        .default_int = 0xc8000,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "Disabled", .value = 0x00000 },
+            { .description = "C800H",    .value = 0xc8000 },
+            { .description = ""                           }
+        }
     },
     {
-	"base", "Address", CONFIG_HEX16, "", 0x0320,
-	{
-		{
-			"320H", 0x0320
-		},
-		{
-			"324H", 0x0324
-		},
-		{
-			""
-		}
-	}
+        .name = "base",
+        .description = "Address",
+        .type = CONFIG_HEX16,
+        .default_string = "",
+        .default_int = 0x0320,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "320H", .value = 0x0320 },
+            { .description = "324H", .value = 0x0324 },
+            { .description = ""                      }
+        }
     },
     {
-	"irq", "IRQ", CONFIG_SELECTION, "", 5,
-	{
-		{
-			"IRQ 2", 2
-		},
-		{
-			"IRQ 5", 5
-		},
-		{
-			""
-		}
-	}
+        .name = "irq",
+        .description = "IRQ",
+        .type = CONFIG_SELECTION,
+        .default_string = "",
+        .default_int = 5,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "IRQ 2", .value = 2 },
+            { .description = "IRQ 5", .value = 5 },
+            { .description = ""                  }
+        }
     },
     {
-	"translate", "Translate 26 -> 17", CONFIG_SELECTION, "", 0,
-	{
-		{
-			"Off", 0
-		},
-		{
-			"On", 1
-		},
-		{
-			""
-		}
-	}
+        .name = "translate",
+        .description = "Translate 26 -> 17",
+        .type = CONFIG_SELECTION,
+        .default_string = "",
+        .default_int = 0,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "Off", .value = 0 },
+            { .description = "On",  .value = 1 },
+            { .description = ""                }
+        }
     },
-    {
-	"", "", -1
-    }
+    { .name = "", .description = "", .type = CONFIG_END }
 };
 
+static const device_config_t wd1004a_config[] = {
+    {
+        .name = "bios_addr",
+        .description = "BIOS address",
+        .type = CONFIG_HEX20,
+        .default_string = "",
+        .default_int = 0xc8000,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "Disabled", .value = 0x00000 },
+            { .description = "C800H",    .value = 0xc8000 },
+            { .description = ""                           }
+        }
+    },
+    {
+        .name = "base",
+        .description = "Address",
+        .type = CONFIG_HEX16,
+        .default_string = "",
+        .default_int = 0x0320,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "320H", .value = 0x0320 },
+            { .description = "324H", .value = 0x0324 },
+            { .description = ""                      }
+        }
+    },
+    {
+        .name = "irq",
+        .description = "IRQ",
+        .type = CONFIG_SELECTION,
+        .default_string = "",
+        .default_int = 5,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "IRQ 2", .value = 2 },
+            { .description = "IRQ 5", .value = 5 },
+            { .description = ""                  }
+        }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+};
+
+static const device_config_t wd1004_rll_config[] = {
+    {
+        .name = "bios_addr",
+        .description = "BIOS address",
+        .type = CONFIG_HEX20,
+        .default_string = "",
+        .default_int = 0xc8000,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "Disabled", .value = 0x00000 },
+            { .description = "C800H",    .value = 0xc8000 },
+            { .description = "CA00H",    .value = 0xca000 },
+            { .description = "CC00H",    .value = 0xcc000 },
+            { .description = "CE00H",    .value = 0xce000 },
+            { .description = ""                           }
+        }
+    },
+    {
+        .name = "base",
+        .description = "Address",
+        .type = CONFIG_HEX16,
+        .default_string = "",
+        .default_int = 0x0320,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "320H", .value = 0x0320 },
+            { .description = "324H", .value = 0x0324 },
+            { .description = "328H", .value = 0x0328 },
+            { .description = "32CH", .value = 0x032c },
+            { .description = ""                      }
+        }
+    },
+    {
+        .name = "irq",
+        .description = "IRQ",
+        .type = CONFIG_SELECTION,
+        .default_string = "",
+        .default_int = 5,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "IRQ 2", .value = 2 },
+            { .description = "IRQ 5", .value = 5 },
+            { .description = ""                  }
+        }
+    },
+    {
+        .name = "translate",
+        .description = "Translate 26 -> 17",
+        .type = CONFIG_SELECTION,
+        .default_string = "",
+        .default_int = 0,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "Off", .value = 0 },
+            { .description = "On",  .value = 1 },
+            { .description = ""                }
+        }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+};
+
+// clang-format on
 
 const device_t st506_xt_xebec_device = {
-    "IBM PC Fixed Disk Adapter",
-    DEVICE_ISA,
-    (HDD_BUS_MFM << 8) | 0,
-    st506_init, st506_close, NULL,
-    xebec_available,
-    NULL, NULL,
-    NULL
+    .name = "IBM PC Fixed Disk Adapter (MFM)",
+    .internal_name = "st506_xt",
+    .flags = DEVICE_ISA,
+    .local = (HDD_BUS_MFM << 8) | 0,
+    .init = st506_init,
+    .close = st506_close,
+    .reset = NULL,
+    { .available = xebec_available },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
 const device_t st506_xt_dtc5150x_device = {
-    "DTC 5150X Fixed Disk Adapter",
-    DEVICE_ISA,
-    (HDD_BUS_MFM << 8) | 1,
-    st506_init, st506_close, NULL,
-    dtc5150x_available,
-    NULL, NULL,
-    dtc_config
+    .name = "DTC 5150X MFM Fixed Disk Adapter",
+    .internal_name = "st506_xt_dtc5150x",
+    .flags = DEVICE_ISA,
+    .local = (HDD_BUS_MFM << 8) | 1,
+    .init = st506_init,
+    .close = st506_close,
+    .reset = NULL,
+    { .available = dtc5150x_available },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = dtc_config
 };
 
 const device_t st506_xt_st11_m_device = {
-    "ST-11M Fixed Disk Adapter",
-    DEVICE_ISA,
-    (HDD_BUS_MFM << 8) | 11,
-    st506_init, st506_close, NULL,
-    st11_m_available,
-    NULL, NULL,
-    st11_config
+    .name = "ST-11M MFM Fixed Disk Adapter",
+    .internal_name = "st506_xt_st11_m",
+    .flags = DEVICE_ISA,
+    .local = (HDD_BUS_MFM << 8) | 11,
+    .init = st506_init,
+    .close = st506_close,
+    .reset = NULL,
+    { .available = st11_m_available },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = st11_config
 };
 
 const device_t st506_xt_st11_r_device = {
-    "ST-11R RLL Fixed Disk Adapter",
-    DEVICE_ISA,
-    (HDD_BUS_MFM << 8) | 12,
-    st506_init, st506_close, NULL,
-    st11_r_available,
-    NULL, NULL,
-    st11_config
+    .name = "ST-11R RLL Fixed Disk Adapter",
+    .internal_name = "st506_xt_st11_r",
+    .flags = DEVICE_ISA,
+    .local = (HDD_BUS_MFM << 8) | 12,
+    .init = st506_init,
+    .close = st506_close,
+    .reset = NULL,
+    { .available = st11_r_available },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = st11_config
 };
 
 const device_t st506_xt_wd1002a_wx1_device = {
-    "WD1002A-WX1 Fixed Disk Adapter",
-    DEVICE_ISA,
-    (HDD_BUS_MFM << 8) | 21,
-    st506_init, st506_close, NULL,
-    wd1002a_wx1_available,
-    NULL, NULL,
-    wd_config
+    .name = "WD1002A-WX1 MFM Fixed Disk Adapter",
+    .internal_name = "st506_xt_wd1002a_wx1",
+    .flags = DEVICE_ISA,
+    .local = (HDD_BUS_MFM << 8) | 21,
+    .init = st506_init,
+    .close = st506_close,
+    .reset = NULL,
+    { .available = wd1002a_wx1_available },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = wd_config
 };
 
 const device_t st506_xt_wd1002a_27x_device = {
-    "WD1002A-27X RLL Fixed Disk Adapter",
-    DEVICE_ISA,
-    (HDD_BUS_MFM << 8) | 22,
-    st506_init, st506_close, NULL,
-    wd1002a_27x_available,
-    NULL, NULL,
-    wd_rll_config
+    .name = "WD1002A-27X RLL Fixed Disk Adapter",
+    .internal_name = "st506_xt_wd1002a_27x",
+    .flags = DEVICE_ISA,
+    .local = (HDD_BUS_MFM << 8) | 22,
+    .init = st506_init,
+    .close = st506_close,
+    .reset = NULL,
+    { .available = wd1002a_27x_available },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = wd_rll_config
+};
+
+const device_t st506_xt_wd1004a_wx1_device = {
+    .name = "WD1004A-WX1 MFM Fixed Disk Adapter",
+    .internal_name = "st506_xt_wd1004a_wx1",
+    .flags = DEVICE_ISA,
+    .local = (HDD_BUS_MFM << 8) | 21,
+    .init = st506_init,
+    .close = st506_close,
+    .reset = NULL,
+    { wd1004a_wx1_available },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = wd1004a_config
+};
+
+const device_t st506_xt_wd1004_27x_device = {
+    .name = "WD1004-27X RLL Fixed Disk Adapter",
+    .internal_name = "st506_xt_wd1004_27x",
+    .flags = DEVICE_ISA,
+    .local = (HDD_BUS_MFM << 8) | 22,
+    .init = st506_init,
+    .close = st506_close,
+    .reset = NULL,
+    { .available = wd1004_27x_available },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = wd1004_rll_config
+};
+
+const device_t st506_xt_wd1004a_27x_device = {
+    .name = "WD1004a-27X RLL Fixed Disk Adapter",
+    .internal_name = "st506_xt_wd1004a_27x",
+    .flags = DEVICE_ISA,
+    .local = (HDD_BUS_MFM << 8) | 22,
+    .init = st506_init,
+    .close = st506_close,
+    .reset = NULL,
+    { .available = wd1004a_27x_available },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = wd_rll_config
 };

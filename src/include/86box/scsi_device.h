@@ -16,13 +16,17 @@
  *		Copyright 2016-2019 Miran Grca.
  *		Copyright 2017-2019 Fred N. van Kempen.
  */
+
 #ifndef SCSI_DEVICE_H
 # define SCSI_DEVICE_H
 
-
 /* Configuration. */
+#define SCSI_BUS_MAX		4		/* currently we support up to 4 controllers */
+
 #define SCSI_ID_MAX		16		/* 16 on wide buses */
 #define SCSI_LUN_MAX		8		/* always 8 */
+
+#define SCSI_LUN_USE_CDB	0xff
 
 #ifdef WALTJE
 #define SCSI_TIME	50.0
@@ -193,8 +197,8 @@
 #define CD_FRAMES                     75 /* frames per second */
 #define CD_FRAMESIZE                2048 /* bytes per frame, "cooked" mode */
 #define CD_MAX_BYTES       (CD_MINS * CD_SECS * CD_FRAMES * CD_FRAMESIZE)
-#define CD_MAX_SECTORS     (CD_MAX_BYTES / 512)	
-	
+#define CD_MAX_SECTORS     (CD_MAX_BYTES / 512)
+
 /* Event notification classes for GET EVENT STATUS NOTIFICATION */
 #define GESN_NO_EVENTS                0
 #define GESN_OPERATIONAL_CHANGE       1
@@ -320,7 +324,7 @@ typedef struct scsi_common_s {
 
     uint8_t status, phase,
 	    error, id,
-	    features, pad,
+	    features, cur_lun,
 	    pad0, pad1;
 
     uint16_t request_length, max_transfer_len;
@@ -336,7 +340,7 @@ typedef struct scsi_common_s {
     double callback;
 } scsi_common_t;
 
-typedef struct {	
+typedef struct {
     int32_t	buffer_length;
 
     uint8_t	status, phase;
@@ -357,7 +361,7 @@ typedef struct {
 #define SCSI_REMOVABLE_DISK 0x8000
 #define SCSI_REMOVABLE_CDROM 0x8005
 
-extern scsi_device_t	scsi_devices[SCSI_ID_MAX];
+extern scsi_device_t	scsi_devices[SCSI_BUS_MAX][SCSI_ID_MAX];
 
 
 extern int	cdrom_add_error_and_subchannel(uint8_t *b, int real_sector_type);
@@ -378,6 +382,11 @@ extern int	scsi_device_cdb_length(scsi_device_t *dev);
 extern void	scsi_device_command_phase0(scsi_device_t *dev, uint8_t *cdb);
 extern void	scsi_device_command_phase1(scsi_device_t *dev);
 extern void	scsi_device_command_stop(scsi_device_t *dev);
+extern void	scsi_device_identify(scsi_device_t *dev, uint8_t lun);
 extern void	scsi_device_close_all(void);
+extern void	scsi_device_init(void);
+
+extern void	scsi_reset(void);
+extern uint8_t	scsi_get_bus(void);
 
 #endif	/*SCSI_DEVICE_H*/

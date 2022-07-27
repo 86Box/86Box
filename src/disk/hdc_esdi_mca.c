@@ -86,15 +86,15 @@
 #define ESDI_IOADDR_SEC	0x3518
 #define ESDI_IRQCHAN	14
 
-#define BIOS_FILE_L	L"roms/hdd/esdi/90x8969.bin"
-#define BIOS_FILE_H	L"roms/hdd/esdi/90x8970.bin"
+#define BIOS_FILE_L	"roms/hdd/esdi/90x8969.bin"
+#define BIOS_FILE_H	"roms/hdd/esdi/90x8970.bin"
 
 
-#define ESDI_TIME	(200*TIMER_USEC)
+#define ESDI_TIME	512
 #define CMD_ADAPTER	0
 
 
-typedef struct esdi_drive {
+typedef struct esdi_drive_t {
     int spt, hpc;
     int tracks;
     int sectors;
@@ -102,12 +102,12 @@ typedef struct esdi_drive {
     int hdd_num;
 } drive_t;
 
-typedef struct esdi {
+typedef struct esdi_t {
     int8_t	dma;
 
     uint32_t	bios;
     rom_t	bios_rom;
-       
+
     uint8_t	basic_ctrl;
     uint8_t	status;
     uint8_t	irq_status;
@@ -129,20 +129,20 @@ typedef struct esdi {
 
     int		sector_pos;
     int		sector_count;
-                
+
     int		command;
     int		cmd_state;
-        
+
     int		in_reset;
     uint64_t	callback;
 	pc_timer_t timer;
-        
+
     uint32_t	rba;
-        
+
     struct {
         int req_in_progress;
     }		cmds[3];
-        
+
     drive_t	drives[2];
 
     uint8_t	pos_regs[8];
@@ -240,10 +240,10 @@ esdi_mca_set_callback(esdi_t *dev, uint64_t callback)
 
     if (callback) {
 	dev->callback = callback;
-	timer_set_delay_u64(&dev->timer, dev->callback);
+	timer_on_auto(&dev->timer, dev->callback);
 	} else {
 	dev->callback = 0;
-	timer_disable(&dev->timer);
+	timer_stop(&dev->timer);
 	}
 }
 
@@ -279,8 +279,8 @@ device_not_present(esdi_t *dev)
     dev->status_data[3] = 0;
     dev->status_data[4] = 0;
     dev->status_data[5] = 0;
-    dev->status_data[6] = 0;                        
-    dev->status_data[7] = 0;                       
+    dev->status_data[6] = 0;
+    dev->status_data[7] = 0;
     dev->status_data[8] = 0;
 
     dev->status = STATUS_IRQ | STATUS_STATUS_OUT_FULL;
@@ -300,8 +300,8 @@ rba_out_of_range(esdi_t *dev)
     dev->status_data[3] = 0;
     dev->status_data[4] = 0;
     dev->status_data[5] = 0;
-    dev->status_data[6] = 0;                        
-    dev->status_data[7] = 0;                       
+    dev->status_data[6] = 0;
+    dev->status_data[7] = 0;
     dev->status_data[8] = 0;
 
     dev->status = STATUS_IRQ | STATUS_STATUS_OUT_FULL;
@@ -348,7 +348,7 @@ complete_command_status(esdi_t *dev)
                 else                                      \
                         drive = &dev->drives[1];          \
         } while (0)
-                
+
 
 static void
 esdi_callback(void *priv)
@@ -393,12 +393,12 @@ esdi_callback(void *priv)
                         	dev->irq_status = dev->cmd_dev | IRQ_DATA_TRANSFER_READY;
                         	dev->irq_in_progress = 1;
                         	set_irq(dev);
-                        
+
                         	dev->cmd_state = 1;
                         	esdi_mca_set_callback(dev, ESDI_TIME);
                         	dev->data_pos = 0;
                         	break;
-                        
+
                         case 1:
                         	if (!(dev->basic_ctrl & CTRL_DMA_ENA)) {
                                 	esdi_mca_set_callback(dev, ESDI_TIME);
@@ -415,7 +415,7 @@ esdi_callback(void *priv)
 
                                 	while (dev->data_pos < 256) {
                                         	val = dma_channel_write(dev->dma, dev->data[dev->data_pos]);
-                                
+
                                         	if (val == DMA_NODATA) {
                                                 	esdi_mca_set_callback(dev, ESDI_TIME);
                                                 	return;
@@ -451,7 +451,7 @@ esdi_callback(void *priv)
                         device_not_present(dev);
                         return;
                 }
-                
+
                 switch (dev->cmd_state) {
                         case 0:
                         	dev->rba = (dev->cmd_data[2] | (dev->cmd_data[3] << 16)) & 0x0fffffff;
@@ -468,7 +468,7 @@ esdi_callback(void *priv)
                         	dev->irq_status = dev->cmd_dev | IRQ_DATA_TRANSFER_READY;
                         	dev->irq_in_progress = 1;
                         	set_irq(dev);
-                        
+
                         	dev->cmd_state = 1;
                         	esdi_mca_set_callback(dev, ESDI_TIME);
                         	dev->data_pos = 0;
@@ -483,7 +483,7 @@ esdi_callback(void *priv)
 				while (dev->sector_pos < dev->sector_count) {
                                 	while (dev->data_pos < 256) {
 	                                        val = dma_channel_read(dev->dma);
-                                
+
                                         	if (val == DMA_NODATA) {
                                                 	esdi_mca_set_callback(dev, ESDI_TIME);
                                                 	return;
@@ -651,7 +651,7 @@ esdi_callback(void *priv)
                         	esdi_mca_set_callback(dev, ESDI_TIME);
                         	dev->data_pos = 0;
                         	break;
-                        
+
                         case 1:
                         	if (! (dev->basic_ctrl & CTRL_DMA_ENA)) {
                                 	esdi_mca_set_callback(dev, ESDI_TIME);
@@ -660,7 +660,7 @@ esdi_callback(void *priv)
                         	while (dev->sector_pos < dev->sector_count) {
                                 	while (dev->data_pos < 256) {
                                         	val = dma_channel_read(dev->dma);
-                                
+
                                         	if (val == DMA_NODATA) {
                                                 	esdi_mca_set_callback(dev, ESDI_TIME);
                                                 	return;
@@ -717,7 +717,7 @@ esdi_callback(void *priv)
                                         	memcpy(dev->data, dev->sector_buffer[dev->sector_pos++], 512);
                                 	while (dev->data_pos < 256) {
                                         	val = dma_channel_write(dev->dma, dev->data[dev->data_pos]);
-                                
+
                                         	if (val == DMA_NODATA) {
                                                 	esdi_mca_set_callback(dev, ESDI_TIME);
                                                 	return;
@@ -733,7 +733,7 @@ esdi_callback(void *priv)
                         	dev->cmd_state = 2;
                         	esdi_mca_set_callback(dev, ESDI_TIME);
                         	break;
- 
+
                         case 2:
 				dev->status = STATUS_IRQ;
 				dev->irq_status = IRQ_HOST_ADAPTER | IRQ_CMD_COMPLETE_SUCCESS;
@@ -766,41 +766,41 @@ esdi_callback(void *priv)
                         device_not_present(dev);
                         return;
                 }
-               
+
                 switch (dev->cmd_state) {
                         case 0:
                             dev->rba = (dev->cmd_data[2] | (dev->cmd_data[3] << 16)) & 0x0fffffff;
- 
+
                             dev->sector_count = dev->cmd_data[1];
- 
+
                             if ((dev->rba + dev->sector_count) > hdd_image_get_last_sector(drive->hdd_num)) {
                                     rba_out_of_range(dev);
                                     return;
                             }
- 
+
                             dev->status = STATUS_IRQ | STATUS_CMD_IN_PROGRESS | STATUS_TRANSFER_REQ;
                             dev->irq_status = dev->cmd_dev | IRQ_DATA_TRANSFER_READY;
                             dev->irq_in_progress = 1;
                             set_irq(dev);
-                       
+
                             dev->cmd_state = 1;
                             esdi_mca_set_callback(dev, ESDI_TIME);
                             break;
-                       
+
                         case 1:
                             if (!(dev->basic_ctrl & CTRL_DMA_ENA)) {
                                     esdi_mca_set_callback(dev, ESDI_TIME);
                                     return;
                             }
- 
+
                             hdd_image_zero(drive->hdd_num, dev->rba, dev->sector_count);
                             ui_sb_update_icon(SB_HDD | HDD_BUS_ESDI, 1);
- 
+
                             dev->status = STATUS_CMD_IN_PROGRESS;
                             dev->cmd_state = 2;
                             esdi_mca_set_callback(dev, ESDI_TIME);
                             break;
- 
+
                         case 2:
                             complete_command_status(dev);
                             dev->status = STATUS_IRQ | STATUS_STATUS_OUT_FULL;
@@ -824,11 +824,11 @@ esdi_read(uint16_t port, void *priv)
     uint8_t ret = 0xff;
 
     switch (port & 7) {
-	case 2:					/*Basic status register*/
+	case 2: /*Basic status register*/
 		ret = dev->status;
 		break;
 
-	case 3:					/*IRQ status*/
+	case 3: /*IRQ status*/
 		dev->status &= ~STATUS_IRQ;
 		ret = dev->irq_status;
 		break;
@@ -886,7 +886,7 @@ esdi_write(uint16_t port, uint8_t val, void *priv)
                                			esdi_mca_set_callback(dev, ESDI_TIME * 50);
                                			dev->status = STATUS_BUSY;
                                			break;
-                               
+
                                		default:
                                			fatal("Bad attention request %02x\n", val);
                        		}
@@ -903,13 +903,13 @@ esdi_write(uint16_t port, uint8_t val, void *priv)
                                			dev->cmd_pos = 0;
                                 		dev->status_pos = 0;
                                			break;
-          
+
                                		case ATTN_EOI:
                                			dev->irq_in_progress = 0;
                                			dev->status &= ~STATUS_IRQ;
                                			clear_irq(dev);
                                			break;
-    
+
                                		default:
                                			fatal("Bad attention request %02x\n", val);
                        		}
@@ -932,7 +932,7 @@ esdi_write(uint16_t port, uint8_t val, void *priv)
                                			dev->status &= ~STATUS_IRQ;
                                			clear_irq(dev);
                                			break;
-     
+
                                		default:
                                			fatal("Bad attention request %02x\n", val);
                        		}
@@ -968,7 +968,7 @@ esdi_readw(uint16_t port, void *priv)
 	default:
 		fatal("esdi_readw port=%04x\n", port);
     }
-        
+
     return(ret);
 }
 
@@ -1178,10 +1178,16 @@ esdi_available(void)
     return(rom_present(BIOS_FILE_L) && rom_present(BIOS_FILE_H));
 }
 
-
 const device_t esdi_ps2_device = {
-    "IBM ESDI Fixed Disk Adapter (MCA)",
-    DEVICE_MCA, 0,
-    esdi_init, esdi_close, NULL,
-    esdi_available, NULL, NULL, NULL
+    .name = "IBM PS/2 ESDI Fixed Disk Adapter (MCA)",
+    .internal_name = "esdi_mca",
+    .flags = DEVICE_MCA,
+    .local = 0,
+    .init = esdi_init,
+    .close = esdi_close,
+    .reset = NULL,
+    { .available = esdi_available },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
