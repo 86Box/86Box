@@ -16,7 +16,7 @@
  */
 
 #ifndef VIDEO_VOODOO_BLITTER_H
-# define VIDEO_VOODOO_BLITTER_H
+#define VIDEO_VOODOO_BLITTER_H
 
 void voodoo_v2_blit_start(voodoo_t *voodoo);
 void voodoo_v2_blit_data(voodoo_t *voodoo, uint32_t data);

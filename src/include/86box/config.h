@@ -20,8 +20,7 @@
  *		Copyright 2017 Fred N. van Kempen.
  */
 #ifndef EMU_CONFIG_H
-# define EMU_CONFIG_H
-
+#define EMU_CONFIG_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -69,16 +68,16 @@ typedef struct {
 			window_x,
 			window_y,
 			sound_gain;			/* Sound gain */
-#ifdef USE_LANGUAGE
+#    ifdef USE_LANGUAGE
     uint16_t		language_id;			/* Language ID (0x0409 = English (US)) */
-#endif
+#    endif
 
     /* Machine cateogory */
     int			machine,			/* Machine */
 			cpu,				/* CPU */
-#ifdef USE_DYNAREC
+#    ifdef USE_DYNAREC
 			cpu_use_dynarec,		/* CPU recompiler enabled */
-#endif
+#    endif
 			wait_states,			/* CPU wait states */
 			enable_external_fpu,		/* FPU enabled */
 			time_sync;			/* Time sync enabled */
@@ -109,9 +108,9 @@ typedef struct {
 
     /* Ports category */
     char		parallel_devices[PARALLEL_MAX][32];	/* LPT device names */
-#ifdef USE_SERIAL_DEVICES
+#    ifdef USE_SERIAL_DEVICES
     char		serial_devices[SERIAL_MAX][32];		/* Serial device names */
-#endif
+#    endif
     int			serial_enabled[SERIAL_MAX],		/* Serial ports 1, 2, 3, 4 enabled */
 			parallel_enabled[PARALLEL_MAX];		/* LPT1, LPT2, LPT3, LPT4 enabled */
 
@@ -137,33 +136,32 @@ typedef struct {
 } config_t;
 #endif
 
-extern void	config_load(void);
-extern void	config_save(void);
-extern void	config_write(char *fn);
-extern void	config_dump(void);
+extern void config_load(void);
+extern void config_save(void);
+extern void config_write(char *fn);
+extern void config_dump(void);
 
-extern void	config_delete_var(char *head, char *name);
-extern int	config_get_int(char *head, char *name, int def);
-extern double	config_get_double(char *head, char *name, double def);
-extern int	config_get_hex16(char *head, char *name, int def);
-extern int	config_get_hex20(char *head, char *name, int def);
-extern int	config_get_mac(char *head, char *name, int def);
-extern char	*config_get_string(char *head, char *name, char *def);
-extern wchar_t	*config_get_wstring(char *head, char *name, wchar_t *def);
-extern void	config_set_int(char *head, char *name, int val);
-extern void	config_set_double(char *head, char *name, double val);
-extern void	config_set_hex16(char *head, char *name, int val);
-extern void	config_set_hex20(char *head, char *name, int val);
-extern void	config_set_mac(char *head, char *name, int val);
-extern void	config_set_string(char *head, char *name, char *val);
-extern void	config_set_wstring(char *head, char *name, wchar_t *val);
+extern void     config_delete_var(char *head, char *name);
+extern int      config_get_int(char *head, char *name, int def);
+extern double   config_get_double(char *head, char *name, double def);
+extern int      config_get_hex16(char *head, char *name, int def);
+extern int      config_get_hex20(char *head, char *name, int def);
+extern int      config_get_mac(char *head, char *name, int def);
+extern char    *config_get_string(char *head, char *name, char *def);
+extern wchar_t *config_get_wstring(char *head, char *name, wchar_t *def);
+extern void     config_set_int(char *head, char *name, int val);
+extern void     config_set_double(char *head, char *name, double val);
+extern void     config_set_hex16(char *head, char *name, int val);
+extern void     config_set_hex20(char *head, char *name, int val);
+extern void     config_set_mac(char *head, char *name, int val);
+extern void     config_set_string(char *head, char *name, char *val);
+extern void     config_set_wstring(char *head, char *name, wchar_t *val);
 
-extern void *	config_find_section(char *name);
-extern void	config_rename_section(void *priv, char *name);
+extern void *config_find_section(char *name);
+extern void  config_rename_section(void *priv, char *name);
 
 #ifdef __cplusplus
 }
 #endif
 
-
-#endif	/*EMU_CONFIG_H*/
+#endif /*EMU_CONFIG_H*/

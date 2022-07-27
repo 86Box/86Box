@@ -42,17 +42,16 @@
 #include <86box/video.h>
 #include <86box/machine.h>
 
-
 int
 machine_at_plato_init(const machine_t *model)
 {
     int ret;
 
     ret = bios_load_linear_combined("roms/machines/plato/1016ax1_.bio",
-				    "roms/machines/plato/1016ax1_.bi1", 0x1d000, 128);
+                                    "roms/machines/plato/1016ax1_.bi1", 0x1d000, 128);
 
     if (bios_only || !ret)
-	return ret;
+        return ret;
 
     machine_at_premiere_common_init(model, PCI_CAN_SWITCH_TYPE);
 
@@ -60,7 +59,6 @@ machine_at_plato_init(const machine_t *model)
 
     return ret;
 }
-
 
 int
 machine_at_ambradp90_init(const machine_t *model)
@@ -68,10 +66,10 @@ machine_at_ambradp90_init(const machine_t *model)
     int ret;
 
     ret = bios_load_linear_combined("roms/machines/ambradp90/1002AX1P.BIO",
-				    "roms/machines/ambradp90/1002AX1P.BI1", 0x1d000, 128);
+                                    "roms/machines/ambradp90/1002AX1P.BI1", 0x1d000, 128);
 
     if (bios_only || !ret)
-	return ret;
+        return ret;
 
     machine_at_premiere_common_init(model, PCI_CAN_SWITCH_TYPE);
 
@@ -80,17 +78,16 @@ machine_at_ambradp90_init(const machine_t *model)
     return ret;
 }
 
-
 int
 machine_at_430nx_init(const machine_t *model)
 {
     int ret;
 
     ret = bios_load_linear("roms/machines/430nx/IP.20",
-			   0x000e0000, 131072, 0);
+                           0x000e0000, 131072, 0);
 
     if (bios_only || !ret)
-	return ret;
+        return ret;
 
     machine_at_award_common_init(model);
 
@@ -101,17 +98,16 @@ machine_at_430nx_init(const machine_t *model)
     return ret;
 }
 
-
 int
 machine_at_acerv30_init(const machine_t *model)
 {
     int ret;
 
     ret = bios_load_linear("roms/machines/acerv30/V30R01N9.BIN",
-			   0x000e0000, 131072, 0);
+                           0x000e0000, 131072, 0);
 
     if (bios_only || !ret)
-	return ret;
+        return ret;
 
     machine_at_common_init(model);
 
@@ -132,17 +128,16 @@ machine_at_acerv30_init(const machine_t *model)
     return ret;
 }
 
-
 int
 machine_at_apollo_init(const machine_t *model)
 {
     int ret;
 
     ret = bios_load_linear("roms/machines/apollo/S728P.ROM",
-			   0x000e0000, 131072, 0);
+                           0x000e0000, 131072, 0);
 
     if (bios_only || !ret)
-	return ret;
+        return ret;
 
     machine_at_common_init_ex(model, 2);
     device_add(&ami_1995_nvr_device);
@@ -163,17 +158,16 @@ machine_at_apollo_init(const machine_t *model)
     return ret;
 }
 
-
 int
 machine_at_exp8551_init(const machine_t *model)
 {
     int ret;
 
     ret = bios_load_linear("roms/machines/exp8551/AMI20.BIO",
-			   0x000e0000, 131072, 0);
+                           0x000e0000, 131072, 0);
 
     if (bios_only || !ret)
-	return ret;
+        return ret;
 
     machine_at_common_init(model);
 
@@ -193,17 +187,16 @@ machine_at_exp8551_init(const machine_t *model)
     return ret;
 }
 
-
 int
 machine_at_zappa_init(const machine_t *model)
 {
     int ret;
 
     ret = bios_load_linear_combined("roms/machines/zappa/1006bs0_.bio",
-				    "roms/machines/zappa/1006bs0_.bi1", 0x20000, 128);
+                                    "roms/machines/zappa/1006bs0_.bi1", 0x20000, 128);
 
     if (bios_only || !ret)
-	return ret;
+        return ret;
 
     machine_at_common_init(model);
 
@@ -222,17 +215,16 @@ machine_at_zappa_init(const machine_t *model)
     return ret;
 }
 
-
 int
 machine_at_powermatev_init(const machine_t *model)
 {
     int ret;
 
     ret = bios_load_linear("roms/machines/powermatev/BIOS.ROM",
-			   0x000e0000, 131072, 0);
+                           0x000e0000, 131072, 0);
 
     if (bios_only || !ret)
-	return ret;
+        return ret;
 
     machine_at_common_init(model);
 
@@ -251,17 +243,16 @@ machine_at_powermatev_init(const machine_t *model)
     return ret;
 }
 
-
 int
 machine_at_mb500n_init(const machine_t *model)
 {
     int ret;
 
     ret = bios_load_linear("roms/machines/mb500n/031396s.bin",
-			   0x000e0000, 131072, 0);
+                           0x000e0000, 131072, 0);
 
     if (bios_only || !ret)
-	return ret;
+        return ret;
 
     machine_at_common_init(model);
 
@@ -281,17 +272,16 @@ machine_at_mb500n_init(const machine_t *model)
     return ret;
 }
 
-
 int
 machine_at_hawk_init(const machine_t *model)
 {
     int ret;
 
     ret = bios_load_linear("roms/machines/hawk/HAWK.ROM",
-			   0x000e0000, 131072, 0);
+                           0x000e0000, 131072, 0);
 
     if (bios_only || !ret)
-	return ret;
+        return ret;
 
     machine_at_common_init_ex(model, 2);
     device_add(&ami_1994_nvr_device);
@@ -311,17 +301,16 @@ machine_at_hawk_init(const machine_t *model)
     return ret;
 }
 
-
 int
 machine_at_pat54pv_init(const machine_t *model)
 {
     int ret;
 
     ret = bios_load_linear("roms/machines/pat54pv/PAT54PV.bin",
-			   0x000f0000, 65536, 0);
+                           0x000f0000, 65536, 0);
 
     if (bios_only || !ret)
-	return ret;
+        return ret;
 
     machine_at_common_init(model);
 
@@ -329,11 +318,10 @@ machine_at_pat54pv_init(const machine_t *model)
     device_add(&keyboard_ps2_intel_ami_pci_device);
 
     if (fdc_type == FDC_INTERNAL)
-    device_add(&fdc_at_device);
+        device_add(&fdc_at_device);
 
     return ret;
 }
-
 
 int
 machine_at_hot543_init(const machine_t *model)
@@ -341,10 +329,10 @@ machine_at_hot543_init(const machine_t *model)
     int ret;
 
     ret = bios_load_linear("roms/machines/hot543/543_R21.BIN",
-			   0x000e0000, 131072, 0);
+                           0x000e0000, 131072, 0);
 
     if (bios_only || !ret)
-	return ret;
+        return ret;
 
     machine_at_common_init(model);
     pci_init(PCI_CONFIG_TYPE_1);
@@ -358,11 +346,10 @@ machine_at_hot543_init(const machine_t *model)
     device_add(&keyboard_at_device);
 
     if (fdc_type == FDC_INTERNAL)
-    device_add(&fdc_at_device);
+        device_add(&fdc_at_device);
 
     return ret;
 }
-
 
 int
 machine_at_p54sp4_init(const machine_t *model)
@@ -370,16 +357,15 @@ machine_at_p54sp4_init(const machine_t *model)
     int ret;
 
     ret = bios_load_linear("roms/machines/p54sp4/SI5I0204.AWD",
-			   0x000e0000, 131072, 0);
+                           0x000e0000, 131072, 0);
 
     if (bios_only || !ret)
-	return ret;
+        return ret;
 
     machine_at_sp4_common_init(model);
 
     return ret;
 }
-
 
 int
 machine_at_sq588_init(const machine_t *model)
@@ -387,10 +373,10 @@ machine_at_sq588_init(const machine_t *model)
     int ret;
 
     ret = bios_load_linear("roms/machines/sq588/sq588b03.rom",
-			   0x000e0000, 131072, 0);
+                           0x000e0000, 131072, 0);
 
     if (bios_only || !ret)
-	return ret;
+        return ret;
 
     machine_at_common_init(model);
 

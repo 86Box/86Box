@@ -23,16 +23,16 @@
  */
 
 #ifndef VIDEO_OGC_H
-# define VIDEO_OGC_H
+#define VIDEO_OGC_H
 
 typedef struct ogc_t {
     cga_t cga;
-	/* unused in OGC, required for M19 video card structure idiom */
-    uint8_t	ctrl_3dd;
-    uint8_t	ctrl_3de;
-    uint32_t	base;
-    int		lineff;
-	int		mono_display;
+    /* unused in OGC, required for M19 video card structure idiom */
+    uint8_t  ctrl_3dd;
+    uint8_t  ctrl_3de;
+    uint32_t base;
+    int      lineff;
+    int      mono_display;
 } ogc_t;
 
 void    ogc_recalctimings(ogc_t *ogc);
@@ -44,10 +44,9 @@ void    ogc_poll(void *priv);
 void    ogc_close(void *priv);
 void    ogc_mdaattr_rebuild();
 
-
 #ifdef EMU_DEVICE_H
 extern const device_config_t ogc_config[];
-extern const device_t ogc_device;
+extern const device_t        ogc_device;
 #endif
 
 #endif /*VIDEO_OGC_H*/

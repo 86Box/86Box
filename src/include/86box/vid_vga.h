@@ -18,18 +18,17 @@
  */
 
 #ifndef VIDEO_VGA_H
-# define VIDEO_VGA_H
+#define VIDEO_VGA_H
 
-typedef struct vga_t
-{
-        svga_t svga;
+typedef struct vga_t {
+    svga_t svga;
 
-        rom_t bios_rom;
+    rom_t bios_rom;
 } vga_t;
 
-static video_timings_t timing_vga	   = {VIDEO_ISA, 8, 16, 32, 8, 16, 32};
+static video_timings_t timing_vga = { VIDEO_ISA, 8, 16, 32, 8, 16, 32 };
 
-void vga_out(uint16_t addr, uint8_t val, void *p);
+void    vga_out(uint16_t addr, uint8_t val, void *p);
 uint8_t vga_in(uint16_t addr, void *p);
 
-#endif	/*VIDEO_VGA_H*/
+#endif /*VIDEO_VGA_H*/

@@ -32,15 +32,14 @@
 #include <86box/win.h>
 #include <86box/version.h>
 
-
 void
 AboutDialogCreate(HWND hwnd)
 {
-    int i;
-    TASKDIALOGCONFIG tdconfig = {0};
+    int               i;
+    TASKDIALOGCONFIG  tdconfig    = { 0 };
     TASKDIALOG_BUTTON tdbuttons[] = {
-	{IDOK, EMU_SITE_W},
-	{IDCANCEL, MAKEINTRESOURCE(IDS_2127)}
+        {IDOK,      EMU_SITE_W               },
+        { IDCANCEL, MAKEINTRESOURCE(IDS_2127)}
     };
 
     wchar_t emu_version[256];
@@ -49,19 +48,19 @@ AboutDialogCreate(HWND hwnd)
     swprintf(&emu_version[i], sizeof(emu_version) - i, L" [%ls]", EMU_GIT_HASH_W);
 #endif
 
-    tdconfig.cbSize = sizeof(tdconfig);
-    tdconfig.hwndParent = hwnd;
-    tdconfig.hInstance = hinstance;
-    tdconfig.dwCommonButtons = 0;
-    tdconfig.pszWindowTitle = MAKEINTRESOURCE(IDS_2124);
-    tdconfig.pszMainIcon = (PCWSTR) 10;
+    tdconfig.cbSize             = sizeof(tdconfig);
+    tdconfig.hwndParent         = hwnd;
+    tdconfig.hInstance          = hinstance;
+    tdconfig.dwCommonButtons    = 0;
+    tdconfig.pszWindowTitle     = MAKEINTRESOURCE(IDS_2124);
+    tdconfig.pszMainIcon        = (PCWSTR) 10;
     tdconfig.pszMainInstruction = emu_version;
-    tdconfig.pszContent = MAKEINTRESOURCE(IDS_2126);
-    tdconfig.cButtons = ARRAYSIZE(tdbuttons);
-    tdconfig.pButtons = tdbuttons;
-    tdconfig.nDefaultButton = IDCANCEL;
+    tdconfig.pszContent         = MAKEINTRESOURCE(IDS_2126);
+    tdconfig.cButtons           = ARRAYSIZE(tdbuttons);
+    tdconfig.pButtons           = tdbuttons;
+    tdconfig.nDefaultButton     = IDCANCEL;
     TaskDialogIndirect(&tdconfig, &i, NULL, NULL);
 
     if (i == IDOK)
-	ShellExecute(hwnd, L"open", L"https://" EMU_SITE_W, NULL, NULL, SW_SHOW);
+        ShellExecute(hwnd, L"open", L"https://" EMU_SITE_W, NULL, NULL, SW_SHOW);
 }

@@ -46,17 +46,16 @@
 #include <86box/nvr.h>
 #include <86box/scsi_ncr53c8xx.h>
 
-
 int
 machine_at_acerv35n_init(const machine_t *model)
 {
     int ret;
 
     ret = bios_load_linear("roms/machines/acerv35n/v35nd1s1.bin",
-			   0x000e0000, 131072, 0);
+                           0x000e0000, 131072, 0);
 
     if (bios_only || !ret)
-	return ret;
+        return ret;
 
     machine_at_common_init(model);
 
@@ -78,17 +77,16 @@ machine_at_acerv35n_init(const machine_t *model)
     return ret;
 }
 
-
 int
 machine_at_ap5vm_init(const machine_t *model)
 {
     int ret;
 
     ret = bios_load_linear("roms/machines/ap5vm/AP5V270.ROM",
-			   0x000e0000, 131072, 0);
+                           0x000e0000, 131072, 0);
 
     if (bios_only || !ret)
-	return ret;
+        return ret;
 
     machine_at_common_init(model);
 
@@ -113,17 +111,16 @@ machine_at_ap5vm_init(const machine_t *model)
     return ret;
 }
 
-
 int
 machine_at_p55t2p4_init(const machine_t *model)
 {
     int ret;
 
     ret = bios_load_linear("roms/machines/p55t2p4/0207_j2.bin",
-			   0x000e0000, 131072, 0);
+                           0x000e0000, 131072, 0);
 
     if (bios_only || !ret)
-	return ret;
+        return ret;
 
     machine_at_common_init(model);
 
@@ -143,17 +140,16 @@ machine_at_p55t2p4_init(const machine_t *model)
     return ret;
 }
 
-
 int
 machine_at_m7shi_init(const machine_t *model)
 {
     int ret;
 
     ret = bios_load_linear("roms/machines/m7shi/m7shi2n.rom",
-			   0x000c0000, 262144, 0);
+                           0x000c0000, 262144, 0);
 
     if (bios_only || !ret)
-	return ret;
+        return ret;
 
     machine_at_common_init(model);
 
@@ -173,21 +169,20 @@ machine_at_m7shi_init(const machine_t *model)
     return ret;
 }
 
-
 int
 machine_at_tc430hx_init(const machine_t *model)
 {
     int ret;
 
     ret = bios_load_linear_combined2("roms/machines/tc430hx/1007DH0_.BIO",
-				     "roms/machines/tc430hx/1007DH0_.BI1",
-				     "roms/machines/tc430hx/1007DH0_.BI2",
-				     "roms/machines/tc430hx/1007DH0_.BI3",
-				     "roms/machines/tc430hx/1007DH0_.RCV",
-				     0x3a000, 128);
+                                     "roms/machines/tc430hx/1007DH0_.BI1",
+                                     "roms/machines/tc430hx/1007DH0_.BI2",
+                                     "roms/machines/tc430hx/1007DH0_.BI3",
+                                     "roms/machines/tc430hx/1007DH0_.RCV",
+                                     0x3a000, 128);
 
     if (bios_only || !ret)
-	return ret;
+        return ret;
 
     machine_at_common_init(model);
 
@@ -208,7 +203,6 @@ machine_at_tc430hx_init(const machine_t *model)
     return ret;
 }
 
-
 /* Information about that machine on machine.h */
 int
 machine_at_equium5200_init(const machine_t *model)
@@ -216,14 +210,14 @@ machine_at_equium5200_init(const machine_t *model)
     int ret;
 
     ret = bios_load_linear_combined2("roms/machines/equium5200/1003DK08.BIO",
-				     "roms/machines/equium5200/1003DK08.BI1",
-				     "roms/machines/equium5200/1003DK08.BI2",
-				     "roms/machines/equium5200/1003DK08.BI3",
-				     "roms/machines/equium5200/1003DK08.RCV",
-				     0x3a000, 128);
+                                     "roms/machines/equium5200/1003DK08.BI1",
+                                     "roms/machines/equium5200/1003DK08.BI2",
+                                     "roms/machines/equium5200/1003DK08.BI3",
+                                     "roms/machines/equium5200/1003DK08.RCV",
+                                     0x3a000, 128);
 
     if (bios_only || !ret)
-	return ret;
+        return ret;
 
     machine_at_common_init(model);
 
@@ -244,21 +238,20 @@ machine_at_equium5200_init(const machine_t *model)
     return ret;
 }
 
-
 int
 machine_at_pcv90_init(const machine_t *model)
 {
     int ret;
 
     ret = bios_load_linear_combined2("roms/machines/pcv90/1010DD04.BIO",
-				     "roms/machines/pcv90/1010DD04.BI1",
-				     "roms/machines/pcv90/1010DD04.BI2",
-				     "roms/machines/pcv90/1010DD04.BI3",
-				     "roms/machines/pcv90/1010DD04.RCV",
-				     0x3a000, 128);
+                                     "roms/machines/pcv90/1010DD04.BI1",
+                                     "roms/machines/pcv90/1010DD04.BI2",
+                                     "roms/machines/pcv90/1010DD04.BI3",
+                                     "roms/machines/pcv90/1010DD04.RCV",
+                                     0x3a000, 128);
 
     if (bios_only || !ret)
-	return ret;
+        return ret;
 
     machine_at_common_init(model);
 
@@ -279,23 +272,21 @@ machine_at_pcv90_init(const machine_t *model)
     return ret;
 }
 
-
 int
 machine_at_p65up5_cp55t2d_init(const machine_t *model)
 {
     int ret;
 
     ret = bios_load_linear("roms/machines/p65up5/TD5I0201.AWD",
-			   0x000e0000, 131072, 0);
+                           0x000e0000, 131072, 0);
 
     if (bios_only || !ret)
-	return ret;
+        return ret;
 
     machine_at_p65up5_common_init(model, &i430hx_device);
 
     return ret;
 }
-
 
 int
 machine_at_p55tvp4_init(const machine_t *model)
@@ -303,10 +294,10 @@ machine_at_p55tvp4_init(const machine_t *model)
     int ret;
 
     ret = bios_load_linear("roms/machines/p55tvp4/0204_128.BIN",
-			   0x000e0000, 131072, 0);
+                           0x000e0000, 131072, 0);
 
     if (bios_only || !ret)
-	return ret;
+        return ret;
 
     machine_at_common_init(model);
 
@@ -319,13 +310,12 @@ machine_at_p55tvp4_init(const machine_t *model)
     pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
     device_add(&i430vx_device);
     device_add(&piix3_device);
-    device_add(&keyboard_ps2_ami_pci_device); //It uses the AMIKEY KBC
+    device_add(&keyboard_ps2_ami_pci_device); // It uses the AMIKEY KBC
     device_add(&w83877f_device);
     device_add(&intel_flash_bxt_device);
 
     return ret;
 }
-
 
 int
 machine_at_5ivg_init(const machine_t *model)
@@ -333,10 +323,10 @@ machine_at_5ivg_init(const machine_t *model)
     int ret;
 
     ret = bios_load_linear("roms/machines/5ivg/5IVG.BIN",
-			   0x000e0000, 131072, 0);
+                           0x000e0000, 131072, 0);
 
     if (bios_only || !ret)
-	return ret;
+        return ret;
 
     machine_at_common_init(model);
 
@@ -355,24 +345,23 @@ machine_at_5ivg_init(const machine_t *model)
     return ret;
 }
 
-
 int
 machine_at_8500tvxa_init(const machine_t *model)
 {
     int ret;
 
     ret = bios_load_linear("roms/machines/8500tvxa/tvx0619b.rom",
-			   0x000e0000, 131072, 0);
+                           0x000e0000, 131072, 0);
 
     if (bios_only || !ret)
-	return ret;
+        return ret;
 
     machine_at_common_init(model);
 
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
     pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
-	pci_register_slot(0x08, PCI_CARD_NORMAL, 1, 2, 3, 4);
+    pci_register_slot(0x08, PCI_CARD_NORMAL, 1, 2, 3, 4);
     pci_register_slot(0x09, PCI_CARD_NORMAL, 2, 3, 4, 1);
     pci_register_slot(0x0A, PCI_CARD_NORMAL, 3, 4, 2, 1);
     pci_register_slot(0x0B, PCI_CARD_NORMAL, 4, 3, 2, 1);
@@ -385,17 +374,16 @@ machine_at_8500tvxa_init(const machine_t *model)
     return ret;
 }
 
-
 int
 machine_at_presario2240_init(const machine_t *model)
 {
     int ret;
 
     ret = bios_load_linear("roms/machines/presario2240/B0184008.ROM",
-			   0x000c0000, 262144, 0);
+                           0x000c0000, 262144, 0);
 
     if (bios_only || !ret)
-	return ret;
+        return ret;
 
     machine_at_common_init_ex(model, 2);
 
@@ -406,7 +394,7 @@ machine_at_presario2240_init(const machine_t *model)
     pci_register_slot(0x13, PCI_CARD_NORMAL, 1, 2, 3, 4);
 
     if (gfxcard == VID_INTERNAL)
-	device_add(&s3_trio64v2_dx_onboard_pci_device);
+        device_add(&s3_trio64v2_dx_onboard_pci_device);
 
     device_add(&i430vx_device);
     device_add(&piix3_device);
@@ -417,17 +405,16 @@ machine_at_presario2240_init(const machine_t *model)
     return ret;
 }
 
-
 int
 machine_at_presario4500_init(const machine_t *model)
 {
     int ret;
 
     ret = bios_load_linear("roms/machines/presario4500/B013300I.ROM",
-			   0x000c0000, 262144, 0);
+                           0x000c0000, 262144, 0);
 
     if (bios_only || !ret)
-	return ret;
+        return ret;
 
     machine_at_common_init_ex(model, 2);
 
@@ -438,7 +425,7 @@ machine_at_presario4500_init(const machine_t *model)
     pci_register_slot(0x13, PCI_CARD_NORMAL, 1, 2, 3, 4);
 
     if (gfxcard == VID_INTERNAL)
-	device_add(&s3_trio64v2_dx_onboard_pci_device);
+        device_add(&s3_trio64v2_dx_onboard_pci_device);
 
     device_add(&i430vx_device);
     device_add(&piix3_device);
@@ -449,17 +436,16 @@ machine_at_presario4500_init(const machine_t *model)
     return ret;
 }
 
-
 int
 machine_at_p55va_init(const machine_t *model)
 {
     int ret;
 
     ret = bios_load_linear("roms/machines/p55va/va021297.bin",
-			   0x000e0000, 131072, 0);
+                           0x000e0000, 131072, 0);
 
     if (bios_only || !ret)
-	return ret;
+        return ret;
 
     machine_at_common_init(model);
 
@@ -479,17 +465,16 @@ machine_at_p55va_init(const machine_t *model)
     return ret;
 }
 
-
 int
 machine_at_brio80xx_init(const machine_t *model)
 {
     int ret;
 
     ret = bios_load_linear("roms/machines/brio80xx/Hf0705.rom",
-			   0x000c0000, 262144, 0);
+                           0x000c0000, 262144, 0);
 
     if (bios_only || !ret)
-	return ret;
+        return ret;
 
     machine_at_common_init(model);
 
@@ -509,21 +494,20 @@ machine_at_brio80xx_init(const machine_t *model)
     return ret;
 }
 
-
 int
 machine_at_pb680_init(const machine_t *model)
 {
     int ret;
 
     ret = bios_load_linear_combined2("roms/machines/pb680/1012DN0R.BIO",
-				     "roms/machines/pb680/1012DN0R.BI1",
-				     "roms/machines/pb680/1012DN0R.BI2",
-				     "roms/machines/pb680/1012DN0R.BI3",
-				     "roms/machines/pb680/1012DN0R.RCV",
-				     0x3a000, 128);
+                                     "roms/machines/pb680/1012DN0R.BI1",
+                                     "roms/machines/pb680/1012DN0R.BI2",
+                                     "roms/machines/pb680/1012DN0R.BI3",
+                                     "roms/machines/pb680/1012DN0R.RCV",
+                                     0x3a000, 128);
 
     if (bios_only || !ret)
-	return ret;
+        return ret;
 
     machine_at_common_init(model);
 
@@ -543,17 +527,16 @@ machine_at_pb680_init(const machine_t *model)
     return ret;
 }
 
-
 int
 machine_at_mb520n_init(const machine_t *model)
 {
     int ret;
 
     ret = bios_load_linear("roms/machines/mb520n/520n503s.rom",
-			   0x000e0000, 131072, 0);
+                           0x000e0000, 131072, 0);
 
     if (bios_only || !ret)
-	return ret;
+        return ret;
 
     machine_at_common_init(model);
 
@@ -573,17 +556,16 @@ machine_at_mb520n_init(const machine_t *model)
     return ret;
 }
 
-
 int
 machine_at_i430vx_init(const machine_t *model)
 {
     int ret;
 
     ret = bios_load_linear("roms/machines/430vx/55XWUQ0E.BIN",
-			   0x000e0000, 131072, 0);
+                           0x000e0000, 131072, 0);
 
     if (bios_only || !ret)
-	return ret;
+        return ret;
 
     machine_at_common_init(model);
 
@@ -603,17 +585,16 @@ machine_at_i430vx_init(const machine_t *model)
     return ret;
 }
 
-
 int
 machine_at_nupro592_init(const machine_t *model)
 {
     int ret;
 
     ret = bios_load_linear("roms/machines/nupro592/np590b10.bin",
-			   0x000c0000, 262144, 0);
+                           0x000c0000, 262144, 0);
 
     if (bios_only || !ret)
-	return ret;
+        return ret;
 
     machine_at_common_init_ex(model, 2);
 
@@ -625,22 +606,21 @@ machine_at_nupro592_init(const machine_t *model)
     pci_register_slot(0x14, PCI_CARD_NORMAL, 2, 3, 4, 1);
     pci_register_slot(0x0B, PCI_CARD_NORMAL, 3, 4, 1, 2); /*Strongly suspect these are on-board slots*/
     pci_register_slot(0x0C, PCI_CARD_NORMAL, 4, 1, 2, 3);
-    pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 4);	/* PIIX4 */
+    pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 4); /* PIIX4 */
     device_add(&i430tx_device);
     device_add(&piix4_device);
     device_add(&keyboard_ps2_ami_pci_device);
     device_add(&w83977ef_device);
     device_add(&intel_flash_bxt_device);
     spd_register(SPD_TYPE_SDRAM, 0x3, 128);
-    device_add(&w83781d_device); /* fans: CPU1, unused, unused; temperatures: System, CPU1, unused */
+    device_add(&w83781d_device);    /* fans: CPU1, unused, unused; temperatures: System, CPU1, unused */
     hwm_values.temperatures[2] = 0; /* unused */
-    hwm_values.fans[1] = 0; /* unused */
-    hwm_values.fans[2] = 0; /* unused */
+    hwm_values.fans[1]         = 0; /* unused */
+    hwm_values.fans[2]         = 0; /* unused */
     /* -5V is not reported by the BIOS, but leave it set */
 
     return ret;
 }
-
 
 int
 machine_at_tx97_init(const machine_t *model)
@@ -648,10 +628,10 @@ machine_at_tx97_init(const machine_t *model)
     int ret;
 
     ret = bios_load_linear("roms/machines/tx97/0112.001",
-			   0x000e0000, 131072, 0);
+                           0x000e0000, 131072, 0);
 
     if (bios_only || !ret)
-	return ret;
+        return ret;
 
     machine_at_common_init_ex(model, 2);
 
@@ -661,7 +641,7 @@ machine_at_tx97_init(const machine_t *model)
     pci_register_slot(0x0B, PCI_CARD_NORMAL, 2, 3, 4, 1);
     pci_register_slot(0x0A, PCI_CARD_NORMAL, 3, 4, 1, 2);
     pci_register_slot(0x09, PCI_CARD_NORMAL, 4, 1, 2, 3);
-    pci_register_slot(0x01, PCI_CARD_SOUTHBRIDGE, 1, 2, 3, 4);	/* PIIX4 */
+    pci_register_slot(0x01, PCI_CARD_SOUTHBRIDGE, 1, 2, 3, 4); /* PIIX4 */
     pci_register_slot(0x0D, PCI_CARD_NORMAL, 1, 2, 3, 4);
     pci_register_slot(0x08, PCI_CARD_NORMAL, 1, 2, 3, 4);
     device_add(&i430tx_device);
@@ -670,17 +650,16 @@ machine_at_tx97_init(const machine_t *model)
     device_add(&w83877tf_acorp_device);
     device_add(&intel_flash_bxt_device);
     spd_register(SPD_TYPE_SDRAM, 0x3, 128);
-    device_add(&w83781d_device); /* fans: Chassis, CPU, Power; temperatures: MB, unused, CPU */
+    device_add(&w83781d_device);    /* fans: Chassis, CPU, Power; temperatures: MB, unused, CPU */
     hwm_values.temperatures[1] = 0; /* unused */
     /* CPU offset */
     if (hwm_values.temperatures[2] < 32) /* prevent underflow */
-	hwm_values.temperatures[2] = 0;
+        hwm_values.temperatures[2] = 0;
     else
-	hwm_values.temperatures[2] -= 32;
+        hwm_values.temperatures[2] -= 32;
 
     return ret;
 }
-
 
 #if defined(DEV_BRANCH) && defined(USE_AN430TX)
 int
@@ -688,30 +667,30 @@ machine_at_an430tx_init(const machine_t *model)
 {
     int ret;
 
-#if 1
+#    if 1
     ret = bios_load_linear_combined2("roms/machines/an430tx/P10-0095.BIO",
-				     "roms/machines/an430tx/P10-0095.BI1",
-				     "roms/machines/an430tx/P10-0095.BI2",
-				     "roms/machines/an430tx/P10-0095.BI3",
-				     "roms/machines/an430tx/P10-0095.RCV",
-				     0x3a000, 160);
-#else
+                                     "roms/machines/an430tx/P10-0095.BI1",
+                                     "roms/machines/an430tx/P10-0095.BI2",
+                                     "roms/machines/an430tx/P10-0095.BI3",
+                                     "roms/machines/an430tx/P10-0095.RCV",
+                                     0x3a000, 160);
+#    else
     ret = bios_load_linear_combined2("roms/machines/an430tx/P06-0062.BIO",
-				     "roms/machines/an430tx/P06-0062.BI1",
-				     "roms/machines/an430tx/P06-0062.BI2",
-				     "roms/machines/an430tx/P06-0062.BI3",
-				     "roms/machines/an430tx/P10-0095.RCV",
-				     0x3a000, 160);
-#endif
+                                     "roms/machines/an430tx/P06-0062.BI1",
+                                     "roms/machines/an430tx/P06-0062.BI2",
+                                     "roms/machines/an430tx/P06-0062.BI3",
+                                     "roms/machines/an430tx/P10-0095.RCV",
+                                     0x3a000, 160);
+#    endif
 
     if (bios_only || !ret)
-	return ret;
+        return ret;
 
     machine_at_common_init_ex(model, 2);
 
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
-    pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 1, 2, 3, 4);	/* PIIX4 */
+    pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 1, 2, 3, 4); /* PIIX4 */
     // pci_register_slot(0x08, PCI_CARD_VIDEO, 4, 0, 0, 0);
     pci_register_slot(0x0D, PCI_CARD_NORMAL, 1, 2, 3, 4);
     pci_register_slot(0x0E, PCI_CARD_NORMAL, 2, 3, 4, 1);
@@ -728,17 +707,16 @@ machine_at_an430tx_init(const machine_t *model)
 }
 #endif
 
-
 int
 machine_at_ym430tx_init(const machine_t *model)
 {
     int ret;
 
     ret = bios_load_linear("roms/machines/ym430tx/YM430TX.003",
-			   0x000e0000, 131072, 0);
+                           0x000e0000, 131072, 0);
 
     if (bios_only || !ret)
-	return ret;
+        return ret;
 
     machine_at_common_init_ex(model, 2);
 
@@ -748,7 +726,7 @@ machine_at_ym430tx_init(const machine_t *model)
     pci_register_slot(0x0B, PCI_CARD_NORMAL, 2, 3, 4, 1);
     pci_register_slot(0x0A, PCI_CARD_NORMAL, 3, 4, 1, 2);
     pci_register_slot(0x09, PCI_CARD_NORMAL, 4, 1, 2, 3);
-    pci_register_slot(0x01, PCI_CARD_SOUTHBRIDGE, 1, 2, 3, 4);	/* PIIX4 */
+    pci_register_slot(0x01, PCI_CARD_SOUTHBRIDGE, 1, 2, 3, 4); /* PIIX4 */
     pci_register_slot(0x0D, PCI_CARD_NORMAL, 1, 2, 3, 4);
     pci_register_slot(0x08, PCI_CARD_NORMAL, 1, 2, 3, 4);
     device_add(&i430tx_device);
@@ -761,17 +739,16 @@ machine_at_ym430tx_init(const machine_t *model)
     return ret;
 }
 
-
 int
 machine_at_mb540n_init(const machine_t *model)
 {
     int ret;
 
     ret = bios_load_linear("roms/machines/mb540n/Tx0720ug.bin",
-			   0x000e0000, 131072, 0);
+                           0x000e0000, 131072, 0);
 
     if (bios_only || !ret)
-	return ret;
+        return ret;
 
     machine_at_common_init_ex(model, 2);
 
@@ -781,7 +758,7 @@ machine_at_mb540n_init(const machine_t *model)
     pci_register_slot(0x12, PCI_CARD_NORMAL, 3, 4, 1, 2);
     pci_register_slot(0x13, PCI_CARD_NORMAL, 2, 3, 4, 1);
     pci_register_slot(0x14, PCI_CARD_NORMAL, 1, 2, 3, 4);
-    pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 1, 2, 3, 4);	/* PIIX4 */
+    pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 1, 2, 3, 4); /* PIIX4 */
     device_add(&i430tx_device);
     device_add(&piix4_device);
     device_add(&keyboard_ps2_pci_device);
@@ -793,15 +770,15 @@ machine_at_mb540n_init(const machine_t *model)
 }
 
 int
-machine_at_56a5_init(const machine_t* model)
+machine_at_56a5_init(const machine_t *model)
 {
     int ret;
 
     ret = bios_load_linear("roms/machines/56a5/54p5b6b.bin",
-            0x000e0000, 131072, 0);
+                           0x000e0000, 131072, 0);
 
     if (bios_only || !ret)
-    return ret;
+        return ret;
 
     machine_at_common_init_ex(model, 2);
 
@@ -811,7 +788,7 @@ machine_at_56a5_init(const machine_t* model)
     pci_register_slot(0x12, PCI_CARD_NORMAL, 2, 3, 4, 1);
     pci_register_slot(0x13, PCI_CARD_NORMAL, 3, 4, 1, 2);
     pci_register_slot(0x14, PCI_CARD_NORMAL, 4, 1, 2, 3);
-    pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 1, 2, 3, 4);   /* PIIX4 */
+    pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 1, 2, 3, 4); /* PIIX4 */
     pci_register_slot(0x10, PCI_CARD_NORMAL, 1, 2, 3, 4);
     device_add(&i430tx_device);
     device_add(&piix4_device);
@@ -829,16 +806,16 @@ machine_at_p5mms98_init(const machine_t *model)
     int ret;
 
     ret = bios_load_linear("roms/machines/p5mms98/s981182.rom",
-			   0x000e0000, 131072, 0);
+                           0x000e0000, 131072, 0);
 
     if (bios_only || !ret)
-	return ret;
+        return ret;
 
     machine_at_common_init_ex(model, 2);
 
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
-    pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 1, 2, 3, 4);	/* PIIX4 */
+    pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 1, 2, 3, 4); /* PIIX4 */
     pci_register_slot(0x11, PCI_CARD_NORMAL, 1, 2, 3, 4);
     pci_register_slot(0x12, PCI_CARD_NORMAL, 2, 3, 4, 1);
     pci_register_slot(0x13, PCI_CARD_NORMAL, 3, 4, 1, 2);
@@ -849,12 +826,11 @@ machine_at_p5mms98_init(const machine_t *model)
     device_add(&w83977tf_device);
     device_add(&intel_flash_bxt_device);
     spd_register(SPD_TYPE_SDRAM, 0x3, 128);
-    device_add(&lm78_device); /* fans: Thermal, CPU, Chassis; temperature: unused */
+    device_add(&lm78_device);      /* fans: Thermal, CPU, Chassis; temperature: unused */
     device_add(&lm75_1_4a_device); /* temperature: CPU */
 
     return ret;
 }
-
 
 int
 machine_at_ficva502_init(const machine_t *model)
@@ -862,10 +838,10 @@ machine_at_ficva502_init(const machine_t *model)
     int ret;
 
     ret = bios_load_linear("roms/machines/ficva502/VA502bp.BIN",
-			   0x000e0000, 131072, 0);
+                           0x000e0000, 131072, 0);
 
     if (bios_only || !ret)
-	return ret;
+        return ret;
 
     machine_at_common_init_ex(model, 2);
 
@@ -886,17 +862,16 @@ machine_at_ficva502_init(const machine_t *model)
     return ret;
 }
 
-
 int
 machine_at_ficpa2012_init(const machine_t *model)
 {
     int ret;
 
     ret = bios_load_linear("roms/machines/ficpa2012/113jb16.awd",
-			   0x000e0000, 131072, 0);
+                           0x000e0000, 131072, 0);
 
     if (bios_only || !ret)
-	return ret;
+        return ret;
 
     machine_at_common_init_ex(model, 2);
 
@@ -919,17 +894,16 @@ machine_at_ficpa2012_init(const machine_t *model)
     return ret;
 }
 
-
 int
 machine_at_r534f_init(const machine_t *model)
 {
     int ret;
 
     ret = bios_load_linear("roms/machines/r534f/r534f008.bin",
-			   0x000e0000, 131072, 0);
+                           0x000e0000, 131072, 0);
 
     if (bios_only || !ret)
-	return ret;
+        return ret;
 
     machine_at_common_init(model);
 
@@ -949,17 +923,16 @@ machine_at_r534f_init(const machine_t *model)
     return ret;
 }
 
-
 int
 machine_at_ms5146_init(const machine_t *model)
 {
     int ret;
 
     ret = bios_load_linear("roms/machines/ms5146/A546MS11.ROM",
-			   0x000e0000, 131072, 0);
+                           0x000e0000, 131072, 0);
 
     if (bios_only || !ret)
-	return ret;
+        return ret;
 
     machine_at_common_init(model);
 
@@ -979,17 +952,16 @@ machine_at_ms5146_init(const machine_t *model)
     return ret;
 }
 
-
 int
 machine_at_m560_init(const machine_t *model)
 {
     int ret;
 
     ret = bios_load_linear("roms/machines/m560/5600410s.ami",
-			   0x000e0000, 131072, 0);
+                           0x000e0000, 131072, 0);
 
     if (bios_only || !ret)
-	return ret;
+        return ret;
 
     machine_at_common_init_ex(model, 2);
 
@@ -1004,13 +976,12 @@ machine_at_m560_init(const machine_t *model)
     pci_register_slot(0x05, PCI_CARD_NORMAL, 3, 4, 1, 2);
     pci_register_slot(0x06, PCI_CARD_NORMAL, 4, 1, 2, 3);
     device_add(&ali1531_device);
-    device_add(&ali1543_device);	/* -5 */
+    device_add(&ali1543_device); /* -5 */
     device_add(&sst_flash_29ee010_device);
     spd_register(SPD_TYPE_SDRAM, 0x3, 256);
 
     return ret;
 }
-
 
 int
 machine_at_ms5164_init(const machine_t *model)
@@ -1018,10 +989,10 @@ machine_at_ms5164_init(const machine_t *model)
     int ret;
 
     ret = bios_load_linear("roms/machines/ms5164/W564MS43.005",
-			   0x000e0000, 131072, 0);
+                           0x000e0000, 131072, 0);
 
     if (bios_only || !ret)
-	return ret;
+        return ret;
 
     machine_at_common_init_ex(model, 2);
 
@@ -1038,7 +1009,7 @@ machine_at_ms5164_init(const machine_t *model)
     pci_register_slot(0x07, PCI_CARD_NORMAL, 1, 2, 3, 4);
 
     device_add(&ali1531_device);
-    device_add(&ali1543_device);	/* -5 */
+    device_add(&ali1543_device); /* -5 */
     device_add(&sst_flash_29ee010_device);
     spd_register(SPD_TYPE_SDRAM, 0x3, 256);
 
