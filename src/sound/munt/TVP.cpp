@@ -1,5 +1,5 @@
 /* Copyright (C) 2003, 2004, 2005, 2006, 2008, 2009 Dean Beeler, Jerome Fisher
- * Copyright (C) 2011-2017 Dean Beeler, Jerome Fisher, Sergey V. Mikayev
+ * Copyright (C) 2011-2020 Dean Beeler, Jerome Fisher, Sergey V. Mikayev
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Lesser General Public License as published by
@@ -104,12 +104,12 @@ static Bit32u calcBasePitch(const Partial *partial, const TimbreParam::PartialPa
 
 	// MT-32 GEN0 does 16-bit calculations here, allowing an integer overflow.
 	// This quirk is observable playing the patch defined for timbre "HIT BOTTOM" in Larry 3.
+	// Note, the upper bound isn't checked either.
 	if (controlROMFeatures->quirkBasePitchOverflow) {
 		basePitch = basePitch & 0xffff;
 	} else if (basePitch < 0) {
 		basePitch = 0;
-	}
-	if (basePitch > 59392) {
+	} else if (basePitch > 59392) {
 		basePitch = 59392;
 	}
 	return Bit32u(basePitch);
@@ -151,6 +151,7 @@ void TVP::reset(const Part *usePart, const TimbreParam::PartialParam *usePartial
 
 	// FIXME: We're using a per-TVP timer instead of a system-wide one for convenience.
 	timeElapsed = 0;
+	processTimerIncrement = 0;
 
 	basePitch = calcBasePitch(partial, partialParam, patchTemp, key, partial->getSynth()->controlROMFeatures);
 	currentPitchOffset = calcTargetPitchOffsetWithoutLFO(partialParam, 0, velocity);
@@ -194,6 +195,7 @@ void TVP::updatePitch() {
 	} else if (newPitch < 0) {
 		newPitch = 0;
 	}
+	// This check is present in every unit.
 	if (newPitch > 59392) {
 		newPitch = 59392;
 	}

@@ -108,6 +108,7 @@ typedef struct {
 static json_t	*images[FDD_NUM];
 
 
+#define ENABLE_JSON_LOG 1
 #ifdef ENABLE_JSON_LOG
 int json_do_log = ENABLE_JSON_LOG;
 
@@ -247,9 +248,9 @@ load_image(json_t *dev)
 	switch(state) {
 		case 0:		/* read level header */
 			dev->dmf = 1;
-			if (c != '[') {
+			if ((c != '[') && (c != '{') && (c != '\r') && (c != '\n')) {
 				state = unexpect(c, state, level);
-			} else {
+			} else if (c == '[') {
 				if (++level == 3)
 					state++;
 			}
@@ -522,7 +523,7 @@ json_init(void)
 
 
 void
-json_load(int drive, wchar_t *fn)
+json_load(int drive, char *fn)
 {
     double bit_rate;
     int temp_rate;
@@ -538,10 +539,10 @@ json_load(int drive, wchar_t *fn)
     memset(dev, 0x00, sizeof(json_t));
 
     /* Open the image file. */
-    dev->f = plat_fopen(fn, L"rb");
+    dev->f = plat_fopen(fn, "rb");
     if (dev->f == NULL) {
 	free(dev);
-	memset(fn, 0x00, sizeof(wchar_t));
+	memset(fn, 0x00, sizeof(char));
 	return;
     }
 
@@ -557,11 +558,11 @@ json_load(int drive, wchar_t *fn)
 	(void)fclose(dev->f);
 	free(dev);
 	images[drive] = NULL;
-	memset(fn, 0x00, sizeof(wchar_t));
+	memset(fn, 0x00, sizeof(char));
 	return;
     }
 
-    json_log("JSON(%d): %ls (%i tracks, %i sides, %i sectors)\n",
+    json_log("JSON(%d): %s (%i tracks, %i sides, %i sectors)\n",
 	drive, fn, dev->tracks, dev->sides, dev->spt[0][0]);
 
     /*
@@ -623,7 +624,7 @@ json_load(int drive, wchar_t *fn)
 	dev->f = NULL;
 	free(dev);
 	images[drive] = NULL;
-	memset(fn, 0x00, sizeof(wchar_t));
+	memset(fn, 0x00, sizeof(char));
 	return;
     }
 
@@ -645,7 +646,7 @@ json_load(int drive, wchar_t *fn)
 	dev->f = NULL;
 	free(dev);
 	images[drive] = NULL;
-	memset(fn, 0x00, sizeof(wchar_t));
+	memset(fn, 0x00, sizeof(char));
 	return;
     }
 

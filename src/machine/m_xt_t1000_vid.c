@@ -103,7 +103,7 @@ typedef struct t1000_t
 {
         mem_mapping_t mapping;
 
-	cga_t cga;		/* The CGA is used for the external 
+	cga_t cga;		/* The CGA is used for the external
 				 * display; most of its registers are
 				 * ignored by the plasma display. */
 
@@ -113,12 +113,13 @@ typedef struct t1000_t
 	uint8_t	attrmap;	/* Attribute mapping register */
 
         uint64_t dispontime, dispofftime;
-        
+
         int linepos, displine;
         int vc;
         int dispon;
         int vsynctime;
 	uint8_t video_options;
+	uint8_t backlight, invert;
 
         uint8_t *vram;
 } t1000_t;
@@ -144,12 +145,12 @@ static void t1000_out(uint16_t addr, uint8_t val, void *p)
                 case 0x3d1: case 0x3d3: case 0x3d5: case 0x3d7:
 		/* Register 0x12 controls the attribute mappings for the
 		 * LCD screen. */
-		if (t1000->cga.crtcreg == 0x12) 
+		if (t1000->cga.crtcreg == 0x12)
 		{
-			t1000->attrmap = val;	
+			t1000->attrmap = val;
 			t1000_recalcattrs(t1000);
 			return;
-		}	
+		}
 		cga_out(addr, val, &t1000->cga);
 
                 t1000_recalctimings(t1000);
@@ -181,7 +182,7 @@ static uint8_t t1000_in(uint16_t addr, void *p)
 			return val;
 		}
 	}
-	
+
 	return cga_in(addr, &t1000->cga);
 }
 
@@ -191,17 +192,15 @@ static uint8_t t1000_in(uint16_t addr, void *p)
 static void t1000_write(uint32_t addr, uint8_t val, void *p)
 {
         t1000_t *t1000 = (t1000_t *)p;
-        egawrites++;
 
         t1000->vram[addr & 0x3fff] = val;
-        sub_cycles(4);
+        cycles -= 4;
 }
-	
+
 static uint8_t t1000_read(uint32_t addr, void *p)
 {
         t1000_t *t1000 = (t1000_t *)p;
-        egareads++;
-	sub_cycles(4);
+	cycles -= 4;
 
         return t1000->vram[addr & 0x3fff];
 }
@@ -272,8 +271,8 @@ static void t1000_text_row80(t1000_t *t1000)
 
                 if (t1000->cga.cgamode & 0x20)	/* Blink */
                 {
-			cols[1] = blinkcols[attr][1]; 		
-			cols[0] = blinkcols[attr][0]; 		
+			cols[1] = blinkcols[attr][1];
+			cols[0] = blinkcols[attr][0];
                         if (blink) cols[1] = cols[0];
 		}
 		else
@@ -344,8 +343,8 @@ static void t1000_text_row40(t1000_t *t1000)
 
                 if (t1000->cga.cgamode & 0x20)	/* Blink */
                 {
-			cols[1] = blinkcols[attr][1]; 		
-			cols[0] = blinkcols[attr][0]; 		
+			cols[1] = blinkcols[attr][1];
+			cols[0] = blinkcols[attr][0];
                         if (blink) cols[1] = cols[0];
 		}
 		else
@@ -357,7 +356,7 @@ static void t1000_text_row40(t1000_t *t1000)
                 {
                 	for (c = 0; c < 8; c++)
 			{
-                       		((uint32_t *)buffer32->line[t1000->displine])[(x << 4) + c*2] = 
+                       		((uint32_t *)buffer32->line[t1000->displine])[(x << 4) + c*2] =
                        		((uint32_t *)buffer32->line[t1000->displine])[(x << 4) + c*2 + 1] = cols[(fontdat[bold][sc] & (1 << (c ^ 7))) ? 1 : 0] ^ (blue ^ grey);
 			}
 		}
@@ -365,7 +364,7 @@ static void t1000_text_row40(t1000_t *t1000)
                 {
                 	for (c = 0; c < 8; c++)
 			{
-				((uint32_t *)buffer32->line[t1000->displine])[(x << 4) + c*2] = 
+				((uint32_t *)buffer32->line[t1000->displine])[(x << 4) + c*2] =
 				((uint32_t *)buffer32->line[t1000->displine])[(x << 4) + c*2+1] = cols[(fontdat[bold][sc] & (1 << (c ^ 7))) ? 1 : 0];
 			}
                 }
@@ -433,7 +432,7 @@ static void t1000_cgaline4(t1000_t *t1000)
 			{
 				default:
 				case 0: ink0 = ink1 = grey; break;
-				case 1: if (t1000->displine & 1) 
+				case 1: if (t1000->displine & 1)
 					{
 						ink0 = grey; ink1 = grey;
 					}
@@ -442,7 +441,7 @@ static void t1000_cgaline4(t1000_t *t1000)
 						ink0 = blue; ink1 = grey;
 					}
 					break;
-				case 2: if (t1000->displine & 1) 
+				case 2: if (t1000->displine & 1)
 					{
 						ink0 = grey; ink1 = blue;
 					}
@@ -473,10 +472,10 @@ static void t1000_poll(void *p)
 
 		/* Set the font used for the external display */
 		t1000->cga.fontbase = ((t1000->video_options & 3) * 256);
-		
+
 		if (t1000->enabled) /* Disable internal chipset */
 			mem_mapping_enable(&t1000->mapping);
-		else    
+		else
 			mem_mapping_disable(&t1000->mapping);
 	}
 	/* Switch between internal plasma and external CRT display. */
@@ -504,20 +503,20 @@ static void t1000_poll(void *p)
                         }
 
 			/* Graphics */
-			if (t1000->cga.cgamode & 0x02)	
+			if (t1000->cga.cgamode & 0x02)
 			{
 				if (t1000->cga.cgamode & 0x10)
 					t1000_cgaline6(t1000);
 				else	t1000_cgaline4(t1000);
 			}
-			else	
+			else
 			if (t1000->cga.cgamode & 0x01) /* High-res text */
 			{
-				t1000_text_row80(t1000); 
+				t1000_text_row80(t1000);
 			}
 			else
 			{
-				t1000_text_row40(t1000); 
+				t1000_text_row40(t1000);
 			}
                 }
                 t1000->displine++;
@@ -557,14 +556,14 @@ static void t1000_poll(void *p)
 				if (video_force_resize_get())
 					video_force_resize_set(0);
                         }
-                        video_blit_memtoscreen(0, 0, 0, ysize, xsize, ysize);
+                        video_blit_memtoscreen(0, 0, xsize, ysize);
 
                         frames++;
 			/* Fixed 640x200 resolution */
 			video_res_x = T1000_XSIZE;
 			video_res_y = T1000_YSIZE;
 
-			if (t1000->cga.cgamode & 0x02)	
+			if (t1000->cga.cgamode & 0x02)
 			{
 				if (t1000->cga.cgamode & 0x10)
 					video_bpp = 1;
@@ -582,28 +581,43 @@ static void t1000_recalcattrs(t1000_t *t1000)
 	int n;
 
 	/* val behaves as follows:
-	 *     Bit 0: Attributes 01-06, 08-0E are inverse video 
-	 *     Bit 1: Attributes 01-06, 08-0E are bold 
+	 *     Bit 0: Attributes 01-06, 08-0E are inverse video
+	 *     Bit 1: Attributes 01-06, 08-0E are bold
 	 *     Bit 2: Attributes 11-16, 18-1F, 21-26, 28-2F ... F1-F6, F8-FF
-	 * 	      are inverse video 
+	 * 	      are inverse video
 	 *     Bit 3: Attributes 11-16, 18-1F, 21-26, 28-2F ... F1-F6, F8-FF
 	 * 	      are bold */
 
 	/* Set up colours */
-	blue = makecol(0x2D, 0x39, 0x5A);
-	grey = makecol(0x85, 0xa0, 0xD6);
+	if (t1000->invert) {
+		if (t1000->backlight) {
+			grey = makecol(0x2D, 0x39, 0x5A);
+			blue = makecol(0x85, 0xa0, 0xD6);
+		} else {
+			grey = makecol(0x0f, 0x21, 0x3f);
+			blue = makecol(0x1C, 0x71, 0x31);
+		}
+	} else {
+		if (t1000->backlight) {
+			blue = makecol(0x2D, 0x39, 0x5A);
+			grey = makecol(0x85, 0xa0, 0xD6);
+		} else {
+			blue = makecol(0x0f, 0x21, 0x3f);
+			grey = makecol(0x1C, 0x71, 0x31);
+		}
+	}
 
 	/* Initialise the attribute mapping. Start by defaulting everything
 	 * to grey on blue, and with bold set by bit 3 */
 	for (n = 0; n < 256; n++)
 	{
 		boldcols[n] = (n & 8) != 0;
-		blinkcols[n][0] = normcols[n][0] = blue; 
+		blinkcols[n][0] = normcols[n][0] = blue;
 		blinkcols[n][1] = normcols[n][1] = grey;
 	}
 
-	/* Colours 0x11-0xFF are controlled by bits 2 and 3 of the 
-	 * passed value. Exclude x0 and x8, which are always grey on 
+	/* Colours 0x11-0xFF are controlled by bits 2 and 3 of the
+	 * passed value. Exclude x0 and x8, which are always grey on
 	 * blue. */
 	for (n = 0x11; n <= 0xFF; n++)
 	{
@@ -620,7 +634,7 @@ static void t1000_recalcattrs(t1000_t *t1000)
 		}
 		if (t1000->attrmap & 8) boldcols[n] = 1;	/* Bold */
 	}
-	/* Set up the 01-0E range, controlled by bits 0 and 1 of the 
+	/* Set up the 01-0E range, controlled by bits 0 and 1 of the
 	 * passed value. When blinking is enabled this also affects 81-8E. */
 	for (n = 0x01; n <= 0x0E; n++)
 	{
@@ -641,7 +655,7 @@ static void t1000_recalcattrs(t1000_t *t1000)
 		}
 		if (t1000->attrmap & 2) boldcols[n] = 1;
 	}
-	/* Colours 07 and 0F are always blue on grey. If blinking is 
+	/* Colours 07 and 0F are always blue on grey. If blinking is
 	 * enabled so are 87 and 8F. */
 	for (n = 0x07; n <= 0x0F; n += 8)
 	{
@@ -678,11 +692,14 @@ static void *t1000_init(const device_t *info)
 {
         t1000_t *t1000 = malloc(sizeof(t1000_t));
         memset(t1000, 0, sizeof(t1000_t));
-	loadfont(L"roms/machines/t1000/t1000font.bin", 8);
+	loadfont("roms/machines/t1000/t1000font.bin", 8);
 	cga_init(&t1000->cga);
 	video_inform(VIDEO_FLAG_TYPE_CGA, &timing_t1000);
 
 	t1000->internal = 1;
+
+	t1000->backlight = device_get_config_int("backlight");
+	t1000->invert = device_get_config_int("invert");
 
 	/* 16k video RAM */
         t1000->vram = malloc(0x4000);
@@ -719,52 +736,62 @@ static void t1000_close(void *p)
 static void t1000_speed_changed(void *p)
 {
         t1000_t *t1000 = (t1000_t *)p;
-        
+
         t1000_recalctimings(t1000);
 }
 
-static const device_config_t t1000_config[] = 
-{
-	{
-		.name = "display_language",
-		.description = "Language",
-		.type = CONFIG_SELECTION,
-		.selection = 
-		{
-			{ 
-				.description = "USA",
-				.value = 0
-			},
-			{
-				.description = "Danish",
-				.value = 1
-			}
-		},
-		.default_int = 0
-	},
-	{
-		.type = -1
-	}
+static const device_config_t t1000_config[] = {
+    {
+        .name = "display_language",
+        .description = "Language",
+        .type = CONFIG_SELECTION,
+        .selection = {
+            { .description = "USA", .value = 0 },
+            { .description = "Danish", .value = 1 }
+        },
+        .default_int = 0
+    },
+    {
+        .name = "backlight",
+        .description = "Enable backlight",
+        .type = CONFIG_BINARY,
+        .default_string = "",
+        .default_int = 1
+    },
+    {
+        .name = "invert",
+        .description = "Invert colors",
+        .type = CONFIG_BINARY,
+        .default_string = "",
+        .default_int = 0
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
 };
-
 
 const device_t t1000_video_device = {
-    "Toshiba T1000 Video",
-    0, 0,
-    t1000_init, t1000_close, NULL,
-    NULL,
-    t1000_speed_changed,
-    NULL,
-    t1000_config
+    .name = "Toshiba T1000 Video",
+    .internal_name = "t1000_video",
+    .flags = 0,
+    .local = 0,
+    .init = t1000_init,
+    .close = t1000_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = t1000_speed_changed,
+    .force_redraw = NULL,
+    .config = t1000_config
 };
 
-
 const device_t t1200_video_device = {
-    "Toshiba T1200 Video",
-    0, 0,
-    t1000_init, t1000_close, NULL,
-    NULL,
-    t1000_speed_changed,
-    NULL,
-    t1000_config
+    .name = "Toshiba T1200 Video",
+    .internal_name = "t1200_video",
+    .flags = 0,
+    .local = 0,
+    .init = t1000_init,
+    .close = t1000_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = t1000_speed_changed,
+    .force_redraw = NULL,
+    .config = t1000_config
 };

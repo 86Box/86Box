@@ -1,4 +1,4 @@
-/* Copyright (C) 2015-2017 Sergey V. Mikayev
+/* Copyright (C) 2015-2020 Sergey V. Mikayev
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Lesser General Public License as published by
@@ -36,6 +36,10 @@ public:
 	// Returns the value of AnalogOutputMode for which the output signal may retain its full frequency spectrum
 	// at the sample rate specified by the targetSampleRate argument.
 	static AnalogOutputMode getBestAnalogOutputMode(double targetSampleRate);
+
+	// Returns the sample rate supported by the sample rate conversion implementation currently in effect
+	// that is closest to the one specified by the desiredSampleRate argument.
+	static double getSupportedOutputSampleRate(double desiredSampleRate);
 
 	// Creates a SampleRateConverter instance that converts output signal from the synth to the given sample rate
 	// with the specified conversion quality.

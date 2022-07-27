@@ -20,9 +20,9 @@
  *		Copyright 2016-2018 Miran Grca.
  *		Copyright 2017,2018 Fred N. van Kempen.
  */
-#ifndef SCSI_X54X_H
 
-#define SCSI_X54X_H
+#ifndef SCSI_X54X_H
+# define SCSI_X54X_H
 
 #define SCSI_DELAY_TM		1			/* was 50 */
 
@@ -367,6 +367,7 @@ typedef struct {
 #define		X54X_LBA_BIOS		 4
 #define		X54X_INT_GEOM_WRITABLE	 8
 #define		X54X_MBX_24BIT		16
+#define		X54X_ISAPNP		32
 
 typedef struct {
     /* 32 bytes */
@@ -381,7 +382,7 @@ typedef struct {
 
     uint8_t	callback_phase		:4,
 		callback_sub_phase	:4,
-		scsi_cmd_phase, pad,
+		scsi_cmd_phase, bus,
 		sync,
 		parity, shram_mode,
 		Geometry, Control,
@@ -401,7 +402,8 @@ typedef struct {
 		CmdBuf[128],
 		DataBuf[65536],
 		shadow_ram[128],
-		dma_buffer[128];
+		dma_buffer[128],
+		cmd_33_buf[4096];
 
     /* 16 bytes */
     char	*fw_rev;			/* The 4 bytes of the revision command information + 2 extra bytes for BusLogic */
@@ -415,7 +417,11 @@ typedef struct {
 		rom_ioaddr,			/* offset in BIOS of I/O addr */
 		rom_shram,			/* index to shared RAM */
 		rom_shramsz,			/* size of shared RAM */
-		rom_fwhigh;			/* offset in BIOS of ver ID */
+		rom_fwhigh,			/* offset in BIOS of ver ID */
+		pnp_len,			/* length of the PnP ROM */
+		pnp_offset,			/* offset in the microcode ROM of the PnP ROM */
+		cmd_33_len,			/* length of the SCSISelect code decompressor program */
+		cmd_33_offset;			/* offset in the microcode ROM of the SCSISelect code decompressor program */
 
     /* 16 + 20 + 52 = 88 bytes */
     volatile int
@@ -423,7 +429,7 @@ typedef struct {
 		PendingInterrupt, Lock,
 		target_data_len, pad0;
 
-    uint32_t	Base, rom_addr,			/* address of BIOS ROM */
+    uint32_t	Base, fdc_address, rom_addr,	/* address of BIOS ROM */
 		CmdParamLeft, Outgoing,
 		transfer_size;
 
@@ -435,7 +441,7 @@ typedef struct {
 		BIOSMailboxInit, BIOSMailboxCount,
 		BIOSMailboxOutAddr, BIOSMailboxOutPosCur,
 		BIOSMailboxReq,
-		Residue, bus;			/* Basically a copy of device flags */
+		Residue, card_bus;		/* Basically a copy of device flags */
 
     /* 8 bytes */
     uint64_t	temp_period;
@@ -444,7 +450,8 @@ typedef struct {
     double	media_period, ha_bps;		/* bytes per second */
 
     /* 8 bytes */
-    wchar_t	*bios_path,			/* path to BIOS image file */
+    char	*bios_path,			/* path to BIOS image file */
+		*mcode_path,			/* path to microcode image file, needed by the AHA-1542CP */
 		*nvr_path;			/* path to NVR image file */
 
     /* 56 bytes */
@@ -486,6 +493,8 @@ typedef struct {
     pc_timer_t	timer, ResetCB;
 
     Req_t	Req;
+
+    fdc_t	*fdc;
 } x54x_t;
 
 
@@ -501,6 +510,5 @@ extern void	x54x_mem_disable(x54x_t *dev);
 extern void	*x54x_init(const device_t *info);
 extern void	x54x_close(void *priv);
 extern void	x54x_device_reset(void *priv);
-
 
 #endif

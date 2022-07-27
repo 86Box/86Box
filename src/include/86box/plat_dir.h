@@ -13,9 +13,9 @@
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Copyright 2017 Fred N. van Kempen.
  */
+
 #ifndef PLAT_DIR_H
 # define PLAT_DIR_H
-
 
 #ifdef _MAX_FNAME
 # define MAXNAMLEN	_MAX_FNAME
@@ -25,7 +25,7 @@
 # define MAXDIRLEN	127
 
 
-struct direct {
+struct dirent {
     long		d_ino;
     unsigned short 	d_reclen;
     unsigned short	d_off;
@@ -49,7 +49,7 @@ typedef struct {
 #else
     char	dir[MAXDIRLEN+1];	/* open dir			*/
 #endif
-    struct direct dent;			/* actual directory entry	*/
+    struct dirent dent;			/* actual directory entry	*/
 } DIR;
 
 
@@ -60,12 +60,8 @@ typedef struct {
 
 
 /* Function prototypes. */
-#ifdef UNICODE
-extern DIR		*opendirw(const wchar_t *);
-#else
 extern DIR		*opendir(const char *);
-#endif
-extern struct direct	*readdir(DIR *);
+extern struct dirent	*readdir(DIR *);
 extern long		telldir(DIR *);
 extern void		seekdir(DIR *, long);
 extern int		closedir(DIR *);

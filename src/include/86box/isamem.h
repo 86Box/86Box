@@ -44,8 +44,9 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING  IN ANY  WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#ifndef ISAMEM_H
-# define ISAMEM_H
+
+#ifndef EMU_ISAMEM_H
+# define EMU_ISAMEM_H
 
 
 #define ISAMEM_MAX	4			/* max #cards in system */
@@ -74,4 +75,4 @@ extern const device_t	*isamem_get_device(int t);
 #endif
 
 
-#endif	/*ISAMEM_H*/
+#endif	/*EMU_ISAMEM_H*/

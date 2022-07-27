@@ -19,12 +19,11 @@
  *		Copyright 2017,2018 Fred N. van Kempen.
  */
 #ifndef EMU_SCSI_H
-#define EMU_SCSI_H
+# define EMU_SCSI_H
 
-extern int scsi_card_current;
+extern int	scsi_card_current[4];
 
 extern int	scsi_card_available(int card);
-extern char	*scsi_card_getname(int card);
 #ifdef EMU_DEVICE_H
 extern const	device_t *scsi_card_getdevice(int card);
 #endif

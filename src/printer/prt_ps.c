@@ -27,10 +27,12 @@
 #include <86box/lpt.h>
 #include <86box/timer.h>
 #include <86box/pit.h>
+#include <86box/path.h>
 #include <86box/plat.h>
 #include <86box/plat_dynld.h>
 #include <86box/ui.h>
 #include <86box/prt_devs.h>
+
 
 #ifdef _WIN32
 # define GSDLLAPI __stdcall
@@ -38,39 +40,24 @@
 # define GSDLLAPI
 #endif
 
-#define GS_ARG_ENCODING_UTF16LE	2
-#define gs_error_Quit		-101 
 
-#define PATH_GHOSTSCRIPT_DLL		"gsdll32.dll"
-#define PATH_GHOSTSCRIPT_SO		"libgs.so"
+#define GS_ARG_ENCODING_UTF8	1
+#define gs_error_Quit		-101
+
+#ifdef _WIN32
+#if (!(defined __amd64__ || defined _M_X64 || defined __aarch64__ || defined _M_ARM64))
+# define PATH_GHOSTSCRIPT_DLL		"gsdll32.dll"
+#else
+# define PATH_GHOSTSCRIPT_DLL		"gsdll64.dll"
+#endif
+#elif defined __APPLE__
+#define PATH_GHOSTSCRIPT_DLL		"libgs.dylib"
+#else
+#define PATH_GHOSTSCRIPT_DLL		"libgs.so.9"
+#endif
 
 #define POSTSCRIPT_BUFFER_LENGTH	65536
 
-typedef struct gsapi_revision_s {
-    const char *product;
-    const char *copyright;
-    long revision;
-    long revisiondate;
-} gsapi_revision_t;
-
-static int 	(GSDLLAPI *gsapi_revision)(gsapi_revision_t *pr, int len);
-static int 	(GSDLLAPI *gsapi_new_instance)(void **pinstance, void *caller_handle);
-static void 	(GSDLLAPI *gsapi_delete_instance)(void *instance);
-static int 	(GSDLLAPI *gsapi_set_arg_encoding)(void *instance, int encoding);
-static int 	(GSDLLAPI *gsapi_init_with_args)(void *instance, int argc, char **argv);
-static int 	(GSDLLAPI *gsapi_exit)(void *instance);
-
-static dllimp_t ghostscript_imports[] = {
-  { "gsapi_revision",			&gsapi_revision			},
-  { "gsapi_new_instance",		&gsapi_new_instance		},
-  { "gsapi_delete_instance",		&gsapi_delete_instance		},
-  { "gsapi_set_arg_encoding",		&gsapi_set_arg_encoding		},
-  { "gsapi_init_with_args",		&gsapi_init_with_args		},
-  { "gsapi_exit",			&gsapi_exit			},
-  { NULL,				NULL					}
-};
-
-static void	*ghostscript_handle = NULL;
 
 typedef struct
 {
@@ -90,20 +77,49 @@ typedef struct
     bool	autofeed;
     uint8_t	ctrl;
 
-    wchar_t	printer_path[260];
+    char	printer_path[260];
 
-    wchar_t	filename[260];
+    char	filename[260];
 
     char	buffer[POSTSCRIPT_BUFFER_LENGTH];
     size_t	buffer_pos;
 } ps_t;
 
+typedef struct gsapi_revision_s {
+    const char *product;
+    const char *copyright;
+    long revision;
+    long revisiondate;
+} gsapi_revision_t;
+
+
+static int 	(GSDLLAPI *gsapi_revision)(gsapi_revision_t *pr, int len);
+static int 	(GSDLLAPI *gsapi_new_instance)(void **pinstance, void *caller_handle);
+static void 	(GSDLLAPI *gsapi_delete_instance)(void *instance);
+static int 	(GSDLLAPI *gsapi_set_arg_encoding)(void *instance, int encoding);
+static int 	(GSDLLAPI *gsapi_init_with_args)(void *instance, int argc, char **argv);
+static int 	(GSDLLAPI *gsapi_exit)(void *instance);
+
+static dllimp_t ghostscript_imports[] = {
+// clang-format off
+    { "gsapi_revision",         &gsapi_revision         },
+    { "gsapi_new_instance",     &gsapi_new_instance     },
+    { "gsapi_delete_instance",  &gsapi_delete_instance  },
+    { "gsapi_set_arg_encoding", &gsapi_set_arg_encoding },
+    { "gsapi_init_with_args",   &gsapi_init_with_args   },
+    { "gsapi_exit",             &gsapi_exit             },
+    { NULL,                     NULL                    }
+// clang-format on
+};
+
+static void	*ghostscript_handle = NULL;
+
+
 static void
 reset_ps(ps_t *dev)
 {
-    if (dev == NULL) { 
+    if (dev == NULL)
 	return;
-    }
 
     dev->ack = false;
 
@@ -113,6 +129,7 @@ reset_ps(ps_t *dev)
     timer_disable(&dev->pulse_timer);
     timer_disable(&dev->timeout_timer);
 }
+
 
 static void
 pulse_timer(void *priv)
@@ -127,130 +144,122 @@ pulse_timer(void *priv)
     timer_disable(&dev->pulse_timer);
 }
 
+
 static int
 convert_to_pdf(ps_t *dev)
 {
     volatile int code;
     void *instance = NULL;
-    wchar_t input_fn[1024], output_fn[1024], *gsargv[9];
+    char input_fn[1024], output_fn[1024], *gsargv[9];
 
-    input_fn[0] = 0;
-    wcscat(input_fn, dev->printer_path);
-    wcscat(input_fn, dev->filename);
+    strcpy(input_fn, dev->printer_path);
+    path_slash(input_fn);
+    strcat(input_fn, dev->filename);
 
-    output_fn[0] = 0;
-    wcscat(output_fn, input_fn);
-    wcscpy(output_fn + wcslen(output_fn) - 4, L".pdf");
+    strcpy(output_fn, input_fn);
+    strcpy(output_fn + strlen(output_fn) - 3, ".pdf");
 
-    gsargv[0] = L"";
-    gsargv[1] = L"-dNOPAUSE";
-    gsargv[2] = L"-dBATCH";
-    gsargv[3] = L"-dSAFER";
-    gsargv[4] = L"-sDEVICE=pdfwrite";
-    gsargv[5] = L"-q";
-    gsargv[6] = L"-o";
+    gsargv[0] = "";
+    gsargv[1] = "-dNOPAUSE";
+    gsargv[2] = "-dBATCH";
+    gsargv[3] = "-dSAFER";
+    gsargv[4] = "-sDEVICE=pdfwrite";
+    gsargv[5] = "-q";
+    gsargv[6] = "-o";
     gsargv[7] = output_fn;
     gsargv[8] = input_fn;
 
     code = gsapi_new_instance(&instance, dev);
-    if (code < 0) {
+    if (code < 0)
 	return code;
-    }
 
-    code = gsapi_set_arg_encoding(instance, GS_ARG_ENCODING_UTF16LE);
+    code = gsapi_set_arg_encoding(instance, GS_ARG_ENCODING_UTF8);
 
-    if (code == 0) {
-	code = gsapi_init_with_args(instance, 9, (char **) gsargv);
-    }
+    if (code == 0)
+	code = gsapi_init_with_args(instance, 9, gsargv);
 
-    if (code == 0 || code == gs_error_Quit) {
+    if (code == 0 || code == gs_error_Quit)
 	code = gsapi_exit(instance);
-    } else {
+    else
 	gsapi_exit(instance);
-    }
 
     gsapi_delete_instance(instance);
 
-    if (code == 0) {
+    if (code == 0)
 	plat_remove(input_fn);
-    } else {
+    else
 	plat_remove(output_fn);
-    }
 
     return code;
 }
 
-static void
-finish_document(ps_t *dev)
-{
-    if (ghostscript_handle != NULL) {
-	convert_to_pdf(dev);
-    }
-
-    dev->filename[0] = 0;
-}
 
 static void
-write_buffer(ps_t *dev, bool newline)
+write_buffer(ps_t *dev, bool finish)
 {
-    wchar_t path[1024];
+    char path[1024];
     FILE *fp;
 
-    if (dev->buffer[0] == 0) {
+    if (dev->buffer[0] == 0)
 	return;
-    }
 
-    if (dev->filename[0] == 0) {
-	plat_tempfile(dev->filename, NULL, L".tmp");
-    }
+    if (dev->filename[0] == 0)
+	plat_tempfile(dev->filename, NULL, ".ps");
 
-    path[0] = 0;
-    wcscat(path, dev->printer_path);
-    wcscat(path, dev->filename);
+    strcpy(path, dev->printer_path);
+    path_slash(path);
+    strcat(path, dev->filename);
 
-    fp = plat_fopen(path, L"a");
-    if (fp == NULL) {
+    fp = plat_fopen(path, "a");
+    if (fp == NULL)
 	return;
-    }
 
     fseek(fp, 0, SEEK_END);
 
-    fprintf(fp, "%.*s%s", POSTSCRIPT_BUFFER_LENGTH, dev->buffer, newline ? "\n" : "");
+    fprintf(fp, "%.*s", POSTSCRIPT_BUFFER_LENGTH, dev->buffer);
 
     fclose(fp);
 
     dev->buffer[0] = 0;
     dev->buffer_pos = 0;
+
+    if (finish) {
+	if (ghostscript_handle != NULL)
+		convert_to_pdf(dev);
+
+	dev->filename[0] = 0;
+    }
 }
+
 
 static void
 timeout_timer(void *priv)
 {
     ps_t *dev = (ps_t *) priv;
 
-    write_buffer(dev, false);
-    finish_document(dev);
+    write_buffer(dev, true);
 
     timer_disable(&dev->timeout_timer);
 }
+
 
 static void
 ps_write_data(uint8_t val, void *p)
 {
     ps_t *dev = (ps_t *) p;
 
-    if (dev == NULL) { 
+    if (dev == NULL)
 	return;
-    }
 
     dev->data = (char) val;
 }
+
 
 static void
 process_data(ps_t *dev)
 {
     /* Check for non-printable characters */
-    if (dev->data < 0x20 || dev->data == 0x7F) {
+    if ((dev->data < 0x20) || (dev->data == 0x7f)) {
 	switch (dev->data) {
 		/* The following characters are considered white-space
 		   by the PostScript specification */
@@ -267,8 +276,7 @@ process_data(ps_t *dev)
 
 		/* Ctrl+D (0x04) marks the end of the document */
 		case '\4':
-			write_buffer(dev, false);
-			finish_document(dev);
+			write_buffer(dev, true);
 			return;
 
 		/* Don't bother with the others */
@@ -278,32 +286,29 @@ process_data(ps_t *dev)
     }
 
     /* Flush the buffer if we have run to its end */
-    if (dev->buffer_pos == POSTSCRIPT_BUFFER_LENGTH - 1) {
+    if (dev->buffer_pos == POSTSCRIPT_BUFFER_LENGTH - 1)
 	write_buffer(dev, false);
-	dev->buffer_pos = 0;
-    }
 
     dev->buffer[dev->buffer_pos++] = dev->data;
     dev->buffer[dev->buffer_pos] = 0;
 }
+
 
 static void
 ps_write_ctrl(uint8_t val, void *p)
 {
     ps_t *dev = (ps_t *) p;
 
-    if (dev == NULL) { 
+    if (dev == NULL)
 	return;
-    }
 
     dev->autofeed = val & 0x02 ? true : false;
 
-    if (val & 0x08) {
+    if (val & 0x08)
 	dev->select = true;
-    }
 
     if ((val & 0x04) && !(dev->ctrl & 0x04)) {
-	// reset printer
+	/* Reset printer */
 	dev->select = false;
 
 	reset_ps(dev);
@@ -315,26 +320,25 @@ ps_write_ctrl(uint8_t val, void *p)
 	dev->ack = true;
 
 	timer_set_delay_u64(&dev->pulse_timer, ISACONST);
-	timer_set_delay_u64(&dev->timeout_timer, 500000 * TIMER_USEC);
+	timer_set_delay_u64(&dev->timeout_timer, 5000000 * TIMER_USEC);
     }
 
     dev->ctrl = val;
 }
 
+
 static uint8_t
 ps_read_status(void *p)
 {
     ps_t *dev = (ps_t *) p;
-    uint8_t ret = 0x1f;
+    uint8_t ret = 0x9f;
 
-    ret |= 0x80;
-
-    if (!dev->ack) {
+    if (!dev->ack)
 	ret |= 0x40;
-    }
 
     return(ret);
 }
+
 
 static void *
 ps_init(void *lpt)
@@ -347,48 +351,45 @@ ps_init(void *lpt)
     dev->ctrl = 0x04;
     dev->lpt = lpt;
 
-    reset_ps(dev);
-
     /* Try loading the DLL. */
     ghostscript_handle = dynld_module(PATH_GHOSTSCRIPT_DLL, ghostscript_imports);
-    if (ghostscript_handle == NULL) {
-	ui_msgbox(MBX_ERROR, (wchar_t *) IDS_2114);
-    } else {
-	if (gsapi_revision(&rev, sizeof(rev)) == 0) {
+    if (ghostscript_handle == NULL)
+	ui_msgbox_header(MBX_ERROR, (wchar_t *) IDS_2114, (wchar_t *) IDS_2132);
+    else {
+	if (gsapi_revision(&rev, sizeof(rev)) == 0)
 		pclog("Loaded %s, rev %ld (%ld)\n", rev.product, rev.revision, rev.revisiondate);
-	} else {
+	else {
 		dynld_close(ghostscript_handle);
 		ghostscript_handle = NULL;
 	}
     }
 
-    // Cache print folder path
+    /* Cache print folder path. */
     memset(dev->printer_path, 0x00, sizeof(dev->printer_path));
-    plat_append_filename(dev->printer_path, usr_path, L"printer");
-    if (!plat_dir_check(dev->printer_path)) {
+    path_append_filename(dev->printer_path, usr_path, "printer");
+    if (!plat_dir_check(dev->printer_path))
 	plat_dir_create(dev->printer_path);
-    }
-    plat_path_slash(dev->printer_path);
+    path_slash(dev->printer_path);
 
     timer_add(&dev->pulse_timer, pulse_timer, dev, 0);
     timer_add(&dev->timeout_timer, timeout_timer, dev, 0);
 
+    reset_ps(dev);
+
     return(dev);
 }
+
 
 static void
 ps_close(void *p)
 {
     ps_t *dev = (ps_t *) p;
 
-    if (dev == NULL) { 
+    if (dev == NULL)
 	return;
-    }
 
-    if (dev->buffer[0] != 0) {
-	write_buffer(dev, false);
-	finish_document(dev);
-    }
+    if (dev->buffer[0] != 0)
+	write_buffer(dev, true);
 
     if (ghostscript_handle != NULL) {
 	dynld_close(ghostscript_handle);
@@ -398,8 +399,10 @@ ps_close(void *p)
     free(dev);
 }
 
+
 const lpt_device_t lpt_prt_ps_device = {
-    .name = "Generic PostScript printer",
+    .name = "Generic PostScript Printer",
+    .internal_name = "postscript",
     .init = ps_init,
     .close = ps_close,
     .write_data = ps_write_data,

@@ -26,13 +26,8 @@
 #include <wchar.h>
 #include <86box/86box.h>
 #include <86box/device.h>
-#include <86box/timer.h>
-#include <86box/fdd.h>
-#include <86box/fdc.h>
-#include <86box/keyboard.h>
 #include <86box/io.h>
 #include <86box/mem.h>
-#include <86box/nmi.h>
 #include <86box/chipset.h>
 
 #define NEAT_DEBUG	0
@@ -255,16 +250,11 @@ neat_log(const char *fmt, ...)
 static uint8_t
 ems_readb(uint32_t addr, void *priv)
 {
-    mem_mapping_t *map = (mem_mapping_t *)priv;
-    neat_t *dev = (neat_t *)map->dev;
+    neat_t *dev = (neat_t *)priv;
     uint8_t ret = 0xff;
-    int vpage;
-
-    /* Get the viewport page number. */
-    vpage = ((addr & 0xffff) / EMS_PGSIZE);
 
     /* Grab the data. */
-    ret = *(uint8_t *)(dev->ems[vpage].addr + (addr - map->base));
+    ret = *(uint8_t *)(dev->ems[((addr & 0xffff) >> 14)].addr + (addr & 0x3fff));
 
     return(ret);
 }
@@ -273,16 +263,11 @@ ems_readb(uint32_t addr, void *priv)
 static uint16_t
 ems_readw(uint32_t addr, void *priv)
 {
-    mem_mapping_t *map = (mem_mapping_t *)priv;
-    neat_t *dev = (neat_t *)map->dev;
+    neat_t *dev = (neat_t *)priv;
     uint16_t ret = 0xffff;
-    int vpage;
-
-    /* Get the viewport page number. */
-    vpage = ((addr & 0xffff) / EMS_PGSIZE);
 
     /* Grab the data. */
-    ret = *(uint16_t *)(dev->ems[vpage].addr + (addr - map->base));
+    ret = *(uint16_t *)(dev->ems[((addr & 0xffff) >> 14)].addr + (addr & 0x3fff));
 
     return(ret);
 }
@@ -291,30 +276,20 @@ ems_readw(uint32_t addr, void *priv)
 static void
 ems_writeb(uint32_t addr, uint8_t val, void *priv)
 {
-    mem_mapping_t *map = (mem_mapping_t *)priv;
-    neat_t *dev = (neat_t *)map->dev;
-    int vpage;
-
-    /* Get the viewport page number. */
-    vpage = ((addr & 0xffff) / EMS_PGSIZE);
+    neat_t *dev = (neat_t *)priv;
 
     /* Write the data. */
-    *(uint8_t *)(dev->ems[vpage].addr + (addr - map->base)) = val;
+    *(uint8_t *)(dev->ems[((addr & 0xffff) >> 14)].addr + (addr & 0x3fff)) = val;
 }
 
 /* Write one word to paged RAM. */
 static void
 ems_writew(uint32_t addr, uint16_t val, void *priv)
 {
-    mem_mapping_t *map = (mem_mapping_t *)priv;
-    neat_t *dev = (neat_t *)map->dev;
-    int vpage;
-
-    /* Get the viewport page number. */
-    vpage = ((addr & 0xffff) / EMS_PGSIZE);
+    neat_t *dev = (neat_t *)priv;
 
     /* Write the data. */
-    *(uint16_t *)(dev->ems[vpage].addr + (addr - map->base)) = val;
+    *(uint16_t *)(dev->ems[((addr & 0xffff) >> 14)].addr + (addr & 0x3fff)) = val;
 }
 
 /* Re-calculate the active-page physical address. */
@@ -441,8 +416,7 @@ ems_init(neat_t *dev, int en)
 			ems_readb, ems_readw, NULL,
 			ems_writeb, ems_writew, NULL,
 			ram, MEM_MAPPING_EXTERNAL,
-			&dev->ems[i].mapping);
-	mem_mapping_set_dev(&dev->ems[i].mapping, dev);
+			dev);
 
 	/* Disable for now. */
 	mem_mapping_disable(&dev->ems[i].mapping);
@@ -506,7 +480,7 @@ neat_write(uint16_t port, uint8_t val, void *priv)
 #endif
 				break;
 
-			case REG_RB0: 
+			case REG_RB0:
 				val &= RB0_MASK;
 				*reg = (*reg & ~RB0_MASK) | val | \
 				       (RB0_REV_ID << RB0_REV_SH);
@@ -515,7 +489,7 @@ neat_write(uint16_t port, uint8_t val, void *priv)
 #endif
 				break;
 
-			case REG_RB1: 
+			case REG_RB1:
 				val &= RB1_MASK;
 				*reg = (*reg & ~RB1_MASK) | val;
 #if NEAT_DEBUG > 1
@@ -523,7 +497,7 @@ neat_write(uint16_t port, uint8_t val, void *priv)
 #endif
 				break;
 
-			case REG_RB2: 
+			case REG_RB2:
 				val &= RB2_MASK;
 				*reg = (*reg & ~RB2_MASK) | val;
 #if NEAT_DEBUG > 1
@@ -531,7 +505,7 @@ neat_write(uint16_t port, uint8_t val, void *priv)
 #endif
 				break;
 
-			case REG_RB3: 
+			case REG_RB3:
 				val &= RB3_MASK;
 				*reg = (*reg & ~RB3_MASK) | val;
 #if NEAT_DEBUG > 1
@@ -539,7 +513,7 @@ neat_write(uint16_t port, uint8_t val, void *priv)
 #endif
 				break;
 
-			case REG_RB4: 
+			case REG_RB4:
 				val &= RB4_MASK;
 				*reg = (*reg & ~RB4_MASK) | val;
 #if NEAT_DEBUG > 1
@@ -547,7 +521,7 @@ neat_write(uint16_t port, uint8_t val, void *priv)
 #endif
 				break;
 
-			case REG_RB5: 
+			case REG_RB5:
 				val &= RB5_MASK;
 				*reg = (*reg & ~RB5_MASK) | val;
 #if NEAT_DEBUG > 1
@@ -555,7 +529,7 @@ neat_write(uint16_t port, uint8_t val, void *priv)
 #endif
 				break;
 
-			case REG_RB6: 
+			case REG_RB6:
 				val &= RB6_MASK;
 				*reg = (*reg & ~RB6_MASK) | val;
 #if NEAT_DEBUG > 1
@@ -563,7 +537,7 @@ neat_write(uint16_t port, uint8_t val, void *priv)
 #endif
 				break;
 
-			case REG_RB7: 
+			case REG_RB7:
 				val &= RB7_MASK;
 				*reg = val;
 #if NEAT_DEBUG > 1
@@ -582,7 +556,7 @@ neat_write(uint16_t port, uint8_t val, void *priv)
 				}
 				break;
 
-			case REG_RB8: 
+			case REG_RB8:
 				val &= RB8_MASK;
 				*reg = (*reg & ~RB8_MASK) | val;
 #if NEAT_DEBUG > 1
@@ -590,7 +564,7 @@ neat_write(uint16_t port, uint8_t val, void *priv)
 #endif
 				break;
 
-			case REG_RB9: 
+			case REG_RB9:
 				val &= RB9_MASK;
 				*reg = (*reg & ~RB9_MASK) | val;
 #if NEAT_DEBUG > 1
@@ -602,7 +576,7 @@ neat_write(uint16_t port, uint8_t val, void *priv)
 				}
 				break;
 
-			case REG_RB10: 
+			case REG_RB10:
 				val &= RB10_MASK;
 				*reg = (*reg & ~RB10_MASK) | val;
 #if NEAT_DEBUG > 1
@@ -617,7 +591,7 @@ neat_write(uint16_t port, uint8_t val, void *priv)
 					ems_recalc(dev, &dev->ems[i]);
 				break;
 
-			case REG_RB11: 
+			case REG_RB11:
 				val &= RB11_MASK;
 				*reg = (*reg & ~RB11_MASK) | val;
 #if NEAT_DEBUG > 1
@@ -850,12 +824,16 @@ neat_init(const device_t *info)
     return dev;
 }
 
-
 const device_t neat_device = {
-    "C&T CS8121 (NEAT)",
-    0,
-    0,
-    neat_init, neat_close, NULL,
-    NULL, NULL, NULL,
-    NULL
+    .name = "C&T CS8121 (NEAT)",
+    .internal_name = "neat",
+    .flags = 0,
+    .local = 0,
+    .init = neat_init,
+    .close = neat_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };

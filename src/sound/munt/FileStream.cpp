@@ -1,5 +1,5 @@
 /* Copyright (C) 2003, 2004, 2005, 2006, 2008, 2009 Dean Beeler, Jerome Fisher
- * Copyright (C) 2011-2017 Dean Beeler, Jerome Fisher, Sergey V. Mikayev
+ * Copyright (C) 2011-2020 Dean Beeler, Jerome Fisher, Sergey V. Mikayev
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Lesser General Public License as published by
@@ -15,11 +15,25 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#ifdef MT32EMU_SHARED
+#include <locale>
+#endif
+
 #include "internals.h"
 
 #include "FileStream.h"
 
 namespace MT32Emu {
+
+static inline void configureSystemLocale() {
+#ifdef MT32EMU_SHARED
+	static bool configured = false;
+
+	if (configured) return;
+	configured = true;
+	std::locale::global(std::locale(""));
+#endif
+}
 
 using std::ios_base;
 
@@ -70,6 +84,7 @@ const Bit8u *FileStream::getData() {
 }
 
 bool FileStream::open(const char *filename) {
+	configureSystemLocale();
 	ifsp.clear();
 	ifsp.open(filename, ios_base::in | ios_base::binary);
 	return !ifsp.fail();

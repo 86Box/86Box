@@ -44,18 +44,18 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING  IN ANY  WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+
 #ifndef PRINTER_H
 # define PRINTER_H
 
+#define FONT_FILE_DOTMATRIX	"dotmatrix.ttf"
 
-#define FONT_FILE_DOTMATRIX	L"dotmatrix.ttf"
-
-#define FONT_FILE_ROMAN		L"roman.ttf"
-#define FONT_FILE_SANSSERIF	L"sansserif.ttf"
-#define FONT_FILE_COURIER	L"courier.ttf"
-#define FONT_FILE_SCRIPT	L"script.ttf"
-#define FONT_FILE_OCRA		L"ocra.ttf"
-#define FONT_FILE_OCRB		L"ocra.ttf"
+#define FONT_FILE_ROMAN		"roman.ttf"
+#define FONT_FILE_SANSSERIF	"sansserif.ttf"
+#define FONT_FILE_COURIER	"courier.ttf"
+#define FONT_FILE_SCRIPT	"script.ttf"
+#define FONT_FILE_OCRA		"ocra.ttf"
+#define FONT_FILE_OCRB		"ocra.ttf"
 
 
 extern void

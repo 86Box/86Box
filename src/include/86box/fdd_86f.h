@@ -43,7 +43,7 @@
 #else
 #define pre_gap1	0
 #endif
-  
+
 #define pre_track	pre_gap1 + length_gap1
 #define pre_gap		length_sync + length_am + 4 + length_crc
 #define pre_data	length_sync + length_am
@@ -54,7 +54,7 @@ extern d86f_handler_t	d86f_handler[FDD_NUM];
 
 
 extern void	d86f_init(void);
-extern void	d86f_load(int drive, wchar_t *fn);
+extern void	d86f_load(int drive, char *fn);
 extern void	d86f_close(int drive);
 extern void	d86f_seek(int drive, int track);
 extern int	d86f_hole(int drive);
@@ -81,7 +81,7 @@ extern uint16_t	d86f_prepare_sector(int drive, int side, int prev_pos, uint8_t *
 				    int data_len, int gap2, int gap3, int flags);
 extern void	d86f_setup(int drive);
 extern void	d86f_destroy(int drive);
-extern int	d86f_export(int drive, wchar_t *fn);
+extern int	d86f_export(int drive, char *fn);
 extern void	d86f_unregister(int drive);
 extern void	d86f_common_handlers(int drive);
 extern void	d86f_set_version(int drive, uint16_t version);

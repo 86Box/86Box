@@ -77,7 +77,7 @@ static uint32_t opcode_timings[256] =
 /*10*/  PAIR_XY | CYCLES_RMW,              PAIR_XY | CYCLES_RMW,              PAIR_XY | CYCLES_RM,              PAIR_XY | CYCLES_RM,
 /*      ADC                                ADC                                PUSH SS                           POP SS*/
         PAIR_XY | CYCLES_REG,              PAIR_XY | CYCLES_REG,              PAIR_NP | CYCLES(1),              PAIR_NP | CYCLES(3),
-/*      SBB                                SBB                                SBB                               SBB*/        
+/*      SBB                                SBB                                SBB                               SBB*/
         PAIR_XY | CYCLES_RMW,              PAIR_XY | CYCLES_RMW,              PAIR_XY | CYCLES_RM,              PAIR_XY | CYCLES_RM,
 /*      SBB                                SBB                                PUSH DS                           POP DS*/
         PAIR_XY | CYCLES_REG,              PAIR_XY | CYCLES_REG,              PAIR_NP | CYCLES(1),              PAIR_NP | CYCLES(3),
@@ -90,7 +90,7 @@ static uint32_t opcode_timings[256] =
         PAIR_XY | CYCLES_RMW,              PAIR_XY | CYCLES_RMW,              PAIR_XY | CYCLES_RM,              PAIR_XY | CYCLES_RM,
 /*      SUB                                SUB                                                                  DAS*/
         PAIR_XY | CYCLES_REG,              PAIR_XY | CYCLES_REG,              INVALID,                          PAIR_NP | CYCLES(7),
-        
+
 /*      XOR                                XOR                                XOR                               XOR*/
 /*30*/  PAIR_XY | CYCLES_RMW,              PAIR_XY | CYCLES_RMW,              PAIR_XY | CYCLES_RM,              PAIR_XY | CYCLES_RM,
 /*      XOR                                XOR                                                                                            AAA*/
@@ -108,7 +108,7 @@ static uint32_t opcode_timings[256] =
         PAIR_XY | CYCLES_REG,  PAIR_XY | CYCLES_REG,  PAIR_XY | CYCLES_REG,  PAIR_XY | CYCLES_REG,
 /*      DEC ESP                DEC EBP                DEC ESI                DEC EDI*/
         PAIR_XY | CYCLES_REG,  PAIR_XY | CYCLES_REG,  PAIR_XY | CYCLES_REG,  PAIR_XY | CYCLES_REG,
-        
+
 /*      PUSH EAX               PUSH ECX               PUSH EDX               PUSH EBX*/
 /*50*/  PAIR_XY | CYCLES_REG,  PAIR_XY | CYCLES_REG,  PAIR_XY | CYCLES_REG,  PAIR_XY | CYCLES_REG,
 /*      PUSH ESP               PUSH EBP               PUSH ESI               PUSH EDI*/
@@ -125,8 +125,8 @@ static uint32_t opcode_timings[256] =
         PAIR_XY | CYCLES_REG,   PAIR_NP | CYCLES(10),  PAIR_XY | CYCLES_REG,  PAIR_NP | CYCLES(10),
 /*      INSB                    INSW                   OUTSB                  OUTSW*/
         PAIR_NP | CYCLES(14),   PAIR_NP | CYCLES(14),  PAIR_NP | CYCLES(14),  PAIR_NP | CYCLES(14),
-        
-/*      Jxx*/        
+
+/*      Jxx*/
 /*70*/  PAIR_X_BRANCH | CYCLES_BRANCH,                  PAIR_X_BRANCH | CYCLES_BRANCH,                  PAIR_X_BRANCH | CYCLES_BRANCH,                  PAIR_X_BRANCH | CYCLES_BRANCH,
         PAIR_X_BRANCH | CYCLES_BRANCH,                  PAIR_X_BRANCH | CYCLES_BRANCH,                  PAIR_X_BRANCH | CYCLES_BRANCH,                  PAIR_X_BRANCH | CYCLES_BRANCH,
         PAIR_X_BRANCH | CYCLES_BRANCH,                  PAIR_X_BRANCH | CYCLES_BRANCH,                  PAIR_X_BRANCH | CYCLES_BRANCH,                  PAIR_X_BRANCH | CYCLES_BRANCH,
@@ -139,7 +139,7 @@ static uint32_t opcode_timings[256] =
         PAIR_XY | CYCLES_REG,              PAIR_XY | CYCLES_REG,              PAIR_XY | CYCLES_REG,              PAIR_XY | CYCLES_REG,
 /*      MOV from seg                       LEA                                MOV to seg                         POP*/
         PAIR_XY | CYCLES(1),               PAIR_XY | CYCLES_REG,              CYCLES(3),                         PAIR_XY | CYCLES(1),
-        
+
 /*      NOP                    XCHG                  XCHG                  XCHG*/
 /*90*/  PAIR_XY | CYCLES_REG,  PAIR_XY | CYCLES(2),  PAIR_XY | CYCLES(2),  PAIR_XY | CYCLES(2),
 /*      XCHG                   XCHG                  XCHG                  XCHG*/
@@ -149,7 +149,7 @@ static uint32_t opcode_timings[256] =
 /*      PUSHF                  POPF                  SAHF                  LAHF*/
         PAIR_XY | CYCLES(2),   PAIR_XY | CYCLES(9),  PAIR_XY | CYCLES(1),  PAIR_XY | CYCLES(2),
 
-/*      MOV                                MOV                                MOV                                MOV*/        
+/*      MOV                                MOV                                MOV                                MOV*/
 /*a0*/  PAIR_XY | CYCLES_REG,              PAIR_XY | CYCLES_REG,              PAIR_XY | CYCLES_REG,              PAIR_XY | CYCLES_REG,
 /*      MOVSB                              MOVSW                              CMPSB                              CMPSW*/
         PAIR_NP | CYCLES(4),               PAIR_NP | CYCLES(4),               PAIR_NP | CYCLES(5),               PAIR_NP | CYCLES(5),
@@ -177,7 +177,7 @@ static uint32_t opcode_timings[256] =
 /*d0*/  INVALID,                                        INVALID,                                        INVALID,                                        INVALID,
 /*      AAM                                             AAD                                             SETALC                                          XLAT*/
         PAIR_XY | CYCLES(18),                           PAIR_XY | CYCLES(7),                            PAIR_XY | CYCLES(2),                            PAIR_XY | CYCLES(4),
-        INVALID,                                        INVALID,                                        INVALID,                                        INVALID,        
+        INVALID,                                        INVALID,                                        INVALID,                                        INVALID,
         INVALID,                                        INVALID,                                        INVALID,                                        INVALID,
 /*      LOOPNE                                          LOOPE                                           LOOP                                            JCXZ*/
 /*e0*/  PAIR_X_BRANCH| CYCLES_BRANCH,                   PAIR_X_BRANCH | CYCLES_BRANCH,                  PAIR_X_BRANCH | CYCLES_BRANCH,                  PAIR_X_BRANCH | CYCLES_BRANCH,
@@ -213,7 +213,7 @@ static uint32_t opcode_timings_mod3[256] =
 /*10*/  PAIR_XY | CYCLES_REG,              PAIR_XY | CYCLES_REG,              PAIR_XY | CYCLES_REG,             PAIR_XY | CYCLES_REG,
 /*      ADC                                ADC                                PUSH SS                           POP SS*/
         PAIR_XY | CYCLES_REG,              PAIR_XY | CYCLES_REG,              PAIR_NP | CYCLES(1),              PAIR_NP | CYCLES(3),
-/*      SBB                                SBB                                SBB                               SBB*/        
+/*      SBB                                SBB                                SBB                               SBB*/
         PAIR_XY | CYCLES_REG,              PAIR_XY | CYCLES_REG,              PAIR_XY | CYCLES_REG,             PAIR_XY | CYCLES_REG,
 /*      SBB                                SBB                                PUSH DS                           POP DS*/
         PAIR_XY | CYCLES_REG,              PAIR_XY | CYCLES_REG,              PAIR_NP | CYCLES(1),              PAIR_NP | CYCLES(3),
@@ -226,7 +226,7 @@ static uint32_t opcode_timings_mod3[256] =
         PAIR_XY | CYCLES_REG,              PAIR_XY | CYCLES_REG,              PAIR_XY | CYCLES_REG,             PAIR_XY | CYCLES_REG,
 /*      SUB                                SUB                                                                  DAS*/
         PAIR_XY | CYCLES_REG,              PAIR_XY | CYCLES_REG,              INVALID,                          PAIR_NP | CYCLES(7),
-        
+
 /*      XOR                                XOR                                XOR                               XOR*/
 /*30*/  PAIR_XY | CYCLES_REG,              PAIR_XY | CYCLES_REG,              PAIR_XY | CYCLES_REG,             PAIR_XY | CYCLES_REG,
 /*      XOR                                XOR                                                                  AAA*/
@@ -244,7 +244,7 @@ static uint32_t opcode_timings_mod3[256] =
         PAIR_XY | CYCLES_REG,  PAIR_XY | CYCLES_REG,  PAIR_XY | CYCLES_REG,  PAIR_XY | CYCLES_REG,
 /*      DEC ESP                DEC EBP                DEC ESI                DEC EDI*/
         PAIR_XY | CYCLES_REG,  PAIR_XY | CYCLES_REG,  PAIR_XY | CYCLES_REG,  PAIR_XY | CYCLES_REG,
-        
+
 /*      PUSH EAX               PUSH ECX               PUSH EDX               PUSH EBX*/
 /*50*/  PAIR_XY | CYCLES_REG,  PAIR_XY | CYCLES_REG,  PAIR_XY | CYCLES_REG,  PAIR_XY | CYCLES_REG,
 /*      PUSH ESP               PUSH EBP               PUSH ESI               PUSH EDI*/
@@ -261,8 +261,8 @@ static uint32_t opcode_timings_mod3[256] =
         PAIR_XY | CYCLES_REG,  PAIR_XY | CYCLES(10),  PAIR_XY | CYCLES_REG,  PAIR_XY | CYCLES(10),
 /*      INSB                   INSW                   OUTSB                  OUTSW*/
         PAIR_NP | CYCLES(14),  PAIR_NP | CYCLES(14),  PAIR_NP | CYCLES(14),  PAIR_NP | CYCLES(14),
-        
-/*      Jxx*/        
+
+/*      Jxx*/
 /*70*/  PAIR_X_BRANCH | CYCLES_BRANCH,                  PAIR_X_BRANCH | CYCLES_BRANCH,                  PAIR_X_BRANCH | CYCLES_BRANCH,                  PAIR_X_BRANCH | CYCLES_BRANCH,
         PAIR_X_BRANCH | CYCLES_BRANCH,                  PAIR_X_BRANCH | CYCLES_BRANCH,                  PAIR_X_BRANCH | CYCLES_BRANCH,                  PAIR_X_BRANCH | CYCLES_BRANCH,
         PAIR_X_BRANCH | CYCLES_BRANCH,                  PAIR_X_BRANCH | CYCLES_BRANCH,                  PAIR_X_BRANCH | CYCLES_BRANCH,                  PAIR_X_BRANCH | CYCLES_BRANCH,
@@ -275,7 +275,7 @@ static uint32_t opcode_timings_mod3[256] =
         PAIR_XY | CYCLES_REG,  PAIR_XY | CYCLES_REG,  PAIR_XY | CYCLES_REG,  PAIR_XY | CYCLES_REG,
 /*      MOV from seg           LEA                    MOV to seg             POP*/
         PAIR_XY | CYCLES(1),   PAIR_XY | CYCLES_REG,  PAIR_NP | CYCLES(3),   PAIR_XY | CYCLES(1),
-        
+
 /*      NOP                                             XCHG                                            XCHG                                            XCHG*/
 /*90*/  PAIR_XY | CYCLES_REG,                           PAIR_XY | CYCLES(2),                            PAIR_XY | CYCLES(2),                            PAIR_XY | CYCLES(2),
 /*      XCHG                                            XCHG                                            XCHG                                            XCHG*/
@@ -285,8 +285,8 @@ static uint32_t opcode_timings_mod3[256] =
 /*      PUSHF                                           POPF                                            SAHF                                            LAHF*/
         PAIR_XY | CYCLES(2),                            PAIR_XY | CYCLES(9),                            PAIR_XY | CYCLES(1),                            PAIR_XY | CYCLES(2),
 
-/*      MOV                                             MOV                                             MOV                                             MOV*/        
-/*a0*/  PAIR_XY | CYCLES_REG,                           PAIR_XY | CYCLES_REG,                           PAIR_XY | CYCLES_REG,                           PAIR_XY | CYCLES_REG,              
+/*      MOV                                             MOV                                             MOV                                             MOV*/
+/*a0*/  PAIR_XY | CYCLES_REG,                           PAIR_XY | CYCLES_REG,                           PAIR_XY | CYCLES_REG,                           PAIR_XY | CYCLES_REG,
 /*      MOVSB                                           MOVSW                                           CMPSB                                           CMPSW*/
         PAIR_NP | CYCLES(4),                            PAIR_NP | CYCLES(4),                            PAIR_NP | CYCLES(5),                            PAIR_NP | CYCLES(5),
 /*      TEST                                            TEST                                            STOSB                                           STOSW*/
@@ -313,7 +313,7 @@ static uint32_t opcode_timings_mod3[256] =
 /*d0*/  INVALID,                                        INVALID,                                        INVALID,                                        INVALID,
 /*      AAM                                             AAD                                             SETALC                                          XLAT*/
         PAIR_XY | CYCLES(18),                           PAIR_XY | CYCLES(7),                            PAIR_XY | CYCLES(2),                            PAIR_XY | CYCLES(4),
-        INVALID,                                        INVALID,                                        INVALID,                                        INVALID,        
+        INVALID,                                        INVALID,                                        INVALID,                                        INVALID,
         INVALID,                                        INVALID,                                        INVALID,                                        INVALID,
 
 /*      LOOPNE                                          LOOPE                                           LOOP                                            JCXZ*/
@@ -346,12 +346,12 @@ static uint32_t opcode_timings_0f[256] =
         INVALID,                INVALID,                        INVALID,                        INVALID,
         INVALID,                INVALID,                        INVALID,                        INVALID,
         INVALID,                INVALID,                        INVALID,                        INVALID,
-        
+
 /*20*/  PAIR_NP | CYCLES(6),    PAIR_NP | CYCLES(6),            PAIR_NP | CYCLES(6),            PAIR_NP | CYCLES(6),
         PAIR_NP | CYCLES(6),    PAIR_NP | CYCLES(6),            INVALID,                        INVALID,
         INVALID,                INVALID,                        INVALID,                        INVALID,
         INVALID,                INVALID,                        INVALID,                        INVALID,
-        
+
 /*30*/  PAIR_NP | CYCLES(9),    CYCLES(1),                      PAIR_NP | CYCLES(9),            INVALID,
         INVALID,                INVALID,                        INVALID,                        INVALID,
         INVALID,                INVALID,                        INVALID,                        INVALID,
@@ -361,17 +361,17 @@ static uint32_t opcode_timings_0f[256] =
         PAIR_XY | CYCLES(1),    PAIR_XY | CYCLES(1),            PAIR_XY | CYCLES(1),            PAIR_XY | CYCLES(1),
         PAIR_XY | CYCLES(1),    PAIR_XY | CYCLES(1),            PAIR_XY | CYCLES(1),            PAIR_XY | CYCLES(1),
         PAIR_XY | CYCLES(1),    PAIR_XY | CYCLES(1),            PAIR_XY | CYCLES(1),            PAIR_XY | CYCLES(1),
-        
+
 /*50*/  INVALID,                INVALID,                        INVALID,                        INVALID,
         INVALID,                INVALID,                        INVALID,                        INVALID,
         INVALID,                INVALID,                        INVALID,                        INVALID,
         INVALID,                INVALID,                        INVALID,                        INVALID,
-        
+
 /*60*/  PAIR_X | CYCLES_RM,     PAIR_X | CYCLES_RM,     PAIR_X | CYCLES_RM,     PAIR_X | CYCLES_RM,
         PAIR_X | CYCLES_RM,     PAIR_X | CYCLES_RM,     PAIR_X | CYCLES_RM,     PAIR_X | CYCLES_RM,
         PAIR_X | CYCLES_RM,     PAIR_X | CYCLES_RM,     PAIR_X | CYCLES_RM,     PAIR_X | CYCLES_RM,
         INVALID,                INVALID,                PAIR_X | CYCLES_RM,     PAIR_X | CYCLES_RM,
-        
+
 /*70*/  INVALID,                PAIR_X | CYCLES_RM,     PAIR_X | CYCLES_RM,     PAIR_X | CYCLES_RM,
         PAIR_X | CYCLES_RM,     PAIR_X | CYCLES_RM,     PAIR_X | CYCLES_RM,     PAIR_X | CYCLES(1),
         INVALID,                INVALID,                INVALID,                INVALID,
@@ -381,17 +381,17 @@ static uint32_t opcode_timings_0f[256] =
         PAIR_X_BRANCH | CYCLES_BRANCH, PAIR_X_BRANCH | CYCLES_BRANCH, PAIR_X_BRANCH | CYCLES_BRANCH, PAIR_X_BRANCH | CYCLES_BRANCH,
         PAIR_X_BRANCH | CYCLES_BRANCH, PAIR_X_BRANCH | CYCLES_BRANCH, PAIR_X_BRANCH | CYCLES_BRANCH, PAIR_X_BRANCH | CYCLES_BRANCH,
         PAIR_X_BRANCH | CYCLES_BRANCH, PAIR_X_BRANCH | CYCLES_BRANCH, PAIR_X_BRANCH | CYCLES_BRANCH, PAIR_X_BRANCH | CYCLES_BRANCH,
-        
+
 /*90*/  PAIR_XY | CYCLES(1),    PAIR_XY | CYCLES(1),            PAIR_XY | CYCLES(1),            PAIR_XY | CYCLES(1),
         PAIR_XY | CYCLES(1),    PAIR_XY | CYCLES(1),            PAIR_XY | CYCLES(1),            PAIR_XY | CYCLES(1),
         PAIR_XY | CYCLES(1),    PAIR_XY | CYCLES(1),            PAIR_XY | CYCLES(1),            PAIR_XY | CYCLES(1),
         PAIR_XY | CYCLES(1),    PAIR_XY | CYCLES(1),            PAIR_XY | CYCLES(1),            PAIR_XY | CYCLES(1),
-        
+
 /*a0*/  PAIR_XY | CYCLES(3),    PAIR_XY | CYCLES(1),            PAIR_XY | CYCLES(12),           PAIR_XY | CYCLES(5),
         PAIR_XY | CYCLES(4),    PAIR_XY | CYCLES(5),            INVALID,                        INVALID,
         PAIR_XY | CYCLES(3),    PAIR_XY | CYCLES(1),            INVALID,                        PAIR_XY | CYCLES(5),
         PAIR_NP | CYCLES(4),    PAIR_NP | CYCLES(5),            INVALID,                        PAIR_NP | CYCLES(10),
-        
+
 /*b0*/  PAIR_NP | CYCLES(11),   PAIR_NP | CYCLES(11),           PAIR_NP | CYCLES(4),            PAIR_XY | CYCLES(5),
         PAIR_NP | CYCLES(4),    PAIR_NP | CYCLES(4),            PAIR_XY | CYCLES(1),            PAIR_XY | CYCLES(1),
         INVALID,                INVALID,                        PAIR_XY | CYCLES(3),            PAIR_XY | CYCLES(5),
@@ -406,12 +406,12 @@ static uint32_t opcode_timings_0f[256] =
         INVALID,                PAIR_X | CYCLES_RM,     INVALID,                INVALID,
         PAIR_X | CYCLES_RM,     PAIR_X | CYCLES_RM,     INVALID,                PAIR_X | CYCLES_RM,
         PAIR_X | CYCLES_RM,     PAIR_X | CYCLES_RM,     INVALID,                PAIR_X | CYCLES_RM,
-        
+
 /*e0*/  INVALID,                PAIR_X | CYCLES_RM,     PAIR_X | CYCLES_RM,     INVALID,
         INVALID,                PAIR_X | CYCLES_RM,     INVALID,                INVALID,
         PAIR_X | CYCLES_RM,     PAIR_X | CYCLES_RM,     INVALID,                PAIR_X | CYCLES_RM,
         PAIR_X | CYCLES_RM,     PAIR_X | CYCLES_RM,     INVALID,                PAIR_X | CYCLES_RM,
-        
+
 /*f0*/  INVALID,                PAIR_X | CYCLES_RM,     PAIR_X | CYCLES_RM,     PAIR_X | CYCLES_RM,
         INVALID,                PAIR_X | CYCLES_RM,     INVALID,                INVALID,
         PAIR_X | CYCLES_RM,     PAIR_X | CYCLES_RM,     PAIR_X | CYCLES_RM,     INVALID,
@@ -428,12 +428,12 @@ static uint32_t opcode_timings_0f_mod3[256] =
         INVALID,                INVALID,                        INVALID,                        INVALID,
         INVALID,                INVALID,                        INVALID,                        INVALID,
         INVALID,                INVALID,                        INVALID,                        INVALID,
-        
+
 /*20*/  PAIR_NP | CYCLES(6),    PAIR_NP | CYCLES(6),            PAIR_NP | CYCLES(6),            PAIR_NP | CYCLES(6),
         PAIR_NP | CYCLES(6),    PAIR_NP | CYCLES(6),            INVALID,                        INVALID,
         INVALID,                INVALID,                        INVALID,                        INVALID,
         INVALID,                INVALID,                        INVALID,                        INVALID,
-        
+
 /*30*/  PAIR_NP | CYCLES(9),    CYCLES(1),                      PAIR_NP | CYCLES(9),            INVALID,
         INVALID,                INVALID,                        INVALID,                        INVALID,
         INVALID,                INVALID,                        INVALID,                        INVALID,
@@ -443,17 +443,17 @@ static uint32_t opcode_timings_0f_mod3[256] =
         PAIR_XY | CYCLES(1),    PAIR_XY | CYCLES(1),            PAIR_XY | CYCLES(1),            PAIR_XY | CYCLES(1),
         PAIR_XY | CYCLES(1),    PAIR_XY | CYCLES(1),            PAIR_XY | CYCLES(1),            PAIR_XY | CYCLES(1),
         PAIR_XY | CYCLES(1),    PAIR_XY | CYCLES(1),            PAIR_XY | CYCLES(1),            PAIR_XY | CYCLES(1),
-        
+
 /*50*/  INVALID,                INVALID,                        INVALID,                        INVALID,
         INVALID,                INVALID,                        INVALID,                        INVALID,
         INVALID,                INVALID,                        INVALID,                        INVALID,
         INVALID,                INVALID,                        INVALID,                        INVALID,
-        
+
 /*60*/  PAIR_X | CYCLES_REG,    PAIR_X | CYCLES_REG,    PAIR_X | CYCLES_REG,    PAIR_X | CYCLES_REG,
         PAIR_X | CYCLES_REG,    PAIR_X | CYCLES_REG,    PAIR_X | CYCLES_REG,    PAIR_X | CYCLES_REG,
         PAIR_X | CYCLES_REG,    PAIR_X | CYCLES_REG,    PAIR_X | CYCLES_REG,    PAIR_X | CYCLES_REG,
         INVALID,                INVALID,                PAIR_X | CYCLES_REG,    PAIR_X | CYCLES_REG,
-        
+
 /*70*/  INVALID,                PAIR_X | CYCLES_REG,    PAIR_X | CYCLES_REG,    PAIR_X | CYCLES_REG,
         PAIR_X | CYCLES_REG,    PAIR_X | CYCLES_REG,    PAIR_X | CYCLES_REG,    PAIR_X | CYCLES(1),
         INVALID,                INVALID,                INVALID,                INVALID,
@@ -463,17 +463,17 @@ static uint32_t opcode_timings_0f_mod3[256] =
         PAIR_X_BRANCH | CYCLES_BRANCH, PAIR_X_BRANCH | CYCLES_BRANCH, PAIR_X_BRANCH | CYCLES_BRANCH, PAIR_X_BRANCH | CYCLES_BRANCH,
         PAIR_X_BRANCH | CYCLES_BRANCH, PAIR_X_BRANCH | CYCLES_BRANCH, PAIR_X_BRANCH | CYCLES_BRANCH, PAIR_X_BRANCH | CYCLES_BRANCH,
         PAIR_X_BRANCH | CYCLES_BRANCH, PAIR_X_BRANCH | CYCLES_BRANCH, PAIR_X_BRANCH | CYCLES_BRANCH, PAIR_X_BRANCH | CYCLES_BRANCH,
-        
+
 /*90*/  PAIR_XY | CYCLES(1),    PAIR_XY | CYCLES(1),            PAIR_XY | CYCLES(1),            PAIR_XY | CYCLES(1),
         PAIR_XY | CYCLES(1),    PAIR_XY | CYCLES(1),            PAIR_XY | CYCLES(1),            PAIR_XY | CYCLES(1),
         PAIR_XY | CYCLES(1),    PAIR_XY | CYCLES(1),            PAIR_XY | CYCLES(1),            PAIR_XY | CYCLES(1),
         PAIR_XY | CYCLES(1),    PAIR_XY | CYCLES(1),            PAIR_XY | CYCLES(1),            PAIR_XY | CYCLES(1),
-        
+
 /*a0*/  PAIR_XY | CYCLES(3),    PAIR_XY | CYCLES(1),            PAIR_XY | CYCLES(12),           PAIR_XY | CYCLES(5),
         PAIR_XY | CYCLES(4),    PAIR_XY | CYCLES(5),            INVALID,                        INVALID,
         PAIR_XY | CYCLES(3),    PAIR_XY | CYCLES(1),            INVALID,                        PAIR_XY | CYCLES(5),
         PAIR_NP | CYCLES(4),    PAIR_NP | CYCLES(5),            INVALID,                        PAIR_NP | CYCLES(10),
-        
+
 /*b0*/  PAIR_NP | CYCLES(11),   PAIR_NP | CYCLES(11),           PAIR_NP | CYCLES(4),            PAIR_XY | CYCLES(5),
         PAIR_NP | CYCLES(4),    PAIR_NP | CYCLES(4),            PAIR_XY | CYCLES(1),            PAIR_XY | CYCLES(1),
         INVALID,                INVALID,                        PAIR_XY | CYCLES(3),            PAIR_XY | CYCLES(5),
@@ -482,17 +482,17 @@ static uint32_t opcode_timings_0f_mod3[256] =
         INVALID,                INVALID,                        INVALID,                        INVALID,
         PAIR_NP | CYCLES(1),    PAIR_NP | CYCLES(1),            PAIR_NP | CYCLES(1),            PAIR_NP | CYCLES(1),
         PAIR_NP | CYCLES(1),    PAIR_NP | CYCLES(1),            PAIR_NP | CYCLES(1),            PAIR_NP | CYCLES(1),
-        
+
 /*d0*/  INVALID,                PAIR_X | CYCLES_REG,    PAIR_X | CYCLES_REG,    PAIR_X | CYCLES_REG,
         INVALID,                PAIR_X | CYCLES_REG,    INVALID,                INVALID,
         PAIR_X | CYCLES_REG,    PAIR_X | CYCLES_REG,    INVALID,                PAIR_X | CYCLES_REG,
         PAIR_X | CYCLES_REG,    PAIR_X | CYCLES_REG,    INVALID,                PAIR_X | CYCLES_REG,
-        
+
 /*e0*/  INVALID,                PAIR_X | CYCLES_REG,    PAIR_X | CYCLES_REG,    INVALID,
         INVALID,                PAIR_X | CYCLES_REG,    INVALID,                INVALID,
         PAIR_X | CYCLES_REG,    PAIR_X | CYCLES_REG,    INVALID,                PAIR_X | CYCLES_REG,
-        PAIR_X | CYCLES_REG,    PAIR_X | CYCLES_REG,    INVALID,                PAIR_X | CYCLES_REG,   
-        
+        PAIR_X | CYCLES_REG,    PAIR_X | CYCLES_REG,    INVALID,                PAIR_X | CYCLES_REG,
+
 /*f0*/  INVALID,                PAIR_X | CYCLES_REG,    PAIR_X | CYCLES_REG,    PAIR_X | CYCLES_REG,
         INVALID,                PAIR_X | CYCLES_REG,    INVALID,                INVALID,
         PAIR_X | CYCLES_REG,    PAIR_X | CYCLES_REG,    PAIR_X | CYCLES_REG,    INVALID,
@@ -564,7 +564,7 @@ static uint32_t opcode_timings_ff[8] =
         PAIR_XY | CYCLES_RMW,      PAIR_XY | CYCLES_RMW,   PAIR_X_BRANCH | CYCLES(3), PAIR_NP | CYCLES(5),
 /*      JMP                        JMP far                 PUSH*/
         PAIR_X_BRANCH | CYCLES(3), PAIR_NP | CYCLES(5),    PAIR_XY | CYCLES(1),       INVALID
-};  
+};
 static uint32_t opcode_timings_ff_mod3[8] =
 {
 /*      INC                        DEC                    CALL                       CALL far*/
@@ -605,10 +605,10 @@ static uint32_t opcode_timings_d9_mod3[64] =
         PAIR_X | CYCLES(3),     PAIR_X | CYCLES(3),     PAIR_X | CYCLES(3),     PAIR_X | CYCLES(3),
         /*FNOP*/
         PAIR_X | CYCLES(2),     INVALID,                INVALID,                INVALID,
-        INVALID,                INVALID,                INVALID,                INVALID,        
+        INVALID,                INVALID,                INVALID,                INVALID,
         /*FSTP*/
         PAIR_X | CYCLES(2),     PAIR_X | CYCLES(2),     PAIR_X | CYCLES(2),     PAIR_X | CYCLES(2),
-        PAIR_X | CYCLES(2),     PAIR_X | CYCLES(2),     PAIR_X | CYCLES(2),     PAIR_X | CYCLES(2),        
+        PAIR_X | CYCLES(2),     PAIR_X | CYCLES(2),     PAIR_X | CYCLES(2),     PAIR_X | CYCLES(2),
 /*      opFCHS                  opFABS*/
         PAIR_X | CYCLES(2),     PAIR_X | CYCLES(2),     INVALID,                INVALID,
 /*      opFTST                  opFXAM (oddly low) */
@@ -652,27 +652,27 @@ static uint32_t opcode_timings_db_mod3[64] =
 {
         PAIR_X | CYCLES(4),     PAIR_X | CYCLES(4),     PAIR_X | CYCLES(4),     PAIR_X | CYCLES(4),
         PAIR_X | CYCLES(4),     PAIR_X | CYCLES(4),     PAIR_X | CYCLES(4),     PAIR_X | CYCLES(4),
-        
+
         PAIR_X | CYCLES(4),     PAIR_X | CYCLES(4),     PAIR_X | CYCLES(4),     PAIR_X | CYCLES(4),
         PAIR_X | CYCLES(4),     PAIR_X | CYCLES(4),     PAIR_X | CYCLES(4),     PAIR_X | CYCLES(4),
-        
+
         PAIR_X | CYCLES(4),     PAIR_X | CYCLES(4),     PAIR_X | CYCLES(4),     PAIR_X | CYCLES(4),
         PAIR_X | CYCLES(4),     PAIR_X | CYCLES(4),     PAIR_X | CYCLES(4),     PAIR_X | CYCLES(4),
-        
+
         PAIR_X | CYCLES(4),     PAIR_X | CYCLES(4),     PAIR_X | CYCLES(4),     PAIR_X | CYCLES(4),
         PAIR_X | CYCLES(4),     PAIR_X | CYCLES(4),     PAIR_X | CYCLES(4),     PAIR_X | CYCLES(4),
-        
+
 /*                              opFNOP                  opFCLEX                 opFINIT*/
         INVALID,                PAIR_X | CYCLES(2),     PAIR_X | CYCLES(5),     PAIR_X | CYCLES(8),
 /*      opFNOP                  opFNOP*/
         PAIR_X | CYCLES(2),     PAIR_X | CYCLES(2),     INVALID,                INVALID,
-        
+
         INVALID,                INVALID,                INVALID,                INVALID,
         INVALID,                INVALID,                INVALID,                INVALID,
-        
+
         INVALID,                INVALID,                INVALID,                INVALID,
         INVALID,                INVALID,                INVALID,                INVALID,
-        
+
         INVALID,                INVALID,                INVALID,                INVALID,
         INVALID,                INVALID,                INVALID,                INVALID,
 };
@@ -822,7 +822,7 @@ static int check_agi(uint64_t *deps, uint8_t opcode, uint32_t fetchdat, int op_3
 
         if (last_regmask_modified & addr_regmask)
                 return 1;
-        
+
         return 0;
 }
 
@@ -839,7 +839,7 @@ void codegen_timing_686_opcode(uint8_t opcode, uint32_t fetchdat, int op_32, uin
                 timings = mod3 ? opcode_timings_0f_mod3 : opcode_timings_0f;
                 deps = mod3 ? opcode_deps_0f_mod3 : opcode_deps_0f;
                 break;
-                
+
                 case 0xd8:
                 timings = mod3 ? opcode_timings_d8_mod3 : opcode_timings_d8;
                 deps = mod3 ? opcode_deps_d8_mod3 : opcode_deps_d8;
@@ -894,7 +894,7 @@ void codegen_timing_686_opcode(uint8_t opcode, uint32_t fetchdat, int op_32, uin
                         deps = mod3 ? opcode_deps_81_mod3 : opcode_deps_81;
                         opcode = (fetchdat >> 3) & 7;
                         break;
-                                
+
                         case 0xc0: case 0xc1:
                         timings = mod3 ? opcode_timings_shift_imm_mod3 : opcode_timings_shift_imm;
                         deps = mod3 ? opcode_deps_shift_mod3 : opcode_deps_shift;
@@ -906,13 +906,13 @@ void codegen_timing_686_opcode(uint8_t opcode, uint32_t fetchdat, int op_32, uin
                         deps = mod3 ? opcode_deps_shift_mod3 : opcode_deps_shift;
                         opcode = (fetchdat >> 3) & 7;
                         break;
-                        
+
                         case 0xd2: case 0xd3:
                         timings = mod3 ? opcode_timings_shift_cl_mod3 : opcode_timings_shift_cl;
                         deps = mod3 ? opcode_deps_shift_cl_mod3 : opcode_deps_shift_cl;
                         opcode = (fetchdat >> 3) & 7;
                         break;
-                        
+
                         case 0xf6:
                         timings = mod3 ? opcode_timings_f6_mod3 : opcode_timings_f6;
                         deps = mod3 ? opcode_deps_f6_mod3 : opcode_deps_f6;
@@ -935,17 +935,17 @@ void codegen_timing_686_opcode(uint8_t opcode, uint32_t fetchdat, int op_32, uin
                         break;
                 }
         }
-        
-        /*One prefix per instruction is free*/        
+
+        /*One prefix per instruction is free*/
         decode_delay--;
         if (decode_delay < 0)
                 decode_delay = 0;
-                
+
         if (prev_full)
         {
                 uint32_t regmask = get_srcdep_mask(deps[opcode], fetchdat, bit8, op_32);
                 int agi_stall = 0;
-                
+
                 if (regmask & IMPL_ESP)
                         regmask |= SRCDEP_ESP | DSTDEP_ESP;
 
@@ -996,7 +996,7 @@ void codegen_timing_686_opcode(uint8_t opcode, uint32_t fetchdat, int op_32, uin
 
                         codegen_block_cycles += t_pair + agi_stall;
                         decode_delay = (-t_pair) + 1 + agi_stall;
-                        
+
                         last_regmask_modified = regmask_modified;
                         regmask_modified = get_dstdep_mask(deps[opcode], fetchdat, bit8) | prev_regmask;
                         prev_full = 0;
@@ -1013,7 +1013,7 @@ void codegen_timing_686_opcode(uint8_t opcode, uint32_t fetchdat, int op_32, uin
                         int agi_stall = 0;
 
 			agi_stall = check_agi(deps, opcode, fetchdat, op_32);
-                                
+
                         codegen_block_cycles += COUNT(timings[opcode], op_32) + decode_delay + agi_stall;
                         decode_delay = (-COUNT(timings[opcode], op_32)) + 1 + agi_stall;
                         last_regmask_modified = regmask_modified;

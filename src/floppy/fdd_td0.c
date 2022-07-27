@@ -1121,6 +1121,7 @@ td0_seek(int drive, int track)
 			id[1] = dev->sects[track][side][actual_sector].head;
 			id[2] = real_sector;
 			id[3] = dev->sects[track][side][actual_sector].size;
+			pclog("track %i, side %i, %i,%i,%i,%i %i\n", track, side, id[0], id[1], id[2], id[3], dev->sects[track][side][actual_sector].flags);
 			fm = dev->sects[track][side][actual_sector].fm;
 			if (((dev->sects[track][side][actual_sector].flags & 0x42) || (id[3] > (dev->max_sector_size - fm))) && !fdd_get_turbo(drive))
 				ssize = 3;
@@ -1190,7 +1191,7 @@ td0_abort(int drive)
 
 
 void
-td0_load(int drive, wchar_t *fn)
+td0_load(int drive, char *fn)
 {
     td0_t *dev;
     uint32_t i;
@@ -1203,7 +1204,7 @@ td0_load(int drive, wchar_t *fn)
     memset(dev, 0x00, sizeof(td0_t));
     td0[drive] = dev;
 
-    dev->f = plat_fopen(fn, L"rb");
+    dev->f = plat_fopen(fn, "rb");
     if (dev->f == NULL) {
 	memset(floppyfns[drive], 0, sizeof(floppyfns[drive]));
 	return;

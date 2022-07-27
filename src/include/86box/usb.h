@@ -14,6 +14,7 @@
  *
  *		Copyright 2020 Miran Grca.
  */
+
 #ifndef USB_H
 # define USB_H
 
@@ -24,7 +25,7 @@ extern "C" {
 
 typedef struct
 {
-    uint8_t		ohci_mmio[4096];
+    uint8_t		uhci_io[32], ohci_mmio[4096];
     uint16_t		uhci_io_base;
     int			uhci_enable, ohci_enable;
     uint32_t		ohci_mem_base;
@@ -43,6 +44,5 @@ extern void		ohci_update_mem_mapping(usb_t *dev, uint8_t base1, uint8_t base2, u
 #ifdef __cplusplus
 }
 #endif
-
 
 #endif	/*USB_H*/

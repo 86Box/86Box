@@ -1,222 +1,71 @@
-/* Copyright holders: Sarah Walker, SA1988
-   see COPYING for more details
-*/
-#include <stdio.h>
+/*
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
+ *
+ *          This file is part of the 86Box distribution.
+ *
+ *          Interface to the actual OPL emulator.
+ *
+ * TODO:    Finish re-working this into a device_t, which requires a
+ *          poll-like function for "update" so the sound card can call
+ *          that and get a buffer-full of sample data.
+ *
+ * Authors: Fred N. van Kempen, <decwiz@yahoo.com>
+ *          Miran Grca, <mgrca8@gmail.com>
+ *
+ *          Copyright 2017-2020 Fred N. van Kempen.
+ *          Copyright 2016-2020 Miran Grca.
+ */
+#include <stdarg.h>
 #include <stdint.h>
-#include <string.h>
+#include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <wchar.h>
-#include <86box/86box.h>
+#define HAVE_STDARG_H
+
 #include "cpu.h"
+#include <86box/86box.h>
+#include <86box/device.h>
 #include <86box/io.h>
-#include <86box/timer.h>
 #include <86box/sound.h>
 #include <86box/snd_opl.h>
-#include <86box/snd_opl_backend.h>
 
-
-/*Interfaces between 86Box and the actual OPL emulator*/
-
+static uint32_t fm_dev_inst[FM_DRV_MAX][FM_MAX];
 
 uint8_t
-opl2_read(uint16_t a, void *priv)
-{
-    opl_t *opl = (opl_t *)priv;
+fm_driver_get(int chip_id, fm_drv_t *drv) {
+    switch (chip_id) {
+        case FM_YM3812:
+            if (fm_driver == FM_DRV_NUKED) {
+                *drv = nuked_opl_drv;
+                drv->priv = device_add_inst(&ym3812_nuked_device, fm_dev_inst[fm_driver][chip_id]++);
+            } else {
+                *drv = ymfm_drv;
+                drv->priv = device_add_inst(&ym3812_ymfm_device, fm_dev_inst[fm_driver][chip_id]++);
+            }
+            break;
 
-    sub_cycles((int) (isa_timing * 8));
-    opl2_update2(opl);
+        case FM_YMF262:
+            if (fm_driver == FM_DRV_NUKED) {
+                *drv = nuked_opl_drv;
+                drv->priv = device_add_inst(&ymf262_nuked_device, fm_dev_inst[fm_driver][chip_id]++);
+            } else {
+                *drv = ymfm_drv;
+                drv->priv = device_add_inst(&ymf262_ymfm_device, fm_dev_inst[fm_driver][chip_id]++);
+            }
+            break;
 
-    return opl_read(0, a);
-}
+        case FM_YMF289B:
+            *drv = ymfm_drv;
+            drv->priv = device_add_inst(&ymf289b_ymfm_device, fm_dev_inst[fm_driver][chip_id]++);
+            break;
 
-
-void
-opl2_write(uint16_t a, uint8_t v, void *priv)
-{
-    opl_t *opl = (opl_t *)priv;
-
-    opl2_update2(opl);
-    opl_write(0, a, v);
-    opl_write(1, a, v);
-}
-
-
-uint8_t
-opl2_l_read(uint16_t a, void *priv)
-{
-    opl_t *opl = (opl_t *)priv;
-
-    sub_cycles((int)(isa_timing * 8));
-    opl2_update2(opl);
-
-    return opl_read(0, a);
-}
-
-
-void
-opl2_l_write(uint16_t a, uint8_t v, void *priv)
-{
-    opl_t *opl = (opl_t *)priv;
-
-    opl2_update2(opl);
-    opl_write(0, a, v);
-}
-
-
-uint8_t
-opl2_r_read(uint16_t a, void *priv)
-{
-    opl_t *opl = (opl_t *)priv;
-
-    sub_cycles((int)(isa_timing * 8));
-    opl2_update2(opl);
-
-    return opl_read(1, a);
-}
-
-
-void
-opl2_r_write(uint16_t a, uint8_t v, void *priv)
-{
-    opl_t *opl = (opl_t *)priv;
-
-    opl2_update2(opl);
-    opl_write(1, a, v);
-}
-
-
-uint8_t
-opl3_read(uint16_t a, void *priv)
-{
-    opl_t *opl = (opl_t *)priv;
-
-    sub_cycles((int)(isa_timing * 8));
-    opl3_update2(opl);
-
-    return opl_read(0, a);
-}
-
-
-void
-opl3_write(uint16_t a, uint8_t v, void *priv)
-{
-        opl_t *opl = (opl_t *)priv;
-        
-        opl3_update2(opl);
-        opl_write(0, a, v);
-}
-
-
-void
-opl2_update2(opl_t *opl)
-{
-    if (opl->pos < sound_pos_global) {
-	opl2_update(0, &opl->buffer[opl->pos << 1], sound_pos_global - opl->pos);
-	opl2_update(1, &opl->buffer2[opl->pos << 1], sound_pos_global - opl->pos);
-	for (; opl->pos < sound_pos_global; opl->pos++) {
-		opl->buffer[(opl->pos << 1) + 1] = opl->buffer2[(opl->pos << 1) + 1];
-		opl->filtbuf[0] = opl->buffer[opl->pos << 1]   = (opl->buffer[opl->pos << 1] / 2);
-		opl->filtbuf[1] = opl->buffer[(opl->pos << 1) + 1] = (opl->buffer[(opl->pos << 1) + 1] / 2);
-	}
+        default:
+            return 0;
     }
-}
 
-
-void
-opl3_update2(opl_t *opl)
-{
-    if (opl->pos < sound_pos_global) {
-	opl3_update(0, &opl->buffer[(opl->pos << 1)], sound_pos_global - opl->pos);
-	for (; opl->pos < sound_pos_global; opl->pos++) {
-		opl->filtbuf[0] = opl->buffer[opl->pos << 1]   = (opl->buffer[opl->pos << 1]   / 2);
-		opl->filtbuf[1] = opl->buffer[(opl->pos << 1) + 1] = (opl->buffer[(opl->pos << 1) + 1] / 2);
-	}
-    }
-}
-
-
-void
-ym3812_timer_set_0(void *param, int timer, uint64_t period)
-{
-    opl_t *opl = (opl_t *)param;
-
-    if (period)
-	timer_set_delay_u64(&opl->timers[0][timer], period * TIMER_USEC * 20);
-    else
-	timer_disable(&opl->timers[0][timer]);
-}
-
-
-void
-ym3812_timer_set_1(void *param, int timer, uint64_t period)
-{
-    opl_t *opl = (opl_t *)param;
-
-    if (period)
-	timer_set_delay_u64(&opl->timers[1][timer], period * TIMER_USEC * 20);
-    else
-	timer_disable(&opl->timers[1][timer]);
-}
-
-
-void 
-ymf262_timer_set(void *param, int timer, uint64_t period)
-{
-    opl_t *opl = (opl_t *)param;
-
-    if (period)
-	timer_set_delay_u64(&opl->timers[0][timer], period * TIMER_USEC * 20);
-    else
-	timer_disable(&opl->timers[0][timer]);
-}
-
-
-static void
-opl_timer_callback00(void *p)
-{
-    opl_timer_over(0, 0);
-}
-
-
-static void
-opl_timer_callback01(void *p)
-{
-    opl_timer_over(0, 1);
-}
-
-
-static void
-opl_timer_callback10(void *p)
-{
-    opl_timer_over(1, 0);
-}
-
-
-static void
-opl_timer_callback11(void *p)
-{
-    opl_timer_over(1, 1);
-}
-
-
-void
-opl2_init(opl_t *opl)
-{
-    opl_init(ym3812_timer_set_0, opl, 0, 0);
-    opl_init(ym3812_timer_set_1, opl, 1, 0);
-
-    timer_add(&opl->timers[0][0], opl_timer_callback00, (void *)opl, 0);
-    timer_add(&opl->timers[0][1], opl_timer_callback01, (void *)opl, 0);
-    timer_add(&opl->timers[1][0], opl_timer_callback10, (void *)opl, 0);
-    timer_add(&opl->timers[1][1], opl_timer_callback11, (void *)opl, 0);
-}
-
-
-void
-opl3_init(opl_t *opl)
-{
-    opl_init(ymf262_timer_set, opl, 0, 1);
-
-    timer_add(&opl->timers[0][0], opl_timer_callback00, (void *)opl, 0);
-    timer_add(&opl->timers[0][1], opl_timer_callback01, (void *)opl, 0);
-}
+    return 1;
+};

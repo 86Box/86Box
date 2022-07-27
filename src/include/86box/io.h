@@ -23,6 +23,33 @@
 
 extern void	io_init(void);
 
+extern void	io_sethandler_common(uint16_t base, int size,
+			uint8_t (*inb)(uint16_t addr, void *priv),
+			uint16_t (*inw)(uint16_t addr, void *priv),
+			uint32_t (*inl)(uint16_t addr, void *priv),
+			void (*outb)(uint16_t addr, uint8_t val, void *priv),
+			void (*outw)(uint16_t addr, uint16_t val, void *priv),
+			void (*outl)(uint16_t addr, uint32_t val, void *priv),
+			void *priv, int step);
+
+extern void	io_removehandler_common(uint16_t base, int size,
+			uint8_t (*inb)(uint16_t addr, void *priv),
+			uint16_t (*inw)(uint16_t addr, void *priv),
+			uint32_t (*inl)(uint16_t addr, void *priv),
+			void (*outb)(uint16_t addr, uint8_t val, void *priv),
+			void (*outw)(uint16_t addr, uint16_t val, void *priv),
+			void (*outl)(uint16_t addr, uint32_t val, void *priv),
+			void *priv, int step);
+
+extern void	io_handler_common(int set, uint16_t base, int size,
+			uint8_t (*inb)(uint16_t addr, void *priv),
+			uint16_t (*inw)(uint16_t addr, void *priv),
+			uint32_t (*inl)(uint16_t addr, void *priv),
+			void (*outb)(uint16_t addr, uint8_t val, void *priv),
+			void (*outw)(uint16_t addr, uint16_t val, void *priv),
+			void (*outl)(uint16_t addr, uint32_t val, void *priv),
+			void *priv, int step);
+
 extern void	io_sethandler(uint16_t base, int size,
 			uint8_t (*inb)(uint16_t addr, void *priv),
 			uint16_t (*inw)(uint16_t addr, void *priv),
@@ -50,7 +77,6 @@ extern void	io_handler(int set, uint16_t base, int size,
 			void (*outl)(uint16_t addr, uint32_t val, void *priv),
 			void *priv);
 
-#ifdef PC98
 extern void	io_sethandler_interleaved(uint16_t base, int size,
 			uint8_t (*inb)(uint16_t addr, void *priv),
 			uint16_t (*inw)(uint16_t addr, void *priv),
@@ -68,7 +94,15 @@ extern void	io_removehandler_interleaved(uint16_t base, int size,
 			void (*outw)(uint16_t addr, uint16_t val, void *priv),
 			void (*outl)(uint16_t addr, uint32_t val, void *priv),
 			void *priv);
-#endif
+
+extern void	io_handler_interleaved(int set, uint16_t base, int size,
+			uint8_t (*inb)(uint16_t addr, void *priv),
+			uint16_t (*inw)(uint16_t addr, void *priv),
+			uint32_t (*inl)(uint16_t addr, void *priv),
+			void (*outb)(uint16_t addr, uint8_t val, void *priv),
+			void (*outw)(uint16_t addr, uint16_t val, void *priv),
+			void (*outl)(uint16_t addr, uint32_t val, void *priv),
+			void *priv);
 
 extern uint8_t	inb(uint16_t port);
 extern void	outb(uint16_t port, uint8_t  val);
@@ -76,6 +110,11 @@ extern uint16_t	inw(uint16_t port);
 extern void	outw(uint16_t port, uint16_t val);
 extern uint32_t	inl(uint16_t port);
 extern void	outl(uint16_t port, uint32_t val);
+
+extern void	*io_trap_add(void (*func)(int size, uint16_t addr, uint8_t write, uint8_t val, void *priv),
+			     void *priv);
+extern void	io_trap_remap(void *handle, int enable, uint16_t addr, uint16_t size);
+extern void	io_trap_remove(void *handle);
 
 
 #endif	/*EMU_IO_H*/

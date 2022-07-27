@@ -58,7 +58,7 @@ static void tm_fcs_close(void *p)
 static uint8_t tm_fcs_read(void *p)
 {
         uint8_t ret = 0xf0;
-        
+
         if (JOYSTICK_PRESENT(0))
         {
                 if (joystick_state[0].button[0])
@@ -114,18 +114,19 @@ static void tm_fcs_a0_over(void *p)
 
 const joystick_if_t joystick_tm_fcs =
 {
-        "Thrustmaster Flight Control System",
-        tm_fcs_init,
-        tm_fcs_close,
-        tm_fcs_read,
-        tm_fcs_write,
-        tm_fcs_read_axis,
-        tm_fcs_a0_over,
-        2,
-        4,
-        1,
-        1,
-        {"X axis", "Y axis"},
-        {"Button 1", "Button 2", "Button 3", "Button 4"},
-        {"POV"}
+    .name = "Thrustmaster Flight Control System",
+    .internal_name = "thrustmaster_fcs",
+    .init = tm_fcs_init,
+    .close = tm_fcs_close,
+    .read = tm_fcs_read,
+    .write = tm_fcs_write,
+    .read_axis = tm_fcs_read_axis,
+    .a0_over = tm_fcs_a0_over,
+    .axis_count = 2,
+    .button_count = 4,
+    .pov_count = 1,
+    .max_joysticks = 1,
+    .axis_names = { "X axis", "Y axis" },
+    .button_names = { "Button 1", "Button 2", "Button 3", "Button 4" },
+    .pov_names = { "POV" }
 };

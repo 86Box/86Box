@@ -17,9 +17,10 @@
  *		Copyright 2020 Sarah Walker.
  *		Copyright 2020 TheCollector1995.
  */
+
 #ifndef SCSI_SPOCK_H
 # define SCSI_SPOCK_H
 
 extern const device_t spock_device;
-  
+
 #endif	/*SCSI_SPOCK_H*/

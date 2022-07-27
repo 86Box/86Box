@@ -35,6 +35,7 @@
 #include <86box/nvr.h>
 #include <86box/fdd.h>
 #include <86box/fdc.h>
+#include <86box/fdc_ext.h>
 #include <86box/gameport.h>
 #include <86box/keyboard.h>
 #include <86box/sound.h>
@@ -90,6 +91,7 @@ typedef struct {
     int			con, coff,
 			cursoron,
 			blink;
+    int         fullchange;
     int			vsynctime;
     int			vadj;
     uint16_t		ma, maback;
@@ -104,7 +106,7 @@ typedef struct {
 } t1kvid_t;
 
 typedef struct {
-    wchar_t		*path;
+    char		*path;
 
     int			state;
     int			count;
@@ -297,11 +299,11 @@ static const scancode scancode_tandy[512] = {
     { {0},             {0} }, { {0},             {0} },	/*140*/
     { {0},             {0} }, { {0},             {0} },
     { {0x46, 0}, {0xc6, 0} }, { {0x47, 0}, {0xc7, 0} },	/*144*/
-    { {0x48, 0}, {0xc8, 0} }, { {0x49, 0}, {0xc9, 0} },
-    { {0},             {0} }, { {0x4b, 0}, {0xcb, 0} },	/*148*/
-    { {0},             {0} }, { {0x4d, 0}, {0xcd, 0} },
+    { {0x29, 0}, {0xa9, 0} }, { {0x49, 0}, {0xc9, 0} },
+    { {0},             {0} }, { {0x2b, 0}, {0xab, 0} },	/*148*/
+    { {0},             {0} }, { {0x4e, 0}, {0xce, 0} },
     { {0},             {0} }, { {0x4f, 0}, {0xcf, 0} },	/*14c*/
-    { {0x50, 0}, {0xd0, 0} }, { {0x51, 0}, {0xd1, 0} },
+    { {0x4a, 0}, {0xca, 0} }, { {0x51, 0}, {0xd1, 0} },
     { {0x52, 0}, {0xd2, 0} }, { {0x53, 0}, {0xd3, 0} },	/*150*/
     { {0},             {0} }, { {0},             {0} },
     { {0},             {0} }, { {0},             {0} },	/*154*/
@@ -519,6 +521,9 @@ vid_out(uint16_t addr, uint8_t val, void *priv)
     t1kvid_t *vid = dev->vid;
     uint8_t old;
 
+    if ((addr >= 0x3d0) && (addr <= 0x3d7))
+	addr = (addr & 0xff9) | 0x004;
+
     switch (addr) {
 	case 0x03d4:
 		vid->crtcreg = val & 0x1f;
@@ -532,7 +537,7 @@ vid_out(uint16_t addr, uint8_t val, void *priv)
 			vid->crtc[vid->crtcreg] = val & crtcmask[vid->crtcreg];
 		if (old != val) {
 			if (vid->crtcreg < 0xe || vid->crtcreg > 0x10) {
-				fullchange = changeframecount;
+                vid->fullchange = changeframecount;
 				recalc_timings(dev);
 			}
 		}
@@ -553,7 +558,7 @@ vid_out(uint16_t addr, uint8_t val, void *priv)
 		break;
 
 	case 0x03de:
-		if (vid->array_index & 16) 
+		if (vid->array_index & 16)
 			val &= 0xf;
 		vid->array[vid->array_index & 0x1f] = val;
 		if (dev->is_sl2) {
@@ -588,6 +593,9 @@ vid_in(uint16_t addr, void *priv)
     t1kvid_t *vid = dev->vid;
     uint8_t ret = 0xff;
 
+    if ((addr >= 0x3d0) && (addr <= 0x3d7))
+	addr = (addr & 0xff9) | 0x004;
+
     switch (addr) {
 	case 0x03d4:
 		ret = vid->crtcreg;
@@ -614,7 +622,6 @@ vid_write(uint32_t addr, uint8_t val, void *priv)
 
     if (vid->memctrl == -1) return;
 
-    egawrites++;
     if (dev->is_sl2) {
 	if (vid->array[5] & 1)
 		vid->b8000[addr & 0xffff] = val;
@@ -636,7 +643,6 @@ vid_read(uint32_t addr, void *priv)
 
     if (vid->memctrl == -1) return(0xff);
 
-    egareads++;
     if (dev->is_sl2) {
 	if (vid->array[5] & 1)
 		return(vid->b8000[addr & 0xffff]);
@@ -670,7 +676,7 @@ vid_poll(void *priv)
 	vid->stat |= 1;
 	vid->linepos = 1;
 	oldsc = vid->sc;
-	if ((vid->crtc[8] & 3) == 3) 
+	if ((vid->crtc[8] & 3) == 3)
 		vid->sc = (vid->sc << 1) & 7;
 	if (vid->dispon) {
 		if (vid->displine < vid->firstline) {
@@ -711,7 +717,7 @@ vid_poll(void *priv)
 		}
 		if (dev->is_sl2 && (vid->array[5] & 1)) { /*640x200x16*/
 			for (x = 0; x < vid->crtc[1]*2; x++) {
-				dat = (vid->vram[(vid->ma << 1) & 0xffff] << 8) | 
+				dat = (vid->vram[(vid->ma << 1) & 0xffff] << 8) |
 				       vid->vram[((vid->ma << 1) + 1) & 0xffff];
 				vid->ma++;
 				buffer32->line[(vid->displine << 1)][(x << 2) + 8]  = buffer32->line[(vid->displine << 1) + 1][(x << 2) + 8]  =
@@ -725,7 +731,7 @@ vid_poll(void *priv)
 			}
 		} else if ((vid->array[3] & 0x10) && (vid->mode & 1)) { /*320x200x16*/
 			for (x = 0; x < vid->crtc[1]; x++) {
-				dat = (vid->vram[((vid->ma << 1) & 0x1fff) + ((vid->sc & 3) * 0x2000)] << 8) | 
+				dat = (vid->vram[((vid->ma << 1) & 0x1fff) + ((vid->sc & 3) * 0x2000)] << 8) |
 				       vid->vram[((vid->ma << 1) & 0x1fff) + ((vid->sc & 3) * 0x2000) + 1];
 				vid->ma++;
 				buffer32->line[(vid->displine << 1)][(x << 3) + 8]  = buffer32->line[(vid->displine << 1) + 1][(x << 3) + 8]  =
@@ -744,10 +750,10 @@ vid_poll(void *priv)
 		} else if (vid->array[3] & 0x10) { /*160x200x16*/
 			for (x = 0; x < vid->crtc[1]; x++) {
 				if (dev->is_sl2) {
-					dat = (vid->vram[((vid->ma << 1) & 0x1fff) + ((vid->sc & 1) * 0x2000)] << 8) | 
+					dat = (vid->vram[((vid->ma << 1) & 0x1fff) + ((vid->sc & 1) * 0x2000)] << 8) |
 					       vid->vram[((vid->ma << 1) & 0x1fff) + ((vid->sc & 1) * 0x2000) + 1];
 				} else {
-					dat = (vid->vram[((vid->ma << 1) & 0x1fff) + ((vid->sc & 3) * 0x2000)] << 8) | 
+					dat = (vid->vram[((vid->ma << 1) & 0x1fff) + ((vid->sc & 3) * 0x2000)] << 8) |
 					       vid->vram[((vid->ma << 1) & 0x1fff) + ((vid->sc & 3) * 0x2000) + 1];
 				}
 				vid->ma++;
@@ -793,7 +799,7 @@ vid_poll(void *priv)
 				if (vid->mode & 0x20) {
 					cols[1] = vid->array[ ((attr & 15) & vid->array[1]) + 16] + 16;
 					cols[0] = vid->array[(((attr >> 4) & 7) & vid->array[1]) + 16] + 16;
-					if ((vid->blink & 16) && (attr & 0x80) && !drawcursor) 
+					if ((vid->blink & 16) && (attr & 0x80) && !drawcursor)
  						cols[1] = cols[0];
 				} else {
 					cols[1] = vid->array[((attr & 15) & vid->array[1]) + 16] + 16;
@@ -806,8 +812,13 @@ vid_poll(void *priv)
 					}
 				} else {
 					for (c = 0; c < 8; c++) {
-						buffer32->line[(vid->displine << 1)][(x << 3) + c + 8] = buffer32->line[(vid->displine << 1) + 1][(x << 3) + c + 8] =
-							cols[(fontdat[chr][vid->sc & 7] & (1 << (c ^ 7))) ? 1 : 0];
+						if (vid->sc == 8) {
+							buffer32->line[(vid->displine << 1)][(x << 3) + c + 8] = buffer32->line[(vid->displine << 1) + 1][(x << 3) + c + 8] =
+								cols[(fontdat[chr][7] & (1 << (c ^ 7))) ? 1 : 0];
+						} else {
+							buffer32->line[(vid->displine << 1)][(x << 3) + c + 8] = buffer32->line[(vid->displine << 1) + 1][(x << 3) + c + 8] =
+								cols[(fontdat[chr][vid->sc & 7] & (1 << (c ^ 7))) ? 1 : 0];
+						}
 					}
 				}
 				if (drawcursor) {
@@ -826,7 +837,7 @@ vid_poll(void *priv)
 				if (vid->mode & 0x20) {
 					cols[1] = vid->array[ ((attr & 15) & vid->array[1]) + 16] + 16;
 					cols[0] = vid->array[(((attr >> 4) & 7) & vid->array[1]) + 16] + 16;
-					if ((vid->blink & 16) && (attr & 0x80) && !drawcursor) 
+					if ((vid->blink & 16) && (attr & 0x80) && !drawcursor)
 						cols[1] = cols[0];
 				} else {
 					cols[1] = vid->array[((attr & 15) & vid->array[1]) + 16] + 16;
@@ -839,9 +850,15 @@ vid_poll(void *priv)
 							cols[0];
 				} else {
 					for (c = 0; c < 8; c++) {
-						buffer32->line[(vid->displine << 1)][(x << 4) + (c << 1) + 8] =  buffer32->line[(vid->displine << 1) + 1][(x << 4) + (c << 1) + 8] = 
-						buffer32->line[(vid->displine << 1)][(x << 4) + (c << 1) + 1 + 8] = buffer32->line[(vid->displine << 1) + 1][(x << 4) + (c << 1) + 1 + 8] =
-							cols[(fontdat[chr][vid->sc & 7] & (1 << (c ^ 7))) ? 1 : 0];
+						if (vid->sc == 8) {
+							buffer32->line[(vid->displine << 1)][(x << 4) + (c << 1) + 8] =  buffer32->line[(vid->displine << 1) + 1][(x << 4) + (c << 1) + 8] =
+							buffer32->line[(vid->displine << 1)][(x << 4) + (c << 1) + 1 + 8] = buffer32->line[(vid->displine << 1) + 1][(x << 4) + (c << 1) + 1 + 8] =
+								cols[(fontdat[chr][7] & (1 << (c ^ 7))) ? 1 : 0];
+						} else {
+							buffer32->line[(vid->displine << 1)][(x << 4) + (c << 1) + 8] =  buffer32->line[(vid->displine << 1) + 1][(x << 4) + (c << 1) + 8] =
+							buffer32->line[(vid->displine << 1)][(x << 4) + (c << 1) + 1 + 8] = buffer32->line[(vid->displine << 1) + 1][(x << 4) + (c << 1) + 1 + 8] =
+								cols[(fontdat[chr][vid->sc & 7] & (1 << (c ^ 7))) ? 1 : 0];
+						}
 					}
 				}
 				if (drawcursor) {
@@ -872,7 +889,7 @@ vid_poll(void *priv)
 			cols[2] = vid->array[(cols[2] & vid->array[1]) + 16] + 16;
 			cols[3] = vid->array[(cols[3] & vid->array[1]) + 16] + 16;
 			for (x = 0; x < vid->crtc[1]; x++) {
-				dat = (vid->vram[((vid->ma << 1) & 0x1fff) + ((vid->sc & 1) * 0x2000)] << 8) | 
+				dat = (vid->vram[((vid->ma << 1) & 0x1fff) + ((vid->sc & 1) * 0x2000)] << 8) |
 				       vid->vram[((vid->ma << 1) & 0x1fff) + ((vid->sc & 1) * 0x2000) + 1];
 				vid->ma++;
 				for (c = 0; c < 8; c++) {
@@ -883,7 +900,7 @@ vid_poll(void *priv)
 				}
 			}
 		} else {
-			cols[0] = 0; 
+			cols[0] = 0;
 			cols[1] = vid->array[(vid->col & vid->array[1]) + 16] + 16;
 			for (x = 0; x < vid->crtc[1]; x++) {
 				dat = (vid->vram[((vid->ma << 1) & 0x1fff) + ((vid->sc & 1) * 0x2000)] << 8) |
@@ -929,11 +946,11 @@ vid_poll(void *priv)
 	if (vid->vc == vid->crtc[7] && !vid->sc)
 		vid->stat |= 8;
 	vid->displine++;
-	if (vid->displine >= 360) 
+	if (vid->displine >= 360)
 		vid->displine = 0;
     } else {
 	timer_advance_u64(&vid->timer, vid->dispontime);
-	if (vid->dispon) 
+	if (vid->dispon)
 		vid->stat &= ~1;
 	vid->linepos = 0;
 	if (vid->vsynctime) {
@@ -941,9 +958,9 @@ vid_poll(void *priv)
 		if (! vid->vsynctime)
 			vid->stat &= ~8;
 	}
-	if (vid->sc == (vid->crtc[11] & 31) || ((vid->crtc[8] & 3) == 3 && vid->sc == ((vid->crtc[11] & 31) >> 1))) { 
-		vid->con = 0; 
-		vid->coff = 1; 
+	if (vid->sc == (vid->crtc[11] & 31) || ((vid->crtc[8] & 3) == 3 && vid->sc == ((vid->crtc[11] & 31) >> 1))) {
+		vid->con = 0;
+		vid->coff = 1;
 	}
 	if (vid->vadj) {
 		vid->sc++;
@@ -967,12 +984,12 @@ vid_poll(void *priv)
 			vid->vc &= 255;
 		else
 			vid->vc &= 127;
-		if (vid->vc == vid->crtc[6]) 
+		if (vid->vc == vid->crtc[6])
 			vid->dispon = 0;
 		if (oldvc == vid->crtc[4]) {
 			vid->vc = 0;
 			vid->vadj = vid->crtc[5];
-			if (! vid->vadj) 
+			if (! vid->vadj)
 				vid->dispon = 1;
 			if (! vid->vadj) {
 				if (dev->is_sl2 && (vid->array[5] & 1))
@@ -1015,18 +1032,18 @@ vid_poll(void *priv)
 					}
 
 					if (enable_overscan) {
-						if (!dev->is_sl2 && vid->composite) 
-							video_blit_memtoscreen(0, (vid->firstline - 4) << 1, 0, ((vid->lastline - vid->firstline) + 8) << 1,
+						if (!dev->is_sl2 && vid->composite)
+							video_blit_memtoscreen(0, (vid->firstline - 4) << 1,
 								       xsize, ((vid->lastline - vid->firstline) + 8) << 1);
 						else
-							video_blit_memtoscreen_8(0, (vid->firstline - 4) << 1, 0, ((vid->lastline - vid->firstline) + 8) << 1,
+							video_blit_memtoscreen_8(0, (vid->firstline - 4) << 1,
 										 xsize, ((vid->lastline - vid->firstline) + 8) << 1);
 					} else {
-						if (!dev->is_sl2 && vid->composite) 
-							video_blit_memtoscreen(8, vid->firstline << 1, 0, (vid->lastline - vid->firstline) << 1,
+						if (!dev->is_sl2 && vid->composite)
+							video_blit_memtoscreen(8, vid->firstline << 1,
 								       xsize, (vid->lastline - vid->firstline) << 1);
 						else
-							video_blit_memtoscreen_8(8, vid->firstline << 1, 0, (vid->lastline - vid->firstline) << 1,
+							video_blit_memtoscreen_8(8, vid->firstline << 1,
 										 xsize, (vid->lastline - vid->firstline) << 1);
 					}
 				}
@@ -1067,7 +1084,7 @@ vid_poll(void *priv)
 		vid->sc &= 31;
 		vid->ma = vid->maback;
 	}
-	if ((vid->sc == (vid->crtc[10] & 31) || ((vid->crtc[8] & 3) == 3 && vid->sc == ((vid->crtc[10] & 31) >> 1)))) 
+	if ((vid->sc == (vid->crtc[10] & 31) || ((vid->crtc[8] & 3) == 3 && vid->sc == ((vid->crtc[10] & 31) >> 1))))
 		vid->con = 1;
     }
 }
@@ -1126,71 +1143,65 @@ vid_init(tandy_t *dev)
 }
 
 
-static const device_config_t vid_config[] = {
+const device_config_t vid_config[] = {
     {
-	"display_type", "Display type", CONFIG_SELECTION, "", TANDY_RGB,
-	{
-		{
-			"RGB", TANDY_RGB
-		},
-		{
-			"Composite", TANDY_COMPOSITE
-		},
-		{
-			""
-		}
-	}
+        .name = "display_type",
+        .description = "Display type",
+        .type = CONFIG_SELECTION,
+        .default_string = "",
+        .default_int = TANDY_RGB,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "RGB",       .value = TANDY_RGB       },
+            { .description = "Composite", .value = TANDY_COMPOSITE },
+            { .description = ""                                    }
+        }
     },
-    {
-	"", "", -1
-    }
+    { .name = "", .description = "", .type = CONFIG_END }
 };
 
-
-static const device_t vid_device = {
-    "Tandy 1000",
-    0, 0,
-    NULL, vid_close, NULL,
-    NULL,
-    vid_speed_changed,
-    NULL,
-    vid_config
+const device_t vid_device = {
+    .name = "Tandy 1000",
+    .internal_name = "tandy1000_video",
+    .flags = 0,
+    .local = 0,
+    .init = NULL,
+    .close = vid_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = vid_speed_changed,
+    .force_redraw = NULL,
+    .config = vid_config
 };
 
-static const device_t vid_device_hx = {
-    "Tandy 1000 HX",
-    0, 0,
-    NULL, vid_close, NULL,
-    NULL,
-    vid_speed_changed,
-    NULL,
-    vid_config
+const device_t vid_device_hx = {
+    .name = "Tandy 1000 HX",
+    .internal_name = "tandy1000_hx_video",
+    .flags = 0,
+    .local = 0,
+    .init = NULL,
+    .close = vid_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = vid_speed_changed,
+    .force_redraw = NULL,
+    .config = vid_config
 };
 
-static const device_t vid_device_sl = {
-    "Tandy 1000SL2",
-    0, 1,
-    NULL, vid_close, NULL,
-    NULL,
-    vid_speed_changed,
-    NULL,
-    NULL
+const device_t vid_device_sl = {
+    .name = "Tandy 1000SL2",
+    .internal_name = "tandy1000_sl_video",
+    .flags = 0,
+    .local = 1,
+    .init = NULL,
+    .close = vid_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = vid_speed_changed,
+    .force_redraw = NULL,
+    .config = NULL
 };
-
-
-const device_t *
-tandy1k_get_device(void)
-{
-    return &vid_device;
-}
-
-
-const device_t *
-tandy1k_hx_get_device(void)
-{
-    return &vid_device_hx;
-}
-
 
 static void
 eep_write(uint16_t addr, uint8_t val, void *priv)
@@ -1281,21 +1292,22 @@ eep_init(const device_t *info)
 
     switch (info->local) {
 	case TYPE_TANDY1000HX:
-		eep->path = L"tandy1000hx.bin";
+		eep->path = "tandy1000hx.bin";
 		break;
 
 	case TYPE_TANDY1000SL2:
-		eep->path = L"tandy1000sl2.bin";
+		eep->path = "tandy1000sl2.bin";
 		break;
 
     }
 
-    f = nvr_fopen(eep->path, L"rb");
+    f = nvr_fopen(eep->path, "rb");
     if (f != NULL) {
 	if (fread(eep->store, 1, 128, f) != 128)
 		fatal("eep_init(): Error reading Tandy EEPROM\n");
 	(void)fclose(f);
-    }
+    } else
+	memset(eep->store, 0x00, 128);
 
     io_sethandler(0x037c, 1, NULL,NULL,NULL, eep_write,NULL,NULL, eep);
 
@@ -1309,7 +1321,7 @@ eep_close(void *priv)
     t1keep_t *eep = (t1keep_t *)priv;
     FILE *f = NULL;
 
-    f = nvr_fopen(eep->path, L"wb");
+    f = nvr_fopen(eep->path, "wb");
     if (f != NULL) {
 	(void)fwrite(eep->store, 128, 1, f);
 	(void)fclose(f);
@@ -1318,24 +1330,33 @@ eep_close(void *priv)
     free(eep);
 }
 
-
 static const device_t eep_1000hx_device = {
-    "Tandy 1000HX EEPROM",
-    0, TYPE_TANDY1000HX,
-    eep_init, eep_close, NULL,
-    NULL, NULL, NULL,
-    NULL
+    .name = "Tandy 1000HX EEPROM",
+    .internal_name = "eep_1000hx",
+    .flags = 0,
+    .local = TYPE_TANDY1000HX,
+    .init = eep_init,
+    .close = eep_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
-
 
 static const device_t eep_1000sl2_device = {
-    "Tandy 1000SL2 EEPROM",
-    0, TYPE_TANDY1000SL2,
-    eep_init, eep_close, NULL,
-    NULL, NULL, NULL,
-    NULL
+    .name = "Tandy 1000SL2 EEPROM",
+    .internal_name = "eep_1000sl2",
+    .flags = 0,
+    .local = TYPE_TANDY1000SL2,
+    .init = eep_init,
+    .close = eep_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
-
 
 static void
 tandy_write(uint16_t addr, uint8_t val, void *priv)
@@ -1446,8 +1467,8 @@ init_rom(tandy_t *dev)
     dev->rom = (uint8_t *)malloc(0x80000);
 
 #if 1
-    if (! rom_load_interleaved(L"roms/machines/tandy1000sl2/8079047.hu1",
-			       L"roms/machines/tandy1000sl2/8079048.hu2",
+    if (! rom_load_interleaved("roms/machines/tandy1000sl2/8079047.hu1",
+			       "roms/machines/tandy1000sl2/8079048.hu2",
 			       0x000000, 0x80000, 0, dev->rom)) {
 	tandy_log("TANDY: unable to load BIOS for 1000/SL2 !\n");
 	free(dev->rom);
@@ -1455,8 +1476,8 @@ init_rom(tandy_t *dev)
 	return;
     }
 #else
-    f  = rom_fopen(L"roms/machines/tandy1000sl2/8079047.hu1", L"rb");
-    ff = rom_fopen(L"roms/machines/tandy1000sl2/8079048.hu2", L"rb");
+    f  = rom_fopen("roms/machines/tandy1000sl2/8079047.hu1", "rb");
+    ff = rom_fopen("roms/machines/tandy1000sl2/8079048.hu2", "rb");
     for (c = 0x0000; c < 0x80000; c += 2) {
 	dev->rom[c] = getc(f);
 	dev->rom[c + 1] = getc(ff);
@@ -1493,12 +1514,15 @@ machine_tandy1k_init(const machine_t *model, int type)
     mem_mapping_set_addr(&ram_low_mapping, 0, dev->base);
 
     device_add(&keyboard_tandy_device);
-    keyboard_set_table(scancode_tandy);
 
-    device_add(&fdc_xt_device);
+    if (fdc_type == FDC_INTERNAL)
+	device_add(&fdc_xt_tandy_device);
+
+    video_reset(gfxcard);
 
     switch(type) {
 	case TYPE_TANDY:
+		keyboard_set_table(scancode_tandy);
 		io_sethandler(0x00a0, 1,
 			      tandy_read,NULL,NULL,tandy_write,NULL,NULL,dev);
 		vid_init(dev);
@@ -1507,6 +1531,7 @@ machine_tandy1k_init(const machine_t *model, int type)
 		break;
 
 	case TYPE_TANDY1000HX:
+		keyboard_set_table(scancode_tandy);
 		io_sethandler(0x00a0, 1,
 			      tandy_read,NULL,NULL,tandy_write,NULL,NULL,dev);
 		vid_init(dev);
@@ -1524,10 +1549,10 @@ machine_tandy1k_init(const machine_t *model, int type)
 		device_add_ex(&vid_device_sl, dev);
 		device_add(&pssj_device);
 		device_add(&eep_1000sl2_device);
+		break;
     }
 
-    if (joystick_type != JOYSTICK_TYPE_NONE)
-	device_add(&gameport_device);
+    standalone_gameport_type = &gameport_device;
 
     eep_data_out = 0x0000;
 }
@@ -1545,7 +1570,7 @@ machine_tandy_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linearr(L"roms/machines/tandy/tandy1t1.020",
+    ret = bios_load_linearr("roms/machines/tandy/tandy1t1.020",
 			    0x000f0000, 131072, 0);
 
     if (bios_only || !ret)
@@ -1562,7 +1587,7 @@ machine_tandy1000hx_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear(L"roms/machines/tandy1000hx/v020000.u12",
+    ret = bios_load_linear("roms/machines/tandy1000hx/v020000.u12",
 			   0x000e0000, 131072, 0);
 
     if (bios_only || !ret)
@@ -1579,8 +1604,8 @@ machine_tandy1000sl2_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_interleaved(L"roms/machines/tandy1000sl2/8079047.hu1",
-				L"roms/machines/tandy1000sl2/8079048.hu2",
+    ret = bios_load_interleaved("roms/machines/tandy1000sl2/8079047.hu1",
+				"roms/machines/tandy1000sl2/8079048.hu2",
 				0x000f0000, 65536, 0x18000);
 
     if (bios_only || !ret)

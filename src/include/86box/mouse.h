@@ -16,9 +16,9 @@
  *		Copyright 2016-2019 Miran Grca.
  *		Copyright 2017-2019 Fred N. van Kempen.
  */
+
 #ifndef EMU_MOUSE_H
 # define EMU_MOUSE_H
-
 
 #define MOUSE_TYPE_NONE		0	/* no mouse configured */
 #define MOUSE_TYPE_INTERNAL	1	/* machine has internal mouse */

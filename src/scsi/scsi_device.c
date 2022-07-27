@@ -27,7 +27,7 @@
 #include <86box/scsi_device.h>
 
 
-scsi_device_t	scsi_devices[SCSI_ID_MAX];
+scsi_device_t	scsi_devices[SCSI_BUS_MAX][SCSI_ID_MAX];
 
 uint8_t scsi_null_device_sense[18] = { 0x70,0,SENSE_ILLEGAL_REQUEST,0,0,0,0,0,0,0,0,0,ASC_INV_LUN,0,0,0,0,0 };
 
@@ -158,15 +158,49 @@ scsi_device_command_phase1(scsi_device_t *dev)
 }
 
 
+/* When LUN is FF, there has been no IDENTIFY message, otherwise
+   there has been one. */
+void
+scsi_device_identify(scsi_device_t *dev, uint8_t lun)
+{
+    if ((dev == NULL) || (dev->type == SCSI_NONE) || !dev->sc)
+	return;
+
+    dev->sc->cur_lun = lun;
+
+    /* TODO: This should return a value, should IDENTIFY fail due to a
+	     a LUN not supported by the target. */
+}
+
+
 void
 scsi_device_close_all(void)
 {
-    int i;
+    int i, j;
     scsi_device_t *dev;
 
-    for (i = 0; i < SCSI_ID_MAX; i++) {
-	dev = &(scsi_devices[i]);
-	if (dev->command_stop && dev->sc)
-		dev->command_stop(dev->sc);
+    for (i = 0; i < SCSI_BUS_MAX; i++) {
+	for (j = 0; j < SCSI_ID_MAX; j++) {
+		dev = &(scsi_devices[i][j]);
+		if (dev->command_stop && dev->sc)
+			dev->command_stop(dev->sc);
+	}
+    }
+}
+
+
+void
+scsi_device_init(void)
+{
+    int i, j;
+    scsi_device_t *dev;
+
+    for (i = 0; i < SCSI_BUS_MAX; i++) {
+	for (j = 0; j < SCSI_ID_MAX; j++) {
+		dev = &(scsi_devices[i][j]);
+
+		memset(dev, 0, sizeof(scsi_device_t));
+		dev->type = SCSI_NONE;
+	}
     }
 }

@@ -28,43 +28,13 @@
 #include <86box/vid_ati_eeprom.h>
 
 
-enum
-{
-        EEPROM_IDLE,
-        EEPROM_WAIT,
-        EEPROM_OPCODE,
-        EEPROM_INPUT,
-        EEPROM_OUTPUT
-};
-
-enum
-{
-        EEPROM_OP_EW    = 4,
-        EEPROM_OP_WRITE = 5,
-        EEPROM_OP_READ  = 6,
-        EEPROM_OP_ERASE = 7,
-        
-        EEPROM_OP_WRALMAIN = -1
-};
-
-enum
-{
-        EEPROM_OP_EWDS = 0,
-        EEPROM_OP_WRAL = 1,
-        EEPROM_OP_ERAL = 2,
-        EEPROM_OP_EWEN = 3
-};
-
-void ati_eeprom_load(ati_eeprom_t *eeprom, wchar_t *fn, int type)
+void ati_eeprom_load(ati_eeprom_t *eeprom, char *fn, int type)
 {
         FILE *f;
 	int size;
         eeprom->type = type;
-	if (wcslen(fn) <= 256)
-	        wcscpy(eeprom->fn, fn);
-	else
-	        wcsncpy(eeprom->fn, fn, 256);
-        f = nvr_fopen(eeprom->fn, L"rb");
+	strncpy(eeprom->fn, fn, sizeof(eeprom->fn) - 1);
+        f = nvr_fopen(eeprom->fn, "rb");
 	size = eeprom->type ? 512 : 128;
         if (!f) {
                 memset(eeprom->data, 0xff, size);
@@ -77,7 +47,7 @@ void ati_eeprom_load(ati_eeprom_t *eeprom, wchar_t *fn, int type)
 
 void ati_eeprom_save(ati_eeprom_t *eeprom)
 {
-        FILE *f = nvr_fopen(eeprom->fn, L"wb");
+        FILE *f = nvr_fopen(eeprom->fn, "wb");
         if (!f) return;
         fwrite(eeprom->data, 1, eeprom->type ? 512 : 128, f);
         fclose(f);
@@ -138,7 +108,7 @@ void ati_eeprom_write(ati_eeprom_t *eeprom, int ena, int clk, int dat)
                                         }
                                 }
                                 break;
-                                
+
                                 case EEPROM_INPUT:
                                 eeprom->dat = (eeprom->dat << 1) | (dat ? 1 : 0);
                                 eeprom->count--;
@@ -210,7 +180,7 @@ void ati_eeprom_write(ati_eeprom_t *eeprom, int ena, int clk, int dat)
                                 }
                                 break;
                         }
-                }                
+                }
                 eeprom->oldena = ena;
         }
         else if (!clk && eeprom->oldclk)
@@ -238,4 +208,3 @@ int ati_eeprom_read(ati_eeprom_t *eeprom)
 {
         return eeprom->out;
 }
-

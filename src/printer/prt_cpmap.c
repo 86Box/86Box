@@ -10,12 +10,12 @@
  *
  *
  *
- * Authors:	Michael Dr�ing, <michael@drueing.de>
+ * Authors:	Michael Drüing, <michael@drueing.de>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
  *
  *		Based on code by Frederic Weymann (originally for DosBox.)
  *
- *		Copyright 2018 Michael Dr�ing.
+ *		Copyright 2018 Michael Drüing.
  *		Copyright 2018 Fred N. van Kempen.
  *
  *		Redistribution and  use  in source  and binary forms, with
@@ -54,7 +54,7 @@
 #include <stdlib.h>
 #include <wchar.h>
 #include <86box/86box.h>
-#include <86box/plat.h> 
+#include <86box/plat.h>
 #include <86box/printer.h>
 
 
@@ -553,21 +553,23 @@ static const struct {
     uint16_t		code;
     const uint16_t	*map;
 } maps[] = {
-    { 437,	cp437Map	},
-    { 737,	cp737Map	},
-    { 775,	cp775Map	},
-    { 850,	cp850Map	},
-    { 852,	cp852Map	},
-    { 855,	cp855Map	},
-    { 857,	cp857Map	},
-    { 860,	cp860Map	},
-    { 861,	cp861Map	},
-    { 862,	cp862Map	},
-    { 863,	cp863Map	},
-    { 864,	cp864Map	},
-    { 865,	cp865Map	},
-    { 866,	cp866Map	},
-    { -1,	NULL		}
+// clang-format off
+    { 437, cp437Map },
+    { 737, cp737Map },
+    { 775, cp775Map },
+    { 850, cp850Map },
+    { 852, cp852Map },
+    { 855, cp855Map },
+    { 857, cp857Map },
+    { 860, cp860Map },
+    { 861, cp861Map },
+    { 862, cp862Map },
+    { 863, cp863Map },
+    { 864, cp864Map },
+    { 865, cp865Map },
+    { 866, cp866Map },
+    { -1,  NULL     }
+// clang-format on
 };
 
 
@@ -587,7 +589,7 @@ select_codepage(uint16_t code, uint16_t *curmap)
 	}
 	i++;
     }
-    
+
     for (i = 0; i < 256; i++)
 	curmap[i] = map_to_use[i];
 }

@@ -29,6 +29,23 @@
 #include <86box/vid_svga.h>
 
 
+enum
+{
+    ICS_5300 = 0,
+    ICS_5301,
+    ICS_5340,
+    ICS_5341,
+    ICS_5342
+};
+
+
+#define ICS_S3_MASK	7
+#define ICS_S3		8
+
+#define S3_86C708	(ICS_5300 | ICS_S3)
+#define S3_86C716	(ICS_5342 | ICS_S3)
+
+
 typedef struct sdac_ramdac_t
 {
     uint16_t regs[256];
@@ -43,32 +60,63 @@ static void
 sdac_control_write(sdac_ramdac_t *ramdac, svga_t *svga, uint8_t val)
 {
     ramdac->command = val;
-    switch (val >> 4) {
-	case 0x2:
-	case 0x3:
-	case 0xa:
-	case 0x8:
-		svga->bpp = 15;
+
+    switch (ramdac->type & ICS_S3_MASK) {
+	case ICS_5300:
+	case ICS_5301:
+		switch (val >> 5) {
+			case 0x00:
+			default:
+				svga->bpp = 8;
+				break;
+			case 0x01:
+			case 0x04:
+			case 0x05:
+				svga->bpp = 15;
+				break;
+			case 0x03:
+			case 0x06:
+				svga->bpp = 16;
+				break;
+			case 0x02:
+			case 0x07:
+				svga->bpp = 24;
+				break;
+		}
 		break;
-	case 0x4:
-	case 0x9:
-	case 0xe:
-		svga->bpp = 24;
-		break;
-	case 0x5:
-	case 0x6:
-	case 0xc:
-		svga->bpp = 16;
-		break;
-	case 0x7:
-		svga->bpp = 32;
-		break;
-	case 0x0:
-	case 0x1:
-	default:
-		svga->bpp = 8;
+	case ICS_5340:
+	case ICS_5341:
+	case ICS_5342:
+		switch (val >> 4) {
+			case 0x00:
+			case 0x01:			/* This is actually 8bpp with two pixels read at a time. */
+			default:
+				svga->bpp = 8;
+				break;
+			case 0x02:
+			case 0x03:
+			case 0x08:
+			case 0x0a:
+				svga->bpp = 15;
+				break;
+			case 0x05:
+			case 0x06:
+			case 0x0c:
+				svga->bpp = 16;
+				break;
+			case 0x04:
+			case 0x09:
+			case 0x0e:
+				svga->bpp = 24;
+				break;
+			case 0x07:
+				svga->bpp = 32;
+				break;
+		}
 		break;
     }
+
+    svga_recalctimings(svga);
 }
 
 
@@ -109,17 +157,27 @@ sdac_ramdac_out(uint16_t addr, int rs2, uint8_t val, void *p, svga_t *svga)
 {
     sdac_ramdac_t *ramdac = (sdac_ramdac_t *) p;
     uint8_t rs = (addr & 0x03);
-    rs |= (!!rs2 << 8);
+    rs |= ((!!rs2) << 2);
 
-    if ((rs >= 0x04) || (ramdac->type == 7))  switch (rs) {
+    if (rs != 0x02)
+	ramdac->magic_count = 0;
+
+    switch (rs) {
 	case 0x02:
-		if (ramdac->magic_count == 4)
-			sdac_control_write(ramdac, svga, val);
-		/* Fall through. */
+		switch (ramdac->magic_count) {
+			case 4:
+				sdac_control_write(ramdac, svga, val);
+				ramdac->magic_count = 0;
+				break;
+			default:
+				svga_out(addr, val, svga);
+				break;
+		}
+		break;
 	case 0x00:
 	case 0x01:
 	case 0x03:
-		ramdac->magic_count = 0;
+		svga_out(addr, val, svga);
 		break;
 	case 0x04:
 		ramdac->windex = val;
@@ -136,8 +194,6 @@ sdac_ramdac_out(uint16_t addr, int rs2, uint8_t val, void *p, svga_t *svga)
 		ramdac->reg_ff = 0;
 		break;
     }
-
-    svga_out(addr, val, svga);
 }
 
 
@@ -147,26 +203,35 @@ sdac_ramdac_in(uint16_t addr, int rs2, void *p, svga_t *svga)
     sdac_ramdac_t *ramdac = (sdac_ramdac_t *) p;
     uint8_t temp = 0xff;
     uint8_t rs = (addr & 0x03);
-    rs |= (!!rs2 << 8);
+    rs |= ((!!rs2) << 2);
 
-    if ((rs < 0x04) && (ramdac->type != 7))
-	temp = svga_in(addr, svga);
-    else switch (rs) {
+    if (rs != 0x02)
+	ramdac->magic_count = 0;
+
+    switch (rs) {
 	case 0x02:
-		if (ramdac->magic_count < 5)
-			ramdac->magic_count++;
-		if (ramdac->magic_count == 4)
-			temp = 0x70; /*SDAC ID*/
-		else if (ramdac->magic_count == 5) {
-			temp = ramdac->command;
-			ramdac->magic_count = 0;
-		} else
-			temp = svga_in(addr, svga);
+		switch (ramdac->magic_count) {
+			case 1: case 2:
+				temp = 0x00;
+				ramdac->magic_count++;
+				break;
+			case 3:
+				temp = (ramdac->type & ICS_S3) ? 0x70 : 0x00;
+				ramdac->magic_count++;
+				break;
+			case 4:
+				temp = ramdac->command;
+				ramdac->magic_count = 0;
+				break;
+			default:
+				temp = svga_in(addr, svga);
+				ramdac->magic_count++;
+				break;
+		}
 		break;
 	case 0x00:
 	case 0x01:
 	case 0x03:
-		ramdac->magic_count = 0;
 		temp = svga_in(addr, svga);
 		break;
 	case 0x04:
@@ -238,20 +303,58 @@ sdac_ramdac_close(void *priv)
 	free(ramdac);
 }
 
-
-const device_t gendac_ramdac_device =
-{
-    "S3 GENDAC 86c708 RAMDAC",
-    0, 0,
-    sdac_ramdac_init, sdac_ramdac_close,
-    NULL, NULL, NULL, NULL
+const device_t gendac_ramdac_device = {
+    .name = "S3 GENDAC 86c708 RAMDAC",
+    .internal_name = "gendac_ramdac",
+    .flags = 0,
+    .local = S3_86C708,
+    .init = sdac_ramdac_init,
+    .close = sdac_ramdac_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
+const device_t tseng_ics5301_ramdac_device = {
+    .name = "Tseng ICS5301 GENDAC RAMDAC",
+    .internal_name = "tseng_ics5301_ramdac",
+    .flags = 0,
+    .local = ICS_5301,
+    .init = sdac_ramdac_init,
+    .close = sdac_ramdac_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
+};
 
-const device_t sdac_ramdac_device =
-{
-    "S3 SDAC 86c716 RAMDAC",
-    0, 7,
-    sdac_ramdac_init, sdac_ramdac_close,
-    NULL, NULL, NULL, NULL
+const device_t tseng_ics5341_ramdac_device = {
+    .name = "Tseng ICS5341 GENDAC RAMDAC",
+    .internal_name = "tseng_ics5341_ramdac",
+    .flags = 0,
+    .local = ICS_5341,
+    .init = sdac_ramdac_init,
+    .close = sdac_ramdac_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
+};
+
+const device_t sdac_ramdac_device = {
+    .name = "S3 SDAC 86c716 RAMDAC",
+    .internal_name = "sdac_ramdac",
+    .flags = 0,
+    .local = S3_86C716,
+    .init = sdac_ramdac_init,
+    .close = sdac_ramdac_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };

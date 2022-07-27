@@ -8,14 +8,12 @@
  *
  *		Generic CD-ROM drive core header.
  *
- *
- *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *
  *		Copyright 2016-2019 Miran Grca.
  */
 #ifndef EMU_CDROM_H
-#define EMU_CDROM_H
+# define EMU_CDROM_H
 
 
 #define CDROM_NUM			4
@@ -56,7 +54,7 @@ extern "C" {
 
 enum {
     CDROM_BUS_DISABLED = 0,
-    CDROM_BUS_ATAPI = 4,
+    CDROM_BUS_ATAPI = 5,
     CDROM_BUS_SCSI,
     CDROM_BUS_USB
 };
@@ -67,52 +65,57 @@ struct cdrom;
 
 
 typedef struct {
-    uint8_t	attr, track,
-		index,
-		abs_m, abs_s, abs_f,
-		rel_m, rel_s, rel_f;
+    uint8_t     attr, track,
+                index,
+                abs_m, abs_s, abs_f,
+                rel_m, rel_s, rel_f;
 } subchannel_t;
 
 typedef struct {
-    int		number;
-    uint8_t	attr, m, s, f;
+    int         number;
+    uint8_t     attr, m, s, f;
 } track_info_t;
 
 /* Define the various CD-ROM drive operations (ops). */
 typedef struct {
-    void	(*get_tracks)(struct cdrom *dev, int *first, int *last);
-    void	(*get_track_info)(struct cdrom *dev, uint32_t track, int end, track_info_t *ti);
-    void	(*get_subchannel)(struct cdrom *dev, uint32_t lba, subchannel_t *subc);
-    int		(*sector_size)(struct cdrom *dev, uint32_t lba);
-    int		(*read_sector)(struct cdrom *dev, int type, uint8_t *b, uint32_t lba);
-    int		(*track_type)(struct cdrom *dev, uint32_t lba);
-    void	(*exit)(struct cdrom *dev);
+    void        (*get_tracks)(struct cdrom *dev, int *first, int *last);
+    void        (*get_track_info)(struct cdrom *dev, uint32_t track, int end, track_info_t *ti);
+    void        (*get_subchannel)(struct cdrom *dev, uint32_t lba, subchannel_t *subc);
+    int         (*is_track_pre)(struct cdrom *dev, uint32_t lba);
+    int         (*sector_size)(struct cdrom *dev, uint32_t lba);
+    int         (*read_sector)(struct cdrom *dev, int type, uint8_t *b, uint32_t lba);
+    int         (*track_type)(struct cdrom *dev, uint32_t lba);
+    void        (*exit)(struct cdrom *dev);
 } cdrom_ops_t;
 
 typedef struct cdrom {
-    uint8_t id,
-	    res, res0,		/* Reserved for other ID's. */
-	    res1,
-	    ide_channel, scsi_device_id,
-	    bus_type,		/* 0 = ATAPI, 1 = SCSI */
-	    bus_mode,		/* Bit 0 = PIO suported;
-				   Bit 1 = DMA supportd. */
-	    cd_status,		/* Struct variable reserved for
-				   media status. */
-	    speed, cur_speed;
+    uint8_t id;
+
+    union {
+        uint8_t res, res0,      /* Reserved for other ID's. */
+                res1,
+                ide_channel, scsi_device_id;
+    };
+
+    uint8_t bus_type,           /* 0 = ATAPI, 1 = SCSI */
+            bus_mode,           /* Bit 0 = PIO suported;
+                                   Bit 1 = DMA supportd. */
+            cd_status,          /* Struct variable reserved for
+                                   media status. */
+            speed, cur_speed;
 
     FILE* img_fp;
     void *priv;
 
-    wchar_t image_path[1024],
-	    prev_image_path[1024];
+    char image_path[1024],
+         prev_image_path[1024];
 
     uint32_t sound_on, cdrom_capacity,
-	     pad, seek_pos,
-	     seek_diff, cd_end;
+             pad, seek_pos,
+             seek_diff, cd_end;
 
     int host_drive, prev_host_drive,
-	cd_buflen, noplay;
+        cd_buflen, noplay;
 
     const cdrom_ops_t	*ops;
 
@@ -132,6 +135,7 @@ extern cdrom_t	cdrom[CDROM_NUM];
 extern int	cdrom_lba_to_msf_accurate(int lba);
 extern double	cdrom_seek_time(cdrom_t *dev);
 extern void	cdrom_stop(cdrom_t *dev);
+extern int	cdrom_is_pre(cdrom_t *dev, uint32_t lba);
 extern int	cdrom_audio_callback(cdrom_t *dev, int16_t *output, int len);
 extern uint8_t	cdrom_audio_play(cdrom_t *dev, uint32_t pos, uint32_t len, int ismsf);
 extern uint8_t	cdrom_audio_track_search(cdrom_t *dev, uint32_t pos, int type, uint8_t playbit);
@@ -141,6 +145,7 @@ extern uint8_t	cdrom_get_current_subchannel(cdrom_t *dev, uint8_t *b, int msf);
 extern uint8_t	cdrom_get_current_subcodeq_playstatus(cdrom_t *dev, uint8_t *b);
 extern int	cdrom_read_toc(cdrom_t *dev, unsigned char *b, int type,
 			       unsigned char start_track, int msf, int max_len);
+extern void	cdrom_get_track_buffer(cdrom_t *dev, uint8_t *buf);
 extern int	cdrom_readsector_raw(cdrom_t *dev, uint8_t *buffer, int sector, int ismsf,
 				     int cdrom_sector_type, int cdrom_sector_flags, int *len);
 extern void 	cdrom_read_disc_info_toc(cdrom_t *dev, unsigned char *b, unsigned char track, int type);
@@ -152,7 +157,7 @@ extern void	cdrom_insert(uint8_t id);
 extern void	cdrom_eject(uint8_t id);
 extern void	cdrom_reload(uint8_t id);
 
-extern int	cdrom_image_open(cdrom_t *dev, const wchar_t *fn);
+extern int	cdrom_image_open(cdrom_t *dev, const char *fn);
 extern void	cdrom_image_close(cdrom_t *dev);
 extern void	cdrom_image_reset(cdrom_t *dev);
 

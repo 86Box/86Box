@@ -5,10 +5,9 @@
 #include <string.h>
 #include <wchar.h>
 #include <86box/86box.h>
-#include "cpu.h"
 #include <86box/mem.h>
+#include "cpu.h"
 #include <86box/machine.h>
-
 #include "x86.h"
 #include "x86_ops.h"
 #include "x87.h"
@@ -1781,7 +1780,7 @@ static int uop_run(const risc86_uop_t *uop, int decode_time)
         int c;
         k6_unit_t *best_unit = NULL;
         int best_start_cycle = 99999;
-        
+
         /*UOP_LIMM does not require execution*/
         if (uop->type == UOP_LIMM)
                 return decode_time;
@@ -1877,12 +1876,12 @@ void decode_flush()
         for (c = 0; c < decode_buffer.nr_uops; c++)
         {
                 int start_timestamp;
-                
+
                 if (decode_buffer.earliest_start[c] == -1)
                         start_timestamp = last_uop_timestamp;
                 else
                         start_timestamp = decode_buffer.earliest_start[c];
-                
+
                 last_uop_timestamp = uop_run(decode_buffer.uops[c], start_timestamp);
                 if (last_uop_timestamp > uop_timestamp)
                         uop_timestamp = last_uop_timestamp;
@@ -2024,11 +2023,11 @@ static void decode_instruction(const risc86_instruction_t *ins, uint64_t deps, u
                         }
                 }
                 break;
-                
+
                 case DECODE_LONG:
                 if (decode_buffer.nr_uops)
                         decode_flush();
-                        
+
                 decode_buffer.nr_uops = ins->nr_uops;
                 for (c = 0; c < ins->nr_uops; c++)
                 {
@@ -2040,11 +2039,11 @@ static void decode_instruction(const risc86_instruction_t *ins, uint64_t deps, u
                 }
                 decode_flush();
                 break;
-                
+
                 case DECODE_VECTOR:
                 if (decode_buffer.nr_uops)
                         decode_flush();
-                        
+
                 decode_timestamp++;
                 d = 0;
 
@@ -2056,7 +2055,7 @@ static void decode_instruction(const risc86_instruction_t *ins, uint64_t deps, u
                         else
                                 decode_buffer.earliest_start[d] = -1;
                         d++;
-                                
+
                         if (d == 4)
                         {
                                 d = 0;
@@ -2126,11 +2125,11 @@ void codegen_timing_k6_block_start()
 
         decode_timestamp = 0;
         last_complete_timestamp = 0;
-        
+
         for (c = 0; c < NR_OPQUADS; c++)
                 opquad_completion_timestamp[c] = 0;
         next_opquad = 0;
-        
+
         for (c = 0; c < NR_REGS; c++)
                 reg_available_timestamp[c] = 0;
         for (c = 0; c < 8; c++)
@@ -2139,7 +2138,7 @@ void codegen_timing_k6_block_start()
 
 void codegen_timing_k6_start()
 {
-        if (machines[machine].cpu[cpu_manufacturer].cpus[cpu].cpu_type == CPU_K6)
+        if (cpu_s->cpu_type == CPU_K6)
         {
                 units = k6_units;
                 nr_units = NR_K6_UNITS;
@@ -2215,7 +2214,7 @@ void codegen_timing_k6_opcode(uint8_t opcode, uint32_t fetchdat, int op_32, uint
                                                 opcode_pc += 2;
                                 }
                         }
-                        
+
                         opcode = fastreadb(cs + opcode_pc);
 
                         ins_table = mod3 ? opcode_timings_0f0f_mod3 : opcode_timings_0f0f;
@@ -2288,7 +2287,7 @@ void codegen_timing_k6_opcode(uint8_t opcode, uint32_t fetchdat, int op_32, uint
                         deps = mod3 ? opcode_deps_shift_mod3 : opcode_deps_shift;
                         opcode = (fetchdat >> 3) & 7;
                         break;
-                        
+
                         case 0xc1: case 0xd1: case 0xd3:
                         ins_table = mod3 ? opcode_timings_shift_mod3 : opcode_timings_shift;
                         deps = mod3 ? opcode_deps_shift_mod3 : opcode_deps_shift;

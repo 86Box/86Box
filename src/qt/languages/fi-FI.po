@@ -1,0 +1,1185 @@
+msgid "&Action"
+msgstr "&Toiminto"
+
+msgid "&Keyboard requires capture"
+msgstr "&Vaadi näppäimistön kaappaus"
+
+msgid "&Right CTRL is left ALT"
+msgstr "&Oikea CTRL on vasen ALT"
+
+msgid "&Hard Reset..."
+msgstr "&Uudelleenkäynnistys (kylmä)..."
+
+msgid "&Ctrl+Alt+Del\tCtrl+F12"
+msgstr "&Ctrl+Alt+Del\tCtrl+F12"
+
+msgid "Ctrl+Alt+&Esc"
+msgstr "Ctrl+Alt+&Esc"
+
+msgid "&Pause"
+msgstr "&Tauko"
+
+msgid "E&xit..."
+msgstr "&Poistu..."
+
+msgid "&View"
+msgstr "&Näytä"
+
+msgid "&Hide status bar"
+msgstr "&Piilota tilapalkki"
+
+msgid "Hide &toolbar"
+msgstr "Piilota &työkalupalkki"
+
+msgid "&Resizeable window"
+msgstr "&Salli koon muuttaminen"
+
+msgid "R&emember size && position"
+msgstr "&Muista koko ja sijainti"
+
+msgid "Re&nderer"
+msgstr "&Renderöijä"
+
+msgid "&SDL (Software)"
+msgstr "&SDL (ohjelmistopohjainen)"
+
+msgid "SDL (&Hardware)"
+msgstr "SDL (&laitteistokiihdytetty)"
+
+msgid "SDL (&OpenGL)"
+msgstr "SDL (&OpenGL)"
+
+msgid "Open&GL (3.0 Core)"
+msgstr "Open&GL (3.0 Core)"
+
+msgid "&VNC"
+msgstr "&VNC"
+
+msgid "Specify dimensions..."
+msgstr "&Määritä koko..."
+
+msgid "F&orce 4:3 display ratio"
+msgstr "Pakota 4:3-näyttösuhde"
+
+msgid "&Window scale factor"
+msgstr "&Ikkunan kokokerroin"
+
+msgid "&0.5x"
+msgstr "&0.5x"
+
+msgid "&1x"
+msgstr "&1x"
+
+msgid "1.&5x"
+msgstr "1.&5x"
+
+msgid "&2x"
+msgstr "&2x"
+
+msgid "Filter method"
+msgstr "&Suodatusmetodi"
+
+msgid "&Nearest"
+msgstr "&Lähin naapuri"
+
+msgid "&Linear"
+msgstr "Li&neaarinen interpolaatio"
+
+msgid "Hi&DPI scaling"
+msgstr "&Suuri DPI-skaalaus"
+
+msgid "&Fullscreen\tCtrl+Alt+PgUp"
+msgstr "&Koko näytön tila\tCtrl+Alt+PgUp"
+
+msgid "Fullscreen &stretch mode"
+msgstr "Koko näytön &skaalaustila"
+
+msgid "&Full screen stretch"
+msgstr "&Venytä koko näyttöön"
+
+msgid "&4:3"
+msgstr "&4:3"
+
+msgid "&Square pixels (Keep ratio)"
+msgstr "&Tasasivuiset kuvapisteet (säilytä kuvasuhde)"
+
+msgid "&Integer scale"
+msgstr "&Kokonaislukuskaalaus"
+
+msgid "E&GA/(S)VGA settings"
+msgstr "&EGA/(S)VGA-asetukset"
+
+msgid "&Inverted VGA monitor"
+msgstr "&VGA näyttö käänteisillä väreillä"
+
+msgid "VGA screen &type"
+msgstr "VGA-näytön &tyyppi"
+
+msgid "RGB &Color"
+msgstr "RGB, &värit"
+
+msgid "&RGB Grayscale"
+msgstr "&RGB, harmaasävy"
+
+msgid "&Amber monitor"
+msgstr "&Meripihkanvärinen"
+
+msgid "&Green monitor"
+msgstr "V&ihreä"
+
+msgid "&White monitor"
+msgstr "V&alkoinen"
+
+msgid "Grayscale &conversion type"
+msgstr "&Harmaasävymuunnoksen tyyppi"
+
+msgid "BT&601 (NTSC/PAL)"
+msgstr "BT&601 (NTSC/PAL)"
+
+msgid "BT&709 (HDTV)"
+msgstr "BT&709 (HDTV)"
+
+msgid "&Average"
+msgstr "&Keskiarvo"
+
+msgid "CGA/PCjr/Tandy/E&GA/(S)VGA overscan"
+msgstr "CGA/PCjr/Tandy/E&GA/(S)VGA-&yliskannaus"
+
+msgid "Change contrast for &monochrome display"
+msgstr "&Muuta harmaavärinäytön kontrastia"
+
+msgid "&Media"
+msgstr "&Media"
+
+msgid "&Tools"
+msgstr "Työ&kalut"
+
+msgid "&Settings..."
+msgstr "&Kokoonpano..."
+
+msgid "&Update status bar icons"
+msgstr "&Päivitä tilapalkin kuvakkeita"
+
+msgid "Take s&creenshot\tCtrl+F11"
+msgstr "Ota &kuvakaappaus\tCtrl+F11"
+
+msgid "&Preferences..."
+msgstr "&Sovellusasetukset..."
+
+msgid "Enable &Discord integration"
+msgstr "Käytä &Discord-integraatiota"
+
+msgid "Sound &gain..."
+msgstr "&Äänitasot..."
+
+msgid "Begin trace\tCtrl+T"
+msgstr "Aloita jäljitys\tCtrl+T"
+
+msgid "End trace\tCtrl+T"
+msgstr "Lopeta jäljitys\tCtrl+T"
+
+msgid "&Help"
+msgstr "&Ohje"
+
+msgid "&Documentation..."
+msgstr "&Ohjekirja..."
+
+msgid "&About 86Box..."
+msgstr "&Tietoja 86Boxista..."
+
+msgid "&New image..."
+msgstr "&Uusi levykuva..."
+
+msgid "&Existing image..."
+msgstr "&Olemassaoleva levykuva..."
+
+msgid "Existing image (&Write-protected)..."
+msgstr "Olemassaoleva levykuva (&kirjoitussuojattu)..."
+
+msgid "&Record"
+msgstr "&Nauhoita"
+
+msgid "&Play"
+msgstr "&Toista"
+
+msgid "&Rewind to the beginning"
+msgstr "Kelaa &alkuun"
+
+msgid "&Fast forward to the end"
+msgstr "Kelaa &loppuun"
+
+msgid "E&ject"
+msgstr "&Poista asemasta"
+
+msgid "&Image..."
+msgstr "&ROM-moduulikuva..."
+
+msgid "E&xport to 86F..."
+msgstr "&Vie 86F-tiedostoon..."
+
+msgid "&Mute"
+msgstr "&Mykistä"
+
+msgid "E&mpty"
+msgstr "&Tyhjä"
+
+msgid "&Reload previous image"
+msgstr "&Lataa edellinen levykuva uudelleen"
+
+msgid "&Image"
+msgstr "L&evykuva"
+
+msgid "Target &framerate"
+msgstr "&Kuvataajuustavoite"
+
+msgid "&Sync with video"
+msgstr "&Synkronisoi videoon"
+
+msgid "&25 fps"
+msgstr "&25 ruutua/s"
+
+msgid "&30 fps"
+msgstr "&30 ruutua/s"
+
+msgid "&50 fps"
+msgstr "&50 ruutua/s"
+
+msgid "&60 fps"
+msgstr "&60 ruutua/s"
+
+msgid "&75 fps"
+msgstr "&75 ruutua/s"
+
+msgid "&VSync"
+msgstr "&VSync"
+
+msgid "&Select shader..."
+msgstr "Valitse varjostin&ohjelma..."
+
+msgid "&Remove shader"
+msgstr "&Poista varjostinohjelma"
+
+msgid "Preferences"
+msgstr "Sovellusasetukset"
+
+msgid "Sound Gain"
+msgstr "Äänen taso"
+
+msgid "New Image"
+msgstr "Uusi levykuva"
+
+msgid "Settings"
+msgstr "Kokoonpano"
+
+msgid "Specify Main Window Dimensions"
+msgstr "Määritä pääikkunan koko"
+
+msgid "OK"
+msgstr "OK"
+
+msgid "Cancel"
+msgstr "Peruuta"
+
+msgid "Save these settings as &global defaults"
+msgstr "Tallenna nämä asetukset &globaaleiksi oletuksiksi"
+
+msgid "&Default"
+msgstr "&Oletus"
+
+msgid "Language:"
+msgstr "Kieli:"
+
+msgid "Icon set:"
+msgstr "Kuvakkeet:"
+
+msgid "Gain"
+msgstr "Taso"
+
+msgid "File name:"
+msgstr "Tiedostonimi:"
+
+msgid "Disk size:"
+msgstr "Levyn koko:"
+
+msgid "RPM mode:"
+msgstr "Kierroslukutila:"
+
+msgid "Progress:"
+msgstr "Edistyminen:"
+
+msgid "Width:"
+msgstr "Leveys:"
+
+msgid "Height:"
+msgstr "Korkeus:"
+
+msgid "Lock to this size"
+msgstr "Lukitse tähän kokoon"
+
+msgid "Machine type:"
+msgstr "Tietokoneen tyyppi:"
+
+msgid "Machine:"
+msgstr "Tietokone:"
+
+msgid "Configure"
+msgstr "Määritys"
+
+msgid "CPU type:"
+msgstr "Suorittimen tyyppi:"
+
+msgid "Speed:"
+msgstr "Nopeus:"
+
+msgid "FPU:"
+msgstr "Apusuoritin:"
+
+msgid "Wait states:"
+msgstr "Odotustilat:"
+
+msgid "MB"
+msgstr "Mt"
+
+msgid "Memory:"
+msgstr "Muisti:"
+
+msgid "Time synchronization"
+msgstr "Kellon synkronointi"
+
+msgid "Disabled"
+msgstr "Ei käytössä"
+
+msgid "Enabled (local time)"
+msgstr "Käytössä (paikallinen)"
+
+msgid "Enabled (UTC)"
+msgstr "Käytössä (UTC)"
+
+msgid "Dynamic Recompiler"
+msgstr "Dynaaminen uudelleenkääntäjä"
+
+msgid "Video:"
+msgstr "Näytönohjain:"
+
+msgid "Voodoo Graphics"
+msgstr "Voodoo-grafiikkasuoritin"
+
+msgid "Mouse:"
+msgstr "Hiiri:"
+
+msgid "Joystick:"
+msgstr "Peliohjain:"
+
+msgid "Joystick 1..."
+msgstr "Peliohjain 1..."
+
+msgid "Joystick 2..."
+msgstr "Peliohjain 2..."
+
+msgid "Joystick 3..."
+msgstr "Peliohjain 3..."
+
+msgid "Joystick 4..."
+msgstr "Peliohjain 4..."
+
+msgid "Sound card:"
+msgstr "Äänikortti:"
+
+msgid "MIDI Out Device:"
+msgstr "MIDI-ulostulo:"
+
+msgid "MIDI In Device:"
+msgstr "MIDI-sisääntulo:"
+
+msgid "Standalone MPU-401"
+msgstr "Erillinen MPU-401"
+
+msgid "Innovation SSI-2001"
+msgstr "Innovation SSI-2001"
+
+msgid "CMS / Game Blaster"
+msgstr "CMS / Game Blaster"
+
+msgid "Gravis Ultrasound"
+msgstr "Gravis Ultrasound"
+
+msgid "Use FLOAT32 sound"
+msgstr "Käytä FLOAT32-ääntä"
+
+msgid "Network type:"
+msgstr "Verkon tyyppi:"
+
+msgid "PCap device:"
+msgstr "PCap-laite:"
+
+msgid "Network adapter:"
+msgstr "Verkkokortti:"
+
+msgid "COM1 Device:"
+msgstr "COM1-laite:"
+
+msgid "COM2 Device:"
+msgstr "COM2-laite:"
+
+msgid "COM3 Device:"
+msgstr "COM3-laite:"
+
+msgid "COM4 Device:"
+msgstr "COM4-laite:"
+
+msgid "LPT1 Device:"
+msgstr "LPT1-laite:"
+
+msgid "LPT2 Device:"
+msgstr "LPT2-laite:"
+
+msgid "LPT3 Device:"
+msgstr "LPT3-laite:"
+
+msgid "LPT4 Device:"
+msgstr "LPT4-laite:"
+
+msgid "Serial port 1"
+msgstr "Sarjaportti 1"
+
+msgid "Serial port 2"
+msgstr "Sarjaportti 2"
+
+msgid "Serial port 3"
+msgstr "Sarjaportti 3"
+
+msgid "Serial port 4"
+msgstr "Sarjaportti 4"
+
+msgid "Parallel port 1"
+msgstr "Rinnakkaisportti 1"
+
+msgid "Parallel port 2"
+msgstr "Rinnakkaisportti 2"
+
+msgid "Parallel port 3"
+msgstr "Rinnakkaisportti 3"
+
+msgid "Parallel port 4"
+msgstr "Rinnakkaisportti 4"
+
+msgid "HD Controller:"
+msgstr "Kiintolevyohjain:"
+
+msgid "FD Controller:"
+msgstr "Levykeohjain:"
+
+msgid "Tertiary IDE Controller"
+msgstr "Kolmas IDE-ohjain"
+
+msgid "Quaternary IDE Controller"
+msgstr "Neljäs IDE-ohjain"
+
+msgid "SCSI"
+msgstr "SCSI"
+
+msgid "Controller 1:"
+msgstr "Ohjain 1:"
+
+msgid "Controller 2:"
+msgstr "Ohjain 2:"
+
+msgid "Controller 3:"
+msgstr "Ohjain 3:"
+
+msgid "Controller 4:"
+msgstr "Ohjain 4:"
+
+msgid "Cassette"
+msgstr "Kasettiasema"
+
+msgid "Hard disks:"
+msgstr "Kiintolevyt:"
+
+msgid "&New..."
+msgstr "&Uusi..."
+
+msgid "&Existing..."
+msgstr "&Olemassaoleva..."
+
+msgid "&Remove"
+msgstr "&Poista"
+
+msgid "Bus:"
+msgstr "Väylä:"
+
+msgid "Channel:"
+msgstr "Kanava:"
+
+msgid "ID:"
+msgstr "ID:"
+
+msgid "&Specify..."
+msgstr "&Määritä..."
+
+msgid "Sectors:"
+msgstr "Sektorit:"
+
+msgid "Heads:"
+msgstr "Lukupäät:"
+
+msgid "Cylinders:"
+msgstr "Sylinterit:"
+
+msgid "Size (MB):"
+msgstr "Koko (Mt):"
+
+msgid "Type:"
+msgstr "Tyyppi:"
+
+msgid "Image Format:"
+msgstr "Tiedostomuoto:"
+
+msgid "Block Size:"
+msgstr "Lohkon koko:"
+
+msgid "Floppy drives:"
+msgstr "Levykeasemat:"
+
+msgid "Turbo timings"
+msgstr "Turbo-ajoitukset"
+
+msgid "Check BPB"
+msgstr "Tarkista BPB"
+
+msgid "CD-ROM drives:"
+msgstr "CD-ROM-asemat:"
+
+msgid "MO drives:"
+msgstr "Magneettisoptiset asemat (MO):"
+
+msgid "ZIP drives:"
+msgstr "ZIP-asemat:"
+
+msgid "ZIP 250"
+msgstr "ZIP 250"
+
+msgid "ISA RTC:"
+msgstr "ISA-RTC (kello):"
+
+msgid "ISA Memory Expansion"
+msgstr "ISA-muistilaajennus"
+
+msgid "Card 1:"
+msgstr "Kortti 1:"
+
+msgid "Card 2:"
+msgstr "Kortti 2:"
+
+msgid "Card 3:"
+msgstr "Kortti 3:"
+
+msgid "Card 4:"
+msgstr "Kortti 4:"
+
+msgid "ISABugger device"
+msgstr "ISABugger-laite"
+
+msgid "POST card"
+msgstr "POST-kortti"
+
+msgid "FONT_SIZE"
+msgstr "9"
+
+msgid "FONT_NAME"
+msgstr "Segoe UI"
+
+msgid "86Box"
+msgstr "86Box"
+
+msgid "Error"
+msgstr "Virhe"
+
+msgid "Fatal error"
+msgstr "Vakava virhe"
+
+msgid " - PAUSED"
+msgstr " - TAUKO"
+
+msgid "Press Ctrl+Alt+PgDn to return to windowed mode."
+msgstr "Paina Ctrl+Alt+PgDn palataksesi ikkunoituun tilaan."
+
+msgid "Speed"
+msgstr "Nopeus"
+
+msgid "ZIP %03i %i (%s): %ls"
+msgstr "ZIP %03i %i (%s): %ls"
+
+msgid "ZIP images"
+msgstr "ZIP-levykuvat"
+
+msgid "86Box could not find any usable ROM images.\n\nPlease <a href=\"https://github.com/86Box/roms/releases/latest\">download</a> a ROM set and extract it into the \"roms\" directory."
+msgstr "86Box ei löytänyt käyttökelpoisia ROM-tiedostoja.\n\nVoit <a href=\"https://github.com/86Box/roms/releases/latest\">ladata</a> ROM-paketin ja purkaa sen \"roms\"-hakemistoon."
+
+msgid "(empty)"
+msgstr "(tyhjä)"
+
+msgid "All files"
+msgstr "Kaikki tiedostot"
+
+msgid "Turbo"
+msgstr "Turbo"
+
+msgid "On"
+msgstr "Päällä"
+
+msgid "Off"
+msgstr "Pois"
+
+msgid "All images"
+msgstr "Kaikki levykuvat"
+
+msgid "Basic sector images"
+msgstr "Perussektorilevykuvat"
+
+msgid "Surface images"
+msgstr "Pintalevykuvat"
+
+msgid "Machine \"%hs\" is not available due to missing ROMs in the roms/machines directory. Switching to an available machine."
+msgstr "Konetta \"%hs\" ei voi käyttää puuttuvien ROM-tiedostojen vuoksi. Vaihdetaan käyttökelpoiseen koneeseen."
+
+msgid "Video card \"%hs\" is not available due to missing ROMs in the roms/video directory. Switching to an available video card."
+msgstr "Näytönohjainta \"%hs\" ei voi käyttää puuttuvien ROM-tiedostojen vuoksi. Vaihdetaan käyttökelpoiseen näytönohjaimeen."
+
+msgid "Machine"
+msgstr "Tietokone"
+
+msgid "Display"
+msgstr "Näyttö"
+
+msgid "Input devices"
+msgstr "Syöttölaitteet"
+
+msgid "Sound"
+msgstr "Ääni"
+
+msgid "Network"
+msgstr "Verkko"
+
+msgid "Ports (COM & LPT)"
+msgstr "Portit (COM & LPT)"
+
+msgid "Storage controllers"
+msgstr "Tallennusohjaimet"
+
+msgid "Hard disks"
+msgstr "Kiintolevyt"
+
+msgid "Floppy & CD-ROM drives"
+msgstr "Levyke ja CD-ROM"
+
+msgid "Other removable devices"
+msgstr "Muut tallennuslaitteet"
+
+msgid "Other peripherals"
+msgstr "Muut oheislaitteet"
+
+msgid "Click to capture mouse"
+msgstr "Kaappaa hiiri klikkaamalla"
+
+msgid "Press F8+F12 to release mouse"
+msgstr "Paina F8+F12 vapauttaaksesi hiiren"
+
+msgid "Press F8+F12 or middle button to release mouse"
+msgstr "Paina F8+F12 tai keskipainiketta vapauttaaksesi hiiren"
+
+msgid "Unable to initialize FluidSynth"
+msgstr "FluidSynthin alustus epäonnistui"
+
+msgid "Bus"
+msgstr "Väylä"
+
+msgid "File"
+msgstr "Tiedosto"
+
+msgid "C"
+msgstr "C"
+
+msgid "H"
+msgstr "H"
+
+msgid "S"
+msgstr "S"
+
+msgid "KB"
+msgstr "kt"
+
+msgid "Could not initialize the video renderer."
+msgstr "Videorenderöijän alustus epäonnistui"
+
+msgid "Default"
+msgstr "Oletus"
+
+msgid "%i Wait state(s)"
+msgstr "%i odotustilaa"
+
+msgid "Type"
+msgstr "Tyyppi"
+
+msgid "Failed to set up PCap"
+msgstr "PCap-asennus epäonnistui"
+
+msgid "No PCap devices found"
+msgstr "PCap-laitteita ei löytynyt"
+
+msgid "Invalid PCap device"
+msgstr "Virheellinen PCap-laite"
+
+msgid "Standard 2-button joystick(s)"
+msgstr "Standardi 2-painikkeinen peliohjain/-ohjaimet"
+
+msgid "Standard 4-button joystick"
+msgstr "Standardi 4-painikkeinen peliohjain"
+
+msgid "Standard 6-button joystick"
+msgstr "Standardi 6-painikkeinen peliohjain"
+
+msgid "Standard 8-button joystick"
+msgstr "Standardi 8-painikkeinen peliohjain"
+
+msgid "CH Flightstick Pro"
+msgstr "CH Flightstick Pro"
+
+msgid "Microsoft SideWinder Pad"
+msgstr "Microsoft SideWinder Pad"
+
+msgid "Thrustmaster Flight Control System"
+msgstr "Thrustmaster Flight Control System"
+
+msgid "None"
+msgstr "Ei mikään"
+
+msgid "Unable to load keyboard accelerators."
+msgstr "Näppäinkiihdyttimien lataus epäonnistui"
+
+msgid "Unable to register raw input."
+msgstr "Raakasyötteen rekisteröinti epäonnistui"
+
+msgid "%u"
+msgstr "%u"
+
+msgid "%u MB (CHS: %i, %i, %i)"
+msgstr "%u Mt (CHS: %i, %i, %i)"
+
+msgid "Floppy %i (%s): %ls"
+msgstr "Levyke %i (%s): %ls"
+
+msgid "Advanced sector images"
+msgstr "Kehittyneet sektorilevykuvat"
+
+msgid "Flux images"
+msgstr "Flux-levykuvat"
+
+msgid "Unable to initialize FreeType"
+msgstr "FreeType:n alustus epäonnistui"
+
+msgid "Unable to initialize SDL, SDL2.dll is required"
+msgstr "SDL:n alustus epäonnistui. Tarvitaan SDL2.dll"
+
+msgid "Are you sure you want to hard reset the emulated machine?"
+msgstr "Haluatko varmasti käynnistää emuloidun tietokoneen uudelleen?"
+
+msgid "Are you sure you want to exit 86Box?"
+msgstr "Haluatko varmasti sulkea 86Boxin?"
+
+msgid "Unable to initialize Ghostscript"
+msgstr "Ghostscriptin alustus epäonnistui"
+
+msgid "MO %i (%ls): %ls"
+msgstr "MO %i (%ls): %ls"
+
+msgid "MO images"
+msgstr "MO-levykuvat"
+
+msgid "Welcome to 86Box!"
+msgstr "Tervetuloa 86Boxiin!"
+
+msgid "Internal controller"
+msgstr "Sisäinen ohjain"
+
+msgid "Exit"
+msgstr "Poistu"
+
+msgid "No ROMs found"
+msgstr "ROM-tiedostoja ei löytynyt"
+
+msgid "Do you want to save the settings?"
+msgstr "Tallennetaanko asetukset?"
+
+msgid "This will hard reset the emulated machine."
+msgstr "Tämä käynnistää emuloidun tietokoneen uudelleen."
+
+msgid "Save"
+msgstr "Tallenna"
+
+msgid "About 86Box"
+msgstr "Tietoja 86Box:sta"
+
+msgid "86Box v"
+msgstr "86Box v"
+
+msgid "An emulator of old computers\n\nAuthors: Sarah Walker, Miran Grca, Fred N. van Kempen (waltje), SA1988, Tiseno100, reenigne, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2 or later. See LICENSE for more information."
+msgstr "Vanhojen tietokoneiden emulaattori\n\nTekijät: Sarah Walker, Miran Grca, Fred N. van Kempen (waltje), SA1988, Tiseno100, reenigne, leilei, JohnElliott, greatpsycho ja muut.\n\nJulkaistu GNU General Public License 2. version tai myöhemmän alaisena. Tarkempia tietoja LICENSE-tiedostossa."
+
+msgid "Hardware not available"
+msgstr "Laitteisto ei ole saatavilla"
+
+msgid "WinPcap"
+msgstr "WinPcap"
+
+msgid "libpcap"
+msgstr "libpcap"
+
+msgid "Make sure libpcap is installed and that you are on a libpcap-compatible network connection."
+msgstr "Varmista, että libpcap on asennettu ja että verkkoyhteytesi on libpcap-yhteensopiva."
+
+msgid "Invalid configuration"
+msgstr "Virheelliset määritykset"
+
+msgid "freetype.dll"
+msgstr "freetype.dll"
+
+msgid "libfreetype"
+msgstr "libfreetype"
+
+msgid " is required for ESC/P printer emulation."
+msgstr " vaaditaan ESC/P-tulostimen emuloimiseksi."
+
+msgid "gsdll32.dll"
+msgstr "gsdll32.dll"
+
+msgid "libgs"
+msgstr "libgs"
+
+msgid " is required for automatic conversion of PostScript files to PDF.\n\nAny documents sent to the generic PostScript printer will be saved as PostScript (.ps) files."
+msgstr " vaaditaan PostScript-tiedostojen automaattiseen muuntamiseen PDF-tiedostoiksi.\n\nKaikki geneeriselle PostScript-tulostimelle lähetetyt asiakirjat tallennetaan PostScript (.ps) -tiedostoina."
+
+msgid "libfluidsynth.dll"
+msgstr "libfluidsynth.dll"
+
+msgid "libfluidsynth"
+msgstr "libfluidsynth"
+
+msgid " is required for FluidSynth MIDI output."
+msgstr " vaaditaan FluidSynth MIDI-ulostuloa varten."
+
+msgid "Entering fullscreen mode"
+msgstr "Siirrytään koko näytön tilaan"
+
+msgid "Don't show this message again"
+msgstr "Älä näytä tätä viestiä uudelleen"
+
+msgid "Don't exit"
+msgstr "Älä poistu"
+
+msgid "Reset"
+msgstr "Käynnistä uudelleen"
+
+msgid "Don't reset"
+msgstr "Älä käynnistä uudelleen"
+
+msgid "CD-ROM images"
+msgstr "CD-ROM-levykuvat"
+
+msgid "%hs Device Configuration"
+msgstr "%hs - Laitteen määritykset"
+
+msgid "Monitor in sleep mode"
+msgstr "Näyttö lepotilassa"
+
+msgid "OpenGL Shaders"
+msgstr "OpenGL-varjostinohjelmat"
+
+msgid "OpenGL options"
+msgstr "OpenGL-asetukset"
+
+msgid "You are loading an unsupported configuration"
+msgstr "Olet lataamassa ei-tuettuja määrittelyjä"
+
+msgid "CPU type filtering based on selected machine is disabled for this emulated machine.\n\nThis makes it possible to choose a CPU that is otherwise incompatible with the selected machine. However, you may run into incompatibilities with the machine BIOS or other software.\n\nEnabling this setting is not officially supported and any bug reports filed may be closed as invalid."
+msgstr "Valittuun tietokoneeseen perustuva suoritintyypin suodatus ei ole käytössä tällä emuloidulla koneella.\n\nTämä mahdollistaa muutoin yhteensopimattoman suorittimen valinnan kyseisen tietokoneen kanssa. Voit kuitenkin kohdata ongelmia tietokoneen BIOS:in tai muun ohjelmiston kanssa.\n\nTämän asetuksen käyttö ei ole virallisesti tuettua ja kaikki tehdyt virheraportit voidaan sulkea epäpätevinä."
+
+msgid "Continue"
+msgstr "Jatka"
+
+msgid "Cassette: %s"
+msgstr "Kasetti: %s"
+
+msgid "Cassette images"
+msgstr "Kasettitiedostot"
+
+msgid "Cartridge %i: %ls"
+msgstr "ROM-moduuli %i: %ls"
+
+msgid "Cartridge images"
+msgstr "ROM-moduulikuvat"
+
+msgid "Error initializing renderer"
+msgstr "Virhe renderöijän alustuksessa"
+
+msgid "OpenGL (3.0 Core) renderer could not be initialized. Use another renderer."
+msgstr "OpenGL (3.0 Core) -renderöijän alustus epäonnistui. Käytä toista renderöijää."
+
+msgid "Resume execution"
+msgstr "Jatka suoritusta"
+
+msgid "Pause execution"
+msgstr "Pysäytä suoritus"
+
+msgid "Press Ctrl+Alt+Del"
+msgstr "Paina Ctrl+Alt+Del"
+
+msgid "Press Ctrl+Alt+Esc"
+msgstr "Paina Ctrl+Alt+Esc"
+
+msgid "Hard reset"
+msgstr "Kylmä uudelleenkäynnistys"
+
+msgid "ACPI shutdown"
+msgstr "ACPI-sammutus"
+
+msgid "Hard disk (%s)"
+msgstr "Kiintolevy (%s)"
+
+msgid "%01i:%01i"
+msgstr "%01i:%01i"
+
+msgid "%01i"
+msgstr "%01i"
+
+msgid "MFM/RLL or ESDI CD-ROM drives never existed"
+msgstr "MFM/RLL- tai ESDI-CD-ROM-asemia ei ole koskaan ollut olemassa"
+
+msgid "Custom..."
+msgstr "Mukautettu..."
+
+msgid "Custom (large)..."
+msgstr "Mukautettu (suuri)..."
+
+msgid "Add New Hard Disk"
+msgstr "Lisää uusi kiintolevy"
+
+msgid "Add Existing Hard Disk"
+msgstr "Lisää olemassaoleva kiintolevy"
+
+msgid "HDI disk images cannot be larger than 4 GB."
+msgstr "HDI-levykuvan suurin mahdollinen koko on 4 Gt."
+
+msgid "Disk images cannot be larger than 127 GB."
+msgstr "Levykuvien suurin mahdollinen koko on 127 Gt."
+
+msgid "Hard disk images"
+msgstr "Kiintolevykuvat"
+
+msgid "Unable to read file"
+msgstr "Tiedostoa ei voi lukea"
+
+msgid "Unable to write file"
+msgstr "Tiedostoon ei voi kirjoittaa"
+
+msgid "HDI or HDX images with a sector size other than 512 are not supported."
+msgstr "HDI- ja HDX-levykuvien ainoa tuettu sektorikoko on 512"
+
+msgid "USB is not yet supported"
+msgstr "USB-tukea ei vielä ole"
+
+msgid "Disk image file already exists"
+msgstr "Levykuva on jo olemassa"
+
+msgid "Please specify a valid file name."
+msgstr "Anna kelvollinen tiedostonimi."
+
+msgid "Disk image created"
+msgstr "Levykuva luotu"
+
+msgid "Make sure the file exists and is readable."
+msgstr "Varmista, että tiedosto on olemassa ja lukukelpoinen"
+
+msgid "Make sure the file is being saved to a writable directory."
+msgstr "Varmista, että tiedoston tallennuskansioon on kirjoitusoikeus"
+
+msgid "Disk image too large"
+msgstr "Liian suuri levykuva"
+
+msgid "Remember to partition and format the newly-created drive."
+msgstr "Muista osioida ja alustaa juuri luomasi asema."
+
+msgid "The selected file will be overwritten. Are you sure you want to use it?"
+msgstr "Valittu tiedosto korvataan. Oletko varma, että haluat käyttää sitä?"
+
+msgid "Unsupported disk image"
+msgstr "Levykuvaa ei tueta"
+
+msgid "Overwrite"
+msgstr "Korvaa"
+
+msgid "Don't overwrite"
+msgstr "Älä korvaa"
+
+msgid "Raw image (.img)"
+msgstr "Raaka levykuva (.img)"
+
+msgid "HDI image (.hdi)"
+msgstr "HDI-levykuva (.hdi)"
+
+msgid "HDX image (.hdx)"
+msgstr "HDX-levykuva (.hdx)"
+
+msgid "Fixed-size VHD (.vhd)"
+msgstr "Kiinteä VHD (.vhd)"
+
+msgid "Dynamic-size VHD (.vhd)"
+msgstr "Dynaaminen VHD (.vhd)"
+
+msgid "Differencing VHD (.vhd)"
+msgstr "Differentiaalinen VHD (.vhd)"
+
+msgid "Large blocks (2 MB)"
+msgstr "Suuret lohkot (2 Mt)"
+
+msgid "Small blocks (512 KB)"
+msgstr "Pienet lohkot (512 kt)"
+
+msgid "VHD files"
+msgstr "VHD-tiedostot"
+
+msgid "Select the parent VHD"
+msgstr "Valitse ylätason VHD"
+
+msgid "This could mean that the parent image was modified after the differencing image was created.\n\nIt can also happen if the image files were moved or copied, or by a bug in the program that created this disk.\n\nDo you want to fix the timestamps?"
+msgstr "Tämä saattaa tarkoittaa, että ylätason levykuvaa on muokattu differentiaalisen levykuvan luonnin jälkeen.\n\nNäin voi käydä myös, jos levykuvatiedostoja on siirretty tai kopioitu. Lisäksi syynä voi olla levyn luoneessa sovelluksessa oleva ohjelmistovirhe.\n\nKorjataanko aikaleimat?"
+
+msgid "Parent and child disk timestamps do not match"
+msgstr "Ylä- ja alatason levyjen aikaleimat eivät täsmää"
+
+msgid "Could not fix VHD timestamp."
+msgstr "VHD aikaleimaa ei pystytty korjaamaan."
+
+msgid "%01i:%02i"
+msgstr "%01i:%02i"
+
+msgid "MFM/RLL"
+msgstr "MFM/RLL"
+
+msgid "XTA"
+msgstr "XTA"
+
+msgid "ESDI"
+msgstr "ESDI"
+
+msgid "IDE"
+msgstr "IDE"
+
+msgid "ATAPI"
+msgstr "ATAPI"
+
+msgid "MFM/RLL (%01i:%01i)"
+msgstr "MFM/RLL (%01i:%01i)"
+
+msgid "XTA (%01i:%01i)"
+msgstr "XTA (%01i:%01i)"
+
+msgid "ESDI (%01i:%01i)"
+msgstr "ESDI (%01i:%01i)"
+
+msgid "IDE (%01i:%01i)"
+msgstr "IDE (%01i:%01i)"
+
+msgid "ATAPI (%01i:%01i)"
+msgstr "ATAPI (%01i:%01i)"
+
+msgid "SCSI (%01i:%02i)"
+msgstr "SCSI (%01i:%02i)"
+
+msgid "CD-ROM %i (%s): %s"
+msgstr "CD-ROM %i (%s): %s"
+
+msgid "160 kB"
+msgstr "160 kt"
+
+msgid "180 kB"
+msgstr "180 kt"
+
+msgid "320 kB"
+msgstr "320 kt"
+
+msgid "360 kB"
+msgstr "360 kt"
+
+msgid "640 kB"
+msgstr "640 kt"
+
+msgid "720 kB"
+msgstr "720 kt"
+
+msgid "1.2 MB"
+msgstr "1.2 Mt"
+
+msgid "1.25 MB"
+msgstr "1.25 Mt"
+
+msgid "1.44 MB"
+msgstr "1.44 Mt"
+
+msgid "DMF (cluster 1024)"
+msgstr "DMF (lohko 1024)"
+
+msgid "DMF (cluster 2048)"
+msgstr "DMF (lohko 2048)"
+
+msgid "2.88 MB"
+msgstr "2.88 Mt"
+
+msgid "ZIP 100"
+msgstr "ZIP 100"
+
+msgid "3.5\" 128 MB (ISO 10090)"
+msgstr "3.5\" 128 Mt (ISO 10090)"
+
+msgid "3.5\" 230 MB (ISO 13963)"
+msgstr "3.5\" 230 Mt (ISO 13963)"
+
+msgid "3.5\" 540 MB (ISO 15498)"
+msgstr "3.5\" 540 Mt (ISO 15498)"
+
+msgid "3.5\" 640 MB (ISO 15498)"
+msgstr "3.5\" 640 Mt (ISO 15498)"
+
+msgid "3.5\" 1.3 GB (GigaMO)"
+msgstr "3.5\" 1.3 Gt (GigaMO)"
+
+msgid "3.5\" 2.3 GB (GigaMO 2)"
+msgstr "3.5\" 2.3 Gt (GigaMO 2)"
+
+msgid "5.25\" 600 MB"
+msgstr "5.25\" 600 Mt"
+
+msgid "5.25\" 650 MB"
+msgstr "5.25\" 650 Mt"
+
+msgid "5.25\" 1 GB"
+msgstr "5.25\" 1 Gt"
+
+msgid "5.25\" 1.3 GB"
+msgstr "5.25\" 1.3 Gt"
+
+msgid "Perfect RPM"
+msgstr "Täydellinen kierrosluku"
+
+msgid "1% below perfect RPM"
+msgstr "1% alle täydellisen kierrosluvun"
+
+msgid "1.5% below perfect RPM"
+msgstr "1.5% alle täydellisen kierrosluvun"
+
+msgid "2% below perfect RPM"
+msgstr "2% alle täydellisen kierrosluvun"
+
+msgid "(System Default)"
+msgstr "(Järjestelmän oletus)"
+

@@ -1,5 +1,5 @@
 /* Copyright (C) 2003, 2004, 2005, 2006, 2008, 2009 Dean Beeler, Jerome Fisher
- * Copyright (C) 2011-2017 Dean Beeler, Jerome Fisher, Sergey V. Mikayev
+ * Copyright (C) 2011-2020 Dean Beeler, Jerome Fisher, Sergey V. Mikayev
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Lesser General Public License as published by
@@ -80,12 +80,6 @@
 #endif
 
 // Configuration
-
-// If non-zero, deletes reverb buffers that are not in use to save memory.
-// If zero, keeps reverb buffers for all modes around all the time to avoid allocating/freeing in the critical path.
-#ifndef MT32EMU_REDUCE_REVERB_MEMORY
-#define MT32EMU_REDUCE_REVERB_MEMORY 1
-#endif
 
 // 0: Maximum speed at the cost of a bit lower emulation accuracy.
 // 1: Maximum achievable emulation accuracy.

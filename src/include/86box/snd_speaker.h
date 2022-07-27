@@ -16,13 +16,18 @@
  *		Copyright 2008-2019 Sarah Walker.
  *		Copyright 2016-2019 Miran Grca.
  */
-extern int	speaker_mute;
 
-extern int	speaker_gated;
-extern int	speaker_enable, was_speaker_enable;
+#ifndef SOUND_SPEAKER_H
+#define SOUND_SPEAKER_H
 
+extern int speaker_mute;
 
-extern void	speaker_init();
+extern int speaker_gated;
+extern int speaker_enable, was_speaker_enable;
 
-extern void	speaker_set_count(uint8_t new_m, int new_count);
-extern void	speaker_update(void);
+extern void speaker_init();
+
+extern void speaker_set_count(uint8_t new_m, int new_count);
+extern void speaker_update(void);
+
+#endif /*SOUND_SPEAKER_H*/
