@@ -97,7 +97,6 @@ machine_pc82_init(const machine_t *model)
 }
 
 
-
 static void
 machine_xt_init_ex(const machine_t *model)
 {
@@ -134,7 +133,6 @@ machine_xt_init(const machine_t *model)
 
     return ret;
 }
-
 
 
 int
@@ -188,7 +186,6 @@ machine_xt_clone_init(const machine_t *model)
 }
 
 
-
 int
 machine_xt_americxt_init(const machine_t *model)
 {
@@ -205,23 +202,7 @@ machine_xt_americxt_init(const machine_t *model)
     return ret;
 }
 
-int
-machine_cdpmpc_init(const machine_t *model)
-{
-    int ret;
 
-    ret = bios_load_linear(L"roms/machines/cdpmpc/mpc434.bin",
-			   0x000fd000, 12288, 0);
-
-    if (bios_only || !ret)
-	return ret;
-
-	device_add(&keyboard_pc82_device);
-	
-    machine_xt_common_init(model);
-
-    return ret;
-}
 int
 machine_xt_amixt_init(const machine_t *model)
 {
@@ -237,6 +218,7 @@ machine_xt_amixt_init(const machine_t *model)
 
     return ret;
 }
+
 
 int
 machine_xt_znic_init(const machine_t *model)
@@ -374,6 +356,25 @@ machine_xt_pc4i_init(const machine_t *model)
 	return ret;
 
     machine_xt_clone_init(model);
+
+    return ret;
+}
+
+
+int
+machine_xt_cdpmpc_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear(L"roms/machines/cdpmpc/mpc434.bin",
+			   0x000fd000, 12288, 0);
+
+    if (bios_only || !ret)
+	return ret;
+
+	device_add(&keyboard_pc82_device);
+	
+    machine_xt_common_init(model);
 
     return ret;
 }

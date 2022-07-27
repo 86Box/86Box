@@ -440,12 +440,12 @@ const machine_t machines[] = {
         .device = NULL,
         .vid_device = NULL
     },
-	{
+    {
         .name = "[8088] Columbia Data Products MPC",
         .internal_name = "cdpmpc",
         .type = MACHINE_TYPE_8088,
         .chipset = MACHINE_CHIPSET_DISCRETE,
-        .init = machine_cdpmpc_init,
+        .init = machine_xt_cdpmpc_init,
         .pad = 0,
         .pad0 = 0,
         .pad1 = MACHINE_AVAILABLE,
@@ -460,7 +460,7 @@ const machine_t machines[] = {
             .min_multi = 0,
             .max_multi = 0
         },
-        .bus_flags = MACHINE_ISA,
+        .bus_flags = MACHINE_PC,
         .flags = MACHINE_FLAGS_NONE,
         .ram = {
             .min = 128,
@@ -468,7 +468,7 @@ const machine_t machines[] = {
             .step = 64
         },
         .nvrmask = 0,
-        .kbc = KBC_IBM_PCJR,
+        .kbc = KBC_IBM_PC_XT,
         .kbc_p1 = 0xff00,
         .gpio = 0xffffffff,
         .device = NULL,
@@ -697,21 +697,21 @@ const machine_t machines[] = {
             .max_voltage = 0,
             .min_multi = 0,
             .max_multi = 0,
-		},
+        },
         .bus_flags = MACHINE_PC,
         .flags = MACHINE_FLAGS_NONE,
         .ram = {
             .min = 128,
             .max = 640,
             .step = 64,
-		},
+        },
         .nvrmask = 0,
         .kbc = KBC_IBM_PC_XT,
         .kbc_p1 = 0xff00,
         .gpio = 0xffffffff,
         .device = NULL,
         .vid_device = NULL
-	},
+    },
     {
         .name = "[8088] Multitech PC-500",
         .internal_name = "pc500",

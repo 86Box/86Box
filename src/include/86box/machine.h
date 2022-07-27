@@ -753,8 +753,6 @@ extern int	machine_v86p_init(const machine_t *);
 extern int	machine_pc_init(const machine_t *);
 extern int	machine_pc82_init(const machine_t *);
 
-extern int	machine_cdpmpc_init(const machine_t *);
-
 extern int	machine_xt_init(const machine_t *);
 extern int	machine_genxt_init(const machine_t *);
 
@@ -768,6 +766,7 @@ extern int	machine_xt_openxt_init(const machine_t *);
 extern int	machine_xt_pcxt_init(const machine_t *);
 extern int	machine_xt_pxxt_init(const machine_t *);
 extern int	machine_xt_pc4i_init(const machine_t *);
+extern int	machine_xt_cdpmpc_init(const machine_t *);
 extern int	machine_xt_mpc1600_init(const machine_t *);
 extern int	machine_xt_pcspirit_init(const machine_t *);
 extern int	machine_xt_pc700_init(const machine_t *);
