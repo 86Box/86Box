@@ -18,7 +18,6 @@
  *		Copyright 2016-2020 Miran Grca.
  *		Copyright 2020 tonioni.
  *		Copyright 2016-2020 TheCollector1995.
- *      Copyright 2022 Perfect Story/Makoto&Kotone Media.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -3907,7 +3906,7 @@ static void
 					romfn = BIOS_GD5428_PATH;
 				else if (gd54xx->mca)
 					romfn = BIOS_GD5426_MCA_PATH;
-				else
+				else if (gd54xx->isa)
 					romfn = BIOS_GD5428_ISA_PATH;
                 else
 			    	romfn = BIOS_GD5428_BOCA_ISA_PATH;
