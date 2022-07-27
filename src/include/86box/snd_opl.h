@@ -31,12 +31,12 @@ enum fm_driver {
 };
 
 typedef struct {
-    uint8_t   (*read)(uint16_t port, void *priv);
-    void      (*write)(uint16_t port, uint8_t val, void *priv);
-    int32_t * (*update)(void *priv);
+    uint8_t (*read)(uint16_t port, void *priv);
+    void (*write)(uint16_t port, uint8_t val, void *priv);
+    int32_t *(*update)(void *priv);
     void (*reset_buffer)(void *priv);
-    void      (*set_do_cycles)(void *priv, int8_t do_cycles);
-    void      *priv;
+    void (*set_do_cycles)(void *priv, int8_t do_cycles);
+    void *priv;
 } fm_drv_t;
 
 extern uint8_t fm_driver_get(int chip_id, fm_drv_t *drv);
