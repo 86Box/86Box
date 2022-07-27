@@ -326,6 +326,7 @@ extern const device_t gd5426_diamond_speedstar_pro_a1_isa_device;
 extern const device_t gd5426_vlb_device;
 extern const device_t gd5426_onboard_device;
 extern const device_t gd5428_isa_device;
+extern const device_t gd5428_boca_isa_device;
 extern const device_t gd5428_vlb_device;
 extern const device_t gd5428_diamond_speedstar_pro_b1_vlb_device;
 extern const device_t gd5428_mca_device;
