@@ -27,11 +27,12 @@ enum {
 	FPU_287,
 	FPU_287XL,
 	FPU_387,
+	FPU_487SX,
 	FPU_INTERNAL
 };
 
 enum {
-    CPU_8088,		/* 808x class CPUs */
+    CPU_8088 = 1,	/* 808x class CPUs */
     CPU_8086,
 #ifdef USE_NEC_808X
     CPU_V20,		/* NEC 808x class CPUs - future proofing */
@@ -39,9 +40,9 @@ enum {
 #endif
     CPU_286,		/* 286 class CPUs */
     CPU_386SX,		/* 386 class CPUs */
-    CPU_386DX,
     CPU_IBM386SLC,
     CPU_IBM486SLC,
+    CPU_386DX,
     CPU_IBM486BL,
     CPU_RAPIDCAD,
     CPU_486SLC,
@@ -49,34 +50,26 @@ enum {
     CPU_i486SX,		/* 486 class CPUs */
     CPU_Am486SX,
     CPU_Cx486S,
-    CPU_i486SX2,
-    CPU_Am486SX2,
     CPU_i486DX,
-    CPU_i486DX2,
     CPU_Am486DX,
-    CPU_Am486DX2,
+    CPU_Am486DXL,
     CPU_Cx486DX,
-    CPU_Cx486DX2,
-    CPU_iDX4,
-    CPU_Am486DX4,
-    CPU_Cx486DX4,
-    CPU_Am5x86,
+    CPU_STPC,
+    CPU_i486SX_SLENH,
+    CPU_i486DX_SLENH,
+    CPU_ENH_Am486DX,
     CPU_Cx5x86,
     CPU_P24T,
     CPU_WINCHIP,	/* 586 class CPUs */
     CPU_WINCHIP2,
     CPU_PENTIUM,
     CPU_PENTIUMMMX,
-#if (defined(USE_NEW_DYNAREC) || (defined(DEV_BRANCH) && defined(USE_CYRIX_6X86)))
     CPU_Cx6x86,
     CPU_Cx6x86MX,
     CPU_Cx6x86L,
     CPU_CxGX1,
-#endif
-#if defined(DEV_BRANCH) && defined(USE_AMD_K5)
     CPU_K5,
     CPU_5K86,
-#endif
     CPU_K6,
     CPU_K6_2,
     CPU_K6_2C,
@@ -86,8 +79,33 @@ enum {
     CPU_CYRIX3S,
     CPU_PENTIUMPRO,	/* 686 class CPUs */
     CPU_PENTIUM2,
-    CPU_PENTIUM2D,
-    CPU_MAX		/* Only really needed to close the enum in a way independent of the #ifdef's. */
+    CPU_PENTIUM2D
+};
+
+enum {
+    CPU_PKG_8088 = (1 << 0),
+    CPU_PKG_8088_EUROPC = (1 << 1),
+    CPU_PKG_8086 = (1 << 2),
+    CPU_PKG_286 = (1 << 3),
+    CPU_PKG_386SX = (1 << 4),
+    CPU_PKG_386DX = (1 << 5),
+    CPU_PKG_M6117 = (1 << 6),
+    CPU_PKG_386SLC_IBM = (1 << 7),
+    CPU_PKG_486SLC = (1 << 8),
+    CPU_PKG_486SLC_IBM = (1 << 9),
+    CPU_PKG_486BL = (1 << 10),
+    CPU_PKG_486DLC = (1 << 11),
+    CPU_PKG_SOCKET1 = (1 << 12),
+    CPU_PKG_SOCKET3 = (1 << 13),
+    CPU_PKG_SOCKET3_PC330 = (1 << 14),
+    CPU_PKG_STPC = (1 << 15),
+    CPU_PKG_SOCKET4 = (1 << 16),
+    CPU_PKG_SOCKET5_7 = (1 << 17),
+    CPU_PKG_SOCKET8 = (1 << 18),
+    CPU_PKG_SLOT1 = (1 << 19),
+    CPU_PKG_SLOT2 = (1 << 20),
+    CPU_PKG_SOCKET370 = (1 << 21),
+    CPU_PKG_EBGA368 = (1 << 22)
 };
 
 
@@ -100,19 +118,28 @@ enum {
 #define CPU_SUPPORTS_DYNAREC 1
 #define CPU_REQUIRES_DYNAREC 2
 #define CPU_ALTERNATE_XTAL   4
+#define CPU_FIXED_MULTIPLIER 8
+
+#if (defined __amd64__ || defined _M_X64)
+#define LOOKUP_INV		-1LL
+#else
+#define LOOKUP_INV		-1
+#endif
+
 
 typedef struct {
-	const char    *name;
-	const char    *internal_name;
-	const int     type;
+    const char    *name;
+    const char    *internal_name;
+    const int     type;
 } FPU;
 
 typedef struct {
     const char *name;
-    int        cpu_type;
-	const FPU  *fpus;
+    uint64_t   cpu_type;
+    const FPU  *fpus;
     int        rspeed;
     double     multi;
+    uint16_t   voltage;
     uint32_t   edx_reset;
     uint32_t   cpuid_model;
     uint16_t   cyrix_id;
@@ -122,50 +149,25 @@ typedef struct {
     int8_t     atclk_div;
 } CPU;
 
+typedef struct {
+    const uint32_t	package;
+    const char		*manufacturer;
+    const char		*name;
+    const char		*internal_name;
+    const CPU		*cpus;
+} cpu_family_t;
 
-extern CPU	cpus_8088[];
-extern CPU	cpus_8086[];
-extern CPU	cpus_286[];
-extern CPU	cpus_i386SX[];
-extern CPU	cpus_i386DX[];
-extern CPU	cpus_Am386SX[];
-extern CPU	cpus_Am386DX[];
-extern CPU	cpus_486SLC[];
-extern CPU	cpus_486DLC[];
-extern CPU  cpus_IBM386SLC[];
-extern CPU  cpus_IBM486SLC[];
-extern CPU  cpus_IBM486BL[];
-extern CPU  cpus_i486S1[];
-extern CPU	cpus_Am486S1[];
-extern CPU	cpus_Cx486S1[];
-extern CPU	cpus_i486[];
-extern CPU	cpus_Am486[];
-extern CPU	cpus_Cx486[];
-extern CPU	cpus_WinChip[];
-extern CPU	cpus_WinChip_SS7[];
-extern CPU	cpus_Pentium5V[];
-extern CPU	cpus_Pentium5V50[];
-extern CPU	cpus_PentiumS5[];
-extern CPU	cpus_Pentium3V[];
-extern CPU	cpus_Pentium[];
-#if defined(DEV_BRANCH) && defined(USE_AMD_K5)
-extern CPU	cpus_K5[];
-#endif
-extern CPU	cpus_K56[];
-extern CPU	cpus_K56_SS7[];
-#if defined(DEV_BRANCH) && defined(USE_CYRIX_6X86)
-extern CPU	cpus_6x863V[];
-extern CPU	cpus_6x86[];
-#ifdef USE_NEW_DYNAREC
-extern CPU	cpus_6x86SS7[];
-#endif
-#endif
-extern CPU	cpus_Cyrix3[];
-extern CPU	cpus_PentiumPro[];
-extern CPU	cpus_PentiumII66[];
-extern CPU	cpus_PentiumII[];
-extern CPU	cpus_Xeon[];
-extern CPU	cpus_Celeron[];
+typedef struct {
+    const char	*family;
+    const int	rspeed;
+    const double multi;
+} cpu_legacy_table_t;
+
+typedef struct {
+    const char	*machine;
+    const cpu_legacy_table_t **tables;
+} cpu_legacy_machine_t;
+
 
 
 #define C_FLAG		0x0001
@@ -210,12 +212,10 @@ typedef union {
 typedef struct {
     uint32_t	base;
     uint32_t	limit;
-    uint8_t	access;
-    uint8_t	ar_high;
+    uint8_t	access, ar_high;
     uint16_t	seg;
-    uint32_t	limit_low,
-		limit_high;
-    int		checked; /*Non-zero if selector is known to be valid*/
+    uint32_t	limit_low, limit_high;
+    int		checked;	/*Non-zero if selector is known to be valid*/
 } x86seg;
 
 typedef union {
@@ -231,17 +231,99 @@ typedef union {
 } MMX_REG;
 
 typedef struct {
-    uint32_t	tr1, tr12;
-    uint32_t	cesr;
-    uint32_t	fcr;
-    uint64_t	fcr2, fcr3;
+    /* IDT WinChip and WinChip 2 MSR's */
+    uint32_t	tr1, tr12;		/* 0x00000002, 0x0000000e */
+    uint32_t	cesr;			/* 0x00000011 */
+
+    /* Pentium Pro, Pentium II Klamath, and Pentium II Deschutes MSR's */
+    uint64_t	apic_base;		/* 0x0000001b - Should the Pentium not also have this? */
+    uint64_t	ecx79;			/* 0x00000079 */
+
+    /* AMD K5, 5k86, K6, K6-2, K6-2C, K6-3, K6-2P, and K6-3P MSR's */
+    uint64_t	ecx83;			/* 0x00000083 - AMD K5 and K6 MSR's. */
+
+    /* Pentium Pro, Pentium II Klamath, and Pentium II Deschutes MSR's */
+    uint64_t	ecx8x[4];		/* 0x00000088 - 0x0000008b */
+    uint64_t	ia32_pmc[8];		/* 0x000000c1 - 0x000000c8 */
+    uint64_t	mtrr_cap;		/* 0x000000fe */
+
+    /* IDT WinChip and WinChip 2 MSR's that are also on the VIA Cyrix III */
+    uint32_t	fcr;			/* 0x00000107 (IDT), 0x00001107 (VIA) */
+    uint64_t	fcr2, fcr3;		/* 0x00000108 (IDT), 0x00001108 (VIA) */
+
+    /* Pentium Pro, Pentium II Klamath, and Pentium II Deschutes MSR's */
+    uint64_t	ecx116;			/* 0x00000116 */
+    uint64_t	ecx11x[4];		/* 0x00000118 - 0x0000011b */
+    uint64_t	ecx11e;			/* 0x0000011e */
+
+    /* Pentium II Klamath and Pentium II Deschutes MSR's */
+    uint16_t	sysenter_cs;		/* 0x00000174 - SYSENTER/SYSEXIT MSR's */
+    uint32_t	sysenter_esp;		/* 0x00000175 - SYSENTER/SYSEXIT MSR's */
+    uint32_t	sysenter_eip;		/* 0x00000176 - SYSENTER/SYSEXIT MSR's */
+
+    /* Pentium Pro, Pentium II Klamath, and Pentium II Deschutes MSR's */
+    uint64_t	mcg_ctl;		/* 0x0000017b - Machine Check Architecture */
+
+    /* Pentium Pro, Pentium II Klamath, and Pentium II Deschutes MSR's */
+    uint64_t	ecx186, ecx187;		/* 0x00000186, 0x00000187 */
+    uint64_t	ecx1e0;			/* 0x000001e0 */
+
+    /* Pentium Pro, Pentium II Klamath, and Pentium II Deschutes MSR's that are also
+       on the VIA Cyrix III */
+    uint64_t	mtrr_physbase[8];	/* 0x00000200 - 0x0000020f */
+    uint64_t	mtrr_physmask[8];	/* 0x00000200 - 0x0000020f (ECX & 1) */
+    uint64_t	mtrr_fix64k_8000;	/* 0x00000250 */
+    uint64_t	mtrr_fix16k_8000;	/* 0x00000258 */
+    uint64_t	mtrr_fix16k_a000;	/* 0x00000259 */
+    uint64_t	mtrr_fix4k[8];		/* 0x00000268 - 0x0000026f */
+
+    /* Pentium Pro, Pentium II Klamath, and Pentium II Deschutes MSR's */
+    uint64_t	pat;			/* 0x00000277 */
+
+    /* Pentium Pro, Pentium II Klamath, and Pentium II Deschutes MSR's that are also
+       on the VIA Cyrix III */
+    uint64_t	mtrr_deftype;		/* 0x000002ff */
+
+    /* Pentium Pro, Pentium II Klamath, and Pentium II Deschutes MSR's */
+    uint64_t	mca_ctl[5];		/* 0x00000400, 0x00000404, 0x00000408, 0x0000040c, 0x00000410 - Machine Check Architecture */
+    uint64_t	ecx570;			/* 0x00000570 */
+
+    /* IBM 386SLC, 486SLC, and 486BL MSR's */
+    uint64_t	ibm_por;		/* 0x00001000 - Processor Operation Register */
+    uint64_t	ibm_crcr;		/* 0x00001001 - Cache Region Control Register */
+
+    /* IBM 486SLC and 486BL MSR's */
+    uint64_t	ibm_por2;		/* 0x00001002 - Processor Operation Register */
+
+    /* Pentium Pro, Pentium II Klamath, and Pentium II Deschutes MSR's */
+    uint64_t	ecx1002ff;		/* 0x001002ff - MSR used by some Intel AMI boards */
+
+    /* AMD K5, 5k86, K6, K6-2, K6-2C, K6-3, K6-2P, and K6-3P MSR's */
+    uint64_t	amd_efer;		/* 0xc0000080 */
+
+    /* AMD K6-2, K6-2C, K6-3, K6-2P, and K6-3P MSR's */
+    uint64_t	star;			/* 0xc0000081 */
+
+    /* AMD K5, 5k86, K6, K6-2, K6-2C, K6-3, K6-2P, and K6-3P MSR's */
+    uint64_t	amd_whcr;		/* 0xc0000082 */
+
+    /* AMD K6-2C, K6-3, K6-2P, and K6-3P MSR's */
+   uint64_t	amd_uwccr;		/* 0xc0000085 */
+
+    /* AMD K6-2P and K6-3P MSR's */
+    uint64_t	amd_epmr;		/* 0xc0000086 */
+
+    /* AMD K6-2C, K6-3, K6-2P, and K6-3P MSR's */
+   uint64_t	amd_psor, amd_pfir;	/* 0xc0000087, 0xc0000088 */
+
+    /* K6-3, K6-2P, and K6-3P MSR's */
+    uint64_t	amd_l2aar;		/* 0xc0000089 */
+
+    /* Pentium Pro, Pentium II Klamath, and Pentium II Deschutes MSR's */
+    uint64_t	ecxf0f00250;		/* 0xf0f00250 - Some weird long MSR's used by i686 AMI & some Phoenix BIOSes */
+    uint64_t	ecxf0f00258;		/* 0xf0f00258 */
+    uint64_t	ecxf0f00259;		/* 0xf0f00259 */
 } msr_t;
-
-typedef union {
-    uint32_t l;
-    uint16_t w;
-} cr0_t;
-
 
 typedef struct {
     x86reg	regs[8];
@@ -252,13 +334,11 @@ typedef struct {
     uint32_t	eaaddr;
 
     int		flags_op;
-    uint32_t	flags_res;
-    uint32_t	flags_op1,
-		flags_op2;
+    uint32_t	flags_res,
+		flags_op1, flags_op2;
 
-    uint32_t	pc;
-    uint32_t	oldpc;
-    uint32_t	op32;  
+    uint32_t	pc,
+		oldpc, op32;
 
     int		TOP;
 
@@ -271,15 +351,16 @@ typedef struct {
 	int32_t		rm_mod_reg_data;
     }		rm_data;
 
-    int8_t	ssegs;
-    int8_t	ismmx;
-    int8_t	abrt;
+    uint8_t	ssegs, ismmx,
+		abrt, _smi_line;
 
-    int		_cycles;
-    int		cpu_recomp_ins;
+#ifdef FPU_CYCLES
+    int		_cycles, _fpu_cycles, _in_smm;
+#else
+    int		_cycles, _in_smm;
+#endif
 
-    uint16_t	npxs,
-		npxc;
+    uint16_t	npxs, npxc;
 
     double	ST[8];
 
@@ -287,31 +368,37 @@ typedef struct {
 
     MMX_REG	MM[8];
 
-    uint16_t	old_npxc,
-		new_npxc;
-    uint32_t	last_ea;
-
 #ifdef USE_NEW_DYNAREC
     uint32_t	old_fp_control, new_fp_control;
-#if defined i386 || defined __i386 || defined __i386__ || defined _X86_
+#if defined i386 || defined __i386 || defined __i386__ || defined _X86_ || defined _M_IX86
     uint16_t	old_fp_control2, new_fp_control2;
 #endif
-#if defined i386 || defined __i386 || defined __i386__ || defined _X86_ || defined __amd64__
+#if defined i386 || defined __i386 || defined __i386__ || defined _X86_ || defined _M_IX86 || defined __amd64__ || defined _M_X64
     uint32_t	trunc_fp_control;
 #endif
+#else
+    uint16_t	old_npxc, new_npxc;
 #endif
 
-    x86seg	seg_cs,
-		seg_ds,
-		seg_es,
-		seg_ss,
-		seg_fs,
-		seg_gs;
+    x86seg	seg_cs, seg_ds, seg_es, seg_ss,
+		seg_fs, seg_gs;
 
-    uint16_t flags, eflags;
+    union {
+	uint32_t	l;
+	uint16_t	w;
+    }		CR0;
 
-    cr0_t CR0;
+    uint16_t	flags, eflags;
+
+    uint32_t	_smbase;
 } cpu_state_t;
+
+
+#define in_smm		cpu_state._in_smm
+#define smi_line	cpu_state._smi_line
+
+#define smbase		cpu_state._smbase
+
 
 /*The cpu_state.flags below must match in both cpu_cur_status and block->status for a block
   to be valid*/
@@ -319,6 +406,7 @@ typedef struct {
 #define CPU_STATUS_STACK32 (1 << 1)
 #define CPU_STATUS_PMODE   (1 << 2)
 #define CPU_STATUS_V86     (1 << 3)
+#define CPU_STATUS_SMM     (1 << 4)
 #define CPU_STATUS_FLAGS 0xffff
 
 /*If the cpu_state.flags below are set in cpu_cur_status, they must be set in block->status.
@@ -343,7 +431,7 @@ typedef struct {
 # endif
 #endif
 
-COMPILE_TIME_ASSERT(sizeof(cpu_state) <= 128)
+COMPILE_TIME_ASSERT(sizeof(cpu_state_t) <= 128)
 
 #define cpu_state_offset(MEMBER) ((uint8_t)((uintptr_t)&cpu_state.MEMBER - (uintptr_t)&cpu_state - 128))
 
@@ -373,6 +461,9 @@ COMPILE_TIME_ASSERT(sizeof(cpu_state) <= 128)
 #define DI	cpu_state.regs[7].w
 
 #define cycles	cpu_state._cycles
+#ifdef FPU_CYCLES
+#define fpu_cycles	cpu_state._fpu_cycles
+#endif
 
 #define cpu_rm	cpu_state.rm_data.rm_mod_reg.rm
 #define cpu_mod	cpu_state.rm_data.rm_mod_reg.mod
@@ -386,6 +477,15 @@ COMPILE_TIME_ASSERT(sizeof(cpu_state) <= 128)
 
 
 /* Global variables. */
+extern cpu_state_t	cpu_state;
+
+extern const cpu_family_t cpu_families[];
+extern const cpu_legacy_machine_t cpu_legacy_table[];
+extern cpu_family_t *cpu_f;
+extern CPU	*cpu_s;
+extern int	cpu_override;
+
+extern int	cpu_isintel;
 extern int	cpu_iscyrix;
 extern int	cpu_16bitbus, cpu_64bitbus;
 extern int	cpu_busspeed, cpu_pci_speed;
@@ -395,8 +495,8 @@ extern double   fpu_multi;
 extern int	cpu_cyrix_alignment;	/*Cyrix 5x86/6x86 only has data misalignment
 					  penalties when crossing 8-byte boundaries*/
 
-extern int	is8086,	is286, is386, is486, is486sx, is486dx, is486sx2, is486dx2, isdx4;
-extern int	is_am486, is_pentium, is_k5, is_k6, is_p6;
+extern int	is8086,	is286, is386, is6117, is486;
+extern int	is_am486, is_am486dxl, is_pentium, is_k5, is_k6, is_p6, is_cxsmm;
 extern int	hascache;
 extern int	isibm486;
 extern int	is_rapidcad;
@@ -411,8 +511,8 @@ extern int	hasfpu;
 
 extern uint32_t	cpu_features;
 
-extern int	in_smm, smi_line, smi_latched, smm_in_hlt;
-extern uint32_t	smbase;
+extern int	smi_latched, smm_in_hlt;
+extern int	smi_block;
 
 #ifdef USE_NEW_DYNAREC
 extern uint16_t		cpu_cur_status;
@@ -422,23 +522,17 @@ extern uint32_t		cpu_cur_status;
 extern uint64_t		cpu_CR4_mask;
 extern uint64_t		tsc;
 extern msr_t		msr;
-extern cpu_state_t  cpu_state;
 extern uint8_t		opcode;
-extern int		insc;
-extern int		fpucount;
-extern float		mips,flops;
-extern int		clockrate;
 extern int		cgate16;
 extern int		cpl_override;
 extern int		CPUID;
-extern uint64_t xt_cpu_multi;
-extern int		isa_cycles;
+extern uint64_t		xt_cpu_multi;
+extern int		isa_cycles, cpu_inited;
 extern uint32_t		oldds,oldss,olddslimit,oldsslimit,olddslimitw,oldsslimitw;
-extern int		ins,output;
 extern uint32_t		pccache;
 extern uint8_t		*pccache2;
 
-extern double		bus_timing, pci_timing;
+extern double		bus_timing, isa_timing, pci_timing, agp_timing;
 extern uint64_t		pmc[2];
 extern uint16_t		temp_seg_data[4];
 extern uint16_t		cs_msr;
@@ -446,7 +540,7 @@ extern uint32_t		esp_msr;
 extern uint32_t		eip_msr;
 
 /* For the AMD K6. */
-extern uint64_t		star;
+extern uint64_t		amd_efer, star;
 
 #define FPU_CW_Reserved_Bits (0xe0c0)
 
@@ -454,6 +548,9 @@ extern uint64_t		star;
 #define msw		cpu_state.CR0.w
 extern uint32_t		cr2, cr3, cr4;
 extern uint32_t		dr[8];
+extern uint32_t		_tr[8];
+extern uint32_t		cache_index;
+extern uint8_t		_cache[2048];
 
 
 /*Segments -
@@ -482,7 +579,7 @@ extern int	cpu_cycles_read, cpu_cycles_read_l, cpu_cycles_write, cpu_cycles_writ
 extern int	cpu_prefetch_cycles, cpu_prefetch_width, cpu_mem_prefetch_cycles, cpu_rom_prefetch_cycles;
 extern int	cpu_waitstates;
 extern int	cpu_cache_int_enabled, cpu_cache_ext_enabled;
-extern int	cpu_pci_speed;
+extern int	cpu_isa_speed, cpu_pci_speed, cpu_agp_speed;
 
 extern int	timing_rr;
 extern int	timing_mr, timing_mrl;
@@ -497,21 +594,19 @@ extern int	timing_retf_rm, timing_retf_pm, timing_retf_pm_outer;
 extern int	timing_jmp_rm, timing_jmp_pm, timing_jmp_pm_gate;
 extern int	timing_misaligned;
 
-extern int	in_sys;
+extern int	in_sys, unmask_a20_in_smm;
+extern int	cycles_main;
+extern uint32_t	old_rammask;
+
+#ifdef USE_ACYCS
+extern int	acycs;
+#endif
+extern int	pic_pending, is_vpc;
+extern int	soft_reset_mask, alt_access;
+extern int	cpu_end_block_after_ins;
 
 extern uint16_t	cpu_fast_off_count, cpu_fast_off_val;
 extern uint32_t	cpu_fast_off_flags;
-
-extern CPU	cpus_pcjr[];		// FIXME: should be in machine file!
-extern CPU	cpus_europc[];		// FIXME: should be in machine file!
-extern CPU	cpus_pc1512[];		// FIXME: should be in machine file!
-extern CPU	cpus_ibmat[];		// FIXME: should be in machine file!
-extern CPU	cpus_ibmxt286[];	// FIXME: should be in machine file!
-extern CPU	cpus_ps1_m2011[];	// FIXME: should be in machine file!
-extern CPU	cpus_ps2_m30_286[];	// FIXME: should be in machine file!
-#if 0
-extern CPU	cpus_acer[];		// FIXME: should be in machine file!
-#endif
 
 
 /* Functions. */
@@ -530,13 +625,18 @@ extern char	*cpu_current_pc(char *bufp);
 
 extern void	cpu_update_waitstates(void);
 extern void	cpu_set(void);
+extern void	cpu_close(void);
+extern void	cpu_set_isa_speed(int speed);
+extern void	cpu_set_pci_speed(int speed);
+extern void	cpu_set_isa_pci_div(int div);
+extern void	cpu_set_agp_speed(int speed);
 
 extern void	cpu_CPUID(void);
 extern void	cpu_RDMSR(void);
 extern void	cpu_WRMSR(void);
 extern void	cpu_INVD(uint8_t wb);
 
-extern int      checkio(int port);
+extern int      checkio(uint32_t port);
 extern void	codegen_block_end(void);
 extern void	codegen_reset(void);
 extern void	cpu_set_edx(void);
@@ -566,7 +666,8 @@ extern void	resetx86(void);
 extern void	refreshread(void);
 extern void	resetreadlookup(void);
 extern void	softresetx86(void);
-extern void x86_int(int num);
+extern void	hardresetx86(void);
+extern void	x86_int(int num);
 extern void	x86_int_sw(int num);
 extern int	x86_int_sw_rm(int num);
 extern void	x86gpf(char *s, uint16_t error);
@@ -588,12 +689,57 @@ extern void	update_tsc(void);
 
 extern int	sysenter(uint32_t fetchdat);
 extern int	sysexit(uint32_t fetchdat);
-extern int	syscall(uint32_t fetchdat);
+extern int	syscall_op(uint32_t fetchdat);
 extern int	sysret(uint32_t fetchdat);
 
-extern int	fpu_get_type(int machine, int cpu_manufacturer, int cpu, const char *internal_name);
-extern const	char *fpu_get_internal_name(int machine, int cpu_manufacturer, int cpu, int type);
-extern const	char *fpu_get_name_from_index(int machine, int cpu_manufacturer, int cpu, int c);
-extern int	fpu_get_type_from_index(int machine, int cpu_manufacturer, int cpu, int c);
+extern cpu_family_t *cpu_get_family(const char *internal_name);
+extern uint8_t	cpu_is_eligible(const cpu_family_t *cpu_family, int cpu, int machine);
+extern uint8_t	cpu_family_is_eligible(const cpu_family_t *cpu_family, int machine);
+extern int	fpu_get_type(const cpu_family_t *cpu_family, int cpu, const char *internal_name);
+extern const	char *fpu_get_internal_name(const cpu_family_t *cpu_family, int cpu, int type);
+extern const	char *fpu_get_name_from_index(const cpu_family_t *cpu_family, int cpu, int c);
+extern int	fpu_get_type_from_index(const cpu_family_t *cpu_family, int cpu, int c);
+
+void cyrix_load_seg_descriptor(uint32_t addr, x86seg *seg);
+void cyrix_write_seg_descriptor(uint32_t addr, x86seg *seg);
+
+#define SMHR_VALID (1 << 0)
+#define SMHR_ADDR_MASK (0xfffffffc)
+
+typedef struct
+{
+        struct
+        {
+                uint32_t base;
+                uint64_t size;
+        } arr[8];
+        uint32_t smhr;
+} cyrix_t;
+
+
+extern uint32_t	addr64, addr64_2;
+extern uint32_t	addr64a[8], addr64a_2[8];
+
+extern int	soft_reset_pci;
+
+extern int	reset_on_hlt, hlt_reset_pending;
+
+extern cyrix_t	cyrix;
+
+extern uint8_t	use_custom_nmi_vector;
+extern uint32_t	custom_nmi_vector;
+
+extern void	(*cpu_exec)(int cycs);
+extern uint8_t	do_translate, do_translate2;
+
+extern void	reset_808x(int hard);
+
+extern void	cpu_register_fast_off_handler(void *timer);
+extern void	cpu_fast_off_advance(void);
+extern void	cpu_fast_off_period_set(uint16_t vla, double period);
+extern void	cpu_fast_off_reset(void);
+
+extern void	smi_raise();
+extern void	nmi_raise();
 
 #endif	/*EMU_CPU_H*/

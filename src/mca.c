@@ -26,7 +26,7 @@ void mca_init(int nr_cards)
 		mca_card_reset[c] = NULL;
 		mca_priv[c] = NULL;
 	}
-        
+
 	mca_index = 0;
 	mca_nr_cards = nr_cards;
 }
@@ -43,6 +43,20 @@ uint8_t mca_read(uint16_t port)
 	if (!mca_card_read[mca_index])
 		return 0xff;
 	return mca_card_read[mca_index](port, mca_priv[mca_index]);
+}
+
+uint8_t mca_read_index(uint16_t port, int index)
+{
+	if (mca_index >= mca_nr_cards)
+		return 0xff;
+	if (!mca_card_read[index])
+		return 0xff;
+	return mca_card_read[index](port, mca_priv[index]);
+}
+
+int mca_get_nr_cards(void)
+{
+	return mca_nr_cards;
 }
 
 void mca_write(uint16_t port, uint8_t val)

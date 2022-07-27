@@ -622,7 +622,7 @@ static int ropJNL_common(codeblock_t *block, ir_data_t *ir, uint32_t dest_addr, 
 {
         int jump_uop;
         int do_unroll = ((NF_SET() ? 1 : 0) == (VF_SET() ? 1 : 0) && codegen_can_unroll(block, ir, next_pc, dest_addr));
-        
+
         switch (codegen_flags_changed ? cpu_state.flags_op : FLAGS_UNKNOWN)
         {
                 case FLAGS_ZN8:

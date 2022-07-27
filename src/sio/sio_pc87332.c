@@ -36,12 +36,11 @@
 
 
 typedef struct {
-    uint8_t tries,
-	    regs[15];
+    uint8_t tries, has_ide,
+	    fdc_on, regs[15];
     int cur_reg;
     fdc_t *fdc;
     serial_t *uart[2];
-    nvr_t *nvr;
 } pc87332_t;
 
 
@@ -49,23 +48,23 @@ static void
 lpt1_handler(pc87332_t *dev)
 {
     int temp;
-    uint16_t lpt_port = 0x378;
-    uint8_t lpt_irq = 5;
+    uint16_t lpt_port = LPT1_ADDR;
+    uint8_t lpt_irq = LPT2_IRQ;
 
     temp = dev->regs[0x01] & 3;
 
     switch (temp) {
 	case 0:
-		lpt_port = 0x378;
-		lpt_irq = (dev->regs[0x02] & 0x08) ? 7 : 5;
+		lpt_port = LPT1_ADDR;
+		lpt_irq = (dev->regs[0x02] & 0x08) ? LPT1_IRQ : LPT2_IRQ;
 		break;
 	case 1:
-		lpt_port = 0x3bc;
-		lpt_irq = 7;
+		lpt_port = LPT_MDA_ADDR;
+		lpt_irq = LPT_MDA_IRQ;
 		break;
 	case 2:
-		lpt_port = 0x278;
-		lpt_irq = 5;
+		lpt_port = LPT2_ADDR;
+		lpt_irq = LPT2_IRQ;
 		break;
 	case 3:
 		lpt_port = 0x000;
@@ -89,43 +88,63 @@ serial_handler(pc87332_t *dev, int uart)
 
     switch (temp) {
 	case 0:
-		serial_setup(dev->uart[uart], SERIAL1_ADDR, 4);
+		serial_setup(dev->uart[uart], COM1_ADDR, 4);
 		break;
 	case 1:
-		serial_setup(dev->uart[uart], SERIAL2_ADDR, 3);
+		serial_setup(dev->uart[uart], COM2_ADDR, 3);
 		break;
 	case 2:
 		switch ((dev->regs[1] >> 6) & 3) {
 			case 0:
-				serial_setup(dev->uart[uart], 0x3e8, 4);
+				serial_setup(dev->uart[uart], COM3_ADDR, COM3_IRQ);
 				break;
 			case 1:
-				serial_setup(dev->uart[uart], 0x338, 4);
+				serial_setup(dev->uart[uart], 0x338, COM3_IRQ);
 				break;
 			case 2:
-				serial_setup(dev->uart[uart], 0x2e8, 4);
+				serial_setup(dev->uart[uart], COM4_ADDR, COM3_IRQ);
 				break;
 			case 3:
-				serial_setup(dev->uart[uart], 0x220, 4);
+				serial_setup(dev->uart[uart], 0x220, COM3_IRQ);
 				break;
 		}
 		break;
 	case 3:
 		switch ((dev->regs[1] >> 6) & 3) {
 			case 0:
-				serial_setup(dev->uart[uart], 0x2e8, 3);
+				serial_setup(dev->uart[uart], COM4_ADDR, COM4_IRQ);
 				break;
 			case 1:
-				serial_setup(dev->uart[uart], 0x238, 3);
+				serial_setup(dev->uart[uart], 0x238, COM4_IRQ);
 				break;
 			case 2:
-				serial_setup(dev->uart[uart], 0x2e0, 3);
+				serial_setup(dev->uart[uart], 0x2e0, COM4_IRQ);
 				break;
 			case 3:
-				serial_setup(dev->uart[uart], 0x228, 3);
+				serial_setup(dev->uart[uart], 0x228, COM4_IRQ);
 				break;
 		}
 		break;
+    }
+}
+
+
+static void
+ide_handler(pc87332_t *dev)
+{
+    /* TODO: Make an ide_disable(channel) and ide_enable(channel) so we can simplify this. */
+    if (dev->has_ide == 2) {
+	ide_sec_disable();
+	ide_set_base(1, (dev->regs[0x00] & 0x80) ? 0x170 : 0x1f0);
+	ide_set_side(1, (dev->regs[0x00] & 0x80) ? 0x376 : 0x3f6);
+	if (dev->regs[0x00] & 0x40)
+		ide_sec_enable();
+    } else if (dev->has_ide == 1) {
+	ide_pri_disable();
+	ide_set_base(0, (dev->regs[0x00] & 0x80) ? 0x170 : 0x1f0);
+	ide_set_side(0, (dev->regs[0x00] & 0x80) ? 0x376 : 0x3f6);
+	if (dev->regs[0x00] & 0x40)
+		ide_pri_enable();
     }
 }
 
@@ -176,8 +195,10 @@ pc87332_write(uint16_t port, uint8_t val, void *priv)
 		if (valxor & 0x28) {
 			fdc_remove(dev->fdc);
 			if ((val & 8) && !(dev->regs[2] & 1))
-				fdc_set_base(dev->fdc, (val & 0x20) ? 0x370 : 0x3f0);
+				fdc_set_base(dev->fdc, (val & 0x20) ? FDC_SECONDARY_ADDR : FDC_PRIMARY_ADDR);
 		}
+		if (dev->has_ide && (valxor & 0xc0))
+			ide_handler(dev);
 		break;
 	case 1:
 		if (valxor & 3) {
@@ -211,7 +232,7 @@ pc87332_write(uint16_t port, uint8_t val, void *priv)
 				if (dev->regs[0] & 4)
 					serial_handler(dev, 1);
 				if (dev->regs[0] & 8)
-					fdc_set_base(dev->fdc, (dev->regs[0] & 0x20) ? 0x370 : 0x3f0);
+					fdc_set_base(dev->fdc, (dev->regs[0] & 0x20) ? FDC_SECONDARY_ADDR : FDC_PRIMARY_ADDR);
 			}
 		}
 		if (valxor & 8) {
@@ -252,7 +273,9 @@ pc87332_reset(pc87332_t *dev)
 {
     memset(dev->regs, 0, 15);
 
-    dev->regs[0x00] = 0x0F;
+    dev->regs[0x00] = dev->fdc_on ? 0x4f : 0x07;
+    if (dev->has_ide == 2)
+	dev->regs[0x00] |= 0x80;
     dev->regs[0x01] = 0x10;
     dev->regs[0x03] = 0x01;
     dev->regs[0x05] = 0x0D;
@@ -269,6 +292,11 @@ pc87332_reset(pc87332_t *dev)
     serial_handler(dev, 0);
     serial_handler(dev, 1);
     fdc_reset(dev->fdc);
+    if (!dev->fdc_on)
+	fdc_remove(dev->fdc);
+
+    if (dev->has_ide)
+	ide_handler(dev);
 }
 
 
@@ -292,22 +320,87 @@ pc87332_init(const device_t *info)
     dev->uart[0] = device_add_inst(&ns16550_device, 1);
     dev->uart[1] = device_add_inst(&ns16550_device, 2);
 
-    // dev->nvr = device_add(&piix4_nvr_device);
-
+    dev->has_ide = (info->local >> 8) & 0xff;
+    dev->fdc_on = (info->local >> 16) & 0xff;
     pc87332_reset(dev);
 
-    io_sethandler(0x02e, 0x0002,
-		  pc87332_read, NULL, NULL, pc87332_write, NULL, NULL, dev);
+    if ((info->local & 0xff) == (0x01)) {
+	io_sethandler(0x398, 0x0002,
+		      pc87332_read, NULL, NULL, pc87332_write, NULL, NULL, dev);
+    } else {
+	io_sethandler(0x02e, 0x0002,
+		      pc87332_read, NULL, NULL, pc87332_write, NULL, NULL, dev);
+    }
 
     return dev;
 }
 
-
 const device_t pc87332_device = {
-    "National Semiconductor PC87332 Super I/O",
-    0,
-    0,
-    pc87332_init, pc87332_close, NULL,
-    NULL, NULL, NULL,
-    NULL
+    .name = "National Semiconductor PC87332 Super I/O",
+    .internal_name = "pc87332",
+    .flags = 0,
+    .local = 0x00,
+    .init = pc87332_init,
+    .close = pc87332_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
+};
+
+const device_t pc87332_398_device = {
+    .name = "National Semiconductor PC87332 Super I/O (Port 398h)",
+    .internal_name = "pc87332_398",
+    .flags = 0,
+    .local = 0x01,
+    .init = pc87332_init,
+    .close = pc87332_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
+};
+
+const device_t pc87332_398_ide_device = {
+    .name = "National Semiconductor PC87332 Super I/O (Port 398h) (With IDE)",
+    .internal_name = "pc87332_398_ide",
+    .flags = 0,
+    .local = 0x101,
+    .init = pc87332_init,
+    .close = pc87332_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
+};
+
+const device_t pc87332_398_ide_sec_device = {
+    .name = "National Semiconductor PC87332 Super I/O (Port 398h) (With Secondary IDE)",
+    .internal_name = "pc87332_398_ide_sec",
+    .flags = 0,
+    .local = 0x201,
+    .init = pc87332_init,
+    .close = pc87332_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
+};
+
+const device_t pc87332_398_ide_fdcon_device = {
+    .name = "National Semiconductor PC87332 Super I/O (Port 398h) (With IDE and FDC on)",
+    .internal_name = "pc87332_398_ide_fdcon",
+    .flags = 0,
+    .local = 0x10101,
+    .init = pc87332_init,
+    .close = pc87332_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };

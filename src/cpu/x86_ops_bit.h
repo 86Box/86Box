@@ -1,7 +1,7 @@
 static int opBT_w_r_a16(uint32_t fetchdat)
 {
         uint16_t temp;
-        
+
         fetch_ea_16(fetchdat);
         SEG_CHECK_READ(cpu_state.ea_seg);
         cpu_state.eaaddr += ((cpu_state.regs[cpu_reg].w / 16) * 2);     eal_r = 0;
@@ -9,7 +9,7 @@ static int opBT_w_r_a16(uint32_t fetchdat)
         flags_rebuild();
         if (temp & (1 << (cpu_state.regs[cpu_reg].w & 15))) cpu_state.flags |=  C_FLAG;
         else                                                cpu_state.flags &= ~C_FLAG;
-        
+
         CLOCK_CYCLES(3);
         PREFETCH_RUN(3, 2, rmdat, 1,0,0,0, 0);
         return 0;
@@ -17,7 +17,7 @@ static int opBT_w_r_a16(uint32_t fetchdat)
 static int opBT_w_r_a32(uint32_t fetchdat)
 {
         uint16_t temp;
-        
+
         fetch_ea_32(fetchdat);
         SEG_CHECK_READ(cpu_state.ea_seg);
         cpu_state.eaaddr += ((cpu_state.regs[cpu_reg].w / 16) * 2);     eal_r = 0;
@@ -25,7 +25,7 @@ static int opBT_w_r_a32(uint32_t fetchdat)
         flags_rebuild();
         if (temp & (1 << (cpu_state.regs[cpu_reg].w & 15))) cpu_state.flags |=  C_FLAG;
         else                                                cpu_state.flags &= ~C_FLAG;
-        
+
         CLOCK_CYCLES(3);
         PREFETCH_RUN(3, 2, rmdat, 1,0,0,0, 1);
         return 0;
@@ -33,7 +33,7 @@ static int opBT_w_r_a32(uint32_t fetchdat)
 static int opBT_l_r_a16(uint32_t fetchdat)
 {
         uint32_t temp;
-        
+
         fetch_ea_16(fetchdat);
         SEG_CHECK_READ(cpu_state.ea_seg);
         cpu_state.eaaddr += ((cpu_state.regs[cpu_reg].l / 32) * 4);     eal_r = 0;
@@ -41,7 +41,7 @@ static int opBT_l_r_a16(uint32_t fetchdat)
         flags_rebuild();
         if (temp & (1 << (cpu_state.regs[cpu_reg].l & 31))) cpu_state.flags |=  C_FLAG;
         else                                                cpu_state.flags &= ~C_FLAG;
-        
+
         CLOCK_CYCLES(3);
         PREFETCH_RUN(3, 2, rmdat, 0,1,0,0, 0);
         return 0;
@@ -49,7 +49,7 @@ static int opBT_l_r_a16(uint32_t fetchdat)
 static int opBT_l_r_a32(uint32_t fetchdat)
 {
         uint32_t temp;
-        
+
         fetch_ea_32(fetchdat);
         SEG_CHECK_READ(cpu_state.ea_seg);
         cpu_state.eaaddr += ((cpu_state.regs[cpu_reg].l / 32) * 4);     eal_r = 0;
@@ -57,7 +57,7 @@ static int opBT_l_r_a32(uint32_t fetchdat)
         flags_rebuild();
         if (temp & (1 << (cpu_state.regs[cpu_reg].l & 31))) cpu_state.flags |=  C_FLAG;
         else                                                cpu_state.flags &= ~C_FLAG;
-        
+
         CLOCK_CYCLES(3);
         PREFETCH_RUN(3, 2, rmdat, 0,1,0,0, 1);
         return 0;

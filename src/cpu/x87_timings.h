@@ -53,4 +53,7 @@ extern const x87_timings_t x87_timings_287;
 extern const x87_timings_t x87_timings_387;
 extern const x87_timings_t x87_timings_486;
 
+extern const x87_timings_t x87_concurrency_486;
+
 extern x87_timings_t x87_timings;
+extern x87_timings_t x87_concurrency;

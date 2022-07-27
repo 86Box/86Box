@@ -1,4 +1,4 @@
-#ifdef __aarch64__
+#if defined __aarch64__ || defined _M_ARM64
 
 #include <stdlib.h>
 #include <stdint.h>
@@ -22,6 +22,7 @@
 #if defined WIN32 || defined _WIN32 || defined _WIN32
 #include <windows.h>
 #endif
+#include <string.h>
 
 void *codegen_mem_load_byte;
 void *codegen_mem_load_word;
@@ -73,7 +74,6 @@ static void build_load_routine(codeblock_t *block, int size, int is_float)
 {
         uint32_t *branch_offset;
         uint32_t *misaligned_offset;
-	int offset;
 
         /*In - W0 = address
           Out - W0 = data, W1 = abrt*/
@@ -142,7 +142,6 @@ static void build_store_routine(codeblock_t *block, int size, int is_float)
 {
         uint32_t *branch_offset;
         uint32_t *misaligned_offset;
-	int offset;
 
         /*In - R0 = address, R1 = data
           Out - R1 = abrt*/
@@ -269,7 +268,7 @@ static void build_fp_round_routine(codeblock_t *block, int is_quad)
 	else
 		host_arm64_FCVTMS_W_D(block, REG_TEMP, REG_V_TEMP);
 	host_arm64_RET(block, REG_X30);
-	
+
 	jump_table[X87_ROUNDING_CHOP] = (uint64_t)(uintptr_t)&block_write_data[block_pos]; //zero
 	if (is_quad)
 		host_arm64_FCVTZS_X_D(block, REG_TEMP, REG_V_TEMP);
@@ -282,12 +281,6 @@ void codegen_backend_init()
 {
 	codeblock_t *block;
         int c;
-#if defined(__linux__) || defined(__APPLE__)
-	void *start;
-	size_t len;
-	long pagesize = sysconf(_SC_PAGESIZE);
-	long pagemask = ~(pagesize - 1);
-#endif
 
 	codeblock = malloc(BLOCK_SIZE * sizeof(codeblock_t));
         codeblock_hash = malloc(HASH_SIZE * sizeof(codeblock_t *));

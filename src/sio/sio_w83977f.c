@@ -39,14 +39,18 @@
 
 
 typedef struct {
-    uint8_t tries, regs[48],
+    uint8_t id, tries,
+	    regs[48],
 	    dev_regs[256][208];
     int locked, rw_locked,
 	cur_reg, base_address,
-	type;
+	type, hefras;
     fdc_t *fdc;
     serial_t *uart[2];
 } w83977f_t;
+
+
+static int	next_id = 0;
 
 
 static void	w83977f_write(uint16_t port, uint8_t val, void *priv);
@@ -56,12 +60,12 @@ static uint8_t	w83977f_read(uint16_t port, void *priv);
 static void
 w83977f_remap(w83977f_t *dev)
 {
-    io_removehandler(0x3f0, 0x0002,
+    io_removehandler(FDC_PRIMARY_ADDR, 0x0002,
 		     w83977f_read, NULL, NULL, w83977f_write, NULL, NULL, dev);
-    io_removehandler(0x370, 0x0002,
+    io_removehandler(FDC_SECONDARY_ADDR, 0x0002,
 		     w83977f_read, NULL, NULL, w83977f_write, NULL, NULL, dev);
 
-    dev->base_address = (HEFRAS ? 0x370 : 0x3f0);
+    dev->base_address = (HEFRAS ? FDC_SECONDARY_ADDR : FDC_PRIMARY_ADDR);
 
     io_sethandler(dev->base_address, 0x0002,
 		  w83977f_read, NULL, NULL, w83977f_write, NULL, NULL, dev);
@@ -86,6 +90,9 @@ w83977f_fdc_handler(w83977f_t *dev)
 {
     uint16_t io_base = (dev->dev_regs[0][0x30] << 8) | dev->dev_regs[0][0x31];
 
+    if (dev->id == 1)
+	return;
+
     fdc_remove(dev->fdc);
 
     if ((dev->dev_regs[0][0x00] & 0x01) && (dev->regs[0x22] & 0x01) && (io_base >= 0x100) && (io_base <= 0xff8))
@@ -105,12 +112,21 @@ w83977f_lpt_handler(w83977f_t *dev)
     if (io_len == 8)
 	io_mask = 0xff8;
 
-    lpt1_remove();
+    if (dev->id == 1) {
+	lpt2_remove();
 
-    if ((dev->dev_regs[1][0x00] & 0x01) && (dev->regs[0x22] & 0x08) && (io_base >= 0x100) && (io_base <= io_mask))
-	lpt1_init(io_base);
+	if ((dev->dev_regs[1][0x00] & 0x01) && (dev->regs[0x22] & 0x08) && (io_base >= 0x100) && (io_base <= io_mask))
+		lpt2_init(io_base);
 
-    lpt1_irq(dev->dev_regs[1][0x40] & 0x0f);
+	lpt2_irq(dev->dev_regs[1][0x40] & 0x0f);
+    } else {
+	lpt1_remove();
+
+	if ((dev->dev_regs[1][0x00] & 0x01) && (dev->regs[0x22] & 0x08) && (io_base >= 0x100) && (io_base <= io_mask))
+		lpt1_init(io_base);
+
+	lpt1_irq(dev->dev_regs[1][0x40] & 0x0f);
+    }
 }
 
 
@@ -249,11 +265,14 @@ w83977f_write(uint16_t port, uint8_t val, void *priv)
 	case 0xf0:
 		switch (ld) {
 			case 0x00:
-				if (valxor & 0x20)
+				if (dev->id == 1)
+					break;
+
+				if (!dev->id && (valxor & 0x20))
 					fdc_update_drv2en(dev->fdc, (val & 0x20) ? 0 : 1);
-				if (valxor & 0x10)
+				if (!dev->id && (valxor & 0x10))
 					fdc_set_swap(dev->fdc, (val & 0x10) ? 1 : 0);
-				if (valxor & 0x01)
+				if (!dev->id && (valxor & 0x01))
 					fdc_update_enh_mode(dev->fdc, (val & 0x01) ? 1 : 0);
 				break;
 			case 0x01:
@@ -269,13 +288,16 @@ w83977f_write(uint16_t port, uint8_t val, void *priv)
 	case 0xf1:
 		switch (ld) {
 			case 0x00:
-				if (valxor & 0xc0)
+				if (dev->id == 1)
+					break;
+
+				if (!dev->id && (valxor & 0xc0))
 					fdc_update_boot_drive(dev->fdc, (val & 0xc0) >> 6);
-				if (valxor & 0x0c)
+				if (!dev->id && (valxor & 0x0c))
 					fdc_update_densel_force(dev->fdc, (val & 0x0c) >> 2);
-				if (valxor & 0x02)
+				if (!dev->id && (valxor & 0x02))
 					fdc_set_diswr(dev->fdc, (val & 0x02) ? 1 : 0);
-				if (valxor & 0x01)
+				if (!dev->id && (valxor & 0x01))
 					fdc_set_swwp(dev->fdc, (val & 0x01) ? 1 : 0);
 				break;
 		}
@@ -283,13 +305,16 @@ w83977f_write(uint16_t port, uint8_t val, void *priv)
 	case 0xf2:
 		switch (ld) {
 			case 0x00:
-				if (valxor & 0xc0)
+				if (dev->id == 1)
+					break;
+
+				if (!dev->id && (valxor & 0xc0))
 					fdc_update_rwc(dev->fdc, 3, (val & 0xc0) >> 6);
-				if (valxor & 0x30)
+				if (!dev->id && (valxor & 0x30))
 					fdc_update_rwc(dev->fdc, 2, (val & 0x30) >> 4);
-				if (valxor & 0x0c)
+				if (!dev->id && (valxor & 0x0c))
 					fdc_update_rwc(dev->fdc, 1, (val & 0x0c) >> 2);
-				if (valxor & 0x03)
+				if (!dev->id && (valxor & 0x03))
 					fdc_update_rwc(dev->fdc, 0, val & 0x03);
 				break;
 		}
@@ -297,7 +322,10 @@ w83977f_write(uint16_t port, uint8_t val, void *priv)
 	case 0xf4: case 0xf5: case 0xf6: case 0xf7:
 		switch (ld) {
 			case 0x00:
-				if (valxor & 0x18)
+				if (dev->id == 1)
+					break;
+
+				if (!dev->id && (valxor & 0x18))
 					fdc_update_drvrate(dev->fdc, dev->cur_reg & 0x03, (val & 0x18) >> 3);
 				break;
 		}
@@ -319,7 +347,7 @@ w83977f_read(uint16_t port, void *priv)
 		ret = dev->cur_reg;
 	else {
 		if (!dev->rw_locked) {
-			if ((dev->cur_reg == 0xf2) && (ld == 0x00))
+			if (!dev->id && ((dev->cur_reg == 0xf2) && (ld == 0x00)))
 				ret = (fdc_get_rwc(dev->fdc, 0) | (fdc_get_rwc(dev->fdc, 1) << 2) | (fdc_get_rwc(dev->fdc, 2) << 4) | (fdc_get_rwc(dev->fdc, 3) << 6));
 			else if (dev->cur_reg >= 0x30)
 				ret = dev->dev_regs[ld][dev->cur_reg - 0x30];
@@ -351,13 +379,18 @@ w83977f_reset(w83977f_t *dev)
     }
     dev->regs[0x22] = 0xff;
     dev->regs[0x24] = dev->type ? 0x84 : 0xa4;
+    dev->regs[0x26] = dev->hefras;
 
     /* WARNING: Array elements are register - 0x30. */
     /* Logical Device 0 (FDC) */
     dev->dev_regs[0][0x00] = 0x01;
     if (!dev->type)
 	dev->dev_regs[0][0x01] = 0x02;
-    dev->dev_regs[0][0x30] = 0x03; dev->dev_regs[0][0x31] = 0xf0;
+    if (next_id == 1) {
+	dev->dev_regs[0][0x30] = 0x03; dev->dev_regs[0][0x31] = 0x70;
+    } else {
+	dev->dev_regs[0][0x30] = 0x03; dev->dev_regs[0][0x31] = 0xf0;
+    }
     dev->dev_regs[0][0x40] = 0x06;
     if (!dev->type)
 	dev->dev_regs[0][0x41] = 0x02;	/* Read-only */
@@ -368,8 +401,13 @@ w83977f_reset(w83977f_t *dev)
     dev->dev_regs[1][0x00] = 0x01;
     if (!dev->type)
 	dev->dev_regs[1][0x01] = 0x02;
-    dev->dev_regs[1][0x30] = 0x03; dev->dev_regs[1][0x31] = 0x78;
-    dev->dev_regs[1][0x40] = 0x07;
+    if (next_id == 1) {
+	dev->dev_regs[1][0x30] = 0x02; dev->dev_regs[1][0x31] = 0x78;
+	dev->dev_regs[1][0x40] = 0x05;
+    } else {
+	dev->dev_regs[1][0x30] = 0x03; dev->dev_regs[1][0x31] = 0x78;
+	dev->dev_regs[1][0x40] = 0x07;
+    }
     if (!dev->type)
 	dev->dev_regs[1][0x41] = 0x01 /*0x02*/;	/* Read-only */
     dev->dev_regs[1][0x44] = 0x04;
@@ -379,7 +417,11 @@ w83977f_reset(w83977f_t *dev)
     dev->dev_regs[2][0x00] = 0x01;
     if (!dev->type)
 	dev->dev_regs[2][0x01] = 0x02;
-    dev->dev_regs[2][0x30] = 0x03; dev->dev_regs[2][0x31] = 0xf8;
+    if (next_id == 1) {
+	dev->dev_regs[2][0x30] = 0x03; dev->dev_regs[2][0x31] = 0xe8;
+    } else {
+	dev->dev_regs[2][0x30] = 0x03; dev->dev_regs[2][0x31] = 0xf8;
+    }
     dev->dev_regs[2][0x40] = 0x04;
     if (!dev->type)
 	dev->dev_regs[2][0x41] = 0x02;	/* Read-only */
@@ -388,7 +430,11 @@ w83977f_reset(w83977f_t *dev)
     dev->dev_regs[3][0x00] = 0x01;
     if (!dev->type)
 	dev->dev_regs[3][0x01] = 0x02;
-    dev->dev_regs[3][0x30] = 0x02; dev->dev_regs[3][0x31] = 0xf8;
+    if (next_id == 1) {
+	dev->dev_regs[3][0x30] = 0x02; dev->dev_regs[3][0x31] = 0xe8;
+    } else {
+	dev->dev_regs[3][0x30] = 0x02; dev->dev_regs[3][0x31] = 0xf8;
+    }
     dev->dev_regs[3][0x40] = 0x03;
     if (!dev->type)
 	dev->dev_regs[3][0x41] = 0x02;	/* Read-only */
@@ -460,12 +506,18 @@ w83977f_reset(w83977f_t *dev)
 	dev->dev_regs[10][0xc0] = 0x8f;
     }
 
-    fdc_reset(dev->fdc);
+    if (dev->id == 1) {
+	serial_setup(dev->uart[0], COM3_ADDR, COM3_IRQ);
+	serial_setup(dev->uart[1], COM4_ADDR, COM4_IRQ);
+    } else {
+	fdc_reset(dev->fdc);
 
-    serial_setup(dev->uart[0], SERIAL1_ADDR, SERIAL1_IRQ);
-    serial_setup(dev->uart[1], SERIAL2_ADDR, SERIAL2_IRQ);
+	serial_setup(dev->uart[0], COM1_ADDR, COM1_IRQ);
+	serial_setup(dev->uart[1], COM2_ADDR, COM2_IRQ);
 
-    w83977f_fdc_handler(dev);
+	w83977f_fdc_handler(dev);
+    }
+
     w83977f_lpt_handler(dev);
     w83977f_serial_handler(dev, 0);
     w83977f_serial_handler(dev, 1);
@@ -482,6 +534,8 @@ w83977f_close(void *priv)
 {
     w83977f_t *dev = (w83977f_t *) priv;
 
+    next_id = 0;
+
     free(dev);
 }
 
@@ -492,44 +546,92 @@ w83977f_init(const device_t *info)
     w83977f_t *dev = (w83977f_t *) malloc(sizeof(w83977f_t));
     memset(dev, 0, sizeof(w83977f_t));
 
-    dev->type = info->local;
+    dev->type = info->local & 0x0f;
+    dev->hefras = info->local & 0x40;
 
-    dev->fdc = device_add(&fdc_at_smc_device);
+    dev->id = next_id;
 
-    dev->uart[0] = device_add_inst(&ns16550_device, 1);
-    dev->uart[1] = device_add_inst(&ns16550_device, 2);
+    if (next_id == 1)
+	dev->hefras ^= 0x40;
+    else
+	dev->fdc = device_add(&fdc_at_smc_device);
+
+    dev->uart[0] = device_add_inst(&ns16550_device, (next_id << 1) + 1);
+    dev->uart[1] = device_add_inst(&ns16550_device, (next_id << 1) + 2);
 
     w83977f_reset(dev);
+
+    next_id++;
 
     return dev;
 }
 
-
 const device_t w83977f_device = {
-    "Winbond W83977F Super I/O",
-    0,
-    0,
-    w83977f_init, w83977f_close, NULL,
-    NULL, NULL, NULL,
-    NULL
+    .name = "Winbond W83977F Super I/O",
+    .internal_name = "w83977f",
+    .flags = 0,
+    .local = 0,
+    .init = w83977f_init,
+    .close = w83977f_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
+const device_t w83977f_370_device = {
+    .name = "Winbond W83977F Super I/O (Port 370h)",
+    .internal_name = "w83977f_370",
+    .flags = 0,
+    .local = 0x40,
+    .init = w83977f_init,
+    .close = w83977f_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
+};
 
 const device_t w83977tf_device = {
-    "Winbond W83977TF Super I/O",
-    0,
-    1,
-    w83977f_init, w83977f_close, NULL,
-    NULL, NULL, NULL,
-    NULL
+    .name = "Winbond W83977TF Super I/O",
+    .internal_name = "w83977tf",
+    .flags = 0,
+    .local = 1,
+    .init = w83977f_init,
+    .close = w83977f_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
-
 const device_t w83977ef_device = {
-    "Winbond W83977TF Super I/O",
-    0,
-    2,
-    w83977f_init, w83977f_close, NULL,
-    NULL, NULL, NULL,
-    NULL
+    .name = "Winbond W83977TF Super I/O",
+    .internal_name = "w83977ef",
+    .flags = 0,
+    .local = 2,
+    .init = w83977f_init,
+    .close = w83977f_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
+};
+
+const device_t w83977ef_370_device = {
+    .name = "Winbond W83977TF Super I/O (Port 370h)",
+    .internal_name = "w83977ef_370",
+    .flags = 0,
+    .local = 0x42,
+    .init = w83977f_init,
+    .close = w83977f_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };

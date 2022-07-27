@@ -53,9 +53,10 @@
 typedef struct {
     int		addr;
 
-    uint8_t	ram[8192];
+    uint8_t	*ram;
+    int     size;
 
-    wchar_t	*fn;
+    char	*fn;
 } ps2_nvr_t;
 
 
@@ -107,7 +108,6 @@ ps2_nvr_write(uint16_t port, uint8_t val, void *priv)
 static void *
 ps2_nvr_init(const device_t *info)
 {
-    char temp[64];
     ps2_nvr_t *nvr;
     FILE *f = NULL;
     int c;
@@ -115,20 +115,25 @@ ps2_nvr_init(const device_t *info)
     nvr = (ps2_nvr_t *)malloc(sizeof(ps2_nvr_t));
     memset(nvr, 0x00, sizeof(ps2_nvr_t));
 
+    if (info->local)
+        nvr->size = 2048;
+    else
+        nvr->size = 8192;
+
     /* Set up the NVR file's name. */
-    sprintf(temp, "%s_sec.nvr", machine_get_internal_name());
-    c = strlen(temp);
-    nvr->fn = (wchar_t *)malloc((c + 1) * sizeof(wchar_t));
-    mbstowcs(nvr->fn, temp, c + 1);
+    c = strlen(machine_get_internal_name()) + 9;
+    nvr->fn = (char *)malloc(c + 1);
+    sprintf(nvr->fn, "%s_sec.nvr", machine_get_internal_name());
 
     io_sethandler(0x0074, 3,
 		  ps2_nvr_read,NULL,NULL, ps2_nvr_write,NULL,NULL, nvr);
 
-    f = nvr_fopen(nvr->fn, L"rb");
+    f = nvr_fopen(nvr->fn, "rb");
 
-    memset(nvr->ram, 0xff, 8192);
+    nvr->ram = (uint8_t *)malloc(nvr->size);
+    memset(nvr->ram, 0xff, nvr->size);
     if (f != NULL) {
-	if (fread(nvr->ram, 1, 8192, f) != 8192)
+	if (fread(nvr->ram, 1, nvr->size, f) != nvr->size)
 		fatal("ps2_nvr_init(): Error reading EEPROM data\n");
 	fclose(f);
     }
@@ -143,21 +148,43 @@ ps2_nvr_close(void *priv)
     ps2_nvr_t *nvr = (ps2_nvr_t *)priv;
     FILE *f = NULL;
 
-    f = nvr_fopen(nvr->fn, L"wb");
+    f = nvr_fopen(nvr->fn, "wb");
 
     if (f != NULL) {
-	(void)fwrite(nvr->ram, 8192, 1, f);
+	(void)fwrite(nvr->ram, nvr->size, 1, f);
 	fclose(f);
     }
+
+    if (nvr->ram != NULL)
+        free(nvr->ram);
 
     free(nvr);
 }
 
-
 const device_t ps2_nvr_device = {
-    "PS/2 Secondary NVRAM",
-    0, 0,
-    ps2_nvr_init, ps2_nvr_close, NULL,
-    NULL, NULL,
-    NULL
+    .name = "PS/2 Secondary NVRAM for PS/2 Models 70-80",
+    .internal_name = "ps2_nvr",
+    .flags = 0,
+    .local = 0,
+    .init = ps2_nvr_init,
+    .close = ps2_nvr_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
+};
+
+const device_t ps2_nvr_55ls_device = {
+    .name = "PS/2 Secondary NVRAM for PS/2 Models 55LS-65SX",
+    .internal_name = "ps2_nvr_55ls",
+    .flags = 0,
+    .local = 1,
+    .init = ps2_nvr_init,
+    .close = ps2_nvr_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };

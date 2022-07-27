@@ -48,6 +48,7 @@
  *		Copyright 2008-2019 Sarah Walker.
  *		Copyright 2016-2019 Miran Grca.
  */
+#include <stdatomic.h>
 #define PNG_DEBUG 0
 #include <png.h>
 #include <stdarg.h>
@@ -66,54 +67,45 @@
 #include <86box/rom.h>
 #include <86box/config.h>
 #include <86box/timer.h>
+#include <86box/path.h>
 #include <86box/plat.h>
+#include <86box/ui.h>
+#include <86box/thread.h>
 #include <86box/video.h>
 #include <86box/vid_svga.h>
 
+#include <minitrace/minitrace.h>
 
-volatile int	screenshots = 0;
-bitmap_t	*buffer32 = NULL;
-bitmap_t	*render_buffer = NULL;
-uint8_t		fontdat[2048][8];		/* IBM CGA font */
-uint8_t		fontdatm[2048][16];		/* IBM MDA font */
-uint8_t		fontdatw[512][32];		/* Wyse700 font */
-uint8_t		fontdat8x12[256][16];		/* MDSI Genius font */
-uint8_t		fontdat12x18[256][36];		/* IM1024 font */
-dbcs_font_t	*fontdatksc5601 = NULL;		/* Korean KSC-5601 font */
-dbcs_font_t	*fontdatksc5601_user = NULL;	/* Korean KSC-5601 user defined font */
-uint32_t	pal_lookup[256];
-int		xsize = 1,
-		ysize = 1;
-int		cga_palette = 0,
-		herc_blend = 0;
-uint32_t	*video_6to8 = NULL,
-		*video_8togs = NULL,
-		*video_8to32 = NULL,
-		*video_15to32 = NULL,
-		*video_16to32 = NULL;
-int		egareads = 0,
-		egawrites = 0,
-		changeframecount = 2;
-int		frames = 0;
-int		fullchange = 0;
-uint8_t		edatlookup[4][4];
-int		overscan_x = 0,
-		overscan_y = 0;
-int		video_timing_read_b = 0,
-		video_timing_read_w = 0,
-		video_timing_read_l = 0;
-int		video_timing_write_b = 0,
-		video_timing_write_w = 0,
-		video_timing_write_l = 0;
-int		video_res_x = 0,
-		video_res_y = 0,
-		video_bpp = 0;
-static int	video_force_resize;
-int		video_grayscale = 0;
-int		video_graytype = 0;
-static int	vid_type;
-static const video_timings_t	*vid_timings;
-static uint32_t cga_2_table[16];
+volatile int		screenshots = 0;
+uint8_t			edatlookup[4][4];
+uint8_t			fontdat[2048][8];		/* IBM CGA font */
+uint8_t			fontdatm[2048][16];		/* IBM MDA font */
+uint8_t			fontdatw[512][32];		/* Wyse700 font */
+uint8_t			fontdat8x12[256][16];		/* MDSI Genius font */
+uint8_t			fontdat12x18[256][36];		/* IM1024 font */
+dbcs_font_t		*fontdatksc5601 = NULL;		/* Korean KSC-5601 font */
+dbcs_font_t		*fontdatksc5601_user = NULL;	/* Korean KSC-5601 user defined font */
+int			herc_blend = 0;
+int			frames = 0;
+int			fullchange = 0;
+int			video_grayscale = 0;
+int			video_graytype = 0;
+int			monitor_index_global = 0;
+uint32_t		*video_6to8 = NULL,
+			*video_8togs = NULL,
+			*video_8to32 = NULL,
+			*video_15to32 = NULL,
+			*video_16to32 = NULL;
+monitor_t		monitors[MONITORS_NUM];
+monitor_settings_t	monitor_settings[MONITORS_NUM];
+atomic_bool		doresize_monitors[MONITORS_NUM];
+
+
+#ifdef _WIN32
+void * __cdecl	(*video_copy)(void *_Dst, const void *_Src, size_t _Size) = memcpy;
+#else
+void *		(*video_copy)(void *__restrict, const void *__restrict, size_t);
+#endif
 
 
 PALETTE		cgapal = {
@@ -131,7 +123,7 @@ PALETTE		cgapal = {
     {42,0,21},  {21,10,21}, {42,0,42},  {42,0,63},
     {21,21,21}, {21,63,21}, {42,21,42}, {21,63,63},
     {63,0,0},   {42,42,0},  {63,21,42}, {41,41,41},
-        
+
     {0,0,0},   {0,42,42},   {42,0,0},   {42,42,42},
     {0,0,0},   {0,42,42},   {42,0,0},   {42,42,42},
     {0,0,0},   {0,63,63},   {63,0,0},   {63,63,63},
@@ -244,19 +236,24 @@ const uint32_t shade[5][256] =
 };
 
 
-static struct {
-    int		x, y, y1, y2, w, h;
+typedef struct blit_data_struct {
+    int		x, y, w, h;
     int		busy;
     int		buffer_in_use;
+    int		thread_run;
+    int		monitor_index;
 
     thread_t	*blit_thread;
     event_t	*wake_blit_thread;
     event_t	*blit_complete;
     event_t	*buffer_not_in_use;
-}		blit_data;
+} blit_data_t;
 
 
-static void (*blit_func)(int x, int y, int y1, int y2, int w, int h);
+static uint32_t		cga_2_table[16];
+
+
+static void (*blit_func)(int x, int y, int w, int h, int monitor_index);
 
 
 #ifdef ENABLE_VIDEO_LOG
@@ -279,125 +276,116 @@ video_log(const char *fmt, ...)
 #endif
 
 
-static
-void blit_thread(void *param)
-{
-    while (1) {
-	thread_wait_event(blit_data.wake_blit_thread, -1);
-	thread_reset_event(blit_data.wake_blit_thread);
-
-	if (blit_func)
-		blit_func(blit_data.x, blit_data.y,
-			  blit_data.y1, blit_data.y2,
-			  blit_data.w, blit_data.h);
-
-	blit_data.busy = 0;
-	thread_set_event(blit_data.blit_complete);
-    }
-}
-
-
 void
-video_setblit(void(*blit)(int,int,int,int,int,int))
+video_setblit(void(*blit)(int,int,int,int,int))
 {
     blit_func = blit;
 }
 
 
 void
-video_blit_complete(void)
+video_blit_complete_monitor(int monitor_index)
 {
-    blit_data.buffer_in_use = 0;
+    blit_data_t* blit_data_ptr = monitors[monitor_index].mon_blit_data_ptr;
+    blit_data_ptr->buffer_in_use = 0;
 
-    thread_set_event(blit_data.buffer_not_in_use);
+    thread_set_event(blit_data_ptr->buffer_not_in_use);
 }
 
 
 void
-video_wait_for_blit(void)
+video_wait_for_blit_monitor(int monitor_index)
 {
-    while (blit_data.busy)
-	thread_wait_event(blit_data.blit_complete, -1);
-    thread_reset_event(blit_data.blit_complete);
+    blit_data_t* blit_data_ptr = monitors[monitor_index].mon_blit_data_ptr;
+
+    while (blit_data_ptr->busy)
+    thread_wait_event(blit_data_ptr->blit_complete, -1);
+    thread_reset_event(blit_data_ptr->blit_complete);
 }
 
 
 void
-video_wait_for_buffer(void)
+video_wait_for_buffer_monitor(int monitor_index)
 {
-    while (blit_data.buffer_in_use)
-	thread_wait_event(blit_data.buffer_not_in_use, -1);
-    thread_reset_event(blit_data.buffer_not_in_use);
+    blit_data_t* blit_data_ptr = monitors[monitor_index].mon_blit_data_ptr;
+
+    while (blit_data_ptr->buffer_in_use)
+    thread_wait_event(blit_data_ptr->buffer_not_in_use, -1);
+    thread_reset_event(blit_data_ptr->buffer_not_in_use);
 }
 
 
-static png_structp	png_ptr;
-static png_infop	info_ptr;
+static png_structp	png_ptr[MONITORS_NUM];
+static png_infop	info_ptr[MONITORS_NUM];
 
 
 static void
-video_take_screenshot(const wchar_t *fn, int startx, int starty, int w, int h)
+video_take_screenshot_monitor(const char *fn, uint32_t *buf, int start_x, int start_y, int row_len, int monitor_index)
 {
     int i, x, y;
     png_bytep *b_rgb = NULL;
     FILE *fp = NULL;
     uint32_t temp = 0x00000000;
+    blit_data_t* blit_data_ptr = monitors[monitor_index].mon_blit_data_ptr;
 
     /* create file */
-    fp = plat_fopen((wchar_t *) fn, (wchar_t *) L"wb");
+    fp = plat_fopen((char *) fn, (char *) "wb");
     if (!fp) {
-	video_log("[video_take_screenshot] File %ls could not be opened for writing", fn);
+	video_log("[video_take_screenshot] File %s could not be opened for writing", fn);
 	return;
     }
 
     /* initialize stuff */
-    png_ptr = png_create_write_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
+    png_ptr[monitor_index] = png_create_write_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
 
-    if (!png_ptr) {
+    if (!png_ptr[monitor_index]) {
 	video_log("[video_take_screenshot] png_create_write_struct failed");
 	fclose(fp);
 	return;
     }
 
-    info_ptr = png_create_info_struct(png_ptr);
-    if (!info_ptr) {
+    info_ptr[monitor_index] = png_create_info_struct(png_ptr[monitor_index]);
+    if (!info_ptr[monitor_index]) {
 	video_log("[video_take_screenshot] png_create_info_struct failed");
 	fclose(fp);
 	return;
     }
 
-    png_init_io(png_ptr, fp);
+    png_init_io(png_ptr[monitor_index], fp);
 
-    png_set_IHDR(png_ptr, info_ptr, w, h,
+    png_set_IHDR(png_ptr[monitor_index], info_ptr[monitor_index], blit_data_ptr->w, blit_data_ptr->h,
 	8, PNG_COLOR_TYPE_RGB, PNG_INTERLACE_NONE,
 	PNG_COMPRESSION_TYPE_BASE, PNG_FILTER_TYPE_BASE);
 
-    b_rgb = (png_bytep *) malloc(sizeof(png_bytep) * h);
+    b_rgb = (png_bytep *) malloc(sizeof(png_bytep) * blit_data_ptr->h);
     if (b_rgb == NULL) {
 	video_log("[video_take_screenshot] Unable to Allocate RGB Bitmap Memory");
 	fclose(fp);
 	return;
     }
 
-    for (y = 0; y < h; ++y) {
-	b_rgb[y] = (png_byte *) malloc(png_get_rowbytes(png_ptr, info_ptr));
-    	for (x = 0; x < w; ++x) {
-		temp = render_buffer->line[y + starty][x + startx];
-
-		b_rgb[y][(x) * 3 + 0] = (temp >> 16) & 0xff;
-		b_rgb[y][(x) * 3 + 1] = (temp >> 8) & 0xff;
-		b_rgb[y][(x) * 3 + 2] = temp & 0xff;
+    for (y = 0; y < blit_data_ptr->h; ++y) {
+    b_rgb[y] = (png_byte *) malloc(png_get_rowbytes(png_ptr[monitor_index], info_ptr[monitor_index]));
+        for (x = 0; x < blit_data_ptr->w; ++x) {
+		if (buf == NULL)
+			memset(&(b_rgb[y][x * 3]), 0x00, 3);
+		else {
+			temp = buf[((start_y + y) * row_len) + start_x + x];
+			b_rgb[y][x * 3] = (temp >> 16) & 0xff;
+			b_rgb[y][(x * 3) + 1] = (temp >> 8) & 0xff;
+			b_rgb[y][(x * 3) + 2] = temp & 0xff;
+		}
 	}
     }
 
-    png_write_info(png_ptr, info_ptr);
+    png_write_info(png_ptr[monitor_index], info_ptr[monitor_index]);
 
-    png_write_image(png_ptr, b_rgb);
+    png_write_image(png_ptr[monitor_index], b_rgb);
 
-    png_write_end(png_ptr, NULL);
+    png_write_end(png_ptr[monitor_index], NULL);
 
     /* cleanup heap allocation */
-    for (i = 0; i < h; i++)
+    for (i = 0; i < blit_data_ptr->h; i++)
 	if (b_rgb[i])  free(b_rgb[i]);
 
     if (b_rgb) free(b_rgb);
@@ -406,82 +394,106 @@ video_take_screenshot(const wchar_t *fn, int startx, int starty, int w, int h)
 }
 
 
-static void
-video_screenshot(int x, int y, int w, int h)
+void
+video_screenshot_monitor(uint32_t *buf, int start_x, int start_y, int row_len, int monitor_index)
 {
-    wchar_t path[1024], fn[128];
+    char path[1024], fn[256];
 
     memset(fn, 0, sizeof(fn));
     memset(path, 0, sizeof(path));
 
-    plat_append_filename(path, usr_path, SCREENSHOT_PATH);
+    path_append_filename(path, usr_path, SCREENSHOT_PATH);
 
     if (! plat_dir_check(path))
-	plat_dir_create(path);
+    plat_dir_create(path);
 
-    wcscat(path, L"\\");
+    path_slash(path);
+    strcat(path, "Monitor_");
+    snprintf(&path[strlen(path)], 42, "%d_", monitor_index + 1);
 
-    plat_tempfile(fn, NULL, L".png");
-    wcscat(path, fn);
+    plat_tempfile(fn, NULL, ".png");
+    strcat(path, fn);
 
-    video_log("taking screenshot to: %S\n", path);
+    video_log("taking screenshot to: %s\n", path);
 
-    video_take_screenshot((const wchar_t *) path, x, y, w, h);
-    png_destroy_write_struct(&png_ptr, &info_ptr);
+    video_take_screenshot_monitor((const char *) path, buf, start_x, start_y, row_len, monitor_index);
+    png_destroy_write_struct(&png_ptr[monitor_index], &info_ptr[monitor_index]);
+
+    atomic_fetch_sub(&monitors[monitor_index].mon_screenshots, 1);
+}
+
+void
+video_screenshot(uint32_t *buf, int start_x, int start_y, int row_len)
+{
+    video_screenshot_monitor(buf, start_x, start_y, row_len, 0);
 }
 
 
-static void
-video_transform_copy(uint32_t *dst, uint32_t *src, int len)
+#ifdef _WIN32
+void * __cdecl
+video_transform_copy(void *_Dst, const void *_Src, size_t _Size)
+#else
+void *
+video_transform_copy(void *__restrict _Dst, const void *__restrict _Src, size_t _Size)
+#endif
 {
     int i;
+    uint32_t *dest_ex = (uint32_t *) _Dst;
+    uint32_t *src_ex = (uint32_t *) _Src;
 
-    for (i = 0; i < len; i++) {
-	*dst = video_color_transform(*src);
-	dst++;
-	src++;
+    _Size /= sizeof(uint32_t);
+
+    if ((dest_ex != NULL) && (src_ex != NULL)) {
+	for (i = 0; i < _Size; i++) {
+		*dest_ex = video_color_transform(*src_ex);
+		dest_ex++;
+		src_ex++;
+	}
+    }
+
+    return _Dst;
+}
+
+
+static
+void blit_thread(void *param)
+{
+    blit_data_t* data = param;
+    while (data->thread_run) {
+    thread_wait_event(data->wake_blit_thread, -1);
+    thread_reset_event(data->wake_blit_thread);
+	MTR_BEGIN("video", "blit_thread");
+
+	if (blit_func)
+        blit_func(data->x, data->y, data->w, data->h, data->monitor_index);
+
+    data->busy = 0;
+
+	MTR_END("video", "blit_thread");
+    thread_set_event(data->blit_complete);
     }
 }
 
 
 void
-video_blit_memtoscreen(int x, int y, int y1, int y2, int w, int h)
+video_blit_memtoscreen_monitor(int x, int y, int w, int h, int monitor_index)
 {
-    int yy;
-
-    if ((w > 0) && (h > 0)) {
-	for (yy = 0; yy < h; yy++) {
-		if (((y + yy) >= 0) && ((y + yy) < buffer32->h)) {
-			if (video_grayscale || invert_display)
-				video_transform_copy(&(render_buffer->line[y + yy][x]), &(buffer32->line[y + yy][x]), w);
-			else
-				memcpy(&(render_buffer->line[y + yy][x]), &(buffer32->line[y + yy][x]), w << 2);
-		}
-	}
-    }
-
-    if (screenshots) {
-	if (render_buffer != NULL)
-		video_screenshot(x, y, w, h);
-	screenshots--;
-	video_log("screenshot taken, %i left\n", screenshots);
-    }
+    MTR_BEGIN("video", "video_blit_memtoscreen");
 
     if ((w <= 0) || (h <= 0))
-	return;
+    return;
 
-    video_wait_for_blit();
+    video_wait_for_blit_monitor(monitor_index);
 
-    blit_data.busy = 1;
-    blit_data.buffer_in_use = 1;
-    blit_data.x = x;
-    blit_data.y = y;
-    blit_data.y1 = y1;
-    blit_data.y2 = y2;
-    blit_data.w = w;
-    blit_data.h = h;
+    monitors[monitor_index].mon_blit_data_ptr->busy = 1;
+    monitors[monitor_index].mon_blit_data_ptr->buffer_in_use = 1;
+    monitors[monitor_index].mon_blit_data_ptr->x = x;
+    monitors[monitor_index].mon_blit_data_ptr->y = y;
+    monitors[monitor_index].mon_blit_data_ptr->w = w;
+    monitors[monitor_index].mon_blit_data_ptr->h = h;
 
-    thread_set_event(blit_data.wake_blit_thread);
+    thread_set_event(monitors[monitor_index].mon_blit_data_ptr->wake_blit_thread);
+    MTR_END("video", "video_blit_memtoscreen");
 }
 
 
@@ -514,7 +526,7 @@ uint32_t pixel_to_color(uint8_t *pixels32, uint8_t pos)
 
 
 void
-video_blend(int x, int y)
+video_blend_monitor(int x, int y, int monitor_index)
 {
     int xx;
     uint32_t pixels32_1, pixels32_2;
@@ -522,145 +534,179 @@ video_blend(int x, int y)
     static unsigned int carry = 0;
 
     if (!herc_blend)
-	return;
+    return;
 
     if (!x)
-	carry = 0;
+    carry = 0;
 
-    val1 = pixels8(&(buffer32->line[y][x]));
+    val1 = pixels8(&(monitors[monitor_index].target_buffer->line[y][x]));
     val2 = (val1 >> 1) + carry;
     carry = (val1 & 1) << 7;
     pixels32_1 = cga_2_table[val1 >> 4] + cga_2_table[val2 >> 4];
     pixels32_2 = cga_2_table[val1 & 0xf] + cga_2_table[val2 & 0xf];
     for (xx = 0; xx < 4; xx++) {
-	buffer32->line[y][x + xx] = pixel_to_color((uint8_t *) &pixels32_1, xx);
-	buffer32->line[y][x + (xx | 4)] = pixel_to_color((uint8_t *) &pixels32_2, xx);
+    monitors[monitor_index].target_buffer->line[y][x + xx] = pixel_to_color((uint8_t *) &pixels32_1, xx);
+    monitors[monitor_index].target_buffer->line[y][x + (xx | 4)] = pixel_to_color((uint8_t *) &pixels32_2, xx);
     }
 }
 
 
+
 void
-video_blit_memtoscreen_8(int x, int y, int y1, int y2, int w, int h)
+video_blit_memtoscreen_8_monitor(int x, int y, int w, int h, int monitor_index)
 {
     int yy, xx;
 
     if ((w > 0) && (h > 0)) {
-	for (yy = 0; yy < h; yy++) {
-		if ((y + yy) >= 0 && (y + yy) < buffer32->h) {
-			for (xx = 0; xx < w; xx++) {
-				if (buffer32->line[y + yy][x + xx] <= 0xff)
-					buffer32->line[y + yy][x + xx] = pal_lookup[buffer32->line[y + yy][x + xx]];
-				else
-					buffer32->line[y + yy][x + xx] = 0x00000000;
-			}
-		}
-	}
+    for (yy = 0; yy < h; yy++) {
+        if ((y + yy) >= 0 && (y + yy) < monitors[monitor_index].target_buffer->h) {
+            for (xx = 0; xx < w; xx++) {
+                if (monitors[monitor_index].target_buffer->line[y + yy][x + xx] <= 0xff)
+                    monitors[monitor_index].target_buffer->line[y + yy][x + xx] = monitors[monitor_index].mon_pal_lookup[monitors[monitor_index].target_buffer->line[y + yy][x + xx]];
+                else
+                    monitors[monitor_index].target_buffer->line[y + yy][x + xx] = 0x00000000;
+            }
+        }
+    }
     }
 
-    video_blit_memtoscreen(x, y, y1, y2, w, h);
+    video_blit_memtoscreen_monitor(x, y, w, h, monitor_index);
 }
 
 
 void
-cgapal_rebuild(void)
+cgapal_rebuild_monitor(int monitor_index)
 {
     int c;
+    uint32_t* palette_lookup = monitors[monitor_index].mon_pal_lookup;
+    int cga_palette_monitor = 0;
 
     /* We cannot do this (yet) if we have not been enabled yet. */
     if (video_6to8 == NULL) return;
 
+    if (monitors[monitor_index].target_buffer == NULL ||
+        monitors[monitor_index].mon_cga_palette == NULL) return;
+
+    cga_palette_monitor = *monitors[monitor_index].mon_cga_palette;
+
     for (c=0; c<256; c++) {
-	pal_lookup[c] = makecol(video_6to8[cgapal[c].r],
+    palette_lookup[c] = makecol(video_6to8[cgapal[c].r],
 			        video_6to8[cgapal[c].g],
 			        video_6to8[cgapal[c].b]);
     }
 
-    if ((cga_palette > 1) && (cga_palette < 7)) {
+    if ((cga_palette_monitor > 1) && (cga_palette_monitor < 7)) {
 	if (vid_cga_contrast != 0) {
 		for (c = 0; c < 16; c++) {
-			pal_lookup[c] = makecol(video_6to8[cgapal_mono[cga_palette - 2][c].r],
-						video_6to8[cgapal_mono[cga_palette - 2][c].g],
-						video_6to8[cgapal_mono[cga_palette - 2][c].b]);
-			pal_lookup[c+16] = makecol(video_6to8[cgapal_mono[cga_palette - 2][c].r],
-						   video_6to8[cgapal_mono[cga_palette - 2][c].g],
-						   video_6to8[cgapal_mono[cga_palette - 2][c].b]);
-			pal_lookup[c+32] = makecol(video_6to8[cgapal_mono[cga_palette - 2][c].r],
-						   video_6to8[cgapal_mono[cga_palette - 2][c].g],
-						   video_6to8[cgapal_mono[cga_palette - 2][c].b]);
-			pal_lookup[c+48] = makecol(video_6to8[cgapal_mono[cga_palette - 2][c].r],
-						   video_6to8[cgapal_mono[cga_palette - 2][c].g],
-						   video_6to8[cgapal_mono[cga_palette - 2][c].b]);
+            palette_lookup[c] = makecol(video_6to8[cgapal_mono[cga_palette_monitor - 2][c].r],
+                        video_6to8[cgapal_mono[cga_palette_monitor - 2][c].g],
+                        video_6to8[cgapal_mono[cga_palette_monitor - 2][c].b]);
+            palette_lookup[c+16] = makecol(video_6to8[cgapal_mono[cga_palette_monitor - 2][c].r],
+                           video_6to8[cgapal_mono[cga_palette_monitor - 2][c].g],
+                           video_6to8[cgapal_mono[cga_palette_monitor - 2][c].b]);
+            palette_lookup[c+32] = makecol(video_6to8[cgapal_mono[cga_palette_monitor - 2][c].r],
+                           video_6to8[cgapal_mono[cga_palette_monitor - 2][c].g],
+                           video_6to8[cgapal_mono[cga_palette_monitor - 2][c].b]);
+            palette_lookup[c+48] = makecol(video_6to8[cgapal_mono[cga_palette_monitor - 2][c].r],
+                           video_6to8[cgapal_mono[cga_palette_monitor - 2][c].g],
+                           video_6to8[cgapal_mono[cga_palette_monitor - 2][c].b]);
 		}
 	} else {
 		for (c = 0; c < 16; c++) {
-			pal_lookup[c] = makecol(video_6to8[cgapal_mono[cga_palette - 1][c].r],
-						video_6to8[cgapal_mono[cga_palette - 1][c].g],
-						video_6to8[cgapal_mono[cga_palette - 1][c].b]);
-			pal_lookup[c+16] = makecol(video_6to8[cgapal_mono[cga_palette - 1][c].r],
-						   video_6to8[cgapal_mono[cga_palette - 1][c].g],
-						   video_6to8[cgapal_mono[cga_palette - 1][c].b]);
-			pal_lookup[c+32] = makecol(video_6to8[cgapal_mono[cga_palette - 1][c].r],
-						   video_6to8[cgapal_mono[cga_palette - 1][c].g],
-						   video_6to8[cgapal_mono[cga_palette - 1][c].b]);
-			pal_lookup[c+48] = makecol(video_6to8[cgapal_mono[cga_palette - 1][c].r],
-						   video_6to8[cgapal_mono[cga_palette - 1][c].g],
-						   video_6to8[cgapal_mono[cga_palette - 1][c].b]);
+            palette_lookup[c] = makecol(video_6to8[cgapal_mono[cga_palette_monitor - 1][c].r],
+                        video_6to8[cgapal_mono[cga_palette_monitor - 1][c].g],
+                        video_6to8[cgapal_mono[cga_palette_monitor - 1][c].b]);
+            palette_lookup[c+16] = makecol(video_6to8[cgapal_mono[cga_palette_monitor - 1][c].r],
+                           video_6to8[cgapal_mono[cga_palette_monitor - 1][c].g],
+                           video_6to8[cgapal_mono[cga_palette_monitor - 1][c].b]);
+            palette_lookup[c+32] = makecol(video_6to8[cgapal_mono[cga_palette_monitor - 1][c].r],
+                           video_6to8[cgapal_mono[cga_palette_monitor - 1][c].g],
+                           video_6to8[cgapal_mono[cga_palette_monitor - 1][c].b]);
+            palette_lookup[c+48] = makecol(video_6to8[cgapal_mono[cga_palette_monitor - 1][c].r],
+                           video_6to8[cgapal_mono[cga_palette_monitor - 1][c].g],
+                           video_6to8[cgapal_mono[cga_palette_monitor - 1][c].b]);
 		}
 	}
     }
 
-    if (cga_palette == 7)
-	pal_lookup[0x16] = makecol(video_6to8[42],video_6to8[42],video_6to8[0]);
+    if (cga_palette_monitor == 7)
+    palette_lookup[0x16] = makecol(video_6to8[42],video_6to8[42],video_6to8[0]);
 }
 
 
 void
-video_inform(int type, const video_timings_t *ptr)
+video_inform_monitor(int type, const video_timings_t *ptr, int monitor_index)
 {
-    vid_type = type;
-    vid_timings = ptr;
+    monitor_t* monitor = &monitors[monitor_index];
+    monitor->mon_vid_type = type;
+    monitor->mon_vid_timings = ptr;
 }
 
 
 int
-video_get_type(void)
+video_get_type_monitor(int monitor_index)
 {
-    return vid_type;
+    return monitors[monitor_index].mon_vid_type;
 }
 
 
 void
 video_update_timing(void)
 {
-    if (!vid_timings)
-	return;
+    const video_timings_t* monitor_vid_timings = NULL;
+    int *vid_timing_read_b = NULL;
+    int *vid_timing_read_l = NULL;
+    int *vid_timing_read_w = NULL;
+    int *vid_timing_write_b = NULL;
+    int *vid_timing_write_l = NULL;
+    int *vid_timing_write_w = NULL;
+    int i = 0;
 
-    if (vid_timings->type == VIDEO_ISA) {
-	video_timing_read_b = ISA_CYCLES(vid_timings->read_b);
-	video_timing_read_w = ISA_CYCLES(vid_timings->read_w);
-	video_timing_read_l = ISA_CYCLES(vid_timings->read_l);
-	video_timing_write_b = ISA_CYCLES(vid_timings->write_b);
-	video_timing_write_w = ISA_CYCLES(vid_timings->write_w);
-	video_timing_write_l = ISA_CYCLES(vid_timings->write_l);
-    } else if (vid_timings->type == VIDEO_PCI) {
-	video_timing_read_b = (int)(pci_timing * vid_timings->read_b);
-	video_timing_read_w = (int)(pci_timing * vid_timings->read_w);
-	video_timing_read_l = (int)(pci_timing * vid_timings->read_l);
-	video_timing_write_b = (int)(pci_timing * vid_timings->write_b);
-	video_timing_write_w = (int)(pci_timing * vid_timings->write_w);
-	video_timing_write_l = (int)(pci_timing * vid_timings->write_l);
-    } else {
-	video_timing_read_b = (int)(bus_timing * vid_timings->read_b);
-	video_timing_read_w = (int)(bus_timing * vid_timings->read_w);
-	video_timing_read_l = (int)(bus_timing * vid_timings->read_l);
-	video_timing_write_b = (int)(bus_timing * vid_timings->write_b);
-	video_timing_write_w = (int)(bus_timing * vid_timings->write_w);
-	video_timing_write_l = (int)(bus_timing * vid_timings->write_l);
-    }
+    for (i = 0; i < MONITORS_NUM; i++) {
+        monitor_vid_timings = monitors[i].mon_vid_timings;
+        if (!monitor_vid_timings)
+        continue;
+        vid_timing_read_b = &monitors[i].mon_video_timing_read_b;
+        vid_timing_read_l = &monitors[i].mon_video_timing_read_l;
+        vid_timing_read_w = &monitors[i].mon_video_timing_read_w;
+        vid_timing_write_b = &monitors[i].mon_video_timing_write_b;
+        vid_timing_write_l = &monitors[i].mon_video_timing_write_l;
+        vid_timing_write_w = &monitors[i].mon_video_timing_write_w;
 
-    if (cpu_16bitbus) {
-	video_timing_read_l = video_timing_read_w * 2;
-	video_timing_write_l = video_timing_write_w * 2;
+        if (monitor_vid_timings->type == VIDEO_ISA) {
+        *vid_timing_read_b = ISA_CYCLES(monitor_vid_timings->read_b);
+        *vid_timing_read_w = ISA_CYCLES(monitor_vid_timings->read_w);
+        *vid_timing_read_l = ISA_CYCLES(monitor_vid_timings->read_l);
+        *vid_timing_write_b = ISA_CYCLES(monitor_vid_timings->write_b);
+        *vid_timing_write_w = ISA_CYCLES(monitor_vid_timings->write_w);
+        *vid_timing_write_l = ISA_CYCLES(monitor_vid_timings->write_l);
+        } else if (monitor_vid_timings->type == VIDEO_PCI) {
+        *vid_timing_read_b = (int)(pci_timing * monitor_vid_timings->read_b);
+        *vid_timing_read_w = (int)(pci_timing * monitor_vid_timings->read_w);
+        *vid_timing_read_l = (int)(pci_timing * monitor_vid_timings->read_l);
+        *vid_timing_write_b = (int)(pci_timing * monitor_vid_timings->write_b);
+        *vid_timing_write_w = (int)(pci_timing * monitor_vid_timings->write_w);
+        *vid_timing_write_l = (int)(pci_timing * monitor_vid_timings->write_l);
+        } else if (monitor_vid_timings->type == VIDEO_AGP) {
+        *vid_timing_read_b = (int)(agp_timing * monitor_vid_timings->read_b);
+        *vid_timing_read_w = (int)(agp_timing * monitor_vid_timings->read_w);
+        *vid_timing_read_l = (int)(agp_timing * monitor_vid_timings->read_l);
+        *vid_timing_write_b = (int)(agp_timing * monitor_vid_timings->write_b);
+        *vid_timing_write_w = (int)(agp_timing * monitor_vid_timings->write_w);
+        *vid_timing_write_l = (int)(agp_timing * monitor_vid_timings->write_l);
+        } else {
+        *vid_timing_read_b = (int)(bus_timing * monitor_vid_timings->read_b);
+        *vid_timing_read_w = (int)(bus_timing * monitor_vid_timings->read_w);
+        *vid_timing_read_l = (int)(bus_timing * monitor_vid_timings->read_l);
+        *vid_timing_write_b = (int)(bus_timing * monitor_vid_timings->write_b);
+        *vid_timing_write_w = (int)(bus_timing * monitor_vid_timings->write_w);
+        *vid_timing_write_l = (int)(bus_timing * monitor_vid_timings->write_l);
+        }
+
+        if (cpu_16bitbus) {
+        *vid_timing_read_l = *vid_timing_read_w * 2;
+        *vid_timing_write_l = *vid_timing_write_w * 2;
+        }
     }
 }
 
@@ -748,7 +794,7 @@ hline(bitmap_t *b, int x1, int y, int x2, uint32_t col)
 {
     int x;
 
-    if (y < 0 || y >= buffer32->h)
+    if (y < 0 || y >= b->h)
 	   return;
 
     for (x = x1; x < x2; x++)
@@ -806,6 +852,56 @@ create_bitmap(int x, int y)
     return(b);
 }
 
+void
+video_monitor_init(int index)
+{
+    memset(&monitors[index], 0, sizeof(monitor_t));
+    monitors[index].mon_xsize = 640;
+    monitors[index].mon_ysize = 480;
+    monitors[index].mon_res_x = 640;
+    monitors[index].mon_res_y = 480;
+    monitors[index].mon_scrnsz_x = 640;
+    monitors[index].mon_scrnsz_y = 480;
+    monitors[index].mon_efscrnsz_y = 480;
+    monitors[index].mon_unscaled_size_x = 480;
+    monitors[index].mon_unscaled_size_y = 480;
+    monitors[index].mon_bpp = 8;
+    monitors[index].mon_changeframecount = 2;
+    monitors[index].target_buffer = create_bitmap(2048, 2048);
+    monitors[index].mon_blit_data_ptr = calloc(1, sizeof(blit_data_t));
+    monitors[index].mon_blit_data_ptr->wake_blit_thread = thread_create_event();
+    monitors[index].mon_blit_data_ptr->blit_complete = thread_create_event();
+    monitors[index].mon_blit_data_ptr->buffer_not_in_use = thread_create_event();
+    monitors[index].mon_blit_data_ptr->thread_run = 1;
+    monitors[index].mon_blit_data_ptr->monitor_index = index;
+    monitors[index].mon_pal_lookup = calloc(sizeof(uint32_t), 256);
+    monitors[index].mon_cga_palette = calloc(1, sizeof(int));
+    monitors[index].mon_force_resize = 1;
+    monitors[index].mon_vid_type = VIDEO_FLAG_TYPE_NONE;
+    atomic_init(&doresize_monitors[index], 0);
+    atomic_init(&monitors[index].mon_screenshots, 0);
+    if (index >= 1) ui_init_monitor(index);
+    monitors[index].mon_blit_data_ptr->blit_thread = thread_create(blit_thread, monitors[index].mon_blit_data_ptr);
+}
+
+void
+video_monitor_close(int monitor_index)
+{
+    if (monitors[monitor_index].target_buffer == NULL) { return; }
+    monitors[monitor_index].mon_blit_data_ptr->thread_run = 0;
+    thread_set_event(monitors[monitor_index].mon_blit_data_ptr->wake_blit_thread);
+    thread_wait(monitors[monitor_index].mon_blit_data_ptr->blit_thread);
+    if (monitor_index >= 1) ui_deinit_monitor(monitor_index);
+    thread_destroy_event(monitors[monitor_index].mon_blit_data_ptr->buffer_not_in_use);
+    thread_destroy_event(monitors[monitor_index].mon_blit_data_ptr->blit_complete);
+    thread_destroy_event(monitors[monitor_index].mon_blit_data_ptr->wake_blit_thread);
+    free(monitors[monitor_index].mon_blit_data_ptr);
+    if (!monitors[monitor_index].mon_pal_lookup_static) free(monitors[monitor_index].mon_pal_lookup);
+    if (!monitors[monitor_index].mon_cga_palette_static) free(monitors[monitor_index].mon_cga_palette);
+    destroy_bitmap(monitors[monitor_index].target_buffer);
+    monitors[monitor_index].target_buffer = NULL;
+    memset(&monitors[monitor_index], 0, sizeof(monitor_t));
+}
 
 void
 video_init(void)
@@ -818,15 +914,11 @@ video_init(void)
 			 (total[(c >> 1) & 1] << 16) | (total[(c >> 0) & 1] << 24);
     }
 
-    /* Account for overscan. */
-    buffer32 = create_bitmap(2048 + 64, 2048 + 64);
-    render_buffer = create_bitmap(2048 + 64, 2048 + 64);
-
     for (c = 0; c < 64; c++) {
 	cgapal[c + 64].r = (((c & 4) ? 2 : 0) | ((c & 0x10) ? 1 : 0)) * 21;
 	cgapal[c + 64].g = (((c & 2) ? 2 : 0) | ((c & 0x10) ? 1 : 0)) * 21;
 	cgapal[c + 64].b = (((c & 1) ? 2 : 0) | ((c & 0x10) ? 1 : 0)) * 21;
-	if ((c & 0x17) == 6) 
+	if ((c & 0x17) == 6)
 		cgapal[c + 64].g >>= 1;
     }
     for (c = 0; c < 64; c++) {
@@ -865,29 +957,21 @@ video_init(void)
     for (c = 0; c < 65536; c++)
 	video_16to32[c] = calc_16to32(c);
 
-    blit_data.wake_blit_thread = thread_create_event();
-    blit_data.blit_complete = thread_create_event();
-    blit_data.buffer_not_in_use = thread_create_event();
-    blit_data.blit_thread = thread_create(blit_thread, NULL);
+    memset(monitors, 0, sizeof(monitors));
+    video_monitor_init(0);
 }
 
 
 void
 video_close(void)
 {
-    thread_kill(blit_data.blit_thread);
-    thread_destroy_event(blit_data.buffer_not_in_use);
-    thread_destroy_event(blit_data.blit_complete);
-    thread_destroy_event(blit_data.wake_blit_thread);
+    video_monitor_close(0);
 
     free(video_16to32);
     free(video_15to32);
     free(video_8to32);
     free(video_8togs);
     free(video_6to8);
-
-    destroy_bitmap(render_buffer);
-    destroy_bitmap(buffer32);
 
     if (fontdatksc5601) {
 	free(fontdatksc5601);
@@ -900,32 +984,26 @@ video_close(void)
     }
 }
 
-
 uint8_t
-video_force_resize_get(void)
+video_force_resize_get_monitor(int monitor_index)
 {
-    return video_force_resize;
+    return monitors[monitor_index].mon_force_resize;
 }
 
 
 void
-video_force_resize_set(uint8_t res)
+video_force_resize_set_monitor(uint8_t res, int monitor_index)
 {
-    video_force_resize = res;
+    monitors[monitor_index].mon_force_resize = res;
 }
 
 
 void
-loadfont(wchar_t *s, int format)
+loadfont_common(FILE *f, int format)
 {
-    FILE *f;
     int c, d;
 
-    f = rom_fopen(s, L"rb");
-    if (f == NULL)
-	return;
-
-    switch (format) {
+	switch (format) {
 	case 0:		/* MDA */
 		for (c=0; c<256; c++)
 			for (d=0; d<8; d++)
@@ -1038,11 +1116,31 @@ loadfont(wchar_t *s, int format)
 		for (c = 0; c < 256; c++)
 			fread(&fontdat12x18[c][0], 1, 36, f);
 		break;
-    }
+
+	}
 
     (void)fclose(f);
 }
 
+void
+loadfont_ex(char *s, int format, int offset)
+{
+	FILE *f;
+
+    f = rom_fopen(s, "rb");
+    if (f == NULL)
+		return;
+
+	fseek(f, offset, SEEK_SET);
+	loadfont_common(f, format);
+
+}
+
+void
+loadfont(char *s, int format)
+{
+    loadfont_ex(s, format, 0);
+}
 
 uint32_t
 video_color_transform(uint32_t color)

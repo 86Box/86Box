@@ -128,8 +128,8 @@ serial_update_ints(serial_t *dev)
 	dev->iir = 0;
     }
 
-    if (stat && ((dev->mctrl & 8) || (dev->type == SERIAL_8250_PCJR))) {
-	if (dev->type >= SERIAL_NS16450)
+    if (stat && (dev->irq != 0xff) && ((dev->mctrl & 8) || (dev->type == SERIAL_8250_PCJR))) {
+	if (dev->type >= SERIAL_16450)
 		picintlevel(1 << dev->irq);
 	else
 		picint(1 << dev->irq);
@@ -151,9 +151,9 @@ serial_clear_timeout(serial_t *dev)
 static void
 write_fifo(serial_t *dev, uint8_t dat)
 {
-    serial_log("write_fifo(%08X, %02X, %i, %i)\n", dev, dat, (dev->type >= SERIAL_NS16550) && dev->fifo_enabled, dev->rcvr_fifo_pos & 0x0f);
+    serial_log("write_fifo(%08X, %02X, %i, %i)\n", dev, dat, (dev->type >= SERIAL_16550) && dev->fifo_enabled, dev->rcvr_fifo_pos & 0x0f);
 
-    if ((dev->type >= SERIAL_NS16550) && dev->fifo_enabled) {
+    if ((dev->type >= SERIAL_16550) && dev->fifo_enabled) {
 	/* FIFO mode. */
 	timer_disable(&dev->timeout_timer);
 	/* Indicate overrun. */
@@ -189,7 +189,7 @@ write_fifo(serial_t *dev, uint8_t dat)
 void
 serial_write_fifo(serial_t *dev, uint8_t dat)
 {
-    serial_log("serial_write_fifo(%08X, %02X, %i, %i)\n", dev, dat, (dev->type >= SERIAL_NS16550) && dev->fifo_enabled, dev->rcvr_fifo_pos & 0x0f);
+    serial_log("serial_write_fifo(%08X, %02X, %i, %i)\n", dev, dat, (dev->type >= SERIAL_16550) && dev->fifo_enabled, dev->rcvr_fifo_pos & 0x0f);
 
     if (!(dev->mctrl & 0x10))
 	write_fifo(dev, dat);
@@ -364,7 +364,7 @@ serial_write(uint16_t addr, uint8_t val, void *p)
 
     serial_log("UART: Write %02X to port %02X\n", val, addr);
 
-    sub_cycles(ISA_CYCLES(8));
+    cycles -= ISA_CYCLES(8);
 
     switch (addr & 7) {
 	case 0:
@@ -380,7 +380,7 @@ serial_write(uint16_t addr, uint8_t val, void *p)
 		dev->int_status &= ~SERIAL_INT_TRANSMIT;
 		serial_update_ints(dev);
 
-		if ((dev->type >= SERIAL_NS16550) && dev->fifo_enabled && (dev->xmit_fifo_pos < 16)) {
+		if ((dev->type >= SERIAL_16550) && dev->fifo_enabled && (dev->xmit_fifo_pos < 16)) {
 			/* FIFO mode, begin transmitting. */
 			timer_on_auto(&dev->transmit_timer, dev->transmit_period);
 			dev->transmit_enabled |= 1;	/* Start moving. */
@@ -405,7 +405,7 @@ serial_write(uint16_t addr, uint8_t val, void *p)
 		serial_update_ints(dev);
 		break;
 	case 2:
-		if (dev->type >= SERIAL_NS16550) {
+		if (dev->type >= SERIAL_16550) {
 			if ((val ^ dev->fcr) & 0x01)
 				serial_reset_fifo(dev);
 			dev->fcr = val & 0xf9;
@@ -493,7 +493,7 @@ serial_write(uint16_t addr, uint8_t val, void *p)
 		}
 		break;
 	case 5:
-		dev->lsr = val;
+		dev->lsr = (dev->lsr & 0xe0) | (val & 0x1f);
 		if (dev->lsr & 0x01)
 			dev->int_status |= SERIAL_INT_RECEIVE;
 		if (dev->lsr & 0x1e)
@@ -509,7 +509,7 @@ serial_write(uint16_t addr, uint8_t val, void *p)
 		serial_update_ints(dev);
 		break;
 	case 7:
-		if (dev->type >= SERIAL_NS16450)
+		if (dev->type >= SERIAL_16450)
 			dev->scratch = val;
 		break;
     }
@@ -522,7 +522,7 @@ serial_read(uint16_t addr, void *p)
     serial_t *dev = (serial_t *)p;
     uint8_t i, ret = 0;
 
-    sub_cycles(ISA_CYCLES(8));
+    cycles -= ISA_CYCLES(8);
 
     switch (addr & 7) {
 	case 0:
@@ -531,7 +531,7 @@ serial_read(uint16_t addr, void *p)
 			break;
 		}
 
-		if ((dev->type >= SERIAL_NS16550) && dev->fifo_enabled) {
+		if ((dev->type >= SERIAL_16550) && dev->fifo_enabled) {
 			/* FIFO mode. */
 
 			serial_clear_timeout(dev);
@@ -565,7 +565,7 @@ serial_read(uint16_t addr, void *p)
 		else
 			ret = dev->ier;
 		break;
-	case 2: 
+	case 2:
 		ret = dev->iir;
 		if ((ret & 0xe) == 2) {
 			dev->int_status &= ~SERIAL_INT_TRANSMIT;
@@ -624,7 +624,7 @@ serial_remove(serial_t *dev)
 
 
 void
-serial_setup(serial_t *dev, uint16_t addr, int irq)
+serial_setup(serial_t *dev, uint16_t addr, uint8_t irq)
 {
     serial_log("Adding serial port %i at %04X...\n", dev->inst, addr);
 
@@ -693,10 +693,14 @@ serial_init(const device_t *info)
 	dev->sd = &(serial_devices[next_inst]);
 	dev->sd->serial = dev;
 	serial_reset_port(dev);
-	if (next_inst || (info->flags & DEVICE_PCJR))
-		serial_setup(dev, SERIAL2_ADDR, SERIAL2_IRQ);
-	else
-		serial_setup(dev, SERIAL1_ADDR, SERIAL1_IRQ);
+	if (next_inst == 3)
+		serial_setup(dev, COM4_ADDR, COM4_IRQ);
+	else if (next_inst == 2)
+		serial_setup(dev, COM3_ADDR, COM3_IRQ);
+	else if ((next_inst == 1) || (info->flags & DEVICE_PCJR))
+		serial_setup(dev, COM2_ADDR, COM2_IRQ);
+	else if (next_inst == 0)
+		serial_setup(dev, COM1_ADDR, COM1_IRQ);
 
 	/* Default to 1200,N,7. */
 	dev->dlab = 96;
@@ -722,46 +726,118 @@ serial_set_next_inst(int ni)
 
 void
 serial_standalone_init(void) {
-    if (next_inst == 0) {
-	device_add_inst(&i8250_device, 1);
-	device_add_inst(&i8250_device, 2);
-    } else if (next_inst == 1)
-	device_add_inst(&i8250_device, 2);
+	for ( ; next_inst < SERIAL_MAX; )
+		device_add_inst(&ns8250_device, next_inst + 1);
 };
 
-
-const device_t i8250_device = {
-    "Intel 8250(-compatible) UART",
-    0,
-    SERIAL_8250,
-    serial_init, serial_close, NULL,
-    NULL, serial_speed_changed, NULL,
-    NULL
+const device_t ns8250_device = {
+    .name = "National Semiconductor 8250(-compatible) UART",
+    .internal_name = "ns8250",
+    .flags = 0,
+    .local = SERIAL_8250,
+    .init = serial_init,
+    .close = serial_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = serial_speed_changed,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
-const device_t i8250_pcjr_device = {
-    "Intel 8250(-compatible) UART for PCjr",
-    DEVICE_PCJR,
-    SERIAL_8250_PCJR,
-    serial_init, serial_close, NULL,
-    NULL, serial_speed_changed, NULL,
-    NULL
+const device_t ns8250_pcjr_device = {
+    .name = "National Semiconductor 8250(-compatible) UART for PCjr",
+    .internal_name = "ns8250_pcjr",
+    .flags = DEVICE_PCJR,
+    .local = SERIAL_8250_PCJR,
+    .init = serial_init,
+    .close = serial_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = serial_speed_changed,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
 const device_t ns16450_device = {
-    "National Semiconductor NS16450(-compatible) UART",
-    0,
-    SERIAL_NS16450,
-    serial_init, serial_close, NULL,
-    NULL, serial_speed_changed, NULL,
-    NULL
+    .name = "National Semiconductor NS16450(-compatible) UART",
+    .internal_name = "ns16450",
+    .flags = 0,
+    .local = SERIAL_16450,
+    .init = serial_init,
+    .close = serial_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = serial_speed_changed,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
 const device_t ns16550_device = {
-    "National Semiconductor NS16550(-compatible) UART",
-    0,
-    SERIAL_NS16550,
-    serial_init, serial_close, NULL,
-    NULL, serial_speed_changed, NULL,
-    NULL
+    .name = "National Semiconductor NS16550(-compatible) UART",
+    .internal_name = "ns16550",
+    .flags = 0,
+    .local = SERIAL_16550,
+    .init = serial_init,
+    .close = serial_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = serial_speed_changed,
+    .force_redraw = NULL,
+    .config = NULL
+};
+
+const device_t ns16650_device = {
+    .name = "Startech Semiconductor 16650(-compatible) UART",
+    .internal_name = "ns16650",
+    .flags = 0,
+    .local = SERIAL_16650,
+    .init = serial_init,
+    .close = serial_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = serial_speed_changed,
+    .force_redraw = NULL,
+    .config = NULL
+};
+
+const device_t ns16750_device = {
+    .name = "Texas Instruments 16750(-compatible) UART",
+    .internal_name = "ns16750",
+    .flags = 0,
+    .local = SERIAL_16750,
+    .init = serial_init,
+    .close = serial_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = serial_speed_changed,
+    .force_redraw = NULL,
+    .config = NULL
+};
+
+const device_t ns16850_device = {
+    .name = "Exar Corporation NS16850(-compatible) UART",
+    .internal_name = "ns16850",
+    .flags = 0,
+    .local = SERIAL_16850,
+    .init = serial_init,
+    .close = serial_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = serial_speed_changed,
+    .force_redraw = NULL,
+    .config = NULL
+};
+
+const device_t ns16950_device = {
+    .name = "Oxford Semiconductor NS16950(-compatible) UART",
+    .internal_name = "ns16950",
+    .flags = 0,
+    .local = SERIAL_16950,
+    .init = serial_init,
+    .close = serial_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = serial_speed_changed,
+    .force_redraw = NULL,
+    .config = NULL
 };

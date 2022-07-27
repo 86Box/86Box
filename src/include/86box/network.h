@@ -44,6 +44,7 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING  IN ANY  WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+
 #ifndef EMU_NETWORK_H
 # define EMU_NETWORK_H
 # include <stdint.h>
@@ -64,7 +65,7 @@ enum {
 };
 
 
-typedef void (*NETRXCB)(void *, uint8_t *, int);
+typedef int (*NETRXCB)(void *, uint8_t *, int);
 typedef int (*NETWAITCB)(void *);
 typedef int (*NETSETLINKSTATE)(void *);
 
@@ -78,8 +79,6 @@ typedef struct netpkt {
 } netpkt_t;
 
 typedef struct {
-    const char		*name;
-    const char		*internal_name;
     const device_t	*device;
     void		*priv;
     int			(*poll)(void *);
@@ -101,14 +100,12 @@ extern "C" {
 /* Global variables. */
 extern int	nic_do_log;				/* config */
 extern int      network_ndev;
+extern int	network_rx_pause;
 extern netdev_t network_devs[32];
 
 
 /* Function prototypes. */
 extern void	network_wait(uint8_t wait);
-extern void	network_poll(void);
-extern void	network_busy(uint8_t set);
-extern void	network_end(void);
 
 extern void	network_init(void);
 extern void	network_attach(void *, uint8_t *, NETRXCB, NETWAITCB, NETSETLINKSTATE);
@@ -116,7 +113,6 @@ extern void	network_close(void);
 extern void	network_reset(void);
 extern int	network_available(void);
 extern void	network_tx(uint8_t *, int);
-extern void	network_do_tx(void);
 extern int	network_tx_queue_check(void);
 
 extern int	net_pcap_prepare(netdev_t *);
@@ -132,7 +128,6 @@ extern void	net_slirp_in(uint8_t *, int);
 
 extern int	network_dev_to_id(char *);
 extern int	network_card_available(int);
-extern char	*network_card_getname(int);
 extern int	network_card_has_config(int);
 extern char	*network_card_get_internal_name(int);
 extern int	network_card_get_from_internal_name(char *);
@@ -140,6 +135,8 @@ extern const device_t	*network_card_getdevice(int);
 
 extern void	network_set_wait(int wait);
 extern int	network_get_wait(void);
+
+extern void	network_timer_stop(void);
 
 extern void	network_queue_put(int tx, void *priv, uint8_t *data, int len);
 

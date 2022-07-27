@@ -11,10 +11,10 @@ uint32_t timer_target;
 
 /*Enabled timers are stored in a linked list, with the first timer to expire at
   the head.*/
-static pc_timer_t *timer_head = NULL;
+pc_timer_t *timer_head = NULL;
 
 /* Are we initialized? */
-static int timer_inited = 0;
+int timer_inited = 0;
 
 
 void
@@ -37,11 +37,7 @@ timer_enable(pc_timer_t *timer)
     if (!timer_head) {
 	timer_head = timer;
 	timer->next = timer->prev = NULL;
-#if 0
-	timer_target = timer_head->ts_integer;
-#else
 	timer_target = timer_head->ts.ts32.integer;
-#endif
 	return;
     }
 
@@ -57,11 +53,7 @@ timer_enable(pc_timer_t *timer)
 			timer->prev->next = timer;
 		else {
 			timer_head = timer;
-#if 0
-			timer_target = timer_head->ts_integer;
-#else
 			timer_target = timer_head->ts.ts32.integer;
-#endif
 		}
 		return;
 	}
@@ -99,7 +91,7 @@ timer_disable(pc_timer_t *timer)
 }
 
 
-static void
+void
 timer_remove_head(void)
 {
     pc_timer_t *timer;
@@ -142,11 +134,7 @@ timer_process(void)
 		timer->callback(timer->p);
     }
 
-#if 0
-    timer_target = timer_head->ts_integer;
-#else
     timer_target = timer_head->ts.ts32.integer;
-#endif
 }
 
 
@@ -233,6 +221,8 @@ timer_advance_ex(pc_timer_t *timer, int start)
     } else {
 	if (timer->period > 0.0)
 		timer_do_period(timer, (uint64_t) (timer->period * ((double) TIMER_USEC)), start);
+	else
+		timer_disable(timer);
 	timer->period = 0.0;
 	timer->flags &= ~TIMER_SPLIT;
     }
@@ -256,5 +246,8 @@ timer_on_auto(pc_timer_t *timer, double period)
     if (!timer_inited || (timer == NULL))
 	return;
 
-    timer_on(timer, period, (timer->period == 0.0));
+    if (period > 0.0)
+	timer_on(timer, period, (timer->period == 0.0));
+    else
+	timer_stop(timer);
 }

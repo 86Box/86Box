@@ -69,12 +69,14 @@ static pcap_t	*(*f_pcap_open_live)(const char *,int,int,int,char *);
 static int	(*f_pcap_next_ex)(pcap_t*,struct pcap_pkthdr**,const unsigned char**);
 static void	(*f_pcap_close)(pcap_t *);
 static dllimp_t pcap_imports[] = {
-  { "pcap_findalldevs",	&f_pcap_findalldevs	},
-  { "pcap_freealldevs",	&f_pcap_freealldevs	},
-  { "pcap_open_live",	&f_pcap_open_live	},
-  { "pcap_next_ex",	&f_pcap_next_ex		},
-  { "pcap_close",	&f_pcap_close		},
-  { NULL,		NULL			},
+// clang-format off
+  { "pcap_findalldevs", &f_pcap_findalldevs },
+  { "pcap_freealldevs", &f_pcap_freealldevs },
+  { "pcap_open_live",   &f_pcap_open_live   },
+  { "pcap_next_ex",     &f_pcap_next_ex     },
+  { "pcap_close",       &f_pcap_close       },
+  { NULL,               NULL                },
+// clang-format on
 };
 
 
@@ -210,7 +212,7 @@ start_cap(char *dev)
         now = hdr->ts.tv_sec;
         ltime = localtime(&now);
         strftime(temp, sizeof(temp), "%H:%M:%S", ltime);
-        
+
 	/* Process and print the packet. */
         printf("\n<< %s,%.6ld len=%u\n",
 		temp, hdr->ts.tv_usec, hdr->len);
@@ -269,6 +271,8 @@ main(int argc, char **argv)
     /* Try loading the DLL. */
 #ifdef _WIN32
     pcap_handle = dynld_module("wpcap.dll", pcap_imports);
+#elif defined __APPLE__
+    pcap_handle = dynld_module("libpcap.dylib", pcap_imports);
 #else
     pcap_handle = dynld_module("libpcap.so", pcap_imports);
 #endif

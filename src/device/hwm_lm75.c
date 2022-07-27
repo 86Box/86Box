@@ -23,20 +23,11 @@
 #include <wchar.h>
 #include <86box/86box.h>
 #include <86box/device.h>
-#include <86box/smbus.h>
+#include <86box/i2c.h>
 #include <86box/hwm.h>
 
 
 #define LM75_TEMP_TO_REG(t)	((t) << 8)
-
-
-static uint8_t	lm75_smbus_read_byte(uint8_t addr, void *priv);
-static uint8_t	lm75_smbus_read_byte_cmd(uint8_t addr, uint8_t cmd, void *priv);
-static uint16_t	lm75_smbus_read_word_cmd(uint8_t addr, uint8_t cmd, void *priv);
-static void	lm75_smbus_write_byte(uint8_t addr, uint8_t val, void *priv);
-static void	lm75_smbus_write_byte_cmd(uint8_t addr, uint8_t cmd, uint8_t val, void *priv);
-static void	lm75_smbus_write_word_cmd(uint8_t addr, uint8_t cmd, uint16_t val, void *priv);
-static void	lm75_reset(lm75_t *dev);
 
 
 #ifdef ENABLE_LM75_LOG
@@ -59,64 +50,14 @@ lm75_log(const char *fmt, ...)
 #endif
 
 
-void
-lm75_remap(lm75_t *dev)
-{
-    lm75_log("LM75: remapping to SMBus %02Xh\n", dev->smbus_addr);
-
-    smbus_removehandler(dev->smbus_addr, 1,
-    			lm75_smbus_read_byte, lm75_smbus_read_byte_cmd, lm75_smbus_read_word_cmd, NULL,
-    			lm75_smbus_write_byte, lm75_smbus_write_byte_cmd, lm75_smbus_write_word_cmd, NULL,
-    			dev);
-
-    if (dev->smbus_addr) smbus_sethandler(dev->smbus_addr, 1,
-    			lm75_smbus_read_byte, lm75_smbus_read_byte_cmd, lm75_smbus_read_word_cmd, NULL,
-    			lm75_smbus_write_byte, lm75_smbus_write_byte_cmd, lm75_smbus_write_word_cmd, NULL,
-    			dev);
-}
-
-
 static uint8_t
-lm75_smbus_read_byte(uint8_t addr, void *priv)
+lm75_i2c_start(void *bus, uint8_t addr, uint8_t read, void *priv)
 {
     lm75_t *dev = (lm75_t *) priv;
-    return lm75_read(dev, dev->addr_register);
-}
 
+    dev->i2c_state = 0;
 
-static uint8_t
-lm75_smbus_read_byte_cmd(uint8_t addr, uint8_t cmd, void *priv)
-{
-    lm75_t *dev = (lm75_t *) priv;
-    return lm75_read(dev, cmd);
-}
-
-static uint16_t
-lm75_smbus_read_word_cmd(uint8_t addr, uint8_t cmd, void *priv)
-{
-    lm75_t *dev = (lm75_t *) priv;
-    uint8_t rethi = 0;
-    uint8_t retlo = 0;
-
-    switch (cmd & 0x3) {
-    	case 0x0: /* temperature */
-    		rethi = lm75_read(dev, 0x0);
-    		retlo = lm75_read(dev, 0x1);
-    		break;
-    	case 0x1: /* configuration */
-    		rethi = retlo = lm75_read(dev, 0x2);
-    		break;
-    	case 0x2: /* Thyst */
-    		rethi = lm75_read(dev, 0x3);
-    		retlo = lm75_read(dev, 0x4);
-    		break;
-    	case 0x3: /* Tos */
-    		rethi = lm75_read(dev, 0x5);
-    		retlo = lm75_read(dev, 0x6);
-    		break;
-    }
-
-    return (retlo << 8) | rethi; /* byte-swapped for some reason */
+    return 1;
 }
 
 
@@ -125,13 +66,12 @@ lm75_read(lm75_t *dev, uint8_t reg)
 {
     uint8_t ret;
 
-    /* The AS99127F hardware monitor uses the addresses of its LM75 devices
-       to access some of its proprietary registers. Pass this operation on to
-       the main monitor address through an internal SMBus call, if necessary. */
-    if ((reg > 0x7) && ((reg & 0xf8) != 0x50) && (dev->as99127f_smbus_addr))
-    	ret = smbus_read_byte_cmd(dev->as99127f_smbus_addr, reg);
+    if ((reg & 0x7) == 0x0) /* temperature high byte */
+	ret = LM75_TEMP_TO_REG(dev->values->temperatures[dev->local >> 8]) >> 8;
+    else if ((reg & 0x7) == 0x1) /* temperature low byte */
+	ret = LM75_TEMP_TO_REG(dev->values->temperatures[dev->local >> 8]);
     else
-    	ret = dev->regs[reg & 0x7];
+	ret = dev->regs[reg & 0x7];
 
     lm75_log("LM75: read(%02X) = %02X\n", reg, ret);
 
@@ -139,47 +79,43 @@ lm75_read(lm75_t *dev, uint8_t reg)
 }
 
 
-static void
-lm75_smbus_write_byte(uint8_t addr, uint8_t val, void *priv)
+static uint8_t
+lm75_i2c_read(void *bus, uint8_t addr, void *priv)
 {
     lm75_t *dev = (lm75_t *) priv;
-    dev->addr_register = val;
-}
+    uint8_t ret = 0;
 
+    if (dev->i2c_state == 0)
+	dev->i2c_state = 1;
 
-static void
-lm75_smbus_write_byte_cmd(uint8_t addr, uint8_t cmd, uint8_t val, void *priv)
-{
-    lm75_t *dev = (lm75_t *) priv;
-    lm75_write(dev, cmd, val);
-}
+    /* The AS99127F hardware monitor uses its primary LM75 device's
+       address to access some of its proprietary registers. Pass this
+       operation on to the main monitor code, if necessary. */
+    if ((dev->addr_register & 0x80) && dev->as99127f) {
+	ret = lm78_as99127f_read(dev->as99127f, dev->addr_register);
+    } else {
+	switch (dev->addr_register & 0x3) {
+		case 0x0: /* temperature */
+			ret = lm75_read(dev, (dev->i2c_state == 1) ? 0x0 : 0x1);
+			break;
 
+		case 0x1: /* configuration */
+			ret = lm75_read(dev, 0x2);
+			break;
 
-static void
-lm75_smbus_write_word_cmd(uint8_t addr, uint8_t cmd, uint16_t val, void *priv)
-{
-    lm75_t *dev = (lm75_t *) priv;
-    uint8_t valhi = (val >> 8);
-    uint8_t vallo = (val & 0xff);
-
-    switch (cmd & 0x3) {
-    	case 0x0: /* temperature */
-    		lm75_write(dev, 0x0, valhi);
-    		lm75_write(dev, 0x1, vallo);
-    		break;
-    	case 0x1: /* configuration */
-    		lm75_write(dev, 0x2, vallo);
-    		break;
-    	case 0x2: /* Thyst */
-    		lm75_write(dev, 0x3, valhi);
-    		lm75_write(dev, 0x4, vallo);
-    		break;
-    	case 0x3: /* Tos */
-    		lm75_write(dev, 0x5, valhi);
-    		lm75_write(dev, 0x6, vallo);
-    		break;
-    	break;
+		case 0x2: /* Thyst */
+			ret = lm75_read(dev, (dev->i2c_state == 1) ? 0x3 : 0x4);
+			break;
+		case 0x3: /* Tos */
+			ret = lm75_read(dev, (dev->i2c_state == 1) ? 0x5 : 0x6);
+			break;
+	}
     }
+
+    if (dev->i2c_state < 2)
+	dev->i2c_state++;
+
+    return ret;
 }
 
 
@@ -188,18 +124,10 @@ lm75_write(lm75_t *dev, uint8_t reg, uint8_t val)
 {
     lm75_log("LM75: write(%02X, %02X)\n", reg, val);
 
-    /* The AS99127F hardware monitor uses the addresses of its LM75 devices
-       to access some of its proprietary registers. Pass this operation on to
-       the main monitor address through an internal SMBus call, if necessary. */
-    if ((reg > 0x7) && ((reg & 0xf8) != 0x50) && (dev->as99127f_smbus_addr)) {
-    	smbus_write_byte_cmd(dev->as99127f_smbus_addr, reg, val);
-    	return 1;
-    }
-
     uint8_t reg_idx = (reg & 0x7);
 
     if ((reg_idx <= 0x1) || (reg_idx == 0x7))
-    	return 0; /* read-only registers */
+	return 0; /* read-only registers */
 
     dev->regs[reg_idx] = val;
 
@@ -207,16 +135,76 @@ lm75_write(lm75_t *dev, uint8_t reg, uint8_t val)
 }
 
 
+static uint8_t
+lm75_i2c_write(void *bus, uint8_t addr, uint8_t data, void *priv)
+{
+    lm75_t *dev = (lm75_t *) priv;
+
+    if ((dev->i2c_state > 2) || ((dev->i2c_state == 2) && ((dev->addr_register & 0x3) == 0x1))) {
+	return 0;
+    } else if (dev->i2c_state == 0) {
+	dev->i2c_state = 1;
+	/* Linux lm75.c driver relies on the address register not changing if bit 2 is set. */
+	if (((dev->addr_register & 0x80) && dev->as99127f) || !(data & 0x04))
+		dev->addr_register = data;
+	return 1;
+    }
+
+    /* The AS99127F hardware monitor uses its primary LM75 device's
+       address to access some of its proprietary registers. Pass this
+       operation on to the main monitor code, if necessary. */
+    if ((dev->addr_register & 0x80) && dev->as99127f) {
+	return lm78_as99127f_write(dev->as99127f, dev->addr_register, data);
+    } else {
+	switch (dev->addr_register & 0x3) {
+		case 0x0: /* temperature */
+			lm75_write(dev, (dev->i2c_state == 1) ? 0x0 : 0x1, data);
+			break;
+
+		case 0x1: /* configuration */
+			lm75_write(dev, 0x2, data);
+			break;
+
+		case 0x2: /* Thyst */
+			lm75_write(dev, (dev->i2c_state == 1) ? 0x3 : 0x4, data);
+			break;
+
+		case 0x3: /* Tos */
+			lm75_write(dev, (dev->i2c_state == 1) ? 0x5 : 0x6, data);
+			break;
+	}
+    }
+
+    if (dev->i2c_state == 1)
+	dev->i2c_state = 2;
+
+    return 1;
+}
+
+
+void
+lm75_remap(lm75_t *dev, uint8_t addr)
+{
+    lm75_log("LM75: remapping to SMBus %02Xh\n", addr);
+
+    if (dev->i2c_enabled)
+	i2c_removehandler(i2c_smbus, dev->i2c_addr, 1, lm75_i2c_start, lm75_i2c_read, lm75_i2c_write, NULL, dev);
+
+    if (addr < 0x80)
+	i2c_sethandler(i2c_smbus, addr, 1, lm75_i2c_start, lm75_i2c_read, lm75_i2c_write, NULL, dev);
+
+    dev->i2c_addr = addr & 0x7f;
+    dev->i2c_enabled = !(addr & 0x80);
+}
+
+
 static void
 lm75_reset(lm75_t *dev)
 {
-    uint16_t temp = LM75_TEMP_TO_REG(dev->values->temperatures[dev->local >> 8]);
-    dev->regs[0x0] = (temp >> 8);
-    dev->regs[0x1] = temp;
     dev->regs[0x3] = 0x4b;
     dev->regs[0x5] = 0x50;
 
-    lm75_remap(dev);
+    lm75_remap(dev, dev->i2c_addr | (dev->i2c_enabled ? 0x00 : 0x80));
 }
 
 
@@ -224,6 +212,9 @@ static void
 lm75_close(void *priv)
 {
     lm75_t *dev = (lm75_t *) priv;
+
+    lm75_remap(dev, 0);
+
     free(dev);
 }
 
@@ -235,10 +226,14 @@ lm75_init(const device_t *info)
     memset(dev, 0, sizeof(lm75_t));
 
     dev->local = info->local;
-    dev->values = hwm_get_values();
 
-    dev->smbus_addr = dev->local;
-    dev->as99127f_smbus_addr = 0x00;
+    /* Set default value. */
+    if (dev->local)
+	hwm_values.temperatures[dev->local >> 8] = 30;
+    dev->values = &hwm_values;
+
+    dev->i2c_addr = dev->local & 0x7f;
+    dev->i2c_enabled = 1;
 
     lm75_reset(dev);
 
@@ -248,22 +243,32 @@ lm75_init(const device_t *info)
 
 /* LM75 on SMBus address 4Ah, reporting temperatures[1]. */
 const device_t lm75_1_4a_device = {
-    "National Semiconductor LM75 Temperature Sensor",
-    DEVICE_AT,
-    0x14a,
-    lm75_init, lm75_close, NULL,
-    NULL, NULL, NULL,
-    NULL
+    .name = "National Semiconductor LM75 Temperature Sensor",
+    .internal_name = "lm75_1_4a",
+    .flags = DEVICE_ISA,
+    .local = 0x14a,
+    .init = lm75_init,
+    .close = lm75_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
 
 /* LM75 secondary/tertiary temperature sensors built into
    the Winbond W83781D family. Not to be used stand-alone. */
 const device_t lm75_w83781d_device = {
-    "Winbond W83781D Secondary Temperature Sensor",
-    DEVICE_AT,
-    0,
-    lm75_init, lm75_close, NULL,
-    NULL, NULL, NULL,
-    NULL
+    .name = "Winbond W83781D Secondary Temperature Sensor",
+    .internal_name = "lm75_w83781d",
+    .flags = DEVICE_ISA,
+    .local = 0,
+    .init = lm75_init,
+    .close = lm75_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };

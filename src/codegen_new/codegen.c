@@ -31,8 +31,8 @@ static struct
 int codegen_get_instruction_uop(codeblock_t *block, uint32_t pc, int *first_instruction, int *TOP)
 {
         int c;
-        
-        for (c = 0; c < block->ins; c++)
+
+        for (c = 0; c <= block->ins; c++)
         {
                 if (codegen_instructions[c].pc == pc)
                 {
@@ -41,7 +41,7 @@ int codegen_get_instruction_uop(codeblock_t *block, uint32_t pc, int *first_inst
                         return codegen_instructions[c].first_uop;
                 }
         }
-        
+
         *first_instruction = block->ins;
         return -1;
 }
@@ -139,7 +139,7 @@ static x86seg *codegen_generate_ea_16_long(ir_data_t *ir, x86seg *op_ea_seg, uin
 
                 switch (cpu_rm & 7)
                 {
-                        case 0: case 1: case 7:
+                        case 0: case 1: case 7: default:
                         base_reg = IREG_EBX;
                         break;
                         case 2: case 3: case 6:
@@ -185,7 +185,7 @@ static x86seg *codegen_generate_ea_16_long(ir_data_t *ir, x86seg *op_ea_seg, uin
                         op_ea_seg = &cpu_state.seg_ss;
                 }
         }
-        
+
         codegen_mark_code_present(ir->block, cs+old_pc, ((*op_pc)+1)-old_pc);
         return op_ea_seg;
 }
@@ -290,7 +290,7 @@ static x86seg *codegen_generate_ea_32_long(ir_data_t *ir, x86seg *op_ea_seg, uin
                                 uop_MOV_IMM(ir, IREG_eaaddr, new_eaaddr);
                                 extra_bytes = 4;
                         }
-                        
+
                         (*op_pc) += 4;
                 }
                 else
@@ -327,7 +327,7 @@ static x86seg *codegen_generate_ea_32_long(ir_data_t *ir, x86seg *op_ea_seg, uin
 
         if (extra_bytes)
                 codegen_mark_code_present(ir->block, cs+old_pc, extra_bytes);
-                
+
         return op_ea_seg;
 }
 
@@ -372,7 +372,7 @@ static uint8_t opcode_0f_modrm[256] =
         1, 1, 1, 1,  0, 0, 0, 0,  0, 0, 0, 0,  0, 1, 0, 1, /*00*/
         0, 0, 0, 0,  0, 0, 0, 0,  1, 1, 1, 1,  1, 1, 1, 1, /*10*/
         1, 1, 1, 1,  1, 1, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0, /*20*/
-        0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0, /*30*/
+        0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 1, /*30*/
 
         1, 1, 1, 1,  1, 1, 1, 1,  1, 1, 1, 1,  1, 1, 1, 1, /*40*/
         0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0, /*50*/
@@ -599,8 +599,7 @@ generate_call:
 
         codegen_timing_opcode(opcode, fetchdat, op_32, op_pc);
 
-        codegen_accumulate(ACCREG_ins, 1);
-        codegen_accumulate(ACCREG_cycles, -codegen_block_cycles);
+        codegen_accumulate(ir, ACCREG_cycles, -codegen_block_cycles);
         codegen_block_cycles = 0;
 
         if ((op_table == x86_dynarec_opcodes &&
@@ -618,12 +617,12 @@ generate_call:
 
 		if (codegen_timing_jump_cycles)
 			codegen_timing_jump_cycles();
-                
+
                 if (jump_cycles)
-                        codegen_accumulate(ACCREG_cycles, -jump_cycles);
+                        codegen_accumulate(ir, ACCREG_cycles, -jump_cycles);
                 codegen_accumulate_flush(ir);
                 if (jump_cycles)
-                        codegen_accumulate(ACCREG_cycles, jump_cycles);
+                        codegen_accumulate(ir, ACCREG_cycles, jump_cycles);
         }
 
         if (op_table == x86_dynarec_opcodes_0f && opcode == 0x0f)
@@ -674,7 +673,7 @@ generate_call:
                 if (recomp_opcodes_3DNOW[opcode_3dnow])
                 {
                         next_pc = opcode_pc + 1;
-                
+
                         op_table = (OpFn *) x86_dynarec_opcodes_3DNOW;
                         recomp_op_table = recomp_opcodes_3DNOW;
                         opcode = opcode_3dnow;
@@ -684,6 +683,9 @@ generate_call:
         }
         codegen_mark_code_present(block, cs+old_pc, (op_pc - old_pc) - pc_off);
 	/* It is apparently a prefixed instruction. */
+	// if ((recomp_op_table == recomp_opcodes) && (opcode == 0x48))
+		// goto codegen_skip;
+
         if (recomp_op_table && recomp_op_table[(opcode | op_32) & recomp_opcode_mask])
         {
                 uint32_t new_pc = recomp_op_table[(opcode | op_32) & recomp_opcode_mask](block, ir, opcode, fetchdat, op_32, op_pc);
@@ -702,7 +704,8 @@ generate_call:
                         return;
                 }
         }
-        
+
+// codegen_skip:
         if ((op_table == x86_dynarec_opcodes_REPNE || op_table == x86_dynarec_opcodes_REPE) && !op_table[opcode | op_32])
         {
                 op_table = (OpFn *) x86_dynarec_opcodes;
@@ -762,14 +765,14 @@ generate_call:
         last_op_ea_seg = op_ea_seg;
         last_op_ssegs = op_ssegs;
         //codegen_block_ins++;
-        
+
         block->ins++;
 
 	if (block->ins >= MAX_INSTRUCTION_COUNT)
 		CPU_BLOCK_END();
 
         codegen_endpc = (cs + cpu_state.pc) + 8;
-        
+
 //        if (has_ea)
 //                fatal("Has EA\n");
 }

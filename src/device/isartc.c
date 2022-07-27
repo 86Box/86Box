@@ -83,6 +83,11 @@
 #include <86box/isartc.h>
 
 
+#define ISARTC_EV170	0
+#define ISARTC_DTK		1
+#define ISARTC_P5PAK	2
+#define ISARTC_A6PAK	3
+
 #define ISARTC_DEBUG	0
 
 
@@ -388,7 +393,7 @@ mm67_read(uint16_t port, void *priv)
     uint8_t ret = 0xff;
 
     /* This chip is directly mapped on I/O. */
-    sub_cycles(ISA_CYCLES(4));
+    cycles -= ISA_CYCLES(4);
 
     switch(reg) {
 	case MM67_ISTAT:		/* IRQ status (RO) */
@@ -424,7 +429,7 @@ mm67_write(uint16_t port, uint8_t val, void *priv)
 #endif
 
     /* This chip is directly mapped on I/O. */
-    sub_cycles(ISA_CYCLES(4));
+    cycles -= ISA_CYCLES(4);
 
     switch(reg) {
 	case MM67_ISTAT:		/* intr status (RO) */
@@ -493,6 +498,8 @@ static void *
 isartc_init(const device_t *info)
 {
     rtcdev_t *dev;
+    int is_at = IS_AT(machine);
+    is_at = is_at || !strcmp(machine_get_internal_name(), "xi8088");
 
     /* Create a device instance. */
     dev = (rtcdev_t *)malloc(sizeof(rtcdev_t));
@@ -506,7 +513,7 @@ isartc_init(const device_t *info)
 
     /* Do per-board initialization. */
     switch(dev->board) {
-	case 0:		/* Everex EV-170 Magic I/O */
+	case ISARTC_EV170:		/* Everex EV-170 Magic I/O */
 		dev->flags |= FLAG_YEAR80;
 		dev->base_addr = device_get_config_hex16("base");
 		dev->base_addrsz = 32;
@@ -519,7 +526,7 @@ isartc_init(const device_t *info)
 		dev->year = MM67_AL_DOM;	/* year, NON STANDARD */
 		break;
 
-	case 1:		/* DTK PII-147 Hexa I/O Plus */
+	case ISARTC_DTK:		/* DTK PII-147 Hexa I/O Plus */
 		dev->flags |= FLAG_YEARBCD;
 		dev->base_addr = device_get_config_hex16("base");
 		dev->base_addrsz = 32;
@@ -531,7 +538,8 @@ isartc_init(const device_t *info)
 		dev->year = MM67_AL_HUNTEN;	/* year, NON STANDARD */
 		break;
 
-	case 2:		/* Paradise Systems 5PAK */
+	case ISARTC_P5PAK:		/* Paradise Systems 5PAK */
+	case ISARTC_A6PAK:		/* AST SixPakPlus */
 		dev->flags |= FLAG_YEAR80;
 		dev->base_addr = 0x02c0;
 		dev->base_addrsz = 32;
@@ -559,9 +567,10 @@ isartc_init(const device_t *info)
 		  dev->f_rd,NULL,NULL, dev->f_wr,NULL,NULL, dev);
 
     /* Hook into the NVR backend. */
-    dev->nvr.fn = (wchar_t *)isartc_get_internal_name(isartc_type);
+    dev->nvr.fn = isartc_get_internal_name(isartc_type);
     dev->nvr.irq = dev->irq;
-    nvr_init(&dev->nvr);
+    if (!is_at)
+	nvr_init(&dev->nvr);
 
     /* Let them know our device instance. */
     return((void *)dev);
@@ -578,140 +587,163 @@ isartc_close(void *priv)
 		     dev->f_rd,NULL,NULL, dev->f_wr,NULL,NULL, dev);
 
     if (dev->nvr.fn != NULL)
-	free((wchar_t *)dev->nvr.fn);
+	free(dev->nvr.fn);
 
     free(dev);
 }
 
-
 static const device_config_t ev170_config[] = {
-	{
-		"base", "Address", CONFIG_HEX16, "", 0x02C0,
-		{
-			{
-				"240H", 0x0240
-			},
-			{
-				"2C0H", 0x02c0
-			},
-			{
-				""
-			}
-		},
-	},
-	{
-		"irq", "IRQ", CONFIG_SELECTION, "", -1,
-		{
-			{
-				"Disabled", -1
-			},
-			{
-				"IRQ2", 2
-			},
-			{
-				"IRQ5", 5
-			},
-			{
-				"IRQ7", 7
-			},
-			{
-				""
-			}
-		},
-	},
-	{
-		"", "", -1
-	}
+// clang-format off
+    {
+        "base", "Address", CONFIG_HEX16, "", 0x02C0, "", { 0 },
+        {
+            { "240H", 0x0240 },
+            { "2C0H", 0x02c0 },
+            { ""             }
+        },
+    },
+    {
+        "irq", "IRQ", CONFIG_SELECTION, "", -1, "", { 0 },
+        {
+            { "Disabled", -1 },
+            { "IRQ2",      2 },
+            { "IRQ5",      5 },
+            { "IRQ7",      7 },
+            { ""             }
+        },
+    },
+    { "", "", -1 }
+// clang-format on
 };
 
 static const device_t ev170_device = {
-    "Everex EV-170 Magic I/O",
-    DEVICE_ISA,
-    0,
-    isartc_init, isartc_close, NULL,
-    NULL, NULL, NULL,
-    ev170_config
+    .name = "Everex EV-170 Magic I/O",
+    .internal_name = "ev170",
+    .flags = DEVICE_ISA,
+    .local = ISARTC_EV170,
+    .init = isartc_init,
+    .close = isartc_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = ev170_config
 };
 
-
 static const device_config_t pii147_config[] = {
-	{
-		"base", "Address", CONFIG_HEX16, "", 0x0240,
-		{
-			{
-				"Clock 1", 0x0240
-			},
-			{
-				"Clock 2", 0x0340
-			},
-			{
-				""
-			}
-		},
-	},
-	{
-		"", "", -1
-	}
+// clang-format off
+    {
+        "base", "Address", CONFIG_HEX16, "", 0x0240, "", { 0 },
+        {
+            { "Clock 1", 0x0240 },
+            { "Clock 2", 0x0340 },
+            { "" }
+        },
+    },
+    { "", "", -1 }
+// clang-format on
 };
 
 static const device_t pii147_device = {
-    "DTK PII-147 Hexa I/O Plus",
-    DEVICE_ISA,
-    1,
-    isartc_init, isartc_close, NULL,
-    NULL, NULL, NULL,
-    pii147_config
+    .name = "DTK PII-147 Hexa I/O Plus",
+    .internal_name = "pii147",
+    .flags = DEVICE_ISA,
+    .local = ISARTC_DTK,
+    .init = isartc_init,
+    .close = isartc_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = pii147_config
 };
 
-
 static const device_config_t p5pak_config[] = {
-	{
-		"irq", "IRQ", CONFIG_SELECTION, "", -1,
-		{
-			{
-				"Disabled", -1
-			},
-			{
-				"IRQ2", 2
-			},
-			{
-				"IRQ3", 3
-			},
-			{
-				"IRQ5", 5
-			},
-			{
-				""
-			}
-		},
-	},
-	{
-		"", "", -1
-	}
+// clang-format off
+    {
+        "irq", "IRQ", CONFIG_SELECTION, "", -1, "", { 0 },
+        {
+            { "Disabled", -1 },
+            { "IRQ2",      2 },
+            { "IRQ3",      3 },
+            { "IRQ5",      5 },
+            { ""             }
+        },
+    },
+    { "", "", -1 }
+// clang-format on
 };
 
 static const device_t p5pak_device = {
-    "Paradise Systems 5-PAK",
-    DEVICE_ISA,
-    2,
-    isartc_init, isartc_close, NULL,
-    NULL, NULL, NULL,
-    p5pak_config
+    .name = "Paradise Systems 5-PAK",
+    .internal_name = "p5pak",
+    .flags = DEVICE_ISA,
+    .local = ISARTC_P5PAK,
+    .init = isartc_init,
+    .close = isartc_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = p5pak_config
 };
 
+static const device_config_t a6pak_config[] = {
+// clang-format off
+    {
+        "irq", "IRQ", CONFIG_SELECTION, "", -1, "", { 0 },
+        {
+            { "Disabled", -1 },
+            { "IRQ2",      2 },
+            { "IRQ3",      3 },
+            { "IRQ5",      5 },
+            { ""             }
+        },
+    },
+    { "", "", -1 }
+// clang-format on
+};
+
+static const device_t a6pak_device = {
+    .name = "AST SixPakPlus",
+    .internal_name = "a6pak",
+    .flags = DEVICE_ISA,
+    .local = ISARTC_A6PAK,
+    .init = isartc_init,
+    .close = isartc_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = a6pak_config
+};
+
+static const device_t isartc_none_device = {
+    .name = "None",
+    .internal_name = "none",
+    .flags = 0,
+    .local = 0,
+    .init = NULL,
+    .close = NULL,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
+};
 
 static const struct {
-	const char		*name;	
-    const char		*internal_name;
     const device_t	*dev;
 } boards[] = {
-    { "None",						"none",		NULL,		      },
-    { "Everex EV-170 Magic I/O",	"ev170",	&ev170_device,		},
-    { "DTK PII-147 Hexa I/O Plus",  "pii147",	&pii147_device,		},
-    { "Paradise Systems 5-PAK", 	"p5pak",	&p5pak_device,		},
-    { "",			"",		NULL,		      },
+// clang-format off
+    { &isartc_none_device },
+    { &ev170_device       },
+    { &pii147_device      },
+    { &p5pak_device       },
+    { &a6pak_device       },
+    { NULL                },
+// clang-format on
 };
-
 
 void
 isartc_reset(void)
@@ -722,18 +754,10 @@ isartc_reset(void)
     device_add(boards[isartc_type].dev);
 }
 
-
-char *
-isartc_get_name(int board)
-{
-    return((char *)boards[board].name);
-}
-
-
 char *
 isartc_get_internal_name(int board)
 {
-    return((char *)boards[board].internal_name);
+    return device_get_internal_name(boards[board].dev);
 }
 
 
@@ -742,8 +766,8 @@ isartc_get_from_internal_name(char *s)
 {
     int c = 0;
 
-    while (strlen((char *) boards[c].internal_name)) {
-	if (! strcmp(boards[c].internal_name, s))
+    while (boards[c].dev != NULL) {
+	if (! strcmp(boards[c].dev->internal_name, s))
 		return(c);
 	c++;
     }

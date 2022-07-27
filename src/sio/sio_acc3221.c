@@ -349,10 +349,10 @@ acc3221_serial2_handler(acc3221_t *dev)
 }
 
 
-static void 
+static void
 acc3221_write(uint16_t addr, uint8_t val, void *p)
 {
-    acc3221_t *dev = (acc3221_t *)p; 
+    acc3221_t *dev = (acc3221_t *)p;
     uint8_t old;
 
     if (!(addr & 1))
@@ -400,7 +400,7 @@ acc3221_write(uint16_t addr, uint8_t val, void *p)
 			if ((old ^ val) & REG_FB_FDC_DISABLE) {
 				fdc_remove(dev->fdc);
 				if (!(dev->regs[0xfb] & REG_FB_FDC_DISABLE))
-					fdc_set_base(dev->fdc, 0x03f0);
+					fdc_set_base(dev->fdc, FDC_PRIMARY_ADDR);
 			}
 			break;
 
@@ -416,10 +416,10 @@ acc3221_write(uint16_t addr, uint8_t val, void *p)
 }
 
 
-static uint8_t 
+static uint8_t
 acc3221_read(uint16_t addr, void *p)
 {
-    acc3221_t *dev = (acc3221_t *)p; 
+    acc3221_t *dev = (acc3221_t *)p;
 
     if (!(addr & 1))
 	return dev->reg_idx;
@@ -435,14 +435,14 @@ static void
 acc3221_reset(acc3221_t *dev)
 {
     serial_remove(dev->uart[0]);
-    serial_setup(dev->uart[0], SERIAL1_ADDR, SERIAL1_IRQ);
+    serial_setup(dev->uart[0], COM1_ADDR, COM1_IRQ);
 
     serial_remove(dev->uart[1]);
-    serial_setup(dev->uart[1], SERIAL2_ADDR, SERIAL2_IRQ);
-	
+    serial_setup(dev->uart[1], COM2_ADDR, COM2_IRQ);
+
     lpt1_remove();
-    lpt1_init(0x378);
-    lpt1_irq(7);
+    lpt1_init(LPT1_ADDR);
+    lpt1_irq(LPT1_IRQ);
 
     fdc_reset(dev->fdc);
 }
@@ -465,7 +465,7 @@ acc3221_init(const device_t *info)
     dev->fdc = device_add(&fdc_at_device);
 
     dev->uart[0] = device_add_inst(&ns16450_device, 1);
-    dev->uart[1] = device_add_inst(&ns16450_device, 2);	
+    dev->uart[1] = device_add_inst(&ns16450_device, 2);
 
     io_sethandler(0x00f2, 0x0002, acc3221_read, NULL, NULL, acc3221_write, NULL, NULL,  dev);
 
@@ -476,10 +476,15 @@ acc3221_init(const device_t *info)
 
 
 const device_t acc3221_device = {
-    "ACC 3221-SP Super I/O",
-    0,
-    0,
-    acc3221_init, acc3221_close, NULL,
-    NULL, NULL, NULL,
-    NULL
+    .name = "ACC 3221-SP Super I/O",
+    .internal_name = "acc3221",
+    .flags = 0,
+    .local = 0,
+    .init = acc3221_init,
+    .close = acc3221_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };

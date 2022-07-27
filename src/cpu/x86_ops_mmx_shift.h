@@ -16,7 +16,7 @@ static int opPSxxW_imm(uint32_t fetchdat)
         int reg = fetchdat & 7;
         int op = fetchdat & 0x38;
         int shift = (fetchdat >> 8) & 0xff;
-        
+
         cpu_state.pc += 2;
         MMX_ENTER();
 
@@ -65,9 +65,9 @@ static int opPSxxW_imm(uint32_t fetchdat)
 static int opPSLLW_a16(uint32_t fetchdat)
 {
         int shift;
-        
+
         MMX_ENTER();
-        
+
         fetch_ea_16(fetchdat);
         MMX_GETSHIFT();
 
@@ -86,9 +86,9 @@ static int opPSLLW_a16(uint32_t fetchdat)
 static int opPSLLW_a32(uint32_t fetchdat)
 {
         int shift;
-        
+
         MMX_ENTER();
-        
+
         fetch_ea_32(fetchdat);
         MMX_GETSHIFT();
 
@@ -108,9 +108,9 @@ static int opPSLLW_a32(uint32_t fetchdat)
 static int opPSRLW_a16(uint32_t fetchdat)
 {
         int shift;
-        
+
         MMX_ENTER();
-        
+
         fetch_ea_16(fetchdat);
         MMX_GETSHIFT();
 
@@ -129,9 +129,9 @@ static int opPSRLW_a16(uint32_t fetchdat)
 static int opPSRLW_a32(uint32_t fetchdat)
 {
         int shift;
-        
+
         MMX_ENTER();
-        
+
         fetch_ea_32(fetchdat);
         MMX_GETSHIFT();
 
@@ -151,9 +151,9 @@ static int opPSRLW_a32(uint32_t fetchdat)
 static int opPSRAW_a16(uint32_t fetchdat)
 {
         int shift;
-        
+
         MMX_ENTER();
-        
+
         fetch_ea_16(fetchdat);
         MMX_GETSHIFT();
 
@@ -164,15 +164,15 @@ static int opPSRAW_a16(uint32_t fetchdat)
         cpu_state.MM[cpu_reg].sw[1] >>= shift;
         cpu_state.MM[cpu_reg].sw[2] >>= shift;
         cpu_state.MM[cpu_reg].sw[3] >>= shift;
-        
+
         return 0;
 }
 static int opPSRAW_a32(uint32_t fetchdat)
 {
         int shift;
-        
+
         MMX_ENTER();
-        
+
         fetch_ea_32(fetchdat);
         MMX_GETSHIFT();
 
@@ -183,7 +183,7 @@ static int opPSRAW_a32(uint32_t fetchdat)
         cpu_state.MM[cpu_reg].sw[1] >>= shift;
         cpu_state.MM[cpu_reg].sw[2] >>= shift;
         cpu_state.MM[cpu_reg].sw[3] >>= shift;
-        
+
         return 0;
 }
 
@@ -192,7 +192,7 @@ static int opPSxxD_imm(uint32_t fetchdat)
         int reg = fetchdat & 7;
         int op = fetchdat & 0x38;
         int shift = (fetchdat >> 8) & 0xff;
-        
+
         cpu_state.pc += 2;
         MMX_ENTER();
 
@@ -235,9 +235,9 @@ static int opPSxxD_imm(uint32_t fetchdat)
 static int opPSLLD_a16(uint32_t fetchdat)
 {
         int shift;
-        
+
         MMX_ENTER();
-        
+
         fetch_ea_16(fetchdat);
         MMX_GETSHIFT();
 
@@ -254,9 +254,9 @@ static int opPSLLD_a16(uint32_t fetchdat)
 static int opPSLLD_a32(uint32_t fetchdat)
 {
         int shift;
-        
+
         MMX_ENTER();
-        
+
         fetch_ea_32(fetchdat);
         MMX_GETSHIFT();
 
@@ -274,9 +274,9 @@ static int opPSLLD_a32(uint32_t fetchdat)
 static int opPSRLD_a16(uint32_t fetchdat)
 {
         int shift;
-        
+
         MMX_ENTER();
-        
+
         fetch_ea_16(fetchdat);
         MMX_GETSHIFT();
 
@@ -293,9 +293,9 @@ static int opPSRLD_a16(uint32_t fetchdat)
 static int opPSRLD_a32(uint32_t fetchdat)
 {
         int shift;
-        
+
         MMX_ENTER();
-        
+
         fetch_ea_32(fetchdat);
         MMX_GETSHIFT();
 
@@ -313,9 +313,9 @@ static int opPSRLD_a32(uint32_t fetchdat)
 static int opPSRAD_a16(uint32_t fetchdat)
 {
         int shift;
-        
+
         MMX_ENTER();
-        
+
         fetch_ea_16(fetchdat);
         MMX_GETSHIFT();
 
@@ -324,15 +324,15 @@ static int opPSRAD_a16(uint32_t fetchdat)
 
         cpu_state.MM[cpu_reg].sl[0] >>= shift;
         cpu_state.MM[cpu_reg].sl[1] >>= shift;
-        
+
         return 0;
 }
 static int opPSRAD_a32(uint32_t fetchdat)
 {
         int shift;
-        
+
         MMX_ENTER();
-        
+
         fetch_ea_32(fetchdat);
         MMX_GETSHIFT();
 
@@ -350,7 +350,7 @@ static int opPSxxQ_imm(uint32_t fetchdat)
         int reg = fetchdat & 7;
         int op = fetchdat & 0x38;
         int shift = (fetchdat >> 8) & 0xff;
-        
+
         cpu_state.pc += 2;
         MMX_ENTER();
 
@@ -386,9 +386,9 @@ static int opPSxxQ_imm(uint32_t fetchdat)
 static int opPSLLQ_a16(uint32_t fetchdat)
 {
         int shift;
-        
+
         MMX_ENTER();
-        
+
         fetch_ea_16(fetchdat);
         MMX_GETSHIFT();
 
@@ -402,9 +402,9 @@ static int opPSLLQ_a16(uint32_t fetchdat)
 static int opPSLLQ_a32(uint32_t fetchdat)
 {
         int shift;
-        
+
         MMX_ENTER();
-        
+
         fetch_ea_32(fetchdat);
         MMX_GETSHIFT();
 
@@ -419,9 +419,9 @@ static int opPSLLQ_a32(uint32_t fetchdat)
 static int opPSRLQ_a16(uint32_t fetchdat)
 {
         int shift;
-        
+
         MMX_ENTER();
-        
+
         fetch_ea_16(fetchdat);
         MMX_GETSHIFT();
 
@@ -435,9 +435,9 @@ static int opPSRLQ_a16(uint32_t fetchdat)
 static int opPSRLQ_a32(uint32_t fetchdat)
 {
         int shift;
-        
+
         MMX_ENTER();
-        
+
         fetch_ea_32(fetchdat);
         MMX_GETSHIFT();
 

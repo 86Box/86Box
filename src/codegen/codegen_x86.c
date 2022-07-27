@@ -36,7 +36,7 @@
  *   Boston, MA 02111-1307
  *   USA.
  */
-#if defined i386 || defined __i386 || defined __i386__ || defined _X86_ || defined _M_IX86 || defined _M_X64
+#if defined i386 || defined __i386 || defined __i386__ || defined _X86_ || defined _M_IX86
 
 #include <stdio.h>
 #include <stdint.h>
@@ -50,6 +50,9 @@
 #include "x86_flags.h"
 #include "x86_ops.h"
 #include "x87.h"
+/*ex*/
+#include <86box/nmi.h>
+#include <86box/pic.h>
 
 #include "386_common.h"
 
@@ -58,7 +61,7 @@
 #include "codegen_ops.h"
 #include "codegen_ops_x86.h"
 
-#ifdef __linux__
+#ifdef __unix__
 #include <sys/mman.h>
 #include <unistd.h>
 #endif
@@ -87,11 +90,6 @@ codeblock_t **codeblock_hash;
 int block_current = 0;
 static int block_num;
 int block_pos;
-
-int cpu_recomp_flushes, cpu_recomp_flushes_latched;
-int cpu_recomp_evicted, cpu_recomp_evicted_latched;
-int cpu_recomp_reuse, cpu_recomp_reuse_latched;
-int cpu_recomp_removed, cpu_recomp_removed_latched;
 
 uint32_t codegen_endpc;
 
@@ -150,13 +148,14 @@ static uint32_t gen_MEM_LOAD_ADDR_EA_B()
         addbyte(0x3a);
         addbyte(0xc3); /*RET*/
 
-        addbyte(0x50); /*slowpath: PUSH EAX*/
+        addbyte(0x01); /*slowpath: ADD ESI,EAX*/
+        addbyte(0xc6);
         addbyte(0x56); /*PUSH ESI*/
         addbyte(0xe8); /*CALL readmembl*/
-        addlong((uint32_t)readmemb386l - (uint32_t)(&codeblock[block_current].data[block_pos + 4]));
-        addbyte(0x83); /*ADD ESP, 8*/
+        addlong((uint32_t)readmembl - (uint32_t)(&codeblock[block_current].data[block_pos + 4]));
+        addbyte(0x83); /*ADD ESP, 4*/
         addbyte(0xc4);
-        addbyte(8);
+        addbyte(4);
         addbyte(0x80); /*CMP abrt, 0*/
         addbyte(0x7d);
         addbyte((uint8_t)cpu_state_offset(abrt));
@@ -168,7 +167,7 @@ static uint32_t gen_MEM_LOAD_ADDR_EA_B()
         addbyte(0x85);
         addlong(mem_abrt_rout - ((uint32_t)(&codeblock[block_current].data[block_pos]) + 4));
         addbyte(0xc3); /*RET*/
-        
+
         return addr;
 }
 
@@ -205,13 +204,14 @@ static uint32_t gen_MEM_LOAD_ADDR_EA_W()
         addbyte(0x3a);
         addbyte(0xc3); /*RET*/
 
-        addbyte(0x50); /*slowpath: PUSH EAX*/
+        addbyte(0x01); /*slowpath: ADD ESI,EAX*/
+        addbyte(0xc6);
         addbyte(0x56); /*PUSH ESI*/
         addbyte(0xe8); /*CALL readmemwl*/
         addlong((uint32_t)readmemwl - (uint32_t)(&codeblock[block_current].data[block_pos + 4]));
-        addbyte(0x83); /*ADD ESP, 8*/
+        addbyte(0x83); /*ADD ESP, 4*/
         addbyte(0xc4);
-        addbyte(8);
+        addbyte(4);
         addbyte(0x80); /*CMP abrt, 0*/
         addbyte(0x7d);
         addbyte((uint8_t)cpu_state_offset(abrt));
@@ -223,7 +223,7 @@ static uint32_t gen_MEM_LOAD_ADDR_EA_W()
         addbyte(0x85);
         addlong(mem_abrt_rout - ((uint32_t)(&codeblock[block_current].data[block_pos]) + 4));
         addbyte(0xc3); /*RET*/
-        
+
         return addr;
 }
 
@@ -259,13 +259,14 @@ static uint32_t gen_MEM_LOAD_ADDR_EA_L()
         addbyte(0x3a);
         addbyte(0xc3); /*RET*/
 
-        addbyte(0x50); /*slowpath: PUSH EAX*/
+        addbyte(0x01); /*slowpath: ADD ESI,EAX*/
+        addbyte(0xc6);
         addbyte(0x56); /*PUSH ESI*/
         addbyte(0xe8); /*CALL readmemll*/
         addlong((uint32_t)readmemll - (uint32_t)(&codeblock[block_current].data[block_pos + 4]));
-        addbyte(0x83); /*ADD ESP, 8*/
+        addbyte(0x83); /*ADD ESP, 4*/
         addbyte(0xc4);
-        addbyte(8);
+        addbyte(4);
         addbyte(0x80); /*CMP abrt, 0*/
         addbyte(0x7d);
         addbyte((uint8_t)cpu_state_offset(abrt));
@@ -274,14 +275,14 @@ static uint32_t gen_MEM_LOAD_ADDR_EA_L()
         addbyte(0x85);
         addlong(mem_abrt_rout - ((uint32_t)(&codeblock[block_current].data[block_pos]) + 4));
         addbyte(0xc3); /*RET*/
-        
+
         return addr;
 }
 
 static uint32_t gen_MEM_LOAD_ADDR_EA_Q()
 {
         uint32_t addr = (uint32_t)&codeblock[block_current].data[block_pos];
-        
+
         addbyte(0x89); /*MOV ESI, EDX*/
         addbyte(0xd6);
         addbyte(0x01); /*ADDL EDX, EAX*/
@@ -314,13 +315,14 @@ static uint32_t gen_MEM_LOAD_ADDR_EA_Q()
         addbyte(4);
         addbyte(0xc3); /*RET*/
 
-        addbyte(0x50); /*slowpath: PUSH EAX*/
+        addbyte(0x01); /*slowpath: ADD ESI,EAX*/
+        addbyte(0xc6);
         addbyte(0x56); /*PUSH ESI*/
         addbyte(0xe8); /*CALL readmemql*/
         addlong((uint32_t)readmemql - (uint32_t)(&codeblock[block_current].data[block_pos + 4]));
-        addbyte(0x83); /*ADD ESP, 8*/
+        addbyte(0x83); /*ADD ESP, 4*/
         addbyte(0xc4);
-        addbyte(8);
+        addbyte(4);
         addbyte(0x80); /*CMP abrt, 0*/
         addbyte(0x7d);
         addbyte((uint8_t)cpu_state_offset(abrt));
@@ -329,14 +331,14 @@ static uint32_t gen_MEM_LOAD_ADDR_EA_Q()
         addbyte(0x85);
         addlong(mem_abrt_rout - ((uint32_t)(&codeblock[block_current].data[block_pos]) + 4));
         addbyte(0xc3); /*RET*/
-        
+
         return addr;
 }
 
 static uint32_t gen_MEM_STORE_ADDR_EA_B()
 {
         uint32_t addr = (uint32_t)&codeblock[block_current].data[block_pos];
-        
+
         /*dat = ECX, seg = ESI, addr = EAX*/
         addbyte(0x89); /*MOV EBX, ESI*/
         addbyte(0xf3);
@@ -362,13 +364,14 @@ static uint32_t gen_MEM_STORE_ADDR_EA_B()
         addbyte(0xc3); /*RET*/
 
         addbyte(0x51); /*slowpath: PUSH ECX*/
-        addbyte(0x50); /*PUSH EAX*/
+        addbyte(0x01); /*ADD EBX,EAX*/
+        addbyte(0xC3);
         addbyte(0x53); /*PUSH EBX*/
-        addbyte(0xe8); /*CALL writememb386l*/
-        addlong((uint32_t)writememb386l - (uint32_t)(&codeblock[block_current].data[block_pos + 4]));
-        addbyte(0x83); /*ADD ESP, 12*/
+        addbyte(0xe8); /*CALL writemembl*/
+        addlong((uint32_t)writemembl - (uint32_t)(&codeblock[block_current].data[block_pos + 4]));
+        addbyte(0x83); /*ADD ESP, 8*/
         addbyte(0xc4);
-        addbyte(12);
+        addbyte(8);
         addbyte(0x80); /*CMP abrt, 0*/
         addbyte(0x7d);
         addbyte((uint8_t)cpu_state_offset(abrt));
@@ -384,7 +387,7 @@ static uint32_t gen_MEM_STORE_ADDR_EA_B()
 static uint32_t gen_MEM_STORE_ADDR_EA_W()
 {
         uint32_t addr = (uint32_t)&codeblock[block_current].data[block_pos];
-        
+
         /*dat = ECX, seg = ESI, addr = EAX*/
         addbyte(0x89); /*MOV EBX, ESI*/
         addbyte(0xf3);
@@ -416,13 +419,14 @@ static uint32_t gen_MEM_STORE_ADDR_EA_W()
         addbyte(0xc3); /*RET*/
 
         addbyte(0x51); /*slowpath: PUSH ECX*/
-        addbyte(0x50); /*PUSH EAX*/
+        addbyte(0x01); /*ADD EBX,EAX*/
+        addbyte(0xC3);
         addbyte(0x53); /*PUSH EBX*/
         addbyte(0xe8); /*CALL writememwl*/
         addlong((uint32_t)writememwl - (uint32_t)(&codeblock[block_current].data[block_pos + 4]));
-        addbyte(0x83); /*ADD ESP, 12*/
+        addbyte(0x83); /*ADD ESP, 8*/
         addbyte(0xc4);
-        addbyte(12);
+        addbyte(8);
         addbyte(0x80); /*CMP abrt, 0*/
         addbyte(0x7d);
         addbyte((uint8_t)cpu_state_offset(abrt));
@@ -438,7 +442,7 @@ static uint32_t gen_MEM_STORE_ADDR_EA_W()
 static uint32_t gen_MEM_STORE_ADDR_EA_L()
 {
         uint32_t addr = (uint32_t)&codeblock[block_current].data[block_pos];
-        
+
         /*dat = ECX, seg = ESI, addr = EAX*/
         addbyte(0x89); /*MOV EBX, ESI*/
         addbyte(0xf3);
@@ -469,13 +473,14 @@ static uint32_t gen_MEM_STORE_ADDR_EA_L()
         addbyte(0xc3); /*RET*/
 
         addbyte(0x51); /*slowpath: PUSH ECX*/
-        addbyte(0x50); /*PUSH EAX*/
+        addbyte(0x01); /*ADD EBX,EAX*/
+        addbyte(0xC3);
         addbyte(0x53); /*PUSH EBX*/
         addbyte(0xe8); /*CALL writememll*/
         addlong((uint32_t)writememll - (uint32_t)(&codeblock[block_current].data[block_pos + 4]));
-        addbyte(0x83); /*ADD ESP, 12*/
+        addbyte(0x83); /*ADD ESP, 8*/
         addbyte(0xc4);
-        addbyte(12);
+        addbyte(8);
         addbyte(0x80); /*CMP abrt, 0*/
         addbyte(0x7d);
         addbyte((uint8_t)cpu_state_offset(abrt));
@@ -491,7 +496,7 @@ static uint32_t gen_MEM_STORE_ADDR_EA_L()
 static uint32_t gen_MEM_STORE_ADDR_EA_Q()
 {
         uint32_t addr = (uint32_t)&codeblock[block_current].data[block_pos];
-        
+
         /*dat = EBX/ECX, seg = ESI, addr = EAX*/
         addbyte(0x89); /*MOV EDX, ESI*/
         addbyte(0xf2);
@@ -527,13 +532,14 @@ static uint32_t gen_MEM_STORE_ADDR_EA_Q()
 
         addbyte(0x51); /*slowpath: PUSH ECX*/
         addbyte(0x53); /*PUSH EBX*/
-        addbyte(0x50); /*PUSH EAX*/
+        addbyte(0x01); /*ADD EDX,EAX*/
+        addbyte(0xC2);
         addbyte(0x52); /*PUSH EDX*/
         addbyte(0xe8); /*CALL writememql*/
         addlong((uint32_t)writememql - (uint32_t)(&codeblock[block_current].data[block_pos + 4]));
-        addbyte(0x83); /*ADD ESP, 16*/
+        addbyte(0x83); /*ADD ESP, 12*/
         addbyte(0xc4);
-        addbyte(16);
+        addbyte(12);
         addbyte(0x80); /*CMP abrt, 0*/
         addbyte(0x7d);
         addbyte((uint8_t)cpu_state_offset(abrt));
@@ -577,13 +583,14 @@ static uint32_t gen_MEM_LOAD_ADDR_EA_B_NO_ABRT()
         addbyte(0x3a);
         addbyte(0xc3); /*RET*/
 
-        addbyte(0x50); /*slowpath: PUSH EAX*/
+        addbyte(0x01); /*slowpath: ADD ESI,EAX*/
+        addbyte(0xc6);
         addbyte(0x56); /*PUSH ESI*/
         addbyte(0xe8); /*CALL readmembl*/
-        addlong((uint32_t)readmemb386l - (uint32_t)(&codeblock[block_current].data[block_pos + 4]));
-        addbyte(0x83); /*ADD ESP, 8*/
+        addlong((uint32_t)readmembl - (uint32_t)(&codeblock[block_current].data[block_pos + 4]));
+        addbyte(0x83); /*ADD ESP, 4*/
         addbyte(0xc4);
-        addbyte(8);
+        addbyte(4);
 #ifndef RELEASE_BUILD
         addbyte(0x80); /*CMP abrt, 0*/
         addbyte(0x7d);
@@ -598,7 +605,7 @@ static uint32_t gen_MEM_LOAD_ADDR_EA_B_NO_ABRT()
         addbyte(1);
 #endif
         addbyte(0xc3); /*RET*/
-#ifndef RELEASE_BUILD        
+#ifndef RELEASE_BUILD
         addbyte(0xc7); /*MOV [ESP], gen_MEM_LOAD_ADDR_EA_B_NO_ABRT_err*/
         addbyte(0x04);
         addbyte(0x24);
@@ -606,7 +613,7 @@ static uint32_t gen_MEM_LOAD_ADDR_EA_B_NO_ABRT()
         addbyte(0xe8); /*CALL fatal*/
         addlong((uint32_t)fatal - (uint32_t)(&codeblock[block_current].data[block_pos + 4]));
         /*Should not return!*/
-#endif        
+#endif
         return addr;
 }
 
@@ -646,13 +653,14 @@ static uint32_t gen_MEM_LOAD_ADDR_EA_W_NO_ABRT()
         addbyte(0x3a);
         addbyte(0xc3); /*RET*/
 
-        addbyte(0x50); /*slowpath: PUSH EAX*/
+        addbyte(0x01); /*slowpath: ADD ESI,EAX*/
+        addbyte(0xc6);
         addbyte(0x56); /*PUSH ESI*/
         addbyte(0xe8); /*CALL readmemwl*/
         addlong((uint32_t)readmemwl - (uint32_t)(&codeblock[block_current].data[block_pos + 4]));
-        addbyte(0x83); /*ADD ESP, 8*/
+        addbyte(0x83); /*ADD ESP, 4*/
         addbyte(0xc4);
-        addbyte(8);
+        addbyte(4);
 #ifndef RELEASE_BUILD
         addbyte(0x80); /*CMP abrt, 0*/
         addbyte(0x7d);
@@ -714,13 +722,14 @@ static uint32_t gen_MEM_LOAD_ADDR_EA_L_NO_ABRT()
         addbyte(0x3a);
         addbyte(0xc3); /*RET*/
 
-        addbyte(0x50); /*slowpath: PUSH EAX*/
+        addbyte(0x01); /*slowpath: ADD ESI,EAX*/
+        addbyte(0xc6);
         addbyte(0x56); /*PUSH ESI*/
         addbyte(0xe8); /*CALL readmemll*/
         addlong((uint32_t)readmemll - (uint32_t)(&codeblock[block_current].data[block_pos + 4]));
-        addbyte(0x83); /*ADD ESP, 8*/
+        addbyte(0x83); /*ADD ESP, 4*/
         addbyte(0xc4);
-        addbyte(8);
+        addbyte(4);
         addbyte(0x89); /*MOV ECX, EAX*/
         addbyte(0xc1);
 #ifndef RELEASE_BUILD
@@ -743,7 +752,7 @@ static uint32_t gen_MEM_LOAD_ADDR_EA_L_NO_ABRT()
         addbyte(0xe8); /*CALL fatal*/
         addlong((uint32_t)fatal - (uint32_t)(&codeblock[block_current].data[block_pos + 4]));
         /*Should not return!*/
-#endif        
+#endif
         return addr;
 }
 
@@ -753,7 +762,7 @@ static char gen_MEM_STORE_ADDR_EA_B_NO_ABRT_err[] = "gen_MEM_STORE_ADDR_EA_B_NO_
 static uint32_t gen_MEM_STORE_ADDR_EA_B_NO_ABRT()
 {
         uint32_t addr = (uint32_t)&codeblock[block_current].data[block_pos];
-        
+
         /*dat = ECX, seg = ESI, addr = EAX*/
         addbyte(0x89); /*MOV EBX, ESI*/
         addbyte(0xf3);
@@ -779,13 +788,14 @@ static uint32_t gen_MEM_STORE_ADDR_EA_B_NO_ABRT()
         addbyte(0xc3); /*RET*/
 
         addbyte(0x51); /*slowpath: PUSH ECX*/
-        addbyte(0x50); /*PUSH EAX*/
+        addbyte(0x01); /*ADD EBX,EAX*/
+        addbyte(0xc3);
         addbyte(0x53); /*PUSH EBX*/
-        addbyte(0xe8); /*CALL writememb386l*/
-        addlong((uint32_t)writememb386l - (uint32_t)(&codeblock[block_current].data[block_pos + 4]));
-        addbyte(0x83); /*ADD ESP, 12*/
+        addbyte(0xe8); /*CALL writemembl*/
+        addlong((uint32_t)writemembl - (uint32_t)(&codeblock[block_current].data[block_pos + 4]));
+        addbyte(0x83); /*ADD ESP, 8*/
         addbyte(0xc4);
-        addbyte(12);
+        addbyte(8);
 #ifndef RELEASE_BUILD
         addbyte(0x80); /*CMP abrt, 0*/
         addbyte(0x7d);
@@ -795,7 +805,7 @@ static uint32_t gen_MEM_STORE_ADDR_EA_B_NO_ABRT()
         addbyte(1);
 #endif
         addbyte(0xc3); /*RET*/
-#ifndef RELEASE_BUILD        
+#ifndef RELEASE_BUILD
         addbyte(0xc7); /*MOV [ESP], gen_MEM_STORE_ADDR_EA_B_NO_ABRT_err*/
         addbyte(0x04);
         addbyte(0x24);
@@ -813,7 +823,7 @@ static char gen_MEM_STORE_ADDR_EA_W_NO_ABRT_err[] = "gen_MEM_STORE_ADDR_EA_W_NO_
 static uint32_t gen_MEM_STORE_ADDR_EA_W_NO_ABRT()
 {
         uint32_t addr = (uint32_t)&codeblock[block_current].data[block_pos];
-        
+
         /*dat = ECX, seg = ESI, addr = EAX*/
         addbyte(0x89); /*MOV EBX, ESI*/
         addbyte(0xf3);
@@ -845,13 +855,14 @@ static uint32_t gen_MEM_STORE_ADDR_EA_W_NO_ABRT()
         addbyte(0xc3); /*RET*/
 
         addbyte(0x51); /*slowpath: PUSH ECX*/
-        addbyte(0x50); /*PUSH EAX*/
+        addbyte(0x01); /*ADD EBX,EAX*/
+        addbyte(0xC3);
         addbyte(0x53); /*PUSH EBX*/
         addbyte(0xe8); /*CALL writememwl*/
         addlong((uint32_t)writememwl - (uint32_t)(&codeblock[block_current].data[block_pos + 4]));
-        addbyte(0x83); /*ADD ESP, 12*/
+        addbyte(0x83); /*ADD ESP, 8*/
         addbyte(0xc4);
-        addbyte(12);
+        addbyte(8);
 #ifndef RELEASE_BUILD
         addbyte(0x80); /*CMP abrt, 0*/
         addbyte(0x7d);
@@ -879,7 +890,7 @@ static char gen_MEM_STORE_ADDR_EA_L_NO_ABRT_err[] = "gen_MEM_STORE_ADDR_EA_L_NO_
 static uint32_t gen_MEM_STORE_ADDR_EA_L_NO_ABRT()
 {
         uint32_t addr = (uint32_t)&codeblock[block_current].data[block_pos];
-        
+
         /*dat = ECX, seg = ESI, addr = EAX*/
         addbyte(0x89); /*MOV EBX, ESI*/
         addbyte(0xf3);
@@ -910,13 +921,14 @@ static uint32_t gen_MEM_STORE_ADDR_EA_L_NO_ABRT()
         addbyte(0xc3); /*RET*/
 
         addbyte(0x51); /*slowpath: PUSH ECX*/
-        addbyte(0x50); /*PUSH EAX*/
+        addbyte(0x01); /*ADD EBX,EAX*/
+        addbyte(0xC3);
         addbyte(0x53); /*PUSH EBX*/
         addbyte(0xe8); /*CALL writememll*/
         addlong((uint32_t)writememll - (uint32_t)(&codeblock[block_current].data[block_pos + 4]));
-        addbyte(0x83); /*ADD ESP, 12*/
+        addbyte(0x83); /*ADD ESP, 8*/
         addbyte(0xc4);
-        addbyte(12);
+        addbyte(8);
 #ifndef RELEASE_BUILD
         addbyte(0x80); /*CMP abrt, 0*/
         addbyte(0x7d);
@@ -941,9 +953,9 @@ static uint32_t gen_MEM_STORE_ADDR_EA_L_NO_ABRT()
 static uint32_t gen_MEM_CHECK_WRITE()
 {
         uint32_t addr = (uint32_t)&codeblock[block_current].data[block_pos];
-        
+
         /*seg = ESI, addr = EAX*/
-        
+
         addbyte(0x8d); /*LEA EDI, [EAX+ESI]*/
         addbyte(0x3c);
         addbyte(0x30);
@@ -970,7 +982,7 @@ static uint32_t gen_MEM_CHECK_WRITE()
         addbyte(0x74); /*JE +*/
         addbyte(1);
         addbyte(0xc3); /*RET*/
-        
+
         /*slowpath:*/
         addbyte(0x8d); /*LEA EDI, [EAX+ESI]*/
         addbyte(0x3c);
@@ -998,9 +1010,9 @@ static uint32_t gen_MEM_CHECK_WRITE()
 static uint32_t gen_MEM_CHECK_WRITE_W()
 {
         uint32_t addr = (uint32_t)&codeblock[block_current].data[block_pos];
-        
+
         /*seg = ESI, addr = EAX*/
-        
+
         addbyte(0x8d); /*LEA EDI, [EAX+ESI]*/
         addbyte(0x3c);
         addbyte(0x30);
@@ -1042,7 +1054,7 @@ static uint32_t gen_MEM_CHECK_WRITE_W()
         addbyte(0x74); /*JE +*/
         addbyte(1);
         addbyte(0xc3); /*RET*/
-        
+
         /*slowpath:*/
         addbyte(0x89); /*MOV EDI, EAX*/
         addbyte(0xc7);
@@ -1080,9 +1092,9 @@ static uint32_t gen_MEM_CHECK_WRITE_W()
 static uint32_t gen_MEM_CHECK_WRITE_L()
 {
         uint32_t addr = (uint32_t)&codeblock[block_current].data[block_pos];
-        
+
         /*seg = ESI, addr = EAX*/
-        
+
         addbyte(0x8d); /*LEA EDI, [EAX+ESI]*/
         addbyte(0x3c);
         addbyte(0x30);
@@ -1124,7 +1136,7 @@ static uint32_t gen_MEM_CHECK_WRITE_L()
         addbyte(0x74); /*JE +*/
         addbyte(1);
         addbyte(0xc3); /*RET*/
-        
+
         /*slowpath:*/
         addbyte(0x89); /*MOV EDI, EAX*/
         addbyte(0xc7);
@@ -1161,15 +1173,10 @@ static uint32_t gen_MEM_CHECK_WRITE_L()
 
 void codegen_init()
 {
-#ifdef __linux__
-	void *start;
-	size_t len;
-	long pagesize = sysconf(_SC_PAGESIZE);
-	long pagemask = ~(pagesize - 1);
-#endif
-        
 #ifdef _WIN32
         codeblock = VirtualAlloc(NULL, (BLOCK_SIZE+1) * sizeof(codeblock_t), MEM_COMMIT, PAGE_EXECUTE_READWRITE);
+#elif defined __unix__
+        codeblock = mmap(NULL, (BLOCK_SIZE+1) * sizeof(codeblock_t), PROT_READ | PROT_WRITE | PROT_EXEC, MAP_ANON | MAP_PRIVATE, 0, 0);
 #else
         codeblock = malloc((BLOCK_SIZE+1) * sizeof(codeblock_t));
 #endif
@@ -1178,19 +1185,9 @@ void codegen_init()
         memset(codeblock, 0, (BLOCK_SIZE+1) * sizeof(codeblock_t));
         memset(codeblock_hash, 0, HASH_SIZE * sizeof(codeblock_t *));
 
-#ifdef __linux__
-	start = (void *)((long)codeblock & pagemask);
-	len = (((BLOCK_SIZE+1) * sizeof(codeblock_t)) + pagesize) & pagemask;
-	if (mprotect(start, len, PROT_READ | PROT_WRITE | PROT_EXEC) != 0)
-	{
-		perror("mprotect");
-		exit(-1);
-	}
-#endif
-
         block_current = BLOCK_SIZE;
         block_pos = 0;
-        mem_abrt_rout = (uint32_t)&codeblock[block_current].data[block_pos];        
+        mem_abrt_rout = (uint32_t)&codeblock[block_current].data[block_pos];
         addbyte(0x83); /*ADDL $16+4,%esp*/
         addbyte(0xC4);
         addbyte(0x10+4);
@@ -1233,7 +1230,7 @@ void codegen_init()
         mem_check_write_w = (uint32_t)gen_MEM_CHECK_WRITE_W();
         block_pos = (block_pos + 15) & ~15;
         mem_check_write_l = (uint32_t)gen_MEM_CHECK_WRITE_L();
-        
+
 #ifndef _MSC_VER
         asm(
                 "fstcw %0\n"
@@ -1282,7 +1279,7 @@ static void add_to_block_list(codeblock_t *block)
                 if (!block->next->valid)
                         fatal("block->next->valid=0 %p %p %x %x\n", (void *)block->next, (void *)codeblock, block_current, block_pos);
         }
-        
+
         if (block->page_mask2)
         {
                 block_prev = pages[block->phys_2 >> 12].block_2[(block->phys_2 >> 10) & 3];
@@ -1367,7 +1364,6 @@ void codegen_check_flush(page_t *page, uint64_t mask, uint32_t phys_addr)
                 if (mask & block->page_mask)
                 {
                         delete_block(block);
-                        cpu_recomp_evicted++;
                 }
                 if (block == block->next)
                         fatal("Broken 1\n");
@@ -1375,13 +1371,12 @@ void codegen_check_flush(page_t *page, uint64_t mask, uint32_t phys_addr)
         }
 
         block = page->block_2[(phys_addr >> 10) & 3];
-        
+
         while (block)
         {
                 if (mask & block->page_mask2)
                 {
                         delete_block(block);
-                        cpu_recomp_evicted++;
                 }
                 if (block == block->next_2)
                         fatal("Broken 2\n");
@@ -1393,7 +1388,7 @@ void codegen_block_init(uint32_t phys_addr)
 {
         codeblock_t *block;
         page_t *page = &pages[phys_addr >> 12];
-        
+
         if (!page->block[(phys_addr >> 10) & 3])
                 mem_flush_write_page(phys_addr, cs+cpu_state.pc);
 
@@ -1403,7 +1398,6 @@ void codegen_block_init(uint32_t phys_addr)
         if (block->valid != 0)
         {
                 delete_block(block);
-                cpu_recomp_reuse++;
         }
         block_num = HASH(phys_addr);
         codeblock_hash[block_num] = &codeblock[block_current];
@@ -1421,18 +1415,18 @@ void codegen_block_init(uint32_t phys_addr)
         block->page_mask = 0;
         block->flags = CODEBLOCK_STATIC_TOP;
         block->status = cpu_cur_status;
-        
+
         block->was_recompiled = 0;
 
         recomp_page = block->phys & ~0xfff;
-        
+
         codeblock_tree_add(block);
 }
 
 void codegen_block_start_recompile(codeblock_t *block)
 {
         page_t *page = &pages[block->phys >> 12];
-        
+
         if (!page->block[(block->phys >> 10) & 3])
                 mem_flush_write_page(block->phys, cs+cpu_state.pc);
 
@@ -1445,6 +1439,7 @@ void codegen_block_start_recompile(codeblock_t *block)
         block->status = cpu_cur_status;
 
         block_pos = BLOCK_GPF_OFFSET;
+#ifdef OLD_GPF
         addbyte(0xc7); /*MOV [ESP],0*/
         addbyte(0x04);
         addbyte(0x24);
@@ -1456,6 +1451,16 @@ void codegen_block_start_recompile(codeblock_t *block)
         addlong(0);
         addbyte(0xe8); /*CALL x86gpf*/
         addlong((uint32_t)x86gpf - (uint32_t)(&codeblock[block_current].data[block_pos + 4]));
+#else
+	addbyte(0xc6);	/* mov byte ptr[&(cpu_state.abrt)],ABRT_GPF */
+	addbyte(0x05);
+	addlong((uint32_t) (uintptr_t) &(cpu_state.abrt));
+	addbyte(ABRT_GPF);
+	addbyte(0x31);	/* xor eax,eax */
+	addbyte(0xc0);
+	addbyte(0xa3);	/* mov [&(abrt_error)],eax */
+	addlong((uint32_t) (uintptr_t) &(abrt_error));
+#endif
         block_pos = BLOCK_EXIT_OFFSET; /*Exit code*/
         addbyte(0x83); /*ADDL $16,%esp*/
         addbyte(0xC4);
@@ -1480,29 +1485,29 @@ void codegen_block_start_recompile(codeblock_t *block)
         last_op32 = -1;
         last_ea_seg = NULL;
         last_ssegs = -1;
-        
+
         codegen_block_cycles = 0;
         codegen_timing_block_start();
-        
+
         codegen_block_ins = 0;
         codegen_block_full_ins = 0;
 
         recomp_page = block->phys & ~0xfff;
-        
+
         codegen_flags_changed = 0;
         codegen_fpu_entered = 0;
         codegen_mmx_entered = 0;
 
         codegen_fpu_loaded_iq[0] = codegen_fpu_loaded_iq[1] = codegen_fpu_loaded_iq[2] = codegen_fpu_loaded_iq[3] =
         codegen_fpu_loaded_iq[4] = codegen_fpu_loaded_iq[5] = codegen_fpu_loaded_iq[6] = codegen_fpu_loaded_iq[7] = 0;
-        
+
         cpu_state.seg_ds.checked = cpu_state.seg_es.checked = cpu_state.seg_fs.checked = cpu_state.seg_gs.checked = (cr0 & 1) ? 0 : 1;
 
         block->TOP = cpu_state.TOP & 7;
         block->was_recompiled = 1;
 
         codegen_flat_ds = !(cpu_cur_status & CPU_STATUS_NOTFLATDS);
-        codegen_flat_ss = !(cpu_cur_status & CPU_STATUS_NOTFLATSS);       
+        codegen_flat_ss = !(cpu_cur_status & CPU_STATUS_NOTFLATSS);
 
         codegen_accumulate_reset();
 }
@@ -1512,7 +1517,6 @@ void codegen_block_remove()
         codeblock_t *block = &codeblock[block_current];
 
         delete_block(block);
-        cpu_recomp_removed++;
 
         recomp_page = -1;
 }
@@ -1535,12 +1539,12 @@ void codegen_block_generate_end_mask()
                 end_pc = 0x3ff;
         start_pc >>= PAGE_MASK_SHIFT;
         end_pc >>= PAGE_MASK_SHIFT;
-        
+
         for (; start_pc <= end_pc; start_pc++)
-        {                
+        {
                 block->page_mask |= ((uint64_t)1 << start_pc);
         }
-        
+
         pages[block->phys >> 12].code_present_mask[(block->phys >> 10) & 3] |= block->page_mask;
 
         block->phys_2 = -1;
@@ -1558,7 +1562,7 @@ void codegen_block_generate_end_mask()
                         for (; start_pc <= end_pc; start_pc++)
                                 block->page_mask2 |= ((uint64_t)1 << start_pc);
                         page_2->code_present_mask[(block->phys_2 >> 10) & 3] |= block->page_mask2;
-                
+
                         if (!pages[block->phys_2 >> 12].block_2[(block->phys_2 >> 10) & 3])
                                 mem_flush_write_page(block->phys_2, block->endpc);
 
@@ -1600,7 +1604,7 @@ void codegen_block_end_recompile(codeblock_t *block)
         addbyte(0x5d); /*POP EBP*/
         addbyte(0x5b); /*POP EDX*/
         addbyte(0xC3); /*RET*/
-        
+
         if (block_pos > BLOCK_GPF_OFFSET)
                 fatal("Over limit!\n");
 
@@ -1646,7 +1650,7 @@ int opcode_0f_modrm[256] =
         1, 1, 1, 1,  0, 0, 0, 0,  0, 0, 0, 0,  0, 1, 0, 1, /*00*/
         0, 0, 0, 0,  0, 0, 0, 0,  1, 1, 1, 1,  1, 1, 1, 1, /*10*/
         1, 1, 1, 1,  1, 1, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0, /*20*/
-        0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0, /*30*/
+        0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 1, /*30*/
 
         1, 1, 1, 1,  1, 1, 1, 1,  1, 1, 1, 1,  1, 1, 1, 1, /*40*/
         0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0, /*50*/
@@ -1670,8 +1674,8 @@ void codegen_debug()
 
 static x86seg *codegen_generate_ea_16_long(x86seg *op_ea_seg, uint32_t fetchdat, int op_ssegs, uint32_t *op_pc)
 {
-        if (!cpu_mod && cpu_rm == 6) 
-        { 
+        if (!cpu_mod && cpu_rm == 6)
+        {
                 addbyte(0xC7); /*MOVL $0,(ssegs)*/
                 addbyte(0x45);
                 addbyte((uint8_t)cpu_state_offset(eaaddr));
@@ -1731,7 +1735,7 @@ static x86seg *codegen_generate_ea_32_long(x86seg *op_ea_seg, uint32_t fetchdat,
         {
                 uint8_t sib = fetchdat >> 8;
                 (*op_pc)++;
-                
+
                 switch (cpu_mod)
                 {
                         case 0:
@@ -1749,7 +1753,7 @@ static x86seg *codegen_generate_ea_32_long(x86seg *op_ea_seg, uint32_t fetchdat,
                                 addbyte((uint8_t)cpu_state_offset(regs[sib & 7].l));
                         }
                         break;
-                        case 1: 
+                        case 1:
                         new_eaaddr = (uint32_t)(int8_t)((fetchdat >> 16) & 0xff);
                         addbyte(0xb8); /*MOVL new_eaaddr, %eax*/
                         addlong(new_eaaddr);
@@ -1807,7 +1811,7 @@ static x86seg *codegen_generate_ea_32_long(x86seg *op_ea_seg, uint32_t fetchdat,
         else
         {
                 if (!cpu_mod && cpu_rm == 5)
-                {                
+                {
                         new_eaaddr = fastreadl(cs + (*op_pc) + 1);
                         addbyte(0xC7); /*MOVL $new_eaaddr,(eaaddr)*/
                         addbyte(0x45);
@@ -1820,21 +1824,21 @@ static x86seg *codegen_generate_ea_32_long(x86seg *op_ea_seg, uint32_t fetchdat,
                 addbyte(0x45);
                 addbyte((uint8_t)cpu_state_offset(regs[cpu_rm].l));
                 cpu_state.eaaddr = cpu_state.regs[cpu_rm].l;
-                if (cpu_mod) 
+                if (cpu_mod)
                 {
                         if (cpu_rm == 5 && !op_ssegs)
                                 op_ea_seg = &cpu_state.seg_ss;
-                        if (cpu_mod == 1) 
+                        if (cpu_mod == 1)
                         {
                                 addbyte(0x05);
-                                addlong((uint32_t)(int8_t)(fetchdat >> 8)); 
-                                (*op_pc)++; 
+                                addlong((uint32_t)(int8_t)(fetchdat >> 8));
+                                (*op_pc)++;
                         }
-                        else          
+                        else
                         {
                                 new_eaaddr = fastreadl(cs + (*op_pc) + 1);
                                 addbyte(0x05);
-                                addlong(new_eaaddr); 
+                                addlong(new_eaaddr);
                                 (*op_pc) += 4;
                         }
                 }
@@ -1861,13 +1865,13 @@ void codegen_generate_call(uint8_t opcode, OpFn op, uint32_t fetchdat, uint32_t 
         op_ea_seg = &cpu_state.seg_ds;
         op_ssegs = 0;
         op_old_pc = old_pc;
-        
+
         for (c = 0; c < NR_HOST_REGS; c++)
                 host_reg_mapping[c] = -1;
         mmx_ebx_ecx_loaded = 0;
         for (c = 0; c < NR_HOST_XMM_REGS; c++)
                 host_reg_xmm_mapping[c] = -1;
-        
+
         codegen_timing_start();
 
         while (!over)
@@ -1879,7 +1883,7 @@ void codegen_generate_call(uint8_t opcode, OpFn op, uint32_t fetchdat, uint32_t 
                         recomp_op_table = recomp_opcodes_0f;
                         over = 1;
                         break;
-                        
+
                         case 0x26: /*ES:*/
                         op_ea_seg = &cpu_state.seg_es;
                         op_ssegs = 1;
@@ -1904,14 +1908,14 @@ void codegen_generate_call(uint8_t opcode, OpFn op, uint32_t fetchdat, uint32_t 
                         op_ea_seg = &cpu_state.seg_gs;
                         op_ssegs = 1;
                         break;
-                        
+
                         case 0x66: /*Data size select*/
                         op_32 = ((use32 & 0x100) ^ 0x100) | (op_32 & 0x200);
                         break;
                         case 0x67: /*Address size select*/
                         op_32 = ((use32 & 0x200) ^ 0x200) | (op_32 & 0x100);
                         break;
-                        
+
                         case 0xd8:
                         op_table = (op_32 & 0x200) ? x86_dynarec_opcodes_d8_a32 : x86_dynarec_opcodes_d8_a16;
                         recomp_op_table = recomp_opcodes_d8;
@@ -1986,10 +1990,10 @@ void codegen_generate_call(uint8_t opcode, OpFn op, uint32_t fetchdat, uint32_t 
                         test_modrm = 0;
                         block->flags |= CODEBLOCK_HAS_FPU;
                         break;
-                        
+
                         case 0xf0: /*LOCK*/
                         break;
-                        
+
                         case 0xf2: /*REPNE*/
                         op_table = x86_dynarec_opcodes_REPNE;
                         recomp_op_table = recomp_opcodes_REPNE;
@@ -2009,14 +2013,13 @@ void codegen_generate_call(uint8_t opcode, OpFn op, uint32_t fetchdat, uint32_t 
                 opcode = fetchdat & 0xff;
                 if (!pc_off)
                         fetchdat >>= 8;
-                
+
                 op_pc++;
         }
-        
+
 generate_call:
         codegen_timing_opcode(opcode, fetchdat, op_32, op_pc);
 
-        codegen_accumulate(ACCREG_ins, 1);
         codegen_accumulate(ACCREG_cycles, -codegen_block_cycles);
         codegen_block_cycles = 0;
 
@@ -2062,10 +2065,20 @@ generate_call:
                         codegen_block_full_ins++;
                         codegen_endpc = (cs + cpu_state.pc) + 8;
 
+#ifdef CHECK_INT
+			/* Check for interrupts. */
+			addbyte(0xf6);	/* test byte ptr[&pic_pending],1 */
+			addbyte(0x05);
+			addlong((uint32_t) (uintptr_t) &pic_pending);
+			addbyte(0x01);
+			addbyte(0x0F); addbyte(0x85); /*JNZ 0*/
+			addlong((uint32_t)&block->data[BLOCK_EXIT_OFFSET] - (uint32_t)(&block->data[block_pos + 4]));
+#endif
+
                         return;
                 }
         }
-        
+
         op = op_table[((opcode >> opcode_shift) | op_32) & opcode_mask];
         if (op_ssegs != last_ssegs)
         {
@@ -2082,7 +2095,7 @@ generate_call:
                 (op_table == x86_dynarec_opcodes_0f && opcode_0f_modrm[opcode]))
         {
                 int stack_offset = 0;
-                
+
                 if (op_table == x86_dynarec_opcodes && opcode == 0x8f) /*POP*/
                         stack_offset = (op_32 & 0x100) ? 4 : 2;
 
@@ -2137,13 +2150,20 @@ generate_call:
         addbyte(0x04);
         addbyte(0x24);
         addlong(fetchdat);
-  
+
         addbyte(0xE8); /*CALL*/
         addlong(((uint8_t *)op - (uint8_t *)(&block->data[block_pos + 4])));
 
         codegen_block_ins++;
-        
+
         block->ins++;
+
+#ifdef CHECK_INT
+	/* Check for interrupts. */
+	addbyte(0x0a);	/* or  al,byte ptr[&pic_pending] */
+	addbyte(0x05);
+	addlong((uint32_t) (uintptr_t) &pic_pending);
+#endif
 
         addbyte(0x09); /*OR %eax, %eax*/
         addbyte(0xc0);

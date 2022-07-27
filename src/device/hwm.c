@@ -15,23 +15,26 @@
  *		Copyright 2020 RichardG.
  */
 
+#include <stdarg.h>
+#include <stdio.h>
 #include <stdint.h>
+#include <stdlib.h>
+#include <string.h>
+#define HAVE_STDARG_H
+#include <86box/86box.h>
 #include <86box/device.h>
+#include "cpu.h"
+#include <86box/machine.h>
 #include <86box/hwm.h>
 
 
-hwm_values_t hwm_values;
+/* Refer to specific hardware monitor implementations for the meaning of hwm_values. */
+hwm_values_t	hwm_values;
 
 
-void
-hwm_set_values(hwm_values_t new_values)
+uint16_t
+hwm_get_vcore()
 {
-    hwm_values = new_values;
-}
-
-
-hwm_values_t*
-hwm_get_values()
-{
-    return &hwm_values;
+    /* Determine Vcore for the active CPU. */
+    return cpu_s->voltage;
 }

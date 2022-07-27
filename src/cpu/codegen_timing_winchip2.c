@@ -582,7 +582,7 @@ static void codegen_timing_winchip2_opcode(uint8_t opcode, uint32_t fetchdat, in
                 timings = mod3 ? opcode_timings_0f_mod3 : opcode_timings_0f;
                 deps = mod3 ? opcode_deps_0f_mod3 : opcode_deps_0f;
                 break;
-                
+
                 case 0xd8:
                 timings = mod3 ? opcode_timings_d8_mod3 : opcode_timings_d8;
                 deps = mod3 ? opcode_deps_d8_mod3 : opcode_deps_d8;
@@ -637,13 +637,13 @@ static void codegen_timing_winchip2_opcode(uint8_t opcode, uint32_t fetchdat, in
                         deps = mod3 ? opcode_deps_81_mod3 : opcode_deps_81;
                         opcode = (fetchdat >> 3) & 7;
                         break;
-                                
+
                         case 0xc0: case 0xc1: case 0xd0: case 0xd1: case 0xd2: case 0xd3:
                         timings = mod3 ? opcode_timings_shift_mod3 : opcode_timings_shift;
                         deps = mod3 ? opcode_deps_shift_mod3 : opcode_deps_shift;
                         opcode = (fetchdat >> 3) & 7;
                         break;
-                        
+
                         case 0xf6:
                         timings = mod3 ? opcode_timings_f6_mod3 : opcode_timings_f6;
                         deps = mod3 ? opcode_deps_f6_mod3 : opcode_deps_f6;
@@ -666,11 +666,11 @@ static void codegen_timing_winchip2_opcode(uint8_t opcode, uint32_t fetchdat, in
                         break;
                 }
         }
-        
+
         if (u_pipe_full)
         {
                 uint8_t regmask = get_srcdep_mask(deps[opcode], fetchdat, bit8, u_pipe_op_32);
-                
+
                 if (can_pair(u_pipe_timings[u_pipe_opcode], timings[opcode], regmask))
                 {
                         int cycles_a = u_pipe_timings[u_pipe_opcode] & 0xff;
@@ -711,7 +711,7 @@ static void codegen_timing_winchip2_opcode(uint8_t opcode, uint32_t fetchdat, in
                 decode_delay_offset = 0;
                 return;
         }
-        
+
         if (check_agi(deps, opcode, fetchdat, op_32))
                 agi_stall = 1;
         codegen_instruction(timings, deps, opcode, fetchdat, decode_delay_offset, op_32, agi_stall);
@@ -724,7 +724,7 @@ static void codegen_timing_winchip2_block_end()
         if (u_pipe_full)
         {
                 int agi_stall = 0;
-                
+
                 if (check_agi(u_pipe_deps, u_pipe_opcode, u_pipe_fetchdat, u_pipe_op_32))
                         agi_stall = 1;
                 codegen_instruction(u_pipe_timings, u_pipe_deps, u_pipe_opcode, u_pipe_fetchdat, u_pipe_decode_delay_offset, u_pipe_op_32, agi_stall);

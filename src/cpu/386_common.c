@@ -16,11 +16,13 @@
 #include "x87.h"
 #include <86box/nmi.h>
 #include <86box/mem.h>
+#include <86box/smram.h>
 #include <86box/pic.h>
 #include <86box/pit.h>
 #include <86box/fdd.h>
 #include <86box/fdc.h>
 #include <86box/keyboard.h>
+#include <86box/timer.h>
 #include "386_common.h"
 #include "x86_flags.h"
 #include "x86seg.h"
@@ -45,9 +47,7 @@ uint32_t *eal_r, *eal_w;
 
 int nmi_enable = 1;
 
-int cpl_override=0;
-
-int fpucount=0;
+int alt_access, cpl_override = 0;
 
 #ifdef USE_NEW_DYNAREC
 uint16_t cpu_cur_status = 0;
@@ -61,23 +61,34 @@ extern int optype;
 extern uint32_t pccache;
 
 
-int in_sys = 0;
+int in_sys = 0, unmask_a20_in_smm = 0;
+uint32_t old_rammask = 0xffffffff;
 
-smram_t temp_smram[2];
+int soft_reset_mask = 0;
+
+int smi_latched = 0;
+int smm_in_hlt = 0, smi_block = 0;
+
+uint32_t addr64, addr64_2;
+uint32_t addr64a[8], addr64a_2[8];
+
+static pc_timer_t *cpu_fast_off_timer = NULL;
+static double cpu_fast_off_period = 0.0;
 
 
-#define AMD_SYSCALL_EIP	(star & 0xFFFFFFFF)
-#define AMD_SYSCALL_SB	((star >> 32) & 0xFFFF)
-#define AMD_SYSRET_SB	((star >> 48) & 0xFFFF)
+#define AMD_SYSCALL_EIP	(msr.star & 0xFFFFFFFF)
+#define AMD_SYSCALL_SB	((msr.star >> 32) & 0xFFFF)
+#define AMD_SYSRET_SB	((msr.star >> 48) & 0xFFFF)
 
 
 /* These #define's and enum have been borrowed from Bochs. */
 /* SMM feature masks */
 #define SMM_IO_INSTRUCTION_RESTART  (0x00010000)
 #define SMM_SMBASE_RELOCATION       (0x00020000)
+#define SMM_REVISION		    (0x20000000)
 
 /* TODO: Which CPU added SMBASE relocation? */
-#define SMM_REVISION_ID SMM_SMBASE_RELOCATION
+#define SMM_REVISION_ID (SMM_SMBASE_RELOCATION | SMM_IO_INSTRUCTION_RESTART | SMM_REVISION)
 
 #define SMM_SAVE_STATE_MAP_SIZE 128
 
@@ -321,7 +332,10 @@ x386_common_log(const char *fmt, ...)
 static __inline void
 set_stack32(int s)
 {
-    stack32 = s;
+    if ((cr0 & 1) && ! (cpu_state.eflags & VM_FLAG))
+	stack32 = s;
+    else
+	stack32 = 0;
 
     if (stack32)
 	cpu_cur_status |= CPU_STATUS_STACK32;
@@ -333,13 +347,15 @@ set_stack32(int s)
 static __inline void
 set_use32(int u)
 {
-    if (u) {
-	use32 = 0x300;
-	cpu_cur_status |= CPU_STATUS_USE32;
-    } else {
+    if ((cr0 & 1) && ! (cpu_state.eflags & VM_FLAG))
+	use32 = u ? 0x300 : 0;
+    else
 	use32 = 0;
+
+    if (use32)
+	cpu_cur_status |= CPU_STATUS_USE32;
+    else
 	cpu_cur_status &= ~CPU_STATUS_USE32;
-    }
 }
 
 
@@ -983,14 +999,38 @@ smram_restore_state_amd_k(uint32_t *saved_state)
 }
 
 
+static void
+smram_save_state_cyrix(uint32_t *saved_state, int in_hlt)
+{
+    saved_state[0] = dr[7];
+    saved_state[1] = cpu_state.flags | (cpu_state.eflags << 16);
+    saved_state[2] = cr0;
+    saved_state[3] = cpu_state.oldpc;
+    saved_state[4] = cpu_state.pc;
+    saved_state[5] = CS | (CPL << 21);
+    saved_state[6] = 0x00000000;
+}
+
+
+static void
+smram_restore_state_cyrix(uint32_t *saved_state)
+{
+    dr[7] = saved_state[0];
+    cpu_state.flags = saved_state[1] & 0xffff;
+    cpu_state.eflags = saved_state[1] >> 16;
+    cr0 = saved_state[2];
+    cpu_state.pc = saved_state[4];
+}
+
+
 void
 enter_smm(int in_hlt)
 {
     uint32_t saved_state[SMM_SAVE_STATE_MAP_SIZE], n;
     uint32_t smram_state = smbase + 0x10000;
 
-    /* If it's a CPU on which SMM is not supporter, do nothing. */
-    if (!is_pentium && !is_k5 && !is_k6 && !is_p6)
+    /* If it's a CPU on which SMM is not supported, do nothing. */
+    if (!is_am486 && !is_pentium && !is_k5 && !is_k6 && !is_p6 && !is_cxsmm)
 	return;
 
     x386_common_log("enter_smm(): smbase = %08X\n", smbase);
@@ -1025,21 +1065,24 @@ enter_smm(int in_hlt)
     x386_common_log("EAX = %08X, EBX = %08X, ECX = %08X, EDX = %08X, ESI = %08X, EDI = %08X, ESP = %08X, EBP = %08X\n",
 		    EAX, EBX, ECX, EDX, ESI, EDI, ESP, EBP);
 
+    flags_rebuild();
     in_smm = 1;
-    if (smram[0].size)
-	mem_mapping_recalc(smram[0].host_base, smram[0].size);
-    if (smram[1].size)
-	mem_mapping_recalc(smram[1].host_base, smram[1].size);
-    /* This is used by leave_smm() to make sure we don't keep the old mappings in SMM mode if the SMM
-       handler has told the chipset to change the actual mappings. */
-    memcpy(temp_smram, smram, sizeof(temp_smram));
-    flushmmucache();
+    smram_backup_all();
+    smram_recalc_all(0);
+
+    if (is_cxsmm) {
+	if (!(cyrix.smhr & SMHR_VALID))
+		cyrix.smhr = (cyrix.arr[3].base + cyrix.arr[3].size) | SMHR_VALID;
+	smram_state = cyrix.smhr & SMHR_ADDR_MASK;
+    }
 
     memset(saved_state, 0x00, SMM_SAVE_STATE_MAP_SIZE * sizeof(uint32_t));
 
-    if (is_pentium || is_am486)		/* Am486 / 5x86 / Intel P5 (Pentium) */
+    if (is_cxsmm)			/* Cx6x86 */
+	smram_save_state_cyrix(saved_state, in_hlt);
+    else if (is_pentium || is_am486)	/* Am486 / 5x86 / Intel P5 (Pentium) */
 	smram_save_state_p5(saved_state, in_hlt);
-    else if (is_k5 || is_k6)	/* AMD K5 and K6 */
+    else if (is_k5 || is_k6)		/* AMD K5 and K6 */
 	smram_save_state_amd_k(saved_state, in_hlt);
     else if (is_p6)			/* Intel P6 (Pentium Pro, Pentium II, Celeron) */
 	smram_save_state_p6(saved_state, in_hlt);
@@ -1051,44 +1094,71 @@ enter_smm(int in_hlt)
     cr4 = 0;
 
     dr[7] = 0x400;
-    cpu_state.pc = 0x8000;
 
-    cpu_state.seg_ds.seg = 0x00000000;
-    cpu_state.seg_ds.base = 0x00000000;
-    cpu_state.seg_ds.limit = 0xffffffff;
-    cpu_state.seg_ds.access = 0x93;
-    cpu_state.seg_ds.ar_high = 0x80;
+    if (is_cxsmm) {
+	cpu_state.pc = 0x0000;
+	cpl_override = 1;
+	cyrix_write_seg_descriptor(smram_state - 0x20, &cpu_state.seg_cs);
+	cpl_override = 0;
+	cpu_state.seg_cs.seg = (cyrix.arr[3].base >> 4);
+	cpu_state.seg_cs.base = cyrix.arr[3].base;
+	cpu_state.seg_cs.limit = 0xffffffff;
+	cpu_state.seg_cs.access = 0x93;
+	cpu_state.seg_cs.ar_high = 0x80;
+	cpu_state.seg_cs.checked = 1;
 
-    memcpy(&cpu_state.seg_es, &cpu_state.seg_ds, sizeof(x86seg));
-    memcpy(&cpu_state.seg_ss, &cpu_state.seg_ds, sizeof(x86seg));
-    memcpy(&cpu_state.seg_fs, &cpu_state.seg_ds, sizeof(x86seg));
-    memcpy(&cpu_state.seg_gs, &cpu_state.seg_ds, sizeof(x86seg));
+	smm_seg_load(&cpu_state.seg_cs);
+    } else {
+	cpu_state.pc = 0x8000;
+	cpu_state.seg_ds.seg = 0x00000000;
+	cpu_state.seg_ds.base = 0x00000000;
+	cpu_state.seg_ds.limit = 0xffffffff;
+	cpu_state.seg_ds.access = 0x93;
+	cpu_state.seg_ds.ar_high = 0x80;
 
-    if (is_p6)
-	cpu_state.seg_cs.seg = (smbase >> 4);
-    else
-	cpu_state.seg_cs.seg = 0x3000;
+	memcpy(&cpu_state.seg_es, &cpu_state.seg_ds, sizeof(x86seg));
+	memcpy(&cpu_state.seg_ss, &cpu_state.seg_ds, sizeof(x86seg));
+    	memcpy(&cpu_state.seg_fs, &cpu_state.seg_ds, sizeof(x86seg));
+	memcpy(&cpu_state.seg_gs, &cpu_state.seg_ds, sizeof(x86seg));
 
-    /* On Pentium, CS selector in SMM is always 3000, regardless of SMBASE. */
-    cpu_state.seg_cs.base = smbase;
-    cpu_state.seg_cs.limit = 0xffffffff;
-    cpu_state.seg_cs.access = 0x93;
-    cpu_state.seg_cs.ar_high = 0x80;
-    cpu_state.seg_cs.checked = 1;
+	if (is_p6)
+		cpu_state.seg_cs.seg = (smbase >> 4);
+	else
+		cpu_state.seg_cs.seg = 0x3000;
 
-    smm_seg_load(&cpu_state.seg_es);
-    smm_seg_load(&cpu_state.seg_cs);
-    smm_seg_load(&cpu_state.seg_ds);
-    smm_seg_load(&cpu_state.seg_ss);
-    smm_seg_load(&cpu_state.seg_fs);
-    smm_seg_load(&cpu_state.seg_gs);
+	/* On Pentium, CS selector in SMM is always 3000, regardless of SMBASE. */
+	cpu_state.seg_cs.base = smbase;
+	cpu_state.seg_cs.limit = 0xffffffff;
+	cpu_state.seg_cs.access = 0x93;
+	cpu_state.seg_cs.ar_high = 0x80;
+	cpu_state.seg_cs.checked = 1;
+
+	smm_seg_load(&cpu_state.seg_es);
+	smm_seg_load(&cpu_state.seg_cs);
+	smm_seg_load(&cpu_state.seg_ds);
+	smm_seg_load(&cpu_state.seg_ss);
+	smm_seg_load(&cpu_state.seg_fs);
+	smm_seg_load(&cpu_state.seg_gs);
+    }
 
     cpu_state.op32 = use32;
 
-    for (n = 0; n < SMM_SAVE_STATE_MAP_SIZE; n++) {
-	smram_state -= 4;
-	writememl(0, smram_state, saved_state[n]);
+    cpl_override = 1;
+    if (is_cxsmm) {
+	writememl(0, smram_state - 0x04, saved_state[0]);
+	writememl(0, smram_state - 0x08, saved_state[1]);
+	writememl(0, smram_state - 0x0c, saved_state[2]);
+	writememl(0, smram_state - 0x10, saved_state[3]);
+	writememl(0, smram_state - 0x14, saved_state[4]);
+	writememl(0, smram_state - 0x18, saved_state[5]);
+	writememl(0, smram_state - 0x24, saved_state[6]);
+    } else {
+	for (n = 0; n < SMM_SAVE_STATE_MAP_SIZE; n++) {
+		smram_state -= 4;
+		writememl(0, smram_state, saved_state[n]);
+	}
     }
+    cpl_override = 0;
 
     nmi_mask = 0;
 
@@ -1100,6 +1170,18 @@ enter_smm(int in_hlt)
 
     smm_in_hlt = in_hlt;
 
+    if (unmask_a20_in_smm) {
+	old_rammask = rammask;
+	rammask = cpu_16bitbus ? 0xFFFFFF : 0xFFFFFFFF;
+	if (is6117)
+		rammask |= 0x3000000;
+
+	flushmmucache();
+    }
+
+    oldcpl = 0;
+
+    cpu_cur_status &= ~(CPU_STATUS_PMODE | CPU_STATUS_V86);
     CPU_BLOCK_END();
 }
 
@@ -1107,9 +1189,6 @@ enter_smm(int in_hlt)
 void
 enter_smm_check(int in_hlt)
 {
-    if (smi_line && (cpu_fast_off_flags & 0x80000000))
-	cpu_fast_off_count = cpu_fast_off_val + 1;
-
     if ((in_smm == 0) && smi_line) {
 #ifdef ENABLE_386_COMMON_LOG
 	x386_common_log("SMI while not in SMM\n");
@@ -1140,40 +1219,61 @@ leave_smm(void)
     uint32_t smram_state = smbase + 0x10000;
 
     /* If it's a CPU on which SMM is not supported (or not implemented in 86Box), do nothing. */
-    if (!is_pentium && !is_k5 && !is_k6 && !is_p6)
+    if (!is_am486 && !is_pentium && !is_k5 && !is_k6 && !is_p6 && !is_cxsmm)
 	return;
 
     memset(saved_state, 0x00, SMM_SAVE_STATE_MAP_SIZE * sizeof(uint32_t));
 
-    for (n = 0; n < SMM_SAVE_STATE_MAP_SIZE; n++) {
-	smram_state -= 4;
-	saved_state[n] = readmeml(0, smram_state);
-	x386_common_log("Reading %08X from memory at %08X to array element %i\n", saved_state[n], smram_state, n);
+    cpl_override = 1;
+    if (is_cxsmm) {
+	smram_state = cyrix.smhr & SMHR_ADDR_MASK;
+	saved_state[0] = readmeml(0, smram_state - 0x04);
+	saved_state[1] = readmeml(0, smram_state - 0x08);
+	saved_state[2] = readmeml(0, smram_state - 0x0c);
+	saved_state[3] = readmeml(0, smram_state - 0x10);
+	saved_state[4] = readmeml(0, smram_state - 0x14);
+	saved_state[5] = readmeml(0, smram_state - 0x18);
+	cyrix_load_seg_descriptor(smram_state - 0x20, &cpu_state.seg_cs);
+	saved_state[6] = readmeml(0, smram_state - 0x24);
+    } else {
+	for (n = 0; n < SMM_SAVE_STATE_MAP_SIZE; n++) {
+		smram_state -= 4;
+		saved_state[n] = readmeml(0, smram_state);
+		x386_common_log("Reading %08X from memory at %08X to array element %i\n", saved_state[n], smram_state, n);
+	}
+    }
+    cpl_override = 0;
+
+    if (unmask_a20_in_smm) {
+	rammask = old_rammask;
+
+	flushmmucache();
     }
 
     x386_common_log("New SMBASE: %08X (%08X)\n", saved_state[SMRAM_FIELD_P5_SMBASE_OFFSET], saved_state[66]);
-    if (is_pentium)			/* Intel P5 (Pentium) */
+    if (is_cxsmm)			/* Cx6x86 */
+	smram_restore_state_cyrix(saved_state);
+    else if (is_pentium || is_am486)	/* Am486 / 5x86 / Intel P5 (Pentium) */
 	smram_restore_state_p5(saved_state);
-    else if (is_k5 || is_k6)	/* AMD K5 and K6 */
+    else if (is_k5 || is_k6)		/* AMD K5 and K6 */
 	smram_restore_state_amd_k(saved_state);
     else if (is_p6)			/* Intel P6 (Pentium Pro, Pentium II, Celeron) */
 	smram_restore_state_p6(saved_state);
 
     in_smm = 0;
-    if (temp_smram[0].size)
-	mem_mapping_recalc(temp_smram[0].host_base, temp_smram[0].size);
-    if (temp_smram[1].size)
-	mem_mapping_recalc(temp_smram[1].host_base, temp_smram[1].size);
-    memset(temp_smram, 0x00, sizeof(temp_smram));
-    if (smram[0].size)
-	mem_mapping_recalc(smram[0].host_base, smram[0].size);
-    if (smram[1].size)
-	mem_mapping_recalc(smram[1].host_base, smram[1].size);
-    flushmmucache();
+    smram_recalc_all(1);
 
-    cpu_state.op32 = use32;
+    cpu_386_flags_extract();
+    cpu_cur_status &= ~(CPU_STATUS_PMODE | CPU_STATUS_V86);
+    if (cr0 & 1) {
+	cpu_cur_status |= CPU_STATUS_PMODE;
+	if (cpu_state.eflags & VM_FLAG)
+		cpu_cur_status |= CPU_STATUS_V86;
+    }
 
     nmi_mask = 1;
+
+    oldcpl = CPL;
 
     CPU_BLOCK_END();
 
@@ -1224,7 +1324,7 @@ x86_int(int num)
     else {
 	addr = (num << 2) + idt.base;
 
-	if ((num << 2) + 3 > idt.limit) {
+	if ((num << 2UL) + 3UL > idt.limit) {
 		if (idt.limit < 35) {
 			cpu_state.abrt = 0;
 			softresetx86();
@@ -1275,7 +1375,7 @@ x86_int_sw(int num)
     else {
 	addr = (num << 2) + idt.base;
 
-	if ((num << 2) + 3 > idt.limit)
+	if ((num << 2UL) + 3UL > idt.limit)
 		x86_int(0x0d);
 	else {
 		if (stack32) {
@@ -1359,7 +1459,7 @@ x86illegal()
 
 
 int
-checkio(int port)
+checkio(uint32_t port)
 {
     uint16_t t;
     uint8_t d;
@@ -1371,15 +1471,11 @@ checkio(int port)
     if (cpu_state.abrt)
 	return 0;
 
-    if ((t + (port >> 3)) > tr.limit)
+    if ((t + (port >> 3UL)) > tr.limit)
 	return 1;
 
     cpl_override = 1;
-#ifdef USE_NEW_DYNAREC
     d = readmembl(tr.base + t + (port >> 3));
-#else
-    d = readmemb386l(0, tr.base + t + (port >> 3));
-#endif
     cpl_override = 0;
     return d & (1 << (port & 7));
 }
@@ -1425,7 +1521,7 @@ idivl(int32_t val)
     int64_t num, quo;
     int32_t rem, quo32;
 
-    if (val == 0)  {       
+    if (val == 0)  {
 	divexcp();
 	return 1;
     }
@@ -1461,50 +1557,9 @@ cpu_386_flags_rebuild()
 }
 
 
-/*	0 = Limit 0-15
-	1 = Base 0-15
-	2 = Base 16-23 (bits 0-7), Access rights
-		8-11	Type
-		12	S
-		13, 14	DPL
-		15	P
-	3 = Limit 16-19 (bits 0-3), Base 24-31 (bits 8-15), granularity, etc.
-		4	A
-		6	DB
-		7	G	*/
-static __inline void
-read_seg_data(uint16_t *seg_data, uint16_t seg, x86seg *s)
-{
-    uint32_t addr;
-
-    if (seg & 0x0004)
-	addr = (seg & 0xfff8) + ldt.base;
-    else
-	addr = (seg & 0xfff8) + gdt.base;
-
-    cpl_override = 1;
-    x386_common_log("read_seg_data(abrt = %02X): Begin (descriptor at %08X)\n", cpu_state.abrt, addr);
-    seg_data[0]=readmemw(0, addr);
-    x386_common_log("read_seg_data(abrt = %02X): seg_data[0] = %04X\n", cpu_state.abrt, seg_data[0]);
-    seg_data[1]=readmemw(0, addr + 2);
-    x386_common_log("read_seg_data(abrt = %02X): seg_data[1] = %04X\n", cpu_state.abrt, seg_data[1]);
-    seg_data[2]=readmemw(0, addr + 4);
-    x386_common_log("read_seg_data(abrt = %02X): seg_data[2] = %04X\n", cpu_state.abrt, seg_data[2]);
-    seg_data[3]=readmemw(0, addr + 6);
-    x386_common_log("read_seg_data(abrt = %02X): seg_data[3] = %04X\n", cpu_state.abrt, seg_data[3]);
-    if (s != &cpu_state.seg_cs) {
-	writememw(0, addr + 4, seg_data[2] | 0x100); /*Set accessed bit*/
-	x386_common_log("read_seg_data(abrt = %02X): accessed bit set\n", cpu_state.abrt);
-    }
-    cpl_override = 0;
-}
-
-
 int
 sysenter(uint32_t fetchdat)
 {
-    uint16_t seg_data[4];
-
 #ifdef ENABLE_386_COMMON_LOG
     x386_common_log("SYSENTER called\n");
 #endif
@@ -1517,7 +1572,7 @@ sysenter(uint32_t fetchdat)
 	return cpu_state.abrt;
     }
 
-    if (!(cs_msr & 0xFFF8)) {
+    if (!(msr.sysenter_cs & 0xFFF8)) {
 #ifdef ENABLE_386_COMMON_LOG
 	x386_common_log("SYSENTER: CS MSR is zero");
 #endif
@@ -1529,67 +1584,55 @@ sysenter(uint32_t fetchdat)
     x386_common_log("SYSENTER started:\n");
     x386_common_log("    CS %04X/%i: b=%08X l=%08X (%08X-%08X) a=%02X%02X; EIP=%08X\n", cpu_state.seg_cs.seg, !!cpu_state.seg_cs.checked, cpu_state.seg_cs.base, cpu_state.seg_cs.limit, cpu_state.seg_cs.limit_low, cpu_state.seg_cs.limit_high, cpu_state.seg_cs.ar_high, cpu_state.seg_cs.access, cpu_state.pc);
     x386_common_log("    SS %04X/%i: b=%08X l=%08X (%08X-%08X) a=%02X%02X; ESP=%08X\n", cpu_state.seg_ss.seg, !!cpu_state.seg_ss.checked, cpu_state.seg_ss.base, cpu_state.seg_ss.limit, cpu_state.seg_ss.limit_low, cpu_state.seg_ss.limit_high, cpu_state.seg_ss.ar_high, cpu_state.seg_ss.access, ESP);
-    x386_common_log("    Misc.  : MSR (CS/ESP/EIP)=%04X/%08X/%08X pccache=%08X/%08X\n", cs_msr, esp_msr, eip_msr, pccache, pccache2);
+    x386_common_log("    Misc.  : MSR (CS/ESP/EIP)=%04X/%08X/%08X pccache=%08X/%08X\n", msr.sysenter_cs, msr.sysenter_esp, msr.sysenter_eip, pccache, pccache2);
     x386_common_log("             EFLAGS=%04X%04X/%i 32=%i/%i ECX=%08X EDX=%08X abrt=%02X\n", cpu_state.eflags, cpu_state.flags, !!trap, !!use32, !!stack32, ECX, EDX, cpu_state.abrt);
 #endif
 
     /* Set VM, RF, and IF to 0. */
-    flags_rebuild();
     cpu_state.eflags &= ~(RF_FLAG | VM_FLAG);
     cpu_state.flags &= ~I_FLAG;
-    cpu_cur_status &= ~CPU_STATUS_V86;
 
 #ifndef USE_NEW_DYNAREC
     oldcs = CS;
 #endif
     cpu_state.oldpc = cpu_state.pc;
-#if 0
-    old_pc = cpu_state.pc;
-#endif
-    ESP = esp_msr;
-    cpu_state.pc = eip_msr;
+    ESP = msr.sysenter_esp;
+    cpu_state.pc = msr.sysenter_eip;
 
-#ifdef ENABLE_386_COMMON_LOG
-    x386_common_log("SYSENTER: Loading CS...\n");
-#endif
-    CS = (cs_msr & 0xFFFC);
-    cpu_state.seg_cs.access &= 0x9f;
-    read_seg_data(seg_data, CS, &cpu_state.seg_cs);
-    if (cpu_state.abrt)
-	return 1;
-    do_seg_load(&cpu_state.seg_cs, seg_data);
-    cpu_state.seg_cs.checked = 0;
-    set_use32(0x40);
+    cpu_state.seg_cs.seg = (msr.sysenter_cs & 0xfffc);
+    cpu_state.seg_cs.base = 0;
+    cpu_state.seg_cs.limit_low = 0;
+    cpu_state.seg_cs.limit = 0xffffffff;
+    cpu_state.seg_cs.limit_high = 0xffffffff;
+    cpu_state.seg_cs.access = 0x9b;
+    cpu_state.seg_cs.ar_high = 0xcf;
+    cpu_state.seg_cs.checked = 1;
+    oldcpl = 0;
 
-#ifdef ENABLE_386_COMMON_LOG
-    x386_common_log("SYSENTER: Loading SS...\n");
-#endif
-    SS = ((cs_msr + 8) & 0xFFFC);
-    read_seg_data(seg_data, SS, &cpu_state.seg_ss);
-    if (cpu_state.abrt)
-	return 1;
-    do_seg_load(&cpu_state.seg_ss, seg_data);
-    cpu_state.seg_ss.checked = 0;
+    cpu_state.seg_ss.seg = ((msr.sysenter_cs + 8) & 0xfffc);
+    cpu_state.seg_ss.base = 0;
+    cpu_state.seg_ss.limit_low = 0;
+    cpu_state.seg_ss.limit = 0xffffffff;
+    cpu_state.seg_ss.limit_high = 0xffffffff;
+    cpu_state.seg_ss.access = 0x93;
+    cpu_state.seg_ss.ar_high = 0xcf;
+    cpu_state.seg_ss.checked = 1;
 #ifdef USE_DYNAREC
     codegen_flat_ss = 0;
 #endif
-    if (cpu_state.seg_ss.base == 0 && cpu_state.seg_ss.limit_low == 0 &&
-    cpu_state.seg_ss.limit_high == 0xffffffff)
-	cpu_cur_status &= ~CPU_STATUS_NOTFLATSS;
-    else
-	cpu_cur_status |= CPU_STATUS_NOTFLATSS;
+
+    cpu_cur_status &= ~(CPU_STATUS_NOTFLATSS | CPU_STATUS_V86);
+    cpu_cur_status |= (CPU_STATUS_USE32 | CPU_STATUS_STACK32/* | CPU_STATUS_PMODE*/);
+    set_use32(1);
     set_stack32(1);
 
-    oldcpl = CPL;
-    flags_extract();
-    trap = 0;
     in_sys = 1;
 
 #ifdef ENABLE_386_COMMON_LOG
     x386_common_log("SYSENTER completed:\n");
     x386_common_log("    CS %04X/%i: b=%08X l=%08X (%08X-%08X) a=%02X%02X; EIP=%08X\n", cpu_state.seg_cs.seg, !!cpu_state.seg_cs.checked, cpu_state.seg_cs.base, cpu_state.seg_cs.limit, cpu_state.seg_cs.limit_low, cpu_state.seg_cs.limit_high, cpu_state.seg_cs.ar_high, cpu_state.seg_cs.access, cpu_state.pc);
     x386_common_log("    SS %04X/%i: b=%08X l=%08X (%08X-%08X) a=%02X%02X; ESP=%08X\n", cpu_state.seg_ss.seg, !!cpu_state.seg_ss.checked, cpu_state.seg_ss.base, cpu_state.seg_ss.limit, cpu_state.seg_ss.limit_low, cpu_state.seg_ss.limit_high, cpu_state.seg_ss.ar_high, cpu_state.seg_ss.access, ESP);
-    x386_common_log("    Misc.  : MSR (CS/ESP/EIP)=%04X/%08X/%08X pccache=%08X/%08X\n", cs_msr, esp_msr, eip_msr, pccache, pccache2);
+    x386_common_log("    Misc.  : MSR (CS/ESP/EIP)=%04X/%08X/%08X pccache=%08X/%08X\n", msr.sysenter_cs, msr.sysenter_esp, msr.sysenter_eip, pccache, pccache2);
     x386_common_log("             EFLAGS=%04X%04X/%i 32=%i/%i ECX=%08X EDX=%08X abrt=%02X\n", cpu_state.eflags, cpu_state.flags, !!trap, !!use32, !!stack32, ECX, EDX, cpu_state.abrt);
 #endif
 
@@ -1600,13 +1643,11 @@ sysenter(uint32_t fetchdat)
 int
 sysexit(uint32_t fetchdat)
 {
-    uint16_t seg_data[4];
-
 #ifdef ENABLE_386_COMMON_LOG
     x386_common_log("SYSEXIT called\n");
 #endif
 
-    if (!(cs_msr & 0xFFF8)) {
+    if (!(msr.sysenter_cs & 0xFFF8)) {
 #ifdef ENABLE_386_COMMON_LOG
 	x386_common_log("SYSEXIT: CS MSR is zero");
 #endif
@@ -1634,7 +1675,7 @@ sysexit(uint32_t fetchdat)
     x386_common_log("SYSEXIT start:\n");
     x386_common_log("    CS %04X/%i: b=%08X l=%08X (%08X-%08X) a=%02X%02X; EIP=%08X\n", cpu_state.seg_cs.seg, !!cpu_state.seg_cs.checked, cpu_state.seg_cs.base, cpu_state.seg_cs.limit, cpu_state.seg_cs.limit_low, cpu_state.seg_cs.limit_high, cpu_state.seg_cs.ar_high, cpu_state.seg_cs.access, cpu_state.pc);
     x386_common_log("    SS %04X/%i: b=%08X l=%08X (%08X-%08X) a=%02X%02X; ESP=%08X\n", cpu_state.seg_ss.seg, !!cpu_state.seg_ss.checked, cpu_state.seg_ss.base, cpu_state.seg_ss.limit, cpu_state.seg_ss.limit_low, cpu_state.seg_ss.limit_high, cpu_state.seg_ss.ar_high, cpu_state.seg_ss.access, ESP);
-    x386_common_log("    Misc.  : MSR (CS/ESP/EIP)=%04X/%08X/%08X pccache=%08X/%08X\n", cs_msr, esp_msr, eip_msr, pccache, pccache2);
+    x386_common_log("    Misc.  : MSR (CS/ESP/EIP)=%04X/%08X/%08X pccache=%08X/%08X\n", msr.sysenter_cs, msr.sysenter_esp, msr.sysenter_eip, pccache, pccache2);
     x386_common_log("             EFLAGS=%04X%04X/%i 32=%i/%i ECX=%08X EDX=%08X abrt=%02X\n", cpu_state.eflags, cpu_state.flags, !!trap, !!use32, !!stack32, ECX, EDX, cpu_state.abrt);
 #endif
 
@@ -1645,46 +1686,41 @@ sysexit(uint32_t fetchdat)
     ESP = ECX;
     cpu_state.pc = EDX;
 
-#ifdef ENABLE_386_COMMON_LOG
-    x386_common_log("SYSEXIT: Loading CS...\n");
-#endif
-    CS = (((cs_msr + 16) & 0xFFFC) | 3);
-    read_seg_data(seg_data, CS, &cpu_state.seg_cs);
-    if (cpu_state.abrt)
-	return 1;
-    do_seg_load(&cpu_state.seg_cs, seg_data);
-    cpu_state.seg_cs.checked = 0;
-    set_use32(0x40);
+    cpu_state.seg_cs.seg = (((msr.sysenter_cs + 16) & 0xfffc) | 3);
+    cpu_state.seg_cs.base = 0;
+    cpu_state.seg_cs.limit_low = 0;
+    cpu_state.seg_cs.limit = 0xffffffff;
+    cpu_state.seg_cs.limit_high = 0xffffffff;
+    cpu_state.seg_cs.access = 0xfb;
+    cpu_state.seg_cs.ar_high = 0xcf;
+    cpu_state.seg_cs.checked = 1;
+    oldcpl = 3;
 
-#ifdef ENABLE_386_COMMON_LOG
-    x386_common_log("SYSEXIT: Loading SS...\n");
-#endif
-    SS = (((cs_msr + 24) & 0xFFFC) | 3);
-    read_seg_data(seg_data, SS, &cpu_state.seg_ss);
-    if (cpu_state.abrt)
-	return 1;
-    do_seg_load(&cpu_state.seg_ss, seg_data);
-    cpu_state.seg_ss.checked = 0;
+    cpu_state.seg_ss.seg = (((msr.sysenter_cs + 24) & 0xfffc) | 3);
+    cpu_state.seg_ss.base = 0;
+    cpu_state.seg_ss.limit_low = 0;
+    cpu_state.seg_ss.limit = 0xffffffff;
+    cpu_state.seg_ss.limit_high = 0xffffffff;
+    cpu_state.seg_ss.access = 0xf3;
+    cpu_state.seg_ss.ar_high = 0xcf;
+    cpu_state.seg_ss.checked = 1;
 #ifdef USE_DYNAREC
     codegen_flat_ss = 0;
 #endif
-    if (cpu_state.seg_ss.base == 0 && cpu_state.seg_ss.limit_low == 0 &&
-	cpu_state.seg_ss.limit_high == 0xffffffff)
-	cpu_cur_status &= ~CPU_STATUS_NOTFLATSS;
-    else
-	cpu_cur_status |= CPU_STATUS_NOTFLATSS;
+
+    cpu_cur_status &= ~(CPU_STATUS_NOTFLATSS/* | CPU_STATUS_V86*/);
+    cpu_cur_status |= (CPU_STATUS_USE32 | CPU_STATUS_STACK32 | CPU_STATUS_PMODE);
+    flushmmucache_cr3();
+    set_use32(1);
     set_stack32(1);
 
-    flushmmucache_cr3();
-    oldcpl = CPL;
-    trap = 0;
     in_sys = 0;
 
 #ifdef ENABLE_386_COMMON_LOG
     x386_common_log("SYSEXIT completed:\n");
     x386_common_log("    CS %04X/%i: b=%08X l=%08X (%08X-%08X) a=%02X%02X; EIP=%08X\n", cpu_state.seg_cs.seg, !!cpu_state.seg_cs.checked, cpu_state.seg_cs.base, cpu_state.seg_cs.limit, cpu_state.seg_cs.limit_low, cpu_state.seg_cs.limit_high, cpu_state.seg_cs.ar_high, cpu_state.seg_cs.access, cpu_state.pc);
     x386_common_log("    SS %04X/%i: b=%08X l=%08X (%08X-%08X) a=%02X%02X; ESP=%08X\n", cpu_state.seg_ss.seg, !!cpu_state.seg_ss.checked, cpu_state.seg_ss.base, cpu_state.seg_ss.limit, cpu_state.seg_ss.limit_low, cpu_state.seg_ss.limit_high, cpu_state.seg_ss.ar_high, cpu_state.seg_ss.access, ESP);
-    x386_common_log("    Misc.  : MSR (CS/ESP/EIP)=%04X/%08X/%08X pccache=%08X/%08X\n", cs_msr, esp_msr, eip_msr, pccache, pccache2);
+    x386_common_log("    Misc.  : MSR (CS/ESP/EIP)=%04X/%08X/%08X pccache=%08X/%08X\n", msr.sysenter_cs, msr.sysenter_esp, msr.sysenter_eip, pccache, pccache2);
     x386_common_log("             EFLAGS=%04X%04X/%i 32=%i/%i ECX=%08X EDX=%08X abrt=%02X\n", cpu_state.eflags, cpu_state.flags, !!trap, !!use32, !!stack32, ECX, EDX, cpu_state.abrt);
 #endif
 
@@ -1693,61 +1729,52 @@ sysexit(uint32_t fetchdat)
 
 
 int
-syscall(uint32_t fetchdat)
+syscall_op(uint32_t fetchdat)
 {
-    uint16_t seg_data[4];
-
 #ifdef ENABLE_386_COMMON_LOG
     x386_common_log("SYSCALL called\n");
 #endif
 
-    if (!(cr0 & 1)) {
-	x86gpf("SYSCALL: CPU not in protected mode", 0);
-	return cpu_state.abrt;
-    }
-
-    if (!AMD_SYSCALL_SB) {
-	x86gpf("SYSCALL: AMD SYSCALL SB MSR is zero", 0);
-	return cpu_state.abrt;
-    }
-
     /* Let's do this by the AMD spec. */
+    /* Set VM and IF to 0. */
+    cpu_state.eflags &= ~VM_FLAG;
+    cpu_state.flags &= ~I_FLAG;
+
+#ifndef USE_NEW_DYNAREC
+    oldcs = CS;
+#endif
+    cpu_state.oldpc = cpu_state.pc;
     ECX = cpu_state.pc;
 
-    flags_rebuild();
-    cpu_state.eflags &= ~0x0002;
-    cpu_state.flags &= ~0x0200;
-    cpu_cur_status &= ~CPU_STATUS_V86;
-
     /* CS */
-    CS = AMD_SYSCALL_SB & 0xFFFC;
-    read_seg_data(seg_data, CS, &cpu_state.seg_cs);
-    if (cpu_state.abrt)
-	return 1;
-    do_seg_load(&cpu_state.seg_cs, seg_data);
-    cpu_state.seg_cs.checked = 0;
-    set_use32(0x40);
+    CS = AMD_SYSCALL_SB & 0xfffc;
+    cpu_state.seg_cs.base = 0;
+    cpu_state.seg_cs.limit_low = 0;
+    cpu_state.seg_cs.limit = 0xffffffff;
+    cpu_state.seg_cs.limit_high = 0xffffffff;
+    cpu_state.seg_cs.access = 0x9b;
+    cpu_state.seg_cs.ar_high = 0xcf;
+    cpu_state.seg_cs.checked = 1;
+    oldcpl = 0;
 
     /* SS */
-    SS = (AMD_SYSCALL_SB + 8) & 0xFFFC;
-    read_seg_data(seg_data, SS, &cpu_state.seg_ss);
-    if (cpu_state.abrt)
-	return 1;
-    do_seg_load(&cpu_state.seg_ss, seg_data);
-    cpu_state.seg_ss.checked = 0;
+    SS = (AMD_SYSCALL_SB + 8) & 0xfffc;
+    cpu_state.seg_ss.base = 0;
+    cpu_state.seg_ss.limit_low = 0;
+    cpu_state.seg_ss.limit = 0xffffffff;
+    cpu_state.seg_ss.limit_high = 0xffffffff;
+    cpu_state.seg_ss.access = 0x93;
+    cpu_state.seg_ss.ar_high = 0xcf;
+    cpu_state.seg_ss.checked = 1;
 #ifdef USE_DYNAREC
     codegen_flat_ss = 0;
 #endif
-    if (cpu_state.seg_ss.base == 0 && cpu_state.seg_ss.limit_low == 0 &&
-	cpu_state.seg_ss.limit_high == 0xffffffff)
-	cpu_cur_status &= ~CPU_STATUS_NOTFLATSS;
-    else
-	cpu_cur_status |= CPU_STATUS_NOTFLATSS;
+
+    cpu_cur_status &= ~(CPU_STATUS_NOTFLATSS | CPU_STATUS_V86);
+    cpu_cur_status |= (CPU_STATUS_USE32 | CPU_STATUS_STACK32 | CPU_STATUS_PMODE);
+    set_use32(1);
     set_stack32(1);
 
-    oldcpl = CPL;
-    flags_extract();
-    trap = 0;
     in_sys = 1;
 
     return 1;
@@ -1757,59 +1784,113 @@ syscall(uint32_t fetchdat)
 int
 sysret(uint32_t fetchdat)
 {
-    uint16_t seg_data[4];
-
 #ifdef ENABLE_386_COMMON_LOG
     x386_common_log("SYSRET called\n");
 #endif
 
-    if (!AMD_SYSRET_SB) {
-	x86gpf("SYSRET: CS MSR is zero", 0);
+    if (CPL) {
+#ifdef ENABLE_386_COMMON_LOG
+	x386_common_log("SYSRET: CPL not 0");
+#endif
+	x86gpf("SYSRET: CPL not 0", 0);
 	return cpu_state.abrt;
     }
 
-    if (!(cr0 & 1)) {
-	x86gpf("SYSRET: CPU not in protected mode", 0);
-	return cpu_state.abrt;
-    }
+    cpu_state.flags |= I_FLAG;
+    /* First instruction after SYSRET will always execute, regardless of whether
+       there is a pending interrupt, following the STI logic */
+    cpu_end_block_after_ins = 2;
 
+#ifndef USE_NEW_DYNAREC
+    oldcs = CS;
+#endif
+    cpu_state.oldpc = cpu_state.pc;
     cpu_state.pc = ECX;
 
-    cpu_state.eflags |= (1 << 1);
-
     /* CS */
-    CS = (AMD_SYSRET_SB & 0xFFFC) | 3;
-    cpu_state.seg_cs.seg = AMD_SYSRET_SB & ~7;
-    read_seg_data(seg_data, CS, &cpu_state.seg_cs);
-    if (cpu_state.abrt)
-	return 1;
-    do_seg_load(&cpu_state.seg_cs, seg_data);
-    cpu_state.seg_cs.checked = 0;
-    set_use32(0x40);
+    CS = (AMD_SYSRET_SB & 0xfffc) | 3;
+    cpu_state.seg_cs.base = 0;
+    cpu_state.seg_cs.limit_low = 0;
+    cpu_state.seg_cs.limit = 0xffffffff;
+    cpu_state.seg_cs.limit_high = 0xffffffff;
+    cpu_state.seg_cs.access = 0xfb;
+    cpu_state.seg_cs.ar_high = 0xcf;
+    cpu_state.seg_cs.checked = 1;
+    oldcpl = 3;
 
     /* SS */
-    SS = ((AMD_SYSRET_SB + 8) & 0xFFFC) | 3;
-    read_seg_data(seg_data, SS, &cpu_state.seg_ss);
-    if (cpu_state.abrt)
-	return 1;
-    do_seg_load(&cpu_state.seg_ss, seg_data);
-    cpu_state.seg_ss.checked = 0;
+    SS = ((AMD_SYSRET_SB + 8) & 0xfffc) | 3;
+    cpu_state.seg_ss.base = 0;
+    cpu_state.seg_ss.limit_low = 0;
+    cpu_state.seg_ss.limit = 0xffffffff;
+    cpu_state.seg_ss.limit_high = 0xffffffff;
+    cpu_state.seg_ss.access = 0xf3;
+    cpu_state.seg_cs.ar_high = 0xcf;
+    cpu_state.seg_ss.checked = 1;
 #ifdef USE_DYNAREC
     codegen_flat_ss = 0;
 #endif
-    if (cpu_state.seg_ss.base == 0 && cpu_state.seg_ss.limit_low == 0 &&
-	cpu_state.seg_ss.limit_high == 0xffffffff)
-	cpu_cur_status &= ~CPU_STATUS_NOTFLATSS;
-    else
-	cpu_cur_status |= CPU_STATUS_NOTFLATSS;
+
+    cpu_cur_status &= ~(CPU_STATUS_NOTFLATSS/* | CPU_STATUS_V86*/);
+    cpu_cur_status |= (CPU_STATUS_USE32 | CPU_STATUS_STACK32 | CPU_STATUS_PMODE);
+    flushmmucache_cr3();
+    set_use32(1);
     set_stack32(1);
 
-    flushmmucache_cr3();
-    oldcpl = CPL;
-    trap = 0;
     in_sys = 0;
 
     return 1;
+}
+
+
+void
+cpu_register_fast_off_handler(void *timer)
+{
+    cpu_fast_off_timer = (pc_timer_t *) timer;
+}
+
+
+void
+cpu_fast_off_advance(void)
+{
+    timer_disable(cpu_fast_off_timer);
+    if (cpu_fast_off_period != 0.0)
+	timer_on_auto(cpu_fast_off_timer, cpu_fast_off_period);
+}
+
+
+void
+cpu_fast_off_period_set(uint16_t val, double period)
+{
+    cpu_fast_off_period = ((double) (val + 1)) * period;
+    cpu_fast_off_advance();
+}
+
+
+void
+cpu_fast_off_reset(void)
+{
+    cpu_register_fast_off_handler(NULL);
+    cpu_fast_off_period = 0.0;
+    cpu_fast_off_advance();
+}
+
+
+void
+smi_raise(void)
+{
+    if (is486 && (cpu_fast_off_flags & 0x80000000))
+	cpu_fast_off_advance();
+
+    smi_line = 1;
+}
+
+
+void
+nmi_raise(void)
+{
+    if (is486 && (cpu_fast_off_flags & 0x20000000))
+	cpu_fast_off_advance();
 }
 
 
@@ -1817,7 +1898,6 @@ sysret(uint32_t fetchdat)
 /* This is for compatibility with new x87 code. */
 void codegen_set_rounding_mode(int mode)
 {
-	/* cpu_state.new_npxc = (cpu_state.old_npxc & ~0xc00) | (cpu_state.npxc & 0xc00); */
-	cpu_state.new_npxc = (cpu_state.old_npxc & ~0xc00) | (mode << 10);
+	/* cpu_state.new_npxc = (cpu_state.old_npxc & ~0xc00) | (mode << 10); */
 }
 #endif

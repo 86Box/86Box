@@ -6,7 +6,7 @@
  *
  *		This file is part of the 86Box distribution.
  *
- *		Definitions for the SMBus handler.
+  *		Definitions for the SMBus host controllers.
  *
  *
  *
@@ -14,54 +14,56 @@
  *
  *		Copyright 2020 RichardG.
  */
-#ifndef EMU_SMBUS_H
-# define EMU_SMBUS_H
+
+#ifndef EMU_SMBUS_PIIX4_H
+# define EMU_SMBUS_PIIX4_H
 
 
-extern void	smbus_init(void);
+#define SMBUS_PIIX4_BLOCK_DATA_SIZE	32
+#define SMBUS_PIIX4_BLOCK_DATA_MASK	(SMBUS_PIIX4_BLOCK_DATA_SIZE - 1)
 
-extern void	smbus_sethandler(uint8_t base, int size,
-    			uint8_t (*read_byte)(uint8_t addr, void *priv),
-    			uint8_t (*read_byte_cmd)(uint8_t addr, uint8_t cmd, void *priv),
-    			uint16_t (*read_word_cmd)(uint8_t addr, uint8_t cmd, void *priv),
-    			uint8_t (*read_block_cmd)(uint8_t addr, uint8_t cmd, uint8_t *data, uint8_t len, void *priv),
-    			void (*write_byte)(uint8_t addr, uint8_t val, void *priv),
-    			void (*write_byte_cmd)(uint8_t addr, uint8_t cmd, uint8_t val, void *priv),
-    			void (*write_word_cmd)(uint8_t addr, uint8_t cmd, uint16_t val, void *priv),
-    			void (*write_block_cmd)(uint8_t addr, uint8_t cmd, uint8_t *data, uint8_t len, void *priv),
-    			void *priv);
-
-extern void	smbus_removehandler(uint8_t base, int size,
-    			uint8_t (*read_byte)(uint8_t addr, void *priv),
-    			uint8_t (*read_byte_cmd)(uint8_t addr, uint8_t cmd, void *priv),
-    			uint16_t (*read_word_cmd)(uint8_t addr, uint8_t cmd, void *priv),
-    			uint8_t (*read_block_cmd)(uint8_t addr, uint8_t cmd, uint8_t *data, uint8_t len, void *priv),
-    			void (*write_byte)(uint8_t addr, uint8_t val, void *priv),
-    			void (*write_byte_cmd)(uint8_t addr, uint8_t cmd, uint8_t val, void *priv),
-    			void (*write_word_cmd)(uint8_t addr, uint8_t cmd, uint16_t val, void *priv),
-    			void (*write_block_cmd)(uint8_t addr, uint8_t cmd, uint8_t *data, uint8_t len, void *priv),
-    			void *priv);
-
-extern void	smbus_handler(int set, uint8_t base, int size,
-    			uint8_t (*read_byte)(uint8_t addr, void *priv),
-    			uint8_t (*read_byte_cmd)(uint8_t addr, uint8_t cmd, void *priv),
-    			uint16_t (*read_word_cmd)(uint8_t addr, uint8_t cmd, void *priv),
-    			uint8_t (*read_block_cmd)(uint8_t addr, uint8_t cmd, uint8_t *data, uint8_t len, void *priv),
-    			void (*write_byte)(uint8_t addr, uint8_t val, void *priv),
-    			void (*write_byte_cmd)(uint8_t addr, uint8_t cmd, uint8_t val, void *priv),
-    			void (*write_word_cmd)(uint8_t addr, uint8_t cmd, uint16_t val, void *priv),
-    			void (*write_block_cmd)(uint8_t addr, uint8_t cmd, uint8_t *data, uint8_t len, void *priv),
-    			void *priv);
-
-extern uint8_t	smbus_has_device(uint8_t addr);
-extern uint8_t	smbus_read_byte(uint8_t addr);
-extern uint8_t	smbus_read_byte_cmd(uint8_t addr, uint8_t cmd);
-extern uint16_t	smbus_read_word_cmd(uint8_t addr, uint8_t cmd);
-extern uint8_t	smbus_read_block_cmd(uint8_t addr, uint8_t cmd, uint8_t *data, uint8_t len);
-extern void	smbus_write_byte(uint8_t addr, uint8_t val);
-extern void	smbus_write_byte_cmd(uint8_t addr, uint8_t cmd, uint8_t val);
-extern void	smbus_write_word_cmd(uint8_t addr, uint8_t cmd, uint16_t val);
-extern void	smbus_write_block_cmd(uint8_t addr, uint8_t cmd, uint8_t *data, uint8_t len);
+#define SMBUS_ALI7101_BLOCK_DATA_SIZE	32
+#define SMBUS_ALI7101_BLOCK_DATA_MASK	(SMBUS_ALI7101_BLOCK_DATA_SIZE - 1)
 
 
-#endif	/*EMU_SMBUS_H*/
+enum {
+    SMBUS_PIIX4 = 0,
+    SMBUS_VIA
+};
+
+typedef struct {
+    uint32_t	local;
+    uint16_t	io_base;
+    int		clock;
+    double	bit_period;
+    uint8_t	stat, next_stat, ctl, cmd, addr,
+		data0, data1,
+		index, data[SMBUS_PIIX4_BLOCK_DATA_SIZE];
+    pc_timer_t	response_timer;
+    void	*i2c;
+} smbus_piix4_t;
+
+typedef struct {
+    uint32_t	local;
+    uint16_t	io_base;
+    uint8_t	stat, next_stat, ctl, cmd, addr,
+		data0, data1,
+		index, data[SMBUS_ALI7101_BLOCK_DATA_SIZE];
+    pc_timer_t	response_timer;
+    void	*i2c;
+} smbus_ali7101_t;
+
+extern void	smbus_piix4_remap(smbus_piix4_t *dev, uint16_t new_io_base, uint8_t enable);
+extern void	smbus_piix4_setclock(smbus_piix4_t *dev, int clock);
+
+extern void	smbus_ali7101_remap(smbus_ali7101_t *dev, uint16_t new_io_base, uint8_t enable);
+
+
+#ifdef EMU_DEVICE_H
+extern const device_t piix4_smbus_device;
+extern const device_t via_smbus_device;
+
+extern const device_t ali7101_smbus_device;
+#endif
+
+#endif	/*EMU_SMBUS_PIIX4_H*/

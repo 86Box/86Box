@@ -30,6 +30,7 @@
 #include <86box/plat.h>
 #include <86box/ui.h>
 #include <86box/scsi_disk.h>
+#include <86box/version.h>
 
 
 #define scsi_disk_sense_error dev->sense[0]
@@ -145,14 +146,14 @@ void
 scsi_disk_mode_sense_load(scsi_disk_t *dev)
 {
     FILE *f;
-    wchar_t file_name[512];
+    char file_name[512];
 
     memset(&dev->ms_pages_saved, 0, sizeof(mode_sense_pages_t));
     memcpy(&dev->ms_pages_saved, &scsi_disk_mode_sense_pages_default, sizeof(mode_sense_pages_t));
 
-    memset(file_name, 0, 512 * sizeof(wchar_t));
-    swprintf(file_name, 512, L"scsi_disk_%02i_mode_sense.bin", dev->id);
-    f = plat_fopen(nvr_path(file_name), L"rb");
+    memset(file_name, 0, 512);
+    sprintf(file_name, "scsi_disk_%02i_mode_sense.bin", dev->id);
+    f = plat_fopen(nvr_path(file_name), "rb");
     if (f) {
 	if (fread(dev->ms_pages_saved.pages[0x30], 1, 0x18, f) != 0x18)
 		fatal("scsi_disk_mode_sense_load(): Error reading data\n");
@@ -165,11 +166,11 @@ void
 scsi_disk_mode_sense_save(scsi_disk_t *dev)
 {
     FILE *f;
-    wchar_t file_name[512];
+    char file_name[512];
 
-    memset(file_name, 0, 512 * sizeof(wchar_t));
-    swprintf(file_name, 512, L"scsi_disk_%02i_mode_sense.bin", dev->id);
-    f = plat_fopen(nvr_path(file_name), L"wb");
+    memset(file_name, 0, 512);
+    sprintf(file_name, "scsi_disk_%02i_mode_sense.bin", dev->id);
+    f = plat_fopen(nvr_path(file_name), "wb");
     if (f) {
 	fwrite(dev->ms_pages_saved.pages[0x30], 1, 0x18, f);
 	fclose(f);
@@ -346,12 +347,13 @@ scsi_disk_sense_clear(scsi_disk_t *dev, int command)
 static void
 scsi_disk_set_phase(scsi_disk_t *dev, uint8_t phase)
 {
-    uint8_t scsi_id = dev->drv->scsi_id;
+    uint8_t scsi_bus = (dev->drv->scsi_id >> 4) & 0x0f;
+    uint8_t scsi_id = dev->drv->scsi_id & 0x0f;
 
     if (dev->drv->bus != HDD_BUS_SCSI)
 	return;
 
-    scsi_devices[scsi_id].phase = phase;
+    scsi_devices[scsi_bus][scsi_id].phase = phase;
 }
 
 
@@ -435,7 +437,7 @@ scsi_disk_data_phase_error(scsi_disk_t *dev)
 static int
 scsi_disk_pre_execution_check(scsi_disk_t *dev, uint8_t *cdb)
 {
-    if ((cdb[0] != GPCMD_REQUEST_SENSE) && (cdb[1] & 0xe0)) {
+    if ((cdb[0] != GPCMD_REQUEST_SENSE) && (dev->cur_lun == SCSI_LUN_USE_CDB) && (cdb[1] & 0xe0)) {
 	scsi_disk_log("SCSI HD %i: Attempting to execute a unknown command targeted at SCSI LUN %i\n",
 		    dev->id, ((dev->request_length >> 5) & 7));
 	scsi_disk_invalid_lun(dev);
@@ -487,12 +489,13 @@ scsi_disk_reset(scsi_common_t *sc)
     dev->status = 0;
     dev->callback = 0.0;
     dev->packet_status = PHASE_NONE;
+    dev->cur_lun = SCSI_LUN_USE_CDB;
 }
 
 
 void
 scsi_disk_request_sense(scsi_disk_t *dev, uint8_t *buffer, uint8_t alloc_length, int desc)
-{				
+{
     /*Will return 18 bytes of 0*/
     if (alloc_length != 0) {
 	memset(buffer, 0, alloc_length);
@@ -570,8 +573,10 @@ scsi_disk_command(scsi_common_t *sc, uint8_t *cdb)
     char device_identify[9] = { '8', '6', 'B', '_', 'H', 'D', '0', '0', 0 };
     char device_identify_ex[15] = { '8', '6', 'B', '_', 'H', 'D', '0', '0', ' ', 'v', '1', '.', '0', '0', 0 };
     int block_desc = 0;
+    uint8_t scsi_bus = (dev->drv->scsi_id >> 4) & 0x0f;
+    uint8_t scsi_id = dev->drv->scsi_id & 0x0f;
 
-    BufLen = &scsi_devices[dev->drv->scsi_id].buffer_length;
+    BufLen = &scsi_devices[scsi_bus][scsi_id].buffer_length;
 
     last_sector = hdd_image_get_last_sector(dev->id);
 
@@ -583,9 +588,9 @@ scsi_disk_command(scsi_common_t *sc, uint8_t *cdb)
 
     device_identify_ex[6] = (dev->id / 10) + 0x30;
     device_identify_ex[7] = (dev->id % 10) + 0x30;
-    device_identify_ex[10] = EMU_VERSION[0];
-    device_identify_ex[12] = EMU_VERSION[2];
-    device_identify_ex[13] = EMU_VERSION[3];
+    device_identify_ex[10] = EMU_VERSION_EX[0];
+    device_identify_ex[12] = EMU_VERSION_EX[2];
+    device_identify_ex[13] = EMU_VERSION_EX[3];
 
     memcpy(dev->current_cdb, cdb, 12);
 
@@ -917,7 +922,7 @@ scsi_disk_command(scsi_common_t *sc, uint8_t *cdb)
 			dev->packet_status = PHASE_COMPLETE;
 			dev->callback = 20.0 * SCSI_TIME;
 			break;
-		}			
+		}
 
 		scsi_disk_buf_alloc(dev, 65536);
 
@@ -984,7 +989,7 @@ scsi_disk_command(scsi_common_t *sc, uint8_t *cdb)
 
 			ide_padstr8(dev->temp_buffer + 8, 8, EMU_NAME); /* Vendor */
 			ide_padstr8(dev->temp_buffer + 16, 16, device_identify); /* Product */
-			ide_padstr8(dev->temp_buffer + 32, 4, EMU_VERSION); /* Revision */
+			ide_padstr8(dev->temp_buffer + 32, 4, EMU_VERSION_EX); /* Revision */
 			idx = 36;
 
 			if (max_len == 96) {
@@ -1071,11 +1076,14 @@ static uint8_t
 scsi_disk_phase_data_out(scsi_common_t *sc)
 {
     scsi_disk_t *dev = (scsi_disk_t *) sc;
+    uint8_t scsi_bus = (dev->drv->scsi_id >> 4) & 0x0f;
+    uint8_t scsi_id = dev->drv->scsi_id & 0x0f;
     int i;
-    int32_t *BufLen = &scsi_devices[dev->drv->scsi_id].buffer_length;
+    int32_t *BufLen = &scsi_devices[scsi_bus][scsi_id].buffer_length;
     uint32_t last_sector = hdd_image_get_last_sector(dev->id);
     uint32_t c, h, s, last_to_write = 0;
     uint16_t block_desc_len, pos;
+    uint16_t param_list_len;
     uint8_t hdr_len, val, old_val, ch, error = 0;
     uint8_t page, page_len;
 
@@ -1132,10 +1140,15 @@ scsi_disk_phase_data_out(scsi_common_t *sc)
 		break;
 	case GPCMD_MODE_SELECT_6:
 	case GPCMD_MODE_SELECT_10:
-		if (dev->current_cdb[0] == GPCMD_MODE_SELECT_10)
+		if (dev->current_cdb[0] == GPCMD_MODE_SELECT_10) {
 			hdr_len = 8;
-		else
+			param_list_len = dev->current_cdb[7];
+			param_list_len <<= 8;
+			param_list_len |= dev->current_cdb[8];
+		} else {
 			hdr_len = 4;
+			param_list_len = dev->current_cdb[4];
+		}
 
 		if (dev->current_cdb[0] == GPCMD_MODE_SELECT_6) {
 			block_desc_len = dev->temp_buffer[2];
@@ -1150,7 +1163,7 @@ scsi_disk_phase_data_out(scsi_common_t *sc)
 		pos = hdr_len + block_desc_len;
 
 		while(1) {
-			if (pos >= dev->current_cdb[4]) {
+			if (pos >= param_list_len) {
 				scsi_disk_log("SCSI HD %i: Buffer has only block descriptor\n", dev->id);
 				break;
 			}
@@ -1207,17 +1220,25 @@ scsi_disk_hard_reset(void)
     int c;
     scsi_disk_t *dev;
     scsi_device_t *sd;
+    uint8_t scsi_bus, scsi_id;
 
     for (c = 0; c < HDD_NUM; c++) {
 	if (hdd[c].bus == HDD_BUS_SCSI) {
 		scsi_disk_log("SCSI disk hard_reset drive=%d\n", c);
 
+		scsi_bus = (hdd[c].scsi_id >> 4) & 0x0f;
+		scsi_id = hdd[c].scsi_id & 0x0f;
+
+		/* Make sure to ignore any SCSI disk that has an out of range SCSI bus. */
+		if (scsi_bus >= SCSI_BUS_MAX)
+			continue;
+
 		/* Make sure to ignore any SCSI disk that has an out of range ID. */
-		if (hdd[c].scsi_id >= SCSI_ID_MAX)
+		if (scsi_id >= SCSI_ID_MAX)
 			continue;
 
 		/* Make sure to ignore any SCSI disk whose image file name is empty. */
-		if (wcslen(hdd[c].fn) == 0)
+		if (strlen(hdd[c].fn) == 0)
 			continue;
 
 		/* Make sure to ignore any SCSI disk whose image fails to load. */
@@ -1232,7 +1253,7 @@ scsi_disk_hard_reset(void)
 		dev = (scsi_disk_t *) hdd[c].priv;
 
 		/* SCSI disk, attach to the SCSI bus. */
-		sd = &scsi_devices[hdd[c].scsi_id];
+		sd = &scsi_devices[scsi_bus][scsi_id];
 
 		sd->sc = (scsi_common_t *) dev;
 		sd->command = scsi_disk_command;
@@ -1244,6 +1265,8 @@ scsi_disk_hard_reset(void)
 
 		dev->id = c;
 		dev->drv = &hdd[c];
+
+		dev->cur_lun = SCSI_LUN_USE_CDB;
 
 		scsi_disk_mode_sense_load(dev);
 
@@ -1258,10 +1281,14 @@ scsi_disk_close(void)
 {
     scsi_disk_t *dev;
     int c;
+    uint8_t scsi_bus, scsi_id;
 
     for (c = 0; c < HDD_NUM; c++) {
 	if (hdd[c].bus == HDD_BUS_SCSI) {
-		memset(&scsi_devices[hdd[c].scsi_id], 0x00, sizeof(scsi_device_t));
+		scsi_bus = (hdd[c].scsi_id >> 4) & 0x0f;
+		scsi_id = hdd[c].scsi_id & 0x0f;
+
+		memset(&scsi_devices[scsi_bus][scsi_id], 0x00, sizeof(scsi_device_t));
 
 		hdd_image_close(c);
 

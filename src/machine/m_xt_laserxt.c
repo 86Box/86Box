@@ -16,6 +16,7 @@
 #include <86box/timer.h>
 #include <86box/fdd.h>
 #include <86box/fdc.h>
+#include <86box/fdc_ext.h>
 #include <86box/gameport.h>
 #include <86box/keyboard.h>
 
@@ -139,7 +140,7 @@ machine_xt_laserxt_init(const machine_t *model)
 {
 	int ret;
 
-	ret = bios_load_linear(L"roms/machines/ltxt/27c64.bin",
+	ret = bios_load_linear("roms/machines/ltxt/27c64.bin",
 			       0x000fe000, 8192, 0);
 
 	if (bios_only || !ret)
@@ -158,7 +159,7 @@ machine_xt_lxt3_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear(L"roms/machines/lxt3/27c64d.bin",
+    ret = bios_load_linear("roms/machines/lxt3/27c64d.bin",
 			   0x000fe000, 8192, 0);
 
     if (bios_only || !ret)
@@ -166,13 +167,14 @@ machine_xt_lxt3_init(const machine_t *model)
 
     machine_common_init(model);
 
-    pit_ctr_set_out_func(&pit->counters[1], pit_refresh_timer_xt);
+    pit_devs[0].set_out_func(pit_devs[0].data, 1, pit_refresh_timer_xt);
 
     device_add(&keyboard_xt_lxt3_device);
+
+    if (fdc_type == FDC_INTERNAL)
     device_add(&fdc_xt_device);
     nmi_init();
-    if (joystick_type != JOYSTICK_TYPE_NONE)
-	device_add(&gameport_device);
+    standalone_gameport_type = &gameport_device;
 
     laserxt_init(1);
 

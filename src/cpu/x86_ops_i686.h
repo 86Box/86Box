@@ -153,9 +153,6 @@ fx_save_stor_common(uint32_t fetchdat, int bits)
 	x87_settag(rec_ftw);
 
 	CLOCK_CYCLES((cr0 & 1) ? 34 : 44);
-
-	if (cpu_state.abrt)
-		x386_dynarec_log("FXRSTOR: abrt != 0\n");
     } else {
 	/* FXSAVE */
 	if ((twd & 0x0003) == 0x0003)  ftwb |= 0x01;
@@ -217,9 +214,6 @@ fx_save_stor_common(uint32_t fetchdat, int bits)
 	cpu_state.ismmx = 0;
 
 	CLOCK_CYCLES((cr0 & 1) ? 56 : 67);
-
-	if (cpu_state.abrt)
-		x386_dynarec_log("FXSAVE: abrt != 0\n");
     }
 
     return cpu_state.abrt;

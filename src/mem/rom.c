@@ -30,8 +30,10 @@
 #include <wchar.h>
 #define HAVE_STDARG_H
 #include <86box/86box.h>
+#include "cpu.h"
 #include <86box/mem.h>
 #include <86box/rom.h>
+#include <86box/path.h>
 #include <86box/plat.h>
 #include <86box/machine.h>
 #include <86box/m_xt_xi8088.h>
@@ -56,51 +58,102 @@ rom_log(const char *fmt, ...)
 #define rom_log(fmt, ...)
 #endif
 
-
-FILE *
-rom_fopen(wchar_t *fn, wchar_t *mode)
+void
+rom_add_path(const char* path)
 {
-    wchar_t temp[1024];
+    char cwd[1024] = { 0 };
 
-    if (wcslen(exe_path) <= 1024)
-	wcscpy(temp, exe_path);
-    else
-	wcsncpy(temp, exe_path, 1024);
-    plat_put_backslash(temp);
-    wcscat(temp, fn);
+    rom_path_t* rom_path = &rom_paths;
 
-    return(plat_fopen(temp, mode));
-}
+    if (rom_paths.path[0] != '\0')
+    {
+        // Iterate to the end of the list.
+        while (rom_path->next != NULL) {
+            rom_path = rom_path->next;
+        }
 
-
-int
-rom_getfile(wchar_t *fn, wchar_t *s, int size)
-{
-    FILE *f;
-
-    wcscpy(s, exe_path);
-    plat_put_backslash(s);
-    wcscat(s, fn);
-
-    f = plat_fopen(s, L"rb");
-    if (f != NULL) {
-	(void)fclose(f);
-	return(1);
+        // Allocate the new entry.
+        rom_path = rom_path->next = calloc(1, sizeof(rom_path_t));
     }
 
-    return(0);
+    // Save the path, turning it into absolute if needed.
+    if (!path_abs((char*) path)) {
+        plat_getcwd(cwd, sizeof(cwd));
+        path_slash(cwd);
+        snprintf(rom_path->path, sizeof(rom_path->path), "%s%s", cwd, path);
+    } else {
+        snprintf(rom_path->path, sizeof(rom_path->path), "%s", path);
+    }
+
+    // Ensure the path ends with a separator.
+    path_slash(rom_path->path);
+}
+
+
+FILE *
+rom_fopen(char *fn, char *mode)
+{
+    char temp[1024];
+    rom_path_t *rom_path;
+    FILE *fp = NULL;
+
+    if (strstr(fn, "roms/") == fn) {
+        /* Relative path */
+        for (rom_path = &rom_paths; rom_path != NULL; rom_path = rom_path->next) {
+            path_append_filename(temp, rom_path->path, fn + 5);
+
+            if ((fp = plat_fopen(temp, mode)) != NULL) {
+                return fp;
+            }
+        }
+
+        return fp;
+    } else {
+        /* Absolute path */
+        return plat_fopen(fn, mode);
+    }
 }
 
 
 int
-rom_present(wchar_t *fn)
+rom_getfile(char *fn, char *s, int size)
+{
+    char temp[1024];
+    rom_path_t *rom_path;
+
+    if (strstr(fn, "roms/") == fn) {
+        /* Relative path */
+        for (rom_path = &rom_paths; rom_path != NULL; rom_path = rom_path->next) {
+            path_append_filename(temp, rom_path->path, fn + 5);
+
+            if (rom_present(temp)) {
+                strncpy(s, temp, size);
+                return 1;
+            }
+        }
+
+        return 0;
+    } else {
+        /* Absolute path */
+        if (rom_present(fn)) {
+            strncpy(s, fn, size);
+            return 1;
+        }
+
+        return 0;
+    }
+}
+
+
+int
+rom_present(char *fn)
 {
     FILE *f;
 
-    f = rom_fopen(fn, L"rb");
+    f = rom_fopen(fn, "rb");
     if (f != NULL) {
-	(void)fclose(f);
-	return(1);
+        (void)fclose(f);
+        return(1);
     }
 
     return(0);
@@ -161,14 +214,50 @@ rom_readl(uint32_t addr, void *priv)
 }
 
 
+int
+rom_load_linear_oddeven(char *fn, uint32_t addr, int sz, int off, uint8_t *ptr)
+{
+    FILE *f = rom_fopen(fn, "rb");
+    int i;
+
+    if (f == NULL) {
+	rom_log("ROM: image '%s' not found\n", fn);
+	return(0);
+    }
+
+    /* Make sure we only look at the base-256K offset. */
+    if (addr >= 0x40000)
+	addr = 0;
+    else
+	addr &= 0x03ffff;
+
+    if (ptr != NULL) {
+	if (fseek(f, off, SEEK_SET) == -1)
+		fatal("rom_load_linear(): Error seeking to the beginning of the file\n");
+	for (i = 0; i < (sz >> 1); i++) {
+		if (fread(ptr + (addr + (i << 1)), 1, 1, f) != 1)
+			fatal("rom_load_linear(): Error reading even data\n");
+	}
+	for (i = 0; i < (sz >> 1); i++) {
+		if (fread(ptr + (addr + (i << 1) + 1), 1, 1, f) != 1)
+			fatal("rom_load_linear(): Error reading od data\n");
+	}
+    }
+
+    (void)fclose(f);
+
+    return(1);
+}
+
+
 /* Load a ROM BIOS from its chips, interleaved mode. */
 int
-rom_load_linear(wchar_t *fn, uint32_t addr, int sz, int off, uint8_t *ptr)
+rom_load_linear(char *fn, uint32_t addr, int sz, int off, uint8_t *ptr)
 {
-    FILE *f = rom_fopen(fn, L"rb");
-        
+    FILE *f = rom_fopen(fn, "rb");
+
     if (f == NULL) {
-	rom_log("ROM: image '%ls' not found\n", fn);
+	rom_log("ROM: image '%s' not found\n", fn);
 	return(0);
     }
 
@@ -193,12 +282,12 @@ rom_load_linear(wchar_t *fn, uint32_t addr, int sz, int off, uint8_t *ptr)
 
 /* Load a ROM BIOS from its chips, linear mode with high bit flipped. */
 int
-rom_load_linear_inverted(wchar_t *fn, uint32_t addr, int sz, int off, uint8_t *ptr)
+rom_load_linear_inverted(char *fn, uint32_t addr, int sz, int off, uint8_t *ptr)
 {
-    FILE *f = rom_fopen(fn, L"rb");
-        
+    FILE *f = rom_fopen(fn, "rb");
+
     if (f == NULL) {
-	rom_log("ROM: image '%ls' not found\n", fn);
+	rom_log("ROM: image '%s' not found\n", fn);
 	return(0);
     }
 
@@ -235,16 +324,16 @@ rom_load_linear_inverted(wchar_t *fn, uint32_t addr, int sz, int off, uint8_t *p
 
 /* Load a ROM BIOS from its chips, interleaved mode. */
 int
-rom_load_interleaved(wchar_t *fnl, wchar_t *fnh, uint32_t addr, int sz, int off, uint8_t *ptr)
+rom_load_interleaved(char *fnl, char *fnh, uint32_t addr, int sz, int off, uint8_t *ptr)
 {
-    FILE *fl = rom_fopen(fnl, L"rb");
-    FILE *fh = rom_fopen(fnh, L"rb");
+    FILE *fl = rom_fopen(fnl, "rb");
+    FILE *fh = rom_fopen(fnh, "rb");
     int c;
 
     if (fl == NULL || fh == NULL) {
-	if (fl == NULL) rom_log("ROM: image '%ls' not found\n", fnl);
+	if (fl == NULL) rom_log("ROM: image '%s' not found\n", fnl);
 	  else (void)fclose(fl);
-	if (fh == NULL) rom_log("ROM: image '%ls' not found\n", fnh);
+	if (fh == NULL) rom_log("ROM: image '%s' not found\n", fnh);
 	  else (void)fclose(fh);
 
 	return(0);
@@ -316,9 +405,103 @@ rom_reset(uint32_t addr, int sz)
 }
 
 
+uint8_t
+bios_read(uint32_t addr, void *priv)
+{
+    uint8_t ret = 0xff;
+
+    addr &= 0x000fffff;
+
+    if ((addr >= biosaddr) && (addr <= (biosaddr + biosmask)))
+	ret = rom[addr - biosaddr];
+
+    return ret;
+}
+
+
+uint16_t
+bios_readw(uint32_t addr, void *priv)
+{
+    uint16_t ret = 0xffff;
+
+    addr &= 0x000fffff;
+
+    if ((addr >= biosaddr) && (addr <= (biosaddr + biosmask)))
+	ret = *(uint16_t *)&rom[addr - biosaddr];
+
+    return ret;
+}
+
+
+uint32_t
+bios_readl(uint32_t addr, void *priv)
+{
+    uint32_t ret = 0xffffffff;
+
+    addr &= 0x000fffff;
+
+    if ((addr >= biosaddr) && (addr <= (biosaddr + biosmask)))
+	ret = *(uint32_t *)&rom[addr - biosaddr];
+
+    return ret;
+}
+
+
+static void
+bios_add(void)
+{
+    int temp_cpu_type, temp_cpu_16bitbus = 1;
+    int temp_is286 = 0, temp_is6117 = 0;
+
+    if (/*AT && */cpu_s) {
+	temp_cpu_type = cpu_s->cpu_type;
+	temp_cpu_16bitbus = (temp_cpu_type == CPU_286 || temp_cpu_type == CPU_386SX || temp_cpu_type == CPU_486SLC || temp_cpu_type == CPU_IBM386SLC || temp_cpu_type == CPU_IBM486SLC );
+	temp_is286 = (temp_cpu_type >= CPU_286);
+	temp_is6117 = !strcmp(cpu_f->manufacturer, "ALi");
+    }
+
+    if (biosmask > 0x1ffff) {
+	/* 256k+ BIOS'es only have low mappings at E0000-FFFFF. */
+	mem_mapping_add(&bios_mapping, 0xe0000, 0x20000,
+			bios_read,bios_readw,bios_readl,
+			NULL,NULL,NULL,
+			&rom[0x20000], MEM_MAPPING_EXTERNAL|MEM_MAPPING_ROM|MEM_MAPPING_ROMCS, 0);
+
+	mem_set_mem_state_both(0x0e0000, 0x20000,
+			       MEM_READ_ROMCS | MEM_WRITE_ROMCS);
+    } else {
+	mem_mapping_add(&bios_mapping, biosaddr, biosmask + 1,
+			bios_read,bios_readw,bios_readl,
+			NULL,NULL,NULL,
+			rom, MEM_MAPPING_EXTERNAL|MEM_MAPPING_ROM|MEM_MAPPING_ROMCS, 0);
+
+	mem_set_mem_state_both(biosaddr, biosmask + 1,
+			       MEM_READ_ROMCS | MEM_WRITE_ROMCS);
+    }
+
+    if (temp_is6117) {
+	mem_mapping_add(&bios_high_mapping, biosaddr | 0x03f00000, biosmask + 1,
+			bios_read,bios_readw,bios_readl,
+			NULL,NULL,NULL,
+			rom, MEM_MAPPING_EXTERNAL|MEM_MAPPING_ROM|MEM_MAPPING_ROMCS, 0);
+
+	mem_set_mem_state_both(biosaddr | 0x03f00000, biosmask + 1,
+			       MEM_READ_ROMCS | MEM_WRITE_ROMCS);
+    } else if (temp_is286) {
+	mem_mapping_add(&bios_high_mapping, biosaddr | (temp_cpu_16bitbus ? 0x00f00000 : 0xfff00000), biosmask + 1,
+			bios_read,bios_readw,bios_readl,
+			NULL,NULL,NULL,
+			rom, MEM_MAPPING_EXTERNAL|MEM_MAPPING_ROM|MEM_MAPPING_ROMCS, 0);
+
+	mem_set_mem_state_both(biosaddr | (temp_cpu_16bitbus ? 0x00f00000 : 0xfff00000), biosmask + 1,
+			       MEM_READ_ROMCS | MEM_WRITE_ROMCS);
+    }
+}
+
+
 /* These four are for loading the BIOS. */
 int
-bios_load(wchar_t *fn1, wchar_t *fn2, uint32_t addr, int sz, int off, int flags)
+bios_load(char *fn1, char *fn2, uint32_t addr, int sz, int off, int flags)
 {
     uint8_t ret = 0;
     uint8_t *ptr = NULL;
@@ -359,14 +542,14 @@ bios_load(wchar_t *fn1, wchar_t *fn2, uint32_t addr, int sz, int off, int flags)
     }
 
     if (!bios_only && ret && !(flags & FLAG_AUX))
-	mem_add_bios();
+	bios_add();
 
     return ret;
 }
 
 
 int
-bios_load_linear_combined(wchar_t *fn1, wchar_t *fn2, int sz, int off)
+bios_load_linear_combined(char *fn1, char *fn2, int sz, int off)
 {
     uint8_t ret = 0;
 
@@ -378,7 +561,7 @@ bios_load_linear_combined(wchar_t *fn1, wchar_t *fn2, int sz, int off)
 
 
 int
-bios_load_linear_combined2(wchar_t *fn1, wchar_t *fn2, wchar_t *fn3, wchar_t *fn4, wchar_t *fn5, int sz, int off)
+bios_load_linear_combined2(char *fn1, char *fn2, char *fn3, char *fn4, char *fn5, int sz, int off)
 {
     uint8_t ret = 0;
 
@@ -386,14 +569,31 @@ bios_load_linear_combined2(wchar_t *fn1, wchar_t *fn2, wchar_t *fn3, wchar_t *fn
     ret &= bios_load_aux_linear(fn1, 0x000d0000, 65536, off);
     ret &= bios_load_aux_linear(fn2, 0x000c0000, 65536, off);
     ret &= bios_load_aux_linear(fn4, 0x000e0000, sz - 196608, off);
-    ret &= bios_load_aux_linear(fn5, 0x000ec000, 16384, off);
+    if (fn5 != NULL)
+	ret &= bios_load_aux_linear(fn5, 0x000ec000, 16384, 0);
 
     return ret;
 }
 
 
 int
-rom_init(rom_t *rom, wchar_t *fn, uint32_t addr, int sz, int mask, int off, uint32_t flags)
+bios_load_linear_combined2_ex(char *fn1, char *fn2, char *fn3, char *fn4, char *fn5, int sz, int off)
+{
+    uint8_t ret = 0;
+
+    ret = bios_load_linear(fn3, 0x000e0000, 262144, off);
+    ret &= bios_load_aux_linear(fn1, 0x000c0000, 65536, off);
+    ret &= bios_load_aux_linear(fn2, 0x000d0000, 65536, off);
+    ret &= bios_load_aux_linear(fn4, 0x000f0000, sz - 196608, off);
+    if (fn5 != NULL)
+	ret &= bios_load_aux_linear(fn5, 0x000fc000, 16384, 0);
+
+    return ret;
+}
+
+
+int
+rom_init(rom_t *rom, char *fn, uint32_t addr, int sz, int mask, int off, uint32_t flags)
 {
     rom_log("rom_init(%08X, %08X, %08X, %08X, %08X, %08X, %08X)\n", rom, fn, addr, sz, mask, off, flags);
 
@@ -415,15 +615,45 @@ rom_init(rom_t *rom, wchar_t *fn, uint32_t addr, int sz, int mask, int off, uint
     mem_mapping_add(&rom->mapping,
 		    addr, sz,
 		    rom_read, rom_readw, rom_readl,
-		    mem_write_null, mem_write_nullw, mem_write_nulll,
-		    rom->rom, flags | MEM_MAPPING_ROM, rom);
+		    NULL, NULL, NULL,
+		    rom->rom, flags | MEM_MAPPING_ROM_WS, rom);
 
     return(0);
 }
 
 
 int
-rom_init_interleaved(rom_t *rom, wchar_t *fnl, wchar_t *fnh, uint32_t addr, int sz, int mask, int off, uint32_t flags)
+rom_init_oddeven(rom_t *rom, char *fn, uint32_t addr, int sz, int mask, int off, uint32_t flags)
+{
+    rom_log("rom_init(%08X, %08X, %08X, %08X, %08X, %08X, %08X)\n", rom, fn, addr, sz, mask, off, flags);
+
+    /* Allocate a buffer for the image. */
+    rom->rom = malloc(sz);
+    memset(rom->rom, 0xff, sz);
+
+    /* Load the image file into the buffer. */
+    if (! rom_load_linear_oddeven(fn, addr, sz, off, rom->rom)) {
+	/* Nope.. clean up. */
+	free(rom->rom);
+	rom->rom = NULL;
+	return(-1);
+    }
+
+    rom->sz = sz;
+    rom->mask = mask;
+
+    mem_mapping_add(&rom->mapping,
+		    addr, sz,
+		    rom_read, rom_readw, rom_readl,
+		    NULL, NULL, NULL,
+		    rom->rom, flags | MEM_MAPPING_ROM_WS, rom);
+
+    return(0);
+}
+
+
+int
+rom_init_interleaved(rom_t *rom, char *fnl, char *fnh, uint32_t addr, int sz, int mask, int off, uint32_t flags)
 {
     /* Allocate a buffer for the image. */
     rom->rom = malloc(sz);
@@ -443,8 +673,8 @@ rom_init_interleaved(rom_t *rom, wchar_t *fnl, wchar_t *fnh, uint32_t addr, int 
     mem_mapping_add(&rom->mapping,
 		    addr, sz,
 		    rom_read, rom_readw, rom_readl,
-		    mem_write_null, mem_write_nullw, mem_write_nulll,
-		    rom->rom, flags | MEM_MAPPING_ROM, rom);
+		    NULL, NULL, NULL,
+		    rom->rom, flags | MEM_MAPPING_ROM_WS, rom);
 
     return(0);
 }

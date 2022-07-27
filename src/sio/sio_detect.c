@@ -53,7 +53,7 @@ sio_detect_read(uint16_t port, void *priv)
 
     pclog("sio_detect_read : port=%04x = %02X\n", port, dev->regs[port & 1]);
 
-    return dev->regs[port & 1];
+    return 0xff /*dev->regs[port & 1]*/;
 }
 
 
@@ -74,7 +74,7 @@ sio_detect_init(const device_t *info)
 
     device_add(&fdc_at_smc_device);
 
-    io_sethandler(0x0024, 0x0004,
+    io_sethandler(0x0022, 0x0006,
 		  sio_detect_read, NULL, NULL, sio_detect_write, NULL, NULL, dev);
     io_sethandler(0x002e, 0x0002,
 		  sio_detect_read, NULL, NULL, sio_detect_write, NULL, NULL, dev);
@@ -84,15 +84,21 @@ sio_detect_init(const device_t *info)
 		  sio_detect_read, NULL, NULL, sio_detect_write, NULL, NULL, dev);
     io_sethandler(0x0108, 0x0002,
 		  sio_detect_read, NULL, NULL, sio_detect_write, NULL, NULL, dev);
+    io_sethandler(0x015c, 0x0002,
+		  sio_detect_read, NULL, NULL, sio_detect_write, NULL, NULL, dev);
     io_sethandler(0x0250, 0x0003,
+		  sio_detect_read, NULL, NULL, sio_detect_write, NULL, NULL, dev);
+    io_sethandler(0x026e, 0x0002,
 		  sio_detect_read, NULL, NULL, sio_detect_write, NULL, NULL, dev);
     io_sethandler(0x0279, 0x0001,
 		  sio_detect_read, NULL, NULL, sio_detect_write, NULL, NULL, dev);
-    io_sethandler(0x0370, 0x0002,
+    io_sethandler(FDC_SECONDARY_ADDR, 0x0002,
+		  sio_detect_read, NULL, NULL, sio_detect_write, NULL, NULL, dev);
+    io_sethandler(0x0398, 0x0002,
 		  sio_detect_read, NULL, NULL, sio_detect_write, NULL, NULL, dev);
     io_sethandler(0x03e3, 0x0001,
 		  sio_detect_read, NULL, NULL, sio_detect_write, NULL, NULL, dev);
-    io_sethandler(0x03f0, 0x0002,
+    io_sethandler(FDC_PRIMARY_ADDR, 0x0002,
 		  sio_detect_read, NULL, NULL, sio_detect_write, NULL, NULL, dev);
     io_sethandler(0x0a79, 0x0001,
 		  sio_detect_read, NULL, NULL, sio_detect_write, NULL, NULL, dev);
@@ -102,10 +108,15 @@ sio_detect_init(const device_t *info)
 
 
 const device_t sio_detect_device = {
-    "Super I/O Detection Helper",
-    0,
-    0,
-    sio_detect_init, sio_detect_close, NULL,
-    NULL, NULL, NULL,
-    NULL
+    .name = "Super I/O Detection Helper",
+    .internal_name = "sio_detect",
+    .flags = 0,
+    .local = 0,
+    .init = sio_detect_init,
+    .close = sio_detect_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };

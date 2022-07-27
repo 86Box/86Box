@@ -20,9 +20,6 @@
  *		Copyright 2008-2019 Sarah Walker.
  *		Copyright 2017-2019 Fred N. van Kempen.
  */
-#define __USE_LARGEFILE64
-#define _LARGEFILE_SOURCE
-#define _LARGEFILE64_SOURCE
 #include <stdarg.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -125,7 +122,7 @@ static void		mfm_write(uint16_t port, uint8_t val, void *priv);
 
 
 #ifdef ENABLE_ST506_AT_LOG
-int mfm_at_do_log = ENABLE_ST506_AT_LOG;
+int st506_at_do_log = ENABLE_ST506_AT_LOG;
 
 
 static void
@@ -165,7 +162,7 @@ irq_lower(mfm_t *mfm)
 static void
 irq_update(mfm_t *mfm)
 {
-    if (mfm->irqstat && !((pic2.pend | pic2.ins) & 0x40) && !(mfm->fdisk & 2))
+    if (mfm->irqstat && !((pic2.irr | pic2.isr) & 0x40) && !(mfm->fdisk & 2))
 	picint(1 << 14);
 }
 
@@ -305,7 +302,7 @@ mfm_cmd(mfm_t *mfm, uint8_t val)
 				mfm->command &= 0xfc;
 				if (val & 2)
 					fatal("WD1003: WRITE with ECC\n");
-				mfm->status = STAT_DRQ|STAT_DSC;
+				mfm->status = STAT_READY|STAT_DRQ|STAT_DSC;
 				mfm->pos = 0;
 				break;
 
@@ -692,7 +689,7 @@ do_callback(void *priv)
 
 
 static void
-loadhd(mfm_t *mfm, int c, int d, const wchar_t *fn)
+loadhd(mfm_t *mfm, int c, int d, const char *fn)
 {
     drive_t *drive = &mfm->drives[c];
 
@@ -725,7 +722,7 @@ mfm_init(const device_t *info)
 	if ((hdd[d].bus == HDD_BUS_MFM) && (hdd[d].mfm_channel < MFM_NUM)) {
 		loadhd(mfm, hdd[d].mfm_channel, d, hdd[d].fn);
 
-		st506_at_log("WD1003(%d): (%ls) geometry %d/%d/%d\n", c, hdd[d].fn,
+		st506_at_log("WD1003(%d): (%s) geometry %d/%d/%d\n", c, hdd[d].fn,
 			     (int)hdd[d].tracks, (int)hdd[d].hpc, (int)hdd[d].spt);
 
 		if (++c >= MFM_NUM) break;
@@ -742,7 +739,7 @@ mfm_init(const device_t *info)
     io_sethandler(0x03f6, 1,
 		  NULL,     NULL,      NULL, mfm_write, NULL,       NULL, mfm);
 
-    timer_add(&mfm->callback_timer, do_callback, mfm, 0);	
+    timer_add(&mfm->callback_timer, do_callback, mfm, 0);
 
     ui_sb_update_icon(SB_HDD|HDD_BUS_MFM, 0);
 
@@ -759,7 +756,7 @@ mfm_close(void *priv)
     for (d=0; d<2; d++) {
 	drive_t *drive = &mfm->drives[d];
 
-	hdd_image_close(drive->hdd_num);		
+	hdd_image_close(drive->hdd_num);
     }
 
     free(mfm);
@@ -767,11 +764,16 @@ mfm_close(void *priv)
     ui_sb_update_icon(SB_HDD|HDD_BUS_MFM, 0);
 }
 
-
 const device_t st506_at_wd1003_device = {
-    "WD1003 AT MFM/RLL Controller",
-    DEVICE_ISA | DEVICE_AT,
-    0,
-    mfm_init, mfm_close, NULL,
-    NULL, NULL, NULL, NULL
+    .name = "WD1003 AT MFM/RLL Controller",
+    .internal_name = "st506_at",
+    .flags = DEVICE_ISA | DEVICE_AT,
+    .local = 0,
+    .init = mfm_init,
+    .close = mfm_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };

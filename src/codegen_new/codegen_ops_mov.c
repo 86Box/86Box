@@ -242,7 +242,7 @@ uint32_t ropMOV_EAX_abs(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint3
                 uop_MEM_LOAD_REG(ir, IREG_EAX, ireg_seg_base(op_ea_seg), IREG_eaaddr);
         else
                 uop_MEM_LOAD_ABS(ir, IREG_EAX, ireg_seg_base(op_ea_seg), addr);
-        
+
         return op_pc + ((op_32 & 0x200) ? 4 : 2);
 }
 
@@ -421,7 +421,7 @@ uint32_t ropMOV_w_seg(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_
 uint32_t ropMOV_l_seg(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
 {
         int src_reg;
-        
+
         codegen_mark_code_present(block, cs+op_pc, 1);
         switch (fetchdat & 0x38)
         {
@@ -490,7 +490,7 @@ uint32_t ropMOV_seg_w(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_
         }
 
         uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);
-        
+
         if ((fetchdat & 0xc0) == 0xc0)
         {
                 uop_MOV(ir, IREG_temp0_W, IREG_16(fetchdat & 7));
@@ -655,11 +655,11 @@ uint32_t ropMOVZX_32_16(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint3
 uint32_t ropXCHG_AX(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
 {
         int reg2 = IREG_16(opcode & 7);
-        
+
         uop_MOV(ir, IREG_temp0_W, IREG_AX);
         uop_MOV(ir, IREG_AX, reg2);
         uop_MOV(ir, reg2, IREG_temp0_W);
-        
+
         return op_pc;
 }
 uint32_t ropXCHG_EAX(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
@@ -681,7 +681,7 @@ uint32_t ropXCHG_8(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t f
         if ((fetchdat & 0xc0) == 0xc0)
         {
                 int reg2 = IREG_8(fetchdat & 7);
-                
+
                 uop_MOV(ir, IREG_temp0_B, reg1);
                 uop_MOV(ir, reg1, reg2);
                 uop_MOV(ir, reg2, IREG_temp0_B);
@@ -693,7 +693,7 @@ uint32_t ropXCHG_8(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t f
                 uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);
                 target_seg = codegen_generate_ea(ir, op_ea_seg, fetchdat, op_ssegs, &op_pc, op_32, 0);
                 codegen_check_seg_write(block, ir, target_seg);
-                
+
                 uop_MEM_LOAD_REG(ir, IREG_temp0_B, ireg_seg_base(target_seg), IREG_eaaddr);
                 uop_MEM_STORE_REG(ir, ireg_seg_base(target_seg), IREG_eaaddr, reg1);
                 uop_MOV(ir, reg1, IREG_temp0_B);
@@ -761,7 +761,7 @@ uint32_t ropXCHG_32(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t 
 uint32_t ropXLAT(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
 {
         uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);
-        
+
         uop_MOVZX(ir, IREG_eaaddr, IREG_AL);
         uop_ADD(ir, IREG_eaaddr, IREG_eaaddr, IREG_EBX);
         if (!(op_32 & 0x200))

@@ -75,7 +75,6 @@ typedef struct {
 
     /* Machine cateogory */
     int			machine,			/* Machine */
-			cpu_manufacturer,		/* CPU manufacturer */
 			cpu,				/* CPU */
 #ifdef USE_DYNAREC
 			cpu_use_dynarec,		/* CPU recompiler enabled */
@@ -109,12 +108,12 @@ typedef struct {
     char		network_host[520];		/* PCap device */
 
     /* Ports category */
-    char		parallel_devices[3][32];	/* LPT device names */
+    char		parallel_devices[PARALLEL_MAX][32];	/* LPT device names */
 #ifdef USE_SERIAL_DEVICES
-    char		serial_devices[2][32];		/* Serial device names */
+    char		serial_devices[SERIAL_MAX][32];		/* Serial device names */
 #endif
-    int			serial_enabled[2],		/* Serial ports 1 and 2 enabled */
-			parallel_enabled[3];		/* LPT1, LPT2, LPT3 enabled */
+    int			serial_enabled[SERIAL_MAX],		/* Serial ports 1, 2, 3, 4 enabled */
+			parallel_enabled[PARALLEL_MAX];		/* LPT1, LPT2, LPT3, LPT4 enabled */
 
     /* Other peripherals category */
     int			fdc_type,			/* Floppy disk controller type */
@@ -140,22 +139,27 @@ typedef struct {
 
 extern void	config_load(void);
 extern void	config_save(void);
-extern void	config_write(wchar_t *fn);
+extern void	config_write(char *fn);
 extern void	config_dump(void);
 
 extern void	config_delete_var(char *head, char *name);
 extern int	config_get_int(char *head, char *name, int def);
+extern double	config_get_double(char *head, char *name, double def);
 extern int	config_get_hex16(char *head, char *name, int def);
 extern int	config_get_hex20(char *head, char *name, int def);
 extern int	config_get_mac(char *head, char *name, int def);
 extern char	*config_get_string(char *head, char *name, char *def);
 extern wchar_t	*config_get_wstring(char *head, char *name, wchar_t *def);
 extern void	config_set_int(char *head, char *name, int val);
+extern void	config_set_double(char *head, char *name, double val);
 extern void	config_set_hex16(char *head, char *name, int val);
 extern void	config_set_hex20(char *head, char *name, int val);
 extern void	config_set_mac(char *head, char *name, int val);
 extern void	config_set_string(char *head, char *name, char *val);
 extern void	config_set_wstring(char *head, char *name, wchar_t *val);
+
+extern void *	config_find_section(char *name);
+extern void	config_rename_section(void *priv, char *name);
 
 #ifdef __cplusplus
 }

@@ -1,6 +1,10 @@
 static int opINT3(uint32_t fetchdat)
 {
         int cycles_old = cycles; UN_USED(cycles_old);
+#ifdef USE_GDBSTUB
+        if (gdbstub_int3())
+                return 1;
+#endif
         if ((cr0 & 1) && (cpu_state.eflags & VM_FLAG) && (IOPL != 3))
         {
                 x86gpf(NULL,0);
@@ -59,7 +63,7 @@ static int opINT(uint32_t fetchdat)
                                 }
                         }
                 }
-                x86gpf(NULL,0);
+                x86gpf_expected(NULL,0);
                 return 1;
         }
 
@@ -71,7 +75,7 @@ static int opINT(uint32_t fetchdat)
 static int opINTO(uint32_t fetchdat)
 {
         int cycles_old = cycles; UN_USED(cycles_old);
-        
+
         if ((cr0 & 1) && (cpu_state.eflags & VM_FLAG) && (IOPL != 3))
         {
                 x86gpf(NULL,0);
@@ -88,4 +92,3 @@ static int opINTO(uint32_t fetchdat)
         PREFETCH_RUN(3, 1, -1, 0,0,0,0, 0);
         return 0;
 }
-

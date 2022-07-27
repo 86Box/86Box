@@ -82,7 +82,7 @@ static void random_twist(uint32_t *val)
 uint8_t random_generate(void)
 {
 	uint16_t r = 0;
-	r = (rand() ^ ROTATE_LEFT(preconst, rand() % 32)) % 256;
+	r = (RDTSC() ^ ROTATE_LEFT(preconst, rand() % 32)) % 256;
 	random_twist(&preconst);
 	return (r & 0xff);
 }

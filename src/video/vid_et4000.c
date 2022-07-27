@@ -54,11 +54,11 @@
 #include <86box/vid_svga_render.h>
 
 
-#define BIOS_ROM_PATH		L"roms/video/et4000/et4000.bin"
-#define KOREAN_BIOS_ROM_PATH 	L"roms/video/et4000/tgkorvga.bin"
-#define KOREAN_FONT_ROM_PATH 	L"roms/video/et4000/tg_ksc5601.rom"
-#define KASAN_BIOS_ROM_PATH 	L"roms/video/et4000/et4000_kasan16.bin"
-#define KASAN_FONT_ROM_PATH 	L"roms/video/et4000/kasan_ksc5601.rom"
+#define BIOS_ROM_PATH			"roms/video/et4000/ET4000.BIN"
+#define KOREAN_BIOS_ROM_PATH 	"roms/video/et4000/tgkorvga.bin"
+#define KOREAN_FONT_ROM_PATH 	"roms/video/et4000/tg_ksc5601.rom"
+#define KASAN_BIOS_ROM_PATH 	"roms/video/et4000/et4000_kasan16.bin"
+#define KASAN_FONT_ROM_PATH 	"roms/video/et4000/kasan_ksc5601.rom"
 
 typedef struct {
     const char		*name;
@@ -79,7 +79,7 @@ typedef struct {
     int			get_korean_font_enabled;
     int			get_korean_font_index;
     uint16_t		get_korean_font_base;
-    
+
     uint8_t		kasan_cfg_index;
     uint8_t		kasan_cfg_regs[16];
     uint16_t		kasan_access_addr;
@@ -119,7 +119,7 @@ et4000_in(uint16_t addr, void *priv)
 			if ((svga->vgapal[0].r + svga->vgapal[0].g + svga->vgapal[0].b) >= 0x4e)
 				return 0;
 			else
-				return 0x10;					
+				return 0x10;
 		}
 		break;
 
@@ -153,7 +153,7 @@ et4000k_in(uint16_t addr, void *priv)
 {
     et4000_t *dev = (et4000_t *)priv;
     uint8_t val = 0xff;
-        
+
     switch (addr) {
 	case 0x22cb:
 		return dev->port_22cb_val;
@@ -245,6 +245,15 @@ et4000_out(uint16_t addr, uint8_t val, void *priv)
 				svga->read_bank = ((dev->banking >> 4) & 0x0f) * 0x10000;
 			} else
 				svga->write_bank = svga->read_bank = 0;
+
+                        old = svga->gdcreg[6];
+                        svga_out(addr, val, svga);
+                        if ((old & 0xc) != 0 && (val & 0xc) == 0)
+                        {
+                                /*override mask - ET4000 supports linear 128k at A0000*/
+                                svga->banked_mask = 0x1ffff;
+                        }
+                        return;
 		}
 		break;
 
@@ -272,11 +281,17 @@ et4000_out(uint16_t addr, uint8_t val, void *priv)
 		}
 
 		if (old != val) {
-			if (svga->crtcreg < 0x0e || svga->crtcreg > 0x10) {
-				svga->fullchange = changeframecount;
-				svga_recalctimings(svga);
-			}
-		}				
+                        if (svga->crtcreg < 0xe || svga->crtcreg > 0x10)
+                        {
+				if ((svga->crtcreg == 0xc) || (svga->crtcreg == 0xd)) {
+                                	svga->fullchange = 3;
+					svga->ma_latch = ((svga->crtc[0xc] << 8) | svga->crtc[0xd]) + ((svga->crtc[8] & 0x60) >> 5);
+				} else {
+					svga->fullchange = changeframecount;
+	                                svga_recalctimings(svga);
+				}
+                        }
+		}
 		break;
     }
 
@@ -383,7 +398,7 @@ et4000_kasan_in(uint16_t addr, void *priv)
 		}
         } else
 		val = et4000_in(addr, priv);
-	
+
 	return val;
 }
 
@@ -556,7 +571,7 @@ et4000_recalctimings(svga_t *svga)
 			svga->clock = (cpuclock * (double)(1ull << 32)) / 36000000.0;
 			break;
 	}
-	
+
 	switch (svga->bpp) {
 		case 15:
 		case 16:
@@ -629,7 +644,7 @@ et4000_mca_feedb(void *priv)
 static void *
 et4000_init(const device_t *info)
 {
-    const wchar_t *fn;
+    const char *fn;
     et4000_t *dev;
     int i;
 
@@ -659,7 +674,7 @@ et4000_init(const device_t *info)
 		io_sethandler(0x03c0, 32,
 			      et4000_in,NULL,NULL, et4000_out,NULL,NULL, dev);
 		dev->pos_regs[0] = 0xf2;	/* ET4000 MCA board ID */
-		dev->pos_regs[1] = 0x80;	
+		dev->pos_regs[1] = 0x80;
 		mca_add(et4000_mca_read, et4000_mca_write, et4000_mca_feedb, NULL, dev);
 		break;
 
@@ -714,24 +729,26 @@ et4000_init(const device_t *info)
 			  NULL, NULL);
 		io_sethandler(0x03c0, 32,
 			      et4000_in,NULL,NULL, et4000_out,NULL,NULL, dev);
-		io_sethandler(0x0250, 8, 
+		io_sethandler(0x0250, 8,
 			      et4000_kasan_in, NULL, NULL, et4000_kasan_out, NULL, NULL, dev);
-		io_sethandler(0x0258, 2, 
+		io_sethandler(0x0258, 2,
 			      et4000_kasan_in, NULL, NULL, et4000_kasan_out, NULL, NULL, dev);
 		loadfont(KASAN_FONT_ROM_PATH, 6);
 		fn = KASAN_BIOS_ROM_PATH;
 		break;
-		
+
     }
 
     dev->svga.ramdac = device_add(&sc1502x_ramdac_device);
 
     dev->vram_mask = dev->vram_size - 1;
 
-    rom_init(&dev->bios_rom, (wchar_t *) fn,
+    rom_init(&dev->bios_rom, (char *) fn,
 	     0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
 
     dev->svga.translate_address = get_et4000_addr;
+
+	dev->svga.packed_chain4 = 1;
 
     return(dev);
 }
@@ -787,81 +804,103 @@ et4000_kasan_available(void)
 	   rom_present(KASAN_FONT_ROM_PATH);
 }
 
-static const device_config_t et4000_config[] =
-{
-	{
-		"memory", "Memory size", CONFIG_SELECTION, "", 1024,
-		{
-			{
-				"256 KB", 256
-			},
-			{
-				"512 KB", 512
-			},
-			{
-				"1 MB", 1024
-			},
-			{
-				""
-			}
-		}
-	},
-	{
-		"", "", -1
-	}
+static const device_config_t et4000_config[] = {
+// clang-format off
+    {
+        .name = "memory",
+        .description = "Memory size",
+        .type = CONFIG_SELECTION,
+        .default_int = 1024,
+        .selection = {
+            {
+                .description = "256 KB",
+                .value = 256
+            },
+            {
+                .description = "512 KB",
+                .value = 512
+            },
+            {
+                .description = "1 MB",
+                .value = 1024
+            },
+            {
+                .description = ""
+            }
+        }
+    },
+    {
+        .type = CONFIG_END
+    }
+// clang-format on
 };
 
 const device_t et4000_isa_device = {
-    "Tseng Labs ET4000AX (ISA)",
-    DEVICE_ISA,
-    0,
-    et4000_init, et4000_close, NULL,
-    et4000_available,
-    et4000_speed_changed,
-    et4000_force_redraw,
-    et4000_config
+    .name = "Tseng Labs ET4000AX (ISA)",
+    .internal_name = "et4000ax",
+    .flags = DEVICE_ISA,
+    .local = 0,
+    .init = et4000_init,
+    .close = et4000_close,
+    .reset = NULL,
+    { .available = et4000_available },
+    .speed_changed = et4000_speed_changed,
+    .force_redraw = et4000_force_redraw,
+    .config = et4000_config
 };
 
 const device_t et4000_mca_device = {
-    "Tseng Labs ET4000AX (MCA)",
-    DEVICE_MCA,
-    1,
-    et4000_init, et4000_close, NULL,
-    et4000_available,
-    et4000_speed_changed,
-    et4000_force_redraw,
-    et4000_config
+    .name = "Tseng Labs ET4000AX (MCA)",
+    .internal_name = "et4000mca",
+    .flags = DEVICE_MCA,
+    .local = 1,
+    .init = et4000_init,
+    .close = et4000_close,
+    .reset = NULL,
+    { .available = et4000_available },
+    .speed_changed = et4000_speed_changed,
+    .force_redraw = et4000_force_redraw,
+    .config = et4000_config
 };
 
 const device_t et4000k_isa_device = {
-    "Trigem Korean VGA (Tseng Labs ET4000AX Korean)",
-    DEVICE_ISA,
-    2,
-    et4000_init, et4000_close, NULL,
-    et4000k_available,
-    et4000_speed_changed,
-    et4000_force_redraw,
-    et4000_config
+    .name = "Trigem Korean VGA (Tseng Labs ET4000AX Korean)",
+    .internal_name = "tgkorvga",
+    .flags = DEVICE_ISA,
+    .local = 2,
+    .init = et4000_init,
+    .close = et4000_close,
+    .reset = NULL,
+    { .available = et4000k_available },
+    .speed_changed = et4000_speed_changed,
+    .force_redraw = et4000_force_redraw,
+    .config = et4000_config
 };
 
 const device_t et4000k_tg286_isa_device = {
-    "Trigem Korean VGA (Trigem 286M)",
-    DEVICE_ISA,
-    3,
-    et4000_init, et4000_close, NULL,
-    et4000k_available,
-    et4000_speed_changed,
-    et4000_force_redraw,
-    et4000_config
+    .name = "Trigem Korean VGA (Trigem 286M)",
+    .internal_name = "et4000k_tg286_isa",
+    .flags = DEVICE_ISA,
+    .local = 3,
+    .init = et4000_init,
+    .close = et4000_close,
+    .reset = NULL,
+    { .available = et4000k_available },
+    .speed_changed = et4000_speed_changed,
+    .force_redraw = et4000_force_redraw,
+    .config = et4000_config
 };
 
 const device_t et4000_kasan_isa_device = {
-    "Kasan Hangulmadang-16 VGA (Tseng Labs ET4000AX Korean)",
-    DEVICE_ISA,
-    4,
-    et4000_init, et4000_close, NULL,
-    et4000_kasan_available,
-    et4000_speed_changed,
-    et4000_force_redraw,
-    et4000_config
+    .name = "Kasan Hangulmadang-16 VGA (Tseng Labs ET4000AX Korean)",
+    .internal_name = "kasan16vga",
+    .flags = DEVICE_ISA,
+    .local = 4,
+    .init = et4000_init,
+    .close = et4000_close,
+    .reset = NULL,
+    { .available = et4000_kasan_available },
+    .speed_changed = et4000_speed_changed,
+    .force_redraw = et4000_force_redraw,
+    .config = et4000_config
 };

@@ -56,10 +56,9 @@ pc87309_pm_write(uint16_t port, uint8_t val, void *priv)
 {
     pc87309_t *dev = (pc87309_t *) priv;
 
-    if (port & 1)
+    if (port & 1) {
 	dev->pm[dev->pm_idx] = val;
-    else {
-	dev->pm_idx = val & 0x07;
+
 	switch (dev->pm_idx) {
 		case 0x00:
 			fdc_handler(dev);
@@ -68,7 +67,8 @@ pc87309_pm_write(uint16_t port, uint8_t val, void *priv)
 			serial_handler(dev, 0);
 			break;
 	}
-    }
+    } else
+	dev->pm_idx = val & 0x07;
 }
 
 
@@ -255,7 +255,7 @@ pc87309_write(uint16_t port, uint8_t val, void *priv)
 	case 0x61:
 		switch (dev->regs[0x07]) {
 			case 0x00:
-				dev->ld_regs[dev->regs[0x07]][dev->cur_reg - 0x30] = val & 0xfa;
+				dev->ld_regs[dev->regs[0x07]][dev->cur_reg - 0x30] = (val & 0xfa) | 0x02;
 				fdc_handler(dev);
 				break;
 			case 0x01:
@@ -337,9 +337,9 @@ pc87309_read(uint16_t port, void *priv)
     if (index)
 	ret = dev->cur_reg & 0x1f;
     else {
-	if (dev->cur_reg == 8)
-		ret = 0x70;
-	else if (dev->cur_reg < 28)
+	if (dev->cur_reg >= 0x30)
+		ret = dev->ld_regs[dev->regs[0x07]][dev->cur_reg - 0x30];
+	else
 		ret = dev->regs[dev->cur_reg];
     }
 
@@ -420,7 +420,7 @@ pc87309_reset(pc87309_t *dev)
     dev->regs[0x12] = 0x30;
     dev->regs[0x19] = 0xEF;
 
-    dev->pm[0] = 0xe9;
+    dev->pm[0] = 0x79;
     dev->pm[4] = 0x0e;
 
     dev->pm_base = 0xffff;
@@ -460,18 +460,41 @@ pc87309_init(const device_t *info)
 
     pc87309_reset(dev);
 
-    io_sethandler(0x02e, 0x0002,
-		  pc87309_read, NULL, NULL, pc87309_write, NULL, NULL, dev);
+    if (info->local & 0x100) {
+	io_sethandler(0x15c, 0x0002,
+		      pc87309_read, NULL, NULL, pc87309_write, NULL, NULL, dev);
+    } else {
+	io_sethandler(0x02e, 0x0002,
+		      pc87309_read, NULL, NULL, pc87309_write, NULL, NULL, dev);
+    }
 
     return dev;
 }
 
-
 const device_t pc87309_device = {
-    "National Semiconductor PC87309 Super I/O",
-    0,
-    0xe0,
-    pc87309_init, pc87309_close, NULL,
-    NULL, NULL, NULL,
-    NULL
+    .name = "National Semiconductor PC87309 Super I/O",
+    .internal_name = "pc87309",
+    .flags = 0,
+    .local = 0xe0,
+    .init = pc87309_init,
+    .close = pc87309_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
+};
+
+const device_t pc87309_15c_device = {
+    .name = "National Semiconductor PC87309 Super I/O (Port 15Ch)",
+    .internal_name = "pc87309_15c",
+    .flags = 0,
+    .local = 0x1e0,
+    .init = pc87309_init,
+    .close = pc87309_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };

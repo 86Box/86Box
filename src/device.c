@@ -48,6 +48,8 @@
 #include <86box/config.h>
 #include <86box/device.h>
 #include <86box/machine.h>
+#include <86box/mem.h>
+#include <86box/rom.h>
 #include <86box/sound.h>
 
 
@@ -90,11 +92,22 @@ device_init(void)
 void
 device_set_context(device_context_t *c, const device_t *d, int inst)
 {
+    void *sec, *single_sec;
+
     memset(c, 0, sizeof(device_context_t));
     c->dev = d;
-    if (inst)
+    if (inst) {
     	sprintf(c->name, "%s #%i", d->name, inst);
-    else
+
+	/* If this is the first instance and a numbered section is not present, but a non-numbered
+	   section of the same name is, rename the non-numbered section to numbered. */
+	if (inst == 1) {
+		sec = config_find_section(c->name);
+		single_sec = config_find_section((char *) d->name);
+		if ((sec == NULL) && (single_sec != NULL))
+			config_rename_section(single_sec, c->name);
+	}
+    } else
     	sprintf(c->name, "%s", d->name);
 }
 
@@ -178,6 +191,16 @@ device_add_common(const device_t *d, const device_t *cd, void *p, int inst)
 	device_priv[c] = p;
 
     return(priv);
+}
+
+
+char *
+device_get_internal_name(const device_t *d)
+{
+    if (d == NULL)
+	return "";
+
+    return (char *) d->internal_name;
 }
 
 
@@ -308,13 +331,198 @@ device_get_priv(const device_t *d)
 int
 device_available(const device_t *d)
 {
+    device_config_t *config;
+    device_config_bios_t *bios;
+    int bf, roms_present = 0;
+    int i = 0;
+
 #ifdef RELEASE_BUILD
     if (d->flags & DEVICE_NOT_WORKING) return(0);
 #endif
-    if (d->available != NULL)
-	return(d->available());
+    if (d != NULL) {
+	config = (device_config_t *) d->config;
+    if (config != NULL) {
+		while (config->type != -1) {
+			if (config->type == CONFIG_BIOS) {
+				bios = (device_config_bios_t *) config->bios;
 
-    return(1);
+				/* Go through the ROM's in the device configuration. */
+				while (bios->files_no != 0) {
+					i = 0;
+					for (bf = 0; bf < bios->files_no; bf++)
+						i += !!rom_present((char *) bios->files[bf]);
+					if (i == bios->files_no)
+						roms_present++;
+					bios++;
+				}
+
+				return(roms_present ? -1 : 0);
+			}
+			config++;
+		}
+	}
+
+    /* No CONFIG_BIOS field present, use the classic available(). */
+	if (d->available != NULL)
+        return(d->available());
+	else
+		return(1);
+    }
+
+    /* A NULL device is never available. */
+    return(0);
+}
+
+
+int
+device_has_config(const device_t *d)
+{
+    int c = 0;
+    device_config_t *config;
+
+    if (d == NULL)
+	return 0;
+
+    if (d->config == NULL)
+	return 0;
+
+    config = (device_config_t *) d->config;
+
+    while (config->type != -1) {
+	if (config->type != CONFIG_MAC)
+		c++;
+	config++;
+    }
+
+    return (c > 0) ? 1 : 0;
+}
+
+
+int
+device_poll(const device_t *d, int x, int y, int z, int b)
+{
+    int c;
+
+    for (c = 0; c < DEVICE_MAX; c++) {
+	if (devices[c] != NULL) {
+		if (devices[c] == d) {
+			if (devices[c]->poll)
+				return(devices[c]->poll(x, y, z, b, device_priv[c]));
+		}
+	}
+    }
+
+    return(0);
+}
+
+
+void
+device_register_pci_slot(const device_t *d, int device, int type, int inta, int intb, int intc, int intd)
+{
+    int c;
+
+    for (c = 0; c < DEVICE_MAX; c++) {
+	if (devices[c] != NULL) {
+		if (devices[c] == d) {
+			if (devices[c]->register_pci_slot)
+				devices[c]->register_pci_slot(device, type, inta, intb, intc, intd, device_priv[c]);
+			return;
+		}
+	}
+    }
+
+    return;
+}
+
+
+void
+device_get_name(const device_t *d, int bus, char *name)
+{
+    char *sbus = NULL, *fbus;
+    char *tname, pbus[8] = { 0 };
+
+    if (d == NULL)
+	return;
+
+    name[0] = 0x00;
+
+    if (bus) {
+	if (d->flags & DEVICE_ISA)
+		sbus = (d->flags & DEVICE_AT) ? "ISA16" : "ISA";
+	else if (d->flags & DEVICE_CBUS)
+		sbus = "C-BUS";
+	else if (d->flags & DEVICE_MCA)
+		sbus = "MCA";
+	else if (d->flags & DEVICE_EISA)
+		sbus = "EISA";
+	else if (d->flags & DEVICE_VLB)
+		sbus = "VLB";
+	else if (d->flags & DEVICE_PCI)
+		sbus = "PCI";
+	else if (d->flags & DEVICE_AGP)
+		sbus = "AGP";
+	else if (d->flags & DEVICE_AC97)
+		sbus = "AMR";
+    else if (d->flags & DEVICE_COM)
+        sbus = "COM";
+	else if (d->flags & DEVICE_LPT)
+		sbus = "LPT";
+
+	if (sbus != NULL) {
+		/* First concatenate [<Bus>] before the device's name. */
+		strcat(name, "[");
+		strcat(name, sbus);
+		strcat(name, "] ");
+
+		/* Then change string from ISA16 to ISA if applicable. */
+		if (!strcmp(sbus, "ISA16"))
+			sbus = "ISA";
+		else if (!strcmp(sbus, "COM")|| !strcmp(sbus, "LPT")) {
+			sbus = NULL;
+			strcat(name, d->name);
+			return;
+		}
+
+		/* Generate the bus string with parentheses. */
+		strcat(pbus, "(");
+		strcat(pbus, sbus);
+		strcat(pbus, ")");
+
+		/* Allocate the temporary device name string and set it to all zeroes. */
+		tname = (char *) malloc(strlen(d->name) + 1);
+		memset(tname, 0x00, strlen(d->name) + 1);
+
+		/* First strip the bus string with parentheses. */
+		fbus = strstr(d->name, pbus);
+		if (fbus == d->name)
+			strcat(tname, d->name + strlen(pbus) + 1);
+		else if (fbus == NULL)
+			strcat(tname, d->name);
+		else {
+			strncat(tname, d->name, fbus - d->name - 1);
+			strcat(tname, fbus + strlen(pbus));
+		}
+
+		/* Then also strip the bus string with parentheses. */
+		fbus = strstr(tname, sbus);
+		if (fbus == tname)
+			strcat(name, tname + strlen(sbus) + 1);
+		/* Special case to not strip the "oPCI" from "Ensoniq AudioPCI" or
+		   the "-ISA" from "AMD PCnet-ISA". */
+		else if ((fbus == NULL) || (*(fbus - 1) == 'o') || (*(fbus - 1) == '-'))
+			strcat(name, tname);
+		else {
+			strncat(name, tname, fbus - tname - 1);
+			strcat(name, fbus + strlen(sbus));
+		}
+
+		/* Free the temporary device name string. */
+		free(tname);
+		tname = NULL;
+	} else
+		strcat(name, d->name);
+    } else
+	strcat(name, d->name);
 }
 
 
@@ -509,27 +717,29 @@ device_set_config_mac(const char *s, int val)
 
 
 int
-device_is_valid(const device_t *device, int mflags)
+device_is_valid(const device_t *device, int m)
 {
     if (device == NULL) return(1);
 
-    if ((device->flags & DEVICE_AT) && !(mflags & MACHINE_AT)) return(0);
+    if ((device->flags & DEVICE_AT) && !machine_has_bus(m, MACHINE_BUS_ISA16)) return(0);
 
-    if ((device->flags & DEVICE_CBUS) && !(mflags & MACHINE_CBUS)) return(0);
+    if ((device->flags & DEVICE_CBUS) && !machine_has_bus(m, MACHINE_BUS_CBUS)) return(0);
 
-    if ((device->flags & DEVICE_ISA) && !(mflags & MACHINE_ISA)) return(0);
+    if ((device->flags & DEVICE_ISA) && !machine_has_bus(m, MACHINE_BUS_ISA)) return(0);
 
-    if ((device->flags & DEVICE_MCA) && !(mflags & MACHINE_MCA)) return(0);
+    if ((device->flags & DEVICE_MCA) && !machine_has_bus(m, MACHINE_BUS_MCA)) return(0);
 
-    if ((device->flags & DEVICE_EISA) && !(mflags & MACHINE_EISA)) return(0);
+    if ((device->flags & DEVICE_EISA) && !machine_has_bus(m, MACHINE_BUS_EISA)) return(0);
 
-    if ((device->flags & DEVICE_VLB) && !(mflags & MACHINE_VLB)) return(0);
+    if ((device->flags & DEVICE_VLB) && !machine_has_bus(m, MACHINE_BUS_VLB)) return(0);
 
-    if ((device->flags & DEVICE_PCI) && !(mflags & MACHINE_PCI)) return(0);
+    if ((device->flags & DEVICE_PCI) && !machine_has_bus(m, MACHINE_BUS_PCI)) return(0);
 
-    if ((device->flags & DEVICE_AGP) && !(mflags & MACHINE_AGP)) return(0);
+    if ((device->flags & DEVICE_AGP) && !machine_has_bus(m, MACHINE_BUS_AGP)) return(0);
 
-    if ((device->flags & DEVICE_PS2) && !(mflags & MACHINE_PS2)) return(0);
+    if ((device->flags & DEVICE_PS2) && !machine_has_bus(m, MACHINE_BUS_PS2)) return(0);
+
+    if ((device->flags & DEVICE_AC97) && !machine_has_bus(m, MACHINE_BUS_AC97)) return(0);
 
     return(1);
 }

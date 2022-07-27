@@ -16,6 +16,7 @@
  *
  *		Copyright 2017,2018 Fred N. van Kempen.
  */
+
 #ifndef LANG_UAGE_H
 # define LANG_UAGE_H
 
@@ -24,8 +25,8 @@
 #define IDS_STRINGS	2048		// "86Box"
 #define IDS_2049	2049		// "Error"
 #define IDS_2050	2050		// "Fatal error"
-#define IDS_2051	2051		// "Are you sure you want to save..."
-#define IDS_2052	2052		// "Press CTRL+ALT+PAGE DOWN..."
+#define IDS_2051	2051		// " - PAUSED"
+#define IDS_2052	2052		// "Press Ctrl+Alt+PgDn..."
 #define IDS_2053	2053		// "Speed"
 #define IDS_2054	2054		// "ZIP %i (%03i): %ls"
 #define IDS_2055	2055		// "ZIP images (*.IM?)\0*.IM..."
@@ -36,19 +37,19 @@
 #define IDS_2060	2060		// "On"
 #define IDS_2061	2061		// "Off"
 #define IDS_2062	2062		// "All floppy images (*.DSK..."
-#define IDS_2063	2063		// "Machine ""%S"" is not..."
-#define IDS_2064	2064		// "Video card ""%S"" is not..."
+#define IDS_2063	2063		// "Machine ""%hs"" is not..."
+#define IDS_2064	2064		// "Video card ""%hs"" is not..."
 #define IDS_2065	2065		// "Machine"
 #define IDS_2066	2066		// "Display"
 #define IDS_2067	2067		// "Input devices"
 #define IDS_2068	2068		// "Sound"
 #define IDS_2069	2069		// "Network"
 #define IDS_2070	2070		// "Ports (COM & LPT)"
-#define IDS_2071	2071		// "Other peripherals"
+#define IDS_2071	2071		// "Storage controllers"
 #define IDS_2072	2072		// "Hard disks"
-#define IDS_2073	2073		// "Floppy drives"
+#define IDS_2073	2073		// "Floppy and CD-ROM drives"
 #define IDS_2074	2074		// "Other removable devices"
-#define IDS_2075	2075		// "CD-ROM images (*.ISO;*.CU.."
+#define IDS_2075	2075		// "Other peripherals"
 #define IDS_2076	2076		// "Surface-based images (*.8.."
 #define IDS_2077	2077		// "Click to capture mouse"
 #define IDS_2078	2078		// "Press F12-F8 to release mouse"
@@ -94,11 +95,11 @@
 #define IDS_2118	2118		// "Internal controller"
 #define IDS_2119	2119		// "Exit"
 #define IDS_2120	2120		// "No ROMs found"
-#define IDS_2121	2121		// "Save changes\nThis will hard..."
-#define IDS_2122	2122		// "Discard changes\nAll changes..."
-#define IDS_2123	2123		// "Cancel\nGo back to the..."
-#define IDS_2124	2124		// "About " EMU_NAME
-#define IDS_2125	2125		// EMU_NAME " v" EMU_VERSION
+#define IDS_2121	2121		// "Do you want to save the settings?"
+#define IDS_2122	2122		// "This will hard reset the emulated..."
+#define IDS_2123	2123		// "Save"
+#define IDS_2124	2124		// "About 86Box"
+#define IDS_2125	2125		// "86Box v" EMU_VERSION
 #define IDS_2126	2126		// "An emulator of old computers..."
 #define IDS_2127	2127		// "OK"
 #define IDS_2128	2128		// "Hardware not available"
@@ -109,9 +110,31 @@
 #define IDS_2133	2133		// LIB_NAME_FLUIDSYNTH " is required..."
 #define IDS_2134	2134		// "Entering fullscreen mode"
 #define IDS_2135	2135		// "Don't show this message again"
-#define IDS_2136	2136		// "Don't Exit"
+#define IDS_2136	2136		// "Don't exit"
 #define IDS_2137	2137		// "Reset"
-#define IDS_2138	2138		// "Don't Reset"
+#define IDS_2138	2138		// "Don't reset"
+#define IDS_2139	2139		// "MO images (*.IM?)\0*.IM?..."
+#define IDS_2140	2140		// "CD-ROM images (*.ISO;*.CU.."
+#define IDS_2141	2141		// "%hs Device Configuration"
+#define IDS_2142	2142		// "Monitor in sleep mode"
+#define IDS_2143	2143		// "OpenGL Shaders (*.GLSL)..."
+#define IDS_2144	2144		// "OpenGL options"
+#define IDS_2145	2145		// "You are loading an unsupported..."
+#define IDS_2146	2146		// "CPU type filtering based on..."
+#define IDS_2147	2147		// "Continue"
+#define IDS_2148	2148		// "Cassette: %s"
+#define IDS_2149	2149		// "Cassette images (*.PCM;*.RAW;*..."
+#define IDS_2150	2150		// "Cartridge %i: %ls"
+#define IDS_2151	2151		// "Cartridge images (*.JRC)\0*.JRC\0..."
+#define IDS_2152	2152		// "Error initializing renderer"
+#define IDS_2153	2153		// "OpenGL (3.0 Core) renderer could not be initialized. Use another renderer."
+#define IDS_2154	2154		// "Resume execution"
+#define IDS_2155	2155		// "Pause execution"
+#define IDS_2156	2156		// "Press Ctrl+Alt+Del"
+#define IDS_2157	2157		// "Press Ctrl+Alt+Esc"
+#define IDS_2158	2158		// "Hard reset"
+#define IDS_2159	2159		// "ACPI shutdown"
+#define IDS_2160	2160		// "Settings"
 
 #define IDS_4096	4096		// "Hard disk (%s)"
 #define IDS_4097	4097		// "%01i:%01i"
@@ -138,23 +161,35 @@
 #define IDS_4118	4118		// "The selected file will be..."
 #define IDS_4119	4119		// "Unsupported disk image"
 #define IDS_4120	4120		// "Overwrite"
-#define IDS_4121	4121		// "Don't Overwrite"
+#define IDS_4121	4121		// "Don't overwrite"
+#define IDS_4122	4122		// "Raw image (.img)"
+#define IDS_4123	4123		// "HDI image (.hdi)"
+#define IDS_4124	4124		// "HDX image (.hdx)"
+#define IDS_4125	4125		// "Fixed-size VHD (.vhd)"
+#define IDS_4126	4126		// "Dynamic-size VHD (.vhd)"
+#define IDS_4127	4127		// "Differencing VHD (.vhd)"
+#define IDS_4128	4128		// "Large blocks (2 MB)"
+#define IDS_4129	4129		// "Small blocks (512 KB)"
+#define IDS_4130	4130		// "VHD files (*.VHD)\0*.VHD\0All..."
+#define IDS_4131	4131		// "Select the parent VHD"
+#define IDS_4132	4132		// "This could mean that the parent..."
+#define IDS_4133	4133		// "Parent and child disk timestamps..."
+#define IDS_4134	4134		// "Could not fix VHD timestamp."
+#define IDS_4135	4135		// "%01i:%02i"
 
 #define IDS_4352	4352		// "MFM/RLL"
 #define IDS_4353	4353		// "XT IDE"
 #define IDS_4354	4354		// "ESDI"
-#define IDS_4355	4355		// "IDE (PIO-only)"
-#define IDS_4356	4356		// "IDE (PIO+DMA)"
+#define IDS_4355	4355		// "IDE"
+#define IDS_4356	4356		// "ATAPI"
 #define IDS_4357	4357		// "SCSI"
-#define IDS_4358	4358		// "SCSI (removable)"
 
 #define IDS_4608	4608		// "MFM/RLL (%01i:%01i)"
 #define IDS_4609	4609		// "XT IDE (%01i:%01i)"
 #define IDS_4610	4610		// "ESDI (%01i:%01i)"
-#define IDS_4611	4611		// "IDE (PIO-only) (%01i:%01i)"
-#define IDS_4612	4612		// "IDE (PIO+DMA) (%01i:%01i)"
+#define IDS_4611	4611		// "IDE (%01i:%01i)"
+#define IDS_4612	4612		// "ATAPI (%01i:%01i)"
 #define IDS_4613	4613		// "SCSI (%02i:%02i)"
-#define IDS_4614	4614		// "SCSI (removable) (%02i:%02i)"
 
 #define IDS_5120	5120		// "CD-ROM %i (%s): %s"
 
@@ -162,16 +197,16 @@
 #define IDS_5377	5377		// <Reserved>
 #define IDS_5378	5378		// <Reserved>
 #define IDS_5379	5379		// <Reserved>
-#define IDS_5380	5380		// "ATAPI (PIO-only)"
-#define IDS_5381	5381		// "ATAPI (PIO and DMA)"
+#define IDS_5380	5380		// <Reserved>
+#define IDS_5381	5381		// "ATAPI"
 #define IDS_5382	5382		// "SCSI"
 
 #define IDS_5632	5632		// "Disabled"
 #define IDS_5633	5633		// <Reserved>
 #define IDS_5634	5634		// <Reserved>
 #define IDS_5635	5635		// <Reserved>
-#define IDS_5636	5636		// "ATAPI (PIO-only) (%01i:%01i)"
-#define IDS_5637	5637		// "ATAPI (PIO and DMA) (%01i:%01i)"
+#define IDS_5636	5636		// <Reserved>
+#define IDS_5637	5637		// "ATAPI (%01i:%01i)"
 #define IDS_5638	5638		// "SCSI (%02i:%02i)"
 
 #define IDS_5888	5888		// "160 kB"
@@ -188,25 +223,35 @@
 #define IDS_5899	5899		// "2.88 MB"
 #define IDS_5900	5900		// "ZIP 100"
 #define IDS_5901	5901		// "ZIP 250"
+#define IDS_5902	5902		// "3.5\" 128 MB (ISO 10090)"
+#define IDS_5903	5903		// "3.5\" 230 MB (ISO 13963)"
+#define IDS_5904	5904		// "3.5\" 540 MB (ISO 15498)"
+#define IDS_5905	5905		// "3.5\" 640 MB (ISO 15498)"
+#define IDS_5906	5906		// "3.5\" 1.3 GB (GigaMO)"
+#define IDS_5907	5907		// "3.5\" 2.3 GB (GigaMO 2)"
+#define IDS_5908	5908		// "5.25\" 600 MB"
+#define IDS_5909	5909		// "5.25\" 650 MB"
+#define IDS_5910	5910		// "5.25\" 1 GB"
+#define IDS_5911	5911		// "5.25\" 1.3 GB"
 
 #define IDS_6144	6144		// "Perfect RPM"
 #define IDS_6145	6145		// "1%% below perfect RPM"
 #define IDS_6146	6146		// "1.5%% below perfect RPM"
 #define IDS_6147	6147		// "2%% below perfect RPM"
 
-#define IDS_7168	7168		// "English (United States)"
+#define IDS_7168	7168		// "(System Default)"
 
 #define IDS_LANG_ENUS	IDS_7168
 
-#define STR_NUM_2048	71
+#define STR_NUM_2048	106
 #define STR_NUM_3072	11
-#define STR_NUM_4096	18
-#define STR_NUM_4352	7
-#define STR_NUM_4608	7
+#define STR_NUM_4096	40
+#define STR_NUM_4352	6
+#define STR_NUM_4608	6
 #define STR_NUM_5120	1
 #define STR_NUM_5376	7
 #define STR_NUM_5632	7
-#define STR_NUM_5888	14
+#define STR_NUM_5888	24
 #define STR_NUM_6144	4
 #define STR_NUM_7168	1
 

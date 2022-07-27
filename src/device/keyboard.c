@@ -26,6 +26,8 @@
 #include <86box/machine.h>
 #include <86box/keyboard.h>
 
+#include "cpu.h"
+
 
 int	keyboard_scan;
 void	(*keyboard_send)(uint16_t val);
@@ -93,7 +95,8 @@ key_process(uint16_t scan, int down)
     scancode *codes = scan_table;
     int c;
 
-    if (! keyboard_scan) return;
+    if (!keyboard_scan || (keyboard_send == NULL))
+	return;
 
     oldkey[scan] = down;
     if (down && codes[scan].mk[0]  == 0)
@@ -102,7 +105,8 @@ key_process(uint16_t scan, int down)
     if (!down && codes[scan].brk[0] == 0)
 	return;
 
-    if (AT && ((keyboard_mode & 3) == 3)) {
+    /* TODO: The keyboard controller needs to report the AT flag to us here. */
+    if (is286 && ((keyboard_mode & 3) == 3)) {
 	if (!keyboard_set3_all_break && !down && !(keyboard_set3_flags[codes[scan].mk[0]] & 2))
 		return;
     }
@@ -211,7 +215,8 @@ keyboard_do_break(uint16_t scan)
 {
     scancode *codes = scan_table;
 
-    if (AT && ((keyboard_mode & 3) == 3)) {
+    /* TODO: The keyboard controller needs to report the AT flag to us here. */
+    if (is286 && ((keyboard_mode & 3) == 3)) {
 	if (!keyboard_set3_all_break &&
 	    !recv_key[scan] &&
 	    !(keyboard_set3_flags[codes[scan].mk[0]] & 2))

@@ -45,10 +45,11 @@
 #include <86box/hdc_ide.h>
 
 
-#define ROM_PATH_XT	L"roms/hdd/xtide/ide_xt.bin"
-#define ROM_PATH_AT	L"roms/hdd/xtide/ide_at.bin"
-#define ROM_PATH_PS2	L"roms/hdd/xtide/SIDE1V12.BIN"
-#define ROM_PATH_PS2AT	L"roms/hdd/xtide/ide_at_1_1_5.bin"
+#define ROM_PATH_XT	"roms/hdd/xtide/ide_xt.bin"
+#define ROM_PATH_AT	"roms/hdd/xtide/ide_at.bin"
+#define ROM_PATH_PS2	"roms/hdd/xtide/SIDE1V12.BIN"
+#define ROM_PATH_PS2AT	"roms/hdd/xtide/ide_at_1_1_5.bin"
+#define ROM_PATH_AT_386	"roms/hdd/xtide/ide_386.bin"
 
 
 typedef struct {
@@ -161,8 +162,13 @@ xtide_at_init(const device_t *info)
 
     memset(xtide, 0x00, sizeof(xtide_t));
 
-    rom_init(&xtide->bios_rom, ROM_PATH_AT,
-	     0xc8000, 0x2000, 0x1fff, 0, MEM_MAPPING_EXTERNAL);
+    if (info->local == 1) {
+	rom_init(&xtide->bios_rom, ROM_PATH_AT_386,
+		 0xc8000, 0x2000, 0x1fff, 0, MEM_MAPPING_EXTERNAL);
+    } else {
+	rom_init(&xtide->bios_rom, ROM_PATH_AT,
+		 0xc8000, 0x2000, 0x1fff, 0, MEM_MAPPING_EXTERNAL);
+    }
 
     device_add(&ide_isa_2ch_device);
 
@@ -174,6 +180,13 @@ static int
 xtide_at_available(void)
 {
     return(rom_present(ROM_PATH_AT));
+}
+
+
+static int
+xtide_at_386_available(void)
+{
+    return(rom_present(ROM_PATH_AT_386));
 }
 
 
@@ -246,39 +259,72 @@ xtide_at_close(void *priv)
     free(xtide);
 }
 
-
 const device_t xtide_device = {
-    "XTIDE",
-    DEVICE_ISA,
-    0,
-    xtide_init, xtide_close, NULL,
-    xtide_available, NULL, NULL,
-    NULL
+    .name = "PC/XT XTIDE",
+    .internal_name = "xtide",
+    .flags = DEVICE_ISA,
+    .local = 0,
+    .init = xtide_init,
+    .close = xtide_close,
+    .reset = NULL,
+    { .available = xtide_available },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
 const device_t xtide_at_device = {
-    "XTIDE (AT)",
-    DEVICE_ISA | DEVICE_AT,
-    0,
-    xtide_at_init, xtide_at_close, NULL,
-    xtide_at_available, NULL, NULL,
-    NULL
+    .name = "PC/AT XTIDE",
+    .internal_name = "xtide_at",
+    .flags = DEVICE_ISA | DEVICE_AT,
+    .local = 0,
+    .init = xtide_at_init,
+    .close = xtide_at_close,
+    .reset = NULL,
+    { .available = xtide_at_available },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
+};
+
+const device_t xtide_at_386_device = {
+    .name = "PC/AT XTIDE (386)",
+    .internal_name = "xtide_at_386",
+    .flags = DEVICE_ISA | DEVICE_AT,
+    .local = 1,
+    .init = xtide_at_init,
+    .close = xtide_at_close,
+    .reset = NULL,
+    { .available = xtide_at_386_available },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
 const device_t xtide_acculogic_device = {
-    "XTIDE (Acculogic)",
-    DEVICE_ISA,
-    0,
-    xtide_acculogic_init, xtide_close, NULL,
-    xtide_acculogic_available, NULL, NULL,
-    NULL
+    .name = "Acculogic XT IDE",
+    .internal_name = "xtide_acculogic",
+    .flags = DEVICE_ISA,
+    .local = 0,
+    .init = xtide_acculogic_init,
+    .close = xtide_close,
+    .reset = NULL,
+    { .available = xtide_acculogic_available },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
 const device_t xtide_at_ps2_device = {
-    "XTIDE (AT) (1.1.5)",
-    DEVICE_AT,
-    0,
-    xtide_at_ps2_init, xtide_at_close, NULL,
-    xtide_at_ps2_available, NULL, NULL,
-    NULL
+    .name = "PS/2 AT XTIDE (1.1.5)",
+    .internal_name = "xtide_at_ps2",
+    .flags = DEVICE_ISA | DEVICE_AT,
+    .local = 0,
+    .init = xtide_at_ps2_init,
+    .close = xtide_at_close,
+    .reset = NULL,
+    { .available = xtide_at_ps2_available },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };

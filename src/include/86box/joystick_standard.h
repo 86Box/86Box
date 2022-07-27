@@ -35,8 +35,15 @@
  *   USA.
  */
 
-extern const joystick_if_t joystick_standard;
-extern const joystick_if_t joystick_standard_4button;
+#ifndef EMU_JOYSTICK_STANDARD_H
+# define EMU_JOYSTICK_STANDARD_H
+
+extern const joystick_if_t joystick_2axis_2button;
+extern const joystick_if_t joystick_2axis_4button;
+extern const joystick_if_t joystick_3axis_2button;
+extern const joystick_if_t joystick_3axis_4button;
 extern const joystick_if_t joystick_4axis_4button;
-extern const joystick_if_t joystick_standard_6button;
-extern const joystick_if_t joystick_standard_8button;
+extern const joystick_if_t joystick_2axis_6button;
+extern const joystick_if_t joystick_2axis_8button;
+
+#endif /*EMU_JOYSTICK_STANDARD_H*/

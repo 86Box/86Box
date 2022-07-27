@@ -19,6 +19,18 @@
 #ifndef EMU_IDE_H
 # define EMU_IDE_H
 
+#define HDC_PRIMARY_BASE    0x01F0
+#define HDC_PRIMARY_SIDE    0x03F6
+#define HDC_PRIMARY_IRQ	    14
+#define HDC_SECONDARY_BASE  0x0170
+#define HDC_SECONDARY_SIDE  0x0376
+#define HDC_SECONDARY_IRQ   15
+#define HDC_TERTIARY_BASE   0x0168
+#define HDC_TERTIARY_SIDE   0x036E
+#define HDC_TERTIARY_IRQ    10
+#define HDC_QUATERNARY_BASE 0x01E8
+#define HDC_QUATERNARY_SIDE 0x03EE
+#define HDC_QUATERNARY_IRQ  11
 
 enum
 {
@@ -37,7 +49,7 @@ typedef struct ide_s {
 	blocksize, blockcount,
 	hdd_num, channel,
 	pos, sector_pos,
-	lba, skip512,
+	lba,
 	reset, mdma_mode,
 	do_initial_read;
     uint32_t secount, sector,
@@ -55,6 +67,7 @@ typedef struct ide_s {
     /* Stuff mostly used by ATAPI */
     scsi_common_t	*sc;
     int		interrupt_drq;
+    double pending_delay;
 
     int		(*get_max)(int ide_has_dma, int type);
     int		(*get_timings)(int ide_has_dma, int type);
@@ -130,12 +143,18 @@ extern void	win_cdrom_reload(uint8_t id);
 extern void	ide_set_base(int board, uint16_t port);
 extern void	ide_set_side(int board, uint16_t port);
 
+extern void	ide_set_handlers(uint8_t board);
+extern void	ide_remove_handlers(uint8_t board);
+
 extern void	ide_pri_enable(void);
 extern void	ide_pri_disable(void);
 extern void	ide_sec_enable(void);
 extern void	ide_sec_disable(void);
 
 extern void	ide_board_set_force_ata3(int board, int force_ata3);
+#ifdef EMU_ISAPNP_H
+extern void	ide_pnp_config_changed(uint8_t ld, isapnp_device_config_t *config, void *priv);
+#endif
 
 extern double	ide_atapi_get_period(uint8_t channel);
 #ifdef SCSI_DEVICE_H
@@ -149,6 +168,9 @@ extern void	ide_padstr8(uint8_t *buf, int buf_size, const char *src);
 extern int	(*ide_bus_master_dma)(int channel, uint8_t *data, int transfer_length, int out, void *priv);
 extern void	(*ide_bus_master_set_irq)(int channel, void *priv);
 extern void	*ide_bus_master_priv[2];
+
+extern uint8_t	ide_read_ali_75(void);
+extern uint8_t	ide_read_ali_76(void);
 
 
 #endif	/*EMU_IDE_H*/

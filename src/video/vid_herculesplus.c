@@ -80,13 +80,17 @@ typedef struct {
     uint16_t	ma, maback;
     int		con, coff, cursoron;
     int		dispon, blink;
-    int	vsynctime;
+    int     vsynctime;
     int		vadj;
+    int     monitor_index, prev_monitor_index;
 
     int		cols[256][2][2];
 
     uint8_t	*vram;
 } herculesplus_t;
+
+#define VIDEO_MONITOR_PROLOGUE() { dev->prev_monitor_index = monitor_index_global; monitor_index_global = dev->monitor_index; }
+#define VIDEO_MONITOR_EPILOGUE() { monitor_index_global = dev->prev_monitor_index; }
 
 static video_timings_t timing_herculesplus = {VIDEO_ISA, 8, 16, 32,   8, 16, 32};
 
@@ -180,7 +184,7 @@ herculesplus_in(uint16_t port, void *priv)
 		break;
 
 	case 0x3ba:
-		/* 0x50: InColor card identity */
+        /* 0x10: Hercules Plus card identity */
 		ret = (dev->stat & 0xf) | ((dev->stat & 8) << 4) | 0x10;
 		break;
     }
@@ -217,7 +221,7 @@ draw_char_rom(herculesplus_t *dev, int x, uint8_t chr, uint8_t attr)
 
     blk = 0;
     if (dev->ctrl & HERCULESPLUS_CTRL_BLINK) {
-	if (attr & 0x80) 
+	if (attr & 0x80)
 		blk = (dev->blink & 16);
 	attr &= 0x7f;
     }
@@ -228,18 +232,18 @@ draw_char_rom(herculesplus_t *dev, int x, uint8_t chr, uint8_t attr)
     if ((attr & 0x77) == 0x70) {	/* Invert */
 	ifg = 0;
 	ibg = 7;
-    }	
-    if (attr & 8) 
+    }
+    if (attr & 8)
 	ifg |= 8;			/* High intensity FG */
-    if (attr & 0x80) 
+    if (attr & 0x80)
 	ibg |= 8;			/* High intensity BG */
     if ((attr & 0x77) == 0)		/* Blank */
 	ifg = ibg;
     ull = ((attr & 0x07) == 1) ? 13 : 0xffff;
 
-    if (dev->crtc[HERCULESPLUS_CRTC_XMODE] & HERCULESPLUS_XMODE_90COL) 
+    if (dev->crtc[HERCULESPLUS_CRTC_XMODE] & HERCULESPLUS_XMODE_90COL)
 	elg = 0;
-	else 
+	else
 	elg = ((chr >= 0xc0) && (chr <= 0xdf));
 
     fnt = &(fontdatm[chr][dev->sc]);
@@ -250,8 +254,8 @@ draw_char_rom(herculesplus_t *dev, int x, uint8_t chr, uint8_t attr)
 	val = 0x1ff;		/* Underscore, draw all foreground */
     } else {
 	val = fnt[0] << 1;
-	
-	if (elg) 
+
+	if (elg)
 		val |= (val >> 1) & 1;
     }
 
@@ -265,7 +269,7 @@ draw_char_rom(herculesplus_t *dev, int x, uint8_t chr, uint8_t attr)
 static void
 draw_char_ram4(herculesplus_t *dev, int x, uint8_t chr, uint8_t attr)
 {
-    unsigned ull, val, ifg, ibg, cfg;
+    unsigned ull, val, ibg, cfg;
     const uint8_t *fnt;
     int i, elg, blk;
     int cw = HERCULESPLUS_CW;
@@ -273,41 +277,37 @@ draw_char_ram4(herculesplus_t *dev, int x, uint8_t chr, uint8_t attr)
 
     blk = 0;
     if (blink) {
-	if (attr & 0x80) 
+	if (attr & 0x80)
 		blk = (dev->blink & 16);
 	attr &= 0x7f;
     }
 
     /* MDA-compatible attributes */
     ibg = 0;
-    ifg = 7;
     if ((attr & 0x77) == 0x70) {	/* Invert */
-	ifg = 0;
 	ibg = 7;
-    }	
-    if (attr & 8) 
-	ifg |= 8;			/* High intensity FG */
-    if (attr & 0x80) 
+    }
+    if (attr & 8)
+    if (attr & 0x80)
 	ibg |= 8;			/* High intensity BG */
     if ((attr & 0x77) == 0)		/* Blank */
-	ifg = ibg;
     ull = ((attr & 0x07) == 1) ? 13 : 0xffff;
-    if (dev->crtc[HERCULESPLUS_CRTC_XMODE] & HERCULESPLUS_XMODE_90COL) 
+    if (dev->crtc[HERCULESPLUS_CRTC_XMODE] & HERCULESPLUS_XMODE_90COL)
 	elg = 0;
-    else 
+    else
 	elg = ((chr >= 0xc0) && (chr <= 0xdf));
     fnt = dev->vram + 0x4000 + 16 * chr + dev->sc;
 
     if (blk) {
 	/* Blinking, draw all background */
-	val = 0x000;	
+	val = 0x000;
     } else if (dev->sc == ull) {
 	/* Underscore, draw all foreground */
 	val = 0x1ff;
     } else {
 	val = fnt[0x00000] << 1;
-	
-	if (elg) 
+
+	if (elg)
 		val |= (val >> 1) & 1;
     }
 
@@ -340,7 +340,7 @@ draw_char_ram48(herculesplus_t *dev, int x, uint8_t chr, uint8_t attr)
 
     blk = 0;
     if (blink) {
-	if (attr & 0x40) 
+	if (attr & 0x40)
 		blk = (dev->blink & 16);
 	attr &= 0x7f;
     }
@@ -358,7 +358,7 @@ draw_char_ram48(herculesplus_t *dev, int x, uint8_t chr, uint8_t attr)
 	ul  = (attr & 0x10) ? 1 : 0;
     }
 
-    if (ul) { 
+    if (ul) {
 	ull = dev->crtc[HERCULESPLUS_CRTC_UNDER] & 0x0F;
 	ulc = (dev->crtc[HERCULESPLUS_CRTC_UNDER] >> 4) & 0x0F;
 	if (ulc == 0) ulc = 7;
@@ -366,7 +366,7 @@ draw_char_ram48(herculesplus_t *dev, int x, uint8_t chr, uint8_t attr)
 	ull = 0xFFFF;
     }
 
-    if (ol) { 
+    if (ol) {
 	oll = dev->crtc[HERCULESPLUS_CRTC_OVER] & 0x0F;
 	olc = (dev->crtc[HERCULESPLUS_CRTC_OVER] >> 4) & 0x0F;
 	if (olc == 0) olc = 7;
@@ -374,23 +374,23 @@ draw_char_ram48(herculesplus_t *dev, int x, uint8_t chr, uint8_t attr)
 	oll = 0xFFFF;
     }
 
-    if (dev->crtc[HERCULESPLUS_CRTC_XMODE] & HERCULESPLUS_XMODE_90COL) 
+    if (dev->crtc[HERCULESPLUS_CRTC_XMODE] & HERCULESPLUS_XMODE_90COL)
 	elg = 0;
-    else 
+    else
 	elg = ((chr >= 0xc0) && (chr <= 0xdf));
     fnt = dev->vram + 0x4000 + 16 * chr + 4096 * font + dev->sc;
 
     if (blk) { /* Blinking, draw all background */
-		val = 0x000;	
+		val = 0x000;
     } else if (dev->sc == ull) {
 	/* Underscore, draw all foreground */
 	val = 0x1ff;
     } else {
 	val = fnt[0x00000] << 1;
-	
-	if (elg) 
+
+	if (elg)
 		val |= (val >> 1) & 1;
-	if (bld) 
+	if (bld)
 		val |= (val >> 1);
     }
 
@@ -403,7 +403,7 @@ draw_char_ram48(herculesplus_t *dev, int x, uint8_t chr, uint8_t attr)
 		cfg = ulc ^ ibg;	/* Underline */
 	else
 	   	cfg |= ibg;
-		
+
 	buffer32->line[dev->displine][(x * cw) + i] = dev->cols[attr][blink][cfg];
 	val = val << 1;
     }
@@ -475,9 +475,9 @@ graphics_line(herculesplus_t *dev)
 
 	dev->ma++;
 	for (c = 0; c < 16; c++) {
-		val >>= 1;
+		buffer32->line[dev->displine][(x << 4) + c] = (val & 0x8000) ? 7 : 0;
 
-		buffer32->line[dev->displine][(x << 4) + c] = (val & 1) ? 7 : 0;
+		val <<= 1;
 	}
 
 	for (c = 0; c < 16; c += 8)
@@ -493,12 +493,13 @@ herculesplus_poll(void *priv)
     uint16_t ca = (dev->crtc[15] | (dev->crtc[14] << 8)) & 0x3fff;
     int x, oldvc, oldsc;
 
+    VIDEO_MONITOR_PROLOGUE();
     if (! dev->linepos) {
 	timer_advance_u64(&dev->timer, dev->dispofftime);
 	dev->stat |= 1;
 	dev->linepos = 1;
 	oldsc = dev->sc;
-	if ((dev->crtc[8] & 3) == 3) 
+	if ((dev->crtc[8] & 3) == 3)
 		dev->sc = (dev->sc << 1) & 7;
 	if (dev->dispon) {
 		if (dev->displine < dev->firstline) {
@@ -515,11 +516,11 @@ herculesplus_poll(void *priv)
 	if (dev->vc == dev->crtc[7] && !dev->sc)
 		dev->stat |= 8;
 	dev->displine++;
-	if (dev->displine >= 500) 
+	if (dev->displine >= 500)
 		dev->displine = 0;
     } else {
 	timer_advance_u64(&dev->timer, dev->dispontime);
-	if (dev->dispon) 
+	if (dev->dispon)
 		dev->stat &= ~1;
 	dev->linepos = 0;
 	if (dev->vsynctime) {
@@ -528,9 +529,9 @@ herculesplus_poll(void *priv)
 			dev->stat &= ~8;
 	}
 
-	if (dev->sc == (dev->crtc[11] & 31) || ((dev->crtc[8] & 3) == 3 && dev->sc == ((dev->crtc[11] & 31) >> 1))) { 
-		dev->con = 0; 
-		dev->coff = 1; 
+	if (dev->sc == (dev->crtc[11] & 31) || ((dev->crtc[8] & 3) == 3 && dev->sc == ((dev->crtc[11] & 31) >> 1))) {
+		dev->con = 0;
+		dev->coff = 1;
 	}
 	if (dev->vadj) {
 		dev->sc++;
@@ -548,7 +549,7 @@ herculesplus_poll(void *priv)
 		oldvc = dev->vc;
 		dev->vc++;
 		dev->vc &= 127;
-		if (dev->vc == dev->crtc[6]) 
+		if (dev->vc == dev->crtc[6])
 			dev->dispon = 0;
 		if (oldvc == dev->crtc[4]) {
 			dev->vc = 0;
@@ -565,7 +566,7 @@ herculesplus_poll(void *priv)
 			dev->displine = 0;
 			dev->vsynctime = 16;
 			if (dev->crtc[7]) {
-				if ((dev->ctrl & HERCULESPLUS_CTRL_GRAPH) && (dev->ctrl2 & HERCULESPLUS_CTRL2_GRAPH)) 
+				if ((dev->ctrl & HERCULESPLUS_CTRL_GRAPH) && (dev->ctrl2 & HERCULESPLUS_CTRL2_GRAPH))
 					x = dev->crtc[1] << 4;
 				else
 					      x = dev->crtc[1] * 9;
@@ -581,7 +582,7 @@ herculesplus_poll(void *priv)
 					if (video_force_resize_get())
 						video_force_resize_set(0);
 				}
-				video_blit_memtoscreen_8(0, dev->firstline, 0, dev->lastline - dev->firstline, xsize, dev->lastline - dev->firstline);
+				video_blit_memtoscreen_8(0, dev->firstline, xsize, dev->lastline - dev->firstline);
 				frames++;
 				if ((dev->ctrl & HERCULESPLUS_CTRL_GRAPH) && (dev->ctrl2 & HERCULESPLUS_CTRL2_GRAPH)) {
 					video_res_x = dev->crtc[1] * 16;
@@ -606,6 +607,8 @@ herculesplus_poll(void *priv)
 	if ((dev->sc == (dev->crtc[10] & 31) || ((dev->crtc[8] & 3) == 3 && dev->sc == ((dev->crtc[10] & 31) >> 1))))
 		dev->con = 1;
     }
+
+    VIDEO_MONITOR_EPILOGUE();
 }
 
 
@@ -619,10 +622,11 @@ herculesplus_init(const device_t *info)
     memset(dev, 0, sizeof(herculesplus_t));
 
     dev->vram = (uint8_t *)malloc(0x10000);	/* 64k VRAM */
+    dev->monitor_index = monitor_index_global;
 
     timer_add(&dev->timer, herculesplus_poll, dev, 1);
 
-    mem_mapping_add(&dev->mapping, 0xb0000, 0x10000,
+    mem_mapping_add(&dev->mapping, 0xb0000, 0x08000,
 		    herculesplus_read,NULL,NULL,
 		    herculesplus_write,NULL,NULL,
 		    dev->vram, MEM_MAPPING_EXTERNAL, dev);
@@ -693,43 +697,57 @@ speed_changed(void *priv)
     recalc_timings(dev);
 }
 
-
 static const device_config_t herculesplus_config[] = {
+// clang-format off
     {
-	"rgb_type", "Display type", CONFIG_SELECTION, "", 0,
-	{
-		{
-			"Default", 0
-		},
-		{
-			"Green", 1
-		},
-		{
-			"Amber", 2
-		},
-		{
-			"Gray", 3
-		},
-		{
-			""
-		}
-	}
+        .name = "rgb_type",
+        .description = "Display type",
+        .type = CONFIG_SELECTION,
+        .default_int = 0,
+        .selection = {
+            {
+                .description = "Default",
+                .value = 0
+            },
+            {
+                .description = "Green",
+                .value = 1
+            },
+            {
+                .description = "Amber",
+                .value = 2
+            },
+            {
+                .description = "Gray",
+                .value = 3
+            },
+            {
+                .description = ""
+            }
+        }
     },
     {
-	"blend", "Blend", CONFIG_BINARY, "", 1
+        .name = "blend",
+        .description = "Blend",
+        .type = CONFIG_BINARY,
+        .default_int = 1
     },
     {
-	"", "", -1
+        .type = CONFIG_END
     }
+// clang-format on
 };
 
 const device_t herculesplus_device = {
-    "Hercules Plus",
-    DEVICE_ISA,
-    0,
-    herculesplus_init, herculesplus_close, NULL,
-    NULL,
-    speed_changed,
-    NULL,
-    herculesplus_config
+    .name = "Hercules Plus",
+    .internal_name = "hercules_plus",
+    .flags = DEVICE_ISA,
+    .local = 0,
+    .init = herculesplus_init,
+    .close = herculesplus_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = speed_changed,
+    .force_redraw = NULL,
+    .config = herculesplus_config
 };

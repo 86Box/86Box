@@ -33,13 +33,16 @@
 
 
 typedef struct {
-    uint8_t tries,
+    uint8_t id, tries,
 	    regs[42];
     int locked, rw_locked,
 	cur_reg;
     fdc_t *fdc;
     serial_t *uart[2];
 } fdc37c669_t;
+
+
+static int	next_id = 0;
 
 
 static uint16_t
@@ -114,7 +117,7 @@ fdc37c669_write(uint16_t port, uint8_t val, void *priv)
 
     switch(dev->cur_reg) {
 	case 0:
-		if (valxor & 8) {
+		if (!dev->id && (valxor & 8)) {
 			fdc_remove(dev->fdc);
 			if ((dev->regs[0] & 8) && (dev->regs[0x20] & 0xc0))
 				fdc_set_base(dev->fdc, make_port(dev, 0x20));
@@ -122,9 +125,15 @@ fdc37c669_write(uint16_t port, uint8_t val, void *priv)
 		break;
 	case 1:
 		if (valxor & 4) {
-			lpt1_remove();
-			if ((dev->regs[1] & 4) && (dev->regs[0x23] >= 0x40)) 
-				lpt1_init(make_port(dev, 0x23));
+			if (dev->id) {
+				lpt2_remove();
+				if ((dev->regs[1] & 4) && (dev->regs[0x23] >= 0x40))
+					lpt2_init(make_port(dev, 0x23));
+			} else {
+				lpt1_remove();
+				if ((dev->regs[1] & 4) && (dev->regs[0x23] >= 0x40))
+					lpt1_init(make_port(dev, 0x23));
+			}
 		}
 		if (valxor & 7)
 			dev->rw_locked = (val & 8) ? 0 : 1;
@@ -142,23 +151,23 @@ fdc37c669_write(uint16_t port, uint8_t val, void *priv)
 		}
 		break;
 	case 3:
-		if (valxor & 2)
+		if (!dev->id && (valxor & 2))
 			fdc_update_enh_mode(dev->fdc, (val & 2) ? 1 : 0);
 		break;
 	case 5:
-		if (valxor & 0x18)
+		if (!dev->id && (valxor & 0x18))
 			fdc_update_densel_force(dev->fdc, (val & 0x18) >> 3);
-		if (valxor & 0x20)
+		if (!dev->id && (valxor & 0x20))
 			fdc_set_swap(dev->fdc, (val & 0x20) >> 5);
 		break;
 	case 0xB:
-		if (valxor & 3)
+		if (!dev->id && (valxor & 3))
 			fdc_update_rwc(dev->fdc, 0, val & 3);
-		if (valxor & 0xC)
+		if (!dev->id && (valxor & 0xC))
 			fdc_update_rwc(dev->fdc, 1, (val & 0xC) >> 2);
 		break;
 	case 0x20:
-		if (valxor & 0xfc) {
+		if (!dev->id && (valxor & 0xfc)) {
 			fdc_remove(dev->fdc);
 			if ((dev->regs[0] & 8) && (dev->regs[0x20] & 0xc0))
 				fdc_set_base(dev->fdc, make_port(dev, 0x20));
@@ -166,9 +175,15 @@ fdc37c669_write(uint16_t port, uint8_t val, void *priv)
 		break;
 	case 0x23:
 		if (valxor) {
-			lpt1_remove();
-			if ((dev->regs[1] & 4) && (dev->regs[0x23] >= 0x40)) 
-				lpt1_init(make_port(dev, 0x23));
+			if (dev->id) {
+				lpt2_remove();
+				if ((dev->regs[1] & 4) && (dev->regs[0x23] >= 0x40))
+					lpt2_init(make_port(dev, 0x23));
+			} else {
+				lpt1_remove();
+				if ((dev->regs[1] & 4) && (dev->regs[0x23] >= 0x40))
+					lpt1_init(make_port(dev, 0x23));
+			}
 		}
 		break;
 	case 0x24:
@@ -186,8 +201,12 @@ fdc37c669_write(uint16_t port, uint8_t val, void *priv)
 		}
 		break;
 	case 0x27:
-		if (valxor & 0xf)
-			lpt1_irq(val & 0xf);
+		if (valxor & 0xf) {
+			if (dev->id)
+				lpt2_irq(val & 0xf);
+			else
+				lpt1_irq(val & 0xf);
+		}
 		break;
 	case 0x28:
 		if (valxor & 0xf) {
@@ -226,16 +245,11 @@ fdc37c669_read(uint16_t port, void *priv)
 static void
 fdc37c669_reset(fdc37c669_t *dev)
 {
-    fdc_reset(dev->fdc);
-
     serial_remove(dev->uart[0]);
-    serial_setup(dev->uart[0], SERIAL1_ADDR, SERIAL1_IRQ);
+    serial_setup(dev->uart[0], COM1_ADDR, COM1_IRQ);
 
     serial_remove(dev->uart[1]);
-    serial_setup(dev->uart[1], SERIAL2_ADDR, SERIAL2_IRQ);
-
-    lpt1_remove();
-    lpt1_init(0x378);
+    serial_setup(dev->uart[1], COM2_ADDR, COM2_IRQ);
 
     memset(dev->regs, 0, 42);
     dev->regs[0x00] = 0x28;
@@ -246,14 +260,30 @@ fdc37c669_reset(fdc37c669_t *dev)
     dev->regs[0x0d] = 0x03;
     dev->regs[0x0e] = 0x02;
     dev->regs[0x1e] = 0x80;	/* Gameport controller. */
-    dev->regs[0x20] = (0x3f0 >> 2) & 0xfc;
+    dev->regs[0x20] = (FDC_PRIMARY_ADDR >> 2) & 0xfc;
     dev->regs[0x21] = (0x1f0 >> 2) & 0xfc;
     dev->regs[0x22] = ((0x3f6 >> 2) & 0xfc) | 1;
-    dev->regs[0x23] = (0x378 >> 2);
-    dev->regs[0x24] = (0x3f8 >> 2) & 0xfe;
-    dev->regs[0x25] = (0x2f8 >> 2) & 0xfe;
+    if (dev->id == 1) {
+	dev->regs[0x23] = (LPT2_ADDR >> 2);
+
+	lpt2_remove();
+	lpt2_init(LPT2_ADDR);
+
+	dev->regs[0x24] = (COM3_ADDR >> 2) & 0xfe;
+	dev->regs[0x25] = (COM4_ADDR >> 2) & 0xfe;
+    } else {
+	fdc_reset(dev->fdc);
+
+	lpt1_remove();
+	lpt1_init(LPT1_ADDR);
+
+	dev->regs[0x23] = (LPT1_ADDR >> 2);
+
+	dev->regs[0x24] = (COM1_ADDR >> 2) & 0xfe;
+	dev->regs[0x25] = (COM2_ADDR >> 2) & 0xfe;
+    }
     dev->regs[0x26] = (2 << 4) | 3;
-    dev->regs[0x27] = (6 << 4) | 7;
+    dev->regs[0x27] = (6 << 4) | (dev->id ? 5 : 7);
     dev->regs[0x28] = (4 << 4) | 3;
 
     dev->locked = 0;
@@ -266,6 +296,8 @@ fdc37c669_close(void *priv)
 {
     fdc37c669_t *dev = (fdc37c669_t *) priv;
 
+    next_id = 0;
+
     free(dev);
 }
 
@@ -276,25 +308,49 @@ fdc37c669_init(const device_t *info)
     fdc37c669_t *dev = (fdc37c669_t *) malloc(sizeof(fdc37c669_t));
     memset(dev, 0, sizeof(fdc37c669_t));
 
-    dev->fdc = device_add(&fdc_at_smc_device);
+    dev->id = next_id;
 
-    dev->uart[0] = device_add_inst(&ns16550_device, 1);
-    dev->uart[1] = device_add_inst(&ns16550_device, 2);
+    if (next_id != 1)
+	dev->fdc = device_add(&fdc_at_smc_device);
 
-    io_sethandler(0x3f0, 0x0002,
+    dev->uart[0] = device_add_inst(&ns16550_device, (next_id << 1) + 1);
+    dev->uart[1] = device_add_inst(&ns16550_device, (next_id << 1) + 2);
+
+    io_sethandler(info->local ? FDC_SECONDARY_ADDR : (next_id ? FDC_SECONDARY_ADDR : FDC_PRIMARY_ADDR), 0x0002,
 		  fdc37c669_read, NULL, NULL, fdc37c669_write, NULL, NULL, dev);
 
     fdc37c669_reset(dev);
 
+    next_id++;
+
     return dev;
 }
 
-
 const device_t fdc37c669_device = {
-    "SMC FDC37C669 Super I/O",
-    0,
-    0,
-    fdc37c669_init, fdc37c669_close, NULL,
-    NULL, NULL, NULL,
-    NULL
+    .name = "SMC FDC37C669 Super I/O",
+    .internal_name = "fdc37c669",
+    .flags = 0,
+    .local = 0,
+    .init = fdc37c669_init,
+    .close = fdc37c669_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
+};
+
+
+const device_t fdc37c669_370_device = {
+    .name = "SMC FDC37C669 Super I/O (Port 370h)",
+    .internal_name = "fdc37c669_370",
+    .flags = 0,
+    .local = 1,
+    fdc37c669_init,
+    fdc37c669_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };

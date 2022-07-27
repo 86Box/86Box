@@ -14,9 +14,9 @@
  *
  *		Copyright 2020 RichardG.
  */
+
 #ifndef EMU_SPD_H
 # define EMU_SPD_H
-
 
 #define SPD_BASE_ADDR		0x50
 #define SPD_MAX_SLOTS		8
@@ -47,17 +47,7 @@
 #define SPD_SDR_ATTR_VCC_HI_5	0x20
 
 
-typedef struct _spd_ {
-    const device_t	*info;
-    uint8_t		slot;
-    uint16_t		size;
-    uint16_t		row1;
-    uint16_t		row2;
-
-    uint8_t		addr_register;
-} spd_t;
-
-typedef struct _spd_edo_ {
+typedef struct {
     uint8_t	bytes_used, spd_size, mem_type,
     		row_bits, col_bits, banks,
     		data_width_lsb, data_width_msb,
@@ -75,7 +65,7 @@ typedef struct _spd_edo_ {
     		checksum2;
 } spd_edo_t;
 
-typedef struct _spd_sdram_ {
+typedef struct {
     uint8_t	bytes_used, spd_size, mem_type,
     		row_bits, col_bits, rows,
     		data_width_lsb, data_width_msb,
@@ -99,11 +89,25 @@ typedef struct _spd_sdram_ {
     		checksum2;
 } spd_sdram_t;
 
+typedef struct {
+    uint8_t	slot;
+    uint16_t	size;
+    uint16_t	row1;
+    uint16_t	row2;
 
-extern spd_t	*spd_devices[SPD_MAX_SLOTS];
+    union {
+	uint8_t	data[SPD_DATA_SIZE];
+	spd_edo_t edo_data;
+	spd_sdram_t sdram_data;
+    };
+    void	*eeprom;
+} spd_t;
 
 
 extern void spd_register(uint8_t ram_type, uint8_t slot_mask, uint16_t max_module_size);
-
+extern void spd_write_drbs(uint8_t *regs, uint8_t reg_min, uint8_t reg_max, uint8_t drb_unit);
+extern void spd_write_drbs_with_ext(uint8_t *regs, uint8_t reg_min, uint8_t reg_max, uint8_t drb_unit);
+extern void spd_write_drbs_interleaved(uint8_t *regs, uint8_t reg_min, uint8_t reg_max, uint8_t drb_unit);
+extern void spd_write_drbs_ali1621(uint8_t *regs, uint8_t reg_min, uint8_t reg_max);
 
 #endif	/*EMU_SPD_H*/

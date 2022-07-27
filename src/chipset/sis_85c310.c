@@ -7,13 +7,9 @@
 #define HAVE_STDARG_H
 #include <86box/86box.h>
 #include "cpu.h"
-#include <86box/timer.h>
 #include <86box/io.h>
 #include <86box/device.h>
-#include <86box/keyboard.h>
 #include <86box/mem.h>
-#include <86box/fdd.h>
-#include <86box/fdc.h>
 #include <86box/chipset.h>
 
 
@@ -139,12 +135,16 @@ rabbit_init(const device_t *info)
     return dev;
 }
 
-
 const device_t rabbit_device = {
-    "SiS Rabbit",
-    0,
-    0,
-    rabbit_init, rabbit_close, NULL,
-    NULL, NULL, NULL,
-    NULL
+    .name = "SiS Rabbit",
+    .internal_name = "rabbit",
+    .flags = 0,
+    .local = 0,
+    .init = rabbit_init,
+    .close = rabbit_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };

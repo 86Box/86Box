@@ -16,24 +16,44 @@
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *		Copyright 2020 Miran Grca.
  */
-#include <stdio.h>
+#include <stdarg.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <wchar.h>
+#define HAVE_STDARG_H
 #include <86box/86box.h>
 #include <86box/device.h>
 #include <86box/io.h>
 #include <86box/timer.h>
-#include <86box/pci.h>
 #include <86box/mem.h>
-#include <86box/rom.h>
 #include <86box/lpt.h>
 #include <86box/serial.h>
 #include <86box/fdd.h>
 #include <86box/fdc.h>
+#include <86box/hdc.h>
+#include <86box/hdc_ide.h>
+#include <86box/gameport.h>
 #include <86box/sio.h>
 
+#ifdef ENABLE_W83787_LOG
+int w83787_do_log = ENABLE_W83787_LOG;
+static void
+w83787_log(const char *fmt, ...)
+{
+    va_list ap;
+
+    if (w83787_do_log)
+    {
+        va_start(ap, fmt);
+        pclog_ex(fmt, ap);
+        va_end(ap);
+    }
+}
+#else
+#define w83787_log(fmt, ...)
+#endif
 
 #define FDDA_TYPE	(dev->regs[7] & 3)
 #define FDDB_TYPE	((dev->regs[7] >> 2) & 3)
@@ -52,15 +72,18 @@
 
 #define HEFERE		((dev->regs[0xC] >> 5) & 1)
 
+#define HAS_IDE_FUNCTIONALITY	dev->ide_function
 
 typedef struct {
     uint8_t tries, regs[42];
     uint16_t reg_init;
     int locked, rw_locked,
 	cur_reg,
-	key;
+	key, ide_function,
+	ide_start;
     fdc_t *fdc;
     serial_t *uart[2];
+    void	*gameport;
 } w83787f_t;
 
 
@@ -71,9 +94,9 @@ static uint8_t	w83787f_read(uint16_t port, void *priv);
 static void
 w83787f_remap(w83787f_t *dev)
 {
-    io_removehandler(0x250, 0x0003,
+    io_removehandler(0x250, 0x0004,
 		     w83787f_read, NULL, NULL, w83787f_write, NULL, NULL, dev);
-    io_sethandler(0x250, 0x0003,
+    io_sethandler(0x250, 0x0004,
 		  w83787f_read, NULL, NULL, w83787f_write, NULL, NULL, dev);
     dev->key = 0x88 | HEFERE;
 }
@@ -104,27 +127,27 @@ w83787f_serial_handler(w83787f_t *dev, int uart)
     int urs0 = !!(dev->regs[1] & (1 << uart));
     int urs1 = !!(dev->regs[1] & (4 << uart));
     int urs2 = !!(dev->regs[3] & (8 >> uart));
-    int urs, irq = 4;
-    uint16_t addr = 0x3f8, enable = 1;
+    int urs, irq = COM1_IRQ;
+    uint16_t addr = COM1_ADDR, enable = 1;
 
     urs = (urs1 << 1) | urs0;
 
     if (urs2) {
-	addr = uart ? 0x3f8 : 0x2f8;
-	irq = uart ? 4 : 3;
+	addr = uart ? COM1_ADDR : COM2_ADDR;
+	irq = uart ? COM1_IRQ : COM2_IRQ;
     } else {
 	switch (urs) {
 		case 0:
-			addr = uart ? 0x3e8 : 0x2e8;
-			irq = uart ? 4 : 3;
+			addr = uart ? COM3_ADDR : COM4_ADDR;
+			irq = uart ? COM3_IRQ : COM4_IRQ;
 			break;
 		case 1:
-			addr = uart ? 0x2e8 : 0x3e8;
-			irq = uart ? 3 : 4;
+			addr = uart ? COM4_ADDR : COM3_ADDR;
+			irq = uart ? COM4_IRQ : COM3_IRQ;
 			break;
 		case 2:
-			addr = uart ? 0x2f8 : 0x3f8;
-			irq = uart ? 3 : 4;
+			addr = uart ? COM2_ADDR : COM1_ADDR;
+			irq = uart ? COM2_IRQ : COM1_IRQ;
 			break;
 		case 3:
 		default:
@@ -145,27 +168,24 @@ w83787f_serial_handler(w83787f_t *dev, int uart)
 static void
 w83787f_lpt_handler(w83787f_t *dev)
 {
-    int ptrs0 = !!(dev->regs[1] & 4);
-    int ptrs1 = !!(dev->regs[1] & 5);
-    int ptrs, irq = 7;
-    uint16_t addr = 0x378, enable = 1;
+    int ptras = (dev->regs[1] >> 4) & 0x03;
+    int irq = LPT1_IRQ;
+    uint16_t addr = LPT1_ADDR, enable = 1;
 
-    ptrs = (ptrs1 << 1) | ptrs0;
-
-    switch (ptrs) {
-	case 0:
-		addr = 0x3bc;
-		irq = 7;
+    switch (ptras) {
+	case 0x00:
+		addr = LPT_MDA_ADDR;
+		irq = LPT_MDA_IRQ;
 		break;
-	case 1:
-		addr = 0x278;
-		irq = 5;
+	case 0x01:
+		addr = LPT2_ADDR;
+		irq = LPT2_IRQ;
 		break;
-	case 2:
-		addr = 0x378;
-		irq = 7;
+	case 0x02:
+		addr = LPT1_ADDR;
+		irq = LPT1_IRQ;
 		break;
-	case 3:
+	case 0x03:
 	default:
 		enable = 0;
 		break;
@@ -183,11 +203,42 @@ w83787f_lpt_handler(w83787f_t *dev)
 
 
 static void
+w83787f_gameport_handler(w83787f_t *dev)
+{
+    if (!(dev->regs[3] & 0x40) && !(dev->regs[4] & 0x40))
+	gameport_remap(dev->gameport, 0x201);
+    else
+	gameport_remap(dev->gameport, 0);
+}
+
+
+static void
 w83787f_fdc_handler(w83787f_t *dev)
 {
     fdc_remove(dev->fdc);
-    if (!(dev->regs[0] & 0x20))
-	fdc_set_base(dev->fdc, (dev->regs[0] & 0x10) ? 0x03f0 : 0x0370);
+    if (!(dev->regs[0] & 0x20) && !(dev->regs[6] & 0x08))
+	fdc_set_base(dev->fdc, (dev->regs[0] & 0x10) ? FDC_PRIMARY_ADDR : FDC_SECONDARY_ADDR);
+}
+
+
+static void
+w83787f_ide_handler(w83787f_t *dev)
+{
+    if (dev->ide_function & 0x20) {
+	ide_sec_disable();
+	if (!(dev->regs[0] & 0x80)) {
+		ide_set_base(1, (dev->regs[0] & 0x40) ? 0x1f0 : 0x170);
+		ide_set_side(1, (dev->regs[0] & 0x40) ? 0x3f6 : 0x376);
+		ide_sec_enable();
+	}
+    } else {
+	ide_pri_disable();
+	if (!(dev->regs[0] & 0x80)) {
+		ide_set_base(0, (dev->regs[0] & 0x40) ? 0x1f0 : 0x170);
+		ide_set_side(0, (dev->regs[0] & 0x40) ? 0x3f6 : 0x376);
+		ide_pri_enable();
+	}
+    }
 }
 
 
@@ -222,6 +273,9 @@ w83787f_write(uint16_t port, uint8_t val, void *priv)
 
     switch (dev->cur_reg) {
 	case 0:
+		w83787_log("REG 00: %02X\n", val);
+		if ((valxor & 0xc0) && (HAS_IDE_FUNCTIONALITY))
+			w83787f_ide_handler(dev);
 		if (valxor & 0x30)
 			w83787f_fdc_handler(dev);
 		if (valxor & 0x0c)
@@ -240,6 +294,8 @@ w83787f_write(uint16_t port, uint8_t val, void *priv)
 	case 3:
 		if (valxor & 0x80)
 			w83787f_lpt_handler(dev);
+		if (valxor & 0x40)
+			w83787f_gameport_handler(dev);
 		if (valxor & 0x08)
 			w83787f_serial_handler(dev, 0);
 		if (valxor & 0x04)
@@ -252,13 +308,12 @@ w83787f_write(uint16_t port, uint8_t val, void *priv)
 			w83787f_serial_handler(dev, 0);
 		if (valxor & 0x80)
 			w83787f_lpt_handler(dev);
+		if (valxor & 0x40)
+			w83787f_gameport_handler(dev);
 		break;
 	case 6:
-		if (valxor & 0x08) {
-			fdc_remove(dev->fdc);
-			if (!(dev->regs[6] & 0x08))
-				fdc_set_base(dev->fdc, 0x03f0);
-		}
+		if (valxor & 0x08)
+			w83787f_fdc_handler(dev);
 		break;
 	case 7:
 		if (valxor & 0x03)
@@ -285,6 +340,9 @@ w83787f_write(uint16_t port, uint8_t val, void *priv)
 			dev->rw_locked = (val & 0x40) ? 1 : 0;
 		if (valxor & 0x80)
 			w83787f_lpt_handler(dev);
+		break;
+	case 0xB:
+		w83787_log("Writing %02X to CRB\n", val);
 		break;
 	case 0xC:
 		if (valxor & 0x20)
@@ -319,23 +377,50 @@ static void
 w83787f_reset(w83787f_t *dev)
 {
     lpt1_remove();
-    lpt1_init(0x378);
-    lpt1_irq(7);
+    lpt1_init(LPT1_ADDR);
+    lpt1_irq(LPT1_IRQ);
+
+    memset(dev->regs, 0, 0x2A);
+
+    if (HAS_IDE_FUNCTIONALITY) {
+	if (dev->ide_function & 0x20) {
+		dev->regs[0x00] = 0x90;
+		ide_sec_disable();
+		ide_set_base(1, 0x170);
+		ide_set_side(1, 0x376);
+	} else {
+		dev->regs[0x00] = 0xd0;
+		ide_pri_disable();
+		ide_set_base(0, 0x1f0);
+		ide_set_side(0, 0x3f6);
+	}
+
+	if (dev->ide_start) {
+		dev->regs[0x00] &= 0x7f;
+		if (dev->ide_function & 0x20)
+			ide_sec_enable();
+		else
+			ide_pri_enable();
+	}
+    } else
+	dev->regs[0x00] = 0xd0;
 
     fdc_reset(dev->fdc);
 
-    memset(dev->regs, 0, 0x2A);
-    dev->regs[0x00] = 0x50;
     dev->regs[0x01] = 0x2C;
-    dev->regs[0x03] = 0x30;
+    dev->regs[0x03] = 0x70;
     dev->regs[0x07] = 0xF5;
     dev->regs[0x09] = dev->reg_init & 0xff;
     dev->regs[0x0a] = 0x1F;
     dev->regs[0x0c] = 0x2C;
     dev->regs[0x0d] = 0xA3;
 
-    serial_setup(dev->uart[0], SERIAL1_ADDR, SERIAL1_IRQ);
-    serial_setup(dev->uart[1], SERIAL2_ADDR, SERIAL2_IRQ);
+    gameport_remap(dev->gameport, 0);
+
+    serial_setup(dev->uart[0], COM1_ADDR, COM1_IRQ);
+    serial_setup(dev->uart[1], COM2_ADDR, COM2_IRQ);
+
+    w83787f_lpt_handler(dev);
 
     dev->key = 0x89;
 
@@ -361,24 +446,78 @@ w83787f_init(const device_t *info)
     w83787f_t *dev = (w83787f_t *) malloc(sizeof(w83787f_t));
     memset(dev, 0, sizeof(w83787f_t));
 
+    HAS_IDE_FUNCTIONALITY = (info->local & 0x30);
+
     dev->fdc = device_add(&fdc_at_winbond_device);
 
     dev->uart[0] = device_add_inst(&ns16550_device, 1);
     dev->uart[1] = device_add_inst(&ns16550_device, 2);
 
-    dev->reg_init = info->local;
+    dev->gameport = gameport_add(&gameport_sio_1io_device);
 
+    if ((dev->ide_function & 0x30) == 0x10)
+	device_add(&ide_isa_device);
+
+    dev->ide_start = !!(info->local & 0x40);
+
+    dev->reg_init = info->local & 0x0f;
     w83787f_reset(dev);
 
     return dev;
 }
 
-
 const device_t w83787f_device = {
-    "Winbond W83787F/IF Super I/O",
-    0,
-    0x09,
-    w83787f_init, w83787f_close, NULL,
-    NULL, NULL, NULL,
-    NULL
+    .name = "Winbond W83787F/IF Super I/O",
+    .internal_name = "w83787f",
+    .flags = 0,
+    .local = 0x09,
+    .init = w83787f_init,
+    .close = w83787f_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
+};
+
+const device_t w83787f_ide_device = {
+    .name = "Winbond W83787F/IF Super I/O (With IDE)",
+    .internal_name = "w83787f_ide",
+    .flags = 0,
+    .local = 0x19,
+    .init = w83787f_init,
+    .close = w83787f_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
+};
+
+const device_t w83787f_ide_en_device = {
+    .name = "Winbond W83787F/IF Super I/O (With IDE Enabled)",
+    .internal_name = "w83787f_ide_en",
+    .flags = 0,
+    .local = 0x59,
+    .init = w83787f_init,
+    .close = w83787f_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
+};
+
+const device_t w83787f_ide_sec_device = {
+    .name = "Winbond W83787F/IF Super I/O (With Secondary IDE)",
+    .internal_name = "w83787f_ide_sec",
+    .flags = 0,
+    .local = 0x39,
+    .init = w83787f_init,
+    .close = w83787f_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };

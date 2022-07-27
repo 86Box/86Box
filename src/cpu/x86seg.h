@@ -16,3 +16,6 @@
  */
 
 extern void do_seg_load(x86seg *s, uint16_t *segdat);
+
+extern void cyrix_write_seg_descriptor(uint32_t addr, x86seg *seg);
+extern void cyrix_load_seg_descriptor(uint32_t addr, x86seg *seg);

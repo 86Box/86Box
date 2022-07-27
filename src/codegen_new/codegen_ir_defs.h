@@ -9,7 +9,7 @@
   All registers must have been written back or discarded.
   This should be used when calling external functions that may change any emulated
   registers.*/
-#define UOP_TYPE_BARRIER (1 << 31)
+#define UOP_TYPE_BARRIER (1u << 31)
 
 /*uOP is a barrier. All previous uOPs must have completed before this one executes.
   All registers must have been written back, but do not have to be discarded.
@@ -55,6 +55,7 @@
 /*UOP_JMP_DEST - jump to ptr*/
 #define UOP_JMP_DEST              (UOP_TYPE_PARAMS_IMM | UOP_TYPE_PARAMS_POINTER | 0x17 | UOP_TYPE_ORDER_BARRIER | UOP_TYPE_JUMP)
 #define UOP_NOP_BARRIER           (UOP_TYPE_BARRIER | 0x18)
+#define UOP_STORE_P_IMM_16        (UOP_TYPE_PARAMS_IMM     | 0x19)
 
 #ifdef DEBUG_EXTRA
 /*UOP_LOG_INSTR - log non-recompiled instruction in imm_data*/
@@ -360,19 +361,19 @@ typedef struct ir_data_t
 static inline uop_t *uop_alloc(ir_data_t *ir, uint32_t uop_type)
 {
         uop_t *uop;
-        
+
         if (ir->wr_pos >= UOP_NR_MAX)
                 fatal("Exceeded uOP max\n");
-        
+
         uop = &ir->uops[ir->wr_pos++];
-        
+
         uop->dest_reg_a = invalid_ir_reg;
         uop->src_reg_a = invalid_ir_reg;
         uop->src_reg_b = invalid_ir_reg;
         uop->src_reg_c = invalid_ir_reg;
-        
+
         uop->pc = cpu_state.oldpc;
-        
+
         uop->jump_dest_uop = -1;
         uop->jump_list_next = -1;
 
@@ -385,7 +386,7 @@ static inline uop_t *uop_alloc(ir_data_t *ir, uint32_t uop_type)
 static inline void uop_set_jump_dest(ir_data_t *ir, int jump_uop)
 {
         uop_t *uop = &ir->uops[jump_uop];
-        
+
         uop->jump_dest_uop = ir->wr_pos;
 }
 
@@ -401,7 +402,7 @@ static inline int uop_gen(uint32_t uop_type, ir_data_t *ir)
 static inline int uop_gen_reg_src1(uint32_t uop_type, ir_data_t *ir, int src_reg_a)
 {
         uop_t *uop = uop_alloc(ir, uop_type);
-        
+
         uop->type = uop_type;
         uop->src_reg_a = codegen_reg_read(src_reg_a);
 
@@ -423,7 +424,7 @@ static inline int uop_gen_reg_src1_imm(uint32_t uop_type, ir_data_t *ir, int src
         uop->type = uop_type;
         uop->src_reg_a = codegen_reg_read(src_reg);
         uop->imm_data = imm;
-        
+
         return ir->wr_pos-1;
 }
 
@@ -513,7 +514,7 @@ static inline int uop_gen_reg_src2(uint32_t uop_type, ir_data_t *ir, int src_reg
         uop->type = uop_type;
         uop->src_reg_a = codegen_reg_read(src_reg_a);
         uop->src_reg_b = codegen_reg_read(src_reg_b);
-        
+
         return ir->wr_pos-1;
 }
 
@@ -551,7 +552,7 @@ static inline void uop_gen_reg_src3_imm(uint32_t uop_type, ir_data_t *ir, int sr
 static inline void uop_gen_imm(uint32_t uop_type, ir_data_t *ir, uint32_t imm)
 {
         uop_t *uop = uop_alloc(ir, uop_type);
-        
+
         uop->type = uop_type;
         uop->imm_data = imm;
 }
@@ -559,7 +560,7 @@ static inline void uop_gen_imm(uint32_t uop_type, ir_data_t *ir, uint32_t imm)
 static inline void uop_gen_pointer(uint32_t uop_type, ir_data_t *ir, void *p)
 {
         uop_t *uop = uop_alloc(ir, uop_type);
-        
+
         uop->type = uop_type;
         uop->p = p;
 }
@@ -567,7 +568,7 @@ static inline void uop_gen_pointer(uint32_t uop_type, ir_data_t *ir, void *p)
 static inline void uop_gen_pointer_imm(uint32_t uop_type, ir_data_t *ir, void *p, uint32_t imm)
 {
         uop_t *uop = uop_alloc(ir, uop_type);
-        
+
         uop->type = uop_type;
         uop->p = p;
         uop->imm_data = imm;
@@ -765,6 +766,7 @@ static inline void uop_gen_reg_src2_pointer(uint32_t uop_type, ir_data_t *ir, in
 
 #define uop_STORE_PTR_IMM(ir, p, imm)    uop_gen_pointer_imm(UOP_STORE_P_IMM, ir, p, imm)
 #define uop_STORE_PTR_IMM_8(ir, p, imm)  uop_gen_pointer_imm(UOP_STORE_P_IMM_8, ir, p, imm)
+#define uop_STORE_PTR_IMM_16(ir, p, imm)  uop_gen_pointer_imm(UOP_STORE_P_IMM_16, ir, p, imm)
 
 #define uop_TEST_JNS_DEST(ir, src_reg) uop_gen_reg_src1(UOP_TEST_JNS_DEST, ir, src_reg)
 #define uop_TEST_JS_DEST(ir, src_reg)  uop_gen_reg_src1(UOP_TEST_JS_DEST, ir, src_reg)
@@ -806,5 +808,10 @@ void codegen_direct_write_pointer_stack(codeblock_t *block, int stack_offset, in
 void codegen_direct_write_double_stack(codeblock_t *block, int stack_offset, int host_reg);
 
 void codegen_set_jump_dest(codeblock_t *block, void *p);
+
+void codegen_direct_write_8_imm(codeblock_t *block, void *p, uint8_t imm_data);
+void codegen_direct_write_16_imm(codeblock_t *block, void *p, uint16_t imm_data);
+void codegen_direct_write_32_imm(codeblock_t *block, void *p, uint32_t imm_data);
+void codegen_direct_write_32_imm_stack(codeblock_t *block, int stack_offset, uint32_t imm_data);
 
 #endif

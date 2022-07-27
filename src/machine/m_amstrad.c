@@ -108,7 +108,8 @@ typedef struct {
 		stat;
     uint8_t	plane_write,		/* 1512/200 */
 		plane_read,		/* 1512/200 */
-		border;			/* 1512/200 */
+		border,			/* 1512/200 */
+		invert;			/* 512/640 */
     int		fontbase;		/* 1512/200 */
     int		linepos,
 		displine;
@@ -118,6 +119,7 @@ typedef struct {
 		cursoron,
 		cgablink;
     int	vsynctime;
+    int fullchange;
     int		vadj;
     uint16_t	ma, maback;
     int		dispon;
@@ -228,6 +230,9 @@ vid_out_1512(uint16_t addr, uint8_t val, void *priv)
     amsvid_t *vid = (amsvid_t *)priv;
     uint8_t old;
 
+    if ((addr >= 0x3d0) && (addr <= 0x3d7))
+	addr = (addr & 0xff9) | 0x004;
+
     switch (addr) {
 	case 0x03d4:
 		vid->crtcreg = val & 31;
@@ -238,7 +243,7 @@ vid_out_1512(uint16_t addr, uint8_t val, void *priv)
 		vid->crtc[vid->crtcreg] = val & crtc_mask[vid->crtcreg];
 		if (old != val) {
 			if (vid->crtcreg < 0xe || vid->crtcreg > 0x10) {
-				fullchange = changeframecount;
+                vid->fullchange = changeframecount;
 				recalc_timings_1512(vid);
 			}
 		}
@@ -277,6 +282,9 @@ vid_in_1512(uint16_t addr, void *priv)
     amsvid_t *vid = (amsvid_t *)priv;
     uint8_t ret = 0xff;
 
+    if ((addr >= 0x3d0) && (addr <= 0x3d7))
+	addr = (addr & 0xff9) | 0x004;
+
     switch (addr) {
 	case 0x03d4:
 		ret = vid->crtcreg;
@@ -300,8 +308,7 @@ vid_write_1512(uint32_t addr, uint8_t val, void *priv)
 {
     amsvid_t *vid = (amsvid_t *)priv;
 
-    egawrites++;
-    sub_cycles(12);
+    cycles -= 12;
     addr &= 0x3fff;
 
     if ((vid->cgamode & 0x12) == 0x12) {
@@ -319,8 +326,7 @@ vid_read_1512(uint32_t addr, void *priv)
 {
     amsvid_t *vid = (amsvid_t *)priv;
 
-    egareads++;
-    sub_cycles(12);
+    cycles -= 12;
     addr &= 0x3fff;
 
     if ((vid->cgamode & 0x12) == 0x12)
@@ -383,7 +389,7 @@ vid_poll_1512(void *priv)
 				if (vid->cgamode & 0x20) {
 					cols[1] = (attr & 15) + 16;
 					cols[0] = ((attr >> 4) & 7) + 16;
-					if ((vid->blink & 16) && (attr & 0x80) && !drawcursor) 
+					if ((vid->blink & 16) && (attr & 0x80) && !drawcursor)
 						cols[1] = cols[0];
 				} else {
 					cols[1] = (attr & 15) + 16;
@@ -412,7 +418,7 @@ vid_poll_1512(void *priv)
 				if (vid->cgamode & 0x20) {
 					cols[1] = (attr & 15) + 16;
 					cols[0] = ((attr >> 4) & 7) + 16;
-					if ((vid->blink & 16) && (attr & 0x80)) 
+					if ((vid->blink & 16) && (attr & 0x80))
 						cols[1] = cols[0];
 				} else {
 					cols[1] = (attr & 15) + 16;
@@ -429,9 +435,9 @@ vid_poll_1512(void *priv)
 						}
 				} else {
 					for (c = 0; c < 8; c++) {
-						buffer32->line[(vid->displine << 1)][(x << 4) + (c << 1) + 8] = 
+						buffer32->line[(vid->displine << 1)][(x << 4) + (c << 1) + 8] =
 						buffer32->line[(vid->displine << 1)][(x << 4) + (c << 1) + 1 + 8] =
-						buffer32->line[(vid->displine << 1) + 1][(x << 4) + (c << 1) + 8] = 
+						buffer32->line[(vid->displine << 1) + 1][(x << 4) + (c << 1) + 8] =
 						buffer32->line[(vid->displine << 1) + 1][(x << 4) + (c << 1) + 1 + 8] =
 							cols[(fontdat[vid->fontbase + chr][vid->sc & 7] & (1 << (c ^ 7))) ? 1 : 0];
 					}
@@ -499,13 +505,13 @@ vid_poll_1512(void *priv)
 	if (vid->vsynctime)
 	   vid->stat |= 8;
 	vid->displine++;
-	if (vid->displine >= 360) 
+	if (vid->displine >= 360)
 		vid->displine = 0;
     } else {
 	timer_advance_u64(&vid->timer, vid->dispontime);
-	if ((vid->lastline - vid->firstline) == 199) 
+	if ((vid->lastline - vid->firstline) == 199)
 		vid->dispon = 0; /*Amstrad PC1512 always displays 200 lines, regardless of CRTC settings*/
-	if (vid->dispon) 
+	if (vid->dispon)
 		vid->stat &= ~1;
 	vid->linepos = 0;
 	if (vid->vsynctime) {
@@ -513,9 +519,9 @@ vid_poll_1512(void *priv)
 		if (! vid->vsynctime)
 		   vid->stat &= ~8;
 	}
-	if (vid->sc == (vid->crtc[11] & 31)) { 
-		vid->con = 0; 
-		vid->coff = 1; 
+	if (vid->sc == (vid->crtc[11] & 31)) {
+		vid->con = 0;
+		vid->coff = 1;
 	}
 	if (vid->vadj) {
 		vid->sc++;
@@ -572,10 +578,10 @@ vid_poll_1512(void *priv)
 				}
 
 				if (enable_overscan) {
-					video_blit_memtoscreen_8(0, (vid->firstline - 4) << 1, 0, ((vid->lastline - vid->firstline) + 8) << 1,
+					video_blit_memtoscreen_8(0, (vid->firstline - 4) << 1,
 								 xsize, ((vid->lastline - vid->firstline) + 8) << 1);
 				} else {
-					video_blit_memtoscreen_8(8, vid->firstline << 1, 0, (vid->lastline - vid->firstline) << 1,
+					video_blit_memtoscreen_8(8, vid->firstline << 1,
 								 xsize, (vid->lastline - vid->firstline) << 1);
 				}
 			}
@@ -664,95 +670,72 @@ vid_speed_change_1512(void *priv)
     recalc_timings_1512(vid);
 }
 
-
-device_config_t vid_1512_config[] =
-{
-	{
-		"display_type", "Display type", CONFIG_SELECTION, "", 0,
-		{
-			{
-				"PC-CM (Colour)", 0
-			},
-			{
-				"PC-MM (Monochrome)", 3
-			},
-			{
-				""
-			}
-		}
-	},
-	{
-        "codepage", "Hardware font", CONFIG_SELECTION, "", 3,
-		{
-			{
-				"US English", 3
-			},
-			{
-				"Danish", 1
-			},
-			{
-				"Greek", 0
-			},
-			{
-                ""
-			}
-		}
-	},
-	{
-        "language", "BIOS language", CONFIG_SELECTION, "", 7,
-		{
-			{
-				"English", 7
-			},
-			{
-				"German", 6
-			},
-			{
-				"French", 5
-			},
-			{
-				"Spanish", 4
-			},
-			{
-				"Danish", 3
-			},
-			{
-				"Swedish", 2
-			},
-			{
-				"Italian", 1
-			},
-			{
-				"Diagnostic mode", 0
-			},
-			{
-                ""
-			}
-		}
-	},
-	{
-			"", "", -1
-	}
+const device_config_t vid_1512_config[] = {
+    {
+        .name = "display_type",
+        .description = "Display type",
+        .type = CONFIG_SELECTION,
+        .default_string = "",
+        .default_int = 0,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "PC-CM (Colour)",     .value = 0 },
+            { .description = "PC-MM (Monochrome)", .value = 3 },
+            { .description = ""                               }
+        }
+    },
+    {
+        .name = "codepage",
+        .description = "Hardware font",
+        .type = CONFIG_SELECTION,
+        .default_string = "",
+        .default_int = 3,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "US English", .value = 3 },
+            { .description = "Danish",     .value = 1 },
+            { .description = "Greek",      .value = 0 },
+            { .description = ""                       }
+        }
+    },
+    {
+        .name = "language",
+        .description = "BIOS language",
+        .type = CONFIG_SELECTION,
+        .default_string = "",
+        .default_int = 7,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "English",         .value = 7 },
+            { .description = "German",          .value = 6 },
+            { .description = "French",          .value = 5 },
+            { .description = "Spanish",         .value = 4 },
+            { .description = "Danish",          .value = 3 },
+            { .description = "Swedish",         .value = 2 },
+            { .description = "Italian",         .value = 1 },
+            { .description = "Diagnostic mode", .value = 0 },
+            { .description = ""                            }
+        }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
 };
 
-
-static const device_t vid_1512_device = {
-    "Amstrad PC1512 (video)",
-    0, 0,
-    NULL, vid_close_1512, NULL,
-    NULL,
-    vid_speed_change_1512,
-    NULL,
-    vid_1512_config
+const device_t vid_1512_device = {
+    .name = "Amstrad PC1512 (video)",
+    .internal_name = "vid_1512",
+    .flags = 0,
+    .local = 0,
+    .init = NULL,
+    .close = vid_close_1512,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = vid_speed_change_1512,
+    .force_redraw = NULL,
+    .config = vid_1512_config
 };
-
-
-const device_t *
-pc1512_get_device(void)
-{
-    return(&vid_1512_device);
-}
-
 
 static void
 recalc_timings_1640(amsvid_t *vid)
@@ -844,7 +827,7 @@ vid_init_1640(amstrad_t *ams)
     vid = (amsvid_t *)malloc(sizeof(amsvid_t));
     memset(vid, 0x00, sizeof(amsvid_t));
 
-    rom_init(&vid->bios_rom, L"roms/machines/pc1640/40100",
+    rom_init(&vid->bios_rom, "roms/machines/pc1640/40100",
 	     0xc0000, 0x8000, 0x7fff, 0, 0);
 
     ega_init(&vid->ega, 9, 0);
@@ -892,61 +875,43 @@ vid_speed_changed_1640(void *priv)
     recalc_timings_1640(vid);
 }
 
-
-device_config_t vid_1640_config[] =
-{
-	{
-        "language", "BIOS language", CONFIG_SELECTION, "", 7,
-		{
-			{
-				"English", 7
-			},
-			{
-				"German", 6
-			},
-			{
-				"French", 5
-			},
-			{
-				"Spanish", 4
-			},
-			{
-				"Danish", 3
-			},
-			{
-				"Swedish", 2
-			},
-			{
-				"Italian", 1
-			},
-			{
-				"Diagnostic mode", 0
-			},
-			{
-                ""
-			}
-		}
-	},
-        {
-                "", "", -1
+const device_config_t vid_1640_config[] = {
+    {
+        .name = "language",
+        .description = "BIOS language",
+        .type = CONFIG_SELECTION,
+        .default_string = "",
+        .default_int = 7,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "English",         .value = 7 },
+            { .description = "German",          .value = 6 },
+            { .description = "French",          .value = 5 },
+            { .description = "Spanish",         .value = 4 },
+            { .description = "Danish",          .value = 3 },
+            { .description = "Swedish",         .value = 2 },
+            { .description = "Italian",         .value = 1 },
+            { .description = "Diagnostic mode", .value = 0 },
+            { .description = ""                            }
         }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
 };
 
-static const device_t vid_1640_device = {
-    "Amstrad PC1640 (video)",
-    0, 0,
-    NULL, vid_close_1640, NULL,
-    NULL,
-    vid_speed_changed_1640,
-    NULL,
-    vid_1640_config
+const device_t vid_1640_device = {
+    .name = "Amstrad PC1640 (video)",
+    .internal_name = "vid_1640",
+    .flags = 0,
+    .local = 0,
+    .init = NULL,
+    .close = vid_close_1640,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = vid_speed_changed_1640,
+    .force_redraw = NULL,
+    .config = vid_1640_config
 };
-
-const device_t *
-pc1640_get_device(void)
-{
-    return(&vid_1640_device);
-}
 
 /* Display type */
 #define PC200_CGA  0	/* CGA monitor */
@@ -990,7 +955,7 @@ vid_speed_changed_200(void *priv)
 
 
 /* LCD colour mappings
- * 
+ *
  * 0 => solid green
  * 1 => blue on green
  * 2 => green on blue
@@ -1052,13 +1017,13 @@ static void set_lcd_cols(uint8_t mode_reg)
 			break;
 
 		case 1:
-			lcdcols[c][0][0] = lcdcols[c][1][0] = 
+			lcdcols[c][0][0] = lcdcols[c][1][0] =
 					   lcdcols[c][1][1] = green;
 			lcdcols[c][0][1] = blue;
 			break;
 
 		case 2:
-			lcdcols[c][0][0] = lcdcols[c][1][0] = 
+			lcdcols[c][0][0] = lcdcols[c][1][0] =
 					   lcdcols[c][1][1] = blue;
 			lcdcols[c][0][1] = green;
 			break;
@@ -1083,7 +1048,7 @@ vid_in_200(uint16_t addr, void *priv)
     switch (addr) {
 	case 0x03b8:
 		return(mda->ctrl);
-		
+
 	case 0x03d8:
 		return(cga->cgamode);
 
@@ -1128,7 +1093,7 @@ vid_out_200(uint16_t addr, uint8_t val, void *priv)
 		if (!(vid->operation_ctrl & 0x40) && mda->crtcreg <= 11) {
 			vid->crtc_index = 0x20 | (mda->crtcreg & 0x1f);
 			if (vid->operation_ctrl & 0x80)
-				nmi = 1;
+				nmi_raise();
 			vid->reg_3df = val;
 			return;
 		}
@@ -1136,7 +1101,7 @@ vid_out_200(uint16_t addr, uint8_t val, void *priv)
 		mda->crtc[mda->crtcreg] = val & crtc_mask[mda->crtcreg];
 		if (old != val) {
 			if (mda->crtcreg < 0xe || mda->crtcreg > 0x10) {
-				fullchange = changeframecount;
+                vid->fullchange = changeframecount;
 				mda_recalctimings(mda);
 			}
 		}
@@ -1149,18 +1114,18 @@ vid_out_200(uint16_t addr, uint8_t val, void *priv)
 		vid->crtc_index &= 0x1F;
 		vid->crtc_index |= 0x80;
 		if (vid->operation_ctrl & 0x80)
-			nmi = 1;
+			nmi_raise();
 		return;
 
-/* 	CGA writes ============================================================== */	
+/* 	CGA writes ============================================================== */
 	case 0x03d1:
 	case 0x03d3:
 	case 0x03d5:
 	case 0x03d7:
 		if (!(vid->operation_ctrl & 0x40) && cga->crtcreg <= 11) {
 			vid->crtc_index = 0x20 | (cga->crtcreg & 0x1f);
-			if (vid->operation_ctrl & 0x80) 
-				nmi = 1;
+			if (vid->operation_ctrl & 0x80)
+				nmi_raise();
 			vid->reg_3df = val;
 			return;
 		}
@@ -1168,7 +1133,7 @@ vid_out_200(uint16_t addr, uint8_t val, void *priv)
 		cga->crtc[cga->crtcreg] = val & crtc_mask[cga->crtcreg];
 		if (old != val) {
 			if (cga->crtcreg < 0xe || cga->crtcreg > 0x10) {
-				fullchange = changeframecount;
+                vid->fullchange = changeframecount;
 				cga_recalctimings(cga);
 			}
 		}
@@ -1182,7 +1147,7 @@ vid_out_200(uint16_t addr, uint8_t val, void *priv)
 		vid->crtc_index &= 0x1f;
 		vid->crtc_index |= 0x80;
 		if (vid->operation_ctrl & 0x80)
-			nmi = 1;
+			nmi_raise();
 		else
 			set_lcd_cols(val);
 		return;
@@ -1191,12 +1156,12 @@ vid_out_200(uint16_t addr, uint8_t val, void *priv)
 	case 0x03de:
 		vid->crtc_index = 0x1f;
 	/* 	NMI only seems to be triggered if the value being written has the high
-	 * 	bit set (enable NMI). So it only protects writes to this port if you 
+	 * 	bit set (enable NMI). So it only protects writes to this port if you
 	 * 	let it? */
 		if (val & 0x80) {
 			vid->operation_ctrl = val;
 			vid->crtc_index |= 0x40;
-			nmi = 1;
+			nmi_raise();
 			return;
 		}
                 timer_disable(&vid->cga.timer);
@@ -1219,12 +1184,12 @@ vid_out_200(uint16_t addr, uint8_t val, void *priv)
                         timer_advance_u64(&vid->timer, 1);
 
 		/* Bit 2 disables the IDA. We don't support dynamic enabling
-		* and disabling of the IDA (instead, PCEM disconnects the 
-		* IDA from the bus altogether) so don't implement this */	
+		* and disabling of the IDA (instead, PCEM disconnects the
+		* IDA from the bus altogether) so don't implement this */
 
-		/* Enable the appropriate memory ranges depending whether 
+		/* Enable the appropriate memory ranges depending whether
 		* the IDA is configured as MDA or CGA */
-		if (vid->emulation == PC200_MDA || 
+		if (vid->emulation == PC200_MDA ||
 		    vid->emulation == PC200_LCDM) {
 			mem_mapping_disable(&vid->cga.mapping);
 			mem_mapping_enable(&vid->mda.mapping);
@@ -1244,8 +1209,8 @@ vid_out_200(uint16_t addr, uint8_t val, void *priv)
 }
 
 
-static void 
-lcd_draw_char_80(amsvid_t *vid, uint32_t *buffer, uint8_t chr, 
+static void
+lcd_draw_char_80(amsvid_t *vid, uint32_t *buffer, uint8_t chr,
 	uint8_t attr, int drawcursor, int blink, int sc,
 	int mode160, uint8_t control)
 {
@@ -1255,8 +1220,8 @@ lcd_draw_char_80(amsvid_t *vid, uint32_t *buffer, uint8_t chr,
     uint16_t mask;
 
     if (attr & 8) {	/* bright */
-	/* The brightness algorithm appears to be: replace any bit sequence 011 
-	 * with 001 (assuming an extra 0 to the left of the byte). 
+	/* The brightness algorithm appears to be: replace any bit sequence 011
+	 * with 001 (assuming an extra 0 to the left of the byte).
 	 */
 	bright = bits;
 	for (c = 0, mask = 0x100; c < 7; c++, mask >>= 1) {
@@ -1278,8 +1243,8 @@ lcd_draw_char_80(amsvid_t *vid, uint32_t *buffer, uint8_t chr,
 }
 
 
-static void 
-lcd_draw_char_40(amsvid_t *vid, uint32_t *buffer, uint8_t chr, 
+static void
+lcd_draw_char_40(amsvid_t *vid, uint32_t *buffer, uint8_t chr,
 	uint8_t attr, int drawcursor, int blink, int sc,
 	uint8_t control)
 {
@@ -1303,7 +1268,7 @@ lcd_draw_char_40(amsvid_t *vid, uint32_t *buffer, uint8_t chr,
 }
 
 
-static void 
+static void
 lcdm_poll(amsvid_t *vid)
 {
     mda_t *mda = &vid->mda;
@@ -1320,7 +1285,7 @@ lcdm_poll(amsvid_t *vid)
 	mda->stat |= 1;
 	mda->linepos = 1;
 	oldsc = mda->sc;
-	if ((mda->crtc[8] & 3) == 3) 
+	if ((mda->crtc[8] & 3) == 3)
 		mda->sc = (mda->sc << 1) & 7;
 	if (mda->dispon) {
 		if (mda->displine < mda->firstline)
@@ -1340,7 +1305,7 @@ lcdm_poll(amsvid_t *vid)
 	if (mda->vc == mda->crtc[7] && !mda->sc)
 		mda->stat |= 8;
 	mda->displine++;
-	if (mda->displine >= 500) 
+	if (mda->displine >= 500)
 		mda->displine=0;
     } else {
 	timer_advance_u64(&vid->timer, mda->dispontime);
@@ -1352,8 +1317,8 @@ lcdm_poll(amsvid_t *vid)
 			mda->stat&=~8;
 	}
 	if (mda->sc == (mda->crtc[11] & 31) || ((mda->crtc[8] & 3) == 3 && mda->sc == ((mda->crtc[11] & 31) >> 1))) {
-		mda->con = 0; 
-		mda->coff = 1; 
+		mda->con = 0;
+		mda->coff = 1;
 	}
 	if (mda->vadj) {
 		mda->sc++;
@@ -1371,7 +1336,7 @@ lcdm_poll(amsvid_t *vid)
 		oldvc = mda->vc;
 		mda->vc++;
 		mda->vc &= 127;
-		if (mda->vc == mda->crtc[6]) 
+		if (mda->vc == mda->crtc[6])
 		mda->dispon=0;
 		if (oldvc == mda->crtc[4]) {
 			mda->vc = 0;
@@ -1398,7 +1363,7 @@ lcdm_poll(amsvid_t *vid)
 					if (video_force_resize_get())
 						video_force_resize_set(0);
 				}
-				video_blit_memtoscreen(0, mda->firstline, 0, ysize, xsize, ysize);
+				video_blit_memtoscreen(0, mda->firstline, xsize, ysize);
 				frames++;
 				video_res_x = mda->crtc[1];
 				video_res_y = mda->crtc[6];
@@ -1419,7 +1384,7 @@ lcdm_poll(amsvid_t *vid)
 }
 
 
-static void 
+static void
 lcdc_poll(amsvid_t *vid)
 {
     cga_t *cga = &vid->cga;
@@ -1439,7 +1404,7 @@ lcdc_poll(amsvid_t *vid)
 	cga->cgastat |= 1;
 	cga->linepos = 1;
 	oldsc = cga->sc;
-	if ((cga->crtc[8] & 3) == 3) 
+	if ((cga->crtc[8] & 3) == 3)
 		cga->sc = ((cga->sc << 1) + cga->oddeven) & 7;
 	if (cga->cgadispon) {
 		if (cga->displine < cga->firstline) {
@@ -1496,7 +1461,7 @@ lcdc_poll(amsvid_t *vid)
 	if (cga->vc == cga->crtc[7] && !cga->sc)
 		cga->cgastat |= 8;
 	cga->displine++;
-	if (cga->displine >= 360) 
+	if (cga->displine >= 360)
 		cga->displine = 0;
     } else {
 	timer_advance_u64(&vid->timer, cga->dispontime);
@@ -1507,8 +1472,8 @@ lcdc_poll(amsvid_t *vid)
 			cga->cgastat &= ~8;
 	}
 	if (cga->sc == (cga->crtc[11] & 31) || ((cga->crtc[8] & 3) == 3 && cga->sc == ((cga->crtc[11] & 31) >> 1))) {
-		cga->con = 0; 
-		cga->coff = 1; 
+		cga->con = 0;
+		cga->coff = 1;
 	}
 	if ((cga->crtc[8] & 3) == 3 && cga->sc == (cga->crtc[9] >> 1))
 		cga->maback = cga->ma;
@@ -1529,7 +1494,7 @@ lcdc_poll(amsvid_t *vid)
 		cga->vc++;
 		cga->vc &= 127;
 
-		if (cga->vc == cga->crtc[6]) 
+		if (cga->vc == cga->crtc[6])
 			cga->cgadispon = 0;
 
 		if (oldvc == cga->crtc[4]) {
@@ -1566,7 +1531,7 @@ lcdc_poll(amsvid_t *vid)
 							video_force_resize_set(0);
 					}
 
-					video_blit_memtoscreen(0, cga->firstline << 1, 0, (cga->lastline - cga->firstline) << 1,
+					video_blit_memtoscreen(0, cga->firstline << 1,
 							       xsize, (cga->lastline - cga->firstline) << 1);
 				}
 
@@ -1600,7 +1565,7 @@ lcdc_poll(amsvid_t *vid)
 	}
 	if (cga->cgadispon)
 		cga->cgastat &= ~1;
-	if ((cga->sc == (cga->crtc[10] & 31) || ((cga->crtc[8] & 3) == 3 && cga->sc == ((cga->crtc[10] & 31) >> 1)))) 
+	if ((cga->sc == (cga->crtc[10] & 31) || ((cga->crtc[8] & 3) == 3 && cga->sc == ((cga->crtc[10] & 31) >> 1))))
 		cga->con = 1;
 	if (cga->cgadispon && (cga->cgamode & 1)) {
 		for (x = 0; x < (cga->crtc[1] << 1); x++)
@@ -1610,7 +1575,7 @@ lcdc_poll(amsvid_t *vid)
 }
 
 
-static void 
+static void
 vid_poll_200(void *p)
 {
     amsvid_t *vid = (amsvid_t *)p;
@@ -1619,7 +1584,7 @@ vid_poll_200(void *p)
 	case PC200_LCDM:
 		lcdm_poll(vid);
 		return;
-	case PC200_LCDC:	
+	case PC200_LCDC:
 		lcdc_poll(vid);
 		return;
     }
@@ -1638,11 +1603,9 @@ vid_init_200(amstrad_t *ams)
     memset(vid, 0x00, sizeof(amsvid_t));
 
     vid->emulation = device_get_config_int("video_emulation");
-    cga_palette = (device_get_config_int("display_type") << 1);
-    ams_inform(vid);
 
     /* Default to CGA */
-    vid->dipswitches = 0x10;	
+    vid->dipswitches = 0x10;
     vid->type = ams->type;
 
     if (ams->type == AMS_PC200) switch (vid->emulation) {
@@ -1672,17 +1635,20 @@ vid_init_200(amstrad_t *ams)
     cga_init(cga);
     mda_init(mda);
 
+    cga_palette = (device_get_config_int("display_type") << 1);
+    ams_inform(vid);
+
     /* Attribute 8 is white on black (on a real MDA it's black on black) */
     mda_setcol(0x08, 0, 1, 15);
     mda_setcol(0x88, 0, 1, 15);
     /* Attribute 64 is black on black (on a real MDA it's white on black) */
     mda_setcol(0x40, 0, 1, 0);
-    mda_setcol(0xC0, 0, 1, 0);	
+    mda_setcol(0xC0, 0, 1, 0);
 
     cga->fontbase = (device_get_config_int("codepage") & 3) * 256;
 
     timer_add(&vid->timer, vid_poll_200, vid, 1);
-    mem_mapping_add(&vid->mda.mapping, 0xb0000, 0x08000, 
+    mem_mapping_add(&vid->mda.mapping, 0xb0000, 0x08000,
 		    mda_read, NULL, NULL, mda_write, NULL, NULL, NULL, 0, mda);
     mem_mapping_add(&vid->cga.mapping, 0xb8000, 0x08000,
 		    cga_read, NULL, NULL, cga_write, NULL, NULL, NULL, 0, cga);
@@ -1691,8 +1657,17 @@ vid_init_200(amstrad_t *ams)
 
     overscan_x = overscan_y = 16;
 
-    green = makecol(0x1C, 0x71, 0x31);
-    blue = makecol(0x0f, 0x21, 0x3f);	
+    if (ams->type == AMS_PC200)
+	vid->invert = 0;
+    else
+	vid->invert = device_get_config_int("invert");
+    if (vid->invert) {
+	blue = makecol(0x1C, 0x71, 0x31);
+	green = makecol(0x0f, 0x21, 0x3f);
+    } else {
+	green = makecol(0x1C, 0x71, 0x31);
+	blue = makecol(0x0f, 0x21, 0x3f);
+    }
     cgapal_rebuild();
     set_lcd_cols(0);
 
@@ -1715,336 +1690,269 @@ vid_close_200(void *priv)
 {
     amsvid_t *vid = (amsvid_t *)priv;
 
-    free(vid->cga.vram);
-    free(vid->mda.vram);
+    if (vid->cga.vram != vid->mda.vram) {
+	free(vid->cga.vram);
+	free(vid->mda.vram);
+    } else
+	free(vid->cga.vram);
+
+    vid->cga.vram = vid->mda.vram = NULL;
 
     free(vid);
 }
 
 
-device_config_t vid_200_config[] =
-{
-	/* TODO: Should have options here for:
-	*
-	*	> Display port (TTL or RF)
-	*/
-	{
-		"video_emulation", "Display type", CONFIG_SELECTION, "", PC200_CGA,
-		{
-			{
-				"CGA monitor", PC200_CGA
-			},
-			{
-				"MDA monitor", PC200_MDA
-			},
-			{
-				"Television", PC200_TV
-			},
-			{
-				""
-			}
-		}
-	},
-        {
-		"display_type", "Monitor type", CONFIG_SELECTION, "", 0,
-		{
-			{
-					"RGB", 0
-			},
-			{
-					"RGB (no brown)", 4
-			},
-			{
-					"Green Monochrome", 1
-			},
-			{
-					"Amber Monochrome", 2
-			},
-			{
-					"White Monochrome", 3
-			},
-			{
-				   ""
-			}
-		}
+const device_config_t vid_200_config[] = {
+    /* TODO: Should have options here for:
+     *
+     * > Display port (TTL or RF)
+     */
+    {
+        .name = "video_emulation",
+        .description = "Display type",
+        .type = CONFIG_SELECTION,
+        .default_string = "",
+        .default_int = PC200_CGA,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "CGA monitor", .value = PC200_CGA },
+            { .description = "MDA monitor", .value = PC200_MDA },
+            { .description = "Television",  .value = PC200_TV  },
+            { .description = ""                                }
+        }
+    },
+    {
+        .name = "display_type",
+        .description = "Monitor type",
+        .type = CONFIG_SELECTION,
+        .default_string = "",
+        .default_int = 0,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "RGB",              .value = 0 },
+            { .description = "RGB (no brown)",   .value = 4 },
+            { .description = "Green Monochrome", .value = 1 },
+            { .description = "Amber Monochrome", .value = 2 },
+            { .description = "White Monochrome", .value = 3 },
+            { .description = ""                             }
+        }
+    },
+    {
+        .name = "codepage",
+        .description = "Hardware font",
+        .type = CONFIG_SELECTION,
+        .default_string = "",
+        .default_int = 3,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "US English", .value = 3 },
+            { .description = "Portugese",  .value = 2 },
+            { .description = "Norwegian",  .value = 1 },
+            { .description = "Greek",      .value = 0 },
+            { .description = ""                       }
+        }
+    },
+    {
+        .name = "language",
+        .description = "BIOS language",
+        .type = CONFIG_SELECTION,
+        .default_string = "",
+        .default_int = 7,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "English",         .value = 7 },
+            { .description = "German",          .value = 6 },
+            { .description = "French",          .value = 5 },
+            { .description = "Spanish",         .value = 4 },
+            { .description = "Danish",          .value = 3 },
+            { .description = "Swedish",         .value = 2 },
+            { .description = "Italian",         .value = 1 },
+            { .description = "Diagnostic mode", .value = 0 },
+            { .description = ""                            }
+        }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+};
+
+const device_t vid_200_device = {
+    .name = "Amstrad PC200 (video)",
+    .internal_name = "vid_200",
+    .flags = 0,
+    .local = 0,
+    .init = NULL,
+    .close = vid_close_200,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = vid_speed_changed_200,
+    .force_redraw = NULL,
+    .config = vid_200_config
+};
+
+const device_config_t vid_ppc512_config[] = {
+    /* TODO: Should have options here for:
+     *
+     * > Display port (TTL or RF)
+     */
+    {
+        .name = "video_emulation",
+        .description = "Display type",
+        .type = CONFIG_SELECTION,
+        .default_string = "",
+        .default_int = PC200_LCDC,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "CGA monitor",    .value = PC200_CGA  },
+            { .description = "MDA monitor",    .value = PC200_MDA  },
+            { .description = "LCD (CGA mode)", .value = PC200_LCDC },
+            { .description = "LCD (MDA mode)", .value = PC200_LCDM },
+            { .description = ""                                    }
         },
-        {
-		"codepage", "Hardware font", CONFIG_SELECTION, "", 3,
-		{
-			{
-				"US English", 3
-			},
-			{
-				"Portugese", 2
-			},
-			{
-				"Norwegian", 1
-			},
-			{
-				"Greek", 0
-			},
-			{
-				""
-			}
-		}
-	},
-	{
-        "language", "BIOS language", CONFIG_SELECTION, "", 7,
-		{
-			{
-				"English", 7
-			},
-			{
-				"German", 6
-			},
-			{
-				"French", 5
-			},
-			{
-				"Spanish", 4
-			},
-			{
-				"Danish", 3
-			},
-			{
-				"Swedish", 2
-			},
-			{
-				"Italian", 1
-			},
-			{
-				"Diagnostic mode", 0
-			},
-			{
-                ""
-			}
-		}
-	},
-        {
-                "", "", -1
-        }
-};
-
-
-static const device_t vid_200_device = {
-    "Amstrad PC200 (video)",
-    0, 0,
-    NULL, vid_close_200, NULL,
-    NULL,
-    vid_speed_changed_200,
-    NULL,
-    vid_200_config
-};
-
-
-const device_t *
-pc200_get_device(void)
-{
-    return(&vid_200_device);
-}
-
-
-device_config_t vid_ppc512_config[] =
-{
-	/* TODO: Should have options here for:
-	*
-	*	> Display port (TTL or RF)
-	*/
-	{
-		"video_emulation", "Display type", CONFIG_SELECTION, "", PC200_LCDC,
-		{
-			{
-				"CGA monitor", PC200_CGA
-			},
-			{
-				"MDA monitor", PC200_MDA
-			},
-			{
-				"LCD (CGA mode)", PC200_LCDC
-			},
-			{
-				"LCD (MDA mode)", PC200_LCDM
-			},
-		{
-				""
-			}
-		},
-	},
-        {
-                "display_type", "Monitor type", CONFIG_SELECTION, "", 0,
-                {
-                        {
-                                "RGB", 0
-                        },
-                        {
-                                "RGB (no brown)", 4
-                        },
-                        {
-                                "Green Monochrome", 1
-                        },
-                        {
-                                "Amber Monochrome", 2
-                        },
-                        {
-                                "White Monochrome", 3
-                        },
-                        {
-                                ""
-                        }
-                },
+    },
+    {
+        .name = "display_type",
+        .description = "Monitor type",
+        .type = CONFIG_SELECTION,
+        .default_string = "",
+        .default_int = 0,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "RGB",              .value = 0 },
+            { .description = "RGB (no brown)",   .value = 4 },
+            { .description = "Green Monochrome", .value = 1 },
+            { .description = "Amber Monochrome", .value = 2 },
+            { .description = "White Monochrome", .value = 3 },
+            { .description = ""                             }
         },
-        {
-                "codepage", "Hardware font", CONFIG_SELECTION, "", 3,
-				{
-					{
-						"US English", 3
-					},
-					{
-						"Portugese", 2
-					},
-					{
-						"Norwegian",1
-					},
-					{
-						"Greek", 0
-					},
-					{
-						""
-					}
-				},
+    },
+    {
+        .name = "codepage",
+        .description = "Hardware font",
+        .type = CONFIG_SELECTION,
+        .default_string = "",
+        .default_int = 3,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "US English", .value = 3 },
+            { .description = "Portugese",  .value = 2 },
+            { .description = "Norwegian",  .value = 1 },
+            { .description = "Greek",      .value = 0 },
+            { .description = ""                       }
         },
-	{
-        "language", "BIOS language", CONFIG_SELECTION, "", 7,
-		{
-			{
-				"English", 7
-			},
-			{
-				"German", 6
-			},
-			{
-				"French", 5
-			},
-			{
-				"Spanish", 4
-			},
-			{
-				"Danish", 3
-			},
-			{
-				"Swedish", 2
-			},
-			{
-				"Italian", 1
-			},
-			{
-				"Diagnostic mode", 0
-			},
-			{
-                ""
-			}
-		}
-	},
-        {
-                "", "", -1
+    },
+    {
+        .name = "language",
+        .description = "BIOS language",
+        .type = CONFIG_SELECTION,
+        .default_string = "",
+        .default_int = 7,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "English",         .value = 7 },
+            { .description = "German",          .value = 6 },
+            { .description = "French",          .value = 5 },
+            { .description = "Spanish",         .value = 4 },
+            { .description = "Danish",          .value = 3 },
+            { .description = "Swedish",         .value = 2 },
+            { .description = "Italian",         .value = 1 },
+            { .description = "Diagnostic mode", .value = 0 },
+            { .description = ""                            }
         }
+    },
+    {
+        .name = "invert",
+        .description = "Invert LCD colors",
+        .type = CONFIG_BINARY,
+        .default_string = "",
+        .default_int = 0
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
 };
 
-static const device_t vid_ppc512_device = {
-    "Amstrad PPC512 (video)",
-    0, 0,
-    NULL, vid_close_200, NULL,
-    NULL,
-    vid_speed_changed_200,
-    NULL,
-    vid_ppc512_config
+const device_t vid_ppc512_device = {
+    .name = "Amstrad PPC512 (video)",
+    .internal_name = "vid_ppc512",
+    .flags = 0,
+    .local = 0,
+    .init = NULL,
+    .close = vid_close_200,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = vid_speed_changed_200,
+    .force_redraw = NULL,
+    .config = vid_ppc512_config
 };
 
-
-const device_t *
-ppc512_get_device(void)
-{
-    return(&vid_ppc512_device);
-}
-
-
-device_config_t vid_pc2086_config[] =
-{
-	{
-        "language", "BIOS language", CONFIG_SELECTION, "", 7,
-		{
-			{
-				"English", 7
-			},
-			{
-				"Diagnostic mode", 0
-			},
-			{
-                ""
-			}
-		}
-	},
-        {
-                "", "", -1
+const device_config_t vid_pc2086_config[] = {
+    {
+        .name = "language",
+        .description = "BIOS language",
+        .type = CONFIG_SELECTION,
+        .default_string = "",
+        .default_int = 7,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "English",         .value = 7 },
+            { .description = "Diagnostic mode", .value = 0 },
+            { .description = ""                            }
         }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
 };
 
-static const device_t vid_pc2086_device = {
-    "Amstrad PC2086",
-    0, 0,
-    NULL, NULL, NULL,
-    NULL,
-    NULL,
-    NULL,
-    vid_pc2086_config
+const device_t vid_pc2086_device = {
+    .name = "Amstrad PC2086",
+    .internal_name = "vid_pc2086",
+    .flags = 0,
+    .local = 0,
+    .init = NULL,
+    .close = NULL,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = vid_pc2086_config
 };
 
-
-const device_t *
-pc2086_get_device(void)
-{
-    return(&vid_pc2086_device);
-}
-
-
-device_config_t vid_pc3086_config[] =
-{
-	{
-        "language", "BIOS language", CONFIG_SELECTION, "", 7,
-		{
-			{
-				"English", 7
-			},
-			{
-				"Diagnostic mode", 3
-			},
-			{
-                ""
-			}
-		}
-	},
-        {
-                "", "", -1
+const device_config_t vid_pc3086_config[] = {
+    {
+        .name = "language",
+        .description = "BIOS language",
+        .type = CONFIG_SELECTION,
+        .default_string = "",
+        .default_int = 7,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "English",         .value = 7 },
+            { .description = "Diagnostic mode", .value = 3 },
+            { .description = ""                            }
         }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
 };
 
-static const device_t vid_pc3086_device = {
-    "Amstrad PC3086",
-    0, 0,
-    NULL, NULL, NULL,
-    NULL,
-    NULL,
-    NULL,
-    vid_pc3086_config
+const device_t vid_pc3086_device = {
+    .name = "Amstrad PC3086",
+    .internal_name = "vid_pc3086",
+    .flags = 0,
+    .local = 0,
+    .init = NULL,
+    .close = NULL,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = vid_pc3086_config
 };
-
-
-const device_t *
-pc3086_get_device(void)
-{
-    return(&vid_pc3086_device);
-}
-
 
 static void
 ms_write(uint16_t addr, uint8_t val, void *priv)
@@ -2111,8 +2019,7 @@ kbd_adddata(uint16_t val)
 static void
 kbd_adddata_ex(uint16_t val)
 {
-    kbd_adddata(val);
-    // kbd_adddata_process(val, kbd_adddata);
+    kbd_adddata_process(val, kbd_adddata);
 }
 
 
@@ -2150,9 +2057,9 @@ kbd_write(uint16_t port, uint8_t val, void *priv)
 		speaker_update();
 		speaker_gated = val & 0x01;
 		speaker_enable = val & 0x02;
-		if (speaker_enable) 
+		if (speaker_enable)
 			was_speaker_enable = 1;
-		pit_ctr_set_gate(&pit->counters[2], val & 0x01);
+		pit_devs[0].set_gate(pit_devs[0].data, 2, val & 0x01);
 
 		if (val & 0x80) {
 			/* Keyboard enabled, so enable PA reading. */
@@ -2221,9 +2128,9 @@ kbd_read(uint16_t port, void *priv)
 			else {
 				ams->key_waiting = key_queue[key_queue_start];
 				key_queue_start = (key_queue_start + 1) & 0xf;
-				ams->wantirq = 1;	
+				ams->wantirq = 1;
 			}
-		}	
+		}
 		break;
 
 	case 0x61:
@@ -2403,7 +2310,16 @@ machine_amstrad_init(const machine_t *model, int type)
     memset(ams, 0x00, sizeof(amstrad_t));
     ams->type = type;
 
-    device_add(&amstrad_nvr_device);
+    switch(type) {
+	case AMS_PC200:
+	case AMS_PPC512:
+		device_add(&amstrad_no_nmi_nvr_device);
+		break;
+
+	default:
+		device_add(&amstrad_nvr_device);
+		break;
+    }
 
     machine_common_init(model);
 
@@ -2433,27 +2349,29 @@ machine_amstrad_init(const machine_t *model, int type)
 
     ams->language = 7;
 
+    video_reset(gfxcard);
+
     if (gfxcard == VID_INTERNAL) switch(type) {
 	case AMS_PC1512:
-		loadfont(L"roms/machines/pc1512/40078", 8);
+		loadfont("roms/machines/pc1512/40078", 8);
 		device_context(&vid_1512_device);
 		ams->language = device_get_config_int("language");
 		vid_init_1512(ams);
 		device_context_restore();
 		device_add_ex(&vid_1512_device, ams->vid);
 		break;
-	
+
 	case AMS_PPC512:
-		loadfont(L"roms/machines/ppc512/40109", 1);
+		loadfont("roms/machines/ppc512/40109", 1);
 		device_context(&vid_ppc512_device);
 		ams->language = device_get_config_int("language");
 		vid_init_200(ams);
 		device_context_restore();
 		device_add_ex(&vid_ppc512_device, ams->vid);
 		break;
-	
+
 	case AMS_PC1640:
-		loadfont(L"roms/video/mda/mda.rom", 0);
+		loadfont("roms/video/mda/mda.rom", 0);
 		device_context(&vid_1640_device);
 		ams->language = device_get_config_int("language");
 		vid_init_1640(ams);
@@ -2462,7 +2380,7 @@ machine_amstrad_init(const machine_t *model, int type)
 		break;
 
 	case AMS_PC200:
-		loadfont(L"roms/machines/pc200/40109", 1);
+		loadfont("roms/machines/pc200/40109", 1);
 		device_context(&vid_200_device);
 		ams->language = device_get_config_int("language");
 		vid_init_200(ams);
@@ -2495,6 +2413,7 @@ machine_amstrad_init(const machine_t *model, int type)
     keyboard_set_table(scancode_xt);
     keyboard_send = kbd_adddata_ex;
     keyboard_scan = 1;
+    keyboard_set_is_amstrad(((type == AMS_PC1512) || (type == AMS_PC1640)) ? 0 : 1);
 
     io_sethandler(0x0078, 2,
 		  ms_read, NULL, NULL, ms_write, NULL, NULL, ams);
@@ -2507,8 +2426,7 @@ machine_amstrad_init(const machine_t *model, int type)
 	mouse_set_poll(ms_poll, ams);
     }
 
-    if (joystick_type != JOYSTICK_TYPE_NONE)
-	device_add(&gameport_device);
+    standalone_gameport_type = &gameport_device;
 }
 
 
@@ -2517,10 +2435,10 @@ machine_pc1512_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_interleaved(L"roms/machines/pc1512/40044",
-				L"roms/machines/pc1512/40043",
+    ret = bios_load_interleaved("roms/machines/pc1512/40044",
+				"roms/machines/pc1512/40043",
 				0x000fc000, 16384, 0);
-    ret &= rom_present(L"roms/machines/pc1512/40078");
+    ret &= rom_present("roms/machines/pc1512/40078");
 
     if (bios_only || !ret)
 	return ret;
@@ -2536,10 +2454,10 @@ machine_pc1640_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_interleaved(L"roms/machines/pc1640/40044.v3",
-				L"roms/machines/pc1640/40043.v3",
+    ret = bios_load_interleaved("roms/machines/pc1640/40044.v3",
+				"roms/machines/pc1640/40043.v3",
 				0x000fc000, 16384, 0);
-    ret &= rom_present(L"roms/machines/pc1640/40100");
+    ret &= rom_present("roms/machines/pc1640/40100");
 
     if (bios_only || !ret)
 	return ret;
@@ -2555,10 +2473,10 @@ machine_pc200_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_interleaved(L"roms/machines/pc200/pc20v2.1",
-				L"roms/machines/pc200/pc20v2.0",
+    ret = bios_load_interleaved("roms/machines/pc200/pc20v2.1",
+				"roms/machines/pc200/pc20v2.0",
 				0x000fc000, 16384, 0);
-    ret &= rom_present(L"roms/machines/pc200/40109");
+    ret &= rom_present("roms/machines/pc200/40109");
 
     if (bios_only || !ret)
 	return ret;
@@ -2574,10 +2492,10 @@ machine_ppc512_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_interleaved(L"roms/machines/ppc512/40107.v2",
-				L"roms/machines/ppc512/40108.v2",
+    ret = bios_load_interleaved("roms/machines/ppc512/40107.v2",
+				"roms/machines/ppc512/40108.v2",
 				0x000fc000, 16384, 0);
-    ret &= rom_present(L"roms/machines/ppc512/40109");
+    ret &= rom_present("roms/machines/ppc512/40109");
 
     if (bios_only || !ret)
 	return ret;
@@ -2593,10 +2511,10 @@ machine_pc2086_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_interleavedr(L"roms/machines/pc2086/40179.ic129",
-				 L"roms/machines/pc2086/40180.ic132",
+    ret = bios_load_interleavedr("roms/machines/pc2086/40179.ic129",
+				 "roms/machines/pc2086/40180.ic132",
 				 0x000fc000, 65536, 0);
-    ret &= rom_present(L"roms/machines/pc2086/40186.ic171");
+    ret &= rom_present("roms/machines/pc2086/40186.ic171");
 
     if (bios_only || !ret)
 	return ret;
@@ -2612,9 +2530,9 @@ machine_pc3086_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linearr(L"roms/machines/pc3086/fc00.bin",
+    ret = bios_load_linearr("roms/machines/pc3086/fc00.bin",
 			    0x000fc000, 65536, 0);
-    ret &= rom_present(L"roms/machines/pc3086/c000.bin");
+    ret &= rom_present("roms/machines/pc3086/c000.bin");
 
     if (bios_only || !ret)
 	return ret;

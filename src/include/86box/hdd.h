@@ -19,7 +19,7 @@
 # define EMU_HDD_H
 
 
-#define HDD_NUM		30	/* total of 30 images supported */
+#define HDD_NUM		88	/* total of 88 images supported */
 
 
 /* Hard Disk bus types. */
@@ -66,20 +66,81 @@ enum {
     HDD_BUS_XTA,
     HDD_BUS_ESDI,
     HDD_BUS_IDE,
+    HDD_BUS_ATAPI,
     HDD_BUS_SCSI,
     HDD_BUS_USB
 };
 #endif
 
+enum {
+    HDD_OP_SEEK = 0,
+    HDD_OP_READ,
+    HDD_OP_WRITE
+};
+
+#define HDD_MAX_ZONES 16
+#define HDD_MAX_CACHE_SEG 16
+
+typedef struct {
+    const char *name;
+    const char *internal_name;
+    uint32_t zones;
+    uint32_t avg_spt;
+    uint32_t heads;
+    uint32_t rpm;
+    uint32_t rcache_num_seg;
+    uint32_t rcache_seg_size;
+    uint32_t max_multiple;
+    double full_stroke_ms;
+    double track_seek_ms;
+} hdd_preset_t;
+
+typedef struct {
+    uint32_t id;
+    uint32_t lba_addr;
+    uint32_t ra_addr;
+    uint32_t host_addr;
+    uint8_t lru;
+    uint8_t valid;
+} hdd_cache_seg_t;
+
+typedef struct {
+    // Read cache
+    hdd_cache_seg_t segments[HDD_MAX_CACHE_SEG];
+    uint32_t num_segments;
+    uint32_t segment_size;
+    uint32_t ra_segment;
+    uint8_t ra_ongoing;
+    uint64_t ra_start_time;
+
+    // Write cache
+    uint32_t write_addr;
+    uint32_t write_pending;
+    uint32_t write_size;
+    uint64_t write_start_time;
+} hdd_cache_t;
+
+typedef struct {
+    uint32_t cylinders;
+    uint32_t sectors_per_track;
+    double sector_time_usec;
+    uint32_t start_sector;
+    uint32_t end_sector;
+    uint32_t start_track;
+} hdd_zone_t;
 
 /* Define the virtual Hard Disk. */
 typedef struct {
     uint8_t	id;
-    uint8_t	mfm_channel;		/* Should rename and/or unionize */
-    uint8_t	esdi_channel;
-    uint8_t	xta_channel;
-    uint8_t	ide_channel;
-    uint8_t	scsi_id;
+    union {
+	uint8_t	channel;		/* Needed for Settings to reduce the number of if's */
+
+	uint8_t	mfm_channel;		/* Should rename and/or unionize */
+	uint8_t	esdi_channel;
+	uint8_t	xta_channel;
+	uint8_t	ide_channel;
+	uint8_t	scsi_id;
+    };
     uint8_t	bus,
 		res;			/* Reserved for bus mode */
     uint8_t	wp;			/* Disk has been mounted READ-ONLY */
@@ -87,7 +148,7 @@ typedef struct {
 
     void	*priv;
 
-    wchar_t	fn[1024],		/* Name of current image file */
+    char	fn[1024],		/* Name of current image file */
 		prev_fn[1024];		/* Name of previous image file */
 
     uint32_t	res0, pad1,
@@ -95,37 +156,30 @@ typedef struct {
 		spt,
 		hpc,			/* Physical geometry parameters */
 		tracks;
+
+    hdd_zone_t zones[HDD_MAX_ZONES];
+    uint32_t num_zones;
+    hdd_cache_t cache;
+    uint32_t phy_cyl;
+    uint32_t phy_heads;
+    uint32_t rpm;
+    uint8_t max_multiple_block;
+
+    uint32_t cur_cylinder;
+    uint32_t cur_track;
+    uint32_t cur_addr;
+
+    uint32_t speed_preset;
+
+    double avg_rotation_lat_usec;
+    double full_stroke_usec;
+    double head_switch_usec;
+    double cyl_switch_usec;
 } hard_disk_t;
 
 
 extern hard_disk_t      hdd[HDD_NUM];
 extern unsigned int	hdd_table[128][3];
-
-
-typedef struct vhd_footer_t
-{
-    uint8_t	cookie[8];
-    uint32_t	features;
-    uint32_t	version;
-    uint64_t	offset;
-    uint32_t	timestamp;
-    uint8_t	creator[4];
-    uint32_t	creator_vers;
-    uint8_t	creator_host_os[4];
-    uint64_t	orig_size;
-    uint64_t	curr_size;
-    struct {
-	uint16_t	cyl;
-	uint8_t		heads;
-	uint8_t		spt;
-    } geom;
-    uint32_t	type;
-    uint32_t	checksum;
-    uint8_t	uuid[16];
-    uint8_t	saved_state;
-    uint8_t	reserved[427];
-} vhd_footer_t;
-
 
 extern int	hdd_init(void);
 extern int	hdd_string_to_bus(char *str, int cdrom);
@@ -148,14 +202,17 @@ extern void	hdd_image_unload(uint8_t id, int fn_preserve);
 extern void	hdd_image_close(uint8_t id);
 extern void	hdd_image_calc_chs(uint32_t *c, uint32_t *h, uint32_t *s, uint32_t size);
 
-extern void	vhd_footer_from_bytes(vhd_footer_t *vhd, uint8_t *bytes);
-extern void	vhd_footer_to_bytes(uint8_t *bytes, vhd_footer_t *vhd);
-extern void	new_vhd_footer(vhd_footer_t **vhd);
-extern void	generate_vhd_checksum(vhd_footer_t *vhd);
+extern int	image_is_hdi(const char *s);
+extern int	image_is_hdx(const char *s, int check_signature);
+extern int	image_is_vhd(const char *s, int check_signature);
 
-extern int	image_is_hdi(const wchar_t *s);
-extern int	image_is_hdx(const wchar_t *s, int check_signature);
-extern int	image_is_vhd(const wchar_t *s, int check_signature);
-
+extern double hdd_timing_write(hard_disk_t *hdd, uint32_t addr, uint32_t len);
+extern double hdd_timing_read(hard_disk_t *hdd, uint32_t addr, uint32_t len);
+extern double hdd_seek_get_time(hard_disk_t *hdd, uint32_t dst_addr, uint8_t operation, uint8_t continuous, double max_seek_time);
+int hdd_preset_get_num();
+char * hdd_preset_getname(int preset);
+extern char *hdd_preset_get_internal_name(int preset);
+extern int hdd_preset_get_from_internal_name(char *s);
+extern void hdd_preset_apply(int hdd_id);
 
 #endif	/*EMU_HDD_H*/

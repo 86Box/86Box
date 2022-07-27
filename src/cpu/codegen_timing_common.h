@@ -171,7 +171,7 @@ static inline uint32_t get_addr_regmask(uint64_t data, uint32_t fetchdat, int op
 
         if (data & IMPL_ESP)
                 addr_regmask |= REGMASK_IMPL_ESP;
-        
+
         return addr_regmask;
 }
 

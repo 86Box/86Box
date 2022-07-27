@@ -148,8 +148,6 @@ track_is_xdf(int drive, int side, int track)
     int max_high_id, expected_high_count, expected_low_count;
     uint8_t *r_map;
     uint8_t *n_map;
-    char *data_base;
-    char *cur_data;
 
     effective_sectors = xdf_sectors = high_sectors = low_sectors = 0;
 
@@ -162,7 +160,6 @@ track_is_xdf(int drive, int side, int track)
 	(dev->tracks[track][side].params[3] != 19)) return(0);
 
     r_map = (uint8_t *)(dev->buffer + dev->tracks[track][side].r_map_offs);
-    data_base = dev->buffer + dev->tracks[track][side].data_offs;
 
     if (! track) {
 	if (dev->tracks[track][side].params[4] != 2) return(0);
@@ -197,7 +194,6 @@ track_is_xdf(int drive, int side, int track)
 
 	n_map = (uint8_t *) (dev->buffer + dev->tracks[track][side].n_map_offs);
 
-	cur_data = data_base;
 	for (i = 0; i < dev->tracks[track][side].params[3]; i++) {
 		effective_sectors++;
 		if (!(r_map[i]) && !(n_map[i]))
@@ -207,7 +203,6 @@ track_is_xdf(int drive, int side, int track)
 			xdf_sectors++;
 			dev->xdf_ordered_pos[(int) r_map[i]][side] = i;
 		}
-		cur_data += (128 << ((uint32_t) n_map[i]));
 	}
 
 	if ((effective_sectors == 3) && (xdf_sectors == 3)) {
@@ -268,14 +263,17 @@ sector_to_buffer(int drive, int track, int side, uint8_t *buffer, int sector, in
 {
     imd_t *dev = imd[drive];
     int type = dev->buffer[dev->tracks[track][side].sector_data_offs[sector]];
+    uint8_t fill_char;
 
     if (type == 0)
 	memset(buffer, 0x00, len);
       else {
 	if (type & 1)
 		memcpy(buffer, &(dev->buffer[dev->tracks[track][side].sector_data_offs[sector] + 1]), len);
-	  else
-		memset(buffer, dev->buffer[dev->tracks[track][side].sector_data_offs[sector] + 1], len);
+	else {
+		fill_char = dev->buffer[dev->tracks[track][side].sector_data_offs[sector] + 1];
+		memset(buffer, fill_char, len);
+	}
     }
 }
 
@@ -328,12 +326,15 @@ imd_seek(int drive, int track)
     d86f_destroy_linked_lists(drive, 0);
     d86f_destroy_linked_lists(drive, 1);
 
-    if (track > dev->track_count) {
-	d86f_zero_track(drive);
+   d86f_zero_track(drive);
+
+    if (track > dev->track_count)
 	return;
-    }
 
     for (side = 0; side < dev->sides; side++) {
+	if (!dev->tracks[track][side].is_present)
+		continue;
+
 	track_rate = dev->current_side_flags[side] & 7;
 	if (!track_rate && (dev->current_side_flags[side] & 0x20))
 		track_rate = 4;
@@ -395,6 +396,7 @@ imd_seek(int drive, int track)
 				ssize = 128 << ((uint32_t) id[3]);
 
 			sector_to_buffer(drive, track, side, data, actual_sector, ssize);
+
 			current_pos = d86f_prepare_sector(drive, side, current_pos, id, data, ssize, 22, track_gap3, flags);
 			track_buf_pos[side] += ssize;
 
@@ -414,11 +416,11 @@ imd_seek(int drive, int track)
 
 			data = dev->track_buffer[side] + track_buf_pos[side];
 			type = dev->buffer[dev->tracks[track][side].sector_data_offs[ordered_pos]];
-			type = (type >> 1) & 7;
+			type = ((type - 1) >> 1) & 7;
 			flags = 0x00;
-			if ((type == 2) || (type == 4))
+			if (type & 0x01)
 				flags |= SECTOR_DELETED_DATA;
-			if ((type == 3) || (type == 4))
+			if (type & 0x02)
 				flags |= SECTOR_CRC_ERROR;
 
 			if (((flags & 0x02) || (id[3] > dev->tracks[track][side].max_sector_size)) && !fdd_get_turbo(drive))
@@ -548,9 +550,12 @@ poll_read_data(int drive, int side, uint16_t pos)
     imd_t *dev = imd[drive];
     int type = dev->current_data[side][0];
 
-    if (! (type & 1)) return(0xf6);		/* Should never happen. */
+    if ((type == 0) || (type > 8)) return(0xf6);		/* Should never happen. */
 
-    return(dev->current_data[side][pos + 1]);
+    if (type & 1)
+    	return(dev->current_data[side][pos + 1]);
+    else
+    	return(dev->current_data[side][1]);
 }
 
 
@@ -562,7 +567,7 @@ poll_write_data(int drive, int side, uint16_t pos, uint8_t data)
 
     if (writeprot[drive]) return;
 
-    if (! (type & 1)) return;		/* Should never happen. */
+    if ((type & 1) || (type == 0) || (type > 8)) return;	/* Should never happen. */
 
     dev->current_data[side][pos + 1] = data;
 }
@@ -591,7 +596,7 @@ imd_init(void)
 
 
 void
-imd_load(int drive, wchar_t *fn)
+imd_load(int drive, char *fn)
 {
     uint32_t magic = 0;
     uint32_t fsize = 0;
@@ -624,9 +629,9 @@ imd_load(int drive, wchar_t *fn)
     dev = (imd_t *)malloc(sizeof(imd_t));
     memset(dev, 0x00, sizeof(imd_t));
 
-    dev->f = plat_fopen(fn, L"rb+");
+    dev->f = plat_fopen(fn, "rb+");
     if (dev->f == NULL) {
-	dev->f = plat_fopen(fn, L"rb");
+	dev->f = plat_fopen(fn, "rb");
 	if (dev->f == NULL) {
 		memset(floppyfns[drive], 0, sizeof(floppyfns[drive]));
 		free(dev);
@@ -733,7 +738,7 @@ imd_load(int drive, wchar_t *fn)
 		dev->tracks[track][side].max_sector_size = 5;
 	if (!mfm)
 		dev->tracks[track][side].max_sector_size--;
-	/* imd_log("Side flags for (%02i)(%01i): %02X\n", track, side, dev->tracks[track][side].side_flags); */
+	imd_log("Side flags for (%02i)(%01i): %02X\n", track, side, dev->tracks[track][side].side_flags);
 	dev->tracks[track][side].is_present = 1;
 	dev->tracks[track][side].file_offs = (buffer2 - buffer);
 	memcpy(dev->tracks[track][side].params, buffer2, 5);
@@ -750,7 +755,12 @@ imd_load(int drive, wchar_t *fn)
 		last_offset += track_spt;
 	}
 
-	if (sector_size == 0xFF) {
+	if (track_spt == 0x00) {
+		dev->tracks[track][side].n_map_offs = last_offset;
+		buffer2 = buffer + last_offset;
+		last_offset += track_spt;
+		dev->tracks[track][side].is_present = 0;
+	} else if (sector_size == 0xFF) {
 		dev->tracks[track][side].n_map_offs = last_offset;
 		buffer2 = buffer + last_offset;
 		last_offset += track_spt;
@@ -762,17 +772,29 @@ imd_load(int drive, wchar_t *fn)
 			data_size = 128 << data_size;
 			dev->tracks[track][side].sector_data_offs[i] = last_offset;
 			dev->tracks[track][side].sector_data_size[i] = 1;
+			if (dev->buffer[dev->tracks[track][side].sector_data_offs[i]] > 0x08) {
+				/* Invalid sector data type, possibly a malformed HxC IMG image (it outputs data errored
+				   sectors with a variable amount of bytes, against the specification). */
+				imd_log("IMD: Invalid sector data type %02X\n", dev->buffer[dev->tracks[track][side].sector_data_offs[i]]);
+				fclose(dev->f);
+				free(dev);
+				imd[drive] = NULL;
+				memset(floppyfns[drive], 0, sizeof(floppyfns[drive]));
+				return;
+			}
 			if (buffer[dev->tracks[track][side].sector_data_offs[i]] != 0)
 				dev->tracks[track][side].sector_data_size[i] += (buffer[dev->tracks[track][side].sector_data_offs[i]] & 1) ? data_size : 1;
 			last_offset += dev->tracks[track][side].sector_data_size[i];
 			if (!(buffer[dev->tracks[track][side].sector_data_offs[i]] & 1))
 				fwriteprot[drive] = writeprot[drive] = 1;
 			type = dev->buffer[dev->tracks[track][side].sector_data_offs[i]];
-			type = (type >> 1) & 7;
-			if ((type == 3) || (type == 4) || (data_size > (128 << dev->tracks[track][side].max_sector_size)))
-				track_total += (pre_sector + 3);
-			else
-				track_total += (pre_sector + data_size + 2);
+			if (type != 0x00) {
+				type = ((type - 1) >> 1) & 7;
+				if (data_size > (128 << dev->tracks[track][side].max_sector_size))
+					track_total += (pre_sector + 3);
+				else
+					track_total += (pre_sector + data_size + 2);
+			}
 		}
 	} else {
 		dev->tracks[track][side].data_offs = last_offset;
@@ -782,19 +804,32 @@ imd_load(int drive, wchar_t *fn)
 			data_size = 128 << data_size;
 			dev->tracks[track][side].sector_data_offs[i] = last_offset;
 			dev->tracks[track][side].sector_data_size[i] = 1;
+			if (dev->buffer[dev->tracks[track][side].sector_data_offs[i]] > 0x08) {
+				/* Invalid sector data type, possibly a malformed HxC IMG image (it outputs data errored
+				   sectors with a variable amount of bytes, against the specification). */
+				imd_log("IMD: Invalid sector data type %02X\n", dev->buffer[dev->tracks[track][side].sector_data_offs[i]]);
+				fclose(dev->f);
+				free(dev);
+				imd[drive] = NULL;
+				memset(floppyfns[drive], 0, sizeof(floppyfns[drive]));
+				return;
+			}
 			if (buffer[dev->tracks[track][side].sector_data_offs[i]] != 0)
 				dev->tracks[track][side].sector_data_size[i] += (buffer[dev->tracks[track][side].sector_data_offs[i]] & 1) ? data_size : 1;
 			last_offset += dev->tracks[track][side].sector_data_size[i];
 			if (!(buffer[dev->tracks[track][side].sector_data_offs[i]] & 1))
 				fwriteprot[drive] = writeprot[drive] = 1;
 			type = dev->buffer[dev->tracks[track][side].sector_data_offs[i]];
-			type = (type >> 1) & 7;
-			if ((type == 3) || (type == 4) || (sector_size > dev->tracks[track][side].max_sector_size))
-				track_total += (pre_sector + 3);
-			else
-				track_total += (pre_sector + data_size + 2);
+			if (type != 0x00) {
+				type = ((type - 1) >> 1) & 7;
+				if (data_size > (128 << dev->tracks[track][side].max_sector_size))
+					track_total += (pre_sector + 3);
+				else
+					track_total += (pre_sector + data_size + 2);
+			}
 		}
 	}
+
 	buffer2 = buffer + last_offset;
 
 	/* Leaving even GAP4: 80 : 40 */
@@ -810,7 +845,7 @@ imd_load(int drive, wchar_t *fn)
 	else
 		converted_rate = dev->tracks[track][side].side_flags & 0x03;
 
-	if (gap3_sizes[converted_rate][sector_size][track_spt] == 0x00) {
+	if ((track_spt != 0x00) && (gap3_sizes[converted_rate][sector_size][track_spt] == 0x00)) {
 		size_diff = raw_tsize - track_total;
 		gap_sum = minimum_gap3 + minimum_gap4;
 		if (size_diff < gap_sum) {
@@ -831,7 +866,7 @@ imd_load(int drive, wchar_t *fn)
 		}
 
 		dev->tracks[track][side].gap3_len = (size_diff - minimum_gap4) / track_spt;
-	} else if (gap3_sizes[converted_rate][sector_size][track_spt] != 0x00)
+	} else if ((track_spt == 0x00) || (gap3_sizes[converted_rate][sector_size][track_spt] != 0x00))
 		dev->tracks[track][side].gap3_len = gap3_sizes[converted_rate][sector_size][track_spt];
 
 	/* imd_log("GAP3 length for (%02i)(%01i): %i bytes\n", track, side, dev->tracks[track][side].gap3_len); */
@@ -839,7 +874,8 @@ imd_load(int drive, wchar_t *fn)
 	if (track > dev->track_count)
 		dev->track_count = track;
 
-	if (last_offset >= fsize) break;
+	if (last_offset >= fsize)
+		break;
     }
 
     /* If more than 43 tracks, then the tracks are thin (96 tpi). */

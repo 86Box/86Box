@@ -693,166 +693,164 @@ bm_init(const device_t *info)
     return dev;
 }
 
-
 static const device_config_t lt_config[] = {
+// clang-format off
     {
-	"base", "Address", CONFIG_HEX16, "", 0x23c,
-	{
-		{
-			"0x230", 0x230
-		},
-		{
-			"0x234", 0x234
-		},
-		{
-			"0x238", 0x238
-		},
-		{
-			"0x23C", 0x23c
-		},
-		{
-			""
-		}
-	}
+        .name = "base",
+        .description = "Address",
+        .type = CONFIG_HEX16,
+        .default_string = "",
+        .default_int = 0x23c,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "0x230", .value = 0x230 },
+            { .description = "0x234", .value = 0x234 },
+            { .description = "0x238", .value = 0x238 },
+            { .description = "0x23C", .value = 0x23c },
+            { .description = ""                      }
+        }
     },
     {
-	"irq", "IRQ", CONFIG_SELECTION, "", 5, {
-		{
-			"IRQ 2", 2
-		},
-		{
-			"IRQ 3", 3
-		},
-		{
-			"IRQ 4", 4
-		},
-		{
-			"IRQ 5", 5
-		},
-		{
-			""
-		}
-	}
+        .name = "irq",
+        .description = "IRQ",
+        .type = CONFIG_SELECTION,
+        .default_string = "",
+        .default_int = 5,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "IRQ 2", .value = 2 },
+            { .description = "IRQ 3", .value = 3 },
+            { .description = "IRQ 4", .value = 4 },
+            { .description = "IRQ 5", .value = 5 },
+            { .description = ""                  }
+        }
     },
     {
-	"hz", "Hz", CONFIG_SELECTION, "", 45, {
-		{
-			"Non-timed (original)", 0
-		},
-		{
-			"30 Hz (JMP2 = 1)", 30
-		},
-		{
-			"45 Hz (JMP2 not populated)", 45
-		},
-		{
-			"60 Hz (JMP 2 = 2)", 60
-		},
-		{
-			""
-		}
-	}
+        .name = "hz",
+        .description = "Hz",
+        .type = CONFIG_SELECTION,
+        .default_string = "",
+        .default_int = 45,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "Non-timed (original)",       .value =  0 },
+            { .description = "30 Hz (JMP2 = 1)",           .value = 30 },
+            { .description = "45 Hz (JMP2 not populated)", .value = 45 },
+            { .description = "60 Hz (JMP 2 = 2)",          .value = 60 },
+            { .description = ""                                        }
+        }
     },
     {
-	"buttons", "Buttons", CONFIG_SELECTION, "", 2, {
-		{
-			"Two", 2
-		},
-		{
-			"Three", 3
-		},
-		{
-			""
-		}
-	}
+        .name = "buttons",
+        .description = "Buttons",
+        .type = CONFIG_SELECTION,
+        .default_string = "",
+        .default_int = 2,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "Two",   .value = 2 },
+            { .description = "Three", .value = 3 },
+            { .description = ""                  }
+        }
     },
-    {
-	"", "", -1
-    }
+    { .name = "", .description = "", .type = CONFIG_END }
+// clang-format on
 };
-
 
 static const device_config_t ms_config[] = {
+// clang-format off
     {
-	"base", "Address", CONFIG_HEX16, "", 0x23c,
-	{
-		{
-			"0x230", 0x230
-		},
-		{
-			"0x234", 0x234
-		},
-		{
-			"0x238", 0x238
-		},
-		{
-			"0x23C", 0x23c
-		},
-		{
-			""
-		}
-	}
+        .name = "base",
+        .description = "Address",
+        .type = CONFIG_HEX16,
+        .default_string = "",
+        .default_int = 0x23c,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "0x230", .value = 0x230 },
+            { .description = "0x234", .value = 0x234 },
+            { .description = "0x238", .value = 0x238 },
+            { .description = "0x23C", .value = 0x23c },
+            { .description = ""                      }
+        }
     },
     {
-	"irq", "IRQ", CONFIG_SELECTION, "", 5, {
-		{
-			"IRQ 2", 2
-		},
-		{
-			"IRQ 3", 3
-		},
-		{
-			"IRQ 4", 4
-		},
-		{
-			"IRQ 5", 5
-		},
-		{
-			""
-		}
-	}
+        .name = "irq",
+        .description = "IRQ",
+        .type = CONFIG_SELECTION,
+        .default_string = "",
+        .default_int = 5,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "IRQ 2", .value = 2 },
+            { .description = "IRQ 3", .value = 3 },
+            { .description = "IRQ 4", .value = 4 },
+            { .description = "IRQ 5", .value = 5 },
+            { .description = ""                  }
+        }
     },
     {
-	"buttons", "Buttons", CONFIG_SELECTION, "", 2, {
-		{
-			"Two", 2
-		},
-		{
-			"Three", 3
-		},
-		{
-			""
-		}
-	}
+        .name = "buttons",
+        .description = "Buttons",
+        .type = CONFIG_SELECTION,
+        .default_string = "",
+        .default_int = 2,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "Two",   .value = 2 },
+            { .description = "Three", .value = 3 },
+            { .description = ""                  }
+        }
     },
-    {
-	"", "", -1
-    }
+    { .name = "", .description = "", .type = CONFIG_END }
+// clang-format on
 };
 
-
 const device_t mouse_logibus_device = {
-    "Logitech/Microsoft Bus Mouse",
-    DEVICE_ISA,
-    MOUSE_TYPE_LOGIBUS,
-    bm_init, bm_close, NULL,
-    bm_poll, NULL, NULL,
-    lt_config
+    .name = "Logitech/Microsoft Bus Mouse",
+    .internal_name = "logibus",
+    .flags = DEVICE_ISA,
+    .local = MOUSE_TYPE_LOGIBUS,
+    .init = bm_init,
+    .close = bm_close,
+    .reset = NULL,
+    { .poll = bm_poll },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = lt_config
 };
 
 const device_t mouse_logibus_onboard_device = {
-    "Logitech Bus Mouse (On-Board)",
-    DEVICE_ISA,
-    MOUSE_TYPE_LOGIBUS | MOUSE_TYPE_ONBOARD,
-    bm_init, bm_close, NULL,
-    bm_poll, NULL, NULL
+    .name = "Logitech Bus Mouse (On-Board)",
+    .internal_name = "logibus_onboard",
+    .flags = DEVICE_ISA,
+    .local = MOUSE_TYPE_LOGIBUS | MOUSE_TYPE_ONBOARD,
+    .init = bm_init,
+    .close = bm_close,
+    .reset = NULL,
+    { .poll = bm_poll },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
 const device_t mouse_msinport_device = {
-    "Microsoft Bus Mouse (InPort)",
-    DEVICE_ISA,
-    MOUSE_TYPE_INPORT,
-    bm_init, bm_close, NULL,
-    bm_poll, NULL, NULL,
-    ms_config
+    .name = "Microsoft Bus Mouse (InPort)",
+    .internal_name = "msbus",
+    .flags = DEVICE_ISA,
+    .local = MOUSE_TYPE_INPORT,
+    .init = bm_init,
+    .close = bm_close,
+    .reset = NULL,
+    { .poll = bm_poll },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = ms_config
 };

@@ -64,7 +64,7 @@ uint32_t ropAND_b_rm(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t
         if ((fetchdat & 0xc0) == 0xc0)
         {
                 int src_reg = fetchdat & 7;
-                
+
                 uop_AND(ir, IREG_8(dest_reg), IREG_8(dest_reg), IREG_8(src_reg));
         }
         else

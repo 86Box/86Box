@@ -15,6 +15,7 @@
  *
  *		Copyright 2019 Miran Grca.
  */
+
 #ifndef EMU_PORT_92_H
 # define EMU_PORT_92_H
 

@@ -11,10 +11,10 @@
  *
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
- *		Michael Drüing, <michael@drueing.de>
+ *		Michael DrÃ¼ing, <michael@drueing.de>
  *
  *		Copyright 2018,2019 Fred N. van Kempen.
- *		Copyright 2018,2019 Michael Drüing.
+ *		Copyright 2018,2019 Michael DrÃ¼ing.
  *
  *		Redistribution and  use  in source  and binary forms, with
  *		or  without modification, are permitted  provided that the
@@ -46,6 +46,7 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING  IN ANY  WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+
 #ifndef WIN_SDL_H
 # define WIN_SDL_H
 
@@ -53,11 +54,11 @@
 extern void	sdl_close(void);
 extern int	sdl_inits(HWND h);
 extern int	sdl_inith(HWND h);
-extern int	sdl_inits_fs(HWND h);
-extern int	sdl_inith_fs(HWND h);
+extern int	sdl_initho(HWND h);
 extern int	sdl_pause(void);
 extern void	sdl_resize(int x, int y);
 extern void	sdl_enable(int enable);
-
+extern void	sdl_set_fs(int fs);
+extern void	sdl_reload(void);
 
 #endif	/*WIN_SDL_H*/

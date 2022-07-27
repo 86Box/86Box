@@ -1,5 +1,6 @@
-#ifdef __amd64__
+#if defined __amd64__ || defined _M_X64
 
+#include <stdlib.h>
 #include <stdint.h>
 #include <86box/86box.h>
 #include "cpu.h"
@@ -21,6 +22,7 @@
 #if defined WIN32 || defined _WIN32 || defined _WIN32
 #include <windows.h>
 #endif
+#include <string.h>
 
 void *codegen_mem_load_byte;
 void *codegen_mem_load_word;
@@ -51,7 +53,7 @@ host_reg_def_t codegen_host_reg_list[CODEGEN_HOST_REGS] =
 
 host_reg_def_t codegen_host_fp_reg_list[CODEGEN_HOST_FP_REGS] =
 {
-#if WIN64
+#if _WIN64
         /*Windows x86-64 calling convention preserves XMM6-XMM15*/
         {REG_XMM6, 0},
         {REG_XMM7, 0},
@@ -123,7 +125,7 @@ static void build_load_routine(codeblock_t *block, int size, int is_float)
                 *misaligned_offset = (uint8_t)((uintptr_t)&block_write_data[block_pos] - (uintptr_t)misaligned_offset) - 1;
         host_x86_PUSH(block, REG_RAX);
         host_x86_PUSH(block, REG_RDX);
-#if WIN64
+#if _WIN64
         host_x86_SUB64_REG_IMM(block, REG_RSP, 0x20);
         //host_x86_MOV32_REG_REG(block, REG_ECX, uop->imm_data);
 #else
@@ -155,7 +157,7 @@ static void build_load_routine(codeblock_t *block, int size, int is_float)
                 host_x86_CALL(block, (void *)readmemql);
                 host_x86_MOVQ_XREG_REG(block, REG_XMM_TEMP, REG_RAX);
         }
-#if WIN64
+#if _WIN64
         host_x86_ADD64_REG_IMM(block, REG_RSP, 0x20);
 #endif
         host_x86_POP(block, REG_RDX);
@@ -221,7 +223,7 @@ static void build_store_routine(codeblock_t *block, int size, int is_float)
                 *misaligned_offset = (uint8_t)((uintptr_t)&block_write_data[block_pos] - (uintptr_t)misaligned_offset) - 1;
         host_x86_PUSH(block, REG_RAX);
         host_x86_PUSH(block, REG_RDX);
-#if WIN64
+#if _WIN64
         host_x86_SUB64_REG_IMM(block, REG_RSP, 0x28);
         if (size == 4 && is_float)
                 host_x86_MOVD_REG_XREG(block, REG_EDX, REG_XMM_TEMP); //data
@@ -248,7 +250,7 @@ static void build_store_routine(codeblock_t *block, int size, int is_float)
                 host_x86_CALL(block, (void *)writememll);
         else if (size == 8)
                 host_x86_CALL(block, (void *)writememql);
-#if WIN64
+#if _WIN64
         host_x86_ADD64_REG_IMM(block, REG_RSP, 0x28);
 #else
         host_x86_ADD64_REG_IMM(block, REG_RSP, 0x8);
@@ -292,12 +294,6 @@ void codegen_backend_init()
 {
         codeblock_t *block;
         int c;
-#if defined(__linux__) || defined(__APPLE__)
-	void *start;
-	size_t len;
-	long pagesize = sysconf(_SC_PAGESIZE);
-	long pagemask = ~(pagesize - 1);
-#endif
 
         codeblock = malloc(BLOCK_SIZE * sizeof(codeblock_t));
         codeblock_hash = malloc(HASH_SIZE * sizeof(codeblock_t *));
@@ -317,14 +313,13 @@ void codegen_backend_init()
         build_loadstore_routines(&codeblock[block_current]);
 
         codegen_gpf_rout = &codeblock[block_current].data[block_pos];
-#if WIN64
+#if _WIN64
         host_x86_XOR32_REG_REG(block, REG_ECX, REG_ECX);
         host_x86_XOR32_REG_REG(block, REG_EDX, REG_EDX);
 #else
         host_x86_XOR32_REG_REG(block, REG_EDI, REG_EDI);
         host_x86_XOR32_REG_REG(block, REG_ESI, REG_ESI);
 #endif
-	/* host_x86_CALL(block, (uintptr_t)x86gpf); */
 	host_x86_CALL(block, (void *)x86gpf);
         codegen_exit_rout = &codeblock[block_current].data[block_pos];
         host_x86_ADD64_REG_IMM(block, REG_RSP, 0x38);

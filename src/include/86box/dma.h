@@ -66,6 +66,7 @@ typedef struct {
 
 extern dma_t	dma[8];
 extern uint8_t	dma_e;
+extern uint8_t	dma_m;
 
 
 extern void	dma_init(void);
@@ -96,8 +97,11 @@ extern void	dma_bm_read(uint32_t PhysAddress, uint8_t *DataRead, uint32_t TotalS
 extern void	dma_bm_write(uint32_t PhysAddress, const uint8_t *DataWrite, uint32_t TotalSize, int TransferSize);
 
 void		dma_set_params(uint8_t advanced, uint32_t mask);
-void		dma_ext_mode_init(void);
+void		dma_set_mask(uint32_t mask);
 
+void		dma_set_at(uint8_t at);
+
+void		dma_ext_mode_init(void);
 void		dma_high_page_init(void);
 
 void		dma_remove_sg(void);

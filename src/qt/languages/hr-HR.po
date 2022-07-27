@@ -1,0 +1,1185 @@
+msgid "&Action"
+msgstr "&Radnje"
+
+msgid "&Keyboard requires capture"
+msgstr "&Tipkovnica zahtijeva hvatanje miša"
+
+msgid "&Right CTRL is left ALT"
+msgstr "&Desni CTRL je lijevi ALT"
+
+msgid "&Hard Reset..."
+msgstr "&Ponovno pokretanje..."
+
+msgid "&Ctrl+Alt+Del\tCtrl+F12"
+msgstr "&Ctrl+Alt+Del\tCtrl+F12"
+
+msgid "Ctrl+Alt+&Esc"
+msgstr "Ctrl+Alt+&Esc"
+
+msgid "&Pause"
+msgstr "&Pauza"
+
+msgid "E&xit..."
+msgstr "Iz&laz..."
+
+msgid "&View"
+msgstr "&Pogled"
+
+msgid "&Hide status bar"
+msgstr "&Sakrij statusni redak"
+
+msgid "Hide &toolbar"
+msgstr "&Sakrij alatni redak"
+
+msgid "&Resizeable window"
+msgstr "&Prozor s promjenjivim veličinama"
+
+msgid "R&emember size && position"
+msgstr "&Zapamtite veličinu i položaj"
+
+msgid "Re&nderer"
+msgstr "&Renderer"
+
+msgid "&SDL (Software)"
+msgstr "&SDL (Softver)"
+
+msgid "SDL (&Hardware)"
+msgstr "SDL (&Hardver)"
+
+msgid "SDL (&OpenGL)"
+msgstr "SDL (&OpenGL)"
+
+msgid "Open&GL (3.0 Core)"
+msgstr "Open&GL (3.0 jezgra)"
+
+msgid "&VNC"
+msgstr "&VNC"
+
+msgid "Specify dimensions..."
+msgstr "Odrediti veličinu..."
+
+msgid "F&orce 4:3 display ratio"
+msgstr "&4:3 omjer prikaza"
+
+msgid "&Window scale factor"
+msgstr "&Faktor skaliranja prozora"
+
+msgid "&0.5x"
+msgstr "&0,5x"
+
+msgid "&1x"
+msgstr "&1x"
+
+msgid "1.&5x"
+msgstr "1,&5x"
+
+msgid "&2x"
+msgstr "&2x"
+
+msgid "Filter method"
+msgstr "Metoda filtriranja"
+
+msgid "&Nearest"
+msgstr "&Najbliža"
+
+msgid "&Linear"
+msgstr "&Linearna"
+
+msgid "Hi&DPI scaling"
+msgstr "&HiDPI skaliranje"
+
+msgid "&Fullscreen\tCtrl+Alt+PgUp"
+msgstr "&Cijelozaslonski način\tCtrl+Alt+PgUp"
+
+msgid "Fullscreen &stretch mode"
+msgstr "&Način cijelozaslonskog rastezanja"
+
+msgid "&Full screen stretch"
+msgstr "&Razvuci na cijeli zaslona"
+
+msgid "&4:3"
+msgstr "&4:3"
+
+msgid "&Square pixels (Keep ratio)"
+msgstr "&Kvadratni pikseli (zadrži omjer)"
+
+msgid "&Integer scale"
+msgstr "&Cijelobrojno skaliranje"
+
+msgid "E&GA/(S)VGA settings"
+msgstr "E&GA/(S)VGA postavke"
+
+msgid "&Inverted VGA monitor"
+msgstr "&Obrni boje zaslona VGA"
+
+msgid "VGA screen &type"
+msgstr "&Tip zaslona VGA"
+
+msgid "RGB &Color"
+msgstr "RGB u &boji"
+
+msgid "&RGB Grayscale"
+msgstr "&RGB u nijansama sive boje"
+
+msgid "&Amber monitor"
+msgstr "&Jantarni zaslon"
+
+msgid "&Green monitor"
+msgstr "&Zeleni zaslon"
+
+msgid "&White monitor"
+msgstr "&Bijeli zaslon"
+
+msgid "Grayscale &conversion type"
+msgstr "&Vrsta konverzije nijansa sive boje"
+
+msgid "BT&601 (NTSC/PAL)"
+msgstr "BT&601 (NTSC/PAL)"
+
+msgid "BT&709 (HDTV)"
+msgstr "BT&709 (HDTV)"
+
+msgid "&Average"
+msgstr "&Prosjek"
+
+msgid "CGA/PCjr/Tandy/E&GA/(S)VGA overscan"
+msgstr "&Višak slike CGA/PCjr/Tandy/EGA/(S)VGA"
+
+msgid "Change contrast for &monochrome display"
+msgstr "&Promjeni kontrast za crno-bijeli zaslon"
+
+msgid "&Media"
+msgstr "&Mediji"
+
+msgid "&Tools"
+msgstr "&Alati"
+
+msgid "&Settings..."
+msgstr "&Opcije..."
+
+msgid "&Update status bar icons"
+msgstr "&Ažuriraj ikone statusnog redka"
+
+msgid "Take s&creenshot\tCtrl+F11"
+msgstr "Napravi &snimku zaslona\tCtrl+F11"
+
+msgid "&Preferences..."
+msgstr "&Postavke..."
+
+msgid "Enable &Discord integration"
+msgstr "Omogući integraciju sa programom &Discord"
+
+msgid "Sound &gain..."
+msgstr "&Pojačanje zvuka..."
+
+msgid "Begin trace\tCtrl+T"
+msgstr "Z&apočni praćenje\tCtrl+T"
+
+msgid "End trace\tCtrl+T"
+msgstr "&Svrši praćenje\tCtrl+T"
+
+msgid "&Help"
+msgstr "&Pomoć"
+
+msgid "&Documentation..."
+msgstr "&Dokumentacija..."
+
+msgid "&About 86Box..."
+msgstr "&O programu 86Box..."
+
+msgid "&New image..."
+msgstr "&Nova slika..."
+
+msgid "&Existing image..."
+msgstr "&Postojeća slika..."
+
+msgid "Existing image (&Write-protected)..."
+msgstr "Postojeća slika (&zaštićena od pisanja)..."
+
+msgid "&Record"
+msgstr "&Snimi"
+
+msgid "&Play"
+msgstr "&Pokreni"
+
+msgid "&Rewind to the beginning"
+msgstr "P&remotaj na početak"
+
+msgid "&Fast forward to the end"
+msgstr "&Preskoči do kraja"
+
+msgid "E&ject"
+msgstr "&Izbaci"
+
+msgid "&Image..."
+msgstr "&Slika..."
+
+msgid "E&xport to 86F..."
+msgstr "&Izvozi u 86F..."
+
+msgid "&Mute"
+msgstr "&Isključi zvuk"
+
+msgid "E&mpty"
+msgstr "&Prazno"
+
+msgid "&Reload previous image"
+msgstr "&Ponovo učitaj prethodnu sliku"
+
+msgid "&Image"
+msgstr "&Slika"
+
+msgid "Target &framerate"
+msgstr "&Ciljni broj okvira u sekundi"
+
+msgid "&Sync with video"
+msgstr "&Sinkroniziraj s videom"
+
+msgid "&25 fps"
+msgstr "&25 fps"
+
+msgid "&30 fps"
+msgstr "&30 fps"
+
+msgid "&50 fps"
+msgstr "&50 fps"
+
+msgid "&60 fps"
+msgstr "&60 fps"
+
+msgid "&75 fps"
+msgstr "&75 fps"
+
+msgid "&VSync"
+msgstr "&VSync"
+
+msgid "&Select shader..."
+msgstr "&Odaberi shader..."
+
+msgid "&Remove shader"
+msgstr "&Ukloni shader"
+
+msgid "Preferences"
+msgstr "Postavke"
+
+msgid "Sound Gain"
+msgstr "Pojačavanje zvuka"
+
+msgid "New Image"
+msgstr "Nova slika"
+
+msgid "Settings"
+msgstr "Opcije"
+
+msgid "Specify Main Window Dimensions"
+msgstr "Odredite glavne dimenzije prozora"
+
+msgid "OK"
+msgstr "U redu"
+
+msgid "Cancel"
+msgstr "Otkaži"
+
+msgid "Save these settings as &global defaults"
+msgstr "Spremite ove postavke kao &globalne zadane postavke"
+
+msgid "&Default"
+msgstr "Zadano"
+
+msgid "Language:"
+msgstr "Jezik:"
+
+msgid "Icon set:"
+msgstr "Paket ikona:"
+
+msgid "Gain"
+msgstr "Pojačavanje"
+
+msgid "File name:"
+msgstr "Ime datoteke:"
+
+msgid "Disk size:"
+msgstr "Veličina diska:"
+
+msgid "RPM mode:"
+msgstr "Način broja okretaja:"
+
+msgid "Progress:"
+msgstr "Napredak:"
+
+msgid "Width:"
+msgstr "Širina:"
+
+msgid "Height:"
+msgstr "Visina:"
+
+msgid "Lock to this size"
+msgstr "Zaključajte na ovu veličinu"
+
+msgid "Machine type:"
+msgstr "Tip sistema:"
+
+msgid "Machine:"
+msgstr "Sistem:"
+
+msgid "Configure"
+msgstr "Namjesti"
+
+msgid "CPU type:"
+msgstr "Tip procesora:"
+
+msgid "Speed:"
+msgstr "Brzina:"
+
+msgid "FPU:"
+msgstr "FPU uređaj:"
+
+msgid "Wait states:"
+msgstr "Stanja čekanja:"
+
+msgid "MB"
+msgstr "MB"
+
+msgid "Memory:"
+msgstr "Memorija:"
+
+msgid "Time synchronization"
+msgstr "Sinkronizacija vremena"
+
+msgid "Disabled"
+msgstr "Isključeno"
+
+msgid "Enabled (local time)"
+msgstr "Uključeno (lokalno vrijeme)"
+
+msgid "Enabled (UTC)"
+msgstr "Uključeno (UTC)"
+
+msgid "Dynamic Recompiler"
+msgstr "Dinamički rekompilator"
+
+msgid "Video:"
+msgstr "Video:"
+
+msgid "Voodoo Graphics"
+msgstr "Voodoo grafika"
+
+msgid "Mouse:"
+msgstr "Miš:"
+
+msgid "Joystick:"
+msgstr "Palica za igru:"
+
+msgid "Joystick 1..."
+msgstr "Palica za igru 1..."
+
+msgid "Joystick 2..."
+msgstr "Palica za igru 2..."
+
+msgid "Joystick 3..."
+msgstr "Palica za igru 3..."
+
+msgid "Joystick 4..."
+msgstr "Palica za igru 4..."
+
+msgid "Sound card:"
+msgstr "Zvučna kartica:"
+
+msgid "MIDI Out Device:"
+msgstr "Izlazni uređaj MIDI:"
+
+msgid "MIDI In Device:"
+msgstr "Ulazni uređaj MIDI:"
+
+msgid "Standalone MPU-401"
+msgstr "Samostalni MPU-401"
+
+msgid "Innovation SSI-2001"
+msgstr "Innovation SSI-2001"
+
+msgid "CMS / Game Blaster"
+msgstr "CMS / Game Blaster"
+
+msgid "Gravis Ultrasound"
+msgstr "Gravis Ultrasound"
+
+msgid "Use FLOAT32 sound"
+msgstr "Koristi FLOAT32 za zvuk"
+
+msgid "Network type:"
+msgstr "Tip mreže:"
+
+msgid "PCap device:"
+msgstr "Uređaj PCap:"
+
+msgid "Network adapter:"
+msgstr "Mrežna kartica:"
+
+msgid "COM1 Device:"
+msgstr "Uređaj COM1:"
+
+msgid "COM2 Device:"
+msgstr "Uređaj COM2:"
+
+msgid "COM3 Device:"
+msgstr "Uređaj COM3:"
+
+msgid "COM4 Device:"
+msgstr "Uređaj COM4:"
+
+msgid "LPT1 Device:"
+msgstr "Uređaj LPT1:"
+
+msgid "LPT2 Device:"
+msgstr "Uređaj LPT2:"
+
+msgid "LPT3 Device:"
+msgstr "Uređaj LPT3:"
+
+msgid "LPT4 Device:"
+msgstr "Uređaj LPT4:"
+
+msgid "Serial port 1"
+msgstr "Serijska vrata 1"
+
+msgid "Serial port 2"
+msgstr "Serijska vrata 2"
+
+msgid "Serial port 3"
+msgstr "Serijska vrata 3"
+
+msgid "Serial port 4"
+msgstr "Serijska vrata 4"
+
+msgid "Parallel port 1"
+msgstr "Paralelna vrata 1"
+
+msgid "Parallel port 2"
+msgstr "Paralelna vrata 2"
+
+msgid "Parallel port 3"
+msgstr "Paralelna vrata 3"
+
+msgid "Parallel port 4"
+msgstr "Paralelna vrata 4"
+
+msgid "HD Controller:"
+msgstr "Kontroler tvrdog diska:"
+
+msgid "FD Controller:"
+msgstr "Kontroler diskete:"
+
+msgid "Tertiary IDE Controller"
+msgstr "Tercijarni IDE kontroler"
+
+msgid "Quaternary IDE Controller"
+msgstr "Kvaternarni IDE kontroler"
+
+msgid "SCSI"
+msgstr "SCSI"
+
+msgid "Controller 1:"
+msgstr "Kontroler 1:"
+
+msgid "Controller 2:"
+msgstr "Kontroler 2:"
+
+msgid "Controller 3:"
+msgstr "Kontroler 3:"
+
+msgid "Controller 4:"
+msgstr "Kontroler 4:"
+
+msgid "Cassette"
+msgstr "Audio kaseta"
+
+msgid "Hard disks:"
+msgstr "Tvrdi diskovi:"
+
+msgid "&New..."
+msgstr "&Novi..."
+
+msgid "&Existing..."
+msgstr "&Postojeći..."
+
+msgid "&Remove"
+msgstr "&Ukloni"
+
+msgid "Bus:"
+msgstr "Sabirnica:"
+
+msgid "Channel:"
+msgstr "Kanal:"
+
+msgid "ID:"
+msgstr "ID:"
+
+msgid "&Specify..."
+msgstr "&Odredi..."
+
+msgid "Sectors:"
+msgstr "Sektori:"
+
+msgid "Heads:"
+msgstr "Glave:"
+
+msgid "Cylinders:"
+msgstr "Cilindri:"
+
+msgid "Size (MB):"
+msgstr "Veličina (MB):"
+
+msgid "Type:"
+msgstr "Tip:"
+
+msgid "Image Format:"
+msgstr "Format slike:"
+
+msgid "Block Size:"
+msgstr "Veličina slike:"
+
+msgid "Floppy drives:"
+msgstr "Disketni pogoni:"
+
+msgid "Turbo timings"
+msgstr "Turbo vrijemena"
+
+msgid "Check BPB"
+msgstr "Provjeraj BPB"
+
+msgid "CD-ROM drives:"
+msgstr "CD-ROM pogoni:"
+
+msgid "MO drives:"
+msgstr "MO pogoni:"
+
+msgid "ZIP drives:"
+msgstr "ZIP pogoni:"
+
+msgid "ZIP 250"
+msgstr "ZIP 250"
+
+msgid "ISA RTC:"
+msgstr "Sat stvarnog vremena (RTC):"
+
+msgid "ISA Memory Expansion"
+msgstr "Proširenje memorije ISA"
+
+msgid "Card 1:"
+msgstr "Kartica 1:"
+
+msgid "Card 2:"
+msgstr "Kartica 2:"
+
+msgid "Card 3:"
+msgstr "Kartica 3:"
+
+msgid "Card 4:"
+msgstr "Kartica 4:"
+
+msgid "ISABugger device"
+msgstr "Uređaj ISABugger"
+
+msgid "POST card"
+msgstr "Kartica POST"
+
+msgid "FONT_SIZE"
+msgstr "9"
+
+msgid "FONT_NAME"
+msgstr "Segoe UI"
+
+msgid "86Box"
+msgstr "86Box"
+
+msgid "Error"
+msgstr "Greška"
+
+msgid "Fatal error"
+msgstr "Fatalna greška"
+
+msgid " - PAUSED"
+msgstr " - PAUSED"
+
+msgid "Press Ctrl+Alt+PgDn to return to windowed mode."
+msgstr "Pritisnite Ctrl+Alt+PgDn za povratak u prozorski način rada."
+
+msgid "Speed"
+msgstr "Brzina"
+
+msgid "ZIP %03i %i (%s): %ls"
+msgstr "ZIP %03i %i (%s): %ls"
+
+msgid "ZIP images"
+msgstr "ZIP slike"
+
+msgid "86Box could not find any usable ROM images.\n\nPlease <a href=\"https://github.com/86Box/roms/releases/latest\">download</a> a ROM set and extract it into the \"roms\" directory."
+msgstr "86Box nije mogao pronaći upotrebljive ROM datoteke.\n\nMolimte posjetite <a href=\"https://github.com/86Box/roms/releases/latest\"></a> sknite paket s ROM datotekama i ekstrahirajte paket u \"roms\" mapu."
+
+msgid "(empty)"
+msgstr "(prazno)"
+
+msgid "All files"
+msgstr "Sve datoteke"
+
+msgid "Turbo"
+msgstr "Turbo"
+
+msgid "On"
+msgstr "Uključeno"
+
+msgid "Off"
+msgstr "Isključeno"
+
+msgid "All images"
+msgstr "Sve slike"
+
+msgid "Basic sector images"
+msgstr "BOsnovne sektorske slike"
+
+msgid "Surface images"
+msgstr "Površinske slike"
+
+msgid "Machine \"%hs\" is not available due to missing ROMs in the roms/machines directory. Switching to an available machine."
+msgstr "Sistem \"%hs\" nije dostupan jer ne postoje potrebni ROM-ovi u mapu roms/machines. Prebacivanje na dostupno računalo."
+
+msgid "Video card \"%hs\" is not available due to missing ROMs in the roms/video directory. Switching to an available video card."
+msgstr "Video kartica \"%hs\" nije dostupna jer ne postoje potrebni ROM-ovi u mapu roms/video. Prebacivanje na dostupnu video karticu."
+
+msgid "Machine"
+msgstr "Sistem"
+
+msgid "Display"
+msgstr "Video"
+
+msgid "Input devices"
+msgstr "Ulazni uređaji"
+
+msgid "Sound"
+msgstr "Zvuk"
+
+msgid "Network"
+msgstr "Mreža"
+
+msgid "Ports (COM & LPT)"
+msgstr "Vrata (COM & LPT)"
+
+msgid "Storage controllers"
+msgstr "Kontroleri za diskove"
+
+msgid "Hard disks"
+msgstr "Tvrdi diskovi"
+
+msgid "Floppy & CD-ROM drives"
+msgstr "Floppy & CD-ROM pogoni"
+
+msgid "Other removable devices"
+msgstr "Ostali uklonjivi uređaji"
+
+msgid "Other peripherals"
+msgstr "Ostali periferni uređaji"
+
+msgid "Click to capture mouse"
+msgstr "Kliknite da uhvatite miš"
+
+msgid "Press F8+F12 to release mouse"
+msgstr "Pritisnite F8+F12 za otpustanje miša"
+
+msgid "Press F8+F12 or middle button to release mouse"
+msgstr "Pritisnite F8+F12 ili srednji gumb miša za otpuštanje miša"
+
+msgid "Unable to initialize FluidSynth"
+msgstr "Nije moguće inicijalizirati FluidSynth"
+
+msgid "Bus"
+msgstr "Bus"
+
+msgid "File"
+msgstr "Datoteka"
+
+msgid "C"
+msgstr "C"
+
+msgid "H"
+msgstr "H"
+
+msgid "S"
+msgstr "S"
+
+msgid "KB"
+msgstr "KB"
+
+msgid "Could not initialize the video renderer."
+msgstr "Nije moguće inicijalizirati renderer."
+
+msgid "Default"
+msgstr "Standard"
+
+msgid "%i Wait state(s)"
+msgstr "%i stanje čekanja"
+
+msgid "Type"
+msgstr "Tip"
+
+msgid "Failed to set up PCap"
+msgstr "Postavljanje PCap-a nije uspjelo"
+
+msgid "No PCap devices found"
+msgstr "Nema PCap uređaja"
+
+msgid "Invalid PCap device"
+msgstr "Nevažeći PCap uređaj"
+
+msgid "Standard 2-button joystick(s)"
+msgstr "Standardna palica za igru s 2 tipke"
+
+msgid "Standard 4-button joystick"
+msgstr "Standardna palica za igru s 4 tipke"
+
+msgid "Standard 6-button joystick"
+msgstr "Standardna palica za igru s 6 tipke"
+
+msgid "Standard 8-button joystick"
+msgstr "Standardna palica za igru s 8 tipke"
+
+msgid "CH Flightstick Pro"
+msgstr "CH Flightstick Pro"
+
+msgid "Microsoft SideWinder Pad"
+msgstr "Microsoft SideWinder Pad"
+
+msgid "Thrustmaster Flight Control System"
+msgstr "Thrustmaster Flight Control System"
+
+msgid "None"
+msgstr "Bez"
+
+msgid "Unable to load keyboard accelerators."
+msgstr "Nije moguće učitati ubrzivače tipkovnice."
+
+msgid "Unable to register raw input."
+msgstr "Nije moguće registrirati neobrađeni unos."
+
+msgid "%u"
+msgstr "%u"
+
+msgid "%u MB (CHS: %i, %i, %i)"
+msgstr "%u MB (CHS: %i, %i, %i)"
+
+msgid "Floppy %i (%s): %ls"
+msgstr "Disketa %i (%s): %ls"
+
+msgid "Advanced sector images"
+msgstr "Napredne sektorske slike"
+
+msgid "Flux images"
+msgstr "Flux slike"
+
+msgid "Unable to initialize FreeType"
+msgstr "Nije moguće inicijalizirati FreeType"
+
+msgid "Unable to initialize SDL, SDL2.dll is required"
+msgstr "Nije moguće inicijalizirati SDL, SDL2.dll je potrebno"
+
+msgid "Are you sure you want to hard reset the emulated machine?"
+msgstr "Jeste li sigurni da želite hard resetirati emulirani sistem?"
+
+msgid "Are you sure you want to exit 86Box?"
+msgstr "Jeste li sigurni da želite zatvoriti 86Box?"
+
+msgid "Unable to initialize Ghostscript"
+msgstr "Nije moguće inicijalizirati GhostScript"
+
+msgid "MO %i (%ls): %ls"
+msgstr "MO %i (%ls): %ls"
+
+msgid "MO images"
+msgstr "MO slike"
+
+msgid "Welcome to 86Box!"
+msgstr "Dobrodošli u 86Box!"
+
+msgid "Internal controller"
+msgstr "Uunutarnji kontroler"
+
+msgid "Exit"
+msgstr "Izlazi"
+
+msgid "No ROMs found"
+msgstr "Nisu pronađene ROM datoteke"
+
+msgid "Do you want to save the settings?"
+msgstr "Želite li spremiti postavke?"
+
+msgid "This will hard reset the emulated machine."
+msgstr "Ovo će napraviti hard resetiranje emuliranog sistema."
+
+msgid "Save"
+msgstr "Spremaj"
+
+msgid "About 86Box"
+msgstr "O programu 86Box"
+
+msgid "86Box v"
+msgstr "86Box verzija "
+
+msgid "An emulator of old computers\n\nAuthors: Sarah Walker, Miran Grca, Fred N. van Kempen (waltje), SA1988, Tiseno100, reenigne, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2 or later. See LICENSE for more information."
+msgstr "Emulator starih računala\n\nAutori: Sarah Walker, Miran Grca, Fred N. van Kempen (waltje), SA1988, Tiseno100, reenigne, leilei, JohnElliott, greatpsycho, i drugi.\n\nPreveo: dob205\n\nObjavljeno pod licencom GNU General Public License, verzija 2 ili novije. Za više informacija pogledajte datoteku LICENCE."
+
+msgid "Hardware not available"
+msgstr "Hardver nije dostupan"
+
+msgid "WinPcap"
+msgstr "WinPcap"
+
+msgid "libpcap"
+msgstr "libpcap"
+
+msgid "Make sure libpcap is installed and that you are on a libpcap-compatible network connection."
+msgstr "Provjerite je li libpcap instaliran i jeste li na mreži, kompadibilnoj s libpcap."
+
+msgid "Invalid configuration"
+msgstr "Nevažeća konfiguracija"
+
+msgid "freetype.dll"
+msgstr "freetype.dll"
+
+msgid "libfreetype"
+msgstr "libfreetype"
+
+msgid " is required for ESC/P printer emulation."
+msgstr " je potrebno za emuliranje ESC/P pisača."
+
+msgid "gsdll32.dll"
+msgstr "gsdll32.dll"
+
+msgid "libgs"
+msgstr "libgs"
+
+msgid " is required for automatic conversion of PostScript files to PDF.\n\nAny documents sent to the generic PostScript printer will be saved as PostScript (.ps) files."
+msgstr " je potrebno za automatsku konverziju PostScript datoteke u PDF datoteke.\n\nSvi dokumenti poslani na generički PostScript pisač bit će spremljeni kao PostScript (.ps) datoteke."
+
+msgid "libfluidsynth.dll"
+msgstr "libfluidsynth.dll"
+
+msgid "libfluidsynth"
+msgstr "libfluidsynth"
+
+msgid " is required for FluidSynth MIDI output."
+msgstr " je potrebno za FluidSynth MIDI izlaz."
+
+msgid "Entering fullscreen mode"
+msgstr "Ulazim u cijelozaslonski način"
+
+msgid "Don't show this message again"
+msgstr "Ne pokazi više ovu poruku"
+
+msgid "Don't exit"
+msgstr "Ne izlazi"
+
+msgid "Reset"
+msgstr "Resetiraj"
+
+msgid "Don't reset"
+msgstr "Ne resetiraj"
+
+msgid "CD-ROM images"
+msgstr "CD-ROM slike"
+
+msgid "%hs Device Configuration"
+msgstr "Konfiguracija uređaja %hs "
+
+msgid "Monitor in sleep mode"
+msgstr "Ekran u stanju mirovanja"
+
+msgid "OpenGL Shaders"
+msgstr "OpenGL shaderi"
+
+msgid "OpenGL options"
+msgstr "OpenGL opcije"
+
+msgid "You are loading an unsupported configuration"
+msgstr "Učitavate nepodržanu konfiguraciju"
+
+msgid "CPU type filtering based on selected machine is disabled for this emulated machine.\n\nThis makes it possible to choose a CPU that is otherwise incompatible with the selected machine. However, you may run into incompatibilities with the machine BIOS or other software.\n\nEnabling this setting is not officially supported and any bug reports filed may be closed as invalid."
+msgstr "Filtriranje tipa CPU-a na temelju odabranog sistema onemogućeno je za ovaj emulirani sistem.\n\nOvo omogućuje odabir procesora koji inače nisu kompatibilne s odabranog sistem. Međutim, možete naići na na nekompatibilnosti s BIOS-om sustava ili drugim softverom.\n\nOmogućavanje ove postavke nije službeno podržano i sva prijava o greškama mogu biti zatvorena kao \"invalid\"."
+
+msgid "Continue"
+msgstr "Nastavi"
+
+msgid "Cassette: %s"
+msgstr "Audio kaseta: %s"
+
+msgid "Cassette images"
+msgstr "Slike audio kasete"
+
+msgid "Cartridge %i: %ls"
+msgstr "Kaseta %i: %ls"
+
+msgid "Cartridge images"
+msgstr "Slike kasete"
+
+msgid "Error initializing renderer"
+msgstr "Nije moguće inicijalizirati renderer"
+
+msgid "OpenGL (3.0 Core) renderer could not be initialized. Use another renderer."
+msgstr "Nije moguće inicijalizirati OpenGL (3.0 jezgra) renderer. Molimte koristite drugi renderer."
+
+msgid "Resume execution"
+msgstr "Nastavi"
+
+msgid "Pause execution"
+msgstr "Pauziraj"
+
+msgid "Press Ctrl+Alt+Del"
+msgstr "Stisni Ctrl+Alt+Del"
+
+msgid "Press Ctrl+Alt+Esc"
+msgstr "Stisni Ctrl+Alt+Esc"
+
+msgid "Hard reset"
+msgstr "Ponovno pokretanje"
+
+msgid "ACPI shutdown"
+msgstr "ACPI bazirano gašenje"
+
+msgid "Hard disk (%s)"
+msgstr "Tvrdi disk (%s)"
+
+msgid "%01i:%01i"
+msgstr "%01i:%01i"
+
+msgid "%01i"
+msgstr "%01i"
+
+msgid "MFM/RLL or ESDI CD-ROM drives never existed"
+msgstr "MFM/RLL ili ESDI CD-ROM pogoni nisu nikada postojali"
+
+msgid "Custom..."
+msgstr "Prilagođeno..."
+
+msgid "Custom (large)..."
+msgstr "Prilagođeno (veliko)..."
+
+msgid "Add New Hard Disk"
+msgstr "Dodajte novi tvrdi disk"
+
+msgid "Add Existing Hard Disk"
+msgstr "Dodajte postojeći tvrdi disk"
+
+msgid "HDI disk images cannot be larger than 4 GB."
+msgstr "HDI disk image datoteke ne mogu biti veće od 4 GB."
+
+msgid "Disk images cannot be larger than 127 GB."
+msgstr "Slike tvrdog diska ne mogu biti veće od 127 GB."
+
+msgid "Hard disk images"
+msgstr "Slike za tvrde diskove"
+
+msgid "Unable to read file"
+msgstr "Nije moguće pročitati datoteku"
+
+msgid "Unable to write file"
+msgstr "Nije moguće napisati datoteku"
+
+msgid "HDI or HDX images with a sector size other than 512 are not supported."
+msgstr "HDI ili HDX slike s veličinom sektora koja nije 512 kB nisu podržane."
+
+msgid "USB is not yet supported"
+msgstr "USB nije još podržano"
+
+msgid "Disk image file already exists"
+msgstr "Slika diska već postoji"
+
+msgid "Please specify a valid file name."
+msgstr "Molimte unesite važeći naziv datoteke."
+
+msgid "Disk image created"
+msgstr "Slika je stvorena"
+
+msgid "Make sure the file exists and is readable."
+msgstr "Provjerite je li postoji datoteka i je li čitljiva."
+
+msgid "Make sure the file is being saved to a writable directory."
+msgstr "Provjerite je li se datoteka sprema u mapu s dopuštenjima za pisanje."
+
+msgid "Disk image too large"
+msgstr "Slika diska je prevelika"
+
+msgid "Remember to partition and format the newly-created drive."
+msgstr "Ne zaboravite stvoriti particije i formatirati ih na novom disku."
+
+msgid "The selected file will be overwritten. Are you sure you want to use it?"
+msgstr "Odabrana datoteka bit će prebrisana. Jeste li sigurni da želite koristiti ovu daoteku?"
+
+msgid "Unsupported disk image"
+msgstr "Nepodržana slika diska"
+
+msgid "Overwrite"
+msgstr "Prepiši"
+
+msgid "Don't overwrite"
+msgstr "Ne prepiši"
+
+msgid "Raw image (.img)"
+msgstr "Slika neobrađenih podataka (.img)"
+
+msgid "HDI image (.hdi)"
+msgstr "HDI slika (.hdi)"
+
+msgid "HDX image (.hdx)"
+msgstr "HDX slika (.hdx)"
+
+msgid "Fixed-size VHD (.vhd)"
+msgstr "VHD fiksne veličine (.vhd)"
+
+msgid "Dynamic-size VHD (.vhd)"
+msgstr "VHD dinamičke veličine (.vhd)"
+
+msgid "Differencing VHD (.vhd)"
+msgstr "Različiti VHD (.vhd)"
+
+msgid "Large blocks (2 MB)"
+msgstr "Veliki blokovi (2 MB)"
+
+msgid "Small blocks (512 KB)"
+msgstr "Mali blokovi (512 KB)"
+
+msgid "VHD files"
+msgstr "VHD slike"
+
+msgid "Select the parent VHD"
+msgstr "Izaberi matičnu sliku VHD"
+
+msgid "This could mean that the parent image was modified after the differencing image was created.\n\nIt can also happen if the image files were moved or copied, or by a bug in the program that created this disk.\n\nDo you want to fix the timestamps?"
+msgstr "To bi moglo značiti da je matična slika promijenjena nakon što je stvorena različita slika.\n\nTo se također može dogoditi ako su slike premještene ili kopirane, ili greška u programu koji je stvorio ovaj disk.\n\nŽelite li popraviti vremenske oznake?"
+
+msgid "Parent and child disk timestamps do not match"
+msgstr "Vremenske ozanke matične i poređenog diska ne odgovaraju."
+
+msgid "Could not fix VHD timestamp."
+msgstr "Ne mogu popraviti vremensku oznaku slike VHD."
+
+msgid "%01i:%02i"
+msgstr "%01i:%02i"
+
+msgid "MFM/RLL"
+msgstr "MFM/RLL"
+
+msgid "XTA"
+msgstr "XTA"
+
+msgid "ESDI"
+msgstr "ESDI"
+
+msgid "IDE"
+msgstr "IDE"
+
+msgid "ATAPI"
+msgstr "ATAPI"
+
+msgid "MFM/RLL (%01i:%01i)"
+msgstr "MFM/RLL (%01i:%01i)"
+
+msgid "XTA (%01i:%01i)"
+msgstr "XTA (%01i:%01i)"
+
+msgid "ESDI (%01i:%01i)"
+msgstr "ESDI (%01i:%01i)"
+
+msgid "IDE (%01i:%01i)"
+msgstr "IDE (%01i:%01i)"
+
+msgid "ATAPI (%01i:%01i)"
+msgstr "ATAPI (%01i:%01i)"
+
+msgid "SCSI (%01i:%02i)"
+msgstr "SCSI (%01i:%02i)"
+
+msgid "CD-ROM %i (%s): %s"
+msgstr "CD-ROM %i (%s): %s"
+
+msgid "160 kB"
+msgstr "160 kB"
+
+msgid "180 kB"
+msgstr "180 kB"
+
+msgid "320 kB"
+msgstr "320 kB"
+
+msgid "360 kB"
+msgstr "360 kB"
+
+msgid "640 kB"
+msgstr "640 kB"
+
+msgid "720 kB"
+msgstr "720 kB"
+
+msgid "1.2 MB"
+msgstr "1,2 MB"
+
+msgid "1.25 MB"
+msgstr "1,25 MB"
+
+msgid "1.44 MB"
+msgstr "1,44 MB"
+
+msgid "DMF (cluster 1024)"
+msgstr "DMF (1024 clusteri)"
+
+msgid "DMF (cluster 2048)"
+msgstr "DMF (2048 clusteri)"
+
+msgid "2.88 MB"
+msgstr "2,88 MB"
+
+msgid "ZIP 100"
+msgstr "ZIP 100"
+
+msgid "3.5\" 128 MB (ISO 10090)"
+msgstr "3,5\" 128 MB (ISO 10090)"
+
+msgid "3.5\" 230 MB (ISO 13963)"
+msgstr "3,5\" 230 MB (ISO 13963)"
+
+msgid "3.5\" 540 MB (ISO 15498)"
+msgstr "3,5\" 540 MB (ISO 15498)"
+
+msgid "3.5\" 640 MB (ISO 15498)"
+msgstr "3,5\" 640 MB (ISO 15498)"
+
+msgid "3.5\" 1.3 GB (GigaMO)"
+msgstr "3,5\" 1.3 GB (GigaMO)"
+
+msgid "3.5\" 2.3 GB (GigaMO 2)"
+msgstr "3,5\" 2.3 GB (GigaMO 2)"
+
+msgid "5.25\" 600 MB"
+msgstr "5,25\" 600 MB"
+
+msgid "5.25\" 650 MB"
+msgstr "5,25\" 650 MB"
+
+msgid "5.25\" 1 GB"
+msgstr "5,25\" 1 GB"
+
+msgid "5.25\" 1.3 GB"
+msgstr "5,25\" 1.3 GB"
+
+msgid "Perfect RPM"
+msgstr "Savršeni broj okretaja u minuti"
+
+msgid "1% below perfect RPM"
+msgstr "1% ispod savršenog broja okretaja"
+
+msgid "1.5% below perfect RPM"
+msgstr "1,5% ispod savršenog broja okretaja"
+
+msgid "2% below perfect RPM"
+msgstr "2% ispod savršenog broja okretaja"
+
+msgid "(System Default)"
+msgstr "(Zadana postavka operativnog sustava)"
+

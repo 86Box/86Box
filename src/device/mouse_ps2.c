@@ -96,6 +96,9 @@ ps2_write(uint8_t val, void *priv)
     if (dev->flags & FLAG_CTRLDAT) {
 	dev->flags &= ~FLAG_CTRLDAT;
 
+	if (val == 0xff)
+		goto mouse_reset;
+
 	switch (dev->command) {
 		case 0xe8:	/* set mouse resolution */
 			dev->resolution = val;
@@ -179,21 +182,28 @@ ps2_write(uint8_t val, void *priv)
 
 		case 0xf4:	/* enable */
 			dev->flags |= FLAG_ENABLED;
+			mouse_scan = 1;
 			keyboard_at_adddata_mouse(0xfa);
 			break;
 
 		case 0xf5:	/* disable */
 			dev->flags &= ~FLAG_ENABLED;
+			mouse_scan = 0;
 			keyboard_at_adddata_mouse(0xfa);
 			break;
 
+		case 0xf6:	/* set defaults */
 		case 0xff:	/* reset */
+mouse_reset:
 			dev->mode  = MODE_STREAM;
 			dev->flags &= 0x88;
-			mouse_queue_start = mouse_queue_end = 0;
+			mouse_scan = 1;
+			keyboard_at_mouse_reset();
 			keyboard_at_adddata_mouse(0xfa);
-			keyboard_at_adddata_mouse(0xaa);
-			keyboard_at_adddata_mouse(0x00);
+			if (dev->command == 0xff) {
+				keyboard_at_adddata_mouse(0xaa);
+				keyboard_at_adddata_mouse(0x00);
+			}
 			break;
 
 		default:
@@ -202,7 +212,7 @@ ps2_write(uint8_t val, void *priv)
     }
 
     if (dev->flags & FLAG_INTELLI) {
-	for (temp = 0; temp < 5; temp++)	
+	for (temp = 0; temp < 5; temp++)
 		dev->last_data[temp] = dev->last_data[temp + 1];
 
 	dev->last_data[5] = val;
@@ -236,7 +246,7 @@ ps2_poll(int x, int y, int z, int b, void *priv)
     dev->y -= y;
     dev->z -= z;
     if ((dev->mode == MODE_STREAM) && (dev->flags & FLAG_ENABLED) &&
-	(((mouse_queue_end - mouse_queue_start) & 0x0f) < 13)) {
+	(keyboard_at_mouse_pos() < 13)) {
 	dev->b = b;
 
 	if (dev->x > 255) dev->x = 255;
@@ -319,35 +329,39 @@ ps2_close(void *priv)
     free(dev);
 }
 
-
 static const device_config_t ps2_config[] = {
+// clang-format off
     {
-	"buttons", "Buttons", CONFIG_SELECTION, "", 2, {
-		{
-			"Two", 2
-		},
-		{
-			"Three", 3
-		},
-		{
-			"Wheel", 4
-		},
-		{
-			""
-		}
-	}
+        .name = "buttons",
+        .description = "Buttons",
+        .type = CONFIG_SELECTION,
+        .default_string = "",
+        .default_int = 2,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "Two",   .value = 2 },
+            { .description = "Three", .value = 3 },
+            { .description = "Wheel", .value = 4 },
+            { .description = ""                  }
+        }
     },
     {
-	"", "", -1
+        .name = "", .description = "", .type = CONFIG_END
     }
+// clang-format on
 };
 
-
 const device_t mouse_ps2_device = {
-    "Standard PS/2 Mouse",
-    DEVICE_PS2,
-    MOUSE_TYPE_PS2,
-    mouse_ps2_init, ps2_close, NULL,
-    ps2_poll, NULL, NULL,
-    ps2_config
+    .name = "Standard PS/2 Mouse",
+    .internal_name = "ps2",
+    .flags = DEVICE_PS2,
+    .local = MOUSE_TYPE_PS2,
+    .init = mouse_ps2_init,
+    .close = ps2_close,
+    .reset = NULL,
+    { .poll = ps2_poll },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = ps2_config
 };

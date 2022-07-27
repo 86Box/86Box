@@ -51,7 +51,7 @@ uint16_t x87_gettag()
 {
         uint16_t ret = 0;
         int c;
-        
+
         for (c = 0; c < 8; c++)
         {
                 if (cpu_state.tag[c] == TAG_EMPTY)
@@ -70,11 +70,11 @@ uint16_t x87_gettag()
 void x87_settag(uint16_t new_tag)
 {
         int c;
-        
+
         for (c = 0; c < 8; c++)
         {
                 int tag = (new_tag >> (c * 2)) & 3;
-                
+
                 if (tag == X87_TAG_EMPTY)
                         cpu_state.tag[c] = TAG_EMPTY;
                 else if (tag == 2)
@@ -88,7 +88,7 @@ uint16_t x87_gettag()
 {
         uint16_t ret = 0;
         int c;
-        
+
         for (c = 0; c < 8; c++)
         {
                 if (cpu_state.tag[c] & TAG_UINT64)

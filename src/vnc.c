@@ -167,18 +167,24 @@ vnc_display(rfbClientPtr cl)
 
 
 static void
-vnc_blit(int x, int y, int y1, int y2, int w, int h)
+vnc_blit(int x, int y, int w, int h)
 {
     uint32_t *p;
     int yy;
 
-    for (yy=y1; yy<y2; yy++) {
+    if ((x < 0) || (y < 0) || (w <= 0) || (h <= 0) || (w > 2048) || (h > 2048) || (buffer32 == NULL))
+	return;
+
+    for (yy=0; yy<h; yy++) {
 	p = (uint32_t *)&(((uint32_t *)rfb->frameBuffer)[yy*VNC_MAX_X]);
 
 	if ((y+yy) >= 0 && (y+yy) < VNC_MAX_Y)
-		memcpy(p, &(render_buffer->line[y+yy][x]), w*4);
+		video_copy(p, &(buffer32->line[yy]), w*sizeof(uint32_t));
     }
- 
+
+    if (screenshots)
+	video_screenshot((uint32_t *) rfb->frameBuffer, 0, 0, VNC_MAX_X);
+
     video_blit_complete();
 
     if (! updatingSize)
@@ -211,7 +217,7 @@ vnc_init(UNUSED(void *arg))
 	updatingSize = 0;
 	allowedX = scrnsz_x;
 	allowedY = scrnsz_y;
- 
+
 	rfb = rfbGetScreen(0, NULL, VNC_MAX_X, VNC_MAX_Y, 8, 3, 4);
 	rfb->desktopName = title;
 	rfb->frameBuffer = (char *)malloc(VNC_MAX_X*VNC_MAX_Y*4);
@@ -222,16 +228,16 @@ vnc_init(UNUSED(void *arg))
 	rfb->ptrAddEvent = vnc_ptrevent;
 	rfb->kbdAddEvent = vnc_kbdevent;
 	rfb->newClientHook = vnc_newclient;
- 
+
 	/* Set up our current resolution. */
 	rfb->width = allowedX;
 	rfb->height = allowedY;
- 
+
 	rfbInitServer(rfb);
 
 	rfbRunEventLoop(rfb, -1, TRUE);
     }
- 
+
     /* Set up our BLIT handlers. */
     video_setblit(vnc_blit);
 
@@ -274,13 +280,13 @@ vnc_resize(int x, int y)
 
     if ((x != rfb->width || y != rfb->height) && x > 160 && y > 0) {
 	vnc_log("VNC: updating resolution: %dx%d\n", x, y);
- 
+
 	allowedX = (rfb->width < x) ? rfb->width : x;
 	allowedY = (rfb->width < y) ? rfb->width : y;
- 
+
 	rfb->width = x;
 	rfb->height = y;
- 
+
 	iterator = rfbGetClientIterator(rfb);
 	while ((cl = rfbClientIteratorNext(iterator)) != NULL) {
 		LOCK(cl->updateMutex);
@@ -289,7 +295,7 @@ vnc_resize(int x, int y)
 	}
     }
 }
- 
+
 
 /* Tell them to pause if we have no clients. */
 int

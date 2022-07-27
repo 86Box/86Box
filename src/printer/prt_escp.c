@@ -10,12 +10,12 @@
  *
  *
  *
- * Authors:	Michael Dr�ing, <michael@drueing.de>
+ * Authors:	Michael Drüing, <michael@drueing.de>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
  *
  *		Based on code by Frederic Weymann (originally for DosBox.)
  *
- *		Copyright 2018,2019 Michael Dr�ing.
+ *		Copyright 2018,2019 Michael Drüing.
  *		Copyright 2019,2019 Fred N. van Kempen.
  *
  *		Redistribution and  use  in source  and binary forms, with
@@ -61,8 +61,9 @@
 #include <86box/machine.h>
 #include <86box/timer.h>
 #include <86box/mem.h>
-#include <86box/rom.h> 
+#include <86box/rom.h>
 #include <86box/pit.h>
+#include <86box/path.h>
 #include <86box/plat.h>
 #include <86box/plat_dynld.h>
 #include <86box/ui.h>
@@ -88,6 +89,8 @@
 
 #ifdef _WIN32
 # define PATH_FREETYPE_DLL	"freetype.dll"
+#elif defined __APPLE__
+# define PATH_FREETYPE_DLL	"libfreetype.dylib"
 #else
 # define PATH_FREETYPE_DLL	"libfreetype.so.6"
 #endif
@@ -99,7 +102,7 @@ void		*ft_handle = NULL;
 
 static int	(*ft_Init_FreeType)(FT_Library *alibrary);
 static int	(*ft_Done_Face)(FT_Face face);
-static int	(*ft_New_Face)(FT_Library library, const char *filepathname, 
+static int	(*ft_New_Face)(FT_Library library, const char *filepathname,
 			       FT_Long face_index, FT_Face *aface);
 static int	(*ft_Set_Char_Size)(FT_Face face, FT_F26Dot6 char_width,
 				    FT_F26Dot6 char_height,
@@ -205,14 +208,14 @@ typedef struct {
     pc_timer_t	pulse_timer;
     pc_timer_t	timeout_timer;
 
-    wchar_t	page_fn[260];
+    char	page_fn[260];
     uint8_t 	color;
-    
+
     /* page data (TODO: make configurable) */
     double	page_width,	/* all in inches */
 		page_height,
 		left_margin,
-		top_margin, 
+		top_margin,
 		right_margin,
 		bottom_margin;
     uint16_t	dpi;
@@ -257,8 +260,8 @@ typedef struct {
     uint8_t	esc_parms[20];		/* 20 should be enough for everybody */
 
     /* internal page data */
-    wchar_t	fontpath[1024];
-    wchar_t	pagepath[1024];
+    char	fontpath[1024];
+    char	pagepath[1024];
     psurface_t	*page;
     double	curr_x, curr_y;		/* print head position (inch) */
     uint16_t	current_font;
@@ -291,7 +294,7 @@ typedef struct {
 
     uint8_t	msb;			/* MSB mode, -1 = off */
     uint8_t	ctrl;
-    
+
     PALETTE	palcol;
 } escp_t;
 
@@ -321,9 +324,9 @@ static const uint16_t codepages[15] = {
 };
 
 
-/* "patches" to the codepage for the international charsets 
+/* "patches" to the codepage for the international charsets
  * these bytes patch the following 12 positions of the char table, in order:
- * 0x23  0x24  0x40  0x5b  0x5c  0x5d  0x5e  0x60  0x7b  0x7c  0x7d  0x7e 
+ * 0x23  0x24  0x40  0x5b  0x5c  0x5d  0x5e  0x60  0x7b  0x7c  0x7d  0x7e
  * TODO: Implement the missing international charsets
  */
 static const uint16_t intCharSets[15][12] = {
@@ -395,13 +398,13 @@ escp_log(const char *fmt, ...)
 
 
 /* Dump the current page into a formatted file. */
-static void 
+static void
 dump_page(escp_t *dev)
 {
-    wchar_t path[1024];
+    char path[1024];
 
-    wcscpy(path, dev->pagepath);
-    wcscat(path, dev->page_fn);
+    strcpy(path, dev->pagepath);
+    strcat(path, dev->page_fn);
     png_write_rgb(path, dev->page->pixels, dev->page->w, dev->page->h, dev->page->pitch, dev->palcol);
 }
 
@@ -423,7 +426,7 @@ new_page(escp_t *dev, int8_t save, int8_t resetx)
     }
 
     /* Make the page's file name. */
-    plat_tempfile(dev->page_fn, NULL, L".png");
+    plat_tempfile(dev->page_fn, NULL, ".png");
 }
 
 
@@ -453,7 +456,7 @@ timeout_timer(void *priv)
 }
 
 
-static void 
+static void
 fill_palette(uint8_t redmax, uint8_t greenmax, uint8_t bluemax, uint8_t colorID, escp_t *dev)
 {
     uint8_t colormask;
@@ -499,7 +502,7 @@ reset_printer(escp_t *dev)
     dev->density_k = 0;
     dev->density_l = 1;
     dev->density_y = 2;
-    dev->density_z = 3;   
+    dev->density_z = 3;
     dev->char_tables[0] = 0; /* italics */
     dev->char_tables[1] = dev->char_tables[2] = dev->char_tables[3] = 437; /* all other tables use CP437 */
     dev->defined_unit = -1.0;
@@ -510,7 +513,7 @@ reset_printer(escp_t *dev)
     dev->msb = 255;
     dev->print_everything_count = 0;
     dev->lq_typeface = TYPEFACE_COURIER;
-    
+
     init_codepage(dev, dev->char_tables[dev->curr_char_table]);
 
     update_font(dev);
@@ -520,11 +523,11 @@ reset_printer(escp_t *dev)
     for (i = 0; i < 32; i++)
 	dev->horizontal_tabs[i] = i * 8.0 * (1.0 / dev->cpi);
     dev->num_horizontal_tabs = 32;
-    dev->num_vertical_tabs = 255;    
-    
+    dev->num_vertical_tabs = -1;
+
     if (dev->page != NULL)
-	dev->page->dirty = 0;    
-    
+	dev->page->dirty = 0;
+
     escp_log("ESC/P: width=%.1fin,height=%.1fin dpi=%i cpi=%i lpi=%i\n",
 	     dev->page_width, dev->page_height, (int)dev->dpi,
 	     (int)dev->cpi, (int)dev->lpi);
@@ -553,9 +556,8 @@ init_codepage(escp_t *dev, uint16_t num)
 static void
 update_font(escp_t *dev)
 {
-    wchar_t path[1024];
-    wchar_t *fn;
-    char temp[1024];
+    char path[1024];
+    char *fn;
     FT_Matrix matrix;
     double hpoints = 10.5;
     double vpoints = 10.5;
@@ -594,18 +596,15 @@ update_font(escp_t *dev)
     }
 
     /* Create a full pathname for the ROM file. */
-    wcscpy(path, dev->fontpath);
-    plat_path_slash(path);
-    wcscat(path, fn);
+    strcpy(path, dev->fontpath);
+    path_slash(path);
+    strcat(path, fn);
 
-    /* Convert (back) to ANSI for the FreeType API. */
-    wcstombs(temp, path, sizeof(temp));
-
-    escp_log("Temp file=%s\n", temp);
+    escp_log("Temp file=%s\n", path);
 
     /* Load the new font. */
-    if (ft_New_Face(ft_lib, temp, 0, &dev->fontface)) {
-	escp_log("ESC/P: unable to load font '%s'\n", temp);
+    if (ft_New_Face(ft_lib, path, 0, &dev->fontface)) {
+	escp_log("ESC/P: unable to load font '%s'\n", path);
 	dev->fontface = NULL;
     }
 
@@ -689,12 +688,12 @@ process_char(escp_t *dev, uint8_t ch)
 	dev->esc_seen = dev->fss_seen = 0;
 	dev->esc_parms_curr = 0;
 
-	escp_log("Command pending=%02x, font path=%ls\n", dev->esc_pending, dev->fontpath);
+	escp_log("Command pending=%02x, font path=%s\n", dev->esc_pending, dev->fontpath);
 	switch (dev->esc_pending) {
 		case 0x02: // Undocumented
 		case 0x0a: // Reverse line feed
 		case 0x0c: // Return to top of current page
-		case 0x0e: // Select double-width printing (one line) (ESC SO)		
+		case 0x0e: // Select double-width printing (one line) (ESC SO)
 		case 0x0f: // Select condensed printing (ESC SI)
 		case 0x23: // Cancel MSB control (ESC #)
 		case 0x30: // Select 1/8-inch line spacing (ESC 0)
@@ -715,7 +714,7 @@ process_char(escp_t *dev, uint8_t ch)
 		case 0x47: // Select double-strike printing (ESC G)
 		case 0x48: // Cancel double-strike printing (ESC H)
 		case 0x4d: // Select 10.5-point, 12-cpi (ESC M)
-		case 0x4f: // Cancel bottom margin			
+		case 0x4f: // Cancel bottom margin
 		case 0x50: // Select 10.5-point, 10-cpi (ESC P)
 		case 0x54: // Cancel superscript/subscript printing (ESC T)
 		case 0x5e: // Enable printing of all character codes on next character
@@ -727,7 +726,7 @@ process_char(escp_t *dev, uint8_t ch)
 		case 0x852: // Select reverse feed mode (FS R)
 			dev->esc_parms_req = 0;
 			break;
-			
+
 		case 0x19: // Control paper loading/ejecting (ESC EM)
 		case 0x20: // Set intercharacter space (ESC SP)
 		case 0x21: // Master select (ESC !)
@@ -791,7 +790,7 @@ process_char(escp_t *dev, uint8_t ch)
 		case 0x5b: // Select character height, width, line spacing
 			dev->esc_parms_req = 7;
 			break;
-			
+
 		case 0x62: // Set vertical tabs in VFU channels (ESC b)
 		case 0x42: // Set vertical tabs (ESC B)
 			dev->num_vertical_tabs = 0;
@@ -817,7 +816,7 @@ process_char(escp_t *dev, uint8_t ch)
 			return 1;
 
 		default:
-			escp_log("ESC/P: Unknown command ESC %c (0x%02x). Unable to skip parameters.\n", 
+			escp_log("ESC/P: Unknown command ESC %c (0x%02x). Unable to skip parameters.\n",
 				 dev->esc_pending >= 0x20 ? dev->esc_pending : '?', dev->esc_pending);
 			dev->esc_parms_req = 0;
 			dev->esc_pending = 0;
@@ -834,7 +833,7 @@ process_char(escp_t *dev, uint8_t ch)
     if (dev->esc_pending == '(') {
 	dev->esc_pending = 0x0200 + ch;
 
-	escp_log("Two-byte command pending=%03x, font path=%ls\n", dev->esc_pending, dev->fontpath);
+	escp_log("Two-byte command pending=%03x, font path=%s\n", dev->esc_pending, dev->fontpath);
 	switch (dev->esc_pending) {
 		case 0x0242: // Bar code setup and print (ESC (B)
 		case 0x025e: // Print data as characters (ESC (^)
@@ -881,11 +880,11 @@ process_char(escp_t *dev, uint8_t ch)
     /* Collect vertical tabs. */
     if (dev->esc_pending == 0x42) {
 	/* check if we're done */
-	if ((ch == 0) || 
+	if ((ch == 0) ||
 	    (dev->num_vertical_tabs > 0 && dev->vertical_tabs[dev->num_vertical_tabs - 1] > (double)ch * dev->linespacing)) {
 		dev->esc_pending = 0;
 	} else {
-		if (dev->num_vertical_tabs < 16)
+		if (dev->num_vertical_tabs >= 0 && dev->num_vertical_tabs < 16)
 			dev->vertical_tabs[dev->num_vertical_tabs++] = (double)ch * dev->linespacing;
 	}
     }
@@ -893,7 +892,7 @@ process_char(escp_t *dev, uint8_t ch)
     /* Collect horizontal tabs. */
     if (dev->esc_pending == 0x44) {
 	/* check if we're done... */
-	if ((ch == 0) || 
+	if ((ch == 0) ||
 	    (dev->num_horizontal_tabs > 0 && dev->horizontal_tabs[dev->num_horizontal_tabs - 1] > (double)ch * (1.0 / dev->cpi))) {
 		dev->esc_pending = 0;
 	} else {
@@ -992,8 +991,8 @@ process_char(escp_t *dev, uint8_t ch)
 
 		case 0x85a:	/* Print 24-bit hex-density graphics (FS Z) */
 			setup_bit_image(dev, 40, PARAM16(0));
-			break;			
-			
+			break;
+
 		case 0x2a:	/* select bit image (ESC *) */
 			setup_bit_image(dev, dev->esc_parms[0], PARAM16(1));
 			break;
@@ -1262,9 +1261,9 @@ process_char(escp_t *dev, uint8_t ch)
 			break;
 
 		case 0x846: // Select forward feed mode (FS F) - set reverse not implemented yet
-			if (dev->linespacing < 0) 
+			if (dev->linespacing < 0)
 				dev->linespacing *= -1;
-			break;			
+			break;
 
 		case 0x6a: // Reverse paper feed (ESC j)
 			reverse = (double)PARAM16(0) / (double)216.0;
@@ -1459,7 +1458,7 @@ process_char(escp_t *dev, uint8_t ch)
     switch (ch) {
 	case 0x00:
 		return 1;
-	    
+
 	case 0x07:  /* Beeper (BEL) */
 		/* TODO: beep? */
 		return 1;
@@ -1584,7 +1583,7 @@ process_char(escp_t *dev, uint8_t ch)
 	case 0x1b:	/* ESC */
 		dev->esc_seen = 1;
 		return 1;
-		
+
 	case 0x1c:	/* FS (IBM commands) */
 		dev->fss_seen = 1;
 		return 1;
@@ -1655,7 +1654,7 @@ handle_char(escp_t *dev, uint8_t ch)
     /* mark the page as dirty if anything is drawn */
     if ((ch != 0x20) || (dev->font_score != SCORE_NONE))
 	dev->page->dirty = 1;
- 
+
     /* draw the glyph */
     blit_glyph(dev, pen_x, pen_y, 0);
     blit_glyph(dev, pen_x + 1, pen_y, 1);
@@ -1691,20 +1690,20 @@ handle_char(escp_t *dev, uint8_t ch)
     if (dev->font_score != SCORE_NONE && (dev->font_style & (STYLE_UNDERLINE | STYLE_STRIKETHROUGH | STYLE_OVERSCORE))) {
 	/* Find out where to put the line. */
 	line_y = PIXY;
- 
+
 	if (dev->font_style & STYLE_UNDERLINE)
 		line_y = (PIXY + (uint16_t)(dev->fontface->size->metrics.height * 0.9));
 	if (dev->font_style & STYLE_STRIKETHROUGH)
 		line_y = (PIXY + (uint16_t)(dev->fontface->size->metrics.height * 0.45));
 	if (dev->font_style & STYLE_OVERSCORE)
 		line_y = PIXY - ((dev->font_score == SCORE_DOUBLE || dev->font_score == SCORE_DOUBLEBROKEN) ? 5 : 0);
- 
+
 	draw_hline(dev, pen_x, PIXX, line_y, dev->font_score == SCORE_SINGLEBROKEN || dev->font_score == SCORE_DOUBLEBROKEN);
- 
+
 	if (dev->font_score == SCORE_DOUBLE || dev->font_score == SCORE_DOUBLEBROKEN)
 		draw_hline(dev, line_start, PIXX, line_y + 5, dev->font_score == SCORE_SINGLEBROKEN || dev->font_score == SCORE_DOUBLEBROKEN);
     }
-   
+
     if ((dev->curr_x + x_advance) > dev->right_margin) {
 	dev->curr_x = dev->left_margin;
 	dev->curr_y += dev->linespacing;
@@ -1739,7 +1738,7 @@ blit_glyph(escp_t *dev, unsigned destx, unsigned desty, int8_t add)
 					*dst |= (dev->color | 0x1f);
 				else {
 					*dst += src;
-					*dst |= dev->color;						
+					*dst |= dev->color;
 				}
 			} else
 				*dst = src|dev->color;
@@ -1903,7 +1902,7 @@ print_bit_graph(escp_t *dev, uint8_t ch)
 
     pixel_w = 1;
     pixel_h = 1;
-    
+
     if (dev->bg_adjacent) {
 	/* if page DPI is bigger than bitgraphics DPI, drawn pixels get "bigger" */
 	pixel_w = dev->dpi / dev->bg_h_density > 0 ? dev->dpi / dev->bg_h_density : 1;
@@ -1983,11 +1982,11 @@ write_ctrl(uint8_t val, void *priv)
 	dev->ack = 1;
 	timer_set_delay_u64(&dev->pulse_timer, ISACONST);
 
-	timer_set_delay_u64(&dev->timeout_timer, 500000 * TIMER_USEC);
+	timer_set_delay_u64(&dev->timeout_timer, 5000000 * TIMER_USEC);
     }
 
     dev->ctrl = val;
-    
+
     dev->autofeed = ((val & 0x02) > 0);
 }
 
@@ -2058,24 +2057,24 @@ escp_init(void *lpt)
     dev->lpt = lpt;
 
     /* Create a full pathname for the font files. */
-    if(wcslen(exe_path) >= sizeof_w(dev->fontpath)) {
+    if(strlen(exe_path) >= sizeof(dev->fontpath)) {
 	free(dev);
 	return(NULL);
     }
 
-    wcscpy(dev->fontpath, exe_path);
-    plat_path_slash(dev->fontpath);
-    wcscat(dev->fontpath, L"roms/printer/fonts/");
+    strcpy(dev->fontpath, exe_path);
+    path_slash(dev->fontpath);
+    strcat(dev->fontpath, "roms/printer/fonts/");
 
     /* Create the full path for the page images. */
-    plat_append_filename(dev->pagepath, usr_path, L"printer");
+    path_append_filename(dev->pagepath, usr_path, "printer");
     if (! plat_dir_check(dev->pagepath))
         plat_dir_create(dev->pagepath);
-    plat_path_slash(dev->pagepath);
+    path_slash(dev->pagepath);
 
     dev->page_width = PAGE_WIDTH;
     dev->page_height = PAGE_HEIGHT;
-    dev->dpi = PAGE_DPI;    
+    dev->dpi = PAGE_DPI;
 
     /* Create 8-bit grayscale buffer for the page. */
     dev->page = (psurface_t *)malloc(sizeof(psurface_t));
@@ -2085,7 +2084,7 @@ escp_init(void *lpt)
     dev->page->pixels = (uint8_t *)malloc(dev->page->pitch * dev->page->h);
     memset(dev->page->pixels, 0x00, dev->page->pitch * dev->page->h);
 
-    /* Initialize parameters. */    
+    /* Initialize parameters. */
     for (i = 0; i < 32; i++) {
 	dev->palcol[i].r = 255;
 	dev->palcol[i].g = 255;
@@ -2147,12 +2146,13 @@ escp_close(void *priv)
 
 
 const lpt_device_t lpt_prt_escp_device = {
-    "EPSON ESC/P compatible printer",
-    escp_init,
-    escp_close,
-    write_data,
-    write_ctrl,
-    read_data,
-    read_status,
-    read_ctrl
+    .name = "Generic ESC/P Dot-Matrix",
+    .internal_name = "dot_matrix",
+    .init = escp_init,
+    .close = escp_close,
+    .write_data = write_data,
+    .write_ctrl = write_ctrl,
+    .read_data = read_data,
+    .read_status = read_status,
+    .read_ctrl = read_ctrl
 };

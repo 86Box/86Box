@@ -1,4 +1,4 @@
-#if defined __ARM_EABI__ || defined _ARM_
+#if defined __ARM_EABI__ || defined _ARM_ || defined _M_ARM
 
 #include <stdint.h>
 #include <stdlib.h>
@@ -22,6 +22,7 @@
 #if defined WIN32 || defined _WIN32 || defined _WIN32
 #include <windows.h>
 #endif
+#include <string.h>
 
 void *codegen_mem_load_byte;
 void *codegen_mem_load_word;
@@ -283,7 +284,7 @@ static void build_fp_round_routine(codeblock_t *block)
 	host_arm_VCVTR_IS_D(block, REG_D_TEMP, REG_D_TEMP);
 	host_arm_VMSR_FPSCR(block, REG_TEMP);
 	host_arm_MOV_REG(block, REG_PC, REG_LR);
-	
+
 	jump_table[X87_ROUNDING_CHOP] = (uint64_t)(uintptr_t)&block_write_data[block_pos]; //zero
 	host_arm_VCVT_IS_D(block, REG_D_TEMP, REG_D_TEMP);
 	host_arm_MOV_REG(block, REG_PC, REG_LR);
@@ -310,7 +311,7 @@ void codegen_backend_init()
         block->data = codeblock_allocator_get_ptr(block->head_mem_block);
         block_write_data = block->data;
         build_loadstore_routines(&codeblock[block_current]);
-printf("block_pos=%i\n", block_pos);
+//pclog("block_pos=%i\n", block_pos);
 
         codegen_fp_round = &block_write_data[block_pos];
 	build_fp_round_routine(&codeblock[block_current]);

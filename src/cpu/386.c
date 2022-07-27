@@ -22,6 +22,7 @@
 #include <86box/fdd.h>
 #include <86box/fdc.h>
 #include <86box/machine.h>
+#include <86box/gdbstub.h>
 #include "386_common.h"
 #ifdef USE_NEW_DYNAREC
 #include "codegen.h"
@@ -71,119 +72,6 @@ x386_log(const char *fmt, ...)
 #undef CPU_BLOCK_END
 #define CPU_BLOCK_END()
 
-static inline void fetch_ea_32_long(uint32_t rmdat)
-{
-        eal_r = eal_w = NULL;
-        easeg = cpu_state.ea_seg->base;
-        if (cpu_rm == 4)
-        {
-                uint8_t sib = rmdat >> 8;
-                
-                switch (cpu_mod)
-                {
-                        case 0: 
-                        cpu_state.eaaddr = cpu_state.regs[sib & 7].l; 
-                        cpu_state.pc++; 
-                        break;
-                        case 1: 
-                        cpu_state.pc++;
-                        cpu_state.eaaddr = ((uint32_t)(int8_t)getbyte()) + cpu_state.regs[sib & 7].l; 
-//                        pc++; 
-                        break;
-                        case 2: 
-                        cpu_state.eaaddr = (fastreadl(cs + cpu_state.pc + 1)) + cpu_state.regs[sib & 7].l; 
-                        cpu_state.pc += 5; 
-                        break;
-                }
-                /*SIB byte present*/
-                if ((sib & 7) == 5 && !cpu_mod) 
-                        cpu_state.eaaddr = getlong();
-                else if ((sib & 6) == 4 && !cpu_state.ssegs)
-                {
-                        easeg = ss;
-                        cpu_state.ea_seg = &cpu_state.seg_ss;
-                }
-                if (((sib >> 3) & 7) != 4) 
-                        cpu_state.eaaddr += cpu_state.regs[(sib >> 3) & 7].l << (sib >> 6);
-        }
-        else
-        {
-                cpu_state.eaaddr = cpu_state.regs[cpu_rm].l;
-                if (cpu_mod) 
-                {
-                        if (cpu_rm == 5 && !cpu_state.ssegs)
-                        {
-                                easeg = ss;
-                                cpu_state.ea_seg = &cpu_state.seg_ss;
-                        }
-                        if (cpu_mod == 1) 
-                        { 
-                                cpu_state.eaaddr += ((uint32_t)(int8_t)(rmdat >> 8)); 
-                                cpu_state.pc++; 
-                        }
-                        else          
-                        {
-                                cpu_state.eaaddr += getlong(); 
-                        }
-                }
-                else if (cpu_rm == 5) 
-                {
-                        cpu_state.eaaddr = getlong();
-                }
-        }
-        if (easeg != 0xFFFFFFFF && ((easeg + cpu_state.eaaddr) & 0xFFF) <= 0xFFC)
-        {
-		uint32_t addr = easeg + cpu_state.eaaddr;
-                if ( readlookup2[addr >> 12] != -1)
-                	eal_r = (uint32_t *)(readlookup2[addr >> 12] + addr);
-                if (writelookup2[addr >> 12] != -1)
-                	eal_w = (uint32_t *)(writelookup2[addr >> 12] + addr);
-        }
-}
-
-static inline void fetch_ea_16_long(uint32_t rmdat)
-{
-        eal_r = eal_w = NULL;
-        easeg = cpu_state.ea_seg->base;
-        if (!cpu_mod && cpu_rm == 6)
-        { 
-                cpu_state.eaaddr = getword();
-        }
-        else
-        {
-                switch (cpu_mod)
-                {
-                        case 0:
-                        cpu_state.eaaddr = 0;
-                        break;
-                        case 1:
-                        cpu_state.eaaddr = (uint16_t)(int8_t)(rmdat >> 8); cpu_state.pc++;
-                        break;
-                        case 2:
-                        cpu_state.eaaddr = getword();
-                        break;
-                }
-                cpu_state.eaaddr += (*mod1add[0][cpu_rm]) + (*mod1add[1][cpu_rm]);
-                if (mod1seg[cpu_rm] == &ss && !cpu_state.ssegs)
-                {
-                        easeg = ss;
-                        cpu_state.ea_seg = &cpu_state.seg_ss;
-                }
-                cpu_state.eaaddr &= 0xFFFF;
-        }
-        if (easeg != 0xFFFFFFFF && ((easeg + cpu_state.eaaddr) & 0xFFF) <= 0xFFC)
-        {
-		uint32_t addr = easeg + cpu_state.eaaddr;
-                if ( readlookup2[addr >> 12] != -1)
-                	eal_r = (uint32_t *)(readlookup2[addr >> 12] + addr);
-                if (writelookup2[addr >> 12] != -1)
-                	eal_w = (uint32_t *)(writelookup2[addr >> 12] + addr);
-        }
-}
-
-#define fetch_ea_16(rmdat)              cpu_state.pc++; cpu_mod=(rmdat >> 6) & 3; cpu_reg=(rmdat >> 3) & 7; cpu_rm = rmdat & 7; if (cpu_mod != 3) { fetch_ea_16_long(rmdat); if (cpu_state.abrt) return 0; } 
-#define fetch_ea_32(rmdat)              cpu_state.pc++; cpu_mod=(rmdat >> 6) & 3; cpu_reg=(rmdat >> 3) & 7; cpu_rm = rmdat & 7; if (cpu_mod != 3) { fetch_ea_32_long(rmdat); } if (cpu_state.abrt) return 0
-
 #include "x86_flags.h"
 
 #define getbytef() ((uint8_t)(fetchdat)); cpu_state.pc++
@@ -194,15 +82,35 @@ static inline void fetch_ea_16_long(uint32_t rmdat)
 
 #define OP_TABLE(name) ops_ ## name
 
+#if 0
+#define CLOCK_CYCLES(c) \
+	{\
+		if (fpu_cycles > 0) {\
+			fpu_cycles -= (c);\
+			if (fpu_cycles < 0) {\
+				cycles += fpu_cycles;\
+			}\
+		} else {\
+			cycles -= (c);\
+		}\
+	}
+
+#define CLOCK_CYCLES_FPU(c) cycles -= (c)
+#define CONCURRENCY_CYCLES(c) fpu_cycles = (c)
+#else
 #define CLOCK_CYCLES(c) cycles -= (c)
+#define CLOCK_CYCLES_FPU(c) cycles -= (c)
+#define CONCURRENCY_CYCLES(c)
+#endif
+
 #define CLOCK_CYCLES_ALWAYS(c) cycles -= (c)
 
 #include "x86_ops.h"
 
+
 void
 exec386(int cycs)
 {
-    // uint8_t opcode;
     int vector, tempi, cycdiff, oldcyc;
     int cycle_period, ins_cycles;
     uint32_t addr;
@@ -257,9 +165,12 @@ exec386(int cycs)
 		if (!use32) cpu_state.pc &= 0xffff;
 #endif
 
+		if (cpu_end_block_after_ins)
+			cpu_end_block_after_ins--;
+
 		if (cpu_state.abrt) {
 			flags_rebuild();
-			tempi = cpu_state.abrt;
+			tempi = cpu_state.abrt & ABRT_MASK;
 			cpu_state.abrt = 0;
 			x86_doabrt(tempi);
 			if (cpu_state.abrt) {
@@ -268,7 +179,7 @@ exec386(int cycs)
 				CS = oldcs;
 #endif
 				cpu_state.pc = cpu_state.oldpc;
-				x386_log("Double fault %i\n", ins);
+				x386_log("Double fault\n");
 				pmodeint(8, 0);
 				if (cpu_state.abrt) {
 					cpu_state.abrt = 0;
@@ -280,11 +191,6 @@ exec386(int cycs)
 				}
 			}
 		}
-
-		ins_cycles -= cycles;
-		tsc += ins_cycles;
-
-		cycdiff = oldcyc - cycles;
 
 		if (smi_line)
 			enter_smm_check(0);
@@ -304,17 +210,18 @@ exec386(int cycs)
 				loadcs(readmemw(0, addr + 2));
 			}
 		} else if (nmi && nmi_enable && nmi_mask) {
-			if (AT && (cpu_fast_off_flags & 0x20000000))
-				cpu_fast_off_count = cpu_fast_off_val + 1;
-
 			cpu_state.oldpc = cpu_state.pc;
 			x86_int(2);
 			nmi_enable = 0;
+#ifdef OLD_NMI_BEHAVIOR
 			if (nmi_auto_clear) {
 				nmi_auto_clear = 0;
 				nmi = 0;
 			}
-		} else if ((cpu_state.flags & I_FLAG) && pic_intpending) {
+#else
+			nmi = 0;
+#endif
+		} else if ((cpu_state.flags & I_FLAG) && pic.int_pending && !cpu_end_block_after_ins) {
 			vector = picinterrupt();
 			if (vector != -1) {
 				flags_rebuild();
@@ -334,7 +241,10 @@ exec386(int cycs)
 			}
 		}
 
-		ins++;
+		ins_cycles -= cycles;
+		tsc += ins_cycles;
+
+		cycdiff = oldcyc - cycles;
 
 		if (timetolive) {
 			timetolive--;
@@ -343,7 +253,12 @@ exec386(int cycs)
 		}
 
 		if (TIMER_VAL_LESS_THAN_VAL(timer_target, (uint32_t) tsc))
-			timer_process();
+			timer_process_inline();
+
+#ifdef USE_GDBSTUB
+		if (gdbstub_instruction())
+			return;
+#endif
 	}
     }
 }

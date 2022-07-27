@@ -24,6 +24,22 @@
 
 extern int fdc_type;
 
+#define FDC_PRIMARY_ADDR		0x03f0
+#define FDC_PRIMARY_IRQ			6
+#define FDC_PRIMARY_DMA			2
+#define FDC_PRIMARY_PCJR_ADDR	0x00f0
+#define FDC_PRIMARY_PCJR_IRQ	6
+#define FDC_PRIMARY_PCJR_DMA	2
+#define FDC_SECONDARY_ADDR		0x0370
+#define FDC_SECONDARY_IRQ		6
+#define FDC_SECONDARY_DMA		2
+#define FDC_TERTIARY_ADDR		0x0360
+#define FDC_TERTIARY_IRQ		6
+#define FDC_TERTIARY_DMA		2
+#define FDC_QUATERNARY_ADDR		0x03e0
+#define FDC_QUATERNARY_IRQ		6
+#define FDC_QUATERNARY_DMA		2
+
 #define FDC_FLAG_PCJR		0x01	/* PCjr */
 #define FDC_FLAG_DISKCHG_ACTLOW	0x02	/* Amstrad, PS/1, PS/2 ISA */
 #define FDC_FLAG_AT		0x04	/* AT+, PS/x */
@@ -34,30 +50,29 @@ extern int fdc_type;
 #define FDC_FLAG_NSC		0x80	/* PC87306, PC87309 */
 #define FDC_FLAG_TOSHIBA	0x100	/* T1000, T1200 */
 #define FDC_FLAG_AMSTRAD	0x200	/* Non-AT Amstrad machines */
-#define FDC_FLAG_NSDP		0x400   /* DP8473N, DP8473V */
+#define FDC_FLAG_UMC		0x400	/* UMC UM8398 */
+#define FDC_FLAG_ALI		0x800	/* ALi M512x / M1543C */
 
 
 typedef struct {
-    uint8_t	dor, stat, command, processed_cmd, dat, st0, swap;
-    uint8_t	swwp, disable_write;
-    uint8_t	params[256], res[256];
-    uint8_t	specify[256], format_dat[256];
+    uint8_t	dor, stat, command, processed_cmd, dat, st0, swap, dtl;
+    uint8_t	swwp, disable_write, st5, st6, error;
+    uint8_t	params[8], res[11];
+    uint8_t	specify[2];
     uint8_t	config, pretrk;
     uint8_t	fifobuf[16];
 
     uint16_t	base_address;
 
     int		head, sector, drive, lastdrive;
-    int		pcn[4], eot[256];
+    int		pcn[4], eot[4];
     int		rw_track, pos;
     int		pnum, ptot;
     int		rate, reset_stat;
     int		lock, perp;
-    int		abort;
     int		format_state, format_n;
-    int		tc, written;
     int		step, seek_dir;
-    int		noprec;
+    int		tc, noprec;
 
     int		data_ready, inread;
     int		bitcell_period, enh_mode;
@@ -67,7 +82,7 @@ typedef struct {
     int		fifo, tfifo;
     int		fifobufpos, drv2en;
 
-    int		gap, dtl;
+    int		gap;
     int		enable_3f1, format_sectors;
     int		max_track, mfm;
     int		deleted, wrong_am;
@@ -82,11 +97,11 @@ typedef struct {
     int		bit_rate;	/* Should be 250 at start. */
     int		paramstogo;
 
-    sector_id_t	read_track_sector;
+    sector_id_t	read_track_sector, format_sector_id;
 
-	uint64_t watchdog_count;
-	
-	pc_timer_t	timer, watchdog_timer;
+    uint64_t	watchdog_count;
+
+    pc_timer_t	timer, watchdog_timer;
 } fdc_t;
 
 
@@ -157,8 +172,9 @@ extern int	fdc_is_verify(fdc_t *fdc);
 extern void	fdc_overrun(fdc_t *fdc);
 extern void	fdc_set_base(fdc_t *fdc, int base);
 extern void	fdc_set_irq(fdc_t *fdc, int irq);
+extern void	fdc_set_dma_ch(fdc_t *fdc, int dma_ch);
 extern int	fdc_getdata(fdc_t *fdc, int last);
-extern int	fdc_data(fdc_t *fdc, uint8_t data);
+extern int	fdc_data(fdc_t *fdc, uint8_t data, int last);
 
 extern void	fdc_sectorid(fdc_t *fdc, uint8_t track, uint8_t side,
 			     uint8_t sector, uint8_t size, uint8_t crc1,
@@ -172,15 +188,18 @@ extern uint8_t	fdc_get_current_drive(void);
 #ifdef EMU_DEVICE_H
 extern const device_t	fdc_xt_device;
 extern const device_t	fdc_xt_t1x00_device;
+extern const device_t	fdc_xt_tandy_device;
 extern const device_t	fdc_xt_amstrad_device;
 extern const device_t	fdc_pcjr_device;
 extern const device_t	fdc_at_device;
 extern const device_t	fdc_at_actlow_device;
 extern const device_t	fdc_at_ps1_device;
 extern const device_t	fdc_at_smc_device;
+extern const device_t	fdc_at_ali_device;
 extern const device_t	fdc_at_winbond_device;
 extern const device_t	fdc_at_nsc_device;
 extern const device_t   fdc_dp8473_device;
+extern const device_t   fdc_um8398_device;
 #endif
 
 #endif	/*EMU_FDC_H*/

@@ -44,7 +44,7 @@
 #define REG_XMM6 6
 #define REG_XMM7 7
 
-#define REG_XMM_TEMP REG_XMM7
+#define REG_XMM_TEMP REG_XMM0
 
 #define CODEGEN_HOST_REGS 3
 #define CODEGEN_HOST_FP_REGS 7

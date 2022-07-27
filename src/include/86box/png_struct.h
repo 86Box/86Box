@@ -44,6 +44,7 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING  IN ANY  WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+
 #ifndef EMU_PNG_STRUCT_H
 # define EMU_PNG_STRUCT_H
 
@@ -52,10 +53,10 @@
 extern "C" {
 #endif
 
-extern int	png_write_gray(wchar_t *path, int invert,
+extern int	png_write_gray(char *path, int invert,
 			       uint8_t *pix, int16_t w, int16_t h);
 
-extern void	png_write_rgb(wchar_t *fn,
+extern void	png_write_rgb(char *fn,
 			      uint8_t *pix, int16_t w, int16_t h, uint16_t pitch, PALETTE palcol);
 
 #ifdef __cplusplus

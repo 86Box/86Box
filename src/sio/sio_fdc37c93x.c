@@ -31,6 +31,8 @@
 #include <86box/fdd.h>
 #include <86box/fdc.h>
 #include <86box/nvr.h>
+#include <86box/apm.h>
+#include <86box/acpi.h>
 #include <86box/sio.h>
 
 
@@ -47,10 +49,11 @@ typedef struct {
 } access_bus_t;
 
 typedef struct {
-    uint8_t chip_id, tries,
+    uint8_t chip_id, is_apm,
+	    tries,
 	    gpio_regs[2], auxio_reg,
 	    regs[48],
-	    ld_regs[10][256];
+	    ld_regs[11][256];
     uint16_t gpio_base,	/* Set to EA */
 	     auxio_base, nvr_sec_base;
     int locked,
@@ -59,6 +62,7 @@ typedef struct {
     serial_t *uart[2];
     access_bus_t *access_bus;
     nvr_t *nvr;
+    acpi_t *acpi;
 } fdc37c93x_t;
 
 
@@ -108,8 +112,11 @@ static uint8_t
 fdc37c93x_gpio_read(uint16_t port, void *priv)
 {
     fdc37c93x_t *dev = (fdc37c93x_t *) priv;
+    uint8_t ret = 0xff;
 
-    return dev->gpio_regs[port & 1];
+    ret = dev->gpio_regs[port & 1];
+
+    return ret;
 }
 
 
@@ -118,7 +125,8 @@ fdc37c93x_gpio_write(uint16_t port, uint8_t val, void *priv)
 {
     fdc37c93x_t *dev = (fdc37c93x_t *) priv;
 
-    dev->gpio_regs[port & 1] = val;
+    if (!(port & 1))
+	dev->gpio_regs[0] = (dev->gpio_regs[0] & 0xfc) | (val & 0x03);
 }
 
 
@@ -131,7 +139,7 @@ fdc37c93x_fdc_handler(fdc37c93x_t *dev)
 
     fdc_remove(dev->fdc);
     if (global_enable && local_enable) {
-	ld_port = make_port(dev, 0);
+	ld_port = make_port(dev, 0) & 0xFFF8;
 	if ((ld_port >= 0x0100) && (ld_port <= 0x0FF8))
 		fdc_set_base(dev->fdc, ld_port);
     }
@@ -151,7 +159,7 @@ fdc37c93x_lpt_handler(fdc37c93x_t *dev)
 
     lpt1_remove();
     if (global_enable && local_enable) {
-	ld_port = make_port(dev, 3);
+	ld_port = make_port(dev, 3) & 0xFFFC;
 	if ((ld_port >= 0x0100) && (ld_port <= 0x0FFC))
 		lpt1_init(ld_port);
     }
@@ -169,7 +177,7 @@ fdc37c93x_serial_handler(fdc37c93x_t *dev, int uart)
 
     serial_remove(dev->uart[uart]);
     if (global_enable && local_enable) {
-	ld_port = make_port(dev, uart_no);
+	ld_port = make_port(dev, uart_no) & 0xFFF8;
 	if ((ld_port >= 0x0100) && (ld_port <= 0x0FF8))
 		serial_setup(dev->uart[uart], ld_port, dev->ld_regs[uart_no][0x70]);
     }
@@ -195,9 +203,11 @@ fdc37c93x_nvr_sec_handler(fdc37c93x_t *dev)
 
     nvr_at_sec_handler(0, dev->nvr_sec_base, dev->nvr);
     if (local_enable) {
-	dev->nvr_sec_base = ld_port = make_port_sec(dev, 6);
-	if ((ld_port >= 0x0100) && (ld_port <= 0x0FFE))
-		nvr_at_sec_handler(1, ld_port, dev->nvr);
+	dev->nvr_sec_base = ld_port = make_port_sec(dev, 6) & 0xFFFE;
+	/* Datasheet erratum: First it says minimum address is 0x0100, but later implies that it's 0x0000
+			      and that default is 0x0070, same as (unrelocatable) primary NVR. */
+	if (ld_port <= 0x0FFE)
+		nvr_at_sec_handler(1, dev->nvr_sec_base, dev->nvr);
     }
 }
 
@@ -219,7 +229,8 @@ fdc37c93x_auxio_handler(fdc37c93x_t *dev)
 }
 
 
-static void fdc37c93x_gpio_handler(fdc37c93x_t *dev)
+static void
+fdc37c93x_gpio_handler(fdc37c93x_t *dev)
 {
     uint16_t ld_port = 0;
     uint8_t local_enable;
@@ -252,7 +263,7 @@ static void fdc37c93x_gpio_handler(fdc37c93x_t *dev)
 
 
 static uint8_t
-fdc37c932fr_access_bus_read(uint16_t port, void *priv)
+fdc37c93x_access_bus_read(uint16_t port, void *priv)
 {
     access_bus_t *dev = (access_bus_t *) priv;
     uint8_t ret = 0xff;
@@ -277,7 +288,7 @@ fdc37c932fr_access_bus_read(uint16_t port, void *priv)
 
 
 static void
-fdc37c932fr_access_bus_write(uint16_t port, uint8_t val, void *priv)
+fdc37c93x_access_bus_write(uint16_t port, uint8_t val, void *priv)
 {
     access_bus_t *dev = (access_bus_t *) priv;
 
@@ -299,20 +310,46 @@ fdc37c932fr_access_bus_write(uint16_t port, uint8_t val, void *priv)
 }
 
 
-static void fdc37c932fr_access_bus_handler(fdc37c93x_t *dev)
+static void
+fdc37c93x_access_bus_handler(fdc37c93x_t *dev)
 {
     uint16_t ld_port = 0;
     uint8_t global_enable = !!(dev->regs[0x22] & (1 << 6));
     uint8_t local_enable = !!dev->ld_regs[9][0x30];
 
     io_removehandler(dev->access_bus->base, 0x0004,
-		     fdc37c932fr_access_bus_read, NULL, NULL, fdc37c932fr_access_bus_write, NULL, NULL, dev->access_bus);
+		     fdc37c93x_access_bus_read, NULL, NULL, fdc37c93x_access_bus_write, NULL, NULL, dev->access_bus);
     if (global_enable && local_enable) {
 	dev->access_bus->base = ld_port = make_port(dev, 9);
 	if ((ld_port >= 0x0100) && (ld_port <= 0x0FFC))
 	        io_sethandler(dev->access_bus->base, 0x0004,
-			      fdc37c932fr_access_bus_read, NULL, NULL, fdc37c932fr_access_bus_write, NULL, NULL, dev->access_bus);
+			      fdc37c93x_access_bus_read, NULL, NULL, fdc37c93x_access_bus_write, NULL, NULL, dev->access_bus);
     }
+}
+
+
+static void
+fdc37c93x_acpi_handler(fdc37c93x_t *dev)
+{
+    uint16_t ld_port = 0;
+    uint8_t local_enable = !!dev->ld_regs[0x0a][0x30];
+    uint8_t sci_irq = dev->ld_regs[0x0a][0x70];
+
+    acpi_update_io_mapping(dev->acpi, 0x0000, local_enable);
+    if (local_enable) {
+	ld_port = make_port(dev, 0x0a) & 0xFFF0;
+	if ((ld_port >= 0x0100) && (ld_port <= 0x0FF0))
+		acpi_update_io_mapping(dev->acpi, ld_port, local_enable);
+    }
+
+    acpi_update_aux_io_mapping(dev->acpi, 0x0000, local_enable);
+    if (local_enable) {
+	ld_port = make_port_sec(dev, 0x0a) & 0xFFF8;
+	if ((ld_port >= 0x0100) && (ld_port <= 0x0FF8))
+		acpi_update_aux_io_mapping(dev->acpi, ld_port, local_enable);
+    }
+
+    acpi_set_irq_line(dev->acpi, sci_irq);
 }
 
 
@@ -321,7 +358,13 @@ fdc37c93x_write(uint16_t port, uint8_t val, void *priv)
 {
     fdc37c93x_t *dev = (fdc37c93x_t *) priv;
     uint8_t index = (port & 1) ? 0 : 1;
-    uint8_t valxor = 0;
+    uint8_t valxor = 0x00, keep = 0x00;
+
+    /* Compaq Presario 4500: Unlock at FB, Register at EA, Data at EB, Lock at F9. */
+    if ((port == 0xea) || (port == 0xf9) || (port == 0xfb))
+	index = 1;
+    else if (port == 0xeb)
+	index = 0;
 
     if (index) {
 	if ((val == 0x55) && !dev->locked) {
@@ -357,21 +400,35 @@ fdc37c93x_write(uint16_t port, uint8_t val, void *priv)
 			if (((dev->cur_reg & 0xF0) == 0x70) && (dev->regs[7] < 4))
 				return;
 			/* Block writes to some logical devices. */
-			if (dev->regs[7] > 9)
+			if (dev->regs[7] > 0x0a)
 				return;
 			else switch (dev->regs[7]) {
-				case 1:
-				case 2:
-				case 7:
+				case 0x01:
+				case 0x02:
+				case 0x07:
 					return;
-				case 9:
+				case 0x06:
+					if (dev->chip_id != 0x30)
+						return;
+					/* Bits 0 to 3 of logical device 6 (RTC) register F0h must stay set
+					   once they are set. */
+					else if (dev->cur_reg == 0xf0)
+						keep = dev->ld_regs[dev->regs[7]][dev->cur_reg] & 0x0f;
+					break;
+				case 0x09:
 					/* If we're on the FDC37C935, return as this is not a valid
 					   logical device there. */
-					if (dev->chip_id == 0x02)
+					if (!dev->is_apm && (dev->chip_id == 0x02))
+						return;
+					break;
+				case 0x0a:
+					/* If we're not on the FDC37C931APM, return as this is not a
+					   valid logical device there. */
+					if (!dev->is_apm)
 						return;
 					break;
 			}
-			dev->ld_regs[dev->regs[7]][dev->cur_reg] = val;
+			dev->ld_regs[dev->regs[7]][dev->cur_reg] = val | keep;
 		}
 	} else
 		return;
@@ -394,7 +451,7 @@ fdc37c93x_write(uint16_t port, uint8_t val, void *priv)
 			if (valxor & 0x20)
 				fdc37c93x_serial_handler(dev, 1);
 			if ((valxor & 0x40) && (dev->chip_id != 0x02))
-				fdc37c932fr_access_bus_handler(dev);
+				fdc37c93x_access_bus_handler(dev);
 			break;
 	}
 
@@ -421,17 +478,17 @@ fdc37c93x_write(uint16_t port, uint8_t val, void *priv)
 				break;
 			case 0xF1:
 				if (valxor & 0xC)
-					fdc_update_densel_force(dev->fdc, (val & 0xC) >> 2);
+					fdc_update_densel_force(dev->fdc, (val & 0xc) >> 2);
 				break;
 			case 0xF2:
 				if (valxor & 0xC0)
-					fdc_update_rwc(dev->fdc, 3, (valxor & 0xC0) >> 6);
+					fdc_update_rwc(dev->fdc, 3, (val & 0xc0) >> 6);
 				if (valxor & 0x30)
-					fdc_update_rwc(dev->fdc, 2, (valxor & 0x30) >> 4);
+					fdc_update_rwc(dev->fdc, 2, (val & 0x30) >> 4);
 				if (valxor & 0x0C)
-					fdc_update_rwc(dev->fdc, 1, (valxor & 0x0C) >> 2);
+					fdc_update_rwc(dev->fdc, 1, (val & 0x0c) >> 2);
 				if (valxor & 0x03)
-					fdc_update_rwc(dev->fdc, 0, (valxor & 0x03));
+					fdc_update_rwc(dev->fdc, 0, (val & 0x03));
 				break;
 			case 0xF4:
 				if (valxor & 0x18)
@@ -501,9 +558,8 @@ fdc37c93x_write(uint16_t port, uint8_t val, void *priv)
 			case 0x30:
 				if (valxor)
 					fdc37c93x_nvr_pri_handler(dev);
-				/* FALLTHROUGH */
-			case 0x60:
-			case 0x61:
+			case 0x62:
+			case 0x63:
 				if (valxor)
 					fdc37c93x_nvr_sec_handler(dev);
 				break;
@@ -560,7 +616,7 @@ fdc37c93x_write(uint16_t port, uint8_t val, void *priv)
 		}
 		break;
 	case 9:
-		/* Access bus (FDC37C932FR only) */
+		/* Access bus (FDC37C932FR and FDC37C931APM only) */
 		switch(dev->cur_reg) {
 			case 0x30:
 			case 0x60:
@@ -569,7 +625,21 @@ fdc37c93x_write(uint16_t port, uint8_t val, void *priv)
 				if ((dev->cur_reg == 0x30) && (val & 0x01))
 					dev->regs[0x22] |= 0x40;
 				if (valxor)
-					fdc37c932fr_access_bus_handler(dev);
+					fdc37c93x_access_bus_handler(dev);
+				break;
+		}
+		break;
+	case 10:
+		/* Access bus (FDC37C931APM only) */
+		switch(dev->cur_reg) {
+			case 0x30:
+			case 0x60:
+			case 0x61:
+			case 0x62:
+			case 0x63:
+			case 0x70:
+				if (valxor)
+					fdc37c93x_acpi_handler(dev);
 				break;
 		}
 		break;
@@ -577,11 +647,18 @@ fdc37c93x_write(uint16_t port, uint8_t val, void *priv)
 }
 
 
-static uint8_t fdc37c93x_read(uint16_t port, void *priv)
+static uint8_t
+fdc37c93x_read(uint16_t port, void *priv)
 {
     fdc37c93x_t *dev = (fdc37c93x_t *) priv;
     uint8_t index = (port & 1) ? 0 : 1;
     uint8_t ret = 0xff;
+
+    /* Compaq Presario 4500: Unlock at FB, Register at EA, Data at EB, Lock at F9. */
+    if ((port == 0xea) || (port == 0xf9) || (port == 0xfb))
+	index = 1;
+    else if (port == 0xeb)
+	index = 0;
 
     if (dev->locked) {
 	if (index)
@@ -621,7 +698,7 @@ fdc37c93x_reset(fdc37c93x_t *dev)
     dev->regs[0x26] = 0xF0;
     dev->regs[0x27] = 0x03;
 
-    for (i = 0; i < 10; i++)
+    for (i = 0; i < 11; i++)
 	memset(dev->ld_regs[i], 0, 256);
 
     /* Logical device 0: FDD */
@@ -664,7 +741,7 @@ fdc37c93x_reset(fdc37c93x_t *dev)
     dev->ld_regs[4][0x61] = 0xf8;
     dev->ld_regs[4][0x70] = 4;
     dev->ld_regs[4][0xF0] = 3;
-    serial_setup(dev->uart[0], 0x3f8, dev->ld_regs[4][0x70]);
+    serial_setup(dev->uart[0], COM1_ADDR, dev->ld_regs[4][0x70]);
 
     /* Logical device 5: Serial Port 2 */
     dev->ld_regs[5][0x30] = 1;
@@ -674,11 +751,11 @@ fdc37c93x_reset(fdc37c93x_t *dev)
     dev->ld_regs[5][0x74] = 4;
     dev->ld_regs[5][0xF1] = 2;
     dev->ld_regs[5][0xF2] = 3;
-    serial_setup(dev->uart[1], 0x2f8, dev->ld_regs[5][0x70]);
+    serial_setup(dev->uart[1], COM2_ADDR, dev->ld_regs[5][0x70]);
 
     /* Logical device 6: RTC */
-    dev->ld_regs[5][0x30] = 1;
-    dev->ld_regs[6][0x63] = 0x00;
+    dev->ld_regs[6][0x30] = 1;
+    dev->ld_regs[6][0x63] = (dev->chip_id == 0x30) ? 0x70 : 0x00;
     dev->ld_regs[6][0xF4] = 3;
 
     /* Logical device 7: Keyboard */
@@ -690,16 +767,27 @@ fdc37c93x_reset(fdc37c93x_t *dev)
 
     /* Logical device 9: ACCESS.bus */
 
+    /* Logical device A: ACPI */
+
     fdc37c93x_gpio_handler(dev);
     fdc37c93x_lpt_handler(dev);
     fdc37c93x_serial_handler(dev, 0);
     fdc37c93x_serial_handler(dev, 1);
     fdc37c93x_auxio_handler(dev);
-    if (dev->chip_id == 0x03)
-	fdc37c932fr_access_bus_handler(dev);
+    if (dev->is_apm || (dev->chip_id == 0x03))
+	fdc37c93x_access_bus_handler(dev);
+    if (dev->is_apm)
+	fdc37c93x_acpi_handler(dev);
 
     fdc_reset(dev->fdc);
     fdc37c93x_fdc_handler(dev);
+
+    if (dev->chip_id == 0x30) {
+	fdc37c93x_nvr_pri_handler(dev);
+	fdc37c93x_nvr_sec_handler(dev);
+	nvr_bank_set(0, 0, dev->nvr);
+	nvr_bank_set(1, 0xff, dev->nvr);
+    }
 
     dev->locked = 0;
 }
@@ -726,10 +814,11 @@ access_bus_init(const device_t *info)
 
 static const device_t access_bus_device = {
     "SMC FDC37C932FR ACCESS.bus",
+    "access_bus",
     0,
     0x03,
     access_bus_init, access_bus_close, NULL,
-    NULL, NULL, NULL,
+    { NULL }, NULL, NULL,
     NULL
 };
 
@@ -746,6 +835,7 @@ fdc37c93x_close(void *priv)
 static void *
 fdc37c93x_init(const device_t *info)
 {
+    int is_compaq;
     fdc37c93x_t *dev = (fdc37c93x_t *) malloc(sizeof(fdc37c93x_t));
     memset(dev, 0, sizeof(fdc37c93x_t));
 
@@ -754,10 +844,13 @@ fdc37c93x_init(const device_t *info)
     dev->uart[0] = device_add_inst(&ns16550_device, 1);
     dev->uart[1] = device_add_inst(&ns16550_device, 2);
 
-    dev->chip_id = info->local;
+    dev->chip_id = info->local & 0xff;
+    dev->is_apm = (info->local >> 8) & 0x01;
+    is_compaq = (info->local >> 8) & 0x02;
 
-    dev->gpio_regs[0] = 0xFD;
-    dev->gpio_regs[1] = 0xFF;
+    dev->gpio_regs[0] = 0xff;
+    // dev->gpio_regs[1] = (info->local == 0x0030) ? 0xff : 0xfd;
+    dev->gpio_regs[1] = (dev->chip_id == 0x30) ? 0xff : 0xfd;
 
     if (dev->chip_id == 0x30) {
 	dev->nvr = device_add(&at_nvr_device);
@@ -766,43 +859,97 @@ fdc37c93x_init(const device_t *info)
 	nvr_bank_set(1, 0xff, dev->nvr);
     }
 
-    if (dev->chip_id == 0x03)
+    if (dev->is_apm || (dev->chip_id == 0x03))
 	dev->access_bus = device_add(&access_bus_device);
 
-    io_sethandler(0x370, 0x0002,
-		  fdc37c93x_read, NULL, NULL, fdc37c93x_write, NULL, NULL, dev);
-    io_sethandler(0x3f0, 0x0002,
-		  fdc37c93x_read, NULL, NULL, fdc37c93x_write, NULL, NULL, dev);
+    if (dev->is_apm)
+	dev->acpi = device_add(&acpi_smc_device);
+
+    if (is_compaq) {
+	io_sethandler(0x0ea, 0x0002,
+		      fdc37c93x_read, NULL, NULL, fdc37c93x_write, NULL, NULL, dev);
+	io_sethandler(0x0f9, 0x0001,
+		      fdc37c93x_read, NULL, NULL, fdc37c93x_write, NULL, NULL, dev);
+	io_sethandler(0x0fb, 0x0001,
+		      fdc37c93x_read, NULL, NULL, fdc37c93x_write, NULL, NULL, dev);
+    } else {
+	io_sethandler(FDC_SECONDARY_ADDR, 0x0002,
+		      fdc37c93x_read, NULL, NULL, fdc37c93x_write, NULL, NULL, dev);
+	io_sethandler(FDC_PRIMARY_ADDR, 0x0002,
+		      fdc37c93x_read, NULL, NULL, fdc37c93x_write, NULL, NULL, dev);
+    }
 
     fdc37c93x_reset(dev);
 
     return dev;
 }
 
+const device_t fdc37c931apm_device = {
+    .name = "SMC FDC37C932QF Super I/O",
+    .internal_name = "fdc37c931apm",
+    .flags = 0,
+    .local = 0x130, /* Share the same ID with the 932QF. */
+    .init = fdc37c93x_init,
+    .close = fdc37c93x_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
+};
+
+const device_t fdc37c931apm_compaq_device = {
+    .name = "SMC FDC37C932QF Super I/O (Compaq Presario 4500)",
+    .internal_name = "fdc37c931apm_compaq",
+    .flags = 0,
+    .local = 0x330, /* Share the same ID with the 932QF. */
+    .init = fdc37c93x_init,
+    .close = fdc37c93x_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
+};
 
 const device_t fdc37c932fr_device = {
-    "SMC FDC37C932FR Super I/O",
-    0,
-    0x03,
-    fdc37c93x_init, fdc37c93x_close, NULL,
-    NULL, NULL, NULL,
-    NULL
+    .name = "SMC FDC37C932FR Super I/O",
+    .internal_name = "fdc37c932fr",
+    .flags = 0,
+    .local = 0x03,
+    .init = fdc37c93x_init,
+    .close = fdc37c93x_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
 const device_t fdc37c932qf_device = {
-    "SMC FDC37C932QF Super I/O",
-    0,
-    0x30,	/* Share the same ID with the 935. */
-    fdc37c93x_init, fdc37c93x_close, NULL,
-    NULL, NULL, NULL,
-    NULL
+    .name = "SMC FDC37C932QF Super I/O",
+    .internal_name = "fdc37c932qf",
+    .flags = 0,
+    .local = 0x30,
+    .init = fdc37c93x_init,
+    .close = fdc37c93x_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
 const device_t fdc37c935_device = {
-    "SMC FDC37C935 Super I/O",
-    0,
-    0x02,
-    fdc37c93x_init, fdc37c93x_close, NULL,
-    NULL, NULL, NULL,
-    NULL
+    .name = "SMC FDC37C935 Super I/O",
+    .internal_name = "fdc37c935",
+    .flags = 0,
+    .local = 0x02,
+    .init = fdc37c93x_init,
+    .close = fdc37c93x_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };

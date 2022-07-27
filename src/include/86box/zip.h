@@ -15,9 +15,9 @@
  *
  *		Copyright 2018,2019 Miran Grca.
  */
+
 #ifndef EMU_ZIP_H
 #define EMU_ZIP_H
-
 
 #define ZIP_NUM			  4
 
@@ -32,18 +32,22 @@
 
 enum {
     ZIP_BUS_DISABLED = 0,
-    ZIP_BUS_ATAPI = 4,
+    ZIP_BUS_ATAPI = 5,
     ZIP_BUS_SCSI,
     ZIP_BUS_USB
 };
 
 
 typedef struct {
-    uint8_t id,
-	    res, res0,		/* Reserved for other ID's. */
-	    res1,
-	    ide_channel, scsi_device_id,
-	    bus_type,		/* 0 = ATAPI, 1 = SCSI */
+    uint8_t id;
+
+    union {
+	uint8_t res, res0,		/* Reserved for other ID's. */
+		res1,
+		ide_channel, scsi_device_id;
+    };
+
+    uint8_t bus_type,		/* 0 = ATAPI, 1 = SCSI */
 	    bus_mode,		/* Bit 0 = PIO suported;
 				   Bit 1 = DMA supportd. */
 	    read_only,		/* Struct variable reserved for
@@ -53,7 +57,7 @@ typedef struct {
     FILE *f;
     void *priv;
 
-    wchar_t image_path[1024],
+    char image_path[1024],
 	    prev_image_path[1024];
 
     uint32_t is_250, medium_size,
@@ -72,8 +76,8 @@ typedef struct {
 
     uint8_t status, phase,
 	    error, id,
-	    features, pad0,
-	    pad1, pad2;
+	    features, cur_lun,
+	    pad0, pad1;
 
     uint16_t request_length, max_transfer_len;
 
@@ -112,12 +116,11 @@ extern void	zip_global_init(void);
 extern void	zip_hard_reset(void);
 
 extern void	zip_reset(scsi_common_t *sc);
-extern int	zip_load(zip_t *dev, wchar_t *fn);
+extern int	zip_load(zip_t *dev, char *fn);
 extern void	zip_close();
 
 #ifdef __cplusplus
 }
 #endif
-
 
 #endif	/*EMU_ZIP_H*/

@@ -15,7 +15,9 @@
  *		Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 2020 Miran Grca.
+ *		Copyright 2020,2021 Natalia Portillo.
+ *		Copyright 2020,2021 Miran Grca.
+ *		Copyright 2020,2021 Fred N. van Kempen
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -31,11 +33,13 @@
 #include <86box/device.h>
 #include <86box/scsi_device.h>
 #include <86box/nvr.h>
+#include <86box/path.h>
 #include <86box/plat.h>
 #include <86box/ui.h>
 #include <86box/hdc.h>
 #include <86box/hdc_ide.h>
 #include <86box/mo.h>
+#include <86box/version.h>
 
 #ifdef _WIN32
 #include <windows.h>
@@ -101,7 +105,7 @@ const uint8_t mo_command_flags[0x100] =
     IMPLEMENTED | CHECK_READY,					/* 0xA8 */
     0,
     IMPLEMENTED | CHECK_READY,					/* 0xAA */
-    0, 
+    0,
     IMPLEMENTED | CHECK_READY | NONDATA,			/* 0xAC */
     0,
     IMPLEMENTED | CHECK_READY,					/* 0xAE */
@@ -327,15 +331,28 @@ mo_load_abort(mo_t *dev)
 
 
 int
-mo_load(mo_t *dev, wchar_t *fn)
+image_is_mdi(const char *s)
 {
-    int size = 0;
+    if (! strcasecmp(path_get_extension((char *) s), "MDI"))
+	return 1;
+    else
+	return 0;
+}
+
+
+int
+mo_load(mo_t *dev, char *fn)
+{
+    int is_mdi;
+    uint32_t size = 0;
     unsigned int i, found = 0;
 
-    dev->drv->f = plat_fopen(fn, dev->drv->read_only ? L"rb" : L"rb+");
+    is_mdi = image_is_mdi(fn);
+
+    dev->drv->f = plat_fopen(fn, dev->drv->read_only ? "rb" : "rb+");
     if (!dev->drv->f) {
 	if (!dev->drv->read_only) {
-		dev->drv->f = plat_fopen(fn, L"rb");
+		dev->drv->f = plat_fopen(fn, "rb");
 		if (dev->drv->f)
 			dev->drv->read_only = 1;
 		else
@@ -345,25 +362,30 @@ mo_load(mo_t *dev, wchar_t *fn)
     }
 
     fseek(dev->drv->f, 0, SEEK_END);
-    size = ftell(dev->drv->f);
+    size = (uint32_t) ftell(dev->drv->f);
+
+    if (is_mdi) {
+	/* This is a MDI image. */
+	size -= 0x1000LL;
+	dev->drv->base = 0x1000;
+    }
 
     for (i = 0; i < KNOWN_MO_TYPES; i++) {
-	if (size == mo_types[i].disk_size) {
+	if (size == (mo_types[i].sectors * mo_types[i].bytes_per_sector)) {
 	    found = 1;
 	    dev->drv->medium_size = mo_types[i].sectors;
 	    dev->drv->sector_size = mo_types[i].bytes_per_sector;
 	    break;
 	}
     }
-    
-    if (!found) {
+
+    if (!found)
 	return mo_load_abort(dev);
-    }
 
     if (fseek(dev->drv->f, dev->drv->base, SEEK_SET) == -1)
 	fatal("mo_load(): Error seeking to the beginning of the file\n");
 
-    wcsncpy(dev->drv->image_path, fn, sizeof_w(dev->drv->image_path));
+    strncpy(dev->drv->image_path, fn, sizeof(dev->drv->image_path) - 1);
 
     return 1;
 }
@@ -374,7 +396,7 @@ mo_disk_reload(mo_t *dev)
 {
     int ret = 0;
 
-    if (wcslen(dev->drv->prev_image_path) == 0)
+    if (strlen(dev->drv->prev_image_path) == 0)
 	return;
     else
 	ret = mo_load(dev, dev->drv->prev_image_path);
@@ -507,7 +529,7 @@ static void
 mo_mode_sense_load(mo_t *dev)
 {
     FILE *f;
-    wchar_t file_name[512];
+    char file_name[512];
 
     memset(&dev->ms_pages_saved, 0, sizeof(mode_sense_pages_t));
     if (mo_drives[dev->id].bus_type == MO_BUS_SCSI)
@@ -515,12 +537,12 @@ mo_mode_sense_load(mo_t *dev)
     else
 	memcpy(&dev->ms_pages_saved, &mo_mode_sense_pages_default, sizeof(mode_sense_pages_t));
 
-    memset(file_name, 0, 512 * sizeof(wchar_t));
+    memset(file_name, 0, 512);
     if (dev->drv->bus_type == MO_BUS_SCSI)
-	swprintf(file_name, 512, L"scsi_mo_%02i_mode_sense_bin", dev->id);
+	sprintf(file_name, "scsi_mo_%02i_mode_sense_bin", dev->id);
     else
-	swprintf(file_name, 512, L"mo_%02i_mode_sense_bin", dev->id);
-    f = plat_fopen(nvr_path(file_name), L"rb");
+	sprintf(file_name, "mo_%02i_mode_sense_bin", dev->id);
+    f = plat_fopen(nvr_path(file_name), "rb");
     if (f) {
 	/* Nothing to read, not used by MO. */
 	fclose(f);
@@ -532,14 +554,14 @@ static void
 mo_mode_sense_save(mo_t *dev)
 {
     FILE *f;
-    wchar_t file_name[512];
+    char file_name[512];
 
-    memset(file_name, 0, 512 * sizeof(wchar_t));
+    memset(file_name, 0, 512);
     if (dev->drv->bus_type == MO_BUS_SCSI)
-	swprintf(file_name, 512, L"scsi_mo_%02i_mode_sense_bin", dev->id);
+	sprintf(file_name, "scsi_mo_%02i_mode_sense_bin", dev->id);
     else
-	swprintf(file_name, 512, L"mo_%02i_mode_sense_bin", dev->id);
-    f = plat_fopen(nvr_path(file_name), L"wb");
+	sprintf(file_name, "mo_%02i_mode_sense_bin", dev->id);
+    f = plat_fopen(nvr_path(file_name), "wb");
     if (f) {
 	/* Nothing to write, not used by MO. */
 	fclose(f);
@@ -810,12 +832,13 @@ mo_sense_clear(mo_t *dev, int command)
 static void
 mo_set_phase(mo_t *dev, uint8_t phase)
 {
-    uint8_t scsi_id = dev->drv->scsi_device_id;
+    uint8_t scsi_bus = (dev->drv->scsi_device_id >> 4) & 0x0f;
+    uint8_t scsi_id = dev->drv->scsi_device_id & 0x0f;
 
     if (dev->drv->bus_type != MO_BUS_SCSI)
 	return;
 
-    scsi_devices[scsi_id].phase = phase;
+    scsi_devices[scsi_bus][scsi_id].phase = phase;
 }
 
 
@@ -1022,6 +1045,7 @@ mo_format(mo_t *dev)
     fseek(dev->drv->f, 0, SEEK_END);
     size = ftell(dev->drv->f);
 
+#ifdef _WIN32
     HANDLE fh;
     LARGE_INTEGER liSize;
 
@@ -1032,14 +1056,14 @@ mo_format(mo_t *dev)
 
     ret = (int)SetFilePointerEx(fh, liSize, NULL, FILE_BEGIN);
 
-    if (!ret) {
+    if(!ret) {
 	mo_log("MO %i: Failed seek to start of image file\n", dev->id);
 	return;
     }
 
     ret = (int)SetEndOfFile(fh);
 
-    if (!ret) {
+    if(!ret) {
 	mo_log("MO %i: Failed to truncate image file to 0\n", dev->id);
 	return;
     }
@@ -1047,17 +1071,34 @@ mo_format(mo_t *dev)
     liSize.QuadPart = size;
     ret = (int)SetFilePointerEx(fh, liSize, NULL, FILE_BEGIN);
 
-    if (!ret) {
+    if(!ret) {
 	mo_log("MO %i: Failed seek to end of image file\n", dev->id);
 	return;
     }
 
     ret = (int)SetEndOfFile(fh);
 
-    if (!ret) {
+    if(!ret) {
 	mo_log("MO %i: Failed to truncate image file to %llu\n", dev->id, size);
 	return;
     }
+#else
+    fd = fileno(dev->drv->f);
+
+    ret = ftruncate(fd, 0);
+
+    if(ret) {
+	mo_log("MO %i: Failed to truncate image file to 0\n", dev->id);
+	return;
+    }
+
+    ret = ftruncate(fd, size);
+
+    if(ret) {
+	mo_log("MO %i: Failed to truncate image file to %llu", dev->id, size);
+	return;
+    }
+#endif
 }
 
 static int
@@ -1101,7 +1142,7 @@ mo_erase(mo_t *dev)
 /*SCSI Sense Initialization*/
 void
 mo_sense_code_ok(mo_t *dev)
-{	
+{
     mo_sense_key = SENSE_NONE;
     mo_asc = 0;
     mo_ascq = 0;
@@ -1114,7 +1155,7 @@ mo_pre_execution_check(mo_t *dev, uint8_t *cdb)
     int ready = 0;
 
     if (dev->drv->bus_type == MO_BUS_SCSI) {
-	if ((cdb[0] != GPCMD_REQUEST_SENSE) && (cdb[1] & 0xe0)) {
+	if ((cdb[0] != GPCMD_REQUEST_SENSE) && (dev->cur_lun == SCSI_LUN_USE_CDB) && (cdb[1] & 0xe0)) {
 		mo_log("MO %i: Attempting to execute a unknown command targeted at SCSI LUN %i\n", dev->id, ((dev->request_length >> 5) & 7));
 		mo_invalid_lun(dev);
 		return 0;
@@ -1214,12 +1255,13 @@ mo_reset(scsi_common_t *sc)
     dev->request_length = 0xEB14;
     dev->packet_status = PHASE_NONE;
     dev->unit_attention = 0;
+    dev->cur_lun = SCSI_LUN_USE_CDB;
 }
 
 
 static void
 mo_request_sense(mo_t *dev, uint8_t *buffer, uint8_t alloc_length, int desc)
-{				
+{
     /*Will return 18 bytes of 0*/
     if (alloc_length != 0) {
 	memset(buffer, 0, alloc_length);
@@ -1299,12 +1341,15 @@ mo_command(scsi_common_t *sc, uint8_t *cdb)
     int32_t alloc_length;
     int size_idx, idx = 0;
     unsigned preamble_len;
+    char device_identify[9] = { '8', '6', 'B', '_', 'M', 'O', '0', '0', 0 };
     int32_t blen = 0;
     int32_t *BufLen;
     uint32_t previous_pos = 0;
+    uint8_t scsi_bus = (dev->drv->scsi_device_id >> 4) & 0x0f;
+    uint8_t scsi_id = dev->drv->scsi_device_id & 0x0f;
 
     if (dev->drv->bus_type == MO_BUS_SCSI) {
-	BufLen = &scsi_devices[dev->drv->scsi_device_id].buffer_length;
+	BufLen = &scsi_devices[scsi_bus][scsi_id].buffer_length;
 	dev->status &= ~ERR_STAT;
     } else {
 	BufLen = &blen;
@@ -1313,6 +1358,8 @@ mo_command(scsi_common_t *sc, uint8_t *cdb)
 
     dev->packet_len = 0;
     dev->request_pos = 0;
+
+    device_identify[7] = dev->id + 0x30;
 
     memcpy(dev->current_cdb, cdb, 12);
 
@@ -1481,7 +1528,7 @@ mo_command(scsi_common_t *sc, uint8_t *cdb)
 		/*TODO: Implement*/
 		mo_invalid_field(dev);
 		return;
-		
+
 	case GPCMD_WRITE_6:
 	case GPCMD_WRITE_10:
 	case GPCMD_WRITE_AND_VERIFY_10:
@@ -1700,9 +1747,15 @@ mo_command(scsi_common_t *sc, uint8_t *cdb)
 			}
 			dev->buffer[7] |= 0x02;
 
-			ide_padstr8(dev->buffer + 8, 8, mo_drive_types[dev->drv->type].vendor); /* Vendor */
-			ide_padstr8(dev->buffer + 16, 16, mo_drive_types[dev->drv->type].model); /* Product */
-			ide_padstr8(dev->buffer + 32, 4, mo_drive_types[dev->drv->type].revision); /* Revision */
+			if (dev->drv->type > 0) {
+				ide_padstr8(dev->buffer + 8, 8, mo_drive_types[dev->drv->type].vendor); /* Vendor */
+				ide_padstr8(dev->buffer + 16, 16, mo_drive_types[dev->drv->type].model); /* Product */
+				ide_padstr8(dev->buffer + 32, 4, mo_drive_types[dev->drv->type].revision); /* Revision */
+			} else {
+				ide_padstr8(dev->buffer + 8, 8, EMU_NAME); /* Vendor */
+				ide_padstr8(dev->buffer + 16, 16, device_identify); /* Product */
+				ide_padstr8(dev->buffer + 32, 4, EMU_VERSION_EX); /* Revision */
+			}
 			idx = 36;
 
 			if (max_len == 96) {
@@ -1852,8 +1905,8 @@ mo_phase_data_out(scsi_common_t *sc)
 {
     mo_t *dev = (mo_t *) sc;
 
-    uint16_t block_desc_len;
-    uint16_t pos;
+    uint16_t block_desc_len, pos;
+    uint16_t param_list_len;
 
     uint8_t error = 0;
     uint8_t page, page_len;
@@ -1879,10 +1932,15 @@ mo_phase_data_out(scsi_common_t *sc)
 		break;
 	case GPCMD_MODE_SELECT_6:
 	case GPCMD_MODE_SELECT_10:
-		if (dev->current_cdb[0] == GPCMD_MODE_SELECT_10)
+		if (dev->current_cdb[0] == GPCMD_MODE_SELECT_10) {
 			hdr_len = 8;
-		else
+			param_list_len = dev->current_cdb[7];
+			param_list_len <<= 8;
+			param_list_len |= dev->current_cdb[8];
+		} else {
 			hdr_len = 4;
+			param_list_len = dev->current_cdb[4];
+		}
 
 		if (dev->drv->bus_type == MO_BUS_SCSI) {
 			if (dev->current_cdb[0] == GPCMD_MODE_SELECT_6) {
@@ -1900,7 +1958,7 @@ mo_phase_data_out(scsi_common_t *sc)
 		pos = hdr_len + block_desc_len;
 
 		while(1) {
-			if (pos >= dev->current_cdb[4]) {
+			if (pos >= param_list_len) {
 				mo_log("MO %i: Buffer has only block descriptor\n", dev->id);
 				break;
 			}
@@ -1978,7 +2036,7 @@ mo_get_max(int ide_has_dma, int type)
 		ret = ide_has_dma ? 1 : -1;
 		break;
 	case TYPE_UDMA:
-		ret = ide_has_dma ? 4 /*2*/ : -1;
+		ret = ide_has_dma ? 5 : -1;
 		break;
     }
 
@@ -2013,17 +2071,24 @@ static void
 mo_do_identify(ide_t *ide, int ide_has_dma)
 {
     char model[40];
-    mo_t* mo = (mo_t*)ide->sc;
+
+    mo_t* mo = (mo_t*) ide->sc;
 
     memset(model, 0, 40);
-    snprintf(model, 40, "%s %s", mo_drive_types[mo_drives[mo->id].type].vendor, mo_drive_types[mo_drives[mo->id].type].model);
 
-    ide_padstr((char *) (ide->buffer + 23), mo_drive_types[mo_drives[mo->id].type].revision, 8); /* Firmware */
-    ide_padstr((char *) (ide->buffer + 27), model, 40); /* Model */
+    if (mo_drives[mo->id].type > 0) {
+    	snprintf(model, 40, "%s %s", mo_drive_types[mo_drives[mo->id].type].vendor, mo_drive_types[mo_drives[mo->id].type].model);
+	ide_padstr((char *) (ide->buffer + 23), mo_drive_types[mo_drives[mo->id].type].revision, 8); /* Firmware */
+	ide_padstr((char *) (ide->buffer + 27), model, 40); /* Model */
+    } else {
+    	snprintf(model, 40, "%s %s%02i", EMU_NAME, "86B_MO", mo->id);
+	ide_padstr((char *) (ide->buffer + 23), EMU_VERSION_EX, 8); /* Firmware */
+	ide_padstr((char *) (ide->buffer + 27), model, 40); /* Model */
+    }
 
     if (ide_has_dma) {
-	ide->buffer[80] = 0x30; /*Supported ATA versions : ATA/ATAPI-4 ATA/ATAPI-5*/
-	ide->buffer[81] = 0x15; /*Maximum ATA revision supported : ATA/ATAPI-5 T13 1321D revision 1*/
+	ide->buffer[80] = 0x70; /*Supported ATA versions : ATA/ATAPI-4 ATA/ATAPI-6*/
+	ide->buffer[81] = 0x19; /*Maximum ATA revision supported : ATA/ATAPI-6 T13 1410D revision 3a*/
     }
 }
 
@@ -2045,6 +2110,8 @@ mo_drive_reset(int c)
     mo_t *dev;
     scsi_device_t *sd;
     ide_t *id;
+    uint8_t scsi_bus = (mo_drives[c].scsi_device_id >> 4) & 0x0f;
+    uint8_t scsi_id = mo_drives[c].scsi_device_id & 0x0f;
 
     if (!mo_drives[c].priv) {
 	mo_drives[c].priv = (mo_t *) malloc(sizeof(mo_t));
@@ -2054,10 +2121,11 @@ mo_drive_reset(int c)
     dev = (mo_t *) mo_drives[c].priv;
 
     dev->id = c;
+    dev->cur_lun = SCSI_LUN_USE_CDB;
 
     if (mo_drives[c].bus_type == MO_BUS_SCSI) {
 	/* SCSI MO, attach to the SCSI bus. */
-	sd = &scsi_devices[mo_drives[c].scsi_device_id];
+	sd = &scsi_devices[scsi_bus][scsi_id];
 
 	sd->sc = (scsi_common_t *) dev;
 	sd->command = mo_command;
@@ -2096,14 +2164,24 @@ mo_hard_reset(void)
 {
     mo_t *dev;
     int c;
+    uint8_t scsi_id, scsi_bus;
 
     for (c = 0; c < MO_NUM; c++) {
 	if ((mo_drives[c].bus_type == MO_BUS_ATAPI) || (mo_drives[c].bus_type == MO_BUS_SCSI)) {
 		mo_log("MO hard_reset drive=%d\n", c);
 
-		/* Make sure to ignore any SCSI MO drive that has an out of range ID. */
-		if ((mo_drives[c].bus_type == MO_BUS_SCSI) && (mo_drives[c].scsi_device_id >= SCSI_ID_MAX))
-			continue;
+		if (mo_drives[c].bus_type == MO_BUS_SCSI) {
+			scsi_bus = (mo_drives[c].scsi_device_id >> 4) & 0x0f;
+			scsi_id = mo_drives[c].scsi_device_id & 0x0f;
+
+			/* Make sure to ignore any SCSI MO drive that has an out of range SCSI Bus. */
+			if (scsi_bus >= SCSI_BUS_MAX)
+				continue;
+
+			/* Make sure to ignore any SCSI MO drive that has an out of range ID. */
+			if (scsi_id >= SCSI_ID_MAX)
+				continue;
+		}
 
 		/* Make sure to ignore any ATAPI MO drive that has an out of range IDE channel. */
 		if ((mo_drives[c].bus_type == MO_BUS_ATAPI) && (mo_drives[c].ide_channel > 7))
@@ -2118,7 +2196,7 @@ mo_hard_reset(void)
 
 		mo_init(dev);
 
-		if (wcslen(mo_drives[c].image_path))
+		if (strlen(mo_drives[c].image_path))
 			mo_load(dev, mo_drives[c].image_path);
 
 		mo_mode_sense_load(dev);
@@ -2137,10 +2215,15 @@ mo_close(void)
 {
     mo_t *dev;
     int c;
+    uint8_t scsi_id, scsi_bus;
 
     for (c = 0; c < MO_NUM; c++) {
-	if (mo_drives[c].bus_type == MO_BUS_SCSI)
-		memset(&scsi_devices[mo_drives[c].scsi_device_id], 0x00, sizeof(scsi_device_t));
+	if (mo_drives[c].bus_type == MO_BUS_SCSI) {
+		scsi_bus = (mo_drives[c].scsi_device_id >> 4) & 0x0f;
+		scsi_id = mo_drives[c].scsi_device_id & 0x0f;
+
+		memset(&scsi_devices[scsi_bus][scsi_id], 0x00, sizeof(scsi_device_t));
+	}
 
 	dev = (mo_t *) mo_drives[c].priv;
 

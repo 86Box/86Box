@@ -22,13 +22,13 @@ uint32_t ropLEA_16(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t f
         codegen_mark_code_present(block, cs+op_pc, 1);
         codegen_generate_ea(ir, op_ea_seg, fetchdat, op_ssegs, &op_pc, op_32, 0);
         uop_MOV(ir, IREG_16(dest_reg), IREG_eaaddr_W);
-        
+
         return op_pc + 1;
 }
 uint32_t ropLEA_32(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
 {
         int dest_reg = (fetchdat >> 3) & 7;
-        
+
         if ((fetchdat & 0xc0) == 0xc0)
                 return 0;
 
@@ -44,7 +44,7 @@ uint32_t ropF6(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetch
         x86seg *target_seg = NULL;
         uint8_t imm_data;
         int reg;
-        
+
         if (fetchdat & 0x20)
                 return 0;
 
@@ -67,7 +67,7 @@ uint32_t ropF6(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetch
         {
                 case 0x00: case 0x08: /*TEST*/
                 imm_data = fastreadb(cs + op_pc + 1);
-                
+
                 uop_AND_IMM(ir, IREG_flags_res_B, reg, imm_data);
                 uop_MOVZX(ir, IREG_flags_res, IREG_flags_res_B);
                 uop_MOV_IMM(ir, IREG_flags_op, FLAGS_ZN8);
@@ -75,7 +75,7 @@ uint32_t ropF6(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetch
                 codegen_flags_changed = 1;
                 codegen_mark_code_present(block, cs+op_pc+1, 1);
                 return op_pc+2;
-                
+
                 case 0x10: /*NOT*/
                 uop_XOR_IMM(ir, reg, reg, 0xff);
                 if ((fetchdat & 0xc0) != 0xc0)
@@ -321,7 +321,7 @@ uint32_t ropFF_16(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fe
                         uop_MOV_IMM(ir, IREG_flags_op, FLAGS_INC16);
                 }
                 return op_pc+1;
-                
+
                 case 0x08: /*DEC*/
                 rebuild_c(ir);
                 codegen_flags_changed = 1;
@@ -357,7 +357,7 @@ uint32_t ropFF_16(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fe
                 case 0x20: /*JMP*/
                 uop_MOVZX(ir, IREG_pc, src_reg);
                 return -1;
-                
+
                 case 0x28: /*JMP far*/
                 uop_MOVZX(ir, IREG_pc, src_reg);
                 uop_MEM_LOAD_REG_OFFSET(ir, IREG_temp1_W, ireg_seg_base(target_seg), IREG_eaaddr, 2);

@@ -19,7 +19,7 @@ static int opAAA(uint32_t fetchdat)
 static int opAAD(uint32_t fetchdat)
 {
         int base = getbytef();
-        if (cpu_manufacturer != MANU_INTEL) base = 10;
+        if (!cpu_isintel) base = 10;
         AL = (AH * base) + AL;
         AH = 0;
         setznp16(AX);
@@ -31,7 +31,7 @@ static int opAAD(uint32_t fetchdat)
 static int opAAM(uint32_t fetchdat)
 {
         int base = getbytef();
-        if (!base || cpu_manufacturer != MANU_INTEL) base = 10;
+        if (!base || !cpu_isintel) base = 10;
         AH = AL / base;
         AL %= base;
         setznp16(AX);
@@ -61,7 +61,7 @@ static int opAAS(uint32_t fetchdat)
 static int opDAA(uint32_t fetchdat)
 {
         uint16_t tempw, old_AL, old_CF;
-        
+
         flags_rebuild();
 	old_AL = AL;
 	old_CF = cpu_state.flags & C_FLAG;
@@ -89,7 +89,7 @@ static int opDAA(uint32_t fetchdat)
         cpu_state.flags = (cpu_state.flags & ~(C_FLAG | A_FLAG)) | tempw;
         CLOCK_CYCLES(4);
         PREFETCH_RUN(4, 1, -1, 0,0,0,0, 0);
-        
+
         return 0;
 }
 
@@ -124,6 +124,6 @@ static int opDAS(uint32_t fetchdat)
         cpu_state.flags = (cpu_state.flags & ~(C_FLAG | A_FLAG)) | tempw;
         CLOCK_CYCLES(4);
         PREFETCH_RUN(4, 1, -1, 0,0,0,0, 0);
-        
+
         return 0;
 }

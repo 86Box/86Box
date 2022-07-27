@@ -35,7 +35,7 @@
 
 
 
-#define STRING_OR_RESOURCE(s) ((!(s)) ? (NULL) : ((((uintptr_t)s) < ((uintptr_t)65636)) ? (MAKEINTRESOURCE(s)) : (s)))
+#define STRING_OR_RESOURCE(s) ((!(s)) ? (NULL) : ((((uintptr_t)s) < ((uintptr_t)65636)) ? (MAKEINTRESOURCE((uintptr_t)s)) : (s)))
 
 
 WCHAR	wopenfilestring[512];
@@ -100,13 +100,14 @@ ui_msgbox_ex(int flags, void *header, void *message, void *btn1, void *btn2, voi
 
 	case MBX_QUESTION:	/* question */
 	case MBX_QUESTION_YN:
+	case MBX_QUESTION_OK:
 		if (!btn1) /* replace default "OK" button with "Yes" button */
-			tdconfig.dwCommonButtons = TDCBF_YES_BUTTON;
+			tdconfig.dwCommonButtons = (flags & MBX_QUESTION_OK) ? TDCBF_OK_BUTTON : TDCBF_YES_BUTTON;
 
 		if (btn2) /* "No" button */
 			tdbuttons[tdconfig.cButtons++] = tdb_no;
 		else
-			tdconfig.dwCommonButtons |= TDCBF_NO_BUTTON;
+			tdconfig.dwCommonButtons |= (flags & MBX_QUESTION_OK) ? TDCBF_CANCEL_BUTTON : TDCBF_NO_BUTTON;
 
 		if (flags & MBX_QUESTION) {
 			if (btn3) /* "Cancel" button */
@@ -114,13 +115,16 @@ ui_msgbox_ex(int flags, void *header, void *message, void *btn1, void *btn2, voi
 			else
 				tdconfig.dwCommonButtons |= TDCBF_CANCEL_BUTTON;
 		}
+
+		if (flags & MBX_WARNING)
+			tdconfig.pszMainIcon = TD_WARNING_ICON;
 		break;
     }
 
     /* If the message is an ANSI string, convert it. */
     tdconfig.pszContent = (WCHAR *) STRING_OR_RESOURCE(message);
     if (flags & MBX_ANSI) {
-	mbstowcs(temp, (char *)message, strlen((char *)message)+1);
+	mbstoc16s(temp, (char *)message, strlen((char *)message)+1);
 	tdconfig.pszContent = temp;
     }
 
@@ -144,6 +148,7 @@ ui_msgbox_ex(int flags, void *header, void *message, void *btn1, void *btn2, voi
      else if (ret == IDCANCEL) ret = -1;
      else ret = 0;
 
+    /* 10 is added to the return value if "don't show again" is checked. */
     if (checked) ret += 10;
 
     return(ret);
@@ -151,11 +156,12 @@ ui_msgbox_ex(int flags, void *header, void *message, void *btn1, void *btn2, voi
 
 
 int
-file_dlg_w(HWND hwnd, WCHAR *f, WCHAR *fn, int save)
+file_dlg_w(HWND hwnd, WCHAR *f, WCHAR *fn, WCHAR *title, int save)
 {
     OPENFILENAME ofn;
     BOOL r;
     /* DWORD err; */
+    int old_dopause;
 
     /* Initialize OPENFILENAME */
     ZeroMemory(&ofn, sizeof(ofn));
@@ -167,6 +173,7 @@ file_dlg_w(HWND hwnd, WCHAR *f, WCHAR *fn, int save)
      * Set lpstrFile[0] to '\0' so that GetOpenFileName does
      * not use the contents of szFile to initialize itself.
      */
+    memset(ofn.lpstrFile, 0x00, 512 * sizeof(WCHAR));
     memcpy(ofn.lpstrFile, fn, (wcslen(fn) << 1) + 2);
     ofn.nMaxFile = sizeof_w(wopenfilestring);
     ofn.lpstrFilter = f;
@@ -177,17 +184,22 @@ file_dlg_w(HWND hwnd, WCHAR *f, WCHAR *fn, int save)
     ofn.Flags = OFN_PATHMUSTEXIST;
     if (! save)
 	ofn.Flags |= OFN_FILEMUSTEXIST;
+    if (title)
+    ofn.lpstrTitle = title;
 
     /* Display the Open dialog box. */
+    old_dopause = dopause;
+    plat_pause(1);
     if (save)
 	r = GetSaveFileName(&ofn);
     else
 	r = GetOpenFileName(&ofn);
+    plat_pause(old_dopause);
 
     plat_chdir(usr_path);
 
     if (r) {
-	wcstombs(openfilestring, wopenfilestring, sizeof(openfilestring));
+	c16stombs(openfilestring, wopenfilestring, sizeof(openfilestring));
 	filterindex = ofn.nFilterIndex;
 
 	return(0);
@@ -198,37 +210,44 @@ file_dlg_w(HWND hwnd, WCHAR *f, WCHAR *fn, int save)
 
 
 int
-file_dlg(HWND hwnd, WCHAR *f, char *fn, int save)
+file_dlg(HWND hwnd, WCHAR *f, char *fn, char *title, int save)
 {
-    WCHAR ufn[512];
+    WCHAR ufn[512], title_buf[512];
 
-    mbstowcs(ufn, fn, strlen(fn) + 1);
+    mbstoc16s(ufn, fn, strlen(fn) + 1);
+    if (title)
+        mbstoc16s(title_buf, title, sizeof title_buf);
 
-    return(file_dlg_w(hwnd, f, ufn, save));
+    return(file_dlg_w(hwnd, f, ufn, title ? title_buf : NULL, save));
 }
 
 
 int
-file_dlg_mb(HWND hwnd, char *f, char *fn, int save)
+file_dlg_mb(HWND hwnd, char *f, char *fn, char *title, int save)
 {
-    WCHAR uf[512], ufn[512];
+    WCHAR uf[512], ufn[512], title_buf[512];
 
-    mbstowcs(uf, f, strlen(fn) + 1);
-    mbstowcs(ufn, fn, strlen(fn) + 1);
+    mbstoc16s(uf, f, strlen(f) + 1);
+    mbstoc16s(ufn, fn, strlen(fn) + 1);
+    if (title)
+        mbstoc16s(title_buf, title, sizeof title_buf);
 
-    return(file_dlg_w(hwnd, uf, ufn, save));
+    return(file_dlg_w(hwnd, uf, ufn, title ? title_buf : NULL, save));
 }
 
 
 int
-file_dlg_w_st(HWND hwnd, int id, WCHAR *fn, int save)
+file_dlg_w_st(HWND hwnd, int id, WCHAR *fn, char *title, int save)
 {
-    return(file_dlg_w(hwnd, plat_get_string(id), fn, save));
+    WCHAR title_buf[512];
+    if (title)
+        mbstoc16s(title_buf, title, sizeof title_buf);
+    return(file_dlg_w(hwnd, plat_get_string(id), fn, title ? title_buf : NULL, save));
 }
 
 
 int
-file_dlg_st(HWND hwnd, int id, char *fn, int save)
+file_dlg_st(HWND hwnd, int id, char *fn, char *title, int save)
 {
-    return(file_dlg(hwnd, plat_get_string(id), fn, save));
+    return(file_dlg(hwnd, plat_get_string(id), fn, title, save));
 }

@@ -41,7 +41,7 @@
 #define COMPOSITE_OLD 0
 #define COMPOSITE_NEW 1
 
-static uint8_t crtcmask[32] = 
+static uint8_t crtcmask[32] =
 {
 	0xff, 0xff, 0xff, 0xff, 0x7f, 0x1f, 0x7f, 0x7f, 0xf3, 0x1f, 0x7f, 0x1f, 0x3f, 0xff, 0x3f, 0xff,
 	0xff, 0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
@@ -58,6 +58,9 @@ cga_out(uint16_t addr, uint8_t val, void *p)
     cga_t *cga = (cga_t *) p;
     uint8_t old;
 
+    if ((addr >= 0x3d0) && (addr <= 0x3d7))
+	addr = (addr & 0xff9) | 0x004;
+
     switch (addr) {
 	case 0x3D4:
 		cga->crtcreg = val & 31;
@@ -67,7 +70,7 @@ cga_out(uint16_t addr, uint8_t val, void *p)
 		cga->crtc[cga->crtcreg] = val & crtcmask[cga->crtcreg];
 		if (old != val) {
 			if ((cga->crtcreg < 0xe) || (cga->crtcreg > 0x10)) {
-				fullchange = changeframecount;
+                cga->fullchange = changeframecount;
 				cga_recalctimings(cga);
 			}
 		}
@@ -100,6 +103,9 @@ cga_in(uint16_t addr, void *p)
 
     uint8_t ret = 0xff;
 
+    if ((addr >= 0x3d0) && (addr <= 0x3d7))
+	addr = (addr & 0xff9) | 0x004;
+
     switch (addr) {
 	case 0x3D4:
 		ret = cga->crtcreg;
@@ -123,7 +129,7 @@ cga_waitstates(void *p)
     int ws;
 
     ws = ws_array[cycles & 0xf];
-    sub_cycles(ws);
+    cycles -= ws;
 }
 
 
@@ -138,7 +144,6 @@ cga_write(uint32_t addr, uint8_t val, void *p)
 		cga->charbuffer[offset] = cga->vram[addr & 0x3fff];
 		cga->charbuffer[offset | 1] = cga->vram[addr & 0x3fff];
     }
-    egawrites++;
     cga_waitstates(cga);
 }
 
@@ -154,7 +159,6 @@ cga_read(uint32_t addr, void *p)
 		cga->charbuffer[offset] = cga->vram[addr & 0x3fff];
 		cga->charbuffer[offset | 1] = cga->vram[addr & 0x3fff];
     }
-    egareads++;
     return cga->vram[addr & 0x3fff];
 }
 
@@ -200,7 +204,7 @@ cga_poll(void *p)
 	cga->cgastat |= 1;
 	cga->linepos = 1;
 	oldsc = cga->sc;
-	if ((cga->crtc[8] & 3) == 3) 
+	if ((cga->crtc[8] & 3) == 3)
 		cga->sc = ((cga->sc << 1) + cga->oddeven) & 7;
 	if (cga->cgadispon) {
 		if (cga->displine < cga->firstline) {
@@ -233,7 +237,7 @@ cga_poll(void *p)
 		}
 		if (cga->cgamode & 1) {
 			for (x = 0; x < cga->crtc[1]; x++) {
-				if (cga->cgamode & 8) {	
+				if (cga->cgamode & 8) {
 					chr = cga->charbuffer[x << 1];
 					attr = cga->charbuffer[(x << 1) + 1];
 				} else
@@ -242,7 +246,7 @@ cga_poll(void *p)
 				cols[1] = (attr & 15) + 16;
 				if (cga->cgamode & 0x20) {
 					cols[0] = ((attr >> 4) & 7) + 16;
-					if ((cga->cgablink & 8) && (attr & 0x80) && !cga->drawcursor) 
+					if ((cga->cgablink & 8) && (attr & 0x80) && !cga->drawcursor)
 						cols[1] = cols[0];
 				} else
 					cols[0] = (attr >> 4) + 16;
@@ -329,7 +333,7 @@ cga_poll(void *p)
 		} else {
 			cols[0] = 0; cols[1] = (cga->cgacol & 15) + 16;
 			for (x = 0; x < cga->crtc[1]; x++) {
-				if (cga->cgamode & 8)	
+				if (cga->cgamode & 8)
 					dat = (cga->vram[((cga->ma << 1) & 0x1fff) + ((cga->sc & 1) * 0x2000)] << 8) | cga->vram[((cga->ma << 1) & 0x1fff) + ((cga->sc & 1) * 0x2000) + 1];
 				else
 					dat = 0;
@@ -372,7 +376,7 @@ cga_poll(void *p)
 	if (cga->vc == cga->crtc[7] && !cga->sc)
 		cga->cgastat |= 8;
 	cga->displine++;
-	if (cga->displine >= 360) 
+	if (cga->displine >= 360)
 		cga->displine = 0;
     } else {
 	timer_advance_u64(&cga->timer, cga->dispontime);
@@ -383,8 +387,8 @@ cga_poll(void *p)
 			cga->cgastat &= ~8;
 	}
 	if (cga->sc == (cga->crtc[11] & 31) || ((cga->crtc[8] & 3) == 3 && cga->sc == ((cga->crtc[11] & 31) >> 1))) {
-		cga->con = 0; 
-		cga->coff = 1; 
+		cga->con = 0;
+		cga->coff = 1;
 	}
 	if ((cga->crtc[8] & 3) == 3 && cga->sc == (cga->crtc[9] >> 1))
 		cga->maback = cga->ma;
@@ -405,7 +409,7 @@ cga_poll(void *p)
 		cga->vc++;
 		cga->vc &= 127;
 
-		if (cga->vc == cga->crtc[6]) 
+		if (cga->vc == cga->crtc[6])
 			cga->cgadispon = 0;
 
 		if (oldvc == cga->crtc[4]) {
@@ -458,18 +462,18 @@ cga_poll(void *p)
 					}
 
 					if (enable_overscan) {
-						if (cga->composite) 
-							video_blit_memtoscreen(0, (cga->firstline - 4) << 1, 0, ((cga->lastline - cga->firstline) + 8) << 1,
+						if (cga->composite)
+							video_blit_memtoscreen(0, (cga->firstline - 4) << 1,
 								       xsize, ((cga->lastline - cga->firstline) + 8) << 1);
 						else
-							video_blit_memtoscreen_8(0, (cga->firstline - 4) << 1, 0, ((cga->lastline - cga->firstline) + 8) << 1,
+							video_blit_memtoscreen_8(0, (cga->firstline - 4) << 1,
 										 xsize, ((cga->lastline - cga->firstline) + 8) << 1);
 					} else {
-						if (cga->composite) 
-							video_blit_memtoscreen(8, cga->firstline << 1, 0, (cga->lastline - cga->firstline) << 1,
+						if (cga->composite)
+							video_blit_memtoscreen(8, cga->firstline << 1,
 								       xsize, (cga->lastline - cga->firstline) << 1);
 						else
-							video_blit_memtoscreen_8(8, cga->firstline << 1, 0, (cga->lastline - cga->firstline) << 1,
+							video_blit_memtoscreen_8(8, cga->firstline << 1,
 										 xsize, (cga->lastline - cga->firstline) << 1);
 					}
 				}
@@ -504,7 +508,7 @@ cga_poll(void *p)
 	}
 	if (cga->cgadispon)
 		cga->cgastat &= ~1;
-	if ((cga->sc == (cga->crtc[10] & 31) || ((cga->crtc[8] & 3) == 3 && cga->sc == ((cga->crtc[10] & 31) >> 1)))) 
+	if ((cga->sc == (cga->crtc[10] & 31) || ((cga->crtc[8] & 3) == 3 && cga->sc == ((cga->crtc[10] & 31) >> 1))))
 		cga->con = 1;
 	if (cga->cgadispon && (cga->cgamode & 1)) {
 		for (x = 0; x < (cga->crtc[1] << 1); x++)
@@ -571,78 +575,99 @@ cga_speed_changed(void *p)
     cga_recalctimings(cga);
 }
 
-
-const device_config_t cga_config[] =
-{
-        {
-                "display_type", "Display type", CONFIG_SELECTION, "", CGA_RGB,
-                {
-                        {
-                                "RGB", CGA_RGB
-                        },
-                        {
-                                "Composite", CGA_COMPOSITE
-                        },
-                        {
-                                ""
-                        }
-                }
-        },
-        {
-                "composite_type", "Composite type", CONFIG_SELECTION, "", COMPOSITE_OLD,
-                {
-                        {
-                                "Old", COMPOSITE_OLD
-                        },
-                        {
-                                "New", COMPOSITE_NEW
-                        },
-                        {
-                                ""
-                        }
-                }
-        },
-        {
-                "rgb_type", "RGB type", CONFIG_SELECTION, "", 0,
-                {
-                        {
-                                "Color", 0
-                        },
-                        {
-                                "Green Monochrome", 1
-                        },
-                        {
-                                "Amber Monochrome", 2
-                        },
-                        {
-                                "Gray Monochrome", 3
-                        },
-                        {
-                                "Color (no brown)", 4
-                        },
-                        {
-                                ""
-                        }
-                }
-        },
-        {
-                "snow_enabled", "Snow emulation", CONFIG_BINARY, "", 1
-        },
-        {
-                "", "", -1
+// clang-format off
+const device_config_t cga_config[] = {
+    {
+        .name = "display_type",
+        .description = "Display type",
+        .type = CONFIG_SELECTION,
+        .default_int = CGA_RGB,
+        .selection = {
+            {
+                .description = "RGB",
+                .value = CGA_RGB
+            },
+            {
+                .description = "Composite",
+                .value = CGA_COMPOSITE
+            },
+            {
+                .description = ""
+            }
         }
+    },
+    {
+        .name = "composite_type",
+        .description = "Composite type",
+        .type = CONFIG_SELECTION,
+        .default_int = COMPOSITE_OLD,
+        .selection = {
+            {
+                .description = "Old",
+                .value = COMPOSITE_OLD
+            },
+            {
+                .description = "New",
+                .value = COMPOSITE_NEW
+            },
+            {
+                .description = ""
+            }
+        }
+    },
+    {
+        .name = "rgb_type",
+        .description = "RGB type",
+        .type = CONFIG_SELECTION,
+        .default_int = 0,
+        .selection = {
+            {
+                .description = "Color",
+                .value = 0
+            },
+            {
+                .description = "Green Monochrome",
+                .value = 1
+            },
+            {
+                .description = "Amber Monochrome",
+                .value = 2
+            },
+            {
+                .description = "Gray Monochrome",
+                .value = 3
+            },
+            {
+                .description = "Color (no brown)",
+                .value = 4
+            },
+            {
+                .description = ""
+            }
+        }
+    },
+    {
+        .name = "snow_enabled",
+        .description = "Snow emulation",
+        .type = CONFIG_BINARY,
+        .default_int = 1
+    },
+    {
+        .type = CONFIG_END
+    }
 };
+// clang-format on
 
-
-const device_t cga_device =
-{
-        "CGA",
-        DEVICE_ISA, 0,
-        cga_standalone_init,
-        cga_close,
-	NULL,
-        NULL,
-        cga_speed_changed,
-        NULL,
-        cga_config
+const device_t cga_device = {
+    .name = "CGA",
+    .internal_name = "cga",
+    .flags = DEVICE_ISA,
+    .local = 0,
+    .init = cga_standalone_init,
+    .close = cga_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = cga_speed_changed,
+    .force_redraw = NULL,
+    .config = cga_config
 };

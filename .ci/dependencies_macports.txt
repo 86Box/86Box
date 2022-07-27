@@ -1,0 +1,10 @@
+cmake
+pkgconfig
+ninja
+freetype
+libsdl2
+libpng
+FAudio
+rtmidi
+qt5
+wget

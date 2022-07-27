@@ -56,6 +56,7 @@ void host_x86_LEA_REG_REG(codeblock_t *block, int dst_reg, int src_reg_a, int sr
 void host_x86_LEA_REG_REG_SHIFT(codeblock_t *block, int dst_reg, int src_reg_a, int src_reg_b, int shift);
 
 void host_x86_MOV8_ABS_IMM(codeblock_t *block, void *p, uint32_t imm_data);
+void host_x86_MOV16_ABS_IMM(codeblock_t *block, void *p, uint16_t imm_data);
 void host_x86_MOV32_ABS_IMM(codeblock_t *block, void *p, uint32_t imm_data);
 
 void host_x86_MOV8_ABS_REG(codeblock_t *block, void *p, int src_reg);
@@ -71,6 +72,8 @@ void host_x86_MOV32_BASE_INDEX_REG(codeblock_t *block, int dst_reg, int base_reg
 
 void host_x86_MOV32_BASE_OFFSET_REG(codeblock_t *block, int base_reg, int offset, int src_reg);
 void host_x86_MOV64_BASE_OFFSET_REG(codeblock_t *block, int base_reg, int offset, int src_reg);
+
+void host_x86_MOV32_BASE_OFFSET_IMM(codeblock_t *block, int base_reg, int offset, uint32_t imm_data);
 
 void host_x86_MOV8_REG_ABS(codeblock_t *block, int dst_reg, void *p);
 void host_x86_MOV16_REG_ABS(codeblock_t *block, int dst_reg, void *p);

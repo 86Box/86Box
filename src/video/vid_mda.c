@@ -79,14 +79,12 @@ uint8_t mda_in(uint16_t addr, void *p)
 void mda_write(uint32_t addr, uint8_t val, void *p)
 {
         mda_t *mda = (mda_t *)p;
-        egawrites++;
         mda->vram[addr & 0xfff] = val;
 }
 
 uint8_t mda_read(uint32_t addr, void *p)
 {
         mda_t *mda = (mda_t *)p;
-        egareads++;
         return mda->vram[addr & 0xfff];
 }
 
@@ -112,13 +110,15 @@ void mda_poll(void *p)
         uint8_t chr, attr;
         int oldsc;
         int blink;
+
+        VIDEO_MONITOR_PROLOGUE()
         if (!mda->linepos)
         {
 		timer_advance_u64(&mda->timer, mda->dispofftime);
                 mda->stat |= 1;
                 mda->linepos = 1;
                 oldsc = mda->sc;
-                if ((mda->crtc[8] & 3) == 3) 
+                if ((mda->crtc[8] & 3) == 3)
                         mda->sc = (mda->sc << 1) & 7;
                 if (mda->dispon)
                 {
@@ -160,7 +160,7 @@ void mda_poll(void *p)
                         mda->stat |= 8;
                 }
                 mda->displine++;
-                if (mda->displine >= 500) 
+                if (mda->displine >= 500)
                         mda->displine=0;
         }
         else
@@ -176,10 +176,10 @@ void mda_poll(void *p)
                                 mda->stat&=~8;
                         }
                 }
-                if (mda->sc == (mda->crtc[11] & 31) || ((mda->crtc[8] & 3) == 3 && mda->sc == ((mda->crtc[11] & 31) >> 1))) 
-                { 
-                        mda->con = 0; 
-                        mda->coff = 1; 
+                if (mda->sc == (mda->crtc[11] & 31) || ((mda->crtc[8] & 3) == 3 && mda->sc == ((mda->crtc[11] & 31) >> 1)))
+                {
+                        mda->con = 0;
+                        mda->coff = 1;
                 }
                 if (mda->vadj)
                 {
@@ -201,7 +201,7 @@ void mda_poll(void *p)
                         oldvc = mda->vc;
                         mda->vc++;
                         mda->vc &= 127;
-                        if (mda->vc == mda->crtc[6]) 
+                        if (mda->vc == mda->crtc[6])
                                 mda->dispon=0;
                         if (oldvc == mda->crtc[4])
                         {
@@ -232,7 +232,7 @@ void mda_poll(void *p)
 						if (video_force_resize_get())
 							video_force_resize_set(0);
                                         }
-                                        video_blit_memtoscreen_8(0, mda->firstline, 0, ysize, xsize, ysize);
+                                        video_blit_memtoscreen_8(0, mda->firstline, xsize, ysize);
                                         frames++;
                                         video_res_x = mda->crtc[1];
                                         video_res_y = mda->crtc[6];
@@ -254,6 +254,7 @@ void mda_poll(void *p)
                         mda->con = 1;
                 }
         }
+        VIDEO_MONITOR_EPILOGUE();
 }
 
 void mda_init(mda_t *mda)
@@ -280,13 +281,14 @@ void mda_init(mda_t *mda)
         mdacols[0x88][0][1] = mdacols[0x88][1][1] = 16;
 
 	overscan_x = overscan_y = 0;
+    mda->monitor_index = monitor_index_global;
 
         cga_palette = device_get_config_int("rgb_type") << 1;
 	if (cga_palette > 6)
 	{
 		cga_palette = 0;
 	}
-	cgapal_rebuild();	
+	cgapal_rebuild();
 
         timer_add(&mda->timer, mda_poll, mda, 1);
 }
@@ -325,45 +327,55 @@ void mda_close(void *p)
 void mda_speed_changed(void *p)
 {
         mda_t *mda = (mda_t *)p;
-        
+
         mda_recalctimings(mda);
 }
 
-static const device_config_t mda_config[] =
-{
-        {
-                "rgb_type", "Display type", CONFIG_SELECTION, "", 0,
-                {
-                        {
-                                "Default", 0
-                        },
-                        {
-                                "Green", 1
-                        },
-                        {
-                                "Amber", 2
-                        },
-                        {
-                                "Gray", 3
-                        },
-                        {
-                                ""
-                        }
-                }
-        },
-        {
-                "", "", -1
+static const device_config_t mda_config[] = {
+// clang-format off
+    {
+        .name = "rgb_type",
+        .description = "Display type",
+        .type = CONFIG_SELECTION,
+        .default_int = 0,
+        .selection = {
+            {
+                .description = "Default",
+                .value = 0
+            },
+            {
+                .description = "Green",
+                .value = 1
+            },
+            {
+                .description = "Amber",
+                .value = 2
+            },
+            {
+                .description = "Gray",
+                .value = 3
+            },
+            {
+                .description = ""
+            }
         }
+    },
+    {
+        .type = CONFIG_END
+    }
+// clang-format on
 };
 
-
-const device_t mda_device =
-{
-        "MDA",
-        DEVICE_ISA, 0,
-        mda_standalone_init, mda_close, NULL,
-        NULL,
-        mda_speed_changed,
-        NULL,
-	mda_config
+const device_t mda_device = {
+    .name = "MDA",
+    .internal_name = "mda",
+    .flags = DEVICE_ISA,
+    .local = 0,
+    .init = mda_standalone_init,
+    .close = mda_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = mda_speed_changed,
+    .force_redraw = NULL,
+    .config = mda_config
 };

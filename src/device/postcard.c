@@ -66,21 +66,17 @@ static void
 postcard_setui(void)
 {
     if (!postcard_written)
-    	sprintf(postcard_str, "POST: -- --");
+	sprintf(postcard_str, "POST: -- --");
     else if (postcard_written == 1)
-    	sprintf(postcard_str, "POST: %02X --", postcard_code);
+	sprintf(postcard_str, "POST: %02X --", postcard_code);
     else
-    	sprintf(postcard_str, "POST: %02X %02X", postcard_code, postcard_prev_code);
+	sprintf(postcard_str, "POST: %02X %02X", postcard_code, postcard_prev_code);
 
     ui_sb_bugui(postcard_str);
 
     if (postcard_do_log) {
-    	/* log same string sent to the UI */
-    	int len = strlen(postcard_str);
-    	postcard_str[len + 1] = '\0';
-    	postcard_str[len] = '\n';
-	postcard_log("[%04X:%08X] ", CS, cpu_state.pc);
-    	postcard_log(postcard_str);
+	/* log same string sent to the UI */
+	postcard_log("[%04X:%08X] %s\n", CS, cpu_state.pc, postcard_str);
     }
 }
 
@@ -98,13 +94,13 @@ postcard_reset(void)
 static void
 postcard_write(uint16_t port, uint8_t val, void *priv)
 {
-    if (postcard_written && val == postcard_code)
-    	return;
+    if (postcard_written && (val == postcard_code))
+	return;
 
     postcard_prev_code = postcard_code;
     postcard_code = val;
     if (postcard_written < 2)
-    	postcard_written++;
+	postcard_written++;
 
     postcard_setui();
 }
@@ -115,12 +111,18 @@ postcard_init(const device_t *info)
 {
     postcard_reset();
 
-    if (machines[machine].flags & MACHINE_MCA)
-    	postcard_port = 0x680; /* MCA machines */
-    else if (strstr(machines[machine].name, " PS/2 "))
-    	postcard_port = 0x90;  /* ISA PS/2 machines */
+    if (machine_has_bus(machine, MACHINE_BUS_MCA))
+	postcard_port = 0x680; /* MCA machines */
+    else if (strstr(machines[machine].name, " PS/2 ") || strstr(machine_getname_ex(machine), " PS/1 "))
+	postcard_port = 0x190; /* ISA PS/2 machines */
+    else if (strstr(machines[machine].name, " IBM XT "))
+	postcard_port = 0x60;  /* IBM XT */
+    else if (strstr(machines[machine].name, " IBM PCjr"))
+	postcard_port = 0x10;  /* IBM PCjr */
+    else if (strstr(machines[machine].name, " Compaq ") && !machine_has_bus(machine, MACHINE_BUS_PCI))
+	postcard_port = 0x84;  /* ISA Compaq machines */
     else
-    	postcard_port = 0x80;  /* AT and clone machines */
+	postcard_port = 0x80;  /* AT and clone machines */
     postcard_log("POST card initializing on port %04Xh\n", postcard_port);
 
     if (postcard_port) io_sethandler(postcard_port, 1,
@@ -137,12 +139,16 @@ postcard_close(UNUSED(void *priv))
 		     NULL, NULL, NULL, postcard_write, NULL, NULL,  NULL);
 }
 
-
 const device_t postcard_device = {
-    "POST Card",
-    DEVICE_ISA,
-    0,
-    postcard_init, postcard_close, NULL,
-    NULL, NULL, NULL,
-    NULL
+    .name = "POST Card",
+    .internal_name = "postcard",
+    .flags = DEVICE_ISA,
+    .local = 0,
+    .init = postcard_init,
+    .close = postcard_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };

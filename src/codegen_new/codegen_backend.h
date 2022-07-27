@@ -1,13 +1,13 @@
 #ifndef _CODEGEN_BACKEND_H_
 #define _CODEGEN_BACKEND_H_
 
-#if defined __amd64__
+#if defined __amd64__ || defined _M_X64
 #include "codegen_backend_x86-64.h"
 #elif defined i386 || defined __i386 || defined __i386__ || defined _X86_ || defined _M_IX86
 #include "codegen_backend_x86.h"
-#elif defined __ARM_EABI__ || defined _ARM_
+#elif defined __ARM_EABI__ || defined _ARM_ || defined _M_ARM
 #include "codegen_backend_arm.h"
-#elif defined __aarch64__
+#elif defined __aarch64__ || defined _M_ARM64
 #include "codegen_backend_arm64.h"
 #else
 #error Dynamic recompiler not implemented on your platform

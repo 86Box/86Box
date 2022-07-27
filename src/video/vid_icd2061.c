@@ -98,7 +98,7 @@ icd2061_write(void *p, int val)
 
 		if (icd2061->bit_count == 26) {
 			icd2061_log("26 bits received, data = %08X\n", icd2061->data);
-	
+
 			a = ((icd2061->data >> 22) & 0x07);	/* A  */
 			icd2061_log("A = %01X\n", a);
 
@@ -165,20 +165,30 @@ icd2061_close(void *priv)
 	free(icd2061);
 }
 
-
-const device_t icd2061_device =
-{
-        "ICD2061 Clock Generator",
-        0, 0,
-        icd2061_init, icd2061_close,
-	NULL, NULL, NULL, NULL
+const device_t icd2061_device = {
+    .name = "ICD2061 Clock Generator",
+    .internal_name = "icd2061",
+    .flags = 0,
+    .local = 0,
+    .init = icd2061_init,
+    .close = icd2061_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
-
-const device_t ics9161_device =
-{
-        "ICS9161 Clock Generator",
-        0, 0,
-        icd2061_init, icd2061_close,
-	NULL, NULL, NULL, NULL
+const device_t ics9161_device = {
+    .name = "ICS9161 Clock Generator",
+    .internal_name = "ics9161",
+    .flags = 0,
+    .local = 0,
+    .init = icd2061_init,
+    .close = icd2061_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };

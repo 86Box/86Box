@@ -1,13 +1,13 @@
 static int opARPL_a16(uint32_t fetchdat)
 {
         uint16_t temp_seg;
-        
+
         NOTRM
         fetch_ea_16(fetchdat);
         if (cpu_mod != 3)
                 SEG_CHECK_WRITE(cpu_state.ea_seg);
         temp_seg = geteaw();            if (cpu_state.abrt) return 1;
-        
+
         flags_rebuild();
         if ((temp_seg & 3) < (cpu_state.regs[cpu_reg].w & 3))
         {
@@ -17,7 +17,7 @@ static int opARPL_a16(uint32_t fetchdat)
         }
         else
                 cpu_state.flags &= ~Z_FLAG;
-        
+
         CLOCK_CYCLES(is486 ? 9 : 20);
         PREFETCH_RUN(is486 ? 9 : 20, 2, rmdat, 1,0,1,0, 0);
         return 0;
@@ -25,13 +25,13 @@ static int opARPL_a16(uint32_t fetchdat)
 static int opARPL_a32(uint32_t fetchdat)
 {
         uint16_t temp_seg;
-        
+
         NOTRM
         fetch_ea_32(fetchdat);
         if (cpu_mod != 3)
                 SEG_CHECK_WRITE(cpu_state.ea_seg);
         temp_seg = geteaw();            if (cpu_state.abrt) return 1;
-        
+
         flags_rebuild();
         if ((temp_seg & 3) < (cpu_state.regs[cpu_reg].w & 3))
         {
@@ -41,7 +41,7 @@ static int opARPL_a32(uint32_t fetchdat)
         }
         else
                 cpu_state.flags &= ~Z_FLAG;
-        
+
         CLOCK_CYCLES(is486 ? 9 : 20);
         PREFETCH_RUN(is486 ? 9 : 20, 2, rmdat, 1,0,1,0, 1);
         return 0;
@@ -163,7 +163,7 @@ static int op0F00_common(uint32_t fetchdat, int ea32)
         int dpl, valid, granularity;
         uint32_t addr, base, limit;
         uint16_t desc, sel;
-        uint8_t access;
+        uint8_t access, ar_high;
 
         switch (rmdat & 0x38)
         {
@@ -194,10 +194,12 @@ static int op0F00_common(uint32_t fetchdat, int ea32)
                 limit = readmemw(0, addr) + ((readmemb(0, addr + 6) & 0xf) << 16);
                 base = (readmemw(0, addr + 2)) | (readmemb(0, addr + 4) << 16) | (readmemb(0, addr + 7) << 24);
                 access = readmemb(0, addr + 5);
+                ar_high = readmemb(0, addr + 6);
                 granularity = readmemb(0, addr + 6) & 0x80;
                 if (cpu_state.abrt) return 1;
                 ldt.limit = limit;
                 ldt.access = access;
+                ldt.ar_high = ar_high;
                 if (granularity)
                 {
                         ldt.limit <<= 12;
@@ -221,6 +223,7 @@ static int op0F00_common(uint32_t fetchdat, int ea32)
                 limit = readmemw(0, addr) + ((readmemb(0, addr + 6) & 0xf) << 16);
                 base = (readmemw(0, addr + 2)) | (readmemb(0, addr + 4) << 16) | (readmemb(0, addr + 7) << 24);
                 access = readmemb(0, addr + 5);
+                ar_high = readmemb(0, addr + 6);
                 granularity = readmemb(0, addr + 6) & 0x80;
                 if (cpu_state.abrt) return 1;
                 access |= 2;
@@ -229,6 +232,7 @@ static int op0F00_common(uint32_t fetchdat, int ea32)
                 tr.seg = sel;
                 tr.limit = limit;
                 tr.access = access;
+                tr.ar_high = ar_high;
                 if (granularity)
                 {
                         tr.limit <<= 12;
@@ -294,7 +298,7 @@ static int op0F00_a16(uint32_t fetchdat)
         NOTRM
 
         fetch_ea_16(fetchdat);
-        
+
         return op0F00_common(fetchdat, 0);
 }
 static int op0F00_a32(uint32_t fetchdat)
@@ -302,7 +306,7 @@ static int op0F00_a32(uint32_t fetchdat)
         NOTRM
 
         fetch_ea_32(fetchdat);
-        
+
         return op0F00_common(fetchdat, 1);
 }
 
@@ -371,7 +375,7 @@ static int op0F01_common(uint32_t fetchdat, int is32, int is286, int ea32)
                 if (cpu_mod != 3)
                         SEG_CHECK_WRITE(cpu_state.ea_seg);
                 if (is486 || isibm486)      seteaw(msw);
-                else if (is386) seteaw(msw | 0xFF00);
+                else if (is386) seteaw(msw | /* 0xFF00 */ 0xFFE0);
                 else            seteaw(msw | 0xFFF0);
                 CLOCK_CYCLES(2);
                 PREFETCH_RUN(2, 2, rmdat, 0,0,(cpu_mod == 3) ? 0:1,0, ea32);
@@ -426,31 +430,31 @@ static int op0F01_common(uint32_t fetchdat, int is32, int is286, int ea32)
 static int op0F01_w_a16(uint32_t fetchdat)
 {
         fetch_ea_16(fetchdat);
-        
+
         return op0F01_common(fetchdat, 0, 0, 0);
 }
 static int op0F01_w_a32(uint32_t fetchdat)
 {
         fetch_ea_32(fetchdat);
-        
+
         return op0F01_common(fetchdat, 0, 0, 1);
 }
 static int op0F01_l_a16(uint32_t fetchdat)
 {
         fetch_ea_16(fetchdat);
-        
+
         return op0F01_common(fetchdat, 1, 0, 0);
 }
 static int op0F01_l_a32(uint32_t fetchdat)
 {
         fetch_ea_32(fetchdat);
-        
+
         return op0F01_common(fetchdat, 1, 0, 1);
 }
 
 static int op0F01_286(uint32_t fetchdat)
 {
         fetch_ea_16(fetchdat);
-        
+
         return op0F01_common(fetchdat, 0, 1, 0);
 }

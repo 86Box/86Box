@@ -262,7 +262,7 @@ static int opMOV_AL_a16(uint32_t fetchdat)
         AL = temp;
         CLOCK_CYCLES((is486) ? 1 : 4);
         PREFETCH_RUN(4, 3, -1, 1,0,0,0, 0);
-        return 0;        
+        return 0;
 }
 static int opMOV_AL_a32(uint32_t fetchdat)
 {
@@ -274,19 +274,19 @@ static int opMOV_AL_a32(uint32_t fetchdat)
         AL = temp;
         CLOCK_CYCLES((is486) ? 1 : 4);
         PREFETCH_RUN(4, 5, -1, 1,0,0,0, 1);
-        return 0;        
+        return 0;
 }
 static int opMOV_AX_a16(uint32_t fetchdat)
 {
 	uint16_t temp;
         uint16_t addr = getwordf();
         SEG_CHECK_READ(cpu_state.ea_seg);
-        CHECK_READ(cpu_state.ea_seg, addr, addr+1);
+        CHECK_READ(cpu_state.ea_seg, addr, addr + 1UL);
         temp = readmemw(cpu_state.ea_seg->base, addr);     if (cpu_state.abrt) return 1;
         AX = temp;
         CLOCK_CYCLES((is486) ? 1 : 4);
         PREFETCH_RUN(4, 3, -1, 1,0,0,0, 0);
-        return 0;        
+        return 0;
 }
 static int opMOV_AX_a32(uint32_t fetchdat)
 {
@@ -298,19 +298,19 @@ static int opMOV_AX_a32(uint32_t fetchdat)
         AX = temp;
         CLOCK_CYCLES((is486) ? 1 : 4);
         PREFETCH_RUN(4, 5, -1, 1,0,0,0, 1);
-        return 0;        
+        return 0;
 }
 static int opMOV_EAX_a16(uint32_t fetchdat)
 {
 	uint32_t temp;
         uint16_t addr = getwordf();
         SEG_CHECK_READ(cpu_state.ea_seg);
-        CHECK_READ(cpu_state.ea_seg, addr, addr+3);
+        CHECK_READ(cpu_state.ea_seg, addr, addr + 3UL);
         temp = readmeml(cpu_state.ea_seg->base, addr);     if (cpu_state.abrt) return 1;
         EAX = temp;
         CLOCK_CYCLES((is486) ? 1 : 4);
         PREFETCH_RUN(4, 3, -1, 0,1,0,0, 0);
-        return 0;        
+        return 0;
 }
 static int opMOV_EAX_a32(uint32_t fetchdat)
 {
@@ -322,7 +322,7 @@ static int opMOV_EAX_a32(uint32_t fetchdat)
         EAX = temp;
         CLOCK_CYCLES((is486) ? 1 : 4);
         PREFETCH_RUN(4, 5, -1, 0,1,0,0, 1);
-        return 0;        
+        return 0;
 }
 
 static int opMOV_a16_AL(uint32_t fetchdat)
@@ -349,7 +349,7 @@ static int opMOV_a16_AX(uint32_t fetchdat)
 {
         uint16_t addr = getwordf();
         SEG_CHECK_WRITE(cpu_state.ea_seg);
-        CHECK_WRITE_COMMON(cpu_state.ea_seg, addr, addr + 1);
+        CHECK_WRITE_COMMON(cpu_state.ea_seg, addr, addr + 1UL);
         writememw(cpu_state.ea_seg->base, addr, AX);
         CLOCK_CYCLES((is486) ? 1 : 2);
         PREFETCH_RUN(2, 3, -1, 0,0,1,0, 0);
@@ -369,7 +369,7 @@ static int opMOV_a16_EAX(uint32_t fetchdat)
 {
         uint16_t addr = getwordf();
         SEG_CHECK_WRITE(cpu_state.ea_seg);
-        CHECK_WRITE_COMMON(cpu_state.ea_seg, addr, addr + 3);
+        CHECK_WRITE_COMMON(cpu_state.ea_seg, addr, addr + 3UL);
         writememl(cpu_state.ea_seg->base, addr, EAX);
         CLOCK_CYCLES((is486) ? 1 : 2);
         PREFETCH_RUN(2, 3, -1, 0,0,0,1, 0);
@@ -431,7 +431,7 @@ static int opXLAT_a16(uint32_t fetchdat)
 {
         uint32_t addr = (BX + AL)&0xFFFF;
         uint8_t temp;
-        
+
         SEG_CHECK_READ(cpu_state.ea_seg);
         temp = readmemb(cpu_state.ea_seg->base, addr); if (cpu_state.abrt) return 1;
         AL = temp;
@@ -443,7 +443,7 @@ static int opXLAT_a32(uint32_t fetchdat)
 {
         uint32_t addr = EBX + AL;
         uint8_t temp;
-        
+
         SEG_CHECK_READ(cpu_state.ea_seg);
         temp = readmemb(cpu_state.ea_seg->base, addr); if (cpu_state.abrt) return 1;
         AL = temp;
@@ -498,7 +498,7 @@ static int opMOV_w_r_a16(uint32_t fetchdat)
                 PREFETCH_RUN(timing_rr, 2, rmdat, 0,0,0,0, 0);
         }
         else
-        { 
+        {
                 SEG_CHECK_WRITE(cpu_state.ea_seg);
                 seteaw(cpu_state.regs[cpu_reg].w);
                 CLOCK_CYCLES(is486 ? 1 : 2);
@@ -516,7 +516,7 @@ static int opMOV_w_r_a32(uint32_t fetchdat)
                 PREFETCH_RUN(timing_rr, 2, rmdat, 0,0,0,0, 1);
         }
         else
-        { 
+        {
                 SEG_CHECK_WRITE(cpu_state.ea_seg);
                 seteaw(cpu_state.regs[cpu_reg].w);
                 CLOCK_CYCLES(is486 ? 1 : 2);
@@ -525,7 +525,7 @@ static int opMOV_w_r_a32(uint32_t fetchdat)
         return cpu_state.abrt;
 }
 static int opMOV_l_r_a16(uint32_t fetchdat)
-{                       
+{
         fetch_ea_16(fetchdat);
         if (cpu_mod == 3)
         {
@@ -543,7 +543,7 @@ static int opMOV_l_r_a16(uint32_t fetchdat)
         return cpu_state.abrt;
 }
 static int opMOV_l_r_a32(uint32_t fetchdat)
-{                       
+{
         fetch_ea_32(fetchdat);
         if (cpu_mod == 3)
         {

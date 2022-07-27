@@ -19,11 +19,13 @@
 #include <string.h>
 #include <wchar.h>
 #include <86box/86box.h>
+#include "cpu.h"
 #include <86box/device.h>
 #include <86box/io.h>
 #include <86box/apm.h>
 #include <86box/dma.h>
 #include <86box/mem.h>
+#include <86box/smram.h>
 #include <86box/pci.h>
 #include <86box/timer.h>
 #include <86box/pit.h>
@@ -32,6 +34,7 @@
 #include <86box/hdc.h>
 #include <86box/machine.h>
 #include <86box/chipset.h>
+#include <86box/spd.h>
 
 
 #define MEM_STATE_SHADOW_R	0x01
@@ -41,11 +44,13 @@
 
 typedef struct
 {
-    uint8_t	id, smram_locked,
+    uint8_t	has_ide, smram_locked,
 		regs[256];
 
     uint16_t	timer_base,
 		timer_latch;
+
+    smram_t	*smram;
 
     double	fast_off_period;
 
@@ -98,24 +103,10 @@ i420ex_map(uint32_t addr, uint32_t size, int state)
 
 
 static void
-i420ex_smram_map(int smm, uint32_t addr, uint32_t size, int is_smram)
-{
-    mem_set_mem_state_smram(smm, addr, size, is_smram);
-    flushmmucache();
-}
-
-
-static void
 i420ex_smram_handler_phase0(void)
 {
     /* Disable low extended SMRAM. */
-    if (smram[0].size != 0x00000000) {
-	i420ex_smram_map(0, smram[0].host_base, smram[0].size, 0);
-	i420ex_smram_map(1, smram[0].host_base, smram[0].size, 0);
-
-	memset(&smram[0], 0x00, sizeof(smram_t));
-	mem_mapping_disable(&ram_smram_mapping[0]);
-    }
+    smram_disable_all();
 }
 
 
@@ -124,58 +115,43 @@ i420ex_smram_handler_phase1(i420ex_t *dev)
 {
     uint8_t *regs = (uint8_t *) dev->regs;
 
-    uint32_t base = 0x000a0000;
+    uint32_t host_base = 0x000a0000, ram_base = 0x000a0000;
     uint32_t size = 0x00010000;
 
     switch (regs[0x70] & 0x07) {
 	case 0: case 1:
 	default:
-		base = size = 0x00000000;
+		host_base = ram_base = 0x00000000;
+		size = 0x00000000;
 		break;
 	case 2:
-		base = 0x000a0000;
-		smram[0].host_base = 0x000a0000;
-		smram[0].ram_base = 0x000a0000;
+		host_base = 0x000a0000;
+		ram_base = 0x000a0000;
 		break;
 	case 3:
-		base = 0x000b0000;
-		smram[0].host_base = 0x000b0000;
-		smram[0].ram_base = 0x000b0000;
+		host_base = 0x000b0000;
+		ram_base = 0x000b0000;
 		break;
 	case 4:
-		base = 0x000c0000;
-		smram[0].host_base = 0x000c0000;
-		smram[0].ram_base = 0x000a0000;
+		host_base = 0x000c0000;
+		ram_base = 0x000a0000;
 		break;
 	case 5:
-		base = 0x000d0000;
-		smram[0].host_base = 0x000d0000;
-		smram[0].ram_base = 0x000a0000;
+		host_base = 0x000d0000;
+		ram_base = 0x000a0000;
 		break;
 	case 6:
-		base = 0x000e0000;
-		smram[0].host_base = 0x000e0000;
-		smram[0].ram_base = 0x000a0000;
+		host_base = 0x000e0000;
+		ram_base = 0x000a0000;
 		break;
 	case 7:
-		base = 0x000f0000;
-		smram[0].host_base = 0x000f0000;
-		smram[0].ram_base = 0x000a0000;
+		host_base = 0x000f0000;
+		ram_base = 0x000a0000;
 		break;
     }
 
-    smram[0].size = size;
-
-    if (size != 0x00000000) {
-	mem_mapping_set_addr(&ram_smram_mapping[0], smram[0].host_base, 0x00010000);
-	mem_mapping_set_exec(&ram_smram_mapping[0], ram + smram[0].ram_base);
-
-	/* If OSS = 1 and LSS = 0, extended SMRAM is visible outside SMM. */
-	i420ex_smram_map(0, base, size, (regs[0x70] & 0x70) == 0x40);
-
-	/* If the register is set accordingly, disable the mapping also in SMM. */
-	i420ex_smram_map(1, base, size, !(regs[0x70] & 0x20));
-    }
+    smram_enable(dev->smram, host_base, ram_base, size,
+		 (regs[0x70] & 0x70) == 0x40, !(regs[0x70] & 0x20));
 }
 
 
@@ -188,10 +164,6 @@ i420ex_write(int func, int addr, uint8_t val, void *priv)
 	return;
 
     if (((addr >= 0x0f) && (addr < 0x4c)) && (addr != 0x40))
-	return;
-
-    /* The IB (original) variant of the I420EX has no PCI IRQ steering. */
-    if ((addr >= 0x60) && (addr <= 0x63) && (dev->id < 0x03))
 	return;
 
     switch (addr) {
@@ -211,29 +183,27 @@ i420ex_write(int func, int addr, uint8_t val, void *priv)
 		break;
 	case 0x48:
 		dev->regs[addr] = (val & 0x3f);
-#ifdef USE_420EX_IDE
-		ide_pri_disable();
-		switch (val & 0x03) {
-			case 0x01:
-				ide_set_base(0, 0x01f0);
-				ide_set_side(0, 0x03f6);
-				ide_pri_enable();
-				break;
-			case 0x02:
-				ide_set_base(0, 0x0170);
-				ide_set_side(0, 0x0376);
-				ide_pri_enable();
-				break;
+		if (dev->has_ide) {
+			ide_pri_disable();
+			switch (val & 0x03) {
+				case 0x01:
+					ide_set_base(0, 0x01f0);
+					ide_set_side(0, 0x03f6);
+					ide_pri_enable();
+					break;
+				case 0x02:
+					ide_set_base(0, 0x0170);
+					ide_set_side(0, 0x0376);
+					ide_pri_enable();
+					break;
+			}
 		}
-#endif
 		break;
 	case 0x49: case 0x53:
 		dev->regs[addr] = (val & 0x1f);
 		break;
 	case 0x4c: case 0x51:
 	case 0x57:
-	case 0x60: case 0x61: case 0x62: case 0x63:
-	case 0x64:
 	case 0x68: case 0x69:
 		dev->regs[addr] = val;
 		if (addr == 0x4c) {
@@ -306,6 +276,9 @@ i420ex_write(int func, int addr, uint8_t val, void *priv)
 			i420ex_map(0xec000, 0x04000, val >> 4);
 		dev->regs[0x5f] = val;
 		break;
+	case 0x60: case 0x61: case 0x62: case 0x63: case 0x64:
+		spd_write_drbs(dev->regs, 0x60, 0x64, 1);
+		break;
 	case 0x66: case 0x67:
 		i420ex_log("Set IRQ routing: INT %c -> %02X\n", 0x41 + (addr & 0x01), val);
 		dev->regs[addr] = val & 0x8f;
@@ -344,10 +317,8 @@ i420ex_write(int func, int addr, uint8_t val, void *priv)
 				dev->fast_off_period = PCICLK * 32768.0;
 				break;
 		}
-		cpu_fast_off_count = dev->regs[0xa8] + 1;
-		timer_disable(&dev->fast_off_timer);
-		if (dev->fast_off_period != 0.0)
-			timer_on_auto(&dev->fast_off_timer, dev->fast_off_period);
+		cpu_fast_off_count = cpu_fast_off_val + 1;
+		cpu_fast_off_period_set(cpu_fast_off_val, dev->fast_off_period);
 		break;
 	case 0xa2:
 		dev->regs[addr] = val & 0xff;
@@ -375,9 +346,7 @@ i420ex_write(int func, int addr, uint8_t val, void *priv)
 		dev->regs[addr] = val & 0xff;
 		cpu_fast_off_val = val;
 		cpu_fast_off_count = val + 1;
-		timer_disable(&dev->fast_off_timer);
-		if (dev->fast_off_period != 0.0)
-			timer_on_auto(&dev->fast_off_timer, dev->fast_off_period);
+		cpu_fast_off_period_set(cpu_fast_off_val, dev->fast_off_period);
 		break;
     }
 }
@@ -409,7 +378,6 @@ i420ex_reset_hard(void *priv)
     dev->regs[0x02] = 0x86; dev->regs[0x03] = 0x04; /*82378IB (I420EX)*/
     dev->regs[0x04] = 0x07;
     dev->regs[0x07] = 0x02;
-    dev->regs[0x08] = dev->id;
 
     dev->regs[0x4c] = 0x4d;
     dev->regs[0x4e] = 0x03;
@@ -428,8 +396,9 @@ i420ex_reset_hard(void *priv)
 
     pci_set_irq_routing(PCI_INTA, PCI_IRQ_DISABLED);
     pci_set_irq_routing(PCI_INTB, PCI_IRQ_DISABLED);
-    pci_set_irq_routing(PCI_INTC, PCI_IRQ_DISABLED);
-    pci_set_irq_routing(PCI_INTD, PCI_IRQ_DISABLED);
+
+    if (dev->has_ide)
+	ide_pri_disable();
 }
 
 
@@ -450,13 +419,8 @@ i420ex_fast_off_count(void *priv)
 
     cpu_fast_off_count--;
 
-    if (cpu_fast_off_count == 0) {
-	smi_line = 1;
-	dev->regs[0xaa] |= 0x20;
-	cpu_fast_off_count = dev->regs[0xa8] + 1;
-    }
-
-    timer_on_auto(&dev->fast_off_timer, dev->fast_off_period);
+    smi_raise();
+    dev->regs[0xaa] |= 0x20;
 }
 
 
@@ -465,6 +429,8 @@ i420ex_reset(void *p)
 {
     i420ex_t *dev = (i420ex_t *) p;
     int i;
+
+    i420ex_write(0, 0x48, 0x00, p);
 
     for (i = 0; i < 7; i++)
 	i420ex_write(0, 0x59 + i, 0x00, p);
@@ -494,6 +460,8 @@ i420ex_close(void *p)
 {
     i420ex_t *dev = (i420ex_t *)p;
 
+    smram_del(dev->smram);
+
     free(dev);
 }
 
@@ -510,13 +478,11 @@ i420ex_speed_changed(void *priv)
     if (te)
 	timer_set_delay_u64(&dev->timer, ((uint64_t) dev->timer_latch) * TIMER_USEC);
 
-    if (dev->id == 0x03) {
-	te = timer_is_enabled(&dev->fast_off_timer);
+    te = timer_is_enabled(&dev->fast_off_timer);
 
-	timer_stop(&dev->fast_off_timer);
-	if (te)
-		timer_on_auto(&dev->fast_off_timer, dev->fast_off_period);
-    }
+    timer_stop(&dev->fast_off_timer);
+    if (te)
+	timer_on_auto(&dev->fast_off_timer, dev->fast_off_period);
 }
 
 
@@ -526,18 +492,20 @@ i420ex_init(const device_t *info)
     i420ex_t *dev = (i420ex_t *) malloc(sizeof(i420ex_t));
     memset(dev, 0, sizeof(i420ex_t));
 
+    dev->smram = smram_add();
+
     pci_add_card(PCI_ADD_NORTHBRIDGE, i420ex_read, i420ex_write, dev);
 
-    dev->id = info->local;
+    dev->has_ide = info->local;
 
     timer_add(&dev->fast_off_timer, i420ex_fast_off_count, dev, 0);
-
-    i420ex_reset_hard(dev);
 
     cpu_fast_off_flags = 0x00000000;
 
     cpu_fast_off_val = dev->regs[0xa8];
     cpu_fast_off_count = cpu_fast_off_val + 1;
+
+    cpu_register_fast_off_handler(&dev->fast_off_timer);
 
     dev->apm = device_add(&apm_pci_device);
     /* APM intercept handler to update 82420EX SMI status on APM SMI. */
@@ -547,27 +515,37 @@ i420ex_init(const device_t *info)
 
     dma_alias_set();
 
-#ifdef USE_420EX_IDE
-    device_add(&ide_pci_device);
-    ide_pri_disable();
-#else
     device_add(&ide_pci_2ch_device);
-#endif
+
+    i420ex_reset_hard(dev);
 
     return dev;
 }
 
+const device_t i420ex_device = {
+    .name = "Intel 82420EX",
+    .internal_name = "i420ex",
+    .flags = DEVICE_PCI,
+    .local = 0x00,
+    .init = i420ex_init,
+    .close = i420ex_close,
+    .reset = i420ex_reset,
+    { .available = NULL },
+    .speed_changed = i420ex_speed_changed,
+    .force_redraw = NULL,
+    .config = NULL
+};
 
-const device_t i420ex_device =
-{
-    "Intel 82420EX",
-    DEVICE_PCI,
-    0x00,
-    i420ex_init,
-    i420ex_close,
-    i420ex_reset,
-    NULL,
-    i420ex_speed_changed,
-    NULL,
-    NULL
+const device_t i420ex_ide_device = {
+    .name = "Intel 82420EX (With IDE)",
+    .internal_name = "i420ex_ide",
+    .flags = DEVICE_PCI,
+    .local = 0x01,
+    .init = i420ex_init,
+    .close = i420ex_close,
+    .reset = i420ex_reset,
+    { .available = NULL },
+    .speed_changed = i420ex_speed_changed,
+    .force_redraw = NULL,
+    .config = NULL
 };

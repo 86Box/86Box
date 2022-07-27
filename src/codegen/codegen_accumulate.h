@@ -1,8 +1,7 @@
 enum
 {
-        ACCREG_ins    = 0,
-        ACCREG_cycles = 1,
-        
+        ACCREG_cycles = 0,
+
         ACCREG_COUNT
 };
 

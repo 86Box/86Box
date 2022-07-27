@@ -100,12 +100,12 @@ static void pci_dummy_writel(uint16_t Port, uint32_t Val, void *p)
 
 static void pci_dummy_io_remove(void)
 {
-	io_removehandler(pci_bar[0].addr, 0x0020, pci_dummy_read, pci_dummy_readw, pci_dummy_readl, pci_dummy_write, pci_dummy_writew, pci_dummy_writel, NULL);	
+	io_removehandler(pci_bar[0].addr, 0x0020, pci_dummy_read, pci_dummy_readw, pci_dummy_readl, pci_dummy_write, pci_dummy_writew, pci_dummy_writel, NULL);
 }
 
 static void pci_dummy_io_set(void)
 {
-	io_sethandler(pci_bar[0].addr, 0x0020, pci_dummy_read, pci_dummy_readw, pci_dummy_readl, pci_dummy_write, pci_dummy_writew, pci_dummy_writel, NULL);	
+	io_sethandler(pci_bar[0].addr, 0x0020, pci_dummy_read, pci_dummy_readw, pci_dummy_readl, pci_dummy_write, pci_dummy_writew, pci_dummy_writel, NULL);
 }
 
 

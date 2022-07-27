@@ -6,7 +6,8 @@
  *
  *		This file is part of the 86Box distribution.
  *
- *		Definitions for the NS8250/16450/16550 UART emulation.
+ *		Definitions for the NS8250/16450/16550/16650/16750/16850/16950
+ *      UART emulation.
  *
  *
  *
@@ -18,20 +19,30 @@
  *		Copyright 2016-2020 Miran Grca.
  *		Copyright 2017-2020 Fred N. van Kempen.
  */
+
 #ifndef EMU_SERIAL_H
 # define EMU_SERIAL_H
 
-
-#define SERIAL_8250		0
+#define SERIAL_8250			0
 #define SERIAL_8250_PCJR	1
-#define SERIAL_NS16450		2
-#define SERIAL_NS16550		3
+#define SERIAL_16450		2
+#define SERIAL_16550		3
+#define SERIAL_16650		4
+#define SERIAL_16750		5
+#define SERIAL_16850		6
+#define SERIAL_16950		7
+
+#define SERIAL_FIFO_SIZE	16
 
 /* Default settings for the standard ports. */
-#define SERIAL1_ADDR		0x03f8
-#define SERIAL1_IRQ		4
-#define SERIAL2_ADDR		0x02f8
-#define SERIAL2_IRQ		3
+#define COM1_ADDR		0x03f8
+#define COM1_IRQ		4
+#define COM2_ADDR		0x02f8
+#define COM2_IRQ		3
+#define COM3_ADDR		0x03e8
+#define COM3_IRQ		4
+#define COM4_ADDR		0x02e8
+#define COM4_IRQ		3
 
 
 struct serial_device_s;
@@ -50,7 +61,7 @@ typedef struct serial_s
 
     uint8_t rcvr_fifo_pos, xmit_fifo_pos,
 	    pad0, pad1,
-	    rcvr_fifo[16], xmit_fifo[16];
+	    rcvr_fifo[SERIAL_FIFO_SIZE], xmit_fifo[SERIAL_FIFO_SIZE];
 
     pc_timer_t transmit_timer, timeout_timer;
     double clock_src, transmit_period;
@@ -73,17 +84,21 @@ extern serial_t *	serial_attach(int port,
 			      void *priv);
 extern void	serial_remove(serial_t *dev);
 extern void	serial_set_type(serial_t *dev, int type);
-extern void	serial_setup(serial_t *dev, uint16_t addr, int irq);
+extern void	serial_setup(serial_t *dev, uint16_t addr, uint8_t irq);
 extern void	serial_clear_fifo(serial_t *dev);
 extern void	serial_write_fifo(serial_t *dev, uint8_t dat);
 extern void	serial_set_next_inst(int ni);
 extern void	serial_standalone_init(void);
 extern void	serial_set_clock_src(serial_t *dev, double clock_src);
+extern void	serial_reset_port(serial_t *dev);
 
-extern const device_t	i8250_device;
-extern const device_t	i8250_pcjr_device;
+extern const device_t	ns8250_device;
+extern const device_t	ns8250_pcjr_device;
 extern const device_t	ns16450_device;
 extern const device_t	ns16550_device;
-
+extern const device_t	ns16650_device;
+extern const device_t	ns16750_device;
+extern const device_t	ns16850_device;
+extern const device_t	ns16950_device;
 
 #endif	/*EMU_SERIAL_H*/

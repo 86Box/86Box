@@ -60,7 +60,8 @@
 #include <86box/device.h>
 #include <86box/timer.h>
 #include <86box/pit.h>
-#include <86box/plat.h> 
+#include <86box/path.h>
+#include <86box/plat.h>
 #include <86box/lpt.h>
 #include <86box/printer.h>
 #include <86box/prt_devs.h>
@@ -102,7 +103,7 @@ typedef struct {
     void *	lpt;
 
     /* Output file name. */
-    wchar_t	filename[1024];
+    char	filename[1024];
 
     /* Printer timeout. */
     pc_timer_t	pulse_timer;
@@ -112,7 +113,7 @@ typedef struct {
     double	page_width,	/* all in inches */
 		page_height,
 		left_margin,
-		top_margin, 
+		top_margin,
 		right_margin,
 		bot_margin;
 
@@ -140,26 +141,26 @@ typedef struct {
 
 
 /* Dump the current page into a formatted file. */
-static void 
+static void
 dump_page(prnt_t *dev)
 {
-    wchar_t path[1024];
+    char path[1024];
     uint16_t x, y;
     uint8_t ch;
     FILE *fp;
 
     /* Create the full path for this file. */
     memset(path, 0x00, sizeof(path));
-    plat_append_filename(path, usr_path, L"printer");
+    path_append_filename(path, usr_path, "printer");
     if (! plat_dir_check(path))
         plat_dir_create(path);
-    plat_path_slash(path);
-    wcscat(path, dev->filename);
+    path_slash(path);
+    strcat(path, dev->filename);
 
     /* Create the file. */
-    fp = plat_fopen(path, L"a");
+    fp = plat_fopen(path, "a");
     if (fp == NULL) {
-	//ERRLOG("PRNT: unable to create print page '%ls'\n", path);
+	//ERRLOG("PRNT: unable to create print page '%s'\n", path);
 	return;
     }
     fseek(fp, 0, SEEK_END);
@@ -250,7 +251,7 @@ reset_printer(prnt_t *dev)
 	dev->page->dirty = 0;
 
     /* Create a file for this page. */
-    plat_tempfile(dev->filename, NULL, L".txt");
+    plat_tempfile(dev->filename, NULL, ".txt");
 
     timer_disable(&dev->pulse_timer);
     timer_disable(&dev->timeout_timer);
@@ -410,7 +411,7 @@ write_ctrl(uint8_t val, void *priv)
 	dev->ack = 1;
 
 	timer_set_delay_u64(&dev->pulse_timer, ISACONST);
-	timer_set_delay_u64(&dev->timeout_timer, 500000 * TIMER_USEC);
+	timer_set_delay_u64(&dev->timeout_timer, 5000000 * TIMER_USEC);
     }
 
     dev->ctrl = val;
@@ -483,12 +484,13 @@ prnt_close(void *priv)
 
 
 const lpt_device_t lpt_prt_text_device = {
-    "Generic TEXT printer",
-    prnt_init,
-    prnt_close,
-    write_data,
-    write_ctrl,
-    NULL,
-    read_status,
-    NULL
+    .name = "Generic Text Printer",
+    .internal_name = "text_prt",
+    .init = prnt_init,
+    .close = prnt_close,
+    .write_data = write_data,
+    .write_ctrl = write_ctrl,
+    .read_data = NULL,
+    .read_status = read_status,
+    .read_ctrl = NULL
 };

@@ -23,6 +23,7 @@
 #if defined WIN32 || defined _WIN32 || defined _WIN32
 #include <windows.h>
 #endif
+#include <string.h>
 
 void *codegen_mem_load_byte;
 void *codegen_mem_load_word;
@@ -65,7 +66,7 @@ static void build_load_routine(codeblock_t *block, int size, int is_float)
 {
         uint8_t *branch_offset;
         uint8_t *misaligned_offset = NULL;
-        
+
         /*In - ESI = address
           Out - ECX = data, ESI = abrt*/
         /*MOV ECX, ESI
@@ -110,7 +111,7 @@ static void build_load_routine(codeblock_t *block, int size, int is_float)
                 fatal("build_load_routine: size=%i\n", size);
         host_x86_XOR32_REG_REG(block, REG_ESI, REG_ESI);
         host_x86_RET(block);
-        
+
         *branch_offset = (uint8_t)((uintptr_t)&block_write_data[block_pos] - (uintptr_t)branch_offset) - 1;
         if (size != 1)
                 *misaligned_offset = (uint8_t)((uintptr_t)&block_write_data[block_pos] - (uintptr_t)misaligned_offset) - 1;
@@ -154,7 +155,7 @@ static void build_store_routine(codeblock_t *block, int size, int is_float)
 {
         uint8_t *branch_offset;
         uint8_t *misaligned_offset = NULL;
-        
+
         /*In - ECX = data, ESI = address
           Out - ESI = abrt
           Corrupts EDI*/
@@ -267,12 +268,7 @@ void codegen_backend_init()
 {
         codeblock_t *block;
         int c;
-#if defined(__linux__) || defined(__APPLE__)
-	void *start;
-	size_t len;
-	long pagesize = sysconf(_SC_PAGESIZE);
-	long pagemask = ~(pagesize - 1);
-#endif
+
         codeblock = malloc(BLOCK_SIZE * sizeof(codeblock_t));
         codeblock_hash = malloc(HASH_SIZE * sizeof(codeblock_t *));
 
@@ -289,7 +285,7 @@ void codegen_backend_init()
         block->data = codeblock_allocator_get_ptr(block->head_mem_block);
         block_write_data = block->data;
         build_loadstore_routines(block);
-        
+
         codegen_gpf_rout = &codeblock[block_current].data[block_pos];
         host_x86_MOV32_STACK_IMM(block, STACK_ARG0, 0);
         host_x86_MOV32_STACK_IMM(block, STACK_ARG1, 0);

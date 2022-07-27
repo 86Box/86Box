@@ -14,7 +14,7 @@
  *		Selecting a character height of 3 seems to be sufficient to
  *		convert the 640x200 graphics mode to 640x400 (and, by
  *		analogy, 320x200 to 320x400).
- * 
+ *
  *		Horiz-----> Vert------>  I ch
  *		38 28 2D 0A 1F 06 19 1C 02 07 06 07   CO40
  *		71 50 5A 0A 1F 06 19 1C 02 07 06 07   CO80
@@ -86,7 +86,7 @@ static uint32_t normcols[256][2];
  *
  * Bit  3:   Disable built-in video (for add-on card)
  * Bit  2:   Thin font
- * Bits 0,1: Font set (not currently implemented) 
+ * Bits 0,1: Font set (not currently implemented)
  */
 static uint8_t st_video_options;
 static int8_t st_display_internal = -1;
@@ -111,7 +111,7 @@ typedef struct t3100e_t
 {
         mem_mapping_t mapping;
 
-	cga_t cga;		/* The CGA is used for the external 
+	cga_t cga;		/* The CGA is used for the external
 				 * display; most of its registers are
 				 * ignored by the plasma display. */
 
@@ -121,7 +121,7 @@ typedef struct t3100e_t
 	uint8_t	attrmap;	/* Attribute mapping register */
 
         uint64_t dispontime, dispofftime;
-        
+
         int linepos, displine;
         int vc;
         int dispon;
@@ -154,12 +154,12 @@ void t3100e_out(uint16_t addr, uint8_t val, void *p)
                 case 0x3d1: case 0x3d3: case 0x3d5: case 0x3d7:
 		/* Register 0x12 controls the attribute mappings for the
 		 * plasma screen. */
-		if (t3100e->cga.crtcreg == 0x12) 
+		if (t3100e->cga.crtcreg == 0x12)
 		{
-			t3100e->attrmap = val;	
+			t3100e->attrmap = val;
 			t3100e_recalcattrs(t3100e);
 			return;
-		}	
+		}
 		cga_out(addr, val, &t3100e->cga);
 
                 t3100e_recalctimings(t3100e);
@@ -191,7 +191,7 @@ uint8_t t3100e_in(uint16_t addr, void *p)
 			return val;
 		}
 	}
-	
+
 	return cga_in(addr, &t3100e->cga);
 }
 
@@ -201,19 +201,17 @@ uint8_t t3100e_in(uint16_t addr, void *p)
 void t3100e_write(uint32_t addr, uint8_t val, void *p)
 {
         t3100e_t *t3100e = (t3100e_t *)p;
-        egawrites++;
 
         t3100e->vram[addr & 0x7fff] = val;
-        sub_cycles(4);
+        cycles -= 4;
 }
-	
+
 
 
 uint8_t t3100e_read(uint32_t addr, void *p)
 {
         t3100e_t *t3100e = (t3100e_t *)p;
-        egareads++;
-	sub_cycles(4);
+	cycles -= 4;
 
         return t3100e->vram[addr & 0x7fff];
 }
@@ -284,8 +282,8 @@ void t3100e_text_row80(t3100e_t *t3100e)
 
                 if (t3100e->cga.cgamode & 0x20)	/* Blink */
                 {
-			cols[1] = blinkcols[attr][1]; 		
-			cols[0] = blinkcols[attr][0]; 		
+			cols[1] = blinkcols[attr][1];
+			cols[0] = blinkcols[attr][0];
                         if (blink) cols[1] = cols[0];
 		}
 		else
@@ -354,8 +352,8 @@ void t3100e_text_row40(t3100e_t *t3100e)
 
                 if (t3100e->cga.cgamode & 0x20)	/* Blink */
                 {
-			cols[1] = blinkcols[attr][1]; 		
-			cols[0] = blinkcols[attr][0]; 		
+			cols[1] = blinkcols[attr][1];
+			cols[0] = blinkcols[attr][0];
                         if (blink) cols[1] = cols[0];
 		}
 		else
@@ -367,7 +365,7 @@ void t3100e_text_row40(t3100e_t *t3100e)
                 {
                 	for (c = 0; c < 8; c++)
 			{
-                       		((uint32_t *)buffer32->line[t3100e->displine])[(x << 4) + c*2] = 
+                       		((uint32_t *)buffer32->line[t3100e->displine])[(x << 4) + c*2] =
                        		((uint32_t *)buffer32->line[t3100e->displine])[(x << 4) + c*2 + 1] = cols[(fontdatm[bold][sc] & (1 << (c ^ 7))) ? 1 : 0] ^ (amber ^ black);
 			}
 		}
@@ -375,7 +373,7 @@ void t3100e_text_row40(t3100e_t *t3100e)
                 {
                 	for (c = 0; c < 8; c++)
 			{
-				((uint32_t *)buffer32->line[t3100e->displine])[(x << 4) + c*2] = 
+				((uint32_t *)buffer32->line[t3100e->displine])[(x << 4) + c*2] =
 				((uint32_t *)buffer32->line[t3100e->displine])[(x << 4) + c*2+1] = cols[(fontdatm[bold][sc] & (1 << (c ^ 7))) ? 1 : 0];
 			}
                 }
@@ -463,7 +461,7 @@ void t3100e_cgaline4(t3100e_t *t3100e)
 			switch (pattern & 3)
 			{
 				case 0: ink0 = ink1 = black; break;
-				case 1: if (t3100e->displine & 1) 
+				case 1: if (t3100e->displine & 1)
 					{
 						ink0 = black; ink1 = black;
 					}
@@ -472,7 +470,7 @@ void t3100e_cgaline4(t3100e_t *t3100e)
 						ink0 = amber; ink1 = black;
 					}
 					break;
-				case 2: if (t3100e->displine & 1) 
+				case 2: if (t3100e->displine & 1)
 					{
 						ink0 = black; ink1 = amber;
 					}
@@ -539,20 +537,20 @@ void t3100e_poll(void *p)
                         }
 
 			/* Graphics */
-			if (t3100e->cga.cgamode & 0x02)	
+			if (t3100e->cga.cgamode & 0x02)
 			{
 				if (t3100e->cga.cgamode & 0x10)
 					t3100e_cgaline6(t3100e);
 				else	t3100e_cgaline4(t3100e);
 			}
-			else	
+			else
 			if (t3100e->cga.cgamode & 0x01) /* High-res text */
 			{
-				t3100e_text_row80(t3100e); 
+				t3100e_text_row80(t3100e);
 			}
 			else
 			{
-				t3100e_text_row40(t3100e); 
+				t3100e_text_row40(t3100e);
 			}
                 }
                 t3100e->displine++;
@@ -592,14 +590,14 @@ void t3100e_poll(void *p)
 				if (video_force_resize_get())
 					video_force_resize_set(0);
                         }
-                        video_blit_memtoscreen(0, 0, 0, ysize, xsize, ysize);
+                        video_blit_memtoscreen(0, 0, xsize, ysize);
 
                         frames++;
 			/* Fixed 640x400 resolution */
 			video_res_x = T3100E_XSIZE;
 			video_res_y = T3100E_YSIZE;
 
-			if (t3100e->cga.cgamode & 0x02)	
+			if (t3100e->cga.cgamode & 0x02)
 			{
 				if (t3100e->cga.cgamode & 0x10)
 					video_bpp = 1;
@@ -619,10 +617,10 @@ void t3100e_recalcattrs(t3100e_t *t3100e)
 	int n;
 
 	/* val behaves as follows:
-	 *     Bit 0: Attributes 01-06, 08-0E are inverse video 
-	 *     Bit 1: Attributes 01-06, 08-0E are bold 
+	 *     Bit 0: Attributes 01-06, 08-0E are inverse video
+	 *     Bit 1: Attributes 01-06, 08-0E are bold
 	 *     Bit 2: Attributes 11-16, 18-1F, 21-26, 28-2F ... F1-F6, F8-FF
-	 * 	      are inverse video 
+	 * 	      are inverse video
 	 *     Bit 3: Attributes 11-16, 18-1F, 21-26, 28-2F ... F1-F6, F8-FF
 	 * 	      are bold */
 
@@ -635,12 +633,12 @@ void t3100e_recalcattrs(t3100e_t *t3100e)
 	for (n = 0; n < 256; n++)
 	{
 		boldcols[n] = (n & 8) != 0;
-		blinkcols[n][0] = normcols[n][0] = amber; 
+		blinkcols[n][0] = normcols[n][0] = amber;
 		blinkcols[n][1] = normcols[n][1] = black;
 	}
 
-	/* Colours 0x11-0xFF are controlled by bits 2 and 3 of the 
-	 * passed value. Exclude x0 and x8, which are always black on 
+	/* Colours 0x11-0xFF are controlled by bits 2 and 3 of the
+	 * passed value. Exclude x0 and x8, which are always black on
 	 * amber. */
 	for (n = 0x11; n <= 0xFF; n++)
 	{
@@ -657,7 +655,7 @@ void t3100e_recalcattrs(t3100e_t *t3100e)
 		}
 		if (t3100e->attrmap & 8) boldcols[n] = 1;	/* Bold */
 	}
-	/* Set up the 01-0E range, controlled by bits 0 and 1 of the 
+	/* Set up the 01-0E range, controlled by bits 0 and 1 of the
 	 * passed value. When blinking is enabled this also affects 81-8E. */
 	for (n = 0x01; n <= 0x0E; n++)
 	{
@@ -678,7 +676,7 @@ void t3100e_recalcattrs(t3100e_t *t3100e)
 		}
 		if (t3100e->attrmap & 2) boldcols[n] = 1;
 	}
-	/* Colours 07 and 0F are always amber on black. If blinking is 
+	/* Colours 07 and 0F are always amber on black. If blinking is
 	 * enabled so are 87 and 8F. */
 	for (n = 0x07; n <= 0x0F; n += 8)
 	{
@@ -715,7 +713,7 @@ void *t3100e_init(const device_t *info)
 {
         t3100e_t *t3100e = malloc(sizeof(t3100e_t));
         memset(t3100e, 0, sizeof(t3100e_t));
-	loadfont(L"roms/machines/t3100e/t3100e_font.bin", 5);
+	loadfont("roms/machines/t3100e/t3100e_font.bin", 5);
 	cga_init(&t3100e->cga);
 	video_inform(VIDEO_FLAG_TYPE_CGA, &timing_t3100e);
 
@@ -755,19 +753,20 @@ void t3100e_close(void *p)
 void t3100e_speed_changed(void *p)
 {
         t3100e_t *t3100e = (t3100e_t *)p;
-        
+
         t3100e_recalctimings(t3100e);
 }
 
-const device_t t3100e_device =
-{
-        "Toshiba T3100e",
-        0,
-        0,
-        t3100e_init,
-        t3100e_close,
-        NULL,
-        NULL,
-        t3100e_speed_changed,
-        NULL
+const device_t t3100e_device = {
+    .name = "Toshiba T3100e",
+    .internal_name = "t3100e",
+    .flags = 0,
+    .local = 0,
+    .init = t3100e_init,
+    .close = t3100e_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = t3100e_speed_changed,
+    .force_redraw = NULL,
+    .config = NULL
 };

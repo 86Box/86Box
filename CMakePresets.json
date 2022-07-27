@@ -1,0 +1,45 @@
+{
+    "version": 3,
+    "cmakeMinimumRequired": {
+        "major": 3,
+        "minor": 21
+    },
+    "configurePresets": [
+        {
+            "name": "regular",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release",
+                "DEV_BRANCH": "OFF",
+                "NEW_DYNAREC": "OFF"
+            },
+            "generator": "Ninja"
+        },
+        {
+            "name": "optimized",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Optimized",
+                "DEV_BRANCH": "OFF",
+                "NEW_DYNAREC": "OFF"
+            },
+            "generator": "Ninja"
+        },
+        {
+            "name": "debug",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug",
+                "DEV_BRANCH": "OFF",
+                "NEW_DYNAREC": "OFF"
+            },
+            "generator": "Ninja"
+        },
+        {
+            "name": "experimental",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug",
+                "DEV_BRANCH": "ON",
+                "NEW_DYNAREC": "ON"
+            },
+            "generator": "Ninja"
+        }
+    ]
+}

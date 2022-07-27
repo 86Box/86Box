@@ -16,6 +16,9 @@
  *		Copyright 2016-2018 Miran Grca.
  */
 
+#ifndef VIDEO_SVGA_RENDER_H
+# define VIDEO_SVGA_RENDER_H
+
 extern int firstline_draw, lastline_draw;
 extern int displine;
 extern int sc;
@@ -27,6 +30,9 @@ extern int scrollcache;
 
 extern uint8_t edatlookup[4][4];
 
+void svga_recalc_remap_func(svga_t *svga);
+
+void svga_render_null(svga_t *svga);
 void svga_render_blank(svga_t *svga);
 void svga_render_overscan_left(svga_t *svga);
 void svga_render_overscan_right(svga_t *svga);
@@ -36,10 +42,13 @@ void svga_render_text_80_ksc5601(svga_t *svga);
 
 void svga_render_2bpp_lowres(svga_t *svga);
 void svga_render_2bpp_highres(svga_t *svga);
+void svga_render_2bpp_headland_highres(svga_t *svga);
 void svga_render_4bpp_lowres(svga_t *svga);
 void svga_render_4bpp_highres(svga_t *svga);
 void svga_render_8bpp_lowres(svga_t *svga);
 void svga_render_8bpp_highres(svga_t *svga);
+void svga_render_8bpp_tseng_lowres(svga_t *svga);
+void svga_render_8bpp_tseng_highres(svga_t *svga);
 void svga_render_8bpp_gs_lowres(svga_t *svga);
 void svga_render_8bpp_gs_highres(svga_t *svga);
 void svga_render_8bpp_rgb_lowres(svga_t *svga);
@@ -60,3 +69,5 @@ void svga_render_RGBA8888_lowres(svga_t *svga);
 void svga_render_RGBA8888_highres(svga_t *svga);
 
 extern void (*svga_render)(svga_t *svga);
+
+#endif /*VID_SVGA_RENDER_H*/

@@ -67,7 +67,7 @@ static uint32_t ropC1_w(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint3
                 return 0;
 
         SHIFT(W, 16, STORE_HOST_REG_ADDR_WL, 1);
-        
+
         return op_pc + 2;
 }
 static uint32_t ropC1_l(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
@@ -80,7 +80,7 @@ static uint32_t ropC1_l(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint3
                 return 0;
 
         SHIFT(L, 32, STORE_HOST_REG_ADDR, 1);
-        
+
         return op_pc + 2;
 }
 
@@ -107,7 +107,7 @@ static uint32_t ropD1_w(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint3
                 return 0;
 
         SHIFT(W, 16, STORE_HOST_REG_ADDR_WL, 0);
-        
+
         return op_pc + 1;
 }
 static uint32_t ropD1_l(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
@@ -120,6 +120,6 @@ static uint32_t ropD1_l(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint3
                 return 0;
 
         SHIFT(L, 32, STORE_HOST_REG_ADDR, 0);
-        
+
         return op_pc + 1;
 }

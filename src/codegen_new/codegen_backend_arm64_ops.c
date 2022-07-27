@@ -1,4 +1,4 @@
-#ifdef __aarch64__
+#if defined __aarch64__ || defined _M_ARM64
 
 #include <stdint.h>
 #include <86box/86box.h>
@@ -267,12 +267,6 @@ static int offset_is_26bit(int offset)
 static inline int imm_is_imm16(uint32_t imm_data)
 {
 	if (!(imm_data & 0xffff0000) || !(imm_data & 0x0000ffff))
-		return 1;
-	return 0;
-}
-static inline int imm_is_imm12(uint32_t imm_data)
-{
-	if (!(imm_data & 0xfffff000) || !(imm_data & 0xff000fff))
 		return 1;
 	return 0;
 }
