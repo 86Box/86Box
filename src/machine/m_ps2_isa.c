@@ -25,28 +25,26 @@
 #include <86box/video.h>
 #include <86box/machine.h>
 
-
 typedef struct {
-    int	model;
+    int model;
     int cpu_type;
 
-    uint8_t	ps2_91,
-		ps2_92,
-		ps2_94,
-		ps2_102,
-		ps2_103,
-		ps2_104,
-		ps2_105,
-		ps2_190;
+    uint8_t ps2_91,
+        ps2_92,
+        ps2_94,
+        ps2_102,
+        ps2_103,
+        ps2_104,
+        ps2_105,
+        ps2_190;
 
     serial_t *uart;
 } ps2_isa_t;
 
-
 static void
 ps2_write(uint16_t port, uint8_t val, void *priv)
 {
-    ps2_isa_t *ps2 = (ps2_isa_t *)priv;
+    ps2_isa_t *ps2 = (ps2_isa_t *) priv;
 
     switch (port) {
         case 0x0094:
@@ -98,16 +96,15 @@ ps2_write(uint16_t port, uint8_t val, void *priv)
     }
 }
 
-
 static uint8_t
 ps2_read(uint16_t port, void *priv)
 {
-    ps2_isa_t *ps2 = (ps2_isa_t *)priv;
-    uint8_t temp = 0xff;
+    ps2_isa_t *ps2  = (ps2_isa_t *) priv;
+    uint8_t    temp = 0xff;
 
     switch (port) {
         case 0x0091:
-            temp = ps2->ps2_91;
+            temp        = ps2->ps2_91;
             ps2->ps2_91 = 0;
             break;
 
@@ -139,34 +136,32 @@ ps2_read(uint16_t port, void *priv)
     return temp;
 }
 
-
 static void
 ps2_isa_setup(int model, int cpu_type)
 {
     ps2_isa_t *ps2;
-    void *priv;
+    void      *priv;
 
-    ps2 = (ps2_isa_t *)malloc(sizeof(ps2_isa_t));
+    ps2 = (ps2_isa_t *) malloc(sizeof(ps2_isa_t));
     memset(ps2, 0x00, sizeof(ps2_isa_t));
-    ps2->model = model;
+    ps2->model    = model;
     ps2->cpu_type = cpu_type;
 
-
     io_sethandler(0x0091, 1,
-		  ps2_read, NULL, NULL, ps2_write, NULL, NULL, ps2);
+                  ps2_read, NULL, NULL, ps2_write, NULL, NULL, ps2);
     io_sethandler(0x0094, 1,
-		  ps2_read, NULL, NULL, ps2_write, NULL, NULL, ps2);
+                  ps2_read, NULL, NULL, ps2_write, NULL, NULL, ps2);
     io_sethandler(0x0102, 4,
-		  ps2_read, NULL, NULL, ps2_write, NULL, NULL, ps2);
+                  ps2_read, NULL, NULL, ps2_write, NULL, NULL, ps2);
     io_sethandler(0x0190, 1,
-		  ps2_read, NULL, NULL, ps2_write, NULL, NULL, ps2);
+                  ps2_read, NULL, NULL, ps2_write, NULL, NULL, ps2);
 
     ps2->uart = device_add_inst(&ns16450_device, 1);
 
     lpt1_remove();
     lpt1_init(LPT_MDA_ADDR);
 
-	device_add(&port_92_device);
+    device_add(&port_92_device);
 
     mem_remap_top(384);
 
@@ -183,7 +178,6 @@ ps2_isa_setup(int model, int cpu_type)
     device_add(&ps1vga_device);
 }
 
-
 static void
 ps2_isa_common_init(const machine_t *model)
 {
@@ -198,7 +192,6 @@ ps2_isa_common_init(const machine_t *model)
     device_add(&keyboard_ps2_device);
     device_add(&port_6x_ps2_device);
 }
-
 
 int
 machine_ps2_m30_286_init(const machine_t *model)

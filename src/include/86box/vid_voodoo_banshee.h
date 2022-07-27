@@ -16,7 +16,7 @@
  */
 
 #ifndef VIDEO_VOODOO_BANSHEE_H
-# define VIDEO_VOODOO_BANSHEE_H
+#define VIDEO_VOODOO_BANSHEE_H
 
 void banshee_set_overlay_addr(void *p, uint32_t addr);
 

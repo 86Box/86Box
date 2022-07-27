@@ -39,17 +39,16 @@
 #include "cpu.h"
 #include <86box/machine.h>
 
-
 int
 machine_at_p6rp4_init(const machine_t *model)
 {
     int ret;
 
     ret = bios_load_linear("roms/machines/p6rp4/OR6I0106.SMC",
-			   0x000e0000, 131072, 0);
+                           0x000e0000, 131072, 0);
 
     if (bios_only || !ret)
-	return ret;
+        return ret;
 
     machine_at_common_init_ex(model, 2);
     device_add(&p6rp4_nvr_device);
@@ -74,17 +73,16 @@ machine_at_p6rp4_init(const machine_t *model)
     return ret;
 }
 
-
 int
 machine_at_686nx_init(const machine_t *model)
 {
     int ret;
 
     ret = bios_load_linear("roms/machines/686nx/6nx.140",
-			   0x000e0000, 131072, 0);
+                           0x000e0000, 131072, 0);
 
     if (bios_only || !ret)
-	return ret;
+        return ret;
 
     machine_at_common_init(model);
 
@@ -97,13 +95,12 @@ machine_at_686nx_init(const machine_t *model)
     pci_register_slot(0x0B, PCI_CARD_NORMAL, 4, 1, 2, 3);
     device_add(&i440fx_device);
     device_add(&piix3_device);
-    device_add(&keyboard_ps2_ami_pci_device); //Uses the AMIKEY keyboard controller
+    device_add(&keyboard_ps2_ami_pci_device); // Uses the AMIKEY keyboard controller
     device_add(&um8669f_device);
     device_add(&intel_flash_bxt_device);
 
     return ret;
 }
-
 
 int
 machine_at_mb600n_init(const machine_t *model)
@@ -111,10 +108,10 @@ machine_at_mb600n_init(const machine_t *model)
     int ret;
 
     ret = bios_load_linear("roms/machines/mb600n/60915cs.rom",
-			   0x000e0000, 131072, 0);
+                           0x000e0000, 131072, 0);
 
     if (bios_only || !ret)
-	return ret;
+        return ret;
 
     machine_at_common_init(model);
 
@@ -140,10 +137,10 @@ machine_at_acerv60n_init(const machine_t *model)
     int ret;
 
     ret = bios_load_linear("roms/machines/acerv60n/V60NE5.BIN",
-			   0x000e0000, 131072, 0);
+                           0x000e0000, 131072, 0);
 
     if (bios_only || !ret)
-	return ret;
+        return ret;
 
     machine_at_common_init(model);
 
@@ -170,14 +167,14 @@ machine_at_vs440fx_init(const machine_t *model)
     int ret;
 
     ret = bios_load_linear_combined2("roms/machines/vs440fx/1018CS1_.BIO",
-				     "roms/machines/vs440fx/1018CS1_.BI1",
-				     "roms/machines/vs440fx/1018CS1_.BI2",
-				     "roms/machines/vs440fx/1018CS1_.BI3",
-				     "roms/machines/vs440fx/1018CS1_.RCV",
-				     0x3a000, 128);
+                                     "roms/machines/vs440fx/1018CS1_.BI1",
+                                     "roms/machines/vs440fx/1018CS1_.BI2",
+                                     "roms/machines/vs440fx/1018CS1_.BI3",
+                                     "roms/machines/vs440fx/1018CS1_.RCV",
+                                     0x3a000, 128);
 
     if (bios_only || !ret)
-	return ret;
+        return ret;
 
     machine_at_common_init(model);
 
@@ -204,14 +201,14 @@ machine_at_ap440fx_init(const machine_t *model)
     int ret;
 
     ret = bios_load_linear_combined2("roms/machines/ap440fx/1011CT1_.BIO",
-				     "roms/machines/ap440fx/1011CT1_.BI1",
-				     "roms/machines/ap440fx/1011CT1_.BI2",
-				     "roms/machines/ap440fx/1011CT1_.BI3",
-				     "roms/machines/ap440fx/1011CT1_.RCV",
-				     0x3a000, 128);
+                                     "roms/machines/ap440fx/1011CT1_.BI1",
+                                     "roms/machines/ap440fx/1011CT1_.BI2",
+                                     "roms/machines/ap440fx/1011CT1_.BI3",
+                                     "roms/machines/ap440fx/1011CT1_.RCV",
+                                     0x3a000, 128);
 
     if (bios_only || !ret)
-	return ret;
+        return ret;
 
     machine_at_common_init(model);
 
@@ -237,10 +234,10 @@ machine_at_8600ttc_init(const machine_t *model)
     int ret;
 
     ret = bios_load_linear("roms/machines/8600ttc/TTC0715B.ROM",
-			   0x000e0000, 131072, 0);
+                           0x000e0000, 131072, 0);
 
     if (bios_only || !ret)
-	return ret;
+        return ret;
 
     machine_at_common_init(model);
 
@@ -266,10 +263,10 @@ machine_at_m6mi_init(const machine_t *model)
     int ret;
 
     ret = bios_load_linear("roms/machines/m6mi/M6MI05.ROM",
-			   0x000e0000, 131072, 0);
+                           0x000e0000, 131072, 0);
 
     if (bios_only || !ret)
-	return ret;
+        return ret;
 
     machine_at_common_init(model);
 
@@ -316,10 +313,10 @@ machine_at_p65up5_cp6nd_init(const machine_t *model)
     int ret;
 
     ret = bios_load_linear("roms/machines/p65up5/ND6I0218.AWD",
-			   0x000e0000, 131072, 0);
+                           0x000e0000, 131072, 0);
 
     if (bios_only || !ret)
-	return ret;
+        return ret;
 
     machine_at_p65up5_common_init(model, &i440fx_device);
 

@@ -23,15 +23,15 @@
  */
 
 #ifndef VIDEO_NGA_H
-# define VIDEO_NGA_H
+#define VIDEO_NGA_H
 
 typedef struct nga_t {
     cga_t cga;
-	/* unused in OGC, required for M19 video card structure idiom */
-    uint32_t	base;
-    int		lineff;
-	int		page;
-    uint8_t *vram_64k;
+    /* unused in OGC, required for M19 video card structure idiom */
+    uint32_t      base;
+    int           lineff;
+    int           page;
+    uint8_t      *vram_64k;
     mem_mapping_t mapping_64k;
 } nga_t;
 
@@ -44,10 +44,9 @@ void    nga_poll(void *priv);
 void    nga_close(void *priv);
 void    nga_mdaattr_rebuild();
 
-
 #ifdef EMU_DEVICE_H
 extern const device_config_t nga_config[];
-extern const device_t nga_device;
+extern const device_t        nga_device;
 #endif
 
 #endif /*VIDEO_NGA_H*/

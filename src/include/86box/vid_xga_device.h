@@ -16,7 +16,7 @@
  */
 
 #ifndef VIDEO_XGA_DEVICE_H
-# define VIDEO_XGA_DEVICE_H
+#define VIDEO_XGA_DEVICE_H
 extern const device_t xga_device;
 extern const device_t xga_isa_device;
-#endif	/*VIDEO_XGA_DEVICE_H*/
+#endif /*VIDEO_XGA_DEVICE_H*/
