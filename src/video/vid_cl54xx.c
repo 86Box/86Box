@@ -70,15 +70,16 @@
 #define CIRRUS_ID_CLGD5424  		0x94
 #define CIRRUS_ID_CLGD5426		0x90
 #define CIRRUS_ID_CLGD5428		0x98
-#define CIRRUS_ID_CLGD5429		0x9c
-#define CIRRUS_ID_CLGD5430		0xa0
-#define CIRRUS_ID_CLGD5432		0xa2
-#define CIRRUS_ID_CLGD5434_4		0xa4
-#define CIRRUS_ID_CLGD5434		0xa8
-#define CIRRUS_ID_CLGD5436		0xac
-#define CIRRUS_ID_CLGD5440		0xa0	/* Yes, the 5440 has the same ID as the 5430. */
-#define CIRRUS_ID_CLGD5446		0xb8
-#define CIRRUS_ID_CLGD5480		0xbc
+#define CIRRUS_ID_CLGD5428_BOCA		0x9c
+#define CIRRUS_ID_CLGD5429		0xa0
+#define CIRRUS_ID_CLGD5430		0xa2
+#define CIRRUS_ID_CLGD5432		0xa4
+#define CIRRUS_ID_CLGD5434_4		0xa8
+#define CIRRUS_ID_CLGD5434		0xac
+#define CIRRUS_ID_CLGD5436		0xa0
+#define CIRRUS_ID_CLGD5440		0xb8	/* Yes, the 5440 has the same ID as the 5430. */
+#define CIRRUS_ID_CLGD5446		0xbc
+#define CIRRUS_ID_CLGD5480		0xd0
 
 /* sequencer 0x07 */
 #define CIRRUS_SR7_BPP_VGA		0x00
