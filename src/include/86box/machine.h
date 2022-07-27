@@ -108,7 +108,6 @@
 #define MACHINE_USB_PRI       0x04000000    /* sys has int pri USB */
 #define MACHINE_USB_SEC       0x08000000    /* sys has int sec USB */
 #define MACHINE_COREBOOT      0x10000000    /* sys has coreboot BIOS */
-
 /* Combined flags. */
 #define MACHINE_IDE           (MACHINE_IDE_PRI)                       /* sys has int single IDE/ATAPI - mark as pri IDE/ATAPI */
 #define MACHINE_IDE_DUAL      (MACHINE_IDE_PRI | MACHINE_IDE_SEC)     /* sys has int dual IDE/ATAPI - mark as both pri and sec IDE/ATAPI */
@@ -664,6 +663,8 @@ extern int	machine_at_p6i440e2_init(const machine_t *);
 
 extern int	machine_at_p2bls_init(const machine_t *);
 extern int	machine_at_p3bf_init(const machine_t *);
+extern int	machine_at_p2bls_coreboot_init(const machine_t *);
+extern int	machine_at_p3bf_coreboot_init(const machine_t *);
 extern int	machine_at_bf6_init(const machine_t *);
 extern int	machine_at_ax6bc_init(const machine_t *);
 extern int	machine_at_atc6310bxii_init(const machine_t *);
