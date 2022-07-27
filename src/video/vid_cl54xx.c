@@ -3906,13 +3906,15 @@ static void
 					romfn = BIOS_GD5428_PATH;
 				else if (gd54xx->mca)
 					romfn = BIOS_GD5426_MCA_PATH;
-				else if (gd54xx->isa)
+				else
 					romfn = BIOS_GD5428_ISA_PATH;
-                else
-			    	romfn = BIOS_GD5428_BOCA_ISA_PATH;
 			}
 		}
 		break;
+            
+	case CIRRUS_ID_CLGD5428_BOCA:
+        romfn = BIOS_GD5428_BOCA_ISA_PATH;
+        break;
 
 	case CIRRUS_ID_CLGD5428:
 		if (info->local & 0x100)
