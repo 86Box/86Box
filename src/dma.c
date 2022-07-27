@@ -666,6 +666,7 @@ dma_ps2_write(uint16_t addr, uint8_t val, void *priv)
 		dma_ps2.xfr_channel = val & 0x7;
 		dma_ps2.xfr_command = val >> 4;
 		dma_ps2.byte_ptr = 0;
+		dma_log("DMAMCA: Xfr Channel = %02x\n", dma_ps2.xfr_command);
 		switch (dma_ps2.xfr_command) {
 			case 9: /*Set DMA mask*/
 				dma_m |= (1 << dma_ps2.xfr_channel);
@@ -722,7 +723,7 @@ dma_ps2_write(uint16_t addr, uint8_t val, void *priv)
                 break;
 
 			case 7: /*Mode register*/
-				mode = 0;
+				mode = 0x10;
 				if (val & DMA_PS2_DEC2)
 					mode |= 0x20;
 				if ((val & DMA_PS2_XFER_MASK) == DMA_PS2_XFER_MEM_TO_IO)
@@ -730,9 +731,7 @@ dma_ps2_write(uint16_t addr, uint8_t val, void *priv)
                 else if ((val & DMA_PS2_XFER_MASK) == DMA_PS2_XFER_IO_TO_MEM)
 					mode |= 4;
 				dma_c->mode = (dma_c->mode & ~0x2c) | mode;
-				if (val & DMA_PS2_AUTOINIT)
-                    dma_c->mode |= 0x10;
-				dma_c->ps2_mode = val;
+                dma_c->ps2_mode = val;
 				dma_c->size = val & DMA_PS2_SIZE16;
 				break;
 
@@ -1398,7 +1397,7 @@ dma_channel_read(int channel)
 	return(DMA_NODATA);
     if ((dma_m & (1 << channel)) && !dma_req_is_soft)
 	return(DMA_NODATA);
-    if ((dma_c->mode & 0xC) != 8)
+    if (((dma_c->mode & 0xC) != 8) && (dma_c->mode & 0xC))
 	return(DMA_NODATA);
 
     if (!dma_at && !channel)
@@ -1489,7 +1488,7 @@ dma_channel_write(int channel, uint16_t val)
 	return(DMA_NODATA);
     if ((dma_m & (1 << channel)) && !dma_req_is_soft)
 	return(DMA_NODATA);
-    if ((dma_c->mode & 0xC) != 4)
+    if (((dma_c->mode & 0xC) != 4) && (dma_c->mode & 0xC))
 	return(DMA_NODATA);
 
     if (! dma_c->size) {
