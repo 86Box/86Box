@@ -803,6 +803,7 @@ extern int	machine_xt_t1200_init(const machine_t *);
 extern int	machine_xt_z150_init(const machine_t *);
 extern int	machine_xt_z151_init(const machine_t *);
 extern int	machine_xt_z159_init(const machine_t *);
+extern int	machine_xt_z184_init(const machine_t *);
 
 /* m_xt_xi8088.c */
 extern int	machine_xt_xi8088_init(const machine_t *);
