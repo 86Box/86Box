@@ -102,6 +102,7 @@ video_cards[] = {
     { &gd5426_isa_device                             },
     { &gd5426_diamond_speedstar_pro_a1_isa_device    },
     { &gd5428_isa_device                             },
+    { &gd5428_boca_isa_device                        },
     { &gd5429_isa_device                             },
     { &gd5434_isa_device                             },
     { &gd5434_diamond_speedstar_64_a3_isa_device     },
