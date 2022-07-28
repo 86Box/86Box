@@ -1386,6 +1386,7 @@ load_hard_disks(void)
         sprintf(temp, "hdd_%02i_speed", c + 1);
         switch (hdd[c].bus) {
             case HDD_BUS_IDE:
+            case HDD_BUS_ESDI:
                 sprintf(tmp2, "1997_5400rpm");
                 break;
             default:
@@ -2920,7 +2921,7 @@ save_hard_disks(void)
             config_delete_var(cat, temp);
 
         sprintf(temp, "hdd_%02i_speed", c + 1);
-        if (!hdd_is_valid(c) || (hdd[c].bus != HDD_BUS_IDE))
+        if (!hdd_is_valid(c) || (hdd[c].bus != HDD_BUS_IDE && hdd[c].bus != HDD_BUS_ESDI))
             config_delete_var(cat, temp);
         else
             config_set_string(cat, temp, hdd_preset_get_internal_name(hdd[c].speed_preset));
