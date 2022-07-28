@@ -16,55 +16,55 @@
  */
 
 #ifndef VIDEO_XGA_H
-# define VIDEO_XGA_H
+#define VIDEO_XGA_H
 
 #include <86box/rom.h>
 
 typedef struct {
-    int ena;
-    int x, y, xoff, yoff, cur_xsize, cur_ysize;
+    int      ena;
+    int      x, y, xoff, yoff, cur_xsize, cur_ysize;
     uint32_t addr;
 } xga_hwcursor_t;
 
-typedef struct xga_t
-{
-	mem_mapping_t memio_mapping;
-	mem_mapping_t linear_mapping;
-	mem_mapping_t video_mapping;
-	rom_t bios_rom;
-	xga_hwcursor_t hwcursor, hwcursor_latch;
-    PALETTE extpal;
+typedef struct xga_t {
+    mem_mapping_t  memio_mapping;
+    mem_mapping_t  linear_mapping;
+    mem_mapping_t  video_mapping;
+    rom_t          bios_rom;
+    xga_hwcursor_t hwcursor, hwcursor_latch;
+    PALETTE        extpal;
 
-    uint8_t test, atest[2], testpixel;;
-    uint8_t pos_regs[8];
-    uint8_t disp_addr;
-    uint8_t cfg_reg;
-    uint8_t instance;
-    uint8_t op_mode;
-    uint8_t aperture_cntl;
-    uint8_t ap_idx;
-    uint8_t access_mode;
-    uint8_t regs[0x100];
-    uint8_t regs_idx;
-    uint8_t hwc_hotspot_x;
-    uint8_t hwc_hotspot_y;
-    uint8_t disp_cntl_1, disp_cntl_2;
-    uint8_t clk_sel_1, clk_sel_2;
-    uint8_t hwc_control;
-    uint8_t bus_arb;
-    uint8_t select_pos_isa;
-    uint8_t hwcursor_oddeven;
-    uint8_t cfg_reg_instance;
-    uint8_t rowcount;
-    uint8_t pal_idx, pal_idx_prefetch;
-    uint8_t pal_seq;
-    uint8_t pal_mask;
-    uint8_t pal_r, pal_r_prefetch;
-    uint8_t pal_g, pal_g_prefetch;
-    uint8_t pal_b, pal_b_prefetch;
-    uint8_t sprite_data[1024];
-    uint8_t scrollcache;
-    uint8_t direct_color;
+    uint8_t test, atest[2], testpixel;
+    ;
+    uint8_t  pos_regs[8];
+    uint8_t  disp_addr;
+    uint8_t  cfg_reg;
+    uint8_t  instance;
+    uint8_t  op_mode;
+    uint8_t  aperture_cntl;
+    uint8_t  ap_idx;
+    uint8_t  access_mode;
+    uint8_t  regs[0x100];
+    uint8_t  regs_idx;
+    uint8_t  hwc_hotspot_x;
+    uint8_t  hwc_hotspot_y;
+    uint8_t  disp_cntl_1, disp_cntl_2;
+    uint8_t  clk_sel_1, clk_sel_2;
+    uint8_t  hwc_control;
+    uint8_t  bus_arb;
+    uint8_t  select_pos_isa;
+    uint8_t  hwcursor_oddeven;
+    uint8_t  cfg_reg_instance;
+    uint8_t  rowcount;
+    uint8_t  pal_idx, pal_idx_prefetch;
+    uint8_t  pal_seq;
+    uint8_t  pal_mask;
+    uint8_t  pal_r, pal_r_prefetch;
+    uint8_t  pal_g, pal_g_prefetch;
+    uint8_t  pal_b, pal_b_prefetch;
+    uint8_t  sprite_data[1024];
+    uint8_t  scrollcache;
+    uint8_t  direct_color;
     uint8_t *vram, *changedvram;
 
     int16_t hwc_pos_x;
@@ -84,7 +84,7 @@ typedef struct xga_t
     uint16_t sprite_pal_addr_idx_prefetch;
 
     int v_total, dispend, v_syncstart, split, v_blankstart,
-        h_disp,  h_disp_old, h_total,  h_disp_time, rowoffset,
+        h_disp, h_disp_old, h_total, h_disp_time, rowoffset,
         dispon, h_disp_on, vc, sc, linepos, oddeven, firstline, lastline,
         firstline_draw, lastline_draw, displine, fullchange, interlace,
         char_width, hwcursor_on;
@@ -103,10 +103,10 @@ typedef struct xga_t
     uint32_t vram_size;
     uint32_t vram_mask;
     uint32_t rom_addr;
-	uint32_t ma, maback;
-	uint32_t extpallook[256];
-	uint32_t read_bank, write_bank;
-	uint32_t px_map_base;
+    uint32_t ma, maback;
+    uint32_t extpallook[256];
+    uint32_t read_bank, write_bank;
+    uint32_t px_map_base;
 
     uint64_t dispontime, dispofftime;
 
@@ -153,7 +153,7 @@ typedef struct xga_t
         uint32_t command;
         uint32_t dir_cmd;
 
-        uint8_t px_map_format[4];
+        uint8_t  px_map_format[4];
         uint16_t px_map_width[4];
         uint16_t px_map_height[4];
         uint32_t px_map_base[4];
@@ -161,4 +161,4 @@ typedef struct xga_t
 
     volatile int force_busy;
 } xga_t;
-#endif	/*VIDEO_XGA_H*/
+#endif /*VIDEO_XGA_H*/

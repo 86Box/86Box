@@ -38,22 +38,19 @@
  */
 
 #ifndef MACHINE_T3100E_H
-# define MACHINE_T3100E_H
-
+#define MACHINE_T3100E_H
 
 extern const device_t t3100e_device;
 
+extern void    t3100e_notify_set(uint8_t value);
+extern void    t3100e_display_set(uint8_t value);
+extern uint8_t t3100e_display_get(void);
+extern uint8_t t3100e_config_get(void);
+extern void    t3100e_turbo_set(uint8_t value);
+extern uint8_t t3100e_mono_get(void);
+extern void    t3100e_mono_set(uint8_t value);
 
-extern void	t3100e_notify_set(uint8_t value);
-extern void	t3100e_display_set(uint8_t value);
-extern uint8_t	t3100e_display_get(void);
-extern uint8_t	t3100e_config_get(void);
-extern void	t3100e_turbo_set(uint8_t value);
-extern uint8_t	t3100e_mono_get(void);
-extern void	t3100e_mono_set(uint8_t value);
+extern void t3100e_video_options_set(uint8_t options);
+extern void t3100e_display_set(uint8_t internal);
 
-extern void	t3100e_video_options_set(uint8_t options);
-extern void	t3100e_display_set(uint8_t internal);
-
-
-#endif	/*MACHINE_T3100E_H*/
+#endif /*MACHINE_T3100E_H*/

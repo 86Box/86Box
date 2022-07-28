@@ -20,5 +20,4 @@
 #ifndef SOUND_OPL_NUKED_H
 #define SOUND_OPL_NUKED_H
 
-
 #endif /*SOUND_OPL_NUKED_H*/

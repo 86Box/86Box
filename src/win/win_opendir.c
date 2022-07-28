@@ -27,12 +27,10 @@
 #include <86box/plat.h>
 #include <86box/plat_dir.h>
 
-
-#define SUFFIX		"\\*"
-#define FINDATA	struct _finddata_t
-#define FINDFIRST	_findfirst
-#define FINDNEXT	_findnext
-
+#define SUFFIX    "\\*"
+#define FINDATA   struct _finddata_t
+#define FINDFIRST _findfirst
+#define FINDNEXT  _findnext
 
 /* Open a directory. */
 DIR *
@@ -43,17 +41,17 @@ opendir(const char *name)
     /* Create a new control structure. */
     p = (DIR *) malloc(sizeof(DIR));
     if (p == NULL)
-	return(NULL);
+        return (NULL);
     memset(p, 0x00, sizeof(DIR));
-    p->flags = (DIR_F_LOWER | DIR_F_SANE);
+    p->flags  = (DIR_F_LOWER | DIR_F_SANE);
     p->offset = 0;
-    p->sts = 0;
+    p->sts    = 0;
 
     /* Create a work area. */
-    p->dta = (char *)malloc(sizeof(FINDATA));
+    p->dta = (char *) malloc(sizeof(FINDATA));
     if (p->dta == NULL) {
-	free(p);
-	return(NULL);
+        free(p);
+        return (NULL);
     }
     memset(p->dta, 0x00, sizeof(struct _finddata_t));
 
@@ -63,37 +61,35 @@ opendir(const char *name)
 
     /* Special case: flag if we are in the root directory. */
     if (strlen(p->dir) == 3)
-	p->flags |= DIR_F_ISROOT;
+        p->flags |= DIR_F_ISROOT;
 
     /* Start the searching by doing a FindFirst. */
-    p->handle = FINDFIRST(p->dir, (FINDATA *)p->dta);
+    p->handle = FINDFIRST(p->dir, (FINDATA *) p->dta);
     if (p->handle < 0L) {
-	free(p->dta);
-	free(p);
-	return(NULL);
+        free(p->dta);
+        free(p);
+        return (NULL);
     }
 
     /* All OK. */
-    return(p);
+    return (p);
 }
-
 
 /* Close an open directory. */
 int
 closedir(DIR *p)
 {
     if (p == NULL)
-	return(0);
+        return (0);
 
     _findclose(p->handle);
 
     if (p->dta != NULL)
-	free(p->dta);
+        free(p->dta);
     free(p);
 
-    return(0);
+    return (0);
 }
-
 
 /*
  * Read the next entry from a directory.
@@ -108,26 +104,26 @@ readdir(DIR *p)
     FINDATA *ffp;
 
     if (p == NULL || p->sts == 1)
-	return(NULL);
+        return (NULL);
 
     /* Format structure with current data. */
-    ffp = (FINDATA *)p->dta;
+    ffp           = (FINDATA *) p->dta;
     p->dent.d_ino = 1L;
     p->dent.d_off = p->offset++;
-    switch(p->offset) {
-	case 1:		/* . */
-		strncpy(p->dent.d_name, ".", MAXNAMLEN+1);
-		p->dent.d_reclen = 1;
-		break;
+    switch (p->offset) {
+        case 1: /* . */
+            strncpy(p->dent.d_name, ".", MAXNAMLEN + 1);
+            p->dent.d_reclen = 1;
+            break;
 
-	case 2:		/* .. */
-		strncpy(p->dent.d_name, "..", MAXNAMLEN+1);
-		p->dent.d_reclen = 2;
-		break;
+        case 2: /* .. */
+            strncpy(p->dent.d_name, "..", MAXNAMLEN + 1);
+            p->dent.d_reclen = 2;
+            break;
 
-	default:	/* regular entry. */
-		strncpy(p->dent.d_name, ffp->name, MAXNAMLEN+1);
-		p->dent.d_reclen = (char)strlen(p->dent.d_name);
+        default: /* regular entry. */
+            strncpy(p->dent.d_name, ffp->name, MAXNAMLEN + 1);
+            p->dent.d_reclen = (char) strlen(p->dent.d_name);
     }
 
     /* Read next entry. */
@@ -135,23 +131,21 @@ readdir(DIR *p)
 
     /* Fake the "." and ".." entries here.. */
     if ((p->flags & DIR_F_ISROOT) && (p->offset <= 2))
-	return(&(p->dent));
+        return (&(p->dent));
 
     /* Get the next entry if we did not fake the above. */
     if (FINDNEXT(p->handle, ffp) < 0)
-	p->sts = 1;
+        p->sts = 1;
 
-    return(&(p->dent));
+    return (&(p->dent));
 }
-
 
 /* Report current position within the directory. */
 long
 telldir(DIR *p)
 {
-    return(p->offset);
+    return (p->offset);
 }
-
 
 void
 seekdir(DIR *p, long newpos)
@@ -159,24 +153,25 @@ seekdir(DIR *p, long newpos)
     short pos;
 
     /* First off, rewind to start of directory. */
-    p->handle = FINDFIRST(p->dir, (FINDATA *)p->dta);
+    p->handle = FINDFIRST(p->dir, (FINDATA *) p->dta);
     if (p->handle < 0L) {
-	p->sts = 1;
-	return;
+        p->sts = 1;
+        return;
     }
     p->offset = 0;
-    p->sts = 0;
+    p->sts    = 0;
 
     /* If we are rewinding, that's all... */
-    if (newpos == 0L) return;
+    if (newpos == 0L)
+        return;
 
     /* Nope.. read entries until we hit the right spot. */
     pos = (short) newpos;
     while (p->offset != pos) {
-	p->offset++;
-	if (FINDNEXT(p->handle, (FINDATA *)p->dta) < 0) {
-		p->sts = 1;
-		return;
-	}
+        p->offset++;
+        if (FINDNEXT(p->handle, (FINDATA *) p->dta) < 0) {
+            p->sts = 1;
+            return;
+        }
     }
 }

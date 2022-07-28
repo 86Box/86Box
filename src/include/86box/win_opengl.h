@@ -19,8 +19,8 @@
 #define UNICODE
 #include <Windows.h>
 
-extern int opengl_init(HWND hwnd);
-extern int opengl_pause(void);
+extern int  opengl_init(HWND hwnd);
+extern int  opengl_pause(void);
 extern void opengl_close(void);
 extern void opengl_set_fs(int fs);
 extern void opengl_resize(int w, int h);

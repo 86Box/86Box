@@ -1,10 +1,9 @@
 #ifndef VIDEO_COLORPLUS_H
-# define VIDEO_COLORPLUS_H
+#define VIDEO_COLORPLUS_H
 
-typedef struct colorplus_t
-{
-	cga_t cga;
-        uint8_t control;
+typedef struct colorplus_t {
+    cga_t   cga;
+    uint8_t control;
 } colorplus_t;
 
 void    colorplus_init(colorplus_t *colorplus);
