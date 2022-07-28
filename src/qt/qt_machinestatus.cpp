@@ -354,6 +354,7 @@ void MachineStatus::refreshIcons() {
 
     for (size_t i = 0; i < HDD_BUS_USB; i++) {
         d->hdds[i].setActive(machine_status.hdd[i].active);
+        machine_status.hdd[i].active = false;
     }
 
     d->net.setActive(machine_status.net.active);
