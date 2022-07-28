@@ -42,7 +42,7 @@ typedef struct sb_dsp_t {
 
     int sb_irqnum;
     void (*irq_update)(void *priv, int set),
-         *irq_priv;
+        *irq_priv;
 
     uint8_t sbe2;
     int     sbe2count;
