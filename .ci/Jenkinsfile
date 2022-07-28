@@ -100,8 +100,8 @@ def gitClone(repository, branch) {
 
 	/* Use stashes to pass the repository around debian.citadel, as it's known to be faster than git clone there. */
 	if (env.NODE_NAME != 'debian.citadel' || env.GIT_STASHED != 'true') {
-		/* Perform clone/checkout, making sure to update the changelog only once to
-		   avoid inaccurate entries caused by new commits pushed inbetween clones. */
+		/* Perform clone/checkout, making sure to update the changelog only once
+		   to avoid inaccurate entries from new commits pushed inbetween clones. */
 		def scmVars = checkout poll: true,
 				       changelog: env.GIT_STASHED != 'true',
 				       scm: [$class: 'GitSCM',
