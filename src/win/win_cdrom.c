@@ -44,7 +44,6 @@
 #include <86box/ui.h>
 #include <86box/win.h>
 
-
 void
 cassette_mount(char *fn, uint8_t wp)
 {
@@ -53,13 +52,12 @@ cassette_mount(char *fn, uint8_t wp)
     cassette_ui_writeprot = wp;
     pc_cas_set_fname(cassette, fn);
     if (fn != NULL)
-	memcpy(cassette_fname, fn, MIN(511, strlen(fn)));
+        memcpy(cassette_fname, fn, MIN(511, strlen(fn)));
     ui_sb_update_icon_state(SB_CASSETTE, (fn == NULL) ? 1 : 0);
     media_menu_update_cassette();
     ui_sb_update_tip(SB_CASSETTE);
     config_save();
 }
-
 
 void
 cassette_eject(void)
@@ -72,7 +70,6 @@ cassette_eject(void)
     config_save();
 }
 
-
 void
 cartridge_mount(uint8_t id, char *fn, uint8_t wp)
 {
@@ -84,7 +81,6 @@ cartridge_mount(uint8_t id, char *fn, uint8_t wp)
     config_save();
 }
 
-
 void
 cartridge_eject(uint8_t id)
 {
@@ -94,7 +90,6 @@ cartridge_eject(uint8_t id)
     ui_sb_update_tip(SB_CARTRIDGE | id);
     config_save();
 }
-
 
 void
 floppy_mount(uint8_t id, char *fn, uint8_t wp)
@@ -108,7 +103,6 @@ floppy_mount(uint8_t id, char *fn, uint8_t wp)
     config_save();
 }
 
-
 void
 floppy_eject(uint8_t id)
 {
@@ -119,20 +113,19 @@ floppy_eject(uint8_t id)
     config_save();
 }
 
-
 void
 plat_cdrom_ui_update(uint8_t id, uint8_t reload)
 {
     cdrom_t *drv = &cdrom[id];
 
     if (drv->host_drive == 0) {
-	ui_sb_update_icon_state(SB_CDROM|id, 1);
+        ui_sb_update_icon_state(SB_CDROM | id, 1);
     } else {
-	ui_sb_update_icon_state(SB_CDROM|id, 0);
+        ui_sb_update_icon_state(SB_CDROM | id, 0);
     }
 
     media_menu_update_cdrom(id);
-    ui_sb_update_tip(SB_CDROM|id);
+    ui_sb_update_tip(SB_CDROM | id);
 }
 
 void
@@ -141,18 +134,18 @@ cdrom_mount(uint8_t id, char *fn)
     cdrom[id].prev_host_drive = cdrom[id].host_drive;
     strcpy(cdrom[id].prev_image_path, cdrom[id].image_path);
     if (cdrom[id].ops && cdrom[id].ops->exit)
-	cdrom[id].ops->exit(&(cdrom[id]));
+        cdrom[id].ops->exit(&(cdrom[id]));
     cdrom[id].ops = NULL;
     memset(cdrom[id].image_path, 0, sizeof(cdrom[id].image_path));
     cdrom_image_open(&(cdrom[id]), fn);
     /* Signal media change to the emulated machine. */
     if (cdrom[id].insert)
-	cdrom[id].insert(cdrom[id].priv);
+        cdrom[id].insert(cdrom[id].priv);
     cdrom[id].host_drive = (strlen(cdrom[id].image_path) == 0) ? 0 : 200;
     if (cdrom[id].host_drive == 200) {
-	ui_sb_update_icon_state(SB_CDROM | id, 0);
+        ui_sb_update_icon_state(SB_CDROM | id, 0);
     } else {
-	ui_sb_update_icon_state(SB_CDROM | id, 1);
+        ui_sb_update_icon_state(SB_CDROM | id, 1);
     }
     media_menu_update_cdrom(id);
     ui_sb_update_tip(SB_CDROM | id);
@@ -166,8 +159,8 @@ mo_eject(uint8_t id)
 
     mo_disk_close(dev);
     if (mo_drives[id].bus_type) {
-	/* Signal disk change to the emulated machine. */
-	mo_insert(dev);
+        /* Signal disk change to the emulated machine. */
+        mo_insert(dev);
     }
 
     ui_sb_update_icon_state(SB_MO | id, 1);
@@ -175,7 +168,6 @@ mo_eject(uint8_t id)
     ui_sb_update_tip(SB_MO | id);
     config_save();
 }
-
 
 void
 mo_mount(uint8_t id, char *fn, uint8_t wp)
@@ -194,7 +186,6 @@ mo_mount(uint8_t id, char *fn, uint8_t wp)
     config_save();
 }
 
-
 void
 mo_reload(uint8_t id)
 {
@@ -202,13 +193,13 @@ mo_reload(uint8_t id)
 
     mo_disk_reload(dev);
     if (strlen(mo_drives[id].image_path) == 0) {
-	ui_sb_update_icon_state(SB_MO|id, 1);
+        ui_sb_update_icon_state(SB_MO | id, 1);
     } else {
-	ui_sb_update_icon_state(SB_MO|id, 0);
+        ui_sb_update_icon_state(SB_MO | id, 0);
     }
 
     media_menu_update_mo(id);
-    ui_sb_update_tip(SB_MO|id);
+    ui_sb_update_tip(SB_MO | id);
 
     config_save();
 }
@@ -220,8 +211,8 @@ zip_eject(uint8_t id)
 
     zip_disk_close(dev);
     if (zip_drives[id].bus_type) {
-	/* Signal disk change to the emulated machine. */
-	zip_insert(dev);
+        /* Signal disk change to the emulated machine. */
+        zip_insert(dev);
     }
 
     ui_sb_update_icon_state(SB_ZIP | id, 1);
@@ -229,7 +220,6 @@ zip_eject(uint8_t id)
     ui_sb_update_tip(SB_ZIP | id);
     config_save();
 }
-
 
 void
 zip_mount(uint8_t id, char *fn, uint8_t wp)
@@ -248,7 +238,6 @@ zip_mount(uint8_t id, char *fn, uint8_t wp)
     config_save();
 }
 
-
 void
 zip_reload(uint8_t id)
 {
@@ -256,13 +245,13 @@ zip_reload(uint8_t id)
 
     zip_disk_reload(dev);
     if (strlen(zip_drives[id].image_path) == 0) {
-	ui_sb_update_icon_state(SB_ZIP|id, 1);
+        ui_sb_update_icon_state(SB_ZIP | id, 1);
     } else {
-	ui_sb_update_icon_state(SB_ZIP|id, 0);
+        ui_sb_update_icon_state(SB_ZIP | id, 0);
     }
 
     media_menu_update_zip(id);
-    ui_sb_update_tip(SB_ZIP|id);
+    ui_sb_update_tip(SB_ZIP | id);
 
     config_save();
 }

@@ -18,9 +18,9 @@
  */
 
 #ifndef EMU_VID_DDC_H
-# define EMU_VID_DDC_H
+#define EMU_VID_DDC_H
 
-extern void	*ddc_init(void *i2c);
-extern void	ddc_close(void *eeprom);
+extern void *ddc_init(void *i2c);
+extern void  ddc_close(void *eeprom);
 
-#endif	/*EMU_VID_DDC_H*/
+#endif /*EMU_VID_DDC_H*/
