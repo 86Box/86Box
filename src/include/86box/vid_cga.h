@@ -17,45 +17,44 @@
  */
 
 #ifndef VIDEO_CGA_H
-# define VIDEO_CGA_H
+#define VIDEO_CGA_H
 
-typedef struct cga_t
-{
-        mem_mapping_t mapping;
+typedef struct cga_t {
+    mem_mapping_t mapping;
 
-        int crtcreg;
-        uint8_t crtc[32];
+    int     crtcreg;
+    uint8_t crtc[32];
 
-        uint8_t cgastat;
+    uint8_t cgastat;
 
-        uint8_t cgamode, cgacol;
+    uint8_t cgamode, cgacol;
 
-	int fontbase;
-        int linepos, displine;
-        int sc, vc;
-        int cgadispon;
-        int con, coff, cursoron, cgablink;
-        int vsynctime, vadj;
-        uint16_t ma, maback;
-        int oddeven;
+    int      fontbase;
+    int      linepos, displine;
+    int      sc, vc;
+    int      cgadispon;
+    int      con, coff, cursoron, cgablink;
+    int      vsynctime, vadj;
+    uint16_t ma, maback;
+    int      oddeven;
 
-        uint64_t dispontime, dispofftime;
-        pc_timer_t timer;
+    uint64_t   dispontime, dispofftime;
+    pc_timer_t timer;
 
-        int firstline, lastline;
+    int firstline, lastline;
 
-        int drawcursor;
+    int drawcursor;
 
-        int fullchange;
+    int fullchange;
 
-        uint8_t *vram;
+    uint8_t *vram;
 
-        uint8_t charbuffer[256];
+    uint8_t charbuffer[256];
 
-	int revision;
-	int composite;
-	int snow_enabled;
-	int rgb_type;
+    int revision;
+    int composite;
+    int snow_enabled;
+    int rgb_type;
 } cga_t;
 
 void    cga_init(cga_t *cga);
@@ -68,7 +67,7 @@ void    cga_poll(void *p);
 
 #ifdef EMU_DEVICE_H
 extern const device_config_t cga_config[];
-extern const device_t cga_device;
+extern const device_t        cga_device;
 #endif
 
-#endif	/*VIDEO_CGA_H*/
+#endif /*VIDEO_CGA_H*/

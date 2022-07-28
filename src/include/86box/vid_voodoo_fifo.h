@@ -17,7 +17,7 @@
  */
 
 #ifndef VIDEO_VOODOO_FIFO_H
-# define VIDEO_VOODOO_FIFO_H
+#define VIDEO_VOODOO_FIFO_H
 
 void voodoo_wake_fifo_thread(voodoo_t *voodoo);
 void voodoo_wake_fifo_thread_now(voodoo_t *voodoo);
