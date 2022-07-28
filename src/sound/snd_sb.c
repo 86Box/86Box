@@ -266,7 +266,7 @@ sb_get_buffer_sbpro(int32_t *buffer, int len, void *p)
     sb_ct1345_mixer_t *mixer = &sb->mixer_sbpro;
     int                c;
     double             out_l = 0.0, out_r = 0.0;
-    int32_t *opl_buf, *opl2_buf;
+    int32_t            *opl_buf = NULL, *opl2_buf = NULL;
 
     if (sb->opl_enabled) {
         if (sb->dsp.sb_type == SBPRO) {
