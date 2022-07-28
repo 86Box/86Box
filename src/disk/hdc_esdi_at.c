@@ -253,9 +253,9 @@ esdi_writew(uint16_t port, uint16_t val, void *priv)
 	if (esdi->pos >= 512) {
 		esdi->pos = 0;
 		esdi->status = STAT_BUSY;
-        get_sector(esdi, &addr);
-        double seek_time = hdd_timing_write(&hdd[esdi->drives[esdi->drive_sel].hdd_num], addr, 1);
-        double xfer_time = esdi_get_xfer_time(esdi, 1);
+		get_sector(esdi, &addr);
+		double seek_time = hdd_timing_write(&hdd[esdi->drives[esdi->drive_sel].hdd_num], addr, 1);
+		double xfer_time = esdi_get_xfer_time(esdi, 1);
 		esdi_set_callback(esdi, seek_time + xfer_time);
 	}
     }
@@ -317,6 +317,7 @@ esdi_write(uint16_t port, uint8_t val, void *priv)
 				esdi->command &= ~0x0f; /*mask off step rate*/
 				esdi->status = STAT_BUSY;
 				esdi_set_callback(esdi, 200 * HDC_TIME);
+				ui_sb_update_icon(SB_HDD|HDD_BUS_ESDI, 1);
 				break;
 
 			case CMD_SEEK:
@@ -325,6 +326,7 @@ esdi_write(uint16_t port, uint8_t val, void *priv)
 				get_sector(esdi, &addr);
 				seek_time = hdd_seek_get_time(&hdd[esdi->drives[esdi->drive_sel].hdd_num], addr, HDD_OP_SEEK, 0, 0.0);
 				esdi_set_callback(esdi, seek_time);
+				ui_sb_update_icon(SB_HDD|HDD_BUS_ESDI, 1);
 				break;
 
 			default:
@@ -345,10 +347,11 @@ esdi_write(uint16_t port, uint8_t val, void *priv)
 
 					case 0xa0:
 						esdi->status = STAT_BUSY;
-                        get_sector(esdi, &addr);
-                        seek_time = hdd_timing_read(&hdd[esdi->drives[esdi->drive_sel].hdd_num], addr, 1);
-                        xfer_time = esdi_get_xfer_time(esdi, 1);
+						get_sector(esdi, &addr);
+						seek_time = hdd_timing_read(&hdd[esdi->drives[esdi->drive_sel].hdd_num], addr, 1);
+						xfer_time = esdi_get_xfer_time(esdi, 1);
 						esdi_set_callback(esdi, seek_time + xfer_time);
+						ui_sb_update_icon(SB_HDD|HDD_BUS_ESDI, 1);
 						break;
 
 					case CMD_WRITE:
@@ -360,21 +363,24 @@ esdi_write(uint16_t port, uint8_t val, void *priv)
 							fatal("Write with ECC\n");
 						esdi->status = STAT_READY | STAT_DRQ | STAT_DSC;
 						esdi->pos = 0;
+						ui_sb_update_icon(SB_HDD|HDD_BUS_ESDI, 1);
 						break;
 
 					case CMD_VERIFY:
 					case CMD_VERIFY+1:
 						esdi->command &= ~0x01;
 						esdi->status = STAT_BUSY;
-                        get_sector(esdi, &addr);
-                        seek_time = hdd_timing_read(&hdd[esdi->drives[esdi->drive_sel].hdd_num], addr, 1);
-                        xfer_time = esdi_get_xfer_time(esdi, 1);
+						get_sector(esdi, &addr);
+						seek_time = hdd_timing_read(&hdd[esdi->drives[esdi->drive_sel].hdd_num], addr, 1);
+						xfer_time = esdi_get_xfer_time(esdi, 1);
 						esdi_set_callback(esdi, seek_time + xfer_time);
+						ui_sb_update_icon(SB_HDD|HDD_BUS_ESDI, 1);
 						break;
 
 					case CMD_FORMAT:
 						esdi->status = STAT_DRQ;
 						esdi->pos = 0;
+						ui_sb_update_icon(SB_HDD|HDD_BUS_ESDI, 1);
 						break;
 
 					case CMD_SET_PARAMETERS: /* Initialize Drive Parameters */
@@ -385,6 +391,7 @@ esdi_write(uint16_t port, uint8_t val, void *priv)
 					case CMD_DIAGNOSE: /* Execute Drive Diagnostics */
 						esdi->status = STAT_BUSY;
 						esdi_set_callback(esdi, 200 * HDC_TIME);
+						ui_sb_update_icon(SB_HDD|HDD_BUS_ESDI, 1);
 						break;
 
 					case 0xe0: /*???*/
@@ -448,9 +455,9 @@ esdi_readw(uint16_t port, void *priv)
 			if (esdi->secount) {
 				next_sector(esdi);
 				esdi->status = STAT_BUSY;
-                get_sector(esdi, &addr);
-                double seek_time = hdd_timing_read(&hdd[esdi->drives[esdi->drive_sel].hdd_num], addr, 1);
-                double xfer_time = esdi_get_xfer_time(esdi, 1);
+				get_sector(esdi, &addr);
+				double seek_time = hdd_timing_read(&hdd[esdi->drives[esdi->drive_sel].hdd_num], addr, 1);
+				double xfer_time = esdi_get_xfer_time(esdi, 1);
 				/* 390.625 us per sector at 10 Mbit/s = 1280 kB/s. */
 				esdi_set_callback(esdi, seek_time + xfer_time);
 			} else
@@ -543,6 +550,7 @@ esdi_callback(void *priv)
 			esdi->status = STAT_READY|STAT_DSC;
 		}
 		irq_raise(esdi);
+		ui_sb_update_icon(SB_HDD|HDD_BUS_ESDI, 0);
 		break;
 
 	case CMD_SEEK:
@@ -552,6 +560,7 @@ esdi_callback(void *priv)
 		} else
 			esdi->status = STAT_READY|STAT_DSC;
 		irq_raise(esdi);
+		ui_sb_update_icon(SB_HDD|HDD_BUS_ESDI, 0);
 		break;
 
 	case CMD_READ:
@@ -571,7 +580,6 @@ esdi_callback(void *priv)
 			esdi->pos = 0;
 			esdi->status = STAT_DRQ|STAT_READY|STAT_DSC;
 			irq_raise(esdi);
-			ui_sb_update_icon(SB_HDD|HDD_BUS_ESDI, 1);
 		}
 		break;
 
@@ -580,12 +588,14 @@ esdi_callback(void *priv)
 			esdi->status = STAT_READY|STAT_ERR|STAT_DSC;
 			esdi->error = ERR_ABRT;
 			irq_raise(esdi);
+			ui_sb_update_icon(SB_HDD|HDD_BUS_ESDI, 0);
 			break;
 		} else {
 			if (get_sector(esdi, &addr)) {
 				esdi->error = ERR_ID_NOT_FOUND;
 				esdi->status = STAT_READY|STAT_DSC|STAT_ERR;
 				irq_raise(esdi);
+				ui_sb_update_icon(SB_HDD|HDD_BUS_ESDI, 0);
 				break;
 			}
 
@@ -596,9 +606,11 @@ esdi_callback(void *priv)
 				esdi->status = STAT_DRQ|STAT_READY|STAT_DSC;
 				esdi->pos = 0;
 				next_sector(esdi);
-			} else
+				ui_sb_update_icon(SB_HDD|HDD_BUS_ESDI, 1);
+			} else {
 				esdi->status = STAT_READY|STAT_DSC;
-			ui_sb_update_icon(SB_HDD|HDD_BUS_ESDI, 1);
+				ui_sb_update_icon(SB_HDD|HDD_BUS_ESDI, 0);
+			}
 		}
 		break;
 
@@ -607,12 +619,14 @@ esdi_callback(void *priv)
 			esdi->status = STAT_READY|STAT_ERR|STAT_DSC;
 			esdi->error = ERR_ABRT;
 			irq_raise(esdi);
+			ui_sb_update_icon(SB_HDD|HDD_BUS_ESDI, 0);
 			break;
 		} else {
 			if (get_sector(esdi, &addr)) {
 				esdi->error = ERR_ID_NOT_FOUND;
 				esdi->status = STAT_READY|STAT_DSC|STAT_ERR;
 				irq_raise(esdi);
+				ui_sb_update_icon(SB_HDD|HDD_BUS_ESDI, 0);
 				break;
 			}
 
@@ -621,18 +635,20 @@ esdi_callback(void *priv)
 			next_sector(esdi);
 			esdi->secount = (esdi->secount - 1) & 0xff;
 			if (esdi->secount) {
-                get_sector(esdi, &addr);
-                seek_time = hdd_timing_read(&hdd[esdi->drives[esdi->drive_sel].hdd_num], addr, 1);
+				get_sector(esdi, &addr);
+				seek_time = hdd_timing_read(&hdd[esdi->drives[esdi->drive_sel].hdd_num], addr, 1);
 				esdi_set_callback(esdi, seek_time + HDC_TIME);
 			} else {
 				esdi->pos = 0;
 				esdi->status = STAT_READY|STAT_DSC;
 				irq_raise(esdi);
+				ui_sb_update_icon(SB_HDD|HDD_BUS_ESDI, 0);
 			}
 		}
 		break;
 
 	case CMD_FORMAT:
+		ui_sb_update_icon(SB_HDD|HDD_BUS_ESDI, 0);
 		if (! drive->present) {
 			esdi->status = STAT_READY|STAT_ERR|STAT_DSC;
 			esdi->error = ERR_ABRT;
@@ -649,7 +665,6 @@ esdi_callback(void *priv)
 			hdd_image_zero(drive->hdd_num, addr, esdi->secount);
 			esdi->status = STAT_READY|STAT_DSC;
 			irq_raise(esdi);
-			ui_sb_update_icon(SB_HDD|HDD_BUS_ESDI, 1);
 		}
 		break;
 
@@ -662,9 +677,11 @@ esdi_callback(void *priv)
 		esdi->error = 1;	 /*no error detected*/
 		esdi->status = STAT_READY|STAT_DSC;
 		irq_raise(esdi);
+		ui_sb_update_icon(SB_HDD|HDD_BUS_ESDI, 0);
 		break;
 
 	case CMD_SET_PARAMETERS: /* Initialize Drive Parameters */
+		ui_sb_update_icon(SB_HDD|HDD_BUS_ESDI, 0);
 		if (! drive->present) {
 			esdi->status = STAT_READY|STAT_ERR|STAT_DSC;
 			esdi->error = ERR_ABRT;
@@ -686,9 +703,11 @@ esdi_callback(void *priv)
 		esdi->status = STAT_READY|STAT_ERR|STAT_DSC;
 		esdi->error = ERR_ABRT;
 		irq_raise(esdi);
+		ui_sb_update_icon(SB_HDD|HDD_BUS_ESDI, 0);
 		break;
 
 	case 0xe0:
+		ui_sb_update_icon(SB_HDD|HDD_BUS_ESDI, 0);
 		if (! drive->present) {
 			esdi->status = STAT_READY|STAT_ERR|STAT_DSC;
 			esdi->error = ERR_ABRT;
@@ -731,6 +750,7 @@ esdi_callback(void *priv)
 			esdi->status = STAT_DRQ|STAT_READY|STAT_DSC;
 		}
 		irq_raise(esdi);
+		ui_sb_update_icon(SB_HDD|HDD_BUS_ESDI, 0);
 		break;
 
 	case CMD_READ_PARAMETERS:
@@ -766,6 +786,7 @@ esdi_callback(void *priv)
 			esdi->status = STAT_DRQ|STAT_READY|STAT_DSC;
 			irq_raise(esdi);
 		}
+		ui_sb_update_icon(SB_HDD|HDD_BUS_ESDI, 0);
 		break;
 
 	default:
@@ -776,10 +797,9 @@ esdi_callback(void *priv)
 		esdi->status = STAT_READY|STAT_ERR|STAT_DSC;
 		esdi->error = ERR_ABRT;
 		irq_raise(esdi);
+		ui_sb_update_icon(SB_HDD|HDD_BUS_ESDI, 0);
 		break;
     }
-
-    ui_sb_update_icon(SB_HDD|HDD_BUS_ESDI, 0);
 }
 
 
