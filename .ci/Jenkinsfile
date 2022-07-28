@@ -98,8 +98,8 @@ def gitClone(repository, branch) {
 	/* Clean workspace. */
 	cleanWs()
 
-	/* Use stashes to avoid performing multiple clones. */
-	if (env.GIT_STASHED != 'true') {
+	/* Use stashes to pass the repository around debian.citadel, as it's known to be faster than git clone there. */
+	if (env.NODE_NAME != 'debian.citadel' || env.GIT_STASHED != 'true') {
 		/* Perform clone/checkout. */
 		def scmVars = checkout poll: true,
 				       changelog: true,
@@ -119,9 +119,11 @@ def gitClone(repository, branch) {
 		}
 		println "[-] Using git commit [${env.GIT_COMMIT}]"
 
-		/* Stash data and mark it as stashed. */
-		stash name: 'git', useDefaultExcludes: false
-		env.GIT_STASHED = 'true'
+		/* Stash data and mark it as stashed if required. */
+		if (env.GIT_STASHED != 'true') {
+			stash name: 'git', useDefaultExcludes: false
+			env.GIT_STASHED = 'true'
+		}
 	} else {
 		/* Unstash data. */
 		unstash name: 'git'

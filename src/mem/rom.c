@@ -595,7 +595,7 @@ bios_load_linear_combined2_ex(char *fn1, char *fn2, char *fn3, char *fn4, char *
 int
 rom_init(rom_t *rom, char *fn, uint32_t addr, int sz, int mask, int off, uint32_t flags)
 {
-    rom_log("rom_init(%08X, %08X, %08X, %08X, %08X, %08X, %08X)\n", rom, fn, addr, sz, mask, off, flags);
+    rom_log("rom_init(%08X, %s, %08X, %08X, %08X, %08X, %08X)\n", rom, fn, addr, sz, mask, off, flags);
 
     /* Allocate a buffer for the image. */
     rom->rom = malloc(sz);
