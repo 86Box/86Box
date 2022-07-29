@@ -1,5 +1,5 @@
 /* Copyright (C) 2003, 2004, 2005, 2006, 2008, 2009 Dean Beeler, Jerome Fisher
- * Copyright (C) 2011-2020 Dean Beeler, Jerome Fisher, Sergey V. Mikayev
+ * Copyright (C) 2011-2022 Dean Beeler, Jerome Fisher, Sergey V. Mikayev
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Lesser General Public License as published by
@@ -236,7 +236,7 @@ float LA32FloatWaveGenerator::generateNextSample(const Bit32u ampVal, const Bit1
 				relWavePos -= cosineLen + hLen;
 			}
 
-			// To ensure the output wave has no breaks, two different windows are appied to the beginning and the ending of the resonance sine segment
+			// To ensure the output wave has no breaks, two different windows are applied to the beginning and the ending of the resonance sine segment
 			if (relWavePos < 0.5f * cosineLen) {
 				float syncSine = sin(FLOAT_PI * relWavePos / cosineLen);
 				if (relWavePos < 0.0f) {

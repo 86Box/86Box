@@ -397,7 +397,7 @@ endif
 ifeq ($(MUNT), y)
 OPTS		+= -DUSE_MUNT
 MUNTOBJ		:= midi_mt32.o \
-		    Analog.o BReverbModel.o File.o FileStream.o LA32Ramp.o \
+		    Analog.o BReverbModel.o Display.o File.o FileStream.o LA32Ramp.o \
 		    LA32FloatWaveGenerator.o LA32WaveGenerator.o \
 		    MidiStreamParser.o Part.o Partial.o PartialManager.o \
 		    Poly.o ROMInfo.o SampleRateConverter.o \

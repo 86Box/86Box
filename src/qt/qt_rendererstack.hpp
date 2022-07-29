@@ -47,7 +47,8 @@ public:
         OpenGLES,
         OpenGL3,
         Vulkan,
-        Direct3D9
+        Direct3D9,
+        None = -1
     };
     void switchRenderer(Renderer renderer);
 
@@ -95,6 +96,8 @@ private:
     int currentBuf  = 0;
     int isMouseDown = 0;
     int m_monitor_index = 0;
+
+    Renderer current_vid_api = Renderer::None;
 
     std::vector<std::tuple<uint8_t *, std::atomic_flag *>> imagebufs;
 

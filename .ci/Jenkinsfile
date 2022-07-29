@@ -98,36 +98,48 @@ def gitClone(repository, branch) {
 	/* Clean workspace. */
 	cleanWs()
 
-	/* Use stashes to pass the repository around debian.citadel, as it's known to be faster than git clone there. */
-	if (env.NODE_NAME != 'debian.citadel' || env.GIT_STASHED != 'true') {
-		/* Perform clone/checkout. */
-		def scmVars = checkout poll: true,
-				       changelog: true,
-				       scm: [$class: 'GitSCM',
-					     branches: [[name: branch]],
-					     userRemoteConfigs: [[url: repository]]]
+	/* Perform git clone if stashed data isn't available yet, or if
+	   this is not debian.citadel where stash is faster than clone. */
+	if (env.GIT_STASHED != 'true' || env.NODE_NAME != 'debian.citadel') {
+		/* Catch network issues in clone. */
+		try {
+			/* Perform clone/checkout, making sure to update the changelog only once
+			   to avoid inaccurate entries from new commits pushed inbetween clones. */
+			def scmVars = checkout(poll: true,
+					       changelog: env.GIT_STASHED != 'true',
+					       scm: [$class: 'GitSCM',
+						     branches: [[name: branch]],
+						     userRemoteConfigs: [[url: repository]]])
 
-		if (env.GIT_COMMIT == null) {
-			/* Save the current HEAD commit. */
-			env.GIT_COMMIT = scmVars.GIT_COMMIT
-		} else if (env.GIT_COMMIT != scmVars.GIT_COMMIT) {
-			/* Checkout the commit read from the polling log. */
-			if (isUnix())
-				sh(returnStatus: true, script: "git checkout ${env.GIT_COMMIT}")
-			else
-				bat(returnStatus: true, script: "git checkout ${env.GIT_COMMIT}")
-		}
-		println "[-] Using git commit [${env.GIT_COMMIT}]"
+			if (env.GIT_COMMIT == null) {
+				/* Save the current HEAD commit. */
+				env.GIT_COMMIT = scmVars.GIT_COMMIT
+			} else if (env.GIT_COMMIT != scmVars.GIT_COMMIT) {
+				/* Checkout the commit read from the polling log. */
+				if (isUnix())
+					sh(returnStatus: true, script: "git checkout ${env.GIT_COMMIT}")
+				else
+					bat(returnStatus: true, script: "git checkout ${env.GIT_COMMIT}")
+			}
+			println "[-] Using git commit [${env.GIT_COMMIT}]"
 
-		/* Stash data and mark it as stashed if required. */
-		if (env.GIT_STASHED != 'true') {
-			stash name: 'git', useDefaultExcludes: false
-			env.GIT_STASHED = 'true'
+			/* Stash data if required, marking it as stashed. */
+			if (env.GIT_STASHED != 'true') {
+				stash(name: 'git', useDefaultExcludes: false)
+				env.GIT_STASHED = 'true'
+			}
+
+			/* No need to use stashed data. */
+			return;
+		} catch (e) {
+			/* If clone fails, use stashed data if available, or re-throw exception otherwise. */
+			if (env.GIT_STASHED != 'true')
+				throw e;
 		}
-	} else {
-		/* Unstash data. */
-		unstash name: 'git'
 	}
+	
+	/* Unstash data. */
+	unstash(name: 'git')
 }
 
 def removeDir(dir) {

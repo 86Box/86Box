@@ -1,5 +1,5 @@
 /* Copyright (C) 2003, 2004, 2005, 2006, 2008, 2009 Dean Beeler, Jerome Fisher
- * Copyright (C) 2011-2020 Dean Beeler, Jerome Fisher, Sergey V. Mikayev
+ * Copyright (C) 2011-2022 Dean Beeler, Jerome Fisher, Sergey V. Mikayev
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Lesser General Public License as published by
@@ -54,13 +54,32 @@ static Bit16u keyToPitchTable[] = {
 // We want to do processing 4000 times per second. FIXME: This is pretty arbitrary.
 static const int NOMINAL_PROCESS_TIMER_PERIOD_SAMPLES = SAMPLE_RATE / 4000;
 
-// The timer runs at 500kHz. This is how much to increment it after 8 samples passes.
-// We multiply by 8 to get rid of the fraction and deal with just integers.
-static const int PROCESS_TIMER_INCREMENT_x8 = 8 * 500000 / SAMPLE_RATE;
+// In all hardware units we emulate, the main clock frequency of the MCU is 12MHz.
+// However, the MCU used in the 3rd-gen sound modules (like CM-500 and LAPC-N)
+// is significantly faster. Importantly, the software timer also works faster,
+// yet this fact has been seemingly missed. To be more specific, the software timer
+// ticks each 8 "state times", and 1 state time equals to 3 clock periods
+// for 8095 and 8098 but 2 clock periods for 80C198. That is, on MT-32 and CM-32L,
+// the software timer tick rate is 12,000,000 / 3 / 8 = 500kHz, but on the 3rd-gen
+// devices it's 12,000,000 / 2 / 8 = 750kHz instead.
+
+// For 1st- and 2nd-gen devices, the timer ticks at 500kHz. This is how much to increment
+// timeElapsed once 16 samples passes. We multiply by 16 to get rid of the fraction
+// and deal with just integers.
+static const int PROCESS_TIMER_TICKS_PER_SAMPLE_X16_1N2_GEN = (500000 << 4) / SAMPLE_RATE;
+// For 3rd-gen devices, the timer ticks at 750kHz. This is how much to increment
+// timeElapsed once 16 samples passes. We multiply by 16 to get rid of the fraction
+// and deal with just integers.
+static const int PROCESS_TIMER_TICKS_PER_SAMPLE_X16_3_GEN = (750000 << 4) / SAMPLE_RATE;
 
 TVP::TVP(const Partial *usePartial) :
-	partial(usePartial), system(&usePartial->getSynth()->mt32ram.system) {
-}
+	partial(usePartial),
+	system(&usePartial->getSynth()->mt32ram.system),
+	processTimerTicksPerSampleX16(
+		partial->getSynth()->controlROMFeatures->quirkFastPitchChanges
+		? PROCESS_TIMER_TICKS_PER_SAMPLE_X16_3_GEN
+		: PROCESS_TIMER_TICKS_PER_SAMPLE_X16_1N2_GEN)
+{}
 
 static Bit16s keyToPitch(unsigned int key) {
 	// We're using a table to do: return round_to_nearest_or_even((key - 60) * (4096.0 / 12.0))
@@ -270,7 +289,7 @@ void TVP::setupPitchChange(int targetPitchOffset, Bit8u changeDuration) {
 		pitchOffsetDelta = -pitchOffsetDelta;
 	}
 	// We want to maximise the number of bits of the Bit16s "pitchOffsetChangePerBigTick" we use in order to get the best possible precision later
-	Bit32u absPitchOffsetDelta = pitchOffsetDelta << 16;
+	Bit32u absPitchOffsetDelta = (pitchOffsetDelta & 0xFFFF) << 16;
 	Bit8u normalisationShifts = normalise(absPitchOffsetDelta); // FIXME: Double-check: normalisationShifts is usually between 0 and 15 here, unless the delta is 0, in which case it's 31
 	absPitchOffsetDelta = absPitchOffsetDelta >> 1; // Make room for the sign bit
 
@@ -301,7 +320,7 @@ void TVP::startDecay() {
 
 Bit16u TVP::nextPitch() {
 	// We emulate MCU software timer using these counter and processTimerIncrement variables.
-	// The value of nominalProcessTimerPeriod approximates the period in samples
+	// The value of NOMINAL_PROCESS_TIMER_PERIOD_SAMPLES approximates the period in samples
 	// between subsequent firings of the timer that normally occur.
 	// However, accurate emulation is quite complicated because the timer is not guaranteed to fire in time.
 	// This makes pitch variations on real unit non-deterministic and dependent on various factors.
@@ -309,7 +328,7 @@ Bit16u TVP::nextPitch() {
 		timeElapsed = (timeElapsed + processTimerIncrement) & 0x00FFFFFF;
 		// This roughly emulates pitch deviations observed on real units when playing a single partial that uses TVP/LFO.
 		counter = NOMINAL_PROCESS_TIMER_PERIOD_SAMPLES + (rand() & 3);
-		processTimerIncrement = (PROCESS_TIMER_INCREMENT_x8 * counter) >> 3;
+		processTimerIncrement = (processTimerTicksPerSampleX16 * counter) >> 4;
 		process();
 	}
 	counter--;
@@ -337,13 +356,16 @@ void TVP::process() {
 		return;
 	}
 	// FIXME: Write explanation for this stuff
+	// NOTE: Value of shifts may happily exceed the maximum of 31 specified for the 8095 MCU.
+	// We assume the device performs a shift with the rightmost 5 bits of the counter regardless of argument size,
+	// since shift instructions of any size have the same maximum.
 	int rightShifts = shifts;
 	if (rightShifts > 13) {
 		rightShifts -= 13;
-		negativeBigTicksRemaining = negativeBigTicksRemaining >> rightShifts; // PORTABILITY NOTE: Assumes arithmetic shift
+		negativeBigTicksRemaining = negativeBigTicksRemaining >> (rightShifts & 0x1F); // PORTABILITY NOTE: Assumes arithmetic shift
 		rightShifts = 13;
 	}
-	int newResult = (negativeBigTicksRemaining * pitchOffsetChangePerBigTick) >> rightShifts; // PORTABILITY NOTE: Assumes arithmetic shift
+	int newResult = (negativeBigTicksRemaining * pitchOffsetChangePerBigTick) >> (rightShifts & 0x1F); // PORTABILITY NOTE: Assumes arithmetic shift
 	newResult += targetPitchOffsetWithoutLFO + lfoPitchOffset;
 	currentPitchOffset = newResult;
 	updatePitch();
