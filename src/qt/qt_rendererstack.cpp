@@ -237,28 +237,40 @@ RendererStack::switchRenderer(Renderer renderer)
 {
     startblit();
     if (current) {
-        rendererWindow->finalize();
-        if (rendererWindow->hasBlitFunc()) {
-            while (directBlitting) {}
-            connect(this, &RendererStack::blit, this, &RendererStack::blitDummy, Qt::DirectConnection);
-            disconnect(this, &RendererStack::blit, this, &RendererStack::blitRenderer);
+        if ((current_vid_api == Renderer::Direct3D9 && renderer != Renderer::Direct3D9)
+        || (current_vid_api != Renderer::Direct3D9 && renderer == Renderer::Direct3D9)) {
+            rendererWindow->finalize();
+            if (rendererWindow->hasBlitFunc()) {
+                while (directBlitting) {}
+                connect(this, &RendererStack::blit, this, &RendererStack::blitDummy, Qt::DirectConnection);
+                disconnect(this, &RendererStack::blit, this, &RendererStack::blitRenderer);
+            } else {
+                connect(this, &RendererStack::blit, this, &RendererStack::blitDummy, Qt::DirectConnection);
+                disconnect(this, &RendererStack::blit, this, &RendererStack::blitCommon);
+            }
+
+            removeWidget(current.get());
+            disconnect(this, &RendererStack::blitToRenderer, nullptr, nullptr);
+
+            /* Create new renderer only after previous is destroyed! */
+            connect(current.get(), &QObject::destroyed, [this, renderer](QObject *) {
+                createRenderer(renderer);
+                disconnect(this, &RendererStack::blit, this, &RendererStack::blitDummy);
+                blitDummied = false;
+                QTimer::singleShot(1000, this, [this]() { this->blitDummied = false; } );
+            });
+
+            rendererWindow->hasBlitFunc() ? current.reset() : current.release()->deleteLater();
         } else {
-            connect(this, &RendererStack::blit, this, &RendererStack::blitDummy, Qt::DirectConnection);
-            disconnect(this, &RendererStack::blit, this, &RendererStack::blitCommon);
+            rendererWindow->finalize();
+            removeWidget(current.get());
+            disconnect(this, &RendererStack::blitToRenderer, nullptr, nullptr);
+
+            /* Create new renderer only after previous is destroyed! */
+            connect(current.get(), &QObject::destroyed, [this, renderer](QObject *) { createRenderer(renderer); });
+
+            current.release()->deleteLater();
         }
-
-        removeWidget(current.get());
-        disconnect(this, &RendererStack::blitToRenderer, nullptr, nullptr);
-
-        /* Create new renderer only after previous is destroyed! */
-        connect(current.get(), &QObject::destroyed, [this, renderer](QObject *) {
-            createRenderer(renderer);
-            disconnect(this, &RendererStack::blit, this, &RendererStack::blitDummy);
-            blitDummied = false;
-            QTimer::singleShot(1000, this, [this]() { this->blitDummied = false; } );
-        });
-
-        rendererWindow->hasBlitFunc() ? current.reset() : current.release()->deleteLater();
     } else {
         createRenderer(renderer);
     }
@@ -267,6 +279,7 @@ RendererStack::switchRenderer(Renderer renderer)
 void
 RendererStack::createRenderer(Renderer renderer)
 {
+    current_vid_api = renderer;
     switch (renderer) {
         default:
         case Renderer::Software:

@@ -45,6 +45,7 @@
 #include <86box/isamem.h>
 #include <86box/isartc.h>
 #include <86box/lpt.h>
+#include <86box/serial.h>
 #include <86box/hdd.h>
 #include <86box/hdc.h>
 #include <86box/hdc_ide.h>
@@ -1178,7 +1179,7 @@ load_ports(void)
 
     for (c = 0; c < SERIAL_MAX; c++) {
         sprintf(temp, "serial%d_enabled", c + 1);
-        serial_enabled[c] = !!config_get_int(cat, temp, (c >= 2) ? 0 : 1);
+        com_ports[c].enabled = !!config_get_int(cat, temp, (c >= 2) ? 0 : 1);
 
         /*
                 sprintf(temp, "serial%d_device", c + 1);
@@ -1386,6 +1387,7 @@ load_hard_disks(void)
         sprintf(temp, "hdd_%02i_speed", c + 1);
         switch (hdd[c].bus) {
             case HDD_BUS_IDE:
+            case HDD_BUS_ESDI:
                 sprintf(tmp2, "1997_5400rpm");
                 break;
             default:
@@ -2163,10 +2165,10 @@ config_load(void)
         time_sync              = TIME_SYNC_ENABLED;
         hdc_current            = hdc_get_from_internal_name("none");
 
-        serial_enabled[0] = 1;
-        serial_enabled[1] = 1;
+        com_ports[0].enabled = 1;
+        com_ports[1].enabled = 1;
         for (i = 2; i < SERIAL_MAX; i++)
-            serial_enabled[i] = 0;
+            com_ports[i].enabled = 0;
 
         lpt_ports[0].enabled = 1;
 
@@ -2684,17 +2686,17 @@ save_ports(void)
 
     for (c = 0; c < SERIAL_MAX; c++) {
         sprintf(temp, "serial%d_enabled", c + 1);
-        if (((c < 2) && serial_enabled[c]) || ((c >= 2) && !serial_enabled[c]))
+        if (((c < 2) && com_ports[c].enabled) || ((c >= 2) && !com_ports[c].enabled))
             config_delete_var(cat, temp);
         else
-            config_set_int(cat, temp, serial_enabled[c]);
+            config_set_int(cat, temp, com_ports[c].enabled);
 
-        /*
+/*
                 sprintf(temp, "serial%d_type", c + 1);
-                if (!serial_enabled[c])
+                if (!com_ports[c].enabled))
                     config_delete_var(cat, temp);
-        //      else
-        //          config_set_string(cat, temp, (char *) serial_type[c])
+//              else
+//                  config_set_string(cat, temp, (char *) serial_type[c])
 
                 sprintf(temp, "serial%d_device", c + 1);
                 if (com_ports[c].device == 0)
@@ -2920,7 +2922,7 @@ save_hard_disks(void)
             config_delete_var(cat, temp);
 
         sprintf(temp, "hdd_%02i_speed", c + 1);
-        if (!hdd_is_valid(c) || (hdd[c].bus != HDD_BUS_IDE))
+        if (!hdd_is_valid(c) || (hdd[c].bus != HDD_BUS_IDE && hdd[c].bus != HDD_BUS_ESDI))
             config_delete_var(cat, temp);
         else
             config_set_string(cat, temp, hdd_preset_get_internal_name(hdd[c].speed_preset));

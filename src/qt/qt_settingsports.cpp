@@ -26,6 +26,7 @@ extern "C" {
 #include <86box/device.h>
 #include <86box/machine.h>
 #include <86box/lpt.h>
+#include <86box/serial.h>
 }
 
 #include "qt_deviceconfig.hpp"
@@ -63,7 +64,7 @@ SettingsPorts::SettingsPorts(QWidget *parent) :
 
     for (int i = 0; i < SERIAL_MAX; i++) {
         auto* checkBox = findChild<QCheckBox*>(QString("checkBoxSerial%1").arg(i+1));
-        checkBox->setChecked(serial_enabled[i] > 0);
+        checkBox->setChecked(com_ports[i].enabled > 0);
     }
 }
 
@@ -82,7 +83,7 @@ void SettingsPorts::save() {
 
     for (int i = 0; i < SERIAL_MAX; i++) {
         auto* checkBox = findChild<QCheckBox*>(QString("checkBoxSerial%1").arg(i+1));
-        serial_enabled[i] = checkBox->isChecked() ? 1 : 0;
+        com_ports[i].enabled = checkBox->isChecked() ? 1 : 0;
     }
 }
 
