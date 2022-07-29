@@ -328,6 +328,8 @@ mt32_close(void *p)
     }
     context = NULL;
 
+    ui_sb_mt32lcd("");
+
     if (buffer)
         free(buffer);
     buffer = NULL;
