@@ -48,6 +48,7 @@
 #include <86box/isartc.h>
 #include <86box/lpt.h>
 #include <86box/mouse.h>
+#include <86box/serial.h>
 #include <86box/scsi.h>
 #include <86box/scsi_device.h>
 #include <86box/cdrom.h>
@@ -352,7 +353,7 @@ win_settings_init(void)
         temp_lpt[i]         = lpt_ports[i].enabled;
     }
     for (i = 0; i < SERIAL_MAX; i++)
-        temp_serial[i] = serial_enabled[i];
+        temp_serial[i] = com_ports[i].enabled;
 
     /* Storage devices category */
     for (i = 0; i < SCSI_BUS_MAX; i++)
@@ -474,7 +475,7 @@ win_settings_changed(void)
         i = i || (temp_lpt[j] != lpt_ports[j].enabled);
     }
     for (j = 0; j < SERIAL_MAX; j++)
-        i = i || (temp_serial[j] != serial_enabled[j]);
+        i = i || (temp_serial[j] != com_ports[j].enabled);
 
     /* Storage devices category */
     for (j = 0; j < SCSI_BUS_MAX; j++)
@@ -567,7 +568,7 @@ win_settings_save(void)
         lpt_ports[i].enabled = temp_lpt[i];
     }
     for (i = 0; i < SERIAL_MAX; i++)
-        serial_enabled[i] = temp_serial[i];
+        com_ports[i].enabled = temp_serial[i];
 
     /* Storage devices category */
     for (i = 0; i < SCSI_BUS_MAX; i++)
