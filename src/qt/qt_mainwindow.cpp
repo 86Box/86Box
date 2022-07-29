@@ -470,7 +470,7 @@ MainWindow::MainWindow(QWidget *parent) :
     video_setblit(qt_blit);
 
     if (start_in_fullscreen) {
-        connect(ui->stackedWidget, &RendererStack::blitToRenderer, this, [this] () {
+        connect(ui->stackedWidget, &RendererStack::blit, this, [this] () {
             if (start_in_fullscreen) {
                 QTimer::singleShot(100, ui->actionFullscreen, &QAction::trigger);
                 start_in_fullscreen = 0;
@@ -1433,7 +1433,7 @@ void MainWindow::processMacKeyboardInput(bool down, const QKeyEvent* event) {
 void MainWindow::on_actionFullscreen_triggered() {
     if (video_fullscreen > 0) {
         showNormal();
-        if (vid_api == 5) ui->stackedWidget->switchRenderer(RendererStack::Renderer::Direct3D9);
+        if (vid_api == 5) QTimer::singleShot(0, this, [this] () { ui->stackedWidget->switchRenderer(RendererStack::Renderer::Direct3D9); });
         ui->menubar->show();
         if (!hide_status_bar) ui->statusbar->show();
         if (!hide_tool_bar) ui->toolBar->show();
@@ -1467,6 +1467,7 @@ void MainWindow::on_actionFullscreen_triggered() {
         ui->statusbar->hide();
         ui->toolBar->hide();
         showFullScreen();
+        if (vid_api == 5) QTimer::singleShot(0, this, [this] () { ui->stackedWidget->switchRenderer(RendererStack::Renderer::Direct3D9); });
     }
     ui->stackedWidget->onResize(width(), height());
 }
