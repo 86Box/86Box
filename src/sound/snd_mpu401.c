@@ -1784,7 +1784,9 @@ mpu401_standalone_init(const device_t *info)
         mpu->pos_regs[0] = 0x0F;
         mpu->pos_regs[1] = 0x6C;
         base             = 0; /* Tell mpu401_init() that this is the MCA variant. */
-        irq              = 2; /* According to @6c0f.adf, the IRQ is fixed to 2. */
+        /* According to @6c0f.adf, the IRQ is supposed to be fixed to 2.
+           This is only true for earlier models. Later ones have selectable IRQ. */
+        irq              = device_get_config_int("irq");
     } else {
         base = device_get_config_hex16("base");
         irq  = device_get_config_int("irq");
@@ -1901,6 +1903,42 @@ static const device_config_t mpu401_standalone_config[] = {
 
 static const device_config_t mpu401_standalone_mca_config[] = {
     // clang-format off
+    {
+        .name = "irq",
+        .description = "MPU-401 IRQ",
+        .type = CONFIG_SELECTION,
+        .default_string = "",
+        .default_int = 9,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            {
+                .description = "IRQ 3",
+                .value = 3
+            },
+            {
+                .description = "IRQ 4",
+                .value = 4
+            },
+            {
+                .description = "IRQ 5",
+                .value = 5
+            },
+            {
+                .description = "IRQ 6",
+                .value = 6
+            },
+            {
+                .description = "IRQ 7",
+                .value = 7
+            },
+            {
+                .description = "IRQ 9",
+                .value = 9
+            },
+            { .description = "" }
+        }
+    },
     {
         .name = "receive_input",
         .description = "Receive input",
