@@ -13,7 +13,7 @@
 #           Copyright 2020,2021 David Hrdlička.
 #
 
-add_library(mt32emu STATIC Analog.cpp BReverbModel.cpp File.cpp FileStream.cpp
+add_library(mt32emu STATIC Analog.cpp BReverbModel.cpp Display.cpp File.cpp FileStream.cpp
     LA32Ramp.cpp LA32FloatWaveGenerator.cpp LA32WaveGenerator.cpp
     MidiStreamParser.cpp Part.cpp Partial.cpp PartialManager.cpp
     Poly.cpp ROMInfo.cpp SampleRateConverter.cpp

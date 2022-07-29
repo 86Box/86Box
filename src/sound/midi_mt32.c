@@ -18,11 +18,13 @@
 extern void givealbuffer_midi(void *buf, uint32_t size);
 extern void al_set_midi(int freq, int buf_size);
 
+
+static mt32emu_report_handler_version get_mt32_report_handler_version(mt32emu_report_handler_i i);
 static void display_mt32_message(void *instance_data, const char *message);
 
 static const mt32emu_report_handler_i_v0 handler_mt32_v0 = {
     /** Returns the actual interface version ID */
-    NULL, // mt32emu_report_handler_version (*getVersionID)(mt32emu_report_handler_i i);
+    get_mt32_report_handler_version, // mt32emu_report_handler_version (*getVersionID)(mt32emu_report_handler_i i);
 
     /** Callback for debug messages, in vprintf() format */
     NULL, // void (*printDebug)(void *instance_data, const char *fmt, va_list list);
@@ -59,7 +61,7 @@ static const mt32emu_report_handler_i_v0 handler_mt32_v0 = {
 /** Alternate report handler for Roland CM-32L */
 static const mt32emu_report_handler_i_v0 handler_cm32l_v0 = {
     /** Returns the actual interface version ID */
-    NULL, // mt32emu_report_handler_version (*getVersionID)(mt32emu_report_handler_i i);
+    get_mt32_report_handler_version, // mt32emu_report_handler_version (*getVersionID)(mt32emu_report_handler_i i);
 
     /** Callback for debug messages, in vprintf() format */
     NULL, // void (*printDebug)(void *instance_data, const char *fmt, va_list list);
@@ -137,6 +139,12 @@ static int      buf_size     = 0;
 static float   *buffer       = NULL;
 static int16_t *buffer_int16 = NULL;
 static int      midi_pos     = 0;
+
+static mt32emu_report_handler_version
+get_mt32_report_handler_version(mt32emu_report_handler_i i)
+{
+    return MT32EMU_REPORT_HANDLER_VERSION_0;
+}
 
 static void
 display_mt32_message(void *instance_data, const char *message)
@@ -319,6 +327,8 @@ mt32_close(void *p)
         mt32emu_free_context(context);
     }
     context = NULL;
+
+    ui_sb_mt32lcd("");
 
     if (buffer)
         free(buffer);
