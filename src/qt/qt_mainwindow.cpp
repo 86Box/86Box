@@ -1467,6 +1467,7 @@ void MainWindow::on_actionFullscreen_triggered() {
         ui->statusbar->hide();
         ui->toolBar->hide();
         showFullScreen();
+        if (vid_api == 5) ui->stackedWidget->switchRenderer(RendererStack::Renderer::Direct3D9);
     }
     ui->stackedWidget->onResize(width(), height());
 }
