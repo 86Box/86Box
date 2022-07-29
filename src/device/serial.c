@@ -38,6 +38,8 @@
 #include <86box/serial.h>
 #include <86box/mouse.h>
 
+serial_port_t	com_ports[SERIAL_MAX];
+
 enum {
     SERIAL_INT_LSR      = 1,
     SERIAL_INT_RECEIVE  = 2,
@@ -578,7 +580,7 @@ serial_remove(serial_t *dev)
     if (dev == NULL)
         return;
 
-    if (!serial_enabled[dev->inst])
+    if (!com_ports[dev->inst].enabled)
         return;
 
     if (!dev->base_address)
@@ -599,7 +601,7 @@ serial_setup(serial_t *dev, uint16_t addr, uint8_t irq)
     if (dev == NULL)
         return;
 
-    if (!serial_enabled[dev->inst])
+    if (!com_ports[dev->inst].enabled)
         return;
     if (dev->base_address != 0x0000)
         serial_remove(dev);
@@ -650,7 +652,7 @@ serial_init(const device_t *info)
 
     dev->inst = next_inst;
 
-    if (serial_enabled[next_inst]) {
+    if (com_ports[next_inst].enabled) {
         serial_log("Adding serial port %i...\n", next_inst);
         dev->type = info->local;
         memset(&(serial_devices[next_inst]), 0, sizeof(serial_device_t));

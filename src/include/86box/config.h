@@ -111,8 +111,6 @@ typedef struct {
 #    ifdef USE_SERIAL_DEVICES
     char		serial_devices[SERIAL_MAX][32];		/* Serial device names */
 #    endif
-    int			serial_enabled[SERIAL_MAX],		/* Serial ports 1, 2, 3, 4 enabled */
-			parallel_enabled[PARALLEL_MAX];		/* LPT1, LPT2, LPT3, LPT4 enabled */
 
     /* Other peripherals category */
     int			fdc_type,			/* Floppy disk controller type */
