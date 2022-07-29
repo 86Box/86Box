@@ -525,6 +525,23 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(this, &MainWindow::initRendererMonitorForNonQtThread, this, &MainWindow::initRendererMonitorSlot, Qt::BlockingQueuedConnection);
     connect(this, &MainWindow::destroyRendererMonitor, this, &MainWindow::destroyRendererMonitorSlot);
     connect(this, &MainWindow::destroyRendererMonitorForNonQtThread, this, &MainWindow::destroyRendererMonitorSlot, Qt::BlockingQueuedConnection);
+
+#ifdef Q_OS_MACOS
+	QTimer::singleShot(0, this, [this] () {
+		for (auto curObj : this->menuBar()->children()) {
+			if (qobject_cast<QMenu*>(curObj)) {
+				auto menu = qobject_cast<QMenu*>(curObj);
+				menu->setSeparatorsCollapsible(false);
+				for (auto curObj2 : menu->children()) {
+					if (qobject_cast<QMenu*>(curObj2)) {
+						auto menu2 = qobject_cast<QMenu*>(curObj2);
+						menu2->setSeparatorsCollapsible(false);
+					}
+				}
+			}
+		}
+	});
+#endif
 }
 
 void MainWindow::closeEvent(QCloseEvent *event) {
