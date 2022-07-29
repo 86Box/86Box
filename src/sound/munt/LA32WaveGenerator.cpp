@@ -1,5 +1,5 @@
 /* Copyright (C) 2003, 2004, 2005, 2006, 2008, 2009 Dean Beeler, Jerome Fisher
- * Copyright (C) 2011-2020 Dean Beeler, Jerome Fisher, Sergey V. Mikayev
+ * Copyright (C) 2011-2022 Dean Beeler, Jerome Fisher, Sergey V. Mikayev
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Lesser General Public License as published by
@@ -173,7 +173,7 @@ void LA32WaveGenerator::generateNextResonanceWaveLogSample() {
 	// Unsure about resonanceSinePosition here. It's possible that dedicated counter & decrement are used. Although, cutoff is finely ramped, so maybe not.
 	logSampleValue += resonanceAmpSubtraction + (((resonanceSinePosition >> 4) * decayFactor) >> 8);
 
-	// To ensure the output wave has no breaks, two different windows are appied to the beginning and the ending of the resonance sine segment
+	// To ensure the output wave has no breaks, two different windows are applied to the beginning and the ending of the resonance sine segment
 	if (phase == POSITIVE_RISING_SINE_SEGMENT || phase == NEGATIVE_FALLING_SINE_SEGMENT) {
 		// The window is synchronous sine here
 		logSampleValue += Tables::getInstance().logsin9[(squareWavePosition >> 9) & 511] << 2;
@@ -183,7 +183,7 @@ void LA32WaveGenerator::generateNextResonanceWaveLogSample() {
 	}
 
 	if (cutoffVal < MIDDLE_CUTOFF_VALUE) {
-		// For the cutoff values below the cutoff middle point, it seems the amp of the resonance wave is expotentially decayed
+		// For the cutoff values below the cutoff middle point, it seems the amp of the resonance wave is exponentially decayed
 		logSampleValue += 31743 + ((MIDDLE_CUTOFF_VALUE - cutoffVal) >> 9);
 	} else if (cutoffVal < RESONANCE_DECAY_THRESHOLD_CUTOFF_VALUE) {
 		// For the cutoff values below this point, the amp of the resonance wave is sinusoidally decayed

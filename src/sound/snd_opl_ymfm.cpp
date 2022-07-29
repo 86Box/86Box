@@ -63,7 +63,7 @@ public:
 
 protected:
     int32_t m_buffer[SOUNDBUFLEN * 2];
-    uint32_t m_buf_pos;
+    int m_buf_pos;
     int8_t m_flags;
     fm_type m_type;
 };

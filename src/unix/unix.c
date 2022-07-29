@@ -36,6 +36,7 @@
 #include <86box/unix_sdl.h>
 #include <86box/timer.h>
 #include <86box/nvr.h>
+#include <86box/video.h>
 #include <86box/ui.h>
 #include <86box/gdbstub.h>
 
@@ -602,7 +603,6 @@ do_stop(void)
     if (blitreq)
     {
         blitreq = 0;
-        extern void video_blit_complete();
         video_blit_complete();
     }
 
@@ -611,7 +611,6 @@ do_stop(void)
         if (blitreq)
         {
             blitreq = 0;
-            extern void video_blit_complete();
             video_blit_complete();
         }
     }
