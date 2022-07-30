@@ -51,7 +51,8 @@
 #define BIOS_GD5428_ISA_PATH		"roms/video/cirruslogic/5428.bin"
 #define BIOS_GD5428_MCA_PATH		"roms/video/cirruslogic/SVGA141.ROM"
 #define BIOS_GD5428_PATH		"roms/video/cirruslogic/vlbusjapan.BIN"
-#define BIOS_GD5428_BOCA_ISA_PATH		"roms/video/cirruslogic/boca_gd5428_1.30b.bin"
+#define BIOS_GD5428_BOCA_ISA_PATH_1		"roms/video/cirruslogic/boca_gd5428_1.30b_1.bin"
+#define BIOS_GD5428_BOCA_ISA_PATH_2		"roms/video/cirruslogic/boca_gd5428_1.30b_2.bin"
 #define BIOS_GD5429_PATH		"roms/video/cirruslogic/5429.vbi"
 #define BIOS_GD5430_DIAMOND_A8_VLB_PATH	"roms/video/cirruslogic/diamondvlbus.bin"
 #define BIOS_GD5430_ORCHID_VLB_PATH	"roms/video/cirruslogic/orchidvlbus.bin"
@@ -3863,6 +3864,7 @@ static void
     int id = info->local & 0xff;
     int vram;
     char *romfn = NULL;
+    char *romfn1 = NULL, *romfn2 = NULL;
     memset(gd54xx, 0, sizeof(gd54xx_t));
 
     gd54xx->pci = !!(info->flags & DEVICE_PCI);
@@ -3917,8 +3919,10 @@ static void
 		if (info->local & 0x100)
 			if (gd54xx->vlb)
 				romfn = BIOS_GD5428_DIAMOND_B1_VLB_PATH;
-			else
-				romfn = BIOS_GD5428_BOCA_ISA_PATH;
+			else {
+                romfn1 = BIOS_GD5428_BOCA_ISA_PATH_1;
+				romfn2 = BIOS_GD5428_BOCA_ISA_PATH_2;
+			}
 		else {
 			if (gd54xx->vlb)
 				romfn = BIOS_GD5428_PATH;
@@ -4016,7 +4020,10 @@ static void
     gd54xx->vram_mask = gd54xx->vram_size - 1;
 
     if (romfn)
-	rom_init(&gd54xx->bios_rom, romfn, 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
+        rom_init(&gd54xx->bios_rom, romfn, 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
+    else if (romfn1 && romfn2)
+		rom_init_interleaved(&gd54xx->bios_rom, BIOS_GD5428_BOCA_ISA_PATH_1, BIOS_GD5428_BOCA_ISA_PATH_2, 0xc0000,
+				     0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
 
     if (info->flags & DEVICE_ISA)
 	video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_gd54xx_isa);
@@ -4193,7 +4200,7 @@ gd5428_diamond_b1_available(void)
 static int
 gd5428_boca_isa_available(void)
 {
-    return rom_present(BIOS_GD5428_BOCA_ISA_PATH);
+    return rom_present(BIOS_GD5428_BOCA_ISA_PATH_1) && rom_present(BIOS_GD5428_BOCA_ISA_PATH_2);
 }
 
 static int
