@@ -92,7 +92,7 @@ typedef struct {
     int          bios_type;
     int          files_no;
     uint32_t     local, size;
-    const device_t *dev1, *dev2;
+    void         *dev1, *dev2;
     const char **files;
 } device_config_bios_t;
 
