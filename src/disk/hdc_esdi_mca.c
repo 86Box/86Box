@@ -264,6 +264,7 @@ cmd_unsupported(esdi_t *dev)
     dev->irq_status      = dev->cmd_dev | IRQ_CMD_COMPLETE_FAILURE;
     dev->irq_in_progress = 1;
     set_irq(dev);
+    ui_sb_update_icon(SB_HDD | HDD_BUS_ESDI, 0);
 }
 
 static void
@@ -284,6 +285,7 @@ device_not_present(esdi_t *dev)
     dev->irq_status      = dev->cmd_dev | IRQ_CMD_COMPLETE_FAILURE;
     dev->irq_in_progress = 1;
     set_irq(dev);
+    ui_sb_update_icon(SB_HDD | HDD_BUS_ESDI, 0);
 }
 
 static void
@@ -304,6 +306,7 @@ rba_out_of_range(esdi_t *dev)
     dev->irq_status      = dev->cmd_dev | IRQ_CMD_COMPLETE_FAILURE;
     dev->irq_in_progress = 1;
     set_irq(dev);
+    ui_sb_update_icon(SB_HDD | HDD_BUS_ESDI, 0);
 }
 
 static void
@@ -320,6 +323,7 @@ complete_command_status(esdi_t *dev)
     dev->status_data[4] = (dev->rba - 1) & 0xffff; /*Last RBA processed*/
     dev->status_data[5] = (dev->rba - 1) >> 8;
     dev->status_data[6] = 0; /*Number of blocks requiring error recovery*/
+    ui_sb_update_icon(SB_HDD | HDD_BUS_ESDI, 0);
 }
 
 #define ESDI_ADAPTER_ONLY()                      \
@@ -405,7 +409,6 @@ esdi_callback(void *priv)
                             hdd_image_read(drive->hdd_num, dev->rba, 1, (uint8_t *) dev->data);
                             cmd_time += hdd_timing_read(&hdd[drive->hdd_num], dev->rba, 1);
                             cmd_time += esdi_mca_get_xfer_time(dev, 1);
-                            ui_sb_update_icon(SB_HDD | HDD_BUS_ESDI, 1);
                         }
 
                         while (dev->data_pos < 256) {
@@ -494,9 +497,6 @@ esdi_callback(void *priv)
                         cmd_time += esdi_mca_get_xfer_time(dev, 1);
                         dev->rba++;
                         dev->sector_pos++;
-                        ui_sb_update_icon(SB_HDD | HDD_BUS_ESDI,
-                                          dev->cmd_dev == ATTN_DEVICE_0 ? 0 : 1);
-
                         dev->data_pos = 0;
                     }
 
@@ -605,6 +605,7 @@ esdi_callback(void *priv)
             dev->irq_status      = dev->cmd_dev | IRQ_CMD_COMPLETE_SUCCESS;
             dev->irq_in_progress = 1;
             set_irq(dev);
+            ui_sb_update_icon(SB_HDD | HDD_BUS_ESDI, 0);
             break;
 
         case CMD_GET_DEV_CONFIG:
@@ -636,6 +637,7 @@ esdi_callback(void *priv)
             dev->irq_status      = dev->cmd_dev | IRQ_CMD_COMPLETE_SUCCESS;
             dev->irq_in_progress = 1;
             set_irq(dev);
+            ui_sb_update_icon(SB_HDD | HDD_BUS_ESDI, 0);
             break;
 
         case CMD_GET_POS_INFO:
@@ -655,6 +657,7 @@ esdi_callback(void *priv)
             dev->irq_status      = IRQ_HOST_ADAPTER | IRQ_CMD_COMPLETE_SUCCESS;
             dev->irq_in_progress = 1;
             set_irq(dev);
+            ui_sb_update_icon(SB_HDD | HDD_BUS_ESDI, 0);
             break;
 
         case 0x10:
@@ -708,6 +711,7 @@ esdi_callback(void *priv)
                     dev->irq_status      = IRQ_HOST_ADAPTER | IRQ_CMD_COMPLETE_SUCCESS;
                     dev->irq_in_progress = 1;
                     set_irq(dev);
+                    ui_sb_update_icon(SB_HDD | HDD_BUS_ESDI, 0);
                     break;
             }
             break;
@@ -764,6 +768,7 @@ esdi_callback(void *priv)
                     dev->irq_status      = IRQ_HOST_ADAPTER | IRQ_CMD_COMPLETE_SUCCESS;
                     dev->irq_in_progress = 1;
                     set_irq(dev);
+                    ui_sb_update_icon(SB_HDD | HDD_BUS_ESDI, 0);
                     break;
             }
             break;
@@ -781,6 +786,7 @@ esdi_callback(void *priv)
             dev->irq_status      = IRQ_HOST_ADAPTER | IRQ_CMD_COMPLETE_SUCCESS;
             dev->irq_in_progress = 1;
             set_irq(dev);
+            ui_sb_update_icon(SB_HDD | HDD_BUS_ESDI, 0);
             break;
 
         case CMD_FORMAT_UNIT:
@@ -819,7 +825,6 @@ esdi_callback(void *priv)
                     }
 
                     hdd_image_zero(drive->hdd_num, dev->rba, dev->sector_count);
-                    ui_sb_update_icon(SB_HDD | HDD_BUS_ESDI, 1);
 
                     dev->status    = STATUS_CMD_IN_PROGRESS;
                     dev->cmd_state = 2;
@@ -1018,6 +1023,7 @@ esdi_writew(uint16_t port, uint16_t val, void *priv)
                 esdi_mca_set_callback(dev, ESDI_TIME);
                 dev->status   = STATUS_BUSY;
                 dev->data_pos = 0;
+                ui_sb_update_icon(SB_HDD | HDD_BUS_ESDI, 1);
             }
             break;
 
