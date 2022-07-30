@@ -70,6 +70,17 @@ enum {
     DEVICE_LPT         = 0x2000  /* requires a parallel port */
 };
 
+
+#define BIOS_NORMAL                          0
+#define BIOS_INTERLEAVED                     1
+#define BIOS_INTERLEAVED_SINGLEFILE          2
+#define BIOS_INTERLEAVED_QUAD                3
+#define BIOS_INTERLEAVED_QUAD_SINGLEFILE     4
+#define BIOS_INTEL_AMI                       5
+#define BIOS_INTERLEAVED_INVERT              8
+#define BIOS_HIGH_BIT_INVERT                16
+
+
 typedef struct {
     const char *description;
     int         value;
@@ -80,7 +91,7 @@ typedef struct {
     const char  *internal_name;
     int          bios_type;
     int          files_no;
-    uint32_t     local;
+    uint32_t     local, size;
     const device_t *dev1, *dev2;
     const char **files;
 } device_config_bios_t;
