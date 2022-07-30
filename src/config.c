@@ -2767,7 +2767,7 @@ save_storage_controllers(void)
 
     delete_section_if_empty(cat);
 
-    if (cassette_enable == 1)
+    if (cassette_enable == 0)
         config_delete_var(cat, "cassette_enabled");
     else
         config_set_int(cat, "cassette_enabled", cassette_enable);
