@@ -494,6 +494,7 @@ void voodoo_fifo_thread(void *param)
                                 switch (header >> 30)
                                 {
                                         case 0: /*Linear framebuffer (Banshee)*/
+                                        case 1: /*Planar YUV*/
                                         if (voodoo->texture_present[0][(addr & voodoo->texture_mask) >> TEX_DIRTY_SHIFT])
                                         {
 //                                                voodoo_fifo_log("texture_present at %08x %i\n", addr, (addr & voodoo->texture_mask) >> TEX_DIRTY_SHIFT);
