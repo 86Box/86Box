@@ -67,6 +67,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <wchar.h>
+#include <inttypes.h>
 #define HAVE_STDARG_H
 #include <86box/86box.h>
 #include <86box/device.h>
@@ -89,7 +90,7 @@
 #define BIOS_FILE_L     "roms/hdd/esdi/90x8969.bin"
 #define BIOS_FILE_H     "roms/hdd/esdi/90x8970.bin"
 
-#define ESDI_TIME       512
+#define ESDI_TIME       512.0
 #define CMD_ADAPTER     0
 
 typedef struct esdi_drive_t {
@@ -132,7 +133,6 @@ typedef struct esdi_t {
     int cmd_state;
 
     int        in_reset;
-    uint64_t   callback;
     pc_timer_t timer;
 
     uint32_t rba;
@@ -226,19 +226,24 @@ clear_irq(esdi_t *dev)
 }
 
 static void
-esdi_mca_set_callback(esdi_t *dev, uint64_t callback)
+esdi_mca_set_callback(esdi_t *dev, double callback)
 {
     if (!dev) {
         return;
     }
 
     if (callback) {
-        dev->callback = callback;
-        timer_on_auto(&dev->timer, dev->callback);
+        timer_on_auto(&dev->timer, callback);
     } else {
-        dev->callback = 0;
         timer_stop(&dev->timer);
     }
+}
+
+static double
+esdi_mca_get_xfer_time(esdi_t *esdi, int size)
+{
+    /* 390.625 us per sector at 10 Mbit/s = 1280 kB/s. */
+    return (3125.0 / 8.0) * (double)size;
 }
 
 static void
@@ -343,6 +348,7 @@ esdi_callback(void *priv)
     esdi_t  *dev = (esdi_t *) priv;
     drive_t *drive;
     int      val;
+    double cmd_time = 0.0;
 
     esdi_mca_set_callback(dev, 0);
 
@@ -397,6 +403,8 @@ esdi_callback(void *priv)
                             if (dev->rba >= drive->sectors)
                                 fatal("Read past end of drive\n");
                             hdd_image_read(drive->hdd_num, dev->rba, 1, (uint8_t *) dev->data);
+                            cmd_time += hdd_timing_read(&hdd[drive->hdd_num], dev->rba, 1);
+                            cmd_time += esdi_mca_get_xfer_time(dev, 1);
                             ui_sb_update_icon(SB_HDD | HDD_BUS_ESDI, 1);
                         }
 
@@ -404,7 +412,7 @@ esdi_callback(void *priv)
                             val = dma_channel_write(dev->dma, dev->data[dev->data_pos]);
 
                             if (val == DMA_NODATA) {
-                                esdi_mca_set_callback(dev, ESDI_TIME);
+                                esdi_mca_set_callback(dev, ESDI_TIME + cmd_time);
                                 return;
                             }
 
@@ -418,7 +426,7 @@ esdi_callback(void *priv)
 
                     dev->status    = STATUS_CMD_IN_PROGRESS;
                     dev->cmd_state = 2;
-                    esdi_mca_set_callback(dev, ESDI_TIME);
+                    esdi_mca_set_callback(dev, cmd_time);
                     break;
 
                 case 2:
@@ -472,7 +480,7 @@ esdi_callback(void *priv)
                             val = dma_channel_read(dev->dma);
 
                             if (val == DMA_NODATA) {
-                                esdi_mca_set_callback(dev, ESDI_TIME);
+                                esdi_mca_set_callback(dev, ESDI_TIME + cmd_time);
                                 return;
                             }
 
@@ -482,6 +490,8 @@ esdi_callback(void *priv)
                         if (dev->rba >= drive->sectors)
                             fatal("Write past end of drive\n");
                         hdd_image_write(drive->hdd_num, dev->rba, 1, (uint8_t *) dev->data);
+                        cmd_time += hdd_timing_write(&hdd[drive->hdd_num], dev->rba, 1);
+                        cmd_time += esdi_mca_get_xfer_time(dev, 1);
                         dev->rba++;
                         dev->sector_pos++;
                         ui_sb_update_icon(SB_HDD | HDD_BUS_ESDI,
@@ -492,7 +502,7 @@ esdi_callback(void *priv)
 
                     dev->status    = STATUS_CMD_IN_PROGRESS;
                     dev->cmd_state = 2;
-                    esdi_mca_set_callback(dev, ESDI_TIME);
+                    esdi_mca_set_callback(dev, cmd_time);
                     break;
 
                 case 2:
@@ -513,17 +523,29 @@ esdi_callback(void *priv)
                 return;
             }
 
-            if ((dev->rba + dev->sector_count) > hdd_image_get_last_sector(drive->hdd_num)) {
-                rba_out_of_range(dev);
-                return;
-            }
+            switch (dev->cmd_state) {
+                case 0:
+                    dev->rba = (dev->cmd_data[2] | (dev->cmd_data[3] << 16)) & 0x0fffffff;
+                    dev->sector_count = dev->cmd_data[1];
 
-            dev->rba += dev->sector_count;
-            complete_command_status(dev);
-            dev->status          = STATUS_IRQ | STATUS_STATUS_OUT_FULL;
-            dev->irq_status      = dev->cmd_dev | IRQ_CMD_COMPLETE_SUCCESS;
-            dev->irq_in_progress = 1;
-            set_irq(dev);
+                    if ((dev->rba + dev->sector_count) > hdd_image_get_last_sector(drive->hdd_num)) {
+                        rba_out_of_range(dev);
+                        return;
+                    }
+
+                    cmd_time = hdd_timing_read(&hdd[drive->hdd_num], dev->rba, dev->sector_count);
+                    esdi_mca_set_callback(dev, ESDI_TIME + cmd_time);
+                    dev->cmd_state = 1;
+                    break;
+
+                case 1:
+                    complete_command_status(dev);
+                    dev->status          = STATUS_IRQ | STATUS_STATUS_OUT_FULL;
+                    dev->irq_status      = dev->cmd_dev | IRQ_CMD_COMPLETE_SUCCESS;
+                    dev->irq_in_progress = 1;
+                    set_irq(dev);
+                    break;
+            }
             break;
 
         case CMD_SEEK:
@@ -534,11 +556,27 @@ esdi_callback(void *priv)
                 return;
             }
 
-            complete_command_status(dev);
-            dev->status          = STATUS_IRQ | STATUS_STATUS_OUT_FULL;
-            dev->irq_status      = dev->cmd_dev | IRQ_CMD_COMPLETE_SUCCESS;
-            dev->irq_in_progress = 1;
-            set_irq(dev);
+            if ((dev->rba + dev->sector_count) > hdd_image_get_last_sector(drive->hdd_num)) {
+                rba_out_of_range(dev);
+                return;
+            }
+
+            switch (dev->cmd_state) {
+                case 0:
+                    dev->rba = (dev->cmd_data[2] | (dev->cmd_data[3] << 16)) & 0x0fffffff;
+                    cmd_time = hdd_seek_get_time(&hdd[drive->hdd_num], dev->rba, HDD_OP_SEEK, 0, 0.0);
+                    esdi_mca_set_callback(dev, ESDI_TIME + cmd_time);
+                    dev->cmd_state = 1;
+                    break;
+
+                case 1:
+                    complete_command_status(dev);
+                    dev->status          = STATUS_IRQ | STATUS_STATUS_OUT_FULL;
+                    dev->irq_status      = dev->cmd_dev | IRQ_CMD_COMPLETE_SUCCESS;
+                    dev->irq_in_progress = 1;
+                    set_irq(dev);
+                    break;
+            }
             break;
 
         case CMD_GET_DEV_STATUS:
@@ -1099,6 +1137,8 @@ esdi_init(const device_t *info)
                 drive->present = 0;
                 continue;
             }
+
+            hdd_preset_apply(i);
 
             /* OK, so fill in geometry info. */
             drive->spt     = hdd[i].spt;
