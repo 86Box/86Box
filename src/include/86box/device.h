@@ -80,6 +80,8 @@ typedef struct {
     const char  *internal_name;
     int          bios_type;
     int          files_no;
+    uint32_t     local;
+    const device_t *dev1, *dev2;
     const char **files;
 } device_config_bios_t;
 
