@@ -162,7 +162,7 @@ void SettingsStorageControllers::onCurrentMachineChanged(int machineId) {
     ui->checkBoxTertiaryIDE->setEnabled(is_at > 0);
     ui->checkBoxQuaternaryIDE->setEnabled(is_at > 0);
     ui->checkBoxTertiaryIDE->setChecked(ui->checkBoxTertiaryIDE->isEnabled() && ide_ter_enabled);
-    ui->checkBoxQuaternaryIDE->setChecked(ui->checkBoxQuaternaryIDE->isEnabled() && ide_ter_enabled);
+    ui->checkBoxQuaternaryIDE->setChecked(ui->checkBoxQuaternaryIDE->isEnabled() && ide_qua_enabled);
 }
 
 void SettingsStorageControllers::on_comboBoxHD_currentIndexChanged(int index) {
