@@ -103,7 +103,7 @@ namespace IOKit {
 
 extern MainWindow* main_window;
 
-std::atomic<bool> blitDummied{false};
+std::atomic<bool> blitDummied = false;
 
 filter_result keyb_filter(BMessage *message, BHandler **target, BMessageFilter *filter)
 {
