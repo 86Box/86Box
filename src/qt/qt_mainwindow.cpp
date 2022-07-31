@@ -103,8 +103,6 @@ namespace IOKit {
 
 extern MainWindow* main_window;
 
-std::atomic<bool> blitDummied = false;
-
 filter_result keyb_filter(BMessage *message, BHandler **target, BMessageFilter *filter)
 {
     if (message->what == B_KEY_DOWN || message->what == B_KEY_UP
@@ -124,6 +122,8 @@ filter_result keyb_filter(BMessage *message, BHandler **target, BMessageFilter *
 
 static BMessageFilter* filter;
 #endif
+
+std::atomic<bool> blitDummied{false};
 
 extern void qt_mouse_capture(int);
 extern "C" void qt_blit(int x, int y, int w, int h, int monitor_index);
