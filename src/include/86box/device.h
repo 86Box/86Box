@@ -54,7 +54,6 @@
 #define CONFIG_BIOS      11
 
 enum {
-    DEVICE_NOT_WORKING = 1,      /* does not currently work correctly and will be disabled in a release build */
     DEVICE_PCJR        = 2,      /* requires an IBM PCjr */
     DEVICE_AT          = 4,      /* requires an AT-compatible system */
     DEVICE_PS2         = 8,      /* requires a PS/1 or PS/2 system */
