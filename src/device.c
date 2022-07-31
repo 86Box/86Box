@@ -331,17 +331,19 @@ device_get_priv(const device_t *d)
 int
 device_available(const device_t *d)
 {
-    device_config_t *config;
-    device_config_bios_t *bios;
+    device_config_t *config = NULL;
+    device_config_bios_t *bios = NULL;
     int bf, roms_present = 0;
     int i = 0;
 
-#ifdef RELEASE_BUILD
-    if (d->flags & DEVICE_NOT_WORKING) return(0);
-#endif
     if (d != NULL) {
+#ifdef RELEASE_BUILD
+	if (d->flags & DEVICE_NOT_WORKING)
+		return(0);
+#endif
+
 	config = (device_config_t *) d->config;
-    if (config != NULL) {
+	if (config != NULL) {
 		while (config->type != -1) {
 			if (config->type == CONFIG_BIOS) {
 				bios = (device_config_bios_t *) config->bios;
@@ -362,9 +364,9 @@ device_available(const device_t *d)
 		}
 	}
 
-    /* No CONFIG_BIOS field present, use the classic available(). */
+	/* No CONFIG_BIOS field present, use the classic available(). */
 	if (d->available != NULL)
-        return(d->available());
+        	return(d->available());
 	else
 		return(1);
     }
