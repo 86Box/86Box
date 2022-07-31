@@ -100,9 +100,6 @@ appstream-util validate-relax --nonet %{buildroot}%{_metainfodir}/net.86box.86Bo
 pushd roms-%{romver}
   mkdir -p %{buildroot}%{_datadir}/%{name}/roms
   cp -a * %{buildroot}%{_datadir}/%{name}/roms/
-  # hack to create symlink in /usr/bin
-  cd %{buildroot}%{_bindir}
-  ln -s ../share/%{name}/roms roms
 popd
 
 # files part of the main package
@@ -117,7 +114,6 @@ popd
 %files roms
 %license  roms-%{romver}/LICENSE
 %{_datadir}/%{name}/roms
-%{_bindir}/roms
 
 %changelog
 * Sat Jul 30 2022 Robert de Rooy <robert.de.rooy[AT]gmail.com> 3.7-1
