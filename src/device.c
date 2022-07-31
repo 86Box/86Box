@@ -337,11 +337,6 @@ device_available(const device_t *d)
     int i = 0;
 
     if (d != NULL) {
-#ifdef RELEASE_BUILD
-	if (d->flags & DEVICE_NOT_WORKING)
-		return(0);
-#endif
-
 	config = (device_config_t *) d->config;
 	if (config != NULL) {
 		while (config->type != -1) {
