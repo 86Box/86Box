@@ -1,3 +1,4 @@
+#include "qt_mainwindow.hpp"
 #include "qt_d3d9renderer.hpp"
 #include <QResizeEvent>
 #include <QTimer>
