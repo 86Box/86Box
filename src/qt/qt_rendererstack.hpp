@@ -103,7 +103,7 @@ private:
 
     RendererCommon          *rendererWindow { nullptr };
     std::unique_ptr<QWidget> current;
-    std::atomic<bool> directBlitting{false}, blitDummied{false};
+    std::atomic<bool> directBlitting{false};
 };
 
 #endif // QT_RENDERERCONTAINER_HPP

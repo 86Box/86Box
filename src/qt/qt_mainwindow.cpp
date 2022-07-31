@@ -103,6 +103,8 @@ namespace IOKit {
 
 extern MainWindow* main_window;
 
+std::atomic<bool> blitDummied{false};
+
 filter_result keyb_filter(BMessage *message, BHandler **target, BMessageFilter *filter)
 {
     if (message->what == B_KEY_DOWN || message->what == B_KEY_UP

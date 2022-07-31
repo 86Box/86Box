@@ -12,6 +12,8 @@
 class MediaMenu;
 class RendererStack;
 
+extern std::atomic<bool> blitDummied{false};
+
 namespace Ui {
 class MainWindow;
 }
