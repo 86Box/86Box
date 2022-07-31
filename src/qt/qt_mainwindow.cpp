@@ -1596,11 +1596,7 @@ void MainWindow::keyPressEvent(QKeyEvent* event)
 void MainWindow::blitToWidget(int x, int y, int w, int h, int monitor_index)
 {
     if (monitor_index >= 1) {
-#ifdef STRICTER_CHECK
-        if (renderers[monitor_index] && renderers[monitor_index]->isVisible()) renderers[monitor_index]->blit(x, y, w, h);
-#else
-        if (renderers[monitor_index]) renderers[monitor_index]->blit(x, y, w, h);
-#endif
+        if (!blitDummied && renderers[monitor_index] && renderers[monitor_index]->isVisible()) renderers[monitor_index]->blit(x, y, w, h);
         else video_blit_complete_monitor(monitor_index);
     }
     else ui->stackedWidget->blit(x, y, w, h);
