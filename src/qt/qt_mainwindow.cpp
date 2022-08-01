@@ -123,6 +123,8 @@ filter_result keyb_filter(BMessage *message, BHandler **target, BMessageFilter *
 static BMessageFilter* filter;
 #endif
 
+std::atomic<bool> blitDummied{false};
+
 extern void qt_mouse_capture(int);
 extern "C" void qt_blit(int x, int y, int w, int h, int monitor_index);
 
@@ -648,6 +650,11 @@ MainWindow::~MainWindow() {
 void MainWindow::showEvent(QShowEvent *event) {
     if (shownonce) return;
     shownonce = true;
+    if (window_remember) {
+        if (window_w == 0) window_w = 320;
+        if (window_h == 0) window_h = 200;
+    }
+
     if (window_remember && !QApplication::platformName().contains("wayland")) {
         setGeometry(window_x, window_y, window_w, window_h + menuBar()->height() + (hide_status_bar ? 0 : statusBar()->height()) + (hide_tool_bar ? 0 : ui->toolBar->height()));
     }
@@ -1474,7 +1481,7 @@ void MainWindow::on_actionFullscreen_triggered() {
             questionbox.exec();
             config_save();
 
-            /* (re-capture mouse after dialog. */
+            /* (re-capture mouse after dialog). */
             if (wasCaptured)
                 emit setMouseCapture(true);
         }
@@ -1594,7 +1601,7 @@ void MainWindow::keyPressEvent(QKeyEvent* event)
 void MainWindow::blitToWidget(int x, int y, int w, int h, int monitor_index)
 {
     if (monitor_index >= 1) {
-        if (renderers[monitor_index]) renderers[monitor_index]->blit(x, y, w, h);
+        if (!blitDummied && renderers[monitor_index] && renderers[monitor_index]->isVisible()) renderers[monitor_index]->blit(x, y, w, h);
         else video_blit_complete_monitor(monitor_index);
     }
     else ui->stackedWidget->blit(x, y, w, h);
@@ -1915,6 +1922,8 @@ void MainWindow::on_actionHiDPI_scaling_triggered()
 
 void MainWindow::on_actionHide_status_bar_triggered()
 {
+    auto w = ui->stackedWidget->width();
+    auto h = ui->stackedWidget->height();
     hide_status_bar ^= 1;
     ui->actionHide_status_bar->setChecked(hide_status_bar);
     statusBar()->setVisible(!hide_status_bar);
@@ -1926,13 +1935,16 @@ void MainWindow::on_actionHide_status_bar_triggered()
     } else {
         int vid_resize_orig = vid_resize;
         vid_resize = 0;
-        emit resizeContents(monitors[0].mon_scrnsz_x, monitors[0].mon_scrnsz_y);
+        emit resizeContents(w, h);
         vid_resize = vid_resize_orig;
+        if (vid_resize == 1) setFixedSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
     }
 }
 
 void MainWindow::on_actionHide_tool_bar_triggered()
 {
+    auto w = ui->stackedWidget->width();
+    auto h = ui->stackedWidget->height();
     hide_tool_bar ^= 1;
     ui->actionHide_tool_bar->setChecked(hide_tool_bar);
     ui->toolBar->setVisible(!hide_tool_bar);
@@ -1944,8 +1956,9 @@ void MainWindow::on_actionHide_tool_bar_triggered()
     } else {
         int vid_resize_orig = vid_resize;
         vid_resize = 0;
-        emit resizeContents(monitors[0].mon_scrnsz_x, monitors[0].mon_scrnsz_y);
+        emit resizeContents(w, h);
         vid_resize = vid_resize_orig;
+        if (vid_resize == 1) setFixedSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
     }
 }
 
@@ -2047,6 +2060,8 @@ void MainWindow::on_actionShow_non_primary_monitors_triggered()
 {
     show_second_monitors ^= 1;
 
+    blitDummied = true;
+
     if (show_second_monitors) {
         for (int monitor_index = 1; monitor_index < MONITORS_NUM; monitor_index++) {
             auto& secondaryRenderer = renderers[monitor_index];
@@ -2073,5 +2088,7 @@ void MainWindow::on_actionShow_non_primary_monitors_triggered()
             }
         }
     }
+
+    blitDummied = false;
 }
 

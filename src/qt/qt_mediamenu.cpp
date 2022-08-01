@@ -28,6 +28,7 @@
 #include <QStringBuilder>
 
 extern "C" {
+#include <86box/86box.h>
 #include <86box/config.h>
 #include <86box/device.h>
 #include <86box/timer.h>
@@ -173,7 +174,7 @@ void MediaMenu::cassetteNewImage() {
 void MediaMenu::cassetteSelectImage(bool wp) {
     auto filename = QFileDialog::getOpenFileName(parentWidget,
         QString(),
-        QString(),
+        getMediaOpenDirectory(),
         tr("Cassette images") %
         util::DlgFilter({ "pcm","raw","wav","cas" }) %
         tr("All files") %
@@ -247,7 +248,7 @@ void MediaMenu::cartridgeSelectImage(int i) {
     auto filename = QFileDialog::getOpenFileName(
         parentWidget,
         QString(),
-        QString(),
+        getMediaOpenDirectory(),
         tr("Cartridge images") %
         util::DlgFilter({ "a","b","jrc" }) %
         tr("All files") %
@@ -291,7 +292,7 @@ void MediaMenu::floppySelectImage(int i, bool wp) {
     auto filename = QFileDialog::getOpenFileName(
         parentWidget,
         QString(),
-        QString(),
+        getMediaOpenDirectory(),
         tr("All images") %
         util::DlgFilter({ "0??","1??","??0","86f","bin","cq?","d??","flp","hdm","im?","json","td0","*fd?","mfm","xdf" }) %
         tr("Advanced sector images") %
@@ -400,7 +401,7 @@ void MediaMenu::cdromMount(int i) {
     auto filename = QFileDialog::getOpenFileName(
         parentWidget,
         QString(),
-        QString(),
+        getMediaOpenDirectory(),
         tr("CD-ROM images") %
         util::DlgFilter({ "iso","cue" }) %
         tr("All files") %
@@ -571,7 +572,7 @@ void MediaMenu::moSelectImage(int i, bool wp) {
     auto filename = QFileDialog::getOpenFileName(
         parentWidget,
         QString(),
-        QString(),
+        getMediaOpenDirectory(),
         tr("MO images") %
         util::DlgFilter({ "im?", "mdi" }) %
         tr("All files") %
@@ -656,6 +657,13 @@ void MediaMenu::moUpdateMenu(int i) {
     menu->setTitle(QString::asprintf(tr("MO %i (%ls): %ls").toUtf8().constData(), i + 1, busName.toStdU16String().data(), name.isEmpty() ? tr("(empty)").toStdU16String().data() : name.toStdU16String().data()));
 }
 
+QString MediaMenu::getMediaOpenDirectory() {
+    QString openDirectory;
+    if (open_dir_usr_path > 0) {
+        openDirectory = QString::fromUtf8(usr_path);
+    }
+    return openDirectory;
+}
 
 // callbacks from 86box C code
 extern "C" {

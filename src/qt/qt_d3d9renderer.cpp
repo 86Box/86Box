@@ -1,3 +1,4 @@
+#include "qt_mainwindow.hpp"
 #include "qt_d3d9renderer.hpp"
 #include <QResizeEvent>
 #include <QTimer>
@@ -139,7 +140,7 @@ void D3D9Renderer::resizeEvent(QResizeEvent *event)
 
 void D3D9Renderer::blit(int x, int y, int w, int h)
 {
-    if ((x < 0) || (y < 0) || (w <= 0) || (h <= 0) || (w > 2048) || (h > 2048) || (monitors[m_monitor_index].target_buffer == NULL) || surfaceInUse) {
+    if (blitDummied || (x < 0) || (y < 0) || (w <= 0) || (h <= 0) || (w > 2048) || (h > 2048) || (monitors[m_monitor_index].target_buffer == NULL) || surfaceInUse) {
         video_blit_complete_monitor(m_monitor_index);
         return;
     }
