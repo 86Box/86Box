@@ -1,4 +1,4 @@
-#define ABRT_MASK 0x7f
+#define ABRT_MASK 0x3f
 /*An 'expected' exception is one that would be expected to occur on every execution
   of this code path; eg a GPF due to being in v86 mode. An 'unexpected' exception is
   one that would be unlikely to occur on the next exception, eg a page fault may be
@@ -71,7 +71,8 @@ enum
         ABRT_NP  = 0xB,
         ABRT_SS  = 0xC,
         ABRT_GPF = 0xD,
-        ABRT_PF  = 0xE
+        ABRT_PF  = 0xE,
+        ABRT_DE  = 0x40     /* INT 0, but we have to distinguish it from ABRT_NONE. */
 };
 
 
