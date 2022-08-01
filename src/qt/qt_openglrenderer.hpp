@@ -39,6 +39,8 @@
 #include "qt_opengloptions.hpp"
 #include "qt_renderercommon.hpp"
 
+typedef void (QOPENGLF_APIENTRYP PFNGLBUFFERSTORAGEEXTPROC_LOCAL) (GLenum target, GLsizeiptr size, const void *data, GLbitfield flags);
+
 class OpenGLRenderer : public QWindow, protected QOpenGLExtraFunctions, public RendererCommon {
     Q_OBJECT
 
@@ -103,7 +105,7 @@ private:
     /* GL_ARB_buffer_storage */
     bool hasBufferStorage = false;
 #ifndef NO_BUFFER_STORAGE
-    PFNGLBUFFERSTORAGEPROC glBufferStorage = nullptr;
+    PFNGLBUFFERSTORAGEEXTPROC_LOCAL glBufferStorage = nullptr;
 #endif
 
 private slots:

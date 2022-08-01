@@ -436,6 +436,7 @@ pic_read(uint16_t addr, void *priv)
 	dev->data_bus = dev->irr;
 #endif
 	if (dev->ocw3 & 0x04) {
+		dev->interrupt &= ~0x20;	/* Freeze the interrupt until the poll is over. */
 		if (dev->int_pending) {
 			dev->data_bus = 0x80 | (dev->interrupt & 7);
 			pic_acknowledge(dev);
@@ -516,6 +517,8 @@ pic_write(uint16_t addr, uint8_t val, void *priv)
 		update_pending();
 	} else if (val & 0x08) {
 		dev->ocw3 = val;
+		if (dev->ocw3 & 0x04)
+			dev->interrupt |= 0x20;		/* Freeze the interrupt until the poll is over. */
 		if (dev->ocw3 & 0x40)
 			dev->special_mask_mode = !!(dev->ocw3 & 0x20);
 	} else {
@@ -721,10 +724,25 @@ pic_irq_ack(void)
 {
     int ret;
 
+    /* Needed for Xi8088. */
+    if ((pic.ack_bytes == 0) && pic.int_pending && pic_slave_on(&pic, pic.interrupt)) {
+	if (!pic.slaves[pic.interrupt]->int_pending) {
+		/* If we are on AT, IRQ 2 is pending, and we cannot find a pending IRQ on PIC 2, fatal out. */
+		fatal("IRQ %i pending on AT without a pending IRQ on PIC %i (normal)\n", pic.interrupt, pic.interrupt);
+		exit(-1);
+		return -1;
+	}
+
+	pic.interrupt |= 0x40;		/* Mark slave pending. */
+    }
+
     ret = pic_irq_ack_read(&pic, pic.ack_bytes);
     pic.ack_bytes = (pic.ack_bytes + 1) % (pic_i86_mode(&pic) ? 2 : 3);
 
     if (pic.ack_bytes == 0) {
+	/* Needed for Xi8088. */
+	if (pic.interrupt & 0x40)
+		pic2.interrupt = 0x17;
 	pic.interrupt = 0x17;
 	update_pending();
     }

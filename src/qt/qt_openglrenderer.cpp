@@ -26,6 +26,14 @@
 #include "qt_opengloptionsdialog.hpp"
 #include "qt_openglrenderer.hpp"
 
+#ifndef GL_MAP_PERSISTENT_BIT
+#define GL_MAP_PERSISTENT_BIT 0x0040
+#endif
+
+#ifndef GL_MAP_COHERENT_BIT
+#define GL_MAP_COHERENT_BIT 0x0080
+#endif
+
 OpenGLRenderer::OpenGLRenderer(QWidget *parent)
     : QWindow(parent->windowHandle())
     , renderTimer(new QTimer(this))
@@ -239,10 +247,12 @@ void
 OpenGLRenderer::initializeExtensions()
 {
 #ifndef NO_BUFFER_STORAGE
-    if (context->hasExtension("GL_ARB_buffer_storage")) {
+    if (context->hasExtension("GL_ARB_buffer_storage") || context->hasExtension("GL_EXT_buffer_storage")) {
         hasBufferStorage = true;
 
-        glBufferStorage = (PFNGLBUFFERSTORAGEPROC) context->getProcAddress("glBufferStorage");
+        glBufferStorage = (PFNGLBUFFERSTORAGEEXTPROC_LOCAL) context->getProcAddress(context->hasExtension("GL_EXT_buffer_storage") ? "glBufferStorageEXT" : "glBufferStorage");
+        if (!glBufferStorage)
+            glBufferStorage = glBufferStorage = (PFNGLBUFFERSTORAGEEXTPROC_LOCAL) context->getProcAddress("glBufferStorage");
     }
 #endif
 }

@@ -611,6 +611,8 @@ load_general(void)
 
     enable_discord = !!config_get_int(cat, "enable_discord", 0);
 
+    open_dir_usr_path = config_get_int(cat, "open_dir_usr_path", 0);
+
     video_framerate = config_get_int(cat, "video_gl_framerate", -1);
     video_vsync     = config_get_int(cat, "video_gl_vsync", 0);
     strncpy(video_shader, config_get_string(cat, "video_gl_shader", ""), sizeof(video_shader));
@@ -2380,6 +2382,11 @@ save_general(void)
     else
         config_delete_var(cat, "enable_discord");
 
+    if (open_dir_usr_path)
+        config_set_int(cat, "open_dir_usr_path", open_dir_usr_path);
+    else
+        config_delete_var(cat, "open_dir_usr_path");
+
     if (video_framerate != -1)
         config_set_int(cat, "video_gl_framerate", video_framerate);
     else
@@ -2767,7 +2774,7 @@ save_storage_controllers(void)
 
     delete_section_if_empty(cat);
 
-    if (cassette_enable == 1)
+    if (cassette_enable == 0)
         config_delete_var(cat, "cassette_enabled");
     else
         config_set_int(cat, "cassette_enabled", cassette_enable);

@@ -1398,7 +1398,7 @@ write64_ami(void *priv, uint8_t val)
 			else
 				add_data(dev, 'H');
 		} else
-			add_data(dev, 'F');
+			add_data(dev, 'H');
 		return 0;
 
 	case 0xa2:	/* clear keyboard controller lines P22/P23 */

@@ -54,7 +54,6 @@
 #define CONFIG_BIOS      11
 
 enum {
-    DEVICE_NOT_WORKING = 1,      /* does not currently work correctly and will be disabled in a release build */
     DEVICE_PCJR        = 2,      /* requires an IBM PCjr */
     DEVICE_AT          = 4,      /* requires an AT-compatible system */
     DEVICE_PS2         = 8,      /* requires a PS/1 or PS/2 system */
@@ -70,6 +69,17 @@ enum {
     DEVICE_LPT         = 0x2000  /* requires a parallel port */
 };
 
+
+#define BIOS_NORMAL                          0
+#define BIOS_INTERLEAVED                     1
+#define BIOS_INTERLEAVED_SINGLEFILE          2
+#define BIOS_INTERLEAVED_QUAD                3
+#define BIOS_INTERLEAVED_QUAD_SINGLEFILE     4
+#define BIOS_INTEL_AMI                       5
+#define BIOS_INTERLEAVED_INVERT              8
+#define BIOS_HIGH_BIT_INVERT                16
+
+
 typedef struct {
     const char *description;
     int         value;
@@ -80,6 +90,8 @@ typedef struct {
     const char  *internal_name;
     int          bios_type;
     int          files_no;
+    uint32_t     local, size;
+    void         *dev1, *dev2;
     const char **files;
 } device_config_bios_t;
 
