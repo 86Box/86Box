@@ -51,9 +51,11 @@
 #define BIOS_GD5428_ISA_PATH		"roms/video/cirruslogic/5428.bin"
 #define BIOS_GD5428_MCA_PATH		"roms/video/cirruslogic/SVGA141.ROM"
 #define BIOS_GD5428_PATH		"roms/video/cirruslogic/vlbusjapan.BIN"
-#define BIOS_GD5428_BOCA_ISA_PATH		"roms/video/cirruslogic/boca_gd5428_1.30b.bin"
+#define BIOS_GD5428_BOCA_ISA_PATH_1		"roms/video/cirruslogic/boca_gd5428_1.30b_1.bin"
+#define BIOS_GD5428_BOCA_ISA_PATH_2		"roms/video/cirruslogic/boca_gd5428_1.30b_2.bin"
 #define BIOS_GD5429_PATH		"roms/video/cirruslogic/5429.vbi"
 #define BIOS_GD5430_DIAMOND_A8_VLB_PATH	"roms/video/cirruslogic/diamondvlbus.bin"
+#define BIOS_GD5430_ORCHID_VLB_PATH	"roms/video/cirruslogic/orchidvlbus.bin"
 #define BIOS_GD5430_PATH		"roms/video/cirruslogic/pci.bin"
 #define BIOS_GD5434_DIAMOND_A3_ISA_PATH	"roms/video/cirruslogic/Diamond Multimedia SpeedStar 64 v2.02 EPROM Backup from ST M27C256B-12F1.BIN"
 #define BIOS_GD5434_PATH		"roms/video/cirruslogic/gd5434.BIN"
@@ -3862,6 +3864,7 @@ static void
     int id = info->local & 0xff;
     int vram;
     char *romfn = NULL;
+    char *romfn1 = NULL, *romfn2 = NULL;
     memset(gd54xx, 0, sizeof(gd54xx_t));
 
     gd54xx->pci = !!(info->flags & DEVICE_PCI);
@@ -3916,8 +3919,10 @@ static void
 		if (info->local & 0x100)
 			if (gd54xx->vlb)
 				romfn = BIOS_GD5428_DIAMOND_B1_VLB_PATH;
-			else
-				romfn = BIOS_GD5428_BOCA_ISA_PATH;
+			else {
+                romfn1 = BIOS_GD5428_BOCA_ISA_PATH_1;
+				romfn2 = BIOS_GD5428_BOCA_ISA_PATH_2;
+			}
 		else {
 			if (gd54xx->vlb)
 				romfn = BIOS_GD5428_PATH;
@@ -3944,6 +3949,8 @@ static void
 		if (info->local & 0x200) {
 			romfn = NULL;
 			gd54xx->has_bios = 0;
+		} else if (gd54xx->vlb) {
+			romfn = BIOS_GD5430_ORCHID_VLB_PATH;
 		} else {
 			if (info->local & 0x100)
 				romfn = BIOS_GD5434_DIAMOND_A3_ISA_PATH;
@@ -3970,8 +3977,10 @@ static void
 			if (info->local & 0x200) {
 				romfn = NULL;
 				gd54xx->has_bios = 0;
-			} else if (gd54xx->pci)
+			} else if (gd54xx->pci) {
 				romfn = BIOS_GD5430_PATH;
+			} else if ((gd54xx->vlb) && (info->local & 0x100))
+				romfn = BIOS_GD5430_ORCHID_VLB_PATH;
 			else
 				romfn = BIOS_GD5430_DIAMOND_A8_VLB_PATH;
 		}
@@ -4011,7 +4020,10 @@ static void
     gd54xx->vram_mask = gd54xx->vram_size - 1;
 
     if (romfn)
-	rom_init(&gd54xx->bios_rom, romfn, 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
+        rom_init(&gd54xx->bios_rom, romfn, 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
+    else if (romfn1 && romfn2)
+		rom_init_interleaved(&gd54xx->bios_rom, BIOS_GD5428_BOCA_ISA_PATH_1, BIOS_GD5428_BOCA_ISA_PATH_2, 0xc0000,
+				     0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
 
     if (info->flags & DEVICE_ISA)
 	video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_gd54xx_isa);
@@ -4188,7 +4200,7 @@ gd5428_diamond_b1_available(void)
 static int
 gd5428_boca_isa_available(void)
 {
-    return rom_present(BIOS_GD5428_BOCA_ISA_PATH);
+    return rom_present(BIOS_GD5428_BOCA_ISA_PATH_1) && rom_present(BIOS_GD5428_BOCA_ISA_PATH_2);
 }
 
 static int
@@ -4231,6 +4243,18 @@ static int
 gd5434_available(void)
 {
     return rom_present(BIOS_GD5434_PATH);
+}
+
+static int
+gd5434_isa_available(void)
+{
+    return rom_present(BIOS_GD5434_PATH);
+}
+
+static int
+gd5430_orchid_vlb_available(void)
+{
+    return rom_present(BIOS_GD5430_ORCHID_VLB_PATH);
 }
 
 static int
@@ -4791,13 +4815,27 @@ const device_t gd5429_vlb_device = {
 /*According to a Diamond bios file listing and vgamuseum*/
 const device_t gd5430_diamond_speedstar_pro_se_a8_vlb_device = {
     .name = "Cirrus Logic GD5430 (VLB) (Diamond SpeedStar Pro SE Rev. A8)",
-    .internal_name = "cl_gd5430_vlb",
+    .internal_name = "cl_gd5430_vlb_diamond",
     .flags = DEVICE_VLB,
     .local = CIRRUS_ID_CLGD5430,
     .init = gd54xx_init,
     .close = gd54xx_close,
     .reset = gd54xx_reset,
     { .available = gd5430_diamond_a8_available },
+    .speed_changed = gd54xx_speed_changed,
+    .force_redraw = gd54xx_force_redraw,
+    .config = gd5429_config
+};
+
+const device_t gd5430_vlb_device = {
+    .name = "Cirrus Logic GD5430",
+    .internal_name = "cl_gd5430_vlb",
+    .flags = DEVICE_VLB,
+    .local = CIRRUS_ID_CLGD5430 | 0x100,
+    .init = gd54xx_init,
+    .close = gd54xx_close,
+    .reset = gd54xx_reset,
+    { .available = gd5430_orchid_vlb_available },
     .speed_changed = gd54xx_speed_changed,
     .force_redraw = gd54xx_force_redraw,
     .config = gd5429_config
@@ -4825,7 +4863,7 @@ const device_t gd5434_isa_device = {
     .init = gd54xx_init,
     .close = gd54xx_close,
     .reset = gd54xx_reset,
-    { .available = gd5434_available },
+    { .available = gd5434_isa_available },
     .speed_changed = gd54xx_speed_changed,
     .force_redraw = gd54xx_force_redraw,
     .config = gd5434_config
@@ -4868,7 +4906,7 @@ const device_t gd5434_vlb_device = {
     .init = gd54xx_init,
     .close = gd54xx_close,
     .reset = gd54xx_reset,
-    { .available = gd5434_available },
+    { .available = gd5430_orchid_vlb_available },
     .speed_changed = gd54xx_speed_changed,
     .force_redraw = gd54xx_force_redraw,
     .config = gd5434_config

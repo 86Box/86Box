@@ -289,6 +289,7 @@ int main(int argc, char* argv[]) {
     cpu_thread_run = 0;
     main_thread->join();
     pc_close(nullptr);
+    endblit();
 
     socket.close();
     return ret;
