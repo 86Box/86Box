@@ -650,6 +650,11 @@ MainWindow::~MainWindow() {
 void MainWindow::showEvent(QShowEvent *event) {
     if (shownonce) return;
     shownonce = true;
+    if (window_remember) {
+        if (window_w < 320) window_w = 320;
+        if (window_h < 200) window_h = 200;
+    }
+
     if (window_remember && !QApplication::platformName().contains("wayland")) {
         setGeometry(window_x, window_y, window_w, window_h + menuBar()->height() + (hide_status_bar ? 0 : statusBar()->height()) + (hide_tool_bar ? 0 : ui->toolBar->height()));
     }
