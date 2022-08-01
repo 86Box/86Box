@@ -257,7 +257,7 @@ RendererStack::switchRenderer(Renderer renderer)
                 createRenderer(renderer);
                 disconnect(this, &RendererStack::blit, this, &RendererStack::blitDummy);
                 blitDummied = false;
-                QTimer::singleShot(1000, this, [this]() { this->blitDummied = false; } );
+                QTimer::singleShot(1000, this, [this]() { blitDummied = false; } );
             });
 
             rendererWindow->hasBlitFunc() ? current.reset() : current.release()->deleteLater();
@@ -435,7 +435,7 @@ RendererStack::blitRenderer(int x, int y, int w, int h)
 void
 RendererStack::blitCommon(int x, int y, int w, int h)
 {
-    if ((x < 0) || (y < 0) || (w <= 0) || (h <= 0) || (w > 2048) || (h > 2048) || (monitors[m_monitor_index].target_buffer == NULL) || imagebufs.empty() || std::get<std::atomic_flag *>(imagebufs[currentBuf])->test_and_set() || blitDummied) {
+    if (blitDummied || (x < 0) || (y < 0) || (w <= 0) || (h <= 0) || (w > 2048) || (h > 2048) || (monitors[m_monitor_index].target_buffer == NULL) || imagebufs.empty() || std::get<std::atomic_flag *>(imagebufs[currentBuf])->test_and_set()) {
         video_blit_complete_monitor(m_monitor_index);
         return;
     }
