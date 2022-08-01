@@ -60,11 +60,13 @@ void closeal(void);
 ALvoid
 alutInit(ALint *argc, ALbyte **argv)
 {
+    ALCint attrs[] = { ALC_OUTPUT_LIMITER_SOFT, AL_TRUE, 0 };
+
     /* Open device */
     Device = alcOpenDevice((ALCchar *) "");
     if (Device != NULL) {
         /* Create context(s) */
-        Context = alcCreateContext(Device, NULL);
+        Context = alcCreateContext(Device, attrs);
         if (Context != NULL) {
             /* Set active context */
             alcMakeContextCurrent(Context);
