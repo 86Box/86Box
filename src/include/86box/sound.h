@@ -20,8 +20,11 @@
 #ifndef EMU_SOUND_H
 #define EMU_SOUND_H
 
+#include <stdint.h>
+
 extern int sound_gain;
 
+#define SOUNDFREQ   48000
 #define SOUNDBUFLEN (48000 / 50)
 
 #define CD_FREQ     44100
@@ -31,6 +34,9 @@ enum {
     SOUND_NONE = 0,
     SOUND_INTERNAL
 };
+
+struct al_source;
+typedef struct al_source al_source;
 
 extern int ppispeakon;
 extern int gated,
@@ -71,6 +77,8 @@ extern void closeal(void);
 extern void inital(void);
 extern void givealbuffer(void *buf);
 extern void givealbuffer_cd(void *buf);
+extern void givealbuffer_source(void *buf, al_source* src, int size, int freq);
+extern al_source* al_create_sound_source(uint32_t freq, uint32_t buffer_size_mono);
 
 #ifdef EMU_DEVICE_H
 /* AdLib and AdLib Gold */

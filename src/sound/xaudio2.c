@@ -44,14 +44,16 @@ static dllimp_t xaudio2_imports[] = {
 #    define XAudio2Create pXAudio2Create
 #endif
 
-static int                     midi_freq     = 44100;
-static int                     midi_buf_size = 4410;
-static int                     initialized   = 0;
-static IXAudio2               *xaudio2       = NULL;
-static IXAudio2MasteringVoice *mastervoice   = NULL;
-static IXAudio2SourceVoice    *srcvoice      = NULL;
-static IXAudio2SourceVoice    *srcvoicemidi  = NULL;
-static IXAudio2SourceVoice    *srcvoicecd    = NULL;
+static int                     midi_freq      = 44100;
+static int                     midi_buf_size  = 4410;
+static int                     initialized    = 0;
+static IXAudio2               *xaudio2        = NULL;
+static IXAudio2MasteringVoice *mastervoice    = NULL;
+static IXAudio2SourceVoice    *srcvoice       = NULL;
+static IXAudio2SourceVoice    *srcvoicemidi   = NULL;
+static IXAudio2SourceVoice    *srcvoicecd     = NULL;
+static IXAudio2SourceVoice   **extsrcvoices   = NULL;
+static int                     extsrcvoicecnt = 0;
 
 #define FREQ   48000
 #define BUFLEN SOUNDBUFLEN
@@ -177,13 +179,42 @@ inital()
         IXAudio2SourceVoice_Start(srcvoicemidi, 0, XAUDIO2_COMMIT_NOW);
     }
 
+    extsrcvoices = calloc(sizeof(void*), 256);
+
     initialized = 1;
     atexit(closeal);
+}
+
+al_source* al_create_sound_source(uint32_t freq, uint32_t buffer_size_mono)
+{
+    WAVEFORMATEX fmt;
+
+    if (extsrcvoicecnt == 256) fatal("xaudio2: Too many sources!");
+    fmt.nChannels = 2;
+
+    (void)buffer_size_mono; /* Unused. */
+    if (sound_is_float) {
+        fmt.wFormatTag     = WAVE_FORMAT_IEEE_FLOAT;
+        fmt.wBitsPerSample = 32;
+    } else {
+        fmt.wFormatTag     = WAVE_FORMAT_PCM;
+        fmt.wBitsPerSample = 16;
+    }
+
+    fmt.nSamplesPerSec  = freq;
+    fmt.nBlockAlign     = fmt.nChannels * fmt.wBitsPerSample / 8;
+    fmt.nAvgBytesPerSec = fmt.nSamplesPerSec * fmt.nBlockAlign;
+    fmt.cbSize          = 0;
+    if (IXAudio2_CreateSourceVoice(xaudio2, &extsrcvoices[extsrcvoicecnt], &fmt, 0, 2.0f, &callbacks, NULL, NULL)) return NULL;
+    extsrcvoicecnt++;
+    return (al_source*)extsrcvoices[extsrcvoicecnt - 1];
 }
 
 void
 closeal()
 {
+    int i = 0;
+
     if (!initialized)
         return;
     initialized = 0;
@@ -198,11 +229,19 @@ closeal()
     }
     IXAudio2SourceVoice_DestroyVoice(srcvoice);
     IXAudio2SourceVoice_DestroyVoice(srcvoicecd);
+    for (i = 0; i < extsrcvoicecnt; i++) {
+        IXAudio2SourceVoice_Stop(extsrcvoices[i], 0, XAUDIO2_COMMIT_NOW);
+        IXAudio2SourceVoice_FlushSourceBuffers(extsrcvoices[i]);
+        IXAudio2SourceVoice_DestroyVoice(extsrcvoices[i]);
+    }
     IXAudio2MasteringVoice_DestroyVoice(mastervoice);
     IXAudio2_Release(xaudio2);
     srcvoice = srcvoicecd = srcvoicemidi = NULL;
     mastervoice                          = NULL;
     xaudio2                              = NULL;
+
+    free(extsrcvoices);
+    extsrcvoices = NULL;
 
 #if defined(_WIN32) && !defined(USE_FAUDIO)
     dynld_close(xaudio2_handle);
@@ -234,6 +273,14 @@ givealbuffer_common(void *buf, IXAudio2SourceVoice *sourcevoice, size_t buflen)
     buffer.PlayLength                    = buflen >> 1;
     buffer.pContext                      = (void *) buffer.pAudioData;
     IXAudio2SourceVoice_SubmitSourceBuffer(sourcevoice, &buffer, NULL);
+}
+
+void
+givealbuffer_source(void *buf, al_source* src, int size, int freq)
+{
+    IXAudio2SourceVoice* source = (IXAudio2SourceVoice*)src;
+
+    givealbuffer_common(buf, source, size);
 }
 
 void
