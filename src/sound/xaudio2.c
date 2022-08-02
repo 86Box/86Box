@@ -145,13 +145,12 @@ inital()
         fmt.wFormatTag     = WAVE_FORMAT_PCM;
         fmt.wBitsPerSample = 16;
     }
-
     fmt.nSamplesPerSec  = FREQ;
     fmt.nBlockAlign     = fmt.nChannels * fmt.wBitsPerSample / 8;
     fmt.nAvgBytesPerSec = fmt.nSamplesPerSec * fmt.nBlockAlign;
     fmt.cbSize          = 0;
 
-    if (IXAudio2_CreateSourceVoice(xaudio2, &srcvoice, &fmt, 0, 2.0f, &callbacks, NULL, NULL)) {
+    if (IXAudio2_CreateSourceVoice(xaudio2, &srcvoice, &fmt, 0, 8.0f, &callbacks, NULL, NULL)) {
         IXAudio2MasteringVoice_DestroyVoice(mastervoice);
         IXAudio2_Release(xaudio2);
         xaudio2     = NULL;
@@ -163,7 +162,7 @@ inital()
     fmt.nBlockAlign     = fmt.nChannels * fmt.wBitsPerSample / 8;
     fmt.nAvgBytesPerSec = fmt.nSamplesPerSec * fmt.nBlockAlign;
 
-    IXAudio2_CreateSourceVoice(xaudio2, &srcvoicecd, &fmt, 0, 2.0f, &callbacks, NULL, NULL);
+    IXAudio2_CreateSourceVoice(xaudio2, &srcvoicecd, &fmt, 0, 8.0f, &callbacks, NULL, NULL);
 
     IXAudio2SourceVoice_SetVolume(srcvoice, 1, XAUDIO2_COMMIT_NOW);
     IXAudio2SourceVoice_Start(srcvoice, 0, XAUDIO2_COMMIT_NOW);
@@ -175,7 +174,7 @@ inital()
         fmt.nSamplesPerSec  = midi_freq;
         fmt.nBlockAlign     = fmt.nChannels * fmt.wBitsPerSample / 8;
         fmt.nAvgBytesPerSec = fmt.nSamplesPerSec * fmt.nBlockAlign;
-        IXAudio2_CreateSourceVoice(xaudio2, &srcvoicemidi, &fmt, 0, 2.0f, &callbacks, NULL, NULL);
+        IXAudio2_CreateSourceVoice(xaudio2, &srcvoicemidi, &fmt, 0, 8.0f, &callbacks, NULL, NULL);
         IXAudio2SourceVoice_Start(srcvoicemidi, 0, XAUDIO2_COMMIT_NOW);
     }
 
