@@ -282,7 +282,7 @@ givealbuffer_source(void *buf, al_source* src, int size, int freq)
     XAUDIO2_VOICE_DETAILS voice_details = { 0, 0, 0, 0 };
 
     IXAudio2SourceVoice_GetVoiceDetails(source, &voice_details);
-    IXAudio2SourceVoice_SetFrequencyRatio(source, (float)freq / (float)voice_details.InputSampleRate, XAUDIO2_COMMIT_NOW);
+    IXAudio2SourceVoice_SetFrequencyRatio(source, (float)((double)freq / (double)voice_details.InputSampleRate), XAUDIO2_COMMIT_NOW);
     givealbuffer_common(buf, source, size);
 }
 
