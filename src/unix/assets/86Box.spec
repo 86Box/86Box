@@ -34,6 +34,7 @@ BuildRequires: libappstream-glib
 BuildRequires: libevdev-devel
 BuildRequires: libXi-devel
 BuildRequires: ninja-build
+BuildRequires: openal-soft-devel
 BuildRequires: qt5-linguist
 BuildRequires: qt5-qtconfiguration-devel
 BuildRequires: qt5-qtbase-private-devel
