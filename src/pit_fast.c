@@ -145,6 +145,8 @@ pitf_dump_and_disable_timer(ctrf_t *ctr)
 {
     if (ctr->using_timer && timer_is_enabled(&ctr->timer)) {
         ctr->count = pitf_read_timer(ctr);
+        if (ctr->m == 2)
+            ctr->count--; /* Don't store the offset from pitf_read_timer */
         timer_disable(&ctr->timer);
     }
 }
