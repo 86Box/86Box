@@ -280,6 +280,7 @@ givealbuffer_source(void *buf, al_source* src, int size, int freq)
 {
     IXAudio2SourceVoice* source = (IXAudio2SourceVoice*)src;
 
+    IXAudio2SourceVoice_SetSourceSampleRate(source, freq);
     givealbuffer_common(buf, source, size);
 }
 
