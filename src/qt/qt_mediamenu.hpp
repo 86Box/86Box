@@ -80,7 +80,6 @@ private:
     int floppyEjectPos;
 
     int cdromMutePos;
-    int cdromEmptyPos;
     int cdromReloadPos;
     int cdromImagePos;
 
