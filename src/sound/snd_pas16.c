@@ -745,7 +745,7 @@ pas16_close(void *p)
 const device_t pas16_device = {
     .name = "Pro Audio Spectrum 16",
     .internal_name = "pas16",
-    .flags = DEVICE_ISA | DEVICE_NOT_WORKING,
+    .flags = DEVICE_ISA,
     .local = 0,
     .init = pas16_init,
     .close = pas16_close,

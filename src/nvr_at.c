@@ -1050,7 +1050,9 @@ nvr_at_init(const device_t *info)
 		if (info->local == 12) {
 			local->def = 0x00;
 			local->flags |= FLAG_AMI_1992_HACK;
-		} else
+		} else if (info->local == 20)
+			local->def = 0x00;
+		else
 			local->def = 0xff;
 		nvr->irq = 8;
 		local->cent = RTC_CENTURY_AT;
@@ -1289,6 +1291,20 @@ const device_t p6rp4_nvr_device = {
     .internal_name = "p6rp4_nvr",
     .flags = DEVICE_ISA | DEVICE_AT,
     .local = 16,
+    .init = nvr_at_init,
+    .close = nvr_at_close,
+    .reset = nvr_at_reset,
+    { .available = NULL },
+    .speed_changed = nvr_at_speed_changed,
+    .force_redraw = NULL,
+    .config = NULL
+};
+
+const device_t amstrad_megapc_nvr_device = {
+    .name = "Amstrad MegapC NVRAM",
+    .internal_name = "amstrad_megapc_nvr",
+    .flags = DEVICE_ISA | DEVICE_AT,
+    .local = 20,
     .init = nvr_at_init,
     .close = nvr_at_close,
     .reset = nvr_at_reset,

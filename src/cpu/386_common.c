@@ -1481,10 +1481,16 @@ checkio(uint32_t port)
 }
 
 
+#ifdef OLD_DIVEXCP
 #define divexcp() { \
 	x386_common_log("Divide exception at %04X(%06X):%04X\n",CS,cs,cpu_state.pc); \
 	x86_int(0); \
 }
+#else
+#define divexcp() { \
+	x86de(NULL, 0); \
+}
+#endif
 
 
 int

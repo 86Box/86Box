@@ -32,6 +32,8 @@
 #include "qt_mainwindow.hpp"
 #include "qt_util.hpp"
 
+#include "ui_qt_mainwindow.h"
+
 #include "evdev_mouse.hpp"
 
 #include <atomic>
@@ -257,7 +259,7 @@ RendererStack::switchRenderer(Renderer renderer)
                 createRenderer(renderer);
                 disconnect(this, &RendererStack::blit, this, &RendererStack::blitDummy);
                 blitDummied = false;
-                QTimer::singleShot(1000, this, [this]() { this->blitDummied = false; } );
+                QTimer::singleShot(1000, this, [this]() { blitDummied = false; } );
             });
 
             rendererWindow->hasBlitFunc() ? current.reset() : current.release()->deleteLater();
@@ -435,7 +437,7 @@ RendererStack::blitRenderer(int x, int y, int w, int h)
 void
 RendererStack::blitCommon(int x, int y, int w, int h)
 {
-    if ((x < 0) || (y < 0) || (w <= 0) || (h <= 0) || (w > 2048) || (h > 2048) || (monitors[m_monitor_index].target_buffer == NULL) || imagebufs.empty() || std::get<std::atomic_flag *>(imagebufs[currentBuf])->test_and_set() || blitDummied) {
+    if (blitDummied || (x < 0) || (y < 0) || (w <= 0) || (h <= 0) || (w > 2048) || (h > 2048) || (monitors[m_monitor_index].target_buffer == NULL) || imagebufs.empty() || std::get<std::atomic_flag *>(imagebufs[currentBuf])->test_and_set()) {
         video_blit_complete_monitor(m_monitor_index);
         return;
     }
@@ -459,9 +461,9 @@ RendererStack::blitCommon(int x, int y, int w, int h)
 
 void RendererStack::closeEvent(QCloseEvent* event)
 {
-    if (cpu_thread_run == 0 || is_quit == 0) {
+    if (cpu_thread_run == 1 || is_quit == 0) {
         event->accept();
-        show_second_monitors = 0; // TODO: This isn't actually the right fix, so fix this properly.
+        main_window->ui->actionShow_non_primary_monitors->setChecked(false);
         return;
     }
     event->ignore();

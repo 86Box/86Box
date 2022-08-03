@@ -72,6 +72,9 @@
 #include <86box/snd_opl.h>
 
 
+static int	cx, cy, cw, ch;
+
+
 typedef struct _list_ {
     struct _list_ *next;
 } list_t;
@@ -611,9 +614,45 @@ load_general(void)
 
     enable_discord = !!config_get_int(cat, "enable_discord", 0);
 
+    open_dir_usr_path = config_get_int(cat, "open_dir_usr_path", 0);
+
     video_framerate = config_get_int(cat, "video_gl_framerate", -1);
     video_vsync     = config_get_int(cat, "video_gl_vsync", 0);
     strncpy(video_shader, config_get_string(cat, "video_gl_shader", ""), sizeof(video_shader));
+
+    window_remember = config_get_int(cat, "window_remember", 0);
+    if (window_remember) {
+	p = config_get_string(cat, "window_coordinates", NULL);
+	if (p == NULL)
+		p = "0, 0, 0, 0";
+	sscanf(p, "%i, %i, %i, %i", &cw, &ch, &cx, &cy);
+    } else {
+	cw = ch = cx = cy = 0;
+	config_delete_var(cat, "window_remember");
+    }
+
+    config_delete_var(cat, "window_coordinates");
+}
+
+/* Load monitor section. */
+static void
+load_monitor(int monitor_index)
+{
+    char cat[512], temp[512];
+    char *p = NULL;
+
+    sprintf(cat, "Monitor #%i", monitor_index + 1);
+    sprintf(temp, "%i, %i, %i, %i", cx, cy, cw, ch);
+
+    p = config_get_string(cat, "window_coordinates", NULL);
+
+    if (p == NULL)
+	p = temp;
+
+    if (window_remember)
+        sscanf(p, "%i, %i, %i, %i",
+               &monitor_settings[monitor_index].mon_window_x, &monitor_settings[monitor_index].mon_window_y,
+               &monitor_settings[monitor_index].mon_window_w, &monitor_settings[monitor_index].mon_window_h);
 }
 
 /* Load "Machine" section. */
@@ -934,47 +973,6 @@ load_video(void)
     if (!p)
         p = "none";
     gfxcard_2 = video_get_video_from_internal_name(p);
-}
-
-static void
-load_monitor(int monitor_index)
-{
-    char  monitor_config_name[sizeof("Monitor #") + 12] = { [0] = 0 };
-    char *ptr                                           = NULL;
-
-    if (monitor_index == 0) {
-        /* Migrate configs */
-        ptr = config_get_string("General", "window_coordinates", NULL);
-
-        config_delete_var("General", "window_coordinates");
-    }
-    snprintf(monitor_config_name, sizeof(monitor_config_name), "Monitor #%i", monitor_index + 1);
-    if (!ptr)
-        ptr = config_get_string(monitor_config_name, "window_coordinates", "0, 0, 0, 0");
-    if (window_remember || (vid_resize & 2))
-        sscanf(ptr, "%i, %i, %i, %i",
-               &monitor_settings[monitor_index].mon_window_x, &monitor_settings[monitor_index].mon_window_y,
-               &monitor_settings[monitor_index].mon_window_w, &monitor_settings[monitor_index].mon_window_h);
-}
-
-static void
-save_monitor(int monitor_index)
-{
-    char monitor_config_name[sizeof("Monitor #") + 12] = { [0] = 0 };
-    char saved_coordinates[12 * 4 + 8 + 1]             = { [0] = 0 };
-
-    snprintf(monitor_config_name, sizeof(monitor_config_name), "Monitor #%i", monitor_index + 1);
-    if (!(monitor_settings[monitor_index].mon_window_x == 0
-          && monitor_settings[monitor_index].mon_window_y == 0
-          && monitor_settings[monitor_index].mon_window_w == 0
-          && monitor_settings[monitor_index].mon_window_h == 0)
-        && (window_remember || (vid_resize & 2))) {
-        snprintf(saved_coordinates, sizeof(saved_coordinates), "%i, %i, %i, %i", monitor_settings[monitor_index].mon_window_x, monitor_settings[monitor_index].mon_window_y,
-                 monitor_settings[monitor_index].mon_window_w, monitor_settings[monitor_index].mon_window_h);
-
-        config_set_string(monitor_config_name, "window_coordinates", saved_coordinates);
-    } else
-        config_delete_var(monitor_config_name, "window_coordinates");
 }
 
 /* Load "Input Devices" section. */
@@ -2380,6 +2378,11 @@ save_general(void)
     else
         config_delete_var(cat, "enable_discord");
 
+    if (open_dir_usr_path)
+        config_set_int(cat, "open_dir_usr_path", open_dir_usr_path);
+    else
+        config_delete_var(cat, "open_dir_usr_path");
+
     if (video_framerate != -1)
         config_set_int(cat, "video_gl_framerate", video_framerate);
     else
@@ -2394,6 +2397,24 @@ save_general(void)
         config_delete_var(cat, "video_gl_shader");
 
     delete_section_if_empty(cat);
+}
+
+/* Save monitor section. */
+static void
+save_monitor(int monitor_index)
+{
+    char cat[sizeof("Monitor #") + 12] = { [0] = 0 };
+    char temp[512];
+
+    snprintf(cat, sizeof(cat), "Monitor #%i", monitor_index + 1);
+    if (window_remember) {
+        sprintf(temp, "%i, %i, %i, %i",
+		monitor_settings[monitor_index].mon_window_x, monitor_settings[monitor_index].mon_window_y,
+		monitor_settings[monitor_index].mon_window_w, monitor_settings[monitor_index].mon_window_h);
+
+        config_set_string(cat, "window_coordinates", temp);
+    } else
+        config_delete_var(cat, "window_coordinates");
 }
 
 /* Save "Machine" section. */
@@ -2767,7 +2788,7 @@ save_storage_controllers(void)
 
     delete_section_if_empty(cat);
 
-    if (cassette_enable == 1)
+    if (cassette_enable == 0)
         config_delete_var(cat, "cassette_enabled");
     else
         config_set_int(cat, "cassette_enabled", cassette_enable);

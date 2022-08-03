@@ -902,12 +902,6 @@ machine_xt_t1000_init(const machine_t *model)
     return ret;
 }
 
-const device_t *
-t1200_get_device(void)
-{
-    return (&t1200_video_device);
-}
-
 int
 machine_xt_t1200_init(const machine_t *model)
 {

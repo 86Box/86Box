@@ -166,6 +166,14 @@ x86_doabrt(int x86_abrt)
 
 
 void
+x86de(char *s, uint16_t error)
+{
+    cpu_state.abrt = ABRT_DE;
+    abrt_error = error;
+}
+
+
+void
 x86gpf(char *s, uint16_t error)
 {
     cpu_state.abrt = ABRT_GPF;

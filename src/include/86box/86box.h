@@ -137,6 +137,7 @@ extern int    fm_driver;         /* (C) select FM sound driver */
 extern char exe_path[2048]; /* path (dir) of executable */
 extern char usr_path[1024]; /* path (dir) of user data */
 extern char cfg_path[1024]; /* full path of config file */
+extern int  open_dir_usr_path;    /* default file open dialog directory of usr_path */
 #ifndef USE_NEW_DYNAREC
 extern FILE *stdlog; /* file to log output to */
 #endif

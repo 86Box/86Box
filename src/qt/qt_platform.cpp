@@ -54,7 +54,6 @@ QElapsedTimer elapsed_timer;
 
 static std::atomic_int blitmx_contention = 0;
 static std::recursive_mutex blitmx;
-static thread_local std::unique_lock blit_lock { blitmx, std::defer_lock };
 
 class CharPointer {
 public:
@@ -337,11 +336,15 @@ plat_pause(int p)
 #endif
         return;
     }
+
     if ((p == 0) && (time_sync & TIME_SYNC_ENABLED))
         nvr_time_sync();
 
     dopause = p;
     if (p) {
+	if (mouse_capture)
+		plat_mouse_capture(0);
+
         wcsncpy(oldtitle, ui_window_title(NULL), sizeof_w(oldtitle) - 1);
         wcscpy(title, oldtitle);
         paused_msg[QObject::tr(" - PAUSED").toWCharArray(paused_msg)] = 0;
@@ -469,17 +472,17 @@ void dynld_close(void *handle)
 void startblit()
 {
     blitmx_contention++;
-    if (blit_lock.try_lock()) {
+    if (blitmx.try_lock()) {
         return;
     }
 
-    blit_lock.lock();
+    blitmx.lock();
 }
 
 void endblit()
 {
     blitmx_contention--;
-    blit_lock.unlock();
+    blitmx.unlock();
     if (blitmx_contention > 0) {
         // a deadlock has been observed on linux when toggling via video_toggle_option
         // because the mutex is typically unfair on linux

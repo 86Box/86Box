@@ -27,6 +27,7 @@
 #include <86box/config.h>
 #include <86box/timer.h>
 #include <86box/device.h>
+#include <86box/scsi.h>
 #include <86box/scsi_device.h>
 #include <86box/nvr.h>
 #include <86box/hdc.h>

@@ -66,6 +66,8 @@ private:
     QMap<int, QMenu*> zipMenus;
     QMap<int, QMenu*> moMenus;
 
+    QString getMediaOpenDirectory();
+
     int cassetteRecordPos;
     int cassettePlayPos;
     int cassetteRewindPos;
@@ -78,7 +80,6 @@ private:
     int floppyEjectPos;
 
     int cdromMutePos;
-    int cdromEmptyPos;
     int cdromReloadPos;
     int cdromImagePos;
 
