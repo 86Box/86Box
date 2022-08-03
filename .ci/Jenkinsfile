@@ -103,9 +103,9 @@ def gitClone(repository, branch) {
 	if (env.GIT_STASHED != 'true' || env.NODE_NAME != 'debian.citadel') {
 		/* Catch network issues in clone. */
 		try {
-			/* Perform clone/checkout, making sure to update the changelog only once
-			   to avoid inaccurate entries from new commits pushed inbetween clones. */
-			def scmVars = checkout(poll: true,
+			/* Perform clone/checkout, making sure to set poll and changelog only
+			   once to avoid interference from new commits pushed inbetween clones. */
+			def scmVars = checkout(poll: env.GIT_STASHED != 'true',
 					       changelog: env.GIT_STASHED != 'true',
 					       scm: [$class: 'GitSCM',
 						     branches: [[name: branch]],
