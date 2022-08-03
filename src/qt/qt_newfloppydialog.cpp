@@ -187,6 +187,7 @@ void NewFloppyDialog::onCreate() {
 
     QProgressDialog progress("Creating floppy image", QString(), 0, 100, this);
     connect(this, &NewFloppyDialog::fileProgress, &progress, &QProgressDialog::setValue);
+    connect(this, &NewFloppyDialog::fileProgress, [] { QApplication::processEvents(); });
     switch (mediaType_) {
     case MediaType::Floppy:
         if (fi.suffix().toLower() == QStringLiteral("86f")) {
