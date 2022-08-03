@@ -21,10 +21,6 @@
 # define SCSI_DEVICE_H
 
 /* Configuration. */
-#define SCSI_BUS_MAX		4		/* currently we support up to 4 controllers */
-
-#define SCSI_ID_MAX		16		/* 16 on wide buses */
-#define SCSI_LUN_MAX		8		/* always 8 */
 
 #define SCSI_LUN_USE_CDB	0xff
 
@@ -361,8 +357,9 @@ typedef struct {
 #define SCSI_REMOVABLE_DISK 0x8000
 #define SCSI_REMOVABLE_CDROM 0x8005
 
+#ifdef EMU_SCSI_H
 extern scsi_device_t	scsi_devices[SCSI_BUS_MAX][SCSI_ID_MAX];
-
+#endif /* EMU_SCSI_H */
 
 extern int	cdrom_add_error_and_subchannel(uint8_t *b, int real_sector_type);
 extern int	cdrom_LBAtoMSF_accurate(void);
