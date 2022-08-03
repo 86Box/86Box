@@ -669,6 +669,7 @@ extern void	hardresetx86(void);
 extern void	x86_int(int num);
 extern void	x86_int_sw(int num);
 extern int	x86_int_sw_rm(int num);
+extern void	x86de(char *s, uint16_t error);
 extern void	x86gpf(char *s, uint16_t error);
 extern void	x86np(char *s, uint16_t error);
 extern void	x86ss(char *s, uint16_t error);

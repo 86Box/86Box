@@ -41,7 +41,7 @@ enum {
     OTI_037C,
     OTI_067 = 2,
     OTI_067_AMA932J,
-	OTI_067_M300 = 4,
+    OTI_067_M300 = 4,
     OTI_077 = 5
 };
 
@@ -342,29 +342,61 @@ oti_pos_in(uint16_t addr, void *p)
 }
 
 
+static float
+oti_getclock(int clock)
+{
+    float ret = 0.0;
+
+    switch (clock) {
+	case 0:
+	default:
+		ret = 25175000.0;
+		break;
+	case 1:
+		ret = 28322000.0;
+		break;
+	case 4:
+		ret = 14318000.0;
+		break;
+	case 5:
+		ret = 16257000.0;
+		break;
+	case 7:
+		ret = 35500000.0;
+		break;
+    }
+
+}
+
+
 static void
 oti_recalctimings(svga_t *svga)
 {
     oti_t *oti = (oti_t *)svga->p;
+    int clk_sel = ((svga->miscout >> 2) & 3) | ((oti->regs[0x0d] & 0x20) >> 3);
 
-    if (oti->regs[0x14] & 0x08) svga->ma_latch |= 0x10000;
+    svga->clock = (cpuclock * (double)(1ull << 32)) / oti_getclock(clk_sel);
+
+    if (oti->chip_id > 0) {
+	if (oti->regs[0x14] & 0x08) svga->ma_latch |= 0x10000;
 	if (oti->regs[0x16] & 0x08) svga->ma_latch |= 0x20000;
 
 	if (oti->regs[0x14] & 0x01) svga->vtotal += 0x400;
 	if (oti->regs[0x14] & 0x02) svga->dispend += 0x400;
 	if (oti->regs[0x14] & 0x04) svga->vsyncstart += 0x400;
 
+	svga->interlace = oti->regs[0x14] & 0x80;
+    }
+
     if ((oti->regs[0x0d] & 0x0c) && !(oti->regs[0x0d] & 0x10)) svga->rowoffset <<= 1;
 
-    svga->interlace = oti->regs[0x14] & 0x80;
-
-	if (svga->bpp == 16) {
-		svga->render = svga_render_16bpp_highres;
-		svga->hdisp >>= 1;
-	} else if (svga->bpp == 15) {
-		svga->render = svga_render_15bpp_highres;
-		svga->hdisp >>= 1;
-	}
+    if (svga->bpp == 16) {
+	svga->render = svga_render_16bpp_highres;
+	svga->hdisp >>= 1;
+    } else if (svga->bpp == 15) {
+	svga->render = svga_render_15bpp_highres;
+	svga->hdisp >>= 1;
+    }
 }
 
 

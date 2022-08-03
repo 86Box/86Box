@@ -382,10 +382,10 @@ cpu_set(void)
     is_am486     = (cpu_s->cpu_type == CPU_ENH_Am486DX);
     is_am486dxl  = (cpu_s->cpu_type == CPU_Am486DXL);
 
-    is6117      = !strcmp(cpu_f->manufacturer, "ALi");
+    is6117       = !strcmp(cpu_f->manufacturer, "ALi");
 
-    cpu_isintel = !strcmp(cpu_f->manufacturer, "Intel");
-    cpu_iscyrix = !strcmp(cpu_f->manufacturer, "Cyrix") || !strcmp(cpu_f->manufacturer, "ST");
+    cpu_isintel  = !strcmp(cpu_f->manufacturer, "Intel");
+    cpu_iscyrix  = !strcmp(cpu_f->manufacturer, "Cyrix") || !strcmp(cpu_f->manufacturer, "ST");
 
     /* SL-Enhanced Intel 486s have the same SMM save state table layout as Pentiums,
        and the WinChip datasheet claims those are Pentium-compatible as well. AMD Am486DXL/DXL2 also has compatible SMM, or would if not for it's different SMBase*/
@@ -397,6 +397,8 @@ cpu_set(void)
     is_p6        = (cpu_isintel && (cpu_s->cpu_type >= CPU_PENTIUMPRO)) || !strcmp(cpu_f->manufacturer, "VIA");
     is_cxsmm     = (!strcmp(cpu_f->manufacturer, "Cyrix") || !strcmp(cpu_f->manufacturer, "ST")) &&
 		   (cpu_s->cpu_type >= CPU_Cx486S);
+
+    cpu_isintel  = cpu_isintel || !strcmp(cpu_f->manufacturer, "AMD");
 
     hasfpu       = (fpu_type != FPU_NONE);
     hascache     = (cpu_s->cpu_type >= CPU_486SLC) || (cpu_s->cpu_type == CPU_IBM386SLC) ||

@@ -32,6 +32,8 @@
 #include "qt_mainwindow.hpp"
 #include "qt_util.hpp"
 
+#include "ui_qt_mainwindow.h"
+
 #include "evdev_mouse.hpp"
 
 #include <atomic>
@@ -459,9 +461,9 @@ RendererStack::blitCommon(int x, int y, int w, int h)
 
 void RendererStack::closeEvent(QCloseEvent* event)
 {
-    if (cpu_thread_run == 0 || is_quit == 0) {
+    if (cpu_thread_run == 1 || is_quit == 0) {
         event->accept();
-        show_second_monitors = 0; // TODO: This isn't actually the right fix, so fix this properly.
+        main_window->ui->actionShow_non_primary_monitors->setChecked(false);
         return;
     }
     event->ignore();
