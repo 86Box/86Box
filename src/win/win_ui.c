@@ -1491,13 +1491,15 @@ plat_pause(int p)
     }
 
     if (p) {
+	if (mouse_capture)
+		plat_mouse_capture(0);
+
         wcsncpy(oldtitle, ui_window_title(NULL), sizeof_w(oldtitle) - 1);
         wcscpy(title, oldtitle);
         wcscat(title, plat_get_string(IDS_2051));
         ui_window_title(title);
-    } else {
+    } else
         ui_window_title(oldtitle);
-    }
 
     /* If un-pausing, synchronize the internal clock with the host's time. */
     if ((p == 0) && (time_sync & TIME_SYNC_ENABLED))

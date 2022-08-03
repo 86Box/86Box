@@ -634,12 +634,6 @@ machine_at_ms6168_common_init(const machine_t *model)
     }
 }
 
-const device_t *
-at_ms6168_get_device(void)
-{
-    return &voodoo_3_2000_agp_onboard_8m_device;
-}
-
 int
 machine_at_borapro_init(const machine_t *model)
 {
