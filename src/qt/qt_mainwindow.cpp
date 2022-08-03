@@ -2058,7 +2058,7 @@ void MainWindow::on_actionMCA_devices_triggered()
 
 void MainWindow::on_actionShow_non_primary_monitors_triggered()
 {
-    show_second_monitors ^= 1;
+    show_second_monitors = (int)ui->actionShow_non_primary_monitors->isChecked();
 
     blitDummied = true;
 

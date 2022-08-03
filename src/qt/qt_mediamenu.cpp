@@ -115,13 +115,12 @@ void MediaMenu::refresh(QMenu *parentMenu) {
         cdromMutePos = menu->children().count();
         menu->addAction(tr("&Mute"), [this, i]() { cdromMute(i); })->setCheckable(true);
         menu->addSeparator();
-        cdromEmptyPos = menu->children().count();
-        menu->addAction(tr("E&mpty"), [this, i]() { cdromEject(i); })->setCheckable(true);
+        menu->addAction(tr("&Image..."), [this, i]() { cdromMount(i); })->setCheckable(false);
         cdromReloadPos = menu->children().count();
         menu->addAction(tr("&Reload previous image"), [this, i]() { cdromReload(i); });
         menu->addSeparator();
         cdromImagePos = menu->children().count();
-        menu->addAction(tr("&Image"), [this, i]() { cdromMount(i); })->setCheckable(true);
+        menu->addAction(tr("E&ject"), [this, i]() { cdromEject(i); })->setCheckable(false);
         cdromMenus[i] = menu;
         cdromUpdateMenu(i);
     });
@@ -344,6 +343,7 @@ void MediaMenu::floppyExportTo86f(int i) {
 
 void MediaMenu::floppyUpdateMenu(int i) {
     QString name = floppyfns[i];
+    QFileInfo fi(floppyfns[i]);
 
     if (!floppyMenus.contains(i))
         return;
@@ -354,6 +354,7 @@ void MediaMenu::floppyUpdateMenu(int i) {
     auto* ejectMenu = dynamic_cast<QAction*>(childs[floppyEjectPos]);
     auto* exportMenu = dynamic_cast<QAction*>(childs[floppyExportPos]);
     ejectMenu->setEnabled(!name.isEmpty());
+    ejectMenu->setText(QString::asprintf(tr("Eject %s").toUtf8().constData(), name.isEmpty() ? QString().toUtf8().constData() :  fi.fileName().toUtf8().constData()));
     exportMenu->setEnabled(!name.isEmpty());
 
     int type = fdd_get_type(i);
@@ -428,6 +429,10 @@ void MediaMenu::cdromReload(int i) {
 
 void MediaMenu::cdromUpdateMenu(int i) {
     QString name = cdrom[i].image_path;
+    QString prev_name = cdrom[i].prev_image_path;
+    QFileInfo fi(cdrom[i].image_path);
+    QFileInfo fi_prev(cdrom[i].prev_image_path);
+
     if (!cdromMenus.contains(i))
         return;
     auto* menu = cdromMenus[i];
@@ -437,12 +442,12 @@ void MediaMenu::cdromUpdateMenu(int i) {
     muteMenu->setChecked(cdrom[i].sound_on == 0);
 
     auto* imageMenu = dynamic_cast<QAction*>(childs[cdromImagePos]);
-    auto* emptyMenu = dynamic_cast<QAction*>(childs[cdromEmptyPos]);
-    imageMenu->setChecked(cdrom[i].host_drive == 200);
-    emptyMenu->setChecked(cdrom[i].host_drive != 200);
+    imageMenu->setEnabled(!name.isEmpty());
+    imageMenu->setText(QString::asprintf(tr("Eject %s").toUtf8().constData(), name.isEmpty() ? QString().toUtf8().constData() :  fi.fileName().toUtf8().constData()));
 
     auto* prevMenu = dynamic_cast<QAction*>(childs[cdromReloadPos]);
-    prevMenu->setEnabled(cdrom[i].prev_host_drive != 0);
+    prevMenu->setText(QString::asprintf(tr("Reload %s").toUtf8().constData(), prev_name.isEmpty() ? tr("previous image").toUtf8().constData() :  fi_prev.fileName().toUtf8().constData()));
+    prevMenu->setVisible(name.isEmpty() && cdrom[i].prev_host_drive != 0);
 
     QString busName = tr("Unknown Bus");
     switch (cdrom[i].bus_type) {
