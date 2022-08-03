@@ -19,6 +19,9 @@
 #ifndef EMU_IDE_H
 # define EMU_IDE_H
 
+#define IDE_BUS_MAX 4
+#define IDE_CHAN_MAX 2
+
 #define HDC_PRIMARY_BASE    0x01F0
 #define HDC_PRIMARY_SIDE    0x03F6
 #define HDC_PRIMARY_IRQ	    14
