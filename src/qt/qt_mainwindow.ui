@@ -106,6 +106,7 @@
      <addaction name="actionOpenGL_3_0_Core"/>
      <addaction name="actionVulkan"/>
      <addaction name="actionDirect3D_9"/>
+     <addaction name="actionVNC"/>
     </widget>
     <widget class="QMenu" name="menuWindow_scale_factor">
      <property name="title">
@@ -764,6 +765,17 @@
    </property>
    <property name="text">
     <string>Show non-primary monitors</string>
+   </property>
+  </action>
+  <action name="actionVNC">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>VNC</string>
+   </property>
+   <property name="vid_api" stdset="0">
+    <number>6</number>
    </property>
   </action>
  </widget>
