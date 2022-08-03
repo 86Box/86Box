@@ -148,6 +148,7 @@ private:
     friend class SpecifyDimensions;
     friend class ProgSettings;
     friend class RendererCommon;
+    friend class RendererStack; // For UI variable access by non-primary renderer windows.
 };
 
 #endif // QT_MAINWINDOW_HPP

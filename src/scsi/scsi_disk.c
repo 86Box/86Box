@@ -25,6 +25,7 @@
 #include <86box/nvr.h>
 #include <86box/hdd.h>
 #include <86box/hdc.h>
+#include <86box/scsi.h>
 #include <86box/scsi_device.h>
 #include <86box/hdc_ide.h>
 #include <86box/plat.h>

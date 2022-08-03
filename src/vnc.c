@@ -167,12 +167,12 @@ vnc_display(rfbClientPtr cl)
 
 
 static void
-vnc_blit(int x, int y, int w, int h)
+vnc_blit(int x, int y, int w, int h, int monitor_index)
 {
     uint32_t *p;
     int yy;
 
-    if ((x < 0) || (y < 0) || (w <= 0) || (h <= 0) || (w > 2048) || (h > 2048) || (buffer32 == NULL))
+    if (monitor_index || (x < 0) || (y < 0) || (w <= 0) || (h <= 0) || (w > 2048) || (h > 2048) || (buffer32 == NULL))
 	return;
 
     for (yy=0; yy<h; yy++) {
