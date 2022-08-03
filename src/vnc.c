@@ -212,6 +212,7 @@ vnc_init(UNUSED(void *arg))
 	32, 32, 0, 1, 255,255,255, 16, 8, 0, 0, 0
     };
 
+    plat_pause(1);
     cgapal_rebuild_monitor(0);
 
     if (rfb == NULL) {
