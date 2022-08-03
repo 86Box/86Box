@@ -1845,6 +1845,18 @@ static const device_config_t mpu401_standalone_config[] = {
                 .value = 0x330
             },
             {
+                .description = "0x332",
+                .value = 0x332
+            },
+            {
+                .description = "0x334",
+                .value = 0x334
+            },
+            {
+                .description = "0x336",
+                .value = 0x336
+            },
+            {
                 .description = "0x340",
                 .value = 0x340
             },
