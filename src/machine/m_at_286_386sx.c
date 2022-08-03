@@ -568,12 +568,6 @@ machine_at_scamp_common_init(const machine_t *model, int is_ps2)
     device_add(&vlsi_scamp_device);
 }
 
-const device_t *
-at_cmdsl386sx25_get_device(void)
-{
-    return &gd5402_onboard_device;
-}
-
 int
 machine_at_cmdsl386sx25_init(const machine_t *model)
 {
@@ -607,12 +601,6 @@ machine_at_dataexpert386sx_init(const machine_t *model)
     machine_at_scamp_common_init(model, 0);
 
     return ret;
-}
-
-const device_t *
-at_spc6033p_get_device(void)
-{
-    return &ati28800k_spc6033p_device;
 }
 
 int
@@ -717,12 +705,6 @@ machine_at_flytech386_init(const machine_t *model)
     device_add(&keyboard_ps2_device);
 
     return ret;
-}
-
-const device_t *
-at_flytech386_get_device(void)
-{
-    return &tvga8900d_device;
 }
 
 int
