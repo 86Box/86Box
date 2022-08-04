@@ -404,6 +404,7 @@ exec386_dynarec_int(void)
 	oldcs = CS;
 #endif
 	cpu_state.oldpc = cpu_state.pc;
+	dr[6] |= 0x4000;
 	x86_int(1);
     }
 
