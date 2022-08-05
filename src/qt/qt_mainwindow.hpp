@@ -144,6 +144,7 @@ private:
     bool send_keyboard_input = true;
     bool shownonce = false;
     bool resizableonce = false;
+    bool vnc_enabled = false;
 
     friend class SpecifyDimensions;
     friend class ProgSettings;

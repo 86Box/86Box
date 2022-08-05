@@ -323,8 +323,8 @@ inb(uint16_t port)
 	cycles -= io_delay;
 
     /* TriGem 486-BIOS MHz output. */
-    if (port == 0x1ed)
-	ret = 0xfe;
+    /* if (port == 0x1ed)
+	ret = 0xfe; */
 
     /* Siemens BIOS loop. */
     if (port == 0x14)

@@ -46,6 +46,10 @@ extern "C" {
 #include <86box/vid_ega.h>
 #include <86box/version.h>
 
+#ifdef USE_VNC
+#include <86box/vnc.h>
+#endif
+
     extern int qt_nvr_save(void);
 
 #ifdef MTR_ENABLED
@@ -141,6 +145,8 @@ MainWindow::MainWindow(QWidget *parent) :
     ((BWindow*)this->winId())->AddFilter(filter);
 #endif
     setUnifiedTitleAndToolBarOnMac(true);
+    extern MainWindow* main_window;
+    main_window = this;
     ui->setupUi(this);
     ui->stackedWidget->setMouseTracking(true);
     statusBar()->setVisible(!hide_status_bar);
@@ -308,6 +314,11 @@ MainWindow::MainWindow(QWidget *parent) :
     if (vid_api == 5) vid_api = 0;
 #endif
 
+#ifndef USE_VNC
+    if (vid_api == 6) vid_api = 0;
+    ui->actionVNC->setVisible(false);
+#endif
+
 #if !QT_CONFIG(vulkan)
     if (vid_api == 4) vid_api = 0;
     ui->actionVulkan->setVisible(false);
@@ -322,10 +333,20 @@ MainWindow::MainWindow(QWidget *parent) :
     actGroup->addAction(ui->actionOpenGL_3_0_Core);
     actGroup->addAction(ui->actionVulkan);
     actGroup->addAction(ui->actionDirect3D_9);
+    actGroup->addAction(ui->actionVNC);
     actGroup->setExclusive(true);
 
     connect(actGroup, &QActionGroup::triggered, [this](QAction* action) {
         vid_api = action->property("vid_api").toInt();
+#ifdef USE_VNC
+        if (vnc_enabled && vid_api != 6) {
+            startblit();
+            vnc_enabled = 0;
+            vnc_close();
+            video_setblit(qt_blit);
+            endblit();
+        }
+#endif
         RendererStack::Renderer newVidApi = RendererStack::Renderer::Software;
         switch (vid_api)
         {
@@ -347,6 +368,15 @@ MainWindow::MainWindow(QWidget *parent) :
         case 5:
             newVidApi = (RendererStack::Renderer::Direct3D9);
             break;
+#ifdef USE_VNC
+        case 6:
+            {
+                newVidApi = RendererStack::Renderer::Software;
+                startblit();
+                vnc_enabled = vnc_init(nullptr);
+                endblit();
+            }
+#endif
         }
         ui->stackedWidget->switchRenderer(newVidApi);
         if (!show_second_monitors) return;
@@ -469,7 +499,7 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->actionCtrl_Alt_Del->setShortcutVisibleInContextMenu(true);
     ui->actionTake_screenshot->setShortcutVisibleInContextMenu(true);
 #endif
-    video_setblit(qt_blit);
+    if (!vnc_enabled) video_setblit(qt_blit);
 
     if (start_in_fullscreen) {
         connect(ui->stackedWidget, &RendererStack::blit, this, [this] () {
