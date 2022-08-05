@@ -20,7 +20,7 @@ License:	GPLv2+
 URL:		https://86box.net
 
 Source0:	https://github.com/86Box/86Box/archive/refs/tags/v%%{version}.tar.gz
-Source1:	https://github.com/86Box/roms/archive/refs/tags/%{version}.tar.gz
+Source1:	https://github.com/86Box/roms/archive/refs/tags/v%{version}.zip
 
 BuildRequires: cmake
 BuildRequires: desktop-file-utils
