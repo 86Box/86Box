@@ -69,8 +69,7 @@ void evdev_thread_func()
         {
             struct input_event ev;
             if (pfds[i].revents & POLLIN) {
-                int rc;
-                while ((rc = libevdev_next_event(evdev_mice[i].second, LIBEVDEV_READ_FLAG_NORMAL, &ev)) == 0)
+                while (libevdev_next_event(evdev_mice[i].second, LIBEVDEV_READ_FLAG_NORMAL, &ev) == 0)
                 {
                     if (ev.type == EV_REL && mouse_capture)
                     {
