@@ -237,6 +237,7 @@ nvr_load(void)
 {
     char *path;
     FILE *fp;
+    uint8_t	regs[NVR_MAXSIZE] = { 0 };
 
     /* Make sure we have been initialized. */
     if (saved_nvr == NULL) return(0);
@@ -255,9 +256,12 @@ nvr_load(void)
 	fp = plat_fopen(path, "rb");
 	saved_nvr->is_new = (fp == NULL);
 	if (fp != NULL) {
+        memcpy(regs, saved_nvr->regs, sizeof(regs));
 		/* Read NVR contents from file. */
-		if (fread(saved_nvr->regs, 1, saved_nvr->size, fp) != saved_nvr->size)
-			fatal("nvr_load(): Error reading data\n");
+		if (fread(saved_nvr->regs, 1, saved_nvr->size, fp) != saved_nvr->size) {
+			memcpy(saved_nvr->regs, regs, sizeof(regs));
+            saved_nvr->is_new = 1;
+        }
 		(void)fclose(fp);
 	}
     } else
