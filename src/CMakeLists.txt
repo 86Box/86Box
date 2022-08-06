@@ -57,6 +57,10 @@ if(VNC)
     endif()
 endif()
 
+if(INSTRUMENT)
+    add_compile_definitions(USE_INSTRUMENT)
+endif()
+
 target_link_libraries(86Box cpu chipset mch dev mem fdd game cdrom zip mo hdd
     net print scsi sio snd vid voodoo plat ui)
 
