@@ -44,6 +44,7 @@ SoftwareRenderer::SoftwareRenderer(QWidget *parent)
     buf_usage[1].clear();
 #ifdef __HAIKU__
     this->setMouseTracking(true);
+    this->setAcceptDrops(true);
 #endif
 }
 

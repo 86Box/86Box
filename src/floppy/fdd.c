@@ -448,6 +448,28 @@ fdd_get_densel(int drive)
     return fdd[drive].densel;
 }
 
+int
+fdd_loadable(char *fn)
+{
+    int c = 0;
+    char *p;
+
+    if (!fn)
+	    return 0;
+    p = path_get_extension(fn);
+    if (!p)
+	    return 0;
+
+    while (loaders[c].ext) {
+		if (!strcasecmp(p, (char *) loaders[c].ext)) {
+            return 1;
+        }
+        c++;
+    }
+    
+    return 0;
+}
+
 void
 fdd_load(int drive, char *fn)
 {

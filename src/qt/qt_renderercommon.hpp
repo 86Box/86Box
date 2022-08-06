@@ -5,6 +5,10 @@
 #include <QImage>
 #include <QRect>
 #include <QWidget>
+#include <QDragEnterEvent>
+#include <QDragMoveEvent>
+#include <QDropEvent>
+#include <QMimeData>
 
 #include <atomic>
 #include <memory>
@@ -42,6 +46,24 @@ protected:
     bool eventDelegate(QEvent *event, bool &result);
 
     QRect    source { 0, 0, 0, 0 }, destination;
+    void dragEnterEventDelegate(QDragEnterEvent *event)
+    {
+        if (event->mimeData()->hasUrls() && event->mimeData()->urls().size() == 1) {
+            event->setDropAction(Qt::CopyAction);
+            event->acceptProposedAction();
+        } else
+            event->ignore();
+    }
+    void dragMoveEventDelegate(QDragMoveEvent *event)
+    {
+        if (event->mimeData()->hasUrls() && event->mimeData()->urls().size() == 1) {
+            event->setDropAction(Qt::CopyAction);
+            event->acceptProposedAction();
+        } else
+            event->ignore();
+    }
+    void dropEventDelegate(QDropEvent *event);
+
     QWidget *parentWidget { nullptr };
 
     std::vector<std::atomic_flag> buf_usage;

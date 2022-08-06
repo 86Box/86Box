@@ -29,6 +29,7 @@ D3D9Renderer::D3D9Renderer(QWidget *parent, int monitor_index)
 
     this->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
     this->m_monitor_index = monitor_index;
+    this->setAcceptDrops(true);
 }
 
 D3D9Renderer::~D3D9Renderer()

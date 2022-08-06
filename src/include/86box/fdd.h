@@ -35,6 +35,7 @@ extern void fdd_set_motor_enable(int drive, int motor_enable);
 extern void fdd_do_seek(int drive, int track);
 extern void fdd_forced_seek(int drive, int track_diff);
 extern void fdd_seek(int drive, int track_diff);
+extern int  fdd_loadable(char* fn);
 extern int  fdd_track0(int drive);
 extern int  fdd_getrpm(int drive);
 extern void fdd_set_densel(int densel);

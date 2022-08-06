@@ -16,6 +16,8 @@
  */
 
 #include "qt_renderercommon.hpp"
+
+#include "qt_machinestatus.hpp"
 #include "qt_mainwindow.hpp"
 
 #include <QPainter>
@@ -24,10 +26,21 @@
 #include <QApplication>
 
 #include <cmath>
+#include <qevent.h>
+#include <qfileinfo.h>
 
 extern "C" {
 #include <86box/86box.h>
 #include <86box/video.h>
+
+
+#include <86box/timer.h>
+#include <86box/device.h>
+#include <86box/cassette.h>
+#include <86box/cdrom.h>
+#include <86box/machine.h>
+#include <86box/plat.h>
+#include <86box/fdd.h>
 }
 
 RendererCommon::RendererCommon() = default;
@@ -115,6 +128,18 @@ RendererCommon::eventDelegate(QEvent *event, bool &result)
         case QEvent::KeyRelease:
             result = QApplication::sendEvent(main_window, event);
             return true;
+        case QEvent::DragEnter:
+            dragEnterEventDelegate((QDragEnterEvent*)event);
+            result = event->isAccepted();
+            return true;
+        case QEvent::DragMove:
+            dragMoveEventDelegate((QDragEnterEvent*)event);
+            result = event->isAccepted();
+            return true;
+        case QEvent::Drop:
+            dropEventDelegate((QDragEnterEvent*)event);
+            result = event->isAccepted();
+            return true;
         case QEvent::MouseButtonPress:
         case QEvent::MouseMove:
         case QEvent::MouseButtonRelease:
@@ -125,4 +150,112 @@ RendererCommon::eventDelegate(QEvent *event, bool &result)
             return true;
     }
     return false;
+}
+
+void RendererCommon::dropEventDelegate(QDropEvent* event)
+{
+    if (event->dropAction() == Qt::CopyAction) {
+        auto localFile = (event->mimeData()->urls()[0].toLocalFile());
+
+        QFileInfo info(localFile);
+        if (info.size() == 0) event->ignore();
+        else {
+            event->accept();
+            if ((info.completeSuffix().toLower() == "iso" || info.completeSuffix().toLower() == "cue")) {
+                bool done = false;
+                MachineStatus::iterateCDROM([&] (int i) {
+                    if (!done) {
+                        cdrom_mount(i, info.absoluteFilePath().toLocal8Bit().data());
+                        done = true;
+                    }
+                });
+                return;
+            }
+            if (info.completeSuffix().toLower() == "zdi") {
+                bool done = false;
+                MachineStatus::iterateZIP([&] (int i) {
+                    if (!done) {
+                        zip_mount(i, info.absoluteFilePath().toLocal8Bit().data(), 0);
+                        done = true;
+                    }
+                });
+                return;
+            }
+            if (info.completeSuffix().toLower() == "mdi") {
+                bool done = false;
+                MachineStatus::iterateMO([&] (int i) {
+                    if (!done) {
+                        mo_mount(i, info.absoluteFilePath().toLocal8Bit().data(), 0);
+                        done = true;
+                    }
+                });
+                return;
+            }
+            if ((info.completeSuffix().toLower() == "a"
+                 || info.completeSuffix().toLower() == "b"
+                 || info.completeSuffix().toLower() == "jrc")
+                && machine_has_cartridge(machine)) {
+                cartridge_mount(0, info.absoluteFilePath().toLocal8Bit().data(), 0);
+                return;
+            }
+            if ((info.completeSuffix().toLower() == "wav"
+                || info.completeSuffix().toLower() == "pcm"
+                || info.completeSuffix().toLower() == "raw"
+                || info.completeSuffix().toLower() == "cas") && cassette_enable) {
+                cassette_mount(info.absoluteFilePath().toLocal8Bit().data(), 0);
+                return;
+            }
+            if (info.completeSuffix().toLower().left(2) == "im") {
+                auto size = info.size();
+
+                if (size <= 2949120) {
+                    bool done = false;
+                    MachineStatus::iterateFDD([&] (int i) {
+                        if (!done) {
+                            floppy_mount(i, info.absoluteFilePath().toLocal8Bit().data(), 0);
+                            done = true;
+                        }
+                    });
+                }
+                else if (size <= (1024 * 1024 * 250)) {
+                    bool done = false;
+                    MachineStatus::iterateZIP([&] (int i) {
+                        if (!done) {
+                            zip_mount(i, info.absoluteFilePath().toLocal8Bit().data(), 0);
+                            done = true;
+                        }
+                    });
+                    if (!done) {
+                        MachineStatus::iterateMO([&] (int i) {
+                            if (!done) {
+                                mo_mount(i, info.absoluteFilePath().toLocal8Bit().data(), 0);
+                                done = true;
+                            }
+                        });
+                    }
+                }
+                else {
+                    bool done = false;
+                    MachineStatus::iterateMO([&] (int i) {
+                        if (!done) {
+                            mo_mount(i, info.absoluteFilePath().toLocal8Bit().data(), 0);
+                            done = true;
+                        }
+                    });
+                }
+                return;
+            }
+
+            if (fdd_loadable(info.absoluteFilePath().toLocal8Bit().data())) {
+                bool done = false;
+                MachineStatus::iterateFDD([&](int i) {
+                    if (!done) {
+                        floppy_mount(i, info.absoluteFilePath().toLocal8Bit().data(), 0);
+                        done = true;
+                    }
+                });
+            }
+        }
+    } else
+        event->ignore();
 }

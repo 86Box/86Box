@@ -230,7 +230,7 @@ MediaMenu::cassetteMount(const QString &filename, bool wp)
         pc_cas_set_fname(cassette, cassette_fname);
     }
 
-    ui_sb_update_icon_state(SB_CASSETTE, filename.isEmpty() ? 1 : 0);
+    ui_sb_update_icon_state(SB_CASSETTE, cassette->fname == NULL ? 1 : 0);
     cassetteUpdateMenu();
     ui_sb_update_tip(SB_CASSETTE);
     config_save();
@@ -279,7 +279,7 @@ MediaMenu::cartridgeMount(int i, const QString &filename)
     QByteArray filenameBytes = filename.toUtf8();
     cart_load(i, filenameBytes.data());
 
-    ui_sb_update_icon_state(SB_CARTRIDGE | i, filename.isEmpty() ? 1 : 0);
+    ui_sb_update_icon_state(SB_CARTRIDGE | i, cart_fns[i][0] == 0 ? 1 : 0);
     cartridgeUpdateMenu(i);
     ui_sb_update_tip(SB_CARTRIDGE | i);
     config_save();
@@ -640,7 +640,7 @@ MediaMenu::zipMount(int i, const QString &filename, bool wp)
         zip_insert(dev);
     }
 
-    ui_sb_update_icon_state(SB_ZIP | i, filename.isEmpty() ? 1 : 0);
+    ui_sb_update_icon_state(SB_ZIP | i, dev->drv->image_path[0] == 0 ? 1 : 0);
     zipUpdateMenu(i);
     ui_sb_update_tip(SB_ZIP | i);
 
@@ -753,7 +753,7 @@ MediaMenu::moMount(int i, const QString &filename, bool wp)
         mo_insert(dev);
     }
 
-    ui_sb_update_icon_state(SB_MO | i, filename.isEmpty() ? 1 : 0);
+    ui_sb_update_icon_state(SB_MO | i, dev->drv->image_path[0] == 0 ? 1 : 0);
     moUpdateMenu(i);
     ui_sb_update_tip(SB_MO | i);
 
@@ -887,9 +887,27 @@ zip_eject(uint8_t id)
     MediaMenu::ptr->zipEject(id);
 }
 
-void
-zip_reload(uint8_t id)
-{
+void zip_mount(uint8_t id, char *fn, uint8_t wp) {
+    MediaMenu::ptr->zipMount(id, fn, wp);
+}
+
+void cartridge_mount(uint8_t id, char *fn, uint8_t wp){
+    MediaMenu::ptr->cartridgeMount(id, fn);
+}
+
+void cassette_mount(char *fn, uint8_t wp) {
+    MediaMenu::ptr->cassetteMount(fn, wp);
+}
+
+void cdrom_mount(uint8_t id, char *fn) {
+    MediaMenu::ptr->cdromMount(id, fn);
+}
+
+void floppy_mount(uint8_t id, char *fn, uint8_t wp) {
+    MediaMenu::ptr->floppyMount(id, fn, wp);
+}
+
+void zip_reload(uint8_t id) {
     MediaMenu::ptr->zipReload(id);
 }
 
@@ -904,4 +922,9 @@ mo_reload(uint8_t id)
 {
     MediaMenu::ptr->moReload(id);
 }
+
+void mo_mount(uint8_t id, char *fn, uint8_t wp) {
+    MediaMenu::ptr->moMount(id, fn, wp);
+}
+
 }
