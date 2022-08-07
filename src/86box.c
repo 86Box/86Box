@@ -138,6 +138,10 @@ char	rom_path[1024] = { '\0'};		/* (O) full path to ROMs */
 rom_path_t rom_paths = { "", NULL };    /* (O) full paths to ROMs */
 char	log_path[1024] = { '\0'};		/* (O) full path of logfile */
 char	vm_name[1024]  = { '\0'};		/* (O) display name of the VM */
+#ifdef USE_INSTRUMENT
+uint8_t instru_enabled = 0;
+uint64_t instru_run_ms = 0;
+#endif
 
 /* Configuration values. */
 int window_remember;
@@ -567,6 +571,12 @@ usage:
 
 			/* .. and then exit. */
 			return(0);
+#ifdef USE_INSTRUMENT
+		} else if (!strcasecmp(argv[c], "--instrument")) {
+			if ((c+1) == argc) goto usage;
+			instru_enabled = 1;
+			sscanf(argv[++c], "%llu", &instru_run_ms);
+#endif
 		}
 
 		/* Uhm... out of options here.. */

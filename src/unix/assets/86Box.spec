@@ -12,6 +12,8 @@
 # After a successful build, you can install the RPMs as follows:
 #  sudo dnf install RPMS/$(uname -m)/86Box-3* RPMS/noarch/86Box-roms*
 
+%global romver v3.7
+
 Name:		86Box
 Version:	3.7.1
 Release:	1%{?dist}
@@ -20,7 +22,7 @@ License:	GPLv2+
 URL:		https://86box.net
 
 Source0:	https://github.com/86Box/86Box/archive/refs/tags/v%%{version}.tar.gz
-Source1:	https://github.com/86Box/roms/archive/refs/tags/%{version}.tar.gz
+Source1:	https://github.com/86Box/roms/archive/refs/tags/%{romver}.zip
 
 BuildRequires: cmake
 BuildRequires: desktop-file-utils
@@ -55,7 +57,7 @@ It supports various models of PCs, graphics and sound cards, and CPUs.
 
 %package	roms
 Summary:	ROMs for use with 86Box
-Version:	%{version}
+Version:	%{romver}
 License:	Proprietary
 BuildArch:	noarch
 
@@ -111,7 +113,7 @@ popd
 
 # files part of the rom package
 %files roms
-%license  roms-%{version}/LICENSE
+%license  roms-%{romver}/LICENSE
 %{_datadir}/%{name}/roms
 
 %changelog
