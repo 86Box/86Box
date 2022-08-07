@@ -32,12 +32,7 @@ static int opAAM(uint32_t fetchdat)
 {
         int base = getbytef();
 
-	if (base == 0) {
-		x86de(NULL, 0);
-		return 1;
-	}
-
-        if (!cpu_isintel) base = 10;
+        if (!base || !cpu_isintel) base = 10;
 
         AH = AL / base;
         AL %= base;
