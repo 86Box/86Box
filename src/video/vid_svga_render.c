@@ -75,13 +75,14 @@ svga_render_overscan_left(svga_t *svga)
     int i;
 
     if ((svga->displine + svga->y_add) < 0)
-	return;
+        return;
 
     if (svga->scrblank || (svga->hdisp == 0))
-	return;
+        return;
 
+    uint32_t *line_ptr = buffer32->line[svga->displine + svga->y_add];
     for (i = 0; i < svga->x_add; i++)
-	buffer32->line[svga->displine + svga->y_add][i] = svga->overscan_color;
+        *line_ptr++ = svga->overscan_color;
 }
 
 
@@ -91,14 +92,15 @@ svga_render_overscan_right(svga_t *svga)
     int i, right;
 
     if ((svga->displine + svga->y_add) < 0)
-	return;
+        return;
 
     if (svga->scrblank || (svga->hdisp == 0))
-	return;
+        return;
 
+    uint32_t *line_ptr = &buffer32->line[svga->displine + svga->y_add][svga->x_add + svga->hdisp];
     right = (overscan_x >> 1);
     for (i = 0; i < right; i++)
-	buffer32->line[svga->displine + svga->y_add][svga->x_add + svga->hdisp + i] = svga->overscan_color;
+        *line_ptr++ = svga->overscan_color;
 }
 
 
