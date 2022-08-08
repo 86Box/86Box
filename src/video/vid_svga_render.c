@@ -55,12 +55,16 @@ svga_render_blank(svga_t *svga)
     switch (svga->seqregs[1] & 9) {
         case 0:
             char_width = 9;
+            break;
         case 1:
             char_width = 8;
+            break;
         case 8:
             char_width = 18;
+            break;
         case 9:
             char_width = 16;
+            break;
     }
 
     uint32_t *line_ptr = &buffer32->line[svga->displine + svga->y_add][svga->x_add];
