@@ -188,6 +188,7 @@ int	enable_discord = 0;			/* (C) enable Discord integration */
 int pit_mode = -1;				/* (C) force setting PIT mode */
 int fm_driver = 0;				/* (C) select FM sound driver */
 int open_dir_usr_path = 0;                      /* default file open dialog directory of usr_path */
+int video_fullscreen_scale_maximized = 0; /* (C) Whether fullscreen scaling settings also apply when maximized. */
 
 /* Statistics. */
 extern int mmuflush;

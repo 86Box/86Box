@@ -80,6 +80,8 @@ OpenGLRenderer::exposeEvent(QExposeEvent *event)
 
     if (!isInitialized)
         initialize();
+
+    onResize(size().width(), size().height());
 }
 
 void

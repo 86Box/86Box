@@ -133,6 +133,8 @@ std::atomic<bool> blitDummied{false};
 extern void qt_mouse_capture(int);
 extern "C" void qt_blit(int x, int y, int w, int h, int monitor_index);
 
+extern MainWindow* main_window;
+
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::MainWindow)
@@ -293,6 +295,7 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->actionShow_non_primary_monitors->setChecked(show_second_monitors);
     ui->actionUpdate_status_bar_icons->setChecked(update_icons);
     ui->actionEnable_Discord_integration->setChecked(enable_discord);
+    ui->actionApply_fullscreen_stretch_mode_when_maximized->setChecked(video_fullscreen_scale_maximized);
 
 #if defined Q_OS_WINDOWS || defined Q_OS_MACOS
     /* Make the option visible only if ANGLE is loaded. */
@@ -1773,9 +1776,13 @@ static void update_fullscreen_scale_checkboxes(Ui::MainWindow* ui, QAction* sele
     ui->actionFullScreen_keepRatio->setChecked(ui->actionFullScreen_keepRatio == selected);
     ui->actionFullScreen_int->setChecked(ui->actionFullScreen_int == selected);
 
-    if (video_fullscreen > 0) {
+    {
         auto widget = ui->stackedWidget->currentWidget();
         ui->stackedWidget->onResize(widget->width(), widget->height());
+    }
+
+    for (int i = 1; i < MONITORS_NUM; i++) {
+        if (main_window->renderers[i]) main_window->renderers[i]->onResize(main_window->renderers[i]->width(), main_window->renderers[i]->height());
     }
 
     device_force_redraw();
@@ -2128,5 +2135,21 @@ void MainWindow::on_actionOpen_screenshots_folder_triggered()
 {
     QDir(QString(usr_path) + QString("/screenshots/")).mkpath(".");
     QDesktopServices::openUrl(QUrl(QString("file:///") + usr_path + QString("/screenshots/")));
+}
+
+
+void MainWindow::on_actionApply_fullscreen_stretch_mode_when_maximized_triggered(bool checked)
+{
+    video_fullscreen_scale_maximized = checked;
+
+    auto widget = ui->stackedWidget->currentWidget();
+    ui->stackedWidget->onResize(widget->width(), widget->height());
+
+    for (int i = 1; i < MONITORS_NUM; i++) {
+        if (renderers[i]) renderers[i]->onResize(renderers[i]->width(), renderers[i]->height());
+    }
+
+    device_force_redraw();
+    config_save();
 }
 
