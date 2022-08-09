@@ -145,6 +145,7 @@ void D3D9Renderer::blit(int x, int y, int w, int h)
         return;
     }
     surfaceInUse = true;
+    auto origSource = source;
     source.setRect(x, y, w, h);
     RECT srcRect;
     D3DLOCKED_RECT lockRect;
@@ -164,6 +165,7 @@ void D3D9Renderer::blit(int x, int y, int w, int h)
         d3d9surface->UnlockRect();
     }
     else video_blit_complete_monitor(m_monitor_index);
+    if (origSource != source) onResize(this->width() * devicePixelRatioF(), this->height() * devicePixelRatioF());
     surfaceInUse = false;
     QTimer::singleShot(0, this, [this] { this->update(); });
 }

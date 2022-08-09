@@ -134,6 +134,7 @@ void HardwareRenderer::initializeGL()
     pclog("OpenGL version: %s\n", glGetString(GL_VERSION));
     pclog("OpenGL shader language version: %s\n", glGetString(GL_SHADING_LANGUAGE_VERSION));
     glClearColor(0, 0, 0, 1);
+    m_texture->setWrapMode(QOpenGLTexture::ClampToEdge);
 }
 
 void HardwareRenderer::paintGL() {
@@ -187,6 +188,7 @@ void HardwareRenderer::onBlit(int buf_idx, int x, int y, int w, int h) {
     auto tval = this;
     void* nuldata = 0;
     if (memcmp(&tval, &nuldata, sizeof(void*)) == 0) return;
+    auto origSource = source;
     if (!m_texture || !m_texture->isCreated())
     {
         buf_usage[buf_idx].clear();
@@ -197,6 +199,7 @@ void HardwareRenderer::onBlit(int buf_idx, int x, int y, int w, int h) {
     m_texture->setData(QOpenGLTexture::PixelFormat::RGBA, QOpenGLTexture::PixelType::UInt8, (const void*)imagebufs[buf_idx].get());
     buf_usage[buf_idx].clear();
     source.setRect(x, y, w, h);
+    if (origSource != source) onResize(this->width(), this->height());
     update();
 }
 
