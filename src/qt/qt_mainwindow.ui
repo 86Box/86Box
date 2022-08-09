@@ -91,6 +91,8 @@
     <addaction name="actionEnd_trace"/>
     <addaction name="separator"/>
     <addaction name="actionMCA_devices"/>
+    <addaction name="separator"/>
+    <addaction name="actionOpen_screenshots_folder"/>
    </widget>
    <widget class="QMenu" name="menuView">
     <property name="title">
@@ -776,6 +778,11 @@
    </property>
    <property name="vid_api" stdset="0">
     <number>6</number>
+   </property>
+  </action>
+  <action name="actionOpen_screenshots_folder">
+   <property name="text">
+    <string>Open screenshots folder...</string>
    </property>
   </action>
  </widget>
