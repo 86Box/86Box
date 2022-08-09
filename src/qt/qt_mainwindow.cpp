@@ -74,6 +74,7 @@ extern "C" {
 #include <QOpenGLContext>
 #include <QScreen>
 #include <QString>
+#include <QDir>
 
 #include <array>
 #include <unordered_map>
@@ -2120,5 +2121,12 @@ void MainWindow::on_actionShow_non_primary_monitors_triggered()
     }
 
     blitDummied = false;
+}
+
+
+void MainWindow::on_actionOpen_screenshots_folder_triggered()
+{
+    QDir(QString(usr_path) + QString("/screenshots/")).mkpath(".");
+    QDesktopServices::openUrl(QUrl(QString("file:///") + usr_path + QString("/screenshots/")));
 }
 
