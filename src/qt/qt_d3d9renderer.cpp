@@ -108,6 +108,7 @@ void D3D9Renderer::paintEvent(QPaintEvent *event)
     dstRect.left = destination.left();
     dstRect.right = destination.right();
     d3d9dev->BeginScene();
+    d3d9dev->Clear(0, nullptr, D3DCLEAR_TARGET, 0xFF000000, 0, 0);
     while (surfaceInUse) {}
     surfaceInUse = true;
     d3d9dev->StretchRect(d3d9surface, &srcRect, backbuffer, &dstRect, video_filter_method == 0 ? D3DTEXF_POINT : D3DTEXF_LINEAR);
