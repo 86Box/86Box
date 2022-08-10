@@ -41,20 +41,31 @@ timer_enable(pc_timer_t *timer)
 	return;
     }
 
-    timer_node = timer_head;
+    if (TIMER_LESS_THAN(timer, timer_head)) {
+        timer->next      = timer_head;
+        timer->prev      = NULL;
+        timer_head->prev = timer;
+        timer_head       = timer;
+        timer_target     = timer_head->ts.ts32.integer;
+        return;
+    }
+
+    if (!timer_head->next) {
+        timer_head->next = timer;
+        timer->prev      = timer_head;
+        return;
+    }
+
+    pc_timer_t *prev = timer_head;
+    timer_node = timer_head->next;
 
     while(1) {
 	/*Timer expires before timer_node. Add to list in front of timer_node*/
 	if (TIMER_LESS_THAN(timer, timer_node)) {
 		timer->next = timer_node;
-		timer->prev = timer_node->prev;
+		timer->prev = prev;
 		timer_node->prev = timer;
-		if (timer->prev)
-			timer->prev->next = timer;
-		else {
-			timer_head = timer;
-			timer_target = timer_head->ts.ts32.integer;
-		}
+		prev->next = timer;
 		return;
 	}
 
@@ -65,6 +76,7 @@ timer_enable(pc_timer_t *timer)
 		return;
 	}
 
+	prev = timer_node;
 	timer_node = timer_node->next;
     }
 }
@@ -92,32 +104,11 @@ timer_disable(pc_timer_t *timer)
 
 
 void
-timer_remove_head(void)
-{
-    pc_timer_t *timer;
-
-    if (!timer_inited)
-	return;
-
-    if (timer_head) {
-	timer = timer_head;
-	timer_head = timer->next;
-	if (timer_head) {
-		timer_head->prev = NULL;
-		timer->next->prev = NULL;
-	}
-	timer->next = timer->prev = NULL;
-	timer->flags &= ~TIMER_ENABLED;
-    }
-}
-
-
-void
 timer_process(void)
 {
     pc_timer_t *timer;
 
-    if (!timer_inited || !timer_head)
+    if (!timer_head)
 	return;
 
     while(1) {
@@ -126,7 +117,12 @@ timer_process(void)
 	if (!TIMER_LESS_THAN_VAL(timer, (uint32_t)tsc))
 		break;
 
-	timer_remove_head();
+    timer_head = timer->next;
+    if (timer_head)
+        timer_head->prev = NULL;
+
+    timer->next = timer->prev = NULL;
+    timer->flags &= ~TIMER_ENABLED;
 
 	if (timer->flags & TIMER_SPLIT)
 		timer_advance_ex(timer, 0);	/* We're splitting a > 1 s period into multiple <= 1 s periods. */

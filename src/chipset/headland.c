@@ -38,6 +38,23 @@
 #include <86box/chipset.h>
 
 
+enum {
+    HEADLAND_GC103 = 0x00,
+    HEADLAND_GC113 = 0x10,
+    HEADLAND_HT18_A = 0x11,
+    HEADLAND_HT18_B = 0x12,
+    HEADLAND_HT18_C = 0x18,
+    HEADLAND_HT21_C_D = 0x31,
+    HEADLAND_HT21_E = 0x32,
+};
+
+
+#define HEADLAND_REV_MASK 0x0F
+
+#define HEADLAND_HAS_CRI 0x10
+#define HEADLAND_HAS_SLEEP 0x20
+
+
 typedef struct {
     uint8_t		valid, enabled;
     uint16_t		mr;
@@ -49,6 +66,7 @@ typedef struct {
 
 typedef struct headland_t {
     uint8_t		revision;
+    uint8_t		has_cri, has_sleep;
 
     uint8_t		cri;
     uint8_t		cr[7];
@@ -330,7 +348,7 @@ hl_write(uint16_t addr, uint8_t val, void *priv)
 		break;
 
 	case 0x01ed:
-		if (dev->revision > 0)
+		if (dev->has_cri)
 			dev->cri = val;
 		break;
 
@@ -339,7 +357,7 @@ hl_write(uint16_t addr, uint8_t val, void *priv)
 		break;
 
 	case 0x01ef:
-		switch(dev->cri) {
+		switch(dev->cri & 0x07) {
 			case 0:
 				dev->cr[0] = (val & 0x1f) | mem_conf_cr0[(mem_size > 640 ? mem_size : mem_size - 128) >> 9];
 				memmap_state_update(dev);
@@ -352,8 +370,15 @@ hl_write(uint16_t addr, uint8_t val, void *priv)
 
 			case 2:
 			case 3:
-			case 5:
 				dev->cr[dev->cri] = val;
+				memmap_state_update(dev);
+				break;
+
+			case 5:
+				if (dev->has_sleep)
+					dev->cr[dev->cri] = val;
+				else
+					dev->cr[dev->cri] = val & 0x0f;
 				memmap_state_update(dev);
 				break;
 
@@ -421,7 +446,7 @@ hl_read(uint16_t addr, void *priv)
 		break;
 
 	case 0x01ed:
-		if (dev->revision > 0)
+		if (dev->has_cri)
 			ret = dev->cri;
 		break;
 
@@ -430,7 +455,7 @@ hl_read(uint16_t addr, void *priv)
 		break;
 
 	case 0x01ef:
-		switch(dev->cri) {
+		switch(dev->cri & 0x07) {
 			case 0:
 				ret = (dev->cr[0] & 0x1f) | mem_conf_cr0[(mem_size > 640 ? mem_size : mem_size - 128) >> 9];
 				break;
@@ -593,11 +618,14 @@ headland_init(const device_t *info)
     dev = (headland_t *) malloc(sizeof(headland_t));
     memset(dev, 0x00, sizeof(headland_t));
 
-    dev->revision = info->local;
+    dev->has_cri = (info->local & HEADLAND_HAS_CRI);
+    dev->has_sleep = (info->local & HEADLAND_HAS_SLEEP);
+    dev->revision = info->local & HEADLAND_REV_MASK;
 
     if (dev->revision > 0)
 	ht386 = 1;
 
+    dev->cr[0] = 0x04;
     dev->cr[4] = dev->revision << 4;
 
    if (ht386)
@@ -627,7 +655,7 @@ headland_init(const device_t *info)
 		    ram, MEM_MAPPING_INTERNAL, &dev->null_mr);
 
     if (mem_size > 640) {
-	mem_mapping_add(&dev->mid_mapping, 0xa0000, 0x40000,
+	mem_mapping_add(&dev->mid_mapping, 0xa0000, 0x60000,
 			mem_read_b, mem_read_w, mem_read_l,
 			mem_write_b, mem_write_w, mem_write_l,
 			ram + 0xa0000, MEM_MAPPING_INTERNAL, &dev->null_mr);
@@ -684,11 +712,26 @@ headland_init(const device_t *info)
     return(dev);
 }
 
+
 const device_t headland_gc10x_device = {
     .name = "Headland GC101/102/103",
     .internal_name = "headland_gc10x",
     .flags = 0,
-    .local = 0,
+    .local = HEADLAND_GC103,
+    .init = headland_init,
+    .close = headland_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
+};
+
+const device_t headland_gc113_device = {
+    .name = "Headland GC101/102/113",
+    .internal_name = "headland_gc113",
+    .flags = 0,
+    .local = HEADLAND_GC113,
     .init = headland_init,
     .close = headland_close,
     .reset = NULL,
@@ -702,7 +745,7 @@ const device_t headland_ht18a_device = {
     .name = "Headland HT18 Rev. A",
     .internal_name = "headland_ht18a",
     .flags = 0,
-    .local = 1,
+    .local = HEADLAND_HT18_A,
     .init = headland_init,
     .close = headland_close,
     .reset = NULL,
@@ -716,7 +759,7 @@ const device_t headland_ht18b_device = {
     .name = "Headland HT18 Rev. B",
     .internal_name = "headland_ht18b",
     .flags = 0,
-    .local = 2,
+    .local = HEADLAND_HT18_B,
     .init = headland_init,
     .close = headland_close,
     .reset = NULL,
@@ -730,7 +773,35 @@ const device_t headland_ht18c_device = {
     .name = "Headland HT18 Rev. C",
     .internal_name = "headland_ht18c",
     .flags = 0,
-    .local = 8,
+    .local = HEADLAND_HT18_C,
+    .init = headland_init,
+    .close = headland_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
+};
+
+const device_t headland_ht21c_d_device = {
+    .name = "Headland HT21 Rev. C/D",
+    .internal_name = "headland_ht21cd",
+    .flags = 0,
+    .local = HEADLAND_HT21_C_D,
+    .init = headland_init,
+    .close = headland_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
+};
+
+const device_t headland_ht21e_device = {
+    .name = "Headland HT21 Rev. E",
+    .internal_name = "headland_ht21",
+    .flags = 0,
+    .local = HEADLAND_HT21_E,
     .init = headland_init,
     .close = headland_close,
     .reset = NULL,

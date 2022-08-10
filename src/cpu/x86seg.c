@@ -168,8 +168,12 @@ x86_doabrt(int x86_abrt)
 void
 x86de(char *s, uint16_t error)
 {
+#ifdef BAD_CODE
     cpu_state.abrt = ABRT_DE;
     abrt_error = error;
+#else
+    x86_int(0);
+#endif
 }
 
 

@@ -133,6 +133,7 @@ extern atomic_bool        doresize_monitors[MONITORS_NUM];
 extern int                monitor_index_global;
 extern int                gfxcard_2;
 extern int                show_second_monitors;
+extern int                video_fullscreen_scale_maximized;
 
 typedef rgb_t PALETTE[256];
 

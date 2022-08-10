@@ -366,6 +366,7 @@ oti_getclock(int clock)
 		break;
     }
 
+    return ret;
 }
 
 
