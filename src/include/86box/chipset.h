@@ -14,7 +14,6 @@
  *
  *		Copyright 2019,2020 Miran Grca.
  */
-
 #ifndef EMU_CHIPSET_H
 # define EMU_CHIPSET_H
 

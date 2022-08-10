@@ -11727,24 +11727,26 @@ const machine_t machines[] = {
         .pad2 = 0,
         .cpu = {
             .package = CPU_PKG_SOCKET370,
-            .block= CPU_BLOCK(CPU_CYRIX3S),
+            .block = CPU_BLOCK(CPU_CYRIX3S),
             .min_bus = 66666667,
             .max_bus = 133333333,
             .min_voltage = 1300,
             .max_voltage = 3500,
             .min_multi = 1.5,
-            .max_multi = 8.0,
+            .max_multi = 8.0
         },
         .bus_flags = MACHINE_PS2_NOISA,
         .flags = MACHINE_IDE_DUAL,
         .ram = {
             .min = 32768,
             .max = 524288,
-            .step = 32768,
+            .step = 32768
         },
         .nvrmask = 255,
         .device = NULL,
-        .vid_device = NULL
+        .vid_device = NULL,
+        .snd_device = NULL,
+        .net_device = NULL
     },
     {
         .name = "[Intel i815EP] Biostar M6TSS",
@@ -11764,41 +11766,7 @@ const machine_t machines[] = {
             .min_voltage = 1300,
             .max_voltage = 3500,
             .min_multi = 1.5,
-            .max_multi = 8.0,
-        },
-        .bus_flags = MACHINE_PS2_AGP,
-        .flags = MACHINE_IDE_DUAL,
-        .ram = {
-            .min = 32768,
-            .max = 524288,
-            .step = 32768,
-        },
-        .nvrmask = 255,
-        .kbc = KBC_UNKNOWN,
-        .kbc_p1 = 0,
-        .gpio = 0,
-        .device = NULL,
-        .vid_device = NULL
-    },
-    {
-        .name = "[Intel i815EP] Tyan Tomcat i815T",
-        .internal_name = "s2080",
-        .type = MACHINE_TYPE_ICH2,
-        .chipset = MACHINE_CHIPSET_INTEL_I815EP,
-        .init = machine_at_s2080_init,
-        .pad = 0,
-        .pad0 = 0,
-        .pad1 = MACHINE_AVAILABLE,
-        .pad2 = 0,
-        .cpu = {
-           .package =  CPU_PKG_SOCKET370,
-           .block = CPU_BLOCK_NONE,
-           .min_bus = 66666667,
-           .max_bus = 133333333,
-           .min_voltage = 1300,
-           .max_voltage = 3500,
-           .min_multi = 1.5,
-           .max_multi = 8.0,
+            .max_multi = 8.0
         },
         .bus_flags = MACHINE_PS2_AGP,
         .flags = MACHINE_IDE_DUAL,
@@ -11812,7 +11780,45 @@ const machine_t machines[] = {
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
-        .vid_device = NULL
+        .vid_device = NULL,
+        .snd_device = NULL,
+        .net_device = NULL
+    },
+    {
+        .name = "[Intel i815EP] Tyan Tomcat i815T",
+        .internal_name = "s2080",
+        .type = MACHINE_TYPE_ICH2,
+        .chipset = MACHINE_CHIPSET_INTEL_I815EP,
+        .init = machine_at_s2080_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET370,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 66666667,
+            .max_bus = 133333333,
+            .min_voltage = 1300,
+            .max_voltage = 3500,
+            .min_multi = 1.5,
+            .max_multi = 8.0
+        },
+        .bus_flags = MACHINE_PS2_AGP,
+        .flags = MACHINE_IDE_DUAL,
+        .ram = {
+            .min = 32768,
+            .max = 524288,
+            .step = 32768
+        },
+        .nvrmask = 255,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL,
+        .snd_device = NULL,
+        .net_device = NULL
     },
 
     {
