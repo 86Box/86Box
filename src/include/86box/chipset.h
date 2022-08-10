@@ -55,9 +55,12 @@ extern const device_t   gc100a_device;
 
 /* Headland */
 extern const device_t	headland_gc10x_device;
+extern const device_t	headland_gc113_device;
 extern const device_t	headland_ht18a_device;
 extern const device_t	headland_ht18b_device;
 extern const device_t	headland_ht18c_device;
+extern const device_t	headland_ht21c_d_device;
+extern const device_t	headland_ht21e_device;
 
 /* IMS */
 extern const device_t	ims8848_device;

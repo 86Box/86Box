@@ -76,6 +76,10 @@ extern uint64_t source_hwnd;
 extern char rom_path[1024]; /* (O) full path to ROMs */
 extern char log_path[1024]; /* (O) full path of logfile */
 extern char vm_name[1024];  /* (O) display name of the VM */
+#ifdef USE_INSTRUMENT
+extern uint8_t instru_enabled;
+extern uint64_t instru_run_ms;
+#endif
 
 #define window_x monitor_settings[0].mon_window_x
 #define window_y monitor_settings[0].mon_window_y

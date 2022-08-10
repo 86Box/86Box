@@ -92,7 +92,7 @@ typedef struct xga_t {
     int on;
     int op_mode_reset, linear_endian_reverse;
     int sprite_pos, sprite_pos_prefetch, cursor_data_on;
-    int pal_test;
+    int pal_test, a5_test;
     int type, bus;
 
     uint32_t linear_base, linear_size, banked_mask;
