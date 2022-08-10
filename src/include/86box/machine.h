@@ -706,9 +706,10 @@ extern int machine_at_p6bap_init(const machine_t *);
 extern int machine_at_vpc2007_init(const machine_t *);
 
 /* m_at_ich2.c */
-extern int	machine_at_m6tsl_init(const machine_t *);
-extern int	machine_at_m6tss_init(const machine_t *);
-extern int	machine_at_s2080_init(const machine_t *);
+extern int machine_at_cusl2c_init(const machine_t *);
+extern int machine_at_m6tsl_init(const machine_t *);
+extern int machine_at_m6tss_init(const machine_t *);
+extern int machine_at_s2080_init(const machine_t *);
 
 /* m_at_t3100e.c */
 extern int machine_at_t3100e_init(const machine_t *);
