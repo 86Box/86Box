@@ -102,10 +102,32 @@ extern const device_t	slc90e66_device;
 
 extern const device_t	ioapic_device;
 
+/* OPTi */
+extern const device_t	opti283_device;
+extern const device_t	opti291_device;
+extern const device_t	opti493_device;
+extern const device_t	opti495_device;
+extern const device_t	opti802g_device;
+extern const device_t	opti822_device;
+extern const device_t	opti895_device;
+
+extern const device_t	opti5x7_device;
+
+/* SiS */
+extern const device_t   rabbit_device;
+extern const device_t	sis_85c401_device;
+extern const device_t	sis_85c460_device;
+extern const device_t	sis_85c461_device;
+extern const device_t	sis_85c471_device;
+extern const device_t	sis_85c496_device;
+extern const device_t	sis_85c496_ls486e_device;
+extern const device_t	sis_85c50x_device;
+extern const device_t	sis_5511_device;
+extern const device_t	sis_5571_device;
+
 /* Intel ICH2 */
 extern const device_t	intel_815ep_device;
 extern const device_t   intel_ich2_device;
-
 
 /* ST */
 extern const device_t	stpc_client_device;
@@ -154,5 +176,4 @@ extern const device_t   phoenix_486_jumper_pci_device;
 #if defined(DEV_BRANCH) && defined(USE_OLIVETTI)
 extern const device_t   olivetti_eva_device;
 #endif
-
 #endif	/*EMU_CHIPSET_H*/

@@ -1253,7 +1253,7 @@ acpi_reg_read_common(int size, uint16_t addr, void *p)
     else if (dev->vendor == VEN_INTEL)
 	ret = acpi_reg_read_intel(size, addr, p);
     else if (dev->vendor == VEN_INTEL_ICH2)
-	ret = acpi_reg_read_intel_ich2(size, addr, p);
+        ret = acpi_reg_read_intel_ich2(size, addr, p);
     else if (dev->vendor == VEN_SMC)
 	ret = acpi_reg_read_smc(size, addr, p);
 
@@ -1275,7 +1275,7 @@ acpi_reg_write_common(int size, uint16_t addr, uint8_t val, void *p)
     else if (dev->vendor == VEN_INTEL)
 	acpi_reg_write_intel(size, addr, val, p);
     else if (dev->vendor == VEN_INTEL_ICH2)
-	acpi_reg_write_intel_ich2(size, addr, val, p);
+        acpi_reg_write_intel_ich2(size, addr, val, p);
     else if (dev->vendor == VEN_SMC)
 	acpi_reg_write_smc(size, addr, val, p);
 }
