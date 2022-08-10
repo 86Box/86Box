@@ -33,6 +33,8 @@ public:
     void blitToWidget(int x, int y, int w, int h, int monitor_index);
     QSize getRenderWidgetSize();
     void setSendKeyboardInput(bool enabled);
+
+    std::array<std::unique_ptr<RendererStack>, 8> renderers;
 signals:
     void paint(const QImage& image);
     void resizeContents(int w, int h);
@@ -129,10 +131,13 @@ protected:
 private slots:
     void on_actionShow_non_primary_monitors_triggered();
 
+	void on_actionOpen_screenshots_folder_triggered();
+
+    void on_actionApply_fullscreen_stretch_mode_when_maximized_triggered(bool checked);
+
 private:
     Ui::MainWindow *ui;
     std::unique_ptr<MachineStatus> status;
-    std::array<std::unique_ptr<RendererStack>, 8> renderers;
     std::shared_ptr<MediaMenu> mm;
 
 #ifdef Q_OS_MACOS
@@ -144,6 +149,7 @@ private:
     bool send_keyboard_input = true;
     bool shownonce = false;
     bool resizableonce = false;
+    bool vnc_enabled = false;
 
     friend class SpecifyDimensions;
     friend class ProgSettings;

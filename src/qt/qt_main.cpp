@@ -109,9 +109,21 @@ main_thread_fn()
             if (drawits > 50)
                 drawits = 0;
 
+#ifdef USE_INSTRUMENT
+            uint64_t start_time = elapsed_timer.nsecsElapsed();
+#endif
             /* Run a block of code. */
             pc_run();
 
+#ifdef USE_INSTRUMENT
+            if (instru_enabled) {
+                uint64_t elapsed_us = (elapsed_timer.nsecsElapsed() - start_time) / 1000;
+                uint64_t total_elapsed_ms = (uint64_t)((double)tsc / cpu_s->rspeed * 1000);
+                printf("[instrument] %llu, %llu\n", total_elapsed_ms, elapsed_us);
+                if (instru_run_ms && total_elapsed_ms >= instru_run_ms)
+                    break;
+            }
+#endif
             /* Every 200 frames we save the machine status. */
             if (++frames >= 200 && nvr_dosave) {
                 qt_nvr_save();

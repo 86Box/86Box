@@ -196,6 +196,7 @@ exec386(int cycs)
 			enter_smm_check(0);
 		else if (trap) {
 			flags_rebuild();
+			dr[6] |= 0x4000;
 			if (msw&1)
 				pmodeint(1,0);
 			else {

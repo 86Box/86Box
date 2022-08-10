@@ -156,7 +156,7 @@ typedef struct {
     fdc_t    *fdc;
 } amstrad_t;
 
-int amstrad_latch;
+uint32_t amstrad_latch;
 
 static uint8_t key_queue[16];
 static int     key_queue_start = 0,
@@ -2255,7 +2255,7 @@ ams_read(uint16_t port, void *priv)
                     else if (video_is_mda())
                         ret |= 0xc0;
 
-                    switch (amstrad_latch) {
+                    switch (amstrad_latch & 0x7fffffff) {
                         case AMSTRAD_NOLATCH:
                             ret &= ~0x20;
                             break;
@@ -2293,6 +2293,7 @@ machine_amstrad_init(const machine_t *model, int type)
     ams = (amstrad_t *) malloc(sizeof(amstrad_t));
     memset(ams, 0x00, sizeof(amstrad_t));
     ams->type = type;
+    amstrad_latch = 0x80000000;
 
     switch (type) {
         case AMS_PC200:

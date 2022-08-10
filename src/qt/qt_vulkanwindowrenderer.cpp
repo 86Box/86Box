@@ -836,9 +836,11 @@ bool VulkanWindowRenderer::event(QEvent *event)
 
 void VulkanWindowRenderer::onBlit(int buf_idx, int x, int y, int w, int h)
 {
+    auto origSource = source;
     source.setRect(x, y, w, h);
     if (isExposed()) requestUpdate();
     buf_usage[0].clear();
+    if (origSource != source) onResize(this->width(), this->height());
 }
 
 uint32_t VulkanWindowRenderer::getBytesPerRow()

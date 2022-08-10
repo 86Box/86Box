@@ -969,6 +969,8 @@ load_video(void)
     ibm8514_enabled      = !!config_get_int(cat, "8514a", 0);
     xga_enabled          = !!config_get_int(cat, "xga", 0);
     show_second_monitors = !!config_get_int(cat, "show_second_monitors", 1);
+    video_fullscreen_scale_maximized = !!config_get_int(cat, "video_fullscreen_scale_maximized", 0);
+    
     p                    = config_get_string(cat, "gfxcard_2", NULL);
     if (!p)
         p = "none";
@@ -2553,6 +2555,11 @@ save_video(void)
         config_delete_var(cat, "show_second_monitors");
     else
         config_set_int(cat, "show_second_monitors", show_second_monitors);
+
+    if (video_fullscreen_scale_maximized == 0)
+        config_delete_var(cat, "video_fullscreen_scale_maximized");
+    else
+        config_set_int(cat, "video_fullscreen_scale_maximized", video_fullscreen_scale_maximized);
 
     delete_section_if_empty(cat);
 }
