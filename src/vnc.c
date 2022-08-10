@@ -172,8 +172,10 @@ vnc_blit(int x, int y, int w, int h, int monitor_index)
     uint32_t *p;
     int yy;
 
-    if (monitor_index || (x < 0) || (y < 0) || (w <= 0) || (h <= 0) || (w > 2048) || (h > 2048) || (buffer32 == NULL))
-	return;
+    if (monitor_index || (x < 0) || (y < 0) || (w <= 0) || (h <= 0) || (w > 2048) || (h > 2048) || (buffer32 == NULL)) {
+        video_blit_complete_monitor(monitor_index);
+        return;
+    }
 
     for (yy=0; yy<h; yy++) {
 	p = (uint32_t *)&(((uint32_t *)rfb->frameBuffer)[yy*VNC_MAX_X]);
@@ -185,7 +187,7 @@ vnc_blit(int x, int y, int w, int h, int monitor_index)
     if (screenshots)
 	video_screenshot((uint32_t *) rfb->frameBuffer, 0, 0, VNC_MAX_X);
 
-    video_blit_complete();
+    video_blit_complete_monitor(monitor_index);
 
     if (! updatingSize)
 	rfbMarkRectAsModified(rfb, 0,0, allowedX,allowedY);
@@ -210,7 +212,8 @@ vnc_init(UNUSED(void *arg))
 	32, 32, 0, 1, 255,255,255, 16, 8, 0, 0, 0
     };
 
-    cgapal_rebuild();
+    plat_pause(1);
+    cgapal_rebuild_monitor(0);
 
     if (rfb == NULL) {
 	wcstombs(title, ui_window_title(NULL), sizeof(title));

@@ -20,7 +20,7 @@
 #ifndef MACHINE_AMSTRAD_H
 #define MACHINE_AMSTRAD_H
 
-extern int amstrad_latch;
+extern uint32_t amstrad_latch;
 
 enum {
     AMSTRAD_NOLATCH,

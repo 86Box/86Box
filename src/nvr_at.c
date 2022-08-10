@@ -470,10 +470,10 @@ timer_update(void *priv)
 		nvr->regs[RTC_REGC] |= REGC_AF;
 		if (nvr->regs[RTC_REGB] & REGB_AIE) {
 			/* Generate an interrupt. */
-			if ((nvr->irq != -1) && (!(nvr->regs[RTC_REGC] & REGC_IRQF)))
-				picint(1 << nvr->irq);
-
-			nvr->regs[RTC_REGC] |= REGC_IRQF;
+			if ((nvr->irq != -1) && (!(nvr->regs[RTC_REGC] & REGC_IRQF))) {
+				picintlevel(1 << nvr->irq);
+				nvr->regs[RTC_REGC] |= REGC_IRQF;
+			}
 		}
 	}
 
@@ -484,10 +484,10 @@ timer_update(void *priv)
 	nvr->regs[RTC_REGC] |= REGC_UF;
 	if (nvr->regs[RTC_REGB] & REGB_UIE) {
 		/* Generate an interrupt. */
-		if ((nvr->irq != -1) && (!(nvr->regs[RTC_REGC] & REGC_IRQF)))
-			picint(1 << nvr->irq);
-
-		nvr->regs[RTC_REGC] |= REGC_IRQF;
+		if ((nvr->irq != -1) && (!(nvr->regs[RTC_REGC] & REGC_IRQF))) {
+			picintlevel(1 << nvr->irq);
+			nvr->regs[RTC_REGC] |= REGC_IRQF;
+		}
 	}
     }
 }
@@ -536,10 +536,10 @@ timer_intr(void *priv)
 	nvr->regs[RTC_REGC] |= REGC_PF;
 	if (nvr->regs[RTC_REGB] & REGB_PIE) {
 		/* Generate an interrupt. */
-		if ((nvr->irq != -1) && (!(nvr->regs[RTC_REGC] & REGC_IRQF)))
-			picint(1 << nvr->irq);
-
-		nvr->regs[RTC_REGC] |= REGC_IRQF;
+		if ((nvr->irq != -1) && (!(nvr->regs[RTC_REGC] & REGC_IRQF))) {
+			picintlevel(1 << nvr->irq);
+			nvr->regs[RTC_REGC] |= REGC_IRQF;
+		}
 	}
     }
 }
@@ -595,6 +595,7 @@ nvr_reg_write(uint16_t reg, uint8_t val, void *priv)
     local_t *local = (local_t *)nvr->data;
     struct tm tm;
     uint8_t old;
+    uint8_t irq = 0, old_irq = 0;
 
     old = nvr->regs[reg];
     switch(reg) {
@@ -604,11 +605,20 @@ nvr_reg_write(uint16_t reg, uint8_t val, void *priv)
 		break;
 
 	case RTC_REGB:
+		old_irq = (nvr->regs[RTC_REGB] & nvr->regs[RTC_REGC]) & 0x70;
 		nvr->regs[RTC_REGB] = val;
 		if (((old^val) & REGB_SET) && (val & REGB_SET)) {
 			/* According to the datasheet... */
 			nvr->regs[RTC_REGA] &= ~REGA_UIP;
 			nvr->regs[RTC_REGB] &= ~REGB_UIE;
+		}
+		irq = (nvr->regs[RTC_REGB] & nvr->regs[RTC_REGC]) & 0x70;
+		if (old_irq && !irq) {
+			picintc(1 << nvr->irq);
+			nvr->regs[RTC_REGC] &= ~REGC_IRQF;
+		} else if (!old_irq && irq) {
+			picintlevel(1 << nvr->irq);
+			nvr->regs[RTC_REGC] |= REGC_IRQF;
 		}
 		break;
 
@@ -697,8 +707,8 @@ nvr_read(uint16_t addr, void *priv)
 		break;
 
 	case RTC_REGC:
-		picintc(1 << nvr->irq);
 		ret = nvr->regs[RTC_REGC];
+		picintc(1 << nvr->irq);
 		nvr->regs[RTC_REGC] = 0x00;
 		break;
 
