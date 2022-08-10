@@ -312,19 +312,21 @@ inb(uint16_t port)
 	p = q;
     }
 
-    if (port & 0x80)
-	amstrad_latch = AMSTRAD_NOLATCH;
-    else if (port & 0x4000)
-	amstrad_latch = AMSTRAD_SW10;
-    else
-	amstrad_latch = AMSTRAD_SW9;
+    if (amstrad_latch & 0x80000000) {
+        if (port & 0x80)
+            amstrad_latch = AMSTRAD_NOLATCH | 0x80000000;
+        else if (port & 0x4000)
+            amstrad_latch = AMSTRAD_SW10 | 0x80000000;
+        else
+            amstrad_latch = AMSTRAD_SW9 | 0x80000000;
+    }
 
     if (!found)
 	cycles -= io_delay;
 
     /* TriGem 486-BIOS MHz output. */
-    if (port == 0x1ed)
-	ret = 0xfe;
+    /* if (port == 0x1ed)
+	ret = 0xfe; */
 
     io_log("[%04X:%08X] (%i, %i, %04i) in b(%04X) = %02X\n", CS, cpu_state.pc, in_smm, found, qfound, port, ret);
 
@@ -401,12 +403,14 @@ inw(uint16_t port)
     }
     ret = (ret8[1] << 8) | ret8[0];
 
-    if (port & 0x80)
-	amstrad_latch = AMSTRAD_NOLATCH;
-    else if (port & 0x4000)
-	amstrad_latch = AMSTRAD_SW10;
-    else
-	amstrad_latch = AMSTRAD_SW9;
+    if (amstrad_latch & 0x80000000) {
+        if (port & 0x80)
+            amstrad_latch = AMSTRAD_NOLATCH | 0x80000000;
+        else if (port & 0x4000)
+            amstrad_latch = AMSTRAD_SW10 | 0x80000000;
+        else
+            amstrad_latch = AMSTRAD_SW9 | 0x80000000;
+    }
 
     if (!found)
 	cycles -= io_delay;
@@ -487,17 +491,26 @@ inl(uint16_t port)
 
     ret16[0] = ret & 0xffff;
     ret16[1] = (ret >> 16) & 0xffff;
-    for (i = 0; i < 4; i += 2) {
-	p = io[(port + i) & 0xffff];
-	while(p) {
-		q = p->next;
-		if (p->inw && !p->inl) {
-			ret16[i >> 1] &= p->inw(port + i, p->priv);
-			found |= 2;
-			qfound++;
-		}
-		p = q;
-	}
+    p = io[port & 0xffff];
+    while (p) {
+        q = p->next;
+        if (p->inw && !p->inl) {
+            ret16[0] &= p->inw(port, p->priv);
+            found |= 2;
+            qfound++;
+        }
+        p = q;
+    }
+
+    p = io[(port + 2) & 0xffff];
+    while (p) {
+        q = p->next;
+        if (p->inw && !p->inl) {
+            ret16[1] &= p->inw(port + 2, p->priv);
+            found |= 2;
+            qfound++;
+        }
+        p = q;
     }
     ret = (ret16[1] << 16) | ret16[0];
 
@@ -519,12 +532,14 @@ inl(uint16_t port)
     }
     ret = (ret8[3] << 24) | (ret8[2] << 16) | (ret8[1] << 8) | ret8[0];
 
-    if (port & 0x80)
-	amstrad_latch = AMSTRAD_NOLATCH;
-    else if (port & 0x4000)
-	amstrad_latch = AMSTRAD_SW10;
-    else
-	amstrad_latch = AMSTRAD_SW9;
+    if (amstrad_latch & 0x80000000) {
+        if (port & 0x80)
+            amstrad_latch = AMSTRAD_NOLATCH | 0x80000000;
+        else if (port & 0x4000)
+            amstrad_latch = AMSTRAD_SW10 | 0x80000000;
+        else
+            amstrad_latch = AMSTRAD_SW9 | 0x80000000;
+    }
 
     if (!found)
 	cycles -= io_delay;

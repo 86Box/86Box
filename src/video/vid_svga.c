@@ -1079,6 +1079,7 @@ svga_write_common(uint32_t addr, uint8_t val, uint8_t linear, void *p)
         if (((svga->xga.op_mode & 7) >= 4) && (svga->xga.aperture_cntl == 1)) {
             if (val == 0xa5) { /*Memory size test of XGA*/
                 svga->xga.test = val;
+                svga->xga.a5_test = 1;
                 return;
             } else if (val == 0x5a) {
                 svga->xga.test = val;

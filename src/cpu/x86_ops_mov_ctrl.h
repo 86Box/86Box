@@ -91,7 +91,7 @@ static int opMOV_r_DRx_a16(uint32_t fetchdat)
                 return 1;
         }
         fetch_ea_16(fetchdat);
-        cpu_state.regs[cpu_rm].l = dr[cpu_reg];
+        cpu_state.regs[cpu_rm].l = dr[cpu_reg] | (cpu_reg == 6 ? 0xffff0ff0u : 0);
         CLOCK_CYCLES(6);
         PREFETCH_RUN(6, 2, rmdat, 0,0,0,0, 0);
         return 0;
@@ -104,7 +104,7 @@ static int opMOV_r_DRx_a32(uint32_t fetchdat)
                 return 1;
         }
         fetch_ea_32(fetchdat);
-        cpu_state.regs[cpu_rm].l = dr[cpu_reg];
+        cpu_state.regs[cpu_rm].l = dr[cpu_reg] | (cpu_reg == 6 ? 0xffff0ff0u : 0);
         CLOCK_CYCLES(6);
         PREFETCH_RUN(6, 2, rmdat, 0,0,0,0, 1);
         return 0;
