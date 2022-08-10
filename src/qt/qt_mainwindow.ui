@@ -179,6 +179,7 @@
     <addaction name="separator"/>
     <addaction name="actionFullscreen"/>
     <addaction name="menuFullscreen_stretch_mode"/>
+    <addaction name="actionApply_fullscreen_stretch_mode_when_maximized"/>
     <addaction name="menuEGA_S_VGA_settings"/>
     <addaction name="separator"/>
     <addaction name="actionCGA_PCjr_Tandy_EGA_S_VGA_overscan"/>
@@ -783,6 +784,14 @@
   <action name="actionOpen_screenshots_folder">
    <property name="text">
     <string>Open screenshots folder...</string>
+   </property>
+  </action>
+  <action name="actionApply_fullscreen_stretch_mode_when_maximized">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Apply fullscreen stretch mode when maximized</string>
    </property>
   </action>
  </widget>
