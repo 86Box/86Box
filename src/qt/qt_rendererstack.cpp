@@ -75,8 +75,15 @@ RendererStack::RendererStack(QWidget *parent, int monitor_index)
     if (!mouse_type || (mouse_type[0] == '\0') || !stricmp(mouse_type, "auto")) {
         if (QApplication::platformName().contains("wayland"))
             strcpy(auto_mouse_type, "wayland");
+#   if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
+        else if (QApplication::platformName() == "eglfs")
+            strcpy(auto_mouse_type, "evdev");
+        else if (QApplication::platformName() == "xcb")
+            strcpy(auto_mouse_type, "xinput2");
+#   else
         else if (QApplication::platformName() == "eglfs" || QApplication::platformName() == "xcb")
             strcpy(auto_mouse_type, "evdev");
+#   endif
         else
             auto_mouse_type[0] = '\0';
         mouse_type = auto_mouse_type;
@@ -96,6 +103,14 @@ RendererStack::RendererStack(QWidget *parent, int monitor_index)
         this->mouse_poll_func = evdev_mouse_poll;
     }
 #    endif
+    if (!stricmp(mouse_type, "xinput2")) {
+        extern void xinput2_init();
+        extern void xinput2_poll();
+        extern void xinput2_exit();
+        xinput2_init();
+        this->mouse_poll_func = xinput2_poll;
+        this->mouse_exit_func = xinput2_exit;
+    }
 #endif
 #ifdef __APPLE__
     this->mouse_poll_func = macos_poll_mouse;
