@@ -577,7 +577,7 @@ spd_write_drbs_ali1621(uint8_t *regs, uint8_t reg_min, uint8_t reg_max)
     }
 
     /* Write DRBs for each row. */
-//    spd_log("SPD: Writing DRBs... regs=[%02X:%02X] unit=%d\n", reg_min, reg_max, drb_unit);
+    spd_log("SPD: Writing DRBs... regs=[%02X:%02X] unit=%d\n", reg_min, reg_max, drb_unit);
     for (dimm = 0; dimm <= ((reg_max - reg_min) >> 2); dimm++) {
 	size = 0;
 	drb = reg_min + (dimm << 2);
