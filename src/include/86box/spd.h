@@ -135,6 +135,7 @@ extern void spd_write_drbs(uint8_t *regs, uint8_t reg_min, uint8_t reg_max, uint
 extern void spd_write_drbs_with_ext(uint8_t *regs, uint8_t reg_min, uint8_t reg_max, uint8_t drb_unit);
 extern void spd_write_drbs_interleaved(uint8_t *regs, uint8_t reg_min, uint8_t reg_max, uint8_t drb_unit);
 extern void spd_write_drbs_ali1621(uint8_t *regs, uint8_t reg_min, uint8_t reg_max);
+extern void spd_write_drbs_intel_815ep(uint8_t *regs);
 
 /* 815EP Memory Hack Specific */
 extern void intel_815ep_spd_init(); /* Initialize the SPD (For the Machines) */
