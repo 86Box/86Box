@@ -75,15 +75,10 @@ RendererStack::RendererStack(QWidget *parent, int monitor_index)
     if (!mouse_type || (mouse_type[0] == '\0') || !stricmp(mouse_type, "auto")) {
         if (QApplication::platformName().contains("wayland"))
             strcpy(auto_mouse_type, "wayland");
-#   if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
         else if (QApplication::platformName() == "eglfs")
             strcpy(auto_mouse_type, "evdev");
         else if (QApplication::platformName() == "xcb")
             strcpy(auto_mouse_type, "xinput2");
-#   else
-        else if (QApplication::platformName() == "eglfs" || QApplication::platformName() == "xcb")
-            strcpy(auto_mouse_type, "evdev");
-#   endif
         else
             auto_mouse_type[0] = '\0';
         mouse_type = auto_mouse_type;
