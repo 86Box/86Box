@@ -81,7 +81,12 @@ static char	flash_path[1024];
 #define SST39SF040		0xb700
 
 #define SST49LF002      0x5700
+#define SST49LF003      0x1b00
 #define SST49LF004      0x6000
+#define SST49LF008      0x5a00
+#define SST49LF030      0x1c00
+#define SST49LF160      0x4c00
+#define SST49LF016      0x5c00
 
 #define WINBOND			0xda	/* Winbond Manufacturer's ID */
 #define W29C020			0x4500
@@ -89,7 +94,10 @@ static char	flash_path[1024];
 #define SIZE_512K		0x010000
 #define SIZE_1M			0x020000
 #define SIZE_2M			0x040000
+#define SIZE_3M			0x030000
 #define SIZE_4M			0x080000
+#define SIZE_8M			0x100000
+#define SIZE_16M		0x200000
 
 
 static void
@@ -589,11 +597,82 @@ const device_t sst_flash_49lf002_device = {
     .config = NULL
 };
 
+const device_t sst_flash_49lf003_device = {
+    .name = "SST 49LF003 Firmware Hub",
+    .internal_name = "sst_flash_49lf003",
+    .flags = 0,
+    .local = SST | SST49LF003 | SIZE_3M,
+    .init = sst_init,
+    .close = sst_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
+};
+
+const device_t sst_flash_49lf030_device = {
+    .name = "SST 49LF030 Firmware Hub",
+    .internal_name = "sst_flash_49lf030",
+    .flags = 0,
+    .local = SST | SST49LF030 | SIZE_3M,
+    .init = sst_init,
+    .close = sst_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
+};
+
 const device_t sst_flash_49lf004_device = {
     .name = "SST 49LF004 Firmware Hub",
     .internal_name = "sst_flash_49lf004",
     .flags = 0,
     .local = SST | SST49LF004 | SIZE_4M,
+    .init = sst_init,
+    .close = sst_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
+};
+
+const device_t sst_flash_49lf008_device = {
+    .name = "SST 49LF008 Firmware Hub",
+    .internal_name = "sst_flash_49lf008",
+    .flags = 0,
+    .local = SST | SST49LF008 | SIZE_8M,
+    .init = sst_init,
+    .close = sst_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
+};
+
+const device_t sst_flash_49lf016_device = {
+    .name = "SST 49LF016 Firmware Hub",
+    .internal_name = "sst_flash_49lf016",
+    .flags = 0,
+    .local = SST | SST49LF016 | SIZE_16M,
+    .init = sst_init,
+    .close = sst_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
+};
+
+const device_t sst_flash_49lf160_device = {
+
+    .name = "SST 49LF160 Firmware Hub",
+    .internal_name = "sst_flash_49lf160",
+    .flags = 0,
+    .local = SST | SST49LF160 | SIZE_16M,
     .init = sst_init,
     .close = sst_close,
     .reset = NULL,
