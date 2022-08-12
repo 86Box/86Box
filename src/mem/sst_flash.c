@@ -81,9 +81,12 @@ static char	flash_path[1024];
 #define SST39SF040		0xb700
 
 #define SST49LF002      0x5700
+#define SST49LF020      0x5200
 #define SST49LF003      0x1b00
 #define SST49LF004      0x6000
+#define SST49LF040      0x5100
 #define SST49LF008      0x5a00
+#define SST49LF080      0x5b00
 #define SST49LF030      0x1c00
 #define SST49LF160      0x4c00
 #define SST49LF016      0x5c00
@@ -583,11 +586,26 @@ const device_t sst_flash_39sf040_device = {
  * implementation. We just contain the ID's so the BIOS can do ESCD & DMI writes with no
  * worries.
 */
+
 const device_t sst_flash_49lf002_device = {
     .name = "SST 49LF002 Firmware Hub",
     .internal_name = "sst_flash_49lf002",
     .flags = 0,
     .local = SST | SST49LF002 | SIZE_2M,
+    .init = sst_init,
+    .close = sst_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
+};
+
+const device_t sst_flash_49lf020_device = {
+    .name = "SST 49LF020 Firmware Hub",
+    .internal_name = "sst_flash_49lf0020",
+    .flags = 0,
+    .local = SST | SST49LF020 | SIZE_2M,
     .init = sst_init,
     .close = sst_close,
     .reset = NULL,
@@ -639,11 +657,39 @@ const device_t sst_flash_49lf004_device = {
     .config = NULL
 };
 
+const device_t sst_flash_49lf040_device = {
+    .name = "SST 49LF040 Firmware Hub",
+    .internal_name = "sst_flash_49lf040",
+    .flags = 0,
+    .local = SST | SST49LF040 | SIZE_4M,
+    .init = sst_init,
+    .close = sst_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
+};
+
 const device_t sst_flash_49lf008_device = {
     .name = "SST 49LF008 Firmware Hub",
     .internal_name = "sst_flash_49lf008",
     .flags = 0,
     .local = SST | SST49LF008 | SIZE_8M,
+    .init = sst_init,
+    .close = sst_close,
+    .reset = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
+};
+
+const device_t sst_flash_49lf080_device = {
+    .name = "SST 49LF080 Firmware Hub",
+    .internal_name = "sst_flash_49lf080",
+    .flags = 0,
+    .local = SST | SST49LF080 | SIZE_8M,
     .init = sst_init,
     .close = sst_close,
     .reset = NULL,
