@@ -32,11 +32,14 @@ extern const device_t sst_flash_39sf040_device;
 
 extern const device_t sst_flash_49lf002_device;
 extern const device_t sst_flash_49lf020_device;
+extern const device_t sst_flash_49lf020a_device;
 extern const device_t sst_flash_49lf003_device;
 extern const device_t sst_flash_49lf030_device;
 extern const device_t sst_flash_49lf004_device;
+extern const device_t sst_flash_49lf004c_device;
 extern const device_t sst_flash_49lf040_device;
 extern const device_t sst_flash_49lf008_device;
+extern const device_t sst_flash_49lf008c_device;
 extern const device_t sst_flash_49lf080_device;
 extern const device_t sst_flash_49lf016_device;
 extern const device_t sst_flash_49lf160_device;
