@@ -635,7 +635,6 @@ spd_write_drbs_ali1621(uint8_t *regs, uint8_t reg_min, uint8_t reg_max)
     }
 }
 
-
 void
 spd_write_drbs_intel_815ep(uint8_t *regs)
 {

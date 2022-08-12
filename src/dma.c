@@ -1174,7 +1174,6 @@ dma_alias_set_piix(void)
 		  dma_page_read,NULL,NULL, dma_page_write,NULL,NULL, NULL);
 }
 
-
 void
 dma_lpc_init(void) /* Addresses LPC DMA uses */
 {
@@ -1195,7 +1194,6 @@ dma_lpc_init(void) /* Addresses LPC DMA uses */
     io_sethandler(0x109C, 3,
 		  dma_page_read,NULL,NULL, dma_page_write,NULL,NULL, NULL);
 }
-
 
 void
 dma_alias_remove(void)

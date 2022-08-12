@@ -360,7 +360,6 @@ acpi_reg_read_intel(int size, uint16_t addr, void *p)
     return ret;
 }
 
-
 static uint32_t
 acpi_reg_read_intel_ich2(int size, uint16_t addr, void *p)
 {
@@ -436,7 +435,6 @@ acpi_reg_read_intel_ich2(int size, uint16_t addr, void *p)
 #endif
     return ret;
 }
-
 
 static uint32_t
 acpi_reg_read_via_common(int size, uint16_t addr, void *p)
@@ -891,7 +889,6 @@ acpi_reg_write_intel(int size, uint16_t addr, uint8_t val, void *p)
     }
 }
 
-
 static void
 acpi_reg_write_intel_ich2(int size, uint16_t addr, uint8_t val, void *p)
 {
@@ -983,7 +980,6 @@ acpi_reg_write_intel_ich2(int size, uint16_t addr, uint8_t val, void *p)
         break;
     }
 }
-
 
 static void
 acpi_reg_write_via_common(int size, uint16_t addr, uint8_t val, void *p)
@@ -1605,13 +1601,11 @@ acpi_set_nvr(acpi_t *dev, nvr_t *nvr)
     dev->nvr = nvr;
 }
 
-
 void
 acpi_set_tco(acpi_t *dev, tco_t *tco)
 {
     dev->tco = tco;
 }
-
 
 void
 acpi_set_trap_update(acpi_t *dev, void (*update)(void *priv), void *priv)
