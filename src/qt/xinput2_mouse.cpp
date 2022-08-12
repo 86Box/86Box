@@ -81,8 +81,7 @@ void xinput2_proc()
     Window win;
     win = DefaultRootWindow(disp);
 
-    // XIAllMasterDevices doesn't work for click-and-drag operations.
-    ximask.deviceid = XIAllDevices;
+    ximask.deviceid = XIAllMasterDevices;
     ximask.mask_len = XIMaskLen(XI_LASTEVENT);
     ximask.mask = (unsigned char*)calloc(ximask.mask_len, sizeof(unsigned char));
 
@@ -166,7 +165,7 @@ void xinput2_init()
         qWarning() << "Cannot open current X11 display";
         return;
     }
-    auto event = 0, err = 0, minor = 0, major = 2;
+    auto event = 0, err = 0, minor = 1, major = 2;
     if (XQueryExtension(disp, "XInputExtension", &xi2opcode, &event, &err))
     {
         if (XIQueryVersion(disp, &major, &minor) == Success)
