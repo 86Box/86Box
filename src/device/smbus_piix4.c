@@ -344,10 +344,10 @@ unknown_protocol:
 			}
 
 			/* Finish transfer. */
-            if (dev->local == SMBUS_INTEL_ICH2) // ICH2 SMBus specific. Transfer on Byte command doesn't stop till their specific points.
+            if (dev->local == SMBUS_INTEL_ICH2) { // ICH2 SMBus specific. Transfer on Byte command doesn't stop till their specific points.
                 if (!dev->byte_rw)
                     i2c_stop(i2c_smbus, smbus_addr);
-            else
+            } else
                 i2c_stop(i2c_smbus, smbus_addr);
 		}
 		break;

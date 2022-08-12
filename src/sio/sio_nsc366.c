@@ -221,12 +221,14 @@ nsc366_write(uint16_t addr, uint8_t val, void *priv)
             case 0x20 ... 0x2d:
                 switch (dev->index - 0x20) {
                     case 0x01:
-                        if (!dev->siofc_lock)
+                        if (!dev->siofc_lock) {
                             if (val & 0x80) {
                                 dev->sio_config[dev->index - 0x20] = val | 0x80;
                                 dev->siofc_lock = 1;
-                            } else
+                            } else {
                                 dev->sio_config[dev->index - 0x20] = val;
+                            }
+                        }
                         break;
 
                     case 0x02:

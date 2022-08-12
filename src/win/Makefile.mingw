@@ -539,7 +539,8 @@ MAINOBJ		:= 86box.o config.o log.o random.o timer.o io.o acpi.o apm.o dma.o ddma
 		   usb.o device.o nvr.o nvr_at.o nvr_ps2.o machine_status.o \
 		   $(VNCOBJ)
 
-MEMOBJ		:= catalyst_flash.o i2c_eeprom.o intel_flash.o mem.o rom.o smram.o spd.o sst_flash.o
+MEMOBJ		:= catalyst_flash.o i2c_eeprom.o intel_flash.o mem.o rom.o smram.o spd.o sst_flash.o \
+               815ep_spd_hack.o
 
 CPUOBJ		:= $(DYNARECOBJ) \
 		    $(CGTOBJ) \

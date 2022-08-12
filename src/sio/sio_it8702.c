@@ -268,14 +268,13 @@ it8702_read(uint16_t addr, void *priv)
 {
     it8702_t *dev = (it8702_t *) priv;
 
-    if(addr == 0x2e)
+    if(addr == 0x2e) {
         return dev->index;
-    else if(addr == 0x2f) {
-        if(dev->index == 0x02) /* The Configure Control register is Write Only */
+    } else if(addr == 0x2f) {
+        if(dev->index == 0x02) { /* The Configure Control register is Write Only */
             return 0xff;
-        else
-            switch(dev->index)
-            {
+		} else {
+            switch(dev->index) {
                 case 0x07:
                     return dev->ldn;
                 
@@ -315,7 +314,10 @@ it8702_read(uint16_t addr, void *priv)
                 default:
                     return 0xff;
             }
+        }
     }
+
+    return 0xff;
 }
 
 
