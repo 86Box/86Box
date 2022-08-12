@@ -39,7 +39,6 @@ extern "C" {
 #include <QPushButton>
 #include <QStringBuilder>
 #include <QStringList>
-#include <QTimer>
 
 #include "qt_harddrive_common.hpp"
 #include "qt_settings_bus_tracking.hpp"
