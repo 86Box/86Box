@@ -25,10 +25,23 @@ extern const device_t intel_flash_bxb_device;
 
 extern const device_t sst_flash_29ee010_device;
 extern const device_t sst_flash_29ee020_device;
+
+extern const device_t winbond_flash_w29c512_device;
+extern const device_t winbond_flash_w29c010_device;
 extern const device_t winbond_flash_w29c020_device;
+extern const device_t winbond_flash_w29c040_device;
+
+extern const device_t sst_flash_39sf512_device;
 extern const device_t sst_flash_39sf010_device;
 extern const device_t sst_flash_39sf020_device;
 extern const device_t sst_flash_39sf040_device;
+
+extern const device_t sst_flash_39lf512_device;
+extern const device_t sst_flash_39lf010_device;
+extern const device_t sst_flash_39lf020_device;
+extern const device_t sst_flash_39lf040_device;
+extern const device_t sst_flash_39lf080_device;
+extern const device_t sst_flash_39lf016_device;
 
 extern const device_t sst_flash_49lf002_device;
 extern const device_t sst_flash_49lf020_device;
