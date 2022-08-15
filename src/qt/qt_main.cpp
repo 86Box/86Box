@@ -173,6 +173,7 @@ int main(int argc, char* argv[]) {
         return 0;
     }
 
+    bool startMaximized = window_remember && monitor_settings[0].mon_window_maximized;
     fprintf(stderr, "Qt: version %s, platform \"%s\"\n", qVersion(), QApplication::platformName().toUtf8().data());
     ProgSettings::loadTranslators(&app);
 #ifdef Q_OS_WINDOWS
@@ -200,7 +201,12 @@ int main(int argc, char* argv[]) {
     discord_load();
 
     main_window = new MainWindow();
-    main_window->show();
+    if (startMaximized) {
+        main_window->showMaximized();
+    } else {
+        main_window->show();
+    }
+
     app.installEventFilter(main_window);
 
 #ifdef Q_OS_WINDOWS

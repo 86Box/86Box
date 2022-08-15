@@ -48,6 +48,7 @@
 
 extern "C" {
 #include <86box/86box.h>
+#include <86box/config.h>
 #include <86box/mouse.h>
 #include <86box/plat.h>
 #include <86box/video.h>
@@ -481,3 +482,10 @@ void RendererStack::closeEvent(QCloseEvent* event)
     main_window->close();
 }
 
+void RendererStack::changeEvent(QEvent *event)
+{
+    if (m_monitor_index != 0 && isVisible()) {
+        monitor_settings[m_monitor_index].mon_window_maximized = isMaximized();
+        config_save();
+    }
+}
