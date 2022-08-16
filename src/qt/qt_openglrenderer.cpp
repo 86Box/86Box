@@ -254,7 +254,7 @@ OpenGLRenderer::initializeExtensions()
 
         glBufferStorage = (PFNGLBUFFERSTORAGEEXTPROC_LOCAL) context->getProcAddress(context->hasExtension("GL_EXT_buffer_storage") ? "glBufferStorageEXT" : "glBufferStorage");
         if (!glBufferStorage)
-            glBufferStorage = glBufferStorage = (PFNGLBUFFERSTORAGEEXTPROC_LOCAL) context->getProcAddress("glBufferStorage");
+            glBufferStorage = (PFNGLBUFFERSTORAGEEXTPROC_LOCAL) context->getProcAddress("glBufferStorage");
     }
 #endif
 }

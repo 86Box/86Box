@@ -608,6 +608,7 @@ void HarddiskDialog::onExistingFileSelected(const QString &fileName) {
 }
 
 void HarddiskDialog::recalcSize() {
+    if (disallowSizeModifications) return;
     uint64_t size = (static_cast<uint64_t>(cylinders_) * static_cast<uint64_t>(heads_) * static_cast<uint64_t>(sectors_)) << 9;
     ui->lineEditSize->setText(QString::number(size >> 20));
 }
@@ -731,6 +732,7 @@ void HarddiskDialog::on_comboBoxBus_currentIndexChanged(int index) {
 }
 
 void HarddiskDialog::on_lineEditSize_textEdited(const QString &text) {
+    disallowSizeModifications = true;
     uint32_t size = text.toUInt();
     /* This is needed to ensure VHD standard compliance. */
     hdd_image_calc_chs(&cylinders_, &heads_, &sectors_, size);
@@ -742,6 +744,8 @@ void HarddiskDialog::on_lineEditSize_textEdited(const QString &text) {
     checkAndAdjustCylinders();
     checkAndAdjustHeads();
     checkAndAdjustSectors();
+
+    disallowSizeModifications = false;
 }
 
 void HarddiskDialog::on_lineEditCylinders_textEdited(const QString &text) {
