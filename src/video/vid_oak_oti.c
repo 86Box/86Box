@@ -51,7 +51,7 @@ typedef struct {
     rom_t bios_rom;
 
     int index;
-    uint8_t regs[32];
+    uint8_t regs[128];
 
     uint8_t chip_id;
     uint8_t pos;
