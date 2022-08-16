@@ -343,6 +343,61 @@ oti_pos_in(uint16_t addr, void *p)
 
 
 static float
+oti_getclock_087(int clock)
+{
+    float ret = 0.0;
+
+    switch (clock) {
+	case 0:
+    case 8:
+	default:
+		ret = 25200000.0;
+		break;
+    case 9:
+	case 1:
+		ret = 28300000.0;
+		break;
+    case 11:
+    case 2:
+        ret = 65000000.0;
+        break;
+    case 3:
+        ret = 44900000.0;
+        break;
+	case 4:
+		ret = 28300000.0;
+		break;
+	case 5:
+		ret = 36000000.0;
+		break;
+    case 6:
+        ret = 40000000.0;
+        break;
+    case 7:
+        ret = 36000000.0;
+        break;
+    case 10:
+        ret = 78000000.0;
+        break;
+    case 12:
+        ret = 63000000.0;
+        break;
+    case 13:
+        ret = 72000000.0;
+        break;
+    case 14:
+        ret = 40000000.0;
+        break;
+    case 15:
+        ret = 50000000.0;
+        break;
+    }
+
+    return ret;
+}
+
+
+static float
 oti_getclock(int clock)
 {
     float ret = 0.0;
