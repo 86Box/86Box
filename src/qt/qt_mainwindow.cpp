@@ -657,6 +657,9 @@ void MainWindow::initRendererMonitorSlot(int monitor_index)
                 monitor_settings[monitor_index].mon_window_w > 2048 ? 2048 : monitor_settings[monitor_index].mon_window_w,
                 monitor_settings[monitor_index].mon_window_h > 2048 ? 2048 : monitor_settings[monitor_index].mon_window_h);
             }
+            if (monitor_settings[monitor_index].mon_window_maximized) {
+                secondaryRenderer->showMaximized();
+            }
             secondaryRenderer->switchRenderer((RendererStack::Renderer)vid_api);
         }
 
@@ -2070,6 +2073,10 @@ void MainWindow::changeEvent(QEvent* event)
     }
 #endif
     QWidget::changeEvent(event);
+    if (isVisible()) {
+        monitor_settings[0].mon_window_maximized = isMaximized();
+        config_save();
+    }
 }
 
 void MainWindow::on_actionRenderer_options_triggered()

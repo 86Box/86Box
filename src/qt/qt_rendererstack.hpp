@@ -32,6 +32,7 @@ public:
     void wheelEvent(QWheelEvent *event) override;
     void leaveEvent(QEvent *event) override;
     void closeEvent(QCloseEvent *event) override;
+    void changeEvent(QEvent* event) override;
     void resizeEvent(QResizeEvent *event) override
     {
         onResize(event->size().width(), event->size().height());

@@ -77,8 +77,8 @@ private:
     static constexpr int BUFFERBYTES  = 16777216; /* Pixel is 4 bytes. */
     static constexpr int BUFFERCOUNT  = 3;        /* How many buffers to use for pixel transfer (2-3 is commonly recommended). */
 
-    OpenGLOptions *options;
     QTimer        *renderTimer;
+    OpenGLOptions *options;
 
     QString glslVersion;
 
