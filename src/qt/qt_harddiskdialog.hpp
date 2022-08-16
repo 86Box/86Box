@@ -49,6 +49,8 @@ private:
     uint32_t max_sectors = 0;
     uint32_t max_heads = 0;
     uint32_t max_cylinders = 0;
+    
+    bool disallowSizeModifications = false;
 
     bool checkAndAdjustCylinders();
     bool checkAndAdjustHeads();

@@ -649,10 +649,14 @@ load_monitor(int monitor_index)
     if (p == NULL)
 	p = temp;
 
-    if (window_remember)
+    if (window_remember) {
         sscanf(p, "%i, %i, %i, %i",
                &monitor_settings[monitor_index].mon_window_x, &monitor_settings[monitor_index].mon_window_y,
                &monitor_settings[monitor_index].mon_window_w, &monitor_settings[monitor_index].mon_window_h);
+        monitor_settings[monitor_index].mon_window_maximized = !!config_get_int(cat, "window_maximized", 0);
+    } else {
+        monitor_settings[monitor_index].mon_window_maximized = 0;
+    }
 }
 
 /* Load "Machine" section. */
@@ -2415,8 +2419,15 @@ save_monitor(int monitor_index)
 		monitor_settings[monitor_index].mon_window_w, monitor_settings[monitor_index].mon_window_h);
 
         config_set_string(cat, "window_coordinates", temp);
-    } else
+        if (monitor_settings[monitor_index].mon_window_maximized != 0) {
+            config_set_int(cat, "window_maximized", monitor_settings[monitor_index].mon_window_maximized);
+        } else {
+            config_delete_var(cat, "window_maximized");
+        }
+    } else {
         config_delete_var(cat, "window_coordinates");
+        config_delete_var(cat, "window_maximized");
+    }
 }
 
 /* Save "Machine" section. */
