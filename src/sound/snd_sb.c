@@ -1654,16 +1654,16 @@ sb_2_init(const device_t *info)
             io_sethandler(addr, 0x0002,
                           sb->opl.read, NULL, NULL,
                           sb->opl.write, NULL, NULL,
-                          sb->opl.write);
+                          sb->opl.priv);
         }
         io_sethandler(addr + 8, 0x0002,
                       sb->opl.read, NULL, NULL,
                       sb->opl.write, NULL, NULL,
-                      sb->opl.write);
+                      sb->opl.priv);
         io_sethandler(0x0388, 0x0002,
                       sb->opl.read, NULL, NULL,
                       sb->opl.write, NULL, NULL,
-                      sb->opl.write);
+                      sb->opl.priv);
     }
 
     if (sb->cms_enabled) {
