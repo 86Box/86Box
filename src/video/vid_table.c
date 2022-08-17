@@ -124,6 +124,7 @@ video_cards[] = {
     { &oti037c_device                                },
     { &oti067_device                                 },
     { &oti077_device                                 },
+    { &oti087_device                                 },
     { &paradise_pvga1a_device                        },
     { &paradise_wd90c11_device                       },
     { &paradise_wd90c30_device                       },

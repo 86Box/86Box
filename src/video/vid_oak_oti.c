@@ -35,6 +35,11 @@
 #define BIOS_067_M300_08_PATH	"roms/machines/m30008/EVC_BIOS.ROM"
 #define BIOS_067_M300_15_PATH	"roms/machines/m30015/EVC_BIOS.ROM"
 #define BIOS_077_PATH			"roms/video/oti/oti077.vbi"
+#define BIOS_087_PATH           "roms/video/oti/oakoti087wdparadise.BIN"
+
+// Register index defines
+#define OTI_REG_CONFIG_1 0x7
+#define OTI_REG_CONFIG_2 0x8
 
 
 enum {
@@ -42,7 +47,8 @@ enum {
     OTI_067 = 2,
     OTI_067_AMA932J,
     OTI_067_M300 = 4,
-    OTI_077 = 5
+    OTI_077 = 5,
+    OTI_087 = 6
 };
 
 typedef struct {
@@ -91,7 +97,9 @@ oti_out(uint16_t addr, uint8_t val, void *p)
 	case 0x3c6: case 0x3c7: case 0x3c8: case 0x3c9:
 		if (oti->chip_id == OTI_077)
 			sc1148x_ramdac_out(addr, 0, val, svga->ramdac, svga);
-		else
+		else if (oti->chip_id == OTI_087)
+            bt48x_ramdac_out(addr, 0, 0, val, svga->ramdac, svga);
+        else
 			svga_out(addr, val, svga);
 		return;
 
@@ -138,10 +146,20 @@ oti_out(uint16_t addr, uint8_t val, void *p)
 		idx = oti->index;
 		if (!oti->chip_id)
 			idx &= 0x1f;
+        if (idx == 7 && oti->chip_id == OTI_087) return;
 		oti->regs[idx] = val;
 		switch (idx) {
+            case 0x6:
+            {
+                if (oti->chip_id == OTI_087) {
+                    svga->miscout = (svga->miscout & ~0xC) | ((val & 0x3) << 2);
+                    oti->regs[0xD] = (oti->regs[0xD] & ~0x20) | (!!(val & 0x4) << 5);
+                    svga_recalctimings(svga);
+                }
+                break;
+            }
 			case 0xD:
-				if (oti->chip_id == OTI_067) {
+                if (oti->chip_id == OTI_067) {
 					svga->vram_display_mask = (val & 0x0c) ? oti->vram_mask : 0x3ffff;
 					if (!(val & 0x80))
 						svga->vram_display_mask = 0x3ffff;
@@ -177,23 +195,38 @@ oti_out(uint16_t addr, uint8_t val, void *p)
 						mem_mapping_enable(&svga->mapping);
 					else
 						mem_mapping_disable(&svga->mapping);
-				} else {
+				} else if (oti->chip_id != OTI_087) {
 					if (val & 0x80)
 						mem_mapping_disable(&svga->mapping);
 					else
 						mem_mapping_enable(&svga->mapping);
-				}
+				} else {
+                    oti->regs[0x20] = (oti->regs[0x20] & ~0x7) | (val & 0x7);
+                }
 				break;
 
 			case 0x11:
 				svga->read_bank = (val & 0xf) * 65536;
 				svga->write_bank = (val >> 4) * 65536;
 				break;
+
+            case 0x23:
+            case 0x25:
+                svga->read_bank = (val & 0x1f) * 65536;
+                oti->regs[0x11] = (oti->regs[0x11] & 0xF0) | (val & 0x0F);
+                if (idx != 0x25) break;
+
+            case 0x24:
+                svga->write_bank = (val & 0x1f) * 65536;
+                oti->regs[0x11] = (oti->regs[0x11] & 0x0F) | (val & 0xF0);
+                break;
 		}
 		return;
     }
 
     svga_out(addr, val, svga);
+
+    if (addr == 0x3DF) pclog("OAK: Write %d (0x%X), %d (0x%X), idx = %d\n", addr, addr, val, val, oti->index);
 }
 
 
@@ -226,6 +259,8 @@ oti_in(uint16_t addr, void *p)
 		break;
 
 	case 0x3c6: case 0x3c7: case 0x3c8: case 0x3c9:
+        if (oti->chip_id == OTI_087)
+            return bt48x_ramdac_in(addr, 0, 0, svga->ramdac, svga);
 		if (oti->chip_id == OTI_077)
 			return sc1148x_ramdac_in(addr, 0, svga->ramdac, svga);
 		return svga_in(addr, svga);
@@ -304,6 +339,13 @@ oti_in(uint16_t addr, void *p)
 			temp = oti->dipswitch_val;
 		else
 			temp = oti->regs[idx];
+        if (oti->chip_id == OTI_087) {
+            switch (idx) {
+                case 0x6:
+                    temp = ((svga->miscout >> 2) & 3) | ((oti->regs[0x0d] & 0x20) >> 3) | (oti->chip_id == OTI_087 ? (oti->regs[0x6] & 0x8) : 0);
+                    break;
+            }
+        }
 		break;
 
 	default:
@@ -311,6 +353,7 @@ oti_in(uint16_t addr, void *p)
 		break;
     }
 
+    if (addr == 0x3DF) pclog("OAK: Read %d (0x%X), %d (0x%X), idx = %d\n", addr, addr, temp, temp, idx);
     return(temp);
 }
 
@@ -429,13 +472,13 @@ static void
 oti_recalctimings(svga_t *svga)
 {
     oti_t *oti = (oti_t *)svga->p;
-    int clk_sel = ((svga->miscout >> 2) & 3) | ((oti->regs[0x0d] & 0x20) >> 3);
+    int clk_sel = ((svga->miscout >> 2) & 3) | ((oti->regs[0x0d] & 0x20) >> 3) | (oti->chip_id == OTI_087 ? (oti->regs[0x6] & 0x8) : 0);
 
-    svga->clock = (cpuclock * (double)(1ull << 32)) / oti_getclock(clk_sel);
+    svga->clock = (cpuclock * (double)(1ull << 32)) / (oti->chip_id == OTI_087 ? oti_getclock_087(clk_sel) : oti_getclock(clk_sel));
 
     if (oti->chip_id > 0) {
 	if (oti->regs[0x14] & 0x08) svga->ma_latch |= 0x10000;
-	if (oti->regs[0x16] & 0x08) svga->ma_latch |= 0x20000;
+	if ((oti->regs[0x16] & 0x08) && oti->chip_id != OTI_087) svga->ma_latch |= 0x20000;
 
 	if (oti->regs[0x14] & 0x01) svga->vtotal += 0x400;
 	if (oti->regs[0x14] & 0x02) svga->dispend += 0x400;
@@ -446,12 +489,31 @@ oti_recalctimings(svga_t *svga)
 
     if ((oti->regs[0x0d] & 0x0c) && !(oti->regs[0x0d] & 0x10)) svga->rowoffset <<= 1;
 
-    if (svga->bpp == 16) {
+    if (svga->bpp == 24) {
+    svga->render = svga_render_24bpp_highres;
+    svga->hdisp >>= 1;
+    } else if (svga->bpp == 16) {
 	svga->render = svga_render_16bpp_highres;
 	svga->hdisp >>= 1;
     } else if (svga->bpp == 15) {
 	svga->render = svga_render_15bpp_highres;
 	svga->hdisp >>= 1;
+    }
+
+    if (oti->chip_id == OTI_087) {
+        if (oti->regs[0x21] & 0x2) {
+            svga->hdisp *= 3;
+            svga->hdisp_on *= 3;
+            svga->htotal *= 3;
+            svga->hblankend *= 3;
+            svga->hblankstart *= 3;
+        } else if (oti->regs[0x21] & 0x1) {
+            svga->hdisp *= 2;
+            svga->hdisp_on *= 2;
+            svga->htotal *= 2;
+            svga->hblankend *= 2;
+            svga->hblankstart *= 2;
+        }
     }
 }
 
@@ -502,6 +564,13 @@ oti_init(const device_t *info)
 		oti->pos = 0x08;	/* Tell the BIOS the I/O ports are already enabled to avoid a double I/O handler mess. */
 		io_sethandler(0x46e8, 1, oti_pos_in, NULL, NULL, oti_pos_out, NULL, NULL, oti);
 		break;
+    
+    case OTI_087:
+        romfn = BIOS_087_PATH;
+        oti->vram_size = device_get_config_int("memory");
+        oti->pos = 0x08;
+		io_sethandler(0x46e8, 1, oti_pos_in, NULL, NULL, oti_pos_out, NULL, NULL, oti);
+        break;
     }
 
     if (romfn != NULL) {
@@ -516,14 +585,22 @@ oti_init(const device_t *info)
     svga_init(info, &oti->svga, oti, oti->vram_size << 10,
 	      oti_recalctimings, oti_in, oti_out, NULL, NULL);
 
-	if (oti->chip_id == OTI_077)
+    if (oti->chip_id == OTI_087) {
+        oti->svga.ramdac = device_add(&bt484_ramdac_device);
+    } else if (oti->chip_id == OTI_077) {
 		oti->svga.ramdac = device_add(&sc11487_ramdac_device); /*Actually a 82c487, probably a clone.*/
-
+    }
     io_sethandler(0x03c0, 32,
 		  oti_in, NULL, NULL, oti_out, NULL, NULL, oti);
 
     oti->svga.miscout = 1;
 	oti->svga.packed_chain4 = 1;
+
+    if (oti->chip_id == OTI_087) {
+        oti->regs[OTI_REG_CONFIG_1] = 6;
+        if (info->flags & DEVICE_VLB) oti->regs[OTI_REG_CONFIG_1] |= 0x80;
+        oti->regs[OTI_REG_CONFIG_2] = 0x8;
+    }
 
     return(oti);
 }
@@ -576,6 +653,13 @@ static int
 oti067_077_available(void)
 {
     return(rom_present(BIOS_077_PATH));
+}
+
+
+static int
+oti067_087_available(void)
+{
+    return(rom_present(BIOS_087_PATH));
 }
 
 
@@ -734,6 +818,20 @@ const device_t oti077_device = {
     .close = oti_close,
     .reset = NULL,
     { .available = oti067_077_available },
+    .speed_changed = oti_speed_changed,
+    .force_redraw = oti_force_redraw,
+    .config = oti077_config
+};
+
+const device_t oti087_device = {
+    .name = "Oak OTI-087",
+    .internal_name = "oti087",
+    .flags = DEVICE_ISA,
+    .local = 6,
+    .init = oti_init,
+    .close = oti_close,
+    .reset = NULL,
+    { .available = oti067_087_available },
     .speed_changed = oti_speed_changed,
     .force_redraw = oti_force_redraw,
     .config = oti077_config

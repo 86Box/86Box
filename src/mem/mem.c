@@ -2507,6 +2507,15 @@ mem_mapping_enable(mem_mapping_t *map)
 
 
 void
+mem_mapping_set_enabled(mem_mapping_t *map, int enabled)
+{
+	map->enable = !!enabled;
+
+	mem_mapping_recalc(map->base, map->size);
+}
+
+
+void
 mem_set_access(uint8_t bitmap, int mode, uint32_t base, uint32_t size, uint16_t access)
 {
     uint32_t c;
