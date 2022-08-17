@@ -226,7 +226,7 @@ oti_out(uint16_t addr, uint8_t val, void *p)
 
     svga_out(addr, val, svga);
 
-    if (addr == 0x3DF) pclog("OAK: Write %d (0x%X), %d (0x%X), idx = %d\n", addr, addr, val, val, oti->index);
+    if (addr == 0x3DF) pclog("OAK: Write reg value %d (0x%X), idx = 0x%X\n", val, val, oti->index);
 }
 
 
@@ -353,7 +353,7 @@ oti_in(uint16_t addr, void *p)
 		break;
     }
 
-    if (addr == 0x3DF) pclog("OAK: Read %d (0x%X), %d (0x%X), idx = %d\n", addr, addr, temp, temp, idx);
+    if (addr == 0x3DF) pclog("OAK: Read reg value %d (0x%X), idx = 0x%X\n", temp, temp, idx);
     return(temp);
 }
 
