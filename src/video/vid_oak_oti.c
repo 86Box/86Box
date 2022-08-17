@@ -137,7 +137,7 @@ oti_out(uint16_t addr, uint8_t val, void *p)
 
 	case 0x3DE:
 		if (oti->chip_id)
-			oti->index = val & 0x1f;
+			oti->index = val & (oti->chip_id == OTI_087 ? 0x7f : 0x1f);
 		else
 			oti->index = val;
 		return;
