@@ -326,7 +326,7 @@ oti_in(uint16_t addr, void *p)
 		break;
 
 	case 0x3DE:
-		temp = oti->index;
+		temp = oti->index & 0x1f;
 		if (oti->chip_id)
 			temp |= (oti->chip_id << 5);
 		break;
