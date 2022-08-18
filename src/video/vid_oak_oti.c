@@ -58,6 +58,7 @@ typedef struct {
 
     int index;
     uint8_t regs[128];
+    uint8_t cpu_latch[8];
 
     uint8_t chip_id;
     uint8_t pos;
@@ -136,8 +137,8 @@ oti_out(uint16_t addr, uint8_t val, void *p)
 		break;
 
 	case 0x3DE:
-		if (oti->chip_id)
-			oti->index = val & (oti->chip_id == OTI_087 ? 0x7f : 0x1f);
+		if (oti->chip_id && oti->chip_id != OTI_087)
+			oti->index = val & 0x1f;
 		else
 			oti->index = val;
 		return;
@@ -146,7 +147,12 @@ oti_out(uint16_t addr, uint8_t val, void *p)
 		idx = oti->index;
 		if (!oti->chip_id)
 			idx &= 0x1f;
-        if (idx == 7 && oti->chip_id == OTI_087) return;
+        if ((idx == 7 || idx == 1 || idx == 6) && oti->chip_id == OTI_087) return;
+        if (idx == 0x36 && oti->chip_id == OTI_087) {
+            oti->cpu_latch[oti->regs[0x35]++] = val;
+            if (oti->regs[0x35] == 8) oti->regs[0x35] = 0;
+            return;
+        }
 		oti->regs[idx] = val;
 		switch (idx) {
             case 0x6:
@@ -206,9 +212,13 @@ oti_out(uint16_t addr, uint8_t val, void *p)
 				break;
 
 			case 0x11:
-				svga->read_bank = (val & 0xf) * 65536;
-				svga->write_bank = (val >> 4) * 65536;
+				svga->read_bank = ((val & 0xf) | (oti->regs[0x23] & 0x10)) * 65536;
+				svga->write_bank = ((val >> 4) | (oti->regs[0x24] & 0x10)) * 65536;
 				break;
+
+            case 0x13:
+                mem_mapping_set_enabled(&oti->bios_rom.mapping, !!(val & 0x20));
+                break;
 
             case 0x23:
             case 0x25:
@@ -221,6 +231,7 @@ oti_out(uint16_t addr, uint8_t val, void *p)
                 oti->regs[0x11] = (oti->regs[0x11] & 0x0F) | (val & 0xF0);
                 break;
 		}
+        pclog("OAK: Write reg value %d (0x%X), idx = 0x%X\n", val, val, oti->index);
 		return;
     }
 
@@ -326,8 +337,8 @@ oti_in(uint16_t addr, void *p)
 		break;
 
 	case 0x3DE:
-		temp = oti->index & 0x1f;
-		if (oti->chip_id)
+		temp = ( oti->chip_id == OTI_087 ? oti->index : oti->index & 0x1f);
+		if (oti->chip_id && oti->chip_id != OTI_087)
 			temp |= (oti->chip_id << 5);
 		break;
 
@@ -341,6 +352,11 @@ oti_in(uint16_t addr, void *p)
 			temp = oti->regs[idx];
         if (oti->chip_id == OTI_087) {
             switch (idx) {
+                case 0x36: {
+                    temp = oti->cpu_latch[oti->regs[0x35]++];
+                    if (oti->regs[0x35] == 8) oti->regs[0x35] = 0;
+                    break;
+                }
                 case 0x6:
                     temp = ((svga->miscout >> 2) & 3) | ((oti->regs[0x0d] & 0x20) >> 3) | (oti->chip_id == OTI_087 ? (oti->regs[0x6] & 0x8) : 0);
                     break;
@@ -600,6 +616,9 @@ oti_init(const device_t *info)
         oti->regs[OTI_REG_CONFIG_1] = 6;
         if (info->flags & DEVICE_VLB) oti->regs[OTI_REG_CONFIG_1] |= 0x80;
         oti->regs[OTI_REG_CONFIG_2] = 0x8;
+        oti->regs[0x13] = 0x20;
+        oti->regs[0x1] = 0x10; /* OTI-087X Chip identification register. */
+        oti->regs[0x0] = 1; /* The main Chip Identification register. */
     }
 
     return(oti);
