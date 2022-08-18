@@ -72,12 +72,12 @@ static char	flash_path[1024];
 
 #define SST			0xbf	/* SST Manufacturer's ID */
 
-#define SST29EE512		0x5d00 x
-#define SST29LE_VE512		0x3d00 x
+#define SST29EE512		0x5d00
+#define SST29LE_VE512		0x3d00
 #define SST29EE010		0x0700
-#define SST29LE_VE010		0x0800 x
+#define SST29LE_VE010		0x0800
 #define SST29EE020		0x1000
-#define SST29LE_VE020		0x1200 x
+#define SST29LE_VE020		0x1200
 
 #define SST39SF512		0xb400
 #define SST39SF010		0xb500
