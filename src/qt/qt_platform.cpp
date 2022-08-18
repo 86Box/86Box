@@ -167,7 +167,7 @@ plat_fopen(const char *path, const char *mode)
 FILE *
 plat_fopen64(const char *path, const char *mode)
 {
-    return fopen(path, mode);
+    return fopen(QString::fromUtf8(path).toLocal8Bit(), mode);
 }
 
 int

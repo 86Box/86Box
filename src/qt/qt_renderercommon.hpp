@@ -37,7 +37,7 @@ public:
 protected:
     bool eventDelegate(QEvent *event, bool &result);
 
-    QRect    source, destination;
+    QRect    source{0, 0, 0, 0}, destination;
     QWidget *parentWidget { nullptr };
 
     std::vector<std::atomic_flag> buf_usage;

@@ -57,11 +57,14 @@ void SoftwareRenderer::onBlit(int buf_idx, int x, int y, int w, int h) {
     auto tval = this;
     void* nuldata = 0;
     if (memcmp(&tval, &nuldata, sizeof(void*)) == 0) return;
+    auto origSource = source;
 
     cur_image = buf_idx;
     buf_usage[(buf_idx + 1) % 2].clear();
 
     source.setRect(x, y, w, h);
+
+    if (source != origSource) onResize(this->width(), this->height());
     update();
 }
 

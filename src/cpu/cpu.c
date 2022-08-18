@@ -1742,9 +1742,11 @@ cpu_CPUID(void)
 				break;
 			case 0x80000000:
 				EAX = 0x80000005;
+				EBX = ECX = EDX = 0;
 				break;
 			case 0x80000001:
 				EAX = CPUID + 0x100;
+				EBX = ECX = 0;
 				EDX = CPUID_FPU | CPUID_VME | CPUID_PSE | CPUID_TSC | CPUID_MSR | CPUID_MCE | CPUID_CMPXCHG8B | CPUID_AMDSEP | CPUID_MMX | CPUID_3DNOW;
 				break;
 			case 0x80000002:	/* Processor name string */
@@ -1760,6 +1762,7 @@ cpu_CPUID(void)
 				EDX = 0x00000000;
 				break;
 			case 0x80000005:	/*Cache information*/
+				EAX = 0;
 				EBX = 0x02800140;	/*TLBs*/
 				ECX = 0x20020220;	/*L1 data cache*/
 				EDX = 0x20020220;	/*L1 instruction cache*/
@@ -1785,9 +1788,11 @@ cpu_CPUID(void)
 				break;
 			case 0x80000000:
 				EAX = 0x80000006;
+				EBX = ECX = EDX = 0;
 				break;
 			case 0x80000001:
 				EAX = CPUID + 0x100;
+				EBX = ECX = 0;
 				EDX = CPUID_FPU | CPUID_VME | CPUID_PSE | CPUID_TSC | CPUID_MSR | CPUID_MCE | CPUID_CMPXCHG8B | CPUID_AMDSEP | CPUID_MMX | CPUID_3DNOW;
 				break;
 			case 0x80000002:	/* Processor name string */
@@ -1803,11 +1808,13 @@ cpu_CPUID(void)
 				EDX = 0x00000000;
 				break;
 			case 0x80000005:	/* Cache information */
+				EAX = 0;
 				EBX = 0x02800140;	/* TLBs */
 				ECX = 0x20020220; /*L1 data cache*/
 				EDX = 0x20020220; /*L1 instruction cache*/
 				break;
 			case 0x80000006:	/* L2 Cache information */
+				EAX = EBX = EDX = 0;
 				ECX = 0x01004220;
 				break;
 			default:
@@ -1832,9 +1839,11 @@ cpu_CPUID(void)
 				break;
 			case 0x80000000:
 				EAX = 0x80000007;
+				EBX = ECX = EDX = 0;
 				break;
 			case 0x80000001:
 				EAX = CPUID + 0x100;
+				EBX = ECX = 0;
 				EDX = CPUID_FPU | CPUID_VME | CPUID_PSE | CPUID_TSC | CPUID_MSR | CPUID_MCE | CPUID_CMPXCHG8B | CPUID_AMDSEP | CPUID_MMX | CPUID_3DNOW;
 				break;
 			case 0x80000002:	/* Processor name string */
@@ -1850,17 +1859,20 @@ cpu_CPUID(void)
 				EDX = 0x00000000;
 				break;
 			case 0x80000005:	/* Cache information */
+				EAX = 0;
 				EBX = 0x02800140;	/* TLBs */
 				ECX = 0x20020220;	/* L1 data cache */
 				EDX = 0x20020220;	/* L1 instruction cache */
 				break;
 			case 0x80000006:	/* L2 Cache information */
+				EAX = EBX = EDX = 0;
 				if (cpu_s->cpu_type == CPU_K6_3P)
 					ECX = 0x01004220;
 				else
 					ECX = 0x00804220;
 				break;
 			case 0x80000007:	/* PowerNow information */
+				EAX = EBX = ECX = 0;
 				EDX = 7;
 				break;
 			default:

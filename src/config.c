@@ -649,10 +649,14 @@ load_monitor(int monitor_index)
     if (p == NULL)
 	p = temp;
 
-    if (window_remember)
+    if (window_remember) {
         sscanf(p, "%i, %i, %i, %i",
                &monitor_settings[monitor_index].mon_window_x, &monitor_settings[monitor_index].mon_window_y,
                &monitor_settings[monitor_index].mon_window_w, &monitor_settings[monitor_index].mon_window_h);
+        monitor_settings[monitor_index].mon_window_maximized = !!config_get_int(cat, "window_maximized", 0);
+    } else {
+        monitor_settings[monitor_index].mon_window_maximized = 0;
+    }
 }
 
 /* Load "Machine" section. */
@@ -969,6 +973,8 @@ load_video(void)
     ibm8514_enabled      = !!config_get_int(cat, "8514a", 0);
     xga_enabled          = !!config_get_int(cat, "xga", 0);
     show_second_monitors = !!config_get_int(cat, "show_second_monitors", 1);
+    video_fullscreen_scale_maximized = !!config_get_int(cat, "video_fullscreen_scale_maximized", 0);
+    
     p                    = config_get_string(cat, "gfxcard_2", NULL);
     if (!p)
         p = "none";
@@ -2413,8 +2419,15 @@ save_monitor(int monitor_index)
 		monitor_settings[monitor_index].mon_window_w, monitor_settings[monitor_index].mon_window_h);
 
         config_set_string(cat, "window_coordinates", temp);
-    } else
+        if (monitor_settings[monitor_index].mon_window_maximized != 0) {
+            config_set_int(cat, "window_maximized", monitor_settings[monitor_index].mon_window_maximized);
+        } else {
+            config_delete_var(cat, "window_maximized");
+        }
+    } else {
         config_delete_var(cat, "window_coordinates");
+        config_delete_var(cat, "window_maximized");
+    }
 }
 
 /* Save "Machine" section. */
@@ -2553,6 +2566,11 @@ save_video(void)
         config_delete_var(cat, "show_second_monitors");
     else
         config_set_int(cat, "show_second_monitors", show_second_monitors);
+
+    if (video_fullscreen_scale_maximized == 0)
+        config_delete_var(cat, "video_fullscreen_scale_maximized");
+    else
+        config_set_int(cat, "video_fullscreen_scale_maximized", video_fullscreen_scale_maximized);
 
     delete_section_if_empty(cat);
 }

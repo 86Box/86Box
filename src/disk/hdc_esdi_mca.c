@@ -863,7 +863,8 @@ esdi_read(uint16_t port, void *priv)
             break;
 
         default:
-            fatal("esdi_read port=%04x\n", port);
+            esdi_mca_log("esdi_read port=%04x\n", port);
+            break;
     }
 
     return (ret);
