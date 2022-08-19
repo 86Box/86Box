@@ -229,6 +229,12 @@ oti_out(uint16_t addr, uint8_t val, void *p)
                     break;
                 }
 
+            case 0x17:
+                {
+                    svga_recalctimings(svga);
+                    break;
+                }
+
             case 0x22:
                 {
                     svga->adv_flags &= ~FLAG_LATCH8;
@@ -371,6 +377,15 @@ oti_in(uint16_t addr, void *p)
                     if (oti->regs[0x35] == 8) oti->regs[0x35] = 0;
                     break;
                 }
+
+                case 0x23:
+                    temp |= oti->regs[0x11] & 0xf;
+                    break;
+
+                case 0x24:
+                    temp |= oti->regs[0x11] >> 4;
+                    break;
+
                 case 0x6:
                     temp = ((svga->miscout >> 2) & 3) | ((oti->regs[0x0d] & 0x20) >> 3) | (oti->chip_id == OTI_087 ? (oti->regs[0x6] & 0x8) : 0);
                     break;
@@ -514,6 +529,7 @@ oti_recalctimings(svga_t *svga)
 	if (oti->regs[0x14] & 0x02) svga->dispend += 0x400;
 	if (oti->regs[0x14] & 0x04) svga->vsyncstart += 0x400;
     if (oti->chip_id == OTI_087) {
+        if (oti->regs[0x17] & 0x1) svga->ma_latch |= 0x10000;
         if (oti->regs[0x17] & 0x2) svga->ma_latch |= 0x20000;
         if (oti->regs[0x17] & 0x4) svga->ma_latch |= 0x40000;
     }
@@ -521,7 +537,7 @@ oti_recalctimings(svga_t *svga)
 	svga->interlace = oti->regs[0x14] & 0x80;
     }
 
-    if ((oti->regs[0x0d] & 0x0c) && !(oti->regs[0x0d] & 0x10)) svga->rowoffset <<= 1;
+    if (oti->chip_id != OTI_087 && (oti->regs[0x0d] & 0x0c) && !(oti->regs[0x0d] & 0x10)) svga->rowoffset <<= 1;
 
     if (svga->bpp == 24) {
     svga->render = svga_render_24bpp_highres;
@@ -562,24 +578,19 @@ static void
 oti_write(uint32_t addr, uint8_t val, void *p) {
     oti_t* oti = (oti_t*)p;
     uint8_t pixel_mask = !(oti->regs[0x30] & 0x8) ? 0xFF : oti->regs[0x34];
-    if (oti->svga.bpp == 8 && (oti->regs[0x30] & 0x1)) {
-        uint8_t oldwritemask = oti->svga.writemask;
-        uint32_t old_decode_mask = oti->svga.decode_mask;
-        if (oti->regs[0x30] & 0x8) {
-            oti->svga.writemask = 0xF;
-            oti->svga.decode_mask = 0xFFFFFFFF;
-        }
 
-        val = ((oti->regs[0x30] & 0x4) ? reverse(oti->regs[0x33]) : reverse(val));
-        if (oti->regs[0x30] & 0x10) pixel_mask = reverse(pixel_mask);
-        for (uint8_t i = 0; i < 8; i++) {
-            if (pixel_mask & (1 << i)) svga_write(addr + i, (val & (1 << i)) ? oti->regs[0x31] : oti->regs[0x32], &oti->svga);
-        }
-
-        if (oti->regs[0x30] & 0x8) {
-            oti->svga.writemask = oldwritemask;
-            oti->svga.decode_mask = old_decode_mask;
-        }
+    if (oti->regs[0x30] & 0x10) pixel_mask = reverse(pixel_mask);
+    if (oti->svga.bpp == 8) {
+        if (oti->regs[0x30] & 0x1) {
+            val = ((oti->regs[0x30] & 0x4) ? reverse(oti->regs[0x33]) : reverse(val));
+            for (uint8_t i = 0; i < 8; i++) {
+                if (pixel_mask & (1 << i)) svga_write(addr + i, (val & (1 << i)) ? oti->regs[0x31] : oti->regs[0x32], &oti->svga);
+            }
+        } else if ((oti->regs[0x30] & 0x8)) {
+            for (uint8_t i = 0; i < 8; i++) {
+                if (pixel_mask & (1 << i)) svga_write(addr + i, val, &oti->svga);
+            }
+        } else svga_write(addr, val, p);
     }
     else svga_write(addr, val, p);
 }
