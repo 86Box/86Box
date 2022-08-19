@@ -58,7 +58,6 @@ typedef struct {
 
     int index;
     uint8_t regs[128];
-    uint8_t cpu_latch[8];
 
     uint8_t chip_id;
     uint8_t pos;
@@ -149,7 +148,7 @@ oti_out(uint16_t addr, uint8_t val, void *p)
 			idx &= 0x1f;
         if ((idx == 7 || idx == 1 || idx == 6) && oti->chip_id == OTI_087) return;
         if (idx == 0x36 && oti->chip_id == OTI_087) {
-            oti->cpu_latch[oti->regs[0x35]++] = val;
+            svga->latch.b[oti->regs[0x35]++] = val;
             if (oti->regs[0x35] == 8) oti->regs[0x35] = 0;
             return;
         }
@@ -208,6 +207,9 @@ oti_out(uint16_t addr, uint8_t val, void *p)
 						mem_mapping_enable(&svga->mapping);
 				} else {
                     oti->regs[0x20] = (oti->regs[0x20] & ~0x7) | (val & 0x7);
+                    oti->regs[0x21] = (oti->regs[0xD] & ~0xC) | ((val & 0x18) >> 1);
+                    oti->regs[0x6] = (oti->regs[0x6] & ~0x4) | (!!(val & 0x20) << 5);
+                    svga_recalctimings(svga);
                 }
 				break;
 
@@ -220,6 +222,20 @@ oti_out(uint16_t addr, uint8_t val, void *p)
                 mem_mapping_set_enabled(&oti->bios_rom.mapping, !!(val & 0x20));
                 break;
 
+            case 0x14:
+                {
+                    oti->regs[0x17] = (oti->regs[0x17] & 0xFE) | !!(oti->regs[0x14] & 0x8);
+                    svga_recalctimings(svga);
+                    break;
+                }
+
+            case 0x22:
+                {
+                    svga->adv_flags &= ~FLAG_LATCH8;
+                    if (!!(val & 0x10)) svga->adv_flags |= FLAG_LATCH8;
+                    break; 
+                }
+
             case 0x23:
             case 0x25:
                 svga->read_bank = (val & 0x1f) * 65536;
@@ -231,13 +247,11 @@ oti_out(uint16_t addr, uint8_t val, void *p)
                 oti->regs[0x11] = (oti->regs[0x11] & 0x0F) | (val & 0xF0);
                 break;
 		}
-        pclog("OAK: Write reg value %d (0x%X), idx = 0x%X\n", val, val, oti->index);
+        if (oti->index == 0x30) pclog("OAK: Write reg value %d (0x%X), idx = 0x%X\n", val, val, oti->index);
 		return;
     }
 
     svga_out(addr, val, svga);
-
-    if (addr == 0x3DF) pclog("OAK: Write reg value %d (0x%X), idx = 0x%X\n", val, val, oti->index);
 }
 
 
@@ -353,7 +367,7 @@ oti_in(uint16_t addr, void *p)
         if (oti->chip_id == OTI_087) {
             switch (idx) {
                 case 0x36: {
-                    temp = oti->cpu_latch[oti->regs[0x35]++];
+                    temp = svga->latch.b[oti->regs[0x35]++];
                     if (oti->regs[0x35] == 8) oti->regs[0x35] = 0;
                     break;
                 }
@@ -499,6 +513,10 @@ oti_recalctimings(svga_t *svga)
 	if (oti->regs[0x14] & 0x01) svga->vtotal += 0x400;
 	if (oti->regs[0x14] & 0x02) svga->dispend += 0x400;
 	if (oti->regs[0x14] & 0x04) svga->vsyncstart += 0x400;
+    if (oti->chip_id == OTI_087) {
+        if (oti->regs[0x17] & 0x2) svga->ma_latch |= 0x20000;
+        if (oti->regs[0x17] & 0x4) svga->ma_latch |= 0x40000;
+    }
 
 	svga->interlace = oti->regs[0x14] & 0x80;
     }
@@ -531,6 +549,39 @@ oti_recalctimings(svga_t *svga)
             svga->hblankstart *= 2;
         }
     }
+}
+
+static uint8_t reverse(uint8_t b) {
+   b = (b & 0xF0) >> 4 | (b & 0x0F) << 4;
+   b = (b & 0xCC) >> 2 | (b & 0x33) << 2;
+   b = (b & 0xAA) >> 1 | (b & 0x55) << 1;
+   return b;
+}
+
+static void
+oti_write(uint32_t addr, uint8_t val, void *p) {
+    oti_t* oti = (oti_t*)p;
+    uint8_t pixel_mask = !(oti->regs[0x30] & 0x8) ? 0xFF : oti->regs[0x34];
+    if (oti->svga.bpp == 8 && (oti->regs[0x30] & 0x1)) {
+        uint8_t oldwritemask = oti->svga.writemask;
+        uint32_t old_decode_mask = oti->svga.decode_mask;
+        if (oti->regs[0x30] & 0x8) {
+            oti->svga.writemask = 0xF;
+            oti->svga.decode_mask = 0xFFFFFFFF;
+        }
+
+        val = ((oti->regs[0x30] & 0x4) ? reverse(oti->regs[0x33]) : reverse(val));
+        if (oti->regs[0x30] & 0x10) pixel_mask = reverse(pixel_mask);
+        for (uint8_t i = 0; i < 8; i++) {
+            if (pixel_mask & (1 << i)) svga_write(addr + i, (val & (1 << i)) ? oti->regs[0x31] : oti->regs[0x32], &oti->svga);
+        }
+
+        if (oti->regs[0x30] & 0x8) {
+            oti->svga.writemask = oldwritemask;
+            oti->svga.decode_mask = old_decode_mask;
+        }
+    }
+    else svga_write(addr, val, p);
 }
 
 
@@ -600,6 +651,11 @@ oti_init(const device_t *info)
 
     svga_init(info, &oti->svga, oti, oti->vram_size << 10,
 	      oti_recalctimings, oti_in, oti_out, NULL, NULL);
+
+    if (oti->chip_id == OTI_087) {
+        mem_mapping_set_p(&oti->svga.mapping, oti);
+        mem_mapping_set_handler(&oti->svga.mapping, svga_read, NULL, NULL, oti_write, NULL, NULL);
+    }
 
     if (oti->chip_id == OTI_087) {
         oti->svga.ramdac = device_add(&bt484_ramdac_device);
