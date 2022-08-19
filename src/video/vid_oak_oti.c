@@ -208,7 +208,7 @@ oti_out(uint16_t addr, uint8_t val, void *p)
 				} else {
                     oti->regs[0x20] = (oti->regs[0x20] & ~0x7) | (val & 0x7);
                     oti->regs[0x21] = (oti->regs[0x21] & ~0xC) | ((val & 0x18) >> 1);
-                    oti->regs[0x6] = (oti->regs[0x6] & ~0x4) | (!!(val & 0x20) << 5);
+                    oti->regs[0x6] = (oti->regs[0x6] & ~0x4) | (!!(val & 0x20) << 2);
                     svga_recalctimings(svga);
                 }
 				break;
@@ -390,6 +390,14 @@ oti_in(uint16_t addr, void *p)
                 case 0x6:
                     temp = ((svga->miscout >> 2) & 3) | ((oti->regs[0x0d] & 0x20) >> 3) | (oti->chip_id == OTI_087 ? (oti->regs[0x6] & 0x8) : 0);
                     break;
+
+                case 0xD:
+                {
+                    temp = oti->regs[0x20] & 0x7;
+                    temp |= (oti->regs[0x21] & 0xC) << 1;
+                    temp |= (oti->regs[0x6] & 0x4) << 3;
+                    break;
+                }
             }
         }
 		break;
@@ -538,8 +546,11 @@ oti_recalctimings(svga_t *svga)
 	svga->interlace = oti->regs[0x14] & 0x80;
     }
 
-    if ((oti->regs[0x0d] & 0x0c) && !(oti->regs[0x0d] & 0x10)) svga->rowoffset <<= 1;
-    if (oti->chip_id == OTI_087 && (oti->regs[0x21] & 0x8)) svga->rowoffset <<= 1;
+    if (oti->chip_id != OTI_087 && (oti->regs[0x0d] & 0x0c) && !(oti->regs[0x0d] & 0x10)) svga->rowoffset <<= 1;
+    if (oti->chip_id == OTI_087 && (oti->regs[0x21] & 0x4)) {
+        svga->rowoffset <<= 1;
+        if (svga->bpp == 8) svga->hdisp >>= 1;
+    }
 
     if (svga->bpp == 24) {
     svga->render = svga_render_24bpp_highres;
