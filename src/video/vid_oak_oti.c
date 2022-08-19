@@ -207,7 +207,7 @@ oti_out(uint16_t addr, uint8_t val, void *p)
 						mem_mapping_enable(&svga->mapping);
 				} else {
                     oti->regs[0x20] = (oti->regs[0x20] & ~0x7) | (val & 0x7);
-                    oti->regs[0x21] = (oti->regs[0xD] & ~0xC) | ((val & 0x18) >> 1);
+                    oti->regs[0x21] = (oti->regs[0x21] & ~0xC) | ((val & 0x18) >> 1);
                     oti->regs[0x6] = (oti->regs[0x6] & ~0x4) | (!!(val & 0x20) << 5);
                     svga_recalctimings(svga);
                 }
@@ -230,6 +230,7 @@ oti_out(uint16_t addr, uint8_t val, void *p)
                 }
 
             case 0x17:
+            case 0x21:
                 {
                     svga_recalctimings(svga);
                     break;
@@ -253,7 +254,7 @@ oti_out(uint16_t addr, uint8_t val, void *p)
                 oti->regs[0x11] = (oti->regs[0x11] & 0x0F) | (val & 0xF0);
                 break;
 		}
-        if (oti->index == 0x30) pclog("OAK: Write reg value %d (0x%X), idx = 0x%X\n", val, val, oti->index);
+        if (oti->index != 0x34) pclog("OAK: Write reg value %d (0x%X), idx = 0x%X\n", val, val, oti->index);
 		return;
     }
 
@@ -523,7 +524,7 @@ oti_recalctimings(svga_t *svga)
 
     if (oti->chip_id > 0) {
 	if (oti->regs[0x14] & 0x08) svga->ma_latch |= 0x10000;
-	if ((oti->regs[0x16] & 0x08) && oti->chip_id != OTI_087) svga->ma_latch |= 0x20000;
+	if ((oti->regs[0x16] & 0x08)) svga->ma_latch |= 0x20000;
 
 	if (oti->regs[0x14] & 0x01) svga->vtotal += 0x400;
 	if (oti->regs[0x14] & 0x02) svga->dispend += 0x400;
@@ -537,7 +538,8 @@ oti_recalctimings(svga_t *svga)
 	svga->interlace = oti->regs[0x14] & 0x80;
     }
 
-    if (oti->chip_id != OTI_087 && (oti->regs[0x0d] & 0x0c) && !(oti->regs[0x0d] & 0x10)) svga->rowoffset <<= 1;
+    if ((oti->regs[0x0d] & 0x0c) && !(oti->regs[0x0d] & 0x10)) svga->rowoffset <<= 1;
+    if (oti->chip_id == OTI_087 && (oti->regs[0x21] & 0x8)) svga->rowoffset <<= 1;
 
     if (svga->bpp == 24) {
     svga->render = svga_render_24bpp_highres;
@@ -588,7 +590,7 @@ oti_write(uint32_t addr, uint8_t val, void *p) {
             }
         } else if ((oti->regs[0x30] & 0x8)) {
             for (uint8_t i = 0; i < 8; i++) {
-                if (pixel_mask & (1 << i)) svga_write(addr + i, val, &oti->svga);
+                if (pixel_mask & (1 << i)) svga_write(addr + i,(oti->regs[0x30] & 0x10) ? reverse(val) : val, &oti->svga);
             }
         } else svga_write(addr, val, p);
     }
