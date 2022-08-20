@@ -95,10 +95,8 @@ oti_out(uint16_t addr, uint8_t val, void *p)
 		break;
 
 	case 0x3c6: case 0x3c7: case 0x3c8: case 0x3c9:
-		if (oti->chip_id == OTI_077)
+		if (oti->chip_id == OTI_077 || oti->chip_id == OTI_087)
 			sc1148x_ramdac_out(addr, 0, val, svga->ramdac, svga);
-		else if (oti->chip_id == OTI_087)
-            bt48x_ramdac_out(addr, 0, 0, val, svga->ramdac, svga);
         else
 			svga_out(addr, val, svga);
 		return;
@@ -291,9 +289,7 @@ oti_in(uint16_t addr, void *p)
 		break;
 
 	case 0x3c6: case 0x3c7: case 0x3c8: case 0x3c9:
-        if (oti->chip_id == OTI_087)
-            return bt48x_ramdac_in(addr, 0, 0, svga->ramdac, svga);
-		if (oti->chip_id == OTI_077)
+		if (oti->chip_id == OTI_077 || oti->chip_id == OTI_087)
 			return sc1148x_ramdac_in(addr, 0, svga->ramdac, svga);
 		return svga_in(addr, svga);
 
@@ -681,9 +677,7 @@ oti_init(const device_t *info)
         mem_mapping_set_handler(&oti->svga.mapping, svga_read, NULL, NULL, oti_write, NULL, NULL);
     }
 
-    if (oti->chip_id == OTI_087) {
-        oti->svga.ramdac = device_add(&bt484_ramdac_device);
-    } else if (oti->chip_id == OTI_077) {
+    if (oti->chip_id == OTI_077 || oti->chip_id == OTI_087) {
 		oti->svga.ramdac = device_add(&sc11487_ramdac_device); /*Actually a 82c487, probably a clone.*/
     }
     io_sethandler(0x03c0, 32,
@@ -695,7 +689,7 @@ oti_init(const device_t *info)
     if (oti->chip_id == OTI_087) {
         oti->regs[OTI_REG_CONFIG_1] = 6;
         if (info->flags & DEVICE_VLB) oti->regs[OTI_REG_CONFIG_1] |= 0x80;
-        oti->regs[OTI_REG_CONFIG_2] = 0x8;
+        oti->regs[OTI_REG_CONFIG_2] = 0x0;
         oti->regs[0x13] = 0x20;
         oti->regs[0x1] = 0x10; /* OTI-087X Chip identification register. */
         oti->regs[0x0] = 1; /* The main Chip Identification register. */
