@@ -25,6 +25,8 @@
 #define HAVE_STDARG_H
 #include <86box/86box.h>
 #include <86box/device.h>
+#include <86box/thread.h>
+#include <86box/timer.h>
 #include <86box/network.h>
 #include <86box/net_dp8390.h>
 
@@ -33,6 +35,7 @@ static void	dp8390_tx(dp8390_t *dev, uint32_t val);
 static int	dp8390_rx_common(void *priv, uint8_t *buf, int io_len);
 int		dp8390_rx(void *priv, uint8_t *buf, int io_len);
 
+int dp3890_inst = 0;
 
 #ifdef ENABLE_DP8390_LOG
 int dp8390_do_log = ENABLE_DP8390_LOG;
@@ -225,7 +228,7 @@ dp8390_write_cr(dp8390_t *dev, uint32_t val)
 	/* Send the packet to the system driver */
 	dev->CR.tx_packet = 1;
 
-	network_tx(&dev->mem[(dev->tx_page_start * 256) - dev->mem_start], dev->tx_bytes);
+	network_tx(dev->card, &dev->mem[(dev->tx_page_start * 256) - dev->mem_start], dev->tx_bytes);
 
 	/* some more debug */
 #ifdef ENABLE_DP8390_LOG
@@ -1099,12 +1102,13 @@ dp8390_close(void *priv)
 {
     dp8390_t *dp8390 = (dp8390_t *) priv;
 
-    /* Make sure the platform layer is shut down. */
-    network_close();
-
     if (dp8390) {
 	if (dp8390->mem)
 		free(dp8390->mem);
+
+	if (dp8390->card) {
+		netcard_close(dp8390->card);
+	}
 
 	free(dp8390);
     }
