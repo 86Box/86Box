@@ -589,7 +589,7 @@ oti_write(uint32_t addr, uint8_t val, void *p) {
     uint8_t pixel_mask = !(oti->regs[0x30] & 0x8) ? 0xFF : oti->regs[0x34];
 
     if (oti->regs[0x30] & 0x10) pixel_mask = reverse(pixel_mask);
-    if (oti->svga.bpp == 8) {
+    if (oti->svga.bpp == 8 && (oti->regs[0x21] & 0x4)) {
         if (oti->regs[0x30] & 0x1) {
             val = ((oti->regs[0x30] & 0x4) ? reverse(oti->regs[0x33]) : reverse(val));
             for (uint8_t i = 0; i < 8; i++) {
@@ -602,6 +602,14 @@ oti_write(uint32_t addr, uint8_t val, void *p) {
         } else svga_write(addr, val, p);
     }
     else svga_write(addr, val, p);
+}
+
+
+static void
+oti_writew(uint32_t addr, uint16_t val, void *p) {
+    oti_t* oti = (oti_t*)p;
+    oti_write(addr, val, p);
+    if (!(oti->regs[0x30] & 0xc)) oti_write(addr + 1, val >> 8, p);
 }
 
 
@@ -674,7 +682,7 @@ oti_init(const device_t *info)
 
     if (oti->chip_id == OTI_087) {
         mem_mapping_set_p(&oti->svga.mapping, oti);
-        mem_mapping_set_handler(&oti->svga.mapping, svga_read, NULL, NULL, oti_write, NULL, NULL);
+        mem_mapping_set_handler(&oti->svga.mapping, svga_read, svga_readw, NULL, oti_write, oti_writew, NULL);
     }
 
     if (oti->chip_id == OTI_077 || oti->chip_id == OTI_087) {
@@ -919,7 +927,7 @@ const device_t oti077_device = {
 const device_t oti087_device = {
     .name = "Oak OTI-087",
     .internal_name = "oti087",
-    .flags = DEVICE_ISA,
+    .flags = DEVICE_ISA | DEVICE_AT,
     .local = 6,
     .init = oti_init,
     .close = oti_close,
