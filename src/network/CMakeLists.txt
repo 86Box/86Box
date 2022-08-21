@@ -14,7 +14,7 @@
 #
 
 add_library(net OBJECT network.c net_pcap.c net_slirp.c net_dp8390.c net_3c503.c
-    net_ne2000.c net_pcnet.c net_wd8003.c net_plip.c)
+    net_ne2000.c net_pcnet.c net_wd8003.c net_plip.c net_event.c)
 
 option(SLIRP_EXTERNAL "Link against the system-provided libslirp library" OFF)
 mark_as_advanced(SLIRP_EXTERNAL)
@@ -34,4 +34,8 @@ endif()
 
 if (HAIKU)
     target_link_libraries(86Box network)
+endif()
+
+if(WIN32)
+    target_link_libraries(86Box ws2_32)
 endif()

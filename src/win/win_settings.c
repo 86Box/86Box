@@ -60,6 +60,7 @@
 #include <86box/fdd.h>
 #include <86box/fdc.h>
 #include <86box/fdc_ext.h>
+#include <86box/thread.h>
 #include <86box/network.h>
 #include <86box/sound.h>
 #include <86box/midi.h>
