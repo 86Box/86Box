@@ -26,8 +26,6 @@
 #include <stdlib.h>
 #include <inttypes.h>
 #include <wchar.h>
-#include <fcntl.h>
-#include <unistd.h>
 #include <slirp/libslirp.h>
 #define HAVE_STDARG_H
 #include <86box/86box.h>
