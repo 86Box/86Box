@@ -55,6 +55,7 @@ typedef struct {
     svga_t svga;
 
     rom_t bios_rom;
+    mem_mapping_t linear_mapping;
 
     int index;
     uint8_t regs[128];
@@ -152,6 +153,28 @@ oti_out(uint16_t addr, uint8_t val, void *p)
         }
 		oti->regs[idx] = val;
 		switch (idx) {
+            case 0x5:
+            {
+                if (val & 0x1) {
+                    mem_mapping_disable(&svga->mapping);
+                    mem_mapping_enable(&oti->linear_mapping);
+                } else {
+                    mem_mapping_enable(&svga->mapping);
+                    mem_mapping_disable(&oti->linear_mapping);
+                }
+                if (val & 0x1) {
+                    if ((val & 0xF0) == 0) {
+                        mem_mapping_set_addr(&oti->linear_mapping, 0xA0000, 0x40000);
+                        svga->decode_mask = 0x3FFFF;
+                        break;
+                    } else {
+                        mem_mapping_set_addr(&oti->linear_mapping, (val & 0xF0) << 16, 0x40000 << ((val & 0xC) >> 2));
+                        svga->decode_mask = (0x40000 << ((val & 0xC) >> 2)) - 1;
+                        break;
+                    }
+                } else svga->decode_mask = 0x7FFFFFF;
+                break;
+            }
             case 0x6:
             {
                 if (oti->chip_id == OTI_087) {
@@ -609,6 +632,40 @@ oti_writew(uint32_t addr, uint16_t val, void *p) {
 }
 
 
+static void
+oti_write_linear(uint32_t addr, uint8_t val, void *p) {
+    oti_t* oti = (oti_t*)p;
+
+    pclog("OAK: Linear write to value @ 0x%X\n", addr);
+    uint8_t pixel_mask = !(oti->regs[0x30] & 0x8) ? 0xFF : oti->regs[0x34];
+
+    if (oti->regs[0x30] & 0x10) pixel_mask = reverse(pixel_mask);
+    if (oti->svga.bpp == 8 && (oti->regs[0x21] & 0x4)) {
+        if (oti->regs[0x30] & 0x1) {
+            val = ((oti->regs[0x30] & 0x4) ? reverse(oti->regs[0x33]) : reverse(val));
+            for (uint8_t i = 0; i < 8; i++) {
+                if (pixel_mask & (1 << i)) svga_write_linear(addr + i, (val & (1 << i)) ? oti->regs[0x31] : oti->regs[0x32], &oti->svga);
+            }
+        } else if ((oti->regs[0x30] & 0x8)) {
+            for (uint8_t i = 0; i < 8; i++) {
+                if (pixel_mask & (1 << i)) svga_write_linear(addr + i,(oti->regs[0x30] & 0x10) ? reverse(val) : val, &oti->svga);
+            }
+        } else svga_write_linear(addr, val, p);
+    }
+    else svga_write_linear(addr, val, p);
+}
+
+
+static void
+oti_writew_linear(uint32_t addr, uint16_t val, void *p) {
+    oti_t* oti = (oti_t*)p;
+    
+    if (oti->svga.bpp >= 16) return svga_writew_linear(addr, val, p);
+    oti_write_linear(addr, val, p);
+    if (!(oti->regs[0x30] & 0xc)) oti_write_linear(addr + 1, val >> 8, p);
+}
+
+
 static void *
 oti_init(const device_t *info)
 {
@@ -697,6 +754,8 @@ oti_init(const device_t *info)
         oti->regs[0x13] = 0x20;
         oti->regs[0x1] = 0x10; /* OTI-087X Chip identification register. */
         oti->regs[0x0] = 1; /* The main Chip Identification register. */
+        mem_mapping_add(&oti->linear_mapping, 0, 0, svga_readb_linear, svga_readw_linear, NULL, oti_write_linear, oti_writew_linear, NULL, NULL, MEM_MAPPING_EXTERNAL, oti);
+        mem_mapping_disable(&oti->linear_mapping);
     }
 
     return(oti);
