@@ -212,8 +212,8 @@ oti_out(uint16_t addr, uint8_t val, void *p)
 				break;
 
 			case 0x11:
-				svga->read_bank = ((val & 0xf) | (oti->regs[0x23] & 0x10)) * 65536;
-				svga->write_bank = ((val >> 4) | (oti->regs[0x24] & 0x10)) * 65536;
+				svga->read_bank = ((uint32_t)(val & 0xf)) * 65536;
+				svga->write_bank = ((uint32_t)(val >> 4)) * 65536;
 				break;
 
             case 0x13:
