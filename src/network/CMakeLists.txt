@@ -35,3 +35,7 @@ endif()
 if (HAIKU)
     target_link_libraries(86Box network)
 endif()
+
+if(WIN32)
+    target_link_libraries(86Box ws2_32)
+endif()
