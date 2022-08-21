@@ -55,6 +55,8 @@
 #include <86box/mem.h>
 #include <86box/random.h>
 #include <86box/device.h>
+#include <86box/thread.h>
+#include <86box/timer.h>
 #include <86box/network.h>
 #include <86box/net_dp8390.h>
 #include <86box/net_3c503.h>
@@ -592,7 +594,7 @@ threec503_nic_init(const device_t *info)
 	dev->maclocal[5] = (mac & 0xff);
     }
 
-    dev->dp8390 = device_add(&dp8390_device);
+    dev->dp8390 = device_add_inst(&dp8390_device, dp3890_inst++);
     dev->dp8390->priv = dev;
     dev->dp8390->interrupt = threec503_interrupt;
     dp8390_set_defaults(dev->dp8390, DP8390_FLAG_CHECK_CR | DP8390_FLAG_CLEAR_IRQ);
@@ -617,7 +619,7 @@ threec503_nic_init(const device_t *info)
     dev->regs.gacfr = 0x09;	/* Start with RAM mapping enabled. */
 
     /* Attach ourselves to the network module. */
-    network_attach(dev->dp8390, dev->dp8390->physaddr, dp8390_rx, NULL, NULL);
+    dev->dp8390->card = network_attach(dev->dp8390, dev->dp8390->physaddr, dp8390_rx, NULL, NULL);
 
     return(dev);
 }

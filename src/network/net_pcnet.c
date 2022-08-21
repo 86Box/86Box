@@ -41,6 +41,8 @@
 #include <86box/random.h>
 #include <86box/device.h>
 #include <86box/isapnp.h>
+#include <86box/timer.h>
+#include <86box/thread.h>
 #include <86box/network.h>
 #include <86box/net_pcnet.h>
 #include <86box/bswap.h>
@@ -259,6 +261,7 @@ typedef struct {
     int transfer_size;
     uint8_t maclocal[6]; /* configured MAC (local) address */
     pc_timer_t timer, timer_soft_int, timer_restore;
+    netcard_t *netcard;
 } nic_t;
 
 /** @todo All structs: big endian? */
@@ -1528,7 +1531,7 @@ pcnetAsyncTransmit(nic_t *dev)
 			pcnetReceiveNoSync(dev, dev->abLoopBuf, dev->xmit_pos);
 		    } else {
 			pcnetlog(3, "%s: pcnetAsyncTransmit: transmit loopbuf stp and enp, xmit pos = %d\n", dev->name, dev->xmit_pos);
-			network_tx(dev->abLoopBuf, dev->xmit_pos);
+			network_tx(dev->netcard, dev->abLoopBuf, dev->xmit_pos);
 		    }
 		} else if (cb == 4096) {
 		    /* The Windows NT4 pcnet driver sometimes marks the first
@@ -1639,7 +1642,7 @@ pcnetAsyncTransmit(nic_t *dev)
 			pcnetReceiveNoSync(dev, dev->abLoopBuf, dev->xmit_pos);
 		    } else {
 			pcnetlog(3, "%s: pcnetAsyncTransmit: transmit loopbuf enp\n", dev->name);
-			network_tx(dev->abLoopBuf, dev->xmit_pos);
+			network_tx(dev->netcard, dev->abLoopBuf, dev->xmit_pos);
 		    }
 
                     /* Write back the TMD, pass it to the host */
@@ -3051,7 +3054,7 @@ pcnet_init(const device_t *info)
     pcnetHardReset(dev);
 
     /* Attach ourselves to the network module. */
-    network_attach(dev, dev->aPROM, pcnetReceiveNoSync, pcnetWaitReceiveAvail, pcnetSetLinkState);
+    dev->netcard = network_attach(dev, dev->aPROM, pcnetReceiveNoSync, pcnetWaitReceiveAvail, pcnetSetLinkState);
 
     timer_add(&dev->timer, pcnetPollTimer, dev, 0);
 
@@ -3071,8 +3074,7 @@ pcnet_close(void *priv)
 
     pcnetlog(1, "%s: closed\n", dev->name);
 
-    /* Make sure the platform layer is shut down. */
-    network_close();
+    netcard_close(dev->netcard);
 
     if (dev) {
 	free(dev);

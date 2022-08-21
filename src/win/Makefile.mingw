@@ -664,7 +664,7 @@ NETOBJ		:= network.o \
 		    net_dp8390.o \
 		    net_3c503.o net_ne2000.o \
 		    net_pcnet.o net_wd8003.o \
-		    net_plip.o
+		    net_plip.o net_event.o
 
 PRINTOBJ	:= png.o prt_cpmap.o \
 		    prt_escp.o prt_text.o prt_ps.o
@@ -778,12 +778,12 @@ OBJ		+= $(EXOBJ)
 endif
 
 ifeq ($(OPENAL), y)
-LIBS		:= -mwindows -lopenal -lcomctl32 -lSDL2 -limagehlp -ldinput8 -ldxguid -ldxerr8 -luser32 -lgdi32 -lwinmm -limm32 -lole32 -loleaut32 -lshell32 -lversion -luuid
+LIBS		:= -mwindows -lopenal -lcomctl32 -lSDL2 -limagehlp -ldinput8 -ldxguid -ldxerr8 -luser32 -lgdi32 -lwinmm -limm32 -lole32 -loleaut32 -lshell32 -lversion -luuid -lws2_32
 else
 ifeq ($(FAUDIO), y)
-LIBS		:= -mwindows -lfaudio -lcomctl32 -lSDL2 -limagehlp -ldinput8 -ldxguid -ldxerr8 -luser32 -lgdi32 -lwinmm -limm32 -lole32 -loleaut32 -lshell32 -lversion -luuid
+LIBS		:= -mwindows -lfaudio -lcomctl32 -lSDL2 -limagehlp -ldinput8 -ldxguid -ldxerr8 -luser32 -lgdi32 -lwinmm -limm32 -lole32 -loleaut32 -lshell32 -lversion -luuid -lws2_32
 else
-LIBS		:= -mwindows -lcomctl32 -lSDL2 -limagehlp -ldinput8 -ldxguid -ldxerr8 -luser32 -lgdi32 -lwinmm -limm32 -lole32 -loleaut32 -lshell32 -lversion -luuid
+LIBS		:= -mwindows -lcomctl32 -lSDL2 -limagehlp -ldinput8 -ldxguid -ldxerr8 -luser32 -lgdi32 -lwinmm -limm32 -lole32 -loleaut32 -lshell32 -lversion -luuid -lws2_32
 endif
 endif
 
