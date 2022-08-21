@@ -37,6 +37,7 @@ extern uint64_t		tsc;
 #include <86box/mo.h>
 #include <86box/plat.h>
 #include <86box/machine.h>
+#include <86box/thread.h>
 #include <86box/network.h>
 #include <86box/ui.h>
 #include <86box/machine_status.h>

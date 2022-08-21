@@ -47,6 +47,7 @@
 #include <86box/mo.h>
 #include <86box/cdrom_image.h>
 #include <86box/scsi_disk.h>
+#include <86box/thread.h>
 #include <86box/network.h>
 #include <86box/video.h>
 #include <86box/sound.h>
