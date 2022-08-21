@@ -7389,7 +7389,7 @@ const machine_t machines[] = {
             .min_multi = 1.5,
             .max_multi = 1.5
         },
-        .bus_flags = MACHINE_PS2_PCI,
+        .bus_flags = MACHINE_PCI,
         .flags = MACHINE_IDE_DUAL,
         .ram = {
             .min = 2048,

@@ -184,11 +184,13 @@ typedef struct {
     int		tx_timer_active;
 
     void	*priv;
+    netcard_t *card;
 
     void	(*interrupt)(void *priv, int set);
 } dp8390_t;
 
 extern const device_t	dp8390_device;
+extern int dp3890_inst;
 
 
 extern uint32_t	dp8390_chipmem_read(dp8390_t *dev, uint32_t addr, unsigned int len);

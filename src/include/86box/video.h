@@ -124,6 +124,7 @@ typedef struct monitor_settings_t {
     int mon_window_y;
     int mon_window_w;
     int mon_window_h;
+    int mon_window_maximized;
 } monitor_settings_t;
 
 #define MONITORS_NUM 2
