@@ -545,13 +545,17 @@ oti_recalctimings(svga_t *svga)
     if (oti->chip_id != OTI_087 && (oti->regs[0x0d] & 0x0c) && !(oti->regs[0x0d] & 0x10)) svga->rowoffset <<= 1;
     if (oti->chip_id == OTI_087 && (oti->regs[0x21] & 0x4)) {
         svga->rowoffset <<= 1;
-        if (svga->bpp == 8 && svga->hdisp == 640) svga->hdisp >>= 1;
+        if (svga->bpp == 8 && svga->hdisp == 1280) svga->hdisp >>= 1;
     }
 
     if (oti->chip_id == OTI_087) {
         if (oti->regs[0x21] & 0x2) {
             svga->bpp = 24;
-        } else if (svga->bpp == 24) svga->bpp = 8;
+            svga->hdisp += 8;
+        } else if (svga->bpp == 24) {
+            svga->bpp = 8;
+            svga->hdisp -= 8;
+        }
     }
 
     if (svga->bpp == 24) {
@@ -844,6 +848,39 @@ static const device_config_t oti077_config[] = {
         .type = CONFIG_END
     }
 };
+
+static const device_config_t oti087_config[] = {
+    {
+        .name = "memory",
+        .description = "Memory size",
+        .type = CONFIG_SELECTION,
+        .default_int = 1024,
+        .selection = {
+            {
+                .description = "256 kB",
+                .value = 256
+            },
+            {
+                .description = "512 kB",
+                .value = 512
+            },
+            {
+                .description = "1 MB",
+                .value = 1024
+            },
+            {
+                .description = "2 MB",
+                .value = 2048
+            },
+            {
+                .description = ""
+            }
+        }
+    },
+    {
+        .type = CONFIG_END
+    }
+};
 // clang-format on
 
 const device_t oti037c_device = {
@@ -927,5 +964,5 @@ const device_t oti087_device = {
     { .available = oti067_087_available },
     .speed_changed = oti_speed_changed,
     .force_redraw = oti_force_redraw,
-    .config = oti077_config
+    .config = oti087_config
 };
