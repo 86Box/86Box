@@ -61,6 +61,8 @@
 #include <86box/pic.h>
 #include <86box/random.h>
 #include <86box/device.h>
+#include <86box/thread.h>
+#include <86box/timer.h>
 #include <86box/network.h>
 #include <86box/net_dp8390.h>
 #include <86box/net_ne2000.h>
@@ -973,7 +975,7 @@ nic_init(const device_t *info)
 	dev->maclocal[5] = (mac & 0xff);
     }
 
-    dev->dp8390 = device_add(&dp8390_device);
+    dev->dp8390 = device_add_inst(&dp8390_device, dp3890_inst++);
     dev->dp8390->priv = dev;
     dev->dp8390->interrupt = nic_interrupt;
 
@@ -1120,7 +1122,7 @@ nic_init(const device_t *info)
 	nic_reset(dev);
 
     /* Attach ourselves to the network module. */
-    network_attach(dev->dp8390, dev->dp8390->physaddr, dp8390_rx, NULL, NULL);
+    dev->dp8390->card = network_attach(dev->dp8390, dev->dp8390->physaddr, dp8390_rx, NULL, NULL);
 
     nelog(1, "%s: %s attached IO=0x%X IRQ=%d\n", dev->name,
 	dev->is_pci?"PCI":"ISA", dev->base_address, dev->base_irq);

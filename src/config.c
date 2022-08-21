@@ -55,6 +55,7 @@
 #include <86box/gameport.h>
 #include <86box/machine.h>
 #include <86box/mouse.h>
+#include <86box/thread.h>
 #include <86box/network.h>
 #include <86box/scsi.h>
 #include <86box/scsi_device.h>
@@ -1131,45 +1132,89 @@ load_network(void)
 {
     char *cat = "Network";
     char *p;
+    char  temp[512];
+    int   c = 0, min = 0;
 
-    p = config_get_string(cat, "net_type", NULL);
-    if (p != NULL) {
-        if (!strcmp(p, "pcap") || !strcmp(p, "1"))
-            network_type = NET_TYPE_PCAP;
-        else if (!strcmp(p, "slirp") || !strcmp(p, "2"))
-            network_type = NET_TYPE_SLIRP;
-        else
-            network_type = NET_TYPE_NONE;
-    } else
-        network_type = NET_TYPE_NONE;
-
-    memset(network_host, '\0', sizeof(network_host));
-    p = config_get_string(cat, "net_host_device", NULL);
-    if (p == NULL) {
-        p = config_get_string(cat, "net_host_device", NULL);
-        if (p != NULL)
-            config_delete_var(cat, "net_host_device");
-    }
-    if (p != NULL) {
-        if ((network_dev_to_id(p) == -1) || (network_ndev == 1)) {
-            if ((network_ndev == 1) && strcmp(network_host, "none")) {
-                ui_msgbox_header(MBX_ERROR, (wchar_t *) IDS_2094, (wchar_t *) IDS_2129);
-            } else if (network_dev_to_id(p) == -1) {
-                ui_msgbox_header(MBX_ERROR, (wchar_t *) IDS_2095, (wchar_t *) IDS_2129);
-            }
-
-            strcpy(network_host, "none");
-        } else {
-            strncpy(network_host, p, sizeof(network_host) - 1);
-        }
-    } else
-        strcpy(network_host, "none");
-
+    /* Handle legacy configuration which supported only one NIC */
     p = config_get_string(cat, "net_card", NULL);
-    if (p != NULL)
-        network_card = network_card_get_from_internal_name(p);
-    else
-        network_card = 0;
+    if (p != NULL) {
+        net_cards_conf[c].device_num = network_card_get_from_internal_name(p);
+
+        p = config_get_string(cat, "net_type", NULL);
+        if (p != NULL) {
+            if (!strcmp(p, "pcap") || !strcmp(p, "1"))
+                net_cards_conf[c].net_type = NET_TYPE_PCAP;
+            else if (!strcmp(p, "slirp") || !strcmp(p, "2"))
+                net_cards_conf[c].net_type = NET_TYPE_SLIRP;
+            else
+                net_cards_conf[c].net_type = NET_TYPE_NONE;
+        } else {
+            net_cards_conf[c].net_type = NET_TYPE_NONE;
+        }
+
+        p = config_get_string(cat, "net_host_device", NULL);
+        if (p != NULL) {
+            if ((network_dev_to_id(p) == -1) || (network_ndev == 1)) {
+                if (network_ndev == 1) {
+                    ui_msgbox_header(MBX_ERROR, (wchar_t *) IDS_2094, (wchar_t *) IDS_2129);
+                } else if (network_dev_to_id(p) == -1) {
+                    ui_msgbox_header(MBX_ERROR, (wchar_t *) IDS_2095, (wchar_t *) IDS_2129);
+                }
+                strcpy(net_cards_conf[c].host_dev_name, "none");
+            } else {
+                strncpy(net_cards_conf[c].host_dev_name, p, sizeof(net_cards_conf[c].host_dev_name) - 1);
+            }
+        } else {
+            strcpy(net_cards_conf[c].host_dev_name, "none");
+        }
+
+        min++;
+    }
+
+    config_delete_var(cat, "net_card");
+    config_delete_var(cat, "net_type");
+    config_delete_var(cat, "net_host_device");
+
+    for (c = min; c < NET_CARD_MAX; c++) {
+        sprintf(temp, "net_%02i_card", c + 1);
+        p = config_get_string(cat, temp, NULL);
+        if (p != NULL) {
+            net_cards_conf[c].device_num = network_card_get_from_internal_name(p);
+        } else {
+            net_cards_conf[c].device_num = 0;
+        }
+
+        sprintf(temp, "net_%02i_net_type", c + 1);
+        p = config_get_string(cat, temp, NULL);
+        if (p != NULL) {
+            if (!strcmp(p, "pcap") || !strcmp(p, "1")) {
+                net_cards_conf[c].net_type = NET_TYPE_PCAP;
+            } else if (!strcmp(p, "slirp") || !strcmp(p, "2")) {
+                net_cards_conf[c].net_type = NET_TYPE_SLIRP;
+            } else {
+                net_cards_conf[c].net_type = NET_TYPE_NONE;
+            }
+        } else {
+            net_cards_conf[c].net_type = NET_TYPE_NONE;
+        }
+
+        sprintf(temp, "net_%02i_host_device", c + 1);
+        p = config_get_string(cat, temp, NULL);
+        if (p != NULL) {
+            if ((network_dev_to_id(p) == -1) || (network_ndev == 1)) {
+                if (network_ndev == 1) {
+                    ui_msgbox_header(MBX_ERROR, (wchar_t *) IDS_2094, (wchar_t *) IDS_2129);
+                } else if (network_dev_to_id(p) == -1) {
+                    ui_msgbox_header(MBX_ERROR, (wchar_t *) IDS_2095, (wchar_t *) IDS_2129);
+                }
+                strcpy(net_cards_conf[c].host_dev_name, "none");
+            } else {
+                strncpy(net_cards_conf[c].host_dev_name, p, sizeof(net_cards_conf[c].host_dev_name) - 1);
+            }
+        } else {
+            strcpy(net_cards_conf[c].host_dev_name, "none");
+        }
+    }
 }
 
 /* Load "Ports" section. */
@@ -2688,29 +2733,41 @@ save_sound(void)
 static void
 save_network(void)
 {
+    int c = 0;
+    char  temp[512];
     char *cat = "Network";
 
-    if (network_type == NET_TYPE_NONE)
-        config_delete_var(cat, "net_type");
-    else
-        config_set_string(cat, "net_type",
-                          (network_type == NET_TYPE_SLIRP) ? "slirp" : "pcap");
+    config_delete_var(cat, "net_type");
+    config_delete_var(cat, "net_host_device");
+    config_delete_var(cat, "net_card");
 
-    if (network_host[0] != '\0') {
-        if (!strcmp(network_host, "none"))
-            config_delete_var(cat, "net_host_device");
-        else
-            config_set_string(cat, "net_host_device", network_host);
-    } else {
-        /* config_set_string(cat, "net_host_device", "none"); */
-        config_delete_var(cat, "net_host_device");
+    for (c = 0; c < NET_CARD_MAX; c++) {
+        sprintf(temp, "net_%02i_card", c + 1);
+        if (net_cards_conf[c].device_num == 0) {
+            config_delete_var(cat, temp);
+        } else {
+            config_set_string(cat, temp, network_card_get_internal_name(net_cards_conf[c].device_num));
+        }
+
+        sprintf(temp, "net_%02i_net_type", c + 1);
+        if (net_cards_conf[c].net_type == NET_TYPE_NONE) {
+            config_delete_var(cat, temp);
+        } else {
+            config_set_string(cat, temp, 
+                (net_cards_conf[c].net_type == NET_TYPE_SLIRP) ? "slirp" : "pcap");
+        }
+
+        sprintf(temp, "net_%02i_host_device", c + 1);
+        if (net_cards_conf[c].host_dev_name[0] != '\0') {
+            if (!strcmp(net_cards_conf[c].host_dev_name, "none"))
+                config_delete_var(cat, temp);
+            else
+                config_set_string(cat, temp, net_cards_conf[c].host_dev_name);
+        } else {
+            /* config_set_string(cat, temp, "none"); */
+            config_delete_var(cat, temp);
+        }
     }
-
-    if (network_card == 0)
-        config_delete_var(cat, "net_card");
-    else
-        config_set_string(cat, "net_card",
-                          network_card_get_internal_name(network_card));
 
     delete_section_if_empty(cat);
 }
