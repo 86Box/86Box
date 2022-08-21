@@ -31,6 +31,8 @@
 #include <86box/timer.h>
 #include <86box/pit.h>
 #include <86box/device.h>
+#include <86box/thread.h>
+#include <86box/timer.h>
 #include <86box/network.h>
 #include <86box/net_plip.h>
 
@@ -70,6 +72,7 @@ typedef struct
 
     uint8_t	*rx_pkt, rx_checksum, rx_return_state;
     uint16_t	rx_len, rx_ptr;
+    netcard_t *card;
 } plip_t;
 
 
@@ -116,8 +119,6 @@ timeout_timer(void *priv)
 	free(dev->rx_pkt);
 	dev->rx_pkt = NULL;
     }
-
-    network_rx_pause = 0;
 
     timer_disable(&dev->timeout_timer);
 }
@@ -229,7 +230,7 @@ plip_write_data(uint8_t val, void *priv)
 
 			/* Transmit packet. */
 			plip_log(2, "PLIP: transmitting %d-byte packet\n", dev->tx_len);
-			network_tx(dev->tx_pkt, dev->tx_len);
+			network_tx(dev->card, dev->tx_pkt, dev->tx_len);
 		} else {
 			plip_log(1, "PLIP: checksum error: expected %02X, got %02X\n", dev->tx_checksum_calc, dev->tx_checksum);
 		}
@@ -381,7 +382,6 @@ plip_receive_packet(plip_t *dev)
     }
 
     if (!dev->rx_pkt || !dev->rx_len) { /* unpause RX queue if there's no packet to receive */
-	network_rx_pause = 0;
 	return;
     }
 
@@ -432,8 +432,6 @@ plip_rx(void *priv, uint8_t *buf, int io_len)
     if (!(dev->rx_pkt = malloc(io_len))) /* unlikely */
 	fatal("PLIP: unable to allocate rx_pkt\n");
 
-    network_rx_pause = 1; /* make sure we don't get any more packets while processing this one */
-
     /* Copy this packet to our buffer. */
     dev->rx_len = io_len;
     memcpy(dev->rx_pkt, buf, dev->rx_len);
@@ -478,7 +476,7 @@ plip_net_init(const device_t *info)
     }
 
     plip_log(1, " (attached to LPT)\n");
-    network_attach(instance, instance->mac, plip_rx, NULL, NULL);
+    instance->card = network_attach(instance, instance->mac, plip_rx, NULL, NULL);
 
     return instance;
 }
@@ -487,6 +485,9 @@ plip_net_init(const device_t *info)
 static void
 plip_close(void *priv)
 {
+	if (instance->card) {
+		netcard_close(instance->card);
+	}
     free(priv);
 }
 
