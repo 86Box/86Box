@@ -545,7 +545,7 @@ oti_recalctimings(svga_t *svga)
     if (oti->chip_id != OTI_087 && (oti->regs[0x0d] & 0x0c) && !(oti->regs[0x0d] & 0x10)) svga->rowoffset <<= 1;
     if (oti->chip_id == OTI_087 && (oti->regs[0x21] & 0x4)) {
         svga->rowoffset <<= 1;
-        if (svga->bpp == 8) svga->hdisp >>= 1;
+        if (svga->bpp == 8 && svga->hdisp == 640) svga->hdisp >>= 1;
     }
 
     if (oti->chip_id == OTI_087) {
@@ -598,6 +598,8 @@ oti_write(uint32_t addr, uint8_t val, void *p) {
 static void
 oti_writew(uint32_t addr, uint16_t val, void *p) {
     oti_t* oti = (oti_t*)p;
+    
+    if (oti->svga.bpp >= 16) return svga_writew(addr, val, p);
     oti_write(addr, val, p);
     if (!(oti->regs[0x30] & 0xc)) oti_write(addr + 1, val >> 8, p);
 }
