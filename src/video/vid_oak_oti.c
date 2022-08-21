@@ -252,7 +252,7 @@ oti_out(uint16_t addr, uint8_t val, void *p)
                 oti->regs[0x11] = (oti->regs[0x11] & 0x0F) | (val & 0xF0);
                 break;
 		}
-        if (oti->index != 0x34) pclog("OAK: Write reg value %d (0x%X), idx = 0x%X\n", val, val, oti->index);
+        if (oti->index != 0x34 && idx != 0x23 && idx != 0x24 && idx != 0x25) pclog("OAK: Write reg value %d (0x%X), idx = 0x%X\n", val, val, oti->index);
 		return;
     }
 
@@ -403,7 +403,7 @@ oti_in(uint16_t addr, void *p)
 		break;
     }
 
-    if (addr == 0x3DF) pclog("OAK: Read reg value %d (0x%X), idx = 0x%X\n", temp, temp, idx);
+    if (addr == 0x3DF && idx != 0x23 && idx != 0x24 && idx != 0x25) pclog("OAK: Read reg value %d (0x%X), idx = 0x%X\n", temp, temp, idx);
     return(temp);
 }
 
@@ -548,31 +548,21 @@ oti_recalctimings(svga_t *svga)
         if (svga->bpp == 8) svga->hdisp >>= 1;
     }
 
+    if (oti->chip_id == OTI_087) {
+        if (oti->regs[0x21] & 0x2) {
+            svga->bpp = 24;
+        } else if (svga->bpp == 24) svga->bpp = 8;
+    }
+
     if (svga->bpp == 24) {
     svga->render = svga_render_24bpp_highres;
-    svga->hdisp >>= 1;
+    //svga->hdisp >>= 1;
     } else if (svga->bpp == 16) {
 	svga->render = svga_render_16bpp_highres;
 	svga->hdisp >>= 1;
     } else if (svga->bpp == 15) {
 	svga->render = svga_render_15bpp_highres;
 	svga->hdisp >>= 1;
-    }
-
-    if (oti->chip_id == OTI_087) {
-        if (oti->regs[0x21] & 0x2) {
-            svga->hdisp *= 3;
-            svga->hdisp_on *= 3;
-            svga->htotal *= 3;
-            svga->hblankend *= 3;
-            svga->hblankstart *= 3;
-        } else if (oti->regs[0x21] & 0x1) {
-            svga->hdisp *= 2;
-            svga->hdisp_on *= 2;
-            svga->htotal *= 2;
-            svga->hblankend *= 2;
-            svga->hblankstart *= 2;
-        }
     }
 }
 
