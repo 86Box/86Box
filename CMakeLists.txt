@@ -156,6 +156,7 @@ cmake_dependent_option(LASERXT        "VTech Laser XT"                          
 cmake_dependent_option(MGA            "Matrox Mystique graphics adapters"           ON      "DEV_BRANCH"    OFF)
 cmake_dependent_option(OLIVETTI       "Olivetti M290"                               ON      "DEV_BRANCH"    OFF)
 cmake_dependent_option(OPEN_AT        "OpenAT"                                      ON      "DEV_BRANCH"    OFF)
+cmake_dependent_option(OTI_087        "OAK OTI-087"                                 ON      "DEV_BRANCH"    OFF)
 cmake_dependent_option(PAS16          "Pro Audio Spectrum 16"                       ON      "DEV_BRANCH"    OFF)
 cmake_dependent_option(SIO_DETECT     "Super I/O Detection Helper"                  ON      "DEV_BRANCH"    OFF)
 cmake_dependent_option(TANDY_ISA      "Tandy PSG ISA clone boards"                  ON      "DEV_BRANCH"    OFF)

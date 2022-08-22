@@ -16,6 +16,13 @@
  *		Copyright 2008-2018 Sarah Walker.
  *		Copyright 2016-2018 Miran Grca.
  */
+
+/* TODO for OTI-087: 
+ * 1. Analyze further the 1-to-8-byte color expansion mode when only bit 4 of Extended Register 0x30 is enabled and all other bits of it zero.
+ * 2. Fix window moving leftover bugs and glitches on Windows 3.X when using 8-bpp modes.
+ * 3. Implement hardware cursor if necessary.
+*/
+
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
@@ -88,7 +95,7 @@ oti_out(uint16_t addr, uint8_t val, void *p)
 
     switch (addr) {
 	case 0x3C3:
-		if (!oti->chip_id) {
+		if (!oti->chip_id && oti->chip_id != OTI_087) {
 			oti->enable_register = val & 1;
 			return;
 		} else
@@ -101,6 +108,15 @@ oti_out(uint16_t addr, uint8_t val, void *p)
         else
 			svga_out(addr, val, svga);
 		return;
+
+#if 0
+    case 0x3CF:
+        svga_out(addr, val, svga);
+        if ((svga->gdcaddr & 15) == 6 && (oti->regs[0x5] & 0x1)) {
+            mem_mapping_disable(&svga->mapping);
+        }
+        break;
+#endif
 
 	case 0x3D4:
 		if (oti->chip_id)
@@ -143,38 +159,43 @@ oti_out(uint16_t addr, uint8_t val, void *p)
 
 	case 0x3DF:
 		idx = oti->index;
-		if (!oti->chip_id)
+		if (oti->chip_id != OTI_087)
 			idx &= 0x1f;
         if ((idx == 7 || idx == 1 || idx == 6) && oti->chip_id == OTI_087) return;
         if (idx == 0x36 && oti->chip_id == OTI_087) {
+            //pclog("OAK: Write latch reg value %d (0x%X), idx = 0x%X\n", val, val, oti->regs[0x35]);
             svga->latch.b[oti->regs[0x35]++] = val;
             if (oti->regs[0x35] == 8) oti->regs[0x35] = 0;
             return;
         }
 		oti->regs[idx] = val;
 		switch (idx) {
+// FIXME: Linear mapping for some reason doesn't work at all on Windows 3.X.
+#if 0
             case 0x5:
             {
-                if (val & 0x1) {
-                    mem_mapping_disable(&svga->mapping);
-                    mem_mapping_enable(&oti->linear_mapping);
-                } else {
-                    mem_mapping_enable(&svga->mapping);
-                    mem_mapping_disable(&oti->linear_mapping);
-                }
+                uint32_t base = 0, size = 0;
+                mem_mapping_set_enabled(&svga->mapping, !(val & 0x1));
                 if (val & 0x1) {
                     if ((val & 0xF0) == 0) {
-                        mem_mapping_set_addr(&oti->linear_mapping, 0xA0000, 0x40000);
-                        svga->decode_mask = 0x3FFFF;
-                        break;
+                        base = 0xA0000;
+                        size = 0x20000;
+                        svga->decode_mask = 0x1FFFF;
                     } else {
-                        mem_mapping_set_addr(&oti->linear_mapping, (val & 0xF0) << 16, 0x40000 << ((val & 0xC) >> 2));
+                        base = (val & 0xF0);
+                        base <<= 16;
+                        size = 0x40000 << ((val & 0xC) >> 2);
                         svga->decode_mask = (0x40000 << ((val & 0xC) >> 2)) - 1;
-                        break;
                     }
-                } else svga->decode_mask = 0x7FFFFFF;
+                } else {
+                    svga->decode_mask = 0x7FFFFFF;
+                }
+                svga->decode_mask = 0x7FFFFFF;
+                mem_mapping_set_addr(&oti->linear_mapping, base, size);
+                pclog("OAK: Base = 0x%X, Size = 0x%X\n", base, size);
                 break;
             }
+#endif
             case 0x6:
             {
                 if (oti->chip_id == OTI_087) {
@@ -237,6 +258,8 @@ oti_out(uint16_t addr, uint8_t val, void *p)
 			case 0x11:
 				svga->read_bank = ((uint32_t)(val & 0xf)) * 65536;
 				svga->write_bank = ((uint32_t)(val >> 4)) * 65536;
+                oti->regs[0x23] = val & 0xf;
+                oti->regs[0x24] = (val >> 4) & 0xf;
 				break;
 
             case 0x13:
@@ -275,7 +298,7 @@ oti_out(uint16_t addr, uint8_t val, void *p)
                 oti->regs[0x11] = (oti->regs[0x11] & 0x0F) | (val & 0xF0);
                 break;
 		}
-        if (oti->index != 0x34 && idx != 0x23 && idx != 0x24 && idx != 0x25) pclog("OAK: Write reg value %d (0x%X), idx = 0x%X\n", val, val, oti->index);
+//        if (oti->index != 0x34) pclog("OAK: Write reg value %d (0x%X), idx = 0x%X\n", val, val, oti->index);
 		return;
     }
 
@@ -384,7 +407,7 @@ oti_in(uint16_t addr, void *p)
 
 	case 0x3DF:
 		idx = oti->index;
-		if (!oti->chip_id)
+		if (oti->chip_id != OTI_087)
 			idx &= 0x1f;
 		if (idx == 0x10)
 			temp = oti->dipswitch_val;
@@ -410,8 +433,7 @@ oti_in(uint16_t addr, void *p)
                     temp = ((svga->miscout >> 2) & 3) | ((oti->regs[0x0d] & 0x20) >> 3) | (oti->chip_id == OTI_087 ? (oti->regs[0x6] & 0x8) : 0);
                     break;
 
-                case 0xD:
-                {
+                case 0xD: {
                     temp = oti->regs[0x20] & 0x7;
                     temp |= (oti->regs[0x21] & 0xC) << 1;
                     temp |= (oti->regs[0x6] & 0x4) << 3;
@@ -426,7 +448,7 @@ oti_in(uint16_t addr, void *p)
 		break;
     }
 
-    if (addr == 0x3DF && idx != 0x23 && idx != 0x24 && idx != 0x25) pclog("OAK: Read reg value %d (0x%X), idx = 0x%X\n", temp, temp, idx);
+ //   if (addr == 0x3DF) pclog("OAK: Read reg value %d (0x%X), idx = 0x%X\n", temp, temp, idx);
     return(temp);
 }
 
@@ -752,10 +774,9 @@ oti_init(const device_t *info)
         if (info->flags & DEVICE_VLB) oti->regs[OTI_REG_CONFIG_1] |= 0x80;
         oti->regs[OTI_REG_CONFIG_2] = 0x0;
         oti->regs[0x13] = 0x20;
-        oti->regs[0x1] = 0x10; /* OTI-087X Chip identification register. */
+        oti->regs[0x1] = 0x10; /* OTI-087 Chip Revision identification register. */
         oti->regs[0x0] = 1; /* The main Chip Identification register. */
         mem_mapping_add(&oti->linear_mapping, 0, 0, svga_readb_linear, svga_readw_linear, NULL, oti_write_linear, oti_writew_linear, NULL, NULL, MEM_MAPPING_EXTERNAL, oti);
-        mem_mapping_disable(&oti->linear_mapping);
     }
 
     return(oti);
@@ -1012,6 +1033,7 @@ const device_t oti077_device = {
     .config = oti077_config
 };
 
+#if defined(DEV_BRANCH) && defined(USE_OTI_087)
 const device_t oti087_device = {
     .name = "Oak OTI-087",
     .internal_name = "oti087",
@@ -1025,3 +1047,4 @@ const device_t oti087_device = {
     .force_redraw = oti_force_redraw,
     .config = oti087_config
 };
+#endif

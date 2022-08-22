@@ -416,7 +416,9 @@ extern const device_t oti067_device;
 extern const device_t oti067_acer386_device;
 extern const device_t oti067_ama932j_device;
 extern const device_t oti077_device;
+#    if defined(DEV_BRANCH) && defined(USE_OTI_087)
 extern const device_t oti087_device;
+#    endif
 
 /* Paradise/WD (S)VGA */
 extern const device_t paradise_pvga1a_ncr3302_device;

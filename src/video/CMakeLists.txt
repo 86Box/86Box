@@ -32,6 +32,10 @@ if(MGA)
     target_sources(vid PRIVATE vid_mga.c)
 endif()
 
+if (OTI_087)
+    target_compile_definitions(vid PRIVATE USE_OTI_087)
+endif()
+
 if(VGAWONDER)
     target_compile_definitions(vid PRIVATE USE_VGAWONDER)
 endif()
