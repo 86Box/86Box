@@ -1632,6 +1632,12 @@ void MainWindow::keyPressEvent(QKeyEvent* event)
     if (keyboard_ismsexit()) {
         plat_mouse_capture(0);
     }
+
+    if ((video_fullscreen > 0) && (keyboard_recv(0x1D) || keyboard_recv(0x11D))) {
+        if (keyboard_recv(0x57)) ui->actionTake_screenshot->trigger();
+        else if (keyboard_recv(0x58)) pc_send_cad();
+    }
+
     event->accept();
 }
 
@@ -1646,6 +1652,9 @@ void MainWindow::blitToWidget(int x, int y, int w, int h, int monitor_index)
 
 void MainWindow::keyReleaseEvent(QKeyEvent* event)
 {
+    if (event->key() == Qt::Key_Pause) {
+        plat_pause(dopause ^ 1);
+    }
     if (!send_keyboard_input)
         return;
 
