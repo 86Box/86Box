@@ -121,10 +121,7 @@ netcard_conf_t net_cards_conf[NET_CARD_MAX];
 int net_card_current = 0;
 
 /* Global variables. */
-int		network_type;
 int		network_ndev;
-int		network_card;
-char		network_host[522];
 netdev_t	network_devs[32];
 
 
