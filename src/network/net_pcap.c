@@ -354,6 +354,9 @@ net_pcap_prepare(netdev_t *list)
     }
 
     for (dev=devlist; dev!=NULL; dev=dev->next) {
+		if (i >= (NET_HOST_INTF_MAX - 1))
+			break;
+
 		/**
 		 * we initialize the strings to NULL first for strncpy
 		 */

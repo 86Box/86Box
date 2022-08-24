@@ -58,6 +58,7 @@
 #define NET_MAX_FRAME 1518
 #define NET_QUEUE_LEN 8
 #define NET_CARD_MAX 4
+#define NET_HOST_INTF_MAX 64
 
 /* Supported network cards. */
 enum {
@@ -141,7 +142,7 @@ extern "C" {
 /* Global variables. */
 extern int	nic_do_log;				/* config */
 extern int      network_ndev;
-extern netdev_t network_devs[32];
+extern netdev_t network_devs[NET_HOST_INTF_MAX];
 
 
 /* Function prototypes. */
