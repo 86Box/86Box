@@ -122,7 +122,7 @@ int net_card_current = 0;
 
 /* Global variables. */
 int		network_ndev;
-netdev_t	network_devs[32];
+netdev_t	network_devs[NET_HOST_INTF_MAX];
 
 
 /* Local variables. */
