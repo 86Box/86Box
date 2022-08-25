@@ -151,17 +151,17 @@ void SettingsNetwork::on_comboIndexChanged(int index) {
 }
 
 void SettingsNetwork::on_pushButtonConf1_clicked() {
-    DeviceConfig::ConfigureDevice(network_card_getdevice(ui->comboBoxNIC1->currentData().toInt()), 0, qobject_cast<Settings*>(Settings::settings));
+    DeviceConfig::ConfigureDevice(network_card_getdevice(ui->comboBoxNIC1->currentData().toInt()), 1, qobject_cast<Settings*>(Settings::settings));
 }
 
 void SettingsNetwork::on_pushButtonConf2_clicked() {
-    DeviceConfig::ConfigureDevice(network_card_getdevice(ui->comboBoxNIC2->currentData().toInt()), 0, qobject_cast<Settings*>(Settings::settings));
+    DeviceConfig::ConfigureDevice(network_card_getdevice(ui->comboBoxNIC2->currentData().toInt()), 2, qobject_cast<Settings*>(Settings::settings));
 }
 
 void SettingsNetwork::on_pushButtonConf3_clicked() {
-    DeviceConfig::ConfigureDevice(network_card_getdevice(ui->comboBoxNIC3->currentData().toInt()), 0, qobject_cast<Settings*>(Settings::settings));
+    DeviceConfig::ConfigureDevice(network_card_getdevice(ui->comboBoxNIC3->currentData().toInt()), 3, qobject_cast<Settings*>(Settings::settings));
 }
 
 void SettingsNetwork::on_pushButtonConf4_clicked() {
-    DeviceConfig::ConfigureDevice(network_card_getdevice(ui->comboBoxNIC4->currentData().toInt()), 0, qobject_cast<Settings*>(Settings::settings));
+    DeviceConfig::ConfigureDevice(network_card_getdevice(ui->comboBoxNIC4->currentData().toInt()), 4, qobject_cast<Settings*>(Settings::settings));
 }
