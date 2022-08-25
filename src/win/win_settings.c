@@ -99,7 +99,7 @@ static int temp_float, temp_fm_driver;
 
 /* Network category */
 static int  temp_net_type, temp_net_card;
-static char temp_pcap_dev[522];
+static char temp_pcap_dev[128];
 
 /* Ports category */
 static int temp_lpt_devices[PARALLEL_MAX];
@@ -340,13 +340,13 @@ win_settings_init(void)
     temp_fm_driver          = fm_driver;
 
     /* Network category */
-    temp_net_type = network_type;
+    temp_net_type = net_cards_conf[0].net_type;
     memset(temp_pcap_dev, 0, sizeof(temp_pcap_dev));
 #ifdef ENABLE_SETTINGS_LOG
-    assert(sizeof(temp_pcap_dev) == sizeof(network_host));
+    assert(sizeof(temp_pcap_dev) == sizeof(net_cards_conf[0].host_dev_name));
 #endif
-    memcpy(temp_pcap_dev, network_host, sizeof(network_host));
-    temp_net_card = network_card;
+    memcpy(temp_pcap_dev, net_cards_conf[0].host_dev_name, sizeof(net_cards_conf[0].host_dev_name));
+    temp_net_card = net_cards_conf[0].device_num;
 
     /* Ports category */
     for (i = 0; i < PARALLEL_MAX; i++) {
@@ -466,9 +466,9 @@ win_settings_changed(void)
     i = i || (fm_driver != temp_fm_driver);
 
     /* Network category */
-    i = i || (network_type != temp_net_type);
-    i = i || strcmp(temp_pcap_dev, network_host);
-    i = i || (network_card != temp_net_card);
+    i = i || (net_cards_conf[i].net_type != temp_net_type);
+    i = i || strcmp(temp_pcap_dev, net_cards_conf[0].host_dev_name);
+    i = i || (net_cards_conf[0].device_num != temp_net_card);
 
     /* Ports category */
     for (j = 0; j < PARALLEL_MAX; j++) {
@@ -558,10 +558,10 @@ win_settings_save(void)
     fm_driver                  = temp_fm_driver;
 
     /* Network category */
-    network_type = temp_net_type;
-    memset(network_host, '\0', sizeof(network_host));
-    strcpy(network_host, temp_pcap_dev);
-    network_card = temp_net_card;
+    net_cards_conf[i].net_type = temp_net_type;
+    memset(net_cards_conf[0].host_dev_name, '\0', sizeof(net_cards_conf[0].host_dev_name));
+    strcpy(net_cards_conf[0].host_dev_name, temp_pcap_dev);
+    net_cards_conf[0].device_num = temp_net_card;
 
     /* Ports category */
     for (i = 0; i < PARALLEL_MAX; i++) {
@@ -1814,8 +1814,8 @@ win_settings_network_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
             lptsTemp = (LPTSTR) malloc(512 * sizeof(WCHAR));
 
             settings_add_string(hdlg, IDC_COMBO_NET_TYPE, (LPARAM) L"None");
-            settings_add_string(hdlg, IDC_COMBO_NET_TYPE, (LPARAM) L"PCap");
             settings_add_string(hdlg, IDC_COMBO_NET_TYPE, (LPARAM) L"SLiRP");
+            settings_add_string(hdlg, IDC_COMBO_NET_TYPE, (LPARAM) L"PCap");
             settings_set_cur_sel(hdlg, IDC_COMBO_NET_TYPE, temp_net_type);
             settings_enable_window(hdlg, IDC_COMBO_PCAP, temp_net_type == NET_TYPE_PCAP);
 

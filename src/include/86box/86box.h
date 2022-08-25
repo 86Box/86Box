@@ -122,9 +122,6 @@ extern int      cpu,              /* (C) cpu type */
     cpu_use_dynarec,              /* (C) cpu uses/needs Dyna */
     fpu_type;                     /* (C) fpu type */
 extern int  time_sync;            /* (C) enable time sync */
-extern int  network_type;         /* (C) net provider type */
-extern int  network_card;         /* (C) net interface num */
-extern char network_host[522];    /* (C) host network intf */
 extern int  hdd_format_type;      /* (C) hard disk file format */
 extern int  confirm_reset,        /* (C) enable reset confirmation */
     confirm_exit,                 /* (C) enable exit confirmation */
