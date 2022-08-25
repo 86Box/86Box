@@ -116,11 +116,13 @@ void SettingsNetwork::onCurrentMachineChanged(int machineId) {
 
         cbox = findChild<QComboBox*>(QString("comboBoxNet%1").arg(i+1));
         model = cbox->model();
+        removeRows = model->rowCount();
         Models::AddEntry(model, tr("None"), NET_TYPE_NONE);
         Models::AddEntry(model, "SLiRP", NET_TYPE_SLIRP);
         if (network_ndev > 1) {
             Models::AddEntry(model, "PCap", NET_TYPE_PCAP);
         }
+        model->removeRows(0, removeRows);
         cbox->setCurrentIndex(net_cards_conf[i].net_type);
 
         selectedRow = 0;
@@ -128,12 +130,14 @@ void SettingsNetwork::onCurrentMachineChanged(int machineId) {
         QString currentPcapDevice = net_cards_conf[i].host_dev_name;
         cbox = findChild<QComboBox*>(QString("comboBoxIntf%1").arg(i+1));
         model = cbox->model();
+        removeRows = model->rowCount();
         for (int c = 0; c < network_ndev; c++) {
             Models::AddEntry(model, tr(network_devs[c].description), c);
             if (QString(network_devs[c].device) == currentPcapDevice) {
                 selectedRow = c;
             }
         }
+        model->removeRows(0, removeRows);
         cbox->setCurrentIndex(selectedRow);
     }
 }
