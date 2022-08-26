@@ -1,16 +1,20 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Emulation of the National Semiconductor PC87366 (NSC366)
- *		Super I/O chip.
+ *          Emulation of the National Semiconductor PC87366 (NSC366)
+ *          Super I/O chip.
  *
- * Author:	Tiseno100,
- *		Copyright 2022 Tiseno100.
+ *
+ *
+ * Authors: Tiseno100,
+ *
+ *          Copyright 2022 Tiseno100.
+ *
  */
 
 #include <stdarg.h>

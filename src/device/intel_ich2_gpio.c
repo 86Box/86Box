@@ -1,11 +1,20 @@
 /*
- * Intel ICH2 GPIO
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- * Authors:	Tiseno100,
+ *          This file is part of the 86Box distribution.
  *
- * Copyright 2022 Tiseno100.
+ *          Implementation of Intel ICH2 GPIO
+ *
+ *
+ *
+ * Authors: Tiseno100,
+ *
+ *          Copyright 2022 Tiseno100.
+ *
  */
-
 
 #include <stdarg.h>
 #include <stdint.h>

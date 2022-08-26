@@ -1,9 +1,19 @@
 /*
- * 815EP SPD Memory Hack
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- * Authors:	Tiseno100,
+ *          This file is part of the 86Box distribution.
  *
- * Copyright 2022 Tiseno100.
+ *          Intel 82815EP SPD Memory Hack
+ *
+ *
+ *
+ * Authors: Tiseno100,
+ *
+ *          Copyright 2022 Tiseno100.
+ *
  */
 
 /* This is a hack because the 86Box SPD calculation algorithm is not made for the 815EP banking.

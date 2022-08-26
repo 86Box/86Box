@@ -1,9 +1,19 @@
 /*
- * ITE IT8702
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- * Authors:	Tiseno100,
+ *          This file is part of the 86Box distribution.
  *
- * Copyright 2022 Tiseno100.
+ *          ITE IT8702
+ *
+ *
+ *
+ * Authors: Tiseno100,
+ *
+ *          Copyright 2022 Tiseno100.
+ *
  */
 
 // NOTE: We don't really utilize fans because our emulated board doesn't use them.
