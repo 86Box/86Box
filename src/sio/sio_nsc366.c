@@ -29,6 +29,7 @@
 #include <86box/timer.h>
 #include <86box/device.h>
 #include <86box/hwm.h>
+#include <86box/io.h>
 #include <86box/keyboard.h>
 #include <86box/lpt.h>
 #include <86box/nsc366.h>
@@ -39,22 +40,21 @@
 #include <86box/port_92.h>
 #include <86box/sio.h>
 
-
 typedef struct
 {
-    fdc_t *fdc;
-    serial_t *uart[2];
+    fdc_t        *fdc;
+    serial_t     *uart[2];
     nsc366_hwm_t *hwm;
 
     uint8_t index, ldn, sio_config[14],
-    ld_activate[15],
-    io_base0[2][15],
-    io_base1[2][15],
-    int_num_irq[15],
-    irq[15],
-    dma_select0[15],
-    dma_select1[15],
-    dev_specific_config[3][15];
+        ld_activate[15],
+        io_base0[2][15],
+        io_base1[2][15],
+        int_num_irq[15],
+        irq[15],
+        dma_select0[15],
+        dma_select1[15],
+        dev_specific_config[3][15];
 
     int siofc_lock;
 } nsc366_t;
@@ -62,29 +62,27 @@ typedef struct
 #ifdef ENABLE_NSC366_LOG
 int nsc366_do_log = ENABLE_NSC366_LOG;
 
-
 void
 nsc366_log(const char *fmt, ...)
 {
     va_list ap;
 
     if (nsc366_do_log) {
-	va_start(ap, fmt);
-	pclog_ex(fmt, ap);
-	va_end(ap);
+        va_start(ap, fmt);
+        pclog_ex(fmt, ap);
+        va_end(ap);
     }
 }
 #else
-#define nsc366_log(fmt, ...)
+#    define nsc366_log(fmt, ...)
 #endif
-
 
 static void
 nsc366_fdc(nsc366_t *dev)
 {
     fdc_remove(dev->fdc);
-    int base = ((dev->io_base0[0][0] & 7) << 8) | (dev->io_base0[1][0] & 0xf8);
-    int irq = dev->int_num_irq[0] & 0x0f;
+    int base   = ((dev->io_base0[0][0] & 7) << 8) | (dev->io_base0[1][0] & 0xf8);
+    int irq    = dev->int_num_irq[0] & 0x0f;
     int dma_ch = dev->dma_select0[0] & 7;
 
     if (dev->ld_activate[0]) {
@@ -98,31 +96,29 @@ nsc366_fdc(nsc366_t *dev)
     }
 }
 
-
 void
 nsc366_lpt(nsc366_t *dev)
 {
     lpt1_remove();
     int base = ((dev->io_base0[0][1] & 7) << 8) | (dev->io_base0[1][1] & 0xfc);
-    int irq = (dev->int_num_irq[1] & 0x0f);
+    int irq  = (dev->int_num_irq[1] & 0x0f);
 
     if (dev->ld_activate[1]) {
-        nsc366_log("NSC 366 LPT: Reconfigured with Base 0x%04x IRQ: %d\n", base ,irq);
+        nsc366_log("NSC 366 LPT: Reconfigured with Base 0x%04x IRQ: %d\n", base, irq);
         lpt1_init(base);
         lpt1_irq(irq);
     }
 }
-
 
 static void
 nsc366_uart(int uart, nsc366_t *dev)
 {
     serial_remove(dev->uart[uart]);
     int base = ((dev->io_base0[0][2 + uart] & 7) << 8) | (dev->io_base0[1][2 + uart] & 0xf8);
-    int irq = (dev->int_num_irq[2 + uart] & 0x0f);
+    int irq  = (dev->int_num_irq[2 + uart] & 0x0f);
 
     if (dev->ld_activate[2 + uart]) {
-        nsc366_log("NSC 366 UART Serial %d: Reconfigured with Base 0x%04x IRQ: %d\n", uart, base ,irq);
+        nsc366_log("NSC 366 UART Serial %d: Reconfigured with Base 0x%04x IRQ: %d\n", uart, base, irq);
         serial_setup(dev->uart[uart], base, irq);
     }
 }
@@ -151,7 +147,6 @@ nsc366_fscm(nsc366_t *dev)
     nsc366_update_fscm_io(dev->ld_activate[9], base, dev->hwm);
 }
 
-
 static void
 nsc366_vlm(nsc366_t *dev)
 {
@@ -162,7 +157,6 @@ nsc366_vlm(nsc366_t *dev)
 
     nsc366_update_vlm_io(dev->ld_activate[13], base, dev->hwm);
 }
-
 
 static void
 nsc366_tms(nsc366_t *dev)
@@ -175,11 +169,10 @@ nsc366_tms(nsc366_t *dev)
     nsc366_update_tms_io(dev->ld_activate[14], base, dev->hwm);
 }
 
-
 static void
 nsc366_ldn_redirect(nsc366_t *dev)
 {
-    switch(dev->ldn) {
+    switch (dev->ldn) {
         case 0:
             nsc366_fdc(dev);
             break;
@@ -207,14 +200,13 @@ nsc366_ldn_redirect(nsc366_t *dev)
     }
 }
 
-
 static void
 nsc366_write(uint16_t addr, uint8_t val, void *priv)
 {
-    nsc366_t *dev = (nsc366_t *)priv;
+    nsc366_t *dev = (nsc366_t *) priv;
 
     if (addr & 1)
-        switch(dev->index) {
+        switch (dev->index) {
             /* LDN */
             case 0x07:
                 if (val <= 0x0e)
@@ -228,7 +220,7 @@ nsc366_write(uint16_t addr, uint8_t val, void *priv)
                         if (!dev->siofc_lock) {
                             if (val & 0x80) {
                                 dev->sio_config[dev->index - 0x20] = val | 0x80;
-                                dev->siofc_lock = 1;
+                                dev->siofc_lock                    = 1;
                             } else {
                                 dev->sio_config[dev->index - 0x20] = val;
                             }
@@ -301,7 +293,7 @@ nsc366_write(uint16_t addr, uint8_t val, void *priv)
                 nsc366_ldn_redirect(dev);
                 break;
 
-            case 0x74: 
+            case 0x74:
                 dev->dma_select0[dev->ldn] = val & 0x1f;
                 nsc366_ldn_redirect(dev);
                 break;
@@ -315,15 +307,15 @@ nsc366_write(uint16_t addr, uint8_t val, void *priv)
                 dev->dev_specific_config[dev->index - 0xf0][dev->ldn] = val;
                 nsc366_ldn_redirect(dev);
                 break;
-    } else
+        }
+    else
         dev->index = val;
 }
-
 
 static uint8_t
 nsc366_read(uint16_t addr, void *priv)
 {
-    nsc366_t *dev = (nsc366_t *)priv;
+    nsc366_t *dev = (nsc366_t *) priv;
 
     if (addr & 1) {
         switch (dev->index) {
@@ -348,7 +340,7 @@ nsc366_read(uint16_t addr, void *priv)
             case 0x71:
                 return dev->irq[dev->ldn];
 
-            case 0x74: 
+            case 0x74:
                 return dev->dma_select0[dev->ldn];
 
             case 0x75:
@@ -360,18 +352,17 @@ nsc366_read(uint16_t addr, void *priv)
             default:
                 return 0;
         }
-    }
-    else return dev->index;
+    } else
+        return dev->index;
 }
-
 
 static void
 nsc366_reset(void *priv)
 {
-    nsc366_t *dev = (nsc366_t *)priv;
+    nsc366_t *dev = (nsc366_t *) priv;
 
     /* Basic Configuration */
-    dev->ldn = 0;
+    dev->ldn        = 0;
     dev->siofc_lock = 0;
     memset(dev->sio_config, 0, sizeof(dev->sio_config));
     memset(dev->ld_activate, 0, sizeof(dev->ld_activate));
@@ -389,106 +380,104 @@ nsc366_reset(void *priv)
 
     /* FDC */
     fdc_reset(dev->fdc);
-    dev->io_base0[0][0] = 0x03;
-    dev->io_base0[1][0] = 0xf2;
-    dev->int_num_irq[0] = 0x06;
-    dev->irq[0] = 0x03;
-    dev->dma_select0[0] = 0x02;
-    dev->dma_select1[0] = 0x04;
+    dev->io_base0[0][0]            = 0x03;
+    dev->io_base0[1][0]            = 0xf2;
+    dev->int_num_irq[0]            = 0x06;
+    dev->irq[0]                    = 0x03;
+    dev->dma_select0[0]            = 0x02;
+    dev->dma_select1[0]            = 0x04;
     dev->dev_specific_config[0][0] = 0x24;
-    
+
     nsc366_fdc(dev);
 
     /* LPT */
-    dev->io_base0[0][1] = 0x02;
-    dev->io_base0[1][1] = 0x78;
-    dev->int_num_irq[1] = 0x07;
-    dev->irq[1] = 0x02;
-    dev->dma_select0[1] = 0x04;
-    dev->dma_select1[1] = 0x04;
+    dev->io_base0[0][1]            = 0x02;
+    dev->io_base0[1][1]            = 0x78;
+    dev->int_num_irq[1]            = 0x07;
+    dev->irq[1]                    = 0x02;
+    dev->dma_select0[1]            = 0x04;
+    dev->dma_select1[1]            = 0x04;
     dev->dev_specific_config[0][1] = 0xf2;
 
     /* UART Serial 2 */
-    dev->io_base0[0][2] = 0x02;
-    dev->io_base0[1][2] = 0xf8;
-    dev->int_num_irq[2] = 0x03;
-    dev->irq[2] = 0x03;
-    dev->dma_select0[2] = 0x04;
-    dev->dma_select1[2] = 0x04;
+    dev->io_base0[0][2]            = 0x02;
+    dev->io_base0[1][2]            = 0xf8;
+    dev->int_num_irq[2]            = 0x03;
+    dev->irq[2]                    = 0x03;
+    dev->dma_select0[2]            = 0x04;
+    dev->dma_select1[2]            = 0x04;
     dev->dev_specific_config[0][2] = 0x02;
 
     nsc366_uart(1, dev);
 
     /* UART Serial 1 */
-    dev->io_base0[0][3] = 0x03;
-    dev->io_base0[1][3] = 0xf8;
-    dev->int_num_irq[3] = 0x04;
-    dev->irq[3] = 0x03;
-    dev->dma_select0[3] = 0x04;
-    dev->dma_select1[3] = 0x04;
+    dev->io_base0[0][3]            = 0x03;
+    dev->io_base0[1][3]            = 0xf8;
+    dev->int_num_irq[3]            = 0x04;
+    dev->irq[3]                    = 0x03;
+    dev->dma_select0[3]            = 0x04;
+    dev->dma_select1[3]            = 0x04;
     dev->dev_specific_config[0][3] = 0x02;
 
     /* SWC */
-    dev->irq[4] = 0x03;
+    dev->irq[4]         = 0x03;
     dev->dma_select0[4] = 0x04;
 
     /* Keyboard Controller */
     dev->int_num_irq[5] = 0x0c;
-    dev->irq[5] = 0x02;
+    dev->irq[5]         = 0x02;
 
     /* Mouse Controller */
-    dev->io_base0[1][6] = 0x60;
-    dev->io_base1[1][6] = 0x64;
-    dev->int_num_irq[6] = 0x01;
-    dev->irq[6] = 0x02;
-    dev->dma_select0[6] = 0x04;
-    dev->dma_select1[6] = 0x04;
+    dev->io_base0[1][6]            = 0x60;
+    dev->io_base1[1][6]            = 0x64;
+    dev->int_num_irq[6]            = 0x01;
+    dev->irq[6]                    = 0x02;
+    dev->dma_select0[6]            = 0x04;
+    dev->dma_select1[6]            = 0x04;
     dev->dev_specific_config[0][6] = 0x40;
 
     /* GPIO */
-    dev->irq[7] = 0x03;
+    dev->irq[7]         = 0x03;
     dev->dma_select0[7] = 0x04;
     dev->dma_select1[7] = 0x04;
 
     /* ACB */
-    dev->irq[8] = 0x03;
+    dev->irq[8]         = 0x03;
     dev->dma_select0[8] = 0x04;
     dev->dma_select1[8] = 0x04;
 
     /* Fan Speed Monitor & Control */
-    dev->irq[9] = 0x03;
+    dev->irq[9]         = 0x03;
     dev->dma_select0[9] = 0x04;
     dev->dma_select1[9] = 0x04;
     nsc366_fscm_enable(dev);
     nsc366_fscm(dev);
 
     /* Voltage Level Monitor */
-    dev->irq[13] = 0x03;
+    dev->irq[13]         = 0x03;
     dev->dma_select0[13] = 0x04;
     dev->dma_select1[13] = 0x04;
     nsc366_vlm(dev);
 
     /* Temperature Monitor */
-    dev->irq[14] = 0x03;
+    dev->irq[14]         = 0x03;
     dev->dma_select0[14] = 0x04;
     dev->dma_select1[14] = 0x04;
     nsc366_tms(dev);
 }
 
-
 static void
 nsc366_close(void *priv)
 {
-    nsc366_t *dev = (nsc366_t *)priv;
+    nsc366_t *dev = (nsc366_t *) priv;
 
     free(dev);
 }
 
-
 static void *
 nsc366_init(const device_t *info)
 {
-    nsc366_t *dev = (nsc366_t *)malloc(sizeof(nsc366_t));
+    nsc366_t *dev = (nsc366_t *) malloc(sizeof(nsc366_t));
     memset(dev, 0, sizeof(nsc366_t));
 
     io_sethandler(info->local, 2, nsc366_read, NULL, NULL, nsc366_write, NULL, NULL, dev); /* Ports 2E-2Fh(4E-4Fh if BADDR High): National Semiconductor NSC366 */
@@ -514,31 +503,30 @@ nsc366_init(const device_t *info)
     return dev;
 }
 
-
 const device_t nsc366_device = {
-    .name = "National Semiconductor NSC366",
+    .name          = "National Semiconductor NSC366",
     .internal_name = "nsc366",
-    .flags = 0,
-    .local = 0x2e,
-    .init = nsc366_init,
-    .close = nsc366_close,
-    .reset = nsc366_reset,
+    .flags         = 0,
+    .local         = 0x2e,
+    .init          = nsc366_init,
+    .close         = nsc366_close,
+    .reset         = nsc366_reset,
     { .available = NULL },
     .speed_changed = NULL,
-    .force_redraw = NULL,
-    .config = NULL
+    .force_redraw  = NULL,
+    .config        = NULL
 };
 
 const device_t nsc366_4f_device = {
-    .name = "National Semiconductor NSC366 (With BADDR Pin High)",
+    .name          = "National Semiconductor NSC366 (With BADDR Pin High)",
     .internal_name = "nsc366",
-    .flags = 0,
-    .local = 0x4e,
-    .init = nsc366_init,
-    .close = nsc366_close,
-    .reset = nsc366_reset,
+    .flags         = 0,
+    .local         = 0x4e,
+    .init          = nsc366_init,
+    .close         = nsc366_close,
+    .reset         = nsc366_reset,
     { .available = NULL },
     .speed_changed = NULL,
-    .force_redraw = NULL,
-    .config = NULL
+    .force_redraw  = NULL,
+    .config        = NULL
 };

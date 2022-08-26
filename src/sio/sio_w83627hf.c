@@ -107,7 +107,6 @@ Notes : ISAPnP is missing and the Hardware Monitor I2C is not implemented.
 #ifdef ENABLE_W83627HF_LOG
 int w83627hf_do_log = ENABLE_W83627HF_LOG;
 
-
 static void
 w83627hf_log(const char *fmt, ...)
 {
@@ -120,21 +119,20 @@ w83627hf_log(const char *fmt, ...)
     }
 }
 #else
-#define w83627hf_log(fmt, ...)
+#    define w83627hf_log(fmt, ...)
 #endif
-
 
 typedef struct
 {
     uint8_t hwm_index, hwm_regs[256];
 
-    uint8_t	index, cfg_unlocked,
-		    regs[48], dev_regs[12][256];
+    uint8_t index, cfg_unlocked,
+        regs[48], dev_regs[12][256];
 
-    int has_hwm;
-    fdc_t *fdc_controller;
+    int        has_hwm;
+    fdc_t     *fdc_controller;
     port_92_t *port_92;
-    serial_t *uart[2];
+    serial_t  *uart[2];
 } w83627hf_t;
 
 /* These differ per board and must be programmed manually */
@@ -144,122 +142,117 @@ void
 w83627hf_stabilizer(int vcoreb, int fan1, int fan2, int fan3)
 {
     vcoreb_voltage = vcoreb;
-    fan1_rpm = fan1;
-    fan2_rpm = fan2;
-    fan3_rpm = fan3;
+    fan1_rpm       = fan1;
+    fan2_rpm       = fan2;
+    fan3_rpm       = fan3;
 }
 
 static void
 w83627hf_hwm_write(uint16_t addr, uint8_t val, void *priv)
 {
-    w83627hf_t *dev = (w83627hf_t *)priv;
+    w83627hf_t *dev = (w83627hf_t *) priv;
 
-    switch(addr)
-    {
+    switch (addr) {
         case 0x295:
             dev->hwm_index = val;
-        break;
+            break;
 
         case 0x296:
             w83627hf_log("W83627HF-HWM: dev->regs[%02x] = %02x\n", dev->hwm_index, val);
-            switch(dev->hwm_index)
-            {
+            switch (dev->hwm_index) {
                 case 0x2b ... 0x3f:
                 case 0x6b ... 0x7f:
-                     dev->hwm_regs[dev->hwm_index & 0x1f] = val;
-                break;
+                    dev->hwm_regs[dev->hwm_index & 0x1f] = val;
+                    break;
 
                 case 0x40:
                     dev->hwm_regs[dev->hwm_index] = val & 0x8b;
-                break;
+                    break;
 
                 case 0x43:
                     dev->hwm_regs[dev->hwm_index] = val;
-                break;
+                    break;
 
                 case 0x44:
                     dev->hwm_regs[dev->hwm_index] = val & 0x3f;
-                break;
+                    break;
 
                 case 0x46:
                     dev->hwm_regs[dev->hwm_index] = val & 0x80;
-                        if(val & 0x80)
-                            dev->hwm_regs[dev->hwm_index] &= 0x10;
-                break;
+                    if (val & 0x80)
+                        dev->hwm_regs[dev->hwm_index] &= 0x10;
+                    break;
 
                 case 0x47:
                     dev->hwm_regs[dev->hwm_index] = val & 0x3f;
-                break;
+                    break;
 
                 case 0x48: /* Serial Bus Address */
                     dev->hwm_regs[dev->hwm_index] = val & 0x7f;
-                break;
+                    break;
 
                 case 0x49:
                     dev->hwm_regs[dev->hwm_index] = val & 1;
-                break;
+                    break;
 
                 case 0x4a:
                     dev->hwm_regs[dev->hwm_index] = val;
-                break;
+                    break;
 
                 case 0x4b:
                     dev->hwm_regs[dev->hwm_index] = val & 0xfc;
-                break;
+                    break;
 
                 case 0x4c:
                     dev->hwm_regs[dev->hwm_index] = val & 0x5c;
-                break;
+                    break;
 
                 case 0x4d:
                     dev->hwm_regs[dev->hwm_index] = val & 0xbf;
-                break;
+                    break;
 
                 case 0x4e:
                     dev->hwm_regs[dev->hwm_index] = val;
-                break;
+                    break;
 
                 case 0x56:
                     dev->hwm_regs[dev->hwm_index] = val;
-                break;
+                    break;
 
                 case 0x57:
                     dev->hwm_regs[dev->hwm_index] = val & 0xbf;
-                break;
+                    break;
 
                 case 0x59:
                     dev->hwm_regs[dev->hwm_index] = val & 0x70;
-                break;
+                    break;
 
                 case 0x5a ... 0x5b:
                     dev->hwm_regs[dev->hwm_index] = val;
-                break;
+                    break;
 
                 case 0x5c:
                     dev->hwm_regs[dev->hwm_index] = val & 0x77;
-                break;
+                    break;
             }
-        break;
+            break;
     }
 }
 
 static uint8_t
 w83627hf_hwm_read(uint16_t addr, void *priv)
 {
-    w83627hf_t *dev = (w83627hf_t *)priv;
+    w83627hf_t *dev = (w83627hf_t *) priv;
 
-    switch(addr)
-    {
+    switch (addr) {
         case 0x295:
             return dev->hwm_index;
 
         case 0x296:
-            switch(dev->hwm_index)
-            {
+            switch (dev->hwm_index) {
                 case 0x20 ... 0x3f:
                 case 0x60 ... 0x7f:
-                    switch(dev->hwm_index & 0x1f)
-                    {
+                    switch (dev->hwm_index & 0x1f) {
                         case 0x00: /* VCOREA */
                             return hwm_get_vcore() + 0x78;
 
@@ -295,7 +288,7 @@ w83627hf_hwm_read(uint16_t addr, void *priv)
                     }
 
                 case 0x4f:
-                    if(dev->hwm_regs[0x4e] & 0x80)
+                    if (dev->hwm_regs[0x4e] & 0x80)
                         return 0x5c;
                     else
                         return 0xa3;
@@ -319,51 +312,49 @@ w83627hf_fdc_write(uint16_t cur_reg, uint8_t val, w83627hf_t *dev)
 
     fdc_remove(dev->fdc_controller);
 
-    switch(cur_reg)
-    {
+    switch (cur_reg) {
         case 0x30:
             dev->dev_regs[0][cur_reg] = val & 1;
-        break;
+            break;
 
         case 0x60 ... 0x61:
             dev->dev_regs[0][cur_reg] = val;
-        break;
+            break;
 
         case 0x70:
             dev->dev_regs[0][cur_reg] = val & 0x0f;
-        break;
+            break;
 
         case 0x74:
             dev->dev_regs[0][cur_reg] = val & 7;
-        break;
+            break;
 
         case 0xf0:
             dev->dev_regs[0][cur_reg] = val;
-        break;
+            break;
 
         case 0xf1:
             dev->dev_regs[0][cur_reg] = val;
             fdc_update_boot_drive(dev->fdc_controller, (val & 0xc0) >> 6);
 
-            if(val & 2)
+            if (val & 2)
                 fdc_writeprotect(dev->fdc_controller);
 
             fdc_set_swwp(dev->fdc_controller, val & 1);
-        break;
+            break;
 
         case 0xf2:
             dev->dev_regs[0][cur_reg] = val;
-        break;
+            break;
 
         case 0xf4:
         case 0xf5:
             dev->dev_regs[0][cur_reg] = val & 0x5b;
             fdc_update_drvrate(dev->fdc_controller, cur_reg & 1, (val & 0x18) >> 3);
-        break;
+            break;
     }
 
-    if(dev->dev_regs[0][0x30] & 1)
-    {
+    if (dev->dev_regs[0][0x30] & 1) {
         fdc_set_irq(dev->fdc_controller, dev->dev_regs[0][0x70]);
         fdc_set_dma_ch(dev->fdc_controller, dev->dev_regs[0][0x74]);
         fdc_set_base(dev->fdc_controller, (dev->dev_regs[0][0x60] << 8) | (dev->dev_regs[0][0x61]));
@@ -377,27 +368,25 @@ w83627hf_lpt_write(uint16_t cur_reg, uint8_t val, w83627hf_t *dev)
 {
     lpt1_remove();
 
-    switch(cur_reg)
-    {
+    switch (cur_reg) {
         case 0x30:
             dev->dev_regs[1][cur_reg] = val & 1;
-        break;
+            break;
 
         case 0x60 ... 0x61:
             dev->dev_regs[1][cur_reg] = val;
-        break;
+            break;
 
         case 0x70:
             dev->dev_regs[1][cur_reg] = val & 0x0f;
-        break;
+            break;
 
         case 0xf0:
             dev->dev_regs[1][cur_reg] = val & 0x7f;
-        break;
+            break;
     }
 
-    if(dev->dev_regs[1][0x30] & 1)
-    {
+    if (dev->dev_regs[1][0x30] & 1) {
         lpt1_init((dev->dev_regs[1][0x60] << 8) | (dev->dev_regs[1][0x61]));
         lpt1_irq(dev->dev_regs[1][0x70]);
         w83627hf_log("W83627HF-LPT: BASE: %04x IRQ: %d\n", (dev->dev_regs[1][0x60] << 8) | (dev->dev_regs[1][0x61]), dev->dev_regs[1][0x70]);
@@ -411,50 +400,47 @@ w83627hf_uart_write(int uart, uint16_t cur_reg, uint8_t val, w83627hf_t *dev)
 
     serial_remove(dev->uart[uart]);
 
-    switch(cur_reg)
-    {
+    switch (cur_reg) {
         case 0x30:
             dev->dev_regs[2 + uart][cur_reg] = val & 1;
-        break;
+            break;
 
         case 0x60 ... 0x61:
             dev->dev_regs[2 + uart][cur_reg] = val;
-        break;
+            break;
 
         case 0x70:
             dev->dev_regs[2 + uart][cur_reg] = val & 0x0f;
-        break;
+            break;
 
         case 0xf0:
             dev->dev_regs[2 + uart][cur_reg] = val & 3;
-            switch(val & 3)
-            {
+            switch (val & 3) {
                 case 0:
                     uart_clock = 24000000.0 / 13.0;
-                break;
+                    break;
 
                 case 1:
                     uart_clock = 24000000.0 / 12.0;
-                break;
+                    break;
 
                 case 2:
                     uart_clock = 24000000.0 / 1.625;
-                break;
+                    break;
 
                 case 3:
                     uart_clock = 24000000.0;
-                break;
+                    break;
             }
-        break;
+            break;
 
         case 0xf1:
-            if(uart)
+            if (uart)
                 dev->dev_regs[2 + uart][cur_reg] = val & 0x7f;
-        break;
+            break;
     }
 
-    if(dev->dev_regs[2 + uart][0x30] & 1)
-    {
+    if (dev->dev_regs[2 + uart][0x30] & 1) {
         serial_setup(dev->uart[uart], (dev->dev_regs[2 + uart][0x60] << 8) | (dev->dev_regs[2 + uart][0x61]), dev->dev_regs[2 + uart][0x70]);
         serial_set_clock_src(dev->uart[uart], uart_clock);
         w83627hf_log("W83627HF-UART%s: BASE: %04x IRQ: %d\n", uart ? "B" : "A", (dev->dev_regs[2 + uart][0x60] << 8) | (dev->dev_regs[2 + uart][0x61]), dev->dev_regs[2 + uart][0x70]);
@@ -464,35 +450,33 @@ w83627hf_uart_write(int uart, uint16_t cur_reg, uint8_t val, w83627hf_t *dev)
 static void
 w83627hf_kbc_write(uint16_t cur_reg, uint8_t val, w83627hf_t *dev)
 {
-    switch(cur_reg)
-    {
+    switch (cur_reg) {
         case 0x30:
             dev->dev_regs[5][cur_reg] = val & 1;
-        break;
+            break;
 
         case 0x60 ... 0x61: /* See Notes on init */
             dev->dev_regs[5][cur_reg] = val;
-        break;
+            break;
 
         case 0x62 ... 0x63: /* See Notes on init */
             dev->dev_regs[5][cur_reg] = val;
-        break;
+            break;
 
         case 0x70:
             dev->dev_regs[5][cur_reg] = val & 0x0f;
-        break;
+            break;
 
         case 0x72:
             dev->dev_regs[5][cur_reg] = val & 0x0f;
-        break;
+            break;
 
         case 0xf0:
             dev->dev_regs[5][cur_reg] = val & 0xc7;
-        break;
+            break;
     }
 
-    if(dev->dev_regs[5][0x30] & 1)
-    {
+    if (dev->dev_regs[5][0x30] & 1) {
         /* We don't disable Port 92h as intended because the BIOSes never enable it back, causing issues. */
         port_92_set_features(dev->port_92, !!(dev->dev_regs[5][0xf0] & 1), !!(dev->dev_regs[5][0xf0] & 2));
         w83627hf_log("W83627HF-PORT92: FASTA20: %d FASTRESET: %d\n", !!(dev->dev_regs[5][0xf0] & 2), !!(dev->dev_regs[5][0xf0] & 1));
@@ -503,159 +487,153 @@ static void
 w83627hf_cir_write(uint16_t cur_reg, uint8_t val, w83627hf_t *dev)
 {
     /* Unimplemented Functionality */
-    switch(cur_reg)
-    {
+    switch (cur_reg) {
         case 0x30:
             dev->dev_regs[6][cur_reg] = val & 1;
-        break;
+            break;
 
         case 0x60 ... 0x61:
             dev->dev_regs[6][cur_reg] = val;
-        break;
+            break;
 
         case 0x70:
             dev->dev_regs[6][cur_reg] = val & 0x0f;
-        break;
+            break;
     }
 }
 
 static void
 w83627hf_gameport_midi_gpio1_write(uint16_t cur_reg, uint8_t val, w83627hf_t *dev)
 {
-    switch(cur_reg)
-    {
+    switch (cur_reg) {
         case 0x30:
             dev->dev_regs[7][cur_reg] = val & 7;
-        break;
+            break;
 
         case 0x60 ... 0x63:
             dev->dev_regs[7][cur_reg] = val;
-        break;
+            break;
 
         case 0x70:
             dev->dev_regs[7][cur_reg] = val & 0x0f;
-        break;
+            break;
 
         case 0xf0 ... 0xf2:
             dev->dev_regs[7][cur_reg] = val;
-        break;
+            break;
     }
 }
 
 static void
 w83627hf_watchdog_timer_gpio2_write(uint16_t cur_reg, uint8_t val, w83627hf_t *dev)
 {
-    switch(cur_reg)
-    {
+    switch (cur_reg) {
         case 0x30:
             dev->dev_regs[8][cur_reg] = val & 1;
-        break;
+            break;
 
         case 0xf0 ... 0xf2:
             dev->dev_regs[8][cur_reg] = val;
-        break;
+            break;
 
         case 0xf5:
             dev->dev_regs[8][cur_reg] = val & 0xcc;
-        break;
+            break;
 
         case 0xf6 ... 0xf7:
             dev->dev_regs[8][cur_reg] = val;
-        break;
+            break;
     }
 }
 
 static void
 w83627hf_gpio3_vsb_write(uint16_t cur_reg, uint8_t val, w83627hf_t *dev)
 {
-    switch(cur_reg)
-    {
+    switch (cur_reg) {
         case 0x30:
             dev->dev_regs[9][cur_reg] = val & 1;
-        break;
+            break;
 
         case 0xf0 ... 0xf2:
             dev->dev_regs[9][cur_reg] = val;
-        break;
+            break;
 
         case 0xf3:
             dev->dev_regs[9][cur_reg] = val & 0xc0;
-        break;
+            break;
     }
 }
 
 static void
 w83627hf_acpi_write(uint16_t cur_reg, uint8_t val, w83627hf_t *dev)
 {
-    switch(cur_reg)
-    {
+    switch (cur_reg) {
         case 0x30:
             dev->dev_regs[0x0a][cur_reg] = val & 1;
-        break;
+            break;
 
         case 0x70:
             dev->dev_regs[0x0a][cur_reg] = val & 0x0f;
-        break;
+            break;
 
         case 0xe0:
             dev->dev_regs[0x0a][cur_reg] = val & 0xc0;
-        break;
+            break;
 
         case 0xe1 ... 0xe2:
             dev->dev_regs[0x0a][cur_reg] = val;
-        break;
+            break;
 
         case 0xe4:
             dev->dev_regs[0x0a][cur_reg] = val & 0xfc;
-        break;
+            break;
 
         case 0xe5 ... 0xe6:
             dev->dev_regs[0x0a][cur_reg] = val & 0x7f;
 
-            if(cur_reg == 0xe6)
-                if(val & 0x40)
+            if (cur_reg == 0xe6)
+                if (val & 0x40)
                     dev->hwm_regs[0x42] &= 0x10;
-        break;
+            break;
 
         case 0xe7:
             dev->dev_regs[0x0a][cur_reg] = val & 0x0f;
-        break;
+            break;
 
         case 0xf0:
             dev->dev_regs[0x0a][cur_reg] = val;
-        break;
+            break;
 
         case 0xf1:
             dev->dev_regs[0x0a][cur_reg] = val & 0xef;
-        break;
+            break;
 
         case 0xf3 ... 0xf4:
             dev->dev_regs[0x0a][cur_reg] &= val & 0x3f;
-        break;
+            break;
 
         case 0xf5:
         case 0xf7:
             dev->dev_regs[0x0a][cur_reg] = val & 0x3f;
-        break;
+            break;
     }
 }
 
 static void
 w83627hf_hwm_lpc_write(uint16_t cur_reg, uint8_t val, w83627hf_t *dev)
 {
-    switch(cur_reg)
-    {
+    switch (cur_reg) {
         case 0x30:
             dev->dev_regs[0x0b][cur_reg] = val & 1;
-        break;
+            break;
 
         case 0x70:
             dev->dev_regs[0x0b][cur_reg] = val & 0x0f;
-        break;
+            break;
 
         case 0xf0:
             dev->dev_regs[0x0b][cur_reg] = val & 1;
-        break;
+            break;
     }
 }
 
@@ -682,7 +660,7 @@ w83627hf_hwm_reset(w83627hf_t *dev)
 static void
 w83627hf_reset(void *priv)
 {
-    w83627hf_t *dev = (w83627hf_t *)priv;
+    w83627hf_t *dev = (w83627hf_t *) priv;
     memset(dev->regs, 0, sizeof(dev->regs));
     dev->cfg_unlocked = 0;
 
@@ -749,32 +727,29 @@ w83627hf_reset(void *priv)
     dev->dev_regs[9][0xf0] = 0xff;
 
     /* W83627HF Hardware Monitor */
-    if(dev->has_hwm)
+    if (dev->has_hwm)
         w83627hf_hwm_reset(dev);
 }
 
 static void
 w83627hf_write(uint16_t addr, uint8_t val, void *priv)
 {
-    w83627hf_t *dev = (w83627hf_t *)priv;
+    w83627hf_t *dev = (w83627hf_t *) priv;
 
-    switch(addr & 0x0f)
-    {
+    switch (addr & 0x0f) {
         case 0x0e:
-            if(!dev->cfg_unlocked)
-            {
+            if (!dev->cfg_unlocked) {
                 dev->cfg_unlocked = (val == 0x87) && (dev->index == 0x87);
+                dev->index        = val;
+            } else
                 dev->index = val;
-            }
-            else dev->index = val;
-        break;
+            break;
 
         case 0x0f:
-            if(dev->cfg_unlocked)
-                switch(dev->index)
-                {
+            if (dev->cfg_unlocked)
+                switch (dev->index) {
                     case 0x02: /* LDN */
-                        if(val & 1)
+                        if (val & 1)
                             w83627hf_reset(dev);
                         break;
 
@@ -813,94 +788,92 @@ w83627hf_write(uint16_t addr, uint8_t val, void *priv)
                     case 0x2a:
                     case 0x2b:
                         dev->regs[dev->index] = val;
-                    break;
+                        break;
 
                     case 0x30: /* Device Specific Registers */
                     case 0x60 ... 0x63:
-                    case 0x70: case 0x72:case 0x74:
+                    case 0x70:
+                    case 0x72:
+                    case 0x74:
                     case 0xe0 ... 0xe7:
                     case 0xf0 ... 0xf6:
-                        switch(dev->regs[7])
-                        {
+                        switch (dev->regs[7]) {
                             case 0: /* FDC */
                                 w83627hf_fdc_write(dev->index, val, dev);
-                            break;
+                                break;
 
                             case 1: /* LPT */
                                 w83627hf_lpt_write(dev->index, val, dev);
-                            break;
+                                break;
 
                             case 2: /* UART A */
                             case 3: /* UART B */
                                 w83627hf_uart_write(dev->regs[7] & 1, dev->index, val, dev);
-                            break;
+                                break;
 
                             case 5: /* KBC */
                                 w83627hf_kbc_write(dev->index, val, dev);
-                            break;
+                                break;
 
                             case 6: /* CIR */
                                 w83627hf_cir_write(dev->index, val, dev);
-                            break;
+                                break;
 
                             case 7: /* GAMEPORT, MIDI & GPIO1 */
                                 w83627hf_gameport_midi_gpio1_write(dev->index, val, dev);
-                            break;
+                                break;
 
                             case 8: /* WATCHDOG TIMER & GPIO2 */
                                 w83627hf_watchdog_timer_gpio2_write(dev->index, val, dev);
-                            break;
+                                break;
 
                             case 9: /* GPIO3 & VSB */
                                 w83627hf_gpio3_vsb_write(dev->index, val, dev);
-                            break;
+                                break;
 
                             case 0x0a: /* ACPI */
                                 w83627hf_acpi_write(dev->index, val, dev);
-                            break;
+                                break;
 
                             case 0x0b: /* HWM LPC */
                                 w83627hf_hwm_lpc_write(dev->index, val, dev);
-                            break;
+                                break;
 
                             default:
                                 w83627hf_log("W83627HF: Writings to unknown LDN: %02x\n", dev->regs[7]);
-                            break;
+                                break;
                         }
-                    break;
+                        break;
                 }
-        break;
+            break;
     }
 }
-
 
 static uint8_t
 w83627hf_read(uint16_t addr, void *priv)
 {
-    w83627hf_t *dev = (w83627hf_t *)priv;
+    w83627hf_t *dev = (w83627hf_t *) priv;
 
-    if((dev->index >= 0x00) && (dev->index <= 0x2f))
+    if ((dev->index >= 0x00) && (dev->index <= 0x2f))
         return dev->regs[dev->index];
-    else if((dev->index >= 0x30) && (dev->index <= 0xff) && (dev->regs[7] >= 0) && (dev->regs[7] <= 0x0b))
+    else if ((dev->index >= 0x30) && (dev->index <= 0xff) && (dev->regs[7] >= 0) && (dev->regs[7] <= 0x0b))
         return dev->dev_regs[dev->regs[7]][dev->index];
     else
         return 0xff;
 }
 
-
 static void
 w83627hf_close(void *priv)
 {
-    w83627hf_t *dev = (w83627hf_t *)priv;
+    w83627hf_t *dev = (w83627hf_t *) priv;
 
     free(dev);
 }
 
-
 static void *
 w83627hf_init(const device_t *info)
 {
-    w83627hf_t *dev = (w83627hf_t *)malloc(sizeof(w83627hf_t));
+    w83627hf_t *dev = (w83627hf_t *) malloc(sizeof(w83627hf_t));
     memset(dev, 0, sizeof(w83627hf_t));
 
     /* Knock out the Hardware Monitor if needed(Mainly for ASUS TUSL2-C) */
@@ -910,7 +883,7 @@ w83627hf_init(const device_t *info)
     io_sethandler(0x002e, 2, w83627hf_read, NULL, NULL, w83627hf_write, NULL, NULL, dev);
     io_sethandler(0x004e, 2, w83627hf_read, NULL, NULL, w83627hf_write, NULL, NULL, dev);
 
-    if(dev->has_hwm)
+    if (dev->has_hwm)
         io_sethandler(0x0295, 2, w83627hf_hwm_read, NULL, NULL, w83627hf_hwm_write, NULL, NULL, dev);
 
     /* Floppy Disk Controller */
@@ -934,29 +907,29 @@ w83627hf_init(const device_t *info)
 }
 
 const device_t w83627hf_device = {
-    .name = "Winbond W83627HF",
+    .name          = "Winbond W83627HF",
     .internal_name = "w83627hf",
-    .flags = 0,
-    .local = 1,
-    .init = w83627hf_init,
-    .close = w83627hf_close,
-    .reset = w83627hf_reset,
+    .flags         = 0,
+    .local         = 1,
+    .init          = w83627hf_init,
+    .close         = w83627hf_close,
+    .reset         = w83627hf_reset,
     { .available = NULL },
     .speed_changed = NULL,
-    .force_redraw = NULL,
-    .config = NULL
+    .force_redraw  = NULL,
+    .config        = NULL
 };
 
 const device_t w83627hf_no_hwm_device = {
-    .name = "Winbond W83627HF with no Hardware Monitor",
+    .name          = "Winbond W83627HF with no Hardware Monitor",
     .internal_name = "w83627hf_nohwm",
-    .flags = 0,
-    .local = 0,
-    .init = w83627hf_init,
-    .close = w83627hf_close,
-    .reset = w83627hf_reset,
+    .flags         = 0,
+    .local         = 0,
+    .init          = w83627hf_init,
+    .close         = w83627hf_close,
+    .reset         = w83627hf_reset,
     { .available = NULL },
     .speed_changed = NULL,
-    .force_redraw = NULL,
-    .config = NULL
+    .force_redraw  = NULL,
+    .config        = NULL
 };

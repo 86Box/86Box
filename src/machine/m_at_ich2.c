@@ -38,12 +38,12 @@
 
 /*
  * ASUS CUSL2-C
- * 
+ *
  * North Bridge: Intel 815EP
  * Super I/O: ITE IT8702
  * BIOS: Award Medallion 6.0
  * Notes: None
-*/
+ */
 int
 machine_at_cusl2c_init(const machine_t *model)
 {
@@ -69,25 +69,25 @@ machine_at_cusl2c_init(const machine_t *model)
     pci_register_bus_slot(2, 0x0d, PCI_CARD_NORMAL,      6, 7, 8, 5);
     pci_register_bus_slot(2, 0x0e, PCI_CARD_NORMAL,      3, 4, 1, 2);
 
-    device_add(&intel_815ep_device); /* Intel 815EP MCH */
-    device_add(&intel_ich2_device); /* Intel ICH2 */
-    device_add(&it8702_device); /* ITE IT8702 */
+    device_add(&intel_815ep_device);       /* Intel 815EP MCH */
+    device_add(&intel_ich2_device);        /* Intel ICH2 */
+    device_add(&it8702_device);            /* ITE IT8702 */
     device_add(&sst_flash_49lf002_device); /* SST 2Mbit Firmware Hub */
-    device_add(&as99127f_device); /* ASUS Hardware Monitor */
-    ics9xxx_get(ICS9150_08); /* ICS Clock Chip */
-    intel_815ep_spd_init(); /* SPD */
+    device_add(&as99127f_device);          /* ASUS Hardware Monitor */
+    ics9xxx_get(ICS9150_08);               /* ICS Clock Chip */
+    intel_815ep_spd_init();                /* SPD */
 
     return ret;
 }
 
 /*
  * Biostar M6TSL
- * 
+ *
  * North Bridge: Intel 815E
  * Super I/O: National Semiconductor NSC366 (PC87366)
  * BIOS: Award BIOS 6.00PG
  * Notes: No integrated ESS Solo & GPU
-*/
+ */
 int
 machine_at_m6tsl_init(const machine_t *model)
 {
@@ -112,9 +112,9 @@ machine_at_m6tsl_init(const machine_t *model)
     pci_register_bus_slot(2, 0x06, PCI_CARD_NORMAL,      5, 6, 7, 8);
     pci_register_bus_slot(2, 0x07, PCI_CARD_NORMAL,      6, 7, 8, 1);
 
-    device_add(&intel_815ep_device); /* Intel 815EP MCH */
-    device_add(&intel_ich2_device); /* Intel ICH2 */
-    device_add(&nsc366_device); /* National Semiconductor NSC366 */
+    device_add(&intel_815ep_device);       /* Intel 815EP MCH */
+    device_add(&intel_ich2_device);        /* Intel ICH2 */
+    device_add(&nsc366_device);            /* National Semiconductor NSC366 */
     device_add(&sst_flash_49lf004_device); /* SST 4Mbit Firmware Hub */
 //    device_add(ics9xxx_get(ICS9250_08)); /* ICS Clock Chip */
     spd_register(SPD_TYPE_SDRAM, 0x7, 512);
@@ -124,12 +124,12 @@ machine_at_m6tsl_init(const machine_t *model)
 
 /*
  * Biostar M6TSS
- * 
+ *
  * North Bridge: Intel 815EP
  * Super I/O: National Semiconductor NSC366 (PC87366)
  * BIOS: AwardBIOS 6.00PG
- * Notes: 
-*/
+ * Notes:
+ */
 int
 machine_at_m6tss_init(const machine_t *model)
 {
@@ -155,11 +155,11 @@ machine_at_m6tss_init(const machine_t *model)
     pci_register_bus_slot(2, 0x06, PCI_CARD_NORMAL,      4, 1, 2, 3); // 0x0a
     pci_register_bus_slot(2, 0x07, PCI_CARD_NORMAL,      1, 2, 3, 4);
 
-    device_add(&intel_815ep_device); /* Intel 815EP MCH */
-    device_add(&intel_ich2_device); /* Intel ICH2 */
-    device_add(&nsc366_device); /* National Semiconductor NSC366 */
+    device_add(&intel_815ep_device);       /* Intel 815EP MCH */
+    device_add(&intel_ich2_device);        /* Intel ICH2 */
+    device_add(&nsc366_device);            /* National Semiconductor NSC366 */
     device_add(&sst_flash_49lf004_device); /* SST 4Mbit Firmware Hub */
-    device_add(ics9xxx_get(ICS9250_08)); /* ICS Clock Chip */
+    device_add(ics9xxx_get(ICS9250_08));   /* ICS Clock Chip */
     spd_register(SPD_TYPE_SDRAM, 0x7, 512);
 
     return ret;
@@ -167,12 +167,12 @@ machine_at_m6tss_init(const machine_t *model)
 
 /*
  * Tyan Tomcat 815T (S2080)
- * 
+ *
  * North Bridge: Intel 815EP
  * Super I/O: National Semiconductor NSC366 (PC87366)
  * BIOS: AMIBIOS 7 (AMI Home BIOS Fork)
  * Notes: None
-*/
+ */
 int
 machine_at_s2080_init(const machine_t *model)
 {
@@ -197,9 +197,9 @@ machine_at_s2080_init(const machine_t *model)
     pci_register_bus_slot(2, 0x06, PCI_CARD_NORMAL,      4, 5, 6, 7);
     pci_register_bus_slot(2, 0x07, PCI_CARD_NORMAL,      5, 6, 7, 8);
 
-    device_add(&intel_815ep_device); /* Intel 815EP MCH */
-    device_add(&intel_ich2_device); /* Intel ICH2 */
-    device_add(&nsc366_device); /* National Semiconductor NSC366 */
+    device_add(&intel_815ep_device);       /* Intel 815EP MCH */
+    device_add(&intel_ich2_device);        /* Intel ICH2 */
+    device_add(&nsc366_device);            /* National Semiconductor NSC366 */
     device_add(&sst_flash_49lf004_device); /* SST 4Mbit Firmware Hub */
     spd_register(SPD_TYPE_SDRAM, 0x7, 512);
 

@@ -1178,21 +1178,21 @@ void
 dma_lpc_init(void) /* Addresses LPC DMA uses */
 {
     io_sethandler(0x1000, 16,
-		  dma_read,NULL,NULL, dma_write,NULL,NULL, NULL);
+          dma_read,NULL,NULL, dma_write,NULL,NULL, NULL);
     io_sethandler(0x1080, 8,
-		  dma_page_read,NULL,NULL, dma_page_write,NULL,NULL, NULL);
+          dma_page_read,NULL,NULL, dma_page_write,NULL,NULL, NULL);
     io_sethandler(0x10C0, 32,
-		  dma16_read,NULL,NULL, dma16_write,NULL,NULL, NULL);
+          dma16_read,NULL,NULL, dma16_write,NULL,NULL, NULL);
     io_sethandler(0x1088, 8,
-		  dma_page_read,NULL,NULL, dma_page_write,NULL,NULL, NULL);
+          dma_page_read,NULL,NULL, dma_page_write,NULL,NULL, NULL);
     io_sethandler(0x1090, 1,
-		  dma_page_read,NULL,NULL, dma_page_write,NULL,NULL, NULL);
+          dma_page_read,NULL,NULL, dma_page_write,NULL,NULL, NULL);
     io_sethandler(0x1094, 3,
-		  dma_page_read,NULL,NULL, dma_page_write,NULL,NULL, NULL);
+          dma_page_read,NULL,NULL, dma_page_write,NULL,NULL, NULL);
     io_sethandler(0x1098, 1,
-		  dma_page_read,NULL,NULL, dma_page_write,NULL,NULL, NULL);
+          dma_page_read,NULL,NULL, dma_page_write,NULL,NULL, NULL);
     io_sethandler(0x109C, 3,
-		  dma_page_read,NULL,NULL, dma_page_write,NULL,NULL, NULL);
+          dma_page_read,NULL,NULL, dma_page_write,NULL,NULL, NULL);
 }
 
 void

@@ -43,13 +43,13 @@ intel_ich2_trap_log(const char *fmt, ...)
     va_list ap;
 
     if (intel_ich2_trap_do_log) {
-	va_start(ap, fmt);
-	pclog_ex(fmt, ap);
-	va_end(ap);
+        va_start(ap, fmt);
+        pclog_ex(fmt, ap);
+        va_end(ap);
     }
 }
 #else
-#define intel_ich2_trap_log(fmt, ...)
+#    define intel_ich2_trap_log(fmt, ...)
 #endif
 
 void
@@ -70,9 +70,9 @@ void
 intel_ich2_device_trap_setup(uint8_t acpi_reg, uint8_t acpi_reg_val, uint16_t addr, uint16_t size, intel_ich2_trap_t *dev)
 {
     uint8_t acpi_reg_recieve = dev->acpi->regs.devtrap_en >> ((acpi_reg & 1) * 8); /* Trap register is 16-bit on ranged ACPIBASE + 48h-49h */
-    int enable = !!(acpi_reg_recieve & acpi_reg_val); /* If enabled. Settle in the I/O trap */
+    int     enable           = !!(acpi_reg_recieve & acpi_reg_val);                /* If enabled. Settle in the I/O trap */
 
-    if(enable)
+    if (enable)
         intel_ich2_trap_log("Intel ICH2 Trap: A new trap was setted up on address 0x%x with the size of %d\n", addr, size);
 
     io_trap_remap(dev->trap, enable, addr, size);
@@ -101,15 +101,15 @@ intel_ich2_trap_init(const device_t *info)
 }
 
 const device_t intel_ich2_trap_device = {
-    .name = "Intel ICH2 Trap Hander",
+    .name          = "Intel ICH2 Trap Hander",
     .internal_name = "intel_ich2_trap",
-    .flags = 0,
-    .local = 0,
-    .init = intel_ich2_trap_init,
-    .close = intel_ich2_trap_close,
-    .reset = NULL,
+    .flags         = 0,
+    .local         = 0,
+    .init          = intel_ich2_trap_init,
+    .close         = intel_ich2_trap_close,
+    .reset         = NULL,
     { .available = NULL },
     .speed_changed = NULL,
-    .force_redraw = NULL,
-    .config = NULL
+    .force_redraw  = NULL,
+    .config        = NULL
 };

@@ -79,8 +79,8 @@ extern const device_t	sio_detect_device;
 #endif
 extern const device_t	um8669f_device;
 extern const device_t	via_vt82c686_sio_device;
-extern const device_t	w83627hf_device;
-extern const device_t	w83627hf_no_hwm_device;
+extern const device_t   w83627hf_device;
+extern const device_t   w83627hf_no_hwm_device;
 extern const device_t	w83787f_device;
 extern const device_t	w83787f_ide_device;
 extern const device_t	w83787f_ide_en_device;

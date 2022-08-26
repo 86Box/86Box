@@ -44,15 +44,14 @@ tco_log(const char *fmt, ...)
     va_list ap;
 
     if (tco_do_log) {
-	va_start(ap, fmt);
-	pclog_ex(fmt, ap);
-	va_end(ap);
+        va_start(ap, fmt);
+        pclog_ex(fmt, ap);
+        va_end(ap);
     }
 }
 #else
-#define tco_log(fmt, ...)
+#    define tco_log(fmt, ...)
 #endif
-
 
 void
 tco_timer_handler(void *priv)
@@ -60,7 +59,6 @@ tco_timer_handler(void *priv)
     /* TODO: Implement the TCO timer. */
     // tco_t *dev = (tco_t *) priv;
 }
-
 
 void
 tco_irq_update(tco_t *dev, uint16_t new_irq)
@@ -75,7 +73,7 @@ tco_write(uint16_t addr, uint8_t val, tco_t *dev)
     addr -= 0x60;
     tco_log("TCO: Write 0x%02x to Register 0x%02x\n", val, addr);
 
-    switch(addr) {
+    switch (addr) {
         case 0x00:
             dev->regs[addr] = val;
             break;
@@ -133,7 +131,6 @@ tco_write(uint16_t addr, uint8_t val, tco_t *dev)
     }
 }
 
-
 uint8_t
 tco_read(uint16_t addr, tco_t *dev)
 {
@@ -142,10 +139,9 @@ tco_read(uint16_t addr, tco_t *dev)
     if (addr <= 0x10) {
         tco_log("TCO: Read 0x%02x from Register 0x%02x\n", dev->regs[addr], addr);
         return dev->regs[addr];
-    }
-    else return 0;
+    } else
+        return 0;
 }
-
 
 static void
 tco_reset(void *priv)
@@ -159,7 +155,6 @@ tco_reset(void *priv)
     dev->regs[0x10] = 0x03;
 }
 
-
 static void
 tco_close(void *priv)
 {
@@ -167,7 +162,6 @@ tco_close(void *priv)
 
     free(dev);
 }
-
 
 static void *
 tco_init(const device_t *info)
@@ -181,15 +175,15 @@ tco_init(const device_t *info)
 }
 
 const device_t tco_device = {
-    .name = "Intel TCO",
+    .name          = "Intel TCO",
     .internal_name = "tco",
-    .flags = 0,
-    .local = 0,
-    .init = tco_init,
-    .close = tco_close,
-    .reset = tco_reset,
+    .flags         = 0,
+    .local         = 0,
+    .init          = tco_init,
+    .close         = tco_close,
+    .reset         = tco_reset,
     { .available = NULL },
     .speed_changed = NULL,
-    .force_redraw = NULL,
-    .config = NULL
+    .force_redraw  = NULL,
+    .config        = NULL
 };

@@ -77,7 +77,6 @@ const machine_filter_t machine_types[] = {
     { "Slot 1/Socket 370",         MACHINE_TYPE_SLOT1_370  },
     { "Slot 2",                    MACHINE_TYPE_SLOT2      },
     { "Socket 370",                MACHINE_TYPE_SOCKET370  },
-    { "Intel ICH2",                MACHINE_TYPE_ICH2       },
     { "Miscellaneous",             MACHINE_TYPE_MISC       }
 };
 
@@ -11713,11 +11712,12 @@ const machine_t machines[] = {
         .net_device = NULL
     },
 
-    /* Intel ICH2 */
+
+    /* Intel 815EP Motherboards */
     {
-        .name = "ASUS CUSL2-C",
+        .name = "[Intel i815EP] ASUS CUSL2-C",
         .internal_name = "cusl2c",
-        .type = MACHINE_TYPE_ICH2,
+        .type = MACHINE_TYPE_SOCKET370,
         .chipset = MACHINE_CHIPSET_INTEL_I815EP,
         .init = machine_at_cusl2c_init,
         .pad = 0,
@@ -11754,7 +11754,7 @@ const machine_t machines[] = {
     {
         .name = "[Intel i815E] Biostar M6TSL",
         .internal_name = "m6tsl",
-        .type = MACHINE_TYPE_ICH2,
+        .type = MACHINE_TYPE_SOCKET370,
         .chipset = MACHINE_CHIPSET_INTEL_I815EP,
         .init = machine_at_m6tsl_init,
         .pad = 0,
@@ -11790,7 +11790,7 @@ const machine_t machines[] = {
     {
         .name = "[Intel i815EP] Biostar M6TSS",
         .internal_name = "m6tss",
-        .type = MACHINE_TYPE_ICH2,
+        .type = MACHINE_TYPE_SOCKET370,
         .chipset = MACHINE_CHIPSET_INTEL_I815EP,
         .init = machine_at_m6tss_init,
         .pad = 0,
@@ -11826,7 +11826,7 @@ const machine_t machines[] = {
     {
         .name = "[Intel i815EP] Tyan Tomcat i815T",
         .internal_name = "s2080",
-        .type = MACHINE_TYPE_ICH2,
+        .type = MACHINE_TYPE_SOCKET370,
         .chipset = MACHINE_CHIPSET_INTEL_I815EP,
         .init = machine_at_s2080_init,
         .pad = 0,
@@ -11835,7 +11835,7 @@ const machine_t machines[] = {
         .pad2 = 0,
         .cpu = {
             .package = CPU_PKG_SOCKET370,
-            .block = CPU_BLOCK_NONE,
+            .block = CPU_BLOCK(CPU_CYRIX3S),
             .min_bus = 66666667,
             .max_bus = 133333333,
             .min_voltage = 1300,
@@ -11843,7 +11843,7 @@ const machine_t machines[] = {
             .min_multi = 1.5,
             .max_multi = 8.0
         },
-        .bus_flags = MACHINE_PS2_AGP,
+        .bus_flags = MACHINE_PS2_NOISA,
         .flags = MACHINE_IDE_DUAL,
         .ram = {
             .min = 32768,

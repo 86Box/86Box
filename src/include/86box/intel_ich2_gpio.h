@@ -17,24 +17,23 @@
  */
 
 #ifndef EMU_INTEL_ICH2_GPIO_H
-# define EMU_INTEL_ICH2_GPIO_H
+#define EMU_INTEL_ICH2_GPIO_H
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-typedef struct intel_ich2_gpio_t
-{
+typedef struct intel_ich2_gpio_t {
     uint16_t gpio_addr;
-    uint8_t gpio_regs[48];
+    uint8_t  gpio_regs[48];
 } intel_ich2_gpio_t;
 
 void intel_ich2_gpio_base(int enable, uint16_t addr, intel_ich2_gpio_t *dev);
 
-extern const device_t   intel_ich2_gpio_device;
+extern const device_t intel_ich2_gpio_device;
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif	/*EMU_INTEL_ICH2_GPIO_H*/
+#endif /*EMU_INTEL_ICH2_GPIO_H*/

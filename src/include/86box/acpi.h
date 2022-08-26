@@ -111,7 +111,7 @@ extern int		acpi_rtc_status;
 
 extern const device_t	acpi_ali_device;
 extern const device_t	acpi_intel_device;
-extern const device_t	acpi_intel_ich2_device;
+extern const device_t   acpi_intel_ich2_device;
 extern const device_t	acpi_smc_device;
 extern const device_t	acpi_via_device;
 extern const device_t	acpi_via_596b_device;
@@ -131,7 +131,7 @@ extern void		acpi_set_irq_line(acpi_t *dev, int irq_line);
 extern void		acpi_set_mirq_is_level(acpi_t *dev, int mirq_is_level);
 extern void		acpi_set_gpireg2_default(acpi_t *dev, uint8_t gpireg2_default);
 extern void		acpi_set_nvr(acpi_t *dev, nvr_t *nvr);
-extern void		acpi_set_tco(acpi_t *dev, tco_t *tco);
+extern void     acpi_set_tco(acpi_t *dev, tco_t *tco);
 extern void		acpi_set_trap_update(acpi_t *dev, void (*update)(void *priv), void *priv);
 extern uint8_t		acpi_ali_soft_smi_status_read(acpi_t *dev);
 extern void		acpi_ali_soft_smi_status_write(acpi_t *dev, uint8_t soft_smi);

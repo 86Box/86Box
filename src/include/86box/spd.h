@@ -92,26 +92,26 @@ typedef struct {
 } spd_sdram_t;
 
 typedef struct {
-    uint8_t	bytes_used, spd_size, mem_type,
-    		row_bits, col_bits, rows,
-    		data_width_lsb, data_width_msb,
-    		signal_level, tclk, tac,
-    		config, refresh_rate,
-    		sdram_width, ecc_width,
-    		tccd, burst, banks, cas, cslat, we,
-    		mod_attr, dev_attr,
-    		tclk2, tac2, tclk3, tac3,
-    		trp, trrd, trcd, tras,
-    		bank_density,
-    		ca_setup, ca_hold, data_setup, data_hold,
-    		reserved[26],
-    		spd_rev, checksum,
-    		mfg_jedec[8], mfg_loc;
-    char	part_no[18];
-    uint8_t	rev_code[2],
-    		mfg_year, mfg_week, serial[4], mfg_specific[27],
-    		other_data[127],
-    		checksum2;
+    uint8_t bytes_used, spd_size, mem_type,
+            row_bits, col_bits, rows,
+            data_width_lsb, data_width_msb,
+            signal_level, tclk, tac,
+            config, refresh_rate,
+            sdram_width, ecc_width,
+            tccd, burst, banks, cas, cslat, we,
+            mod_attr, dev_attr,
+            tclk2, tac2, tclk3, tac3,
+            trp, trrd, trcd, tras,
+            bank_density,
+            ca_setup, ca_hold, data_setup, data_hold,
+            reserved[26],
+            spd_rev, checksum,
+            mfg_jedec[8], mfg_loc;
+    char    part_no[18];
+    uint8_t rev_code[2],
+            mfg_year, mfg_week, serial[4], mfg_specific[27],
+            other_data[127],
+            checksum2;
 } spd_ddr_t;
 
 typedef struct {
@@ -124,7 +124,7 @@ typedef struct {
 	uint8_t	data[SPD_DATA_SIZE];
 	spd_edo_t edo_data;
 	spd_sdram_t sdram_data;
-	spd_ddr_t ddr_data;
+        spd_ddr_t ddr_data;
     };
     void	*eeprom;
 } spd_t;

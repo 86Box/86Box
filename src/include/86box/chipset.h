@@ -88,6 +88,7 @@ extern const device_t	i440gx_device;
 extern const device_t	i440zx_device;
 extern const device_t	i450kx_device;
 
+
 extern const device_t	sio_device;
 extern const device_t	sio_zb_device;
 
@@ -101,6 +102,10 @@ extern const device_t	piix4e_device;
 extern const device_t	slc90e66_device;
 
 extern const device_t	ioapic_device;
+
+/* Intel ICH2 */
+extern const device_t   intel_815ep_device;
+extern const device_t   intel_ich2_device;
 
 /* OPTi */
 extern const device_t	opti283_device;
@@ -124,10 +129,6 @@ extern const device_t	sis_85c496_ls486e_device;
 extern const device_t	sis_85c50x_device;
 extern const device_t	sis_5511_device;
 extern const device_t	sis_5571_device;
-
-/* Intel ICH2 */
-extern const device_t	intel_815ep_device;
-extern const device_t   intel_ich2_device;
 
 /* ST */
 extern const device_t	stpc_client_device;
