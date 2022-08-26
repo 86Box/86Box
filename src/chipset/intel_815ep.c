@@ -36,7 +36,8 @@
 #include <86box/pci.h>
 #include <86box/smram.h>
 #include <86box/spd.h>
-#include <86box/video.h>
+//#include <86box/video.h>
+#include <86box/agpgart.h>
 #include <86box/chipset.h>
 
 #ifdef ENABLE_INTEL_815EP_LOG
@@ -57,9 +58,9 @@ intel_815ep_log(const char *fmt, ...)
 #endif
 
 typedef struct intel_815ep_t {
-    uint8_t  pci_conf[256];
-    smram_t *lsmm_segment, *h_segment, *usmm_segment;
-    void    *agpgart;
+    uint8_t    pci_conf[256];
+    smram_t   *lsmm_segment, *h_segment, *usmm_segment;
+    agpgart_t *agpgart;
 
 } intel_815ep_t;
 
