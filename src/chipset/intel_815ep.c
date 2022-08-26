@@ -331,38 +331,63 @@ intel_815ep_reset(void *priv)
     intel_815ep_t *dev = (intel_815ep_t *) priv;
     memset(dev->pci_conf, 0x00, sizeof(dev->pci_conf)); /* Wash out the registers */
 
-    dev->pci_conf[0x00] = 0x86;    /* Intel */
+    /* VID - Vendor Identification Register */
+    dev->pci_conf[0x00] = 0x86; /* Intel */
     dev->pci_conf[0x01] = 0x80;
 
-    dev->pci_conf[0x02] = 0x30;    /* 815EP */
+    /* DID - Device Identification Register */
+    dev->pci_conf[0x02] = 0x30; /* 815EP */
     dev->pci_conf[0x03] = 0x11;
 
+    /* PCICMD - PCI Command Register */
     dev->pci_conf[0x04] = 0x06;
+    dev->pci_conf[0x05] = 0x00;
 
+    /* PCISTS - PCI Status Register */
     dev->pci_conf[0x06] = 0x90;
+    dev->pci_conf[0x07] = 0x00;
+
+    /* RID - Revision Identification Register */
     dev->pci_conf[0x08] = 0x02;
+
+    /* BCC - Base Class Code Register */
     dev->pci_conf[0x0b] = 0x06;
+
+    /* APBASE - Aperture Base Configuration Register */
     dev->pci_conf[0x10] = 0x03;
+
+    /* CAPPTR - Capabilities Pointer */
     dev->pci_conf[0x34] = 0xa0;
+
+    /* MCHCFG - MCH Configuration Register */
     dev->pci_conf[0x50] = 0x40;
 
+    /* CAPID - Capability Identification */
     dev->pci_conf[0x88] = 0x09;
     dev->pci_conf[0x89] = 0xa0;
     dev->pci_conf[0x8a] = 0x04;
     dev->pci_conf[0x8b] = 0xf1;
 
+    /* BUFF_SC - System Memory Buffer Strength Control Register */
     dev->pci_conf[0x92] = 0xff;
     dev->pci_conf[0x93] = 0xff;
+
+    /* BUFF_SC2 - System Memory Buffer Strength Control Register 2 */
     dev->pci_conf[0x94] = 0xff;
     dev->pci_conf[0x95] = 0xff;
 
+    /* ACAPID—AGP Capability Identifier Register */
     dev->pci_conf[0xa0] = 0x02;
+    dev->pci_conf[0xa1] = 0x00;
     dev->pci_conf[0xa2] = 0x20;
+    dev->pci_conf[0xa3] = 0x00;
 
     dev->pci_conf[0xa4] = 0x07;
     dev->pci_conf[0xa5] = 0x02;
+    dev->pci_conf[0xa6] = 0x00;
     dev->pci_conf[0xa7] = 0x1f;
 
+    /* AGPCMD - AGP Command Register (Device 0: AGP Mode Only) */
     dev->pci_conf[0xa9] = 0x01; /* Hack: Brute Force AGP Enabled */
 
     intel_815ep_agp_aperature(dev); /* Configure AGP Aperature */
