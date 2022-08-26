@@ -127,6 +127,7 @@ struct _netcard_t {
     mutex_t        *tx_mutex;
     mutex_t        *rx_mutex;
     pc_timer_t      timer;
+    int             card_num;
 };
 
 typedef struct {
