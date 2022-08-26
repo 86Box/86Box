@@ -1,9 +1,21 @@
 /*
- * Intel ICH2
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- * Authors:	Tiseno100,
+ *          This file is part of the 86Box distribution.
  *
- * Copyright 2022 Tiseno100.
+ *          Implementation of Intel 82801BA (ICH2)
+ *
+ *
+ *
+ * Authors: Tiseno100,
+ *          Jasmine Iwanek, <jriwanek@gmail.com>
+ *
+ *          Copyright 2022 Tiseno100.
+ *          Copyright 2022 Jasmine Iwanek.
+ *
  */
 
 #include <stdarg.h>
