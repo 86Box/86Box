@@ -56,7 +56,9 @@
 #define NET_TYPE_PCAP   2       /* use the (Win)Pcap API */
 
 #define NET_MAX_FRAME 1518
-#define NET_QUEUE_LEN 8
+/* Queue size must be a power of 2 */
+#define NET_QUEUE_LEN 16
+#define NET_QUEUE_LEN_MASK (NET_QUEUE_LEN - 1)
 #define NET_CARD_MAX 4
 #define NET_HOST_INTF_MAX 64
 
@@ -92,12 +94,10 @@ typedef int (*NETSETLINKSTATE)(void *);
 typedef struct netpkt {
     uint8_t		*data;
     int			len;
-    uint64_t tsc;
 } netpkt_t;
 
 typedef struct {
     netpkt_t packets[NET_QUEUE_LEN];
-    int size;
     int head;
     int tail;
 } netqueue_t;
@@ -165,7 +165,9 @@ extern int	network_card_get_from_internal_name(char *);
 extern const device_t	*network_card_getdevice(int);
 
 extern int network_tx_pop(netcard_t *card, netpkt_t *out_pkt);
+extern int network_tx_popv(netcard_t *card, netpkt_t *pkt_vec, int vec_size);
 extern int network_rx_put(netcard_t *card, uint8_t *bufp, int len);
+extern int network_rx_put_pkt(netcard_t *card, netpkt_t *pkt);
 #ifdef __cplusplus
 }
 #endif
