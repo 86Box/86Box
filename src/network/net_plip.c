@@ -476,7 +476,7 @@ plip_net_init(const device_t *info)
     }
 
     plip_log(1, " (attached to LPT)\n");
-    instance->card = network_attach(instance, instance->mac, plip_rx, NULL, NULL);
+    instance->card = network_attach(instance, instance->mac, plip_rx, NULL);
 
     return instance;
 }

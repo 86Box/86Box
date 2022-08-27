@@ -50,6 +50,8 @@ extern "C" {
 #include <86box/zip.h>
 #include <86box/mo.h>
 #include <86box/hdd.h>
+#include <86box/thread.h>
+#include <86box/network.h>
 #include <86box/machine_status.h>
 
 void
@@ -246,7 +248,7 @@ ui_sb_update_icon(int tag, int active) {
         machine_status.hdd[item].active = active > 0 ? true : false;
         break;
     case SB_NETWORK:
-        machine_status.net.active = active > 0 ? true : false;
+        machine_status.net[item].active = active > 0 ? true : false;
         break;
     case SB_SOUND:
         break;

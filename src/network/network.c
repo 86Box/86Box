@@ -346,6 +346,13 @@ network_rx_queue(void *priv)
 {
     netcard_t *card = (netcard_t *)priv;
 
+    uint32_t new_link_state = net_cards_conf[card->card_num].link_state;
+    if (new_link_state != card->link_state) {
+        if (card->set_link_state)
+            card->set_link_state(card->card_drv, new_link_state);
+        card->link_state = new_link_state;
+    }
+
     uint32_t rx_bytes = 0;
     for (int i = 0; i < NET_QUEUE_LEN; i++) {
         if (card->queued_pkt.len == 0) {
@@ -386,7 +393,13 @@ network_rx_queue(void *priv)
     timer_on_auto(&card->timer, timer_period);
 
     bool activity = rx_bytes || tx_bytes;
-    ui_sb_update_icon(SB_NETWORK, activity);
+    bool led_on = card->led_timer & 0x80000000;
+    if ((activity && !led_on) || (card->led_timer & 0x7fffffff) >= 150000) {
+        ui_sb_update_icon(SB_NETWORK | card->card_num, activity);
+        card->led_timer = 0 | (activity << 31);
+    }
+
+    card->led_timer += timer_period;
 }
 
 
@@ -398,13 +411,12 @@ network_rx_queue(void *priv)
  * modules.
  */
 netcard_t *
-network_attach(void *card_drv, uint8_t *mac, NETRXCB rx, NETWAITCB wait, NETSETLINKSTATE set_link_state)
+network_attach(void *card_drv, uint8_t *mac, NETRXCB rx, NETSETLINKSTATE set_link_state)
 {
     netcard_t *card = calloc(1, sizeof(netcard_t));
     card->queued_pkt.data = calloc(1, NET_MAX_FRAME);
     card->card_drv = card_drv;
     card->rx = rx;
-    card->wait = wait;
     card->set_link_state = set_link_state;
     card->tx_mutex = thread_create_mutex();
     card->rx_mutex = thread_create_mutex();
@@ -496,8 +508,7 @@ network_reset(void)
 #endif
 
     for (i = 0; i < NET_CARD_MAX; i++) {
-            if (!net_cards_conf[i].device_num || net_cards_conf[i].net_type == NET_TYPE_NONE || 
-                (net_cards_conf[i].net_type == NET_TYPE_PCAP && !strcmp(net_cards_conf[i].host_dev_name, "none"))) {
+            if (!network_dev_available(i)) {
                 continue;
             }
 
@@ -564,6 +575,28 @@ int network_rx_put_pkt(netcard_t *card, netpkt_t *pkt)
     return ret;
 }
 
+void
+network_connect(int id, int connect)
+{
+    if (id >= NET_CARD_MAX)
+        return;
+
+    if (connect) {
+        net_cards_conf[id].link_state &= ~NET_LINK_DOWN;
+    } else {
+        net_cards_conf[id].link_state |= NET_LINK_DOWN;
+    }
+}
+
+int
+network_is_connected(int id)
+{
+    if (id >= NET_CARD_MAX)
+        return 0;
+
+    return !(net_cards_conf[id].link_state & NET_LINK_DOWN);
+}
+
 int
 network_dev_to_id(char *devname)
 {
@@ -575,19 +608,29 @@ network_dev_to_id(char *devname)
 	}
     }
 
-    /* If no match found, assume "none". */
-    return(0);
+    return(-1);
 }
 
 
 /* UI */
+int
+network_dev_available(int id)
+{
+    int available = (net_cards_conf[id].device_num > 0) && (net_cards_conf[id].net_type != NET_TYPE_NONE);
+
+    if ((net_cards_conf[id].net_type == NET_TYPE_PCAP && (network_dev_to_id(net_cards_conf[id].host_dev_name) <= 0)))
+        available = 0;
+
+    return available;
+}
+
 int
 network_available(void)
 {
     int available = 0;
 
     for (int i = 0; i < NET_CARD_MAX; i ++) {
-        available |= (net_cards_conf[i].device_num > 0) && (net_cards_conf[i].net_type != NET_TYPE_NONE);
+        available |= network_dev_available(i);
     }
 
     return available;
