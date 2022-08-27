@@ -25,11 +25,11 @@
 #define SPD_TYPE_FPM		0x01
 #define SPD_TYPE_EDO		0x02
 #define SPD_TYPE_SDRAM		0x04
-#define SPD_TYPE_DDR		0x07
+#define SPD_TYPE_DDR        0x07
 
 #define SPD_MIN_SIZE_EDO	8
 #define SPD_MIN_SIZE_SDRAM	8
-#define SPD_MIN_SIZE_DDR	8
+#define SPD_MIN_SIZE_DDR    8
 
 #define SPD_SIGNAL_LVTTL	0x01
 

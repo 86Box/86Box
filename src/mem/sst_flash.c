@@ -74,8 +74,8 @@ static char	flash_path[1024];
 
 #define SST			0xbf	/* SST Manufacturer's ID */
 
-#define SST29EE512		0x5d00
-#define SST29LE_VE512		0x3d00
+#define SST29EE512      0x5d00
+#define SST29LE_VE512   0x3d00
 #define SST29EE010		0x0700
 #define SST29LE_VE010		0x0800
 #define SST29EE020		0x1000
@@ -86,27 +86,27 @@ static char	flash_path[1024];
 #define SST39SF020		0xb600
 #define SST39SF040		0xb700
 
-#define SST39LF512		0xd400
-#define SST39LF010		0xd500
-#define SST39LF020		0xd600
-#define SST39LF040		0xd700
-#define SST39LF080		0xd800
-#define SST39LF016		0xd900
+#define SST39LF512      0xd400
+#define SST39LF010      0xd500
+#define SST39LF020      0xd600
+#define SST39LF040      0xd700
+#define SST39LF080      0xd800
+#define SST39LF016      0xd900
 
 /*
 // 16 wide
-#define SST39WF400		0x272f
-#define SST39WF400B		0x272e
-#define SST39WF800		0x273f
-#define SST39WF800B		0x273e
-#define SST39WF1601		0xbf274b
-#define SST39WF1602		0xbf274a
+#define SST39WF400      0x272f
+#define SST39WF400B     0x272e
+#define SST39WF800      0x273f
+#define SST39WF800B     0x273e
+#define SST39WF1601     0xbf274b
+#define SST39WF1602     0xbf274a
 
-#define SST39LF100		0x2788
-#define SST39LF200		0x2789
-#define SST39LF400		0x2780
-#define SST39LF800		0x2781
-#define SST39LF160		0x2782
+#define SST39LF100      0x2788
+#define SST39LF200      0x2789
+#define SST39LF400      0x2780
+#define SST39LF800      0x2781
+#define SST39LF160      0x2782
 */
 
 #define SST49LF002      0x5700
@@ -124,18 +124,18 @@ static char	flash_path[1024];
 #define SST49LF016      0x5c00
 
 #define WINBOND			0xda	/* Winbond Manufacturer's ID */
-#define W29C512			0xc800
-#define W29C010			0xc100
+#define W29C512         0xc800
+#define W29C010         0xc100
 #define W29C020			0x4500
-#define W29C040			0x4600
+#define W29C040         0x4600
 
 #define SIZE_512K		0x010000
 #define SIZE_1M			0x020000
 #define SIZE_2M			0x040000
-#define SIZE_3M			0x030000
+#define SIZE_3M         0x060000
 #define SIZE_4M			0x080000
-#define SIZE_8M			0x100000
-#define SIZE_16M		0x200000
+#define SIZE_8M         0x100000
+#define SIZE_16M        0x200000
 
 
 static void

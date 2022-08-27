@@ -11712,7 +11712,6 @@ const machine_t machines[] = {
         .net_device = NULL
     },
 
-
     /* Intel 815EP Motherboards */
     {
         .name = "[Intel i815EP] ASUS CUSL2-C",

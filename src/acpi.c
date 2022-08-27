@@ -914,7 +914,7 @@ acpi_reg_write_intel_ich2(int size, uint16_t addr, uint8_t val, void *p)
             break;
         case 0x2a: case 0x2b:
             /* GPE0_EN—General Purpose Event 0 Enables Register */
-           dev->regs.gpen = ((dev->regs.gpen & ~(0xff << shift16)) | (val << shift16)) & 0x097d;
+            dev->regs.gpen = ((dev->regs.gpen & ~(0xff << shift16)) | (val << shift16)) & 0x097d;
             break;
         case 0x2c: case 0x2d:
             /* GPE1_STS—General Purpose Event 1 Status Register */
