@@ -206,6 +206,18 @@ endif()
 
 if (APPLE)
     target_sources(ui PRIVATE macos_event_filter.mm)
+    if(MOLTENVK)
+        find_path(MOLTENVK_INCLUDE "vulkan/vulkan.h" PATHS "/opt/homebrew/opt/molten-vk/libexec/include" "/usr/local/opt/molten-vk/libexec/include" ${MOLTENVK_INCLUDE_DIR})
+        if (NOT MOLTENVK_INCLUDE)
+            message(FATAL_ERROR "Could not find vulkan/vulkan.h. If the headers are installed please use -DMOLTENVK_INCLUDE_DIR=/path/to/headers")
+        endif()
+        target_include_directories(ui PRIVATE ${MOLTENVK_INCLUDE})
+        find_library(MOLTENVK_LIB MoltenVK)
+        if (NOT MOLTENVK_LIB)
+            message(FATAL_ERROR "Could not find MoltenVK library")
+        endif()
+        target_link_libraries(ui PRIVATE "${MOLTENVK_LIB}")
+    endif()
 endif()
 
 if (WIN32)
@@ -282,6 +294,7 @@ if (APPLE AND CMAKE_MACOSX_BUNDLE)
     set(prefix "86Box.app/Contents")
     set(INSTALL_RUNTIME_DIR "${prefix}/MacOS")
     set(INSTALL_CMAKE_DIR "${prefix}/Resources")
+    set(INSTALL_LIB_DIR "${prefix}/Frameworks")
 
     # using the install_qt5_plugin to add Qt plugins into the macOS app bundle
     install_qt5_plugin("Qt${QT_MAJOR}::QCocoaIntegrationPlugin" QT_PLUGINS ${prefix})
@@ -314,6 +327,16 @@ if (APPLE AND CMAKE_MACOSX_BUNDLE)
             COMMAND ${CMAKE_INSTALL_NAME_TOOL} -add_rpath \"@executable_path/../Frameworks/\"
             \"\${CMAKE_INSTALL_PREFIX_ABSOLUTE}/${INSTALL_RUNTIME_DIR}/86Box\")
         ")
+    if(MOLTENVK)
+        install(CODE "
+        execute_process(
+            COMMAND bash -c \"set -e
+            echo \\\"-- Creating vulkan dylib symlink for QT (libVulkan.dylib -> libMoltenVK.dylib)\\\"
+            cd \${CMAKE_INSTALL_PREFIX_ABSOLUTE}/${INSTALL_LIB_DIR}
+            ln -sf libMoltenVK.dylib libVulkan.dylib
+            \")
+        ")
+    endif()
 endif()
 
 if (UNIX AND NOT APPLE AND NOT HAIKU)
