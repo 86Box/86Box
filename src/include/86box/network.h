@@ -62,6 +62,9 @@
 #define NET_CARD_MAX 4
 #define NET_HOST_INTF_MAX 64
 
+#define NET_PERIOD_10M 0.8
+#define NET_PERIOD_100M 0.08
+
 /* Supported network cards. */
 enum {
     NONE = 0,
@@ -128,6 +131,7 @@ struct _netcard_t {
     mutex_t        *rx_mutex;
     pc_timer_t      timer;
     int             card_num;
+    double          byte_period;
 };
 
 typedef struct {

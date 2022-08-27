@@ -2025,8 +2025,12 @@ pcnet_bcr_writew(nic_t *dev, uint16_t rap, uint16_t val)
 	case BCR_BSBC:
 	case BCR_EECAS:
 	case BCR_PLAT:
-	case BCR_MIICAS:
 	case BCR_MIIADDR:
+	    dev->aBCR[rap] = val;
+	    break;
+
+	case BCR_MIICAS:
+	    dev->netcard->byte_period = (dev->board == DEV_AM79C973 && (val & 0x28)) ? NET_PERIOD_100M : NET_PERIOD_10M;
 	    dev->aBCR[rap] = val;
 	    break;
 
@@ -3055,6 +3059,7 @@ pcnet_init(const device_t *info)
 
     /* Attach ourselves to the network module. */
     dev->netcard = network_attach(dev, dev->aPROM, pcnetReceiveNoSync, pcnetWaitReceiveAvail, pcnetSetLinkState);
+    dev->netcard->byte_period = (dev->board == DEV_AM79C973) ? NET_PERIOD_100M : NET_PERIOD_10M;
 
     timer_add(&dev->timer, pcnetPollTimer, dev, 0);
 

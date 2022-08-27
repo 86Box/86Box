@@ -379,7 +379,7 @@ network_rx_queue(void *priv)
         card->host_drv.notify_in(card->host_drv.priv);
     }
 
-    double timer_period = 0.762939453125 * (rx_bytes > tx_bytes ? rx_bytes : tx_bytes);
+    double timer_period = card->byte_period * (rx_bytes > tx_bytes ? rx_bytes : tx_bytes);
     if (timer_period < 200)
         timer_period = 200;
 
@@ -409,6 +409,7 @@ network_attach(void *card_drv, uint8_t *mac, NETRXCB rx, NETWAITCB wait, NETSETL
     card->tx_mutex = thread_create_mutex();
     card->rx_mutex = thread_create_mutex();
     card->card_num = net_card_current;
+    card->byte_period = NET_PERIOD_10M;
 
     for (int i=0; i<3; i++) {
         network_queue_init(&card->queues[i]);
@@ -440,7 +441,7 @@ network_attach(void *card_drv, uint8_t *mac, NETRXCB rx, NETWAITCB wait, NETSETL
     }
 
     timer_add(&card->timer, network_rx_queue, card, 0);
-    timer_on_auto(&card->timer, 0.762939453125 * 2.0);
+    timer_on_auto(&card->timer, 100);
 
     return card;
 }
