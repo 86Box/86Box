@@ -121,11 +121,8 @@ netcard_conf_t net_cards_conf[NET_CARD_MAX];
 int net_card_current = 0;
 
 /* Global variables. */
-int		network_type;
 int		network_ndev;
-int		network_card;
-char		network_host[522];
-netdev_t	network_devs[32];
+netdev_t	network_devs[NET_HOST_INTF_MAX];
 
 
 /* Local variables. */
@@ -391,6 +388,7 @@ network_attach(void *card_drv, uint8_t *mac, NETRXCB rx, NETWAITCB wait, NETSETL
     card->set_link_state = set_link_state;
     card->tx_mutex = thread_create_mutex();
     card->rx_mutex = thread_create_mutex();
+    card->card_num = net_card_current;
 
     for (int i=0; i<3; i++) {
         network_queue_init(&card->queues[i]);

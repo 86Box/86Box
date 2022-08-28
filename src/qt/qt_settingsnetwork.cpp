@@ -116,11 +116,13 @@ void SettingsNetwork::onCurrentMachineChanged(int machineId) {
 
         cbox = findChild<QComboBox*>(QString("comboBoxNet%1").arg(i+1));
         model = cbox->model();
+        removeRows = model->rowCount();
         Models::AddEntry(model, tr("None"), NET_TYPE_NONE);
         Models::AddEntry(model, "SLiRP", NET_TYPE_SLIRP);
         if (network_ndev > 1) {
             Models::AddEntry(model, "PCap", NET_TYPE_PCAP);
         }
+        model->removeRows(0, removeRows);
         cbox->setCurrentIndex(net_cards_conf[i].net_type);
 
         selectedRow = 0;
@@ -128,12 +130,14 @@ void SettingsNetwork::onCurrentMachineChanged(int machineId) {
         QString currentPcapDevice = net_cards_conf[i].host_dev_name;
         cbox = findChild<QComboBox*>(QString("comboBoxIntf%1").arg(i+1));
         model = cbox->model();
+        removeRows = model->rowCount();
         for (int c = 0; c < network_ndev; c++) {
             Models::AddEntry(model, tr(network_devs[c].description), c);
             if (QString(network_devs[c].device) == currentPcapDevice) {
                 selectedRow = c;
             }
         }
+        model->removeRows(0, removeRows);
         cbox->setCurrentIndex(selectedRow);
     }
 }
@@ -147,17 +151,17 @@ void SettingsNetwork::on_comboIndexChanged(int index) {
 }
 
 void SettingsNetwork::on_pushButtonConf1_clicked() {
-    DeviceConfig::ConfigureDevice(network_card_getdevice(ui->comboBoxNIC1->currentData().toInt()), 0, qobject_cast<Settings*>(Settings::settings));
+    DeviceConfig::ConfigureDevice(network_card_getdevice(ui->comboBoxNIC1->currentData().toInt()), 1, qobject_cast<Settings*>(Settings::settings));
 }
 
 void SettingsNetwork::on_pushButtonConf2_clicked() {
-    DeviceConfig::ConfigureDevice(network_card_getdevice(ui->comboBoxNIC2->currentData().toInt()), 0, qobject_cast<Settings*>(Settings::settings));
+    DeviceConfig::ConfigureDevice(network_card_getdevice(ui->comboBoxNIC2->currentData().toInt()), 2, qobject_cast<Settings*>(Settings::settings));
 }
 
 void SettingsNetwork::on_pushButtonConf3_clicked() {
-    DeviceConfig::ConfigureDevice(network_card_getdevice(ui->comboBoxNIC3->currentData().toInt()), 0, qobject_cast<Settings*>(Settings::settings));
+    DeviceConfig::ConfigureDevice(network_card_getdevice(ui->comboBoxNIC3->currentData().toInt()), 3, qobject_cast<Settings*>(Settings::settings));
 }
 
 void SettingsNetwork::on_pushButtonConf4_clicked() {
-    DeviceConfig::ConfigureDevice(network_card_getdevice(ui->comboBoxNIC4->currentData().toInt()), 0, qobject_cast<Settings*>(Settings::settings));
+    DeviceConfig::ConfigureDevice(network_card_getdevice(ui->comboBoxNIC4->currentData().toInt()), 4, qobject_cast<Settings*>(Settings::settings));
 }
