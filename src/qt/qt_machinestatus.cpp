@@ -88,7 +88,7 @@ namespace {
         PixmapSetEmptyActive zip;
         PixmapSetEmptyActive mo;
         PixmapSetActive hd;
-        PixmapSetActive net;
+        PixmapSetEmptyActive net;
         QPixmap sound;
     };
 
@@ -220,7 +220,9 @@ struct MachineStatus::States {
         for (auto& h : hdds) {
             h.pixmaps = &pixmaps.hd;
         }
-        net.pixmaps = &pixmaps.net;
+        for (auto& n : net) {
+            n.pixmaps = &pixmaps.net;
+        }
     }
 
     std::array<StateEmpty, 2> cartridge;
@@ -230,7 +232,7 @@ struct MachineStatus::States {
     std::array<StateEmptyActive, ZIP_NUM> zip;
     std::array<StateEmptyActive, MO_NUM> mo;
     std::array<StateActive, HDD_BUS_USB> hdds;
-    StateActive net;
+    std::array<StateEmptyActive, NET_CARD_MAX> net;
     std::unique_ptr<ClickableLabel> sound;
     std::unique_ptr<QLabel> text;
 };
@@ -320,6 +322,14 @@ void MachineStatus::iterateMO(const std::function<void (int)> &cb) {
     }
 }
 
+void MachineStatus::iterateNIC(const std::function<void (int)> &cb) {
+    for (int i = 0; i < NET_CARD_MAX; i++) {
+        if (network_dev_available(i)) {
+            cb(i);
+        }
+    }
+}
+
 static int hdd_count(int bus) {
     int c = 0;
     int i;
@@ -357,7 +367,10 @@ void MachineStatus::refreshIcons() {
         d->hdds[i].setActive(machine_status.hdd[i].active);
     }
 
-    d->net.setActive(machine_status.net.active);
+    for (size_t i = 0; i < NET_CARD_MAX; i++) {
+        d->net[i].setActive(machine_status.net[i].active);
+        d->net[i].setEmpty(machine_status.net[i].empty);
+    }
 
     for (int i = 0; i < 2; ++i) {
         d->cartridge[i].setEmpty(machine_status.cartridge[i].empty);
@@ -375,7 +388,6 @@ void MachineStatus::refresh(QStatusBar* sbar) {
     int c_xta = hdd_count(HDD_BUS_XTA);
     int c_ide = hdd_count(HDD_BUS_IDE);
     int c_scsi = hdd_count(HDD_BUS_SCSI);
-    int do_net = network_available();
 
     sbar->removeWidget(d->cassette.label.get());
     for (int i = 0; i < 2; ++i) {
@@ -396,7 +408,9 @@ void MachineStatus::refresh(QStatusBar* sbar) {
     for (size_t i = 0; i < HDD_BUS_USB; i++) {
         sbar->removeWidget(d->hdds[i].label.get());
     }
-    sbar->removeWidget(d->net.label.get());
+    for (size_t i = 0; i < NET_CARD_MAX; i++) {
+        sbar->removeWidget(d->net[i].label.get());
+    }
     sbar->removeWidget(d->sound.get());
 
     if (cassette_enable) {
@@ -503,6 +517,18 @@ void MachineStatus::refresh(QStatusBar* sbar) {
         sbar->addWidget(d->mo[i].label.get());
     });
 
+    iterateNIC([this, sbar](int i) {
+        d->net[i].label = std::make_unique<ClickableLabel>();
+        d->net[i].setEmpty(!network_is_connected(i));
+        d->net[i].setActive(false);
+        d->net[i].refresh();
+        d->net[i].label->setToolTip(MediaMenu::ptr->netMenus[i]->title());
+        connect((ClickableLabel*)d->net[i].label.get(), &ClickableLabel::clicked, [i](QPoint pos) {
+            MediaMenu::ptr->netMenus[i]->popup(pos - QPoint(0, MediaMenu::ptr->netMenus[i]->sizeHint().height()));
+        });
+        sbar->addWidget(d->net[i].label.get());
+    });
+
     auto hdc_name = QString(hdc_get_internal_name(hdc_current));
     if ((has_mfm || hdc_name.left(5) == QStringLiteral("st506")) && c_mfm > 0) {
         d->hdds[HDD_BUS_MFM].label = std::make_unique<QLabel>();
@@ -541,13 +567,6 @@ void MachineStatus::refresh(QStatusBar* sbar) {
         sbar->addWidget(d->hdds[HDD_BUS_SCSI].label.get());
     }
 
-    if (do_net) {
-        d->net.label = std::make_unique<QLabel>();
-        d->net.setActive(false);
-        d->net.refresh();
-        d->net.label->setToolTip(tr("Network"));
-        sbar->addWidget(d->net.label.get());
-    }
     d->sound = std::make_unique<ClickableLabel>();
     d->sound->setPixmap(d->pixmaps.sound);
 
