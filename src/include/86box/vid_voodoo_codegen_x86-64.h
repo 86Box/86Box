@@ -46,32 +46,24 @@ static int next_block_to_write[4] = { 0, 0 };
 #define addbyte(val)                   \
     do {                               \
         code_block[block_pos++] = val; \
-        if (block_pos >= BLOCK_SIZE)   \
-            fatal("Over!\n");          \
     } while (0)
 
 #define addword(val)                                \
     do {                                            \
         *(uint16_t *) &code_block[block_pos] = val; \
         block_pos += 2;                             \
-        if (block_pos >= BLOCK_SIZE)                \
-            fatal("Over!\n");                       \
     } while (0)
 
 #define addlong(val)                                \
     do {                                            \
         *(uint32_t *) &code_block[block_pos] = val; \
         block_pos += 4;                             \
-        if (block_pos >= BLOCK_SIZE)                \
-            fatal("Over!\n");                       \
     } while (0)
 
 #define addquad(val)                                \
     do {                                            \
         *(uint64_t *) &code_block[block_pos] = val; \
         block_pos += 8;                             \
-        if (block_pos >= BLOCK_SIZE)                \
-            fatal("Over!\n");                       \
     } while (0)
 
 static __m128i xmm_01_w; // = 0x0001000100010001ull;

@@ -415,7 +415,7 @@ net_slirp_init(const netcard_t *card, const uint8_t *mac_addr, void *priv)
     struct in_addr  host       = { .s_addr = htonl(0x0a000002 | (slirp_card_num << 8)) }; /* 10.0.x.2 */
     struct in_addr  dhcp       = { .s_addr = htonl(0x0a00000f | (slirp_card_num << 8)) }; /* 10.0.x.15 */
     struct in_addr  dns        = { .s_addr = htonl(0x0a000003 | (slirp_card_num << 8)) }; /* 10.0.x.3 */
-    struct in_addr  bind       = { .s_addr = htonl(0x00000000 | (slirp_card_num << 8)) }; /* 0.0.0.0 */
+    struct in_addr  bind       = { .s_addr = htonl(0x00000000) }; /* 0.0.0.0 */
     struct in6_addr ipv6_dummy = { 0 };                                                   /* contents don't matter; we're not using IPv6 */
 
     /* Initialize SLiRP. */
@@ -428,7 +428,8 @@ net_slirp_init(const netcard_t *card, const uint8_t *mac_addr, void *priv)
 
     /* Set up port forwarding. */
     int   udp, external, internal, i = 0;
-    char *category = "SLiRP Port Forwarding";
+    char category[32];
+    snprintf(category, sizeof(category), "SLiRP Port Forwarding #%i", card->card_num + 1);
     char  key[20];
     while (1) {
         sprintf(key, "%d_protocol", i);
