@@ -57,6 +57,8 @@ public:
     void moReload(int i);
     void moUpdateMenu(int i);
 
+    void nicConnect(int i);
+    void nicDisconnect(int i);
     void nicUpdateMenu(int i);
 private:
     QWidget* parentWidget = nullptr;

@@ -88,7 +88,7 @@ namespace {
         PixmapSetEmptyActive zip;
         PixmapSetEmptyActive mo;
         PixmapSetActive hd;
-        PixmapSetActive net;
+        PixmapSetEmptyActive net;
         QPixmap sound;
     };
 
@@ -232,7 +232,7 @@ struct MachineStatus::States {
     std::array<StateEmptyActive, ZIP_NUM> zip;
     std::array<StateEmptyActive, MO_NUM> mo;
     std::array<StateActive, HDD_BUS_USB> hdds;
-    std::array<StateActive, NET_CARD_MAX> net;
+    std::array<StateEmptyActive, NET_CARD_MAX> net;
     std::unique_ptr<ClickableLabel> sound;
     std::unique_ptr<QLabel> text;
 };
@@ -369,6 +369,7 @@ void MachineStatus::refreshIcons() {
 
     for (size_t i = 0; i < NET_CARD_MAX; i++) {
         d->net[i].setActive(machine_status.net[i].active);
+        d->net[i].setEmpty(machine_status.net[i].empty);
     }
 
     for (int i = 0; i < 2; ++i) {
@@ -518,6 +519,7 @@ void MachineStatus::refresh(QStatusBar* sbar) {
 
     iterateNIC([this, sbar](int i) {
         d->net[i].label = std::make_unique<ClickableLabel>();
+        d->net[i].setEmpty(!network_is_connected(i));
         d->net[i].setActive(false);
         d->net[i].refresh();
         d->net[i].label->setToolTip(MediaMenu::ptr->netMenus[i]->title());

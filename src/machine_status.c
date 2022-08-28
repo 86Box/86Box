@@ -52,5 +52,6 @@ machine_status_init() {
 
     for (size_t i = 0; i < NET_CARD_MAX; i++) {
         machine_status.net[i].active = false;
+        machine_status.net[i].empty = !network_is_connected(i);
     }
 }

@@ -215,6 +215,7 @@ ui_sb_update_icon_state(int tag, int state) {
     case SB_HDD:
         break;
     case SB_NETWORK:
+        machine_status.net[item].empty = state > 0 ? true : false;
         break;
     case SB_SOUND:
         break;
