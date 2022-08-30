@@ -21,11 +21,13 @@ public slots:
     void onCurrentMachineChanged(int machineId);
 
 private slots:
-    void on_pushButtonConfigure_clicked();
-    void on_comboBoxAdapter_currentIndexChanged(int index);
-    void on_comboBoxNetwork_currentIndexChanged(int index);
+    void on_pushButtonConf1_clicked();
+    void on_pushButtonConf2_clicked();
+    void on_pushButtonConf3_clicked();
+    void on_pushButtonConf4_clicked();
+    void on_comboIndexChanged(int index);
 
-    void on_comboBoxPcap_currentIndexChanged(int index);
+    void enableElements(Ui::SettingsNetwork *ui);
 
 private:
     Ui::SettingsNetwork *ui;

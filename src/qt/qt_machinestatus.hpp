@@ -66,6 +66,7 @@ public:
     static void iterateCDROM(const std::function<void(int i)>& cb);
     static void iterateZIP(const std::function<void(int i)>& cb);
     static void iterateMO(const std::function<void(int i)>& cb);
+    static void iterateNIC(const std::function<void(int i)>& cb);
 
     QString getMessage();
 public slots:
