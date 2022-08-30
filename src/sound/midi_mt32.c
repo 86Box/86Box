@@ -15,12 +15,12 @@
 #include <86box/ui.h>
 #include <mt32emu/c_interface/c_interface.h>
 
-#define MT32_CTRL_ROM   "roms/sound/mt32/MT32_CONTROL.ROM"
-#define MT32_PCM_ROM    "roms/sound/mt32/MT32_PCM.ROM"
-#define CM32L_CTRL_ROM  "roms/sound/cm32l/CM32L_CONTROL.ROM"
-#define CM32L_PCM_ROM   "roms/sound/cm32l/CM32L_PCM.ROM"
-#define CM32LN_CTRL_ROM "roms/sound/cm32ln/CM32LN_CONTROL.ROM"
-#define CM32LN_PCM_ROM  "roms/sound/cm32ln/CM32LN_PCM.ROM"
+#define MT32_OLD_CTRL_ROM   "roms/sound/mt32/MT32_CONTROL.ROM"
+#define MT32_OLD_PCM_ROM    "roms/sound/mt32/MT32_PCM.ROM"
+#define CM32L_CTRL_ROM      "roms/sound/cm32l/CM32L_CONTROL.ROM"
+#define CM32L_PCM_ROM       "roms/sound/cm32l/CM32L_PCM.ROM"
+#define CM32LN_CTRL_ROM     "roms/sound/cm32ln/CM32LN_CONTROL.ROM"
+#define CM32LN_PCM_ROM      "roms/sound/cm32ln/CM32LN_PCM.ROM"
 
 extern void givealbuffer_midi(void *buf, uint32_t size);
 extern void al_set_midi(int freq, int buf_size);
@@ -118,10 +118,10 @@ mt32_check(const char *func, mt32emu_return_code ret, mt32emu_return_code expect
 }
 
 int
-mt32_available()
+mt32_old_available()
 {
     if (roms_present[0] < 0)
-        roms_present[0] = (rom_present(MT32_CTRL_ROM) && rom_present(MT32_PCM_ROM));
+        roms_present[0] = (rom_present(MT32_OLD_CTRL_ROM) && rom_present(MT32_OLD_PCM_ROM));
     return roms_present[0];
 }
 
@@ -312,9 +312,9 @@ mt32emu_init(char *control_rom, char *pcm_rom)
 }
 
 void *
-mt32_init(const device_t *info)
+mt32_old_init(const device_t *info)
 {
-    return mt32emu_init(MT32_CTRL_ROM, MT32_PCM_ROM);
+    return mt32emu_init(MT32_OLD_CTRL_ROM, MT32_OLD_PCM_ROM);
 }
 
 void *
@@ -404,15 +404,15 @@ static const device_config_t mt32_config[] = {
 // clang-format on
 };
 
-const device_t mt32_device = {
+const device_t mt32_old_device = {
     .name = "Roland MT-32 Emulation",
     .internal_name = "mt32",
     .flags = 0,
     .local = 0,
-    .init = mt32_init,
+    .init = mt32_old_init,
     .close = mt32_close,
     .reset = NULL,
-    { .available = mt32_available },
+    { .available = mt32_old_available },
     .speed_changed = NULL,
     .force_redraw = NULL,
     .config = mt32_config
