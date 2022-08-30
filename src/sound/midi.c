@@ -93,6 +93,7 @@ static const MIDI_OUT_DEVICE devices[] = {
 #endif
 #ifdef USE_MUNT
     { &mt32_old_device       },
+    { &mt32_new_device       },
     { &cm32l_device          },
     { &cm32ln_device         },
 #endif

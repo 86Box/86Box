@@ -17,6 +17,8 @@
 
 #define MT32_OLD_CTRL_ROM   "roms/sound/mt32/MT32_CONTROL.ROM"
 #define MT32_OLD_PCM_ROM    "roms/sound/mt32/MT32_PCM.ROM"
+#define MT32_NEW_CTRL_ROM   "roms/sound/mt32_new/MT32_CONTROL.ROM"
+#define MT32_NEW_PCM_ROM    "roms/sound/mt32_new/MT32_PCM.ROM"
 #define CM32L_CTRL_ROM      "roms/sound/cm32l/CM32L_CONTROL.ROM"
 #define CM32L_PCM_ROM       "roms/sound/cm32l/CM32L_PCM.ROM"
 #define CM32LN_CTRL_ROM     "roms/sound/cm32ln/CM32LN_CONTROL.ROM"
@@ -122,6 +124,14 @@ mt32_old_available()
 {
     if (roms_present[0] < 0)
         roms_present[0] = (rom_present(MT32_OLD_CTRL_ROM) && rom_present(MT32_OLD_PCM_ROM));
+    return roms_present[0];
+}
+
+int
+mt32_new_available()
+{
+    if (roms_present[0] < 0)
+        roms_present[0] = (rom_present(MT32_NEW_CTRL_ROM) && rom_present(MT32_NEW_PCM_ROM));
     return roms_present[0];
 }
 
@@ -318,6 +328,12 @@ mt32_old_init(const device_t *info)
 }
 
 void *
+mt32_new_init(const device_t *info)
+{
+    return mt32emu_init(MT32_NEW_CTRL_ROM, MT32_NEW_PCM_ROM);
+}
+
+void *
 cm32l_init(const device_t *info)
 {
     return mt32emu_init(CM32L_CTRL_ROM, CM32L_PCM_ROM);
@@ -413,6 +429,20 @@ const device_t mt32_old_device = {
     .close = mt32_close,
     .reset = NULL,
     { .available = mt32_old_available },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = mt32_config
+};
+
+const device_t mt32_new_device = {
+    .name = "Roland MT-32 (New) Emulation",
+    .internal_name = "mt32",
+    .flags = 0,
+    .local = 0,
+    .init = mt32_new_init,
+    .close = mt32_close,
+    .reset = NULL,
+    { .available = mt32_new_available },
     .speed_changed = NULL,
     .force_redraw = NULL,
     .config = mt32_config
