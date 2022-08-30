@@ -167,7 +167,7 @@ plat_fopen(const char *path, const char *mode)
 FILE *
 plat_fopen64(const char *path, const char *mode)
 {
-#ifdef Q_OS_MACOS
+#if defined(Q_OS_MACOS) or defined(Q_OS_LINUX)
     QFileInfo fi(path);
     QString filename = fi.isRelative() ? usr_path + fi.filePath() : fi.filePath();
     return fopen(filename.toUtf8().constData(), mode);
