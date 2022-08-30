@@ -15,6 +15,10 @@
 #include <86box/ui.h>
 #include <mt32emu/c_interface/c_interface.h>
 
+#define MT32_CTRL_ROM   "roms/sound/mt32/MT32_CONTROL.ROM"
+#define MT32_PCM_ROM    "roms/sound/mt32/MT32_PCM.ROM"
+#define CM32L_CTRL_ROM  "roms/sound/cm32l/CM32L_CONTROL.ROM"
+#define CM32L_PCM_ROM   "roms/sound/cm32l/CM32L_PCM.ROM"
 extern void givealbuffer_midi(void *buf, uint32_t size);
 extern void al_set_midi(int freq, int buf_size);
 
@@ -114,7 +118,7 @@ int
 mt32_available()
 {
     if (roms_present[0] < 0)
-        roms_present[0] = (rom_present("roms/sound/mt32/MT32_CONTROL.ROM") && rom_present("roms/sound/mt32/MT32_PCM.ROM"));
+        roms_present[0] = (rom_present(MT32_CTRL_ROM) && rom_present(MT32_PCM_ROM));
     return roms_present[0];
 }
 
@@ -122,7 +126,7 @@ int
 cm32l_available()
 {
     if (roms_present[1] < 0)
-        roms_present[1] = (rom_present("roms/sound/cm32l/CM32L_CONTROL.ROM") && rom_present("roms/sound/cm32l/CM32L_PCM.ROM"));
+        roms_present[1] = (rom_present(CM32L_CTRL_ROM) && rom_present(CM32L_PCM_ROM));
     return roms_present[1];
 }
 
@@ -299,13 +303,13 @@ mt32emu_init(char *control_rom, char *pcm_rom)
 void *
 mt32_init(const device_t *info)
 {
-    return mt32emu_init("roms/sound/mt32/MT32_CONTROL.ROM", "roms/sound/mt32/MT32_PCM.ROM");
+    return mt32emu_init(MT32_CTRL_ROM, MT32_PCM_ROM);
 }
 
 void *
 cm32l_init(const device_t *info)
 {
-    return mt32emu_init("roms/sound/cm32l/CM32L_CONTROL.ROM", "roms/sound/cm32l/CM32L_PCM.ROM");
+    return mt32emu_init(CM32L_CTRL_ROM, CM32L_PCM_ROM);
 }
 
 void
