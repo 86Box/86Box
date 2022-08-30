@@ -98,6 +98,7 @@ extern const device_t fluidsynth_device;
 #    ifdef USE_MUNT
 extern const device_t mt32_device;
 extern const device_t cm32l_device;
+extern const device_t cm32ln_device;
 #    endif
 #endif
 

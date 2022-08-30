@@ -19,6 +19,9 @@
 #define MT32_PCM_ROM    "roms/sound/mt32/MT32_PCM.ROM"
 #define CM32L_CTRL_ROM  "roms/sound/cm32l/CM32L_CONTROL.ROM"
 #define CM32L_PCM_ROM   "roms/sound/cm32l/CM32L_PCM.ROM"
+#define CM32LN_CTRL_ROM "roms/sound/cm32ln/CM32LN_CONTROL.ROM"
+#define CM32LN_PCM_ROM  "roms/sound/cm32ln/CM32LN_PCM.ROM"
+
 extern void givealbuffer_midi(void *buf, uint32_t size);
 extern void al_set_midi(int freq, int buf_size);
 
@@ -62,7 +65,7 @@ static const mt32emu_report_handler_i_v0 handler_mt32_v0 = {
     NULL, // void (*onProgramChanged)(void *instance_data, mt32emu_bit8u part_num, const char *sound_group_name, const char *patch_name);
 };
 
-/** Alternate report handler for Roland CM-32L */
+/** Alternate report handler for Roland CM-32L/CM-32LN */
 static const mt32emu_report_handler_i_v0 handler_cm32l_v0 = {
     /** Returns the actual interface version ID */
     get_mt32_report_handler_version, // mt32emu_report_handler_version (*getVersionID)(mt32emu_report_handler_i i);
@@ -127,6 +130,14 @@ cm32l_available()
 {
     if (roms_present[1] < 0)
         roms_present[1] = (rom_present(CM32L_CTRL_ROM) && rom_present(CM32L_PCM_ROM));
+    return roms_present[1];
+}
+
+int
+cm32ln_available()
+{
+    if (roms_present[1] < 0)
+        roms_present[1] = (rom_present(CM32LN_CTRL_ROM) && rom_present(CM32LN_PCM_ROM));
     return roms_present[1];
 }
 
@@ -244,7 +255,7 @@ mt32emu_init(char *control_rom, char *pcm_rom)
     midi_device_t *dev;
     char           fn[512];
 
-    context = mt32emu_create_context(strstr(control_rom, "CM32L_CONTROL.ROM") ? handler_cm32l : handler_mt32, NULL);
+    context = mt32emu_create_context(strstr(control_rom, "MT32_CONTROL.ROM") ? handler_mt32 : handler_cm32l, NULL);
 
     if (!rom_getfile(control_rom, fn, 512))
         return 0;
@@ -310,6 +321,12 @@ void *
 cm32l_init(const device_t *info)
 {
     return mt32emu_init(CM32L_CTRL_ROM, CM32L_PCM_ROM);
+}
+
+void *
+cm32ln_init(const device_t *info)
+{
+    return mt32emu_init(CM32LN_CTRL_ROM, CM32LN_PCM_ROM);
 }
 
 void
@@ -410,6 +427,20 @@ const device_t cm32l_device = {
     .close = mt32_close,
     .reset = NULL,
     { .available = cm32l_available },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = mt32_config
+};
+
+const device_t cm32ln_device = {
+    .name = "Roland CM-32LN Emulation",
+    .internal_name = "cm32ln",
+    .flags = 0,
+    .local = 0,
+    .init = cm32ln_init,
+    .close = mt32_close,
+    .reset = NULL,
+    { .available = cm32ln_available },
     .speed_changed = NULL,
     .force_redraw = NULL,
     .config = mt32_config
