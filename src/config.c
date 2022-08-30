@@ -3149,7 +3149,7 @@ save_floppy_and_cdrom_drives(void)
 
         for (int i = 0; i < MAX_PREV_IMAGES; i++) {
             sprintf(temp, "cdrom_%02i_image_history_%02i", c + 1, i + 1);
-            if(strlen(cdrom[c].image_history[i]) == 0) {
+            if((cdrom[c].image_history[i] == 0) || strlen(cdrom[c].image_history[i]) == 0) {
                 config_delete_var(cat, temp);
             } else {
                 config_set_string(cat, temp, cdrom[c].image_history[i]);
