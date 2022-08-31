@@ -2646,7 +2646,8 @@ xga_mca_write(int port, uint8_t val, void *priv)
         xga->rom_addr = 0xc0000 + (((xga->pos_regs[2] & 0xf0) >> 4) * 0x2000);
 
         io_sethandler(0x2100 + (xga->instance << 4), 0x0010, xga_ext_inb, NULL, NULL, xga_ext_outb, NULL, NULL, svga);
-        mem_mapping_set_addr(&xga->bios_rom.mapping, xga->rom_addr, 0x2000);
+        if ((port & 7) == 2)
+            mem_mapping_set_addr(&xga->bios_rom.mapping, xga->rom_addr, 0x2000);
         mem_mapping_set_addr(&xga->memio_mapping, xga->rom_addr + 0x1c00 + (xga->instance * 0x80), 0x80);
     }
 }
@@ -2722,11 +2723,7 @@ static void
         xga->linear_base = 0;
         xga->instance = 0;
         xga->rom_addr = 0;
-        mem_mapping_add(&xga->bios_rom.mapping,
-                initial_bios_addr, xga->bios_rom.sz,
-                rom_read, rom_readw, rom_readl,
-                NULL, NULL, NULL,
-                xga->bios_rom.rom, MEM_MAPPING_EXTERNAL, &xga->bios_rom);
+        rom_init(&xga->bios_rom, xga->type ? XGA2_BIOS_PATH : XGA_BIOS_PATH, initial_bios_addr, 0x2000, 0x1fff, 0, MEM_MAPPING_EXTERNAL);
     } else {
         xga->pos_regs[2] = 1 | 0x0c | 0xf0;
         xga->instance = (xga->pos_regs[2] & 0x0e) >> 1;
