@@ -40,7 +40,7 @@ if(MUNT_EXTERNAL)
 endif()
 
 project(86Box
-    VERSION 3.7.1
+    VERSION 3.8
     DESCRIPTION "Emulator of x86-based systems"
     HOMEPAGE_URL "https://86box.net"
     LANGUAGES C CXX)
@@ -165,6 +165,9 @@ cmake_dependent_option(XL24           "ATI VGA Wonder XL24 (ATI-28800-6)"       
 # Ditto but for Qt
 if(QT)
     option(USE_QT6 "Use Qt6 instead of Qt5" OFF)
+    if(APPLE)
+        option(MOLTENVK "Use MoltenVK libraries for Vulkan support on macOS. Requires a Vulkan-enabled QT." OFF)
+    endif()
 endif()
 
 # Determine the build type
