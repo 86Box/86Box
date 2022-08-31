@@ -56,6 +56,10 @@ public:
     void moEject(int i);
     void moReload(int i);
     void moUpdateMenu(int i);
+
+    void nicConnect(int i);
+    void nicDisconnect(int i);
+    void nicUpdateMenu(int i);
 private:
     QWidget* parentWidget = nullptr;
 
@@ -65,6 +69,7 @@ private:
     QMap<int, QMenu*> cdromMenus;
     QMap<int, QMenu*> zipMenus;
     QMap<int, QMenu*> moMenus;
+    QMap<int, QMenu*> netMenus;
 
     QString getMediaOpenDirectory();
 
@@ -88,6 +93,8 @@ private:
 
     int moEjectPos;
     int moReloadPos;
+
+    int netDisconnPos;
 
     friend class MachineStatus;
 };

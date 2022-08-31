@@ -45,6 +45,8 @@
 #endif
 #include <86box/net_event.h>
 
+#define SLIRP_PKT_BATCH NET_QUEUE_LEN
+
 enum {
     NET_EVENT_STOP = 0,
     NET_EVENT_TX,
@@ -60,6 +62,7 @@ typedef struct {
     net_evt_t  tx_event;
     net_evt_t  stop_event;
     netpkt_t   pkt;
+    netpkt_t   pkt_tx_v[SLIRP_PKT_BATCH];
 #ifdef _WIN32
     HANDLE sock_event;
 #else
@@ -153,22 +156,12 @@ ssize_t
 net_slirp_send_packet(const void *qp, size_t pkt_len, void *opaque)
 {
     net_slirp_t *slirp = (net_slirp_t *) opaque;
-    uint8_t *mac   = slirp->mac_addr;
-    uint32_t mac_cmp32[2];
-    uint16_t mac_cmp16[2];
 
     slirp_log("SLiRP: received %d-byte packet\n", pkt_len);
 
-    /* Received MAC. */
-    mac_cmp32[0] = *(uint32_t *) (((uint8_t *) qp) + 6);
-    mac_cmp16[0] = *(uint16_t *) (((uint8_t *) qp) + 10);
-
-    /* Local MAC. */
-    mac_cmp32[1] = *(uint32_t *) mac;
-    mac_cmp16[1] = *(uint16_t *) (mac + 4);
-    if ((mac_cmp32[0] != mac_cmp32[1]) || (mac_cmp16[0] != mac_cmp16[1])) {
-        network_rx_put(slirp->card, (uint8_t *) qp, pkt_len);
-    }
+    memcpy(slirp->pkt.data, (uint8_t*) qp, pkt_len);
+    slirp->pkt.len = pkt_len;
+    network_rx_put_pkt(slirp->card, &slirp->pkt);
 
     return pkt_len;
 }
@@ -336,8 +329,9 @@ net_slirp_thread(void *priv)
                 break;
 
             case NET_EVENT_TX:
-                while (network_tx_pop(slirp->card, &slirp->pkt)) {
-                    net_slirp_in(slirp, slirp->pkt.data, slirp->pkt.len);
+                int packets = network_tx_popv(slirp->card, slirp->pkt_tx_v, SLIRP_PKT_BATCH);
+                for (int i = 0; i < packets; i++) {
+                    net_slirp_in(slirp, slirp->pkt_tx_v[i].data, slirp->pkt_tx_v[i].len);
                 }
                 break;
 
@@ -381,11 +375,11 @@ net_slirp_thread(void *priv)
         if (slirp->pfd[NET_EVENT_TX].revents & POLLIN) {
             net_event_clear(&slirp->tx_event);
 
-            if (network_tx_pop(slirp->card, &slirp->pkt)) {
-                net_slirp_in(slirp, slirp->pkt.data, slirp->pkt.len);
+            int packets = network_tx_popv(slirp->card, slirp->pkt_tx_v, SLIRP_PKT_BATCH);
+            for (int i = 0; i < packets; i++) {
+                net_slirp_in(slirp, slirp->pkt_tx_v[i].data, slirp->pkt_tx_v[i].len);
             }
         }
-
     }
 
     slirp_log("SLiRP: polling stopped.\n");
@@ -453,6 +447,9 @@ net_slirp_init(const netcard_t *card, const uint8_t *mac_addr, void *priv)
         i++;
     }
 
+    for (int i = 0; i < SLIRP_PKT_BATCH; i++) {
+        slirp->pkt_tx_v[i].data = calloc(1, NET_MAX_FRAME);
+    }
     slirp->pkt.data = calloc(1, NET_MAX_FRAME);
     net_event_init(&slirp->tx_event);
     net_event_init(&slirp->stop_event);
@@ -485,6 +482,9 @@ net_slirp_close(void *priv)
     net_event_close(&slirp->tx_event);
     net_event_close(&slirp->stop_event);
     slirp_cleanup(slirp->slirp);
+    for (int i = 0; i < SLIRP_PKT_BATCH; i++) {
+        free(slirp->pkt_tx_v[i].data);
+    }
     free(slirp->pkt.data);
     free(slirp);
     slirp_card_num--;

@@ -1214,6 +1214,11 @@ load_network(void)
         } else {
             strcpy(net_cards_conf[c].host_dev_name, "none");
         }
+
+        sprintf(temp, "net_%02i_link", c +1);
+        net_cards_conf[c].link_state = config_get_int(cat, temp,
+            (NET_LINK_10_HD|NET_LINK_10_FD|NET_LINK_100_HD|NET_LINK_100_FD|NET_LINK_1000_HD|NET_LINK_1000_FD));
+
     }
 }
 
@@ -2766,6 +2771,13 @@ save_network(void)
         } else {
             /* config_set_string(cat, temp, "none"); */
             config_delete_var(cat, temp);
+        }
+
+        sprintf(temp, "net_%02i_link", c + 1);
+        if (net_cards_conf[c].link_state == (NET_LINK_10_HD|NET_LINK_10_FD|NET_LINK_100_HD|NET_LINK_100_FD|NET_LINK_1000_HD|NET_LINK_1000_FD)) {
+            config_delete_var(cat, temp);
+        } else {
+            config_set_int(cat, temp, net_cards_conf[c].link_state);
         }
     }
 

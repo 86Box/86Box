@@ -29,6 +29,7 @@
 #include <stdarg.h>
 #include <wchar.h>
 #include <time.h>
+#include <stdbool.h>
 #define HAVE_STDARG_H
 #include <86box/86box.h>
 #include <86box/io.h>
@@ -1253,6 +1254,10 @@ pcnetReceiveNoSync(void *priv, uint8_t *buf, int size)
     if (!pcnetIsLinkUp(dev))
 	return 0;
 
+    dev->fMaybeOutOfSpace = !pcnetCanReceive(dev);
+    if (dev->fMaybeOutOfSpace)
+        return 0;
+
     pcnetlog(1, "%s: pcnetReceiveNoSync: RX %x:%x:%x:%x:%x:%x > %x:%x:%x:%x:%x:%x len %d\n", dev->name,
 	buf[6], buf[7], buf[8], buf[9], buf[10], buf[11],
 	buf[0], buf[1], buf[2], buf[3], buf[4], buf[5],
@@ -2025,8 +2030,12 @@ pcnet_bcr_writew(nic_t *dev, uint16_t rap, uint16_t val)
 	case BCR_BSBC:
 	case BCR_EECAS:
 	case BCR_PLAT:
-	case BCR_MIICAS:
 	case BCR_MIIADDR:
+	    dev->aBCR[rap] = val;
+	    break;
+
+	case BCR_MIICAS:
+	    dev->netcard->byte_period = (dev->board == DEV_AM79C973 && (val & 0x28)) ? NET_PERIOD_100M : NET_PERIOD_10M;
 	    dev->aBCR[rap] = val;
 	    break;
 
@@ -2091,12 +2100,13 @@ pcnet_mii_readw(nic_t *dev, uint16_t miiaddr)
 		| 0x0008 /* Able to do auto-negotiation. */
 		| 0x0004 /* Link up. */
 		| 0x0001; /* Extended Capability, i.e. registers 4+ valid. */
-	    if (!dev->fLinkUp || dev->fLinkTempDown || isolate) {
+	    if (!pcnetIsLinkUp(dev) || isolate) {
 		val &= ~(0x0020 | 0x0004);
 		dev->cLinkDownReported++;
 	    }
 	    if (!autoneg) {
 		/* Auto-negotiation disabled. */
+		val &= ~(0x0020 | 0x0008);
 		if (duplex)
 		    val &= ~0x2800; /* Full duplex forced. */
 	        else
@@ -2127,7 +2137,7 @@ pcnet_mii_readw(nic_t *dev, uint16_t miiaddr)
 
 	case 5:
 	    /* Link partner ability register. */
-	    if (dev->fLinkUp && !dev->fLinkTempDown && !isolate) {
+	    if (pcnetIsLinkUp(dev) && !isolate) {
 	        val = 0x8000 /* Next page bit. */
 		    | 0x4000 /* Link partner acked us. */
 		    | 0x0400 /* Can do flow control. */
@@ -2141,7 +2151,7 @@ pcnet_mii_readw(nic_t *dev, uint16_t miiaddr)
 
 	case 6:
 	    /* Auto negotiation expansion register. */
-	    if (dev->fLinkUp && !dev->fLinkTempDown && !isolate) {
+	    if (pcnetIsLinkUp(dev) && !isolate) {
 		val = 0x0008 /* Link partner supports npage. */
 		    | 0x0004 /* Enable npage words. */
 		    | 0x0001; /* Can do N-way auto-negotiation. */
@@ -2153,7 +2163,7 @@ pcnet_mii_readw(nic_t *dev, uint16_t miiaddr)
 
 	case 18:
 	    /* Diagnostic Register (FreeBSD pcn/ac101 driver reads this). */
-	    if (dev->fLinkUp && !dev->fLinkTempDown && !isolate) {
+	    if (pcnetIsLinkUp(dev) && !isolate) {
 		val = 0x1000 /* Receive PLL locked. */
 		    | 0x0200; /* Signal detected. */
 
@@ -2191,7 +2201,7 @@ pcnet_bcr_readw(nic_t *dev, uint16_t rap)
 	case BCR_LED2:
 	case BCR_LED3:
 		val = dev->aBCR[rap] & ~0x8000;
-		if (dev->fLinkTempDown || !dev->fLinkUp) {
+		if (!(pcnetIsLinkUp(dev))) {
 		    if (rap == 4)
 			dev->cLinkDownReported++;
 		    val &= ~0x40;
@@ -2842,40 +2852,28 @@ pcnetCanReceive(nic_t *dev)
     return rc;
 }
 
-
 static int
-pcnetWaitReceiveAvail(void *priv)
+pcnetSetLinkState(void *priv, uint32_t link_state)
 {
     nic_t *dev = (nic_t *) priv;
 
-    dev->fMaybeOutOfSpace = !pcnetCanReceive(dev);
-
-    return dev->fMaybeOutOfSpace;
-}
-
-static int
-pcnetSetLinkState(void *priv)
-{
-    nic_t *dev = (nic_t *) priv;
-    int fLinkUp;
-
-    if (dev->fLinkTempDown) {
-	pcnetTempLinkDown(dev);
-	return 1;
+    if (link_state & NET_LINK_TEMP_DOWN) {
+        pcnetTempLinkDown(dev);
+        return 1;
     }
 
-    fLinkUp = (dev->fLinkUp && !dev->fLinkTempDown);
-    if (dev->fLinkUp != fLinkUp) {
-	dev->fLinkUp = fLinkUp;
-	if (fLinkUp) {
-	    dev->fLinkTempDown = 1;
-	    dev->cLinkDownReported = 0;
-            dev->aCSR[0] |= 0x8000 | 0x2000; /* ERR | CERR (this is probably wrong) */
-	    timer_set_delay_u64(&dev->timer_restore, (dev->cMsLinkUpDelay * 1000) * TIMER_USEC);
-	} else {
-	    dev->cLinkDownReported = 0;
-            dev->aCSR[0] |= 0x8000 | 0x2000; /* ERR | CERR (this is probably wrong) */
-	}
+    bool link_up = !(link_state & NET_LINK_DOWN);
+    if (dev->fLinkUp != link_up) {
+        dev->fLinkUp = link_up;
+        if (link_up) {
+            dev->fLinkTempDown     = 1;
+            dev->cLinkDownReported = 0;
+            dev->aCSR[0] |= 0x8000 | 0x2000;
+            timer_set_delay_u64(&dev->timer_restore, (dev->cMsLinkUpDelay * 1000) * TIMER_USEC);
+        } else {
+            dev->cLinkDownReported = 0;
+            dev->aCSR[0] |= 0x8000 | 0x2000;
+        }
     }
 
     return 0;
@@ -3054,7 +3052,8 @@ pcnet_init(const device_t *info)
     pcnetHardReset(dev);
 
     /* Attach ourselves to the network module. */
-    dev->netcard = network_attach(dev, dev->aPROM, pcnetReceiveNoSync, pcnetWaitReceiveAvail, pcnetSetLinkState);
+    dev->netcard = network_attach(dev, dev->aPROM, pcnetReceiveNoSync, pcnetSetLinkState);
+    dev->netcard->byte_period = (dev->board == DEV_AM79C973) ? NET_PERIOD_100M : NET_PERIOD_10M;
 
     timer_add(&dev->timer, pcnetPollTimer, dev, 0);
 
