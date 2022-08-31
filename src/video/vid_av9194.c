@@ -28,64 +28,61 @@
 #include <86box/video.h>
 #include <86box/vid_svga.h>
 
-
 float
 av9194_getclock(int clock, void *p)
 {
     float ret = 0.0;
 
-    switch (clock & 0x0f)
-    {
-	case 0:
-		ret = 25175000.0;
-		break;
-	case 1:
-		ret = 28322000.0;
-		break;
-	case 2:
-		ret = 40000000.0;
-		break;
-	case 4:
-		ret = 50000000.0;
-		break;
-	case 5:
-		ret = 77000000.0;
-		break;
-	case 6:
-		ret = 36000000.0;
-		break;
-	case 7:
-		ret = 44900000.0;
-		break;
-	case 8:
-		ret = 130000000.0;
-		break;
-	case 9:
-		ret = 120000000.0;
-		break;
-	case 0xa:
-		ret = 80000000.0;
-		break;
-	case 0xb:
-		ret = 31500000.0;
-		break;
-	case 0xc:
-		ret = 110000000.0;
-		break;
-	case 0xd:
-		ret = 65000000.0;
-		break;
-	case 0xe:
-		ret = 75000000.0;
-		break;
-	case 0xf:
-		ret = 94500000.0;
-		break;
+    switch (clock & 0x0f) {
+        case 0:
+            ret = 25175000.0;
+            break;
+        case 1:
+            ret = 28322000.0;
+            break;
+        case 2:
+            ret = 40000000.0;
+            break;
+        case 4:
+            ret = 50000000.0;
+            break;
+        case 5:
+            ret = 77000000.0;
+            break;
+        case 6:
+            ret = 36000000.0;
+            break;
+        case 7:
+            ret = 44900000.0;
+            break;
+        case 8:
+            ret = 130000000.0;
+            break;
+        case 9:
+            ret = 120000000.0;
+            break;
+        case 0xa:
+            ret = 80000000.0;
+            break;
+        case 0xb:
+            ret = 31500000.0;
+            break;
+        case 0xc:
+            ret = 110000000.0;
+            break;
+        case 0xd:
+            ret = 65000000.0;
+            break;
+        case 0xe:
+            ret = 75000000.0;
+            break;
+        case 0xf:
+            ret = 94500000.0;
+            break;
     }
 
     return ret;
 }
-
 
 static void *
 av9194_init(const device_t *info)
@@ -94,17 +91,16 @@ av9194_init(const device_t *info)
     return (void *) &av9194_device;
 }
 
-
 const device_t av9194_device = {
-    .name = "AV9194 Clock Generator",
+    .name          = "AV9194 Clock Generator",
     .internal_name = "av9194",
-    .flags = 0,
-    .local = 0,
-    .init = av9194_init,
-    .close = NULL,
-    .reset = NULL,
+    .flags         = 0,
+    .local         = 0,
+    .init          = av9194_init,
+    .close         = NULL,
+    .reset         = NULL,
     { .available = NULL },
     .speed_changed = NULL,
-    .force_redraw = NULL,
-    .config = NULL
+    .force_redraw  = NULL,
+    .config        = NULL
 };
