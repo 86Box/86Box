@@ -1378,7 +1378,7 @@ cpu_set(void)
     }
 
     if (is386) {
-#ifdef USE_DYNAREC
+#if defined(USE_DYNAREC) && !defined(USE_GDBSTUB)
 	if (cpu_use_dynarec)
 		cpu_exec = exec386_dynarec;
 	else
