@@ -522,7 +522,7 @@ machine_at_ms5124_init(const machine_t *model)
 
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
-    pci_register_slot(0x01, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x01, PCI_CARD_SOUTHBRIDGE, 0xFE, 0xFF, 0, 0);
     pci_register_slot(0x10, PCI_CARD_NORMAL, 0x41, 0x42, 0x43, 0x44);
     pci_register_slot(0x11, PCI_CARD_NORMAL, 0x44, 0x41, 0x42, 0x43);
     pci_register_slot(0x12, PCI_CARD_NORMAL, 0x43, 0x44, 0x41, 0x42);
