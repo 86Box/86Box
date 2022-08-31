@@ -72,6 +72,8 @@
 #include <86box/network.h>
 #include <86box/net_event.h>
 
+#define PCAP_PKT_BATCH NET_QUEUE_LEN
+
 enum {
     NET_EVENT_STOP = 0,
     NET_EVENT_TX,
@@ -120,6 +122,17 @@ struct pcap_if {
     void *addresses;
     bpf_u_int32 flags;
 };
+
+struct pcap_send_queue {
+    u_int maxlen; /* Maximum size of the queue, in bytes. This
+             variable contains the size of the buffer field. */
+    u_int len;    /* Current size of the queue, in bytes. */
+    char *buffer; /* Buffer containing the packets to be sent. */
+};
+
+typedef struct pcap_send_queue pcap_send_queue;
+
+typedef void (*pcap_handler)(u_char *user, const struct pcap_pkthdr *h, const u_char *bytes);
 #endif
 
 typedef struct {
@@ -129,7 +142,11 @@ typedef struct {
     net_evt_t  tx_event;
     net_evt_t  stop_event;
     netpkt_t   pkt;
+    netpkt_t   pktv[PCAP_PKT_BATCH];
     uint8_t    mac_addr[6];
+#ifdef _WIN32
+    struct pcap_send_queue *pcap_queue;
+#endif
 } net_pcap_t;
 
 typedef struct {
@@ -154,11 +171,16 @@ static int    (*f_pcap_setnonblock)(void*, int, char*);
 static int    (*f_pcap_set_immediate_mode)(void *, int);
 static int    (*f_pcap_set_promisc)(void *, int);
 static int    (*f_pcap_set_snaplen)(void *, int);
+static int    (*f_pcap_dispatch)(void *, int, pcap_handler callback, u_char *user);
 static void  *(*f_pcap_create)(const char *, char*);
 static int    (*f_pcap_activate)(void *);
 static void  *(*f_pcap_geterr)(void *);
 #ifdef _WIN32
 static HANDLE (*f_pcap_getevent)(void *);
+static int    (*f_pcap_sendqueue_queue)(void *, void *, void *);
+static u_int  (*f_pcap_sendqueue_transmit)(void *, void *, int sync);
+static void  *(*f_pcap_sendqueue_alloc)(u_int memsize);
+static void   (*f_pcap_sendqueue_destroy)(void *);
 #else
 static int    (*f_pcap_get_selectable_fd)(void *);
 #endif
@@ -177,13 +199,18 @@ static dllimp_t pcap_imports[] = {
     { "pcap_set_immediate_mode", &f_pcap_set_immediate_mode},
     { "pcap_set_promisc",        &f_pcap_set_promisc       },
     { "pcap_set_snaplen",        &f_pcap_set_snaplen       },
+    { "pcap_dispatch",           &f_pcap_dispatch          },
     { "pcap_create",             &f_pcap_create            },
     { "pcap_activate",           &f_pcap_activate          },
     { "pcap_geterr",             &f_pcap_geterr            },
 #ifdef _WIN32
     { "pcap_getevent",           &f_pcap_getevent          },
+    { "pcap_sendqueue_queue",    &f_pcap_sendqueue_queue   },
+    { "pcap_sendqueue_transmit", &f_pcap_sendqueue_transmit},
+    { "pcap_sendqueue_alloc",    &f_pcap_sendqueue_alloc   },
+    { "pcap_sendqueue_destroy",  &f_pcap_sendqueue_destroy },
 #else
-    { "pcap_get_selectable_fd", &f_pcap_get_selectable_fd },
+    { "pcap_get_selectable_fd",  &f_pcap_get_selectable_fd },
 #endif
     { NULL,                      NULL                      },
 };
@@ -208,15 +235,12 @@ pcap_log(const char *fmt, ...)
 
 
 static void
-net_pcap_read_packet(net_pcap_t *pcap)
+net_pcap_rx_handler(uint8_t *user, const struct pcap_pkthdr *h, const uint8_t *bytes)
 {
-    struct pcap_pkthdr h;
-
-    uint8_t *data = (uint8_t *) f_pcap_next((void *) pcap->pcap, &h);
-    if (!data)
-        return;
-
-    network_rx_put(pcap->card, data, h.caplen);
+    net_pcap_t *pcap = (net_pcap_t*)user;
+    memcpy(pcap->pkt.data, bytes, h->caplen);
+    pcap->pkt.len = h->caplen;
+    network_rx_put_pkt(pcap->card, &pcap->pkt);
 }
 
 /* Send a packet to the Pcap interface. */
@@ -251,6 +275,7 @@ net_pcap_thread(void *priv)
 
     bool run = true;
 
+    struct pcap_pkthdr h;
     while (run) {
         int ret = WaitForMultipleObjects(NET_EVENT_MAX, events, FALSE, INFINITE);
 
@@ -262,13 +287,17 @@ net_pcap_thread(void *priv)
 
             case NET_EVENT_TX:
                 net_event_clear(&pcap->tx_event);
-                while (network_tx_pop(pcap->card, &pcap->pkt)) {
-                    net_pcap_in(pcap->pcap, pcap->pkt.data, pcap->pkt.len);
+                int packets = network_tx_popv(pcap->card, pcap->pktv, PCAP_PKT_BATCH);
+                for (int i = 0; i < packets; i++) {
+                    h.caplen = pcap->pktv[i].len;
+                    f_pcap_sendqueue_queue(pcap->pcap_queue, &h, pcap->pktv[i].data);
                 }
+                f_pcap_sendqueue_transmit(pcap->pcap, pcap->pcap_queue, 0);
+                pcap->pcap_queue->len = 0;
                 break;
 
             case NET_EVENT_RX:
-                net_pcap_read_packet(pcap);
+                f_pcap_dispatch(pcap->pcap, PCAP_PKT_BATCH, net_pcap_rx_handler, (u_char *)pcap);
                 break;
         }
     }
@@ -305,13 +334,14 @@ net_pcap_thread(void *priv)
         if (pfd[NET_EVENT_TX].revents & POLLIN) {
             net_event_clear(&pcap->tx_event);
 
-            if (network_tx_pop(pcap->card, &pcap->pkt)) {
-                net_pcap_in(pcap->pcap, pcap->pkt.data, pcap->pkt.len);
+            int packets = network_tx_popv(pcap->card, pcap->pktv, PCAP_PKT_BATCH);
+            for (int i = 0; i < packets; i++) {
+                net_pcap_in(pcap->pcap, pcap->pktv[i].data, pcap->pktv[i].len);
             }
         }
 
         if (pfd[NET_EVENT_RX].revents & POLLIN) {
-            net_pcap_read_packet(pcap);
+            f_pcap_dispatch(pcap->pcap, PCAP_PKT_BATCH, net_pcap_rx_handler, (u_char *)pcap);
         }
 
     }
@@ -470,7 +500,15 @@ net_pcap_init(const netcard_t *card, const uint8_t *mac_addr, void *priv)
         return NULL;
     }
 
+#ifdef _WIN32
+    pcap->pcap_queue = f_pcap_sendqueue_alloc(PCAP_PKT_BATCH * NET_MAX_FRAME);
+#endif
+
+    for (int i = 0; i < PCAP_PKT_BATCH; i++) {
+        pcap->pktv[i].data = calloc(1, NET_MAX_FRAME);
+    }
     pcap->pkt.data = calloc(1, NET_MAX_FRAME);
+
     net_event_init(&pcap->tx_event);
     net_event_init(&pcap->stop_event);
     pcap->poll_tid = thread_create(net_pcap_thread, pcap);
@@ -497,8 +535,14 @@ net_pcap_close(void *priv)
     thread_wait(pcap->poll_tid);
     pcap_log("PCAP: thread ended\n");
 
+    for (int i = 0; i < PCAP_PKT_BATCH; i++) {
+        free(pcap->pktv[i].data);
+    }
     free(pcap->pkt.data);
 
+#ifdef _WIN32
+    f_pcap_sendqueue_destroy((void*)pcap->pcap_queue);
+#endif
     /* OK, now shut down Pcap itself. */
     f_pcap_close((void*)pcap->pcap);
 
