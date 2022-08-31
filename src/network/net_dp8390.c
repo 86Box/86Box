@@ -228,7 +228,9 @@ dp8390_write_cr(dp8390_t *dev, uint32_t val)
 	/* Send the packet to the system driver */
 	dev->CR.tx_packet = 1;
 
-	network_tx(dev->card, &dev->mem[(dev->tx_page_start * 256) - dev->mem_start], dev->tx_bytes);
+    /* TODO: report TX error to the driver ? */
+    if (!(dev->card->link_state & NET_LINK_DOWN))
+	   network_tx(dev->card, &dev->mem[(dev->tx_page_start * 256) - dev->mem_start], dev->tx_bytes);
 
 	/* some more debug */
 #ifdef ENABLE_DP8390_LOG
@@ -291,6 +293,8 @@ dp8390_rx_common(void *priv, uint8_t *buf, int io_len)
     if ((dev->CR.stop != 0) || (dev->page_start == 0))
 	return 0;
 
+    if (dev->card->link_state & NET_LINK_DOWN)
+	return 0;
     /*
      * Add the pkt header + CRC to the length, and work
      * out how many 256-byte pages the frame would occupy.

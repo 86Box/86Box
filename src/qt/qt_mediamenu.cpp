@@ -44,10 +44,14 @@ extern "C" {
 #include <86box/mo.h>
 #include <86box/sound.h>
 #include <86box/ui.h>
+#include <86box/thread.h>
+#include <86box/network.h>
+
 };
 
 #include "qt_newfloppydialog.hpp"
 #include "qt_util.hpp"
+#include "qt_deviceconfig.hpp"
 
 std::shared_ptr<MediaMenu> MediaMenu::ptr;
 
@@ -155,6 +159,16 @@ void MediaMenu::refresh(QMenu *parentMenu) {
         menu->addAction(tr("&Reload previous image"), [this, i]() { moReload(i); });
         moMenus[i] = menu;
         moUpdateMenu(i);
+    });
+
+    netMenus.clear();
+    MachineStatus::iterateNIC([this, parentMenu](int i) {
+        auto *menu = parentMenu->addMenu("");
+        netDisconnPos = menu->children().count();
+        auto *action = menu->addAction(tr("&Connected"), [this, i] { network_is_connected(i) ? nicDisconnect(i) : nicConnect(i); });
+        action->setCheckable(true);
+        netMenus[i] = menu;
+        nicUpdateMenu(i);
     });
 }
 
@@ -660,6 +674,44 @@ void MediaMenu::moUpdateMenu(int i) {
     }
 
     menu->setTitle(QString::asprintf(tr("MO %i (%ls): %ls").toUtf8().constData(), i + 1, busName.toStdU16String().data(), name.isEmpty() ? tr("(empty)").toStdU16String().data() : name.toStdU16String().data()));
+}
+
+void MediaMenu::nicConnect(int i) {
+    network_connect(i, 1);
+    ui_sb_update_icon_state(SB_NETWORK|i, 0);
+    nicUpdateMenu(i);
+    config_save();
+}
+
+void MediaMenu::nicDisconnect(int i) {
+    network_connect(i, 0);
+    ui_sb_update_icon_state(SB_NETWORK|i, 1);
+    nicUpdateMenu(i);
+    config_save();
+}
+
+void MediaMenu::nicUpdateMenu(int i) {
+    if (!netMenus.contains(i))
+        return;
+
+    QString netType = tr("None");
+    switch (net_cards_conf[i].net_type) {
+        case NET_TYPE_SLIRP:
+            netType = "SLiRP";
+            break;
+        case NET_TYPE_PCAP:
+            netType = "PCAP";
+            break;
+    }
+
+    QString devName = DeviceConfig::DeviceName(network_card_getdevice(net_cards_conf[i].device_num), network_card_get_internal_name(net_cards_conf[i].device_num), 1);
+
+    auto *menu = netMenus[i];
+    auto childs = menu->children();
+    auto *connectedAction = dynamic_cast<QAction*>(childs[netDisconnPos]);
+    connectedAction->setChecked(network_is_connected(i));
+
+    menu->setTitle(QString::asprintf(tr("NIC %02i (%ls) %ls").toUtf8().constData(), i + 1, netType.toStdU16String().data(), devName.toStdU16String().data()));
 }
 
 QString MediaMenu::getMediaOpenDirectory() {

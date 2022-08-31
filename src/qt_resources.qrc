@@ -33,6 +33,7 @@
         <file>win/icons/mo_empty_active.ico</file>
         <file>win/icons/network.ico</file>
         <file>win/icons/network_active.ico</file>
+        <file>win/icons/network_empty.ico</file>
         <file>win/icons/other_peripherals.ico</file>
         <file>win/icons/other_removable_devices.ico</file>
         <file>win/icons/ports.ico</file>

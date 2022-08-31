@@ -240,12 +240,11 @@ network_init(void)
 #endif
 }
 
-static void
+void
 network_queue_init(netqueue_t *queue)
 {
-    queue->size = NET_QUEUE_LEN;
     queue->head = queue->tail = 0;
-    for (int i=0; i<queue->size; i++) {
+    for (int i=0; i<NET_QUEUE_LEN; i++) {
         queue->packets[i].data = calloc(1, NET_MAX_FRAME);
         queue->packets[i].len = 0;
     }
@@ -255,7 +254,7 @@ network_queue_init(netqueue_t *queue)
 static bool
 network_queue_full(netqueue_t *queue)
 {
-    return ((queue->head + 1) % queue->size) == queue->tail;
+    return ((queue->head + 1) & NET_QUEUE_LEN_MASK) == queue->tail;
 }
 
 static bool
@@ -264,30 +263,50 @@ network_queue_empty(netqueue_t *queue)
     return (queue->head == queue->tail);
 }
 
+static inline void
+network_swap_packet(netpkt_t *pkt1, netpkt_t *pkt2)
+{
+    netpkt_t tmp = *pkt2;
+    *pkt2 = *pkt1;
+    *pkt1 = tmp;
+}
+
 int
 network_queue_put(netqueue_t *queue, uint8_t *data, int len)
 {
-    if (len > NET_MAX_FRAME || network_queue_full(queue)) {
+    if (len == 0 || len > NET_MAX_FRAME || network_queue_full(queue)) {
         return 0;
     }
 
     netpkt_t *pkt = &queue->packets[queue->head];
     memcpy(pkt->data, data, len);
     pkt->len = len;
-    queue->head = (queue->head + 1) % queue->size;
+    queue->head = (queue->head + 1) & NET_QUEUE_LEN_MASK;
+    return 1;
+}
+
+int
+network_queue_put_swap(netqueue_t *queue, netpkt_t *src_pkt)
+{
+    if (src_pkt->len == 0 || src_pkt->len > NET_MAX_FRAME || network_queue_full(queue)) {
+        return 0;
+    }
+
+    netpkt_t *dst_pkt = &queue->packets[queue->head];
+    network_swap_packet(src_pkt, dst_pkt);
+
+    queue->head = (queue->head + 1) & NET_QUEUE_LEN_MASK;
     return 1;
 }
 
 static int
-network_queue_get(netqueue_t *queue, netpkt_t *dst_pkt) {
+network_queue_get_swap(netqueue_t *queue, netpkt_t *dst_pkt) {
     if (network_queue_empty(queue))
         return 0;
 
-    netpkt_t *pkt = &queue->packets[queue->tail];
-    memcpy(dst_pkt->data, pkt->data, pkt->len);
-    dst_pkt->len = pkt->len;
-    queue->tail = (queue->tail + 1) % queue->size;
-
+    netpkt_t *src_pkt = &queue->packets[queue->tail];
+    network_swap_packet(src_pkt, dst_pkt);
+    queue->tail = (queue->tail + 1) & NET_QUEUE_LEN_MASK;
     return 1;
 }
 
@@ -303,23 +322,18 @@ network_queue_move(netqueue_t *dst_q, netqueue_t *src_q)
 
     netpkt_t *src_pkt = &src_q->packets[src_q->tail];
     netpkt_t *dst_pkt = &dst_q->packets[dst_q->head];
-    uint8_t *tmp_dat = dst_pkt->data;
 
-    dst_pkt->data = src_pkt->data;
-    dst_pkt->len = src_pkt->len;
-    dst_q->head = (dst_q->head + 1) % dst_q->size;
+    network_swap_packet(src_pkt, dst_pkt);
+    dst_q->head = (dst_q->head + 1) & NET_QUEUE_LEN_MASK;
+    src_q->tail = (src_q->tail + 1) & NET_QUEUE_LEN_MASK;
 
-    src_pkt->data = tmp_dat;
-    src_pkt->len = 0;
-    src_q->tail = (src_q->tail + 1) % src_q->size;
-
-    return 1;
+    return dst_pkt->len;
 }
 
-static void
+void
 network_queue_clear(netqueue_t *queue)
 {
-    for (int i=0; i<queue->size; i++) {
+    for (int i=0; i<NET_QUEUE_LEN; i++) {
         free(queue->packets[i].data);
         queue->packets[i].len = 0;
     }
@@ -331,42 +345,61 @@ static void
 network_rx_queue(void *priv)
 {
     netcard_t *card = (netcard_t *)priv;
-    double timer_period;
-    int ret = 0;
 
-    bool activity = false;
-
-    if (card->queued_pkt.len == 0) {
-        thread_wait_mutex(card->rx_mutex);
-        network_queue_get(&card->queues[NET_QUEUE_RX], &card->queued_pkt);
-        thread_release_mutex(card->rx_mutex);
+    uint32_t new_link_state = net_cards_conf[card->card_num].link_state;
+    if (new_link_state != card->link_state) {
+        if (card->set_link_state)
+            card->set_link_state(card->card_drv, new_link_state);
+        card->link_state = new_link_state;
     }
 
-    if (card->queued_pkt.len > 0) {
+    uint32_t rx_bytes = 0;
+    for (int i = 0; i < NET_QUEUE_LEN; i++) {
+        if (card->queued_pkt.len == 0) {
+            thread_wait_mutex(card->rx_mutex);
+            int res = network_queue_get_swap(&card->queues[NET_QUEUE_RX], &card->queued_pkt);
+            thread_release_mutex(card->rx_mutex);
+            if (!res)
+                break;
+        }
+
         network_dump_packet(&card->queued_pkt);
-        ret = card->rx(card->card_drv, card->queued_pkt.data, card->queued_pkt.len);
-    }
-
-    if (ret) {
-        activity = true;
-        timer_period = 0.762939453125 * ((card->queued_pkt.len >= 128) ? ((double) card->queued_pkt.len) : 128.0);
+        int res = card->rx(card->card_drv, card->queued_pkt.data, card->queued_pkt.len);
+        if (!res)
+            break;
+        rx_bytes += card->queued_pkt.len;
         card->queued_pkt.len = 0;
-    } else {
-        timer_period = 0.762939453125 * 128.0;
     }
-    timer_on_auto(&card->timer, timer_period);
 
     /* Transmission. */
+    uint32_t tx_bytes = 0;
     thread_wait_mutex(card->tx_mutex);
-    ret = network_queue_move(&card->queues[NET_QUEUE_TX_HOST], &card->queues[NET_QUEUE_TX_VM]);
+    for (int i = 0; i < NET_QUEUE_LEN; i++) {
+        uint32_t bytes = network_queue_move(&card->queues[NET_QUEUE_TX_HOST], &card->queues[NET_QUEUE_TX_VM]);
+        if (!bytes)
+            break;
+        tx_bytes += bytes;
+    }
     thread_release_mutex(card->tx_mutex);
-    if (ret) {
+    if (tx_bytes) {
         /* Notify host that a packet is available in the TX queue */
         card->host_drv.notify_in(card->host_drv.priv);
-        activity = true;
     }
 
-    ui_sb_update_icon(SB_NETWORK, activity);
+    double timer_period = card->byte_period * (rx_bytes > tx_bytes ? rx_bytes : tx_bytes);
+    if (timer_period < 200)
+        timer_period = 200;
+
+    timer_on_auto(&card->timer, timer_period);
+
+    bool activity = rx_bytes || tx_bytes;
+    bool led_on = card->led_timer & 0x80000000;
+    if ((activity && !led_on) || (card->led_timer & 0x7fffffff) >= 150000) {
+        ui_sb_update_icon(SB_NETWORK | card->card_num, activity);
+        card->led_timer = 0 | (activity << 31);
+    }
+
+    card->led_timer += timer_period;
 }
 
 
@@ -378,17 +411,17 @@ network_rx_queue(void *priv)
  * modules.
  */
 netcard_t *
-network_attach(void *card_drv, uint8_t *mac, NETRXCB rx, NETWAITCB wait, NETSETLINKSTATE set_link_state)
+network_attach(void *card_drv, uint8_t *mac, NETRXCB rx, NETSETLINKSTATE set_link_state)
 {
     netcard_t *card = calloc(1, sizeof(netcard_t));
     card->queued_pkt.data = calloc(1, NET_MAX_FRAME);
     card->card_drv = card_drv;
     card->rx = rx;
-    card->wait = wait;
     card->set_link_state = set_link_state;
     card->tx_mutex = thread_create_mutex();
     card->rx_mutex = thread_create_mutex();
     card->card_num = net_card_current;
+    card->byte_period = NET_PERIOD_10M;
 
     for (int i=0; i<3; i++) {
         network_queue_init(&card->queues[i]);
@@ -420,7 +453,7 @@ network_attach(void *card_drv, uint8_t *mac, NETRXCB rx, NETWAITCB wait, NETSETL
     }
 
     timer_add(&card->timer, network_rx_queue, card, 0);
-    timer_on_auto(&card->timer, 0.762939453125 * 2.0);
+    timer_on_auto(&card->timer, 100);
 
     return card;
 }
@@ -475,8 +508,7 @@ network_reset(void)
 #endif
 
     for (i = 0; i < NET_CARD_MAX; i++) {
-            if (!net_cards_conf[i].device_num || net_cards_conf[i].net_type == NET_TYPE_NONE || 
-                (net_cards_conf[i].net_type == NET_TYPE_PCAP && !strcmp(net_cards_conf[i].host_dev_name, "none"))) {
+            if (!network_dev_available(i)) {
                 continue;
             }
 
@@ -498,10 +530,27 @@ int network_tx_pop(netcard_t *card, netpkt_t *out_pkt)
     int ret = 0;
 
     thread_wait_mutex(card->tx_mutex);
-    ret = network_queue_get(&card->queues[NET_QUEUE_TX_HOST], out_pkt);
+    ret = network_queue_get_swap(&card->queues[NET_QUEUE_TX_HOST], out_pkt);
     thread_release_mutex(card->tx_mutex);
 
     return ret;
+}
+
+int network_tx_popv(netcard_t *card, netpkt_t *pkt_vec, int vec_size)
+{
+    int pkt_count = 0;
+
+    netqueue_t *queue = &card->queues[NET_QUEUE_TX_HOST];
+    thread_wait_mutex(card->tx_mutex);
+    for (int i = 0; i < vec_size; i++) {
+        if (!network_queue_get_swap(queue, pkt_vec))
+            break;
+        pkt_count++;
+        pkt_vec++;
+    }
+    thread_release_mutex(card->tx_mutex);
+
+    return pkt_count;
 }
 
 int network_rx_put(netcard_t *card, uint8_t *bufp, int len)
@@ -515,6 +564,39 @@ int network_rx_put(netcard_t *card, uint8_t *bufp, int len)
     return ret;
 }
 
+int network_rx_put_pkt(netcard_t *card, netpkt_t *pkt)
+{
+    int ret = 0;
+
+    thread_wait_mutex(card->rx_mutex);
+    ret = network_queue_put_swap(&card->queues[NET_QUEUE_RX], pkt);
+    thread_release_mutex(card->rx_mutex);
+
+    return ret;
+}
+
+void
+network_connect(int id, int connect)
+{
+    if (id >= NET_CARD_MAX)
+        return;
+
+    if (connect) {
+        net_cards_conf[id].link_state &= ~NET_LINK_DOWN;
+    } else {
+        net_cards_conf[id].link_state |= NET_LINK_DOWN;
+    }
+}
+
+int
+network_is_connected(int id)
+{
+    if (id >= NET_CARD_MAX)
+        return 0;
+
+    return !(net_cards_conf[id].link_state & NET_LINK_DOWN);
+}
+
 int
 network_dev_to_id(char *devname)
 {
@@ -526,19 +608,29 @@ network_dev_to_id(char *devname)
 	}
     }
 
-    /* If no match found, assume "none". */
-    return(0);
+    return(-1);
 }
 
 
 /* UI */
+int
+network_dev_available(int id)
+{
+    int available = (net_cards_conf[id].device_num > 0) && (net_cards_conf[id].net_type != NET_TYPE_NONE);
+
+    if ((net_cards_conf[id].net_type == NET_TYPE_PCAP && (network_dev_to_id(net_cards_conf[id].host_dev_name) <= 0)))
+        available = 0;
+
+    return available;
+}
+
 int
 network_available(void)
 {
     int available = 0;
 
     for (int i = 0; i < NET_CARD_MAX; i ++) {
-        available |= (net_cards_conf[i].device_num > 0) && (net_cards_conf[i].net_type != NET_TYPE_NONE);
+        available |= network_dev_available(i);
     }
 
     return available;

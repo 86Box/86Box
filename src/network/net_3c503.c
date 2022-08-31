@@ -619,7 +619,7 @@ threec503_nic_init(const device_t *info)
     dev->regs.gacfr = 0x09;	/* Start with RAM mapping enabled. */
 
     /* Attach ourselves to the network module. */
-    dev->dp8390->card = network_attach(dev->dp8390, dev->dp8390->physaddr, dp8390_rx, NULL, NULL);
+    dev->dp8390->card = network_attach(dev->dp8390, dev->dp8390->physaddr, dp8390_rx, NULL);
 
     return(dev);
 }

@@ -19,6 +19,8 @@
 #include <86box/zip.h>
 #include <86box/mo.h>
 #include <86box/hdd.h>
+#include <86box/thread.h>
+#include <86box/network.h>
 #include <86box/machine_status.h>
 
 machine_status_t machine_status;
@@ -48,5 +50,8 @@ machine_status_init() {
         machine_status.hdd[i].active = false;
     }
 
-    machine_status.net.active = false;
+    for (size_t i = 0; i < NET_CARD_MAX; i++) {
+        machine_status.net[i].active = false;
+        machine_status.net[i].empty = !network_is_connected(i);
+    }
 }

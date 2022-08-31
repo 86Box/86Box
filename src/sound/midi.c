@@ -92,8 +92,10 @@ static const MIDI_OUT_DEVICE devices[] = {
     { &fluidsynth_device     },
 #endif
 #ifdef USE_MUNT
-    { &mt32_device           },
+    { &mt32_old_device       },
+    { &mt32_new_device       },
     { &cm32l_device          },
+    { &cm32ln_device         },
 #endif
 #ifdef USE_RTMIDI
     { &rtmidi_output_device  },
