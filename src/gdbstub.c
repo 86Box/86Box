@@ -114,7 +114,8 @@ typedef struct _gdbstub_client_ {
     struct sockaddr_in addr;
 
     char packet[16384], response[16384];
-    int  has_packet, waiting_stop, packet_pos, response_pos;
+    int  has_packet: 1, first_packet_received: 1, ida_mode: 1, waiting_stop: 1,
+         packet_pos, response_pos;
 
     event_t *processed_event, *response_event;
 
@@ -133,7 +134,6 @@ typedef struct _gdbstub_breakpoint_ {
     struct _gdbstub_breakpoint_ *next;
 } gdbstub_breakpoint_t;
 
-#define ENABLE_GDBSTUB_LOG 1
 #ifdef ENABLE_GDBSTUB_LOG
 int gdbstub_do_log = ENABLE_GDBSTUB_LOG;
 
@@ -152,15 +152,15 @@ gdbstub_log(const char *fmt, ...)
 #    define gdbstub_log(fmt, ...)
 #endif
 
-static x86seg    *segment_regs[] = { &cpu_state.seg_cs, &cpu_state.seg_ss, &cpu_state.seg_ds, &cpu_state.seg_es, &cpu_state.seg_fs, &cpu_state.seg_gs };
-static uint32_t  *cr_regs[]      = { &cpu_state.CR0.l, &cr2, &cr3, &cr4 };
-static void      *fpu_regs[]     = { &cpu_state.npxc, &cpu_state.npxs, NULL, &x87_pc_seg, &x87_pc_off, &x87_op_seg, &x87_op_off };
-static const char target_xml[]   = /* QEMU gdb-xml/i386-32bit.xml with modifications (described in comments) */
+static x86seg   *segment_regs[] = { &cpu_state.seg_cs, &cpu_state.seg_ss, &cpu_state.seg_ds, &cpu_state.seg_es, &cpu_state.seg_fs, &cpu_state.seg_gs };
+static uint32_t *cr_regs[]      = { &cpu_state.CR0.l, &cr2, &cr3, &cr4 };
+static void     *fpu_regs[]     = { &cpu_state.npxc, &cpu_state.npxs, NULL, &x87_pc_seg, &x87_pc_off, &x87_op_seg, &x87_op_off };
+static char     target_xml[]    = /* QEMU gdb-xml/i386-32bit.xml with modifications (described in comments) */
     // clang-format off
     "<?xml version=\"1.0\"?>"
     "<!DOCTYPE target SYSTEM \"gdb-target.dtd\">"
     "<target>"
-        "<architecture>i8086</architecture>" /* start in 16-bit mode to work around known GDB bug preventing 32->16 switching */
+        "<!-- architecture tag goes here -->" /* <architecture> patched in here (length must be kept) */
         ""
         "<feature name=\"org.gnu.gdb.i386.core\">"
             "<flags id=\"i386_eflags\" size=\"4\">"
@@ -753,6 +753,15 @@ gdbstub_client_packet(gdbstub_client_t *client)
     client->response_pos = 0;
     client->packet_pos   = 1;
 
+    /* Handle IDA-specific hacks. */
+    if (!client->first_packet_received) {
+        client->first_packet_received = 1;
+        if (!strcmp(client->packet, "qSupported:xmlRegisters=i386,arm,mips")) {
+            gdbstub_log("GDB Stub: Enabling IDA mode\n");
+            client->ida_mode = 1;
+        }
+    }
+
     /* Parse command. */
     switch (client->packet[0]) {
         case '?': /* stop reason */
@@ -982,10 +991,21 @@ e14:
                     if (!strcmp(client->response, "read")) {
                         /* Read the transfer annex. */
                         client->packet_pos += gdbstub_client_read_string(client, client->response, sizeof(client->response) - 1, ':') + 1;
-                        if (!strcmp(client->response, "target.xml"))
-                            p = (char *) target_xml;
-                        else
+                        if (!strcmp(client->response, "target.xml")) {
+                            /* Patch architecture for IDA. */
+                            p = strstr(target_xml, "<!-- architecture tag goes here -->");
+                            if (p) {
+                                if (client->ida_mode)
+                                    memcpy(p, "<architecture>i386</architecture>  ", 35); /* make IDA not complain about i8086 being unknown */
+                                else
+                                    memcpy(p, "<architecture>i8086</architecture> ", 35); /* start in 16-bit mode to work around known GDB bug preventing 32->16 switching */
+                            }
+
+                            /* Send target XML. */
+                            p = target_xml;
+                        } else {
                             p = NULL;
+                        }
 
                         /* Stop if the file wasn't found. */
                         if (!p) {
