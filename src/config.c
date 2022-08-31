@@ -1829,6 +1829,15 @@ load_floppy_and_cdrom_drives(void)
 
         sprintf(temp, "cdrom_%02i_iso_path", c + 1);
         config_delete_var(cat, temp);
+
+        for (int i = 0; i < MAX_PREV_IMAGES; i++) {
+            cdrom[c].image_history[i] = (char *) calloc(MAX_IMAGE_PATH_LEN + 1, sizeof(char));
+            sprintf(temp, "cdrom_%02i_image_history_%02i", c + 1, i + 1);
+            p = config_get_string(cat, temp, NULL);
+            if(p) {
+                sprintf(cdrom[c].image_history[i], "%s", p);
+            }
+        }
     }
 }
 
@@ -3136,6 +3145,15 @@ save_floppy_and_cdrom_drives(void)
             config_delete_var(cat, temp);
         } else {
             config_set_string(cat, temp, cdrom[c].image_path);
+        }
+
+        for (int i = 0; i < MAX_PREV_IMAGES; i++) {
+            sprintf(temp, "cdrom_%02i_image_history_%02i", c + 1, i + 1);
+            if((cdrom[c].image_history[i] == 0) || strlen(cdrom[c].image_history[i]) == 0) {
+                config_delete_var(cat, temp);
+            } else {
+                config_set_string(cat, temp, cdrom[c].image_history[i]);
+            }
         }
     }
 

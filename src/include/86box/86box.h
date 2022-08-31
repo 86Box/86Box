@@ -31,6 +31,10 @@
 #define NVR_PATH        "nvr"
 #define SCREENSHOT_PATH "screenshots"
 
+/* Recently used images */
+#define MAX_PREV_IMAGES 4
+#define MAX_IMAGE_PATH_LEN 256
+
 /* Default language 0xFFFF = from system, 0x409 = en-US */
 #define DEFAULT_LANGUAGE 0x0409
 
