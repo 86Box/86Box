@@ -166,6 +166,9 @@ add_library(ui STATIC
     qt_mcadevicelist.cpp
     qt_mcadevicelist.ui
 
+    qt_mediahistorymanager.cpp
+    qt_mediahistorymanager.hpp
+
     ../qt_resources.qrc
 )
 

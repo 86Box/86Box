@@ -39,6 +39,8 @@
 #define CD_TOC_SESSION			1
 #define CD_TOC_RAW			2
 
+#define CD_IMAGE_HISTORY                4
+
 #define BUF_SIZE 32768
 
 #define CDROM_IMAGE 200
@@ -109,6 +111,8 @@ typedef struct cdrom {
 
     char image_path[1024],
          prev_image_path[1024];
+
+    char *image_history[CD_IMAGE_HISTORY];
 
     uint32_t sound_on, cdrom_capacity,
              pad, seek_pos,
