@@ -2923,13 +2923,13 @@ d86f_read_track(int drive, int track, int thin_track, int side, uint16_t *da, ui
 			}
 		} else
 			dev->extra_bit_cells[side] = 0;
-		fread(&(dev->index_hole_pos[side]), 4, 1, dev->f);
+		(void) !fread(&(dev->index_hole_pos[side]), 4, 1, dev->f);
 	} else
 		fseek(dev->f, dev->track_offset[logical_track] + d86f_track_header_size(drive), SEEK_SET);
 	array_size = d86f_get_array_size(drive, side, 0);
-	fread(da, 1, array_size, dev->f);
+	(void) !fread(da, 1, array_size, dev->f);
 	if (d86f_has_surface_desc(drive))
-		fread(sa, 1, array_size, dev->f);
+		(void) !fread(sa, 1, array_size, dev->f);
     } else {
 	if (! thin_track) {
 		switch((dev->disk_flags >> 1) & 3) {
@@ -3529,7 +3529,7 @@ d86f_load(int drive, char *fn)
     len = ftell(dev->f);
     fseek(dev->f, 0, SEEK_SET);
 
-    fread(&magic, 4, 1, dev->f);
+    (void) !fread(&magic, 4, 1, dev->f);
 
     if (len < 16) {
 	/* File is WAY too small, abort. */
@@ -3570,7 +3570,7 @@ d86f_load(int drive, char *fn)
 	d86f_log("86F: Recognized file version: %i.%02i\n", dev->version >> 8, dev->version & 0xff);
     }
 
-    fread(&(dev->disk_flags), 2, 1, dev->f);
+    (void) !fread(&(dev->disk_flags), 2, 1, dev->f);
 
     if (d86f_has_surface_desc(drive)) {
 	for (i = 0; i < 2; i++)
@@ -3719,7 +3719,7 @@ d86f_load(int drive, char *fn)
 
     fseek(dev->f, 8, SEEK_SET);
 
-    fread(dev->track_offset, 1, d86f_get_track_table_size(drive), dev->f);
+    (void) !fread(dev->track_offset, 1, d86f_get_track_table_size(drive), dev->f);
 
     if (! (dev->track_offset[0])) {
 	/* File has no track 0 side 0, abort. */

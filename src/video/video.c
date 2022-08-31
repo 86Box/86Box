@@ -1023,27 +1023,26 @@ loadfont_common(FILE *f, int format)
                     fontdat8x12[c][d] = fgetc(f) & 0xff;
             break;
 
-        case 5:                             /* Toshiba 3100e */
-            for (d = 0; d < 2048; d += 512) /* Four languages... */
-            {
+        case 5: /* Toshiba 3100e */
+            for (d = 0; d < 2048; d += 512) { /* Four languages... */
                 for (c = d; c < d + 256; c++) {
-                    fread(&fontdatm[c][8], 1, 8, f);
+                    (void) !fread(&fontdatm[c][8], 1, 8, f);
                 }
                 for (c = d + 256; c < d + 512; c++) {
-                    fread(&fontdatm[c][8], 1, 8, f);
+                    (void) !fread(&fontdatm[c][8], 1, 8, f);
                 }
                 for (c = d; c < d + 256; c++) {
-                    fread(&fontdatm[c][0], 1, 8, f);
+                    (void) !fread(&fontdatm[c][0], 1, 8, f);
                 }
                 for (c = d + 256; c < d + 512; c++) {
-                    fread(&fontdatm[c][0], 1, 8, f);
+                    (void) !fread(&fontdatm[c][0], 1, 8, f);
                 }
                 fseek(f, 4096, SEEK_CUR); /* Skip blank section */
                 for (c = d; c < d + 256; c++) {
-                    fread(&fontdat[c][0], 1, 8, f);
+                    (void) !fread(&fontdat[c][0], 1, 8, f);
                 }
                 for (c = d + 256; c < d + 512; c++) {
-                    fread(&fontdat[c][0], 1, 8, f);
+                    (void) !fread(&fontdat[c][0], 1, 8, f);
                 }
             }
             break;
@@ -1064,7 +1063,7 @@ loadfont_common(FILE *f, int format)
         case 7: /* Sigma Color 400 */
             /* The first 4k of the character ROM holds an 8x8 font */
             for (c = 0; c < 256; c++) {
-                fread(&fontdat[c][0], 1, 8, f);
+                (void) !fread(&fontdat[c][0], 1, 8, f);
                 fseek(f, 8, SEEK_CUR);
             }
             /* The second 4k holds an 8x16 font */
@@ -1082,7 +1081,7 @@ loadfont_common(FILE *f, int format)
 
         case 9: /* Image Manager 1024 native font */
             for (c = 0; c < 256; c++)
-                fread(&fontdat12x18[c][0], 1, 36, f);
+                (void) !fread(&fontdat12x18[c][0], 1, 36, f);
             break;
     }
 

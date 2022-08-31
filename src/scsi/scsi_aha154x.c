@@ -758,11 +758,11 @@ aha_setbios(x54x_t *dev)
 
     /* Load first chunk of BIOS (which is the main BIOS, aka ROM1.) */
     dev->rom1 = malloc(ROM_SIZE);
-    (void)fread(dev->rom1, ROM_SIZE, 1, f);
+    (void) !fread(dev->rom1, ROM_SIZE, 1, f);
     temp -= ROM_SIZE;
     if (temp > 0) {
 	dev->rom2 = malloc(ROM_SIZE);
-	(void)fread(dev->rom2, ROM_SIZE, 1, f);
+	(void) !fread(dev->rom2, ROM_SIZE, 1, f);
 	temp -= ROM_SIZE;
     } else {
 	dev->rom2 = NULL;
@@ -875,10 +875,10 @@ aha_setmcode(x54x_t *dev)
     }
     aha1542cp_pnp_rom = (uint8_t *) malloc(dev->pnp_len + 7);
     fseek(f, dev->pnp_offset, SEEK_SET);
-    (void)fread(aha1542cp_pnp_rom, dev->pnp_len, 1, f);
+    (void) !fread(aha1542cp_pnp_rom, dev->pnp_len, 1, f);
     memset(&(aha1542cp_pnp_rom[4]), 0x00, 5);
     fseek(f, dev->pnp_offset + 4, SEEK_SET);
-    (void)fread(&(aha1542cp_pnp_rom[9]), dev->pnp_len - 4, 1, f);
+    (void) !fread(&(aha1542cp_pnp_rom[9]), dev->pnp_len - 4, 1, f);
     /* Even the real AHA-1542CP microcode seem to be flipping bit
        4 to not erroneously indicate there is a range length. */
     aha1542cp_pnp_rom[0x87] |= 0x04;
@@ -889,7 +889,7 @@ aha_setmcode(x54x_t *dev)
 
     /* Load the SCSISelect decompression code. */
     fseek(f, dev->cmd_33_offset, SEEK_SET);
-    (void)fread(dev->cmd_33_buf, dev->cmd_33_len, 1, f);
+    (void) !fread(dev->cmd_33_buf, dev->cmd_33_len, 1, f);
 
     (void)fclose(f);
 }

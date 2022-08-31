@@ -29,7 +29,7 @@
 #include <86box/chipset.h>
 #include <86box/spd.h>
 #include <86box/machine.h>
-#include <86box/video.h>
+#include <86box/agpgart.h>
 
 
 enum
@@ -59,7 +59,7 @@ typedef struct
     uint8_t	mem_state[256];
     int		type;
     smram_t	*smram_low, *smram_high;
-    void	*agpgart;
+    agpgart_t *agpgart;
     void	(*write_drbs)(uint8_t *regs, uint8_t reg_min, uint8_t reg_max, uint8_t drb_unit);
 } i4x0_t;
 
