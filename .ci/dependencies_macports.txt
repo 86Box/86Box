@@ -4,7 +4,10 @@ ninja
 freetype
 libsdl2
 libpng
+openal-soft
 FAudio
 rtmidi
+vulkan-headers
+MoltenVK
 qt5
 wget
