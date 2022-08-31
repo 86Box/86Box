@@ -23,13 +23,7 @@
 #include <86box/86box.h>
 #include <86box/device.h>
 #include <86box/mem.h>
-
-
-typedef struct {
-    int		aperture_enable;
-    uint32_t	aperture_base, aperture_size, aperture_mask, gart_base;
-    mem_mapping_t aperture_mapping;
-} agpgart_t;
+#include <86box/agpgart.h>
 
 
 #ifdef ENABLE_AGPGART_LOG
@@ -52,10 +46,8 @@ agpgart_log(const char *fmt, ...)
 
 
 void
-agpgart_set_aperture(void *handle, uint32_t base, uint32_t size, int enable)
+agpgart_set_aperture(agpgart_t *dev, uint32_t base, uint32_t size, int enable)
 {
-    agpgart_t *dev = (agpgart_t *) handle;
-
     agpgart_log("AGP GART: set_aperture(%08X, %d, %d)\n", base, size, enable);
 
     /* Disable old aperture mapping. */
@@ -75,10 +67,8 @@ agpgart_set_aperture(void *handle, uint32_t base, uint32_t size, int enable)
 
 
 void
-agpgart_set_gart(void *handle, uint32_t base)
+agpgart_set_gart(agpgart_t *dev, uint32_t base)
 {
-    agpgart_t *dev = (agpgart_t *) handle;
-
     agpgart_log("AGP GART: set_gart(%08X)\n", base);
 
     /* Set GART base address. */
