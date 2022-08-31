@@ -1021,9 +1021,9 @@ loadfont_common(FILE *f, int format)
 		for (d = 0; d < 4; d++) {
 			/* There are 4 fonts in the ROM */
 			for (c = 0; c < 256; c++)	/* 8x14 MDA in 8x16 cell */
-				fread(&fontdatm[256*d + c][0], 1, 16, f);
+				(void) !fread(&fontdatm[256*d + c][0], 1, 16, f);
 			for (c = 0; c < 256; c++) {	/* 8x8 CGA in 8x16 cell */
-				fread(&fontdat[256*d + c][0], 1, 8, f);
+				(void) !fread(&fontdat[256*d + c][0], 1, 8, f);
 				fseek(f, 8, SEEK_CUR);
 			}
 		}
@@ -1053,28 +1053,28 @@ loadfont_common(FILE *f, int format)
 		{
 	                for (c = d; c < d+256; c++)
                 	{
-                       		fread(&fontdatm[c][8], 1, 8, f);
+                       		(void) !fread(&fontdatm[c][8], 1, 8, f);
                 	}
                 	for (c = d+256; c < d+512; c++)
                 	{
-                        	fread(&fontdatm[c][8], 1, 8, f);
+                        	(void) !fread(&fontdatm[c][8], 1, 8, f);
                 	}
 	                for (c = d; c < d+256; c++)
                 	{
-                        	fread(&fontdatm[c][0], 1, 8, f);
+                        	(void) !fread(&fontdatm[c][0], 1, 8, f);
                 	}
                 	for (c = d+256; c < d+512; c++)
                 	{
-                        	fread(&fontdatm[c][0], 1, 8, f);
+                        	(void) !fread(&fontdatm[c][0], 1, 8, f);
                 	}
 			fseek(f, 4096, SEEK_CUR);	/* Skip blank section */
 	                for (c = d; c < d+256; c++)
                 	{
-                       		fread(&fontdat[c][0], 1, 8, f);
+                       		(void) !fread(&fontdat[c][0], 1, 8, f);
                 	}
                 	for (c = d+256; c < d+512; c++)
                 	{
-                        	fread(&fontdat[c][0], 1, 8, f);
+                        	(void) !fread(&fontdat[c][0], 1, 8, f);
                 	}
 		}
                 break;
@@ -1096,7 +1096,7 @@ loadfont_common(FILE *f, int format)
 	case 7: /* Sigma Color 400 */
 		/* The first 4k of the character ROM holds an 8x8 font */
 		for (c = 0; c < 256; c++) {
-			fread(&fontdat[c][0], 1, 8, f);
+			(void) !fread(&fontdat[c][0], 1, 8, f);
 			fseek(f, 8, SEEK_CUR);
 		}
 		/* The second 4k holds an 8x16 font */
@@ -1114,7 +1114,7 @@ loadfont_common(FILE *f, int format)
 
 	case 9:	/* Image Manager 1024 native font */
 		for (c = 0; c < 256; c++)
-			fread(&fontdat12x18[c][0], 1, 36, f);
+			(void) !fread(&fontdat12x18[c][0], 1, 36, f);
 		break;
 
 	}

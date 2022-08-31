@@ -291,7 +291,7 @@ config_detect_bom(char *fn)
 #endif
     if (f == NULL)
         return (0);
-    fread(bom, 1, 3, f);
+    (void) !fread(bom, 1, 3, f);
     if (bom[0] == 0xEF && bom[1] == 0xBB && bom[2] == 0xBF) {
         fclose(f);
         return 1;
@@ -357,7 +357,7 @@ config_read(char *fn)
 #ifdef __HAIKU__
         config_fgetws(buff, sizeof_w(buff), f);
 #else
-        fgetws(buff, sizeof_w(buff), f);
+        (void) !fgetws(buff, sizeof_w(buff), f);
 #endif
         if (feof(f))
             break;
@@ -387,7 +387,7 @@ config_read(char *fn)
             c++;
             d = 0;
             while (buff[c] != L']' && buff[c])
-                wctomb(&(sname[d++]), buff[c++]);
+                (void) !wctomb(&(sname[d++]), buff[c++]);
             sname[d] = L'\0';
 
             /* Is the section name properly terminated? */
@@ -408,7 +408,7 @@ config_read(char *fn)
         /* Get the variable name. */
         d = 0;
         while ((buff[c] != L'=') && (buff[c] != L' ') && buff[c])
-            wctomb(&(ename[d++]), buff[c++]);
+            (void) !wctomb(&(ename[d++]), buff[c++]);
         ename[d] = L'\0';
 
         /* Skip incomplete lines. */
