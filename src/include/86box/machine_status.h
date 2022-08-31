@@ -21,7 +21,7 @@ typedef struct {
     dev_status_empty_active_t mo[MO_NUM];
     dev_status_empty_active_t cassette;
     dev_status_active_t hdd[HDD_BUS_USB];
-    dev_status_active_t net;
+    dev_status_empty_active_t net[NET_CARD_MAX];
     dev_status_empty_t cartridge[2];
 } machine_status_t;
 
