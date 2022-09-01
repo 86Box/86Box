@@ -21,6 +21,8 @@
 #include "qt_hardwarerenderer.hpp"
 #include <QApplication>
 #include <QVector2D>
+#include <QOpenGLPixelTransferOptions>
+
 #include <atomic>
 #include <vector>
 
@@ -196,7 +198,7 @@ void HardwareRenderer::onBlit(int buf_idx, int x, int y, int w, int h) {
         return;
     }
     m_context->makeCurrent(this);
-    m_texture->setData(QOpenGLTexture::PixelFormat::RGBA, QOpenGLTexture::PixelType::UInt8, (const void*)imagebufs[buf_idx].get());
+    m_texture->setData(0, 0, 0, w + x, h + y, 0, QOpenGLTexture::PixelFormat::RGBA, QOpenGLTexture::PixelType::UInt8, (const void*)imagebufs[buf_idx].get(), &m_transferOptions);
     buf_usage[buf_idx].clear();
     source.setRect(x, y, w, h);
     if (origSource != source) onResize(this->width(), this->height());
