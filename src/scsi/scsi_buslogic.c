@@ -1747,7 +1747,7 @@ buslogic_init(const device_t *info)
 	if (has_autoscsi_rom) {
 		f = rom_fopen(autoscsi_rom_name, "rb");
 		if (f) {
-			fread(bl->AutoSCSIROM, 1, autoscsi_rom_size, f);
+			(void) !fread(bl->AutoSCSIROM, 1, autoscsi_rom_size, f);
 			fclose(f);
 			f = NULL;
 		}
@@ -1756,7 +1756,7 @@ buslogic_init(const device_t *info)
 	if (has_scam_rom) {
 		f = rom_fopen(scam_rom_name, "rb");
 		if (f) {
-			fread(bl->SCAMData, 1, scam_rom_size, f);
+			(void) !fread(bl->SCAMData, 1, scam_rom_size, f);
 			fclose(f);
 			f = NULL;
 		}

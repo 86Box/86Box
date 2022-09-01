@@ -903,7 +903,7 @@ then
 
 				# Now patch a 64-bit Mach-O header (0xFEEDFACF, little endian), either at
 				# the beginning or as a sub-header within a fat binary as parsed above.
-				if [ "$(dd if="$line" bs=1 seek=$macho_offset count=8 status=none)" = "$(printf '\xCF\xFA\xED\xFE\x07\x00\x00\x01')" ]
+				if [ "$(dd if="$line" bs=1 skip=$macho_offset count=8 status=none)" = "$(printf '\xCF\xFA\xED\xFE\x07\x00\x00\x01')" ]
 				then
 					# Change CPU subtype in the Mach-O header from ALL (0x00000003) to H (0x00000008).
 					printf '\x08\x00\x00\x00' | dd of="$line" bs=1 seek=$((macho_offset + 8)) count=4 conv=notrunc status=none
