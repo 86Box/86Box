@@ -29,7 +29,6 @@
 #include <86box/chipset.h>
 #include <86box/spd.h>
 #include <86box/machine.h>
-//#include <86box/video.h>
 #include <86box/agpgart.h>
 
 

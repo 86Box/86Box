@@ -33,7 +33,6 @@
 #include <86box/pci.h>
 #include <86box/chipset.h>
 #include <86box/spd.h>
-//#include <86box/video.h>
 #include <86box/agpgart.h>
 
 #define VIA_585  0x05851000

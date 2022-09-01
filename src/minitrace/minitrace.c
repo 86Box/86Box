@@ -30,9 +30,9 @@
 #include <pthread.h>
 #include <sys/time.h>
 #include <unistd.h>
-#include <stdatomic.h>
 #endif
 
+#include <stdatomic.h>
 #include <minitrace/minitrace.h>
 
 #ifdef __GNUC__
@@ -293,8 +293,13 @@ void mtr_start() {
 #ifndef MTR_ENABLED
 	return;
 #endif
+#ifdef _WIN32
+    pthread_cond_init(&buffer_not_full_cond);
+    pthread_cond_init(&buffer_full_cond);
+#else
     pthread_cond_init(&buffer_not_full_cond, NULL);
     pthread_cond_init(&buffer_full_cond, NULL);
+#endif
     atomic_store(&is_tracing, TRUE);
 	init_flushing_thread();
 }
