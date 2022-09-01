@@ -24,6 +24,7 @@
 #include <QOpenGLPixelTransferOptions>
 
 #include <atomic>
+#include <cstdint>
 #include <vector>
 
 extern "C" {
@@ -198,7 +199,7 @@ void HardwareRenderer::onBlit(int buf_idx, int x, int y, int w, int h) {
         return;
     }
     m_context->makeCurrent(this);
-    m_texture->setData(0, 0, 0, w + x, h + y, 0, QOpenGLTexture::PixelFormat::RGBA, QOpenGLTexture::PixelType::UInt8, (const void*)imagebufs[buf_idx].get(), &m_transferOptions);
+    m_texture->setData(x, y, 0, w, h, 0, QOpenGLTexture::PixelFormat::RGBA, QOpenGLTexture::PixelType::UInt8, (const void*)((uintptr_t)imagebufs[buf_idx].get() + (uintptr_t)(2048 * 4 * y + x * 4)), &m_transferOptions);
     buf_usage[buf_idx].clear();
     source.setRect(x, y, w, h);
     if (origSource != source) onResize(this->width(), this->height());
