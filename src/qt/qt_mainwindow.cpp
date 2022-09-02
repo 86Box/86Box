@@ -1616,7 +1616,7 @@ void MainWindow::keyPressEvent(QKeyEvent* event)
     {
         // Windows keys in Qt have one-to-one mapping.
         if (event->key() == Qt::Key_Pause && !keyboard_recv(0x38) && !keyboard_recv(0x138)) {
-            if ((keyboard_recv(0x1D) || keyboard_recv(0x11D)) {
+            if ((keyboard_recv(0x1D) || keyboard_recv(0x11D))) {
                 keyboard_input(1, 0x46);
             } else {
                 keyboard_input(0, 0xE1);
