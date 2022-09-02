@@ -134,10 +134,20 @@ typedef struct {
 } config_t;
 #endif
 
+typedef struct _list_ {
+    struct _list_ *next;
+} list_t;
+
+/* For VM-specific configurations. */
 extern void config_load(void);
 extern void config_save(void);
 extern void config_write(char *fn);
 extern void config_dump(void);
+
+/* General-purpose versions of the above. */
+extern int config_read_list(char *fn, list_t *list);
+extern void config_write_list(char *fn, list_t *list);
+extern void config_dump_list(list_t *list);
 
 extern void     config_delete_var(char *head, char *name);
 extern int      config_get_int(char *head, char *name, int def);
@@ -155,8 +165,26 @@ extern void     config_set_mac(char *head, char *name, int val);
 extern void     config_set_string(char *head, char *name, char *val);
 extern void     config_set_wstring(char *head, char *name, wchar_t *val);
 
+/* General-purpose versions of the above. */
+extern void     config_delete_var_list(char *head, char *name, list_t *list);
+extern int      config_get_int_list(char *head, char *name, int def, list_t *list);
+extern double   config_get_double_list(char *head, char *name, double def, list_t *list);
+extern int      config_get_hex16_list(char *head, char *name, int def, list_t *list);
+extern int      config_get_hex20_list(char *head, char *name, int def, list_t *list);
+extern int      config_get_mac_list(char *head, char *name, int def, list_t *list);
+extern char    *config_get_string_list(char *head, char *name, char *def, list_t *list);
+extern wchar_t *config_get_wstring_list(char *head, char *name, wchar_t *def, list_t *list);
+extern void     config_set_int_list(char *head, char *name, int val, list_t *list);
+extern void     config_set_double_list(char *head, char *name, double val, list_t *list);
+extern void     config_set_hex16_list(char *head, char *name, int val, list_t *list);
+extern void     config_set_hex20_list(char *head, char *name, int val, list_t *list);
+extern void     config_set_mac_list(char *head, char *name, int val, list_t *list);
+extern void     config_set_string_list(char *head, char *name, char *val, list_t *list);
+extern void     config_set_wstring_list(char *head, char *name, wchar_t *val, list_t *list);
+
 extern void *config_find_section(char *name);
 extern void  config_rename_section(void *priv, char *name);
+extern void  config_delete_section_in_list_if_empty(char *head, list_t* list);
 
 #ifdef __cplusplus
 }

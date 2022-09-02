@@ -76,10 +76,6 @@
 static int	cx, cy, cw, ch;
 
 
-typedef struct _list_ {
-    struct _list_ *next;
-} list_t;
-
 typedef struct {
     list_t list;
 
@@ -145,12 +141,12 @@ config_log(const char *fmt, ...)
 #endif
 
 static section_t *
-find_section(char *name)
+find_section_list(char *name, list_t *list)
 {
     section_t *sec;
     char       blank[] = "";
 
-    sec = (section_t *) config_head.next;
+    sec = (section_t *) list->next;
     if (name == NULL)
         name = blank;
 
@@ -162,6 +158,12 @@ find_section(char *name)
     }
 
     return (NULL);
+}
+
+static section_t *
+find_section(char *name)
+{
+    return find_section_list(name, &config_head);
 }
 
 void *
@@ -214,8 +216,8 @@ entries_num(section_t *section)
     return (i);
 }
 
-static void
-delete_section_if_empty(char *head)
+void
+config_delete_section_in_list_if_empty(char *head, list_t* list)
 {
     section_t *section;
 
@@ -224,21 +226,33 @@ delete_section_if_empty(char *head)
         return;
 
     if (entries_num(section) == 0) {
-        list_delete(&section->list, &config_head);
+        list_delete(&section->list, list);
         free(section);
     }
 }
 
+static void
+delete_section_if_empty(char *head)
+{
+    config_delete_section_in_list_if_empty(head, &config_head);
+}
+
 static section_t *
-create_section(char *name)
+create_section_in_list(char *name, list_t* list)
 {
     section_t *ns = malloc(sizeof(section_t));
 
     memset(ns, 0x00, sizeof(section_t));
     memcpy(ns->name, name, strlen(name) + 1);
-    list_add(&ns->list, &config_head);
+    list_add(&ns->list, list);
 
     return (ns);
+}
+
+static section_t *
+create_section(char *name)
+{
+    return create_section_in_list(name, &config_head);
 }
 
 static entry_t *
@@ -326,8 +340,8 @@ config_fgetws(wchar_t *str, int count, FILE *stream)
 #endif
 
 /* Read and parse the configuration file into memory. */
-static int
-config_read(char *fn)
+int
+config_read_list(char *fn, list_t *list)
 {
     char       sname[128], ename[128];
     wchar_t    buff[1024];
@@ -347,8 +361,8 @@ config_read(char *fn)
 
     sec = malloc(sizeof(section_t));
     memset(sec, 0x00, sizeof(section_t));
-    memset(&config_head, 0x00, sizeof(list_t));
-    list_add(&sec->list, &config_head);
+    memset(list, 0x00, sizeof(list_t));
+    list_add(&sec->list, list);
     if (bom)
         fseek(f, 3, SEEK_SET);
 
@@ -398,7 +412,7 @@ config_read(char *fn)
             ns = malloc(sizeof(section_t));
             memset(ns, 0x00, sizeof(section_t));
             memcpy(ns->name, sname, 128);
-            list_add(&ns->list, &config_head);
+            list_add(&ns->list, list);
 
             /* New section is now the current one. */
             sec = ns;
@@ -446,9 +460,15 @@ config_read(char *fn)
     (void) fclose(f);
 
     if (do_dump_config)
-        config_dump();
+        config_dump_list(list);
 
     return (1);
+}
+
+static int
+config_read(char *fn)
+{
+    return config_read_list(fn, &config_head);
 }
 
 /*
@@ -458,7 +478,7 @@ config_read(char *fn)
  * has changed it.
  */
 void
-config_write(char *fn)
+config_write_list(char *fn, list_t *list)
 {
     wchar_t    wtemp[512];
     section_t *sec;
@@ -473,7 +493,7 @@ config_write(char *fn)
     if (f == NULL)
         return;
 
-    sec = (section_t *) config_head.next;
+    sec = (section_t *) list->next;
     while (sec != NULL) {
         entry_t *ent;
 
@@ -504,6 +524,12 @@ config_write(char *fn)
     }
 
     (void) fclose(f);
+}
+
+void
+config_write(char *fn)
+{
+    config_write_list(fn, &config_head);
 }
 
 #if NOT_USED
@@ -3273,11 +3299,11 @@ config_save(void)
 }
 
 void
-config_dump(void)
+config_dump_list(list_t *list)
 {
     section_t *sec;
 
-    sec = (section_t *) config_head.next;
+    sec = (section_t *) list->next;
     while (sec != NULL) {
         entry_t *ent;
 
@@ -3296,12 +3322,18 @@ config_dump(void)
 }
 
 void
-config_delete_var(char *head, char *name)
+config_dump(void)
+{
+    config_dump_list(&config_head);
+}
+
+void
+config_delete_var_list(char *head, char *name, list_t* list)
 {
     section_t *section;
     entry_t   *entry;
 
-    section = find_section(head);
+    section = find_section_list(head, list);
     if (section == NULL)
         return;
 
@@ -3312,14 +3344,20 @@ config_delete_var(char *head, char *name)
     }
 }
 
+void
+config_delete_var(char *head, char *name)
+{
+    config_delete_var_list(head, name, &config_head);
+}
+
 int
-config_get_int(char *head, char *name, int def)
+config_get_int_list(char *head, char *name, int def, list_t* list)
 {
     section_t *section;
     entry_t   *entry;
     int        value;
 
-    section = find_section(head);
+    section = find_section_list(head, list);
     if (section == NULL)
         return (def);
 
@@ -3332,8 +3370,14 @@ config_get_int(char *head, char *name, int def)
     return (value);
 }
 
+int
+config_get_int(char *head, char *name, int def)
+{
+    return config_get_int_list(head, name, def, &config_head);
+}
+
 double
-config_get_double(char *head, char *name, double def)
+config_get_double_list(char *head, char *name, double def, list_t* list)
 {
     section_t *section;
     entry_t   *entry;
@@ -3352,14 +3396,20 @@ config_get_double(char *head, char *name, double def)
     return (value);
 }
 
+double
+config_get_double(char *head, char *name, double def)
+{
+    return config_get_double_list(head, name, def, &config_head);
+}
+
 int
-config_get_hex16(char *head, char *name, int def)
+config_get_hex16_list(char *head, char *name, int def, list_t* list)
 {
     section_t   *section;
     entry_t     *entry;
     unsigned int value;
 
-    section = find_section(head);
+    section = find_section_list(head, list);
     if (section == NULL)
         return (def);
 
@@ -3373,13 +3423,19 @@ config_get_hex16(char *head, char *name, int def)
 }
 
 int
-config_get_hex20(char *head, char *name, int def)
+config_get_hex16(char *head, char *name, int def)
+{
+    return config_get_hex16_list(head, name, def, &config_head);
+}
+
+int
+config_get_hex20_list(char *head, char *name, int def, list_t* list)
 {
     section_t   *section;
     entry_t     *entry;
     unsigned int value;
 
-    section = find_section(head);
+    section = find_section_list(head, list);
     if (section == NULL)
         return (def);
 
@@ -3393,13 +3449,19 @@ config_get_hex20(char *head, char *name, int def)
 }
 
 int
-config_get_mac(char *head, char *name, int def)
+config_get_hex20(char *head, char *name, int def)
+{
+    return config_get_hex20_list(head, name, def, &config_head);
+}
+
+int
+config_get_mac_list(char *head, char *name, int def, list_t *list)
 {
     section_t   *section;
     entry_t     *entry;
     unsigned int val0 = 0, val1 = 0, val2 = 0;
 
-    section = find_section(head);
+    section = find_section_list(head, list);
     if (section == NULL)
         return (def);
 
@@ -3412,13 +3474,19 @@ config_get_mac(char *head, char *name, int def)
     return ((val0 << 16) + (val1 << 8) + val2);
 }
 
+int
+config_get_mac(char *head, char *name, int def)
+{
+    return config_get_mac_list(head, name, def, &config_head);
+}
+
 char *
-config_get_string(char *head, char *name, char *def)
+config_get_string_list(char *head, char *name, char *def, list_t* list)
 {
     section_t *section;
     entry_t   *entry;
 
-    section = find_section(head);
+    section = find_section_list(head, list);
     if (section == NULL)
         return (def);
 
@@ -3429,13 +3497,19 @@ config_get_string(char *head, char *name, char *def)
     return (entry->data);
 }
 
+char *
+config_get_string(char *head, char *name, char *def)
+{
+    return config_get_string_list(head, name, def, &config_head);
+}
+
 wchar_t *
-config_get_wstring(char *head, char *name, wchar_t *def)
+config_get_wstring_list(char *head, char *name, wchar_t *def, list_t* list)
 {
     section_t *section;
     entry_t   *entry;
 
-    section = find_section(head);
+    section = find_section_list(head, list);
     if (section == NULL)
         return (def);
 
@@ -3446,15 +3520,21 @@ config_get_wstring(char *head, char *name, wchar_t *def)
     return (entry->wdata);
 }
 
+wchar_t *
+config_get_wstring(char *head, char *name, wchar_t *def)
+{
+    return config_get_wstring_list(head, name, def, &config_head);
+}
+
 void
-config_set_int(char *head, char *name, int val)
+config_set_int_list(char *head, char *name, int val, list_t* list)
 {
     section_t *section;
     entry_t   *ent;
 
-    section = find_section(head);
+    section = find_section_list(head, list);
     if (section == NULL)
-        section = create_section(head);
+        section = create_section_in_list(head, list);
 
     ent = find_entry(section, name);
     if (ent == NULL)
@@ -3465,14 +3545,20 @@ config_set_int(char *head, char *name, int val)
 }
 
 void
-config_set_double(char *head, char *name, double val)
+config_set_int(char *head, char *name, int val)
+{
+    config_set_int_list(head, name, val, &config_head);
+}
+
+void
+config_set_double_list(char *head, char *name, double val, list_t *list)
 {
     section_t *section;
     entry_t   *ent;
 
-    section = find_section(head);
+    section = find_section_list(head, list);
     if (section == NULL)
-        section = create_section(head);
+        section = create_section_in_list(head, list);
 
     ent = find_entry(section, name);
     if (ent == NULL)
@@ -3483,14 +3569,20 @@ config_set_double(char *head, char *name, double val)
 }
 
 void
-config_set_hex16(char *head, char *name, int val)
+config_set_double(char *head, char *name, double val)
+{
+    config_set_double_list(head, name, val, &config_head);
+}
+
+void
+config_set_hex16_list(char *head, char *name, int val, list_t *list)
 {
     section_t *section;
     entry_t   *ent;
 
-    section = find_section(head);
+    section = find_section_list(head, list);
     if (section == NULL)
-        section = create_section(head);
+        section = create_section_in_list(head, list);
 
     ent = find_entry(section, name);
     if (ent == NULL)
@@ -3501,14 +3593,20 @@ config_set_hex16(char *head, char *name, int val)
 }
 
 void
-config_set_hex20(char *head, char *name, int val)
+config_set_hex16(char *head, char *name, int val)
+{
+    config_set_hex16_list(head, name, val, &config_head);
+}
+
+void
+config_set_hex20_list(char *head, char *name, int val, list_t *list)
 {
     section_t *section;
     entry_t   *ent;
 
-    section = find_section(head);
+    section = find_section_list(head, list);
     if (section == NULL)
-        section = create_section(head);
+        section = create_section_in_list(head, list);
 
     ent = find_entry(section, name);
     if (ent == NULL)
@@ -3519,14 +3617,20 @@ config_set_hex20(char *head, char *name, int val)
 }
 
 void
-config_set_mac(char *head, char *name, int val)
+config_set_hex20(char *head, char *name, int val)
+{
+    config_set_hex20_list(head, name, val, &config_head);
+}
+
+void
+config_set_mac_list(char *head, char *name, int val, list_t *list)
 {
     section_t *section;
     entry_t   *ent;
 
-    section = find_section(head);
+    section = find_section_list(head, list);
     if (section == NULL)
-        section = create_section(head);
+        section = create_section_in_list(head, list);
 
     ent = find_entry(section, name);
     if (ent == NULL)
@@ -3538,14 +3642,20 @@ config_set_mac(char *head, char *name, int val)
 }
 
 void
-config_set_string(char *head, char *name, char *val)
+config_set_mac(char *head, char *name, int val)
+{
+    config_set_mac_list(head, name, val, &config_head);
+}
+
+void
+config_set_string_list(char *head, char *name, char *val, list_t *list)
 {
     section_t *section;
     entry_t   *ent;
 
-    section = find_section(head);
+    section = find_section_list(head, list);
     if (section == NULL)
-        section = create_section(head);
+        section = create_section_in_list(head, list);
 
     ent = find_entry(section, name);
     if (ent == NULL)
@@ -3563,14 +3673,20 @@ config_set_string(char *head, char *name, char *val)
 }
 
 void
-config_set_wstring(char *head, char *name, wchar_t *val)
+config_set_string(char *head, char *name, char *val)
+{
+    config_set_string_list(head, name, val, &config_head);
+}
+
+void
+config_set_wstring_list(char *head, char *name, wchar_t *val, list_t *list)
 {
     section_t *section;
     entry_t   *ent;
 
-    section = find_section(head);
+    section = find_section_list(head, list);
     if (section == NULL)
-        section = create_section(head);
+        section = create_section_in_list(head, list);
 
     ent = find_entry(section, name);
     if (ent == NULL)
@@ -3582,4 +3698,10 @@ config_set_wstring(char *head, char *name, wchar_t *val)
 #else
     wcstombs(ent->data, ent->wdata, sizeof(ent->data));
 #endif
+}
+
+void
+config_set_wstring(char *head, char *name, wchar_t *val)
+{
+    config_set_wstring_list(head, name, val, &config_head);
 }
