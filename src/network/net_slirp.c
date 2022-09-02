@@ -329,9 +329,11 @@ net_slirp_thread(void *priv)
                 break;
 
             case NET_EVENT_TX:
-                int packets = network_tx_popv(slirp->card, slirp->pkt_tx_v, SLIRP_PKT_BATCH);
-                for (int i = 0; i < packets; i++) {
-                    net_slirp_in(slirp, slirp->pkt_tx_v[i].data, slirp->pkt_tx_v[i].len);
+                {
+                    int packets = network_tx_popv(slirp->card, slirp->pkt_tx_v, SLIRP_PKT_BATCH);
+                    for (int i = 0; i < packets; i++) {
+                        net_slirp_in(slirp, slirp->pkt_tx_v[i].data, slirp->pkt_tx_v[i].len);
+                    }
                 }
                 break;
 
