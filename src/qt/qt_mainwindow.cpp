@@ -1615,7 +1615,18 @@ void MainWindow::keyPressEvent(QKeyEvent* event)
     if (send_keyboard_input && !(kbd_req_capture && !mouse_capture && !video_fullscreen))
     {
         // Windows keys in Qt have one-to-one mapping.
-        if (event->key() == Qt::Key_Super_L || event->key() == Qt::Key_Super_R) {
+        if (event->key() == Qt::Key_Pause && !keyboard_recv(0x38) && !keyboard_recv(0x138)) {
+            if ((keyboard_recv(0x1D) || keyboard_recv(0x11D)) {
+                keyboard_input(1, 0x46);
+            } else {
+                keyboard_input(0, 0xE1);
+                keyboard_input(0, 0x1D);
+                keyboard_input(0, 0x45);
+                keyboard_input(0, 0xE1);
+                keyboard_input(1, 0x1D);
+                keyboard_input(1, 0x45);
+            }
+        } else if (event->key() == Qt::Key_Super_L || event->key() == Qt::Key_Super_R) {
             keyboard_input(1, event->key() == Qt::Key_Super_L ? 0x15B : 0x15C);
         } else
 #ifdef Q_OS_MACOS
@@ -1653,7 +1664,9 @@ void MainWindow::blitToWidget(int x, int y, int w, int h, int monitor_index)
 void MainWindow::keyReleaseEvent(QKeyEvent* event)
 {
     if (event->key() == Qt::Key_Pause) {
-        plat_pause(dopause ^ 1);
+        if (keyboard_recv(0x38) && keyboard_recv(0x138)) {
+            plat_pause(dopause ^ 1);
+        }
     }
     if (!send_keyboard_input)
         return;
