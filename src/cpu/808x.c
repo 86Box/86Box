@@ -1451,9 +1451,7 @@ set_co_mul(int bits, int carry)
 {
     set_cf(carry);
     set_of(carry);
-    /* NOTE: When implementing the V20, care should be taken to not change
-	     the zero flag. */
-    set_zf_ex(!carry);
+    if (!is_nec) set_zf_ex(!carry);
     if (!carry)
 	wait(1, 0);
 }
