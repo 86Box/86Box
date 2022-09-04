@@ -373,9 +373,9 @@ cpu_set(void)
     unmask_a20_in_smm = 0;
 
     CPUID        = cpu_s->cpuid_model;
-    is8086       = (cpu_s->cpu_type > CPU_8088) && !(cpu_s->cpu_type == CPU_V20);
+    is8086       = (cpu_s->cpu_type > CPU_8088) && !(cpu_s->cpu_type == CPU_V20) && !(cpu_s->cpu_type == CPU_V30);
     is_nec       = (cpu_s->cpu_type == CPU_V20) || (cpu_s->cpu_type == CPU_V30);
-    is186        = (cpu_s->cpu_type == CPU_186) || (cpu_s->cpu_type == CPU_V20) || (cpu_s->cpu_type == CPU_V30);
+    is186        = (cpu_s->cpu_type == CPU_186) || (cpu_s->cpu_type == CPU_188) || (cpu_s->cpu_type == CPU_V20) || (cpu_s->cpu_type == CPU_V30);
     is286        = (cpu_s->cpu_type >= CPU_286);
     is386        = (cpu_s->cpu_type >= CPU_386SX);
     israpidcad   = (cpu_s->cpu_type == CPU_RAPIDCAD);
@@ -542,6 +542,7 @@ cpu_set(void)
 	case CPU_V20:
 	case CPU_V30:
 	case CPU_186:
+	case CPU_188:
 #ifdef USE_DYNAREC
 		x86_setopcodes(ops_186, ops_186_0f, dynarec_ops_186, dynarec_ops_186_0f);
 #else
