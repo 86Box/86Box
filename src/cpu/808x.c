@@ -1758,7 +1758,7 @@ execx86(int cycs)
 						wait(3, 0);
 						{
 							uint8_t bit = (opcode & 0x8) ? (pfq_fetchb()) : (CL);
-							bit &= ((1 << bits) - 1);
+							bit &= ((1 << (3 + (opcode & 0x1))) - 1);
 							read_ea(0, bits);
 
 							set_zf_ex(!(cpu_data & (1 << bit)));
@@ -1777,11 +1777,30 @@ execx86(int cycs)
 						wait(3, 0);
 						{
 							uint8_t bit = (opcode & 0x8) ? (pfq_fetchb()) : (CL);
-							bit &= ((1 << bits) - 1);
+							bit &= ((1 << (3 + (opcode & 0x1))) - 1);
 							read_ea(0, bits);
 
 							if (bits == 8) seteab((cpu_data & 0xFF) ^ (1 << bit));
 							else seteaw((cpu_data & 0xFFFF) ^ (1 << bit));
+						}
+						handled = 1;
+						break;
+					}
+					case 0x14: /* SET1 r8/m8, CL*/
+					case 0x15: /* SET1 r16/m16, CL*/
+					case 0x1c: /* SET1 r8/m8, imm3 */
+					case 0x1d: /* SET1 r16/m16, imm4 */
+					{
+						bits = 8 << (opcode & 0x1);
+						do_mod_rm();
+						wait(3, 0);
+						{
+							uint8_t bit = (opcode & 0x8) ? (pfq_fetchb()) : (CL);
+							bit &= ((1 << (3 + (opcode & 0x1))) - 1);
+							read_ea(0, bits);
+
+							if (bits == 8) seteab((cpu_data & 0xFF) | (1 << bit));
+							else seteaw((cpu_data & 0xFFFF) | (1 << bit));
 						}
 						handled = 1;
 						break;
