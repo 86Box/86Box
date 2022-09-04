@@ -1680,6 +1680,7 @@ execx86(int cycs)
 {
     uint8_t temp = 0, temp2;
     uint8_t old_af;
+	uint8_t handled = 0;
     uint16_t addr, tempw;
     uint16_t new_cs, new_ip;
     int bits;
@@ -1708,6 +1709,52 @@ execx86(int cycs)
 			push(&(_opseg[(opcode >> 3) & 0x03]->seg));
 			break;
 		case 0x07: case 0x0F: case 0x17: case 0x1F:	/* POP seg */
+			if (is_nec && opcode == 0x0F) {
+				uint8_t orig_opcode = opcode;
+				opcode = pfq_fetchb();
+				switch (opcode) {
+					case 0x28: /* ROL4 r/m */
+					{
+						do_mod_rm();
+						wait(22, 0);
+						{
+							uint8_t temp_val = geteab();
+							uint8_t temp_al = AL;
+
+							temp_al &= 0xF;
+							temp_al |= (temp_val & 0xF0);
+							temp_val = (temp_al & 0xF) | ((temp_val & 0xF) << 4);
+							temp_al >>= 4;
+							temp_al &= 0xF;
+							seteab(temp_val);
+							AL = temp_al;
+						}
+						handled = 1;
+						break;
+					}
+					case 0x2a: /* ROR4 r/m */
+					{
+						do_mod_rm();
+						wait(22, 0);
+						{
+							uint8_t temp_val = geteab();
+							uint8_t temp_al = AL;
+
+							AL = temp_val & 0xF;
+							temp_val = (temp_val >> 4) | ((temp_al & 0xF) << 4);
+							
+							seteab(temp_val);
+						}
+						handled = 1;
+						break;
+					}
+					default: {
+						opcode = orig_opcode;
+						break;
+					}
+				}
+			} else handled = 0;
+			if (handled) break;
 			access(22, 16);
 			if (opcode == 0x0F) {
 				load_cs(pop());
@@ -1895,8 +1942,35 @@ execx86(int cycs)
 			break;
 
 		case 0x60:	/*JO alias*/
+			if (is186) { /* PUSHA/PUSH R*/
+				uint16_t orig_sp = SP;
+				wait(1, 0);
+				push(&AX);
+				push(&CX);
+				push(&DX);
+				push(&BX);
+				push(&orig_sp);
+				push(&BP);
+				push(&SI);
+				push(&DI);
+			}
+			else jcc(opcode, cpu_state.flags & V_FLAG);
+			break;
 		case 0x70:	/*JO*/
 		case 0x61:	/*JNO alias*/
+			if (is186) { /* POPA/POP R*/
+				uint16_t orig_sp = 0; /* deliberately unused. */
+				wait(9, 0);
+				DI = pop();
+				SI = pop();
+				BP = pop();
+				orig_sp = pop();
+				BX = pop();
+				DX = pop();
+				CX = pop();
+				AX = pop();
+				break;
+			}
 		case 0x71:	/*JNO*/
 			jcc(opcode, cpu_state.flags & V_FLAG);
 			break;
