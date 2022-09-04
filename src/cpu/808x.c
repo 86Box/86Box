@@ -1757,11 +1757,29 @@ execx86(int cycs)
 						do_mod_rm();
 						wait(3, 0);
 						{
-							uint8_t bit = (opcode & 0x8) ? (pfq_fetchb() & 0x7) : (CL & 0xF);
+							uint8_t bit = (opcode & 0x8) ? (pfq_fetchb()) : (CL);
+							bit &= ((1 << bits) - 1);
 							read_ea(0, bits);
 
 							set_zf_ex(!(cpu_data & (1 << bit)));
 							cpu_state.flags &= ~(V_FLAG | C_FLAG);
+						}
+					}
+					case 0x16: /* NOT1 r8/m8, CL*/
+					case 0x17: /* NOT1 r16/m16, CL*/
+					case 0x1e: /* NOT1 r8/m8, imm3 */
+					case 0x1f: /* NOT1 r16/m16, imm4 */
+					{
+						bits = 8 << (opcode & 0x1);
+						do_mod_rm();
+						wait(3, 0);
+						{
+							uint8_t bit = (opcode & 0x8) ? (pfq_fetchb()) : (CL);
+							bit &= ((1 << bits) - 1);
+							read_ea(0, bits);
+
+							if (bits == 8) seteab((cpu_data & 0xFF) ^ (1 << bit));
+							else seteaw((cpu_data & 0xFFFF) ^ (1 << bit));
 						}
 					}
 					default: {
