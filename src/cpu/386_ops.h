@@ -368,7 +368,7 @@ const OpFn OP_TABLE(186_0f)[1024] =
 {
         /*16-bit data, 16-bit addr*/
 /*      00              01              02              03              04              05              06              07              08              09              0a              0b              0c              0d              0e              0f*/
-/*00*/  op0F00_a16,     op0F01_286,     opLAR_w_a16,    opLSL_w_a16,    ILLEGAL,        opLOADALL,      opCLTS,         ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,
+/*00*/  ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,
 /*10*/  ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,
 /*20*/  ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,
 /*30*/  ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,
@@ -390,7 +390,7 @@ const OpFn OP_TABLE(186_0f)[1024] =
 
         /*32-bit data, 16-bit addr*/
 /*      00              01              02              03              04              05              06              07              08              09              0a              0b              0c              0d              0e              0f*/
-/*00*/  op0F00_a16,     op0F01_286,     opLAR_w_a16,    opLSL_w_a16,    ILLEGAL,        opLOADALL,      opCLTS,         ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,
+/*00*/  ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,
 /*10*/  ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,
 /*20*/  ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,
 /*30*/  ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,
@@ -412,7 +412,7 @@ const OpFn OP_TABLE(186_0f)[1024] =
 
         /*16-bit data, 32-bit addr*/
 /*      00              01              02              03              04              05              06              07              08              09              0a              0b              0c              0d              0e              0f*/
-/*00*/  op0F00_a16,     op0F01_286,     opLAR_w_a16,    opLSL_w_a16,    ILLEGAL,        opLOADALL,      opCLTS,         ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,
+/*00*/  ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,
 /*10*/  ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,
 /*20*/  ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,
 /*30*/  ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,
@@ -434,7 +434,7 @@ const OpFn OP_TABLE(186_0f)[1024] =
 
         /*32-bit data, 32-bit addr*/
 /*      00              01              02              03              04              05              06              07              08              09              0a              0b              0c              0d              0e              0f*/
-/*00*/  op0F00_a16,     op0F01_286,     opLAR_w_a16,    opLSL_w_a16,    ILLEGAL,        opLOADALL,      opCLTS,         ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,
+/*00*/  ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,
 /*10*/  ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,
 /*20*/  ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,
 /*30*/  ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,
@@ -2017,15 +2017,15 @@ const OpFn OP_TABLE(186)[1024] =
 
 /*40*/  opINC_AX,       opINC_CX,       opINC_DX,       opINC_BX,       opINC_SP,       opINC_BP,       opINC_SI,       opINC_DI,       opDEC_AX,       opDEC_CX,       opDEC_DX,       opDEC_BX,       opDEC_SP,       opDEC_BP,       opDEC_SI,       opDEC_DI,
 /*50*/  opPUSH_AX,      opPUSH_CX,      opPUSH_DX,      opPUSH_BX,      opPUSH_SP,      opPUSH_BP,      opPUSH_SI,      opPUSH_DI,      opPOP_AX,       opPOP_CX,       opPOP_DX,       opPOP_BX,       opPOP_SP,       opPOP_BP,       opPOP_SI,       opPOP_DI,
-/*60*/  opPUSHA_w,      opPOPA_w,       opBOUND_w_a16,  opARPL_a16,     ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        opPUSH_imm_w,   opIMUL_w_iw_a16,opPUSH_imm_bw,  opIMUL_w_ib_a16,opINSB_a16,     opINSW_a16,     opOUTSB_a16,    opOUTSW_a16,
+/*60*/  opPUSHA_w,      opPOPA_w,       opBOUND_w_a16,  ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        opPUSH_imm_w,   opIMUL_w_iw_a16,opPUSH_imm_bw,  opIMUL_w_ib_a16,opINSB_a16,     opINSW_a16,     opOUTSB_a16,    opOUTSW_a16,
 /*70*/  opJO,           opJNO,          opJB,           opJNB,          opJE,           opJNE,          opJBE,          opJNBE,         opJS,           opJNS,          opJP,           opJNP,          opJL,           opJNL,          opJLE,          opJNLE,
 
 /*80*/  op80_a16,       op81_w_a16,     op80_a16,       op83_w_a16,     opTEST_b_a16,   opTEST_w_a16,   opXCHG_b_a16,   opXCHG_w_a16,   opMOV_b_r_a16,  opMOV_w_r_a16,  opMOV_r_b_a16,  opMOV_r_w_a16,  opMOV_w_seg_a16,opLEA_w_a16,    opMOV_seg_w_a16,opPOPW_a16,
-/*90*/  opNOP,          opXCHG_AX_CX,   opXCHG_AX_DX,   opXCHG_AX_BX,   opXCHG_AX_SP,   opXCHG_AX_BP,   opXCHG_AX_SI,   opXCHG_AX_DI,   opCBW,          opCWD,          opCALL_far_w,   opWAIT,         opPUSHF,        opPOPF_286,     opSAHF,         opLAHF,
+/*90*/  opNOP,          opXCHG_AX_CX,   opXCHG_AX_DX,   opXCHG_AX_BX,   opXCHG_AX_SP,   opXCHG_AX_BP,   opXCHG_AX_SI,   opXCHG_AX_DI,   opCBW,          opCWD,          opCALL_far_w,   opWAIT,         opPUSHF,        opPOPF_186,     opSAHF,         opLAHF,
 /*a0*/  opMOV_AL_a16,   opMOV_AX_a16,   opMOV_a16_AL,   opMOV_a16_AX,   opMOVSB_a16,    opMOVSW_a16,    opCMPSB_a16,    opCMPSW_a16,    opTEST_AL,      opTEST_AX,      opSTOSB_a16,    opSTOSW_a16,    opLODSB_a16,    opLODSW_a16,    opSCASB_a16,    opSCASW_a16,
 /*b0*/  opMOV_AL_imm,   opMOV_CL_imm,   opMOV_DL_imm,   opMOV_BL_imm,   opMOV_AH_imm,   opMOV_CH_imm,   opMOV_DH_imm,   opMOV_BH_imm,   opMOV_AX_imm,   opMOV_CX_imm,   opMOV_DX_imm,   opMOV_BX_imm,   opMOV_SP_imm,   opMOV_BP_imm,   opMOV_SI_imm,   opMOV_DI_imm,
 
-/*c0*/  opC0_a16,       opC1_w_a16,     opRET_w_imm,    opRET_w,        opLES_w_a16,    opLDS_w_a16,    opMOV_b_imm_a16,opMOV_w_imm_a16,opENTER_w,      opLEAVE_w,      opRETF_a16_imm, opRETF_a16,     opINT3,         opINT,          opINTO,         opIRET_286,
+/*c0*/  opC0_a16,       opC1_w_a16,     opRET_w_imm,    opRET_w,        opLES_w_a16,    opLDS_w_a16,    opMOV_b_imm_a16,opMOV_w_imm_a16,opENTER_w,      opLEAVE_w,      opRETF_a16_imm, opRETF_a16,     opINT3,         opINT,          opINTO,         opIRET_186,
 /*d0*/  opD0_a16,       opD1_w_a16,     opD2_a16,       opD3_w_a16,     opAAM,          opAAD,          opSETALC,       opXLAT_a16,     opESCAPE_d8_a16,opESCAPE_d9_a16,opESCAPE_da_a16,opESCAPE_db_a16,opESCAPE_dc_a16,opESCAPE_dd_a16,opESCAPE_de_a16,opESCAPE_df_a16,
 /*e0*/  opLOOPNE_w,     opLOOPE_w,      opLOOP_w,       opJCXZ,         opIN_AL_imm,    opIN_AX_imm,    opOUT_AL_imm,   opOUT_AX_imm,   opCALL_r16,     opJMP_r16,      opJMP_far_a16,  opJMP_r8,       opIN_AL_DX,     opIN_AX_DX,     opOUT_AL_DX,    opOUT_AX_DX,
 /*f0*/  opLOCK,         opLOCK,         opREPNE,        opREPE,         opHLT,          opCMC,          opF6_a16,       opF7_w_a16,     opCLC,          opSTC,          opCLI,          opSTI,          opCLD,          opSTD,          opINCDEC_b_a16, opFF_w_a16,
@@ -2043,11 +2043,11 @@ const OpFn OP_TABLE(186)[1024] =
 /*70*/  opJO,           opJNO,          opJB,           opJNB,          opJE,           opJNE,          opJBE,          opJNBE,         opJS,           opJNS,          opJP,           opJNP,          opJL,           opJNL,          opJLE,          opJNLE,
 
 /*80*/  op80_a16,       op81_w_a16,     op80_a16,       op83_w_a16,     opTEST_b_a16,   opTEST_w_a16,   opXCHG_b_a16,   opXCHG_w_a16,   opMOV_b_r_a16,  opMOV_w_r_a16,  opMOV_r_b_a16,  opMOV_r_w_a16,  opMOV_w_seg_a16,opLEA_w_a16,    opMOV_seg_w_a16,opPOPW_a16,
-/*90*/  opNOP,          opXCHG_AX_CX,   opXCHG_AX_DX,   opXCHG_AX_BX,   opXCHG_AX_SP,   opXCHG_AX_BP,   opXCHG_AX_SI,   opXCHG_AX_DI,   opCBW,          opCWD,          opCALL_far_w,   opWAIT,         opPUSHF,        opPOPF_286,     opSAHF,         opLAHF,
+/*90*/  opNOP,          opXCHG_AX_CX,   opXCHG_AX_DX,   opXCHG_AX_BX,   opXCHG_AX_SP,   opXCHG_AX_BP,   opXCHG_AX_SI,   opXCHG_AX_DI,   opCBW,          opCWD,          opCALL_far_w,   opWAIT,         opPUSHF,        opPOPF_186,     opSAHF,         opLAHF,
 /*a0*/  opMOV_AL_a16,   opMOV_AX_a16,   opMOV_a16_AL,   opMOV_a16_AX,   opMOVSB_a16,    opMOVSW_a16,    opCMPSB_a16,    opCMPSW_a16,    opTEST_AL,      opTEST_AX,      opSTOSB_a16,    opSTOSW_a16,    opLODSB_a16,    opLODSW_a16,    opSCASB_a16,    opSCASW_a16,
 /*b0*/  opMOV_AL_imm,   opMOV_CL_imm,   opMOV_DL_imm,   opMOV_BL_imm,   opMOV_AH_imm,   opMOV_CH_imm,   opMOV_DH_imm,   opMOV_BH_imm,   opMOV_AX_imm,   opMOV_CX_imm,   opMOV_DX_imm,   opMOV_BX_imm,   opMOV_SP_imm,   opMOV_BP_imm,   opMOV_SI_imm,   opMOV_DI_imm,
 
-/*c0*/  opC0_a16,       opC1_w_a16,     opRET_w_imm,    opRET_w,        opLES_w_a16,    opLDS_w_a16,    opMOV_b_imm_a16,opMOV_w_imm_a16,opENTER_w,      opLEAVE_w,      opRETF_a16_imm, opRETF_a16,     opINT3,         opINT,          opINTO,         opIRET_286,
+/*c0*/  opC0_a16,       opC1_w_a16,     opRET_w_imm,    opRET_w,        opLES_w_a16,    opLDS_w_a16,    opMOV_b_imm_a16,opMOV_w_imm_a16,opENTER_w,      opLEAVE_w,      opRETF_a16_imm, opRETF_a16,     opINT3,         opINT,          opINTO,         opIRET_186,
 /*d0*/  opD0_a16,       opD1_w_a16,     opD2_a16,       opD3_w_a16,     opAAM,          opAAD,          opSETALC,       opXLAT_a16,     opESCAPE_d8_a16,opESCAPE_d9_a16,opESCAPE_da_a16,opESCAPE_db_a16,opESCAPE_dc_a16,opESCAPE_dd_a16,opESCAPE_de_a16,opESCAPE_df_a16,
 /*e0*/  opLOOPNE_w,     opLOOPE_w,      opLOOP_w,       opJCXZ,         opIN_AL_imm,    opIN_AX_imm,    opOUT_AL_imm,   opOUT_AX_imm,   opCALL_r16,     opJMP_r16,      opJMP_far_a16,  opJMP_r8,       opIN_AL_DX,     opIN_AX_DX,     opOUT_AL_DX,    opOUT_AX_DX,
 /*f0*/  opLOCK,         opLOCK,         opREPNE,        opREPE,         opHLT,          opCMC,          opF6_a16,       opF7_w_a16,     opCLC,          opSTC,          opCLI,          opSTI,          opCLD,          opSTD,          opINCDEC_b_a16, opFF_w_a16,
@@ -2065,11 +2065,11 @@ const OpFn OP_TABLE(186)[1024] =
 /*70*/  opJO,           opJNO,          opJB,           opJNB,          opJE,           opJNE,          opJBE,          opJNBE,         opJS,           opJNS,          opJP,           opJNP,          opJL,           opJNL,          opJLE,          opJNLE,
 
 /*80*/  op80_a16,       op81_w_a16,     op80_a16,       op83_w_a16,     opTEST_b_a16,   opTEST_w_a16,   opXCHG_b_a16,   opXCHG_w_a16,   opMOV_b_r_a16,  opMOV_w_r_a16,  opMOV_r_b_a16,  opMOV_r_w_a16,  opMOV_w_seg_a16,opLEA_w_a16,    opMOV_seg_w_a16,opPOPW_a16,
-/*90*/  opNOP,          opXCHG_AX_CX,   opXCHG_AX_DX,   opXCHG_AX_BX,   opXCHG_AX_SP,   opXCHG_AX_BP,   opXCHG_AX_SI,   opXCHG_AX_DI,   opCBW,          opCWD,          opCALL_far_w,   opWAIT,         opPUSHF,        opPOPF_286,     opSAHF,         opLAHF,
+/*90*/  opNOP,          opXCHG_AX_CX,   opXCHG_AX_DX,   opXCHG_AX_BX,   opXCHG_AX_SP,   opXCHG_AX_BP,   opXCHG_AX_SI,   opXCHG_AX_DI,   opCBW,          opCWD,          opCALL_far_w,   opWAIT,         opPUSHF,        opPOPF_186,     opSAHF,         opLAHF,
 /*a0*/  opMOV_AL_a16,   opMOV_AX_a16,   opMOV_a16_AL,   opMOV_a16_AX,   opMOVSB_a16,    opMOVSW_a16,    opCMPSB_a16,    opCMPSW_a16,    opTEST_AL,      opTEST_AX,      opSTOSB_a16,    opSTOSW_a16,    opLODSB_a16,    opLODSW_a16,    opSCASB_a16,    opSCASW_a16,
 /*b0*/  opMOV_AL_imm,   opMOV_CL_imm,   opMOV_DL_imm,   opMOV_BL_imm,   opMOV_AH_imm,   opMOV_CH_imm,   opMOV_DH_imm,   opMOV_BH_imm,   opMOV_AX_imm,   opMOV_CX_imm,   opMOV_DX_imm,   opMOV_BX_imm,   opMOV_SP_imm,   opMOV_BP_imm,   opMOV_SI_imm,   opMOV_DI_imm,
 
-/*c0*/  opC0_a16,       opC1_w_a16,     opRET_w_imm,    opRET_w,        opLES_w_a16,    opLDS_w_a16,    opMOV_b_imm_a16,opMOV_w_imm_a16,opENTER_w,      opLEAVE_w,      opRETF_a16_imm, opRETF_a16,     opINT3,         opINT,          opINTO,         opIRET_286,
+/*c0*/  opC0_a16,       opC1_w_a16,     opRET_w_imm,    opRET_w,        opLES_w_a16,    opLDS_w_a16,    opMOV_b_imm_a16,opMOV_w_imm_a16,opENTER_w,      opLEAVE_w,      opRETF_a16_imm, opRETF_a16,     opINT3,         opINT,          opINTO,         opIRET_186,
 /*d0*/  opD0_a16,       opD1_w_a16,     opD2_a16,       opD3_w_a16,     opAAM,          opAAD,          opSETALC,       opXLAT_a16,     opESCAPE_d8_a16,opESCAPE_d9_a16,opESCAPE_da_a16,opESCAPE_db_a16,opESCAPE_dc_a16,opESCAPE_dd_a16,opESCAPE_de_a16,opESCAPE_df_a16,
 /*e0*/  opLOOPNE_w,     opLOOPE_w,      opLOOP_w,       opJCXZ,         opIN_AL_imm,    opIN_AX_imm,    opOUT_AL_imm,   opOUT_AX_imm,   opCALL_r16,     opJMP_r16,      opJMP_far_a16,  opJMP_r8,       opIN_AL_DX,     opIN_AX_DX,     opOUT_AL_DX,    opOUT_AX_DX,
 /*f0*/  opLOCK,         opLOCK,         opREPNE,        opREPE,         opHLT,          opCMC,          opF6_a16,       opF7_w_a16,     opCLC,          opSTC,          opCLI,          opSTI,          opCLD,          opSTD,          opINCDEC_b_a16, opFF_w_a16,
@@ -2087,11 +2087,11 @@ const OpFn OP_TABLE(186)[1024] =
 /*70*/  opJO,           opJNO,          opJB,           opJNB,          opJE,           opJNE,          opJBE,          opJNBE,         opJS,           opJNS,          opJP,           opJNP,          opJL,           opJNL,          opJLE,          opJNLE,
 
 /*80*/  op80_a16,       op81_w_a16,     op80_a16,       op83_w_a16,     opTEST_b_a16,   opTEST_w_a16,   opXCHG_b_a16,   opXCHG_w_a16,   opMOV_b_r_a16,  opMOV_w_r_a16,  opMOV_r_b_a16,  opMOV_r_w_a16,  opMOV_w_seg_a16,opLEA_w_a16,    opMOV_seg_w_a16,opPOPW_a16,
-/*90*/  opNOP,          opXCHG_AX_CX,   opXCHG_AX_DX,   opXCHG_AX_BX,   opXCHG_AX_SP,   opXCHG_AX_BP,   opXCHG_AX_SI,   opXCHG_AX_DI,   opCBW,          opCWD,          opCALL_far_w,   opWAIT,         opPUSHF,        opPOPF_286,     opSAHF,         opLAHF,
+/*90*/  opNOP,          opXCHG_AX_CX,   opXCHG_AX_DX,   opXCHG_AX_BX,   opXCHG_AX_SP,   opXCHG_AX_BP,   opXCHG_AX_SI,   opXCHG_AX_DI,   opCBW,          opCWD,          opCALL_far_w,   opWAIT,         opPUSHF,        opPOPF_186,     opSAHF,         opLAHF,
 /*a0*/  opMOV_AL_a16,   opMOV_AX_a16,   opMOV_a16_AL,   opMOV_a16_AX,   opMOVSB_a16,    opMOVSW_a16,    opCMPSB_a16,    opCMPSW_a16,    opTEST_AL,      opTEST_AX,      opSTOSB_a16,    opSTOSW_a16,    opLODSB_a16,    opLODSW_a16,    opSCASB_a16,    opSCASW_a16,
 /*b0*/  opMOV_AL_imm,   opMOV_CL_imm,   opMOV_DL_imm,   opMOV_BL_imm,   opMOV_AH_imm,   opMOV_CH_imm,   opMOV_DH_imm,   opMOV_BH_imm,   opMOV_AX_imm,   opMOV_CX_imm,   opMOV_DX_imm,   opMOV_BX_imm,   opMOV_SP_imm,   opMOV_BP_imm,   opMOV_SI_imm,   opMOV_DI_imm,
 
-/*c0*/  opC0_a16,       opC1_w_a16,     opRET_w_imm,    opRET_w,        opLES_w_a16,    opLDS_w_a16,    opMOV_b_imm_a16,opMOV_w_imm_a16,opENTER_w,      opLEAVE_w,      opRETF_a16_imm, opRETF_a16,     opINT3,         opINT,          opINTO,         opIRET_286,
+/*c0*/  opC0_a16,       opC1_w_a16,     opRET_w_imm,    opRET_w,        opLES_w_a16,    opLDS_w_a16,    opMOV_b_imm_a16,opMOV_w_imm_a16,opENTER_w,      opLEAVE_w,      opRETF_a16_imm, opRETF_a16,     opINT3,         opINT,          opINTO,         opIRET_186,
 /*d0*/  opD0_a16,       opD1_w_a16,     opD2_a16,       opD3_w_a16,     opAAM,          opAAD,          opSETALC,       opXLAT_a16,     opESCAPE_d8_a16,opESCAPE_d9_a16,opESCAPE_da_a16,opESCAPE_db_a16,opESCAPE_dc_a16,opESCAPE_dd_a16,opESCAPE_de_a16,opESCAPE_df_a16,
 /*e0*/  opLOOPNE_w,     opLOOPE_w,      opLOOP_w,       opJCXZ,         opIN_AL_imm,    opIN_AX_imm,    opOUT_AL_imm,   opOUT_AX_imm,   opCALL_r16,     opJMP_r16,      opJMP_far_a16,  opJMP_r8,       opIN_AL_DX,     opIN_AX_DX,     opOUT_AL_DX,    opOUT_AX_DX,
 /*f0*/  opLOCK,         opLOCK,         opREPNE,        opREPE,         opHLT,          opCMC,          opF6_a16,       opF7_w_a16,     opCLC,          opSTC,          opCLI,          opSTI,          opCLD,          opSTD,          opINCDEC_b_a16, opFF_w_a16,
