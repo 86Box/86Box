@@ -1764,6 +1764,8 @@ execx86(int cycs)
 							set_zf_ex(!(cpu_data & (1 << bit)));
 							cpu_state.flags &= ~(V_FLAG | C_FLAG);
 						}
+						handled = 1;
+						break;
 					}
 					case 0x16: /* NOT1 r8/m8, CL*/
 					case 0x17: /* NOT1 r16/m16, CL*/
@@ -1781,6 +1783,8 @@ execx86(int cycs)
 							if (bits == 8) seteab((cpu_data & 0xFF) ^ (1 << bit));
 							else seteaw((cpu_data & 0xFFFF) ^ (1 << bit));
 						}
+						handled = 1;
+						break;
 					}
 					default: {
 						opcode = orig_opcode;
