@@ -293,7 +293,7 @@ int main(int argc, char* argv[]) {
         QObject::connect(&discordupdate, &QTimer::timeout, &app, [] {
             discord_run_callbacks();
         });
-        discordupdate.start(0);
+        discordupdate.start(1000);
     }
 
     /* Initialize the rendering window, or fullscreen. */
