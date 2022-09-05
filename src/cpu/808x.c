@@ -1824,6 +1824,54 @@ execx86(int cycs)
 						handled = 1;
 						break;
 					}
+					case 0x31: /* INS reg1, reg2 */
+					case 0x39: /* INS reg8, imm4 */
+					{
+						do_mod_rm();
+						wait(1, 0);
+						{
+							uint8_t bit_length = ((opcode & 0x8) ? (pfq_fetchb() & 0xF) : (getr8(cpu_reg) & 0xF)) + 1;
+							uint8_t bit_offset = getr8(cpu_rm) & 0xF;
+							uint32_t byteaddr = (ES << 4) + DI;
+							uint32_t i = 0;
+							if (bit_offset >= 8) { DI++; byteaddr++; bit_offset -= 8; }
+							for (i = 0; i < bit_length; i++) {
+								byteaddr = (ES << 4) + DI;
+								writememb(ES << 4, DI, (read_mem_b(byteaddr) & ~(1 << (bit_offset))) | ((!!(AX & (1 << i))) << bit_offset));
+								bit_offset++;
+								if (bit_offset == 8) { DI++; bit_offset = 0; }
+							}
+							setr8(cpu_rm, bit_offset);
+						}
+						handled = 1;
+						break;
+					}
+					case 0x33: /* EXT reg1, reg2 */
+					case 0x3b: /* EXT reg8, imm4 */
+					{
+						do_mod_rm();
+						wait(1, 0);
+						{
+							uint8_t bit_length = ((opcode & 0x8) ? (pfq_fetchb() & 0xF) : (getr8(cpu_reg) & 0xF)) + 1;
+							uint8_t bit_offset = getr8(cpu_rm) & 0xF;
+							uint32_t byteaddr = (DS << 4) + SI;
+							uint32_t i = 0;
+
+							if (bit_offset >= 8) { SI++; byteaddr++; bit_offset -= 8; }
+
+							AX = 0;
+							for (i = 0; i < bit_length; i++) {
+								byteaddr = (DS << 4) + SI;
+								AX |= (!!(readmemb(byteaddr) & (1 << bit_offset))) << i;
+								bit_offset++;
+								if (bit_offset == 8) { SI++; bit_offset = 0; }
+							}
+							setr8(cpu_rm, bit_offset);
+						}
+						handled = 1;
+						break;
+					}
+					
 					default: {
 						opcode = orig_opcode;
 						break;
