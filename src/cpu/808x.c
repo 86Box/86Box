@@ -1824,6 +1824,42 @@ execx86(int cycs)
 						handled = 1;
 						break;
 					}
+					case 0x20: /* ADD4S */
+					{
+						uint8_t odd = !!(CL % 2);
+						uint8_t zero = 1;
+						uint8_t nibbles_count = CL - odd;
+						uint32_t i = 0, carry = 0, nibble = 0;
+						uint32_t srcseg = ovr_seg ? *ovr_seg : DS;
+
+						srcseg <<= 4;
+						wait(5, 0);
+						for (i = 0; i < ((nibbles_count / 2) + odd); i++) {
+							wait(19, 0);
+							for (nibble = 0; nibble < 2; nibble++) {
+								uint8_t destbyte = read_mem_b((ES << 4) + DI + i) >> (nibble ? 4 : 0);
+								uint8_t srcbyte = read_mem_b(srcseg + SI + i) >> (nibble ? 4 : 0);
+								destbyte &= 0xF;
+								srcbyte &= 0xF;
+								uint8_t nibble_result = destbyte + srcbyte + carry;
+								carry = 0;
+								while (nibble_result >= 10) {
+									nibble_result -= 10;
+									carry++;
+								}
+								if (zero != 0) zero = (nibble_result == 0);
+								write_mem_b((ES << 4) + DI + i, (read_mem_b((ES << 4) + DI + i) & (nibble ? 0x0F : 0xF0)) | (nibble_result << (4 * nibble)));
+								if (i == ((nibbles_count / 2)) && odd && nibble == 0) {
+									zero = ((read_mem_b((ES << 4) + DI + i) & 0xF0) == 0);
+									break;
+								}
+							}
+						}
+						set_cf(!!carry);
+						set_zf(!!zero);
+						handled = 1;
+						break;
+					}
 					case 0x31: /* INS reg1, reg2 */
 					case 0x39: /* INS reg8, imm4 */
 					{
