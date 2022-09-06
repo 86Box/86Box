@@ -333,7 +333,7 @@ readmemw(uint32_t s, uint16_t a)
     else {
 	wait(4, 1);
 	ret = read_mem_b(s + a);
-	ret |= read_mem_b(s + ((a + 1) & 0xffff)) << 8;
+	ret |= read_mem_b(s + (is186 ? (a + 1) : (a + 1) & 0xffff)) << 8;
     }
 
     return ret;
@@ -411,7 +411,7 @@ writememw(uint32_t s, uint32_t a, uint16_t v)
     else {
 	write_mem_b(addr, v & 0xff);
 	wait(4, 1);
-	addr = s + ((a + 1) & 0xffff);
+	addr = s + (is186 ? (a + 1) : ((a + 1) & 0xffff));
 	write_mem_b(addr, v >> 8);
     }
 
@@ -1703,6 +1703,96 @@ execx86(int cycs)
 
 	completed = 1;
 	// pclog("[%04X:%04X] Opcode: %02X\n", CS, cpu_state.pc, opcode);
+	if (is186) {
+		switch (opcode) {
+		case 0xC0: case 0xC1: /*rot imm8 */
+			bits = 8 << (opcode & 1);
+			do_mod_rm();
+			if (cpu_mod == 3)
+				wait(1, 0);
+			access(53, bits);
+			cpu_data = get_ea();
+			cpu_src = pfq_fetchb();
+
+			wait((cpu_mod != 3) ? 9 : 6, 0);
+			while (cpu_src != 0) {
+				cpu_dest = cpu_data;
+				oldc = cpu_state.flags & C_FLAG;
+				switch (rmdat & 0x38) {
+					case 0x00:	/* ROL */
+						set_cf(top_bit(cpu_data, bits));
+						cpu_data <<= 1;
+						cpu_data |= ((cpu_state.flags & C_FLAG) ? 1 : 0);
+						set_of_rotate(bits);
+						set_af(0);
+						break;
+					case 0x08:	/* ROR */
+						set_cf((cpu_data & 1) != 0);
+						cpu_data >>= 1;
+						if (cpu_state.flags & C_FLAG)
+							cpu_data |= (!(opcode & 1) ? 0x80 : 0x8000);
+						set_of_rotate(bits);
+						set_af(0);
+						break;
+					case 0x10:	/* RCL */
+						set_cf(top_bit(cpu_data, bits));
+						cpu_data = (cpu_data << 1) | (oldc ? 1 : 0);
+						set_of_rotate(bits);
+						set_af(0);
+						break;
+					case 0x18: 	/* RCR */
+						set_cf((cpu_data & 1) != 0);
+						cpu_data >>= 1;
+						if (oldc)
+							cpu_data |= (!(opcode & 0x01) ? 0x80 : 0x8000);
+						set_cf((cpu_dest & 1) != 0);
+						set_of_rotate(bits);
+						set_af(0);
+						break;
+					case 0x20:	/* SHL */
+						set_cf(top_bit(cpu_data, bits));
+						cpu_data <<= 1;
+						set_of_rotate(bits);
+						set_af((cpu_data & 0x10) != 0);
+						set_pzs(bits);
+						break;
+					case 0x28:	/* SHR */
+						set_cf((cpu_data & 1) != 0);
+						cpu_data >>= 1;
+						set_of_rotate(bits);
+						set_af(0);
+						set_pzs(bits);
+						break;
+					case 0x30:	/* SETMO - undocumented? */
+						bitwise(bits, 0xffff);
+						set_cf(0);
+						set_of_rotate(bits);
+						set_af(0);
+						set_pzs(bits);
+						break;
+					case 0x38:	/* SAR */
+						set_cf((cpu_data & 1) != 0);
+						cpu_data >>= 1;
+						if (!(opcode & 1))
+							cpu_data |= (cpu_dest & 0x80);
+						else
+							cpu_data |= (cpu_dest & 0x8000);
+						set_of_rotate(bits);
+						set_af(0);
+						set_pzs(bits);
+						break;
+				}
+				if ((opcode & 2) != 0)
+					wait(4, 0);
+				--cpu_src;
+			}
+			access(17, bits);
+			set_ea(cpu_data);
+			handled = 1;
+			break;
+		}
+	}
+	if (!handled) {
 	switch (opcode) {
 		case 0x06: case 0x0E: case 0x16: case 0x1E:	/* PUSH seg */
 			access(29, 16);
@@ -2236,12 +2326,27 @@ execx86(int cycs)
 			jcc(opcode, cpu_state.flags & (C_FLAG | Z_FLAG));
 			break;
 		case 0x68:	/*JS alias*/
+			if (is186) { /* PUSH imm16 */
+				uint16_t wordtopush = pfq_fetchw();
+				wait(1, 0);
+				push(&wordtopush);
+				break;
+			}
 		case 0x78:	/*JS*/
 		case 0x69:	/*JNS alias*/
 		case 0x79:	/*JNS*/
 			jcc(opcode, cpu_state.flags & N_FLAG);
 			break;
 		case 0x6A:	/*JP alias*/
+			if (is186) { /* PUSH imm8 */
+				uint8_t bytetopush = pfq_fetchb();
+				{
+				    SP -= 1;
+    				cpu_state.eaaddr = (SP & 0xffff);
+	    			writememb(ss, cpu_state.eaaddr, bytetopush);
+				}
+				break;
+			}
 		case 0x7A:	/*JP*/
 		case 0x6B: /*JNP alias*/
 		case 0x7B: /*JNP*/
@@ -2944,6 +3049,7 @@ execx86(int cycs)
 			wait(1, 0);
 			in_rep = (opcode == 0xf2 ? 1 : 2);
 			completed = 0;
+			rep_c_flag = 0;
 			break;
 
 		case 0xF4:	/*HLT*/
@@ -3133,6 +3239,7 @@ execx86(int cycs)
 			pfq_fetchb();
 			wait(8, 0);
 			break;
+	}
 	}
 
 	if (completed) {
