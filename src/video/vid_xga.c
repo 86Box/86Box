@@ -14,26 +14,26 @@
  *
  *		Copyright 2022 TheCollector1995.
  */
-#include "cpu.h"
-#include <86box/86box.h>
+#include <stdio.h>
+#include <stdint.h>
+#include <string.h>
+#include <stdlib.h>
+#include <wchar.h>
 #include <86box/bswap.h>
-#include <86box/device.h>
-#include <86box/dma.h>
+#include <86box/86box.h>
 #include <86box/io.h>
 #include <86box/machine.h>
-#include <86box/mca.h>
 #include <86box/mem.h>
+#include <86box/dma.h>
 #include <86box/rom.h>
+#include <86box/mca.h>
+#include <86box/device.h>
 #include <86box/timer.h>
+#include <86box/video.h>
 #include <86box/vid_svga.h>
 #include <86box/vid_svga_render.h>
 #include <86box/vid_xga_device.h>
-#include <86box/video.h>
-#include <stdint.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <wchar.h>
+#include "cpu.h"
 
 #define XGA_BIOS_PATH  "roms/video/xga/XGA_37F9576_Ver200.BIN"
 #define XGA2_BIOS_PATH "roms/video/xga/xga2_v300.bin"
