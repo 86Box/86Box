@@ -67,7 +67,7 @@ static uint16_t last_addr = 0x0000;
 
 static uint32_t *ovr_seg = NULL;
 static int prefetching = 1, completed = 1;
-static int in_rep = 0, repeating = 0;
+static int in_rep = 0, repeating = 0, rep_c_flag = 0;
 static int oldc, clear_lock = 0;
 static int refresh = 0, cycdiff;
 
@@ -1830,14 +1830,13 @@ execx86(int cycs)
 						uint8_t zero = 1;
 						uint8_t nibbles_count = CL - odd;
 						uint32_t i = 0, carry = 0, nibble = 0;
-						uint32_t srcseg = ovr_seg ? *ovr_seg : DS;
+						uint32_t srcseg = ovr_seg ? *ovr_seg : ds;
 
-						srcseg <<= 4;
 						wait(5, 0);
 						for (i = 0; i < ((nibbles_count / 2) + odd); i++) {
 							wait(19, 0);
 							for (nibble = 0; nibble < 2; nibble++) {
-								uint8_t destbyte = read_mem_b((ES << 4) + DI + i) >> (nibble ? 4 : 0);
+								uint8_t destbyte = read_mem_b((es) + DI + i) >> (nibble ? 4 : 0);
 								uint8_t srcbyte = read_mem_b(srcseg + SI + i) >> (nibble ? 4 : 0);
 								destbyte &= 0xF;
 								srcbyte &= 0xF;
@@ -1848,9 +1847,80 @@ execx86(int cycs)
 									carry++;
 								}
 								if (zero != 0) zero = (nibble_result == 0);
-								write_mem_b((ES << 4) + DI + i, (read_mem_b((ES << 4) + DI + i) & (nibble ? 0x0F : 0xF0)) | (nibble_result << (4 * nibble)));
+								write_mem_b((es) + DI + i, (read_mem_b((es) + DI + i) & (nibble ? 0x0F : 0xF0)) | (nibble_result << (4 * nibble)));
 								if (i == ((nibbles_count / 2)) && odd && nibble == 0) {
-									zero = ((read_mem_b((ES << 4) + DI + i) & 0xF0) == 0);
+									zero = ((read_mem_b((es) + DI + i) & 0xF0) == 0);
+									break;
+								}
+							}
+						}
+						set_cf(!!carry);
+						set_zf(!!zero);
+						handled = 1;
+						break;
+					}
+					case 0x22: /* SUB4S */
+					{
+						uint8_t odd = !!(CL % 2);
+						uint8_t zero = 1;
+						uint8_t nibbles_count = CL - odd;
+						uint32_t i = 0, carry = 0, nibble = 0;
+						uint32_t srcseg = ovr_seg ? *ovr_seg : ds;
+
+						wait(5, 0);
+						for (i = 0; i < ((nibbles_count / 2) + odd); i++) {
+							wait(19, 0);
+							for (nibble = 0; nibble < 2; nibble++) {
+								uint8_t destbyte = read_mem_b((es) + DI + i) >> (nibble ? 4 : 0);
+								uint8_t srcbyte = read_mem_b(srcseg + SI + i) >> (nibble ? 4 : 0);
+								destbyte &= 0xF;
+								srcbyte &= 0xF;
+								int8_t nibble_result = ((int8_t)(destbyte)) - ((int8_t)(srcbyte)) - ((int8_t)carry);
+								carry = 0;
+								while (nibble_result < 0) {
+									nibble_result += 10;
+									carry++;
+								}
+								if (zero != 0) zero = (nibble_result == 0);
+								write_mem_b((es) + DI + i, (read_mem_b((es) + DI + i) & (nibble ? 0x0F : 0xF0)) | (nibble_result << (4 * nibble)));
+								if (i == ((nibbles_count / 2)) && odd && nibble == 0) {
+									zero = ((read_mem_b((es) + DI + i) & 0xF0) == 0);
+									break;
+								}
+							}
+						}
+						set_cf(!!carry);
+						set_zf(!!zero);
+						handled = 1;
+						break;
+					}
+					case 0x26: /* CMP4S */
+					{
+						uint8_t odd = !!(CL % 2);
+						uint8_t zero = 1;
+						uint8_t nibbles_count = CL - odd;
+						uint32_t i = 0, carry = 0, nibble = 0;
+						uint32_t srcseg = ovr_seg ? *ovr_seg : ds;
+
+						wait(5, 0);
+						for (i = 0; i < ((nibbles_count / 2) + odd); i++) {
+							wait(19, 0);
+							uint8_t destcmp = read_mem_b((es) + DI + i);
+							for (nibble = 0; nibble < 2; nibble++) {
+								uint8_t destbyte = destcmp >> (nibble ? 4 : 0);
+								uint8_t srcbyte = read_mem_b(srcseg + SI + i) >> (nibble ? 4 : 0);
+								destbyte &= 0xF;
+								srcbyte &= 0xF;
+								int8_t nibble_result = ((int8_t)(destbyte)) - ((int8_t)(srcbyte)) - ((int8_t)carry);
+								carry = 0;
+								while (nibble_result < 0) {
+									nibble_result += 10;
+									carry++;
+								}
+								if (zero != 0) zero = (nibble_result == 0);
+								destcmp = ((destcmp & (nibble ? 0x0F : 0xF0)) | (nibble_result << (4 * nibble)));
+								if (i == ((nibbles_count / 2)) && odd && nibble == 0) {
+									zero = ((destcmp & 0xF0) == 0);
 									break;
 								}
 							}
@@ -1868,12 +1938,12 @@ execx86(int cycs)
 						{
 							uint8_t bit_length = ((opcode & 0x8) ? (pfq_fetchb() & 0xF) : (getr8(cpu_reg) & 0xF)) + 1;
 							uint8_t bit_offset = getr8(cpu_rm) & 0xF;
-							uint32_t byteaddr = (ES << 4) + DI;
+							uint32_t byteaddr = (es) + DI;
 							uint32_t i = 0;
 							if (bit_offset >= 8) { DI++; byteaddr++; bit_offset -= 8; }
 							for (i = 0; i < bit_length; i++) {
-								byteaddr = (ES << 4) + DI;
-								writememb(ES << 4, DI, (read_mem_b(byteaddr) & ~(1 << (bit_offset))) | ((!!(AX & (1 << i))) << bit_offset));
+								byteaddr = (es) + DI;
+								writememb(es, DI, (read_mem_b(byteaddr) & ~(1 << (bit_offset))) | ((!!(AX & (1 << i))) << bit_offset));
 								bit_offset++;
 								if (bit_offset == 8) { DI++; bit_offset = 0; }
 							}
@@ -1890,14 +1960,14 @@ execx86(int cycs)
 						{
 							uint8_t bit_length = ((opcode & 0x8) ? (pfq_fetchb() & 0xF) : (getr8(cpu_reg) & 0xF)) + 1;
 							uint8_t bit_offset = getr8(cpu_rm) & 0xF;
-							uint32_t byteaddr = (DS << 4) + SI;
+							uint32_t byteaddr = (ds) + SI;
 							uint32_t i = 0;
 
 							if (bit_offset >= 8) { SI++; byteaddr++; bit_offset -= 8; }
 
 							AX = 0;
 							for (i = 0; i < bit_length; i++) {
-								byteaddr = (DS << 4) + SI;
+								byteaddr = (ds) + SI;
 								AX |= (!!(readmemb(byteaddr) & (1 << bit_offset))) << i;
 								bit_offset++;
 								if (bit_offset == 8) { SI++; bit_offset = 0; }
@@ -1908,8 +1978,14 @@ execx86(int cycs)
 						break;
 					}
 					
+					case 0xFF: { /* BRKEM */
+						/* Unimplemented for now. */
+						fatal("808x: Unsupported 8080 emulation mode attempted to enter into!");
+						break;
+					}
 					default: {
 						opcode = orig_opcode;
+						cpu_state.pc--;
 						break;
 					}
 				}
@@ -2144,7 +2220,14 @@ execx86(int cycs)
 		case 0x74:	/*JE*/
 		case 0x65:	/*JNE alias*/
 		case 0x75:	/*JNE*/
-			jcc(opcode, cpu_state.flags & Z_FLAG);
+			if (is_nec && (opcode & 0xFE) == 0x64) {
+				/* REPC/REPNC */
+				wait(1, 0);
+				in_rep = (opcode == 0x64 ? 1 : 2);
+				rep_c_flag = 1;
+				completed = 0;
+			}
+			else jcc(opcode, cpu_state.flags & Z_FLAG);
 			break;
 		case 0x66:	/*JBE alias*/
 		case 0x76:	/*JBE*/
@@ -2463,7 +2546,7 @@ execx86(int cycs)
 				wait(3, 0);
 				break;
 			}
-			if ((!!(cpu_state.flags & Z_FLAG)) == (in_rep == 1)) {
+			if ((!!(cpu_state.flags & (rep_c_flag ? C_FLAG : Z_FLAG))) == (in_rep == 1)) {
 				completed = 1;
 				wait(4, 0);
 				break;
@@ -3056,6 +3139,7 @@ execx86(int cycs)
 		repeating = 0;
 		ovr_seg = NULL;
 		in_rep = 0;
+		rep_c_flag = 0;
 		if (in_lock)
 			clear_lock = 1;
 		clock_end();
