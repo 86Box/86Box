@@ -846,6 +846,11 @@ seteaq(uint64_t val)
 static void
 push(uint16_t *val)
 {
+	if (is186 && SP == 1) {
+		writememw(ss - 1, 0, *val);
+		SP = cpu_state.eaaddr = 0xFFFF;
+		return;
+	}
     SP -= 2;
     cpu_state.eaaddr = (SP & 0xffff);
     writememw(ss, cpu_state.eaaddr, *val);
@@ -1705,6 +1710,51 @@ execx86(int cycs)
 	// pclog("[%04X:%04X] Opcode: %02X\n", CS, cpu_state.pc, opcode);
 	if (is186) {
 		switch (opcode) {
+		case 0xC8: /* ENTER/PREPARE */
+		{
+			uint16_t temp = 0;
+			uint16_t size = pfq_fetchw();
+			uint8_t nests = pfq_fetchb();
+			uint32_t i = 0;
+
+			push(&BP);
+			temp = SP;
+			if (nests > 0) {
+				while (--nests) {
+					uint16_t tempbp = 0;
+					BP -= 2;
+					tempbp = readmemw(ss, BP);
+					push(&tempbp);
+				}
+				push(&temp);
+			}
+			BP = temp;
+			SP -= size;
+			handled = 1;
+			break;
+		}
+		case 0xC9: /* LEAVE/DISPOSE */
+		{
+			SP = BP;
+			BP = pop();
+			break;
+		}
+		case 0x62: /* BOUND r/m */
+		{
+			uint16_t oldpc = cpu_state.oldpc;
+			uint16_t lowbound = 0, highbound = 0;
+			uint16_t regval = 0;
+			do_mod_rm();
+
+			lowbound = readmemw(easeg, cpu_state.eaaddr);
+			highbound = readmemw(easeg, cpu_state.eaaddr + 2);
+			regval = get_reg(cpu_reg);
+			if (lowbound > regval || highbound < regval) {
+				cpu_state.pc = cpu_state.oldpc;
+				interrupt(5);
+			}
+			break;
+		}
 		case 0xC0: case 0xC1: /*rot imm8 */
 			bits = 8 << (opcode & 1);
 			do_mod_rm();
@@ -1715,6 +1765,8 @@ execx86(int cycs)
 			cpu_src = pfq_fetchb();
 
 			wait((cpu_mod != 3) ? 9 : 6, 0);
+
+			if (!is_nec) cpu_src &= 0x1F;
 			while (cpu_src != 0) {
 				cpu_dest = cpu_data;
 				oldc = cpu_state.flags & C_FLAG;
@@ -2334,6 +2386,17 @@ execx86(int cycs)
 			}
 		case 0x78:	/*JS*/
 		case 0x69:	/*JNS alias*/
+			if (is186) { /* IMUL reg16,reg16/mem16,imm16 */
+				uint16_t immediate = 0;
+				bits = 16;
+				do_mod_rm();
+				read_ea(0, 16);
+				immediate = pfq_fetchw();
+				mul(cpu_data & 0xFFFF, immediate);
+				set_reg(cpu_reg, cpu_data);
+				set_co_mul(16, cpu_dest != 0);
+				break;
+			}
 		case 0x79:	/*JNS*/
 			jcc(opcode, cpu_state.flags & N_FLAG);
 			break;
@@ -2349,6 +2412,17 @@ execx86(int cycs)
 			}
 		case 0x7A:	/*JP*/
 		case 0x6B: /*JNP alias*/
+			if (is186) { /* IMUL reg16,reg16/mem16,imm8 */
+				uint16_t immediate = 0;
+				bits = 16;
+				do_mod_rm();
+				read_ea(0, 16);
+				immediate = pfq_fetchb();
+				mul(cpu_data & 0xFFFF, immediate);
+				set_reg(cpu_reg, cpu_data);
+				set_co_mul(16, cpu_dest != 0);
+				break;
+			}
 		case 0x7B: /*JNP*/
 			jcc(opcode, cpu_state.flags & P_FLAG);
 			break;
@@ -2814,6 +2888,7 @@ execx86(int cycs)
 				cpu_src = CL;
 				wait((cpu_mod != 3) ? 9 : 6, 0);
 			}
+			if (is186 && !is_nec) cpu_src &= 0x1F;
 			while (cpu_src != 0) {
 				cpu_dest = cpu_data;
 				oldc = cpu_state.flags & C_FLAG;

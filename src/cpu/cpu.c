@@ -373,7 +373,7 @@ cpu_set(void)
     unmask_a20_in_smm = 0;
 
     CPUID        = cpu_s->cpuid_model;
-    is8086       = (cpu_s->cpu_type > CPU_8088) && !(cpu_s->cpu_type == CPU_V20) && !(cpu_s->cpu_type == CPU_V30);
+    is8086       = (cpu_s->cpu_type > CPU_8088) && !(cpu_s->cpu_type == CPU_V20);
     is_nec       = (cpu_s->cpu_type == CPU_V20) || (cpu_s->cpu_type == CPU_V30);
     is186        = (cpu_s->cpu_type == CPU_186) || (cpu_s->cpu_type == CPU_188) || (cpu_s->cpu_type == CPU_V20) || (cpu_s->cpu_type == CPU_V30);
     is286        = (cpu_s->cpu_type >= CPU_286);
