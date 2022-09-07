@@ -1678,6 +1678,27 @@ cpu_data_opff_rm(void) {
     }
 }
 
+uint16_t
+cpu_inw(uint16_t port) {
+	if (is8086 && !(port & 1)) {
+		wait(4, 0);
+	} else {
+		wait(8, 0);
+	}
+
+	return inw(port);
+}
+
+void
+cpu_outw(uint16_t port, uint16_t val) {
+	if (is8086 && !(port & 1)) {
+		wait(4, 0);
+	} else {
+		wait(8, 0);
+	}
+
+	return outw(port, val);
+}
 
 /* Executes instructions up to the specified number of cycles. */
 void
@@ -1710,6 +1731,57 @@ execx86(int cycs)
 	// pclog("[%04X:%04X] Opcode: %02X\n", CS, cpu_state.pc, opcode);
 	if (is186) {
 		switch (opcode) {
+		case 0x6c: case 0x6d: /* INM dst, DW/INS dst, DX */
+		{
+			bits = 8 << (opcode & 1);
+			if (!repeating) wait(2, 0);
+
+			if (rep_action(bits)) {
+				break;
+			} else if (!repeating) {
+				wait(7, 0);
+			}
+			if (bits == 16) {
+				writememw(es, DI, cpu_inw(DX));
+				DI += (cpu_state.flags & D_FLAG) ? -2 : 2;
+			} else {
+				wait(4, 0);
+				writememb(es, DI, inb(DX));
+				DI += (cpu_state.flags & D_FLAG) ? -1 : 1;
+			}
+			if (in_rep == 0) {
+				break;
+			}
+			repeating = 1;
+			clock_end();
+			break;
+		}
+		case 0x6e: case 0x6f: /* OUTM DW, src/OUTS DX, src */
+		{
+			uint32_t dest_seg = ovr_seg ? *ovr_seg : ds;
+			bits = 8 << (opcode & 1);
+			if (!repeating) wait(2, 0);
+
+			if (rep_action(bits)) {
+				break;
+			} else if (!repeating) {
+				wait(7, 0);
+			}
+			if (bits == 16) {
+				cpu_outw(DX, readmemw(dest_seg, SI));
+				SI += (cpu_state.flags & D_FLAG) ? -2 : 2;
+			} else {
+				wait(4, 0);
+				outb(DX, readmemb(dest_seg + SI));
+				SI += (cpu_state.flags & D_FLAG) ? -1 : 1;
+			}
+			if (in_rep == 0) {
+				break;
+			}
+			repeating = 1;
+			clock_end();
+			break;
+		}
 		case 0xC8: /* ENTER/PREPARE */
 		{
 			uint16_t temp = 0;
