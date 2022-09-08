@@ -2049,24 +2049,22 @@ execx86(int cycs)
 						wait(5, 0);
 						for (i = 0; i < ((nibbles_count / 2) + odd); i++) {
 							wait(19, 0);
+							uint8_t destcmp = read_mem_b((es) + DI + i);
 							for (nibble = 0; nibble < 2; nibble++) {
-								uint8_t destbyte = read_mem_b((es) + DI + i) >> (nibble ? 4 : 0);
+								uint8_t destbyte = destcmp >> (nibble ? 4 : 0);
 								uint8_t srcbyte = read_mem_b(srcseg + SI + i) >> (nibble ? 4 : 0);
 								destbyte &= 0xF;
 								srcbyte &= 0xF;
-								uint8_t nibble_result = destbyte + srcbyte + carry;
+								uint8_t nibble_result = (i == (nibbles_count / 2) && nibble == 1) ? (destbyte + carry) : ((uint8_t)(destbyte)) + ((uint8_t)(srcbyte)) + ((uint32_t)carry);
 								carry = 0;
 								while (nibble_result >= 10) {
 									nibble_result -= 10;
 									carry++;
 								}
-								if (zero != 0) zero = (nibble_result == 0);
-								write_mem_b((es) + DI + i, (read_mem_b((es) + DI + i) & (nibble ? 0x0F : 0xF0)) | (nibble_result << (4 * nibble)));
-								if (i == ((nibbles_count / 2)) && odd && nibble == 0) {
-									zero = ((read_mem_b((es) + DI + i) & 0xF0) == 0);
-									break;
-								}
+								if (zero != 0 || (i == (nibbles_count / 2) && nibble == 1)) zero = (nibble_result == 0);
+								destcmp = ((destcmp & (nibble ? 0x0F : 0xF0)) | (nibble_result << (4 * nibble)));
 							}
+							write_mem_b(es + DI + i, destcmp);
 						}
 						set_cf(!!carry);
 						set_zf(!!zero);
@@ -2084,24 +2082,22 @@ execx86(int cycs)
 						wait(5, 0);
 						for (i = 0; i < ((nibbles_count / 2) + odd); i++) {
 							wait(19, 0);
+							uint8_t destcmp = read_mem_b((es) + DI + i);
 							for (nibble = 0; nibble < 2; nibble++) {
-								uint8_t destbyte = read_mem_b((es) + DI + i) >> (nibble ? 4 : 0);
+								uint8_t destbyte = destcmp >> (nibble ? 4 : 0);
 								uint8_t srcbyte = read_mem_b(srcseg + SI + i) >> (nibble ? 4 : 0);
 								destbyte &= 0xF;
 								srcbyte &= 0xF;
-								int8_t nibble_result = ((int8_t)(destbyte)) - ((int8_t)(srcbyte)) - ((int8_t)carry);
+								int8_t nibble_result = (i == (nibbles_count / 2) && nibble == 1) ? ((int8_t)destbyte - (int8_t)carry) : ((int8_t)(destbyte)) - ((int8_t)(srcbyte)) - ((int8_t)carry);
 								carry = 0;
 								while (nibble_result < 0) {
 									nibble_result += 10;
 									carry++;
 								}
-								if (zero != 0) zero = (nibble_result == 0);
-								write_mem_b((es) + DI + i, (read_mem_b((es) + DI + i) & (nibble ? 0x0F : 0xF0)) | (nibble_result << (4 * nibble)));
-								if (i == ((nibbles_count / 2)) && odd && nibble == 0) {
-									zero = ((read_mem_b((es) + DI + i) & 0xF0) == 0);
-									break;
-								}
+								if (zero != 0 || (i == (nibbles_count / 2) && nibble == 1)) zero = (nibble_result == 0);
+								destcmp = ((destcmp & (nibble ? 0x0F : 0xF0)) | (nibble_result << (4 * nibble)));
 							}
+							write_mem_b(es + DI + i, destcmp);
 						}
 						set_cf(!!carry);
 						set_zf(!!zero);
@@ -2131,12 +2127,8 @@ execx86(int cycs)
 									nibble_result += 10;
 									carry++;
 								}
-								if (zero != 0) zero = (nibble_result == 0);
+								if (zero != 0 || (i == (nibbles_count / 2) && nibble == 1)) zero = (nibble_result == 0);
 								destcmp = ((destcmp & (nibble ? 0x0F : 0xF0)) | (nibble_result << (4 * nibble)));
-								if (i == ((nibbles_count / 2)) && odd && nibble == 0) {
-									zero = ((destcmp & 0xF0) == 0);
-									break;
-								}
 							}
 						}
 						set_cf(!!carry);
