@@ -433,50 +433,26 @@ et4000w32p_recalctimings(svga_t *svga)
 
     svga->clock = (cpuclock * (double) (1ull << 32)) / svga->getclock((svga->miscout >> 2) & 3, svga->clock_gen);
 
-	if (et4000->type != ET4000W32P_DIAMOND) {
-		if ((svga->gdcreg[6] & 1) || (svga->attrregs[0x10] & 1)) {
-			if (svga->gdcreg[5] & 0x40) {
-				switch (svga->bpp) {
-					case 8:
-						svga->clock /= 2;
-						break;
-					case 15: case 16:
-						svga->clock /= 3;
-						break;
-					case 24:
-						svga->clock /= 4;
-						break;
-				}
-			}
-		}
-	}
+    if (et4000->type != ET4000W32P_DIAMOND) {
+        if ((svga->gdcreg[6] & 1) || (svga->attrregs[0x10] & 1)) {
+            if (svga->gdcreg[5] & 0x40) {
+                switch (svga->bpp) {
+                    case 8:
+                        svga->clock /= 2;
+                        break;
+                    case 15:
+                    case 16:
+                        svga->clock /= 3;
+                        break;
+                    case 24:
+                        svga->clock /= 4;
+                        break;
+                }
+            }
+        }
+    }
 
 #if 0
-    if (svga->adv_flags & FLAG_NOSKEW) {
-		/* On the Cardex ET4000/W32p-based cards, adjust text mode clocks by 1. */
-		if (!(svga->gdcreg[6] & 1) && !(svga->attrregs[0x10] & 1)) {	/* Text mode */
-			svga->ma_latch--;
-
-			if ((svga->seqregs[1] & 8)) /*40 column*/
-				svga->hdisp += (svga->seqregs[1] & 1) ? 16 : 18;
-			else
-				svga->hdisp += (svga->seqregs[1] & 1) ? 8 : 9;
-		} else {
-			/* Also adjust the graphics mode clocks in some cases. */
-			if ((svga->gdcreg[5] & 0x40) && (svga->bpp != 32)) {
-				if ((svga->bpp == 15) || (svga->bpp == 16) || (svga->bpp == 24))
-					svga->hdisp += (svga->seqregs[1] & 1) ? 16 : 18;
-				else
-					svga->hdisp += (svga->seqregs[1] & 1) ? 8 : 9;
-			} else if ((svga->gdcreg[5] & 0x40) == 0) {
-				svga->hdisp += (svga->seqregs[1] & 1) ? 8 : 9;
-				if (svga->hdisp == 648 || svga->hdisp == 808 || svga->hdisp == 1032)
-					svga->hdisp -= 8;
-			}
-		}
-    }
-#endif
-
     if (svga->adv_flags & FLAG_NOSKEW) {
         /* On the Cardex ET4000/W32p-based cards, adjust text mode clocks by 1. */
         if (!(svga->gdcreg[6] & 1) && !(svga->attrregs[0x10] & 1)) { /* Text mode */
@@ -500,6 +476,7 @@ et4000w32p_recalctimings(svga_t *svga)
             }
         }
     }
+#endif
 
     if (et4000->type == ET4000W32) {
         if ((svga->gdcreg[6] & 1) || (svga->attrregs[0x10] & 1)) {

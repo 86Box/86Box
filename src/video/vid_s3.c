@@ -2932,355 +2932,6 @@ s3_in(uint16_t addr, void *p)
             }
             break;
 
-		case 0x3c6: case 0x3c7: case 0x3c8: case 0x3c9:
-		rs2 = (svga->crtc[0x55] & 0x01) || !!(svga->crtc[0x43] & 2);
-		if (s3->chip >= S3_TRIO32)
-			return svga_in(addr, svga);
-		else if ((s3->chip == S3_VISION964 && s3->card_type != S3_ELSAWIN2KPROX_964) || (s3->chip == S3_86C928)) {
-			rs3 = !!(svga->crtc[0x55] & 0x02);
-			return bt48x_ramdac_in(addr, rs2, rs3, svga->ramdac, svga);
-		} else if ((s3->chip == S3_VISION964 && s3->card_type == S3_ELSAWIN2KPROX_964) || (s3->chip == S3_VISION968 && (s3->card_type == S3_ELSAWIN2KPROX ||
-					s3->card_type == S3_PHOENIX_VISION968 || s3->card_type == S3_NUMBER9_9FX_771)))
-			return ibm_rgb528_ramdac_in(addr, rs2, svga->ramdac, svga);
-		else if ((s3->chip == S3_VISION968 && (s3->card_type == S3_SPEA_MERCURY_P64V || s3->card_type == S3_MIROVIDEO40SV_ERGO_968))) {
-			rs3 = !!(svga->crtc[0x55] & 0x02);
-			return tvp3026_ramdac_in(addr, rs2, rs3, svga->ramdac, svga);
-		} else if (((s3->chip == S3_86C801) || (s3->chip == S3_86C805)) && (s3->card_type != S3_MIROCRYSTAL10SD_805 && s3->card_type != S3_MIROCRYSTAL8S_805))
-			return att49x_ramdac_in(addr, rs2, svga->ramdac, svga);
-		else if (s3->chip <= S3_86C924)
-			return sc1148x_ramdac_in(addr, rs2, svga->ramdac, svga);
-		else if (s3->card_type == S3_NUMBER9_9FX_531)
-			return att498_ramdac_in(addr, rs2, svga->ramdac, svga);
-		else if ((s3->chip == S3_86C928PCI) && (s3->card_type == S3_SPEA_MERCURY_LITE_PCI))
-			return sc1502x_ramdac_in(addr, svga->ramdac, svga);
-		else
-			return sdac_ramdac_in(addr, rs2, svga->ramdac, svga);
-		break;
-
-		case 0x3d4:
-		return svga->crtcreg;
-		case 0x3d5:
-		switch (svga->crtcreg)
-		{
-			case 0x2d: return (s3->chip == S3_TRIO64V2) ? 0x89 : 0x88;       /*Extended chip ID*/
-			case 0x2e: return s3->id_ext; /*New chip ID*/
-			case 0x2f: return (s3->chip == S3_TRIO64V) ? 0x40 : 0;	  /*Revision level*/
-			case 0x30: return s3->id;     /*Chip ID*/
-			case 0x31: return (svga->crtc[0x31] & 0xcf) | ((s3->ma_ext & 3) << 4);
-			case 0x35: return (svga->crtc[0x35] & 0xf0) | (s3->bank & 0xf);
-			case 0x45: s3->hwc_col_stack_pos = 0; break;
-			case 0x51: return (svga->crtc[0x51] & 0xf0) | ((s3->bank >> 2) & 0xc) | ((s3->ma_ext >> 2) & 3);
-			case 0x5c:	/* General Output Port Register */
-				temp = svga->crtc[svga->crtcreg] & 0xa0;
-				if (((svga->miscout >> 2) & 3) == 3)
-					temp |= svga->crtc[0x42] & 0x0f;
-				else
-					temp |= ((svga->miscout >> 2) & 3);
-				if ((temp & 0xa0) == 0xa0) {
-					if ((svga->crtc[0x5c] & 0x40) && i2c_gpio_get_scl(s3->i2c))
-						temp |= 0x40;
-					if ((svga->crtc[0x5c] & 0x10) && i2c_gpio_get_sda(s3->i2c))
-						temp |= 0x10;
-				}
-				return temp;
-			case 0x69: return s3->ma_ext;
-			case 0x6a: return s3->bank;
-			/* Phoenix S3 video BIOS'es seem to expect CRTC registers 6B and 6C
-			   to be mirrors of 59 and 5A. */
-			case 0x6b:
-				if (s3->chip != S3_TRIO64V2) {
-					if (svga->crtc[0x53] & 0x08) {
-						return (s3->chip == S3_TRIO64V) ? (svga->crtc[0x59] & 0xfc) : (svga->crtc[0x59] & 0xfe);
-					} else {
-						return svga->crtc[0x59];
-					}
-				} else
-					return svga->crtc[0x6b];
-				break;
-			case 0x6c:
-				if (s3->chip != S3_TRIO64V2) {
-					if (svga->crtc[0x53] & 0x08) {
-						return 0x00;
-					} else
-						return (svga->crtc[0x5a] & 0x80);
-				} else
-					return svga->crtc[0x6c];
-				break;
-		}
-		return svga->crtc[svga->crtcreg];
-	}
-	return svga_in(addr, svga);
-}
-
-static void s3_recalctimings(svga_t *svga)
-{
-	s3_t *s3 = (s3_t *)svga->p;
-	int clk_sel = (svga->miscout >> 2) & 3;
-
-	svga->hdisp = svga->hdisp_old;
-
-	if (!svga->scrblank && svga->attr_palette_enable) {
-		if ((svga->gdcreg[6] & 1) || (svga->attrregs[0x10] & 1)) {
-			if (svga->crtc[0x3a] & 0x10) { /*256+ color register*/
-				svga->gdcreg[5] |= 0x40;
-			}
-		}
-	}
-
-	svga->ma_latch |= (s3->ma_ext << 16);
-
-	if (s3->chip >= S3_86C928) {
-		if (svga->crtc[0x5d] & 0x01) svga->htotal     |= 0x100;
-		if (svga->crtc[0x5d] & 0x02) {
-			svga->hdisp_time |= 0x100;
-			svga->hdisp |= 0x100 * svga->dots_per_clock;
-		}
-		if (svga->crtc[0x5e] & 0x01) svga->vtotal      |= 0x400;
-		if (svga->crtc[0x5e] & 0x02) svga->dispend     |= 0x400;
-		if (svga->crtc[0x5e] & 0x04) svga->vblankstart |= 0x400;
-		if (svga->crtc[0x5e] & 0x10) svga->vsyncstart  |= 0x400;
-		if (svga->crtc[0x5e] & 0x40) svga->split       |= 0x400;
-		if (s3->accel.advfunc_cntl & 0x01)
-			svga->split = 0x7fff;
-		if (svga->crtc[0x51] & 0x30)      svga->rowoffset  |= (svga->crtc[0x51] & 0x30) << 4;
-		else if (svga->crtc[0x43] & 0x04) svga->rowoffset  |= 0x100;
-	} else if (svga->crtc[0x43] & 0x04) svga->rowoffset  |= 0x100;
-	if (!svga->rowoffset) svga->rowoffset = 256;
-
-	if ((s3->chip == S3_VISION964) || (s3->chip == S3_86C928)) {
-		if (s3->card_type == S3_ELSAWIN2KPROX_964)
-			ibm_rgb528_recalctimings(svga->ramdac, svga);
-		else
-			bt48x_recalctimings(svga->ramdac, svga);
-	} else if (s3->chip == S3_VISION968) {
-		if (s3->card_type == S3_SPEA_MERCURY_P64V || s3->card_type == S3_MIROVIDEO40SV_ERGO_968)
-			tvp3026_recalctimings(svga->ramdac, svga);
-		else
-			ibm_rgb528_recalctimings(svga->ramdac, svga);
-	} else
-		svga->interlace = !!(svga->crtc[0x42] & 0x20);
-
-	if ((((svga->miscout >> 2) & 3) == 3) && s3->chip < S3_TRIO32)
-		clk_sel = svga->crtc[0x42] & 0x0f;
-
-	svga->clock = (cpuclock * (double)(1ull << 32)) / svga->getclock(clk_sel, svga->clock_gen);
-
-	switch (svga->crtc[0x67] >> 4) {
-		case 3: case 5: case 7:
-		svga->clock /= 2;
-		break;
-	}
-
-	svga->lowres = !((svga->gdcreg[5] & 0x40) && (svga->crtc[0x3a] & 0x10));
-
-	if (s3->card_type == S3_MIROCRYSTAL10SD_805 || s3->card_type == S3_MIROCRYSTAL20SD_864 ||
-		s3->card_type == S3_MIROCRYSTAL20SV_964 || s3->card_type == S3_SPEA_MIRAGE_86C801 ||
-		s3->card_type == S3_SPEA_MIRAGE_86C805 || s3->card_type == S3_MIROCRYSTAL8S_805 ||
-		s3->card_type == S3_NUMBER9_9FX_531 || s3->card_type == S3_SPEA_MERCURY_LITE_PCI) {
-		if (!(svga->crtc[0x5e] & 0x04))
-			svga->vblankstart = svga->dispend;
-		if (svga->bpp != 32) {
-			if (svga->crtc[0x31] & 2) /*This is needed if the pixel width gets set with delays*/
-				s3->width = 2048;
-			else {
-				if (s3->card_type == S3_MIROCRYSTAL10SD_805) {
-					if (svga->hdisp == 1280 && s3->width == 1024) {
-						s3->width = 1280;
-					}
-				}
-			}
-		} else {
-			if (s3->card_type == S3_NUMBER9_9FX_531) {
-				if (svga->hdisp == 1600 && s3->width == 1600)
-					s3->width = 800;
-			}
-		}
-	} else if (s3->chip == S3_86C928) {
-		if (svga->bpp == 15) {
-			if (s3->width == 800)
-				s3->width = 1024;
-		}
-	}
-
-	if ((svga->crtc[0x43] & 0x08) && (s3->color_16bit == 0) && (s3->chip <= S3_86C805)) {
-		s3->color_16bit = 1;
-		s3->width = 1024;
-	} else if (!(svga->crtc[0x43] & 0x08) && (s3->color_16bit == 1) && (s3->chip <= S3_86C805)) {
-		s3->color_16bit = 0;
-		if (s3->chip <= S3_86C924) {
-			if (s3->accel.advfunc_cntl & 4)
-				s3->width = 1024;
-			else
-				s3->width = 640;
-		}
-	}
-
-	if ((svga->gdcreg[5] & 0x40) && (svga->crtc[0x3a] & 0x10)) {
-		switch (svga->bpp) {
-			case 8:
-			svga->render = svga_render_8bpp_highres;
-			if (s3->chip != S3_VISION868) {
-				if (s3->chip == S3_86C928) {
-					if (s3->width == 2048 || s3->width == 1280 || s3->width == 1600)
-						svga->hdisp <<= 1;
-				} else if ((s3->chip != S3_86C801) && (s3->chip != S3_86C805) && (s3->chip != S3_TRIO32) &&
-							(s3->chip != S3_TRIO64) && (s3->chip != S3_VISION964) && (s3->chip != S3_VISION968)) {
-					if (s3->width == 1280 || s3->width == 1600)
-						svga->hdisp <<= 1;
-				} else if ((s3->card_type == S3_ELSAWIN2KPROX_964) || (s3->card_type == S3_ELSAWIN2KPROX)) {
-					if (s3->width == 1280 || s3->width == 1600)
-						svga->hdisp <<= 1;
-				} else if (s3->card_type == S3_SPEA_MERCURY_P64V) {
-					if (s3->width == 1280 || s3->width == 1600)
-						svga->hdisp <<= 1;
-				} else if (s3->card_type == S3_NUMBER9_9FX_771)
-					svga->hdisp <<= 1;
-
-				if (s3->card_type == S3_MIROVIDEO40SV_ERGO_968 || s3->card_type == S3_MIROCRYSTAL20SD_864 ||
-					s3->card_type == S3_PHOENIX_VISION968 || s3->card_type == S3_SPEA_MERCURY_P64V) {
-					if (svga->hdisp != 1408)
-						svga->hdisp = s3->width;
-					if (s3->card_type == S3_MIROCRYSTAL20SD_864) {
-						if (s3->width == 2048 || s3->width == 1600 || s3->width == 800) {
-							switch (svga->dispend) {
-								case 400:
-								case 480:
-								svga->hdisp = 640;
-								break;
-
-								case 576:
-								svga->hdisp = 768;
-								break;
-
-								case 600:
-								if (s3->width == 1600)
-									s3->width = 800;
-								svga->hdisp = 800;
-								break;
-
-								case 768:
-								svga->hdisp = 1024;
-								break;
-
-								case 864:
-								svga->hdisp = 1152;
-								break;
-
-								case 1024:
-								if (svga->vtotal == 1066)
-									svga->hdisp = 1280;
-								break;
-							}
-						}
-					}
-				}
-				if (s3->card_type == S3_MIROCRYSTAL10SD_805 || s3->card_type == S3_MIROCRYSTAL8S_805) {
-					if (svga->rowoffset == 256 && (((svga->crtc[0x51] & 0x30) == 0x00 && !(svga->crtc[0x43] & 0x04))))
-						svga->rowoffset >>= 1;
-				}
-			}
-			break;
-			case 15:
-			svga->render = svga_render_15bpp_highres;
-			if ((s3->chip != S3_VISION964) && (s3->card_type != S3_SPEA_MIRAGE_86C801) &&
-				(s3->card_type != S3_SPEA_MIRAGE_86C805)) {
-				if (s3->chip == S3_86C928)
-					svga->hdisp <<= 1;
-				else if (s3->chip != S3_VISION968)
-					svga->hdisp >>= 1;
-			}
-			if ((s3->chip != S3_VISION868) && (s3->chip != S3_TRIO32) &&
-				(s3->chip != S3_TRIO64) && (s3->chip != S3_VISION964)) {
-				if (s3->width == 1280 || s3->width == 1600)
-					svga->hdisp <<= 1;
-				else if (s3->card_type == S3_NUMBER9_9FX_771)
-					svga->hdisp <<= 1;
-			}
-			if (s3->card_type == S3_MIROVIDEO40SV_ERGO_968 || s3->card_type == S3_PHOENIX_VISION968 ||
-				s3->card_type == S3_SPEA_MERCURY_P64V) {
-				if (svga->hdisp == (1408*2))
-					svga->hdisp >>= 1;
-				else
-					svga->hdisp = s3->width;
-			}
-
-			if (s3->card_type == S3_SPEA_MIRAGE_86C801 || s3->card_type == S3_SPEA_MIRAGE_86C805 ||
-				s3->card_type == S3_SPEA_MERCURY_LITE_PCI)
-				svga->hdisp = s3->width;
-			break;
-			case 16:
-			svga->render = svga_render_16bpp_highres;
-			if ((s3->card_type == S3_ELSAWIN2KPROX_964) || (s3->card_type == S3_ELSAWIN2KPROX)) {
-				if (s3->width == 1280 || s3->width == 1600)
-					svga->hdisp <<= 1;
-			}
-			if ((s3->chip != S3_VISION964) && (s3->card_type != S3_SPEA_MIRAGE_86C801) &&
-				(s3->card_type != S3_SPEA_MIRAGE_86C805)) {
-				if (s3->chip == S3_86C928)
-					svga->hdisp <<= 1;
-				else if (s3->chip != S3_VISION968)
-					svga->hdisp >>= 1;
-			} else if ((s3->card_type == S3_SPEA_MIRAGE_86C801) || (s3->card_type == S3_SPEA_MIRAGE_86C805))
-					svga->hdisp >>= 1;
-			if ((s3->chip != S3_VISION868) && (s3->chip != S3_TRIO32) &&
-				(s3->chip != S3_TRIO64) && (s3->chip != S3_VISION964)) {
-				if (s3->width == 1280 || s3->width == 1600)
-					svga->hdisp <<= 1;
-				else if (s3->card_type == S3_NUMBER9_9FX_771)
-					svga->hdisp <<= 1;
-			}
-			if (s3->card_type == S3_MIROVIDEO40SV_ERGO_968 || s3->card_type == S3_PHOENIX_VISION968 ||
-				s3->card_type == S3_SPEA_MERCURY_P64V) {
-				if (svga->hdisp == (1408*2))
-					svga->hdisp >>= 1;
-				else
-					svga->hdisp = s3->width;
-			}
-
-			if (s3->card_type == S3_SPEA_MIRAGE_86C801 || s3->card_type == S3_SPEA_MIRAGE_86C805 ||
-				s3->card_type == S3_SPEA_MERCURY_LITE_PCI)
-				svga->hdisp = s3->width;
-			break;
-			case 24:
-			svga->render = svga_render_24bpp_highres;
-			if (s3->chip != S3_VISION968) {
-				if (s3->chip != S3_86C928 && s3->chip != S3_86C801 && s3->chip != S3_86C805)
-					svga->hdisp /= 3;
-				else
-					svga->hdisp = (svga->hdisp * 2) / 3;
-
-				if (s3->card_type == S3_SPEA_MERCURY_LITE_PCI) {
-					if (s3->width == 2048)
-						switch (svga->dispend) {
-							case 480:
-								svga->hdisp = 640;
-								break;
-						}
-				}
-			} else {
-				if (s3->card_type == S3_MIROVIDEO40SV_ERGO_968 || s3->card_type == S3_PHOENIX_VISION968 ||
-					s3->card_type == S3_SPEA_MERCURY_P64V)
-					svga->hdisp = s3->width;
-			}
-			break;
-			case 32:
-			svga->render = svga_render_32bpp_highres;
-			if ((s3->chip < S3_TRIO32) && (s3->chip != S3_VISION964) &&
-			    (s3->chip != S3_VISION968) && (s3->chip != S3_86C928)) {
-				if (s3->chip == S3_VISION868)
-					svga->hdisp >>= 1;
-				else
-					svga->hdisp >>= 2;
-			}
-			if (s3->width == 1280 || s3->width == 1600 || (s3->card_type == S3_SPEA_MERCURY_P64V ||
-				s3->card_type == S3_NUMBER9_9FX_771))
-				svga->hdisp <<= 1;
-            if (s3->card_type == S3_NUMBER9_9FX_771) {
-                if (svga->hdisp == 832)
-                    svga->hdisp -= 32;
-            }
-            break;
-
         case 0x3c6:
         case 0x3c7:
         case 0x3c8:
@@ -3308,55 +2959,69 @@ static void s3_recalctimings(svga_t *svga)
                 return sdac_ramdac_in(addr, rs2, svga->ramdac, svga);
             break;
 
-							case 600:
-							if (s3->width == 1600)
-								s3->width = 800;
-							svga->hdisp = 800;
-							break;
-						}
-					}
-				}
-			}
-			break;
-		}
-	} else {
-		if (!svga->scrblank && svga->attr_palette_enable) {
-			if ((svga->gdcreg[6] & 1) || (svga->attrregs[0x10] & 1)) {
-				if ((svga->crtc[0x31] & 0x08) && ((svga->gdcreg[5] & 0x60) == 0x00)) {
-					if (svga->bpp == 8) {
-						svga->render = svga_render_8bpp_highres; /*Enhanced 4bpp mode, just like the 8bpp mode per spec.*/
-						if (svga->hdisp <= 1024)
-							s3->width = 1024;
-					}
-				}
-			} else {
-				if (s3->chip <= S3_86C924)
-					s3->width = 1024;
-			}
-		}
-	}
-
-	if (s3->chip >= S3_86C801) {
-		if (!svga->scrblank && svga->attr_palette_enable && (svga->crtc[0x43] & 0x80)) {
-			/* TODO: In case of bug reports, disable 9-dots-wide character clocks in graphics modes. */
-			svga->dots_per_clock = ((svga->seqregs[1] & 1) ? 16 : 18);
-		}
-
-		if (svga->crtc[0x5d] & 0x04)
-			svga->hblankstart += 0x100;
-		if (s3->chip >= S3_VISION964) {
-			/* NOTE: The S3 Trio64V+ datasheet says this is bit 7, but then where is bit 6?
-				 The datasheets for the pre-Trio64V+ cards say +64, which implies bit 6,
-				 and, contrary to VGADOC, it also exists on Trio32, Trio64, Vision868,
-				 and Vision968. */
-			// pclog("svga->crtc[0x5d] = %02X\n", svga->crtc[0x5d]);
-			if (svga->crtc[0x5d] & 0x08)
-				svga->hblank_ext = 0x40;
-			svga->hblank_end_len = 0x00000040;
-		}
-	}
-
-	svga->hblank_overscan = !(svga->crtc[0x33] & 0x20);
+        case 0x3d4:
+            return svga->crtcreg;
+        case 0x3d5:
+            switch (svga->crtcreg) {
+                case 0x2d:
+                    return (s3->chip == S3_TRIO64V2) ? 0x89 : 0x88; /*Extended chip ID*/
+                case 0x2e:
+                    return s3->id_ext; /*New chip ID*/
+                case 0x2f:
+                    return (s3->chip == S3_TRIO64V) ? 0x40 : 0; /*Revision level*/
+                case 0x30:
+                    return s3->id; /*Chip ID*/
+                case 0x31:
+                    return (svga->crtc[0x31] & 0xcf) | ((s3->ma_ext & 3) << 4);
+                case 0x35:
+                    return (svga->crtc[0x35] & 0xf0) | (s3->bank & 0xf);
+                case 0x45:
+                    s3->hwc_col_stack_pos = 0;
+                    break;
+                case 0x51:
+                    return (svga->crtc[0x51] & 0xf0) | ((s3->bank >> 2) & 0xc) | ((s3->ma_ext >> 2) & 3);
+                case 0x5c: /* General Output Port Register */
+                    temp = svga->crtc[svga->crtcreg] & 0xa0;
+                    if (((svga->miscout >> 2) & 3) == 3)
+                        temp |= svga->crtc[0x42] & 0x0f;
+                    else
+                        temp |= ((svga->miscout >> 2) & 3);
+                    if ((temp & 0xa0) == 0xa0) {
+                        if ((svga->crtc[0x5c] & 0x40) && i2c_gpio_get_scl(s3->i2c))
+                            temp |= 0x40;
+                        if ((svga->crtc[0x5c] & 0x10) && i2c_gpio_get_sda(s3->i2c))
+                            temp |= 0x10;
+                    }
+                    return temp;
+                case 0x69:
+                    return s3->ma_ext;
+                case 0x6a:
+                    return s3->bank;
+                /* Phoenix S3 video BIOS'es seem to expect CRTC registers 6B and 6C
+                   to be mirrors of 59 and 5A. */
+                case 0x6b:
+                    if (s3->chip != S3_TRIO64V2) {
+                        if (svga->crtc[0x53] & 0x08) {
+                            return (s3->chip == S3_TRIO64V) ? (svga->crtc[0x59] & 0xfc) : (svga->crtc[0x59] & 0xfe);
+                        } else {
+                            return svga->crtc[0x59];
+                        }
+                    } else
+                        return svga->crtc[0x6b];
+                    break;
+                case 0x6c:
+                    if (s3->chip != S3_TRIO64V2) {
+                        if (svga->crtc[0x53] & 0x08) {
+                            return 0x00;
+                        } else
+                            return (svga->crtc[0x5a] & 0x80);
+                    } else
+                        return svga->crtc[0x6c];
+                    break;
+            }
+            return svga->crtc[svga->crtcreg];
+    }
+    return svga_in(addr, svga);
 }
 
 static void
@@ -3364,6 +3029,8 @@ s3_recalctimings(svga_t *svga)
 {
     s3_t *s3      = (s3_t *) svga->p;
     int   clk_sel = (svga->miscout >> 2) & 3;
+
+    svga->hdisp = svga->hdisp_old;
 
     if (!svga->scrblank && svga->attr_palette_enable) {
         if ((svga->gdcreg[6] & 1) || (svga->attrregs[0x10] & 1)) {
@@ -3374,14 +3041,13 @@ s3_recalctimings(svga_t *svga)
     }
 
     svga->ma_latch |= (s3->ma_ext << 16);
-    if (s3->chip >= S3_86C928) {
-        svga->hdisp = svga->hdisp_old;
 
+    if (s3->chip >= S3_86C928) {
         if (svga->crtc[0x5d] & 0x01)
             svga->htotal |= 0x100;
         if (svga->crtc[0x5d] & 0x02) {
             svga->hdisp_time |= 0x100;
-            svga->hdisp |= 0x100 * ((svga->seqregs[1] & 8) ? 16 : 8);
+            svga->hdisp |= 0x100 * svga->dots_per_clock;
         }
         if (svga->crtc[0x5e] & 0x01)
             svga->vtotal |= 0x400;
@@ -3399,7 +3065,8 @@ s3_recalctimings(svga_t *svga)
             svga->rowoffset |= (svga->crtc[0x51] & 0x30) << 4;
         else if (svga->crtc[0x43] & 0x04)
             svga->rowoffset |= 0x100;
-    }
+    } else if (svga->crtc[0x43] & 0x04)
+        svga->rowoffset |= 0x100;
     if (!svga->rowoffset)
         svga->rowoffset = 256;
 
@@ -3664,6 +3331,28 @@ s3_recalctimings(svga_t *svga)
             }
         }
     }
+
+    if (s3->chip >= S3_86C801) {
+        if (!svga->scrblank && svga->attr_palette_enable && (svga->crtc[0x43] & 0x80)) {
+            /* TODO: In case of bug reports, disable 9-dots-wide character clocks in graphics modes. */
+            svga->dots_per_clock = ((svga->seqregs[1] & 1) ? 16 : 18);
+        }
+
+        if (svga->crtc[0x5d] & 0x04)
+            svga->hblankstart += 0x100;
+        if (s3->chip >= S3_VISION964) {
+            /* NOTE: The S3 Trio64V+ datasheet says this is bit 7, but then where is bit 6?
+                     The datasheets for the pre-Trio64V+ cards say +64, which implies bit 6,
+                     and, contrary to VGADOC, it also exists on Trio32, Trio64, Vision868,
+                     and Vision968. */
+            // pclog("svga->crtc[0x5d] = %02X\n", svga->crtc[0x5d]);
+            if (svga->crtc[0x5d] & 0x08)
+                svga->hblank_ext = 0x40;
+            svga->hblank_end_len = 0x00000040;
+        }
+    }
+
+    svga->hblank_overscan = !(svga->crtc[0x33] & 0x20);
 }
 
 static void
