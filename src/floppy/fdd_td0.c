@@ -645,7 +645,7 @@ td0_initialize(int drive)
     }
 
     fseek(dev->f, 0, SEEK_SET);
-    fread(header, 1, 12, dev->f);
+    (void) !fread(header, 1, 12, dev->f);
     head_count = header[9];
 
     if (header[0] == 't') {

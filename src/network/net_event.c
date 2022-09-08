@@ -23,7 +23,7 @@ net_event_init(net_evt_t *event)
 #ifdef _WIN32
     event->handle = CreateEvent(NULL, FALSE, FALSE, NULL);
 #else
-    (void)pipe(event->fds);
+    (void) !pipe(event->fds);
     setup_fd(event->fds[0]);
     setup_fd(event->fds[1]);
 #endif
@@ -35,7 +35,7 @@ net_event_set(net_evt_t *event)
 #ifdef _WIN32
     SetEvent(event->handle);
 #else
-    (void)write(event->fds[1], "a", 1);
+    (void) !write(event->fds[1], "a", 1);
 #endif
 }
 
@@ -46,7 +46,7 @@ net_event_clear(net_evt_t *event)
     /* Do nothing on WIN32 since we use an auto-reset event */
 #else
     char dummy[1];
-    (void)read(event->fds[0], &dummy, sizeof(dummy));
+    (void) !read(event->fds[0], &dummy, sizeof(dummy));
 #endif
 }
 

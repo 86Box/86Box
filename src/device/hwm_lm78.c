@@ -112,7 +112,7 @@ lm78_nvram(lm78_t *dev, uint8_t save)
 	if (save)
 		fwrite(&dev->as99127f.nvram, sizeof(dev->as99127f.nvram), 1, f);
 	else
-		fread(&dev->as99127f.nvram, sizeof(dev->as99127f.nvram), 1, f);
+		(void) !fread(&dev->as99127f.nvram, sizeof(dev->as99127f.nvram), 1, f);
 	fclose(f);
     }
 

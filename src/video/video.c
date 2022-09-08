@@ -76,35 +76,34 @@
 
 #include <minitrace/minitrace.h>
 
-volatile int		screenshots = 0;
-uint8_t			edatlookup[4][4];
-uint8_t			fontdat[2048][8];		/* IBM CGA font */
-uint8_t			fontdatm[2048][16];		/* IBM MDA font */
-uint8_t			fontdatw[512][32];		/* Wyse700 font */
-uint8_t			fontdat8x12[256][16];		/* MDSI Genius font */
-uint8_t			fontdat12x18[256][36];		/* IM1024 font */
-dbcs_font_t		*fontdatksc5601 = NULL;		/* Korean KSC-5601 font */
-dbcs_font_t		*fontdatksc5601_user = NULL;	/* Korean KSC-5601 user defined font */
-int			herc_blend = 0;
-int			frames = 0;
-int			fullchange = 0;
-int			video_grayscale = 0;
-int			video_graytype = 0;
-int			monitor_index_global = 0;
-uint32_t		*video_6to8 = NULL,
-			*video_8togs = NULL,
-			*video_8to32 = NULL,
-			*video_15to32 = NULL,
-			*video_16to32 = NULL;
-monitor_t		monitors[MONITORS_NUM];
-monitor_settings_t	monitor_settings[MONITORS_NUM];
-atomic_bool		doresize_monitors[MONITORS_NUM];
-
+volatile int screenshots = 0;
+uint8_t      edatlookup[4][4];
+uint8_t      fontdat[2048][8];            /* IBM CGA font */
+uint8_t      fontdatm[2048][16];          /* IBM MDA font */
+uint8_t      fontdatw[512][32];           /* Wyse700 font */
+uint8_t      fontdat8x12[256][16];        /* MDSI Genius font */
+uint8_t      fontdat12x18[256][36];       /* IM1024 font */
+dbcs_font_t *fontdatksc5601       = NULL; /* Korean KSC-5601 font */
+dbcs_font_t *fontdatksc5601_user  = NULL; /* Korean KSC-5601 user defined font */
+int          herc_blend           = 0;
+int          frames               = 0;
+int          fullchange           = 0;
+int          video_grayscale      = 0;
+int          video_graytype       = 0;
+int          monitor_index_global = 0;
+uint32_t    *video_6to8           = NULL,
+         *video_8togs             = NULL,
+         *video_8to32             = NULL,
+         *video_15to32            = NULL,
+         *video_16to32            = NULL;
+monitor_t          monitors[MONITORS_NUM];
+monitor_settings_t monitor_settings[MONITORS_NUM];
+atomic_bool        doresize_monitors[MONITORS_NUM];
 
 #ifdef _WIN32
-void * __cdecl	(*video_copy)(void *_Dst, const void *_Src, size_t _Size) = memcpy;
+void *__cdecl (*video_copy)(void *_Dst, const void *_Src, size_t _Size) = memcpy;
 #else
-void *		(*video_copy)(void *__restrict, const void *__restrict, size_t);
+void *(*video_copy)(void *__restrict, const void *__restrict, size_t);
 #endif
 
 
@@ -235,30 +234,25 @@ const uint32_t shade[5][256] =
 	}
 };
 
-
 typedef struct blit_data_struct {
-    int		x, y, w, h;
-    int		busy;
-    int		buffer_in_use;
-    int		thread_run;
-    int		monitor_index;
+    int x, y, w, h;
+    int busy;
+    int buffer_in_use;
+    int thread_run;
+    int monitor_index;
 
-    thread_t	*blit_thread;
-    event_t	*wake_blit_thread;
-    event_t	*blit_complete;
-    event_t	*buffer_not_in_use;
+    thread_t *blit_thread;
+    event_t  *wake_blit_thread;
+    event_t  *blit_complete;
+    event_t  *buffer_not_in_use;
 } blit_data_t;
 
-
-static uint32_t		cga_2_table[16];
-
+static uint32_t cga_2_table[16];
 
 static void (*blit_func)(int x, int y, int w, int h, int monitor_index);
 
-
 #ifdef ENABLE_VIDEO_LOG
 int sdl_do_log = ENABLE_VIDEO_LOG;
-
 
 static void
 video_log(const char *fmt, ...)
@@ -266,116 +260,110 @@ video_log(const char *fmt, ...)
     va_list ap;
 
     if (video_do_log) {
-	va_start(ap, fmt);
-	pclog_ex(fmt, ap);
-	va_end(ap);
+        va_start(ap, fmt);
+        pclog_ex(fmt, ap);
+        va_end(ap);
     }
 }
 #else
-#define video_log(fmt, ...)
+#    define video_log(fmt, ...)
 #endif
 
-
 void
-video_setblit(void(*blit)(int,int,int,int,int))
+video_setblit(void (*blit)(int, int, int, int, int))
 {
     blit_func = blit;
 }
 
-
 void
 video_blit_complete_monitor(int monitor_index)
 {
-    blit_data_t* blit_data_ptr = monitors[monitor_index].mon_blit_data_ptr;
+    blit_data_t *blit_data_ptr   = monitors[monitor_index].mon_blit_data_ptr;
     blit_data_ptr->buffer_in_use = 0;
 
     thread_set_event(blit_data_ptr->buffer_not_in_use);
 }
 
-
 void
 video_wait_for_blit_monitor(int monitor_index)
 {
-    blit_data_t* blit_data_ptr = monitors[monitor_index].mon_blit_data_ptr;
+    blit_data_t *blit_data_ptr = monitors[monitor_index].mon_blit_data_ptr;
 
     while (blit_data_ptr->busy)
-    thread_wait_event(blit_data_ptr->blit_complete, -1);
+        thread_wait_event(blit_data_ptr->blit_complete, -1);
     thread_reset_event(blit_data_ptr->blit_complete);
 }
-
 
 void
 video_wait_for_buffer_monitor(int monitor_index)
 {
-    blit_data_t* blit_data_ptr = monitors[monitor_index].mon_blit_data_ptr;
+    blit_data_t *blit_data_ptr = monitors[monitor_index].mon_blit_data_ptr;
 
     while (blit_data_ptr->buffer_in_use)
-    thread_wait_event(blit_data_ptr->buffer_not_in_use, -1);
+        thread_wait_event(blit_data_ptr->buffer_not_in_use, -1);
     thread_reset_event(blit_data_ptr->buffer_not_in_use);
 }
 
-
-static png_structp	png_ptr[MONITORS_NUM];
-static png_infop	info_ptr[MONITORS_NUM];
-
+static png_structp png_ptr[MONITORS_NUM];
+static png_infop   info_ptr[MONITORS_NUM];
 
 static void
 video_take_screenshot_monitor(const char *fn, uint32_t *buf, int start_x, int start_y, int row_len, int monitor_index)
 {
-    int i, x, y;
-    png_bytep *b_rgb = NULL;
-    FILE *fp = NULL;
-    uint32_t temp = 0x00000000;
-    blit_data_t* blit_data_ptr = monitors[monitor_index].mon_blit_data_ptr;
+    int          i, x, y;
+    png_bytep   *b_rgb         = NULL;
+    FILE        *fp            = NULL;
+    uint32_t     temp          = 0x00000000;
+    blit_data_t *blit_data_ptr = monitors[monitor_index].mon_blit_data_ptr;
 
     /* create file */
     fp = plat_fopen((char *) fn, (char *) "wb");
     if (!fp) {
-	video_log("[video_take_screenshot] File %s could not be opened for writing", fn);
-	return;
+        video_log("[video_take_screenshot] File %s could not be opened for writing", fn);
+        return;
     }
 
     /* initialize stuff */
     png_ptr[monitor_index] = png_create_write_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
 
     if (!png_ptr[monitor_index]) {
-	video_log("[video_take_screenshot] png_create_write_struct failed");
-	fclose(fp);
-	return;
+        video_log("[video_take_screenshot] png_create_write_struct failed");
+        fclose(fp);
+        return;
     }
 
     info_ptr[monitor_index] = png_create_info_struct(png_ptr[monitor_index]);
     if (!info_ptr[monitor_index]) {
-	video_log("[video_take_screenshot] png_create_info_struct failed");
-	fclose(fp);
-	return;
+        video_log("[video_take_screenshot] png_create_info_struct failed");
+        fclose(fp);
+        return;
     }
 
     png_init_io(png_ptr[monitor_index], fp);
 
     png_set_IHDR(png_ptr[monitor_index], info_ptr[monitor_index], blit_data_ptr->w, blit_data_ptr->h,
-	8, PNG_COLOR_TYPE_RGB, PNG_INTERLACE_NONE,
-	PNG_COMPRESSION_TYPE_BASE, PNG_FILTER_TYPE_BASE);
+                 8, PNG_COLOR_TYPE_RGB, PNG_INTERLACE_NONE,
+                 PNG_COMPRESSION_TYPE_BASE, PNG_FILTER_TYPE_BASE);
 
     b_rgb = (png_bytep *) malloc(sizeof(png_bytep) * blit_data_ptr->h);
     if (b_rgb == NULL) {
-	video_log("[video_take_screenshot] Unable to Allocate RGB Bitmap Memory");
-	fclose(fp);
-	return;
+        video_log("[video_take_screenshot] Unable to Allocate RGB Bitmap Memory");
+        fclose(fp);
+        return;
     }
 
     for (y = 0; y < blit_data_ptr->h; ++y) {
-    b_rgb[y] = (png_byte *) malloc(png_get_rowbytes(png_ptr[monitor_index], info_ptr[monitor_index]));
+        b_rgb[y] = (png_byte *) malloc(png_get_rowbytes(png_ptr[monitor_index], info_ptr[monitor_index]));
         for (x = 0; x < blit_data_ptr->w; ++x) {
-		if (buf == NULL)
-			memset(&(b_rgb[y][x * 3]), 0x00, 3);
-		else {
-			temp = buf[((start_y + y) * row_len) + start_x + x];
-			b_rgb[y][x * 3] = (temp >> 16) & 0xff;
-			b_rgb[y][(x * 3) + 1] = (temp >> 8) & 0xff;
-			b_rgb[y][(x * 3) + 2] = temp & 0xff;
-		}
-	}
+            if (buf == NULL)
+                memset(&(b_rgb[y][x * 3]), 0x00, 3);
+            else {
+                temp                  = buf[((start_y + y) * row_len) + start_x + x];
+                b_rgb[y][x * 3]       = (temp >> 16) & 0xff;
+                b_rgb[y][(x * 3) + 1] = (temp >> 8) & 0xff;
+                b_rgb[y][(x * 3) + 2] = temp & 0xff;
+            }
+        }
     }
 
     png_write_info(png_ptr[monitor_index], info_ptr[monitor_index]);
@@ -386,13 +374,15 @@ video_take_screenshot_monitor(const char *fn, uint32_t *buf, int start_x, int st
 
     /* cleanup heap allocation */
     for (i = 0; i < blit_data_ptr->h; i++)
-	if (b_rgb[i])  free(b_rgb[i]);
+        if (b_rgb[i])
+            free(b_rgb[i]);
 
-    if (b_rgb) free(b_rgb);
+    if (b_rgb)
+        free(b_rgb);
 
-    if (fp) fclose(fp);
+    if (fp)
+        fclose(fp);
 }
-
 
 void
 video_screenshot_monitor(uint32_t *buf, int start_x, int start_y, int row_len, int monitor_index)
@@ -404,8 +394,8 @@ video_screenshot_monitor(uint32_t *buf, int start_x, int start_y, int row_len, i
 
     path_append_filename(path, usr_path, SCREENSHOT_PATH);
 
-    if (! plat_dir_check(path))
-    plat_dir_create(path);
+    if (!plat_dir_check(path))
+        plat_dir_create(path);
 
     path_slash(path);
     strcat(path, "Monitor_");
@@ -428,52 +418,48 @@ video_screenshot(uint32_t *buf, int start_x, int start_y, int row_len)
     video_screenshot_monitor(buf, start_x, start_y, row_len, 0);
 }
 
-
 #ifdef _WIN32
-void * __cdecl
-video_transform_copy(void *_Dst, const void *_Src, size_t _Size)
+void *__cdecl video_transform_copy(void *_Dst, const void *_Src, size_t _Size)
 #else
 void *
 video_transform_copy(void *__restrict _Dst, const void *__restrict _Src, size_t _Size)
 #endif
 {
-    int i;
+    int       i;
     uint32_t *dest_ex = (uint32_t *) _Dst;
-    uint32_t *src_ex = (uint32_t *) _Src;
+    uint32_t *src_ex  = (uint32_t *) _Src;
 
     _Size /= sizeof(uint32_t);
 
     if ((dest_ex != NULL) && (src_ex != NULL)) {
-	for (i = 0; i < _Size; i++) {
-		*dest_ex = video_color_transform(*src_ex);
-		dest_ex++;
-		src_ex++;
-	}
+        for (i = 0; i < _Size; i++) {
+            *dest_ex = video_color_transform(*src_ex);
+            dest_ex++;
+            src_ex++;
+        }
     }
 
     return _Dst;
 }
 
-
-static
-void blit_thread(void *param)
+static void
+blit_thread(void *param)
 {
-    blit_data_t* data = param;
+    blit_data_t *data = param;
     while (data->thread_run) {
-    thread_wait_event(data->wake_blit_thread, -1);
-    thread_reset_event(data->wake_blit_thread);
-	MTR_BEGIN("video", "blit_thread");
+        thread_wait_event(data->wake_blit_thread, -1);
+        thread_reset_event(data->wake_blit_thread);
+        MTR_BEGIN("video", "blit_thread");
 
-	if (blit_func)
-        blit_func(data->x, data->y, data->w, data->h, data->monitor_index);
+        if (blit_func)
+            blit_func(data->x, data->y, data->w, data->h, data->monitor_index);
 
-    data->busy = 0;
+        data->busy = 0;
 
-	MTR_END("video", "blit_thread");
-    thread_set_event(data->blit_complete);
+        MTR_END("video", "blit_thread");
+        thread_set_event(data->blit_complete);
     }
 }
-
 
 void
 video_blit_memtoscreen_monitor(int x, int y, int w, int h, int monitor_index)
@@ -481,76 +467,73 @@ video_blit_memtoscreen_monitor(int x, int y, int w, int h, int monitor_index)
     MTR_BEGIN("video", "video_blit_memtoscreen");
 
     if ((w <= 0) || (h <= 0))
-    return;
+        return;
 
     video_wait_for_blit_monitor(monitor_index);
 
-    monitors[monitor_index].mon_blit_data_ptr->busy = 1;
+    monitors[monitor_index].mon_blit_data_ptr->busy          = 1;
     monitors[monitor_index].mon_blit_data_ptr->buffer_in_use = 1;
-    monitors[monitor_index].mon_blit_data_ptr->x = x;
-    monitors[monitor_index].mon_blit_data_ptr->y = y;
-    monitors[monitor_index].mon_blit_data_ptr->w = w;
-    monitors[monitor_index].mon_blit_data_ptr->h = h;
+    monitors[monitor_index].mon_blit_data_ptr->x             = x;
+    monitors[monitor_index].mon_blit_data_ptr->y             = y;
+    monitors[monitor_index].mon_blit_data_ptr->w             = w;
+    monitors[monitor_index].mon_blit_data_ptr->h             = h;
 
     thread_set_event(monitors[monitor_index].mon_blit_data_ptr->wake_blit_thread);
     MTR_END("video", "video_blit_memtoscreen");
 }
 
-
-uint8_t pixels8(uint32_t *pixels)
+uint8_t
+pixels8(uint32_t *pixels)
 {
-    int i;
+    int     i;
     uint8_t temp = 0;
 
     for (i = 0; i < 8; i++)
-	temp |= (!!*(pixels + i) << (i ^ 7));
+        temp |= (!!*(pixels + i) << (i ^ 7));
 
     return temp;
 }
 
-
-uint32_t pixel_to_color(uint8_t *pixels32, uint8_t pos)
+uint32_t
+pixel_to_color(uint8_t *pixels32, uint8_t pos)
 {
     uint32_t temp;
     temp = *(pixels32 + pos) & 0x03;
     switch (temp) {
-	case 0:
-	default:
-		return 0x00;
-	case 1:
-		return 0x07;
-	case 2:
-		return 0x0f;
+        case 0:
+        default:
+            return 0x00;
+        case 1:
+            return 0x07;
+        case 2:
+            return 0x0f;
     }
 }
-
 
 void
 video_blend_monitor(int x, int y, int monitor_index)
 {
-    int xx;
-    uint32_t pixels32_1, pixels32_2;
-    unsigned int val1, val2;
+    int                 xx;
+    uint32_t            pixels32_1, pixels32_2;
+    unsigned int        val1, val2;
     static unsigned int carry = 0;
 
     if (!herc_blend)
-    return;
+        return;
 
     if (!x)
-    carry = 0;
+        carry = 0;
 
-    val1 = pixels8(&(monitors[monitor_index].target_buffer->line[y][x]));
-    val2 = (val1 >> 1) + carry;
-    carry = (val1 & 1) << 7;
+    val1       = pixels8(&(monitors[monitor_index].target_buffer->line[y][x]));
+    val2       = (val1 >> 1) + carry;
+    carry      = (val1 & 1) << 7;
     pixels32_1 = cga_2_table[val1 >> 4] + cga_2_table[val2 >> 4];
     pixels32_2 = cga_2_table[val1 & 0xf] + cga_2_table[val2 & 0xf];
     for (xx = 0; xx < 4; xx++) {
-    monitors[monitor_index].target_buffer->line[y][x + xx] = pixel_to_color((uint8_t *) &pixels32_1, xx);
-    monitors[monitor_index].target_buffer->line[y][x + (xx | 4)] = pixel_to_color((uint8_t *) &pixels32_2, xx);
+        monitors[monitor_index].target_buffer->line[y][x + xx]       = pixel_to_color((uint8_t *) &pixels32_1, xx);
+        monitors[monitor_index].target_buffer->line[y][x + (xx | 4)] = pixel_to_color((uint8_t *) &pixels32_2, xx);
     }
 }
-
-
 
 void
 video_blit_memtoscreen_8_monitor(int x, int y, int w, int h, int monitor_index)
@@ -558,90 +541,88 @@ video_blit_memtoscreen_8_monitor(int x, int y, int w, int h, int monitor_index)
     int yy, xx;
 
     if ((w > 0) && (h > 0)) {
-    for (yy = 0; yy < h; yy++) {
-        if ((y + yy) >= 0 && (y + yy) < monitors[monitor_index].target_buffer->h) {
-            for (xx = 0; xx < w; xx++) {
-                if (monitors[monitor_index].target_buffer->line[y + yy][x + xx] <= 0xff)
-                    monitors[monitor_index].target_buffer->line[y + yy][x + xx] = monitors[monitor_index].mon_pal_lookup[monitors[monitor_index].target_buffer->line[y + yy][x + xx]];
-                else
-                    monitors[monitor_index].target_buffer->line[y + yy][x + xx] = 0x00000000;
+        for (yy = 0; yy < h; yy++) {
+            if ((y + yy) >= 0 && (y + yy) < monitors[monitor_index].target_buffer->h) {
+                for (xx = 0; xx < w; xx++) {
+                    if (monitors[monitor_index].target_buffer->line[y + yy][x + xx] <= 0xff)
+                        monitors[monitor_index].target_buffer->line[y + yy][x + xx] = monitors[monitor_index].mon_pal_lookup[monitors[monitor_index].target_buffer->line[y + yy][x + xx]];
+                    else
+                        monitors[monitor_index].target_buffer->line[y + yy][x + xx] = 0x00000000;
+                }
             }
         }
-    }
     }
 
     video_blit_memtoscreen_monitor(x, y, w, h, monitor_index);
 }
 
-
 void
 cgapal_rebuild_monitor(int monitor_index)
 {
-    int c;
-    uint32_t* palette_lookup = monitors[monitor_index].mon_pal_lookup;
-    int cga_palette_monitor = 0;
+    int       c;
+    uint32_t *palette_lookup      = monitors[monitor_index].mon_pal_lookup;
+    int       cga_palette_monitor = 0;
 
     /* We cannot do this (yet) if we have not been enabled yet. */
-    if (video_6to8 == NULL) return;
+    if (video_6to8 == NULL)
+        return;
 
-    if (monitors[monitor_index].target_buffer == NULL ||
-        monitors[monitor_index].mon_cga_palette == NULL) return;
+    if (monitors[monitor_index].target_buffer == NULL || monitors[monitor_index].mon_cga_palette == NULL)
+        return;
 
     cga_palette_monitor = *monitors[monitor_index].mon_cga_palette;
 
-    for (c=0; c<256; c++) {
-    palette_lookup[c] = makecol(video_6to8[cgapal[c].r],
-			        video_6to8[cgapal[c].g],
-			        video_6to8[cgapal[c].b]);
+    for (c = 0; c < 256; c++) {
+        palette_lookup[c] = makecol(video_6to8[cgapal[c].r],
+                                    video_6to8[cgapal[c].g],
+                                    video_6to8[cgapal[c].b]);
     }
 
     if ((cga_palette_monitor > 1) && (cga_palette_monitor < 7)) {
-	if (vid_cga_contrast != 0) {
-		for (c = 0; c < 16; c++) {
-            palette_lookup[c] = makecol(video_6to8[cgapal_mono[cga_palette_monitor - 2][c].r],
-                        video_6to8[cgapal_mono[cga_palette_monitor - 2][c].g],
-                        video_6to8[cgapal_mono[cga_palette_monitor - 2][c].b]);
-            palette_lookup[c+16] = makecol(video_6to8[cgapal_mono[cga_palette_monitor - 2][c].r],
-                           video_6to8[cgapal_mono[cga_palette_monitor - 2][c].g],
-                           video_6to8[cgapal_mono[cga_palette_monitor - 2][c].b]);
-            palette_lookup[c+32] = makecol(video_6to8[cgapal_mono[cga_palette_monitor - 2][c].r],
-                           video_6to8[cgapal_mono[cga_palette_monitor - 2][c].g],
-                           video_6to8[cgapal_mono[cga_palette_monitor - 2][c].b]);
-            palette_lookup[c+48] = makecol(video_6to8[cgapal_mono[cga_palette_monitor - 2][c].r],
-                           video_6to8[cgapal_mono[cga_palette_monitor - 2][c].g],
-                           video_6to8[cgapal_mono[cga_palette_monitor - 2][c].b]);
-		}
-	} else {
-		for (c = 0; c < 16; c++) {
-            palette_lookup[c] = makecol(video_6to8[cgapal_mono[cga_palette_monitor - 1][c].r],
-                        video_6to8[cgapal_mono[cga_palette_monitor - 1][c].g],
-                        video_6to8[cgapal_mono[cga_palette_monitor - 1][c].b]);
-            palette_lookup[c+16] = makecol(video_6to8[cgapal_mono[cga_palette_monitor - 1][c].r],
-                           video_6to8[cgapal_mono[cga_palette_monitor - 1][c].g],
-                           video_6to8[cgapal_mono[cga_palette_monitor - 1][c].b]);
-            palette_lookup[c+32] = makecol(video_6to8[cgapal_mono[cga_palette_monitor - 1][c].r],
-                           video_6to8[cgapal_mono[cga_palette_monitor - 1][c].g],
-                           video_6to8[cgapal_mono[cga_palette_monitor - 1][c].b]);
-            palette_lookup[c+48] = makecol(video_6to8[cgapal_mono[cga_palette_monitor - 1][c].r],
-                           video_6to8[cgapal_mono[cga_palette_monitor - 1][c].g],
-                           video_6to8[cgapal_mono[cga_palette_monitor - 1][c].b]);
-		}
-	}
+        if (vid_cga_contrast != 0) {
+            for (c = 0; c < 16; c++) {
+                palette_lookup[c]      = makecol(video_6to8[cgapal_mono[cga_palette_monitor - 2][c].r],
+                                                 video_6to8[cgapal_mono[cga_palette_monitor - 2][c].g],
+                                                 video_6to8[cgapal_mono[cga_palette_monitor - 2][c].b]);
+                palette_lookup[c + 16] = makecol(video_6to8[cgapal_mono[cga_palette_monitor - 2][c].r],
+                                                 video_6to8[cgapal_mono[cga_palette_monitor - 2][c].g],
+                                                 video_6to8[cgapal_mono[cga_palette_monitor - 2][c].b]);
+                palette_lookup[c + 32] = makecol(video_6to8[cgapal_mono[cga_palette_monitor - 2][c].r],
+                                                 video_6to8[cgapal_mono[cga_palette_monitor - 2][c].g],
+                                                 video_6to8[cgapal_mono[cga_palette_monitor - 2][c].b]);
+                palette_lookup[c + 48] = makecol(video_6to8[cgapal_mono[cga_palette_monitor - 2][c].r],
+                                                 video_6to8[cgapal_mono[cga_palette_monitor - 2][c].g],
+                                                 video_6to8[cgapal_mono[cga_palette_monitor - 2][c].b]);
+            }
+        } else {
+            for (c = 0; c < 16; c++) {
+                palette_lookup[c]      = makecol(video_6to8[cgapal_mono[cga_palette_monitor - 1][c].r],
+                                                 video_6to8[cgapal_mono[cga_palette_monitor - 1][c].g],
+                                                 video_6to8[cgapal_mono[cga_palette_monitor - 1][c].b]);
+                palette_lookup[c + 16] = makecol(video_6to8[cgapal_mono[cga_palette_monitor - 1][c].r],
+                                                 video_6to8[cgapal_mono[cga_palette_monitor - 1][c].g],
+                                                 video_6to8[cgapal_mono[cga_palette_monitor - 1][c].b]);
+                palette_lookup[c + 32] = makecol(video_6to8[cgapal_mono[cga_palette_monitor - 1][c].r],
+                                                 video_6to8[cgapal_mono[cga_palette_monitor - 1][c].g],
+                                                 video_6to8[cgapal_mono[cga_palette_monitor - 1][c].b]);
+                palette_lookup[c + 48] = makecol(video_6to8[cgapal_mono[cga_palette_monitor - 1][c].r],
+                                                 video_6to8[cgapal_mono[cga_palette_monitor - 1][c].g],
+                                                 video_6to8[cgapal_mono[cga_palette_monitor - 1][c].b]);
+            }
+        }
     }
 
     if (cga_palette_monitor == 7)
-    palette_lookup[0x16] = makecol(video_6to8[42],video_6to8[42],video_6to8[0]);
+        palette_lookup[0x16] = makecol(video_6to8[42], video_6to8[42], video_6to8[0]);
 }
-
 
 void
 video_inform_monitor(int type, const video_timings_t *ptr, int monitor_index)
 {
-    monitor_t* monitor = &monitors[monitor_index];
-    monitor->mon_vid_type = type;
+    monitor_t *monitor       = &monitors[monitor_index];
+    monitor->mon_vid_type    = type;
     monitor->mon_vid_timings = ptr;
 }
-
 
 int
 video_get_type_monitor(int monitor_index)
@@ -649,145 +630,139 @@ video_get_type_monitor(int monitor_index)
     return monitors[monitor_index].mon_vid_type;
 }
 
-
 void
 video_update_timing(void)
 {
-    const video_timings_t* monitor_vid_timings = NULL;
-    int *vid_timing_read_b = NULL;
-    int *vid_timing_read_l = NULL;
-    int *vid_timing_read_w = NULL;
-    int *vid_timing_write_b = NULL;
-    int *vid_timing_write_l = NULL;
-    int *vid_timing_write_w = NULL;
-    int i = 0;
+    const video_timings_t *monitor_vid_timings = NULL;
+    int                   *vid_timing_read_b   = NULL;
+    int                   *vid_timing_read_l   = NULL;
+    int                   *vid_timing_read_w   = NULL;
+    int                   *vid_timing_write_b  = NULL;
+    int                   *vid_timing_write_l  = NULL;
+    int                   *vid_timing_write_w  = NULL;
+    int                    i                   = 0;
 
     for (i = 0; i < MONITORS_NUM; i++) {
         monitor_vid_timings = monitors[i].mon_vid_timings;
         if (!monitor_vid_timings)
-        continue;
-        vid_timing_read_b = &monitors[i].mon_video_timing_read_b;
-        vid_timing_read_l = &monitors[i].mon_video_timing_read_l;
-        vid_timing_read_w = &monitors[i].mon_video_timing_read_w;
+            continue;
+        vid_timing_read_b  = &monitors[i].mon_video_timing_read_b;
+        vid_timing_read_l  = &monitors[i].mon_video_timing_read_l;
+        vid_timing_read_w  = &monitors[i].mon_video_timing_read_w;
         vid_timing_write_b = &monitors[i].mon_video_timing_write_b;
         vid_timing_write_l = &monitors[i].mon_video_timing_write_l;
         vid_timing_write_w = &monitors[i].mon_video_timing_write_w;
 
         if (monitor_vid_timings->type == VIDEO_ISA) {
-        *vid_timing_read_b = ISA_CYCLES(monitor_vid_timings->read_b);
-        *vid_timing_read_w = ISA_CYCLES(monitor_vid_timings->read_w);
-        *vid_timing_read_l = ISA_CYCLES(monitor_vid_timings->read_l);
-        *vid_timing_write_b = ISA_CYCLES(monitor_vid_timings->write_b);
-        *vid_timing_write_w = ISA_CYCLES(monitor_vid_timings->write_w);
-        *vid_timing_write_l = ISA_CYCLES(monitor_vid_timings->write_l);
+            *vid_timing_read_b  = ISA_CYCLES(monitor_vid_timings->read_b);
+            *vid_timing_read_w  = ISA_CYCLES(monitor_vid_timings->read_w);
+            *vid_timing_read_l  = ISA_CYCLES(monitor_vid_timings->read_l);
+            *vid_timing_write_b = ISA_CYCLES(monitor_vid_timings->write_b);
+            *vid_timing_write_w = ISA_CYCLES(monitor_vid_timings->write_w);
+            *vid_timing_write_l = ISA_CYCLES(monitor_vid_timings->write_l);
         } else if (monitor_vid_timings->type == VIDEO_PCI) {
-        *vid_timing_read_b = (int)(pci_timing * monitor_vid_timings->read_b);
-        *vid_timing_read_w = (int)(pci_timing * monitor_vid_timings->read_w);
-        *vid_timing_read_l = (int)(pci_timing * monitor_vid_timings->read_l);
-        *vid_timing_write_b = (int)(pci_timing * monitor_vid_timings->write_b);
-        *vid_timing_write_w = (int)(pci_timing * monitor_vid_timings->write_w);
-        *vid_timing_write_l = (int)(pci_timing * monitor_vid_timings->write_l);
+            *vid_timing_read_b  = (int) (pci_timing * monitor_vid_timings->read_b);
+            *vid_timing_read_w  = (int) (pci_timing * monitor_vid_timings->read_w);
+            *vid_timing_read_l  = (int) (pci_timing * monitor_vid_timings->read_l);
+            *vid_timing_write_b = (int) (pci_timing * monitor_vid_timings->write_b);
+            *vid_timing_write_w = (int) (pci_timing * monitor_vid_timings->write_w);
+            *vid_timing_write_l = (int) (pci_timing * monitor_vid_timings->write_l);
         } else if (monitor_vid_timings->type == VIDEO_AGP) {
-        *vid_timing_read_b = (int)(agp_timing * monitor_vid_timings->read_b);
-        *vid_timing_read_w = (int)(agp_timing * monitor_vid_timings->read_w);
-        *vid_timing_read_l = (int)(agp_timing * monitor_vid_timings->read_l);
-        *vid_timing_write_b = (int)(agp_timing * monitor_vid_timings->write_b);
-        *vid_timing_write_w = (int)(agp_timing * monitor_vid_timings->write_w);
-        *vid_timing_write_l = (int)(agp_timing * monitor_vid_timings->write_l);
+            *vid_timing_read_b  = (int) (agp_timing * monitor_vid_timings->read_b);
+            *vid_timing_read_w  = (int) (agp_timing * monitor_vid_timings->read_w);
+            *vid_timing_read_l  = (int) (agp_timing * monitor_vid_timings->read_l);
+            *vid_timing_write_b = (int) (agp_timing * monitor_vid_timings->write_b);
+            *vid_timing_write_w = (int) (agp_timing * monitor_vid_timings->write_w);
+            *vid_timing_write_l = (int) (agp_timing * monitor_vid_timings->write_l);
         } else {
-        *vid_timing_read_b = (int)(bus_timing * monitor_vid_timings->read_b);
-        *vid_timing_read_w = (int)(bus_timing * monitor_vid_timings->read_w);
-        *vid_timing_read_l = (int)(bus_timing * monitor_vid_timings->read_l);
-        *vid_timing_write_b = (int)(bus_timing * monitor_vid_timings->write_b);
-        *vid_timing_write_w = (int)(bus_timing * monitor_vid_timings->write_w);
-        *vid_timing_write_l = (int)(bus_timing * monitor_vid_timings->write_l);
+            *vid_timing_read_b  = (int) (bus_timing * monitor_vid_timings->read_b);
+            *vid_timing_read_w  = (int) (bus_timing * monitor_vid_timings->read_w);
+            *vid_timing_read_l  = (int) (bus_timing * monitor_vid_timings->read_l);
+            *vid_timing_write_b = (int) (bus_timing * monitor_vid_timings->write_b);
+            *vid_timing_write_w = (int) (bus_timing * monitor_vid_timings->write_w);
+            *vid_timing_write_l = (int) (bus_timing * monitor_vid_timings->write_l);
         }
 
         if (cpu_16bitbus) {
-        *vid_timing_read_l = *vid_timing_read_w * 2;
-        *vid_timing_write_l = *vid_timing_write_w * 2;
+            *vid_timing_read_l  = *vid_timing_read_w * 2;
+            *vid_timing_write_l = *vid_timing_write_w * 2;
         }
     }
 }
 
-
 int
 calc_6to8(int c)
 {
-    int ic, i8;
+    int    ic, i8;
     double d8;
 
     ic = c;
     if (ic == 64)
-	ic = 63;
-      else
-	ic &= 0x3f;
+        ic = 63;
+    else
+        ic &= 0x3f;
     d8 = (ic / 63.0) * 255.0;
     i8 = (int) d8;
 
-    return(i8 & 0xff);
+    return (i8 & 0xff);
 }
-
 
 int
 calc_8to32(int c)
 {
-    int b, g, r;
+    int    b, g, r;
     double db, dg, dr;
 
-    b = (c & 3);
-    g = ((c >> 2) & 7);
-    r = ((c >> 5) & 7);
-    db = (((double) b) /  3.0) * 255.0;
-    dg = (((double) g) /  7.0) * 255.0;
-    dr = (((double) r) /  7.0) * 255.0;
-    b = (int) db;
-    g = ((int) dg) << 8;
-    r = ((int) dr) << 16;
+    b  = (c & 3);
+    g  = ((c >> 2) & 7);
+    r  = ((c >> 5) & 7);
+    db = (((double) b) / 3.0) * 255.0;
+    dg = (((double) g) / 7.0) * 255.0;
+    dr = (((double) r) / 7.0) * 255.0;
+    b  = (int) db;
+    g  = ((int) dg) << 8;
+    r  = ((int) dr) << 16;
 
-    return(b | g | r);
+    return (b | g | r);
 }
-
 
 int
 calc_15to32(int c)
 {
-    int b, g, r;
+    int    b, g, r;
     double db, dg, dr;
 
-    b = (c & 31);
-    g = ((c >> 5) & 31);
-    r = ((c >> 10) & 31);
+    b  = (c & 31);
+    g  = ((c >> 5) & 31);
+    r  = ((c >> 10) & 31);
     db = (((double) b) / 31.0) * 255.0;
     dg = (((double) g) / 31.0) * 255.0;
     dr = (((double) r) / 31.0) * 255.0;
-    b = (int) db;
-    g = ((int) dg) << 8;
-    r = ((int) dr) << 16;
+    b  = (int) db;
+    g  = ((int) dg) << 8;
+    r  = ((int) dr) << 16;
 
-    return(b | g | r);
+    return (b | g | r);
 }
-
 
 int
 calc_16to32(int c)
 {
-    int b, g, r;
+    int    b, g, r;
     double db, dg, dr;
 
-    b = (c & 31);
-    g = ((c >> 5) & 63);
-    r = ((c >> 11) & 31);
+    b  = (c & 31);
+    g  = ((c >> 5) & 63);
+    r  = ((c >> 11) & 31);
     db = (((double) b) / 31.0) * 255.0;
     dg = (((double) g) / 63.0) * 255.0;
     dr = (((double) r) / 31.0) * 255.0;
-    b = (int) db;
-    g = ((int) dg) << 8;
-    r = ((int) dr) << 16;
+    b  = (int) db;
+    g  = ((int) dg) << 8;
+    r  = ((int) dr) << 16;
 
-    return(b | g | r);
+    return (b | g | r);
 }
-
 
 void
 hline(bitmap_t *b, int x1, int y, int x2, uint32_t col)
@@ -795,109 +770,109 @@ hline(bitmap_t *b, int x1, int y, int x2, uint32_t col)
     int x;
 
     if (y < 0 || y >= b->h)
-	   return;
+        return;
 
     for (x = x1; x < x2; x++)
-	b->line[y][x] = col;
+        b->line[y][x] = col;
 }
-
 
 void
 blit(bitmap_t *src, bitmap_t *dst, int x1, int y1, int x2, int y2, int xs, int ys)
 {
 }
 
-
 void
 stretch_blit(bitmap_t *src, bitmap_t *dst, int x1, int y1, int xs1, int ys1, int x2, int y2, int xs2, int ys2)
 {
 }
-
 
 void
 rectfill(bitmap_t *b, int x1, int y1, int x2, int y2, uint32_t col)
 {
 }
 
-
 void
 set_palette(PALETTE p)
 {
 }
 
-
 void
 destroy_bitmap(bitmap_t *b)
 {
     if ((b != NULL) && (b->dat != NULL))
-	free(b->dat);
+        free(b->dat);
 
     if (b != NULL)
-	free(b);
+        free(b);
 }
-
 
 bitmap_t *
 create_bitmap(int x, int y)
 {
     bitmap_t *b = malloc(sizeof(bitmap_t) + (y * sizeof(uint32_t *)));
-    int c;
+    int       c;
 
     b->dat = malloc(x * y * 4);
     for (c = 0; c < y; c++)
-	b->line[c] = &(b->dat[c * x]);
+        b->line[c] = &(b->dat[c * x]);
     b->w = x;
     b->h = y;
 
-    return(b);
+    return (b);
 }
 
 void
 video_monitor_init(int index)
 {
     memset(&monitors[index], 0, sizeof(monitor_t));
-    monitors[index].mon_xsize = 640;
-    monitors[index].mon_ysize = 480;
-    monitors[index].mon_res_x = 640;
-    monitors[index].mon_res_y = 480;
-    monitors[index].mon_scrnsz_x = 640;
-    monitors[index].mon_scrnsz_y = 480;
-    monitors[index].mon_efscrnsz_y = 480;
-    monitors[index].mon_unscaled_size_x = 480;
-    monitors[index].mon_unscaled_size_y = 480;
-    monitors[index].mon_bpp = 8;
-    monitors[index].mon_changeframecount = 2;
-    monitors[index].target_buffer = create_bitmap(2048, 2048);
-    monitors[index].mon_blit_data_ptr = calloc(1, sizeof(blit_data_t));
-    monitors[index].mon_blit_data_ptr->wake_blit_thread = thread_create_event();
-    monitors[index].mon_blit_data_ptr->blit_complete = thread_create_event();
+    monitors[index].mon_xsize                            = 640;
+    monitors[index].mon_ysize                            = 480;
+    monitors[index].mon_res_x                            = 640;
+    monitors[index].mon_res_y                            = 480;
+    monitors[index].mon_scrnsz_x                         = 640;
+    monitors[index].mon_scrnsz_y                         = 480;
+    monitors[index].mon_efscrnsz_y                       = 480;
+    monitors[index].mon_unscaled_size_x                  = 480;
+    monitors[index].mon_unscaled_size_y                  = 480;
+    monitors[index].mon_bpp                              = 8;
+    monitors[index].mon_changeframecount                 = 2;
+    monitors[index].target_buffer                        = create_bitmap(2048, 2048);
+    monitors[index].mon_blit_data_ptr                    = calloc(1, sizeof(blit_data_t));
+    monitors[index].mon_blit_data_ptr->wake_blit_thread  = thread_create_event();
+    monitors[index].mon_blit_data_ptr->blit_complete     = thread_create_event();
     monitors[index].mon_blit_data_ptr->buffer_not_in_use = thread_create_event();
-    monitors[index].mon_blit_data_ptr->thread_run = 1;
-    monitors[index].mon_blit_data_ptr->monitor_index = index;
-    monitors[index].mon_pal_lookup = calloc(sizeof(uint32_t), 256);
-    monitors[index].mon_cga_palette = calloc(1, sizeof(int));
-    monitors[index].mon_force_resize = 1;
-    monitors[index].mon_vid_type = VIDEO_FLAG_TYPE_NONE;
+    monitors[index].mon_blit_data_ptr->thread_run        = 1;
+    monitors[index].mon_blit_data_ptr->monitor_index     = index;
+    monitors[index].mon_pal_lookup                       = calloc(sizeof(uint32_t), 256);
+    monitors[index].mon_cga_palette                      = calloc(1, sizeof(int));
+    monitors[index].mon_force_resize                     = 1;
+    monitors[index].mon_vid_type                         = VIDEO_FLAG_TYPE_NONE;
     atomic_init(&doresize_monitors[index], 0);
     atomic_init(&monitors[index].mon_screenshots, 0);
-    if (index >= 1) ui_init_monitor(index);
+    if (index >= 1)
+        ui_init_monitor(index);
     monitors[index].mon_blit_data_ptr->blit_thread = thread_create(blit_thread, monitors[index].mon_blit_data_ptr);
 }
 
 void
 video_monitor_close(int monitor_index)
 {
-    if (monitors[monitor_index].target_buffer == NULL) { return; }
+    if (monitors[monitor_index].target_buffer == NULL) {
+        return;
+    }
     monitors[monitor_index].mon_blit_data_ptr->thread_run = 0;
     thread_set_event(monitors[monitor_index].mon_blit_data_ptr->wake_blit_thread);
     thread_wait(monitors[monitor_index].mon_blit_data_ptr->blit_thread);
-    if (monitor_index >= 1) ui_deinit_monitor(monitor_index);
+    if (monitor_index >= 1)
+        ui_deinit_monitor(monitor_index);
     thread_destroy_event(monitors[monitor_index].mon_blit_data_ptr->buffer_not_in_use);
     thread_destroy_event(monitors[monitor_index].mon_blit_data_ptr->blit_complete);
     thread_destroy_event(monitors[monitor_index].mon_blit_data_ptr->wake_blit_thread);
     free(monitors[monitor_index].mon_blit_data_ptr);
-    if (!monitors[monitor_index].mon_pal_lookup_static) free(monitors[monitor_index].mon_pal_lookup);
-    if (!monitors[monitor_index].mon_cga_palette_static) free(monitors[monitor_index].mon_cga_palette);
+    if (!monitors[monitor_index].mon_pal_lookup_static)
+        free(monitors[monitor_index].mon_pal_lookup);
+    if (!monitors[monitor_index].mon_cga_palette_static)
+        free(monitors[monitor_index].mon_cga_palette);
     destroy_bitmap(monitors[monitor_index].target_buffer);
     monitors[monitor_index].target_buffer = NULL;
     memset(&monitors[monitor_index], 0, sizeof(monitor_t));
@@ -906,61 +881,63 @@ video_monitor_close(int monitor_index)
 void
 video_init(void)
 {
-    int c, d;
+    int     c, d;
     uint8_t total[2] = { 0, 1 };
 
     for (c = 0; c < 16; c++) {
-	cga_2_table[c] = (total[(c >> 3) & 1] << 0 ) | (total[(c >> 2) & 1] << 8 ) |
-			 (total[(c >> 1) & 1] << 16) | (total[(c >> 0) & 1] << 24);
+        cga_2_table[c] = (total[(c >> 3) & 1] << 0) | (total[(c >> 2) & 1] << 8) | (total[(c >> 1) & 1] << 16) | (total[(c >> 0) & 1] << 24);
     }
 
     for (c = 0; c < 64; c++) {
-	cgapal[c + 64].r = (((c & 4) ? 2 : 0) | ((c & 0x10) ? 1 : 0)) * 21;
-	cgapal[c + 64].g = (((c & 2) ? 2 : 0) | ((c & 0x10) ? 1 : 0)) * 21;
-	cgapal[c + 64].b = (((c & 1) ? 2 : 0) | ((c & 0x10) ? 1 : 0)) * 21;
-	if ((c & 0x17) == 6)
-		cgapal[c + 64].g >>= 1;
+        cgapal[c + 64].r = (((c & 4) ? 2 : 0) | ((c & 0x10) ? 1 : 0)) * 21;
+        cgapal[c + 64].g = (((c & 2) ? 2 : 0) | ((c & 0x10) ? 1 : 0)) * 21;
+        cgapal[c + 64].b = (((c & 1) ? 2 : 0) | ((c & 0x10) ? 1 : 0)) * 21;
+        if ((c & 0x17) == 6)
+            cgapal[c + 64].g >>= 1;
     }
     for (c = 0; c < 64; c++) {
-	cgapal[c + 128].r = (((c & 4) ? 2 : 0) | ((c & 0x20) ? 1 : 0)) * 21;
-	cgapal[c + 128].g = (((c & 2) ? 2 : 0) | ((c & 0x10) ? 1 : 0)) * 21;
-	cgapal[c + 128].b = (((c & 1) ? 2 : 0) | ((c & 0x08) ? 1 : 0)) * 21;
+        cgapal[c + 128].r = (((c & 4) ? 2 : 0) | ((c & 0x20) ? 1 : 0)) * 21;
+        cgapal[c + 128].g = (((c & 2) ? 2 : 0) | ((c & 0x10) ? 1 : 0)) * 21;
+        cgapal[c + 128].b = (((c & 1) ? 2 : 0) | ((c & 0x08) ? 1 : 0)) * 21;
     }
 
     for (c = 0; c < 4; c++) {
-	for (d = 0; d < 4; d++) {
-		edatlookup[c][d] = 0;
-		if (c & 1) edatlookup[c][d] |= 1;
-		if (d & 1) edatlookup[c][d] |= 2;
-		if (c & 2) edatlookup[c][d] |= 0x10;
-		if (d & 2) edatlookup[c][d] |= 0x20;
-	}
+        for (d = 0; d < 4; d++) {
+            edatlookup[c][d] = 0;
+            if (c & 1)
+                edatlookup[c][d] |= 1;
+            if (d & 1)
+                edatlookup[c][d] |= 2;
+            if (c & 2)
+                edatlookup[c][d] |= 0x10;
+            if (d & 2)
+                edatlookup[c][d] |= 0x20;
+        }
     }
 
     video_6to8 = malloc(4 * 256);
     for (c = 0; c < 256; c++)
-	video_6to8[c] = calc_6to8(c);
+        video_6to8[c] = calc_6to8(c);
 
     video_8togs = malloc(4 * 256);
     for (c = 0; c < 256; c++)
-	video_8togs[c] = c | (c << 16) | (c << 24);
+        video_8togs[c] = c | (c << 16) | (c << 24);
 
     video_8to32 = malloc(4 * 256);
     for (c = 0; c < 256; c++)
-	video_8to32[c] = calc_8to32(c);
+        video_8to32[c] = calc_8to32(c);
 
     video_15to32 = malloc(4 * 65536);
     for (c = 0; c < 65536; c++)
-	video_15to32[c] = calc_15to32(c & 0x7fff);
+        video_15to32[c] = calc_15to32(c & 0x7fff);
 
     video_16to32 = malloc(4 * 65536);
     for (c = 0; c < 65536; c++)
-	video_16to32[c] = calc_16to32(c);
+        video_16to32[c] = calc_16to32(c);
 
     memset(monitors, 0, sizeof(monitors));
     video_monitor_init(0);
 }
-
 
 void
 video_close(void)
@@ -974,13 +951,13 @@ video_close(void)
     free(video_6to8);
 
     if (fontdatksc5601) {
-	free(fontdatksc5601);
-	fontdatksc5601 = NULL;
+        free(fontdatksc5601);
+        fontdatksc5601 = NULL;
     }
 
     if (fontdatksc5601_user) {
-	free(fontdatksc5601_user);
-	fontdatksc5601_user = NULL;
+        free(fontdatksc5601_user);
+        fontdatksc5601_user = NULL;
     }
 }
 
@@ -990,150 +967,138 @@ video_force_resize_get_monitor(int monitor_index)
     return monitors[monitor_index].mon_force_resize;
 }
 
-
 void
 video_force_resize_set_monitor(uint8_t res, int monitor_index)
 {
     monitors[monitor_index].mon_force_resize = res;
 }
 
-
 void
 loadfont_common(FILE *f, int format)
 {
     int c, d;
 
-	switch (format) {
-	case 0:		/* MDA */
-		for (c=0; c<256; c++)
-			for (d=0; d<8; d++)
-				fontdatm[c][d] = fgetc(f) & 0xff;
-		for (c=0; c<256; c++)
-			for (d=0; d<8; d++)
-				fontdatm[c][d+8] = fgetc(f) & 0xff;
-		(void)fseek(f, 4096+2048, SEEK_SET);
-		for (c=0; c<256; c++)
-			for (d=0; d<8; d++)
-				fontdat[c][d] = fgetc(f) & 0xff;
-		break;
+    switch (format) {
+        case 0: /* MDA */
+            for (c = 0; c < 256; c++)
+                for (d = 0; d < 8; d++)
+                    fontdatm[c][d] = fgetc(f) & 0xff;
+            for (c = 0; c < 256; c++)
+                for (d = 0; d < 8; d++)
+                    fontdatm[c][d + 8] = fgetc(f) & 0xff;
+            (void) fseek(f, 4096 + 2048, SEEK_SET);
+            for (c = 0; c < 256; c++)
+                for (d = 0; d < 8; d++)
+                    fontdat[c][d] = fgetc(f) & 0xff;
+            break;
 
-	case 1:		/* PC200 */
-		for (d = 0; d < 4; d++) {
-			/* There are 4 fonts in the ROM */
-			for (c = 0; c < 256; c++)	/* 8x14 MDA in 8x16 cell */
-				fread(&fontdatm[256*d + c][0], 1, 16, f);
-			for (c = 0; c < 256; c++) {	/* 8x8 CGA in 8x16 cell */
-				fread(&fontdat[256*d + c][0], 1, 8, f);
-				fseek(f, 8, SEEK_CUR);
-			}
-		}
-		break;
+        case 1: /* PC200 */
+            for (d = 0; d < 4; d++) {
+                /* There are 4 fonts in the ROM */
+                for (c = 0; c < 256; c++) /* 8x14 MDA in 8x16 cell */
+                    fread(&fontdatm[256 * d + c][0], 1, 16, f);
+                for (c = 0; c < 256; c++) { /* 8x8 CGA in 8x16 cell */
+                    fread(&fontdat[256 * d + c][0], 1, 8, f);
+                    fseek(f, 8, SEEK_CUR);
+                }
+            }
+            break;
 
-	default:
-	case 2:		/* CGA */
-		for (c=0; c<256; c++)
-		       	for (d=0; d<8; d++)
-				fontdat[c][d] = fgetc(f) & 0xff;
-		break;
+        default:
+        case 2: /* CGA */
+            for (c = 0; c < 256; c++)
+                for (d = 0; d < 8; d++)
+                    fontdat[c][d] = fgetc(f) & 0xff;
+            break;
 
-	case 3:		/* Wyse 700 */
-		for (c=0; c<512; c++)
-			for (d=0; d<32; d++)
-				fontdatw[c][d] = fgetc(f) & 0xff;
-		break;
+        case 3: /* Wyse 700 */
+            for (c = 0; c < 512; c++)
+                for (d = 0; d < 32; d++)
+                    fontdatw[c][d] = fgetc(f) & 0xff;
+            break;
 
-	case 4:		/* MDSI Genius */
-		for (c=0; c<256; c++)
-			for (d=0; d<16; d++)
-				fontdat8x12[c][d] = fgetc(f) & 0xff;
-		break;
+        case 4: /* MDSI Genius */
+            for (c = 0; c < 256; c++)
+                for (d = 0; d < 16; d++)
+                    fontdat8x12[c][d] = fgetc(f) & 0xff;
+            break;
 
-	case 5: /* Toshiba 3100e */
-		for (d = 0; d < 2048; d += 512)	/* Four languages... */
-		{
-	                for (c = d; c < d+256; c++)
-                	{
-                       		fread(&fontdatm[c][8], 1, 8, f);
-                	}
-                	for (c = d+256; c < d+512; c++)
-                	{
-                        	fread(&fontdatm[c][8], 1, 8, f);
-                	}
-	                for (c = d; c < d+256; c++)
-                	{
-                        	fread(&fontdatm[c][0], 1, 8, f);
-                	}
-                	for (c = d+256; c < d+512; c++)
-                	{
-                        	fread(&fontdatm[c][0], 1, 8, f);
-                	}
-			fseek(f, 4096, SEEK_CUR);	/* Skip blank section */
-	                for (c = d; c < d+256; c++)
-                	{
-                       		fread(&fontdat[c][0], 1, 8, f);
-                	}
-                	for (c = d+256; c < d+512; c++)
-                	{
-                        	fread(&fontdat[c][0], 1, 8, f);
-                	}
-		}
-                break;
+        case 5: /* Toshiba 3100e */
+            for (d = 0; d < 2048; d += 512) { /* Four languages... */
+                for (c = d; c < d + 256; c++) {
+                    (void) !fread(&fontdatm[c][8], 1, 8, f);
+                }
+                for (c = d + 256; c < d + 512; c++) {
+                    (void) !fread(&fontdatm[c][8], 1, 8, f);
+                }
+                for (c = d; c < d + 256; c++) {
+                    (void) !fread(&fontdatm[c][0], 1, 8, f);
+                }
+                for (c = d + 256; c < d + 512; c++) {
+                    (void) !fread(&fontdatm[c][0], 1, 8, f);
+                }
+                fseek(f, 4096, SEEK_CUR); /* Skip blank section */
+                for (c = d; c < d + 256; c++) {
+                    (void) !fread(&fontdat[c][0], 1, 8, f);
+                }
+                for (c = d + 256; c < d + 512; c++) {
+                    (void) !fread(&fontdat[c][0], 1, 8, f);
+                }
+            }
+            break;
 
-	case 6: /* Korean KSC-5601 */
-		if (!fontdatksc5601)
-			fontdatksc5601 = malloc(16384 * sizeof(dbcs_font_t));
+        case 6: /* Korean KSC-5601 */
+            if (!fontdatksc5601)
+                fontdatksc5601 = malloc(16384 * sizeof(dbcs_font_t));
 
-		if (!fontdatksc5601_user)
-			fontdatksc5601_user = malloc(192 * sizeof(dbcs_font_t));
+            if (!fontdatksc5601_user)
+                fontdatksc5601_user = malloc(192 * sizeof(dbcs_font_t));
 
-		for (c = 0; c < 16384; c++)
-		{
-			for (d = 0; d < 32; d++)
-				fontdatksc5601[c].chr[d]=fgetc(f) & 0xff;
-		}
-		break;
+            for (c = 0; c < 16384; c++) {
+                for (d = 0; d < 32; d++)
+                    fontdatksc5601[c].chr[d] = fgetc(f) & 0xff;
+            }
+            break;
 
-	case 7: /* Sigma Color 400 */
-		/* The first 4k of the character ROM holds an 8x8 font */
-		for (c = 0; c < 256; c++) {
-			fread(&fontdat[c][0], 1, 8, f);
-			fseek(f, 8, SEEK_CUR);
-		}
-		/* The second 4k holds an 8x16 font */
-		for (c = 0; c < 256; c++) {
-			if (fread(&fontdatm[c][0], 1, 16, f) != 16)
-				fatal("loadfont(): Error reading 8x16 font in Sigma Color 400 mode, c = %i\n", c);
-		}
-		break;
+        case 7: /* Sigma Color 400 */
+            /* The first 4k of the character ROM holds an 8x8 font */
+            for (c = 0; c < 256; c++) {
+                (void) !fread(&fontdat[c][0], 1, 8, f);
+                fseek(f, 8, SEEK_CUR);
+            }
+            /* The second 4k holds an 8x16 font */
+            for (c = 0; c < 256; c++) {
+                if (fread(&fontdatm[c][0], 1, 16, f) != 16)
+                    fatal("loadfont(): Error reading 8x16 font in Sigma Color 400 mode, c = %i\n", c);
+            }
+            break;
 
-	case 8:	/* Amstrad PC1512, Toshiba T1000/T1200 */
-		for (c = 0; c < 2048; c++)	/* Allow up to 2048 chars */
-		       	for (d=0; d<8; d++)
-				fontdat[c][d] = fgetc(f) & 0xff;
-		break;
+        case 8:                        /* Amstrad PC1512, Toshiba T1000/T1200 */
+            for (c = 0; c < 2048; c++) /* Allow up to 2048 chars */
+                for (d = 0; d < 8; d++)
+                    fontdat[c][d] = fgetc(f) & 0xff;
+            break;
 
-	case 9:	/* Image Manager 1024 native font */
-		for (c = 0; c < 256; c++)
-			fread(&fontdat12x18[c][0], 1, 36, f);
-		break;
+        case 9: /* Image Manager 1024 native font */
+            for (c = 0; c < 256; c++)
+                (void) !fread(&fontdat12x18[c][0], 1, 36, f);
+            break;
+    }
 
-	}
-
-    (void)fclose(f);
+    (void) fclose(f);
 }
 
 void
 loadfont_ex(char *s, int format, int offset)
 {
-	FILE *f;
+    FILE *f;
 
     f = rom_fopen(s, "rb");
     if (f == NULL)
-		return;
+        return;
 
-	fseek(f, offset, SEEK_SET);
-	loadfont_common(f, format);
-
+    fseek(f, offset, SEEK_SET);
+    loadfont_common(f, format);
 }
 
 void
@@ -1147,27 +1112,29 @@ video_color_transform(uint32_t color)
 {
     uint8_t *clr8 = (uint8_t *) &color;
     /* if (!video_grayscale && !invert_display)
-	return color; */
+        return color; */
     if (video_grayscale) {
-	if (video_graytype) {
-		if (video_graytype == 1)
-			color = ((54 * (uint32_t)clr8[2]) + (183 * (uint32_t)clr8[1]) + (18 * (uint32_t)clr8[0])) / 255;
-		else
-			color = ((uint32_t)clr8[2] + (uint32_t)clr8[1] + (uint32_t)clr8[0]) / 3;
-	} else
-		color = ((76 * (uint32_t)clr8[2]) + (150 * (uint32_t)clr8[1]) + (29 * (uint32_t)clr8[0])) / 255;
-	switch (video_grayscale) {
-		case 2: case 3: case 4:
-			color = (uint32_t) shade[video_grayscale][color];
-			break;
-		default:
-			clr8[3] = 0;
-			clr8[0] = color;
-			clr8[1] = clr8[2] = clr8[0];
-			break;
-	}
+        if (video_graytype) {
+            if (video_graytype == 1)
+                color = ((54 * (uint32_t) clr8[2]) + (183 * (uint32_t) clr8[1]) + (18 * (uint32_t) clr8[0])) / 255;
+            else
+                color = ((uint32_t) clr8[2] + (uint32_t) clr8[1] + (uint32_t) clr8[0]) / 3;
+        } else
+            color = ((76 * (uint32_t) clr8[2]) + (150 * (uint32_t) clr8[1]) + (29 * (uint32_t) clr8[0])) / 255;
+        switch (video_grayscale) {
+            case 2:
+            case 3:
+            case 4:
+                color = (uint32_t) shade[video_grayscale][color];
+                break;
+            default:
+                clr8[3] = 0;
+                clr8[0] = color;
+                clr8[1] = clr8[2] = clr8[0];
+                break;
+        }
     }
     if (invert_display)
-	color ^= 0x00ffffff;
+        color ^= 0x00ffffff;
     return color;
 }
