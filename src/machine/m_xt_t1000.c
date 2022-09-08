@@ -1041,7 +1041,7 @@ t1000_emsboard_load(void)
     if (mem_size > 512) {
         f = plat_fopen(nvr_path("t1000_ems.nvr"), "rb");
         if (f != NULL) {
-            fread(&ram[512 * 1024], 1024, (mem_size - 512), f);
+            (void) !fread(&ram[512 * 1024], 1024, (mem_size - 512), f);
             fclose(f);
         }
     }
