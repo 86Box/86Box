@@ -33,7 +33,7 @@
 #include <86box/pci.h>
 #include <86box/chipset.h>
 #include <86box/spd.h>
-#include <86box/video.h>
+#include <86box/agpgart.h>
 
 #define VIA_585  0x05851000
 #define VIA_595  0x05950000
@@ -50,8 +50,8 @@ typedef struct via_apollo_t
     uint8_t	drb_unit;
     uint8_t	pci_conf[256];
 
-    smram_t	*smram;
-    void	*agpgart;
+    smram_t   *smram;
+    agpgart_t *agpgart;
 } via_apollo_t;
 
 

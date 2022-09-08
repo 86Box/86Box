@@ -23,14 +23,7 @@
 #include <86box/86box.h>
 #include <86box/device.h>
 #include <86box/mem.h>
-
-
-typedef struct {
-    int		aperture_enable;
-    uint32_t	aperture_base, aperture_size, aperture_mask, gart_base;
-    mem_mapping_t aperture_mapping;
-} agpgart_t;
-
+#include <86box/agpgart.h>
 
 #ifdef ENABLE_AGPGART_LOG
 int agpgart_do_log = ENABLE_AGPGART_LOG;
@@ -41,50 +34,44 @@ agpgart_log(const char *fmt, ...)
     va_list ap;
 
     if (agpgart_do_log) {
-	va_start(ap, fmt);
-	pclog_ex(fmt, ap);
-	va_end(ap);
+        va_start(ap, fmt);
+        pclog_ex(fmt, ap);
+        va_end(ap);
     }
 }
 #else
-#define agpgart_log(fmt, ...)
+#    define agpgart_log(fmt, ...)
 #endif
 
-
 void
-agpgart_set_aperture(void *handle, uint32_t base, uint32_t size, int enable)
+agpgart_set_aperture(agpgart_t *dev, uint32_t base, uint32_t size, int enable)
 {
-    agpgart_t *dev = (agpgart_t *) handle;
-
     agpgart_log("AGP GART: set_aperture(%08X, %d, %d)\n", base, size, enable);
 
     /* Disable old aperture mapping. */
     mem_mapping_disable(&dev->aperture_mapping);
 
-    /* Set new aperture base address, size and mask. */
+    /* Set new aperture base address, size, mask and enable. */
     dev->aperture_base = base;
     dev->aperture_size = size;
     dev->aperture_mask = size - 1;
+    dev->aperture_enable = enable;
 
     /* Enable new aperture mapping if requested. */
     if (dev->aperture_base && dev->aperture_size && dev->aperture_enable) {
-	mem_mapping_set_addr(&dev->aperture_mapping, dev->aperture_base, dev->aperture_size);
-	mem_mapping_enable(&dev->aperture_mapping);
+        mem_mapping_set_addr(&dev->aperture_mapping, dev->aperture_base, dev->aperture_size);
+        mem_mapping_enable(&dev->aperture_mapping);
     }
 }
 
-
 void
-agpgart_set_gart(void *handle, uint32_t base)
+agpgart_set_gart(agpgart_t *dev, uint32_t base)
 {
-    agpgart_t *dev = (agpgart_t *) handle;
-
     agpgart_log("AGP GART: set_gart(%08X)\n", base);
 
     /* Set GART base address. */
     dev->gart_base = base;
 }
-
 
 static uint32_t
 agpgart_translate(uint32_t addr, agpgart_t *dev)
@@ -99,14 +86,12 @@ agpgart_translate(uint32_t addr, agpgart_t *dev)
     return gart_ptr | (addr & 0x00000fff);
 }
 
-
 static uint8_t
 agpgart_aperture_readb(uint32_t addr, void *priv)
 {
     agpgart_t *dev = (agpgart_t *) priv;
     return mem_readb_phys(agpgart_translate(addr, dev));
 }
-
 
 static uint16_t
 agpgart_aperture_readw(uint32_t addr, void *priv)
@@ -115,14 +100,12 @@ agpgart_aperture_readw(uint32_t addr, void *priv)
     return mem_readw_phys(agpgart_translate(addr, dev));
 }
 
-
 static uint32_t
 agpgart_aperture_readl(uint32_t addr, void *priv)
 {
     agpgart_t *dev = (agpgart_t *) priv;
     return mem_readl_phys(agpgart_translate(addr, dev));
 }
-
 
 static void
 agpgart_aperture_writeb(uint32_t addr, uint8_t val, void *priv)
@@ -131,7 +114,6 @@ agpgart_aperture_writeb(uint32_t addr, uint8_t val, void *priv)
     mem_writeb_phys(agpgart_translate(addr, dev), val);
 }
 
-
 static void
 agpgart_aperture_writew(uint32_t addr, uint16_t val, void *priv)
 {
@@ -139,14 +121,12 @@ agpgart_aperture_writew(uint32_t addr, uint16_t val, void *priv)
     mem_writew_phys(agpgart_translate(addr, dev), val);
 }
 
-
 static void
 agpgart_aperture_writel(uint32_t addr, uint32_t val, void *priv)
 {
     agpgart_t *dev = (agpgart_t *) priv;
     mem_writel_phys(agpgart_translate(addr, dev), val);
 }
-
 
 static void *
 agpgart_init(const device_t *info)
@@ -158,13 +138,12 @@ agpgart_init(const device_t *info)
 
     /* Create aperture mapping. */
     mem_mapping_add(&dev->aperture_mapping, 0, 0,
-		    agpgart_aperture_readb, agpgart_aperture_readw, agpgart_aperture_readl,
-		    agpgart_aperture_writeb, agpgart_aperture_writew, agpgart_aperture_writel,
-		    NULL, MEM_MAPPING_EXTERNAL, dev);
+                    agpgart_aperture_readb, agpgart_aperture_readw, agpgart_aperture_readl,
+                    agpgart_aperture_writeb, agpgart_aperture_writew, agpgart_aperture_writel,
+                    NULL, MEM_MAPPING_EXTERNAL, dev);
 
     return dev;
 }
-
 
 static void
 agpgart_close(void *priv)
@@ -180,15 +159,15 @@ agpgart_close(void *priv)
 }
 
 const device_t agpgart_device = {
-    .name = "AGP Graphics Address Remapping Table",
+    .name          = "AGP Graphics Address Remapping Table",
     .internal_name = "agpgart",
-    .flags = DEVICE_PCI,
-    .local = 0,
-    .init = agpgart_init,
-    .close = agpgart_close,
-    .reset = NULL,
+    .flags         = DEVICE_PCI,
+    .local         = 0,
+    .init          = agpgart_init,
+    .close         = agpgart_close,
+    .reset         = NULL,
     { .available = NULL },
     .speed_changed = NULL,
-    .force_redraw = NULL,
-    .config = NULL
+    .force_redraw  = NULL,
+    .config        = NULL
 };

@@ -20,11 +20,18 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
 #ifdef _WIN32
+#    ifndef __clang__
+#        include <unistd.h>
+#    else
+#        include <io.h>
+#        define ssize_t long
+#        define strtok_r(a, b, c) strtok_s(a, b, c)
+#    endif
 #    include <winsock2.h>
 #    include <ws2tcpip.h>
 #else
+#    include <unistd.h>
 #    include <arpa/inet.h>
 #    include <sys/socket.h>
 #    include <errno.h>
@@ -706,6 +713,8 @@ gdbstub_client_read_reg(int index, uint8_t *buf)
 static void
 gdbstub_client_packet(gdbstub_client_t *client)
 {
+    gdbstub_breakpoint_t *breakpoint, *prev_breakpoint = NULL, **first_breakpoint = NULL;
+
 #ifdef GDBSTUB_CHECK_CHECKSUM /* msys2 gdb 11.1 transmits qSupported and H with invalid checksum... */
     uint8_t rcv_checksum = 0, checksum = 0;
 #endif
@@ -1202,7 +1211,6 @@ unknown:
 
         case 'z': /* remove break/watchpoint */
         case 'Z': /* insert break/watchpoint */
-            gdbstub_breakpoint_t *breakpoint, *prev_breakpoint = NULL, **first_breakpoint;
 
             /* Parse breakpoint type. */
             switch (client->packet[1]) {

@@ -37,47 +37,45 @@
 #include <86box/vid_colorplus.h>
 #include <86box/vid_mda.h>
 
-
 typedef struct {
-    const device_t    *device;
-    int flags;
+    const device_t *device;
+    int             flags;
 } VIDEO_CARD;
 
-
-static video_timings_t timing_default = {VIDEO_ISA, 8, 16, 32,   8, 16, 32};
+static video_timings_t timing_default = { .type = VIDEO_ISA, .write_b = 8, .write_w = 16, .write_l = 32, .read_b = 8, .read_w = 16, .read_l = 32 };
 
 static int was_reset = 0;
 
 static const device_t vid_none_device = {
-    .name = "None",
+    .name          = "None",
     .internal_name = "none",
-    .flags = 0,
-    .local = 0,
-    .init = NULL,
-    .close = NULL,
-    .reset = NULL,
+    .flags         = 0,
+    .local         = 0,
+    .init          = NULL,
+    .close         = NULL,
+    .reset         = NULL,
     { .available = NULL },
     .speed_changed = NULL,
-    .force_redraw = NULL,
-    .config = NULL
+    .force_redraw  = NULL,
+    .config        = NULL
 };
 static const device_t vid_internal_device = {
-    .name = "Internal",
+    .name          = "Internal",
     .internal_name = "internal",
-    .flags = 0,
-    .local = 0,
-    .init = NULL,
-    .close = NULL,
-    .reset = NULL,
+    .flags         = 0,
+    .local         = 0,
+    .init          = NULL,
+    .close         = NULL,
+    .reset         = NULL,
     { .available = NULL },
     .speed_changed = NULL,
-    .force_redraw = NULL,
-    .config = NULL
+    .force_redraw  = NULL,
+    .config        = NULL
 };
 
+// clang-format off
 static const VIDEO_CARD
 video_cards[] = {
-// clang-format off
     { &vid_none_device                               },
     { &vid_internal_device                           },
     { &atiega_device                                 },
@@ -254,13 +252,11 @@ video_cards[] = {
     { &voodoo_3_2000_agp_device                      },
     { &voodoo_3_3000_agp_device                      },
     { NULL                                           }
-// clang-format off
 };
-
+// clang-format on
 
 #ifdef ENABLE_VID_TABLE_LOG
 int vid_table_do_log = ENABLE_VID_TABLE_LOG;
-
 
 static void
 vid_table_log(const char *fmt, ...)
@@ -268,15 +264,14 @@ vid_table_log(const char *fmt, ...)
     va_list ap;
 
     if (vid_table_do_log) {
-    va_start(ap, fmt);
-    pclog_ex(fmt, ap);
-    va_end(ap);
+        va_start(ap, fmt);
+        pclog_ex(fmt, ap);
+        va_end(ap);
     }
 }
 #else
-#define vid_table_log(fmt, ...)
+#    define vid_table_log(fmt, ...)
 #endif
-
 
 void
 video_reset_close(void)
@@ -289,14 +284,13 @@ video_reset_close(void)
     was_reset = 0;
 }
 
-
 static void
 video_prepare(void)
 {
     /* Reset (deallocate) the video font arrays. */
     if (fontdatksc5601) {
-    free(fontdatksc5601);
-    fontdatksc5601 = NULL;
+        free(fontdatksc5601);
+        fontdatksc5601 = NULL;
     }
 
     /* Reset the blend. */
@@ -304,7 +298,8 @@ video_prepare(void)
 
     for (int i = 0; i < MONITORS_NUM; i++) {
         /* Reset the CGA palette. */
-        if (monitors[i].mon_cga_palette) *monitors[i].mon_cga_palette = 0;
+        if (monitors[i].mon_cga_palette)
+            *monitors[i].mon_cga_palette = 0;
         cgapal_rebuild_monitor(i);
 
         /* Do an inform on the default values, so that that there's some sane values initialized
@@ -313,38 +308,34 @@ video_prepare(void)
     }
 }
 
-
 void
 video_pre_reset(int card)
 {
-    if ((card == VID_NONE) || \
-    (card == VID_INTERNAL) || machine_has_flags(machine, MACHINE_VIDEO_ONLY))
-    video_prepare();
+    if ((card == VID_NONE) || (card == VID_INTERNAL) || machine_has_flags(machine, MACHINE_VIDEO_ONLY))
+        video_prepare();
 }
-
 
 void
 video_reset(int card)
 {
     /* This is needed to avoid duplicate resets. */
     if ((video_get_type() != VIDEO_FLAG_TYPE_NONE) && was_reset)
-    return;
+        return;
 
     vid_table_log("VIDEO: reset (gfxcard=%d, internal=%d)\n",
-          card, machine_has_flags(machine, MACHINE_VIDEO) ? 1 : 0);
+                  card, machine_has_flags(machine, MACHINE_VIDEO) ? 1 : 0);
 
     monitor_index_global = 0;
     loadfont("roms/video/mda/mda.rom", 0);
 
     /* Do not initialize internal cards here. */
-    if (!(card == VID_NONE) && \
-    !(card == VID_INTERNAL) && !machine_has_flags(machine, MACHINE_VIDEO_ONLY)) {
-    vid_table_log("VIDEO: initializing '%s'\n", video_cards[card].name);
+    if (!(card == VID_NONE) && !(card == VID_INTERNAL) && !machine_has_flags(machine, MACHINE_VIDEO_ONLY)) {
+        vid_table_log("VIDEO: initializing '%s'\n", video_cards[card].name);
 
-    video_prepare();
+        video_prepare();
 
-    /* Initialize the video card. */
-    device_add(video_cards[card].device);
+        /* Initialize the video card. */
+        device_add(video_cards[card].device);
     }
 
     if (!(card == VID_NONE)
@@ -360,19 +351,18 @@ video_reset(int card)
 
     /* Enable the Voodoo if configured. */
     if (voodoo_enabled)
-           device_add(&voodoo_device);
+        device_add(&voodoo_device);
 
     was_reset = 1;
 }
-
 
 int
 video_card_available(int card)
 {
     if (video_cards[card].device)
-    return(device_available(video_cards[card].device));
+        return (device_available(video_cards[card].device));
 
-    return(1);
+    return (1);
 }
 
 int
@@ -384,18 +374,17 @@ video_card_get_flags(int card)
 const device_t *
 video_card_getdevice(int card)
 {
-    return(video_cards[card].device);
+    return (video_cards[card].device);
 }
-
 
 int
 video_card_has_config(int card)
 {
-    if (video_cards[card].device == NULL) return(0);
+    if (video_cards[card].device == NULL)
+        return (0);
 
-    return(device_has_config(video_cards[card].device) ? 1 : 0);
+    return (device_has_config(video_cards[card].device) ? 1 : 0);
 }
-
 
 char *
 video_get_internal_name(int card)
@@ -403,21 +392,19 @@ video_get_internal_name(int card)
     return device_get_internal_name(video_cards[card].device);
 }
 
-
 int
 video_get_video_from_internal_name(char *s)
 {
     int c = 0;
 
     while (video_cards[c].device != NULL) {
-    if (!strcmp((char *) video_cards[c].device->internal_name, s))
-        return(c);
-    c++;
+        if (!strcmp((char *) video_cards[c].device->internal_name, s))
+            return (c);
+        c++;
     }
 
-    return(0);
+    return (0);
 }
-
 
 int
 video_is_mda(void)
@@ -425,13 +412,11 @@ video_is_mda(void)
     return (video_get_type() == VIDEO_FLAG_TYPE_MDA);
 }
 
-
 int
 video_is_cga(void)
 {
     return (video_get_type() == VIDEO_FLAG_TYPE_CGA);
 }
-
 
 int
 video_is_ega_vga(void)
