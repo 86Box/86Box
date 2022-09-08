@@ -24,9 +24,7 @@
 #include <86box/86box.h>
 #include <86box/device.h>
 
-
-typedef struct ics2595_t
-{
+typedef struct ics2595_t {
     int oldfs3, oldfs2;
     int dat;
     int pos, state;
@@ -35,56 +33,51 @@ typedef struct ics2595_t
     double output_clock;
 } ics2595_t;
 
-
-enum
-{
-        ICS2595_IDLE = 0,
-        ICS2595_WRITE,
-        ICS2595_READ
+enum {
+    ICS2595_IDLE = 0,
+    ICS2595_WRITE,
+    ICS2595_READ
 };
 
-
-static int ics2595_div[4] = {8, 4, 2, 1};
-
+static int ics2595_div[4] = { 8, 4, 2, 1 };
 
 void
 ics2595_write(void *p, int strobe, int dat)
 {
     ics2595_t *ics2595 = (ics2595_t *) p;
-    int d, n;
-    int l;
+    int        d, n;
+    int        l;
 
     if (strobe) {
-	if ((dat & 8) && !ics2595->oldfs3) {	/*Data clock*/
-		switch (ics2595->state) {
-			case ICS2595_IDLE:
-				ics2595->state = (dat & 4) ? ICS2595_WRITE : ICS2595_IDLE;
-				ics2595->pos = 0;
-				break;
-			case ICS2595_WRITE:
-				ics2595->dat = (ics2595->dat >> 1);
-				if (dat & 4)
-					ics2595->dat |= (1 << 19);
-				ics2595->pos++;
-				if (ics2595->pos == 20) {
-					l = (ics2595->dat >> 2) & 0xf;
-					n = ((ics2595->dat >> 7) & 255) + 257;
-					d = ics2595_div[(ics2595->dat >> 16) & 3];
+        if ((dat & 8) && !ics2595->oldfs3) { /*Data clock*/
+            switch (ics2595->state) {
+                case ICS2595_IDLE:
+                    ics2595->state = (dat & 4) ? ICS2595_WRITE : ICS2595_IDLE;
+                    ics2595->pos   = 0;
+                    break;
+                case ICS2595_WRITE:
+                    ics2595->dat = (ics2595->dat >> 1);
+                    if (dat & 4)
+                        ics2595->dat |= (1 << 19);
+                    ics2595->pos++;
+                    if (ics2595->pos == 20) {
+                        l = (ics2595->dat >> 2) & 0xf;
+                        n = ((ics2595->dat >> 7) & 255) + 257;
+                        d = ics2595_div[(ics2595->dat >> 16) & 3];
 
-					ics2595->clocks[l] = (14318181.8 * ((double)n / 46.0)) / (double)d;
-					ics2595->state = ICS2595_IDLE;
-				}
-				break;
-		}
-	}
+                        ics2595->clocks[l] = (14318181.8 * ((double) n / 46.0)) / (double) d;
+                        ics2595->state     = ICS2595_IDLE;
+                    }
+                    break;
+            }
+        }
 
-	ics2595->oldfs2 = dat & 4;
-	ics2595->oldfs3 = dat & 8;
+        ics2595->oldfs2 = dat & 4;
+        ics2595->oldfs3 = dat & 8;
     }
 
     ics2595->output_clock = ics2595->clocks[dat];
 }
-
 
 static void *
 ics2595_init(const device_t *info)
@@ -95,16 +88,14 @@ ics2595_init(const device_t *info)
     return ics2595;
 }
 
-
 static void
 ics2595_close(void *priv)
 {
     ics2595_t *ics2595 = (ics2595_t *) priv;
 
     if (ics2595)
-	free(ics2595);
+        free(ics2595);
 }
-
 
 double
 ics2595_getclock(void *p)
@@ -113,7 +104,6 @@ ics2595_getclock(void *p)
 
     return ics2595->output_clock;
 }
-
 
 void
 ics2595_setclock(void *p, double clock)
@@ -124,15 +114,15 @@ ics2595_setclock(void *p, double clock)
 }
 
 const device_t ics2595_device = {
-    .name = "ICS2595 clock chip",
+    .name          = "ICS2595 clock chip",
     .internal_name = "ics2595",
-    .flags = 0,
-    .local = 0,
-    .init = ics2595_init,
-    .close = ics2595_close,
-    .reset = NULL,
+    .flags         = 0,
+    .local         = 0,
+    .init          = ics2595_init,
+    .close         = ics2595_close,
+    .reset         = NULL,
     { .available = NULL },
     .speed_changed = NULL,
-    .force_redraw = NULL,
-    .config = NULL
+    .force_redraw  = NULL,
+    .config        = NULL
 };

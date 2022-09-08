@@ -231,7 +231,7 @@ toolchain_prefix=flags-gcc
 is_mac && toolchain_prefix=llvm-macos
 case $arch in
 	32 | x86)	toolchain="$toolchain_prefix-i686";;
-	64 | x86_64)	toolchain="$toolchain_prefix-x86_64";;
+	64 | x86_64*)	toolchain="$toolchain_prefix-x86_64";;
 	ARM32 | arm32)	toolchain="$toolchain_prefix-armv7";;
 	ARM64 | arm64)	toolchain="$toolchain_prefix-aarch64";;
 	*)		toolchain="$toolchain_prefix-$arch";;
@@ -872,11 +872,41 @@ then
 		then
 			find archive_tmp -type f | while IFS= read line
 			do
-				# Act only on 64-bit Mach-Os (0xFEEDFACF) for CPU type x86_64 (0x01000007).
-				if [ "$(dd if="$line" bs=1 count=8 status=none)" = "$(printf '\xCF\xFA\xED\xFE\x07\x00\x00\x01')" ]
+				# Parse and patch a fat header (0xCAFEBABE, big endian) first.
+				macho_offset=0
+				if [ "$(dd if="$line" bs=1 count=4 status=none)" = "$(printf '\xCA\xFE\xBA\xBE')" ]
 				then
-					# Change CPU subtype from ALL (0x00000003) to H (0x00000008).
-					printf '\x08\x00\x00\x00' | dd of="$line" bs=1 seek=8 count=4 conv=notrunc status=none
+					# Get the number of fat architectures.
+					fat_archs=$(($(dd if="$line" bs=1 skip=4 count=4 status=none | rev | tr -d '\n' | od -An -vtu4)))
+
+					# Go through fat architectures.
+					fat_offset=8
+					for fat_arch in $(seq 1 $fat_archs)
+					do
+						# Check CPU type.
+						if [ "$(dd if="$line" bs=1 skip=$fat_offset count=4 status=none)" = "$(printf '\x01\x00\x00\x07')" ]
+						then
+							# Change CPU subtype in the fat header from ALL (0x00000003) to H (0x00000008).
+							printf '\x00\x00\x00\x08' | dd of="$line" bs=1 seek=$((fat_offset + 4)) count=4 conv=notrunc status=none
+
+							# Save offset for this architecture's Mach-O header.
+							macho_offset=$(($(dd if="$line" bs=1 skip=$((fat_offset + 8)) count=4 status=none | rev | tr -d '\n' | od -An -vtu4)))
+
+							# Stop looking for the x86_64 slice.
+							break
+						fi
+
+						# Move on to the next architecture.
+						fat_offset=$((fat_offset + 20))
+					done
+				fi
+
+				# Now patch a 64-bit Mach-O header (0xFEEDFACF, little endian), either at
+				# the beginning or as a sub-header within a fat binary as parsed above.
+				if [ "$(dd if="$line" bs=1 skip=$macho_offset count=8 status=none)" = "$(printf '\xCF\xFA\xED\xFE\x07\x00\x00\x01')" ]
+				then
+					# Change CPU subtype in the Mach-O header from ALL (0x00000003) to H (0x00000008).
+					printf '\x08\x00\x00\x00' | dd of="$line" bs=1 seek=$((macho_offset + 8)) count=4 conv=notrunc status=none
 				fi
 			done
 		fi

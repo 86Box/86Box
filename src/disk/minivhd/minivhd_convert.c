@@ -71,7 +71,7 @@ MVHDMeta* mvhd_convert_to_vhd_sparse(const char* utf8_raw_path, const char* utf8
             copy_sect = total_sectors - i;
             memset(buff, 0, sizeof buff);
         }
-        fread(buff, MVHD_SECTOR_SIZE, copy_sect, raw_img);
+        (void) !fread(buff, MVHD_SECTOR_SIZE, copy_sect, raw_img);
         /* Only write data if there's data to write, to take advantage of the sparse VHD format */
         if (memcmp(buff, empty_buff, sizeof buff) != 0) {
             mvhd_write_sectors(vhdm, i, copy_sect, buff);

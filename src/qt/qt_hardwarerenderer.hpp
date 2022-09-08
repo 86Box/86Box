@@ -8,6 +8,7 @@
 #include <QOpenGLShader>
 #include <QOpenGLShaderProgram>
 #include <QOpenGLTextureBlitter>
+#include <QOpenGLPixelTransferOptions>
 #include <QPainter>
 #include <QEvent>
 #include <QKeyEvent>
@@ -38,6 +39,8 @@ private:
     QOpenGLTextureBlitter* m_blt{nullptr};
     QOpenGLBuffer m_vbo[2];
     QOpenGLVertexArrayObject m_vao;
+    QOpenGLPixelTransferOptions m_transferOptions;
+
 public:
     enum class RenderType {
         OpenGL,
@@ -66,6 +69,8 @@ public:
         setFlags(Qt::FramelessWindowHint);
         parentWidget = parent;
         setRenderType(rtype);
+
+        m_transferOptions.setRowLength(2048);
 
         m_context = new QOpenGLContext();
         m_context->setFormat(format());
