@@ -231,7 +231,7 @@ toolchain_prefix=flags-gcc
 is_mac && toolchain_prefix=llvm-macos
 case $arch in
 	32 | x86)	toolchain="$toolchain_prefix-i686";;
-	64 | x86_64)	toolchain="$toolchain_prefix-x86_64";;
+	64 | x86_64*)	toolchain="$toolchain_prefix-x86_64";;
 	ARM32 | arm32)	toolchain="$toolchain_prefix-armv7";;
 	ARM64 | arm64)	toolchain="$toolchain_prefix-aarch64";;
 	*)		toolchain="$toolchain_prefix-$arch";;
