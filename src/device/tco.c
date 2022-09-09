@@ -85,7 +85,7 @@ tco_write(uint16_t addr, uint8_t val, tco_t *dev)
         case 0x02: /* TCO Data in */
             dev->regs[addr] = val;
             dev->regs[0x04] |= 2;
-            smi_line = 1;
+            smi_raise();
             break;
 
         case 0x03: /* TCO Data out */
@@ -140,7 +140,7 @@ tco_read(uint16_t addr, tco_t *dev)
         tco_log("TCO: Read 0x%02x from Register 0x%02x\n", dev->regs[addr], addr);
         return dev->regs[addr];
     } else
-        return 0;
+        return 0xff;
 }
 
 static void

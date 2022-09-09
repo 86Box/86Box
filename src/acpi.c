@@ -11,8 +11,10 @@
  *
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
+ *          Tiseno100
  *
  *		Copyright 2020 Miran Grca.
+ *      Copyright 2022 Tiseno100.
  */
 #include <stdarg.h>
 #include <stdio.h>
@@ -919,7 +921,7 @@ acpi_reg_write_intel_ich2(int size, uint16_t addr, uint8_t val, void *p)
             break;
 
         case 0x28: case 0x29:
-            /* GPE0_STS—General Purpose Event 0 Status Register */
+            /* GPE0_STS - General Purpose Event 0 Status Register */
             dev->regs.gpsts &= ~((val << shift16) & 0x09fb);
             break;
 

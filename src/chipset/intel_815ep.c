@@ -36,7 +36,6 @@
 #include <86box/pci.h>
 #include <86box/smram.h>
 #include <86box/spd.h>
-//#include <86box/video.h>
 #include <86box/agpgart.h>
 #include <86box/chipset.h>
 
