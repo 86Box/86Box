@@ -188,6 +188,7 @@ typedef struct {
 #define D_FLAG		0x0400
 #define V_FLAG		0x0800
 #define NT_FLAG		0x4000
+#define MD_FLAG     0x8000
 
 #define RF_FLAG		0x0001			/* in EFLAGS */
 #define VM_FLAG		0x0002			/* in EFLAGS */
@@ -399,6 +400,8 @@ typedef struct {
     uint16_t	flags, eflags;
 
     uint32_t	_smbase;
+
+    uint8_t inside_emulation_mode;
 } cpu_state_t;
 
 
@@ -743,6 +746,7 @@ extern void	(*cpu_exec)(int cycs);
 extern uint8_t	do_translate, do_translate2;
 
 extern void	reset_808x(int hard);
+extern void interrupt_808x(uint16_t addr);
 
 extern void	cpu_register_fast_off_handler(void *timer);
 extern void	cpu_fast_off_advance(void);

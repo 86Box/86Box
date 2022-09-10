@@ -608,6 +608,7 @@ reset_808x(int hard)
 
     load_cs(0xFFFF);
     cpu_state.pc = 0;
+	cpu_state.flags |= 0x8000;
     rammask = 0xfffff;
 
     prefetching = 1;
@@ -971,7 +972,7 @@ interrupt(uint16_t addr)
     pfq_clear();
     ovr_seg = NULL;
     access(39, 16);
-    tempf = cpu_state.flags & 0x0fd7;
+    tempf = cpu_state.flags & (is_nec && cpu_state.inside_emulation_mode ? 0x8fd7 : 0x0fd7);
     push(&tempf);
     cpu_state.flags &= ~(I_FLAG | T_FLAG);
     access(40, 16);
@@ -984,6 +985,11 @@ interrupt(uint16_t addr)
     push(&old_ip);
 }
 
+void
+interrupt_808x(uint16_t addr)
+{
+	interrupt(addr);
+}
 
 static void
 custom_nmi(void)
@@ -1315,25 +1321,7 @@ set_sf(int bits)
 static void
 set_pf(void)
 {
-    static uint8_t table[0x100] = {
-	4, 0, 0, 4, 0, 4, 4, 0, 0, 4, 4, 0, 4, 0, 0, 4,
-	0, 4, 4, 0, 4, 0, 0, 4, 4, 0, 0, 4, 0, 4, 4, 0,
-	0, 4, 4, 0, 4, 0, 0, 4, 4, 0, 0, 4, 0, 4, 4, 0,
-	4, 0, 0, 4, 0, 4, 4, 0, 0, 4, 4, 0, 4, 0, 0, 4,
-	0, 4, 4, 0, 4, 0, 0, 4, 4, 0, 0, 4, 0, 4, 4, 0,
-	4, 0, 0, 4, 0, 4, 4, 0, 0, 4, 4, 0, 4, 0, 0, 4,
-	4, 0, 0, 4, 0, 4, 4, 0, 0, 4, 4, 0, 4, 0, 0, 4,
-	0, 4, 4, 0, 4, 0, 0, 4, 4, 0, 0, 4, 0, 4, 4, 0,
-	0, 4, 4, 0, 4, 0, 0, 4, 4, 0, 0, 4, 0, 4, 4, 0,
-	4, 0, 0, 4, 0, 4, 4, 0, 0, 4, 4, 0, 4, 0, 0, 4,
-	4, 0, 0, 4, 0, 4, 4, 0, 0, 4, 4, 0, 4, 0, 0, 4,
-	0, 4, 4, 0, 4, 0, 0, 4, 4, 0, 0, 4, 0, 4, 4, 0,
-	4, 0, 0, 4, 0, 4, 4, 0, 0, 4, 4, 0, 4, 0, 0, 4,
-	0, 4, 4, 0, 4, 0, 0, 4, 4, 0, 0, 4, 0, 4, 4, 0,
-	0, 4, 4, 0, 4, 0, 0, 4, 4, 0, 0, 4, 0, 4, 4, 0,
-	4, 0, 0, 4, 0, 4, 4, 0, 0, 4, 4, 0, 4, 0, 0, 4};
-
-    cpu_state.flags = (cpu_state.flags & ~4) | table[cpu_data & 0xff];
+	cpu_state.flags = (cpu_state.flags & ~4) | (!__builtin_parity(cpu_data & 0xFF) << 2);
 }
 
 
@@ -2450,7 +2438,7 @@ execx86(int cycs)
 			}
 		case 0x78:	/*JS*/
 		case 0x69:	/*JNS alias*/
-			if (is186) { /* IMUL reg16,reg16/mem16,imm16 */
+			if (is186 && opcode == 0x69) { /* IMUL reg16,reg16/mem16,imm16 */
 				uint16_t immediate = 0;
 				bits = 16;
 				do_mod_rm();
@@ -2466,17 +2454,13 @@ execx86(int cycs)
 			break;
 		case 0x6A:	/*JP alias*/
 			if (is186) { /* PUSH imm8 */
-				uint8_t bytetopush = pfq_fetchb();
-				{
-				    SP -= 1;
-    				cpu_state.eaaddr = (SP & 0xffff);
-	    			writememb(ss, cpu_state.eaaddr, bytetopush);
-				}
+				uint16_t wordtopush = sign_extend(pfq_fetchb());
+				push(&wordtopush);
 				break;
 			}
 		case 0x7A:	/*JP*/
 		case 0x6B: /*JNP alias*/
-			if (is186) { /* IMUL reg16,reg16/mem16,imm8 */
+			if (is186 && opcode == 0x6B) { /* IMUL reg16,reg16/mem16,imm8 */
 				uint16_t immediate = 0;
 				bits = 16;
 				do_mod_rm();
@@ -2687,7 +2671,7 @@ execx86(int cycs)
 			break;
 		case 0x9C:	/*PUSHF*/
 			access(33, 16);
-			tempw = (cpu_state.flags & 0x0fd7) | 0xf000;
+			tempw = cpu_state.flags & (is_nec && cpu_state.inside_emulation_mode ? 0x8fd7 : 0x0fd7);
 			push(&tempw);
 			break;
 		case 0x9D:	/*POPF*/
@@ -2931,7 +2915,7 @@ execx86(int cycs)
 			access(62, 8);
 			set_ip(new_ip);
 			access(45, 8);
-			cpu_state.flags = pop() | 2;
+			cpu_state.flags = pop() | 2 | (!is_nec ? 0 : (!cpu_state.inside_emulation_mode ? 0x8000 : 0));
 			wait(5, 0);
 			noint = 1;
 			nmi_enable = 1;
