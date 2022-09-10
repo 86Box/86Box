@@ -1722,6 +1722,7 @@ execx86(int cycs)
 		case 0x6c: case 0x6d: /* INM dst, DW/INS dst, DX */
 		{
 			bits = 8 << (opcode & 1);
+			handled = 1;
 			if (!repeating) wait(2, 0);
 
 			if (rep_action(bits)) {
@@ -1748,6 +1749,7 @@ execx86(int cycs)
 		{
 			uint32_t dest_seg = ovr_seg ? *ovr_seg : ds;
 			bits = 8 << (opcode & 1);
+			handled = 1;
 			if (!repeating) wait(2, 0);
 
 			if (rep_action(bits)) {
@@ -1797,6 +1799,7 @@ execx86(int cycs)
 		{
 			SP = BP;
 			BP = pop();
+			handled = 1;
 			break;
 		}
 		case 0x62: /* BOUND r/m */
@@ -1813,6 +1816,7 @@ execx86(int cycs)
 				cpu_state.pc = cpu_state.oldpc;
 				interrupt(5);
 			}
+			handled = 1;
 			break;
 		}
 		case 0xC0: case 0xC1: /*rot imm8 */
