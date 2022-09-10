@@ -233,7 +233,7 @@ create_entry(section_t *section, char *name)
     return (ne);
 }
 
-static void
+void
 ini_close(ini_t ini)
 {
     section_t *sec, *ns;
