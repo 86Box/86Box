@@ -26,6 +26,9 @@ static int in_rep = 0, repeating = 0, rep_c_flag = 0;
 static int oldc, clear_lock = 0;
 static int refresh = 0, cycdiff;
 
+static uint32_t cpu_src = 0, cpu_dest = 0;
+static uint32_t cpu_data = 0;
+
 static void
 clock_start(void)
 {
@@ -68,7 +71,7 @@ readmemb(uint32_t a)
 static uint8_t
 ins_fetch(i8080* cpu)
 {
-    uint8_t ret = readmemb(cpu->pmembase + cpu->pc);
+    uint8_t ret = cpu->readmembyte(cpu->pmembase + cpu->pc);
 
     cpu->pc++;
     return ret;
@@ -114,14 +117,64 @@ getreg_i8080(i8080 *cpu, uint8_t reg)
         case 0x3: ret = cpu->e; break;
         case 0x4: ret = cpu->h; break;
         case 0x5: ret = cpu->l; break;
-        case 0x6: ret = readmemb(cpu->dmembase + cpu->sp); break;
+        case 0x6: ret = cpu->readmembyte(cpu->dmembase + cpu->sp); break;
         case 0x7: ret = cpu->a; break;
     }
     return ret;
 }
 
+uint8_t
+getreg_i8080_emu(i8080 *cpu, uint8_t reg)
+{
+    uint8_t ret = 0xFF;
+    switch(reg)
+    {
+        case 0x0: ret = CH; break;
+        case 0x1: ret = CL; break;
+        case 0x2: ret = DH; break;
+        case 0x3: ret = DL; break;
+        case 0x4: ret = BH; break;
+        case 0x5: ret = BL; break;
+        case 0x6: ret = cpu->readmembyte(cpu->dmembase + BP); break;
+        case 0x7: ret = AL; break;
+    }
+    return ret;
+}
+
 void
-interpret_exec8080(i8080* cpu, uint8_t opcode, uint8_t (*fetch_instruction)(i8080*))
+setreg_i8080_emu(i8080 *cpu, uint8_t reg, uint8_t val)
+{
+    switch(reg)
+    {
+        case 0x0: CH = val; break;
+        case 0x1: CL = val; break;
+        case 0x2: DH = val; break;
+        case 0x3: DL = val; break;
+        case 0x4: BH = val; break;
+        case 0x5: BL = val; break;
+        case 0x6: cpu->writemembyte(cpu->dmembase + BP, val); break;
+        case 0x7: AL = val; break;
+    }
+}
+
+void
+setreg_i8080(i8080 *cpu, uint8_t reg, uint8_t val)
+{
+    switch(reg)
+    {
+        case 0x0: cpu->b = val; break;
+        case 0x1: cpu->c = val; break;
+        case 0x2: cpu->d = val; break;
+        case 0x3: cpu->e = val; break;
+        case 0x4: cpu->h = val; break;
+        case 0x5: cpu->l = val; break;
+        case 0x6: cpu->writemembyte(cpu->dmembase + cpu->sp, val); break;
+        case 0x7: cpu->a = val; break;
+    }
+}
+
+void
+interpret_exec8080(i8080* cpu, uint8_t opcode)
 {
     switch (opcode) {
         case 0x00:
@@ -145,11 +198,11 @@ exec8080(i8080* cpu, int cycs)
     cycles += cycs;
 
     while (cycles > 0) {
-        clock_start();
+        cpu->startclock();
 
         if (!repeating) {
             cpu->oldpc = cpu->pc;
-            opcode = ins_fetch(cpu);
+            opcode = cpu->fetchinstruction(cpu);
             oldc = cpu->flags & C_FLAG_I8080;
             wait(1, 0);
         }
@@ -158,8 +211,8 @@ exec8080(i8080* cpu, int cycs)
             repeating = 0;
             in_rep = 0;
             rep_c_flag = 0;
-            clock_end();
-            //check_interrupts();
+            cpu->endclock();
+            if (cpu->checkinterrupts) cpu->checkinterrupts();
         }
     }
 }
