@@ -46,16 +46,12 @@ QTranslator* ProgSettings::qtTranslator = nullptr;
 QString ProgSettings::getIconSetPath()
 {
     if (iconset_to_qt.isEmpty()) {
-        QVector<QFileInfo> roms_dirs;
-        // Walk rom_paths to get the candidates
-        for (rom_path_t *emu_rom_path = &rom_paths; emu_rom_path != nullptr; emu_rom_path = emu_rom_path->next) {
-            roms_dirs.append(QFileInfo(emu_rom_path->path));
-        }
         // Always include default bundled icons
         iconset_to_qt.insert("", ":/settings/win/icons");
-        for (auto &checked_dir : roms_dirs) {
+        // Walk rom_paths to get the candidates
+        for (rom_path_t *emu_rom_path = &rom_paths; emu_rom_path != nullptr; emu_rom_path = emu_rom_path->next) {
             // Check for icons subdir in each candidate
-            QDir roms_icons_dir(checked_dir.filePath() + "/icons");
+            QDir roms_icons_dir(QString(emu_rom_path->path) + "/icons");
             if (roms_icons_dir.isReadable()) {
                 auto dirList = roms_icons_dir.entryList(QDir::AllDirs | QDir::Executable | QDir::Readable);
                 for (auto &curIconSet : dirList) {
