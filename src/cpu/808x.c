@@ -608,7 +608,7 @@ reset_808x(int hard)
 
     load_cs(0xFFFF);
     cpu_state.pc = 0;
-	cpu_state.flags |= 0x8000;
+	cpu_state.flags |= MD_FLAG;
     rammask = 0xfffff;
 
     prefetching = 1;
@@ -2675,7 +2675,7 @@ execx86(int cycs)
 			break;
 		case 0x9C:	/*PUSHF*/
 			access(33, 16);
-			tempw = cpu_state.flags & (is_nec && cpu_state.inside_emulation_mode ? 0x8fd7 : 0x0fd7);
+			tempw = cpu_state.flags & (is_nec && cpu_state.inside_emulation_mode ? MD_FLAG | 0x0fd7 : 0x0fd7);
 			push(&tempw);
 			break;
 		case 0x9D:	/*POPF*/
@@ -2919,7 +2919,7 @@ execx86(int cycs)
 			access(62, 8);
 			set_ip(new_ip);
 			access(45, 8);
-			cpu_state.flags = pop() | 2 | (!is_nec ? 0 : (!cpu_state.inside_emulation_mode ? 0x8000 : 0));
+			cpu_state.flags = pop() | 2 | (!is_nec ? 0 : (!cpu_state.inside_emulation_mode ? MD_FLAG : 0));
 			wait(5, 0);
 			noint = 1;
 			nmi_enable = 1;
