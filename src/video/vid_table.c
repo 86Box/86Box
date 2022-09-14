@@ -330,7 +330,7 @@ video_reset(int card)
 
     /* Do not initialize internal cards here. */
     if (!(card == VID_NONE) && !(card == VID_INTERNAL) && !machine_has_flags(machine, MACHINE_VIDEO_ONLY)) {
-        vid_table_log("VIDEO: initializing '%s'\n", video_cards[card].name);
+        vid_table_log("VIDEO: initializing '%s'\n", video_cards[card].device->name);
 
         video_prepare();
 
