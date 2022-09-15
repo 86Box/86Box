@@ -132,8 +132,9 @@ void MediaHistoryManager::serializeImageHistoryType(ui::MediaType type)
             continue;
         }
         for ( int slot = 0; slot < MAX_PREV_IMAGES; slot++) {
-            strncpy(device_history_ptr[slot], master_list[type][device][slot].toUtf8().constData(), MAX_IMAGE_PATH_LEN);
-
+            if (device_history_ptr[slot] != nullptr) {
+                strncpy(device_history_ptr[slot], master_list[type][device][slot].toUtf8().constData(), MAX_IMAGE_PATH_LEN);
+            }
         }
     }
 }

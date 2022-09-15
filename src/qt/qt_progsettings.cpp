@@ -33,6 +33,8 @@ extern "C"
 #include <86box/version.h>
 #include <86box/config.h>
 #include <86box/plat.h>
+#include <86box/mem.h>
+#include <86box/rom.h>
 }
 
 
@@ -43,24 +45,21 @@ ProgSettings::CustomTranslator* ProgSettings::translator = nullptr;
 QTranslator* ProgSettings::qtTranslator = nullptr;
 QString ProgSettings::getIconSetPath()
 {
-    QString roms_root;
-    if (rom_path[0])
-        roms_root = rom_path;
-    else {
-        roms_root = QString("%1/roms").arg(exe_path);
-    }
-
-    if (iconset_to_qt.isEmpty())
-    {
+    if (iconset_to_qt.isEmpty()) {
+        // Always include default bundled icons
         iconset_to_qt.insert("", ":/settings/win/icons");
-        QDir dir(roms_root + "/icons/");
-        if (dir.isReadable())
-        {
-            auto dirList = dir.entryList(QDir::AllDirs | QDir::Executable | QDir::Readable);
-            for (auto &curIconSet : dirList)
-            {
-                if (curIconSet == "." || curIconSet == "..") continue;
-                iconset_to_qt.insert(curIconSet, (dir.canonicalPath() + '/') + curIconSet);
+        // Walk rom_paths to get the candidates
+        for (rom_path_t *emu_rom_path = &rom_paths; emu_rom_path != nullptr; emu_rom_path = emu_rom_path->next) {
+            // Check for icons subdir in each candidate
+            QDir roms_icons_dir(QString(emu_rom_path->path) + "/icons");
+            if (roms_icons_dir.isReadable()) {
+                auto dirList = roms_icons_dir.entryList(QDir::AllDirs | QDir::Executable | QDir::Readable);
+                for (auto &curIconSet : dirList) {
+                    if (curIconSet == "." || curIconSet == "..") {
+                        continue;
+                    }
+                    iconset_to_qt.insert(curIconSet, (roms_icons_dir.canonicalPath() + '/') + curIconSet);
+                }
             }
         }
     }
