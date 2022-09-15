@@ -536,7 +536,7 @@ CXXFLAGS	:= $(CFLAGS)
 #########################################################################
 MAINOBJ		:= 86box.o config.o log.o random.o timer.o io.o acpi.o apm.o dma.o ddma.o \
 		   nmi.o pic.o pit.o pit_fast.o port_6x.o port_92.o ppi.o pci.o mca.o fifo8.o \
-		   usb.o device.o nvr.o nvr_at.o nvr_ps2.o machine_status.o \
+		   usb.o device.o nvr.o nvr_at.o nvr_ps2.o machine_status.o ini.o \
 		   $(VNCOBJ)
 
 MEMOBJ		:= catalyst_flash.o i2c_eeprom.o intel_flash.o mem.o rom.o smram.o spd.o sst_flash.o

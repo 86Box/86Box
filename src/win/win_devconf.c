@@ -22,6 +22,7 @@
 #include <string.h>
 #include <wchar.h>
 #include <86box/86box.h>
+#include <86box/ini.h>
 #include <86box/config.h>
 #include <86box/device.h>
 #include <86box/plat.h>
