@@ -581,6 +581,7 @@ extern int machine_at_p5vxb_init(const machine_t *);
 extern int machine_at_gw2kte_init(const machine_t *);
 
 extern int machine_at_ap5s_init(const machine_t *);
+extern int machine_at_ms5124_init(const machine_t *);
 extern int machine_at_vectra54_init(const machine_t *);
 
 /* m_at_socket7.c */
