@@ -35,6 +35,7 @@
 #include <86box/timer.h>
 #include <86box/network.h>
 #include <86box/machine.h>
+#include <86box/ini.h>
 #include <86box/config.h>
 #include <86box/video.h>
 #ifdef _WIN32
