@@ -34,6 +34,7 @@ extern "C"
 #include <86box/device.h>
 #include <86box/midi.h>
 #include <86box/midi_rtmidi.h>
+#include <86box/ini.h>
 #include <86box/config.h>
 
 // Disable c99-designator to avoid the warnings in rtmidi_*_device

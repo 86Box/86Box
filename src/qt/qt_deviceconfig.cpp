@@ -28,6 +28,7 @@
 
 extern "C" {
 #include <86box/86box.h>
+#include <86box/ini.h>
 #include <86box/config.h>
 #include <86box/device.h>
 #include <86box/midi_rtmidi.h>
