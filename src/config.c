@@ -2050,10 +2050,13 @@ save_general(void)
 static void
 save_monitor(int monitor_index)
 {
-    char cat[sizeof("Monitor #") + 12] = { [0] = 0 };
-    char temp[512];
+    ini_section_t cat;
+    char          name[sizeof("Monitor #") + 12] = { [0] = 0 };
+    char          temp[512];
 
-    snprintf(cat, sizeof(cat), "Monitor #%i", monitor_index + 1);
+    snprintf(name, sizeof(name), "Monitor #%i", monitor_index + 1);
+    cat = ini_find_or_create_section(config, name);
+
     if (window_remember) {
         sprintf(temp, "%i, %i, %i, %i",
                 monitor_settings[monitor_index].mon_window_x, monitor_settings[monitor_index].mon_window_y,
@@ -2069,6 +2072,8 @@ save_monitor(int monitor_index)
         ini_section_delete_var(cat, "window_coordinates");
         ini_section_delete_var(cat, "window_maximized");
     }
+
+    ini_delete_section_if_empty(config, cat);
 }
 
 /* Save "Machine" section. */
