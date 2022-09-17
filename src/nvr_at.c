@@ -280,8 +280,8 @@
 # define REGC_UF	0x10
 #define RTC_REGD	13
 # define REGD_VRT	0x80
-#define RTC_FDD_TYPES	0x10
-#define RTC_INST_EQUIP	0x14
+#define RTC_FDD_TYPES   0x10
+#define RTC_INST_EQUIP  0x14
 #define RTC_CENTURY_AT	0x32		/* century register for AT etc */
 #define RTC_CENTURY_PS	0x37		/* century register for PS/1 PS/2 */
 #define RTC_ALDAY	0x7D		/* VIA VT82C586B - alarm day */
@@ -876,46 +876,46 @@ nvr_start(nvr_t *nvr)
 					   mark everything as bad. */
 
     if (machines[machine].flags & MACHINE_COREBOOT) {
-    	/* Sync floppy drive types on coreboot machines, as SeaBIOS
-    	   lacks a setup utility and just leaves these untouched. */
+        /* Sync floppy drive types on coreboot machines, as SeaBIOS
+           lacks a setup utility and just leaves these untouched. */
 
-    	nvr->regs[RTC_FDD_TYPES] = 0x00;
-    	nvr->regs[RTC_INST_EQUIP] |= 0xc0;
+        nvr->regs[RTC_FDD_TYPES] = 0x00;
+        nvr->regs[RTC_INST_EQUIP] |= 0xc0;
 
-    	for (i = 0; i <= 1; i++) {
-    		if (!fdd_get_type(i))
-    			continue; /* No floppy drive. */
+        for (i = 0; i <= 1; i++) {
+            if (!fdd_get_type(i))
+                continue; /* No floppy drive. */
 
-    		if (fdd_is_525(i)) {
-    			if (fdd_is_hd(i))
-    				fdd = 2; /* 1.2 MB */
-    			else if (fdd_doublestep_40(i))
-    				fdd = 3; /* 720 KB */
-    			else
-    				fdd = 1; /* 360 KB */
-    		} else {
-    			if (fdd_is_hd(i))
-    				fdd = 4; /* 1.44 MB */
-    			else if (fdd_is_double_sided(i))
-    				fdd = 3; /* 720 KB */
-    			else
-    				fdd = 1; /* 360 KB */
-    		}
+            if (fdd_is_525(i)) {
+                if (fdd_is_hd(i))
+                    fdd = 2; /* 1.2 MB */
+                else if (fdd_doublestep_40(i))
+                    fdd = 3; /* 720 KB */
+                else
+                    fdd = 1; /* 360 KB */
+            } else {
+                if (fdd_is_hd(i))
+                    fdd = 4; /* 1.44 MB */
+                else if (fdd_is_double_sided(i))
+                    fdd = 3; /* 720 KB */
+                else
+                    fdd = 1; /* 360 KB */
+            }
 
-    		nvr->regs[RTC_FDD_TYPES] |= (fdd << ((1 - i) * 4));
-    		nvr->regs[RTC_INST_EQUIP] &= 0x3f; /* At least one drive installed. */
-    	}
+            nvr->regs[RTC_FDD_TYPES] |= (fdd << ((1 - i) * 4));
+            nvr->regs[RTC_INST_EQUIP] &= 0x3f; /* At least one drive installed. */
+        }
 
-    	if ((nvr->regs[RTC_FDD_TYPES] >> 4) && (nvr->regs[RTC_FDD_TYPES] & 0xf))
-    		nvr->regs[RTC_INST_EQUIP] |= 0x40; /* Two drives installed. */
+        if ((nvr->regs[RTC_FDD_TYPES] >> 4) && (nvr->regs[RTC_FDD_TYPES] & 0xf))
+            nvr->regs[RTC_INST_EQUIP] |= 0x40; /* Two drives installed. */
 
-    	/* Re-compute CMOS checksum. SeaBIOS doesn't care
-    	   about the checksum either, but Windows does. */
-    	uint16_t checksum = 0;
-    	for (i = 0x10; i <= 0x2d; i++)
-    		checksum += nvr->regs[i];
-    	nvr->regs[0x2e] = (checksum >> 8);
-    	nvr->regs[0x2f] = checksum;
+        /* Re-compute CMOS checksum. SeaBIOS doesn't care
+           about the checksum either, but Windows does. */
+        uint16_t checksum = 0;
+        for (i = 0x10; i <= 0x2d; i++)
+            checksum += nvr->regs[i];
+        nvr->regs[0x2e] = (checksum >> 8);
+        nvr->regs[0x2f] = checksum;
     }
 
     /* Initialize the internal and chip times. */

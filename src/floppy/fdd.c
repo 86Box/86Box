@@ -407,13 +407,11 @@ fdd_is_dd(int drive)
     return (drive_types[fdd[drive].type].flags & 0x70) == 0x10;
 }
 
-
 int
 fdd_is_hd(int drive)
 {
     return drive_types[fdd[drive].type].flags & FLAG_HOLE1;
 }
-
 
 int
 fdd_is_ed(int drive)

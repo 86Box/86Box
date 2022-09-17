@@ -430,9 +430,9 @@ extern void	mem_close(void);
 extern void	mem_reset(void);
 extern void	mem_remap_top(int kb);
 
-extern void	mem_add_mtrr(uint64_t base, uint64_t mask, uint8_t type);
-extern void	mem_del_mtrr(uint64_t base, uint64_t mask);
-extern void	mem_invalidate_mtrr(uint8_t wb);
+extern void mem_add_mtrr(uint64_t base, uint64_t mask, uint8_t type);
+extern void mem_del_mtrr(uint64_t base, uint64_t mask);
+extern void mem_invalidate_mtrr(uint8_t wb);
 
 
 #ifdef EMU_CPU_H
