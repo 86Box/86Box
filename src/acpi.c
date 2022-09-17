@@ -413,14 +413,17 @@ acpi_reg_read_intel_ich2(int size, uint16_t addr, void *p)
             /* MON_SMI - Device Monitor SMI Status and Enable Register */
             ret = (dev->regs.mon_smi >> shift16) & 0xff;
             break;
+
         case 0x44: case 0x45:
             /* DEVACT_STS - Device Activity Status Register */
             ret = (dev->regs.devact_sts >> shift16) & 0xff;
             break;
+
         case 0x48: case 0x49:
             /* DEVTRAP_EN - Device Trap Enable Register */
             ret = (dev->regs.devtrap_en >> shift16) & 0xff;
             break;
+
         case 0x4c ... 0x4d:
             /* BUS_ADDR_TRACK - Bus Address Tracker Register */
             ret = (dev->regs.bus_addr_track >> shift16) & 0xff;
@@ -1488,9 +1491,9 @@ acpi_update_io_mapping(acpi_t *dev, uint32_t base, int chipset_en)
 	case VEN_VIA:
 		size = 0x100;
 		break;
-	case VEN_INTEL_ICH2:
+    case VEN_INTEL_ICH2:
 	case VEN_VIA_596B:
-		size = 0x0080;
+        size = 0x0080;
 		break;
     }
 

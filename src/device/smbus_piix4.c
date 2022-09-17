@@ -244,26 +244,26 @@ smbus_piix4_write(uint16_t addr, uint8_t val, void *priv)
 					/* fall-through */
 
 				case 0xd: /* I2C block R/W */
-					if (dev->local == SMBUS_INTEL_ICH2) {
+                    if (dev->local == SMBUS_INTEL_ICH2) {
                         if (!dev->byte_rw) {
                             i2c_write(i2c_smbus, smbus_addr, dev->cmd);
                             if(read)
-							    dev->data0 = i2c_read(i2c_smbus, smbus_addr); // For byte reads, the count is recieved and stored at the DATA0 register
+                                dev->data0 = i2c_read(i2c_smbus, smbus_addr); // For byte reads, the count is recieved and stored at the DATA0 register
                             else
                                 i2c_write(i2c_smbus, smbus_addr, dev->data0);
 
-							dev->byte_rw = 1;
-						}
+                            dev->byte_rw = 1;
+                        }
 
-						if (read) {
-							dev->block_data_byte = i2c_read(i2c_smbus, smbus_addr);
-							dev->stat |= 0x80;
+                        if (read) {
+                            dev->block_data_byte = i2c_read(i2c_smbus, smbus_addr);
+                            dev->stat |= 0x80;
                             smbus_piix4_raise_smi(dev);
                             if(dev->ctl & 0x20) { /* Finish the Transfer */
                                 dev->byte_rw = 0;
                                 dev->stat |= 2;
                             }
-						}
+                        }
                         else {
                             i2c_write(i2c_smbus, smbus_addr, dev->cmd);
                             if (((dev->byte_rw >> 4) & 0xff) < dev->data0) {
@@ -273,8 +273,8 @@ smbus_piix4_write(uint16_t addr, uint8_t val, void *priv)
                             }
                             else dev->byte_rw = 0;
                         }
-					}
-					else {
+                    }
+                    else {
 						if (read) {
 							timer_bytes++;
 							/* block read [data0] (I2C) or [first byte] (SMBus) bytes */
@@ -372,9 +372,9 @@ unknown_protocol:
         if (dev->local == SMBUS_INTEL_ICH2)
             dev->block_data_byte = val;
         else {
-		    dev->data[dev->index++] = val;
-		    if (dev->index >= SMBUS_PIIX4_BLOCK_DATA_SIZE)
-			    dev->index = 0;
+            dev->data[dev->index++] = val;
+            if (dev->index >= SMBUS_PIIX4_BLOCK_DATA_SIZE)
+                dev->index = 0;
         }
 		break;
     }

@@ -710,7 +710,7 @@ spd_write_drbs_intel_815ep(uint8_t *regs)
                 regs[0x54] |= reg_apply;
             break;
         }
-	}
+    }
 }
 
 static const device_t spd_device = {
