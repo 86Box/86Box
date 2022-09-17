@@ -44,6 +44,7 @@ int resize_pending = 0;
 int resize_w = 0;
 int resize_h = 0;
 double mouse_sensitivity = 1.0; /* Unused. */
+double mouse_x_error = 0.0, mouse_y_error = 0.0; /* Unused. */
 static uint8_t interpixels[17842176];
 
 extern void RenderImGui();
