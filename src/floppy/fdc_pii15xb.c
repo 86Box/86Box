@@ -76,9 +76,9 @@ MiniMicro 4 also won't work with the XT FDC which the Zilog claims to be.
 #include <86box/fdc.h>
 #include <86box/fdc_ext.h>
 
-#define DTK_VARIANT ((info->local == 158) ? ROM_PII_158B : ROM_PII_151B)
-#define DTK_CHIP ((info->local == 158) ? &fdc_xt_device : &fdc_dp8473_device)
-#define BIOS_ADDR (uint32_t)(device_get_config_hex20("bios_addr") & 0x000fffff)
+#define DTK_VARIANT  ((info->local == 158) ? ROM_PII_158B : ROM_PII_151B)
+#define DTK_CHIP     ((info->local == 158) ? &fdc_xt_device : &fdc_dp8473_device)
+#define BIOS_ADDR    (uint32_t)(device_get_config_hex20("bios_addr") & 0x000fffff)
 #define ROM_PII_151B "roms/floppy/dtk/pii-151b.rom"
 #define ROM_PII_158B "roms/floppy/dtk/pii-158b.rom"
 
@@ -90,7 +90,7 @@ typedef struct
 static void
 pii_close(void *priv)
 {
-    pii_t *dev = (pii_t *)priv;
+    pii_t *dev = (pii_t *) priv;
 
     free(dev);
 }
@@ -100,7 +100,7 @@ pii_init(const device_t *info)
 {
     pii_t *dev;
 
-    dev = (pii_t *)malloc(sizeof(pii_t));
+    dev = (pii_t *) malloc(sizeof(pii_t));
     memset(dev, 0, sizeof(pii_t));
 
     if (BIOS_ADDR != 0)
@@ -111,18 +111,20 @@ pii_init(const device_t *info)
     return dev;
 }
 
-static int pii_151b_available(void)
+static int
+pii_151b_available(void)
 {
     return rom_present(ROM_PII_151B);
 }
 
-static int pii_158_available(void)
+static int
+pii_158_available(void)
 {
     return rom_present(ROM_PII_158B);
 }
 
 static const device_config_t pii_config[] = {
-// clang-format off
+  // clang-format off
     {
         .name = "bios_addr",
         .description = "BIOS Address:",
@@ -144,29 +146,29 @@ static const device_config_t pii_config[] = {
 };
 
 const device_t fdc_pii151b_device = {
-    .name = "DTK PII-151B (MiniMicro) Floppy Drive Controller",
+    .name          = "DTK PII-151B (MiniMicro) Floppy Drive Controller",
     .internal_name = "dtk_pii151b",
-    .flags = DEVICE_ISA,
-    .local = 151,
-    .init = pii_init,
-    .close = pii_close,
-    .reset = NULL,
+    .flags         = DEVICE_ISA,
+    .local         = 151,
+    .init          = pii_init,
+    .close         = pii_close,
+    .reset         = NULL,
     { .available = pii_151b_available },
     .speed_changed = NULL,
-    .force_redraw = NULL,
-    .config = pii_config
+    .force_redraw  = NULL,
+    .config        = pii_config
 };
 
 const device_t fdc_pii158b_device = {
-    .name = "DTK PII-158B (MiniMicro4) Floppy Drive Controller",
+    .name          = "DTK PII-158B (MiniMicro4) Floppy Drive Controller",
     .internal_name = "dtk_pii158b",
-    .flags = DEVICE_ISA,
-    .local = 158,
-    .init = pii_init,
-    .close = pii_close,
-    .reset = NULL,
+    .flags         = DEVICE_ISA,
+    .local         = 158,
+    .init          = pii_init,
+    .close         = pii_close,
+    .reset         = NULL,
     { .available = pii_158_available },
     .speed_changed = NULL,
-    .force_redraw = NULL,
-    .config = pii_config
+    .force_redraw  = NULL,
+    .config        = pii_config
 };
