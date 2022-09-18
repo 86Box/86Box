@@ -1064,11 +1064,15 @@ isapnp_reset_device(void *priv, uint8_t ldn)
 
 
 static const device_t isapnp_device = {
-    "ISA Plug and Play",
-    "isapnp",
-    0,
-    0,
-    isapnp_init, isapnp_close, NULL,
-    { NULL }, NULL, NULL,
-    NULL
+    .name = "ISA Plug and Play",
+    .internal_name = "isapnp",
+    .flags         = 0,
+    .local         = 0,
+    .init          = isapnp_init,
+    .close         = isapnp_close,
+    .reset         = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
 };
