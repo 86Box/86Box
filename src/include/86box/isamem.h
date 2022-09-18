@@ -46,11 +46,9 @@
  */
 
 #ifndef EMU_ISAMEM_H
-# define EMU_ISAMEM_H
+#define EMU_ISAMEM_H
 
-
-#define ISAMEM_MAX	4			/* max #cards in system */
-
+#define ISAMEM_MAX 4 /* max #cards in system */
 
 #ifdef __cplusplus
 extern "C" {
@@ -61,18 +59,16 @@ extern const device_t isamem_device;
 extern const device_t isamem_brat80_device;
 extern const device_t isamem_ev159_device;
 
-
 /* Functions. */
-extern void		isamem_reset(void);
+extern void isamem_reset(void);
 
-extern const char	*isamem_get_name(int t);
-extern const char	*isamem_get_internal_name(int t);
-extern int		isamem_get_from_internal_name(const char *s);
-extern const device_t	*isamem_get_device(int t);
+extern const char     *isamem_get_name(int t);
+extern const char     *isamem_get_internal_name(int t);
+extern int             isamem_get_from_internal_name(const char *s);
+extern const device_t *isamem_get_device(int t);
 
 #ifdef __cplusplus
 }
 #endif
 
-
-#endif	/*EMU_ISAMEM_H*/
+#endif /*EMU_ISAMEM_H*/

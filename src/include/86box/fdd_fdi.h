@@ -20,12 +20,10 @@
  *		Copyright 2018 Fred N. van Kempen.
  */
 #ifndef EMU_FLOPPY_FDI_H
-# define EMU_FLOPPY_FDI_H
+#define EMU_FLOPPY_FDI_H
 
+extern void fdi_seek(int drive, int track);
+extern void fdi_load(int drive, char *fn);
+extern void fdi_close(int drive);
 
-extern void	fdi_seek(int drive, int track);
-extern void	fdi_load(int drive, char *fn);
-extern void	fdi_close(int drive);
-
-
-#endif	/*EMU_FLOPPY_FDI_H*/
+#endif /*EMU_FLOPPY_FDI_H*/

@@ -62,18 +62,14 @@
 #include <86box/plat.h>
 #include <86box/nvr.h>
 
+int nvr_dosave; /* NVR is dirty, needs saved */
 
-int	nvr_dosave;		/* NVR is dirty, needs saved */
-
-
-static int8_t	days_in_month[12] = { 31,28,31,30,31,30,31,31,30,31,30,31 };
+static int8_t    days_in_month[12] = { 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 };
 static struct tm intclk;
-static nvr_t	*saved_nvr = NULL;
-
+static nvr_t    *saved_nvr = NULL;
 
 #ifdef ENABLE_NVR_LOG
 int nvr_do_log = ENABLE_NVR_LOG;
-
 
 static void
 nvr_log(const char *fmt, ...)
@@ -81,38 +77,38 @@ nvr_log(const char *fmt, ...)
     va_list ap;
 
     if (nvr_do_log) {
-	va_start(ap, fmt);
-	pclog_ex(fmt, ap);
-	va_end(ap);
+        va_start(ap, fmt);
+        pclog_ex(fmt, ap);
+        va_end(ap);
     }
 }
 #else
-#define nvr_log(fmt, ...)
+#    define nvr_log(fmt, ...)
 #endif
-
 
 /* Determine whether or not the year is leap. */
 int
 nvr_is_leap(int year)
 {
-    if (year % 400 == 0) return(1);
-    if (year % 100 == 0) return(0);
-    if (year % 4 == 0) return(1);
+    if (year % 400 == 0)
+        return (1);
+    if (year % 100 == 0)
+        return (0);
+    if (year % 4 == 0)
+        return (1);
 
-    return(0);
+    return (0);
 }
-
 
 /* Determine the days in the current month. */
 int
 nvr_get_days(int month, int year)
 {
     if (month != 2)
-	return(days_in_month[month - 1]);
+        return (days_in_month[month - 1]);
 
-    return(nvr_is_leap(year) ? 29 : 28);
+    return (nvr_is_leap(year) ? 29 : 28);
 }
-
 
 /* One more second has passed, update the internal clock. */
 void
@@ -120,48 +116,45 @@ rtc_tick(void)
 {
     /* Ping the internal clock. */
     if (++intclk.tm_sec == 60) {
-	intclk.tm_sec = 0;
-	if (++intclk.tm_min == 60) {
-		intclk.tm_min = 0;
-    		if (++intclk.tm_hour == 24) {
-			intclk.tm_hour = 0;
-    			if (++intclk.tm_mday == (nvr_get_days(intclk.tm_mon,
-							intclk.tm_year) + 1)) {
-				intclk.tm_mday = 1;
-    				if (++intclk.tm_mon == 13) {
-					intclk.tm_mon = 1;
-					intclk.tm_year++;
-				 }
-			}
-		}
-	}
+        intclk.tm_sec = 0;
+        if (++intclk.tm_min == 60) {
+            intclk.tm_min = 0;
+            if (++intclk.tm_hour == 24) {
+                intclk.tm_hour = 0;
+                if (++intclk.tm_mday == (nvr_get_days(intclk.tm_mon, intclk.tm_year) + 1)) {
+                    intclk.tm_mday = 1;
+                    if (++intclk.tm_mon == 13) {
+                        intclk.tm_mon = 1;
+                        intclk.tm_year++;
+                    }
+                }
+            }
+        }
     }
 }
-
 
 /* This is the RTC one-second timer. */
 static void
 onesec_timer(void *priv)
 {
-    nvr_t *nvr = (nvr_t *)priv;
-    int is_at;
+    nvr_t *nvr = (nvr_t *) priv;
+    int    is_at;
 
     if (++nvr->onesec_cnt >= 100) {
-	/* Update the internal clock. */
-	is_at = IS_AT(machine);
-	if (!is_at)
-		rtc_tick();
+        /* Update the internal clock. */
+        is_at = IS_AT(machine);
+        if (!is_at)
+            rtc_tick();
 
-	/* Update the RTC device if needed. */
-	if (nvr->tick != NULL)
-		(*nvr->tick)(nvr);
+        /* Update the RTC device if needed. */
+        if (nvr->tick != NULL)
+            (*nvr->tick)(nvr);
 
-	nvr->onesec_cnt = 0;
+        nvr->onesec_cnt = 0;
     }
 
-    timer_advance_u64(&nvr->onesec_time, (uint64_t)(10000ULL * TIMER_USEC));
+    timer_advance_u64(&nvr->onesec_time, (uint64_t) (10000ULL * TIMER_USEC));
 }
-
 
 /* Initialize the generic NVRAM/RTC device. */
 void
@@ -170,18 +163,18 @@ nvr_init(nvr_t *nvr)
     int c;
 
     /* Set up the NVR file's name. */
-    c = strlen(machine_get_internal_name()) + 5;
-    nvr->fn = (char *)malloc(c + 1);
+    c       = strlen(machine_get_internal_name()) + 5;
+    nvr->fn = (char *) malloc(c + 1);
     sprintf(nvr->fn, "%s.nvr", machine_get_internal_name());
 
     /* Initialize the internal clock as needed. */
     memset(&intclk, 0x00, sizeof(intclk));
     if (time_sync & TIME_SYNC_ENABLED) {
-	nvr_time_sync();
+        nvr_time_sync();
     } else {
-	/* Reset the internal clock to 1980/01/01 00:00. */
-	intclk.tm_mon = 1;
-	intclk.tm_year = 1980;
+        /* Reset the internal clock to 1980/01/01 00:00. */
+        intclk.tm_mon  = 1;
+        intclk.tm_year = 1980;
     }
 
     /* Set up our timer. */
@@ -194,9 +187,8 @@ nvr_init(nvr_t *nvr)
     saved_nvr = nvr;
 
     /* Try to load the saved data. */
-    (void)nvr_load();
+    (void) nvr_load();
 }
-
 
 /* Get path to the NVR folder. */
 char *
@@ -210,16 +202,15 @@ nvr_path(char *str)
     strcat(temp, NVR_PATH);
 
     /* Create the directory if needed. */
-    if (! plat_dir_check(temp))
-	plat_dir_create(temp);
+    if (!plat_dir_check(temp))
+        plat_dir_create(temp);
 
     /* Now append the actual filename. */
     path_slash(temp);
     strcat(temp, str);
 
-    return(temp);
+    return (temp);
 }
-
 
 /*
  * Load an NVR from file.
@@ -235,52 +226,51 @@ nvr_path(char *str)
 int
 nvr_load(void)
 {
-    char *path;
-    FILE *fp;
-    uint8_t	regs[NVR_MAXSIZE] = { 0 };
+    char   *path;
+    FILE   *fp;
+    uint8_t regs[NVR_MAXSIZE] = { 0 };
 
     /* Make sure we have been initialized. */
-    if (saved_nvr == NULL) return(0);
+    if (saved_nvr == NULL)
+        return (0);
 
     /* Clear out any old data. */
     memset(saved_nvr->regs, 0x00, sizeof(saved_nvr->regs));
 
     /* Set the defaults. */
     if (saved_nvr->reset != NULL)
-	saved_nvr->reset(saved_nvr);
+        saved_nvr->reset(saved_nvr);
 
     /* Load the (relevant) part of the NVR contents. */
     if (saved_nvr->size != 0) {
-	path = nvr_path(saved_nvr->fn);
-	nvr_log("NVR: loading from '%s'\n", path);
-	fp = plat_fopen(path, "rb");
-	saved_nvr->is_new = (fp == NULL);
-	if (fp != NULL) {
-        memcpy(regs, saved_nvr->regs, sizeof(regs));
-		/* Read NVR contents from file. */
-		if (fread(saved_nvr->regs, 1, saved_nvr->size, fp) != saved_nvr->size) {
-			memcpy(saved_nvr->regs, regs, sizeof(regs));
-            saved_nvr->is_new = 1;
+        path = nvr_path(saved_nvr->fn);
+        nvr_log("NVR: loading from '%s'\n", path);
+        fp                = plat_fopen(path, "rb");
+        saved_nvr->is_new = (fp == NULL);
+        if (fp != NULL) {
+            memcpy(regs, saved_nvr->regs, sizeof(regs));
+            /* Read NVR contents from file. */
+            if (fread(saved_nvr->regs, 1, saved_nvr->size, fp) != saved_nvr->size) {
+                memcpy(saved_nvr->regs, regs, sizeof(regs));
+                saved_nvr->is_new = 1;
+            }
+            (void) fclose(fp);
         }
-		(void)fclose(fp);
-	}
     } else
-	saved_nvr->is_new = 1;
+        saved_nvr->is_new = 1;
 
     /* Get the local RTC running! */
     if (saved_nvr->start != NULL)
-	saved_nvr->start(saved_nvr);
+        saved_nvr->start(saved_nvr);
 
-    return(1);
+    return (1);
 }
-
 
 void
 nvr_set_ven_save(void (*ven_save)(void))
 {
     saved_nvr->ven_save = ven_save;
 }
-
 
 /* Save the current NVR to a file. */
 int
@@ -290,28 +280,28 @@ nvr_save(void)
     FILE *fp;
 
     /* Make sure we have been initialized. */
-    if (saved_nvr == NULL) return(0);
+    if (saved_nvr == NULL)
+        return (0);
 
     if (saved_nvr->size != 0) {
-	path = nvr_path(saved_nvr->fn);
-	nvr_log("NVR: saving to '%s'\n", path);
-	fp = plat_fopen(path, "wb");
-	if (fp != NULL) {
-		/* Save NVR contents to file. */
-		(void)fwrite(saved_nvr->regs, saved_nvr->size, 1, fp);
-		fclose(fp);
-	}
+        path = nvr_path(saved_nvr->fn);
+        nvr_log("NVR: saving to '%s'\n", path);
+        fp = plat_fopen(path, "wb");
+        if (fp != NULL) {
+            /* Save NVR contents to file. */
+            (void) fwrite(saved_nvr->regs, saved_nvr->size, 1, fp);
+            fclose(fp);
+        }
     }
 
     if (saved_nvr->ven_save)
-	saved_nvr->ven_save();
+        saved_nvr->ven_save();
 
     /* Device is clean again. */
     nvr_dosave = 0;
 
-    return(1);
+    return (1);
 }
-
 
 void
 nvr_close(void)
@@ -319,65 +309,61 @@ nvr_close(void)
     saved_nvr = NULL;
 }
 
-
 void
 nvr_time_sync(void)
 {
     struct tm *tm;
-    time_t now;
+    time_t     now;
 
     /* Get the current time of day, and convert to local time. */
-    (void)time(&now);
-    if(time_sync & TIME_SYNC_UTC)
-	tm = gmtime(&now);
+    (void) time(&now);
+    if (time_sync & TIME_SYNC_UTC)
+        tm = gmtime(&now);
     else
-	tm = localtime(&now);
+        tm = localtime(&now);
 
     /* Set the internal clock. */
     nvr_time_set(tm);
 }
 
-
 /* Get current time from internal clock. */
 void
 nvr_time_get(struct tm *tm)
 {
-    uint8_t dom, mon, sum, wd;
+    uint8_t  dom, mon, sum, wd;
     uint16_t cent, yr;
 
-    tm->tm_sec = intclk.tm_sec;
-    tm->tm_min = intclk.tm_min;
+    tm->tm_sec  = intclk.tm_sec;
+    tm->tm_min  = intclk.tm_min;
     tm->tm_hour = intclk.tm_hour;
-     dom = intclk.tm_mday;
-     mon = intclk.tm_mon;
-     yr = (intclk.tm_year % 100);
-     cent = ((intclk.tm_year - yr) / 100) % 4;
-     sum = dom+mon+yr+cent;
-     wd = ((sum + 6) % 7);
+    dom         = intclk.tm_mday;
+    mon         = intclk.tm_mon;
+    yr          = (intclk.tm_year % 100);
+    cent        = ((intclk.tm_year - yr) / 100) % 4;
+    sum         = dom + mon + yr + cent;
+    wd          = ((sum + 6) % 7);
     tm->tm_wday = wd;
     tm->tm_mday = intclk.tm_mday;
-    tm->tm_mon = (intclk.tm_mon - 1);
+    tm->tm_mon  = (intclk.tm_mon - 1);
     tm->tm_year = (intclk.tm_year - 1900);
 }
-
 
 /* Set internal clock time. */
 void
 nvr_time_set(struct tm *tm)
 {
-    intclk.tm_sec = tm->tm_sec;
-    intclk.tm_min = tm->tm_min;
+    intclk.tm_sec  = tm->tm_sec;
+    intclk.tm_min  = tm->tm_min;
     intclk.tm_hour = tm->tm_hour;
     intclk.tm_wday = tm->tm_wday;
     intclk.tm_mday = tm->tm_mday;
-    intclk.tm_mon = (tm->tm_mon + 1);
+    intclk.tm_mon  = (tm->tm_mon + 1);
     intclk.tm_year = (tm->tm_year + 1900);
 }
-
 
 /* Open or create a file in the NVR area. */
 FILE *
 nvr_fopen(char *str, char *mode)
 {
-    return(plat_fopen(nvr_path(str), mode));
+    return (plat_fopen(nvr_path(str), mode));
 }

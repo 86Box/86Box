@@ -22,13 +22,11 @@
  *		Copyright 1989-2018 Fred N. van Kempen.
  */
 #ifndef BUGGER_H
-# define BUGGER_H
-
+#define BUGGER_H
 
 /* I/O port range used. */
-#define BUGGER_ADDR	0x007a
-#define BUGGER_ADDRLEN	4
-
+#define BUGGER_ADDR    0x007a
+#define BUGGER_ADDRLEN 4
 
 #ifdef __cplusplus
 extern "C" {
@@ -37,12 +35,10 @@ extern "C" {
 /* Global variables. */
 extern const device_t bugger_device;
 
-
 /* Functions. */
 
 #ifdef __cplusplus
 }
 #endif
 
-
-#endif	/*BUGGER_H*/
+#endif /*BUGGER_H*/

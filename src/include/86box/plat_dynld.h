@@ -15,24 +15,22 @@
  */
 
 #ifndef PLAT_DYNLD_H
-# define PLAT_DYNLD_H
+#define PLAT_DYNLD_H
 
 typedef struct {
-    const char	*name;
-    void	*func;
+    const char *name;
+    void       *func;
 } dllimp_t;
-
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-extern void	*dynld_module(const char *, dllimp_t *);
-extern void	dynld_close(void *);
+extern void *dynld_module(const char *, dllimp_t *);
+extern void  dynld_close(void *);
 
 #ifdef __cplusplus
 }
 #endif
 
-
-#endif	/*PLAT_DYNLD_H*/
+#endif /*PLAT_DYNLD_H*/

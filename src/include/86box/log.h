@@ -18,30 +18,30 @@
  */
 
 #ifndef EMU_LOG_H
-# define EMU_LOG_H
+#define EMU_LOG_H
 
 #ifndef RELEASE_BUILD
 
-#ifdef __cplusplus
+#    ifdef __cplusplus
 extern "C" {
-#endif
+#    endif
 
 /* Function prototypes. */
-extern void	log_set_suppr_seen(void *priv, int suppr_seen);
-extern void	log_set_dev_name(void *priv, char *dev_name);
-#ifdef HAVE_STDARG_H
-extern void	log_out(void *priv, const char *fmt, va_list);
-extern void	log_fatal(void *priv, const char *fmt, ...);
-#endif
-extern void *	log_open(char *dev_name);
-extern void	log_close(void *priv);
+extern void log_set_suppr_seen(void *priv, int suppr_seen);
+extern void log_set_dev_name(void *priv, char *dev_name);
+#    ifdef HAVE_STDARG_H
+extern void log_out(void *priv, const char *fmt, va_list);
+extern void log_fatal(void *priv, const char *fmt, ...);
+#    endif
+extern void *log_open(char *dev_name);
+extern void  log_close(void *priv);
 
-#ifdef __cplusplus
+#    ifdef __cplusplus
 }
-#endif
+#    endif
 
 #else
-#define	log_fatal(priv, fmt, ...) fatal(fmt, ...)
-#endif	/*RELEASE_BUILD*/
+#    define log_fatal(priv, fmt, ...) fatal(fmt, ...)
+#endif /*RELEASE_BUILD*/
 
-#endif	/*EMU_LOG_H*/
+#endif /*EMU_LOG_H*/

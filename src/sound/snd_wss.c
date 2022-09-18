@@ -52,7 +52,7 @@ typedef struct wss_t {
     uint8_t config;
 
     ad1848_t ad1848;
-    fm_drv_t    opl;
+    fm_drv_t opl;
 
     int     opl_enabled;
     uint8_t pos_regs[8];
@@ -227,7 +227,7 @@ wss_speed_changed(void *priv)
 }
 
 static const device_config_t wss_config[] = {
-// clang-format off
+  // clang-format off
     {
         .name = "base",
         .description = "Address",
@@ -268,29 +268,29 @@ static const device_config_t wss_config[] = {
 };
 
 const device_t wss_device = {
-    .name = "Windows Sound System",
+    .name          = "Windows Sound System",
     .internal_name = "wss",
-    .flags = DEVICE_ISA | DEVICE_AT,
-    .local = 0,
-    .init = wss_init,
-    .close = wss_close,
-    .reset = NULL,
+    .flags         = DEVICE_ISA | DEVICE_AT,
+    .local         = 0,
+    .init          = wss_init,
+    .close         = wss_close,
+    .reset         = NULL,
     { .available = NULL },
     .speed_changed = wss_speed_changed,
-    .force_redraw = NULL,
-    .config = wss_config
+    .force_redraw  = NULL,
+    .config        = wss_config
 };
 
 const device_t ncr_business_audio_device = {
-    .name = "NCR Business Audio",
+    .name          = "NCR Business Audio",
     .internal_name = "ncraudio",
-    .flags = DEVICE_MCA,
-    .local = 0,
-    .init = ncr_audio_init,
-    .close = wss_close,
-    .reset = NULL,
+    .flags         = DEVICE_MCA,
+    .local         = 0,
+    .init          = ncr_audio_init,
+    .close         = wss_close,
+    .reset         = NULL,
     { .available = NULL },
     .speed_changed = wss_speed_changed,
-    .force_redraw = NULL,
-    .config = NULL
+    .force_redraw  = NULL,
+    .config        = NULL
 };

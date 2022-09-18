@@ -52,14 +52,14 @@
 #include <wchar.h>
 #include <stdbool.h>
 #ifdef _WIN32
-#define WIN32_LEAN_AND_MEAN
-#include <windows.h>
-#include <winsock2.h>
+#    define WIN32_LEAN_AND_MEAN
+#    include <windows.h>
+#    include <winsock2.h>
 #else
-#include <poll.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <sys/select.h>
+#    include <poll.h>
+#    include <unistd.h>
+#    include <fcntl.h>
+#    include <sys/select.h>
 #endif
 
 #define HAVE_STDARG_H
@@ -82,45 +82,45 @@ enum {
 };
 
 #ifdef __APPLE__
-#include <pcap/pcap.h>
+#    include <pcap/pcap.h>
 #else
-typedef int bpf_int32;
+typedef int          bpf_int32;
 typedef unsigned int bpf_u_int32;
 
 /*
  * The instruction data structure.
  */
 struct bpf_insn {
-    unsigned short  code;
-    unsigned char   jt;
-    unsigned char   jf;
-    bpf_u_int32     k;
+    unsigned short code;
+    unsigned char  jt;
+    unsigned char  jf;
+    bpf_u_int32    k;
 };
 
 /*
  * Structure for "pcap_compile()", "pcap_setfilter()", etc..
  */
 struct bpf_program {
-    unsigned int    bf_len;
+    unsigned int     bf_len;
     struct bpf_insn *bf_insns;
 };
 
-typedef struct pcap_if  pcap_if_t;
+typedef struct pcap_if pcap_if_t;
 
-#define PCAP_ERRBUF_SIZE    256
+#    define PCAP_ERRBUF_SIZE 256
 
 struct pcap_pkthdr {
-    struct timeval  ts;
-    bpf_u_int32     caplen;
-    bpf_u_int32     len;
+    struct timeval ts;
+    bpf_u_int32    caplen;
+    bpf_u_int32    len;
 };
 
 struct pcap_if {
     struct pcap_if *next;
-    char *name;
-    char *description;
-    void *addresses;
-    bpf_u_int32 flags;
+    char           *name;
+    char           *description;
+    void           *addresses;
+    bpf_u_int32     flags;
 };
 
 struct pcap_send_queue {
@@ -154,39 +154,39 @@ typedef struct {
     uint8_t *mac_addr;
 } net_pcap_params_t;
 
-static volatile void *libpcap_handle;	/* handle to WinPcap DLL */
+static volatile void *libpcap_handle; /* handle to WinPcap DLL */
 
 /* Pointers to the real functions. */
-static const char	*(*f_pcap_lib_version)(void);
-static int    (*f_pcap_findalldevs)(pcap_if_t **,char *);
-static void   (*f_pcap_freealldevs)(void *);
-static void	 *(*f_pcap_open_live)(const char *,int,int,int,char *);
-static int    (*f_pcap_compile)(void *,void *, const char *,int,bpf_u_int32);
-static int    (*f_pcap_setfilter)(void *,void *);
+static const char *(*f_pcap_lib_version)(void);
+static int (*f_pcap_findalldevs)(pcap_if_t **, char *);
+static void (*f_pcap_freealldevs)(void *);
+static void *(*f_pcap_open_live)(const char *, int, int, int, char *);
+static int (*f_pcap_compile)(void *, void *, const char *, int, bpf_u_int32);
+static int (*f_pcap_setfilter)(void *, void *);
 static const unsigned char
-             *(*f_pcap_next)(void *,void *);
-static int	  (*f_pcap_sendpacket)(void *,const unsigned char *,int);
-static void	  (*f_pcap_close)(void *);
-static int    (*f_pcap_setnonblock)(void*, int, char*);
-static int    (*f_pcap_set_immediate_mode)(void *, int);
-static int    (*f_pcap_set_promisc)(void *, int);
-static int    (*f_pcap_set_snaplen)(void *, int);
-static int    (*f_pcap_dispatch)(void *, int, pcap_handler callback, u_char *user);
-static void  *(*f_pcap_create)(const char *, char*);
-static int    (*f_pcap_activate)(void *);
-static void  *(*f_pcap_geterr)(void *);
+    *(*f_pcap_next)(void *, void *);
+static int (*f_pcap_sendpacket)(void *, const unsigned char *, int);
+static void (*f_pcap_close)(void *);
+static int (*f_pcap_setnonblock)(void *, int, char *);
+static int (*f_pcap_set_immediate_mode)(void *, int);
+static int (*f_pcap_set_promisc)(void *, int);
+static int (*f_pcap_set_snaplen)(void *, int);
+static int (*f_pcap_dispatch)(void *, int, pcap_handler callback, u_char *user);
+static void *(*f_pcap_create)(const char *, char *);
+static int (*f_pcap_activate)(void *);
+static void *(*f_pcap_geterr)(void *);
 #ifdef _WIN32
 static HANDLE (*f_pcap_getevent)(void *);
-static int    (*f_pcap_sendqueue_queue)(void *, void *, void *);
-static u_int  (*f_pcap_sendqueue_transmit)(void *, void *, int sync);
-static void  *(*f_pcap_sendqueue_alloc)(u_int memsize);
-static void   (*f_pcap_sendqueue_destroy)(void *);
+static int (*f_pcap_sendqueue_queue)(void *, void *, void *);
+static u_int (*f_pcap_sendqueue_transmit)(void *, void *, int sync);
+static void *(*f_pcap_sendqueue_alloc)(u_int memsize);
+static void (*f_pcap_sendqueue_destroy)(void *);
 #else
-static int    (*f_pcap_get_selectable_fd)(void *);
+static int (*f_pcap_get_selectable_fd)(void *);
 #endif
 
 static dllimp_t pcap_imports[] = {
-    { "pcap_lib_version",        &f_pcap_lib_version       },
+    {"pcap_lib_version",         &f_pcap_lib_version       },
     { "pcap_findalldevs",        &f_pcap_findalldevs       },
     { "pcap_freealldevs",        &f_pcap_freealldevs       },
     { "pcap_open_live",          &f_pcap_open_live         },
@@ -210,7 +210,7 @@ static dllimp_t pcap_imports[] = {
     { "pcap_sendqueue_alloc",    &f_pcap_sendqueue_alloc   },
     { "pcap_sendqueue_destroy",  &f_pcap_sendqueue_destroy },
 #else
-    { "pcap_get_selectable_fd",  &f_pcap_get_selectable_fd },
+    { "pcap_get_selectable_fd", &f_pcap_get_selectable_fd },
 #endif
     { NULL,                      NULL                      },
 };
@@ -224,20 +224,19 @@ pcap_log(const char *fmt, ...)
     va_list ap;
 
     if (pcap_do_log) {
-	va_start(ap, fmt);
-	pclog_ex(fmt, ap);
-	va_end(ap);
+        va_start(ap, fmt);
+        pclog_ex(fmt, ap);
+        va_end(ap);
     }
 }
 #else
-#define pcap_log(fmt, ...)
+#    define pcap_log(fmt, ...)
 #endif
-
 
 static void
 net_pcap_rx_handler(uint8_t *user, const struct pcap_pkthdr *h, const uint8_t *bytes)
 {
-    net_pcap_t *pcap = (net_pcap_t*)user;
+    net_pcap_t *pcap = (net_pcap_t *) user;
     memcpy(pcap->pkt.data, bytes, h->caplen);
     pcap->pkt.len = h->caplen;
     network_rx_put_pkt(pcap->card, &pcap->pkt);
@@ -248,15 +247,15 @@ void
 net_pcap_in(void *pcap, uint8_t *bufp, int len)
 {
     if (pcap == NULL)
-    return;
+        return;
 
-    f_pcap_sendpacket((void *)pcap, bufp, len);
+    f_pcap_sendpacket((void *) pcap, bufp, len);
 }
 
 void
 net_pcap_in_available(void *priv)
 {
-    net_pcap_t *pcap = (net_pcap_t *)priv;
+    net_pcap_t *pcap = (net_pcap_t *) priv;
     net_event_set(&pcap->tx_event);
 }
 
@@ -264,14 +263,14 @@ net_pcap_in_available(void *priv)
 static void
 net_pcap_thread(void *priv)
 {
-    net_pcap_t *pcap = (net_pcap_t*)priv;
+    net_pcap_t *pcap = (net_pcap_t *) priv;
 
     pcap_log("PCAP: polling started.\n");
 
     HANDLE events[NET_EVENT_MAX];
     events[NET_EVENT_STOP] = net_event_get_handle(&pcap->stop_event);
-    events[NET_EVENT_TX] = net_event_get_handle(&pcap->tx_event);
-    events[NET_EVENT_RX] = f_pcap_getevent((void *)pcap->pcap);
+    events[NET_EVENT_TX]   = net_event_get_handle(&pcap->tx_event);
+    events[NET_EVENT_RX]   = f_pcap_getevent((void *) pcap->pcap);
 
     bool run = true;
 
@@ -297,7 +296,7 @@ net_pcap_thread(void *priv)
                 break;
 
             case NET_EVENT_RX:
-                f_pcap_dispatch(pcap->pcap, PCAP_PKT_BATCH, net_pcap_rx_handler, (u_char *)pcap);
+                f_pcap_dispatch(pcap->pcap, PCAP_PKT_BATCH, net_pcap_rx_handler, (u_char *) pcap);
                 break;
         }
     }
@@ -308,7 +307,7 @@ net_pcap_thread(void *priv)
 static void
 net_pcap_thread(void *priv)
 {
-    net_pcap_t *pcap = (net_pcap_t*)priv;
+    net_pcap_t *pcap = (net_pcap_t *) priv;
 
     pcap_log("PCAP: polling started.\n");
 
@@ -341,9 +340,8 @@ net_pcap_thread(void *priv)
         }
 
         if (pfd[NET_EVENT_RX].revents & POLLIN) {
-            f_pcap_dispatch(pcap->pcap, PCAP_PKT_BATCH, net_pcap_rx_handler, (u_char *)pcap);
+            f_pcap_dispatch(pcap->pcap, PCAP_PKT_BATCH, net_pcap_rx_handler, (u_char *) pcap);
         }
-
     }
 
     pcap_log("PCAP: polling stopped.\n");
@@ -360,9 +358,9 @@ net_pcap_thread(void *priv)
 int
 net_pcap_prepare(netdev_t *list)
 {
-    char errbuf[PCAP_ERRBUF_SIZE];
+    char       errbuf[PCAP_ERRBUF_SIZE];
     pcap_if_t *devlist, *dev;
-    int i = 0;
+    int        i = 0;
 
     /* Try loading the DLL. */
 #ifdef _WIN32
@@ -374,43 +372,43 @@ net_pcap_prepare(netdev_t *list)
 #endif
     if (libpcap_handle == NULL) {
         pcap_log("PCAP: error loading pcap module\n");
-        return(-1);
+        return (-1);
     }
 
     /* Retrieve the device list from the local machine */
     if (f_pcap_findalldevs(&devlist, errbuf) == -1) {
-	pcap_log("PCAP: error in pcap_findalldevs: %s\n", errbuf);
-	return(-1);
+        pcap_log("PCAP: error in pcap_findalldevs: %s\n", errbuf);
+        return (-1);
     }
 
-    for (dev=devlist; dev!=NULL; dev=dev->next) {
-		if (i >= (NET_HOST_INTF_MAX - 1))
-			break;
+    for (dev = devlist; dev != NULL; dev = dev->next) {
+        if (i >= (NET_HOST_INTF_MAX - 1))
+            break;
 
-		/**
-		 * we initialize the strings to NULL first for strncpy
-		 */
+        /**
+         * we initialize the strings to NULL first for strncpy
+         */
 
-		memset(list->device, '\0', sizeof(list->device));
-		memset(list->description, '\0', sizeof(list->description));
+        memset(list->device, '\0', sizeof(list->device));
+        memset(list->description, '\0', sizeof(list->description));
 
-		strncpy(list->device, dev->name, sizeof(list->device) - 1);
-		if (dev->description) {
-			strncpy(list->description, dev->description, sizeof(list->description) - 1);
-		} else {
-			/* if description is NULL, set the name. This allows pcap to display *something* useful under WINE */
-			strncpy(list->description, dev->name, sizeof(list->description) - 1);
-		}
+        strncpy(list->device, dev->name, sizeof(list->device) - 1);
+        if (dev->description) {
+            strncpy(list->description, dev->description, sizeof(list->description) - 1);
+        } else {
+            /* if description is NULL, set the name. This allows pcap to display *something* useful under WINE */
+            strncpy(list->description, dev->name, sizeof(list->description) - 1);
+        }
 
-	list++; i++;
+        list++;
+        i++;
     }
 
     /* Release the memory. */
     f_pcap_freealldevs(devlist);
 
-    return(i);
+    return (i);
 }
-
 
 /*
  * Initialize (Win)Pcap for use.
@@ -422,12 +420,12 @@ net_pcap_prepare(netdev_t *list)
 void *
 net_pcap_init(const netcard_t *card, const uint8_t *mac_addr, void *priv)
 {
-    char  errbuf[PCAP_ERRBUF_SIZE];
-    char *str;
-    char filter_exp[255];
+    char               errbuf[PCAP_ERRBUF_SIZE];
+    char              *str;
+    char               filter_exp[255];
     struct bpf_program fp;
 
-    char *intf_name = (char*)priv;
+    char *intf_name = (char *) priv;
 
     /* Did we already load the library? */
     if (libpcap_handle == NULL) {
@@ -451,7 +449,7 @@ net_pcap_init(const netcard_t *card, const uint8_t *mac_addr, void *priv)
     pcap_log("PCAP: interface: %s\n", intf_name);
 
     net_pcap_t *pcap = calloc(1, sizeof(net_pcap_t));
-    pcap->card = (netcard_t *)card;
+    pcap->card       = (netcard_t *) card;
     memcpy(pcap->mac_addr, mac_addr, sizeof(pcap->mac_addr));
 
     if ((pcap->pcap = f_pcap_create(intf_name, errbuf)) == NULL) {
@@ -494,7 +492,7 @@ net_pcap_init(const netcard_t *card, const uint8_t *mac_addr, void *priv)
             return NULL;
         }
     } else {
-        pcap_log("PCAP: could not compile filter (%s) : %s!\n", filter_exp, f_pcap_geterr((void*)pcap->pcap));
+        pcap_log("PCAP: could not compile filter (%s) : %s!\n", filter_exp, f_pcap_geterr((void *) pcap->pcap));
         f_pcap_close((void *) pcap->pcap);
         free(pcap);
         return NULL;
@@ -523,7 +521,7 @@ net_pcap_close(void *priv)
     if (!priv)
         return;
 
-    net_pcap_t *pcap = (net_pcap_t *)priv;
+    net_pcap_t *pcap = (net_pcap_t *) priv;
 
     pcap_log("PCAP: closing.\n");
 
@@ -541,10 +539,10 @@ net_pcap_close(void *priv)
     free(pcap->pkt.data);
 
 #ifdef _WIN32
-    f_pcap_sendqueue_destroy((void*)pcap->pcap_queue);
+    f_pcap_sendqueue_destroy((void *) pcap->pcap_queue);
 #endif
     /* OK, now shut down Pcap itself. */
-    f_pcap_close((void*)pcap->pcap);
+    f_pcap_close((void *) pcap->pcap);
 
     net_event_close(&pcap->tx_event);
     net_event_close(&pcap->stop_event);

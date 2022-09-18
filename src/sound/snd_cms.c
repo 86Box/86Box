@@ -227,19 +227,19 @@ static const device_config_t cms_config[] = {
         }
     },
     { .name = "", .description = "", .type = CONFIG_END }
-  // clang-format on
+// clang-format on
 };
 
 const device_t cms_device = {
-    .name = "Creative Music System / Game Blaster",
+    .name          = "Creative Music System / Game Blaster",
     .internal_name = "cms",
-    .flags = DEVICE_ISA,
-    .local = 0,
-    .init = cms_init,
-    .close = cms_close,
-    .reset = NULL,
+    .flags         = DEVICE_ISA,
+    .local         = 0,
+    .init          = cms_init,
+    .close         = cms_close,
+    .reset         = NULL,
     { .available = NULL },
     .speed_changed = NULL,
-    .force_redraw = NULL,
-    .config = cms_config
+    .force_redraw  = NULL,
+    .config        = cms_config
 };
