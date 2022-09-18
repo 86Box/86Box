@@ -17,12 +17,10 @@
  *		Copyright 2017,2018 Fred N. van Kempen.
  */
 #ifndef EMU_FLOPPY_TD0_H
-# define EMU_FLOPPY_TD0_H
-
+#define EMU_FLOPPY_TD0_H
 
 extern void td0_init(void);
 extern void td0_load(int drive, char *fn);
 extern void td0_close(int drive);
 
-
-#endif	/*EMU_FLOPPY_TD0_H*/
+#endif /*EMU_FLOPPY_TD0_H*/

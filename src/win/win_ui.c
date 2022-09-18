@@ -39,7 +39,7 @@
 #include <86box/timer.h>
 #include <86box/nvr.h>
 #include <86box/video.h>
-#include <86box/vid_ega.h>		// for update_overscan
+#include <86box/vid_ega.h> // for update_overscan
 #include <86box/plat_dynld.h>
 #include <86box/ui.h>
 #include <86box/win.h>
@@ -1491,8 +1491,8 @@ plat_pause(int p)
     }
 
     if (p) {
-	if (mouse_capture)
-		plat_mouse_capture(0);
+        if (mouse_capture)
+            plat_mouse_capture(0);
 
         wcsncpy(oldtitle, ui_window_title(NULL), sizeof_w(oldtitle) - 1);
         wcscpy(title, oldtitle);
@@ -1568,5 +1568,11 @@ plat_mouse_capture(int on)
     }
 }
 
-void ui_init_monitor(int monitor_index) {}
-void ui_deinit_monitor(int monitor_index) {}
+void
+ui_init_monitor(int monitor_index)
+{
+}
+void
+ui_deinit_monitor(int monitor_index)
+{
+}

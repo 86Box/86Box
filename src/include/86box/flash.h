@@ -15,7 +15,7 @@
  */
 
 #ifndef EMU_FLASH_H
-# define EMU_FLASH_H
+#define EMU_FLASH_H
 
 extern const device_t catalyst_flash_device;
 

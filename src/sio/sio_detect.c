@@ -27,11 +27,9 @@
 #include <86box/fdc.h>
 #include <86box/sio.h>
 
-
 typedef struct {
     uint8_t regs[2];
 } sio_detect_t;
-
 
 static void
 sio_detect_write(uint16_t port, uint8_t val, void *priv)
@@ -45,7 +43,6 @@ sio_detect_write(uint16_t port, uint8_t val, void *priv)
     return;
 }
 
-
 static uint8_t
 sio_detect_read(uint16_t port, void *priv)
 {
@@ -56,7 +53,6 @@ sio_detect_read(uint16_t port, void *priv)
     return 0xff /*dev->regs[port & 1]*/;
 }
 
-
 static void
 sio_detect_close(void *priv)
 {
@@ -64,7 +60,6 @@ sio_detect_close(void *priv)
 
     free(dev);
 }
-
 
 static void *
 sio_detect_init(const device_t *info)
@@ -75,48 +70,47 @@ sio_detect_init(const device_t *info)
     device_add(&fdc_at_smc_device);
 
     io_sethandler(0x0022, 0x0006,
-		  sio_detect_read, NULL, NULL, sio_detect_write, NULL, NULL, dev);
+                  sio_detect_read, NULL, NULL, sio_detect_write, NULL, NULL, dev);
     io_sethandler(0x002e, 0x0002,
-		  sio_detect_read, NULL, NULL, sio_detect_write, NULL, NULL, dev);
+                  sio_detect_read, NULL, NULL, sio_detect_write, NULL, NULL, dev);
     io_sethandler(0x0044, 0x0004,
-		  sio_detect_read, NULL, NULL, sio_detect_write, NULL, NULL, dev);
+                  sio_detect_read, NULL, NULL, sio_detect_write, NULL, NULL, dev);
     io_sethandler(0x004e, 0x0002,
-		  sio_detect_read, NULL, NULL, sio_detect_write, NULL, NULL, dev);
+                  sio_detect_read, NULL, NULL, sio_detect_write, NULL, NULL, dev);
     io_sethandler(0x0108, 0x0002,
-		  sio_detect_read, NULL, NULL, sio_detect_write, NULL, NULL, dev);
+                  sio_detect_read, NULL, NULL, sio_detect_write, NULL, NULL, dev);
     io_sethandler(0x015c, 0x0002,
-		  sio_detect_read, NULL, NULL, sio_detect_write, NULL, NULL, dev);
+                  sio_detect_read, NULL, NULL, sio_detect_write, NULL, NULL, dev);
     io_sethandler(0x0250, 0x0003,
-		  sio_detect_read, NULL, NULL, sio_detect_write, NULL, NULL, dev);
+                  sio_detect_read, NULL, NULL, sio_detect_write, NULL, NULL, dev);
     io_sethandler(0x026e, 0x0002,
-		  sio_detect_read, NULL, NULL, sio_detect_write, NULL, NULL, dev);
+                  sio_detect_read, NULL, NULL, sio_detect_write, NULL, NULL, dev);
     io_sethandler(0x0279, 0x0001,
-		  sio_detect_read, NULL, NULL, sio_detect_write, NULL, NULL, dev);
+                  sio_detect_read, NULL, NULL, sio_detect_write, NULL, NULL, dev);
     io_sethandler(FDC_SECONDARY_ADDR, 0x0002,
-		  sio_detect_read, NULL, NULL, sio_detect_write, NULL, NULL, dev);
+                  sio_detect_read, NULL, NULL, sio_detect_write, NULL, NULL, dev);
     io_sethandler(0x0398, 0x0002,
-		  sio_detect_read, NULL, NULL, sio_detect_write, NULL, NULL, dev);
+                  sio_detect_read, NULL, NULL, sio_detect_write, NULL, NULL, dev);
     io_sethandler(0x03e3, 0x0001,
-		  sio_detect_read, NULL, NULL, sio_detect_write, NULL, NULL, dev);
+                  sio_detect_read, NULL, NULL, sio_detect_write, NULL, NULL, dev);
     io_sethandler(FDC_PRIMARY_ADDR, 0x0002,
-		  sio_detect_read, NULL, NULL, sio_detect_write, NULL, NULL, dev);
+                  sio_detect_read, NULL, NULL, sio_detect_write, NULL, NULL, dev);
     io_sethandler(0x0a79, 0x0001,
-		  sio_detect_read, NULL, NULL, sio_detect_write, NULL, NULL, dev);
+                  sio_detect_read, NULL, NULL, sio_detect_write, NULL, NULL, dev);
 
     return dev;
 }
 
-
 const device_t sio_detect_device = {
-    .name = "Super I/O Detection Helper",
+    .name          = "Super I/O Detection Helper",
     .internal_name = "sio_detect",
-    .flags = 0,
-    .local = 0,
-    .init = sio_detect_init,
-    .close = sio_detect_close,
-    .reset = NULL,
+    .flags         = 0,
+    .local         = 0,
+    .init          = sio_detect_init,
+    .close         = sio_detect_close,
+    .reset         = NULL,
     { .available = NULL },
     .speed_changed = NULL,
-    .force_redraw = NULL,
-    .config = NULL
+    .force_redraw  = NULL,
+    .config        = NULL
 };

@@ -31,7 +31,6 @@
 #include <86box/plat.h>
 #include <86box/thread.h>
 
-
 typedef struct {
     HANDLE handle;
 } win_event_t;

@@ -349,11 +349,11 @@ sb_start_dma(sb_dsp_t *dsp, int dma8, int autoinit, uint8_t format, int len)
     dsp->sb_pausetime = -1;
 
     if (dma8) {
-        dsp->sb_8_length   = dsp->sb_8_origlength = len;
-        dsp->sb_8_format   = format;
-        dsp->sb_8_autoinit = autoinit;
-        dsp->sb_8_pause    = 0;
-        dsp->sb_8_enable   = 1;
+        dsp->sb_8_length = dsp->sb_8_origlength = len;
+        dsp->sb_8_format                        = format;
+        dsp->sb_8_autoinit                      = autoinit;
+        dsp->sb_8_pause                         = 0;
+        dsp->sb_8_enable                        = 1;
 
         if (dsp->sb_16_enable && dsp->sb_16_output)
             dsp->sb_16_enable = 0;
@@ -363,11 +363,11 @@ sb_start_dma(sb_dsp_t *dsp, int dma8, int autoinit, uint8_t format, int len)
         dsp->sbleftright = dsp->sbleftright_default;
         dsp->sbdacpos    = 0;
     } else {
-        dsp->sb_16_length   = dsp->sb_16_origlength = len;
-        dsp->sb_16_format   = format;
-        dsp->sb_16_autoinit = autoinit;
-        dsp->sb_16_pause    = 0;
-        dsp->sb_16_enable   = 1;
+        dsp->sb_16_length = dsp->sb_16_origlength = len;
+        dsp->sb_16_format                         = format;
+        dsp->sb_16_autoinit                       = autoinit;
+        dsp->sb_16_pause                          = 0;
+        dsp->sb_16_enable                         = 1;
         if (dsp->sb_8_enable && dsp->sb_8_output)
             dsp->sb_8_enable = 0;
         dsp->sb_16_output = 1;
@@ -380,22 +380,22 @@ void
 sb_start_dma_i(sb_dsp_t *dsp, int dma8, int autoinit, uint8_t format, int len)
 {
     if (dma8) {
-        dsp->sb_8_length   = dsp->sb_8_origlength = len;
-        dsp->sb_8_format   = format;
-        dsp->sb_8_autoinit = autoinit;
-        dsp->sb_8_pause    = 0;
-        dsp->sb_8_enable   = 1;
+        dsp->sb_8_length = dsp->sb_8_origlength = len;
+        dsp->sb_8_format                        = format;
+        dsp->sb_8_autoinit                      = autoinit;
+        dsp->sb_8_pause                         = 0;
+        dsp->sb_8_enable                        = 1;
         if (dsp->sb_16_enable && !dsp->sb_16_output)
             dsp->sb_16_enable = 0;
         dsp->sb_8_output = 0;
         if (!timer_is_enabled(&dsp->input_timer))
             timer_set_delay_u64(&dsp->input_timer, dsp->sblatchi);
     } else {
-        dsp->sb_16_length   = dsp->sb_16_origlength = len;
-        dsp->sb_16_format   = format;
-        dsp->sb_16_autoinit = autoinit;
-        dsp->sb_16_pause    = 0;
-        dsp->sb_16_enable   = 1;
+        dsp->sb_16_length = dsp->sb_16_origlength = len;
+        dsp->sb_16_format                         = format;
+        dsp->sb_16_autoinit                       = autoinit;
+        dsp->sb_16_pause                          = 0;
+        dsp->sb_16_enable                         = 1;
         if (dsp->sb_8_enable && !dsp->sb_8_output)
             dsp->sb_8_enable = 0;
         dsp->sb_16_output = 0;

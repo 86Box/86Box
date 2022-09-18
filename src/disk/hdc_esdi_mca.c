@@ -243,7 +243,7 @@ static double
 esdi_mca_get_xfer_time(esdi_t *esdi, int size)
 {
     /* 390.625 us per sector at 10 Mbit/s = 1280 kB/s. */
-    return (3125.0 / 8.0) * (double)size;
+    return (3125.0 / 8.0) * (double) size;
 }
 
 static void
@@ -352,7 +352,7 @@ esdi_callback(void *priv)
     esdi_t  *dev = (esdi_t *) priv;
     drive_t *drive;
     int      val;
-    double cmd_time = 0.0;
+    double   cmd_time = 0.0;
 
     esdi_mca_set_callback(dev, 0);
 
@@ -525,7 +525,7 @@ esdi_callback(void *priv)
 
             switch (dev->cmd_state) {
                 case 0:
-                    dev->rba = (dev->cmd_data[2] | (dev->cmd_data[3] << 16)) & 0x0fffffff;
+                    dev->rba          = (dev->cmd_data[2] | (dev->cmd_data[3] << 16)) & 0x0fffffff;
                     dev->sector_count = dev->cmd_data[1];
 
                     if ((dev->rba + dev->sector_count) > hdd_image_get_last_sector(drive->hdd_num)) {

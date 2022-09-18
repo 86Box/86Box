@@ -46,8 +46,7 @@
  */
 
 #ifndef EMU_ISARTC_H
-# define EMU_ISARTC_H
-
+#define EMU_ISARTC_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -55,17 +54,15 @@ extern "C" {
 
 /* Global variables. */
 
-
 /* Functions. */
-extern void		isartc_reset(void);
+extern void isartc_reset(void);
 
-extern char		*isartc_get_internal_name(int t);
-extern int		isartc_get_from_internal_name(char *s);
-extern const device_t	*isartc_get_device(int t);
+extern char           *isartc_get_internal_name(int t);
+extern int             isartc_get_from_internal_name(char *s);
+extern const device_t *isartc_get_device(int t);
 
 #ifdef __cplusplus
 }
 #endif
 
-
-#endif	/*EMU_ISARTC_H*/
+#endif /*EMU_ISARTC_H*/

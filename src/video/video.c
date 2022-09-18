@@ -1023,7 +1023,7 @@ loadfont_common(FILE *f, int format)
                     fontdat8x12[c][d] = fgetc(f) & 0xff;
             break;
 
-        case 5: /* Toshiba 3100e */
+        case 5:                               /* Toshiba 3100e */
             for (d = 0; d < 2048; d += 512) { /* Four languages... */
                 for (c = d; c < d + 256; c++) {
                     (void) !fread(&fontdatm[c][8], 1, 8, f);

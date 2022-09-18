@@ -33,10 +33,8 @@
 #include <86box/cdrom.h>
 #include <86box/cdrom_image.h>
 
-
 #ifdef ENABLE_CDROM_IMAGE_LOG
 int cdrom_image_do_log = ENABLE_CDROM_IMAGE_LOG;
-
 
 void
 cdrom_image_log(const char *fmt, ...)
@@ -50,31 +48,28 @@ cdrom_image_log(const char *fmt, ...)
     }
 }
 #else
-#define cdrom_image_log(fmt, ...)
+#    define cdrom_image_log(fmt, ...)
 #endif
-
 
 /* The addresses sent from the guest are absolute, ie. a LBA of 0 corresponds to a MSF of 00:00:00. Otherwise, the counter displayed by the guest is wrong:
    there is a seeming 2 seconds in which audio plays but counter does not move, while a data track before audio jumps to 2 seconds before the actual start
    of the audio while audio still plays. With an absolute conversion, the counter is fine. */
-#define MSFtoLBA(m,s,f)         ((((m * 60) + s) * 75) + f)
-
+#define MSFtoLBA(m, s, f) ((((m * 60) + s) * 75) + f)
 
 static void
 image_get_tracks(cdrom_t *dev, int *first, int *last)
 {
-    cd_img_t *img = (cd_img_t *)dev->image;
-    TMSF tmsf;
+    cd_img_t *img = (cd_img_t *) dev->image;
+    TMSF      tmsf;
 
     cdi_get_audio_tracks(img, first, last, &tmsf);
 }
 
-
 static void
 image_get_track_info(cdrom_t *dev, uint32_t track, int end, track_info_t *ti)
 {
-    cd_img_t *img = (cd_img_t *)dev->image;
-    TMSF tmsf;
+    cd_img_t *img = (cd_img_t *) dev->image;
+    TMSF      tmsf;
 
     cdi_get_audio_track_info(img, end, track, &ti->number, &tmsf, &ti->attr);
 
@@ -83,12 +78,11 @@ image_get_track_info(cdrom_t *dev, uint32_t track, int end, track_info_t *ti)
     ti->f = tmsf.fr;
 }
 
-
 static void
 image_get_subchannel(cdrom_t *dev, uint32_t lba, subchannel_t *subc)
 {
-    cd_img_t *img = (cd_img_t *)dev->image;
-    TMSF rel_pos, abs_pos;
+    cd_img_t *img = (cd_img_t *) dev->image;
+    TMSF      rel_pos, abs_pos;
 
     cdi_get_audio_sub(img, lba, &subc->attr, &subc->track, &subc->index,
                       &rel_pos, &abs_pos);
@@ -102,15 +96,14 @@ image_get_subchannel(cdrom_t *dev, uint32_t lba, subchannel_t *subc)
     subc->rel_f = rel_pos.fr;
 }
 
-
 static int
 image_get_capacity(cdrom_t *dev)
 {
-    cd_img_t *img = (cd_img_t *)dev->image;
-    int first_track, last_track;
-    int number, c;
+    cd_img_t     *img = (cd_img_t *) dev->image;
+    int           first_track, last_track;
+    int           number, c;
     unsigned char attr;
-    uint32_t address = 0, lb = 0;
+    uint32_t      address = 0, lb = 0;
 
     if (!img)
         return 0;
@@ -126,23 +119,22 @@ image_get_capacity(cdrom_t *dev)
     return lb;
 }
 
-
 static int
 image_is_track_audio(cdrom_t *dev, uint32_t pos, int ismsf)
 {
-    cd_img_t *img = (cd_img_t *)dev->image;
-    uint8_t attr;
-    TMSF tmsf;
-    int m, s, f;
-    int number, track;
+    cd_img_t *img = (cd_img_t *) dev->image;
+    uint8_t   attr;
+    TMSF      tmsf;
+    int       m, s, f;
+    int       number, track;
 
     if (!img || (dev->cd_status == CD_STATUS_DATA_ONLY))
         return 0;
 
     if (ismsf) {
-        m = (pos >> 16) & 0xff;
-        s = (pos >> 8) & 0xff;
-        f = pos & 0xff;
+        m   = (pos >> 16) & 0xff;
+        s   = (pos >> 8) & 0xff;
+        f   = pos & 0xff;
         pos = MSFtoLBA(m, s, f) - 150;
     }
 
@@ -156,12 +148,11 @@ image_is_track_audio(cdrom_t *dev, uint32_t pos, int ismsf)
     }
 }
 
-
 static int
 image_is_track_pre(cdrom_t *dev, uint32_t lba)
 {
-    cd_img_t *img = (cd_img_t *)dev->image;
-    int track;
+    cd_img_t *img = (cd_img_t *) dev->image;
+    int       track;
 
     /* GetTrack requires LBA. */
     track = cdi_get_track(img, lba);
@@ -172,20 +163,18 @@ image_is_track_pre(cdrom_t *dev, uint32_t lba)
     return 0;
 }
 
-
 static int
 image_sector_size(struct cdrom *dev, uint32_t lba)
 {
-    cd_img_t *img = (cd_img_t *)dev->image;
+    cd_img_t *img = (cd_img_t *) dev->image;
 
     return cdi_get_sector_size(img, lba);
 }
 
-
 static int
 image_read_sector(struct cdrom *dev, int type, uint8_t *b, uint32_t lba)
 {
-    cd_img_t *img = (cd_img_t *)dev->image;
+    cd_img_t *img = (cd_img_t *) dev->image;
 
     switch (type) {
         case CD_READ_DATA:
@@ -203,11 +192,10 @@ image_read_sector(struct cdrom *dev, int type, uint8_t *b, uint32_t lba)
     }
 }
 
-
 static int
 image_track_type(cdrom_t *dev, uint32_t lba)
 {
-    cd_img_t *img = (cd_img_t *)dev->image;
+    cd_img_t *img = (cd_img_t *) dev->image;
 
     if (img) {
         if (image_is_track_audio(dev, lba, 0))
@@ -215,17 +203,16 @@ image_track_type(cdrom_t *dev, uint32_t lba)
         else {
             if (cdi_is_mode2(img, lba))
                 return CD_TRACK_MODE2 | cdi_get_mode2_form(img, lba);
-	}
+        }
     }
 
     return 0;
 }
 
-
 static void
 image_exit(cdrom_t *dev)
 {
-    cd_img_t *img = (cd_img_t *)dev->image;
+    cd_img_t *img = (cd_img_t *) dev->image;
 
     cdrom_image_log("CDROM: image_exit(%s)\n", dev->image_path);
     dev->cd_status = CD_STATUS_EMPTY;
@@ -238,7 +225,6 @@ image_exit(cdrom_t *dev)
     dev->ops = NULL;
 }
 
-
 static const cdrom_ops_t cdrom_image_ops = {
     image_get_tracks,
     image_get_track_info,
@@ -250,17 +236,15 @@ static const cdrom_ops_t cdrom_image_ops = {
     image_exit
 };
 
-
 static int
 image_open_abort(cdrom_t *dev)
 {
     cdrom_image_close(dev);
-    dev->ops = NULL;
-    dev->host_drive = 0;
+    dev->ops           = NULL;
+    dev->host_drive    = 0;
     dev->image_path[0] = 0;
     return 1;
 }
-
 
 int
 cdrom_image_open(cdrom_t *dev, const char *fn)
@@ -288,12 +272,12 @@ cdrom_image_open(cdrom_t *dev, const char *fn)
         return image_open_abort(dev);
 
     /* All good, reset state. */
-    if (! strcasecmp(path_get_extension((char *) fn), "ISO"))
-	dev->cd_status = CD_STATUS_DATA_ONLY;
+    if (!strcasecmp(path_get_extension((char *) fn), "ISO"))
+        dev->cd_status = CD_STATUS_DATA_ONLY;
     else
-	dev->cd_status = CD_STATUS_STOPPED;
-    dev->seek_pos = 0;
-    dev->cd_buflen = 0;
+        dev->cd_status = CD_STATUS_STOPPED;
+    dev->seek_pos       = 0;
+    dev->cd_buflen      = 0;
     dev->cdrom_capacity = image_get_capacity(dev);
     cdrom_image_log("CD-ROM capacity: %i sectors (%" PRIi64 " bytes)\n", dev->cdrom_capacity, ((uint64_t) dev->cdrom_capacity) << 11ULL);
 
@@ -302,7 +286,6 @@ cdrom_image_open(cdrom_t *dev, const char *fn)
 
     return 0;
 }
-
 
 void
 cdrom_image_close(cdrom_t *dev)

@@ -28,8 +28,7 @@
 #include <cstdlib>
 #include <cstring>
 
-extern "C"
-{
+extern "C" {
 #include <86box/86box.h>
 #include <86box/device.h>
 #include <86box/midi.h>
@@ -69,7 +68,7 @@ rtmidi_play_sysex(uint8_t *sysex, unsigned int len)
         midiout->sendMessage(sysex, len);
 }
 
-void*
+void *
 rtmidi_output_init(const device_t *info)
 {
     midi_device_t *dev = (midi_device_t *) malloc(sizeof(midi_device_t));
@@ -152,7 +151,7 @@ rtmidi_input_callback(double timeStamp, std::vector<unsigned char> *message, voi
         midi_in_msg(message->data(), message->size());
 }
 
-void*
+void *
 rtmidi_input_init(const device_t *info)
 {
     midi_device_t *dev = (midi_device_t *) malloc(sizeof(midi_device_t));
@@ -273,34 +272,34 @@ static const device_config_t midi_input_config[] = {
         .default_int = 1
     },
     { .name = "", .description = "", .type = CONFIG_END }
-  // clang-format on
+// clang-format on
 };
 
 const device_t rtmidi_output_device = {
-    .name = SYSTEM_MIDI_NAME,
+    .name          = SYSTEM_MIDI_NAME,
     .internal_name = SYSTEM_MIDI_INTERNAL_NAME,
-    .flags = 0,
-    .local = 0,
-    .init = rtmidi_output_init,
-    .close = rtmidi_output_close,
-    .reset = NULL,
+    .flags         = 0,
+    .local         = 0,
+    .init          = rtmidi_output_init,
+    .close         = rtmidi_output_close,
+    .reset         = NULL,
     { .available = rtmidi_out_get_num_devs },
     .speed_changed = NULL,
-    .force_redraw = NULL,
-    .config = system_midi_config
+    .force_redraw  = NULL,
+    .config        = system_midi_config
 };
 
 const device_t rtmidi_input_device = {
-    .name = MIDI_INPUT_NAME,
+    .name          = MIDI_INPUT_NAME,
     .internal_name = MIDI_INPUT_INTERNAL_NAME,
-    .flags = 0,
-    .local = 0,
-    .init = rtmidi_input_init,
-    .close = rtmidi_input_close,
-    .reset = NULL,
+    .flags         = 0,
+    .local         = 0,
+    .init          = rtmidi_input_init,
+    .close         = rtmidi_input_close,
+    .reset         = NULL,
     { .available = rtmidi_in_get_num_devs },
     .speed_changed = NULL,
-    .force_redraw = NULL,
-    .config = midi_input_config
+    .force_redraw  = NULL,
+    .config        = midi_input_config
 };
 }
