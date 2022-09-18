@@ -201,6 +201,7 @@ const machine_filter_t machine_chipsets[] = {
 
 
 const machine_t machines[] = {
+  // clang-format off
     /* 8088 Machines */
     {
         .name = "[8088] IBM PC (1981)",
@@ -11784,6 +11785,7 @@ const machine_t machines[] = {
         .snd_device = NULL,
         .net_device = NULL
     }
+  // clang-format on
 };
 
 /* Saved copies - jumpers get applied to these.
