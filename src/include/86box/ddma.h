@@ -15,8 +15,7 @@
  *		Copyright 2020 Miran Grca.
  */
 #ifndef DDMA_H
-# define DDMA_H
-
+#define DDMA_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -24,26 +23,23 @@ extern "C" {
 
 typedef struct
 {
-    uint16_t		io_base;
-    int			channel, enable;
+    uint16_t io_base;
+    int      channel, enable;
 } ddma_channel_t;
 
 typedef struct
 {
-    ddma_channel_t	channels[8];
+    ddma_channel_t channels[8];
 } ddma_t;
 
-
 /* Global variables. */
-extern const device_t	ddma_device;
-
+extern const device_t ddma_device;
 
 /* Functions. */
-extern void		ddma_update_io_mapping(ddma_t *dev, int ch, uint8_t base_l, uint8_t base_h, int enable);
+extern void ddma_update_io_mapping(ddma_t *dev, int ch, uint8_t base_l, uint8_t base_h, int enable);
 
 #ifdef __cplusplus
 }
 #endif
 
-
-#endif	/*DDMA_H*/
+#endif /*DDMA_H*/

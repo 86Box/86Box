@@ -15,26 +15,21 @@
  *		Copyright 2021 Miran Grca.
  */
 #ifndef EMU_CARTRIDGE_H
-# define EMU_CARTRIDGE_H
-
+#define EMU_CARTRIDGE_H
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
+extern char cart_fns[2][512];
 
-extern char	cart_fns[2][512];
+extern void cart_load(int drive, char *fn);
+extern void cart_close(int drive);
 
-
-extern void	cart_load(int drive, char *fn);
-extern void	cart_close(int drive);
-
-extern void	cart_reset(void);
-
+extern void cart_reset(void);
 
 #ifdef __cplusplus
 }
 #endif
 
-
-#endif	/*EMU_CARTRIDGE_H*/
+#endif /*EMU_CARTRIDGE_H*/

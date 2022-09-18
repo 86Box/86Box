@@ -20,12 +20,10 @@
  *		Copyright 2018 Fred N. van Kempen.
  */
 #ifndef EMU_FLOPPY_IMG_H
-# define EMU_FLOPPY_IMG_H
+#define EMU_FLOPPY_IMG_H
 
+extern void img_init(void);
+extern void img_load(int drive, char *fn);
+extern void img_close(int drive);
 
-extern void	img_init(void);
-extern void	img_load(int drive, char *fn);
-extern void	img_close(int drive);
-
-
-#endif	/*EMU_FLOPPY_IMG_H*/
+#endif /*EMU_FLOPPY_IMG_H*/
