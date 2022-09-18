@@ -46,24 +46,23 @@
  */
 
 #ifndef EMU_NETWORK_H
-# define EMU_NETWORK_H
-# include <stdint.h>
-
+#define EMU_NETWORK_H
+#include <stdint.h>
 
 /* Network provider types. */
-#define NET_TYPE_NONE	0		/* networking disabled */
-#define NET_TYPE_SLIRP	1		/* use the SLiRP port forwarder */
-#define NET_TYPE_PCAP   2       /* use the (Win)Pcap API */
+#define NET_TYPE_NONE  0 /* networking disabled */
+#define NET_TYPE_SLIRP 1 /* use the SLiRP port forwarder */
+#define NET_TYPE_PCAP  2 /* use the (Win)Pcap API */
 
-#define NET_MAX_FRAME 1518
+#define NET_MAX_FRAME  1518
 /* Queue size must be a power of 2 */
-#define NET_QUEUE_LEN 16
+#define NET_QUEUE_LEN      16
 #define NET_QUEUE_LEN_MASK (NET_QUEUE_LEN - 1)
-#define NET_CARD_MAX 4
-#define NET_HOST_INTF_MAX 64
+#define NET_CARD_MAX       4
+#define NET_HOST_INTF_MAX  64
 
-#define NET_PERIOD_10M 0.8
-#define NET_PERIOD_100M 0.08
+#define NET_PERIOD_10M     0.8
+#define NET_PERIOD_100M    0.08
 
 enum {
     NET_LINK_DOWN      = (1 << 1),
@@ -92,28 +91,27 @@ enum {
 };
 
 typedef struct {
-    int device_num;
-    int net_type;
-    char host_dev_name[128];
+    int      device_num;
+    int      net_type;
+    char     host_dev_name[128];
     uint32_t link_state;
 } netcard_conf_t;
 
 extern netcard_conf_t net_cards_conf[NET_CARD_MAX];
-extern int net_card_current;
+extern int            net_card_current;
 
 typedef int (*NETRXCB)(void *, uint8_t *, int);
 typedef int (*NETSETLINKSTATE)(void *, uint32_t link_state);
 
-
 typedef struct netpkt {
-    uint8_t		*data;
-    int			len;
+    uint8_t *data;
+    int      len;
 } netpkt_t;
 
 typedef struct {
     netpkt_t packets[NET_QUEUE_LEN];
-    int head;
-    int tail;
+    int      head;
+    int      tail;
 } netqueue_t;
 
 typedef struct _netcard_t netcard_t;
@@ -147,41 +145,39 @@ struct _netcard_t {
 };
 
 typedef struct {
-    char		device[128];
-    char		description[128];
+    char device[128];
+    char description[128];
 } netdev_t;
-
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 /* Global variables. */
-extern int	nic_do_log;				/* config */
+extern int      nic_do_log; /* config */
 extern int      network_ndev;
 extern netdev_t network_devs[NET_HOST_INTF_MAX];
 
-
 /* Function prototypes. */
-extern void	network_init(void);
+extern void       network_init(void);
 extern netcard_t *network_attach(void *card_drv, uint8_t *mac, NETRXCB rx, NETSETLINKSTATE set_link_state);
-extern void netcard_close(netcard_t *card);
-extern void	network_close(void);
-extern void	network_reset(void);
-extern int	network_available(void);
-extern void	network_tx(netcard_t *card, uint8_t *, int);
+extern void       netcard_close(netcard_t *card);
+extern void       network_close(void);
+extern void       network_reset(void);
+extern int        network_available(void);
+extern void       network_tx(netcard_t *card, uint8_t *, int);
 
-extern int	net_pcap_prepare(netdev_t *);
+extern int net_pcap_prepare(netdev_t *);
 
-extern void network_connect(int id, int connect);
-extern int  network_is_connected(int id);
-extern int  network_dev_available(int);
-extern int	network_dev_to_id(char *);
-extern int	network_card_available(int);
-extern int	network_card_has_config(int);
-extern char	*network_card_get_internal_name(int);
-extern int	network_card_get_from_internal_name(char *);
-extern const device_t	*network_card_getdevice(int);
+extern void            network_connect(int id, int connect);
+extern int             network_is_connected(int id);
+extern int             network_dev_available(int);
+extern int             network_dev_to_id(char *);
+extern int             network_card_available(int);
+extern int             network_card_has_config(int);
+extern char           *network_card_get_internal_name(int);
+extern int             network_card_get_from_internal_name(char *);
+extern const device_t *network_card_getdevice(int);
 
 extern int network_tx_pop(netcard_t *card, netpkt_t *out_pkt);
 extern int network_tx_popv(netcard_t *card, netpkt_t *pkt_vec, int vec_size);
@@ -191,5 +187,4 @@ extern int network_rx_put_pkt(netcard_t *card, netpkt_t *pkt);
 }
 #endif
 
-
-#endif	/*EMU_NETWORK_H*/
+#endif /*EMU_NETWORK_H*/

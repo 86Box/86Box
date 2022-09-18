@@ -15,12 +15,10 @@
  *		Copyright 2018 Miran Grca.
  */
 #ifndef EMU_FLOPPY_MFM_H
-# define EMU_FLOPPY_MFM_H
+#define EMU_FLOPPY_MFM_H
 
+extern void mfm_seek(int drive, int track);
+extern void mfm_load(int drive, char *fn);
+extern void mfm_close(int drive);
 
-extern void	mfm_seek(int drive, int track);
-extern void	mfm_load(int drive, char *fn);
-extern void	mfm_close(int drive);
-
-
-#endif	/*EMU_FLOPPY_MFM_H*/
+#endif /*EMU_FLOPPY_MFM_H*/

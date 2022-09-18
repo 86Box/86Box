@@ -16,9 +16,9 @@
  */
 
 #ifndef EMU_RANDOM_H
-# define EMU_RANDOM_H
+#define EMU_RANDOM_H
 
-extern uint8_t	random_generate(void);
-extern void	random_init(void);
+extern uint8_t random_generate(void);
+extern void    random_init(void);
 
-#endif	/*EMU_RANDOM_H*/
+#endif /*EMU_RANDOM_H*/

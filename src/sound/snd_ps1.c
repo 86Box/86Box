@@ -187,15 +187,15 @@ ps1snd_close(void *priv)
 }
 
 const device_t ps1snd_device = {
-    .name = "IBM PS/1 Audio Card",
+    .name          = "IBM PS/1 Audio Card",
     .internal_name = "ps1snd",
-    .flags = 0,
-    .local = 0,
-    .init = ps1snd_init,
-    .close = ps1snd_close,
-    .reset = NULL,
+    .flags         = 0,
+    .local         = 0,
+    .init          = ps1snd_init,
+    .close         = ps1snd_close,
+    .reset         = NULL,
     { .available = NULL },
     .speed_changed = NULL,
-    .force_redraw = NULL,
-    .config = NULL
+    .force_redraw  = NULL,
+    .config        = NULL
 };

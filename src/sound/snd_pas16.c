@@ -711,7 +711,7 @@ pas16_get_buffer(int32_t *buffer, int len, void *p)
         buffer[c] += (pas16->pcm_buffer[c & 1][c >> 1] / 2);
     }
 
-    pas16->pos     = 0;
+    pas16->pos = 0;
     pas16->opl.reset_buffer(pas16->opl.priv);
     pas16->dsp.pos = 0;
 }
@@ -743,15 +743,15 @@ pas16_close(void *p)
 }
 
 const device_t pas16_device = {
-    .name = "Pro Audio Spectrum 16",
+    .name          = "Pro Audio Spectrum 16",
     .internal_name = "pas16",
-    .flags = DEVICE_ISA,
-    .local = 0,
-    .init = pas16_init,
-    .close = pas16_close,
-    .reset = NULL,
+    .flags         = DEVICE_ISA,
+    .local         = 0,
+    .init          = pas16_init,
+    .close         = pas16_close,
+    .reset         = NULL,
     { .available = NULL },
     .speed_changed = NULL,
-    .force_redraw = NULL,
-    .config = NULL
+    .force_redraw  = NULL,
+    .config        = NULL
 };
