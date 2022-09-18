@@ -180,8 +180,8 @@ load_general(void)
         lang_id = plat_language_code(p);
 
     mouse_sensitivity = ini_section_get_double(cat, "mouse_sensitivity", 1.0);
-    if (mouse_sensitivity < 0.5)
-        mouse_sensitivity = 0.5;
+    if (mouse_sensitivity < 0.1)
+        mouse_sensitivity = 0.1;
     else if (mouse_sensitivity > 2.0)
         mouse_sensitivity = 2.0;
 
