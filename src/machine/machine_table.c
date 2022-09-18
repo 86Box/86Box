@@ -199,7 +199,6 @@ const machine_filter_t machine_chipsets[] = {
      Write Input Port, same as on AMIKey-3.
 */
 
-
 const machine_t machines[] = {
   // clang-format off
     /* 8088 Machines */
