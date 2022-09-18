@@ -41,10 +41,10 @@
 #include <86box/snd_speaker.h>
 #include <86box/video.h>
 
-#define PIT_PS2			16	/* The PIT is the PS/2's second PIT. */
-#define PIT_EXT_IO		32	/* The PIT has externally specified port I/O. */
-#define PIT_CUSTOM_CLOCK	64	/* The PIT uses custom clock inputs provided by another provider. */
-#define PIT_SECONDARY		128	/* The PIT is secondary (ports 0048-004B). */
+#define PIT_PS2          16  /* The PIT is the PS/2's second PIT. */
+#define PIT_EXT_IO       32  /* The PIT has externally specified port I/O. */
+#define PIT_CUSTOM_CLOCK 64  /* The PIT uses custom clock inputs provided by another provider. */
+#define PIT_SECONDARY    128 /* The PIT is secondary (ports 0048-004B). */
 
 #ifdef ENABLE_PIT_LOG
 int pit_do_log = ENABLE_PIT_LOG;
@@ -61,7 +61,7 @@ pit_log(const char *fmt, ...)
     }
 }
 #else
-#define pit_log(fmt, ...)
+#    define pit_log(fmt, ...)
 #endif
 
 static void
@@ -81,7 +81,7 @@ pitf_ctr_set_load_func(void *data, int counter_id, void (*func)(uint8_t new_m, i
     if (data == NULL)
         return;
 
-    pitf_t *pit = (pitf_t *)data;
+    pitf_t *pit = (pitf_t *) data;
     ctrf_t *ctr = &pit->counters[counter_id];
 
     ctr->load_func = func;
@@ -90,7 +90,7 @@ pitf_ctr_set_load_func(void *data, int counter_id, void (*func)(uint8_t new_m, i
 static uint16_t
 pitf_ctr_get_count(void *data, int counter_id)
 {
-    pitf_t *pit = (pitf_t *)data;
+    pitf_t *pit = (pitf_t *) data;
     ctrf_t *ctr = &pit->counters[counter_id];
     return (uint16_t) ctr->l;
 }
@@ -101,7 +101,7 @@ pitf_ctr_set_out_func(void *data, int counter_id, void (*func)(int new_out, int 
     if (data == NULL)
         return;
 
-    pitf_t *pit = (pitf_t *)data;
+    pitf_t *pit = (pitf_t *) data;
     ctrf_t *ctr = &pit->counters[counter_id];
 
     ctr->out_func = func;
@@ -113,8 +113,8 @@ pitf_ctr_set_using_timer(void *data, int counter_id, int using_timer)
     if (tsc > 0)
         timer_process();
 
-    pitf_t *pit = (pitf_t *)data;
-    ctrf_t *ctr = &pit->counters[counter_id];
+    pitf_t *pit      = (pitf_t *) data;
+    ctrf_t *ctr      = &pit->counters[counter_id];
     ctr->using_timer = using_timer;
 }
 
@@ -266,7 +266,7 @@ pitf_set_gate_no_timer(ctrf_t *ctr, int gate)
             ctr->enabled = gate;
             break;
     }
-    ctr->gate       = gate;
+    ctr->gate    = gate;
     ctr->running = ctr->enabled && ctr->using_timer && !ctr->disabled;
     if (ctr->using_timer && !ctr->running)
         pitf_dump_and_disable_timer(ctr);
@@ -275,7 +275,7 @@ pitf_set_gate_no_timer(ctrf_t *ctr, int gate)
 static void
 pitf_ctr_set_gate(void *data, int counter_id, int gate)
 {
-    pitf_t *pit = (pitf_t *)data;
+    pitf_t *pit = (pitf_t *) data;
     ctrf_t *ctr = &pit->counters[counter_id];
 
     if (ctr->disabled) {
@@ -375,7 +375,7 @@ pitf_ctr_latch_count(ctrf_t *ctr)
 static __inline void
 pitf_ctr_latch_status(ctrf_t *ctr)
 {
-    ctr->read_status = (ctr->ctrl & 0x3f) | (ctr->out ? 0x80 : 0);
+    ctr->read_status    = (ctr->ctrl & 0x3f) | (ctr->out ? 0x80 : 0);
     ctr->do_read_status = 1;
 }
 
@@ -383,7 +383,7 @@ static void
 pitf_write(uint16_t addr, uint8_t val, void *priv)
 {
     pitf_t *dev = (pitf_t *) priv;
-    int    t   = (addr & 3);
+    int     t   = (addr & 3);
     ctrf_t *ctr;
 
     pit_log("[%04X:%08X] pit_write(%04X, %02X, %08X)\n", CS, cpu_state.pc, addr, val, priv);
@@ -479,10 +479,10 @@ pitf_write(uint16_t addr, uint8_t val, void *priv)
 static uint8_t
 pitf_read(uint16_t addr, void *priv)
 {
-    pitf_t  *dev = (pitf_t *) priv;
+    pitf_t *dev = (pitf_t *) priv;
     uint8_t ret = 0xff;
     int     t   = (addr & 3);
-    ctrf_t  *ctr;
+    ctrf_t *ctr;
 
     switch (addr & 3) {
         case 3: /* Control. */
@@ -548,7 +548,7 @@ pitf_timer_over(void *p)
 static void
 pitf_ctr_clock(void *data, int counter_id)
 {
-    pitf_t *pit = (pitf_t *)data;
+    pitf_t *pit = (pitf_t *) data;
     ctrf_t *ctr = &pit->counters[counter_id];
 
     if (ctr->thit || !ctr->enabled)
@@ -565,11 +565,11 @@ pitf_ctr_clock(void *data, int counter_id)
 static void
 ctr_reset(ctrf_t *ctr)
 {
-    ctr->ctrl = 0;
-    ctr->m = 0;
-    ctr->gate = 0;
-    ctr->l = 0xffff;
-    ctr->thit = 1;
+    ctr->ctrl        = 0;
+    ctr->m           = 0;
+    ctr->gate        = 0;
+    ctr->l           = 0xffff;
+    ctr->thit        = 1;
     ctr->using_timer = 1;
 }
 
@@ -613,7 +613,7 @@ pitf_init(const device_t *info)
     if (!(dev->flags & PIT_PS2) && !(dev->flags & PIT_CUSTOM_CLOCK)) {
         for (int i = 0; i < 3; i++) {
             ctrf_t *ctr = &dev->counters[i];
-            timer_add(&ctr->timer, pitf_timer_over, (void *)ctr, 0);
+            timer_add(&ctr->timer, pitf_timer_over, (void *) ctr, 0);
         }
     }
 
@@ -626,73 +626,73 @@ pitf_init(const device_t *info)
 }
 
 const device_t i8253_fast_device = {
-    .name = "Intel 8253/8253-5 Programmable Interval Timer",
+    .name          = "Intel 8253/8253-5 Programmable Interval Timer",
     .internal_name = "i8253_fast",
-    .flags = DEVICE_ISA,
-    .local = PIT_8253,
-    .init = pitf_init,
-    .close = pitf_close,
-    .reset = NULL,
+    .flags         = DEVICE_ISA,
+    .local         = PIT_8253,
+    .init          = pitf_init,
+    .close         = pitf_close,
+    .reset         = NULL,
     { .available = NULL },
     .speed_changed = NULL,
-    .force_redraw = NULL,
-    .config = NULL
+    .force_redraw  = NULL,
+    .config        = NULL
 };
 
 const device_t i8254_fast_device = {
-    .name = "Intel 8254 Programmable Interval Timer",
+    .name          = "Intel 8254 Programmable Interval Timer",
     .internal_name = "i8254_fast",
-    .flags = DEVICE_ISA,
-    .local = PIT_8254,
-    .init = pitf_init,
-    .close = pitf_close,
-    .reset = NULL,
+    .flags         = DEVICE_ISA,
+    .local         = PIT_8254,
+    .init          = pitf_init,
+    .close         = pitf_close,
+    .reset         = NULL,
     { .available = NULL },
     .speed_changed = NULL,
-    .force_redraw = NULL,
-    .config = NULL
+    .force_redraw  = NULL,
+    .config        = NULL
 };
 
 const device_t i8254_sec_fast_device = {
-    .name = "Intel 8254 Programmable Interval Timer (Secondary)",
+    .name          = "Intel 8254 Programmable Interval Timer (Secondary)",
     .internal_name = "i8254_sec_fast",
-    .flags = DEVICE_ISA,
-    .local = PIT_8254 | PIT_SECONDARY,
-    .init = pitf_init,
-    .close = pitf_close,
-    .reset = NULL,
+    .flags         = DEVICE_ISA,
+    .local         = PIT_8254 | PIT_SECONDARY,
+    .init          = pitf_init,
+    .close         = pitf_close,
+    .reset         = NULL,
     { .available = NULL },
     .speed_changed = NULL,
-    .force_redraw = NULL,
-    .config = NULL
+    .force_redraw  = NULL,
+    .config        = NULL
 };
 
 const device_t i8254_ext_io_fast_device = {
-    .name = "Intel 8254 Programmable Interval Timer (External I/O)",
+    .name          = "Intel 8254 Programmable Interval Timer (External I/O)",
     .internal_name = "i8254_ext_io_fast",
-    .flags = DEVICE_ISA,
-    .local = PIT_8254 | PIT_EXT_IO,
-    .init = pitf_init,
-    .close = pitf_close,
-    .reset = NULL,
+    .flags         = DEVICE_ISA,
+    .local         = PIT_8254 | PIT_EXT_IO,
+    .init          = pitf_init,
+    .close         = pitf_close,
+    .reset         = NULL,
     { .available = NULL },
     .speed_changed = NULL,
-    .force_redraw = NULL,
-    .config = NULL
+    .force_redraw  = NULL,
+    .config        = NULL
 };
 
 const device_t i8254_ps2_fast_device = {
-    .name = "Intel 8254 Programmable Interval Timer (PS/2)",
+    .name          = "Intel 8254 Programmable Interval Timer (PS/2)",
     .internal_name = "i8254_ps2_fast",
-    .flags = DEVICE_ISA,
-    .local = PIT_8254 | PIT_PS2 | PIT_EXT_IO,
-    .init = pitf_init,
-    .close = pitf_close,
-    .reset = NULL,
+    .flags         = DEVICE_ISA,
+    .local         = PIT_8254 | PIT_PS2 | PIT_EXT_IO,
+    .init          = pitf_init,
+    .close         = pitf_close,
+    .reset         = NULL,
     { .available = NULL },
     .speed_changed = NULL,
-    .force_redraw = NULL,
-    .config = NULL
+    .force_redraw  = NULL,
+    .config        = NULL
 };
 
 const pit_intf_t pit_fast_intf = {

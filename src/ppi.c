@@ -15,10 +15,8 @@
 #include <86box/pit.h>
 #include <86box/ppi.h>
 
-
 PPI ppi;
 int ppispeakon;
-
 
 void
 ppi_reset(void)

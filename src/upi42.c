@@ -31,17 +31,15 @@
             fflush(stdout);      \
         }
 #else
-#include <stdarg.h>
-#define HAVE_STDARG_H
-#include <86box/86box.h>
-#include <86box/device.h>
-#include <86box/io.h>
-#include <86box/timer.h>
+#    include <stdarg.h>
+#    define HAVE_STDARG_H
+#    include <86box/86box.h>
+#    include <86box/device.h>
+#    include <86box/io.h>
+#    include <86box/timer.h>
 
-
-#ifdef ENABLE_UPI42_LOG
+#    ifdef ENABLE_UPI42_LOG
 int upi42_do_log = ENABLE_UPI42_LOG;
-
 
 void
 upi42_log(const char *fmt, ...)
@@ -54,9 +52,9 @@ upi42_log(const char *fmt, ...)
         va_end(ap);
     }
 }
-#else
-#define upi42_log(fmt, ...)
-#endif
+#    else
+#        define upi42_log(fmt, ...)
+#    endif
 #endif
 
 #define UPI42_REG(upi42, r, op) ((upi42->psw & 0x10) ? (upi42->ram[24 + ((r) &7)] op) : (upi42->ram[(r) &7] op))
@@ -97,7 +95,7 @@ typedef struct _upi42_ {
     int cycs; /* cycle counter */
 
 #ifndef UPI42_STANDALONE
-    uint8_t ram_index;
+    uint8_t  ram_index;
     uint16_t rom_index;
 #endif
 } upi42_t;
@@ -1178,275 +1176,273 @@ upi42_write(uint16_t port, uint8_t val, void *priv)
     int i;
 
     switch (port) {
-	/* Write to data port. */
-	case 0x0060:
-	case 0x0160:
-		upi42_dbb_write(0, val, upi42);
-		break;
+        /* Write to data port. */
+        case 0x0060:
+        case 0x0160:
+            upi42_dbb_write(0, val, upi42);
+            break;
 
-	/* RAM Index. */
-	case 0x0162:
-		upi42->ram_index = val & upi42->rammask;
-		break;
+        /* RAM Index. */
+        case 0x0162:
+            upi42->ram_index = val & upi42->rammask;
+            break;
 
-	/* RAM. */
-	case 0x0163:
-		upi42->ram[upi42->ram_index & upi42->rammask] = val;
-		break;
+        /* RAM. */
+        case 0x0163:
+            upi42->ram[upi42->ram_index & upi42->rammask] = val;
+            break;
 
-	/* Write to command port. */
-	case 0x0064:
-	case 0x0164:
-		upi42_cmd_write(0, val, upi42);
-		break;
+        /* Write to command port. */
+        case 0x0064:
+        case 0x0164:
+            upi42_cmd_write(0, val, upi42);
+            break;
 
-	/* Input ports. */
-	case 0x0180 ... 0x0187:
-		upi42->ports_in[addr & 0x0007] = val;
-		break;
+        /* Input ports. */
+        case 0x0180 ... 0x0187:
+            upi42->ports_in[addr & 0x0007] = val;
+            break;
 
-	/* Output ports. */
-	case 0x0188 ... 0x018f:
-		upi42->ports_out[addr & 0x0007] = val;
-		break;
+        /* Output ports. */
+        case 0x0188 ... 0x018f:
+            upi42->ports_out[addr & 0x0007] = val;
+            break;
 
-	/* 4 = T0, 5 = T1. */
-	case 0x0194:
-		upi42->t0 = (val >> 4) & 0x01;
-		upi42->t1 = (val >> 5) & 0x01;
-		break;
+        /* 4 = T0, 5 = T1. */
+        case 0x0194:
+            upi42->t0 = (val >> 4) & 0x01;
+            upi42->t1 = (val >> 5) & 0x01;
+            break;
 
-	/* Program counter. */
-	case 0x0196:
-		upi42->pc = (upi42->pc & 0xff00) | val;
-		break;
-	case 0x0197:
-		upi42->pc = (upi42->pc & 0x00ff) | (val << 8);
-		break;
+        /* Program counter. */
+        case 0x0196:
+            upi42->pc = (upi42->pc & 0xff00) | val;
+            break;
+        case 0x0197:
+            upi42->pc = (upi42->pc & 0x00ff) | (val << 8);
+            break;
 
-	/* Input data buffer. */
-	case 0x019a:
-		upi42->dbb_in = val;
-		break;
+        /* Input data buffer. */
+        case 0x019a:
+            upi42->dbb_in = val;
+            break;
 
-	/* Output data buffer. */
-	case 0x019b:
-		upi42->dbb_out = val;
-		break;
+        /* Output data buffer. */
+        case 0x019b:
+            upi42->dbb_out = val;
+            break;
 
-	/* ROM Index. */
-	case 0x01a0:
-		upi42->rom_index = (upi42->rom_index & 0xff00) | val;
-		break;
-	case 0x01a1:
-		upi42->rom_index = (upi42->rom_index & 0x00ff) | (val << 8);
-		break;
+        /* ROM Index. */
+        case 0x01a0:
+            upi42->rom_index = (upi42->rom_index & 0xff00) | val;
+            break;
+        case 0x01a1:
+            upi42->rom_index = (upi42->rom_index & 0x00ff) | (val << 8);
+            break;
 
-	/* Hard reset. */
-	case 0x01a2:
-		temp_type = upi42->type;
-		temp_rom = upi42->rom;
-		upi42_do_init(temp_type, temp_rom);
-		break;
+        /* Hard reset. */
+        case 0x01a2:
+            temp_type = upi42->type;
+            temp_rom  = upi42->rom;
+            upi42_do_init(temp_type, temp_rom);
+            break;
 
-	/* Soft reset. */
-	case 0x01a3:
-		upi42_reset(upi42);
-		break;
+        /* Soft reset. */
+        case 0x01a3:
+            upi42_reset(upi42);
+            break;
 
-	/* ROM. */
-	case 0x01a4:
-		upi42->rom[upi42->rom_index & upi42->rommask] = val;
-		break;
-	case 0x01a5:
-		upi42->rom[(upi42->rom_index + 1) & upi42->rommask] = val;
-		break;
-	case 0x01a6:
-		upi42->rom[(upi42->rom_index + 2) & upi42->rommask] = val;
-		break;
-	case 0x01a7:
-		upi42->rom[(upi42->rom_index + 3) & upi42->rommask] = val;
-		break;
+        /* ROM. */
+        case 0x01a4:
+            upi42->rom[upi42->rom_index & upi42->rommask] = val;
+            break;
+        case 0x01a5:
+            upi42->rom[(upi42->rom_index + 1) & upi42->rommask] = val;
+            break;
+        case 0x01a6:
+            upi42->rom[(upi42->rom_index + 2) & upi42->rommask] = val;
+            break;
+        case 0x01a7:
+            upi42->rom[(upi42->rom_index + 3) & upi42->rommask] = val;
+            break;
 
-	/* Pause. */
-	case 0x01a8:
-		break;
+        /* Pause. */
+        case 0x01a8:
+            break;
 
-	/* Resume. */
-	case 0x01a9:
-		break;
+        /* Resume. */
+        case 0x01a9:
+            break;
 
-	/* Bus master ROM: 0 = direction (0 = to memory, 1 = from memory). */
-	case 0x01aa:
-		if (val & 0x01) {
-			for (i = 0; i <= upi42->rommask; i += 4)
-				*(uint32_t *) &(upi42->rom[i]) = mem_readl_phys(upi42->ram_addr + i);
-		} else {
-			for (i = 0; i <= upi42->rommask; i += 4)
-				mem_writel_phys(upi42->ram_addr + i, *(uint32_t *) &(upi42->rom[i]));
-		}
-		upi42->bm_stat = (val & 0x01) | 0x02;
-		break;
+        /* Bus master ROM: 0 = direction (0 = to memory, 1 = from memory). */
+        case 0x01aa:
+            if (val & 0x01) {
+                for (i = 0; i <= upi42->rommask; i += 4)
+                    *(uint32_t *) &(upi42->rom[i]) = mem_readl_phys(upi42->ram_addr + i);
+            } else {
+                for (i = 0; i <= upi42->rommask; i += 4)
+                    mem_writel_phys(upi42->ram_addr + i, *(uint32_t *) &(upi42->rom[i]));
+            }
+            upi42->bm_stat = (val & 0x01) | 0x02;
+            break;
     }
 }
-
 
 static uint8_t
 upi42_read(uint16_t port, void *priv)
 {
     upi42_t *upi42 = (upi42_t *) priv;
-    uint8_t ret = 0xff;
+    uint8_t  ret   = 0xff;
 
     switch (port) {
-	/* Type. */
-	case 0x015c:
-		ret = upi42->type & 0xff;
-		break;
-	case 0x015d:
-		ret = upi42->type >> 8;
-		break;
-	case 0x015e:
-		ret = upi42->type >> 16;
-		break;
-	case 0x015f:
-		ret = upi42->type >> 24;
-		break;
+        /* Type. */
+        case 0x015c:
+            ret = upi42->type & 0xff;
+            break;
+        case 0x015d:
+            ret = upi42->type >> 8;
+            break;
+        case 0x015e:
+            ret = upi42->type >> 16;
+            break;
+        case 0x015f:
+            ret = upi42->type >> 24;
+            break;
 
-	/* Read from data port and reset OBF. */
-	case 0x0060:
-	case 0x0160:
-		ret = upi42->dbb_out;
-		upi42->sts &= ~0x01; /* clear OBF */
-		break;
+        /* Read from data port and reset OBF. */
+        case 0x0060:
+        case 0x0160:
+            ret = upi42->dbb_out;
+            upi42->sts &= ~0x01; /* clear OBF */
+            break;
 
-	/* RAM Mask. */
-	case 0x0161:
-		ret = upi42->rammask;
-		break;
+        /* RAM Mask. */
+        case 0x0161:
+            ret = upi42->rammask;
+            break;
 
-	/* RAM Index. */
-	case 0x0162:
-		ret = upi42->ram_index;
-		break;
+        /* RAM Index. */
+        case 0x0162:
+            ret = upi42->ram_index;
+            break;
 
-	/* RAM. */
-	case 0x0163:
-		ret = upi42->ram[upi42->ram_index & upi42->rammask];
-		break;
+        /* RAM. */
+        case 0x0163:
+            ret = upi42->ram[upi42->ram_index & upi42->rammask];
+            break;
 
-	/* Read status. */
-	case 0x0064:
-	case 0x0164:
-		ret = upi42->sts;
-		break;
+        /* Read status. */
+        case 0x0064:
+        case 0x0164:
+            ret = upi42->sts;
+            break;
 
-	/* Input ports. */
-	case 0x0180 ... 0x0187:
-		ret = upi42->ports_in[addr & 0x0007];
-		break;
+        /* Input ports. */
+        case 0x0180 ... 0x0187:
+            ret = upi42->ports_in[addr & 0x0007];
+            break;
 
-	/* Output ports. */
-	case 0x0188 ... 0x018f:
-		ret = upi42->ports_out[addr & 0x0007];
-		break;
+        /* Output ports. */
+        case 0x0188 ... 0x018f:
+            ret = upi42->ports_out[addr & 0x0007];
+            break;
 
-	/* Accumulator. */
-	case 0x0190:
-		ret = upi42->a;
-		break;
+        /* Accumulator. */
+        case 0x0190:
+            ret = upi42->a;
+            break;
 
-	/* Timer counter. */
-	case 0x0191:
-		ret = upi42->t;
-		break;
+        /* Timer counter. */
+        case 0x0191:
+            ret = upi42->t;
+            break;
 
-	/* Program status word. */
-	case 0x0192:
-		ret = upi42->psw;
-		break;
+        /* Program status word. */
+        case 0x0192:
+            ret = upi42->psw;
+            break;
 
-	/* 0-4 = Prescaler, 5 = TF, 6 = Skip Timer Inc, 7 = Run Timer. */
-	case 0x0193:
-		ret = (upi42->prescaler & 0x1f) || ((upi42->tf & 0x01) << 5) || ((upi42->skip_timer_inc & 0x01) << 6) || ((upi42->run_timer & 0x01) << 7);
-		break;
+        /* 0-4 = Prescaler, 5 = TF, 6 = Skip Timer Inc, 7 = Run Timer. */
+        case 0x0193:
+            ret = (upi42->prescaler & 0x1f) || ((upi42->tf & 0x01) << 5) || ((upi42->skip_timer_inc & 0x01) << 6) || ((upi42->run_timer & 0x01) << 7);
+            break;
 
-	/* 0 = I, 1 = I Raise, 2 = TCNTI Raise, 3 = IRQ Mask, 4 = T0, 5 = T1, 6 = Flags, 7 = DBF. */
-	case 0x0194:
-		ret = (upi42->i & 0x01) || ((upi42->i_raise & 0x01) << 1) || ((upi42->tcnti_raise & 0x01) << 2) || ((upi42->irq_mask & 0x01) << 3) ||
-		      ((upi42->t0 & 0x01) << 4) || ((upi42->t1 & 0x01) << 5) || ((upi42->flags & 0x01) << 6) || ((upi42->dbf & 0x01) << 7);
-		break;
+        /* 0 = I, 1 = I Raise, 2 = TCNTI Raise, 3 = IRQ Mask, 4 = T0, 5 = T1, 6 = Flags, 7 = DBF. */
+        case 0x0194:
+            ret = (upi42->i & 0x01) || ((upi42->i_raise & 0x01) << 1) || ((upi42->tcnti_raise & 0x01) << 2) || ((upi42->irq_mask & 0x01) << 3) || ((upi42->t0 & 0x01) << 4) || ((upi42->t1 & 0x01) << 5) || ((upi42->flags & 0x01) << 6) || ((upi42->dbf & 0x01) << 7);
+            break;
 
-	/* 0 = Suspend. */
-	case 0x0195:
-		ret = (upi42->suspend & 0x01);
-		break;
+        /* 0 = Suspend. */
+        case 0x0195:
+            ret = (upi42->suspend & 0x01);
+            break;
 
-	/* Program counter. */
-	case 0x0196:
-		ret = upi42->pc & 0xff;
-		break;
-	case 0x0197:
-		ret = upi42->pc >> 8;
-		break;
+        /* Program counter. */
+        case 0x0196:
+            ret = upi42->pc & 0xff;
+            break;
+        case 0x0197:
+            ret = upi42->pc >> 8;
+            break;
 
-	/* ROM Mask. */
-	case 0x0198:
-		ret = upi42->rommask & 0xff;
-		break;
-	case 0x0199:
-		ret = upi42->rommask >> 8;
-		break;
+        /* ROM Mask. */
+        case 0x0198:
+            ret = upi42->rommask & 0xff;
+            break;
+        case 0x0199:
+            ret = upi42->rommask >> 8;
+            break;
 
-	/* Input data buffer. */
-	case 0x019a:
-		ret = upi42->dbb_in;
-		break;
+        /* Input data buffer. */
+        case 0x019a:
+            ret = upi42->dbb_in;
+            break;
 
-	/* Output data buffer. */
-	case 0x019b:
-		ret = upi42->dbb_out;
-		break;
+        /* Output data buffer. */
+        case 0x019b:
+            ret = upi42->dbb_out;
+            break;
 
-	/* Cycle counter. */
-	case 0x019c:
-		ret = upi42->cycs & 0xff;
-		break;
-	case 0x019d:
-		ret = upi42->cycs >> 8;
-		break;
-	case 0x019e:
-		ret = upi42->cycs >> 16;
-		break;
-	case 0x019f:
-		ret = upi42->cycs >> 24;
-		break;
+        /* Cycle counter. */
+        case 0x019c:
+            ret = upi42->cycs & 0xff;
+            break;
+        case 0x019d:
+            ret = upi42->cycs >> 8;
+            break;
+        case 0x019e:
+            ret = upi42->cycs >> 16;
+            break;
+        case 0x019f:
+            ret = upi42->cycs >> 24;
+            break;
 
-	/* ROM Index. */
-	case 0x01a0:
-		ret = upi42->rom_index & 0xff;
-		break;
-	case 0x01a1:
-		ret = upi42->rom_index >> 8;
-		break;
+        /* ROM Index. */
+        case 0x01a0:
+            ret = upi42->rom_index & 0xff;
+            break;
+        case 0x01a1:
+            ret = upi42->rom_index >> 8;
+            break;
 
-	/* ROM. */
-	case 0x01a4:
-		ret = upi42->rom[upi42->rom_index & upi42->rommask];
-		break;
-	case 0x01a5:
-		ret = upi42->rom[(upi42->rom_index + 1) & upi42->rommask];
-		break;
-	case 0x01a6:
-		ret = upi42->rom[(upi42->rom_index + 2) & upi42->rommask];
-		break;
-	case 0x01a7:
-		ret = upi42->rom[(upi42->rom_index + 3) & upi42->rommask];
-		break;
+        /* ROM. */
+        case 0x01a4:
+            ret = upi42->rom[upi42->rom_index & upi42->rommask];
+            break;
+        case 0x01a5:
+            ret = upi42->rom[(upi42->rom_index + 1) & upi42->rommask];
+            break;
+        case 0x01a6:
+            ret = upi42->rom[(upi42->rom_index + 2) & upi42->rommask];
+            break;
+        case 0x01a7:
+            ret = upi42->rom[(upi42->rom_index + 3) & upi42->rommask];
+            break;
 
-	/* Bus master status: 0 = direction, 1 = finished. */
-	case 0x01ab:
-		ret = upi42->bm_stat;
-		break;
+        /* Bus master status: 0 = direction, 1 = finished. */
+        case 0x01ab:
+            ret = upi42->bm_stat;
+            break;
     }
 
     return ret;
