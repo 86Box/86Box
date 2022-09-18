@@ -16,3 +16,4 @@ IndentPPDirectives: AfterHash
 IndentExternBlock: NoIndent
 PointerAlignment: Right
 SpaceAfterCStyleCast: true
+SortIncludes: false
