@@ -697,7 +697,7 @@ t1000_speed_changed(void *p)
 }
 
 static const device_config_t t1000_config[] = {
-    // clang-format off
+  // clang-format off
     {
         .name = "display_language",
         .description = "Language",
@@ -723,7 +723,7 @@ static const device_config_t t1000_config[] = {
         .default_int = 0
     },
     { .name = "", .description = "", .type = CONFIG_END }
-    // clang-format on
+// clang-format on
 };
 
 const device_t t1000_video_device = {

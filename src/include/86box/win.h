@@ -24,7 +24,7 @@
 #define PLAT_WIN_H
 
 #ifndef UNICODE
-#define UNICODE
+#    define UNICODE
 #endif
 #define BITMAP WINDOWS_BITMAP
 #if 0

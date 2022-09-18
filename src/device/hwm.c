@@ -27,10 +27,8 @@
 #include <86box/machine.h>
 #include <86box/hwm.h>
 
-
 /* Refer to specific hardware monitor implementations for the meaning of hwm_values. */
-hwm_values_t	hwm_values;
-
+hwm_values_t hwm_values;
 
 uint16_t
 hwm_get_vcore()

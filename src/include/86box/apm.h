@@ -15,8 +15,7 @@
  *		Copyright 2019 Miran Grca.
  */
 #ifndef APM_H
-# define APM_H
-
+#define APM_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -25,23 +24,20 @@ extern "C" {
 typedef struct
 {
     uint8_t cmd,
-	    stat, do_smi;
+        stat, do_smi;
 } apm_t;
 
-
 /* Global variables. */
-extern const device_t	apm_device;
+extern const device_t apm_device;
 
-extern const device_t	apm_pci_device;
-extern const device_t	apm_pci_acpi_device;
-
+extern const device_t apm_pci_device;
+extern const device_t apm_pci_acpi_device;
 
 /* Functions. */
-extern void		apm_set_do_smi(apm_t *dev, uint8_t do_smi);
+extern void apm_set_do_smi(apm_t *dev, uint8_t do_smi);
 
 #ifdef __cplusplus
 }
 #endif
 
-
-#endif	/*APM_H*/
+#endif /*APM_H*/

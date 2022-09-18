@@ -18,24 +18,23 @@
  */
 
 #ifndef NET_PCNET_H
-# define NET_PCNET_H
+#define NET_PCNET_H
 
 enum {
-    DEV_NONE = 0,
-    DEV_AM79C960 = 1, /* PCnet-ISA (ISA, 10 Mbps, NE2100/NE1500T compatible) */
+    DEV_NONE         = 0,
+    DEV_AM79C960     = 1, /* PCnet-ISA (ISA, 10 Mbps, NE2100/NE1500T compatible) */
     DEV_AM79C960_EB  = 2, /* PCnet-ISA (ISA, 10 Mbps, Racal InterLan EtherBlaster compatible) */
     DEV_AM79C960_VLB = 3, /* PCnet-VLB (VLB, 10 Mbps, NE2100/NE1500T compatible) */
-    DEV_AM79C961 = 4, /* PCnet-ISA+ (ISA, 10 Mbps, NE2100/NE1500T compatible, Plug and Play) */
-    DEV_AM79C970A = 5, /* PCnet-PCI II (PCI, 10 Mbps) */
-    DEV_AM79C973 = 6 /* PCnet-FAST III (PCI, 10/100 Mbps) */
+    DEV_AM79C961     = 4, /* PCnet-ISA+ (ISA, 10 Mbps, NE2100/NE1500T compatible, Plug and Play) */
+    DEV_AM79C970A    = 5, /* PCnet-PCI II (PCI, 10 Mbps) */
+    DEV_AM79C973     = 6  /* PCnet-FAST III (PCI, 10/100 Mbps) */
 };
 
+extern const device_t pcnet_am79c960_device;
+extern const device_t pcnet_am79c960_eb_device;
+extern const device_t pcnet_am79c960_vlb_device;
+extern const device_t pcnet_am79c961_device;
+extern const device_t pcnet_am79c970a_device;
+extern const device_t pcnet_am79c973_device;
 
-extern const device_t	pcnet_am79c960_device;
-extern const device_t	pcnet_am79c960_eb_device;
-extern const device_t	pcnet_am79c960_vlb_device;
-extern const device_t	pcnet_am79c961_device;
-extern const device_t	pcnet_am79c970a_device;
-extern const device_t	pcnet_am79c973_device;
-
-#endif	/*NET_PCNET_H*/
+#endif /*NET_PCNET_H*/

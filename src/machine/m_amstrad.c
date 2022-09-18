@@ -2292,7 +2292,7 @@ machine_amstrad_init(const machine_t *model, int type)
 
     ams = (amstrad_t *) malloc(sizeof(amstrad_t));
     memset(ams, 0x00, sizeof(amstrad_t));
-    ams->type = type;
+    ams->type     = type;
     amstrad_latch = 0x80000000;
 
     switch (type) {

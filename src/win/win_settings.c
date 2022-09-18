@@ -25,7 +25,7 @@
 #include <uxtheme.h>
 #undef BITMAP
 #ifdef ENABLE_SETTINGS_LOG
-#include <assert.h>
+#    include <assert.h>
 #endif
 #include <commctrl.h>
 #include <inttypes.h>
@@ -4323,7 +4323,7 @@ zip_add_locations(HWND hdlg)
             settings_add_string(hdlg, IDC_COMBO_ZIP_BUS, win_get_string(combo_id_to_string_id(i)));
     }
 
-    for (i = 0; i < (SCSI_BUS_MAX * SCSI_LUN_MAX) ; i++) {
+    for (i = 0; i < (SCSI_BUS_MAX * SCSI_LUN_MAX); i++) {
         wsprintf(lptsTemp, plat_get_string(IDS_4135), i >> 4, i & 15);
         settings_add_string(hdlg, IDC_COMBO_ZIP_ID, (LPARAM) lptsTemp);
     }

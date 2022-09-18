@@ -78,7 +78,7 @@ typedef struct {
     uint8_t enabled;
 } serial_port_t;
 
-extern serial_port_t	com_ports[SERIAL_MAX];
+extern serial_port_t com_ports[SERIAL_MAX];
 
 extern serial_t *serial_attach(int port,
                                void (*rcr_callback)(struct serial_s *serial, void *p),
