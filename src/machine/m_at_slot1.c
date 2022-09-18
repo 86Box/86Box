@@ -225,7 +225,7 @@ int
 machine_at_p2bls_coreboot_init(const machine_t *model)
 {
     int ret;
-    
+
     ret = bios_load_linear("roms/machines/p2bls/coreboot.rom",
                            0x000c0000, 262144, 0);
 
@@ -289,7 +289,7 @@ machine_at_p3bf_init(const machine_t *model)
     device_add(ics9xxx_get(ICS9250_08));
     device_add(&sst_flash_39sf020_device);
     spd_register(SPD_TYPE_SDRAM, 0xF, 256);
-    device_add(&as99127f_device); /* fans: Chassis, CPU, Power; temperatures: MB, JTPWR, CPU */
+    device_add(&as99127f_device);                    /* fans: Chassis, CPU, Power; temperatures: MB, JTPWR, CPU */
     hwm_values.voltages[4] = hwm_values.voltages[5]; /* +12V reading not in line with other boards; appears to be close to the -12V reading */
 
     return ret;

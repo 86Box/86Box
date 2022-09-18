@@ -195,13 +195,13 @@ serial_transmit(serial_t *dev, uint8_t val)
     else if (dev->sd->dev_write)
         dev->sd->dev_write(dev, dev->sd->priv, val);
 #ifdef ENABLE_SERIAL_CONSOLE
-        if ((val >= ' ' && val <= '~') || val == '\r' || val == '\n') {
-            fputc(val, stdout);
-            if (val == '\n')
-                fflush(stdout);
-        } else {
-            fprintf(stdout, "[%02X]", val);
-        }
+    if ((val >= ' ' && val <= '~') || val == '\r' || val == '\n') {
+        fputc(val, stdout);
+        if (val == '\n')
+            fflush(stdout);
+    } else {
+        fprintf(stdout, "[%02X]", val);
+    }
 #endif
 }
 
