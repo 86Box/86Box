@@ -17,22 +17,20 @@
  */
 
 #ifndef EMU_PORT_6X_H
-# define EMU_PORT_6X_H
+#define EMU_PORT_6X_H
 
 #ifdef _TIMER_H_
 typedef struct
 {
-    uint8_t	refresh, flags;
+    uint8_t refresh, flags;
 
-    pc_timer_t	refresh_timer;
+    pc_timer_t refresh_timer;
 } port_6x_t;
 #endif
 
+extern const device_t port_6x_device;
+extern const device_t port_6x_xi8088_device;
+extern const device_t port_6x_ps2_device;
+extern const device_t port_6x_olivetti_device;
 
-extern const device_t	port_6x_device;
-extern const device_t	port_6x_xi8088_device;
-extern const device_t	port_6x_ps2_device;
-extern const device_t	port_6x_olivetti_device;
-
-
-#endif	/*EMU_PORT_6X_H*/
+#endif /*EMU_PORT_6X_H*/

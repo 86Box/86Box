@@ -237,7 +237,7 @@ pssj_close(void *p)
 
 #if defined(DEV_BRANCH) && defined(USE_TANDY_ISA)
 static const device_config_t pssj_isa_config[] = {
-// clang-format off
+  // clang-format off
     {
         .name = "base",
         .description = "Address",
@@ -268,45 +268,45 @@ static const device_config_t pssj_isa_config[] = {
 #endif
 
 const device_t pssj_device = {
-    .name = "Tandy PSSJ",
+    .name          = "Tandy PSSJ",
     .internal_name = "pssj",
-    .flags = 0,
-    .local = 0,
-    .init = pssj_init,
-    .close = pssj_close,
-    .reset = NULL,
+    .flags         = 0,
+    .local         = 0,
+    .init          = pssj_init,
+    .close         = pssj_close,
+    .reset         = NULL,
     { .available = NULL },
     .speed_changed = NULL,
-    .force_redraw = NULL,
-    .config = NULL
+    .force_redraw  = NULL,
+    .config        = NULL
 };
 
 const device_t pssj_1e0_device = {
-    .name = "Tandy PSSJ (port 1e0h)",
+    .name          = "Tandy PSSJ (port 1e0h)",
     .internal_name = "pssj_1e0",
-    .flags = 0,
-    .local = 0,
-    .init = pssj_1e0_init,
-    .close = pssj_close,
-    .reset = NULL,
+    .flags         = 0,
+    .local         = 0,
+    .init          = pssj_1e0_init,
+    .close         = pssj_close,
+    .reset         = NULL,
     { .available = NULL },
     .speed_changed = NULL,
-    .force_redraw = NULL,
-    .config = NULL
+    .force_redraw  = NULL,
+    .config        = NULL
 };
 
 #if defined(DEV_BRANCH) && defined(USE_TANDY_ISA)
 const device_t pssj_isa_device = {
-    .name = "Tandy PSSJ Clone",
+    .name          = "Tandy PSSJ Clone",
     .internal_name = "pssj_isa",
-    .flags = DEVICE_ISA,
-    .local = 0,
-    .init = pssj_isa_init,
-    .close = pssj_close,
-    .reset = NULL,
+    .flags         = DEVICE_ISA,
+    .local         = 0,
+    .init          = pssj_isa_init,
+    .close         = pssj_close,
+    .reset         = NULL,
     { .available = NULL },
     .speed_changed = NULL,
-    .force_redraw = NULL,
-    .config = pssj_isa_config
+    .force_redraw  = NULL,
+    .config        = pssj_isa_config
 };
 #endif

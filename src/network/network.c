@@ -73,25 +73,24 @@
 #include <86box/net_wd8003.h>
 
 #ifdef _WIN32
-#define WIN32_LEAN_AND_MEAN
-#include <windows.h>
-#include <winsock2.h>
+#    define WIN32_LEAN_AND_MEAN
+#    include <windows.h>
+#    include <winsock2.h>
 #endif
 
 static const device_t net_none_device = {
-    .name = "None",
+    .name          = "None",
     .internal_name = "none",
-    .flags = 0,
-    .local = NET_TYPE_NONE,
-    .init = NULL,
-    .close = NULL,
-    .reset = NULL,
+    .flags         = 0,
+    .local         = NET_TYPE_NONE,
+    .init          = NULL,
+    .close         = NULL,
+    .reset         = NULL,
     { .available = NULL },
     .speed_changed = NULL,
-    .force_redraw = NULL,
-    .config = NULL
+    .force_redraw  = NULL,
+    .config        = NULL
 };
-
 
 static const device_t *net_cards[] = {
     &net_none_device,
@@ -118,20 +117,18 @@ static const device_t *net_cards[] = {
 };
 
 netcard_conf_t net_cards_conf[NET_CARD_MAX];
-int net_card_current = 0;
+int            net_card_current = 0;
 
 /* Global variables. */
-int		network_ndev;
-netdev_t	network_devs[NET_HOST_INTF_MAX];
-
+int      network_ndev;
+netdev_t network_devs[NET_HOST_INTF_MAX];
 
 /* Local variables. */
 
 #ifdef ENABLE_NETWORK_LOG
-int network_do_log = ENABLE_NETWORK_LOG;
-static FILE *network_dump = NULL;
+int             network_do_log = ENABLE_NETWORK_LOG;
+static FILE    *network_dump   = NULL;
 static mutex_t *network_dump_mutex;
-
 
 static void
 network_log(const char *fmt, ...)
@@ -139,50 +136,48 @@ network_log(const char *fmt, ...)
     va_list ap;
 
     if (network_do_log) {
-	va_start(ap, fmt);
-	pclog_ex(fmt, ap);
-	va_end(ap);
+        va_start(ap, fmt);
+        pclog_ex(fmt, ap);
+        va_end(ap);
     }
 }
-
 
 static void
 network_dump_packet(netpkt_t *pkt)
 {
     if (!network_dump)
-	return;
+        return;
 
     struct timeval tv;
     gettimeofday(&tv, NULL);
     struct {
-	uint32_t ts_sec, ts_usec, incl_len, orig_len;
+        uint32_t ts_sec, ts_usec, incl_len, orig_len;
     } pcap_packet_hdr = {
-	tv.tv_sec, tv.tv_usec, pkt->len, pkt->len
+        tv.tv_sec, tv.tv_usec, pkt->len, pkt->len
     };
 
     if (network_dump_mutex)
-	thread_wait_mutex(network_dump_mutex);
+        thread_wait_mutex(network_dump_mutex);
 
     size_t written;
     if ((written = fwrite(&pcap_packet_hdr, 1, sizeof(pcap_packet_hdr), network_dump)) < sizeof(pcap_packet_hdr)) {
-	network_log("NETWORK: failed to write dump packet header\n");
-	fseek(network_dump, -written, SEEK_CUR);
+        network_log("NETWORK: failed to write dump packet header\n");
+        fseek(network_dump, -written, SEEK_CUR);
     } else {
-	if ((written = fwrite(pkt->data, 1, pkt->len, network_dump)) < pkt->len) {
-		network_log("NETWORK: failed to write dump packet data\n");
-		fseek(network_dump, -written - sizeof(pcap_packet_hdr), SEEK_CUR);
-	}
-	fflush(network_dump);
+        if ((written = fwrite(pkt->data, 1, pkt->len, network_dump)) < pkt->len) {
+            network_log("NETWORK: failed to write dump packet data\n");
+            fseek(network_dump, -written - sizeof(pcap_packet_hdr), SEEK_CUR);
+        }
+        fflush(network_dump);
     }
 
     if (network_dump_mutex)
-	thread_release_mutex(network_dump_mutex);
+        thread_release_mutex(network_dump_mutex);
 }
 #else
-#define network_log(fmt, ...)
-#define network_dump_packet(pkt)
+#    define network_log(fmt, ...)
+#    define network_dump_packet(pkt)
 #endif
-
 
 #ifdef _WIN32
 static void
@@ -218,22 +213,22 @@ network_init(void)
     /* Initialize the Pcap system module, if present. */
     i = net_pcap_prepare(&network_devs[network_ndev]);
     if (i > 0)
-	network_ndev += i;
+        network_ndev += i;
 
 #ifdef ENABLE_NETWORK_LOG
     /* Start packet dump. */
     network_dump = fopen("network.pcap", "wb");
 
     struct {
-	uint32_t magic_number;
-	uint16_t version_major, version_minor;
-	int32_t	 thiszone;
-	uint32_t sigfigs, snaplen, network;
+        uint32_t magic_number;
+        uint16_t version_major, version_minor;
+        int32_t  thiszone;
+        uint32_t sigfigs, snaplen, network;
     } pcap_hdr = {
-	0xa1b2c3d4,
-	2, 4,
-	0,
-	0, 65535, 1
+        0xa1b2c3d4,
+        2, 4,
+        0,
+        0, 65535, 1
     };
     fwrite(&pcap_hdr, sizeof(pcap_hdr), 1, network_dump);
     fflush(network_dump);
@@ -244,11 +239,10 @@ void
 network_queue_init(netqueue_t *queue)
 {
     queue->head = queue->tail = 0;
-    for (int i=0; i<NET_QUEUE_LEN; i++) {
+    for (int i = 0; i < NET_QUEUE_LEN; i++) {
         queue->packets[i].data = calloc(1, NET_MAX_FRAME);
-        queue->packets[i].len = 0;
+        queue->packets[i].len  = 0;
     }
-
 }
 
 static bool
@@ -267,8 +261,8 @@ static inline void
 network_swap_packet(netpkt_t *pkt1, netpkt_t *pkt2)
 {
     netpkt_t tmp = *pkt2;
-    *pkt2 = *pkt1;
-    *pkt1 = tmp;
+    *pkt2        = *pkt1;
+    *pkt1        = tmp;
 }
 
 int
@@ -280,7 +274,7 @@ network_queue_put(netqueue_t *queue, uint8_t *data, int len)
 
     netpkt_t *pkt = &queue->packets[queue->head];
     memcpy(pkt->data, data, len);
-    pkt->len = len;
+    pkt->len    = len;
     queue->head = (queue->head + 1) & NET_QUEUE_LEN_MASK;
     return 1;
 }
@@ -300,7 +294,8 @@ network_queue_put_swap(netqueue_t *queue, netpkt_t *src_pkt)
 }
 
 static int
-network_queue_get_swap(netqueue_t *queue, netpkt_t *dst_pkt) {
+network_queue_get_swap(netqueue_t *queue, netpkt_t *dst_pkt)
+{
     if (network_queue_empty(queue))
         return 0;
 
@@ -333,18 +328,17 @@ network_queue_move(netqueue_t *dst_q, netqueue_t *src_q)
 void
 network_queue_clear(netqueue_t *queue)
 {
-    for (int i=0; i<NET_QUEUE_LEN; i++) {
+    for (int i = 0; i < NET_QUEUE_LEN; i++) {
         free(queue->packets[i].data);
         queue->packets[i].len = 0;
     }
     queue->tail = queue->head = 0;
 }
 
-
 static void
 network_rx_queue(void *priv)
 {
-    netcard_t *card = (netcard_t *)priv;
+    netcard_t *card = (netcard_t *) priv;
 
     uint32_t new_link_state = net_cards_conf[card->card_num].link_state;
     if (new_link_state != card->link_state) {
@@ -393,7 +387,7 @@ network_rx_queue(void *priv)
     timer_on_auto(&card->timer, timer_period);
 
     bool activity = rx_bytes || tx_bytes;
-    bool led_on = card->led_timer & 0x80000000;
+    bool led_on   = card->led_timer & 0x80000000;
     if ((activity && !led_on) || (card->led_timer & 0x7fffffff) >= 150000) {
         ui_sb_update_icon(SB_NETWORK | card->card_num, activity);
         card->led_timer = 0 | (activity << 31);
@@ -401,7 +395,6 @@ network_rx_queue(void *priv)
 
     card->led_timer += timer_period;
 }
-
 
 /*
  * Attach a network card to the system.
@@ -413,29 +406,29 @@ network_rx_queue(void *priv)
 netcard_t *
 network_attach(void *card_drv, uint8_t *mac, NETRXCB rx, NETSETLINKSTATE set_link_state)
 {
-    netcard_t *card = calloc(1, sizeof(netcard_t));
+    netcard_t *card       = calloc(1, sizeof(netcard_t));
     card->queued_pkt.data = calloc(1, NET_MAX_FRAME);
-    card->card_drv = card_drv;
-    card->rx = rx;
-    card->set_link_state = set_link_state;
-    card->tx_mutex = thread_create_mutex();
-    card->rx_mutex = thread_create_mutex();
-    card->card_num = net_card_current;
-    card->byte_period = NET_PERIOD_10M;
+    card->card_drv        = card_drv;
+    card->rx              = rx;
+    card->set_link_state  = set_link_state;
+    card->tx_mutex        = thread_create_mutex();
+    card->rx_mutex        = thread_create_mutex();
+    card->card_num        = net_card_current;
+    card->byte_period     = NET_PERIOD_10M;
 
-    for (int i=0; i<3; i++) {
+    for (int i = 0; i < 3; i++) {
         network_queue_init(&card->queues[i]);
     }
 
     switch (net_cards_conf[net_card_current].net_type) {
         case NET_TYPE_SLIRP:
         default:
-            card->host_drv = net_slirp_drv;
+            card->host_drv      = net_slirp_drv;
             card->host_drv.priv = card->host_drv.init(card, mac, NULL);
             break;
 
         case NET_TYPE_PCAP:
-            card->host_drv = net_pcap_drv;
+            card->host_drv      = net_pcap_drv;
             card->host_drv.priv = card->host_drv.init(card, mac, net_cards_conf[net_card_current].host_dev_name);
             break;
     }
@@ -443,7 +436,7 @@ network_attach(void *card_drv, uint8_t *mac, NETRXCB rx, NETSETLINKSTATE set_lin
     if (!card->host_drv.priv) {
         thread_close_mutex(card->tx_mutex);
         thread_close_mutex(card->rx_mutex);
-        for (int i=0; i<3; i++) {
+        for (int i = 0; i < 3; i++) {
             network_queue_clear(&card->queues[i]);
         }
 
@@ -466,14 +459,13 @@ netcard_close(netcard_t *card)
 
     thread_close_mutex(card->tx_mutex);
     thread_close_mutex(card->rx_mutex);
-    for (int i=0; i<3; i++) {
+    for (int i = 0; i < 3; i++) {
         network_queue_clear(&card->queues[i]);
     }
 
     free(card->queued_pkt.data);
     free(card);
 }
-
 
 /* Stop any network activity. */
 void
@@ -486,7 +478,6 @@ network_close(void)
 
     network_log("NETWORK: closed.\n");
 }
-
 
 /*
  * Reset the network card(s).
@@ -508,15 +499,14 @@ network_reset(void)
 #endif
 
     for (i = 0; i < NET_CARD_MAX; i++) {
-            if (!network_dev_available(i)) {
-                continue;
-            }
+        if (!network_dev_available(i)) {
+            continue;
+        }
 
-            net_card_current = i;
-            device_add_inst(net_cards[net_cards_conf[i].device_num], i + 1);
+        net_card_current = i;
+        device_add_inst(net_cards[net_cards_conf[i].device_num], i + 1);
     }
 }
-
 
 /* Queue a packet for transmission to one of the network providers. */
 void
@@ -525,7 +515,8 @@ network_tx(netcard_t *card, uint8_t *bufp, int len)
     network_queue_put(&card->queues[NET_QUEUE_TX_VM], bufp, len);
 }
 
-int network_tx_pop(netcard_t *card, netpkt_t *out_pkt)
+int
+network_tx_pop(netcard_t *card, netpkt_t *out_pkt)
 {
     int ret = 0;
 
@@ -536,7 +527,8 @@ int network_tx_pop(netcard_t *card, netpkt_t *out_pkt)
     return ret;
 }
 
-int network_tx_popv(netcard_t *card, netpkt_t *pkt_vec, int vec_size)
+int
+network_tx_popv(netcard_t *card, netpkt_t *pkt_vec, int vec_size)
 {
     int pkt_count = 0;
 
@@ -553,7 +545,8 @@ int network_tx_popv(netcard_t *card, netpkt_t *pkt_vec, int vec_size)
     return pkt_count;
 }
 
-int network_rx_put(netcard_t *card, uint8_t *bufp, int len)
+int
+network_rx_put(netcard_t *card, uint8_t *bufp, int len)
 {
     int ret = 0;
 
@@ -564,7 +557,8 @@ int network_rx_put(netcard_t *card, uint8_t *bufp, int len)
     return ret;
 }
 
-int network_rx_put_pkt(netcard_t *card, netpkt_t *pkt)
+int
+network_rx_put_pkt(netcard_t *card, netpkt_t *pkt)
 {
     int ret = 0;
 
@@ -602,15 +596,14 @@ network_dev_to_id(char *devname)
 {
     int i = 0;
 
-    for (i=0; i<network_ndev; i++) {
-	if (! strcmp((char *)network_devs[i].device, devname)) {
-		return(i);
-	}
+    for (i = 0; i < network_ndev; i++) {
+        if (!strcmp((char *) network_devs[i].device, devname)) {
+            return (i);
+        }
     }
 
-    return(-1);
+    return (-1);
 }
-
 
 /* UI */
 int
@@ -629,42 +622,39 @@ network_available(void)
 {
     int available = 0;
 
-    for (int i = 0; i < NET_CARD_MAX; i ++) {
+    for (int i = 0; i < NET_CARD_MAX; i++) {
         available |= network_dev_available(i);
     }
 
     return available;
 }
 
-
 /* UI */
 int
 network_card_available(int card)
 {
     if (net_cards[card])
-	return(device_available(net_cards[card]));
+        return (device_available(net_cards[card]));
 
-    return(1);
+    return (1);
 }
-
 
 /* UI */
 const device_t *
 network_card_getdevice(int card)
 {
-    return(net_cards[card]);
+    return (net_cards[card]);
 }
-
 
 /* UI */
 int
 network_card_has_config(int card)
 {
-    if (!net_cards[card]) return(0);
+    if (!net_cards[card])
+        return (0);
 
-    return(device_has_config(net_cards[card]) ? 1 : 0);
+    return (device_has_config(net_cards[card]) ? 1 : 0);
 }
-
 
 /* UI */
 char *
@@ -673,7 +663,6 @@ network_card_get_internal_name(int card)
     return device_get_internal_name(net_cards[card]);
 }
 
-
 /* UI */
 int
 network_card_get_from_internal_name(char *s)
@@ -681,9 +670,9 @@ network_card_get_from_internal_name(char *s)
     int c = 0;
 
     while (net_cards[c] != NULL) {
-	if (! strcmp((char *)net_cards[c]->internal_name, s))
-		return(c);
-	c++;
+        if (!strcmp((char *) net_cards[c]->internal_name, s))
+            return (c);
+        c++;
     }
 
     return 0;

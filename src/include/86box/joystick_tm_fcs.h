@@ -36,7 +36,7 @@
  */
 
 #ifndef EMU_JOYSTICK_TM_FCS_H
-# define EMU_JOYSTICK_TM_FCS_H
+#define EMU_JOYSTICK_TM_FCS_H
 
 extern const joystick_if_t joystick_tm_fcs;
 

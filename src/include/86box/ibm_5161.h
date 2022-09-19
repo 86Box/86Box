@@ -13,7 +13,7 @@
  */
 
 #ifndef EMU_IBM_5161_H
-# define EMU_IBM_5161_H
+#define EMU_IBM_5161_H
 
 extern const device_t ibm_5161_device;
 

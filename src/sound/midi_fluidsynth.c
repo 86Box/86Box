@@ -550,17 +550,17 @@ static const device_config_t fluidsynth_config[] = {
 };
 
 const device_t fluidsynth_device = {
-    .name = "FluidSynth",
+    .name          = "FluidSynth",
     .internal_name = "fluidsynth",
-    .flags = 0,
-    .local = 0,
-    .init = fluidsynth_init,
-    .close = fluidsynth_close,
-    .reset = NULL,
+    .flags         = 0,
+    .local         = 0,
+    .init          = fluidsynth_init,
+    .close         = fluidsynth_close,
+    .reset         = NULL,
     { .available = fluidsynth_available },
     .speed_changed = NULL,
-    .force_redraw = NULL,
-    .config = fluidsynth_config
+    .force_redraw  = NULL,
+    .config        = fluidsynth_config
 };
 
-#endif /*USE_FLUIDSYNTH*/
+#endif/*USE_FLUIDSYNTH*/

@@ -31,20 +31,20 @@
 #include <86box/fdc.h>
 #include <86box/fdc_ext.h>
 
-#define ROM_B215 "roms/floppy/magitronic/Magitronic B215 - BIOS ROM.bin"
-#define ROM_ADDR (uint32_t)(device_get_config_hex20("bios_addr") & 0x000fffff)
+#define ROM_B215     "roms/floppy/magitronic/Magitronic B215 - BIOS ROM.bin"
+#define ROM_ADDR     (uint32_t)(device_get_config_hex20("bios_addr") & 0x000fffff)
 
-#define DRIVE_SELECT (int)(real_drive(dev->fdc_controller, i))
+#define DRIVE_SELECT (int) (real_drive(dev->fdc_controller, i))
 typedef struct
 {
     fdc_t *fdc_controller;
-    rom_t rom;
+    rom_t  rom;
 } b215_t;
 
 static uint8_t
 b215_read(uint16_t addr, void *priv)
 {
-    b215_t *dev = (b215_t *)priv;
+    b215_t *dev = (b215_t *) priv;
 
     /*
     Register 3F0h
@@ -59,19 +59,15 @@ b215_read(uint16_t addr, void *priv)
 */
     int drive_spec[2];
 
-    for (int i = 0; i <= 1; i++)
-    {
-        if (fdd_is_525(DRIVE_SELECT))
-        {
+    for (int i = 0; i <= 1; i++) {
+        if (fdd_is_525(DRIVE_SELECT)) {
             if (!fdd_is_dd(DRIVE_SELECT))
                 drive_spec[i] = 1;
             else if (fdd_doublestep_40(DRIVE_SELECT))
                 drive_spec[i] = 2;
             else
                 drive_spec[i] = 0;
-        }
-        else
-        {
+        } else {
             if (fdd_is_dd(DRIVE_SELECT) && !fdd_is_double_sided(DRIVE_SELECT))
                 drive_spec[i] = 0;
             else if (fdd_is_dd(DRIVE_SELECT) && fdd_is_double_sided(DRIVE_SELECT))
@@ -87,7 +83,7 @@ b215_read(uint16_t addr, void *priv)
 static void
 b215_close(void *priv)
 {
-    b215_t *dev = (b215_t *)priv;
+    b215_t *dev = (b215_t *) priv;
 
     free(dev);
 }
@@ -95,7 +91,7 @@ b215_close(void *priv)
 static void *
 b215_init(const device_t *info)
 {
-    b215_t *dev = (b215_t *)malloc(sizeof(b215_t));
+    b215_t *dev = (b215_t *) malloc(sizeof(b215_t));
     memset(dev, 0, sizeof(b215_t));
 
     rom_init(&dev->rom, ROM_B215, ROM_ADDR, 0x2000, 0x1fff, 0, MEM_MAPPING_EXTERNAL);
@@ -106,13 +102,14 @@ b215_init(const device_t *info)
     return dev;
 }
 
-static int b215_available(void)
+static int
+b215_available(void)
 {
     return rom_present(ROM_B215);
 }
 
 static const device_config_t b215_config[] = {
-// clang-format off
+  // clang-format off
     {
         .name = "bios_addr",
         .description = "BIOS Address:",
@@ -132,15 +129,15 @@ static const device_config_t b215_config[] = {
 };
 
 const device_t fdc_b215_device = {
-    .name = "Magitronic B215",
+    .name          = "Magitronic B215",
     .internal_name = "b215",
-    .flags = DEVICE_ISA,
-    .local = 0,
-    .init = b215_init,
-    .close = b215_close,
-    .reset = NULL,
+    .flags         = DEVICE_ISA,
+    .local         = 0,
+    .init          = b215_init,
+    .close         = b215_close,
+    .reset         = NULL,
     { .available = b215_available },
     .speed_changed = NULL,
-    .force_redraw = NULL,
-    .config = b215_config
+    .force_redraw  = NULL,
+    .config        = b215_config
 };

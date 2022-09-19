@@ -91,7 +91,7 @@ ssi2001_close(void *p)
 }
 
 static const device_config_t ssi2001_config[] = {
-// clang-format off
+    // clang-format off
     {
         .name = "base",
         .description = "Address",

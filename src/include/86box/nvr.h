@@ -48,44 +48,41 @@
  */
 
 #ifndef EMU_NVR_H
-# define EMU_NVR_H
+#define EMU_NVR_H
 
-
-#define NVR_MAXSIZE	512		/* max size of NVR data */
+#define NVR_MAXSIZE 512 /* max size of NVR data */
 
 /* Conversion from BCD to Binary and vice versa. */
-#define RTC_BCD(x)      (((x) % 10) | (((x) / 10) << 4))
-#define RTC_DCB(x)      ((((x) & 0xf0) >> 4) * 10 + ((x) & 0x0f))
-#define RTC_BCDINC(x,y)	RTC_BCD(RTC_DCB(x) + y)
+#define RTC_BCD(x)       (((x) % 10) | (((x) / 10) << 4))
+#define RTC_DCB(x)       ((((x) &0xf0) >> 4) * 10 + ((x) &0x0f))
+#define RTC_BCDINC(x, y) RTC_BCD(RTC_DCB(x) + y)
 
 /* Time sync options */
-#define TIME_SYNC_DISABLED	0
-#define TIME_SYNC_ENABLED	1
-#define TIME_SYNC_UTC		2
-
+#define TIME_SYNC_DISABLED 0
+#define TIME_SYNC_ENABLED  1
+#define TIME_SYNC_UTC      2
 
 /* Define a generic RTC/NVRAM device. */
 typedef struct _nvr_ {
-    char	*fn;			/* pathname of image file */
-    uint16_t	size;			/* device configuration */
-    int8_t	irq, is_new;
+    char    *fn;   /* pathname of image file */
+    uint16_t size; /* device configuration */
+    int8_t   irq, is_new;
 
-    uint8_t	onesec_cnt;
-    pc_timer_t	onesec_time;
+    uint8_t    onesec_cnt;
+    pc_timer_t onesec_time;
 
-    void	*data;			/* local data */
+    void *data; /* local data */
 
     /* Hooks to device functions. */
-    void	(*reset)(struct _nvr_ *);
-    void	(*start)(struct _nvr_ *);
-    void	(*tick)(struct _nvr_ *);
-    void	(*ven_save)(void);
+    void (*reset)(struct _nvr_ *);
+    void (*start)(struct _nvr_ *);
+    void (*tick)(struct _nvr_ *);
+    void (*ven_save)(void);
 
-    uint8_t	regs[NVR_MAXSIZE];	/* these are the registers */
+    uint8_t regs[NVR_MAXSIZE]; /* these are the registers */
 } nvr_t;
 
-
-extern int	nvr_dosave;
+extern int nvr_dosave;
 #ifdef EMU_DEVICE_H
 extern const device_t at_nvr_old_device;
 extern const device_t at_nvr_device;
@@ -102,32 +99,30 @@ extern const device_t via_nvr_device;
 extern const device_t p6rp4_nvr_device;
 #endif
 
+extern void rtc_tick(void);
 
-extern void	rtc_tick(void);
+extern void  nvr_init(nvr_t *);
+extern char *nvr_path(char *str);
+extern FILE *nvr_fopen(char *str, char *mode);
+extern int   nvr_load(void);
+extern void  nvr_close(void);
+extern void  nvr_set_ven_save(void (*ven_save)(void));
+extern int   nvr_save(void);
 
-extern void	nvr_init(nvr_t *);
-extern char	*nvr_path(char *str);
-extern FILE	*nvr_fopen(char *str, char *mode);
-extern int	nvr_load(void);
-extern void	nvr_close(void);
-extern void	nvr_set_ven_save(void (*ven_save)(void));
-extern int	nvr_save(void);
+extern int  nvr_is_leap(int year);
+extern int  nvr_get_days(int month, int year);
+extern void nvr_time_sync();
+extern void nvr_time_get(struct tm *);
+extern void nvr_time_set(struct tm *);
 
-extern int	nvr_is_leap(int year);
-extern int	nvr_get_days(int month, int year);
-extern void	nvr_time_sync();
-extern void	nvr_time_get(struct tm *);
-extern void	nvr_time_set(struct tm *);
+extern void nvr_reg_write(uint16_t reg, uint8_t val, void *priv);
+extern void nvr_at_handler(int set, uint16_t base, nvr_t *nvr);
+extern void nvr_at_sec_handler(int set, uint16_t base, nvr_t *nvr);
+extern void nvr_read_addr_set(int set, nvr_t *nvr);
+extern void nvr_wp_set(int set, int h, nvr_t *nvr);
+extern void nvr_via_wp_set(int set, int reg, nvr_t *nvr);
+extern void nvr_bank_set(int base, uint8_t bank, nvr_t *nvr);
+extern void nvr_lock_set(int base, int size, int lock, nvr_t *nvr);
+extern void nvr_irq_set(int irq, nvr_t *nvr);
 
-extern void	nvr_reg_write(uint16_t reg, uint8_t val, void *priv);
-extern void	nvr_at_handler(int set, uint16_t base, nvr_t *nvr);
-extern void	nvr_at_sec_handler(int set, uint16_t base, nvr_t *nvr);
-extern void	nvr_read_addr_set(int set, nvr_t *nvr);
-extern void	nvr_wp_set(int set, int h, nvr_t *nvr);
-extern void	nvr_via_wp_set(int set, int reg, nvr_t *nvr);
-extern void	nvr_bank_set(int base, uint8_t bank, nvr_t *nvr);
-extern void	nvr_lock_set(int base, int size, int lock, nvr_t *nvr);
-extern void	nvr_irq_set(int irq, nvr_t *nvr);
-
-
-#endif	/*EMU_NVR_H*/
+#endif /*EMU_NVR_H*/

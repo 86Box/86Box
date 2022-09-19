@@ -45,15 +45,14 @@
 #include <86box/video.h>
 #include <86box/keyboard.h>
 
-
-#define STAT_PARITY     0x80
-#define STAT_RTIMEOUT   0x40
-#define STAT_TTIMEOUT   0x20
-#define STAT_LOCK       0x10
-#define STAT_CD         0x08
-#define STAT_SYSFLAG    0x04
-#define STAT_IFULL      0x02
-#define STAT_OFULL      0x01
+#define STAT_PARITY   0x80
+#define STAT_RTIMEOUT 0x40
+#define STAT_TTIMEOUT 0x20
+#define STAT_LOCK     0x10
+#define STAT_CD       0x08
+#define STAT_SYSFLAG  0x04
+#define STAT_IFULL    0x02
+#define STAT_OFULL    0x01
 
 // Keyboard Types
 #define KBD_TYPE_PC81     0
@@ -79,9 +78,9 @@ typedef struct {
     pc_timer_t send_delay_timer;
 } xtkbd_t;
 
-
 /*XT keyboard has no escape scancodes, and no scancodes beyond 53*/
 const scancode scancode_xt[512] = {
+  // clang-format off
     { {0},       {0}       }, { {0x01, 0}, {0x81, 0} },
     { {0x02, 0}, {0x82, 0} }, { {0x03, 0}, {0x83, 0} },
     { {0x04, 0}, {0x84, 0} }, { {0x05, 0}, {0x85, 0} },
@@ -338,19 +337,17 @@ const scancode scancode_xt[512] = {
     { {0},             {0} }, { {0},             {0} },	/*1f8*/
     { {0},             {0} }, { {0},             {0} },
     { {0},             {0} }, { {0},             {0} }	/*1fc*/
+  // clang-format on
 };
 
-
-static uint8_t	key_queue[16];
-static int	key_queue_start = 0,
-		key_queue_end = 0;
-static int	is_tandy = 0, is_t1x00 = 0,
-		is_amstrad = 0;
-
+static uint8_t key_queue[16];
+static int     key_queue_start = 0,
+           key_queue_end       = 0;
+static int is_tandy = 0, is_t1x00 = 0,
+           is_amstrad = 0;
 
 #ifdef ENABLE_KEYBOARD_XT_LOG
 int keyboard_xt_do_log = ENABLE_KEYBOARD_XT_LOG;
-
 
 static void
 kbd_log(const char *fmt, ...)
@@ -358,23 +355,24 @@ kbd_log(const char *fmt, ...)
     va_list ap;
 
     if (keyboard_xt_do_log) {
-	va_start(ap, fmt);
-	pclog_ex(fmt, ap);
-	va_end(ap);
+        va_start(ap, fmt);
+        pclog_ex(fmt, ap);
+        va_end(ap);
     }
 }
 #else
-#define kbd_log(fmt, ...)
+#    define kbd_log(fmt, ...)
 #endif
 
 static uint8_t
-get_fdd_switch_settings() {
+get_fdd_switch_settings()
+{
 
     int i, fdd_count = 0;
 
     for (i = 0; i < FDD_NUM; i++) {
-                if (fdd_get_flags(i))
-                    fdd_count++;
+        if (fdd_get_flags(i))
+            fdd_count++;
     }
 
     if (!fdd_count)
@@ -384,12 +382,13 @@ get_fdd_switch_settings() {
 }
 
 static uint8_t
-get_videomode_switch_settings() {
+get_videomode_switch_settings()
+{
 
     if (video_is_mda())
         return 0x30;
     else if (video_is_cga())
-        return 0x20;	/* 0x10 would be 40x25 */
+        return 0x20; /* 0x10 would be 40x25 */
     else
         return 0x00;
 }
@@ -397,66 +396,71 @@ get_videomode_switch_settings() {
 static void
 kbd_poll(void *priv)
 {
-    xtkbd_t *kbd = (xtkbd_t *)priv;
+    xtkbd_t *kbd = (xtkbd_t *) priv;
 
     timer_advance_u64(&kbd->send_delay_timer, 1000 * TIMER_USEC);
 
     if (!(kbd->pb & 0x40) && (kbd->type != KBD_TYPE_TANDY))
-	return;
+        return;
 
     if (kbd->want_irq) {
-	kbd->want_irq = 0;
-	kbd->pa = kbd->key_waiting;
-	kbd->blocked = 1;
-	picint(2);
+        kbd->want_irq = 0;
+        kbd->pa       = kbd->key_waiting;
+        kbd->blocked  = 1;
+        picint(2);
 #ifdef ENABLE_KEYBOARD_XT_LOG
-	kbd_log("kbd_poll(): keyboard_xt : take IRQ\n");
+        kbd_log("kbd_poll(): keyboard_xt : take IRQ\n");
 #endif
     }
 
     if ((key_queue_start != key_queue_end) && !kbd->blocked) {
-	kbd->key_waiting = key_queue[key_queue_start];
-	kbd_log("XTkbd: reading %02X from the key queue at %i\n",
-		kbd->key_waiting, key_queue_start);
-	key_queue_start = (key_queue_start + 1) & 0x0f;
-	kbd->want_irq = 1;
+        kbd->key_waiting = key_queue[key_queue_start];
+        kbd_log("XTkbd: reading %02X from the key queue at %i\n",
+                kbd->key_waiting, key_queue_start);
+        key_queue_start = (key_queue_start + 1) & 0x0f;
+        kbd->want_irq   = 1;
     }
 }
-
 
 static void
 kbd_adddata(uint16_t val)
 {
     /* Test for T1000 'Fn' key (Right Alt / Right Ctrl) */
     if (is_t1x00) {
- 	if (keyboard_recv(0xb8) || keyboard_recv(0x9d)) {	/* 'Fn' pressed */
-		t1000_syskey(0x00, 0x04, 0x00);	/* Set 'Fn' indicator */
-		switch (val) {
-			case 0x45: /* Num Lock => toggle numpad */
-				t1000_syskey(0x00, 0x00, 0x10); break;
-			case 0x47: /* Home => internal display */
-				t1000_syskey(0x40, 0x00, 0x00); break;
-			case 0x49: /* PgDn => turbo on */
-				t1000_syskey(0x80, 0x00, 0x00); break;
-			case 0x4D: /* Right => toggle LCD font */
-				t1000_syskey(0x00, 0x00, 0x20); break;
-			case 0x4F: /* End => external display */
-				t1000_syskey(0x00, 0x40, 0x00); break;
-			case 0x51: /* PgDn => turbo off */
-				t1000_syskey(0x00, 0x80, 0x00); break;
-			case 0x54: /* SysRQ => toggle window */
-				t1000_syskey(0x00, 0x00, 0x08); break;
-		}
-	} else
-		t1000_syskey(0x04, 0x00, 0x00);	/* Reset 'Fn' indicator */
+        if (keyboard_recv(0xb8) || keyboard_recv(0x9d)) { /* 'Fn' pressed */
+            t1000_syskey(0x00, 0x04, 0x00);               /* Set 'Fn' indicator */
+            switch (val) {
+                case 0x45: /* Num Lock => toggle numpad */
+                    t1000_syskey(0x00, 0x00, 0x10);
+                    break;
+                case 0x47: /* Home => internal display */
+                    t1000_syskey(0x40, 0x00, 0x00);
+                    break;
+                case 0x49: /* PgDn => turbo on */
+                    t1000_syskey(0x80, 0x00, 0x00);
+                    break;
+                case 0x4D: /* Right => toggle LCD font */
+                    t1000_syskey(0x00, 0x00, 0x20);
+                    break;
+                case 0x4F: /* End => external display */
+                    t1000_syskey(0x00, 0x40, 0x00);
+                    break;
+                case 0x51: /* PgDn => turbo off */
+                    t1000_syskey(0x00, 0x80, 0x00);
+                    break;
+                case 0x54: /* SysRQ => toggle window */
+                    t1000_syskey(0x00, 0x00, 0x08);
+                    break;
+            }
+        } else
+            t1000_syskey(0x04, 0x00, 0x00); /* Reset 'Fn' indicator */
     }
 
     key_queue[key_queue_end] = val;
     kbd_log("XTkbd: %02X added to key queue at %i\n",
-	    val, key_queue_end);
+            val, key_queue_end);
     key_queue_end = (key_queue_end + 1) & 0x0f;
 }
-
 
 void
 kbd_adddata_process(uint16_t val, void (*adddata)(uint16_t val))
@@ -464,41 +468,40 @@ kbd_adddata_process(uint16_t val, void (*adddata)(uint16_t val))
     uint8_t num_lock = 0, shift_states = 0;
 
     if (!adddata)
-	return;
+        return;
 
     keyboard_get_states(NULL, &num_lock, NULL);
     shift_states = keyboard_get_shift() & STATE_LSHIFT;
 
     if (is_amstrad)
-	num_lock = !num_lock;
+        num_lock = !num_lock;
 
     /* If NumLock is on, invert the left shift state so we can always check for
        the the same way flag being set (and with NumLock on that then means it
        is actually *NOT* set). */
     if (num_lock)
-	shift_states ^= STATE_LSHIFT;
+        shift_states ^= STATE_LSHIFT;
 
-    switch(val) {
-	case FAKE_LSHIFT_ON:
-		/* If NumLock is on, fake shifts are sent when shift is *NOT* presed,
-		   if NumLock is off, fake shifts are sent when shift is pressed. */
-		if (shift_states) {
-			/* Send fake shift. */
-			adddata(num_lock ? 0x2a : 0xaa);
-		}
-		break;
-	case FAKE_LSHIFT_OFF:
-		if (shift_states) {
-			/* Send fake shift. */
-			adddata(num_lock ? 0xaa : 0x2a);
-		}
-		break;
-	default:
-		adddata(val);
-		break;
+    switch (val) {
+        case FAKE_LSHIFT_ON:
+            /* If NumLock is on, fake shifts are sent when shift is *NOT* presed,
+               if NumLock is off, fake shifts are sent when shift is pressed. */
+            if (shift_states) {
+                /* Send fake shift. */
+                adddata(num_lock ? 0x2a : 0xaa);
+            }
+            break;
+        case FAKE_LSHIFT_OFF:
+            if (shift_states) {
+                /* Send fake shift. */
+                adddata(num_lock ? 0xaa : 0x2a);
+            }
+            break;
+        default:
+            adddata(val);
+            break;
     }
 }
-
 
 static void
 kbd_adddata_ex(uint16_t val)
@@ -506,180 +509,174 @@ kbd_adddata_ex(uint16_t val)
     kbd_adddata_process(val, kbd_adddata);
 }
 
-
 static void
 kbd_write(uint16_t port, uint8_t val, void *priv)
 {
-    xtkbd_t *kbd = (xtkbd_t *)priv;
+    xtkbd_t *kbd = (xtkbd_t *) priv;
 
     switch (port) {
-	case 0x61: /* Keyboard Control Register (aka Port B) */
-		if (!(kbd->pb & 0x40) && (val & 0x40)) {
-			key_queue_start = key_queue_end = 0;
-			kbd->want_irq = 0;
-			kbd->blocked = 0;
-			kbd_adddata(0xaa);
-		}
-		kbd->pb = val;
-		ppi.pb = val;
+        case 0x61: /* Keyboard Control Register (aka Port B) */
+            if (!(kbd->pb & 0x40) && (val & 0x40)) {
+                key_queue_start = key_queue_end = 0;
+                kbd->want_irq                   = 0;
+                kbd->blocked                    = 0;
+                kbd_adddata(0xaa);
+            }
+            kbd->pb = val;
+            ppi.pb  = val;
 
-        timer_process();
+            timer_process();
 
-		if (((kbd->type == KBD_TYPE_PC81) || (kbd->type == KBD_TYPE_PC82)) && (cassette != NULL))
-			pc_cas_set_motor(cassette, (kbd->pb & 0x08) == 0);
+            if (((kbd->type == KBD_TYPE_PC81) || (kbd->type == KBD_TYPE_PC82)) && (cassette != NULL))
+                pc_cas_set_motor(cassette, (kbd->pb & 0x08) == 0);
 
-		speaker_update();
+            speaker_update();
 
-		speaker_gated = val & 1;
-		speaker_enable = val & 2;
+            speaker_gated  = val & 1;
+            speaker_enable = val & 2;
 
-		if (speaker_enable)
-			was_speaker_enable = 1;
-		pit_devs[0].set_gate(pit_devs[0].data, 2, val & 1);
+            if (speaker_enable)
+                was_speaker_enable = 1;
+            pit_devs[0].set_gate(pit_devs[0].data, 2, val & 1);
 
-		if (val & 0x80) {
-			kbd->pa = 0;
-			kbd->blocked = 0;
-			picintc(2);
-		}
+            if (val & 0x80) {
+                kbd->pa      = 0;
+                kbd->blocked = 0;
+                picintc(2);
+            }
 
 #ifdef ENABLE_KEYBOARD_XT_LOG
-		if ((kbd->type == KBD_TYPE_PC81) || (kbd->type == KBD_TYPE_PC82))
-			kbd_log("Cassette motor is %s\n", !(val & 0x08) ? "ON" : "OFF");
+            if ((kbd->type == KBD_TYPE_PC81) || (kbd->type == KBD_TYPE_PC82))
+                kbd_log("Cassette motor is %s\n", !(val & 0x08) ? "ON" : "OFF");
 #endif
-		break;
+            break;
 #ifdef ENABLE_KEYBOARD_XT_LOG
-	case 0x62: /* Switch Register (aka Port C) */
-		if ((kbd->type == KBD_TYPE_PC81) || (kbd->type == KBD_TYPE_PC82))
-			kbd_log("Cassette IN is %i\n", !!(val & 0x10));
-		break;
+        case 0x62: /* Switch Register (aka Port C) */
+            if ((kbd->type == KBD_TYPE_PC81) || (kbd->type == KBD_TYPE_PC82))
+                kbd_log("Cassette IN is %i\n", !!(val & 0x10));
+            break;
 #endif
     }
 }
-
 
 static uint8_t
 kbd_read(uint16_t port, void *priv)
 {
-    xtkbd_t *kbd = (xtkbd_t *)priv;
-    uint8_t ret = 0xff;
+    xtkbd_t *kbd = (xtkbd_t *) priv;
+    uint8_t  ret = 0xff;
 
     switch (port) {
-	case 0x60: /* Keyboard Data Register  (aka Port A) */
-		if ((kbd->pb & 0x80) && ((kbd->type == KBD_TYPE_PC81) || (kbd->type == KBD_TYPE_PC82)
-                || (kbd->type == KBD_TYPE_XT82) || (kbd->type == KBD_TYPE_XT86)
-                || (kbd->type == KBD_TYPE_ZENITH))) {
-			if ((kbd->type == KBD_TYPE_PC81) || (kbd->type == KBD_TYPE_PC82))
-				ret = (kbd->pd & ~0x02) | (hasfpu ? 0x02 : 0x00);
-			else if ((kbd->type == KBD_TYPE_XT82) || (kbd->type == KBD_TYPE_XT86))
-				ret = 0xff;	/* According to Ruud on the PCem forum, this is supposed to return 0xFF on the XT. */
-			else if (kbd->type == KBD_TYPE_ZENITH) {
-				/* Zenith Data Systems Z-151
-				 * SW1 switch settings:
-				 * bits 6-7: floppy drive number
-				 * bits 4-5: video mode
-				 * bit 2-3: base memory size
-				 * bit 1: fpu enable
-				 * bit 0: fdc enable
-				 */
-				ret = get_fdd_switch_settings();
+        case 0x60: /* Keyboard Data Register  (aka Port A) */
+            if ((kbd->pb & 0x80) && ((kbd->type == KBD_TYPE_PC81) || (kbd->type == KBD_TYPE_PC82) || (kbd->type == KBD_TYPE_XT82) || (kbd->type == KBD_TYPE_XT86) || (kbd->type == KBD_TYPE_ZENITH))) {
+                if ((kbd->type == KBD_TYPE_PC81) || (kbd->type == KBD_TYPE_PC82))
+                    ret = (kbd->pd & ~0x02) | (hasfpu ? 0x02 : 0x00);
+                else if ((kbd->type == KBD_TYPE_XT82) || (kbd->type == KBD_TYPE_XT86))
+                    ret = 0xff; /* According to Ruud on the PCem forum, this is supposed to return 0xFF on the XT. */
+                else if (kbd->type == KBD_TYPE_ZENITH) {
+                    /* Zenith Data Systems Z-151
+                     * SW1 switch settings:
+                     * bits 6-7: floppy drive number
+                     * bits 4-5: video mode
+                     * bit 2-3: base memory size
+                     * bit 1: fpu enable
+                     * bit 0: fdc enable
+                     */
+                    ret = get_fdd_switch_settings();
 
-				ret |= get_videomode_switch_settings();
+                    ret |= get_videomode_switch_settings();
 
-				/* Base memory size should always be 64k */
-				ret |= 0x0c;
+                    /* Base memory size should always be 64k */
+                    ret |= 0x0c;
 
-				if (hasfpu)
-					ret |= 0x02;
-			}
-		} else
-			ret = kbd->pa;
-		break;
-
-	case 0x61: /* Keyboard Control Register (aka Port B) */
-		ret = kbd->pb;
-		break;
-
-	case 0x62: /* Switch Register (aka Port C) */
-		if ((kbd->type == KBD_TYPE_PC81) || (kbd->type == KBD_TYPE_PC82)) {
-			if (kbd->pb & 0x04) /* PB2 */
-                switch (mem_size + isa_mem_size) {
-                    case 64:
-                    case 48:
-                    case 32:
-                    case 16:
-                        ret = 0x00;
-                        break;
-                    default:
-                        ret = (((mem_size + isa_mem_size) - 64) / 32) & 0x0f;
-                        break;
+                    if (hasfpu)
+                        ret |= 0x02;
                 }
-			else
-				ret = (((mem_size + isa_mem_size) - 64) / 32) >> 4;
-		}  else if (kbd->type == KBD_TYPE_OLIVETTI
-                        || kbd->type == KBD_TYPE_ZENITH) {
-			/* Olivetti M19 or Zenith Data Systems Z-151 */
-			if (kbd->pb & 0x04) /* PB2 */
-				ret = kbd->pd & 0xbf;
-			else
-				ret = kbd->pd >> 4;
-		} else {
-			if (kbd->pb & 0x08) /* PB3 */
-				ret = kbd->pd >> 4;
-			else {
-				/* LaserXT = Always 512k RAM;
-				   LaserXT/3 = Bit 0: set = 512k, clear = 256k. */
+            } else
+                ret = kbd->pa;
+            break;
+
+        case 0x61: /* Keyboard Control Register (aka Port B) */
+            ret = kbd->pb;
+            break;
+
+        case 0x62: /* Switch Register (aka Port C) */
+            if ((kbd->type == KBD_TYPE_PC81) || (kbd->type == KBD_TYPE_PC82)) {
+                if (kbd->pb & 0x04) /* PB2 */
+                    switch (mem_size + isa_mem_size) {
+                        case 64:
+                        case 48:
+                        case 32:
+                        case 16:
+                            ret = 0x00;
+                            break;
+                        default:
+                            ret = (((mem_size + isa_mem_size) - 64) / 32) & 0x0f;
+                            break;
+                    }
+                else
+                    ret = (((mem_size + isa_mem_size) - 64) / 32) >> 4;
+            } else if (kbd->type == KBD_TYPE_OLIVETTI
+                       || kbd->type == KBD_TYPE_ZENITH) {
+                /* Olivetti M19 or Zenith Data Systems Z-151 */
+                if (kbd->pb & 0x04) /* PB2 */
+                    ret = kbd->pd & 0xbf;
+                else
+                    ret = kbd->pd >> 4;
+            } else {
+                if (kbd->pb & 0x08) /* PB3 */
+                    ret = kbd->pd >> 4;
+                else {
+                    /* LaserXT = Always 512k RAM;
+                       LaserXT/3 = Bit 0: set = 512k, clear = 256k. */
 #if defined(DEV_BRANCH) && defined(USE_LASERXT)
-				if (kbd->type == KBD_TYPE_TOSHIBA)
-					ret = ((mem_size == 512) ? 0x0d : 0x0c) | (hasfpu ? 0x02 : 0x00);
-				else
+                    if (kbd->type == KBD_TYPE_TOSHIBA)
+                        ret = ((mem_size == 512) ? 0x0d : 0x0c) | (hasfpu ? 0x02 : 0x00);
+                    else
 #endif
-					ret = (kbd->pd & 0x0d) | (hasfpu ? 0x02 : 0x00);
-			}
-		}
-		ret |= (ppispeakon ? 0x20 : 0);
+                        ret = (kbd->pd & 0x0d) | (hasfpu ? 0x02 : 0x00);
+                }
+            }
+            ret |= (ppispeakon ? 0x20 : 0);
 
-		/* This is needed to avoid error 131 (cassette error).
-		   This is serial read: bit 5 = clock, bit 4 = data, cassette header is 256 x 0xff. */
-		if ((kbd->type == KBD_TYPE_PC81) || (kbd->type == KBD_TYPE_PC82)) {
-			if (cassette == NULL)
-				ret |= (ppispeakon ? 0x10 : 0);
-			else
-				ret |= (pc_cas_get_inp(cassette) ? 0x10 : 0);
-		}
+            /* This is needed to avoid error 131 (cassette error).
+               This is serial read: bit 5 = clock, bit 4 = data, cassette header is 256 x 0xff. */
+            if ((kbd->type == KBD_TYPE_PC81) || (kbd->type == KBD_TYPE_PC82)) {
+                if (cassette == NULL)
+                    ret |= (ppispeakon ? 0x10 : 0);
+                else
+                    ret |= (pc_cas_get_inp(cassette) ? 0x10 : 0);
+            }
 
-		if (kbd->type == KBD_TYPE_TANDY)
-			ret |= (tandy1k_eeprom_read() ? 0x10 : 0);
-		break;
+            if (kbd->type == KBD_TYPE_TANDY)
+                ret |= (tandy1k_eeprom_read() ? 0x10 : 0);
+            break;
 
-	case 0x63: /* Keyboard Configuration Register (aka Port D) */
-		if ((kbd->type == KBD_TYPE_XT82) || (kbd->type == KBD_TYPE_XT86)
+        case 0x63: /* Keyboard Configuration Register (aka Port D) */
+            if ((kbd->type == KBD_TYPE_XT82) || (kbd->type == KBD_TYPE_XT86)
                 || (kbd->type == KBD_TYPE_COMPAQ)
                 || (kbd->type == KBD_TYPE_TOSHIBA))
-			ret = kbd->pd;
-		break;
+                ret = kbd->pd;
+            break;
     }
 
-    return(ret);
+    return (ret);
 }
-
 
 static void
 kbd_reset(void *priv)
 {
-    xtkbd_t *kbd = (xtkbd_t *)priv;
+    xtkbd_t *kbd = (xtkbd_t *) priv;
 
     kbd->want_irq = 0;
-    kbd->blocked = 0;
-    kbd->pa = 0x00;
-    kbd->pb = 0x00;
+    kbd->blocked  = 0;
+    kbd->pa       = 0x00;
+    kbd->pb       = 0x00;
 
     keyboard_scan = 1;
 
     key_queue_start = 0,
-    key_queue_end = 0;
+    key_queue_end   = 0;
 }
-
 
 void
 keyboard_set_is_amstrad(int ams)
@@ -687,17 +684,16 @@ keyboard_set_is_amstrad(int ams)
     is_amstrad = ams;
 }
 
-
 static void *
 kbd_init(const device_t *info)
 {
     xtkbd_t *kbd;
 
-    kbd = (xtkbd_t *)malloc(sizeof(xtkbd_t));
+    kbd = (xtkbd_t *) malloc(sizeof(xtkbd_t));
     memset(kbd, 0x00, sizeof(xtkbd_t));
 
     io_sethandler(0x0060, 4,
-		  kbd_read, NULL, NULL, kbd_write, NULL, NULL, kbd);
+                  kbd_read, NULL, NULL, kbd_write, NULL, NULL, kbd);
     keyboard_send = kbd_adddata_ex;
     kbd_reset(kbd);
     kbd->type = info->local;
@@ -707,31 +703,31 @@ kbd_init(const device_t *info)
     video_reset(gfxcard);
 
     if ((kbd->type == KBD_TYPE_PC81) || (kbd->type == KBD_TYPE_PC82)
-            || (kbd->type == KBD_TYPE_XT82) || (kbd->type <= KBD_TYPE_XT86)
-            || (kbd->type == KBD_TYPE_COMPAQ)
-            || (kbd->type == KBD_TYPE_TOSHIBA)
-            || (kbd->type == KBD_TYPE_OLIVETTI)) {
+        || (kbd->type == KBD_TYPE_XT82) || (kbd->type <= KBD_TYPE_XT86)
+        || (kbd->type == KBD_TYPE_COMPAQ)
+        || (kbd->type == KBD_TYPE_TOSHIBA)
+        || (kbd->type == KBD_TYPE_OLIVETTI)) {
 
         /* DIP switch readout: bit set = OFF, clear = ON. */
         if (kbd->type == KBD_TYPE_OLIVETTI)
-		/* Olivetti M19
-		 * Jumpers J1, J2 - monitor type.
-		 * 01 - mono (high-res)
-		 * 10 - color (low-res, disables 640x400x2 mode)
-		 * 00 - autoswitching
-		 */
-		    kbd->pd |= 0x00;
-	    else
-		    /* Switches 7, 8 - floppy drives. */
-		    kbd->pd = get_fdd_switch_settings();
+            /* Olivetti M19
+             * Jumpers J1, J2 - monitor type.
+             * 01 - mono (high-res)
+             * 10 - color (low-res, disables 640x400x2 mode)
+             * 00 - autoswitching
+             */
+            kbd->pd |= 0x00;
+        else
+            /* Switches 7, 8 - floppy drives. */
+            kbd->pd = get_fdd_switch_settings();
 
         /* Siitches 5, 6 - video card type */
-	    kbd->pd |= get_videomode_switch_settings();
+        kbd->pd |= get_videomode_switch_settings();
 
         /* Switches 3, 4 - memory size. */
         if ((kbd->type == KBD_TYPE_XT86)
-                || (kbd->type == KBD_TYPE_COMPAQ)
-                || (kbd->type == KBD_TYPE_TOSHIBA)) {
+            || (kbd->type == KBD_TYPE_COMPAQ)
+            || (kbd->type == KBD_TYPE_TOSHIBA)) {
             switch (mem_size) {
                 case 256:
                     kbd->pd |= 0x00;
@@ -747,9 +743,9 @@ kbd_init(const device_t *info)
                     kbd->pd |= 0x0c;
                     break;
             }
-	    } else if (kbd->type == KBD_TYPE_XT82) {
+        } else if (kbd->type == KBD_TYPE_XT82) {
             switch (mem_size) {
-                case 64:  /* 1x64k */
+                case 64: /* 1x64k */
                     kbd->pd |= 0x00;
                     break;
                 case 128: /* 2x64k */
@@ -763,7 +759,7 @@ kbd_init(const device_t *info)
                     kbd->pd |= 0x0c;
                     break;
             }
-	    } else if (kbd->type == KBD_TYPE_PC82) {
+        } else if (kbd->type == KBD_TYPE_PC82) {
             switch (mem_size) {
                 case 192: /* 3x64k, not supported by stock BIOS due to bugs */
                     kbd->pd |= 0x08;
@@ -793,19 +789,19 @@ kbd_init(const device_t *info)
                 default:
                     kbd->pd |= 0x0c;
                     break;
-    		}
-	    }
+            }
+        }
 
         /* Switch 2 - 8087 FPU. */
         if (hasfpu)
             kbd->pd |= 0x02;
-    } else if (kbd-> type == KBD_TYPE_ZENITH) {
+    } else if (kbd->type == KBD_TYPE_ZENITH) {
         /* Zenith Data Systems Z-151
-        * SW2 switch settings:
-        * bit 7: monitor frequency
-        * bits 5-6: autoboot (00-11 resident monitor, 10 hdd, 01 fdd)
-        * bits 0-4: installed memory
-        */
+         * SW2 switch settings:
+         * bit 7: monitor frequency
+         * bits 5-6: autoboot (00-11 resident monitor, 10 hdd, 01 fdd)
+         * bits 0-4: installed memory
+         */
         kbd->pd = 0x20;
         switch (mem_size) {
             case 128:
@@ -848,14 +844,13 @@ kbd_init(const device_t *info)
 
     is_amstrad = 0;
 
-    return(kbd);
+    return (kbd);
 }
-
 
 static void
 kbd_close(void *priv)
 {
-    xtkbd_t *kbd = (xtkbd_t *)priv;
+    xtkbd_t *kbd = (xtkbd_t *) priv;
 
     /* Stop the timer. */
     timer_disable(&kbd->send_delay_timer);
@@ -866,149 +861,149 @@ kbd_close(void *priv)
     keyboard_send = NULL;
 
     io_removehandler(0x0060, 4,
-		     kbd_read, NULL, NULL, kbd_write, NULL, NULL, kbd);
+                     kbd_read, NULL, NULL, kbd_write, NULL, NULL, kbd);
 
     free(kbd);
 }
 
 const device_t keyboard_pc_device = {
-    .name = "IBM PC Keyboard (1981)",
+    .name          = "IBM PC Keyboard (1981)",
     .internal_name = "keyboard_pc",
-    .flags = 0,
-    .local = KBD_TYPE_PC81,
-    .init = kbd_init,
-    .close = kbd_close,
-    .reset = kbd_reset,
+    .flags         = 0,
+    .local         = KBD_TYPE_PC81,
+    .init          = kbd_init,
+    .close         = kbd_close,
+    .reset         = kbd_reset,
     { .available = NULL },
     .speed_changed = NULL,
-    .force_redraw = NULL,
-    .config = NULL
+    .force_redraw  = NULL,
+    .config        = NULL
 };
 
 const device_t keyboard_pc82_device = {
-    .name = "IBM PC Keyboard (1982)",
+    .name          = "IBM PC Keyboard (1982)",
     .internal_name = "keyboard_pc82",
-    .flags = 0,
-    .local = KBD_TYPE_PC82,
-    .init = kbd_init,
-    .close = kbd_close,
-    .reset = kbd_reset,
+    .flags         = 0,
+    .local         = KBD_TYPE_PC82,
+    .init          = kbd_init,
+    .close         = kbd_close,
+    .reset         = kbd_reset,
     { .available = NULL },
     .speed_changed = NULL,
-    .force_redraw = NULL,
-    .config = NULL
+    .force_redraw  = NULL,
+    .config        = NULL
 };
 
 const device_t keyboard_xt_device = {
-    .name = "XT (1982) Keyboard",
+    .name          = "XT (1982) Keyboard",
     .internal_name = "keyboard_xt",
-    .flags = 0,
-    .local = KBD_TYPE_XT82,
-    .init = kbd_init,
-    .close = kbd_close,
-    .reset = kbd_reset,
+    .flags         = 0,
+    .local         = KBD_TYPE_XT82,
+    .init          = kbd_init,
+    .close         = kbd_close,
+    .reset         = kbd_reset,
     { .available = NULL },
     .speed_changed = NULL,
-    .force_redraw = NULL,
-    .config = NULL
+    .force_redraw  = NULL,
+    .config        = NULL
 };
 
 const device_t keyboard_xt86_device = {
-    .name = "XT (1986) Keyboard",
+    .name          = "XT (1986) Keyboard",
     .internal_name = "keyboard_xt86",
-    .flags = 0,
-    .local = KBD_TYPE_XT86,
-    .init = kbd_init,
-    .close = kbd_close,
-    .reset = kbd_reset,
+    .flags         = 0,
+    .local         = KBD_TYPE_XT86,
+    .init          = kbd_init,
+    .close         = kbd_close,
+    .reset         = kbd_reset,
     { .available = NULL },
     .speed_changed = NULL,
-    .force_redraw = NULL,
-    .config = NULL
+    .force_redraw  = NULL,
+    .config        = NULL
 };
 
 const device_t keyboard_xt_compaq_device = {
-    .name = "Compaq Portable Keyboard",
+    .name          = "Compaq Portable Keyboard",
     .internal_name = "keyboard_xt_compaq",
-    .flags = 0,
-    .local = KBD_TYPE_COMPAQ,
-    .init = kbd_init,
-    .close = kbd_close,
-    .reset = kbd_reset,
+    .flags         = 0,
+    .local         = KBD_TYPE_COMPAQ,
+    .init          = kbd_init,
+    .close         = kbd_close,
+    .reset         = kbd_reset,
     { .available = NULL },
     .speed_changed = NULL,
-    .force_redraw = NULL,
-    .config = NULL
+    .force_redraw  = NULL,
+    .config        = NULL
 };
 
 const device_t keyboard_tandy_device = {
-    .name = "Tandy 1000 Keyboard",
+    .name          = "Tandy 1000 Keyboard",
     .internal_name = "keyboard_tandy",
-    .flags = 0,
-    .local = KBD_TYPE_TANDY,
-    .init = kbd_init,
-    .close = kbd_close,
-    .reset = kbd_reset,
+    .flags         = 0,
+    .local         = KBD_TYPE_TANDY,
+    .init          = kbd_init,
+    .close         = kbd_close,
+    .reset         = kbd_reset,
     { .available = NULL },
     .speed_changed = NULL,
-    .force_redraw = NULL,
-    .config = NULL
+    .force_redraw  = NULL,
+    .config        = NULL
 };
 
 const device_t keyboard_xt_t1x00_device = {
-    .name = "Toshiba T1x00 Keyboard",
+    .name          = "Toshiba T1x00 Keyboard",
     .internal_name = "keyboard_xt_t1x00",
-    .flags = 0,
-    .local = KBD_TYPE_TOSHIBA,
-    .init = kbd_init,
-    .close = kbd_close,
-    .reset = kbd_reset,
+    .flags         = 0,
+    .local         = KBD_TYPE_TOSHIBA,
+    .init          = kbd_init,
+    .close         = kbd_close,
+    .reset         = kbd_reset,
     { .available = NULL },
     .speed_changed = NULL,
-    .force_redraw = NULL,
-    .config = NULL
+    .force_redraw  = NULL,
+    .config        = NULL
 };
 
 #if defined(DEV_BRANCH) && defined(USE_LASERXT)
 const device_t keyboard_xt_lxt3_device = {
-    .name = "VTech Laser XT3 Keyboard",
+    .name          = "VTech Laser XT3 Keyboard",
     .internal_name = "keyboard_xt_lxt3",
-    .flags = 0,
-    .local = KBD_TYPE_VTECH,
-    .init = kbd_init,
-    .close = kbd_close,
-    .reset = kbd_reset,
+    .flags         = 0,
+    .local         = KBD_TYPE_VTECH,
+    .init          = kbd_init,
+    .close         = kbd_close,
+    .reset         = kbd_reset,
     { .available = NULL },
     .speed_changed = NULL,
-    .force_redraw = NULL,
-    .config = NULL
+    .force_redraw  = NULL,
+    .config        = NULL
 };
 #endif
 
 const device_t keyboard_xt_olivetti_device = {
-    .name = "Olivetti XT Keyboard",
+    .name          = "Olivetti XT Keyboard",
     .internal_name = "keyboard_xt_olivetti",
-    .flags = 0,
-    .local = KBD_TYPE_OLIVETTI,
-    .init = kbd_init,
-    .close = kbd_close,
-    .reset = kbd_reset,
+    .flags         = 0,
+    .local         = KBD_TYPE_OLIVETTI,
+    .init          = kbd_init,
+    .close         = kbd_close,
+    .reset         = kbd_reset,
     { .available = NULL },
     .speed_changed = NULL,
-    .force_redraw = NULL,
-    .config = NULL
+    .force_redraw  = NULL,
+    .config        = NULL
 };
 
 const device_t keyboard_xt_zenith_device = {
-    .name = "Zenith XT Keyboard",
+    .name          = "Zenith XT Keyboard",
     .internal_name = "keyboard_xt_zenith",
-    .flags = 0,
-    .local = KBD_TYPE_ZENITH,
-    .init = kbd_init,
-    .close = kbd_close,
-    .reset = kbd_reset,
+    .flags         = 0,
+    .local         = KBD_TYPE_ZENITH,
+    .init          = kbd_init,
+    .close         = kbd_close,
+    .reset         = kbd_reset,
     { .available = NULL },
     .speed_changed = NULL,
-    .force_redraw = NULL,
-    .config = NULL
+    .force_redraw  = NULL,
+    .config        = NULL
 };

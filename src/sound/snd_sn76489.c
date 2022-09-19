@@ -245,7 +245,7 @@ sn76489_device_close(void *p)
 
 #if defined(DEV_BRANCH) && defined(USE_TANDY_ISA)
 static const device_config_t tndy_config[] = {
-// clang-format off
+  // clang-format off
     {
         .name = "base",
         .description = "Address",
@@ -276,45 +276,45 @@ static const device_config_t tndy_config[] = {
 #endif
 
 const device_t sn76489_device = {
-    .name = "TI SN74689 PSG",
+    .name          = "TI SN74689 PSG",
     .internal_name = "sn76489",
-    .flags = 0,
-    .local = 0,
-    .init = sn76489_device_init,
-    .close = sn76489_device_close,
-    .reset = NULL,
+    .flags         = 0,
+    .local         = 0,
+    .init          = sn76489_device_init,
+    .close         = sn76489_device_close,
+    .reset         = NULL,
     { .available = NULL },
     .speed_changed = NULL,
-    .force_redraw = NULL,
-    .config = NULL
+    .force_redraw  = NULL,
+    .config        = NULL
 };
 
 const device_t ncr8496_device = {
-    .name = "NCR8496 PSG",
+    .name          = "NCR8496 PSG",
     .internal_name = "ncr8496",
-    .flags = 0,
-    .local = 0,
-    .init = ncr8496_device_init,
-    .close = sn76489_device_close,
-    .reset = NULL,
+    .flags         = 0,
+    .local         = 0,
+    .init          = ncr8496_device_init,
+    .close         = sn76489_device_close,
+    .reset         = NULL,
     { .available = NULL },
     .speed_changed = NULL,
-    .force_redraw = NULL,
-    .config = NULL
+    .force_redraw  = NULL,
+    .config        = NULL
 };
 
 #if defined(DEV_BRANCH) && defined(USE_TANDY_ISA)
 const device_t tndy_device = {
-    .name = "TNDY",
+    .name          = "TNDY",
     .internal_name = "tndy",
-    .flags = DEVICE_ISA,
-    .local = 0,
-    .init = tndy_device_init,
-    .close = sn76489_device_close,
-    .reset = NULL,
+    .flags         = DEVICE_ISA,
+    .local         = 0,
+    .init          = tndy_device_init,
+    .close         = sn76489_device_close,
+    .reset         = NULL,
     { .available = NULL },
     .speed_changed = NULL,
-    .force_redraw = NULL,
-    .config = tndy_config
+    .force_redraw  = NULL,
+    .config        = tndy_config
 };
 #endif

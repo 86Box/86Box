@@ -1,19 +1,19 @@
 #ifdef _WIN32
-#define WIN32_LEAN_AND_MEAN
-#include <windows.h>
+#    define WIN32_LEAN_AND_MEAN
+#    include <windows.h>
 #else
-#include <unistd.h>
-#include <fcntl.h>
+#    include <unistd.h>
+#    include <fcntl.h>
 #endif
 
 #include <86box/net_event.h>
 
-
 #ifndef _WIN32
-static void setup_fd(int fd)
+static void
+setup_fd(int fd)
 {
-  fcntl(fd, F_SETFD, FD_CLOEXEC);
-  fcntl(fd, F_SETFL, O_NONBLOCK);
+    fcntl(fd, F_SETFD, FD_CLOEXEC);
+    fcntl(fd, F_SETFL, O_NONBLOCK);
 }
 #endif
 

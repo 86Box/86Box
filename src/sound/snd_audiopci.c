@@ -2053,7 +2053,7 @@ es1371_speed_changed(void *p)
 }
 
 static const device_config_t es1371_config[] = {
-// clang-format off
+  // clang-format off
     {
         .name = "codec",
         .description = "CODEC",
@@ -2090,11 +2090,11 @@ static const device_config_t es1371_config[] = {
         .default_int = 1
     },
     { .name = "", .description = "", .type = CONFIG_END }
-// clang-format on
+  // clang-format on
 };
 
 static const device_config_t es1371_onboard_config[] = {
-// clang-format off
+  // clang-format off
     {
         .name = "receive_input",
         .description = "Receive input (MIDI)",
@@ -2107,29 +2107,29 @@ static const device_config_t es1371_onboard_config[] = {
 };
 
 const device_t es1371_device = {
-    .name = "Ensoniq AudioPCI (ES1371)",
+    .name          = "Ensoniq AudioPCI (ES1371)",
     .internal_name = "es1371",
-    .flags = DEVICE_PCI,
-    .local = 0,
-    .init = es1371_init,
-    .close = es1371_close,
-    .reset = es1371_reset,
+    .flags         = DEVICE_PCI,
+    .local         = 0,
+    .init          = es1371_init,
+    .close         = es1371_close,
+    .reset         = es1371_reset,
     { .available = NULL },
     .speed_changed = es1371_speed_changed,
-    .force_redraw = NULL,
-    .config = es1371_config
+    .force_redraw  = NULL,
+    .config        = es1371_config
 };
 
 const device_t es1371_onboard_device = {
-    .name = "Ensoniq AudioPCI (ES1371) (On-Board)",
+    .name          = "Ensoniq AudioPCI (ES1371) (On-Board)",
     .internal_name = "es1371_onboard",
-    .flags = DEVICE_PCI,
-    .local = 1,
-    .init = es1371_init,
-    .close = es1371_close,
-    .reset = es1371_reset,
+    .flags         = DEVICE_PCI,
+    .local         = 1,
+    .init          = es1371_init,
+    .close         = es1371_close,
+    .reset         = es1371_reset,
     { .available = NULL },
     .speed_changed = es1371_speed_changed,
-    .force_redraw = NULL,
-    .config = es1371_onboard_config
+    .force_redraw  = NULL,
+    .config        = es1371_onboard_config
 };
