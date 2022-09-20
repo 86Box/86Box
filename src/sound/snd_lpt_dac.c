@@ -109,25 +109,25 @@ dac_close(void *p)
 }
 
 const lpt_device_t lpt_dac_device = {
-    .name = "LPT DAC / Covox Speech Thing",
+    .name          = "LPT DAC / Covox Speech Thing",
     .internal_name = "lpt_dac",
-    .init = dac_init,
-    .close = dac_close,
-    .write_data = dac_write_data,
-    .write_ctrl = dac_write_ctrl,
-    .read_data = NULL,
-    .read_status = dac_read_status,
-    .read_ctrl = NULL
+    .init          = dac_init,
+    .close         = dac_close,
+    .write_data    = dac_write_data,
+    .write_ctrl    = dac_write_ctrl,
+    .read_data     = NULL,
+    .read_status   = dac_read_status,
+    .read_ctrl     = NULL
 };
 
 const lpt_device_t lpt_dac_stereo_device = {
-    .name = "Stereo LPT DAC",
+    .name          = "Stereo LPT DAC",
     .internal_name = "lpt_dac_stereo",
-    .init = dac_stereo_init,
-    .close = dac_close,
-    .write_data = dac_write_data,
-    .write_ctrl = dac_write_ctrl,
-    .read_data = NULL,
-    .read_status = dac_read_status,
-    .read_ctrl = NULL
+    .init          = dac_stereo_init,
+    .close         = dac_close,
+    .write_data    = dac_write_data,
+    .write_ctrl    = dac_write_ctrl,
+    .read_data     = NULL,
+    .read_status   = dac_read_status,
+    .read_ctrl     = NULL
 };

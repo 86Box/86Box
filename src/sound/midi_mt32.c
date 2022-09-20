@@ -15,21 +15,20 @@
 #include <86box/ui.h>
 #include <mt32emu/c_interface/c_interface.h>
 
-#define MT32_OLD_CTRL_ROM   "roms/sound/mt32/MT32_CONTROL.ROM"
-#define MT32_OLD_PCM_ROM    "roms/sound/mt32/MT32_PCM.ROM"
-#define MT32_NEW_CTRL_ROM   "roms/sound/mt32_new/MT32_CONTROL.ROM"
-#define MT32_NEW_PCM_ROM    "roms/sound/mt32_new/MT32_PCM.ROM"
-#define CM32L_CTRL_ROM      "roms/sound/cm32l/CM32L_CONTROL.ROM"
-#define CM32L_PCM_ROM       "roms/sound/cm32l/CM32L_PCM.ROM"
-#define CM32LN_CTRL_ROM     "roms/sound/cm32ln/CM32LN_CONTROL.ROM"
-#define CM32LN_PCM_ROM      "roms/sound/cm32ln/CM32LN_PCM.ROM"
+#define MT32_OLD_CTRL_ROM "roms/sound/mt32/MT32_CONTROL.ROM"
+#define MT32_OLD_PCM_ROM  "roms/sound/mt32/MT32_PCM.ROM"
+#define MT32_NEW_CTRL_ROM "roms/sound/mt32_new/MT32_CONTROL.ROM"
+#define MT32_NEW_PCM_ROM  "roms/sound/mt32_new/MT32_PCM.ROM"
+#define CM32L_CTRL_ROM    "roms/sound/cm32l/CM32L_CONTROL.ROM"
+#define CM32L_PCM_ROM     "roms/sound/cm32l/CM32L_PCM.ROM"
+#define CM32LN_CTRL_ROM   "roms/sound/cm32ln/CM32LN_CONTROL.ROM"
+#define CM32LN_PCM_ROM    "roms/sound/cm32ln/CM32LN_PCM.ROM"
 
 extern void givealbuffer_midi(void *buf, uint32_t size);
 extern void al_set_midi(int freq, int buf_size);
 
-
 static mt32emu_report_handler_version get_mt32_report_handler_version(mt32emu_report_handler_i i);
-static void display_mt32_message(void *instance_data, const char *message);
+static void                           display_mt32_message(void *instance_data, const char *message);
 
 static const mt32emu_report_handler_i_v0 handler_mt32_v0 = {
     /** Returns the actual interface version ID */
@@ -377,7 +376,7 @@ mt32_close(void *p)
 }
 
 static const device_config_t mt32_config[] = {
-// clang-format off
+  // clang-format off
     {
         .name = "output_gain",
         .description = "Output Gain",
@@ -421,57 +420,57 @@ static const device_config_t mt32_config[] = {
 };
 
 const device_t mt32_old_device = {
-    .name = "Roland MT-32 Emulation",
+    .name          = "Roland MT-32 Emulation",
     .internal_name = "mt32",
-    .flags = 0,
-    .local = 0,
-    .init = mt32_old_init,
-    .close = mt32_close,
-    .reset = NULL,
+    .flags         = 0,
+    .local         = 0,
+    .init          = mt32_old_init,
+    .close         = mt32_close,
+    .reset         = NULL,
     { .available = mt32_old_available },
     .speed_changed = NULL,
-    .force_redraw = NULL,
-    .config = mt32_config
+    .force_redraw  = NULL,
+    .config        = mt32_config
 };
 
 const device_t mt32_new_device = {
-    .name = "Roland MT-32 (New) Emulation",
+    .name          = "Roland MT-32 (New) Emulation",
     .internal_name = "mt32",
-    .flags = 0,
-    .local = 0,
-    .init = mt32_new_init,
-    .close = mt32_close,
-    .reset = NULL,
+    .flags         = 0,
+    .local         = 0,
+    .init          = mt32_new_init,
+    .close         = mt32_close,
+    .reset         = NULL,
     { .available = mt32_new_available },
     .speed_changed = NULL,
-    .force_redraw = NULL,
-    .config = mt32_config
+    .force_redraw  = NULL,
+    .config        = mt32_config
 };
 
 const device_t cm32l_device = {
-    .name = "Roland CM-32L Emulation",
+    .name          = "Roland CM-32L Emulation",
     .internal_name = "cm32l",
-    .flags = 0,
-    .local = 0,
-    .init = cm32l_init,
-    .close = mt32_close,
-    .reset = NULL,
+    .flags         = 0,
+    .local         = 0,
+    .init          = cm32l_init,
+    .close         = mt32_close,
+    .reset         = NULL,
     { .available = cm32l_available },
     .speed_changed = NULL,
-    .force_redraw = NULL,
-    .config = mt32_config
+    .force_redraw  = NULL,
+    .config        = mt32_config
 };
 
 const device_t cm32ln_device = {
-    .name = "Roland CM-32LN Emulation",
+    .name          = "Roland CM-32LN Emulation",
     .internal_name = "cm32ln",
-    .flags = 0,
-    .local = 0,
-    .init = cm32ln_init,
-    .close = mt32_close,
-    .reset = NULL,
+    .flags         = 0,
+    .local         = 0,
+    .init          = cm32ln_init,
+    .close         = mt32_close,
+    .reset         = NULL,
     { .available = cm32ln_available },
     .speed_changed = NULL,
-    .force_redraw = NULL,
-    .config = mt32_config
+    .force_redraw  = NULL,
+    .config        = mt32_config
 };

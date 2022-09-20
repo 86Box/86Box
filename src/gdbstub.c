@@ -25,7 +25,7 @@
 #        include <unistd.h>
 #    else
 #        include <io.h>
-#        define ssize_t long
+#        define ssize_t           long
 #        define strtok_r(a, b, c) strtok_s(a, b, c)
 #    endif
 #    include <winsock2.h>
@@ -121,8 +121,8 @@ typedef struct _gdbstub_client_ {
     struct sockaddr_in addr;
 
     char packet[16384], response[16384];
-    int  has_packet: 1, first_packet_received: 1, ida_mode: 1, waiting_stop: 1,
-         packet_pos, response_pos;
+    int  has_packet : 1, first_packet_received : 1, ida_mode : 1, waiting_stop : 1,
+        packet_pos, response_pos;
 
     event_t *processed_event, *response_event;
 
@@ -162,7 +162,7 @@ gdbstub_log(const char *fmt, ...)
 static x86seg   *segment_regs[] = { &cpu_state.seg_cs, &cpu_state.seg_ss, &cpu_state.seg_ds, &cpu_state.seg_es, &cpu_state.seg_fs, &cpu_state.seg_gs };
 static uint32_t *cr_regs[]      = { &cpu_state.CR0.l, &cr2, &cr3, &cr4 };
 static void     *fpu_regs[]     = { &cpu_state.npxc, &cpu_state.npxs, NULL, &x87_pc_seg, &x87_pc_off, &x87_op_seg, &x87_op_off };
-static char     target_xml[]    = /* QEMU gdb-xml/i386-32bit.xml with modifications (described in comments) */
+static char      target_xml[]   = /* QEMU gdb-xml/i386-32bit.xml with modifications (described in comments) */
     // clang-format off
     "<?xml version=\"1.0\"?>"
     "<!DOCTYPE target SYSTEM \"gdb-target.dtd\">"

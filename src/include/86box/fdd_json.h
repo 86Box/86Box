@@ -45,12 +45,10 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #ifndef EMU_FLOPPY_JSON_H
-# define EMU_FLOPPY_JSON_H
+#define EMU_FLOPPY_JSON_H
 
+extern void json_init(void);
+extern void json_load(int drive, char *fn);
+extern void json_close(int drive);
 
-extern void	json_init(void);
-extern void	json_load(int drive, char *fn);
-extern void	json_close(int drive);
-
-
-#endif	/*EMU_FLOPPY_JSON_H*/
+#endif /*EMU_FLOPPY_JSON_H*/

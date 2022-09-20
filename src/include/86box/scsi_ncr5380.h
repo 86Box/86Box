@@ -22,7 +22,7 @@
  */
 
 #ifndef SCSI_NCR5380_H
-# define SCSI_NCR5380_H
+#define SCSI_NCR5380_H
 
 extern const device_t scsi_lcs6821n_device;
 extern const device_t scsi_rt1000b_device;
@@ -34,4 +34,4 @@ extern const device_t scsi_ls2000_device;
 extern const device_t scsi_scsiat_device;
 #endif
 
-#endif	/*SCSI_NCR5380_H*/
+#endif /*SCSI_NCR5380_H*/

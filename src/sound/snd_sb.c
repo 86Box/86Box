@@ -183,7 +183,7 @@ sb_get_buffer_sb2(int32_t *buffer, int len, void *p)
     sb_ct1335_mixer_t *mixer = &sb->mixer_sb2;
     int                c;
     double             out_mono = 0.0, out_l = 0.0, out_r = 0.0;
-    int32_t *opl_buf = NULL;
+    int32_t           *opl_buf = NULL;
 
     if (sb->opl_enabled)
         opl_buf = sb->opl.update(sb->opl.priv);
@@ -266,11 +266,11 @@ sb_get_buffer_sbpro(int32_t *buffer, int len, void *p)
     sb_ct1345_mixer_t *mixer = &sb->mixer_sbpro;
     int                c;
     double             out_l = 0.0, out_r = 0.0;
-    int32_t            *opl_buf = NULL, *opl2_buf = NULL;
+    int32_t           *opl_buf = NULL, *opl2_buf = NULL;
 
     if (sb->opl_enabled) {
         if (sb->dsp.sb_type == SBPRO) {
-            opl_buf = sb->opl.update(sb->opl.priv);
+            opl_buf  = sb->opl.update(sb->opl.priv);
             opl2_buf = sb->opl2.update(sb->opl2.priv);
         } else
             opl_buf = sb->opl.update(sb->opl.priv);
@@ -347,7 +347,7 @@ sb_get_buffer_sb16_awe32(int32_t *buffer, int len, void *p)
     int32_t            in_l, in_r;
     double             out_l = 0.0, out_r = 0.0;
     double             bass_treble;
-    int32_t            *opl_buf = NULL;
+    int32_t           *opl_buf = NULL;
 
     if (sb->opl_enabled)
         opl_buf = sb->opl.update(sb->opl.priv);
@@ -1216,8 +1216,8 @@ static void
 sb_16_reply_mca_write(int port, uint8_t val, void *p)
 {
     uint16_t addr, mpu401_addr;
-    int low_dma, high_dma;
-    sb_t *sb = (sb_t *) p;
+    int      low_dma, high_dma;
+    sb_t    *sb = (sb_t *) p;
 
     if (port < 0x102)
         return;
@@ -1245,21 +1245,21 @@ sb_16_reply_mca_write(int port, uint8_t val, void *p)
 
     if (addr) {
         io_removehandler(addr, 0x0004,
-                      sb->opl.read, NULL, NULL,
-                      sb->opl.write, NULL, NULL,
-                      sb->opl.priv);
+                         sb->opl.read, NULL, NULL,
+                         sb->opl.write, NULL, NULL,
+                         sb->opl.priv);
         io_removehandler(addr + 8, 0x0002,
-                      sb->opl.read, NULL, NULL,
-                      sb->opl.write, NULL, NULL,
-                      sb->opl.priv);
+                         sb->opl.read, NULL, NULL,
+                         sb->opl.write, NULL, NULL,
+                         sb->opl.priv);
         io_removehandler(0x0388, 0x0004,
-                      sb->opl.read, NULL, NULL,
-                      sb->opl.write, NULL, NULL,
-                      sb->opl.priv);
+                         sb->opl.read, NULL, NULL,
+                         sb->opl.write, NULL, NULL,
+                         sb->opl.priv);
         io_removehandler(addr + 4, 0x0002,
-                     sb_ct1745_mixer_read, NULL, NULL,
-                     sb_ct1745_mixer_write, NULL, NULL,
-                     sb);
+                         sb_ct1745_mixer_read, NULL, NULL,
+                         sb_ct1745_mixer_write, NULL, NULL,
+                         sb);
     }
 
     /* DSP I/O handler is activated in sb_dsp_setaddr */
@@ -1337,7 +1337,7 @@ sb_16_reply_mca_write(int port, uint8_t val, void *p)
             break;
     }
 
-    low_dma = sb->pos_regs[3] & 3;
+    low_dma  = sb->pos_regs[3] & 3;
     high_dma = (sb->pos_regs[3] >> 4) & 7;
     if (!high_dma)
         high_dma = low_dma;
@@ -1945,7 +1945,7 @@ sb_16_reply_mca_init(const device_t *info)
     sb_dsp_init(&sb->dsp, SB16, SB_SUBTYPE_DEFAULT, sb);
     sb_ct1745_mixer_reset(sb);
 
-    sb->mixer_enabled = 1;
+    sb->mixer_enabled            = 1;
     sb->mixer_sb16.output_filter = 1;
     sound_add_handler(sb_get_buffer_sb16_awe32, sb);
     sound_set_cd_audio_filter(sb16_awe32_filter_cd_audio, sb);

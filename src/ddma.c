@@ -35,10 +35,8 @@
 #include <86box/dma.h>
 #include <86box/ddma.h>
 
-
 #ifdef ENABLE_DDMA_LOG
 int ddma_do_log = ENABLE_DDMA_LOG;
-
 
 static void
 ddma_log(const char *fmt, ...)
@@ -46,118 +44,115 @@ ddma_log(const char *fmt, ...)
     va_list ap;
 
     if (ddma_do_log) {
-	va_start(ap, fmt);
-	pclog_ex(fmt, ap);
-	va_end(ap);
+        va_start(ap, fmt);
+        pclog_ex(fmt, ap);
+        va_end(ap);
     }
 }
 #else
-#define ddma_log(fmt, ...)
+#    define ddma_log(fmt, ...)
 #endif
 
 static uint8_t
 ddma_reg_read(uint16_t addr, void *p)
 {
-    ddma_channel_t *dev = (ddma_channel_t *) p;
-    uint8_t ret = 0xff;
-    int ch = dev->channel;
-    int dmab = (ch >= 4) ? 0xc0 : 0x00;
+    ddma_channel_t *dev  = (ddma_channel_t *) p;
+    uint8_t         ret  = 0xff;
+    int             ch   = dev->channel;
+    int             dmab = (ch >= 4) ? 0xc0 : 0x00;
 
     switch (addr & 0x0f) {
-	case 0x00:
-		ret = dma[ch].ac & 0xff;
-		break;
-	case 0x01:
-		ret = (dma[ch].ac >> 8) & 0xff;
-		break;
-	case 0x02:
-		ret = dma[ch].page;
-		break;
-	case 0x04:
-		ret = dma[ch].cc & 0xff;
-		break;
-	case 0x05:
-		ret = (dma[ch].cc >> 8) & 0xff;
-		break;
-	case 0x09:
-		ret = inb(dmab + 0x08);
-		break;
+        case 0x00:
+            ret = dma[ch].ac & 0xff;
+            break;
+        case 0x01:
+            ret = (dma[ch].ac >> 8) & 0xff;
+            break;
+        case 0x02:
+            ret = dma[ch].page;
+            break;
+        case 0x04:
+            ret = dma[ch].cc & 0xff;
+            break;
+        case 0x05:
+            ret = (dma[ch].cc >> 8) & 0xff;
+            break;
+        case 0x09:
+            ret = inb(dmab + 0x08);
+            break;
     }
 
     return ret;
 }
 
-
 static void
 ddma_reg_write(uint16_t addr, uint8_t val, void *p)
 {
-    ddma_channel_t *dev = (ddma_channel_t *) p;
-    int ch = dev->channel;
-    int page_regs[4] = { 7, 3, 1, 2 };
-    int i, dmab = (ch >= 4) ? 0xc0 : 0x00;
+    ddma_channel_t *dev          = (ddma_channel_t *) p;
+    int             ch           = dev->channel;
+    int             page_regs[4] = { 7, 3, 1, 2 };
+    int             i, dmab = (ch >= 4) ? 0xc0 : 0x00;
 
     switch (addr & 0x0f) {
-	case 0x00:
-		dma[ch].ab = (dma[ch].ab & 0xffff00) | val;
-		dma[ch].ac = dma[ch].ab;
-		break;
-	case 0x01:
-		dma[ch].ab = (dma[ch].ab & 0xff00ff) | (val << 8);
-		dma[ch].ac = dma[ch].ab;
-		break;
-	case 0x02:
-		if (ch >= 4)
-			outb(0x88 + page_regs[ch & 3], val);
-		else
-			outb(0x80 + page_regs[ch & 3], val);
-		break;
-	case 0x04:
-		dma[ch].cb = (dma[ch].cb & 0xffff00) | val;
-		dma[ch].cc = dma[ch].cb;
-		break;
-	case 0x05:
-		dma[ch].cb = (dma[ch].cb & 0xff00ff) | (val << 8);
-		dma[ch].cc = dma[ch].cb;
-		break;
-	case 0x08:
-		outb(dmab + 0x08, val);
-		break;
-	case 0x09:
-		outb(dmab + 0x09, val);
-		break;
-	case 0x0a:
-		outb(dmab + 0x0a, val);
-		break;
-	case 0x0b:
-		outb(dmab + 0x0b, val);
-		break;
-	case 0x0d:
-		outb(dmab + 0x0d, val);
-		break;
-	case 0x0e:
-		for (i = 0; i < 4; i++)
-			outb(dmab + 0x0a, i);
-		break;
-	case 0x0f:
-		outb(dmab + 0x0a, (val << 2) | (ch & 3));
-		break;
+        case 0x00:
+            dma[ch].ab = (dma[ch].ab & 0xffff00) | val;
+            dma[ch].ac = dma[ch].ab;
+            break;
+        case 0x01:
+            dma[ch].ab = (dma[ch].ab & 0xff00ff) | (val << 8);
+            dma[ch].ac = dma[ch].ab;
+            break;
+        case 0x02:
+            if (ch >= 4)
+                outb(0x88 + page_regs[ch & 3], val);
+            else
+                outb(0x80 + page_regs[ch & 3], val);
+            break;
+        case 0x04:
+            dma[ch].cb = (dma[ch].cb & 0xffff00) | val;
+            dma[ch].cc = dma[ch].cb;
+            break;
+        case 0x05:
+            dma[ch].cb = (dma[ch].cb & 0xff00ff) | (val << 8);
+            dma[ch].cc = dma[ch].cb;
+            break;
+        case 0x08:
+            outb(dmab + 0x08, val);
+            break;
+        case 0x09:
+            outb(dmab + 0x09, val);
+            break;
+        case 0x0a:
+            outb(dmab + 0x0a, val);
+            break;
+        case 0x0b:
+            outb(dmab + 0x0b, val);
+            break;
+        case 0x0d:
+            outb(dmab + 0x0d, val);
+            break;
+        case 0x0e:
+            for (i = 0; i < 4; i++)
+                outb(dmab + 0x0a, i);
+            break;
+        case 0x0f:
+            outb(dmab + 0x0a, (val << 2) | (ch & 3));
+            break;
     }
 }
-
 
 void
 ddma_update_io_mapping(ddma_t *dev, int ch, uint8_t base_l, uint8_t base_h, int enable)
 {
     if (dev->channels[ch].enable && (dev->channels[ch].io_base != 0x0000))
-	io_removehandler(dev->channels[ch].io_base, 0x10, ddma_reg_read, NULL, NULL, ddma_reg_write, NULL, NULL, &dev->channels[ch]);
+        io_removehandler(dev->channels[ch].io_base, 0x10, ddma_reg_read, NULL, NULL, ddma_reg_write, NULL, NULL, &dev->channels[ch]);
 
     dev->channels[ch].io_base = base_l | (base_h << 8);
-    dev->channels[ch].enable = enable;
+    dev->channels[ch].enable  = enable;
 
     if (dev->channels[ch].enable && (dev->channels[ch].io_base != 0x0000))
-	io_sethandler(dev->channels[ch].io_base, 0x10, ddma_reg_read, NULL, NULL, ddma_reg_write, NULL, NULL, &dev->channels[ch]);
+        io_sethandler(dev->channels[ch].io_base, 0x10, ddma_reg_read, NULL, NULL, ddma_reg_write, NULL, NULL, &dev->channels[ch]);
 }
-
 
 static void
 ddma_close(void *priv)
@@ -167,33 +162,33 @@ ddma_close(void *priv)
     free(dev);
 }
 
-
 static void *
 ddma_init(const device_t *info)
 {
     ddma_t *dev;
-    int i;
+    int     i;
 
-    dev = (ddma_t *)malloc(sizeof(ddma_t));
-    if (dev == NULL) return(NULL);
+    dev = (ddma_t *) malloc(sizeof(ddma_t));
+    if (dev == NULL)
+        return (NULL);
     memset(dev, 0x00, sizeof(ddma_t));
 
     for (i = 0; i < 8; i++)
-	dev->channels[i].channel = i;
+        dev->channels[i].channel = i;
 
     return dev;
 }
 
 const device_t ddma_device = {
-    .name = "Distributed DMA",
+    .name          = "Distributed DMA",
     .internal_name = "ddma",
-    .flags = DEVICE_PCI,
-    .local = 0,
-    .init = ddma_init,
-    .close = ddma_close,
-    .reset = NULL,
+    .flags         = DEVICE_PCI,
+    .local         = 0,
+    .init          = ddma_init,
+    .close         = ddma_close,
+    .reset         = NULL,
     { .available = NULL },
     .speed_changed = NULL,
-    .force_redraw = NULL,
-    .config = NULL
+    .force_redraw  = NULL,
+    .config        = NULL
 };

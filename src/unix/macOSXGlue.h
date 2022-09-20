@@ -13,11 +13,10 @@
 
 CF_IMPLICIT_BRIDGING_ENABLED
 CF_EXTERN_C_BEGIN
-void getDefaultROMPath(char*);
-int toto();
+void getDefaultROMPath(char *);
+int  toto();
 
 CF_EXTERN_C_END
 CF_IMPLICIT_BRIDGING_DISABLED
-
 
 #endif /* macOSXGlue_h */
