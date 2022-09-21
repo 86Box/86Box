@@ -215,11 +215,11 @@ pssj_isa_init(const device_t *info)
     pssj_t *pssj = malloc(sizeof(pssj_t));
     memset(pssj, 0, sizeof(pssj_t));
 
-    sn76489_init(&pssj->sn76489, 0x00c0, 0x0004, PSSJ, 3579545);
-
     uint16_t addr = device_get_config_hex16("base");
 
-    io_sethandler(addr, 0x0004, pssj_read, NULL, NULL, pssj_write, NULL, NULL, pssj);
+    sn76489_init(&pssj->sn76489, addr, 0x0004, PSSJ, 3579545);
+
+    io_sethandler(addr + 0x04, 0x0004, pssj_read, NULL, NULL, pssj_write, NULL, NULL, pssj);
     timer_add(&pssj->timer_count, pssj_callback, pssj, pssj->enable);
     sound_add_handler(pssj_get_buffer, pssj);
 
