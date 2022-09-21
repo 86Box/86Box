@@ -208,7 +208,6 @@ pssj_1e0_init(const device_t *info)
     return pssj;
 }
 
-#if defined(DEV_BRANCH) && defined(USE_TANDY_ISA)
 void *
 pssj_isa_init(const device_t *info)
 {
@@ -225,7 +224,6 @@ pssj_isa_init(const device_t *info)
 
     return pssj;
 }
-#endif
 
 void
 pssj_close(void *p)
@@ -235,7 +233,6 @@ pssj_close(void *p)
     free(pssj);
 }
 
-#if defined(DEV_BRANCH) && defined(USE_TANDY_ISA)
 static const device_config_t pssj_isa_config[] = {
   // clang-format off
     {
@@ -277,7 +274,6 @@ static const device_config_t pssj_isa_config[] = {
     { .name = "", .description = "", .type = CONFIG_END }
 // clang-format on
 };
-#endif
 
 const device_t pssj_device = {
     .name          = "Tandy PSSJ",
@@ -307,7 +303,6 @@ const device_t pssj_1e0_device = {
     .config        = NULL
 };
 
-#if defined(DEV_BRANCH) && defined(USE_TANDY_ISA)
 const device_t pssj_isa_device = {
     .name          = "Tandy PSSJ Clone",
     .internal_name = "pssj_isa",
@@ -321,4 +316,3 @@ const device_t pssj_isa_device = {
     .force_redraw  = NULL,
     .config        = pssj_isa_config
 };
-#endif
