@@ -69,6 +69,7 @@ x386_log(const char *fmt, ...)
 
 #include "x86_flags.h"
 
+/*
 #define getbytef()          \
     ((uint8_t) (fetchdat)); \
     cpu_state.pc++
@@ -81,6 +82,7 @@ x386_log(const char *fmt, ...)
 #define getword2f()               \
     ((uint16_t) (fetchdat >> 8)); \
     cpu_state.pc += 2
+*/
 
 #define OP_TABLE(name) ops_##name
 
