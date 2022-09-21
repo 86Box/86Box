@@ -260,12 +260,24 @@ static const device_config_t tndy_config[] = {
                 .value = 0x0C0
             },
             {
+                .description = "0x0E0",
+                .value = 0x0E0
+            },
+            {
+                .description = "0x1C0",
+                .value = 0x1C0
+            },
+            {
                 .description = "0x1E0",
                 .value = 0x1E0
             },
             {
                 .description = "0x2C0",
                 .value = 0x2C0
+            },
+            {
+                .description = "0x2E0",
+                .value = 0x2E0
             },
             { .description = "" }
         }
