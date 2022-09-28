@@ -275,7 +275,7 @@ ini_detect_bom(char *fn)
 #endif
     if (f == NULL)
         return (0);
-    fread(bom, 1, 3, f);
+    (void) !fread(bom, 1, 3, f);
     if (bom[0] == 0xEF && bom[1] == 0xBB && bom[2] == 0xBF) {
         fclose(f);
         return 1;

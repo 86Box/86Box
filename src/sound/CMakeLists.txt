@@ -117,9 +117,5 @@ if(GUSMAX)
     target_compile_definitions(snd PRIVATE USE_GUSMAX)
 endif()
 
-if(TANDY_ISA)
-    target_compile_definitions(snd PRIVATE USE_TANDY_ISA)
-endif()
-
 add_subdirectory(resid-fp)
 target_link_libraries(86Box resid-fp)

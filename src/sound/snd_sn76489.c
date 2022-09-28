@@ -209,6 +209,7 @@ sn76489_device_init(const device_t *info)
 
     return sn76489;
 }
+
 void *
 ncr8496_device_init(const device_t *info)
 {
@@ -220,7 +221,6 @@ ncr8496_device_init(const device_t *info)
     return sn76489;
 }
 
-#if defined(DEV_BRANCH) && defined(USE_TANDY_ISA)
 void *
 tndy_device_init(const device_t *info)
 {
@@ -233,7 +233,6 @@ tndy_device_init(const device_t *info)
 
     return sn76489;
 }
-#endif
 
 void
 sn76489_device_close(void *p)
@@ -243,7 +242,6 @@ sn76489_device_close(void *p)
     free(sn76489);
 }
 
-#if defined(DEV_BRANCH) && defined(USE_TANDY_ISA)
 static const device_config_t tndy_config[] = {
   // clang-format off
     {
@@ -260,6 +258,14 @@ static const device_config_t tndy_config[] = {
                 .value = 0x0C0
             },
             {
+                .description = "0x0E0",
+                .value = 0x0E0
+            },
+            {
+                .description = "0x1C0",
+                .value = 0x1C0
+            },
+            {
                 .description = "0x1E0",
                 .value = 0x1E0
             },
@@ -267,13 +273,16 @@ static const device_config_t tndy_config[] = {
                 .description = "0x2C0",
                 .value = 0x2C0
             },
+            {
+                .description = "0x2E0",
+                .value = 0x2E0
+            },
             { .description = "" }
         }
     },
     { .name = "", .description = "", .type = CONFIG_END }
 // clang-format on
 };
-#endif
 
 const device_t sn76489_device = {
     .name          = "TI SN74689 PSG",
@@ -303,7 +312,6 @@ const device_t ncr8496_device = {
     .config        = NULL
 };
 
-#if defined(DEV_BRANCH) && defined(USE_TANDY_ISA)
 const device_t tndy_device = {
     .name          = "TNDY",
     .internal_name = "tndy",
@@ -317,4 +325,3 @@ const device_t tndy_device = {
     .force_redraw  = NULL,
     .config        = tndy_config
 };
-#endif

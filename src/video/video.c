@@ -996,9 +996,9 @@ loadfont_common(FILE *f, int format)
             for (d = 0; d < 4; d++) {
                 /* There are 4 fonts in the ROM */
                 for (c = 0; c < 256; c++) /* 8x14 MDA in 8x16 cell */
-                    fread(&fontdatm[256 * d + c][0], 1, 16, f);
+                    (void) !fread(&fontdatm[256 * d + c][0], 1, 16, f);
                 for (c = 0; c < 256; c++) { /* 8x8 CGA in 8x16 cell */
-                    fread(&fontdat[256 * d + c][0], 1, 8, f);
+                    (void) !fread(&fontdat[256 * d + c][0], 1, 8, f);
                     fseek(f, 8, SEEK_CUR);
                 }
             }
