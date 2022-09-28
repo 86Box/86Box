@@ -1152,13 +1152,11 @@ scsi_cdrom_pre_execution_check(scsi_cdrom_t *dev, uint8_t *cdb)
 {
     int ready = 0;
 
-    if (dev->drv->bus_type == CDROM_BUS_SCSI) {
-        if ((cdb[0] != GPCMD_REQUEST_SENSE) && (dev->cur_lun == SCSI_LUN_USE_CDB) && (cdb[1] & 0xe0)) {
-            scsi_cdrom_log("CD-ROM %i: Attempting to execute a unknown command targeted at SCSI LUN %i\n",
-                           dev->id, ((dev->request_length >> 5) & 7));
-            scsi_cdrom_invalid_lun(dev);
-            return 0;
-        }
+    if ((cdb[0] != GPCMD_REQUEST_SENSE) && (dev->cur_lun == SCSI_LUN_USE_CDB) && (cdb[1] & 0xe0)) {
+        scsi_cdrom_log("CD-ROM %i: Attempting to execute a unknown command targeted at SCSI LUN %i\n",
+                       dev->id, ((dev->request_length >> 5) & 7));
+        scsi_cdrom_invalid_lun(dev);
+        return 0;
     }
 
     if (!(scsi_cdrom_command_flags[cdb[0]] & IMPLEMENTED)) {
