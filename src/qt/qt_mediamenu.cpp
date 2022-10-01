@@ -105,6 +105,11 @@ void MediaMenu::refresh(QMenu *parentMenu) {
         menu->addAction(tr("&Existing image..."), [this, i]() { floppySelectImage(i, false); });
         menu->addAction(tr("Existing image (&Write-protected)..."), [this, i]() { floppySelectImage(i, true); });
         menu->addSeparator();
+        for (int slot = 0; slot < MAX_PREV_IMAGES; slot++) {
+            floppyImageHistoryPos[slot] = menu->children().count();
+            menu->addAction(QString::asprintf(tr("Image %i").toUtf8().constData(), slot), [this, i, slot]() { floppyMenuSelect(i, slot); })->setCheckable(false);
+        }
+        menu->addSeparator();
         floppyExportPos = menu->children().count();
         menu->addAction(tr("E&xport to 86F..."), [this, i]() { floppyExportTo86f(i); });
         menu->addSeparator();
@@ -328,6 +333,7 @@ void MediaMenu::floppySelectImage(int i, bool wp) {
 }
 
 void MediaMenu::floppyMount(int i, const QString &filename, bool wp) {
+    auto previous_image = QFileInfo(floppyfns[i]);
     fdd_close(i);
     ui_writeprot[i] = wp ? 1 : 0;
     if (! filename.isEmpty()) {
@@ -335,12 +341,14 @@ void MediaMenu::floppyMount(int i, const QString &filename, bool wp) {
         fdd_load(i, filenameBytes.data());
     }
     ui_sb_update_icon_state(SB_FLOPPY | i, filename.isEmpty() ? 1 : 0);
+    mhm.addImageToHistory(i, ui::MediaType::Floppy, previous_image.filePath(), filename);
     floppyUpdateMenu(i);
     ui_sb_update_tip(SB_FLOPPY | i);
     config_save();
 }
 
 void MediaMenu::floppyEject(int i) {
+    mhm.addImageToHistory(i, ui::MediaType::Floppy, floppyfns[i], QString());
     fdd_close(i);
     ui_sb_update_icon_state(SB_FLOPPY | i, 1);
     floppyUpdateMenu(i);
@@ -376,9 +384,20 @@ void MediaMenu::floppyUpdateMenu(int i) {
     ejectMenu->setText(QString::asprintf(tr("Eject %s").toUtf8().constData(), name.isEmpty() ? QString().toUtf8().constData() :  fi.fileName().toUtf8().constData()));
     exportMenu->setEnabled(!name.isEmpty());
 
+    for (int slot = 0; slot < MAX_PREV_IMAGES; slot++) {
+        updateImageHistory(i, slot, ui::MediaType::Floppy);
+    }
+
     int type = fdd_get_type(i);
     //floppyMenus[i]->setTitle(tr("Floppy %1 (%2): %3").arg(QString::number(i+1), fdd_getname(type), name.isEmpty() ? tr("(empty)") : name));
     floppyMenus[i]->setTitle(QString::asprintf(tr("Floppy %i (%s): %ls").toUtf8().constData(), i + 1, fdd_getname(type), name.isEmpty() ? tr("(empty)").toStdU16String().data() : name.toStdU16String().data()));
+}
+
+void MediaMenu::floppyMenuSelect(int index, int slot) {
+    QString filename = mhm.getImageForSlot(index, slot, ui::MediaType::Floppy);
+    floppyMount(index, filename.toUtf8().constData(), false);
+    floppyUpdateMenu(index);
+    ui_sb_update_tip(SB_FLOPPY | index);
 }
 
 void MediaMenu::cdromMute(int i) {
@@ -501,8 +520,9 @@ void MediaMenu::cdromUpdateMenu(int i) {
     imageMenu->setEnabled(!name.isEmpty());
     imageMenu->setText(QString::asprintf(tr("Eject %s").toUtf8().constData(), name.isEmpty() ? QString().toUtf8().constData() :  fi.fileName().toUtf8().constData()));
 
-    for (int slot = 0; slot < MAX_PREV_IMAGES; slot++)
+    for (int slot = 0; slot < MAX_PREV_IMAGES; slot++) {
         updateImageHistory(i, slot, ui::MediaType::Optical);
+    }
 
     QString busName = tr("Unknown Bus");
     switch (cdrom[i].bus_type) {
