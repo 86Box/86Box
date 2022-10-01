@@ -37,6 +37,7 @@ public:
     void floppySelectImage(int i, bool wp);
     void floppyMount(int i, const QString& filename, bool wp);
     void floppyEject(int i);
+    void floppyMenuSelect(int index, int slot);
     void floppyExportTo86f(int i);
     void floppyUpdateMenu(int i);
 
