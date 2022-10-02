@@ -559,7 +559,7 @@ const device_t tvga9000b_device = {
 
 const device_t nec_sv9000_device = {
     .name = "NEC SV9000 (Trident TVGA 9000B)",
-    .internal_name = "tvga9000b",
+    .internal_name = "nec_sv9000",
     .flags = DEVICE_ISA,
     .local = TVGA9000B_ID | 0x100,
     .init = tvga_init,
