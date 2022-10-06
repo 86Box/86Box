@@ -163,7 +163,7 @@ plat_fopen(const char *path, const char *mode)
 {
 #if defined(Q_OS_MACOS) or defined(Q_OS_LINUX)
     QFileInfo fi(path);
-    QString filename = fi.isRelative() ? usr_path + fi.filePath() : fi.filePath();
+    QString filename = (fi.isRelative() && !fi.filePath().isEmpty()) ? usr_path + fi.filePath() : fi.filePath();
     return fopen(filename.toUtf8().constData(), mode);
 #else
     return fopen(QString::fromUtf8(path).toLocal8Bit(), mode);
@@ -175,7 +175,7 @@ plat_fopen64(const char *path, const char *mode)
 {
 #if defined(Q_OS_MACOS) or defined(Q_OS_LINUX)
     QFileInfo fi(path);
-    QString filename = fi.isRelative() ? usr_path + fi.filePath() : fi.filePath();
+    QString filename = (fi.isRelative() && !fi.filePath().isEmpty()) ? usr_path + fi.filePath() : fi.filePath();
     return fopen(filename.toUtf8().constData(), mode);
 #else
     return fopen(QString::fromUtf8(path).toLocal8Bit(), mode);
