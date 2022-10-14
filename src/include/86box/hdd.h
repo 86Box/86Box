@@ -203,13 +203,13 @@ extern int image_is_hdi(const char *s);
 extern int image_is_hdx(const char *s, int check_signature);
 extern int image_is_vhd(const char *s, int check_signature);
 
-extern double hdd_timing_write(hard_disk_t *hdd, uint32_t addr, uint32_t len);
-extern double hdd_timing_read(hard_disk_t *hdd, uint32_t addr, uint32_t len);
-extern double hdd_seek_get_time(hard_disk_t *hdd, uint32_t dst_addr, uint8_t operation, uint8_t continuous, double max_seek_time);
-int           hdd_preset_get_num();
-char         *hdd_preset_getname(int preset);
-extern char  *hdd_preset_get_internal_name(int preset);
-extern int    hdd_preset_get_from_internal_name(char *s);
-extern void   hdd_preset_apply(int hdd_id);
+extern double      hdd_timing_write(hard_disk_t *hdd, uint32_t addr, uint32_t len);
+extern double      hdd_timing_read(hard_disk_t *hdd, uint32_t addr, uint32_t len);
+extern double      hdd_seek_get_time(hard_disk_t *hdd, uint32_t dst_addr, uint8_t operation, uint8_t continuous, double max_seek_time);
+int                hdd_preset_get_num();
+const char        *hdd_preset_getname(int preset);
+extern const char *hdd_preset_get_internal_name(int preset);
+extern int         hdd_preset_get_from_internal_name(char *s);
+extern void        hdd_preset_apply(int hdd_id);
 
 #endif /*EMU_HDD_H*/
