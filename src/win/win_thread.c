@@ -31,40 +31,37 @@
 #include <86box/plat.h>
 #include <86box/thread.h>
 
-
 typedef struct {
     HANDLE handle;
 } win_event_t;
-
 
 thread_t *
 thread_create(void (*func)(void *param), void *param)
 {
     uintptr_t bt = _beginthread(func, 0, param);
-    return((thread_t *)bt);
+    return ((thread_t *) bt);
 }
-
 
 int
 thread_test_mutex(thread_t *arg)
 {
-    if (arg == NULL) return(0);
+    if (arg == NULL)
+        return (0);
 
     return (WaitForSingleObject(arg, 0) == WAIT_OBJECT_0) ? 1 : 0;
 }
 
-
-
 int
 thread_wait(thread_t *arg)
 {
-    if (arg == NULL) return(0);
+    if (arg == NULL)
+        return (0);
 
-    if (WaitForSingleObject(arg, INFINITE)) return(1);
+    if (WaitForSingleObject(arg, INFINITE))
+        return (1);
 
-    return(0);
+    return (0);
 }
-
 
 event_t *
 thread_create_event(void)
@@ -73,62 +70,63 @@ thread_create_event(void)
 
     ev->handle = CreateEvent(NULL, FALSE, FALSE, NULL);
 
-    return((event_t *)ev);
+    return ((event_t *) ev);
 }
-
 
 void
 thread_set_event(event_t *arg)
 {
-    win_event_t *ev = (win_event_t *)arg;
+    win_event_t *ev = (win_event_t *) arg;
 
-    if (arg == NULL) return;
+    if (arg == NULL)
+        return;
 
     SetEvent(ev->handle);
 }
 
-
 void
 thread_reset_event(event_t *arg)
 {
-    win_event_t *ev = (win_event_t *)arg;
+    win_event_t *ev = (win_event_t *) arg;
 
-    if (arg == NULL) return;
+    if (arg == NULL)
+        return;
 
     ResetEvent(ev->handle);
 }
 
-
 int
 thread_wait_event(event_t *arg, int timeout)
 {
-    win_event_t *ev = (win_event_t *)arg;
+    win_event_t *ev = (win_event_t *) arg;
 
-    if (arg == NULL) return(0);
+    if (arg == NULL)
+        return (0);
 
-    if (ev->handle == NULL) return(0);
+    if (ev->handle == NULL)
+        return (0);
 
     if (timeout == -1)
-	timeout = INFINITE;
+        timeout = INFINITE;
 
-    if (WaitForSingleObject(ev->handle, timeout)) return(1);
+    if (WaitForSingleObject(ev->handle, timeout))
+        return (1);
 
-    return(0);
+    return (0);
 }
-
 
 void
 thread_destroy_event(event_t *arg)
 {
-    win_event_t *ev = (win_event_t *)arg;
+    win_event_t *ev = (win_event_t *) arg;
 
-    if (arg == NULL) return;
+    if (arg == NULL)
+        return;
 
     CloseHandle(ev->handle);
 
     free(ev);
 }
-
 
 mutex_t *
 thread_create_mutex(void)
@@ -140,39 +138,39 @@ thread_create_mutex(void)
     return mutex;
 }
 
-
 int
 thread_wait_mutex(mutex_t *mutex)
 {
-    if (mutex == NULL) return(0);
+    if (mutex == NULL)
+        return (0);
 
-    LPCRITICAL_SECTION critsec = (LPCRITICAL_SECTION)mutex;
+    LPCRITICAL_SECTION critsec = (LPCRITICAL_SECTION) mutex;
 
     EnterCriticalSection(critsec);
 
     return 1;
 }
 
-
 int
 thread_release_mutex(mutex_t *mutex)
 {
-    if (mutex == NULL) return(0);
+    if (mutex == NULL)
+        return (0);
 
-    LPCRITICAL_SECTION critsec = (LPCRITICAL_SECTION)mutex;
+    LPCRITICAL_SECTION critsec = (LPCRITICAL_SECTION) mutex;
 
     LeaveCriticalSection(critsec);
 
     return 1;
 }
 
-
 void
 thread_close_mutex(mutex_t *mutex)
 {
-    if (mutex == NULL) return;
+    if (mutex == NULL)
+        return;
 
-    LPCRITICAL_SECTION critsec = (LPCRITICAL_SECTION)mutex;
+    LPCRITICAL_SECTION critsec = (LPCRITICAL_SECTION) mutex;
 
     DeleteCriticalSection(critsec);
 

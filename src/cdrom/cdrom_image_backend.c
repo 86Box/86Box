@@ -36,8 +36,7 @@
 #include <86box/plat.h>
 #include <86box/cdrom_image_backend.h>
 
-
-#define CDROM_BCD(x)      (((x) % 10) | (((x) / 10) << 4))
+#define CDROM_BCD(x)        (((x) % 10) | (((x) / 10) << 4))
 
 #define MAX_LINE_LENGTH     512
 #define MAX_FILENAME_LENGTH 256
@@ -425,12 +424,11 @@ cdi_read_sectors(cd_img_t *cdi, uint8_t *buffer, int raw, uint32_t sector, uint3
     for (i = 0; i < num; i++) {
         success = cdi_read_sector(cdi, &buf[i * sector_size], raw, sector + i);
         if (!success)
-		break;
-	/* Based on the DOSBox patch, but check all 8 bytes and makes sure it's not an
-	   audio track. */
-	if (raw && sector < cdi->tracks[0].length && !cdi->tracks[0].mode2 &&
-	    (cdi->tracks[0].attr != AUDIO_TRACK) && *(uint64_t *) &(buf[i * sector_size + 2068]))
-		return 0;
+            break;
+        /* Based on the DOSBox patch, but check all 8 bytes and makes sure it's not an
+           audio track. */
+        if (raw && sector < cdi->tracks[0].length && !cdi->tracks[0].mode2 && (cdi->tracks[0].attr != AUDIO_TRACK) && *(uint64_t *) &(buf[i * sector_size + 2068]))
+            return 0;
     }
 
     memcpy((void *) buffer, buf, buf_len);
@@ -548,7 +546,7 @@ cdi_load_iso(cd_img_t *cdi, const char *filename)
     if (error) {
         if ((trk.file != NULL) && (trk.file->close != NULL))
             trk.file->close(trk.file);
-        ret = 3;
+        ret      = 3;
         trk.file = viso_init(filename, &error);
         if (error) {
             if ((trk.file != NULL) && (trk.file->close != NULL))
