@@ -175,7 +175,7 @@ viso_convert_utf8(wchar_t *dest, const char *src, ssize_t buf_size)
             *p = 0;
             break;
         } else if (c & 0x80) {
-            /* Convert UTF-8 codepoints. */
+            /* Convert UTF-8 sequence into a codepoint. */
             next = 0;
             while (c & 0x40) {
                 next++;
@@ -184,24 +184,24 @@ viso_convert_utf8(wchar_t *dest, const char *src, ssize_t buf_size)
             c = *src++ & (0x3f >> next);
             while ((next-- > 0) && ((*src & 0xc0) == 0x80))
                 c = (c << 6) | (*src++ & 0x3f);
+
+            /* Convert codepoints >= U+10000 to UTF-16 surrogate pairs.
+               This has to be done here because wchar_t on some platforms
+               (Windows) is not wide enough to store such high codepoints. */
+            if (c >= 0x10000) {
+                if ((c <= 0x10ffff) && (buf_size-- > 0)) {
+                    /* Encode surrogate pair. */
+                    c -= 0x10000;
+                    *p++ = 0xd800 | (c >> 10);
+                    c    = 0xdc00 | (c & 0x3ff);
+                } else {
+                    /* Codepoint overflow or no room for a pair. */
+                    c = '?';
+                }
+            }
         } else {
             /* Pass through sub-UTF-8 codepoints. */
             src++;
-        }
-
-        /* Convert codepoints >= U+10000 to UTF-16 surrogate pairs.
-           This has to be done here because wchar_t on some platforms
-           (Windows) is not wide enough to store such high codepoints. */
-        if (c >= 0x10000) {
-            if ((c <= 0x10ffff) && (buf_size-- > 0)) {
-                /* Encode surrogate pair. */
-                c -= 0x10000;
-                *p++ = 0xd800 | (c >> 10);
-                c    = 0xdc00 | (c & 0x3ff);
-            } else {
-                /* Codepoint overflow or no room for a pair. */
-                c = '?';
-            }
         }
 
         /* Write destination codepoint. */
@@ -211,11 +211,11 @@ viso_convert_utf8(wchar_t *dest, const char *src, ssize_t buf_size)
     return p - dest;
 }
 
-#define VISO_WRITE_STR_FUNC(n, dt, st, cnv)                                         \
+#define VISO_WRITE_STR_FUNC(func, dst_type, src_type, converter)                    \
     static void                                                                     \
-    n(dt *dest, const st *src, ssize_t buf_size, int charset)                       \
+    func(dst_type *dest, const src_type *src, ssize_t buf_size, int charset)        \
     {                                                                               \
-        st c;                                                                       \
+        src_type c;                                                                 \
         while (buf_size-- > 0) {                                                    \
             /* Interpret source codepoint. */                                       \
             c = *src++;                                                             \
@@ -223,7 +223,7 @@ viso_convert_utf8(wchar_t *dest, const char *src, ssize_t buf_size)
                 case 0x00:                                                          \
                     /* Terminator, apply space padding. */                          \
                     while (buf_size-- >= 0)                                         \
-                        *dest++ = cnv(' ');                                         \
+                        *dest++ = converter(' ');                                   \
                     return;                                                         \
                                                                                     \
                 case 'A' ... 'Z':                                                   \
@@ -283,7 +283,7 @@ viso_convert_utf8(wchar_t *dest, const char *src, ssize_t buf_size)
             }                                                                       \
                                                                                     \
             /* Write destination codepoint with conversion function applied. */     \
-            *dest++ = cnv(c);                                                       \
+            *dest++ = converter(c);                                                 \
         }                                                                           \
     }
 VISO_WRITE_STR_FUNC(viso_write_string, uint8_t, char, )
