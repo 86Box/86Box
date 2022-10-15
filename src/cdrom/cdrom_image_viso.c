@@ -119,7 +119,6 @@ static const char rr_eid[]   = "RRIP_1991A"; /* identifiers used in ER field for
 static const char rr_edesc[] = "THE ROCK RIDGE INTERCHANGE PROTOCOL PROVIDES SUPPORT FOR POSIX FILE SYSTEM SEMANTICS.";
 static int8_t     tz_offset  = 0;
 
-#define ENABLE_CDROM_IMAGE_VISO_LOG 1
 #ifdef ENABLE_CDROM_IMAGE_VISO_LOG
 int cdrom_image_viso_do_log = ENABLE_CDROM_IMAGE_VISO_LOG;
 
