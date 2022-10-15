@@ -15,14 +15,24 @@
 #include <86box/ui.h>
 #include <mt32emu/c_interface/c_interface.h>
 
+#define MT32_OLD_CTRL_ROM "roms/sound/mt32/MT32_CONTROL.ROM"
+#define MT32_OLD_PCM_ROM  "roms/sound/mt32/MT32_PCM.ROM"
+#define MT32_NEW_CTRL_ROM "roms/sound/mt32_new/MT32_CONTROL.ROM"
+#define MT32_NEW_PCM_ROM  "roms/sound/mt32_new/MT32_PCM.ROM"
+#define CM32L_CTRL_ROM    "roms/sound/cm32l/CM32L_CONTROL.ROM"
+#define CM32L_PCM_ROM     "roms/sound/cm32l/CM32L_PCM.ROM"
+#define CM32LN_CTRL_ROM   "roms/sound/cm32ln/CM32LN_CONTROL.ROM"
+#define CM32LN_PCM_ROM    "roms/sound/cm32ln/CM32LN_PCM.ROM"
+
 extern void givealbuffer_midi(void *buf, uint32_t size);
 extern void al_set_midi(int freq, int buf_size);
 
-static void display_mt32_message(void *instance_data, const char *message);
+static mt32emu_report_handler_version get_mt32_report_handler_version(mt32emu_report_handler_i i);
+static void                           display_mt32_message(void *instance_data, const char *message);
 
 static const mt32emu_report_handler_i_v0 handler_mt32_v0 = {
     /** Returns the actual interface version ID */
-    NULL, // mt32emu_report_handler_version (*getVersionID)(mt32emu_report_handler_i i);
+    get_mt32_report_handler_version, // mt32emu_report_handler_version (*getVersionID)(mt32emu_report_handler_i i);
 
     /** Callback for debug messages, in vprintf() format */
     NULL, // void (*printDebug)(void *instance_data, const char *fmt, va_list list);
@@ -56,10 +66,10 @@ static const mt32emu_report_handler_i_v0 handler_mt32_v0 = {
     NULL, // void (*onProgramChanged)(void *instance_data, mt32emu_bit8u part_num, const char *sound_group_name, const char *patch_name);
 };
 
-/** Alternate report handler for Roland CM-32L */
+/** Alternate report handler for Roland CM-32L/CM-32LN */
 static const mt32emu_report_handler_i_v0 handler_cm32l_v0 = {
     /** Returns the actual interface version ID */
-    NULL, // mt32emu_report_handler_version (*getVersionID)(mt32emu_report_handler_i i);
+    get_mt32_report_handler_version, // mt32emu_report_handler_version (*getVersionID)(mt32emu_report_handler_i i);
 
     /** Callback for debug messages, in vprintf() format */
     NULL, // void (*printDebug)(void *instance_data, const char *fmt, va_list list);
@@ -109,10 +119,18 @@ mt32_check(const char *func, mt32emu_return_code ret, mt32emu_return_code expect
 }
 
 int
-mt32_available()
+mt32_old_available()
 {
     if (roms_present[0] < 0)
-        roms_present[0] = (rom_present("roms/sound/mt32/MT32_CONTROL.ROM") && rom_present("roms/sound/mt32/MT32_PCM.ROM"));
+        roms_present[0] = (rom_present(MT32_OLD_CTRL_ROM) && rom_present(MT32_OLD_PCM_ROM));
+    return roms_present[0];
+}
+
+int
+mt32_new_available()
+{
+    if (roms_present[0] < 0)
+        roms_present[0] = (rom_present(MT32_NEW_CTRL_ROM) && rom_present(MT32_NEW_PCM_ROM));
     return roms_present[0];
 }
 
@@ -120,7 +138,15 @@ int
 cm32l_available()
 {
     if (roms_present[1] < 0)
-        roms_present[1] = (rom_present("roms/sound/cm32l/CM32L_CONTROL.ROM") && rom_present("roms/sound/cm32l/CM32L_PCM.ROM"));
+        roms_present[1] = (rom_present(CM32L_CTRL_ROM) && rom_present(CM32L_PCM_ROM));
+    return roms_present[1];
+}
+
+int
+cm32ln_available()
+{
+    if (roms_present[1] < 0)
+        roms_present[1] = (rom_present(CM32LN_CTRL_ROM) && rom_present(CM32LN_PCM_ROM));
     return roms_present[1];
 }
 
@@ -137,6 +163,12 @@ static int      buf_size     = 0;
 static float   *buffer       = NULL;
 static int16_t *buffer_int16 = NULL;
 static int      midi_pos     = 0;
+
+static mt32emu_report_handler_version
+get_mt32_report_handler_version(mt32emu_report_handler_i i)
+{
+    return MT32EMU_REPORT_HANDLER_VERSION_0;
+}
 
 static void
 display_mt32_message(void *instance_data, const char *message)
@@ -232,7 +264,7 @@ mt32emu_init(char *control_rom, char *pcm_rom)
     midi_device_t *dev;
     char           fn[512];
 
-    context = mt32emu_create_context(strstr(control_rom, "CM32L_CONTROL.ROM") ? handler_cm32l : handler_mt32, NULL);
+    context = mt32emu_create_context(strstr(control_rom, "MT32_CONTROL.ROM") ? handler_mt32 : handler_cm32l, NULL);
 
     if (!rom_getfile(control_rom, fn, 512))
         return 0;
@@ -289,15 +321,27 @@ mt32emu_init(char *control_rom, char *pcm_rom)
 }
 
 void *
-mt32_init(const device_t *info)
+mt32_old_init(const device_t *info)
 {
-    return mt32emu_init("roms/sound/mt32/MT32_CONTROL.ROM", "roms/sound/mt32/MT32_PCM.ROM");
+    return mt32emu_init(MT32_OLD_CTRL_ROM, MT32_OLD_PCM_ROM);
+}
+
+void *
+mt32_new_init(const device_t *info)
+{
+    return mt32emu_init(MT32_NEW_CTRL_ROM, MT32_NEW_PCM_ROM);
 }
 
 void *
 cm32l_init(const device_t *info)
 {
-    return mt32emu_init("roms/sound/cm32l/CM32L_CONTROL.ROM", "roms/sound/cm32l/CM32L_PCM.ROM");
+    return mt32emu_init(CM32L_CTRL_ROM, CM32L_PCM_ROM);
+}
+
+void *
+cm32ln_init(const device_t *info)
+{
+    return mt32emu_init(CM32LN_CTRL_ROM, CM32LN_PCM_ROM);
 }
 
 void
@@ -320,6 +364,8 @@ mt32_close(void *p)
     }
     context = NULL;
 
+    ui_sb_mt32lcd("");
+
     if (buffer)
         free(buffer);
     buffer = NULL;
@@ -330,7 +376,7 @@ mt32_close(void *p)
 }
 
 static const device_config_t mt32_config[] = {
-// clang-format off
+  // clang-format off
     {
         .name = "output_gain",
         .description = "Output Gain",
@@ -373,30 +419,58 @@ static const device_config_t mt32_config[] = {
 // clang-format on
 };
 
-const device_t mt32_device = {
-    .name = "Roland MT-32 Emulation",
+const device_t mt32_old_device = {
+    .name          = "Roland MT-32 Emulation",
     .internal_name = "mt32",
-    .flags = 0,
-    .local = 0,
-    .init = mt32_init,
-    .close = mt32_close,
-    .reset = NULL,
-    { .available = mt32_available },
+    .flags         = 0,
+    .local         = 0,
+    .init          = mt32_old_init,
+    .close         = mt32_close,
+    .reset         = NULL,
+    { .available = mt32_old_available },
     .speed_changed = NULL,
-    .force_redraw = NULL,
-    .config = mt32_config
+    .force_redraw  = NULL,
+    .config        = mt32_config
+};
+
+const device_t mt32_new_device = {
+    .name          = "Roland MT-32 (New) Emulation",
+    .internal_name = "mt32",
+    .flags         = 0,
+    .local         = 0,
+    .init          = mt32_new_init,
+    .close         = mt32_close,
+    .reset         = NULL,
+    { .available = mt32_new_available },
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = mt32_config
 };
 
 const device_t cm32l_device = {
-    .name = "Roland CM-32L Emulation",
+    .name          = "Roland CM-32L Emulation",
     .internal_name = "cm32l",
-    .flags = 0,
-    .local = 0,
-    .init = cm32l_init,
-    .close = mt32_close,
-    .reset = NULL,
+    .flags         = 0,
+    .local         = 0,
+    .init          = cm32l_init,
+    .close         = mt32_close,
+    .reset         = NULL,
     { .available = cm32l_available },
     .speed_changed = NULL,
-    .force_redraw = NULL,
-    .config = mt32_config
+    .force_redraw  = NULL,
+    .config        = mt32_config
+};
+
+const device_t cm32ln_device = {
+    .name          = "Roland CM-32LN Emulation",
+    .internal_name = "cm32ln",
+    .flags         = 0,
+    .local         = 0,
+    .init          = cm32ln_init,
+    .close         = mt32_close,
+    .reset         = NULL,
+    { .available = cm32ln_available },
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = mt32_config
 };

@@ -26,6 +26,14 @@
 #include "qt_opengloptionsdialog.hpp"
 #include "qt_openglrenderer.hpp"
 
+#ifndef GL_MAP_PERSISTENT_BIT
+#define GL_MAP_PERSISTENT_BIT 0x0040
+#endif
+
+#ifndef GL_MAP_COHERENT_BIT
+#define GL_MAP_COHERENT_BIT 0x0080
+#endif
+
 OpenGLRenderer::OpenGLRenderer(QWidget *parent)
     : QWindow(parent->windowHandle())
     , renderTimer(new QTimer(this))
@@ -72,6 +80,8 @@ OpenGLRenderer::exposeEvent(QExposeEvent *event)
 
     if (!isInitialized)
         initialize();
+
+    onResize(size().width(), size().height());
 }
 
 void
@@ -87,8 +97,8 @@ OpenGLRenderer::resizeEvent(QResizeEvent *event)
     context->makeCurrent(this);
 
     glViewport(
-        destination.x(),
-        destination.y(),
+        destination.x() * devicePixelRatio(),
+        destination.y() * devicePixelRatio(),
         destination.width() * devicePixelRatio(),
         destination.height() * devicePixelRatio());
 }
@@ -171,8 +181,8 @@ OpenGLRenderer::initialize()
         glClearColor(0.f, 0.f, 0.f, 1.f);
 
         glViewport(
-            destination.x(),
-            destination.y(),
+            destination.x() * devicePixelRatio(),
+            destination.y() * devicePixelRatio(),
             destination.width() * devicePixelRatio(),
             destination.height() * devicePixelRatio());
 
@@ -239,10 +249,12 @@ void
 OpenGLRenderer::initializeExtensions()
 {
 #ifndef NO_BUFFER_STORAGE
-    if (context->hasExtension("GL_ARB_buffer_storage")) {
+    if (context->hasExtension("GL_ARB_buffer_storage") || context->hasExtension("GL_EXT_buffer_storage")) {
         hasBufferStorage = true;
 
-        glBufferStorage = (PFNGLBUFFERSTORAGEPROC) context->getProcAddress("glBufferStorage");
+        glBufferStorage = (PFNGLBUFFERSTORAGEEXTPROC_LOCAL) context->getProcAddress(context->hasExtension("GL_EXT_buffer_storage") ? "glBufferStorageEXT" : "glBufferStorage");
+        if (!glBufferStorage)
+            glBufferStorage = (PFNGLBUFFERSTORAGEEXTPROC_LOCAL) context->getProcAddress("glBufferStorage");
     }
 #endif
 }
@@ -414,6 +426,14 @@ OpenGLRenderer::onBlit(int buf_idx, int x, int y, int w, int h)
         return;
 
     context->makeCurrent(this);
+
+#ifdef Q_OS_MACOS
+    glViewport(
+        destination.x() * devicePixelRatio(),
+        destination.y() * devicePixelRatio(),
+        destination.width() * devicePixelRatio(),
+        destination.height() * devicePixelRatio());
+#endif
 
     if (source.width() != w || source.height() != h) {
         source.setRect(0, 0, w, h);

@@ -50,31 +50,29 @@ pc87310_log(const char *fmt, ...)
 {
     va_list ap;
 
-    if (pc87310_do_log)
-    {
+    if (pc87310_do_log) {
         va_start(ap, fmt);
         pclog_ex(fmt, ap);
         va_end(ap);
     }
 }
 #else
-#define pc87310_log(fmt, ...)
+#    define pc87310_log(fmt, ...)
 #endif
 
 typedef struct {
     uint8_t tries, ide_function,
-	    reg;
-    fdc_t *fdc;
+        reg;
+    fdc_t    *fdc;
     serial_t *uart[2];
 } pc87310_t;
-
 
 static void
 lpt1_handler(pc87310_t *dev)
 {
-    int temp;
+    int      temp;
     uint16_t lpt_port = LPT1_ADDR;
-    uint8_t lpt_irq = LPT1_IRQ;
+    uint8_t  lpt_irq  = LPT1_IRQ;
 
     /* bits 0-1:
      * 00 378h
@@ -85,27 +83,26 @@ lpt1_handler(pc87310_t *dev)
     temp = dev->reg & 3;
 
     switch (temp) {
-	case 0:
-		lpt_port = LPT1_ADDR;
-		break;
-	case 1:
-		lpt_port = LPT_MDA_ADDR;
-		break;
-	case 2:
-		lpt_port = LPT2_ADDR;
-		break;
-	case 3:
-		lpt_port = 0x000;
-		lpt_irq = 0xff;
-		break;
+        case 0:
+            lpt_port = LPT1_ADDR;
+            break;
+        case 1:
+            lpt_port = LPT_MDA_ADDR;
+            break;
+        case 2:
+            lpt_port = LPT2_ADDR;
+            break;
+        case 3:
+            lpt_port = 0x000;
+            lpt_irq  = 0xff;
+            break;
     }
 
     if (lpt_port)
-	lpt1_init(lpt_port);
+        lpt1_init(lpt_port);
 
     lpt1_irq(lpt_irq);
 }
-
 
 static void
 serial_handler(pc87310_t *dev, int uart)
@@ -117,9 +114,9 @@ serial_handler(pc87310_t *dev, int uart)
      */
     temp = (dev->reg >> (2 + uart)) & 1;
 
-    //current serial port is enabled
-    if (!temp){
-        //configure serial port as COM2
+    // current serial port is enabled
+    if (!temp) {
+        // configure serial port as COM2
         if (((dev->reg >> 4) & 1) ^ uart)
             serial_setup(dev->uart[uart], COM2_ADDR, COM2_IRQ);
         // configure serial port as COM1
@@ -128,23 +125,22 @@ serial_handler(pc87310_t *dev, int uart)
     }
 }
 
-
 static void
 pc87310_write(uint16_t port, uint8_t val, void *priv)
 {
     pc87310_t *dev = (pc87310_t *) priv;
-    uint8_t valxor;
+    uint8_t    valxor;
 
     // second write to config register
-	if (dev->tries) {
-		valxor = val ^ dev->reg;
-		dev->tries = 0;
-		dev->reg = val;
-	// first write to config register
+    if (dev->tries) {
+        valxor     = val ^ dev->reg;
+        dev->tries = 0;
+        dev->reg   = val;
+        // first write to config register
     } else {
-		dev->tries++;
-		return;
-	}
+        dev->tries++;
+        return;
+    }
 
     pc87310_log("SIO: written %01X\n", val);
 
@@ -191,12 +187,11 @@ pc87310_write(uint16_t port, uint8_t val, void *priv)
     return;
 }
 
-
 uint8_t
 pc87310_read(uint16_t port, void *priv)
 {
     pc87310_t *dev = (pc87310_t *) priv;
-    uint8_t ret = 0xff;
+    uint8_t    ret = 0xff;
 
     dev->tries = 0;
 
@@ -207,15 +202,14 @@ pc87310_read(uint16_t port, void *priv)
     return ret;
 }
 
-
 void
 pc87310_reset(pc87310_t *dev)
 {
-    dev->reg = 0x0;
+    dev->reg   = 0x0;
     dev->tries = 0;
     /*
-	0 = 360 rpm @ 500 kbps for 3.5"
-	1 = Default, 300 rpm @ 500,300,250,1000 kbps for 3.5"
+        0 = 360 rpm @ 500 kbps for 3.5"
+        1 = Default, 300 rpm @ 500,300,250,1000 kbps for 3.5"
     */
     lpt1_remove();
     lpt1_handler(dev);
@@ -224,9 +218,8 @@ pc87310_reset(pc87310_t *dev)
     serial_handler(dev, 0);
     serial_handler(dev, 1);
     fdc_reset(dev->fdc);
-    //ide_pri_enable();
+    // ide_pri_enable();
 }
-
 
 static void
 pc87310_close(void *priv)
@@ -235,7 +228,6 @@ pc87310_close(void *priv)
 
     free(dev);
 }
-
 
 static void *
 pc87310_init(const device_t *info)
@@ -257,36 +249,35 @@ pc87310_init(const device_t *info)
     pc87310_reset(dev);
 
     io_sethandler(0x3f3, 0x0001,
-		      pc87310_read, NULL, NULL, pc87310_write, NULL, NULL, dev);
-
+                  pc87310_read, NULL, NULL, pc87310_write, NULL, NULL, dev);
 
     return dev;
 }
 
 const device_t pc87310_device = {
-    .name = "National Semiconductor PC87310 Super I/O",
+    .name          = "National Semiconductor PC87310 Super I/O",
     .internal_name = "pc87310",
-    .flags = 0,
-    .local = 0,
-    .init = pc87310_init,
-    .close = pc87310_close,
-    .reset = NULL,
+    .flags         = 0,
+    .local         = 0,
+    .init          = pc87310_init,
+    .close         = pc87310_close,
+    .reset         = NULL,
     { .available = NULL },
     .speed_changed = NULL,
-    .force_redraw = NULL,
-    .config = NULL
+    .force_redraw  = NULL,
+    .config        = NULL
 };
 
 const device_t pc87310_ide_device = {
-    .name = "National Semiconductor PC87310 Super I/O with IDE functionality",
+    .name          = "National Semiconductor PC87310 Super I/O with IDE functionality",
     .internal_name = "pc87310_ide",
-    .flags = 0,
-    .local = 1,
-    .init = pc87310_init,
-    .close = pc87310_close,
-    .reset = NULL,
+    .flags         = 0,
+    .local         = 1,
+    .init          = pc87310_init,
+    .close         = pc87310_close,
+    .reset         = NULL,
     { .available = NULL },
     .speed_changed = NULL,
-    .force_redraw = NULL,
-    .config = NULL
+    .force_redraw  = NULL,
+    .config        = NULL
 };

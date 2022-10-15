@@ -143,7 +143,7 @@ Settings::Settings(QWidget *parent) :
         ui->stackedWidget->setCurrentIndex(current.row());
     });
 
-    ui->listView->setMaximumWidth(ui->listView->sizeHintForColumn(0) + qApp->style()->pixelMetric(QStyle::PM_ScrollBarExtent));
+    ui->listView->setMinimumWidth(ui->listView->sizeHintForColumn(0) + qApp->style()->pixelMetric(QStyle::PM_ScrollBarExtent));
 
     Settings::settings = this;
 }

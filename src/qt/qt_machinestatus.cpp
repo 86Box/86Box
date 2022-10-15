@@ -37,8 +37,10 @@ extern uint64_t		tsc;
 #include <86box/mo.h>
 #include <86box/plat.h>
 #include <86box/machine.h>
+#include <86box/thread.h>
 #include <86box/network.h>
 #include <86box/ui.h>
+#include <86box/machine_status.h>
 };
 
 #include <QIcon>
@@ -86,23 +88,27 @@ namespace {
         PixmapSetEmptyActive zip;
         PixmapSetEmptyActive mo;
         PixmapSetActive hd;
-        PixmapSetActive net;
+        PixmapSetEmptyActive net;
         QPixmap sound;
     };
 
     struct StateActive {
         std::unique_ptr<QLabel> label;
-        QTimer timer;
         PixmapSetActive* pixmaps = nullptr;
         bool active = false;
 
         void setActive(bool b) {
-            active = b;
-            if (! label) {
+            if (!label || b == active)
                 return;
-            }
+            active = b;
+
+            refresh();
+        }
+
+        void refresh() {
+            if (!label)
+                return;
             label->setPixmap(active ? pixmaps->active : pixmaps->normal);
-            timer.start(75);
         }
     };
     struct StateEmpty {
@@ -111,33 +117,42 @@ namespace {
         bool empty = false;
 
         void setEmpty(bool e) {
-            empty = e;
-            if (! label) {
+            if (!label || e == empty)
                 return;
-            }
+            empty = e;
+
+            refresh();
+        }
+
+        void refresh() {
+            if (!label)
+                return;
             label->setPixmap(empty ? pixmaps->empty : pixmaps->normal);
         }
     };
     struct StateEmptyActive {
         std::unique_ptr<QLabel> label;
-        QTimer timer;
         PixmapSetEmptyActive* pixmaps = nullptr;
         bool empty = false;
         bool active = false;
 
         void setActive(bool b) {
+            if (!label || b == active)
+                return;
+
             active = b;
             refresh();
-            timer.start(75);
         }
         void setEmpty(bool b) {
+            if (!label || b == empty)
+                return;
+
             empty = b;
             refresh();
         }
         void refresh() {
-            if (! label) {
+            if (!label)
                 return;
-            }
             if (empty) {
                 label->setPixmap(active ? pixmaps->empty_active : pixmaps->empty);
             } else {
@@ -190,28 +205,24 @@ struct MachineStatus::States {
         cartridge[0].pixmaps = &pixmaps.cartridge;
         cartridge[1].pixmaps = &pixmaps.cartridge;
         cassette.pixmaps = &pixmaps.cassette;
-        QObject::connect(&cassette.timer, &QTimer::timeout, parent, [&]{ cassette.setActive(false); });
         for (auto& f : fdd) {
             f.pixmaps = &pixmaps.floppy_disabled;
-            QObject::connect(&f.timer, &QTimer::timeout, parent, [&]{ f.setActive(false); });
         }
         for (auto& c : cdrom) {
             c.pixmaps = &pixmaps.cdrom;
-            QObject::connect(&c.timer, &QTimer::timeout, parent, [&]{ c.setActive(false); });
         }
         for (auto& z : zip) {
             z.pixmaps = &pixmaps.zip;
-            QObject::connect(&z.timer, &QTimer::timeout, parent, [&]{ z.setActive(false); });
         }
         for (auto& m : mo) {
             m.pixmaps = &pixmaps.mo;
-            QObject::connect(&m.timer, &QTimer::timeout, parent, [&]{ m.setActive(false); });
         }
         for (auto& h : hdds) {
             h.pixmaps = &pixmaps.hd;
-            QObject::connect(&h.timer, &QTimer::timeout, parent, [&]{ h.setActive(false); });
         }
-        net.pixmaps = &pixmaps.net;
+        for (auto& n : net) {
+            n.pixmaps = &pixmaps.net;
+        }
     }
 
     std::array<StateEmpty, 2> cartridge;
@@ -221,15 +232,18 @@ struct MachineStatus::States {
     std::array<StateEmptyActive, ZIP_NUM> zip;
     std::array<StateEmptyActive, MO_NUM> mo;
     std::array<StateActive, HDD_BUS_USB> hdds;
-    StateActive net;
+    std::array<StateEmptyActive, NET_CARD_MAX> net;
     std::unique_ptr<ClickableLabel> sound;
     std::unique_ptr<QLabel> text;
 };
 
 MachineStatus::MachineStatus(QObject *parent) :
-    QObject(parent)
+    QObject(parent),
+    refreshTimer(new QTimer(this))
 {
     d = std::make_unique<MachineStatus::States>(this);
+    connect(refreshTimer, &QTimer::timeout, this, &MachineStatus::refreshIcons);
+    refreshTimer->start(75);
 }
 
 MachineStatus::~MachineStatus() = default;
@@ -308,6 +322,14 @@ void MachineStatus::iterateMO(const std::function<void (int)> &cb) {
     }
 }
 
+void MachineStatus::iterateNIC(const std::function<void (int)> &cb) {
+    for (int i = 0; i < NET_CARD_MAX; i++) {
+        if (network_dev_available(i)) {
+            cb(i);
+        }
+    }
+}
+
 static int hdd_count(int bus) {
     int c = 0;
     int i;
@@ -321,6 +343,41 @@ static int hdd_count(int bus) {
     return(c);
 }
 
+void MachineStatus::refreshIcons() {
+    for (size_t i = 0; i < FDD_NUM; ++i) {
+        d->fdd[i].setActive(machine_status.fdd[i].active);
+        d->fdd[i].setEmpty(machine_status.fdd[i].empty);
+    }
+    for (size_t i = 0; i < CDROM_NUM; ++i) {
+        d->cdrom[i].setActive(machine_status.cdrom[i].active);
+        d->cdrom[i].setEmpty(machine_status.cdrom[i].empty);
+    }
+    for (size_t i = 0; i < ZIP_NUM; i++) {
+        d->zip[i].setActive(machine_status.zip[i].active);
+        d->zip[i].setEmpty(machine_status.zip[i].empty);
+    }
+    for (size_t i = 0; i < MO_NUM; i++) {
+        d->mo[i].setActive(machine_status.mo[i].active);
+        d->mo[i].setEmpty(machine_status.mo[i].empty);
+    }
+
+    d->cassette.setEmpty(machine_status.cassette.empty);
+
+    for (size_t i = 0; i < HDD_BUS_USB; i++) {
+        d->hdds[i].setActive(machine_status.hdd[i].active);
+    }
+
+    for (size_t i = 0; i < NET_CARD_MAX; i++) {
+        d->net[i].setActive(machine_status.net[i].active);
+        d->net[i].setEmpty(machine_status.net[i].empty);
+    }
+
+    for (int i = 0; i < 2; ++i) {
+        d->cartridge[i].setEmpty(machine_status.cartridge[i].empty);
+    }
+
+}
+
 void MachineStatus::refresh(QStatusBar* sbar) {
     bool has_mfm = machine_has_flags(machine, MACHINE_MFM) > 0;
     bool has_xta = machine_has_flags(machine, MACHINE_XTA) > 0;
@@ -331,7 +388,6 @@ void MachineStatus::refresh(QStatusBar* sbar) {
     int c_xta = hdd_count(HDD_BUS_XTA);
     int c_ide = hdd_count(HDD_BUS_IDE);
     int c_scsi = hdd_count(HDD_BUS_SCSI);
-    int do_net = network_available();
 
     sbar->removeWidget(d->cassette.label.get());
     for (int i = 0; i < 2; ++i) {
@@ -352,12 +408,15 @@ void MachineStatus::refresh(QStatusBar* sbar) {
     for (size_t i = 0; i < HDD_BUS_USB; i++) {
         sbar->removeWidget(d->hdds[i].label.get());
     }
-    sbar->removeWidget(d->net.label.get());
+    for (size_t i = 0; i < NET_CARD_MAX; i++) {
+        sbar->removeWidget(d->net[i].label.get());
+    }
     sbar->removeWidget(d->sound.get());
 
     if (cassette_enable) {
         d->cassette.label = std::make_unique<ClickableLabel>();
         d->cassette.setEmpty(QString(cassette_fname).isEmpty());
+        d->cassette.refresh();
         connect((ClickableLabel*)d->cassette.label.get(), &ClickableLabel::clicked, [](QPoint pos) {
             MediaMenu::ptr->cassetteMenu->popup(pos - QPoint(0, MediaMenu::ptr->cassetteMenu->sizeHint().height()));
         });
@@ -373,6 +432,7 @@ void MachineStatus::refresh(QStatusBar* sbar) {
         for (int i = 0; i < 2; ++i) {
             d->cartridge[i].label = std::make_unique<ClickableLabel>();
             d->cartridge[i].setEmpty(QString(cart_fns[i]).isEmpty());
+            d->cartridge[i].refresh();
             connect((ClickableLabel*)d->cartridge[i].label.get(), &ClickableLabel::clicked, [i](QPoint pos) {
                 MediaMenu::ptr->cartridgeMenus[i]->popup(pos - QPoint(0, MediaMenu::ptr->cartridgeMenus[i]->sizeHint().height()));
             });
@@ -397,6 +457,7 @@ void MachineStatus::refresh(QStatusBar* sbar) {
         d->fdd[i].label = std::make_unique<ClickableLabel>();
         d->fdd[i].setEmpty(QString(floppyfns[i]).isEmpty());
         d->fdd[i].setActive(false);
+        d->fdd[i].refresh();
         connect((ClickableLabel*)d->fdd[i].label.get(), &ClickableLabel::clicked, [i](QPoint pos) {
             MediaMenu::ptr->floppyMenus[i]->popup(pos - QPoint(0, MediaMenu::ptr->floppyMenus[i]->sizeHint().height()));
         });
@@ -412,6 +473,7 @@ void MachineStatus::refresh(QStatusBar* sbar) {
         d->cdrom[i].label = std::make_unique<ClickableLabel>();
         d->cdrom[i].setEmpty(cdrom[i].host_drive != 200 || QString(cdrom[i].image_path).isEmpty());
         d->cdrom[i].setActive(false);
+        d->cdrom[i].refresh();
         connect((ClickableLabel*)d->cdrom[i].label.get(), &ClickableLabel::clicked, [i](QPoint pos) {
             MediaMenu::ptr->cdromMenus[i]->popup(pos - QPoint(0, MediaMenu::ptr->cdromMenus[i]->sizeHint().height()));
         });
@@ -427,6 +489,7 @@ void MachineStatus::refresh(QStatusBar* sbar) {
         d->zip[i].label = std::make_unique<ClickableLabel>();
         d->zip[i].setEmpty(QString(zip_drives[i].image_path).isEmpty());
         d->zip[i].setActive(false);
+        d->zip[i].refresh();
         connect((ClickableLabel*)d->zip[i].label.get(), &ClickableLabel::clicked, [i](QPoint pos) {
             MediaMenu::ptr->zipMenus[i]->popup(pos - QPoint(0, MediaMenu::ptr->zipMenus[i]->sizeHint().height()));
         });
@@ -442,6 +505,7 @@ void MachineStatus::refresh(QStatusBar* sbar) {
         d->mo[i].label = std::make_unique<ClickableLabel>();
         d->mo[i].setEmpty(QString(mo_drives[i].image_path).isEmpty());
         d->mo[i].setActive(false);
+        d->mo[i].refresh();
         connect((ClickableLabel*)d->mo[i].label.get(), &ClickableLabel::clicked, [i](QPoint pos) {
             MediaMenu::ptr->moMenus[i]->popup(pos - QPoint(0, MediaMenu::ptr->moMenus[i]->sizeHint().height()));
         });
@@ -453,28 +517,44 @@ void MachineStatus::refresh(QStatusBar* sbar) {
         sbar->addWidget(d->mo[i].label.get());
     });
 
+    iterateNIC([this, sbar](int i) {
+        d->net[i].label = std::make_unique<ClickableLabel>();
+        d->net[i].setEmpty(!network_is_connected(i));
+        d->net[i].setActive(false);
+        d->net[i].refresh();
+        d->net[i].label->setToolTip(MediaMenu::ptr->netMenus[i]->title());
+        connect((ClickableLabel*)d->net[i].label.get(), &ClickableLabel::clicked, [i](QPoint pos) {
+            MediaMenu::ptr->netMenus[i]->popup(pos - QPoint(0, MediaMenu::ptr->netMenus[i]->sizeHint().height()));
+        });
+        sbar->addWidget(d->net[i].label.get());
+    });
+
     auto hdc_name = QString(hdc_get_internal_name(hdc_current));
     if ((has_mfm || hdc_name.left(5) == QStringLiteral("st506")) && c_mfm > 0) {
         d->hdds[HDD_BUS_MFM].label = std::make_unique<QLabel>();
         d->hdds[HDD_BUS_MFM].setActive(false);
+        d->hdds[HDD_BUS_MFM].refresh();
         d->hdds[HDD_BUS_MFM].label->setToolTip(tr("Hard disk (%s)").replace("%s", "MFM/RLL"));
         sbar->addWidget(d->hdds[HDD_BUS_MFM].label.get());
     }
     if ((has_esdi || hdc_name.left(4) == QStringLiteral("esdi")) && c_esdi > 0) {
         d->hdds[HDD_BUS_ESDI].label = std::make_unique<QLabel>();
         d->hdds[HDD_BUS_ESDI].setActive(false);
+        d->hdds[HDD_BUS_ESDI].refresh();
         d->hdds[HDD_BUS_ESDI].label->setToolTip(tr("Hard disk (%s)").replace("%s", "ESDI"));
         sbar->addWidget(d->hdds[HDD_BUS_ESDI].label.get());
     }
     if ((has_xta || hdc_name.left(3) == QStringLiteral("xta")) && c_xta > 0) {
         d->hdds[HDD_BUS_XTA].label = std::make_unique<QLabel>();
         d->hdds[HDD_BUS_XTA].setActive(false);
+        d->hdds[HDD_BUS_XTA].refresh();
         d->hdds[HDD_BUS_XTA].label->setToolTip(tr("Hard disk (%s)").replace("%s", "XTA"));
         sbar->addWidget(d->hdds[HDD_BUS_XTA].label.get());
     }
     if ((hasIDE() || hdc_name.left(5) == QStringLiteral("xtide") || hdc_name.left(3) == QStringLiteral("ide")) && c_ide > 0) {
         d->hdds[HDD_BUS_IDE].label = std::make_unique<QLabel>();
         d->hdds[HDD_BUS_IDE].setActive(false);
+        d->hdds[HDD_BUS_IDE].refresh();
         d->hdds[HDD_BUS_IDE].label->setToolTip(tr("Hard disk (%s)").replace("%s", "IDE"));
         sbar->addWidget(d->hdds[HDD_BUS_IDE].label.get());
     }
@@ -482,16 +562,11 @@ void MachineStatus::refresh(QStatusBar* sbar) {
          (scsi_card_current[2] != 0) || (scsi_card_current[3] != 0)) && c_scsi > 0) {
         d->hdds[HDD_BUS_SCSI].label = std::make_unique<QLabel>();
         d->hdds[HDD_BUS_SCSI].setActive(false);
+        d->hdds[HDD_BUS_SCSI].refresh();
         d->hdds[HDD_BUS_SCSI].label->setToolTip(tr("Hard disk (%s)").replace("%s", "SCSI"));
         sbar->addWidget(d->hdds[HDD_BUS_SCSI].label.get());
     }
 
-    if (do_net) {
-        d->net.label = std::make_unique<QLabel>();
-        d->net.setActive(false);
-        d->net.label->setToolTip(tr("Network"));
-        sbar->addWidget(d->net.label.get());
-    }
     d->sound = std::make_unique<ClickableLabel>();
     d->sound->setPixmap(d->pixmaps.sound);
 
@@ -503,72 +578,6 @@ void MachineStatus::refresh(QStatusBar* sbar) {
     sbar->addWidget(d->sound.get());
     d->text = std::make_unique<QLabel>();
     sbar->addWidget(d->text.get());
-}
-
-void MachineStatus::setActivity(int tag, bool active) {
-    int category = tag & 0xfffffff0;
-    int item = tag & 0xf;
-    switch (category) {
-    case SB_CASSETTE:
-        break;
-    case SB_CARTRIDGE:
-        break;
-    case SB_FLOPPY:
-        d->fdd[item].setActive(active);
-        break;
-    case SB_CDROM:
-        d->cdrom[item].setActive(active);
-        break;
-    case SB_ZIP:
-        d->zip[item].setActive(active);
-        break;
-    case SB_MO:
-        d->mo[item].setActive(active);
-        break;
-    case SB_HDD:
-        d->hdds[item].setActive(active);
-        break;
-    case SB_NETWORK:
-        d->net.setActive(active);
-        break;
-    case SB_SOUND:
-        break;
-    case SB_TEXT:
-        break;
-    }
-}
-
-void MachineStatus::setEmpty(int tag, bool empty) {
-    int category = tag & 0xfffffff0;
-    int item = tag & 0xf;
-    switch (category) {
-    case SB_CASSETTE:
-        d->cassette.setEmpty(empty);
-        break;
-    case SB_CARTRIDGE:
-        d->cartridge[item].setEmpty(empty);
-        break;
-    case SB_FLOPPY:
-        d->fdd[item].setEmpty(empty);
-        break;
-    case SB_CDROM:
-        d->cdrom[item].setEmpty(empty);
-        break;
-    case SB_ZIP:
-        d->zip[item].setEmpty(empty);
-        break;
-    case SB_MO:
-        d->mo[item].setEmpty(empty);
-        break;
-    case SB_HDD:
-        break;
-    case SB_NETWORK:
-        break;
-    case SB_SOUND:
-        break;
-    case SB_TEXT:
-        break;
-    }
 }
 
 void MachineStatus::message(const QString &msg) {

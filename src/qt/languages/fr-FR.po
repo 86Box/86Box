@@ -229,8 +229,8 @@ msgstr "&Recharger image précedente"
 msgid "&Image"
 msgstr "&Image"
 
-msgid "&Folder"
-msgstr "&Folder"
+msgid "&Folder..."
+msgstr "&Folder..."
 
 msgid "Target &framerate"
 msgstr "&Taux de rafraîchissement cible"

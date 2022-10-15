@@ -24,7 +24,6 @@
 #include <86box/fdd.h>
 #include <86box/fdd_common.h>
 
-
 const uint8_t fdd_holes[6] = { 0, 0, 0, 1, 1, 2 };
 
 const uint8_t fdd_rates[6] = { 2, 2, 1, 4, 0, 3 };
@@ -59,10 +58,9 @@ const uint8_t fdd_max_sectors[8][6] = {
     {  0,  0,  0,  0,  0,   1 }		/* 16384 */
 };
 
-const uint8_t	fdd_dmf_r[21] = {
-    12,2,13,3,14,4,15,5,16,6,17,7,18,8,19,9,20,10,21,11,1
+const uint8_t fdd_dmf_r[21] = {
+    12, 2, 13, 3, 14, 4, 15, 5, 16, 6, 17, 7, 18, 8, 19, 9, 20, 10, 21, 11, 1
 };
-
 
 static const uint8_t fdd_gap3_sizes[5][8][48] = {
     {	{ 0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
@@ -347,95 +345,90 @@ static const uint8_t fdd_gap3_sizes[5][8][48] = {
     }
 };
 
-
 int
 fdd_get_gap3_size(int rate, int size, int sector)
 {
-    return(fdd_gap3_sizes[rate][size][sector]);
+    return (fdd_gap3_sizes[rate][size][sector]);
 }
-
 
 uint8_t
 fdd_sector_size_code(int size)
 {
     int ret = 2;
 
-    switch(size) {
-	case 128:
-		ret = 0;
-		break;
+    switch (size) {
+        case 128:
+            ret = 0;
+            break;
 
-	case 256:
-		ret = 1;
-		break;
+        case 256:
+            ret = 1;
+            break;
 
-	case 512:
-		ret = 2;
-		break;
+        case 512:
+            ret = 2;
+            break;
 
-	case 1024:
-		ret = 3;
-		break;
+        case 1024:
+            ret = 3;
+            break;
 
-	case 2048:
-		ret = 4;
-		break;
+        case 2048:
+            ret = 4;
+            break;
 
-	case 4096:
-		ret = 5;
-		break;
+        case 4096:
+            ret = 5;
+            break;
 
-	case 8192:
-		ret = 6;
-		break;
+        case 8192:
+            ret = 6;
+            break;
 
-	case 16384:
-		ret = 7;
-		break;
+        case 16384:
+            ret = 7;
+            break;
 
-	default:
-		break;
+        default:
+            break;
     }
 
-    return(ret);
+    return (ret);
 }
-
 
 int
 fdd_sector_code_size(uint8_t code)
 {
-    return(128 << code);
+    return (128 << code);
 }
-
 
 int
 fdd_bps_valid(uint16_t bps)
 {
     int i;
 
-    for (i=0; i<=8; i++) {
-	if (bps == (128 << i)) {
-		return 1;
-	}
+    for (i = 0; i <= 8; i++) {
+        if (bps == (128 << i)) {
+            return 1;
+        }
     }
 
-    return(0);
+    return (0);
 }
-
 
 int
 fdd_interleave(int sector, int skew, int spt)
 {
-    uint32_t add = (spt & 1);
+    uint32_t add    = (spt & 1);
     uint32_t adjust = (spt >> 1);
     uint32_t adjusted_r;
     uint32_t skewed_i;
 
-    skewed_i = (sector + skew) % spt;
+    skewed_i   = (sector + skew) % spt;
     adjusted_r = (skewed_i >> 1) + 1;
     if (skewed_i & 1) {
-	adjusted_r += (adjust + add);
+        adjusted_r += (adjust + add);
     }
 
-    return(adjusted_r);
+    return (adjusted_r);
 }

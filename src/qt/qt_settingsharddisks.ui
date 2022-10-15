@@ -64,6 +64,16 @@
      <item>
       <widget class="QComboBox" name="comboBoxChannel"/>
      </item>
+     <item>
+      <widget class="QLabel" name="labelSpeed">
+       <property name="text">
+        <string>Speed:</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QComboBox" name="comboBoxSpeed"/>
+     </item>
     </layout>
    </item>
    <item>

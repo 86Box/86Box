@@ -1149,7 +1149,7 @@ azt_init(const device_t *info)
         azt2316a->sb->dsp.azt_eeprom[i] = read_eeprom[i];
 
     if (azt2316a->sb->opl_enabled)
-        opl3_init(&azt2316a->sb->opl);
+        fm_driver_get(FM_YMF262, &azt2316a->sb->opl);
 
     sb_dsp_init(&azt2316a->sb->dsp, SBPRO2, azt2316a->type, azt2316a);
     sb_dsp_setaddr(&azt2316a->sb->dsp, azt2316a->cur_addr);
@@ -1158,9 +1158,9 @@ azt_init(const device_t *info)
     sb_ct1345_mixer_reset(azt2316a->sb);
     /* DSP I/O handler is activated in sb_dsp_setaddr */
     if (azt2316a->sb->opl_enabled) {
-        io_sethandler(azt2316a->cur_addr + 0, 0x0004, opl3_read, NULL, NULL, opl3_write, NULL, NULL, &azt2316a->sb->opl);
-        io_sethandler(azt2316a->cur_addr + 8, 0x0002, opl3_read, NULL, NULL, opl3_write, NULL, NULL, &azt2316a->sb->opl);
-        io_sethandler(0x0388, 0x0004, opl3_read, NULL, NULL, opl3_write, NULL, NULL, &azt2316a->sb->opl);
+        io_sethandler(azt2316a->cur_addr + 0, 0x0004, azt2316a->sb->opl.read, NULL, NULL, azt2316a->sb->opl.write, NULL, NULL, azt2316a->sb->opl.priv);
+        io_sethandler(azt2316a->cur_addr + 8, 0x0002, azt2316a->sb->opl.read, NULL, NULL, azt2316a->sb->opl.write, NULL, NULL, azt2316a->sb->opl.priv);
+        io_sethandler(0x0388, 0x0004, azt2316a->sb->opl.read, NULL, NULL, azt2316a->sb->opl.write, NULL, NULL, azt2316a->sb->opl.priv);
     }
 
     io_sethandler(azt2316a->cur_addr + 4, 0x0002, sb_ct1345_mixer_read, NULL, NULL, sb_ct1345_mixer_write, NULL, NULL, azt2316a->sb);
@@ -1227,7 +1227,7 @@ azt_speed_changed(void *p)
 }
 
 static const device_config_t azt1605_config[] = {
-    // clang-format off
+  // clang-format off
     {
         .name = "codec",
         .description = "CODEC",
@@ -1367,7 +1367,7 @@ static const device_config_t azt1605_config[] = {
         .default_int = 0
     },
     { .name = "", .description = "", .type = CONFIG_END }
-    // clang-format on
+  // clang-format on
 };
 
 static const device_config_t azt2316a_config[] = {
@@ -1488,33 +1488,33 @@ static const device_config_t azt2316a_config[] = {
         .default_int = 0
     },
     { .name = "", .description = "", .type = CONFIG_END }
-  // clang-format on
+// clang-format on
 };
 
 const device_t azt2316a_device = {
-    .name = "Aztech Sound Galaxy Pro 16 AB (Washington)",
+    .name          = "Aztech Sound Galaxy Pro 16 AB (Washington)",
     .internal_name = "azt2316a",
-    .flags = DEVICE_ISA | DEVICE_AT,
-    .local = SB_SUBTYPE_CLONE_AZT2316A_0X11,
-    .init = azt_init,
-    .close = azt_close,
-    .reset = NULL,
+    .flags         = DEVICE_ISA | DEVICE_AT,
+    .local         = SB_SUBTYPE_CLONE_AZT2316A_0X11,
+    .init          = azt_init,
+    .close         = azt_close,
+    .reset         = NULL,
     { .available = NULL },
     .speed_changed = azt_speed_changed,
-    .force_redraw = NULL,
-    .config = azt2316a_config
+    .force_redraw  = NULL,
+    .config        = azt2316a_config
 };
 
 const device_t azt1605_device = {
-    .name = "Aztech Sound Galaxy Nova 16 Extra (Clinton)",
+    .name          = "Aztech Sound Galaxy Nova 16 Extra (Clinton)",
     .internal_name = "azt1605",
-    .flags = DEVICE_ISA | DEVICE_AT,
-    .local = SB_SUBTYPE_CLONE_AZT1605_0X0C,
-    .init = azt_init,
-    .close = azt_close,
-    .reset = NULL,
+    .flags         = DEVICE_ISA | DEVICE_AT,
+    .local         = SB_SUBTYPE_CLONE_AZT1605_0X0C,
+    .init          = azt_init,
+    .close         = azt_close,
+    .reset         = NULL,
     { .available = NULL },
     .speed_changed = azt_speed_changed,
-    .force_redraw = NULL,
-    .config = azt1605_config
+    .force_redraw  = NULL,
+    .config        = azt1605_config
 };

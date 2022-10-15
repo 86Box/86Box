@@ -1,3 +1,4 @@
+#include "qt_mainwindow.hpp"
 #include "qt_d3d9renderer.hpp"
 #include <QResizeEvent>
 #include <QTimer>
@@ -107,6 +108,7 @@ void D3D9Renderer::paintEvent(QPaintEvent *event)
     dstRect.left = destination.left();
     dstRect.right = destination.right();
     d3d9dev->BeginScene();
+    d3d9dev->Clear(0, nullptr, D3DCLEAR_TARGET, 0xFF000000, 0, 0);
     while (surfaceInUse) {}
     surfaceInUse = true;
     d3d9dev->StretchRect(d3d9surface, &srcRect, backbuffer, &dstRect, video_filter_method == 0 ? D3DTEXF_POINT : D3DTEXF_LINEAR);
@@ -139,11 +141,12 @@ void D3D9Renderer::resizeEvent(QResizeEvent *event)
 
 void D3D9Renderer::blit(int x, int y, int w, int h)
 {
-    if ((x < 0) || (y < 0) || (w <= 0) || (h <= 0) || (w > 2048) || (h > 2048) || (monitors[m_monitor_index].target_buffer == NULL) || surfaceInUse) {
+    if (blitDummied || (x < 0) || (y < 0) || (w <= 0) || (h <= 0) || (w > 2048) || (h > 2048) || (monitors[m_monitor_index].target_buffer == NULL) || surfaceInUse) {
         video_blit_complete_monitor(m_monitor_index);
         return;
     }
     surfaceInUse = true;
+    auto origSource = source;
     source.setRect(x, y, w, h);
     RECT srcRect;
     D3DLOCKED_RECT lockRect;
@@ -163,6 +166,7 @@ void D3D9Renderer::blit(int x, int y, int w, int h)
         d3d9surface->UnlockRect();
     }
     else video_blit_complete_monitor(m_monitor_index);
+    if (origSource != source) onResize(this->width() * devicePixelRatioF(), this->height() * devicePixelRatioF());
     surfaceInUse = false;
     QTimer::singleShot(0, this, [this] { this->update(); });
 }

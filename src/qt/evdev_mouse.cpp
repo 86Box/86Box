@@ -31,6 +31,7 @@ extern "C"
 #include <86box/86box.h>
 #include <86box/plat.h>
 #include <86box/mouse.h>
+#include <poll.h>
 }
 
 static std::vector<std::pair<int, libevdev*>> evdev_mice;
@@ -54,35 +55,54 @@ void evdev_mouse_poll()
 
 void evdev_thread_func()
 {
+    struct pollfd *pfds = (struct pollfd*)calloc(evdev_mice.size(), sizeof(struct pollfd));
+    for (unsigned int i = 0; i < evdev_mice.size(); i++)
+    {
+        pfds[i].fd = libevdev_get_fd(evdev_mice[i].second);
+        pfds[i].events = POLLIN;
+    }
+
     while (!stopped)
     {
+        poll(pfds, evdev_mice.size(), 500);
         for (unsigned int i = 0; i < evdev_mice.size(); i++)
         {
             struct input_event ev;
-            int rc = libevdev_next_event(evdev_mice[i].second, LIBEVDEV_READ_FLAG_NORMAL, &ev);
-            if (rc == 0 && ev.type == EV_REL && mouse_capture)
-            {
-                if (ev.code == REL_X) evdev_mouse_rel_x += ev.value;
-                if (ev.code == REL_Y) evdev_mouse_rel_y += ev.value;
+            if (pfds[i].revents & POLLIN) {
+                while (libevdev_next_event(evdev_mice[i].second, LIBEVDEV_READ_FLAG_NORMAL, &ev) == 0)
+                {
+                    if (ev.type == EV_REL && mouse_capture)
+                    {
+                        if (ev.code == REL_X) evdev_mouse_rel_x += ev.value;
+                        if (ev.code == REL_Y) evdev_mouse_rel_y += ev.value;
+                    }
+                }
             }
         }
     }
+
     for (unsigned int i = 0; i < evdev_mice.size(); i++)
     {
         libevdev_free(evdev_mice[i].second);
+        evdev_mice[i].second = nullptr;
         close(evdev_mice[i].first);
     }
+    free(pfds);
     evdev_mice.clear();
 }
 
 void evdev_stop()
 {
-    stopped = true;
-    evdev_thread->wait();
+    if (evdev_thread) {
+        stopped = true;
+        evdev_thread->wait();
+        evdev_thread = nullptr;
+    }
 }
 
 void evdev_init()
 {
+    if (evdev_thread) return;
     for (int i = 0; i < 256; i++)
     {
         std::string evdev_device_path = "/dev/input/event" + std::to_string(i);

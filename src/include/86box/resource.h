@@ -207,6 +207,9 @@
 #define IDC_COMBO_MIDI_IN         1050
 #define IDC_CONFIGURE_CMS         1051
 #define IDC_CONFIGURE_SSI         1052
+#define IDC_FM_DRIVER             1053
+#define IDC_RADIO_FM_DRV_NUKED    1054
+#define IDC_RADIO_FM_DRV_YMFM     1055
 
 #define IDC_COMBO_NET_TYPE        1060 /* network config */
 #define IDC_COMBO_PCAP            1061
@@ -358,9 +361,9 @@
 #    define IDM_ACTION_END_TRACE   40019
 #    define IDM_ACTION_TRACE       40020
 #endif
-#define IDM_CONFIG              40020
-#define IDM_VID_HIDE_STATUS_BAR 40021
-#define IDM_VID_HIDE_TOOLBAR    40022
+#define IDM_CONFIG              40021
+#define IDM_VID_HIDE_STATUS_BAR 40022
+#define IDM_VID_HIDE_TOOLBAR    40023
 #define IDM_UPDATE_ICONS        40030
 #define IDM_SND_GAIN            40031
 #define IDM_VID_RESIZE          40040

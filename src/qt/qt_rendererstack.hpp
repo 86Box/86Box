@@ -32,6 +32,11 @@ public:
     void wheelEvent(QWheelEvent *event) override;
     void leaveEvent(QEvent *event) override;
     void closeEvent(QCloseEvent *event) override;
+    void changeEvent(QEvent* event) override;
+    void resizeEvent(QResizeEvent *event) override
+    {
+        onResize(event->size().width(), event->size().height());
+    }
     void keyPressEvent(QKeyEvent *event) override
     {
         event->ignore();
@@ -47,7 +52,8 @@ public:
         OpenGLES,
         OpenGL3,
         Vulkan,
-        Direct3D9
+        Direct3D9,
+        None = -1
     };
     void switchRenderer(Renderer renderer);
 
@@ -96,11 +102,13 @@ private:
     int isMouseDown = 0;
     int m_monitor_index = 0;
 
+    Renderer current_vid_api = Renderer::None;
+
     std::vector<std::tuple<uint8_t *, std::atomic_flag *>> imagebufs;
 
     RendererCommon          *rendererWindow { nullptr };
     std::unique_ptr<QWidget> current;
-    std::atomic<bool> directBlitting{false}, blitDummied{false};
+    std::atomic<bool> directBlitting{false};
 };
 
 #endif // QT_RENDERERCONTAINER_HPP

@@ -66,216 +66,207 @@
 #include <86box/gameport.h>
 #include <86box/joystick_sw_pad.h>
 
-
 typedef struct
 {
-        pc_timer_t poll_timer;
-        int poll_left;
-        int poll_clock;
-        uint64_t poll_data;
-        int poll_mode;
+    pc_timer_t poll_timer;
+    int        poll_left;
+    int        poll_clock;
+    uint64_t   poll_data;
+    int        poll_mode;
 
-        pc_timer_t trigger_timer;
-        int data_mode;
+    pc_timer_t trigger_timer;
+    int        data_mode;
 } sw_data;
 
-static void sw_timer_over(void *p)
+static void
+sw_timer_over(void *p)
 {
-        sw_data *sw = (sw_data *)p;
+    sw_data *sw = (sw_data *) p;
 
-		sw->poll_clock = !sw->poll_clock;
+    sw->poll_clock = !sw->poll_clock;
 
-		if (sw->poll_clock)
-		{
-				sw->poll_data >>= (sw->poll_mode ? 3 : 1);
-				sw->poll_left--;
-		}
+    if (sw->poll_clock) {
+        sw->poll_data >>= (sw->poll_mode ? 3 : 1);
+        sw->poll_left--;
+    }
 
-		if (sw->poll_left == 1 && !sw->poll_clock)
-				timer_advance_u64(&sw->poll_timer, TIMER_USEC * 160);
-		else if (sw->poll_left)
-				timer_advance_u64(&sw->poll_timer, TIMER_USEC * 5);
-		else
-				timer_disable(&sw->poll_timer);
+    if (sw->poll_left == 1 && !sw->poll_clock)
+        timer_advance_u64(&sw->poll_timer, TIMER_USEC * 160);
+    else if (sw->poll_left)
+        timer_advance_u64(&sw->poll_timer, TIMER_USEC * 5);
+    else
+        timer_disable(&sw->poll_timer);
 }
 
-static void sw_trigger_timer_over(void *p)
+static void
+sw_trigger_timer_over(void *p)
 {
-        sw_data *sw = (sw_data *)p;
+    sw_data *sw = (sw_data *) p;
 
-        timer_disable(&sw->trigger_timer);
+    timer_disable(&sw->trigger_timer);
 }
 
-static int sw_parity(uint16_t data)
+static int
+sw_parity(uint16_t data)
 {
-        int bits_set = 0;
+    int bits_set = 0;
 
-        while (data)
-        {
-                bits_set++;
-                data &= (data - 1);
+    while (data) {
+        bits_set++;
+        data &= (data - 1);
+    }
+
+    return bits_set & 1;
+}
+
+static void *
+sw_init(void)
+{
+    sw_data *sw = (sw_data *) malloc(sizeof(sw_data));
+    memset(sw, 0, sizeof(sw_data));
+
+    timer_add(&sw->poll_timer, sw_timer_over, sw, 0);
+    timer_add(&sw->trigger_timer, sw_trigger_timer_over, sw, 0);
+
+    return sw;
+}
+
+static void
+sw_close(void *p)
+{
+    sw_data *sw = (sw_data *) p;
+
+    free(sw);
+}
+
+static uint8_t
+sw_read(void *p)
+{
+    sw_data *sw   = (sw_data *) p;
+    uint8_t  temp = 0;
+
+    if (!JOYSTICK_PRESENT(0))
+        return 0xff;
+
+    if (timer_is_enabled(&sw->poll_timer)) {
+        if (sw->poll_clock)
+            temp |= 0x10;
+
+        if (sw->poll_mode)
+            temp |= (sw->poll_data & 7) << 5;
+        else {
+            temp |= ((sw->poll_data & 1) << 5) | 0xc0;
+            if (sw->poll_left > 31 && !(sw->poll_left & 1))
+                temp &= ~0x80;
         }
+    } else
+        temp |= 0xf0;
 
-        return bits_set & 1;
+    return temp;
 }
 
-static void *sw_init(void)
+static void
+sw_write(void *p)
 {
-        sw_data *sw = (sw_data *)malloc(sizeof(sw_data));
-        memset(sw, 0, sizeof(sw_data));
+    sw_data *sw              = (sw_data *) p;
+    int64_t  time_since_last = timer_get_remaining_us(&sw->trigger_timer);
 
-		timer_add(&sw->poll_timer, sw_timer_over, sw, 0);
-		timer_add(&sw->trigger_timer, sw_trigger_timer_over, sw, 0);
+    if (!JOYSTICK_PRESENT(0))
+        return;
 
-        return sw;
-}
+    timer_process();
 
-static void sw_close(void *p)
-{
-        sw_data *sw = (sw_data *)p;
+    if (!sw->poll_left) {
+        sw->poll_clock = 1;
+        timer_set_delay_u64(&sw->poll_timer, TIMER_USEC * 50);
 
-        free(sw);
-}
+        if (time_since_last > 9900 && time_since_last < 9940) {
+            sw->poll_mode = 0;
+            sw->poll_left = 49;
+            sw->poll_data = 0x2400ull | (0x1830ull << 15) | (0x19b0ull << 30);
+        } else {
+            int c;
 
-static uint8_t sw_read(void *p)
-{
-        sw_data *sw = (sw_data *)p;
-        uint8_t temp = 0;
+            sw->poll_mode = sw->data_mode;
+            sw->data_mode = !sw->data_mode;
 
-        if (!JOYSTICK_PRESENT(0))
-                return 0xff;
+            if (sw->poll_mode) {
+                sw->poll_left = 1;
+                sw->poll_data = 7;
+            } else {
+                sw->poll_left = 1;
+                sw->poll_data = 1;
+            }
 
-        if (timer_is_enabled(&sw->poll_timer))
-        {
-                if (sw->poll_clock)
-                        temp |= 0x10;
+            for (c = 0; c < 4; c++) {
+                uint16_t data = 0x3fff;
+                int      b;
 
-                if (sw->poll_mode)
-                        temp |= (sw->poll_data & 7) << 5;
-                else
-                {
-                        temp |= ((sw->poll_data & 1) << 5) | 0xc0;
-                        if (sw->poll_left > 31 && !(sw->poll_left & 1))
-                                temp &= ~0x80;
+                if (!JOYSTICK_PRESENT(c))
+                    break;
+
+                if (joystick_state[c].axis[1] < -16383)
+                    data &= ~1;
+                if (joystick_state[c].axis[1] > 16383)
+                    data &= ~2;
+                if (joystick_state[c].axis[0] > 16383)
+                    data &= ~4;
+                if (joystick_state[c].axis[0] < -16383)
+                    data &= ~8;
+
+                for (b = 0; b < 10; b++) {
+                    if (joystick_state[c].button[b])
+                        data &= ~(1 << (b + 4));
                 }
+
+                if (sw_parity(data))
+                    data |= 0x4000;
+
+                if (sw->poll_mode) {
+                    sw->poll_left += 5;
+                    sw->poll_data |= (data << (c * 15 + 3));
+                } else {
+                    sw->poll_left += 15;
+                    sw->poll_data |= (data << (c * 15 + 1));
+                }
+            }
         }
-        else
-                temp |= 0xf0;
+    }
 
-        return temp;
+    timer_disable(&sw->trigger_timer);
 }
 
-static void sw_write(void *p)
+static int
+sw_read_axis(void *p, int axis)
 {
-        sw_data *sw = (sw_data *)p;
-        int64_t time_since_last = timer_get_remaining_us(&sw->trigger_timer);
+    if (!JOYSTICK_PRESENT(0))
+        return AXIS_NOT_PRESENT;
 
-        if (!JOYSTICK_PRESENT(0))
-                return;
-
-        timer_process();
-
-        if (!sw->poll_left)
-        {
-                sw->poll_clock = 1;
-				timer_set_delay_u64(&sw->poll_timer, TIMER_USEC * 50);
-
-                if (time_since_last > 9900 && time_since_last < 9940)
-                {
-                        sw->poll_mode = 0;
-                        sw->poll_left = 49;
-                        sw->poll_data = 0x2400ull | (0x1830ull << 15) | (0x19b0ull << 30);
-                }
-                else
-                {
-                        int c;
-
-                        sw->poll_mode = sw->data_mode;
-                        sw->data_mode = !sw->data_mode;
-
-                        if (sw->poll_mode)
-                        {
-                                sw->poll_left = 1;
-                                sw->poll_data = 7;
-                        }
-                        else
-                        {
-                                sw->poll_left = 1;
-                                sw->poll_data = 1;
-                        }
-
-                        for (c = 0; c < 4; c++)
-                        {
-                                uint16_t data = 0x3fff;
-                                int b;
-
-                                if (!JOYSTICK_PRESENT(c))
-                                        break;
-
-                                if (joystick_state[c].axis[1] < -16383)
-                                        data &= ~1;
-                                if (joystick_state[c].axis[1] > 16383)
-                                        data &= ~2;
-                                if (joystick_state[c].axis[0] > 16383)
-                                        data &= ~4;
-                                if (joystick_state[c].axis[0] < -16383)
-                                        data &= ~8;
-
-                                for (b = 0; b < 10; b++)
-                                {
-                                        if (joystick_state[c].button[b])
-                                                data &= ~(1 << (b + 4));
-                                }
-
-                                if (sw_parity(data))
-                                        data |= 0x4000;
-
-                                if (sw->poll_mode)
-                                {
-                                        sw->poll_left += 5;
-                                        sw->poll_data |= (data << (c*15 + 3));
-                                }
-                                else
-                                {
-                                        sw->poll_left += 15;
-                                        sw->poll_data |= (data << (c*15 + 1));
-                                }
-                        }
-                }
-        }
-
-        timer_disable(&sw->trigger_timer);
+    return 0; /*No analogue support on Sidewinder game pad*/
 }
 
-static int sw_read_axis(void *p, int axis)
+static void
+sw_a0_over(void *p)
 {
-        if (!JOYSTICK_PRESENT(0))
-                return AXIS_NOT_PRESENT;
+    sw_data *sw = (sw_data *) p;
 
-        return 0; /*No analogue support on Sidewinder game pad*/
-}
-
-static void sw_a0_over(void *p)
-{
-        sw_data *sw = (sw_data *)p;
-
-        timer_set_delay_u64(&sw->trigger_timer, TIMER_USEC * 10000);
+    timer_set_delay_u64(&sw->trigger_timer, TIMER_USEC * 10000);
 }
 
 const joystick_if_t joystick_sw_pad = {
-    .name = "Microsoft SideWinder Pad",
+    .name          = "Microsoft SideWinder Pad",
     .internal_name = "sidewinder_pad",
-    .init = sw_init,
-    .close = sw_close,
-    .read = sw_read,
-    .write = sw_write,
-    .read_axis = sw_read_axis,
-    .a0_over = sw_a0_over,
-    .axis_count = 2,
-    .button_count = 10,
-    .pov_count = 0,
+    .init          = sw_init,
+    .close         = sw_close,
+    .read          = sw_read,
+    .write         = sw_write,
+    .read_axis     = sw_read_axis,
+    .a0_over       = sw_a0_over,
+    .axis_count    = 2,
+    .button_count  = 10,
+    .pov_count     = 0,
     .max_joysticks = 4,
-    .axis_names = { "X axis", "Y axis" },
-    .button_names = { "A", "B", "C", "X", "Y", "Z", "L", "R", "Start", "M" },
-    .pov_names = { NULL }
+    .axis_names    = {"X axis", "Y axis" },
+    .button_names  = { "A",       "B", "C", "X", "Y", "Z", "L", "R", "Start", "M" },
+    .pov_names     = { NULL}
 };

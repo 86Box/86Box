@@ -31,6 +31,9 @@ ifeq ($(DEV_BUILD), y)
  ifndef DEBUG
   DEBUG		:= y
  endif
+ ifndef GDBSTUB
+  GDBSTUB	:= n
+ endif
  ifndef DEV_BRANCH
   DEV_BRANCH	:= y
  endif
@@ -76,9 +79,6 @@ ifeq ($(DEV_BUILD), y)
  ifndef SIO_DETECT
   SIO_DETECT	:= y
  endif
- ifndef TANDY_ISA
-  TANDY_ISA	:= y
- endif
  ifndef VGAWONDER
   VGAWONDER	:= y
  endif
@@ -91,6 +91,9 @@ ifeq ($(DEV_BUILD), y)
 else
  ifndef DEBUG
   DEBUG		:= n
+ endif
+ ifndef GDBSTUB
+  GDBSTUB	:= n
  endif
  ifndef DEV_BRANCH
   DEV_BRANCH	:= n
@@ -136,9 +139,6 @@ else
  endif
  ifndef SIO_DETECT
   SIO_DETECT	:= n
- endif
- ifndef TANDY_ISA
-  TANDY_ISA	:= n
  endif
  ifndef VGAWONDER
   VGAWONDER	:= n
@@ -235,7 +235,7 @@ VPATH		:= $(EXPATH) . $(CODEGEN) minitrace cpu \
 		   sio sound \
 		    sound/munt sound/munt/c_interface sound/munt/sha1 \
 		    sound/munt/srchelper sound/munt/srchelper/srctools/src \
-		    sound/resid-fp \
+		    sound/resid-fp sound/ymfm \
 		   scsi video network network/slirp win
 ifeq ($(X64), y)
 TOOL_PREFIX     := x86_64-w64-mingw32-
@@ -391,7 +391,7 @@ endif
 ifeq ($(MUNT), y)
 OPTS		+= -DUSE_MUNT
 MUNTOBJ		:= midi_mt32.o \
-		    Analog.o BReverbModel.o File.o FileStream.o LA32Ramp.o \
+		    Analog.o BReverbModel.o Display.o File.o FileStream.o LA32Ramp.o \
 		    LA32FloatWaveGenerator.o LA32WaveGenerator.o \
 		    MidiStreamParser.o Part.o Partial.o PartialManager.o \
 		    Poly.o ROMInfo.o SampleRateConverter.o \
@@ -489,10 +489,6 @@ OPTS		+= -DUSE_SIO_DETECT
 DEVBROBJ	+= sio_detect.o
 endif
 
-ifeq ($(TANDY_ISA), y)
-OPTS		+= -DUSE_TANDY_ISA
-endif
-
 ifeq ($(VGAWONDER), y)
 OPTS		+= -DUSE_VGAWONDER
 endif
@@ -506,6 +502,10 @@ OPTS		+= -DUSE_OLIVETTI
 DEVBROBJ	+= olivetti_eva.o
 endif
 
+ifeq ($(GDBSTUB), y)
+OPTS		+= -DUSE_GDBSTUB
+DEVBROBJ	+= gdbstub.o
+endif
 
 endif
 
@@ -525,8 +525,8 @@ CXXFLAGS	:= $(CFLAGS)
 #		Create the (final) list of objects to build.		#
 #########################################################################
 MAINOBJ		:= 86box.o config.o log.o random.o timer.o io.o acpi.o apm.o dma.o ddma.o \
-		   nmi.o pic.o pit.o port_6x.o port_92.o ppi.o pci.o mca.o fifo8.o \
-		   usb.o device.o nvr.o nvr_at.o nvr_ps2.o \
+		   nmi.o pic.o pit.o pit_fast.o port_6x.o port_92.o ppi.o pci.o mca.o fifo8.o \
+		   usb.o device.o nvr.o nvr_at.o nvr_ps2.o machine_status.o ini.o \
 		   $(VNCOBJ)
 
 MEMOBJ		:= catalyst_flash.o i2c_eeprom.o intel_flash.o mem.o rom.o smram.o spd.o sst_flash.o
@@ -595,7 +595,7 @@ DEVOBJ		:= bugger.o cartridge.o cassette.o hasp.o hwm.o hwm_lm75.o hwm_lm78.o hw
 			phoenix_486_jumper.o
 endif
 
-SIOOBJ		:= sio_acc3221.o \
+SIOOBJ		:= sio_acc3221.o sio_ali5123.o \
 		    sio_f82c710.o sio_82091aa.o sio_fdc37c6xx.o \
 		    sio_fdc37c67x.o sio_fdc37c669.o sio_fdc37c93x.o sio_fdc37m60x.o \
 			sio_it8661f.o \
@@ -654,13 +654,15 @@ NETOBJ		:= network.o \
 		    net_dp8390.o \
 		    net_3c503.o net_ne2000.o \
 		    net_pcnet.o net_wd8003.o \
-		    net_plip.o
+		    net_plip.o net_event.o
 
 PRINTOBJ	:= png.o prt_cpmap.o \
 		    prt_escp.o prt_text.o prt_ps.o
 
 SNDOBJ		:= sound.o \
-		    snd_opl.o snd_opl_nuked.o \
+		    snd_opl.o snd_opl_nuked.o snd_opl_ymfm.o \
+		     ymfm_adpcm.o ymfm_misc.o ymfm_opl.o ymfm_opm.o \
+		     ymfm_opn.o ymfm_opq.o ymfm_opz.o ymfm_pcm.o ymfm_ssg.o \
 		    snd_resid.o \
 		     convolve.o convolve-sse.o envelope.o extfilt.o \
 		     filter.o pot.o sid.o voice.o wave6581__ST.o \
@@ -766,12 +768,12 @@ OBJ		+= $(EXOBJ)
 endif
 
 ifeq ($(OPENAL), y)
-LIBS		:= -mwindows -lopenal -lcomctl32 -lSDL2 -limagehlp -ldinput8 -ldxguid -ldxerr8 -luser32 -lgdi32 -lwinmm -limm32 -lole32 -loleaut32 -lshell32 -lversion -luuid
+LIBS		:= -mwindows -lopenal -lcomctl32 -lSDL2 -limagehlp -ldinput8 -ldxguid -ldxerr8 -luser32 -lgdi32 -lwinmm -limm32 -lole32 -loleaut32 -lshell32 -lversion -luuid -lws2_32
 else
 ifeq ($(FAUDIO), y)
-LIBS		:= -mwindows -lfaudio -lcomctl32 -lSDL2 -limagehlp -ldinput8 -ldxguid -ldxerr8 -luser32 -lgdi32 -lwinmm -limm32 -lole32 -loleaut32 -lshell32 -lversion -luuid
+LIBS		:= -mwindows -lfaudio -lcomctl32 -lSDL2 -limagehlp -ldinput8 -ldxguid -ldxerr8 -luser32 -lgdi32 -lwinmm -limm32 -lole32 -loleaut32 -lshell32 -lversion -luuid -lws2_32
 else
-LIBS		:= -mwindows -lcomctl32 -lSDL2 -limagehlp -ldinput8 -ldxguid -ldxerr8 -luser32 -lgdi32 -lwinmm -limm32 -lole32 -loleaut32 -lshell32 -lversion -luuid
+LIBS		:= -mwindows -lcomctl32 -lSDL2 -limagehlp -ldinput8 -ldxguid -ldxerr8 -luser32 -lgdi32 -lwinmm -limm32 -lole32 -loleaut32 -lshell32 -lversion -luuid -lws2_32
 endif
 endif
 

@@ -41,12 +41,10 @@
 #include <86box/io.h>
 #include <86box/video.h>
 
-
 typedef struct
 {
-    uint8_t	reg;
+    uint8_t reg;
 } philips_t;
-
 
 #ifdef ENABLE_PHILIPS_LOG
 int philips_do_log = ENABLE_PHILIPS_LOG;
@@ -58,11 +56,11 @@ philips_log(const char *fmt, ...)
     if (philips_do_log) {
         va_start(ap, fmt);
         pclog_ex(fmt, ap);
-    	va_end(ap);
+        va_end(ap);
     }
 }
 #else
-#define philips_log(fmt, ...)
+#    define philips_log(fmt, ...)
 #endif
 
 static void
@@ -71,46 +69,44 @@ philips_write(uint16_t port, uint8_t val, void *priv)
     philips_t *dev = (philips_t *) priv;
 
     switch (port) {
-	/* port 0xc0
-	 * bit 7: turbo
-	 * bits 4-5: rtc read/set (I2C Bus SDA/SCL?)
-	 * bit 2: parity disabled
-	 */
-	case 0xc0:
-		dev->reg = val;
-		if (val & 0x80)
-			cpu_dynamic_switch(cpu);
-		else
-			cpu_dynamic_switch(0);
-		break;
+        /* port 0xc0
+         * bit 7: turbo
+         * bits 4-5: rtc read/set (I2C Bus SDA/SCL?)
+         * bit 2: parity disabled
+         */
+        case 0xc0:
+            dev->reg = val;
+            if (val & 0x80)
+                cpu_dynamic_switch(cpu);
+            else
+                cpu_dynamic_switch(0);
+            break;
     }
 
     philips_log("Philips XT Mainboard: Write %02x at %02x\n", val, port);
-
 }
 
 static uint8_t
 philips_read(uint16_t port, void *priv)
 {
     philips_t *dev = (philips_t *) priv;
-    uint8_t ret = 0xff;
+    uint8_t    ret = 0xff;
 
     switch (port) {
-	/* port 0xc0
-	 * bit 7: turbo
-	 * bits 4-5: rtc read/set
-	 * bit 2: parity disabled
-	 */
-	case 0xc0:
-		ret = dev->reg;
-		break;
+        /* port 0xc0
+         * bit 7: turbo
+         * bits 4-5: rtc read/set
+         * bit 2: parity disabled
+         */
+        case 0xc0:
+            ret = dev->reg;
+            break;
     }
 
     philips_log("Philips XT Mainboard: Read %02x at %02x\n", ret, port);
 
     return ret;
 }
-
 
 static void
 philips_close(void *priv)
@@ -134,17 +130,17 @@ philips_init(const device_t *info)
 }
 
 const device_t philips_device = {
-    .name = "Philips XT Mainboard",
+    .name          = "Philips XT Mainboard",
     .internal_name = "philips",
-    .flags = 0,
-    .local = 0,
-    .init = philips_init,
-    .close = philips_close,
-    .reset = NULL,
+    .flags         = 0,
+    .local         = 0,
+    .init          = philips_init,
+    .close         = philips_close,
+    .reset         = NULL,
     { .available = NULL },
     .speed_changed = NULL,
-    .force_redraw = NULL,
-    .config = NULL
+    .force_redraw  = NULL,
+    .config        = NULL
 };
 
 void
@@ -152,7 +148,7 @@ machine_xt_philips_common_init(const machine_t *model)
 {
     machine_common_init(model);
 
-    pit_ctr_set_out_func(&pit->counters[1], pit_refresh_timer_xt);
+    pit_devs[0].set_out_func(pit_devs[0].data, 1, pit_refresh_timer_xt);
 
     nmi_init();
 
@@ -163,7 +159,6 @@ machine_xt_philips_common_init(const machine_t *model)
     device_add(&philips_device);
 
     device_add(&xta_hd20_device);
-
 }
 
 int
@@ -172,15 +167,15 @@ machine_xt_p3105_init(const machine_t *model)
     int ret;
 
     ret = bios_load_linear("roms/machines/p3105/philipsnms9100.bin",
-			   0x000fc000, 16384, 0);
+                           0x000fc000, 16384, 0);
 
     if (bios_only || !ret)
-	return ret;
+        return ret;
 
     machine_xt_philips_common_init(model);
 
     /* On-board FDC cannot be disabled */
-	device_add(&fdc_xt_device);
+    device_add(&fdc_xt_device);
 
     return ret;
 }
@@ -191,10 +186,10 @@ machine_xt_p3120_init(const machine_t *model)
     int ret;
 
     ret = bios_load_linear("roms/machines/p3120/philips_p3120.bin",
-			   0x000f8000, 32768, 0);
+                           0x000f8000, 32768, 0);
 
     if (bios_only || !ret)
-	return ret;
+        return ret;
 
     machine_xt_philips_common_init(model);
 

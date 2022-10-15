@@ -20,8 +20,7 @@
  *		Copyright 2017 Fred N. van Kempen.
  */
 #ifndef EMU_CONFIG_H
-# define EMU_CONFIG_H
-
+#define EMU_CONFIG_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -69,16 +68,16 @@ typedef struct {
 			window_x,
 			window_y,
 			sound_gain;			/* Sound gain */
-#ifdef USE_LANGUAGE
+#    ifdef USE_LANGUAGE
     uint16_t		language_id;			/* Language ID (0x0409 = English (US)) */
-#endif
+#    endif
 
     /* Machine cateogory */
     int			machine,			/* Machine */
 			cpu,				/* CPU */
-#ifdef USE_DYNAREC
+#    ifdef USE_DYNAREC
 			cpu_use_dynarec,		/* CPU recompiler enabled */
-#endif
+#    endif
 			wait_states,			/* CPU wait states */
 			enable_external_fpu,		/* FPU enabled */
 			time_sync;			/* Time sync enabled */
@@ -109,11 +108,9 @@ typedef struct {
 
     /* Ports category */
     char		parallel_devices[PARALLEL_MAX][32];	/* LPT device names */
-#ifdef USE_SERIAL_DEVICES
+#    ifdef USE_SERIAL_DEVICES
     char		serial_devices[SERIAL_MAX][32];		/* Serial device names */
-#endif
-    int			serial_enabled[SERIAL_MAX],		/* Serial ports 1, 2, 3, 4 enabled */
-			parallel_enabled[PARALLEL_MAX];		/* LPT1, LPT2, LPT3, LPT4 enabled */
+#    endif
 
     /* Other peripherals category */
     int			fdc_type,			/* Floppy disk controller type */
@@ -137,33 +134,38 @@ typedef struct {
 } config_t;
 #endif
 
-extern void	config_load(void);
-extern void	config_save(void);
-extern void	config_write(char *fn);
-extern void	config_dump(void);
+extern void config_load(void);
+extern void config_save(void);
 
-extern void	config_delete_var(char *head, char *name);
-extern int	config_get_int(char *head, char *name, int def);
-extern double	config_get_double(char *head, char *name, double def);
-extern int	config_get_hex16(char *head, char *name, int def);
-extern int	config_get_hex20(char *head, char *name, int def);
-extern int	config_get_mac(char *head, char *name, int def);
-extern char	*config_get_string(char *head, char *name, char *def);
-extern wchar_t	*config_get_wstring(char *head, char *name, wchar_t *def);
-extern void	config_set_int(char *head, char *name, int val);
-extern void	config_set_double(char *head, char *name, double val);
-extern void	config_set_hex16(char *head, char *name, int val);
-extern void	config_set_hex20(char *head, char *name, int val);
-extern void	config_set_mac(char *head, char *name, int val);
-extern void	config_set_string(char *head, char *name, char *val);
-extern void	config_set_wstring(char *head, char *name, wchar_t *val);
+#ifdef EMU_INI_H
+extern ini_t config_get_ini(void);
+#else
+extern void *config_get_ini(void);
+#endif
 
-extern void *	config_find_section(char *name);
-extern void	config_rename_section(void *priv, char *name);
+#define config_delete_var(head, name)       ini_delete_var(config_get_ini(), head, name)
+
+#define config_get_int(head, name, def)     ini_get_int(config_get_ini(), head, name, def)
+#define config_get_double(head, name, def)  ini_get_double(config_get_ini(), head, name, def)
+#define config_get_hex16(head, name, def)   ini_get_hex16(config_get_ini(), head, name, def)
+#define config_get_hex20(head, name, def)   ini_get_hex20(config_get_ini(), head, name, def)
+#define config_get_mac(head, name, def)     ini_get_mac(config_get_ini(), head, name, def)
+#define config_get_string(head, name, def)  ini_get_string(config_get_ini(), head, name, def)
+#define config_get_wstring(head, name, def) ini_get_wstring(config_get_ini(), head, name, def)
+
+#define config_set_int(head, name, val)     ini_set_int(config_get_ini(), head, name, val)
+#define config_set_double(head, name, val)  ini_set_double(config_get_ini(), head, name, val)
+#define config_set_hex16(head, name, val)   ini_set_hex16(config_get_ini(), head, name, val)
+#define config_set_hex20(head, name, val)   ini_set_hex20(config_get_ini(), head, name, val)
+#define config_set_mac(head, name, val)     ini_set_mac(config_get_ini(), head, name, val)
+#define config_set_string(head, name, val)  ini_set_string(config_get_ini(), head, name, val)
+#define config_set_wstring(head, name, val) ini_set_wstring(config_get_ini(), head, name, val)
+
+#define config_find_section(name)           ini_find_section(config_get_ini(), name)
+#define config_rename_section               ini_rename_section
 
 #ifdef __cplusplus
 }
 #endif
 
-
-#endif	/*EMU_CONFIG_H*/
+#endif /*EMU_CONFIG_H*/

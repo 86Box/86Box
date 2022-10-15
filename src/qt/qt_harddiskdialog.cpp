@@ -138,6 +138,10 @@ QString HarddiskDialog::fileName() const {
     return ui->fileField->fileName();
 }
 
+uint32_t HarddiskDialog::speed() const {
+    return static_cast<uint32_t>(ui->comboBoxSpeed->currentData().toUInt());
+}
+
 void HarddiskDialog::on_comboBoxFormat_currentIndexChanged(int index) {
     bool enabled;
     if (index == 5) { /* They switched to a diff VHD; disable the geometry fields. */
@@ -604,6 +608,7 @@ void HarddiskDialog::onExistingFileSelected(const QString &fileName) {
 }
 
 void HarddiskDialog::recalcSize() {
+    if (disallowSizeModifications) return;
     uint64_t size = (static_cast<uint64_t>(cylinders_) * static_cast<uint64_t>(heads_) * static_cast<uint64_t>(sectors_)) << 9;
     ui->lineEditSize->setText(QString::number(size >> 20));
 }
@@ -700,6 +705,8 @@ void HarddiskDialog::on_comboBoxBus_currentIndexChanged(int index) {
     ui->lineEditSectors->setValidator(new QIntValidator(1, max_sectors, this));
 
     Harddrives::populateBusChannels(ui->comboBoxChannel->model(), ui->comboBoxBus->currentData().toInt());
+    Harddrives::populateSpeeds(ui->comboBoxSpeed->model(), ui->comboBoxBus->currentData().toInt());
+
     switch (ui->comboBoxBus->currentData().toInt())
     {
         case HDD_BUS_MFM:
@@ -725,6 +732,7 @@ void HarddiskDialog::on_comboBoxBus_currentIndexChanged(int index) {
 }
 
 void HarddiskDialog::on_lineEditSize_textEdited(const QString &text) {
+    disallowSizeModifications = true;
     uint32_t size = text.toUInt();
     /* This is needed to ensure VHD standard compliance. */
     hdd_image_calc_chs(&cylinders_, &heads_, &sectors_, size);
@@ -736,6 +744,8 @@ void HarddiskDialog::on_lineEditSize_textEdited(const QString &text) {
     checkAndAdjustCylinders();
     checkAndAdjustHeads();
     checkAndAdjustSectors();
+
+    disallowSizeModifications = false;
 }
 
 void HarddiskDialog::on_lineEditCylinders_textEdited(const QString &text) {

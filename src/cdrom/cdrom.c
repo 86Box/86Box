@@ -25,6 +25,7 @@
 #include <86box/cdrom.h>
 #include <86box/cdrom_image.h>
 #include <86box/plat.h>
+#include <86box/scsi.h>
 #include <86box/scsi_device.h>
 #include <86box/sound.h>
 

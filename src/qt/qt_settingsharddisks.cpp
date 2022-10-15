@@ -37,6 +37,7 @@ const int ColumnCylinders   = 2;
 const int ColumnHeads       = 3;
 const int ColumnSectors     = 4;
 const int ColumnSize        = 5;
+const int ColumnSpeed       = 6;
 
 const int DataBus           = Qt::UserRole;
 const int DataBusChannel    = Qt::UserRole + 1;
@@ -94,6 +95,8 @@ static void addRow(QAbstractItemModel* model, hard_disk_t* hd) {
     model->setData(model->index(row, ColumnHeads), hd->hpc);
     model->setData(model->index(row, ColumnSectors), hd->spt);
     model->setData(model->index(row, ColumnSize), (hd->tracks * hd->hpc * hd->spt) >> 11);
+    model->setData(model->index(row, ColumnSpeed), hdd_preset_getname(hd->speed_preset));
+    model->setData(model->index(row, ColumnSpeed), hd->speed_preset, Qt::UserRole);
 }
 
 SettingsHarddisks::SettingsHarddisks(QWidget *parent) :
@@ -102,13 +105,14 @@ SettingsHarddisks::SettingsHarddisks(QWidget *parent) :
 {
     ui->setupUi(this);
 
-    QAbstractItemModel* model = new QStandardItemModel(0, 6, this);
+    QAbstractItemModel* model = new QStandardItemModel(0, 7, this);
     model->setHeaderData(ColumnBus, Qt::Horizontal, tr("Bus"));
     model->setHeaderData(ColumnFilename, Qt::Horizontal, tr("File"));
     model->setHeaderData(ColumnCylinders, Qt::Horizontal, tr("C"));
     model->setHeaderData(ColumnHeads, Qt::Horizontal, tr("H"));
     model->setHeaderData(ColumnSectors, Qt::Horizontal, tr("S"));
     model->setHeaderData(ColumnSize, Qt::Horizontal, tr("MiB"));
+    model->setHeaderData(ColumnSpeed, Qt::Horizontal, tr("Speed"));
     ui->tableView->setModel(model);
 
     for (int i = 0; i < HDD_NUM; i++) {
@@ -149,6 +153,7 @@ void SettingsHarddisks::save() {
         hdd[i].tracks = idx.siblingAtColumn(ColumnCylinders).data().toUInt();
         hdd[i].hpc = idx.siblingAtColumn(ColumnHeads).data().toUInt();
         hdd[i].spt = idx.siblingAtColumn(ColumnSectors).data().toUInt();
+        hdd[i].speed_preset = idx.siblingAtColumn(ColumnSpeed).data(Qt::UserRole).toUInt();
 
         QByteArray fileName = idx.siblingAtColumn(ColumnFilename).data(Qt::UserRole).toString().toUtf8();
         strncpy(hdd[i].fn, fileName.data(), sizeof(hdd[i].fn) - 1);
@@ -173,6 +178,7 @@ void SettingsHarddisks::on_comboBoxBus_currentIndexChanged(int index) {
     }
 
     Harddrives::populateBusChannels(ui->comboBoxChannel->model(), ui->comboBoxBus->currentData().toInt());
+    Harddrives::populateSpeeds(ui->comboBoxSpeed->model(), ui->comboBoxBus->currentData().toInt());
     int chanIdx = 0;
 
     switch (ui->comboBoxBus->currentData().toInt())
@@ -221,15 +227,32 @@ void SettingsHarddisks::on_comboBoxChannel_currentIndexChanged(int index) {
     }
 }
 
+void SettingsHarddisks::on_comboBoxSpeed_currentIndexChanged(int index) {
+    if (index < 0) {
+        return;
+    }
+
+    auto idx = ui->tableView->selectionModel()->currentIndex();
+    if (idx.isValid()) {
+        auto* model = ui->tableView->model();
+        auto col = idx.siblingAtColumn(ColumnSpeed);
+        model->setData(col, ui->comboBoxSpeed->currentData(Qt::UserRole), Qt::UserRole);
+        model->setData(col, hdd_preset_getname(ui->comboBoxSpeed->currentData(Qt::UserRole).toUInt()));
+    }
+}
+
 void SettingsHarddisks::onTableRowChanged(const QModelIndex &current) {
     bool hidden = !current.isValid();
     ui->labelBus->setHidden(hidden);
     ui->labelChannel->setHidden(hidden);
+    ui->labelSpeed->setHidden(hidden);
     ui->comboBoxBus->setHidden(hidden);
     ui->comboBoxChannel->setHidden(hidden);
+    ui->comboBoxSpeed->setHidden(hidden);
 
     uint32_t bus = current.siblingAtColumn(ColumnBus).data(DataBus).toUInt();
     uint32_t busChannel = current.siblingAtColumn(ColumnBus).data(DataBusChannel).toUInt();
+    uint32_t speed = current.siblingAtColumn(ColumnSpeed).data(Qt::UserRole).toUInt();
 
     auto* model = ui->comboBoxBus->model();
     auto match = model->match(model->index(0, 0), Qt::UserRole, bus);
@@ -240,6 +263,12 @@ void SettingsHarddisks::onTableRowChanged(const QModelIndex &current) {
     match = model->match(model->index(0, 0), Qt::UserRole, busChannel);
     if (! match.isEmpty()) {
         ui->comboBoxChannel->setCurrentIndex(match.first().row());
+    }
+
+    model = ui->comboBoxSpeed->model();
+    match = model->match(model->index(0, 0), Qt::UserRole, speed);
+    if (! match.isEmpty()) {
+        ui->comboBoxSpeed->setCurrentIndex(match.first().row());
     }
 }
 
@@ -255,6 +284,7 @@ static void addDriveFromDialog(Ui::SettingsHarddisks* ui, const HarddiskDialog& 
     hd.hpc = dlg.heads();
     hd.spt = dlg.sectors();
     strncpy(hd.fn, fn.data(), sizeof(hd.fn) - 1);
+    hd.speed_preset = dlg.speed();
 
     addRow(ui->tableView->model(), &hd);
     ui->tableView->resizeColumnsToContents();

@@ -183,9 +183,10 @@ sb_get_buffer_sb2(int32_t *buffer, int len, void *p)
     sb_ct1335_mixer_t *mixer = &sb->mixer_sb2;
     int                c;
     double             out_mono = 0.0, out_l = 0.0, out_r = 0.0;
+    int32_t           *opl_buf = NULL;
 
     if (sb->opl_enabled)
-        opl2_update(&sb->opl);
+        opl_buf = sb->opl.update(sb->opl.priv);
 
     sb_dsp_update(&sb->dsp);
 
@@ -198,7 +199,7 @@ sb_get_buffer_sb2(int32_t *buffer, int len, void *p)
         out_r    = 0.0;
 
         if (sb->opl_enabled)
-            out_mono = ((double) sb->opl.buffer[c]) * 0.7171630859375;
+            out_mono = ((double) opl_buf[c]) * 0.7171630859375;
 
         if (sb->cms_enabled) {
             out_l += sb->cms.buffer[c];
@@ -234,7 +235,7 @@ sb_get_buffer_sb2(int32_t *buffer, int len, void *p)
     sb->pos = 0;
 
     if (sb->opl_enabled)
-        sb->opl.pos = 0;
+        sb->opl.reset_buffer(sb->opl.priv);
 
     sb->dsp.pos = 0;
 
@@ -265,13 +266,14 @@ sb_get_buffer_sbpro(int32_t *buffer, int len, void *p)
     sb_ct1345_mixer_t *mixer = &sb->mixer_sbpro;
     int                c;
     double             out_l = 0.0, out_r = 0.0;
+    int32_t           *opl_buf = NULL, *opl2_buf = NULL;
 
     if (sb->opl_enabled) {
         if (sb->dsp.sb_type == SBPRO) {
-            opl2_update(&sb->opl);
-            opl2_update(&sb->opl2);
+            opl_buf  = sb->opl.update(sb->opl.priv);
+            opl2_buf = sb->opl2.update(sb->opl2.priv);
         } else
-            opl3_update(&sb->opl);
+            opl_buf = sb->opl.update(sb->opl.priv);
     }
 
     sb_dsp_update(&sb->dsp);
@@ -283,11 +285,11 @@ sb_get_buffer_sbpro(int32_t *buffer, int len, void *p)
             if (sb->dsp.sb_type == SBPRO) {
                 /* Two chips for LEFT and RIGHT channels.
                    Each chip stores data into the LEFT channel only (no sample alternating.) */
-                out_l = (((double) sb->opl.buffer[c]) * mixer->fm_l) * 0.7171630859375;
-                out_r = (((double) sb->opl2.buffer[c]) * mixer->fm_r) * 0.7171630859375;
+                out_l = (((double) opl_buf[c]) * mixer->fm_l) * 0.7171630859375;
+                out_r = (((double) opl2_buf[c]) * mixer->fm_r) * 0.7171630859375;
             } else {
-                out_l = (((double) sb->opl.buffer[c]) * mixer->fm_l) * 0.7171630859375;
-                out_r = (((double) sb->opl.buffer[c + 1]) * mixer->fm_r) * 0.7171630859375;
+                out_l = (((double) opl_buf[c]) * mixer->fm_l) * 0.7171630859375;
+                out_r = (((double) opl_buf[c + 1]) * mixer->fm_r) * 0.7171630859375;
             }
         }
 
@@ -311,9 +313,9 @@ sb_get_buffer_sbpro(int32_t *buffer, int len, void *p)
     sb->pos = 0;
 
     if (sb->opl_enabled) {
-        sb->opl.pos = 0;
-        if (sb->dsp.sb_type != SBPRO)
-            sb->opl2.pos = 0;
+        sb->opl.reset_buffer(sb->opl.priv);
+        if (sb->dsp.sb_type == SBPRO)
+            sb->opl2.reset_buffer(sb->opl2.priv);
     }
 
     sb->dsp.pos = 0;
@@ -345,9 +347,10 @@ sb_get_buffer_sb16_awe32(int32_t *buffer, int len, void *p)
     int32_t            in_l, in_r;
     double             out_l = 0.0, out_r = 0.0;
     double             bass_treble;
+    int32_t           *opl_buf = NULL;
 
     if (sb->opl_enabled)
-        opl3_update(&sb->opl);
+        opl_buf = sb->opl.update(sb->opl.priv);
 
     if (sb->dsp.sb_type > SB16)
         emu8k_update(&sb->emu8k);
@@ -361,8 +364,8 @@ sb_get_buffer_sb16_awe32(int32_t *buffer, int len, void *p)
             c_emu8k = ((((c / 2) * 44100) / 48000) * 2);
 
         if (sb->opl_enabled) {
-            out_l = ((double) sb->opl.buffer[c]) * mixer->fm_l * 0.7171630859375;
-            out_r = ((double) sb->opl.buffer[c + 1]) * mixer->fm_r * 0.7171630859375;
+            out_l = ((double) opl_buf[c]) * mixer->fm_l * 0.7171630859375;
+            out_r = ((double) opl_buf[c + 1]) * mixer->fm_r * 0.7171630859375;
         }
 
         if (sb->dsp.sb_type > SB16) {
@@ -456,7 +459,7 @@ sb_get_buffer_sb16_awe32(int32_t *buffer, int len, void *p)
     sb->pos = 0;
 
     if (sb->opl_enabled)
-        sb->opl.pos = 0;
+        sb->opl.reset_buffer(sb->opl.priv);
 
     sb->dsp.pos = 0;
 
@@ -1088,13 +1091,13 @@ sb_mcv_write(int port, uint8_t val, void *p)
     addr = sb_mcv_addr[sb->pos_regs[4] & 7];
     if (sb->opl_enabled) {
         io_removehandler(addr + 8, 0x0002,
-                         opl2_read, NULL, NULL,
-                         opl2_write, NULL, NULL,
-                         &sb->opl);
+                         sb->opl.read, NULL, NULL,
+                         sb->opl.write, NULL, NULL,
+                         sb->opl.priv);
         io_removehandler(0x0388, 0x0002,
-                         opl2_read, NULL, NULL,
-                         opl2_write, NULL, NULL,
-                         &sb->opl);
+                         sb->opl.read, NULL, NULL,
+                         sb->opl.write, NULL, NULL,
+                         sb->opl.priv);
     }
     /* DSP I/O handler is activated in sb_dsp_setaddr */
     sb_dsp_setaddr(&sb->dsp, 0);
@@ -1106,13 +1109,13 @@ sb_mcv_write(int port, uint8_t val, void *p)
 
         if (sb->opl_enabled) {
             io_sethandler(addr + 8, 0x0002,
-                          opl2_read, NULL, NULL,
-                          opl2_write, NULL, NULL,
-                          &sb->opl);
+                          sb->opl.read, NULL, NULL,
+                          sb->opl.write, NULL, NULL,
+                          sb->opl.priv);
             io_sethandler(0x0388, 0x0002,
-                          opl2_read, NULL, NULL,
-                          opl2_write, NULL, NULL,
-                          &sb->opl);
+                          sb->opl.read, NULL, NULL,
+                          sb->opl.write, NULL, NULL,
+                          sb->opl.priv);
         }
         /* DSP I/O handler is activated in sb_dsp_setaddr */
         sb_dsp_setaddr(&sb->dsp, addr);
@@ -1152,17 +1155,17 @@ sb_pro_mcv_write(int port, uint8_t val, void *p)
     addr = (sb->pos_regs[2] & 0x20) ? 0x220 : 0x240;
 
     io_removehandler(addr, 0x0004,
-                     opl3_read, NULL, NULL,
-                     opl3_write, NULL, NULL,
-                     &sb->opl);
+                     sb->opl.read, NULL, NULL,
+                     sb->opl.write, NULL, NULL,
+                     sb->opl.priv);
     io_removehandler(addr + 8, 0x0002,
-                     opl3_read, NULL, NULL,
-                     opl3_write, NULL, NULL,
-                     &sb->opl);
+                     sb->opl.read, NULL, NULL,
+                     sb->opl.write, NULL, NULL,
+                     sb->opl.priv);
     io_removehandler(0x0388, 0x0004,
-                     opl3_read, NULL, NULL,
-                     opl3_write, NULL, NULL,
-                     &sb->opl);
+                     sb->opl.read, NULL, NULL,
+                     sb->opl.write, NULL, NULL,
+                     sb->opl.priv);
     io_removehandler(addr + 4, 0x0002,
                      sb_ct1345_mixer_read, NULL, NULL,
                      sb_ct1345_mixer_write, NULL, NULL,
@@ -1176,16 +1179,16 @@ sb_pro_mcv_write(int port, uint8_t val, void *p)
         addr = (sb->pos_regs[2] & 0x20) ? 0x220 : 0x240;
 
         io_sethandler(addr, 0x0004,
-                      opl3_read, NULL, NULL,
-                      opl3_write, NULL, NULL,
-                      &sb->opl);
+                      sb->opl.read, NULL, NULL,
+                      sb->opl.write, NULL, NULL,
+                      sb->opl.priv);
         io_sethandler(addr + 8, 0x0002,
-                      opl3_read, NULL, NULL,
-                      opl3_write, NULL, NULL,
-                      &sb->opl);
+                      sb->opl.read, NULL, NULL,
+                      sb->opl.write, NULL, NULL,
+                      sb->opl.priv);
         io_sethandler(0x0388, 0x0004,
-                      opl3_read, NULL, NULL,
-                      opl3_write, NULL, NULL, &sb->opl);
+                      sb->opl.read, NULL, NULL,
+                      sb->opl.write, NULL, NULL, sb->opl.priv);
         io_sethandler(addr + 4, 0x0002,
                       sb_ct1345_mixer_read, NULL, NULL,
                       sb_ct1345_mixer_write, NULL, NULL,
@@ -1198,6 +1201,151 @@ sb_pro_mcv_write(int port, uint8_t val, void *p)
     sb_dsp_setdma8(&sb->dsp, sb->pos_regs[4] & 3);
 }
 
+static uint8_t
+sb_16_reply_mca_read(int port, void *p)
+{
+    sb_t   *sb  = (sb_t *) p;
+    uint8_t ret = sb->pos_regs[port & 7];
+
+    sb_log("sb_16_reply_mca_read: port=%04x ret=%02x\n", port, ret);
+
+    return ret;
+}
+
+static void
+sb_16_reply_mca_write(int port, uint8_t val, void *p)
+{
+    uint16_t addr, mpu401_addr;
+    int      low_dma, high_dma;
+    sb_t    *sb = (sb_t *) p;
+
+    if (port < 0x102)
+        return;
+
+    sb_log("sb_16_reply_mca_write: port=%04x val=%02x\n", port, val);
+
+    switch (sb->pos_regs[2] & 0xc4) {
+        case 4:
+            addr = 0x220;
+            break;
+        case 0x44:
+            addr = 0x240;
+            break;
+        case 0x84:
+            addr = 0x260;
+            break;
+        case 0xc4:
+            addr = 0x280;
+            break;
+        case 0:
+        default:
+            addr = 0;
+            break;
+    }
+
+    if (addr) {
+        io_removehandler(addr, 0x0004,
+                         sb->opl.read, NULL, NULL,
+                         sb->opl.write, NULL, NULL,
+                         sb->opl.priv);
+        io_removehandler(addr + 8, 0x0002,
+                         sb->opl.read, NULL, NULL,
+                         sb->opl.write, NULL, NULL,
+                         sb->opl.priv);
+        io_removehandler(0x0388, 0x0004,
+                         sb->opl.read, NULL, NULL,
+                         sb->opl.write, NULL, NULL,
+                         sb->opl.priv);
+        io_removehandler(addr + 4, 0x0002,
+                         sb_ct1745_mixer_read, NULL, NULL,
+                         sb_ct1745_mixer_write, NULL, NULL,
+                         sb);
+    }
+
+    /* DSP I/O handler is activated in sb_dsp_setaddr */
+    sb_dsp_setaddr(&sb->dsp, 0);
+    mpu401_change_addr(sb->mpu, 0);
+    gameport_remap(sb->gameport, 0);
+
+    sb->pos_regs[port & 7] = val;
+
+    if (sb->pos_regs[2] & 1) {
+        switch (sb->pos_regs[2] & 0xc4) {
+            case 4:
+                addr = 0x220;
+                break;
+            case 0x44:
+                addr = 0x240;
+                break;
+            case 0x84:
+                addr = 0x260;
+                break;
+            case 0xc4:
+                addr = 0x280;
+                break;
+            case 0:
+            default:
+                addr = 0;
+                break;
+        }
+        switch (sb->pos_regs[2] & 0x18) {
+            case 8:
+                mpu401_addr = 0x330;
+                break;
+            case 0x18:
+                mpu401_addr = 0x300;
+                break;
+            case 0:
+            default:
+                mpu401_addr = 0;
+                break;
+        }
+
+        if (addr) {
+            io_sethandler(addr, 0x0004,
+                          sb->opl.read, NULL, NULL,
+                          sb->opl.write, NULL, NULL,
+                          sb->opl.priv);
+            io_sethandler(addr + 8, 0x0002,
+                          sb->opl.read, NULL, NULL,
+                          sb->opl.write, NULL, NULL,
+                          sb->opl.priv);
+            io_sethandler(0x0388, 0x0004,
+                          sb->opl.read, NULL, NULL,
+                          sb->opl.write, NULL, NULL, sb->opl.priv);
+            io_sethandler(addr + 4, 0x0002,
+                          sb_ct1745_mixer_read, NULL, NULL,
+                          sb_ct1745_mixer_write, NULL, NULL,
+                          sb);
+        }
+
+        /* DSP I/O handler is activated in sb_dsp_setaddr */
+        sb_dsp_setaddr(&sb->dsp, addr);
+        mpu401_change_addr(sb->mpu, mpu401_addr);
+        gameport_remap(sb->gameport, (sb->pos_regs[2] & 0x20) ? 0x200 : 0);
+    }
+
+    switch (sb->pos_regs[4] & 0x60) {
+        case 0x20:
+            sb_dsp_setirq(&sb->dsp, 5);
+            break;
+        case 0x40:
+            sb_dsp_setirq(&sb->dsp, 7);
+            break;
+        case 0x60:
+            sb_dsp_setirq(&sb->dsp, 10);
+            break;
+    }
+
+    low_dma  = sb->pos_regs[3] & 3;
+    high_dma = (sb->pos_regs[3] >> 4) & 7;
+    if (!high_dma)
+        high_dma = low_dma;
+
+    sb_dsp_setdma8(&sb->dsp, low_dma);
+    sb_dsp_setdma16(&sb->dsp, high_dma);
+}
+
 static void
 sb_16_pnp_config_changed(uint8_t ld, isapnp_device_config_t *config, void *priv)
 {
@@ -1208,13 +1356,13 @@ sb_16_pnp_config_changed(uint8_t ld, isapnp_device_config_t *config, void *priv)
     switch (ld) {
         case 0: /* Audio */
             io_removehandler(addr, 0x0004,
-                             opl3_read, NULL, NULL,
-                             opl3_write, NULL, NULL,
-                             &sb->opl);
+                             sb->opl.read, NULL, NULL,
+                             sb->opl.write, NULL, NULL,
+                             sb->opl.priv);
             io_removehandler(addr + 8, 0x0002,
-                             opl3_read, NULL, NULL,
-                             opl3_write, NULL, NULL,
-                             &sb->opl);
+                             sb->opl.read, NULL, NULL,
+                             sb->opl.write, NULL, NULL,
+                             sb->opl.priv);
             io_removehandler(addr + 4, 0x0002,
                              sb_ct1745_mixer_read, NULL, NULL,
                              sb_ct1745_mixer_write, NULL, NULL,
@@ -1224,9 +1372,9 @@ sb_16_pnp_config_changed(uint8_t ld, isapnp_device_config_t *config, void *priv)
             if (addr) {
                 sb->opl_pnp_addr = 0;
                 io_removehandler(addr, 0x0004,
-                                 opl3_read, NULL, NULL,
-                                 opl3_write, NULL, NULL,
-                                 &sb->opl);
+                                 sb->opl.read, NULL, NULL,
+                                 sb->opl.write, NULL, NULL,
+                                 sb->opl.priv);
             }
 
             sb_dsp_setaddr(&sb->dsp, 0);
@@ -1240,13 +1388,13 @@ sb_16_pnp_config_changed(uint8_t ld, isapnp_device_config_t *config, void *priv)
                 addr = config->io[0].base;
                 if (addr != ISAPNP_IO_DISABLED) {
                     io_sethandler(addr, 0x0004,
-                                  opl3_read, NULL, NULL,
-                                  opl3_write, NULL, NULL,
-                                  &sb->opl);
+                                  sb->opl.read, NULL, NULL,
+                                  sb->opl.write, NULL, NULL,
+                                  sb->opl.priv);
                     io_sethandler(addr + 8, 0x0002,
-                                  opl3_read, NULL, NULL,
-                                  opl3_write, NULL, NULL,
-                                  &sb->opl);
+                                  sb->opl.read, NULL, NULL,
+                                  sb->opl.write, NULL, NULL,
+                                  sb->opl.priv);
                     io_sethandler(addr + 4, 0x0002,
                                   sb_ct1745_mixer_read, NULL, NULL,
                                   sb_ct1745_mixer_write, NULL, NULL,
@@ -1263,9 +1411,9 @@ sb_16_pnp_config_changed(uint8_t ld, isapnp_device_config_t *config, void *priv)
                 if (addr != ISAPNP_IO_DISABLED) {
                     sb->opl_pnp_addr = addr;
                     io_sethandler(addr, 0x0004,
-                                  opl3_read, NULL, NULL,
-                                  opl3_write, NULL, NULL,
-                                  &sb->opl);
+                                  sb->opl.read, NULL, NULL,
+                                  sb->opl.write, NULL, NULL,
+                                  sb->opl.priv);
                 }
 
                 val = config->irq[0].irq;
@@ -1349,7 +1497,7 @@ sb_1_init(const device_t *info)
 
     sb->opl_enabled = device_get_config_int("opl");
     if (sb->opl_enabled)
-        opl2_init(&sb->opl);
+        fm_driver_get(FM_YM3812, &sb->opl);
 
     sb_dsp_init(&sb->dsp, SB1, SB_SUBTYPE_DEFAULT, sb);
     sb_dsp_setaddr(&sb->dsp, addr);
@@ -1358,13 +1506,13 @@ sb_1_init(const device_t *info)
     /* DSP I/O handler is activated in sb_dsp_setaddr */
     if (sb->opl_enabled) {
         io_sethandler(addr + 8, 0x0002,
-                      opl2_read, NULL, NULL,
-                      opl2_write, NULL, NULL,
-                      &sb->opl);
+                      sb->opl.read, NULL, NULL,
+                      sb->opl.write, NULL, NULL,
+                      sb->opl.priv);
         io_sethandler(0x0388, 0x0002,
-                      opl2_read, NULL, NULL,
-                      opl2_write, NULL, NULL,
-                      &sb->opl);
+                      sb->opl.read, NULL, NULL,
+                      sb->opl.write, NULL, NULL,
+                      sb->opl.priv);
     }
 
     sb->cms_enabled = 1;
@@ -1397,7 +1545,7 @@ sb_15_init(const device_t *info)
 
     sb->opl_enabled = device_get_config_int("opl");
     if (sb->opl_enabled)
-        opl2_init(&sb->opl);
+        fm_driver_get(FM_YM3812, &sb->opl);
 
     sb_dsp_init(&sb->dsp, SB15, SB_SUBTYPE_DEFAULT, sb);
     sb_dsp_setaddr(&sb->dsp, addr);
@@ -1406,13 +1554,13 @@ sb_15_init(const device_t *info)
     /* DSP I/O handler is activated in sb_dsp_setaddr */
     if (sb->opl_enabled) {
         io_sethandler(addr + 8, 0x0002,
-                      opl2_read, NULL, NULL,
-                      opl2_write, NULL, NULL,
-                      &sb->opl);
+                      sb->opl.read, NULL, NULL,
+                      sb->opl.write, NULL, NULL,
+                      sb->opl.priv);
         io_sethandler(0x0388, 0x0002,
-                      opl2_read, NULL, NULL,
-                      opl2_write, NULL, NULL,
-                      &sb->opl);
+                      sb->opl.read, NULL, NULL,
+                      sb->opl.write, NULL, NULL,
+                      sb->opl.priv);
     }
 
     sb->cms_enabled = device_get_config_int("cms");
@@ -1445,7 +1593,7 @@ sb_mcv_init(const device_t *info)
 
     sb->opl_enabled = device_get_config_int("opl");
     if (sb->opl_enabled)
-        opl2_init(&sb->opl);
+        fm_driver_get(FM_YM3812, &sb->opl);
 
     sb_dsp_init(&sb->dsp, SB15, SB_SUBTYPE_DEFAULT, sb);
     sb_dsp_setaddr(&sb->dsp, 0);
@@ -1490,7 +1638,7 @@ sb_2_init(const device_t *info)
 
     sb->opl_enabled = device_get_config_int("opl");
     if (sb->opl_enabled)
-        opl2_init(&sb->opl);
+        fm_driver_get(FM_YM3812, &sb->opl);
 
     sb_dsp_init(&sb->dsp, SB2, SB_SUBTYPE_DEFAULT, sb);
     sb_dsp_setaddr(&sb->dsp, addr);
@@ -1504,18 +1652,18 @@ sb_2_init(const device_t *info)
     if (sb->opl_enabled) {
         if (!sb->cms_enabled) {
             io_sethandler(addr, 0x0002,
-                          opl2_read, NULL, NULL,
-                          opl2_write, NULL, NULL,
-                          &sb->opl);
+                          sb->opl.read, NULL, NULL,
+                          sb->opl.write, NULL, NULL,
+                          sb->opl.priv);
         }
         io_sethandler(addr + 8, 0x0002,
-                      opl2_read, NULL, NULL,
-                      opl2_write, NULL, NULL,
-                      &sb->opl);
+                      sb->opl.read, NULL, NULL,
+                      sb->opl.write, NULL, NULL,
+                      sb->opl.priv);
         io_sethandler(0x0388, 0x0002,
-                      opl2_read, NULL, NULL,
-                      opl2_write, NULL, NULL,
-                      &sb->opl);
+                      sb->opl.read, NULL, NULL,
+                      sb->opl.write, NULL, NULL,
+                      sb->opl.priv);
     }
 
     if (sb->cms_enabled) {
@@ -1550,8 +1698,8 @@ sb_pro_v1_opl_read(uint16_t port, void *priv)
 
     cycles -= ((int) (isa_timing * 8));
 
-    (void) opl2_read(port, &sb->opl2); // read, but ignore
-    return (opl2_read(port, &sb->opl));
+    (void) sb->opl2.read(port, sb->opl2.priv); // read, but ignore
+    return (sb->opl.read(port, sb->opl.priv));
 }
 
 static void
@@ -1559,8 +1707,8 @@ sb_pro_v1_opl_write(uint16_t port, uint8_t val, void *priv)
 {
     sb_t *sb = (sb_t *) priv;
 
-    opl2_write(port, val, &sb->opl);
-    opl2_write(port, val, &sb->opl2);
+    sb->opl.write(port, val, sb->opl.priv);
+    sb->opl2.write(port, val, sb->opl2.priv);
 }
 
 static void *
@@ -1578,10 +1726,10 @@ sb_pro_v1_init(const device_t *info)
 
     sb->opl_enabled = device_get_config_int("opl");
     if (sb->opl_enabled) {
-        opl2_init(&sb->opl);
-        opl_set_do_cycles(&sb->opl, 0);
-        opl2_init(&sb->opl2);
-        opl_set_do_cycles(&sb->opl2, 0);
+        fm_driver_get(FM_YM3812, &sb->opl);
+        sb->opl.set_do_cycles(sb->opl.priv, 0);
+        fm_driver_get(FM_YM3812, &sb->opl2);
+        sb->opl2.set_do_cycles(sb->opl2.priv, 0);
     }
 
     sb_dsp_init(&sb->dsp, SBPRO, SB_SUBTYPE_DEFAULT, sb);
@@ -1592,13 +1740,13 @@ sb_pro_v1_init(const device_t *info)
     /* DSP I/O handler is activated in sb_dsp_setaddr */
     if (sb->opl_enabled) {
         io_sethandler(addr, 0x0002,
-                      opl2_read, NULL, NULL,
-                      opl2_write, NULL, NULL,
-                      &sb->opl);
+                      sb->opl.read, NULL, NULL,
+                      sb->opl.write, NULL, NULL,
+                      sb->opl.priv);
         io_sethandler(addr + 2, 0x0002,
-                      opl2_read, NULL, NULL,
-                      opl2_write, NULL, NULL,
-                      &sb->opl2);
+                      sb->opl2.read, NULL, NULL,
+                      sb->opl2.write, NULL, NULL,
+                      sb->opl2.priv);
         io_sethandler(addr + 8, 0x0002,
                       sb_pro_v1_opl_read, NULL, NULL,
                       sb_pro_v1_opl_write, NULL, NULL,
@@ -1638,7 +1786,7 @@ sb_pro_v2_init(const device_t *info)
 
     sb->opl_enabled = device_get_config_int("opl");
     if (sb->opl_enabled)
-        opl3_init(&sb->opl);
+        fm_driver_get(FM_YMF262, &sb->opl);
 
     sb_dsp_init(&sb->dsp, SBPRO2, SB_SUBTYPE_DEFAULT, sb);
     sb_dsp_setaddr(&sb->dsp, addr);
@@ -1648,17 +1796,17 @@ sb_pro_v2_init(const device_t *info)
     /* DSP I/O handler is activated in sb_dsp_setaddr */
     if (sb->opl_enabled) {
         io_sethandler(addr, 0x0004,
-                      opl3_read, NULL, NULL,
-                      opl3_write, NULL, NULL,
-                      &sb->opl);
+                      sb->opl.read, NULL, NULL,
+                      sb->opl.write, NULL, NULL,
+                      sb->opl.priv);
         io_sethandler(addr + 8, 0x0002,
-                      opl3_read, NULL, NULL,
-                      opl3_write, NULL, NULL,
-                      &sb->opl);
+                      sb->opl.read, NULL, NULL,
+                      sb->opl.write, NULL, NULL,
+                      sb->opl.priv);
         io_sethandler(0x0388, 0x0004,
-                      opl3_read, NULL, NULL,
-                      opl3_write, NULL, NULL,
-                      &sb->opl);
+                      sb->opl.read, NULL, NULL,
+                      sb->opl.write, NULL, NULL,
+                      sb->opl.priv);
     }
 
     sb->mixer_enabled = 1;
@@ -1687,7 +1835,7 @@ sb_pro_mcv_init(const device_t *info)
     memset(sb, 0, sizeof(sb_t));
 
     sb->opl_enabled = 1;
-    opl3_init(&sb->opl);
+    fm_driver_get(FM_YMF262, &sb->opl);
 
     sb_dsp_init(&sb->dsp, SBPRO2, SB_SUBTYPE_DEFAULT, sb);
     sb_ct1345_mixer_reset(sb);
@@ -1713,7 +1861,7 @@ sb_pro_compat_init(const device_t *info)
     sb_t *sb = malloc(sizeof(sb_t));
     memset(sb, 0, sizeof(sb_t));
 
-    opl3_init(&sb->opl);
+    fm_driver_get(FM_YMF262, &sb->opl);
 
     sb_dsp_init(&sb->dsp, SBPRO2, SB_SUBTYPE_DEFAULT, sb);
     sb_ct1345_mixer_reset(sb);
@@ -1740,7 +1888,7 @@ sb_16_init(const device_t *info)
 
     sb->opl_enabled = device_get_config_int("opl");
     if (sb->opl_enabled)
-        opl3_init(&sb->opl);
+        fm_driver_get(FM_YMF262, &sb->opl);
 
     sb_dsp_init(&sb->dsp, SB16, SB_SUBTYPE_DEFAULT, sb);
     sb_dsp_setaddr(&sb->dsp, addr);
@@ -1751,17 +1899,17 @@ sb_16_init(const device_t *info)
 
     if (sb->opl_enabled) {
         io_sethandler(addr, 0x0004,
-                      opl3_read, NULL, NULL,
-                      opl3_write, NULL, NULL,
-                      &sb->opl);
+                      sb->opl.read, NULL, NULL,
+                      sb->opl.write, NULL, NULL,
+                      sb->opl.priv);
         io_sethandler(addr + 8, 0x0002,
-                      opl3_read, NULL, NULL,
-                      opl3_write, NULL, NULL,
-                      &sb->opl);
+                      sb->opl.read, NULL, NULL,
+                      sb->opl.write, NULL, NULL,
+                      sb->opl.priv);
         io_sethandler(0x0388, 0x0004,
-                      opl3_read, NULL, NULL,
-                      opl3_write, NULL, NULL,
-                      &sb->opl);
+                      sb->opl.read, NULL, NULL,
+                      sb->opl.write, NULL, NULL,
+                      sb->opl.priv);
     }
 
     sb->mixer_enabled            = 1;
@@ -1786,13 +1934,48 @@ sb_16_init(const device_t *info)
 }
 
 static void *
+sb_16_reply_mca_init(const device_t *info)
+{
+    sb_t *sb = malloc(sizeof(sb_t));
+    memset(sb, 0x00, sizeof(sb_t));
+
+    sb->opl_enabled = 1;
+    fm_driver_get(FM_YMF262, &sb->opl);
+
+    sb_dsp_init(&sb->dsp, SB16, SB_SUBTYPE_DEFAULT, sb);
+    sb_ct1745_mixer_reset(sb);
+
+    sb->mixer_enabled            = 1;
+    sb->mixer_sb16.output_filter = 1;
+    sound_add_handler(sb_get_buffer_sb16_awe32, sb);
+    sound_set_cd_audio_filter(sb16_awe32_filter_cd_audio, sb);
+
+    sb->mpu = (mpu_t *) malloc(sizeof(mpu_t));
+    memset(sb->mpu, 0, sizeof(mpu_t));
+    mpu401_init(sb->mpu, 0, 0, M_UART, device_get_config_int("receive_input401"));
+    sb_dsp_set_mpu(&sb->dsp, sb->mpu);
+
+    if (device_get_config_int("receive_input"))
+        midi_in_handler(1, sb_dsp_input_msg, sb_dsp_input_sysex, &sb->dsp);
+
+    sb->gameport = gameport_add(&gameport_device);
+
+    /* I/O handlers activated in sb_pro_mcv_write */
+    mca_add(sb_16_reply_mca_read, sb_16_reply_mca_write, sb_mcv_feedb, NULL, sb);
+    sb->pos_regs[0] = 0x38;
+    sb->pos_regs[1] = 0x51;
+
+    return sb;
+}
+
+static void *
 sb_16_pnp_init(const device_t *info)
 {
     sb_t *sb = malloc(sizeof(sb_t));
     memset(sb, 0x00, sizeof(sb_t));
 
     sb->opl_enabled = 1;
-    opl3_init(&sb->opl);
+    fm_driver_get(FM_YMF262, &sb->opl);
 
     sb_dsp_init(&sb->dsp, SB16, SB_SUBTYPE_DEFAULT, sb);
     sb_ct1745_mixer_reset(sb);
@@ -1816,6 +1999,16 @@ sb_16_pnp_init(const device_t *info)
 
     isapnp_add_card(sb_16_pnp_rom, sizeof(sb_16_pnp_rom), sb_16_pnp_config_changed, NULL, NULL, NULL, sb);
 
+    sb_dsp_setaddr(&sb->dsp, 0);
+    sb_dsp_setirq(&sb->dsp, 0);
+    sb_dsp_setdma8(&sb->dsp, ISAPNP_DMA_DISABLED);
+    sb_dsp_setdma16(&sb->dsp, ISAPNP_DMA_DISABLED);
+
+    mpu401_change_addr(sb->mpu, 0);
+    ide_remove_handlers(2);
+
+    gameport_remap(sb->gameport, 0);
+
     return sb;
 }
 
@@ -1825,7 +2018,7 @@ sb_16_compat_init(const device_t *info)
     sb_t *sb = malloc(sizeof(sb_t));
     memset(sb, 0, sizeof(sb_t));
 
-    opl3_init(&sb->opl);
+    fm_driver_get(FM_YMF262, &sb->opl);
 
     sb_dsp_init(&sb->dsp, SB16, SB_SUBTYPE_DEFAULT, sb);
     sb_ct1745_mixer_reset(sb);
@@ -1890,7 +2083,7 @@ sb_awe32_init(const device_t *info)
 
     sb->opl_enabled = device_get_config_int("opl");
     if (sb->opl_enabled)
-        opl3_init(&sb->opl);
+        fm_driver_get(FM_YMF262, &sb->opl);
 
     sb_dsp_init(&sb->dsp, SBAWE32, SB_SUBTYPE_DEFAULT, sb);
     sb_dsp_setaddr(&sb->dsp, addr);
@@ -1901,17 +2094,17 @@ sb_awe32_init(const device_t *info)
 
     if (sb->opl_enabled) {
         io_sethandler(addr, 0x0004,
-                      opl3_read, NULL, NULL,
-                      opl3_write, NULL, NULL,
-                      &sb->opl);
+                      sb->opl.read, NULL, NULL,
+                      sb->opl.write, NULL, NULL,
+                      sb->opl.priv);
         io_sethandler(addr + 8, 0x0002,
-                      opl3_read, NULL, NULL,
-                      opl3_write, NULL, NULL,
-                      &sb->opl);
+                      sb->opl.read, NULL, NULL,
+                      sb->opl.write, NULL, NULL,
+                      sb->opl.priv);
         io_sethandler(0x0388, 0x0004,
-                      opl3_read, NULL, NULL,
-                      opl3_write, NULL, NULL,
-                      &sb->opl);
+                      sb->opl.read, NULL, NULL,
+                      sb->opl.write, NULL, NULL,
+                      sb->opl.priv);
     }
 
     sb->mixer_enabled            = 1;
@@ -1946,7 +2139,7 @@ sb_awe32_pnp_init(const device_t *info)
     memset(sb, 0x00, sizeof(sb_t));
 
     sb->opl_enabled = 1;
-    opl3_init(&sb->opl);
+    fm_driver_get(FM_YMF262, &sb->opl);
 
     sb_dsp_init(&sb->dsp, ((info->local == 2) || (info->local == 3) || (info->local == 4)) ? SBAWE64 : SBAWE32, SB_SUBTYPE_DEFAULT, sb);
     sb_ct1745_mixer_reset(sb);
@@ -2016,6 +2209,18 @@ sb_awe32_pnp_init(const device_t *info)
             isapnp_add_card(pnp_rom, sizeof(sb->pnp_rom), sb_awe64_gold_pnp_config_changed, NULL, NULL, NULL, sb);
             break;
     }
+
+    sb_dsp_setaddr(&sb->dsp, 0);
+    sb_dsp_setirq(&sb->dsp, 0);
+    sb_dsp_setdma8(&sb->dsp, ISAPNP_DMA_DISABLED);
+    sb_dsp_setdma16(&sb->dsp, ISAPNP_DMA_DISABLED);
+
+    mpu401_change_addr(sb->mpu, 0);
+    ide_remove_handlers(2);
+
+    emu8k_change_addr(&sb->emu8k, 0);
+
+    gameport_remap(sb->gameport, 0);
 
     return sb;
 }
@@ -2534,6 +2739,17 @@ static const device_config_t sb_pro_config[] = {
         .default_string = "",
         .default_int = 1
     },
+    {
+        .name = "receive_input",
+        .description = "Receive input (SB MIDI)",
+        .type = CONFIG_BINARY,
+        .default_string = "",
+        .default_int = 1
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+};
+
+static const device_config_t sb_pro_mcv_config[] = {
     {
         .name = "receive_input",
         .description = "Receive input (SB MIDI)",
@@ -3318,7 +3534,7 @@ const device_t sb_pro_mcv_device = {
     { .available = NULL },
     .speed_changed = sb_speed_changed,
     .force_redraw  = NULL,
-    .config        = NULL
+    .config        = sb_pro_mcv_config
 };
 
 const device_t sb_pro_compat_device = {
@@ -3347,6 +3563,20 @@ const device_t sb_16_device = {
     .speed_changed = sb_speed_changed,
     .force_redraw  = NULL,
     .config        = sb_16_config
+};
+
+const device_t sb_16_reply_mca_device = {
+    .name          = "Sound Blaster 16 Reply MCA",
+    .internal_name = "sb16_reply_mca",
+    .flags         = DEVICE_MCA,
+    .local         = 0,
+    .init          = sb_16_reply_mca_init,
+    .close         = sb_close,
+    .reset         = NULL,
+    { .available = NULL },
+    .speed_changed = sb_speed_changed,
+    .force_redraw  = NULL,
+    .config        = sb_16_pnp_config
 };
 
 const device_t sb_16_pnp_device = {

@@ -18,12 +18,11 @@
  */
 
 #ifndef MACHINE_AMSTRAD_H
-# define MACHINE_AMSTRAD_H
+#define MACHINE_AMSTRAD_H
 
-extern int amstrad_latch;
+extern uint32_t amstrad_latch;
 
-enum
-{
+enum {
     AMSTRAD_NOLATCH,
     AMSTRAD_SW9,
     AMSTRAD_SW10

@@ -39,9 +39,9 @@
 #include <86box/nvr.h>
 #include <86box/scsi_ncr53c8xx.h>
 #include <86box/sio.h>
+#include <86box/timer.h>
 #include <86box/video.h>
 #include <86box/machine.h>
-
 
 void
 machine_at_premiere_common_init(const machine_t *model, int pci_switch)
@@ -62,7 +62,6 @@ machine_at_premiere_common_init(const machine_t *model, int pci_switch)
     device_add(&intel_flash_bxt_ami_device);
 }
 
-
 void
 machine_at_award_common_init(const machine_t *model)
 {
@@ -80,12 +79,11 @@ machine_at_award_common_init(const machine_t *model)
     pci_register_slot(0x02, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
 
     if (fdc_type == FDC_INTERNAL)
-    device_add(&fdc_at_device);
+        device_add(&fdc_at_device);
 
     // device_add(&keyboard_ps2_pci_device);
     device_add(&keyboard_ps2_ami_pci_device);
 }
-
 
 void
 machine_at_sp4_common_init(const machine_t *model)
@@ -110,17 +108,16 @@ machine_at_sp4_common_init(const machine_t *model)
     device_add(&intel_flash_bxt_device);
 }
 
-
 int
 machine_at_excaliburpci_init(const machine_t *model)
 {
     int ret;
 
     ret = bios_load_linear_inverted("roms/machines/excaliburpci/S701P.ROM",
-			   0x000e0000, 131072, 0);
+                                    0x000e0000, 131072, 0);
 
     if (bios_only || !ret)
-	return ret;
+        return ret;
 
     machine_at_common_init(model);
 
@@ -142,17 +139,16 @@ machine_at_excaliburpci_init(const machine_t *model)
     return ret;
 }
 
-
 int
 machine_at_p5mp3_init(const machine_t *model)
 {
     int ret;
 
     ret = bios_load_linear("roms/machines/p5mp3/0205.bin",
-			   0x000e0000, 131072, 0);
+                           0x000e0000, 131072, 0);
 
     if (bios_only || !ret)
-	return ret;
+        return ret;
 
     machine_at_common_init(model);
     device_add(&ide_pci_device);
@@ -173,17 +169,16 @@ machine_at_p5mp3_init(const machine_t *model)
     return ret;
 }
 
-
 int
 machine_at_dellxp60_init(const machine_t *model)
 {
     int ret;
 
     ret = bios_load_linear_inverted("roms/machines/dellxp60/XP60-A08.ROM",
-				    0x000e0000, 131072, 0);
+                                    0x000e0000, 131072, 0);
 
     if (bios_only || !ret)
-	return ret;
+        return ret;
 
     machine_at_common_init(model);
     device_add(&ide_pci_2ch_device);
@@ -206,17 +201,16 @@ machine_at_dellxp60_init(const machine_t *model)
     return ret;
 }
 
-
 int
 machine_at_opti560l_init(const machine_t *model)
 {
     int ret;
 
     ret = bios_load_linear_inverted("roms/machines/opti560l/560L_A06.ROM",
-				    0x000e0000, 131072, 0);
+                                    0x000e0000, 131072, 0);
 
     if (bios_only || !ret)
-	return ret;
+        return ret;
 
     machine_at_common_init(model);
     device_add(&ide_pci_2ch_device);
@@ -236,17 +230,16 @@ machine_at_opti560l_init(const machine_t *model)
     return ret;
 }
 
-
 int
 machine_at_ambradp60_init(const machine_t *model)
 {
     int ret;
 
     ret = bios_load_linear_combined("roms/machines/ambradp60/1004AF1P.BIO",
-				    "roms/machines/ambradp60/1004AF1P.BI1", 0x1c000, 128);
+                                    "roms/machines/ambradp60/1004AF1P.BI1", 0x1c000, 128);
 
     if (bios_only || !ret)
-	return ret;
+        return ret;
 
     machine_at_premiere_common_init(model, 0);
 
@@ -255,17 +248,16 @@ machine_at_ambradp60_init(const machine_t *model)
     return ret;
 }
 
-
 int
 machine_at_valuepointp60_init(const machine_t *model)
 {
     int ret;
 
     ret = bios_load_linear_combined("roms/machines/valuepointp60/1006AV0M.BIO",
-				    "roms/machines/valuepointp60/1006AV0M.BI1", 0x1d000, 128);
+                                    "roms/machines/valuepointp60/1006AV0M.BI1", 0x1d000, 128);
 
     if (bios_only || !ret)
-	return ret;
+        return ret;
 
     machine_at_common_init(model);
     device_add(&ide_pci_2ch_device);
@@ -287,17 +279,16 @@ machine_at_valuepointp60_init(const machine_t *model)
     return ret;
 }
 
-
 int
 machine_at_revenge_init(const machine_t *model)
 {
     int ret;
 
     ret = bios_load_linear_combined("roms/machines/revenge/1009af2_.bio",
-				    "roms/machines/revenge/1009af2_.bi1", 0x1c000, 128);
+                                    "roms/machines/revenge/1009af2_.bi1", 0x1c000, 128);
 
     if (bios_only || !ret)
-	return ret;
+        return ret;
 
     machine_at_premiere_common_init(model, 0);
 
@@ -306,17 +297,16 @@ machine_at_revenge_init(const machine_t *model)
     return ret;
 }
 
-
 int
 machine_at_586mc1_init(const machine_t *model)
 {
     int ret;
 
     ret = bios_load_linear("roms/machines/586mc1/IS.34",
-			   0x000e0000, 131072, 0);
+                           0x000e0000, 131072, 0);
 
     if (bios_only || !ret)
-	return ret;
+        return ret;
 
     machine_at_award_common_init(model);
 
@@ -327,17 +317,16 @@ machine_at_586mc1_init(const machine_t *model)
     return ret;
 }
 
-
 int
 machine_at_pb520r_init(const machine_t *model)
 {
     int ret;
 
     ret = bios_load_linear_combined("roms/machines/pb520r/1009bc0r.bio",
-				    "roms/machines/pb520r/1009bc0r.bi1", 0x1d000, 128);
+                                    "roms/machines/pb520r/1009bc0r.bi1", 0x1d000, 128);
 
     if (bios_only || !ret)
-	return ret;
+        return ret;
 
     machine_at_common_init(model);
 
@@ -353,7 +342,7 @@ machine_at_pb520r_init(const machine_t *model)
     device_add(&ide_cmd640_pci_single_channel_device);
 
     if (gfxcard == VID_INTERNAL)
-	device_add(&gd5434_onboard_pci_device);
+        device_add(&gd5434_onboard_pci_device);
 
     device_add(&keyboard_ps2_pci_device);
     device_add(&sio_zb_device);
@@ -363,24 +352,16 @@ machine_at_pb520r_init(const machine_t *model)
     return ret;
 }
 
-
-const device_t *
-at_pb520r_get_device(void)
-{
-    return &gd5434_onboard_pci_device;
-}
-
-
 int
 machine_at_excalibur_init(const machine_t *model)
 {
     int ret;
 
     ret = bios_load_linear_inverted("roms/machines/excalibur/S75P.ROM",
-			   0x000e0000, 131072, 0);
+                                    0x000e0000, 131072, 0);
 
     if (bios_only || !ret)
-	return ret;
+        return ret;
 
     machine_at_common_init(model);
 
@@ -392,17 +373,16 @@ machine_at_excalibur_init(const machine_t *model)
     return ret;
 }
 
-
 int
 machine_at_p5vl_init(const machine_t *model)
 {
     int ret;
 
     ret = bios_load_linear("roms/machines/p5vl/SM507.ROM",
-			   0x000e0000, 131072, 0);
+                           0x000e0000, 131072, 0);
 
     if (bios_only || !ret)
-	return ret;
+        return ret;
 
     machine_at_common_init(model);
     pci_init(PCI_CONFIG_TYPE_1);
@@ -416,11 +396,10 @@ machine_at_p5vl_init(const machine_t *model)
     device_add(&keyboard_at_ami_device);
 
     if (fdc_type == FDC_INTERNAL)
-    device_add(&fdc_at_device);
+        device_add(&fdc_at_device);
 
     return ret;
 }
-
 
 int
 machine_at_excaliburpci2_init(const machine_t *model)
@@ -428,10 +407,10 @@ machine_at_excaliburpci2_init(const machine_t *model)
     int ret;
 
     ret = bios_load_linear_inverted("roms/machines/excaliburpci2/S722P.ROM",
-			   0x000e0000, 131072, 0);
+                                    0x000e0000, 131072, 0);
 
     if (bios_only || !ret)
-	return ret;
+        return ret;
 
     machine_at_common_init_ex(model, 2);
     device_add(&ami_1994_nvr_device);
@@ -454,17 +433,16 @@ machine_at_excaliburpci2_init(const machine_t *model)
     return ret;
 }
 
-
 int
 machine_at_p5sp4_init(const machine_t *model)
 {
     int ret;
 
     ret = bios_load_linear("roms/machines/p5sp4/0106.001",
-			   0x000e0000, 131072, 0);
+                           0x000e0000, 131072, 0);
 
     if (bios_only || !ret)
-	return ret;
+        return ret;
 
     machine_at_sp4_common_init(model);
 

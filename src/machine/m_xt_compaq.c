@@ -43,18 +43,18 @@ machine_xt_compaq_deskpro_init(const machine_t *model)
     int ret;
 
     ret = bios_load_linear("roms/machines/deskpro/Compaq - BIOS - Revision J - 106265-002.bin",
-			   0x000fe000, 8192, 0);
+                           0x000fe000, 8192, 0);
 
     if (bios_only || !ret)
-	return ret;
+        return ret;
 
     machine_common_init(model);
 
-    pit_ctr_set_out_func(&pit->counters[1], pit_refresh_timer_xt);
+    pit_devs[0].set_out_func(pit_devs[0].data, 1, pit_refresh_timer_xt);
 
     device_add(&keyboard_xt_compaq_device);
     if (fdc_type == FDC_INTERNAL)
-	device_add(&fdc_xt_device);
+        device_add(&fdc_xt_device);
     nmi_init();
     standalone_gameport_type = &gameport_device;
 
@@ -64,28 +64,27 @@ machine_xt_compaq_deskpro_init(const machine_t *model)
     return ret;
 }
 
-
 int
 machine_xt_compaq_portable_init(const machine_t *model)
 {
     int ret;
 
     ret = bios_load_linear("roms/machines/portable/compaq portable plus 100666-001 rev c u47.bin",
-			   0x000fe000, 8192, 0);
+                           0x000fe000, 8192, 0);
 
     if (bios_only || !ret)
-	return ret;
+        return ret;
 
     machine_common_init(model);
 
-    pit_ctr_set_out_func(&pit->counters[1], pit_refresh_timer_xt);
+    pit_devs[0].set_out_func(pit_devs[0].data, 1, pit_refresh_timer_xt);
 
     device_add(&keyboard_xt_compaq_device);
     if (fdc_type == FDC_INTERNAL)
-	device_add(&fdc_xt_device);
+        device_add(&fdc_xt_device);
     nmi_init();
     if (joystick_type)
-	device_add(&gameport_device);
+        device_add(&gameport_device);
 
     lpt1_remove();
     lpt1_init(LPT_MDA_ADDR);

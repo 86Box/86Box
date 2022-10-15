@@ -40,17 +40,16 @@
 #include <86box/sound.h>
 #include <86box/snd_ac97.h>
 
-
 int
 machine_at_s370slm_init(const machine_t *model)
 {
     int ret;
 
     ret = bios_load_linear("roms/machines/s370slm/3LM1202.rom",
-			   0x000c0000, 262144, 0);
+                           0x000c0000, 262144, 0);
 
     if (bios_only || !ret)
-	return ret;
+        return ret;
 
     machine_at_common_init_ex(model, 2);
 
@@ -68,13 +67,12 @@ machine_at_s370slm_init(const machine_t *model)
     device_add(&keyboard_ps2_ami_pci_device);
     device_add(&intel_flash_bxt_device);
     spd_register(SPD_TYPE_SDRAM, 0x7, 256);
-    device_add(&w83781d_device); /* fans: CPU, Fan 2, Chassis; temperatures: unused, CPU, unused */
+    device_add(&w83781d_device);    /* fans: CPU, Fan 2, Chassis; temperatures: unused, CPU, unused */
     hwm_values.temperatures[0] = 0; /* unused */
     hwm_values.temperatures[2] = 0; /* unused */
 
     return ret;
 }
-
 
 int
 machine_at_s1857_init(const machine_t *model)
@@ -82,10 +80,10 @@ machine_at_s1857_init(const machine_t *model)
     int ret;
 
     ret = bios_load_linear("roms/machines/s1857/BX57200A.ROM",
-			   0x000c0000, 262144, 0);
+                           0x000c0000, 262144, 0);
 
     if (bios_only || !ret)
-	return ret;
+        return ret;
 
     machine_at_common_init_ex(model, 2);
 
@@ -107,13 +105,12 @@ machine_at_s1857_init(const machine_t *model)
     spd_register(SPD_TYPE_SDRAM, 0x7, 256);
 
     if (sound_card_current == SOUND_INTERNAL) {
-	device_add(&es1371_onboard_device);
-	device_add(&cs4297_device); /* found on other Tyan boards around the same time */
+        device_add(&es1371_onboard_device);
+        device_add(&cs4297_device); /* found on other Tyan boards around the same time */
     }
 
     return ret;
 }
-
 
 int
 machine_at_p6bap_init(const machine_t *model)
@@ -121,10 +118,10 @@ machine_at_p6bap_init(const machine_t *model)
     int ret;
 
     ret = bios_load_linear("roms/machines/p6bap/bapa14a.BIN",
-			   0x000c0000, 262144, 0);
+                           0x000c0000, 262144, 0);
 
     if (bios_only || !ret)
-	return ret;
+        return ret;
 
     machine_at_common_init_ex(model, 2);
 
@@ -147,17 +144,16 @@ machine_at_p6bap_init(const machine_t *model)
     return ret;
 }
 
-
 int
 machine_at_cubx_init(const machine_t *model)
 {
     int ret;
 
     ret = bios_load_linear("roms/machines/cubx/1008cu.004",
-			   0x000c0000, 262144, 0);
+                           0x000c0000, 262144, 0);
 
     if (bios_only || !ret)
-	return ret;
+        return ret;
 
     machine_at_common_init_ex(model, 2);
 
@@ -184,17 +180,16 @@ machine_at_cubx_init(const machine_t *model)
     return ret;
 }
 
-
 int
 machine_at_atc7020bxii_init(const machine_t *model)
 {
     int ret;
 
     ret = bios_load_linear("roms/machines/atc7020bxii/7020s102.bin",
-			   0x000c0000, 262144, 0);
+                           0x000c0000, 262144, 0);
 
     if (bios_only || !ret)
-	return ret;
+        return ret;
 
     machine_at_common_init_ex(model, 2);
 
@@ -217,17 +212,16 @@ machine_at_atc7020bxii_init(const machine_t *model)
     return ret;
 }
 
-
 int
 machine_at_ambx133_init(const machine_t *model)
 {
     int ret;
 
     ret = bios_load_linear("roms/machines/ambx133/mkbx2vg2.bin",
-			   0x000c0000, 262144, 0);
+                           0x000c0000, 262144, 0);
 
     if (bios_only || !ret)
-	return ret;
+        return ret;
 
     machine_at_common_init_ex(model, 2);
 
@@ -248,12 +242,11 @@ machine_at_ambx133_init(const machine_t *model)
     spd_register(SPD_TYPE_SDRAM, 0x7, 256);
     device_add(&gl518sm_2d_device); /* fans: CPUFAN1, CPUFAN2; temperature: CPU */
     hwm_values.fans[1] += 500;
-    hwm_values.temperatures[0] += 4; /* CPU offset */
+    hwm_values.temperatures[0] += 4;                         /* CPU offset */
     hwm_values.voltages[1] = RESISTOR_DIVIDER(12000, 10, 2); /* different 12V divider in BIOS (10K/2K?) */
 
     return ret;
 }
-
 
 int
 machine_at_awo671r_init(const machine_t *model)
@@ -261,10 +254,10 @@ machine_at_awo671r_init(const machine_t *model)
     int ret;
 
     ret = bios_load_linear("roms/machines/awo671r/a08139c.bin",
-			   0x000c0000, 262144, 0);
+                           0x000c0000, 262144, 0);
 
     if (bios_only || !ret)
-	return ret;
+        return ret;
 
     machine_at_common_init_ex(model, 2);
 
@@ -288,17 +281,16 @@ machine_at_awo671r_init(const machine_t *model)
     return ret;
 }
 
-
 int
 machine_at_63a1_init(const machine_t *model)
 {
     int ret;
 
     ret = bios_load_linear("roms/machines/63a1/63a-q3.bin",
-			   0x000c0000, 262144, 0);
+                           0x000c0000, 262144, 0);
 
     if (bios_only || !ret)
-	return ret;
+        return ret;
 
     machine_at_common_init_ex(model, 2);
 
@@ -321,17 +313,16 @@ machine_at_63a1_init(const machine_t *model)
     return ret;
 }
 
-
 int
 machine_at_apas3_init(const machine_t *model)
 {
     int ret;
 
     ret = bios_load_linear("roms/machines/apas3/V0218SAG.BIN",
-			   0x000c0000, 262144, 0);
+                           0x000c0000, 262144, 0);
 
     if (bios_only || !ret)
-	return ret;
+        return ret;
 
     machine_at_common_init_ex(model, 2);
 
@@ -353,17 +344,16 @@ machine_at_apas3_init(const machine_t *model)
     return ret;
 }
 
-
 int
 machine_at_gt694va_init(const machine_t *model)
 {
     int ret;
 
     ret = bios_load_linear("roms/machines/gt694va/21071100.bin",
-			   0x000c0000, 262144, 0);
+                           0x000c0000, 262144, 0);
 
     if (bios_only || !ret)
-	return ret;
+        return ret;
 
     machine_at_common_init_ex(model, 2);
 
@@ -381,21 +371,20 @@ machine_at_gt694va_init(const machine_t *model)
     device_add(&keyboard_ps2_ami_pci_device);
     device_add(&sst_flash_39sf020_device);
     spd_register(SPD_TYPE_SDRAM, 0x7, 1024);
-    device_add(&w83782d_device); /* fans: CPU, unused, unused; temperatures: System, CPU1, unused */
-    hwm_values.voltages[1] = 1500; /* IN1 (unknown purpose, assumed Vtt) */
-    hwm_values.fans[0] = 4500; /* BIOS does not display <4411 RPM */
-    hwm_values.fans[1] = 0; /* unused */
-    hwm_values.fans[2] = 0; /* unused */
-    hwm_values.temperatures[2] = 0; /* unused */
+    device_add(&w83782d_device);       /* fans: CPU, unused, unused; temperatures: System, CPU1, unused */
+    hwm_values.voltages[1]     = 1500; /* IN1 (unknown purpose, assumed Vtt) */
+    hwm_values.fans[0]         = 4500; /* BIOS does not display <4411 RPM */
+    hwm_values.fans[1]         = 0;    /* unused */
+    hwm_values.fans[2]         = 0;    /* unused */
+    hwm_values.temperatures[2] = 0;    /* unused */
 
     if (sound_card_current == SOUND_INTERNAL) {
-	device_add(&es1371_onboard_device);
-	device_add(&cs4297_device); /* assumed */
+        device_add(&es1371_onboard_device);
+        device_add(&cs4297_device); /* assumed */
     }
 
     return ret;
 }
-
 
 int
 machine_at_cuv4xls_init(const machine_t *model)
@@ -403,10 +392,10 @@ machine_at_cuv4xls_init(const machine_t *model)
     int ret;
 
     ret = bios_load_linear("roms/machines/cuv4xls/1005LS.001",
-			   0x000c0000, 262144, 0);
+                           0x000c0000, 262144, 0);
 
     if (bios_only || !ret)
-	return ret;
+        return ret;
 
     machine_at_common_init_ex(model, 2);
 
@@ -431,18 +420,10 @@ machine_at_cuv4xls_init(const machine_t *model)
     device_add(&as99127f_device); /* fans: Chassis, CPU, Power; temperatures: MB, JTPWR, CPU */
 
     if (sound_card_current == SOUND_INTERNAL)
-	device_add(&cmi8738_onboard_device);
+        device_add(&cmi8738_onboard_device);
 
     return ret;
 }
-
-
-const device_t *
-at_cuv4xls_get_device(void)
-{
-    return &cmi8738_onboard_device;
-}
-
 
 int
 machine_at_6via90ap_init(const machine_t *model)
@@ -450,10 +431,10 @@ machine_at_6via90ap_init(const machine_t *model)
     int ret;
 
     ret = bios_load_linear("roms/machines/6via90ap/90ap10.bin",
-			   0x000c0000, 262144, 0);
+                           0x000c0000, 262144, 0);
 
     if (bios_only || !ret)
-	return ret;
+        return ret;
 
     machine_at_common_init_ex(model, 2);
 
@@ -474,10 +455,10 @@ machine_at_6via90ap_init(const machine_t *model)
     spd_register(SPD_TYPE_SDRAM, 0x7, 1024);
     hwm_values.temperatures[0] += 2; /* CPU offset */
     hwm_values.temperatures[1] += 2; /* System offset */
-    hwm_values.temperatures[2] = 0; /* unused */
+    hwm_values.temperatures[2] = 0;  /* unused */
 
     if (sound_card_current == SOUND_INTERNAL)
-	device_add(&alc100_device); /* ALC100P identified on similar Acorp boards (694TA, 6VIA90A1) */
+        device_add(&alc100_device); /* ALC100P identified on similar Acorp boards (694TA, 6VIA90A1) */
 
     return ret;
 }

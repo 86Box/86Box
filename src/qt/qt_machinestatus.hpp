@@ -66,18 +66,19 @@ public:
     static void iterateCDROM(const std::function<void(int i)>& cb);
     static void iterateZIP(const std::function<void(int i)>& cb);
     static void iterateMO(const std::function<void(int i)>& cb);
+    static void iterateNIC(const std::function<void(int i)>& cb);
 
     QString getMessage();
 public slots:
     void refresh(QStatusBar* sbar);
-    void setActivity(int tag, bool active);
-    void setEmpty(int tag, bool active);
     void message(const QString& msg);
     void updateTip(int tag);
+    void refreshIcons();
 
 private:
     struct States;
     std::unique_ptr<States> d;
+    QTimer *refreshTimer;
 };
 
 #endif // QT_MACHINESTATUS_HPP

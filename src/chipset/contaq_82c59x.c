@@ -29,7 +29,6 @@
 #include <86box/smram.h>
 #include <86box/chipset.h>
 
-
 #ifdef ENABLE_CONTAQ_82C59X_LOG
 int contaq_82c59x_do_log = ENABLE_CONTAQ_82C59X_LOG;
 
@@ -38,133 +37,127 @@ contaq_82c59x_log(const char *fmt, ...)
 {
     va_list ap;
 
-    if (contaq_82c59x_do_log)
-    {
+    if (contaq_82c59x_do_log) {
         va_start(ap, fmt);
         pclog_ex(fmt, ap);
         va_end(ap);
     }
 }
 #else
-#define contaq_82c59x_log(fmt, ...)
+#    define contaq_82c59x_log(fmt, ...)
 #endif
 
-
 typedef struct
 {
-    uint32_t	phys, virt;
+    uint32_t phys, virt;
 } mem_remapping_t;
 
-
 typedef struct
 {
-    uint8_t	index, green,
-		smi_status_set,
-		regs[256], smi_status[2];
+    uint8_t index, green,
+        smi_status_set,
+        regs[256], smi_status[2];
 
-    smram_t	*smram[2];
+    smram_t *smram[2];
 } contaq_82c59x_t;
-
 
 static void
 contaq_82c59x_isa_speed_recalc(contaq_82c59x_t *dev)
 {
     if (dev->regs[0x1c] & 0x02)
-	cpu_set_isa_speed(7159091);
+        cpu_set_isa_speed(7159091);
     else {
-	/* TODO: ISA clock dividers for 386 and alt. 486. */
-	switch (dev->regs[0x10] & 0x03) {
-		case 0x00:
-			cpu_set_isa_speed(cpu_busspeed / 4);
-			break;
-		case 0x01:
-			cpu_set_isa_speed(cpu_busspeed / 6);
-			break;
-		case 0x02:
-			cpu_set_isa_speed(cpu_busspeed / 8);
-			break;
-		case 0x03:
-			cpu_set_isa_speed(cpu_busspeed / 5);
-			break;
-	}
+        /* TODO: ISA clock dividers for 386 and alt. 486. */
+        switch (dev->regs[0x10] & 0x03) {
+            case 0x00:
+                cpu_set_isa_speed(cpu_busspeed / 4);
+                break;
+            case 0x01:
+                cpu_set_isa_speed(cpu_busspeed / 6);
+                break;
+            case 0x02:
+                cpu_set_isa_speed(cpu_busspeed / 8);
+                break;
+            case 0x03:
+                cpu_set_isa_speed(cpu_busspeed / 5);
+                break;
+        }
     }
 }
-
 
 static void
 contaq_82c59x_shadow_recalc(contaq_82c59x_t *dev)
 {
     uint32_t i, base;
-    uint8_t bit;
+    uint8_t  bit;
 
     shadowbios = shadowbios_write = 0;
 
     /* F0000-FFFFF */
     if (dev->regs[0x15] & 0x80) {
-	shadowbios |= 1;
-	mem_set_mem_state_both(0xf0000, 0x10000, MEM_READ_INTERNAL | MEM_WRITE_EXTANY);
+        shadowbios |= 1;
+        mem_set_mem_state_both(0xf0000, 0x10000, MEM_READ_INTERNAL | MEM_WRITE_EXTANY);
     } else {
-	shadowbios_write |= 1;
-	mem_set_mem_state_both(0xf0000, 0x10000, MEM_READ_EXTANY | MEM_WRITE_INTERNAL);
+        shadowbios_write |= 1;
+        mem_set_mem_state_both(0xf0000, 0x10000, MEM_READ_EXTANY | MEM_WRITE_INTERNAL);
     }
 
     /* C0000-CFFFF */
     if (dev->regs[0x15] & 0x01)
-	mem_set_mem_state_both(0xc0000, 0x10000, MEM_READ_EXTANY | MEM_WRITE_EXTANY);
+        mem_set_mem_state_both(0xc0000, 0x10000, MEM_READ_EXTANY | MEM_WRITE_EXTANY);
     else {
-	for (i = 0; i < 4; i++) {
-		base = 0xc0000 + (i << 14);
-		bit = 1 << (i + 2);
-		if (dev->regs[0x15] & bit) {
-			if (dev->regs[0x15] & 0x02)
-				mem_set_mem_state_both(base, 0x04000, MEM_READ_INTERNAL | MEM_WRITE_EXTERNAL);
-			else
-				mem_set_mem_state_both(base, 0x04000, MEM_READ_EXTERNAL | MEM_WRITE_INTERNAL);
-		} else
-			mem_set_mem_state_both(base, 0x04000, MEM_READ_EXTERNAL | MEM_WRITE_EXTERNAL);
-	}
+        for (i = 0; i < 4; i++) {
+            base = 0xc0000 + (i << 14);
+            bit  = 1 << (i + 2);
+            if (dev->regs[0x15] & bit) {
+                if (dev->regs[0x15] & 0x02)
+                    mem_set_mem_state_both(base, 0x04000, MEM_READ_INTERNAL | MEM_WRITE_EXTERNAL);
+                else
+                    mem_set_mem_state_both(base, 0x04000, MEM_READ_EXTERNAL | MEM_WRITE_INTERNAL);
+            } else
+                mem_set_mem_state_both(base, 0x04000, MEM_READ_EXTERNAL | MEM_WRITE_EXTERNAL);
+        }
     }
 
     if (dev->green) {
-	/* D0000-DFFFF */
-	if (dev->regs[0x6e] & 0x01)
-		mem_set_mem_state_both(0xd0000, 0x10000, MEM_READ_EXTANY | MEM_WRITE_EXTANY);
-	else {
-		for (i = 0; i < 4; i++) {
-			base = 0xd0000 + (i << 14);
-			bit = 1 << (i + 2);
-			if (dev->regs[0x6e] & bit) {
-				if (dev->regs[0x6e] & 0x02)
-					mem_set_mem_state_both(base, 0x04000, MEM_READ_INTERNAL | MEM_WRITE_EXTERNAL);
-				else
-					mem_set_mem_state_both(base, 0x04000, MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
-			} else
-				mem_set_mem_state_both(base, 0x04000, MEM_READ_EXTERNAL | MEM_WRITE_EXTERNAL);
-		}
-	}
+        /* D0000-DFFFF */
+        if (dev->regs[0x6e] & 0x01)
+            mem_set_mem_state_both(0xd0000, 0x10000, MEM_READ_EXTANY | MEM_WRITE_EXTANY);
+        else {
+            for (i = 0; i < 4; i++) {
+                base = 0xd0000 + (i << 14);
+                bit  = 1 << (i + 2);
+                if (dev->regs[0x6e] & bit) {
+                    if (dev->regs[0x6e] & 0x02)
+                        mem_set_mem_state_both(base, 0x04000, MEM_READ_INTERNAL | MEM_WRITE_EXTERNAL);
+                    else
+                        mem_set_mem_state_both(base, 0x04000, MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
+                } else
+                    mem_set_mem_state_both(base, 0x04000, MEM_READ_EXTERNAL | MEM_WRITE_EXTERNAL);
+            }
+        }
 
-	/* E0000-EFFFF */
-	if (dev->regs[0x6f] & 0x01)
-		mem_set_mem_state_both(0xe0000, 0x10000, MEM_READ_EXTANY | MEM_WRITE_EXTANY);
-	else {
-		for (i = 0; i < 4; i++) {
-			base = 0xe0000 + (i << 14);
-			bit = 1 << (i + 2);
-			if (dev->regs[0x6f] & bit) {
-				shadowbios |= 1;
-				if (dev->regs[0x6f] & 0x02)
-					mem_set_mem_state_both(base, 0x04000, MEM_READ_INTERNAL | MEM_WRITE_EXTERNAL);
-				else {
-					shadowbios_write |= 1;
-					mem_set_mem_state_both(base, 0x04000, MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
-				}
-			} else
-				mem_set_mem_state_both(base, 0x04000, MEM_READ_EXTERNAL | MEM_WRITE_EXTERNAL);
-		}
-	}
+        /* E0000-EFFFF */
+        if (dev->regs[0x6f] & 0x01)
+            mem_set_mem_state_both(0xe0000, 0x10000, MEM_READ_EXTANY | MEM_WRITE_EXTANY);
+        else {
+            for (i = 0; i < 4; i++) {
+                base = 0xe0000 + (i << 14);
+                bit  = 1 << (i + 2);
+                if (dev->regs[0x6f] & bit) {
+                    shadowbios |= 1;
+                    if (dev->regs[0x6f] & 0x02)
+                        mem_set_mem_state_both(base, 0x04000, MEM_READ_INTERNAL | MEM_WRITE_EXTERNAL);
+                    else {
+                        shadowbios_write |= 1;
+                        mem_set_mem_state_both(base, 0x04000, MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
+                    }
+                } else
+                    mem_set_mem_state_both(base, 0x04000, MEM_READ_EXTERNAL | MEM_WRITE_EXTERNAL);
+            }
+        }
     }
 }
-
 
 static void
 contaq_82c59x_smram_recalc(contaq_82c59x_t *dev)
@@ -172,140 +165,140 @@ contaq_82c59x_smram_recalc(contaq_82c59x_t *dev)
     smram_disable(dev->smram[1]);
 
     if (dev->regs[0x70] & 0x04)
-	smram_enable(dev->smram[1], 0x00040000, 0x000a0000, 0x00020000, 1, 1);
+        smram_enable(dev->smram[1], 0x00040000, 0x000a0000, 0x00020000, 1, 1);
 }
-
 
 static void
 contaq_82c59x_write(uint16_t addr, uint8_t val, void *priv)
 {
-    contaq_82c59x_t *dev = (contaq_82c59x_t *)priv;
+    contaq_82c59x_t *dev = (contaq_82c59x_t *) priv;
 
     switch (addr) {
-	case 0x22:
-		dev->index = val;
-		break;
+        case 0x22:
+            dev->index = val;
+            break;
 
-	case 0x23:
-		contaq_82c59x_log("Contaq 82C59x: dev->regs[%02x] = %02x\n", dev->index, val);
+        case 0x23:
+            contaq_82c59x_log("Contaq 82C59x: dev->regs[%02x] = %02x\n", dev->index, val);
 
-		if ((dev->index >= 0x60) && !dev->green)
-			return;
+            if ((dev->index >= 0x60) && !dev->green)
+                return;
 
-		switch (dev->index) {
-			/* Registers common to 82C596(A) and 82C597. */
-			case 0x10:
-				dev->regs[dev->index] = val;
-				contaq_82c59x_isa_speed_recalc(dev);
-				break;
+            switch (dev->index) {
+                /* Registers common to 82C596(A) and 82C597. */
+                case 0x10:
+                    dev->regs[dev->index] = val;
+                    contaq_82c59x_isa_speed_recalc(dev);
+                    break;
 
-			case 0x11:
-				dev->regs[dev->index] = val;
-				cpu_cache_int_enabled = !!(val & 0x01);
-				cpu_update_waitstates();
-				break;
+                case 0x11:
+                    dev->regs[dev->index] = val;
+                    cpu_cache_int_enabled = !!(val & 0x01);
+                    cpu_update_waitstates();
+                    break;
 
-			case 0x12: case 0x13:
-				dev->regs[dev->index] = val;
-				break;
+                case 0x12:
+                case 0x13:
+                    dev->regs[dev->index] = val;
+                    break;
 
-			case 0x14:
-				dev->regs[dev->index] = val;
-				reset_on_hlt = !!(val & 0x80);
-				break;
+                case 0x14:
+                    dev->regs[dev->index] = val;
+                    reset_on_hlt          = !!(val & 0x80);
+                    break;
 
-			case 0x15:
-				dev->regs[dev->index] = val;
-				contaq_82c59x_shadow_recalc(dev);
-				break;
+                case 0x15:
+                    dev->regs[dev->index] = val;
+                    contaq_82c59x_shadow_recalc(dev);
+                    break;
 
-			case 0x16 ... 0x1b:
-				dev->regs[dev->index] = val;
-				break;
+                case 0x16 ... 0x1b:
+                    dev->regs[dev->index] = val;
+                    break;
 
-			case 0x1c:
-				/* TODO: What's NPRST (generated if bit 3 is set)? */
-				dev->regs[dev->index] = val;
-				contaq_82c59x_isa_speed_recalc(dev);
-				break;
+                case 0x1c:
+                    /* TODO: What's NPRST (generated if bit 3 is set)? */
+                    dev->regs[dev->index] = val;
+                    contaq_82c59x_isa_speed_recalc(dev);
+                    break;
 
-			case 0x1d ... 0x1f:
-				dev->regs[dev->index] = val;
-				break;
+                case 0x1d ... 0x1f:
+                    dev->regs[dev->index] = val;
+                    break;
 
-			/* Green (82C597-specific) registers. */
-			case 0x60 ... 0x63:
-				dev->regs[dev->index] = val;
-				break;
+                /* Green (82C597-specific) registers. */
+                case 0x60 ... 0x63:
+                    dev->regs[dev->index] = val;
+                    break;
 
-			case 0x64:
-				dev->regs[dev->index] = val;
-				if (val & 0x80) {
-					if (dev->regs[0x65] & 0x80)
-						smi_line = 1;
-					dev->smi_status[0] |= 0x10;
-				}
-				break;
+                case 0x64:
+                    dev->regs[dev->index] = val;
+                    if (val & 0x80) {
+                        if (dev->regs[0x65] & 0x80)
+                            smi_raise();
+                        dev->smi_status[0] |= 0x10;
+                    }
+                    break;
 
-			case 0x65 ... 0x69:
-				dev->regs[dev->index] = val;
-				break;
+                case 0x65 ... 0x69:
+                    dev->regs[dev->index] = val;
+                    break;
 
-			case 0x6a:
-				dev->regs[dev->index] = val;
-				dev->smi_status_set = !!(val & 0x80);
-				break;
+                case 0x6a:
+                    dev->regs[dev->index] = val;
+                    dev->smi_status_set   = !!(val & 0x80);
+                    break;
 
-			case 0x6b ... 0x6d:
-				dev->regs[dev->index] = val;
-				break;
+                case 0x6b ... 0x6d:
+                    dev->regs[dev->index] = val;
+                    break;
 
-			case 0x6e: case 0x6f:
-				dev->regs[dev->index] = val;
-				contaq_82c59x_shadow_recalc(dev);
-				break;
+                case 0x6e:
+                case 0x6f:
+                    dev->regs[dev->index] = val;
+                    contaq_82c59x_shadow_recalc(dev);
+                    break;
 
-			case 0x70:
-				dev->regs[dev->index] = val;
-				contaq_82c59x_smram_recalc(dev);
-				break;
+                case 0x70:
+                    dev->regs[dev->index] = val;
+                    contaq_82c59x_smram_recalc(dev);
+                    break;
 
-			case 0x71 ... 0x79:
-				dev->regs[dev->index] = val;
-				break;
+                case 0x71 ... 0x79:
+                    dev->regs[dev->index] = val;
+                    break;
 
-			case 0x7b: case 0x7c:
-				dev->regs[dev->index] = val;
-				break;
-		}
-		break;
+                case 0x7b:
+                case 0x7c:
+                    dev->regs[dev->index] = val;
+                    break;
+            }
+            break;
     }
 }
-
 
 static uint8_t
 contaq_82c59x_read(uint16_t addr, void *priv)
 {
-    contaq_82c59x_t *dev = (contaq_82c59x_t *)priv;
-    uint8_t ret = 0xff;
+    contaq_82c59x_t *dev = (contaq_82c59x_t *) priv;
+    uint8_t          ret = 0xff;
 
     if (addr == 0x23) {
-	if (dev->index == 0x6a) {
-		ret = dev->smi_status[dev->smi_status_set];
-		/* I assume it's cleared on read. */
-		dev->smi_status[dev->smi_status_set] = 0x00;
-	} else
-		ret = dev->regs[dev->index];
+        if (dev->index == 0x6a) {
+            ret = dev->smi_status[dev->smi_status_set];
+            /* I assume it's cleared on read. */
+            dev->smi_status[dev->smi_status_set] = 0x00;
+        } else
+            ret = dev->regs[dev->index];
     }
 
     return ret;
 }
 
-
 static void
 contaq_82c59x_close(void *priv)
 {
-    contaq_82c59x_t *dev = (contaq_82c59x_t *)priv;
+    contaq_82c59x_t *dev = (contaq_82c59x_t *) priv;
 
     smram_del(dev->smram[1]);
     smram_del(dev->smram[0]);
@@ -313,11 +306,10 @@ contaq_82c59x_close(void *priv)
     free(dev);
 }
 
-
 static void *
 contaq_82c59x_init(const device_t *info)
 {
-    contaq_82c59x_t *dev = (contaq_82c59x_t *)malloc(sizeof(contaq_82c59x_t));
+    contaq_82c59x_t *dev = (contaq_82c59x_t *) malloc(sizeof(contaq_82c59x_t));
     memset(dev, 0x00, sizeof(contaq_82c59x_t));
 
     dev->green = info->local;
@@ -334,42 +326,42 @@ contaq_82c59x_init(const device_t *info)
     contaq_82c59x_shadow_recalc(dev);
 
     if (dev->green) {
-	/* SMRAM 0: Fixed A0000-BFFFF to A0000-BFFFF DRAM. */
-	dev->smram[0] = smram_add();
-	smram_enable(dev->smram[0], 0x000a0000, 0x000a0000, 0x00020000, 0, 1);
+        /* SMRAM 0: Fixed A0000-BFFFF to A0000-BFFFF DRAM. */
+        dev->smram[0] = smram_add();
+        smram_enable(dev->smram[0], 0x000a0000, 0x000a0000, 0x00020000, 0, 1);
 
-	/* SMRAM 1: Optional. */
-	dev->smram[1] = smram_add();
-	contaq_82c59x_smram_recalc(dev);
+        /* SMRAM 1: Optional. */
+        dev->smram[1] = smram_add();
+        contaq_82c59x_smram_recalc(dev);
     }
 
     return dev;
 }
 
 const device_t contaq_82c596a_device = {
-    .name = "Contaq 82C596A",
+    .name          = "Contaq 82C596A",
     .internal_name = "contaq_82c596a",
-    .flags = 0,
-    .local = 0,
-    .init = contaq_82c59x_init,
-    .close = contaq_82c59x_close,
-    .reset = NULL,
+    .flags         = 0,
+    .local         = 0,
+    .init          = contaq_82c59x_init,
+    .close         = contaq_82c59x_close,
+    .reset         = NULL,
     { .available = NULL },
     .speed_changed = NULL,
-    .force_redraw = NULL,
-    .config = NULL
+    .force_redraw  = NULL,
+    .config        = NULL
 };
 
 const device_t contaq_82c597_device = {
-    .name = "Contaq 82C597",
+    .name          = "Contaq 82C597",
     .internal_name = "contaq_82c597",
-    .flags = 0,
-    .local = 1,
-    .init = contaq_82c59x_init,
-    .close = contaq_82c59x_close,
-    .reset = NULL,
+    .flags         = 0,
+    .local         = 1,
+    .init          = contaq_82c59x_init,
+    .close         = contaq_82c59x_close,
+    .reset         = NULL,
     { .available = NULL },
     .speed_changed = NULL,
-    .force_redraw = NULL,
-    .config = NULL
+    .force_redraw  = NULL,
+    .config        = NULL
 };

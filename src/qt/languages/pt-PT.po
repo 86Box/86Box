@@ -229,8 +229,8 @@ msgstr "&Recarregar imagem anterior"
 msgid "&Image"
 msgstr "&Imagem"
 
-msgid "&Folder"
-msgstr "&Folder"
+msgid "&Folder..."
+msgstr "&Folder..."
 
 msgid "Target &framerate"
 msgstr "&Taxa de quadros de destino"

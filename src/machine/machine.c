@@ -42,32 +42,27 @@
 #include <86box/machine.h>
 #include <86box/isamem.h>
 
-
 int bios_only = 0;
 int machine;
 // int AT, PCI;
 
-
 #ifdef ENABLE_MACHINE_LOG
 int machine_do_log = ENABLE_MACHINE_LOG;
-
 
 static void
 machine_log(const char *fmt, ...)
 {
-   va_list ap;
+    va_list ap;
 
-   if (machine_do_log)
-   {
-	va_start(ap, fmt);
-	pclog_ex(fmt, ap);
-	va_end(ap);
-   }
+    if (machine_do_log) {
+        va_start(ap, fmt);
+        pclog_ex(fmt, ap);
+        va_end(ap);
+    }
 }
 #else
-#define machine_log(fmt, ...)
+#    define machine_log(fmt, ...)
 #endif
-
 
 static int
 machine_init_ex(int m)
@@ -75,44 +70,47 @@ machine_init_ex(int m)
     int ret = 0;
 
     if (!bios_only) {
-	machine_log("Initializing as \"%s\"\n", machine_getname());
+        machine_log("Initializing as \"%s\"\n", machine_getname());
 
-	is_vpc = 0;
-	standalone_gameport_type = NULL;
-	gameport_instance_id = 0;
+        is_vpc                   = 0;
+        standalone_gameport_type = NULL;
+        gameport_instance_id     = 0;
 
-	/* Set up the architecture flags. */
-	// AT = IS_AT(machine);
-	// PCI = IS_ARCH(machine, MACHINE_BUS_PCI);
+        /* Set up the architecture flags. */
+        // AT = IS_AT(machine);
+        // PCI = IS_ARCH(machine, MACHINE_BUS_PCI);
 
-	cpu_set();
-	pc_speed_changed();
+        cpu_set();
+        pc_speed_changed();
 
-	/* Reset the memory state. */
-	mem_reset();
-	smbase = is_am486dxl ? 0x00060000 : 0x00030000;
+        /* Reset the memory state. */
+        mem_reset();
+        smbase = is_am486dxl ? 0x00060000 : 0x00030000;
 
-	lpt_init();
+        lpt_init();
 
-	if (cassette_enable)
-		device_add(&cassette_device);
+        if (cassette_enable)
+            device_add(&cassette_device);
 
-	cart_reset();
+        cart_reset();
 
-	/* Prepare some video-related things if we're using internal
-	   or no video. */
-	video_pre_reset(gfxcard);
+        /* Prepare some video-related things if we're using internal
+           or no video. */
+        video_pre_reset(gfxcard);
 
-	/* Reset any ISA memory cards. */
-	isamem_reset();
+        /* Reset any ISA memory cards. */
+        isamem_reset();
+
+        /* Reset the fast off stuff. */
+        cpu_fast_off_reset();
     }
 
     /* All good, boot the machine! */
     if (machines[m].init)
-	ret = machines[m].init(&machines[m]);
+        ret = machines[m].init(&machines[m]);
 
     if (bios_only || !ret)
-	return ret;
+        return ret;
 
     if (gfxcard != VID_NONE) {
         if (ibm8514_enabled) {
@@ -129,7 +127,6 @@ machine_init_ex(int m)
     return ret;
 }
 
-
 void
 machine_init(void)
 {
@@ -137,19 +134,34 @@ machine_init(void)
     (void) machine_init_ex(machine);
 }
 
-
 int
 machine_available(int m)
 {
-    int ret;
+    int       ret;
+    device_t *d = (device_t *) machine_getdevice(m);
 
     bios_only = 1;
-    ret = machine_init_ex(m);
+
+    ret = device_available(d);
+    /* Do not check via machine_init_ex() if the device is not NULL and
+       it has a CONFIG_BIOS field. */
+    if ((d == NULL) || (ret != -1))
+        ret = machine_init_ex(m);
 
     bios_only = 0;
-    return ret;
+
+    return !!ret;
 }
 
+void
+pit_irq0_timer(int new_out, int old_out)
+{
+    if (new_out && !old_out)
+        picint(1);
+
+    if (!new_out)
+        picintc(1);
+}
 
 void
 machine_common_init(const machine_t *model)
@@ -158,5 +170,10 @@ machine_common_init(const machine_t *model)
     pic_init();
     dma_init();
 
-    pit_common_init(!!IS_AT(machine), pit_irq0_timer, NULL);
+    int pit_type = IS_AT(machine) ? PIT_8254 : PIT_8253;
+    /* Select fast PIT if needed */
+    if ((pit_mode == -1 && is486) || pit_mode == 1)
+        pit_type += 2;
+
+    pit_common_init(pit_type, pit_irq0_timer, NULL);
 }

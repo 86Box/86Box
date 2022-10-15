@@ -19,17 +19,23 @@
  *		Copyright 2017,2018 Fred N. van Kempen.
  */
 #ifndef EMU_SCSI_H
-# define EMU_SCSI_H
+#define EMU_SCSI_H
 
-extern int	scsi_card_current[4];
+/* Configuration. */
+#define SCSI_BUS_MAX 4 /* currently we support up to 4 controllers */
 
-extern int	scsi_card_available(int card);
+#define SCSI_ID_MAX  16 /* 16 on wide buses */
+#define SCSI_LUN_MAX 8  /* always 8 */
+
+extern int scsi_card_current[SCSI_BUS_MAX];
+
+extern int scsi_card_available(int card);
 #ifdef EMU_DEVICE_H
-extern const	device_t *scsi_card_getdevice(int card);
+extern const device_t *scsi_card_getdevice(int card);
 #endif
-extern int	scsi_card_has_config(int card);
-extern char	*scsi_card_get_internal_name(int card);
-extern int	scsi_card_get_from_internal_name(char *s);
-extern void	scsi_card_init(void);
+extern int   scsi_card_has_config(int card);
+extern char *scsi_card_get_internal_name(int card);
+extern int   scsi_card_get_from_internal_name(char *s);
+extern void  scsi_card_init(void);
 
-#endif	/*EMU_SCSI_H*/
+#endif /*EMU_SCSI_H*/

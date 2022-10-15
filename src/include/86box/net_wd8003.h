@@ -42,21 +42,23 @@
  */
 
 #ifndef NET_WD8003_H
-# define NET_WD8003_H
+#define NET_WD8003_H
 
 enum {
     WD_NONE = 0,
-    WD8003E,			/* WD8003E   :  8-bit ISA, no  interface chip */
-    WD8003EB,			/* WD8003EB  :  8-bit ISA, 5x3 interface chip */
-    WD8013EBT,			/* WD8013EBT : 16-bit ISA, no  interface chip */
-    WD8003ETA,			/* WD8003ET/A: 16-bit MCA, no  interface chip */
-    WD8003EA			/* WD8003E/A : 16-bit MCA, 5x3 interface chip */
+    WD8003E,   /* WD8003E   :  8-bit ISA, no  interface chip */
+    WD8003EB,  /* WD8003EB  :  8-bit ISA, 5x3 interface chip */
+    WD8013EBT, /* WD8013EBT : 16-bit ISA, no  interface chip */
+    WD8003ETA, /* WD8003ET/A: 16-bit MCA, no  interface chip */
+    WD8003EA,  /* WD8003E/A : 16-bit MCA, 5x3 interface chip */
+    WD8013EPA
 };
 
-extern const device_t 	wd8003e_device;
-extern const device_t 	wd8003eb_device;
-extern const device_t 	wd8013ebt_device;
-extern const device_t 	wd8003eta_device;
-extern const device_t 	wd8003ea_device;
+extern const device_t wd8003e_device;
+extern const device_t wd8003eb_device;
+extern const device_t wd8013ebt_device;
+extern const device_t wd8003eta_device;
+extern const device_t wd8003ea_device;
+extern const device_t wd8013epa_device;
 
-#endif	/*NET_WD8003_H*/
+#endif /*NET_WD8003_H*/

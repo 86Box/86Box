@@ -21,6 +21,7 @@ public:
     uint32_t cylinders() const { return cylinders_; }
     uint32_t heads() const { return heads_; }
     uint32_t sectors() const { return sectors_; }
+    uint32_t speed() const;
 
 signals:
     void fileProgress(int i);
@@ -48,6 +49,8 @@ private:
     uint32_t max_sectors = 0;
     uint32_t max_heads = 0;
     uint32_t max_cylinders = 0;
+    
+    bool disallowSizeModifications = false;
 
     bool checkAndAdjustCylinders();
     bool checkAndAdjustHeads();

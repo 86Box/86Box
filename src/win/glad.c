@@ -21,10 +21,10 @@
         https://glad.dav1d.de/#profile=core&language=c&specification=gl&loader=on&api=gl%3D3.0&extensions=GL_ARB_buffer_storage&extensions=GL_ARB_debug_output&extensions=GL_ARB_sync
 */
 
+#include <glad/glad.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <glad/glad.h>
 
 static void *get_proc(const char *namez);
 

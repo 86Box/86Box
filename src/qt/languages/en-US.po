@@ -229,8 +229,8 @@ msgstr "&Reload previous image"
 msgid "&Image"
 msgstr "&Image"
 
-msgid "&Folder"
-msgstr "&Folder"
+msgid "&Folder..."
+msgstr "&Folder..."
 
 msgid "Target &framerate"
 msgstr "Target &framerate"

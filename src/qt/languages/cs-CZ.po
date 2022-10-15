@@ -229,8 +229,8 @@ msgstr "&Načíst znova předchozí obraz"
 msgid "&Image"
 msgstr "&Obraz..."
 
-msgid "&Folder"
-msgstr "&Folder"
+msgid "&Folder..."
+msgstr "&Folder..."
 
 msgid "Target &framerate"
 msgstr "&Cílová snímková frekvence"

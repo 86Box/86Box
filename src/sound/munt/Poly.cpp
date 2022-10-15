@@ -1,5 +1,5 @@
 /* Copyright (C) 2003, 2004, 2005, 2006, 2008, 2009 Dean Beeler, Jerome Fisher
- * Copyright (C) 2011-2020 Dean Beeler, Jerome Fisher, Sergey V. Mikayev
+ * Copyright (C) 2011-2022 Dean Beeler, Jerome Fisher, Sergey V. Mikayev
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Lesser General Public License as published by
@@ -53,7 +53,7 @@ void Poly::reset(unsigned int newKey, unsigned int newVelocity, bool newSustain,
 				activePartialCount--;
 			}
 		}
-		state = POLY_Inactive;
+		setState(POLY_Inactive);
 	}
 
 	key = newKey;
@@ -65,7 +65,7 @@ void Poly::reset(unsigned int newKey, unsigned int newVelocity, bool newSustain,
 		partials[i] = newPartials[i];
 		if (newPartials[i] != NULL) {
 			activePartialCount++;
-			state = POLY_Playing;
+			setState(POLY_Playing);
 		}
 	}
 }
@@ -80,7 +80,7 @@ bool Poly::noteOff(bool pedalHeld) {
 		if (state == POLY_Held) {
 			return false;
 		}
-		state = POLY_Held;
+		setState(POLY_Held);
 	} else {
 		startDecay();
 	}
@@ -98,7 +98,7 @@ bool Poly::startDecay() {
 	if (state == POLY_Inactive || state == POLY_Releasing) {
 		return false;
 	}
-	state = POLY_Releasing;
+	setState(POLY_Releasing);
 
 	for (int t = 0; t < 4; t++) {
 		Partial *partial = partials[t];
@@ -121,6 +121,13 @@ bool Poly::startAbort() {
 		}
 	}
 	return true;
+}
+
+void Poly::setState(PolyState newState) {
+	if (state == newState) return;
+	PolyState oldState = state;
+	state = newState;
+	part->polyStateChanged(oldState, newState);
 }
 
 void Poly::backupCacheToPartials(PatchCache cache[4]) {
@@ -171,7 +178,7 @@ void Poly::partialDeactivated(Partial *partial) {
 		}
 	}
 	if (activePartialCount == 0) {
-		state = POLY_Inactive;
+		setState(POLY_Inactive);
 		if (part->getSynth()->abortingPoly == this) {
 			part->getSynth()->abortingPoly = NULL;
 		}

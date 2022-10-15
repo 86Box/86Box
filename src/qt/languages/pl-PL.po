@@ -229,8 +229,8 @@ msgstr "&Przeładuj poprzedni obraz"
 msgid "&Image"
 msgstr "&Obraz"
 
-msgid "&Folder"
-msgstr "&Folder"
+msgid "&Folder..."
+msgstr "&Folder..."
 
 msgid "Target &framerate"
 msgstr "Docelowa &liczba klatek na sekundę"

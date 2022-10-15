@@ -19,8 +19,8 @@
  */
 
 #ifndef SCSI_SPOCK_H
-# define SCSI_SPOCK_H
+#define SCSI_SPOCK_H
 
 extern const device_t spock_device;
 
-#endif	/*SCSI_SPOCK_H*/
+#endif /*SCSI_SPOCK_H*/

@@ -161,13 +161,25 @@ plat_timer_read(void)
 FILE *
 plat_fopen(const char *path, const char *mode)
 {
+#if defined(Q_OS_MACOS) or defined(Q_OS_LINUX)
+    QFileInfo fi(path);
+    QString filename = (fi.isRelative() && !fi.filePath().isEmpty()) ? usr_path + fi.filePath() : fi.filePath();
+    return fopen(filename.toUtf8().constData(), mode);
+#else
     return fopen(QString::fromUtf8(path).toLocal8Bit(), mode);
+#endif
 }
 
 FILE *
 plat_fopen64(const char *path, const char *mode)
 {
-    return fopen(path, mode);
+#if defined(Q_OS_MACOS) or defined(Q_OS_LINUX)
+    QFileInfo fi(path);
+    QString filename = (fi.isRelative() && !fi.filePath().isEmpty()) ? usr_path + fi.filePath() : fi.filePath();
+    return fopen(filename.toUtf8().constData(), mode);
+#else
+    return fopen(QString::fromUtf8(path).toLocal8Bit(), mode);
+#endif
 }
 
 int
@@ -336,11 +348,15 @@ plat_pause(int p)
 #endif
         return;
     }
+
     if ((p == 0) && (time_sync & TIME_SYNC_ENABLED))
         nvr_time_sync();
 
     dopause = p;
     if (p) {
+	if (mouse_capture)
+		plat_mouse_capture(0);
+
         wcsncpy(oldtitle, ui_window_title(NULL), sizeof_w(oldtitle) - 1);
         wcscpy(title, oldtitle);
         paused_msg[QObject::tr(" - PAUSED").toWCharArray(paused_msg)] = 0;
@@ -431,6 +447,7 @@ void plat_language_code_r(uint32_t lcid, char* outbuf, int len) {
     return;
 }
 
+#ifndef Q_OS_WINDOWS
 void* dynld_module(const char *name, dllimp_t *table)
 {
     QString libraryName = name;
@@ -462,6 +479,7 @@ void dynld_close(void *handle)
 {
     delete reinterpret_cast<QLibrary*>(handle);
 }
+#endif
 
 void startblit()
 {
@@ -568,7 +586,7 @@ void ProgSettings::reloadStrings()
         gssynthstr.replace("libgs", LIB_NAME_GS);
     }
     else gssynthstr.prepend(LIB_NAME_GS);
-    translatedstrings[IDS_2132] = flsynthstr.toStdWString();
+    translatedstrings[IDS_2132] = gssynthstr.toStdWString();
     auto ftsynthstr = QCoreApplication::translate("", " is required for ESC/P printer emulation.");
     if (ftsynthstr.contains("libfreetype"))
     {

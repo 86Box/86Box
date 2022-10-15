@@ -46,14 +46,34 @@
  */
 
 #ifndef EMU_NETWORK_H
-# define EMU_NETWORK_H
-# include <stdint.h>
-
+#define EMU_NETWORK_H
+#include <stdint.h>
 
 /* Network provider types. */
-#define NET_TYPE_NONE	0		/* networking disabled */
-#define NET_TYPE_PCAP	1		/* use the (Win)Pcap API */
-#define NET_TYPE_SLIRP	2		/* use the SLiRP port forwarder */
+#define NET_TYPE_NONE  0 /* networking disabled */
+#define NET_TYPE_SLIRP 1 /* use the SLiRP port forwarder */
+#define NET_TYPE_PCAP  2 /* use the (Win)Pcap API */
+
+#define NET_MAX_FRAME  1518
+/* Queue size must be a power of 2 */
+#define NET_QUEUE_LEN      16
+#define NET_QUEUE_LEN_MASK (NET_QUEUE_LEN - 1)
+#define NET_CARD_MAX       4
+#define NET_HOST_INTF_MAX  64
+
+#define NET_PERIOD_10M     0.8
+#define NET_PERIOD_100M    0.08
+
+enum {
+    NET_LINK_DOWN      = (1 << 1),
+    NET_LINK_TEMP_DOWN = (1 << 2),
+    NET_LINK_10_HD     = (1 << 3),
+    NET_LINK_10_FD     = (1 << 4),
+    NET_LINK_100_HD    = (1 << 5),
+    NET_LINK_100_FD    = (1 << 6),
+    NET_LINK_1000_HD   = (1 << 7),
+    NET_LINK_1000_FD   = (1 << 8),
+};
 
 /* Supported network cards. */
 enum {
@@ -64,85 +84,107 @@ enum {
     RTL8029AS
 };
 
+enum {
+    NET_QUEUE_RX,
+    NET_QUEUE_TX_VM,
+    NET_QUEUE_TX_HOST
+};
+
+typedef struct {
+    int      device_num;
+    int      net_type;
+    char     host_dev_name[128];
+    uint32_t link_state;
+} netcard_conf_t;
+
+extern netcard_conf_t net_cards_conf[NET_CARD_MAX];
+extern int            net_card_current;
 
 typedef int (*NETRXCB)(void *, uint8_t *, int);
-typedef int (*NETWAITCB)(void *);
-typedef int (*NETSETLINKSTATE)(void *);
-
+typedef int (*NETSETLINKSTATE)(void *, uint32_t link_state);
 
 typedef struct netpkt {
-    void		*priv;
-    uint8_t		data[65536];	/* Maximum length + 1 to round up to the nearest power of 2. */
-    int			len;
-
-    struct netpkt	*prev, *next;
+    uint8_t *data;
+    int      len;
 } netpkt_t;
 
 typedef struct {
-    const device_t	*device;
-    void		*priv;
-    int			(*poll)(void *);
-    NETRXCB		rx;
-    NETWAITCB		wait;
-    NETSETLINKSTATE	set_link_state;
-} netcard_t;
+    netpkt_t packets[NET_QUEUE_LEN];
+    int      head;
+    int      tail;
+} netqueue_t;
+
+typedef struct _netcard_t netcard_t;
+
+typedef struct netdrv_t {
+    void (*notify_in)(void *priv);
+    void *(*init)(const netcard_t *card, const uint8_t *mac_addr, void *priv);
+    void (*close)(void *priv);
+    void *priv;
+} netdrv_t;
+
+extern const netdrv_t net_pcap_drv;
+extern const netdrv_t net_slirp_drv;
+
+struct _netcard_t {
+    const device_t *device;
+    void           *card_drv;
+    struct netdrv_t host_drv;
+    NETRXCB         rx;
+    NETSETLINKSTATE set_link_state;
+    netqueue_t      queues[3];
+    netpkt_t        queued_pkt;
+    mutex_t        *tx_mutex;
+    mutex_t        *rx_mutex;
+    pc_timer_t      timer;
+    int             card_num;
+    double          byte_period;
+    uint32_t        led_timer;
+    uint32_t        led_state;
+    uint32_t        link_state;
+};
 
 typedef struct {
-    char		device[128];
-    char		description[128];
+    char device[128];
+    char description[128];
 } netdev_t;
-
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 /* Global variables. */
-extern int	nic_do_log;				/* config */
+extern int      nic_do_log; /* config */
 extern int      network_ndev;
-extern int	network_rx_pause;
-extern netdev_t network_devs[32];
-
+extern netdev_t network_devs[NET_HOST_INTF_MAX];
 
 /* Function prototypes. */
-extern void	network_wait(uint8_t wait);
+extern void       network_init(void);
+extern netcard_t *network_attach(void *card_drv, uint8_t *mac, NETRXCB rx, NETSETLINKSTATE set_link_state);
+extern void       netcard_close(netcard_t *card);
+extern void       network_close(void);
+extern void       network_reset(void);
+extern int        network_available(void);
+extern void       network_tx(netcard_t *card, uint8_t *, int);
 
-extern void	network_init(void);
-extern void	network_attach(void *, uint8_t *, NETRXCB, NETWAITCB, NETSETLINKSTATE);
-extern void	network_close(void);
-extern void	network_reset(void);
-extern int	network_available(void);
-extern void	network_tx(uint8_t *, int);
-extern int	network_tx_queue_check(void);
+extern int net_pcap_prepare(netdev_t *);
 
-extern int	net_pcap_prepare(netdev_t *);
-extern int	net_pcap_init(void);
-extern int	net_pcap_reset(const netcard_t *, uint8_t *);
-extern void	net_pcap_close(void);
-extern void	net_pcap_in(uint8_t *, int);
+extern void            network_connect(int id, int connect);
+extern int             network_is_connected(int id);
+extern int             network_dev_available(int);
+extern int             network_dev_to_id(char *);
+extern int             network_card_available(int);
+extern int             network_card_has_config(int);
+extern char           *network_card_get_internal_name(int);
+extern int             network_card_get_from_internal_name(char *);
+extern const device_t *network_card_getdevice(int);
 
-extern int	net_slirp_init(void);
-extern int	net_slirp_reset(const netcard_t *, uint8_t *);
-extern void	net_slirp_close(void);
-extern void	net_slirp_in(uint8_t *, int);
-
-extern int	network_dev_to_id(char *);
-extern int	network_card_available(int);
-extern int	network_card_has_config(int);
-extern char	*network_card_get_internal_name(int);
-extern int	network_card_get_from_internal_name(char *);
-extern const device_t	*network_card_getdevice(int);
-
-extern void	network_set_wait(int wait);
-extern int	network_get_wait(void);
-
-extern void	network_timer_stop(void);
-
-extern void	network_queue_put(int tx, void *priv, uint8_t *data, int len);
-
+extern int network_tx_pop(netcard_t *card, netpkt_t *out_pkt);
+extern int network_tx_popv(netcard_t *card, netpkt_t *pkt_vec, int vec_size);
+extern int network_rx_put(netcard_t *card, uint8_t *bufp, int len);
+extern int network_rx_put_pkt(netcard_t *card, netpkt_t *pkt);
 #ifdef __cplusplus
 }
 #endif
 
-
-#endif	/*EMU_NETWORK_H*/
+#endif /*EMU_NETWORK_H*/

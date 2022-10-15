@@ -91,6 +91,8 @@
     <addaction name="actionEnd_trace"/>
     <addaction name="separator"/>
     <addaction name="actionMCA_devices"/>
+    <addaction name="separator"/>
+    <addaction name="actionOpen_screenshots_folder"/>
    </widget>
    <widget class="QMenu" name="menuView">
     <property name="title">
@@ -106,6 +108,7 @@
      <addaction name="actionOpenGL_3_0_Core"/>
      <addaction name="actionVulkan"/>
      <addaction name="actionDirect3D_9"/>
+     <addaction name="actionVNC"/>
     </widget>
     <widget class="QMenu" name="menuWindow_scale_factor">
      <property name="title">
@@ -176,6 +179,7 @@
     <addaction name="separator"/>
     <addaction name="actionFullscreen"/>
     <addaction name="menuFullscreen_stretch_mode"/>
+    <addaction name="actionApply_fullscreen_stretch_mode_when_maximized"/>
     <addaction name="menuEGA_S_VGA_settings"/>
     <addaction name="separator"/>
     <addaction name="actionCGA_PCjr_Tandy_EGA_S_VGA_overscan"/>
@@ -764,6 +768,30 @@
    </property>
    <property name="text">
     <string>Show non-primary monitors</string>
+   </property>
+  </action>
+  <action name="actionVNC">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>VNC</string>
+   </property>
+   <property name="vid_api" stdset="0">
+    <number>6</number>
+   </property>
+  </action>
+  <action name="actionOpen_screenshots_folder">
+   <property name="text">
+    <string>Open screenshots folder...</string>
+   </property>
+  </action>
+  <action name="actionApply_fullscreen_stretch_mode_when_maximized">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Apply fullscreen stretch mode when maximized</string>
    </property>
   </action>
  </widget>

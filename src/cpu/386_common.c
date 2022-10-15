@@ -22,6 +22,7 @@
 #include <86box/fdd.h>
 #include <86box/fdc.h>
 #include <86box/keyboard.h>
+#include <86box/timer.h>
 #include "386_common.h"
 #include "x86_flags.h"
 #include "x86seg.h"
@@ -70,6 +71,9 @@ int smm_in_hlt = 0, smi_block = 0;
 
 uint32_t addr64, addr64_2;
 uint32_t addr64a[8], addr64a_2[8];
+
+static pc_timer_t *cpu_fast_off_timer = NULL;
+static double cpu_fast_off_period = 0.0;
 
 
 #define AMD_SYSCALL_EIP	(msr.star & 0xFFFFFFFF)
@@ -1169,6 +1173,8 @@ enter_smm(int in_hlt)
     if (unmask_a20_in_smm) {
 	old_rammask = rammask;
 	rammask = cpu_16bitbus ? 0xFFFFFF : 0xFFFFFFFF;
+	if (is6117)
+		rammask |= 0x3000000;
 
 	flushmmucache();
     }
@@ -1183,9 +1189,6 @@ enter_smm(int in_hlt)
 void
 enter_smm_check(int in_hlt)
 {
-    if (smi_line && (cpu_fast_off_flags & 0x80000000))
-	cpu_fast_off_count = cpu_fast_off_val + 1;
-
     if ((in_smm == 0) && smi_line) {
 #ifdef ENABLE_386_COMMON_LOG
 	x386_common_log("SMI while not in SMM\n");
@@ -1478,10 +1481,16 @@ checkio(uint32_t port)
 }
 
 
+#ifdef OLD_DIVEXCP
 #define divexcp() { \
 	x386_common_log("Divide exception at %04X(%06X):%04X\n",CS,cs,cpu_state.pc); \
 	x86_int(0); \
 }
+#else
+#define divexcp() { \
+	x86de(NULL, 0); \
+}
+#endif
 
 
 int
@@ -1837,6 +1846,59 @@ sysret(uint32_t fetchdat)
     in_sys = 0;
 
     return 1;
+}
+
+
+void
+cpu_register_fast_off_handler(void *timer)
+{
+    cpu_fast_off_timer = (pc_timer_t *) timer;
+}
+
+
+void
+cpu_fast_off_advance(void)
+{
+    timer_disable(cpu_fast_off_timer);
+    if (cpu_fast_off_period != 0.0)
+	timer_on_auto(cpu_fast_off_timer, cpu_fast_off_period);
+}
+
+
+void
+cpu_fast_off_period_set(uint16_t val, double period)
+{
+    cpu_fast_off_period = ((double) (val + 1)) * period;
+    cpu_fast_off_advance();
+}
+
+
+void
+cpu_fast_off_reset(void)
+{
+    cpu_register_fast_off_handler(NULL);
+    cpu_fast_off_period = 0.0;
+    cpu_fast_off_advance();
+}
+
+
+void
+smi_raise(void)
+{
+    if (is486 && (cpu_fast_off_flags & 0x80000000))
+	cpu_fast_off_advance();
+
+    smi_line = 1;
+}
+
+
+void
+nmi_raise(void)
+{
+    if (is486 && (cpu_fast_off_flags & 0x20000000))
+	cpu_fast_off_advance();
+
+    nmi = 1;
 }
 
 

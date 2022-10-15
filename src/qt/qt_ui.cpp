@@ -25,6 +25,7 @@
 #include <QStatusBar>
 
 #include "qt_mainwindow.hpp"
+#include "qt_machinestatus.hpp"
 
 MainWindow* main_window = nullptr;
 
@@ -36,6 +37,22 @@ extern "C" {
 #include <86box/plat.h>
 #include <86box/ui.h>
 #include <86box/mouse.h>
+#include <86box/timer.h>
+#include <86box/86box.h>
+#include <86box/device.h>
+#include <86box/fdd.h>
+#include <86box/hdc.h>
+#include <86box/scsi.h>
+#include <86box/scsi_device.h>
+#include <86box/cartridge.h>
+#include <86box/cassette.h>
+#include <86box/cdrom.h>
+#include <86box/zip.h>
+#include <86box/mo.h>
+#include <86box/hdd.h>
+#include <86box/thread.h>
+#include <86box/network.h>
+#include <86box/machine_status.h>
 
 void
 plat_delay_ms(uint32_t count)
@@ -174,16 +191,71 @@ void ui_sb_set_ready(int ready) {
 
 void
 ui_sb_update_icon_state(int tag, int state) {
-    if (main_window == nullptr) {
-        return;
+    int category = tag & 0xfffffff0;
+    int item = tag & 0xf;
+    switch (category) {
+    case SB_CASSETTE:
+        machine_status.cassette.empty = state > 0 ? true : false;
+        break;
+    case SB_CARTRIDGE:
+        machine_status.cartridge[item].empty = state > 0 ? true : false;
+        break;
+    case SB_FLOPPY:
+        machine_status.fdd[item].empty = state > 0 ? true : false;
+        break;
+    case SB_CDROM:
+        machine_status.cdrom[item].empty = state > 0 ? true : false;
+        break;
+    case SB_ZIP:
+        machine_status.zip[item].empty = state > 0 ? true : false;
+        break;
+    case SB_MO:
+        machine_status.mo[item].empty = state > 0 ? true : false;
+        break;
+    case SB_HDD:
+        break;
+    case SB_NETWORK:
+        machine_status.net[item].empty = state > 0 ? true : false;
+        break;
+    case SB_SOUND:
+        break;
+    case SB_TEXT:
+        break;
     }
-    main_window->updateStatusBarEmpty(tag, state > 0 ? true : false);
 }
 
 void
 ui_sb_update_icon(int tag, int active) {
-    if (!update_icons) return;
-    main_window->updateStatusBarActivity(tag, active > 0 ? true : false);
+    int category = tag & 0xfffffff0;
+    int item = tag & 0xf;
+    switch (category) {
+    case SB_CASSETTE:
+        break;
+    case SB_CARTRIDGE:
+        break;
+    case SB_FLOPPY:
+        machine_status.fdd[item].active = active > 0 ? true : false;
+        break;
+    case SB_CDROM:
+        machine_status.cdrom[item].active = active > 0 ? true : false;
+        break;
+    case SB_ZIP:
+        machine_status.zip[item].active = active > 0 ? true : false;
+        break;
+    case SB_MO:
+        machine_status.mo[item].active = active > 0 ? true : false;
+        break;
+    case SB_HDD:
+        machine_status.hdd[item].active = active > 0 ? true : false;
+        break;
+    case SB_NETWORK:
+        machine_status.net[item].active = active > 0 ? true : false;
+        break;
+    case SB_SOUND:
+        break;
+    case SB_TEXT:
+        break;
+    }
 }
 
 }

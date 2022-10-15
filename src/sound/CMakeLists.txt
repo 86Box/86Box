@@ -13,7 +13,7 @@
 #           Copyright 2020,2021 David Hrdlička.
 #
 
-add_library(snd OBJECT sound.c snd_opl.c snd_opl_nuked.c snd_resid.cc
+add_library(snd OBJECT sound.c snd_opl.c snd_opl_nuked.c snd_opl_ymfm.cpp snd_resid.cc
     midi.c snd_speaker.c snd_pssj.c snd_lpt_dac.c snd_ac97_codec.c snd_ac97_via.c
     snd_lpt_dss.c snd_ps1.c snd_adlib.c snd_adlibgold.c snd_ad1848.c snd_audiopci.c
     snd_azt2316a.c snd_cms.c snd_cmi8x38.c snd_cs423x.c snd_gus.c snd_sb.c snd_sb_dsp.c
@@ -31,9 +31,10 @@ if(OPENAL)
     if(TARGET OpenAL::OpenAL)
         target_link_libraries(86Box OpenAL::OpenAL)
     else()
-        include_directories(${OPENAL_INCLUDE_DIR})
         target_link_libraries(86Box ${OPENAL_LIBRARY})
     endif()
+
+    include_directories(${OPENAL_INCLUDE_DIR})
 
     target_sources(snd PRIVATE openal.c)
 else()
@@ -49,15 +50,15 @@ else()
         # Use FAudio, a reimplementation of XAudio2
         pkg_check_modules(FAUDIO IMPORTED_TARGET FAudio)
         if(FAUDIO_FOUND)
-            include_directories(${FAUDIO_INCLUDE_DIRS})
             target_link_libraries(86Box PkgConfig::FAUDIO)
         else()
             find_path(FAUDIO_INCLUDE_DIR NAMES "FAudio.h")
             find_library(FAUDIO_LIBRARY FAudio)
 
-            include_directories(${FAUDIO_INCLUDE_DIR})
             target_link_libraries(86Box ${FAUDIO_LIBRARY})
         endif()
+
+        include_directories(${FAUDIO_INCLUDE_DIRS})
 
         set_property(SOURCE xaudio2.c PROPERTY COMPILE_DEFINITIONS USE_FAUDIO)
     endif()
@@ -104,6 +105,9 @@ if(MUNT)
     endif()
 endif()
 
+add_subdirectory(ymfm)
+target_link_libraries(86Box ymfm)
+
 if(PAS16)
     target_compile_definitions(snd PRIVATE USE_PAS16)
     target_sources(snd PRIVATE snd_pas16.c)
@@ -111,10 +115,6 @@ endif()
 
 if(GUSMAX)
     target_compile_definitions(snd PRIVATE USE_GUSMAX)
-endif()
-
-if(TANDY_ISA)
-    target_compile_definitions(snd PRIVATE USE_TANDY_ISA)
 endif()
 
 add_subdirectory(resid-fp)

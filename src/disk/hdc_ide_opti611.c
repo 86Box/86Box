@@ -29,17 +29,14 @@
 #include <86box/hdc.h>
 #include <86box/hdc_ide.h>
 
-
 typedef struct
 {
-    uint8_t	tries,
-		in_cfg, cfg_locked,
-		regs[19];
+    uint8_t tries,
+        in_cfg, cfg_locked,
+        regs[19];
 } opti611_t;
 
-
-static void	opti611_ide_handler(opti611_t *dev);
-
+static void opti611_ide_handler(opti611_t *dev);
 
 static void
 opti611_cfg_write(uint16_t addr, uint8_t val, void *priv)
@@ -49,31 +46,30 @@ opti611_cfg_write(uint16_t addr, uint8_t val, void *priv)
     addr &= 0x0007;
 
     switch (addr) {
-	case 0x0000:
-	case 0x0001:
-		dev->regs[((dev->regs[0x06] & 0x01) << 4) + addr] = val;
-		break;
-	case 0x0002:
-		dev->regs[0x12] = (val & 0xc1) | 0x02;
-		if (val & 0xc0) {
-			if (val & 0x40)
-				dev->cfg_locked = 1;
-			dev->in_cfg = 0;
-			opti611_ide_handler(dev);
-		}
-		break;
-	case 0x0003:
-		dev->regs[0x03] = (val & 0xdf);
-		break;
-	case 0x0005:
-		dev->regs[0x05] = (dev->regs[0x05] & 0x78) | (val & 0x87);
-		break;
-	case 0x0006:
-		dev->regs[0x06] = val;
-		break;
+        case 0x0000:
+        case 0x0001:
+            dev->regs[((dev->regs[0x06] & 0x01) << 4) + addr] = val;
+            break;
+        case 0x0002:
+            dev->regs[0x12] = (val & 0xc1) | 0x02;
+            if (val & 0xc0) {
+                if (val & 0x40)
+                    dev->cfg_locked = 1;
+                dev->in_cfg = 0;
+                opti611_ide_handler(dev);
+            }
+            break;
+        case 0x0003:
+            dev->regs[0x03] = (val & 0xdf);
+            break;
+        case 0x0005:
+            dev->regs[0x05] = (dev->regs[0x05] & 0x78) | (val & 0x87);
+            break;
+        case 0x0006:
+            dev->regs[0x06] = val;
+            break;
     }
 }
-
 
 static void
 opti611_cfg_writew(uint16_t addr, uint16_t val, void *priv)
@@ -82,7 +78,6 @@ opti611_cfg_writew(uint16_t addr, uint16_t val, void *priv)
     opti611_cfg_write(addr + 1, val >> 8, priv);
 }
 
-
 static void
 opti611_cfg_writel(uint16_t addr, uint32_t val, void *priv)
 {
@@ -90,33 +85,34 @@ opti611_cfg_writel(uint16_t addr, uint32_t val, void *priv)
     opti611_cfg_writew(addr + 2, val >> 16, priv);
 }
 
-
 static uint8_t
 opti611_cfg_read(uint16_t addr, void *priv)
 {
-    uint8_t ret = 0xff;
+    uint8_t    ret = 0xff;
     opti611_t *dev = (opti611_t *) priv;
 
     addr &= 0x0007;
 
     switch (addr) {
-	case 0x0000:
-	case 0x0001:
-		ret = dev->regs[((dev->regs[0x06] & 0x01) << 4) + addr];
-		break;
-	case 0x0002:
-		ret = ((!!in_smm) << 7);
-		if (ret & 0x80)
-			ret |= (dev->regs[addr] & 0x7f);
-		break;
-	case 0x0003: case 0x0004: case 0x0005: case 0x0006:
-		ret = dev->regs[addr];
-		break;
+        case 0x0000:
+        case 0x0001:
+            ret = dev->regs[((dev->regs[0x06] & 0x01) << 4) + addr];
+            break;
+        case 0x0002:
+            ret = ((!!in_smm) << 7);
+            if (ret & 0x80)
+                ret |= (dev->regs[addr] & 0x7f);
+            break;
+        case 0x0003:
+        case 0x0004:
+        case 0x0005:
+        case 0x0006:
+            ret = dev->regs[addr];
+            break;
     }
 
     return ret;
 }
-
 
 static uint16_t
 opti611_cfg_readw(uint16_t addr, void *priv)
@@ -129,7 +125,6 @@ opti611_cfg_readw(uint16_t addr, void *priv)
     return ret;
 }
 
-
 static uint32_t
 opti611_cfg_readl(uint16_t addr, void *priv)
 {
@@ -141,7 +136,6 @@ opti611_cfg_readl(uint16_t addr, void *priv)
     return ret;
 }
 
-
 static void
 opti611_ide_write(uint16_t addr, uint8_t val, void *priv)
 {
@@ -152,12 +146,11 @@ opti611_ide_write(uint16_t addr, uint8_t val, void *priv)
     uint8_t smibe = (addr & 0x0003);
 
     if (dev->regs[0x03] & 0x02) {
-	smi_line = 1;
-	dev->regs[0x02] = smia9 | smia2 | smibe;
-	dev->regs[0x04] = val;
+        smi_raise();
+        dev->regs[0x02] = smia9 | smia2 | smibe;
+        dev->regs[0x04] = val;
     }
 }
-
 
 static void
 opti611_ide_writew(uint16_t addr, uint16_t val, void *priv)
@@ -169,12 +162,11 @@ opti611_ide_writew(uint16_t addr, uint16_t val, void *priv)
     uint8_t smibe = (addr & 0x0002) | 0x0001;
 
     if (dev->regs[0x03] & 0x02) {
-	smi_line = 1;
-	dev->regs[0x02] = smia9 | smia2 | smibe;
-	dev->regs[0x04] = 0x00;
+        smi_raise();
+        dev->regs[0x02] = smia9 | smia2 | smibe;
+        dev->regs[0x04] = 0x00;
     }
 }
-
 
 static void
 opti611_ide_writel(uint16_t addr, uint32_t val, void *priv)
@@ -185,12 +177,11 @@ opti611_ide_writel(uint16_t addr, uint32_t val, void *priv)
     uint8_t smia2 = (!!(addr & 0x0004)) << 4;
 
     if (dev->regs[0x03] & 0x02) {
-	smi_line = 1;
-	dev->regs[0x02] = smia9 | smia2 | 0x0003;
-	dev->regs[0x04] = 0x00;
+        smi_raise();
+        dev->regs[0x02] = smia9 | smia2 | 0x0003;
+        dev->regs[0x04] = 0x00;
     }
 }
-
 
 static uint8_t
 opti611_ide_read(uint16_t addr, void *priv)
@@ -202,14 +193,13 @@ opti611_ide_read(uint16_t addr, void *priv)
     uint8_t smibe = (addr & 0x0003);
 
     if (dev->regs[0x03] & 0x02) {
-	smi_line = 1;
-	dev->regs[0x02] = smia9 | smia2 | smibe;
-	dev->regs[0x04] = 0x00;
+        smi_raise();
+        dev->regs[0x02] = smia9 | smia2 | smibe;
+        dev->regs[0x04] = 0x00;
     }
 
     return 0xff;
 }
-
 
 static uint16_t
 opti611_ide_readw(uint16_t addr, void *priv)
@@ -221,22 +211,21 @@ opti611_ide_readw(uint16_t addr, void *priv)
     uint8_t smibe = (addr & 0x0002) | 0x0001;
 
     if ((addr & 0x0007) == 0x0001) {
-	dev->tries = (dev->tries + 1) & 0x01;
-	if ((dev->tries == 0x00) && !dev->cfg_locked) {
-		dev->in_cfg = 1;
-		opti611_ide_handler(dev);
-	}
+        dev->tries = (dev->tries + 1) & 0x01;
+        if ((dev->tries == 0x00) && !dev->cfg_locked) {
+            dev->in_cfg = 1;
+            opti611_ide_handler(dev);
+        }
     }
 
     if (dev->regs[0x03] & 0x02) {
-	smi_line = 1;
-	dev->regs[0x02] = smia9 | smia2 | smibe;
-	dev->regs[0x04] = 0x00;
+        smi_raise();
+        dev->regs[0x02] = smia9 | smia2 | smibe;
+        dev->regs[0x04] = 0x00;
     }
 
     return 0xffff;
 }
-
 
 static uint32_t
 opti611_ide_readl(uint16_t addr, void *priv)
@@ -247,43 +236,41 @@ opti611_ide_readl(uint16_t addr, void *priv)
     uint8_t smia2 = (!!(addr & 0x0004)) << 4;
 
     if (dev->regs[0x03] & 0x02) {
-	smi_line = 1;
-	dev->regs[0x02] = smia9 | smia2 | 0x0003;
-	dev->regs[0x04] = 0x00;
+        smi_raise();
+        dev->regs[0x02] = smia9 | smia2 | 0x0003;
+        dev->regs[0x04] = 0x00;
     }
 
     return 0xffffffff;
 }
-
 
 static void
 opti611_ide_handler(opti611_t *dev)
 {
     ide_pri_disable();
     io_removehandler(0x01f0, 0x0007,
-		     opti611_ide_read, opti611_ide_readw, opti611_ide_readl,
-		     opti611_ide_write, opti611_ide_writew, opti611_ide_writel,
-		     dev);
+                     opti611_ide_read, opti611_ide_readw, opti611_ide_readl,
+                     opti611_ide_write, opti611_ide_writew, opti611_ide_writel,
+                     dev);
     io_removehandler(0x01f0, 0x0007,
-		     opti611_cfg_read, opti611_cfg_readw, opti611_cfg_readl,
-		     opti611_cfg_write, opti611_cfg_writew, opti611_cfg_writel,
-		     dev);
+                     opti611_cfg_read, opti611_cfg_readw, opti611_cfg_readl,
+                     opti611_cfg_write, opti611_cfg_writew, opti611_cfg_writel,
+                     dev);
 
     if (dev->in_cfg && !dev->cfg_locked) {
-	io_sethandler(0x01f0, 0x0007,
-		      opti611_cfg_read, opti611_cfg_readw, opti611_cfg_readl,
-		      opti611_cfg_write, opti611_cfg_writew, opti611_cfg_writel,
-		      dev);
+        io_sethandler(0x01f0, 0x0007,
+                      opti611_cfg_read, opti611_cfg_readw, opti611_cfg_readl,
+                      opti611_cfg_write, opti611_cfg_writew, opti611_cfg_writel,
+                      dev);
     } else {
-	if (dev->regs[0x03] & 0x01)
-		ide_pri_enable();
-	io_sethandler(0x01f0, 0x0007,
-		      opti611_ide_read, opti611_ide_readw, opti611_ide_readl,
-		      opti611_ide_write, opti611_ide_writew, opti611_ide_writel,
-		      dev);
+        if (dev->regs[0x03] & 0x01)
+            ide_pri_enable();
+        io_sethandler(0x01f0, 0x0007,
+                      opti611_ide_read, opti611_ide_readw, opti611_ide_readl,
+                      opti611_ide_write, opti611_ide_writew, opti611_ide_writel,
+                      dev);
     }
 }
-
 
 static void
 opti611_close(void *priv)
@@ -292,7 +279,6 @@ opti611_close(void *priv)
 
     free(dev);
 }
-
 
 static void *
 opti611_init(const device_t *info)
@@ -312,15 +298,15 @@ opti611_init(const device_t *info)
 }
 
 const device_t ide_opti611_vlb_device = {
-    .name = "OPTi 82C611/82C611A VLB",
+    .name          = "OPTi 82C611/82C611A VLB",
     .internal_name = "ide_opti611_vlb",
-    .flags = DEVICE_VLB,
-    .local = 0,
-    .init = opti611_init,
-    .close = opti611_close,
-    .reset = NULL,
+    .flags         = DEVICE_VLB,
+    .local         = 0,
+    .init          = opti611_init,
+    .close         = opti611_close,
+    .reset         = NULL,
     { .available = NULL },
     .speed_changed = NULL,
-    .force_redraw = NULL,
-    .config = NULL
+    .force_redraw  = NULL,
+    .config        = NULL
 };

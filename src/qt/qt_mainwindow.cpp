@@ -46,6 +46,10 @@ extern "C" {
 #include <86box/vid_ega.h>
 #include <86box/version.h>
 
+#ifdef USE_VNC
+#include <86box/vnc.h>
+#endif
+
     extern int qt_nvr_save(void);
 
 #ifdef MTR_ENABLED
@@ -70,6 +74,7 @@ extern "C" {
 #include <QOpenGLContext>
 #include <QScreen>
 #include <QString>
+#include <QDir>
 
 #include <array>
 #include <unordered_map>
@@ -123,8 +128,12 @@ filter_result keyb_filter(BMessage *message, BHandler **target, BMessageFilter *
 static BMessageFilter* filter;
 #endif
 
+std::atomic<bool> blitDummied{false};
+
 extern void qt_mouse_capture(int);
 extern "C" void qt_blit(int x, int y, int w, int h, int monitor_index);
+
+extern MainWindow* main_window;
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
@@ -139,6 +148,8 @@ MainWindow::MainWindow(QWidget *parent) :
     ((BWindow*)this->winId())->AddFilter(filter);
 #endif
     setUnifiedTitleAndToolBarOnMac(true);
+    extern MainWindow* main_window;
+    main_window = this;
     ui->setupUi(this);
     ui->stackedWidget->setMouseTracking(true);
     statusBar()->setVisible(!hide_status_bar);
@@ -191,7 +202,8 @@ MainWindow::MainWindow(QWidget *parent) :
             }
         }
 #endif
-        ui->actionPause->setChecked(dopause);
+        ui->actionPause->setChecked(false);
+        ui->actionPause->setCheckable(false);
     });
     connect(this, &MainWindow::getTitleForNonQtThread, this, &MainWindow::getTitle_, Qt::BlockingQueuedConnection);
 
@@ -229,7 +241,10 @@ MainWindow::MainWindow(QWidget *parent) :
     });
 
     connect(this, &MainWindow::resizeContents, this, [this](int w, int h) {
-        ui->stackedWidget->setFixedSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
+        if (shownonce) {
+            if (resizableonce == false) ui->stackedWidget->setFixedSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
+            resizableonce = true;
+        }
         if (!QApplication::platformName().contains("eglfs") && vid_resize != 1) {
             w = (w / (!dpi_scale ? util::screenOfWidget(this)->devicePixelRatio() : 1.));
 
@@ -268,8 +283,6 @@ MainWindow::MainWindow(QWidget *parent) :
     });
     connect(this, &MainWindow::updateStatusBarPanes, this, &MainWindow::refreshMediaMenu);
     connect(this, &MainWindow::updateStatusBarTip, status.get(), &MachineStatus::updateTip);
-    connect(this, &MainWindow::updateStatusBarActivity, status.get(), &MachineStatus::setActivity);
-    connect(this, &MainWindow::updateStatusBarEmpty, status.get(), &MachineStatus::setEmpty);
     connect(this, &MainWindow::statusBarMessage, status.get(), &MachineStatus::message, Qt::QueuedConnection);
 
     ui->actionKeyboard_requires_capture->setChecked(kbd_req_capture);
@@ -283,6 +296,7 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->actionShow_non_primary_monitors->setChecked(show_second_monitors);
     ui->actionUpdate_status_bar_icons->setChecked(update_icons);
     ui->actionEnable_Discord_integration->setChecked(enable_discord);
+    ui->actionApply_fullscreen_stretch_mode_when_maximized->setChecked(video_fullscreen_scale_maximized);
 
 #if defined Q_OS_WINDOWS || defined Q_OS_MACOS
     /* Make the option visible only if ANGLE is loaded. */
@@ -305,6 +319,11 @@ MainWindow::MainWindow(QWidget *parent) :
     if (vid_api == 5) vid_api = 0;
 #endif
 
+#ifndef USE_VNC
+    if (vid_api == 6) vid_api = 0;
+    ui->actionVNC->setVisible(false);
+#endif
+
 #if !QT_CONFIG(vulkan)
     if (vid_api == 4) vid_api = 0;
     ui->actionVulkan->setVisible(false);
@@ -319,10 +338,20 @@ MainWindow::MainWindow(QWidget *parent) :
     actGroup->addAction(ui->actionOpenGL_3_0_Core);
     actGroup->addAction(ui->actionVulkan);
     actGroup->addAction(ui->actionDirect3D_9);
+    actGroup->addAction(ui->actionVNC);
     actGroup->setExclusive(true);
 
     connect(actGroup, &QActionGroup::triggered, [this](QAction* action) {
         vid_api = action->property("vid_api").toInt();
+#ifdef USE_VNC
+        if (vnc_enabled && vid_api != 6) {
+            startblit();
+            vnc_enabled = 0;
+            vnc_close();
+            video_setblit(qt_blit);
+            endblit();
+        }
+#endif
         RendererStack::Renderer newVidApi = RendererStack::Renderer::Software;
         switch (vid_api)
         {
@@ -344,6 +373,15 @@ MainWindow::MainWindow(QWidget *parent) :
         case 5:
             newVidApi = (RendererStack::Renderer::Direct3D9);
             break;
+#ifdef USE_VNC
+        case 6:
+            {
+                newVidApi = RendererStack::Renderer::Software;
+                startblit();
+                vnc_enabled = vnc_init(nullptr);
+                endblit();
+            }
+#endif
         }
         ui->stackedWidget->switchRenderer(newVidApi);
         if (!show_second_monitors) return;
@@ -466,10 +504,10 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->actionCtrl_Alt_Del->setShortcutVisibleInContextMenu(true);
     ui->actionTake_screenshot->setShortcutVisibleInContextMenu(true);
 #endif
-    video_setblit(qt_blit);
+    if (!vnc_enabled) video_setblit(qt_blit);
 
     if (start_in_fullscreen) {
-        connect(ui->stackedWidget, &RendererStack::blitToRenderer, this, [this] () {
+        connect(ui->stackedWidget, &RendererStack::blit, this, [this] () {
             if (start_in_fullscreen) {
                 QTimer::singleShot(100, ui->actionFullscreen, &QAction::trigger);
                 start_in_fullscreen = 0;
@@ -524,6 +562,23 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(this, &MainWindow::initRendererMonitorForNonQtThread, this, &MainWindow::initRendererMonitorSlot, Qt::BlockingQueuedConnection);
     connect(this, &MainWindow::destroyRendererMonitor, this, &MainWindow::destroyRendererMonitorSlot);
     connect(this, &MainWindow::destroyRendererMonitorForNonQtThread, this, &MainWindow::destroyRendererMonitorSlot, Qt::BlockingQueuedConnection);
+
+#ifdef Q_OS_MACOS
+	QTimer::singleShot(0, this, [this] () {
+		for (auto curObj : this->menuBar()->children()) {
+			if (qobject_cast<QMenu*>(curObj)) {
+				auto menu = qobject_cast<QMenu*>(curObj);
+				menu->setSeparatorsCollapsible(false);
+				for (auto curObj2 : menu->children()) {
+					if (qobject_cast<QMenu*>(curObj2)) {
+						auto menu2 = qobject_cast<QMenu*>(curObj2);
+						menu2->setSeparatorsCollapsible(false);
+					}
+				}
+			}
+		}
+	});
+#endif
 }
 
 void MainWindow::closeEvent(QCloseEvent *event) {
@@ -560,7 +615,7 @@ void MainWindow::closeEvent(QCloseEvent *event) {
             if (renderers[i]) {
                 monitor_settings[i].mon_window_w = renderers[i]->geometry().width();
                 monitor_settings[i].mon_window_h = renderers[i]->geometry().height();
-                if (!QApplication::platformName().contains("wayland")) continue;
+                if (QApplication::platformName().contains("wayland")) continue;
                 monitor_settings[i].mon_window_x = renderers[i]->geometry().x();
                 monitor_settings[i].mon_window_y = renderers[i]->geometry().y();
             }
@@ -584,7 +639,6 @@ void MainWindow::initRendererMonitorSlot(int monitor_index)
     auto& secondaryRenderer = this->renderers[monitor_index];
     secondaryRenderer.reset(new RendererStack(nullptr, monitor_index));
     if (secondaryRenderer) {
-        connect(this, &MainWindow::pollMouse, secondaryRenderer.get(), &RendererStack::mousePoll, Qt::DirectConnection);
         connect(secondaryRenderer.get(), &RendererStack::rendererChanged, this, [this, monitor_index]
         {
             this->renderers[monitor_index]->show();
@@ -603,6 +657,9 @@ void MainWindow::initRendererMonitorSlot(int monitor_index)
                 monitor_settings[monitor_index].mon_window_y < 120 ? 120 : monitor_settings[monitor_index].mon_window_y,
                 monitor_settings[monitor_index].mon_window_w > 2048 ? 2048 : monitor_settings[monitor_index].mon_window_w,
                 monitor_settings[monitor_index].mon_window_h > 2048 ? 2048 : monitor_settings[monitor_index].mon_window_h);
+            }
+            if (monitor_settings[monitor_index].mon_window_maximized) {
+                secondaryRenderer->showMaximized();
             }
             secondaryRenderer->switchRenderer((RendererStack::Renderer)vid_api);
         }
@@ -631,6 +688,11 @@ MainWindow::~MainWindow() {
 void MainWindow::showEvent(QShowEvent *event) {
     if (shownonce) return;
     shownonce = true;
+    if (window_remember) {
+        if (window_w == 0) window_w = 320;
+        if (window_h == 0) window_h = 200;
+    }
+
     if (window_remember && !QApplication::platformName().contains("wayland")) {
         setGeometry(window_x, window_y, window_w, window_h + menuBar()->height() + (hide_status_bar ? 0 : statusBar()->height()) + (hide_tool_bar ? 0 : ui->toolBar->height()));
     }
@@ -692,6 +754,10 @@ void MainWindow::on_actionCtrl_Alt_Esc_triggered() {
 
 void MainWindow::on_actionPause_triggered() {
     plat_pause(dopause ^ 1);
+    auto pause_icon   = dopause ? QIcon(":/menuicons/win/icons/run.ico") : QIcon(":/menuicons/win/icons/pause.ico");
+    auto tooltip_text = dopause ? QString(tr("Resume execution")) : QString(tr("Pause execution"));
+    ui->actionPause->setIcon(pause_icon);
+    ui->actionPause->setToolTip(tooltip_text);
 }
 
 void MainWindow::on_actionExit_triggered() {
@@ -1433,18 +1499,13 @@ void MainWindow::processMacKeyboardInput(bool down, const QKeyEvent* event) {
 void MainWindow::on_actionFullscreen_triggered() {
     if (video_fullscreen > 0) {
         showNormal();
-        if (vid_api == 5) ui->stackedWidget->switchRenderer(RendererStack::Renderer::Direct3D9);
+        if (vid_api == 5) QTimer::singleShot(0, this, [this] () { ui->stackedWidget->switchRenderer(RendererStack::Renderer::Direct3D9); });
         ui->menubar->show();
         if (!hide_status_bar) ui->statusbar->show();
         if (!hide_tool_bar) ui->toolBar->show();
         video_fullscreen = 0;
         if (vid_resize != 1) {
-            if (vid_resize == 2) setFixedSize(fixed_size_x, fixed_size_y
-                + menuBar()->height()
-                + (!hide_status_bar ? statusBar()->height() : 0)
-                + (!hide_tool_bar ? ui->toolBar->height() : 0));
-
-            emit resizeContents(monitors[0].mon_scrnsz_x, monitors[0].mon_scrnsz_y);
+            emit resizeContents(vid_resize == 2 ? fixed_size_x : monitors[0].mon_scrnsz_x, vid_resize == 2 ? fixed_size_y : monitors[0].mon_scrnsz_y);
         }
     } else {
         if (video_fullscreen_first)
@@ -1462,7 +1523,7 @@ void MainWindow::on_actionFullscreen_triggered() {
             questionbox.exec();
             config_save();
 
-            /* (re-capture mouse after dialog. */
+            /* (re-capture mouse after dialog). */
             if (wasCaptured)
                 emit setMouseCapture(true);
         }
@@ -1472,6 +1533,7 @@ void MainWindow::on_actionFullscreen_triggered() {
         ui->statusbar->hide();
         ui->toolBar->hide();
         showFullScreen();
+        if (vid_api == 5) QTimer::singleShot(0, this, [this] () { ui->stackedWidget->switchRenderer(RendererStack::Renderer::Direct3D9); });
     }
     ui->stackedWidget->onResize(width(), height());
 }
@@ -1581,7 +1643,7 @@ void MainWindow::keyPressEvent(QKeyEvent* event)
 void MainWindow::blitToWidget(int x, int y, int w, int h, int monitor_index)
 {
     if (monitor_index >= 1) {
-        if (renderers[monitor_index]) renderers[monitor_index]->blit(x, y, w, h);
+        if (!blitDummied && renderers[monitor_index] && renderers[monitor_index]->isVisible()) renderers[monitor_index]->blit(x, y, w, h);
         else video_blit_complete_monitor(monitor_index);
     }
     else ui->stackedWidget->blit(x, y, w, h);
@@ -1722,9 +1784,13 @@ static void update_fullscreen_scale_checkboxes(Ui::MainWindow* ui, QAction* sele
     ui->actionFullScreen_keepRatio->setChecked(ui->actionFullScreen_keepRatio == selected);
     ui->actionFullScreen_int->setChecked(ui->actionFullScreen_int == selected);
 
-    if (video_fullscreen > 0) {
+    {
         auto widget = ui->stackedWidget->currentWidget();
         ui->stackedWidget->onResize(widget->width(), widget->height());
+    }
+
+    for (int i = 1; i < MONITORS_NUM; i++) {
+        if (main_window->renderers[i]) main_window->renderers[i]->onResize(main_window->renderers[i]->width(), main_window->renderers[i]->height());
     }
 
     device_force_redraw();
@@ -1902,6 +1968,8 @@ void MainWindow::on_actionHiDPI_scaling_triggered()
 
 void MainWindow::on_actionHide_status_bar_triggered()
 {
+    auto w = ui->stackedWidget->width();
+    auto h = ui->stackedWidget->height();
     hide_status_bar ^= 1;
     ui->actionHide_status_bar->setChecked(hide_status_bar);
     statusBar()->setVisible(!hide_status_bar);
@@ -1913,13 +1981,16 @@ void MainWindow::on_actionHide_status_bar_triggered()
     } else {
         int vid_resize_orig = vid_resize;
         vid_resize = 0;
-        emit resizeContents(monitors[0].mon_scrnsz_x, monitors[0].mon_scrnsz_y);
+        emit resizeContents(w, h);
         vid_resize = vid_resize_orig;
+        if (vid_resize == 1) setFixedSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
     }
 }
 
 void MainWindow::on_actionHide_tool_bar_triggered()
 {
+    auto w = ui->stackedWidget->width();
+    auto h = ui->stackedWidget->height();
     hide_tool_bar ^= 1;
     ui->actionHide_tool_bar->setChecked(hide_tool_bar);
     ui->toolBar->setVisible(!hide_tool_bar);
@@ -1931,8 +2002,9 @@ void MainWindow::on_actionHide_tool_bar_triggered()
     } else {
         int vid_resize_orig = vid_resize;
         vid_resize = 0;
-        emit resizeContents(monitors[0].mon_scrnsz_x, monitors[0].mon_scrnsz_y);
+        emit resizeContents(w, h);
         vid_resize = vid_resize_orig;
+        if (vid_resize == 1) setFixedSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
     }
 }
 
@@ -2006,6 +2078,10 @@ void MainWindow::changeEvent(QEvent* event)
     }
 #endif
     QWidget::changeEvent(event);
+    if (isVisible()) {
+        monitor_settings[0].mon_window_maximized = isMaximized();
+        config_save();
+    }
 }
 
 void MainWindow::on_actionRenderer_options_triggered()
@@ -2032,7 +2108,9 @@ void MainWindow::on_actionMCA_devices_triggered()
 
 void MainWindow::on_actionShow_non_primary_monitors_triggered()
 {
-    show_second_monitors ^= 1;
+    show_second_monitors = (int)ui->actionShow_non_primary_monitors->isChecked();
+
+    blitDummied = true;
 
     if (show_second_monitors) {
         for (int monitor_index = 1; monitor_index < MONITORS_NUM; monitor_index++) {
@@ -2060,5 +2138,30 @@ void MainWindow::on_actionShow_non_primary_monitors_triggered()
             }
         }
     }
+
+    blitDummied = false;
+}
+
+
+void MainWindow::on_actionOpen_screenshots_folder_triggered()
+{
+    QDir(QString(usr_path) + QString("/screenshots/")).mkpath(".");
+    QDesktopServices::openUrl(QUrl(QString("file:///") + usr_path + QString("/screenshots/")));
+}
+
+
+void MainWindow::on_actionApply_fullscreen_stretch_mode_when_maximized_triggered(bool checked)
+{
+    video_fullscreen_scale_maximized = checked;
+
+    auto widget = ui->stackedWidget->currentWidget();
+    ui->stackedWidget->onResize(widget->width(), widget->height());
+
+    for (int i = 1; i < MONITORS_NUM; i++) {
+        if (renderers[i]) renderers[i]->onResize(renderers[i]->width(), renderers[i]->height());
+    }
+
+    device_force_redraw();
+    config_save();
 }
 

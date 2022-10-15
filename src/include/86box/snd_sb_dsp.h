@@ -42,7 +42,7 @@ typedef struct sb_dsp_t {
 
     int sb_irqnum;
     void (*irq_update)(void *priv, int set),
-         *irq_priv;
+        *irq_priv;
 
     uint8_t sbe2;
     int     sbe2count;
@@ -83,7 +83,7 @@ typedef struct sb_dsp_t {
 
     pc_timer_t output_timer, input_timer;
 
-    uint64_t sblatcho, sblatchi;
+    double sblatcho, sblatchi;
 
     uint16_t sb_addr;
 

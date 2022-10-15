@@ -47,7 +47,7 @@ static void integer_scale(double *d, double *g) {
 }
 
 void RendererCommon::onResize(int width, int height) {
-    if (video_fullscreen == 0) {
+    if ((video_fullscreen == 0) && (video_fullscreen_scale_maximized ? ((parentWidget->isMaximized() == false) && (main_window->isAncestorOf(parentWidget) && main_window->isMaximized() == false)) : 1)) {
         destination.setRect(0, 0, width, height);
         return;
     }

@@ -45,18 +45,18 @@ et6000_log(const char *fmt, ...)
 {
     va_list ap;
 
-    if (et6000_do_log)
-    {
+    if (et6000_do_log) {
         va_start(ap, fmt);
         pclog_ex(fmt, ap);
         va_end(ap);
     }
 }
 #else
-#define et6000_log(fmt, ...)
+#    define et6000_log(fmt, ...)
 #endif
 
-static void et6000_shadow_control(int base, int size, int can_read, int can_write)
+static void
+et6000_shadow_control(int base, int size, int can_read, int can_write)
 {
     mem_set_mem_state_both(base, size, (can_read ? MEM_READ_INTERNAL : MEM_READ_EXTANY) | (can_write ? MEM_WRITE_INTERNAL : MEM_WRITE_EXTANY));
     flushmmucache_nopc();
@@ -65,57 +65,55 @@ static void et6000_shadow_control(int base, int size, int can_read, int can_writ
 static void
 et6000_write(uint16_t addr, uint8_t val, void *priv)
 {
-    et6000_t *dev = (et6000_t *)priv;
+    et6000_t *dev = (et6000_t *) priv;
 
-    switch (addr)
-    {
-    case 0x22:
-        dev->index = val;
-        break;
-    case 0x23:
-        switch (INDEX)
-        {
-        case 0: /* System Configuration Register */
-            dev->regs[INDEX] = val & 0xdf;
-            et6000_shadow_control(0xa0000, 0x20000, val & 1, val & 1);
-            refresh_at_enable = !(val & 0x10);
+    switch (addr) {
+        case 0x22:
+            dev->index = val;
             break;
+        case 0x23:
+            switch (INDEX) {
+                case 0: /* System Configuration Register */
+                    dev->regs[INDEX] = val & 0xdf;
+                    et6000_shadow_control(0xa0000, 0x20000, val & 1, val & 1);
+                    refresh_at_enable = !(val & 0x10);
+                    break;
 
-        case 1: /* CACHE Configuration and Non-Cacheable Block Size */
-            dev->regs[INDEX] = val & 0xf0;
-            break;
+                case 1: /* CACHE Configuration and Non-Cacheable Block Size */
+                    dev->regs[INDEX] = val & 0xf0;
+                    break;
 
-        case 2: /* Non-Cacheable Block Address Register */
-            dev->regs[INDEX] = val & 0xfe;
-            break;
+                case 2: /* Non-Cacheable Block Address Register */
+                    dev->regs[INDEX] = val & 0xfe;
+                    break;
 
-        case 3: /* DRAM Bank and Type Configuration Register */
-            dev->regs[INDEX] = val;
-            break;
+                case 3: /* DRAM Bank and Type Configuration Register */
+                    dev->regs[INDEX] = val;
+                    break;
 
-        case 4: /* DRAM Configuration Register */
-            dev->regs[INDEX] = val;
-            et6000_shadow_control(0xc0000, 0x10000, (dev->regs[0x15] & 2) && (val & 0x20), (dev->regs[0x15] & 2) && (val & 0x20) && (dev->regs[0x15] & 1));
-            et6000_shadow_control(0xd0000, 0x10000, (dev->regs[0x15] & 8) && (val & 0x20), (dev->regs[0x15] & 8) && (val & 0x20) && (dev->regs[0x15] & 4));
-            break;
+                case 4: /* DRAM Configuration Register */
+                    dev->regs[INDEX] = val;
+                    et6000_shadow_control(0xc0000, 0x10000, (dev->regs[0x15] & 2) && (val & 0x20), (dev->regs[0x15] & 2) && (val & 0x20) && (dev->regs[0x15] & 1));
+                    et6000_shadow_control(0xd0000, 0x10000, (dev->regs[0x15] & 8) && (val & 0x20), (dev->regs[0x15] & 8) && (val & 0x20) && (dev->regs[0x15] & 4));
+                    break;
 
-        case 5: /* Shadow RAM Configuration Register */
-            dev->regs[INDEX] = val;
-            et6000_shadow_control(0xc0000, 0x10000, (val & 2) && (dev->regs[0x14] & 0x20), (val & 2) && (dev->regs[0x14] & 0x20) && (val & 1));
-            et6000_shadow_control(0xd0000, 0x10000, (val & 8) && (dev->regs[0x14] & 0x20), (val & 8) && (dev->regs[0x14] & 0x20) && (val & 4));
-            et6000_shadow_control(0xe0000, 0x10000, val & 0x20, (val & 0x20) && (val & 0x10));
-            et6000_shadow_control(0xf0000, 0x10000, val & 0x40, !(val & 0x40));
+                case 5: /* Shadow RAM Configuration Register */
+                    dev->regs[INDEX] = val;
+                    et6000_shadow_control(0xc0000, 0x10000, (val & 2) && (dev->regs[0x14] & 0x20), (val & 2) && (dev->regs[0x14] & 0x20) && (val & 1));
+                    et6000_shadow_control(0xd0000, 0x10000, (val & 8) && (dev->regs[0x14] & 0x20), (val & 8) && (dev->regs[0x14] & 0x20) && (val & 4));
+                    et6000_shadow_control(0xe0000, 0x10000, val & 0x20, (val & 0x20) && (val & 0x10));
+                    et6000_shadow_control(0xf0000, 0x10000, val & 0x40, !(val & 0x40));
+                    break;
+            }
+            et6000_log("ET6000: dev->regs[%02x] = %02x\n", dev->index, dev->regs[dev->index]);
             break;
-        }
-        et6000_log("ET6000: dev->regs[%02x] = %02x\n", dev->index, dev->regs[dev->index]);
-        break;
     }
 }
 
 static uint8_t
 et6000_read(uint16_t addr, void *priv)
 {
-    et6000_t *dev = (et6000_t *)priv;
+    et6000_t *dev = (et6000_t *) priv;
 
     return ((addr == 0x23) && (INDEX >= 0) && (INDEX <= 5)) ? dev->regs[INDEX] : 0xff;
 }
@@ -123,7 +121,7 @@ et6000_read(uint16_t addr, void *priv)
 static void
 et6000_close(void *priv)
 {
-    et6000_t *dev = (et6000_t *)priv;
+    et6000_t *dev = (et6000_t *) priv;
 
     free(dev);
 }
@@ -131,7 +129,7 @@ et6000_close(void *priv)
 static void *
 et6000_init(const device_t *info)
 {
-    et6000_t *dev = (et6000_t *)malloc(sizeof(et6000_t));
+    et6000_t *dev = (et6000_t *) malloc(sizeof(et6000_t));
     memset(dev, 0, sizeof(et6000_t));
 
     /* Port 92h */
@@ -149,15 +147,15 @@ et6000_init(const device_t *info)
 }
 
 const device_t et6000_device = {
-    .name = "ETEQ Cheetah ET6000",
+    .name          = "ETEQ Cheetah ET6000",
     .internal_name = "et6000",
-    .flags = 0,
-    .local = 0,
-    .init = et6000_init,
-    .close = et6000_close,
-    .reset = NULL,
+    .flags         = 0,
+    .local         = 0,
+    .init          = et6000_init,
+    .close         = et6000_close,
+    .reset         = NULL,
     { .available = NULL },
     .speed_changed = NULL,
-    .force_redraw = NULL,
-    .config = NULL
+    .force_redraw  = NULL,
+    .config        = NULL
 };

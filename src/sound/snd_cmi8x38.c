@@ -473,10 +473,10 @@ static void
 cmi8x38_remap_sb(cmi8x38_t *dev)
 {
     if (dev->sb_base) {
-        io_removehandler(dev->sb_base, 0x0004, opl3_read, NULL, NULL,
-                         opl3_write, NULL, NULL, &dev->sb->opl);
-        io_removehandler(dev->sb_base + 8, 0x0002, opl3_read, NULL, NULL,
-                         opl3_write, NULL, NULL, &dev->sb->opl);
+        io_removehandler(dev->sb_base, 0x0004, dev->sb->opl.read, NULL, NULL,
+                         dev->sb->opl.write, NULL, NULL, dev->sb->opl.priv);
+        io_removehandler(dev->sb_base + 8, 0x0002, dev->sb->opl.read, NULL, NULL,
+                         dev->sb->opl.write, NULL, NULL, dev->sb->opl.priv);
         io_removehandler(dev->sb_base + 4, 0x0002, cmi8x38_sb_mixer_read, NULL, NULL,
                          cmi8x38_sb_mixer_write, NULL, NULL, dev);
 
@@ -493,10 +493,10 @@ cmi8x38_remap_sb(cmi8x38_t *dev)
     cmi8x38_log("CMI8x38: remap_sb(%04X)\n", dev->sb_base);
 
     if (dev->sb_base) {
-        io_sethandler(dev->sb_base, 0x0004, opl3_read, NULL, NULL,
-                      opl3_write, NULL, NULL, &dev->sb->opl);
-        io_sethandler(dev->sb_base + 8, 0x0002, opl3_read, NULL, NULL,
-                      opl3_write, NULL, NULL, &dev->sb->opl);
+        io_sethandler(dev->sb_base, 0x0004, dev->sb->opl.read, NULL, NULL,
+                      dev->sb->opl.write, NULL, NULL, dev->sb->opl.priv);
+        io_sethandler(dev->sb_base + 8, 0x0002, dev->sb->opl.read, NULL, NULL,
+                      dev->sb->opl.write, NULL, NULL, dev->sb->opl.priv);
         io_sethandler(dev->sb_base + 4, 0x0002, cmi8x38_sb_mixer_read, NULL, NULL,
                       cmi8x38_sb_mixer_write, NULL, NULL, dev);
 
@@ -508,8 +508,8 @@ static void
 cmi8x38_remap_opl(cmi8x38_t *dev)
 {
     if (dev->opl_base) {
-        io_removehandler(dev->opl_base, 0x0004, opl3_read, NULL, NULL,
-                         opl3_write, NULL, NULL, &dev->sb->opl);
+        io_removehandler(dev->opl_base, 0x0004, dev->sb->opl.read, NULL, NULL,
+                         dev->sb->opl.write, NULL, NULL, dev->sb->opl.priv);
     }
 
     dev->opl_base = (dev->type == CMEDIA_CMI8338) ? 0x388 : opl_ports_cmi8738[dev->io_regs[0x17] & 0x03];
@@ -520,8 +520,8 @@ cmi8x38_remap_opl(cmi8x38_t *dev)
     cmi8x38_log("CMI8x38: remap_opl(%04X)\n", dev->opl_base);
 
     if (dev->opl_base) {
-        io_sethandler(dev->opl_base, 0x0004, opl3_read, NULL, NULL,
-                      opl3_write, NULL, NULL, &dev->sb->opl);
+        io_sethandler(dev->opl_base, 0x0004, dev->sb->opl.read, NULL, NULL,
+                      dev->sb->opl.write, NULL, NULL, dev->sb->opl.priv);
     }
 }
 
@@ -593,7 +593,7 @@ cmi8x38_read(uint16_t addr, void *priv)
             if (dev->type == CMEDIA_CMI8338)
                 goto io_reg;
             else
-                ret = opl3_read(addr, &dev->sb->opl);
+                ret = dev->sb->opl.read(addr, dev->sb->opl.priv);
             break;
 
         case 0x80:
@@ -872,7 +872,7 @@ cmi8x38_write(uint16_t addr, uint8_t val, void *priv)
 
         case 0x50 ... 0x5f:
             if (dev->type != CMEDIA_CMI8338)
-                opl3_write(addr, val, &dev->sb->opl);
+                dev->sb->opl.write(addr, val, dev->sb->opl.priv);
             return;
 
         case 0x92:
@@ -1474,7 +1474,7 @@ static const device_config_t cmi8738_config[] = {
         .default_int = 1
     },
     { .name = "", .description = "", .type = CONFIG_END }
-  // clang-format on
+// clang-format on
 };
 
 const device_t cmi8338_device = {

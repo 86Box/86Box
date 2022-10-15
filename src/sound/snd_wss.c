@@ -52,7 +52,7 @@ typedef struct wss_t {
     uint8_t config;
 
     ad1848_t ad1848;
-    opl_t    opl;
+    fm_drv_t opl;
 
     int     opl_enabled;
     uint8_t pos_regs[8];
@@ -81,14 +81,14 @@ wss_get_buffer(int32_t *buffer, int len, void *priv)
     wss_t *wss = (wss_t *) priv;
     int    c;
 
-    opl3_update(&wss->opl);
+    int32_t *opl_buf = wss->opl.update(wss->opl.priv);
     ad1848_update(&wss->ad1848);
     for (c = 0; c < len * 2; c++) {
-        buffer[c] += wss->opl.buffer[c];
+        buffer[c] += opl_buf[c];
         buffer[c] += wss->ad1848.buffer[c] / 2;
     }
 
-    wss->opl.pos    = 0;
+    wss->opl.reset_buffer(wss->opl.priv);
     wss->ad1848.pos = 0;
 }
 
@@ -102,7 +102,7 @@ wss_init(const device_t *info)
     wss->opl_enabled = device_get_config_int("opl");
 
     if (wss->opl_enabled)
-        opl3_init(&wss->opl);
+        fm_driver_get(FM_YMF262, &wss->opl);
 
     ad1848_init(&wss->ad1848, AD1848_TYPE_DEFAULT);
 
@@ -111,9 +111,9 @@ wss_init(const device_t *info)
 
     if (wss->opl_enabled)
         io_sethandler(0x0388, 0x0004,
-                      opl3_read, NULL, NULL,
-                      opl3_write, NULL, NULL,
-                      &wss->opl);
+                      wss->opl.read, NULL, NULL,
+                      wss->opl.write, NULL, NULL,
+                      wss->opl.priv);
 
     io_sethandler(addr, 0x0004,
                   wss_read, NULL, NULL,
@@ -150,9 +150,9 @@ ncr_audio_mca_write(int port, uint8_t val, void *priv)
     addr             = ports[(wss->pos_regs[2] & 0x18) >> 3];
 
     io_removehandler(0x0388, 0x0004,
-                     opl3_read, NULL, NULL,
-                     opl3_write, NULL, NULL,
-                     &wss->opl);
+                     wss->opl.read, NULL, NULL,
+                     wss->opl.write, NULL, NULL,
+                     wss->opl.priv);
     io_removehandler(addr, 0x0004,
                      wss_read, NULL, NULL,
                      wss_write, NULL, NULL,
@@ -169,9 +169,9 @@ ncr_audio_mca_write(int port, uint8_t val, void *priv)
 
         if (wss->opl_enabled)
             io_sethandler(0x0388, 0x0004,
-                          opl3_read, NULL, NULL,
-                          opl3_write, NULL, NULL,
-                          &wss->opl);
+                          wss->opl.read, NULL, NULL,
+                          wss->opl.write, NULL, NULL,
+                          wss->opl.priv);
 
         io_sethandler(addr, 0x0004,
                       wss_read, NULL, NULL,
@@ -197,7 +197,7 @@ ncr_audio_init(const device_t *info)
     wss_t *wss = malloc(sizeof(wss_t));
     memset(wss, 0, sizeof(wss_t));
 
-    opl3_init(&wss->opl);
+    fm_driver_get(FM_YMF262, &wss->opl);
     ad1848_init(&wss->ad1848, AD1848_TYPE_DEFAULT);
 
     ad1848_setirq(&wss->ad1848, 7);
@@ -227,7 +227,7 @@ wss_speed_changed(void *priv)
 }
 
 static const device_config_t wss_config[] = {
-// clang-format off
+  // clang-format off
     {
         .name = "base",
         .description = "Address",
@@ -268,29 +268,29 @@ static const device_config_t wss_config[] = {
 };
 
 const device_t wss_device = {
-    .name = "Windows Sound System",
+    .name          = "Windows Sound System",
     .internal_name = "wss",
-    .flags = DEVICE_ISA | DEVICE_AT,
-    .local = 0,
-    .init = wss_init,
-    .close = wss_close,
-    .reset = NULL,
+    .flags         = DEVICE_ISA | DEVICE_AT,
+    .local         = 0,
+    .init          = wss_init,
+    .close         = wss_close,
+    .reset         = NULL,
     { .available = NULL },
     .speed_changed = wss_speed_changed,
-    .force_redraw = NULL,
-    .config = wss_config
+    .force_redraw  = NULL,
+    .config        = wss_config
 };
 
 const device_t ncr_business_audio_device = {
-    .name = "NCR Business Audio",
+    .name          = "NCR Business Audio",
     .internal_name = "ncraudio",
-    .flags = DEVICE_MCA,
-    .local = 0,
-    .init = ncr_audio_init,
-    .close = wss_close,
-    .reset = NULL,
+    .flags         = DEVICE_MCA,
+    .local         = 0,
+    .init          = ncr_audio_init,
+    .close         = wss_close,
+    .reset         = NULL,
     { .available = NULL },
     .speed_changed = wss_speed_changed,
-    .force_redraw = NULL,
-    .config = NULL
+    .force_redraw  = NULL,
+    .config        = NULL
 };

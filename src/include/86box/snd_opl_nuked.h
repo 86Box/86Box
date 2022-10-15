@@ -20,15 +20,4 @@
 #ifndef SOUND_OPL_NUKED_H
 #define SOUND_OPL_NUKED_H
 
-extern void *nuked_init(uint32_t sample_rate);
-extern void  nuked_close(void *);
-
-extern uint16_t nuked_write_addr(void *, uint16_t port, uint8_t val);
-extern void     nuked_write_reg(void *, uint16_t reg, uint8_t v);
-extern void     nuked_write_reg_buffered(void *, uint16_t reg, uint8_t v);
-
-extern void nuked_generate(void *, int32_t *buf);
-extern void nuked_generate_resampled(void *, int32_t *buf);
-extern void nuked_generate_stream(void *, int32_t *sndptr, uint32_t num);
-
 #endif /*SOUND_OPL_NUKED_H*/

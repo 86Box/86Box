@@ -17,38 +17,40 @@
 #ifndef SOUND_OPL_H
 #define SOUND_OPL_H
 
-typedef void (*tmrfunc)(void *priv, int timer, uint64_t period);
+enum fm_type {
+    FM_YM3812 = 0,
+    FM_YMF262,
+    FM_YMF289B,
+    FM_MAX
+};
 
-/* Define an OPLx chip. */
+enum fm_driver {
+    FM_DRV_NUKED = 0,
+    FM_DRV_YMFM,
+    FM_DRV_MAX
+};
+
 typedef struct {
-#ifdef SOUND_OPL_NUKED_H
-    nuked_t *opl;
-#else
-    void *opl;
+    uint8_t (*read)(uint16_t port, void *priv);
+    void (*write)(uint16_t port, uint8_t val, void *priv);
+    int32_t *(*update)(void *priv);
+    void (*reset_buffer)(void *priv);
+    void (*set_do_cycles)(void *priv, int8_t do_cycles);
+    void *priv;
+} fm_drv_t;
+
+extern uint8_t fm_driver_get(int chip_id, fm_drv_t *drv);
+
+extern const fm_drv_t nuked_opl_drv;
+extern const fm_drv_t ymfm_drv;
+
+#ifdef EMU_DEVICE_H
+extern const device_t ym3812_nuked_device;
+extern const device_t ymf262_nuked_device;
+
+extern const device_t ym3812_ymfm_device;
+extern const device_t ymf262_ymfm_device;
+extern const device_t ymf289b_ymfm_device;
 #endif
-    int8_t flags, pad;
-
-    uint16_t port;
-    uint8_t  status, timer_ctrl;
-    uint16_t timer_count[2],
-        timer_cur_count[2];
-
-    pc_timer_t timers[2];
-
-    int     pos;
-    int32_t buffer[SOUNDBUFLEN * 2];
-} opl_t;
-
-extern void opl_set_do_cycles(opl_t *dev, int8_t do_cycles);
-
-extern uint8_t opl2_read(uint16_t port, void *);
-extern void    opl2_write(uint16_t port, uint8_t val, void *);
-extern void    opl2_init(opl_t *);
-extern void    opl2_update(opl_t *);
-
-extern uint8_t opl3_read(uint16_t port, void *);
-extern void    opl3_write(uint16_t port, uint8_t val, void *);
-extern void    opl3_init(opl_t *);
-extern void    opl3_update(opl_t *);
 
 #endif /*SOUND_OPL_H*/

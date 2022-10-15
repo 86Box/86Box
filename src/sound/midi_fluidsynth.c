@@ -58,6 +58,7 @@ static int   (*f_delete_fluid_synth)(void *synth);
 static int   (*f_fluid_synth_noteon)(void *synth, int chan, int key, int vel);
 static int   (*f_fluid_synth_noteoff)(void *synth, int chan, int key);
 static int   (*f_fluid_synth_cc)(void *synth, int chan, int ctrl, int val);
+static int   (*f_fluid_synth_channel_pressure)(void *synth, int chan, int val);
 static int   (*f_fluid_synth_sysex)(void *synth, const char *data, int len, char *response, int *response_len, int *handled, int dryrun);
 static int   (*f_fluid_synth_pitch_bend)(void *synth, int chan, int val);
 static int   (*f_fluid_synth_program_change)(void *synth, int chan, int program);
@@ -83,6 +84,7 @@ static dllimp_t fluidsynth_imports[] = {
   { "fluid_synth_noteon",            &f_fluid_synth_noteon            },
   { "fluid_synth_noteoff",           &f_fluid_synth_noteoff           },
   { "fluid_synth_cc",                &f_fluid_synth_cc                },
+  { "fluid_synth_channel_pressure",  &f_fluid_synth_channel_pressure  },
   { "fluid_synth_sysex",             &f_fluid_synth_sysex             },
   { "fluid_synth_pitch_bend",        &f_fluid_synth_pitch_bend        },
   { "fluid_synth_program_change",    &f_fluid_synth_program_change    },
@@ -199,6 +201,7 @@ fluidsynth_msg(uint8_t *msg)
             f_fluid_synth_program_change(data->synth, chan, param1);
             break;
         case 0xD0: /* Channel Pressure */
+            f_fluid_synth_channel_pressure(data->synth, chan, param1);
             break;
         case 0xE0: /* Pitch Bend */
             f_fluid_synth_pitch_bend(data->synth, chan, (param2 << 7) | param1);
@@ -547,17 +550,17 @@ static const device_config_t fluidsynth_config[] = {
 };
 
 const device_t fluidsynth_device = {
-    .name = "FluidSynth",
+    .name          = "FluidSynth",
     .internal_name = "fluidsynth",
-    .flags = 0,
-    .local = 0,
-    .init = fluidsynth_init,
-    .close = fluidsynth_close,
-    .reset = NULL,
+    .flags         = 0,
+    .local         = 0,
+    .init          = fluidsynth_init,
+    .close         = fluidsynth_close,
+    .reset         = NULL,
     { .available = fluidsynth_available },
     .speed_changed = NULL,
-    .force_redraw = NULL,
-    .config = fluidsynth_config
+    .force_redraw  = NULL,
+    .config        = fluidsynth_config
 };
 
-#endif /*USE_FLUIDSYNTH*/
+#endif/*USE_FLUIDSYNTH*/

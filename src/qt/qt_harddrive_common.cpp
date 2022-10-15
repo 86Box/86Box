@@ -54,6 +54,28 @@ void Harddrives::populateRemovableBuses(QAbstractItemModel *model) {
     model->setData(model->index(2, 0), HDD_BUS_SCSI, Qt::UserRole);
 }
 
+void Harddrives::populateSpeeds(QAbstractItemModel *model, int bus) {
+    int num_preset;
+
+    switch (bus) {
+        case HDD_BUS_IDE:
+        case HDD_BUS_ESDI:
+            num_preset = hdd_preset_get_num();
+            break;
+
+        default:
+            num_preset = 1;
+    }
+
+    model->removeRows(0, model->rowCount());
+    model->insertRows(0, num_preset);
+
+    for (int i = 0; i < num_preset; i++) {
+        model->setData(model->index(i, 0), QObject::tr(hdd_preset_getname(i)));
+        model->setData(model->index(i, 0), i, Qt::UserRole);
+    }
+}
+
 void Harddrives::populateBusChannels(QAbstractItemModel *model, int bus) {
     model->removeRows(0, model->rowCount());
 

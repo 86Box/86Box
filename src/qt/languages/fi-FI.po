@@ -229,8 +229,8 @@ msgstr "&Lataa edellinen levykuva uudelleen"
 msgid "&Image"
 msgstr "L&evykuva"
 
-msgid "&Folder"
-msgstr "&Folder"
+msgid "&Folder..."
+msgstr "&Folder..."
 
 msgid "Target &framerate"
 msgstr "&Kuvataajuustavoite"

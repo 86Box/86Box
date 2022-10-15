@@ -137,7 +137,7 @@ typedef struct pas16_t {
         int64_t    enable[3];
     } pit;
 
-    opl_t    opl;
+    fm_drv_t opl;
     sb_dsp_t dsp;
 
     int16_t pcm_buffer[2][SOUNDBUFLEN];
@@ -201,7 +201,7 @@ pas16_in(uint16_t port, void *p)
         case 0x389:
         case 0x38a:
         case 0x38b:
-            temp = opl3_read((port - pas16->base) + 0x388, &pas16->opl);
+            temp = pas16->opl.read((port - pas16->base) + 0x388, pas16->opl.priv);
             break;
 
         case 0xb88:
@@ -301,7 +301,7 @@ pas16_out(uint16_t port, uint8_t val, void *p)
         case 0x389:
         case 0x38a:
         case 0x38b:
-            opl3_write((port - pas16->base) + 0x388, val, &pas16->opl);
+            pas16->opl.write((port - pas16->base) + 0x388, val, pas16->opl.priv);
             break;
 
         case 0xb88:
@@ -702,17 +702,17 @@ pas16_get_buffer(int32_t *buffer, int len, void *p)
     pas16_t *pas16 = (pas16_t *) p;
     int      c;
 
-    opl3_update(&pas16->opl);
+    int32_t *opl_buf = pas16->opl.update(pas16->opl.priv);
     sb_dsp_update(&pas16->dsp);
     pas16_update(pas16);
     for (c = 0; c < len * 2; c++) {
-        buffer[c] += pas16->opl.buffer[c];
+        buffer[c] += opl_buf[c];
         buffer[c] += (int16_t) (sb_iir(0, c & 1, (double) pas16->dsp.buffer[c]) / 1.3) / 2;
         buffer[c] += (pas16->pcm_buffer[c & 1][c >> 1] / 2);
     }
 
-    pas16->pos     = 0;
-    pas16->opl.pos = 0;
+    pas16->pos = 0;
+    pas16->opl.reset_buffer(pas16->opl.priv);
     pas16->dsp.pos = 0;
 }
 
@@ -722,7 +722,7 @@ pas16_init(const device_t *info)
     pas16_t *pas16 = malloc(sizeof(pas16_t));
     memset(pas16, 0, sizeof(pas16_t));
 
-    opl3_init(&pas16->opl);
+    fm_driver_get(FM_YMF262, &pas16->opl);
     sb_dsp_init(&pas16->dsp, SB2, SB_SUBTYPE_DEFAULT, pas16);
 
     io_sethandler(0x9a01, 0x0001, NULL, NULL, NULL, pas16_out_base, NULL, NULL, pas16);
@@ -743,15 +743,15 @@ pas16_close(void *p)
 }
 
 const device_t pas16_device = {
-    .name = "Pro Audio Spectrum 16",
+    .name          = "Pro Audio Spectrum 16",
     .internal_name = "pas16",
-    .flags = DEVICE_ISA | DEVICE_NOT_WORKING,
-    .local = 0,
-    .init = pas16_init,
-    .close = pas16_close,
-    .reset = NULL,
+    .flags         = DEVICE_ISA,
+    .local         = 0,
+    .init          = pas16_init,
+    .close         = pas16_close,
+    .reset         = NULL,
     { .available = NULL },
     .speed_changed = NULL,
-    .force_redraw = NULL,
-    .config = NULL
+    .force_redraw  = NULL,
+    .config        = NULL
 };

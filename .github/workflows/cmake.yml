@@ -77,6 +77,7 @@ jobs:
             ${{ matrix.environment.prefix }}-libpng
             ${{ matrix.environment.prefix }}-libvncserver
             ${{ matrix.environment.prefix }}-openal
+            ${{ matrix.environment.prefix }}-rtmidi
       - uses: actions/checkout@v2
       - name: Configure CMake
         run: >-
@@ -274,11 +275,12 @@ jobs:
         run: brew install freetype sdl2 libpng rtmidi qt@5 openal-soft ninja
       - name: Configure CMake
         run: >-
-          PATH=/usr/local/opt/qt@5/bin:$PATH
           cmake -G Ninja -S . -B build --preset ${{ matrix.build.preset }}
           --toolchain cmake/flags-gcc-x86_64.cmake
           -D NEW_DYNAREC=${{ matrix.build.new-dynarec }}
-          -D CMAKE_FIND_ROOT_PATH=/usr/local/opt/qt@5
+          -D Qt5_ROOT=$(brew --prefix qt@5)
+          -D Qt5LinguistTools_ROOT=$(brew --prefix qt@5)
+          -D OpenAL_ROOT=$(brew --prefix openal-soft)
       - name: Build
         run: cmake --build build
       - name: Generate package

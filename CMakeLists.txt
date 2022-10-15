@@ -27,7 +27,7 @@ if(NOT DEFINED QT OR QT)
     list(APPEND VCPKG_MANIFEST_FEATURES "qt-ui")
 endif()
 
-if(OPENAL)
+if(NOT DEFINED OPENAL OR OPENAL)
     list(APPEND VCPKG_MANIFEST_FEATURES "openal")
 endif()
 
@@ -40,7 +40,7 @@ if(MUNT_EXTERNAL)
 endif()
 
 project(86Box
-    VERSION 3.6
+    VERSION 3.8
     DESCRIPTION "Emulator of x86-based systems"
     HOMEPAGE_URL "https://86box.net"
     LANGUAGES C CXX)
@@ -118,7 +118,7 @@ if(WIN32)
 endif()
 
 set(CMAKE_C_STANDARD 11)
-set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_FIND_PACKAGE_PREFER_CONFIG ON)
 
 # Optional features
@@ -158,13 +158,15 @@ cmake_dependent_option(OLIVETTI       "Olivetti M290"                           
 cmake_dependent_option(OPEN_AT        "OpenAT"                                      ON      "DEV_BRANCH"    OFF)
 cmake_dependent_option(PAS16          "Pro Audio Spectrum 16"                       ON      "DEV_BRANCH"    OFF)
 cmake_dependent_option(SIO_DETECT     "Super I/O Detection Helper"                  ON      "DEV_BRANCH"    OFF)
-cmake_dependent_option(TANDY_ISA      "Tandy PSG ISA clone boards"                  ON      "DEV_BRANCH"    OFF)
 cmake_dependent_option(VGAWONDER      "ATI VGA Wonder (ATI-18800)"                  ON      "DEV_BRANCH"    OFF)
 cmake_dependent_option(XL24           "ATI VGA Wonder XL24 (ATI-28800-6)"           ON      "DEV_BRANCH"    OFF)
 
 # Ditto but for Qt
 if(QT)
     option(USE_QT6 "Use Qt6 instead of Qt5" OFF)
+    if(APPLE)
+        option(MOLTENVK "Use MoltenVK libraries for Vulkan support on macOS. Requires a Vulkan-enabled QT." OFF)
+    endif()
 endif()
 
 # Determine the build type

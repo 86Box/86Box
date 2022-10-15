@@ -404,6 +404,7 @@ exec386_dynarec_int(void)
 	oldcs = CS;
 #endif
 	cpu_state.oldpc = cpu_state.pc;
+	dr[6] |= 0x4000;
 	x86_int(1);
     }
 
@@ -819,9 +820,6 @@ exec386_dynarec(int cycs)
 		if (smi_line)
 			enter_smm_check(0);
 		else if (nmi && nmi_enable && nmi_mask) {
-			if (is486 && (cpu_fast_off_flags & 0x20000000))
-				cpu_fast_off_count = cpu_fast_off_val + 1;
-
 #ifndef USE_NEW_DYNAREC
 			oldcs = CS;
 #endif

@@ -32,8 +32,11 @@
 #include "qt_mainwindow.hpp"
 #include "qt_util.hpp"
 
+#include "ui_qt_mainwindow.h"
+
 #include "evdev_mouse.hpp"
 
+#include <atomic>
 #include <stdexcept>
 
 #include <QScreen>
@@ -45,16 +48,18 @@
 
 extern "C" {
 #include <86box/86box.h>
+#include <86box/config.h>
 #include <86box/mouse.h>
 #include <86box/plat.h>
 #include <86box/video.h>
 
 double mouse_sensitivity = 1.0;
+double mouse_x_error = 0.0, mouse_y_error = 0.0;
 }
 
 struct mouseinputdata {
-    int deltax, deltay, deltaz;
-    int mousebuttons;
+    atomic_int deltax, deltay, deltaz;
+    atomic_int mousebuttons;
 };
 static mouseinputdata mousedata;
 
@@ -72,8 +77,10 @@ RendererStack::RendererStack(QWidget *parent, int monitor_index)
     if (!mouse_type || (mouse_type[0] == '\0') || !stricmp(mouse_type, "auto")) {
         if (QApplication::platformName().contains("wayland"))
             strcpy(auto_mouse_type, "wayland");
-        else if (QApplication::platformName() == "eglfs" || QApplication::platformName() == "xcb")
+        else if (QApplication::platformName() == "eglfs")
             strcpy(auto_mouse_type, "evdev");
+        else if (QApplication::platformName() == "xcb")
+            strcpy(auto_mouse_type, "xinput2");
         else
             auto_mouse_type[0] = '\0';
         mouse_type = auto_mouse_type;
@@ -93,6 +100,14 @@ RendererStack::RendererStack(QWidget *parent, int monitor_index)
         this->mouse_poll_func = evdev_mouse_poll;
     }
 #    endif
+    if (!stricmp(mouse_type, "xinput2")) {
+        extern void xinput2_init();
+        extern void xinput2_poll();
+        extern void xinput2_exit();
+        xinput2_init();
+        this->mouse_poll_func = xinput2_poll;
+        this->mouse_exit_func = xinput2_exit;
+    }
 #endif
 #ifdef __APPLE__
     this->mouse_poll_func = macos_poll_mouse;
@@ -137,15 +152,21 @@ RendererStack::mousePoll()
 #endif
         this->mouse_poll_func();
 
-    mouse_x *= mouse_sensitivity;
-    mouse_y *= mouse_sensitivity;
+    double scaled_x = mouse_x * mouse_sensitivity + mouse_x_error;
+    double scaled_y = mouse_y * mouse_sensitivity + mouse_y_error;
+
+    mouse_x = static_cast<int>(scaled_x);
+    mouse_y = static_cast<int>(scaled_y);
+
+    mouse_x_error = scaled_x - mouse_x;
+    mouse_y_error = scaled_y - mouse_y;
 }
 
 int ignoreNextMouseEvent = 1;
 void
 RendererStack::mouseReleaseEvent(QMouseEvent *event)
 {
-    if (this->geometry().contains(event->pos()) && event->button() == Qt::LeftButton && !mouse_capture && (isMouseDown & 1)) {
+    if (this->geometry().contains(event->pos()) && event->button() == Qt::LeftButton && !mouse_capture && (isMouseDown & 1) && mouse_get_buttons() != 0) {
         plat_mouse_capture(1);
         this->setCursor(Qt::BlankCursor);
         if (!ignoreNextMouseEvent)
@@ -164,6 +185,7 @@ RendererStack::mouseReleaseEvent(QMouseEvent *event)
     }
     isMouseDown &= ~1;
 }
+
 void
 RendererStack::mousePressEvent(QMouseEvent *event)
 {
@@ -173,6 +195,7 @@ RendererStack::mousePressEvent(QMouseEvent *event)
     }
     event->accept();
 }
+
 void
 RendererStack::wheelEvent(QWheelEvent *event)
 {
@@ -234,28 +257,40 @@ RendererStack::switchRenderer(Renderer renderer)
 {
     startblit();
     if (current) {
-        rendererWindow->finalize();
-        if (rendererWindow->hasBlitFunc()) {
-            while (directBlitting) {}
-            connect(this, &RendererStack::blit, this, &RendererStack::blitDummy, Qt::DirectConnection);
-            disconnect(this, &RendererStack::blit, this, &RendererStack::blitRenderer);
+        if ((current_vid_api == Renderer::Direct3D9 && renderer != Renderer::Direct3D9)
+        || (current_vid_api != Renderer::Direct3D9 && renderer == Renderer::Direct3D9)) {
+            rendererWindow->finalize();
+            if (rendererWindow->hasBlitFunc()) {
+                while (directBlitting) {}
+                connect(this, &RendererStack::blit, this, &RendererStack::blitDummy, Qt::DirectConnection);
+                disconnect(this, &RendererStack::blit, this, &RendererStack::blitRenderer);
+            } else {
+                connect(this, &RendererStack::blit, this, &RendererStack::blitDummy, Qt::DirectConnection);
+                disconnect(this, &RendererStack::blit, this, &RendererStack::blitCommon);
+            }
+
+            removeWidget(current.get());
+            disconnect(this, &RendererStack::blitToRenderer, nullptr, nullptr);
+
+            /* Create new renderer only after previous is destroyed! */
+            connect(current.get(), &QObject::destroyed, [this, renderer](QObject *) {
+                createRenderer(renderer);
+                disconnect(this, &RendererStack::blit, this, &RendererStack::blitDummy);
+                blitDummied = false;
+                QTimer::singleShot(1000, this, [this]() { blitDummied = false; } );
+            });
+
+            rendererWindow->hasBlitFunc() ? current.reset() : current.release()->deleteLater();
         } else {
-            connect(this, &RendererStack::blit, this, &RendererStack::blitDummy, Qt::DirectConnection);
-            disconnect(this, &RendererStack::blit, this, &RendererStack::blitCommon);
+            rendererWindow->finalize();
+            removeWidget(current.get());
+            disconnect(this, &RendererStack::blitToRenderer, nullptr, nullptr);
+
+            /* Create new renderer only after previous is destroyed! */
+            connect(current.get(), &QObject::destroyed, [this, renderer](QObject *) { createRenderer(renderer); });
+
+            current.release()->deleteLater();
         }
-
-        removeWidget(current.get());
-        disconnect(this, &RendererStack::blitToRenderer, nullptr, nullptr);
-
-        /* Create new renderer only after previous is destroyed! */
-        connect(current.get(), &QObject::destroyed, [this, renderer](QObject *) {
-            createRenderer(renderer);
-            disconnect(this, &RendererStack::blit, this, &RendererStack::blitDummy);
-            blitDummied = false;
-            QTimer::singleShot(1000, this, [this]() { this->blitDummied = false; } );
-        });
-
-        rendererWindow->hasBlitFunc() ? current.reset() : current.release()->deleteLater();
     } else {
         createRenderer(renderer);
     }
@@ -264,6 +299,7 @@ RendererStack::switchRenderer(Renderer renderer)
 void
 RendererStack::createRenderer(Renderer renderer)
 {
+    current_vid_api = renderer;
     switch (renderer) {
         default:
         case Renderer::Software:
@@ -311,7 +347,6 @@ RendererStack::createRenderer(Renderer renderer)
                 connect(hw, &OpenGLRenderer::errorInitializing, [=]() {
                     /* Renderer not could initialize, fallback to software. */
                     imagebufs = {};
-                    endblit();
                     QTimer::singleShot(0, this, [this]() { switchRenderer(Renderer::Software); });
                 });
                 current.reset(this->createWindowContainer(hw, this));
@@ -329,7 +364,6 @@ RendererStack::createRenderer(Renderer renderer)
                 msgBox->setAttribute(Qt::WA_DeleteOnClose);
                 msgBox->show();
                 imagebufs = {};
-                endblit();
                 QTimer::singleShot(0, this, [this]() { switchRenderer(Renderer::Software); });
             });
             connect(hw, &D3D9Renderer::initialized, this, [this]()
@@ -353,7 +387,6 @@ RendererStack::createRenderer(Renderer renderer)
                 msgBox->setAttribute(Qt::WA_DeleteOnClose);
                 msgBox->show();
                 imagebufs = {};
-                endblit();
                 QTimer::singleShot(0, this, [this]() { switchRenderer(Renderer::Software); });
                 current.reset(nullptr);
                 break;
@@ -372,7 +405,6 @@ RendererStack::createRenderer(Renderer renderer)
                 msgBox->setAttribute(Qt::WA_DeleteOnClose);
                 msgBox->show();
                 imagebufs = {};
-                endblit();
                 QTimer::singleShot(0, this, [this]() { switchRenderer(Renderer::Software); });
             });
             current.reset(this->createWindowContainer(hw, this));
@@ -383,6 +415,7 @@ RendererStack::createRenderer(Renderer renderer)
     if (current.get() == nullptr) return;
     current->setFocusPolicy(Qt::NoFocus);
     current->setFocusProxy(this);
+    current->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
     addWidget(current.get());
 
     this->setStyleSheet("background-color: black");
@@ -423,7 +456,7 @@ RendererStack::blitRenderer(int x, int y, int w, int h)
 void
 RendererStack::blitCommon(int x, int y, int w, int h)
 {
-    if ((x < 0) || (y < 0) || (w <= 0) || (h <= 0) || (w > 2048) || (h > 2048) || (monitors[m_monitor_index].target_buffer == NULL) || imagebufs.empty() || std::get<std::atomic_flag *>(imagebufs[currentBuf])->test_and_set() || blitDummied) {
+    if (blitDummied || (x < 0) || (y < 0) || (w <= 0) || (h <= 0) || (w > 2048) || (h > 2048) || (monitors[m_monitor_index].target_buffer == NULL) || imagebufs.empty() || std::get<std::atomic_flag *>(imagebufs[currentBuf])->test_and_set()) {
         video_blit_complete_monitor(m_monitor_index);
         return;
     }
@@ -447,8 +480,19 @@ RendererStack::blitCommon(int x, int y, int w, int h)
 
 void RendererStack::closeEvent(QCloseEvent* event)
 {
-    if (cpu_thread_run == 0 || is_quit == 1) { event->accept(); return; }
+    if (cpu_thread_run == 1 || is_quit == 0) {
+        event->accept();
+        main_window->ui->actionShow_non_primary_monitors->setChecked(false);
+        return;
+    }
     event->ignore();
     main_window->close();
 }
 
+void RendererStack::changeEvent(QEvent *event)
+{
+    if (m_monitor_index != 0 && isVisible()) {
+        monitor_settings[m_monitor_index].mon_window_maximized = isMaximized();
+        config_save();
+    }
+}

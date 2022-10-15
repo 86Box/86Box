@@ -18,6 +18,7 @@
 # Parse arguments.
 newversion="$1"
 romversion="$2"
+
 if [ -z "$(echo "$newversion" | grep '\.')" ]
 then
 	echo '[!] Usage: bumpversion.sh x.y[.z] [romversion]'
@@ -30,7 +31,6 @@ newversion_maj=$(echo "$newversion" | cut -d. -f1)
 newversion_min=$(echo "$newversion" | cut -d. -f2)
 newversion_patch=$(echo "$newversion" | cut -d. -f3)
 [ -z "$newversion_patch" ] && newversion_patch=0
-
 
 if [ -z "${romversion}" ]; then
 	# Get the latest ROM release from the GitHub API.

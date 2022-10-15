@@ -35,12 +35,10 @@
  *   USA.
  */
 #ifndef EMU_FLOPPY_IMD_H
-# define EMU_FLOPPY_IMD_H
-
+#define EMU_FLOPPY_IMD_H
 
 extern void imd_init(void);
 extern void imd_load(int drive, char *fn);
 extern void imd_close(int drive);
 
-
-#endif	/*EMU_FLOPPY_IMD_H*/
+#endif /*EMU_FLOPPY_IMD_H*/

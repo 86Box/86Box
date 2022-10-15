@@ -17,7 +17,7 @@
  */
 
 #ifndef VIDEO_VOODOO_DISPLAY_H
-# define VIDEO_VOODOO_DISPLAY_H
+#define VIDEO_VOODOO_DISPLAY_H
 
 void voodoo_update_ncc(voodoo_t *voodoo, int tmu);
 void voodoo_pixelclock_update(voodoo_t *voodoo);

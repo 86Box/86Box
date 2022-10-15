@@ -1784,7 +1784,9 @@ mpu401_standalone_init(const device_t *info)
         mpu->pos_regs[0] = 0x0F;
         mpu->pos_regs[1] = 0x6C;
         base             = 0; /* Tell mpu401_init() that this is the MCA variant. */
-        irq              = 2; /* According to @6c0f.adf, the IRQ is fixed to 2. */
+        /* According to @6c0f.adf, the IRQ is supposed to be fixed to 2.
+           This is only true for earlier models. Later ones have selectable IRQ. */
+        irq = device_get_config_int("irq");
     } else {
         base = device_get_config_hex16("base");
         irq  = device_get_config_int("irq");
@@ -1804,7 +1806,7 @@ mpu401_standalone_close(void *priv)
 }
 
 static const device_config_t mpu401_standalone_config[] = {
-    // clang-format off
+  // clang-format off
     {
         .name = "base",
         .description = "MPU-401 Address",
@@ -1841,6 +1843,18 @@ static const device_config_t mpu401_standalone_config[] = {
             {
                 .description = "0x330",
                 .value = 0x330
+            },
+            {
+                .description = "0x332",
+                .value = 0x332
+            },
+            {
+                .description = "0x334",
+                .value = 0x334
+            },
+            {
+                .description = "0x336",
+                .value = 0x336
             },
             {
                 .description = "0x340",
@@ -1896,11 +1910,47 @@ static const device_config_t mpu401_standalone_config[] = {
         .default_int = 1
     },
     { .name = "", .description = "", .type = CONFIG_END }
-    // clang-format on
+  // clang-format on
 };
 
 static const device_config_t mpu401_standalone_mca_config[] = {
-    // clang-format off
+  // clang-format off
+    {
+        .name = "irq",
+        .description = "MPU-401 IRQ",
+        .type = CONFIG_SELECTION,
+        .default_string = "",
+        .default_int = 9,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            {
+                .description = "IRQ 3",
+                .value = 3
+            },
+            {
+                .description = "IRQ 4",
+                .value = 4
+            },
+            {
+                .description = "IRQ 5",
+                .value = 5
+            },
+            {
+                .description = "IRQ 6",
+                .value = 6
+            },
+            {
+                .description = "IRQ 7",
+                .value = 7
+            },
+            {
+                .description = "IRQ 9",
+                .value = 9
+            },
+            { .description = "" }
+        }
+    },
     {
         .name = "receive_input",
         .description = "Receive input",
@@ -1908,33 +1958,33 @@ static const device_config_t mpu401_standalone_mca_config[] = {
         .default_int = 1
     },
     { .name = "", .description = "", .type = CONFIG_END }
-    // clang-format on
+// clang-format on
 };
 
 const device_t mpu401_device = {
-    .name = "Roland MPU-IPC-T",
+    .name          = "Roland MPU-IPC-T",
     .internal_name = "mpu401",
-    .flags = DEVICE_ISA,
-    .local = 0,
-    .init = mpu401_standalone_init,
-    .close = mpu401_standalone_close,
-    .reset = NULL,
+    .flags         = DEVICE_ISA,
+    .local         = 0,
+    .init          = mpu401_standalone_init,
+    .close         = mpu401_standalone_close,
+    .reset         = NULL,
     { .available = NULL },
     .speed_changed = NULL,
-    .force_redraw = NULL,
-    .config = mpu401_standalone_config
+    .force_redraw  = NULL,
+    .config        = mpu401_standalone_config
 };
 
 const device_t mpu401_mca_device = {
-    .name = "Roland MPU-IMC",
+    .name          = "Roland MPU-IMC",
     .internal_name = "mpu401_mca",
-    .flags = DEVICE_MCA,
-    .local = 0,
-    .init = mpu401_standalone_init,
-    .close = mpu401_standalone_close,
-    .reset = NULL,
+    .flags         = DEVICE_MCA,
+    .local         = 0,
+    .init          = mpu401_standalone_init,
+    .close         = mpu401_standalone_close,
+    .reset         = NULL,
     { .available = NULL },
     .speed_changed = NULL,
-    .force_redraw = NULL,
-    .config = mpu401_standalone_mca_config
+    .force_redraw  = NULL,
+    .config        = mpu401_standalone_mca_config
 };

@@ -240,8 +240,9 @@ static int
 image_open_abort(cdrom_t *dev)
 {
     cdrom_image_close(dev);
-    dev->ops        = NULL;
-    dev->host_drive = 0;
+    dev->ops           = NULL;
+    dev->host_drive    = 0;
+    dev->image_path[0] = 0;
     return 1;
 }
 

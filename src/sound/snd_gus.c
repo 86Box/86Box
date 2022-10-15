@@ -452,11 +452,15 @@ writegus(uint16_t addr, uint8_t val, void *p)
                         gus->irqstatus &= ~8;
                     if (!(val & 0x20)) {
                         gus->ad_status &= ~0x18;
+#ifdef OLD_NMI_BEHAVIOR
                         nmi = 0;
+#endif
                     }
                     if (!(val & 0x02)) {
                         gus->ad_status &= ~0x01;
+#ifdef OLD_NMI_BEHAVIOR
                         nmi = 0;
+#endif
                     }
                     gus->tctrl   = val;
                     gus->sb_ctrl = val;
@@ -492,7 +496,7 @@ writegus(uint16_t addr, uint8_t val, void *p)
                 gus->ad_status |= 0x01;
                 if (gus->sb_ctrl & 0x02) {
                     if (gus->sb_nmi)
-                        nmi = 1;
+                        nmi_raise();
                     else if (gus->irq != -1)
                         picint(1 << gus->irq);
                 }
@@ -568,7 +572,7 @@ writegus(uint16_t addr, uint8_t val, void *p)
             gus->ad_status |= 0x08;
             if (gus->sb_ctrl & 0x20) {
                 if (gus->sb_nmi)
-                    nmi = 1;
+                    nmi_raise();
                 else if (gus->irq != -1)
                     picint(1 << gus->irq);
             }
@@ -580,7 +584,7 @@ writegus(uint16_t addr, uint8_t val, void *p)
             gus->ad_status |= 0x10;
             if (gus->sb_ctrl & 0x20) {
                 if (gus->sb_nmi)
-                    nmi = 1;
+                    nmi_raise();
                 else if (gus->irq != -1)
                     picint(1 << gus->irq);
             }
@@ -832,7 +836,9 @@ readgus(uint16_t addr, void *p)
 
         case 0x209:
             gus->ad_status &= ~0x01;
+#ifdef OLD_NMI_BEHAVIOR
             nmi = 0;
+#endif
             /*FALLTHROUGH*/
         case 0x389:
             val = gus->ad_data;

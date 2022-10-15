@@ -266,11 +266,11 @@ static int opPOPFD(uint32_t fetchdat)
         else if (IOPLp)           cpu_state.flags = (cpu_state.flags & 0x3000) | (templ & 0x4fd5) | 2;
         else                      cpu_state.flags = (cpu_state.flags & 0x3200) | (templ & 0x4dd5) | 2;
 
-        templ &= (is486 || isibm486) ? 0x3c0000 : 0;
+        templ &= (is486) ? 0x3c0000 : 0;
         templ |= ((cpu_state.eflags&3) << 16);
         if (cpu_CR4_mask & CR4_VME) cpu_state.eflags = (templ >> 16) & 0x3f;
         else if (CPUID)             cpu_state.eflags = (templ >> 16) & 0x27;
-        else if (is486 || isibm486) cpu_state.eflags = (templ >> 16) & 7;
+        else if (is486) cpu_state.eflags = (templ >> 16) & 7;
         else                        cpu_state.eflags = (templ >> 16) & 3;
 
         flags_extract();
