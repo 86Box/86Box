@@ -106,13 +106,13 @@ typedef struct _viso_entry_ {
 } viso_entry_t;
 
 typedef struct {
-    uint64_t vol_size_offsets[2], pt_meta_offsets[2], eltorito_offset;
+    uint64_t vol_size_offsets[2], pt_meta_offsets[2];
     int      format;
     size_t   metadata_sectors, all_sectors, entry_map_size, sector_size, file_fifo_pos;
     uint8_t *metadata;
 
     track_file_t  tf;
-    viso_entry_t *root_dir, *eltorito_entry, **entry_map, *file_fifo[VISO_OPEN_FILES];
+    viso_entry_t *root_dir, **entry_map, *file_fifo[VISO_OPEN_FILES];
 } viso_t;
 
 static const char rr_eid[]   = "RRIP_1991A"; /* identifiers used in ER field for Rock Ridge */
@@ -745,10 +745,12 @@ viso_init(const char *dirname, int *error)
 
     /* Set up directory traversal. */
     cdrom_image_viso_log("VISO: Traversing directories:\n");
-    viso_entry_t  *entry, *last_entry, *dir, *last_dir;
+    viso_entry_t  *entry, *last_entry, *dir, *last_dir, *eltorito_dir = NULL, *eltorito_entry = NULL;
     struct dirent *readdir_entry;
-    int            len;
+    int            len, eltorito_others_present = 0;
     size_t         dir_path_len;
+    uint64_t       eltorito_offset = 0;
+    uint8_t        eltorito_type   = 0;
 
     /* Fill root directory entry. */
     dir_path_len = strlen(dirname);
@@ -840,7 +842,7 @@ viso_init(const char *dirname, int *error)
                 memset(&entry->stats, 0x00, sizeof(struct stat));
             }
 
-            /* Handle file size. */
+            /* Handle file size and El Torito boot code. */
             if (!S_ISDIR(entry->stats.st_mode)) {
                 /* Limit to 4 GB - 1 byte. */
                 if (entry->stats.st_size > ((uint32_t) -1))
@@ -850,11 +852,36 @@ viso_init(const char *dirname, int *error)
                 viso->entry_map_size += entry->stats.st_size / viso->sector_size;
                 if (entry->stats.st_size % viso->sector_size)
                     viso->entry_map_size++; /* round up to the next sector */
-            }
 
-            /* Detect El Torito boot code file and set it accordingly. */
-            if ((dir == viso->root_dir) && !strnicmp(readdir_entry->d_name, "eltorito.", 9) && (!stricmp(readdir_entry->d_name + 9, "com") || !stricmp(readdir_entry->d_name + 9, "img")))
-                viso->eltorito_entry = entry;
+                /* Detect El Torito boot code file and set it accordingly. */
+                if (dir == eltorito_dir) {
+                    if (!stricmp(readdir_entry->d_name, "Boot-NoEmul.img")) {
+                        eltorito_type = 0x00;
+have_eltorito_entry:
+                        if (eltorito_entry)
+                            eltorito_others_present = 1; /* flag that the boot code directory contains other files */
+                        eltorito_entry = entry;
+                    } else if (!stricmp(readdir_entry->d_name, "Boot-1.2M.img")) {
+                        eltorito_type = 0x01;
+                        goto have_eltorito_entry;
+                    } else if (!stricmp(readdir_entry->d_name, "Boot-1.44M.img")) {
+                        eltorito_type = 0x02;
+                        goto have_eltorito_entry;
+                    } else if (!stricmp(readdir_entry->d_name, "Boot-2.88M.img")) {
+                        eltorito_type = 0x03;
+                        goto have_eltorito_entry;
+                    } else if (!stricmp(readdir_entry->d_name, "Boot-HardDisk.img")) {
+                        eltorito_type = 0x04;
+                        goto have_eltorito_entry;
+                    } else {
+                        eltorito_others_present = 1; /* flag that the boot code directory contains other files */
+                    }
+                }
+            } else if ((dir == viso->root_dir) && !stricmp(readdir_entry->d_name, "[BOOT]")) {
+                /* Set this as the directory containing El Torito boot code. */
+                eltorito_dir            = entry;
+                eltorito_others_present = 0;
+            }
 
             /* Set short filename. */
             if (viso_fill_fn_short(entry->name_short, entry, dir_entries)) {
@@ -1008,8 +1035,8 @@ next_dir:
 
         /* Write El Torito boot descriptor. This is an awkward spot for
            that, but the spec requires it to be the second descriptor. */
-        if (!i && viso->eltorito_entry) {
-            cdrom_image_viso_log("VISO: Writing El Torito boot descriptor for entry [%08X]\n", viso->eltorito_entry);
+        if (!i && eltorito_entry) {
+            cdrom_image_viso_log("VISO: Writing El Torito boot descriptor for entry [%08X]\n", eltorito_entry);
 
             p = data;
             if (viso->format <= VISO_FORMAT_HSF)
@@ -1024,7 +1051,7 @@ next_dir:
             VISO_SKIP(p, 40);
 
             /* Save the boot catalog pointer's offset for later. */
-            viso->eltorito_offset = ftello64(viso->tf.file) + (p - data);
+            eltorito_offset = ftello64(viso->tf.file) + (p - data);
 
             /* Blank the rest of the working sector. */
             memset(p, 0x00, viso->sector_size - (p - data));
@@ -1059,10 +1086,10 @@ next_dir:
     }
 
     /* Handle El Torito boot catalog. */
-    if (viso->eltorito_entry) {
+    if (eltorito_entry) {
         /* Write a pointer to this boot catalog to the boot descriptor. */
         *((uint32_t *) data) = cpu_to_le32(ftello64(viso->tf.file) / viso->sector_size);
-        viso_pwrite(data, viso->eltorito_offset, 4, 1, viso->tf.file);
+        viso_pwrite(data, eltorito_offset, 4, 1, viso->tf.file);
 
         /* Fill boot catalog validation entry. */
         p    = data;
@@ -1084,39 +1111,15 @@ next_dir:
         *((uint16_t *) &data[28]) = cpu_to_le16(eltorito_checksum);
 
         /* Now fill the default boot entry. */
-        *p++ = 0x88; /* bootable flag */
-
-        if (viso->eltorito_entry->name_short[9] == 'C') { /* boot media type: non-emulation */
-            *p++ = 0x00;
-        } else { /* boot media type: emulation */
-            /* This could use with a decoupling of fdd_img's algorithms
-               for loading non-raw images and detecting raw image sizes. */
-            switch (viso->eltorito_entry->stats.st_size) {
-                case 0 ... 1228800: /* 1.2 MB */
-                    *p++ = 0x01;
-                    break;
-
-                case 1228801 ... 1474560: /* 1.44 MB */
-                    *p++ = 0x02;
-                    break;
-
-                case 1474561 ... 2949120: /* 2.88 MB */
-                    *p++ = 0x03;
-                    break;
-
-                default: /* hard drive */
-                    *p++ = 0x04;
-                    break;
-            }
-        }
-
-        *p++ = 0x00; /* load segment */
+        *p++ = 0x88;          /* bootable flag */
+        *p++ = eltorito_type; /* boot media type */
+        *p++ = 0x00;          /* load segment */
         *p++ = 0x00;
         *p++ = 0x00; /* system type (is this even relevant?) */
         *p++ = 0x00; /* reserved */
 
         /* Save offsets to the boot catalog entry's offset and size fields for later. */
-        viso->eltorito_offset = ftello64(viso->tf.file) + (p - data);
+        eltorito_offset = ftello64(viso->tf.file) + (p - data);
 
         /* Blank the rest of the working sector. This includes the sector count,
            ISO sector offset and 20-byte selection criteria fields at the end. */
@@ -1132,6 +1135,10 @@ next_dir:
             memset(data, 0x00, write);
             fwrite(data, write, 1, viso->tf.file);
         }
+
+        /* Flag that we shouldn't hide the boot code directory if it contains other files. */
+        if (eltorito_others_present)
+            eltorito_dir = NULL;
     }
 
     /* Write each path table. */
@@ -1150,8 +1157,9 @@ next_dir:
         dir             = viso->root_dir;
         uint16_t pt_idx = 1;
         while (dir) {
-            /* Ignore . and .. pseudo-directories. */
-            if (dir->name_short[0] == '.' && (dir->name_short[1] == '\0' || (dir->name_short[1] == '.' && dir->name_short[2] == '\0'))) {
+            /* Ignore . and .. pseudo-directories, and hide the El Torito
+               boot code directory if no other files are present in it. */
+            if ((dir->name_short[0] == '.' && (dir->name_short[1] == '\0' || (dir->name_short[1] == '.' && dir->name_short[2] == '\0'))) || (dir == eltorito_dir)) {
                 dir = dir->next_dir;
                 continue;
             }
@@ -1228,6 +1236,12 @@ next_dir:
         /* Go through directories. */
         dir = viso->root_dir;
         while (dir) {
+            /* Hide the El Torito boot code directory if no other files are present in it. */
+            if (dir == eltorito_dir) {
+                dir = dir->next_dir;
+                continue;
+            }
+
             /* Pad to the next sector if required. */
             write = ftello64(viso->tf.file) % viso->sector_size;
             if (write) {
@@ -1255,8 +1269,9 @@ next_dir:
             /* Go through entries in this directory. */
             entry = dir->first_child;
             while (entry) {
-                /* Skip the El Torito boot code entry if present. */
-                if (entry == viso->eltorito_entry)
+                /* Skip the El Torito boot code entry if present, or hide the
+                   boot code directory if no other files are present in it. */
+                if ((entry == eltorito_entry) || (entry == eltorito_dir))
                     goto next_entry;
 
                 cdrom_image_viso_log("[%08X] %s => %s\n", entry, dir->path,
@@ -1386,10 +1401,10 @@ next_entry:
         /* Write this file's base sector offset to its directory
            entries, unless this is the El Torito boot code entry,
            in which case, write offset and size to the boot entry. */
-        if (entry == viso->eltorito_entry) {
+        if (entry == eltorito_entry) {
             /* Load the entire file if not emulating, or just the first virtual
                sector (which usually contains all the boot code) if emulating. */
-            if (entry->name_short[9] == 'C') { /* non-emulation */
+            if (eltorito_type == 0x00) { /* non-emulation */
                 uint32_t boot_size = entry->stats.st_size;
                 if (boot_size % 512) /* round up */
                     boot_size += 512 - (boot_size % 512);
@@ -1398,7 +1413,7 @@ next_entry:
                 *((uint16_t *) &data[0]) = cpu_to_le16(1);
             }
             *((uint32_t *) &data[2]) = cpu_to_le32(viso->all_sectors * base_factor);
-            viso_pwrite(data, viso->eltorito_offset, 6, 1, viso->tf.file);
+            viso_pwrite(data, eltorito_offset, 6, 1, viso->tf.file);
         } else {
             p = data;
             VISO_LBE_32(p, viso->all_sectors * base_factor);

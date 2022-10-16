@@ -14,21 +14,22 @@ Features
 * MIDI output to Windows built-in MIDI support, FluidSynth, or emulated Roland synthesizers
 * Supports running MS-DOS, older Windows versions, OS/2, many Linux distributions, or vintage systems such as BeOS or NEXTSTEP, and applications for these systems
 
-System requirements and recommendations
----------------------------------------
+Minimum system requirements and recommendations
+-----------------------------------------------
 * Intel Core 2 or AMD Athlon 64 processor
 * Windows version: Windows 7 Service Pack 1, Windows 8.1 or Windows 10
 * Linux version: Ubuntu 16.04, Debian 9.0 or other distributions from 2016 onwards
+* macOS version: macOS High Sierra 10.13
 * 4 GB of RAM
 
-Performance may vary depending on both host and guest configuration. Most emulation logic is executed in a single thread, therefore generally systems with better IPC (instructions per clock) should be able to emulate higher clock speeds.
+Performance may vary depending on both host and guest configuration. Most emulation logic is executed in a single thread; therefore, systems with better IPC (instructions per clock) generally should be able to emulate higher clock speeds.
 
 It is also recommended to use a manager application with 86Box for easier handling of multiple virtual machines.
 * [86Box Manager](https://github.com/86Box/86BoxManager) by [Overdoze](https://github.com/daviunic) (Windows only)
 * [86Box Manager Lite](https://github.com/insanemal/86box_manager_py) by [Insanemal](https://github.com/insanemal)
 * [WinBox for 86Box](https://github.com/86Box/WinBox-for-86Box) by Laci bá' (Windows only)
 
-However, it is also possible to use 86Box on its own with the `--vmpath`/`-P` command line option.
+It is also possible to use 86Box on its own with the `--vmpath`/`-P` command line option.
 
 Getting started
 ---------------
