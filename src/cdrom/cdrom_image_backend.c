@@ -148,7 +148,7 @@ bin_init(const char *filename, int *error)
         /* Use a blank structure if stat failed. */
         memset(&stats, 0, sizeof(struct stat));
     }
-    *error = ((tf->file == NULL) || (S_ISDIR(stats.st_mode)));
+    *error = ((tf->file == NULL) || ((stats.st_mode & S_IFMT) == S_IFDIR));
 
     /* Set the function pointers. */
     if (!*error) {
