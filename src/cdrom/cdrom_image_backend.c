@@ -25,6 +25,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/stat.h>
 #ifdef _WIN32
 #    include <string.h>
 #    include <sys/types.h>
@@ -132,6 +133,7 @@ static track_file_t *
 bin_init(const char *filename, int *error)
 {
     track_file_t *tf = (track_file_t *) malloc(sizeof(track_file_t));
+    struct stat stats;
 
     if (tf == NULL) {
         *error = 1;
@@ -143,7 +145,11 @@ bin_init(const char *filename, int *error)
     tf->file = plat_fopen64(tf->fn, "rb");
     cdrom_image_backend_log("CDROM: binary_open(%s) = %08lx\n", tf->fn, tf->file);
 
-    *error = (tf->file == NULL);
+    if (stat(tf->fn, &stats) != 0) {
+        /* Use a blank structure if stat failed. */
+        memset(&stats, 0, sizeof(struct stat));
+    }
+    *error = ((tf->file == NULL) || ((stats.st_mode & S_IFMT) == S_IFDIR));
 
     /* Set the function pointers. */
     if (!*error) {
