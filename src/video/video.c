@@ -1083,6 +1083,13 @@ loadfont_common(FILE *f, int format)
             for (c = 0; c < 256; c++)
                 (void) !fread(&fontdat12x18[c][0], 1, 36, f);
             break;
+
+        case 10: /* Pravetz */
+            for (c = 0; c < 1024; c++) /* Allow up to 1024 chars */
+                for (d = 0; d < 8; d++)
+                    fontdat[c][d] = fgetc(f) & 0xff;
+            break;
+
     }
 
     (void) fclose(f);

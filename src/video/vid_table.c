@@ -127,6 +127,7 @@ video_cards[] = {
     { &paradise_wd90c30_device                       },
     { &colorplus_device                              },
     { &pgc_device                                    },
+    { &cga_pravetz_device                            },
     { &radius_svga_multiview_isa_device              },
     { &realtek_rtg3106_device                        },
     { &s3_diamond_stealth_vram_isa_device            },
