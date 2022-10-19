@@ -22,6 +22,7 @@
 #define EMU_FDD_H
 
 #define FDD_NUM          4
+#define FLOPPY_IMAGE_HISTORY         4
 #define SEEK_RECALIBRATE -999
 
 #ifdef __cplusplus
@@ -83,6 +84,7 @@ typedef struct {
 
 extern DRIVE      drives[FDD_NUM];
 extern char       floppyfns[FDD_NUM][512];
+extern char       *fdd_image_history[FDD_NUM][FLOPPY_IMAGE_HISTORY];
 extern pc_timer_t fdd_poll_time[FDD_NUM];
 extern int        ui_writeprot[FDD_NUM];
 

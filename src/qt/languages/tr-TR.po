@@ -229,6 +229,9 @@ msgstr "&Önceki imajı seç"
 msgid "&Image"
 msgstr "&İmaj seç"
 
+msgid "&Folder..."
+msgstr "&Folder..."
+
 msgid "Target &framerate"
 msgstr "Hedef &kare oranı"
 

@@ -52,6 +52,7 @@ typedef struct {
 
     char  fn[260];
     FILE *file;
+    void *priv;
 } track_file_t;
 
 typedef struct {
@@ -87,5 +88,11 @@ extern int  cdi_load_iso(cd_img_t *cdi, const char *filename);
 extern int  cdi_load_cue(cd_img_t *cdi, const char *cuefile);
 extern int  cdi_has_data_track(cd_img_t *cdi);
 extern int  cdi_has_audio_track(cd_img_t *cdi);
+
+/* Virtual ISO functions. */
+extern int           viso_read(void *p, uint8_t *buffer, uint64_t seek, size_t count);
+extern uint64_t      viso_get_length(void *p);
+extern void          viso_close(void *p);
+extern track_file_t *viso_init(const char *dirname, int *error);
 
 #endif /*CDROM_IMAGE_BACKEND_H*/

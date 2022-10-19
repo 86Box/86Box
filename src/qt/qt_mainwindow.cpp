@@ -202,7 +202,8 @@ MainWindow::MainWindow(QWidget *parent) :
             }
         }
 #endif
-        ui->actionPause->setChecked(dopause);
+        ui->actionPause->setChecked(false);
+        ui->actionPause->setCheckable(false);
     });
     connect(this, &MainWindow::getTitleForNonQtThread, this, &MainWindow::getTitle_, Qt::BlockingQueuedConnection);
 
@@ -753,6 +754,10 @@ void MainWindow::on_actionCtrl_Alt_Esc_triggered() {
 
 void MainWindow::on_actionPause_triggered() {
     plat_pause(dopause ^ 1);
+    auto pause_icon   = dopause ? QIcon(":/menuicons/win/icons/run.ico") : QIcon(":/menuicons/win/icons/pause.ico");
+    auto tooltip_text = dopause ? QString(tr("Resume execution")) : QString(tr("Pause execution"));
+    ui->actionPause->setIcon(pause_icon);
+    ui->actionPause->setToolTip(tooltip_text);
 }
 
 void MainWindow::on_actionExit_triggered() {

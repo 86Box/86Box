@@ -632,7 +632,7 @@ MINIVHDOBJ  := cwalk.o libxml2_encoding.o minivhd_convert.o \
             minivhd_struct_rw.o minivhd_util.o
 
 CDROMOBJ	:= cdrom.o \
-		    cdrom_image_backend.o cdrom_image.o
+		    cdrom_image_backend.o cdrom_image_viso.o cdrom_image.o
 
 ZIPOBJ		:= zip.o
 
