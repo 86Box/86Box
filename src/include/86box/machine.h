@@ -784,6 +784,7 @@ extern int machine_xt_sansx16_init(const machine_t *);
 extern int machine_xt_bw230_init(const machine_t *);
 
 extern int machine_xt_iskra3104_init(const machine_t *);
+extern int machine_xt_pravetz16_imko4_init(const machine_t *);
 
 /* m_xt_compaq.c */
 extern int machine_xt_compaq_deskpro_init(const machine_t *);
