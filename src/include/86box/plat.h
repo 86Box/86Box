@@ -76,6 +76,10 @@ extern "C" {
 #    define atomic_bool_t atomic_bool
 #endif
 
+#if defined(_MSC_VER)
+#    define ssize_t intptr_t
+#endif
+
 /* Global variables residing in the platform module. */
 extern int dopause,          /* system is paused */
     mouse_capture;           /* mouse is captured in app */

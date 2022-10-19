@@ -35,9 +35,10 @@
 #define TVGA9000B_ID     0x23
 #define TVGA8900CLD_ID   0x33
 
-#define ROM_TVGA_8900B   "roms/video/tvga/tvga8900b.vbi"
-#define ROM_TVGA_8900CLD "roms/video/tvga/trident.bin"
-#define ROM_TVGA_9000B   "roms/video/tvga/tvga9000b.bin"
+#define ROM_TVGA_8900B            "roms/video/tvga/tvga8900b.vbi"
+#define ROM_TVGA_8900CLD          "roms/video/tvga/trident.bin"
+#define ROM_TVGA_9000B            "roms/video/tvga/tvga9000b.bin"
+#define ROM_TVGA_9000B_NEC_SV9000 "roms/video/tvga/SV9000.VBI"
 
 typedef struct tvga_t {
     mem_mapping_t linear_mapping;
@@ -389,7 +390,9 @@ tvga_init(const device_t *info)
     tvga_t     *tvga = malloc(sizeof(tvga_t));
     memset(tvga, 0, sizeof(tvga_t));
 
-    if (info->local == TVGA9000B_ID) {
+    tvga->card_id = info->local & 0xFF;
+
+    if (tvga->card_id == TVGA9000B_ID) {
         video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_tvga9000);
         tvga->vram_size = 512 << 10;
     } else {
@@ -399,9 +402,7 @@ tvga_init(const device_t *info)
 
     tvga->vram_mask = tvga->vram_size - 1;
 
-    tvga->card_id = info->local;
-
-    switch (info->local) {
+    switch (tvga->card_id) {
         case TVGA8900B_ID:
             bios_fn = ROM_TVGA_8900B;
             break;
@@ -409,7 +410,7 @@ tvga_init(const device_t *info)
             bios_fn = ROM_TVGA_8900CLD;
             break;
         case TVGA9000B_ID:
-            bios_fn = ROM_TVGA_9000B;
+            bios_fn = (info->local & 0x100) ? ROM_TVGA_9000B_NEC_SV9000 : ROM_TVGA_9000B;
             break;
         default:
             free(tvga);
@@ -424,7 +425,7 @@ tvga_init(const device_t *info)
               NULL,
               NULL);
 
-    if (info->local != TVGA9000B_ID)
+    if (tvga->card_id != TVGA9000B_ID)
         tvga->svga.ramdac = device_add(&tkd8001_ramdac_device);
 
     io_sethandler(0x03c0, 0x0020, tvga_in, NULL, NULL, tvga_out, NULL, NULL, tvga);
@@ -448,6 +449,12 @@ static int
 tvga9000b_available(void)
 {
     return rom_present(ROM_TVGA_9000B);
+}
+
+static int
+tvga9000b_nec_sv9000_available(void)
+{
+    return rom_present(ROM_TVGA_9000B_NEC_SV9000);
 }
 
 void
@@ -545,6 +552,20 @@ const device_t tvga9000b_device = {
     .close = tvga_close,
     .reset = NULL,
     { .available = tvga9000b_available },
+    .speed_changed = tvga_speed_changed,
+    .force_redraw = tvga_force_redraw,
+    .config = NULL
+};
+
+const device_t nec_sv9000_device = {
+    .name = "NEC SV9000 (Trident TVGA 9000B)",
+    .internal_name = "nec_sv9000",
+    .flags = DEVICE_ISA,
+    .local = TVGA9000B_ID | 0x100,
+    .init = tvga_init,
+    .close = tvga_close,
+    .reset = NULL,
+    { .available = tvga9000b_nec_sv9000_available },
     .speed_changed = tvga_speed_changed,
     .force_redraw = tvga_force_redraw,
     .config = NULL

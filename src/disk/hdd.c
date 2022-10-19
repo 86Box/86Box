@@ -442,16 +442,16 @@ hdd_preset_get_num()
     return sizeof(hdd_speed_presets) / sizeof(hdd_preset_t);
 }
 
-char *
+const char *
 hdd_preset_getname(int preset)
 {
-    return (char *) hdd_speed_presets[preset].name;
+    return hdd_speed_presets[preset].name;
 }
 
-char *
+const char *
 hdd_preset_get_internal_name(int preset)
 {
-    return (char *) hdd_speed_presets[preset].internal_name;
+    return hdd_speed_presets[preset].internal_name;
 }
 
 int
