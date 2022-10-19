@@ -38,6 +38,10 @@
 #include <86box/nvr.h>
 // clang-format on
 
+#ifndef S_ISDIR
+#    define S_ISDIR(m) (((m) &S_IFMT) == S_IFDIR)
+#endif
+
 #define VISO_SKIP(p, n)     \
     {                       \
         memset(p, 0x00, n); \

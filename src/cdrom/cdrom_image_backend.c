@@ -27,6 +27,7 @@
 #include <string.h>
 #ifdef _WIN32
 #    include <string.h>
+#    include <sys/types.h>
 #else
 #    include <libgen.h>
 #endif
