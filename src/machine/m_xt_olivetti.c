@@ -667,7 +667,7 @@ m24_read(uint16_t port, void *priv)
                     ret |= 0x1;
                     break;
                 case 256:
-                    ret |= 0x2 | 0x80;
+                    ret |= 0x2;
                     break;
                 case 384:
                     ret |= 0x1 | 0x2 | 0x80;
@@ -676,10 +676,12 @@ m24_read(uint16_t port, void *priv)
                     ret |= 0x8;
                     break;
                 case 640:
-                default:
                     ret |= 0x1 | 0x8 | 0x80;
                     break;
+                default:
+                    break;
             }
+            break;
         /*
          * port 67:
          * DIPSW-1 on mainboard (off=present=1)
@@ -721,6 +723,8 @@ m24_read(uint16_t port, void *priv)
 
             /* Switch 2 - Set fast startup */
             ret |= 0x2;
+            
+            break;
     }
 
     return (ret);
