@@ -158,10 +158,13 @@ static const macro_op_t lods_op =
 };
 static const macro_op_t loop_op =
 {
-        .nr_uops = 2,
+        .nr_uops = 5,
         .decode_type = DECODE_COMPLEX,
         .uop[0] = {.type = UOP_ALU,    .latency = 1},
-        .uop[1] = {.type = UOP_BRANCH, .latency = 2}
+        .uop[1] = {.type = UOP_ALU,    .latency = 1},
+        .uop[2] = {.type = UOP_ALU,    .latency = 1},	
+        .uop[3] = {.type = UOP_ALU,    .latency = 1},			
+        .uop[4] = {.type = UOP_BRANCH, .latency = 1}
 };
 static const macro_op_t mov_reg_seg_op =
 {

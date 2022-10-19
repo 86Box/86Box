@@ -229,6 +229,9 @@ msgstr "&Naloži zadnjo sliko"
 msgid "&Image"
 msgstr "&Slika"
 
+msgid "&Folder..."
+msgstr "&Folder..."
+
 msgid "Target &framerate"
 msgstr "&Ciljno št. sličic na sekundo"
 

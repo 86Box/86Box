@@ -1291,6 +1291,14 @@ load_floppy_and_cdrom_drives(void)
             sprintf(temp, "fdd_%02i_check_bpb", c + 1);
             ini_section_delete_var(cat, temp);
         }
+        for (int i = 0; i < MAX_PREV_IMAGES; i++) {
+            fdd_image_history[c][i] = (char *) calloc(MAX_IMAGE_PATH_LEN + 1, sizeof(char));
+            sprintf(temp, "fdd_%02i_image_history_%02i", c + 1, i + 1);
+            p = ini_section_get_string(cat, temp, NULL);
+            if (p) {
+                sprintf(fdd_image_history[c][i], "%s", p);
+            }
+        }
     }
 
     memset(temp, 0x00, sizeof(temp));
@@ -2680,6 +2688,15 @@ save_floppy_and_cdrom_drives(void)
             ini_section_delete_var(cat, temp);
         else
             ini_section_set_int(cat, temp, fdd_get_check_bpb(c));
+
+        for (int i = 0; i < MAX_PREV_IMAGES; i++) {
+            sprintf(temp, "fdd_%02i_image_history_%02i", c + 1, i + 1);
+            if ((fdd_image_history[c][i] == 0) || strlen(fdd_image_history[c][i]) == 0) {
+                ini_section_delete_var(cat, temp);
+            } else {
+                ini_section_set_string(cat, temp, fdd_image_history[c][i]);
+            }
+        }
     }
 
     for (c = 0; c < CDROM_NUM; c++) {

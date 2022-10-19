@@ -59,7 +59,8 @@ namespace ui {
     // Used to iterate over all supported types when preparing data structures
     // Also useful to indicate which types support history
     static const MediaType AllSupportedMediaHistoryTypes[] = {
-        MediaType::Optical
+        MediaType::Optical,
+        MediaType::Floppy,
     };
 
     class MediaHistoryManager {
@@ -87,7 +88,7 @@ namespace ui {
 
         // Main hash of hash of vector of strings
         master_list_t       master_list;
-        const master_list_t &getMasterList() const;
+        [[nodiscard]] const master_list_t &getMasterList() const;
         void                 setMasterList(const master_list_t &masterList);
 
         device_index_list_t index_list, empty_device_index_list;

@@ -229,6 +229,9 @@ msgstr "&Ricarica l'immagine precedente"
 msgid "&Image"
 msgstr "&Immagine"
 
+msgid "&Folder..."
+msgstr "&Folder..."
+
 msgid "Target &framerate"
 msgstr "Imposta obiettivo &fotogrammi"
 
