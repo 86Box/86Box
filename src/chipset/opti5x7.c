@@ -45,43 +45,39 @@ opti5x7_log(const char *fmt, ...)
 {
     va_list ap;
 
-    if (opti5x7_do_log)
-    {
+    if (opti5x7_do_log) {
         va_start(ap, fmt);
         pclog_ex(fmt, ap);
         va_end(ap);
     }
 }
 #else
-#define opti5x7_log(fmt, ...)
+#    define opti5x7_log(fmt, ...)
 #endif
 
 static void
 opti5x7_shadow_map(int cur_reg, opti5x7_t *dev)
 {
 
-/*
-Register 4h: Cxxxx Segment
-Register 5h: Dxxxx Segment
+    /*
+    Register 4h: Cxxxx Segment
+    Register 5h: Dxxxx Segment
 
-Bits 7-6: xC000-xFFFF
-Bits 5-4: x8000-xBFFF
-Bits 3-2: x4000-x7FFF
-Bits 0-1: x0000-x3FFF
+    Bits 7-6: xC000-xFFFF
+    Bits 5-4: x8000-xBFFF
+    Bits 3-2: x4000-x7FFF
+    Bits 0-1: x0000-x3FFF
 
-     x-y
-     0 0 Read/Write AT bus
-     1 0 Read from AT - Write to DRAM
-     1 1 Read from DRAM - Write to DRAM
-     0 1 Read from DRAM (write protected)
-*/
-    if (cur_reg == 0x06)
-    {
+         x-y
+         0 0 Read/Write AT bus
+         1 0 Read from AT - Write to DRAM
+         1 1 Read from DRAM - Write to DRAM
+         0 1 Read from DRAM (write protected)
+    */
+    if (cur_reg == 0x06) {
         mem_set_mem_state_both(0xe0000, 0x10000, ((dev->regs[6] & 1) ? MEM_READ_INTERNAL : MEM_READ_EXTANY) | ((dev->regs[6] & 2) ? MEM_WRITE_INTERNAL : MEM_WRITE_EXTANY));
         mem_set_mem_state_both(0xf0000, 0x10000, ((dev->regs[6] & 4) ? MEM_READ_INTERNAL : MEM_READ_EXTANY) | ((dev->regs[6] & 8) ? MEM_WRITE_INTERNAL : MEM_WRITE_EXTANY));
-    }
-    else
-    {
+    } else {
         for (int i = 0; i < 4; i++)
             mem_set_mem_state_both(0xc0000 + ((cur_reg & 1) << 16) + (i << 14), 0x4000, ((dev->regs[cur_reg] & (1 << (2 * i))) ? MEM_READ_INTERNAL : MEM_READ_EXTANY) | ((dev->regs[cur_reg] & (2 << (2 * i))) ? MEM_WRITE_INTERNAL : MEM_WRITE_EXTANY));
     }
@@ -92,63 +88,61 @@ Bits 0-1: x0000-x3FFF
 static void
 opti5x7_write(uint16_t addr, uint8_t val, void *priv)
 {
-    opti5x7_t *dev = (opti5x7_t *)priv;
+    opti5x7_t *dev = (opti5x7_t *) priv;
 
-    switch (addr)
-    {
-    case 0x22:
-        dev->idx = val;
-        break;
-    case 0x24:
-        switch (dev->idx)
-        {
-        case 0x00: /* DRAM Configuration Register #1 */
-            dev->regs[dev->idx] = val & 0x7f;
+    switch (addr) {
+        case 0x22:
+            dev->idx = val;
             break;
-        case 0x01: /* DRAM Control Register #1 */
-            dev->regs[dev->idx] = val;
+        case 0x24:
+            switch (dev->idx) {
+                case 0x00: /* DRAM Configuration Register #1 */
+                    dev->regs[dev->idx] = val & 0x7f;
+                    break;
+                case 0x01: /* DRAM Control Register #1 */
+                    dev->regs[dev->idx] = val;
+                    break;
+                case 0x02: /* Cache Control Register #1 */
+                    dev->regs[dev->idx]   = val;
+                    cpu_cache_ext_enabled = !!(dev->regs[0x02] & 0x0c);
+                    cpu_update_waitstates();
+                    break;
+                case 0x03: /* Cache Control Register #2 */
+                    dev->regs[dev->idx] = val;
+                    break;
+                case 0x04: /* Shadow RAM Control Register #1 */
+                case 0x05: /* Shadow RAM Control Register #2 */
+                case 0x06: /* Shadow RAM Control Register #3 */
+                    dev->regs[dev->idx] = val;
+                    opti5x7_shadow_map(dev->idx, dev);
+                    break;
+                case 0x07: /* Tag Test Register */
+                case 0x08: /* CPU Cache Control Register #1 */
+                case 0x09: /* System Memory Function Register #1 */
+                case 0x0a: /* System Memory Address Decode Register #1 */
+                case 0x0b: /* System Memory Address Decode Register #2 */
+                    dev->regs[dev->idx] = val;
+                    break;
+                case 0x0c: /* Extended DMA Register */
+                    dev->regs[dev->idx] = val & 0xcf;
+                    break;
+                case 0x0d: /* ROMCS# Register */
+                case 0x0e: /* Local Master Preemption Register */
+                case 0x0f: /* Deturbo Control Register #1 */
+                case 0x10: /* Cache Write-Hit Control Register */
+                case 0x11: /* Master Cycle Control Register */
+                    dev->regs[dev->idx] = val;
+                    break;
+            }
+            opti5x7_log("OPTi 5x7: dev->regs[%02x] = %02x\n", dev->idx, dev->regs[dev->idx]);
             break;
-        case 0x02:  /* Cache Control Register #1 */
-            dev->regs[dev->idx] = val;
-            cpu_cache_ext_enabled = !!(dev->regs[0x02] & 0x0c);
-            cpu_update_waitstates();
-            break;
-        case 0x03: /* Cache Control Register #2 */
-            dev->regs[dev->idx] = val;
-            break;
-        case 0x04: /* Shadow RAM Control Register #1 */
-        case 0x05: /* Shadow RAM Control Register #2 */
-        case 0x06: /* Shadow RAM Control Register #3 */
-            dev->regs[dev->idx] = val;
-            opti5x7_shadow_map(dev->idx, dev);
-            break;
-        case 0x07: /* Tag Test Register */
-        case 0x08: /* CPU Cache Control Register #1 */
-        case 0x09: /* System Memory Function Register #1 */
-        case 0x0a: /* System Memory Address Decode Register #1 */
-        case 0x0b: /* System Memory Address Decode Register #2 */
-            dev->regs[dev->idx] = val;
-            break;
-        case 0x0c: /* Extended DMA Register */
-            dev->regs[dev->idx] = val & 0xcf;
-            break;
-        case 0x0d: /* ROMCS# Register */
-        case 0x0e: /* Local Master Preemption Register */
-        case 0x0f: /* Deturbo Control Register #1 */
-        case 0x10: /* Cache Write-Hit Control Register */
-        case 0x11: /* Master Cycle Control Register */
-            dev->regs[dev->idx] = val;
-            break;
-        }
-        opti5x7_log("OPTi 5x7: dev->regs[%02x] = %02x\n", dev->idx, dev->regs[dev->idx]);
-        break;
     }
 }
 
 static uint8_t
 opti5x7_read(uint16_t addr, void *priv)
 {
-    opti5x7_t *dev = (opti5x7_t *)priv;
+    opti5x7_t *dev = (opti5x7_t *) priv;
 
     return (addr == 0x24) ? dev->regs[dev->idx] : 0xff;
 }
@@ -156,7 +150,7 @@ opti5x7_read(uint16_t addr, void *priv)
 static void
 opti5x7_close(void *priv)
 {
-    opti5x7_t *dev = (opti5x7_t *)priv;
+    opti5x7_t *dev = (opti5x7_t *) priv;
 
     free(dev);
 }
@@ -164,7 +158,7 @@ opti5x7_close(void *priv)
 static void *
 opti5x7_init(const device_t *info)
 {
-    opti5x7_t *dev = (opti5x7_t *)malloc(sizeof(opti5x7_t));
+    opti5x7_t *dev = (opti5x7_t *) malloc(sizeof(opti5x7_t));
     memset(dev, 0, sizeof(opti5x7_t));
 
     io_sethandler(0x0022, 0x0001, opti5x7_read, NULL, NULL, opti5x7_write, NULL, NULL, dev);
@@ -176,15 +170,15 @@ opti5x7_init(const device_t *info)
 }
 
 const device_t opti5x7_device = {
-    .name = "OPTi 82C5x6/82C5x7",
+    .name          = "OPTi 82C5x6/82C5x7",
     .internal_name = "opti5x7",
-    .flags = 0,
-    .local = 0,
-    .init = opti5x7_init,
-    .close = opti5x7_close,
-    .reset = NULL,
+    .flags         = 0,
+    .local         = 0,
+    .init          = opti5x7_init,
+    .close         = opti5x7_close,
+    .reset         = NULL,
     { .available = NULL },
     .speed_changed = NULL,
-    .force_redraw = NULL,
-    .config = NULL
+    .force_redraw  = NULL,
+    .config        = NULL
 };

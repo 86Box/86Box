@@ -16,24 +16,23 @@
  */
 
 #ifndef EMU_VNC_H
-# define EMU_VNC_H
-
+#define EMU_VNC_H
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-extern int	vnc_init(void *);
-extern void	vnc_close(void);
-extern void	vnc_resize(int x, int y);
-extern int	vnc_pause(void);
+extern int  vnc_init(void *);
+extern void vnc_close(void);
+extern void vnc_resize(int x, int y);
+extern int  vnc_pause(void);
 
-extern void	vnc_kbinput(int, int);
+extern void vnc_kbinput(int, int);
 
-extern void	vnc_take_screenshot(wchar_t *fn);
+extern void vnc_take_screenshot(wchar_t *fn);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif	/*EMU_VNC_H*/
+#endif /*EMU_VNC_H*/

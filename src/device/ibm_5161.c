@@ -29,7 +29,6 @@
 #include <86box/port_92.h>
 #include <86box/machine.h>
 
-
 typedef struct
 {
     uint8_t regs[8];

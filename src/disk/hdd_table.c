@@ -25,8 +25,8 @@
 #include <86box/86box.h>
 #include <86box/hdd.h>
 
-
 unsigned int hdd_table[128][3] = {
+  // clang-format off
     {  306,  4, 17 },		/* 0 - 7 */
     {  615,  2, 17 },
     {  306,  4, 26 },
@@ -170,4 +170,5 @@ unsigned int hdd_table[128][3] = {
     { 1120, 16, 59 },
     { 1054, 16, 63 },
     {    0,  0,  0 }
+// clang-format on
 };

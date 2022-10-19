@@ -42,4 +42,4 @@
 #define MT32EMU_WITH_INTERNAL_RESAMPLER 1
 
 
-#endif
+#endif /* #ifndef MT32EMU_CONFIG_H */

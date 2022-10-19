@@ -52,9 +52,9 @@ agpgart_set_aperture(agpgart_t *dev, uint32_t base, uint32_t size, int enable)
     mem_mapping_disable(&dev->aperture_mapping);
 
     /* Set new aperture base address, size, mask and enable. */
-    dev->aperture_base = base;
-    dev->aperture_size = size;
-    dev->aperture_mask = size - 1;
+    dev->aperture_base   = base;
+    dev->aperture_size   = size;
+    dev->aperture_mask   = size - 1;
     dev->aperture_enable = enable;
 
     /* Enable new aperture mapping if requested. */

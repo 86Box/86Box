@@ -506,7 +506,6 @@ machine_at_ap5s_init(const machine_t *model)
     return ret;
 }
 
-
 int
 machine_at_ms5124_init(const machine_t *model)
 {
@@ -535,7 +534,6 @@ machine_at_ms5124_init(const machine_t *model)
 
     return ret;
 }
-
 
 int
 machine_at_vectra54_init(const machine_t *model)

@@ -16,7 +16,7 @@
  */
 
 #ifndef POSTCARD_H
-# define POSTCARD_H
+#define POSTCARD_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -25,12 +25,10 @@ extern "C" {
 /* Global variables. */
 extern const device_t postcard_device;
 
-
 /* Functions. */
 
 #ifdef __cplusplus
 }
 #endif
 
-
-#endif	/*POSTCARD_H*/
+#endif /*POSTCARD_H*/

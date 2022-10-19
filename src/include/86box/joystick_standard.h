@@ -36,7 +36,7 @@
  */
 
 #ifndef EMU_JOYSTICK_STANDARD_H
-# define EMU_JOYSTICK_STANDARD_H
+#define EMU_JOYSTICK_STANDARD_H
 
 extern const joystick_if_t joystick_2axis_2button;
 extern const joystick_if_t joystick_2axis_4button;

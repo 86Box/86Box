@@ -79,9 +79,6 @@ ifeq ($(DEV_BUILD), y)
  ifndef SIO_DETECT
   SIO_DETECT	:= y
  endif
- ifndef TANDY_ISA
-  TANDY_ISA	:= y
- endif
  ifndef VGAWONDER
   VGAWONDER	:= y
  endif
@@ -142,9 +139,6 @@ else
  endif
  ifndef SIO_DETECT
   SIO_DETECT	:= n
- endif
- ifndef TANDY_ISA
-  TANDY_ISA	:= n
  endif
  ifndef VGAWONDER
   VGAWONDER	:= n
@@ -495,10 +489,6 @@ OPTS		+= -DUSE_SIO_DETECT
 DEVBROBJ	+= sio_detect.o
 endif
 
-ifeq ($(TANDY_ISA), y)
-OPTS		+= -DUSE_TANDY_ISA
-endif
-
 ifeq ($(VGAWONDER), y)
 OPTS		+= -DUSE_VGAWONDER
 endif
@@ -642,7 +632,7 @@ MINIVHDOBJ  := cwalk.o libxml2_encoding.o minivhd_convert.o \
             minivhd_struct_rw.o minivhd_util.o
 
 CDROMOBJ	:= cdrom.o \
-		    cdrom_image_backend.o cdrom_image.o
+		    cdrom_image_backend.o cdrom_image_viso.o cdrom_image.o
 
 ZIPOBJ		:= zip.o
 

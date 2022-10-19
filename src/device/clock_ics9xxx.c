@@ -27,10 +27,8 @@
 #include "cpu.h"
 #include <86box/clock.h>
 
-
 #ifdef ENABLE_ICS9xxx_LOG
 int ics9xxx_do_log = ENABLE_ICS9xxx_LOG;
-
 
 static void
 ics9xxx_log(const char *fmt, ...)
@@ -38,67 +36,66 @@ ics9xxx_log(const char *fmt, ...)
     va_list ap;
 
     if (ics9xxx_do_log) {
-	va_start(ap, fmt);
-	pclog_ex(fmt, ap);
-	va_end(ap);
+        va_start(ap, fmt);
+        pclog_ex(fmt, ap);
+        va_end(ap);
     }
 }
-#define ICS9xxx_MODEL(model)	[model] = {.name = #model,
+#    define ICS9xxx_MODEL(model) [model] = { .name = #    model,
 #else
-#define ics9xxx_log(fmt, ...)
-#define ICS9xxx_MODEL(model)	[model] = {
+#    define ics9xxx_log(fmt, ...)
+#    define ICS9xxx_MODEL(model) [model] = {
 #endif
-#define ICS9xxx_MODEL_END()	},
-#define agp_div			ram_mult /* temporarily saves space while neither field matters */
-
-
+#define ICS9xxx_MODEL_END() \
+    }                       \
+    ,
+#define agp_div ram_mult /* temporarily saves space while neither field matters */
 
 typedef struct {
-    uint16_t	bus: 15;
-    uint8_t	ram_mult: 2; /* change to full float when this becomes useful */
-    uint8_t	pci_div: 3;
+    uint16_t bus      : 15;
+    uint8_t  ram_mult : 2; /* change to full float when this becomes useful */
+    uint8_t  pci_div  : 3;
 } ics9xxx_frequency_t;
 
 typedef struct {
 #if defined(ENABLE_ICS9xxx_LOG) || defined(ENABLE_ICS9xxx_DETECT)
-    const char	*name; /* populated by macro */
+    const char *name; /* populated by macro */
 #endif
-    uint8_t	max_reg: 3; /* largest register index */
-    uint8_t	regs[7]; /* default registers */
-    struct { /* for each hardware frequency select bit [FS0:FS4]: */
-	uint8_t	normal_reg: 3; /* which register (or -1) for non-inverted input (FSn) */
-	uint8_t	normal_bit: 3; /* which bit (0-7) for non-inverted input (FSn) */
-	uint8_t	inv_reg: 3; /* which register (or -1) for inverted input (FSn#) */
-	uint8_t	inv_bit: 3; /* which bit (0-7) for inverted input (FSn#) */
+    uint8_t max_reg : 3;        /* largest register index */
+    uint8_t regs[7];            /* default registers */
+    struct {                    /* for each hardware frequency select bit [FS0:FS4]: */
+        uint8_t normal_reg : 3; /* which register (or -1) for non-inverted input (FSn) */
+        uint8_t normal_bit : 3; /* which bit (0-7) for non-inverted input (FSn) */
+        uint8_t inv_reg    : 3; /* which register (or -1) for inverted input (FSn#) */
+        uint8_t inv_bit    : 3; /* which bit (0-7) for inverted input (FSn#) */
     } fs_regs[5];
-    uint8_t	normal_bits_fixed: 1; /* set to 1 if the non-inverted bits are straps (hardware select only) */
-    struct { /* hardware select bit, which should be cleared for hardware select (latched inputs), or set for programming */
-	uint8_t	normal_reg: 3; /* which register (or -1) */
-	uint8_t	normal_bit: 3; /* which bit (0-7) */
+    uint8_t normal_bits_fixed : 1; /* set to 1 if the non-inverted bits are straps (hardware select only) */
+    struct {                       /* hardware select bit, which should be cleared for hardware select (latched inputs), or set for programming */
+        uint8_t normal_reg : 3;    /* which register (or -1) */
+        uint8_t normal_bit : 3;    /* which bit (0-7) */
     } hw_select;
 
-    uint8_t	frequencies_ref; /* which other model to use the frequency table from (or 0) */
-    const ics9xxx_frequency_t *frequencies; /* frequency table, if not using another model's table */
+    uint8_t                    frequencies_ref; /* which other model to use the frequency table from (or 0) */
+    const ics9xxx_frequency_t *frequencies;     /* frequency table, if not using another model's table */
 } ics9xxx_model_t;
 
 typedef struct {
-    uint8_t	model_idx;
+    uint8_t          model_idx;
     ics9xxx_model_t *model;
-    device_t	*dyn_device;
+    device_t        *dyn_device;
 
     ics9xxx_frequency_t *frequencies_ptr;
-    uint8_t	regs[7];
-    int8_t	addr_register: 4;
-    uint8_t	relevant_regs: 7;
-    uint8_t	bus_match: 5;
+    uint8_t              regs[7];
+    int8_t               addr_register : 4;
+    uint8_t              relevant_regs : 7;
+    uint8_t              bus_match     : 5;
 } ics9xxx_t;
-
 
 static const ics9xxx_model_t ics9xxx_models[] = {
 #ifdef ENABLE_ICS9xxx_DETECT
     ICS9xxx_MODEL(ICS9xxx_xx)
-	.max_reg = 6
-    ICS9xxx_MODEL_END()
+        .max_reg
+    = 6 ICS9xxx_MODEL_END()
 #endif
     ICS9xxx_MODEL(ICS9150_08)
 	.max_reg = 5,
@@ -910,13 +907,11 @@ static const ics9xxx_model_t ics9xxx_models[] = {
 #endif
 };
 
-
 /* Don't enable the detection device here. Enable it further up near logging. */
 #ifdef ENABLE_ICS9xxx_DETECT
-static uint16_t	detect_bus = 0;
-static uint8_t	detect_reg = 0;
-static uint8_t	discarded[ICS9xxx_MAX] = {0};
-
+static uint16_t detect_bus             = 0;
+static uint8_t  detect_reg             = 0;
+static uint8_t  discarded[ICS9xxx_MAX] = { 0 };
 
 static void
 ics9xxx_detect_reset(void *priv)
@@ -924,70 +919,68 @@ ics9xxx_detect_reset(void *priv)
     pclog("Please enter the frequency set in the BIOS (7500 for 75.00 MHz)\nAnswer 0 if unsure or set to auto, I'll ask again next reset.\n");
     scanf("%hu", &detect_bus);
     if ((detect_bus > 0) && (detect_bus < 1000))
-	detect_bus *= 100;
+        detect_bus *= 100;
     pclog("Frequency interpreted as %d\n", detect_bus);
 }
-
 
 static void
 ics9xxx_detect(ics9xxx_t *dev)
 {
     if (!detect_bus) {
-	pclog("Frequency not entered on this reset, ignoring change.\n");
-	return;
+        pclog("Frequency not entered on this reset, ignoring change.\n");
+        return;
     }
 
     if ((detect_reg == 0) && (dev->regs[detect_reg] >= 0xfe)) {
-	pclog("Register %d set to %02X, probably not it, trying %d instead\n", detect_reg, dev->regs[detect_reg], 3);
-	detect_reg = 3;
-	dev->relevant_regs = 1 << detect_reg;
-	return;
+        pclog("Register %d set to %02X, probably not it, trying %d instead\n", detect_reg, dev->regs[detect_reg], 3);
+        detect_reg         = 3;
+        dev->relevant_regs = 1 << detect_reg;
+        return;
     }
 
     if (!(dev->regs[detect_reg] & 0x40))
-	pclog("Bit 3 of register %d is clear, probably in hardware select mode!\n", detect_reg);
+        pclog("Bit 3 of register %d is clear, probably in hardware select mode!\n", detect_reg);
 
-    uint8_t i = 0, matches = 0, val, bitmask;
+    uint8_t              i = 0, matches = 0, val, bitmask;
     ics9xxx_frequency_t *frequencies_ptr;
-    uint32_t delta;
+    uint32_t             delta;
     for (uint8_t j = 0; j < ICS9xxx_MAX; j++) {
-	if (discarded[j])
-		continue;
-	discarded[j] = 1;
+        if (discarded[j])
+            continue;
+        discarded[j] = 1;
 
-	frequencies_ptr = (ics9xxx_frequency_t *) ics9xxx_models[ics9xxx_models[j].frequencies_ref ? ics9xxx_models[j].frequencies_ref : j].frequencies;
-	if (!frequencies_ptr)
-		continue;
+        frequencies_ptr = (ics9xxx_frequency_t *) ics9xxx_models[ics9xxx_models[j].frequencies_ref ? ics9xxx_models[j].frequencies_ref : j].frequencies;
+        if (!frequencies_ptr)
+            continue;
 
-	while (frequencies_ptr[i].bus) {
-		delta = ABS((int32_t) (detect_bus - frequencies_ptr[i].bus));
-		if (delta <= 100) {
-			val = bitmask = 0;
-			for (uint8_t k = 0; k < sizeof(ics9xxx_models[j].fs_regs) / sizeof(ics9xxx_models[j].fs_regs[0]); k++) {
-				if (ics9xxx_models[j].fs_regs[k].normal_reg == detect_reg) {
-					bitmask |= 1 << k;
-					val |= (1 << k) * !!(dev->regs[detect_reg] & (1 << ics9xxx_models[j].fs_regs[k].normal_bit));
-				}
-			}
-			if (bitmask && (val == (i & bitmask))) {
-				matches++;
-				discarded[j] = 0;
-				pclog("> Potential match for %s (frequency %d index %d)\n", ics9xxx_models[j].name, frequencies_ptr[i].bus, val);
-			}
-		}
+        while (frequencies_ptr[i].bus) {
+            delta = ABS((int32_t) (detect_bus - frequencies_ptr[i].bus));
+            if (delta <= 100) {
+                val = bitmask = 0;
+                for (uint8_t k = 0; k < sizeof(ics9xxx_models[j].fs_regs) / sizeof(ics9xxx_models[j].fs_regs[0]); k++) {
+                    if (ics9xxx_models[j].fs_regs[k].normal_reg == detect_reg) {
+                        bitmask |= 1 << k;
+                        val |= (1 << k) * !!(dev->regs[detect_reg] & (1 << ics9xxx_models[j].fs_regs[k].normal_bit));
+                    }
+                }
+                if (bitmask && (val == (i & bitmask))) {
+                    matches++;
+                    discarded[j] = 0;
+                    pclog("> Potential match for %s (frequency %d index %d)\n", ics9xxx_models[j].name, frequencies_ptr[i].bus, val);
+                }
+            }
 
-		i++;
-	}
+            i++;
+        }
     }
 
     pclog("Found a total of %d matches for register %d value %02X and bus frequency %d\n", matches, detect_reg, dev->regs[detect_reg], detect_bus);
     if (matches == 0) {
-	pclog("Resetting list of discarded models since there were no matches.\n");
-	memset(discarded, 0, sizeof(discarded));
+        pclog("Resetting list of discarded models since there were no matches.\n");
+        memset(discarded, 0, sizeof(discarded));
     }
 }
 #endif
-
 
 static uint8_t
 ics9xxx_start(void *bus, uint8_t addr, uint8_t read, void *priv)
@@ -1001,38 +994,36 @@ ics9xxx_start(void *bus, uint8_t addr, uint8_t read, void *priv)
     return 1;
 }
 
-
 static uint8_t
 ics9xxx_read(void *bus, uint8_t addr, void *priv)
 {
     ics9xxx_t *dev = (ics9xxx_t *) priv;
-    uint8_t ret = 0xff;
+    uint8_t    ret = 0xff;
 
     if (dev->addr_register < 0) {
-	dev->addr_register = -1;
-	ret = dev->model->max_reg + 1;
+        dev->addr_register = -1;
+        ret                = dev->model->max_reg + 1;
     }
 #if 0
     else if ((dev->model_idx == ICS9250_50) && (dev->addr_register == 0))
 	ret = dev->regs[dev->addr_register] & 0x0b; /* -50 reads back revision ID instead */
 #endif
     else
-	ret = dev->regs[dev->addr_register];
+        ret = dev->regs[dev->addr_register];
 
 #ifdef ENABLE_ICS9xxx_LOG
     if (dev->addr_register < 0)
-	ics9xxx_log("ICS9xxx: read(%s) = %02X\n", (dev->addr_register == -1) ? "blocklen" : "command", ret);
+        ics9xxx_log("ICS9xxx: read(%s) = %02X\n", (dev->addr_register == -1) ? "blocklen" : "command", ret);
     else
-	ics9xxx_log("ICS9xxx: read(%x) = %02X\n", dev->addr_register, ret);
+        ics9xxx_log("ICS9xxx: read(%x) = %02X\n", dev->addr_register, ret);
 #endif
     if (dev->addr_register >= dev->model->max_reg)
-	dev->addr_register = 0; /* roll-over */
+        dev->addr_register = 0; /* roll-over */
     else
-	dev->addr_register++;
+        dev->addr_register++;
 
     return ret;
 }
-
 
 static void
 ics9xxx_set(ics9xxx_t *dev, uint8_t val)
@@ -1040,14 +1031,14 @@ ics9xxx_set(ics9xxx_t *dev, uint8_t val)
     /* Get the active mode, which determines what to add to the static frequency bits we were passed. */
     uint8_t hw_select = (dev->model->hw_select.normal_reg < 7) && !(dev->regs[dev->model->hw_select.normal_reg] & (1 << dev->model->hw_select.normal_bit));
     if (hw_select) {
-	/* Hardware select mode: add strapped frequency bits. */
-	val |= dev->bus_match;
+        /* Hardware select mode: add strapped frequency bits. */
+        val |= dev->bus_match;
     } else {
-	/* Programmable mode: add register-defined frequency bits. */
-	for (uint8_t i = 0; i < sizeof(dev->model->fs_regs) / sizeof(dev->model->fs_regs[0]); i++) {
-		if ((dev->model->fs_regs[i].normal_reg < 7) && (dev->regs[dev->model->fs_regs[i].normal_reg] & (1 << dev->model->fs_regs[i].normal_bit)))
-			val |= 1 << i;
-	}
+        /* Programmable mode: add register-defined frequency bits. */
+        for (uint8_t i = 0; i < sizeof(dev->model->fs_regs) / sizeof(dev->model->fs_regs[0]); i++) {
+            if ((dev->model->fs_regs[i].normal_reg < 7) && (dev->regs[dev->model->fs_regs[i].normal_reg] & (1 << dev->model->fs_regs[i].normal_bit)))
+                val |= 1 << i;
+        }
     }
 
     uint16_t bus = dev->frequencies_ptr[val].bus;
@@ -1057,7 +1048,6 @@ ics9xxx_set(ics9xxx_t *dev, uint8_t val)
     ics9xxx_log("ICS9xxx: set(%d) = hw=%d bus=%d ram=%d pci=%d\n", val, hw_select, bus, bus * dev->frequencies_ptr[val].ram_mult, pci);
 }
 
-
 static uint8_t
 ics9xxx_write(void *bus, uint8_t addr, uint8_t data, void *priv)
 {
@@ -1065,24 +1055,24 @@ ics9xxx_write(void *bus, uint8_t addr, uint8_t data, void *priv)
 
 #ifdef ENABLE_ICS9xxx_LOG
     if (dev->addr_register < 0)
-	ics9xxx_log("ICS9xxx: write(%s, %02X)\n", (dev->addr_register == -1) ? "blocklen" : "command", data);
+        ics9xxx_log("ICS9xxx: write(%s, %02X)\n", (dev->addr_register == -1) ? "blocklen" : "command", data);
     else
-	ics9xxx_log("ICS9xxx: write(%x, %02X)\n", dev->addr_register, data);
+        ics9xxx_log("ICS9xxx: write(%x, %02X)\n", dev->addr_register, data);
 #endif
 
     if (dev->addr_register >= 0) {
-	/* Preserve fixed bits. */
+        /* Preserve fixed bits. */
 #ifdef ENABLE_ICS9xxx_DETECT
-	if (dev->model != ICS9xxx_xx)
+        if (dev->model != ICS9xxx_xx)
 #endif
-	{
-		for (uint8_t i = 0; i < sizeof(dev->model->fs_regs) / sizeof(dev->model->fs_regs[0]); i++) {
-			if (dev->model->normal_bits_fixed && (dev->model->fs_regs[i].normal_reg == dev->addr_register))
-				data = (dev->regs[dev->addr_register] & (1 << dev->model->fs_regs[i].normal_bit)) | (data & ~(1 << dev->model->fs_regs[i].normal_bit));
-			if (dev->model->fs_regs[i].inv_reg == dev->addr_register)
-				data = (dev->regs[dev->addr_register] & (1 << dev->model->fs_regs[i].inv_bit)) | (data & ~(1 << dev->model->fs_regs[i].inv_bit));
-		}
-	}
+        {
+            for (uint8_t i = 0; i < sizeof(dev->model->fs_regs) / sizeof(dev->model->fs_regs[0]); i++) {
+                if (dev->model->normal_bits_fixed && (dev->model->fs_regs[i].normal_reg == dev->addr_register))
+                    data = (dev->regs[dev->addr_register] & (1 << dev->model->fs_regs[i].normal_bit)) | (data & ~(1 << dev->model->fs_regs[i].normal_bit));
+                if (dev->model->fs_regs[i].inv_reg == dev->addr_register)
+                    data = (dev->regs[dev->addr_register] & (1 << dev->model->fs_regs[i].inv_bit)) | (data & ~(1 << dev->model->fs_regs[i].inv_bit));
+            }
+        }
 
 #if 0
 	switch (dev->addr_register) {
@@ -1112,15 +1102,15 @@ ics9xxx_write(void *bus, uint8_t addr, uint8_t data, void *priv)
 			break;
 	}
 #endif
-	dev->regs[dev->addr_register] = data;
+        dev->regs[dev->addr_register] = data;
 
-	/* Update frequency if a relevant register was written to. */
-	if (dev->relevant_regs & (1 << dev->addr_register)) {
-		switch (dev->model_idx) {
+        /* Update frequency if a relevant register was written to. */
+        if (dev->relevant_regs & (1 << dev->addr_register)) {
+            switch (dev->model_idx) {
 #ifdef ENABLE_ICS9xxx_DETECT
-			case ICS9xxx_xx:
-				ics9xxx_detect(dev);
-				break;
+                case ICS9xxx_xx:
+                    ics9xxx_detect(dev);
+                    break;
 #endif
 #if 0
 			case ICS9250_10:
@@ -1138,44 +1128,44 @@ ics9xxx_write(void *bus, uint8_t addr, uint8_t data, void *priv)
 				ics9xxx_set(dev, ((cpu_busspeed == 100000000) * 0x02) | ((cpu_busspeed > 100000000) * 0x01));
 				break;
 #endif
-			default:
-				ics9xxx_set(dev, 0x00);
-				break;
-		}
-	}
+                default:
+                    ics9xxx_set(dev, 0x00);
+                    break;
+            }
+        }
     }
 
     if (dev->addr_register >= dev->model->max_reg)
-	dev->addr_register = 0; /* roll-over */
+        dev->addr_register = 0; /* roll-over */
     else
-	dev->addr_register++;
+        dev->addr_register++;
 
     return 1;
 }
 
-
 static uint8_t
-ics9xxx_find_bus_match(ics9xxx_t *dev, uint32_t bus, uint8_t preset_mask, uint8_t preset) {
-    uint8_t best_match = 0;
+ics9xxx_find_bus_match(ics9xxx_t *dev, uint32_t bus, uint8_t preset_mask, uint8_t preset)
+{
+    uint8_t  best_match = 0;
     uint32_t delta, best_delta = -1;
 
 #ifdef ENABLE_ICS9xxx_DETECT
     if (dev->model_idx == ICS9xxx_xx)
-	return 0;
+        return 0;
 #endif
 
     bus /= 10000;
     uint8_t i = 0;
     while (dev->frequencies_ptr[i].bus) {
-	if ((i & preset_mask) == preset) {
-		delta = ABS((int32_t) (bus - dev->frequencies_ptr[i].bus));
-		if (delta < best_delta) {
-			best_match = i;
-			best_delta = delta;
-		}
-	}
+        if ((i & preset_mask) == preset) {
+            delta = ABS((int32_t) (bus - dev->frequencies_ptr[i].bus));
+            if (delta < best_delta) {
+                best_match = i;
+                best_delta = delta;
+            }
+        }
 
-	i++;
+        i++;
     }
 
     ics9xxx_log("ICS9xxx: find_match(%s, %d) = match=%d bus=%d\n", dev->model->name, bus, best_match, dev->frequencies_ptr[best_match].bus);
@@ -1183,15 +1173,14 @@ ics9xxx_find_bus_match(ics9xxx_t *dev, uint32_t bus, uint8_t preset_mask, uint8_
     return best_match;
 }
 
-
 static void *
 ics9xxx_init(const device_t *info)
 {
     ics9xxx_t *dev = (ics9xxx_t *) malloc(sizeof(ics9xxx_t));
     memset(dev, 0, sizeof(ics9xxx_t));
 
-    dev->model_idx = info->local;
-    dev->model = (ics9xxx_model_t *) &ics9xxx_models[dev->model_idx];
+    dev->model_idx  = info->local;
+    dev->model      = (ics9xxx_model_t *) &ics9xxx_models[dev->model_idx];
     dev->dyn_device = (device_t *) info;
     memcpy(&dev->regs, &dev->model->regs, dev->model->max_reg + 1);
 
@@ -1200,63 +1189,62 @@ ics9xxx_init(const device_t *info)
     uint8_t i;
 #ifdef ENABLE_ICS9xxx_DETECT
     for (i = ICS9xxx_xx + 1; i < ICS9xxx_MAX; i++) {
-	if (ics9xxx_models[i].frequencies_ref || !ics9xxx_models[i].name)
-		continue;
-	for (uint8_t j = 0; j < i; j++) {
-		if (ics9xxx_models[j].frequencies_ref || !ics9xxx_models[j].name)
-			continue;
-		if (!memcmp(&ics9xxx_models[i].frequencies, &ics9xxx_models[j].frequencies, sizeof(ics9xxx_models[i].frequencies)))
-			pclog("Optimization warning: %s and %s have duplicate tables\n", ics9xxx_models[j].name, ics9xxx_models[i].name);
-	}
+        if (ics9xxx_models[i].frequencies_ref || !ics9xxx_models[i].name)
+            continue;
+        for (uint8_t j = 0; j < i; j++) {
+            if (ics9xxx_models[j].frequencies_ref || !ics9xxx_models[j].name)
+                continue;
+            if (!memcmp(&ics9xxx_models[i].frequencies, &ics9xxx_models[j].frequencies, sizeof(ics9xxx_models[i].frequencies)))
+                pclog("Optimization warning: %s and %s have duplicate tables\n", ics9xxx_models[j].name, ics9xxx_models[i].name);
+        }
     }
 
     if (dev->model_idx == ICS9xxx_xx) { /* detection device */
-	dev->relevant_regs = 1 << 0; /* register 0 matters the most on the detection device */
+        dev->relevant_regs = 1 << 0;    /* register 0 matters the most on the detection device */
 
-	ics9xxx_detect_reset(dev);
+        ics9xxx_detect_reset(dev);
     } else
 #endif
     { /* regular device */
-	dev->frequencies_ptr = (ics9xxx_frequency_t *) (dev->model->frequencies_ref ? ics9xxx_models[dev->model->frequencies_ref].frequencies : dev->model->frequencies);
-	if (!dev->frequencies_ptr)
-		fatal("ICS9xxx: NULL frequency table\n");
+        dev->frequencies_ptr = (ics9xxx_frequency_t *) (dev->model->frequencies_ref ? ics9xxx_models[dev->model->frequencies_ref].frequencies : dev->model->frequencies);
+        if (!dev->frequencies_ptr)
+            fatal("ICS9xxx: NULL frequency table\n");
 
-	/* Determine which frequency bits cannot be strapped (register only). */
-	uint8_t register_only_bits = 0x00;
-	for (i = 0; i < sizeof(dev->model->fs_regs) / sizeof(dev->model->fs_regs[0]); i++) {
-		if (!dev->model->normal_bits_fixed && (dev->model->fs_regs[i].normal_reg < 7)) /* mark a normal, programmable bit as relevant */
-			dev->relevant_regs |= 1 << dev->model->fs_regs[i].normal_reg;
-		if ((dev->model->fs_regs[i].normal_reg == 7) && (dev->model->fs_regs[i].inv_reg == 7)) /* mark as register only */
-			register_only_bits |= 1 << i;
-	}
+        /* Determine which frequency bits cannot be strapped (register only). */
+        uint8_t register_only_bits = 0x00;
+        for (i = 0; i < sizeof(dev->model->fs_regs) / sizeof(dev->model->fs_regs[0]); i++) {
+            if (!dev->model->normal_bits_fixed && (dev->model->fs_regs[i].normal_reg < 7)) /* mark a normal, programmable bit as relevant */
+                dev->relevant_regs |= 1 << dev->model->fs_regs[i].normal_reg;
+            if ((dev->model->fs_regs[i].normal_reg == 7) && (dev->model->fs_regs[i].inv_reg == 7)) /* mark as register only */
+                register_only_bits |= 1 << i;
+        }
 
-	/* Mark the hardware select bit's register as relevant, if there's one. */
-	if (dev->model->hw_select.normal_reg < 7)
-		dev->relevant_regs |= 1 << dev->model->hw_select.normal_reg;
+        /* Mark the hardware select bit's register as relevant, if there's one. */
+        if (dev->model->hw_select.normal_reg < 7)
+            dev->relevant_regs |= 1 << dev->model->hw_select.normal_reg;
 
-	/* Find bus speed match and set default register bits accordingly. */
-	dev->bus_match = ics9xxx_find_bus_match(dev, cpu_busspeed, register_only_bits, 0x00);
-	for (i = 0; i < sizeof(dev->model->fs_regs) / sizeof(dev->model->fs_regs[0]); i++) {
-		if (dev->model->fs_regs[i].normal_reg < 7) {
-			if (dev->bus_match & (1 << i))
-				dev->regs[dev->model->fs_regs[i].normal_reg] |= 1 << dev->model->fs_regs[i].normal_bit;
-			else
-				dev->regs[dev->model->fs_regs[i].normal_reg] &= ~(1 << dev->model->fs_regs[i].normal_bit);
-		}
-		if (dev->model->fs_regs[i].inv_reg < 7) {
-			if (dev->bus_match & (1 << i))
-				dev->regs[dev->model->fs_regs[i].inv_reg] &= ~(1 << dev->model->fs_regs[i].inv_bit);
-			else
-				dev->regs[dev->model->fs_regs[i].inv_reg] |= 1 << dev->model->fs_regs[i].inv_bit;
-		}
-	}
+        /* Find bus speed match and set default register bits accordingly. */
+        dev->bus_match = ics9xxx_find_bus_match(dev, cpu_busspeed, register_only_bits, 0x00);
+        for (i = 0; i < sizeof(dev->model->fs_regs) / sizeof(dev->model->fs_regs[0]); i++) {
+            if (dev->model->fs_regs[i].normal_reg < 7) {
+                if (dev->bus_match & (1 << i))
+                    dev->regs[dev->model->fs_regs[i].normal_reg] |= 1 << dev->model->fs_regs[i].normal_bit;
+                else
+                    dev->regs[dev->model->fs_regs[i].normal_reg] &= ~(1 << dev->model->fs_regs[i].normal_bit);
+            }
+            if (dev->model->fs_regs[i].inv_reg < 7) {
+                if (dev->bus_match & (1 << i))
+                    dev->regs[dev->model->fs_regs[i].inv_reg] &= ~(1 << dev->model->fs_regs[i].inv_bit);
+                else
+                    dev->regs[dev->model->fs_regs[i].inv_reg] |= 1 << dev->model->fs_regs[i].inv_bit;
+            }
+        }
     }
 
     i2c_sethandler(i2c_smbus, 0x69, 1, ics9xxx_start, ics9xxx_read, ics9xxx_write, NULL, dev);
 
     return dev;
 }
-
 
 static void
 ics9xxx_close(void *priv)
@@ -1271,21 +1259,20 @@ ics9xxx_close(void *priv)
     free(dev);
 }
 
-
 device_t *
 ics9xxx_get(uint8_t model)
 {
     device_t *dev = (device_t *) malloc(sizeof(device_t));
     memset(dev, 0, sizeof(device_t));
 
-    dev->name = "ICS9xxx-xx Clock Generator";
+    dev->name  = "ICS9xxx-xx Clock Generator";
     dev->local = model;
     dev->flags = DEVICE_ISA;
 #ifdef ENABLE_ICS9xxx_DETECT
     if (model == ICS9xxx_xx)
-	dev->reset = ics9xxx_detect_reset;
+        dev->reset = ics9xxx_detect_reset;
 #endif
-    dev->init = ics9xxx_init;
+    dev->init  = ics9xxx_init;
     dev->close = ics9xxx_close;
 
     return dev;
