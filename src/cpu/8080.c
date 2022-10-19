@@ -48,7 +48,7 @@ clock_end(void)
 }
 
 static void
-wait(int c, int bus)
+8080_wait(int c, int bus)
 {
     cycles -= c;
     if (bus < 2) {
@@ -62,7 +62,7 @@ readmemb(uint32_t a)
 {
     uint8_t ret;
 
-    wait(4, 1);
+    8080_wait(4, 1);
     ret = read_mem_b(a);
 
     return ret;
@@ -204,7 +204,7 @@ exec8080(i8080* cpu, int cycs)
             cpu->oldpc = cpu->pc;
             opcode = cpu->fetchinstruction(cpu);
             oldc = cpu->flags & C_FLAG_I8080;
-            wait(1, 0);
+            8080_wait(1, 0);
         }
         completed = 1;
         if (completed) {
