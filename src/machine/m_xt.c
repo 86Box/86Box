@@ -329,6 +329,24 @@ machine_xt_iskra3104_init(const machine_t *model)
 }
 
 int
+machine_xt_pravetz16_imko4_init(const machine_t *model)
+{
+	int ret;
+    
+    ret = bios_load_linear("roms/machines/pravetz16/BIOS_IMKO4_FE00.bin",
+			   0x000fe000, 8192, 0);
+
+    if (bios_only || !ret)
+	    return ret;
+
+    device_add(&keyboard_at_device);
+
+    machine_xt_common_init(model);
+
+    return ret;
+}
+
+int
 machine_xt_pc4i_init(const machine_t *model)
 {
     int ret;

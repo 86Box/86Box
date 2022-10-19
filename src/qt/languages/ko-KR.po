@@ -229,6 +229,9 @@ msgstr "이전 이미지 다시 불러오기(&R)"
 msgid "&Image"
 msgstr "이미지(&I)"
 
+msgid "&Folder..."
+msgstr "&Folder..."
+
 msgid "Target &framerate"
 msgstr "목표 프레임 레이트(&F)"
 

@@ -17,6 +17,8 @@
 #ifndef PLAT_DIR_H
 #define PLAT_DIR_H
 
+/* Windows needs the POSIX re-implementations */
+#if defined(_WIN32)
 #ifdef _MAX_FNAME
 #    define MAXNAMLEN _MAX_FNAME
 #else
@@ -63,5 +65,10 @@ extern void           seekdir(DIR *, long);
 extern int            closedir(DIR *);
 
 #define rewinddir(dirp) seekdir(dirp, 0L)
+#else
+/* On linux and macOS, use the standard functions and types */
+#include <sys/dir.h>
+#endif
+
 
 #endif /*PLAT_DIR_H*/

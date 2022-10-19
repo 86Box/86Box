@@ -21,9 +21,14 @@
 #include <QMetaEnum>
 #include <QStringBuilder>
 #include <utility>
-
-#include "86box/cdrom.h"
 #include "qt_mediahistorymanager.hpp"
+
+extern "C"
+{
+#include <86box/timer.h>
+#include <86box/cdrom.h>
+#include <86box/fdd.h>
+}
 
 namespace ui {
 
@@ -158,6 +163,9 @@ void MediaHistoryManager::initialDeduplication()
                 case ui::MediaType::Optical:
                     current_image = cdrom[device_index].image_path;
                     break;
+                case ui::MediaType::Floppy:
+                    current_image = floppyfns[device_index];
+                    break;
                 default:
                     continue;
                     break;
@@ -180,6 +188,8 @@ char ** MediaHistoryManager::getEmuHistoryVarForType(ui::MediaType type, int ind
     switch (type) {
         case ui::MediaType::Optical:
             return &cdrom[index].image_history[0];
+        case ui::MediaType::Floppy:
+            return &fdd_image_history[index][0];
         default:
             return nullptr;
 

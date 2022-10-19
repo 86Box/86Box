@@ -229,6 +229,9 @@ msgstr "Előző képfájl &újratöltése"
 msgid "&Image"
 msgstr "&Meglévő képfájl &megnyitása..."
 
+msgid "&Folder..."
+msgstr "&Folder..."
+
 msgid "Target &framerate"
 msgstr "Cél &képkockasebesség"
 

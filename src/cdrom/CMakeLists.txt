@@ -13,4 +13,4 @@
 #           Copyright 2020,2021 David Hrdlička.
 #
 
-add_library(cdrom OBJECT cdrom.c cdrom_image_backend.c cdrom_image.c)
+add_library(cdrom OBJECT cdrom.c cdrom_image_backend.c cdrom_image_viso.c cdrom_image.c)

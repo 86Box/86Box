@@ -595,7 +595,7 @@ win_settings_save(void)
     /* Removable devices category */
     memcpy(cdrom, temp_cdrom, CDROM_NUM * sizeof(cdrom_t));
     for (i = 0; i < CDROM_NUM; i++) {
-        cdrom[i].img_fp      = NULL;
+	cdrom[i].is_dir      = 0;
         cdrom[i].priv        = NULL;
         cdrom[i].ops         = NULL;
         cdrom[i].image       = NULL;

@@ -229,6 +229,9 @@ msgstr "&Ponovo učitaj prethodnu sliku"
 msgid "&Image"
 msgstr "&Slika"
 
+msgid "&Folder..."
+msgstr "&Folder..."
+
 msgid "Target &framerate"
 msgstr "&Ciljni broj okvira u sekundi"
 

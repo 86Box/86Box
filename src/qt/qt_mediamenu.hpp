@@ -37,11 +37,12 @@ public:
     void floppySelectImage(int i, bool wp);
     void floppyMount(int i, const QString& filename, bool wp);
     void floppyEject(int i);
+    void floppyMenuSelect(int index, int slot);
     void floppyExportTo86f(int i);
     void floppyUpdateMenu(int i);
 
     void cdromMute(int i);
-    void cdromMount(int i);
+    void cdromMount(int i, int dir);
     void cdromMount(int i, const QString& filename);
     void cdromEject(int i);
     void cdromReload(int index, int slot);
@@ -94,6 +95,7 @@ private:
     int cdromMutePos;
     int cdromReloadPos;
     int cdromImagePos;
+    int cdromDirPos;
     int cdromImageHistoryPos[MAX_PREV_IMAGES];
     int floppyImageHistoryPos[MAX_PREV_IMAGES];
 
