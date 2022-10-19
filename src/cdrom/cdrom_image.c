@@ -268,14 +268,16 @@ cdrom_image_open(cdrom_t *dev, const char *fn)
     dev->image = img;
 
     /* Open the image. */
-    if (!cdi_set_device(img, fn))
+    int i = cdi_set_device(img, fn);
+    if (!i)
         return image_open_abort(dev);
 
     /* All good, reset state. */
-    if (!strcasecmp(path_get_extension((char *) fn), "ISO"))
+    if (i >= 2)
         dev->cd_status = CD_STATUS_DATA_ONLY;
     else
         dev->cd_status = CD_STATUS_STOPPED;
+    dev->is_dir         = (i == 3);
     dev->seek_pos       = 0;
     dev->cd_buflen      = 0;
     dev->cdrom_capacity = image_get_capacity(dev);

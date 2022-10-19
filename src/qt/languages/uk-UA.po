@@ -229,6 +229,9 @@ msgstr "&Знову завантажити попередній образ"
 msgid "&Image"
 msgstr "&Образ..."
 
+msgid "&Folder..."
+msgstr "&Folder..."
+
 msgid "Target &framerate"
 msgstr "Цільова &частота кадрів"
 

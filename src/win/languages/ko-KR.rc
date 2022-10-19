@@ -177,6 +177,7 @@ BEGIN
         MENUITEM "이전 이미지 다시 불러오기(&R)",			IDM_CDROM_RELOAD
         MENUITEM SEPARATOR
         MENUITEM "이미지(&I)",					IDM_CDROM_IMAGE
+        MENUITEM "&Folder",					IDM_CDROM_DIR
     END
 END
 

@@ -229,6 +229,9 @@ msgstr "&Recargar imagen previa"
 msgid "&Image"
 msgstr "&Imagen..."
 
+msgid "&Folder..."
+msgstr "&Folder..."
+
 msgid "Target &framerate"
 msgstr "&Tasa de refresco objetivo"
 

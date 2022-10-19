@@ -102,7 +102,7 @@ typedef struct cdrom {
                          media status. */
         speed, cur_speed;
 
-    FILE *img_fp;
+    int   is_dir;
     void *priv;
 
     char image_path[1024],

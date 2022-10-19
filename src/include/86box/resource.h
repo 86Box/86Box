@@ -445,7 +445,8 @@
 #define IDM_CDROM_EMPTY                0x4300
 #define IDM_CDROM_RELOAD               0x4400
 #define IDM_CDROM_IMAGE                0x4500
-#define IDM_CDROM_HOST_DRIVE           0x4600
+#define IDM_CDROM_DIR                  0x4600
+#define IDM_CDROM_HOST_DRIVE           0x4700
 
 #define IDM_ZIP_IMAGE_NEW              0x5200
 #define IDM_ZIP_IMAGE_EXISTING         0x5300
