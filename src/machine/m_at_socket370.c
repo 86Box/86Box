@@ -549,7 +549,9 @@ machine_at_j815epda_init(const machine_t *model)
     device_add(&sst_flash_39sf020_device);
     device_add(ics9xxx_get(ICS9250_18));
     intel_815ep_spd_init();                 /* SPD */
-//  spd_register(SPD_TYPE_SDRAM, 0x7, 512); /* SPD */
+#if 0
+    spd_register(SPD_TYPE_SDRAM, 0x7, 512); /* SPD */
+#endif
 
     return ret;
 }
