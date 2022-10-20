@@ -509,6 +509,56 @@ machine_at_cusl2c_init(const machine_t *model)
 }
 
 /*
+ *  Jetway J-815EPDA 
+ *
+ * North Bridge: Intel 815EP
+ * Super I/O: Winbond w83627hf
+ * BIOS: AwardBIOS 6.00PG
+ * Notes: Has LAN
+ */
+int
+machine_at_j815epda_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/j815epda/815EPAA2.BIN",
+                           0x000c0000, 262144, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init_ex(model, 2);
+
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_bus_slot(0, 0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0); /* North Bridge */
+    pci_register_bus_slot(0, 0x01, PCI_CARD_AGPBRIDGE,   1, 2, 3, 4); /* AGP Bridge */
+    pci_register_bus_slot(0, 0x1e, PCI_CARD_BRIDGE,      1, 2, 3, 4); /*  ICH2 Hub  */    pci_register_bus_slot(2, 0x08, PCI_CARD_NORMAL, 5, 6, 7, 8);
+    pci_register_bus_slot(0, 0x1f, PCI_CARD_SOUTHBRIDGE, 1, 2, 8, 4); /* ICH2 LPC */
+    pci_register_bus_slot(2, 0x07, PCI_CARD_NORMAL, 1, 2, 3, 4);
+    pci_register_bus_slot(2, 0x09, PCI_CARD_NORMAL, 2, 3, 4, 1);
+    pci_register_bus_slot(2, 0x0A, PCI_CARD_NORMAL, 3, 4, 1, 2);
+    pci_register_bus_slot(2, 0x0B, PCI_CARD_NORMAL, 4, 1, 2, 3);
+    pci_register_bus_slot(2, 0x0D, PCI_CARD_NORMAL, 5, 6, 7, 8);
+    pci_register_bus_slot(2, 0x0C, PCI_CARD_NORMAL, 6, 7, 8, 5);
+
+    device_add(&intel_815ep_device);        /* Intel 815EP MCH */
+    device_add(&intel_ich2_device);         /* Intel ICH2 */
+    device_add(&w83627hf_device);
+    w83627hf_stabilizer(0x6f,    /* 1.8V Rail */
+                        0x1c,    /* FAN 2 */
+                        0x1e,    /* FAN 3 */
+                        0x1d     /* FAN 1 */
+    );
+
+    device_add(&sst_flash_39sf020_device);
+    device_add(ics9xxx_get(ICS9250_18));
+    intel_815ep_spd_init();                 /* SPD */
+//  spd_register(SPD_TYPE_SDRAM, 0x7, 512); /* SPD */
+
+    return ret;
+}
+
+/*
  * Biostar M6TSL
  *
  * North Bridge: Intel 815E
