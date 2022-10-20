@@ -79,9 +79,6 @@ ifeq ($(DEV_BUILD), y)
  ifndef SIO_DETECT
   SIO_DETECT	:= y
  endif
- ifndef TANDY_ISA
-  TANDY_ISA	:= y
- endif
  ifndef VGAWONDER
   VGAWONDER	:= y
  endif
@@ -142,9 +139,6 @@ else
  endif
  ifndef SIO_DETECT
   SIO_DETECT	:= n
- endif
- ifndef TANDY_ISA
-  TANDY_ISA	:= n
  endif
  ifndef VGAWONDER
   VGAWONDER	:= n
@@ -495,10 +489,6 @@ OPTS		+= -DUSE_SIO_DETECT
 DEVBROBJ	+= sio_detect.o
 endif
 
-ifeq ($(TANDY_ISA), y)
-OPTS		+= -DUSE_TANDY_ISA
-endif
-
 ifeq ($(VGAWONDER), y)
 OPTS		+= -DUSE_VGAWONDER
 endif
@@ -536,7 +526,7 @@ CXXFLAGS	:= $(CFLAGS)
 #########################################################################
 MAINOBJ		:= 86box.o config.o log.o random.o timer.o io.o acpi.o apm.o dma.o ddma.o \
 		   nmi.o pic.o pit.o pit_fast.o port_6x.o port_92.o ppi.o pci.o mca.o fifo8.o \
-		   usb.o device.o nvr.o nvr_at.o nvr_ps2.o machine_status.o \
+		   usb.o device.o nvr.o nvr_at.o nvr_ps2.o machine_status.o ini.o \
 		   $(VNCOBJ)
 
 MEMOBJ		:= catalyst_flash.o i2c_eeprom.o intel_flash.o mem.o rom.o smram.o spd.o sst_flash.o
@@ -642,7 +632,7 @@ MINIVHDOBJ  := cwalk.o libxml2_encoding.o minivhd_convert.o \
             minivhd_struct_rw.o minivhd_util.o
 
 CDROMOBJ	:= cdrom.o \
-		    cdrom_image_backend.o cdrom_image.o
+		    cdrom_image_backend.o cdrom_image_viso.o cdrom_image.o
 
 ZIPOBJ		:= zip.o
 

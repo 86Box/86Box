@@ -229,6 +229,9 @@ msgstr "前のイメージを再読み込み(&R)"
 msgid "&Image"
 msgstr "イメージ(&I)"
 
+msgid "&Folder..."
+msgstr "&Folder..."
+
 msgid "Target &framerate"
 msgstr "目標フレームレート(&F)"
 

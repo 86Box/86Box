@@ -229,6 +229,9 @@ msgstr "载入上一个镜像(&R)"
 msgid "&Image"
 msgstr "镜像(&I)"
 
+msgid "&Folder..."
+msgstr "&Folder..."
+
 msgid "Target &framerate"
 msgstr "目标帧率(&F)"
 

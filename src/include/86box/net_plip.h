@@ -15,11 +15,11 @@
  */
 
 #ifndef NET_PLIP_H
-# define NET_PLIP_H
-# include <86box/device.h>
-# include <86box/lpt.h>
+#define NET_PLIP_H
+#include <86box/device.h>
+#include <86box/lpt.h>
 
 extern const lpt_device_t lpt_plip_device;
-extern const device_t plip_device;
+extern const device_t     plip_device;
 
 #endif /*NET_PLIP_H*/

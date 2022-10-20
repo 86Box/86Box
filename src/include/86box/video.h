@@ -258,9 +258,6 @@ extern int get_actual_size_y(void);
 
 extern uint32_t video_color_transform(uint32_t color);
 
-extern void agpgart_set_aperture(void *handle, uint32_t base, uint32_t size, int enable);
-extern void agpgart_set_gart(void *handle, uint32_t base);
-
 #define video_inform(type, video_timings_ptr) video_inform_monitor(type, video_timings_ptr, monitor_index_global)
 #define video_get_type()                      video_get_type_monitor(0)
 #define video_blend(x, y)                     video_blend_monitor(x, y, monitor_index_global)
@@ -515,6 +512,7 @@ extern const device_t ibm_ps1_2121_device;
 extern const device_t tvga8900b_device;
 extern const device_t tvga8900d_device;
 extern const device_t tvga9000b_device;
+extern const device_t nec_sv9000_device;
 
 /* IBM VGA */
 extern const device_t vga_device;
@@ -535,8 +533,6 @@ extern const device_t velocity_100_agp_device;
 /* Wyse 700 */
 extern const device_t wy700_device;
 
-/* AGP GART */
-extern const device_t agpgart_device;
 #endif
 
 #endif /*EMU_VIDEO_H*/

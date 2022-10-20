@@ -21,31 +21,35 @@
 #include <86box/86box.h>
 #include <86box/fifo8.h>
 
-void fifo8_create(Fifo8 *fifo, uint32_t capacity)
+void
+fifo8_create(Fifo8 *fifo, uint32_t capacity)
 {
-    fifo->data = (uint8_t *)malloc(capacity);
-	memset(fifo->data, 0, capacity);
+    fifo->data = (uint8_t *) malloc(capacity);
+    memset(fifo->data, 0, capacity);
     fifo->capacity = capacity;
-    fifo->head = 0;
-    fifo->num = 0;
+    fifo->head     = 0;
+    fifo->num      = 0;
 }
 
-void fifo8_destroy(Fifo8 *fifo)
+void
+fifo8_destroy(Fifo8 *fifo)
 {
     if (fifo->data) {
-		free(fifo->data);
-		fifo->data = NULL;
-	}
+        free(fifo->data);
+        fifo->data = NULL;
+    }
 }
 
-void fifo8_push(Fifo8 *fifo, uint8_t data)
+void
+fifo8_push(Fifo8 *fifo, uint8_t data)
 {
     assert(fifo->num < fifo->capacity);
     fifo->data[(fifo->head + fifo->num) % fifo->capacity] = data;
     fifo->num++;
 }
 
-void fifo8_push_all(Fifo8 *fifo, const uint8_t *data, uint32_t num)
+void
+fifo8_push_all(Fifo8 *fifo, const uint8_t *data, uint32_t num)
 {
     uint32_t start, avail;
 
@@ -64,7 +68,8 @@ void fifo8_push_all(Fifo8 *fifo, const uint8_t *data, uint32_t num)
     fifo->num += num;
 }
 
-uint8_t fifo8_pop(Fifo8 *fifo)
+uint8_t
+fifo8_pop(Fifo8 *fifo)
 {
     uint8_t ret;
 
@@ -75,41 +80,47 @@ uint8_t fifo8_pop(Fifo8 *fifo)
     return ret;
 }
 
-const uint8_t *fifo8_pop_buf(Fifo8 *fifo, uint32_t max, uint32_t *num)
+const uint8_t *
+fifo8_pop_buf(Fifo8 *fifo, uint32_t max, uint32_t *num)
 {
     uint8_t *ret;
 
     assert(max > 0 && max <= fifo->num);
     *num = MIN(fifo->capacity - fifo->head, max);
-	ret = &fifo->data[fifo->head];
+    ret  = &fifo->data[fifo->head];
     fifo->head += *num;
     fifo->head %= fifo->capacity;
     fifo->num -= *num;
     return ret;
 }
 
-void fifo8_reset(Fifo8 *fifo)
+void
+fifo8_reset(Fifo8 *fifo)
 {
-    fifo->num = 0;
+    fifo->num  = 0;
     fifo->head = 0;
 }
 
-int fifo8_is_empty(Fifo8 *fifo)
+int
+fifo8_is_empty(Fifo8 *fifo)
 {
     return (fifo->num == 0);
 }
 
-int fifo8_is_full(Fifo8 *fifo)
+int
+fifo8_is_full(Fifo8 *fifo)
 {
     return (fifo->num == fifo->capacity);
 }
 
-uint32_t fifo8_num_free(Fifo8 *fifo)
+uint32_t
+fifo8_num_free(Fifo8 *fifo)
 {
     return fifo->capacity - fifo->num;
 }
 
-uint32_t fifo8_num_used(Fifo8 *fifo)
+uint32_t
+fifo8_num_used(Fifo8 *fifo)
 {
     return fifo->num;
 }

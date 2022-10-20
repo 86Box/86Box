@@ -637,117 +637,117 @@ ac97_codec_get(int model)
     if ((model >= 0) && (model < (sizeof(ac97_codecs) / sizeof(ac97_codecs[0]))))
         return ac97_codecs[model].device;
     else
-        return &cs4297a_device; /* fallback */
+        return &cs4297a_device;/* fallback */
 }
 
 const device_t ad1881_device = {
-    .name = "Analog Devices AD1881",
+    .name          = "Analog Devices AD1881",
     .internal_name = "ad1881",
-    .flags = DEVICE_AC97,
-    .local = AC97_CODEC_AD1881,
-    .init = ac97_codec_init,
-    .close = ac97_codec_close,
-    .reset = ac97_codec_reset,
+    .flags         = DEVICE_AC97,
+    .local         = AC97_CODEC_AD1881,
+    .init          = ac97_codec_init,
+    .close         = ac97_codec_close,
+    .reset         = ac97_codec_reset,
     { .available = NULL },
     .speed_changed = NULL,
-    .force_redraw = NULL,
-    .config = NULL
+    .force_redraw  = NULL,
+    .config        = NULL
 };
 
 const device_t ak4540_device = {
-    .name = "Asahi Kasei AK4540",
+    .name          = "Asahi Kasei AK4540",
     .internal_name = "ak4540",
-    .flags = DEVICE_AC97,
-    .local = AC97_CODEC_AK4540,
-    .init = ac97_codec_init,
-    .close = ac97_codec_close,
-    .reset = ac97_codec_reset,
+    .flags         = DEVICE_AC97,
+    .local         = AC97_CODEC_AK4540,
+    .init          = ac97_codec_init,
+    .close         = ac97_codec_close,
+    .reset         = ac97_codec_reset,
     { .available = NULL },
     .speed_changed = NULL,
-    .force_redraw = NULL,
-    .config = NULL
+    .force_redraw  = NULL,
+    .config        = NULL
 };
 
 const device_t alc100_device = {
-    .name = "Avance Logic ALC100",
+    .name          = "Avance Logic ALC100",
     .internal_name = "alc100",
-    .flags = DEVICE_AC97,
-    .local = AC97_CODEC_ALC100,
-    .init = ac97_codec_init,
-    .close = ac97_codec_close,
-    .reset = ac97_codec_reset,
+    .flags         = DEVICE_AC97,
+    .local         = AC97_CODEC_ALC100,
+    .init          = ac97_codec_init,
+    .close         = ac97_codec_close,
+    .reset         = ac97_codec_reset,
     { .available = NULL },
     .speed_changed = NULL,
-    .force_redraw = NULL,
-    .config = NULL
+    .force_redraw  = NULL,
+    .config        = NULL
 };
 
 const device_t cs4297_device = {
-    .name = "Crystal CS4297",
+    .name          = "Crystal CS4297",
     .internal_name = "cs4297",
-    .flags = DEVICE_AC97,
-    .local = AC97_CODEC_CS4297,
-    .init = ac97_codec_init,
-    .close = ac97_codec_close,
-    .reset = ac97_codec_reset,
+    .flags         = DEVICE_AC97,
+    .local         = AC97_CODEC_CS4297,
+    .init          = ac97_codec_init,
+    .close         = ac97_codec_close,
+    .reset         = ac97_codec_reset,
     { .available = NULL },
     .speed_changed = NULL,
-    .force_redraw = NULL,
-    .config = NULL
+    .force_redraw  = NULL,
+    .config        = NULL
 };
 
 const device_t cs4297a_device = {
-    .name = "Crystal CS4297A",
+    .name          = "Crystal CS4297A",
     .internal_name = "cs4297a",
-    .flags = DEVICE_AC97,
-    .local = AC97_CODEC_CS4297A,
-    .init = ac97_codec_init,
-    .close = ac97_codec_close,
-    .reset = ac97_codec_reset,
+    .flags         = DEVICE_AC97,
+    .local         = AC97_CODEC_CS4297A,
+    .init          = ac97_codec_init,
+    .close         = ac97_codec_close,
+    .reset         = ac97_codec_reset,
     { .available = NULL },
     .speed_changed = NULL,
-    .force_redraw = NULL,
-    .config = NULL
+    .force_redraw  = NULL,
+    .config        = NULL
 };
 
 const device_t stac9708_device = {
-    .name = "SigmaTel STAC9708",
+    .name          = "SigmaTel STAC9708",
     .internal_name = "stac9708",
-    .flags = DEVICE_AC97,
-    .local = AC97_CODEC_STAC9708,
-    .init = ac97_codec_init,
-    .close = ac97_codec_close,
-    .reset = ac97_codec_reset,
+    .flags         = DEVICE_AC97,
+    .local         = AC97_CODEC_STAC9708,
+    .init          = ac97_codec_init,
+    .close         = ac97_codec_close,
+    .reset         = ac97_codec_reset,
     { .available = NULL },
     .speed_changed = NULL,
-    .force_redraw = NULL,
-    .config = NULL
+    .force_redraw  = NULL,
+    .config        = NULL
 };
 
 const device_t stac9721_device = {
-    .name = "SigmaTel STAC9721",
+    .name          = "SigmaTel STAC9721",
     .internal_name = "stac9721",
-    .flags = DEVICE_AC97,
-    .local = AC97_CODEC_STAC9721,
-    .init = ac97_codec_init,
-    .close = ac97_codec_close,
-    .reset = ac97_codec_reset,
+    .flags         = DEVICE_AC97,
+    .local         = AC97_CODEC_STAC9721,
+    .init          = ac97_codec_init,
+    .close         = ac97_codec_close,
+    .reset         = ac97_codec_reset,
     { .available = NULL },
     .speed_changed = NULL,
-    .force_redraw = NULL,
-    .config = NULL
+    .force_redraw  = NULL,
+    .config        = NULL
 };
 
 const device_t wm9701a_device = {
-    .name = "Wolfson WM9701A",
+    .name          = "Wolfson WM9701A",
     .internal_name = "wm9701a",
-    .flags = DEVICE_AC97,
-    .local = AC97_CODEC_WM9701A,
-    .init = ac97_codec_init,
-    .close = ac97_codec_close,
-    .reset = ac97_codec_reset,
+    .flags         = DEVICE_AC97,
+    .local         = AC97_CODEC_WM9701A,
+    .init          = ac97_codec_init,
+    .close         = ac97_codec_close,
+    .reset         = ac97_codec_reset,
     { .available = NULL },
     .speed_changed = NULL,
-    .force_redraw = NULL,
-    .config = NULL
+    .force_redraw  = NULL,
+    .config        = NULL
 };

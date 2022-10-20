@@ -45,9 +45,13 @@ void codegen_accumulate(int acc_reg, int delta)
 void codegen_accumulate_flush(void)
 {
 	if (acc_regs[0].count) {
-		addbyte(0x81); /*ADD $acc_regs[0].count,acc_regs[0].dest*/
-		addbyte(0x05);
-		addlong((uint32_t) acc_regs[0].dest_reg);
+                /* To reduce the size of the generated code, we take advantage of
+                   the fact that the target offset points to _cycles within cpu_state,
+                   so we can just use our existing infrastracture for variables
+                   relative to cpu_state. */
+		addbyte(0x81); /*MOVL $acc_regs[0].count,(_cycles)*/
+		addbyte(0x45);
+		addbyte((uint8_t)cpu_state_offset(_cycles));
 		addlong(acc_regs[0].count);
 	}
 

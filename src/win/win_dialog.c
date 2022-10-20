@@ -172,7 +172,8 @@ file_dlg_w(HWND hwnd, WCHAR *f, WCHAR *fn, WCHAR *title, int save)
      * not use the contents of szFile to initialize itself.
      */
     memset(ofn.lpstrFile, 0x00, 512 * sizeof(WCHAR));
-    memcpy(ofn.lpstrFile, fn, (wcslen(fn) << 1) + 2);
+    if (fn)
+        memcpy(ofn.lpstrFile, fn, (wcslen(fn) << 1) + 2);
     ofn.nMaxFile        = sizeof_w(wopenfilestring);
     ofn.lpstrFilter     = f;
     ofn.nFilterIndex    = 1;
@@ -211,11 +212,12 @@ file_dlg(HWND hwnd, WCHAR *f, char *fn, char *title, int save)
 {
     WCHAR ufn[512], title_buf[512];
 
-    mbstoc16s(ufn, fn, strlen(fn) + 1);
+    if (fn)
+        mbstoc16s(ufn, fn, strlen(fn) + 1);
     if (title)
         mbstoc16s(title_buf, title, sizeof title_buf);
 
-    return (file_dlg_w(hwnd, f, ufn, title ? title_buf : NULL, save));
+    return (file_dlg_w(hwnd, f, fn ? ufn : NULL, title ? title_buf : NULL, save));
 }
 
 int

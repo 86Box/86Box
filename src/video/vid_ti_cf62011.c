@@ -66,30 +66,28 @@
 #include <86box/video.h>
 #include <86box/vid_svga.h>
 
-
 typedef struct {
-    svga_t	svga;
+    svga_t svga;
 
-    rom_t	bios_rom;
+    rom_t bios_rom;
 
-    int		enabled;
+    int enabled;
 
-    uint32_t	vram_size;
+    uint32_t vram_size;
 
-    uint8_t	banking;
-    uint8_t	reg_2100;
-    uint8_t	reg_210a;
+    uint8_t banking;
+    uint8_t reg_2100;
+    uint8_t reg_210a;
 } tivga_t;
 
-static video_timings_t timing_ti_cf62011 = {VIDEO_ISA, 6, 8,16, 6, 8,16};
-
+static video_timings_t timing_ti_cf62011 = { .type = VIDEO_ISA, .write_b = 6, .write_w = 8, .write_l = 16, .read_b = 6, .read_w = 8, .read_l = 16 };
 
 static void
 vid_out(uint16_t addr, uint8_t val, void *priv)
 {
-    tivga_t *ti = (tivga_t *)priv;
-    svga_t *svga = &ti->svga;
-    uint8_t old;
+    tivga_t *ti   = (tivga_t *) priv;
+    svga_t  *svga = &ti->svga;
+    uint8_t  old;
 
 #if 0
     if (((addr & 0xfff0) == 0x03d0 || (addr & 0xfff0) == 0x03b0) &&
@@ -97,60 +95,59 @@ vid_out(uint16_t addr, uint8_t val, void *priv)
 #endif
 
     switch (addr) {
-	case 0x0102:
-		ti->enabled = (val & 0x01);
-		return;
+        case 0x0102:
+            ti->enabled = (val & 0x01);
+            return;
 
-	case 0x03d4:
-		svga->crtcreg = val & 0x3f;
-		return;
+        case 0x03d4:
+            svga->crtcreg = val & 0x3f;
+            return;
 
-	case 0x03d5:
-		if (svga->crtcreg & 0x20)
-			return;
-		if ((svga->crtcreg < 7) && (svga->crtc[0x11] & 0x80))
-			return;
-		if ((svga->crtcreg == 7) && (svga->crtc[0x11] & 0x80))
-			val = (svga->crtc[7] & ~0x10) | (val & 0x10);
-		old = svga->crtc[svga->crtcreg];
-		svga->crtc[svga->crtcreg] = val;
-		if (old != val) {
-			if (svga->crtcreg < 0xe || svga->crtcreg > 0x10) {
-				svga->fullchange = changeframecount;
-				svga_recalctimings(svga);
-			}
-		}
-		break;
+        case 0x03d5:
+            if (svga->crtcreg & 0x20)
+                return;
+            if ((svga->crtcreg < 7) && (svga->crtc[0x11] & 0x80))
+                return;
+            if ((svga->crtcreg == 7) && (svga->crtc[0x11] & 0x80))
+                val = (svga->crtc[7] & ~0x10) | (val & 0x10);
+            old                       = svga->crtc[svga->crtcreg];
+            svga->crtc[svga->crtcreg] = val;
+            if (old != val) {
+                if (svga->crtcreg < 0xe || svga->crtcreg > 0x10) {
+                    svga->fullchange = changeframecount;
+                    svga_recalctimings(svga);
+                }
+            }
+            break;
 
-	case 0x2100:
-		ti->reg_2100 = val;
-		if ((val & 7) < 4)
-			svga->read_bank = svga->write_bank = 0;
-		  else
-			svga->read_bank = svga->write_bank = (ti->banking & 0x7) * 0x10000;
-		break;
+        case 0x2100:
+            ti->reg_2100 = val;
+            if ((val & 7) < 4)
+                svga->read_bank = svga->write_bank = 0;
+            else
+                svga->read_bank = svga->write_bank = (ti->banking & 0x7) * 0x10000;
+            break;
 
-	case 0x2108:
-		if ((ti->reg_2100 & 7) >= 4)
-			svga->read_bank = svga->write_bank = (val & 0x7) * 0x10000;
-		ti->banking = val;
-		break;
+        case 0x2108:
+            if ((ti->reg_2100 & 7) >= 4)
+                svga->read_bank = svga->write_bank = (val & 0x7) * 0x10000;
+            ti->banking = val;
+            break;
 
-	case 0x210a:
-		ti->reg_210a = val;
-		break;
+        case 0x210a:
+            ti->reg_210a = val;
+            break;
     }
 
     svga_out(addr, val, svga);
 }
 
-
 static uint8_t
 vid_in(uint16_t addr, void *priv)
 {
-    tivga_t *ti = (tivga_t *)priv;
-    svga_t *svga = &ti->svga;
-    uint8_t ret;
+    tivga_t *ti   = (tivga_t *) priv;
+    svga_t  *svga = &ti->svga;
+    uint8_t  ret;
 
 #if 0
     if (((addr & 0xfff0) == 0x03d0 || (addr & 0xfff0) == 0x03b0) &&
@@ -158,78 +155,74 @@ vid_in(uint16_t addr, void *priv)
 #endif
 
     switch (addr) {
-	case 0x0100:
-		ret = 0xfe;
-		break;
+        case 0x0100:
+            ret = 0xfe;
+            break;
 
-	case 0x0101:
-		ret = 0xe8;
-		break;
+        case 0x0101:
+            ret = 0xe8;
+            break;
 
-	case 0x0102:
-		ret = ti->enabled;
-		break;
+        case 0x0102:
+            ret = ti->enabled;
+            break;
 
-	case 0x03d4:
-		ret = svga->crtcreg;
-		break;
+        case 0x03d4:
+            ret = svga->crtcreg;
+            break;
 
-	case 0x03d5:
-		if (svga->crtcreg & 0x20)
-			ret = 0xff;
-		else
-			ret = svga->crtc[svga->crtcreg];
-		break;
+        case 0x03d5:
+            if (svga->crtcreg & 0x20)
+                ret = 0xff;
+            else
+                ret = svga->crtc[svga->crtcreg];
+            break;
 
-	case 0x2100:
-		ret = ti->reg_2100;
-		break;
+        case 0x2100:
+            ret = ti->reg_2100;
+            break;
 
-	case 0x2108:
-		ret = ti->banking;
-		break;
+        case 0x2108:
+            ret = ti->banking;
+            break;
 
-	case 0x210a:
-		ret = ti->reg_210a;
-		break;
+        case 0x210a:
+            ret = ti->reg_210a;
+            break;
 
-	default:
-		ret = svga_in(addr, svga);
-		break;
+        default:
+            ret = svga_in(addr, svga);
+            break;
     }
 
-    return(ret);
+    return (ret);
 }
-
 
 static void
 vid_speed_changed(void *priv)
 {
-    tivga_t *ti = (tivga_t *)priv;
+    tivga_t *ti = (tivga_t *) priv;
 
     svga_recalctimings(&ti->svga);
 }
 
-
 static void
 vid_force_redraw(void *priv)
 {
-    tivga_t *ti = (tivga_t *)priv;
+    tivga_t *ti = (tivga_t *) priv;
 
     ti->svga.fullchange = changeframecount;
 }
 
-
 static void
 vid_close(void *priv)
 {
-    tivga_t *ti = (tivga_t *)priv;
+    tivga_t *ti = (tivga_t *) priv;
 
     svga_close(&ti->svga);
 
     free(ti);
 }
-
 
 static void *
 vid_init(const device_t *info)
@@ -237,41 +230,41 @@ vid_init(const device_t *info)
     tivga_t *ti;
 
     /* Allocate control block and initialize. */
-    ti = (tivga_t *)malloc(sizeof(tivga_t));
+    ti = (tivga_t *) malloc(sizeof(tivga_t));
     memset(ti, 0x00, sizeof(tivga_t));
 
     /* Set amount of VRAM in KB. */
     if (info->local == 0)
-	ti->vram_size = device_get_config_int("vram_size");
+        ti->vram_size = device_get_config_int("vram_size");
     else
-	ti->vram_size = info->local;
+        ti->vram_size = info->local;
 
     video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_ti_cf62011);
 
     svga_init(info, &ti->svga, ti,
-	      ti->vram_size<<10,
-	      NULL, vid_in, vid_out, NULL, NULL);
+              ti->vram_size << 10,
+              NULL, vid_in, vid_out, NULL, NULL);
 
     io_sethandler(0x0100, 2, vid_in, NULL, NULL, NULL, NULL, NULL, ti);
     io_sethandler(0x03c0, 32, vid_in, NULL, NULL, vid_out, NULL, NULL, ti);
     io_sethandler(0x2100, 16, vid_in, NULL, NULL, vid_out, NULL, NULL, ti);
 
-    ti->svga.bpp = 8;
+    ti->svga.bpp     = 8;
     ti->svga.miscout = 1;
 
-    return(ti);
+    return (ti);
 }
 
 const device_t ibm_ps1_2121_device = {
-    .name = "IBM PS/1 Model 2121 SVGA",
+    .name          = "IBM PS/1 Model 2121 SVGA",
     .internal_name = "ibm_ps1_2121",
-    .flags = DEVICE_ISA,
-    .local = 512,
-    .init = vid_init,
-    .close = vid_close,
-    .reset = NULL,
+    .flags         = DEVICE_ISA,
+    .local         = 512,
+    .init          = vid_init,
+    .close         = vid_close,
+    .reset         = NULL,
     { .available = NULL },
     .speed_changed = vid_speed_changed,
-    .force_redraw = vid_force_redraw,
-    .config = NULL
+    .force_redraw  = vid_force_redraw,
+    .config        = NULL
 };

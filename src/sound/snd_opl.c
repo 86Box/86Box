@@ -36,30 +36,31 @@
 static uint32_t fm_dev_inst[FM_DRV_MAX][FM_MAX];
 
 uint8_t
-fm_driver_get(int chip_id, fm_drv_t *drv) {
+fm_driver_get(int chip_id, fm_drv_t *drv)
+{
     switch (chip_id) {
         case FM_YM3812:
             if (fm_driver == FM_DRV_NUKED) {
-                *drv = nuked_opl_drv;
+                *drv      = nuked_opl_drv;
                 drv->priv = device_add_inst(&ym3812_nuked_device, fm_dev_inst[fm_driver][chip_id]++);
             } else {
-                *drv = ymfm_drv;
+                *drv      = ymfm_drv;
                 drv->priv = device_add_inst(&ym3812_ymfm_device, fm_dev_inst[fm_driver][chip_id]++);
             }
             break;
 
         case FM_YMF262:
             if (fm_driver == FM_DRV_NUKED) {
-                *drv = nuked_opl_drv;
+                *drv      = nuked_opl_drv;
                 drv->priv = device_add_inst(&ymf262_nuked_device, fm_dev_inst[fm_driver][chip_id]++);
             } else {
-                *drv = ymfm_drv;
+                *drv      = ymfm_drv;
                 drv->priv = device_add_inst(&ymf262_ymfm_device, fm_dev_inst[fm_driver][chip_id]++);
             }
             break;
 
         case FM_YMF289B:
-            *drv = ymfm_drv;
+            *drv      = ymfm_drv;
             drv->priv = device_add_inst(&ymf289b_ymfm_device, fm_dev_inst[fm_driver][chip_id]++);
             break;
 

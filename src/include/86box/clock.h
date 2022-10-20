@@ -15,7 +15,7 @@
  *		Copyright 2020 RichardG.
  */
 #ifndef EMU_CLOCK_H
-# define EMU_CLOCK_H
+#define EMU_CLOCK_H
 
 /* clock_ics9xxx.c */
 enum {
@@ -54,9 +54,7 @@ enum {
     ICS9xxx_MAX
 };
 
-
 /* clock_ics9xxx.c */
-extern device_t	*ics9xxx_get(uint8_t model);
+extern device_t *ics9xxx_get(uint8_t model);
 
-
-#endif	/*EMU_CLOCK_H*/
+#endif /*EMU_CLOCK_H*/

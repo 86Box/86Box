@@ -28,17 +28,18 @@ extern "C" {
 #include <86box/snd_opl.h>
 }
 
-#define RSM_FRAC  10
+#define RSM_FRAC 10
 
 enum {
     FLAG_CYCLES = (1 << 0)
 };
 
-class YMFMChipBase
-{
+class YMFMChipBase {
 public:
     YMFMChipBase(uint32_t clock, fm_type type, uint32_t samplerate)
-        : m_buf_pos(0), m_flags(0), m_type(type)
+        : m_buf_pos(0)
+        , m_flags(0)
+        , m_type(type)
     {
         memset(m_buffer, 0, sizeof(m_buffer));
     }
@@ -47,30 +48,29 @@ public:
     {
     }
 
-    fm_type        type() const { return m_type; }
-    int8_t flags() const { return m_flags; }
-    void set_do_cycles(int8_t do_cycles) { do_cycles ? m_flags |= FLAG_CYCLES : m_flags &= ~FLAG_CYCLES; }
-    int32_t *buffer() const { return (int32_t *)m_buffer; }
-    void reset_buffer() { m_buf_pos = 0; }
+    fm_type  type() const { return m_type; }
+    int8_t   flags() const { return m_flags; }
+    void     set_do_cycles(int8_t do_cycles) { do_cycles ? m_flags |= FLAG_CYCLES : m_flags &= ~FLAG_CYCLES; }
+    int32_t *buffer() const { return (int32_t *) m_buffer; }
+    void     reset_buffer() { m_buf_pos = 0; }
 
     virtual uint32_t sample_rate() const = 0;
 
-    virtual void    write(uint16_t addr, uint8_t data)                      = 0;
-    virtual void    generate(int32_t *data, uint32_t num_samples)           = 0;
-    virtual void    generate_resampled(int32_t *data, uint32_t num_samples) = 0;
-    virtual int32_t *    update() = 0;
-    virtual uint8_t read(uint16_t addr)                                     = 0;
+    virtual void     write(uint16_t addr, uint8_t data)                      = 0;
+    virtual void     generate(int32_t *data, uint32_t num_samples)           = 0;
+    virtual void     generate_resampled(int32_t *data, uint32_t num_samples) = 0;
+    virtual int32_t *update()                                                = 0;
+    virtual uint8_t  read(uint16_t addr)                                     = 0;
 
 protected:
     int32_t m_buffer[SOUNDBUFLEN * 2];
-    int m_buf_pos;
-    int8_t m_flags;
+    int     m_buf_pos;
+    int8_t  m_flags;
     fm_type m_type;
 };
 
 template <typename ChipType>
-class YMFMChip : public YMFMChipBase, public ymfm::ymfm_interface
-{
+class YMFMChip : public YMFMChipBase, public ymfm::ymfm_interface {
 public:
     YMFMChip(uint32_t clock, fm_type type, uint32_t samplerate)
         : YMFMChipBase(clock, type, samplerate)
@@ -80,11 +80,11 @@ public:
     {
         memset(m_samples, 0, sizeof(m_samples));
         memset(m_oldsamples, 0, sizeof(m_oldsamples));
-        m_rateratio = (samplerate << RSM_FRAC) / m_chip.sample_rate(m_clock);
-        m_clock_us  = 1000000 / (double) m_clock;
+        m_rateratio   = (samplerate << RSM_FRAC) / m_chip.sample_rate(m_clock);
+        m_clock_us    = 1000000 / (double) m_clock;
         m_subtract[0] = 80.0;
         m_subtract[1] = 320.0;
-        m_type = type;
+        m_type        = type;
 
         timer_add(&m_timers[0], YMFMChip::timer1, this, 0);
         timer_add(&m_timers[1], YMFMChip::timer2, this, 0);
@@ -126,7 +126,7 @@ public:
         }
     }
 
-virtual void generate_resampled(int32_t *data, uint32_t num_samples) override
+    virtual void generate_resampled(int32_t *data, uint32_t num_samples) override
     {
         for (uint32_t i = 0; i < num_samples; i++) {
             while (m_samplecnt >= m_rateratio) {
@@ -144,11 +144,11 @@ virtual void generate_resampled(int32_t *data, uint32_t num_samples) override
             }
 
             *data++ = ((int32_t) ((m_oldsamples[0] * (m_rateratio - m_samplecnt)
-                                  + m_samples[0] * m_samplecnt)
-                                 / m_rateratio));
+                                   + m_samples[0] * m_samplecnt)
+                                  / m_rateratio));
             *data++ = ((int32_t) ((m_oldsamples[1] * (m_rateratio - m_samplecnt)
-                                  + m_samples[1] * m_samplecnt)
-                                 / m_rateratio));
+                                   + m_samples[1] * m_samplecnt)
+                                  / m_rateratio));
 
             m_samplecnt += 1 << RSM_FRAC;
         }
@@ -197,21 +197,20 @@ virtual void generate_resampled(int32_t *data, uint32_t num_samples) override
     }
 
 private:
-    ChipType   m_chip;
-    uint32_t   m_clock;
-    double     m_clock_us, m_subtract[2];
+    ChipType                       m_chip;
+    uint32_t                       m_clock;
+    double                         m_clock_us, m_subtract[2];
     typename ChipType::output_data m_output;
-    pc_timer_t m_timers[2];
+    pc_timer_t                     m_timers[2];
 
     // Resampling
-    int32_t    m_rateratio;
-    int32_t    m_samplecnt;
-    int32_t    m_oldsamples[2];
-    int32_t    m_samples[2];
+    int32_t m_rateratio;
+    int32_t m_samplecnt;
+    int32_t m_oldsamples[2];
+    int32_t m_samples[2];
 };
 
-extern "C"
-{
+extern "C" {
 #include <stdarg.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -271,7 +270,7 @@ ymfm_drv_close(void *priv)
     YMFMChipBase *drv = (YMFMChipBase *) priv;
 
     if (drv != NULL)
-        delete(drv);
+        delete (drv);
 }
 
 static uint8_t
@@ -300,14 +299,16 @@ ymfm_drv_write(uint16_t port, uint8_t val, void *priv)
 }
 
 static int32_t *
-ymfm_drv_update(void *priv) {
+ymfm_drv_update(void *priv)
+{
     YMFMChipBase *drv = (YMFMChipBase *) priv;
 
     return drv->update();
 }
 
 static void
-ymfm_drv_reset_buffer(void *priv) {
+ymfm_drv_reset_buffer(void *priv)
+{
     YMFMChipBase *drv = (YMFMChipBase *) priv;
 
     drv->reset_buffer();
@@ -321,45 +322,45 @@ ymfm_drv_set_do_cycles(void *priv, int8_t do_cycles)
 }
 
 const device_t ym3812_ymfm_device = {
-    .name = "Yamaha YM3812 OPL2 (YMFM)",
+    .name          = "Yamaha YM3812 OPL2 (YMFM)",
     .internal_name = "ym3812_ymfm",
-    .flags = 0,
-    .local = FM_YM3812,
-    .init = ymfm_drv_init,
-    .close = ymfm_drv_close,
-    .reset = NULL,
+    .flags         = 0,
+    .local         = FM_YM3812,
+    .init          = ymfm_drv_init,
+    .close         = ymfm_drv_close,
+    .reset         = NULL,
     { .available = NULL },
     .speed_changed = NULL,
-    .force_redraw = NULL,
-    .config = NULL
+    .force_redraw  = NULL,
+    .config        = NULL
 };
 
 const device_t ymf262_ymfm_device = {
-    .name = "Yamaha YMF262 OPL3 (YMFM)",
+    .name          = "Yamaha YMF262 OPL3 (YMFM)",
     .internal_name = "ymf262_ymfm",
-    .flags = 0,
-    .local = FM_YMF262,
-    .init = ymfm_drv_init,
-    .close = ymfm_drv_close,
-    .reset = NULL,
+    .flags         = 0,
+    .local         = FM_YMF262,
+    .init          = ymfm_drv_init,
+    .close         = ymfm_drv_close,
+    .reset         = NULL,
     { .available = NULL },
     .speed_changed = NULL,
-    .force_redraw = NULL,
-    .config = NULL
+    .force_redraw  = NULL,
+    .config        = NULL
 };
 
 const device_t ymf289b_ymfm_device = {
-    .name = "Yamaha YMF289B OPL3-L (YMFM)",
+    .name          = "Yamaha YMF289B OPL3-L (YMFM)",
     .internal_name = "ymf289b_ymfm",
-    .flags = 0,
-    .local = FM_YMF289B,
-    .init = ymfm_drv_init,
-    .close = ymfm_drv_close,
-    .reset = NULL,
+    .flags         = 0,
+    .local         = FM_YMF289B,
+    .init          = ymfm_drv_init,
+    .close         = ymfm_drv_close,
+    .reset         = NULL,
     { .available = NULL },
     .speed_changed = NULL,
-    .force_redraw = NULL,
-    .config = NULL
+    .force_redraw  = NULL,
+    .config        = NULL
 };
 
 const fm_drv_t ymfm_drv {
@@ -370,5 +371,4 @@ const fm_drv_t ymfm_drv {
     &ymfm_drv_set_do_cycles,
     NULL,
 };
-
 }

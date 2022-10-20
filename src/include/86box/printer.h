@@ -46,20 +46,18 @@
  */
 
 #ifndef PRINTER_H
-# define PRINTER_H
+#define PRINTER_H
 
-#define FONT_FILE_DOTMATRIX	"dotmatrix.ttf"
+#define FONT_FILE_DOTMATRIX "dotmatrix.ttf"
 
-#define FONT_FILE_ROMAN		"roman.ttf"
-#define FONT_FILE_SANSSERIF	"sansserif.ttf"
-#define FONT_FILE_COURIER	"courier.ttf"
-#define FONT_FILE_SCRIPT	"script.ttf"
-#define FONT_FILE_OCRA		"ocra.ttf"
-#define FONT_FILE_OCRB		"ocra.ttf"
-
+#define FONT_FILE_ROMAN     "roman.ttf"
+#define FONT_FILE_SANSSERIF "sansserif.ttf"
+#define FONT_FILE_COURIER   "courier.ttf"
+#define FONT_FILE_SCRIPT    "script.ttf"
+#define FONT_FILE_OCRA      "ocra.ttf"
+#define FONT_FILE_OCRB      "ocra.ttf"
 
 extern void
 select_codepage(uint16_t code, uint16_t *curmap);
 
-
-#endif	/*PRINTER_H*/
+#endif /*PRINTER_H*/

@@ -49,70 +49,66 @@
 #include <86box/nvr_ps2.h>
 #include <86box/rom.h>
 
-
 typedef struct {
-    int		addr;
+    int addr;
 
-    uint8_t	*ram;
-    int     size;
+    uint8_t *ram;
+    int      size;
 
-    char	*fn;
+    char *fn;
 } ps2_nvr_t;
-
 
 static uint8_t
 ps2_nvr_read(uint16_t port, void *priv)
 {
-    ps2_nvr_t *nvr = (ps2_nvr_t *)priv;
-    uint8_t ret = 0xff;
+    ps2_nvr_t *nvr = (ps2_nvr_t *) priv;
+    uint8_t    ret = 0xff;
 
     switch (port) {
-	case 0x74:
-		ret = nvr->addr & 0xff;
-		break;
+        case 0x74:
+            ret = nvr->addr & 0xff;
+            break;
 
-	case 0x75:
-		ret = nvr->addr >> 8;
-		break;
+        case 0x75:
+            ret = nvr->addr >> 8;
+            break;
 
-	case 0x76:
-		ret = nvr->ram[nvr->addr];
-		break;
+        case 0x76:
+            ret = nvr->ram[nvr->addr];
+            break;
     }
 
-    return(ret);
+    return (ret);
 }
-
 
 static void
 ps2_nvr_write(uint16_t port, uint8_t val, void *priv)
 {
-    ps2_nvr_t *nvr = (ps2_nvr_t *)priv;
+    ps2_nvr_t *nvr = (ps2_nvr_t *) priv;
 
     switch (port) {
-	case 0x74:
-		nvr->addr = (nvr->addr & 0x1f00) | val;
-		break;
+        case 0x74:
+            nvr->addr = (nvr->addr & 0x1f00) | val;
+            break;
 
-	case 0x75:
-		nvr->addr = (nvr->addr & 0xff) | ((val & 0x1f) << 8);
-		break;
+        case 0x75:
+            nvr->addr = (nvr->addr & 0xff) | ((val & 0x1f) << 8);
+            break;
 
-	case 0x76:
-		nvr->ram[nvr->addr] = val;
-		break;
+        case 0x76:
+            nvr->ram[nvr->addr] = val;
+            break;
     }
 }
-
 
 static void *
 ps2_nvr_init(const device_t *info)
 {
     ps2_nvr_t *nvr;
-    FILE *f = NULL;
-    int c;
+    FILE      *f = NULL;
+    int        c;
 
-    nvr = (ps2_nvr_t *)malloc(sizeof(ps2_nvr_t));
+    nvr = (ps2_nvr_t *) malloc(sizeof(ps2_nvr_t));
     memset(nvr, 0x00, sizeof(ps2_nvr_t));
 
     if (info->local)
@@ -121,38 +117,37 @@ ps2_nvr_init(const device_t *info)
         nvr->size = 8192;
 
     /* Set up the NVR file's name. */
-    c = strlen(machine_get_internal_name()) + 9;
-    nvr->fn = (char *)malloc(c + 1);
+    c       = strlen(machine_get_internal_name()) + 9;
+    nvr->fn = (char *) malloc(c + 1);
     sprintf(nvr->fn, "%s_sec.nvr", machine_get_internal_name());
 
     io_sethandler(0x0074, 3,
-		  ps2_nvr_read,NULL,NULL, ps2_nvr_write,NULL,NULL, nvr);
+                  ps2_nvr_read, NULL, NULL, ps2_nvr_write, NULL, NULL, nvr);
 
     f = nvr_fopen(nvr->fn, "rb");
 
-    nvr->ram = (uint8_t *)malloc(nvr->size);
+    nvr->ram = (uint8_t *) malloc(nvr->size);
     memset(nvr->ram, 0xff, nvr->size);
     if (f != NULL) {
-	if (fread(nvr->ram, 1, nvr->size, f) != nvr->size)
-		fatal("ps2_nvr_init(): Error reading EEPROM data\n");
-	fclose(f);
+        if (fread(nvr->ram, 1, nvr->size, f) != nvr->size)
+            fatal("ps2_nvr_init(): Error reading EEPROM data\n");
+        fclose(f);
     }
 
-    return(nvr);
+    return (nvr);
 }
-
 
 static void
 ps2_nvr_close(void *priv)
 {
-    ps2_nvr_t *nvr = (ps2_nvr_t *)priv;
-    FILE *f = NULL;
+    ps2_nvr_t *nvr = (ps2_nvr_t *) priv;
+    FILE      *f   = NULL;
 
     f = nvr_fopen(nvr->fn, "wb");
 
     if (f != NULL) {
-	(void)fwrite(nvr->ram, nvr->size, 1, f);
-	fclose(f);
+        (void) fwrite(nvr->ram, nvr->size, 1, f);
+        fclose(f);
     }
 
     if (nvr->ram != NULL)
@@ -162,29 +157,29 @@ ps2_nvr_close(void *priv)
 }
 
 const device_t ps2_nvr_device = {
-    .name = "PS/2 Secondary NVRAM for PS/2 Models 70-80",
+    .name          = "PS/2 Secondary NVRAM for PS/2 Models 70-80",
     .internal_name = "ps2_nvr",
-    .flags = 0,
-    .local = 0,
-    .init = ps2_nvr_init,
-    .close = ps2_nvr_close,
-    .reset = NULL,
+    .flags         = 0,
+    .local         = 0,
+    .init          = ps2_nvr_init,
+    .close         = ps2_nvr_close,
+    .reset         = NULL,
     { .available = NULL },
     .speed_changed = NULL,
-    .force_redraw = NULL,
-    .config = NULL
+    .force_redraw  = NULL,
+    .config        = NULL
 };
 
 const device_t ps2_nvr_55ls_device = {
-    .name = "PS/2 Secondary NVRAM for PS/2 Models 55LS-65SX",
+    .name          = "PS/2 Secondary NVRAM for PS/2 Models 55LS-65SX",
     .internal_name = "ps2_nvr_55ls",
-    .flags = 0,
-    .local = 1,
-    .init = ps2_nvr_init,
-    .close = ps2_nvr_close,
-    .reset = NULL,
+    .flags         = 0,
+    .local         = 1,
+    .init          = ps2_nvr_init,
+    .close         = ps2_nvr_close,
+    .reset         = NULL,
     { .available = NULL },
     .speed_changed = NULL,
-    .force_redraw = NULL,
-    .config = NULL
+    .force_redraw  = NULL,
+    .config        = NULL
 };

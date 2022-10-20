@@ -45,7 +45,7 @@ static int mvhd_init_sector_bitmap(MVHDMeta* vhdm, MVHDError* err);
 static void mvhd_read_footer(MVHDMeta* vhdm) {
     uint8_t buffer[MVHD_FOOTER_SIZE];
     mvhd_fseeko64(vhdm->f, -MVHD_FOOTER_SIZE, SEEK_END);
-    fread(buffer, sizeof buffer, 1, vhdm->f);
+    (void) !fread(buffer, sizeof buffer, 1, vhdm->f);
     mvhd_buffer_to_footer(&vhdm->footer, buffer);
 }
 
@@ -57,7 +57,7 @@ static void mvhd_read_footer(MVHDMeta* vhdm) {
 static void mvhd_read_sparse_header(MVHDMeta* vhdm) {
     uint8_t buffer[MVHD_SPARSE_SIZE];
     mvhd_fseeko64(vhdm->f, vhdm->footer.data_offset, SEEK_SET);
-    fread(buffer, sizeof buffer, 1, vhdm->f);
+    (void) !fread(buffer, sizeof buffer, 1, vhdm->f);
     mvhd_buffer_to_header(&vhdm->sparse, buffer);
 }
 
@@ -104,7 +104,7 @@ static int mvhd_read_bat(MVHDMeta *vhdm, MVHDError* err) {
     }
     mvhd_fseeko64(vhdm->f, vhdm->sparse.bat_offset, SEEK_SET);
     for (uint32_t i = 0; i < vhdm->sparse.max_bat_ent; i++) {
-        fread(&vhdm->block_offset[i], sizeof *vhdm->block_offset, 1, vhdm->f);
+        (void) !fread(&vhdm->block_offset[i], sizeof *vhdm->block_offset, 1, vhdm->f);
         vhdm->block_offset[i] = mvhd_from_be32(vhdm->block_offset[i]);
     }
     return 0;
@@ -254,7 +254,7 @@ static char* mvhd_get_diff_parent_path(MVHDMeta* vhdm, int* err) {
             goto paths_cleanup;
         }
         mvhd_fseeko64(vhdm->f, vhdm->sparse.par_loc_entry[i].plat_data_offset, SEEK_SET);
-        fread(paths->tmp_src_path, sizeof (uint8_t), utf_inlen, vhdm->f);
+        (void) !fread(paths->tmp_src_path, sizeof (uint8_t), utf_inlen, vhdm->f);
         /* Note, the W2*u parent locators are UTF-16LE, unlike the filename field previously obtained,
            which is UTF-16BE */
         utf_ret = UTF16LEToUTF8(loc_path, &utf_outlen, (const unsigned char*)paths->tmp_src_path, &utf_inlen);
@@ -322,7 +322,7 @@ bool mvhd_file_is_vhd(FILE* f) {
     if (f) {
         uint8_t con_str[8];
         mvhd_fseeko64(f, -MVHD_FOOTER_SIZE, SEEK_END);
-        fread(con_str, sizeof con_str, 1, f);
+        (void) !fread(con_str, sizeof con_str, 1, f);
         return mvhd_is_conectix_str(con_str);
     } else {
         return false;

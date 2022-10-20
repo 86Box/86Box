@@ -44,89 +44,84 @@
 #include <86box/hdc.h>
 #include <86box/hdc_ide.h>
 
-
-#define ROM_PATH_XT	"roms/hdd/xtide/ide_xt.bin"
-#define ROM_PATH_AT	"roms/hdd/xtide/ide_at.bin"
-#define ROM_PATH_PS2	"roms/hdd/xtide/SIDE1V12.BIN"
-#define ROM_PATH_PS2AT	"roms/hdd/xtide/ide_at_1_1_5.bin"
-#define ROM_PATH_AT_386	"roms/hdd/xtide/ide_386.bin"
-
+#define ROM_PATH_XT     "roms/hdd/xtide/ide_xt.bin"
+#define ROM_PATH_AT     "roms/hdd/xtide/ide_at.bin"
+#define ROM_PATH_PS2    "roms/hdd/xtide/SIDE1V12.BIN"
+#define ROM_PATH_PS2AT  "roms/hdd/xtide/ide_at_1_1_5.bin"
+#define ROM_PATH_AT_386 "roms/hdd/xtide/ide_386.bin"
 
 typedef struct {
-    void	*ide_board;
-    uint8_t	data_high;
-    rom_t	bios_rom;
+    void   *ide_board;
+    uint8_t data_high;
+    rom_t   bios_rom;
 } xtide_t;
-
 
 static void
 xtide_write(uint16_t port, uint8_t val, void *priv)
 {
-    xtide_t *xtide = (xtide_t *)priv;
+    xtide_t *xtide = (xtide_t *) priv;
 
     switch (port & 0xf) {
-	case 0x0:
-		ide_writew(0x0, val | (xtide->data_high << 8), xtide->ide_board);
-		return;
+        case 0x0:
+            ide_writew(0x0, val | (xtide->data_high << 8), xtide->ide_board);
+            return;
 
-	case 0x1:
-	case 0x2:
-	case 0x3:
-	case 0x4:
-	case 0x5:
-	case 0x6:
-	case 0x7:
-		ide_writeb((port  & 0xf), val, xtide->ide_board);
-		return;
+        case 0x1:
+        case 0x2:
+        case 0x3:
+        case 0x4:
+        case 0x5:
+        case 0x6:
+        case 0x7:
+            ide_writeb((port & 0xf), val, xtide->ide_board);
+            return;
 
-	case 0x8:
-		xtide->data_high = val;
-		return;
+        case 0x8:
+            xtide->data_high = val;
+            return;
 
-	case 0xe:
-		ide_write_devctl(0x0, val, xtide->ide_board);
-		return;
+        case 0xe:
+            ide_write_devctl(0x0, val, xtide->ide_board);
+            return;
     }
 }
-
 
 static uint8_t
 xtide_read(uint16_t port, void *priv)
 {
-    xtide_t *xtide = (xtide_t *)priv;
+    xtide_t *xtide = (xtide_t *) priv;
     uint16_t tempw = 0xffff;
 
     switch (port & 0xf) {
-	case 0x0:
-		tempw = ide_readw(0x0, xtide->ide_board);
-		xtide->data_high = tempw >> 8;
-		break;
+        case 0x0:
+            tempw            = ide_readw(0x0, xtide->ide_board);
+            xtide->data_high = tempw >> 8;
+            break;
 
-	case 0x1:
-	case 0x2:
-	case 0x3:
-	case 0x4:
-	case 0x5:
-	case 0x6:
-	case 0x7:
-		tempw = ide_readb((port  & 0xf), xtide->ide_board);
-		break;
+        case 0x1:
+        case 0x2:
+        case 0x3:
+        case 0x4:
+        case 0x5:
+        case 0x6:
+        case 0x7:
+            tempw = ide_readb((port & 0xf), xtide->ide_board);
+            break;
 
-	case 0x8:
-		tempw = xtide->data_high;
-		break;
+        case 0x8:
+            tempw = xtide->data_high;
+            break;
 
-	case 0xe:
-		tempw = ide_read_alt_status(0x0, xtide->ide_board);
-		break;
+        case 0xe:
+            tempw = ide_read_alt_status(0x0, xtide->ide_board);
+            break;
 
-	default:
-		break;
+        default:
+            break;
     }
 
-    return(tempw & 0xff);
+    return (tempw & 0xff);
 }
-
 
 static void *
 xtide_init(const device_t *info)
@@ -136,24 +131,22 @@ xtide_init(const device_t *info)
     memset(xtide, 0x00, sizeof(xtide_t));
 
     rom_init(&xtide->bios_rom, ROM_PATH_XT,
-	     0xc8000, 0x2000, 0x1fff, 0, MEM_MAPPING_EXTERNAL);
+             0xc8000, 0x2000, 0x1fff, 0, MEM_MAPPING_EXTERNAL);
 
     xtide->ide_board = ide_xtide_init();
 
     io_sethandler(0x0300, 16,
-		  xtide_read, NULL, NULL,
-		  xtide_write, NULL, NULL, xtide);
+                  xtide_read, NULL, NULL,
+                  xtide_write, NULL, NULL, xtide);
 
-    return(xtide);
+    return (xtide);
 }
-
 
 static int
 xtide_available(void)
 {
-    return(rom_present(ROM_PATH_XT));
+    return (rom_present(ROM_PATH_XT));
 }
-
 
 static void *
 xtide_at_init(const device_t *info)
@@ -163,32 +156,29 @@ xtide_at_init(const device_t *info)
     memset(xtide, 0x00, sizeof(xtide_t));
 
     if (info->local == 1) {
-	rom_init(&xtide->bios_rom, ROM_PATH_AT_386,
-		 0xc8000, 0x2000, 0x1fff, 0, MEM_MAPPING_EXTERNAL);
+        rom_init(&xtide->bios_rom, ROM_PATH_AT_386,
+                 0xc8000, 0x2000, 0x1fff, 0, MEM_MAPPING_EXTERNAL);
     } else {
-	rom_init(&xtide->bios_rom, ROM_PATH_AT,
-		 0xc8000, 0x2000, 0x1fff, 0, MEM_MAPPING_EXTERNAL);
+        rom_init(&xtide->bios_rom, ROM_PATH_AT,
+                 0xc8000, 0x2000, 0x1fff, 0, MEM_MAPPING_EXTERNAL);
     }
 
     device_add(&ide_isa_2ch_device);
 
-    return(xtide);
+    return (xtide);
 }
-
 
 static int
 xtide_at_available(void)
 {
-    return(rom_present(ROM_PATH_AT));
+    return (rom_present(ROM_PATH_AT));
 }
-
 
 static int
 xtide_at_386_available(void)
 {
-    return(rom_present(ROM_PATH_AT_386));
+    return (rom_present(ROM_PATH_AT_386));
 }
-
 
 static void *
 xtide_acculogic_init(const device_t *info)
@@ -198,35 +188,32 @@ xtide_acculogic_init(const device_t *info)
     memset(xtide, 0x00, sizeof(xtide_t));
 
     rom_init(&xtide->bios_rom, ROM_PATH_PS2,
-	     0xc8000, 0x2000, 0x1fff, 0, MEM_MAPPING_EXTERNAL);
+             0xc8000, 0x2000, 0x1fff, 0, MEM_MAPPING_EXTERNAL);
 
     xtide->ide_board = ide_xtide_init();
 
     io_sethandler(0x0360, 16,
-		  xtide_read, NULL, NULL,
-		  xtide_write, NULL, NULL, xtide);
+                  xtide_read, NULL, NULL,
+                  xtide_write, NULL, NULL, xtide);
 
-    return(xtide);
+    return (xtide);
 }
-
 
 static int
 xtide_acculogic_available(void)
 {
-    return(rom_present(ROM_PATH_PS2));
+    return (rom_present(ROM_PATH_PS2));
 }
-
 
 static void
 xtide_close(void *priv)
 {
-    xtide_t *xtide = (xtide_t *)priv;
+    xtide_t *xtide = (xtide_t *) priv;
 
     free(xtide);
 
     ide_xtide_close();
 }
-
 
 static void *
 xtide_at_ps2_init(const device_t *info)
@@ -236,95 +223,93 @@ xtide_at_ps2_init(const device_t *info)
     memset(xtide, 0x00, sizeof(xtide_t));
 
     rom_init(&xtide->bios_rom, ROM_PATH_PS2AT,
-	     0xc8000, 0x2000, 0x1fff, 0, MEM_MAPPING_EXTERNAL);
+             0xc8000, 0x2000, 0x1fff, 0, MEM_MAPPING_EXTERNAL);
 
     device_add(&ide_isa_2ch_device);
 
-    return(xtide);
+    return (xtide);
 }
-
 
 static int
 xtide_at_ps2_available(void)
 {
-    return(rom_present(ROM_PATH_PS2AT));
+    return (rom_present(ROM_PATH_PS2AT));
 }
-
 
 static void
 xtide_at_close(void *priv)
 {
-    xtide_t *xtide = (xtide_t *)priv;
+    xtide_t *xtide = (xtide_t *) priv;
 
     free(xtide);
 }
 
 const device_t xtide_device = {
-    .name = "PC/XT XTIDE",
+    .name          = "PC/XT XTIDE",
     .internal_name = "xtide",
-    .flags = DEVICE_ISA,
-    .local = 0,
-    .init = xtide_init,
-    .close = xtide_close,
-    .reset = NULL,
+    .flags         = DEVICE_ISA,
+    .local         = 0,
+    .init          = xtide_init,
+    .close         = xtide_close,
+    .reset         = NULL,
     { .available = xtide_available },
     .speed_changed = NULL,
-    .force_redraw = NULL,
-    .config = NULL
+    .force_redraw  = NULL,
+    .config        = NULL
 };
 
 const device_t xtide_at_device = {
-    .name = "PC/AT XTIDE",
+    .name          = "PC/AT XTIDE",
     .internal_name = "xtide_at",
-    .flags = DEVICE_ISA | DEVICE_AT,
-    .local = 0,
-    .init = xtide_at_init,
-    .close = xtide_at_close,
-    .reset = NULL,
+    .flags         = DEVICE_ISA | DEVICE_AT,
+    .local         = 0,
+    .init          = xtide_at_init,
+    .close         = xtide_at_close,
+    .reset         = NULL,
     { .available = xtide_at_available },
     .speed_changed = NULL,
-    .force_redraw = NULL,
-    .config = NULL
+    .force_redraw  = NULL,
+    .config        = NULL
 };
 
 const device_t xtide_at_386_device = {
-    .name = "PC/AT XTIDE (386)",
+    .name          = "PC/AT XTIDE (386)",
     .internal_name = "xtide_at_386",
-    .flags = DEVICE_ISA | DEVICE_AT,
-    .local = 1,
-    .init = xtide_at_init,
-    .close = xtide_at_close,
-    .reset = NULL,
+    .flags         = DEVICE_ISA | DEVICE_AT,
+    .local         = 1,
+    .init          = xtide_at_init,
+    .close         = xtide_at_close,
+    .reset         = NULL,
     { .available = xtide_at_386_available },
     .speed_changed = NULL,
-    .force_redraw = NULL,
-    .config = NULL
+    .force_redraw  = NULL,
+    .config        = NULL
 };
 
 const device_t xtide_acculogic_device = {
-    .name = "Acculogic XT IDE",
+    .name          = "Acculogic XT IDE",
     .internal_name = "xtide_acculogic",
-    .flags = DEVICE_ISA,
-    .local = 0,
-    .init = xtide_acculogic_init,
-    .close = xtide_close,
-    .reset = NULL,
+    .flags         = DEVICE_ISA,
+    .local         = 0,
+    .init          = xtide_acculogic_init,
+    .close         = xtide_close,
+    .reset         = NULL,
     { .available = xtide_acculogic_available },
     .speed_changed = NULL,
-    .force_redraw = NULL,
-    .config = NULL
+    .force_redraw  = NULL,
+    .config        = NULL
 };
 
 const device_t xtide_at_ps2_device = {
-    .name = "PS/2 AT XTIDE (1.1.5)",
+    .name          = "PS/2 AT XTIDE (1.1.5)",
     .internal_name = "xtide_at_ps2",
-    .flags = DEVICE_ISA | DEVICE_AT,
-    .local = 0,
-    .init = xtide_at_ps2_init,
-    .close = xtide_at_close,
-    .reset = NULL,
+    .flags         = DEVICE_ISA | DEVICE_AT,
+    .local         = 0,
+    .init          = xtide_at_ps2_init,
+    .close         = xtide_at_close,
+    .reset         = NULL,
     { .available = xtide_at_ps2_available },
     .speed_changed = NULL,
-    .force_redraw = NULL,
-    .config = NULL
+    .force_redraw  = NULL,
+    .config        = NULL
 };

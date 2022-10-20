@@ -69,4 +69,4 @@ extern const device_t i8254_ext_io_fast_device;
 extern const device_t i8254_ps2_fast_device;
 #endif
 
-#endif	/*EMU_PIT_FAST_H*/
+#endif /*EMU_PIT_FAST_H*/

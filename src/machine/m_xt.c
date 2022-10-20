@@ -18,6 +18,7 @@
 #include <86box/rom.h>
 #include <86box/machine.h>
 #include <86box/chipset.h>
+#include <86box/port_6x.h>
 
 static void
 machine_xt_common_init(const machine_t *model)
@@ -324,6 +325,42 @@ machine_xt_iskra3104_init(const machine_t *model)
         return ret;
 
     machine_xt_clone_init(model);
+
+    return ret;
+}
+
+int
+machine_xt_pravetz16_imko4_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/pravetz16/BIOS_IMKO4_FE00.bin",
+                           0x000fe000, 65536, 0);
+    if (ret) {
+        ret = bios_load_aux_linear("roms/machines/pravetz16/IMKO4-D34_SGS-M2764ADIP28.BIN",
+                                   0x000f4000, 8192, 0);
+
+        if (ret) {
+            bios_load_aux_linear("roms/machines/pravetz16/1.bin",
+                                 0x000f6000, 8192, 0);
+
+            bios_load_aux_linear("roms/machines/pravetz16/2.bin",
+                                 0x000fa000, 8192, 0);
+
+            bios_load_aux_linear("roms/machines/pravetz16/5.bin",
+                                 0x000f8000, 8192, 0);
+
+            bios_load_aux_linear("roms/machines/pravetz16/6.bin",
+                                 0x000fc000, 8192, 0);
+        }
+    }
+
+    if (bios_only || !ret)
+	    return ret;
+
+    device_add(&keyboard_pravetz_device);
+
+    machine_xt_common_init(model);
 
     return ret;
 }

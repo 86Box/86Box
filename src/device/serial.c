@@ -38,7 +38,7 @@
 #include <86box/serial.h>
 #include <86box/mouse.h>
 
-serial_port_t	com_ports[SERIAL_MAX];
+serial_port_t com_ports[SERIAL_MAX];
 
 enum {
     SERIAL_INT_LSR      = 1,

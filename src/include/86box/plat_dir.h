@@ -15,58 +15,60 @@
  */
 
 #ifndef PLAT_DIR_H
-# define PLAT_DIR_H
+#define PLAT_DIR_H
 
+/* Windows needs the POSIX re-implementations */
+#if defined(_WIN32)
 #ifdef _MAX_FNAME
-# define MAXNAMLEN	_MAX_FNAME
+#    define MAXNAMLEN _MAX_FNAME
 #else
-# define MAXNAMLEN	15
+#    define MAXNAMLEN 15
 #endif
-# define MAXDIRLEN	127
-
+#define MAXDIRLEN 127
 
 struct dirent {
-    long		d_ino;
-    unsigned short 	d_reclen;
-    unsigned short	d_off;
+    long           d_ino;
+    unsigned short d_reclen;
+    unsigned short d_off;
 #ifdef UNICODE
-    wchar_t		d_name[MAXNAMLEN + 1];
+    wchar_t d_name[MAXNAMLEN + 1];
 #else
-    char		d_name[MAXNAMLEN + 1];
+    char d_name[MAXNAMLEN + 1];
 #endif
 };
-#define	d_namlen	d_reclen
-
+#define d_namlen d_reclen
 
 typedef struct {
-    short	flags;			/* internal flags		*/
-    short	offset;			/* offset of entry into dir	*/
-    long	handle;			/* open handle to Win32 system	*/
-    short	sts;			/* last known status code	*/
-    char	*dta;			/* internal work data		*/
+    short flags;  /* internal flags		*/
+    short offset; /* offset of entry into dir	*/
+    long  handle; /* open handle to Win32 system	*/
+    short sts;    /* last known status code	*/
+    char *dta;    /* internal work data		*/
 #ifdef UNICODE
-    wchar_t	dir[MAXDIRLEN+1];	/* open dir			*/
+    wchar_t dir[MAXDIRLEN + 1]; /* open dir			*/
 #else
-    char	dir[MAXDIRLEN+1];	/* open dir			*/
+    char dir[MAXDIRLEN + 1]; /* open dir			*/
 #endif
-    struct dirent dent;			/* actual directory entry	*/
+    struct dirent dent; /* actual directory entry	*/
 } DIR;
 
-
 /* Directory routine flags. */
-#define DIR_F_LOWER	0x0001		/* force to lowercase		*/
-#define DIR_F_SANE	0x0002		/* force this to sane path	*/
-#define DIR_F_ISROOT	0x0010		/* this is the root directory	*/
-
+#define DIR_F_LOWER  0x0001 /* force to lowercase		*/
+#define DIR_F_SANE   0x0002 /* force this to sane path	*/
+#define DIR_F_ISROOT 0x0010 /* this is the root directory	*/
 
 /* Function prototypes. */
-extern DIR		*opendir(const char *);
-extern struct dirent	*readdir(DIR *);
-extern long		telldir(DIR *);
-extern void		seekdir(DIR *, long);
-extern int		closedir(DIR *);
+extern DIR           *opendir(const char *);
+extern struct dirent *readdir(DIR *);
+extern long           telldir(DIR *);
+extern void           seekdir(DIR *, long);
+extern int            closedir(DIR *);
 
-#define rewinddir(dirp)	seekdir(dirp, 0L)
+#define rewinddir(dirp) seekdir(dirp, 0L)
+#else
+/* On linux and macOS, use the standard functions and types */
+#include <sys/dir.h>
+#endif
 
 
-#endif	/*PLAT_DIR_H*/
+#endif /*PLAT_DIR_H*/

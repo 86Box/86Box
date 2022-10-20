@@ -219,17 +219,17 @@ end:
 void
 joystick_get_device_name(raw_joystick_t *rawjoy, plat_joystick_t *joy, PRID_DEVICE_INFO info)
 {
-    UINT  size                  = 0;
-    char *device_name           = NULL;
-    WCHAR device_desc_wide[200] = { 0 };
+    UINT   size                  = 0;
+    WCHAR *device_name           = NULL;
+    WCHAR  device_desc_wide[200] = { 0 };
 
-    GetRawInputDeviceInfoA(rawjoy->hdevice, RIDI_DEVICENAME, device_name, &size);
-    device_name = calloc(size, sizeof(char));
-    if (GetRawInputDeviceInfoA(rawjoy->hdevice, RIDI_DEVICENAME, device_name, &size) <= 0)
+    GetRawInputDeviceInfoW(rawjoy->hdevice, RIDI_DEVICENAME, device_name, &size);
+    device_name = calloc(size, sizeof(WCHAR));
+    if (GetRawInputDeviceInfoW(rawjoy->hdevice, RIDI_DEVICENAME, device_name, &size) <= 0)
         fatal("joystick_get_capabilities: Failed to get device name.\n");
 
-    HANDLE hDevObj = CreateFile(device_name, GENERIC_READ | GENERIC_WRITE,
-                                FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, 0, NULL);
+    HANDLE hDevObj = CreateFileW(device_name, GENERIC_READ | GENERIC_WRITE,
+                                 FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, 0, NULL);
     if (hDevObj) {
         HidD_GetProductString(hDevObj, device_desc_wide, sizeof(WCHAR) * 200);
         CloseHandle(hDevObj);

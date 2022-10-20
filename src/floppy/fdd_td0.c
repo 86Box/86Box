@@ -645,7 +645,7 @@ td0_initialize(int drive)
     }
 
     fseek(dev->f, 0, SEEK_SET);
-    fread(header, 1, 12, dev->f);
+    (void) !fread(header, 1, 12, dev->f);
     head_count = header[9];
 
     if (header[0] == 't') {
@@ -1121,7 +1121,7 @@ td0_seek(int drive, int track)
 			id[1] = dev->sects[track][side][actual_sector].head;
 			id[2] = real_sector;
 			id[3] = dev->sects[track][side][actual_sector].size;
-			pclog("track %i, side %i, %i,%i,%i,%i %i\n", track, side, id[0], id[1], id[2], id[3], dev->sects[track][side][actual_sector].flags);
+			td0_log("track %i, side %i, %i,%i,%i,%i %i\n", track, side, id[0], id[1], id[2], id[3], dev->sects[track][side][actual_sector].flags);
 			fm = dev->sects[track][side][actual_sector].fm;
 			if (((dev->sects[track][side][actual_sector].flags & 0x42) || (id[3] > (dev->max_sector_size - fm))) && !fdd_get_turbo(drive))
 				ssize = 3;

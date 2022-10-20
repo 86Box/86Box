@@ -201,6 +201,7 @@ const machine_filter_t machine_chipsets[] = {
 
 
 const machine_t machines[] = {
+  // clang-format off
     /* 8088 Machines */
     {
         .name = "[8088] IBM PC (1981)",
@@ -1599,6 +1600,42 @@ const machine_t machines[] = {
             .min = 256,
             .max = 768,
             .step = 256
+        },
+        .nvrmask = 0,
+        .kbc = KBC_IBM_PC_XT,
+        .kbc_p1 = 0xff00,
+        .gpio = 0xffffffff,
+        .device = NULL,
+        .vid_device = NULL,
+        .snd_device = NULL,
+        .net_device = NULL
+    },
+    {
+        .name = "[8088] Pravetz 16 / IMKO-4",
+        .internal_name = "pravetz16",
+        .type = MACHINE_TYPE_8088,
+        .chipset = MACHINE_CHIPSET_DISCRETE,
+        .init = machine_xt_pravetz16_imko4_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_8088,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_PC,
+        .flags = MACHINE_FLAGS_NONE,
+        .ram = {
+            .min = 64,
+            .max = 640,
+            .step = 64
         },
         .nvrmask = 0,
         .kbc = KBC_IBM_PC_XT,
@@ -8476,6 +8513,43 @@ const machine_t machines[] = {
         .snd_device = NULL,
         .net_device = NULL
     },
+    /* Has AMIKey H KBC firmware (AMIKey-2). */
+    {
+        .name = "[SiS 5511] MSI MS-5124",
+        .internal_name = "ms5124",
+        .type = MACHINE_TYPE_SOCKET7_3V,
+        .chipset = MACHINE_CHIPSET_SIS_5511,
+        .init = machine_at_ms5124_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET5_7,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 50000000,
+            .max_bus = 66666667,
+            .min_voltage = 3380,
+            .max_voltage = 3520,
+            .min_multi = 1.5,
+            .max_multi = 3.0
+        },
+        .bus_flags = MACHINE_PS2_PCI,
+        .flags = MACHINE_IDE_DUAL,
+        .ram = {
+            .min = 8192,
+            .max = 524288,
+            .step = 8192
+        },
+        .nvrmask = 127,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .vid_device = NULL,
+        .snd_device = NULL,
+        .net_device = NULL
+    },
 
     /* Socket 7 (Dual Voltage) machines */
     /* 430HX */
@@ -11080,6 +11154,44 @@ const machine_t machines[] = {
         .snd_device = NULL,
         .net_device = NULL
     },
+    /* Has a Winbond W83977EF Super I/O chip with on-chip KBC with AMIKey-2 KBC
+       firmware. */
+    {
+        .name = "[VIA Apollo Pro 133A] BCM GT694VA",
+        .internal_name = "gt694va",
+        .type = MACHINE_TYPE_SLOT1,
+        .chipset = MACHINE_CHIPSET_VIA_APOLLO_PRO_133A,
+        .init = machine_at_gt694va_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SLOT1,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 66666667,
+            .max_bus = 133333333,
+            .min_voltage = 1300,
+            .max_voltage = 3500,
+            .min_multi = 1.5,
+            .max_multi = 8.0
+        },
+        .bus_flags = MACHINE_PS2_AGP,
+        .flags = MACHINE_IDE_DUAL | MACHINE_SOUND,
+        .ram = {
+            .min = 8192,
+            .max = 3145728,
+            .step = 8192
+        },
+        .nvrmask = 255,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = &es1371_onboard_device,
+        .vid_device = NULL,
+        .snd_device = NULL,
+        .net_device = NULL
+    },
 
     /* Slot 1/2 machines */
     /* 440GX */
@@ -11632,44 +11744,6 @@ const machine_t machines[] = {
         .snd_device = NULL,
         .net_device = NULL
     },
-    /* Has a Winbond W83977EF Super I/O chip with on-chip KBC with AMIKey-2 KBC
-       firmware. */
-    {
-        .name = "[VIA Apollo Pro 133A] BCM GT694VA",
-        .internal_name = "gt694va",
-        .type = MACHINE_TYPE_SOCKET370,
-        .chipset = MACHINE_CHIPSET_VIA_APOLLO_PRO_133A,
-        .init = machine_at_gt694va_init,
-        .pad = 0,
-        .pad0 = 0,
-        .pad1 = MACHINE_AVAILABLE,
-        .pad2 = 0,
-        .cpu = {
-            .package = CPU_PKG_SOCKET370,
-            .block = CPU_BLOCK_NONE,
-            .min_bus = 66666667,
-            .max_bus = 133333333,
-            .min_voltage = 1300,
-            .max_voltage = 3500,
-            .min_multi = 1.5,
-            .max_multi = 8.0
-        },
-        .bus_flags = MACHINE_PS2_AGP,
-        .flags = MACHINE_IDE_DUAL | MACHINE_SOUND,
-        .ram = {
-            .min = 16384,
-            .max = 3145728,
-            .step = 8192
-        },
-        .nvrmask = 255,
-        .kbc = KBC_UNKNOWN,
-        .kbc_p1 = 0,
-        .gpio = 0,
-        .device = &es1371_onboard_device,
-        .vid_device = NULL,
-        .snd_device = NULL,
-        .net_device = NULL
-    },
 
     /* Miscellaneous/Fake/Hypervisor machines */
     /* Has a Winbond W83977F Super I/O chip with on-chip KBC with AMIKey-2 KBC
@@ -11747,6 +11821,7 @@ const machine_t machines[] = {
         .snd_device = NULL,
         .net_device = NULL
     }
+  // clang-format on
 };
 
 /* Saved copies - jumpers get applied to these.

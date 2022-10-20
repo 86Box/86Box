@@ -1227,7 +1227,7 @@ azt_speed_changed(void *p)
 }
 
 static const device_config_t azt1605_config[] = {
-    // clang-format off
+  // clang-format off
     {
         .name = "codec",
         .description = "CODEC",
@@ -1367,7 +1367,7 @@ static const device_config_t azt1605_config[] = {
         .default_int = 0
     },
     { .name = "", .description = "", .type = CONFIG_END }
-    // clang-format on
+  // clang-format on
 };
 
 static const device_config_t azt2316a_config[] = {
@@ -1488,33 +1488,33 @@ static const device_config_t azt2316a_config[] = {
         .default_int = 0
     },
     { .name = "", .description = "", .type = CONFIG_END }
-  // clang-format on
+// clang-format on
 };
 
 const device_t azt2316a_device = {
-    .name = "Aztech Sound Galaxy Pro 16 AB (Washington)",
+    .name          = "Aztech Sound Galaxy Pro 16 AB (Washington)",
     .internal_name = "azt2316a",
-    .flags = DEVICE_ISA | DEVICE_AT,
-    .local = SB_SUBTYPE_CLONE_AZT2316A_0X11,
-    .init = azt_init,
-    .close = azt_close,
-    .reset = NULL,
+    .flags         = DEVICE_ISA | DEVICE_AT,
+    .local         = SB_SUBTYPE_CLONE_AZT2316A_0X11,
+    .init          = azt_init,
+    .close         = azt_close,
+    .reset         = NULL,
     { .available = NULL },
     .speed_changed = azt_speed_changed,
-    .force_redraw = NULL,
-    .config = azt2316a_config
+    .force_redraw  = NULL,
+    .config        = azt2316a_config
 };
 
 const device_t azt1605_device = {
-    .name = "Aztech Sound Galaxy Nova 16 Extra (Clinton)",
+    .name          = "Aztech Sound Galaxy Nova 16 Extra (Clinton)",
     .internal_name = "azt1605",
-    .flags = DEVICE_ISA | DEVICE_AT,
-    .local = SB_SUBTYPE_CLONE_AZT1605_0X0C,
-    .init = azt_init,
-    .close = azt_close,
-    .reset = NULL,
+    .flags         = DEVICE_ISA | DEVICE_AT,
+    .local         = SB_SUBTYPE_CLONE_AZT1605_0X0C,
+    .init          = azt_init,
+    .close         = azt_close,
+    .reset         = NULL,
     { .available = NULL },
     .speed_changed = azt_speed_changed,
-    .force_redraw = NULL,
-    .config = azt1605_config
+    .force_redraw  = NULL,
+    .config        = azt1605_config
 };
