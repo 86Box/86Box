@@ -560,6 +560,7 @@ MCHOBJ		:= machine.o machine_table.o \
 		    m_xt_xi8088.o m_xt_zenith.o \
 		    m_pcjr.o \
 		    m_amstrad.o m_europc.o \
+		    m_elt.o \
 		    m_xt_olivetti.o m_tandy.o m_v86p.o \
 		    m_at.o m_at_commodore.o \
 		    m_at_t3100e.o m_at_t3100e_vid.o \
