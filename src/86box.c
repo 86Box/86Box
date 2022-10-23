@@ -761,7 +761,7 @@ void
 pc_full_speed(void)
 {
     if (!atfullspeed) {
-        pc_log("Set fullspeed - %i %i\n", is386, AT);
+        pc_log("Set fullspeed - %i %i\n", is386, is486);
         pc_speed_changed();
     }
     atfullspeed = 1;
