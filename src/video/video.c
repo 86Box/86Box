@@ -252,7 +252,7 @@ static uint32_t cga_2_table[16];
 static void (*blit_func)(int x, int y, int w, int h, int monitor_index);
 
 #ifdef ENABLE_VIDEO_LOG
-int sdl_do_log = ENABLE_VIDEO_LOG;
+int video_do_log = ENABLE_VIDEO_LOG;
 
 static void
 video_log(const char *fmt, ...)
