@@ -717,7 +717,6 @@ kbd_init(const device_t *info)
     kbd_reset(kbd);
     kbd->type = info->local;
     if (kbd->type == KBD_TYPE_PRAVETZ) {
-        pclog("Pravetz keyboard!\n");
         io_sethandler(0x00c0, 16,
                       kbd_read, NULL, NULL, kbd_write, NULL, NULL, kbd);
     }
