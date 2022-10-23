@@ -40,6 +40,7 @@ extern const device_t st506_at_wd1003_device;      /* st506_at_wd1003 */
 extern const device_t st506_xt_wd1004a_wx1_device; /* st506_xt_wd1004a_wx1 */
 extern const device_t st506_xt_wd1004_27x_device;  /* st506_xt_wd1004_27x */
 extern const device_t st506_xt_wd1004a_27x_device; /* st506_xt_wd1004a_27x */
+extern const device_t st506_xt_victor_v86p_device; /* st506_xt_victor_v86p */
 
 extern const device_t esdi_at_wd1007vse1_device; /* esdi_at */
 extern const device_t esdi_ps2_device;           /* esdi_mca */
