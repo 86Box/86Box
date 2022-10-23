@@ -13,10 +13,10 @@
  *		Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 2008-2018 Sarah Walker.
+ *		Copyright 2008-2020 Sarah Walker.
  *		Copyright 2016-2018 leilei.
- *		Copyright 2016-2018 Miran Grca.
- *		Copyright 2018 Fred N. van Kempen.
+ *		Copyright 2016-2020 Miran Grca.
+ *		Copyright 2018-2021 Fred N. van Kempen.
  */
 #include <math.h>
 #include <stdarg.h>
@@ -112,6 +112,7 @@ int isa_cycles, cpu_inited,
     cpu_override, cpu_effective, cpu_multi, cpu_16bitbus, cpu_64bitbus, cpu_busspeed,
     cpu_cyrix_alignment, CPUID,
 
+    is186, is_nec,
     is286, is386, is6117, is486 = 1,
                           cpu_isintel, cpu_iscyrix, hascache, isibm486, israpidcad, is_vpc,
                           is_am486, is_am486dxl, is_pentium, is_k5, is_k6, is_p6, is_cxsmm, hasfpu,
@@ -356,7 +357,9 @@ cpu_set(void)
     unmask_a20_in_smm = 0;
 
     CPUID       = cpu_s->cpuid_model;
-    is8086      = (cpu_s->cpu_type > CPU_8088);
+    is8086      = (cpu_s->cpu_type > CPU_8088) && !(cpu_s->cpu_type == CPU_V20);
+    is_nec      = (cpu_s->cpu_type == CPU_V20) || (cpu_s->cpu_type == CPU_V30);
+    is186       = (cpu_s->cpu_type == CPU_186) || (cpu_s->cpu_type == CPU_188) || (cpu_s->cpu_type == CPU_V20) || (cpu_s->cpu_type == CPU_V30);
     is286       = (cpu_s->cpu_type >= CPU_286);
     is386       = (cpu_s->cpu_type >= CPU_386SX);
     israpidcad  = (cpu_s->cpu_type == CPU_RAPIDCAD);
@@ -512,6 +515,17 @@ cpu_set(void)
     switch (cpu_s->cpu_type) {
         case CPU_8088:
         case CPU_8086:
+            break;
+
+        case CPU_V20:
+        case CPU_V30:
+        case CPU_186:
+        case CPU_188:
+#ifdef USE_DYNAREC
+            x86_setopcodes(ops_186, ops_186_0f, dynarec_ops_186, dynarec_ops_186_0f);
+#else
+            x86_setopcodes(ops_186, ops_186_0f);
+#endif
             break;
 
         case CPU_286:

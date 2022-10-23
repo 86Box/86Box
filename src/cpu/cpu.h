@@ -14,9 +14,9 @@
  *		leilei,
  *		Miran Grca, <mgrca8@gmail.com>
  *
- *		Copyright 2008-2018 Sarah Walker.
+ *		Copyright 2008-2020 Sarah Walker.
  *		Copyright 2016-2018 leilei.
- *		Copyright 2016,2018 Miran Grca.
+ *		Copyright 2016-2020 Miran Grca.
  */
 #ifndef EMU_CPU_H
 #define EMU_CPU_H
@@ -24,6 +24,7 @@
 enum {
     FPU_NONE,
     FPU_8087,
+    FPU_80187,
     FPU_287,
     FPU_287XL,
     FPU_387,
@@ -34,10 +35,10 @@ enum {
 enum {
     CPU_8088 = 1, /* 808x class CPUs */
     CPU_8086,
-#ifdef USE_NEC_808X
-    CPU_V20, /* NEC 808x class CPUs - future proofing */
+    CPU_V20,   /* NEC 808x class CPUs */
     CPU_V30,
-#endif
+    CPU_188,   /* 18x class CPUs */
+    CPU_186,
     CPU_286,   /* 286 class CPUs */
     CPU_386SX, /* 386 class CPUs */
     CPU_IBM386SLC,
@@ -86,26 +87,30 @@ enum {
     CPU_PKG_8088          = (1 << 0),
     CPU_PKG_8088_EUROPC   = (1 << 1),
     CPU_PKG_8086          = (1 << 2),
-    CPU_PKG_286           = (1 << 3),
-    CPU_PKG_386SX         = (1 << 4),
-    CPU_PKG_386DX         = (1 << 5),
-    CPU_PKG_M6117         = (1 << 6),
-    CPU_PKG_386SLC_IBM    = (1 << 7),
-    CPU_PKG_486SLC        = (1 << 8),
-    CPU_PKG_486SLC_IBM    = (1 << 9),
-    CPU_PKG_486BL         = (1 << 10),
-    CPU_PKG_486DLC        = (1 << 11),
-    CPU_PKG_SOCKET1       = (1 << 12),
-    CPU_PKG_SOCKET3       = (1 << 13),
-    CPU_PKG_SOCKET3_PC330 = (1 << 14),
-    CPU_PKG_STPC          = (1 << 15),
-    CPU_PKG_SOCKET4       = (1 << 16),
-    CPU_PKG_SOCKET5_7     = (1 << 17),
-    CPU_PKG_SOCKET8       = (1 << 18),
-    CPU_PKG_SLOT1         = (1 << 19),
-    CPU_PKG_SLOT2         = (1 << 20),
-    CPU_PKG_SOCKET370     = (1 << 21),
-    CPU_PKG_EBGA368       = (1 << 22)
+    CPU_PKG_188           = (1 << 3),
+    CPU_PKG_186           = (1 << 4),
+    CPU_PKG_286           = (1 << 5),
+    CPU_PKG_386SX         = (1 << 6),
+    CPU_PKG_386DX         = (1 << 7),
+    CPU_PKG_M6117         = (1 << 8),
+    CPU_PKG_386SLC_IBM    = (1 << 9),
+    CPU_PKG_486SLC        = (1 << 10),
+    CPU_PKG_486SLC_IBM    = (1 << 11),
+    CPU_PKG_486BL         = (1 << 12),
+    CPU_PKG_486DLC        = (1 << 13),
+    CPU_PKG_SOCKET1       = (1 << 14),
+    CPU_PKG_SOCKET3       = (1 << 15),
+    CPU_PKG_SOCKET3_PC330 = (1 << 16),
+    CPU_PKG_STPC          = (1 << 17),
+    CPU_PKG_SOCKET4       = (1 << 18),
+    CPU_PKG_SOCKET5_7     = (1 << 19),
+    CPU_PKG_SOCKET8       = (1 << 20),
+    CPU_PKG_SLOT1         = (1 << 21),
+    CPU_PKG_SLOT2         = (1 << 22),
+    CPU_PKG_SLOTA         = (1 << 23),
+    CPU_PKG_SOCKET370     = (1 << 24),
+    CPU_PKG_SOCKETA       = (1 << 25),
+    CPU_PKG_EBGA368       = (1 << 26)
 };
 
 #define MANU_INTEL           0
@@ -113,6 +118,7 @@ enum {
 #define MANU_CYRIX           2
 #define MANU_IDT             3
 #define MANU_NEC             4
+#define MANU_IBM             5
 
 #define CPU_SUPPORTS_DYNAREC 1
 #define CPU_REQUIRES_DYNAREC 2
@@ -176,6 +182,7 @@ typedef struct {
 #define D_FLAG   0x0400
 #define V_FLAG   0x0800
 #define NT_FLAG  0x4000
+#define MD_FLAG  0x8000
 
 #define RF_FLAG  0x0001 /* in EFLAGS */
 #define VM_FLAG  0x0002 /* in EFLAGS */
@@ -386,6 +393,8 @@ typedef struct {
     uint16_t flags, eflags;
 
     uint32_t _smbase;
+
+    uint8_t inside_emulation_mode;
 } cpu_state_t;
 
 #define in_smm   cpu_state._in_smm
@@ -487,10 +496,11 @@ extern double fpu_multi;
 extern int    cpu_cyrix_alignment; /*Cyrix 5x86/6x86 only has data misalignment
                                      penalties when crossing 8-byte boundaries*/
 
-extern int is8086, is286, is386, is6117, is486;
+extern int is8086, is186, is286, is386, is6117, is486;
 extern int is_am486, is_am486dxl, is_pentium, is_k5, is_k6, is_p6, is_cxsmm;
 extern int hascache;
 extern int isibm486;
+extern int is_nec;
 extern int is_rapidcad;
 extern int hasfpu;
 #define CPU_FEATURE_RDTSC (1 << 0)
@@ -500,6 +510,7 @@ extern int hasfpu;
 #define CPU_FEATURE_VME   (1 << 4)
 #define CPU_FEATURE_CX8   (1 << 5)
 #define CPU_FEATURE_3DNOW (1 << 6)
+#define CPU_FEATURE_SYSCALL (1 << 7)
 
 extern uint32_t cpu_features;
 
@@ -721,6 +732,7 @@ extern void (*cpu_exec)(int cycs);
 extern uint8_t do_translate, do_translate2;
 
 extern void reset_808x(int hard);
+extern void interrupt_808x(uint16_t addr);
 
 extern void cpu_register_fast_off_handler(void *timer);
 extern void cpu_fast_off_advance(void);
