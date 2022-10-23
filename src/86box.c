@@ -962,6 +962,8 @@ pc_reset_hard_close(void)
     video_reset_close();
 
     cpu_close();
+
+    serial_set_next_inst(0);
 }
 
 /*
