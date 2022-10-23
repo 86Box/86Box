@@ -55,11 +55,12 @@
 #endif
 
 mem_mapping_t ram_low_mapping, /* 0..640K mapping */
-    ram_mid_mapping,
+    ram_mid_mapping,      /* 640..1024K mapping */
+    ram_mid_mapping2,     /* 640..1024K mapping, second part, for SiS 471 in relocate mode  */
     ram_remapped_mapping, /* 640..1024K mapping */
+    ram_remapped_mapping2,/* 640..1024K second mapping, for SiS 471 mode */
     ram_high_mapping,     /* 1024K+ mapping */
     ram_2gb_mapping,      /* 1024M+ mapping */
-    ram_remapped_mapping,
     ram_split_mapping,
     bios_mapping,
     bios_high_mapping;
@@ -71,6 +72,7 @@ uint32_t pages_sz; /* #pages in table */
 uint8_t *ram, *ram2; /* the virtual RAM */
 uint8_t  page_ff[4096];
 uint32_t rammask;
+uint32_t addr_space_size;
 
 uint8_t *rom; /* the virtual ROM */
 uint32_t biosmask, biosaddr;
@@ -127,7 +129,7 @@ static mem_mapping_t *write_mapping_bus[MEM_MAPPINGS_NO];
 static uint8_t       *_mem_exec[MEM_MAPPINGS_NO];
 static uint8_t        ff_pccache[4] = { 0xff, 0xff, 0xff, 0xff };
 static mem_state_t    _mem_state[MEM_MAPPINGS_NO];
-static uint32_t       remap_start_addr;
+static uint32_t       remap_start_addr, remap_start_addr2;
 #if (!(defined __amd64__ || defined _M_X64 || defined __aarch64__ || defined _M_ARM64))
 static size_t ram_size = 0, ram2_size = 0;
 #else
@@ -157,7 +159,8 @@ mem_addr_is_ram(uint32_t addr)
 {
     mem_mapping_t *mapping = read_mapping[addr >> MEM_GRANULARITY_BITS];
 
-    return (mapping == &ram_low_mapping) || (mapping == &ram_high_mapping) || (mapping == &ram_mid_mapping) || (mapping == &ram_remapped_mapping);
+    return (mapping == &ram_low_mapping) || (mapping == &ram_high_mapping) || (mapping == &ram_mid_mapping) ||
+           (mapping == &ram_mid_mapping2) || (mapping == &ram_remapped_mapping);
 }
 
 void
@@ -2087,6 +2090,33 @@ mem_read_remappedl(uint32_t addr, void *priv)
     return *(uint32_t *) &ram[addr];
 }
 
+static uint8_t
+mem_read_remapped2(uint32_t addr, void *priv)
+{
+    addr = 0xD0000 + (addr - remap_start_addr2);
+    if (is286)
+        addreadlookup(mem_logical_addr, addr);
+    return ram[addr];
+}
+
+static uint16_t
+mem_read_remappedw2(uint32_t addr, void *priv)
+{
+    addr = 0xD0000 + (addr - remap_start_addr2);
+    if (is286)
+        addreadlookup(mem_logical_addr, addr);
+    return *(uint16_t *) &ram[addr];
+}
+
+static uint32_t
+mem_read_remappedl2(uint32_t addr, void *priv)
+{
+    addr = 0xD0000 + (addr - remap_start_addr2);
+    if (is286)
+        addreadlookup(mem_logical_addr, addr);
+    return *(uint32_t *) &ram[addr];
+}
+
 static void
 mem_write_remapped(uint32_t addr, uint8_t val, void *priv)
 {
@@ -2116,6 +2146,42 @@ mem_write_remappedl(uint32_t addr, uint32_t val, void *priv)
 {
     uint32_t oldaddr = addr;
     addr             = 0xA0000 + (addr - remap_start_addr);
+    if (is286) {
+        addwritelookup(mem_logical_addr, addr);
+        mem_write_raml_page(addr, val, &pages[oldaddr >> 12]);
+    } else
+        *(uint32_t *) &ram[addr] = val;
+}
+
+static void
+mem_write_remapped2(uint32_t addr, uint8_t val, void *priv)
+{
+    uint32_t oldaddr = addr;
+    addr             = 0xD0000 + (addr - remap_start_addr2);
+    if (is286) {
+        addwritelookup(mem_logical_addr, addr);
+        mem_write_ramb_page(addr, val, &pages[oldaddr >> 12]);
+    } else
+        ram[addr] = val;
+}
+
+static void
+mem_write_remappedw2(uint32_t addr, uint16_t val, void *priv)
+{
+    uint32_t oldaddr = addr;
+    addr             = 0xD0000 + (addr - remap_start_addr2);
+    if (is286) {
+        addwritelookup(mem_logical_addr, addr);
+        mem_write_ramw_page(addr, val, &pages[oldaddr >> 12]);
+    } else
+        *(uint16_t *) &ram[addr] = val;
+}
+
+static void
+mem_write_remappedl2(uint32_t addr, uint32_t val, void *priv)
+{
+    uint32_t oldaddr = addr;
+    addr             = 0xD0000 + (addr - remap_start_addr2);
     if (is286) {
         addwritelookup(mem_logical_addr, addr);
         mem_write_raml_page(addr, val, &pages[oldaddr >> 12]);
@@ -2605,6 +2671,8 @@ mem_reset(void)
         m = 256;
     }
 
+    addr_space_size = m;
+
     /*
      * Allocate and initialize the (new) page table.
      */
@@ -2687,14 +2755,25 @@ mem_reset(void)
         }
     }
 
-    if (mem_size > 768)
+    if (mem_size > 768) {
         mem_add_ram_mapping(&ram_mid_mapping, 0xa0000, 0x60000);
+
+        mem_add_ram_mapping(&ram_mid_mapping2, 0xa0000, 0x60000);
+        mem_mapping_disable(&ram_mid_mapping2);
+    }
 
     mem_mapping_add(&ram_remapped_mapping, mem_size * 1024, 256 * 1024,
                     mem_read_remapped, mem_read_remappedw, mem_read_remappedl,
                     mem_write_remapped, mem_write_remappedw, mem_write_remappedl,
                     ram + 0xa0000, MEM_MAPPING_INTERNAL, NULL);
     mem_mapping_disable(&ram_remapped_mapping);
+
+    /* Mapping for SiS 471 relocation which relocates A0000-BFFFF, D0000-EFFFF, which is non-contiguous. */
+    mem_mapping_add(&ram_remapped_mapping2, mem_size * 1024, 256 * 1024,
+                    mem_read_remapped2, mem_read_remappedw2, mem_read_remappedl2,
+                    mem_write_remapped2, mem_write_remappedw2, mem_write_remappedl2,
+                    ram + 0xd0000, MEM_MAPPING_INTERNAL, NULL);
+    mem_mapping_disable(&ram_remapped_mapping2);
 
     mem_a20_init();
 
@@ -2729,10 +2808,18 @@ mem_remap_top(int kb)
     int        offset, size = mem_size - 640;
     int        set    = 1;
     static int old_kb = 0;
+    int        sis_mode = 0;
+    uint32_t   start_addr = 0, addr = 0;
 
     mem_log("MEM: remapping top %iKB (mem=%i)\n", kb, mem_size);
     if (mem_size <= 640)
         return;
+
+    /* SiS 471 special mode. */
+    if (kb == -256) {
+        kb = 256;
+        sis_mode = 1;
+    }
 
     if (kb == 0) {
         kb  = old_kb;
@@ -2744,27 +2831,95 @@ mem_remap_top(int kb)
         size = kb;
 
     remap_start_addr = start << 10;
+    remap_start_addr2 = (start << 10) + 0x00020000;
 
     for (c = ((start * 1024) >> 12); c < (((start + size) * 1024) >> 12); c++) {
         offset           = c - ((start * 1024) >> 12);
-        pages[c].mem     = set ? &ram[0xa0000 + (offset << 12)] : page_ff;
+        /* Use A0000-BFFFF, D0000-EFFFF instead of C0000-DFFFF, E0000-FFFFF. */
+        addr = 0xa0000 + (offset << 12);
+        if (sis_mode) {
+            /* A0000-DFFFF -> A0000-BFFFF, D0000-EFFFF */
+            if (addr >= 0x000c0000)
+                addr += 0x00010000;
+        }
+        if (start_addr != 0)
+            start_addr = addr;
+        pages[c].mem     = set ? &ram[addr] : page_ff;
         pages[c].write_b = set ? mem_write_ramb_page : NULL;
         pages[c].write_w = set ? mem_write_ramw_page : NULL;
         pages[c].write_l = set ? mem_write_raml_page : NULL;
 #ifdef USE_NEW_DYNAREC
         pages[c].evict_prev             = EVICT_NOT_IN_LIST;
-        pages[c].byte_dirty_mask        = &byte_dirty_mask[offset * 64];
-        pages[c].byte_code_present_mask = &byte_code_present_mask[offset * 64];
+        pages[c].byte_dirty_mask        = &byte_dirty_mask[(addr >> 12) * 64];
+        pages[c].byte_code_present_mask = &byte_code_present_mask[(addr >> 12) * 64];
 #endif
     }
 
     mem_set_mem_state_both(start * 1024, size * 1024, set ? (MEM_READ_INTERNAL | MEM_WRITE_INTERNAL) : (MEM_READ_EXTERNAL | MEM_WRITE_EXTERNAL));
 
+    for (c = 0xa0; c < 0xf0; c++) {
+         if ((c >= 0xc0) && (c <= 0xcf))
+             continue;
+
+        if (sis_mode || ((c << 12) >= (mem_size << 10)))
+            pages[c].mem = page_ff;
+        else {
+#if (!(defined __amd64__ || defined _M_X64 || defined __aarch64__ || defined _M_ARM64))
+            if (mem_size > 1048576) {
+                if ((c << 12) < (1 << 30))
+                    pages[c].mem = &ram[c << 12];
+                else
+                    pages[c].mem = &ram2[(c << 12) - (1 << 30)];
+            } else
+                pages[c].mem = &ram[c << 12];
+#else
+            pages[c].mem = &ram[c << 12];
+#endif
+        }
+        if (!sis_mode && (c < addr_space_size)) {
+            pages[c].write_b = mem_write_ramb_page;
+            pages[c].write_w = mem_write_ramw_page;
+            pages[c].write_l = mem_write_raml_page;
+        } else {
+            pages[c].write_b = NULL;
+            pages[c].write_w = NULL;
+            pages[c].write_l = NULL;
+        }
+#ifdef USE_NEW_DYNAREC
+        pages[c].evict_prev             = EVICT_NOT_IN_LIST;
+        pages[c].byte_dirty_mask        = &byte_dirty_mask[c * 64];
+        pages[c].byte_code_present_mask = &byte_code_present_mask[c * 64];
+#endif
+    }
+
     if (set) {
-        mem_mapping_set_addr(&ram_remapped_mapping, start * 1024, size * 1024);
-        mem_mapping_set_exec(&ram_remapped_mapping, ram + 0xa0000);
-    } else
+        if (sis_mode) {
+            mem_mapping_set_addr(&ram_remapped_mapping, start * 1024, 0x00020000);
+            mem_mapping_set_exec(&ram_remapped_mapping, ram + 0x000a0000);
+            mem_mapping_set_addr(&ram_remapped_mapping2, (start * 1024) + 0x00020000, 0x00020000);
+            mem_mapping_set_exec(&ram_remapped_mapping2, ram + 0x000d0000);
+
+            mem_mapping_set_addr(&ram_mid_mapping, 0x000c0000, 0x00010000);
+            mem_mapping_set_exec(&ram_mid_mapping, ram + 0x000c0000);
+            mem_mapping_set_addr(&ram_mid_mapping2, 0x000f0000, 0x00010000);
+            mem_mapping_set_exec(&ram_mid_mapping2, ram + 0x000f0000);
+        } else {
+            mem_mapping_set_addr(&ram_remapped_mapping, start * 1024, size * 1024);
+            mem_mapping_set_exec(&ram_remapped_mapping, ram + start_addr);
+            mem_mapping_disable(&ram_remapped_mapping2);
+
+            mem_mapping_set_addr(&ram_mid_mapping, 0x000a0000, 0x00060000);
+            mem_mapping_set_exec(&ram_mid_mapping, ram + 0x000a0000);
+            mem_mapping_disable(&ram_mid_mapping2);
+        }
+    } else {
         mem_mapping_disable(&ram_remapped_mapping);
+        mem_mapping_disable(&ram_remapped_mapping2);
+
+        mem_mapping_set_addr(&ram_mid_mapping, 0x000a0000, 0x00060000);
+        mem_mapping_set_exec(&ram_mid_mapping, ram + 0x000a0000);
+        mem_mapping_disable(&ram_mid_mapping2);
+    }
 
     flushmmucache();
 }
