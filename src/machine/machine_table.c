@@ -11990,3 +11990,9 @@ machine_get_machine_from_internal_name(char *s)
 
     return(0);
 }
+
+int
+machine_has_mouse(void)
+{
+    return(machines[machine].flags & MACHINE_MOUSE);
+}
