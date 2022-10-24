@@ -2066,7 +2066,7 @@ const machine_t machines[] = {
             .max_multi = 0
         },
         .bus_flags = MACHINE_PC,
-        .flags = MACHINE_VIDEO,
+        .flags = MACHINE_VIDEO | MACHINE_MFM,
         .ram = {
             .min = 512,
             .max = 1024,
@@ -2109,7 +2109,7 @@ const machine_t machines[] = {
             .step = 1024
         },
         .nvrmask = 63,
-        .kbc = KBC_IBM_PC_XT,
+        .kbc = KBC_IBM_PC_XT | MACHINE_MFM,
         .kbc_p1 = 0xff00,
         .gpio = 0xffffffff,
         .device = &t1200_video_device,

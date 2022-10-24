@@ -959,6 +959,9 @@ machine_xt_t1200_init(const machine_t *model)
     if (gfxcard == VID_INTERNAL)
         device_add(&t1200_video_device);
 
+    if (hdc_current <= 1)
+        device_add(&st506_xt_victor_v86p_device);
+
     return ret;
 }
 
