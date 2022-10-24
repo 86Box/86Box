@@ -103,6 +103,7 @@
 #include <86box/fdd.h>
 #include <86box/fdc.h>
 #include <86box/gameport.h>
+#include <86box/hdc.h>
 #include <86box/video.h>
 #include <86box/plat.h>
 #include <86box/machine.h>
