@@ -1549,7 +1549,7 @@ plat_mouse_capture(int on)
 {
     RECT rect;
 
-    if (!kbd_req_capture && (mouse_type == MOUSE_TYPE_NONE))
+    if (!kbd_req_capture && (mouse_type == MOUSE_TYPE_NONE) && !machine_has_mouse())
         return;
 
     if (on && !mouse_capture) {

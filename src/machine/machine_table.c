@@ -2117,6 +2117,42 @@ const machine_t machines[] = {
         .snd_device = NULL,
         .net_device = NULL
     },
+    {
+        .name = "[8086] Epson Equity LT",
+        .internal_name = "elt",
+        .type = MACHINE_TYPE_8086,
+        .chipset = MACHINE_CHIPSET_PROPRIETARY,
+        .init = machine_elt_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_8086,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_PC,
+        .flags = MACHINE_VIDEO,
+        .ram = {
+            .min = 640,
+            .max = 640,
+            .step = 640
+        },
+        .nvrmask = 0x3f,
+        .kbc = KBC_IBM_PC_XT,
+        .kbc_p1 = 0xff00,
+        .gpio = 0xffffffff,
+        .device = NULL,
+        .vid_device = NULL,
+        .snd_device = NULL,
+        .net_device = NULL
+    },
 
 #if defined(DEV_BRANCH) && defined(USE_LASERXT)
     {
@@ -11989,4 +12025,10 @@ machine_get_machine_from_internal_name(char *s)
     }
 
     return(0);
+}
+
+int
+machine_has_mouse(void)
+{
+    return(machines[machine].flags & MACHINE_MOUSE);
 }

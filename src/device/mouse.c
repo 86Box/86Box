@@ -167,12 +167,7 @@ mouse_set_buttons(int buttons)
 void
 mouse_process(void)
 {
-    static int poll_delay = 2;
-
     if (mouse_curr == NULL)
-        return;
-
-    if (--poll_delay)
         return;
 
     mouse_poll();
@@ -186,8 +181,6 @@ mouse_process(void)
         /* Reset mouse deltas. */
         mouse_x = mouse_y = mouse_z = 0;
     }
-
-    poll_delay = 2;
 }
 
 void
