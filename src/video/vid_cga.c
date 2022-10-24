@@ -118,6 +118,22 @@ cga_in(uint16_t addr, void *p)
 }
 
 void
+cga_pravetz_out(uint16_t addr, uint8_t val, void *p)
+{
+    cga_t  *cga = (cga_t *) p;
+
+    cga->fontbase = (((unsigned int) val) << 8);
+}
+
+uint8_t
+cga_pravetz_in(uint16_t addr, void *p)
+{
+    cga_t *cga = (cga_t *) p;
+
+    return (cga->fontbase >> 8);
+}
+
+void
 cga_waitstates(void *p)
 {
     int ws_array[16] = { 3, 4, 5, 6, 7, 8, 4, 5, 6, 7, 8, 4, 5, 6, 7, 8 };
@@ -524,6 +540,21 @@ cga_standalone_init(const device_t *info)
     return cga;
 }
 
+void *
+cga_pravetz_init(const device_t *info)
+{
+    cga_t *cga = cga_standalone_init(info);
+
+    loadfont("roms/video/cga/CGA - PRAVETZ.BIN", 10);
+
+    io_removehandler(0x03dd, 0x0001, cga_in, NULL, NULL, cga_out, NULL, NULL, cga);
+    io_sethandler(0x03dd, 0x0001, cga_pravetz_in, NULL, NULL, cga_pravetz_out, NULL, NULL, cga);
+
+    cga->fontbase = 0x0300;
+
+    return cga;
+}
+
 void
 cga_close(void *p)
 {
@@ -630,6 +661,20 @@ const device_t cga_device = {
     .flags         = DEVICE_ISA,
     .local         = 0,
     .init          = cga_standalone_init,
+    .close         = cga_close,
+    .reset         = NULL,
+    { .available = NULL },
+    .speed_changed = cga_speed_changed,
+    .force_redraw  = NULL,
+    .config        = cga_config
+};
+
+const device_t cga_pravetz_device = {
+    .name          = "Pravetz VDC-2",
+    .internal_name = "cga_pravetz",
+    .flags         = DEVICE_ISA,
+    .local         = 0,
+    .init          = cga_pravetz_init,
     .close         = cga_close,
     .reset         = NULL,
     { .available = NULL },

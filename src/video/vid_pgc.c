@@ -2131,12 +2131,17 @@ void
 pgc_recalctimings(pgc_t *dev)
 {
     double disptime, _dispontime, _dispofftime;
-    double pixel_clock = (cpuclock * (double) (1ull << 32)) / (dev->cga_selected ? 25175000.0 : dev->native_pixel_clock);
+    double pixel_clock = (cpuclock / (dev->cga_selected ? 25175000.0 : dev->native_pixel_clock) * (double) (1ull << 32));
+    uint8_t crtc0 = 97, crtc1 = 80;    /* Values from MDA, taken from there due to the 25 MHz refresh rate. */
 
+    /* Multiply pixel clock by 8. */
+    pixel_clock     *= 8.0;
     /* Use a fixed 640x400 display. */
-    disptime         = dev->screenw + 11;
-    _dispontime      = dev->screenw * pixel_clock;
-    _dispofftime     = (disptime - dev->screenw) * pixel_clock;
+    disptime         = crtc0 + 1;
+    _dispontime      = crtc1;
+    _dispofftime     = disptime - _dispontime;
+    _dispontime     *= pixel_clock;
+    _dispofftime    *= pixel_clock;
     dev->dispontime  = (uint64_t) (_dispontime);
     dev->dispofftime = (uint64_t) (_dispofftime);
 }
