@@ -163,6 +163,33 @@ static int opPUSHFD(uint32_t fetchdat)
         return cpu_state.abrt;
 }
 
+static int opPOPF_186(uint32_t fetchdat)
+{
+        uint16_t tempw;
+
+        if ((cpu_state.eflags & VM_FLAG) && (IOPL < 3))
+        {
+                x86gpf(NULL, 0);
+                return 1;
+        }
+
+        tempw = POP_W();                if (cpu_state.abrt) return 1;
+
+        if (!(msw & 1))           cpu_state.flags = (cpu_state.flags & 0x7000) | (tempw & 0x0fd5) | 2;
+        else if (!(CPL))          cpu_state.flags = (tempw & 0x7fd5) | 2;
+        else if (IOPLp)           cpu_state.flags = (cpu_state.flags & 0x3000) | (tempw & 0x4fd5) | 2;
+        else                      cpu_state.flags = (cpu_state.flags & 0x3200) | (tempw & 0x4dd5) | 2;
+        flags_extract();
+
+        CLOCK_CYCLES(5);
+        PREFETCH_RUN(5, 1, -1, 1,0,0,0, 0);
+
+#if (defined(USE_DYNAREC) && defined(USE_NEW_DYNAREC))
+        codegen_flags_changed = 0;
+#endif
+
+        return 0;
+}
 static int opPOPF_286(uint32_t fetchdat)
 {
         uint16_t tempw;

@@ -146,6 +146,7 @@ extern int     mouse_scan;
 #ifdef EMU_DEVICE_H
 extern const device_t keyboard_pc_device;
 extern const device_t keyboard_pc82_device;
+extern const device_t keyboard_pravetz_device;
 extern const device_t keyboard_xt_device;
 extern const device_t keyboard_xt86_device;
 extern const device_t keyboard_xt_compaq_device;

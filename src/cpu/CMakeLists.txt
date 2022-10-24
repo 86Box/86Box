@@ -14,7 +14,7 @@
 #
 
 add_library(cpu OBJECT cpu.c cpu_table.c fpu.c x86.c 808x.c 386.c 386_common.c
-    386_dynarec.c x86seg.c x87.c x87_timings.c)
+    386_dynarec.c x86seg.c x87.c x87_timings.c 8080.c)
 
 if(AMD_K5)
     target_compile_definitions(cpu PRIVATE USE_AMD_K5)
