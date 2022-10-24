@@ -65,6 +65,7 @@
 #define KBD_TYPE_VTECH    7
 #define KBD_TYPE_OLIVETTI 8
 #define KBD_TYPE_ZENITH   9
+#define KBD_TYPE_PRAVETZ  10
 
 typedef struct {
     int want_irq;
@@ -73,7 +74,7 @@ typedef struct {
 
     uint8_t pa, pb, pd;
     uint8_t key_waiting;
-    uint8_t type;
+    uint8_t type, pravetz_flags;
 
     pc_timer_t send_delay_timer;
 } xtkbd_t;
@@ -513,6 +514,7 @@ static void
 kbd_write(uint16_t port, uint8_t val, void *priv)
 {
     xtkbd_t *kbd = (xtkbd_t *) priv;
+    uint8_t bit, set;
 
     switch (port) {
         case 0x61: /* Keyboard Control Register (aka Port B) */
@@ -527,7 +529,8 @@ kbd_write(uint16_t port, uint8_t val, void *priv)
 
             timer_process();
 
-            if (((kbd->type == KBD_TYPE_PC81) || (kbd->type == KBD_TYPE_PC82)) && (cassette != NULL))
+            if (((kbd->type == KBD_TYPE_PC81) || (kbd->type == KBD_TYPE_PC82) || (kbd->type == KBD_TYPE_PRAVETZ)) &&
+                (cassette != NULL))
                 pc_cas_set_motor(cassette, (kbd->pb & 0x08) == 0);
 
             speaker_update();
@@ -546,16 +549,25 @@ kbd_write(uint16_t port, uint8_t val, void *priv)
             }
 
 #ifdef ENABLE_KEYBOARD_XT_LOG
-            if ((kbd->type == KBD_TYPE_PC81) || (kbd->type == KBD_TYPE_PC82))
+            if ((kbd->type == KBD_TYPE_PC81) || (kbd->type == KBD_TYPE_PC82) || (kbd->type == KBD_TYPE_PRAVETZ))
                 kbd_log("Cassette motor is %s\n", !(val & 0x08) ? "ON" : "OFF");
 #endif
             break;
 #ifdef ENABLE_KEYBOARD_XT_LOG
         case 0x62: /* Switch Register (aka Port C) */
-            if ((kbd->type == KBD_TYPE_PC81) || (kbd->type == KBD_TYPE_PC82))
+            if ((kbd->type == KBD_TYPE_PC81) || (kbd->type == KBD_TYPE_PC82) || (kbd->type == KBD_TYPE_PRAVETZ))
                 kbd_log("Cassette IN is %i\n", !!(val & 0x10));
             break;
 #endif
+
+        case 0xc0 ... 0xcf: /* Pravetz Flags */
+            kbd_log("Port %02X out: %02X\n", port, val);
+            if (kbd->type == KBD_TYPE_PRAVETZ) {
+                bit = (port >> 1) & 0x07;
+                set = (port & 0x01) << bit;
+                kbd->pravetz_flags = (kbd->pravetz_flags & ~(1 << bit)) | set;
+            }
+            break;
     }
 }
 
@@ -567,8 +579,8 @@ kbd_read(uint16_t port, void *priv)
 
     switch (port) {
         case 0x60: /* Keyboard Data Register  (aka Port A) */
-            if ((kbd->pb & 0x80) && ((kbd->type == KBD_TYPE_PC81) || (kbd->type == KBD_TYPE_PC82) || (kbd->type == KBD_TYPE_XT82) || (kbd->type == KBD_TYPE_XT86) || (kbd->type == KBD_TYPE_ZENITH))) {
-                if ((kbd->type == KBD_TYPE_PC81) || (kbd->type == KBD_TYPE_PC82))
+            if ((kbd->pb & 0x80) && ((kbd->type == KBD_TYPE_PC81) || (kbd->type == KBD_TYPE_PC82) || (kbd->type == KBD_TYPE_PRAVETZ) || (kbd->type == KBD_TYPE_XT82) || (kbd->type == KBD_TYPE_XT86) || (kbd->type == KBD_TYPE_ZENITH))) {
+                if ((kbd->type == KBD_TYPE_PC81) || (kbd->type == KBD_TYPE_PC82) || (kbd->type == KBD_TYPE_PRAVETZ))
                     ret = (kbd->pd & ~0x02) | (hasfpu ? 0x02 : 0x00);
                 else if ((kbd->type == KBD_TYPE_XT82) || (kbd->type == KBD_TYPE_XT86))
                     ret = 0xff; /* According to Ruud on the PCem forum, this is supposed to return 0xFF on the XT. */
@@ -600,7 +612,7 @@ kbd_read(uint16_t port, void *priv)
             break;
 
         case 0x62: /* Switch Register (aka Port C) */
-            if ((kbd->type == KBD_TYPE_PC81) || (kbd->type == KBD_TYPE_PC82)) {
+            if ((kbd->type == KBD_TYPE_PC81) || (kbd->type == KBD_TYPE_PC82) || (kbd->type == KBD_TYPE_PRAVETZ)) {
                 if (kbd->pb & 0x04) /* PB2 */
                     switch (mem_size + isa_mem_size) {
                         case 64:
@@ -640,7 +652,7 @@ kbd_read(uint16_t port, void *priv)
 
             /* This is needed to avoid error 131 (cassette error).
                This is serial read: bit 5 = clock, bit 4 = data, cassette header is 256 x 0xff. */
-            if ((kbd->type == KBD_TYPE_PC81) || (kbd->type == KBD_TYPE_PC82)) {
+            if ((kbd->type == KBD_TYPE_PC81) || (kbd->type == KBD_TYPE_PC82) || (kbd->type == KBD_TYPE_PRAVETZ)) {
                 if (cassette == NULL)
                     ret |= (ppispeakon ? 0x10 : 0);
                 else
@@ -657,6 +669,12 @@ kbd_read(uint16_t port, void *priv)
                 || (kbd->type == KBD_TYPE_TOSHIBA))
                 ret = kbd->pd;
             break;
+
+        case 0xc0: /* Pravetz Flags */
+            if (kbd->type == KBD_TYPE_PRAVETZ)
+                ret = kbd->pravetz_flags;
+            kbd_log("Port %02X in : %02X\n", port, ret);
+            break;
     }
 
     return (ret);
@@ -671,6 +689,7 @@ kbd_reset(void *priv)
     kbd->blocked  = 0;
     kbd->pa       = 0x00;
     kbd->pb       = 0x00;
+    kbd->pravetz_flags = 0x00;
 
     keyboard_scan = 1;
 
@@ -697,16 +716,19 @@ kbd_init(const device_t *info)
     keyboard_send = kbd_adddata_ex;
     kbd_reset(kbd);
     kbd->type = info->local;
+    if (kbd->type == KBD_TYPE_PRAVETZ) {
+        io_sethandler(0x00c0, 16,
+                      kbd_read, NULL, NULL, kbd_write, NULL, NULL, kbd);
+    }
 
     key_queue_start = key_queue_end = 0;
 
     video_reset(gfxcard);
 
-    if ((kbd->type == KBD_TYPE_PC81) || (kbd->type == KBD_TYPE_PC82)
-        || (kbd->type == KBD_TYPE_XT82) || (kbd->type <= KBD_TYPE_XT86)
-        || (kbd->type == KBD_TYPE_COMPAQ)
-        || (kbd->type == KBD_TYPE_TOSHIBA)
-        || (kbd->type == KBD_TYPE_OLIVETTI)) {
+    if ((kbd->type == KBD_TYPE_PC81) || (kbd->type == KBD_TYPE_PC82) ||
+        (kbd->type == KBD_TYPE_PRAVETZ) || (kbd->type == KBD_TYPE_XT82) ||
+        (kbd->type <= KBD_TYPE_XT86) || (kbd->type == KBD_TYPE_COMPAQ) ||
+        (kbd->type == KBD_TYPE_TOSHIBA) || (kbd->type == KBD_TYPE_OLIVETTI)) {
 
         /* DIP switch readout: bit set = OFF, clear = ON. */
         if (kbd->type == KBD_TYPE_OLIVETTI)
@@ -885,6 +907,20 @@ const device_t keyboard_pc82_device = {
     .internal_name = "keyboard_pc82",
     .flags         = 0,
     .local         = KBD_TYPE_PC82,
+    .init          = kbd_init,
+    .close         = kbd_close,
+    .reset         = kbd_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t keyboard_pravetz_device = {
+    .name          = "Pravetz Keyboard",
+    .internal_name = "keyboard_pravetz",
+    .flags         = 0,
+    .local         = KBD_TYPE_PRAVETZ,
     .init          = kbd_init,
     .close         = kbd_close,
     .reset         = kbd_reset,

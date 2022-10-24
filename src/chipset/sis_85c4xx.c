@@ -38,11 +38,24 @@ typedef struct
     uint8_t cur_reg, tries,
         reg_base, reg_last,
         reg_00, is_471,
+        force_flush, shadowed,
+        smram_enabled, pad,
         regs[39], scratch[2];
     uint32_t   mem_state[8];
     smram_t   *smram;
     port_92_t *port_92;
 } sis_85c4xx_t;
+
+static void
+sis_85c4xx_recalcremap(sis_85c4xx_t *dev)
+{
+    if (dev->is_471) {
+        if ((mem_size > 8192) || (dev->shadowed & 0x3c) || (dev->regs[0x0b] & 0x02))
+            mem_remap_top(0);
+        else
+            mem_remap_top(-256);
+    }
+}
 
 static void
 sis_85c4xx_recalcmapping(sis_85c4xx_t *dev)
@@ -51,6 +64,8 @@ sis_85c4xx_recalcmapping(sis_85c4xx_t *dev)
     uint32_t i, shflags = 0;
     uint32_t readext, writeext;
     uint8_t  romcs = 0xc0, cur_romcs;
+
+    dev->shadowed = 0x00;
 
     shadowbios       = 0;
     shadowbios_write = 0;
@@ -73,25 +88,34 @@ sis_85c4xx_recalcmapping(sis_85c4xx_t *dev)
             shadowbios_write |= (base >= 0xe0000) && !(dev->regs[0x02] & 0x40);
             shflags = (dev->regs[0x02] & 0x80) ? MEM_READ_INTERNAL : readext;
             shflags |= (dev->regs[0x02] & 0x40) ? writeext : MEM_WRITE_INTERNAL;
-            if (dev->mem_state[i] != shflags) {
+            if (dev->regs[0x02] & 0x80)
+                dev->shadowed |= (1 << i);
+            if (!(dev->regs[0x02] & 0x40))
+                dev->shadowed |= (1 << i);
+            if (dev->force_flush || (dev->mem_state[i] != shflags)) {
                 n++;
-                mem_set_mem_state(base, 0x8000, shflags);
+                mem_set_mem_state_both(base, 0x8000, shflags);
                 if ((base >= 0xf0000) && (dev->mem_state[i] & MEM_READ_INTERNAL) && !(shflags & MEM_READ_INTERNAL))
                     mem_invalidate_range(base, base + 0x7fff);
                 dev->mem_state[i] = shflags;
             }
         } else {
             shflags = readext | writeext;
-            if (dev->mem_state[i] != shflags) {
+            if (dev->force_flush || (dev->mem_state[i] != shflags)) {
                 n++;
-                mem_set_mem_state(base, 0x8000, shflags);
+                mem_set_mem_state_both(base, 0x8000, shflags);
                 dev->mem_state[i] = shflags;
             }
         }
     }
 
-    if (n > 0)
+    if (dev->force_flush) {
+        flushmmucache();
+        dev->force_flush = 0;
+    } else if (n > 0)
         flushmmucache_nopc();
+
+    sis_85c4xx_recalcremap(dev);
 }
 
 static void
@@ -158,12 +182,8 @@ sis_85c4xx_out(uint16_t port, uint8_t val, void *priv)
 
                     case 0x0b:
                         sis_85c4xx_sw_smi_handler(dev);
-                        if (dev->is_471 && (valxor & 0x02)) {
-                            if (val & 0x02)
-                                mem_remap_top(0);
-                            else
-                                mem_remap_top(256);
-                        }
+                        if (valxor & 0x02)
+                            sis_85c4xx_recalcremap(dev);
                         break;
 
                     case 0x13:
@@ -184,8 +204,10 @@ sis_85c4xx_out(uint16_t port, uint8_t val, void *priv)
                                     ram_base = 0x00000000;
                                     break;
                             }
+                            dev->smram_enabled = (ram_base != 0x00000000);
                             if (ram_base != 0x00000000)
                                 smram_enable(dev->smram, host_base, ram_base, 0x00010000, (val & 0x10), 1);
+                            sis_85c4xx_recalcremap(dev);
                         }
                         break;
 
@@ -289,7 +311,6 @@ sis_85c4xx_reset(void *priv)
 
         port_92_remove(dev->port_92);
 
-        mem_remap_top(256);
         soft_reset_mask = 0;
     } else {
         /* Bits 6 and 7 must be clear on the SiS 40x. */
@@ -309,6 +330,7 @@ sis_85c4xx_reset(void *priv)
     cpu_cache_ext_enabled = 0;
     cpu_update_waitstates();
 
+    dev->force_flush = 1;
     sis_85c4xx_recalcmapping(dev);
 }
 
