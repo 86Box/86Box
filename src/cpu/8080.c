@@ -21,13 +21,16 @@
 #include <86box/i8080.h>
 #include <86box/mem.h>
 
-static int prefetching = 1, completed = 1;
+static int completed = 1;
 static int in_rep = 0, repeating = 0, rep_c_flag = 0;
-static int oldc, clear_lock = 0;
-static int refresh = 0, cycdiff;
+static int oldc, cycdiff;
+#ifdef UNUSED_8080_VARS
+static int prefetching = 1;
+static int refresh = 0, clear_lock = 0;
 
 static uint32_t cpu_src = 0, cpu_dest = 0;
 static uint32_t cpu_data = 0;
+#endif
 
 static void
 clock_start(void)
@@ -48,7 +51,7 @@ clock_end(void)
 }
 
 static void
-8080_wait(int c, int bus)
+i8080_wait(int c, int bus)
 {
     cycles -= c;
     if (bus < 2) {
@@ -57,12 +60,13 @@ static void
     }
 }
 
+#ifdef UNUSED_8080_FUNCS
 static uint8_t
 readmemb(uint32_t a)
 {
     uint8_t ret;
 
-    8080_wait(4, 1);
+    i8080_wait(4, 1);
     ret = read_mem_b(a);
 
     return ret;
@@ -76,6 +80,7 @@ ins_fetch(i8080* cpu)
     cpu->pc++;
     return ret;
 }
+#endif
 
 void
 transfer_from_808x(i8080* cpu)
@@ -188,12 +193,14 @@ interpret_exec8080(i8080* cpu, uint8_t opcode)
 void
 exec8080(i8080* cpu, int cycs)
 {
+#ifdef UNUSED_8080_VARS
     uint8_t temp = 0, temp2;
     uint8_t old_af;
-	uint8_t handled = 0;
+    uint8_t handled = 0;
     uint16_t addr, tempw;
     uint16_t new_ip;
     int bits;
+#endif
 
     cycles += cycs;
 
@@ -204,7 +211,7 @@ exec8080(i8080* cpu, int cycs)
             cpu->oldpc = cpu->pc;
             opcode = cpu->fetchinstruction(cpu);
             oldc = cpu->flags & C_FLAG_I8080;
-            8080_wait(1, 0);
+            i8080_wait(1, 0);
         }
         completed = 1;
         if (completed) {

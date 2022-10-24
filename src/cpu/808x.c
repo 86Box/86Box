@@ -1645,12 +1645,18 @@ cpu_outw(uint16_t port, uint16_t val)
 void
 execx86(int cycs)
 {
-    uint8_t  temp = 0, temp2;
-    uint8_t  old_af;
-    uint8_t  handled = 0;
-    uint16_t addr, tempw;
-    uint16_t new_cs, new_ip;
+    uint8_t  temp = 0, temp2, old_af, nests;
+    uint8_t  temp_val, temp_al, bit, handled = 0;
+    uint8_t  odd, zero, nibbles_count, destcmp;
+    uint8_t  destbyte, srcbyte, nibble_result, bit_length;
+    uint8_t  bit_offset;
+    int8_t   nibble_result_s;
+    uint16_t addr, tempw, new_cs, new_ip;
+    uint16_t tempw_int, size, tempbp, lowbound;
+    uint16_t highbound, regval;
     int      bits;
+    uint32_t dest_seg, i, carry, nibble;
+    uint32_t srcseg, byteaddr;
 
     cycles += cycs;
 
@@ -1674,110 +1680,106 @@ execx86(int cycs)
             switch (opcode) {
                 case 0x6c:
                 case 0x6d: /* INM dst, DW/INS dst, DX */
-                    {
-                        bits    = 8 << (opcode & 1);
-                        handled = 1;
-                        if (!repeating)
-                            wait(2, 0);
+                    bits    = 8 << (opcode & 1);
+                    handled = 1;
+                    if (!repeating)
+                        wait(2, 0);
 
-                        if (rep_action(bits)) {
-                            break;
-                        } else if (!repeating) {
-                            wait(7, 0);
-                        }
-                        if (bits == 16) {
-                            writememw(es, DI, cpu_inw(DX));
-                            DI += (cpu_state.flags & D_FLAG) ? -2 : 2;
-                        } else {
-                            wait(4, 0);
-                            writememb(es, DI, inb(DX));
-                            DI += (cpu_state.flags & D_FLAG) ? -1 : 1;
-                        }
-                        if (in_rep == 0) {
-                            break;
-                        }
-                        repeating = 1;
-                        clock_end();
+                    if (rep_action(bits))
                         break;
+                    else if (!repeating)
+                        wait(7, 0);
+
+                    if (bits == 16) {
+                        writememw(es, DI, cpu_inw(DX));
+                        DI += (cpu_state.flags & D_FLAG) ? -2 : 2;
+                    } else {
+                        wait(4, 0);
+                        writememb(es, DI, inb(DX));
+                        DI += (cpu_state.flags & D_FLAG) ? -1 : 1;
                     }
+
+                    if (in_rep == 0)
+                        break;
+
+                    repeating = 1;
+                    clock_end();
+                    break;
+
                 case 0x6e:
                 case 0x6f: /* OUTM DW, src/OUTS DX, src */
-                    {
-                        uint32_t dest_seg = ovr_seg ? *ovr_seg : ds;
-                        bits              = 8 << (opcode & 1);
-                        handled           = 1;
-                        if (!repeating)
-                            wait(2, 0);
+                    dest_seg = ovr_seg ? *ovr_seg : ds;
+                    bits              = 8 << (opcode & 1);
+                    handled           = 1;
+                    if (!repeating)
+                        wait(2, 0);
 
-                        if (rep_action(bits)) {
-                            break;
-                        } else if (!repeating) {
-                            wait(7, 0);
-                        }
-                        if (bits == 16) {
-                            cpu_outw(DX, readmemw(dest_seg, SI));
-                            SI += (cpu_state.flags & D_FLAG) ? -2 : 2;
-                        } else {
-                            wait(4, 0);
-                            outb(DX, readmemb(dest_seg + SI));
-                            SI += (cpu_state.flags & D_FLAG) ? -1 : 1;
-                        }
-                        if (in_rep == 0) {
-                            break;
-                        }
-                        repeating = 1;
-                        clock_end();
-                        break;
-                    }
-                case 0xC8: /* ENTER/PREPARE */
-                    {
-                        uint16_t temp  = 0;
-                        uint16_t size  = pfq_fetchw();
-                        uint8_t  nests = pfq_fetchb();
-                        uint32_t i     = 0;
+                    if (rep_action(bits))
+                         break;
+                    else if (!repeating)
+                        wait(7, 0);
 
-                        push(&BP);
-                        temp = SP;
-                        if (nests > 0) {
-                            while (--nests) {
-                                uint16_t tempbp = 0;
-                                BP -= 2;
-                                tempbp = readmemw(ss, BP);
-                                push(&tempbp);
-                            }
-                            push(&temp);
+                    if (bits == 16) {
+                        cpu_outw(DX, readmemw(dest_seg, SI));
+                        SI += (cpu_state.flags & D_FLAG) ? -2 : 2;
+                    } else {
+                        wait(4, 0);
+                        outb(DX, readmemb(dest_seg + SI));
+                        SI += (cpu_state.flags & D_FLAG) ? -1 : 1;
+                    }
+                    if (in_rep == 0)
+                        break;
+
+                    repeating = 1;
+                    clock_end();
+                    break;
+
+                case 0xc8: /* ENTER/PREPARE */
+                    tempw_int = 0;
+                    size  = pfq_fetchw();
+                    nests = pfq_fetchb();
+                    i     = 0;
+
+                    push(&BP);
+                    tempw_int = SP;
+                    if (nests > 0) {
+                        while (--nests) {
+                            tempbp = 0;
+                            BP -= 2;
+                            tempbp = readmemw(ss, BP);
+                            push(&tempbp);
                         }
-                        BP = temp;
-                        SP -= size;
-                        handled = 1;
-                        break;
+                        push(&tempw_int);
                     }
-                case 0xC9: /* LEAVE/DISPOSE */
-                    {
-                        SP      = BP;
-                        BP      = pop();
-                        handled = 1;
-                        break;
-                    }
+                    BP = tempw_int;
+                    SP -= size;
+                    handled = 1;
+                    break;
+
+                case 0xc9: /* LEAVE/DISPOSE */
+                    SP      = BP;
+                    BP      = pop();
+                    handled = 1;
+                    break;
+
                 case 0x62: /* BOUND r/m */
-                    {
-                        uint16_t oldpc    = cpu_state.oldpc;
-                        uint16_t lowbound = 0, highbound = 0;
-                        uint16_t regval = 0;
-                        do_mod_rm();
+                    lowbound = 0;
+                    highbound = 0;
+                    regval = 0;
+                    do_mod_rm();
 
-                        lowbound  = readmemw(easeg, cpu_state.eaaddr);
-                        highbound = readmemw(easeg, cpu_state.eaaddr + 2);
-                        regval    = get_reg(cpu_reg);
-                        if (lowbound > regval || highbound < regval) {
-                            cpu_state.pc = cpu_state.oldpc;
-                            interrupt(5);
-                        }
-                        handled = 1;
-                        break;
+                    lowbound  = readmemw(easeg, cpu_state.eaaddr);
+                    highbound = readmemw(easeg, cpu_state.eaaddr + 2);
+                    regval    = get_reg(cpu_reg);
+                    if (lowbound > regval || highbound < regval) {
+                        cpu_state.pc = cpu_state.oldpc;
+                        interrupt(5);
                     }
-                case 0xC0:
-                case 0xC1: /*rot imm8 */
+                    handled = 1;
+                    break;
+
+                case 0xc0:
+                case 0xc1: /*rot imm8 */
                     bits = 8 << (opcode & 1);
                     do_mod_rm();
                     if (cpu_mod == 3)
@@ -1885,297 +1887,289 @@ execx86(int cycs)
                         opcode              = pfq_fetchb();
                         switch (opcode) {
                             case 0x28: /* ROL4 r/m */
-                                {
-                                    do_mod_rm();
-                                    wait(21, 0);
-                                    {
-                                        uint8_t temp_val = geteab();
-                                        uint8_t temp_al  = AL;
+                                do_mod_rm();
+                                wait(21, 0);
 
-                                        temp_al &= 0xF;
-                                        temp_al |= (temp_val & 0xF0);
-                                        temp_val = (temp_al & 0xF) | ((temp_val & 0xF) << 4);
-                                        temp_al >>= 4;
-                                        temp_al &= 0xF;
-                                        seteab(temp_val);
-                                        AL = temp_al;
-                                    }
-                                    handled = 1;
-                                    break;
-                                }
-                            case 0x2a: /* ROR4 r/m */
-                                {
-                                    do_mod_rm();
-                                    wait(21, 0);
-                                    {
-                                        uint8_t temp_val = geteab();
-                                        uint8_t temp_al  = AL;
+                                temp_val = geteab();
+                                temp_al  = AL;
 
-                                        AL       = temp_val & 0xF;
-                                        temp_val = (temp_val >> 4) | ((temp_al & 0xF) << 4);
+                                temp_al &= 0xF;
+                                temp_al |= (temp_val & 0xF0);
+                                temp_val = (temp_al & 0xF) | ((temp_val & 0xF) << 4);
+                                temp_al >>= 4;
+                                temp_al &= 0xF;
+                                seteab(temp_val);
+                                AL = temp_al;
 
-                                        seteab(temp_val);
-                                    }
-                                    handled = 1;
-                                    break;
-                                }
+                                handled = 1;
+                                break;
+
+                           case 0x2a: /* ROR4 r/m */
+                                do_mod_rm();
+                                wait(21, 0);
+
+                                temp_val = geteab();
+                                temp_al  = AL;
+
+                                AL       = temp_val & 0xF;
+                                temp_val = (temp_val >> 4) | ((temp_al & 0xF) << 4);
+
+                                seteab(temp_val);
+
+                                handled = 1;
+                                break;
+
                             case 0x10: /* TEST1 r8/m8, CL*/
                             case 0x11: /* TEST1 r16/m16, CL*/
                             case 0x18: /* TEST1 r8/m8, imm3 */
                             case 0x19: /* TEST1 r16/m16, imm4 */
-                                {
-                                    bits = 8 << (opcode & 0x1);
-                                    do_mod_rm();
-                                    wait(3, 0);
-                                    {
-                                        uint8_t bit = (opcode & 0x8) ? (pfq_fetchb()) : (CL);
-                                        bit &= ((1 << (3 + (opcode & 0x1))) - 1);
-                                        read_ea(0, bits);
+                                bits = 8 << (opcode & 0x1);
+                                do_mod_rm();
+                                wait(3, 0);
 
-                                        set_zf_ex(!(cpu_data & (1 << bit)));
-                                        cpu_state.flags &= ~(V_FLAG | C_FLAG);
-                                    }
-                                    handled = 1;
-                                    break;
-                                }
+                                bit = (opcode & 0x8) ? (pfq_fetchb()) : (CL);
+                                bit &= ((1 << (3 + (opcode & 0x1))) - 1);
+                                read_ea(0, bits);
+
+                                set_zf_ex(!(cpu_data & (1 << bit)));
+                                cpu_state.flags &= ~(V_FLAG | C_FLAG);
+
+                                handled = 1;
+                                break;
+
                             case 0x16: /* NOT1 r8/m8, CL*/
                             case 0x17: /* NOT1 r16/m16, CL*/
                             case 0x1e: /* NOT1 r8/m8, imm3 */
                             case 0x1f: /* NOT1 r16/m16, imm4 */
-                                {
-                                    bits = 8 << (opcode & 0x1);
-                                    do_mod_rm();
-                                    wait(3, 0);
-                                    {
-                                        uint8_t bit = (opcode & 0x8) ? (pfq_fetchb()) : (CL);
-                                        bit &= ((1 << (3 + (opcode & 0x1))) - 1);
-                                        read_ea(0, bits);
+                                bits = 8 << (opcode & 0x1);
+                                do_mod_rm();
+                                wait(3, 0);
 
-                                        if (bits == 8)
-                                            seteab((cpu_data & 0xFF) ^ (1 << bit));
-                                        else
-                                            seteaw((cpu_data & 0xFFFF) ^ (1 << bit));
-                                    }
-                                    handled = 1;
-                                    break;
-                                }
+                                bit = (opcode & 0x8) ? (pfq_fetchb()) : (CL);
+                                bit &= ((1 << (3 + (opcode & 0x1))) - 1);
+                                read_ea(0, bits);
+
+                                if (bits == 8)
+                                    seteab((cpu_data & 0xFF) ^ (1 << bit));
+                                else
+                                    seteaw((cpu_data & 0xFFFF) ^ (1 << bit));
+
+                                handled = 1;
+                                break;
+
                             case 0x14: /* SET1 r8/m8, CL*/
                             case 0x15: /* SET1 r16/m16, CL*/
                             case 0x1c: /* SET1 r8/m8, imm3 */
                             case 0x1d: /* SET1 r16/m16, imm4 */
-                                {
-                                    bits = 8 << (opcode & 0x1);
-                                    do_mod_rm();
-                                    wait(3, 0);
-                                    {
-                                        uint8_t bit = (opcode & 0x8) ? (pfq_fetchb()) : (CL);
-                                        bit &= ((1 << (3 + (opcode & 0x1))) - 1);
-                                        read_ea(0, bits);
+                                bits = 8 << (opcode & 0x1);
+                                do_mod_rm();
+                                wait(3, 0);
 
-                                        if (bits == 8)
-                                            seteab((cpu_data & 0xFF) | (1 << bit));
-                                        else
-                                            seteaw((cpu_data & 0xFFFF) | (1 << bit));
-                                    }
-                                    handled = 1;
-                                    break;
-                                }
+                                bit = (opcode & 0x8) ? (pfq_fetchb()) : (CL);
+                                bit &= ((1 << (3 + (opcode & 0x1))) - 1);
+                                read_ea(0, bits);
+
+                                if (bits == 8)
+                                    seteab((cpu_data & 0xFF) | (1 << bit));
+                                else
+                                    seteaw((cpu_data & 0xFFFF) | (1 << bit));
+
+                                handled = 1;
+                                break;
+
                             case 0x12: /* CLR1 r8/m8, CL*/
                             case 0x13: /* CLR1 r16/m16, CL*/
                             case 0x1a: /* CLR1 r8/m8, imm3 */
                             case 0x1b: /* CLR1 r16/m16, imm4 */
-                                {
-                                    bits = 8 << (opcode & 0x1);
-                                    do_mod_rm();
-                                    wait(3, 0);
-                                    {
-                                        uint8_t bit = (opcode & 0x8) ? (pfq_fetchb()) : (CL);
-                                        bit &= ((1 << (3 + (opcode & 0x1))) - 1);
-                                        read_ea(0, bits);
+                                bits = 8 << (opcode & 0x1);
+                                do_mod_rm();
+                                wait(3, 0);
 
-                                        if (bits == 8)
-                                            seteab((cpu_data & 0xFF) & ~(1 << bit));
-                                        else
-                                            seteaw((cpu_data & 0xFFFF) & ~(1 << bit));
-                                    }
-                                    handled = 1;
-                                    break;
-                                }
+                                bit = (opcode & 0x8) ? (pfq_fetchb()) : (CL);
+                                bit &= ((1 << (3 + (opcode & 0x1))) - 1);
+                                read_ea(0, bits);
+
+                                if (bits == 8)
+                                    seteab((cpu_data & 0xFF) & ~(1 << bit));
+                                else
+                                    seteaw((cpu_data & 0xFFFF) & ~(1 << bit));
+
+                                handled = 1;
+                                break;
+
                             case 0x20: /* ADD4S */
-                                {
-                                    uint8_t  odd           = !!(CL % 2);
-                                    uint8_t  zero          = 1;
-                                    uint8_t  nibbles_count = CL - odd;
-                                    uint32_t i = 0, carry = 0, nibble = 0;
-                                    uint32_t srcseg = ovr_seg ? *ovr_seg : ds;
+                                odd           = !!(CL % 2);
+                                zero          = 1;
+                                nibbles_count = CL - odd;
+                                i = 0;
+                                carry = 0;
+                                nibble = 0;
+                                srcseg = ovr_seg ? *ovr_seg : ds;
 
-                                    wait(5, 0);
-                                    for (i = 0; i < ((nibbles_count / 2) + odd); i++) {
-                                        wait(19, 0);
-                                        uint8_t destcmp = read_mem_b((es) + DI + i);
-                                        for (nibble = 0; nibble < 2; nibble++) {
-                                            uint8_t destbyte = destcmp >> (nibble ? 4 : 0);
-                                            uint8_t srcbyte  = read_mem_b(srcseg + SI + i) >> (nibble ? 4 : 0);
-                                            destbyte &= 0xF;
-                                            srcbyte &= 0xF;
-                                            uint8_t nibble_result = (i == (nibbles_count / 2) && nibble == 1) ? (destbyte + carry) : ((uint8_t) (destbyte)) + ((uint8_t) (srcbyte)) + ((uint32_t) carry);
-                                            carry                 = 0;
-                                            while (nibble_result >= 10) {
-                                                nibble_result -= 10;
-                                                carry++;
-                                            }
-                                            if (zero != 0 || (i == (nibbles_count / 2) && nibble == 1))
-                                                zero = (nibble_result == 0);
-                                            destcmp = ((destcmp & (nibble ? 0x0F : 0xF0)) | (nibble_result << (4 * nibble)));
+                                wait(5, 0);
+                                for (i = 0; i < ((nibbles_count / 2) + odd); i++) {
+                                    wait(19, 0);
+                                    destcmp = read_mem_b((es) + DI + i);
+                                    for (nibble = 0; nibble < 2; nibble++) {
+                                        destbyte = destcmp >> (nibble ? 4 : 0);
+                                        srcbyte  = read_mem_b(srcseg + SI + i) >> (nibble ? 4 : 0);
+                                        destbyte &= 0xF;
+                                        srcbyte &= 0xF;
+                                        nibble_result = (i == (nibbles_count / 2) && nibble == 1) ? (destbyte + carry) : ((uint8_t) (destbyte)) + ((uint8_t) (srcbyte)) + ((uint32_t) carry);
+                                        carry         = 0;
+                                        while (nibble_result >= 10) {
+                                            nibble_result -= 10;
+                                            carry++;
                                         }
-                                        write_mem_b(es + DI + i, destcmp);
+                                        if (zero != 0 || (i == (nibbles_count / 2) && nibble == 1))
+                                            zero = (nibble_result == 0);
+                                        destcmp = ((destcmp & (nibble ? 0x0F : 0xF0)) | (nibble_result << (4 * nibble)));
                                     }
-                                    set_cf(!!carry);
-                                    set_zf(!!zero);
-                                    handled = 1;
-                                    break;
+                                    write_mem_b(es + DI + i, destcmp);
                                 }
+                                set_cf(!!carry);
+                                set_zf(!!zero);
+                                handled = 1;
+                                break;
+
                             case 0x22: /* SUB4S */
-                                {
-                                    uint8_t  odd           = !!(CL % 2);
-                                    uint8_t  zero          = 1;
-                                    uint8_t  nibbles_count = CL - odd;
-                                    uint32_t i = 0, carry = 0, nibble = 0;
-                                    uint32_t srcseg = ovr_seg ? *ovr_seg : ds;
+                                odd           = !!(CL % 2);
+                                zero          = 1;
+                                nibbles_count = CL - odd;
+                                i = 0;
+                                carry = 0;
+                                nibble = 0;
+                                srcseg = ovr_seg ? *ovr_seg : ds;
 
-                                    wait(5, 0);
-                                    for (i = 0; i < ((nibbles_count / 2) + odd); i++) {
-                                        wait(19, 0);
-                                        uint8_t destcmp = read_mem_b((es) + DI + i);
-                                        for (nibble = 0; nibble < 2; nibble++) {
-                                            uint8_t destbyte = destcmp >> (nibble ? 4 : 0);
-                                            uint8_t srcbyte  = read_mem_b(srcseg + SI + i) >> (nibble ? 4 : 0);
-                                            destbyte &= 0xF;
-                                            srcbyte &= 0xF;
-                                            int8_t nibble_result = (i == (nibbles_count / 2) && nibble == 1) ? ((int8_t) destbyte - (int8_t) carry) : ((int8_t) (destbyte)) - ((int8_t) (srcbyte)) - ((int8_t) carry);
-                                            carry                = 0;
-                                            while (nibble_result < 0) {
-                                                nibble_result += 10;
-                                                carry++;
-                                            }
-                                            if (zero != 0 || (i == (nibbles_count / 2) && nibble == 1))
-                                                zero = (nibble_result == 0);
-                                            destcmp = ((destcmp & (nibble ? 0x0F : 0xF0)) | (nibble_result << (4 * nibble)));
+                                wait(5, 0);
+                                for (i = 0; i < ((nibbles_count / 2) + odd); i++) {
+                                    wait(19, 0);
+                                    destcmp = read_mem_b((es) + DI + i);
+                                    for (nibble = 0; nibble < 2; nibble++) {
+                                        destbyte = destcmp >> (nibble ? 4 : 0);
+                                        srcbyte  = read_mem_b(srcseg + SI + i) >> (nibble ? 4 : 0);
+                                        destbyte &= 0xF;
+                                        srcbyte &= 0xF;
+                                        nibble_result_s = (i == (nibbles_count / 2) && nibble == 1) ? ((int8_t) destbyte - (int8_t) carry) : ((int8_t) (destbyte)) - ((int8_t) (srcbyte)) - ((int8_t) carry);
+                                        carry           = 0;
+                                        while (nibble_result_s < 0) {
+                                            nibble_result_s += 10;
+                                            carry++;
                                         }
-                                        write_mem_b(es + DI + i, destcmp);
+                                        if (zero != 0 || (i == (nibbles_count / 2) && nibble == 1))
+                                            zero = (nibble_result_s == 0);
+                                        destcmp = ((destcmp & (nibble ? 0x0F : 0xF0)) | (nibble_result_s << (4 * nibble)));
                                     }
-                                    set_cf(!!carry);
-                                    set_zf(!!zero);
-                                    handled = 1;
-                                    break;
+                                    write_mem_b(es + DI + i, destcmp);
                                 }
+                                set_cf(!!carry);
+                                set_zf(!!zero);
+                                handled = 1;
+                                break;
+
                             case 0x26: /* CMP4S */
-                                {
-                                    uint8_t  odd           = !!(CL % 2);
-                                    uint8_t  zero          = 1;
-                                    uint8_t  nibbles_count = CL - odd;
-                                    uint32_t i = 0, carry = 0, nibble = 0;
-                                    uint32_t srcseg = ovr_seg ? *ovr_seg : ds;
+                                odd           = !!(CL % 2);
+                                zero          = 1;
+                                nibbles_count = CL - odd;
+                                i = 0;
+                                carry = 0;
+                                nibble = 0;
+                                srcseg = ovr_seg ? *ovr_seg : ds;
 
-                                    wait(5, 0);
-                                    for (i = 0; i < ((nibbles_count / 2) + odd); i++) {
-                                        wait(19, 0);
-                                        uint8_t destcmp = read_mem_b((es) + DI + i);
-                                        for (nibble = 0; nibble < 2; nibble++) {
-                                            uint8_t destbyte = destcmp >> (nibble ? 4 : 0);
-                                            uint8_t srcbyte  = read_mem_b(srcseg + SI + i) >> (nibble ? 4 : 0);
-                                            destbyte &= 0xF;
-                                            srcbyte &= 0xF;
-                                            int8_t nibble_result = ((int8_t) (destbyte)) - ((int8_t) (srcbyte)) - ((int8_t) carry);
-                                            carry                = 0;
-                                            while (nibble_result < 0) {
-                                                nibble_result += 10;
-                                                carry++;
-                                            }
-                                            if (zero != 0 || (i == (nibbles_count / 2) && nibble == 1))
-                                                zero = (nibble_result == 0);
-                                            destcmp = ((destcmp & (nibble ? 0x0F : 0xF0)) | (nibble_result << (4 * nibble)));
+                                wait(5, 0);
+                                for (i = 0; i < ((nibbles_count / 2) + odd); i++) {
+                                    wait(19, 0);
+                                    destcmp = read_mem_b((es) + DI + i);
+                                    for (nibble = 0; nibble < 2; nibble++) {
+                                        destbyte = destcmp >> (nibble ? 4 : 0);
+                                        srcbyte  = read_mem_b(srcseg + SI + i) >> (nibble ? 4 : 0);
+                                        destbyte &= 0xF;
+                                        srcbyte &= 0xF;
+                                        nibble_result_s = ((int8_t) (destbyte)) - ((int8_t) (srcbyte)) - ((int8_t) carry);
+                                        carry           = 0;
+                                        while (nibble_result_s < 0) {
+                                            nibble_result_s += 10;
+                                            carry++;
                                         }
+                                        if (zero != 0 || (i == (nibbles_count / 2) && nibble == 1))
+                                            zero = (nibble_result_s == 0);
+                                        destcmp = ((destcmp & (nibble ? 0x0F : 0xF0)) | (nibble_result_s << (4 * nibble)));
                                     }
-                                    set_cf(!!carry);
-                                    set_zf(!!zero);
-                                    handled = 1;
-                                    break;
                                 }
+                                set_cf(!!carry);
+                                set_zf(!!zero);
+                                handled = 1;
+                                break;
+
                             case 0x31: /* INS reg1, reg2 */
                             case 0x39: /* INS reg8, imm4 */
-                                {
-                                    do_mod_rm();
-                                    wait(1, 0);
-                                    {
-                                        uint8_t  bit_length = ((opcode & 0x8) ? (pfq_fetchb() & 0xF) : (getr8(cpu_reg) & 0xF)) + 1;
-                                        uint8_t  bit_offset = getr8(cpu_rm) & 0xF;
-                                        uint32_t byteaddr   = (es) + DI;
-                                        uint32_t i          = 0;
-                                        if (bit_offset >= 8) {
-                                            DI++;
-                                            byteaddr++;
-                                            bit_offset -= 8;
-                                        }
-                                        for (i = 0; i < bit_length; i++) {
-                                            byteaddr = (es) + DI;
-                                            writememb(es, DI, (read_mem_b(byteaddr) & ~(1 << (bit_offset))) | ((!!(AX & (1 << i))) << bit_offset));
-                                            bit_offset++;
-                                            if (bit_offset == 8) {
-                                                DI++;
-                                                bit_offset = 0;
-                                            }
-                                        }
-                                        setr8(cpu_rm, bit_offset);
-                                    }
-                                    handled = 1;
-                                    break;
+                                do_mod_rm();
+                                wait(1, 0);
+
+                                bit_length = ((opcode & 0x8) ? (pfq_fetchb() & 0xF) : (getr8(cpu_reg) & 0xF)) + 1;
+                                bit_offset = getr8(cpu_rm) & 0xF;
+                                byteaddr   = (es) + DI;
+                                i          = 0;
+
+                                if (bit_offset >= 8) {
+                                    DI++;
+                                    byteaddr++;
+                                    bit_offset -= 8;
                                 }
+                                for (i = 0; i < bit_length; i++) {
+                                    byteaddr = (es) + DI;
+                                    writememb(es, DI, (read_mem_b(byteaddr) & ~(1 << (bit_offset))) | ((!!(AX & (1 << i))) << bit_offset));
+                                    bit_offset++;
+                                    if (bit_offset == 8) {
+                                        DI++;
+                                        bit_offset = 0;
+                                    }
+                                }
+                                setr8(cpu_rm, bit_offset);
+ 
+                                handled = 1;
+                                break;
+
                             case 0x33: /* EXT reg1, reg2 */
                             case 0x3b: /* EXT reg8, imm4 */
-                                {
-                                    do_mod_rm();
-                                    wait(1, 0);
-                                    {
-                                        uint8_t  bit_length = ((opcode & 0x8) ? (pfq_fetchb() & 0xF) : (getr8(cpu_reg) & 0xF)) + 1;
-                                        uint8_t  bit_offset = getr8(cpu_rm) & 0xF;
-                                        uint32_t byteaddr   = (ds) + SI;
-                                        uint32_t i          = 0;
+                                do_mod_rm();
+                                wait(1, 0);
 
-                                        if (bit_offset >= 8) {
-                                            SI++;
-                                            byteaddr++;
-                                            bit_offset -= 8;
-                                        }
+                                bit_length = ((opcode & 0x8) ? (pfq_fetchb() & 0xF) : (getr8(cpu_reg) & 0xF)) + 1;
+                                bit_offset = getr8(cpu_rm) & 0xF;
+                                byteaddr   = (ds) + SI;
+                                i          = 0;
 
-                                        AX = 0;
-                                        for (i = 0; i < bit_length; i++) {
-                                            byteaddr = (ds) + SI;
-                                            AX |= (!!(readmemb(byteaddr) & (1 << bit_offset))) << i;
-                                            bit_offset++;
-                                            if (bit_offset == 8) {
-                                                SI++;
-                                                bit_offset = 0;
-                                            }
-                                        }
-                                        setr8(cpu_rm, bit_offset);
+                                if (bit_offset >= 8) {
+                                    SI++;
+                                    byteaddr++;
+                                    bit_offset -= 8;
+                                }
+
+                                AX = 0;
+                                for (i = 0; i < bit_length; i++) {
+                                    byteaddr = (ds) + SI;
+                                    AX |= (!!(readmemb(byteaddr) & (1 << bit_offset))) << i;
+                                    bit_offset++;
+                                    if (bit_offset == 8) {
+                                        SI++;
+                                        bit_offset = 0;
                                     }
-                                    handled = 1;
-                                    break;
                                 }
+                                setr8(cpu_rm, bit_offset);
 
-                            case 0xFF:
-                                { /* BRKEM */
-                                    /* Unimplemented for now. */
-                                    fatal("808x: Unsupported 8080 emulation mode attempted to enter into!");
-                                    break;
-                                }
+                                handled = 1;
+                                break;
+
+                            case 0xFF: /* BRKEM */
+                                /* Unimplemented for now. */
+                                fatal("808x: Unsupported 8080 emulation mode attempted to enter into!");
+                                break;
+
                             default:
-                                {
-                                    opcode = orig_opcode;
-                                    cpu_state.pc--;
-                                    break;
-                                }
+                                opcode = orig_opcode;
+                                cpu_state.pc--;
+                                break;
                         }
                     } else
                         handled = 0;
@@ -2445,12 +2439,11 @@ execx86(int cycs)
                 case 0x70:                    /*JO*/
                 case 0x61:                    /*JNO alias*/
                     if (is186) {              /* POPA/POP R*/
-                        uint16_t orig_sp = 0; /* deliberately unused. */
                         wait(9, 0);
                         DI      = pop();
                         SI      = pop();
                         BP      = pop();
-                        orig_sp = pop();
+                        (void)    pop();      /* former orig_sp */
                         BX      = pop();
                         DX      = pop();
                         CX      = pop();
