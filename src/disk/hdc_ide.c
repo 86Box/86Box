@@ -2161,7 +2161,7 @@ ide_callback(void *priv)
                 ide->sc->status = DRDY_STAT | DSC_STAT;
 #else
                 ide->sc->status = 0;
-3endif
+#endif
                 ide->sc->error  = 1;
                 if (ide->device_reset)
                     ide->device_reset(ide->sc);
