@@ -555,8 +555,8 @@ then
 
 	# Switch into the correct architecture if required.
 	case $arch in
-		x86_64*) arch_mac="i386";;
-		*)	 arch_mac="$arch";;
+		x86_64*) arch_mac="i386"; arch_cmd="x86_64";;
+		*)	 arch_mac="$arch"; arch_cmd="$arch";;
 	esac
 	if [ "$(arch)" != "$arch" -a "$(arch)" != "$arch_mac" ]
 	then
@@ -566,7 +566,7 @@ then
 		args=
 		[ $strip -ne 0 ] && args="-t $args"
 		[ $skip_archive -ne 0 ] && args="-n $args"
-		arch -"$arch" zsh -lc 'exec "'"$0"'" -b "'"$package_name"'" "'"$arch"'" '"$args""$cmake_flags"
+		arch -"$arch_cmd" zsh -lc 'exec "'"$0"'" -b "'"$package_name"'" "'"$arch"'" '"$args""$cmake_flags"
 		exit $?
 	fi
 	echo [-] Using architecture [$(arch)]
@@ -599,7 +599,21 @@ then
 			sudo sed -i -e 's/-no-feature-vulkan/-feature-vulkan/g' "$qt5_portfile"
 			sudo sed -i -e 's/configure.env-append MAKE=/configure.env-append VULKAN_SDK=${prefix} MAKE=/g' "$qt5_portfile"
 		fi
-		sudo "$macports/bin/port" install $(cat .ci/dependencies_macports.txt)
+		while :
+		do
+			# Attempt to install dependencies.
+			sudo "$macports/bin/port" install $(cat .ci/dependencies_macports.txt) 2>&1 | tee macports.log
+
+			# Stop if no port version activation errors were found.
+			stuck_dep=$(grep " cannot be built while another version of " macports.log | cut -d" " -f2)
+			[ -z $stuck_dep ] && break
+
+			# Deactivate the stuck dependency and try again.
+			sudo "$macports/bin/port" -f deactivate $stuck_dep
+		done
+
+		# Remove MacPorts error detection log.
+		rm -f macports.log
 
 		# Save build tag to skip this later. Doing it here (once everything is
 		# in place) is important to avoid potential issues with retried builds.
