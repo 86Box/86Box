@@ -426,6 +426,7 @@ m24_kbd_init(m24_kbd_t *kbd)
 
     /* Tell mouse driver about our internal mouse. */
     mouse_reset();
+    mouse_set_buttons(2);
     mouse_set_poll(ms_poll, kbd);
 
     keyboard_set_table(scancode_xt);
