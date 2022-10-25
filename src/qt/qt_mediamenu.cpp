@@ -491,7 +491,7 @@ void MediaMenu::updateImageHistory(int index, int slot, ui::MediaType type) {
             menu = cdromMenus[index];
             children = menu->children();
             imageHistoryUpdatePos = dynamic_cast<QAction*>(children[cdromImageHistoryPos[slot]]);
-            fi = mhm.getImageForSlot(index, slot, type);
+            fi.setFile(mhm.getImageForSlot(index, slot, type));
             menu_icon = fi.isDir() ? QApplication::style()->standardIcon(QStyle::SP_DirIcon) : ProgSettings::loadIcon("/cdrom.ico");
             imageHistoryUpdatePos->setIcon(menu_icon);
             break;
@@ -501,7 +501,7 @@ void MediaMenu::updateImageHistory(int index, int slot, ui::MediaType type) {
             menu = floppyMenus[index];
             children = menu->children();
             imageHistoryUpdatePos = dynamic_cast<QAction*>(children[floppyImageHistoryPos[slot]]);
-            fi = mhm.getImageForSlot(index, slot, type);
+            fi.setFile(mhm.getImageForSlot(index, slot, type));
             break;
         default:
             pclog("History not yet implemented for media type %s\n", qPrintable(mhm.mediaTypeToString(type)));
