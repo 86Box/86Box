@@ -2410,6 +2410,7 @@ machine_amstrad_init(const machine_t *model, int type)
     if (mouse_type == MOUSE_TYPE_INTERNAL) {
 /* Tell mouse driver about our internal mouse. */
         mouse_reset();
+        mouse_set_buttons(2);
         mouse_set_poll(ms_poll, ams);
     }
 
