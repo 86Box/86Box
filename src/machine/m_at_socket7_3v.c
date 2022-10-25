@@ -287,7 +287,7 @@ machine_at_fmb_init(const machine_t *model)
     pci_register_slot(0x11, PCI_CARD_NORMAL, 4, 3, 2, 1);
 
     device_add(&i430fx_device);
-    device_add(&piix_device);
+    device_add(&piix_no_mirq_device);
     device_add(&keyboard_at_ami_device);
     device_add(&w83787f_device);
     device_add(&intel_flash_bxt_device);
