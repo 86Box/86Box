@@ -1035,11 +1035,18 @@ else
 	metainfo_base=archive_tmp/usr/share/metainfo
 	mkdir -p "$metainfo_base"
 	cp -p "src/unix/assets/$project_id."*".xml" "$metainfo_base/$project_id.appdata.xml"
+	applications_base=archive_tmp/usr/share/applications
+	mkdir -p "$applications_base"
+	cp -p "src/unix/assets/$project_id.desktop" "$applications_base/"
 
 	# Archive icons.
-	icon_base=archive_tmp/usr/share/icons
-	mkdir -p "$icon_base"
-	cp -rp src/unix/assets/[0-9]*x[0-9]* "$icon_base/"
+	icon_base=archive_tmp/usr/share/icons/hicolor
+	for icon_size in src/unix/assets/[0-9]*x[0-9]*
+	do
+		icon_dir="$icon_base/$(basename "$icon_size")"
+		mkdir -p "$icon_dir"
+		cp -rp "$icon_size" "$icon_dir/apps"
+	done
 	project_icon=$(ls "$icon_base/"[0-9]*x[0-9]*/* | head -1 | grep -oP '/\K([^/]+)(?=\.[^\.]+$)')
 
 	# Archive executable, while also stripping it if requested.
