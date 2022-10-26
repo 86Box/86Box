@@ -91,6 +91,7 @@ extern const device_t sio_device;
 extern const device_t sio_zb_device;
 
 extern const device_t piix_device;
+extern const device_t piix_no_mirq_device;
 extern const device_t piix_old_device;
 extern const device_t piix_rev02_device;
 extern const device_t piix3_device;

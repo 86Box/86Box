@@ -72,7 +72,7 @@ typedef struct {
     int blocked;
     int tandy;
 
-    uint8_t pa, pb, pd;
+    uint8_t pa, pb, pd, clock;
     uint8_t key_waiting;
     uint8_t type, pravetz_flags;
 
@@ -514,17 +514,22 @@ static void
 kbd_write(uint16_t port, uint8_t val, void *priv)
 {
     xtkbd_t *kbd = (xtkbd_t *) priv;
-    uint8_t bit, set;
+    uint8_t bit, set, new_clock;
 
     switch (port) {
         case 0x61: /* Keyboard Control Register (aka Port B) */
-            if (!(kbd->pb & 0x40) && (val & 0x40)) {
-                key_queue_start = key_queue_end = 0;
-                kbd->want_irq                   = 0;
-                kbd->blocked                    = 0;
-                kbd_adddata(0xaa);
+            if (!(val & 0x80)) {
+                new_clock = !!(val & 0x40);
+                if (!kbd->clock && new_clock) {
+                    key_queue_start = key_queue_end = 0;
+                    kbd->want_irq                   = 0;
+                    kbd->blocked                    = 0;
+                    kbd_adddata(0xaa);
+                }
             }
             kbd->pb = val;
+            if (!(kbd->pb & 0x80))
+                kbd->clock = !!(kbd->pb & 0x40);
             ppi.pb  = val;
 
             timer_process();

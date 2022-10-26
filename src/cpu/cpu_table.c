@@ -165,7 +165,7 @@ const cpu_family_t cpu_families[] = {
 		{"", 0}
 	}
     }, {
-	.package = CPU_PKG_186,
+	.package = CPU_PKG_8086,
 	.manufacturer = "NEC",
 	.name = "V30",
 	.internal_name = "necv30",

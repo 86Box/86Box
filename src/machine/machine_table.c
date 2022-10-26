@@ -2066,7 +2066,7 @@ const machine_t machines[] = {
             .max_multi = 0
         },
         .bus_flags = MACHINE_PC,
-        .flags = MACHINE_VIDEO,
+        .flags = MACHINE_VIDEO | MACHINE_MFM,
         .ram = {
             .min = 512,
             .max = 1024,
@@ -2102,7 +2102,7 @@ const machine_t machines[] = {
             .max_multi = 0
         },
         .bus_flags = MACHINE_PC,
-        .flags = MACHINE_VIDEO,
+        .flags = MACHINE_VIDEO | MACHINE_MFM,
         .ram = {
             .min = 1024,
             .max = 2048,
@@ -8263,7 +8263,7 @@ const machine_t machines[] = {
             .min_multi = 1.5,
             .max_multi = 3.0
         },
-        .bus_flags = MACHINE_PS2_PCI,
+        .bus_flags = MACHINE_PCI,
         .flags = MACHINE_IDE_DUAL,
         .ram = {
             .min = 8192,

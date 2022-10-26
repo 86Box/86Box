@@ -265,7 +265,7 @@ machine_at_mb500n_init(const machine_t *model)
     pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
     device_add(&keyboard_ps2_pci_device);
     device_add(&i430fx_device);
-    device_add(&piix_device);
+    device_add(&piix_no_mirq_device);
     device_add(&fdc37c665_device);
     device_add(&intel_flash_bxt_device);
 

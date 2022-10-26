@@ -313,7 +313,7 @@ readmemw(uint32_t s, uint16_t a)
     else {
         wait(4, 1);
         ret = read_mem_b(s + a);
-        ret |= read_mem_b(s + (is186 ? (a + 1) : (a + 1) & 0xffff)) << 8;
+        ret |= read_mem_b(s + ((is186 && !is_nec) ? (a + 1) : (a + 1) & 0xffff)) << 8;
     }
 
     return ret;
@@ -385,7 +385,7 @@ writememw(uint32_t s, uint32_t a, uint16_t v)
     else {
         write_mem_b(addr, v & 0xff);
         wait(4, 1);
-        addr = s + (is186 ? (a + 1) : ((a + 1) & 0xffff));
+        addr = s + ((is186 && !is_nec) ? (a + 1) : ((a + 1) & 0xffff));
         write_mem_b(addr, v >> 8);
     }
 
@@ -794,7 +794,7 @@ seteaq(uint64_t val)
 static void
 push(uint16_t *val)
 {
-    if (is186 && SP == 1) {
+    if ((is186 && !is_nec) && (SP == 1)) {
         writememw(ss - 1, 0, *val);
         SP = cpu_state.eaaddr = 0xFFFF;
         return;
@@ -963,7 +963,7 @@ interrupt(uint16_t addr)
     pfq_clear();
     ovr_seg = NULL;
     access(39, 16);
-    tempf = cpu_state.flags & (is_nec && cpu_state.inside_emulation_mode ? 0x8fd7 : 0x0fd7);
+    tempf = cpu_state.flags & ((is_nec && cpu_state.inside_emulation_mode) ? 0x8fd7 : 0x0fd7);
     push(&tempf);
     cpu_state.flags &= ~(I_FLAG | T_FLAG);
     access(40, 16);
@@ -1405,8 +1405,7 @@ set_co_mul(int bits, int carry)
 {
     set_cf(carry);
     set_of(carry);
-    if (!is_nec)
-        set_zf_ex(!carry);
+    set_zf_ex(!carry);
     if (!carry)
         wait(1, 0);
 }
@@ -1653,7 +1652,8 @@ execx86(int cycs)
     int8_t   nibble_result_s;
     uint16_t addr, tempw, new_cs, new_ip;
     uint16_t tempw_int, size, tempbp, lowbound;
-    uint16_t highbound, regval;
+    uint16_t highbound, regval, orig_sp, wordtopush;
+    uint16_t immediate, old_flags;
     int      bits;
     uint32_t dest_seg, i, carry, nibble;
     uint32_t srcseg, byteaddr;
@@ -1666,6 +1666,7 @@ execx86(int cycs)
         if (!repeating) {
             cpu_state.oldpc = cpu_state.pc;
             opcode          = pfq_fetchb();
+            handled         = 0;
             oldc            = cpu_state.flags & C_FLAG;
             if (clear_lock) {
                 in_lock    = 0;
@@ -1678,6 +1679,97 @@ execx86(int cycs)
         // pclog("[%04X:%04X] Opcode: %02X\n", CS, cpu_state.pc, opcode);
         if (is186) {
             switch (opcode) {
+                case 0x60:       /*PUSHA/PUSH R*/
+                    orig_sp = SP;
+                    wait(1, 0);
+                    push(&AX);
+                    push(&CX);
+                    push(&DX);
+                    push(&BX);
+                    push(&orig_sp);
+                    push(&BP);
+                    push(&SI);
+                    push(&DI);
+                    handled = 1;
+                    break;
+                case 0x61:       /*POPA/POP R*/
+                    wait(9, 0);
+                    DI      = pop();
+                    SI      = pop();
+                    BP      = pop();
+                    (void)    pop();      /* former orig_sp */
+                    BX      = pop();
+                    DX      = pop();
+                    CX      = pop();
+                    AX      = pop();
+                    handled = 1;
+                    break;
+
+                case 0x62: /* BOUND r/m */
+                    lowbound = 0;
+                    highbound = 0;
+                    regval = 0;
+                    do_mod_rm();
+
+                    lowbound  = readmemw(easeg, cpu_state.eaaddr);
+                    highbound = readmemw(easeg, cpu_state.eaaddr + 2);
+                    regval    = get_reg(cpu_reg);
+                    if (lowbound > regval || highbound < regval) {
+                        cpu_state.pc = cpu_state.oldpc;
+                        interrupt(5);
+                    }
+                    handled = 1;
+                    break;
+
+                case 0x64:
+                case 0x65:
+                    if (is_nec) {
+                        /* REPC/REPNC */
+                        wait(1, 0);
+                        in_rep     = (opcode == 0x64 ? 1 : 2);
+                        rep_c_flag = 1;
+                        completed  = 0;
+                        handled = 1;
+                    }
+                    break;
+
+                case 0x68:
+                    wordtopush = pfq_fetchw();
+                    wait(1, 0);
+                    push(&wordtopush);
+                    handled = 1;
+                    break;
+
+                case 0x69:
+                    immediate = 0;
+                    bits = 16;
+                    do_mod_rm();
+                    read_ea(0, 16);
+                    immediate = pfq_fetchw();
+                    mul(cpu_data & 0xFFFF, immediate);
+                    set_reg(cpu_reg, cpu_data);
+                    set_co_mul(16, cpu_dest != 0);
+                    handled = 1;
+                    break;
+
+                case 0x6a:
+                    wordtopush = sign_extend(pfq_fetchb());
+                    push(&wordtopush);
+                    handled = 1;
+                    break;
+
+                case 0x6b: /* IMUL reg16,reg16/mem16,imm8 */
+                    immediate = 0;
+                    bits = 16;
+                    do_mod_rm();
+                    read_ea(0, 16);
+                    immediate = pfq_fetchb();
+                    mul(cpu_data & 0xFFFF, immediate);
+                    set_reg(cpu_reg, cpu_data);
+                    set_co_mul(16, cpu_dest != 0);
+                    handled = 1;
+                    break;
+
                 case 0x6c:
                 case 0x6d: /* INM dst, DW/INS dst, DX */
                     bits    = 8 << (opcode & 1);
@@ -1753,28 +1845,6 @@ execx86(int cycs)
                     }
                     BP = tempw_int;
                     SP -= size;
-                    handled = 1;
-                    break;
-
-                case 0xc9: /* LEAVE/DISPOSE */
-                    SP      = BP;
-                    BP      = pop();
-                    handled = 1;
-                    break;
-
-                case 0x62: /* BOUND r/m */
-                    lowbound = 0;
-                    highbound = 0;
-                    regval = 0;
-                    do_mod_rm();
-
-                    lowbound  = readmemw(easeg, cpu_state.eaaddr);
-                    highbound = readmemw(easeg, cpu_state.eaaddr + 2);
-                    regval    = get_reg(cpu_reg);
-                    if (lowbound > regval || highbound < regval) {
-                        cpu_state.pc = cpu_state.oldpc;
-                        interrupt(5);
-                    }
                     handled = 1;
                     break;
 
@@ -1867,6 +1937,12 @@ execx86(int cycs)
                     set_ea(cpu_data);
                     handled = 1;
                     break;
+
+                case 0xc9: /* LEAVE/DISPOSE */
+                    SP      = BP;
+                    BP      = pop();
+                    handled = 1;
+                    break;
             }
         }
         if (!handled) {
@@ -1882,7 +1958,7 @@ execx86(int cycs)
                 case 0x0F:
                 case 0x17:
                 case 0x1F: /* POP seg */
-                    if (is_nec && opcode == 0x0F) {
+                    if (is_nec && (opcode == 0x0F)) {
                         uint8_t orig_opcode = opcode;
                         opcode              = pfq_fetchb();
                         switch (opcode) {
@@ -2422,34 +2498,8 @@ execx86(int cycs)
                     break;
 
                 case 0x60:       /*JO alias*/
-                    if (is186) { /* PUSHA/PUSH R*/
-                        uint16_t orig_sp = SP;
-                        wait(1, 0);
-                        push(&AX);
-                        push(&CX);
-                        push(&DX);
-                        push(&BX);
-                        push(&orig_sp);
-                        push(&BP);
-                        push(&SI);
-                        push(&DI);
-                    } else
-                        jcc(opcode, cpu_state.flags & V_FLAG);
-                    break;
                 case 0x70:                    /*JO*/
                 case 0x61:                    /*JNO alias*/
-                    if (is186) {              /* POPA/POP R*/
-                        wait(9, 0);
-                        DI      = pop();
-                        SI      = pop();
-                        BP      = pop();
-                        (void)    pop();      /* former orig_sp */
-                        BX      = pop();
-                        DX      = pop();
-                        CX      = pop();
-                        AX      = pop();
-                        break;
-                    }
                 case 0x71: /*JNO*/
                     jcc(opcode, cpu_state.flags & V_FLAG);
                     break;
@@ -2463,14 +2513,7 @@ execx86(int cycs)
                 case 0x74: /*JE*/
                 case 0x65: /*JNE alias*/
                 case 0x75: /*JNE*/
-                    if (is_nec && (opcode & 0xFE) == 0x64) {
-                        /* REPC/REPNC */
-                        wait(1, 0);
-                        in_rep     = (opcode == 0x64 ? 1 : 2);
-                        rep_c_flag = 1;
-                        completed  = 0;
-                    } else
-                        jcc(opcode, cpu_state.flags & Z_FLAG);
+                    jcc(opcode, cpu_state.flags & Z_FLAG);
                     break;
                 case 0x66: /*JBE alias*/
                 case 0x76: /*JBE*/
@@ -2479,47 +2522,14 @@ execx86(int cycs)
                     jcc(opcode, cpu_state.flags & (C_FLAG | Z_FLAG));
                     break;
                 case 0x68:       /*JS alias*/
-                    if (is186) { /* PUSH imm16 */
-                        uint16_t wordtopush = pfq_fetchw();
-                        wait(1, 0);
-                        push(&wordtopush);
-                        break;
-                    }
                 case 0x78:                         /*JS*/
                 case 0x69:                         /*JNS alias*/
-                    if (is186 && opcode == 0x69) { /* IMUL reg16,reg16/mem16,imm16 */
-                        uint16_t immediate = 0;
-                        bits               = 16;
-                        do_mod_rm();
-                        read_ea(0, 16);
-                        immediate = pfq_fetchw();
-                        mul(cpu_data & 0xFFFF, immediate);
-                        set_reg(cpu_reg, cpu_data);
-                        set_co_mul(16, cpu_dest != 0);
-                        break;
-                    }
                 case 0x79: /*JNS*/
                     jcc(opcode, cpu_state.flags & N_FLAG);
                     break;
                 case 0x6A:       /*JP alias*/
-                    if (is186) { /* PUSH imm8 */
-                        uint16_t wordtopush = sign_extend(pfq_fetchb());
-                        push(&wordtopush);
-                        break;
-                    }
                 case 0x7A:                         /*JP*/
                 case 0x6B:                         /*JNP alias*/
-                    if (is186 && opcode == 0x6B) { /* IMUL reg16,reg16/mem16,imm8 */
-                        uint16_t immediate = 0;
-                        bits               = 16;
-                        do_mod_rm();
-                        read_ea(0, 16);
-                        immediate = pfq_fetchb();
-                        mul(cpu_data & 0xFFFF, immediate);
-                        set_reg(cpu_reg, cpu_data);
-                        set_co_mul(16, cpu_dest != 0);
-                        break;
-                    }
                 case 0x7B: /*JNP*/
                     jcc(opcode, cpu_state.flags & P_FLAG);
                     break;
@@ -2733,7 +2743,7 @@ execx86(int cycs)
                     break;
                 case 0x9C: /*PUSHF*/
                     access(33, 16);
-                    tempw = cpu_state.flags & (is_nec && cpu_state.inside_emulation_mode ? MD_FLAG | 0x0fd7 : 0x0fd7);
+                    tempw = cpu_state.flags & ((is_nec && cpu_state.inside_emulation_mode) ? (MD_FLAG | 0x0fd7) : 0x0fd7);
                     push(&tempw);
                     break;
                 case 0x9D: /*POPF*/
@@ -3108,13 +3118,21 @@ execx86(int cycs)
 
                 case 0xD4: /*AAM*/
                     wait(1, 0);
-                    cpu_src = pfq_fetchb();
+                    if (is_nec) {
+                        (void) pfq_fetchb();
+                        cpu_src = 10;
+                    } else
+                        cpu_src = pfq_fetchb();
                     if (x86_div(AL, 0))
                         set_pzs(16);
                     break;
                 case 0xD5: /*AAD*/
                     wait(1, 0);
-                    mul(pfq_fetchb(), AH);
+                    if (is_nec) {
+                        (void) pfq_fetchb();
+                        mul(10, AH);
+                    } else
+                        mul(pfq_fetchb(), AH);
                     cpu_dest = AL;
                     cpu_src  = cpu_data;
                     add(8);
@@ -3340,6 +3358,7 @@ execx86(int cycs)
                             break;
                         case 0x20: /* MUL */
                         case 0x28: /* IMUL */
+                            old_flags = cpu_state.flags;
                             wait(1, 0);
                             mul(get_accum(bits), cpu_data);
                             if (opcode & 1) {
@@ -3354,12 +3373,14 @@ execx86(int cycs)
                                 if (!is_nec)
                                     cpu_data = AH;
                             }
-                            /* NOTE: When implementing the V20, care should be taken to not change
-                                     the zero flag. */
                             set_sf(bits);
                             set_pf();
                             if (cpu_mod != 3)
                                 wait(1, 0);
+                            /* NOTE: When implementing the V20, care should be taken to not change
+                                     the zero flag. */
+                            if (is_nec)
+                                cpu_state.flags = (cpu_state.flags & ~Z_FLAG) | (old_flags & Z_FLAG);
                             break;
                         case 0x30: /* DIV */
                         case 0x38: /* IDIV */
