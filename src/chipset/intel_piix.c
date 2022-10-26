@@ -1697,6 +1697,20 @@ const device_t piix_device = {
     .config        = NULL
 };
 
+const device_t piix_no_mirq_device = {
+    .name          = "Intel 82371FB (PIIX) (No MIRQ)",
+    .internal_name = "piix_no_mirq",
+    .flags         = DEVICE_PCI,
+    .local         = 0x122e1101,
+    .init          = piix_init,
+    .close         = piix_close,
+    .reset         = piix_reset,
+    { .available = NULL },
+    .speed_changed = piix_speed_changed,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
 const device_t piix_rev02_device = {
     .name          = "Intel 82371FB (PIIX) (Faulty BusMastering!!)",
     .internal_name = "piix_rev02",

@@ -1201,29 +1201,31 @@ const device_t piix4_nvr_device = {
 };
 
 const device_t ps_no_nmi_nvr_device = {
-    "PS/1 or PS/2 NVRAM (No NMI)",
-    "ps1_nvr",
-    DEVICE_PS2,
-    10,
-    nvr_at_init,
-    nvr_at_close,
-    nvr_at_reset,
-    { NULL },
-    nvr_at_speed_changed,
-    NULL
+    .name          = "PS/1 or PS/2 NVRAM (No NMI)",
+    .internal_name = "ps1_nvr",
+    .flags         = DEVICE_PS2,
+    .local         = 0x10 | 2,
+    .init          = nvr_at_init,
+    .close         = nvr_at_close,
+    .reset         = nvr_at_reset,
+    { .available = NULL },
+    .speed_changed = nvr_at_speed_changed,
+    .force_redraw  = NULL,
+    .config        = NULL
 };
 
 const device_t amstrad_no_nmi_nvr_device = {
-    "Amstrad NVRAM (No NMI)",
-    "amstrad_nvr",
-    DEVICE_ISA | DEVICE_AT,
-    11,
-    nvr_at_init,
-    nvr_at_close,
-    nvr_at_reset,
-    { NULL },
-    nvr_at_speed_changed,
-    NULL
+    .name          = "Amstrad NVRAM (No NMI)",
+    .internal_name = "amstrad_nvr",
+    .flags         = DEVICE_ISA | DEVICE_AT,
+    .local         = 0x10 | 3,
+    .init          = nvr_at_init,
+    .close         = nvr_at_close,
+    .reset         = nvr_at_reset,
+    { .available = NULL },
+    .speed_changed = nvr_at_speed_changed,
+    .force_redraw  = NULL,
+    .config        = NULL
 };
 
 const device_t ami_1992_nvr_device = {

@@ -42,6 +42,7 @@
 #include <86box/fdd.h>
 #include <86box/fdc.h>
 #include <86box/fdc_ext.h>
+#include <86box/hdc.h>
 #include <86box/keyboard.h>
 #include <86box/chipset.h>
 #include <86box/sio.h>
@@ -91,6 +92,9 @@ machine_v86p_init(const machine_t *model)
 
     if (gfxcard == VID_INTERNAL)
         device_add(&f82c425_video_device);
+
+    if (hdc_current <= 1)
+        device_add(&st506_xt_victor_v86p_device);
 
     return ret;
 }
