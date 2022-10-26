@@ -1666,6 +1666,7 @@ execx86(int cycs)
         if (!repeating) {
             cpu_state.oldpc = cpu_state.pc;
             opcode          = pfq_fetchb();
+            handled         = 0;
             oldc            = cpu_state.flags & C_FLAG;
             if (clear_lock) {
                 in_lock    = 0;
@@ -1882,7 +1883,7 @@ execx86(int cycs)
                 case 0x0F:
                 case 0x17:
                 case 0x1F: /* POP seg */
-                    if (is_nec && opcode == 0x0F) {
+                    if (is_nec && (opcode == 0x0F)) {
                         uint8_t orig_opcode = opcode;
                         opcode              = pfq_fetchb();
                         switch (opcode) {
