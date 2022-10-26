@@ -751,9 +751,15 @@ ali5229_write(int func, int addr, uint8_t val, void *priv)
         /* Bus Mastering Base Address */
         case 0x20:
         case 0x21:
-        case 0x22:
-        case 0x23:
-            dev->ide_conf[addr] = val;
+            /* Datasheet erratum: the PCI BAR's actually have different sizes. */
+            if (addr == 0x20)
+                dev->ide_conf[addr] = (val & 0xe0) | 0x01;
+            else if ((addr & 0x43) == 0x00)
+                dev->ide_conf[addr] = (val & 0xf8) | 0x01;
+            else if ((addr & 0x43) == 0x40)
+                dev->ide_conf[addr] = (val & 0xfc) | 0x01;
+            else
+                dev->ide_conf[addr] = val;
             ali5229_ide_handler(dev);
             break;
 
@@ -1568,7 +1574,7 @@ ali1543_init(const device_t *info)
     dev->offset = (info->local >> 8) & 0x7f;
     if (info->local & 0x8000)
         dev->offset = -dev->offset;
-    pclog("Offset = %i\n", dev->offset);
+    ali1543_log("Offset = %i\n", dev->offset);
 
     pci_enable_mirq(0);
     pci_enable_mirq(1);
