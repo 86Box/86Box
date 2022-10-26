@@ -1405,8 +1405,7 @@ set_co_mul(int bits, int carry)
 {
     set_cf(carry);
     set_of(carry);
-    if (!is_nec)
-        set_zf_ex(!carry);
+    set_zf_ex(!carry);
     if (!carry)
         wait(1, 0);
 }
@@ -1654,7 +1653,7 @@ execx86(int cycs)
     uint16_t addr, tempw, new_cs, new_ip;
     uint16_t tempw_int, size, tempbp, lowbound;
     uint16_t highbound, regval, orig_sp, wordtopush;
-    uint16_t immediate;
+    uint16_t immediate, old_flags;
     int      bits;
     uint32_t dest_seg, i, carry, nibble;
     uint32_t srcseg, byteaddr;
@@ -3359,6 +3358,7 @@ execx86(int cycs)
                             break;
                         case 0x20: /* MUL */
                         case 0x28: /* IMUL */
+                            old_flags = cpu_state.flags;
                             wait(1, 0);
                             mul(get_accum(bits), cpu_data);
                             if (opcode & 1) {
@@ -3373,12 +3373,14 @@ execx86(int cycs)
                                 if (!is_nec)
                                     cpu_data = AH;
                             }
-                            /* NOTE: When implementing the V20, care should be taken to not change
-                                     the zero flag. */
                             set_sf(bits);
                             set_pf();
                             if (cpu_mod != 3)
                                 wait(1, 0);
+                            /* NOTE: When implementing the V20, care should be taken to not change
+                                     the zero flag. */
+                            if (is_nec)
+                                cpu_state.flags = (cpu_state.flags & ~Z_FLAG) | (old_flags & Z_FLAG);
                             break;
                         case 0x30: /* DIV */
                         case 0x38: /* IDIV */
