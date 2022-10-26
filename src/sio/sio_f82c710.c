@@ -60,6 +60,24 @@ typedef struct upc_t {
     serial_t *uart[2];
 } upc_t;
 
+#ifdef ENABLE_F82C710_LOG
+int f82c710_do_log = ENABLE_F82C710_LOG;
+
+static void
+f82c710_log(const char *fmt, ...)
+{
+    va_list ap;
+
+    if (f82c710_do_log) {
+        va_start(ap, fmt);
+        pclog_ex(fmt, ap);
+        va_end(ap);
+    }
+}
+#else
+#    define f82c710_log(fmt, ...)
+#endif
+
 static void
 f82c710_update_ports(upc_t *dev, int set)
 {
@@ -171,28 +189,28 @@ f82c606_update_ports(upc_t *dev, int set)
 
     if (dev->regs[0] & 1) {
         gameport_remap(dev->gameport, ((uint16_t) dev->regs[7]) << 2);
-        pclog("Game port at %04X\n", ((uint16_t) dev->regs[7]) << 2);
+        f82c710_log("Game port at %04X\n", ((uint16_t) dev->regs[7]) << 2);
     }
 
     if (dev->regs[0] & 2) {
         serial_setup(dev->uart[0], ((uint16_t) dev->regs[4]) << 2, uart1_int);
-        pclog("UART 1 at %04X, IRQ %i\n", ((uint16_t) dev->regs[4]) << 2, uart1_int);
+        f82c710_log("UART 1 at %04X, IRQ %i\n", ((uint16_t) dev->regs[4]) << 2, uart1_int);
     }
 
     if (dev->regs[0] & 4) {
         serial_setup(dev->uart[1], ((uint16_t) dev->regs[5]) << 2, uart2_int);
-        pclog("UART 2 at %04X, IRQ %i\n", ((uint16_t) dev->regs[5]) << 2, uart2_int);
+        f82c710_log("UART 2 at %04X, IRQ %i\n", ((uint16_t) dev->regs[5]) << 2, uart2_int);
     }
 
     if (dev->regs[0] & 8) {
         lpt1_init(((uint16_t) dev->regs[6]) << 2);
         lpt1_irq(lpt1_int);
-        pclog("LPT1 at %04X, IRQ %i\n", ((uint16_t) dev->regs[6]) << 2, lpt1_int);
+        f82c710_log("LPT1 at %04X, IRQ %i\n", ((uint16_t) dev->regs[6]) << 2, lpt1_int);
     }
 
     nvr_at_handler(1, ((uint16_t) dev->regs[3]) << 2, dev->nvr);
     nvr_irq_set(nvr_int, dev->nvr);
-    pclog("RTC at %04X, IRQ %i\n", ((uint16_t) dev->regs[3]) << 2, nvr_int);
+    f82c710_log("RTC at %04X, IRQ %i\n", ((uint16_t) dev->regs[3]) << 2, nvr_int);
 }
 
 static uint8_t
