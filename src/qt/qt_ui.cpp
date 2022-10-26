@@ -85,7 +85,7 @@ void mouse_poll() {
 extern "C" int vid_resize;
 void plat_resize_request(int w, int h, int monitor_index)
 {
-    if (is_quit) return;
+    if (video_fullscreen || is_quit) return;
     if (vid_resize & 2) {
         plat_resize_monitor(fixed_size_x, fixed_size_y, monitor_index);
     }
