@@ -440,7 +440,7 @@ viso_fill_time(uint8_t *data, time_t time, int format, int longform)
         time_s->tm_mday                                                    = 1;
     } else if (time_s->tm_year > (longform ? 8099 : 255)) {
         time_s->tm_year = longform ? 8099 : 255;
-        time_s->tm_mon  = 12;
+        time_s->tm_mon  = 11;
         time_s->tm_mday = 31;
         time_s->tm_hour = 23;
         time_s->tm_min = time_s->tm_sec = 59;
