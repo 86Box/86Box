@@ -115,6 +115,7 @@ static const struct {
     { &st506_xt_wd1002a_27x_device },
     { &st506_xt_wd1004_27x_device  },
     { &st506_xt_wd1004a_27x_device },
+    { &st506_xt_victor_v86p_device },
     { &esdi_at_wd1007vse1_device   },
     { &ide_isa_device              },
     { &ide_isa_2ch_device          },

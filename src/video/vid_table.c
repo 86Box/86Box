@@ -127,6 +127,7 @@ video_cards[] = {
     { &paradise_wd90c30_device                       },
     { &colorplus_device                              },
     { &pgc_device                                    },
+    { &cga_pravetz_device                            },
     { &radius_svga_multiview_isa_device              },
     { &realtek_rtg3106_device                        },
     { &s3_diamond_stealth_vram_isa_device            },
@@ -329,7 +330,7 @@ video_reset(int card)
 
     /* Do not initialize internal cards here. */
     if (!(card == VID_NONE) && !(card == VID_INTERNAL) && !machine_has_flags(machine, MACHINE_VIDEO_ONLY)) {
-        vid_table_log("VIDEO: initializing '%s'\n", video_cards[card].name);
+        vid_table_log("VIDEO: initializing '%s'\n", video_cards[card].device->name);
 
         video_prepare();
 

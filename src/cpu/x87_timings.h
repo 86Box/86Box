@@ -49,6 +49,7 @@ typedef struct
 } x87_timings_t;
 
 extern const x87_timings_t x87_timings_8087;
+extern const x87_timings_t x87_timings_80187;
 extern const x87_timings_t x87_timings_287;
 extern const x87_timings_t x87_timings_387;
 extern const x87_timings_t x87_timings_486;

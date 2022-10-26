@@ -99,6 +99,7 @@
 #define WD1002A_27X_BIOS_FILE "roms/hdd/st506/wd1002a_27x-62-000094-032.bin"
 #define WD1004_27X_BIOS_FILE  "roms/hdd/st506/western_digital_WD1004A-27X.bin"
 #define WD1004A_27X_BIOS_FILE "roms/hdd/st506/western_digital_WD1004A-27X.bin"
+#define VICTOR_V86P_BIOS_FILE "roms/machines/v86p/2793VG.10010688.rom"
 
 #define ST506_TIME            (250 * TIMER_USEC)
 #define ST506_TIME_MS         (1000 * TIMER_USEC)
@@ -182,6 +183,7 @@
 #define CMD_WRITE_BUFFER       0x0f
 #define CMD_ALT_TRACK          0x11
 #define CMD_INQUIRY_ST11       0x12 /* ST-11 BIOS */
+#define CMD_V86P_POWEROFF      0x1a /* Victor V86P */
 #define CMD_RAM_DIAGNOSTIC     0xe0
 /* reserved			0xe1 */
 /* reserved			0xe2 */
@@ -819,6 +821,29 @@ st506_callback(void *priv)
                     /* For a 615/4/26 we get 666/2/31 geometry. */
                     st506_xt_log("ST506: drive%i: cyls=%i, heads=%i\n",
                                  dev->drive_sel, drive->cfg_cyl, drive->cfg_hpc);
+                    if (dev->type == 23 && drive->cfg_hpc == 2) {
+                        /*
+                         * On Victor V86P, there's a disagreement between
+                         * the physical geometry, what the controller
+                         * pretends it to be, and what the BIOS uses.
+                         *
+                         * The disk physically has 2/34 heads/sectors per
+                         * track, but it is treated as 4/17 in order to
+                         * look like a regular type 3 drive (see [1],
+                         * line 1859). The controller accepts the 4/17
+                         * geometry, so this should not really matter.
+                         *
+                         * However, the BIOS issues SPECIFY (see [1],
+                         * line 2089) with head count of two. Let's
+                         * hardwire the correct number instead, just like
+                         * the real hardware seems to.
+                         *
+                         * [1] https://archive.org/download/v86p-hd/V86P-HD.TXT
+                         */
+                        drive->cfg_hpc = 4;
+                        st506_xt_log("ST506: drive%i: corrected to heads=%i\n",
+                                     dev->drive_sel, drive->cfg_hpc);
+                    }
                     st506_complete(dev);
                     break;
             }
@@ -947,6 +972,34 @@ st506_callback(void *priv)
                 st506_error(dev, ERR_BAD_COMMAND);
                 st506_complete(dev);
             }
+            break;
+
+        case CMD_V86P_POWEROFF:
+            if (dev->type == 23) {
+                /*
+                 * Main BIOS (not the option ROM on disk) issues this.
+                 * Not much we can do, since we don't have a physical disk
+                 * to spin down, but handle this anyways so that we log
+                 * something more reasonable than "unknown command".
+                 *
+                 * Entirely undocumented, but this is what's been observed:
+                 * BIOS setting | Command sent
+                 * 1 minutes    | 1a 00 00 0c 02 00
+                 * 2 minutes    | 1a 00 00 18 02 00
+                 * 3 minutes    | 1a 00 00 24 02 00
+                 * 4 minutes    | 1a 00 00 30 02 00
+                 * 5 minutes    | 1a 00 00 3c 02 00
+                 * off          | 1a 00 00 00 02 00
+                 */
+                if (dev->command[3])
+                    st506_xt_log("ST506: Auto power-off in %d seconds (type=%i)\n",
+                                 dev->command[3] * 5, dev->type);
+                else
+                    st506_xt_log("ST506: Auto power-off disabled (type=%i)\n", dev->type);
+            } else {
+                st506_error(dev, ERR_BAD_COMMAND);
+            }
+            st506_complete(dev);
             break;
 
         case CMD_RAM_DIAGNOSTIC:
@@ -1485,6 +1538,9 @@ st506_init(const device_t *info)
                 dev->switches |= 0x40;
             dev->bios_addr = device_get_config_hex20("bios_addr");
             break;
+        case 23: /* Victor V86P (RLL) */
+            fn = VICTOR_V86P_BIOS_FILE;
+            break;
     }
 
     /* Load the ROM BIOS. */
@@ -1603,6 +1659,12 @@ static int
 wd1004a_27x_available(void)
 {
     return (rom_present(WD1004A_27X_BIOS_FILE));
+}
+
+static int
+victor_v86p_available(void)
+{
+    return (rom_present(VICTOR_V86P_BIOS_FILE));
 }
 
 // clang-format off
@@ -2035,4 +2097,18 @@ const device_t st506_xt_wd1004a_27x_device = {
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = wd_rll_config
+};
+
+const device_t st506_xt_victor_v86p_device = {
+    .name          = "Victor V86P RLL Fixed Disk Adapter",
+    .internal_name = "st506_xt_victor_v86p",
+    .flags         = DEVICE_ISA,
+    .local         = (HDD_BUS_MFM << 8) | 23,
+    .init          = st506_init,
+    .close         = st506_close,
+    .reset         = NULL,
+    { .available = victor_v86p_available },
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
 };

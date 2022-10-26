@@ -283,6 +283,7 @@
 #define RTC_INST_EQUIP     0x14
 #define RTC_CENTURY_AT     0x32 /* century register for AT etc */
 #define RTC_CENTURY_PS     0x37 /* century register for PS/1 PS/2 */
+#define RTC_CENTURY_ELT    0x1A /* century register for Epson Equity LT */
 #define RTC_ALDAY          0x7D /* VIA VT82C586B - alarm day */
 #define RTC_ALMONTH        0x7E /* VIA VT82C586B - alarm month */
 #define RTC_CENTURY_VIA    0x7F /* century register for VIA VT82C586B */
@@ -1027,9 +1028,9 @@ nvr_at_init(const device_t *info)
     memset(local->lock, 0x00, nvr->size);
     local->def   = 0xff /*0x00*/;
     local->flags = 0x00;
-    switch (info->local & 7) {
+    switch (info->local & 0x0f) {
         case 0: /* standard AT, no century register */
-            if (info->local == 16) {
+            if (info->local == 32) {
                 local->flags |= FLAG_P6RP4_HACK;
                 nvr->irq    = 8;
                 local->cent = RTC_CENTURY_AT;
@@ -1042,13 +1043,13 @@ nvr_at_init(const device_t *info)
         case 1: /* standard AT */
         case 5: /* AMI WinBIOS 1994 */
         case 6: /* AMI BIOS 1995 */
-            if (info->local == 9)
+            if ((info->local & 0x0f) == 1)
                 local->flags |= FLAG_PIIX4;
             else {
                 local->def = 0x00;
-                if ((info->local & 7) == 5)
+                if ((info->local & 0x0f) == 5)
                     local->flags |= FLAG_AMI_1994_HACK;
-                else if ((info->local & 7) == 6)
+                else if ((info->local & 0x0f) == 6)
                     local->flags |= FLAG_AMI_1995_HACK;
                 else
                     local->def = 0xff;
@@ -1061,7 +1062,7 @@ nvr_at_init(const device_t *info)
             nvr->irq    = 8;
             local->cent = RTC_CENTURY_PS;
             local->def  = 0x00;
-            if (info->local & 8)
+            if (info->local & 0x10)
                 local->flags |= FLAG_NO_NMI;
             break;
 
@@ -1069,15 +1070,15 @@ nvr_at_init(const device_t *info)
             nvr->irq    = 1;
             local->cent = RTC_CENTURY_AT;
             local->def  = 0xff;
-            if (info->local & 8)
+            if (info->local & 0x10)
                 local->flags |= FLAG_NO_NMI;
             break;
 
         case 4: /* IBM AT */
-            if (info->local == 12) {
+            if (info->local & 0x10) {
                 local->def = 0x00;
                 local->flags |= FLAG_AMI_1992_HACK;
-            } else if (info->local == 20)
+            } else if (info->local == 36)
                 local->def = 0x00;
             else
                 local->def = 0xff;
@@ -1088,6 +1089,10 @@ nvr_at_init(const device_t *info)
         case 7: /* VIA VT82C586B */
             nvr->irq    = 8;
             local->cent = RTC_CENTURY_VIA;
+            break;
+        case 8: /* Epson Equity LT */
+            nvr->irq    = -1;
+            local->cent = RTC_CENTURY_ELT;
             break;
     }
 
@@ -1113,9 +1118,14 @@ nvr_at_init(const device_t *info)
         timer_load_count(nvr);
 
         /* Set up the I/O handler for this device. */
-        io_sethandler(0x0070, 2,
-                      nvr_read, NULL, NULL, nvr_write, NULL, NULL, nvr);
-        if (info->local & 8) {
+        if (info->local == 8) {
+            io_sethandler(0x11b4, 2,
+                          nvr_read, NULL, NULL, nvr_write, NULL, NULL, nvr);
+        } else {
+            io_sethandler(0x0070, 2,
+                          nvr_read, NULL, NULL, nvr_write, NULL, NULL, nvr);
+        }
+        if (info->local & 0x10) {
             io_sethandler(0x0072, 2,
                           nvr_read, NULL, NULL, nvr_write, NULL, NULL, nvr);
         }
@@ -1226,7 +1236,7 @@ const device_t piix4_nvr_device = {
     .name          = "Intel PIIX4 PC/AT NVRAM",
     .internal_name = "piix4_nvr",
     .flags         = DEVICE_ISA | DEVICE_AT,
-    .local         = 9,
+    .local         = 0x10 | 1,
     .init          = nvr_at_init,
     .close         = nvr_at_close,
     .reset         = nvr_at_reset,
@@ -1266,7 +1276,7 @@ const device_t ami_1992_nvr_device = {
     .name          = "AMI Color 1992 PC/AT NVRAM",
     .internal_name = "ami_1992_nvr",
     .flags         = DEVICE_ISA | DEVICE_AT,
-    .local         = 12,
+    .local         = 0x10 | 4,
     .init          = nvr_at_init,
     .close         = nvr_at_close,
     .reset         = nvr_at_reset,
@@ -1280,7 +1290,7 @@ const device_t ami_1994_nvr_device = {
     .name          = "AMI WinBIOS 1994 PC/AT NVRAM",
     .internal_name = "ami_1994_nvr",
     .flags         = DEVICE_ISA | DEVICE_AT,
-    .local         = 13,
+    .local         = 0x10 | 5,
     .init          = nvr_at_init,
     .close         = nvr_at_close,
     .reset         = nvr_at_reset,
@@ -1294,7 +1304,7 @@ const device_t ami_1995_nvr_device = {
     .name          = "AMI WinBIOS 1995 PC/AT NVRAM",
     .internal_name = "ami_1995_nvr",
     .flags         = DEVICE_ISA | DEVICE_AT,
-    .local         = 14,
+    .local         = 0x10 | 6,
     .init          = nvr_at_init,
     .close         = nvr_at_close,
     .reset         = nvr_at_reset,
@@ -1308,7 +1318,7 @@ const device_t via_nvr_device = {
     .name          = "VIA PC/AT NVRAM",
     .internal_name = "via_nvr",
     .flags         = DEVICE_ISA | DEVICE_AT,
-    .local         = 15,
+    .local         = 0x10 | 7,
     .init          = nvr_at_init,
     .close         = nvr_at_close,
     .reset         = nvr_at_reset,
@@ -1322,7 +1332,7 @@ const device_t p6rp4_nvr_device = {
     .name          = "ASUS P/I-P6RP4 PC/AT NVRAM",
     .internal_name = "p6rp4_nvr",
     .flags         = DEVICE_ISA | DEVICE_AT,
-    .local         = 16,
+    .local         = 32,
     .init          = nvr_at_init,
     .close         = nvr_at_close,
     .reset         = nvr_at_reset,
@@ -1336,7 +1346,21 @@ const device_t amstrad_megapc_nvr_device = {
     .name          = "Amstrad MegapC NVRAM",
     .internal_name = "amstrad_megapc_nvr",
     .flags         = DEVICE_ISA | DEVICE_AT,
-    .local         = 20,
+    .local         = 36,
+    .init          = nvr_at_init,
+    .close         = nvr_at_close,
+    .reset         = nvr_at_reset,
+    { .available = NULL },
+    .speed_changed = nvr_at_speed_changed,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t elt_nvr_device = {
+    .name          = "Epson Equity LT NVRAM",
+    .internal_name = "elt_nvr",
+    .flags         = DEVICE_ISA,
+    .local         = 8,
     .init          = nvr_at_init,
     .close         = nvr_at_close,
     .reset         = nvr_at_reset,

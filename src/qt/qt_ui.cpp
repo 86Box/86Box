@@ -104,7 +104,7 @@ void plat_setfullscreen(int on) {
 }
 
 void plat_mouse_capture(int on) {
-    if (!kbd_req_capture && (mouse_type == MOUSE_TYPE_NONE))
+    if (!kbd_req_capture && (mouse_type == MOUSE_TYPE_NONE) && !machine_has_mouse())
         return;
 
     main_window->setMouseCapture(on > 0 ? true : false);
