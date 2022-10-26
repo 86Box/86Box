@@ -420,8 +420,8 @@ viso_fill_time(uint8_t *data, time_t time, int format, int longform)
     if (!time_s) {
         /* localtime will return NULL if the time_t is negative (Windows)
            or way too far into 64-bit space (Linux). Fall back to epoch. */
-        time   = 0;
-        time_s = localtime(&time);
+        time_t epoch = 0;
+        time_s       = localtime(&epoch);
         if (!time_s)
             fatal("VISO: localtime(0) = NULL\n");
 
