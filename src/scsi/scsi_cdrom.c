@@ -689,6 +689,7 @@ scsi_cdrom_command_complete(scsi_cdrom_t *dev)
     ui_sb_update_icon(SB_CDROM | dev->id, 0);
     dev->packet_status = PHASE_COMPLETE;
     scsi_cdrom_command_common(dev);
+    dev->phase = 3;
 }
 
 static void
@@ -696,6 +697,7 @@ scsi_cdrom_command_read(scsi_cdrom_t *dev)
 {
     dev->packet_status = PHASE_DATA_IN;
     scsi_cdrom_command_common(dev);
+    dev->phase = !(dev->packet_status & 0x01) << 1;
 }
 
 static void
@@ -710,6 +712,7 @@ scsi_cdrom_command_write(scsi_cdrom_t *dev)
 {
     dev->packet_status = PHASE_DATA_OUT;
     scsi_cdrom_command_common(dev);
+    dev->phase = !(dev->packet_status & 0x01) << 1;
 }
 
 static void
