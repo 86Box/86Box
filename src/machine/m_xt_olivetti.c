@@ -8,7 +8,7 @@
  *
  *		Emulation of the Olivetti XT-compatible machines.
  *
- *
+ * 		- Supports MM58174 real-time clock emulation
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
@@ -69,6 +69,28 @@
 #define CGA_RGB           0
 #define CGA_COMPOSITE     1
 
+enum MM58174_ADDR {
+        /* Registers */
+        MM58174_TEST,       /* TEST register, write only */
+        MM58174_TENTHS,     /* Tenths of second, read only */
+        MM58174_SECOND1,    /* Units of seconds, read only */
+        MM58174_SECOND10,   /* Tens of seconds, read only */
+        MM58174_MINUTE1,
+        MM58174_MINUTE10,
+        MM58174_HOUR1,
+        MM58174_HOUR10,
+        MM58174_DAY1,
+        MM58174_DAY10,
+        MM58174_WEEKDAY,
+        MM58174_MONTH1,
+        MM58174_MONTH10,
+        MM58174_LEAPYEAR,   /* Leap year status, write only */
+        MM58174_RESET,      /* RESET register, write only */
+        MM58174_IRQ         /* Interrupt register, read / write */
+};
+
+static struct tm intclk;
+
 typedef struct {
     /* Keyboard stuff. */
     int     wantirq;
@@ -119,6 +141,170 @@ m24_log(const char *fmt, ...)
 #else
 #    define m24_log(fmt, ...)
 #endif
+
+/* Set the chip time. */
+static void
+mm58174_time_set(uint8_t *regs, struct tm *tm)
+{
+    regs[MM58174_SECOND1]  = (tm->tm_sec % 10);
+    regs[MM58174_SECOND10] = (tm->tm_sec / 10);
+    regs[MM58174_MINUTE1]  = (tm->tm_min % 10);
+    regs[MM58174_MINUTE10] = (tm->tm_min / 10);
+    regs[MM58174_HOUR1]  = (tm->tm_hour % 10);
+    regs[MM58174_HOUR10] = (tm->tm_hour / 10);
+    regs[MM58174_WEEKDAY] = (tm->tm_wday + 1);
+    regs[MM58174_DAY1]    = (tm->tm_mday % 10);
+    regs[MM58174_DAY10]   = (tm->tm_mday / 10);
+    regs[MM58174_MONTH1]  = ((tm->tm_mon + 1) % 10);
+    regs[MM58174_MONTH10] = ((tm->tm_mon + 1) / 10);
+    /* MM87174 does not store the year, M24 uses the IRQ register to count 8 years from leap year */
+    regs[MM58174_IRQ] = ((tm->tm_year + 1900) % 8);
+    regs[MM58174_LEAPYEAR] = 8 >> ((regs[MM58174_IRQ] & 0x07) & 0x03);
+}
+
+/* Get the chip time. */
+#define nibbles(a) (regs[(a##1)] + 10 * regs[(a##10)])
+static void
+mm58174_time_get(uint8_t *regs, struct tm *tm)
+{
+    tm->tm_sec = nibbles(MM58174_SECOND);
+    tm->tm_min = nibbles(MM58174_MINUTE);
+    tm->tm_hour = nibbles(MM58174_HOUR);
+    tm->tm_wday = (regs[MM58174_WEEKDAY] - 1);
+    tm->tm_mday = nibbles(MM58174_DAY);
+    tm->tm_mon  = (nibbles(MM58174_MONTH) - 1);
+    /* MM87174AN does not store the year */
+    tm->tm_year = (1984 + (regs[MM58174_IRQ] & 0x07) - 1900);
+}
+
+/* One more second has passed, update the internal clock. */
+static void
+mm58174_recalc()
+{
+    /* Ping the internal clock. */
+    if (++intclk.tm_sec == 60) {
+        intclk.tm_sec = 0;
+        if (++intclk.tm_min == 60) {
+            intclk.tm_min = 0;
+            if (++intclk.tm_hour == 24) {
+                intclk.tm_hour = 0;
+                if (++intclk.tm_mday == (nvr_get_days(intclk.tm_mon, intclk.tm_year) + 1)) {
+                    intclk.tm_mday = 1;
+                    if (++intclk.tm_mon == 13) {
+                        intclk.tm_mon = 1;
+                        intclk.tm_year++;
+                    }
+                }
+            }
+        }
+    }
+}
+
+/* This is called every second through the NVR/RTC hook. */
+static void
+mm58174_tick(nvr_t *nvr)
+{
+    mm58174_recalc();
+    mm58174_time_set(nvr->regs, &intclk);
+}
+
+static void
+mm58174_start(nvr_t *nvr)
+{
+    struct tm tm;
+
+    /* Initialize the internal and chip times. */
+    if (time_sync & TIME_SYNC_ENABLED) {
+        /* Use the internal clock's time. */
+        nvr_time_get(&tm);
+        mm58174_time_set(nvr->regs, &tm);
+    } else {
+        /* Set the internal clock from the chip time. */
+        mm58174_time_get(nvr->regs, &tm);
+        nvr_time_set(&tm);
+    }
+    mm58174_time_get(nvr->regs, &intclk);
+}
+
+/* Write to one of the chip registers. */
+static void
+mm58174_write(uint16_t addr, uint8_t val, void *priv)
+{
+    nvr_t  *nvr = (nvr_t *) priv;
+
+    addr &= 0x0f;
+    val &= 0x0f;
+
+    /* Update non-read-only changed values if not synchronizing time to host */
+    if ((addr != MM58174_TENTHS) && (addr != MM58174_SECOND1) && (addr != MM58174_SECOND10)) 
+        if ((nvr->regs[addr] != val) && !(time_sync & TIME_SYNC_ENABLED)) 
+            nvr_dosave = 1;
+
+    if ((addr == MM58174_RESET) && (val & 0x01)) {
+        /* When timer starts, MM58174 sets seconds and tenths of second to 0 */
+        nvr->regs[MM58174_TENTHS] = 0;
+        if (!(time_sync & TIME_SYNC_ENABLED)) {
+            /* Only set seconds to 0 if not synchronizing time to host clock */
+            nvr->regs[MM58174_SECOND1] = 0;
+            nvr->regs[MM58174_SECOND10] = 0;
+        }
+    }
+
+    /* Store the new value */
+    nvr->regs[addr] = val;
+
+    /* Update internal clock with MM58174 time */
+    mm58174_time_get(nvr->regs, &intclk);
+}
+
+/* Read from one of the chip registers. */
+static uint8_t
+mm58174_read(uint16_t addr, void *priv)
+{
+    nvr_t  *nvr = (nvr_t *) priv;
+
+    addr &= 0x0f;
+
+    /* Set IRQ control bit to 0 upon read */
+    if (addr == 0x0f)
+        nvr->regs[addr] &= 0x07;
+
+    /* Grab and return the desired value */
+    return (nvr->regs[addr]);
+}
+
+/* Reset the MM58174 to a default state. */
+static void
+mm58174_reset(nvr_t *nvr)
+{
+    /* Clear the NVRAM. */
+    memset(nvr->regs, 0xff, nvr->size);
+
+    /* Reset the RTC registers. */
+    memset(nvr->regs, 0x00, 16);
+    nvr->regs[MM58174_WEEKDAY] = 0x01;
+    nvr->regs[MM58174_DAY1]    = 0x01;
+    nvr->regs[MM58174_MONTH1]  = 0x01;
+}
+
+static void
+mm58174_init(nvr_t *nvr, int size)
+{
+    /* This is machine specific. */
+    nvr->size = size;
+    nvr->irq  = -1;
+
+    /* Set up any local handlers here. */
+    nvr->reset = mm58174_reset;
+    nvr->start = mm58174_start;
+    nvr->tick  = mm58174_tick;
+
+    /* Initialize the actual NVR. */
+    nvr_init(nvr);
+
+    io_sethandler(0x0070, 16,
+                  mm58174_read, NULL, NULL, mm58174_write, NULL, NULL, nvr);
+}
 
 static void
 m24_kbd_poll(void *priv)
@@ -668,7 +854,7 @@ m24_read(uint16_t port, void *priv)
                     ret |= 0x1;
                     break;
                 case 256:
-                    ret |= 0x2 | 0x80;
+                    ret |= 0x2;
                     break;
                 case 384:
                     ret |= 0x1 | 0x2 | 0x80;
@@ -677,10 +863,12 @@ m24_read(uint16_t port, void *priv)
                     ret |= 0x8;
                     break;
                 case 640:
-                default:
                     ret |= 0x1 | 0x8 | 0x80;
                     break;
+                default:
+                    break;
             }
+            break;
         /*
          * port 67:
          * DIPSW-1 on mainboard (off=present=1)
@@ -722,6 +910,8 @@ m24_read(uint16_t port, void *priv)
 
             /* Switch 2 - Set fast startup */
             ret |= 0x2;
+            
+            break;
     }
 
     return (ret);
@@ -732,6 +922,7 @@ machine_xt_m24_init(const machine_t *model)
 {
     int        ret;
     m24_kbd_t *m24_kbd;
+    nvr_t     *nvr;
 
     ret = bios_load_interleaved("roms/machines/m24/olivetti_m24_bios_version_1.44_low_even.bin",
                                 "roms/machines/m24/olivetti_m24_bios_version_1.44_high_odd.bin",
@@ -752,12 +943,17 @@ machine_xt_m24_init(const machine_t *model)
     /* Address 66-67 = mainboard dip-switch settings */
     io_sethandler(0x0066, 2, m24_read, NULL, NULL, NULL, NULL, NULL, NULL);
 
-    /* FIXME: make sure this is correct?? */
-    device_add(&at_nvr_device);
-
     standalone_gameport_type = &gameport_device;
 
     nmi_init();
+
+    /* Allocate an NVR for this machine. */
+    nvr = (nvr_t *) malloc(sizeof(nvr_t));
+    if (nvr == NULL)
+        return (0);
+    memset(nvr, 0x00, sizeof(nvr_t));
+
+    mm58174_init(nvr, model->nvrmask + 1);
 
     video_reset(gfxcard);
 
