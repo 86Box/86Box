@@ -96,6 +96,51 @@ static int opRETF_a32_imm(uint32_t fetchdat)
         return 0;
 }
 
+static int opIRET_186(uint32_t fetchdat)
+{
+        int cycles_old = cycles; UN_USED(cycles_old);
+
+        if ((cr0 & 1) && (cpu_state.eflags & VM_FLAG) && (IOPL != 3))
+        {
+                x86gpf(NULL,0);
+                return 1;
+        }
+        if (msw&1)
+        {
+                optype = IRET;
+                pmodeiret(0);
+                optype = 0;
+        }
+        else
+        {
+                uint16_t new_cs;
+		CPU_SET_OXPC
+                if (stack32)
+                {
+                        cpu_state.pc = readmemw(ss, ESP);
+                        new_cs = readmemw(ss, ESP + 2);
+                        cpu_state.flags = (cpu_state.flags & 0x7000) | (readmemw(ss, ESP + 4) & 0xffd5) | 2;
+                        ESP += 6;
+                }
+                else
+                {
+                        cpu_state.pc = readmemw(ss, SP);
+                        new_cs = readmemw(ss, ((SP + 2) & 0xffff));
+                        cpu_state.flags = (cpu_state.flags & 0x7000) | (readmemw(ss, ((SP + 4) & 0xffff)) & 0x0fd5) | 2;
+                        SP += 6;
+                }
+                loadcs(new_cs);
+                cycles -= timing_iret_rm;
+        }
+        flags_extract();
+        nmi_enable = 1;
+        CPU_BLOCK_END();
+
+        PREFETCH_RUN(cycles_old-cycles, 1, -1, 2,0,0,0, 0);
+        PREFETCH_FLUSH();
+        return cpu_state.abrt;
+}
+
 static int opIRET_286(uint32_t fetchdat)
 {
         int cycles_old = cycles; UN_USED(cycles_old);

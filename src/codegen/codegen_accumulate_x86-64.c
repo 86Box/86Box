@@ -47,8 +47,6 @@ void codegen_accumulate(int acc_reg, int delta)
 
 void codegen_accumulate_flush(void)
 {
-        intptr_t rip;
-
 	if (acc_regs[0].count) {
                 /* To reduce the size of the generated code, we take advantage of
                    the fact that the target offset points to _cycles within cpu_state,

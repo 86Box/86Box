@@ -887,6 +887,9 @@ ide_atapi_attach(ide_t *ide)
     ide->mdma_mode = (1 << ide->get_max(ide_boards[ide->board]->force_ata3 || !ide_bm[ide->board], TYPE_PIO));
     ide->error     = 1;
     ide->cfg_spt = ide->cfg_hpc = 0;
+#ifndef EARLY_ATAPI
+    ide->sc->status = 0;
+#endif
 }
 
 void
@@ -1628,12 +1631,16 @@ ide_writeb(uint16_t addr, uint8_t val, void *priv)
                             double seek_time = hdd_timing_read(&hdd[ide->hdd_num], ide_get_sector(ide), sec_count);
                             double xfer_time = ide_get_xfer_time(ide, 512 * sec_count);
                             wait_time        = seek_time > xfer_time ? seek_time : xfer_time;
-                        } else if (val == WIN_READ_MULTIPLE) {
-                            sec_count        = (ide->secount < ide->blocksize) ? ide->secount : ide->blocksize;
+                        } else if ((val == WIN_READ_MULTIPLE) && (ide->blocksize > 0)) {
+                            sec_count        = ide->secount ? ide->secount : 256;
+                            if (sec_count > ide->blocksize)
+                                sec_count = ide->blocksize;
                             double seek_time = hdd_timing_read(&hdd[ide->hdd_num], ide_get_sector(ide), sec_count);
                             double xfer_time = ide_get_xfer_time(ide, 512 * sec_count);
                             wait_time        = seek_time + xfer_time;
-                        } else {
+                        } else if ((val == WIN_READ_MULTIPLE) && (ide->blocksize == 0))
+                            wait_time        = 200.0;
+                        else {
                             sec_count        = 1;
                             double seek_time = hdd_timing_read(&hdd[ide->hdd_num], ide_get_sector(ide), sec_count);
                             double xfer_time = ide_get_xfer_time(ide, 512 * sec_count);
@@ -1684,9 +1691,10 @@ ide_writeb(uint16_t addr, uint8_t val, void *priv)
                         double   wait_time = seek_time > xfer_time ? seek_time : xfer_time;
                         ide_set_callback(ide, wait_time);
                     } else if ((ide->type == IDE_HDD) && ((val == WIN_VERIFY) || (val == WIN_VERIFY_ONCE))) {
-                        double seek_time = hdd_timing_read(&hdd[ide->hdd_num], ide_get_sector(ide), ide->secount);
+                        uint32_t sec_count = ide->secount ? ide->secount : 256;
+                        double seek_time = hdd_timing_read(&hdd[ide->hdd_num], ide_get_sector(ide), sec_count);
                         ide_set_callback(ide, seek_time + ide_get_xfer_time(ide, 2));
-                    } else if (val == WIN_IDENTIFY)
+                    } else if ((val == WIN_IDENTIFY) || (val == WIN_SET_FEATURES))
                         ide_callback(ide);
                     else
                         ide_set_callback(ide, 200.0 * IDE_TIME);
@@ -1854,7 +1862,9 @@ ide_read_data(ide_t *ide, int length)
                 ide->atastat = BSY_STAT | READY_STAT | DSC_STAT;
                 if (ide->command == WIN_READ_MULTIPLE) {
                     if (!ide->blockcount) {
-                        uint32_t sec_count = (ide->secount < ide->blocksize) ? ide->secount : ide->blocksize;
+                        uint32_t sec_count = ide->secount ? ide->secount : 256;
+                        if (sec_count > ide->blocksize)
+                            sec_count = ide->blocksize;
                         double   seek_time = hdd_timing_read(&hdd[ide->hdd_num], ide_get_sector(ide), sec_count);
                         double   xfer_time = ide_get_xfer_time(ide, 512 * sec_count);
                         ide_set_callback(ide, seek_time + xfer_time);
@@ -2147,7 +2157,11 @@ ide_callback(void *priv)
             ide_set_signature(ide);
 
             if (ide->type == IDE_ATAPI) {
+#ifdef EARLY_ATAPI
                 ide->sc->status = DRDY_STAT | DSC_STAT;
+#else
+                ide->sc->status = 0;
+#endif
                 ide->sc->error  = 1;
                 if (ide->device_reset)
                     ide->device_reset(ide->sc);
@@ -2442,6 +2456,8 @@ ide_callback(void *priv)
 
         case WIN_SET_MULTIPLE_MODE:
             if (ide->type == IDE_ATAPI)
+                goto abort_cmd;
+            if ((ide->secount < 2) || (ide->secount > hdd[ide->hdd_num].max_multiple_block))
                 goto abort_cmd;
             ide->blocksize = ide->secount;
             ide->atastat   = DRDY_STAT | DSC_STAT;
@@ -2787,6 +2803,8 @@ ide_board_setup(int board)
         dev->error     = 1;
         if (dev->type != IDE_HDD)
             dev->cfg_spt = dev->cfg_hpc = 0;
+        if (dev->type == IDE_HDD)
+            dev->blocksize = hdd[dev->hdd_num].max_multiple_block;
     }
 }
 
