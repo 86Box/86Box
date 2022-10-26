@@ -605,7 +605,7 @@ then
 			sudo "$macports/bin/port" install $(cat .ci/dependencies_macports.txt) 2>&1 | tee macports.log
 
 			# Stop if no port version activation errors were found.
-			stuck_dep=$(grep " cannot be built while another version of " macports.log | cut -d" " -f2)
+			stuck_dep=$(grep " cannot be built while another version of " macports.log | cut -d" " -f10)
 			[ -z $stuck_dep ] && break
 
 			# Deactivate the stuck dependency and try again.
