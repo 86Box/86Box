@@ -476,7 +476,7 @@ viso_fill_dir_record(uint8_t *data, viso_entry_t *entry, int format, int type)
     VISO_LBE_32(p, entry->stats.st_size); /* size (filled in later if this is a directory) */
 #ifdef _WIN32
     if (entry->stats.st_mtime < 0)
-        pclog("VISO: Warning: Windows returned st_mtime %lld on file [%s]\n", (long long) entry->stats.st_mtime);
+        pclog("VISO: Warning: Windows returned st_mtime %lld on file [%s]\n", (long long) entry->stats.st_mtime, entry->path);
 #endif
     p += viso_fill_time(p, entry->stats.st_mtime, format, 0); /* time */
     *p++ = S_ISDIR(entry->stats.st_mode) ? 0x02 : 0x00;       /* flags */
