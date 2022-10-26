@@ -72,19 +72,22 @@ AppDir:
   files:
     exclude:
     - etc
-    - lib/udev
-    - opt/libc/usr/share
-    - usr/[a-km-rt-zA-Z]*
-    - usr/lib/*/libasound.so.*
-    - usr/lib/*.a
-    - usr/lib/cmake
-    - usr/lib/pkgconfig
-    - usr/s[a-gi-zA-Z]*
-    - usr/share/[a-hj-ln-zA-Z]*
-    - usr/share/i[a-bd-zA-Z]*
-    - usr/share/m[a-df-zA-Z]*
-    - usr/share/metainfo/*.metainfo.xml
+    - usr/[!ls]* # * except lib, local, share
+    - usr/lib/*/libasound.so.* # using our own ALSA can cause issues, and the API is pretty stable anyway
+    - usr/lib/*.a # produced by library compilation
+    - usr/lib/cmake # produced by library compilation
+    - usr/lib/pkgconfig # produced by library compilation
+    - usr/s[!h]* # s* except share
+    - usr/share/[!aim]* # * except applications, icons, metainfo
+    - usr/share/a[!p]* # a* except applications
+    - usr/share/ap[!p]* # ap* except applications
+    - usr/share/app[!l]* # app* except applications
+    - usr/share/i[!c]* # i* except icons
+    - usr/share/icons/[!h]* # * except hicolor
+    - usr/share/icons/h[!i]* # h* except hicolor
+    - usr/share/m[!e]* # m* except metainfo
+    - usr/share/metainfo/*.metainfo.xml # metainfo for libraries
     - var
 AppImage:
   arch: !ENV '${arch_appimage}'
-  file_name: '-n' # nasty hack to disable metainfo validation
+  file_name: !ENV '${appimage_path}'

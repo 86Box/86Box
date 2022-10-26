@@ -534,7 +534,7 @@ MEMOBJ		:= catalyst_flash.o i2c_eeprom.o intel_flash.o mem.o rom.o smram.o spd.o
 CPUOBJ		:= $(DYNARECOBJ) \
 		    $(CGTOBJ) \
 		    cpu.o cpu_table.o fpu.o x86.o \
-		    808x.o 386.o 386_common.o 386_dynarec.o 386_dynarec_ops.o \
+		    8080.o 808x.o 386.o 386_common.o 386_dynarec.o 386_dynarec_ops.o \
 		    x86seg.o x87.o x87_timings.o
 
 CHIPSETOBJ	:= 82c100.o acc2168.o \

@@ -2136,12 +2136,9 @@ recalc_next_free_id(HWND hdlg)
 
     enable_add = enable_add || (next_free_id >= 0);
     enable_add = enable_add && ((c_mfm < MFM_NUM) || (c_esdi < ESDI_NUM) || (c_xta < XTA_NUM) || (c_ide < IDE_NUM) || (c_ide < ATAPI_NUM) || (c_scsi < SCSI_NUM));
-    enable_add = enable_add && !bus_full(&mfm_tracking, 2);
-    enable_add = enable_add && !bus_full(&esdi_tracking, 2);
-    enable_add = enable_add && !bus_full(&xta_tracking, 2);
-    enable_add = enable_add && !bus_full(&ide_tracking, IDE_CHAN_MAX);
-    for (i = 0; i < 2; i++)
-        enable_add = enable_add && !bus_full(&(scsi_tracking[i]), 8);
+    enable_add = enable_add && (!bus_full(&mfm_tracking, 2) || !bus_full(&esdi_tracking, 2) || !bus_full(&xta_tracking, 2) || !bus_full(&ide_tracking, IDE_CHAN_MAX * IDE_BUS_MAX) ||
+                 !bus_full(&(scsi_tracking[0]), 8) || !bus_full(&(scsi_tracking[1]), 8) || !bus_full(&(scsi_tracking[2]), 8) || !bus_full(&(scsi_tracking[3]), 8) ||
+                 !bus_full(&(scsi_tracking[4]), 8) || !bus_full(&(scsi_tracking[5]), 8) || !bus_full(&(scsi_tracking[6]), 8) || !bus_full(&(scsi_tracking[7]), 8));
 
     settings_enable_window(hdlg, IDC_BUTTON_HDD_ADD_NEW, enable_add);
     settings_enable_window(hdlg, IDC_BUTTON_HDD_ADD, enable_add);

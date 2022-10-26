@@ -417,9 +417,36 @@ viso_fill_time(uint8_t *data, time_t time, int format, int longform)
 {
     uint8_t   *p      = data;
     struct tm *time_s = localtime(&time);
-    if (!time_s)
-        fatal("VISO: localtime(%d) = NULL\n", time);
+    if (!time_s) {
+        /* localtime will return NULL if the time_t is negative (Windows)
+           or way too far into 64-bit space (Linux). Fall back to epoch. */
+        time_t epoch = 0;
+        time_s       = localtime(&epoch);
+        if (!time_s)
+            fatal("VISO: localtime(0) = NULL\n");
 
+        /* Force year clamping if the timestamp is known to be outside the supported ranges. */
+        if (time < (longform ? -62135596800LL : -2208988800LL)) /* 0001-01-01 00:00:00 : 1900-01-01 00:00:00 */
+            time_s->tm_year = -1901;
+        else if (time > (longform ? 253402300799LL : 5869583999LL)) /* 9999-12-31 23:59:59 : 2155-12-31 23:59:59 */
+            time_s->tm_year = 8100;
+    }
+
+    /* Clamp year to the supported ranges, and assume the
+       OS returns valid numbers in the other struct fields. */
+    if (time_s->tm_year < (longform ? -1900 : 0)) {
+        time_s->tm_year = longform ? -1900 : 0;
+        time_s->tm_mon = time_s->tm_hour = time_s->tm_min = time_s->tm_sec = 0;
+        time_s->tm_mday                                                    = 1;
+    } else if (time_s->tm_year > (longform ? 8099 : 255)) {
+        time_s->tm_year = longform ? 8099 : 255;
+        time_s->tm_mon  = 12;
+        time_s->tm_mday = 31;
+        time_s->tm_hour = 23;
+        time_s->tm_min = time_s->tm_sec = 59;
+    }
+
+    /* Convert timestamp. */
     if (longform) {
         p += sprintf((char *) p, "%04u%02u%02u%02u%02u%02u00",
                      1900 + time_s->tm_year, 1 + time_s->tm_mon, time_s->tm_mday,
@@ -443,10 +470,14 @@ viso_fill_dir_record(uint8_t *data, viso_entry_t *entry, int format, int type)
 {
     uint8_t *p = data, *q, *r;
 
-    *p++ = 0;                                                 /* size (filled in later) */
-    *p++ = 0;                                                 /* extended attribute length */
-    VISO_SKIP(p, 8);                                          /* sector offset */
-    VISO_LBE_32(p, entry->stats.st_size);                     /* size (filled in later if this is a directory) */
+    *p++ = 0;                             /* size (filled in later) */
+    *p++ = 0;                             /* extended attribute length */
+    VISO_SKIP(p, 8);                      /* sector offset */
+    VISO_LBE_32(p, entry->stats.st_size); /* size (filled in later if this is a directory) */
+#ifdef _WIN32
+    if (entry->stats.st_mtime < 0)
+        pclog("VISO: Warning: Windows returned st_mtime %lld on file [%s]\n", (long long) entry->stats.st_mtime, entry->path);
+#endif
     p += viso_fill_time(p, entry->stats.st_mtime, format, 0); /* time */
     *p++ = S_ISDIR(entry->stats.st_mode) ? 0x02 : 0x00;       /* flags */
 
@@ -848,7 +879,7 @@ viso_init(const char *dirname, int *error)
 
             /* Handle file size and El Torito boot code. */
             if (!S_ISDIR(entry->stats.st_mode)) {
-                /* Limit to 4 GB - 1 byte. */
+                /* Clamp to 4 GB - 1 byte. */
                 if (entry->stats.st_size > ((uint32_t) -1))
                     entry->stats.st_size = (uint32_t) -1;
 

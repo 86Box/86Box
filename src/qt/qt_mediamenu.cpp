@@ -19,13 +19,15 @@
  *      Copyright 2021-2022 Teemu Korhonen
  */
 #include "qt_mediamenu.hpp"
-
+#include "qt_progsettings.hpp"
 #include "qt_machinestatus.hpp"
 
 #include <QMenu>
 #include <QFileDialog>
 #include <QMessageBox>
 #include <QStringBuilder>
+#include <QApplication>
+#include <QStyle>
 
 extern "C" {
 #include <86box/86box.h>
@@ -123,10 +125,10 @@ void MediaMenu::refresh(QMenu *parentMenu) {
     MachineStatus::iterateCDROM([this, parentMenu](int i) {
         auto* menu = parentMenu->addMenu("");
         cdromMutePos = menu->children().count();
-        menu->addAction(tr("&Mute"), [this, i]() { cdromMute(i); })->setCheckable(true);
+        menu->addAction(QApplication::style()->standardIcon(QStyle::SP_MediaVolumeMuted), tr("&Mute"), [this, i]() { cdromMute(i); })->setCheckable(true);
         menu->addSeparator();
-        menu->addAction(tr("&Image..."), [this, i]() { cdromMount(i, 0); })->setCheckable(false);
-        menu->addAction(tr("&Folder..."), [this, i]() { cdromMount(i, 1); })->setCheckable(false);
+        menu->addAction(ProgSettings::loadIcon("/cdrom.ico"), tr("&Image..."), [this, i]() { cdromMount(i, 0); })->setCheckable(false);
+        menu->addAction(QApplication::style()->standardIcon(QStyle::SP_DirIcon), tr("&Folder..."), [this, i]() { cdromMount(i, 1); })->setCheckable(false);
         menu->addSeparator();
         for (int slot = 0; slot < MAX_PREV_IMAGES; slot++) {
             cdromImageHistoryPos[slot] = menu->children().count();
@@ -478,8 +480,9 @@ void MediaMenu::cdromReload(int index, int slot) {
 void MediaMenu::updateImageHistory(int index, int slot, ui::MediaType type) {
     QMenu* menu;
     QAction* imageHistoryUpdatePos;
-    QString image_path;
     QObjectList children;
+    QFileInfo fi;
+    QIcon menu_icon;
 
     switch (type) {
         case ui::MediaType::Optical:
@@ -488,7 +491,9 @@ void MediaMenu::updateImageHistory(int index, int slot, ui::MediaType type) {
             menu = cdromMenus[index];
             children = menu->children();
             imageHistoryUpdatePos = dynamic_cast<QAction*>(children[cdromImageHistoryPos[slot]]);
-            image_path = mhm.getImageForSlot(index, slot, type);
+            fi.setFile(mhm.getImageForSlot(index, slot, type));
+            menu_icon = fi.isDir() ? QApplication::style()->standardIcon(QStyle::SP_DirIcon) : ProgSettings::loadIcon("/cdrom.ico");
+            imageHistoryUpdatePos->setIcon(menu_icon);
             break;
         case ui::MediaType::Floppy:
             if (!floppyMenus.contains(index))
@@ -496,15 +501,15 @@ void MediaMenu::updateImageHistory(int index, int slot, ui::MediaType type) {
             menu = floppyMenus[index];
             children = menu->children();
             imageHistoryUpdatePos = dynamic_cast<QAction*>(children[floppyImageHistoryPos[slot]]);
-            image_path = mhm.getImageForSlot(index, slot, type);
+            fi.setFile(mhm.getImageForSlot(index, slot, type));
             break;
         default:
             pclog("History not yet implemented for media type %s\n", qPrintable(mhm.mediaTypeToString(type)));
             return;
     }
 
-    QFileInfo fi(image_path);
-    imageHistoryUpdatePos->setText(QString::asprintf(tr("%s").toUtf8().constData(), fi.fileName().isEmpty() ? tr("previous image").toUtf8().constData() :  fi.fileName().toUtf8().constData()));
+    QString menu_item_name = fi.fileName().isEmpty() ? tr("previous image").toUtf8().constData() : fi.fileName().toUtf8().constData();
+    imageHistoryUpdatePos->setText(QString::asprintf(tr("%s").toUtf8().constData(), menu_item_name.toUtf8().constData()));
     imageHistoryUpdatePos->setVisible(!fi.fileName().isEmpty());
 }
 
@@ -527,7 +532,10 @@ void MediaMenu::cdromUpdateMenu(int i) {
 
     auto* imageMenu = dynamic_cast<QAction*>(childs[cdromImagePos]);
     imageMenu->setEnabled(!name.isEmpty());
-    imageMenu->setText(QString::asprintf(tr("Eject %s").toUtf8().constData(), name.isEmpty() ? QString().toUtf8().constData() :  fi.fileName().toUtf8().constData()));
+    QString menu_item_name = name.isEmpty() ? QString().toUtf8().constData() : fi.fileName().toUtf8().constData();
+    auto menu_icon = fi.isDir() ? QApplication::style()->standardIcon(QStyle::SP_DirIcon) : ProgSettings::loadIcon("/cdrom.ico");
+    imageMenu->setIcon(menu_icon);
+    imageMenu->setText(QString::asprintf(tr("Eject %s").toUtf8().constData(), menu_item_name.toUtf8().constData()));
 
     for (int slot = 0; slot < MAX_PREV_IMAGES; slot++) {
         updateImageHistory(i, slot, ui::MediaType::Optical);

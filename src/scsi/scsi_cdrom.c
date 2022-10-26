@@ -349,7 +349,11 @@ scsi_cdrom_init(scsi_cdrom_t *dev)
 
     dev->sense[0]        = 0xf0;
     dev->sense[7]        = 10;
+#ifdef POSSIBLE_EARLY_ATAPI
     dev->status          = READY_STAT | DSC_STAT;
+#else
+    dev->status          = 0;
+#endif
     dev->pos             = 0;
     dev->packet_status   = PHASE_NONE;
     scsi_cdrom_sense_key = scsi_cdrom_asc = scsi_cdrom_ascq = dev->unit_attention = 0;
@@ -685,6 +689,7 @@ scsi_cdrom_command_complete(scsi_cdrom_t *dev)
     ui_sb_update_icon(SB_CDROM | dev->id, 0);
     dev->packet_status = PHASE_COMPLETE;
     scsi_cdrom_command_common(dev);
+    dev->phase = 3;
 }
 
 static void
@@ -692,6 +697,7 @@ scsi_cdrom_command_read(scsi_cdrom_t *dev)
 {
     dev->packet_status = PHASE_DATA_IN;
     scsi_cdrom_command_common(dev);
+    dev->phase = !(dev->packet_status & 0x01) << 1;
 }
 
 static void
@@ -706,6 +712,7 @@ scsi_cdrom_command_write(scsi_cdrom_t *dev)
 {
     dev->packet_status = PHASE_DATA_OUT;
     scsi_cdrom_command_common(dev);
+    dev->phase = !(dev->packet_status & 0x01) << 1;
 }
 
 static void
@@ -1352,8 +1359,10 @@ scsi_cdrom_command(scsi_common_t *sc, uint8_t *cdb)
     int           toc_format, block_desc = 0;
     int           ret, format            = 0;
     int           real_pos, track        = 0;
+#ifdef USE_86BOX_CD
     char          device_identify[9]     = { '8', '6', 'B', '_', 'C', 'D', '0', '0', 0 };
     char          device_identify_ex[15] = { '8', '6', 'B', '_', 'C', 'D', '0', '0', ' ', 'v', '1', '.', '0', '0', 0 };
+#endif
     int32_t       blen                   = 0, *BufLen;
     uint8_t      *b;
     uint32_t      profiles[2] = { MMC_PROFILE_CD_ROM, MMC_PROFILE_DVD_ROM };
@@ -1371,12 +1380,14 @@ scsi_cdrom_command(scsi_common_t *sc, uint8_t *cdb)
     dev->packet_len  = 0;
     dev->request_pos = 0;
 
+#ifdef USE_86BOX_CD
     device_identify[7] = dev->id + 0x30;
 
     device_identify_ex[7]  = dev->id + 0x30;
     device_identify_ex[10] = EMU_VERSION_EX[0];
     device_identify_ex[12] = EMU_VERSION_EX[2];
     device_identify_ex[13] = EMU_VERSION_EX[3];
+#endif
 
     memcpy(dev->current_cdb, cdb, 12);
 
@@ -2301,16 +2312,25 @@ scsi_cdrom_command(scsi_common_t *sc, uint8_t *cdb)
                         if (dev->drv->bus_type == CDROM_BUS_SCSI)
                             ide_padstr8(dev->buffer + idx, 8, "TOSHIBA"); /* Vendor */
                         else
+#ifdef USE_86BOX_CD
                             ide_padstr8(dev->buffer + idx, 8, EMU_NAME); /* Vendor */
+#else
+                            ide_padstr8(dev->buffer + idx, 8, "HITACHI"); /* Vendor */
+#endif
                         idx += 8;
                         if (dev->drv->bus_type == CDROM_BUS_SCSI)
                             ide_padstr8(dev->buffer + idx, 40, "XM6201TASUN32XCD1103"); /* Product */
                         else
+#ifdef USE_86BOX_CD
                             ide_padstr8(dev->buffer + idx, 40, device_identify_ex); /* Product */
+#else
+                            ide_padstr8(dev->buffer + idx, 40, "CDR-8130"); /* Product */
+#endif
                         idx += 40;
                         ide_padstr8(dev->buffer + idx, 20, "53R141"); /* Product */
                         idx += 20;
                         break;
+
                     default:
                         scsi_cdrom_log("INQUIRY: Invalid page: %02X\n", cdb[2]);
                         scsi_cdrom_invalid_field(dev);
@@ -2344,9 +2364,15 @@ scsi_cdrom_command(scsi_common_t *sc, uint8_t *cdb)
                     ide_padstr8(dev->buffer + 16, 16, "XM6201TASUN32XCD"); /* Product */
                     ide_padstr8(dev->buffer + 32, 4, "1103");              /* Revision */
                 } else {
+#ifdef USE_86BOX_CD
                     ide_padstr8(dev->buffer + 8, 8, EMU_NAME);          /* Vendor */
                     ide_padstr8(dev->buffer + 16, 16, device_identify); /* Product */
                     ide_padstr8(dev->buffer + 32, 4, EMU_VERSION_EX);   /* Revision */
+#else
+                    ide_padstr8(dev->buffer + 8, 8, "HITACHI");          /* Vendor */
+                    ide_padstr8(dev->buffer + 16, 16, "CDR-8130"); /* Product */
+                    ide_padstr8(dev->buffer + 32, 4, "0020");   /* Revision */
+#endif
                 }
 
                 idx = 36;
@@ -2615,7 +2641,7 @@ scsi_cdrom_get_timings(int ide_has_dma, int type)
 static void
 scsi_cdrom_identify(ide_t *ide, int ide_has_dma)
 {
-#if 0
+#ifdef USE_86BOX_CD
     scsi_cdrom_t *dev;
     char device_identify[9] = { '8', '6', 'B', '_', 'C', 'D', '0', '0', 0 };
 
@@ -2627,12 +2653,17 @@ scsi_cdrom_identify(ide_t *ide, int ide_has_dma)
 
     ide->buffer[0] = 0x8000 | (5 << 8) | 0x80 | (2 << 5); /* ATAPI device, CD-ROM drive, removable media, accelerated DRQ */
     ide_padstr((char *) (ide->buffer + 10), "", 20);      /* Serial Number */
-#if 0
+#ifdef USE_86BOX_CD
     ide_padstr((char *) (ide->buffer + 23), EMU_VERSION_EX, 8); /* Firmware */
     ide_padstr((char *) (ide->buffer + 27), device_identify, 40); /* Model */
 #else
+ #ifdef USE_NEC_CD
     ide_padstr((char *) (ide->buffer + 23), "4.20    ", 8);                                  /* Firmware */
     ide_padstr((char *) (ide->buffer + 27), "NEC                 CD-ROM DRIVE:273    ", 40); /* Model */
+ #else
+    ide_padstr((char *) (ide->buffer + 23), "0020    ", 8);                                  /* Firmware */
+    ide_padstr((char *) (ide->buffer + 27), "HITACHI CDR-8130                        ", 40); /* Model */
+ #endif
 #endif
     ide->buffer[49]  = 0x200;  /* LBA supported */
     ide->buffer[126] = 0xfffe; /* Interpret zero byte count limit as maximum length */
