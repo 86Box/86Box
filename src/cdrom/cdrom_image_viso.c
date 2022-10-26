@@ -793,7 +793,6 @@ viso_init(const char *dirname, int *error)
     if (!dir)
         goto end;
     strcpy(dir->path, dirname);
-    strcpy(dir->name_short, "[root]");
     if (stat(dirname, &dir->stats) != 0) {
         /* Use a blank structure if stat failed. */
         memset(&dir->stats, 0x00, sizeof(struct stat));
@@ -801,7 +800,7 @@ viso_init(const char *dirname, int *error)
     if (!S_ISDIR(dir->stats.st_mode)) /* root is not a directory */
         goto end;
     dir->parent = dir; /* for the root's path table and .. entries */
-    cdrom_image_viso_log("[%08X] %s => %s\n", dir, dir->path, dir->name_short);
+    cdrom_image_viso_log("[%08X] %s => [root]\n", dir, dir->path);
 
     /* Traverse directories, starting with the root. */
     viso_entry_t **dir_entries     = NULL;
@@ -816,7 +815,7 @@ viso_init(const char *dirname, int *error)
         size_t children_count = 3; /* include terminator, . and .. */
         while ((readdir_entry = readdir(dirp))) {
             /* Ignore . and .. pseudo-directories. */
-            if ((readdir_entry->d_name[0] == '.') && ((readdir_entry->d_name[1] == '\0') || ((readdir_entry->d_name[1] == '.') && (readdir_entry->d_name[2] == '\0'))))
+            if ((readdir_entry->d_name[0] == '.') && ((readdir_entry->d_name[1] == '\0') || (*((uint16_t *) &readdir_entry->d_name[1]) == '.')))
                 continue;
             children_count++;
         }
@@ -858,7 +857,7 @@ viso_init(const char *dirname, int *error)
         rewinddir(dirp);
         while ((readdir_entry = readdir(dirp))) {
             /* Ignore . and .. pseudo-directories. */
-            if ((readdir_entry->d_name[0] == '.') && ((readdir_entry->d_name[1] == '\0') || ((readdir_entry->d_name[1] == '.') && (readdir_entry->d_name[2] == '\0'))))
+            if ((readdir_entry->d_name[0] == '.') && ((readdir_entry->d_name[1] == '\0') || (*((uint16_t *) &readdir_entry->d_name[1]) == '.')))
                 continue;
 
             /* Add and fill entry. */
@@ -879,7 +878,7 @@ viso_init(const char *dirname, int *error)
 
             /* Handle file size and El Torito boot code. */
             if (!S_ISDIR(entry->stats.st_mode)) {
-                /* Clamp to 4 GB - 1 byte. */
+                /* Clamp file size to 4 GB - 1 byte. */
                 if (entry->stats.st_size > ((uint32_t) -1))
                     entry->stats.st_size = (uint32_t) -1;
 
