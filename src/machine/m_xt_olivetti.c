@@ -25,6 +25,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <stdlib.h>
+#include <time.h>
 #include <stdarg.h>
 #include <wchar.h>
 #include <86box/86box.h>
