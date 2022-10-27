@@ -8,7 +8,7 @@
 #define HASH(l) ((l) & 0x1ffff)
 
 #define BLOCK_EXIT_OFFSET 0x7e0
-#ifdef OLD_GPF
+#ifndef NEW_GPF
 #define BLOCK_GPF_OFFSET (BLOCK_EXIT_OFFSET - 20)
 #else
 #define BLOCK_GPF_OFFSET (BLOCK_EXIT_OFFSET - 12)

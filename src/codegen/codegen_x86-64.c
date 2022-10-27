@@ -281,7 +281,7 @@ void codegen_block_start_recompile(codeblock_t *block)
         block->status = cpu_cur_status;
 
         block_pos = BLOCK_GPF_OFFSET;
-#ifdef OLD_GPF
+#ifndef NEW_GPF
 #if _WIN64
         addbyte(0x48); /*XOR RCX, RCX*/
         addbyte(0x31);
