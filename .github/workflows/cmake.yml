@@ -78,7 +78,7 @@ jobs:
             ${{ matrix.environment.prefix }}-libvncserver
             ${{ matrix.environment.prefix }}-openal
             ${{ matrix.environment.prefix }}-rtmidi
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Configure CMake
         run: >-
           cmake -G Ninja -S . -B build --preset ${{ matrix.build.preset }}
@@ -90,7 +90,7 @@ jobs:
         run: cmake --build build
       - name: Generate package
         run: cmake --install build
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v3
         with:
           name: '86Box${{ matrix.dynarec.slug }}${{ matrix.build.slug }}-Windows-${{ matrix.environment.msystem }}-gha${{ github.run_number }}'
           path: build/artifacts/**
@@ -146,7 +146,7 @@ jobs:
               name: ARM64
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Prepare VS environment
         uses: ilammy/msvc-dev-cmd@v1
         with:
@@ -189,7 +189,7 @@ jobs:
         run: cmake --build build
       - name: Generate package
         run: cmake --install build --prefix ./build/artifacts
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v3
         with:
           name: '86Box${{ matrix.ui.slug }}${{ matrix.dynarec.slug }}${{ matrix.build.slug }}-Windows-LLVM-${{ matrix.target.name }}-gha${{ github.run_number }}'
           path: build/artifacts/**
@@ -218,7 +218,7 @@ jobs:
             slug: -NDR
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Install dependencies
         run: >-
           sudo apt update && sudo apt install
@@ -241,7 +241,7 @@ jobs:
         run: cmake --build build
 #     - name: Generate package
 #       run: cmake --install build --prefix ./build/artifacts
-#     - uses: actions/upload-artifact@v2
+#     - uses: actions/upload-artifact@v3
 #       with:
 #         name: '86Box${{ matrix.build.slug }}-UbuntuJammy-x86_64-gha${{ github.run_number }}'
 #         path: build/artifacts/**
@@ -270,7 +270,7 @@ jobs:
             slug: -NDR
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Install dependencies
         run: brew install freetype sdl2 libpng rtmidi qt@5 openal-soft ninja
       - name: Configure CMake
@@ -285,7 +285,7 @@ jobs:
         run: cmake --build build
       - name: Generate package
         run: cmake --install build --prefix ./build/artifacts
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v3
         with:
           name: '86Box${{ matrix.build.slug }}-macOS-x86_64-gha${{ github.run_number }}'
           path: build/artifacts/**
