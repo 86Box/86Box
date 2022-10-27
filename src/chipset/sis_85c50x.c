@@ -38,6 +38,7 @@
 
 #ifdef ENABLE_SIS_85C50X_LOG
 int sis_85c50x_do_log = ENABLE_SIS_85C50X_LOG;
+
 static void
 sis_85c50x_log(const char *fmt, ...)
 {

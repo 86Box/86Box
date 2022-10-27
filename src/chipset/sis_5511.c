@@ -49,6 +49,7 @@
 
 #ifdef ENABLE_SIS_5511_LOG
 int sis_5511_do_log = ENABLE_SIS_5511_LOG;
+
 static void
 sis_5511_log(const char *fmt, ...)
 {

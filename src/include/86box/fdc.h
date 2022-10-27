@@ -52,6 +52,7 @@ extern int fdc_type;
 #define FDC_FLAG_AMSTRAD        0x200 /* Non-AT Amstrad machines */
 #define FDC_FLAG_UMC            0x400 /* UMC UM8398 */
 #define FDC_FLAG_ALI            0x800 /* ALi M512x / M1543C */
+#define FDC_FLAG_SEC            0x1000 /* Is Secondary */
 
 typedef struct {
     uint8_t dor, stat, command, processed_cmd, dat, st0, swap, dtl;
@@ -185,11 +186,13 @@ extern uint8_t fdc_get_current_drive(void);
 
 #ifdef EMU_DEVICE_H
 extern const device_t fdc_xt_device;
+extern const device_t fdc_xt_sec_device;
 extern const device_t fdc_xt_t1x00_device;
 extern const device_t fdc_xt_tandy_device;
 extern const device_t fdc_xt_amstrad_device;
 extern const device_t fdc_pcjr_device;
 extern const device_t fdc_at_device;
+extern const device_t fdc_at_sec_device;
 extern const device_t fdc_at_actlow_device;
 extern const device_t fdc_at_ps1_device;
 extern const device_t fdc_at_smc_device;

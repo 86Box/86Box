@@ -46,6 +46,7 @@ typedef struct
 
 #ifdef ENABLE_VT82C49X_LOG
 int vt82c49x_do_log = ENABLE_VT82C49X_LOG;
+
 static void
 vt82c49x_log(const char *fmt, ...)
 {

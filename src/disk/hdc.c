@@ -49,35 +49,13 @@ hdc_log(const char *fmt, ...)
 #    define hdc_log(fmt, ...)
 #endif
 
-static void *
-nullhdc_init(const device_t *info)
-{
-    return (NULL);
-}
-
-static void
-nullhdc_close(void *priv)
-{
-}
-
-static void *
-inthdc_init(const device_t *info)
-{
-    return (NULL);
-}
-
-static void
-inthdc_close(void *priv)
-{
-}
-
 static const device_t hdc_none_device = {
     .name          = "None",
     .internal_name = "none",
     .flags         = 0,
     .local         = 0,
-    .init          = nullhdc_init,
-    .close         = nullhdc_close,
+    .init          = NULL,
+    .close         = NULL,
     .reset         = NULL,
     { .available = NULL },
     .speed_changed = NULL,
@@ -90,8 +68,8 @@ static const device_t hdc_internal_device = {
     .internal_name = "internal",
     .flags         = 0,
     .local         = 0,
-    .init          = inthdc_init,
-    .close         = inthdc_close,
+    .init          = NULL,
+    .close         = NULL,
     .reset         = NULL,
     { .available = NULL },
     .speed_changed = NULL,

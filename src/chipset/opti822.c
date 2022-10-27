@@ -40,6 +40,7 @@
 
 #ifdef ENABLE_OPTI822_LOG
 int opti822_do_log = ENABLE_OPTI822_LOG;
+
 static void
 opti822_log(const char *fmt, ...)
 {

@@ -39,6 +39,7 @@ typedef struct ali1621_t {
 
 #ifdef ENABLE_ALI1621_LOG
 int ali1621_do_log = ENABLE_ALI1621_LOG;
+
 static void
 ali1621_log(const char *fmt, ...)
 {
