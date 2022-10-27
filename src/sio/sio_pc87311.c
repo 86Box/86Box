@@ -45,6 +45,7 @@
 
 #ifdef ENABLE_PC87311_LOG
 int pc87311_do_log = ENABLE_PC87311_LOG;
+
 static void
 pc87311_log(const char *fmt, ...)
 {

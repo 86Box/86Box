@@ -44,6 +44,7 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING  IN ANY  WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
@@ -52,6 +53,7 @@
 #include <errno.h>
 #define PNG_DEBUG 0
 #include <png.h>
+#define HAVE_STDARG_H
 #include <86box/86box.h>
 #include <86box/plat.h>
 #include <86box/plat_dynld.h>
@@ -73,15 +75,15 @@
 
 #define PNGFUNC(x) png_##x
 
-#ifdef ENABLE_ESCP_LOG
-int png_do_log = ENABLE_ESCP_LOG;
+#ifdef ENABLE_PNG_LOG
+int png_do_log = ENABLE_PNG_LOG;
 
 static void
 png_log(const char *fmt, ...)
 {
     va_list ap;
 
-    if (escp_do_log) {
+    if (png_do_log) {
         va_start(ap, fmt);
         pclog_ex(fmt, ap);
         va_end(ap);

@@ -204,10 +204,8 @@ static const uint8_t d_len[256] = {
 
 static td0_t	*td0[FDD_NUM];
 
-
 #ifdef ENABLE_TD0_LOG
 int td0_do_log = ENABLE_TD0_LOG;
-
 
 static void
 td0_log(const char *fmt, ...)

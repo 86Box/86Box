@@ -14,11 +14,13 @@
  *
  *		Copyright 2019,2020 Miran Grca.
  */
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 #include <wchar.h>
+#define HAVE_STDARG_H
 #include <86box/86box.h>
 #include "cpu.h"
 #include <86box/mem.h>
