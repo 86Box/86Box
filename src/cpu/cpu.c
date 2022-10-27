@@ -73,6 +73,9 @@ enum {
 /* Make sure this is as low as possible. */
 cpu_state_t cpu_state;
 
+/* Place this immediately after. */
+uint32_t abrt_error;
+
 #ifdef USE_DYNAREC
 const OpFn *x86_dynarec_opcodes, *x86_dynarec_opcodes_0f,
     *x86_dynarec_opcodes_d8_a16, *x86_dynarec_opcodes_d8_a32,
