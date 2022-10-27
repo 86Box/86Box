@@ -298,7 +298,7 @@ else
  endif
 endif
 ifeq ($(DEBUG), y)
- DFLAGS		+= -ggdb -DDEBUG -DUSE_ACYCS
+ DFLAGS		+= -ggdb -DDEBUG
  AOPTIM		:=
  ifndef COPTIM
   COPTIM	:= -Og
