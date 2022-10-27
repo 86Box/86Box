@@ -581,3 +581,19 @@ machine_xt_bw230_init(const machine_t *model)
 
     return ret;
 }
+
+int
+machine_xt_v20xt_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/v20xt/V20XTBios.bin",
+                            0x000fe000, 8192, 0);
+
+    if (bios_only || !ret)
+	return ret;
+
+    machine_xt_clone_init(model);
+
+        return ret;
+}

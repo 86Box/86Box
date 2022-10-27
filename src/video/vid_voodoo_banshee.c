@@ -14,6 +14,7 @@
  *
  *		Copyright 2008-2020 Sarah Walker.
  */
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
@@ -21,6 +22,7 @@
 #include <stddef.h>
 #include <wchar.h>
 #include <math.h>
+#define HAVE_STDARG_H
 #include <86box/86box.h>
 #include "cpu.h"
 #include <86box/machine.h>

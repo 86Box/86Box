@@ -65,6 +65,7 @@ typedef struct
 
 #ifdef ENABLE_INTEL_82335_LOG
 int intel_82335_do_log = ENABLE_INTEL_82335_LOG;
+
 static void
 intel_82335_log(const char *fmt, ...)
 {

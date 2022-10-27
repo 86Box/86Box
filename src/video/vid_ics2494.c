@@ -16,11 +16,13 @@
  *
  *		Copyright 2020 Miran Grca.
  */
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 #include <wchar.h>
+#define HAVE_STDARG_H
 #include <86box/86box.h>
 #include <86box/device.h>
 
@@ -28,8 +30,8 @@ typedef struct ics2494_t {
     float freq[16];
 } ics2494_t;
 
-#ifdef ENABLE_ics2494_LOG
-int ics2494_do_log = ENABLE_ics2494_LOG;
+#ifdef ENABLE_ICS2494_LOG
+int ics2494_do_log = ENABLE_ICS2494_LOG;
 
 static void
 ics2494_log(const char *fmt, ...)
