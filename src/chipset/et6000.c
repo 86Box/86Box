@@ -40,6 +40,7 @@ typedef struct
 
 #ifdef ENABLE_ET6000_LOG
 int et6000_do_log = ENABLE_ET6000_LOG;
+
 static void
 et6000_log(const char *fmt, ...)
 {

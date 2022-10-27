@@ -41,6 +41,7 @@ typedef struct
 
 #ifdef ENABLE_OLIVETTI_EVA_LOG
 int olivetti_eva_do_log = ENABLE_OLIVETTI_EVA_LOG;
+
 static void
 olivetti_eva_log(const char *fmt, ...)
 {

@@ -78,6 +78,7 @@ int ali1533_irq_routing[16] = { PCI_IRQ_DISABLED, 9, 3, 10, 4, 5, 7, 6,
 
 #ifdef ENABLE_ALI1543_LOG
 int ali1543_do_log = ENABLE_ALI1543_LOG;
+
 static void
 ali1543_log(const char *fmt, ...)
 {

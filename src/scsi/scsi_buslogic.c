@@ -20,11 +20,11 @@
  *		Copyright 2016-2018 Miran Grca.
  *		Copyright 2017,2018 Fred N. van Kempen.
  */
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
 #include <stdlib.h>
-#include <stdarg.h>
 #include <wchar.h>
 #define HAVE_STDARG_H
 #include <86box/86box.h>

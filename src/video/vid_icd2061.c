@@ -20,11 +20,13 @@
  *
  *		Copyright 2016-2018 Miran Grca.
  */
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 #include <wchar.h>
+#define HAVE_STDARG_H
 #include <86box/86box.h>
 #include <86box/device.h>
 
