@@ -45,6 +45,7 @@
 
 #ifdef ENABLE_ALI1489_LOG
 int ali1489_do_log = ENABLE_ALI1489_LOG;
+
 static void
 ali1489_log(const char *fmt, ...)
 {

@@ -393,7 +393,7 @@ static int      pcnetCanReceive(nic_t *dev);
 int pcnet_do_log = ENABLE_PCNET_LOG;
 
 static void
-pcnetlog(int lvl, const char *fmt, ...)
+pcnet_log(int lvl, const char *fmt, ...)
 {
     va_list ap;
 
@@ -404,7 +404,7 @@ pcnetlog(int lvl, const char *fmt, ...)
     }
 }
 #else
-#    define pcnetlog(lvl, fmt, ...)
+#    define pcnet_log(lvl, fmt, ...)
 #endif
 
 static void
@@ -479,7 +479,7 @@ pcnetTmdLoad(nic_t *dev, TMD *tmd, uint32_t addr, int fRetIfNotOwn)
     }
     /* Double check the own bit; guest drivers might be buggy and lock prefixes in the recompiler are ignored by other threads. */
     if (tmd->tmd1.own == 1 && !(ownbyte & 0x80))
-        pcnetlog(3, "%s: pcnetTmdLoad: own bit flipped while reading!!\n", dev->name);
+        pcnet_log(3, "%s: pcnetTmdLoad: own bit flipped while reading!!\n", dev->name);
     if (!(ownbyte & 0x80))
         tmd->tmd1.own = 0;
 
@@ -572,7 +572,7 @@ pcnetRmdLoad(nic_t *dev, RMD *rmd, uint32_t addr, int fRetIfNotOwn)
     }
     /* Double check the own bit; guest drivers might be buggy and lock prefixes in the recompiler are ignored by other threads. */
     if (rmd->rmd1.own == 1 && !(ownbyte & 0x80))
-        pcnetlog(3, "%s: pcnetRmdLoad: own bit flipped while reading!!\n", dev->name);
+        pcnet_log(3, "%s: pcnetRmdLoad: own bit flipped while reading!!\n", dev->name);
 
     if (!(ownbyte & 0x80))
         rmd->rmd1.own = 0;
@@ -755,7 +755,7 @@ padr_match(nic_t *dev, const uint8_t *buf, int size)
     padr[5] = dev->aCSR[14] >> 8;
     result  = !CSR_DRCVPA(dev) && !memcmp(hdr->ether_dhost, padr, 6);
 
-    pcnetlog(3, "%s: packet dhost=%02x:%02x:%02x:%02x:%02x:%02x, "
+    pcnet_log(3, "%s: packet dhost=%02x:%02x:%02x:%02x:%02x:%02x, "
                 "padr=%02x:%02x:%02x:%02x:%02x:%02x => %d\n",
              dev->name,
              hdr->ether_dhost[0], hdr->ether_dhost[1], hdr->ether_dhost[2],
@@ -771,7 +771,7 @@ padr_bcast(nic_t *dev, const uint8_t *buf, size_t size)
     static uint8_t       aBCAST[6] = { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
     struct ether_header *hdr       = (struct ether_header *) buf;
     int                  result    = !CSR_DRCVBC(dev) && !memcmp(hdr->ether_dhost, aBCAST, 6);
-    pcnetlog(3, "%s: padr_bcast result=%d\n", dev->name, result);
+    pcnet_log(3, "%s: padr_bcast result=%d\n", dev->name, result);
     return result;
 }
 
@@ -817,7 +817,7 @@ pcnetTdraAddr(nic_t *dev, int idx)
 static void
 pcnetSoftReset(nic_t *dev)
 {
-    pcnetlog(3, "%s: pcnetSoftReset\n", dev->name);
+    pcnet_log(3, "%s: pcnetSoftReset\n", dev->name);
 
     dev->u32Lnkst = 0x40;
     dev->GCRDRA   = 0;
@@ -888,7 +888,7 @@ pcnetUpdateIrq(nic_t *dev)
     if (dev->aCSR[4] & 0x0080) { /* UINTCMD */
         dev->aCSR[4] &= ~0x0080; /* clear UINTCMD */
         dev->aCSR[4] |= 0x0040;  /* set UINT */
-        pcnetlog(2, "%s: user int\n", dev->name);
+        pcnet_log(2, "%s: user int\n", dev->name);
     }
 
     if (dev->aCSR[4] & csr0 & 0x0040 /* CSR_INEA */) {
@@ -906,7 +906,7 @@ pcnetUpdateIrq(nic_t *dev)
 
     dev->aCSR[0] = csr0;
 
-    pcnetlog(2, "%s: pcnetUpdateIrq: iISR=%d\n", dev->name, iISR);
+    pcnet_log(2, "%s: pcnetUpdateIrq: iISR=%d\n", dev->name, iISR);
 
     pcnet_do_irq(dev, iISR);
     dev->iISR = iISR;
@@ -916,7 +916,7 @@ static void
 pcnetInit(nic_t *dev)
 {
     int i;
-    pcnetlog(3, "%s: pcnetInit: init_addr=%#010x\n", dev->name, PHYSADDR(dev, CSR_IADR(dev)));
+    pcnet_log(3, "%s: pcnetInit: init_addr=%#010x\n", dev->name, PHYSADDR(dev, CSR_IADR(dev)));
 
     /** @todo Documentation says that RCVRL and XMTRL are stored as two's complement!
      *        Software is allowed to write these registers directly. */
@@ -943,13 +943,13 @@ pcnetInit(nic_t *dev)
         struct INITBLK32 initblk;
         dev->GCUpperPhys = 0;
         PCNET_INIT();
-        pcnetlog(3, "%s: initblk.rlen=%#04x, initblk.tlen=%#04x\n",
+        pcnet_log(3, "%s: initblk.rlen=%#04x, initblk.tlen=%#04x\n",
                  dev->name, initblk.rlen, initblk.tlen);
     } else {
         struct INITBLK16 initblk;
         dev->GCUpperPhys = (0xff00 & (uint32_t) dev->aCSR[2]) << 16;
         PCNET_INIT();
-        pcnetlog(3, "%s: initblk.rlen=%#04x, initblk.tlen=%#04x\n",
+        pcnet_log(3, "%s: initblk.rlen=%#04x, initblk.tlen=%#04x\n",
                  dev->name, initblk.rlen, initblk.tlen);
     }
 
@@ -984,15 +984,15 @@ pcnetInit(nic_t *dev)
     CSR_CRST(dev) = CSR_CRBC(dev) = CSR_NRST(dev) = CSR_NRBC(dev) = 0;
     CSR_CXST(dev) = CSR_CXBC(dev) = CSR_NXST(dev) = CSR_NXBC(dev) = 0;
 
-    pcnetlog(1, "%s: Init: SWSTYLE=%d GCRDRA=%#010x[%d] GCTDRA=%#010x[%d]%s\n",
+    pcnet_log(1, "%s: Init: SWSTYLE=%d GCRDRA=%#010x[%d] GCTDRA=%#010x[%d]%s\n",
              dev->name, BCR_SWSTYLE(dev),
              dev->GCRDRA, CSR_RCVRL(dev), dev->GCTDRA, CSR_XMTRL(dev),
              !dev->fSignalRxMiss ? " (CSR0_MISS disabled)" : "");
 
     if (dev->GCRDRA & (dev->iLog2DescSize - 1))
-        pcnetlog(1, "%s: Warning: Misaligned RDRA\n", dev->name);
+        pcnet_log(1, "%s: Warning: Misaligned RDRA\n", dev->name);
     if (dev->GCTDRA & (dev->iLog2DescSize - 1))
-        pcnetlog(1, "%s: Warning: Misaligned TDRA\n", dev->name);
+        pcnet_log(1, "%s: Warning: Misaligned TDRA\n", dev->name);
 
     dev->aCSR[0] |= 0x0101;  /* Initialization done */
     dev->aCSR[0] &= ~0x0004; /* clear STOP bit */
@@ -1004,7 +1004,7 @@ pcnetInit(nic_t *dev)
 static void
 pcnetStart(nic_t *dev)
 {
-    pcnetlog(3, "%s: pcnetStart: Poll timer\n", dev->name);
+    pcnet_log(3, "%s: pcnetStart: Poll timer\n", dev->name);
 
     /* Reset any cached RX/TX descriptor state. */
     CSR_CRDA(dev) = CSR_CRBA(dev) = CSR_NRDA(dev) = CSR_NRBA(dev) = 0;
@@ -1025,7 +1025,7 @@ pcnetStart(nic_t *dev)
 static void
 pcnetStop(nic_t *dev)
 {
-    pcnetlog(3, "%s: pcnetStop: Poll timer\n", dev->name);
+    pcnet_log(3, "%s: pcnetStop: Poll timer\n", dev->name);
     dev->aCSR[0] = 0x0004;
     dev->aCSR[4] &= ~0x02c2;
     dev->aCSR[5] &= ~0x0011;
@@ -1071,7 +1071,7 @@ pcnetRdtePoll(nic_t *dev)
              * Don't flood the release log with errors.
              */
             if (++dev->uCntBadRMD < 50)
-                pcnetlog(1, "%s: BAD RMD ENTRIES AT %#010x (i=%d)\n",
+                pcnet_log(1, "%s: BAD RMD ENTRIES AT %#010x (i=%d)\n",
                          dev->name, addr, i);
             return;
         }
@@ -1097,7 +1097,7 @@ pcnetRdtePoll(nic_t *dev)
              * Don't flood the release log with errors.
              */
             if (++dev->uCntBadRMD < 50)
-                pcnetlog(1, "%s: BAD RMD ENTRIES + AT %#010x (i=%d)\n",
+                pcnet_log(1, "%s: BAD RMD ENTRIES + AT %#010x (i=%d)\n",
                          dev->name, addr, i);
             return;
         }
@@ -1125,7 +1125,7 @@ pcnetTdtePoll(nic_t *dev, TMD *tmd)
             return 0;
 
         if (tmd->tmd1.ones != 15) {
-            pcnetlog(1, "%s: BAD TMD XDA=%#010x\n",
+            pcnet_log(1, "%s: BAD TMD XDA=%#010x\n",
                      dev->name, PHYSADDR(dev, cxda));
             return 0;
         }
@@ -1177,20 +1177,20 @@ pcnetCalcPacketLen(nic_t *dev, int cb)
              * No need to count further since this packet won't be sent anyway
              * due to underflow.
              */
-            pcnetlog(3, "%s: pcnetCalcPacketLen: underflow, return %u\n", dev->name, cbPacket);
+            pcnet_log(3, "%s: pcnetCalcPacketLen: underflow, return %u\n", dev->name, cbPacket);
             return cbPacket;
         }
         if (tmd.tmd1.ones != 15) {
-            pcnetlog(1, "%s: BAD TMD XDA=%#010x\n",
+            pcnet_log(1, "%s: BAD TMD XDA=%#010x\n",
                      dev->name, PHYSADDR(dev, addrDesc));
-            pcnetlog(3, "%s: pcnetCalcPacketLen: bad TMD, return %u\n", dev->name, cbPacket);
+            pcnet_log(3, "%s: pcnetCalcPacketLen: bad TMD, return %u\n", dev->name, cbPacket);
             return cbPacket;
         }
-        pcnetlog(3, "%s: pcnetCalcPacketLen: got valid TMD, cb=%u\n", dev->name, 4096 - tmd.tmd1.bcnt);
+        pcnet_log(3, "%s: pcnetCalcPacketLen: got valid TMD, cb=%u\n", dev->name, 4096 - tmd.tmd1.bcnt);
         cbPacket += 4096 - tmd.tmd1.bcnt;
     } while (!tmd.tmd1.enp);
 
-    pcnetlog(3, "#%d pcnetCalcPacketLen: return %u\n", dev->name, cbPacket);
+    pcnet_log(3, "#%d pcnetCalcPacketLen: return %u\n", dev->name, cbPacket);
     return cbPacket;
 }
 
@@ -1227,7 +1227,7 @@ pcnetReceiveNoSync(void *priv, uint8_t *buf, int size)
     if (dev->fMaybeOutOfSpace)
         return 0;
 
-    pcnetlog(1, "%s: pcnetReceiveNoSync: RX %x:%x:%x:%x:%x:%x > %x:%x:%x:%x:%x:%x len %d\n", dev->name,
+    pcnet_log(1, "%s: pcnetReceiveNoSync: RX %x:%x:%x:%x:%x:%x > %x:%x:%x:%x:%x:%x len %d\n", dev->name,
              buf[6], buf[7], buf[8], buf[9], buf[10], buf[11],
              buf[0], buf[1], buf[2], buf[3], buf[4], buf[5],
              size);
@@ -1258,7 +1258,7 @@ pcnetReceiveNoSync(void *priv, uint8_t *buf, int size)
             dev->aCSR[0] |= 0x1000; /* Set MISS flag */
             CSR_MISSC(dev)
             ++;
-            pcnetlog(2, "%s: pcnetReceiveNoSync: packet missed\n", dev->name);
+            pcnet_log(2, "%s: pcnetReceiveNoSync: packet missed\n", dev->name);
         } else {
             RTNETETHERHDR *pEth   = (RTNETETHERHDR *) buf;
             int            fStrip = 0;
@@ -1331,7 +1331,7 @@ pcnetReceiveNoSync(void *priv, uint8_t *buf, int size)
 
             /* RX disabled in the meantime? If so, abort RX. */
             if (CSR_DRX(dev) || CSR_STOP(dev) || CSR_SPND(dev)) {
-                pcnetlog(3, "%s: RX disabled 1\n", dev->name);
+                pcnet_log(3, "%s: RX disabled 1\n", dev->name);
                 return 0;
             }
 
@@ -1374,7 +1374,7 @@ pcnetReceiveNoSync(void *priv, uint8_t *buf, int size)
 
                 /* RX disabled in the meantime? If so, abort RX. */
                 if (CSR_DRX(dev) || CSR_STOP(dev) || CSR_SPND(dev)) {
-                    pcnetlog(3, "%s: RX disabled 2\n", dev->name);
+                    pcnet_log(3, "%s: RX disabled 2\n", dev->name);
                     return 0;
                 }
 
@@ -1400,7 +1400,7 @@ pcnetReceiveNoSync(void *priv, uint8_t *buf, int size)
                 rmd.rmd2.mcnt  = cbPacket;
                 rmd.rmd2.zeros = 0;
             } else {
-                pcnetlog(1, "%s: Overflow by %ubytes\n", dev->name, size);
+                pcnet_log(1, "%s: Overflow by %ubytes\n", dev->name, size);
                 rmd.rmd1.oflo = 1;
                 rmd.rmd1.buff = 1;
                 rmd.rmd1.err  = 1;
@@ -1410,7 +1410,7 @@ pcnetReceiveNoSync(void *priv, uint8_t *buf, int size)
             pcnetRmdStorePassHost(dev, &rmd, PHYSADDR(dev, crda));
 
             dev->aCSR[0] |= 0x0400;
-            pcnetlog(1, "%s: RINT set, RCVRC=%d CRDA=%#010x\n", dev->name,
+            pcnet_log(1, "%s: RINT set, RCVRC=%d CRDA=%#010x\n", dev->name,
                      CSR_RCVRC(dev), PHYSADDR(dev, CSR_CRDA(dev)));
 
             /* guest driver is owner: force repoll of current and next RDTEs */
@@ -1477,7 +1477,7 @@ pcnetAsyncTransmit(nic_t *dev)
              && dev->cLinkDownReported > PCNET_MAX_LINKDOWN_REPORTED))
             break;
 
-        pcnetlog(3, "%s: TMDLOAD %#010x\n", dev->name, PHYSADDR(dev, CSR_CXDA(dev)));
+        pcnet_log(3, "%s: TMDLOAD %#010x\n", dev->name, PHYSADDR(dev, CSR_CXDA(dev)));
 
         int fLoopback = CSR_LOOP(dev);
 
@@ -1486,7 +1486,7 @@ pcnetAsyncTransmit(nic_t *dev)
          */
         if (tmd.tmd1.stp && tmd.tmd1.enp) {
             const int cb = 4096 - tmd.tmd1.bcnt;
-            pcnetlog("%s: pcnetAsyncTransmit: stp&enp: cb=%d xmtrc=%#x\n", dev->name, cb, CSR_XMTRC(dev));
+            pcnet_log("%s: pcnetAsyncTransmit: stp&enp: cb=%d xmtrc=%#x\n", dev->name, cb, CSR_XMTRC(dev));
 
             if ((pcnetIsLinkUp(dev) || fLoopback)) {
 
@@ -1504,7 +1504,7 @@ pcnetAsyncTransmit(nic_t *dev)
 
                         pcnetReceiveNoSync(dev, dev->abLoopBuf, dev->xmit_pos);
                     } else {
-                        pcnetlog(3, "%s: pcnetAsyncTransmit: transmit loopbuf stp and enp, xmit pos = %d\n", dev->name, dev->xmit_pos);
+                        pcnet_log(3, "%s: pcnetAsyncTransmit: transmit loopbuf stp and enp, xmit pos = %d\n", dev->name, dev->xmit_pos);
                         network_tx(dev->netcard, dev->abLoopBuf, dev->xmit_pos);
                     }
                 } else if (cb == 4096) {
@@ -1533,7 +1533,7 @@ pcnetAsyncTransmit(nic_t *dev)
                      * and later hardware is that the buffer lengths are *16-bit*
                      * two's complement numbers between 0 and 4096. AMD's drivers
                      * in fact generally treat the length as a 16-bit quantity. */
-                    pcnetlog(1, "%s: pcnetAsyncTransmit: illegal 4kb frame -> ignoring\n", dev->name);
+                    pcnet_log(1, "%s: pcnetAsyncTransmit: illegal 4kb frame -> ignoring\n", dev->name);
                     pcnetTmdStorePassHost(dev, &tmd, PHYSADDR(dev, CSR_CXDA(dev)));
                     break;
                 } else {
@@ -1588,7 +1588,7 @@ pcnetAsyncTransmit(nic_t *dev)
                     if (!CSR_DXSUFLO(dev))       /* stop on xmit underflow */
                         dev->aCSR[0] &= ~0x0010; /* clear TXON */
                     pcnetTmdStorePassHost(dev, &tmd, GCPhysPrevTmd);
-                    pcnetlog(3, "%s: pcnetAsyncTransmit: Underflow!!!\n", dev->name);
+                    pcnet_log(3, "%s: pcnetAsyncTransmit: Underflow!!!\n", dev->name);
                     break;
                 }
 
@@ -1614,10 +1614,10 @@ pcnetAsyncTransmit(nic_t *dev)
                         if (HOST_IS_OWNER(CSR_CRST(dev)))
                             pcnetRdtePoll(dev);
 
-                        pcnetlog(3, "%s: pcnetAsyncTransmit: receive loopback enp\n", dev->name);
+                        pcnet_log(3, "%s: pcnetAsyncTransmit: receive loopback enp\n", dev->name);
                         pcnetReceiveNoSync(dev, dev->abLoopBuf, dev->xmit_pos);
                     } else {
-                        pcnetlog(3, "%s: pcnetAsyncTransmit: transmit loopbuf enp\n", dev->name);
+                        pcnet_log(3, "%s: pcnetAsyncTransmit: transmit loopbuf enp\n", dev->name);
                         network_tx(dev->netcard, dev->abLoopBuf, dev->xmit_pos);
                     }
 
@@ -1694,7 +1694,7 @@ pcnetPollTimer(void *p)
 static void
 pcnetHardReset(nic_t *dev)
 {
-    pcnetlog(2, "%s: pcnetHardReset\n", dev->name);
+    pcnet_log(2, "%s: pcnetHardReset\n", dev->name);
 
     dev->iISR = 0;
     pcnet_do_irq(dev, 0);
@@ -1730,7 +1730,7 @@ pcnetHardReset(nic_t *dev)
 static void
 pcnet_csr_writew(nic_t *dev, uint16_t rap, uint16_t val)
 {
-    pcnetlog(1, "%s: pcnet_csr_writew: rap=%d val=%#06x\n", dev->name, rap, val);
+    pcnet_log(1, "%s: pcnet_csr_writew: rap=%d val=%#06x\n", dev->name, rap, val);
     switch (rap) {
         case 0:
             {
@@ -1745,27 +1745,27 @@ pcnet_csr_writew(nic_t *dev, uint16_t rap, uint16_t val)
                 if ((val & 7) == 7)
                     val &= ~3;
 
-                pcnetlog(2, "%s: CSR0 val = %04x, val2 = %04x\n", dev->name, val, dev->aCSR[0]);
+                pcnet_log(2, "%s: CSR0 val = %04x, val2 = %04x\n", dev->name, val, dev->aCSR[0]);
 
                 dev->aCSR[0] = csr0;
 
                 if (!CSR_STOP(dev) && (val & 4)) {
-                    pcnetlog(3, "%s: pcnet_csr_writew(): Stop\n", dev->name);
+                    pcnet_log(3, "%s: pcnet_csr_writew(): Stop\n", dev->name);
                     pcnetStop(dev);
                 }
 
                 if (!CSR_INIT(dev) && (val & 1)) {
-                    pcnetlog(3, "%s: pcnet_csr_writew(): Init\n", dev->name);
+                    pcnet_log(3, "%s: pcnet_csr_writew(): Init\n", dev->name);
                     pcnetInit(dev);
                 }
 
                 if (!CSR_STRT(dev) && (val & 2)) {
-                    pcnetlog(3, "%s: pcnet_csr_writew(): Start\n", dev->name);
+                    pcnet_log(3, "%s: pcnet_csr_writew(): Start\n", dev->name);
                     pcnetStart(dev);
                 }
 
                 if (CSR_TDMD(dev)) {
-                    pcnetlog(3, "%s: pcnet_csr_writew(): Transmit\n", dev->name);
+                    pcnet_log(3, "%s: pcnet_csr_writew(): Transmit\n", dev->name);
                     pcnetAsyncTransmit(dev);
                 }
             }
@@ -1850,16 +1850,16 @@ pcnet_csr_writew(nic_t *dev, uint16_t rap, uint16_t val)
         case 24: /* BADRL */
         case 25: /* BADRU */
             if (!CSR_STOP(dev) && !CSR_SPND(dev)) {
-                pcnetlog(3, "%s: WRITE CSR%d, %#06x, ignoring!!\n", dev->name, rap, val);
+                pcnet_log(3, "%s: WRITE CSR%d, %#06x, ignoring!!\n", dev->name, rap, val);
                 return;
             }
             if (rap == 24)
                 dev->GCRDRA = (dev->GCRDRA & 0xffff0000) | (val & 0x0000ffff);
             else
                 dev->GCRDRA = (dev->GCRDRA & 0x0000ffff) | ((val & 0x0000ffff) << 16);
-            pcnetlog(3, "%s: WRITE CSR%d, %#06x => GCRDRA=%08x (alt init)\n", dev->name, rap, val, dev->GCRDRA);
+            pcnet_log(3, "%s: WRITE CSR%d, %#06x => GCRDRA=%08x (alt init)\n", dev->name, rap, val, dev->GCRDRA);
             if (dev->GCRDRA & (dev->iLog2DescSize - 1))
-                pcnetlog(1, "%s: Warning: Misaligned RDRA (GCRDRA=%#010x)\n", dev->name, dev->GCRDRA);
+                pcnet_log(1, "%s: Warning: Misaligned RDRA (GCRDRA=%#010x)\n", dev->name, dev->GCRDRA);
             break;
         /*
          * 30 & 31 are the Base Address of Transmit Descriptor.
@@ -1868,7 +1868,7 @@ pcnet_csr_writew(nic_t *dev, uint16_t rap, uint16_t val)
         case 30: /* BADXL */
         case 31: /* BADXU */
             if (!CSR_STOP(dev) && !CSR_SPND(dev)) {
-                pcnetlog(3, "%s: WRITE CSR%d, %#06x !!\n", dev->name, rap, val);
+                pcnet_log(3, "%s: WRITE CSR%d, %#06x !!\n", dev->name, rap, val);
                 return;
             }
             if (rap == 30)
@@ -1876,10 +1876,10 @@ pcnet_csr_writew(nic_t *dev, uint16_t rap, uint16_t val)
             else
                 dev->GCTDRA = (dev->GCTDRA & 0x0000ffff) | ((val & 0x0000ffff) << 16);
 
-            pcnetlog(3, "%s: WRITE CSR%d, %#06x => GCTDRA=%08x (alt init)\n", dev->name, rap, val, dev->GCTDRA);
+            pcnet_log(3, "%s: WRITE CSR%d, %#06x => GCTDRA=%08x (alt init)\n", dev->name, rap, val, dev->GCTDRA);
 
             if (dev->GCTDRA & (dev->iLog2DescSize - 1))
-                pcnetlog(1, "%s: Warning: Misaligned TDRA (GCTDRA=%#010x)\n", dev->name, dev->GCTDRA);
+                pcnet_log(1, "%s: Warning: Misaligned TDRA (GCTDRA=%#010x)\n", dev->name, dev->GCTDRA);
             break;
         case 58: /* Software Style */
             pcnet_bcr_writew(dev, BCR_SWS, val);
@@ -1893,10 +1893,10 @@ pcnet_csr_writew(nic_t *dev, uint16_t rap, uint16_t val)
         case 78: /* XMTRL */ /** @todo call pcnetUpdateRingHandlers */
                              /** @todo transmit ring length is stored in two's complement! */
             if (!CSR_STOP(dev) && !CSR_SPND(dev)) {
-                pcnetlog(3, "%s: WRITE CSR%d, %#06x !!\n", dev->name, rap, val);
+                pcnet_log(3, "%s: WRITE CSR%d, %#06x !!\n", dev->name, rap, val);
                 return;
             }
-            pcnetlog(3, "%s: WRITE CSR%d, %#06x (hacked %#06x) (alt init)\n", dev->name,
+            pcnet_log(3, "%s: WRITE CSR%d, %#06x (hacked %#06x) (alt init)\n", dev->name,
                      rap, val, 1 + ~val);
             val = 1 + ~val;
 
@@ -1951,7 +1951,7 @@ pcnet_csr_readw(nic_t *dev, uint16_t rap)
             val = dev->aCSR[rap];
             break;
     }
-    pcnetlog(3, "%s: pcnet_csr_readw rap=%d val=0x%04x\n", dev->name, rap, val);
+    pcnet_log(3, "%s: pcnet_csr_readw rap=%d val=0x%04x\n", dev->name, rap, val);
     return val;
 }
 
@@ -1959,7 +1959,7 @@ static void
 pcnet_bcr_writew(nic_t *dev, uint16_t rap, uint16_t val)
 {
     rap &= 0x7f;
-    pcnetlog(3, "%s: pcnet_bcr_writew rap=%d val=0x%04x\n", dev->name, rap, val);
+    pcnet_log(3, "%s: pcnet_bcr_writew rap=%d val=0x%04x\n", dev->name, rap, val);
     switch (rap) {
         case BCR_SWS:
             if (!(CSR_STOP(dev) || CSR_SPND(dev)))
@@ -2194,14 +2194,14 @@ pcnet_bcr_readw(nic_t *dev, uint16_t rap)
             break;
     }
 
-    pcnetlog(3, "pcnet_bcr_readw rap=%d val=0x%04x\n", rap, val);
+    pcnet_log(3, "pcnet_bcr_readw rap=%d val=0x%04x\n", rap, val);
     return val;
 }
 
 static void
 pcnet_word_write(nic_t *dev, uint32_t addr, uint16_t val)
 {
-    pcnetlog(3, "%s: pcnet_word_write: addr = %04x, val = %04x, DWIO not set = %04x\n", dev->name, addr & 0x0f, val, !BCR_DWIO(dev));
+    pcnet_log(3, "%s: pcnet_word_write: addr = %04x, val = %04x, DWIO not set = %04x\n", dev->name, addr & 0x0f, val, !BCR_DWIO(dev));
 
     if (!BCR_DWIO(dev)) {
         switch (addr & 0x0f) {
@@ -2236,7 +2236,7 @@ pcnet_byte_read(nic_t *dev, uint32_t addr)
 
     pcnetUpdateIrq(dev);
 
-    pcnetlog(3, "%s: pcnet_word_read: addr = %04x, val = %04x, DWIO not set = %04x\n", dev->name, addr & 0x0f, val, !BCR_DWIO(dev));
+    pcnet_log(3, "%s: pcnet_word_read: addr = %04x, val = %04x, DWIO not set = %04x\n", dev->name, addr & 0x0f, val, !BCR_DWIO(dev));
 
     return (val);
 }
@@ -2274,7 +2274,7 @@ pcnet_word_read(nic_t *dev, uint32_t addr)
     pcnetUpdateIrq(dev);
 
 skip_update_irq:
-    pcnetlog(3, "%s: pcnet_word_read: addr = %04x, val = %04x, DWIO not set = %04x\n", dev->name, addr & 0x0f, val, !BCR_DWIO(dev));
+    pcnet_log(3, "%s: pcnet_word_read: addr = %04x, val = %04x, DWIO not set = %04x\n", dev->name, addr & 0x0f, val, !BCR_DWIO(dev));
 
     return (val);
 }
@@ -2299,7 +2299,7 @@ pcnet_dword_write(nic_t *dev, uint32_t addr, uint32_t val)
     } else if ((addr & 0x0f) == 0) {
         /* switch device to dword i/o mode */
         pcnet_bcr_writew(dev, BCR_BSBC, pcnet_bcr_readw(dev, BCR_BSBC) | 0x0080);
-        pcnetlog(3, "%s: device switched into dword i/o mode\n", dev->name);
+        pcnet_log(3, "%s: device switched into dword i/o mode\n", dev->name);
     };
 }
 
@@ -2333,7 +2333,7 @@ pcnet_dword_read(nic_t *dev, uint32_t addr)
     pcnetUpdateIrq(dev);
 
 skip_update_irq:
-    pcnetlog(3, "%s: Read Long mode, addr = %08x, val = %08x\n", dev->name, addr, val);
+    pcnet_log(3, "%s: Read Long mode, addr = %08x, val = %08x\n", dev->name, addr, val);
     return (val);
 }
 
@@ -2358,7 +2358,7 @@ pcnet_write(nic_t *dev, uint32_t addr, uint32_t val, int len)
 {
     uint16_t off = addr & 0x1f;
 
-    pcnetlog(3, "%s: write addr %x, val %x, off %x, len %d\n", dev->name, addr, val, off, len);
+    pcnet_log(3, "%s: write addr %x, val %x, off %x, len %d\n", dev->name, addr, val, off, len);
 
     if (off < 0x10) {
         if (!BCR_DWIO(dev) && len == 1)
@@ -2404,7 +2404,7 @@ pcnet_read(nic_t *dev, uint32_t addr, int len)
     uint32_t retval = 0xffffffff;
     uint16_t off    = addr & 0x1f;
 
-    pcnetlog(3, "%s: read addr %x, off %x, len %d\n", dev->name, addr, off, len);
+    pcnet_log(3, "%s: read addr %x, off %x, len %d\n", dev->name, addr, off, len);
 
     if (off < 0x10) {
         if (!BCR_DWIO(dev) && len == 1)
@@ -2423,7 +2423,7 @@ pcnet_read(nic_t *dev, uint32_t addr, int len)
             retval = pcnet_dword_read(dev, addr);
     }
 
-    pcnetlog(3, "%s: value in read - %08x\n", dev->name, retval);
+    pcnet_log(3, "%s: value in read - %08x\n", dev->name, retval);
     return (retval);
 }
 
@@ -2538,7 +2538,7 @@ pcnet_pci_write(int func, int addr, uint8_t val, void *p)
     nic_t  *dev = (nic_t *) p;
     uint8_t valxor;
 
-    pcnetlog(4, "%s: Write value %02X to register %02X\n", dev->name, val, addr & 0xff);
+    pcnet_log(4, "%s: Write value %02X to register %02X\n", dev->name, val, addr & 0xff);
 
     switch (addr) {
         case 0x04:
@@ -2577,7 +2577,7 @@ pcnet_pci_write(int func, int addr, uint8_t val, void *p)
             pcnet_pci_bar[0].addr &= 0xff00;
             dev->PCIBase = pcnet_pci_bar[0].addr;
             /* Log the new base. */
-            pcnetlog(4, "%s: New I/O base is %04X\n", dev->name, dev->PCIBase);
+            pcnet_log(4, "%s: New I/O base is %04X\n", dev->name, dev->PCIBase);
             /* We're done, so get out of the here. */
             if (pcnet_pci_regs[4] & PCI_COMMAND_IO) {
                 if (dev->PCIBase != 0)
@@ -2597,7 +2597,7 @@ pcnet_pci_write(int func, int addr, uint8_t val, void *p)
             pcnet_pci_bar[1].addr &= 0xffffc000;
             dev->MMIOBase = pcnet_pci_bar[1].addr & 0xffffc000;
             /* Log the new base. */
-            pcnetlog(4, "%s: New MMIO base is %08X\n", dev->name, dev->MMIOBase);
+            pcnet_log(4, "%s: New MMIO base is %08X\n", dev->name, dev->MMIOBase);
             /* We're done, so get out of the here. */
             if (pcnet_pci_regs[4] & PCI_COMMAND_MEM) {
                 if (dev->MMIOBase != 0)
@@ -2617,7 +2617,7 @@ pcnet_pci_read(int func, int addr, void *p)
 {
     nic_t *dev = (nic_t *) p;
 
-    pcnetlog(4, "%s: Read to register %02X\n", dev->name, addr & 0xff);
+    pcnet_log(4, "%s: Read to register %02X\n", dev->name, addr & 0xff);
 
     switch (addr) {
         case 0x00:
@@ -2983,12 +2983,12 @@ pcnet_init(const device_t *info)
         pcnet_ioset(dev, dev->base_address, 0x20);
     }
 
-    pcnetlog(2, "%s: I/O=%04x, IRQ=%d, MAC=%02x:%02x:%02x:%02x:%02x:%02x\n",
+    pcnet_log(2, "%s: I/O=%04x, IRQ=%d, MAC=%02x:%02x:%02x:%02x:%02x:%02x\n",
              dev->name, dev->base_address, dev->base_irq,
              dev->aPROM[0], dev->aPROM[1], dev->aPROM[2],
              dev->aPROM[3], dev->aPROM[4], dev->aPROM[5]);
 
-    pcnetlog(1, "%s: %s attached IO=0x%X IRQ=%d\n", dev->name,
+    pcnet_log(1, "%s: %s attached IO=0x%X IRQ=%d\n", dev->name,
              dev->is_pci ? "PCI" : "VLB/ISA", dev->base_address, dev->base_irq);
 
     /* Reset the board. */
@@ -3013,7 +3013,7 @@ pcnet_close(void *priv)
 {
     nic_t *dev = (nic_t *) priv;
 
-    pcnetlog(1, "%s: closed\n", dev->name);
+    pcnet_log(1, "%s: closed\n", dev->name);
 
     netcard_close(dev->netcard);
 

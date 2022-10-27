@@ -54,6 +54,7 @@
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include <SDL2/SDL.h>
+#include <SDL2/SDL_error.h>
 
 #include <stdarg.h>
 #include <stdio.h>
@@ -253,7 +254,7 @@ sdl_blit(int x, int y, int w, int h, int monitor_index)
 
     ret = SDL_RenderCopy(sdl_render, sdl_tex, &r_src, 0);
     if (ret)
-        sdl_log("SDL: unable to copy texture to renderer (%s)\n", sdl_GetError());
+        sdl_log("SDL: unable to copy texture to renderer (%s)\n", SDL_GetError());
 
     SDL_RenderPresent(sdl_render);
     SDL_UnlockMutex(sdl_mutex);
@@ -295,7 +296,7 @@ sdl_blit_ex(int x, int y, int w, int h, int monitor_index)
 
     ret = SDL_RenderCopy(sdl_render, sdl_tex, &r_src, 0);
     if (ret)
-        sdl_log("SDL: unable to copy texture to renderer (%s)\n", sdl_GetError());
+        sdl_log("SDL: unable to copy texture to renderer (%s)\n", SDL_GetError());
 
     SDL_RenderPresent(sdl_render);
     SDL_UnlockMutex(sdl_mutex);
@@ -458,7 +459,7 @@ sdl_init_common(int flags)
     wchar_t     temp[128];
     SDL_version ver;
 
-    sdl_log("SDL: init (fs=%d)\n", fs);
+    sdl_log("SDL: init (flags=%d)\n", flags);
 
     /* Get and log the version of the DLL we are using. */
     SDL_GetVersion(&ver);
@@ -466,7 +467,7 @@ sdl_init_common(int flags)
 
     /* Initialize the SDL system. */
     if (SDL_Init(SDL_INIT_VIDEO) < 0) {
-        sdl_log("SDL: initialization failed (%s)\n", sdl_GetError());
+        sdl_log("SDL: initialization failed (%s)\n", SDL_GetError());
         return (0);
     }
 

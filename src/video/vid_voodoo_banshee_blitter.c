@@ -9,6 +9,7 @@
   - 16 bpp runs with tiled framebuffer - to aid 3D?
     8 and 32 bpp use linear
 */
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
@@ -16,6 +17,7 @@
 #include <stddef.h>
 #include <wchar.h>
 #include <math.h>
+#define HAVE_STDARG_H
 #include <86box/86box.h>
 #include "cpu.h"
 #include <86box/machine.h>

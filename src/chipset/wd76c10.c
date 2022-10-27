@@ -47,6 +47,7 @@
 
 #ifdef ENABLE_WD76C10_LOG
 int wd76c10_do_log = ENABLE_WD76C10_LOG;
+
 static void
 wd76c10_log(const char *fmt, ...)
 {
