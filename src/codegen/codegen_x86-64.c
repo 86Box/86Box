@@ -281,7 +281,7 @@ void codegen_block_start_recompile(codeblock_t *block)
         block->status = cpu_cur_status;
 
         block_pos = BLOCK_GPF_OFFSET;
-#ifndef NEW_GPF
+#ifdef OLD_GPF
 #if _WIN64
         addbyte(0x48); /*XOR RCX, RCX*/
         addbyte(0x31);
@@ -306,8 +306,8 @@ void codegen_block_start_recompile(codeblock_t *block)
 	addbyte(0x31);	/* xor eax,eax */
 	addbyte(0xc0);
         addbyte(0x89); /*MOVB eax,(abrt_error)*/
-        addbyte(0x05);
-        rip_rel = (uintptr_t) &(codeblock[block_current].data[block_pos]);
+        addbyte(0x85);
+        rip_rel = ((uintptr_t)&cpu_state) + 128;
         rip_rel = ((uintptr_t) &(abrt_error)) - rip_rel;
 	addlong((uint32_t) rip_rel);
 #endif
