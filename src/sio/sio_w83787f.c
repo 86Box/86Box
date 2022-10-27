@@ -39,6 +39,7 @@
 
 #ifdef ENABLE_W83787_LOG
 int w83787_do_log = ENABLE_W83787_LOG;
+
 static void
 w83787_log(const char *fmt, ...)
 {

@@ -37,6 +37,7 @@
 
 #ifdef ENABLE_PRIME3B_LOG
 int prime3b_do_log = ENABLE_PRIME3B_LOG;
+
 static void
 prime3b_log(const char *fmt, ...)
 {

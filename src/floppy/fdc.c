@@ -1224,7 +1224,7 @@ fdc_read(uint16_t addr, void *priv)
 {
     fdc_t  *fdc = (fdc_t *) priv;
     uint8_t ret;
-    int     drive;
+    int     drive = 0;
 
     cycles -= ISA_CYCLES(8);
 

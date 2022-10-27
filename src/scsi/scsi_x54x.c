@@ -957,7 +957,7 @@ x54x_scsi_cmd_phase1(x54x_t *dev)
     }
 
     dev->callback_sub_phase = 3;
-    x54x_log("scsi_devices[%02xi][%02i].Status = %02X\n", x54x->bus, req->TargetID, sd->status);
+    x54x_log("scsi_devices[%02xi][%02i].Status = %02X\n", dev->bus, req->TargetID, sd->status);
 }
 
 static void

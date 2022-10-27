@@ -56,6 +56,9 @@
 #include <stdlib.h>
 #include <wchar.h>
 #include <time.h>
+#ifndef _WIN32
+#include <sys/time.h>
+#endif /* _WIN32 */
 #include <stdbool.h>
 #define HAVE_STDARG_H
 #include <86box/86box.h>
@@ -125,7 +128,7 @@ netdev_t network_devs[NET_HOST_INTF_MAX];
 
 /* Local variables. */
 
-#ifdef ENABLE_NETWORK_LOG
+#if defined ENABLE_NETWORK_LOG && !defined(_WIN32)
 int             network_do_log = ENABLE_NETWORK_LOG;
 static FILE    *network_dump   = NULL;
 static mutex_t *network_dump_mutex;
@@ -215,7 +218,7 @@ network_init(void)
     if (i > 0)
         network_ndev += i;
 
-#ifdef ENABLE_NETWORK_LOG
+#if defined ENABLE_NETWORK_LOG && !defined(_WIN32)
     /* Start packet dump. */
     network_dump = fopen("network.pcap", "wb");
 
@@ -471,7 +474,7 @@ netcard_close(netcard_t *card)
 void
 network_close(void)
 {
-#ifdef ENABLE_NETWORK_LOG
+#if defined ENABLE_NETWORK_LOG && !defined(_WIN32)
     thread_close_mutex(network_dump_mutex);
     network_dump_mutex = NULL;
 #endif
@@ -494,7 +497,7 @@ network_reset(void)
 
     ui_sb_update_icon(SB_NETWORK, 0);
 
-#ifdef ENABLE_NETWORK_LOG
+#if defined ENABLE_NETWORK_LOG && !defined(_WIN32)
     network_dump_mutex = thread_create_mutex();
 #endif
 

@@ -14,11 +14,13 @@
  *
  *		Copyright 2021 Miran Grca.
  */
+#include <stdarg.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <wchar.h>
+#define HAVE_STDARG_H
 #include <86box/86box.h>
 #include <86box/device.h>
 #include "cpu.h"
@@ -48,7 +50,7 @@ typedef struct
 } ct_82c100_t;
 
 #ifdef ENABLE_CT_82C100_LOG
-int ct_82c100_do_log = ENABLE_CT82C100_LOG;
+int ct_82c100_do_log = ENABLE_CT_82C100_LOG;
 
 static void
 ct_82c100_log(const char *fmt, ...)
