@@ -36,7 +36,6 @@
 #ifdef ENABLE_JOYSTICK_LOG
 int joystick_do_log = ENABLE_JOYSTICK_LOG;
 
-
 static void
 joystick_log(const char *fmt, ...)
 {

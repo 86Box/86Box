@@ -42,6 +42,7 @@ typedef struct ali1531_t {
 
 #ifdef ENABLE_ALI1531_LOG
 int ali1531_do_log = ENABLE_ALI1531_LOG;
+
 static void
 ali1531_log(const char *fmt, ...)
 {

@@ -15,8 +15,8 @@
  *
  *		Copyright 2016-2020 Miran Grca.
  */
-#include <inttypes.h>
 #include <stdarg.h>
+#include <inttypes.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>

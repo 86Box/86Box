@@ -51,6 +51,7 @@ static int next_id = 0;
 
 #ifdef ENABLE_CMD640_LOG
 int cmd640_do_log = ENABLE_CMD640_LOG;
+
 static void
 cmd640_log(const char *fmt, ...)
 {

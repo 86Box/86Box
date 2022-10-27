@@ -52,7 +52,7 @@ jobs:
           ${{ matrix.environment.prefix }}-libpng
           ${{ matrix.environment.prefix }}-libvncserver
           ${{ matrix.environment.prefix }}-rtmidi
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: make
       run: make -fwin/makefile.mingw -j DEV_BUILD=${{ matrix.dev-build }} NEW_DYNAREC=${{ matrix.new-dynarec }} X64=${{ matrix.environment.x64 }} VNC=n
       working-directory: ./src
