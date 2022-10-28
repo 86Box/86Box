@@ -172,17 +172,6 @@ exec386(int cycs)
             if (cpu_end_block_after_ins)
                 cpu_end_block_after_ins--;
 
-            if (trap) {
-                flags_rebuild();
-		trap = 0;
-#ifndef USE_NEW_DYNAREC
-		oldcs = CS;
-#endif
-		cpu_state.oldpc = cpu_state.pc;
-		dr[6] |= 0x4000;
-		x86_int(1);
-            }
-
             if (cpu_state.abrt) {
                 flags_rebuild();
                 tempi          = cpu_state.abrt & ABRT_MASK;
@@ -205,6 +194,15 @@ exec386(int cycs)
 #endif
                     }
                 }
+            } else if (trap) {
+                flags_rebuild();
+		trap = 0;
+#ifndef USE_NEW_DYNAREC
+		oldcs = CS;
+#endif
+		cpu_state.oldpc = cpu_state.pc;
+		dr[6] |= 0x4000;
+		x86_int(1);
             }
 
             if (smi_line)

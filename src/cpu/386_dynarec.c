@@ -398,7 +398,7 @@ exec386_dynarec_int(void)
 		CPU_BLOCK_END();
     }
 
-    if (trap) {
+    if (!cpu_state.abrt && trap) {
 	trap = 0;
 #ifndef USE_NEW_DYNAREC
 	oldcs = CS;
