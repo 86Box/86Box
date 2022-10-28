@@ -128,12 +128,12 @@ ps2_write(uint8_t val, void *priv)
             case 0xe9: /* status request */
                 keyboard_at_adddata_mouse(0xfa);
                 temp = (dev->flags & 0x30);
-                if (mouse_buttons & 0x01)
-                    temp |= 0x01;
-                if (mouse_buttons & 0x02)
-                    temp |= 0x02;
-                if (mouse_buttons & 0x04)
-                    temp |= 0x03;
+                if (mouse_buttons & 1)
+                    temp |= 4;
+                if (mouse_buttons & 2)
+                    temp |= 1;
+                if ((mouse_buttons & 4) && (dev->flags & FLAG_INTELLI))
+                    temp |= 2;
                 keyboard_at_adddata_mouse(temp);
                 keyboard_at_adddata_mouse(dev->resolution);
                 keyboard_at_adddata_mouse(dev->sample_rate);
