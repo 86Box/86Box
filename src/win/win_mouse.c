@@ -81,6 +81,16 @@ win_mouse_handle(PRAWINPUT raw)
     else if (state.usButtonFlags & RI_MOUSE_RIGHT_BUTTON_UP)
         mousestate.buttons &= ~2;
 
+    if (state.usButtonFlags & RI_MOUSE_BUTTON_4_DOWN)
+        mousestate.buttons |= 8;
+    else if (state.usButtonFlags & RI_MOUSE_BUTTON_4_UP)
+        mousestate.buttons &= ~8;
+
+    if (state.usButtonFlags & RI_MOUSE_BUTTON_5_DOWN)
+        mousestate.buttons |= 16;
+    else if (state.usButtonFlags & RI_MOUSE_BUTTON_5_UP)
+        mousestate.buttons &= ~16;
+
     if (state.usButtonFlags & RI_MOUSE_WHEEL) {
         mousestate.dwheel += (SHORT) state.usButtonData / 120;
     }
