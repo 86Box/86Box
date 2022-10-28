@@ -36,7 +36,7 @@ typedef struct {
 
     int mode;
 
-    uint8_t flags;
+    uint16_t flags;
     uint8_t resolution;
     uint8_t sample_rate;
 
@@ -46,11 +46,12 @@ typedef struct {
 
     uint8_t last_data[6];
 } mouse_t;
-#define FLAG_INTELLI 0x80 /* device is IntelliMouse */
-#define FLAG_INTMODE 0x40 /* using Intellimouse mode */
-#define FLAG_SCALED  0x20 /* enable delta scaling */
-#define FLAG_ENABLED 0x10 /* dev is enabled for use */
-#define FLAG_CTRLDAT 0x08 /* ctrl or data mode */
+#define FLAG_5BTN    0x100 /* using Intellimouse Optical mode */
+#define FLAG_INTELLI 0x80  /* device is IntelliMouse */
+#define FLAG_INTMODE 0x40  /* using Intellimouse mode */
+#define FLAG_SCALED  0x20  /* enable delta scaling */
+#define FLAG_ENABLED 0x10  /* dev is enabled for use */
+#define FLAG_CTRLDAT 0x08  /* ctrl or data mode */
 
 int mouse_scan = 0;
 
@@ -156,14 +157,24 @@ ps2_write(uint8_t val, void *priv)
                 keyboard_at_adddata_mouse(temp);
                 keyboard_at_adddata_mouse(dev->x & 0xff);
                 keyboard_at_adddata_mouse(dev->y & 0xff);
-                if (dev->flags & FLAG_INTMODE)
-                    keyboard_at_adddata_mouse(dev->z);
+
+                if (dev->flags & FLAG_INTMODE) {
+                    int temp_z = dev->z;
+                    if ((dev->flags & FLAG_5BTN)) {
+                        temp_z &= 0xF;
+                        if (mouse_buttons & 8)
+                            temp_z |= 0x10;
+                        if (mouse_buttons & 16)
+                            temp_z |= 0x20;
+                    }
+                    keyboard_at_adddata_mouse(temp_z);
+                }
                 break;
 
             case 0xf2: /* read ID */
                 keyboard_at_adddata_mouse(0xfa);
                 if (dev->flags & FLAG_INTMODE)
-                    keyboard_at_adddata_mouse(0x03);
+                    keyboard_at_adddata_mouse((dev->flags & FLAG_5BTN) ? 0x04 : 0x03);
                 else
                     keyboard_at_adddata_mouse(0x00);
                 break;
@@ -210,8 +221,17 @@ mouse_reset:
 
         dev->last_data[5] = val;
 
-        if (dev->last_data[0] == 0xf3 && dev->last_data[1] == 0xc8 && dev->last_data[2] == 0xf3 && dev->last_data[3] == 0x64 && dev->last_data[4] == 0xf3 && dev->last_data[5] == 0x50)
+        if (dev->last_data[0] == 0xf3 && dev->last_data[1] == 0xc8
+        && dev->last_data[2] == 0xf3 && dev->last_data[3] == 0xc8
+        && dev->last_data[4] == 0xf3 && dev->last_data[5] == 0x50
+        && mouse_get_buttons() == 5) {
+            dev->flags |= FLAG_INTMODE | FLAG_5BTN;
+        }
+        else if (dev->last_data[0] == 0xf3 && dev->last_data[1] == 0xc8
+        && dev->last_data[2] == 0xf3 && dev->last_data[3] == 0x64
+        && dev->last_data[4] == 0xf3 && dev->last_data[5] == 0x50) {
             dev->flags |= FLAG_INTMODE;
+        }
     }
 }
 
@@ -269,8 +289,17 @@ ps2_poll(int x, int y, int z, int b, void *priv)
         keyboard_at_adddata_mouse(buff[0]);
         keyboard_at_adddata_mouse(buff[1]);
         keyboard_at_adddata_mouse(buff[2]);
-        if (dev->flags & FLAG_INTMODE)
-            keyboard_at_adddata_mouse(dev->z);
+        if (dev->flags & FLAG_INTMODE) {
+            int temp_z = dev->z;
+            if ((dev->flags & FLAG_5BTN)) {
+                temp_z &= 0xF;
+                if (mouse_buttons & 8)
+                    temp_z |= 0x10;
+                if (mouse_buttons & 16)
+                    temp_z |= 0x20;
+            }
+            keyboard_at_adddata_mouse(temp_z);
+        }
 
         dev->x = dev->y = dev->z = 0;
     }
@@ -299,13 +328,15 @@ mouse_ps2_init(const device_t *info)
     if (i > 2)
         dev->flags |= FLAG_INTELLI;
 
+    if (i == 4) i = 3;
+
     /* Hook into the general AT Keyboard driver. */
     keyboard_at_set_mouse(ps2_write, dev);
 
-    mouse_ps2_log("%s: buttons=%d\n", dev->name, (dev->flags & FLAG_INTELLI) ? 3 : 2);
+    mouse_ps2_log("%s: buttons=%d\n", dev->name, i);
 
     /* Tell them how many buttons we have. */
-    mouse_set_buttons((dev->flags & FLAG_INTELLI) ? 3 : 2);
+    mouse_set_buttons(i);
 
     /* Return our private data to the I/O layer. */
     return (dev);
@@ -333,10 +364,11 @@ static const device_config_t ps2_config[] = {
         .file_filter = "",
         .spinner = { 0 },
         .selection = {
-            { .description = "Two",   .value = 2 },
-            { .description = "Three", .value = 3 },
-            { .description = "Wheel", .value = 4 },
-            { .description = ""                  }
+            { .description = "Two",          .value = 2 },
+            { .description = "Three",        .value = 3 },
+            { .description = "Wheel",        .value = 4 },
+            { .description = "Five + Wheel", .value = 5 },
+            { .description = ""                         }
         }
     },
     {
