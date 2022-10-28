@@ -41,8 +41,6 @@ uint8_t opcode2;
 int cgate16, cgate32;
 int intgatesize;
 
-uint32_t abrt_error;
-
 void taskswitch286(uint16_t seg, uint16_t *segdat, int is32);
 
 void pmodeint(int num, int soft);

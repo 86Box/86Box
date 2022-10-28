@@ -961,7 +961,7 @@ machine_xt_t1200_init(const machine_t *model)
         device_add(&t1200_video_device);
 
     if (hdc_current <= 1)
-        device_add(&st506_xt_victor_v86p_device);
+        device_add(&st506_xt_toshiba_t1200_device);
 
     return ret;
 }

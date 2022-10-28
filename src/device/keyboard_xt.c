@@ -66,13 +66,14 @@
 #define KBD_TYPE_OLIVETTI 8
 #define KBD_TYPE_ZENITH   9
 #define KBD_TYPE_PRAVETZ  10
+#define KBD_TYPE_XTCLONE  11
 
 typedef struct {
     int want_irq;
     int blocked;
     int tandy;
 
-    uint8_t pa, pb, pd;
+    uint8_t pa, pb, pd, clock;
     uint8_t key_waiting;
     uint8_t type, pravetz_flags;
 
@@ -514,17 +515,22 @@ static void
 kbd_write(uint16_t port, uint8_t val, void *priv)
 {
     xtkbd_t *kbd = (xtkbd_t *) priv;
-    uint8_t bit, set;
+    uint8_t bit, set, new_clock;
 
     switch (port) {
         case 0x61: /* Keyboard Control Register (aka Port B) */
-            if (!(kbd->pb & 0x40) && (val & 0x40)) {
-                key_queue_start = key_queue_end = 0;
-                kbd->want_irq                   = 0;
-                kbd->blocked                    = 0;
-                kbd_adddata(0xaa);
+            if (!(val & 0x80)) {
+                new_clock = !!(val & 0x40);
+                if (!kbd->clock && new_clock) {
+                    key_queue_start = key_queue_end = 0;
+                    kbd->want_irq                   = 0;
+                    kbd->blocked                    = 0;
+                    kbd_adddata(0xaa);
+                }
             }
             kbd->pb = val;
+            if (!(kbd->pb & 0x80))
+                kbd->clock = !!(kbd->pb & 0x40);
             ppi.pb  = val;
 
             timer_process();
@@ -579,8 +585,9 @@ kbd_read(uint16_t port, void *priv)
 
     switch (port) {
         case 0x60: /* Keyboard Data Register  (aka Port A) */
-            if ((kbd->pb & 0x80) && ((kbd->type == KBD_TYPE_PC81) || (kbd->type == KBD_TYPE_PC82) || (kbd->type == KBD_TYPE_PRAVETZ) || (kbd->type == KBD_TYPE_XT82) || (kbd->type == KBD_TYPE_XT86) || (kbd->type == KBD_TYPE_ZENITH))) {
-                if ((kbd->type == KBD_TYPE_PC81) || (kbd->type == KBD_TYPE_PC82) || (kbd->type == KBD_TYPE_PRAVETZ))
+            if ((kbd->pb & 0x80) && ((kbd->type == KBD_TYPE_PC81) || (kbd->type == KBD_TYPE_PC82) || (kbd->type == KBD_TYPE_PRAVETZ) || (kbd->type == KBD_TYPE_XT82) ||
+                (kbd->type == KBD_TYPE_XT86) || (kbd->type == KBD_TYPE_XTCLONE) || (kbd->type == KBD_TYPE_COMPAQ) || (kbd->type == KBD_TYPE_ZENITH))) {
+                if ((kbd->type == KBD_TYPE_PC81) || (kbd->type == KBD_TYPE_PC82) || (kbd->type == KBD_TYPE_XTCLONE) || (kbd->type == KBD_TYPE_COMPAQ) || (kbd->type == KBD_TYPE_PRAVETZ))
                     ret = (kbd->pd & ~0x02) | (hasfpu ? 0x02 : 0x00);
                 else if ((kbd->type == KBD_TYPE_XT82) || (kbd->type == KBD_TYPE_XT86))
                     ret = 0xff; /* According to Ruud on the PCem forum, this is supposed to return 0xFF on the XT. */
@@ -664,9 +671,9 @@ kbd_read(uint16_t port, void *priv)
             break;
 
         case 0x63: /* Keyboard Configuration Register (aka Port D) */
-            if ((kbd->type == KBD_TYPE_XT82) || (kbd->type == KBD_TYPE_XT86)
-                || (kbd->type == KBD_TYPE_COMPAQ)
-                || (kbd->type == KBD_TYPE_TOSHIBA))
+            if ((kbd->type == KBD_TYPE_XT82) || (kbd->type == KBD_TYPE_XT86) ||
+                (kbd->type == KBD_TYPE_XTCLONE) || (kbd->type == KBD_TYPE_COMPAQ) ||
+                (kbd->type == KBD_TYPE_TOSHIBA))
                 ret = kbd->pd;
             break;
 
@@ -727,8 +734,9 @@ kbd_init(const device_t *info)
 
     if ((kbd->type == KBD_TYPE_PC81) || (kbd->type == KBD_TYPE_PC82) ||
         (kbd->type == KBD_TYPE_PRAVETZ) || (kbd->type == KBD_TYPE_XT82) ||
-        (kbd->type <= KBD_TYPE_XT86) || (kbd->type == KBD_TYPE_COMPAQ) ||
-        (kbd->type == KBD_TYPE_TOSHIBA) || (kbd->type == KBD_TYPE_OLIVETTI)) {
+        (kbd->type <= KBD_TYPE_XT86) || (kbd->type == KBD_TYPE_XTCLONE) ||
+        (kbd->type == KBD_TYPE_COMPAQ) || (kbd->type == KBD_TYPE_TOSHIBA) ||
+        (kbd->type == KBD_TYPE_OLIVETTI)) {
 
         /* DIP switch readout: bit set = OFF, clear = ON. */
         if (kbd->type == KBD_TYPE_OLIVETTI)
@@ -747,9 +755,8 @@ kbd_init(const device_t *info)
         kbd->pd |= get_videomode_switch_settings();
 
         /* Switches 3, 4 - memory size. */
-        if ((kbd->type == KBD_TYPE_XT86)
-            || (kbd->type == KBD_TYPE_COMPAQ)
-            || (kbd->type == KBD_TYPE_TOSHIBA)) {
+        if ((kbd->type == KBD_TYPE_XT86) || (kbd->type == KBD_TYPE_XTCLONE) ||
+            (kbd->type == KBD_TYPE_COMPAQ) || (kbd->type == KBD_TYPE_TOSHIBA)) {
             switch (mem_size) {
                 case 256:
                     kbd->pd |= 0x00;
@@ -1035,6 +1042,20 @@ const device_t keyboard_xt_zenith_device = {
     .internal_name = "keyboard_xt_zenith",
     .flags         = 0,
     .local         = KBD_TYPE_ZENITH,
+    .init          = kbd_init,
+    .close         = kbd_close,
+    .reset         = kbd_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t keyboard_xtclone_device = {
+    .name          = "XT (Clone) Keyboard",
+    .internal_name = "keyboard_xtclone",
+    .flags         = 0,
+    .local         = KBD_TYPE_XTCLONE,
     .init          = kbd_init,
     .close         = kbd_close,
     .reset         = kbd_reset,

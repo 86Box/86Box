@@ -49,6 +49,7 @@ typedef struct
 
 #ifdef ENABLE_CMD646_LOG
 int cmd646_do_log = ENABLE_CMD646_LOG;
+
 static void
 cmd646_log(const char *fmt, ...)
 {

@@ -13,7 +13,7 @@
  *
  *          Copyright 2022 Adrien Moulin.
  */
-
+#include <cstdarg>
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
@@ -21,6 +21,7 @@
 #include "ymfm/ymfm_opl.h"
 
 extern "C" {
+#define HAVE_STDARG_H
 #include <86box/86box.h>
 #include <86box/timer.h>
 #include <86box/device.h>
@@ -225,15 +226,18 @@ extern "C" {
 #include <86box/snd_opl.h>
 
 #ifdef ENABLE_OPL_LOG
+int ymfm_do_log = ENABLE_OPL_LOG;
 
 static void
 ymfm_log(const char *fmt, ...)
 {
     va_list ap;
 
-    va_start(ap, fmt);
-    pclog_ex(fmt, ap);
-    va_end(ap);
+    if (ymfm_do_log) {
+        va_start(ap, fmt);
+        pclog_ex(fmt, ap);
+        va_end(ap);
+	}
 }
 #else
 #    define ymfm_log(fmt, ...)

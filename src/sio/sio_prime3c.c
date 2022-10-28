@@ -32,6 +32,7 @@
 
 #ifdef ENABLE_PRIME3C_LOG
 int prime3c_do_log = ENABLE_PRIME3C_LOG;
+
 static void
 prime3c_log(const char *fmt, ...)
 {

@@ -94,6 +94,22 @@ fdc_log(const char *fmt, ...)
 #    define fdc_log(fmt, ...)
 #endif
 
+/*
+const device_t fdc_none_device = {
+    .name          = "None",
+    .internal_name = "none",
+    .flags         = 0,
+    .local         = 0,
+    .init          = NULL,
+    .close         = NULL,
+    .reset         = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+*/
+
 const device_t fdc_internal_device = {
     .name          = "Internal",
     .internal_name = "internal",
@@ -112,9 +128,9 @@ typedef const struct {
     const device_t *device;
 } fdc_cards_t;
 
-/* All emulated machines have at least one integrated FDC controller */
 static fdc_cards_t fdc_cards[] = {
     // clang-format off
+//  { &fdc_none_device     },
     { &fdc_internal_device },
     { &fdc_b215_device     },
     { &fdc_pii151b_device  },
@@ -1224,7 +1240,7 @@ fdc_read(uint16_t addr, void *priv)
 {
     fdc_t  *fdc = (fdc_t *) priv;
     uint8_t ret;
-    int     drive;
+    int     drive = 0;
 
     cycles -= ISA_CYCLES(8);
 
@@ -2275,7 +2291,11 @@ fdc_reset(void *priv)
     fdc->max_track = (fdc->flags & FDC_FLAG_MORE_TRACKS) ? 85 : 79;
 
     fdc_remove(fdc);
-    fdc_set_base(fdc, (fdc->flags & FDC_FLAG_PCJR) ? FDC_PRIMARY_PCJR_ADDR : FDC_PRIMARY_ADDR);
+    if (fdc->flags & FDC_FLAG_SEC) {
+        fdc_set_base(fdc, FDC_SECONDARY_ADDR);
+    } else {
+        fdc_set_base(fdc, (fdc->flags & FDC_FLAG_PCJR) ? FDC_PRIMARY_PCJR_ADDR : FDC_PRIMARY_ADDR);
+    }
 
     current_drive = 0;
 
@@ -2304,10 +2324,15 @@ fdc_init(const device_t *info)
 
     fdc->flags = info->local;
 
-    fdc->irq = FDC_PRIMARY_IRQ;
+    if (fdc->flags & FDC_FLAG_SEC)
+        fdc->irq = FDC_SECONDARY_IRQ;
+    else
+        fdc->irq = FDC_PRIMARY_IRQ;
 
     if (fdc->flags & FDC_FLAG_PCJR)
         timer_add(&fdc->watchdog_timer, fdc_watchdog_poll, fdc, 0);
+    else if (fdc->flags & FDC_FLAG_SEC)
+        fdc->dma_ch = FDC_SECONDARY_DMA;
     else
         fdc->dma_ch = FDC_PRIMARY_DMA;
 
@@ -2345,6 +2370,20 @@ const device_t fdc_xt_device = {
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
+};
+
+const device_t fdc_xt_sec_device = {
+    .name = "PC/XT Floppy Drive Controller (Secondary)",
+    .internal_name = "fdc_xt",
+    .flags = FDC_FLAG_SEC,
+    .local = 0,
+    .init = fdc_init,
+    .close = fdc_close,
+    .reset = fdc_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
 const device_t fdc_xt_t1x00_device = {
@@ -2415,6 +2454,20 @@ const device_t fdc_at_device = {
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
+};
+
+const device_t fdc_at_sec_device = {
+    .name = "PC/AT Floppy Drive Controller (Secondary)",
+    .internal_name = "fdc_at_sec",
+    .flags = 0,
+    .local = FDC_FLAG_AT | FDC_FLAG_SEC,
+    .init = fdc_init,
+    .close = fdc_close,
+    .reset = fdc_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw = NULL,
+    .config = NULL
 };
 
 const device_t fdc_at_actlow_device = {

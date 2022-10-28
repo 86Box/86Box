@@ -495,10 +495,6 @@ es1371_read_frame_reg(es1371_t *dev, int frame, int page)
             break;
     }
 
-    if (page == 0x0e || page == 0x0f) {
-        audiopci_log("Read frame = %02x, page = %02x, uart fifo valid = %02x, temp = %03x\n", frame, page, dev->valid, ret);
-    }
-
     return ret;
 }
 

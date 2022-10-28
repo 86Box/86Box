@@ -46,6 +46,7 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING  IN ANY  WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
@@ -54,6 +55,7 @@
 #include <ctype.h>
 #include <pcap/pcap.h>
 #include <time.h>
+#define HAVE_STDARG_H
 #include <86box/86box.h>
 #include <86box/plat.h>
 #include <86box/plat_dynld.h>
@@ -241,16 +243,6 @@ show_devs(capdev_t *list, int num)
     } else {
         printf("No interfaces found!\nMake sure WinPcap is installed.\n");
     }
-}
-
-void
-pclog(const char *fmt, ...)
-{
-    va_list ap;
-
-    va_start(ap, fmt);
-    vfprintf(stderr, fmt, ap);
-    va_end(ap);
 }
 
 int

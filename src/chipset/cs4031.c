@@ -41,6 +41,7 @@ typedef struct
 
 #ifdef ENABLE_CS4031_LOG
 int cs4031_do_log = ENABLE_CS4031_LOG;
+
 static void
 cs4031_log(const char *fmt, ...)
 {
