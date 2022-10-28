@@ -175,7 +175,7 @@ machine_xt86_init(const machine_t *model)
 static void
 machine_xt_clone_init(const machine_t *model)
 {
-    device_add(&keyboard_xt86_device);
+    device_add(&keyboard_xtclone_device);
 
     machine_xt_common_init(model);
 }
