@@ -82,6 +82,57 @@ mouse_clear_data(void *priv)
 }
 
 static void
+ps2_report_coordinates(mouse_t *dev)
+{
+    uint8_t buff[3] = {0x08, 0x00, 0x00};
+
+    if (dev->x > 255)
+        dev->x = 255;
+    if (dev->x < -256)
+        dev->x = -256;
+    if (dev->y > 255)
+        dev->y = 255;
+    if (dev->y < -256)
+        dev->y = -256;
+    if (dev->z < -8)
+        dev->z = -8;
+    if (dev->z > 7)
+        dev->z = 7;
+
+    if (dev->x < 0)
+        buff[0] |= 0x10;
+    if (dev->y < 0)
+        buff[0] |= 0x20;
+    if (mouse_buttons & 0x01)
+        buff[0] |= 0x01;
+    if (mouse_buttons & 0x02)
+        buff[0] |= 0x02;
+    if (dev->flags & FLAG_INTELLI) {
+        if (mouse_buttons & 0x04)
+            buff[0] |= 0x04;
+    }
+    buff[1] = (dev->x & 0xff);
+    buff[2] = (dev->y & 0xff);
+
+    keyboard_at_adddata_mouse(buff[0]);
+    keyboard_at_adddata_mouse(buff[1]);
+    keyboard_at_adddata_mouse(buff[2]);
+    if (dev->flags & FLAG_INTMODE) {
+        int temp_z = dev->z;
+        if ((dev->flags & FLAG_5BTN)) {
+            temp_z &= 0xF;
+            if (mouse_buttons & 8)
+                temp_z |= 0x10;
+            if (mouse_buttons & 16)
+                temp_z |= 0x20;
+        }
+        keyboard_at_adddata_mouse(temp_z);
+    }
+
+    dev->x = dev->y = dev->z = 0;
+}
+
+static void
 ps2_write(uint8_t val, void *priv)
 {
     mouse_t *dev = (mouse_t *) priv;
@@ -143,32 +194,7 @@ ps2_write(uint8_t val, void *priv)
             case 0xeb: /* Get mouse data */
                 keyboard_at_adddata_mouse(0xfa);
 
-                temp = 0;
-                if (dev->x < 0)
-                    temp |= 0x10;
-                if (dev->y < 0)
-                    temp |= 0x20;
-                if (mouse_buttons & 1)
-                    temp |= 1;
-                if (mouse_buttons & 2)
-                    temp |= 2;
-                if ((mouse_buttons & 4) && (dev->flags & FLAG_INTELLI))
-                    temp |= 4;
-                keyboard_at_adddata_mouse(temp);
-                keyboard_at_adddata_mouse(dev->x & 0xff);
-                keyboard_at_adddata_mouse(dev->y & 0xff);
-
-                if (dev->flags & FLAG_INTMODE) {
-                    int temp_z = dev->z;
-                    if ((dev->flags & FLAG_5BTN)) {
-                        temp_z &= 0xF;
-                        if (mouse_buttons & 8)
-                            temp_z |= 0x10;
-                        if (mouse_buttons & 16)
-                            temp_z |= 0x20;
-                    }
-                    keyboard_at_adddata_mouse(temp_z);
-                }
+                ps2_report_coordinates(dev);
                 break;
 
             case 0xf2: /* read ID */
@@ -258,50 +284,7 @@ ps2_poll(int x, int y, int z, int b, void *priv)
     if ((dev->mode == MODE_STREAM) && (dev->flags & FLAG_ENABLED) && (keyboard_at_mouse_pos() < 13)) {
         dev->b = b;
 
-        if (dev->x > 255)
-            dev->x = 255;
-        if (dev->x < -256)
-            dev->x = -256;
-        if (dev->y > 255)
-            dev->y = 255;
-        if (dev->y < -256)
-            dev->y = -256;
-        if (dev->z < -8)
-            dev->z = -8;
-        if (dev->z > 7)
-            dev->z = 7;
-
-        if (dev->x < 0)
-            buff[0] |= 0x10;
-        if (dev->y < 0)
-            buff[0] |= 0x20;
-        if (mouse_buttons & 0x01)
-            buff[0] |= 0x01;
-        if (mouse_buttons & 0x02)
-            buff[0] |= 0x02;
-        if (dev->flags & FLAG_INTELLI) {
-            if (mouse_buttons & 0x04)
-                buff[0] |= 0x04;
-        }
-        buff[1] = (dev->x & 0xff);
-        buff[2] = (dev->y & 0xff);
-
-        keyboard_at_adddata_mouse(buff[0]);
-        keyboard_at_adddata_mouse(buff[1]);
-        keyboard_at_adddata_mouse(buff[2]);
-        if (dev->flags & FLAG_INTMODE) {
-            int temp_z = dev->z;
-            if ((dev->flags & FLAG_5BTN)) {
-                temp_z &= 0xF;
-                if (mouse_buttons & 8)
-                    temp_z |= 0x10;
-                if (mouse_buttons & 16)
-                    temp_z |= 0x20;
-            }
-            keyboard_at_adddata_mouse(temp_z);
-        }
-
-        dev->x = dev->y = dev->z = 0;
+        ps2_report_coordinates(dev);
     }
 
     return (0);
