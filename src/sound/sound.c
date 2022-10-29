@@ -464,7 +464,7 @@ sound_poll(void *priv)
         if (cd_thread_enable) {
             cd_buf_update--;
             if (!cd_buf_update) {
-                cd_buf_update = (48000 / SOUNDBUFLEN) / (CD_FREQ / CD_BUFLEN);
+                cd_buf_update = (44100 / SOUNDBUFLEN) / (CD_FREQ / CD_BUFLEN);
                 thread_set_event(sound_cd_event);
             }
         }
@@ -476,7 +476,7 @@ sound_poll(void *priv)
 void
 sound_speed_changed(void)
 {
-    sound_poll_latch = (uint64_t) ((double) TIMER_USEC * (1000000.0 / 48000.0));
+    sound_poll_latch = (uint64_t) ((double) TIMER_USEC * (1000000.0 / 44100.0));
 }
 
 void

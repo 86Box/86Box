@@ -202,7 +202,7 @@ void
 mt32_poll()
 {
     midi_pos++;
-    if (midi_pos == 48000 / RENDER_RATE) {
+    if (midi_pos == 44100 / RENDER_RATE) {
         midi_pos = 0;
         thread_set_event(event);
     }

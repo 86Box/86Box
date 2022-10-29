@@ -44,3 +44,4 @@ RC*
 
 # Qt Creator
 CMakeLists.txt.user
+*.DS_Store

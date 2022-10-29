@@ -42,7 +42,7 @@ sid_init(void)
         psid->sid->write(c, 0);
 
     if (!psid->sid->set_sampling_parameters((float) cycles_per_sec, method,
-                                            (float) 48000, 0.9 * 48000.0 / 2.0)) {
+                                            (float) 44100, 0.9 * 44100.0 / 2.0)) {
         //        printf("reSID failed!\n");
     }
 

@@ -53,7 +53,7 @@ static IXAudio2SourceVoice    *srcvoice      = NULL;
 static IXAudio2SourceVoice    *srcvoicemidi  = NULL;
 static IXAudio2SourceVoice    *srcvoicecd    = NULL;
 
-#define FREQ   48000
+#define FREQ   44100
 #define BUFLEN SOUNDBUFLEN
 
 static void WINAPI

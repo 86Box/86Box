@@ -145,7 +145,7 @@ recalc_sb16_filter(int c, int playback_freq)
     /* Cutoff frequency = playback / 2 */
     int    n;
     double w, h;
-    double fC = ((double) playback_freq) / 96000.0;
+    double fC = ((double) playback_freq) / 88200.0;
     double gain;
 
     for (n = 0; n < SB16_NCoef; n++) {
