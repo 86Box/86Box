@@ -2157,11 +2157,10 @@ ide_callback(void *priv)
             ide_set_signature(ide);
 
             if (ide->type == IDE_ATAPI) {
-#ifdef EARLY_ATAPI
-                ide->sc->status = DRDY_STAT | DSC_STAT;
-#else
-                ide->sc->status = 0;
-#endif
+                if (ide->sc->pad0) /* pad0 = early */
+                    ide->sc->status = DRDY_STAT | DSC_STAT;
+                else
+                    ide->sc->status = 0;
                 ide->sc->error  = 1;
                 if (ide->device_reset)
                     ide->device_reset(ide->sc);

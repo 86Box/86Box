@@ -1321,6 +1321,8 @@ load_floppy_and_cdrom_drives(void)
 
         sprintf(temp, "cdrom_%02i_speed", c + 1);
         cdrom[c].speed = ini_section_get_int(cat, temp, 8);
+        sprintf(temp, "cdrom_%02i_early", c + 1);
+        cdrom[c].early = ini_section_get_int(cat, temp, 0);
 
         /* Default values, needed for proper operation of the Settings dialog. */
         cdrom[c].ide_channel = cdrom[c].scsi_device_id = c + 2;
@@ -2637,7 +2639,7 @@ save_hard_disks(void)
         if (!hdd_is_valid(c) || (hdd[c].bus != HDD_BUS_IDE && hdd[c].bus != HDD_BUS_ESDI))
             ini_section_delete_var(cat, temp);
         else
-            ini_section_set_string(cat, temp, hdd_preset_get_internal_name(hdd[c].speed_preset));
+            ini_section_set_string(cat, temp, (char *) hdd_preset_get_internal_name(hdd[c].speed_preset));
     }
 
     ini_delete_section_if_empty(config, cat);
@@ -2712,6 +2714,13 @@ save_floppy_and_cdrom_drives(void)
             ini_section_delete_var(cat, temp);
         } else {
             ini_section_set_int(cat, temp, cdrom[c].speed);
+        }
+
+        sprintf(temp, "cdrom_%02i_early", c + 1);
+        if ((cdrom[c].bus_type == 0) || (cdrom[c].early == 1)) {
+            ini_section_delete_var(cat, temp);
+        } else {
+            ini_section_set_int(cat, temp, cdrom[c].early);
         }
 
         sprintf(temp, "cdrom_%02i_parameters", c + 1);

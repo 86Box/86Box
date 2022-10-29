@@ -177,7 +177,7 @@ BEGIN
         MENUITEM "&Önceki imajı seç",			IDM_CDROM_RELOAD
         MENUITEM SEPARATOR
         MENUITEM "&İmaj seç",					IDM_CDROM_IMAGE
-        MENUITEM "&Folder",					IDM_CDROM_DIR
+        MENUITEM "&Klasör",					IDM_CDROM_DIR
     END
 END
 
@@ -272,8 +272,8 @@ END
 
 #define STR_VIDEO		"Ekran kartı:"
 #define STR_VOODOO		"Voodoo Grafikleri"
-#define STR_IBM8514		"IBM 8514/a Graphics"
-#define STR_XGA			"XGA Graphics"
+#define STR_IBM8514		"IBM 8514/a Grafikleri"
+#define STR_XGA			"XGA Grafikleri"
 
 #define STR_MOUSE		"Fare:"
 #define STR_JOYSTICK		"Oyun kolu:"
@@ -283,16 +283,16 @@ END
 #define STR_JOY4		"Oyun kolu 4..."
 
 #define STR_SOUND		"Ses kartı:"
-#define STR_MIDI_OUT	"MIDI Çıkış Cihazı:"
+#define STR_MIDI_OUT		"MIDI Çıkış Cihazı:"
 #define STR_MIDI_IN		"MIDI Giriş Cihazı:"
 #define STR_MPU401		"Bağımsız MPU-401"
 #define STR_SSI			"Innovation SSI-2001"
 #define STR_CMS			"CMS / Game Blaster"
 #define STR_GUS			"Gravis Ultrasound"
 #define STR_FLOAT		"FLOAT32 ses kullan"
-#define STR_FM_DRIVER		"FM synth driver"
-#define STR_FM_DRV_NUKED	"Nuked (more accurate)"
-#define STR_FM_DRV_YMFM		"YMFM (faster)"
+#define STR_FM_DRIVER		"FM sentez sürücüsü"
+#define STR_FM_DRV_NUKED	"Nuked (daha doğru)"
+#define STR_FM_DRV_YMFM		"YMFM (daha hızlı)"
 
 #define STR_NET_TYPE		"Ağ tipi:"
 #define STR_PCAP		"PCap cihazı:"
@@ -348,6 +348,7 @@ END
 #define STR_CHECKBPB		"BPB'yi denetle"
 #define STR_CDROM_DRIVES	"CD-ROM sürücüleri:"
 #define STR_CD_SPEED		"Hız:"
+#define STR_EARLY		"Daha erken sürüş"
 
 #define STR_MO_DRIVES		"MO sürücüleri:"
 #define STR_ZIP_DRIVES		"ZIP sürücüleri:"
@@ -507,15 +508,16 @@ BEGIN
     IDS_2149	"Kaset imajları (*.PCM;*.RAW;*.WAV;*.CAS)\0*.PCM;*.RAW;*.WAV;*.CAS\0Tüm dosyalar (*.*)\0*.*\0"
     IDS_2150	"Kartuş %i: %ls"
     IDS_2151	"Kartuş imajları (*.A;*.B;*.JRC)\0*.A;*.B;*.JRC\0Tüm dosyalar (*.*)\0*.*\0"
-    IDS_2152	"Error initializing renderer"
-    IDS_2153	"OpenGL (3.0 Core) renderer could not be initialized. Use another renderer."
-    IDS_2154	"Resume execution"
-    IDS_2155	"Pause execution"
-    IDS_2156	"Press Ctrl+Alt+Del"
-    IDS_2157	"Press Ctrl+Alt+Esc"
-    IDS_2158	"Hard reset"
-    IDS_2159	"ACPI shutdown"
-    IDS_2160	"Settings"
+    IDS_2152	"Oluşturucu başlatılırken hata oluştu"
+    IDS_2153	"OpenGL (3.0 Core) görüntüleyici başlatılamadı. Başka bir görüntüleyici kullanın."
+    IDS_2154	"Yürütmeye devam et"
+    IDS_2155	"Yürütmeyi duraklat"
+    IDS_2156	"Ctrl+Alt+Del"
+    IDS_2157	"Ctrl+Alt+Esc"
+    IDS_2158	"Makineyi yeniden başlat"
+    IDS_2159	"ACPI kapatma"
+    IDS_2160	"Ayarlar"
+    IDS_2161    "Daha erken sürüş"
 END
 
 STRINGTABLE DISCARDABLE 

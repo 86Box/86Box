@@ -3637,6 +3637,14 @@ win_settings_cdrom_drives_recalc_list(HWND hdlg)
 
         if (ListView_SetItem(hwndList, &lvI) == -1)
             return FALSE;
+
+        lvI.iSubItem = 2;
+        lvI.pszText  = plat_get_string(temp_cdrom[i].early ? IDS_2060 : IDS_2061);
+        lvI.iItem    = i;
+        lvI.iImage   = 0;
+
+        if (ListView_SetItem(hwndList, &lvI) == -1)
+            return FALSE;
     }
 
     return TRUE;
@@ -3815,15 +3823,19 @@ win_settings_floppy_drives_init_columns(HWND hdlg)
 static void
 win_settings_cdrom_drives_resize_columns(HWND hdlg)
 {
-    int  width[2] = { 292, 147 };
+    int  iCol, width[3] = { 292, 58, 89 };
+    int  total    = 0;
     HWND hwndList = GetDlgItem(hdlg, IDC_LIST_CDROM_DRIVES);
     RECT r;
 
     GetWindowRect(hwndList, &r);
-    width[0] = MulDiv(width[0], dpi, 96);
-    ListView_SetColumnWidth(hwndList, 0, MulDiv(width[0], dpi, 96));
-    width[1] = (r.right - r.left) - 4 - width[0];
-    ListView_SetColumnWidth(hwndList, 1, width[1]);
+    for (iCol = 0; iCol < 2; iCol++) {
+        width[iCol] = MulDiv(width[iCol], dpi, 96);
+        total += width[iCol];
+        ListView_SetColumnWidth(hwndList, iCol, MulDiv(width[iCol], dpi, 96));
+    }
+    width[2] = (r.right - r.left) - 4 - total;
+    ListView_SetColumnWidth(hwndList, 2, width[2]);
 }
 
 static BOOL
@@ -3846,10 +3858,19 @@ win_settings_cdrom_drives_init_columns(HWND hdlg)
     lvc.iSubItem = 1;
     lvc.pszText  = plat_get_string(IDS_2053);
 
-    lvc.cx  = 147;
+    lvc.cx  = 58;
     lvc.fmt = LVCFMT_LEFT;
 
     if (ListView_InsertColumn(hwndList, 1, &lvc) == -1)
+        return FALSE;
+
+    lvc.iSubItem = 2;
+    lvc.pszText  = plat_get_string(IDS_2161);
+
+    lvc.cx  = 89;
+    lvc.fmt = LVCFMT_LEFT;
+
+    if (ListView_InsertColumn(hwndList, 2, &lvc) == -1)
         return FALSE;
 
     win_settings_cdrom_drives_resize_columns(hdlg);
@@ -4053,6 +4074,14 @@ win_settings_cdrom_drives_update_item(HWND hdlg, int i)
 
     if (ListView_SetItem(hwndList, &lvI) == -1)
         return;
+
+    lvI.iSubItem = 2;
+    lvI.pszText  = plat_get_string(temp_cdrom[i].early ? IDS_2060 : IDS_2061);
+    lvI.iItem    = i;
+    lvI.iImage   = 0;
+
+    if (ListView_SetItem(hwndList, &lvI) == -1)
+        return;
 }
 
 static void
@@ -4196,19 +4225,22 @@ cdrom_recalc_location_controls(HWND hdlg, int assign_id)
     int i   = 0;
     int bus = temp_cdrom[lv2_current_sel].bus_type;
 
-    for (i = IDT_CD_ID; i <= (IDT_CD_LUN); i++)
+    for (i = IDT_CD_ID; i <= IDT_CD_CHANNEL; i++)
         settings_show_window(hdlg, i, FALSE);
     settings_show_window(hdlg, IDC_COMBO_CD_ID, FALSE);
     settings_show_window(hdlg, IDC_COMBO_CD_CHANNEL_IDE, FALSE);
     settings_show_window(hdlg, IDC_COMBO_CD_SPEED, bus != CDROM_BUS_DISABLED);
     settings_show_window(hdlg, IDT_CD_SPEED, bus != CDROM_BUS_DISABLED);
+    settings_show_window(hdlg, IDC_CHECKEARLY, bus != CDROM_BUS_DISABLED);
 
-    if (bus != CDROM_BUS_DISABLED)
+    if (bus != CDROM_BUS_DISABLED) {
         settings_set_cur_sel(hdlg, IDC_COMBO_CD_SPEED, temp_cdrom[lv2_current_sel].speed - 1);
+        settings_set_check(hdlg, IDC_CHECKEARLY, temp_cdrom[lv2_current_sel].early);
+    }
 
     switch (bus) {
         case CDROM_BUS_ATAPI: /* ATAPI */
-            settings_show_window(hdlg, IDT_CD_LUN, TRUE);
+            settings_show_window(hdlg, IDT_CD_CHANNEL, TRUE);
             settings_show_window(hdlg, IDC_COMBO_CD_CHANNEL_IDE, TRUE);
 
             if (assign_id)
@@ -4593,6 +4625,12 @@ win_settings_floppy_and_cdrom_drives_proc(HWND hdlg, UINT message, WPARAM wParam
                     temp_cdrom[lv2_current_sel].speed = settings_get_cur_sel(hdlg, IDC_COMBO_CD_SPEED) + 1;
                     win_settings_cdrom_drives_update_item(hdlg, lv2_current_sel);
                     break;
+
+                case IDC_CHECKEARLY:
+                    temp_cdrom[lv2_current_sel].early = settings_get_check(hdlg, IDC_CHECKEARLY);
+                    win_settings_cdrom_drives_update_item(hdlg, lv2_current_sel);
+                    break;
+
             }
             ignore_change = 0;
 
