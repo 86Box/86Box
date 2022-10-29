@@ -754,10 +754,6 @@ void MainWindow::on_actionCtrl_Alt_Esc_triggered() {
 
 void MainWindow::on_actionPause_triggered() {
     plat_pause(dopause ^ 1);
-    auto pause_icon   = dopause ? QIcon(":/menuicons/win/icons/run.ico") : QIcon(":/menuicons/win/icons/pause.ico");
-    auto tooltip_text = dopause ? QString(tr("Resume execution")) : QString(tr("Pause execution"));
-    ui->actionPause->setIcon(pause_icon);
-    ui->actionPause->setToolTip(tooltip_text);
 }
 
 void MainWindow::on_actionExit_triggered() {
@@ -2054,6 +2050,13 @@ void MainWindow::on_actionSound_gain_triggered()
 void MainWindow::setSendKeyboardInput(bool enabled)
 {
     send_keyboard_input = enabled;
+}
+
+void MainWindow::setUiPauseState(bool paused) {
+    auto pause_icon   = paused ? QIcon(":/menuicons/win/icons/run.ico") : QIcon(":/menuicons/win/icons/pause.ico");
+    auto tooltip_text = paused ? QString(tr("Resume execution")) : QString(tr("Pause execution"));
+    ui->actionPause->setIcon(pause_icon);
+    ui->actionPause->setToolTip(tooltip_text);
 }
 
 void MainWindow::on_actionPreferences_triggered()
