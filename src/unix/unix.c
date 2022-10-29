@@ -706,7 +706,7 @@ mouse_poll()
     mouse_y          = mousedata.deltay;
     mouse_z          = mousedata.deltaz;
     mousedata.deltax = mousedata.deltay = mousedata.deltaz = 0;
-    mouse_buttons                                          = mousedata.mousebuttons;
+    mouse_buttons    = mousedata.mousebuttons;
     SDL_UnlockMutex(mousemutex);
 }
 
@@ -1170,6 +1170,12 @@ main(int argc, char **argv)
                                     break;
                                 case SDL_BUTTON_MIDDLE:
                                     buttonmask = 4;
+                                    break;
+                                case SDL_BUTTON_X1:
+                                    buttonmask = 8;
+                                    break;
+                                case SDL_BUTTON_X2:
+                                    buttonmask = 16;
                                     break;
                             }
                             SDL_LockMutex(mousemutex);
