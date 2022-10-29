@@ -28,6 +28,8 @@ private slots:
     void onFloppyRowChanged(const QModelIndex &current);
     void onCDROMRowChanged(const QModelIndex &current);
 
+    void on_checkBoxEarlierDrive_stateChanged(int arg1);
+
 private:
     Ui::SettingsFloppyCDROM *ui;
 };
