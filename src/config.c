@@ -2717,7 +2717,7 @@ save_floppy_and_cdrom_drives(void)
         }
 
         sprintf(temp, "cdrom_%02i_early", c + 1);
-        if ((cdrom[c].bus_type == 0) || (cdrom[c].early == 1)) {
+        if ((cdrom[c].bus_type == 0) || (cdrom[c].early == 0)) {
             ini_section_delete_var(cat, temp);
         } else {
             ini_section_set_int(cat, temp, cdrom[c].early);
