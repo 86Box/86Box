@@ -1,22 +1,22 @@
 /*
- * VARCem	Virtual ARchaeological Computer EMulator.
- *		An emulator of (mostly) x86-based PC systems and devices,
- *		using the ISA,EISA,VLB,MCA  and PCI system buses, roughly
- *		spanning the era between 1981 and 1995.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the VARCem Project.
+ *          This file is part of the 86Box distribution.
  *
- *		Miscellaneous x86 CPU Instructions.
+ *          Miscellaneous x86 CPU Instructions.
  *
  *
  *
- * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
- *		Sarah Walker, <tommowalker@tommowalker.co.uk>
- *		Miran Grca, <mgrca8@gmail.com>
+ * Authors: Fred N. van Kempen, <decwiz@yahoo.com>
+ *          Sarah Walker, <tommowalker@tommowalker.co.uk>
+ *          Miran Grca, <mgrca8@gmail.com>
  *
- *		Copyright 2018 Fred N. van Kempen.
- *		Copyright 2008-2018 Sarah Walker.
- *		Copyright 2016-2018 Miran Grca.
+ *          Copyright 2018 Fred N. van Kempen.
+ *          Copyright 2008-2018 Sarah Walker.
+ *          Copyright 2016-2018 Miran Grca.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -40,15 +40,15 @@
 #define _X86_OPS_H
 
 
-#define UN_USED(x)	(void)(x)
+#define UN_USED(x)    (void)(x)
 
 
 typedef int (*OpFn)(uint32_t fetchdat);
 
 #ifdef USE_DYNAREC
 void x86_setopcodes(const OpFn *opcodes, const OpFn *opcodes_0f,
-		    const OpFn *dynarec_opcodes,
-		    const OpFn *dynarec_opcodes_0f);
+            const OpFn *dynarec_opcodes,
+            const OpFn *dynarec_opcodes_0f);
 
 extern const OpFn *x86_dynarec_opcodes;
 extern const OpFn *x86_dynarec_opcodes_0f;
