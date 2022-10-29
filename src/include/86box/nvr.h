@@ -1,10 +1,8 @@
 /*
- * 86Box    A hypervisor and IBM PC system emulator that specializes in
- *          running old operating systems and software designed for IBM
- *          PC systems and compatibles from 1981 through fairly recent
- *          system designs based on the PCI bus.
- *
- *          This file is part of the 86Box distribution.
+ * VARCem   Virtual ARchaeological Computer EMulator.
+ *          An emulator of (mostly) x86-based PC systems and devices,
+ *          using the ISA,EISA,VLB,MCA  and PCI system buses, roughly
+ *          spanning the era between 1981 and 1995.
  *
  *          Definitions for the generic NVRAM/CMOS driver.
  *
