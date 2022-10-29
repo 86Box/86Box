@@ -2157,16 +2157,16 @@ ide_callback(void *priv)
             ide_set_signature(ide);
 
             if (ide->type == IDE_ATAPI) {
+                ide->sc->error  = 1;
+                if (ide->device_reset)
+                    ide->device_reset(ide->sc);
                 if (ide->sc->pad0) /* pad0 = early */
                     ide->sc->status = DRDY_STAT | DSC_STAT;
                 else
                     ide->sc->status = 0;
-                ide->sc->error  = 1;
-                if (ide->device_reset)
-                    ide->device_reset(ide->sc);
             }
             ide_irq_raise(ide);
-            if (ide->type == IDE_ATAPI)
+            if ((ide->type == IDE_ATAPI) && !ide->sc->pad0)
                 ide->service = 0;
             return;
 
