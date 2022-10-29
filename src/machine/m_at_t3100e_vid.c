@@ -1,36 +1,36 @@
 /*
- * VARCem	Virtual ARchaeological Computer EMulator.
- *		An emulator of (mostly) x86-based PC systems and devices,
- *		using the ISA,EISA,VLB,MCA  and PCI system buses, roughly
- *		spanning the era between 1981 and 1995.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the VARCem Project.
+ *          This file is part of the 86Box distribution.
  *
- *		Implementation of the Toshiba 3100e plasma display.
- *		This display has a fixed 640x400 resolution.
+ *          Implementation of the Toshiba 3100e plasma display.
+ *          This display has a fixed 640x400 resolution.
  *
- *		T3100e CRTC regs (from the ROM):
+ *          T3100e CRTC regs (from the ROM):
  *
- *		Selecting a character height of 3 seems to be sufficient to
- *		convert the 640x200 graphics mode to 640x400 (and, by
- *		analogy, 320x200 to 320x400).
+ *          Selecting a character height of 3 seems to be sufficient to
+ *          convert the 640x200 graphics mode to 640x400 (and, by
+ *          analogy, 320x200 to 320x400).
  *
- *		Horiz-----> Vert------>  I ch
- *		38 28 2D 0A 1F 06 19 1C 02 07 06 07   CO40
- *		71 50 5A 0A 1F 06 19 1C 02 07 06 07   CO80
- *		38 28 2D 0A 7F 06 64 70 02 01 06 07   Graphics
- *		61 50 52 0F 19 06 19 19 02 0D 0B 0C   MONO
- *		2D 28 22 0A 67 00 64 67 02 03 06 07   640x400
+ *          Horiz-----> Vert------>  I ch
+ *          38 28 2D 0A 1F 06 19 1C 02 07 06 07   CO40
+ *          71 50 5A 0A 1F 06 19 1C 02 07 06 07   CO80
+ *          38 28 2D 0A 7F 06 64 70 02 01 06 07   Graphics
+ *          61 50 52 0F 19 06 19 19 02 0D 0B 0C   MONO
+ *          2D 28 22 0A 67 00 64 67 02 03 06 07   640x400
  *
  *
  *
- * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
- *		Miran Grca, <mgrca8@gmail.com>
- *		Sarah Walker, <tommowalker@tommowalker.co.uk>
+ * Authors: Fred N. van Kempen, <decwiz@yahoo.com>
+ *          Miran Grca, <mgrca8@gmail.com>
+ *          Sarah Walker, <tommowalker@tommowalker.co.uk>
  *
- *		Copyright 2017-2019 Fred N. van Kempen.
- *		Copyright 2016-2019 Miran Grca.
- *		Copyright 2008-2019 Sarah Walker.
+ *          Copyright 2017-2019 Fred N. van Kempen.
+ *          Copyright 2016-2019 Miran Grca.
+ *          Copyright 2008-2019 Sarah Walker.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -561,9 +561,9 @@ t3100e_recalcattrs(t3100e_t *t3100e)
      *     Bit 0: Attributes 01-06, 08-0E are inverse video
      *     Bit 1: Attributes 01-06, 08-0E are bold
      *     Bit 2: Attributes 11-16, 18-1F, 21-26, 28-2F ... F1-F6, F8-FF
-     * 	      are inverse video
+     *           are inverse video
      *     Bit 3: Attributes 11-16, 18-1F, 21-26, 28-2F ... F1-F6, F8-FF
-     * 	      are bold */
+     *           are bold */
 
     /* Set up colours */
     amber = makecol(0xf7, 0x7C, 0x34);

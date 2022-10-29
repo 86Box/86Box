@@ -1,60 +1,58 @@
 /*
- * VARCem	Virtual ARchaeological Computer EMulator.
- *		An emulator of (mostly) x86-based PC systems and devices,
- *		using the ISA,EISA,VLB,MCA  and PCI system buses, roughly
- *		spanning the era between 1981 and 1995.
+ * VARCem   Virtual ARchaeological Computer EMulator.
+ *          An emulator of (mostly) x86-based PC systems and devices,
+ *          using the ISA,EISA,VLB,MCA  and PCI system buses, roughly
+ *          spanning the era between 1981 and 1995.
  *
- *		This file is part of the VARCem Project.
+ *          Implementation of a memory expansion board for the ISA Bus.
  *
- *		Implementation of a memory expansion board for the ISA Bus.
+ *          Although modern systems use direct-connect local buses to
+ *          connect the CPU with its memory, originally the main system
+ *          bus(es) were used for that. Memory expension cards could add
+ *          memory to the system through the ISA bus, using a variety of
+ *          techniques.
  *
- *		Although modern systems use direct-connect local buses to
- *		connect the CPU with its memory, originally the main system
- *		bus(es) were used for that. Memory expension cards could add
- *		memory to the system through the ISA bus, using a variety of
- *		techniques.
+ *          The majority of these boards could provide some (additional)
+ *          conventional (low) memory, extended (high) memory on 80286
+ *          and higher systems, as well as EMS bank-switched memory.
  *
- *		The majority of these boards could provide some (additional)
- *		conventional (low) memory, extended (high) memory on 80286
- *		and higher systems, as well as EMS bank-switched memory.
+ *          This implementation uses the LIM 3.2 specifications for EMS.
  *
- *		This implementation uses the LIM 3.2 specifications for EMS.
+ *          With the EMS method, the system's standard memory is expanded
+ *          by means of bank-switching. One or more 'frames' in the upper
+ *          memory area (640K-1024K) are used as viewports into an array
+ *          of RAM pages numbered 0 to N. Each page is defined to be 16KB
+ *          in size, so, for a 1024KB board, 64 such pages are available.
+ *          I/O control registers are used to set up the mappings. More
+ *          modern boards even have multiple 'copies' of those registers,
+ *          which can be switched very fast, to allow for multitasking.
  *
- *		With the EMS method, the system's standard memory is expanded
- *		by means of bank-switching. One or more 'frames' in the upper
- *		memory area (640K-1024K) are used as viewports into an array
- *		of RAM pages numbered 0 to N. Each page is defined to be 16KB
- *		in size, so, for a 1024KB board, 64 such pages are available.
- *		I/O control registers are used to set up the mappings. More
- *		modern boards even have multiple 'copies' of those registers,
- *		which can be switched very fast, to allow for multitasking.
- *
- * TODO:	The EV159 is supposed to support 16b EMS transfers, but the
- *		EMM.sys driver for it doesn't seem to want to do that..
+ * TODO:    The EV159 is supposed to support 16b EMS transfers, but the
+ *          EMM.sys driver for it doesn't seem to want to do that..
  *
  *
  *
- * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
+ * Authors: Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 2018 Fred N. van Kempen.
+ *          Copyright 2018 Fred N. van Kempen.
  *
- *		Redistribution and  use  in source  and binary forms, with
- *		or  without modification, are permitted  provided that the
- *		following conditions are met:
+ *          Redistribution and  use  in source  and binary forms, with
+ *          or  without modification, are permitted  provided that the
+ *          following conditions are met:
  *
- *		1. Redistributions of  source  code must retain the entire
- *		   above notice, this list of conditions and the following
- *		   disclaimer.
+ *          1. Redistributions of  source  code must retain the entire
+ *             above notice, this list of conditions and the following
+ *             disclaimer.
  *
- *		2. Redistributions in binary form must reproduce the above
- *		   copyright  notice,  this list  of  conditions  and  the
- *		   following disclaimer in  the documentation and/or other
- *		   materials provided with the distribution.
+ *          2. Redistributions in binary form must reproduce the above
+ *             copyright  notice,  this list  of  conditions  and  the
+ *             following disclaimer in  the documentation and/or other
+ *             materials provided with the distribution.
  *
- *		3. Neither the  name of the copyright holder nor the names
- *		   of  its  contributors may be used to endorse or promote
- *		   products  derived from  this  software without specific
- *		   prior written permission.
+ *          3. Neither the  name of the copyright holder nor the names
+ *             of  its  contributors may be used to endorse or promote
+ *             products  derived from  this  software without specific
+ *             prior written permission.
  *
  * THIS SOFTWARE  IS  PROVIDED BY THE  COPYRIGHT  HOLDERS AND CONTRIBUTORS
  * "AS IS" AND  ANY EXPRESS  OR  IMPLIED  WARRANTIES,  INCLUDING, BUT  NOT
