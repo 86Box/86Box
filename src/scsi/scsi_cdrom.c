@@ -2808,7 +2808,7 @@ scsi_cdrom_drive_reset(int c)
             id->phase_data_out   = scsi_cdrom_phase_data_out;
             id->command_stop     = scsi_cdrom_command_stop;
             id->bus_master_error = scsi_cdrom_bus_master_error;
-            id->interrupt_drq    = !dev->early;
+            id->interrupt_drq    = dev->early;
 
             ide_atapi_attach(id);
         }
