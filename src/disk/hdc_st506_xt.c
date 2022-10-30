@@ -1536,9 +1536,52 @@ st506_init(const device_t *info)
             dev->bios_addr = device_get_config_hex20("bios_addr");
             break;
 
+        case ST506_XT_TYPE_WD1004A_WX1: /* Western Digital WD1004A-WX1 (MFM) */
+            dev->nr_err = ERR_NOT_AVAILABLE;
+            fn          = WD1004A_WX1_BIOS_FILE;
+            /* The switches are read in reverse: 0 = closed, 1 = open.
+               Both open means MFM, 17 sectors per track. */
+            dev->switches = 0x30; /* autobios */
+            dev->base     = device_get_config_hex16("base");
+            dev->irq      = device_get_config_int("irq");
+            if (dev->irq == 2)
+                dev->switches |= 0x40;
+            dev->bios_addr = device_get_config_hex20("bios_addr");
+            break;
+
         case ST506_XT_TYPE_WD1002A_27X: /* Western Digital WD1002A-27X (RLL) */
             dev->nr_err = ERR_NOT_AVAILABLE;
             fn          = WD1002A_27X_BIOS_FILE;
+            /* The switches are read in reverse: 0 = closed, 1 = open.
+               Both closed means translate 26 sectors per track to 17,
+               SW6 closed, SW5 open means 26 sectors per track. */
+            dev->switches = device_get_config_int("translate") ? 0x00 : 0x10; /* autobios */
+            dev->spt      = RLL_SECTORS;
+            dev->base     = device_get_config_hex16("base");
+            dev->irq      = device_get_config_int("irq");
+            if (dev->irq == 2)
+                dev->switches |= 0x40;
+            dev->bios_addr = device_get_config_hex20("bios_addr");
+            break;
+
+        case ST506_XT_TYPE_WD1004_27X: /* Western Digital WD1004-27X (RLL) */
+            dev->nr_err = ERR_NOT_AVAILABLE;
+            fn          = WD1004_27X_BIOS_FILE;
+            /* The switches are read in reverse: 0 = closed, 1 = open.
+               Both closed means translate 26 sectors per track to 17,
+               SW6 closed, SW5 open means 26 sectors per track. */
+            dev->switches = device_get_config_int("translate") ? 0x00 : 0x10; /* autobios */
+            dev->spt      = RLL_SECTORS;
+            dev->base     = device_get_config_hex16("base");
+            dev->irq      = device_get_config_int("irq");
+            if (dev->irq == 2)
+                dev->switches |= 0x40;
+            dev->bios_addr = device_get_config_hex20("bios_addr");
+            break;
+
+        case ST506_XT_TYPE_WD1004A_27X: /* Western Digital WD1004A-27X (RLL) */
+            dev->nr_err = ERR_NOT_AVAILABLE;
+            fn          = WD1004A_27X_BIOS_FILE;
             /* The switches are read in reverse: 0 = closed, 1 = open.
                Both closed means translate 26 sectors per track to 17,
                SW6 closed, SW5 open means 26 sectors per track. */
