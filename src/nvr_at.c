@@ -1299,7 +1299,7 @@ const device_t p6rp4_nvr_device = {
 };
 
 const device_t amstrad_megapc_nvr_device = {
-    .name          = "Amstrad MegapC NVRAM",
+    .name          = "Amstrad MegaPC NVRAM",
     .internal_name = "amstrad_megapc_nvr",
     .flags         = DEVICE_ISA | DEVICE_AT,
     .local         = 36,

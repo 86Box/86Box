@@ -86,6 +86,7 @@ extern const device_t at_nvr_old_device;
 extern const device_t at_nvr_device;
 extern const device_t ps_nvr_device;
 extern const device_t amstrad_nvr_device;
+extern const device_t amstrad_megapc_nvr_device;
 extern const device_t ibmat_nvr_device;
 extern const device_t piix4_nvr_device;
 extern const device_t ps_no_nmi_nvr_device;
