@@ -1005,17 +1005,17 @@ std::array<uint32_t, 256> x11_to_xt_2
     0x51,
     0x52,
     0x53,
-    0x54,
+    0x138,
     0x55,
-    0x56,
+    0x35,
     0x57,
     0x58,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
+    0x56,
+    0x70,
+    0x7B,
+    0x7D,
+    0x2B,
+    0x7E,
     0,
     0x11C,
     0x11D,
@@ -1032,7 +1032,23 @@ std::array<uint32_t, 256> x11_to_xt_2
     0x150,
     0x151,
     0x152,
-    0x153
+    0x153,
+    0,
+    0, /* Mute */
+    0, /* Volume Down */
+    0, /* Volume Up */
+    0, /* Power Off */
+    0,
+    0,
+    0,
+    0,
+    0,
+    0x70,
+    0x7B,
+    0x73,
+    0x15B,
+    0x15C,
+    0x15D
 };
 
 std::array<uint32_t, 256> x11_to_xt_vnc
@@ -1627,8 +1643,6 @@ void MainWindow::keyPressEvent(QKeyEvent* event)
                 keyboard_input(1, 0x1D);
                 keyboard_input(1, 0x45);
             }
-        } else if (event->key() == Qt::Key_Super_L || event->key() == Qt::Key_Super_R) {
-            keyboard_input(1, event->key() == Qt::Key_Super_L ? 0x15B : 0x15C);
         } else
 #ifdef Q_OS_MACOS
         processMacKeyboardInput(true, event);
@@ -1672,9 +1686,6 @@ void MainWindow::keyReleaseEvent(QKeyEvent* event)
     if (!send_keyboard_input)
         return;
 
-    if (event->key() == Qt::Key_Super_L || event->key() == Qt::Key_Super_R) {
-        keyboard_input(0, event->key() == Qt::Key_Super_L ? 0x15B : 0x15C);
-    } else
 #ifdef Q_OS_MACOS
     processMacKeyboardInput(false, event);
 #else
