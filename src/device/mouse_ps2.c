@@ -265,7 +265,6 @@ static int
 ps2_poll(int x, int y, int z, int b, void *priv)
 {
     mouse_t *dev     = (mouse_t *) priv;
-    uint8_t  buff[3] = { 0x08, 0x00, 0x00 };
 
     if (!x && !y && !z && (b == dev->b))
         return (0xff);

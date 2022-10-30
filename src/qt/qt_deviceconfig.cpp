@@ -54,7 +54,6 @@ DeviceConfig::~DeviceConfig()
 void DeviceConfig::ConfigureDevice(const _device_* device, int instance, Settings* settings) {
     DeviceConfig dc(settings);
     dc.setWindowTitle(QString("%1 Device Configuration").arg(device->name));
-    int combo_to_struct[256];
     int c, d, p, q;
 
     device_context_t device_context;
