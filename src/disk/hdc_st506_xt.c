@@ -87,17 +87,18 @@
 #include <86box/hdc.h>
 #include <86box/hdd.h>
 
-#define ST506_XT_TYPE_XEBEC         0
-#define ST506_XT_TYPE_DTC_5150X     1
-#define ST506_XT_TYPE_ST11M         11
-#define ST506_XT_TYPE_ST11R         12
-#define ST506_XT_TYPE_WD1002A_WX1   21
-#define ST506_XT_TYPE_WD1002A_27X   23
-#define ST506_XT_TYPE_WD1004A_WX1   24
-#define ST506_XT_TYPE_WD1004_27X    25
-#define ST506_XT_TYPE_WD1004A_27X   26
-#define ST506_XT_TYPE_VICTOR_V86P   27
-#define ST506_XT_TYPE_TOSHIBA_T1200 28
+#define ST506_XT_TYPE_XEBEC              0
+#define ST506_XT_TYPE_DTC_5150X          1
+#define ST506_XT_TYPE_ST11M              11
+#define ST506_XT_TYPE_ST11R              12
+#define ST506_XT_TYPE_WD1002A_WX1        21
+#define ST506_XT_TYPE_WD1002A_WX1_NOBIOS 22
+#define ST506_XT_TYPE_WD1002A_27X        23
+#define ST506_XT_TYPE_WD1004A_WX1        24
+#define ST506_XT_TYPE_WD1004_27X         25
+#define ST506_XT_TYPE_WD1004A_27X        26
+#define ST506_XT_TYPE_VICTOR_V86P        27
+#define ST506_XT_TYPE_TOSHIBA_T1200      28
 
 #define XEBEC_BIOS_FILE       "roms/hdd/st506/ibm_xebec_62x0822_1985.bin"
 #define DTC_BIOS_FILE         "roms/hdd/st506/dtc_cxd21a.bin"
@@ -1536,12 +1537,25 @@ st506_init(const device_t *info)
             dev->bios_addr = device_get_config_hex20("bios_addr");
             break;
 
+        case ST506_XT_TYPE_WD1002A_WX1_NOBIOS: /* Western Digital WD1002A-WX1 (MFM, No BIOS) */
+            dev->nr_err = ERR_NOT_AVAILABLE;
+            fn          = NULL;
+            /* The switches are read in reverse: 0 = closed, 1 = open.
+               Both open means MFM, 17 sectors per track. */
+            dev->switches = 0x30; /* autobios */
+            dev->base     = device_get_config_hex16("base");
+            dev->irq      = device_get_config_int("irq");
+            if (dev->irq == 2)
+                dev->switches |= 0x40;
+            dev->bios_addr = device_get_config_hex20("bios_addr");
+            break;
+
         case ST506_XT_TYPE_WD1004A_WX1: /* Western Digital WD1004A-WX1 (MFM) */
             dev->nr_err = ERR_NOT_AVAILABLE;
             fn          = WD1004A_WX1_BIOS_FILE;
             /* The switches are read in reverse: 0 = closed, 1 = open.
                Both open means MFM, 17 sectors per track. */
-            dev->switches = 0x30; /* autobios */
+            dev->switches = 0x10; /* autobios */
             dev->base     = device_get_config_hex16("base");
             dev->irq      = device_get_config_int("irq");
             if (dev->irq == 2)
@@ -1862,6 +1876,38 @@ static const device_config_t wd_config[] = {
     { .name = "", .description = "", .type = CONFIG_END }
 };
 
+static const device_config_t wd_nobios_config[] = {
+    {
+        .name = "base",
+        .description = "Address",
+        .type = CONFIG_HEX16,
+        .default_string = "",
+        .default_int = 0x0320,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "320H", .value = 0x0320 },
+            { .description = "324H", .value = 0x0324 },
+            { .description = ""                      }
+        }
+    },
+    {
+        .name = "irq",
+        .description = "IRQ",
+        .type = CONFIG_SELECTION,
+        .default_string = "",
+        .default_int = 5,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "IRQ 2", .value = 2 },
+            { .description = "IRQ 5", .value = 5 },
+            { .description = ""                  }
+        }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+};
+
 static const device_config_t wd_rll_config[] = {
     {
         .name = "bios_addr",
@@ -2103,6 +2149,20 @@ const device_t st506_xt_wd1002a_wx1_device = {
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = wd_config
+};
+
+const device_t st506_xt_wd1002a_wx1_nobios_device = {
+    .name          = "WD1002A-WX1 MFM Fixed Disk Adapter (No BIOS)",
+    .internal_name = "st506_xt_wd1002a_wx1",
+    .flags         = DEVICE_ISA,
+    .local         = (HDD_BUS_MFM << 8) | ST506_XT_TYPE_WD1002A_WX1_NOBIOS,
+    .init          = st506_init,
+    .close         = st506_close,
+    .reset         = NULL,
+    { .available = wd1002a_wx1_available },
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = wd_nobios_config
 };
 
 const device_t st506_xt_wd1002a_27x_device = {
