@@ -549,27 +549,6 @@ video_process_8_monitor(int x, int y, int monitor_index)
 }
 
 void
-video_blit_memtoscreen_8_monitor(int x, int y, int w, int h, int monitor_index)
-{
-    int yy, xx;
-
-    if ((w > 0) && (h > 0)) {
-        for (yy = 0; yy < h; yy++) {
-            if ((y + yy) >= 0 && (y + yy) < monitors[monitor_index].target_buffer->h) {
-                for (xx = 0; xx < w; xx++) {
-                    if (monitors[monitor_index].target_buffer->line[y + yy][x + xx] <= 0xff)
-                        monitors[monitor_index].target_buffer->line[y + yy][x + xx] = monitors[monitor_index].mon_pal_lookup[monitors[monitor_index].target_buffer->line[y + yy][x + xx]];
-                    else
-                        monitors[monitor_index].target_buffer->line[y + yy][x + xx] = 0x00000000;
-                }
-            }
-        }
-    }
-
-    video_blit_memtoscreen_monitor(x, y, w, h, monitor_index);
-}
-
-void
 cgapal_rebuild_monitor(int monitor_index)
 {
     int       c;
