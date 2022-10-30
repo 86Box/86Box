@@ -196,7 +196,6 @@ ogc_poll(void *priv)
     int      oldsc;
     int      blink     = 0;
     int      underline = 0;
-    uint8_t  border;
 
     // composito colore appare blu scuro
 
