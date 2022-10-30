@@ -151,15 +151,15 @@ mm58174_time_set(uint8_t *regs, struct tm *tm)
     regs[MM58174_SECOND10] = (tm->tm_sec / 10);
     regs[MM58174_MINUTE1]  = (tm->tm_min % 10);
     regs[MM58174_MINUTE10] = (tm->tm_min / 10);
-    regs[MM58174_HOUR1]  = (tm->tm_hour % 10);
-    regs[MM58174_HOUR10] = (tm->tm_hour / 10);
-    regs[MM58174_WEEKDAY] = (tm->tm_wday + 1);
-    regs[MM58174_DAY1]    = (tm->tm_mday % 10);
-    regs[MM58174_DAY10]   = (tm->tm_mday / 10);
-    regs[MM58174_MONTH1]  = ((tm->tm_mon + 1) % 10);
-    regs[MM58174_MONTH10] = ((tm->tm_mon + 1) / 10);
-    /* MM87174 does not store the year, M24 uses the IRQ register to count 8 years from leap year */
-    regs[MM58174_IRQ] = ((tm->tm_year + 1900) % 8);
+    regs[MM58174_HOUR1]    = (tm->tm_hour % 10);
+    regs[MM58174_HOUR10]   = (tm->tm_hour / 10);
+    regs[MM58174_WEEKDAY]  = (tm->tm_wday + 1);
+    regs[MM58174_DAY1]     = (tm->tm_mday % 10);
+    regs[MM58174_DAY10]    = (tm->tm_mday / 10);
+    regs[MM58174_MONTH1]   = ((tm->tm_mon + 1) % 10);
+    regs[MM58174_MONTH10]  = ((tm->tm_mon + 1) / 10);
+    /* MM58174 does not store the year, M24 uses the IRQ register to count 8 years from leap year */
+    regs[MM58174_IRQ]      = ((tm->tm_year + 1900) % 8);
     regs[MM58174_LEAPYEAR] = 8 >> ((regs[MM58174_IRQ] & 0x07) & 0x03);
 }
 
@@ -168,13 +168,13 @@ mm58174_time_set(uint8_t *regs, struct tm *tm)
 static void
 mm58174_time_get(uint8_t *regs, struct tm *tm)
 {
-    tm->tm_sec = nibbles(MM58174_SECOND);
-    tm->tm_min = nibbles(MM58174_MINUTE);
+    tm->tm_sec  = nibbles(MM58174_SECOND);
+    tm->tm_min  = nibbles(MM58174_MINUTE);
     tm->tm_hour = nibbles(MM58174_HOUR);
     tm->tm_wday = (regs[MM58174_WEEKDAY] - 1);
     tm->tm_mday = nibbles(MM58174_DAY);
     tm->tm_mon  = (nibbles(MM58174_MONTH) - 1);
-    /* MM87174AN does not store the year */
+    /* MM58174 does not store the year */
     tm->tm_year = (1984 + (regs[MM58174_IRQ] & 0x07) - 1900);
 }
 
