@@ -366,7 +366,7 @@ plat_pause(int p)
         ui_window_title(oldtitle);
     }
     discord_update_activity(dopause);
-    main_window->setUiPauseState(p);
+    QTimer::singleShot(0, main_window, &MainWindow::updateUiPauseState);
 
 #ifdef Q_OS_WINDOWS
     if (source_hwnd)
