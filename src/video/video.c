@@ -536,6 +536,19 @@ video_blend_monitor(int x, int y, int monitor_index)
 }
 
 void
+video_process_8_monitor(int x, int y, int monitor_index)
+{
+    int xx;
+
+    for (xx = 0; xx < x; xx++) {
+        if (monitors[monitor_index].target_buffer->line[y][xx] <= 0xff)
+            monitors[monitor_index].target_buffer->line[y][xx] = monitors[monitor_index].mon_pal_lookup[monitors[monitor_index].target_buffer->line[y][xx]];
+        else
+             monitors[monitor_index].target_buffer->line[y][xx] = 0x00000000;
+    }
+}
+
+void
 video_blit_memtoscreen_8_monitor(int x, int y, int w, int h, int monitor_index)
 {
     int yy, xx;
