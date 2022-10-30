@@ -1544,6 +1544,7 @@ void MainWindow::on_actionFullscreen_triggered() {
         ui->menubar->hide();
         ui->statusbar->hide();
         ui->toolBar->hide();
+        ui->stackedWidget->setFixedSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
         showFullScreen();
         if (vid_api == 5) QTimer::singleShot(0, this, [this] () { ui->stackedWidget->switchRenderer(RendererStack::Renderer::Direct3D9); });
     }
