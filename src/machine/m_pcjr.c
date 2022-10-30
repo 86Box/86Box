@@ -433,6 +433,9 @@ vid_poll(void *p)
         if (pcjr->composite) {
             Composite_Process(pcjr->array[0], 0, x >> 2, buffer32->line[(pcjr->displine << 1)]);
             Composite_Process(pcjr->array[0], 0, x >> 2, buffer32->line[(pcjr->displine << 1) + 1]);
+        } else {
+            video_process_8(x, pcjr->displine << 1);
+            video_process_8(x, (pcjr->displine << 1) + 1);
         }
         pcjr->sc = oldsc;
         if (pcjr->vc == pcjr->crtc[7] && !pcjr->sc) {
@@ -519,19 +522,11 @@ vid_poll(void *p)
                         }
 
                         if (enable_overscan) {
-                            if (pcjr->composite)
-                                video_blit_memtoscreen(0, (pcjr->firstline - 4) << 1,
-                                                       xsize, ((pcjr->lastline - pcjr->firstline) + 8) << 1);
-                            else
-                                video_blit_memtoscreen_8(0, (pcjr->firstline - 4) << 1,
-                                                         xsize, ((pcjr->lastline - pcjr->firstline) + 8) << 1);
+                            video_blit_memtoscreen(0, (pcjr->firstline - 4) << 1,
+                                                   xsize, ((pcjr->lastline - pcjr->firstline) + 8) << 1);
                         } else {
-                            if (pcjr->composite)
-                                video_blit_memtoscreen(8, pcjr->firstline << 1,
-                                                       xsize, (pcjr->lastline - pcjr->firstline) << 1);
-                            else
-                                video_blit_memtoscreen_8(8, pcjr->firstline << 1,
-                                                         xsize, (pcjr->lastline - pcjr->firstline) << 1);
+                            video_blit_memtoscreen(8, pcjr->firstline << 1,
+                                                   xsize, (pcjr->lastline - pcjr->firstline) << 1);
                         }
                     }
 
