@@ -349,16 +349,12 @@ ogc_poll(void *priv)
                     }
                 }
             } else {
-
                 /* ogc specific */
                 cols[0] = ((ogc->cga.cgamode & 0x12) == 0x12) ? 0 : (ogc->cga.cgacol & 15) + 16;
-                if (ogc->cga.cgamode & 1) {
-                    hline(buffer32, 0, (ogc->cga.displine << 1), ((ogc->cga.crtc[1] << 3) + 16) << 2, cols[0]);
-                    hline(buffer32, 0, (ogc->cga.displine << 1) + 1, ((ogc->cga.crtc[1] << 3) + 16) << 2, cols[0]);
-                } else {
-                    hline(buffer32, 0, (ogc->cga.displine << 1), ((ogc->cga.crtc[1] << 4) + 16) << 2, cols[0]);
-                    hline(buffer32, 0, (ogc->cga.displine << 1) + 1, ((ogc->cga.crtc[1] << 4) + 16) << 2, cols[0]);
-                }
+                if (ogc->cga.cgamode & 1)
+                    hline(buffer32, 0, ogc->cga.displine, ((ogc->cga.crtc[1] << 3) + 16) << 2, cols[0]);
+                else
+                    hline(buffer32, 0, ogc->cga.displine, ((ogc->cga.crtc[1] << 4) + 16) << 2, cols[0]);
             }
 
             /* 80 columns */
@@ -367,18 +363,7 @@ ogc_poll(void *priv)
             else
                 x = (ogc->cga.crtc[1] << 4) + 16;
 
-            if (ogc->cga.composite) {
-                if (ogc->cga.cgamode & 0x10)
-                    border = 0x00;
-                else
-                    border = ogc->cga.cgacol & 0x0f;
-
-                Composite_Process(ogc->cga.cgamode, border, x >> 2, buffer32->line[(ogc->cga.displine << 1)]);
-                Composite_Process(ogc->cga.cgamode, border, x >> 2, buffer32->line[(ogc->cga.displine << 1) + 1]);
-            } else {
-                video_process_8(x, ogc->cga.displine << 1);
-                video_process_8(x, (ogc->cga.displine << 1) + 1);
-            }
+            video_process_8(x, ogc->cga.displine);
 
             ogc->cga.sc = oldsc;
             if (ogc->cga.vc == ogc->cga.crtc[7] && !ogc->cga.sc)
