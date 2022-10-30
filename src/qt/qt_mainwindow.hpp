@@ -5,6 +5,8 @@
 #include <QLabel>
 #include <QEvent>
 #include <QFocusEvent>
+#include <QPainter>
+#include <QStatusBar>
 
 #include <memory>
 #include <array>
@@ -128,6 +130,15 @@ protected:
     void showEvent(QShowEvent* event) override;
     void closeEvent(QCloseEvent* event) override;
     void changeEvent(QEvent* event) override;
+    void paintEvent(QPaintEvent* event) override
+    {
+        QPainter painter(this);
+#if QT_VERSION >= QT_VERSION_CHECK(5, 14, 0)
+        painter.fillRect(0, 0, this->width(), this->height() - statusBar()->height(), QColorConstants::Black);
+#else
+        painter.fillRect(0, 0, this->width(), this->height() - statusBar()->height(), Qt::black);
+#endif
+    }
 
 private slots:
     void on_actionShow_non_primary_monitors_triggered();
