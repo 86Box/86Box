@@ -375,6 +375,9 @@ ogc_poll(void *priv)
 
                 Composite_Process(ogc->cga.cgamode, border, x >> 2, buffer32->line[(ogc->cga.displine << 1)]);
                 Composite_Process(ogc->cga.cgamode, border, x >> 2, buffer32->line[(ogc->cga.displine << 1) + 1]);
+            } else {
+                video_process_8(x, ogc->cga.displine << 1);
+                video_process_8(x, (ogc->cga.displine << 1) + 1);
             }
 
             ogc->cga.sc = oldsc;
@@ -478,19 +481,11 @@ ogc_poll(void *priv)
                                 }
                                 /* ogc specific */
                                 if (enable_overscan) {
-                                    if (ogc->cga.composite)
-                                        video_blit_memtoscreen(0, (ogc->cga.firstline - 8),
-                                                               xsize, (ogc->cga.lastline - ogc->cga.firstline) + 16);
-                                    else
-                                        video_blit_memtoscreen_8(0, (ogc->cga.firstline - 8),
-                                                                 xsize, (ogc->cga.lastline - ogc->cga.firstline) + 16);
+                                    video_blit_memtoscreen(0, (ogc->cga.firstline - 8),
+                                                           xsize, (ogc->cga.lastline - ogc->cga.firstline) + 16);
                                 } else {
-                                    if (ogc->cga.composite)
-                                        video_blit_memtoscreen(8, ogc->cga.firstline,
-                                                               xsize, (ogc->cga.lastline - ogc->cga.firstline));
-                                    else
-                                        video_blit_memtoscreen_8(8, ogc->cga.firstline,
-                                                                 xsize, (ogc->cga.lastline - ogc->cga.firstline));
+                                    video_blit_memtoscreen(8, ogc->cga.firstline,
+                                                           xsize, (ogc->cga.lastline - ogc->cga.firstline));
                                 }
                             }
                             frames++;
