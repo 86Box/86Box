@@ -177,7 +177,7 @@ BEGIN
         MENUITEM "&Recarregar imagem anterior",			IDM_CDROM_RELOAD
         MENUITEM SEPARATOR
         MENUITEM "&Imagem",					IDM_CDROM_IMAGE
-        MENUITEM "&Folder",					IDM_CDROM_DIR
+        MENUITEM "&Pasta",					IDM_CDROM_DIR
     END
 END
 
@@ -272,8 +272,8 @@ END
 
 #define STR_VIDEO		"Vídeo:"
 #define STR_VOODOO		"Gráficos Voodoo"
-#define STR_IBM8514		"IBM 8514/a Graphics"
-#define STR_XGA			"XGA Graphics"
+#define STR_IBM8514		"Gráficos IBM 8514/a"
+#define STR_XGA			"Gráficos XGA"
 
 #define STR_MOUSE		"Rato:"
 #define STR_JOYSTICK		"Joystick:"
@@ -283,16 +283,16 @@ END
 #define STR_JOY4		"Joystick 4..."
 
 #define STR_SOUND		"Placa de som:"
-#define STR_MIDI_OUT	"Disp. saída MIDI:"
+#define STR_MIDI_OUT		"Disp. saída MIDI:"
 #define STR_MIDI_IN		"Disp. entrada MIDI:"
 #define STR_MPU401		"MPU-401 autónomo"
 #define STR_SSI			"Innovation SSI-2001"
 #define STR_CMS			"CMS / Game Blaster"
 #define STR_GUS			"Gravis Ultrasound"
 #define STR_FLOAT		"Utilizar som FLOAT32"
-#define STR_FM_DRIVER		"FM synth driver"
-#define STR_FM_DRV_NUKED	"Nuked (more accurate)"
-#define STR_FM_DRV_YMFM		"YMFM (faster)"
+#define STR_FM_DRIVER		"Controlador de sint. FM"
+#define STR_FM_DRV_NUKED	"Nuked (mais exacto)"
+#define STR_FM_DRV_YMFM		"YMFM (mais rápido)"
 
 #define STR_NET_TYPE		"Tipo de rede:"
 #define STR_PCAP		"Dispositivo PCap:"
@@ -348,6 +348,7 @@ END
 #define STR_CHECKBPB		"Verificar BPB"
 #define STR_CDROM_DRIVES	"Unidades CD-ROM:"
 #define STR_CD_SPEED		"Velocidade:"
+#define STR_EARLY		"Unidade anterior"
 
 #define STR_MO_DRIVES		"Unidades magneto-ópticas:"
 #define STR_ZIP_DRIVES		"Unidades ZIP:"
@@ -507,15 +508,16 @@ BEGIN
     IDS_2149	"Imagens de cassete (*.PCM;*.RAW;*.WAV;*.CAS)\0*.PCM;*.RAW;*.WAV;*.CAS\0Todos os ficheiros (*.*)\0*.*\0"
     IDS_2150	"Cartucho %i: %ls"
     IDS_2151	"Imagens de cartucho (*.A;*.B;*.JRC)\0*.A;*.B;*.JRC\0Todos os ficheiros (*.*)\0*.*\0"
-    IDS_2152	"Error initializing renderer"
-    IDS_2153	"OpenGL (3.0 Core) renderer could not be initialized. Use another renderer."
-    IDS_2154	"Resume execution"
-    IDS_2155	"Pause execution"
-    IDS_2156	"Press Ctrl+Alt+Del"
-    IDS_2157	"Press Ctrl+Alt+Esc"
-    IDS_2158	"Hard reset"
-    IDS_2159	"ACPI shutdown"
-    IDS_2160	"Settings"
+    IDS_2152	"Erro na inicialização do renderizador"
+    IDS_2153	"Não foi possível inicializar o renderizador OpenGL (3.0 Core). Utilize outro renderizador."
+    IDS_2154	"Retomar execução"
+    IDS_2155	"Pausar execução"
+    IDS_2156	"Ctrl+Alt+Del"
+    IDS_2157	"Ctrl+Alt+Esc"
+    IDS_2158	"Reinicialização completa"
+    IDS_2159	"Encerramento ACPI"
+    IDS_2160	"Definições"
+    IDS_2161    "Unidade anterior"
 END
 
 STRINGTABLE DISCARDABLE 

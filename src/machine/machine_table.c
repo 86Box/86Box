@@ -1033,6 +1033,42 @@ const machine_t machines[] = {
         .net_device = NULL
     },
     {
+        .name = "[8088] Packard Bell PB8810",
+        .internal_name = "pb8810",
+        .type = MACHINE_TYPE_8088,
+        .chipset = MACHINE_CHIPSET_DISCRETE,
+        .init = machine_xt_pb8810_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_8088,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_PC,
+        .flags = MACHINE_FLAGS_NONE,
+        .ram = {
+            .min = 256,
+            .max = 640,
+            .step = 256
+        },
+        .nvrmask = 0,
+        .kbc = KBC_IBM_PC_XT,
+        .kbc_p1 = 0xff00,
+        .gpio = 0xffffffff,
+        .device = NULL,
+        .vid_device = NULL,
+        .snd_device = NULL,
+        .net_device = NULL
+    },
+    {
         .name = "[8088] Philips P3105/NMS9100",
         .internal_name = "p3105",
         .type = MACHINE_TYPE_8088,
@@ -1074,6 +1110,42 @@ const machine_t machines[] = {
         .type = MACHINE_TYPE_8088,
         .chipset = MACHINE_CHIPSET_DISCRETE,
         .init = machine_xt_pxxt_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_8088,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_PC,
+        .flags = MACHINE_FLAGS_NONE,
+        .ram = {
+            .min = 64,
+            .max = 640,
+            .step = 64
+        },
+        .nvrmask = 0,
+        .kbc = KBC_IBM_PC_XT,
+        .kbc_p1 = 0xff00,
+        .gpio = 0xffffffff,
+        .device = NULL,
+        .vid_device = NULL,
+        .snd_device = NULL,
+        .net_device = NULL
+    },
+    {
+        .name = "[8088] Pravetz 16 / IMKO-4",
+        .internal_name = "pravetz16",
+        .type = MACHINE_TYPE_8088,
+        .chipset = MACHINE_CHIPSET_DISCRETE,
+        .init = machine_xt_pravetz16_imko4_init,
         .pad = 0,
         .pad0 = 0,
         .pad1 = MACHINE_AVAILABLE,
@@ -1612,42 +1684,6 @@ const machine_t machines[] = {
         .net_device = NULL
     },
     {
-        .name = "[8088] Pravetz 16 / IMKO-4",
-        .internal_name = "pravetz16",
-        .type = MACHINE_TYPE_8088,
-        .chipset = MACHINE_CHIPSET_DISCRETE,
-        .init = machine_xt_pravetz16_imko4_init,
-        .pad = 0,
-        .pad0 = 0,
-        .pad1 = MACHINE_AVAILABLE,
-        .pad2 = 0,
-        .cpu = {
-            .package = CPU_PKG_8088,
-            .block = CPU_BLOCK_NONE,
-            .min_bus = 0,
-            .max_bus = 0,
-            .min_voltage = 0,
-            .max_voltage = 0,
-            .min_multi = 0,
-            .max_multi = 0
-        },
-        .bus_flags = MACHINE_PC,
-        .flags = MACHINE_FLAGS_NONE,
-        .ram = {
-            .min = 64,
-            .max = 640,
-            .step = 64
-        },
-        .nvrmask = 0,
-        .kbc = KBC_IBM_PC_XT,
-        .kbc_p1 = 0xff00,
-        .gpio = 0xffffffff,
-        .device = NULL,
-        .vid_device = NULL,
-        .snd_device = NULL,
-        .net_device = NULL
-    },
-    {
         .name = "[V20] PC-XT",
         .internal_name = "v20xt",
         .type = MACHINE_TYPE_8088,
@@ -1938,6 +1974,42 @@ const machine_t machines[] = {
         .net_device = NULL
     },
     {
+        .name = "[8086] Epson Equity LT",
+        .internal_name = "elt",
+        .type = MACHINE_TYPE_8086,
+        .chipset = MACHINE_CHIPSET_PROPRIETARY,
+        .init = machine_elt_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_8086,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_PC,
+        .flags = MACHINE_VIDEO,
+        .ram = {
+            .min = 640,
+            .max = 640,
+            .step = 640
+        },
+        .nvrmask = 0x3f,
+        .kbc = KBC_IBM_PC_XT,
+        .kbc_p1 = 0xff00,
+        .gpio = 0xffffffff,
+        .device = NULL,
+        .vid_device = NULL,
+        .snd_device = NULL,
+        .net_device = NULL
+    },
+    {
         .name = "[8086] Olivetti M21/24/24SP",
         .internal_name = "m24",
         .type = MACHINE_TYPE_8086,
@@ -1964,7 +2036,7 @@ const machine_t machines[] = {
             .max = 640,
             .step = 128
         },
-        .nvrmask = 0,
+        .nvrmask = 15,
         .kbc = KBC_OLIVETTI_XT,
         .kbc_p1 = 0xff00,
         .gpio = 0xffffffff,
@@ -2001,7 +2073,7 @@ const machine_t machines[] = {
             .max = 640,
             .step = 128
         },
-        .nvrmask = 0,
+        .nvrmask = 15,
         .kbc = KBC_OLIVETTI,
         .kbc_p1 = 0xff04,
         .gpio = 0xffffffff,
@@ -2083,42 +2155,6 @@ const machine_t machines[] = {
         .net_device = NULL
     },
     {
-        .name = "[8086] Victor V86P",
-        .internal_name = "v86p",
-        .type = MACHINE_TYPE_8086,
-        .chipset = MACHINE_CHIPSET_PROPRIETARY,
-        .init = machine_v86p_init,
-        .pad = 0,
-        .pad0 = 0,
-        .pad1 = MACHINE_AVAILABLE,
-        .pad2 = 0,
-        .cpu = {
-            .package = CPU_PKG_8086,
-            .block = CPU_BLOCK_NONE,
-            .min_bus = 0,
-            .max_bus = 0,
-            .min_voltage = 0,
-            .max_voltage = 0,
-            .min_multi = 0,
-            .max_multi = 0
-        },
-        .bus_flags = MACHINE_PC,
-        .flags = MACHINE_VIDEO | MACHINE_MFM,
-        .ram = {
-            .min = 512,
-            .max = 1024,
-            .step = 128
-        },
-        .nvrmask = 127,
-        .kbc = KBC_IBM_PC_XT,
-        .kbc_p1 = 0xff00,
-        .gpio = 0xffffffff,
-        .device = NULL,
-        .vid_device = NULL,
-        .snd_device = NULL,
-        .net_device = NULL
-    },
-    {
         .name = "[8086] Toshiba T1200",
         .internal_name = "t1200",
         .type = MACHINE_TYPE_8086,
@@ -2155,11 +2191,11 @@ const machine_t machines[] = {
         .net_device = NULL
     },
     {
-        .name = "[8086] Epson Equity LT",
-        .internal_name = "elt",
+        .name = "[8086] Victor V86P",
+        .internal_name = "v86p",
         .type = MACHINE_TYPE_8086,
         .chipset = MACHINE_CHIPSET_PROPRIETARY,
-        .init = machine_elt_init,
+        .init = machine_v86p_init,
         .pad = 0,
         .pad0 = 0,
         .pad1 = MACHINE_AVAILABLE,
@@ -2175,13 +2211,13 @@ const machine_t machines[] = {
             .max_multi = 0
         },
         .bus_flags = MACHINE_PC,
-        .flags = MACHINE_VIDEO,
+        .flags = MACHINE_VIDEO | MACHINE_MFM,
         .ram = {
-            .min = 640,
-            .max = 640,
-            .step = 640
+            .min = 512,
+            .max = 1024,
+            .step = 128
         },
-        .nvrmask = 0x3f,
+        .nvrmask = 127,
         .kbc = KBC_IBM_PC_XT,
         .kbc_p1 = 0xff00,
         .gpio = 0xffffffff,

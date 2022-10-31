@@ -57,7 +57,7 @@ vt82c686_fdc_handler(vt82c686_t *dev)
 
     fdc_remove(dev->fdc);
 
-    if (dev->regs[0x02] & 0x10)
+    if ((dev->regs[0x02] & 0x10) && !(dev->regs[0x0f] & 0x03))
         fdc_set_base(dev->fdc, io_base);
 
     fdc_set_dma_ch(dev->fdc, dev->fdc_dma);
@@ -77,7 +77,7 @@ vt82c686_lpt_handler(vt82c686_t *dev)
 
     lpt1_remove();
 
-    if (((dev->regs[0x02] & 0x03) != 0x03) && (io_base >= 0x100) && (io_base <= io_mask))
+    if (((dev->regs[0x02] & 0x03) != 0x03) && !(dev->regs[0x0f] & 0x11) && (io_base >= 0x100) && (io_base <= io_mask))
         lpt1_init(io_base);
 
     if (dev->lpt_irq) {
@@ -92,7 +92,7 @@ vt82c686_serial_handler(vt82c686_t *dev, int uart)
 {
     serial_remove(dev->uart[uart]);
 
-    if (dev->regs[0x02] & (0x04 << uart))
+    if ((dev->regs[0x02] & (0x04 << uart)) && !(dev->regs[0x0f] & ((0x04 << uart) | 0x01)))
         serial_setup(dev->uart[uart], dev->regs[0x07 + uart] << 2, dev->uart_irq[uart]);
 }
 
@@ -161,6 +161,10 @@ vt82c686_write(uint16_t port, uint8_t val, void *priv)
 
         case 0x0f:
             dev->regs[reg] &= 0x7f;
+            vt82c686_lpt_handler(dev);
+            vt82c686_serial_handler(dev, 0);
+            vt82c686_serial_handler(dev, 1);
+            vt82c686_fdc_handler(dev);
             break;
 
         case 0x10:
@@ -243,19 +247,12 @@ vt82c686_sio_write(uint8_t addr, uint8_t val, void *priv)
 static void
 vt82c686_reset(vt82c686_t *dev)
 {
-    memset(dev->regs, 0, 20);
+    memset(dev->regs, 0, 21);
 
     dev->regs[0x00] = 0x3c;
     dev->regs[0x02] = 0x03;
-    dev->regs[0x03] = 0xfc;
-    dev->regs[0x06] = 0xde;
-    dev->regs[0x07] = 0xfe;
-    dev->regs[0x08] = 0xbe;
 
     fdc_reset(dev->fdc);
-
-    serial_setup(dev->uart[0], COM1_ADDR, COM1_IRQ);
-    serial_setup(dev->uart[1], COM2_ADDR, COM2_IRQ);
 
     vt82c686_lpt_handler(dev);
     vt82c686_serial_handler(dev, 0);

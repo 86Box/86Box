@@ -194,27 +194,23 @@ exec386(int cycs)
 #endif
                     }
                 }
+            } else if (trap) {
+                flags_rebuild();
+		trap = 0;
+#ifndef USE_NEW_DYNAREC
+		oldcs = CS;
+#endif
+		cpu_state.oldpc = cpu_state.pc;
+		dr[6] |= 0x4000;
+		x86_int(1);
             }
 
             if (smi_line)
                 enter_smm_check(0);
-            else if (trap) {
-                flags_rebuild();
-                dr[6] |= 0x4000;
-                if (msw & 1)
-                    pmodeint(1, 0);
-                else {
-                    writememw(ss, (SP - 2) & 0xFFFF, cpu_state.flags);
-                    writememw(ss, (SP - 4) & 0xFFFF, CS);
-                    writememw(ss, (SP - 6) & 0xFFFF, cpu_state.pc);
-                    SP -= 6;
-                    addr = (1 << 2) + idt.base;
-                    cpu_state.flags &= ~I_FLAG;
-                    cpu_state.flags &= ~T_FLAG;
-                    cpu_state.pc = readmemw(0, addr);
-                    loadcs(readmemw(0, addr + 2));
-                }
-            } else if (nmi && nmi_enable && nmi_mask) {
+            else if (nmi && nmi_enable && nmi_mask) {
+#ifndef USE_NEW_DYNAREC
+		oldcs = CS;
+#endif
                 cpu_state.oldpc = cpu_state.pc;
                 x86_int(2);
                 nmi_enable = 0;

@@ -1,22 +1,22 @@
 /*
  * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Definitions for the video controller module.
+ *          Definitions for the video controller module.
  *
  *
  *
- * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
- *		Miran Grca, <mgrca8@gmail.com>
- *		Fred N. van Kempen, <decwiz@yahoo.com>
+ * Authors: Sarah Walker, <http://pcem-emulator.co.uk/>
+ *          Miran Grca, <mgrca8@gmail.com>
+ *          Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 2008-2019 Sarah Walker.
- *		Copyright 2016-2019 Miran Grca.
- *		Copyright 2017-2019 Fred N. van Kempen.
+ *          Copyright 2008-2019 Sarah Walker.
+ *          Copyright 2016-2019 Miran Grca.
+ *          Copyright 2017-2019 Fred N. van Kempen.
  */
 
 #ifndef EMU_VIDEO_H
@@ -227,7 +227,7 @@ extern void video_setblit(void (*blit)(int, int, int, int, int));
 extern void video_blend(int x, int y);
 extern void video_blit_memtoscreen_8(int x, int y, int w, int h);
 extern void video_blend_monitor(int x, int y, int monitor_index);
-extern void video_blit_memtoscreen_8_monitor(int x, int y, int w, int h, int monitor_index);
+extern void video_process_8_monitor(int x, int y, int monitor_index);
 extern void video_blit_memtoscreen_monitor(int x, int y, int w, int h, int monitor_index);
 extern void video_blit_complete_monitor(int monitor_index);
 extern void video_wait_for_blit_monitor(int monitor_index);
@@ -262,7 +262,7 @@ extern uint32_t video_color_transform(uint32_t color);
 #define video_get_type()                      video_get_type_monitor(0)
 #define video_blend(x, y)                     video_blend_monitor(x, y, monitor_index_global)
 #define video_blit_memtoscreen(x, y, w, h)    video_blit_memtoscreen_monitor(x, y, w, h, monitor_index_global)
-#define video_blit_memtoscreen_8(x, y, w, h)  video_blit_memtoscreen_8_monitor(x, y, w, h, monitor_index_global)
+#define video_process_8(x, y)                 video_process_8_monitor(x, y, monitor_index_global)
 #define video_blit_complete()                 video_blit_complete_monitor(monitor_index_global)
 #define video_wait_for_blit()                 video_wait_for_blit_monitor(monitor_index_global)
 #define video_wait_for_buffer()               video_wait_for_buffer_monitor(monitor_index_global)

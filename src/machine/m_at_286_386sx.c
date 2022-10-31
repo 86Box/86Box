@@ -37,6 +37,7 @@
 #include <86box/fdc.h>
 #include <86box/fdc_ext.h>
 #include <86box/hdc.h>
+#include <86box/nvr.h>
 #include <86box/port_6x.h>
 #include <86box/sio.h>
 #include <86box/serial.h>
@@ -493,7 +494,8 @@ machine_at_adi386sx_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_at_common_init(model);
+    machine_at_common_init_ex(model, 2);
+    device_add(&amstrad_megapc_nvr_device); /* NVR that is initialized to all 0x00's. */
 
     device_add(&intel_82335_device);
     device_add(&keyboard_at_ami_device);

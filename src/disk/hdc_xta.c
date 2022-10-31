@@ -1,76 +1,74 @@
 /*
- * VARCem	Virtual ARchaeological Computer EMulator.
- *		An emulator of (mostly) x86-based PC systems and devices,
- *		using the ISA,EISA,VLB,MCA  and PCI system buses, roughly
- *		spanning the era between 1981 and 1995.
+ * VARCem   Virtual ARchaeological Computer EMulator.
+ *          An emulator of (mostly) x86-based PC systems and devices,
+ *          using the ISA,EISA,VLB,MCA  and PCI system buses, roughly
+ *          spanning the era between 1981 and 1995.
  *
- *		This file is part of the VARCem Project.
+ *          Implementation of a generic IDE-XTA disk controller.
  *
- *		Implementation of a generic IDE-XTA disk controller.
+ *          XTA is the acronym for 'XT-Attached', which was basically
+ *          the XT-counterpart to what we know now as IDE (which is
+ *          also named ATA - AT Attachment.)  The basic ideas was to
+ *          put the actual drive controller electronics onto the drive
+ *          itself, and have the host machine just talk to that using
+ *          a simpe, standardized I/O path- hence the name IDE, for
+ *          Integrated Drive Electronics.
  *
- *		XTA is the acronym for 'XT-Attached', which was basically
- *		the XT-counterpart to what we know now as IDE (which is
- *		also named ATA - AT Attachment.)  The basic ideas was to
- *		put the actual drive controller electronics onto the drive
- *		itself, and have the host machine just talk to that using
- *		a simpe, standardized I/O path- hence the name IDE, for
- *		Integrated Drive Electronics.
+ *          In the ATA version of IDE, the programming interface of
+ *          the IBM PC/AT (which used the Western Digitial 1002/1003
+ *          controllers) was kept, and, so, ATA-IDE assumes a 16bit
+ *          data path: it reads and writes 16bit words of data. The
+ *          disk drives for this bus commonly have an 'A' suffix to
+ *          identify them as 'ATBUS'.
  *
- *		In the ATA version of IDE, the programming interface of
- *		the IBM PC/AT (which used the Western Digitial 1002/1003
- *		controllers) was kept, and, so, ATA-IDE assumes a 16bit
- *		data path: it reads and writes 16bit words of data. The
- *		disk drives for this bus commonly have an 'A' suffix to
- *		identify them as 'ATBUS'.
+ *          In XTA-IDE, which is slightly older, the programming
+ *          interface of the IBM PC/XT (which used the MFM controller
+ *          from Xebec) was kept, and, so, it uses an 8bit data path.
+ *          Disk drives for this bus commonly have the 'X' suffix to
+ *          mark them as being for this XTBUS variant.
  *
- *		In XTA-IDE, which is slightly older, the programming
- *		interface of the IBM PC/XT (which used the MFM controller
- *		from Xebec) was kept, and, so, it uses an 8bit data path.
- *		Disk drives for this bus commonly have the 'X' suffix to
- *		mark them as being for this XTBUS variant.
+ *          So, XTA and ATA try to do the same thing, but they use
+ *          different ways to achive their goal.
  *
- *		So, XTA and ATA try to do the same thing, but they use
- *		different ways to achive their goal.
+ *          Also, XTA is **not** the same as XTIDE.  XTIDE is a modern
+ *          variant of ATA-IDE, but retro-fitted for use on 8bit XT
+ *          systems: an extra register is used to deal with the extra
+ *          data byte per transfer.  XTIDE uses regular IDE drives,
+ *          and uses the regular ATA/IDE programming interface, just
+ *          with the extra register.
  *
- *		Also, XTA is **not** the same as XTIDE.  XTIDE is a modern
- *		variant of ATA-IDE, but retro-fitted for use on 8bit XT
- *		systems: an extra register is used to deal with the extra
- *		data byte per transfer.  XTIDE uses regular IDE drives,
- *		and uses the regular ATA/IDE programming interface, just
- *		with the extra register.
+ * NOTE:    This driver implements both the 'standard' XTA interface,
+ *          sold by Western Digital as the WDXT-140 (no BIOS) and the
+ *          WDXT-150 (with BIOS), as well as some variants customized
+ *          for specific machines.
  *
- * NOTE:	This driver implements both the 'standard' XTA interface,
- *		sold by Western Digital as the WDXT-140 (no BIOS) and the
- *		WDXT-150 (with BIOS), as well as some variants customized
- *		for specific machines.
- *
- * NOTE:	The XTA interface is 0-based for sector numbers !!
+ * NOTE:    The XTA interface is 0-based for sector numbers !!
  *
  *
  *
- * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
+ * Authors: Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Based on my earlier HD20 driver for the EuroPC.
+ *          Based on my earlier HD20 driver for the EuroPC.
  *
- *		Copyright 2017,2018 Fred N. van Kempen.
+ *          Copyright 2017,2018 Fred N. van Kempen.
  *
- *		Redistribution and  use  in source  and binary forms, with
- *		or  without modification, are permitted  provided that the
- *		following conditions are met:
+ *          Redistribution and  use  in source  and binary forms, with
+ *          or  without modification, are permitted  provided that the
+ *          following conditions are met:
  *
- *		1. Redistributions of  source  code must retain the entire
- *		   above notice, this list of conditions and the following
- *		   disclaimer.
+ *          1. Redistributions of  source  code must retain the entire
+ *             above notice, this list of conditions and the following
+ *             disclaimer.
  *
- *		2. Redistributions in binary form must reproduce the above
- *		   copyright  notice,  this list  of  conditions  and  the
- *		   following disclaimer in  the documentation and/or other
- *		   materials provided with the distribution.
+ *          2. Redistributions in binary form must reproduce the above
+ *             copyright  notice,  this list  of  conditions  and  the
+ *             following disclaimer in  the documentation and/or other
+ *             materials provided with the distribution.
  *
- *		3. Neither the  name of the copyright holder nor the names
- *		   of  its  contributors may be used to endorse or promote
- *		   products  derived from  this  software without specific
- *		   prior written permission.
+ *          3. Neither the  name of the copyright holder nor the names
+ *             of  its  contributors may be used to endorse or promote
+ *             products  derived from  this  software without specific
+ *             prior written permission.
  *
  * THIS SOFTWARE  IS  PROVIDED BY THE  COPYRIGHT  HOLDERS AND CONTRIBUTORS
  * "AS IS" AND  ANY EXPRESS  OR  IMPLIED  WARRANTIES,  INCLUDING, BUT  NOT
@@ -122,14 +120,14 @@ enum {
 /* Command values. */
 #define CMD_TEST_READY  0x00
 #define CMD_RECALIBRATE 0x01
-/* unused 	0x02 */
+/* unused     0x02 */
 #define CMD_READ_SENSE       0x03
 #define CMD_FORMAT_DRIVE     0x04
 #define CMD_READ_VERIFY      0x05
 #define CMD_FORMAT_TRACK     0x06
 #define CMD_FORMAT_BAD_TRACK 0x07
 #define CMD_READ_SECTORS     0x08
-/* unused	0x09 */
+/* unused    0x09 */
 #define CMD_WRITE_SECTORS       0x0a
 #define CMD_SEEK                0x0b
 #define CMD_SET_DRIVE_PARAMS    0x0c
@@ -137,8 +135,8 @@ enum {
 #define CMD_READ_SECTOR_BUFFER  0x0e
 #define CMD_WRITE_SECTOR_BUFFER 0x0f
 #define CMD_RAM_DIAGS           0xe0
-/* unused	0xe1 */
-/* unused	0xe2 */
+/* unused    0xe1 */
+/* unused    0xe2 */
 #define CMD_DRIVE_DIAGS 0xe3
 #define CMD_CTRL_DIAGS  0xe4
 #define CMD_READ_LONG   0xe5
@@ -184,20 +182,20 @@ enum {
 /* The device control block (6 bytes) */
 #pragma pack(push, 1)
 typedef struct {
-    uint8_t cmd; /* [7:5] class, [4:0] opcode	*/
+    uint8_t cmd; /* [7:5] class, [4:0] opcode    */
 
-    uint8_t head   : 5, /* [4:0] head number		*/
-        drvsel     : 1, /* [5] drive select		*/
-        mbz        : 2; /* [7:6] 00			*/
+    uint8_t head   : 5, /* [4:0] head number        */
+        drvsel     : 1, /* [5] drive select        */
+        mbz        : 2; /* [7:6] 00            */
 
-    uint8_t sector : 6, /* [5:0] sector number 0-63	*/
-        cyl_high   : 2; /* [7:6] cylinder [9:8] bits	*/
+    uint8_t sector : 6, /* [5:0] sector number 0-63    */
+        cyl_high   : 2; /* [7:6] cylinder [9:8] bits    */
 
-    uint8_t cyl_low; /* [7:0] cylinder [7:0] bits	*/
+    uint8_t cyl_low; /* [7:0] cylinder [7:0] bits    */
 
-    uint8_t count; /* [7:0] blk count / interleave	*/
+    uint8_t count; /* [7:0] blk count / interleave    */
 
-    uint8_t ctrl; /* [7:0] control field		*/
+    uint8_t ctrl; /* [7:0] control field        */
 } dcb_t;
 #pragma pack(pop)
 
@@ -246,8 +244,8 @@ typedef struct {
 
     /* Controller state. */
     int8_t     state;  /* controller state */
-    uint8_t    sense;  /* current SENSE ERROR value	*/
-    uint8_t    status; /* current operational status	*/
+    uint8_t    sense;  /* current SENSE ERROR value    */
+    uint8_t    status; /* current operational status    */
     uint8_t    intr;
     uint64_t   callback;
     pc_timer_t timer;

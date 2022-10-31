@@ -177,7 +177,7 @@ BEGIN
         MENUITEM "&Снова загрузить предыдущий образ",			IDM_CDROM_RELOAD
         MENUITEM SEPARATOR
         MENUITEM "&Образ...",					IDM_CDROM_IMAGE
-        MENUITEM "&Folder",					IDM_CDROM_DIR
+        MENUITEM "&Папка",					IDM_CDROM_DIR
     END
 END
 
@@ -272,8 +272,8 @@ END
 
 #define STR_VIDEO		"Видеокарта:"
 #define STR_VOODOO		"Ускоритель Voodoo"
-#define STR_IBM8514		"IBM 8514/a Graphics"
-#define STR_XGA			"XGA Graphics"
+#define STR_IBM8514		"Ускоритель IBM 8514/a"
+#define STR_XGA			"Ускоритель XGA"
 
 #define STR_MOUSE		"Мышь:"
 #define STR_JOYSTICK		"Джойстик:"
@@ -283,16 +283,16 @@ END
 #define STR_JOY4		"Джойстик 4..."
 
 #define STR_SOUND		"Звуковая карта:"
-#define STR_MIDI_OUT	"MIDI Out устр-во:"
+#define STR_MIDI_OUT		"MIDI Out устр-во:"
 #define STR_MIDI_IN		"MIDI In устр-во:"
 #define STR_MPU401		"Отдельный MPU-401"
 #define STR_SSI			"Innovation SSI-2001"
 #define STR_CMS			"CMS / Game Blaster"
 #define STR_GUS			"Gravis Ultrasound"
 #define STR_FLOAT		"FLOAT32 звук"
-#define STR_FM_DRIVER		"FM synth driver"
-#define STR_FM_DRV_NUKED	"Nuked (more accurate)"
-#define STR_FM_DRV_YMFM		"YMFM (faster)"
+#define STR_FM_DRIVER		"Драйвер FM-синтезатора"
+#define STR_FM_DRV_NUKED	"Nuked (более точный)"
+#define STR_FM_DRV_YMFM		"YMFM (быстрей)"
 
 #define STR_NET_TYPE		"Тип сети:"
 #define STR_PCAP		"Устройство PCap:"
@@ -348,6 +348,7 @@ END
 #define STR_CHECKBPB		"Проверять BPB"
 #define STR_CDROM_DRIVES	"Дисководы CD-ROM:"
 #define STR_CD_SPEED		"Скорость:"
+#define STR_EARLY		"Предыдущий дисковод"
 
 #define STR_MO_DRIVES		"Магнитооптические дисководы:"
 #define STR_ZIP_DRIVES		"ZIP дисководы:"
@@ -516,6 +517,7 @@ BEGIN
     IDS_2158	"Холодная перезагрузка"
     IDS_2159	"Сигнал завершения ACPI"
     IDS_2160	"Настройки машины"
+    IDS_2161    "Предыдущий дисковод"
 END
 
 STRINGTABLE DISCARDABLE 
