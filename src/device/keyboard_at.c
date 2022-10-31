@@ -19,7 +19,6 @@
  *		Copyright 2016-2020 Miran Grca.
  *		Copyright 2017-2020 Fred N. van Kempen.
  *		Copyright 2020 EngiNerd.
- */
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -32,6 +31,7 @@
 #include <86box/timer.h>
 #include <86box/io.h>
 #include <86box/pic.h>
+ */
 #include <86box/pit.h>
 #include <86box/ppi.h>
 #include <86box/mem.h>
@@ -1821,8 +1821,54 @@ add_data_kbd(uint16_t val)
     shift_states = keyboard_get_shift() & STATE_SHIFT_MASK;
 
     /* Test for T3100E 'Fn' key (Right Alt / Right Ctrl) */
-    if ((dev != NULL) && (kbc_ven == KBC_VEN_TOSHIBA) && (keyboard_recv(0xb8) || keyboard_recv(0x9d)) && (val >= 0x4f) && (val <= 0x54) && (val != 0x4e))
-        t3100e_notify_set((val + 2) & 0x0f);
+    if ((dev != NULL) && (kbc_ven == KBC_VEN_TOSHIBA) && (keyboard_recv(0x138) || keyboard_recv(0x11d)))
+        switch (val) {
+            case 0x4f:
+                t3100e_notify_set(0x01);
+                break; /* End */
+            case 0x50:
+                t3100e_notify_set(0x02);
+                break; /* Down */
+            case 0x51:
+                t3100e_notify_set(0x03);
+                break; /* PgDn */
+            case 0x52:
+                t3100e_notify_set(0x04);
+                break; /* Ins */
+            case 0x53:
+                t3100e_notify_set(0x05);
+                break; /* Del */
+            case 0x54:
+                t3100e_notify_set(0x06);
+                break; /* SysRQ */
+            case 0x45:
+                t3100e_notify_set(0x07);
+                break; /* NumLock */
+            case 0x46:
+                t3100e_notify_set(0x08);
+                break; /* ScrLock */
+            case 0x47:
+                t3100e_notify_set(0x09);
+                break; /* Home */
+            case 0x48:
+                t3100e_notify_set(0x0a);
+                break; /* Up */
+            case 0x49:
+                t3100e_notify_set(0x0b);
+                break; /* PgUp */
+            case 0x4A:
+                t3100e_notify_set(0x0c);
+                break; /* Keypad -*/
+            case 0x4B:
+                t3100e_notify_set(0x0d);
+                break; /* Left */
+            case 0x4C:
+                t3100e_notify_set(0x0e);
+                break; /* KP 5 */
+            case 0x4D:
+                t3100e_notify_set(0x0f);
+                break; /* Right */
+        }
 
     switch (val) {
         case FAKE_LSHIFT_ON:

@@ -243,7 +243,8 @@ compaq_cga_poll(void *p)
                 Composite_Process(self->cga.cgamode & 0x7f, border, x >> 2, buffer32->line[self->cga.displine]);
             else
                 Composite_Process(self->cga.cgamode, border, x >> 2, buffer32->line[self->cga.displine]);
-        }
+        } else
+            video_process_8(x, self->cga.displine);
 
         self->cga.sc = oldsc;
         if (self->cga.vc == self->cga.crtc[7] && !self->cga.sc)
@@ -338,17 +339,10 @@ compaq_cga_poll(void *p)
                                 video_force_resize_set(0);
                         }
 
-                        if (enable_overscan) {
-                            if (self->cga.composite)
-                                video_blit_memtoscreen(0, self->cga.firstline - 8, xsize, (self->cga.lastline - self->cga.firstline) + 16);
-                            else
-                                video_blit_memtoscreen_8(0, self->cga.firstline - 8, xsize, (self->cga.lastline - self->cga.firstline) + 16);
-                        } else {
-                            if (self->cga.composite)
-                                video_blit_memtoscreen(8, self->cga.firstline, xsize, self->cga.lastline - self->cga.firstline);
-                            else
-                                video_blit_memtoscreen_8(8, self->cga.firstline, xsize, self->cga.lastline - self->cga.firstline);
-                        }
+                        if (enable_overscan)
+                            video_blit_memtoscreen(0, self->cga.firstline - 8, xsize, (self->cga.lastline - self->cga.firstline) + 16);
+                        else
+                            video_blit_memtoscreen(8, self->cga.firstline, xsize, self->cga.lastline - self->cga.firstline);
                     }
 
                     frames++;

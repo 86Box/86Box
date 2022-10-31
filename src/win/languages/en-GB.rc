@@ -348,6 +348,7 @@ END
 #define STR_CHECKBPB		"Check BPB"
 #define STR_CDROM_DRIVES	"CD-ROM drives:"
 #define STR_CD_SPEED		"Speed:"
+#define STR_EARLY		"Earlier drive"
 
 #define STR_MO_DRIVES		"MO drives:"
 #define STR_ZIP_DRIVES		"ZIP drives:"
@@ -516,6 +517,7 @@ BEGIN
     IDS_2158	"Hard reset"
     IDS_2159	"ACPI shutdown"
     IDS_2160	"Settings"
+    IDS_2161    "Earlier drive"
 END
 
 STRINGTABLE DISCARDABLE 

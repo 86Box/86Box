@@ -785,6 +785,7 @@ wy700_poll(void *p)
                     break;
             }
         }
+        video_process_8(WY700_XSIZE, wy700->displine);
         wy700->displine++;
         /* Hardcode a fixed refresh rate and VSYNC timing */
         if (wy700->displine == 800) /* Start of VSYNC */
@@ -820,7 +821,7 @@ wy700_poll(void *p)
                 if (video_force_resize_get())
                     video_force_resize_set(0);
             }
-            video_blit_memtoscreen_8(0, 0, xsize, ysize);
+            video_blit_memtoscreen(0, 0, xsize, ysize);
 
             frames++;
             /* Fixed 1280x800 resolution */

@@ -1,22 +1,22 @@
 /*
- * VARCem	Virtual ARchaeological Computer EMulator.
- *		An emulator of (mostly) x86-based PC systems and devices,
- *		using the ISA,EISA,VLB,MCA  and PCI system buses, roughly
- *		spanning the era between 1981 and 1995.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the VARCem Project.
+ *          This file is part of the 86Box distribution.
  *
- *		Dynamic Recompiler for Intel 32-bit systems.
+ *          Dynamic Recompiler for Intel 32-bit systems.
  *
  *
  *
- * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
- *		Sarah Walker, <tommowalker@tommowalker.co.uk>
- *		Miran Grca, <mgrca8@gmail.com>
+ * Authors: Fred N. van Kempen, <decwiz@yahoo.com>
+ *          Sarah Walker, <tommowalker@tommowalker.co.uk>
+ *          Miran Grca, <mgrca8@gmail.com>
  *
- *		Copyright 2018 Fred N. van Kempen.
- *		Copyright 2008-2018 Sarah Walker.
- *		Copyright 2016-2018 Miran Grca.
+ *          Copyright 2018 Fred N. van Kempen.
+ *          Copyright 2008-2018 Sarah Walker.
+ *          Copyright 2016-2018 Miran Grca.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -1402,7 +1402,7 @@ void codegen_block_init(uint32_t phys_addr)
         block_num = HASH(phys_addr);
         codeblock_hash[block_num] = &codeblock[block_current];
 
-	block->valid = 1;
+    block->valid = 1;
         block->ins = 0;
         block->pc = cs + cpu_state.pc;
         block->_cs = cs;
@@ -1452,14 +1452,14 @@ void codegen_block_start_recompile(codeblock_t *block)
         addbyte(0xe8); /*CALL x86gpf*/
         addlong((uint32_t)x86gpf - (uint32_t)(&codeblock[block_current].data[block_pos + 4]));
 #else
-	addbyte(0xc6);	/* mov byte ptr[&(cpu_state.abrt)],ABRT_GPF */
-	addbyte(0x05);
-	addlong((uint32_t) (uintptr_t) &(cpu_state.abrt));
-	addbyte(ABRT_GPF);
-	addbyte(0x31);	/* xor eax,eax */
-	addbyte(0xc0);
-	addbyte(0xa3);	/* mov [&(abrt_error)],eax */
-	addlong((uint32_t) (uintptr_t) &(abrt_error));
+    addbyte(0xc6);    /* mov byte ptr[&(cpu_state.abrt)],ABRT_GPF */
+    addbyte(0x05);
+    addlong((uint32_t) (uintptr_t) &(cpu_state.abrt));
+    addbyte(ABRT_GPF);
+    addbyte(0x31);    /* xor eax,eax */
+    addbyte(0xc0);
+    addbyte(0xa3);    /* mov [&(abrt_error)],eax */
+    addlong((uint32_t) (uintptr_t) &(abrt_error));
 #endif
         block_pos = BLOCK_EXIT_OFFSET; /*Exit code*/
         addbyte(0x83); /*ADDL $16,%esp*/
@@ -2036,8 +2036,8 @@ generate_call:
                   then reverse it for subsequent instructions if the jump is not taken*/
                 int jump_cycles = 0;
 
-		if (codegen_timing_jump_cycles != NULL)
-			jump_cycles = codegen_timing_jump_cycles();
+        if (codegen_timing_jump_cycles != NULL)
+            jump_cycles = codegen_timing_jump_cycles();
 
                 if (jump_cycles)
                         codegen_accumulate(ACCREG_cycles, -jump_cycles);
@@ -2066,13 +2066,13 @@ generate_call:
                         codegen_endpc = (cs + cpu_state.pc) + 8;
 
 #ifdef CHECK_INT
-			/* Check for interrupts. */
-			addbyte(0xf6);	/* test byte ptr[&pic_pending],1 */
-			addbyte(0x05);
-			addlong((uint32_t) (uintptr_t) &pic_pending);
-			addbyte(0x01);
-			addbyte(0x0F); addbyte(0x85); /*JNZ 0*/
-			addlong((uint32_t)&block->data[BLOCK_EXIT_OFFSET] - (uint32_t)(&block->data[block_pos + 4]));
+            /* Check for interrupts. */
+            addbyte(0xf6);    /* test byte ptr[&pic_pending],1 */
+            addbyte(0x05);
+            addlong((uint32_t) (uintptr_t) &pic_pending);
+            addbyte(0x01);
+            addbyte(0x0F); addbyte(0x85); /*JNZ 0*/
+            addlong((uint32_t)&block->data[BLOCK_EXIT_OFFSET] - (uint32_t)(&block->data[block_pos + 4]));
 #endif
 
                         return;
@@ -2087,7 +2087,7 @@ generate_call:
                 addbyte(0xC6); /*MOVB [ssegs],op_ssegs*/
                 addbyte(0x45);
                 addbyte((uint8_t)cpu_state_offset(ssegs));
-               	addbyte(op_pc + pc_off);
+                   addbyte(op_pc + pc_off);
         }
 
         if (!test_modrm ||
@@ -2130,7 +2130,7 @@ generate_call:
         addbyte(0xC7); /*MOVL pc,new_pc*/
         addbyte(0x45);
         addbyte((uint8_t)cpu_state_offset(pc));
-	addlong(op_pc + pc_off);
+    addlong(op_pc + pc_off);
 
         addbyte(0xC7); /*MOVL $old_pc,(oldpc)*/
         addbyte(0x45);
@@ -2159,10 +2159,10 @@ generate_call:
         block->ins++;
 
 #ifdef CHECK_INT
-	/* Check for interrupts. */
-	addbyte(0x0a);	/* or  al,byte ptr[&pic_pending] */
-	addbyte(0x05);
-	addlong((uint32_t) (uintptr_t) &pic_pending);
+    /* Check for interrupts. */
+    addbyte(0x0a);    /* or  al,byte ptr[&pic_pending] */
+    addbyte(0x05);
+    addlong((uint32_t) (uintptr_t) &pic_pending);
 #endif
 
         addbyte(0x09); /*OR %eax, %eax*/

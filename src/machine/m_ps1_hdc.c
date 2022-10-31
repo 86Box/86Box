@@ -1,74 +1,72 @@
 /*
- * VARCem	Virtual ARchaeological Computer EMulator.
- *		An emulator of (mostly) x86-based PC systems and devices,
- *		using the ISA,EISA,VLB,MCA  and PCI system buses, roughly
- *		spanning the era between 1981 and 1995.
+ * VARCem   Virtual ARchaeological Computer EMulator.
+ *          An emulator of (mostly) x86-based PC systems and devices,
+ *          using the ISA,EISA,VLB,MCA  and PCI system buses, roughly
+ *          spanning the era between 1981 and 1995.
  *
- *		This file is part of the VARCem Project.
+ *          Implementation of the PS/1 Model 2011 disk controller.
  *
- *		Implementation of the PS/1 Model 2011 disk controller.
+ *          XTA is the acronym for 'XT-Attached', which was basically
+ *          the XT-counterpart to what we know now as IDE (which is
+ *          also named ATA - AT Attachment.)  The basic ideas was to
+ *          put the actual drive controller electronics onto the drive
+ *          itself, and have the host machine just talk to that using
+ *          a simpe, standardized I/O path- hence the name IDE, for
+ *          Integrated Drive Electronics.
  *
- *		XTA is the acronym for 'XT-Attached', which was basically
- *		the XT-counterpart to what we know now as IDE (which is
- *		also named ATA - AT Attachment.)  The basic ideas was to
- *		put the actual drive controller electronics onto the drive
- *		itself, and have the host machine just talk to that using
- *		a simpe, standardized I/O path- hence the name IDE, for
- *		Integrated Drive Electronics.
+ *          In the ATA version of IDE, the programming interface of
+ *          the IBM PC/AT (which used the Western Digitial 1002/1003
+ *          controllers) was kept, and, so, ATA-IDE assumes a 16bit
+ *          data path: it reads and writes 16bit words of data. The
+ *          disk drives for this bus commonly have an 'A' suffix to
+ *          identify them as 'ATBUS'.
  *
- *		In the ATA version of IDE, the programming interface of
- *		the IBM PC/AT (which used the Western Digitial 1002/1003
- *		controllers) was kept, and, so, ATA-IDE assumes a 16bit
- *		data path: it reads and writes 16bit words of data. The
- *		disk drives for this bus commonly have an 'A' suffix to
- *		identify them as 'ATBUS'.
+ *          In XTA-IDE, which is slightly older, the programming
+ *          interface of the IBM PC/XT (which used the MFM controller
+ *          from Xebec) was kept, and, so, it uses an 8bit data path.
+ *          Disk drives for this bus commonly have the 'X' suffix to
+ *          mark them as being for this XTBUS variant.
  *
- *		In XTA-IDE, which is slightly older, the programming
- *		interface of the IBM PC/XT (which used the MFM controller
- *		from Xebec) was kept, and, so, it uses an 8bit data path.
- *		Disk drives for this bus commonly have the 'X' suffix to
- *		mark them as being for this XTBUS variant.
+ *          So, XTA and ATA try to do the same thing, but they use
+ *          different ways to achive their goal.
  *
- *		So, XTA and ATA try to do the same thing, but they use
- *		different ways to achive their goal.
+ *          Also, XTA is **not** the same as XTIDE.  XTIDE is a modern
+ *          variant of ATA-IDE, but retro-fitted for use on 8bit XT
+ *          systems: an extra register is used to deal with the extra
+ *          data byte per transfer.  XTIDE uses regular IDE drives,
+ *          and uses the regular ATA/IDE programming interface, just
+ *          with the extra register.
  *
- *		Also, XTA is **not** the same as XTIDE.  XTIDE is a modern
- *		variant of ATA-IDE, but retro-fitted for use on 8bit XT
- *		systems: an extra register is used to deal with the extra
- *		data byte per transfer.  XTIDE uses regular IDE drives,
- *		and uses the regular ATA/IDE programming interface, just
- *		with the extra register.
- *
- * NOTE:	We should probably find a nicer way to integrate our Disk
- *		Type table with the main code, so the user can only select
- *		items from that list...
+ * NOTE:    We should probably find a nicer way to integrate our Disk
+ *          Type table with the main code, so the user can only select
+ *          items from that list...
  *
  *
  *
- * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
+ * Authors: Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Based on my earlier HD20 driver for the EuroPC.
- *		Thanks to Marco Bortolin for the help and feedback !!
+ *          Based on my earlier HD20 driver for the EuroPC.
+ *          Thanks to Marco Bortolin for the help and feedback !!
  *
- *		Copyright 2017-2019 Fred N. van Kempen.
+ *          Copyright 2017-2019 Fred N. van Kempen.
  *
- *		Redistribution and  use  in source  and binary forms, with
- *		or  without modification, are permitted  provided that the
- *		following conditions are met:
+ *          Redistribution and  use  in source  and binary forms, with
+ *          or  without modification, are permitted  provided that the
+ *          following conditions are met:
  *
- *		1. Redistributions of  source  code must retain the entire
- *		   above notice, this list of conditions and the following
- *		   disclaimer.
+ *          1. Redistributions of  source  code must retain the entire
+ *             above notice, this list of conditions and the following
+ *             disclaimer.
  *
- *		2. Redistributions in binary form must reproduce the above
- *		   copyright  notice,  this list  of  conditions  and  the
- *		   following disclaimer in  the documentation and/or other
- *		   materials provided with the distribution.
+ *          2. Redistributions in binary form must reproduce the above
+ *             copyright  notice,  this list  of  conditions  and  the
+ *             following disclaimer in  the documentation and/or other
+ *             materials provided with the distribution.
  *
- *		3. Neither the  name of the copyright holder nor the names
- *		   of  its  contributors may be used to endorse or promote
- *		   products  derived from  this  software without specific
- *		   prior written permission.
+ *          3. Neither the  name of the copyright holder nor the names
+ *             of  its  contributors may be used to endorse or promote
+ *             products  derived from  this  software without specific
+ *             prior written permission.
  *
  * THIS SOFTWARE  IS  PROVIDED BY THE  COPYRIGHT  HOLDERS AND CONTRIBUTORS
  * "AS IS" AND  ANY EXPRESS  OR  IMPLIED  WARRANTIES,  INCLUDING, BUT  NOT
@@ -165,56 +163,56 @@ enum {
 #pragma pack(push, 1)
 typedef struct {
     /* Status byte 0. */
-    uint8_t track_0  : 1, /* T0			*/
-        mbz1         : 1, /* 0			*/
-        mbz2         : 1, /* 0			*/
-        cylinder_err : 1, /* CE			*/
-        write_fault  : 1, /* WF			*/
-        mbz3         : 1, /* 0			*/
-        seek_end     : 1, /* SE			*/
-        not_ready    : 1; /* NR			*/
+    uint8_t track_0  : 1, /* T0            */
+        mbz1         : 1, /* 0            */
+        mbz2         : 1, /* 0            */
+        cylinder_err : 1, /* CE            */
+        write_fault  : 1, /* WF            */
+        mbz3         : 1, /* 0            */
+        seek_end     : 1, /* SE            */
+        not_ready    : 1; /* NR            */
 
     /* Status byte 1. */
-    uint8_t id_not_found : 1, /* ID			*/
-        mbz4             : 1, /* 0			*/
-        mbz5             : 1, /* 0			*/
-        wrong_cyl        : 1, /* WC			*/
-        all_bit_set      : 1, /* BT			*/
-        mark_not_found   : 1, /* AM			*/
-        ecc_crc_err      : 1, /* ET			*/
-        ecc_crc_field    : 1; /* EF			*/
+    uint8_t id_not_found : 1, /* ID            */
+        mbz4             : 1, /* 0            */
+        mbz5             : 1, /* 0            */
+        wrong_cyl        : 1, /* WC            */
+        all_bit_set      : 1, /* BT            */
+        mark_not_found   : 1, /* AM            */
+        ecc_crc_err      : 1, /* ET            */
+        ecc_crc_field    : 1; /* EF            */
 
     /* Status byte 2. */
-    uint8_t headsel_state : 4, /* headsel state[4]	*/
-        defective_sector  : 1, /* DS			*/
-        retried_ok        : 1, /* RG			*/
-        need_reset        : 1, /* RR			*/
+    uint8_t headsel_state : 4, /* headsel state[4]    */
+        defective_sector  : 1, /* DS            */
+        retried_ok        : 1, /* RG            */
+        need_reset        : 1, /* RR            */
 #if 1
-        valid : 1; /* 0 (abused as VALID)	*/
+        valid : 1; /* 0 (abused as VALID)    */
 #else
-        mbz6 : 1; /* 0			*/
+        mbz6 : 1; /* 0            */
 #endif
 
     /* Most recent ID field seen. */
-    uint8_t last_cyl_low;  /* Cyl_Low[8]		*/
-    uint8_t last_head : 4, /* HD[4]		*/
-        mbz7          : 1, /* 0			*/
-        last_cyl_high : 2, /* Cyl_high[2]		*/
-        last_def_sect : 1; /* DS			*/
-    uint8_t last_sect;     /* Sect[8]		*/
+    uint8_t last_cyl_low;  /* Cyl_Low[8]        */
+    uint8_t last_head : 4, /* HD[4]        */
+        mbz7          : 1, /* 0            */
+        last_cyl_high : 2, /* Cyl_high[2]        */
+        last_def_sect : 1; /* DS            */
+    uint8_t last_sect;     /* Sect[8]        */
 
-    uint8_t sect_size; /* Size[8] = 02		*/
+    uint8_t sect_size; /* Size[8] = 02        */
 
     /* Current position. */
-    uint8_t curr_cyl_high : 2, /* Cyl_High_[2]		*/
-        mbz8              : 1, /* 0			*/
-        mbz9              : 1, /* 0			*/
-        curr_head         : 4; /* HD_2[4]		*/
-    uint8_t curr_cyl_low;      /* Cyl_Low_2[8]		*/
+    uint8_t curr_cyl_high : 2, /* Cyl_High_[2]        */
+        mbz8              : 1, /* 0            */
+        mbz9              : 1, /* 0            */
+        curr_head         : 4; /* HD_2[4]        */
+    uint8_t curr_cyl_low;      /* Cyl_Low_2[8]        */
 
-    uint8_t sect_corr; /* sectors corrected	*/
+    uint8_t sect_corr; /* sectors corrected    */
 
-    uint8_t retries; /* retries		*/
+    uint8_t retries; /* retries        */
 
     /*
      * This byte shows the progress of the controller through the
@@ -235,7 +233,7 @@ typedef struct {
      *     transfer:
      *
      *     Bit 7    A sector was transferred between the system
-     *	            and the sector buffer.
+     *                and the sector buffer.
      *
      *     Bit 6    A sector was transferred between the controller
      *              and the sector buffer.
@@ -249,11 +247,11 @@ typedef struct {
      * 4.  When the transfer is complete, the low nibble equals hex 4
      *     and the high nibble is unchanged.
      */
-    uint8_t cmd_syndrome; /* command syndrome	*/
+    uint8_t cmd_syndrome; /* command syndrome    */
 
-    uint8_t drive_type; /* drive type		*/
+    uint8_t drive_type; /* drive type        */
 
-    uint8_t rsvd; /* reserved byte	*/
+    uint8_t rsvd; /* reserved byte    */
 } ssb_t;
 #pragma pack(pop)
 
@@ -293,20 +291,20 @@ typedef struct {
  */
 #pragma pack(push, 1)
 typedef struct {
-    uint8_t cyl_high     : 2, /* cylinder [9:8] bits	*/
-        defective_sector : 1, /* DS			*/
-        mbz1             : 1, /* 0			*/
-        head             : 4; /* head number		*/
+    uint8_t cyl_high     : 2, /* cylinder [9:8] bits    */
+        defective_sector : 1, /* DS            */
+        mbz1             : 1, /* 0            */
+        head             : 4; /* head number        */
 
-    uint8_t cyl_low; /* cylinder [7:0] bits	*/
+    uint8_t cyl_low; /* cylinder [7:0] bits    */
 
-    uint8_t sector; /* sector number	*/
+    uint8_t sector; /* sector number    */
 
-    uint8_t mbz2 : 1, /* 0			*/
-        mbo      : 1, /* 1			*/
-        mbz3     : 6; /* 000000		*/
+    uint8_t mbz2 : 1, /* 0            */
+        mbo      : 1, /* 1            */
+        mbz3     : 6; /* 000000        */
 
-    uint8_t fill; /* filler byte		*/
+    uint8_t fill; /* filler byte        */
 } fcb_t;
 #pragma pack(pop)
 
@@ -319,25 +317,25 @@ typedef struct {
  */
 #pragma pack(push, 1)
 typedef struct {
-    uint8_t ec_p     : 1, /* EC/P (ecc/park)	*/
-        mbz1         : 1, /* 0			*/
-        auto_seek    : 1, /* AS (auto-seek)	*/
-        no_data      : 1, /* ND (no data)		*/
-        cmd          : 4; /* command code[4]	*/
+    uint8_t ec_p     : 1, /* EC/P (ecc/park)    */
+        mbz1         : 1, /* 0            */
+        auto_seek    : 1, /* AS (auto-seek)    */
+        no_data      : 1, /* ND (no data)        */
+        cmd          : 4; /* command code[4]    */
 
-    uint8_t cyl_high : 2, /* cylinder [9:8] bits	*/
-        mbz2         : 2, /* 00			*/
-        head         : 4; /* head number		*/
+    uint8_t cyl_high : 2, /* cylinder [9:8] bits    */
+        mbz2         : 2, /* 00            */
+        head         : 4; /* head number        */
 
-    uint8_t cyl_low; /* cylinder [7:0] bits	*/
+    uint8_t cyl_low; /* cylinder [7:0] bits    */
 
-    uint8_t sector; /* sector number	*/
+    uint8_t sector; /* sector number    */
 
-    uint8_t mbz3 : 1, /* 0			*/
-        mbo1     : 1, /* 1			*/
-        mbz4     : 6; /* 000000		*/
+    uint8_t mbz3 : 1, /* 0            */
+        mbo1     : 1, /* 1            */
+        mbz4     : 6; /* 000000        */
 
-    uint8_t count; /* blk count/interleave	*/
+    uint8_t count; /* blk count/interleave    */
 } ccb_t;
 #pragma pack(pop)
 
@@ -417,51 +415,51 @@ typedef struct {
  */
 static const geom_t ibm_type_table[] = {
   // clang-format off
-    {    0,     0,       0,          0,      0	},	/*  0	(none)	*/
-    {  306,     4,      17,        128,    305	},	/*  1	10 MB	*/
-    {  615,     4,      17,        300,    615	},	/*  2	20 MB	*/
-    {  615,     6,      17,        300,    615	},	/*  3	31 MB	*/
-    {  940,     8,      17,        512,    940	},	/*  4	62 MB	*/
-    {  940,     6,      17,        512,    940	},	/*  5	47 MB	*/
-    {  615,     4,      17,         -1,    615	},	/*  6	20 MB	*/
-    {  462,     8,      17,        256,    511	},	/*  7	31 MB	*/
-    {  733,     5,      17,         -1,    733	},	/*  8	30 MB	*/
-    {  900,    15,      17,         -1,    901	},	/*  9	112 MB	*/
-    {  820,     3,      17,         -1,    820	},	/* 10	20 MB	*/
-    {  855,     5,      17,         -1,    855	},	/* 11	35 MB	*/
-    {  855,     7,      17,         -1,    855	},	/* 12	50 MB	*/
-    {  306,     8,      17,        128,    319	},	/* 13	20 MB	*/
-    {  733,     7,      17,         -1,    733	},	/* 14	43 MB	*/
-    {    0,     0,       0,          0,      0	},	/* 15	(rsvd)	*/
-    {  612,     4,      17,          0,    663	},	/* 16	20 MB	*/
-    {  977,     5,      17,        300,    977	},	/* 17	41 MB	*/
-    {  977,     7,      17,         -1,    977	},	/* 18	57 MB	*/
-    { 1024,     7,      17,        512,   1023	},	/* 19	59 MB	*/
-    {  733,     5,      17,        300,    732	},	/* 20	30 MB	*/
-    {  733,     7,      17,        300,    732	},	/* 21	43 MB	*/
-    {  733,     5,      17,        300,    733	},	/* 22	30 MB	*/
-    {  306,     4,      17,          0,    336	},	/* 23	10 MB	*/
-    {  612,     4,      17,        305,    663	},	/* 24	20 MB	*/
-    {  306,     4,      17,         -1,    340	},	/* 25	10 MB	*/
-    {  612,     4,      17,         -1,    670	},	/* 26	20 MB	*/
-    {  698,     7,      17,        300,    732	},	/* 27	41 MB	*/
-    {  976,     5,      17,        488,    977	},	/* 28	40 MB	*/
-    {  306,     4,      17,          0,    340	},	/* 29	10 MB	*/
-    {  611,     4,      17,        306,    663	},	/* 30	20 MB	*/
-    {  732,     7,      17,        300,    732	},	/* 31	43 MB	*/
-    { 1023,     5,      17,         -1,   1023	},	/* 32	42 MB	*/
-    {  614,     4,      25,         -1,    663	},	/* 33	30 MB	*/
-    {  775,     2,      27,         -1,    900	},	/* 34	20 MB	*/
-    {  921,     2,      33,         -1,   1000	},	/* 35	30 MB *	*/
-    {  402,     4,      26,         -1,    460	},	/* 36	20 MB	*/
-    {  580,     6,      26,         -1,    640	},	/* 37	44 MB	*/
-    {  845,     2,      36,         -1,   1023	},	/* 38	30 MB *	*/
-    {  769,     3,      36,         -1,   1023	},	/* 39	41 MB *	*/
-    {  531,     4,      39,         -1,    532	},	/* 40	40 MB	*/
-    {  577,     2,      36,         -1,   1023	},	/* 41	20 MB	*/
-    {  654,     2,      32,         -1,    674	},	/* 42	20 MB	*/
-    {  923,     5,      36,         -1,   1023	},	/* 43	81 MB	*/
-    {  531,     8,      39,         -1,    532	}	/* 44	81 MB	*/
+    {    0,     0,       0,          0,      0    },    /*  0    (none)    */
+    {  306,     4,      17,        128,    305    },    /*  1    10 MB    */
+    {  615,     4,      17,        300,    615    },    /*  2    20 MB    */
+    {  615,     6,      17,        300,    615    },    /*  3    31 MB    */
+    {  940,     8,      17,        512,    940    },    /*  4    62 MB    */
+    {  940,     6,      17,        512,    940    },    /*  5    47 MB    */
+    {  615,     4,      17,         -1,    615    },    /*  6    20 MB    */
+    {  462,     8,      17,        256,    511    },    /*  7    31 MB    */
+    {  733,     5,      17,         -1,    733    },    /*  8    30 MB    */
+    {  900,    15,      17,         -1,    901    },    /*  9    112 MB    */
+    {  820,     3,      17,         -1,    820    },    /* 10    20 MB    */
+    {  855,     5,      17,         -1,    855    },    /* 11    35 MB    */
+    {  855,     7,      17,         -1,    855    },    /* 12    50 MB    */
+    {  306,     8,      17,        128,    319    },    /* 13    20 MB    */
+    {  733,     7,      17,         -1,    733    },    /* 14    43 MB    */
+    {    0,     0,       0,          0,      0    },    /* 15    (rsvd)    */
+    {  612,     4,      17,          0,    663    },    /* 16    20 MB    */
+    {  977,     5,      17,        300,    977    },    /* 17    41 MB    */
+    {  977,     7,      17,         -1,    977    },    /* 18    57 MB    */
+    { 1024,     7,      17,        512,   1023    },    /* 19    59 MB    */
+    {  733,     5,      17,        300,    732    },    /* 20    30 MB    */
+    {  733,     7,      17,        300,    732    },    /* 21    43 MB    */
+    {  733,     5,      17,        300,    733    },    /* 22    30 MB    */
+    {  306,     4,      17,          0,    336    },    /* 23    10 MB    */
+    {  612,     4,      17,        305,    663    },    /* 24    20 MB    */
+    {  306,     4,      17,         -1,    340    },    /* 25    10 MB    */
+    {  612,     4,      17,         -1,    670    },    /* 26    20 MB    */
+    {  698,     7,      17,        300,    732    },    /* 27    41 MB    */
+    {  976,     5,      17,        488,    977    },    /* 28    40 MB    */
+    {  306,     4,      17,          0,    340    },    /* 29    10 MB    */
+    {  611,     4,      17,        306,    663    },    /* 30    20 MB    */
+    {  732,     7,      17,        300,    732    },    /* 31    43 MB    */
+    { 1023,     5,      17,         -1,   1023    },    /* 32    42 MB    */
+    {  614,     4,      25,         -1,    663    },    /* 33    30 MB    */
+    {  775,     2,      27,         -1,    900    },    /* 34    20 MB    */
+    {  921,     2,      33,         -1,   1000    },    /* 35    30 MB *    */
+    {  402,     4,      26,         -1,    460    },    /* 36    20 MB    */
+    {  580,     6,      26,         -1,    640    },    /* 37    44 MB    */
+    {  845,     2,      36,         -1,   1023    },    /* 38    30 MB *    */
+    {  769,     3,      36,         -1,   1023    },    /* 39    41 MB *    */
+    {  531,     4,      39,         -1,    532    },    /* 40    40 MB    */
+    {  577,     2,      36,         -1,   1023    },    /* 41    20 MB    */
+    {  654,     2,      32,         -1,    674    },    /* 42    20 MB    */
+    {  923,     5,      36,         -1,   1023    },    /* 43    81 MB    */
+    {  531,     8,      39,         -1,    532    }    /* 44    81 MB    */
   // clang-format on
 };
 
@@ -663,7 +661,7 @@ do_format(hdc_t *dev, drive_t *drive, ccb_t *ccb)
 
                 /* Point to the FCB we got. */
 #if 0
-		fcb = (fcb_t *)dev->data;
+        fcb = (fcb_t *)dev->data;
 #endif
             dev->state = STATE_FINIT;
             /*FALLTHROUGH*/
@@ -693,7 +691,7 @@ do_fmt:
              * use it's "filler byte" value...
              */
 #if 0
-		hdd_image_zero_ex(drive->hdd_num, addr, fcb->fill, drive->spt);
+        hdd_image_zero_ex(drive->hdd_num, addr, fcb->fill, drive->spt);
 #else
             hdd_image_zero(drive->hdd_num, addr, drive->spt);
 #endif

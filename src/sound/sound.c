@@ -109,6 +109,7 @@ static const SOUND_CARD sound_cards[] = {
     // clang-format off
     { &sound_none_device         },
     { &sound_internal_device     },
+    { &acermagic_s20_device      },
     { &adlib_device              },
     { &adgold_device             },
     { &azt2316a_device           },

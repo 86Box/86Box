@@ -1,204 +1,204 @@
 /*
- * VARCem	Virtual ARchaeological Computer EMulator.
- *		An emulator of (mostly) x86-based PC systems and devices,
- *		using the ISA,EISA,VLB,MCA  and PCI system buses, roughly
- *		spanning the era between 1981 and 1995.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the VARCem Project.
+ *          This file is part of the 86Box distribution.
  *
- *		Implement a more-or-less defacto-standard RTC/NVRAM.
+ *          Implement a more-or-less defacto-standard RTC/NVRAM.
  *
- *		When IBM released the PC/AT machine, it came standard with a
- *		battery-backed RTC chip to keep the time of day, something
- *		that was optional on standard PC's with a myriad variants
- *		being put on the market, often on cheap multi-I/O cards.
+ *          When IBM released the PC/AT machine, it came standard with a
+ *          battery-backed RTC chip to keep the time of day, something
+ *          that was optional on standard PC's with a myriad variants
+ *          being put on the market, often on cheap multi-I/O cards.
  *
- *		The PC/AT had an on-board DS12885-series chip ("the black
- *		block") which was an RTC/clock chip with onboard oscillator
- *		and a backup battery (hence the big size.) The chip also had
- *		a small amount of RAM bytes available to the user, which was
- *		used by IBM's ROM BIOS to store machine configuration data.
- *		Later versions and clones used the 12886 and/or 1288(C)7
- *		series, or the MC146818 series, all with an external battery.
- *		Many of those batteries would create corrosion issues later
- *		on in mainboard life...
+ *          The PC/AT had an on-board DS12885-series chip ("the black
+ *          block") which was an RTC/clock chip with onboard oscillator
+ *          and a backup battery (hence the big size.) The chip also had
+ *          a small amount of RAM bytes available to the user, which was
+ *          used by IBM's ROM BIOS to store machine configuration data.
+ *          Later versions and clones used the 12886 and/or 1288(C)7
+ *          series, or the MC146818 series, all with an external battery.
+ *          Many of those batteries would create corrosion issues later
+ *          on in mainboard life...
  *
- *		Since then, pretty much any PC has an implementation of that
- *		device, which became known as the "nvr" or "cmos".
+ *          Since then, pretty much any PC has an implementation of that
+ *          device, which became known as the "nvr" or "cmos".
  *
- * NOTES	Info extracted from the data sheets:
+ * NOTES    Info extracted from the data sheets:
  *
- *		* The century register at location 32h is a BCD register
- *		  designed to automatically load the BCD value 20 as the
- *		  year register changes from 99 to 00.  The MSB of this
- *		  register is not affected when the load of 20 occurs,
- *		  and remains at the value written by the user.
+ *          * The century register at location 32h is a BCD register
+ *            designed to automatically load the BCD value 20 as the
+ *            year register changes from 99 to 00.  The MSB of this
+ *            register is not affected when the load of 20 occurs,
+ *            and remains at the value written by the user.
  *
- *		* Rate Selector (RS3:RS0)
- *		  These four rate-selection bits select one of the 13
- *		  taps on the 15-stage divider or disable the divider
- *		  output.  The tap selected can be used to generate an
- *		  output square wave (SQW pin) and/or a periodic interrupt.
+ *          * Rate Selector (RS3:RS0)
+ *            These four rate-selection bits select one of the 13
+ *            taps on the 15-stage divider or disable the divider
+ *            output.  The tap selected can be used to generate an
+ *            output square wave (SQW pin) and/or a periodic interrupt.
  *
- *		  The user can do one of the following:
- *		   - enable the interrupt with the PIE bit;
- *		   - enable the SQW output pin with the SQWE bit;
- *		   - enable both at the same time and the same rate; or
- *		   - enable neither.
+ *            The user can do one of the following:
+ *             - enable the interrupt with the PIE bit;
+ *             - enable the SQW output pin with the SQWE bit;
+ *             - enable both at the same time and the same rate; or
+ *             - enable neither.
  *
- *		  Table 3 lists the periodic interrupt rates and the square
- *		  wave frequencies that can be chosen with the RS bits.
- *		  These four read/write bits are not affected by !RESET.
+ *            Table 3 lists the periodic interrupt rates and the square
+ *            wave frequencies that can be chosen with the RS bits.
+ *            These four read/write bits are not affected by !RESET.
  *
- *		* Oscillator (DV2:DV0)
- *		  These three bits are used to turn the oscillator on or
- *		  off and to reset the countdown chain.  A pattern of 010
- *		  is the only combination of bits that turn the oscillator
- *		  on and allow the RTC to keep time.  A pattern of 11x
- *		  enables the oscillator but holds the countdown chain in
- *		  reset.  The next update occurs at 500ms after a pattern
- *		  of 010 is written to DV0, DV1, and DV2.
+ *          * Oscillator (DV2:DV0)
+ *            These three bits are used to turn the oscillator on or
+ *            off and to reset the countdown chain.  A pattern of 010
+ *            is the only combination of bits that turn the oscillator
+ *            on and allow the RTC to keep time.  A pattern of 11x
+ *            enables the oscillator but holds the countdown chain in
+ *            reset.  The next update occurs at 500ms after a pattern
+ *            of 010 is written to DV0, DV1, and DV2.
  *
- *		* Update-In-Progress (UIP)
- *		  This bit is a status flag that can be monitored. When the
- *		  UIP bit is a 1, the update transfer occurs soon.  When
- *		  UIP is a 0, the update transfer does not occur for at
- *		  least 244us.  The time, calendar, and alarm information
- *		  in RAM is fully available for access when the UIP bit
- *		  is 0.  The UIP bit is read-only and is not affected by
- *		  !RESET.  Writing the SET bit in Register B to a 1
- *		  inhibits any update transfer and clears the UIP status bit.
+ *          * Update-In-Progress (UIP)
+ *            This bit is a status flag that can be monitored. When the
+ *            UIP bit is a 1, the update transfer occurs soon.  When
+ *            UIP is a 0, the update transfer does not occur for at
+ *            least 244us.  The time, calendar, and alarm information
+ *            in RAM is fully available for access when the UIP bit
+ *            is 0.  The UIP bit is read-only and is not affected by
+ *            !RESET.  Writing the SET bit in Register B to a 1
+ *            inhibits any update transfer and clears the UIP status bit.
  *
- *		* Daylight Saving Enable (DSE)
- *		  This bit is a read/write bit that enables two daylight
- *		  saving adjustments when DSE is set to 1.  On the first
- *		  Sunday in April (or the last Sunday in April in the
- *		  MC146818A), the time increments from 1:59:59 AM to
- *		  3:00:00 AM.  On the last Sunday in October when the time
- *		  first reaches 1:59:59 AM, it changes to 1:00:00 AM.
+ *          * Daylight Saving Enable (DSE)
+ *            This bit is a read/write bit that enables two daylight
+ *            saving adjustments when DSE is set to 1.  On the first
+ *            Sunday in April (or the last Sunday in April in the
+ *            MC146818A), the time increments from 1:59:59 AM to
+ *            3:00:00 AM.  On the last Sunday in October when the time
+ *            first reaches 1:59:59 AM, it changes to 1:00:00 AM.
  *
- *		  When DSE is enabled, the internal logic test for the
- *		  first/last Sunday condition at midnight.  If the DSE bit
- *		  is not set when the test occurs, the daylight saving
- *		  function does not operate correctly.  These adjustments
- *		  do not occur when the DSE bit is 0. This bit is not
- *		  affected by internal functions or !RESET.
+ *            When DSE is enabled, the internal logic test for the
+ *            first/last Sunday condition at midnight.  If the DSE bit
+ *            is not set when the test occurs, the daylight saving
+ *            function does not operate correctly.  These adjustments
+ *            do not occur when the DSE bit is 0. This bit is not
+ *            affected by internal functions or !RESET.
  *
- *		* 24/12
- *		  The 24/12 control bit establishes the format of the hours
- *		  byte. A 1 indicates the 24-hour mode and a 0 indicates
- *		  the 12-hour mode.  This bit is read/write and is not
- *		  affected by internal functions or !RESET.
+ *          * 24/12
+ *            The 24/12 control bit establishes the format of the hours
+ *            byte. A 1 indicates the 24-hour mode and a 0 indicates
+ *            the 12-hour mode.  This bit is read/write and is not
+ *            affected by internal functions or !RESET.
  *
- *		* Data Mode (DM)
- *		  This bit indicates whether time and calendar information
- *		  is in binary or BCD format.  The DM bit is set by the
- *		  program to the appropriate format and can be read as
- *		  required.  This bit is not modified by internal functions
- *		  or !RESET. A 1 in DM signifies binary data, while a 0 in
- *		  DM specifies BCD data.
+ *          * Data Mode (DM)
+ *            This bit indicates whether time and calendar information
+ *            is in binary or BCD format.  The DM bit is set by the
+ *            program to the appropriate format and can be read as
+ *            required.  This bit is not modified by internal functions
+ *            or !RESET. A 1 in DM signifies binary data, while a 0 in
+ *            DM specifies BCD data.
  *
- *		* Square-Wave Enable (SQWE)
- *		  When this bit is set to 1, a square-wave signal at the
- *		  frequency set by the rate-selection bits RS3-RS0 is driven
- *		  out on the SQW pin.  When the SQWE bit is set to 0, the
- *		  SQW pin is held low. SQWE is a read/write bit and is
- *		  cleared by !RESET.  SQWE is low if disabled, and is high
- *		  impedance when VCC is below VPF. SQWE is cleared to 0 on
- *		  !RESET.
+ *          * Square-Wave Enable (SQWE)
+ *            When this bit is set to 1, a square-wave signal at the
+ *            frequency set by the rate-selection bits RS3-RS0 is driven
+ *            out on the SQW pin.  When the SQWE bit is set to 0, the
+ *            SQW pin is held low. SQWE is a read/write bit and is
+ *            cleared by !RESET.  SQWE is low if disabled, and is high
+ *            impedance when VCC is below VPF. SQWE is cleared to 0 on
+ *            !RESET.
  *
- *		* Update-Ended Interrupt Enable (UIE)
- *		  This bit is a read/write bit that enables the update-end
- *		  flag (UF) bit in Register C to assert !IRQ.  The !RESET
- *		  pin going low or the SET bit going high clears the UIE bit.
- *		  The internal functions of the device do not affect the UIE
- *		  bit, but is cleared to 0 on !RESET.
+ *          * Update-Ended Interrupt Enable (UIE)
+ *            This bit is a read/write bit that enables the update-end
+ *            flag (UF) bit in Register C to assert !IRQ.  The !RESET
+ *            pin going low or the SET bit going high clears the UIE bit.
+ *            The internal functions of the device do not affect the UIE
+ *            bit, but is cleared to 0 on !RESET.
  *
- *		* Alarm Interrupt Enable (AIE)
- *		  This bit is a read/write bit that, when set to 1, permits
- *		  the alarm flag (AF) bit in Register C to assert !IRQ.  An
- *		  alarm interrupt occurs for each second that the three time
- *		  bytes equal the three alarm bytes, including a don't-care
- *		  alarm code of binary 11XXXXXX.  The AF bit does not
- *		  initiate the !IRQ signal when the AIE bit is set to 0.
- *		  The internal functions of the device do not affect the AIE
- *		  bit, but is cleared to 0 on !RESET.
+ *          * Alarm Interrupt Enable (AIE)
+ *            This bit is a read/write bit that, when set to 1, permits
+ *            the alarm flag (AF) bit in Register C to assert !IRQ.  An
+ *            alarm interrupt occurs for each second that the three time
+ *            bytes equal the three alarm bytes, including a don't-care
+ *            alarm code of binary 11XXXXXX.  The AF bit does not
+ *            initiate the !IRQ signal when the AIE bit is set to 0.
+ *            The internal functions of the device do not affect the AIE
+ *            bit, but is cleared to 0 on !RESET.
  *
- *		* Periodic Interrupt Enable (PIE)
- *		  The PIE bit is a read/write bit that allows the periodic
- *		  interrupt flag (PF) bit in Register C to drive the !IRQ pin
- *		  low.  When the PIE bit is set to 1, periodic interrupts are
- *		  generated by driving the !IRQ pin low at a rate specified
- *		  by the RS3-RS0 bits of Register A.  A 0 in the PIE bit
- *		  blocks the !IRQ output from being driven by a periodic
- *		  interrupt, but the PF bit is still set at the periodic
- *		  rate.  PIE is not modified b any internal device functions,
- *		  but is cleared to 0 on !RESET.
+ *          * Periodic Interrupt Enable (PIE)
+ *            The PIE bit is a read/write bit that allows the periodic
+ *            interrupt flag (PF) bit in Register C to drive the !IRQ pin
+ *            low.  When the PIE bit is set to 1, periodic interrupts are
+ *            generated by driving the !IRQ pin low at a rate specified
+ *            by the RS3-RS0 bits of Register A.  A 0 in the PIE bit
+ *            blocks the !IRQ output from being driven by a periodic
+ *            interrupt, but the PF bit is still set at the periodic
+ *            rate.  PIE is not modified b any internal device functions,
+ *            but is cleared to 0 on !RESET.
  *
- *		* SET
- *		  When the SET bit is 0, the update transfer functions
- *		  normally by advancing the counts once per second.  When
- *		  the SET bit is written to 1, any update transfer is
- *		  inhibited, and the program can initialize the time and
- *		  calendar bytes without an update occurring in the midst of
- *		  initializing. Read cycles can be executed in a similar
- *		  manner. SET is a read/write bit and is not affected by
- *		  !RESET or internal functions of the device.
+ *          * SET
+ *            When the SET bit is 0, the update transfer functions
+ *            normally by advancing the counts once per second.  When
+ *            the SET bit is written to 1, any update transfer is
+ *            inhibited, and the program can initialize the time and
+ *            calendar bytes without an update occurring in the midst of
+ *            initializing. Read cycles can be executed in a similar
+ *            manner. SET is a read/write bit and is not affected by
+ *            !RESET or internal functions of the device.
  *
- *		* Update-Ended Interrupt Flag (UF)
- *		  This bit is set after each update cycle. When the UIE
- *		  bit is set to 1, the 1 in UF causes the IRQF bit to be
- *		  a 1, which asserts the !IRQ pin.  This bit can be
- *		  cleared by reading Register C or with a !RESET.
+ *          * Update-Ended Interrupt Flag (UF)
+ *            This bit is set after each update cycle. When the UIE
+ *            bit is set to 1, the 1 in UF causes the IRQF bit to be
+ *            a 1, which asserts the !IRQ pin.  This bit can be
+ *            cleared by reading Register C or with a !RESET.
  *
- *		* Alarm Interrupt Flag (AF)
- *		  A 1 in the AF bit indicates that the current time has
- *		  matched the alarm time.  If the AIE bit is also 1, the
- *		  !IRQ pin goes low and a 1 appears in the IRQF bit. This
- *		  bit can be cleared by reading Register C or with a
- *		  !RESET.
+ *          * Alarm Interrupt Flag (AF)
+ *            A 1 in the AF bit indicates that the current time has
+ *            matched the alarm time.  If the AIE bit is also 1, the
+ *            !IRQ pin goes low and a 1 appears in the IRQF bit. This
+ *            bit can be cleared by reading Register C or with a
+ *            !RESET.
  *
- *		* Periodic Interrupt Flag (PF)
- *		  This bit is read-only and is set to 1 when an edge is
- *		  detected on the selected tap of the divider chain.  The
- *		  RS3 through RS0 bits establish the periodic rate. PF is
- *		  set to 1 independent of the state of the PIE bit.  When
- *		  both PF and PIE are 1s, the !IRQ signal is active and
- *		  sets the IRQF bit. This bit can be cleared by reading
- *		  Register C or with a !RESET.
+ *          * Periodic Interrupt Flag (PF)
+ *            This bit is read-only and is set to 1 when an edge is
+ *            detected on the selected tap of the divider chain.  The
+ *            RS3 through RS0 bits establish the periodic rate. PF is
+ *            set to 1 independent of the state of the PIE bit.  When
+ *            both PF and PIE are 1s, the !IRQ signal is active and
+ *            sets the IRQF bit. This bit can be cleared by reading
+ *            Register C or with a !RESET.
  *
- *		* Interrupt Request Flag (IRQF)
- *		  The interrupt request flag (IRQF) is set to a 1 when one
- *		  or more of the following are true:
- *		   - PF == PIE == 1
- *		   - AF == AIE == 1
- *		   - UF == UIE == 1
- *		  Any time the IRQF bit is a 1, the !IRQ pin is driven low.
- *		  All flag bits are cleared after Register C is read by the
- *		  program or when the !RESET pin is low.
+ *          * Interrupt Request Flag (IRQF)
+ *            The interrupt request flag (IRQF) is set to a 1 when one
+ *            or more of the following are true:
+ *             - PF == PIE == 1
+ *             - AF == AIE == 1
+ *             - UF == UIE == 1
+ *            Any time the IRQF bit is a 1, the !IRQ pin is driven low.
+ *            All flag bits are cleared after Register C is read by the
+ *            program or when the !RESET pin is low.
  *
- *		* Valid RAM and Time (VRT)
- *		  This bit indicates the condition of the battery connected
- *		  to the VBAT pin. This bit is not writeable and should
- *		  always be 1 when read.  If a 0 is ever present, an
- *		  exhausted internal lithium energy source is indicated and
- *		  both the contents of the RTC data and RAM data are
- *		  questionable.  This bit is unaffected by !RESET.
+ *          * Valid RAM and Time (VRT)
+ *            This bit indicates the condition of the battery connected
+ *            to the VBAT pin. This bit is not writeable and should
+ *            always be 1 when read.  If a 0 is ever present, an
+ *            exhausted internal lithium energy source is indicated and
+ *            both the contents of the RTC data and RAM data are
+ *            questionable.  This bit is unaffected by !RESET.
  *
- *		This file implements a generic version of the RTC/NVRAM chip,
- *		including the later update (DS12887A) which implemented a
- *		"century" register to be compatible with Y2K.
+ *          This file implements a generic version of the RTC/NVRAM chip,
+ *          including the later update (DS12887A) which implemented a
+ *          "century" register to be compatible with Y2K.
  *
  *
  *
- * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
- *		Miran Grca, <mgrca8@gmail.com>
- *		Mahod,
- *		Sarah Walker, <tommowalker@tommowalker.co.uk>
+ * Authors: Fred N. van Kempen, <decwiz@yahoo.com>
+ *          Miran Grca, <mgrca8@gmail.com>
+ *          Mahod,
+ *          Sarah Walker, <tommowalker@tommowalker.co.uk>
  *
- *		Copyright 2017-2020 Fred N. van Kempen.
- *		Copyright 2016-2020 Miran Grca.
- *		Copyright 2008-2020 Sarah Walker.
+ *          Copyright 2017-2020 Fred N. van Kempen.
+ *          Copyright 2016-2020 Miran Grca.
+ *          Copyright 2008-2020 Sarah Walker.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -1299,7 +1299,7 @@ const device_t p6rp4_nvr_device = {
 };
 
 const device_t amstrad_megapc_nvr_device = {
-    .name          = "Amstrad MegapC NVRAM",
+    .name          = "Amstrad MegaPC NVRAM",
     .internal_name = "amstrad_megapc_nvr",
     .flags         = DEVICE_ISA | DEVICE_AT,
     .local         = 36,

@@ -145,6 +145,13 @@
      <item row="1" column="1">
       <widget class="QComboBox" name="comboBoxSpeed"/>
      </item>
+     <item row="1" column="2">
+      <widget class="QCheckBox" name="checkBoxEarlierDrive">
+       <property name="text">
+        <string>Earlier drive</string>
+       </property>
+      </widget>
+     </item>
     </layout>
    </item>
   </layout>

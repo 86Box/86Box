@@ -321,6 +321,34 @@ cdrom_audio_callback(cdrom_t *dev, int16_t *output, int len)
     return ret;
 }
 
+static __inline int
+bin2bcd (int x)
+{
+    return (x % 10) | ((x / 10) << 4);
+}
+
+static __inline int
+bcd2bin (int x)
+{
+    return (x >> 4) * 10 + (x & 0x0f);
+}
+
+static void
+msf_from_bcd(int *m, int *s, int *f)
+{
+    *m = bcd2bin(*m);
+    *s = bcd2bin(*s);
+    *f = bcd2bin(*f);
+}
+
+static void
+msf_to_bcd(int *m, int *s, int *f)
+{
+    *m = bin2bcd(*m);
+    *s = bin2bcd(*s);
+    *f = bin2bcd(*f);
+}
+
 uint8_t
 cdrom_audio_play(cdrom_t *dev, uint32_t pos, uint32_t len, int ismsf)
 {
@@ -347,6 +375,10 @@ cdrom_audio_play(cdrom_t *dev, uint32_t pos, uint32_t len, int ismsf)
         s = (pos >> 8) & 0xff;
         f = pos & 0xff;
 
+        /* NEC CDR-260 speaks BCD. */
+        if ((dev->bus_type == CDROM_BUS_ATAPI) && dev->early)
+            msf_from_bcd(&m, &s, &f);
+
         if (pos == 0xffffff) {
             cdrom_log("CD-ROM %i: Playing from current position (MSF)\n", dev->id);
             pos = dev->seek_pos;
@@ -356,6 +388,11 @@ cdrom_audio_play(cdrom_t *dev, uint32_t pos, uint32_t len, int ismsf)
         m   = (len >> 16) & 0xff;
         s   = (len >> 8) & 0xff;
         f   = len & 0xff;
+
+        /* NEC CDR-260 speaks BCD. */
+        if ((dev->bus_type == CDROM_BUS_ATAPI) && dev->early)
+            msf_from_bcd(&m, &s, &f);
+
         len = MSFtoLBA(m, s, f) - 150;
 
         cdrom_log("CD-ROM %i: MSF - pos = %08X len = %08X\n", dev->id, pos, len);
@@ -462,7 +499,7 @@ cdrom_get_current_subchannel(cdrom_t *dev, uint8_t *b, int msf)
 {
     uint8_t      ret;
     subchannel_t subc;
-    int          pos = 1;
+    int          pos = 1, m, s, f;
     uint32_t     dat;
 
     dev->ops->get_subchannel(dev, dev->seek_pos, &subc);
@@ -488,14 +525,41 @@ cdrom_get_current_subchannel(cdrom_t *dev, uint8_t *b, int msf)
 
     if (msf) {
         b[pos]     = 0;
-        b[pos + 1] = subc.abs_m;
-        b[pos + 2] = subc.abs_s;
-        b[pos + 3] = subc.abs_f;
+
+        /* NEC CDR-260 speaks BCD. */
+        if ((dev->bus_type == CDROM_BUS_ATAPI) && dev->early) {
+            m = subc.abs_m;
+            s = subc.abs_s;
+            f = subc.abs_f;
+            msf_to_bcd(&m, &s, &f);
+            b[pos + 1] = m;
+            b[pos + 2] = s;
+            b[pos + 3] = f;
+        } else {
+            b[pos + 1] = subc.abs_m;
+            b[pos + 2] = subc.abs_s;
+            b[pos + 3] = subc.abs_f;
+        }
+
         pos += 4;
+
         b[pos]     = 0;
-        b[pos + 1] = subc.rel_m;
-        b[pos + 2] = subc.rel_s;
-        b[pos + 3] = subc.rel_f;
+
+        /* NEC CDR-260 speaks BCD. */
+        if ((dev->bus_type == CDROM_BUS_ATAPI) && dev->early) {
+            m = subc.rel_m;
+            s = subc.rel_s;
+            f = subc.rel_f;
+            msf_to_bcd(&m, &s, &f);
+            b[pos + 1] = m;
+            b[pos + 2] = s;
+            b[pos + 3] = f;
+        } else {
+            b[pos + 1] = subc.rel_m;
+            b[pos + 2] = subc.rel_s;
+            b[pos + 3] = subc.rel_f;
+        }
+
         pos += 4;
     } else {
         dat      = MSFtoLBA(subc.abs_m, subc.abs_s, subc.abs_f) - 150;
@@ -550,6 +614,7 @@ read_toc_normal(cdrom_t *dev, unsigned char *b, unsigned char start_track, int m
 {
     track_info_t ti;
     int          i, len = 4;
+    int          m, s, f;
     int          first_track, last_track;
     uint32_t     temp;
 
@@ -600,9 +665,21 @@ read_toc_normal(cdrom_t *dev, unsigned char *b, unsigned char start_track, int m
 
         if (msf) {
             b[len++] = 0;
-            b[len++] = ti.m;
-            b[len++] = ti.s;
-            b[len++] = ti.f;
+
+            /* NEC CDR-260 speaks BCD. */
+            if ((dev->bus_type == CDROM_BUS_ATAPI) && dev->early) {
+                m = ti.m;
+                s = ti.s;
+                f = ti.f;
+                msf_to_bcd(&m, &s, &f);
+                b[len++] = m;
+                b[len++] = s;
+                b[len++] = f;
+            } else {
+                b[len++] = ti.m;
+                b[len++] = ti.s;
+                b[len++] = ti.f;
+            }
         } else {
             temp     = MSFtoLBA(ti.m, ti.s, ti.f) - 150;
             b[len++] = temp >> 24;
@@ -619,7 +696,7 @@ static int
 read_toc_session(cdrom_t *dev, unsigned char *b, int msf)
 {
     track_info_t ti;
-    int          len = 4;
+    int          len = 4, m, s, f;
     uint32_t     temp;
 
     cdrom_log("read_toc_session(%08X, %08X, %i)\n", dev, b, msf);
@@ -638,9 +715,21 @@ read_toc_session(cdrom_t *dev, unsigned char *b, int msf)
 
     if (msf) {
         b[len++] = 0;
-        b[len++] = ti.m;
-        b[len++] = ti.s;
-        b[len++] = ti.f;
+
+        /* NEC CDR-260 speaks BCD. */
+        if ((dev->bus_type == CDROM_BUS_ATAPI) && dev->early) {
+            m = ti.m;
+            s = ti.s;
+            f = ti.f;
+            msf_to_bcd(&m, &s, &f);
+            b[len++] = m;
+            b[len++] = s;
+            b[len++] = f;
+        } else {
+            b[len++] = ti.m;
+            b[len++] = ti.s;
+            b[len++] = ti.f;
+        }
     } else {
         temp     = MSFtoLBA(ti.m, ti.s, ti.f) - 150;
         b[len++] = temp >> 24;

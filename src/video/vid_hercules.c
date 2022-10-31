@@ -361,6 +361,13 @@ hercules_poll(void *priv)
             }
 
             hercules_render_overscan_right(dev);
+
+            if (dev->ctrl & 0x02)
+                x = dev->crtc[1] << 4;
+            else
+                x = dev->crtc[1] * 9;
+
+            video_process_8(x, dev->displine + 14);
         }
         dev->sc = oldsc;
 
@@ -475,9 +482,9 @@ hercules_poll(void *priv)
                     }
 
                     if (enable_overscan)
-                        video_blit_memtoscreen_8(0, dev->firstline, xsize + 16, ysize + 28);
+                        video_blit_memtoscreen(0, dev->firstline, xsize + 16, ysize + 28);
                     else
-                        video_blit_memtoscreen_8(8, dev->firstline + 14, xsize, ysize);
+                        video_blit_memtoscreen(8, dev->firstline + 14, xsize, ysize);
                     frames++;
                     // if ((dev->ctrl & 2) && (dev->ctrl2 & 1)) {
                     if (dev->ctrl & 0x02) {
