@@ -154,7 +154,7 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->stackedWidget->setMouseTracking(true);
     statusBar()->setVisible(!hide_status_bar);
     statusBar()->setStyleSheet("QStatusBar::item {border: None; } QStatusBar QLabel { margin-right: 2px; margin-bottom: 1px; }");
-    this->setStyleSheet("#centralWidget { background-color: black; }");
+    this->centralWidget()->setStyleSheet("background-color: black;");
     ui->toolBar->setVisible(!hide_tool_bar);
     renderers[0].reset(nullptr);
     auto toolbar_spacer = new QWidget();
