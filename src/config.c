@@ -115,7 +115,7 @@ load_general(void)
     vid_api = plat_vidapi(p);
     ini_section_delete_var(cat, "vid_api");
 
-    video_fullscreen_scale = ini_section_get_int(cat, "video_fullscreen_scale", 0);
+    video_fullscreen_scale = ini_section_get_int(cat, "video_fullscreen_scale", 1);
 
     video_fullscreen_first = ini_section_get_int(cat, "video_fullscreen_first", 1);
 
@@ -1817,6 +1817,7 @@ config_load(void)
         vid_api                = plat_vidapi("default");
         vid_resize             = 0;
         video_fullscreen_first = 1;
+        video_fullscreen_scale = 1;
         time_sync              = TIME_SYNC_ENABLED;
         hdc_current            = hdc_get_from_internal_name("none");
 
@@ -1904,7 +1905,7 @@ save_general(void)
     else
         ini_section_set_string(cat, "vid_renderer", va_name);
 
-    if (video_fullscreen_scale == 0)
+    if (video_fullscreen_scale == 1)
         ini_section_delete_var(cat, "video_fullscreen_scale");
     else
         ini_section_set_int(cat, "video_fullscreen_scale", video_fullscreen_scale);
