@@ -140,10 +140,10 @@ keyboard_input(int down, uint16_t scan)
     if (recv_key[scan & 0x1ff] ^ down) {
         if (down) {
             switch (scan & 0x1ff) {
-                case 0x01c: /* Left Ctrl */
+                case 0x01d: /* Left Ctrl */
                     shift |= 0x01;
                     break;
-                case 0x11c: /* Right Ctrl */
+                case 0x11d: /* Right Ctrl */
                     shift |= 0x10;
                     break;
                 case 0x02a: /* Left Shift */
@@ -161,10 +161,10 @@ keyboard_input(int down, uint16_t scan)
             }
         } else {
             switch (scan & 0x1ff) {
-                case 0x01c: /* Left Ctrl */
+                case 0x01d: /* Left Ctrl */
                     shift &= ~0x01;
                     break;
-                case 0x11c: /* Right Ctrl */
+                case 0x11d: /* Right Ctrl */
                     shift &= ~0x10;
                     break;
                 case 0x02a: /* Left Shift */

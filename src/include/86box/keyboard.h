@@ -150,6 +150,7 @@ extern const device_t keyboard_pravetz_device;
 extern const device_t keyboard_xt_device;
 extern const device_t keyboard_xt86_device;
 extern const device_t keyboard_xt_compaq_device;
+extern const device_t keyboard_xt_t1x00_device;
 extern const device_t keyboard_tandy_device;
 #    if defined(DEV_BRANCH) && defined(USE_LASERXT)
 extern const device_t keyboard_xt_lxt3_device;

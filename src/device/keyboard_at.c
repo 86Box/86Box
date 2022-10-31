@@ -866,7 +866,7 @@ add_data_kbd(uint16_t val)
     }
 
     /* Test for T3100E 'Fn' key (Right Alt / Right Ctrl) */
-    if ((dev != NULL) && (kbc_ven == KBC_VEN_TOSHIBA) && (keyboard_recv(0xb8) || keyboard_recv(0x9d)))
+    if ((dev != NULL) && (kbc_ven == KBC_VEN_TOSHIBA) && (keyboard_recv(0x138) || keyboard_recv(0x11d)))
         switch (val) {
             case 0x4f:
                 t3100e_notify_set(0x01);
