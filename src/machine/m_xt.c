@@ -175,7 +175,7 @@ machine_xt86_init(const machine_t *model)
 static void
 machine_xt_clone_init(const machine_t *model)
 {
-    device_add(&keyboard_xt86_device);
+    device_add(&keyboard_xtclone_device);
 
     machine_xt_common_init(model);
 }
@@ -573,6 +573,38 @@ machine_xt_bw230_init(const machine_t *model)
 
     ret = bios_load_linear("roms/machines/bw230/bondwell.bin",
                            0x000fe000, 8192, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_xt_clone_init(model);
+
+    return ret;
+}
+
+int
+machine_xt_v20xt_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/v20xt/V20XTBios.bin",
+                            0x000fe000, 8192, 0);
+
+    if (bios_only || !ret)
+	return ret;
+
+    machine_xt_clone_init(model);
+
+        return ret;
+}
+
+int
+machine_xt_pb8810_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/pb8810/pb8088-8810-633acc631aba0345517682.bin",
+                           0x000fc000, 16384, 0);
 
     if (bios_only || !ret)
         return ret;

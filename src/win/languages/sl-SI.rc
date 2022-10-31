@@ -177,7 +177,7 @@ BEGIN
         MENUITEM "&Naloži zadnjo sliko",			IDM_CDROM_RELOAD
         MENUITEM SEPARATOR
         MENUITEM "&Slika",					IDM_CDROM_IMAGE
-        MENUITEM "&Folder",					IDM_CDROM_DIR
+        MENUITEM "&Mapa",					IDM_CDROM_DIR
     END
 END
 
@@ -272,8 +272,8 @@ END
 
 #define STR_VIDEO		"Video:"
 #define STR_VOODOO		"Voodoo grafika"
-#define STR_IBM8514		"IBM 8514/a Graphics"
-#define STR_XGA			"XGA Graphics"
+#define STR_IBM8514		"IBM 8514/a grafika"
+#define STR_XGA			"XGA grafika"
 
 #define STR_MOUSE		"Miška:"
 #define STR_JOYSTICK		"Igralna palica:"
@@ -283,16 +283,16 @@ END
 #define STR_JOY4		"Igralna palica 4..."
 
 #define STR_SOUND		"Zvočna kartica:"
-#define STR_MIDI_OUT	"Izhodna naprava MIDI:"
+#define STR_MIDI_OUT		"Izhodna naprava MIDI:"
 #define STR_MIDI_IN		"Vhodna naprava MIDI:"
 #define STR_MPU401		"Samostojen MPU-401"
 #define STR_SSI			"Innovation SSI-2001"
 #define STR_CMS			"CMS / Game Blaster"
 #define STR_GUS			"Gravis Ultrasound"
 #define STR_FLOAT		"Uporabi FLOAT32 za zvok"
-#define STR_FM_DRIVER		"FM synth driver"
-#define STR_FM_DRV_NUKED	"Nuked (more accurate)"
-#define STR_FM_DRV_YMFM		"YMFM (faster)"
+#define STR_FM_DRIVER		"Gonilnik sintetizacije FM"
+#define STR_FM_DRV_NUKED	"Nuked (točnejši)"
+#define STR_FM_DRV_YMFM		"YMFM (hitrejši)"
 
 #define STR_NET_TYPE		"Vrsta omrežja:"
 #define STR_PCAP		"Naprava PCap:"
@@ -348,6 +348,7 @@ END
 #define STR_CHECKBPB		"Preverjaj BPB"
 #define STR_CDROM_DRIVES	"Pogoni CD-ROM:"
 #define STR_CD_SPEED		"Hitrost:"
+#define STR_EARLY		"Zgodnejši pogon"
 
 #define STR_MO_DRIVES		"Magnetno-optični pogoni:"
 #define STR_ZIP_DRIVES		"Pogoni ZIP:"
@@ -507,15 +508,16 @@ BEGIN
     IDS_2149	"Slike kaset (*.PCM;*.RAW;*.WAV;*.CAS)\0*.PCM;*.RAW;*.WAV;*.CAS\0Vse datoteke (*.*)\0*.*\0"
     IDS_2150	"Spominski vložek %i: %ls"
     IDS_2151	"Slike spominskega vložka (*.A;*.B;*.JRC)\0*.A;*.B;*.JRC\0Vse datoteke (*.*)\0*.*\0"
-    IDS_2152	"Error initializing renderer"
-    IDS_2153	"OpenGL (3.0 Core) renderer could not be initialized. Use another renderer."
-    IDS_2154	"Resume execution"
-    IDS_2155	"Pause execution"
+    IDS_2152	"Napaka pri zagonu sistema za upodabljanje"
+    IDS_2153	"Sistema za upodabljanje OpenGL (3.0 Core) ni bilo mogoče zagnati. Uporabite drug sistem za upodabljanje."
+    IDS_2154	"Nadaljuj izvajanje"
+    IDS_2155	"Prekini izvajanje"
     IDS_2156	"Press Ctrl+Alt+Del"
     IDS_2157	"Press Ctrl+Alt+Esc"
-    IDS_2158	"Hard reset"
-    IDS_2159	"ACPI shutdown"
-    IDS_2160	"Settings"
+    IDS_2158	"Ponovni zagon"
+    IDS_2159	"Zaustavitev ACPI"
+    IDS_2160	"Nastavitve"
+    IDS_2161    "Zgodnejši pogon"
 END
 
 STRINGTABLE DISCARDABLE 

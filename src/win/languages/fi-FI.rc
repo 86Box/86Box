@@ -177,7 +177,7 @@ BEGIN
         MENUITEM "&Lataa edellinen levykuva uudelleen",                 IDM_CDROM_RELOAD
         MENUITEM SEPARATOR
         MENUITEM "L&evykuva",                                           IDM_CDROM_IMAGE
-        MENUITEM "&Folder",					IDM_CDROM_DIR
+        MENUITEM "&Kansio",						IDM_CDROM_DIR
     END
 END
 
@@ -272,8 +272,8 @@ END
 
 #define STR_VIDEO           "Näytönohjain:"
 #define STR_VOODOO          "Voodoo-grafiikkasuoritin"
-#define STR_IBM8514	        "IBM 8514/a Graphics"
-#define STR_XGA			"XGA Graphics"
+#define STR_IBM8514	    "IBM 8514/a-grafiikkasuoritin"
+#define STR_XGA             "XGA-grafiikkasuoritin"
 
 #define STR_MOUSE           "Hiiri:"
 #define STR_JOYSTICK        "Peliohjain:"
@@ -290,9 +290,9 @@ END
 #define STR_CMS             "CMS / Game Blaster"
 #define STR_GUS             "Gravis Ultrasound"
 #define STR_FLOAT           "Käytä FLOAT32-ääntä"
-#define STR_FM_DRIVER		"FM synth driver"
-#define STR_FM_DRV_NUKED	"Nuked (more accurate)"
-#define STR_FM_DRV_YMFM		"YMFM (faster)"
+#define STR_FM_DRIVER       "FM-syntetisaattoriohjain"
+#define STR_FM_DRV_NUKED    "Nuked (tarkempi)"
+#define STR_FM_DRV_YMFM     "YMFM (nopeampi)"
 
 #define STR_NET_TYPE        "Verkon tyyppi:"
 #define STR_PCAP            "PCap-laite:"
@@ -348,6 +348,7 @@ END
 #define STR_CHECKBPB        "Tarkista BPB"
 #define STR_CDROM_DRIVES    "CD-ROM-asemat:"
 #define STR_CD_SPEED        "Nopeus:"
+#define STR_EARLY           "Aiemmat asemat"
 
 #define STR_MO_DRIVES       "Magneettisoptiset asemat (MO):"
 #define STR_ZIP_DRIVES      "ZIP-asemat:"
@@ -516,6 +517,7 @@ BEGIN
     IDS_2158	"Kylmä uudelleenkäynnistys"
     IDS_2159	"ACPI-sammutus"
     IDS_2160	"Asetukset"
+    IDS_2161    "Aiemmat asemat"
 END
 
 STRINGTABLE DISCARDABLE

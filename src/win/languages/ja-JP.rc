@@ -177,7 +177,7 @@ BEGIN
         MENUITEM "前のイメージを再読み込み(&R)",			IDM_CDROM_RELOAD
         MENUITEM SEPARATOR
         MENUITEM "イメージ(&I)",					IDM_CDROM_IMAGE
-        MENUITEM "&Folder",					IDM_CDROM_DIR
+        MENUITEM "フォルダ(&F)",					IDM_CDROM_DIR
     END
 END
 
@@ -272,8 +272,8 @@ END
 
 #define STR_VIDEO		"ビデオカード:"
 #define STR_VOODOO		"Voodooグラフィック"
-#define STR_IBM8514		"IBM 8514/a Graphics"
-#define STR_XGA			"XGA Graphics"
+#define STR_IBM8514		"IBM 8514/aグラフィック"
+#define STR_XGA			"XGAグラフィック"
 
 #define STR_MOUSE		"マウス:"
 #define STR_JOYSTICK		"ジョイスティック:"
@@ -283,16 +283,16 @@ END
 #define STR_JOY4		"ジョイスティック4..."
 
 #define STR_SOUND		"サウンドカード:"
-#define STR_MIDI_OUT	"MIDI出力デバイス:"
+#define STR_MIDI_OUT		"MIDI出力デバイス:"
 #define STR_MIDI_IN		"MIDI入力デバイス:"
 #define STR_MPU401		"独立型MPU-401"
 #define STR_SSI			"Innovation SSI-2001"
 #define STR_CMS			"CMS / Game Blaster"
 #define STR_GUS			"Gravis Ultrasound"
 #define STR_FLOAT		"FLOAT32サウンドを使用する"
-#define STR_FM_DRIVER		"FM synth driver"
-#define STR_FM_DRV_NUKED	"Nuked (more accurate)"
-#define STR_FM_DRV_YMFM		"YMFM (faster)"
+#define STR_FM_DRIVER		"FMシンセドライバー"
+#define STR_FM_DRV_NUKED	"Nuked (高精度化)"
+#define STR_FM_DRV_YMFM		"YMFM (より速く)"
 
 #define STR_NET_TYPE		"ネットワークタイプ:"
 #define STR_PCAP		"PCapデバイス:"
@@ -348,6 +348,7 @@ END
 #define STR_CHECKBPB		"BPBをチェック"
 #define STR_CDROM_DRIVES	"CD-ROMドライブ:"
 #define STR_CD_SPEED		"速度:"
+#define STR_EARLY		"アーリードライブ"
 
 #define STR_MO_DRIVES		"光磁気ドライブ:"
 #define STR_ZIP_DRIVES		"ZIPドライブ:"
@@ -516,6 +517,7 @@ BEGIN
     IDS_2158	"ハードリセット"
     IDS_2159	"ACPIシャットダウン"
     IDS_2160	"設定"
+    IDS_2161    "アーリードライブ"
 END
 
 STRINGTABLE DISCARDABLE 

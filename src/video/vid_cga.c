@@ -354,6 +354,9 @@ cga_poll(void *p)
 
             Composite_Process(cga->cgamode, border, x >> 2, buffer32->line[(cga->displine << 1)]);
             Composite_Process(cga->cgamode, border, x >> 2, buffer32->line[(cga->displine << 1) + 1]);
+        } else {
+            video_process_8(x, cga->displine << 1);
+            video_process_8(x, (cga->displine << 1) + 1);
         }
 
         cga->sc = oldsc;
@@ -448,19 +451,11 @@ cga_poll(void *p)
                         }
 
                         if (enable_overscan) {
-                            if (cga->composite)
-                                video_blit_memtoscreen(0, (cga->firstline - 4) << 1,
-                                                       xsize, ((cga->lastline - cga->firstline) + 8) << 1);
-                            else
-                                video_blit_memtoscreen_8(0, (cga->firstline - 4) << 1,
-                                                         xsize, ((cga->lastline - cga->firstline) + 8) << 1);
+                            video_blit_memtoscreen(0, (cga->firstline - 4) << 1,
+                                                   xsize, ((cga->lastline - cga->firstline) + 8) << 1);
                         } else {
-                            if (cga->composite)
-                                video_blit_memtoscreen(8, cga->firstline << 1,
-                                                       xsize, (cga->lastline - cga->firstline) << 1);
-                            else
-                                video_blit_memtoscreen_8(8, cga->firstline << 1,
-                                                         xsize, (cga->lastline - cga->firstline) << 1);
+                            video_blit_memtoscreen(8, cga->firstline << 1,
+                                                   xsize, (cga->lastline - cga->firstline) << 1);
                         }
                     }
 

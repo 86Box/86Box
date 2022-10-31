@@ -80,6 +80,7 @@ extern const device_t adgold_device;
 
 /* Aztech Sound Galaxy 16 */
 extern const device_t azt2316a_device;
+extern const device_t acermagic_s20_device;
 extern const device_t azt1605_device;
 
 /* Ensoniq AudioPCI */

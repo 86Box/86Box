@@ -1,23 +1,23 @@
 /*
- * VARCem	Virtual ARchaeological Computer EMulator.
- *		An emulator of (mostly) x86-based PC systems and devices,
- *		using the ISA,EISA,VLB,MCA  and PCI system buses, roughly
- *		spanning the era between 1981 and 1995.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the VARCem Project.
+ *          This file is part of the 86Box distribution.
  *
- *		Implementation of the Toshiba T1000 plasma display, which
- *		has a fixed resolution of 640x200 pixels.
+ *          Implementation of the Toshiba T1000 plasma display, which
+ *          has a fixed resolution of 640x200 pixels.
  *
  *
  *
- * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
- *		Miran Grca, <mgrca8@gmail.com>
- *		Sarah Walker, <tommowalker@tommowalker.co.uk>
+ * Authors: Fred N. van Kempen, <decwiz@yahoo.com>
+ *          Miran Grca, <mgrca8@gmail.com>
+ *          Sarah Walker, <tommowalker@tommowalker.co.uk>
  *
- *		Copyright 2018,2019 Fred N. van Kempen.
- *		Copyright 2018,2019 Miran Grca.
- *		Copyright 2018,2019 Sarah Walker.
+ *          Copyright 2018,2019 Fred N. van Kempen.
+ *          Copyright 2018,2019 Miran Grca.
+ *          Copyright 2018,2019 Sarah Walker.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -546,9 +546,9 @@ t1000_recalcattrs(t1000_t *t1000)
      *     Bit 0: Attributes 01-06, 08-0E are inverse video
      *     Bit 1: Attributes 01-06, 08-0E are bold
      *     Bit 2: Attributes 11-16, 18-1F, 21-26, 28-2F ... F1-F6, F8-FF
-     * 	      are inverse video
+     *           are inverse video
      *     Bit 3: Attributes 11-16, 18-1F, 21-26, 28-2F ... F1-F6, F8-FF
-     * 	      are bold */
+     *           are bold */
 
     /* Set up colours */
     if (t1000->invert) {

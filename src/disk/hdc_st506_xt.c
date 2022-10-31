@@ -821,7 +821,7 @@ st506_callback(void *priv)
                     /* For a 615/4/26 we get 666/2/31 geometry. */
                     st506_xt_log("ST506: drive%i: cyls=%i, heads=%i\n",
                                  dev->drive_sel, drive->cfg_cyl, drive->cfg_hpc);
-                    if (dev->type == 23 && drive->cfg_hpc == 2) {
+                    if ((dev->type >= 23) && (drive->cfg_hpc == 2)) {
                         /*
                          * On Victor V86P, there's a disagreement between
                          * the physical geometry, what the controller
@@ -975,7 +975,7 @@ st506_callback(void *priv)
             break;
 
         case CMD_V86P_POWEROFF:
-            if (dev->type == 23) {
+            if (dev->type >= 23) {
                 /*
                  * Main BIOS (not the option ROM on disk) issues this.
                  * Not much we can do, since we don't have a physical disk
@@ -1538,8 +1538,15 @@ st506_init(const device_t *info)
                 dev->switches |= 0x40;
             dev->bios_addr = device_get_config_hex20("bios_addr");
             break;
+
         case 23: /* Victor V86P (RLL) */
             fn = VICTOR_V86P_BIOS_FILE;
+            break;
+
+        case 24: /* Toshiba T1200 */
+            fn = NULL;
+            dev->base     = 0x01f0;
+            dev->switches = 0x0c;
             break;
     }
 
@@ -2108,6 +2115,20 @@ const device_t st506_xt_victor_v86p_device = {
     .close         = st506_close,
     .reset         = NULL,
     { .available = victor_v86p_available },
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t st506_xt_toshiba_t1200_device = {
+    .name          = "Toshiba T1200 RLL Fixed Disk Adapter",
+    .internal_name = "st506_xt_toshiba_t1200",
+    .flags         = DEVICE_ISA,
+    .local         = (HDD_BUS_MFM << 8) | 24,
+    .init          = st506_init,
+    .close         = st506_close,
+    .reset         = NULL,
+    { .available = NULL },
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL

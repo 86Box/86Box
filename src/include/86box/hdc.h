@@ -30,17 +30,18 @@
 
 extern int hdc_current;
 
-extern const device_t st506_xt_xebec_device;       /* st506_xt_xebec */
-extern const device_t st506_xt_dtc5150x_device;    /* st506_xt_dtc */
-extern const device_t st506_xt_st11_m_device;      /* st506_xt_st11_m */
-extern const device_t st506_xt_st11_r_device;      /* st506_xt_st11_m */
-extern const device_t st506_xt_wd1002a_wx1_device; /* st506_xt_wd1002a_wx1 */
-extern const device_t st506_xt_wd1002a_27x_device; /* st506_xt_wd1002a_27x */
-extern const device_t st506_at_wd1003_device;      /* st506_at_wd1003 */
-extern const device_t st506_xt_wd1004a_wx1_device; /* st506_xt_wd1004a_wx1 */
-extern const device_t st506_xt_wd1004_27x_device;  /* st506_xt_wd1004_27x */
-extern const device_t st506_xt_wd1004a_27x_device; /* st506_xt_wd1004a_27x */
-extern const device_t st506_xt_victor_v86p_device; /* st506_xt_victor_v86p */
+extern const device_t st506_xt_xebec_device;         /* st506_xt_xebec */
+extern const device_t st506_xt_dtc5150x_device;      /* st506_xt_dtc */
+extern const device_t st506_xt_st11_m_device;        /* st506_xt_st11_m */
+extern const device_t st506_xt_st11_r_device;        /* st506_xt_st11_m */
+extern const device_t st506_xt_wd1002a_wx1_device;   /* st506_xt_wd1002a_wx1 */
+extern const device_t st506_xt_wd1002a_27x_device;   /* st506_xt_wd1002a_27x */
+extern const device_t st506_at_wd1003_device;        /* st506_at_wd1003 */
+extern const device_t st506_xt_wd1004a_wx1_device;   /* st506_xt_wd1004a_wx1 */
+extern const device_t st506_xt_wd1004_27x_device;    /* st506_xt_wd1004_27x */
+extern const device_t st506_xt_wd1004a_27x_device;   /* st506_xt_wd1004a_27x */
+extern const device_t st506_xt_victor_v86p_device;   /* st506_xt_victor_v86p */
+extern const device_t st506_xt_toshiba_t1200_device; /* st506_xt_toshiba_t1200 */
 
 extern const device_t esdi_at_wd1007vse1_device; /* esdi_at */
 extern const device_t esdi_ps2_device;           /* esdi_mca */

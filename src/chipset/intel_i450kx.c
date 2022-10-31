@@ -40,6 +40,7 @@ i450GX is way more popular of an option but needs more stuff.
 
 #ifdef ENABLE_450KX_LOG
 int i450kx_do_log = ENABLE_450KX_LOG;
+
 static void
 i450kx_log(const char *fmt, ...)
 {

@@ -36,7 +36,7 @@ typedef struct {
     uint8_t status, phase,
         error, id,
         features, cur_lun,
-        pad0, pad1;
+        early, pad1;
 
     uint16_t request_length, max_transfer_len;
 

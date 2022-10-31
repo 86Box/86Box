@@ -25,7 +25,7 @@ If applicable, add screenshots to help explain your problem.
 
 **Desktop (please complete the following information):**
  - OS: [e.g. Windows 10]
- - 86Box version: [e.g. v3.00 build 3333; saying "Latest from Jenkins" isn't helpful]
+ - 86Box version: [e.g. v3.7.1 build 4032; saying "Latest from Jenkins" isn't helpful]
  - Build information: [i.e. new/old dynarec, architecture and build type]
 
 **Additional context**

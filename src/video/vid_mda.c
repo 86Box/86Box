@@ -163,6 +163,8 @@ mda_poll(void *p)
                         buffer32->line[mda->displine][(x * 9) + c] ^= mdacols[attr][0][1];
                 }
             }
+
+            video_process_8(mda->crtc[1] * 9, mda->displine);
         }
         mda->sc = oldsc;
         if (mda->vc == mda->crtc[7] && !mda->sc) {
@@ -235,7 +237,7 @@ mda_poll(void *p)
                         if (video_force_resize_get())
                             video_force_resize_set(0);
                     }
-                    video_blit_memtoscreen_8(0, mda->firstline, xsize, ysize);
+                    video_blit_memtoscreen(0, mda->firstline, xsize, ysize);
                     frames++;
                     video_res_x = mda->crtc[1];
                     video_res_y = mda->crtc[6];

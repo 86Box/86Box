@@ -64,6 +64,7 @@
 #define GPCMD_PREVENT_REMOVAL               0x1e
 #define GPCMD_READ_FORMAT_CAPACITIES        0x23
 #define GPCMD_READ_CDROM_CAPACITY           0x25
+#define GPCMD_CHINON_UNKNOWN                0x26
 #define GPCMD_READ_10                       0x28
 #define GPCMD_READ_GENERATION               0x29
 #define GPCMD_WRITE_10                      0x2a
@@ -105,11 +106,13 @@
 #define GPCMD_MECHANISM_STATUS              0xbd
 #define GPCMD_READ_CD                       0xbe
 #define GPCMD_SEND_DVD_STRUCTURE            0xbf /* This is for writing only, irrelevant to 86Box. */
+#define GPCMD_CHINON_EJECT                  0xc0 /* Chinon Vendor Unique command */
 #define GPCMD_AUDIO_TRACK_SEARCH            0xc0 /* Toshiba Vendor Unique command */
 #define GPCMD_TOSHIBA_PLAY_AUDIO            0xc1 /* Toshiba Vendor Unique command */
 #define GPCMD_PAUSE_RESUME_ALT              0xc2
 #define GPCMD_STILL                         0xc2 /* Toshiba Vendor Unique command */
 #define GPCMD_CADDY_EJECT                   0xc4 /* Toshiba Vendor Unique command */
+#define GPCMD_CHINON_STOP                   0xc6 /* Chinon Vendor Unique command */
 #define GPCMD_READ_SUBCODEQ_PLAYING_STATUS  0xc6 /* Toshiba Vendor Unique command */
 #define GPCMD_READ_DISC_INFORMATION_TOSHIBA 0xc7 /* Toshiba Vendor Unique command */
 #define GPCMD_SCAN_ALT                      0xcd /* Should be equivalent to 0xba */
@@ -249,6 +252,7 @@
 #define MMC_PROFILE_HDDVD_RW_DL       0x005A
 #define MMC_PROFILE_INVALID           0xFFFF
 
+#define EARLY_ONLY                    64
 #define SCSI_ONLY                     32
 #define ATAPI_ONLY                    16
 #define IMPLEMENTED                   8

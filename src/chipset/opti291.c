@@ -31,6 +31,7 @@
 
 #ifdef ENABLE_OPTI291_LOG
 int opti291_do_log = ENABLE_OPTI291_LOG;
+
 static void
 opti291_log(const char *fmt, ...)
 {

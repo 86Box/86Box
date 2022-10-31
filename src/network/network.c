@@ -1,40 +1,38 @@
 /*
- * VARCem	Virtual ARchaeological Computer EMulator.
- *		An emulator of (mostly) x86-based PC systems and devices,
- *		using the ISA,EISA,VLB,MCA  and PCI system buses, roughly
- *		spanning the era between 1981 and 1995.
+ * VARCem   Virtual ARchaeological Computer EMulator.
+ *          An emulator of (mostly) x86-based PC systems and devices,
+ *          using the ISA,EISA,VLB,MCA  and PCI system buses, roughly
+ *          spanning the era between 1981 and 1995.
  *
- *		This file is part of the VARCem Project.
+ *          Implementation of the network module.
  *
- *		Implementation of the network module.
- *
- * NOTE		The definition of the netcard_t is currently not optimal;
- *		it should be malloc'ed and then linked to the NETCARD def.
- *		Will be done later.
+ * NOTE     The definition of the netcard_t is currently not optimal;
+ *          it should be malloc'ed and then linked to the NETCARD def.
+ *          Will be done later.
  *
  *
  *
- * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
+ * Authors: Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 2017-2019 Fred N. van Kempen.
+ *          Copyright 2017-2019 Fred N. van Kempen.
  *
- *		Redistribution and  use  in source  and binary forms, with
- *		or  without modification, are permitted  provided that the
- *		following conditions are met:
+ *          Redistribution and  use  in source  and binary forms, with
+ *          or  without modification, are permitted  provided that the
+ *          following conditions are met:
  *
- *		1. Redistributions of  source  code must retain the entire
- *		   above notice, this list of conditions and the following
- *		   disclaimer.
+ *          1. Redistributions of  source  code must retain the entire
+ *             above notice, this list of conditions and the following
+ *             disclaimer.
  *
- *		2. Redistributions in binary form must reproduce the above
- *		   copyright  notice,  this list  of  conditions  and  the
- *		   following disclaimer in  the documentation and/or other
- *		   materials provided with the distribution.
+ *          2. Redistributions in binary form must reproduce the above
+ *             copyright  notice,  this list  of  conditions  and  the
+ *             following disclaimer in  the documentation and/or other
+ *             materials provided with the distribution.
  *
- *		3. Neither the  name of the copyright holder nor the names
- *		   of  its  contributors may be used to endorse or promote
- *		   products  derived from  this  software without specific
- *		   prior written permission.
+ *          3. Neither the  name of the copyright holder nor the names
+ *             of  its  contributors may be used to endorse or promote
+ *             products  derived from  this  software without specific
+ *             prior written permission.
  *
  * THIS SOFTWARE  IS  PROVIDED BY THE  COPYRIGHT  HOLDERS AND CONTRIBUTORS
  * "AS IS" AND  ANY EXPRESS  OR  IMPLIED  WARRANTIES,  INCLUDING, BUT  NOT
@@ -56,6 +54,9 @@
 #include <stdlib.h>
 #include <wchar.h>
 #include <time.h>
+#ifndef _WIN32
+#include <sys/time.h>
+#endif /* _WIN32 */
 #include <stdbool.h>
 #define HAVE_STDARG_H
 #include <86box/86box.h>
@@ -125,7 +126,7 @@ netdev_t network_devs[NET_HOST_INTF_MAX];
 
 /* Local variables. */
 
-#ifdef ENABLE_NETWORK_LOG
+#if defined ENABLE_NETWORK_LOG && !defined(_WIN32)
 int             network_do_log = ENABLE_NETWORK_LOG;
 static FILE    *network_dump   = NULL;
 static mutex_t *network_dump_mutex;
@@ -215,7 +216,7 @@ network_init(void)
     if (i > 0)
         network_ndev += i;
 
-#ifdef ENABLE_NETWORK_LOG
+#if defined ENABLE_NETWORK_LOG && !defined(_WIN32)
     /* Start packet dump. */
     network_dump = fopen("network.pcap", "wb");
 
@@ -471,7 +472,7 @@ netcard_close(netcard_t *card)
 void
 network_close(void)
 {
-#ifdef ENABLE_NETWORK_LOG
+#if defined ENABLE_NETWORK_LOG && !defined(_WIN32)
     thread_close_mutex(network_dump_mutex);
     network_dump_mutex = NULL;
 #endif
@@ -494,7 +495,7 @@ network_reset(void)
 
     ui_sb_update_icon(SB_NETWORK, 0);
 
-#ifdef ENABLE_NETWORK_LOG
+#if defined ENABLE_NETWORK_LOG && !defined(_WIN32)
     network_dump_mutex = thread_create_mutex();
 #endif
 
