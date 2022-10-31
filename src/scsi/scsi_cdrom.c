@@ -17,6 +17,7 @@
  */
 #include <stdarg.h>
 #include <inttypes.h>
+#include <math.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
@@ -81,7 +82,8 @@ const uint8_t scsi_cdrom_command_flags[0x100] = {
     IMPLEMENTED | CHECK_READY,                       /* 0x1E */
     0, 0, 0, 0, 0, 0,                                /* 0x1F-0x24 */
     IMPLEMENTED | CHECK_READY,                       /* 0x25 */
-    0, 0,                                            /* 0x26-0x27 */
+    IMPLEMENTED | CHECK_READY | SCSI_ONLY | EARLY_ONLY,/* 0x26 */
+    0,                                               /* 0x27 */
     IMPLEMENTED | CHECK_READY,                       /* 0x28 */
     0, 0,                                            /* 0x29-0x2A */
     IMPLEMENTED | CHECK_READY | NONDATA,             /* 0x2B */
@@ -349,11 +351,10 @@ scsi_cdrom_init(scsi_cdrom_t *dev)
 
     dev->sense[0]        = 0xf0;
     dev->sense[7]        = 10;
-#ifdef POSSIBLE_EARLY_ATAPI
-    dev->status          = READY_STAT | DSC_STAT;
-#else
-    dev->status          = 0;
-#endif
+    if (dev->early)
+        dev->status      = READY_STAT | DSC_STAT;
+    else
+        dev->status      = 0;
     dev->pos             = 0;
     dev->packet_status   = PHASE_NONE;
     scsi_cdrom_sense_key = scsi_cdrom_asc = scsi_cdrom_ascq = dev->unit_attention = 0;
@@ -541,6 +542,7 @@ static void
 scsi_cdrom_update_request_length(scsi_cdrom_t *dev, int len, int block_len)
 {
     int32_t bt, min_len = 0;
+    double dlen;
 
     dev->max_transfer_len = dev->request_length;
 
@@ -588,6 +590,16 @@ scsi_cdrom_update_request_length(scsi_cdrom_t *dev, int len, int block_len)
         dev->request_length = dev->max_transfer_len = len;
     else if (len > dev->max_transfer_len)
         dev->request_length = dev->max_transfer_len;
+
+    /* READ CD MSF and READ CD: Round the request length to the sector size - the device must ensure
+       that a media access comand does not DRQ in the middle of a sector. One of the drivers that
+       relies on the correctness of this behavior is MTMCDAI.SYS (the Mitsumi CD-ROM driver) for DOS
+       which uses the READ CD command to read data on some CD types. */
+    if ((dev->current_cdb[0] == 0xb9) || (dev->current_cdb[0] == 0xbe)) {
+        /* Round to sector length. */
+        dlen = ((double) dev->request_length) / ((double) block_len);
+        dev->request_length = ((uint16_t) floor(dlen)) * block_len;
+    }
 
     return;
 }
@@ -1011,8 +1023,8 @@ scsi_cdrom_read_blocks(scsi_cdrom_t *dev, int32_t *len, int first_batch)
 
     if (ret == -1)
         return 0;
-    else if (!ret || ((dev->old_len != *len) && !first_batch)) {
-        if ((dev->old_len != *len) && !first_batch)
+    else if (!ret || (!first_batch && (dev->old_len != *len))) {
+        if (!first_batch && (dev->old_len != *len))
             scsi_cdrom_illegal_mode(dev);
 
         return 0;
@@ -1170,6 +1182,12 @@ scsi_cdrom_pre_execution_check(scsi_cdrom_t *dev, uint8_t *cdb)
         scsi_cdrom_log("CD-ROM %i: Attempting to execute unknown command %02X over %s\n", dev->id, cdb[0],
                        (dev->drv->bus_type == CDROM_BUS_SCSI) ? "SCSI" : "ATAPI");
 
+        scsi_cdrom_illegal_opcode(dev);
+        return 0;
+    }
+
+    if (!dev->early && (scsi_cdrom_command_flags[cdb[0]] & EARLY_ONLY)) {
+        scsi_cdrom_log("CD-ROM %i: Attempting to execute SCSI-only command %02X over ATAPI\n", dev->id, cdb[0]);
         scsi_cdrom_illegal_opcode(dev);
         return 0;
     }
@@ -1998,19 +2016,27 @@ scsi_cdrom_command(scsi_common_t *sc, uint8_t *cdb)
             scsi_cdrom_data_command_finish(dev, len, len, max_len, 0);
             break;
 
+        /* GPCMD_CHINON_EJECT on Chinon */
         case GPCMD_AUDIO_TRACK_SEARCH:
-            scsi_cdrom_set_phase(dev, SCSI_PHASE_STATUS);
-            if ((dev->drv->host_drive < 1) || (dev->drv->cd_status <= CD_STATUS_DATA_ONLY)) {
-                scsi_cdrom_illegal_mode(dev);
-                break;
-            }
-            pos = (cdb[2] << 24) | (cdb[3] << 16) | (cdb[4] << 8) | cdb[5];
-            ret = cdrom_audio_track_search(dev->drv, pos, cdb[9], cdb[1] & 1);
-
-            if (ret)
+            if (dev->early) {
+                scsi_cdrom_set_phase(dev, SCSI_PHASE_STATUS);
+                scsi_cdrom_stop(sc);
+                cdrom_eject(dev->id);		
                 scsi_cdrom_command_complete(dev);
-            else
-                scsi_cdrom_illegal_mode(dev);
+            } else {
+                scsi_cdrom_set_phase(dev, SCSI_PHASE_STATUS);
+                if ((dev->drv->host_drive < 1) || (dev->drv->cd_status <= CD_STATUS_DATA_ONLY)) {
+                    scsi_cdrom_illegal_mode(dev);
+                    break;
+                }
+                pos = (cdb[2] << 24) | (cdb[3] << 16) | (cdb[4] << 8) | cdb[5];
+                ret = cdrom_audio_track_search(dev->drv, pos, cdb[9], cdb[1] & 1);
+
+                if (ret)
+                    scsi_cdrom_command_complete(dev);
+                else
+                    scsi_cdrom_illegal_mode(dev);
+            }
             break;
 
         case GPCMD_TOSHIBA_PLAY_AUDIO:
@@ -2149,13 +2175,13 @@ scsi_cdrom_command(scsi_common_t *sc, uint8_t *cdb)
                         dev->buffer[1] = 0x11;
                         break;
                     case CD_STATUS_PAUSED:
-                        dev->buffer[1] = 0x12;
+                        dev->buffer[1] = ((dev->drv->bus_type == CDROM_BUS_SCSI) && dev->early) ? 0x15 : 0x12;
                         break;
                     case CD_STATUS_DATA_ONLY:
-                        dev->buffer[1] = 0x15;
+                        dev->buffer[1] = ((dev->drv->bus_type == CDROM_BUS_SCSI) && dev->early) ? 0x00 : 0x15;
                         break;
                     default:
-                        dev->buffer[1] = 0x13;
+                        dev->buffer[1] = ((dev->drv->bus_type == CDROM_BUS_SCSI) && dev->early) ? 0x00 : 0x13;
                         break;
                 }
 
@@ -2168,35 +2194,42 @@ scsi_cdrom_command(scsi_common_t *sc, uint8_t *cdb)
             scsi_cdrom_data_command_finish(dev, len, len, len, 0);
             break;
 
+        /* GPCMD_CHINON_STOP on Chinon */
         case GPCMD_READ_SUBCODEQ_PLAYING_STATUS:
-            scsi_cdrom_set_phase(dev, SCSI_PHASE_DATA_IN);
-
-            alloc_length = cdb[1] & 0x1f;
-
-            scsi_cdrom_buf_alloc(dev, alloc_length);
-
-            if (!dev->drv->ops) {
-                scsi_cdrom_not_ready(dev);
-                return;
-            }
-
-            if (!alloc_length) {
+            if (dev->early) {
                 scsi_cdrom_set_phase(dev, SCSI_PHASE_STATUS);
-                scsi_cdrom_log("CD-ROM %i: All done - callback set\n", dev->id);
-                dev->packet_status = PHASE_COMPLETE;
-                dev->callback      = 20.0 * CDROM_TIME;
-                scsi_cdrom_set_callback(dev);
-                break;
+                scsi_cdrom_stop(sc);
+                scsi_cdrom_command_complete(dev);
+            } else {
+                scsi_cdrom_set_phase(dev, SCSI_PHASE_DATA_IN);
+
+                alloc_length = cdb[1] & 0x1f;
+
+                scsi_cdrom_buf_alloc(dev, alloc_length);
+
+                if (!dev->drv->ops) {
+                    scsi_cdrom_not_ready(dev);
+                    return;
+                }
+
+                if (!alloc_length) {
+                    scsi_cdrom_set_phase(dev, SCSI_PHASE_STATUS);
+                    scsi_cdrom_log("CD-ROM %i: All done - callback set\n", dev->id);
+                    dev->packet_status = PHASE_COMPLETE;
+                    dev->callback      = 20.0 * CDROM_TIME;
+                    scsi_cdrom_set_callback(dev);
+                    break;
+                }
+
+                len = alloc_length;
+
+                memset(dev->buffer, 0, len);
+                dev->buffer[0] = cdrom_get_current_subcodeq_playstatus(dev->drv, &dev->buffer[1]);
+                scsi_cdrom_log("Audio Status = %02x\n", dev->buffer[0]);
+
+                scsi_cdrom_set_buf_len(dev, BufLen, &alloc_length);
+                scsi_cdrom_data_command_finish(dev, len, len, len, 0);
             }
-
-            len = alloc_length;
-
-            memset(dev->buffer, 0, len);
-            dev->buffer[0] = cdrom_get_current_subcodeq_playstatus(dev->drv, &dev->buffer[1]);
-            scsi_cdrom_log("Audio Status = %02x\n", dev->buffer[0]);
-
-            scsi_cdrom_set_buf_len(dev, BufLen, &alloc_length);
-            scsi_cdrom_data_command_finish(dev, len, len, len, 0);
             break;
 
         case GPCMD_READ_DVD_STRUCTURE:
@@ -2233,6 +2266,12 @@ scsi_cdrom_command(scsi_common_t *sc, uint8_t *cdb)
                 scsi_cdrom_buf_free(dev);
                 return;
             }
+            break;
+
+        case GPCMD_CHINON_UNKNOWN:
+            scsi_cdrom_set_phase(dev, SCSI_PHASE_STATUS);
+            scsi_cdrom_stop(sc);
+            scsi_cdrom_command_complete(dev);
             break;
 
         case GPCMD_START_STOP_UNIT:
@@ -2309,22 +2348,36 @@ scsi_cdrom_command(scsi_common_t *sc, uint8_t *cdb)
                         dev->buffer[idx++] = 0x01;
                         dev->buffer[idx++] = 0x00;
                         dev->buffer[idx++] = 68;
-                        if (dev->drv->bus_type == CDROM_BUS_SCSI)
-                            ide_padstr8(dev->buffer + idx, 8, "TOSHIBA"); /* Vendor */
-                        else
 #ifdef USE_86BOX_CD
-                            ide_padstr8(dev->buffer + idx, 8, EMU_NAME); /* Vendor */
+                        ide_padstr8(dev->buffer + idx, 8, EMU_NAME); /* Vendor */
 #else
-                            ide_padstr8(dev->buffer + idx, 8, "HITACHI"); /* Vendor */
+                        if (dev->drv->bus_type == CDROM_BUS_SCSI) {
+                            if (dev->early)
+                                ide_padstr8(dev->buffer + idx, 8, "CHINON"); /* Vendor */
+                            else
+                                ide_padstr8(dev->buffer + idx, 8, "TOSHIBA"); /* Vendor */
+                        } else {
+                            if (dev->early)
+                                ide_padstr8(dev->buffer + idx, 8, "NEC"); /* Vendor */
+                            else
+                                ide_padstr8(dev->buffer + idx, 8, "HITACHI"); /* Vendor */
+                        }
 #endif
                         idx += 8;
-                        if (dev->drv->bus_type == CDROM_BUS_SCSI)
-                            ide_padstr8(dev->buffer + idx, 40, "XM6201TASUN32XCD1103"); /* Product */
-                        else
 #ifdef USE_86BOX_CD
                             ide_padstr8(dev->buffer + idx, 40, device_identify_ex); /* Product */
 #else
-                            ide_padstr8(dev->buffer + idx, 40, "CDR-8130"); /* Product */
+                        if (dev->drv->bus_type == CDROM_BUS_SCSI) {
+                            if (dev->early)
+                                ide_padstr8(dev->buffer + idx, 40, "CD-ROM CDS-431"); /* Product */
+                            else
+                                ide_padstr8(dev->buffer + idx, 40, "XM6201TASUN32XCD1103"); /* Product */
+                        } else {
+                            if (dev->early)
+                                ide_padstr8(dev->buffer + idx, 40, "CD-ROM DRIVE:260"); /* Product */
+                            else
+                                ide_padstr8(dev->buffer + idx, 40, "CDR-8130"); /* Product */
+                        }
 #endif
                         idx += 40;
                         ide_padstr8(dev->buffer + idx, 20, "53R141"); /* Product */
@@ -2359,21 +2412,33 @@ scsi_cdrom_command(scsi_common_t *sc, uint8_t *cdb)
                     dev->buffer[7] = 0x20; /* Wide bus supported */
                 }
 
-                if (dev->drv->bus_type == CDROM_BUS_SCSI) {
-                    ide_padstr8(dev->buffer + 8, 8, "TOSHIBA");            /* Vendor */
-                    ide_padstr8(dev->buffer + 16, 16, "XM6201TASUN32XCD"); /* Product */
-                    ide_padstr8(dev->buffer + 32, 4, "1103");              /* Revision */
-                } else {
 #ifdef USE_86BOX_CD
-                    ide_padstr8(dev->buffer + 8, 8, EMU_NAME);          /* Vendor */
-                    ide_padstr8(dev->buffer + 16, 16, device_identify); /* Product */
-                    ide_padstr8(dev->buffer + 32, 4, EMU_VERSION_EX);   /* Revision */
+                ide_padstr8(dev->buffer + 8, 8, EMU_NAME);          /* Vendor */
+                ide_padstr8(dev->buffer + 16, 16, device_identify); /* Product */
+                ide_padstr8(dev->buffer + 32, 4, EMU_VERSION_EX);   /* Revision */
 #else
-                    ide_padstr8(dev->buffer + 8, 8, "HITACHI");          /* Vendor */
-                    ide_padstr8(dev->buffer + 16, 16, "CDR-8130"); /* Product */
-                    ide_padstr8(dev->buffer + 32, 4, "0020");   /* Revision */
-#endif
+                if (dev->drv->bus_type == CDROM_BUS_SCSI) {
+                    if (dev->early) {
+                        ide_padstr8(dev->buffer + 8, 8, "CHINON");           /* Vendor */
+                        ide_padstr8(dev->buffer + 16, 16, "CD-ROM CDS-431"); /* Product */
+                        ide_padstr8(dev->buffer + 32, 4, "H42");             /* Revision */
+                    } else {
+                        ide_padstr8(dev->buffer + 8, 8, "TOSHIBA");            /* Vendor */
+                        ide_padstr8(dev->buffer + 16, 16, "XM6201TASUN32XCD"); /* Product */
+                        ide_padstr8(dev->buffer + 32, 4, "1103");              /* Revision */
+                    }
+                } else {
+                    if (dev->early) {
+                        ide_padstr8(dev->buffer + 8, 8, "NEC");                /* Vendor */
+                        ide_padstr8(dev->buffer + 16, 16, "CD-ROM DRIVE:260"); /* Product */
+                        ide_padstr8(dev->buffer + 32, 4, "1.01");              /* Revision */
+                    } else {
+                        ide_padstr8(dev->buffer + 8, 8, "HITACHI");    /* Vendor */
+                        ide_padstr8(dev->buffer + 16, 16, "CDR-8130"); /* Product */
+                        ide_padstr8(dev->buffer + 32, 4, "0020");      /* Revision */
+                    }
                 }
+#endif
 
                 idx = 36;
 
@@ -2645,25 +2710,35 @@ scsi_cdrom_identify(ide_t *ide, int ide_has_dma)
     scsi_cdrom_t *dev;
     char device_identify[9] = { '8', '6', 'B', '_', 'C', 'D', '0', '0', 0 };
 
-    dev = (scsi_cdrom_t *) ide->p;
+    dev = (scsi_cdrom_t *) ide->sc;
 
     device_identify[7] = dev->id + 0x30;
     scsi_cdrom_log("ATAPI Identify: %s\n", device_identify);
+#else
+    scsi_cdrom_t *dev = (scsi_cdrom_t *) ide->sc;
 #endif
 
-    ide->buffer[0] = 0x8000 | (5 << 8) | 0x80 | (2 << 5); /* ATAPI device, CD-ROM drive, removable media, accelerated DRQ */
+    if (dev->early)
+        ide->buffer[0] = 0x8000 | (5 << 8) | 0x80 | (1 << 5); /* ATAPI device, CD-ROM drive, removable media, interrupt DRQ */
+    else
+        ide->buffer[0] = 0x8000 | (5 << 8) | 0x80 | (2 << 5); /* ATAPI device, CD-ROM drive, removable media, accelerated DRQ */
     ide_padstr((char *) (ide->buffer + 10), "", 20);      /* Serial Number */
 #ifdef USE_86BOX_CD
     ide_padstr((char *) (ide->buffer + 23), EMU_VERSION_EX, 8); /* Firmware */
     ide_padstr((char *) (ide->buffer + 27), device_identify, 40); /* Model */
 #else
- #ifdef USE_NEC_CD
-    ide_padstr((char *) (ide->buffer + 23), "4.20    ", 8);                                  /* Firmware */
-    ide_padstr((char *) (ide->buffer + 27), "NEC                 CD-ROM DRIVE:273    ", 40); /* Model */
- #else
-    ide_padstr((char *) (ide->buffer + 23), "0020    ", 8);                                  /* Firmware */
-    ide_padstr((char *) (ide->buffer + 27), "HITACHI CDR-8130                        ", 40); /* Model */
- #endif
+    if (dev->early) {
+#ifdef WRONG
+        ide_padstr((char *) (ide->buffer + 23), "1.01    ", 8);                                  /* Firmware */
+        ide_padstr((char *) (ide->buffer + 27), "NEC                 CD-ROM DRIVE:260    ", 40); /* Model */
+#else
+        ide_padstr((char *) (ide->buffer + 23), ".110    ", 8);                                  /* Firmware */
+        ide_padstr((char *) (ide->buffer + 27), "EN C                DCR-MOD IREV2:06    ", 40); /* Model */
+#endif
+    } else {
+        ide_padstr((char *) (ide->buffer + 23), "0020    ", 8);                                  /* Firmware */
+        ide_padstr((char *) (ide->buffer + 27), "HITACHI CDR-8130                        ", 40); /* Model */
+    }
 #endif
     ide->buffer[49]  = 0x200;  /* LBA supported */
     ide->buffer[126] = 0xfffe; /* Interpret zero byte count limit as maximum length */
@@ -2711,6 +2786,7 @@ scsi_cdrom_drive_reset(int c)
     dev->drv = drv;
 
     dev->cur_lun = SCSI_LUN_USE_CDB;
+    dev->early = dev->drv->early;
 
     drv->insert      = scsi_cdrom_insert;
     drv->get_volume  = scsi_cdrom_get_volume;
@@ -2749,7 +2825,7 @@ scsi_cdrom_drive_reset(int c)
             id->phase_data_out   = scsi_cdrom_phase_data_out;
             id->command_stop     = scsi_cdrom_command_stop;
             id->bus_master_error = scsi_cdrom_bus_master_error;
-            id->interrupt_drq    = 0;
+            id->interrupt_drq    = dev->early;
 
             ide_atapi_attach(id);
         }

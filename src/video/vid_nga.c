@@ -347,6 +347,14 @@ nga_poll(void *priv)
                 }
             }
 
+            if ((nga->cga.cgamode & 1))
+                /* set screen width */
+                x = (nga->cga.crtc[1] << 3) + 16;
+            else
+                x = (nga->cga.crtc[1] << 4) + 16;
+
+            video_process_8(x, nga->cga.displine);
+
             nga->cga.sc = oldsc;
             /* vertical sync */
             if (nga->cga.vc == nga->cga.crtc[7] && !nga->cga.sc)
@@ -465,19 +473,11 @@ nga_poll(void *priv)
                                 }
                                 /* nga specific */
                                 if (enable_overscan) {
-                                    if (nga->cga.composite)
-                                        video_blit_memtoscreen(0, (nga->cga.firstline - 8),
-                                                               xsize, (nga->cga.lastline - nga->cga.firstline) + 16);
-                                    else
-                                        video_blit_memtoscreen_8(0, (nga->cga.firstline - 8),
-                                                                 xsize, (nga->cga.lastline - nga->cga.firstline) + 16);
+                                    video_blit_memtoscreen(0, (nga->cga.firstline - 8),
+                                                           xsize, (nga->cga.lastline - nga->cga.firstline) + 16);
                                 } else {
-                                    if (nga->cga.composite)
-                                        video_blit_memtoscreen(8, nga->cga.firstline,
-                                                               xsize, (nga->cga.lastline - nga->cga.firstline));
-                                    else
-                                        video_blit_memtoscreen_8(8, nga->cga.firstline,
-                                                                 xsize, (nga->cga.lastline - nga->cga.firstline));
+                                    video_blit_memtoscreen(8, nga->cga.firstline,
+                                                           xsize, (nga->cga.lastline - nga->cga.firstline));
                                 }
                             }
                             frames++;

@@ -509,6 +509,13 @@ herculesplus_poll(void *priv)
                 graphics_line(dev);
             else
                 text_line(dev, ca);
+
+            if ((dev->ctrl & HERCULESPLUS_CTRL_GRAPH) && (dev->ctrl2 & HERCULESPLUS_CTRL2_GRAPH))
+                x = dev->crtc[1] << 4;
+            else
+                x = dev->crtc[1] * 9;
+
+            video_process_8(x, dev->displine);
         }
         dev->sc = oldsc;
         if (dev->vc == dev->crtc[7] && !dev->sc)
@@ -583,7 +590,7 @@ herculesplus_poll(void *priv)
                         if (video_force_resize_get())
                             video_force_resize_set(0);
                     }
-                    video_blit_memtoscreen_8(0, dev->firstline, xsize, dev->lastline - dev->firstline);
+                    video_blit_memtoscreen(0, dev->firstline, xsize, dev->lastline - dev->firstline);
                     frames++;
                     if ((dev->ctrl & HERCULESPLUS_CTRL_GRAPH) && (dev->ctrl2 & HERCULESPLUS_CTRL2_GRAPH)) {
                         video_res_x = dev->crtc[1] * 16;

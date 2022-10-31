@@ -650,6 +650,8 @@ sigma_poll(void *p)
         for (c = 0; c < x; c++)
             buffer32->line[sigma->displine][c] = sigma->palette[buffer32->line[sigma->displine][c] & 0xf] | 16;
 
+        video_process_8(x, sigma->displine);
+
         sigma->sc = oldsc;
         if (sigma->vc == sigma->crtc[7] && !sigma->sc)
             sigma->sigmastat |= STATUS_RETR_V;
@@ -729,7 +731,7 @@ sigma_poll(void *p)
                             video_force_resize_set(0);
                     }
 
-                    video_blit_memtoscreen_8(0, sigma->firstline - 4, xsize, (sigma->lastline - sigma->firstline) + 8);
+                    video_blit_memtoscreen(0, sigma->firstline - 4, xsize, (sigma->lastline - sigma->firstline) + 8);
                     frames++;
 
                     video_res_x = xsize - 16;

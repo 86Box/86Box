@@ -875,6 +875,9 @@ vid_poll(void *priv)
         if (!dev->is_sl2 && vid->composite) {
             Composite_Process(vid->mode, 0, x >> 2, buffer32->line[(vid->displine << 1)]);
             Composite_Process(vid->mode, 0, x >> 2, buffer32->line[(vid->displine << 1) + 1]);
+        } else {
+            video_process_8(x, vid->displine << 1);
+            video_process_8(x, (vid->displine << 1) + 1);
         }
         vid->sc = oldsc;
         if (vid->vc == vid->crtc[7] && !vid->sc)
@@ -968,19 +971,11 @@ vid_poll(void *priv)
                         }
 
                         if (enable_overscan) {
-                            if (!dev->is_sl2 && vid->composite)
-                                video_blit_memtoscreen(0, (vid->firstline - 4) << 1,
-                                                       xsize, ((vid->lastline - vid->firstline) + 8) << 1);
-                            else
-                                video_blit_memtoscreen_8(0, (vid->firstline - 4) << 1,
-                                                         xsize, ((vid->lastline - vid->firstline) + 8) << 1);
+                            video_blit_memtoscreen(0, (vid->firstline - 4) << 1,
+                                                   xsize, ((vid->lastline - vid->firstline) + 8) << 1);
                         } else {
-                            if (!dev->is_sl2 && vid->composite)
-                                video_blit_memtoscreen(8, vid->firstline << 1,
-                                                       xsize, (vid->lastline - vid->firstline) << 1);
-                            else
-                                video_blit_memtoscreen_8(8, vid->firstline << 1,
-                                                         xsize, (vid->lastline - vid->firstline) << 1);
+                            video_blit_memtoscreen(8, vid->firstline << 1,
+                                                   xsize, (vid->lastline - vid->firstline) << 1);
                         }
                     }
 

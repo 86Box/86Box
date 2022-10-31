@@ -1,30 +1,30 @@
 /*
- * VARCem	Virtual ARchaeological Computer EMulator.
- *		An emulator of (mostly) x86-based PC systems and devices,
- *		using the ISA,EISA,VLB,MCA  and PCI system buses, roughly
- *		spanning the era between 1981 and 1995.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the VARCem Project.
+ *          This file is part of the 86Box distribution.
  *
- *		Implementation of the following network controllers:
- *			- Novell NE1000 (ISA 8-bit);
- *			- Novell NE2000 (ISA 16-bit);
- *			- Novell NE/2 compatible (NetWorth Inc. Ethernext/MC) (MCA 16-bit);
- *			- Realtek RTL8019AS (ISA 16-bit, PnP);
- *			- Realtek RTL8029AS (PCI).
+ *          Implementation of the following network controllers:
+ *              - Novell NE1000 (ISA 8-bit);
+ *              - Novell NE2000 (ISA 16-bit);
+ *              - Novell NE/2 compatible (NetWorth Inc. Ethernext/MC) (MCA 16-bit);
+ *              - Realtek RTL8019AS (ISA 16-bit, PnP);
+ *              - Realtek RTL8029AS (PCI).
  *
  *
  *
- * Based on	@(#)ne2k.cc v1.56.2.1 2004/02/02 22:37:22 cbothamy
+ * Based on    @(#)ne2k.cc v1.56.2.1 2004/02/02 22:37:22 cbothamy
  *
- * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
- *		TheCollector1995, <mariogplayer@gmail.com>
- *		Miran Grca, <mgrca8@gmail.com>
- *		Peter Grehan, <grehan@iprg.nokia.com>
+ * Authors: Fred N. van Kempen, <decwiz@yahoo.com>
+ *          TheCollector1995, <mariogplayer@gmail.com>
+ *          Miran Grca, <mgrca8@gmail.com>
+ *          Peter Grehan, <grehan@iprg.nokia.com>
  *
- *		Copyright 2017,2018 Fred N. van Kempen.
- *		Copyright 2016-2018 Miran Grca.
- *		Portions Copyright (C) 2002  MandrakeSoft S.A.
+ *          Copyright 2017,2018 Fred N. van Kempen.
+ *          Copyright 2016-2018 Miran Grca.
+ *          Portions Copyright (C) 2002  MandrakeSoft S.A.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by

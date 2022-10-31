@@ -66,6 +66,7 @@
 #define KBD_TYPE_OLIVETTI 8
 #define KBD_TYPE_ZENITH   9
 #define KBD_TYPE_PRAVETZ  10
+#define KBD_TYPE_XTCLONE  11
 
 typedef struct {
     int want_irq;
@@ -428,7 +429,7 @@ kbd_adddata(uint16_t val)
 {
     /* Test for T1000 'Fn' key (Right Alt / Right Ctrl) */
     if (is_t1x00) {
-        if (keyboard_recv(0xb8) || keyboard_recv(0x9d)) { /* 'Fn' pressed */
+        if (keyboard_recv(0x138) || keyboard_recv(0x11d)) { /* 'Fn' pressed */
             t1000_syskey(0x00, 0x04, 0x00);               /* Set 'Fn' indicator */
             switch (val) {
                 case 0x45: /* Num Lock => toggle numpad */
@@ -584,8 +585,9 @@ kbd_read(uint16_t port, void *priv)
 
     switch (port) {
         case 0x60: /* Keyboard Data Register  (aka Port A) */
-            if ((kbd->pb & 0x80) && ((kbd->type == KBD_TYPE_PC81) || (kbd->type == KBD_TYPE_PC82) || (kbd->type == KBD_TYPE_PRAVETZ) || (kbd->type == KBD_TYPE_XT82) || (kbd->type == KBD_TYPE_XT86) || (kbd->type == KBD_TYPE_ZENITH))) {
-                if ((kbd->type == KBD_TYPE_PC81) || (kbd->type == KBD_TYPE_PC82) || (kbd->type == KBD_TYPE_PRAVETZ))
+            if ((kbd->pb & 0x80) && ((kbd->type == KBD_TYPE_PC81) || (kbd->type == KBD_TYPE_PC82) || (kbd->type == KBD_TYPE_PRAVETZ) || (kbd->type == KBD_TYPE_XT82) ||
+                (kbd->type == KBD_TYPE_XT86) || (kbd->type == KBD_TYPE_XTCLONE) || (kbd->type == KBD_TYPE_COMPAQ) || (kbd->type == KBD_TYPE_ZENITH))) {
+                if ((kbd->type == KBD_TYPE_PC81) || (kbd->type == KBD_TYPE_PC82) || (kbd->type == KBD_TYPE_XTCLONE) || (kbd->type == KBD_TYPE_COMPAQ) || (kbd->type == KBD_TYPE_PRAVETZ))
                     ret = (kbd->pd & ~0x02) | (hasfpu ? 0x02 : 0x00);
                 else if ((kbd->type == KBD_TYPE_XT82) || (kbd->type == KBD_TYPE_XT86))
                     ret = 0xff; /* According to Ruud on the PCem forum, this is supposed to return 0xFF on the XT. */
@@ -669,9 +671,9 @@ kbd_read(uint16_t port, void *priv)
             break;
 
         case 0x63: /* Keyboard Configuration Register (aka Port D) */
-            if ((kbd->type == KBD_TYPE_XT82) || (kbd->type == KBD_TYPE_XT86)
-                || (kbd->type == KBD_TYPE_COMPAQ)
-                || (kbd->type == KBD_TYPE_TOSHIBA))
+            if ((kbd->type == KBD_TYPE_XT82) || (kbd->type == KBD_TYPE_XT86) ||
+                (kbd->type == KBD_TYPE_XTCLONE) || (kbd->type == KBD_TYPE_COMPAQ) ||
+                (kbd->type == KBD_TYPE_TOSHIBA))
                 ret = kbd->pd;
             break;
 
@@ -732,8 +734,9 @@ kbd_init(const device_t *info)
 
     if ((kbd->type == KBD_TYPE_PC81) || (kbd->type == KBD_TYPE_PC82) ||
         (kbd->type == KBD_TYPE_PRAVETZ) || (kbd->type == KBD_TYPE_XT82) ||
-        (kbd->type <= KBD_TYPE_XT86) || (kbd->type == KBD_TYPE_COMPAQ) ||
-        (kbd->type == KBD_TYPE_TOSHIBA) || (kbd->type == KBD_TYPE_OLIVETTI)) {
+        (kbd->type <= KBD_TYPE_XT86) || (kbd->type == KBD_TYPE_XTCLONE) ||
+        (kbd->type == KBD_TYPE_COMPAQ) || (kbd->type == KBD_TYPE_TOSHIBA) ||
+        (kbd->type == KBD_TYPE_OLIVETTI)) {
 
         /* DIP switch readout: bit set = OFF, clear = ON. */
         if (kbd->type == KBD_TYPE_OLIVETTI)
@@ -752,9 +755,8 @@ kbd_init(const device_t *info)
         kbd->pd |= get_videomode_switch_settings();
 
         /* Switches 3, 4 - memory size. */
-        if ((kbd->type == KBD_TYPE_XT86)
-            || (kbd->type == KBD_TYPE_COMPAQ)
-            || (kbd->type == KBD_TYPE_TOSHIBA)) {
+        if ((kbd->type == KBD_TYPE_XT86) || (kbd->type == KBD_TYPE_XTCLONE) ||
+            (kbd->type == KBD_TYPE_COMPAQ) || (kbd->type == KBD_TYPE_TOSHIBA)) {
             switch (mem_size) {
                 case 256:
                     kbd->pd |= 0x00;
@@ -1040,6 +1042,20 @@ const device_t keyboard_xt_zenith_device = {
     .internal_name = "keyboard_xt_zenith",
     .flags         = 0,
     .local         = KBD_TYPE_ZENITH,
+    .init          = kbd_init,
+    .close         = kbd_close,
+    .reset         = kbd_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t keyboard_xtclone_device = {
+    .name          = "XT (Clone) Keyboard",
+    .internal_name = "keyboard_xtclone",
+    .flags         = 0,
+    .local         = KBD_TYPE_XTCLONE,
     .init          = kbd_init,
     .close         = kbd_close,
     .reset         = kbd_reset,

@@ -182,7 +182,7 @@ BEGIN
         MENUITEM "Előző képfájl &újratöltése",			IDM_CDROM_RELOAD
         MENUITEM SEPARATOR
         MENUITEM "&Meglévő képfájl &megnyitása...",					IDM_CDROM_IMAGE
-        MENUITEM "&Folder",					IDM_CDROM_DIR
+        MENUITEM "&Mappa",					IDM_CDROM_DIR
     END
 END
 
@@ -277,8 +277,8 @@ END
 
 #define STR_VIDEO		"Videokártya:"
 #define STR_VOODOO		"Voodoo-gyorsítókártya"
-#define STR_IBM8514		"IBM 8514/a Graphics"
-#define STR_XGA			"XGA Graphics"
+#define STR_IBM8514		"IBM 8514/a-gyorsítókártya"
+#define STR_XGA			"XGA-gyorsítókártya"
 
 #define STR_MOUSE		"Egér:"
 #define STR_JOYSTICK		"Játékvezérlő:"
@@ -288,16 +288,16 @@ END
 #define STR_JOY4		"Játékvez. 4..."
 
 #define STR_SOUND		"Hangkártya:"
-#define STR_MIDI_OUT	"MIDI-kimenet:"
+#define STR_MIDI_OUT		"MIDI-kimenet:"
 #define STR_MIDI_IN		"MIDI-bemenet:"
 #define STR_MPU401		"Különálló MPU-401"
 #define STR_SSI			"Innovation SSI-2001"
 #define STR_CMS			"CMS / Game Blaster"
 #define STR_GUS			"Gravis Ultrasound"
 #define STR_FLOAT		"FLOAT32 használata"
-#define STR_FM_DRIVER		"FM synth driver"
-#define STR_FM_DRV_NUKED	"Nuked (more accurate)"
-#define STR_FM_DRV_YMFM		"YMFM (faster)"
+#define STR_FM_DRIVER		"FM szintetizátor meghajtó"
+#define STR_FM_DRV_NUKED	"Nuked (pontosabb)"
+#define STR_FM_DRV_YMFM		"YMFM (gyorsabb)"
 
 #define STR_NET_TYPE		"Hálózati típusa:"
 #define STR_PCAP		"PCap eszköz:"
@@ -353,6 +353,7 @@ END
 #define STR_CHECKBPB		"BPB ellenőrzés"
 #define STR_CDROM_DRIVES	"CD-ROM meghajtók:"
 #define STR_CD_SPEED		"Seb.:"
+#define STR_EARLY		"Korábbi meghajtó"
 
 #define STR_MO_DRIVES		"MO-meghajtók:"
 #define STR_ZIP_DRIVES		"ZIP-meghajtók:"
@@ -520,6 +521,7 @@ BEGIN
     IDS_2158	"Hard reset"
     IDS_2159	"ACPI shutdown"
     IDS_2160	"Settings"
+    IDS_2161    "Korábbi meghajtó"
 END
 
 STRINGTABLE DISCARDABLE 

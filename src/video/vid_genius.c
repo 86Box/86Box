@@ -659,6 +659,8 @@ genius_poll(void *p)
              * of the lot */
             if (genius->mda_ctrl & 8)
                 genius_textline(genius, background, 1, 1);
+
+            video_process_8(GENIUS_XSIZE, genius->displine);
         }
         genius->displine++;
         /* Hardcode a fixed refresh rate and VSYNC timing */
@@ -696,7 +698,7 @@ genius_poll(void *p)
                     video_force_resize_set(0);
             }
 
-            video_blit_memtoscreen_8(0, 0, xsize, ysize);
+            video_blit_memtoscreen(0, 0, xsize, ysize);
 
             frames++;
             /* Fixed 728x1008 resolution */

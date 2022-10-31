@@ -1,56 +1,54 @@
 /*
- * VARCem	Virtual ARchaeological Computer EMulator.
- *		An emulator of (mostly) x86-based PC systems and devices,
- *		using the ISA,EISA,VLB,MCA  and PCI system buses, roughly
- *		spanning the era between 1981 and 1995.
+ * VARCem   Virtual ARchaeological Computer EMulator.
+ *          An emulator of (mostly) x86-based PC systems and devices,
+ *          using the ISA,EISA,VLB,MCA  and PCI system buses, roughly
+ *          spanning the era between 1981 and 1995.
  *
- *		This file is part of the VARCem Project.
+ *          Implementation of a Clock/RTC Card for the ISA PC/XT.
  *
- *		Implementation of a Clock/RTC Card for the ISA PC/XT.
+ *          Systems starting with the PC/XT had, by default, a realtime
+ *          clock and NVR chip on the mainboard. The BIOS stored config
+ *          data in the NVR, and the system could maintain time and date
+ *          using the RTC.
  *
- *		Systems starting with the PC/XT had, by default, a realtime
- *		clock and NVR chip on the mainboard. The BIOS stored config
- *		data in the NVR, and the system could maintain time and date
- *		using the RTC.
+ *          Originally, PC systems did not have this, and they first did
+ *          show up in non-IBM clone systems. Shortly after, expansion
+ *          cards with this function became available for the PC's (ISA)
+ *          bus, and they came in many forms and designs.
  *
- *		Originally, PC systems did not have this, and they first did
- *		show up in non-IBM clone systems. Shortly after, expansion
- *		cards with this function became available for the PC's (ISA)
- *		bus, and they came in many forms and designs.
+ *          This implementation offers some of those boards:
  *
- *		This implementation offers some of those boards:
+ *            Everex EV-170 (using NatSemi MM58167 chip)
+ *            DTK PII-147 Hexa I/O Plus (using UMC 82C8167 chip)
  *
- *		  Everex EV-170 (using NatSemi MM58167 chip)
- *		  DTK PII-147 Hexa I/O Plus (using UMC 82C8167 chip)
+ *          and more will follow as time permits.
  *
- *		and more will follow as time permits.
- *
- * NOTE:	The IRQ functionalities have been implemented, but not yet
- *		tested, as I need to write test software for them first :)
+ * NOTE:    The IRQ functionalities have been implemented, but not yet
+ *          tested, as I need to write test software for them first :)
  *
  *
  *
- * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
+ * Authors: Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 2018 Fred N. van Kempen.
+ *          Copyright 2018 Fred N. van Kempen.
  *
- *		Redistribution and  use  in source  and binary forms, with
- *		or  without modification, are permitted  provided that the
- *		following conditions are met:
+ *          Redistribution and  use  in source  and binary forms, with
+ *          or  without modification, are permitted  provided that the
+ *          following conditions are met:
  *
- *		1. Redistributions of  source  code must retain the entire
- *		   above notice, this list of conditions and the following
- *		   disclaimer.
+ *          1. Redistributions of  source  code must retain the entire
+ *             above notice, this list of conditions and the following
+ *             disclaimer.
  *
- *		2. Redistributions in binary form must reproduce the above
- *		   copyright  notice,  this list  of  conditions  and  the
- *		   following disclaimer in  the documentation and/or other
- *		   materials provided with the distribution.
+ *          2. Redistributions in binary form must reproduce the above
+ *             copyright  notice,  this list  of  conditions  and  the
+ *             following disclaimer in  the documentation and/or other
+ *             materials provided with the distribution.
  *
- *		3. Neither the  name of the copyright holder nor the names
- *		   of  its  contributors may be used to endorse or promote
- *		   products  derived from  this  software without specific
- *		   prior written permission.
+ *          3. Neither the  name of the copyright holder nor the names
+ *             of  its  contributors may be used to endorse or promote
+ *             products  derived from  this  software without specific
+ *             prior written permission.
  *
  * THIS SOFTWARE  IS  PROVIDED BY THE  COPYRIGHT  HOLDERS AND CONTRIBUTORS
  * "AS IS" AND  ANY EXPRESS  OR  IMPLIED  WARRANTIES,  INCLUDING, BUT  NOT
@@ -113,9 +111,9 @@ typedef struct {
 } rtcdev_t;
 
 /************************************************************************
- *									*
- *		    Driver for the NatSemi MM58167 chip.		*
- *									*
+ *                                    *
+ *            Driver for the NatSemi MM58167 chip.        *
+ *                                    *
  ************************************************************************/
 #define MM67_REGS 32
 
@@ -482,9 +480,9 @@ mm67_write(uint16_t port, uint8_t val, void *priv)
 }
 
 /************************************************************************
- *									*
- *		    Generic code for all supported chips.		*
- *									*
+ *                                    *
+ *            Generic code for all supported chips.        *
+ *                                    *
  ************************************************************************/
 
 /* Initialize the device for use. */

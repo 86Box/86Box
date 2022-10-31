@@ -171,13 +171,13 @@ CdromSubmenu MENU DISCARDABLE
 BEGIN
     POPUP ""
     BEGIN
-        MENUITEM "&Stummschalten",					IDM_CDROM_MUTE
+        MENUITEM "&Stummschalten",				IDM_CDROM_MUTE
         MENUITEM SEPARATOR
         MENUITEM "L&eer",					IDM_CDROM_EMPTY
         MENUITEM "&Voriges Image neu laden",			IDM_CDROM_RELOAD
         MENUITEM SEPARATOR
         MENUITEM "&Image",					IDM_CDROM_IMAGE
-        MENUITEM "&Folder",					IDM_CDROM_DIR
+        MENUITEM "&Verzeichnis",				IDM_CDROM_DIR
     END
 END
 
@@ -272,8 +272,8 @@ END
 
 #define STR_VIDEO		"Videokarte:"
 #define STR_VOODOO		"Voodoo-Grafik"
-#define STR_IBM8514		"IBM 8514/a Graphics"
-#define STR_XGA			"XGA Graphics"
+#define STR_IBM8514		"IBM 8514/a-Grafik"
+#define STR_XGA			"XGA-Grafik"
 
 #define STR_MOUSE		"Maus:"
 #define STR_JOYSTICK		"Joystick:"
@@ -283,16 +283,16 @@ END
 #define STR_JOY4		"Joystick 4..."
 
 #define STR_SOUND		"Soundkarte:"
-#define STR_MIDI_OUT	"MIDI Out-Gerät:"
+#define STR_MIDI_OUT		"MIDI Out-Gerät:"
 #define STR_MIDI_IN		"MIDI In-Gerät:"
 #define STR_MPU401		"Standalone-MPU-401-Gerät"
 #define STR_SSI			"Innovation SSI-2001"
 #define STR_CMS			"CMS / Game Blaster"
 #define STR_GUS			"Gravis Ultrasound"
 #define STR_FLOAT		"FLOAT32-Wiedergabe benutzen"
-#define STR_FM_DRIVER		"FM synth driver"
-#define STR_FM_DRV_NUKED	"Nuked (more accurate)"
-#define STR_FM_DRV_YMFM		"YMFM (faster)"
+#define STR_FM_DRIVER		"FM-Synth-Treiber"
+#define STR_FM_DRV_NUKED	"Nuked (genauer)"
+#define STR_FM_DRV_YMFM		"YMFM (schneller)"
 
 #define STR_NET_TYPE		"Netzwerktyp:"
 #define STR_PCAP		"PCap-Gerät:"
@@ -348,6 +348,7 @@ END
 #define STR_CHECKBPB		"BPB überprüfen"
 #define STR_CDROM_DRIVES	"CD-ROM-Laufwerke:"
 #define STR_CD_SPEED		"Takt:"
+#define STR_EARLY		"Früheres Laufwerk"
 
 #define STR_MO_DRIVES		"MO-Laufwerke:"
 #define STR_ZIP_DRIVES		"ZIP-Laufwerke:"
@@ -516,6 +517,7 @@ BEGIN
     IDS_2158	"Hard-Reset"
     IDS_2159	"ACPI-basiertes Herunterfahren"
     IDS_2160	"Optionen"
+    IDS_2161    "Früheres Laufwerk"
 END
 
 STRINGTABLE DISCARDABLE 

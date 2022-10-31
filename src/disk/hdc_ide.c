@@ -425,7 +425,7 @@ static int
 ide_get_max(ide_t *ide, int type)
 {
     if (ide->type == IDE_ATAPI)
-        return ide->get_max(!ide_boards[ide->board]->force_ata3 && (ide_bm[ide->board] != NULL), type);
+        return ide->get_max(!ide->sc->pad0 && !ide_boards[ide->board]->force_ata3 && (ide_bm[ide->board] != NULL), type);
 
     switch (type) {
         case TYPE_PIO: /* PIO */
@@ -458,7 +458,7 @@ static int
 ide_get_timings(ide_t *ide, int type)
 {
     if (ide->type == IDE_ATAPI)
-        return ide->get_timings(!ide_boards[ide->board]->force_ata3 && (ide_bm[ide->board] != NULL), type);
+        return ide->get_timings(!ide->sc->pad0 && !ide_boards[ide->board]->force_ata3 && (ide_bm[ide->board] != NULL), type);
 
     switch (type) {
         case TIMINGS_DMA:
@@ -584,7 +584,7 @@ ide_identify(ide_t *ide)
     memset(ide->buffer, 0, 512);
 
     if (ide->type == IDE_ATAPI)
-        ide->identify(ide, !ide_boards[ide->board]->force_ata3 && (ide_bm[ide->board] != NULL));
+        ide->identify(ide, !ide->sc->pad0 && !ide_boards[ide->board]->force_ata3 && (ide_bm[ide->board] != NULL));
     else if (ide->type != IDE_NONE)
         ide_hd_identify(ide);
     else {
@@ -884,7 +884,7 @@ ide_atapi_attach(ide_t *ide)
     ide->type = IDE_ATAPI;
     ide_allocate_buffer(ide);
     ide_set_signature(ide);
-    ide->mdma_mode = (1 << ide->get_max(ide_boards[ide->board]->force_ata3 || !ide_bm[ide->board], TYPE_PIO));
+    ide->mdma_mode = (1 << ide->get_max(!ide->sc->pad0 && !ide_boards[ide->board]->force_ata3 && (ide_bm[ide->board] != NULL), TYPE_PIO));
     ide->error     = 1;
     ide->cfg_spt = ide->cfg_hpc = 0;
 #ifndef EARLY_ATAPI
@@ -987,7 +987,7 @@ ide_atapi_callback(ide_t *ide)
 #endif
             out = (ide->sc->packet_status & 0x01);
 
-            if (!ide_boards[ide->board]->force_ata3 && ide_bm[ide->board] && ide_bm[ide->board]->dma) {
+            if (!ide->sc->pad0 && !ide_boards[ide->board]->force_ata3 && ide_bm[ide->board] && ide_bm[ide->board]->dma) {
                 ret = ide_bm[ide->board]->dma(ide->board,
                                               ide->sc->temp_buffer, ide->sc->packet_len,
                                               out, ide_bm[ide->board]->priv);
@@ -2157,17 +2157,16 @@ ide_callback(void *priv)
             ide_set_signature(ide);
 
             if (ide->type == IDE_ATAPI) {
-#ifdef EARLY_ATAPI
-                ide->sc->status = DRDY_STAT | DSC_STAT;
-#else
-                ide->sc->status = 0;
-#endif
                 ide->sc->error  = 1;
                 if (ide->device_reset)
                     ide->device_reset(ide->sc);
+                if (ide->sc->pad0) /* pad0 = early */
+                    ide->sc->status = DRDY_STAT | DSC_STAT;
+                else
+                    ide->sc->status = 0;
             }
             ide_irq_raise(ide);
-            if (ide->type == IDE_ATAPI)
+            if ((ide->type == IDE_ATAPI) && !ide->sc->pad0)
                 ide->service = 0;
             return;
 
