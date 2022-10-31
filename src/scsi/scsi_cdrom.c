@@ -541,6 +541,7 @@ static void
 scsi_cdrom_update_request_length(scsi_cdrom_t *dev, int len, int block_len)
 {
     int32_t bt, min_len = 0;
+    double dlen;
 
     dev->max_transfer_len = dev->request_length;
 
@@ -588,6 +589,16 @@ scsi_cdrom_update_request_length(scsi_cdrom_t *dev, int len, int block_len)
         dev->request_length = dev->max_transfer_len = len;
     else if (len > dev->max_transfer_len)
         dev->request_length = dev->max_transfer_len;
+
+    /* READ CD MSF and READ CD: Round the request length to the sector size - the device must ensure
+       that a media access comand does not DRQ in the middle of a sector. One of the drivers that
+       relies on the correctness of this behavior is MTMCDAI.SYS (the Mitsumi CD-ROM driver) for DOS
+       which uses the READ CD command to read data on some CD types. */
+    if (dev->current_cdb[0] == 0xb9) || (dev->current_cdb[0] == 0xbe) {
+        /* Round to sector length. */
+        dlen = ((double) dev->request_length) / ((double) block_len);
+        dev->request_length = ((uint16_t) floor(dlen)) * block_len;
+    }
 
     return;
 }
@@ -1011,8 +1022,8 @@ scsi_cdrom_read_blocks(scsi_cdrom_t *dev, int32_t *len, int first_batch)
 
     if (ret == -1)
         return 0;
-    else if (!ret || ((dev->old_len != *len) && !first_batch)) {
-        if ((dev->old_len != *len) && !first_batch)
+    else if (!ret || (!first_batch && (dev->old_len != *len))) {
+        if (!first_batch && (dev->old_len != *len))
             scsi_cdrom_illegal_mode(dev);
 
         return 0;
@@ -2716,8 +2727,13 @@ scsi_cdrom_identify(ide_t *ide, int ide_has_dma)
     ide_padstr((char *) (ide->buffer + 27), device_identify, 40); /* Model */
 #else
     if (dev->early) {
+#ifdef WRONG
         ide_padstr((char *) (ide->buffer + 23), "1.01    ", 8);                                  /* Firmware */
         ide_padstr((char *) (ide->buffer + 27), "NEC                 CD-ROM DRIVE:260    ", 40); /* Model */
+#else
+        ide_padstr((char *) (ide->buffer + 23), ".110    ", 8);                                  /* Firmware */
+        ide_padstr((char *) (ide->buffer + 27), "EN C                DCR-MOD IREV2:06    ", 40); /* Model */
+#endif
     } else {
         ide_padstr((char *) (ide->buffer + 23), "0020    ", 8);                                  /* Firmware */
         ide_padstr((char *) (ide->buffer + 27), "HITACHI CDR-8130                        ", 40); /* Model */
