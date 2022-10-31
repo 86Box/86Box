@@ -17,6 +17,7 @@
  */
 #include <stdarg.h>
 #include <inttypes.h>
+#include <math.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
@@ -594,7 +595,7 @@ scsi_cdrom_update_request_length(scsi_cdrom_t *dev, int len, int block_len)
        that a media access comand does not DRQ in the middle of a sector. One of the drivers that
        relies on the correctness of this behavior is MTMCDAI.SYS (the Mitsumi CD-ROM driver) for DOS
        which uses the READ CD command to read data on some CD types. */
-    if (dev->current_cdb[0] == 0xb9) || (dev->current_cdb[0] == 0xbe) {
+    if ((dev->current_cdb[0] == 0xb9) || (dev->current_cdb[0] == 0xbe)) {
         /* Round to sector length. */
         dlen = ((double) dev->request_length) / ((double) block_len);
         dev->request_length = ((uint16_t) floor(dlen)) * block_len;
