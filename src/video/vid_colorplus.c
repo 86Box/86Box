@@ -207,6 +207,8 @@ colorplus_poll(void *p)
 
         if (colorplus->cga.composite)
             Composite_Process(colorplus->cga.cgamode, 0, x >> 2, buffer32->line[colorplus->cga.displine]);
+        else
+            video_process_8(x, colorplus->cga.displine);
 
         colorplus->cga.sc = oldsc;
         if (colorplus->cga.vc == colorplus->cga.crtc[7] && !colorplus->cga.sc)
@@ -281,10 +283,7 @@ colorplus_poll(void *p)
                         set_screen_size(xsize, (ysize << 1) + 16);
                     }
 
-                    if (colorplus->cga.composite)
-                        video_blit_memtoscreen(0, colorplus->cga.firstline - 4, xsize, (colorplus->cga.lastline - colorplus->cga.firstline) + 8);
-                    else
-                        video_blit_memtoscreen_8(0, colorplus->cga.firstline - 4, xsize, (colorplus->cga.lastline - colorplus->cga.firstline) + 8);
+                    video_blit_memtoscreen(0, colorplus->cga.firstline - 4, xsize, (colorplus->cga.lastline - colorplus->cga.firstline) + 8);
                     frames++;
 
                     video_res_x = xsize - 16;

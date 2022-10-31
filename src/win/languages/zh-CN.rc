@@ -177,7 +177,7 @@ BEGIN
         MENUITEM "载入上一个镜像(&R)",			IDM_CDROM_RELOAD
         MENUITEM SEPARATOR
         MENUITEM "镜像(&I)",					IDM_CDROM_IMAGE
-        MENUITEM "&Folder",					IDM_CDROM_DIR
+        MENUITEM "文件夹(&F)",					IDM_CDROM_DIR
     END
 END
 
@@ -283,16 +283,16 @@ END
 #define STR_JOY4		"操纵杆 4..."
 
 #define STR_SOUND		"声卡:"
-#define STR_MIDI_OUT	"MIDI 输出设备:"
+#define STR_MIDI_OUT		"MIDI 输出设备:"
 #define STR_MIDI_IN		"MIDI 输入设备:"
 #define STR_MPU401		"独立 MPU-401"
 #define STR_SSI			"Innovation SSI-2001"
 #define STR_CMS			"CMS / Game Blaster"
 #define STR_GUS			"Gravis Ultrasound"
 #define STR_FLOAT		"使用单精度浮点 (FLOAT32)"
-#define STR_FM_DRIVER		"FM synth driver"
-#define STR_FM_DRV_NUKED	"Nuked (more accurate)"
-#define STR_FM_DRV_YMFM		"YMFM (faster)"
+#define STR_FM_DRIVER		"调频合成器驱动器"
+#define STR_FM_DRV_NUKED	"Nuked (更准确)"
+#define STR_FM_DRV_YMFM		"YMFM (更快)"
 
 #define STR_NET_TYPE		"网络类型:"
 #define STR_PCAP		"PCap 设备:"
@@ -348,6 +348,7 @@ END
 #define STR_CHECKBPB		"检查 BPB"
 #define STR_CDROM_DRIVES	"光盘驱动器:"
 #define STR_CD_SPEED		"速度:"
+#define STR_EARLY		"早先的驱动器"
 
 #define STR_MO_DRIVES		"磁光盘驱动器:"
 #define STR_ZIP_DRIVES		"ZIP 驱动器:"
@@ -516,6 +517,7 @@ BEGIN
     IDS_2158	"硬重置"
     IDS_2159	"ACPI 关机"
     IDS_2160	"设置"
+    IDS_2161    "早先的驱动器"
 END
 
 STRINGTABLE DISCARDABLE 

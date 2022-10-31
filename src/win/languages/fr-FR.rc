@@ -177,7 +177,7 @@ BEGIN
         MENUITEM "&Recharger image précedente",			IDM_CDROM_RELOAD
         MENUITEM SEPARATOR
         MENUITEM "&Image",					IDM_CDROM_IMAGE
-        MENUITEM "&Folder",					IDM_CDROM_DIR
+        MENUITEM "&Dossier",					IDM_CDROM_DIR
     END
 END
 
@@ -272,8 +272,8 @@ END
 
 #define STR_VIDEO		"Vidéo:"
 #define STR_VOODOO		"Graphique Voodoo"
-#define STR_IBM8514		"IBM 8514/a Graphics"
-#define STR_XGA			"XGA Graphics"
+#define STR_IBM8514		"Graphique IBM 8514/a"
+#define STR_XGA			"Graphique XGA"
 
 #define STR_MOUSE		"Souris:"
 #define STR_JOYSTICK		"Manette de commande:"
@@ -283,16 +283,16 @@ END
 #define STR_JOY4		"Manette 4..."
 
 #define STR_SOUND		"Carte son:"
-#define STR_MIDI_OUT	"Sortie MIDI:"
+#define STR_MIDI_OUT		"Sortie MIDI:"
 #define STR_MIDI_IN		"Entrée MIDI:"
 #define STR_MPU401		"MPU-401 autonome"
 #define STR_SSI			"Innovation SSI-2001"
 #define STR_CMS			"CMS / Game Blaster"
 #define STR_GUS			"Gravis Ultrasound"
 #define STR_FLOAT		"Utiliser le son FLOAT32"
-#define STR_FM_DRIVER		"FM synth driver"
-#define STR_FM_DRV_NUKED	"Nuked (more accurate)"
-#define STR_FM_DRV_YMFM		"YMFM (faster)"
+#define STR_FM_DRIVER		"Pilote de synthétiseur FM"
+#define STR_FM_DRV_NUKED	"Nuked (plus précis)"
+#define STR_FM_DRV_YMFM		"YMFM (plus rapide)"
 
 #define STR_NET_TYPE		"Type de réseau:"
 #define STR_PCAP		"Dispositif PCap:"
@@ -348,6 +348,7 @@ END
 #define STR_CHECKBPB		"Vérifier BPB"
 #define STR_CDROM_DRIVES	"Lecterus CD-ROM:"
 #define STR_CD_SPEED		"Vitesse:"
+#define STR_EARLY		"Lecteur plus tôt"
 
 #define STR_MO_DRIVES		"Lecteurs magnéto-optiques:"
 #define STR_ZIP_DRIVES		"Lecteurs ZIP:"
@@ -516,6 +517,7 @@ BEGIN
     IDS_2158	"Hard reset"
     IDS_2159	"ACPI shutdown"
     IDS_2160	"Settings"
+    IDS_2161    "Lecteur plus tôt"
 END
 
 STRINGTABLE DISCARDABLE 

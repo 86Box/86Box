@@ -134,6 +134,7 @@
 #define IDS_2158      2158 // "Hard reset"
 #define IDS_2159      2159 // "ACPI shutdown"
 #define IDS_2160      2160 // "Settings"
+#define IDS_2161      2161 // "Early drive"
 
 #define IDS_4096      4096 // "Hard disk (%s)"
 #define IDS_4097      4097 // "%01i:%01i"
@@ -242,8 +243,8 @@
 
 #define IDS_LANG_ENUS IDS_7168
 
-#define STR_NUM_2048  106
-#define STR_NUM_3072  11
+#define STR_NUM_2048  114
+// UNUSED: #define STR_NUM_3072  11
 #define STR_NUM_4096  40
 #define STR_NUM_4352  6
 #define STR_NUM_4608  6

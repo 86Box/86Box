@@ -1,22 +1,22 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Definitions for the keyboard interface.
+ *          Definitions for the keyboard interface.
  *
  *
  *
- * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
- *		Miran Grca, <mgrca8@gmail.com>
- *		Fred N. van Kempen, <decwiz@yahoo.com>
+ * Authors: Sarah Walker, <http://pcem-emulator.co.uk/>
+ *          Miran Grca, <mgrca8@gmail.com>
+ *          Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 2008-2019 Sarah Walker.
- *		Copyright 2016-2019 Miran Grca.
- *		Copyright 2017-2019 Fred N. van Kempen.
+ *          Copyright 2008-2019 Sarah Walker.
+ *          Copyright 2016-2019 Miran Grca.
+ *          Copyright 2017-2019 Fred N. van Kempen.
  */
 
 #ifndef EMU_KEYBOARD_H
@@ -150,12 +150,14 @@ extern const device_t keyboard_pravetz_device;
 extern const device_t keyboard_xt_device;
 extern const device_t keyboard_xt86_device;
 extern const device_t keyboard_xt_compaq_device;
+extern const device_t keyboard_xt_t1x00_device;
 extern const device_t keyboard_tandy_device;
 #    if defined(DEV_BRANCH) && defined(USE_LASERXT)
 extern const device_t keyboard_xt_lxt3_device;
 #    endif
 extern const device_t keyboard_xt_olivetti_device;
 extern const device_t keyboard_xt_zenith_device;
+extern const device_t keyboard_xtclone_device;
 extern const device_t keyboard_at_device;
 extern const device_t keyboard_at_ami_device;
 extern const device_t keyboard_at_samsung_device;

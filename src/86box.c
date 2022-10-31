@@ -403,10 +403,12 @@ pc_init(int argc, char *argv[])
 {
     char      *ppath = NULL, *rpath = NULL;
     char      *cfg = NULL, *p;
-    char       temp[2048];
+    char       temp[2048], *fn[FDD_NUM] = { NULL };
+    char       drive = 0, *temp2 = NULL;
     struct tm *info;
     time_t     now;
     int        c, lvmp = 0;
+    int        i;
 #ifdef ENABLE_NG
     int ng = 0;
 #endif
@@ -456,6 +458,13 @@ pc_init(int argc, char *argv[])
 
         if (!strcasecmp(argv[c], "--help") || !strcasecmp(argv[c], "-?")) {
 usage:
+            for (i = 0; i < FDD_NUM; i++) {
+                if (fn[i] != NULL) {
+                    free(fn[i]);
+                    fn[i] = NULL;
+                }
+            }
+
             printf("\nUsage: 86box [options] [cfg-file]\n\n");
             printf("Valid options are:\n\n");
             printf("-? or --help         - show this information\n");
@@ -471,6 +480,7 @@ usage:
 #ifdef _WIN32
             printf("-H or --hwnd id,hwnd - sends back the main dialog's hwnd\n");
 #endif
+            printf("-I or --image d:path - load 'path' as floppy image on drive d\n");
             printf("-L or --logfile path - set 'path' to be the logfile\n");
             printf("-N or --noconfirm    - do not ask for confirmation on quit\n");
             printf("-O or --dumpcfg      - dump config file after loading\n");
@@ -519,6 +529,25 @@ usage:
                 goto usage;
 
             cfg = argv[++c];
+        } else if (!strcasecmp(argv[c], "--image") || !strcasecmp(argv[c], "-I")) {
+            if ((c + 1) == argc)
+                goto usage;
+
+            temp2 = (char *) calloc(2048, 1);
+            sscanf(argv[++c], "%c:%s", &drive, temp2);
+            if (drive > 0x40)
+                drive = (drive & 0x1f) - 1;
+            else
+                drive = drive & 0x1f;
+            if (drive < 0)
+                drive = 0;
+            if (drive >= FDD_NUM)
+                drive = FDD_NUM - 1;
+            fn[(int) drive] = (char *) calloc(2048, 1);
+            strcpy(fn[(int) drive], temp2);
+            pclog("Drive %c: %s\n", drive + 0x41, fn[(int) drive]);
+            free(temp2);
+            temp2 = NULL;
         } else if (!strcasecmp(argv[c], "--vmname") || !strcasecmp(argv[c], "-V")) {
             if ((c + 1) == argc)
                 goto usage;
@@ -737,6 +766,15 @@ usage:
 
     /* Load the configuration file. */
     config_load();
+
+    for (i = 0; i < FDD_NUM; i++) {
+        if (fn[i] != NULL) {
+            if (strlen(fn[i]) <= 511) 
+                strncpy(floppyfns[i], fn[i], 511);
+            free(fn[i]);
+            fn[i] = NULL;
+        }
+    }
 
     /* Load the desired language */
     if (lang_init)

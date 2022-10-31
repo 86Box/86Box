@@ -177,7 +177,7 @@ BEGIN
         MENUITEM "&Знову завантажити попередній образ",			IDM_CDROM_RELOAD
         MENUITEM SEPARATOR
         MENUITEM "&Образ...",					IDM_CDROM_IMAGE
-        MENUITEM "&Folder",					IDM_CDROM_DIR
+        MENUITEM "&Тека",					IDM_CDROM_DIR
     END
 END
 
@@ -272,8 +272,8 @@ END
 
 #define STR_VIDEO		"Відеокарта:"
 #define STR_VOODOO		"Прискорювач Voodoo"
-#define STR_IBM8514		"IBM 8514/a Graphics"
-#define STR_XGA			"XGA Graphics"
+#define STR_IBM8514		"Прискорювач IBM 8514/a"
+#define STR_XGA			"Прискорювач XGA"
 
 #define STR_MOUSE		"Миша:"
 #define STR_JOYSTICK		"Джойстик:"
@@ -290,9 +290,9 @@ END
 #define STR_CMS			"CMS / Game Blaster"
 #define STR_GUS			"Gravis Ultrasound"
 #define STR_FLOAT		"FLOAT32 звук"
-#define STR_FM_DRIVER		"FM synth driver"
-#define STR_FM_DRV_NUKED	"Nuked (more accurate)"
-#define STR_FM_DRV_YMFM		"YMFM (faster)"
+#define STR_FM_DRIVER		"Драйвер FM-синтезатора"
+#define STR_FM_DRV_NUKED	"Nuked (більш точний)"
+#define STR_FM_DRV_YMFM		"YMFM (швидший)"
 
 #define STR_NET_TYPE		"Тип мережі:"
 #define STR_PCAP		"Пристрій PCap:"
@@ -348,6 +348,7 @@ END
 #define STR_CHECKBPB		"Перевіряти BPB"
 #define STR_CDROM_DRIVES	"Дисководи CD-ROM:"
 #define STR_CD_SPEED		"Швидкість:"
+#define STR_EARLY		"Більш ранній дисковод"
 
 #define STR_MO_DRIVES		"Магнітооптичні дисководи:"
 #define STR_ZIP_DRIVES		"ZIP дисководи:"
@@ -516,6 +517,7 @@ BEGIN
     IDS_2158 "Холодне перезавантаження"
     IDS_2159 "Сигнал завершення ACPI"
     IDS_2160 "Налаштування машини"
+    IDS_2161    "Більш ранній дисковод"
 END
 
 STRINGTABLE DISCARDABLE

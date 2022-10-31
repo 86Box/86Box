@@ -73,6 +73,12 @@ static void setCDROMSpeed(QAbstractItemModel* model, const QModelIndex& idx, uin
     model->setData(i, speed, Qt::UserRole);
 }
 
+static void setCDROMEarly(QAbstractItemModel* model, const QModelIndex& idx, bool early) {
+    auto i = idx.siblingAtColumn(2);
+    model->setData(i, (early == true) ? QObject::tr("On") : QObject::tr("Off"));
+    model->setData(i, early, Qt::UserRole);
+}
+
 SettingsFloppyCDROM::SettingsFloppyCDROM(QWidget *parent) :
     QWidget(parent),
     ui(new Ui::SettingsFloppyCDROM)
@@ -120,15 +126,17 @@ SettingsFloppyCDROM::SettingsFloppyCDROM(QWidget *parent) :
         Models::AddEntry(model, QString("%1x").arg(i + 1), i + 1);
     }
 
-    model = new QStandardItemModel(0, 2, this);
+    model = new QStandardItemModel(0, 3, this);
     ui->tableViewCDROM->setModel(model);
     model->setHeaderData(0, Qt::Horizontal, tr("Bus"));
     model->setHeaderData(1, Qt::Horizontal, tr("Speed"));
+    model->setHeaderData(2, Qt::Horizontal, tr("Earlier drive"));
     model->insertRows(0, CDROM_NUM);
     for (int i = 0; i < CDROM_NUM; i++) {
         auto idx = model->index(i, 0);
         setCDROMBus(model, idx, cdrom[i].bus_type, cdrom[i].res);
         setCDROMSpeed(model, idx.siblingAtColumn(1), cdrom[i].speed);
+        setCDROMEarly(model, idx.siblingAtColumn(2), cdrom[i].early);
         Harddrives::busTrackClass->device_track(1, DEV_CDROM, cdrom[i].bus_type, cdrom[i].bus_type == CDROM_BUS_ATAPI ? cdrom[i].ide_channel : cdrom[i].scsi_device_id);
     }
     ui->tableViewCDROM->resizeColumnsToContents();
@@ -154,7 +162,7 @@ void SettingsFloppyCDROM::save() {
     /* Removable devices category */
     model = ui->tableViewCDROM->model();
     for (int i = 0; i < CDROM_NUM; i++) {
-	cdrom[i].is_dir = 0;
+        cdrom[i].is_dir = 0;
         cdrom[i].priv = NULL;
         cdrom[i].ops = NULL;
         cdrom[i].image = NULL;
@@ -165,6 +173,7 @@ void SettingsFloppyCDROM::save() {
         cdrom[i].bus_type = model->index(i, 0).data(Qt::UserRole).toUInt();
         cdrom[i].res = model->index(i, 0).data(Qt::UserRole + 1).toUInt();
         cdrom[i].speed = model->index(i, 1).data(Qt::UserRole).toUInt();
+        cdrom[i].early = model->index(i, 2).data(Qt::UserRole).toUInt();
     }
 }
 
@@ -179,6 +188,7 @@ void SettingsFloppyCDROM::onCDROMRowChanged(const QModelIndex &current) {
     uint8_t bus = current.siblingAtColumn(0).data(Qt::UserRole).toUInt();
     uint8_t channel = current.siblingAtColumn(0).data(Qt::UserRole + 1).toUInt();
     uint8_t speed = current.siblingAtColumn(1).data(Qt::UserRole).toUInt();
+    bool early = current.siblingAtColumn(2).data(Qt::UserRole).toBool();
 
     ui->comboBoxBus->setCurrentIndex(-1);
     auto* model = ui->comboBoxBus->model();
@@ -194,6 +204,7 @@ void SettingsFloppyCDROM::onCDROMRowChanged(const QModelIndex &current) {
     }
 
     ui->comboBoxSpeed->setCurrentIndex(speed == 0 ? 7 : speed - 1);
+    ui->checkBoxEarlierDrive->setChecked(early);
 }
 
 void SettingsFloppyCDROM::on_checkBoxTurboTimings_stateChanged(int arg1) {
@@ -219,6 +230,7 @@ void SettingsFloppyCDROM::on_comboBoxBus_currentIndexChanged(int index) {
     bool enabled = (bus != CDROM_BUS_DISABLED);
     ui->comboBoxChannel->setEnabled(enabled);
     ui->comboBoxSpeed->setEnabled(enabled);
+    ui->checkBoxEarlierDrive->setEnabled(enabled);
     Harddrives::populateBusChannels(ui->comboBoxChannel->model(), bus);
 }
 
@@ -251,3 +263,10 @@ void SettingsFloppyCDROM::on_comboBoxChannel_activated(int) {
         ui->comboBoxChannel->currentData().toUInt());
     Harddrives::busTrackClass->device_track(1, DEV_CDROM, ui->tableViewCDROM->model()->data(i, Qt::UserRole).toInt(), ui->tableViewCDROM->model()->data(i, Qt::UserRole + 1).toInt());
 }
+
+void SettingsFloppyCDROM::on_checkBoxEarlierDrive_stateChanged(int arg1)
+{
+    auto idx = ui->tableViewCDROM->selectionModel()->currentIndex();
+    setCDROMEarly(ui->tableViewCDROM->model(), idx.siblingAtColumn(2), (arg1 == Qt::Checked) ? true : false);
+}
+

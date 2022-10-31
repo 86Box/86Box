@@ -2457,6 +2457,8 @@ pgc_cga_poll(pgc_t *dev)
             hline(buffer32, 0, dev->displine, PGC_CGA_WIDTH, cols[0]);
         }
 
+        video_process_8(PGC_CGA_WIDTH, dev->displine);
+
         if (++dev->displine == PGC_CGA_HEIGHT) {
             dev->mapram[0x3da] |= 8;
             dev->cgadispon = 0;
@@ -2481,7 +2483,7 @@ pgc_cga_poll(pgc_t *dev)
                 if (video_force_resize_get())
                     video_force_resize_set(0);
             }
-            video_blit_memtoscreen_8(0, 0, xsize, ysize);
+            video_blit_memtoscreen(0, 0, xsize, ysize);
             frames++;
 
             /* We have a fixed 640x400 screen for CGA modes. */
