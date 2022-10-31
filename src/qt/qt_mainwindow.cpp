@@ -154,7 +154,7 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->stackedWidget->setMouseTracking(true);
     statusBar()->setVisible(!hide_status_bar);
     statusBar()->setStyleSheet("QStatusBar::item {border: None; } QStatusBar QLabel { margin-right: 2px; margin-bottom: 1px; }");
-    this->setStyleSheet("#centralWidget { background-color: black; }");
+    this->centralWidget()->setStyleSheet("background-color: black;");
     ui->toolBar->setVisible(!hide_tool_bar);
     renderers[0].reset(nullptr);
     auto toolbar_spacer = new QWidget();
@@ -507,15 +507,6 @@ MainWindow::MainWindow(QWidget *parent) :
 #endif
     if (!vnc_enabled) video_setblit(qt_blit);
 
-    if (start_in_fullscreen) {
-        connect(ui->stackedWidget, &RendererStack::blit, this, [this] () {
-            if (start_in_fullscreen) {
-                QTimer::singleShot(100, ui->actionFullscreen, &QAction::trigger);
-                start_in_fullscreen = 0;
-            }
-        });
-    }
-
 #ifdef MTR_ENABLED
     {
         ui->actionBegin_trace->setVisible(true);
@@ -710,6 +701,10 @@ void MainWindow::showEvent(QShowEvent *event) {
         ui->stackedWidget->setFixedSize(window_w, window_h);
         QApplication::processEvents();
         this->adjustSize();
+    }
+    if (start_in_fullscreen) {
+        start_in_fullscreen = 0;
+        QTimer::singleShot(0, ui->actionFullscreen, &QAction::trigger);
     }
 }
 
