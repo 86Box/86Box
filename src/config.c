@@ -123,8 +123,8 @@ load_general(void)
 
     force_43 = !!ini_section_get_int(cat, "force_43", 0);
     scale    = ini_section_get_int(cat, "scale", 1);
-    if (scale > 3)
-        scale = 3;
+    if (scale > 9)
+        scale = 9;
     dpi_scale = ini_section_get_int(cat, "dpi_scale", 1);
 
     enable_overscan  = !!ini_section_get_int(cat, "enable_overscan", 0);

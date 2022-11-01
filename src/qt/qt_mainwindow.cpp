@@ -416,12 +416,36 @@ MainWindow::MainWindow(QWidget *parent) :
     case 3:
         ui->action2x->setChecked(true);
         break;
+    case 4:
+        ui->action3x->setChecked(true);
+        break;
+    case 5:
+        ui->action4x->setChecked(true);
+        break;
+    case 6:
+        ui->action5x->setChecked(true);
+        break;
+    case 7:
+        ui->action6x->setChecked(true);
+        break;
+    case 8:
+        ui->action7x->setChecked(true);
+        break;
+    case 9:
+        ui->action8x->setChecked(true);
+        break;
     }
     actGroup = new QActionGroup(this);
     actGroup->addAction(ui->action0_5x);
     actGroup->addAction(ui->action1x);
     actGroup->addAction(ui->action1_5x);
     actGroup->addAction(ui->action2x);
+    actGroup->addAction(ui->action3x);
+    actGroup->addAction(ui->action4x);
+    actGroup->addAction(ui->action5x);
+    actGroup->addAction(ui->action6x);
+    actGroup->addAction(ui->action7x);
+    actGroup->addAction(ui->action8x);
     switch (video_filter_method) {
     case 0:
         ui->actionNearest->setChecked(true);
@@ -1765,6 +1789,12 @@ static void update_scaled_checkboxes(Ui::MainWindow* ui, QAction* selected) {
     ui->action1x->setChecked(ui->action1x == selected);
     ui->action1_5x->setChecked(ui->action1_5x == selected);
     ui->action2x->setChecked(ui->action2x == selected);
+    ui->action3x->setChecked(ui->action3x == selected);
+    ui->action4x->setChecked(ui->action4x == selected);
+    ui->action5x->setChecked(ui->action5x == selected);
+    ui->action6x->setChecked(ui->action6x == selected);
+    ui->action7x->setChecked(ui->action7x == selected);
+    ui->action8x->setChecked(ui->action8x == selected);
 
     reset_screen_size();
     device_force_redraw();
@@ -1792,6 +1822,36 @@ void MainWindow::on_action1_5x_triggered() {
 void MainWindow::on_action2x_triggered() {
     scale = 3;
     update_scaled_checkboxes(ui, ui->action2x);
+}
+
+void MainWindow::on_action3x_triggered() {
+    scale = 4;
+    update_scaled_checkboxes(ui, ui->action3x);
+}
+
+void MainWindow::on_action4x_triggered() {
+    scale = 5;
+    update_scaled_checkboxes(ui, ui->action4x);
+}
+
+void MainWindow::on_action5x_triggered() {
+    scale = 6;
+    update_scaled_checkboxes(ui, ui->action5x);
+}
+
+void MainWindow::on_action6x_triggered() {
+    scale = 7;
+    update_scaled_checkboxes(ui, ui->action6x);
+}
+
+void MainWindow::on_action7x_triggered() {
+    scale = 8;
+    update_scaled_checkboxes(ui, ui->action7x);
+}
+
+void MainWindow::on_action8x_triggered() {
+    scale = 9;
+    update_scaled_checkboxes(ui, ui->action8x);
 }
 
 void MainWindow::on_actionNearest_triggered() {

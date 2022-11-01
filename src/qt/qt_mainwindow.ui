@@ -118,6 +118,12 @@
      <addaction name="action1x"/>
      <addaction name="action1_5x"/>
      <addaction name="action2x"/>
+     <addaction name="action3x"/>
+     <addaction name="action4x"/>
+     <addaction name="action5x"/>
+     <addaction name="action6x"/>
+     <addaction name="action7x"/>
+     <addaction name="action8x"/>
     </widget>
     <widget class="QMenu" name="menuFilter_method">
      <property name="title">
@@ -476,6 +482,54 @@
    </property>
    <property name="text">
     <string>&amp;2x</string>
+   </property>
+  </action>
+  <action name="action3x">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>&amp;3x</string>
+   </property>
+  </action>
+  <action name="action4x">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>&amp;4x</string>
+   </property>
+  </action>
+  <action name="action5x">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>&amp;5x</string>
+   </property>
+  </action>
+  <action name="action6x">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>&amp;6x</string>
+   </property>
+  </action>
+  <action name="action7x">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>&amp;7x</string>
+   </property>
+  </action>
+  <action name="action8x">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>&amp;8x</string>
    </property>
   </action>
   <action name="actionNearest">
