@@ -19,6 +19,7 @@
  *		Copyright 2016-2020 Miran Grca.
  *		Copyright 2017-2020 Fred N. van Kempen.
  *		Copyright 2020 EngiNerd.
+ */
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -31,7 +32,6 @@
 #include <86box/timer.h>
 #include <86box/io.h>
 #include <86box/pic.h>
- */
 #include <86box/pit.h>
 #include <86box/ppi.h>
 #include <86box/mem.h>
