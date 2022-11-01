@@ -509,8 +509,6 @@ extern int machine_at_actionpc2600_init(const machine_t *);
 extern int machine_at_m919_init(const machine_t *);
 extern int machine_at_spc7700plw_init(const machine_t *);
 
-extern int	machine_at_actiontower3000_init(const machine_t *);
-
 /* m_at_commodore.c */
 extern int machine_at_cmdpc_init(const machine_t *);
 
