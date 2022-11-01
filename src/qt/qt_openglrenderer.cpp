@@ -14,6 +14,7 @@
  *      Copyright 2022 Teemu Korhonen
  */
 
+#include <GL/gl.h>
 #include <QCoreApplication>
 #include <QMessageBox>
 #include <QOpenGLShaderProgram>
@@ -194,6 +195,9 @@ OpenGLRenderer::initialize()
 
         emit initialized();
 
+        glClear(GL_COLOR_BUFFER_BIT);
+
+        context->swapBuffers(this);
     } catch (const opengl_init_error &e) {
         /* Mark all buffers as in use */
         for (auto &flag : buf_usage)
