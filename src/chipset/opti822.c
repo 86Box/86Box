@@ -40,23 +40,15 @@
 #include <86box/chipset.h>
 #include <86box/spd.h>
 
-
-#define MEM_STATE_SHADOW_R	0x01
-#define MEM_STATE_SHADOW_W	0x02
-#define	MEM_STATE_SMRAM		0x04
-
-
 typedef struct
 {
     uint8_t	irq_convert,
 		pci_regs[256];
 } opti822_t;
 
-
 #define ENABLE_OPTI822_LOG 1
 #ifdef ENABLE_OPTI822_LOG
 int opti822_do_log = ENABLE_OPTI822_LOG;
-
 
 static void
 opti822_log(const char *fmt, ...)
@@ -73,6 +65,32 @@ opti822_log(const char *fmt, ...)
 #define opti822_log(fmt, ...)
 #endif
 
+/* NOTE: We currently cheat and pass all PCI shadow RAM accesses to ISA as well.
+         This is because we currently do not have separate access mappings for
+         PCI and ISA at all. */
+static void
+opti822_recalc(opti822_t *dev)
+{
+    int i, reg, bit_r, bit_w;
+    int state;
+    uint32_t base;
+
+    for (i = 0; i < 12; i++) {
+        base = 0x000c0000 + (i << 14);
+        reg = 0x44 + ((i >> 2) ^ 3);
+        bit_w = (i & 3);
+        bit_r = bit_w + 4;
+        bit_w = 1 << bit_w;
+        bit_r = 1 << bit_r;
+        state = (dev->pci_regs[reg] & bit_w) ? MEM_WRITE_INTERNAL : MEM_WRITE_EXTANY;
+        state |= (dev->pci_regs[reg] & bit_r) ? MEM_READ_INTERNAL : MEM_READ_EXTANY;
+        mem_set_mem_state_bus_both(base, 0x00004000, state);
+    }
+
+    state = (dev->pci_regs[0x44] & 0x01) ? MEM_WRITE_INTERNAL : MEM_WRITE_EXTANY;
+    state |= (dev->pci_regs[0x44] & 0x02) ? MEM_READ_INTERNAL : MEM_READ_EXTANY;
+    mem_set_mem_state_bus_both(0x000f0000, 0x00010000, state);
+}
 
 /* NOTE: We cheat here. The real ALi M1435 uses a level to edge triggered IRQ converter
          when the most siginificant bit is set. We work around that by manipulating the
@@ -103,7 +121,6 @@ opti822_update_irqs(opti822_t *dev, int set)
             temp_pic->elcr &= ~(1 << irq);
     }
 }
-
 
 static void
 opti822_pci_write(int func, int addr, uint8_t val, void *priv)
@@ -151,15 +168,13 @@ opti822_pci_write(int func, int addr, uint8_t val, void *priv)
             dev->pci_regs[addr] = val;
             break;
 
-        /* TODO: We do not currently allow separate shadow RAM mapping for PCI. */
-        case 0x45:
-            dev->pci_regs[addr] = val;
+        case 0x44:
+            dev->pci_regs[addr] = val & 0xcb;
+            opti822_recalc(dev);
             break;
-        case 0x46:
+        case 0x45 ... 0x47:
             dev->pci_regs[addr] = val;
-            break;
-        case 0x47:
-            dev->pci_regs[addr] = val;
+            opti822_recalc(dev);
             break;
 
         /* Memory hole stuff. */
@@ -300,7 +315,6 @@ opti822_pci_write(int func, int addr, uint8_t val, void *priv)
     }
 }
 
-
 static uint8_t
 opti822_pci_read(int func, int addr, void *priv)
 {
@@ -316,7 +330,6 @@ opti822_pci_read(int func, int addr, void *priv)
 
     return ret;
 }
-
 
 static void
 opti822_reset(void *priv)
@@ -349,7 +362,6 @@ opti822_reset(void *priv)
     pci_set_irq_routing(PCI_INTD, PCI_IRQ_DISABLED);
 }
 
-
 static void
 opti822_close(void *p)
 {
@@ -357,7 +369,6 @@ opti822_close(void *p)
 
     free(dev);
 }
-
 
 static void *
 opti822_init(const device_t *info)
