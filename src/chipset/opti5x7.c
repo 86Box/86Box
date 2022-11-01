@@ -34,7 +34,8 @@
 
 typedef struct
 {
-    uint8_t idx, regs[16];
+    uint8_t idx, is_pci,
+            regs[16];
 } opti5x7_t;
 
 #ifdef ENABLE_OPTI5X7_LOG
@@ -75,11 +76,20 @@ opti5x7_shadow_map(int cur_reg, opti5x7_t *dev)
          0 1 Read from DRAM (write protected)
     */
     if (cur_reg == 0x06) {
-        mem_set_mem_state_both(0xe0000, 0x10000, ((dev->regs[6] & 1) ? MEM_READ_INTERNAL : MEM_READ_EXTANY) | ((dev->regs[6] & 2) ? MEM_WRITE_INTERNAL : MEM_WRITE_EXTANY));
-        mem_set_mem_state_both(0xf0000, 0x10000, ((dev->regs[6] & 4) ? MEM_READ_INTERNAL : MEM_READ_EXTANY) | ((dev->regs[6] & 8) ? MEM_WRITE_INTERNAL : MEM_WRITE_EXTANY));
+        if (dev->is_pci) {
+            mem_set_mem_state_cpu_both(0xe0000, 0x10000, ((dev->regs[6] & 1) ? MEM_READ_INTERNAL : MEM_READ_EXTANY) | ((dev->regs[6] & 2) ? MEM_WRITE_INTERNAL : MEM_WRITE_EXTANY));
+            mem_set_mem_state_cpu_both(0xf0000, 0x10000, ((dev->regs[6] & 4) ? MEM_READ_INTERNAL : MEM_READ_EXTANY) | ((dev->regs[6] & 8) ? MEM_WRITE_INTERNAL : MEM_WRITE_EXTANY));
+        } else {
+            mem_set_mem_state_both(0xe0000, 0x10000, ((dev->regs[6] & 1) ? MEM_READ_INTERNAL : MEM_READ_EXTANY) | ((dev->regs[6] & 2) ? MEM_WRITE_INTERNAL : MEM_WRITE_EXTANY));
+            mem_set_mem_state_both(0xf0000, 0x10000, ((dev->regs[6] & 4) ? MEM_READ_INTERNAL : MEM_READ_EXTANY) | ((dev->regs[6] & 8) ? MEM_WRITE_INTERNAL : MEM_WRITE_EXTANY));
+        }
     } else {
-        for (int i = 0; i < 4; i++)
-            mem_set_mem_state_both(0xc0000 + ((cur_reg & 1) << 16) + (i << 14), 0x4000, ((dev->regs[cur_reg] & (1 << (2 * i))) ? MEM_READ_INTERNAL : MEM_READ_EXTANY) | ((dev->regs[cur_reg] & (2 << (2 * i))) ? MEM_WRITE_INTERNAL : MEM_WRITE_EXTANY));
+        for (int i = 0; i < 4; i++) {
+            if (dev->is_pci)
+                mem_set_mem_state_cpu_both(0xc0000 + ((cur_reg & 1) << 16) + (i << 14), 0x4000, ((dev->regs[cur_reg] & (1 << (2 * i))) ? MEM_READ_INTERNAL : MEM_READ_EXTANY) | ((dev->regs[cur_reg] & (2 << (2 * i))) ? MEM_WRITE_INTERNAL : MEM_WRITE_EXTANY));
+            else
+                mem_set_mem_state_both(0xc0000 + ((cur_reg & 1) << 16) + (i << 14), 0x4000, ((dev->regs[cur_reg] & (1 << (2 * i))) ? MEM_READ_INTERNAL : MEM_READ_EXTANY) | ((dev->regs[cur_reg] & (2 << (2 * i))) ? MEM_WRITE_INTERNAL : MEM_WRITE_EXTANY));
+        }
     }
 
     flushmmucache_nopc();
@@ -161,6 +171,8 @@ opti5x7_init(const device_t *info)
     opti5x7_t *dev = (opti5x7_t *) malloc(sizeof(opti5x7_t));
     memset(dev, 0, sizeof(opti5x7_t));
 
+    dev->is_pci = info->local;
+
     io_sethandler(0x0022, 0x0001, opti5x7_read, NULL, NULL, opti5x7_write, NULL, NULL, dev);
     io_sethandler(0x0024, 0x0001, opti5x7_read, NULL, NULL, opti5x7_write, NULL, NULL, dev);
 
@@ -174,6 +186,20 @@ const device_t opti5x7_device = {
     .internal_name = "opti5x7",
     .flags         = 0,
     .local         = 0,
+    .init          = opti5x7_init,
+    .close         = opti5x7_close,
+    .reset         = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t opti5x7_pci_device = {
+    .name          = "OPTi 82C5x6/82C5x7 (PCI)",
+    .internal_name = "opti5x7_pci",
+    .flags         = 0,
+    .local         = 1,
     .init          = opti5x7_init,
     .close         = opti5x7_close,
     .reset         = NULL,
