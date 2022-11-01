@@ -429,7 +429,7 @@ kbd_adddata(uint16_t val)
 {
     /* Test for T1000 'Fn' key (Right Alt / Right Ctrl) */
     if (is_t1x00) {
-        if (keyboard_recv(0xb8) || keyboard_recv(0x9d)) { /* 'Fn' pressed */
+        if (keyboard_recv(0x138) || keyboard_recv(0x11d)) { /* 'Fn' pressed */
             t1000_syskey(0x00, 0x04, 0x00);               /* Set 'Fn' indicator */
             switch (val) {
                 case 0x45: /* Num Lock => toggle numpad */

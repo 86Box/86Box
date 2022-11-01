@@ -64,6 +64,7 @@ public slots:
     void togglePause();
     void initRendererMonitorSlot(int monitor_index);
     void destroyRendererMonitorSlot(int monitor_index);
+    void updateUiPauseState();
 private slots:
     void on_actionFullscreen_triggered();
     void on_actionSettings_triggered();

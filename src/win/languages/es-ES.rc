@@ -177,7 +177,7 @@ BEGIN
         MENUITEM "&Recargar imagen previa",			IDM_CDROM_RELOAD
         MENUITEM SEPARATOR
         MENUITEM "&Imagen...",					IDM_CDROM_IMAGE
-        MENUITEM "&Folder",					IDM_CDROM_DIR
+        MENUITEM "&Carpeta",					IDM_CDROM_DIR
     END
 END
 
@@ -241,7 +241,7 @@ END
 #define STR_CANCEL		"Cancelar"
 #define STR_GLOBAL		"Salvar estos ajustes como por &defecto globalmente"
 #define STR_DEFAULT		"&Por defecto"
-#define STR_LANGUAGE	"Idioma:"
+#define STR_LANGUAGE		"Idioma:"
 #define STR_ICONSET		"Juego de iconos:"
 
 #define STR_GAIN		"Ganancia"
@@ -283,16 +283,16 @@ END
 #define STR_JOY4		"Mando 4..."
 
 #define STR_SOUND		"Tarjeta de sonido:"
-#define STR_MIDI_OUT	"Dispositivo MIDI de salida:"
+#define STR_MIDI_OUT		"Dispositivo MIDI de salida:"
 #define STR_MIDI_IN		"Dispositivo MIDI de entrada:"
 #define STR_MPU401		"MPU-401 independiente"
 #define STR_SSI			"Innovation SSI-2001"
 #define STR_CMS			"CMS / Game Blaster"
 #define STR_GUS			"Gravis Ultrasound"
 #define STR_FLOAT		"Usar sonido FLOAT32"
-#define STR_FM_DRIVER		"FM synth driver"
-#define STR_FM_DRV_NUKED	"Nuked (more accurate)"
-#define STR_FM_DRV_YMFM		"YMFM (faster)"
+#define STR_FM_DRIVER		"Controlador de sintet. FM"
+#define STR_FM_DRV_NUKED	"Nuked (más preciso)"
+#define STR_FM_DRV_YMFM		"YMFM (más rápido)"
 
 #define STR_NET_TYPE		"Tipo de red:"
 #define STR_PCAP		"Dispositivo PCap:"
@@ -348,6 +348,7 @@ END
 #define STR_CHECKBPB		"Chequear BPB"
 #define STR_CDROM_DRIVES	"Unidades de CD-ROM:"
 #define STR_CD_SPEED		"Velocidad:"
+#define STR_EARLY		"Unidad anterior"
 
 #define STR_MO_DRIVES		"Unidades MO:"
 #define STR_ZIP_DRIVES		"Unidades ZIP:"
@@ -516,6 +517,7 @@ BEGIN
     IDS_2158	"Hard reset"
     IDS_2159	"ACPI shutdown"
     IDS_2160	"Settings"
+    IDS_2161    "Unidad anterior"
 END
 
 STRINGTABLE DISCARDABLE 

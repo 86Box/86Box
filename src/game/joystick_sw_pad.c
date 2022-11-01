@@ -1,41 +1,41 @@
 /*
- * VARCem	Virtual ARchaeological Computer EMulator.
- *		An emulator of (mostly) x86-based PC systems and devices,
- *		using the ISA,EISA,VLB,MCA  and PCI system buses, roughly
- *		spanning the era between 1981 and 1995.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the VARCem Project.
+ *          This file is part of the 86Box distribution.
  *
- *		Implementation of a Side Winder GamePad.
+ *          Implementation of a Side Winder GamePad.
  *
- * Notes:	- Write to 0x201 starts packet transfer (5*N or 15*N bits)
- *		- Currently alternates between Mode A and Mode B (is there
- *		  any way of actually controlling which is used?)
- *		- Windows 9x drivers require Mode B when more than 1 pad
- *		  connected
- *		- Packet preceeded by high data (currently 50us), and
- *		  followed by low data (currently 160us) - timings are
- *		  probably wrong, but good enough for everything I've tried
- *		- Analog inputs are only used to time ID packet request.
- *		  If A0 timing out is followed after ~64us by another 0x201
- *		  write then an ID packet is triggered
- *		- Sidewinder game pad ID is 'H0003'
- *		- ID is sent in Mode A (1 bit per clock), but data bit 2
- *		  must change during ID packet transfer, or Windows 9x
- *		  drivers won't use Mode B. I don't know if it oscillates,
- *		  mirrors the data transfer, or something else - the drivers
- *		  only check that it changes at least 10 times during the
- *		  transfer
- *		- Some DOS stuff will write to 0x201 while a packet is
- *		  being transferred. This seems to be ignored.
+ * Notes:   - Write to 0x201 starts packet transfer (5*N or 15*N bits)
+ *          - Currently alternates between Mode A and Mode B (is there
+ *            any way of actually controlling which is used?)
+ *          - Windows 9x drivers require Mode B when more than 1 pad
+ *            connected
+ *          - Packet preceeded by high data (currently 50us), and
+ *            followed by low data (currently 160us) - timings are
+ *            probably wrong, but good enough for everything I've tried
+ *          - Analog inputs are only used to time ID packet request.
+ *            If A0 timing out is followed after ~64us by another 0x201
+ *            write then an ID packet is triggered
+ *          - Sidewinder game pad ID is 'H0003'
+ *          - ID is sent in Mode A (1 bit per clock), but data bit 2
+ *            must change during ID packet transfer, or Windows 9x
+ *            drivers won't use Mode B. I don't know if it oscillates,
+ *            mirrors the data transfer, or something else - the drivers
+ *            only check that it changes at least 10 times during the
+ *            transfer
+ *          - Some DOS stuff will write to 0x201 while a packet is
+ *            being transferred. This seems to be ignored.
  *
  *
  *
- * Authors:	Miran Grca, <mgrca8@gmail.com>
- *		Sarah Walker, <tommowalker@tommowalker.co.uk>
+ * Authors: Miran Grca, <mgrca8@gmail.com>
+ *          Sarah Walker, <tommowalker@tommowalker.co.uk>
  *
- *		Copyright 2016-2018 Miran Grca.
- *		Copyright 2008-2018 Sarah Walker.
+ *          Copyright 2016-2018 Miran Grca.
+ *          Copyright 2008-2018 Sarah Walker.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by

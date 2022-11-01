@@ -1,20 +1,20 @@
 /*
- * VARCem	Virtual ARchaeological Computer EMulator.
- *		An emulator of (mostly) x86-based PC systems and devices,
- *		using the ISA,EISA,VLB,MCA  and PCI system buses, roughly
- *		spanning the era between 1981 and 1995.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the VARCem Project.
+ *          This file is part of the 86Box distribution.
  *
- *		Definitions for the code generator.
+ *          Definitions for the code generator.
  *
  *
  *
- * Authors:	Sarah Walker, <tommowalker@tommowalker.co.uk>
- *		Miran Grca, <mgrca8@gmail.com>
+ * Authors: Sarah Walker, <tommowalker@tommowalker.co.uk>
+ *          Miran Grca, <mgrca8@gmail.com>
  *
- *		Copyright 2008-2018 Sarah Walker.
- *		Copyright 2016-2018 Miran Grca.
+ *          Copyright 2008-2018 Sarah Walker.
+ *          Copyright 2016-2018 Miran Grca.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -92,7 +92,7 @@ typedef struct codeblock_t
         int pnt;
         int ins;
 
-	int valid;
+    int valid;
 
         int was_recompiled;
         int TOP;
@@ -353,7 +353,7 @@ static inline void addbyte(uint8_t val)
 
 static inline void addword(uint16_t val)
 {
-	uint16_t *p = (uint16_t *) &codeblock[block_current].data[block_pos];
+    uint16_t *p = (uint16_t *) &codeblock[block_current].data[block_pos];
         *p = val;
         block_pos += 2;
         if (block_pos >= BLOCK_MAX)
@@ -364,7 +364,7 @@ static inline void addword(uint16_t val)
 
 static inline void addlong(uint32_t val)
 {
-	uint32_t *p = (uint32_t *) &codeblock[block_current].data[block_pos];
+    uint32_t *p = (uint32_t *) &codeblock[block_current].data[block_pos];
         *p = val;
         block_pos += 4;
         if (block_pos >= BLOCK_MAX)
@@ -375,7 +375,7 @@ static inline void addlong(uint32_t val)
 
 static inline void addquad(uint64_t val)
 {
-	uint64_t *p = (uint64_t *) &codeblock[block_current].data[block_pos];
+    uint64_t *p = (uint64_t *) &codeblock[block_current].data[block_pos];
         *p = val;
         block_pos += 8;
         if (block_pos >= BLOCK_MAX)

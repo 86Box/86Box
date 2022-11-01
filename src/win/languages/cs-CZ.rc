@@ -177,7 +177,7 @@ BEGIN
         MENUITEM "&Načíst znova předchozí obraz",		IDM_CDROM_RELOAD
         MENUITEM SEPARATOR
         MENUITEM "&Obraz...",					IDM_CDROM_IMAGE
-        MENUITEM "&Folder",					IDM_CDROM_DIR
+        MENUITEM "&Složka",					IDM_CDROM_DIR
     END
 END
 
@@ -272,8 +272,8 @@ END
 
 #define STR_VIDEO		"Grafika:"
 #define STR_VOODOO		"Použít grafický akcelerátor Voodoo"
-#define STR_IBM8514		"IBM 8514/a Graphics"
-#define STR_XGA			"XGA Graphics"
+#define STR_IBM8514		"Grafika IBM 8514/a"
+#define STR_XGA			"Grafika XGA"
 
 #define STR_MOUSE		"Myš:"
 #define STR_JOYSTICK		"Joystick:"
@@ -283,7 +283,7 @@ END
 #define STR_JOY4		"Joystick 4..."
 
 #define STR_SOUND		"Zvuková karta:"
-#define STR_MIDI_OUT	"MIDI výstup:"
+#define STR_MIDI_OUT		"MIDI výstup:"
 #define STR_MIDI_IN		"MIDI vstup:"
 #define STR_MPU401		"Samostatný MPU-401"
 #define STR_SSI			"Innovation SSI-2001"
@@ -291,8 +291,8 @@ END
 #define STR_GUS			"Gravis Ultrasound"
 #define STR_FLOAT		"Použít zvuk FLOAT32"
 #define STR_FM_DRIVER		"FM synth driver"
-#define STR_FM_DRV_NUKED	"Nuked (more accurate)"
-#define STR_FM_DRV_YMFM		"YMFM (faster)"
+#define STR_FM_DRV_NUKED	"Nuked (přesnější)"
+#define STR_FM_DRV_YMFM		"YMFM (rychlejší)"
 
 #define STR_NET_TYPE		"Druh sítě:"
 #define STR_PCAP		"PCap zařízení:"
@@ -348,6 +348,7 @@ END
 #define STR_CHECKBPB		"Kontrola BPB"
 #define STR_CDROM_DRIVES	"Mechaniky CD-ROM:"
 #define STR_CD_SPEED		"Rychlost:"
+#define STR_EARLY		"Časná mechanika"
 
 #define STR_MO_DRIVES		"Magnetooptické mechaniky:"
 #define STR_ZIP_DRIVES		"Mechaniky ZIP:"
@@ -516,6 +517,7 @@ BEGIN
     IDS_2158	"Resetovat"
     IDS_2159	"Vypnout skrze rozhraní ACPI"
     IDS_2160	"Nastavení"
+    IDS_2161    "Časná mechanika"
 END
 
 STRINGTABLE DISCARDABLE 

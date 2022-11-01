@@ -154,6 +154,7 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->stackedWidget->setMouseTracking(true);
     statusBar()->setVisible(!hide_status_bar);
     statusBar()->setStyleSheet("QStatusBar::item {border: None; } QStatusBar QLabel { margin-right: 2px; margin-bottom: 1px; }");
+    this->centralWidget()->setStyleSheet("background-color: black;");
     ui->toolBar->setVisible(!hide_tool_bar);
     renderers[0].reset(nullptr);
     auto toolbar_spacer = new QWidget();
@@ -506,15 +507,6 @@ MainWindow::MainWindow(QWidget *parent) :
 #endif
     if (!vnc_enabled) video_setblit(qt_blit);
 
-    if (start_in_fullscreen) {
-        connect(ui->stackedWidget, &RendererStack::blit, this, [this] () {
-            if (start_in_fullscreen) {
-                QTimer::singleShot(100, ui->actionFullscreen, &QAction::trigger);
-                start_in_fullscreen = 0;
-            }
-        });
-    }
-
 #ifdef MTR_ENABLED
     {
         ui->actionBegin_trace->setVisible(true);
@@ -710,6 +702,10 @@ void MainWindow::showEvent(QShowEvent *event) {
         QApplication::processEvents();
         this->adjustSize();
     }
+    if (start_in_fullscreen) {
+        start_in_fullscreen = 0;
+        QTimer::singleShot(0, ui->actionFullscreen, &QAction::trigger);
+    }
 }
 
 void MainWindow::on_actionKeyboard_requires_capture_triggered() {
@@ -754,10 +750,6 @@ void MainWindow::on_actionCtrl_Alt_Esc_triggered() {
 
 void MainWindow::on_actionPause_triggered() {
     plat_pause(dopause ^ 1);
-    auto pause_icon   = dopause ? QIcon(":/menuicons/win/icons/run.ico") : QIcon(":/menuicons/win/icons/pause.ico");
-    auto tooltip_text = dopause ? QString(tr("Resume execution")) : QString(tr("Pause execution"));
-    ui->actionPause->setIcon(pause_icon);
-    ui->actionPause->setToolTip(tooltip_text);
 }
 
 void MainWindow::on_actionExit_triggered() {
@@ -1009,17 +1001,17 @@ std::array<uint32_t, 256> x11_to_xt_2
     0x51,
     0x52,
     0x53,
-    0x54,
+    0x138,
     0x55,
-    0x56,
+    0x35,
     0x57,
     0x58,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
+    0x56,
+    0x70,
+    0x7B,
+    0x7D,
+    0x2B,
+    0x7E,
     0,
     0x11C,
     0x11D,
@@ -1036,7 +1028,23 @@ std::array<uint32_t, 256> x11_to_xt_2
     0x150,
     0x151,
     0x152,
-    0x153
+    0x153,
+    0,
+    0, /* Mute */
+    0, /* Volume Down */
+    0, /* Volume Up */
+    0, /* Power Off */
+    0,
+    0,
+    0,
+    0,
+    0,
+    0x70,
+    0x7B,
+    0x73,
+    0x15B,
+    0x15C,
+    0x15D
 };
 
 std::array<uint32_t, 256> x11_to_xt_vnc
@@ -1532,6 +1540,7 @@ void MainWindow::on_actionFullscreen_triggered() {
         ui->menubar->hide();
         ui->statusbar->hide();
         ui->toolBar->hide();
+        ui->stackedWidget->setFixedSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
         showFullScreen();
         if (vid_api == 5) QTimer::singleShot(0, this, [this] () { ui->stackedWidget->switchRenderer(RendererStack::Renderer::Direct3D9); });
     }
@@ -1617,7 +1626,7 @@ void MainWindow::showMessage_(int flags, const QString &header, const QString &m
 
 void MainWindow::keyPressEvent(QKeyEvent* event)
 {
-    if (send_keyboard_input && !(kbd_req_capture && !mouse_capture && !video_fullscreen))
+    if (send_keyboard_input && !(kbd_req_capture && !mouse_capture))
     {
         // Windows keys in Qt have one-to-one mapping.
         if (event->key() == Qt::Key_Pause && !keyboard_recv(0x38) && !keyboard_recv(0x138)) {
@@ -1631,8 +1640,6 @@ void MainWindow::keyPressEvent(QKeyEvent* event)
                 keyboard_input(1, 0x1D);
                 keyboard_input(1, 0x45);
             }
-        } else if (event->key() == Qt::Key_Super_L || event->key() == Qt::Key_Super_R) {
-            keyboard_input(1, event->key() == Qt::Key_Super_L ? 0x15B : 0x15C);
         } else
 #ifdef Q_OS_MACOS
         processMacKeyboardInput(true, event);
@@ -1676,9 +1683,6 @@ void MainWindow::keyReleaseEvent(QKeyEvent* event)
     if (!send_keyboard_input)
         return;
 
-    if (event->key() == Qt::Key_Super_L || event->key() == Qt::Key_Super_R) {
-        keyboard_input(0, event->key() == Qt::Key_Super_L ? 0x15B : 0x15C);
-    } else
 #ifdef Q_OS_MACOS
     processMacKeyboardInput(false, event);
 #else
@@ -2054,6 +2058,13 @@ void MainWindow::on_actionSound_gain_triggered()
 void MainWindow::setSendKeyboardInput(bool enabled)
 {
     send_keyboard_input = enabled;
+}
+
+void MainWindow::updateUiPauseState() {
+    auto pause_icon   = dopause ? QIcon(":/menuicons/win/icons/run.ico") : QIcon(":/menuicons/win/icons/pause.ico");
+    auto tooltip_text = dopause ? QString(tr("Resume execution")) : QString(tr("Pause execution"));
+    ui->actionPause->setIcon(pause_icon);
+    ui->actionPause->setToolTip(tooltip_text);
 }
 
 void MainWindow::on_actionPreferences_triggered()

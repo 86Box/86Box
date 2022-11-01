@@ -1,20 +1,20 @@
 /*
- * VARCem	Virtual ARchaeological Computer EMulator.
- *		An emulator of (mostly) x86-based PC systems and devices,
- *		using the ISA,EISA,VLB,MCA  and PCI system buses, roughly
- *		spanning the era between 1981 and 1995.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the VARCem Project.
+ *          This file is part of the 86Box distribution.
  *
- *		Various definitions for portable byte-swapping.
+ *          Various definitions for portable byte-swapping.
  *
  *
  *
- * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
- *		neozeed,
+ * Authors: Fred N. van Kempen, <decwiz@yahoo.com>
+ *          neozeed,
  *
- *		Copyright 2017,2018 Fred N. van Kempen.
- *		Copyright 2016-2018 neozeed.
+ *          Copyright 2017,2018 Fred N. van Kempen.
+ *          Copyright 2016-2018 neozeed.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -44,34 +44,34 @@
 #include <byteswap.h>
 #else
 # define bswap_16(x) \
-	( \
-	    ((uint16_t)( \
-		(((uint16_t)(x) & (uint16_t)0x00ffU) << 8) | \
-		(((uint16_t)(x) & (uint16_t)0xff00U) >> 8) )) \
-	)
+    ( \
+        ((uint16_t)( \
+        (((uint16_t)(x) & (uint16_t)0x00ffU) << 8) | \
+        (((uint16_t)(x) & (uint16_t)0xff00U) >> 8) )) \
+    )
 
 # define bswap_32(x) \
-	( \
-	    ((uint32_t)( \
-		(((uint32_t)(x) & (uint32_t)0x000000ffUL) << 24) | \
-		(((uint32_t)(x) & (uint32_t)0x0000ff00UL) <<  8) | \
-		(((uint32_t)(x) & (uint32_t)0x00ff0000UL) >>  8) | \
-		(((uint32_t)(x) & (uint32_t)0xff000000UL) >> 24) )) \
-	)
+    ( \
+        ((uint32_t)( \
+        (((uint32_t)(x) & (uint32_t)0x000000ffUL) << 24) | \
+        (((uint32_t)(x) & (uint32_t)0x0000ff00UL) <<  8) | \
+        (((uint32_t)(x) & (uint32_t)0x00ff0000UL) >>  8) | \
+        (((uint32_t)(x) & (uint32_t)0xff000000UL) >> 24) )) \
+    )
 
 # define bswap_64(x) \
-	( \
-	    ((uint64_t)( \
-		(uint64_t)(((uint64_t)(x) & (uint64_t)0x00000000000000ffULL) << 56) | \
-		(uint64_t)(((uint64_t)(x) & (uint64_t)0x000000000000ff00ULL) << 40) | \
-		(uint64_t)(((uint64_t)(x) & (uint64_t)0x0000000000ff0000ULL) << 24) | \
-		(uint64_t)(((uint64_t)(x) & (uint64_t)0x00000000ff000000ULL) <<  8) | \
-	        (uint64_t)(((uint64_t)(x) & (uint64_t)0x000000ff00000000ULL) >>  8) | \
-		(uint64_t)(((uint64_t)(x) & (uint64_t)0x0000ff0000000000ULL) >> 24) | \
-		(uint64_t)(((uint64_t)(x) & (uint64_t)0x00ff000000000000ULL) >> 40) | \
-		(uint64_t)(((uint64_t)(x) & (uint64_t)0xff00000000000000ULL) >> 56) )) \
-	)
-#endif	/*HAVE_BYTESWAP_H*/
+    ( \
+        ((uint64_t)( \
+        (uint64_t)(((uint64_t)(x) & (uint64_t)0x00000000000000ffULL) << 56) | \
+        (uint64_t)(((uint64_t)(x) & (uint64_t)0x000000000000ff00ULL) << 40) | \
+        (uint64_t)(((uint64_t)(x) & (uint64_t)0x0000000000ff0000ULL) << 24) | \
+        (uint64_t)(((uint64_t)(x) & (uint64_t)0x00000000ff000000ULL) <<  8) | \
+            (uint64_t)(((uint64_t)(x) & (uint64_t)0x000000ff00000000ULL) >>  8) | \
+        (uint64_t)(((uint64_t)(x) & (uint64_t)0x0000ff0000000000ULL) >> 24) | \
+        (uint64_t)(((uint64_t)(x) & (uint64_t)0x00ff000000000000ULL) >> 40) | \
+        (uint64_t)(((uint64_t)(x) & (uint64_t)0xff00000000000000ULL) >> 56) )) \
+    )
+#endif    /*HAVE_BYTESWAP_H*/
 
 #if defined __has_builtin && __has_builtin(__builtin_bswap16)
 #define bswap16(x) __builtin_bswap16(x)
