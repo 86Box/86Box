@@ -14,7 +14,6 @@
  *      Copyright 2022 Teemu Korhonen
  */
 
-#include <GL/gl.h>
 #include <QCoreApplication>
 #include <QMessageBox>
 #include <QOpenGLShaderProgram>
