@@ -1626,7 +1626,7 @@ void MainWindow::showMessage_(int flags, const QString &header, const QString &m
 
 void MainWindow::keyPressEvent(QKeyEvent* event)
 {
-    if (send_keyboard_input && !(kbd_req_capture && !mouse_capture && !video_fullscreen))
+    if (send_keyboard_input && !(kbd_req_capture && !mouse_capture))
     {
         // Windows keys in Qt have one-to-one mapping.
         if (event->key() == Qt::Key_Pause && !keyboard_recv(0x38) && !keyboard_recv(0x138)) {
