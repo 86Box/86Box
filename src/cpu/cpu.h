@@ -287,10 +287,10 @@ typedef struct {
     uint64_t mtrr_deftype; /* 0x000002ff */
 
     /* Pentium II/III/IV MSR's needed for late BIOS */
-    uint64_t	ecx1a0;			/* 0x000001a0 */
-    uint64_t    ecx198;         /* 0x00000198 */
-    uint64_t    ecx19a;         /* 0x0000019a */
-    uint64_t    ecx19d;         /* 0x0000019d */
+    uint64_t	ecx1a0; /* 0x000001a0 */
+    uint64_t    ecx198; /* 0x00000198 */
+    uint64_t    ecx19a; /* 0x0000019a */
+    uint64_t    ecx19d; /* 0x0000019d */
 
     /* Pentium Pro, Pentium II Klamath, and Pentium II Deschutes MSR's */
     uint64_t mca_ctl[5]; /* 0x00000400, 0x00000404, 0x00000408, 0x0000040c, 0x00000410 - Machine Check Architecture */
