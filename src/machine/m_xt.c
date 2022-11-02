@@ -597,3 +597,19 @@ machine_xt_v20xt_init(const machine_t *model)
 
         return ret;
 }
+
+int
+machine_xt_pb8810_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/pb8810/pb8088-8810-633acc631aba0345517682.bin",
+                           0x000fc000, 16384, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_xt_clone_init(model);
+
+    return ret;
+}

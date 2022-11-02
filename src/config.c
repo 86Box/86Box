@@ -115,7 +115,7 @@ load_general(void)
     vid_api = plat_vidapi(p);
     ini_section_delete_var(cat, "vid_api");
 
-    video_fullscreen_scale = ini_section_get_int(cat, "video_fullscreen_scale", 0);
+    video_fullscreen_scale = ini_section_get_int(cat, "video_fullscreen_scale", 1);
 
     video_fullscreen_first = ini_section_get_int(cat, "video_fullscreen_first", 1);
 
@@ -123,8 +123,8 @@ load_general(void)
 
     force_43 = !!ini_section_get_int(cat, "force_43", 0);
     scale    = ini_section_get_int(cat, "scale", 1);
-    if (scale > 3)
-        scale = 3;
+    if (scale > 9)
+        scale = 9;
     dpi_scale = ini_section_get_int(cat, "dpi_scale", 1);
 
     enable_overscan  = !!ini_section_get_int(cat, "enable_overscan", 0);
@@ -196,7 +196,7 @@ load_general(void)
 
     video_framerate = ini_section_get_int(cat, "video_gl_framerate", -1);
     video_vsync     = ini_section_get_int(cat, "video_gl_vsync", 0);
-    strncpy(video_shader, ini_section_get_string(cat, "video_gl_shader", ""), sizeof(video_shader));
+    strncpy(video_shader, ini_section_get_string(cat, "video_gl_shader", ""), sizeof(video_shader) - 1);
 
     window_remember = ini_section_get_int(cat, "window_remember", 0);
     if (window_remember) {
@@ -692,7 +692,7 @@ load_sound(void)
     if (strlen(p) > 511)
         fatal("load_sound(): strlen(p) > 511\n");
     else
-        strncpy(temp, p, strlen(p) + 1);
+        strncpy(temp, p, 511);
     if (!strcmp(temp, "float") || !strcmp(temp, "1"))
         sound_is_float = 1;
     else
@@ -913,12 +913,12 @@ load_storage_controllers(void)
     if (strlen(p) > 511)
         fatal("load_storage_controllers(): strlen(p) > 511\n");
     else
-        strncpy(cassette_fname, p, MIN(512, strlen(p) + 1));
+        strncpy(cassette_fname, p, 511);
     p = ini_section_get_string(cat, "cassette_mode", "");
     if (strlen(p) > 511)
         fatal("load_storage_controllers(): strlen(p) > 511\n");
     else
-        strncpy(cassette_mode, p, MIN(512, strlen(p) + 1));
+        strncpy(cassette_mode, p, 511);
     cassette_pos          = ini_section_get_int(cat, "cassette_position", 0);
     cassette_srate        = ini_section_get_int(cat, "cassette_srate", 44100);
     cassette_append       = !!ini_section_get_int(cat, "cassette_append", 0);
@@ -949,7 +949,7 @@ load_storage_controllers(void)
         if (strlen(p) > 511)
             fatal("load_storage_controllers(): strlen(p) > 511\n");
         else
-            strncpy(cart_fns[c], p, strlen(p) + 1);
+            strncpy(cart_fns[c], p, 511);
     }
 }
 
@@ -1197,7 +1197,7 @@ load_floppy_drives(void)
         if (strlen(p) > 511)
             fatal("load_floppy_drives(): strlen(p) > 511\n");
         else
-            strncpy(floppyfns[c], p, strlen(p) + 1);
+            strncpy(floppyfns[c], p, 511);
 
         /* if (*wp != L'\0')
             config_log("Floppy%d: %ls\n", c, floppyfns[c]); */
@@ -1259,7 +1259,7 @@ load_floppy_and_cdrom_drives(void)
         if (strlen(p) > 511)
             fatal("load_floppy_and_cdrom_drives(): strlen(p) > 511\n");
         else
-            strncpy(floppyfns[c], p, strlen(p) + 1);
+            strncpy(floppyfns[c], p, 511);
 
         /* if (*wp != L'\0')
             config_log("Floppy%d: %ls\n", c, floppyfns[c]); */
@@ -1817,6 +1817,7 @@ config_load(void)
         vid_api                = plat_vidapi("default");
         vid_resize             = 0;
         video_fullscreen_first = 1;
+        video_fullscreen_scale = 1;
         time_sync              = TIME_SYNC_ENABLED;
         hdc_current            = hdc_get_from_internal_name("none");
 
@@ -1904,7 +1905,7 @@ save_general(void)
     else
         ini_section_set_string(cat, "vid_renderer", va_name);
 
-    if (video_fullscreen_scale == 0)
+    if (video_fullscreen_scale == 1)
         ini_section_delete_var(cat, "video_fullscreen_scale");
     else
         ini_section_set_int(cat, "video_fullscreen_scale", video_fullscreen_scale);

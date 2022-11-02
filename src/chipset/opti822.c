@@ -6,14 +6,15 @@
  *
  *		This file is part of the 86Box distribution.
  *
- *		Implementation of the OPTi 82C822 VESA Local Bus to PCI Bridge Interface.
+ *		Implementation of the OPTi 82C822 VESA Local Bus to PCI
+ *		Bridge Interface.
  *
  *
- * Authors:	Tiseno100,
  *
- *		Copyright 2021 Tiseno100.
+ * Authors:	Miran Grca, <mgrca8@gmail.com>
+ *
+ *		Copyright 2022 Miran Grca.
  */
-
 #include <stdarg.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -22,22 +23,30 @@
 #include <wchar.h>
 #define HAVE_STDARG_H
 #include <86box/86box.h>
-#include "cpu.h"
-#include <86box/timer.h>
-#include <86box/io.h>
 #include <86box/device.h>
-
+#include <86box/io.h>
+#include <86box/apm.h>
+#include <86box/dma.h>
 #include <86box/mem.h>
+#include <86box/smram.h>
 #include <86box/pci.h>
-
+#include <86box/timer.h>
+#include <86box/pic.h>
+#include <86box/pit.h>
+#include <86box/port_92.h>
+#include <86box/hdc_ide.h>
+#include <86box/hdc.h>
+#include <86box/machine.h>
 #include <86box/chipset.h>
+#include <86box/spd.h>
 
-/* Shadow RAM */
-#define SYSTEM_READ  ((dev->pci_conf[0x44] & 2) ? MEM_READ_INTERNAL : MEM_READ_EXTANY)
-#define SYSTEM_WRITE ((dev->pci_conf[0x44] & 1) ? MEM_WRITE_INTERNAL : MEM_WRITE_EXTANY)
-#define SHADOW_READ  ((dev->pci_conf[cur_reg] & (1 << (4 + i))) ? MEM_READ_INTERNAL : MEM_READ_EXTANY)
-#define SHADOW_WRITE ((dev->pci_conf[cur_reg] & (1 << i)) ? MEM_WRITE_INTERNAL : MEM_WRITE_EXTANY)
+typedef struct
+{
+    uint8_t	irq_convert,
+		pci_regs[256];
+} opti822_t;
 
+// #define ENABLE_OPTI822_LOG 1
 #ifdef ENABLE_OPTI822_LOG
 int opti822_do_log = ENABLE_OPTI822_LOG;
 
@@ -47,247 +56,321 @@ opti822_log(const char *fmt, ...)
     va_list ap;
 
     if (opti822_do_log) {
-        va_start(ap, fmt);
-        pclog_ex(fmt, ap);
-        va_end(ap);
+	va_start(ap, fmt);
+	pclog_ex(fmt, ap);
+	va_end(ap);
     }
 }
 #else
-#    define opti822_log(fmt, ...)
+#define opti822_log(fmt, ...)
 #endif
 
-typedef struct opti822_t {
-    uint8_t pci_conf[256];
-} opti822_t;
-
-int opti822_irq_routing[7] = { 5, 9, 0x0a, 0x0b, 0x0c, 0x0e, 0x0f };
-
-void
-opti822_shadow(int cur_reg, opti822_t *dev)
+/* NOTE: We currently cheat and pass all PCI shadow RAM accesses to ISA as well.
+         This is because we currently do not have separate access mappings for
+         PCI and ISA at all. */
+static void
+opti822_recalc(opti822_t *dev)
 {
-    if (cur_reg == 0x44)
-        mem_set_mem_state_both(0xf0000, 0x10000, SYSTEM_READ | SYSTEM_WRITE);
-    else
-        for (int i = 0; i < 4; i++)
-            mem_set_mem_state_both(0xe0000 - (((cur_reg & 3) - 1) << 16) + (i << 14), 0x4000, SHADOW_READ | SHADOW_WRITE);
+    int i, reg, bit_r, bit_w;
+    int state;
+    uint32_t base;
 
-    flushmmucache_nopc();
+    for (i = 0; i < 12; i++) {
+        base = 0x000c0000 + (i << 14);
+        reg = 0x44 + ((i >> 2) ^ 3);
+        bit_w = (i & 3);
+        bit_r = bit_w + 4;
+        bit_w = 1 << bit_w;
+        bit_r = 1 << bit_r;
+        state = (dev->pci_regs[reg] & bit_w) ? MEM_WRITE_INTERNAL : MEM_WRITE_EXTANY;
+        state |= (dev->pci_regs[reg] & bit_r) ? MEM_READ_INTERNAL : MEM_READ_EXTANY;
+        mem_set_mem_state_bus_both(base, 0x00004000, state);
+    }
+
+    state = (dev->pci_regs[0x44] & 0x01) ? MEM_WRITE_INTERNAL : MEM_WRITE_EXTANY;
+    state |= (dev->pci_regs[0x44] & 0x02) ? MEM_READ_INTERNAL : MEM_READ_EXTANY;
+    mem_set_mem_state_bus_both(0x000f0000, 0x00010000, state);
+}
+
+/* NOTE: We cheat here. The real ALi M1435 uses a level to edge triggered IRQ converter
+         when the most siginificant bit is set. We work around that by manipulating the
+         emulated PIC's ELCR register. */
+static void
+opti822_update_irqs(opti822_t *dev, int set)
+{
+    uint8_t val;
+    int i, reg;
+    int shift, irq;
+    int irq_map[8] = { -1, 5, 9, 10, 11, 12, 14, 15 };
+    pic_t *temp_pic;
+
+    // dev->irq_convert = (dev->pci_regs[0x53] & 0x08);
+    dev->irq_convert = 1;
+
+    for (i = 0; i < 16; i++) {
+        reg = 0x88 + (i >> 1);
+        shift = (i & 1) << 2;
+        val = (dev->pci_regs[reg] >> shift) & 0x0f;
+        irq = irq_map[val & 0x07];
+        if (irq == -1)
+            continue;
+        temp_pic = (irq >= 8) ? &pic2 : &pic;
+        irq &= 7;
+        if (dev->irq_convert && set && (val & 0x08))
+            temp_pic->elcr |= (1 << irq);
+        else
+            temp_pic->elcr &= ~(1 << irq);
+    }
 }
 
 static void
-opti822_write(int func, int addr, uint8_t val, void *priv)
+opti822_pci_write(int func, int addr, uint8_t val, void *priv)
 {
-
     opti822_t *dev = (opti822_t *) priv;
+    int irq, irq_map[8] = { -1, 5, 9, 10, 11, 12, 14, 15 };
+    int pin, slot;
 
-    switch (func) {
-        case 0x04: /* Command Register */
-            dev->pci_conf[addr] = val & 0x40;
+    opti822_log("opti822_write(%02X, %02X, %02X)\n", func, addr, val);
+
+    if (func > 0)
+        return;
+
+    switch (addr) {
+        /* Command Register */
+        case 0x04:
+            dev->pci_regs[addr] = (val & 0x40) | 0x07;
             break;
 
-        case 0x05: /* Command Register */
-            dev->pci_conf[addr] = val & 1;
+        /* Status Register */
+        case 0x06:
+            if (!(dev->pci_regs[0x52] & 0x04))
+                 dev->pci_regs[addr] = (val & 0x80);
+            break;
+        case 0x07:
+            dev->pci_regs[addr] &= ~(val & 0xf9);
             break;
 
-        case 0x06: /* Status Register */
-            dev->pci_conf[addr] |= val & 0xc0;
-            break;
-
-        case 0x07: /* Status Register */
-            dev->pci_conf[addr] = val & 0xa9;
+        /* Master Latency Timer Register */
+        case 0x0d:
+            dev->pci_regs[addr] = val;
             break;
 
         case 0x40:
-            dev->pci_conf[addr] = val & 0xc0;
+            dev->pci_regs[addr] = (val & 0xc0) | 0x01;
             break;
-
         case 0x41:
-            dev->pci_conf[addr] = val & 0xcf;
+            /* TODO: Bit 15th enable the PCI Bridge when 1. */
+            dev->pci_regs[addr] = val & 0xcf;
             break;
 
         case 0x42:
-            dev->pci_conf[addr] = val & 0xf8;
+            dev->pci_regs[addr] = val & 0xf8;
             break;
-
         case 0x43:
-            dev->pci_conf[addr] = val;
+            dev->pci_regs[addr] = val;
             break;
 
-        case 0x44: /* Shadow RAM */
-        case 0x45:
-        case 0x46:
-        case 0x47:
-            dev->pci_conf[addr] = (addr == 0x44) ? (val & 0xcb) : val;
-            opti822_shadow(addr, dev);
+        case 0x44:
+            dev->pci_regs[addr] = val & 0xcb;
+            opti822_recalc(dev);
+            break;
+        case 0x45 ... 0x47:
+            dev->pci_regs[addr] = val;
+            opti822_recalc(dev);
             break;
 
-        case 0x48:
-        case 0x49:
-        case 0x4a:
-        case 0x4b:
-        case 0x4c:
-        case 0x4d:
-        case 0x4e:
-        case 0x4f:
-        case 0x50:
-        case 0x51:
+        /* Memory hole stuff. */
+        case 0x48 ... 0x51:
+            dev->pci_regs[addr] = val;
+            break;
+
         case 0x52:
+            dev->pci_regs[addr] = val;
+            break;
+
         case 0x53:
-        case 0x54:
-        case 0x55:
-        case 0x56:
-        case 0x57:
-            dev->pci_conf[addr] = val;
+            dev->pci_regs[addr] = val;
+            opti822_update_irqs(dev, 0);
+            opti822_update_irqs(dev, 1);
+            break;
+
+        case 0x54 ... 0x57:
+            dev->pci_regs[addr] = val;
             break;
 
         case 0x58:
-            dev->pci_conf[addr] = val & 0xfc;
+            dev->pci_regs[addr] = val & 0xfc;
+            break;
+        case 0x59 ... 0x5b:
+            dev->pci_regs[addr] = val;
             break;
 
-        case 0x59:
-        case 0x5a:
-        case 0x5b:
-        case 0x5c:
-        case 0x5d:
-        case 0x5e:
-        case 0x5f:
-            dev->pci_conf[addr] = val;
+        case 0x5c ... 0x5f:
+            dev->pci_regs[addr] = val;
             break;
 
         case 0x60:
-            dev->pci_conf[addr] = val & 0xfc;
+            dev->pci_regs[addr] = val & 0xfc;
+            break;
+        case 0x61 ... 0x63:
+            dev->pci_regs[addr] = val;
             break;
 
-        case 0x61:
-        case 0x62:
-        case 0x63:
-        case 0x64:
-        case 0x65:
-        case 0x66:
-        case 0x67:
-            dev->pci_conf[addr] = val;
+        case 0x64 ... 0x67:
+            dev->pci_regs[addr] = val;
             break;
 
         case 0x68:
-            dev->pci_conf[addr] = val & 0xfc;
+            dev->pci_regs[addr] = val & 0xfc;
+            break;
+        case 0x69 ... 0x6b:
+            dev->pci_regs[addr] = val;
             break;
 
-        case 0x69:
-        case 0x6a:
-        case 0x6b:
-        case 0x6c:
-        case 0x6d:
-        case 0x6e:
-        case 0x6f:
-            dev->pci_conf[addr] = val;
+        case 0x6c ... 0x6f:
+            dev->pci_regs[addr] = val;
             break;
 
         case 0x70:
-            dev->pci_conf[addr] = val & 0xfc;
+            dev->pci_regs[addr] = val & 0xfc;
             break;
-
-        case 0x71:
-        case 0x72:
-        case 0x73:
-            dev->pci_conf[addr] = val;
+        case 0x71 ... 0x73:
+            dev->pci_regs[addr] = val;
             break;
 
         case 0x74:
-            dev->pci_conf[addr] = val & 0xfc;
+            dev->pci_regs[addr] = val & 0xf8;
             break;
 
+        /* ROMCS# and NVMCS# stuff. */
         case 0x75:
+            dev->pci_regs[addr] = val;
+            break;
+
         case 0x76:
-            dev->pci_conf[addr] = val;
+            dev->pci_regs[addr] = val;
             break;
 
         case 0x77:
-            dev->pci_conf[addr] = val & 0xe7;
+            dev->pci_regs[addr] = val;
             break;
 
+        /* Enabling of memory blocks at ISA bus. */
         case 0x78:
-            dev->pci_conf[addr] = val;
+            dev->pci_regs[addr] = val;
             break;
-
         case 0x79:
-            dev->pci_conf[addr] = val & 0xfc;
+            dev->pci_regs[addr] = val & 0xfc;
             break;
 
         case 0x7a:
-        case 0x7b:
-        case 0x7c:
-        case 0x7d:
-        case 0x7e:
-            dev->pci_conf[addr] = val;
+            dev->pci_regs[addr] = val;
+            break;
+
+        case 0x7b ... 0x7c:
+            dev->pci_regs[addr] = val;
+            break;
+
+        case 0x7d ... 0x7e:
+            dev->pci_regs[addr] = val;
             break;
 
         case 0x7f:
-            dev->pci_conf[addr] = val & 3;
+            dev->pci_regs[addr] = val & 0x03;
             break;
 
-        case 0x80:
-        case 0x81:
+        case 0x80 ... 0x81:
+            dev->pci_regs[addr] = val;
+            break;
         case 0x82:
-        case 0x84:
-        case 0x85:
+            dev->pci_regs[addr] = val;
+            break;
+
+        case 0x84 ... 0x85:
+            dev->pci_regs[addr] = val;
+            break;
         case 0x86:
-            dev->pci_conf[addr] = val;
+            dev->pci_regs[addr] = val;
             break;
 
-        case 0x88: /* PCI IRQ Routing */
-        case 0x89: /* Very hacky implementation. Needs surely a rewrite after */
-        case 0x8a: /* a PCI rework happens. */
-        case 0x8b:
-        case 0x8c:
-        case 0x8d:
-        case 0x8e:
-        case 0x8f:
-            dev->pci_conf[addr] = val;
-            if (addr % 2) {
-                pci_set_irq_routing(PCI_INTB, ((val & 0x0f) != 0) ? opti822_irq_routing[(val & 7) - 1] : PCI_IRQ_DISABLED);
-                pci_set_irq_routing(PCI_INTA, (((val >> 4) & 0x0f) != 0) ? opti822_irq_routing[((val >> 4) & 7) - 1] : PCI_IRQ_DISABLED);
-            } else {
-                pci_set_irq_routing(PCI_INTD, ((val & 0x0f) != 0) ? opti822_irq_routing[(val & 7) - 1] : PCI_IRQ_DISABLED);
-                pci_set_irq_routing(PCI_INTC, (((val >> 4) & 0x0f) != 0) ? opti822_irq_routing[((val >> 4) & 7) - 1] : PCI_IRQ_DISABLED);
-            }
-            break;
+	case 0x88 ... 0x8f:
+		dev->pci_regs[addr] = val;
+		opti822_update_irqs(dev, 0);
+		irq = irq_map[val & 0x07];
+                pin = 4 - ((addr & 0x01) << 1);
+                slot = ((addr & 0x06) >> 1);
+		if (irq >= 0) {
+			opti822_log("Set IRQ routing: INT %c%c -> %02X\n", pin + 0x40, slot + 0x31,  irq);
+			pci_set_irq_routing(pin + (slot << 2), irq);
+                        pci_set_irq_level(pin + (slot << 2), !!(val & 0x07));
+		} else {
+			opti822_log("Set IRQ routing: INT %c%c -> FF\n", pin + 0x40, slot + 0x31);
+			pci_set_irq_routing(pin + (slot << 2), PCI_IRQ_DISABLED);
+		}
+		irq = irq_map[(val >> 4) & 0x07];
+                pin = 3 - ((addr & 0x01) << 1);
+                slot = ((addr & 0x06) >> 1);
+		if (irq >= 0) {
+			opti822_log("Set IRQ routing: INT %c%c -> %02X\n", pin + 0x40, slot + 0x31, irq);
+			pci_set_irq_routing(pin + (slot << 2), irq);
+                        pci_set_irq_level(pin + (slot << 2), !!((val >> 4) & 0x07));
+		} else {
+			opti822_log("Set IRQ routing: INT %c%c -> FF\n", pin + 0x40, slot + 0x31);
+			pci_set_irq_routing(pin + (slot << 2), PCI_IRQ_DISABLED);
+		}
+		opti822_update_irqs(dev, 1);
+		break;
     }
-
-    opti822_log("OPTI822: dev->pci_conf[%02x] = %02x\n", addr, dev->pci_conf[addr]);
 }
 
 static uint8_t
-opti822_read(int func, int addr, void *priv)
+opti822_pci_read(int func, int addr, void *priv)
 {
     opti822_t *dev = (opti822_t *) priv;
-    return dev->pci_conf[addr];
+    uint8_t ret;
+
+    ret = 0xff;
+
+    if (func == 0)
+        ret = dev->pci_regs[addr];
+
+    opti822_log("opti822_read(%02X, %02X) = %02X\n", func, addr, ret);
+
+    return ret;
 }
 
 static void
 opti822_reset(void *priv)
 {
     opti822_t *dev = (opti822_t *) priv;
+    int i;
 
-    dev->pci_conf[0x00] = 0x45;
-    dev->pci_conf[0x01] = 0x10;
-    dev->pci_conf[0x02] = 0x22;
-    dev->pci_conf[0x03] = 0xc8;
-    dev->pci_conf[0x04] = 7;
-    dev->pci_conf[0x06] = 0x40;
-    dev->pci_conf[0x07] = 1;
-    dev->pci_conf[0x08] = 1;
-    dev->pci_conf[0x0b] = 6;
-    dev->pci_conf[0x0d] = 0x20;
-    dev->pci_conf[0x40] = 1;
-    dev->pci_conf[0x43] = 0x20;
-    dev->pci_conf[0x52] = 6;
-    dev->pci_conf[0x53] = 0x90;
+    memset(dev->pci_regs, 0, 256);
+
+    dev->pci_regs[0x00] = 0x45; dev->pci_regs[0x01] = 0x10; /*OPTi*/
+    dev->pci_regs[0x02] = 0x22; dev->pci_regs[0x03] = 0xc8; /*82C822 PCIB*/
+    dev->pci_regs[0x04] = 0x07;
+    dev->pci_regs[0x06] = 0x80;
+    dev->pci_regs[0x07] = 0x02;
+    dev->pci_regs[0x08] = 0x01;
+    dev->pci_regs[0x0b] = 0x06;
+    dev->pci_regs[0x0d] = 0x20;
+
+    dev->pci_regs[0x40] = 0x01; dev->pci_regs[0x41] = 0x0c;
+    dev->pci_regs[0x43] = 0x02;
+    dev->pci_regs[0x52] = 0x06;
+    dev->pci_regs[0x53] = 0x90;
+
+    dev->irq_convert = 1 /*0*/;
+
+    for (i = 0; i < 16; i++)
+        pci_set_irq_routing(PCI_INTA + i, PCI_IRQ_DISABLED);
 }
 
 static void
-opti822_close(void *priv)
+opti822_close(void *p)
 {
-    opti822_t *dev = (opti822_t *) priv;
+    opti822_t *dev = (opti822_t *)p;
 
     free(dev);
 }
@@ -298,7 +381,7 @@ opti822_init(const device_t *info)
     opti822_t *dev = (opti822_t *) malloc(sizeof(opti822_t));
     memset(dev, 0, sizeof(opti822_t));
 
-    pci_add_card(PCI_ADD_NORTHBRIDGE, opti822_read, opti822_write, dev);
+    pci_add_card(PCI_ADD_NORTHBRIDGE, opti822_pci_read, opti822_pci_write, dev);
 
     opti822_reset(dev);
 

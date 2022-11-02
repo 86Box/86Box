@@ -2857,7 +2857,8 @@ banshee_init_common(const device_t *info, char *fn, int has_sgram, int type, int
     }
 
     if (!banshee->has_bios)
-        mem_size = info->local; /* fixed size for on-board chips */
+        // mem_size = info->local; /* fixed size for on-board chips */
+        mem_size = device_get_config_int("memory"); /* MS-6168 / Bora Pro can do both 8 and 16 MB. */
     else if (has_sgram) {
         if (banshee->type == TYPE_VELOCITY100)
             mem_size = 8; /* Velocity 100 only supports 8 MB */
@@ -3001,7 +3002,7 @@ v3_2000_agp_init(const device_t *info)
 static void *
 v3_2000_agp_onboard_init(const device_t *info)
 {
-    return banshee_init_common(info, NULL, 0, TYPE_V3_2000, VOODOO_3, 1);
+    return banshee_init_common(info, NULL, 1, TYPE_V3_2000, VOODOO_3, 1);
 }
 static void *
 v3_3000_init(const device_t *info)
@@ -3144,7 +3145,7 @@ const device_t voodoo_3_2000_agp_onboard_8m_device = {
     { .available = NULL },
     .speed_changed = banshee_speed_changed,
     .force_redraw  = banshee_force_redraw,
-    banshee_sdram_config
+    banshee_sgram_config
 };
 
 const device_t voodoo_3_3000_device = {

@@ -33,7 +33,6 @@ public:
     void blitToWidget(int x, int y, int w, int h, int monitor_index);
     QSize getRenderWidgetSize();
     void setSendKeyboardInput(bool enabled);
-    void setUiPauseState(bool paused);
 
     std::array<std::unique_ptr<RendererStack>, 8> renderers;
 signals:
@@ -65,6 +64,7 @@ public slots:
     void togglePause();
     void initRendererMonitorSlot(int monitor_index);
     void destroyRendererMonitorSlot(int monitor_index);
+    void updateUiPauseState();
 private slots:
     void on_actionFullscreen_triggered();
     void on_actionSettings_triggered();
@@ -81,6 +81,12 @@ private slots:
     void on_action1x_triggered();
     void on_action1_5x_triggered();
     void on_action2x_triggered();
+    void on_action3x_triggered();
+    void on_action4x_triggered();
+    void on_action5x_triggered();
+    void on_action6x_triggered();
+    void on_action7x_triggered();
+    void on_action8x_triggered();
     void on_actionLinear_triggered();
     void on_actionNearest_triggered();
     void on_actionFullScreen_int_triggered();

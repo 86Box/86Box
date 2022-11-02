@@ -469,6 +469,14 @@ vid_poll_1512(void *priv)
             }
         }
 
+        if (vid->cgamode & 1)
+            x = (vid->crtc[1] << 3) + 16;
+        else
+            x = (vid->crtc[1] << 4) + 16;
+
+        video_process_8(x, vid->displine << 1);
+        video_process_8(x, (vid->displine << 1) + 1);
+
         vid->sc = oldsc;
         if (vid->vsynctime)
             vid->stat |= 8;
@@ -548,11 +556,11 @@ vid_poll_1512(void *priv)
                     }
 
                     if (enable_overscan) {
-                        video_blit_memtoscreen_8(0, (vid->firstline - 4) << 1,
-                                                 xsize, ((vid->lastline - vid->firstline) + 8) << 1);
+                        video_blit_memtoscreen(0, (vid->firstline - 4) << 1,
+                                               xsize, ((vid->lastline - vid->firstline) + 8) << 1);
                     } else {
-                        video_blit_memtoscreen_8(8, vid->firstline << 1,
-                                                 xsize, (vid->lastline - vid->firstline) << 1);
+                        video_blit_memtoscreen(8, vid->firstline << 1,
+                                               xsize, (vid->lastline - vid->firstline) << 1);
                     }
                 }
 

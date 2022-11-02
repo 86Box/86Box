@@ -59,14 +59,15 @@ static uint8_t    pci_irqs[16], pci_irq_level[16];
 static uint64_t   pci_irq_hold[16];
 static pci_mirq_t pci_mirqs[8];
 static int        pci_type,
-    pci_switch,
-    pci_index,
-    pci_func,
-    pci_card,
-    pci_bus,
-    pci_enable,
-    pci_key;
-static int trc_reg = 0;
+                  pci_switch,
+                  pci_index,
+                  pci_func,
+                  pci_card,
+                  pci_bus,
+                  pci_enable,
+                  pci_key;
+static int        trc_reg = 0;
+static uint32_t   pci_base = 0xc000, pci_size = 0x1000;
 
 static void pci_reset_regs(void);
 
@@ -388,22 +389,40 @@ static uint8_t pci_type2_read(uint16_t port, void *priv);
 void
 pci_set_pmc(uint8_t pmc)
 {
-    pci_reset_regs();
+    pci_log("pci_set_pmc(%02X)\n", pmc);
+    // pci_reset_regs();
 
     if (!pci_pmc && (pmc & 0x01)) {
+        io_removehandler(pci_base, pci_size,
+                         pci_type2_read, NULL, NULL,
+                         pci_type2_write, NULL, NULL, NULL);
+
         io_removehandler(0x0cf8, 1,
                          pci_type2_read, NULL, NULL, pci_type2_write, NULL, NULL, NULL);
         io_removehandler(0x0cfa, 1,
                          pci_type2_read, NULL, NULL, pci_type2_write, NULL, NULL, NULL);
         io_sethandler(0x0cf8, 1,
                       NULL, NULL, pci_cf8_read, NULL, NULL, pci_cf8_write, NULL);
+        io_sethandler(0x0cfa, 1,
+                      pci_type2_read,NULL,NULL, pci_type2_write,NULL,NULL, NULL);
         io_sethandler(0x0cfc, 4,
-                      pci_read, NULL, NULL, pci_write, NULL, NULL, NULL);
+                      pci_read,pci_readw,pci_readl, pci_write,pci_writew,pci_writel, NULL);
     } else if (pci_pmc && !(pmc & 0x01)) {
+        io_removehandler(pci_base, pci_size,
+                         pci_type2_read, NULL, NULL,
+                         pci_type2_write, NULL, NULL, NULL);
+        if (pci_key) {
+            io_sethandler(pci_base, pci_size,
+                          pci_type2_read, NULL, NULL,
+                          pci_type2_write, NULL, NULL, NULL);
+        }
+
         io_removehandler(0x0cf8, 1,
                          NULL, NULL, pci_cf8_read, NULL, NULL, pci_cf8_write, NULL);
+        io_removehandler(0x0cfa, 1,
+                         pci_type2_read,NULL,NULL, pci_type2_write,NULL,NULL, NULL);
         io_removehandler(0x0cfc, 4,
-                         pci_read, NULL, NULL, pci_write, NULL, NULL, NULL);
+                         pci_read,pci_readw,pci_readl, pci_write,pci_writew,pci_writel, NULL);
         io_sethandler(0x0cf8, 1,
                       pci_type2_read, NULL, NULL, pci_type2_write, NULL, NULL, NULL);
         io_sethandler(0x0cfa, 1,
@@ -421,19 +440,36 @@ pci_type2_write(uint16_t port, uint8_t val, void *priv)
     if (port == 0xcf8) {
         pci_func = (val >> 1) & 7;
 
-        if (!pci_key && (val & 0xf0))
-            io_sethandler(0xc000, 0x1000,
+        if (!pci_key && (val & 0xf0)) {
+            io_removehandler(pci_base, pci_size,
+                             pci_type2_read, NULL, NULL,
+                             pci_type2_write, NULL, NULL, NULL);
+            io_sethandler(pci_base, pci_size,
                           pci_type2_read, NULL, NULL,
                           pci_type2_write, NULL, NULL, NULL);
-        else if (pci_key && !(val & 0xf0))
-            io_removehandler(0xc000, 0x1000,
+        } else if (pci_key && !(val & 0xf0))
+            io_removehandler(pci_base, pci_size,
                              pci_type2_read, NULL, NULL,
                              pci_type2_write, NULL, NULL, NULL);
 
         pci_key = val & 0xf0;
-    } else if (port == 0xcfa)
+    } else if (port == 0xcfa) {
         pci_bus = val;
-    else if (port == 0xcfb) {
+
+        pci_log("Allocating ports %04X-%04X...\n", pci_base, pci_base + pci_size - 1);
+
+        /* Evidently, writing here, we should also enable the
+           configuration space. */
+        io_removehandler(pci_base, pci_size,
+                         pci_type2_read, NULL, NULL,
+                         pci_type2_write, NULL, NULL, NULL);
+        io_sethandler(pci_base, pci_size,
+                      pci_type2_read, NULL, NULL,
+                      pci_type2_write, NULL, NULL, NULL);
+
+        /* Mark as enabled. */
+        pci_key |= 0x100;
+    } else if (port == 0xcfb) {
         pci_log("Write %02X to port 0CFB\n", val);
         pci_set_pmc(val);
     } else {
@@ -473,32 +509,36 @@ static uint8_t
 pci_type2_read(uint16_t port, void *priv)
 {
     uint8_t slot = 0;
+    uint8_t ret = 0xff;
 
     if (port == 0xcf8)
-        return pci_key | (pci_func << 1);
+        ret = pci_key | (pci_func << 1);
     else if (port == 0xcfa)
-        return pci_bus;
+        ret = pci_bus;
     else if (port == 0xcfb)
-        return pci_pmc;
+        ret = pci_pmc;
+    else {
+        pci_card  = (port >> 8) & 0xf;
+        pci_index = port & 0xff;
 
-    pci_card  = (port >> 8) & 0xf;
-    pci_index = port & 0xff;
-
-    slot = pci_card_to_slot_mapping[pci_bus_number_to_index_mapping[pci_bus]][pci_card];
-    if (slot != 0xff) {
-        if (pci_cards[slot].read)
-            return pci_cards[slot].read(pci_func, pci_index | (port & 3), pci_cards[slot].priv);
+        slot = pci_card_to_slot_mapping[pci_bus_number_to_index_mapping[pci_bus]][pci_card];
+        if (slot != 0xff) {
+            if (pci_cards[slot].read)
+                ret = pci_cards[slot].read(pci_func, pci_index | (port & 3), pci_cards[slot].priv);
+#ifdef ENABLE_PCI_LOG
+            else
+                pci_log("Reading from empty PCI card on slot %02X (pci_cards[%i]) (%02X:%02X)...\n", pci_card, slot, pci_func, pci_index);
+#endif
+        }
 #ifdef ENABLE_PCI_LOG
         else
-            pci_log("Reading from empty PCI card on slot %02X (pci_cards[%i]) (%02X:%02X)...\n", pci_card, slot, pci_func, pci_index);
-#endif
-    }
-#ifdef ENABLE_PCI_LOG
-    else
-        pci_log("Reading from unasisgned PCI card on slot %02X (pci_cards[%i]) (%02X:%02X)...\n", pci_card, slot, pci_func, pci_index);
+            pci_log("Reading from unasisgned PCI card on slot %02X (pci_cards[%i]) (%02X:%02X)...\n", pci_card, slot, pci_func, pci_index);
 #endif
 
-    return 0xff;
+        pci_log("Reading %02X at PCI register %02X at bus %02X, card %02X, function %02X\n", ret, pci_index, pci_bus, pci_card, pci_func);
+    }
+
+    return ret;
 }
 
 void
@@ -610,7 +650,7 @@ pci_set_irq(uint8_t card, uint8_t pci_int)
     if (pci_type & PCI_NO_IRQ_STEERING)
         irq_line = pci_cards[slot].read(0, 0x3c, pci_cards[slot].priv);
     else {
-        irq_routing = (pci_cards[slot].irq_routing[pci_int_index] - PCI_INTA) & 3;
+        irq_routing = (pci_cards[slot].irq_routing[pci_int_index] - PCI_INTA) & 15;
         pci_log("pci_set_irq(%02X, %02X): IRQ routing for this slot and INT pin combination: %02X\n", card, pci_int, irq_routing);
 
         irq_line = pci_irqs[irq_routing];
@@ -735,7 +775,7 @@ pci_clear_irq(uint8_t card, uint8_t pci_int)
     if (pci_type & PCI_NO_IRQ_STEERING)
         irq_line = pci_cards[slot].read(0, 0x3c, pci_cards[slot].priv);
     else {
-        irq_routing = (pci_cards[slot].irq_routing[pci_int_index] - PCI_INTA) & 3;
+        irq_routing = (pci_cards[slot].irq_routing[pci_int_index] - PCI_INTA) & 15;
         // pci_log("pci_clear_irq(%02X, %02X): IRQ routing for this slot and INT pin combination: %02X\n", card, pci_int, irq_routing);
 
         irq_line = pci_irqs[irq_routing];
@@ -782,7 +822,7 @@ pci_reset_regs(void)
 {
     pci_index = pci_card = pci_func = pci_bus = pci_key = 0;
 
-    io_removehandler(0xc000, 0x1000,
+    io_removehandler(pci_base, pci_size,
                      pci_type2_read, NULL, NULL,
                      pci_type2_write, NULL, NULL, NULL);
 }
@@ -816,12 +856,17 @@ void
 pci_reset(void)
 {
     if (pci_switch) {
+        pci_log("pci_reset(): Switchable configuration mechanism\n");
         pci_pmc = 0x00;
 
         io_removehandler(0x0cf8, 1,
                          NULL, NULL, pci_cf8_read, NULL, NULL, pci_cf8_write, NULL);
         io_removehandler(0x0cfc, 4,
-                         pci_read, NULL, NULL, pci_write, NULL, NULL, NULL);
+                         pci_read,pci_readw,pci_readl, pci_write,pci_writew,pci_writel, NULL);
+        io_removehandler(0x0cf8, 1,
+                         pci_type2_read,NULL,NULL, pci_type2_write,NULL,NULL, NULL);
+        io_removehandler(0x0cfa, 1,
+                         pci_type2_read,NULL,NULL, pci_type2_write,NULL,NULL, NULL);
         io_sethandler(0x0cf8, 1,
                       pci_type2_read, NULL, NULL, pci_type2_write, NULL, NULL, NULL);
         io_sethandler(0x0cfa, 1,
@@ -931,6 +976,9 @@ pci_init(int type)
 {
     int c;
 
+    pci_base = 0xc000;
+    pci_size = 0x1000;
+
     pci_slots_clear();
 
     pci_reset_hard();
@@ -941,6 +989,7 @@ pci_init(int type)
     pci_switch = !!(type & PCI_CAN_SWITCH_TYPE);
 
     if (pci_switch) {
+        pci_log("PCI: Switchable configuration mechanism\n");
         pci_pmc = 0x00;
 
         io_sethandler(0x0cfb, 1,
@@ -956,17 +1005,29 @@ pci_init(int type)
     }
 
     if ((type & PCI_CONFIG_TYPE_MASK) == PCI_CONFIG_TYPE_1) {
+        pci_log("PCI: Configuration mechanism #1\n");
         io_sethandler(0x0cf8, 1,
                       NULL, NULL, pci_cf8_read, NULL, NULL, pci_cf8_write, NULL);
         io_sethandler(0x0cfc, 4,
                       pci_read, pci_readw, pci_readl, pci_write, pci_writew, pci_writel, NULL);
         pci_pmc = 1;
     } else {
+        pci_log("PCI: Configuration mechanism #2\n");
         io_sethandler(0x0cf8, 1,
                       pci_type2_read, NULL, NULL, pci_type2_write, NULL, NULL, NULL);
         io_sethandler(0x0cfa, 1,
                       pci_type2_read, NULL, NULL, pci_type2_write, NULL, NULL, NULL);
         pci_pmc = 0;
+
+        if (type & PCI_ALWAYS_EXPOSE_DEV0) {
+            pci_log("PCI: Always expose device 0\n");
+            pci_base = 0xc100;
+            pci_size = 0x0f00;
+
+            io_sethandler(0xc000, 0x0100,
+                          pci_type2_read, NULL, NULL,
+                          pci_type2_write, NULL, NULL, NULL);
+        }
     }
 
     for (c = 0; c < 4; c++) {

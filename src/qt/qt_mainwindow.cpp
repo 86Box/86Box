@@ -154,6 +154,7 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->stackedWidget->setMouseTracking(true);
     statusBar()->setVisible(!hide_status_bar);
     statusBar()->setStyleSheet("QStatusBar::item {border: None; } QStatusBar QLabel { margin-right: 2px; margin-bottom: 1px; }");
+    this->centralWidget()->setStyleSheet("background-color: black;");
     ui->toolBar->setVisible(!hide_tool_bar);
     renderers[0].reset(nullptr);
     auto toolbar_spacer = new QWidget();
@@ -415,12 +416,36 @@ MainWindow::MainWindow(QWidget *parent) :
     case 3:
         ui->action2x->setChecked(true);
         break;
+    case 4:
+        ui->action3x->setChecked(true);
+        break;
+    case 5:
+        ui->action4x->setChecked(true);
+        break;
+    case 6:
+        ui->action5x->setChecked(true);
+        break;
+    case 7:
+        ui->action6x->setChecked(true);
+        break;
+    case 8:
+        ui->action7x->setChecked(true);
+        break;
+    case 9:
+        ui->action8x->setChecked(true);
+        break;
     }
     actGroup = new QActionGroup(this);
     actGroup->addAction(ui->action0_5x);
     actGroup->addAction(ui->action1x);
     actGroup->addAction(ui->action1_5x);
     actGroup->addAction(ui->action2x);
+    actGroup->addAction(ui->action3x);
+    actGroup->addAction(ui->action4x);
+    actGroup->addAction(ui->action5x);
+    actGroup->addAction(ui->action6x);
+    actGroup->addAction(ui->action7x);
+    actGroup->addAction(ui->action8x);
     switch (video_filter_method) {
     case 0:
         ui->actionNearest->setChecked(true);
@@ -505,15 +530,6 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->actionTake_screenshot->setShortcutVisibleInContextMenu(true);
 #endif
     if (!vnc_enabled) video_setblit(qt_blit);
-
-    if (start_in_fullscreen) {
-        connect(ui->stackedWidget, &RendererStack::blit, this, [this] () {
-            if (start_in_fullscreen) {
-                QTimer::singleShot(100, ui->actionFullscreen, &QAction::trigger);
-                start_in_fullscreen = 0;
-            }
-        });
-    }
 
 #ifdef MTR_ENABLED
     {
@@ -709,6 +725,10 @@ void MainWindow::showEvent(QShowEvent *event) {
         ui->stackedWidget->setFixedSize(window_w, window_h);
         QApplication::processEvents();
         this->adjustSize();
+    }
+    if (start_in_fullscreen) {
+        start_in_fullscreen = 0;
+        QTimer::singleShot(0, ui->actionFullscreen, &QAction::trigger);
     }
 }
 
@@ -1005,17 +1025,17 @@ std::array<uint32_t, 256> x11_to_xt_2
     0x51,
     0x52,
     0x53,
-    0x54,
+    0x138,
     0x55,
-    0x56,
+    0x35,
     0x57,
     0x58,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
+    0x56,
+    0x70,
+    0x7B,
+    0x7D,
+    0x2B,
+    0x7E,
     0,
     0x11C,
     0x11D,
@@ -1032,7 +1052,23 @@ std::array<uint32_t, 256> x11_to_xt_2
     0x150,
     0x151,
     0x152,
-    0x153
+    0x153,
+    0,
+    0, /* Mute */
+    0, /* Volume Down */
+    0, /* Volume Up */
+    0, /* Power Off */
+    0,
+    0,
+    0,
+    0,
+    0,
+    0x70,
+    0x7B,
+    0x73,
+    0x15B,
+    0x15C,
+    0x15D
 };
 
 std::array<uint32_t, 256> x11_to_xt_vnc
@@ -1528,6 +1564,7 @@ void MainWindow::on_actionFullscreen_triggered() {
         ui->menubar->hide();
         ui->statusbar->hide();
         ui->toolBar->hide();
+        ui->stackedWidget->setFixedSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
         showFullScreen();
         if (vid_api == 5) QTimer::singleShot(0, this, [this] () { ui->stackedWidget->switchRenderer(RendererStack::Renderer::Direct3D9); });
     }
@@ -1613,7 +1650,7 @@ void MainWindow::showMessage_(int flags, const QString &header, const QString &m
 
 void MainWindow::keyPressEvent(QKeyEvent* event)
 {
-    if (send_keyboard_input && !(kbd_req_capture && !mouse_capture && !video_fullscreen))
+    if (send_keyboard_input && !(kbd_req_capture && !mouse_capture))
     {
         // Windows keys in Qt have one-to-one mapping.
         if (event->key() == Qt::Key_Pause && !keyboard_recv(0x38) && !keyboard_recv(0x138)) {
@@ -1627,8 +1664,6 @@ void MainWindow::keyPressEvent(QKeyEvent* event)
                 keyboard_input(1, 0x1D);
                 keyboard_input(1, 0x45);
             }
-        } else if (event->key() == Qt::Key_Super_L || event->key() == Qt::Key_Super_R) {
-            keyboard_input(1, event->key() == Qt::Key_Super_L ? 0x15B : 0x15C);
         } else
 #ifdef Q_OS_MACOS
         processMacKeyboardInput(true, event);
@@ -1672,9 +1707,6 @@ void MainWindow::keyReleaseEvent(QKeyEvent* event)
     if (!send_keyboard_input)
         return;
 
-    if (event->key() == Qt::Key_Super_L || event->key() == Qt::Key_Super_R) {
-        keyboard_input(0, event->key() == Qt::Key_Super_L ? 0x15B : 0x15C);
-    } else
 #ifdef Q_OS_MACOS
     processMacKeyboardInput(false, event);
 #else
@@ -1757,6 +1789,12 @@ static void update_scaled_checkboxes(Ui::MainWindow* ui, QAction* selected) {
     ui->action1x->setChecked(ui->action1x == selected);
     ui->action1_5x->setChecked(ui->action1_5x == selected);
     ui->action2x->setChecked(ui->action2x == selected);
+    ui->action3x->setChecked(ui->action3x == selected);
+    ui->action4x->setChecked(ui->action4x == selected);
+    ui->action5x->setChecked(ui->action5x == selected);
+    ui->action6x->setChecked(ui->action6x == selected);
+    ui->action7x->setChecked(ui->action7x == selected);
+    ui->action8x->setChecked(ui->action8x == selected);
 
     reset_screen_size();
     device_force_redraw();
@@ -1784,6 +1822,36 @@ void MainWindow::on_action1_5x_triggered() {
 void MainWindow::on_action2x_triggered() {
     scale = 3;
     update_scaled_checkboxes(ui, ui->action2x);
+}
+
+void MainWindow::on_action3x_triggered() {
+    scale = 4;
+    update_scaled_checkboxes(ui, ui->action3x);
+}
+
+void MainWindow::on_action4x_triggered() {
+    scale = 5;
+    update_scaled_checkboxes(ui, ui->action4x);
+}
+
+void MainWindow::on_action5x_triggered() {
+    scale = 6;
+    update_scaled_checkboxes(ui, ui->action5x);
+}
+
+void MainWindow::on_action6x_triggered() {
+    scale = 7;
+    update_scaled_checkboxes(ui, ui->action6x);
+}
+
+void MainWindow::on_action7x_triggered() {
+    scale = 8;
+    update_scaled_checkboxes(ui, ui->action7x);
+}
+
+void MainWindow::on_action8x_triggered() {
+    scale = 9;
+    update_scaled_checkboxes(ui, ui->action8x);
 }
 
 void MainWindow::on_actionNearest_triggered() {
@@ -2052,9 +2120,9 @@ void MainWindow::setSendKeyboardInput(bool enabled)
     send_keyboard_input = enabled;
 }
 
-void MainWindow::setUiPauseState(bool paused) {
-    auto pause_icon   = paused ? QIcon(":/menuicons/win/icons/run.ico") : QIcon(":/menuicons/win/icons/pause.ico");
-    auto tooltip_text = paused ? QString(tr("Resume execution")) : QString(tr("Pause execution"));
+void MainWindow::updateUiPauseState() {
+    auto pause_icon   = dopause ? QIcon(":/menuicons/win/icons/run.ico") : QIcon(":/menuicons/win/icons/pause.ico");
+    auto tooltip_text = dopause ? QString(tr("Resume execution")) : QString(tr("Pause execution"));
     ui->actionPause->setIcon(pause_icon);
     ui->actionPause->setToolTip(tooltip_text);
 }
