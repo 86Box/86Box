@@ -23,6 +23,7 @@
 #include <windows.h>
 #define HAVE_STDARG_H
 #include <86box/86box.h>
+#include <86box/plat.h>
 #include <86box/plat_dynld.h>
 
 
@@ -52,9 +53,11 @@ dynld_module(const char *name, dllimp_t *table)
     HMODULE h;
     dllimp_t *imp;
     void *func;
+    WCHAR uname[512];
 
     /* See if we can load the desired module. */
-    if ((h = LoadLibrary(name)) == NULL) {
+    mbstoc16s(uname, name, strlen(name) + 1);
+    if ((h = LoadLibrary(uname)) == NULL) {
 	dynld_log("DynLd(\"%s\"): library not found! (%08X)\n", name, GetLastError());
 	return(NULL);
     }
