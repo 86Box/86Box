@@ -389,6 +389,7 @@ static uint8_t pci_type2_read(uint16_t port, void *priv);
 void
 pci_set_pmc(uint8_t pmc)
 {
+    pci_log("pci_set_pmc(%02X)\n", pmc);
     // pci_reset_regs();
 
     if (!pci_pmc && (pmc & 0x01)) {
@@ -649,7 +650,7 @@ pci_set_irq(uint8_t card, uint8_t pci_int)
     if (pci_type & PCI_NO_IRQ_STEERING)
         irq_line = pci_cards[slot].read(0, 0x3c, pci_cards[slot].priv);
     else {
-        irq_routing = (pci_cards[slot].irq_routing[pci_int_index] - PCI_INTA) & 3;
+        irq_routing = (pci_cards[slot].irq_routing[pci_int_index] - PCI_INTA) & 15;
         pci_log("pci_set_irq(%02X, %02X): IRQ routing for this slot and INT pin combination: %02X\n", card, pci_int, irq_routing);
 
         irq_line = pci_irqs[irq_routing];
@@ -774,7 +775,7 @@ pci_clear_irq(uint8_t card, uint8_t pci_int)
     if (pci_type & PCI_NO_IRQ_STEERING)
         irq_line = pci_cards[slot].read(0, 0x3c, pci_cards[slot].priv);
     else {
-        irq_routing = (pci_cards[slot].irq_routing[pci_int_index] - PCI_INTA) & 3;
+        irq_routing = (pci_cards[slot].irq_routing[pci_int_index] - PCI_INTA) & 15;
         // pci_log("pci_clear_irq(%02X, %02X): IRQ routing for this slot and INT pin combination: %02X\n", card, pci_int, irq_routing);
 
         irq_line = pci_irqs[irq_routing];
@@ -855,6 +856,7 @@ void
 pci_reset(void)
 {
     if (pci_switch) {
+        pci_log("pci_reset(): Switchable configuration mechanism\n");
         pci_pmc = 0x00;
 
         io_removehandler(0x0cf8, 1,
@@ -987,6 +989,7 @@ pci_init(int type)
     pci_switch = !!(type & PCI_CAN_SWITCH_TYPE);
 
     if (pci_switch) {
+        pci_log("PCI: Switchable configuration mechanism\n");
         pci_pmc = 0x00;
 
         io_sethandler(0x0cfb, 1,
@@ -1002,12 +1005,14 @@ pci_init(int type)
     }
 
     if ((type & PCI_CONFIG_TYPE_MASK) == PCI_CONFIG_TYPE_1) {
+        pci_log("PCI: Configuration mechanism #1\n");
         io_sethandler(0x0cf8, 1,
                       NULL, NULL, pci_cf8_read, NULL, NULL, pci_cf8_write, NULL);
         io_sethandler(0x0cfc, 4,
                       pci_read, pci_readw, pci_readl, pci_write, pci_writew, pci_writel, NULL);
         pci_pmc = 1;
     } else {
+        pci_log("PCI: Configuration mechanism #2\n");
         io_sethandler(0x0cf8, 1,
                       pci_type2_read, NULL, NULL, pci_type2_write, NULL, NULL, NULL);
         io_sethandler(0x0cfa, 1,
@@ -1015,6 +1020,7 @@ pci_init(int type)
         pci_pmc = 0;
 
         if (type & PCI_ALWAYS_EXPOSE_DEV0) {
+            pci_log("PCI: Always expose device 0\n");
             pci_base = 0xc100;
             pci_size = 0x0f00;
 

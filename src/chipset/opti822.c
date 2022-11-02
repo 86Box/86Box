@@ -46,7 +46,7 @@ typedef struct
 		pci_regs[256];
 } opti822_t;
 
-#define ENABLE_OPTI822_LOG 1
+// #define ENABLE_OPTI822_LOG 1
 #ifdef ENABLE_OPTI822_LOG
 int opti822_do_log = ENABLE_OPTI822_LOG;
 
@@ -104,7 +104,8 @@ opti822_update_irqs(opti822_t *dev, int set)
     int irq_map[8] = { -1, 5, 9, 10, 11, 12, 14, 15 };
     pic_t *temp_pic;
 
-    dev->irq_convert = (dev->pci_regs[0x53] & 0x08);
+    // dev->irq_convert = (dev->pci_regs[0x53] & 0x08);
+    dev->irq_convert = 1;
 
     for (i = 0; i < 4; i++) {
         reg = 0x80 + (i >> 1);
@@ -127,6 +128,7 @@ opti822_pci_write(int func, int addr, uint8_t val, void *priv)
 {
     opti822_t *dev = (opti822_t *) priv;
     int irq, irq_map[8] = { -1, 5, 9, 10, 11, 12, 14, 15 };
+    int pin, slot;
 
     opti822_log("opti822_write(%02X, %02X, %02X)\n", func, addr, val);
 
@@ -295,20 +297,24 @@ opti822_pci_write(int func, int addr, uint8_t val, void *priv)
 		dev->pci_regs[addr] = val;
 		opti822_update_irqs(dev, 0);
 		irq = irq_map[val & 0x07];
+                pin = 4 - ((addr & 0x01) << 1);
+                slot = ((addr & 0x06) >> 1);
 		if (irq >= 0) {
-			opti822_log("Set IRQ routing: INT %c%c -> %02X\n", 0x41 + ((addr & 0x01) << 1), ((addr & 0x06) >> 1) + 1,  irq);
-			pci_set_irq_routing(PCI_INTA + ((addr & 0x07) << 1), irq);
+			opti822_log("Set IRQ routing: INT %c%c -> %02X\n", pin + 0x40, slot + 0x31,  irq);
+			pci_set_irq_routing(pin + (slot << 2), irq);
 		} else {
-			opti822_log("Set IRQ routing: INT %c%c -> FF\n", 0x41 + ((addr & 0x01) << 1), ((addr & 0x06) >> 1) + 1);
-			pci_set_irq_routing(PCI_INTA + ((addr & 0x07) << 1), PCI_IRQ_DISABLED);
+			opti822_log("Set IRQ routing: INT %c%c -> FF\n", pin + 0x40, slot + 0x31);
+			pci_set_irq_routing(pin + (slot << 2), PCI_IRQ_DISABLED);
 		}
 		irq = irq_map[(val >> 4) & 0x07];
+                pin = 3 - ((addr & 0x01) << 1);
+                slot = ((addr & 0x06) >> 1);
 		if (irq >= 0) {
-			opti822_log("Set IRQ routing: INT %c%c -> %02X\n", 0x42 + ((addr & 0x01) << 1), ((addr & 0x06) >> 1) + 1, irq);
-			pci_set_irq_routing(PCI_INTB + ((addr & 0x07) << 1), irq);
+			opti822_log("Set IRQ routing: INT %c%c -> %02X\n", pin + 0x40, slot + 0x31, irq);
+			pci_set_irq_routing(pin + (slot << 2), irq);
 		} else {
-			opti822_log("Set IRQ routing: INT %c%c -> FF\n", 0x42 + ((addr & 0x01) << 1), ((addr & 0x06) >> 1) + 1);
-			pci_set_irq_routing(PCI_INTB + ((addr & 0x07) << 1), PCI_IRQ_DISABLED);
+			opti822_log("Set IRQ routing: INT %c%c -> FF\n", pin + 0x40, slot + 0x31);
+			pci_set_irq_routing(pin + (slot << 2), PCI_IRQ_DISABLED);
 		}
 		opti822_update_irqs(dev, 1);
 		break;
@@ -335,8 +341,6 @@ static void
 opti822_reset(void *priv)
 {
     opti822_t *dev = (opti822_t *) priv;
-
-    pci_set_pmc(0);
 
     memset(dev->pci_regs, 0, 256);
 
