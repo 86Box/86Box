@@ -551,12 +551,24 @@ scsi_cdrom_update_request_length(scsi_cdrom_t *dev, int len, int block_len)
         case 0x08:
         case 0x28:
         case 0xa8:
-            /* Round it to the nearest 2048 bytes. */
-            dev->max_transfer_len = (dev->max_transfer_len >> 11) << 11;
-            /* FALLTHROUGH */
-
         case 0xb9:
         case 0xbe:
+            /* Round it to the nearest (block length) bytes. */
+            if ((dev->current_cdb[0] == 0xb9) || (dev->current_cdb[0] == 0xbe)) {
+                /* READ CD MSF and READ CD: Round the request length to the sector size - the device must ensure
+                   that a media access comand does not DRQ in the middle of a sector. One of the drivers that
+                   relies on the correctness of this behavior is MTMCDAI.SYS (the Mitsumi CD-ROM driver) for DOS
+                   which uses the READ CD command to read data on some CD types. */
+                   if ((dev->current_cdb[0] == 0xb9) || (dev->current_cdb[0] == 0xbe)) {
+                       /* Round to sector length. */
+                       dlen = ((double) dev->max_transfer_len) / ((double) block_len);
+                       dev->max_transfer_len = ((uint16_t) floor(dlen)) * block_len;
+                   }
+            } else {
+                /* Round it to the nearest 2048 bytes. */
+                dev->max_transfer_len = (dev->max_transfer_len >> 11) << 11;
+            }
+
             /* Make sure total length is not bigger than sum of the lengths of
                all the requested blocks. */
             bt = (dev->requested_blocks * block_len);
@@ -574,7 +586,8 @@ scsi_cdrom_update_request_length(scsi_cdrom_t *dev, int len, int block_len)
                     break;
                 }
             }
-            /*FALLTHROUGH*/
+            /* FALLTHROUGH */
+
         default:
             dev->packet_len = len;
             break;
@@ -590,16 +603,6 @@ scsi_cdrom_update_request_length(scsi_cdrom_t *dev, int len, int block_len)
         dev->request_length = dev->max_transfer_len = len;
     else if (len > dev->max_transfer_len)
         dev->request_length = dev->max_transfer_len;
-
-    /* READ CD MSF and READ CD: Round the request length to the sector size - the device must ensure
-       that a media access comand does not DRQ in the middle of a sector. One of the drivers that
-       relies on the correctness of this behavior is MTMCDAI.SYS (the Mitsumi CD-ROM driver) for DOS
-       which uses the READ CD command to read data on some CD types. */
-    if ((dev->current_cdb[0] == 0xb9) || (dev->current_cdb[0] == 0xbe)) {
-        /* Round to sector length. */
-        dlen = ((double) dev->request_length) / ((double) block_len);
-        dev->request_length = ((uint16_t) floor(dlen)) * block_len;
-    }
 
     return;
 }

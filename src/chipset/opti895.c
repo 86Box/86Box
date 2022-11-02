@@ -35,6 +35,7 @@
 typedef struct
 {
     uint8_t idx, forced_green,
+        is_pci,
         regs[256],
         scratch[2];
 
@@ -78,7 +79,10 @@ opti895_recalc(opti895_t *dev)
         shflags          = MEM_READ_INTERNAL | MEM_WRITE_DISABLED;
     }
 
-    mem_set_mem_state_both(0xf0000, 0x10000, shflags);
+    if (dev->is_pci)
+        mem_set_mem_state_cpu_both(0xf0000, 0x10000, shflags);
+    else
+        mem_set_mem_state_both(0xf0000, 0x10000, shflags);
 
     for (i = 0; i < 8; i++) {
         base = 0xd0000 + (i << 14);
@@ -98,7 +102,10 @@ opti895_recalc(opti895_t *dev)
             }
         }
 
-        mem_set_mem_state_both(base, 0x4000, shflags);
+        if (dev->is_pci)
+            mem_set_mem_state_cpu_both(base, 0x4000, shflags);
+        else
+            mem_set_mem_state_both(base, 0x4000, shflags);
     }
 
     for (i = 0; i < 4; i++) {
@@ -119,7 +126,10 @@ opti895_recalc(opti895_t *dev)
             }
         }
 
-        mem_set_mem_state_both(base, 0x4000, shflags);
+        if (dev->is_pci)
+            mem_set_mem_state_cpu_both(base, 0x4000, shflags);
+        else
+            mem_set_mem_state_both(base, 0x4000, shflags);
     }
 
     flushmmucache_nopc();
@@ -232,6 +242,8 @@ opti895_init(const device_t *info)
 
     io_sethandler(0x0022, 0x0003, opti895_read, NULL, NULL, opti895_write, NULL, NULL, dev);
 
+    dev->is_pci = info->local;
+
     dev->scratch[0] = dev->scratch[1] = 0xff;
 
     dev->regs[0x01] = 0xc0;
@@ -267,6 +279,20 @@ const device_t opti802g_device = {
     .internal_name = "opti802g",
     .flags         = 0,
     .local         = 0,
+    .init          = opti895_init,
+    .close         = opti895_close,
+    .reset         = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t opti802g_pci_device = {
+    .name          = "OPTi 82C802G (PCI)",
+    .internal_name = "opti802g_pci",
+    .flags         = 0,
+    .local         = 1,
     .init          = opti895_init,
     .close         = opti895_close,
     .reset         = NULL,

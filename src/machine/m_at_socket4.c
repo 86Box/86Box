@@ -385,12 +385,16 @@ machine_at_p5vl_init(const machine_t *model)
         return ret;
 
     machine_at_common_init(model);
+
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x10, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
+
     pci_register_slot(0x11, PCI_CARD_NORMAL, 1, 2, 3, 4);
-    pci_register_slot(0x12, PCI_CARD_NORMAL, 2, 3, 4, 1);
-    pci_register_slot(0x13, PCI_CARD_NORMAL, 3, 4, 1, 2);
-    device_add(&opti5x7_device);
+    pci_register_slot(0x12, PCI_CARD_NORMAL, 5, 6, 7, 8);
+    pci_register_slot(0x13, PCI_CARD_NORMAL, 9, 10, 11, 12);
+    pci_register_slot(0x14, PCI_CARD_NORMAL, 13, 14, 15, 16);
+
+    device_add(&opti5x7_pci_device);
     device_add(&opti822_device);
     device_add(&sst_flash_29ee010_device);
     device_add(&keyboard_at_ami_device);

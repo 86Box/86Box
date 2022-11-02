@@ -27,9 +27,10 @@
 #define PCI_COMMAND_IO       0x01
 #define PCI_COMMAND_MEM      0x02
 
-#define PCI_NO_IRQ_STEERING  0x8000
-#define PCI_CAN_SWITCH_TYPE  0x10000
-#define PCI_NO_BRIDGES       0x20000
+#define PCI_NO_IRQ_STEERING       0x8000
+#define PCI_CAN_SWITCH_TYPE       0x10000
+#define PCI_NO_BRIDGES            0x20000
+#define PCI_ALWAYS_EXPOSE_DEV0    0x40000
 
 #define PCI_CONFIG_TYPE_1    1
 #define PCI_CONFIG_TYPE_2    2
