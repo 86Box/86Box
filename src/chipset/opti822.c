@@ -107,8 +107,8 @@ opti822_update_irqs(opti822_t *dev, int set)
     // dev->irq_convert = (dev->pci_regs[0x53] & 0x08);
     dev->irq_convert = 1;
 
-    for (i = 0; i < 4; i++) {
-        reg = 0x80 + (i >> 1);
+    for (i = 0; i < 16; i++) {
+        reg = 0x88 + (i >> 1);
         shift = (i & 1) << 2;
         val = (dev->pci_regs[reg] >> shift) & 0x0f;
         irq = irq_map[val & 0x07];
