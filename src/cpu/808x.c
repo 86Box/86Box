@@ -568,7 +568,8 @@ reset_808x(int hard)
 
     load_cs(0xFFFF);
     cpu_state.pc = 0;
-    cpu_state.flags |= MD_FLAG;
+    if (is_nec)
+        cpu_state.flags |= MD_FLAG;
     rammask = 0xfffff;
 
     prefetching = 1;
@@ -963,7 +964,7 @@ interrupt(uint16_t addr)
     pfq_clear();
     ovr_seg = NULL;
     access(39, 16);
-    tempf = cpu_state.flags & ((is_nec && cpu_state.inside_emulation_mode) ? 0x8fd7 : 0x0fd7);
+    tempf = cpu_state.flags & (is_nec ? 0x8fd7 : 0x0fd7);
     push(&tempf);
     cpu_state.flags &= ~(I_FLAG | T_FLAG);
     access(40, 16);
@@ -1003,7 +1004,7 @@ custom_nmi(void)
     pfq_clear();
     ovr_seg = NULL;
     access(39, 16);
-    tempf = cpu_state.flags & 0x0fd7;
+    tempf = cpu_state.flags & (is_nec ? 0x8fd7 : 0x0fd7);
     push(&tempf);
     cpu_state.flags &= ~(I_FLAG | T_FLAG);
     access(40, 16);
@@ -1083,7 +1084,10 @@ rep_action(int bits)
     if (irq_pending() && (repeating != 0)) {
         access(71, bits);
         pfq_clear();
-        set_ip(cpu_state.pc - 2);
+        if (is_nec && (ovr_seg != NULL))
+           set_ip(cpu_state.pc - 3);
+        else
+           set_ip(cpu_state.pc - 2);
         t = 0;
     }
     if (t == 0) {
@@ -2743,12 +2747,18 @@ execx86(int cycs)
                     break;
                 case 0x9C: /*PUSHF*/
                     access(33, 16);
-                    tempw = cpu_state.flags & ((is_nec && cpu_state.inside_emulation_mode) ? (MD_FLAG | 0x0fd7) : 0x0fd7);
+                    if (is_nec)
+                        tempw = (cpu_state.flags & 0x8fd7) | 0x7000;
+                    else
+                        tempw = (cpu_state.flags & 0x0fd7) | 0xf000;
                     push(&tempw);
                     break;
                 case 0x9D: /*POPF*/
                     access(25, 16);
-                    cpu_state.flags = pop() | 2;
+                    if (is_nec)
+                        cpu_state.flags = pop() | 0x8002;
+                    else
+                        cpu_state.flags = pop() | 0x0002;
                     wait(1, 0);
                     break;
                 case 0x9E: /*SAHF*/
@@ -3015,7 +3025,10 @@ execx86(int cycs)
                     access(62, 8);
                     set_ip(new_ip);
                     access(45, 8);
-                    cpu_state.flags = pop() | 2 | (!is_nec ? 0 : (!cpu_state.inside_emulation_mode ? MD_FLAG : 0));
+                    if (is_nec)
+                        cpu_state.flags = pop() | 0x8002;
+                    else
+                        cpu_state.flags = pop() | 0x0002;
                     wait(5, 0);
                     noint      = 1;
                     nmi_enable = 1;
