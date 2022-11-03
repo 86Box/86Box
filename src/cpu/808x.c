@@ -1084,7 +1084,10 @@ rep_action(int bits)
     if (irq_pending() && (repeating != 0)) {
         access(71, bits);
         pfq_clear();
-        set_ip(cpu_state.pc - 2);
+        if (is_nec && (ovr_seg != NULL))
+           set_ip(cpu_state.pc - 3);
+        else
+           set_ip(cpu_state.pc - 2);
         t = 0;
     }
     if (t == 0) {
