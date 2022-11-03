@@ -75,6 +75,10 @@ extern "C" {
 #include <QScreen>
 #include <QString>
 #include <QDir>
+#if QT_CONFIG(vulkan)
+#include <QVulkanInstance>
+#include <QVulkanFunctions>
+#endif
 
 #include <array>
 #include <unordered_map>
@@ -325,10 +329,25 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->actionVNC->setVisible(false);
 #endif
 
-#if !QT_CONFIG(vulkan)
-    if (vid_api == 4) vid_api = 0;
-    ui->actionVulkan->setVisible(false);
+#if QT_CONFIG(vulkan)
+    bool vulkanAvailable = false;
+    {
+        QVulkanInstance instance;
+        instance.setApiVersion(QVersionNumber(1, 0));
+        if (instance.create()) {
+            uint32_t physicalDevices = 0;
+            instance.functions()->vkEnumeratePhysicalDevices(instance.vkInstance(), &physicalDevices, nullptr);
+            if (physicalDevices != 0) {
+                vulkanAvailable = true;
+            }
+        }
+    }
+    if (!vulkanAvailable)
 #endif
+    {
+        if (vid_api == 4) vid_api = 0;
+        ui->actionVulkan->setVisible(false);
+    }
 
     QActionGroup* actGroup = nullptr;
 
