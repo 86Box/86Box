@@ -140,7 +140,8 @@ void HardwareRenderer::initializeGL()
     pclog("OpenGL shader language version: %s\n", glGetString(GL_SHADING_LANGUAGE_VERSION));
     glClearColor(0, 0, 0, 1);
     m_texture->setWrapMode(QOpenGLTexture::ClampToEdge);
-    update();
+    glClear(GL_COLOR_BUFFER_BIT);
+    m_context->swapBuffers(this);
 }
 
 void HardwareRenderer::paintGL() {
