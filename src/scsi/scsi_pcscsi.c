@@ -1251,6 +1251,7 @@ static void
 esp_pci_soft_reset(esp_t *dev)
 {
     esp_irq(dev, 0);
+    dev->rregs[ESP_RSTAT] &= ~STAT_INT;
     esp_pci_hard_reset(dev);
 }
 
@@ -1632,9 +1633,11 @@ esp_pci_read(int func, int addr, void *p)
         case 0x03:
             return 0x20;
         case 0x04:
-            return esp_pci_regs[0x04] & 3; /*Respond to IO*/
+            return esp_pci_regs[0x04] | 0x80; /*Respond to IO*/
+        case 0x05:
+            return esp_pci_regs[0x05];
         case 0x07:
-            return 2;
+            return esp_pci_regs[0x07] | 0x02;
         case 0x08:
             return 0; /*Revision ID*/
         case 0x09:
@@ -1646,7 +1649,7 @@ esp_pci_read(int func, int addr, void *p)
         case 0x0E:
             return 0; /*Header type */
         case 0x10:
-            return 1; /*I/O space*/
+            return (esp_pci_bar[0].addr_regs[1] & 0x80) | 0x01; /*I/O space*/
         case 0x11:
             return esp_pci_bar[0].addr_regs[1];
         case 0x12:
@@ -1710,7 +1713,17 @@ esp_pci_write(int func, int addr, uint8_t val, void *p)
                 if ((dev->PCIBase != 0) && (val & PCI_COMMAND_IO))
                     esp_io_set(dev, dev->PCIBase, 0x80);
             }
-            esp_pci_regs[addr] = val & 3;
+            if (dev->has_bios)
+                esp_pci_regs[addr] = val & 0x47;
+            else
+                esp_pci_regs[addr] = val & 0x45;
+            break;
+        case 0x05:
+            esp_pci_regs[addr] = val & 0x01;
+            break;
+
+        case 0x07:
+            esp_pci_regs[addr] &= ~(val & 0xf9);
             break;
 
         case 0x10:
@@ -1723,7 +1736,7 @@ esp_pci_write(int func, int addr, uint8_t val, void *p)
             /* Then let's set the PCI regs. */
             esp_pci_bar[0].addr_regs[addr & 3] = val;
             /* Then let's calculate the new I/O base. */
-            esp_pci_bar[0].addr &= 0xff00;
+            esp_pci_bar[0].addr &= 0xff80;
             dev->PCIBase = esp_pci_bar[0].addr;
             /* Log the new base. */
             // esp_log("ESP PCI: New I/O base is %04X\n" , dev->PCIBase);
@@ -1756,7 +1769,7 @@ esp_pci_write(int func, int addr, uint8_t val, void *p)
                 esp_bios_set_addr(dev, dev->BIOSBase);
             return;
 
-        case 0x3C:
+        case 0x3c:
             esp_pci_regs[addr] = val;
             dev->irq           = val;
             esp_log("ESP IRQ now: %i\n", val);
