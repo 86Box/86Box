@@ -68,7 +68,7 @@ jobs:
           ${{ matrix.environment.prefix }}-rtmidi
     - uses: actions/checkout@v3
     - name: make
-      run: make -fwin/makefile.mingw -j DEV_BUILD=${{ matrix.build-type.dev }} DEBUG=${{ matrix.build-type.debug }} NEW_DYNAREC=${{ matrix.dynarec.new }} X64=${{ matrix.environment.x64 }} VNC=n
+      run: make -fwin/makefile.mingw -j DEV_BUILD=${{ matrix.build.dev }} DEBUG=${{ matrix.build.debug }} NEW_DYNAREC=${{ matrix.dynarec.new }} X64=${{ matrix.environment.x64 }} VNC=n
       working-directory: ./src
     - uses: actions/upload-artifact@v3
       with:
