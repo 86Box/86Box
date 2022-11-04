@@ -29,19 +29,19 @@ jobs:
       matrix:
         build:
           - name: Debug
-            debug: on
-            dev: off
+            debug: y
+            dev: n
             slug: -Debug
           - name: Dev
-            debug: on
-            dev: on
+            debug: y
+            dev: y
             slug: -Dev
         dynarec:
           - name: ODR
-            new: off
+            new: n
             slug: -ODR
           - name: NDR
-            new: on
+            new: y
             slug: -NDR
         environment:
           - msystem: MINGW32
