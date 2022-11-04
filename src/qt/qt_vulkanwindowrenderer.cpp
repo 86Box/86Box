@@ -795,18 +795,8 @@ VulkanWindowRenderer::VulkanWindowRenderer(QWidget* parent)
     : QVulkanWindow(parent->windowHandle())
 {
     parentWidget = parent;
-    instance.setLayers(QByteArrayList() << "VK_LAYER_KHRONOS_validation");
-    instance.setExtensions(QByteArrayList() << "VK_EXT_debug_report");
     instance.setApiVersion(QVersionNumber(1, 0));
-    if (!instance.create()) {
-        throw std::runtime_error("Could not create Vulkan instance");
-    }
-    uint32_t physicalDevices = 0;
-    instance.functions()->vkEnumeratePhysicalDevices(instance.vkInstance(), &physicalDevices, nullptr);
-    if (physicalDevices == 0) {
-        throw std::runtime_error("No physical devices available.");
-    }
-    qDebug() << instance.layers();
+    instance.create();
     setVulkanInstance(&instance);
     setPhysicalDeviceIndex(0);
     setPreferredColorFormats({VK_FORMAT_B8G8R8A8_UNORM, VK_FORMAT_R8G8B8A8_UNORM, VK_FORMAT_A8B8G8R8_UNORM_PACK32});
