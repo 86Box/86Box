@@ -46,7 +46,9 @@ void HardwareRenderer::initializeGL()
 {
     m_context->makeCurrent(this);
     initializeOpenGLFunctions();
-    m_texture = new QOpenGLTexture(QImage(2048,2048, QImage::Format::Format_RGB32));
+    auto image = QImage(2048, 2048, QImage::Format_RGB32);
+    image.fill(0xff000000);
+    m_texture = new QOpenGLTexture(image);
     m_blt = new QOpenGLTextureBlitter;
     m_blt->setRedBlueSwizzle(true);
     m_blt->create();
@@ -138,6 +140,8 @@ void HardwareRenderer::initializeGL()
     pclog("OpenGL shader language version: %s\n", glGetString(GL_SHADING_LANGUAGE_VERSION));
     glClearColor(0, 0, 0, 1);
     m_texture->setWrapMode(QOpenGLTexture::ClampToEdge);
+    glClear(GL_COLOR_BUFFER_BIT);
+    m_context->swapBuffers(this);
 }
 
 void HardwareRenderer::paintGL() {

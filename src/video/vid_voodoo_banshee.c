@@ -98,6 +98,12 @@ typedef struct banshee_t {
     uint32_t vidScreenSize;
     uint32_t vidSerialParallelPort;
 
+    uint32_t agpReqSize;
+    uint32_t agpHostAddressHigh;
+    uint32_t agpHostAddressLow;
+    uint32_t agpGraphicsAddress;
+    uint32_t agpGraphicsStride;
+
     int overlay_pix_fmt;
 
     uint32_t hwCurPatAddr, hwCurLoc, hwCurC0, hwCurC1;
@@ -161,19 +167,25 @@ enum {
     Video_vidOverlayDvdy               = 0xac,
     Video_vidOverlayDvdyOffset         = 0xe0,
     Video_vidDesktopStartAddr          = 0xe4,
-    Video_vidDesktopOverlayStride      = 0xe8
+    Video_vidDesktopOverlayStride      = 0xe8,
 };
 
 enum {
-    cmdBaseAddr0  = 0x20,
-    cmdBaseSize0  = 0x24,
-    cmdBump0      = 0x28,
-    cmdRdPtrL0    = 0x2c,
-    cmdRdPtrH0    = 0x30,
-    cmdAMin0      = 0x34,
-    cmdAMax0      = 0x3c,
-    cmdFifoDepth0 = 0x44,
-    cmdHoleCnt0   = 0x48
+    cmdBaseAddr0                       = 0x20,
+    cmdBaseSize0                       = 0x24,
+    cmdBump0                           = 0x28,
+    cmdRdPtrL0                         = 0x2c,
+    cmdRdPtrH0                         = 0x30,
+    cmdAMin0                           = 0x34,
+    cmdAMax0                           = 0x3c,
+    cmdFifoDepth0                      = 0x44,
+    cmdHoleCnt0                        = 0x48,
+
+    Agp_agpReqSize                     = 0x00,
+    Agp_agpHostAddressLow              = 0x04,
+    Agp_agpHostAddressHigh             = 0x08,
+    Agp_agpGraphicsAddress             = 0x0C,
+    Agp_agpGraphicsStride              = 0x10,
 };
 
 #define VGAINIT0_EXTENDED_SHIFT_OUT         (1 << 12)
@@ -1123,6 +1135,26 @@ banshee_cmd_read(banshee_t *banshee, uint32_t addr)
     uint32_t  ret    = 0xffffffff;
 
     switch (addr & 0x1fc) {
+        case Agp_agpHostAddressLow:
+            ret = banshee->agpHostAddressLow;
+            break;
+
+        case Agp_agpHostAddressHigh:
+            ret = banshee->agpHostAddressHigh;
+            break;
+
+        case Agp_agpGraphicsAddress:
+            ret = banshee->agpGraphicsAddress;
+            break;
+
+        case Agp_agpGraphicsStride:
+            ret = banshee->agpGraphicsStride;
+            break;
+
+        case Agp_agpReqSize:
+            ret = banshee->agpReqSize;
+            break;
+
         case cmdBaseAddr0:
             ret = voodoo->cmdfifo_base >> 12;
             //                banshee_log("Read cmdfifo_base %08x\n", ret);
@@ -1142,7 +1174,7 @@ banshee_cmd_read(banshee_t *banshee, uint32_t addr)
             break;
 
         default:
-            fatal("Unknown banshee_cmd_read %08x\n", addr);
+            fatal("Unknown banshee_cmd_read 0x%08x (reg 0x%03x)\n", addr, addr & 0x1fc);
     }
 
     return ret;
@@ -1348,6 +1380,26 @@ banshee_cmd_write(banshee_t *banshee, uint32_t addr, uint32_t val)
     voodoo_t *voodoo = banshee->voodoo;
     //        banshee_log("banshee_cmd_write: addr=%03x val=%08x\n", addr & 0x1fc, val);
     switch (addr & 0x1fc) {
+        case Agp_agpHostAddressLow:
+            banshee->agpHostAddressLow  = val;
+            break;
+
+        case Agp_agpHostAddressHigh:
+            banshee->agpHostAddressHigh = val;
+            break;
+
+        case Agp_agpGraphicsAddress:
+            banshee->agpGraphicsAddress = val;
+            break;
+
+        case Agp_agpGraphicsStride:
+            banshee->agpGraphicsStride = val;
+            break;
+
+        case Agp_agpReqSize:
+            banshee->agpReqSize = val;
+            break;
+
         case cmdBaseAddr0:
             voodoo->cmdfifo_base = (val & 0xfff) << 12;
             voodoo->cmdfifo_end  = voodoo->cmdfifo_base + (((voodoo->cmdfifo_size & 0xff) + 1) << 12);
@@ -1382,7 +1434,7 @@ banshee_cmd_write(banshee_t *banshee, uint32_t addr, uint32_t val)
             break;
 
         default:
-            banshee_log("Unknown banshee_cmd_write: addr=%08x val=%08x\n", addr, val);
+            banshee_log("Unknown banshee_cmd_write: addr=%08x val=%08x reg=0x%03x\n", addr, val, addr & 0x1fc);
             break;
     }
 
@@ -2857,7 +2909,8 @@ banshee_init_common(const device_t *info, char *fn, int has_sgram, int type, int
     }
 
     if (!banshee->has_bios)
-        mem_size = info->local; /* fixed size for on-board chips */
+        // mem_size = info->local; /* fixed size for on-board chips */
+        mem_size = device_get_config_int("memory"); /* MS-6168 / Bora Pro can do both 8 and 16 MB. */
     else if (has_sgram) {
         if (banshee->type == TYPE_VELOCITY100)
             mem_size = 8; /* Velocity 100 only supports 8 MB */
@@ -3001,7 +3054,7 @@ v3_2000_agp_init(const device_t *info)
 static void *
 v3_2000_agp_onboard_init(const device_t *info)
 {
-    return banshee_init_common(info, NULL, 0, TYPE_V3_2000, VOODOO_3, 1);
+    return banshee_init_common(info, NULL, 1, TYPE_V3_2000, VOODOO_3, 1);
 }
 static void *
 v3_3000_init(const device_t *info)
@@ -3144,7 +3197,7 @@ const device_t voodoo_3_2000_agp_onboard_8m_device = {
     { .available = NULL },
     .speed_changed = banshee_speed_changed,
     .force_redraw  = banshee_force_redraw,
-    banshee_sdram_config
+    banshee_sgram_config
 };
 
 const device_t voodoo_3_3000_device = {

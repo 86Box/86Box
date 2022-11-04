@@ -75,6 +75,7 @@ public:
         m_context = new QOpenGLContext();
         m_context->setFormat(format());
         m_context->create();
+        update();
     }
     ~HardwareRenderer()
     {
