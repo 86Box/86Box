@@ -76,6 +76,24 @@ msgstr "1.5x(&5)"
 msgid "&2x"
 msgstr "2x(&2)"
 
+msgid "&3x"
+msgstr "3x(&3)"
+
+msgid "&4x"
+msgstr "4x(&4)"
+
+msgid "&5x"
+msgstr "5x(&5)"
+
+msgid "&6x"
+msgstr "6x(&6)"
+
+msgid "&7x"
+msgstr "7x(&7)"
+
+msgid "&8x"
+msgstr "8x(&8)"
+
 msgid "Filter method"
 msgstr "过滤方式"
 

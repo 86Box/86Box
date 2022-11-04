@@ -18,7 +18,6 @@
  *      Copyright 2021-2022 Cacodemon345
  *      Copyright 2021-2022 Teemu Korhonen
  */
-#include "qt_mediamenu.hpp"
 #include "qt_progsettings.hpp"
 #include "qt_machinestatus.hpp"
 
@@ -55,6 +54,7 @@ extern "C" {
 #include "qt_util.hpp"
 #include "qt_deviceconfig.hpp"
 #include "qt_mediahistorymanager.hpp"
+#include "qt_mediamenu.hpp"
 
 std::shared_ptr<MediaMenu> MediaMenu::ptr;
 

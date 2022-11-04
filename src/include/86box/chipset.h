@@ -108,10 +108,12 @@ extern const device_t opti291_device;
 extern const device_t opti493_device;
 extern const device_t opti495_device;
 extern const device_t opti802g_device;
+extern const device_t opti802g_pci_device;
 extern const device_t opti822_device;
 extern const device_t opti895_device;
 
 extern const device_t opti5x7_device;
+extern const device_t opti5x7_pci_device;
 
 /* SiS */
 extern const device_t rabbit_device;

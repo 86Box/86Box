@@ -87,6 +87,19 @@
 #include <86box/hdc.h>
 #include <86box/hdd.h>
 
+#define ST506_XT_TYPE_XEBEC              0
+#define ST506_XT_TYPE_DTC_5150X          1
+#define ST506_XT_TYPE_ST11M              11
+#define ST506_XT_TYPE_ST11R              12
+#define ST506_XT_TYPE_WD1002A_WX1        21
+#define ST506_XT_TYPE_WD1002A_WX1_NOBIOS 22
+#define ST506_XT_TYPE_WD1002A_27X        23
+#define ST506_XT_TYPE_WD1004A_WX1        24
+#define ST506_XT_TYPE_WD1004_27X         25
+#define ST506_XT_TYPE_WD1004A_27X        26
+#define ST506_XT_TYPE_VICTOR_V86P        27
+#define ST506_XT_TYPE_TOSHIBA_T1200      28
+
 #define XEBEC_BIOS_FILE       "roms/hdd/st506/ibm_xebec_62x0822_1985.bin"
 #define DTC_BIOS_FILE         "roms/hdd/st506/dtc_cxd21a.bin"
 #define ST11_BIOS_FILE_OLD    "roms/hdd/st506/st11_bios_vers_1.7.bin"
@@ -394,7 +407,7 @@ get_chs(hdc_t *dev, drive_t *drive)
     /* 6 bits are used for the sector number even on the IBM PC controller. */
     dev->sector = dev->command[2] & 0x3f;
     dev->count  = dev->command[4];
-    if (((dev->type == 11) || (dev->type == 12)) && (dev->command[0] >= 0xf0))
+    if (((dev->type == ST506_XT_TYPE_ST11M) || (dev->type == ST506_XT_TYPE_ST11R)) && (dev->command[0] >= 0xf0))
         dev->cylinder = 0;
     else {
         dev->cylinder = dev->command[3] | ((dev->command[2] & 0xc0) << 2);
@@ -565,7 +578,7 @@ st506_callback(void *priv)
             break;
 
         case CMD_FORMAT_ST11: /* This is really "Format cylinder 0" */
-            if ((dev->type < 11) || (dev->type > 12)) {
+            if ((dev->type < ST506_XT_TYPE_ST11M) || (dev->type > ST506_XT_TYPE_ST11R)) {
                 st506_error(dev, ERR_BAD_COMMAND);
                 st506_complete(dev);
                 break;
@@ -608,7 +621,7 @@ st506_callback(void *priv)
             break;
 
         case CMD_GET_GEOMETRY_ST11: /* "Get geometry" is really "Read cylinder 0" */
-            if ((dev->type < 11) || (dev->type > 12)) {
+            if ((dev->type < ST506_XT_TYPE_ST11M) || (dev->type > ST506_XT_TYPE_ST11R)) {
                 st506_error(dev, ERR_BAD_COMMAND);
                 st506_complete(dev);
                 break;
@@ -700,11 +713,11 @@ st506_callback(void *priv)
             break;
 
         case CMD_SET_GEOMETRY_ST11: /* "Set geometry" is really "Write cylinder 0" */
-            if (dev->type == 1) {
+            if (dev->type == ST506_XT_TYPE_DTC_5150X) {
                 /* DTC sends this... */
                 st506_complete(dev);
                 break;
-            } else if ((dev->type < 11) || (dev->type > 12)) {
+            } else if ((dev->type < ST506_XT_TYPE_ST11M) || (dev->type > ST506_XT_TYPE_ST11R)) {
                 st506_error(dev, ERR_BAD_COMMAND);
                 st506_complete(dev);
                 break;
@@ -821,7 +834,7 @@ st506_callback(void *priv)
                     /* For a 615/4/26 we get 666/2/31 geometry. */
                     st506_xt_log("ST506: drive%i: cyls=%i, heads=%i\n",
                                  dev->drive_sel, drive->cfg_cyl, drive->cfg_hpc);
-                    if ((dev->type >= 23) && (drive->cfg_hpc == 2)) {
+                    if ((dev->type >= ST506_XT_TYPE_VICTOR_V86P) && (drive->cfg_hpc == 2)) {
                         /*
                          * On Victor V86P, there's a disagreement between
                          * the physical geometry, what the controller
@@ -950,7 +963,7 @@ st506_callback(void *priv)
             break;
 
         case CMD_INQUIRY_ST11:
-            if (dev->type == 11 || dev->type == 12)
+            if (dev->type == ST506_XT_TYPE_ST11M || dev->type == ST506_XT_TYPE_ST11R)
                 switch (dev->state) {
                     case STATE_START_COMMAND:
                         st506_xt_log("ST506: INQUIRY (type=%i)\n", dev->type);
@@ -975,7 +988,7 @@ st506_callback(void *priv)
             break;
 
         case CMD_V86P_POWEROFF:
-            if (dev->type >= 23) {
+            if (dev->type >= ST506_XT_TYPE_VICTOR_V86P) {
                 /*
                  * Main BIOS (not the option ROM on disk) issues this.
                  * Not much we can do, since we don't have a physical disk
@@ -1017,10 +1030,10 @@ st506_callback(void *priv)
             break;
 
         case CMD_SET_STEP_RATE_DTC:
-            if (dev->type == 1) {
+            if (dev->type == ST506_XT_TYPE_DTC_5150X) {
                 /* For DTC, we are done. */
                 st506_complete(dev);
-            } else if (dev->type == 11 || dev->type == 12) {
+            } else if (dev->type == ST506_XT_TYPE_ST11M || dev->type == ST506_XT_TYPE_ST11R) {
                 /*
                  * For Seagate ST-11, this is WriteGeometry.
                  *
@@ -1259,8 +1272,8 @@ mem_write(uint32_t addr, uint8_t val, void *priv)
     addr -= dev->bios_addr;
 
     switch (dev->type) {
-        case 11:           /* ST-11M */
-        case 12:           /* ST-11R */
+        case ST506_XT_TYPE_ST11M:           /* ST-11M */
+        case ST506_XT_TYPE_ST11R:           /* ST-11R */
             mask = 0x1fff; /* ST-11 decodes RAM on each 8K block */
             break;
 
@@ -1290,7 +1303,7 @@ mem_read(uint32_t addr, void *priv)
     addr -= dev->bios_addr;
 
     switch (dev->type) {
-        case 0: /* Xebec */
+        case ST506_XT_TYPE_XEBEC: /* Xebec */
             if (addr >= 0x001000) {
 #ifdef ENABLE_ST506_XT_LOG
                 st506_xt_log("ST506: Xebec ROM access(0x%06lx)\n", addr);
@@ -1299,7 +1312,7 @@ mem_read(uint32_t addr, void *priv)
             }
             break;
 
-        case 1: /* DTC */
+        case ST506_XT_TYPE_DTC_5150X: /* DTC */
         default:
             if (addr >= 0x002000) {
 #ifdef ENABLE_ST506_XT_LOG
@@ -1309,8 +1322,8 @@ mem_read(uint32_t addr, void *priv)
             }
             break;
 
-        case 11:           /* ST-11M */
-        case 12:           /* ST-11R */
+        case ST506_XT_TYPE_ST11M:           /* ST-11M */
+        case ST506_XT_TYPE_ST11R:           /* ST-11R */
             mask = 0x1fff; /* ST-11 decodes RAM on each 8K block */
             break;
 
@@ -1468,20 +1481,20 @@ st506_init(const device_t *info)
     dev->nr_err    = ERR_NOT_READY;
 
     switch (dev->type) {
-        case 0: /* Xebec (MFM) */
+        case ST506_XT_TYPE_XEBEC: /* Xebec (MFM) */
             fn = XEBEC_BIOS_FILE;
             break;
 
-        case 1: /* DTC5150 (MFM) */
+        case ST506_XT_TYPE_DTC_5150X: /* DTC5150 (MFM) */
             fn            = DTC_BIOS_FILE;
             dev->switches = 0xff;
             break;
 
-        case 12: /* Seagate ST-11R (RLL) */
+        case ST506_XT_TYPE_ST11R: /* Seagate ST-11R (RLL) */
             dev->spt = RLL_SECTORS;
             /*FALLTHROUGH*/
 
-        case 11: /* Seagate ST-11M (MFM) */
+        case ST506_XT_TYPE_ST11M: /* Seagate ST-11M (MFM) */
             dev->nr_err   = ERR_NOT_AVAILABLE;
             dev->switches = 0x01; /* fixed */
             dev->misc     = device_get_config_int("revision");
@@ -1511,7 +1524,7 @@ st506_init(const device_t *info)
             dev->cyl_off = 1;
             break;
 
-        case 21: /* Western Digital WD1002A-WX1 (MFM) */
+        case ST506_XT_TYPE_WD1002A_WX1: /* Western Digital WD1002A-WX1 (MFM) */
             dev->nr_err = ERR_NOT_AVAILABLE;
             fn          = WD1002A_WX1_BIOS_FILE;
             /* The switches are read in reverse: 0 = closed, 1 = open.
@@ -1524,7 +1537,33 @@ st506_init(const device_t *info)
             dev->bios_addr = device_get_config_hex20("bios_addr");
             break;
 
-        case 22: /* Western Digital WD1002A-27X (RLL) */
+        case ST506_XT_TYPE_WD1002A_WX1_NOBIOS: /* Western Digital WD1002A-WX1 (MFM, No BIOS) */
+            dev->nr_err = ERR_NOT_AVAILABLE;
+            fn          = NULL;
+            /* The switches are read in reverse: 0 = closed, 1 = open.
+               Both open means MFM, 17 sectors per track. */
+            dev->switches = 0x30; /* autobios */
+            dev->base     = device_get_config_hex16("base");
+            dev->irq      = device_get_config_int("irq");
+            if (dev->irq == 2)
+                dev->switches |= 0x40;
+            dev->bios_addr = device_get_config_hex20("bios_addr");
+            break;
+
+        case ST506_XT_TYPE_WD1004A_WX1: /* Western Digital WD1004A-WX1 (MFM) */
+            dev->nr_err = ERR_NOT_AVAILABLE;
+            fn          = WD1004A_WX1_BIOS_FILE;
+            /* The switches are read in reverse: 0 = closed, 1 = open.
+               Both open means MFM, 17 sectors per track. */
+            dev->switches = 0x10; /* autobios */
+            dev->base     = device_get_config_hex16("base");
+            dev->irq      = device_get_config_int("irq");
+            if (dev->irq == 2)
+                dev->switches |= 0x40;
+            dev->bios_addr = device_get_config_hex20("bios_addr");
+            break;
+
+        case ST506_XT_TYPE_WD1002A_27X: /* Western Digital WD1002A-27X (RLL) */
             dev->nr_err = ERR_NOT_AVAILABLE;
             fn          = WD1002A_27X_BIOS_FILE;
             /* The switches are read in reverse: 0 = closed, 1 = open.
@@ -1539,11 +1578,41 @@ st506_init(const device_t *info)
             dev->bios_addr = device_get_config_hex20("bios_addr");
             break;
 
-        case 23: /* Victor V86P (RLL) */
+        case ST506_XT_TYPE_WD1004_27X: /* Western Digital WD1004-27X (RLL) */
+            dev->nr_err = ERR_NOT_AVAILABLE;
+            fn          = WD1004_27X_BIOS_FILE;
+            /* The switches are read in reverse: 0 = closed, 1 = open.
+               Both closed means translate 26 sectors per track to 17,
+               SW6 closed, SW5 open means 26 sectors per track. */
+            dev->switches = device_get_config_int("translate") ? 0x00 : 0x10; /* autobios */
+            dev->spt      = RLL_SECTORS;
+            dev->base     = device_get_config_hex16("base");
+            dev->irq      = device_get_config_int("irq");
+            if (dev->irq == 2)
+                dev->switches |= 0x40;
+            dev->bios_addr = device_get_config_hex20("bios_addr");
+            break;
+
+        case ST506_XT_TYPE_WD1004A_27X: /* Western Digital WD1004A-27X (RLL) */
+            dev->nr_err = ERR_NOT_AVAILABLE;
+            fn          = WD1004A_27X_BIOS_FILE;
+            /* The switches are read in reverse: 0 = closed, 1 = open.
+               Both closed means translate 26 sectors per track to 17,
+               SW6 closed, SW5 open means 26 sectors per track. */
+            dev->switches = device_get_config_int("translate") ? 0x00 : 0x10; /* autobios */
+            dev->spt      = RLL_SECTORS;
+            dev->base     = device_get_config_hex16("base");
+            dev->irq      = device_get_config_int("irq");
+            if (dev->irq == 2)
+                dev->switches |= 0x40;
+            dev->bios_addr = device_get_config_hex20("bios_addr");
+            break;
+
+        case ST506_XT_TYPE_VICTOR_V86P: /* Victor V86P (RLL) */
             fn = VICTOR_V86P_BIOS_FILE;
             break;
 
-        case 24: /* Toshiba T1200 */
+        case ST506_XT_TYPE_TOSHIBA_T1200: /* Toshiba T1200 */
             fn = NULL;
             dev->base     = 0x01f0;
             dev->switches = 0x0c;
@@ -1580,7 +1649,7 @@ st506_init(const device_t *info)
     st506_xt_log("ST506: %i disks loaded.\n", c);
 
     /* For the Xebec, set the switches now. */
-    if (dev->type == 0)
+    if (dev->type == ST506_XT_TYPE_XEBEC)
         set_switches(dev);
 
     /* Initial "active" drive parameters. */
@@ -1807,6 +1876,38 @@ static const device_config_t wd_config[] = {
     { .name = "", .description = "", .type = CONFIG_END }
 };
 
+static const device_config_t wd_nobios_config[] = {
+    {
+        .name = "base",
+        .description = "Address",
+        .type = CONFIG_HEX16,
+        .default_string = "",
+        .default_int = 0x0320,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "320H", .value = 0x0320 },
+            { .description = "324H", .value = 0x0324 },
+            { .description = ""                      }
+        }
+    },
+    {
+        .name = "irq",
+        .description = "IRQ",
+        .type = CONFIG_SELECTION,
+        .default_string = "",
+        .default_int = 5,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "IRQ 2", .value = 2 },
+            { .description = "IRQ 5", .value = 5 },
+            { .description = ""                  }
+        }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+};
+
 static const device_config_t wd_rll_config[] = {
     {
         .name = "bios_addr",
@@ -1984,7 +2085,7 @@ const device_t st506_xt_xebec_device = {
     .name          = "IBM PC Fixed Disk Adapter (MFM)",
     .internal_name = "st506_xt",
     .flags         = DEVICE_ISA,
-    .local         = (HDD_BUS_MFM << 8) | 0,
+    .local         = (HDD_BUS_MFM << 8) | ST506_XT_TYPE_XEBEC,
     .init          = st506_init,
     .close         = st506_close,
     .reset         = NULL,
@@ -1998,7 +2099,7 @@ const device_t st506_xt_dtc5150x_device = {
     .name          = "DTC 5150X MFM Fixed Disk Adapter",
     .internal_name = "st506_xt_dtc5150x",
     .flags         = DEVICE_ISA,
-    .local         = (HDD_BUS_MFM << 8) | 1,
+    .local         = (HDD_BUS_MFM << 8) | ST506_XT_TYPE_DTC_5150X,
     .init          = st506_init,
     .close         = st506_close,
     .reset         = NULL,
@@ -2012,7 +2113,7 @@ const device_t st506_xt_st11_m_device = {
     .name          = "ST-11M MFM Fixed Disk Adapter",
     .internal_name = "st506_xt_st11_m",
     .flags         = DEVICE_ISA,
-    .local         = (HDD_BUS_MFM << 8) | 11,
+    .local         = (HDD_BUS_MFM << 8) | ST506_XT_TYPE_ST11M,
     .init          = st506_init,
     .close         = st506_close,
     .reset         = NULL,
@@ -2026,7 +2127,7 @@ const device_t st506_xt_st11_r_device = {
     .name          = "ST-11R RLL Fixed Disk Adapter",
     .internal_name = "st506_xt_st11_r",
     .flags         = DEVICE_ISA,
-    .local         = (HDD_BUS_MFM << 8) | 12,
+    .local         = (HDD_BUS_MFM << 8) | ST506_XT_TYPE_ST11R,
     .init          = st506_init,
     .close         = st506_close,
     .reset         = NULL,
@@ -2040,7 +2141,7 @@ const device_t st506_xt_wd1002a_wx1_device = {
     .name          = "WD1002A-WX1 MFM Fixed Disk Adapter",
     .internal_name = "st506_xt_wd1002a_wx1",
     .flags         = DEVICE_ISA,
-    .local         = (HDD_BUS_MFM << 8) | 21,
+    .local         = (HDD_BUS_MFM << 8) | ST506_XT_TYPE_WD1002A_WX1,
     .init          = st506_init,
     .close         = st506_close,
     .reset         = NULL,
@@ -2050,11 +2151,25 @@ const device_t st506_xt_wd1002a_wx1_device = {
     .config        = wd_config
 };
 
+const device_t st506_xt_wd1002a_wx1_nobios_device = {
+    .name          = "WD1002A-WX1 MFM Fixed Disk Adapter (No BIOS)",
+    .internal_name = "st506_xt_wd1002a_wx1",
+    .flags         = DEVICE_ISA,
+    .local         = (HDD_BUS_MFM << 8) | ST506_XT_TYPE_WD1002A_WX1_NOBIOS,
+    .init          = st506_init,
+    .close         = st506_close,
+    .reset         = NULL,
+    { .available = wd1002a_wx1_available },
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = wd_nobios_config
+};
+
 const device_t st506_xt_wd1002a_27x_device = {
     .name          = "WD1002A-27X RLL Fixed Disk Adapter",
     .internal_name = "st506_xt_wd1002a_27x",
     .flags         = DEVICE_ISA,
-    .local         = (HDD_BUS_MFM << 8) | 22,
+    .local         = (HDD_BUS_MFM << 8) | ST506_XT_TYPE_WD1002A_27X,
     .init          = st506_init,
     .close         = st506_close,
     .reset         = NULL,
@@ -2068,11 +2183,11 @@ const device_t st506_xt_wd1004a_wx1_device = {
     .name          = "WD1004A-WX1 MFM Fixed Disk Adapter",
     .internal_name = "st506_xt_wd1004a_wx1",
     .flags         = DEVICE_ISA,
-    .local         = (HDD_BUS_MFM << 8) | 21,
+    .local         = (HDD_BUS_MFM << 8) | ST506_XT_TYPE_WD1004A_WX1,
     .init          = st506_init,
     .close         = st506_close,
     .reset         = NULL,
-    { wd1004a_wx1_available },
+    { .available = wd1004a_wx1_available },
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = wd1004a_config
@@ -2082,7 +2197,7 @@ const device_t st506_xt_wd1004_27x_device = {
     .name          = "WD1004-27X RLL Fixed Disk Adapter",
     .internal_name = "st506_xt_wd1004_27x",
     .flags         = DEVICE_ISA,
-    .local         = (HDD_BUS_MFM << 8) | 22,
+    .local         = (HDD_BUS_MFM << 8) | ST506_XT_TYPE_WD1004_27X,
     .init          = st506_init,
     .close         = st506_close,
     .reset         = NULL,
@@ -2096,7 +2211,7 @@ const device_t st506_xt_wd1004a_27x_device = {
     .name          = "WD1004a-27X RLL Fixed Disk Adapter",
     .internal_name = "st506_xt_wd1004a_27x",
     .flags         = DEVICE_ISA,
-    .local         = (HDD_BUS_MFM << 8) | 22,
+    .local         = (HDD_BUS_MFM << 8) | ST506_XT_TYPE_WD1004A_27X,
     .init          = st506_init,
     .close         = st506_close,
     .reset         = NULL,
@@ -2110,7 +2225,7 @@ const device_t st506_xt_victor_v86p_device = {
     .name          = "Victor V86P RLL Fixed Disk Adapter",
     .internal_name = "st506_xt_victor_v86p",
     .flags         = DEVICE_ISA,
-    .local         = (HDD_BUS_MFM << 8) | 23,
+    .local         = (HDD_BUS_MFM << 8) | ST506_XT_TYPE_VICTOR_V86P,
     .init          = st506_init,
     .close         = st506_close,
     .reset         = NULL,
@@ -2124,7 +2239,7 @@ const device_t st506_xt_toshiba_t1200_device = {
     .name          = "Toshiba T1200 RLL Fixed Disk Adapter",
     .internal_name = "st506_xt_toshiba_t1200",
     .flags         = DEVICE_ISA,
-    .local         = (HDD_BUS_MFM << 8) | 24,
+    .local         = (HDD_BUS_MFM << 8) | ST506_XT_TYPE_TOSHIBA_T1200,
     .init          = st506_init,
     .close         = st506_close,
     .reset         = NULL,
