@@ -1362,6 +1362,36 @@ set_screen_size_monitor(int x, int y, int monitor_index)
             monitors[monitor_index].mon_scrnsz_x = (monitors[monitor_index].mon_unscaled_size_x << 1);
             monitors[monitor_index].mon_scrnsz_y = (monitors[monitor_index].mon_unscaled_size_y << 1);
             break;
+
+        case 4: /* 300% */
+            monitors[monitor_index].mon_scrnsz_x = (monitors[monitor_index].mon_unscaled_size_x * 3);
+            monitors[monitor_index].mon_scrnsz_y = (monitors[monitor_index].mon_unscaled_size_y * 3);
+            break;
+
+        case 5: /* 400% */
+            monitors[monitor_index].mon_scrnsz_x = (monitors[monitor_index].mon_unscaled_size_x << 2);
+            monitors[monitor_index].mon_scrnsz_y = (monitors[monitor_index].mon_unscaled_size_y << 2);
+            break;
+
+        case 6: /* 500% */
+            monitors[monitor_index].mon_scrnsz_x = (monitors[monitor_index].mon_unscaled_size_x * 5);
+            monitors[monitor_index].mon_scrnsz_y = (monitors[monitor_index].mon_unscaled_size_y * 5);
+            break;
+
+        case 7: /* 600% */
+            monitors[monitor_index].mon_scrnsz_x = (monitors[monitor_index].mon_unscaled_size_x * 6);
+            monitors[monitor_index].mon_scrnsz_y = (monitors[monitor_index].mon_unscaled_size_y * 6);
+            break;
+
+        case 8: /* 700% */
+            monitors[monitor_index].mon_scrnsz_x = (monitors[monitor_index].mon_unscaled_size_x * 7);
+            monitors[monitor_index].mon_scrnsz_y = (monitors[monitor_index].mon_unscaled_size_y * 7);
+            break;
+
+        case 9: /* 800% */
+            monitors[monitor_index].mon_scrnsz_x = (monitors[monitor_index].mon_unscaled_size_x << 3);
+            monitors[monitor_index].mon_scrnsz_y = (monitors[monitor_index].mon_unscaled_size_y << 3);
+            break;
     }
 
     plat_resize_request(monitors[monitor_index].mon_scrnsz_x, monitors[monitor_index].mon_scrnsz_y, monitor_index);
