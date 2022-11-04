@@ -1710,8 +1710,13 @@ esp_pci_write(int func, int addr, uint8_t val, void *p)
             valxor = (val & 3) ^ esp_pci_regs[addr];
             if (valxor & PCI_COMMAND_IO) {
                 esp_io_remove(dev, dev->PCIBase, 0x80);
-                if ((dev->PCIBase != 0) && (val & PCI_COMMAND_IO))
+                if ((val & PCI_COMMAND_IO) && (dev->PCIBase != 0))
                     esp_io_set(dev, dev->PCIBase, 0x80);
+            }
+            if (dev->has_bios && (valxor & PCI_COMMAND_MEM)) {
+                esp_bios_disable(dev);
+                if ((val & PCI_COMMAND_MEM) && (esp_pci_bar[1].addr & 0x00000001))
+                    esp_bios_set_addr(dev, dev->BIOSBase);
             }
             if (dev->has_bios)
                 esp_pci_regs[addr] = val & 0x47;
@@ -1760,12 +1765,12 @@ esp_pci_write(int func, int addr, uint8_t val, void *p)
             /* Then let's set the PCI regs. */
             esp_pci_bar[1].addr_regs[addr & 3] = val;
             /* Then let's calculate the new I/O base. */
-            esp_pci_bar[1].addr &= 0xfff80001;
-            dev->BIOSBase = esp_pci_bar[1].addr & 0xfff80000;
+            esp_pci_bar[1].addr &= 0xffff0001;
+            dev->BIOSBase = esp_pci_bar[1].addr & 0xffff0000;
             /* Log the new base. */
             // esp_log("ESP PCI: New BIOS base is %08X\n" , dev->BIOSBase);
             /* We're done, so get out of the here. */
-            if (esp_pci_bar[1].addr & 0x00000001)
+            if ((esp_pci_regs[0x04] & PCI_COMMAND_MEM) && (esp_pci_bar[1].addr & 0x00000001))
                 esp_bios_set_addr(dev, dev->BIOSBase);
             return;
 
