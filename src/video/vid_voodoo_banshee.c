@@ -527,7 +527,7 @@ banshee_recalctimings(svga_t *svga)
                 svga->bpp    = 32;
                 break;
             default:
-                fatal("Unknown pixel format %08x\n", banshee->vgaInit0);
+                fatal("Unknown pixel format %08x (vgaInit0=%08x)\n", VIDPROCCFG_DESKTOP_PIX_FORMAT, banshee->vgaInit0);
         }
         if (!(banshee->vidProcCfg & VIDPROCCFG_DESKTOP_TILE) && (banshee->vidProcCfg & VIDPROCCFG_HALF_MODE))
             svga->rowcount = 1;

@@ -1,4 +1,4 @@
-name: MinGW64 Makefile
+name: MSYS2 Makefile
 
 on:
 
@@ -16,7 +16,7 @@ on:
 
 jobs:
   build:
-    name: ${{ matrix.environment.msystem }} Makefile build (DEV_BUILD=${{ matrix.dev-build }}, NEW_DYNAREC=${{ matrix.new-dynarec }})
+    name: MSYS2 Makefile build ${{ matrix.build.name }} ${{ matrix.dynarec.name }} build (${{ matrix.environment.msystem }})
 
     runs-on: windows-latest
 
@@ -27,8 +27,22 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        dev-build: ['y', 'n']
-        new-dynarec: ['y', 'n']
+        build:
+          - name: Debug
+            debug: y
+            dev: n
+            slug: -Debug
+          - name: Dev
+            debug: y
+            dev: y
+            slug: -Dev
+        dynarec:
+          - name: ODR
+            new: n
+            slug: -ODR
+          - name: NDR
+            new: y
+            slug: -NDR
         environment:
           - msystem: MINGW32
             prefix: mingw-w64-i686
@@ -54,5 +68,9 @@ jobs:
           ${{ matrix.environment.prefix }}-rtmidi
     - uses: actions/checkout@v3
     - name: make
-      run: make -fwin/makefile.mingw -j DEV_BUILD=${{ matrix.dev-build }} NEW_DYNAREC=${{ matrix.new-dynarec }} X64=${{ matrix.environment.x64 }} VNC=n
+      run: make -fwin/makefile.mingw -j DEV_BUILD=${{ matrix.build.dev }} DEBUG=${{ matrix.build.debug }} NEW_DYNAREC=${{ matrix.dynarec.new }} X64=${{ matrix.environment.x64 }} VNC=n
       working-directory: ./src
+    - uses: actions/upload-artifact@v3
+      with:
+        name: '86Box${{ matrix.dynarec.slug }}${{ matrix.build.slug }}-Windows-${{ matrix.environment.msystem }}-gha${{ github.run_number }}'
+        path: src/86Box.exe
