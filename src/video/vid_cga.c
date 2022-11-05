@@ -540,7 +540,7 @@ cga_pravetz_init(const device_t *info)
 {
     cga_t *cga = cga_standalone_init(info);
 
-    loadfont("roms/video/cga/CGA - PRAVETZ.BIN", 10);
+    loadfont("roms/video/cga/PRAVETZ-VDC2.BIN", 10);
 
     io_removehandler(0x03dd, 0x0001, cga_in, NULL, NULL, cga_out, NULL, NULL, cga);
     io_sethandler(0x03dd, 0x0001, cga_pravetz_in, NULL, NULL, cga_pravetz_out, NULL, NULL, cga);
