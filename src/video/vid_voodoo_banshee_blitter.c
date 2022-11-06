@@ -426,7 +426,7 @@ void DECODE_YUYV422(uint32_t *buf, uint8_t *src)
             g = CLAMP(g);
             b = y1 + dB;
             b = CLAMP(b);
-            buf[wp++] = r | (g << 8) | (b << 16);
+            buf[wp++] = b | (g << 8) | (r << 16);
 
             r = y2 + dR;
             r = CLAMP(r);
@@ -434,7 +434,7 @@ void DECODE_YUYV422(uint32_t *buf, uint8_t *src)
             g = CLAMP(g);
             b = y2 + dB;
             b = CLAMP(b);
-            buf[wp++] = r | (g << 8) | (b << 16);
+            buf[wp++] = b | (g << 8) | (r << 16);
         }
     } while (0);
 }
