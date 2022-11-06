@@ -109,7 +109,7 @@ bansheeblt_log(const char *fmt, ...)
     }
 }
 #else
-#    define banshee_log(fmt, ...)
+#    define bansheeblt_log(fmt, ...)
 #endif
 
 static int
