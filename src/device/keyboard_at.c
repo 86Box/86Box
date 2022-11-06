@@ -1120,11 +1120,20 @@ write_output(atkbd_t *dev, uint8_t val)
         if (!(val & 0x01)) {  /* Pin 0 selected. */
             /* Pin 0 selected. */
             kbd_log("write_output(): Pulse reset!\n");
-            softresetx86(); /*Pulse reset!*/
-            cpu_set_edx();
-            flushmmucache();
-            if (kbc_ven == KBC_VEN_ALI)
-                smbase = 0x00030000;
+            if (machines[machine].flags & MACHINE_COREBOOT) {
+                /* The SeaBIOS hard reset code attempts a KBC reset if ACPI RESET_REG
+                   is not available. However, the KBC reset is normally a soft reset, so
+                   SeaBIOS gets caught in a soft reset loop as it tries to hard reset the
+                   machine. Hack around this by making the KBC reset a hard reset only on
+                   coreboot machines. */
+                pc_reset_hard();
+            } else {
+                softresetx86(); /*Pulse reset!*/
+                cpu_set_edx();
+                flushmmucache();
+                if (kbc_ven == KBC_VEN_ALI)
+                    smbase = 0x00030000;
+            }
         }
     }
 

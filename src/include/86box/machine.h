@@ -107,6 +107,7 @@
 #define MACHINE_SCSI_SEC 0x02000000 /* sys has int sec SCSI */
 #define MACHINE_USB_PRI  0x04000000 /* sys has int pri USB */
 #define MACHINE_USB_SEC  0x08000000 /* sys has int sec USB */
+#define MACHINE_COREBOOT 0x10000000 /* sys has coreboot BIOS */
 /* Combined flags. */
 #define MACHINE_IDE        (MACHINE_IDE_PRI)                   /* sys has int single IDE/ATAPI - mark as pri IDE/ATAPI */
 #define MACHINE_IDE_DUAL   (MACHINE_IDE_PRI | MACHINE_IDE_SEC) /* sys has int dual IDE/ATAPI - mark as both pri and sec IDE/ATAPI */
