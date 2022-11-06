@@ -58,6 +58,17 @@ static int opPF2ID(uint32_t fetchdat)
 
         return 0;
 }
+static int opPF2IW(uint32_t fetchdat)
+{
+        MMX_REG src;
+
+        MMX_GETSRC();
+
+        cpu_state.MM[cpu_reg].sw[0] = (int32_t)src.f[0];
+        cpu_state.MM[cpu_reg].sw[1] = (int32_t)src.f[1];
+
+        return 0;
+}
 static int opPFACC(uint32_t fetchdat)
 {
         MMX_REG src;
@@ -68,6 +79,47 @@ static int opPFACC(uint32_t fetchdat)
         tempf = cpu_state.MM[cpu_reg].f[0] + cpu_state.MM[cpu_reg].f[1];
         cpu_state.MM[cpu_reg].f[1] = src.f[0] + src.f[1];
         cpu_state.MM[cpu_reg].f[0] = tempf;
+
+        return 0;
+}
+static int opPFNACC(uint32_t fetchdat)
+{
+        MMX_REG src;
+        float tempf;
+
+        MMX_GETSRC();
+
+        tempf = cpu_state.MM[cpu_reg].f[0] - cpu_state.MM[cpu_reg].f[1];
+        cpu_state.MM[cpu_reg].f[1] = src.f[0] - src.f[1];
+        cpu_state.MM[cpu_reg].f[0] = tempf;
+
+        return 0;
+}
+static int opPFPNACC(uint32_t fetchdat)
+{
+        MMX_REG src;
+        float tempf;
+
+        MMX_GETSRC();
+
+        tempf = cpu_state.MM[cpu_reg].f[0] - cpu_state.MM[cpu_reg].f[1];
+        cpu_state.MM[cpu_reg].f[1] = src.f[0] + src.f[1];
+        cpu_state.MM[cpu_reg].f[0] = tempf;
+
+        return 0;
+}
+static int opPSWAPD(uint32_t fetchdat)
+{
+        MMX_REG src;
+        float tempf, tempf2;
+
+        MMX_GETSRC();
+
+        /* We have to do this in case source and destination overlap. */
+        tempf = src.f[0];
+        tempf2 = src.f[1];
+        cpu_state.MM[cpu_reg].f[1] = tempf;
+        cpu_state.MM[cpu_reg].f[0] = tempf2;
 
         return 0;
 }
@@ -268,6 +320,17 @@ static int opPI2FD(uint32_t fetchdat)
 
         return 0;
 }
+static int opPI2FW(uint32_t fetchdat)
+{
+        MMX_REG src;
+
+        MMX_GETSRC();
+
+        cpu_state.MM[cpu_reg].f[0] = (float)src.sw[0];
+        cpu_state.MM[cpu_reg].f[1] = (float)src.sw[1];
+
+        return 0;
+}
 static int opPMULHRW(uint32_t fetchdat)
 {
         if (cpu_mod == 3)
@@ -311,6 +374,30 @@ const OpFn OP_TABLE(3DNOW)[256] =
 /*90*/  opPFCMPGE,      ILLEGAL,        ILLEGAL,        ILLEGAL,        opPFMIN,        ILLEGAL,        opPFRCP,        opPFRSQRT,      ILLEGAL,        ILLEGAL,        opPFSUB,        ILLEGAL,        ILLEGAL,        ILLEGAL,        opPFADD,        ILLEGAL,
 /*a0*/  opPFCMPGT,      ILLEGAL,        ILLEGAL,        ILLEGAL,        opPFMAX,        ILLEGAL,        opPFRCPIT1,     opPFRSQIT1,     ILLEGAL,        ILLEGAL,        opPFSUBR,       ILLEGAL,        ILLEGAL,        ILLEGAL,        opPFACC,        ILLEGAL,
 /*b0*/  opPFCMPEQ,      ILLEGAL,        ILLEGAL,        ILLEGAL,        opPFMUL,        ILLEGAL,        opPFRCPIT2,     opPMULHRW,      ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        opPAVGUSB,
+
+/*c0*/  ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,
+/*d0*/  ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,
+/*e0*/  ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,
+/*f0*/  ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,
+};
+
+const OpFn OP_TABLE(3DNOWE)[256] =
+{
+/*      00              01              02              03              04              05              06              07              08              09              0a              0b              0c              0d              0e              0f*/
+/*00*/  ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        opPI2FW,        opPI2FD,        ILLEGAL,        ILLEGAL,
+/*10*/  ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        opPF2IW,        opPF2ID,        ILLEGAL,        ILLEGAL,
+/*20*/  ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,
+/*30*/  ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,
+
+/*40*/  ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,
+/*50*/  ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,
+/*60*/  ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,
+/*70*/  ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,
+
+/*80*/  ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        opPFNACC,       ILLEGAL,        ILLEGAL,        ILLEGAL,        opPFPNACC,      ILLEGAL,
+/*90*/  opPFCMPGE,      ILLEGAL,        ILLEGAL,        ILLEGAL,        opPFMIN,        ILLEGAL,        opPFRCP,        opPFRSQRT,      ILLEGAL,        ILLEGAL,        opPFSUB,        ILLEGAL,        ILLEGAL,        ILLEGAL,        opPFADD,        ILLEGAL,
+/*a0*/  opPFCMPGT,      ILLEGAL,        ILLEGAL,        ILLEGAL,        opPFMAX,        ILLEGAL,        opPFRCPIT1,     opPFRSQIT1,     ILLEGAL,        ILLEGAL,        opPFSUBR,       ILLEGAL,        ILLEGAL,        ILLEGAL,        opPFACC,        ILLEGAL,
+/*b0*/  opPFCMPEQ,      ILLEGAL,        ILLEGAL,        ILLEGAL,        opPFMUL,        ILLEGAL,        opPFRCPIT2,     opPMULHRW,      ILLEGAL,        ILLEGAL,        ILLEGAL,        opPSWAPD,       ILLEGAL,        ILLEGAL,        ILLEGAL,        opPAVGUSB,
 
 /*c0*/  ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,
 /*d0*/  ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,
