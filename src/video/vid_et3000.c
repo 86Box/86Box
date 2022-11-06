@@ -233,6 +233,8 @@ et3000_init(const device_t *info)
     dev->svga.bpp = 8;
     dev->svga.miscout = 1;
 
+    dev->svga.packed_chain4 = 1;
+
     return(dev);
 }
 
