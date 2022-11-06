@@ -713,7 +713,7 @@ load_network(void)
     ini_section_t cat = ini_find_section(config, "Network");
     char         *p;
     char          temp[512];
-    int           c = 0, min = 0;
+    uint16_t      c = 0, min = 0;
 
     /* Handle legacy configuration which supported only one NIC */
     p = ini_section_get_string(cat, "net_card", NULL);

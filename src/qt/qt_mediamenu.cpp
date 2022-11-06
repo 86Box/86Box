@@ -511,6 +511,7 @@ void MediaMenu::updateImageHistory(int index, int slot, ui::MediaType type) {
     QString menu_item_name = fi.fileName().isEmpty() ? tr("previous image").toUtf8().constData() : fi.fileName().toUtf8().constData();
     imageHistoryUpdatePos->setText(QString::asprintf(tr("%s").toUtf8().constData(), menu_item_name.toUtf8().constData()));
     imageHistoryUpdatePos->setVisible(!fi.fileName().isEmpty());
+    imageHistoryUpdatePos->setVisible(fi.exists());
 }
 
 void MediaMenu::clearImageHistory() {
