@@ -1,25 +1,25 @@
 /*
- * 86Box     A hypervisor and IBM PC system emulator that specializes in
- *           running old operating systems and software designed for IBM
- *           PC systems and compatibles from 1981 through fairly recent
- *           system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *           This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *           Handling of the emulated machines.
+ *          Handling of the emulated machines.
  *
- * NOTES:    OpenAT wip for 286-class machine with open BIOS.
- *           PS2_M80-486 wip, pending receipt of TRM's for machine.
+ * NOTES:   OpenAT wip for 286-class machine with open BIOS.
+ *          PS2_M80-486 wip, pending receipt of TRM's for machine.
  *
  *
  *
- * Authors:  Sarah Walker, <http://pcem-emulator.co.uk/>
- *           Miran Grca, <mgrca8@gmail.com>
- *           Fred N. van Kempen, <decwiz@yahoo.com>
+ * Authors: Sarah Walker, <http://pcem-emulator.co.uk/>
+ *          Miran Grca, <mgrca8@gmail.com>
+ *          Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *           Copyright 2008-2020 Sarah Walker.
- *           Copyright 2016-2020 Miran Grca.
- *           Copyright 2017-2020 Fred N. van Kempen.
+ *          Copyright 2008-2020 Sarah Walker.
+ *          Copyright 2016-2020 Miran Grca.
+ *          Copyright 2017-2020 Fred N. van Kempen.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -198,7 +198,6 @@ const machine_filter_t machine_chipsets[] = {
      from the technical references of AMI MegaKey and earlier, is
      Write Input Port, same as on AMIKey-3.
 */
-
 
 const machine_t machines[] = {
   // clang-format off
@@ -2065,7 +2064,7 @@ const machine_t machines[] = {
             .max_multi = 0
         },
         .bus_flags = MACHINE_PC,
-        .flags = MACHINE_VIDEO | MACHINE_MOUSE,
+        .flags = MACHINE_VIDEO | MACHINE_MOUSE | MACHINE_MFM,
         .ram = {
             .min = 128,
             .max = 640,
@@ -11365,7 +11364,7 @@ const machine_t machines[] = {
         .flags = MACHINE_IDE_DUAL,
         .ram = {
             .min = 16384,
-            .max = 2080768,
+            .max = 2097152,
             .step = 16384
         },
         .nvrmask = 511,
