@@ -518,7 +518,9 @@ esp_dma_enable(esp_t *dev, int level)
         esp_log("ESP DMA Enabled\n");
         dev->dma_enabled = 1;
         dev->dma_86c01.status |= 0x02;
-        if ((dev->rregs[ESP_CMD] & CMD_CMD) != CMD_TI) {
+        timer_stop(&dev->timer);
+        if (((dev->rregs[ESP_CMD] & CMD_CMD) != CMD_TI) &&
+            ((dev->rregs[ESP_CMD] & CMD_CMD) != CMD_PAD)) {
             timer_on_auto(&dev->timer, 40.0);
         } else {
             esp_log("Period = %lf\n", dev->period);
@@ -924,6 +926,7 @@ esp_write_response(esp_t *dev)
 
     buf[0] = dev->status;
     buf[1] = 0;
+    esp_log("esp_write_response(): %02X %02X\n", buf[0], buf[1]);
 
     if (dev->dma) {
         if (dev->mca) {
@@ -953,9 +956,12 @@ esp_callback(void *p)
 {
     esp_t *dev = (esp_t *) p;
 
-    if (dev->dma_enabled || dev->do_cmd) {
+    if (dev->dma_enabled || dev->do_cmd || ((dev->rregs[ESP_CMD] & CMD_CMD) == CMD_PAD)) {
         if ((dev->rregs[ESP_CMD] & CMD_CMD) == CMD_TI) {
             esp_log("ESP SCSI Handle TI Callback\n");
+            handle_ti(dev);
+        } else if ((dev->rregs[ESP_CMD] & CMD_CMD) == CMD_PAD) {
+            esp_log("ESP SCSI Handle PAD Callback\n");
             handle_ti(dev);
         }
     }
@@ -1084,6 +1090,7 @@ esp_reg_write(esp_t *dev, uint32_t saddr, uint32_t val)
                     }
                     break;
                 case CMD_TI:
+                    esp_log("val = %02X\n", val);
                     break;
                 case CMD_SEL:
                     handle_s_without_atn(dev);
@@ -1107,9 +1114,9 @@ esp_reg_write(esp_t *dev, uint32_t saddr, uint32_t val)
                     esp_raise_irq(dev);
                     break;
                 case CMD_PAD:
-                    dev->rregs[ESP_RSTAT] = STAT_TC;
-                    dev->rregs[ESP_RINTR] |= INTR_FC;
-                    dev->rregs[ESP_RSEQ] = 0;
+                    esp_log("val = %02X\n", val);
+                    timer_stop(&dev->timer);
+                    timer_on_auto(&dev->timer, dev->period);
                     esp_log("ESP Transfer Pad\n");
                     break;
                 case CMD_SATN:
@@ -1173,6 +1180,9 @@ esp_pci_dma_memory_rw(esp_t *dev, uint8_t *buf, uint32_t len, int dir)
     } else {
         dma_bm_read(dev->dma_regs[DMA_SPA], buf, len, 4);
     }
+    esp_log("DMA: Address = %08X, Length = %08X (%02X %02X %02X %02X -> %02X %02X %02X %02X)\n", dev->dma_regs[DMA_SPA], len,
+            ram[dev->dma_regs[DMA_SPA]], ram[dev->dma_regs[DMA_SPA] + 1], ram[dev->dma_regs[DMA_SPA] + 2], ram[dev->dma_regs[DMA_SPA] + 3],
+            buf[0], buf[1], buf[2], buf[3]);
 
     /* update status registers */
     dev->dma_regs[DMA_WBC] -= len;
@@ -1215,6 +1225,7 @@ esp_pci_dma_write(esp_t *dev, uint16_t saddr, uint32_t val)
             switch (val & DMA_CMD_MASK) {
                 case 0: /*IDLE*/
                     esp_dma_enable(dev, 0);
+                    esp_log("PCI DMA disable\n");
                     break;
                 case 1: /*BLAST*/
                     break;
@@ -1227,6 +1238,7 @@ esp_pci_dma_write(esp_t *dev, uint16_t saddr, uint32_t val)
                     dev->dma_regs[DMA_WMAC] = dev->dma_regs[DMA_SMDLA];
                     dev->dma_regs[DMA_STAT] &= ~(DMA_STAT_BCMBLT | DMA_STAT_SCSIINT | DMA_STAT_DONE | DMA_STAT_ABORT | DMA_STAT_ERROR | DMA_STAT_PWDN);
                     esp_dma_enable(dev, 1);
+                    esp_log("PCI DMA enable\n");
                     break;
                 default: /* can't happen */
                     abort();
