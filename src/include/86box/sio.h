@@ -1,15 +1,16 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Definitions for the Super I/O chips.
+ *          Definitions for the Super I/O chips.
  *
- * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
- *		Copyright 2017-2020 Fred N. van Kempen.
+ * Authors: Fred N. van Kempen, <decwiz@yahoo.com>
+ *
+ *          Copyright 2017-2020 Fred N. van Kempen.
  */
 
 #ifndef EMU_SIO_H
