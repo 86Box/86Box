@@ -399,7 +399,7 @@ banshee_do_rectfill(voodoo_t *voodoo)
     end_command(voodoo);
 }
 
-void __attribute__((always_inline)) DECODE_YUYV422(uint32_t *buf, uint8_t *src)
+void DECODE_YUYV422(uint32_t *buf, uint8_t *src)
 {
     do {
         int c;
@@ -421,19 +421,19 @@ void __attribute__((always_inline)) DECODE_YUYV422(uint32_t *buf, uint8_t *src)
             dB = (453 * Cb) >> 8;
 
             r = y1 + dR;
-            CLAMP(r);
+            r = CLAMP(r);
             g = y1 - dG;
-            CLAMP(g);
+            g = CLAMP(g);
             b = y1 + dB;
-            CLAMP(b);
+            b = CLAMP(b);
             buf[wp++] = r | (g << 8) | (b << 16);
 
             r = y2 + dR;
-            CLAMP(r);
+            r = CLAMP(r);
             g = y2 - dG;
-            CLAMP(g);
+            g = CLAMP(g);
             b = y2 + dB;
-            CLAMP(b);
+            b = CLAMP(b);
             buf[wp++] = r | (g << 8) | (b << 16);
         }
     } while (0);
