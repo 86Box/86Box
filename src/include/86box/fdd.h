@@ -42,6 +42,9 @@ extern int  fdd_can_read_medium(int drive);
 extern int  fdd_doublestep_40(int drive);
 extern int  fdd_is_525(int drive);
 extern int  fdd_is_dd(int drive);
+#if 0
+extern int  fdd_is_hd(int drive);
+#endif
 extern int  fdd_is_ed(int drive);
 extern int  fdd_is_double_sided(int drive);
 extern void fdd_set_head(int drive, int head);
