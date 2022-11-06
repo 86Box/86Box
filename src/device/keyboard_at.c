@@ -128,6 +128,7 @@
 #define KBC_VEN_ACER 0x50
 /* AMI KF/KH/AMIKey/AMIKey-2 */
 #define KBC_VEN_AMI 0xf0
+#define KBC_VEN_ALI 0xf4
 /* Standard AMI commands, differs in input port bits */
 #define KBC_VEN_INTEL_AMI 0xf8
 #define KBC_VEN_MASK      0xf8
@@ -1186,10 +1187,21 @@ write_output(atkbd_t *dev, uint8_t val)
     if ((dev->p2 ^ val) & 0x01) { /*Reset*/
         if (!(val & 0x01)) {      /* Pin 0 selected. */
             /* Pin 0 selected. */
-            kbd_log("write_output(): Pulse reset!\n");
-            softresetx86(); /*Pulse reset!*/
-            cpu_set_edx();
-            flushmmucache();
+            if (machines[machine].flags & MACHINE_COREBOOT) {
+                /* The SeaBIOS hard reset code attempts a KBC reset if ACPI RESET_REG
+                   is not available. However, the KBC reset is normally a soft reset, so
+                   SeaBIOS gets caught in a soft reset loop as it tries to hard reset the
+                   machine. Hack around this by making the KBC reset a hard reset only on
+                   coreboot machines. */
+                pc_reset_hard();
+            } else {
+                kbd_log("write_output(): Pulse reset!\n");
+                softresetx86(); /*Pulse reset!*/
+                cpu_set_edx();
+                flushmmucache();
+                if (kbc_ven == KBC_VEN_ALI)
+                    smbase = 0x00030000;
+            }
         }
     }
 
@@ -2420,15 +2432,27 @@ write64_ami(void *priv, uint8_t val)
                     * Never returned by an actual keyboard controller, or at least has not been seen returned by
                       one thus far.
              */
-            if ((dev->flags & KBC_TYPE_MASK) >= KBC_TYPE_PS2_NOREF) {
+            if (dev->flags & KBC_FLAG_PS2) {
                 if (kbc_ven == KBC_VEN_ALI)
                     kbc_transmit(dev, 'F');
                 else if ((dev->flags & KBC_VEN_MASK) == KBC_VEN_INTEL_AMI)
                     kbc_transmit(dev, '5');
+                else if (is_pentium)
+                    kbc_transmit(dev, 'R');
+                else if (is486)
+                    kbc_transmit(dev, 'Z');
                 else
                     kbc_transmit(dev, 'H');
-            } else
-                kbc_transmit(dev, 'F');
+            } else {
+                if (is_pentium)
+                    kbc_transmit(dev, 'P');
+                else if (is486)
+                    kbc_transmit(dev, 'F');
+                else if (is386)
+                    kbc_transmit(dev, 'D');
+                else
+                    kbc_transmit(dev, '8');
+            }
             return 0;
 
         case 0xa2: /* clear keyboard controller lines P22/P23 */
@@ -2468,7 +2492,7 @@ write64_ami(void *priv, uint8_t val)
         case 0xa6: /* read clock */
             if (!(dev->flags & KBC_FLAG_PS2)) {
                 kbd_log("ATkbc: AMI - read clock\n");
-                kbc_transmit(dev, (dev->ami_stat & 1) ? 0xff : 0x00, 0, 0x00);
+                kbc_transmit(dev, (dev->ami_stat & 1) ? 0xff : 0x00);
                 return 0;
             }
             break;
@@ -2492,14 +2516,18 @@ write64_ami(void *priv, uint8_t val)
         case 0xa9: /* read cache */
             if (!(dev->flags & KBC_FLAG_PS2)) {
                 kbd_log("ATkbc: AMI - read cache\n");
-                kbc_transmit(dev, (dev->ami_stat & 2) ? 0xff : 0x00, 0, 0x00);
+                kbc_transmit(dev, (dev->ami_stat & 2) ? 0xff : 0x00);
                 return 0;
             }
             break;
 
         case 0xaf: /* set extended controller RAM */
             kbd_log("ATkbc: set extended controller RAM\n");
-            dev->kbc_in = 1;
+            if (kbc_ven == KBC_VEN_ALI) {
+                kbd_log("ATkbc: Award/ALi/VIA keyboard controller revision\n");
+                kbc_transmit(dev, 0x43);
+            } else
+                dev->kbc_in = 1;
             return 0;
 
         case 0xb0 ... 0xb3:
@@ -3146,8 +3174,13 @@ kbd_init(const device_t *info)
             dev->write64_ven    = write64_olivetti;
             break;
 
+        case KBC_VEN_SAMSUNG:
+            //		dev->write60_ven = write60_samsung;
+            //		dev->write64_ven = write64_samsung;
+            // break;
         case KBC_VEN_AMI:
         case KBC_VEN_INTEL_AMI:
+        case KBC_VEN_ALI:
             dev->write60_ven = write60_ami;
             dev->write64_ven = write64_ami;
             break;
@@ -3159,11 +3192,6 @@ kbd_init(const device_t *info)
         case KBC_VEN_QUADTEL:
             dev->write60_ven = write60_quadtel;
             dev->write64_ven = write64_quadtel;
-            break;
-
-        case KBC_VEN_SAMSUNG:
-            //		dev->write60_ven = write60_samsung;
-            //		dev->write64_ven = write64_samsung;
             break;
 
         case KBC_VEN_TOSHIBA:
@@ -3423,7 +3451,7 @@ const device_t keyboard_ps2_ali_pci_device = {
     .name          = "PS/2 Keyboard (ALi M5123/M1543C)",
     .internal_name = "keyboard_ps2_ali_pci",
     .flags         = DEVICE_PCI,
-    .local         = KBC_TYPE_PS2_1 | KBC_VEN_AMI,
+    .local         = KBC_TYPE_PS2_1 | KBC_VEN_ALI,
     .init          = kbd_init,
     .close         = kbd_close,
     .reset         = kbd_reset,
