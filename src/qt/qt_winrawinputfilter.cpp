@@ -174,7 +174,7 @@ void WindowsRawInputFilter::keyboard_handle(PRAWINPUT raw)
     RAWKEYBOARD rawKB = raw->data.keyboard;
     scancode = rawKB.MakeCode;
 
-    if (kbd_req_capture && !mouse_capture && !video_fullscreen)
+    if (kbd_req_capture && !mouse_capture)
         return;
 
     /* If it's not a scan code that starts with 0xE1 */

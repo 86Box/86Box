@@ -59,7 +59,94 @@ voodoo_texture_log(const char *fmt, ...)
 #endif
 
 void
-voodoo_recalc_tex(voodoo_t *voodoo, int tmu)
+voodoo_recalc_tex12(voodoo_t *voodoo, int tmu)
+{
+    int      aspect = (voodoo->params.tLOD[tmu] >> 21) & 3;
+    int      width = 256, height = 256;
+    int      shift = 8;
+    int      lod;
+    uint32_t base    = voodoo->params.texBaseAddr[tmu];
+    uint32_t offset  = 0;
+    int      tex_lod = 0;
+
+    if (voodoo->params.tLOD[tmu] & LOD_S_IS_WIDER)
+        height >>= aspect;
+    else {
+        width >>= aspect;
+        shift -= aspect;
+    }
+
+    if ((voodoo->params.tLOD[tmu] & LOD_SPLIT) && (voodoo->params.tLOD[tmu] & LOD_ODD)) {
+        width >>= 1;
+        height >>= 1;
+        shift--;
+        tex_lod++;
+        if (voodoo->params.tLOD[tmu] & LOD_TMULTIBASEADDR)
+            base = voodoo->params.texBaseAddr1[tmu];
+    }
+
+    for (lod = 0; lod <= LOD_MAX + 1; lod++) {
+        if (!width)
+            width = 1;
+        if (!height)
+            height = 1;
+        if (shift < 0)
+            shift = 0;
+        voodoo->params.tex_base[tmu][lod] = base + offset;
+        if (voodoo->params.tformat[tmu] & 8)
+            voodoo->params.tex_end[tmu][lod] = base + offset + (width * height * 2);
+        else
+            voodoo->params.tex_end[tmu][lod] = base + offset + (width * height);
+        voodoo->params.tex_w_mask[tmu][lod]  = width - 1;
+        voodoo->params.tex_w_nmask[tmu][lod] = ~(width - 1);
+        voodoo->params.tex_h_mask[tmu][lod]  = height - 1;
+        voodoo->params.tex_shift[tmu][lod]   = shift;
+        voodoo->params.tex_lod[tmu][lod]     = tex_lod;
+
+        if (!(voodoo->params.tLOD[tmu] & LOD_SPLIT) || ((lod & 1) && (voodoo->params.tLOD[tmu] & LOD_ODD)) || (!(lod & 1) && !(voodoo->params.tLOD[tmu] & LOD_ODD))) {
+            if (!(voodoo->params.tLOD[tmu] & LOD_ODD) || lod != 0) {
+                if (voodoo->params.tformat[tmu] & 8)
+                    offset += width * height * 2;
+                else
+                    offset += width * height;
+
+                if (voodoo->params.tLOD[tmu] & LOD_SPLIT) {
+                    width >>= 2;
+                    height >>= 2;
+                    shift -= 2;
+                    tex_lod += 2;
+                } else {
+                    width >>= 1;
+                    height >>= 1;
+                    shift--;
+                    tex_lod++;
+                }
+
+                if (voodoo->params.tLOD[tmu] & LOD_TMULTIBASEADDR) {
+                    switch (tex_lod) {
+                        case 0:
+                            base = voodoo->params.texBaseAddr[tmu];
+                            break;
+                        case 1:
+                            base = voodoo->params.texBaseAddr1[tmu];
+                            break;
+                        case 2:
+                            base = voodoo->params.texBaseAddr2[tmu];
+                            break;
+                        default:
+                            base = voodoo->params.texBaseAddr38[tmu];
+                            break;
+                    }
+                }
+            }
+        }
+    }
+
+    voodoo->params.tex_width[tmu] = width;
+}
+
+void
+voodoo_recalc_tex3(voodoo_t *voodoo, int tmu)
 {
     int      aspect = (voodoo->params.tLOD[tmu] >> 21) & 3;
     int      width = 256, height = 256;

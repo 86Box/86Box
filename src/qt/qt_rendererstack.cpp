@@ -416,6 +416,7 @@ RendererStack::createRenderer(Renderer renderer)
     current->setFocusPolicy(Qt::NoFocus);
     current->setFocusProxy(this);
     current->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+    current->setStyleSheet("background-color: black");
     addWidget(current.get());
 
     this->setStyleSheet("background-color: black");

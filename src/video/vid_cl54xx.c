@@ -670,7 +670,8 @@ gd54xx_out(uint16_t addr, uint8_t val, void *p)
             if ((svga->seqaddr == 2) && !gd54xx->unlocked) {
                 o = svga->seqregs[svga->seqaddr & 0x1f];
                 svga_out(addr, val, svga);
-                svga->seqregs[svga->seqaddr & 0x1f] = (o & 0xf0) | (val & 0x0f);
+                if (svga->gdcreg[0xb] & 0x04)
+                    svga->seqregs[svga->seqaddr & 0x1f] = (o & 0xf0) | (val & 0x0f);
                 return;
             } else if ((svga->seqaddr > 6) && !gd54xx->unlocked)
                 return;
@@ -878,10 +879,6 @@ gd54xx_out(uint16_t addr, uint8_t val, void *p)
                     case 0x09:
                     case 0x0a:
                     case 0x0b:
-                        if (svga->gdcreg[0xb] & 0x04)
-                            svga->writemode = svga->gdcreg[5] & 7;
-                        else
-                            svga->writemode = svga->gdcreg[5] & 3;
                         svga->adv_flags = 0;
                         if (svga->gdcreg[0xb] & 0x01)
                             svga->adv_flags = FLAG_EXTRA_BANKS;
@@ -893,6 +890,18 @@ gd54xx_out(uint16_t addr, uint8_t val, void *p)
                             svga->adv_flags |= FLAG_LATCH8;
                         if (svga->gdcreg[0xb] & 0x10)
                             svga->adv_flags |= FLAG_ADDR_BY16;
+                        if (svga->gdcreg[0xb] & 0x04)
+                            svga->writemode = svga->gdcreg[5] & 7;
+                        else {
+                            svga->gdcreg[5] &= ~0x04;
+                            svga->writemode = svga->gdcreg[5] & 3;
+                            svga->adv_flags = 0;
+                            svga->gdcreg[0] &= 0x0f;
+                            gd543x_mmio_write(0xb8000, svga->gdcreg[0], gd54xx);
+                            svga->gdcreg[1] &= 0x0f;
+                            gd543x_mmio_write(0xb8004, svga->gdcreg[1], gd54xx);
+                            svga->seqregs[2] &= 0x0f;
+                        }
                         gd54xx_recalc_banking(gd54xx);
                         break;
 

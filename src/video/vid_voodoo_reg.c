@@ -73,6 +73,7 @@ void
 voodoo_reg_writel(uint32_t addr, uint32_t val, void *p)
 {
     voodoo_t *voodoo = (voodoo_t *) p;
+    void (*voodoo_recalc_tex)(voodoo_t *voodoo, int tmu) = NULL;
     union {
         uint32_t i;
         float    f;
@@ -81,6 +82,11 @@ voodoo_reg_writel(uint32_t addr, uint32_t val, void *p)
     int chip = (addr >> 10) & 0xf;
     if (!chip)
         chip = 0xf;
+
+    if (voodoo->type == VOODOO_3)
+        voodoo_recalc_tex = voodoo_recalc_tex3;
+    else
+        voodoo_recalc_tex = voodoo_recalc_tex12;
 
     tempif.i = val;
     // voodoo_reg_log("voodoo_reg_write_l: addr=%08x val=%08x(%f) chip=%x\n", addr, val, tempif.f, chip);

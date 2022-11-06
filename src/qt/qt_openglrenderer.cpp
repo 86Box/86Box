@@ -194,6 +194,9 @@ OpenGLRenderer::initialize()
 
         emit initialized();
 
+        glClear(GL_COLOR_BUFFER_BIT);
+
+        context->swapBuffers(this);
     } catch (const opengl_init_error &e) {
         /* Mark all buffers as in use */
         for (auto &flag : buf_usage)
