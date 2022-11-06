@@ -468,7 +468,6 @@ dma_read(uint16_t addr, void *priv)
             return (temp);
 
         case 0xd: /*Temporary register*/
-        case 0xe:
             return (0);
     }
 
