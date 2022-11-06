@@ -48,7 +48,7 @@ extern void     ini_section_set_double(ini_section_t section, char *name, double
 extern void     ini_section_set_hex16(ini_section_t section, char *name, int val);
 extern void     ini_section_set_hex20(ini_section_t section, char *name, int val);
 extern void     ini_section_set_mac(ini_section_t section, char *name, int val);
-extern void     ini_section_set_string(ini_section_t section, char *name, char *val);
+extern void     ini_section_set_string(ini_section_t section, const char *name, const char *val);
 extern void     ini_section_set_wstring(ini_section_t section, char *name, wchar_t *val);
 
 #define ini_delete_var(ini, head, name)       ini_section_delete_var(ini_find_section(ini, head), name)
