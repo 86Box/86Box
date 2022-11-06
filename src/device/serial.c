@@ -1,24 +1,24 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		NS8250/16450/16550 UART emulation.
+ *          NS8250/16450/16550 UART emulation.
  *
- *		Now passes all the AMIDIAG tests.
+ *          Now passes all the AMIDIAG tests.
  *
  *
  *
- * Author:	Sarah Walker, <http://pcem-emulator.co.uk/>
- *		Miran Grca, <mgrca8@gmail.com>
- *		Fred N. van Kempen, <decwiz@yahoo.com>
+ * Author: Sarah Walker, <http://pcem-emulator.co.uk/>
+ *         Miran Grca, <mgrca8@gmail.com>
+ *         Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 2008-2020 Sarah Walker.
- *		Copyright 2016-2020 Miran Grca.
- *		Copyright 2017-2020 Fred N. van Kempen.
+ *         Copyright 2008-2020 Sarah Walker.
+ *         Copyright 2016-2020 Miran Grca.
+ *         Copyright 2017-2020 Fred N. van Kempen.
  */
 #include <stdarg.h>
 #include <stdio.h>
@@ -51,6 +51,7 @@ enum {
 static int             next_inst = 0;
 static serial_device_t serial_devices[SERIAL_MAX];
 
+//#define ENABLE_SERIAL_CONSOLE 1
 #ifdef ENABLE_SERIAL_LOG
 int serial_do_log = ENABLE_SERIAL_LOG;
 
@@ -193,6 +194,15 @@ serial_transmit(serial_t *dev, uint8_t val)
         write_fifo(dev, val);
     else if (dev->sd->dev_write)
         dev->sd->dev_write(dev, dev->sd->priv, val);
+#ifdef ENABLE_SERIAL_CONSOLE
+    if ((val >= ' ' && val <= '~') || val == '\r' || val == '\n') {
+        fputc(val, stdout);
+        if (val == '\n')
+            fflush(stdout);
+    } else {
+        fprintf(stdout, "[%02X]", val);
+    }
+#endif
 }
 
 static void
