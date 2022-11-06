@@ -3071,7 +3071,7 @@ kbd_power_on(atkbd_t *dev)
 
     dev->status = STAT_UNLOCKED;
     /* Write the value here first, so that we don't hit a pulse reset. */
-    dev->p2 = 0xcf;
+    dev->p2 = 0xcd;
     write_output(dev, 0xcf);
     dev->mem[0x20] = 0x01;
     dev->mem[0x20] |= CCB_TRANSLATE;
