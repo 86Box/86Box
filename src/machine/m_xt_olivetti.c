@@ -46,6 +46,7 @@
 #include <86box/fdc.h>
 #include <86box/fdc_ext.h>
 #include <86box/gameport.h>
+#include <86box/hdc.h>
 #include <86box/port_6x.h>
 #include <86box/sound.h>
 #include <86box/snd_speaker.h>
@@ -1135,6 +1136,8 @@ machine_xt_m24_init(const machine_t *model)
 
     m24_kbd_init(m24_kbd);
     device_add_ex(&m24_kbd_device, m24_kbd);
+
+    device_add(&st506_xt_wd1002a_wx1_nobios_device);
 
     return ret;
 }
