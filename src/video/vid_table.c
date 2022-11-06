@@ -143,6 +143,7 @@ video_cards[] = {
     { &nec_sv9000_device                             },
     { &et4000k_isa_device                            },
     { &et2000_device                                 },
+    { &et3000_isa_device                             },
     { &et4000_isa_device                             },
     { &et4000w32_device                              },
     { &et4000w32i_isa_device                         },
