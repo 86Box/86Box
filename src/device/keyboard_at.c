@@ -144,7 +144,7 @@
         So for example, the IBM PS/2 type 1 controller flags would be: 00000010 00000000 11111111 00000000 = 0200ff00 . */
 
 typedef struct {
-    uint8_t status, ib, ob, p1, p2, old_p2, p2_locked, fast_a20_phase,
+    uint8_t status, ib, ob, p1, p2, old_p2, pad, fast_a20_phase,
         secr_phase, mem_index, ami_stat, ami_mode,
         kbc_in, kbc_cmd, kbc_in_cmd, kbc_poll_phase, kbc_to_send,
         kbc_send_pending, kbc_channel, kbc_stat_hi, kbc_wait_for_response, inhibit,
@@ -1146,10 +1146,11 @@ static void
 write_output(atkbd_t *dev, uint8_t val)
 {
     uint8_t old = dev->p2;
+    uint8_t kbc_ven = dev->flags & KBC_VEN_MASK;
 
     kbd_log("ATkbc: write output port: %02X (old: %02X)\n", val, dev->p2);
 
-    if (!(dev->flags & KBC_FLAG_PS2))
+    if ((kbc_ven != KBC_VEN_OLIVETTI) && ((kbc_ven == KBC_VEN_AMI) || !(dev->flags & KBC_FLAG_PS2)))
         val |= ((dev->mem[0x20] << 4) & 0x10);
 
     dev->kbd_inhibit   = (val & 0x40);
@@ -1185,7 +1186,7 @@ write_output(atkbd_t *dev, uint8_t val)
     if ((dev->p2 ^ val) & 0x01) { /*Reset*/
         if (!(val & 0x01)) {      /* Pin 0 selected. */
             /* Pin 0 selected. */
-            pclog("write_output(): Pulse reset!\n");
+            kbd_log("write_output(): Pulse reset!\n");
             softresetx86(); /*Pulse reset!*/
             cpu_set_edx();
             flushmmucache();
@@ -1223,7 +1224,7 @@ write_cmd(atkbd_t *dev, uint8_t val)
         kbd_log("ATkbc: mouse interrupt is now %s\n", (val & 0x02) ? "enabled" : "disabled");
     }
 
-    if (!(dev->flags & KBC_FLAG_PS2)) {
+    if ((kbc_ven == KBC_VEN_AMI) || !(dev->flags & KBC_FLAG_PS2)) {
         /* Update the output port to mirror the KBD DIS and AUX DIS bits, if active. */
         write_output(dev, dev->p2);
     }
@@ -1346,7 +1347,9 @@ kbc_command(atkbd_t *dev)
 
             case 0xd1: /* write output port */
                 kbd_log("ATkbc: write output port\n");
-                if (dev->p2_locked) {
+                /* Bit 2 of AMI flags is P22-P23 blocked (1 = yes, 0 = no),
+                   discovered by reverse-engineering the AOpeN Vi15G BIOS. */
+                if (dev->ami_mode & 0x04) {
                     /*If keyboard controller lines P22-P23 are blocked,
                       we force them to remain unchanged.*/
                     val &= ~0x0c;
@@ -1441,6 +1444,7 @@ kbc_command(atkbd_t *dev)
                     write_cmd(dev, 0x30 | STAT_SYSFLAG);
                 else
                     write_cmd(dev, 0x10 | STAT_SYSFLAG);
+                dev->mem[0x21] = 0x01;
                 kbc_transmit(dev, 0x55);
                 break;
 
@@ -2128,7 +2132,7 @@ write64_generic(void *priv, uint8_t val)
                 kbc_transmit(dev, (dev->p1 | fixed_bits | (video_is_mda() ? 0x40 : 0x00) | (hasfpu ? 0x08 : 0x00)) & 0xdf);
                 dev->p1 = ((dev->p1 + 1) & 3) | (dev->p1 & 0xfc);
             } else {
-                pclog("[%04X:%08X] Reading %02X from input port\n", CS, cpu_state.pc, ((dev->p1 | fixed_bits) & 0xf0) | 0x0c);
+                kbd_log("[%04X:%08X] Reading %02X from input port\n", CS, cpu_state.pc, ((dev->p1 | fixed_bits) & 0xf0) | 0x0c);
                 if ((dev->flags & KBC_FLAG_PS2) && ((dev->flags & KBC_VEN_MASK) != KBC_VEN_INTEL_AMI))
                     // kbc_transmit(dev, ((dev->p1 | fixed_bits) & 0xf0) | 0x0c);
                     kbc_transmit(dev, ((dev->p1 | fixed_bits) & 0xf0) | 0x08);
@@ -2416,7 +2420,15 @@ write64_ami(void *priv, uint8_t val)
                     * Never returned by an actual keyboard controller, or at least has not been seen returned by
                       one thus far.
              */
-            kbc_transmit(dev, (kbc_ven == KBC_VEN_INTEL_AMI) ? '5' : 'H');
+            if ((dev->flags & KBC_TYPE_MASK) >= KBC_TYPE_PS2_NOREF) {
+                if (kbc_ven == KBC_VEN_ALI)
+                    kbc_transmit(dev, 'F');
+                else if ((dev->flags & KBC_VEN_MASK) == KBC_VEN_INTEL_AMI)
+                    kbc_transmit(dev, '5');
+                else
+                    kbc_transmit(dev, 'H');
+            } else
+                kbc_transmit(dev, 'F');
             return 0;
 
         case 0xa2: /* clear keyboard controller lines P22/P23 */
@@ -2456,7 +2468,7 @@ write64_ami(void *priv, uint8_t val)
         case 0xa6: /* read clock */
             if (!(dev->flags & KBC_FLAG_PS2)) {
                 kbd_log("ATkbc: AMI - read clock\n");
-                kbc_transmit(dev, !!(dev->ami_stat & 1));
+                kbc_transmit(dev, (dev->ami_stat & 1) ? 0xff : 0x00, 0, 0x00);
                 return 0;
             }
             break;
@@ -2480,7 +2492,7 @@ write64_ami(void *priv, uint8_t val)
         case 0xa9: /* read cache */
             if (!(dev->flags & KBC_FLAG_PS2)) {
                 kbd_log("ATkbc: AMI - read cache\n");
-                kbc_transmit(dev, !!(dev->ami_stat & 2));
+                kbc_transmit(dev, (dev->ami_stat & 2) ? 0xff : 0x00, 0, 0x00);
                 return 0;
             }
             break;
@@ -2698,7 +2710,10 @@ write64_ami(void *priv, uint8_t val)
              * (allow command D1 to change bits 2/3 of the output port)
              */
             kbd_log("ATkbc: AMI - %sblock KBC lines P22 and P23\n", (val & 1) ? "" : "un");
-            dev->p2_locked = (val & 1);
+            if (val & 0x01)
+                dev->ami_mode |= 0x04;
+            else
+                dev->ami_mode &= 0xfb;
             return 0;
 
         case 0xcc:
@@ -2932,55 +2947,39 @@ write64_toshiba(void *priv, uint8_t val)
 }
 
 static void
+kbc_push_to_ib(atkbd_t *dev, uint8_t val)
+{
+    dev->status |= STAT_IFULL;
+    dev->ib = val;
+}
+
+static void
 kbd_write(uint16_t port, uint8_t val, void *priv)
 {
-    atkbd_t *dev = (atkbd_t *) priv;
+    atkbd_t *dev = (atkbd_t *)priv;
 
     kbd_log("[%04X:%08X] ATkbc: write(%04X, %02X)\n", CS, cpu_state.pc, port, val);
 
+    port &= 0x04;
+    dev->status = (dev->status & ~STAT_CD) | (port << 1);
+
     switch (port) {
-        case 0x60:
-            dev->status = (dev->status & ~STAT_CD) | STAT_IFULL;
-            dev->ib     = val;
-            // kbd_status("Write %02X: %02X, Status = %02X\n", port, val, dev->status);
-
-#if 0
-		if ((dev->fast_a20_phase == 1)/* && ((val == 0xdd) || (val == 0xdf))*/) {
-			dev->status &= ~STAT_IFULL;
-			write_output(dev, val);
-			dev->fast_a20_phase = 0;
-		}
-#endif
+        case 0:
+            if (dev->fast_a20_phase == 1) {
+                dev->fast_a20_phase = 0;
+                // write_output(dev, val);
+                kbc_push_to_ib(dev, val);
+                kbc_process(dev);
+            } else
+                kbc_push_to_ib(dev, val);
             break;
-        case 0x64:
-            dev->status |= (STAT_CD | STAT_IFULL);
-            dev->ib = val;
-            // kbd_status("Write %02X: %02X, Status = %02X\n", port, val, dev->status);
-
-#if 0
-		if (val == 0xd1) {
-			dev->status &= ~STAT_IFULL;
-			dev->fast_a20_phase = 1;
-		} else if (val == 0xfe) {
-			dev->status &= ~STAT_IFULL;
-			pulse_output(dev, 0x0e);
-		} else if ((val == 0xad) || (val == 0xae)) {
-			dev->status &= ~STAT_IFULL;
-			if (val & 0x01)
-				dev->mem[0x20] |= 0x10;
-			else
-				dev->mem[0x20] &= ~0x10;
-		} else if (val == 0xa1) {
-			dev->status &= ~STAT_IFULL;
-			kbc_send_to_ob(dev, 'H', 0, 0x00);
-		}
-#else
-            /* if (val == 0xa1) {
-                    dev->status &= ~STAT_IFULL;
-                    kbc_send_to_ob(dev, 'H', 0, 0x00);
-            } */
-            // kbc_process(dev);
-#endif
+        case 4:
+            if (val == 0xd1) {
+                dev->fast_a20_phase = 1;
+                kbc_push_to_ib(dev, val);
+                kbc_process(dev);
+            } else
+                kbc_push_to_ib(dev, val);
             break;
     }
 }
@@ -2988,21 +2987,20 @@ kbd_write(uint16_t port, uint8_t val, void *priv)
 static uint8_t
 kbd_read(uint16_t port, void *priv)
 {
-    atkbd_t *dev = (atkbd_t *) priv;
-    uint8_t  ret = 0xff;
+    atkbd_t *dev = (atkbd_t *)priv;
+    uint8_t ret = 0xff;
 
-    // if (dev->flags & KBC_FLAG_PS2)
-    // cycles -= ISA_CYCLES(8);
+    port &= 0x04;
 
     switch (port) {
-        case 0x60:
+        case 0:
             ret = dev->ob;
             dev->status &= ~STAT_OFULL;
             picintc(dev->last_irq);
             dev->last_irq = 0;
             break;
 
-        case 0x64:
+        case 4:
             ret = dev->status;
             break;
 
@@ -3013,7 +3011,7 @@ kbd_read(uint16_t port, void *priv)
 
     kbd_log("[%04X:%08X] ATkbc: read(%04X) = %02X\n", CS, cpu_state.pc, port, ret);
 
-    return (ret);
+    return(ret);
 }
 
 static void
@@ -3050,6 +3048,7 @@ kbd_power_on(atkbd_t *dev)
     dev->mem[0x20] = 0x01;
     dev->mem[0x20] |= CCB_TRANSLATE;
     dev->ami_mode = !!(dev->flags & KBC_FLAG_PS2);
+    dev->ami_stat |= 0x02;
 
     /* Set up the correct Video Type bits. */
     dev->p1 = video_is_mda() ? 0xf0 : 0xb0;
