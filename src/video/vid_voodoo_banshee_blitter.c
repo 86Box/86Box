@@ -399,6 +399,46 @@ banshee_do_rectfill(voodoo_t *voodoo)
     end_command(voodoo);
 }
 
+void __attribute__((always_inline)) DECODE_YUYV422(uint32_t *buf, uint8_t *src)
+{
+    do {
+        int c;
+        int wp = 0;
+
+        for (c = 0; c < 4; c += 4) {
+            uint8_t y1, y2;
+            int8_t  Cr, Cb;
+            int     dR, dG, dB;
+            int     r, g, b;
+
+            y1 = src[0];
+            Cr = src[1] - 0x80;
+            y2 = src[2];
+            Cb = src[3] - 0x80;
+
+            dR = (359 * Cr) >> 8;
+            dG = (88 * Cb + 183 * Cr) >> 8;
+            dB = (453 * Cb) >> 8;
+
+            r = y1 + dR;
+            CLAMP(r);
+            g = y1 - dG;
+            CLAMP(g);
+            b = y1 + dB;
+            CLAMP(b);
+            buf[wp++] = r | (g << 8) | (b << 16);
+
+            r = y2 + dR;
+            CLAMP(r);
+            g = y2 - dG;
+            CLAMP(g);
+            b = y2 + dB;
+            CLAMP(b);
+            buf[wp++] = r | (g << 8) | (b << 16);
+        }
+    } while (0);
+}
+
 static void
 do_screen_to_screen_line(voodoo_t *voodoo, uint8_t *src_p, int use_x_dir, int src_x, int src_tiled)
 {
@@ -513,8 +553,9 @@ do_screen_to_screen_line(voodoo_t *voodoo, uint8_t *src_p, int use_x_dir, int sr
                     src_x_real = (src_x_real & 127) + ((src_x_real >> 7) * 128 * 32);
 
                 if (dst_x >= clip->x_min && dst_x < clip->x_max && pattern_trans) {
-                    uint32_t src_data    = 0;
-                    int      transparent = 0;
+                    uint32_t src_data     = 0;
+                    uint32_t src_data_yuv = 0; /* Used in YUYV-to-RGB convesions. */
+                    int      transparent  = 0;
 
                     switch (voodoo->banshee_blt.srcFormat & SRC_FORMAT_COL_MASK) {
                         case SRC_FORMAT_COL_1_BPP:
@@ -554,6 +595,14 @@ do_screen_to_screen_line(voodoo_t *voodoo, uint8_t *src_p, int use_x_dir, int sr
                                 src_data = *(uint32_t *) &src_p[src_x_real];
                                 break;
                             }
+                        case SRC_FORMAT_COL_YUYV:
+                            {
+                                uint32_t rgbcol[2] = { 0, 0 };
+                                DECODE_YUYV422(rgbcol, &src_p[src_x_real]);
+                                src_data = rgbcol[0];
+                                src_data_yuv = rgbcol[1];
+                                break;
+                            }
 
                         default:
                             fatal("banshee_do_screen_to_screen_blt: unknown srcFormat %08x\n", voodoo->banshee_blt.srcFormat);
@@ -569,6 +618,25 @@ do_screen_to_screen_line(voodoo_t *voodoo, uint8_t *src_p, int use_x_dir, int sr
 
                     if (!transparent)
                         PLOT(voodoo, dst_x, dst_y, pat_x, pat_y, pattern_mask, rop, src_data, src_colorkey);
+                    
+                    if ((voodoo->banshee_blt.srcFormat & SRC_FORMAT_COL_YUYV)) {
+                        if (use_x_dir) {
+                            dst_x += (voodoo->banshee_blt.command & COMMAND_DX) ? -1 : 1;
+                        } else {
+                            dst_x++;
+                        }
+
+                        if ((voodoo->banshee_blt.dstFormat & DST_FORMAT_COL_MASK) == DST_FORMAT_COL_16_BPP) {
+                            int r = src_data_yuv >> 16;
+                            int g = (src_data_yuv >> 8) & 0xff;
+                            int b = src_data_yuv & 0xff;
+
+                            src_data_yuv = (b >> 3) | ((g >> 2) << 5) | ((r >> 3) << 11);
+                        }
+
+                        if (!transparent)
+                            PLOT(voodoo, dst_x, dst_y, pat_x, pat_y, pattern_mask, rop, src_data_yuv, src_colorkey);
+                    }
                 }
                 if (use_x_dir) {
                     src_x += (voodoo->banshee_blt.command & COMMAND_DX) ? -1 : 1;
