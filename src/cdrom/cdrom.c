@@ -322,13 +322,13 @@ cdrom_audio_callback(cdrom_t *dev, int16_t *output, int len)
 }
 
 static __inline int
-bin2bcd (int x)
+bin2bcd(int x)
 {
     return (x % 10) | ((x / 10) << 4);
 }
 
 static __inline int
-bcd2bin (int x)
+bcd2bin(int x)
 {
     return (x >> 4) * 10 + (x & 0x0f);
 }
@@ -385,9 +385,9 @@ cdrom_audio_play(cdrom_t *dev, uint32_t pos, uint32_t len, int ismsf)
         } else
             pos = MSFtoLBA(m, s, f) - 150;
 
-        m   = (len >> 16) & 0xff;
-        s   = (len >> 8) & 0xff;
-        f   = len & 0xff;
+        m = (len >> 16) & 0xff;
+        s = (len >> 8) & 0xff;
+        f = len & 0xff;
 
         /* NEC CDR-260 speaks BCD. */
         if ((dev->bus_type == CDROM_BUS_ATAPI) && dev->early)
@@ -524,7 +524,7 @@ cdrom_get_current_subchannel(cdrom_t *dev, uint8_t *b, int msf)
     b[pos++] = subc.index;
 
     if (msf) {
-        b[pos]     = 0;
+        b[pos] = 0;
 
         /* NEC CDR-260 speaks BCD. */
         if ((dev->bus_type == CDROM_BUS_ATAPI) && dev->early) {
@@ -543,7 +543,7 @@ cdrom_get_current_subchannel(cdrom_t *dev, uint8_t *b, int msf)
 
         pos += 4;
 
-        b[pos]     = 0;
+        b[pos] = 0;
 
         /* NEC CDR-260 speaks BCD. */
         if ((dev->bus_type == CDROM_BUS_ATAPI) && dev->early) {
@@ -803,7 +803,7 @@ cdrom_read_toc(cdrom_t *dev, unsigned char *b, int type, unsigned char start_tra
     return len;
 }
 
-/* A new API call for Mitsumi CD-ROM. */
+/* New API calls for Mitsumi CD-ROM. */
 void
 cdrom_get_track_buffer(cdrom_t *dev, uint8_t *buf)
 {
@@ -825,6 +825,64 @@ cdrom_get_track_buffer(cdrom_t *dev, uint8_t *buf)
         buf[8] = 0x00;
     } else
         memset(buf, 0x00, 9);
+}
+
+void
+cdrom_get_q(cdrom_t *dev, uint8_t *buf, int *curtoctrk, uint8_t mode)
+{
+    track_info_t ti;
+    int          first_track, last_track;
+
+    if (dev != NULL) {
+        dev->ops->get_tracks(dev, &first_track, &last_track);
+        dev->ops->get_track_info(dev, *curtoctrk, 0, &ti);
+        buf[0] = (ti.attr << 4) & 0xf0;
+        buf[1] = ti.number;
+        buf[2] = CD_BCD(*curtoctrk + 1);
+        buf[3] = ti.m;
+        buf[4] = ti.s;
+        buf[5] = ti.f;
+        buf[6] = 0x00;
+        dev->ops->get_track_info(dev, 1, 0, &ti);
+        buf[7] = ti.m;
+        buf[8] = ti.s;
+        buf[9] = ti.f;
+        if (*curtoctrk >= (last_track + 1))
+            *curtoctrk = 0;
+        else if (mode)
+            *curtoctrk = *curtoctrk + 1;
+    } else
+        memset(buf, 0x00, 10);
+}
+
+uint8_t
+cdrom_mitsumi_audio_play(cdrom_t *dev, uint32_t pos, uint32_t len)
+{
+    track_info_t ti;
+
+    if (dev->cd_status == CD_STATUS_DATA_ONLY)
+        return 0;
+
+    cdrom_log("CD-ROM 0: Play Mitsumi audio - %08X %08X\n", pos, len);
+    dev->ops->get_track_info(dev, pos, 0, &ti);
+    pos = MSFtoLBA(ti.m, ti.s, ti.f) - 150;
+    dev->ops->get_track_info(dev, len, 1, &ti);
+    len = MSFtoLBA(ti.m, ti.s, ti.f) - 150;
+
+    /* Do this at this point, since it's at this point that we know the
+       actual LBA position to start playing from. */
+    if (!(dev->ops->track_type(dev, pos) & CD_TRACK_AUDIO)) {
+        cdrom_log("CD-ROM %i: LBA %08X not on an audio track\n", dev->id, pos);
+        cdrom_stop(dev);
+        return 0;
+    }
+
+    dev->seek_pos  = pos;
+    dev->cd_end    = len;
+    dev->cd_status = CD_STATUS_PLAYING;
+    dev->cd_buflen = 0;
+
+    return 1;
 }
 
 void
