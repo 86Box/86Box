@@ -118,7 +118,7 @@ static const device_t *net_cards[] = {
 };
 
 netcard_conf_t net_cards_conf[NET_CARD_MAX];
-int            net_card_current = 0;
+uint16_t       net_card_current = 0;
 
 /* Global variables. */
 int      network_ndev;
