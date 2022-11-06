@@ -320,6 +320,8 @@ typedef struct voodoo_t {
     uint32_t   cmdfifo_amin, cmdfifo_amax;
     int        cmdfifo_holecount;
 
+    atomic_uint  cmd_status;
+
     uint32_t     sSetupMode;
     vert_t       verts[4];
     unsigned int vertex_ages[3];
