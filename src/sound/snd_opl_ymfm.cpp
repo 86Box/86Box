@@ -42,6 +42,8 @@ extern "C" {
 
 #define RSM_FRAC 10
 
+#define OPL_FREQ FREQ_48000
+
 enum {
     FLAG_CYCLES = (1 << 0)
 };
@@ -294,15 +296,15 @@ ymfm_drv_init(const device_t *info)
     switch (info->local) {
         case FM_YM3812:
         default:
-            fm = (YMFMChipBase *) new YMFMChip<ymfm::ym3812>(3579545, FM_YM3812, 48000);
+            fm = (YMFMChipBase *) new YMFMChip<ymfm::ym3812>(3579545, FM_YM3812, OPL_FREQ);
             break;
 
         case FM_YMF262:
-            fm = (YMFMChipBase *) new YMFMChip<ymfm::ymf262>(14318181, FM_YMF262, 48000);
+            fm = (YMFMChipBase *) new YMFMChip<ymfm::ymf262>(14318181, FM_YMF262, OPL_FREQ);
             break;
 
         case FM_YMF289B:
-            fm = (YMFMChipBase *) new YMFMChip<ymfm::ymf289b>(33868800, FM_YMF289B, 48000);
+            fm = (YMFMChipBase *) new YMFMChip<ymfm::ymf289b>(33868800, FM_YMF289B, OPL_FREQ);
             break;
 
         case FM_YMF278B:

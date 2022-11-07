@@ -24,9 +24,16 @@
 
 extern int sound_gain;
 
-#define SOUNDBUFLEN (48000 / 50)
+#define FREQ_44100 44100
+#define FREQ_48000 48000
+#define FREQ_49716 49716
+#define FREQ_88200 88200
+#define FREQ_96000 96000
 
-#define CD_FREQ     44100
+#define SOUND_FREQ FREQ_48000
+#define SOUNDBUFLEN (SOUND_FREQ / 50)
+
+#define CD_FREQ     FREQ_44100
 #define CD_BUFLEN   (CD_FREQ / 10)
 
 enum {
