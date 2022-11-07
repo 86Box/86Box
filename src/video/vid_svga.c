@@ -56,7 +56,6 @@ uint8_t svga_rotate[8][256];
 static svga_t *svga_pri;
 int            vga_on, ibm8514_on;
 
-// #define ENABLE_SVGA_LOG 1
 #ifdef ENABLE_SVGA_LOG
 int svga_do_log = ENABLE_SVGA_LOG;
 
@@ -494,7 +493,7 @@ svga_recalctimings(svga_t *svga)
             svga->hdisp *= (svga->seqregs[1] & 1) ? 8 : 9;
 
         if (!(svga->gdcreg[6] & 1) && !(svga->attrregs[0x10] & 1)) { /*Text mode*/
-            if (svga->seqregs[1] & 8)                                /*40 column*/
+            if (svga->seqregs[1] & 8) { /*40 column*/
                 svga->render = svga_render_text_40;
             else
                 svga->render = svga_render_text_80;
