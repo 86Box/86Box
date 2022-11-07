@@ -701,7 +701,7 @@ machine_at_an430tx_init(const machine_t *model)
     device_add(&keyboard_ps2_ami_pci_device);
     device_add(&pc87307_both_device);
     device_add(&intel_flash_bxt_ami_device);
-    spd_register(SPD_TYPE_EDO, 0x3, 256);
+    spd_register(SPD_TYPE_SDRAM, 0x3, 128);
 
     return ret;
 }
