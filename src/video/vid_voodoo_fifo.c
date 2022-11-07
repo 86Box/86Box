@@ -106,6 +106,7 @@ voodoo_queue_command(voodoo_t *voodoo, uint32_t addr_type, uint32_t val)
     fifo->addr_type = addr_type;
 
     voodoo->fifo_write_idx++;
+    voodoo->cmd_status &= ~(1 << 24);
 
     if (FIFO_ENTRIES > 0xe000)
         voodoo_wake_fifo_thread(voodoo);
@@ -283,6 +284,8 @@ voodoo_fifo_thread(void *param)
             voodoo->time += end_time - start_time;
         }
 
+        voodoo->cmd_status |= (1 << 24);
+
         while (voodoo->cmdfifo_enabled && (voodoo->cmdfifo_depth_rd != voodoo->cmdfifo_depth_wr || voodoo->cmdfifo_in_sub)) {
             uint64_t start_time = plat_timer_read();
             uint64_t end_time;
@@ -296,9 +299,13 @@ voodoo_fifo_thread(void *param)
 
             //                        voodoo_fifo_log(" CMDFIFO header %08x at %08x\n", header, voodoo->cmdfifo_rp);
 
+            voodoo->cmd_status &= ~7;
+            voodoo->cmd_status |= (header & 7);
+            voodoo->cmd_status |= (1 << 11);
             switch (header & 7) {
                 case 0:
                     //                                voodoo_fifo_log("CMDFIFO0\n");
+                    voodoo->cmd_status = (voodoo->cmd_status & 0xffff8fff) | (((header >> 3) & 7) << 12);
                     switch ((header >> 3) & 7) {
                         case 0: /*NOP*/
                             break;
@@ -323,6 +330,7 @@ voodoo_fifo_thread(void *param)
                         default:
                             fatal("Bad CMDFIFO0 %08x\n", header);
                     }
+                    voodoo->cmd_status = (voodoo->cmd_status & ~(1 << 27)) | (voodoo->cmdfifo_in_sub << 27);
                     break;
 
                 case 1:

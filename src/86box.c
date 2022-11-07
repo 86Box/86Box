@@ -892,10 +892,9 @@ pc_init_modules(void)
     }
 
     if (!video_card_available(gfxcard_2)) {
-        char temp[1024]  = { 0 };
-        char tempc[1024] = { 0 };
+        char tempc[512] = { 0 };
         device_get_name(video_card_getdevice(gfxcard_2), 0, tempc);
-        snprintf(temp, sizeof(temp), "Video card #2 \"%s\" is not available due to missing ROMs in the roms/video directory. Disabling the second video card.", tempc);
+        swprintf(temp, sizeof(temp), (wchar_t *) "Video card #2 \"%hs\" is not available due to missing ROMs in the roms/video directory. Disabling the second video card.", tempc);
         ui_msgbox_header(MBX_INFO, (wchar_t *) IDS_2128, temp);
         gfxcard_2 = 0;
     }

@@ -2090,18 +2090,27 @@ ide_board_callback(void *priv)
 #endif
 
     dev->ide[0]->atastat = DRDY_STAT | DSC_STAT;
-    if (dev->ide[0]->type == IDE_ATAPI)
-        dev->ide[0]->sc->status = DRDY_STAT | DSC_STAT;
+    if (dev->ide[0]->type == IDE_ATAPI) {
+        if (dev->ide[0]->sc->pad0)
+            dev->ide[0]->sc->status = DRDY_STAT | DSC_STAT;
+        else
+            dev->ide[0]->sc->status = 0;
+    }
 
     dev->ide[1]->atastat = DRDY_STAT | DSC_STAT;
-    if (dev->ide[1]->type == IDE_ATAPI)
-        dev->ide[1]->sc->status = DRDY_STAT | DSC_STAT;
+    if (dev->ide[1]->type == IDE_ATAPI) {
+        if (dev->ide[1]->sc->pad0)
+            dev->ide[1]->sc->status = DRDY_STAT | DSC_STAT;
+        else
+            dev->ide[1]->sc->status = 0;
+    }
 
     dev->cur_dev &= ~1;
 
     if (dev->diag) {
         dev->diag = 0;
-        ide_irq_raise(dev->ide[0]);
+        if ((dev->ide[0]->type != IDE_ATAPI) || dev->ide[0]->sc->pad0)
+            ide_irq_raise(dev->ide[0]);
     }
 }
 

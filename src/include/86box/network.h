@@ -89,14 +89,14 @@ enum {
 };
 
 typedef struct {
-    int      device_num;
+    uint16_t device_num;
     int      net_type;
     char     host_dev_name[128];
     uint32_t link_state;
 } netcard_conf_t;
 
 extern netcard_conf_t net_cards_conf[NET_CARD_MAX];
-extern int            net_card_current;
+extern uint16_t       net_card_current;
 
 typedef int (*NETRXCB)(void *, uint8_t *, int);
 typedef int (*NETSETLINKSTATE)(void *, uint32_t link_state);
@@ -135,7 +135,7 @@ struct _netcard_t {
     mutex_t        *tx_mutex;
     mutex_t        *rx_mutex;
     pc_timer_t      timer;
-    int             card_num;
+    uint16_t        card_num;
     double          byte_period;
     uint32_t        led_timer;
     uint32_t        led_state;
