@@ -726,7 +726,7 @@ et4000_init(const device_t *info)
                       et4000_kasan_recalctimings, et4000_in, et4000_out,
                       NULL, NULL);
             io_sethandler(0x03c0, 32,
-                          et4000_in, NULL, NULL, et4000_out, NULL, NULL, dev);
+                          et4000k_in, NULL, NULL, et4000k_out, NULL, NULL, dev);
             io_sethandler(0x0250, 8,
                           et4000_kasan_in, NULL, NULL, et4000_kasan_out, NULL, NULL, dev);
             io_sethandler(0x0258, 2,

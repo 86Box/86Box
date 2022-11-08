@@ -244,11 +244,8 @@ msgstr "E&jecter"
 msgid "&Reload previous image"
 msgstr "&Recharger image précedente"
 
-msgid "&Image"
-msgstr "&Image"
-
 msgid "&Folder..."
-msgstr "&Folder..."
+msgstr "&Dossier..."
 
 msgid "Target &framerate"
 msgstr "&Taux de rafraîchissement cible"
@@ -385,6 +382,12 @@ msgstr "Vidéo:"
 msgid "Voodoo Graphics"
 msgstr "Graphique Voodoo"
 
+msgid "IBM 8514/a Graphics"
+msgstr "Graphique IBM 8514/a"
+
+msgid "XGA Graphics"
+msgstr "Graphique XGA"
+
 msgid "Mouse:"
 msgstr "Souris:"
 
@@ -426,6 +429,15 @@ msgstr "Gravis Ultrasound"
 
 msgid "Use FLOAT32 sound"
 msgstr "Utiliser le son FLOAT32"
+
+msgid "FM synth driver"
+msgstr "Pilote de synthétiseur FM"
+
+msgid "Nuked (more accurate)"
+msgstr "Nuked (plus précis)"
+
+msgid "YMFM (faster)"
+msgstr "YMFM (plus rapide)"
 
 msgid "Network type:"
 msgstr "Type de réseau:"
@@ -570,6 +582,9 @@ msgstr "Vérifier BPB"
 
 msgid "CD-ROM drives:"
 msgstr "Lecterus CD-ROM:"
+
+msgid "Earlier drive"
+msgstr "Lecteur plus tôt"
 
 msgid "MO drives:"
 msgstr "Lecteurs magnéto-optiques:"

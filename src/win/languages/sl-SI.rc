@@ -176,8 +176,8 @@ BEGIN
         MENUITEM "&Prazen",					IDM_CDROM_EMPTY
         MENUITEM "&Naloži zadnjo sliko",			IDM_CDROM_RELOAD
         MENUITEM SEPARATOR
-        MENUITEM "&Slika",					IDM_CDROM_IMAGE
-        MENUITEM "&Mapa",					IDM_CDROM_DIR
+        MENUITEM "&Slika...",					IDM_CDROM_IMAGE
+        MENUITEM "&Mapa...",					IDM_CDROM_DIR
     END
 END
 

@@ -22,6 +22,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <wchar.h>
+#include <stdatomic.h>
 #define HAVE_STDARG_H
 #include <86box/86box.h>
 #include <86box/io.h>
@@ -237,10 +238,9 @@ typedef struct virge_t {
 
     s3d_t s3d_tri;
 
-    s3d_t s3d_buffer[RB_SIZE];
-    int   s3d_read_idx, s3d_write_idx;
-    int   s3d_busy;
-    int   render_idx;
+    s3d_t      s3d_buffer[RB_SIZE];
+    atomic_int s3d_read_idx, s3d_write_idx;
+    atomic_int s3d_busy;
 
     struct
     {

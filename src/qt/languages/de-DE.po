@@ -29,7 +29,7 @@ msgid "&Hide status bar"
 msgstr "&Statusleiste ausblenden"
 
 msgid "Hide &toolbar"
-msgstr "Werkzeugleiste &ausblenden"
+msgstr "&Werkzeugleiste ausblenden"
 
 msgid "&Resizeable window"
 msgstr "&Größenverstellbares Fenster"
@@ -244,11 +244,8 @@ msgstr "L&eer"
 msgid "&Reload previous image"
 msgstr "&Voriges Image neu laden"
 
-msgid "&Image"
-msgstr "&Image"
-
 msgid "&Folder..."
-msgstr "&Folder..."
+msgstr "&Verzeichnis..."
 
 msgid "Target &framerate"
 msgstr "Ziel&framerate"
@@ -350,7 +347,7 @@ msgid "CPU type:"
 msgstr "CPU-Typ:"
 
 msgid "Speed:"
-msgstr "Geschwindigkeit:"
+msgstr "Takt:"
 
 msgid "FPU:"
 msgstr "FPU-Einheit:"
@@ -384,6 +381,12 @@ msgstr "Videokarte:"
 
 msgid "Voodoo Graphics"
 msgstr "Voodoo-Grafik"
+
+msgid "IBM 8514/a Graphics"
+msgstr "IBM 8514/a-Grafik"
+
+msgid "XGA Graphics"
+msgstr "XGA-Grafik"
 
 msgid "Mouse:"
 msgstr "Maus:"
@@ -426,6 +429,15 @@ msgstr "Gravis Ultrasound"
 
 msgid "Use FLOAT32 sound"
 msgstr "FLOAT32-Wiedergabe benutzen"
+
+msgid "FM synth driver"
+msgstr "FM-Synth-Treiber"
+
+msgid "Nuked (more accurate)"
+msgstr "Nuked (genauer)"
+
+msgid "YMFM (faster)"
+msgstr "YMFM (schneller)"
 
 msgid "Network type:"
 msgstr "Netzwerktyp:"
@@ -570,6 +582,9 @@ msgstr "BPB überprüfen"
 
 msgid "CD-ROM drives:"
 msgstr "CD-ROM-Laufwerke:"
+
+msgid "Earlier drive"
+msgstr "Früheres Laufwerk"
 
 msgid "MO drives:"
 msgstr "MO-Laufwerke:"

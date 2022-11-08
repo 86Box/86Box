@@ -244,9 +244,6 @@ msgstr "&Vazio"
 msgid "&Reload previous image"
 msgstr "&Recarregar imagem anterior"
 
-msgid "&Image"
-msgstr "&Imagem"
-
 msgid "&Folder..."
 msgstr "&Pasta..."
 
@@ -385,6 +382,12 @@ msgstr "Vídeo:"
 msgid "Voodoo Graphics"
 msgstr "3DFX Voodoo"
 
+msgid "IBM 8514/a Graphics"
+msgstr "Gráficos IBM 8514/a"
+
+msgid "XGA Graphics"
+msgstr "Gráficos XGA"
+
 msgid "Mouse:"
 msgstr "Mouse:"
 
@@ -407,10 +410,10 @@ msgid "Sound card:"
 msgstr "Placa de som:"
 
 msgid "MIDI Out Device:"
-msgstr "Disp. de saída MIDI:"
+msgstr "Disp. saída MIDI:"
 
 msgid "MIDI In Device:"
-msgstr "Disp. de entrada MIDI:"
+msgstr "Disp. entrada MIDI:"
 
 msgid "Standalone MPU-401"
 msgstr "MPU-401 autônomo"
@@ -426,6 +429,15 @@ msgstr "Gravis Ultrasound"
 
 msgid "Use FLOAT32 sound"
 msgstr "Usar som FLOAT32"
+
+msgid "FM synth driver"
+msgstr "Controlador de sint. FM"
+
+msgid "Nuked (more accurate)"
+msgstr "Nuked (mais preciso)"
+
+msgid "YMFM (faster)"
+msgstr "YMFM (mais rápido)"
 
 msgid "Network type:"
 msgstr "Tipo de rede:"
@@ -527,7 +539,7 @@ msgid "&Remove"
 msgstr "&Remover"
 
 msgid "Bus:"
-msgstr "Barramento:"
+msgstr "Bar.:"
 
 msgid "Channel:"
 msgstr "Canal:"
@@ -570,6 +582,9 @@ msgstr "Verificar BPB"
 
 msgid "CD-ROM drives:"
 msgstr "Unidades de CD-ROM:"
+
+msgid "Earlier drive"
+msgstr "Unidade anterior"
 
 msgid "MO drives:"
 msgstr "Unidades magneto-ópticas:"
@@ -842,7 +857,7 @@ msgid "About 86Box"
 msgstr "Sobre o 86Box"
 
 msgid "86Box v"
-msgstr "86Box versão "
+msgstr "86Box versão"
 
 msgid "An emulator of old computers\n\nAuthors: Sarah Walker, Miran Grca, Fred N. van Kempen (waltje), SA1988, Tiseno100, reenigne, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2 or later. See LICENSE for more information."
 msgstr "Um emulador de computadores antigos\n\nAutores: Sarah Walker, Miran Grca, Fred N. van Kempen (waltje), SA1988, Tiseno100, reenigne, leilei, JohnElliott, greatpsycho, e outros.\n\nTraduzido por: Altieres Lima da Silva\n\nLançado sob a Licença Pública Geral GNU versão 2 ou posterior. Veja o arquivo LICENSE para mais informações."
