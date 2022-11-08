@@ -34,6 +34,7 @@ BEGIN
         MENUITEM "&Piilota tilapalkki",                                 IDM_VID_HIDE_STATUS_BAR
         MENUITEM "Piilota &työkalupalkki",                              IDM_VID_HIDE_TOOLBAR
         MENUITEM SEPARATOR
+        MENUITEM "&Show non-primary monitors",  IDM_VID_MONITORS
         MENUITEM "&Salli koon muuttaminen",                             IDM_VID_RESIZE
         MENUITEM "&Muista koko ja sijainti",                            IDM_VID_REMEMBER
         MENUITEM SEPARATOR
@@ -271,6 +272,7 @@ END
 #define STR_DYNAREC         "Dynaaminen uudelleenkääntäjä"
 
 #define STR_VIDEO           "Näytönohjain:"
+#define STR_VIDEO_2         "Näytönohjain 2:"
 #define STR_VOODOO          "Voodoo-grafiikkasuoritin"
 #define STR_IBM8514	    "IBM 8514/a-grafiikkasuoritin"
 #define STR_XGA             "XGA-grafiikkasuoritin"

@@ -34,6 +34,7 @@ BEGIN
         MENUITEM "隱藏狀態列(&H)",		IDM_VID_HIDE_STATUS_BAR
         MENUITEM "隱藏工具列(&T)",		IDM_VID_HIDE_TOOLBAR
         MENUITEM SEPARATOR
+        MENUITEM "Show non-primary monitors(&S)",  IDM_VID_MONITORS
         MENUITEM "視窗大小可調(&R)",          IDM_VID_RESIZE
         MENUITEM "記住視窗大小和位置(&E)",  IDM_VID_REMEMBER
         MENUITEM SEPARATOR
@@ -271,6 +272,7 @@ END
 #define STR_DYNAREC		"動態重編譯器"
 
 #define STR_VIDEO		"顯示卡:"
+#define STR_VIDEO_2		"顯示卡 2:"
 #define STR_VOODOO		"Voodoo Graphics"
 #define STR_IBM8514		"IBM 8514/a Graphics"
 #define STR_XGA			"XGA Graphics"

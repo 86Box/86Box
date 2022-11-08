@@ -55,6 +55,7 @@
 /* Platform Public data, specific. */
 HWND hwndMain  = NULL,  /* application main window */
     hwndRender = NULL;  /* machine render window */
+    hwndRender2 = NULL; /* machine second screen render window */
 HMENU menuMain;         /* application main menu */
 RECT  oldclip;          /* mouse rect */
 int   sbar_height = 23; /* statusbar height */
@@ -252,6 +253,7 @@ ResetAllMenus(void)
     CheckMenuItem(menuMain, IDM_VID_OVERSCAN, MF_UNCHECKED);
     CheckMenuItem(menuMain, IDM_VID_INVERT, MF_UNCHECKED);
 
+    CheckMenuItem(menuMain, IDM_VID_MONITORS, MF_UNCHECKED);
     CheckMenuItem(menuMain, IDM_VID_RESIZE, MF_UNCHECKED);
     CheckMenuItem(menuMain, IDM_VID_SDL_SW, MF_UNCHECKED);
     CheckMenuItem(menuMain, IDM_VID_SDL_HW, MF_UNCHECKED);
@@ -296,6 +298,9 @@ ResetAllMenus(void)
     CheckMenuItem(menuMain, IDM_VID_FORCE43, force_43 ? MF_CHECKED : MF_UNCHECKED);
     CheckMenuItem(menuMain, IDM_VID_OVERSCAN, enable_overscan ? MF_CHECKED : MF_UNCHECKED);
     CheckMenuItem(menuMain, IDM_VID_INVERT, invert_display ? MF_CHECKED : MF_UNCHECKED);
+
+    if (show_second_monitors == 1)
+	CheckMenuItem(menuMain, IDM_VID_MONITORS, MF_CHECKED);
 
     if (vid_resize == 1)
         CheckMenuItem(menuMain, IDM_VID_RESIZE, MF_CHECKED);
@@ -598,6 +603,11 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
                         SetWindowPos(hwndRender, NULL, 0, tbar_height, 0, 0, SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE);
                     }
                     config_save();
+                    break;
+
+                case IDM_VID_MONITORS:
+                    show_second_monitors ^= 1;
+                    CheckMenuItem(hmenu, IDM_VID_MONITORS, (show_second_monitors & 1) ? MF_CHECKED : MF_UNCHECKED);
                     break;
 
                 case IDM_VID_RESIZE:

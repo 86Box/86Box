@@ -34,6 +34,7 @@ BEGIN
         MENUITEM "&Skrij statusno vrstico",		IDM_VID_HIDE_STATUS_BAR
         MENUITEM "Hide &toolbar",		IDM_VID_HIDE_TOOLBAR
         MENUITEM SEPARATOR
+        MENUITEM "&Show non-primary monitors",  IDM_VID_MONITORS
         MENUITEM "S&premenljiva velikost okna",          IDM_VID_RESIZE
         MENUITEM "&Zapomni si velikost in položaj",  IDM_VID_REMEMBER
         MENUITEM SEPARATOR
@@ -271,6 +272,7 @@ END
 #define STR_DYNAREC		"Dinamični prevajalnik"
 
 #define STR_VIDEO		"Video:"
+#define STR_VIDEO_2		"Video 2:"
 #define STR_VOODOO		"Voodoo grafika"
 #define STR_IBM8514		"IBM 8514/a grafika"
 #define STR_XGA			"XGA grafika"

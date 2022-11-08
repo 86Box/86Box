@@ -39,6 +39,7 @@ BEGIN
         MENUITEM "Állapotsor &elrejtése",		IDM_VID_HIDE_STATUS_BAR
         MENUITEM "Hide &toolbar",		IDM_VID_HIDE_TOOLBAR
         MENUITEM SEPARATOR
+        MENUITEM "&Show non-primary monitors",  IDM_VID_MONITORS
         MENUITEM "&Átméretezhető ablak",          IDM_VID_RESIZE
         MENUITEM "Méret és pozíció &megjegyzése",  IDM_VID_REMEMBER
         MENUITEM SEPARATOR
@@ -276,6 +277,7 @@ END
 #define STR_DYNAREC		"Dinamikus újrafordítás"
 
 #define STR_VIDEO		"Videokártya:"
+#define STR_VIDEO_2		"Videokártya 2:"
 #define STR_VOODOO		"Voodoo-gyorsítókártya"
 #define STR_IBM8514		"IBM 8514/a-gyorsítókártya"
 #define STR_XGA			"XGA-gyorsítókártya"
