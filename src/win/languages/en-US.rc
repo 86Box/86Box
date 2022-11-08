@@ -176,8 +176,8 @@ BEGIN
         MENUITEM "E&mpty",					IDM_CDROM_EMPTY
         MENUITEM "&Reload previous image",			IDM_CDROM_RELOAD
         MENUITEM SEPARATOR
-        MENUITEM "&Image",					IDM_CDROM_IMAGE
-        MENUITEM "&Folder",					IDM_CDROM_DIR
+        MENUITEM "&Image...",					IDM_CDROM_IMAGE
+        MENUITEM "&Folder...",					IDM_CDROM_DIR
     END
 END
 

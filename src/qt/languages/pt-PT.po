@@ -244,11 +244,8 @@ msgstr "&CDROM vazio"
 msgid "&Reload previous image"
 msgstr "&Recarregar imagem anterior"
 
-msgid "&Image"
-msgstr "&Imagem"
-
 msgid "&Folder..."
-msgstr "&Folder..."
+msgstr "&Pasta..."
 
 msgid "Target &framerate"
 msgstr "&Taxa de quadros de destino"
@@ -385,6 +382,12 @@ msgstr "Vídeo:"
 msgid "Voodoo Graphics"
 msgstr "Gráficos Voodoo"
 
+msgid "IBM 8514/a Graphics"
+msgstr "Gráficos IBM 8514/a"
+
+msgid "XGA Graphics"
+msgstr "Gráficos XGA"
+
 msgid "Mouse:"
 msgstr "Rato:"
 
@@ -426,6 +429,15 @@ msgstr "Gravis Ultrasound"
 
 msgid "Use FLOAT32 sound"
 msgstr "Utilizar som FLOAT32"
+
+msgid "FM synth driver"
+msgstr "Controlador de sint. FM"
+
+msgid "Nuked (more accurate)"
+msgstr "Nuked (mais exacto)"
+
+msgid "YMFM (faster)"
+msgstr "YMFM (mais rápido)"
 
 msgid "Network type:"
 msgstr "Tipo de rede:"
@@ -571,6 +583,9 @@ msgstr "Verificar BPB"
 msgid "CD-ROM drives:"
 msgstr "Unidades CD-ROM:"
 
+msgid "Earlier drive"
+msgstr "Unidade anterior"
+
 msgid "MO drives:"
 msgstr "Unidades magneto-ópticas:"
 
@@ -635,7 +650,7 @@ msgid "ZIP images"
 msgstr "Imagens ZIP"
 
 msgid "86Box could not find any usable ROM images.\n\nPlease <a href=\"https://github.com/86Box/roms/releases/latest\">download</a> a ROM set and extract it into the \"roms\" directory."
-msgstr "O 86Box não conseguiu encontrar nenhuma imagem ROM utilizável.\n\nPor favor, vá <a href=\"https://github.com/86Box/roms/releases/latest\">descarregue</a> um pacote ROM e instale-o na pasta \"roms\"."
+msgstr "O 86Box não conseguiu encontrar nenhuma imagem ROM utilizável.\n\nPor favor, vá a href=\"https://github.com/86Box/roms/releases/latest\">descarregue</a> um pacote ROM e instale-o na pasta \"roms\"."
 
 msgid "(empty)"
 msgstr "(empty)"
@@ -941,28 +956,28 @@ msgid "Cartridge images"
 msgstr "Imagens de cartucho"
 
 msgid "Error initializing renderer"
-msgstr "Error initializing renderer"
+msgstr "Erro na inicialização do renderizador"
 
 msgid "OpenGL (3.0 Core) renderer could not be initialized. Use another renderer."
-msgstr "OpenGL (3.0 Core) renderer could not be initialized. Use another renderer."
+msgstr "Não foi possível inicializar o renderizador OpenGL (3.0 Core). Utilize outro renderizador."
 
 msgid "Resume execution"
-msgstr "Resume execution"
+msgstr "Retomar execução"
 
 msgid "Pause execution"
-msgstr "Pause execution"
+msgstr "Pausar execução"
 
 msgid "Press Ctrl+Alt+Del"
-msgstr "Press Ctrl+Alt+Del"
+msgstr "Ctrl+Alt+Del"
 
 msgid "Press Ctrl+Alt+Esc"
-msgstr "Press Ctrl+Alt+Esc"
+msgstr "Ctrl+Alt+Esc"
 
 msgid "Hard reset"
-msgstr "Hard reset"
+msgstr "Reinicialização completa"
 
 msgid "ACPI shutdown"
-msgstr "ACPI shutdown"
+msgstr "Encerramento ACPI"
 
 msgid "Hard disk (%s)"
 msgstr "Disco rígido (%s)"

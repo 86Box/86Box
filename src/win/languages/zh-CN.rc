@@ -176,8 +176,8 @@ BEGIN
         MENUITEM "空置驱动器(&M)",					IDM_CDROM_EMPTY
         MENUITEM "载入上一个镜像(&R)",			IDM_CDROM_RELOAD
         MENUITEM SEPARATOR
-        MENUITEM "镜像(&I)",					IDM_CDROM_IMAGE
-        MENUITEM "文件夹(&F)",					IDM_CDROM_DIR
+        MENUITEM "镜像(&I)...",					IDM_CDROM_IMAGE
+        MENUITEM "文件夹(&F)...",					IDM_CDROM_DIR
     END
 END
 

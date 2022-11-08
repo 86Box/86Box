@@ -244,11 +244,8 @@ msgstr "&Kiadás"
 msgid "&Reload previous image"
 msgstr "Előző képfájl &újratöltése"
 
-msgid "&Image"
-msgstr "&Meglévő képfájl &megnyitása..."
-
 msgid "&Folder..."
-msgstr "&Folder..."
+msgstr "&Mappa..."
 
 msgid "Target &framerate"
 msgstr "Cél &képkockasebesség"
@@ -385,6 +382,12 @@ msgstr "Videokártya:"
 msgid "Voodoo Graphics"
 msgstr "Voodoo-gyorsítókártya"
 
+msgid "IBM 8514/a Graphics"
+msgstr "IBM 8514/a-gyorsítókártya"
+
+msgid "XGA Graphics"
+msgstr "XGA-gyorsítókártya"
+
 msgid "Mouse:"
 msgstr "Egér:"
 
@@ -426,6 +429,15 @@ msgstr "Gravis Ultrasound"
 
 msgid "Use FLOAT32 sound"
 msgstr "FLOAT32 használata"
+
+msgid "FM synth driver"
+msgstr "FM szintetizátor meghajtó"
+
+msgid "Nuked (more accurate)"
+msgstr "Nuked (pontosabb)"
+
+msgid "YMFM (faster)"
+msgstr "YMFM (gyorsabb)"
 
 msgid "Network type:"
 msgstr "Hálózati típusa:"
@@ -570,6 +582,9 @@ msgstr "BPB ellenőrzés"
 
 msgid "CD-ROM drives:"
 msgstr "CD-ROM meghajtók:"
+
+msgid "Earlier drive"
+msgstr "Korábbi meghajtó"
 
 msgid "MO drives:"
 msgstr "MO-meghajtók:"

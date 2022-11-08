@@ -244,11 +244,8 @@ msgstr "&Prazno"
 msgid "&Reload previous image"
 msgstr "&Ponovo učitaj prethodnu sliku"
 
-msgid "&Image"
-msgstr "&Slika"
-
 msgid "&Folder..."
-msgstr "&Folder..."
+msgstr "&Mapa..."
 
 msgid "Target &framerate"
 msgstr "&Ciljni broj okvira u sekundi"
@@ -385,6 +382,12 @@ msgstr "Video:"
 msgid "Voodoo Graphics"
 msgstr "Voodoo grafika"
 
+msgid "IBM 8514/a Graphics"
+msgstr "IBM 8514/a grafika"
+
+msgid "XGA Graphics"
+msgstr "XGA grafika"
+
 msgid "Mouse:"
 msgstr "Miš:"
 
@@ -426,6 +429,15 @@ msgstr "Gravis Ultrasound"
 
 msgid "Use FLOAT32 sound"
 msgstr "Koristi FLOAT32 za zvuk"
+
+msgid "FM synth driver"
+msgstr "Drajver za FM sintisajzer"
+
+msgid "Nuked (more accurate)"
+msgstr "Nuked (precizniji)"
+
+msgid "YMFM (faster)"
+msgstr "YMFM (brži)"
 
 msgid "Network type:"
 msgstr "Tip mreže:"
@@ -570,6 +582,9 @@ msgstr "Provjeraj BPB"
 
 msgid "CD-ROM drives:"
 msgstr "CD-ROM pogoni:"
+
+msgid "Earlier drive"
+msgstr "Raniji pogon"
 
 msgid "MO drives:"
 msgstr "MO pogoni:"
