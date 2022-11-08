@@ -54,7 +54,7 @@
 
 /* Platform Public data, specific. */
 HWND hwndMain  = NULL,  /* application main window */
-    hwndRender = NULL;  /* machine render window */
+    hwndRender = NULL,  /* machine render window */
     hwndRender2 = NULL; /* machine second screen render window */
 HMENU menuMain;         /* application main menu */
 RECT  oldclip;          /* mouse rect */
