@@ -244,11 +244,8 @@ msgstr "İmajı &çıkar"
 msgid "&Reload previous image"
 msgstr "&Önceki imajı seç"
 
-msgid "&Image"
-msgstr "&İmaj seç"
-
 msgid "&Folder..."
-msgstr "&Folder..."
+msgstr "&Klasör..."
 
 msgid "Target &framerate"
 msgstr "Hedef &kare oranı"
@@ -385,6 +382,12 @@ msgstr "Ekran kartı:"
 msgid "Voodoo Graphics"
 msgstr "Voodoo Grafikleri"
 
+msgid "IBM 8514/a Graphics"
+msgstr "IBM 8514/a Grafikleri"
+
+msgid "XGA Graphics"
+msgstr "XGA Grafikleri"
+
 msgid "Mouse:"
 msgstr "Fare:"
 
@@ -426,6 +429,15 @@ msgstr "Gravis Ultrasound"
 
 msgid "Use FLOAT32 sound"
 msgstr "FLOAT32 ses kullan"
+
+msgid "FM synth driver"
+msgstr "FM sentez sürücüsü"
+
+msgid "Nuked (more accurate)"
+msgstr "Nuked (daha doğru)"
+
+msgid "YMFM (faster)"
+msgstr "YMFM (daha hızlı)"
 
 msgid "Network type:"
 msgstr "Ağ tipi:"
@@ -570,6 +582,9 @@ msgstr "BPB'yi denetle"
 
 msgid "CD-ROM drives:"
 msgstr "CD-ROM sürücüleri:"
+
+msgid "Earlier drive"
+msgstr "Daha erken sürüş"
 
 msgid "MO drives:"
 msgstr "MO sürücüleri:"
@@ -941,28 +956,28 @@ msgid "Cartridge images"
 msgstr "Kartuş imajları"
 
 msgid "Error initializing renderer"
-msgstr "Error initializing renderer"
+msgstr "Oluşturucu başlatılırken hata oluştu"
 
 msgid "OpenGL (3.0 Core) renderer could not be initialized. Use another renderer."
-msgstr "OpenGL (3.0 Core) renderer could not be initialized. Use another renderer."
+msgstr "OpenGL (3.0 Core) görüntüleyici başlatılamadı. Başka bir görüntüleyici kullanın."
 
 msgid "Resume execution"
-msgstr "Resume execution"
+msgstr "Yürütmeye devam et"
 
 msgid "Pause execution"
-msgstr "Pause execution"
+msgstr "Yürütmeyi duraklat"
 
 msgid "Press Ctrl+Alt+Del"
-msgstr "Press Ctrl+Alt+Del"
+msgstr "Ctrl+Alt+Del"
 
 msgid "Press Ctrl+Alt+Esc"
-msgstr "Press Ctrl+Alt+Esc"
+msgstr "Ctrl+Alt+Esc"
 
 msgid "Hard reset"
-msgstr "Hard reset"
+msgstr "Makineyi yeniden başlat"
 
 msgid "ACPI shutdown"
-msgstr "ACPI shutdown"
+msgstr "ACPI kapatma"
 
 msgid "Hard disk (%s)"
 msgstr "Hard disk (%s)"

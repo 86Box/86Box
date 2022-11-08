@@ -22,6 +22,7 @@
 #include <stdlib.h>
 #include <math.h>
 #include <wchar.h>
+#include <stdatomic.h>
 #include <86box/86box.h>
 #include <86box/device.h>
 #include <86box/io.h>
@@ -298,7 +299,7 @@ typedef struct s3_t {
         int          input;
         int          len, start;
         int          odf, idf, yuv;
-        volatile int busy;
+        atomic_int busy;
     } videoengine;
 
     struct
@@ -334,7 +335,7 @@ typedef struct s3_t {
     } streams;
 
     fifo_entry_t fifo[FIFO_SIZE];
-    volatile int fifo_read_idx, fifo_write_idx;
+    atomic_int   fifo_read_idx, fifo_write_idx;
 
     uint8_t fifo_thread_run;
 
@@ -351,10 +352,10 @@ typedef struct s3_t {
     uint32_t hwc_fg_col, hwc_bg_col;
     int      hwc_col_stack_pos;
 
-    int          translate;
-    int          enable_8514;
-    int          color_16bit;
-    volatile int busy, force_busy;
+    int        translate;
+    int        enable_8514;
+    int        color_16bit;
+    atomic_int busy, force_busy;
 
     uint8_t thread_run, serialport;
     void   *i2c, *ddc;

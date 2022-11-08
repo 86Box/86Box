@@ -1,0 +1,625 @@
+////////////////////////////////////////////////////////////////////////////
+// Traditional Chinese resources
+
+#ifdef _WIN32
+LANGUAGE LANG_CHINESE, SUBLANG_CHINESE_TRADITIONAL
+#pragma code_page(65001)
+#endif //_WIN32
+
+#define AUTHORS
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Menu
+//
+
+MainMenu MENU DISCARDABLE 
+BEGIN
+    POPUP "操作(&A)"
+    BEGIN
+        MENUITEM "鍵盤需要捕捉(&K)",	IDM_ACTION_KBD_REQ_CAPTURE
+        MENUITEM "將右 CTRL 鍵映射為左 ALT 鍵(&R)",	IDM_ACTION_RCTRL_IS_LALT
+        MENUITEM SEPARATOR
+        MENUITEM "硬重設(&H)...",                 IDM_ACTION_HRESET
+        MENUITEM "Ctrl+Alt+Del(&C)\tCtrl+F12",     IDM_ACTION_RESET_CAD
+        MENUITEM SEPARATOR
+	MENUITEM "Ctrl+Alt+Esc(&E)",		IDM_ACTION_CTRL_ALT_ESC
+        MENUITEM SEPARATOR
+        MENUITEM "暫停(&P)",                      IDM_ACTION_PAUSE
+        MENUITEM SEPARATOR
+        MENUITEM "退出(&X)...",                       IDM_ACTION_EXIT
+    END
+    POPUP "檢視(&V)"
+    BEGIN
+        MENUITEM "隱藏狀態列(&H)",		IDM_VID_HIDE_STATUS_BAR
+        MENUITEM "隱藏工具列(&T)",		IDM_VID_HIDE_TOOLBAR
+        MENUITEM SEPARATOR
+        MENUITEM "視窗大小可調(&R)",          IDM_VID_RESIZE
+        MENUITEM "記住視窗大小和位置(&E)",  IDM_VID_REMEMBER
+        MENUITEM SEPARATOR
+        POPUP "渲染器(&N)"
+        BEGIN
+            MENUITEM "SDL (軟體)(&S)",         IDM_VID_SDL_SW
+            MENUITEM "SDL (硬體)(&H)",         IDM_VID_SDL_HW
+            MENUITEM "SDL (OpenGL)(&O)",           IDM_VID_SDL_OPENGL
+            MENUITEM "OpenGL (3.0 核心)(&G)",      IDM_VID_OPENGL_CORE
+#ifdef USE_VNC
+            MENUITEM "VNC(&V)",                    IDM_VID_VNC
+#endif
+        END
+        MENUITEM SEPARATOR
+        MENUITEM "指定視窗大小...",          IDM_VID_SPECIFY_DIM
+        MENUITEM "強制 4:3 顯示比例(&O)",    IDM_VID_FORCE43
+        POPUP "視窗縮放係數(&W)"
+        BEGIN
+            MENUITEM "0.5x(&0)",                   IDM_VID_SCALE_1X
+            MENUITEM "1x(&1)",                     IDM_VID_SCALE_2X
+            MENUITEM "1.5x(&5)",                   IDM_VID_SCALE_3X
+            MENUITEM "2x(&2)",                     IDM_VID_SCALE_4X
+        END
+        POPUP "過濾方式"
+        BEGIN
+            MENUITEM "鄰近(&N)",                 IDM_VID_FILTER_NEAREST
+            MENUITEM "線性(&L)",                  IDM_VID_FILTER_LINEAR
+        END
+        MENUITEM "HiDPI 縮放(&D)",              IDM_VID_HIDPI
+        MENUITEM SEPARATOR
+        MENUITEM "全螢幕(&F)\tCtrl+Alt+PgUp",    IDM_VID_FULLSCREEN
+        POPUP "全螢幕拉伸模式(&S)"
+        BEGIN
+            MENUITEM "全螢幕拉伸(&F)",        IDM_VID_FS_FULL
+            MENUITEM "4:3(&4)",                        IDM_VID_FS_43
+            MENUITEM "保持比例(&S)", IDM_VID_FS_KEEPRATIO
+            MENUITEM "整數比例(&I)",              IDM_VID_FS_INT
+        END
+        POPUP "EGA/(S)VGA 設定(&G)"
+        BEGIN
+            MENUITEM "VGA 顯示器反色顯示(&I)",   IDM_VID_INVERT
+            POPUP "VGA 螢幕類型(&T)"
+            BEGIN
+                MENUITEM "RGB 彩色(&C)",          IDM_VID_GRAY_RGB
+                MENUITEM "RGB 灰度(&R)",      IDM_VID_GRAY_MONO
+                MENUITEM "琥珀色單色顯示器(&A)",      IDM_VID_GRAY_AMBER
+                MENUITEM "綠色單色顯示器(&G)",      IDM_VID_GRAY_GREEN
+                MENUITEM "白色單色顯示器(&W)",      IDM_VID_GRAY_WHITE
+            END
+            POPUP "灰度轉換類型(&C)"
+            BEGIN
+                MENUITEM "BT601 (NTSC/PAL)(&6)",   IDM_VID_GRAYCT_601
+                MENUITEM "BT709 (HDTV)(&7)",       IDM_VID_GRAYCT_709
+                MENUITEM "平均(&A)",            IDM_VID_GRAYCT_AVE
+            END
+        END
+        MENUITEM SEPARATOR
+        MENUITEM "CGA/PCjr/Tandy/EGA/(S)VGA 過掃描(&G)",     IDM_VID_OVERSCAN
+        MENUITEM "變更單色顯示對比度(&M)", IDM_VID_CGACON
+    END
+    MENUITEM "介質(&M)",				IDM_MEDIA
+    POPUP "工具(&T)"
+    BEGIN
+        MENUITEM "設定(&S)...",                IDM_CONFIG
+        MENUITEM "更新狀態列圖示(&U)",	IDM_UPDATE_ICONS
+        MENUITEM SEPARATOR
+        MENUITEM "擷圖(&C)\tCtrl+F11",  IDM_ACTION_SCREENSHOT
+        MENUITEM SEPARATOR
+        MENUITEM "首選項(&P)...",    IDM_PREFERENCES
+        MENUITEM "啟用 Discord 整合(&D)", IDM_DISCORD
+        MENUITEM SEPARATOR
+        MENUITEM "音量增益(&G)...",              IDM_SND_GAIN
+#ifdef MTR_ENABLED
+        MENUITEM SEPARATOR
+        MENUITEM "開始追踪\tCtrl+T",         IDM_ACTION_BEGIN_TRACE
+        MENUITEM "結束追踪\tCtrl+T",           IDM_ACTION_END_TRACE
+#endif
+    END
+    POPUP "說明(&H)"
+    BEGIN
+        MENUITEM "文件(&D)...",           IDM_DOCS
+        MENUITEM "關於 86Box(&A)...",             IDM_ABOUT
+    END
+END
+
+StatusBarMenu MENU DISCARDABLE 
+BEGIN
+    MENUITEM SEPARATOR
+END
+
+CassetteSubmenu MENU DISCARDABLE
+BEGIN
+    POPUP ""
+    BEGIN
+        MENUITEM "新增鏡像(&N)...",				IDM_CASSETTE_IMAGE_NEW
+        MENUITEM SEPARATOR
+        MENUITEM "開啟已存在的鏡像(&E)...",				IDM_CASSETTE_IMAGE_EXISTING
+        MENUITEM "開啟已存在的鏡像並寫保護(&W)...",	IDM_CASSETTE_IMAGE_EXISTING_WP
+        MENUITEM SEPARATOR
+        MENUITEM "錄製(&R)",					IDM_CASSETTE_RECORD
+        MENUITEM "播放(&P)",					IDM_CASSETTE_PLAY
+        MENUITEM "倒帶至起點(&R)",			IDM_CASSETTE_REWIND
+        MENUITEM "快進至終點(&F)",			IDM_CASSETTE_FAST_FORWARD
+        MENUITEM SEPARATOR
+        MENUITEM "彈出(&J)",					IDM_CASSETTE_EJECT
+    END
+END
+
+CartridgeSubmenu MENU DISCARDABLE
+BEGIN
+    POPUP ""
+    BEGIN
+        MENUITEM "鏡像(&I)...",					IDM_CARTRIDGE_IMAGE
+        MENUITEM SEPARATOR
+        MENUITEM "彈出(&J)",					IDM_CARTRIDGE_EJECT
+    END
+END
+
+FloppySubmenu MENU DISCARDABLE
+BEGIN
+    POPUP ""
+    BEGIN
+        MENUITEM "新增鏡像(&N)...",				IDM_FLOPPY_IMAGE_NEW
+        MENUITEM SEPARATOR
+        MENUITEM "開啟已存在的鏡像(&E)...",				IDM_FLOPPY_IMAGE_EXISTING
+        MENUITEM "開啟已存在的鏡像並寫保護(&W)...",	IDM_FLOPPY_IMAGE_EXISTING_WP
+        MENUITEM SEPARATOR
+        MENUITEM "匯出為 86F 格式(&x)...",				IDM_FLOPPY_EXPORT_TO_86F
+        MENUITEM SEPARATOR
+        MENUITEM "彈出(&J)",					IDM_FLOPPY_EJECT
+    END
+END
+
+CdromSubmenu MENU DISCARDABLE
+BEGIN
+    POPUP ""
+    BEGIN
+        MENUITEM "靜音(&M)",					IDM_CDROM_MUTE
+        MENUITEM SEPARATOR
+        MENUITEM "空置光碟機(&M)",					IDM_CDROM_EMPTY
+        MENUITEM "載入上一個鏡像(&R)",			IDM_CDROM_RELOAD
+        MENUITEM SEPARATOR
+        MENUITEM "鏡像(&I)...",					IDM_CDROM_IMAGE
+        MENUITEM "資料夾(&F)...",					IDM_CDROM_DIR
+    END
+END
+
+ZIPSubmenu MENU DISCARDABLE
+BEGIN
+    POPUP ""
+    BEGIN
+        MENUITEM "新增鏡像(&N)...",				IDM_ZIP_IMAGE_NEW
+        MENUITEM SEPARATOR
+        MENUITEM "開啟已存在的鏡像(&E)...",				IDM_ZIP_IMAGE_EXISTING
+        MENUITEM "開啟已存在的鏡像並寫保護(&W)...",	IDM_ZIP_IMAGE_EXISTING_WP
+        MENUITEM SEPARATOR
+        MENUITEM "彈出(&J)",					IDM_ZIP_EJECT
+        MENUITEM "載入上一個鏡像(&R)",			IDM_ZIP_RELOAD
+    END
+END
+
+MOSubmenu MENU DISCARDABLE
+BEGIN
+    POPUP ""
+    BEGIN
+        MENUITEM "新增鏡像(&N)...",				IDM_MO_IMAGE_NEW
+        MENUITEM SEPARATOR
+        MENUITEM "開啟已存在的鏡像(&E)...",				IDM_MO_IMAGE_EXISTING
+        MENUITEM "開啟已存在的鏡像並寫保護(&W)...",	IDM_MO_IMAGE_EXISTING_WP
+        MENUITEM SEPARATOR
+        MENUITEM "鏡像(&J)",					IDM_MO_EJECT
+        MENUITEM "載入上一個鏡像(&R)",			IDM_MO_RELOAD
+    END
+END
+
+VidGLSubMenu MENU DISCARDABLE
+BEGIN
+    POPUP "目標幀率(&F)"
+    BEGIN
+        MENUITEM "與視訊同步(&S)", IDM_VID_GL_FPS_BLITTER
+        MENUITEM "25 fps(&2)", IDM_VID_GL_FPS_25
+        MENUITEM "30 fps(&3)", IDM_VID_GL_FPS_30
+        MENUITEM "50 fps(&5)", IDM_VID_GL_FPS_50
+        MENUITEM "60 fps(&6)", IDM_VID_GL_FPS_60
+        MENUITEM "75 fps(&7)", IDM_VID_GL_FPS_75
+    END
+    MENUITEM "垂直同步(&V)", IDM_VID_GL_VSYNC
+    MENUITEM "選擇著色器(&S)...", IDM_VID_GL_SHADER
+    MENUITEM "移除著色器(&R)", IDM_VID_GL_NOSHADER
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Dialog
+//
+
+#define STR_PREFERENCES		"首選項"
+#define STR_SND_GAIN		"音量增益"
+#define STR_NEW_FLOPPY		"新增鏡像"
+#define STR_CONFIG		"設定"
+#define STR_SPECIFY_DIM		"指定主視窗大小"
+
+#define STR_OK			"確定"
+#define STR_CANCEL		"取消"
+#define STR_GLOBAL		"將以上設定存儲為全局預設值(&G)"
+#define STR_DEFAULT		"預設(&D)"
+#define STR_LANGUAGE		"語言:"
+#define STR_ICONSET		"圖示集:"
+
+#define STR_GAIN		"增益"
+
+#define STR_FILE_NAME		"檔案名:"
+#define STR_DISK_SIZE		"磁碟大小:"
+#define STR_RPM_MODE		"轉速 (RPM) 模式:"
+#define STR_PROGRESS		"進度:"
+
+#define STR_WIDTH		"寬度:"
+#define STR_HEIGHT		"高度:"
+#define STR_LOCK_TO_SIZE	"鎖定此大小"
+
+#define STR_MACHINE_TYPE	"機器類型:"
+#define STR_MACHINE		"機型:"
+#define STR_CONFIGURE		"配置"
+#define STR_CPU_TYPE		"CPU 類型:"
+#define STR_CPU_SPEED		"速度:"
+#define STR_FPU			"浮點處理器 (FPU):"
+#define STR_WAIT_STATES		"等待狀態 (WS):"
+#define STR_MB			"MB"
+#define STR_MEMORY		"記憶體:"
+#define STR_TIME_SYNC		"時間同步"
+#define STR_DISABLED		"禁用"
+#define STR_ENABLED_LOCAL	"啟用 (本地時間)"
+#define STR_ENABLED_UTC		"啟用 (UTC)"
+#define STR_DYNAREC		"動態重編譯器"
+
+#define STR_VIDEO		"顯示卡:"
+#define STR_VOODOO		"Voodoo Graphics"
+#define STR_IBM8514		"IBM 8514/a Graphics"
+#define STR_XGA			"XGA Graphics"
+
+#define STR_MOUSE		"滑鼠:"
+#define STR_JOYSTICK		"操縱桿:"
+#define STR_JOY1		"操縱桿 1..."
+#define STR_JOY2		"操縱桿 2..."
+#define STR_JOY3		"操縱桿 3..."
+#define STR_JOY4		"操縱桿 4..."
+
+#define STR_SOUND		"音訊卡:"
+#define STR_MIDI_OUT		"MIDI 輸出裝置:"
+#define STR_MIDI_IN		"MIDI 輸入裝置:"
+#define STR_MPU401		"獨立 MPU-401"
+#define STR_SSI			"Innovation SSI-2001"
+#define STR_CMS			"CMS / Game Blaster"
+#define STR_GUS			"Gravis Ultrasound"
+#define STR_FLOAT		"使用單精度浮點 (FLOAT32)"
+#define STR_FM_DRIVER		"調頻合成器驅動器"
+#define STR_FM_DRV_NUKED	"Nuked (更準確)"
+#define STR_FM_DRV_YMFM		"YMFM (更快)"
+
+#define STR_NET_TYPE		"網路類型:"
+#define STR_PCAP		"PCap 裝置:"
+#define STR_NET			"網路配接器:"
+
+#define STR_COM1		"COM1 裝置:"
+#define STR_COM2		"COM2 裝置:"
+#define STR_COM3		"COM3 裝置:"
+#define STR_COM4		"COM4 裝置:"
+#define STR_LPT1		"LPT1 裝置:"
+#define STR_LPT2		"LPT2 裝置:"
+#define STR_LPT3		"LPT3 裝置:"
+#define STR_LPT4		"LPT4 裝置:"
+#define STR_SERIAL1		"序列埠 1"
+#define STR_SERIAL2		"序列埠 2"
+#define STR_SERIAL3		"序列埠 3"
+#define STR_SERIAL4		"序列埠 4"
+#define STR_PARALLEL1		"並列埠 1"
+#define STR_PARALLEL2		"並列埠 2"
+#define STR_PARALLEL3		"並列埠 3"
+#define STR_PARALLEL4		"並列埠 4"
+
+#define STR_HDC			"硬碟控制器:"
+#define STR_FDC			"軟碟控制器:"
+#define STR_IDE_TER		"第三 IDE 控制器"
+#define STR_IDE_QUA		"第四 IDE 控制器"
+#define STR_SCSI		"SCSI"
+#define STR_SCSI_1		"控制器 1:"
+#define STR_SCSI_2		"控制器 2:"
+#define STR_SCSI_3		"控制器 3:"
+#define STR_SCSI_4		"控制器 4:"
+#define STR_CASSETTE		"磁帶"
+
+#define STR_HDD			"硬碟:"
+#define STR_NEW			"新增(&N)..."
+#define STR_EXISTING		"已有鏡像(&E)..."
+#define STR_REMOVE		"移除(&R)"
+#define STR_BUS			"匯流排:"
+#define STR_CHANNEL		"通道:"
+#define STR_ID			"ID:"
+
+#define STR_SPECIFY		"指定(&S)..."
+#define STR_SECTORS		"磁區(S):"
+#define STR_HEADS		"磁頭(H):"
+#define STR_CYLS		"柱面(C):"
+#define STR_SIZE_MB		"大小 (MB):"
+#define STR_TYPE		"類型:"
+#define STR_IMG_FORMAT		"鏡像格式:"
+#define STR_BLOCK_SIZE		"塊大小:"
+
+#define STR_FLOPPY_DRIVES	"軟碟機:"
+#define STR_TURBO		"加速時序"
+#define STR_CHECKBPB		"檢查 BPB"
+#define STR_CDROM_DRIVES	"光碟機:"
+#define STR_CD_SPEED		"速度:"
+#define STR_EARLY		"早先的驅動器"
+
+#define STR_MO_DRIVES		"磁光碟機:"
+#define STR_ZIP_DRIVES		"ZIP 磁碟機:"
+#define STR_250			"ZIP 250"
+
+#define STR_ISARTC		"ISA 實時時鐘:"
+#define STR_ISAMEM		"ISA 記憶體擴充"
+#define STR_ISAMEM_1		"擴充卡 1:"
+#define STR_ISAMEM_2		"擴充卡 2:"
+#define STR_ISAMEM_3		"擴充卡 3:"
+#define STR_ISAMEM_4		"擴充卡 4:"
+#define STR_BUGGER		"ISABugger 裝置"
+#define STR_POSTCARD		"自檢 (POST) 卡"
+
+#define FONT_SIZE		9
+#define FONT_NAME		"Microsoft JHengHei"
+
+#include "dialogs.rc"
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// String Table
+//
+
+STRINGTABLE DISCARDABLE 
+BEGIN
+    2048	"86Box"
+    IDS_2049	"錯誤"
+    IDS_2050	"致命錯誤"
+    IDS_2051	" - 已暫停"
+    IDS_2052	"按下 Ctrl+Alt+PgDn 返回到視窗模式。"
+    IDS_2053	"速度"
+    IDS_2054	"ZIP %03i %i (%s): %ls"
+    IDS_2055	"ZIP 鏡像 (*.IM?;*.ZDI)\0*.IM?;*.ZDI\0"
+    IDS_2056	"86Box 找不到任何可用的 ROM 鏡像。\n\n請<a href=""https://github.com/86Box/roms/releases/latest"">下載</a>ROM 包並將其解壓到 ""roms"" 資料夾。"
+    IDS_2057	"(空)"
+    IDS_2058	"ZIP 鏡像 (*.IM?;*.ZDI)\0*.IM?;*.ZDI\0所有檔案 (*.*)\0*.*\0"
+    IDS_2059	"加速"
+    IDS_2060	"開"
+    IDS_2061	"關"
+    IDS_2062	"所有鏡像 (*.86F;*.DSK;*.FLP;*.IM?;*.*FD?)\0*.86F;*.DSK;*.FLP;*.IM?;*.*FD?\0基本磁區鏡像 (*.DSK;*.FLP;*.IM?;*.*FD?)\0*.DSK;*.FLP;*.IM?;*.IMG;*.*FD?\0表面鏡像 (*.86F)\0*.86F\0"
+    IDS_2063	"由於 roms/machines 資料夾中缺少合適的 ROM，機型 ""%hs"" 不可用。將切換到其他可用機型。"
+END
+
+STRINGTABLE DISCARDABLE 
+BEGIN
+    IDS_2064	"由於 roms/video 資料夾中缺少合適的 ROM，顯示卡 ""%hs"" 不可用。將切換到其他可用顯示卡。"
+    IDS_2065	"機型"
+    IDS_2066	"顯示"
+    IDS_2067	"輸入裝置"
+    IDS_2068	"聲音"
+    IDS_2069	"網路"
+    IDS_2070	"連接埠 (COM 和 LPT)"
+    IDS_2071	"存儲控制器"
+    IDS_2072	"硬碟"
+    IDS_2073	"軟碟/光碟機"
+    IDS_2074	"其他可移除裝置"
+    IDS_2075	"其他周邊裝置"
+    IDS_2076	"表面鏡像 (*.86F)\0*.86F\0"
+    IDS_2077	"點擊視窗捕捉滑鼠"
+    IDS_2078	"按下 F8+F12 釋放滑鼠"
+    IDS_2079	"按下 F8+F12 或滑鼠中鍵釋放滑鼠"
+END
+
+STRINGTABLE DISCARDABLE 
+BEGIN
+    IDS_2080	"無法初始化 FluidSynth"
+    IDS_2081	"匯流排"
+    IDS_2082	"檔案"
+    IDS_2083	"C"
+    IDS_2084	"H"
+    IDS_2085	"S"
+    IDS_2086	"MB"
+    IDS_2087	"檢查 BPB"
+    IDS_2088	"KB"
+    IDS_2089	"無法初始化視訊渲染器。"
+    IDS_2090	"預設"
+    IDS_2091	"%i 等待狀態 (WS)"
+    IDS_2092	"類型"
+    IDS_2093	"設定 PCap 失敗"
+    IDS_2094	"未找到 PCap 裝置"
+    IDS_2095	"無效 PCap 裝置"
+    IDS_2096	"標準 2 鍵操縱桿"
+    IDS_2097	"標準 4 鍵操縱桿"
+    IDS_2098	"標準 6 鍵操縱桿"
+    IDS_2099	"標準 8 鍵操縱桿"
+    IDS_2100	"CH Flightstick Pro"
+    IDS_2101	"Microsoft SideWinder Pad"
+    IDS_2102	"Thrustmaster Flight Control System"
+    IDS_2103	"無"
+    IDS_2104	"無法載入鍵盤加速器。"
+    IDS_2105	"無法註冊原始輸入。"
+    IDS_2106	"%u"
+    IDS_2107	"%u MB (CHS: %i, %i, %i)"
+    IDS_2108	"軟碟 %i (%s): %ls"
+    IDS_2109	"所有鏡像 (*.0??;*.1??;*.??0;*.86F;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.JSON;*.TD0;*.*FD?;*.MFM;*.XDF)\0*.0??;*.1??;*.??0;*.86F;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.JSON;*.TD0;*.*FD?;*.MFM;*.XDF\0進階磁區鏡像 (*.IMD;*.JSON;*.TD0)\0*.IMD;*.JSON;*.TD0\0基本磁區鏡像 (*.0??;*.1??;*.??0;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.XDF;*.*FD?)\0*.0??;*.1??;*.??0;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.XDF;*.*FD?\0Flux 鏡像 (*.FDI)\0*.FDI\0表面鏡像 (*.86F;*.MFM)\0*.86F;*.MFM\0所有檔案 (*.*)\0*.*\0"
+    IDS_2110	"無法初始化 FreeType"
+    IDS_2111	"無法初始化 SDL，需要 SDL2.dll"
+    IDS_2112	"確定要硬重設模擬器嗎？"
+    IDS_2113	"確定要退出 86Box 嗎？"
+    IDS_2114	"無法初始化 Ghostscript"
+    IDS_2115	"磁光碟 %i (%ls): %ls"
+    IDS_2116	"磁光碟鏡像 (*.IM?;*.MDI)\0*.IM?;*.MDI\0所有檔案 (*.*)\0*.*\0"
+    IDS_2117	"歡迎使用 86Box！"
+    IDS_2118	"內部控制器"
+    IDS_2119	"退出"
+    IDS_2120	"找不到 ROM"
+    IDS_2121	"要保存設定嗎？"
+    IDS_2122	"此操作將硬重設模擬器。"
+    IDS_2123	"保存"
+    IDS_2124	"關於 86Box"
+    IDS_2125	"86Box v" EMU_VERSION
+
+    IDS_2126	"一個舊式電腦模擬器\n\n作者: Sarah Walker、Miran Grca、Fred N. van Kempen (waltje)、SA1988、Tiseno100、reenigne、leilei、JohnElliott、greatpsycho 等人。\n\n本軟體依據 GNU 通用公共授權第二版或更新版本發布。詳情見 LICENSE 檔案。"
+    IDS_2127	"確定"
+    IDS_2128	"硬體不可用"
+#ifdef _WIN32
+#define LIB_NAME_PCAP "WinPcap"
+#else
+#define LIB_NAME_PCAP "libpcap"
+#endif
+    IDS_2129	"請確認 " LIB_NAME_PCAP " 已安裝且使用相容 " LIB_NAME_PCAP " 的網路連線。"
+    IDS_2130	"無效配置"
+#ifdef _WIN32
+#define LIB_NAME_FREETYPE "freetype.dll"
+#else
+#define LIB_NAME_FREETYPE "libfreetype"
+#endif
+    IDS_2131	"ESC/P 印表機模擬需要" LIB_NAME_FREETYPE 
+#ifdef _WIN32
+#define LIB_NAME_GS "gsdll32.dll"
+#else
+#define LIB_NAME_GS "libgs"
+#endif
+    IDS_2132	LIB_NAME_GS " 是將 PostScript 檔案轉換為 PDF 所需要的庫。\n\n使用通用 PostScript 印表機列印的文件將被保存為 PostScript (.ps) 檔案。"
+#ifdef _WIN32
+#define LIB_NAME_FLUIDSYNTH "libfluidsynth.dll"
+#else
+#define LIB_NAME_FLUIDSYNTH "libfluidsynth"
+#endif
+    IDS_2133	"FluidSynth MIDI 輸出需要" LIB_NAME_FLUIDSYNTH 
+    IDS_2134	"正在進入全螢幕模式"
+    IDS_2135	"不要再顯示此消息"
+    IDS_2136	"不退出"
+    IDS_2137	"重設"
+    IDS_2138	"不重設"
+    IDS_2139	"磁光碟鏡像 (*.IM?;*.MDI)\0*.IM?;*.MDI\0所有檔案 (*.*)\0*.*\0"
+    IDS_2140	"光碟鏡像 (*.ISO;*.CUE)\0*.ISO;*.CUE\0所有檔案 (*.*)\0*.*\0"
+    IDS_2141	"%hs 裝置配置"
+    IDS_2142    "顯示器處在睡眠狀態"
+    IDS_2143	"OpenGL 著色器 (*.GLSL)\0*.GLSL\0所有檔案 (*.*)\0*.*\0"
+    IDS_2144	"OpenGL 選項"
+    IDS_2145	"正在載入一個不受支援的配置"
+    IDS_2146	"此模擬電腦禁用了基於選定電腦的 CPU 類型過濾。\n\n能夠選中與所選機器本不相容的 CPU，但是可能會遇到與機器 BIOS 或其他軟體不相容的問題。\n\n啟用此設定不受官方支援，並且提交的任何錯誤報告可能會視為無效而關閉。"
+    IDS_2147	"繼續"
+    IDS_2148	"磁帶: %s"
+    IDS_2149	"磁帶鏡像 (*.PCM;*.RAW;*.WAV;*.CAS)\0*.PCM;*.RAW;*.WAV;*.CAS\0所有檔案 (*.*)\0*.*\0"
+    IDS_2150	"卡帶 %i: %ls"
+    IDS_2151	"卡帶鏡像 (*.A;*.B;*.JRC)\0*.A;*.B;*.JRC\0所有檔案 (*.*)\0*.*\0"
+    IDS_2152	"初始化渲染器時出錯"
+    IDS_2153	"無法初始化 OpenGL (3.0 核心) 渲染器。請使用其他渲染器。"
+    IDS_2154	"恢復執行"
+    IDS_2155	"暫停執行"
+    IDS_2156	"按下 Ctrl+Alt+Del"
+    IDS_2157	"按下 Ctrl+Alt+Esc"
+    IDS_2158	"硬重設"
+    IDS_2159	"ACPI 關機"
+    IDS_2160	"設定"
+    IDS_2161    "早先的驅動器"
+END
+
+STRINGTABLE DISCARDABLE 
+BEGIN
+    IDS_4096    "硬碟 (%s)"
+    IDS_4097	"%01i:%01i"
+    IDS_4098	"%01i"
+    IDS_4099	"不存在 MFM/RLL 或 ESDI CD-ROM 光碟機"
+    IDS_4100	"自訂..."
+    IDS_4101	"自訂 (大容量)..."
+    IDS_4102	"添加新硬碟"
+    IDS_4103	"添加已存在的硬碟"
+    IDS_4104	"HDI 磁碟鏡像不能超過 4 GB。"
+    IDS_4105	"磁碟鏡像不能超過 127 GB。"
+    IDS_4106	"硬碟鏡像 (*.HD?;*.IM?;*.VHD)\0*.HD?;*.IM?;*.VHD\0所有檔案 (*.*)\0*.*\0"
+    IDS_4107	"無法讀取檔案"
+    IDS_4108	"無法寫入檔案"
+    IDS_4109	"不支援非 512 位元組磁區大小的 HDI 或 HDX 鏡像。"
+    IDS_4110	"尚未支援 USB"
+    IDS_4111	"磁碟鏡像檔案已存在"
+    IDS_4112	"請指定有效的檔案名。"
+    IDS_4113	"已創建磁碟鏡像"
+    IDS_4114	"請確定此檔案已存在並可讀取。"
+    IDS_4115	"請確定此檔案保存在可寫目錄中。"
+    IDS_4116	"磁碟鏡像太大"
+    IDS_4117	"請記得為新創建的鏡像分區並格式化。"
+    IDS_4118	"選定的檔案將被覆蓋。確定繼續使用此檔案嗎？"
+    IDS_4119	"不支援的磁碟鏡像"
+    IDS_4120	"覆蓋"
+    IDS_4121	"不覆蓋"
+    IDS_4122	"原始鏡像 (.img)"
+    IDS_4123	"HDI 鏡像 (.hdi)"
+    IDS_4124	"HDX 鏡像 (.hdx)"
+    IDS_4125	"固定大小 VHD (.vhd)"
+    IDS_4126	"動態大小 VHD (.vhd)"
+    IDS_4127	"差分 VHD (.vhd)"
+    IDS_4128	"大塊 (2 MB)"
+    IDS_4129	"小塊 (512 KB)"
+    IDS_4130	"VHD 檔案 (*.VHD)\0*.VHD\0所有檔案 (*.*)\0*.*\0"
+    IDS_4131	"選擇父 VHD 檔案"
+    IDS_4132	"父映像可能在創建差異鏡像後被修改。\n\n如果鏡像檔案被移動或複製，或創建此磁碟的程式中存在錯誤，也可能發生這種情況。\n\n是否需要修復時間戳？"
+    IDS_4133	"父碟與子碟的時間戳不匹配"
+    IDS_4134	"無法修復 VHD 時間戳。"
+    IDS_4135	"%01i:%02i"
+
+    IDS_4352    "MFM/RLL"
+    IDS_4353    "XTA"
+    IDS_4354    "ESDI"
+    IDS_4355    "IDE"
+    IDS_4356    "ATAPI"
+    IDS_4357    "SCSI"
+
+    IDS_4608	"MFM/RLL (%01i:%01i)"
+    IDS_4609	"XTA (%01i:%01i)"
+    IDS_4610	"ESDI (%01i:%01i)"
+    IDS_4611	"IDE (%01i:%01i)"
+    IDS_4612	"ATAPI (%01i:%01i)"
+    IDS_4613	"SCSI (%01i:%02i)"
+
+    IDS_5120	"光碟 %i (%s): %s"
+
+    IDS_5376	"禁用"
+    IDS_5381	"ATAPI"
+    IDS_5382    "SCSI"
+
+    IDS_5632	"禁用"
+    IDS_5637	"ATAPI (%01i:%01i)"
+    IDS_5638    "SCSI (%01i:%02i)"
+
+    IDS_5888	"160 kB"
+    IDS_5889	"180 kB"
+    IDS_5890	"320 kB"
+    IDS_5891	"360 kB"
+    IDS_5892	"640 kB"
+    IDS_5893	"720 kB"
+    IDS_5894	"1.2 MB"
+    IDS_5895	"1.25 MB"
+    IDS_5896	"1.44 MB"
+    IDS_5897	"DMF (1024 簇)"
+    IDS_5898	"DMF (2048 簇)"
+    IDS_5899	"2.88 MB"
+    IDS_5900	"ZIP 100"
+    IDS_5901	"ZIP 250"
+    IDS_5902	"3.5 英寸 128 MB (ISO 10090)"
+    IDS_5903	"3.5 英寸 230 MB (ISO 13963)"
+    IDS_5904	"3.5 英寸 540 MB (ISO 15498)"
+    IDS_5905	"3.5 英寸 640 MB (ISO 15498)"
+    IDS_5906	"3.5 英寸 1.3 GB (GigaMO)"
+    IDS_5907	"3.5 英寸 2.3 GB (GigaMO 2)"
+    IDS_5908	"5.25 英寸 600 MB"
+    IDS_5909	"5.25 英寸 650 MB"
+    IDS_5910	"5.25 英寸 1 GB"
+    IDS_5911	"5.25 英寸 1.3 GB"
+
+    IDS_6144	"標準轉速 (RPM)"
+    IDS_6145	"低於標準轉速的 1%"
+    IDS_6146	"低於標準轉速的 1.5%"
+    IDS_6147	"低於標準轉速的 2%"
+
+    IDS_7168	"(系統預設)"
+END
+#define IDS_LANG_ENUS	IDS_7168
+
+// Traditional Chinese resources
+/////////////////////////////////////////////////////////////////////////////

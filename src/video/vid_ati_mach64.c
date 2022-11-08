@@ -22,6 +22,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <wchar.h>
+#include <stdatomic.h>
 #define HAVE_STDARG_H
 #include <86box/86box.h>
 #include <86box/device.h>
@@ -215,7 +216,7 @@ typedef struct mach64_t {
     } accel;
 
     fifo_entry_t fifo[FIFO_SIZE];
-    volatile int fifo_read_idx, fifo_write_idx;
+    atomic_int fifo_read_idx, fifo_write_idx;
 
     thread_t *fifo_thread;
     event_t  *wake_fifo_thread;

@@ -244,11 +244,8 @@ msgstr "&Пустий"
 msgid "&Reload previous image"
 msgstr "&Знову завантажити попередній образ"
 
-msgid "&Image"
-msgstr "&Образ..."
-
 msgid "&Folder..."
-msgstr "&Folder..."
+msgstr "&Тека..."
 
 msgid "Target &framerate"
 msgstr "Цільова &частота кадрів"
@@ -385,6 +382,12 @@ msgstr "Відеокарта:"
 msgid "Voodoo Graphics"
 msgstr "Прискорювач Voodoo"
 
+msgid "IBM 8514/a Graphics"
+msgstr "Прискорювач IBM 8514/a"
+
+msgid "XGA Graphics"
+msgstr "Прискорювач XGA"
+
 msgid "Mouse:"
 msgstr "Миша:"
 
@@ -426,6 +429,15 @@ msgstr "Gravis Ultrasound"
 
 msgid "Use FLOAT32 sound"
 msgstr "FLOAT32 звук"
+
+msgid "FM synth driver"
+msgstr "Драйвер FM-синтезатора"
+
+msgid "Nuked (more accurate)"
+msgstr "Nuked (більш точний)"
+
+msgid "YMFM (faster)"
+msgstr "YMFM (швидший)"
 
 msgid "Network type:"
 msgstr "Тип мережі:"
@@ -570,6 +582,9 @@ msgstr "Перевіряти BPB"
 
 msgid "CD-ROM drives:"
 msgstr "Дисководи CD-ROM:"
+
+msgid "Earlier drive"
+msgstr "Більш ранній дисковод"
 
 msgid "MO drives:"
 msgstr "Магнітооптичні дисководи:"
