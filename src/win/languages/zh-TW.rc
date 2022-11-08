@@ -389,7 +389,7 @@ BEGIN
     IDS_2059	"加速"
     IDS_2060	"開"
     IDS_2061	"關"
-    IDS_2062	"所有鏡像 (*.86F;*.DSK;*.FLP;*.IM?;*.*FD?)\0*.86F;*.DSK;*.FLP;*.IM?;*.*FD?\0基本磁區鏡像 (*.DSK;*.FLP;*.IM?;*.*FD?)\0*.DSK;*.FLP;*.IM?;*.IMG;*.*FD?\0表面镜像 (*.86F)\0*.86F\0"
+    IDS_2062	"所有鏡像 (*.86F;*.DSK;*.FLP;*.IM?;*.*FD?)\0*.86F;*.DSK;*.FLP;*.IM?;*.*FD?\0基本磁區鏡像 (*.DSK;*.FLP;*.IM?;*.*FD?)\0*.DSK;*.FLP;*.IM?;*.IMG;*.*FD?\0表面鏡像 (*.86F)\0*.86F\0"
     IDS_2063	"由於 roms/machines 資料夾中缺少合適的 ROM，機型 ""%hs"" 不可用。將切換到其他可用機型。"
 END
 
