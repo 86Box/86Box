@@ -335,6 +335,7 @@ END
 #define STR_BUS			"Magistrala:"
 #define STR_CHANNEL		"Kanał:"
 #define STR_ID			"ID:"
+#define STR_SPEED		"Speed:"
 
 #define STR_SPECIFY		"&Określ..."
 #define STR_SECTORS		"Sektory:"

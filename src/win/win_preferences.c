@@ -1,17 +1,17 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Handle the dialog for changing the program's language and other global settings.
+ *          Handle the dialog for changing the program's language and other global settings.
  *
  *
- * Authors:	Laci bá'
+ * Authors: Laci bá'
  *
- *		Copyright 2021 Laci bá'
+ *          Copyright 2021 Laci bá'
  */
 #define UNICODE
 #define BITMAP WINDOWS_BITMAP

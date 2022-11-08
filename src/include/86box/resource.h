@@ -113,47 +113,48 @@
 #define IDT_CHANNEL 1741 /* Channel: */
 #define IDT_ID      1742 /* ID: */
 #define IDT_LUN     1743 /* LUN: */
+#define IDT_SPEED   1744 /* Speed: */
 
 /* DLG_CFG_HARD_DISKS_ADD */
-#define IDT_SECTORS    1744 /* Sectors: */
-#define IDT_HEADS      1745 /* Heads: */
-#define IDT_CYLS       1746 /* Cylinders: */
-#define IDT_SIZE_MB    1747 /* Size (MB): */
-#define IDT_TYPE       1748 /* Type: */
-#define IDT_FILE_NAME  1749 /* File name: */
-#define IDT_IMG_FORMAT 1750 /* Image Format: */
-#define IDT_BLOCK_SIZE 1751 /* Block Size: */
-#define IDT_PROGRESS   1752 /* Progress: */
+#define IDT_SECTORS    1745 /* Sectors: */
+#define IDT_HEADS      1746 /* Heads: */
+#define IDT_CYLS       1747 /* Cylinders: */
+#define IDT_SIZE_MB    1748 /* Size (MB): */
+#define IDT_TYPE       1749 /* Type: */
+#define IDT_FILE_NAME  1750 /* File name: */
+#define IDT_IMG_FORMAT 1751 /* Image Format: */
+#define IDT_BLOCK_SIZE 1752 /* Block Size: */
+#define IDT_PROGRESS   1753 /* Progress: */
 
 /* DLG_CFG_FLOPPY_AND_CDROM_DRIVES */
-#define IDT_FLOPPY_DRIVES 1753 /* Floppy drives: */
-#define IDT_FDD_TYPE      1754 /* Type: */
-#define IDT_CD_DRIVES     1755 /* CD-ROM drives: */
-#define IDT_CD_BUS        1756 /* Bus: */
-#define IDT_CD_ID         1757 /* ID: */
-#define IDT_CD_LUN        1758 /* LUN: */
-#define IDT_CD_CHANNEL    1759 /* Channel: */
-#define IDT_CD_SPEED      1760 /* Speed: */
+#define IDT_FLOPPY_DRIVES 1754 /* Floppy drives: */
+#define IDT_FDD_TYPE      1755 /* Type: */
+#define IDT_CD_DRIVES     1756 /* CD-ROM drives: */
+#define IDT_CD_BUS        1757 /* Bus: */
+#define IDT_CD_ID         1758 /* ID: */
+#define IDT_CD_LUN        1759 /* LUN: */
+#define IDT_CD_CHANNEL    1760 /* Channel: */
+#define IDT_CD_SPEED      1761 /* Speed: */
 
 /* DLG_CFG_OTHER_REMOVABLE_DEVICES */
-#define IDT_MO_DRIVES  1761 /* MO drives: */
-#define IDT_MO_BUS     1762 /* Bus: */
-#define IDT_MO_ID      1763 /* ID: */
-#define IDT_MO_CHANNEL 1764 /* Channel */
-#define IDT_MO_TYPE    1765 /* Type: */
+#define IDT_MO_DRIVES  1762 /* MO drives: */
+#define IDT_MO_BUS     1763 /* Bus: */
+#define IDT_MO_ID      1764 /* ID: */
+#define IDT_MO_CHANNEL 1765 /* Channel */
+#define IDT_MO_TYPE    1766 /* Type: */
 
-#define IDT_ZIP_DRIVES  1766 /* ZIP drives: */
-#define IDT_ZIP_BUS     1767 /* Bus: */
-#define IDT_ZIP_ID      1768 /* ID: */
-#define IDT_ZIP_LUN     1769 /* LUN: */
-#define IDT_ZIP_CHANNEL 1770 /* Channel: */
+#define IDT_ZIP_DRIVES  1767 /* ZIP drives: */
+#define IDT_ZIP_BUS     1768 /* Bus: */
+#define IDT_ZIP_ID      1769 /* ID: */
+#define IDT_ZIP_LUN     1770 /* LUN: */
+#define IDT_ZIP_CHANNEL 1771 /* Channel: */
 
 /* DLG_CFG_PERIPHERALS */
-#define IDT_ISARTC   1771 /* ISA RTC: */
-#define IDT_ISAMEM_1 1772 /* ISAMEM Board #1: */
-#define IDT_ISAMEM_2 1773 /* ISAMEM Board #2: */
-#define IDT_ISAMEM_3 1774 /* ISAMEM Board #3: */
-#define IDT_ISAMEM_4 1775 /* ISAMEM Board #4: */
+#define IDT_ISARTC   1772 /* ISA RTC: */
+#define IDT_ISAMEM_1 1773 /* ISAMEM Board #1: */
+#define IDT_ISAMEM_2 1774 /* ISAMEM Board #2: */
+#define IDT_ISAMEM_3 1775 /* ISAMEM Board #3: */
+#define IDT_ISAMEM_4 1776 /* ISAMEM Board #4: */
 
 /*
  * To try to keep these organized, we now group the

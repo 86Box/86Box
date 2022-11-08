@@ -340,6 +340,7 @@ END
 #define STR_BUS			"Busz:"
 #define STR_CHANNEL		"Csatorna:"
 #define STR_ID			"ID:"
+#define STR_SPEED		"Speed:"
 
 #define STR_SPECIFY		"&Kiválasztás..."
 #define STR_SECTORS		"Szektor:"

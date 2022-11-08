@@ -335,6 +335,7 @@ END
 #define STR_BUS			"匯流排:"
 #define STR_CHANNEL		"通道:"
 #define STR_ID			"ID:"
+#define STR_SPEED		"Speed:"
 
 #define STR_SPECIFY		"指定(&S)..."
 #define STR_SECTORS		"磁區(S):"

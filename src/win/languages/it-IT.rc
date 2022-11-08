@@ -336,6 +336,7 @@ END
 #define STR_BUS			"Bus:"
 #define STR_CHANNEL		"Canale:"
 #define STR_ID			"ID:"
+#define STR_SPEED		"Speed:"
 
 #define STR_SPECIFY		"&Specifica..."
 #define STR_SECTORS		"Settori:"
@@ -425,8 +426,8 @@ BEGIN
     IDS_2084	"H"
     IDS_2085	"S"
     IDS_2086	"MB"
-    IDS_2088	"Verifica BPB"
     IDS_2087    "Speed"
+    IDS_2088	"Verifica BPB"
     IDS_2089	"KB"
     IDS_2090	"Impossibile inizializzare il renderer video."
     IDS_2091	"Predefinito"

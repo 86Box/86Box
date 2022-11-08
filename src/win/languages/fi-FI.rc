@@ -335,6 +335,7 @@ END
 #define STR_BUS             "Väylä:"
 #define STR_CHANNEL         "Kanava:"
 #define STR_ID              "ID:"
+#define STR_SPEED		"Speed:"
 
 #define STR_SPECIFY         "&Määritä..."
 #define STR_SECTORS         "Sektorit:"

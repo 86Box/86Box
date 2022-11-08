@@ -338,6 +338,7 @@ END
 #define STR_BUS			"Bar.:"
 #define STR_CHANNEL		"Canal:"
 #define STR_ID			"ID:"
+#define STR_SPEED		"Speed:"
 
 #define STR_SPECIFY		"&Especificar..."
 #define STR_SECTORS		"Setores:"

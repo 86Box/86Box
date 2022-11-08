@@ -335,6 +335,7 @@ END
 #define STR_BUS			"Veri yolu:"
 #define STR_CHANNEL		"Kanal:"
 #define STR_ID			"ID:"
+#define STR_SPEED		"Speed:"
 
 #define STR_SPECIFY		"&Belirle..."
 #define STR_SECTORS		"Sektörler:"

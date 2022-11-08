@@ -335,6 +335,7 @@ END
 #define STR_BUS			"Vodilo:"
 #define STR_CHANNEL		"Kanal:"
 #define STR_ID			"ID:"
+#define STR_SPEED		"Speed:"
 
 #define STR_SPECIFY		"Določi..."
 #define STR_SECTORS		"Sektorji:"

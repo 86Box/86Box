@@ -335,6 +335,7 @@ END
 #define STR_BUS			"버스:"
 #define STR_CHANNEL		"채널:"
 #define STR_ID			"ID:"
+#define STR_SPEED		"Speed:"
 
 #define STR_SPECIFY		"열기(&S)..."
 #define STR_SECTORS		"섹터:"
