@@ -20,11 +20,13 @@
  *          Copyright 2016-2019 Miran Grca.
  */
 #include <inttypes.h>
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdint.h>
-#include <string.h>
 #include <stdlib.h>
+#include <string.h>
 #include <wchar.h>
+#define HAVE_STDARG_H
 #include <86box/86box.h>
 #include "cpu.h"
 #include <86box/device.h>
@@ -53,6 +55,24 @@ uint8_t svga_rotate[8][256];
   only SVGA device.*/
 static svga_t *svga_pri;
 int            vga_on, ibm8514_on;
+
+#ifdef ENABLE_SVGA_LOG
+int svga_do_log = ENABLE_SVGA_LOG;
+
+static void
+svga_log(const char *fmt, ...)
+{
+    va_list ap;
+
+    if (svga_do_log) {
+        va_start(ap, fmt);
+        pclog_ex(fmt, ap);
+        va_end(ap);
+    }
+}
+#else
+#    define svga_log(fmt, ...)
+#endif
 
 svga_t
     *
@@ -235,7 +255,7 @@ svga_out(uint16_t addr, uint8_t val, void *p)
                     break;
                 case 6:
                     if ((svga->gdcreg[6] & 0xc) != (val & 0xc)) {
-                        switch (val & 0xC) {
+                        switch (val & 0xc) {
                             case 0x0: /*128k at A0000*/
                                 mem_mapping_set_addr(&svga->mapping, 0xa0000, 0x20000);
                                 svga->banked_mask = 0xffff;
@@ -363,7 +383,9 @@ svga_in(uint16_t addr, void *p)
                 svga->cgastat &= ~0x30;
             else
                 svga->cgastat ^= 0x30;
+
             ret = svga->cgastat;
+
             break;
     }
 
@@ -453,7 +475,7 @@ svga_recalctimings(svga_t *svga)
     svga->render     = svga_render_blank;
     if (!svga->scrblank && (svga->crtc[0x17] & 0x80) && svga->attr_palette_enable) {
         if (!(svga->gdcreg[6] & 1) && !(svga->attrregs[0x10] & 1)) { /*Text mode*/
-            if (svga->seqregs[1] & 8) /*40 column*/ {
+            if (svga->seqregs[1] & 8) { /*40 column*/
                 svga->render = svga_render_text_40;
                 svga->hdisp *= (svga->seqregs[1] & 1) ? 16 : 18;
                 /* Character clock is off by 1 now in 40-line modes, on all cards. */

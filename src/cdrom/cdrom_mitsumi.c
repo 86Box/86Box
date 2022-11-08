@@ -183,7 +183,7 @@ mitsumi_cdrom_read_sector(mcd_t *dev, int first)
         return 0;
     }
     cdrom_stop(cdrom);
-    ret = cdrom_readsector_raw(cdrom, dev->buf, cdrom->seek_pos, 0, 2, 0x10, &dev->readcount);
+    ret = cdrom_readsector_raw(cdrom, dev->buf, cdrom->seek_pos, 0, 2, 0x10, (int *) &dev->readcount);
     if (!ret)
         return 0;
     if (dev->mode & 0x40) {

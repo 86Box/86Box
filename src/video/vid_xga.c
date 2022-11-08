@@ -2663,7 +2663,6 @@ static void
     svga_t  *svga = svga_get_pri();
     xga_t   *xga  = &svga->xga;
     FILE    *f;
-    uint32_t temp;
     uint32_t initial_bios_addr = device_get_config_hex20("init_bios_addr");
     uint8_t *rom               = NULL;
 
@@ -2683,13 +2682,11 @@ static void
 
     f = rom_fopen(xga->type ? XGA2_BIOS_PATH : XGA_BIOS_PATH, "rb");
     (void) fseek(f, 0L, SEEK_END);
-    temp = ftell(f);
     (void) fseek(f, 0L, SEEK_SET);
 
     rom = malloc(xga->bios_rom.sz);
     memset(rom, 0xff, xga->bios_rom.sz);
     (void) !fread(rom, xga->bios_rom.sz, 1, f);
-    temp -= xga->bios_rom.sz;
     (void) fclose(f);
 
     xga->bios_rom.rom  = rom;

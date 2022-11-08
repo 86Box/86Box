@@ -141,7 +141,7 @@ ini_rename_section(ini_section_t section, char *name)
 }
 
 static entry_t *
-find_entry(section_t *section, char *name)
+find_entry(section_t *section, const char *name)
 {
     entry_t *ent;
 
@@ -222,7 +222,7 @@ ini_find_or_create_section(ini_t ini, char *name)
 }
 
 static entry_t *
-create_entry(section_t *section, char *name)
+create_entry(section_t *section, const char *name)
 {
     entry_t *ne = malloc(sizeof(entry_t));
 
@@ -750,7 +750,7 @@ ini_section_set_mac(ini_section_t self, char *name, int val)
 }
 
 void
-ini_section_set_string(ini_section_t self, char *name, char *val)
+ini_section_set_string(ini_section_t self, const char *name, const char *val)
 {
     section_t *section = (section_t *) self;
     entry_t   *ent;

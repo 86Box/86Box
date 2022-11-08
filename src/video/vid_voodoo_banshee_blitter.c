@@ -1,6 +1,6 @@
 /*Current issues :
   - missing screen->screen scaled blits with format conversion
-  - missing YUV blits
+  - missing YUV blits (YUV -> 32-bit, 24-bit, or 16-bit RGB now done)
   - missing linestyle
   - missing wait for vsync
   - missing reversible lines
@@ -109,7 +109,7 @@ bansheeblt_log(const char *fmt, ...)
     }
 }
 #else
-#    define banshee_log(fmt, ...)
+#    define bansheeblt_log(fmt, ...)
 #endif
 
 static int
@@ -303,6 +303,7 @@ update_src_stride(voodoo_t *voodoo)
             bpp = 24;
             break;
         case SRC_FORMAT_COL_32_BPP:
+        case SRC_FORMAT_COL_YUYV:
             bpp = 32;
             break;
 
@@ -397,6 +398,86 @@ banshee_do_rectfill(voodoo_t *voodoo)
     }
 
     end_command(voodoo);
+}
+
+void DECODE_YUYV422(uint32_t *buf, uint8_t *src)
+{
+    do {
+        int wp = 0;
+
+        uint8_t y1, y2;
+        int8_t  Cr, Cb;
+        int     dR, dG, dB;
+        int     r, g, b;
+
+        y1 = src[0];
+        Cr = src[1] - 0x80;
+        y2 = src[2];
+        Cb = src[3] - 0x80;
+
+        dR = (359 * Cr) >> 8;
+        dG = (88 * Cb + 183 * Cr) >> 8;
+        dB = (453 * Cb) >> 8;
+
+        r = y1 + dR;
+        r = CLAMP(r);
+        g = y1 - dG;
+        g = CLAMP(g);
+        b = y1 + dB;
+        b = CLAMP(b);
+        buf[wp++] = r | (g << 8) | (b << 16);
+
+        r = y2 + dR;
+        r = CLAMP(r);
+        g = y2 - dG;
+        g = CLAMP(g);
+        b = y2 + dB;
+        b = CLAMP(b);
+        buf[wp++] = r | (g << 8) | (b << 16);
+    } while (0);
+}
+
+void DECODE_YUYV422_16BPP(uint16_t *buf, uint8_t *src)
+{
+    do {
+        int wp = 0;
+
+        uint8_t y1, y2;
+        int8_t  Cr, Cb;
+        int     dR, dG, dB;
+        int     r, g, b;
+
+        y1 = src[0];
+        Cr = src[1] - 0x80;
+        y2 = src[2];
+        Cb = src[3] - 0x80;
+
+        dR = (359 * Cr) >> 8;
+        dG = (88 * Cb + 183 * Cr) >> 8;
+        dB = (453 * Cb) >> 8;
+
+        r = y1 + dR;
+        r = CLAMP(r);
+        r >>= 3;
+        g = y1 - dG;
+        g = CLAMP(g);
+        g >>= 2;
+        b = y1 + dB;
+        b = CLAMP(b);
+        b >>= 3;
+        buf[wp++] = r | (g << 5) | (b << 11);
+
+        r = y2 + dR;
+        r = CLAMP(r);
+        r >>= 3;
+        g = y2 - dG;
+        g = CLAMP(g);
+        g >>= 2;
+        b = y2 + dB;
+        b = CLAMP(b);
+        b >>= 3;
+        buf[wp++] = r | (g << 5) | (b << 11);
+    } while (0);
 }
 
 static void
@@ -513,8 +594,9 @@ do_screen_to_screen_line(voodoo_t *voodoo, uint8_t *src_p, int use_x_dir, int sr
                     src_x_real = (src_x_real & 127) + ((src_x_real >> 7) * 128 * 32);
 
                 if (dst_x >= clip->x_min && dst_x < clip->x_max && pattern_trans) {
-                    uint32_t src_data    = 0;
-                    int      transparent = 0;
+                    uint32_t src_data     = 0;
+                    uint32_t src_data_yuv = 0; /* Used in YUYV-to-RGB convesions. */
+                    int      transparent  = 0;
 
                     switch (voodoo->banshee_blt.srcFormat & SRC_FORMAT_COL_MASK) {
                         case SRC_FORMAT_COL_1_BPP:
@@ -554,6 +636,11 @@ do_screen_to_screen_line(voodoo_t *voodoo, uint8_t *src_p, int use_x_dir, int sr
                                 src_data = *(uint32_t *) &src_p[src_x_real];
                                 break;
                             }
+                        case SRC_FORMAT_COL_YUYV:
+                            {
+                                src_data_yuv = *(uint32_t *) &src_p[src_x_real];
+                                break;
+                            }
 
                         default:
                             fatal("banshee_do_screen_to_screen_blt: unknown srcFormat %08x\n", voodoo->banshee_blt.srcFormat);
@@ -567,9 +654,54 @@ do_screen_to_screen_line(voodoo_t *voodoo, uint8_t *src_p, int use_x_dir, int sr
                         src_data = (b >> 3) | ((g >> 2) << 5) | ((r >> 3) << 11);
                     }
 
-                    if (!transparent)
-                        PLOT(voodoo, dst_x, dst_y, pat_x, pat_y, pattern_mask, rop, src_data, src_colorkey);
+                    if ((voodoo->banshee_blt.srcFormat & SRC_FORMAT_COL_MASK) == SRC_FORMAT_COL_YUYV) {
+                        if (((voodoo->banshee_blt.dstFormat & DST_FORMAT_COL_MASK) == DST_FORMAT_COL_24_BPP) ||
+                            ((voodoo->banshee_blt.dstFormat & DST_FORMAT_COL_MASK) == DST_FORMAT_COL_32_BPP)) {
+                            uint32_t rgbcol[2] = { 0, 0 };
+                            DECODE_YUYV422(rgbcol, (uint8_t *) &src_data_yuv);
+
+                            bansheeblt_log("YUV -> 24 bpp or 32 bpp\n");
+
+                            if (!transparent) {
+                                PLOT(voodoo, dst_x, dst_y, pat_x, pat_y, pattern_mask, rop, rgbcol[0], src_colorkey);
+                            }
+
+                            if (use_x_dir) {
+                                dst_x += (voodoo->banshee_blt.command & COMMAND_DX) ? -1 : 1;
+                            } else {
+                                dst_x++;
+                            }
+
+                            if (!transparent) {
+                                PLOT(voodoo, dst_x, dst_y, pat_x, pat_y, pattern_mask, rop, rgbcol[1], src_colorkey);
+                            }
+                        } else if ((voodoo->banshee_blt.dstFormat & DST_FORMAT_COL_MASK) == DST_FORMAT_COL_16_BPP) {
+                            uint32_t rgbcol = 0;
+                            DECODE_YUYV422_16BPP((uint16_t *) &rgbcol, (uint8_t *) &src_data_yuv);
+
+                            bansheeblt_log("YUV -> 16 bpp\n");
+
+                            if (!transparent) {
+                                PLOT(voodoo, dst_x, dst_y, pat_x, pat_y, pattern_mask, rop, rgbcol & 0xffff, src_colorkey);
+                            }
+
+                            if (use_x_dir) {
+                                dst_x += (voodoo->banshee_blt.command & COMMAND_DX) ? -1 : 1;
+                            } else {
+                                dst_x++;
+                            }
+
+                            if (!transparent) {
+                                PLOT(voodoo, dst_x, dst_y, pat_x, pat_y, pattern_mask, rop, rgbcol >> 16, src_colorkey);
+                            }
+                        } else
+                            fatal("banshee_do_screen_to_screen_blt: unknown dstFormat %08x\n", voodoo->banshee_blt.dstFormat);
+                    } else {
+                        if (!transparent)
+                            PLOT(voodoo, dst_x, dst_y, pat_x, pat_y, pattern_mask, rop, src_data, src_colorkey);
+                    }
                 }
+
                 if (use_x_dir) {
                     src_x += (voodoo->banshee_blt.command & COMMAND_DX) ? -1 : 1;
                     dst_x += (voodoo->banshee_blt.command & COMMAND_DX) ? -1 : 1;
@@ -1183,6 +1315,7 @@ voodoo_2d_reg_writel(voodoo_t *voodoo, uint32_t addr, uint32_t val)
                     voodoo->banshee_blt.src_bpp = 24;
                     break;
                 case SRC_FORMAT_COL_32_BPP:
+                case SRC_FORMAT_COL_YUYV:
                     voodoo->banshee_blt.src_bpp = 32;
                     break;
                 case SRC_FORMAT_COL_16_BPP:

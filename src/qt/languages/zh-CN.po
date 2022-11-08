@@ -244,11 +244,8 @@ msgstr "空置驱动器(&M)"
 msgid "&Reload previous image"
 msgstr "载入上一个镜像(&R)"
 
-msgid "&Image"
-msgstr "镜像(&I)"
-
 msgid "&Folder..."
-msgstr "&Folder..."
+msgstr "文件夹(&F)..."
 
 msgid "Target &framerate"
 msgstr "目标帧率(&F)"
@@ -385,6 +382,12 @@ msgstr "显卡:"
 msgid "Voodoo Graphics"
 msgstr "Voodoo Graphics"
 
+msgid "IBM 8514/a Graphics"
+msgstr "IBM 8514/a Graphics"
+
+msgid "XGA Graphics"
+msgstr "XGA Graphics"
+
 msgid "Mouse:"
 msgstr "鼠标:"
 
@@ -426,6 +429,15 @@ msgstr "Gravis Ultrasound"
 
 msgid "Use FLOAT32 sound"
 msgstr "使用单精度浮点 (FLOAT32)"
+
+msgid "FM synth driver"
+msgstr "调频合成器驱动器"
+
+msgid "Nuked (more accurate)"
+msgstr "Nuked (更准确)"
+
+msgid "YMFM (faster)"
+msgstr "YMFM (更快)"
 
 msgid "Network type:"
 msgstr "网络类型:"
@@ -570,6 +582,9 @@ msgstr "检查 BPB"
 
 msgid "CD-ROM drives:"
 msgstr "光盘驱动器:"
+
+msgid "Earlier drive"
+msgstr "早先的驱动器"
 
 msgid "MO drives:"
 msgstr "磁光盘驱动器:"

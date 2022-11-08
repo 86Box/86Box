@@ -176,8 +176,8 @@ BEGIN
         MENUITEM "&Tyhjä",                                              IDM_CDROM_EMPTY
         MENUITEM "&Lataa edellinen levykuva uudelleen",                 IDM_CDROM_RELOAD
         MENUITEM SEPARATOR
-        MENUITEM "L&evykuva",                                           IDM_CDROM_IMAGE
-        MENUITEM "&Kansio",						IDM_CDROM_DIR
+        MENUITEM "L&evykuva...",                                           IDM_CDROM_IMAGE
+        MENUITEM "&Kansio...",						IDM_CDROM_DIR
     END
 END
 

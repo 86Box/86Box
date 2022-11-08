@@ -421,6 +421,7 @@ extern "C++"
         {0x041F, {"tr-TR", "Turkish (Turkey)"} },
         {0x0422, {"uk-UA", "Ukrainian (Ukraine)"} },
         {0x0804, {"zh-CN", "Chinese (China)"} },
+        {0x0404, {"zh-TW", "Chinese (Taiwan)"} },
         {0xFFFF, {"system", "(System Default)"} },
     };
 }

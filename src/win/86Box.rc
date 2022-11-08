@@ -360,3 +360,4 @@ END
 #include "languages/es-ES.rc"
 #include "languages/tr-TR.rc"
 #include "languages/uk-UA.rc"
+#include "languages/zh-TW.rc"

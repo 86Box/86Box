@@ -177,8 +177,8 @@ BEGIN
         MENUITEM "&Espelli",					IDM_CDROM_EMPTY
         MENUITEM "&Ricarica l'immagine precedente",			IDM_CDROM_RELOAD
         MENUITEM SEPARATOR
-        MENUITEM "&Immagine",					IDM_CDROM_IMAGE
-        MENUITEM "&Cartella",					IDM_CDROM_DIR
+        MENUITEM "&Immagine...",					IDM_CDROM_IMAGE
+        MENUITEM "&Cartella...",					IDM_CDROM_DIR
     END
 END
 
