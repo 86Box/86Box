@@ -34,6 +34,7 @@ BEGIN
         MENUITEM "상태 바 숨기기(&H)",		IDM_VID_HIDE_STATUS_BAR
         MENUITEM "Hide &toolbar",		IDM_VID_HIDE_TOOLBAR
         MENUITEM SEPARATOR
+        MENUITEM "&Show non-primary monitors",  IDM_VID_MONITORS
         MENUITEM "창 크기 조절 가능하게 하기(&R)",          IDM_VID_RESIZE
         MENUITEM "창 크기와 위치를 기억하기(&E)",  IDM_VID_REMEMBER
         MENUITEM SEPARATOR
@@ -271,6 +272,7 @@ END
 #define STR_DYNAREC		"동적 재컴파일"
 
 #define STR_VIDEO		"비디오 카드:"
+#define STR_VIDEO_2		"비디오 카드 2:"
 #define STR_VOODOO		"Voodoo 그래픽"
 #define STR_IBM8514		"IBM 8514/a 그래픽"
 #define STR_XGA			"XGA 그래픽"

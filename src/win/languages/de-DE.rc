@@ -34,6 +34,7 @@ BEGIN
         MENUITEM "&Statusleiste ausblenden",		IDM_VID_HIDE_STATUS_BAR
         MENUITEM "&Werkzeugleiste ausblenden",		IDM_VID_HIDE_TOOLBAR
         MENUITEM SEPARATOR
+        MENUITEM "&Show non-primary monitors",  IDM_VID_MONITORS
         MENUITEM "&Größenverstellbares Fenster",          IDM_VID_RESIZE
         MENUITEM "&Größe && Position merken",  IDM_VID_REMEMBER
         MENUITEM SEPARATOR
@@ -271,6 +272,7 @@ END
 #define STR_DYNAREC		"Dynamischer Recompiler"
 
 #define STR_VIDEO		"Videokarte:"
+#define STR_VIDEO_2		"Videokarte 2:"
 #define STR_VOODOO		"Voodoo-Grafik"
 #define STR_IBM8514		"IBM 8514/a-Grafik"
 #define STR_XGA			"XGA-Grafik"
@@ -347,7 +349,7 @@ END
 #define STR_TURBO		"Turbo-Timings"
 #define STR_CHECKBPB		"BPB überprüfen"
 #define STR_CDROM_DRIVES	"CD-ROM-Laufwerke:"
-#define STR_CD_SPEED		"Takt:"
+#define STR_CD_SPEED		"Geschwindigkeit:"
 #define STR_EARLY		"Früheres Laufwerk"
 
 #define STR_MO_DRIVES		"MO-Laufwerke:"

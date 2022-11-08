@@ -34,6 +34,7 @@ BEGIN
         MENUITEM "&Приховати рядок стану",		IDM_VID_HIDE_STATUS_BAR
         MENUITEM "&Приховати панель інструментів",		IDM_VID_HIDE_TOOLBAR
         MENUITEM SEPARATOR
+        MENUITEM "&Show non-primary monitors",  IDM_VID_MONITORS
         MENUITEM "&Змінний розмір вікна",          IDM_VID_RESIZE
         MENUITEM "&Запам'ятати розмір і становище",  IDM_VID_REMEMBER
         MENUITEM SEPARATOR
@@ -271,6 +272,7 @@ END
 #define STR_DYNAREC		"Динамічний рекомпілятор"
 
 #define STR_VIDEO		"Відеокарта:"
+#define STR_VIDEO_2		"Відеокарта 2:"
 #define STR_VOODOO		"Прискорювач Voodoo"
 #define STR_IBM8514		"Прискорювач IBM 8514/a"
 #define STR_XGA			"Прискорювач XGA"

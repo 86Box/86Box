@@ -37,6 +37,7 @@ BEGIN
         MENUITEM "&Ocultar barra de status",		IDM_VID_HIDE_STATUS_BAR
         MENUITEM "Ocultar &barra de ferramenta",		IDM_VID_HIDE_TOOLBAR
         MENUITEM SEPARATOR
+        MENUITEM "&Show non-primary monitors",  IDM_VID_MONITORS
         MENUITEM "&Janela redimensionável",          IDM_VID_RESIZE
         MENUITEM "&Lembrar tamanho e posição",  IDM_VID_REMEMBER
         MENUITEM SEPARATOR
@@ -274,6 +275,7 @@ END
 #define STR_DYNAREC		"Recompilador dinâmico"
 
 #define STR_VIDEO		"Vídeo:"
+#define STR_VIDEO_2		"Vídeo 2:"
 #define STR_VOODOO		"3DFX Voodoo"
 #define STR_IBM8514		"Gráficos IBM 8514/a"
 #define STR_XGA			"Gráficos XGA"

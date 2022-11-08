@@ -34,6 +34,7 @@ BEGIN
         MENUITEM "ステータスバーを隠す(&H)",		IDM_VID_HIDE_STATUS_BAR
         MENUITEM "ツールバーを隠す(&T)",		IDM_VID_HIDE_TOOLBAR
         MENUITEM SEPARATOR
+        MENUITEM "&Show non-primary monitors",  IDM_VID_MONITORS
         MENUITEM "ウィンドウのサイズをリサイズ可能(&R)",          IDM_VID_RESIZE
         MENUITEM "ウィンドウのサイズと位置を記憶(&E)",  IDM_VID_REMEMBER
         MENUITEM SEPARATOR
@@ -271,6 +272,7 @@ END
 #define STR_DYNAREC		"動的リコンパイラ"
 
 #define STR_VIDEO		"ビデオカード:"
+#define STR_VIDEO_2		"ビデオカード 2:"
 #define STR_VOODOO		"Voodooグラフィック"
 #define STR_IBM8514		"IBM 8514/aグラフィック"
 #define STR_XGA			"XGAグラフィック"
