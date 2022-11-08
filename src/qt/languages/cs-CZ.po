@@ -244,11 +244,8 @@ msgstr "&Vyjmout"
 msgid "&Reload previous image"
 msgstr "&Načíst znova předchozí obraz"
 
-msgid "&Image"
-msgstr "&Obraz..."
-
-msgid "&Folder"
-msgstr "&Složka"
+msgid "&Folder..."
+msgstr "&Složka..."
 
 msgid "Target &framerate"
 msgstr "&Cílová snímková frekvence"

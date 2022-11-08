@@ -244,11 +244,8 @@ msgstr "İmajı &çıkar"
 msgid "&Reload previous image"
 msgstr "&Önceki imajı seç"
 
-msgid "&Image"
-msgstr "&İmaj seç"
-
-msgid "&Folder"
-msgstr "&Klasör"
+msgid "&Folder..."
+msgstr "&Klasör..."
 
 msgid "Target &framerate"
 msgstr "Hedef &kare oranı"

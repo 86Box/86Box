@@ -176,8 +176,8 @@ BEGIN
         MENUITEM "P&usty",					IDM_CDROM_EMPTY
         MENUITEM "&Przeładuj poprzedni obraz",			IDM_CDROM_RELOAD
         MENUITEM SEPARATOR
-        MENUITEM "&Obraz",					IDM_CDROM_IMAGE
-        MENUITEM "&Teczka",					IDM_CDROM_DIR
+        MENUITEM "&Obraz...",					IDM_CDROM_IMAGE
+        MENUITEM "&Teczka...",					IDM_CDROM_DIR
     END
 END
 

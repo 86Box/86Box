@@ -244,11 +244,8 @@ msgstr "L&eer"
 msgid "&Reload previous image"
 msgstr "&Voriges Image neu laden"
 
-msgid "&Image"
-msgstr "&Image"
-
-msgid "&Folder"
-msgstr "&Verzeichnis"
+msgid "&Folder..."
+msgstr "&Verzeichnis..."
 
 msgid "Target &framerate"
 msgstr "Ziel&framerate"
@@ -644,7 +641,7 @@ msgid "Press Ctrl+Alt+PgDn to return to windowed mode."
 msgstr "Bitte Strg+Alt+Bild ab zur Rückkehr in den Fenstermodus drücken."
 
 msgid "Speed"
-msgstr "Takt"
+msgstr "Geschwindigkeit"
 
 msgid "ZIP %03i %i (%s): %ls"
 msgstr "ZIP %03i %i (%s): %ls"

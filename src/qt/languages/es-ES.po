@@ -244,11 +244,8 @@ msgstr "E&xtraer disco"
 msgid "&Reload previous image"
 msgstr "&Recargar imagen previa"
 
-msgid "&Image"
-msgstr "&Imagen..."
-
-msgid "&Folder"
-msgstr "&Carpeta"
+msgid "&Folder..."
+msgstr "&Carpeta..."
 
 msgid "Target &framerate"
 msgstr "&Tasa de refresco objetivo"

@@ -244,11 +244,8 @@ msgstr "P&usty"
 msgid "&Reload previous image"
 msgstr "&Przeładuj poprzedni obraz"
 
-msgid "&Image"
-msgstr "&Obraz"
-
-msgid "&Folder"
-msgstr "&Teczka"
+msgid "&Folder..."
+msgstr "&Teczka..."
 
 msgid "Target &framerate"
 msgstr "Docelowa &liczba klatek na sekundę"

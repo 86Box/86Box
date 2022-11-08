@@ -244,11 +244,8 @@ msgstr "&Tyhjä"
 msgid "&Reload previous image"
 msgstr "&Lataa edellinen levykuva uudelleen"
 
-msgid "&Image"
-msgstr "L&evykuva"
-
-msgid "&Folder"
-msgstr "&Kansio"
+msgid "&Folder..."
+msgstr "&Kansio..."
 
 msgid "Target &framerate"
 msgstr "&Kuvataajuustavoite"

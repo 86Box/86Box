@@ -177,7 +177,7 @@ BEGIN
         MENUITEM "&Recargar imagen previa",			IDM_CDROM_RELOAD
         MENUITEM SEPARATOR
         MENUITEM "&Imagen...",					IDM_CDROM_IMAGE
-        MENUITEM "&Carpeta",					IDM_CDROM_DIR
+        MENUITEM "&Carpeta...",					IDM_CDROM_DIR
     END
 END
 

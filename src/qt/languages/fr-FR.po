@@ -244,11 +244,8 @@ msgstr "E&jecter"
 msgid "&Reload previous image"
 msgstr "&Recharger image précedente"
 
-msgid "&Image"
-msgstr "&Image"
-
-msgid "&Folder"
-msgstr "&Dossier"
+msgid "&Folder..."
+msgstr "&Dossier..."
 
 msgid "Target &framerate"
 msgstr "&Taux de rafraîchissement cible"

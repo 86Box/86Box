@@ -244,11 +244,8 @@ msgstr "&Пустий"
 msgid "&Reload previous image"
 msgstr "&Знову завантажити попередній образ"
 
-msgid "&Image"
-msgstr "&Образ..."
-
-msgid "&Folder"
-msgstr "&Тека"
+msgid "&Folder..."
+msgstr "&Тека..."
 
 msgid "Target &framerate"
 msgstr "Цільова &частота кадрів"

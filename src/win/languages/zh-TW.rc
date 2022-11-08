@@ -176,8 +176,8 @@ BEGIN
         MENUITEM "空置光碟機(&M)",					IDM_CDROM_EMPTY
         MENUITEM "載入上一個鏡像(&R)",			IDM_CDROM_RELOAD
         MENUITEM SEPARATOR
-        MENUITEM "鏡像(&I)",					IDM_CDROM_IMAGE
-        MENUITEM "資料夾(&F)",					IDM_CDROM_DIR
+        MENUITEM "鏡像(&I)...",					IDM_CDROM_IMAGE
+        MENUITEM "資料夾(&F)...",					IDM_CDROM_DIR
     END
 END
 

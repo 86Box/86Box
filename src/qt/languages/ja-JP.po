@@ -244,11 +244,8 @@ msgstr "空(&M)"
 msgid "&Reload previous image"
 msgstr "前のイメージを再読み込み(&R)"
 
-msgid "&Image"
-msgstr "イメージ(&I)"
-
-msgid "&Folder"
-msgstr "フォルダ(&F)"
+msgid "&Folder..."
+msgstr "フォルダ(&F)..."
 
 msgid "Target &framerate"
 msgstr "目標フレームレート(&F)"

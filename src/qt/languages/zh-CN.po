@@ -244,11 +244,8 @@ msgstr "空置驱动器(&M)"
 msgid "&Reload previous image"
 msgstr "载入上一个镜像(&R)"
 
-msgid "&Image"
-msgstr "镜像(&I)"
-
-msgid "&Folder"
-msgstr "文件夹(&F)"
+msgid "&Folder..."
+msgstr "文件夹(&F)..."
 
 msgid "Target &framerate"
 msgstr "目标帧率(&F)"

@@ -244,11 +244,8 @@ msgstr "&Espelli"
 msgid "&Reload previous image"
 msgstr "&Ricarica l'immagine precedente"
 
-msgid "&Image"
-msgstr "&Immagine"
-
-msgid "&Folder"
-msgstr "&Cartella"
+msgid "&Folder..."
+msgstr "&Cartella..."
 
 msgid "Target &framerate"
 msgstr "Imposta obiettivo &fotogrammi"

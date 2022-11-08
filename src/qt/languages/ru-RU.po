@@ -244,11 +244,8 @@ msgstr "П&устой"
 msgid "&Reload previous image"
 msgstr "&Снова загрузить предыдущий образ"
 
-msgid "&Image"
-msgstr "&Образ..."
-
-msgid "&Folder"
-msgstr "&Папка"
+msgid "&Folder..."
+msgstr "&Папка..."
 
 msgid "Target &framerate"
 msgstr "Целевая &частота кадров"

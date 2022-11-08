@@ -244,11 +244,8 @@ msgstr "&Kiadás"
 msgid "&Reload previous image"
 msgstr "Előző képfájl &újratöltése"
 
-msgid "&Image"
-msgstr "&Meglévő képfájl &megnyitása..."
-
-msgid "&Folder"
-msgstr "&Mappa"
+msgid "&Folder..."
+msgstr "&Mappa..."
 
 msgid "Target &framerate"
 msgstr "Cél &képkockasebesség"

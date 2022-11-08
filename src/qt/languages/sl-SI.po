@@ -244,11 +244,8 @@ msgstr "&Prazen"
 msgid "&Reload previous image"
 msgstr "&Naloži zadnjo sliko"
 
-msgid "&Image"
-msgstr "&Slika"
-
-msgid "&Folder"
-msgstr "&Mapa"
+msgid "&Folder..."
+msgstr "&Mapa..."
 
 msgid "Target &framerate"
 msgstr "&Ciljno št. sličic na sekundo"
