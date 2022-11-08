@@ -350,7 +350,7 @@ msgid "CPU type:"
 msgstr "CPU-Typ:"
 
 msgid "Speed:"
-msgstr "Geschwindigkeit:"
+msgstr "Takt:"
 
 msgid "FPU:"
 msgstr "FPU-Einheit:"
@@ -644,7 +644,7 @@ msgid "Press Ctrl+Alt+PgDn to return to windowed mode."
 msgstr "Bitte Strg+Alt+Bild ab zur Rückkehr in den Fenstermodus drücken."
 
 msgid "Speed"
-msgstr "Geschwindigkeit"
+msgstr "Takt"
 
 msgid "ZIP %03i %i (%s): %ls"
 msgstr "ZIP %03i %i (%s): %ls"
