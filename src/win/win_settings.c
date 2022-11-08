@@ -88,7 +88,7 @@ static int temp_dynarec;
 #endif
 
 /* Video category */
-static int temp_gfxcard, temp_ibm8514, temp_voodoo, temp_xga;
+static int temp_gfxcard, temp_gfxcard_2, temp_ibm8514, temp_voodoo, temp_xga;
 
 /* Input devices category */
 static int temp_mouse, temp_joystick;
@@ -320,6 +320,7 @@ win_settings_init(void)
 
     /* Video category */
     temp_gfxcard = gfxcard;
+    temp_gfxcard_2 = gfxcard_2;
     temp_voodoo  = voodoo_enabled;
     temp_ibm8514 = ibm8514_enabled;
     temp_xga     = xga_enabled;
@@ -446,6 +447,7 @@ win_settings_changed(void)
 
     /* Video category */
     i = i || (gfxcard != temp_gfxcard);
+    i = i || (gfxcard_2 != temp_gfxcard_2);
     i = i || (voodoo_enabled != temp_voodoo);
     i = i || (ibm8514_enabled != temp_ibm8514);
     i = i || (xga_enabled != temp_xga);
@@ -538,6 +540,7 @@ win_settings_save(void)
 
     /* Video category */
     gfxcard         = temp_gfxcard;
+    gfxcard_2       = temp_gfxcard_2;
     voodoo_enabled  = temp_voodoo;
     ibm8514_enabled = temp_ibm8514;
     xga_enabled     = temp_xga;
@@ -1057,6 +1060,7 @@ win_settings_video_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 
     switch (message) {
         case WM_INITDIALOG:
+            // Primary Video Card
             settings_reset_content(hdlg, IDC_COMBO_VIDEO);
 
             while (1) {
@@ -1072,9 +1076,9 @@ win_settings_video_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
                     break;
 
                 if (video_card_available(c) && device_is_valid(video_card_getdevice(c), temp_machine)) {
-                    if (c == 0)
+                    if (c == 0) // "None"
                         settings_add_string(hdlg, IDC_COMBO_VIDEO, win_get_string(IDS_2103));
-                    else if (c == 1)
+                    else if (c == 1) // "Internal"
                         settings_add_string(hdlg, IDC_COMBO_VIDEO, win_get_string(IDS_2118));
                     else
                         settings_add_string(hdlg, IDC_COMBO_VIDEO, (LPARAM) device_name);
@@ -1092,6 +1096,46 @@ win_settings_video_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
             settings_enable_window(hdlg, IDC_COMBO_VIDEO, !machine_has_flags(temp_machine, MACHINE_VIDEO_ONLY));
             e = settings_list_to_device[0][settings_get_cur_sel(hdlg, IDC_COMBO_VIDEO)];
             settings_enable_window(hdlg, IDC_CONFIGURE_VID, video_card_has_config(e));
+
+            // Secondary Video Card
+            c = 0;
+            settings_reset_content(hdlg, IDC_COMBO_VIDEO_2);
+
+            while (1) {
+                /* Skip "internal" if machine doesn't have it. */
+                if ((c == 1) && !machine_has_flags(temp_machine, MACHINE_VIDEO)) {
+                    c++;
+                    continue;
+                }
+
+                generate_device_name(video_card_getdevice(c), video_get_internal_name(c), 1);
+
+                if (!device_name[0])
+                    break;
+
+                if (video_card_available(c) &&
+                    device_is_valid(video_card_getdevice(c), temp_machine) &&
+                    !(video_card_get_flags(c) == video_card_get_flags(gfxcard))) {
+                    if (c == 0) // "None"
+                        settings_add_string(hdlg, IDC_COMBO_VIDEO_2, win_get_string(IDS_2103));
+                    else if (c == 1) // "Internal"
+                        settings_add_string(hdlg, IDC_COMBO_VIDEO_2, win_get_string(IDS_2118));
+                    else
+                        settings_add_string(hdlg, IDC_COMBO_VIDEO_2, (LPARAM) device_name);
+                    settings_list_to_device[1][d] = c;
+                    if ((c == 0) || (c == temp_gfxcard_2))
+                        settings_set_cur_sel(hdlg, IDC_COMBO_VIDEO_2, d);
+                    d++;
+                }
+
+                c++;
+
+                settings_process_messages();
+            }
+
+            settings_enable_window(hdlg, IDC_COMBO_VIDEO_2, !machine_has_flags(temp_machine, MACHINE_VIDEO_ONLY));
+            e = settings_list_to_device[1][settings_get_cur_sel(hdlg, IDC_COMBO_VIDEO_2)];
+            settings_enable_window(hdlg, IDC_CONFIGURE_VID_2, video_card_has_config(e));
 
             settings_enable_window(hdlg, IDC_CHECK_VOODOO, machine_has_bus(temp_machine, MACHINE_BUS_PCI));
             settings_set_check(hdlg, IDC_CHECK_VOODOO, temp_voodoo);
@@ -1111,6 +1155,11 @@ win_settings_video_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
                 case IDC_COMBO_VIDEO:
                     temp_gfxcard = settings_list_to_device[0][settings_get_cur_sel(hdlg, IDC_COMBO_VIDEO)];
                     settings_enable_window(hdlg, IDC_CONFIGURE_VID, video_card_has_config(temp_gfxcard));
+                    break;
+
+                case IDC_COMBO_VIDEO_2:
+                    temp_gfxcard_2 = settings_list_to_device[1][settings_get_cur_sel(hdlg, IDC_COMBO_VIDEO_2)];
+                    settings_enable_window(hdlg, IDC_CONFIGURE_VID_2, video_card_has_config(temp_gfxcard_2));
                     break;
 
                 case IDC_CHECK_VOODOO:
@@ -1143,14 +1192,20 @@ win_settings_video_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
                     temp_gfxcard = settings_list_to_device[0][settings_get_cur_sel(hdlg, IDC_COMBO_VIDEO)];
                     temp_deviceconfig |= deviceconfig_open(hdlg, (void *) video_card_getdevice(temp_gfxcard));
                     break;
+
+                case IDC_CONFIGURE_VID_2:
+                    temp_gfxcard_2 = settings_list_to_device[1][settings_get_cur_sel(hdlg, IDC_COMBO_VIDEO_2)];
+                    temp_deviceconfig |= deviceconfig_open(hdlg, (void *)video_card_getdevice(temp_gfxcard_2));
+                    break;
             }
             return FALSE;
 
         case WM_SAVESETTINGS:
-            temp_gfxcard = settings_list_to_device[0][settings_get_cur_sel(hdlg, IDC_COMBO_VIDEO)];
-            temp_voodoo  = settings_get_check(hdlg, IDC_CHECK_VOODOO);
-            temp_ibm8514 = settings_get_check(hdlg, IDC_CHECK_IBM8514);
-            temp_xga     = settings_get_check(hdlg, IDC_CHECK_XGA);
+            temp_gfxcard   = settings_list_to_device[0][settings_get_cur_sel(hdlg, IDC_COMBO_VIDEO)];
+            temp_gfxcard_2 = settings_list_to_device[1][settings_get_cur_sel(hdlg, IDC_COMBO_VIDEO_2)];
+            temp_voodoo    = settings_get_check(hdlg, IDC_CHECK_VOODOO);
+            temp_ibm8514   = settings_get_check(hdlg, IDC_CHECK_IBM8514);
+            temp_xga       = settings_get_check(hdlg, IDC_CHECK_XGA);
 
         default:
             return FALSE;

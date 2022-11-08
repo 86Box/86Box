@@ -35,6 +35,7 @@ BEGIN
         MENUITEM "&Nascondi barra di stato",		IDM_VID_HIDE_STATUS_BAR
         MENUITEM "Hide &toolbar",		IDM_VID_HIDE_TOOLBAR
         MENUITEM SEPARATOR
+        MENUITEM "&Show non-primary monitors",  IDM_VID_MONITORS
         MENUITEM "&Finestra ridimensionabile",          IDM_VID_RESIZE
         MENUITEM "R&icorda dimensioni e posizione",  IDM_VID_REMEMBER
         MENUITEM SEPARATOR
@@ -272,6 +273,7 @@ END
 #define STR_DYNAREC		"Ricompilatore dinamico"
 
 #define STR_VIDEO		"Video:"
+#define STR_VIDEO_2		"Video 2:"
 #define STR_VOODOO		"Grafica Voodoo"
 #define STR_IBM8514		"Grafica IBM 8514/a"
 #define STR_XGA			"Grafica XGA"

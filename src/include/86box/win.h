@@ -105,6 +105,7 @@ extern "C" {
 extern HINSTANCE hinstance;
 extern HWND      hwndMain,
     hwndRender;
+    hwndRender2;
 extern HANDLE ghMutex;
 extern HICON  hIcon[256];
 extern int    dpi;
