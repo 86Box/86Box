@@ -259,7 +259,7 @@ END
 #define STR_MACHINE		"System:"
 #define STR_CONFIGURE		"Einstellen"
 #define STR_CPU_TYPE		"CPU-Typ:"
-#define STR_CPU_SPEED		"Geschwindigkeit:"
+#define STR_CPU_SPEED		"Takt:"
 #define STR_FPU			"FPU-Einheit:"
 #define STR_WAIT_STATES		"Wartezustände:"
 #define STR_MB			"MB"
@@ -347,7 +347,7 @@ END
 #define STR_TURBO		"Turbo-Timings"
 #define STR_CHECKBPB		"BPB überprüfen"
 #define STR_CDROM_DRIVES	"CD-ROM-Laufwerke:"
-#define STR_CD_SPEED		"Geschwindigkeit:"
+#define STR_CD_SPEED		"Takt:"
 #define STR_EARLY		"Früheres Laufwerk"
 
 #define STR_MO_DRIVES		"MO-Laufwerke:"
