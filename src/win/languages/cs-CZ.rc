@@ -177,7 +177,7 @@ BEGIN
         MENUITEM "&Načíst znova předchozí obraz",		IDM_CDROM_RELOAD
         MENUITEM SEPARATOR
         MENUITEM "&Obraz...",					IDM_CDROM_IMAGE
-        MENUITEM "&Složka",					IDM_CDROM_DIR
+        MENUITEM "&Složka...",					IDM_CDROM_DIR
     END
 END
 

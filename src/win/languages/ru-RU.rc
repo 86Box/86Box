@@ -177,7 +177,7 @@ BEGIN
         MENUITEM "&Снова загрузить предыдущий образ",			IDM_CDROM_RELOAD
         MENUITEM SEPARATOR
         MENUITEM "&Образ...",					IDM_CDROM_IMAGE
-        MENUITEM "&Папка",					IDM_CDROM_DIR
+        MENUITEM "&Папка...",					IDM_CDROM_DIR
     END
 END
 

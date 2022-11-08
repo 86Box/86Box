@@ -178,6 +178,7 @@ enum {
     cmdRdPtrH0                         = 0x30,
     cmdAMin0                           = 0x34,
     cmdAMax0                           = 0x3c,
+    cmdStatus0                         = 0x40,
     cmdFifoDepth0                      = 0x44,
     cmdHoleCnt0                        = 0x48,
 
@@ -1168,6 +1169,10 @@ banshee_cmd_read(banshee_t *banshee, uint32_t addr)
         case cmdFifoDepth0:
             ret = voodoo->cmdfifo_depth_wr - voodoo->cmdfifo_depth_rd;
             //                banshee_log("Read cmdfifo_depth %08x\n", ret);
+            break;
+
+        case cmdStatus0:
+            ret = voodoo->cmd_status;
             break;
 
         case 0x108:
@@ -2981,6 +2986,7 @@ banshee_init_common(const device_t *info, char *fn, int has_sgram, int type, int
     banshee->voodoo->tex_mem[1]   = banshee->svga.vram;
     banshee->voodoo->tex_mem_w[1] = (uint16_t *) banshee->svga.vram;
     banshee->voodoo->texture_mask = banshee->svga.vram_mask;
+    banshee->voodoo->cmd_status   = (1 << 28);
     voodoo_generate_filter_v1(banshee->voodoo);
 
     banshee->vidSerialParallelPort = VIDSERIAL_DDC_DCK_W | VIDSERIAL_DDC_DDA_W;

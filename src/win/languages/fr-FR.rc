@@ -176,8 +176,8 @@ BEGIN
         MENUITEM "E&jecter",					IDM_CDROM_EMPTY
         MENUITEM "&Recharger image précedente",			IDM_CDROM_RELOAD
         MENUITEM SEPARATOR
-        MENUITEM "&Image",					IDM_CDROM_IMAGE
-        MENUITEM "&Dossier",					IDM_CDROM_DIR
+        MENUITEM "&Image...",					IDM_CDROM_IMAGE
+        MENUITEM "&Dossier...",					IDM_CDROM_DIR
     END
 END
 

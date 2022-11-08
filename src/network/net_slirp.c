@@ -26,7 +26,6 @@
 #include <stdlib.h>
 #include <inttypes.h>
 #include <wchar.h>
-#include <slirp/libslirp.h>
 #define HAVE_STDARG_H
 #include <86box/86box.h>
 #include <86box/device.h>
@@ -38,6 +37,10 @@
 #include <86box/ini.h>
 #include <86box/config.h>
 #include <86box/video.h>
+
+# define _SSIZE_T_DEFINED
+#include <slirp/libslirp.h>
+
 #ifdef _WIN32
 #    define WIN32_LEAN_AND_MEAN
 #    include <windows.h>
@@ -414,7 +417,7 @@ net_slirp_init(const netcard_t *card, const uint8_t *mac_addr, void *priv)
     /* Set up port forwarding. */
     int  udp, external, internal, i = 0;
     char category[32];
-    snprintf(category, sizeof(category), "SLiRP Port Forwarding #%i", card->card_num + 1);
+    snprintf(category, sizeof(category), "SLiRP Port Forwarding #%d", card->card_num + 1);
     char key[20];
     while (1) {
         sprintf(key, "%d_protocol", i);

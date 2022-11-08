@@ -176,8 +176,8 @@ BEGIN
         MENUITEM "空(&M)",					IDM_CDROM_EMPTY
         MENUITEM "前のイメージを再読み込み(&R)",			IDM_CDROM_RELOAD
         MENUITEM SEPARATOR
-        MENUITEM "イメージ(&I)",					IDM_CDROM_IMAGE
-        MENUITEM "フォルダ(&F)",					IDM_CDROM_DIR
+        MENUITEM "イメージ(&I)...",					IDM_CDROM_IMAGE
+        MENUITEM "フォルダ(&F)...",					IDM_CDROM_DIR
     END
 END
 
