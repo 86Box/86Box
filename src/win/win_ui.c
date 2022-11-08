@@ -1370,10 +1370,10 @@ ui_init(int nCmdShow)
     }
 
     /* Initialize the configured Video API. */
-    if (!plat_setvid(vid_api)) {
-        tdconfig.pszContent = MAKEINTRESOURCE(IDS_2089);
+    if (! plat_setvid(vid_api)) {
+        tdconfig.pszContent = MAKEINTRESOURCE(IDS_2090);
         TaskDialogIndirect(&tdconfig, NULL, NULL, NULL);
-        return (5);
+        return(5);
     }
 
     /* Set up the current window size. */

@@ -75,7 +75,7 @@
 #include "../disk/minivhd/minivhd_util.h"
 
 /* Icon, Bus, File, C, H, S, Size */
-#define C_COLUMNS_HARD_DISKS 6
+#define C_COLUMNS_HARD_DISKS 7
 
 static int first_cat = 0;
 
@@ -789,7 +789,7 @@ win_settings_machine_recalc_machine(HWND hdlg)
         SendMessage(h, UDM_SETPOS, 0, temp_mem_size);
 
         h = GetDlgItem(hdlg, IDC_TEXT_MB);
-        SendMessage(h, WM_SETTEXT, 0, win_get_string(IDS_2088));
+        SendMessage(h, WM_SETTEXT, 0, win_get_string(IDS_KB));
     } else {
         /* MB granularity */
         h = GetDlgItem(hdlg, IDC_MEMSPIN);
@@ -886,9 +886,9 @@ win_settings_machine_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
                 c++;
             }
 
-            settings_add_string(hdlg, IDC_COMBO_WS, win_get_string(IDS_2090));
-            for (c = 0; c < 8; c++) {
-                wsprintf(lptsTemp, plat_get_string(IDS_2091), c);
+            settings_add_string(hdlg, IDC_COMBO_WS, win_get_string(IDS_DEFAULT));
+            for (c = 0; c < 8; c++) { /* TODO */
+                wsprintf(lptsTemp, plat_get_string(IDS_WS), c);
                 settings_add_string(hdlg, IDC_COMBO_WS, (LPARAM) lptsTemp);
             }
 
@@ -2308,12 +2308,28 @@ win_settings_hard_disks_recalc_list(HWND hdlg)
     return TRUE;
 }
 
+#define C_COLUMNS_HARD_DISKS_BUS   104
+#define C_COLUMNS_HARD_DISKS_FILE  354
+#define C_COLUMNS_HARD_DISKS_CYLS  50
+#define C_COLUMNS_HARD_DISKS_HEADS 26
+#define C_COLUMNS_HARD_DISKS_SECT  32
+#define C_COLUMNS_HARD_DISKS_SIZE  50
+#define C_COLUMNS_HARD_DISKS_SPEED 50
+
 static void
 win_settings_hard_disks_resize_columns(HWND hdlg)
 {
     /* Bus, File, Cylinders, Heads, Sectors, Size */
-    int  iCol, width[C_COLUMNS_HARD_DISKS] = { 104, 354, 50, 26, 32, 50 };
-    int  total    = 0;
+    int iCol, width[C_COLUMNS_HARD_DISKS] = {
+                                              C_COLUMNS_HARD_DISKS_BUS,
+											  C_COLUMNS_HARD_DISKS_FILE,
+											  C_COLUMNS_HARD_DISKS_CYLS,
+											  C_COLUMNS_HARD_DISKS_HEADS,
+											  C_COLUMNS_HARD_DISKS_SECT,
+											  C_COLUMNS_HARD_DISKS_SIZE,
+											  C_COLUMNS_HARD_DISKS_SPEED
+                                            };
+    int total = 0;
     HWND hwndList = GetDlgItem(hdlg, IDC_LIST_HARD_DISKS);
     RECT r;
 
@@ -2342,27 +2358,31 @@ win_settings_hard_disks_init_columns(HWND hdlg)
 
         switch (iCol) {
             case 0: /* Bus */
-                lvc.cx  = 104;
+                lvc.cx  = C_COLUMNS_HARD_DISKS_BUS;
                 lvc.fmt = LVCFMT_LEFT;
                 break;
             case 1: /* File */
-                lvc.cx  = 354;
+                lvc.cx  = C_COLUMNS_HARD_DISKS_FILE;
                 lvc.fmt = LVCFMT_LEFT;
                 break;
             case 2: /* Cylinders */
-                lvc.cx  = 50;
+                lvc.cx  = C_COLUMNS_HARD_DISKS_CYLS;
                 lvc.fmt = LVCFMT_RIGHT;
                 break;
             case 3: /* Heads */
-                lvc.cx  = 26;
+                lvc.cx  = C_COLUMNS_HARD_DISKS_HEADS;
                 lvc.fmt = LVCFMT_RIGHT;
                 break;
-            case 4: /* Sectors */
-                lvc.cx  = 32;
+             case 4: /* Sectors */
+                lvc.cx  = C_COLUMNS_HARD_DISKS_SECT;
                 lvc.fmt = LVCFMT_RIGHT;
                 break;
             case 5: /* Size (MB) 8 */
-                lvc.cx  = 50;
+                lvc.cx  = C_COLUMNS_HARD_DISKS_SIZE;
+                lvc.fmt = LVCFMT_RIGHT;
+                break;
+            case 6: /* Speed (RPM) */
+                lvc.cx  = C_COLUMNS_HARD_DISKS_SPEED;
                 lvc.fmt = LVCFMT_RIGHT;
                 break;
         }
@@ -3790,7 +3810,7 @@ win_settings_floppy_drives_init_columns(HWND hdlg)
     lvc.mask = LVCF_FMT | LVCF_WIDTH | LVCF_TEXT | LVCF_SUBITEM;
 
     lvc.iSubItem = 0;
-    lvc.pszText  = plat_get_string(IDS_2092);
+    lvc.pszText  = plat_get_string(IDS_TYPE);
 
     lvc.cx  = 292;
     lvc.fmt = LVCFMT_LEFT;
@@ -3808,7 +3828,7 @@ win_settings_floppy_drives_init_columns(HWND hdlg)
         return FALSE;
 
     lvc.iSubItem = 2;
-    lvc.pszText  = plat_get_string(IDS_2087);
+    lvc.pszText  = plat_get_string(IDS_BPB);
 
     lvc.cx  = 89;
     lvc.fmt = LVCFMT_LEFT;
@@ -3909,7 +3929,7 @@ win_settings_mo_drives_init_columns(HWND hdlg)
         return FALSE;
 
     lvc.iSubItem = 1;
-    lvc.pszText  = plat_get_string(IDS_2092);
+    lvc.pszText  = plat_get_string(IDS_TYPE);
 
     lvc.cx  = 147;
     lvc.fmt = LVCFMT_LEFT;
@@ -3953,7 +3973,7 @@ win_settings_zip_drives_init_columns(HWND hdlg)
         return FALSE;
 
     lvc.iSubItem = 1;
-    lvc.pszText  = plat_get_string(IDS_2092);
+    lvc.pszText  = plat_get_string(IDS_TYPE);
 
     lvc.cx  = 147;
     lvc.fmt = LVCFMT_LEFT;

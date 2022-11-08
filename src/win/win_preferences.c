@@ -86,7 +86,7 @@ preferences_fill_iconsets(HWND hdlg)
 
     /* Add the default one */
     wchar_t buffer[512] = L"(";
-    wcscat(buffer, plat_get_string(IDS_2090));
+    wcscat(buffer, plat_get_string(IDS_DEFAULT));
     wcscat(buffer, L")");
 
     SendMessage(icon_combo, CB_RESETCONTENT, 0, 0);

@@ -15,6 +15,7 @@
  * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
  *
  *		Copyright 2017,2018 Fred N. van Kempen.
+ *		Copyright 2022      Jasmine Iwanek.
  */
 
 #ifndef LANG_UAGE_H
@@ -60,12 +61,26 @@
 #define IDS_2084      2084 // "H"
 #define IDS_2085      2085 // "S"
 #define IDS_2086      2086 // "MB"
-#define IDS_2087      2087 // "Check BPB"
-#define IDS_2088      2088 // "KB"
-#define IDS_2089      2089 // "Could not initialize the video..."
-#define IDS_2090      2090 // "Default"
-#define IDS_2091      2091 // "%i Wait state(s)"
-#define IDS_2092      2092 // "Type"
+#define IDS_2087      2087 // "Speed"
+
+#define IDS_2088      2088 // "Check BPB"
+#define IDS_BPB       IDS_2088 // "Check BPB"
+
+#define IDS_2089      2089 // "KB"
+#define IDS_KB        IDS_2089 // "KB"
+
+#define IDS_2090      2090 // "Could not initialize the video..."
+
+#define IDS_2091      2091 // "Default"
+#define IDS_DEFAULT   IDS_2091 // "Default"
+
+#define IDS_2092      2092 // "%i Wait state(s)"
+#define IDS_WS        IDS_2092 // "%i Wait state(s)"
+
+#define IDS_2093      2093 // "Type"
+#define IDS_TYPE      IDS_2093 // "Type"
+
+/* TODO */
 #define IDS_2093      2093 // "PCap failed to set up.."
 #define IDS_2094      2094 // "No PCap devices found"
 #define IDS_2095      2095 // "Invalid PCap device"
