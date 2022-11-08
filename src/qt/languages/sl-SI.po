@@ -247,8 +247,8 @@ msgstr "&Naloži zadnjo sliko"
 msgid "&Image"
 msgstr "&Slika"
 
-msgid "&Folder..."
-msgstr "&Folder..."
+msgid "&Folder"
+msgstr "&Mapa"
 
 msgid "Target &framerate"
 msgstr "&Ciljno št. sličic na sekundo"
@@ -385,6 +385,12 @@ msgstr "Video:"
 msgid "Voodoo Graphics"
 msgstr "Voodoo grafika"
 
+msgid "IBM 8514/a Graphics"
+msgstr "IBM 8514/a grafika"
+
+msgid "XGA Graphics"
+msgstr "XGA grafika"
+
 msgid "Mouse:"
 msgstr "Miška:"
 
@@ -426,6 +432,15 @@ msgstr "Gravis Ultrasound"
 
 msgid "Use FLOAT32 sound"
 msgstr "Uporabi FLOAT32 za zvok"
+
+msgid "FM synth driver"
+msgstr "Gonilnik sintetizacije FM"
+
+msgid "Nuked (more accurate)"
+msgstr "Nuked (točnejši)"
+
+msgid "YMFM (faster)"
+msgstr "YMFM (hitrejši)"
 
 msgid "Network type:"
 msgstr "Vrsta omrežja:"
@@ -570,6 +585,9 @@ msgstr "Preverjaj BPB"
 
 msgid "CD-ROM drives:"
 msgstr "Pogoni CD-ROM:"
+
+msgid "Earlier drive"
+msgstr "Zgodnejši pogon"
 
 msgid "MO drives:"
 msgstr "Magnetno-optični pogoni:"
@@ -941,16 +959,16 @@ msgid "Cartridge images"
 msgstr "Slike spominskega vložka"
 
 msgid "Error initializing renderer"
-msgstr "Error initializing renderer"
+msgstr "Napaka pri zagonu sistema za upodabljanje"
 
 msgid "OpenGL (3.0 Core) renderer could not be initialized. Use another renderer."
-msgstr "OpenGL (3.0 Core) renderer could not be initialized. Use another renderer."
+msgstr "Sistema za upodabljanje OpenGL (3.0 Core) ni bilo mogoče zagnati. Uporabite drug sistem za upodabljanje."
 
 msgid "Resume execution"
-msgstr "Resume execution"
+msgstr "Nadaljuj izvajanje"
 
 msgid "Pause execution"
-msgstr "Pause execution"
+msgstr "Prekini izvajanje"
 
 msgid "Press Ctrl+Alt+Del"
 msgstr "Press Ctrl+Alt+Del"
@@ -959,10 +977,10 @@ msgid "Press Ctrl+Alt+Esc"
 msgstr "Press Ctrl+Alt+Esc"
 
 msgid "Hard reset"
-msgstr "Hard reset"
+msgstr "Ponovni zagon"
 
 msgid "ACPI shutdown"
-msgstr "ACPI shutdown"
+msgstr "Zaustavitev ACPI"
 
 msgid "Hard disk (%s)"
 msgstr "Trdi disk (%s)"

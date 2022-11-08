@@ -128,7 +128,7 @@ void MediaMenu::refresh(QMenu *parentMenu) {
         menu->addAction(QApplication::style()->standardIcon(QStyle::SP_MediaVolumeMuted), tr("&Mute"), [this, i]() { cdromMute(i); })->setCheckable(true);
         menu->addSeparator();
         menu->addAction(ProgSettings::loadIcon("/cdrom.ico"), tr("&Image..."), [this, i]() { cdromMount(i, 0); })->setCheckable(false);
-        menu->addAction(QApplication::style()->standardIcon(QStyle::SP_DirIcon), tr("&Folder..."), [this, i]() { cdromMount(i, 1); })->setCheckable(false);
+        menu->addAction(QApplication::style()->standardIcon(QStyle::SP_DirIcon), tr("&Folder"), [this, i]() { cdromMount(i, 1); })->setCheckable(false);
         menu->addSeparator();
         for (int slot = 0; slot < MAX_PREV_IMAGES; slot++) {
             cdromImageHistoryPos[slot] = menu->children().count();
