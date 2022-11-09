@@ -612,7 +612,7 @@ svga_recalctimings(svga_t *svga)
     if (svga->dpms) {
         if (!svga->dpms_ui) {
             svga->dpms_ui = 1;
-            ui_sb_set_text_w(plat_get_string(IDS_2142));
+            ui_sb_set_text_w(plat_get_string(IDS_2143));
         }
     } else if (svga->dpms_ui) {
         svga->dpms_ui = 0;

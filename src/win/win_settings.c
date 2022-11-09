@@ -75,7 +75,12 @@
 #include "../disk/minivhd/minivhd_util.h"
 
 /* Icon, Bus, File, C, H, S, Size, Speed */
-#define C_COLUMNS_HARD_DISKS 7
+#define C_COLUMNS_HARD_DISKS    7
+
+#define C_COLUMNS_FLOPPY_DRIVES 3
+#define C_COLUMNS_CDROM_DRIVES  3
+#define C_COLUMNS_MO_DRIVES     2
+#define C_COLUMNS_ZIP_DRIVES    2
 
 static int first_cat = 0;
 
@@ -319,11 +324,11 @@ win_settings_init(void)
     temp_sync = time_sync;
 
     /* Video category */
-    temp_gfxcard = gfxcard;
+    temp_gfxcard   = gfxcard;
     temp_gfxcard_2 = gfxcard_2;
-    temp_voodoo  = voodoo_enabled;
-    temp_ibm8514 = ibm8514_enabled;
-    temp_xga     = xga_enabled;
+    temp_voodoo    = voodoo_enabled;
+    temp_ibm8514   = ibm8514_enabled;
+    temp_xga       = xga_enabled;
 
     /* Input devices category */
     temp_mouse    = mouse_type;
@@ -598,7 +603,7 @@ win_settings_save(void)
     /* Removable devices category */
     memcpy(cdrom, temp_cdrom, CDROM_NUM * sizeof(cdrom_t));
     for (i = 0; i < CDROM_NUM; i++) {
-	cdrom[i].is_dir      = 0;
+        cdrom[i].is_dir      = 0;
         cdrom[i].priv        = NULL;
         cdrom[i].ops         = NULL;
         cdrom[i].image       = NULL;
@@ -806,7 +811,7 @@ win_settings_machine_recalc_machine(HWND hdlg)
         SendMessage(h, UDM_SETPOS, 0, temp_mem_size >> 10);
 
         h = GetDlgItem(hdlg, IDC_TEXT_MB);
-        SendMessage(h, WM_SETTEXT, 0, win_get_string(IDS_2086));
+        SendMessage(h, WM_SETTEXT, 0, win_get_string(IDS_MB));
     }
 
     settings_enable_window(hdlg, IDC_MEMSPIN, machine_get_min_ram(temp_machine) != machine_get_max_ram(temp_machine));
@@ -1113,8 +1118,7 @@ win_settings_video_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
                 if (!device_name[0])
                     break;
 
-                if (video_card_available(c) &&
-                    device_is_valid(video_card_getdevice(c), temp_machine)) {
+                if (video_card_available(c) && device_is_valid(video_card_getdevice(c), temp_machine)) {
                     if (c == 0) // "None"
                         settings_add_string(hdlg, IDC_COMBO_VIDEO_2, win_get_string(IDS_2104));
                     else if (c == 1) // "Internal"
@@ -1194,7 +1198,7 @@ win_settings_video_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 
                 case IDC_CONFIGURE_VID_2:
                     temp_gfxcard_2 = settings_list_to_device[1][settings_get_cur_sel(hdlg, IDC_COMBO_VIDEO_2)];
-                    temp_deviceconfig |= deviceconfig_open(hdlg, (void *)video_card_getdevice(temp_gfxcard_2));
+                    temp_deviceconfig |= deviceconfig_open(hdlg, (void *) video_card_getdevice(temp_gfxcard_2));
                     break;
             }
             return FALSE;
@@ -2402,7 +2406,7 @@ win_settings_hard_disks_resize_columns(HWND hdlg)
                                               C_COLUMNS_HARD_DISKS_SIZE,
                                               C_COLUMNS_HARD_DISKS_SPEED
                                             };
-    int total = 0;
+    int  total    = 0;
     HWND hwndList = GetDlgItem(hdlg, IDC_LIST_HARD_DISKS);
     RECT r;
 
@@ -2427,7 +2431,7 @@ win_settings_hard_disks_init_columns(HWND hdlg)
 
     for (iCol = 0; iCol < C_COLUMNS_HARD_DISKS; iCol++) {
         lvc.iSubItem = iCol;
-        lvc.pszText  = plat_get_string(IDS_2081 + iCol);
+        lvc.pszText  = plat_get_string(IDS_BUS + iCol);
 
         switch (iCol) {
             case 0: /* Bus */
@@ -3856,22 +3860,30 @@ win_settings_zip_drives_recalc_list(HWND hdlg)
     return TRUE;
 }
 
+#define C_COLUMNS_FLOPPY_DRIVES_TYPE  292
+#define C_COLUMNS_FLOPPY_DRIVES_TURBO 58
+#define C_COLUMNS_FLOPPY_DRIVES_BPB   89
+
 static void
 win_settings_floppy_drives_resize_columns(HWND hdlg)
 {
-    int  iCol, width[3] = { 292, 58, 89 };
+    int  iCol, width[C_COLUMNS_FLOPPY_DRIVES] = {
+                                                  C_COLUMNS_FLOPPY_DRIVES_TYPE,
+                                                  C_COLUMNS_FLOPPY_DRIVES_TURBO,
+                                                  C_COLUMNS_FLOPPY_DRIVES_BPB
+                                                };
     int  total    = 0;
     HWND hwndList = GetDlgItem(hdlg, IDC_LIST_FLOPPY_DRIVES);
     RECT r;
 
     GetWindowRect(hwndList, &r);
-    for (iCol = 0; iCol < 2; iCol++) {
+    for (iCol = 0; iCol < C_COLUMNS_FLOPPY_DRIVES; iCol++) {
         width[iCol] = MulDiv(width[iCol], dpi, 96);
         total += width[iCol];
         ListView_SetColumnWidth(hwndList, iCol, MulDiv(width[iCol], dpi, 96));
     }
-    width[2] = (r.right - r.left) - 4 - total;
-    ListView_SetColumnWidth(hwndList, 2, width[2]);
+    width[C_COLUMNS_FLOPPY_DRIVES - 1] = (r.right - r.left) - 4 - total;
+    ListView_SetColumnWidth(hwndList, 2, width[C_COLUMNS_FLOPPY_DRIVES - 1]);
 }
 
 static BOOL
@@ -3882,28 +3894,31 @@ win_settings_floppy_drives_init_columns(HWND hdlg)
 
     lvc.mask = LVCF_FMT | LVCF_WIDTH | LVCF_TEXT | LVCF_SUBITEM;
 
+    /* Type */
     lvc.iSubItem = 0;
     lvc.pszText  = plat_get_string(IDS_TYPE);
 
-    lvc.cx  = 292;
+    lvc.cx  = C_COLUMNS_FLOPPY_DRIVES_TYPE;
     lvc.fmt = LVCFMT_LEFT;
 
     if (ListView_InsertColumn(hwndList, 0, &lvc) == -1)
         return FALSE;
 
+    /* Turbo */
     lvc.iSubItem = 1;
     lvc.pszText  = plat_get_string(IDS_2059);
 
-    lvc.cx  = 58;
+    lvc.cx  = C_COLUMNS_FLOPPY_DRIVES_TURBO;
     lvc.fmt = LVCFMT_LEFT;
 
     if (ListView_InsertColumn(hwndList, 1, &lvc) == -1)
         return FALSE;
 
+    /* Check BPB */
     lvc.iSubItem = 2;
     lvc.pszText  = plat_get_string(IDS_BPB);
 
-    lvc.cx  = 89;
+    lvc.cx  = C_COLUMNS_FLOPPY_DRIVES_BPB;
     lvc.fmt = LVCFMT_LEFT;
 
     if (ListView_InsertColumn(hwndList, 2, &lvc) == -1)
@@ -3913,22 +3928,30 @@ win_settings_floppy_drives_init_columns(HWND hdlg)
     return TRUE;
 }
 
+#define C_COLUMNS_CDROM_DRIVES_BUS     292
+#define C_COLUMNS_CDROM_DRIVES_SPEED   58
+#define C_COLUMNS_CDROM_DRIVES_EARLIER 89
+
 static void
 win_settings_cdrom_drives_resize_columns(HWND hdlg)
 {
-    int  iCol, width[3] = { 292, 58, 89 };
+    int  iCol, width[C_COLUMNS_CDROM_DRIVES] = {
+                                                 C_COLUMNS_CDROM_DRIVES_BUS,
+                                                 C_COLUMNS_CDROM_DRIVES_SPEED,
+                                                 C_COLUMNS_CDROM_DRIVES_EARLIER
+                                               };
     int  total    = 0;
     HWND hwndList = GetDlgItem(hdlg, IDC_LIST_CDROM_DRIVES);
     RECT r;
 
     GetWindowRect(hwndList, &r);
-    for (iCol = 0; iCol < 2; iCol++) {
+    for (iCol = 0; iCol < C_COLUMNS_CDROM_DRIVES; iCol++) {
         width[iCol] = MulDiv(width[iCol], dpi, 96);
         total += width[iCol];
         ListView_SetColumnWidth(hwndList, iCol, MulDiv(width[iCol], dpi, 96));
     }
-    width[2] = (r.right - r.left) - 4 - total;
-    ListView_SetColumnWidth(hwndList, 2, width[2]);
+    width[C_COLUMNS_CDROM_DRIVES - 1] = (r.right - r.left) - 4 - total;
+    ListView_SetColumnWidth(hwndList, 2, width[C_COLUMNS_CDROM_DRIVES - 1]);
 }
 
 static BOOL
@@ -3939,28 +3962,31 @@ win_settings_cdrom_drives_init_columns(HWND hdlg)
 
     lvc.mask = LVCF_FMT | LVCF_WIDTH | LVCF_TEXT | LVCF_SUBITEM;
 
+    /* Bus */
     lvc.iSubItem = 0;
-    lvc.pszText  = plat_get_string(IDS_2081);
+    lvc.pszText  = plat_get_string(IDS_BUS);
 
-    lvc.cx  = 292;
+    lvc.cx  = C_COLUMNS_CDROM_DRIVES_BUS;
     lvc.fmt = LVCFMT_LEFT;
 
     if (ListView_InsertColumn(hwndList, 0, &lvc) == -1)
         return FALSE;
 
+    /* Speed */
     lvc.iSubItem = 1;
     lvc.pszText  = plat_get_string(IDS_2053);
 
-    lvc.cx  = 58;
+    lvc.cx  = C_COLUMNS_CDROM_DRIVES_SPEED;
     lvc.fmt = LVCFMT_LEFT;
 
     if (ListView_InsertColumn(hwndList, 1, &lvc) == -1)
         return FALSE;
 
+    /* Earlier drive */
     lvc.iSubItem = 2;
     lvc.pszText  = plat_get_string(IDS_2162);
 
-    lvc.cx  = 89;
+    lvc.cx  = C_COLUMNS_CDROM_DRIVES_EARLIER;
     lvc.fmt = LVCFMT_LEFT;
 
     if (ListView_InsertColumn(hwndList, 2, &lvc) == -1)
@@ -3970,18 +3996,24 @@ win_settings_cdrom_drives_init_columns(HWND hdlg)
     return TRUE;
 }
 
+#define C_COLUMNS_MO_DRIVES_BUS  292
+#define C_COLUMNS_MO_DRIVES_TYPE 147
+
 static void
 win_settings_mo_drives_resize_columns(HWND hdlg)
 {
-    int  width[2] = { 292, 147 };
-    HWND hwndList = GetDlgItem(hdlg, IDC_LIST_MO_DRIVES);
+    int  width[C_COLUMNS_MO_DRIVES] = {
+                                        C_COLUMNS_MO_DRIVES_BUS,
+                                        C_COLUMNS_MO_DRIVES_TYPE
+                                      };
+    HWND hwndList                   = GetDlgItem(hdlg, IDC_LIST_MO_DRIVES);
     RECT r;
 
     GetWindowRect(hwndList, &r);
     width[0] = MulDiv(width[0], dpi, 96);
     ListView_SetColumnWidth(hwndList, 0, MulDiv(width[0], dpi, 96));
-    width[1] = (r.right - r.left) - 4 - width[0];
-    ListView_SetColumnWidth(hwndList, 1, width[1]);
+    width[C_COLUMNS_MO_DRIVES - 1] = (r.right - r.left) - 4 - width[0];
+    ListView_SetColumnWidth(hwndList, 1, width[C_COLUMNS_MO_DRIVES - 1]);
 }
 
 static BOOL
@@ -3992,19 +4024,21 @@ win_settings_mo_drives_init_columns(HWND hdlg)
 
     lvc.mask = LVCF_FMT | LVCF_WIDTH | LVCF_TEXT | LVCF_SUBITEM;
 
+    /* Bus */
     lvc.iSubItem = 0;
-    lvc.pszText  = plat_get_string(IDS_2081);
+    lvc.pszText  = plat_get_string(IDS_BUS);
 
-    lvc.cx  = 292;
+    lvc.cx  = C_COLUMNS_MO_DRIVES_BUS;
     lvc.fmt = LVCFMT_LEFT;
 
     if (ListView_InsertColumn(hwndList, 0, &lvc) == -1)
         return FALSE;
 
+    /* Type */
     lvc.iSubItem = 1;
     lvc.pszText  = plat_get_string(IDS_TYPE);
 
-    lvc.cx  = 147;
+    lvc.cx  = C_COLUMNS_MO_DRIVES_TYPE;
     lvc.fmt = LVCFMT_LEFT;
 
     if (ListView_InsertColumn(hwndList, 1, &lvc) == -1)
@@ -4014,18 +4048,24 @@ win_settings_mo_drives_init_columns(HWND hdlg)
     return TRUE;
 }
 
+#define C_COLUMNS_ZIP_DRIVES_BUS  292
+#define C_COLUMNS_ZIP_DRIVES_TYPE 147
+
 static void
 win_settings_zip_drives_resize_columns(HWND hdlg)
 {
-    int  width[2] = { 292, 147 };
-    HWND hwndList = GetDlgItem(hdlg, IDC_LIST_ZIP_DRIVES);
+    int  width[C_COLUMNS_MO_DRIVES] = {
+                                        C_COLUMNS_ZIP_DRIVES_BUS,
+                                        C_COLUMNS_ZIP_DRIVES_TYPE
+                                      };
+    HWND hwndList                   = GetDlgItem(hdlg, IDC_LIST_ZIP_DRIVES);
     RECT r;
 
     GetWindowRect(hwndList, &r);
     width[0] = MulDiv(width[0], dpi, 96);
     ListView_SetColumnWidth(hwndList, 0, MulDiv(width[0], dpi, 96));
-    width[1] = (r.right - r.left) - 4 - width[0];
-    ListView_SetColumnWidth(hwndList, 1, width[1]);
+    width[C_COLUMNS_ZIP_DRIVES - 1] = (r.right - r.left) - 4 - width[0];
+    ListView_SetColumnWidth(hwndList, 1, width[C_COLUMNS_ZIP_DRIVES - 1]);
 }
 
 static BOOL
@@ -4036,19 +4076,21 @@ win_settings_zip_drives_init_columns(HWND hdlg)
 
     lvc.mask = LVCF_FMT | LVCF_WIDTH | LVCF_TEXT | LVCF_SUBITEM;
 
+    /* Bus */
     lvc.iSubItem = 0;
-    lvc.pszText  = plat_get_string(IDS_2081);
+    lvc.pszText  = plat_get_string(IDS_BUS);
 
-    lvc.cx  = 292;
+    lvc.cx  = C_COLUMNS_ZIP_DRIVES_BUS;
     lvc.fmt = LVCFMT_LEFT;
 
     if (ListView_InsertColumn(hwndList, 0, &lvc) == -1)
         return FALSE;
 
+    /* Type */
     lvc.iSubItem = 1;
     lvc.pszText  = plat_get_string(IDS_TYPE);
 
-    lvc.cx  = 147;
+    lvc.cx  = C_COLUMNS_ZIP_DRIVES_TYPE;
     lvc.fmt = LVCFMT_LEFT;
 
     if (ListView_InsertColumn(hwndList, 1, &lvc) == -1)
@@ -4189,6 +4231,7 @@ win_settings_mo_drives_update_item(HWND hdlg, int i)
     lvI.mask      = LVIF_TEXT | LVIF_IMAGE | LVIF_STATE;
     lvI.stateMask = lvI.iSubItem = lvI.state = 0;
 
+    /* Bus */
     lvI.iSubItem = 0;
     lvI.iItem    = i;
 
@@ -4215,6 +4258,7 @@ win_settings_mo_drives_update_item(HWND hdlg, int i)
     if (ListView_SetItem(hwndList, &lvI) == -1)
         return;
 
+    /* Type */
     lvI.iSubItem = 1;
     if (temp_mo_drives[i].bus_type == MO_BUS_DISABLED)
         lvI.pszText = plat_get_string(IDS_2104);
@@ -4723,7 +4767,6 @@ win_settings_floppy_and_cdrom_drives_proc(HWND hdlg, UINT message, WPARAM wParam
                     temp_cdrom[lv2_current_sel].early = settings_get_check(hdlg, IDC_CHECKEARLY);
                     win_settings_cdrom_drives_update_item(hdlg, lv2_current_sel);
                     break;
-
             }
             ignore_change = 0;
 

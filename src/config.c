@@ -736,9 +736,9 @@ load_network(void)
         if (p != NULL) {
             if ((network_dev_to_id(p) == -1) || (network_ndev == 1)) {
                 if (network_ndev == 1) {
-                    ui_msgbox_header(MBX_ERROR, (wchar_t *) IDS_2094, (wchar_t *) IDS_2129);
+                    ui_msgbox_header(MBX_ERROR, (wchar_t *) IDS_2095, (wchar_t *) IDS_2130);
                 } else if (network_dev_to_id(p) == -1) {
-                    ui_msgbox_header(MBX_ERROR, (wchar_t *) IDS_2095, (wchar_t *) IDS_2129);
+                    ui_msgbox_header(MBX_ERROR, (wchar_t *) IDS_2096, (wchar_t *) IDS_2130);
                 }
                 strcpy(net_cards_conf[c].host_dev_name, "none");
             } else {
@@ -783,9 +783,9 @@ load_network(void)
         if (p != NULL) {
             if ((network_dev_to_id(p) == -1) || (network_ndev == 1)) {
                 if (network_ndev == 1) {
-                    ui_msgbox_header(MBX_ERROR, (wchar_t *) IDS_2094, (wchar_t *) IDS_2129);
+                    ui_msgbox_header(MBX_ERROR, (wchar_t *) IDS_2095, (wchar_t *) IDS_2130);
                 } else if (network_dev_to_id(p) == -1) {
-                    ui_msgbox_header(MBX_ERROR, (wchar_t *) IDS_2095, (wchar_t *) IDS_2129);
+                    ui_msgbox_header(MBX_ERROR, (wchar_t *) IDS_2096, (wchar_t *) IDS_2130);
                 }
                 strcpy(net_cards_conf[c].host_dev_name, "none");
             } else {

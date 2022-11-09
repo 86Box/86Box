@@ -39,7 +39,7 @@ AboutDialogCreate(HWND hwnd)
     TASKDIALOGCONFIG  tdconfig    = { 0 };
     TASKDIALOG_BUTTON tdbuttons[] = {
         {IDOK,      EMU_SITE_W               },
-        { IDCANCEL, MAKEINTRESOURCE(IDS_2127)}
+        { IDCANCEL, MAKEINTRESOURCE(IDS_2128)}
     };
 
     wchar_t emu_version[256];
@@ -52,10 +52,10 @@ AboutDialogCreate(HWND hwnd)
     tdconfig.hwndParent         = hwnd;
     tdconfig.hInstance          = hinstance;
     tdconfig.dwCommonButtons    = 0;
-    tdconfig.pszWindowTitle     = MAKEINTRESOURCE(IDS_2124);
+    tdconfig.pszWindowTitle     = MAKEINTRESOURCE(IDS_2125);
     tdconfig.pszMainIcon        = (PCWSTR) 10;
     tdconfig.pszMainInstruction = emu_version;
-    tdconfig.pszContent         = MAKEINTRESOURCE(IDS_2126);
+    tdconfig.pszContent         = MAKEINTRESOURCE(IDS_2127);
     tdconfig.cButtons           = ARRAYSIZE(tdbuttons);
     tdconfig.pButtons           = tdbuttons;
     tdconfig.nDefaultButton     = IDCANCEL;

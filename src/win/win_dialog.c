@@ -60,7 +60,7 @@ ui_msgbox_ex(int flags, void *header, void *message, void *btn1, void *btn2, voi
         tdb_yes    = { IDYES, STRING_OR_RESOURCE(btn1) },
         tdb_no     = { IDNO, STRING_OR_RESOURCE(btn2) },
         tdb_cancel = { IDCANCEL, STRING_OR_RESOURCE(btn3) },
-        tdb_exit   = { IDCLOSE, MAKEINTRESOURCE(IDS_2119) };
+        tdb_exit   = { IDCLOSE, MAKEINTRESOURCE(IDS_2120) };
     int ret = 0, checked = 0;
 
     /* Configure the default OK button. */
@@ -133,7 +133,7 @@ ui_msgbox_ex(int flags, void *header, void *message, void *btn1, void *btn2, voi
         tdconfig.pszMainInstruction = STRING_OR_RESOURCE(header);
     tdconfig.pButtons = tdbuttons;
     if (flags & MBX_DONTASK)
-        tdconfig.pszVerificationText = MAKEINTRESOURCE(IDS_2135);
+        tdconfig.pszVerificationText = MAKEINTRESOURCE(IDS_2136);
 
     /* Run the TaskDialog. */
     TaskDialogIndirect(&tdconfig, &ret, NULL, &checked);
