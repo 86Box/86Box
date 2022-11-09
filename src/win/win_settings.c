@@ -1114,13 +1114,12 @@ win_settings_video_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
                     break;
 
                 if (video_card_available(c) &&
-                    device_is_valid(video_card_getdevice(c), temp_machine) &&
-                    !(video_card_get_flags(c) == video_card_get_flags(gfxcard))) {
+                    device_is_valid(video_card_getdevice(c), temp_machine)) {
                     if (c == 0) // "None"
                         settings_add_string(hdlg, IDC_COMBO_VIDEO_2, win_get_string(IDS_2103));
                     else if (c == 1) // "Internal"
                         settings_add_string(hdlg, IDC_COMBO_VIDEO_2, win_get_string(IDS_2118));
-                    else
+                    else if (video_card_get_flags(c) != video_card_get_flags(gfxcard))
                         settings_add_string(hdlg, IDC_COMBO_VIDEO_2, (LPARAM) device_name);
                     settings_list_to_device[1][d] = c;
                     if ((c == 0) || (c == temp_gfxcard_2))
