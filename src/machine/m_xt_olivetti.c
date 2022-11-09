@@ -1189,7 +1189,7 @@ machine_xt_m240_init(const machine_t *model)
 
     mm58274_init(nvr, model->nvrmask + 1);
 
-    if (hdc_type == HDC_INTERNAL)
+    if (hdc_current == HDC_INTERNAL)
         device_add(&st506_xt_wd1002a_wx1_nobios_device);
 
     return ret;
