@@ -244,37 +244,37 @@ plat_get_string(int i)
             return L"Press CTRL-END or middle button to release mouse";
         case IDS_2080:
             return L"Failed to initialize FluidSynth";
-        case IDS_2130:
+        case IDS_2131:
             return L"Invalid configuration";
         case IDS_4099:
             return L"MFM/RLL or ESDI CD-ROM drives never existed";
-        case IDS_2093:
-            return L"Failed to set up PCap";
         case IDS_2094:
-            return L"No PCap devices found";
+            return L"Failed to set up PCap";
         case IDS_2095:
+            return L"No PCap devices found";
+        case IDS_2096:
             return L"Invalid PCap device";
-        case IDS_2110:
-            return L"Unable to initialize FreeType";
         case IDS_2111:
+            return L"Unable to initialize FreeType";
+        case IDS_2112:
             return L"Unable to initialize SDL, libsdl2 is required";
-        case IDS_2131:
-            return L"libfreetype is required for ESC/P printer emulation.";
         case IDS_2132:
-            return L"libgs is required for automatic conversion of PostScript files to PDF.\n\nAny documents sent to the generic PostScript printer will be saved as PostScript (.ps) files.";
+            return L"libfreetype is required for ESC/P printer emulation.";
         case IDS_2133:
+            return L"libgs is required for automatic conversion of PostScript files to PDF.\n\nAny documents sent to the generic PostScript printer will be saved as PostScript (.ps) files.";
+        case IDS_2134:
             return L"libfluidsynth is required for FluidSynth MIDI output.";
-        case IDS_2129:
+        case IDS_2130:
             return L"Make sure libpcap is installed and that you are on a libpcap-compatible network connection.";
-        case IDS_2114:
+        case IDS_2115:
             return L"Unable to initialize Ghostscript";
         case IDS_2063:
             return L"Machine \"%hs\" is not available due to missing ROMs in the roms/machines directory. Switching to an available machine.";
         case IDS_2064:
             return L"Video card \"%hs\" is not available due to missing ROMs in the roms/video directory. Switching to an available video card.";
-        case IDS_2128:
+        case IDS_2129:
             return L"Hardware not available";
-        case IDS_2142:
+        case IDS_2143:
             return L"Monitor in sleep mode";
     }
     return L"";

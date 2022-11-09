@@ -1,22 +1,22 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Windows 86Box Settings dialog handler.
+ *          Windows 86Box Settings dialog handler.
  *
  *
  *
- * Authors:	Miran Grca, <mgrca8@gmail.com>
- * 		David Hrdlička, <hrdlickadavid@outlook.com>
+ * Authors: Miran Grca, <mgrca8@gmail.com>
+ *          David Hrdlička, <hrdlickadavid@outlook.com>
  *
- *		Copyright 2016-2019 Miran Grca.
- *		Copyright 2018,2019 David Hrdlička.
- *		Copyright 2021 Laci bá'
- *		Copyright 2021-2022 Jasmine Iwanek.
+ *          Copyright 2016-2019 Miran Grca.
+ *          Copyright 2018,2019 David Hrdlička.
+ *          Copyright 2021 Laci bá'
+ *          Copyright 2021-2022 Jasmine Iwanek.
  */
 #define UNICODE
 #define BITMAP WINDOWS_BITMAP
@@ -74,8 +74,8 @@
 #include "../disk/minivhd/minivhd.h"
 #include "../disk/minivhd/minivhd_util.h"
 
-/* Icon, Bus, File, C, H, S, Size */
-#define C_COLUMNS_HARD_DISKS 6
+/* Icon, Bus, File, C, H, S, Size, Speed */
+#define C_COLUMNS_HARD_DISKS 7
 
 static int first_cat = 0;
 
@@ -792,7 +792,7 @@ win_settings_machine_recalc_machine(HWND hdlg)
         SendMessage(h, UDM_SETPOS, 0, temp_mem_size);
 
         h = GetDlgItem(hdlg, IDC_TEXT_MB);
-        SendMessage(h, WM_SETTEXT, 0, win_get_string(IDS_2088));
+        SendMessage(h, WM_SETTEXT, 0, win_get_string(IDS_KB));
     } else {
         /* MB granularity */
         h = GetDlgItem(hdlg, IDC_MEMSPIN);
@@ -889,9 +889,9 @@ win_settings_machine_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
                 c++;
             }
 
-            settings_add_string(hdlg, IDC_COMBO_WS, win_get_string(IDS_2090));
-            for (c = 0; c < 8; c++) {
-                wsprintf(lptsTemp, plat_get_string(IDS_2091), c);
+            settings_add_string(hdlg, IDC_COMBO_WS, win_get_string(IDS_DEFAULT));
+            for (c = 0; c < 8; c++) { /* TODO */
+                wsprintf(lptsTemp, plat_get_string(IDS_WS), c);
                 settings_add_string(hdlg, IDC_COMBO_WS, (LPARAM) lptsTemp);
             }
 
@@ -1037,7 +1037,7 @@ generate_device_name(const device_t *device, char *internal_name, int bus)
 
     if (!strcmp(internal_name, "none")) {
         /* Translate "None". */
-        wtemp = (WCHAR *) win_get_string(IDS_2103);
+        wtemp = (WCHAR *) win_get_string(IDS_2104);
         memcpy(device_name, wtemp, (wcslen(wtemp) + 1) * sizeof(WCHAR));
         return;
     } else if (!strcmp(internal_name, "internal"))
@@ -1077,9 +1077,9 @@ win_settings_video_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 
                 if (video_card_available(c) && device_is_valid(video_card_getdevice(c), temp_machine)) {
                     if (c == 0) // "None"
-                        settings_add_string(hdlg, IDC_COMBO_VIDEO, win_get_string(IDS_2103));
+                        settings_add_string(hdlg, IDC_COMBO_VIDEO, win_get_string(IDS_2104));
                     else if (c == 1) // "Internal"
-                        settings_add_string(hdlg, IDC_COMBO_VIDEO, win_get_string(IDS_2118));
+                        settings_add_string(hdlg, IDC_COMBO_VIDEO, win_get_string(IDS_2119));
                     else
                         settings_add_string(hdlg, IDC_COMBO_VIDEO, (LPARAM) device_name);
                     settings_list_to_device[0][d] = c;
@@ -1117,9 +1117,9 @@ win_settings_video_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
                     device_is_valid(video_card_getdevice(c), temp_machine) &&
                     !(video_card_get_flags(c) == video_card_get_flags(gfxcard))) {
                     if (c == 0) // "None"
-                        settings_add_string(hdlg, IDC_COMBO_VIDEO_2, win_get_string(IDS_2103));
+                        settings_add_string(hdlg, IDC_COMBO_VIDEO_2, win_get_string(IDS_2104));
                     else if (c == 1) // "Internal"
-                        settings_add_string(hdlg, IDC_COMBO_VIDEO_2, win_get_string(IDS_2118));
+                        settings_add_string(hdlg, IDC_COMBO_VIDEO_2, win_get_string(IDS_2119));
                     else
                         settings_add_string(hdlg, IDC_COMBO_VIDEO_2, (LPARAM) device_name);
                     settings_list_to_device[1][d] = c;
@@ -1244,9 +1244,9 @@ win_settings_input_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
                 if (mouse_valid(c, temp_machine)) {
                     generate_device_name(mouse_get_device(c), mouse_get_internal_name(c), 0);
                     if (c == 0)
-                        settings_add_string(hdlg, IDC_COMBO_MOUSE, win_get_string(IDS_2103));
+                        settings_add_string(hdlg, IDC_COMBO_MOUSE, win_get_string(IDS_2104));
                     else if (c == 1)
-                        settings_add_string(hdlg, IDC_COMBO_MOUSE, win_get_string(IDS_2118));
+                        settings_add_string(hdlg, IDC_COMBO_MOUSE, win_get_string(IDS_2119));
                     else
                         settings_add_string(hdlg, IDC_COMBO_MOUSE, (LPARAM) device_name);
                     settings_list_to_device[0][d] = c;
@@ -1373,9 +1373,9 @@ win_settings_sound_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 
                     if (device_is_valid(sound_dev, temp_machine)) {
                         if (c == 0)
-                            settings_add_string(hdlg, IDC_COMBO_SOUND, win_get_string(IDS_2103));
+                            settings_add_string(hdlg, IDC_COMBO_SOUND, win_get_string(IDS_2104));
                         else if (c == 1)
-                            settings_add_string(hdlg, IDC_COMBO_SOUND, win_get_string(IDS_2118));
+                            settings_add_string(hdlg, IDC_COMBO_SOUND, win_get_string(IDS_2119));
                         else
                             settings_add_string(hdlg, IDC_COMBO_SOUND, (LPARAM) device_name);
                         settings_list_to_device[0][d] = c;
@@ -1401,7 +1401,7 @@ win_settings_sound_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 
                 if (midi_out_device_available(c)) {
                     if (c == 0)
-                        settings_add_string(hdlg, IDC_COMBO_MIDI_OUT, win_get_string(IDS_2103));
+                        settings_add_string(hdlg, IDC_COMBO_MIDI_OUT, win_get_string(IDS_2104));
                     else
                         settings_add_string(hdlg, IDC_COMBO_MIDI_OUT, (LPARAM) device_name);
                     settings_list_to_midi[d] = c;
@@ -1425,7 +1425,7 @@ win_settings_sound_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 
                 if (midi_in_device_available(c)) {
                     if (c == 0)
-                        settings_add_string(hdlg, IDC_COMBO_MIDI_IN, win_get_string(IDS_2103));
+                        settings_add_string(hdlg, IDC_COMBO_MIDI_IN, win_get_string(IDS_2104));
                     else
                         settings_add_string(hdlg, IDC_COMBO_MIDI_IN, (LPARAM) device_name);
                     settings_list_to_midi_in[d] = c;
@@ -1586,7 +1586,7 @@ win_settings_ports_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
                         break;
 
                     if (c == 0)
-                        settings_add_string(hdlg, IDC_COMBO_LPT1 + i, win_get_string(IDS_2103));
+                        settings_add_string(hdlg, IDC_COMBO_LPT1 + i, win_get_string(IDS_2104));
                     else {
                         mbstowcs(lptsTemp, s, strlen(s) + 1);
                         settings_add_string(hdlg, IDC_COMBO_LPT1 + i, (LPARAM) lptsTemp);
@@ -1674,9 +1674,9 @@ win_settings_storage_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 
                     if (device_is_valid(hdc_dev, temp_machine)) {
                         if (c == 0)
-                            settings_add_string(hdlg, IDC_COMBO_HDC, win_get_string(IDS_2103));
+                            settings_add_string(hdlg, IDC_COMBO_HDC, win_get_string(IDS_2104));
                         else if (c == 1)
-                            settings_add_string(hdlg, IDC_COMBO_HDC, win_get_string(IDS_2118));
+                            settings_add_string(hdlg, IDC_COMBO_HDC, win_get_string(IDS_2119));
                         else
                             settings_add_string(hdlg, IDC_COMBO_HDC, (LPARAM) device_name);
                         settings_list_to_hdc[d] = c;
@@ -1706,7 +1706,7 @@ win_settings_storage_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 
                     if (device_is_valid(fdc_dev, temp_machine)) {
                         if (c == 0)
-                            settings_add_string(hdlg, IDC_COMBO_FDC, win_get_string(IDS_2118));
+                            settings_add_string(hdlg, IDC_COMBO_FDC, win_get_string(IDS_2119));
                         else
                             settings_add_string(hdlg, IDC_COMBO_FDC, (LPARAM) device_name);
                         settings_list_to_fdc[d] = c;
@@ -1738,7 +1738,7 @@ win_settings_storage_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
                     if (device_is_valid(scsi_dev, temp_machine)) {
                         for (e = 0; e < SCSI_BUS_MAX; e++) {
                             if (c == 0)
-                                settings_add_string(hdlg, IDC_COMBO_SCSI_1 + e, win_get_string(IDS_2103));
+                                settings_add_string(hdlg, IDC_COMBO_SCSI_1 + e, win_get_string(IDS_2104));
                             else
                                 settings_add_string(hdlg, IDC_COMBO_SCSI_1 + e, (LPARAM) device_name);
 
@@ -1891,7 +1891,7 @@ win_settings_network_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 
                 if (network_card_available(c) && device_is_valid(network_card_getdevice(c), temp_machine)) {
                     if (c == 0)
-                        settings_add_string(hdlg, IDC_COMBO_NET, win_get_string(IDS_2103));
+                        settings_add_string(hdlg, IDC_COMBO_NET, win_get_string(IDS_2104));
                     else
                         settings_add_string(hdlg, IDC_COMBO_NET, (LPARAM) device_name);
                     settings_list_to_device[0][d] = c;
@@ -2214,7 +2214,7 @@ win_settings_hard_disks_update_item(HWND hdlg, int i, int column)
     lvI.iSubItem = column;
     lvI.iItem    = i;
 
-    if (column == 0) {
+    if (column == 0) { /* Bus */
         switch (temp_hdd[i].bus) {
             case HDD_BUS_MFM:
                 wsprintf(szText, plat_get_string(IDS_4608), temp_hdd[i].mfm_channel >> 1, temp_hdd[i].mfm_channel & 1);
@@ -2237,27 +2237,31 @@ win_settings_hard_disks_update_item(HWND hdlg, int i, int column)
         }
         lvI.pszText = szText;
         lvI.iImage  = 0;
-    } else if (column == 1) {
+    } else if (column == 1) { /* File */
         if (!strnicmp(temp_hdd[i].fn, usr_path, strlen(usr_path)))
             mbstoc16s(szText, temp_hdd[i].fn + strlen(usr_path), sizeof_w(szText));
         else
             mbstoc16s(szText, temp_hdd[i].fn, sizeof_w(szText));
         lvI.pszText = szText;
         lvI.iImage  = 0;
-    } else if (column == 2) {
+    } else if (column == 2) { /* Cylinders */
         wsprintf(szText, plat_get_string(IDS_4098), temp_hdd[i].tracks);
         lvI.pszText = szText;
         lvI.iImage  = 0;
-    } else if (column == 3) {
+    } else if (column == 3) { /* Heads */
         wsprintf(szText, plat_get_string(IDS_4098), temp_hdd[i].hpc);
         lvI.pszText = szText;
         lvI.iImage  = 0;
-    } else if (column == 4) {
+    } else if (column == 4) { /* Sectors */
         wsprintf(szText, plat_get_string(IDS_4098), temp_hdd[i].spt);
         lvI.pszText = szText;
         lvI.iImage  = 0;
-    } else if (column == 5) {
+    } else if (column == 5) { /* Size (MB) */
         wsprintf(szText, plat_get_string(IDS_4098), (temp_hdd[i].tracks * temp_hdd[i].hpc * temp_hdd[i].spt) >> 11);
+        lvI.pszText = szText;
+        lvI.iImage  = 0;
+    } else if (column == 6) { /* Speed (RPM) */
+        mbstoc16s(szText, hdd_preset_getname(temp_hdd[i].speed_preset), sizeof_w(szText));
         lvI.pszText = szText;
         lvI.iImage  = 0;
     }
@@ -2288,6 +2292,8 @@ win_settings_hard_disks_recalc_list(HWND hdlg)
         if (temp_hdd[i].bus > 0) {
             hdc_id_to_listview_index[i] = j;
             lvI.iSubItem                = 0;
+
+            /* Bus */
             switch (temp_hdd[i].bus) {
                 case HDD_BUS_MFM:
                     wsprintf(szText, plat_get_string(IDS_4608), temp_hdd[i].mfm_channel >> 1, temp_hdd[i].mfm_channel & 1);
@@ -2315,6 +2321,7 @@ win_settings_hard_disks_recalc_list(HWND hdlg)
             if (ListView_InsertItem(hwndList, &lvI) == -1)
                 return FALSE;
 
+            /* File */
             lvI.iSubItem = 1;
             if (!strnicmp(temp_hdd[i].fn, usr_path, strlen(usr_path)))
                 mbstoc16s(szText, temp_hdd[i].fn + strlen(usr_path), sizeof_w(szText));
@@ -2325,6 +2332,7 @@ win_settings_hard_disks_recalc_list(HWND hdlg)
             if (ListView_SetItem(hwndList, &lvI) == -1)
                 return FALSE;
 
+            /* Cylinders */
             lvI.iSubItem = 2;
             wsprintf(szText, plat_get_string(IDS_4098), temp_hdd[i].tracks);
             lvI.pszText = szText;
@@ -2332,6 +2340,7 @@ win_settings_hard_disks_recalc_list(HWND hdlg)
             if (ListView_SetItem(hwndList, &lvI) == -1)
                 return FALSE;
 
+            /* Heads */
             lvI.iSubItem = 3;
             wsprintf(szText, plat_get_string(IDS_4098), temp_hdd[i].hpc);
             lvI.pszText = szText;
@@ -2339,6 +2348,7 @@ win_settings_hard_disks_recalc_list(HWND hdlg)
             if (ListView_SetItem(hwndList, &lvI) == -1)
                 return FALSE;
 
+            /* Sectors */
             lvI.iSubItem = 4;
             wsprintf(szText, plat_get_string(IDS_4098), temp_hdd[i].spt);
             lvI.pszText = szText;
@@ -2346,8 +2356,17 @@ win_settings_hard_disks_recalc_list(HWND hdlg)
             if (ListView_SetItem(hwndList, &lvI) == -1)
                 return FALSE;
 
+            /* Size (MB) */
             lvI.iSubItem = 5;
             wsprintf(szText, plat_get_string(IDS_4098), (temp_hdd[i].tracks * temp_hdd[i].hpc * temp_hdd[i].spt) >> 11);
+            lvI.pszText = szText;
+
+            if (ListView_SetItem(hwndList, &lvI) == -1)
+                return FALSE;
+
+            /* Speed (RPM) */
+            lvI.iSubItem = 6;
+            mbstoc16s(szText, hdd_preset_getname(temp_hdd[i].speed_preset), sizeof_w(szText));
             lvI.pszText = szText;
 
             if (ListView_SetItem(hwndList, &lvI) == -1)
@@ -2363,12 +2382,28 @@ win_settings_hard_disks_recalc_list(HWND hdlg)
     return TRUE;
 }
 
+#define C_COLUMNS_HARD_DISKS_BUS   104
+#define C_COLUMNS_HARD_DISKS_FILE  254
+#define C_COLUMNS_HARD_DISKS_CYLS  50
+#define C_COLUMNS_HARD_DISKS_HEADS 26
+#define C_COLUMNS_HARD_DISKS_SECT  32
+#define C_COLUMNS_HARD_DISKS_SIZE  50
+#define C_COLUMNS_HARD_DISKS_SPEED 100
+
 static void
 win_settings_hard_disks_resize_columns(HWND hdlg)
 {
     /* Bus, File, Cylinders, Heads, Sectors, Size */
-    int  iCol, width[C_COLUMNS_HARD_DISKS] = { 104, 354, 50, 26, 32, 50 };
-    int  total    = 0;
+    int iCol, width[C_COLUMNS_HARD_DISKS] = {
+                                              C_COLUMNS_HARD_DISKS_BUS,
+                                              C_COLUMNS_HARD_DISKS_FILE,
+                                              C_COLUMNS_HARD_DISKS_CYLS,
+                                              C_COLUMNS_HARD_DISKS_HEADS,
+                                              C_COLUMNS_HARD_DISKS_SECT,
+                                              C_COLUMNS_HARD_DISKS_SIZE,
+                                              C_COLUMNS_HARD_DISKS_SPEED
+                                            };
+    int total = 0;
     HWND hwndList = GetDlgItem(hdlg, IDC_LIST_HARD_DISKS);
     RECT r;
 
@@ -2397,27 +2432,31 @@ win_settings_hard_disks_init_columns(HWND hdlg)
 
         switch (iCol) {
             case 0: /* Bus */
-                lvc.cx  = 104;
+                lvc.cx  = C_COLUMNS_HARD_DISKS_BUS;
                 lvc.fmt = LVCFMT_LEFT;
                 break;
             case 1: /* File */
-                lvc.cx  = 354;
+                lvc.cx  = C_COLUMNS_HARD_DISKS_FILE;
                 lvc.fmt = LVCFMT_LEFT;
                 break;
             case 2: /* Cylinders */
-                lvc.cx  = 50;
+                lvc.cx  = C_COLUMNS_HARD_DISKS_CYLS;
                 lvc.fmt = LVCFMT_RIGHT;
                 break;
             case 3: /* Heads */
-                lvc.cx  = 26;
+                lvc.cx  = C_COLUMNS_HARD_DISKS_HEADS;
                 lvc.fmt = LVCFMT_RIGHT;
                 break;
             case 4: /* Sectors */
-                lvc.cx  = 32;
+                lvc.cx  = C_COLUMNS_HARD_DISKS_SECT;
                 lvc.fmt = LVCFMT_RIGHT;
                 break;
-            case 5: /* Size (MB) 8 */
-                lvc.cx  = 50;
+            case 5: /* Size (MB) */
+                lvc.cx  = C_COLUMNS_HARD_DISKS_SIZE;
+                lvc.fmt = LVCFMT_RIGHT;
+                break;
+            case 6: /* Speed (RPM) */
+                lvc.cx  = C_COLUMNS_HARD_DISKS_SPEED;
                 lvc.fmt = LVCFMT_RIGHT;
                 break;
         }
@@ -2450,7 +2489,7 @@ set_edit_box_contents(HWND hdlg, int id, uint32_t val)
     WCHAR szText[256];
 
     h = GetDlgItem(hdlg, id);
-    wsprintf(szText, plat_get_string(IDS_2106), val);
+    wsprintf(szText, plat_get_string(IDS_2107), val);
     SendMessage(h, WM_SETTEXT, (WPARAM) wcslen(szText), (LPARAM) szText);
 }
 
@@ -2481,7 +2520,7 @@ hdconf_initialize_hdt_combo(HWND hdlg)
     for (i = 0; i < 127; i++) {
         temp_size = ((uint64_t) hdd_table[i][0]) * hdd_table[i][1] * hdd_table[i][2];
         size_mb   = (uint32_t) (temp_size >> 11LL);
-        wsprintf(szText, plat_get_string(IDS_2107), size_mb, hdd_table[i][0], hdd_table[i][1], hdd_table[i][2]);
+        wsprintf(szText, plat_get_string(IDS_2108), size_mb, hdd_table[i][0], hdd_table[i][1], hdd_table[i][2]);
         settings_add_string(hdlg, IDC_COMBO_HD_TYPE, (LPARAM) szText);
         if ((tracks == (int) hdd_table[i][0]) && (hpc == (int) hdd_table[i][1]) && (spt == (int) hdd_table[i][2]))
             selection = i;
@@ -2784,7 +2823,7 @@ win_settings_hard_disks_add_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM 
                     /* Make sure no file name is allowed with removable SCSI hard disks. */
                     if (wcslen(hd_file_name) == 0) {
                         hdd_ptr->bus = HDD_BUS_DISABLED;
-                        settings_msgbox_header(MBX_ERROR, (wchar_t *) IDS_2130, (wchar_t *) IDS_4112);
+                        settings_msgbox_header(MBX_ERROR, (wchar_t *) IDS_2131, (wchar_t *) IDS_4112);
                         return TRUE;
                     }
 
@@ -3682,7 +3721,7 @@ win_settings_cdrom_drives_recalc_list(HWND hdlg)
 
         lvI.iSubItem = 1;
         if (temp_cdrom[i].bus_type == CDROM_BUS_DISABLED)
-            lvI.pszText = plat_get_string(IDS_2103);
+            lvI.pszText = plat_get_string(IDS_2104);
         else {
             wsprintf(szText, L"%ix", temp_cdrom[i].speed);
             lvI.pszText = szText;
@@ -3746,7 +3785,7 @@ win_settings_mo_drives_recalc_list(HWND hdlg)
 
         lvI.iSubItem = 1;
         if (temp_mo_drives[i].bus_type == MO_BUS_DISABLED)
-            lvI.pszText = plat_get_string(IDS_2103);
+            lvI.pszText = plat_get_string(IDS_2104);
         else {
             memset(szType, 0, 30);
             memcpy(szType, mo_drive_types[temp_mo_drives[i].type].vendor, 8);
@@ -3845,7 +3884,7 @@ win_settings_floppy_drives_init_columns(HWND hdlg)
     lvc.mask = LVCF_FMT | LVCF_WIDTH | LVCF_TEXT | LVCF_SUBITEM;
 
     lvc.iSubItem = 0;
-    lvc.pszText  = plat_get_string(IDS_2092);
+    lvc.pszText  = plat_get_string(IDS_TYPE);
 
     lvc.cx  = 292;
     lvc.fmt = LVCFMT_LEFT;
@@ -3863,7 +3902,7 @@ win_settings_floppy_drives_init_columns(HWND hdlg)
         return FALSE;
 
     lvc.iSubItem = 2;
-    lvc.pszText  = plat_get_string(IDS_2087);
+    lvc.pszText  = plat_get_string(IDS_BPB);
 
     lvc.cx  = 89;
     lvc.fmt = LVCFMT_LEFT;
@@ -3920,7 +3959,7 @@ win_settings_cdrom_drives_init_columns(HWND hdlg)
         return FALSE;
 
     lvc.iSubItem = 2;
-    lvc.pszText  = plat_get_string(IDS_2161);
+    lvc.pszText  = plat_get_string(IDS_2162);
 
     lvc.cx  = 89;
     lvc.fmt = LVCFMT_LEFT;
@@ -3964,7 +4003,7 @@ win_settings_mo_drives_init_columns(HWND hdlg)
         return FALSE;
 
     lvc.iSubItem = 1;
-    lvc.pszText  = plat_get_string(IDS_2092);
+    lvc.pszText  = plat_get_string(IDS_TYPE);
 
     lvc.cx  = 147;
     lvc.fmt = LVCFMT_LEFT;
@@ -4008,7 +4047,7 @@ win_settings_zip_drives_init_columns(HWND hdlg)
         return FALSE;
 
     lvc.iSubItem = 1;
-    lvc.pszText  = plat_get_string(IDS_2092);
+    lvc.pszText  = plat_get_string(IDS_TYPE);
 
     lvc.cx  = 147;
     lvc.fmt = LVCFMT_LEFT;
@@ -4119,7 +4158,7 @@ win_settings_cdrom_drives_update_item(HWND hdlg, int i)
 
     lvI.iSubItem = 1;
     if (temp_cdrom[i].bus_type == CDROM_BUS_DISABLED)
-        lvI.pszText = plat_get_string(IDS_2103);
+        lvI.pszText = plat_get_string(IDS_2104);
     else {
         wsprintf(szText, L"%ix", temp_cdrom[i].speed);
         lvI.pszText = szText;
@@ -4179,7 +4218,7 @@ win_settings_mo_drives_update_item(HWND hdlg, int i)
 
     lvI.iSubItem = 1;
     if (temp_mo_drives[i].bus_type == MO_BUS_DISABLED)
-        lvI.pszText = plat_get_string(IDS_2103);
+        lvI.pszText = plat_get_string(IDS_2104);
     else {
         memset(szType, 0, 30);
         memcpy(szType, mo_drive_types[temp_mo_drives[i].type].vendor, 8);
@@ -4958,7 +4997,7 @@ win_settings_peripherals_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lPa
                 dev = isartc_get_device(d);
                 if (device_is_valid(dev, temp_machine)) {
                     if (d == 0) {
-                        settings_add_string(hdlg, IDC_COMBO_ISARTC, win_get_string(IDS_2103));
+                        settings_add_string(hdlg, IDC_COMBO_ISARTC, win_get_string(IDS_2104));
                         settings_set_cur_sel(hdlg, IDC_COMBO_ISARTC, 0);
                     } else
                         settings_add_string(hdlg, IDC_COMBO_ISARTC, (LPARAM) device_name);
@@ -4984,7 +5023,7 @@ win_settings_peripherals_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lPa
                     dev = isamem_get_device(d);
                     if (device_is_valid(dev, temp_machine)) {
                         if (d == 0) {
-                            settings_add_string(hdlg, IDC_COMBO_ISAMEM_1 + c, win_get_string(IDS_2103));
+                            settings_add_string(hdlg, IDC_COMBO_ISAMEM_1 + c, win_get_string(IDS_2104));
                             settings_set_cur_sel(hdlg, IDC_COMBO_ISAMEM_1 + c, 0);
                         } else
                             settings_add_string(hdlg, IDC_COMBO_ISAMEM_1 + c, (LPARAM) device_name);
@@ -5140,7 +5179,7 @@ win_settings_confirm(HWND hdlg)
 
     if (win_settings_changed()) {
         if (confirm_save && !settings_only)
-            i = settings_msgbox_ex(MBX_QUESTION_OK | MBX_WARNING | MBX_DONTASK, (wchar_t *) IDS_2121, (wchar_t *) IDS_2122, (wchar_t *) IDS_2123, NULL, NULL);
+            i = settings_msgbox_ex(MBX_QUESTION_OK | MBX_WARNING | MBX_DONTASK, (wchar_t *) IDS_2122, (wchar_t *) IDS_2123, (wchar_t *) IDS_2124, NULL, NULL);
         else
             i = 0;
 
