@@ -55,6 +55,7 @@
 #define ROM_VOODOO3_3500_AGP_PAL    "roms/video/voodoo/35k05p.rom"
 #define ROM_VOODOO3_3500_AGP_COMPAQ "roms/video/voodoo/V3_3500_AGP_SD_2.15.05_Compaq.rom"
 #define ROM_VOODOO3_3500_SE_AGP     "roms/video/voodoo/V3_3500_AGP_SD_2.15.06_NTSC_Falcon_Northwest.rom"
+#define ROM_VOODOO3_3500_SI_AGP     "roms/video/voodoo/V3_3500_AGP_SD_2.15.07_PAL_3500TV-SI.rom"
 #define ROM_VELOCITY_100            "roms/video/voodoo/Velocity100.VBI"
 #define ROM_VELOCITY_200            "roms/video/voodoo/Velocity200sg.rom"
 
@@ -78,6 +79,7 @@ enum {
     TYPE_V3_3000,
     TYPE_V3_3500,
     TYPE_V3_3500_COMPAQ,
+    TYPE_V3_3500_SI,
     TYPE_VELOCITY100,
     TYPE_VELOCITY200
 };
@@ -3061,6 +3063,13 @@ banshee_init_common(const device_t *info, char *fn, int has_sgram, int type, int
             banshee->pci_regs[0x2f] = 0x12;
             break;
 
+        case TYPE_V3_3500_SI:
+            banshee->pci_regs[0x2c] = 0x1a;
+            banshee->pci_regs[0x2d] = 0x12;
+            banshee->pci_regs[0x2e] = 0x61;
+            banshee->pci_regs[0x2f] = 0x00;
+            break;
+
         case TYPE_VELOCITY100:
             banshee->pci_regs[0x2c] = 0x1a;
             banshee->pci_regs[0x2d] = 0x12;
@@ -3160,6 +3169,12 @@ v3_3500_se_agp_init(const device_t *info)
 }
 
 static void *
+v3_3500_si_agp_init(const device_t *info)
+{
+    return banshee_init_common(info, ROM_VOODOO3_3500_SI_AGP, 0, TYPE_V3_3500_SI, VOODOO_3, 1);
+}
+
+static void *
 velocity_100_agp_init(const device_t *info)
 {
     return banshee_init_common(info, ROM_VELOCITY_100, 1, TYPE_VELOCITY100, VOODOO_3, 1);
@@ -3226,6 +3241,12 @@ static int
 v3_3500_se_agp_available(void)
 {
     return rom_present(ROM_VOODOO3_3500_SE_AGP);
+}
+
+static int
+v3_3500_si_agp_available(void)
+{
+    return rom_present(ROM_VOODOO3_3500_SI_AGP);
 }
 
 static int
@@ -3447,6 +3468,20 @@ const device_t voodoo_3_3500_se_agp_device = {
     .close         = banshee_close,
     .reset         = NULL,
     { .available = v3_3500_se_agp_available },
+    .speed_changed = banshee_speed_changed,
+    .force_redraw  = banshee_force_redraw,
+    banshee_sdram_config
+};
+
+const device_t voodoo_3_3500_si_agp_device = {
+    .name          = "3dfx Voodoo3 3500 SI",
+    .internal_name = "voodoo3_3500_si_agp",
+    .flags         = DEVICE_AGP,
+    .local         = 0,
+    .init          = v3_3500_si_agp_init,
+    .close         = banshee_close,
+    .reset         = NULL,
+    { .available = v3_3500_si_agp_available },
     .speed_changed = banshee_speed_changed,
     .force_redraw  = banshee_force_redraw,
     banshee_sdram_config
