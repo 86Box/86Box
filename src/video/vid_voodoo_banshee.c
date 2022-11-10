@@ -54,6 +54,7 @@
 #define ROM_VOODOO3_3500_AGP_NTSC "roms/video/voodoo/35k05n.rom"
 #define ROM_VOODOO3_3500_AGP_PAL  "roms/video/voodoo/35k05p.rom"
 #define ROM_VELOCITY_100          "roms/video/voodoo/Velocity100.VBI"
+#define ROM_VELOCITY_200          "roms/video/voodoo/Velocity200sg.rom"
 
 static video_timings_t timing_banshee     = { .type = VIDEO_PCI, .write_b = 2, .write_w = 2, .write_l = 1, .read_b = 20, .read_w = 20, .read_l = 21 };
 static video_timings_t timing_banshee_agp = { .type = VIDEO_AGP, .write_b = 2, .write_w = 2, .write_l = 1, .read_b = 20, .read_w = 20, .read_l = 21 };
@@ -3056,6 +3057,13 @@ banshee_init_common(const device_t *info, char *fn, int has_sgram, int type, int
             banshee->pci_regs[0x2e] = 0x4b;
             banshee->pci_regs[0x2f] = 0x00;
             break;
+
+        case TYPE_VELOCITY200:
+            banshee->pci_regs[0x2c] = 0x1a;
+            banshee->pci_regs[0x2d] = 0x12;
+            banshee->pci_regs[0x2e] = 0x54;
+            banshee->pci_regs[0x2f] = 0x00;
+            break;
     }
 
     video_inform(VIDEO_FLAG_TYPE_SPECIAL, banshee->agp ? &timing_banshee_agp : &timing_banshee);
@@ -3135,6 +3143,12 @@ velocity_100_agp_init(const device_t *info)
     return banshee_init_common(info, ROM_VELOCITY_100, 1, TYPE_VELOCITY100, VOODOO_3, 1);
 }
 
+static void *
+velocity_200_agp_init(const device_t *info)
+{
+    return banshee_init_common(info, ROM_VELOCITY_200, 1, TYPE_VELOCITY200, VOODOO_3, 1);
+}
+
 static int
 banshee_available(void)
 {
@@ -3184,6 +3198,12 @@ static int
 velocity_100_available(void)
 {
     return rom_present(ROM_VELOCITY_100);
+}
+
+static int
+velocity_200_available(void)
+{
+    return rom_present(ROM_VELOCITY_200);
 }
 
 static void
@@ -3382,4 +3402,18 @@ const device_t velocity_100_agp_device = {
     .speed_changed = banshee_speed_changed,
     .force_redraw  = banshee_force_redraw,
     banshee_sdram_config
+};
+
+const device_t velocity_200_agp_device = {
+    .name          = "3dfx Velocity 200",
+    .internal_name = "velocity200_agp",
+    .flags         = DEVICE_AGP,
+    .local         = 0,
+    .init          = velocity_200_agp_init,
+    .close         = banshee_close,
+    .reset         = NULL,
+    { .available = velocity_200_available },
+    .speed_changed = banshee_speed_changed,
+    .force_redraw  = banshee_force_redraw,
+    banshee_sgram_config
 };

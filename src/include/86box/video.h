@@ -530,6 +530,7 @@ extern const device_t voodoo_3_3000_agp_device;
 extern const device_t voodoo_3_3500_agp_ntsc_device;
 extern const device_t voodoo_3_3500_agp_pal_device;
 extern const device_t velocity_100_agp_device;
+extern const device_t velocity_200_agp_device;
 
 /* Wyse 700 */
 extern const device_t wy700_device;
