@@ -1661,7 +1661,7 @@ esp_pci_read(int func, int addr, void *p)
         case 0x0E:
             return 0; /*Header type */
         case 0x10:
-            return (esp_pci_bar[0].addr_regs[1] & 0x80) | 0x01; /*I/O space*/
+            return (esp_pci_bar[0].addr_regs[0] & 0x80) | 0x01; /*I/O space*/
         case 0x11:
             return esp_pci_bar[0].addr_regs[1];
         case 0x12:
@@ -1822,12 +1822,14 @@ dc390_init(const device_t *info)
     esp_pci_regs[0x04]          = 3;
 
     dev->has_bios = device_get_config_int("bios");
-    if (dev->has_bios)
-        rom_init(&dev->bios, DC390_ROM, 0xc8000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
+    if (dev->has_bios) {
+        dev->BIOSBase = 0xd0000;
+        rom_init(&dev->bios, DC390_ROM, 0xd0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
+    }
 
     /* Enable our BIOS space in PCI, if needed. */
     if (dev->has_bios) {
-        esp_pci_bar[1].addr = 0xfff80000;
+        esp_pci_bar[1].addr = 0xffff0000;
     } else {
         esp_pci_bar[1].addr = 0;
     }

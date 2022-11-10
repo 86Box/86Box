@@ -340,7 +340,7 @@ ps_init(void *lpt)
     /* Try loading the DLL. */
     ghostscript_handle = dynld_module(PATH_GHOSTSCRIPT_DLL, ghostscript_imports);
     if (ghostscript_handle == NULL)
-        ui_msgbox_header(MBX_ERROR, (wchar_t *) IDS_2114, (wchar_t *) IDS_2132);
+        ui_msgbox_header(MBX_ERROR, (wchar_t *) IDS_2115, (wchar_t *) IDS_2133);
     else {
         if (gsapi_revision(&rev, sizeof(rev)) == 0)
             pclog("Loaded %s, rev %ld (%ld)\n", rev.product, rev.revision, rev.revisiondate);

@@ -244,7 +244,7 @@ fluidsynth_init(const device_t *info)
         fluidsynth_handle = dynld_module("libfluidsynth.so.2", fluidsynth_imports);
 #    endif
     if (fluidsynth_handle == NULL) {
-        ui_msgbox_header(MBX_ERROR, (wchar_t *) IDS_2080, (wchar_t *) IDS_2133);
+        ui_msgbox_header(MBX_ERROR, (wchar_t *) IDS_2080, (wchar_t *) IDS_2134);
         return NULL;
     }
 
