@@ -1,23 +1,23 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		user Interface module for WinAPI on Windows.
+ *          user Interface module for WinAPI on Windows.
  *
  *
  *
- * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
- *		Miran Grca, <mgrca8@gmail.com>
- *		Fred N. van Kempen, <decwiz@yahoo.com>
+ * Authors: Sarah Walker, <http://pcem-emulator.co.uk/>
+ *          Miran Grca, <mgrca8@gmail.com>
+ *          Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 2008-2020 Sarah Walker.
- *		Copyright 2016-2020 Miran Grca.
- *		Copyright 2017-2020 Fred N. van Kempen.
- *		Copyright 2019,2020 GH Cao.
+ *          Copyright 2008-2020 Sarah Walker.
+ *          Copyright 2016-2020 Miran Grca.
+ *          Copyright 2017-2020 Fred N. van Kempen.
+ *          Copyright 2019,2020 GH Cao.
  */
 #include <stdatomic.h>
 #define UNICODE
@@ -54,7 +54,8 @@
 
 /* Platform Public data, specific. */
 HWND hwndMain  = NULL,  /* application main window */
-    hwndRender = NULL;  /* machine render window */
+    hwndRender = NULL,  /* machine render window */
+    hwndRender2 = NULL; /* machine second screen render window */
 HMENU menuMain;         /* application main menu */
 RECT  oldclip;          /* mouse rect */
 int   sbar_height = 23; /* statusbar height */
@@ -213,7 +214,7 @@ show_render_options_menu()
         switch (IDM_VID_SDL_SW + vid_api) {
             case IDM_VID_OPENGL_CORE:
                 cur_menu = LoadMenu(hinstance, VID_GL_SUBMENU);
-                InsertMenu(GetSubMenu(menuMain, 1), 6, MF_BYPOSITION | MF_STRING | MF_POPUP, (UINT_PTR) cur_menu, plat_get_string(IDS_2144));
+                InsertMenu(GetSubMenu(menuMain, 1), 6, MF_BYPOSITION | MF_STRING | MF_POPUP, (UINT_PTR) cur_menu, plat_get_string(IDS_2145));
                 CheckMenuItem(menuMain, IDM_VID_GL_FPS_BLITTER, video_framerate == -1 ? MF_CHECKED : MF_UNCHECKED);
                 CheckMenuItem(menuMain, IDM_VID_GL_FPS_25, video_framerate == 25 ? MF_CHECKED : MF_UNCHECKED);
                 CheckMenuItem(menuMain, IDM_VID_GL_FPS_30, video_framerate == 30 ? MF_CHECKED : MF_UNCHECKED);
@@ -252,6 +253,7 @@ ResetAllMenus(void)
     CheckMenuItem(menuMain, IDM_VID_OVERSCAN, MF_UNCHECKED);
     CheckMenuItem(menuMain, IDM_VID_INVERT, MF_UNCHECKED);
 
+    CheckMenuItem(menuMain, IDM_VID_MONITORS, MF_UNCHECKED);
     CheckMenuItem(menuMain, IDM_VID_RESIZE, MF_UNCHECKED);
     CheckMenuItem(menuMain, IDM_VID_SDL_SW, MF_UNCHECKED);
     CheckMenuItem(menuMain, IDM_VID_SDL_HW, MF_UNCHECKED);
@@ -296,6 +298,9 @@ ResetAllMenus(void)
     CheckMenuItem(menuMain, IDM_VID_FORCE43, force_43 ? MF_CHECKED : MF_UNCHECKED);
     CheckMenuItem(menuMain, IDM_VID_OVERSCAN, enable_overscan ? MF_CHECKED : MF_UNCHECKED);
     CheckMenuItem(menuMain, IDM_VID_INVERT, invert_display ? MF_CHECKED : MF_UNCHECKED);
+
+    if (show_second_monitors == 1)
+	CheckMenuItem(menuMain, IDM_VID_MONITORS, MF_CHECKED);
 
     if (vid_resize == 1)
         CheckMenuItem(menuMain, IDM_VID_RESIZE, MF_CHECKED);
@@ -494,7 +499,7 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
                 case IDM_ACTION_HRESET:
                     win_notify_dlg_open();
                     if (confirm_reset)
-                        i = ui_msgbox_ex(MBX_QUESTION_YN | MBX_DONTASK, (wchar_t *) IDS_2112, NULL, (wchar_t *) IDS_2137, (wchar_t *) IDS_2138, NULL);
+                        i = ui_msgbox_ex(MBX_QUESTION_YN | MBX_DONTASK, (wchar_t *) IDS_2113, NULL, (wchar_t *) IDS_2138, (wchar_t *) IDS_2139, NULL);
                     else
                         i = 0;
                     if ((i % 10) == 0) {
@@ -515,7 +520,7 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
                 case IDM_ACTION_EXIT:
                     win_notify_dlg_open();
                     if (confirm_exit && confirm_exit_cmdl)
-                        i = ui_msgbox_ex(MBX_QUESTION_YN | MBX_DONTASK, (wchar_t *) IDS_2113, NULL, (wchar_t *) IDS_2119, (wchar_t *) IDS_2136, NULL);
+                        i = ui_msgbox_ex(MBX_QUESTION_YN | MBX_DONTASK, (wchar_t *) IDS_2114, NULL, (wchar_t *) IDS_2120, (wchar_t *) IDS_2137, NULL);
                     else
                         i = 0;
                     if ((i % 10) == 0) {
@@ -598,6 +603,11 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
                         SetWindowPos(hwndRender, NULL, 0, tbar_height, 0, 0, SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE);
                     }
                     config_save();
+                    break;
+
+                case IDM_VID_MONITORS:
+                    show_second_monitors ^= 1;
+                    CheckMenuItem(hmenu, IDM_VID_MONITORS, (show_second_monitors & 1) ? MF_CHECKED : MF_UNCHECKED);
                     break;
 
                 case IDM_VID_RESIZE:
@@ -696,7 +706,7 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
                     break;
                 case IDM_VID_GL_SHADER:
                     win_notify_dlg_open();
-                    if (file_dlg_st(hwnd, IDS_2143, video_shader, NULL, 0) == 0) {
+                    if (file_dlg_st(hwnd, IDS_2144, video_shader, NULL, 0) == 0) {
                         strcpy_s(video_shader, sizeof(video_shader), openfilestring);
                         EnableMenuItem(menuMain, IDM_VID_GL_NOSHADER, strlen(video_shader) > 0 ? MF_ENABLED : MF_DISABLED);
                     }
@@ -943,7 +953,7 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
         case WM_CLOSE:
             win_notify_dlg_open();
             if (confirm_exit && confirm_exit_cmdl)
-                i = ui_msgbox_ex(MBX_QUESTION_YN | MBX_DONTASK, (wchar_t *) IDS_2113, NULL, (wchar_t *) IDS_2119, (wchar_t *) IDS_2136, NULL);
+                i = ui_msgbox_ex(MBX_QUESTION_YN | MBX_DONTASK, (wchar_t *) IDS_2114, NULL, (wchar_t *) IDS_2120, (wchar_t *) IDS_2137, NULL);
             else
                 i = 0;
             if ((i % 10) == 0) {
@@ -986,7 +996,7 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
                 break;
             win_notify_dlg_open();
             if (confirm_reset)
-                i = ui_msgbox_ex(MBX_QUESTION_YN | MBX_DONTASK, (wchar_t *) IDS_2112, NULL, (wchar_t *) IDS_2137, (wchar_t *) IDS_2138, NULL);
+                i = ui_msgbox_ex(MBX_QUESTION_YN | MBX_DONTASK, (wchar_t *) IDS_2113, NULL, (wchar_t *) IDS_2138, (wchar_t *) IDS_2139, NULL);
             else
                 i = 0;
             if ((i % 10) == 0) {
@@ -1012,7 +1022,7 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
             } else {
                 win_notify_dlg_open();
                 if (confirm_exit && confirm_exit_cmdl)
-                    i = ui_msgbox_ex(MBX_QUESTION_YN | MBX_DONTASK, (wchar_t *) IDS_2113, NULL, (wchar_t *) IDS_2119, (wchar_t *) IDS_2136, NULL);
+                    i = ui_msgbox_ex(MBX_QUESTION_YN | MBX_DONTASK, (wchar_t *) IDS_2114, NULL, (wchar_t *) IDS_2120, (wchar_t *) IDS_2137, NULL);
                 else
                     i = 0;
                 if ((i % 10) == 0) {
@@ -1157,7 +1167,7 @@ ui_init(int nCmdShow)
     int               bRet;
     TASKDIALOGCONFIG  tdconfig    = { 0 };
     TASKDIALOG_BUTTON tdbuttons[] = {
-        {IDCANCEL, MAKEINTRESOURCE(IDS_2119)}
+        {IDCANCEL, MAKEINTRESOURCE(IDS_2120)}
     };
     uint32_t helper_lang;
 
@@ -1187,7 +1197,7 @@ ui_init(int nCmdShow)
     if (settings_only) {
         if (!pc_init_modules()) {
             /* Dang, no ROMs found at all! */
-            tdconfig.pszMainInstruction = MAKEINTRESOURCE(IDS_2120);
+            tdconfig.pszMainInstruction = MAKEINTRESOURCE(IDS_2121);
             tdconfig.pszContent         = MAKEINTRESOURCE(IDS_2056);
             TaskDialogIndirect(&tdconfig, NULL, NULL, NULL);
             return (6);
@@ -1322,7 +1332,7 @@ ui_init(int nCmdShow)
     ShowWindow(hwnd, nCmdShow);
 
     /* Warn the user about unsupported configs. */
-    if (cpu_override && ui_msgbox_ex(MBX_WARNING | MBX_QUESTION_OK, (void *) IDS_2145, (void *) IDS_2146, (void *) IDS_2147, (void *) IDS_2119, NULL)) {
+    if (cpu_override && ui_msgbox_ex(MBX_WARNING | MBX_QUESTION_OK, (void *) IDS_2146, (void *) IDS_2147, (void *) IDS_2148, (void *) IDS_2120, NULL)) {
         DestroyWindow(hwnd);
         return (0);
     }
@@ -1336,7 +1346,7 @@ ui_init(int nCmdShow)
     ridev.dwFlags     = RIDEV_NOHOTKEYS;
     ridev.hwndTarget  = NULL; /* current focus window */
     if (!RegisterRawInputDevices(&ridev, 1, sizeof(ridev))) {
-        tdconfig.pszContent = MAKEINTRESOURCE(IDS_2105);
+        tdconfig.pszContent = MAKEINTRESOURCE(IDS_2106);
         TaskDialogIndirect(&tdconfig, NULL, NULL, NULL);
         return (4);
     }
@@ -1345,7 +1355,7 @@ ui_init(int nCmdShow)
     /* Load the accelerator table */
     haccel = LoadAccelerators(hinstance, ACCEL_NAME);
     if (haccel == NULL) {
-        tdconfig.pszContent = MAKEINTRESOURCE(IDS_2104);
+        tdconfig.pszContent = MAKEINTRESOURCE(IDS_2105);
         TaskDialogIndirect(&tdconfig, NULL, NULL, NULL);
         return (3);
     }
@@ -1363,17 +1373,17 @@ ui_init(int nCmdShow)
     /* All done, fire up the actual emulated machine. */
     if (!pc_init_modules()) {
         /* Dang, no ROMs found at all! */
-        tdconfig.pszMainInstruction = MAKEINTRESOURCE(IDS_2120);
+        tdconfig.pszMainInstruction = MAKEINTRESOURCE(IDS_2121);
         tdconfig.pszContent         = MAKEINTRESOURCE(IDS_2056);
         TaskDialogIndirect(&tdconfig, NULL, NULL, NULL);
         return (6);
     }
 
     /* Initialize the configured Video API. */
-    if (!plat_setvid(vid_api)) {
-        tdconfig.pszContent = MAKEINTRESOURCE(IDS_2089);
+    if (! plat_setvid(vid_api)) {
+        tdconfig.pszContent = MAKEINTRESOURCE(IDS_2090);
         TaskDialogIndirect(&tdconfig, NULL, NULL, NULL);
-        return (5);
+        return(5);
     }
 
     /* Set up the current window size. */

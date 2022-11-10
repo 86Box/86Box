@@ -773,7 +773,7 @@ NewFloppyDialogProcedure(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
                     return TRUE;
 
                 case IDC_CFILE:
-                    if (!file_dlg_w(hdlg, plat_get_string(is_mo ? IDS_2139 : (is_zip ? IDS_2055 : IDS_2062)), L"", NULL, 1)) {
+                    if (!file_dlg_w(hdlg, plat_get_string(is_mo ? IDS_2140 : (is_zip ? IDS_2055 : IDS_2062)), L"", NULL, 1)) {
                         if (!wcschr(wopenfilestring, L'.')) {
                             if (wcslen(wopenfilestring) && (wcslen(wopenfilestring) <= 256)) {
                                 twcs    = &wopenfilestring[wcslen(wopenfilestring)];

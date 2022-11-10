@@ -445,8 +445,8 @@ opengl_fail()
         window = NULL;
     }
 
-    wchar_t *message = plat_get_string(IDS_2152);
-    wchar_t *header  = plat_get_string(IDS_2153);
+    wchar_t *message = plat_get_string(IDS_2153);
+    wchar_t *header  = plat_get_string(IDS_2154);
     MessageBox(parent, header, message, MB_OK);
 
     WaitForSingleObject(sync_objects.closing, INFINITE);

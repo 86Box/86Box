@@ -183,7 +183,7 @@ int main(int argc, char* argv[]) {
     SetCurrentProcessExplicitAppUserModelID(L"86Box.86Box");
 #endif
     if (! pc_init_modules()) {
-        ui_msgbox_header(MBX_FATAL, (void*)IDS_2120, (void*)IDS_2056);
+        ui_msgbox_header(MBX_FATAL, (void*)IDS_2121, (void*)IDS_2056);
         return 6;
     }
 
