@@ -54,6 +54,7 @@
 #define ROM_VOODOO3_3500_AGP_NTSC   "roms/video/voodoo/35k05n.rom"
 #define ROM_VOODOO3_3500_AGP_PAL    "roms/video/voodoo/35k05p.rom"
 #define ROM_VOODOO3_3500_AGP_COMPAQ "roms/video/voodoo/V3_3500_AGP_SD_2.15.05_Compaq.rom"
+#define ROM_VOODOO3_3500_SE_AGP     "roms/video/voodoo/V3_3500_AGP_SD_2.15.06_NTSC_Falcon_Northwest.rom"
 #define ROM_VELOCITY_100            "roms/video/voodoo/Velocity100.VBI"
 #define ROM_VELOCITY_200            "roms/video/voodoo/Velocity200sg.rom"
 
@@ -3153,6 +3154,12 @@ compaq_v3_3500_agp_init(const device_t *info)
 }
 
 static void *
+v3_3500_se_agp_init(const device_t *info)
+{
+    return banshee_init_common(info, ROM_VOODOO3_3500_SE_AGP, 0, TYPE_V3_3500, VOODOO_3, 1);
+}
+
+static void *
 velocity_100_agp_init(const device_t *info)
 {
     return banshee_init_common(info, ROM_VELOCITY_100, 1, TYPE_VELOCITY100, VOODOO_3, 1);
@@ -3213,6 +3220,12 @@ static int
 compaq_v3_3500_agp_available(void)
 {
     return rom_present(ROM_VOODOO3_3500_AGP_COMPAQ);
+}
+
+static int
+v3_3500_se_agp_available(void)
+{
+    return rom_present(ROM_VOODOO3_3500_SE_AGP);
 }
 
 static int
@@ -3420,6 +3433,20 @@ const device_t compaq_voodoo_3_3500_agp_device = {
     .close         = banshee_close,
     .reset         = NULL,
     { .available = compaq_v3_3500_agp_available },
+    .speed_changed = banshee_speed_changed,
+    .force_redraw  = banshee_force_redraw,
+    banshee_sdram_config
+};
+
+const device_t voodoo_3_3500_se_agp_device = {
+    .name          = "Falcon Northwest Voodoo3 3500 SE",
+    .internal_name = "voodoo3_3500_se_agp",
+    .flags         = DEVICE_AGP,
+    .local         = 0,
+    .init          = v3_3500_se_agp_init,
+    .close         = banshee_close,
+    .reset         = NULL,
+    { .available = v3_3500_se_agp_available },
     .speed_changed = banshee_speed_changed,
     .force_redraw  = banshee_force_redraw,
     banshee_sdram_config

@@ -258,6 +258,7 @@ video_cards[] = {
     { &voodoo_3_3500_agp_ntsc_device                 },
     { &voodoo_3_3500_agp_pal_device                  },
     { &compaq_voodoo_3_3500_agp_device               },
+    { &voodoo_3_3500_se_agp_device                   },
     { NULL                                           }
 };
 // clang-format on
