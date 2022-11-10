@@ -56,11 +56,13 @@
 #define IDS_2079      2079 // "Press F12-F8 or middle button.."
 #define IDS_2080      2080 // "Unable to initialize Flui.."
 #define IDS_2081      2081 // "Bus"
+#define IDS_BUS       IDS_2081 // "Bus"
 #define IDS_2082      2082 // "File"
 #define IDS_2083      2083 // "C"
 #define IDS_2084      2084 // "H"
 #define IDS_2085      2085 // "S"
 #define IDS_2086      2086 // "MB"
+#define IDS_MB        IDS_2086 // "MB"
 #define IDS_2087      2087 // "Speed"
 
 #define IDS_2088      2088 // "Check BPB"
