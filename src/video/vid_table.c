@@ -208,6 +208,7 @@ video_cards[] = {
     { &tgui9680_pci_device                           },
     { &voodoo_banshee_device                         },
     { &creative_voodoo_banshee_device                },
+    { &voodoo_3_1000_device                          },
     { &voodoo_3_2000_device                          },
     { &voodoo_3_3000_device                          },
     { &mach64gx_vlb_device                           },
@@ -250,6 +251,7 @@ video_cards[] = {
     { &s3_diamond_stealth_4000_agp_device            },
     { &s3_trio3d2x_agp_device                        },
     { &velocity_100_agp_device                       },
+    { &voodoo_3_1000_agp_device                      },
     { &voodoo_3_2000_agp_device                      },
     { &voodoo_3_3000_agp_device                      },
     { NULL                                           }

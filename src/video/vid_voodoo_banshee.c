@@ -48,6 +48,7 @@
 
 #define ROM_BANSHEE               "roms/video/voodoo/Pci_sg.rom"
 #define ROM_CREATIVE_BANSHEE      "roms/video/voodoo/BlasterPCI.rom"
+#define ROM_VOODOO3_1000          "roms/video/voodoo/1k11sg.rom"
 #define ROM_VOODOO3_2000          "roms/video/voodoo/2k11sd.rom"
 #define ROM_VOODOO3_3000          "roms/video/voodoo/3k12sd.rom"
 #define ROM_VELOCITY_100          "roms/video/voodoo/Velocity100.VBI"
@@ -67,6 +68,7 @@ static uint8_t vb_filter_bx_g[256][256];
 
 enum {
     TYPE_BANSHEE = 0,
+    TYPE_V3_1000,
     TYPE_V3_2000,
     TYPE_V3_3000,
     TYPE_VELOCITY100
@@ -3016,6 +3018,13 @@ banshee_init_common(const device_t *info, char *fn, int has_sgram, int type, int
             }
             break;
 
+        case TYPE_V3_1000:
+            banshee->pci_regs[0x2c] = 0x1a;
+            banshee->pci_regs[0x2d] = 0x12;
+            banshee->pci_regs[0x2e] = 0x52;
+            banshee->pci_regs[0x2f] = 0x00;
+            break;
+
         case TYPE_V3_2000:
             banshee->pci_regs[0x2c] = 0x1a;
             banshee->pci_regs[0x2d] = 0x12;
@@ -3053,6 +3062,18 @@ static void *
 creative_banshee_init(const device_t *info)
 {
     return banshee_init_common(info, ROM_CREATIVE_BANSHEE, 0, TYPE_BANSHEE, VOODOO_BANSHEE, 0);
+}
+
+static void *
+v3_1000_init(const device_t *info)
+{
+    return banshee_init_common(info, ROM_VOODOO3_1000, 1, TYPE_V3_1000, VOODOO_3, 0);
+}
+
+static void *
+v3_1000_agp_init(const device_t *info)
+{
+    return banshee_init_common(info, ROM_VOODOO3_1000, 1, TYPE_V3_1000, VOODOO_3, 1);
 }
 
 static void *
@@ -3101,6 +3122,13 @@ creative_banshee_available(void)
 {
     return rom_present(ROM_CREATIVE_BANSHEE);
 }
+
+static int
+v3_1000_available(void)
+{
+    return rom_present(ROM_VOODOO3_1000);
+}
+#define v3_1000_agp_available v3_1000_available
 
 static int
 v3_2000_available(void)
@@ -3177,6 +3205,34 @@ const device_t creative_voodoo_banshee_device = {
     .speed_changed = banshee_speed_changed,
     .force_redraw  = banshee_force_redraw,
     banshee_sdram_config
+};
+
+const device_t voodoo_3_1000_device = {
+    .name          = "3dfx Voodoo3 1000",
+    .internal_name = "voodoo3_1k_pci",
+    .flags         = DEVICE_PCI,
+    .local         = 0,
+    .init          = v3_1000_init,
+    .close         = banshee_close,
+    .reset         = NULL,
+    { .available = v3_1000_available },
+    .speed_changed = banshee_speed_changed,
+    .force_redraw  = banshee_force_redraw,
+    banshee_sgram_config
+};
+
+const device_t voodoo_3_1000_agp_device = {
+    .name          = "3dfx Voodoo3 1000",
+    .internal_name = "voodoo3_1k_agp",
+    .flags         = DEVICE_AGP,
+    .local         = 0,
+    .init          = v3_1000_agp_init,
+    .close         = banshee_close,
+    .reset         = NULL,
+    { .available = v3_1000_agp_available },
+    .speed_changed = banshee_speed_changed,
+    .force_redraw  = banshee_force_redraw,
+    banshee_sgram_config
 };
 
 const device_t voodoo_3_2000_device = {
