@@ -79,10 +79,10 @@ media_menu_set_name_cassette(void)
     MENUITEMINFO mii = { 0 };
 
     if (strlen(cassette_fname) == 0)
-        _swprintf(name, plat_get_string(IDS_2148), plat_get_string(IDS_2057));
+        _swprintf(name, plat_get_string(IDS_2149), plat_get_string(IDS_2057));
     else {
         mbstoc16s(fn, cassette_fname, sizeof_w(fn));
-        _swprintf(name, plat_get_string(IDS_2148), fn);
+        _swprintf(name, plat_get_string(IDS_2149), fn);
     }
 
     mii.cbSize     = sizeof(mii);
@@ -99,11 +99,11 @@ media_menu_set_name_cartridge(int drive)
     MENUITEMINFO mii = { 0 };
 
     if (strlen(cart_fns[drive]) == 0) {
-        _swprintf(name, plat_get_string(IDS_2150),
+        _swprintf(name, plat_get_string(IDS_2151),
                   drive + 1, plat_get_string(IDS_2057));
     } else {
         mbstoc16s(fn, cart_fns[drive], sizeof_w(fn));
-        _swprintf(name, plat_get_string(IDS_2150),
+        _swprintf(name, plat_get_string(IDS_2151),
                   drive + 1, fn);
     }
 
@@ -123,11 +123,11 @@ media_menu_set_name_floppy(int drive)
     mbstoc16s(temp, fdd_getname(fdd_get_type(drive)),
               strlen(fdd_getname(fdd_get_type(drive))) + 1);
     if (strlen(floppyfns[drive]) == 0) {
-        _swprintf(name, plat_get_string(IDS_2108),
+        _swprintf(name, plat_get_string(IDS_2109),
                   drive + 1, temp, plat_get_string(IDS_2057));
     } else {
         mbstoc16s(fn, floppyfns[drive], sizeof_w(fn));
-        _swprintf(name, plat_get_string(IDS_2108),
+        _swprintf(name, plat_get_string(IDS_2109),
                   drive + 1, temp, fn);
     }
 
@@ -209,11 +209,11 @@ media_menu_set_name_mo(int drive)
     temp = plat_get_string(id);
 
     if (strlen(mo_drives[drive].image_path) == 0) {
-        _swprintf(name, plat_get_string(IDS_2115),
+        _swprintf(name, plat_get_string(IDS_2116),
                   drive + 1, temp, plat_get_string(IDS_2057));
     } else {
         mbstoc16s(fn, mo_drives[drive].image_path, sizeof_w(fn));
-        _swprintf(name, plat_get_string(IDS_2115),
+        _swprintf(name, plat_get_string(IDS_2116),
                   drive + 1, temp, fn);
     }
 
@@ -535,7 +535,7 @@ media_menu_proc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 
     switch (LOWORD(wParam) & 0xff00) {
         case IDM_CASSETTE_IMAGE_NEW:
-            ret = file_dlg_st(hwnd, IDS_2149, "", NULL, 1);
+            ret = file_dlg_st(hwnd, IDS_2150, "", NULL, 1);
             if (!ret) {
                 if (strlen(openfilestring) == 0)
                     cassette_mount(NULL, wp);
@@ -565,7 +565,7 @@ media_menu_proc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
             wp = 1;
             /* FALLTHROUGH */
         case IDM_CASSETTE_IMAGE_EXISTING:
-            ret = file_dlg_st(hwnd, IDS_2149, cassette_fname, NULL, 0);
+            ret = file_dlg_st(hwnd, IDS_2150, cassette_fname, NULL, 0);
             if (!ret) {
                 if (strlen(openfilestring) == 0)
                     cassette_mount(NULL, wp);
@@ -579,7 +579,7 @@ media_menu_proc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
             break;
 
         case IDM_CARTRIDGE_IMAGE:
-            ret = file_dlg_st(hwnd, IDS_2151, cart_fns[id], NULL, 0);
+            ret = file_dlg_st(hwnd, IDS_2152, cart_fns[id], NULL, 0);
             if (!ret)
                 cartridge_mount(id, openfilestring, wp);
             break;
@@ -596,7 +596,7 @@ media_menu_proc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
             wp = 1;
             /* FALLTHROUGH */
         case IDM_FLOPPY_IMAGE_EXISTING:
-            ret = file_dlg_st(hwnd, IDS_2109, floppyfns[id], NULL, 0);
+            ret = file_dlg_st(hwnd, IDS_2110, floppyfns[id], NULL, 0);
             if (!ret)
                 floppy_mount(id, openfilestring, wp);
             break;
@@ -632,7 +632,7 @@ media_menu_proc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
             break;
 
         case IDM_CDROM_IMAGE:
-            if (!file_dlg_st(hwnd, IDS_2140, cdrom[id].is_dir ? NULL : cdrom[id].image_path, NULL, 0)) {
+            if (!file_dlg_st(hwnd, IDS_2141, cdrom[id].is_dir ? NULL : cdrom[id].image_path, NULL, 0)) {
                 cdrom_mount(id, openfilestring);
             }
             break;
@@ -687,7 +687,7 @@ media_menu_proc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
             wp = 1;
             /* FALLTHROUGH */
         case IDM_MO_IMAGE_EXISTING:
-            ret = file_dlg_st(hwnd, IDS_2116, mo_drives[id].image_path, NULL, 0);
+            ret = file_dlg_st(hwnd, IDS_2117, mo_drives[id].image_path, NULL, 0);
             if (!ret)
                 mo_mount(id, openfilestring, wp);
             break;

@@ -392,19 +392,19 @@ msgid "Mouse:"
 msgstr "滑鼠:"
 
 msgid "Joystick:"
-msgstr "操縱桿:"
+msgstr "搖桿:"
 
 msgid "Joystick 1..."
-msgstr "操縱桿 1..."
+msgstr "搖桿 1..."
 
 msgid "Joystick 2..."
-msgstr "操縱桿 2..."
+msgstr "搖桿 2..."
 
 msgid "Joystick 3..."
-msgstr "操縱桿 3..."
+msgstr "搖桿 3..."
 
 msgid "Joystick 4..."
-msgstr "操縱桿 4..."
+msgstr "搖桿 4..."
 
 msgid "Sound card:"
 msgstr "音訊卡:"
@@ -674,7 +674,7 @@ msgid "Basic sector images"
 msgstr "基本磁區鏡像"
 
 msgid "Surface images"
-msgstr "表面镜像"
+msgstr "表面鏡像"
 
 msgid "Machine \"%hs\" is not available due to missing ROMs in the roms/machines directory. Switching to an available machine."
 msgstr "由於 roms/machines 資料夾中缺少合適的 ROM，機型 \"%hs\" 不可用。將切換到其他可用機型。"
@@ -767,16 +767,16 @@ msgid "Invalid PCap device"
 msgstr "無效 PCap 裝置"
 
 msgid "Standard 2-button joystick(s)"
-msgstr "標準 2 鍵操縱桿"
+msgstr "標準 2 鍵搖桿"
 
 msgid "Standard 4-button joystick"
-msgstr "標準 4 鍵操縱桿"
+msgstr "標準 4 鍵搖桿"
 
 msgid "Standard 6-button joystick"
-msgstr "標準 6 鍵操縱桿"
+msgstr "標準 6 鍵搖桿"
 
 msgid "Standard 8-button joystick"
-msgstr "標準 8 鍵操縱桿"
+msgstr "標準 8 鍵搖桿"
 
 msgid "CH Flightstick Pro"
 msgstr "CH Flightstick Pro"

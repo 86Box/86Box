@@ -515,7 +515,7 @@ deviceconfig_inst_open(HWND hwnd, const device_t *device, int inst)
     *data++ = 0; /*no menu*/
     *data++ = 0; /*predefined dialog box class*/
 
-    data += wsprintf(data, plat_get_string(IDS_2141), device->name) + 1;
+    data += wsprintf(data, plat_get_string(IDS_2142), device->name) + 1;
 
     *data++ = 9; /*Point*/
     data += MultiByteToWideChar(CP_ACP, 0, "Segoe UI", -1, data, 120);

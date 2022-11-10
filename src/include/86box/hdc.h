@@ -28,6 +28,9 @@
                       * least 7 devices, with each device being  \
                       * able to support 8 units, but hey... */
 
+#define HDC_NONE     0
+#define HDC_INTERNAL 1
+
 extern int hdc_current;
 
 extern const device_t st506_xt_xebec_device;         /* st506_xt_xebec */

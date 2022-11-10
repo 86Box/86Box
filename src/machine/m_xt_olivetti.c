@@ -1137,8 +1137,6 @@ machine_xt_m24_init(const machine_t *model)
     m24_kbd_init(m24_kbd);
     device_add_ex(&m24_kbd_device, m24_kbd);
 
-    device_add(&st506_xt_wd1002a_wx1_nobios_device);
-
     return ret;
 }
 
@@ -1190,6 +1188,9 @@ machine_xt_m240_init(const machine_t *model)
     memset(nvr, 0x00, sizeof(nvr_t));
 
     mm58274_init(nvr, model->nvrmask + 1);
+
+    if (hdc_current == HDC_INTERNAL)
+        device_add(&st506_xt_wd1002a_wx1_nobios_device);
 
     return ret;
 }
