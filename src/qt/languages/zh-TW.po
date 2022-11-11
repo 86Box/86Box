@@ -623,7 +623,7 @@ msgid "FONT_SIZE"
 msgstr "9"
 
 msgid "FONT_NAME"
-msgstr "Microsoft JHengHei"
+msgstr "Microsoft JhengHei"
 
 msgid "86Box"
 msgstr "86Box"
