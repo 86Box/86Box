@@ -307,15 +307,15 @@ void HarddiskDialog::onCreateNewFile() {
     auto fileName = ui->fileField->fileName();
     QString expectedSuffix;
     switch (img_format) {
-    case 1:
+    case IMG_FMT_HDI:
         expectedSuffix = "hdi";
         break;
-    case 2:
+    case IMG_FMT_HDX:
         expectedSuffix = "hdx";
         break;
-    case 3:
-    case 4:
-    case 5:
+    case IMG_FMT_VHD_FIXED:
+    case IMG_FMT_VHD_DYNAMIC:
+    case IMG_FMT_VHD_DIFF:
         expectedSuffix = "vhd";
         break;
     }
@@ -333,7 +333,7 @@ void HarddiskDialog::onCreateNewFile() {
         return;
     }
 
-    if (img_format == 1) { /* HDI file */
+    if (img_format == IMG_FMT_HDI) { /* HDI file */
         QDataStream stream(&file);
         stream.setByteOrder(QDataStream::LittleEndian);
         if (size >= 0x100000000ll) {
@@ -353,7 +353,7 @@ void HarddiskDialog::onCreateNewFile() {
         for (int i = 0; i < 0x3f8; i++) {
             stream << zero;
         }
-    } else if (img_format == 2) { /* HDX file */
+    } else if (img_format == IMG_FMT_HDX) { /* HDX file */
         QDataStream stream(&file);
         stream.setByteOrder(QDataStream::LittleEndian);
         quint64 signature = 0xD778A82044445459;
@@ -365,13 +365,13 @@ void HarddiskDialog::onCreateNewFile() {
         stream << cylinders_;	/* 0000001C: Cylinders */
         stream << zero;			/* 00000020: [Translation] Sectors per cylinder */
         stream << zero;			/* 00000004: [Translation] Heads per cylinder */
-    } else if (img_format >= 3) { /* VHD file */
+    } else if (img_format >= IMG_FMT_VHD_FIXED) { /* VHD file */
         file.close();
 
         MVHDGeom _86box_geometry{};
         int block_size = ui->comboBoxBlockSize->currentIndex() == 0 ? MVHD_BLOCK_LARGE : MVHD_BLOCK_SMALL;
         switch (img_format) {
-        case 3:
+        case IMG_FMT_VHD_FIXED:
         {
             connect(this, &HarddiskDialog::fileProgress, this, [this] (int value) { ui->progressBar->setValue(value); QApplication::processEvents(); } );
             ui->progressBar->setVisible(true);
@@ -380,10 +380,10 @@ void HarddiskDialog::onCreateNewFile() {
             }();
         }
             break;
-        case 4:
+        case IMG_FMT_VHD_DYNAMIC:
             _86box_geometry = create_drive_vhd_dynamic(fileName, cylinders_, heads_, sectors_, block_size);
             break;
-        case 5:
+        case IMG_FMT_VHD_DIFF:
             QString vhdParent = QFileDialog::getOpenFileName(
                 this,
                 tr("Select the parent VHD"),
@@ -407,7 +407,7 @@ void HarddiskDialog::onCreateNewFile() {
             QMessageBox::critical(this, tr("Unable to write file"), tr("Make sure the file is being saved to a writable directory."));
             return;
         }
-        else if (img_format != 5) {
+        else if (img_format != IMG_FMT_VHD_DIFF) {
             QMessageBox::information(this, tr("Disk image created"), tr("Remember to partition and format the newly-created drive."));
         }
 
