@@ -140,8 +140,8 @@ const cpu_family_t cpu_families[] = {
 	.name = "V20",
 	.internal_name = "necv20",
 	.cpus = (const CPU[]) {
-		{"5",       CPU_V20, fpus_8088,   5000000,    1, 5000, 0, 0, 0, 0, 0,0,0,0, 1},
-		{"8",       CPU_V20, fpus_8088,   8000000,    1, 5000, 0, 0, 0, 0, 0,0,0,0, 1},
+		{"4.77",    CPU_V20, fpus_8088,   4772728,    1, 5000, 0, 0, 0, 0, 0,0,0,0, 1},
+		{"7.16",    CPU_V20, fpus_8088,   7159092,    1, 5000, 0, 0, 0, 0, 0,0,0,0, 1},
 		{"10",      CPU_V20, fpus_8088,  10000000,    1, 5000, 0, 0, 0, 0, 0,0,0,0, 1},
 		{"12",      CPU_V20, fpus_8088,  12000000,    1, 5000, 0, 0, 0, 0, 0,0,0,0, 1},
 		{"16",      CPU_V20, fpus_8088,  16000000,    1, 5000, 0, 0, 0, 0, 0,0,0,0, 2},
@@ -458,7 +458,7 @@ const cpu_family_t cpu_families[] = {
 		{"", 0}
 	}
     }, {
-	.package = CPU_PKG_SOCKET1 | CPU_PKG_SOCKET3_PC330, /*OEM versions are 3.3V, Retail versions are 3.3V with a 5V regulator for installation in older boards. hey are functionally identical*/
+	.package = CPU_PKG_SOCKET1 | CPU_PKG_SOCKET3_PC330, /*OEM versions are 3.3V, Retail versions are 3.3V with a 5V regulator for installation in older boards. They are functionally identical*/
 	.manufacturer = "Intel",
 	.name = "iDX4",
 	.internal_name = "idx4",
