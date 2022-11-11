@@ -218,6 +218,9 @@
    <property name="windowTitle">
     <string notr="true">toolBar</string>
    </property>
+   <property name="autoFillBackground">
+    <bool>true</bool>
+   </property>
    <property name="movable">
     <bool>false</bool>
    </property>

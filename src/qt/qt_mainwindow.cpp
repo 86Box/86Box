@@ -160,6 +160,9 @@ MainWindow::MainWindow(QWidget *parent) :
     statusBar()->setStyleSheet("QStatusBar::item {border: None; } QStatusBar QLabel { margin-right: 2px; margin-bottom: 1px; }");
     this->centralWidget()->setStyleSheet("background-color: black;");
     ui->toolBar->setVisible(!hide_tool_bar);
+#ifdef _WIN32
+    ui->toolBar->setBackgroundRole(QPalette::Light);
+#endif
     renderers[0].reset(nullptr);
     auto toolbar_spacer = new QWidget();
     toolbar_spacer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
