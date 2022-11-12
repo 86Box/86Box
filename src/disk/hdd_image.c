@@ -348,7 +348,6 @@ hdd_image_load(int id)
         } else {
             /* Failed for another reason */
             hdd_image_log("Failed for another reason\n");
-            memset(hdd[id].fn, 0, sizeof(hdd[id].fn));
             return 0;
         }
     } else {
