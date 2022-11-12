@@ -429,6 +429,8 @@ voodoo_fifo_thread(void *param)
                         if (v_num == 3 && ((header >> 3) & 7) == 0)
                             v_num = 0;
                     }
+                    while (num--)
+                        cmdfifo_get(voodoo);
                     break;
 
                 case 4:
