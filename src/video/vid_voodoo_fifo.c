@@ -359,8 +359,8 @@ voodoo_fifo_thread(void *param)
                     break;
 
                 case 2:
-                    if (voodoo->type < VOODOO_BANSHEE)
-                        fatal("CMDFIFO2: Not Banshee\n");
+                    if (voodoo->type < VOODOO_2)
+                        fatal("CMDFIFO2: Not Voodoo 2\n");
                     mask = (header >> 3);
                     addr = 8;
                     while (mask) {
