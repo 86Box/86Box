@@ -59,28 +59,28 @@ ali1621_log(const char *fmt, ...)
 
 /* Table translated to a more sensible format:
         Read cycles:
-        SMREN	SMM	Mode		Code	Data
-        0	X	X		PCI	PCI
-        1	0	Close		PCI	PCI
-        1	0	Lock		PCI	PCI
-        1	0	Protect		PCI	PCI
-        1	0	Open		DRAM	DRAM
-        1	1	Open		DRAM	DRAM
-        1	1	Protect		DRAM	DRAM
-        1	1	Close		DRAM	PCI
-        1	1	Lock		DRAM	PCI
+        SMREN    SMM Mode    Code    Data
+        0   X    X           PCI     PCI
+        1   0    Close       PCI     PCI
+        1   0    Lock        PCI     PCI
+        1   0    Protect     PCI     PCI
+        1   0    Open        DRAM    DRAM
+        1   1    Open        DRAM    DRAM
+        1   1    Protect     DRAM    DRAM
+        1   1    Close       DRAM    PCI
+        1   1    Lock        DRAM    PCI
 
         Write cycles:
-        SMWEN	SMM	Mode		Data
-        0	X	X		PCI
-        1	0	Close		PCI
-        1	0	Lock		PCI
-        1	0	Protect		PCI
-        1	0	Open		DRAM
-        1	1	Open		DRAM
-        1	1	Protect		DRAM
-        1	1	Close		PCI
-        1	1	Lock		PCI
+        SMWEN    SMM Mode    Data
+        0   X    X           PCI
+        1   0    Close       PCI
+        1   0    Lock        PCI
+        1   0    Protect     PCI
+        1   0    Open        DRAM
+        1   1    Open        DRAM
+        1   1    Protect     DRAM
+        1   1    Close       PCI
+        1   1    Lock        PCI
 
         Explanation of the modes based above:
                 If SM*EN = 0, SMRAM is entirely disabled, otherwise:

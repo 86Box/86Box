@@ -255,7 +255,7 @@ memmap_state_update(headland_t *dev)
                 mem_mapping_set_exec(&dev->high_mapping, ram + 0x100000);
             }
         } else {
-            /*	1 MB - 1 MB + 384k: RAM pointing to A0000-FFFFF
+            /* 1 MB - 1 MB + 384k: RAM pointing to A0000-FFFFF
                     1 MB + 384k: Any ram pointing 1 MB onwards. */
             /* First, do the addresses above 1 MB. */
             mem_mapping_set_addr(&dev->mid_mapping, 0x100000, mem_size > 1024 ? 0x60000 : (mem_size - 640) << 10);

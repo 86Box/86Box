@@ -205,15 +205,15 @@ char  exe_path[2048]; /* path (dir) of executable */
 char  usr_path[1024]; /* path (dir) of user data */
 char  cfg_path[1024]; /* full path of config file */
 FILE *stdlog = NULL;  /* file to log output to */
-// int	scrnsz_x = SCREEN_RES_X;		/* current screen size, X */
-// int scrnsz_y = SCREEN_RES_Y;			/* current screen size, Y */
+// int   scrnsz_x = SCREEN_RES_X; /* current screen size, X */
+// int   scrnsz_y = SCREEN_RES_Y; /* current screen size, Y */
 int config_changed; /* config has changed */
 int title_update;
 int framecountx        = 0;
 int hard_reset_pending = 0;
 
-// int	unscaled_size_x = SCREEN_RES_X;	/* current unscaled size X */
-// int unscaled_size_y = SCREEN_RES_Y;	/* current unscaled size Y */
+// int unscaled_size_x = SCREEN_RES_X; /* current unscaled size X */
+// int unscaled_size_y = SCREEN_RES_Y; /* current unscaled size Y */
 // int efscrnsz_y = SCREEN_RES_Y;
 
 static wchar_t mouse_msg[3][200];
@@ -473,7 +473,7 @@ usage:
             printf("-D or --debug        - force debug output logging\n");
 #endif
 #if 0
-			printf("-E or --nographic    - forces the old behavior\n");
+            printf("-E or --nographic    - forces the old behavior\n");
 #endif
             printf("-F or --fullscreen   - start in fullscreen mode\n");
             printf("-G or --lang langid  - start with specified language (e.g. en-US, or system)\n");

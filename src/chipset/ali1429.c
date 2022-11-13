@@ -324,8 +324,8 @@ ali1429_init(const device_t *info)
     GREEN           = info->local;
 
     /* M1429 Ports:
-                22h	Index Port
-                23h	Data Port
+                22h Index Port
+                23h Data Port
     */
     io_sethandler(0x0022, 0x0002, ali1429_read, NULL, NULL, ali1429_write, NULL, NULL, dev);
 

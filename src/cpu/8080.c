@@ -45,9 +45,9 @@ clock_end(void)
     int diff = cycdiff - cycles;
 
     /* On 808x systems, clock speed is usually crystal frequency divided by an integer. */
-    tsc += (uint64_t)diff * ((uint64_t)xt_cpu_multi >> 32ULL);		/* Shift xt_cpu_multi by 32 bits to the right and then multiply. */
+    tsc += (uint64_t)diff * ((uint64_t)xt_cpu_multi >> 32ULL); /* Shift xt_cpu_multi by 32 bits to the right and then multiply. */
     if (TIMER_VAL_LESS_THAN_VAL(timer_target, (uint32_t)tsc))
-	timer_process();
+        timer_process();
 }
 
 static void
@@ -55,8 +55,8 @@ i8080_wait(int c, int bus)
 {
     cycles -= c;
     if (bus < 2) {
-	    clock_end();
-	    clock_start();
+        clock_end();
+        clock_start();
     }
 }
 

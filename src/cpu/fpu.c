@@ -36,9 +36,9 @@ fpu_log(const char *fmt, ...)
     va_list ap;
 
     if (fpu_do_log) {
-	va_start(ap, fmt);
-	pclog_ex(fmt, ap);
-	va_end(ap);
+        va_start(ap, fmt);
+        pclog_ex(fmt, ap);
+        va_end(ap);
     }
 }
 #else
@@ -55,9 +55,9 @@ fpu_get_type(const cpu_family_t *cpu_family, int cpu, const char *internal_name)
     int c = 0;
 
     while (fpus[c].internal_name) {
-	if (!strcmp(internal_name, fpus[c].internal_name))
-		fpu_type = fpus[c].type;
-	c++;
+        if (!strcmp(internal_name, fpus[c].internal_name))
+            fpu_type = fpus[c].type;
+        c++;
     }
 
     return fpu_type;
@@ -72,9 +72,9 @@ fpu_get_internal_name(const cpu_family_t *cpu_family, int cpu, int type)
     int c = 0;
 
     while (fpus[c].internal_name) {
-	if (fpus[c].type == type)
-		return fpus[c].internal_name;
-	c++;
+        if (fpus[c].type == type)
+            return fpus[c].internal_name;
+        c++;
     }
 
     return fpus[0].internal_name;

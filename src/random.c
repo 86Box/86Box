@@ -54,9 +54,9 @@ rdtsc(void)
     unsigned hi, lo;
 #    ifdef _MSC_VER
     __asm {
-		rdtsc
-		mov hi, edx	; EDX:EAX is already standard return!!
-		mov lo, eax
+        rdtsc
+        mov hi, edx ; EDX:EAX is already standard return!!
+        mov lo, eax
     }
 #    else
     __asm__ __volatile__("rdtsc"

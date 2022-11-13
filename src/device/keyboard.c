@@ -34,7 +34,7 @@ void (*keyboard_send)(uint16_t val);
 static int recv_key[512]; /* keyboard input buffer */
 static int oldkey[512];
 #if 0
-static int	keydelay[512];
+static int keydelay[512];
 #endif
 static scancode *scan_table; /* scancode table for keyboard */
 

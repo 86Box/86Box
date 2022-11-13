@@ -1023,9 +1023,9 @@ piix_write(int func, int addr, uint8_t val, void *priv)
                     fregs[0x07] &= 0xf7;
                 break;
 #if 0
-	case 0x3c:
-		fregs[0x3c] = val;
-		break;
+            case 0x3c:
+                fregs[0x3c] = val;
+                break;
 #endif
             case 0x40:
                 fregs[0x40]       = (val & 0xc0) | 1;
@@ -1657,9 +1657,9 @@ static void
     /* Bit 5: 0 = CMOS Setup disabled, 1 = CMOS Setup enabled. */
     /* Bit 4: External CPU clock (Switch 8). */
     /* Bit 3: External CPU clock (Switch 7). */
-    /*		50 MHz: Switch 7 = Off, Switch 8 = Off. */
-    /*		60 MHz: Switch 7 = On, Switch 8 = Off. */
-    /*		66 MHz: Switch 7 = Off, Switch 8 = On. */
+    /*        50 MHz: Switch 7 = Off, Switch 8 = Off. */
+    /*        60 MHz: Switch 7 = On, Switch 8 = Off. */
+    /*        66 MHz: Switch 7 = Off, Switch 8 = On. */
     /* Bit 2: 0 = On-board audio absent, 1 = On-board audio present. */
     /* Bit 1: 0 = Soft-off capable power supply present, 1 = Soft-off capable power supply absent. */
     /* Bit 0: 0 = 1.5x multiplier, 1 = 2x multiplier (Switch 6). */

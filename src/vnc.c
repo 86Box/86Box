@@ -192,12 +192,12 @@ vnc_init(UNUSED(void *arg))
     rfbPixelFormat rpf = {
         /*
          * Screen format:
-         *	32bpp; 32 depth;
-         *	little endian;
-         *	true color;
-         *	max 255 R/G/B;
-         *	red shift 16; green shift 8; blue shift 0;
-         *	padding
+         *  32bpp; 32 depth;
+         *  little endian;
+         *  true color;
+         *  max 255 R/G/B;
+         *  red shift 16; green shift 8; blue shift 0;
+         *  padding
          */
         32, 32, 0, 1, 255, 255, 255, 16, 8, 0, 0, 0
     };
