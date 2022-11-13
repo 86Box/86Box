@@ -427,32 +427,18 @@ tgui_out(uint16_t addr, uint8_t val, void *p)
                 val = (svga->crtc[7] & ~0x10) | (val & 0x10);
             old                       = svga->crtc[svga->crtcreg];
             svga->crtc[svga->crtcreg] = val;
-
-            if (old != val) {
-                if (svga->crtcreg < 0xe || svga->crtcreg > 0x10) {
-                    if ((svga->crtcreg == 0xc) || (svga->crtcreg == 0xd)) {
-                        svga->fullchange = 3;
-                        svga->ma_latch   = ((svga->crtc[0xc] << 8) | svga->crtc[0xd]) + ((svga->crtc[8] & 0x60) >> 5);
-                    } else {
-                        svga->fullchange = changeframecount;
-                        svga_recalctimings(svga);
-                    }
-                }
-            }
             switch (svga->crtcreg) {
                 case 0x1e:
                     svga->vram_display_mask = (val & 0x80) ? tgui->vram_mask : 0x3ffff;
                     break;
 
                 case 0x21:
-                    if (old != val) {
-                        if (!tgui->pci) {
-                            tgui->linear_base = ((val & 0xf) | ((val >> 2) & 0x30)) << 20;
-                            tgui->linear_size = (val & 0x10) ? 0x200000 : 0x100000;
-                            svga->decode_mask = (val & 0x10) ? 0x1fffff : 0xfffff;
-                        }
-                        tgui_recalcmapping(tgui);
+                    if (!tgui->pci) {
+                        tgui->linear_base = ((val & 0xc0) << 18) | ((val & 0x0f) << 20);
+                        tgui->linear_size = (val & 0x10) ? 0x200000 : 0x100000;
+                        svga->decode_mask = (val & 0x10) ? 0x1fffff : 0xfffff;
                     }
+                    tgui_recalcmapping(tgui);
                     break;
 
                 case 0x34:
@@ -499,6 +485,18 @@ tgui_out(uint16_t addr, uint8_t val, void *p)
                         svga->hwcursor.cur_xsize = svga->hwcursor.cur_ysize = ((val & 1) ? 64 : 32);
                     }
                     break;
+            }
+
+            if (old != val) {
+                if (svga->crtcreg < 0xe || svga->crtcreg > 0x10) {
+                    if ((svga->crtcreg == 0xc) || (svga->crtcreg == 0xd)) {
+                        svga->fullchange = 3;
+                        svga->ma_latch   = ((svga->crtc[0xc] << 8) | svga->crtc[0xd]) + ((svga->crtc[8] & 0x60) >> 5);
+                    } else {
+                        svga->fullchange = changeframecount;
+                        svga_recalctimings(svga);
+                    }
+                }
             }
             return;
 
@@ -1816,12 +1814,16 @@ tgui_accel_command(int count, uint32_t cpu_dat, tgui_t *tgui)
                         }
                     }
 
-                    if (tgui->accel.y == tgui->accel.size_y)
+                    if (tgui->accel.y == tgui->accel.size_y) {
                         break;
+                    }
 
                     while (err > 0) {
                         dy += ydir;
                         err -= (cx << 1);
+                        if (!cx) {
+                            break;
+                        }
                     }
                     dx += xdir;
                     err += (cy << 1);
