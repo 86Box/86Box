@@ -1,25 +1,25 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Implementation of the NCR 53C810 and 53C875 SCSI Host
- *		Adapters made by NCR and later Symbios and LSI. These
- *		controllers were designed for the PCI bus.
+ *          Implementation of the NCR 53C810 and 53C875 SCSI Host
+ *          Adapters made by NCR and later Symbios and LSI. These
+ *          controllers were designed for the PCI bus.
  *
  *
  *
- * Authors:	Paul Brook (QEMU)
- *		Artyom Tarasenko (QEMU)
- *		TheCollector1995, <mariogplayer@gmail.com>
- *		Miran Grca, <mgrca8@gmail.com>
+ * Authors: Paul Brook (QEMU)
+ *          Artyom Tarasenko (QEMU)
+ *          TheCollector1995, <mariogplayer@gmail.com>
+ *          Miran Grca, <mgrca8@gmail.com>
  *
- *		Copyright 2006-2018 Paul Brook.
- *		Copyright 2009-2018 Artyom Tarasenko.
- *		Copyright 2017,2018 Miran Grca.
+ *          Copyright 2006-2018 Paul Brook.
+ *          Copyright 2009-2018 Artyom Tarasenko.
+ *          Copyright 2017-2018 Miran Grca.
  */
 #include <inttypes.h>
 #include <stdarg.h>

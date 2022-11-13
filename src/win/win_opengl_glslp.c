@@ -1,19 +1,19 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		File parser for .glslp and .glsl shader files
- *		in the format of libretro.
+ *          File parser for .glslp and .glsl shader files
+ *          in the format of libretro.
  *
- * TODO:	Read .glslp files for multipass shaders and settings.
+ * TODO:    Read .glslp files for multipass shaders and settings.
  *
- * Authors:	Teemu Korhonen
+ * Authors: Teemu Korhonen
  *
- *		Copyright 2021 Teemu Korhonen
+ *          Copyright 2021 Teemu Korhonen
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License

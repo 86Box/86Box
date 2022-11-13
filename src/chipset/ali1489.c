@@ -1,20 +1,20 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Implementation of the ALi M1489 chipset.
+ *          Implementation of the ALi M1489 chipset.
  *
  *
  *
- * Authors:	Tiseno100,
- *		Miran Grca, <mgrca8@gmail.com>
+ * Authors: Tiseno100,
+ *          Miran Grca, <mgrca8@gmail.com>
  *
- *		Copyright 2020,2021 Tiseno100.
- *		Copyright 2020,2021 Miran Grca.
+ *          Copyright 2020,2021 Tiseno100.
+ *          Copyright 2020,2021 Miran Grca.
  */
 #include <stdarg.h>
 #include <stdint.h>

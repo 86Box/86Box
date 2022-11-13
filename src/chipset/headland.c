@@ -1,24 +1,24 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Implementation of the HEADLAND AT286 chipset.
+ *          Implementation of the HEADLAND AT286 chipset.
  *
  *
  *
- * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
- *		Fred N. van Kempen, <decwiz@yahoo.com>
- *		Original by GreatPsycho for PCem.
- *		Miran Grca, <mgrca8@gmail.com>
+ * Authors: Sarah Walker, <http://pcem-emulator.co.uk/>
+ *          Fred N. van Kempen, <decwiz@yahoo.com>
+ *          Original by GreatPsycho for PCem.
+ *          Miran Grca, <mgrca8@gmail.com>
  *
- *		Copyright 2010-2019 Sarah Walker.
- *		Copyright 2017-2019 Fred N. van Kempen.
- *		Copyright 2017-2019 Miran Grca.
- *		Copyright 2017-2019 GreatPsycho.
+ *          Copyright 2010-2019 Sarah Walker.
+ *          Copyright 2017-2019 Fred N. van Kempen.
+ *          Copyright 2017-2019 Miran Grca.
+ *          Copyright 2017-2019 GreatPsycho.
  */
 #include <stdio.h>
 #include <stdint.h>

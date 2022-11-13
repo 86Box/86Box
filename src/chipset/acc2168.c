@@ -1,20 +1,20 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Implementation of the ACC 2046/2168 chipset
+ *          Implementation of the ACC 2046/2168 chipset
  *
  *
  *
- * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
+ * Authors: Sarah Walker, <http://pcem-emulator.co.uk/>
  *          Tiseno100
  *
- *		Copyright 2019 Sarah Walker.
- *      Copyright 2021 Tiseno100.
+ *          Copyright 2019 Sarah Walker.
+ *          Copyright 2021 Tiseno100.
  */
 #include <stdarg.h>
 #include <stdint.h>

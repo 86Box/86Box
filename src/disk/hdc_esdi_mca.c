@@ -1,64 +1,64 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Driver for IBM PS/2 ESDI disk controller (MCA)
+ *          Driver for IBM PS/2 ESDI disk controller (MCA)
  *
- *		  AdapterID:		0xDDFF
- *		  AdapterName:		"ESDI Fixed Disk Controller"
- *		  NumBytes 2
- *		  I/O base:		0x3510-0x3517
- *		  IRQ:			14
+ *            AdapterID:       0xDDFF
+ *            AdapterName:     "ESDI Fixed Disk Controller"
+ *            NumBytes         2
+ *            I/O base:        0x3510-0x3517
+ *            IRQ:             14
  *
- *		  Primary Board		pos[0]=XXxx xx0X	0x3510
- *		  Secondary Board	pos[0]=XXxx xx1X	0x3518
+ *            Primary Board    pos[0]=XXxx xx0X    0x3510
+ *            Secondary Board  pos[0]=XXxx xx1X    0x3518
  *
- *		  DMA 5			pos[0]=XX01 01XX
- *		  DMA 6			pos[0]=XX01 10XX
- *		  DMA 7			pos[0]=XX01 11XX
- *		  DMA 0			pos[0]=XX00 00XX
- *		  DMA 1			pos[0]=XX00 01XX
- *		  DMA 3			pos[0]=XX00 11XX
- *		  DMA 4			pos[0]=XX01 00XX
+ *            DMA 5            pos[0]=XX01 01XX
+ *            DMA 6            pos[0]=XX01 10XX
+ *            DMA 7            pos[0]=XX01 11XX
+ *            DMA 0            pos[0]=XX00 00XX
+ *            DMA 1            pos[0]=XX00 01XX
+ *            DMA 3            pos[0]=XX00 11XX
+ *            DMA 4            pos[0]=XX01 00XX
  *
- *		  MCA Fairness ON	pos[0]=X1XX XXXX
- *		  MCA Fairness OFF	pos[0]=X0XX XXXX
+ *            MCA Fairness ON  pos[0]=X1XX XXXX
+ *            MCA Fairness OFF pos[0]=X0XX XXXX
  *
- *		  ROM C000		pos[1]=XXXX 0000
- *		  ROM C400		pos[1]=XXXX 0001
- *		  ROM C800		pos[1]=XXXX 0010
- *		  ROM CC00		pos[1]=XXXX 0011
- *		  ROM D000		pos[1]=XXXX 0100
- *		  ROM D400		pos[1]=XXXX 0101
- *		  ROM D800		pos[1]=XXXX 0110
- *		  ROM DC00		pos[1]=XXXX 0111
- *		  ROM Disabled		pos[1]=XXXX 1XXX
+ *            ROM C000         pos[1]=XXXX 0000
+ *            ROM C400         pos[1]=XXXX 0001
+ *            ROM C800         pos[1]=XXXX 0010
+ *            ROM CC00         pos[1]=XXXX 0011
+ *            ROM D000         pos[1]=XXXX 0100
+ *            ROM D400         pos[1]=XXXX 0101
+ *            ROM D800         pos[1]=XXXX 0110
+ *            ROM DC00         pos[1]=XXXX 0111
+ *            ROM Disabled     pos[1]=XXXX 1XXX
  *
- *		  DMA Burst 8		pos[1]=XX01 XXXX
- *		  DMA Burst 16		pos[1]=XX10 XXXX
- *		  DMA Burst 24		pos[1]=XX11 XXXX
- *		  DMA Disabled		pos[1]=XX00 XXXX
+ *            DMA Burst 8      pos[1]=XX01 XXXX
+ *            DMA Burst 16     pos[1]=XX10 XXXX
+ *            DMA Burst 24     pos[1]=XX11 XXXX
+ *            DMA Disabled     pos[1]=XX00 XXXX
  *
- *		Although this is an MCA device, meaning that the system
- *		software will take care of device configuration, the ESDI
- *		controller is a somewhat weird one.. it's I/O base address
- *		and IRQ channel are locked to 0x3510 and IRQ14, possibly
- *		to enforce compatibility with the IBM MFM disk controller
- *		that was also in use on these systems. All other settings,
- *		however, are auto-configured by the system software as
- *		shown above.
+ *          Although this is an MCA device, meaning that the system
+ *          software will take care of device configuration, the ESDI
+ *          controller is a somewhat weird one.. it's I/O base address
+ *          and IRQ channel are locked to 0x3510 and IRQ14, possibly
+ *          to enforce compatibility with the IBM MFM disk controller
+ *          that was also in use on these systems. All other settings,
+ *          however, are auto-configured by the system software as
+ *          shown above.
  *
  *
  *
- * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
- *		Fred N. van Kempen, <decwiz@yahoo.com>
+ * Authors: Sarah Walker, <http://pcem-emulator.co.uk/>
+ *          Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 2008-2018 Sarah Walker.
- *		Copyright 2017,2018 Fred N. van Kempen.
+ *          Copyright 2008-2018 Sarah Walker.
+ *          Copyright 2017,2018 Fred N. van Kempen.
  */
 
 #include <stdarg.h>

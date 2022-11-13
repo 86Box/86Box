@@ -6,7 +6,7 @@
  *
  *          This file is part of the 86Box distribution.
  *
- *        Handling of the PS/2 series CMOS devices.
+ *          Handling of the PS/2 series CMOS devices.
  *
  *
  *

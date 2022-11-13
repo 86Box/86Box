@@ -1,21 +1,21 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		Emulation of the Intel PIIX, PIIX3, PIIX4, PIIX4E, and SMSC
- *		SLC90E66 (Victory66) Xcelerators.
+ *          Emulation of the Intel PIIX, PIIX3, PIIX4, PIIX4E, and SMSC
+ *          SLC90E66 (Victory66) Xcelerators.
  *
- *		PRD format :
- *		    word 0 - base address
- *		    word 1 - bits 1-15 = byte count, bit 31 = end of transfer
+ *          PRD format :
+ *              word 0 - base address
+ *              word 1 - bits 1-15 = byte count, bit 31 = end of transfer
  *
  *
  *
- * Authors:	Miran Grca, <mgrca8@gmail.com>
+ * Authors: Miran Grca, <mgrca8@gmail.com>
  *
- *		Copyright 2016-2020 Miran Grca.
+ *          Copyright 2016-2020 Miran Grca.
  */
 #include <stdarg.h>
 #include <stdint.h>

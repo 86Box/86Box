@@ -1,53 +1,53 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Implementation of the ISA Bus (de)Bugger expansion card
- *		sold as a DIY kit in the late 1980's in The Netherlands.
- *		This card was a assemble-yourself 8bit ISA addon card for
- *		PC and AT systems that had several tools to aid in low-
- *		level debugging (mostly for faulty BIOSes, bootloaders
- *		and system kernels...)
+ *          Implementation of the ISA Bus (de)Bugger expansion card
+ *          sold as a DIY kit in the late 1980's in The Netherlands.
+ *          This card was a assemble-yourself 8bit ISA addon card for
+ *          PC and AT systems that had several tools to aid in low-
+ *          level debugging (mostly for faulty BIOSes, bootloaders
+ *          and system kernels...)
  *
- *		The standard version had a total of 16 LEDs (8 RED, plus
- *		8 GREEN), two 7-segment displays and one 8-position DIP
- *		switch block on board for use as debugging tools.
+ *          The standard version had a total of 16 LEDs (8 RED, plus
+ *          8 GREEN), two 7-segment displays and one 8-position DIP
+ *          switch block on board for use as debugging tools.
  *
- *		The "Plus" version, added an extra 2 7-segment displays,
- *		as well as a very simple RS-232 serial interface that
- *		could be used as a mini-console terminal.
+ *          The "Plus" version, added an extra 2 7-segment displays,
+ *          as well as a very simple RS-232 serial interface that
+ *          could be used as a mini-console terminal.
  *
- *		Two I/O ports were used; one for control, at offset 0 in
- *		I/O space, and one for data, at offset 1 in I/O space.
- *		Both registers could be read from and written to. Although
- *		the author has a vague memory of a DIP switch to set the
- *		board's I/O address, comments in old software seems to
- *		indicate that it was actually fixed to 0x7A (and 0x7B.)
+ *          Two I/O ports were used; one for control, at offset 0 in
+ *          I/O space, and one for data, at offset 1 in I/O space.
+ *          Both registers could be read from and written to. Although
+ *          the author has a vague memory of a DIP switch to set the
+ *          board's I/O address, comments in old software seems to
+ *          indicate that it was actually fixed to 0x7A (and 0x7B.)
  *
- *		A READ on the data register always returned the actual
- *		state of the DIP switch. Writing data to the LEDs was done
- *		in two steps.. first, the block number (RED or GREEN) was
- *		written to the CTRL register, and then the actual LED data
- *		was written to the DATA register. Likewise, data for the
- *		7-segment displays was written.
+ *          A READ on the data register always returned the actual
+ *          state of the DIP switch. Writing data to the LEDs was done
+ *          in two steps.. first, the block number (RED or GREEN) was
+ *          written to the CTRL register, and then the actual LED data
+ *          was written to the DATA register. Likewise, data for the
+ *          7-segment displays was written.
  *
- *		The serial port was a bit different, and its operation is
- *		not verified, but two extra bits in the control register
- *		were used to set up parameters, and also the actual data
- *		input and output.
+ *          The serial port was a bit different, and its operation is
+ *          not verified, but two extra bits in the control register
+ *          were used to set up parameters, and also the actual data
+ *          input and output.
  *
- * TODO:	Still have to implement the RS232 Serial Port Parameters
- *		configuration register (CTRL_SPCFG bit set) but have to
- *		remember that stuff first...
+ * TODO:    Still have to implement the RS232 Serial Port Parameters
+ *          configuration register (CTRL_SPCFG bit set) but have to
+ *          remember that stuff first...
  *
  *
  *
- * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
- *		Copyright 1989-2018 Fred N. van Kempen.
+ * Authors: Fred N. van Kempen, <decwiz@yahoo.com>
+ *          Copyright 1989-2018 Fred N. van Kempen.
  */
 #include <stdarg.h>
 #include <stdio.h>
