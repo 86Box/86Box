@@ -293,7 +293,7 @@ void HarddiskDialog::onCreateNewFile() {
 
     ui->progressBar->setEnabled(true);
     setResult(QDialog::Rejected);
-    qint64 size = ui->lineEditSize->text().toUInt() << 20U;
+    quint64 size = ui->lineEditSize->text().toULongLong() << 20U;
     if (size > 0x1FFFFFFE00ll) {
         QMessageBox::critical(this, tr("Disk image too large"), tr("Disk images cannot be larger than 127 GB."));
         return;
@@ -326,6 +326,8 @@ void HarddiskDialog::onCreateNewFile() {
             ui->fileField->setFileName(fileName);
         }
     }
+    QFileInfo fi(fileName);
+    fileName = (fi.isRelative() && !fi.filePath().isEmpty()) ? usr_path + fi.filePath() : fi.filePath();
 
     QFile file(fileName);
     if (! file.open(QIODevice::WriteOnly)) {

@@ -999,7 +999,7 @@ load_hard_disks(void)
 
             case HDD_BUS_IDE:
                 max_spt    = 63;
-                max_hpc    = 16;
+                max_hpc    = 255;
                 max_tracks = 266305;
                 break;
 
