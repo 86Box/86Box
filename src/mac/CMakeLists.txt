@@ -1,20 +1,20 @@
 #
-# 86Box     A hypervisor and IBM PC system emulator that specializes in
-#           running old operating systems and software designed for IBM
-#           PC systems and compatibles from 1981 through fairly recent
-#           system designs based on the PCI bus.
+# 86Box    A hypervisor and IBM PC system emulator that specializes in
+#          running old operating systems and software designed for IBM
+#          PC systems and compatibles from 1981 through fairly recent
+#          system designs based on the PCI bus.
 #
-#           This file is part of the 86Box distribution.
+#          This file is part of the 86Box distribution.
 #
-#           CMake build script.
+#          CMake build script.
 #
-# Authors:  dob205,
-#           Jerome Vernet
-#           David Hrdlička, <hrdlickadavid@outlook.com>
+# Authors: dob205,
+#          Jerome Vernet
+#          David Hrdlička, <hrdlickadavid@outlook.com>
 #
-#           Copyright 2021 dob205.
-#           Copyright 2021 Jerome Vernet.
-#           Copyright 2021 David Hrdlička.
+#          Copyright 2021 dob205.
+#          Copyright 2021 Jerome Vernet.
+#          Copyright 2021 David Hrdlička.
 #
 
 # Pick the bundle icon depending on the release channel

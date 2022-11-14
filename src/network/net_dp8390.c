@@ -1,19 +1,19 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		Emulation of the DP8390 Network Interface Controller used by
- *		the WD family, NE1000/NE2000 family, and 3Com 3C503 NIC's.
+ *          Emulation of the DP8390 Network Interface Controller used by
+ *          the WD family, NE1000/NE2000 family, and 3Com 3C503 NIC's.
  *
  *
  *
- * Authors:	Miran Grca, <mgrca8@gmail.com>
- *		Bochs project,
+ * Authors: Miran Grca, <mgrca8@gmail.com>
+ *          Bochs project,
  *
- *		Copyright 2016-2018 Miran Grca.
- *		Copyright 2008-2018 Bochs project.
+ *          Copyright 2016-2018 Miran Grca.
+ *          Copyright 2008-2018 Bochs project.
  */
 #include <stdio.h>
 #include <stdint.h>

@@ -1,26 +1,26 @@
 /*
- * 86Box	An emulator of (mostly) x86-based PC systems and devices,
- *		using the ISA, EISA, VLB, MCA, and PCI system buses,
- *		roughly spanning the era between 1981 and 1995.
+ * 86Box    An emulator of (mostly) x86-based PC systems and devices,
+ *          using the ISA, EISA, VLB, MCA, and PCI system buses,
+ *          roughly spanning the era between 1981 and 1995.
  *
- *		This file is part of the 86Box Project.
+ *          This file is part of the 86Box Project.
  *
- *		Implementation of the following network controllers:
- *			- 3Com Etherlink II 3c503 (ISA 8-bit).
+ *          Implementation of the following network controllers:
+ *            - 3Com Etherlink II 3c503 (ISA 8-bit).
  *
  *
  *
- * Based on	@(#)3c503.cpp Carl (MAME)
+ * Based on @(#)3c503.cpp Carl (MAME)
  *
- * Authors:	TheCollector1995, <mariogplayer@gmail.com>
- *		Miran Grca, <mgrca8@gmail.com>
- *		Fred N. van Kempen, <decwiz@yahoo.com>
- *		Carl, <unknown e-mail address>
+ * Authors: TheCollector1995, <mariogplayer@gmail.com>
+ *          Miran Grca, <mgrca8@gmail.com>
+ *          Fred N. van Kempen, <decwiz@yahoo.com>
+ *          Carl, <unknown e-mail address>
  *
- *		Copyright 2018 TheCollector1995.
- *		Copyright 2018 Miran Grca.
- *		Copyright 2017,2018 Fred N. van Kempen.
- *		Portions Copyright (C) 2018  MAME Project
+ *          Copyright 2018 TheCollector1995.
+ *          Copyright 2018 Miran Grca.
+ *          Copyright 2017-2018 Fred N. van Kempen.
+ *          Portions Copyright (C) 2018  MAME Project
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by

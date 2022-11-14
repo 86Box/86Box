@@ -1,26 +1,26 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Handling of ROM image files.
+ *          Handling of ROM image files.
  *
- * NOTES:	- pc2386 BIOS is corrupt (JMP at F000:FFF0 points to RAM)
- *		- pc2386 video BIOS is underdumped (16k instead of 24k)
- *		- c386sx16 BIOS fails checksum
+ * NOTES:   - pc2386 BIOS is corrupt (JMP at F000:FFF0 points to RAM)
+ *          - pc2386 video BIOS is underdumped (16k instead of 24k)
+ *          - c386sx16 BIOS fails checksum
  *
  *
  *
- * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
- *		Miran Grca, <mgrca8@gmail.com>
- *		Fred N. van Kempen, <decwiz@yahoo.com>
+ * Authors: Sarah Walker, <http://pcem-emulator.co.uk/>
+ *          Miran Grca, <mgrca8@gmail.com>
+ *          Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 2008-2019 Sarah Walker.
- *		Copyright 2016-2019 Miran Grca.
- *		Copyright 2018,2019 Fred N. van Kempen.
+ *          Copyright 2008-2019 Sarah Walker.
+ *          Copyright 2016-2019 Miran Grca.
+ *          Copyright 2018-2019 Fred N. van Kempen.
  */
 #include <stdarg.h>
 #include <stdio.h>
