@@ -1,5 +1,5 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
  *          running old operating systems and software designed for IBM
  *          PC systems and compatibles from 1981 through fairly recent
  *          system designs based on the PCI bus.
@@ -520,12 +520,20 @@ extern const device_t ps1vga_mca_device;
 extern const device_t voodoo_device;
 extern const device_t voodoo_banshee_device;
 extern const device_t creative_voodoo_banshee_device;
+extern const device_t voodoo_3_1000_device;
+extern const device_t voodoo_3_1000_agp_device;
 extern const device_t voodoo_3_2000_device;
 extern const device_t voodoo_3_2000_agp_device;
 extern const device_t voodoo_3_2000_agp_onboard_8m_device;
 extern const device_t voodoo_3_3000_device;
 extern const device_t voodoo_3_3000_agp_device;
+extern const device_t voodoo_3_3500_agp_ntsc_device;
+extern const device_t voodoo_3_3500_agp_pal_device;
+extern const device_t compaq_voodoo_3_3500_agp_device;
+extern const device_t voodoo_3_3500_se_agp_device;
+extern const device_t voodoo_3_3500_si_agp_device;
 extern const device_t velocity_100_agp_device;
+extern const device_t velocity_200_agp_device;
 
 /* Wyse 700 */
 extern const device_t wy700_device;

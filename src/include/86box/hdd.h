@@ -18,6 +18,13 @@
 #ifndef EMU_HDD_H
 #define EMU_HDD_H
 
+#define IMG_FMT_RAW 0
+#define IMG_FMT_HDI 1
+#define IMG_FMT_HDX 2
+#define IMG_FMT_VHD_FIXED 3
+#define IMG_FMT_VHD_DYNAMIC 4
+#define IMG_FMT_VHD_DIFF 5
+
 #define HDD_NUM 88 /* total of 88 images supported */
 
 /* Hard Disk bus types. */

@@ -1,22 +1,22 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Implementation of Chips&Technology's SCAT (82C235) chipset.
+ *          Implementation of Chips&Technology's SCAT (82C235) chipset.
  *
- *		Re-worked version based on the 82C235 datasheet and errata.
+ *          Re-worked version based on the 82C235 datasheet and errata.
  *
  *
  *
- * Authors:	Original by GreatPsycho for PCem.
- *		Fred N. van Kempen, <decwiz@yahoo.com>
+ * Authors: Original by GreatPsycho for PCem.
+ *          Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 2017-2019 GreatPsycho.
- *		Copyright 2017-2019 Fred N. van Kempen.
+ *          Copyright 2017-2019 GreatPsycho.
+ *          Copyright 2017-2019 Fred N. van Kempen.
  */
 #include <stdint.h>
 #include <stdio.h>

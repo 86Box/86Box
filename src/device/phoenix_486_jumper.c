@@ -1,14 +1,16 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Implementation of the Phoenix 486 Jumper Readout
+ *          Implementation of the Phoenix 486 Jumper Readout
  *
- *		Copyright 2020 Tiseno100
+ * Authors: Tiseno100
+ *
+ *          Copyright 2020 Tiseno100
  */
 
 #include <stdarg.h>

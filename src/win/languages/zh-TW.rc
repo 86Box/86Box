@@ -367,7 +367,7 @@ END
 #define STR_POSTCARD		"自檢 (POST) 卡"
 
 #define FONT_SIZE		9
-#define FONT_NAME		"Microsoft JHengHei"
+#define FONT_NAME		"Microsoft JhengHei"
 
 #include "dialogs.rc"
 

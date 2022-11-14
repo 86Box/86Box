@@ -9,6 +9,7 @@
  *          Handle the dialog for changing the program's language and other global settings.
  *
  *
+ *
  * Authors: Laci bá'
  *
  *          Copyright 2021 Laci bá'

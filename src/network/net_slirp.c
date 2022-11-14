@@ -1,23 +1,23 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Handle SLiRP library processing.
+ *          Handle SLiRP library processing.
  *
- *		Some of the code was borrowed from libvdeslirp
- *		<https://github.com/virtualsquare/libvdeslirp>
+ *          Some of the code was borrowed from libvdeslirp
+ *          <https://github.com/virtualsquare/libvdeslirp>
  *
  *
  *
- * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
- *		RichardG, <richardg867@gmail.com>
+ * Authors: Fred N. van Kempen, <decwiz@yahoo.com>
+ *          RichardG, <richardg867@gmail.com>
  *
- *		Copyright 2017-2019 Fred N. van Kempen.
- *		Copyright 2020 RichardG.
+ *          Copyright 2017-2019 Fred N. van Kempen.
+ *          Copyright 2020 RichardG.
  */
 #include <stdarg.h>
 #include <stdint.h>

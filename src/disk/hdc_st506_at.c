@@ -1,24 +1,24 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Driver for the IBM PC-AT MFM/RLL Fixed Disk controller.
+ *          Driver for the IBM PC-AT MFM/RLL Fixed Disk controller.
  *
- *		This controller was a 16bit ISA card, and it used a WD1003
- *		based design. Most cards were WD1003-WA2 or -WAH, where the
- *		-WA2 cards had a floppy controller as well (to save space.)
+ *          This controller was a 16bit ISA card, and it used a WD1003
+ *          based design. Most cards were WD1003-WA2 or -WAH, where the
+ *          -WA2 cards had a floppy controller as well (to save space.)
  *
  *
  *
- * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
- *		Fred N. van Kempen, <decwiz@yahoo.com>
+ * Authors: Sarah Walker, <http://pcem-emulator.co.uk/>
+ *          Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 2008-2019 Sarah Walker.
- *		Copyright 2017-2019 Fred N. van Kempen.
+ *          Copyright 2008-2019 Sarah Walker.
+ *          Copyright 2017-2019 Fred N. van Kempen.
  */
 #include <stdarg.h>
 #include <stdint.h>

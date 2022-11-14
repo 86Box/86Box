@@ -1,21 +1,22 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Implementation of the Olivetti EVA (98/86) Gate Array.
+ *          Implementation of the Olivetti EVA (98/86) Gate Array.
  *
- *      Note: This chipset has no datasheet, everything were done via
- *      reverse engineering the BIOS of various machines using it.
+ * Note:    This chipset has no datasheet, everything were done via
+ *          reverse engineering the BIOS of various machines using it.
+ *
+ *
  *
  * Authors: EngiNerd <webmaster.crrc@yahoo.it>
  *
- *		Copyright 2020-2021 EngiNerd
+ *          Copyright 2020-2021 EngiNerd
  */
-
 #include <stdarg.h>
 #include <stdint.h>
 #include <stdio.h>
