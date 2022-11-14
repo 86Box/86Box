@@ -1453,25 +1453,27 @@ azt_close(void *p)
     uint8_t     checksum = 0x7f;
     int         i;
 
-    if (azt2316a->type == SB_SUBTYPE_CLONE_AZT1605_0X0C) {
-        fn = "azt1605.nvr";
-    } else if (azt2316a->type == SB_SUBTYPE_CLONE_AZT2316A_0X11) {
-        fn = "azt2316a.nvr";
-    }
+    if (!azt2316a->opti) {
+        if (azt2316a->type == SB_SUBTYPE_CLONE_AZT1605_0X0C) {
+            fn = "azt1605.nvr";
+        } else if (azt2316a->type == SB_SUBTYPE_CLONE_AZT2316A_0X11) {
+            fn = "azt2316a.nvr";
+        }
 
-    /* always save to eeprom (recover from bad values) */
-    f = nvr_fopen(fn, "wb");
-    if (f) {
-        for (i = 0; i < AZTECH_EEPROM_SIZE; i++)
-            checksum += azt2316a->sb->dsp.azt_eeprom[i];
-        fwrite(azt2316a->sb->dsp.azt_eeprom, AZTECH_EEPROM_SIZE, 1, f);
+        /* always save to eeprom (recover from bad values) */
+        f = nvr_fopen(fn, "wb");
+        if (f) {
+            for (i = 0; i < AZTECH_EEPROM_SIZE; i++)
+                checksum += azt2316a->sb->dsp.azt_eeprom[i];
+            fwrite(azt2316a->sb->dsp.azt_eeprom, AZTECH_EEPROM_SIZE, 1, f);
 
-        // TODO: confirm any models saving mixer settings to EEPROM and implement reading back
-        // TODO: should remember to save wss duplex setting if 86Box has voice recording implemented in the future? Also, default azt2316a->wss_config
-        // TODO: azt2316a->cur_mode is not saved to EEPROM?
-        fwrite(&checksum, sizeof(checksum), 1, f);
+            // TODO: confirm any models saving mixer settings to EEPROM and implement reading back
+            // TODO: should remember to save wss duplex setting if 86Box has voice recording implemented in the future? Also, default azt2316a->wss_config
+            // TODO: azt2316a->cur_mode is not saved to EEPROM?
+            fwrite(&checksum, sizeof(checksum), 1, f);
 
-        fclose(f);
+            fclose(f);
+        }
     }
 
     sb_close(azt2316a->sb);
@@ -1633,7 +1635,7 @@ static const device_config_t azt1605_config[] = {
 };
 
 static const device_config_t azt2316a_config[] = {
-  // clang-format off
+// clang-format off
     {
         .name = "codec",
         .description = "CODEC",
@@ -1776,7 +1778,7 @@ static const device_config_t acermagic_s20_config[] = {
         .default_int = 0
     },
     { .name = "", .description = "", .type = CONFIG_END }
-// clang-format on
+  // clang-format on
 };
 
 const device_t azt2316a_device = {
