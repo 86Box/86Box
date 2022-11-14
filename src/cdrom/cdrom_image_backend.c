@@ -9,6 +9,8 @@
  *          CD-ROM image file handling module, translated to C from
  *          cdrom_dosbox.cpp.
  *
+ *
+ *
  * Authors: Miran Grca, <mgrca8@gmail.com>
  *          Fred N. van Kempen, <decwiz@yahoo.com>
  *          The DOSBox Team, <unknown>

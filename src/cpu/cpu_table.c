@@ -1,28 +1,28 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Define all known processor types.
+ *          Define all known processor types.
  *
  *
  *
- * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
- *		leilei,
- *		Miran Grca, <mgrca8@gmail.com>
- *		Fred N. van Kempen, <decwiz@yahoo.com>
- *		RichardG, <richardg867@gmail.com>
- *		dob205,
+ * Authors: Sarah Walker, <http://pcem-emulator.co.uk/>
+ *          leilei,
+ *          Miran Grca, <mgrca8@gmail.com>
+ *          Fred N. van Kempen, <decwiz@yahoo.com>
+ *          RichardG, <richardg867@gmail.com>
+ *          dob205,
  *
- *		Copyright 2008-2019 Sarah Walker.
- *		Copyright 2016-2019 leilei.
- *		Copyright 2016-2019 Miran Grca.
- *		Copyright 2017-2020 Fred N. van Kempen.
- *		Copyright 2020 RichardG.
- *		Copyright 2021 dob205.
+ *          Copyright 2008-2019 Sarah Walker.
+ *          Copyright 2016-2019 leilei.
+ *          Copyright 2016-2019 Miran Grca.
+ *          Copyright 2017-2020 Fred N. van Kempen.
+ *          Copyright 2020 RichardG.
+ *          Copyright 2021 dob205.
  */
 #include <stdio.h>
 #include <stdint.h>

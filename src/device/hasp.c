@@ -1,24 +1,24 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		HASP parallel port copy protection dongle emulation.
+ *          HASP parallel port copy protection dongle emulation.
  *
- *		Based on the MAME driver for Savage Quest. This incomplete
- *		emulation is enough to satisfy that game, but not Aladdin's
- *		DiagnostiX utility.
+ *          Based on the MAME driver for Savage Quest. This incomplete
+ *          emulation is enough to satisfy that game, but not Aladdin's
+ *          DiagnostiX utility.
  *
  *
  *
- * Author:	RichardG, <richardg867@gmail.com>
- *		Peter Ferrie
+ * Authors: RichardG, <richardg867@gmail.com>
+ *          Peter Ferrie
  *
- *		Copyright 2021 RichardG.
- *		Copyright Peter Ferrie.
+ *          Copyright 2021 RichardG.
+ *          Copyright Peter Ferrie.
  */
 #include <inttypes.h>
 #include <stdio.h>

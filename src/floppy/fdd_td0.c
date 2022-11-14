@@ -1,32 +1,32 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Implementation of the Teledisk floppy image format.
+ *          Implementation of the Teledisk floppy image format.
  *
  *
  *
- * Authors:	Milodrag Milanovic,
- *		Haruhiko OKUMURA,
- *		Haruyasu YOSHIZAKI,
- *		Kenji RIKITAKE,
- *		Miran Grca, <mgrca8@gmail.com>
- *		Fred N. van Kempen, <decwiz@yahoo.com>
+ * Authors: Milodrag Milanovic,
+ *          Haruhiko OKUMURA,
+ *          Haruyasu YOSHIZAKI,
+ *          Kenji RIKITAKE,
+ *          Miran Grca, <mgrca8@gmail.com>
+ *          Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Based on Japanese version 29-NOV-1988
- *		LZSS coded by Haruhiko OKUMURA
- *		Adaptive Huffman Coding coded by Haruyasu YOSHIZAKI
- *		Edited and translated to English by Kenji RIKITAKE
+ *          Based on Japanese version 29-NOV-1988
+ *          LZSS coded by Haruhiko OKUMURA
+ *          Adaptive Huffman Coding coded by Haruyasu YOSHIZAKI
+ *          Edited and translated to English by Kenji RIKITAKE
  *
- *		Copyright 2013-2019 Milodrag Milanovic.
- *		Copyright 1988-2019 Haruhiko OKUMURA.
- *		Copyright 1988-2019 Haruyasu YOSHIZAKI.
- *		Copyright 1988-2019 Kenji RIKITAKE.
- *		Copyright 2016-2019 Miran Grca.
+ *          Copyright 2013-2019 Milodrag Milanovic.
+ *          Copyright 1988-2019 Haruhiko OKUMURA.
+ *          Copyright 1988-2019 Haruyasu YOSHIZAKI.
+ *          Copyright 1988-2019 Kenji RIKITAKE.
+ *          Copyright 2016-2019 Miran Grca.
  */
 #include <stdarg.h>
 #include <stdint.h>

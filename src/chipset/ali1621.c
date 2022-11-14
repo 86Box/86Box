@@ -1,16 +1,18 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Implementation of the ALi M1621/2 CPU-to-PCI Bridge.
+ *          Implementation of the ALi M1621/2 CPU-to-PCI Bridge.
  *
- * Authors:	Miran Grca, <mgrca8@gmail.com>
  *
- *		Copyright 2021 Miran Grca.
+ *
+ * Authors: Miran Grca, <mgrca8@gmail.com>
+ *
+ *          Copyright 2021 Miran Grca.
  */
 #include <stdarg.h>
 #include <stdint.h>
@@ -57,28 +59,28 @@ ali1621_log(const char *fmt, ...)
 
 /* Table translated to a more sensible format:
         Read cycles:
-        SMREN	SMM	Mode		Code	Data
-        0	X	X		PCI	PCI
-        1	0	Close		PCI	PCI
-        1	0	Lock		PCI	PCI
-        1	0	Protect		PCI	PCI
-        1	0	Open		DRAM	DRAM
-        1	1	Open		DRAM	DRAM
-        1	1	Protect		DRAM	DRAM
-        1	1	Close		DRAM	PCI
-        1	1	Lock		DRAM	PCI
+        SMREN    SMM Mode    Code    Data
+        0   X    X           PCI     PCI
+        1   0    Close       PCI     PCI
+        1   0    Lock        PCI     PCI
+        1   0    Protect     PCI     PCI
+        1   0    Open        DRAM    DRAM
+        1   1    Open        DRAM    DRAM
+        1   1    Protect     DRAM    DRAM
+        1   1    Close       DRAM    PCI
+        1   1    Lock        DRAM    PCI
 
         Write cycles:
-        SMWEN	SMM	Mode		Data
-        0	X	X		PCI
-        1	0	Close		PCI
-        1	0	Lock		PCI
-        1	0	Protect		PCI
-        1	0	Open		DRAM
-        1	1	Open		DRAM
-        1	1	Protect		DRAM
-        1	1	Close		PCI
-        1	1	Lock		PCI
+        SMWEN    SMM Mode    Data
+        0   X    X           PCI
+        1   0    Close       PCI
+        1   0    Lock        PCI
+        1   0    Protect     PCI
+        1   0    Open        DRAM
+        1   1    Open        DRAM
+        1   1    Protect     DRAM
+        1   1    Close       PCI
+        1   1    Lock        PCI
 
         Explanation of the modes based above:
                 If SM*EN = 0, SMRAM is entirely disabled, otherwise:

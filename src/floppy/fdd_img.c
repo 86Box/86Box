@@ -1,27 +1,27 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Implementation of the raw sector-based floppy image format,
- *		as well as the Japanese FDI, CopyQM, and FDF formats.
+ *          Implementation of the raw sector-based floppy image format,
+ *          as well as the Japanese FDI, CopyQM, and FDF formats.
  *
- * NOTE:	This file is still a disaster, needs to be cleaned up and
- *		re-merged with the other files. Much of it is generic to
- *		all formats.
+ * NOTE:    This file is still a disaster, needs to be cleaned up and
+ *          re-merged with the other files. Much of it is generic to
+ *          all formats.
  *
  *
  *
- * Authors:	Sarah Walker, <tommowalker@tommowalker.co.uk>
- *		Miran Grca, <mgrca8@gmail.com>
- *		Fred N. van Kempen, <decwiz@yahoo.com>
+ * Authors: Sarah Walker, <tommowalker@tommowalker.co.uk>
+ *          Miran Grca, <mgrca8@gmail.com>
+ *          Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 2008-2019 Sarah Walker.
- *		Copyright 2016-2019 Miran Grca.
- *		Copyright 2018,2019 Fred N. van Kempen.
+ *          Copyright 2008-2019 Sarah Walker.
+ *          Copyright 2016-2019 Miran Grca.
+ *          Copyright 2018-2019 Fred N. van Kempen.
  */
 #include <stdarg.h>
 #include <stdint.h>
