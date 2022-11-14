@@ -73,9 +73,9 @@ static const device_t vid_internal_device = {
     .config        = NULL
 };
 
-// clang-format off
 static const VIDEO_CARD
 video_cards[] = {
+// clang-format off
     { &vid_none_device                               },
     { &vid_internal_device                           },
     { &atiega_device                                 },
@@ -208,6 +208,7 @@ video_cards[] = {
     { &tgui9680_pci_device                           },
     { &voodoo_banshee_device                         },
     { &creative_voodoo_banshee_device                },
+    { &voodoo_3_1000_device                          },
     { &voodoo_3_2000_device                          },
     { &voodoo_3_3000_device                          },
     { &mach64gx_vlb_device                           },
@@ -250,11 +251,18 @@ video_cards[] = {
     { &s3_diamond_stealth_4000_agp_device            },
     { &s3_trio3d2x_agp_device                        },
     { &velocity_100_agp_device                       },
+    { &velocity_200_agp_device                       },
+    { &voodoo_3_1000_agp_device                      },
     { &voodoo_3_2000_agp_device                      },
     { &voodoo_3_3000_agp_device                      },
+    { &voodoo_3_3500_agp_ntsc_device                 },
+    { &voodoo_3_3500_agp_pal_device                  },
+    { &compaq_voodoo_3_3500_agp_device               },
+    { &voodoo_3_3500_se_agp_device                   },
+    { &voodoo_3_3500_si_agp_device                   },
     { NULL                                           }
-};
 // clang-format on
+};
 
 #ifdef ENABLE_VID_TABLE_LOG
 int vid_table_do_log = ENABLE_VID_TABLE_LOG;

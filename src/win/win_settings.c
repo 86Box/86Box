@@ -2869,13 +2869,13 @@ win_settings_hard_disks_add_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM 
                         }
 
                         img_format = settings_get_cur_sel(hdlg, IDC_COMBO_HD_IMG_FORMAT);
-                        if (img_format < 3) {
+                        if (img_format < IMG_FMT_VHD_FIXED) {
                             f = _wfopen(hd_file_name, L"wb");
                         } else {
                             f = (FILE *) 0;
                         }
 
-                        if (img_format == 1) { /* HDI file */
+                        if (img_format == IMG_FMT_HDI) { /* HDI file */
                             if (size >= 0x100000000ll) {
                                 fclose(f);
                                 settings_msgbox_header(MBX_ERROR, (wchar_t *) IDS_4116, (wchar_t *) IDS_4104);
@@ -2893,7 +2893,7 @@ win_settings_hard_disks_add_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM 
 
                             for (i = 0; i < 0x3f8; i++)
                                 fwrite(&zero, 1, 4, f);
-                        } else if (img_format == 2) {      /* HDX file */
+                        } else if (img_format == IMG_FMT_HDX) {      /* HDX file */
                             fwrite(&signature, 1, 8, f);   /* 00000000: Signature */
                             fwrite(&size, 1, 8, f);        /* 00000008: Full size of the data (64-bit) */
                             fwrite(&sector_size, 1, 4, f); /* 00000010: Sector size in bytes */
@@ -2902,18 +2902,18 @@ win_settings_hard_disks_add_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM 
                             fwrite(&tracks, 1, 4, f);      /* 0000001C: Cylinders */
                             fwrite(&zero, 1, 4, f);        /* 00000020: [Translation] Sectors per cylinder */
                             fwrite(&zero, 1, 4, f);        /* 00000004: [Translation] Heads per cylinder */
-                        } else if (img_format >= 3) {      /* VHD file */
+                        } else if (img_format >= IMG_FMT_VHD_FIXED) {      /* VHD file */
                             MVHDGeom _86box_geometry;
                             block_size = settings_get_cur_sel(hdlg, IDC_COMBO_HD_BLOCK_SIZE) == 0 ? MVHD_BLOCK_LARGE : MVHD_BLOCK_SMALL;
                             switch (img_format) {
-                                case 3:
+                                case IMG_FMT_VHD_FIXED:
                                     vhd_progress_hdlg = hdlg;
                                     _86box_geometry   = create_drive_vhd_fixed(hd_file_name_multibyte, tracks, hpc, spt);
                                     break;
-                                case 4:
+                                case IMG_FMT_VHD_DYNAMIC:
                                     _86box_geometry = create_drive_vhd_dynamic(hd_file_name_multibyte, tracks, hpc, spt, block_size);
                                     break;
-                                case 5:
+                                case IMG_FMT_VHD_DIFF:
                                     if (file_dlg_w(hdlg, plat_get_string(IDS_4130), L"", plat_get_string(IDS_4131), 0)) {
                                         return TRUE;
                                     }
@@ -2921,7 +2921,7 @@ win_settings_hard_disks_add_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM 
                                     break;
                             }
 
-                            if (img_format != 5)
+                            if (img_format != IMG_FMT_VHD_DIFF)
                                 settings_msgbox_header(MBX_INFO, (wchar_t *) IDS_4113, (wchar_t *) IDS_4117);
 
                             hdd_ptr->tracks = _86box_geometry.cyl;
@@ -3366,7 +3366,7 @@ hdd_add_file_open_error:
                     img_format = settings_get_cur_sel(hdlg, IDC_COMBO_HD_IMG_FORMAT);
 
                     no_update = 1;
-                    if (img_format == 5) { /* They switched to a diff VHD; disable the geometry fields. */
+                    if (img_format == IMG_FMT_VHD_DIFF) { /* They switched to a diff VHD; disable the geometry fields. */
                         settings_enable_window(hdlg, IDC_EDIT_HD_SPT, FALSE);
                         set_edit_box_text_contents(hdlg, IDC_EDIT_HD_SPT, L"(N/A)");
                         settings_enable_window(hdlg, IDC_EDIT_HD_HPC, FALSE);
@@ -3402,7 +3402,7 @@ hdd_add_file_open_error:
                     }
                     no_update = 0;
 
-                    if (img_format == 4 || img_format == 5) { /* For dynamic and diff VHDs, show the block size dropdown. */
+                    if (img_format == IMG_FMT_VHD_DYNAMIC || img_format == IMG_FMT_VHD_DIFF) { /* For dynamic and diff VHDs, show the block size dropdown. */
                         settings_show_window(hdlg, IDC_COMBO_HD_BLOCK_SIZE, TRUE);
                         settings_show_window(hdlg, IDT_BLOCK_SIZE, TRUE);
                     } else { /* Hide it otherwise. */

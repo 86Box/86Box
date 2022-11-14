@@ -1,21 +1,21 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Implementation POSIX OpenDir(3) and friends for Win32 API.
+ *          Implementation POSIX OpenDir(3) and friends for Win32 API.
  *
- *		Based on old original code @(#)dir_win32.c 1.2.0 2007/04/19
+ *          Based on old original code @(#)dir_win32.c 1.2.0 2007/04/19
  *
  *
  *
- * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
+ * Authors: Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 1998-2007 MicroWalt Corporation
- *		Copyright 2017 Fred N. van Kempen
+ *          Copyright 1998-2007 MicroWalt Corporation
+ *          Copyright 2017 Fred N. van Kempen
  */
 #include <io.h>
 #include <stdio.h>

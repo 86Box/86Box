@@ -1,20 +1,22 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		CD-ROM image support.
+ *          CD-ROM image support.
  *
- * Author:	RichardG867,
- *		Miran Grca, <mgrca8@gmail.com>
- *		bit,
  *
- *		Copyright 2015-2019 Richardg867.
- *		Copyright 2015-2019 Miran Grca.
- *		Copyright 2017-2019 bit.
+ *
+ * Authors: RichardG867,
+ *          Miran Grca, <mgrca8@gmail.com>
+ *          bit,
+ *
+ *          Copyright 2015-2019 Richardg867.
+ *          Copyright 2015-2019 Miran Grca.
+ *          Copyright 2017-2019 bit.
  */
 #include <inttypes.h>
 #include <stdarg.h>

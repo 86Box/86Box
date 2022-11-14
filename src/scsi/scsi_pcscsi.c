@@ -1,25 +1,24 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Implementation of the Tekram DC-390 SCSI and related MCA
- *		controllers using the NCR 53c9x series of chips.
- *
- *
+ *          Implementation of the Tekram DC-390 SCSI and related MCA
+ *          controllers using the NCR 53c9x series of chips.
  *
  *
- * Authors:	Fabrice Bellard (QEMU)
- *		Herve Poussineau (QEMU)
- *		TheCollector1995, <mariogplayer@gmail.com>
- *		Miran Grca, <mgrca8@gmail.com>
  *
- *		Copyright 2005-2018 Fabrice Bellard.
- *		Copyright 2012-2018 Herve Poussineau.
- *		Copyright 2017,2018 Miran Grca.
+ * Authors: Fabrice Bellard (QEMU)
+ *          Herve Poussineau (QEMU)
+ *          TheCollector1995, <mariogplayer@gmail.com>
+ *          Miran Grca, <mgrca8@gmail.com>
+ *
+ *          Copyright 2005-2018 Fabrice Bellard.
+ *          Copyright 2012-2018 Herve Poussineau.
+ *          Copyright 2017-2018 Miran Grca.
  */
 #include <inttypes.h>
 #include <stdarg.h>

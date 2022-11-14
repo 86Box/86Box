@@ -1,20 +1,20 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		Emulation of the AMD PCnet LANCE NIC controller for both the ISA, VLB,
- *		and PCI buses.
+ *          Emulation of the AMD PCnet LANCE NIC controller for both the ISA, VLB,
+ *          and PCI buses.
  *
  *
  *
- * Authors:	Miran Grca, <mgrca8@gmail.com>
- *		TheCollector1995, <mariogplayer@gmail.com>
- *		Antony T Curtis
+ * Authors: Miran Grca, <mgrca8@gmail.com>
+ *          TheCollector1995, <mariogplayer@gmail.com>
+ *          Antony T Curtis
  *
- *		Copyright 2004-2019 Antony T Curtis
- *		Copyright 2016-2019 Miran Grca.
+ *          Copyright 2004-2019 Antony T Curtis
+ *          Copyright 2016-2019 Miran Grca.
  */
 #ifdef _WIN32
 #    include <winsock.h>

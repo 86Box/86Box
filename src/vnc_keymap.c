@@ -1,33 +1,33 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Define the XKBD to ScanCode translation tables for VNC.
+ *          Define the XKBD to ScanCode translation tables for VNC.
  *
- *		VNC uses the XKBD key code definitions to transport keystroke
- *		information, so we just need some tables to translate those
- * 		into PC-ready scan codes.
+ *          VNC uses the XKBD key code definitions to transport keystroke
+ *          information, so we just need some tables to translate those
+ *          into PC-ready scan codes.
  *
- *		We only support XKBD pages 0 (Latin-1) and 255 (special keys)
- *		in these tables, other pages (languages) not [yet] supported.
+ *          We only support XKBD pages 0 (Latin-1) and 255 (special keys)
+ *          in these tables, other pages (languages) not [yet] supported.
  *
- *		The tables define up to two keystrokes.. the upper byte is
- *		the first keystroke, and the lower byte the second. If value
- *		is 0x00, the keystroke is not sent.
+ *          The tables define up to two keystrokes.. the upper byte is
+ *          the first keystroke, and the lower byte the second. If value
+ *          is 0x00, the keystroke is not sent.
  *
- * NOTE:	The values are as defined in the Microsoft document named
- *		"Keyboard Scan Code Specification", version 1.3a of 2000/03/16.
+ * NOTE:    The values are as defined in the Microsoft document named
+ *          "Keyboard Scan Code Specification", version 1.3a of 2000/03/16.
  *
  *
  *
- * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
- *		Based on raw code by RichardG, <richardg867@gmail.com>
+ * Authors: Fred N. van Kempen, <decwiz@yahoo.com>
+ *          Based on raw code by RichardG, <richardg867@gmail.com>
  *
- *		Copyright 2017-2019 Fred N. van Kempen.
+ *          Copyright 2017-2019 Fred N. van Kempen.
  */
 #include <stdarg.h>
 #include <stdint.h>
