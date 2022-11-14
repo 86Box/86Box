@@ -15,7 +15,7 @@ LANGUAGE LANG_CHINESE, SUBLANG_CHINESE_TRADITIONAL
 
 MainMenu MENU DISCARDABLE 
 BEGIN
-    POPUP "操作(&A)"
+    POPUP "動作(&A)"
     BEGIN
         MENUITEM "鍵盤需要捕捉(&K)",	IDM_ACTION_KBD_REQ_CAPTURE
         MENUITEM "將右 CTRL 鍵映射為左 ALT 鍵(&R)",	IDM_ACTION_RCTRL_IS_LALT
@@ -351,7 +351,7 @@ END
 #define STR_CHECKBPB		"檢查 BPB"
 #define STR_CDROM_DRIVES	"光碟機:"
 #define STR_CD_SPEED		"速度:"
-#define STR_EARLY		"早先的驅動器"
+#define STR_EARLY		"早先的光碟機"
 
 #define STR_MO_DRIVES		"磁光碟機:"
 #define STR_ZIP_DRIVES		"ZIP 磁碟機:"
@@ -521,7 +521,7 @@ BEGIN
     IDS_2159	"硬重設"
     IDS_2160	"ACPI 關機"
     IDS_2161	"設定"
-    IDS_2162    "早先的驅動器"
+    IDS_2162    "早先的光碟機"
 END
 
 STRINGTABLE DISCARDABLE 
