@@ -1,21 +1,21 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Implementation of the IDE emulation for hard disks and ATAPI
- *		CD-ROM devices.
+ *          Implementation of the IDE emulation for hard disks and ATAPI
+ *          CD-ROM devices.
  *
  *
  *
- * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
- *		Miran Grca, <mgrca8@gmail.com>
+ * Authors: Sarah Walker, <http://pcem-emulator.co.uk/>
+ *          Miran Grca, <mgrca8@gmail.com>
  *
- *		Copyright 2008-2020 Sarah Walker.
- *		Copyright 2016-2020 Miran Grca.
+ *          Copyright 2008-2020 Sarah Walker.
+ *          Copyright 2016-2020 Miran Grca.
  */
 #include <stdarg.h>
 #include <stdio.h>
@@ -2090,18 +2090,27 @@ ide_board_callback(void *priv)
 #endif
 
     dev->ide[0]->atastat = DRDY_STAT | DSC_STAT;
-    if (dev->ide[0]->type == IDE_ATAPI)
-        dev->ide[0]->sc->status = DRDY_STAT | DSC_STAT;
+    if (dev->ide[0]->type == IDE_ATAPI) {
+        if (dev->ide[0]->sc->pad0)
+            dev->ide[0]->sc->status = DRDY_STAT | DSC_STAT;
+        else
+            dev->ide[0]->sc->status = 0;
+    }
 
     dev->ide[1]->atastat = DRDY_STAT | DSC_STAT;
-    if (dev->ide[1]->type == IDE_ATAPI)
-        dev->ide[1]->sc->status = DRDY_STAT | DSC_STAT;
+    if (dev->ide[1]->type == IDE_ATAPI) {
+        if (dev->ide[1]->sc->pad0)
+            dev->ide[1]->sc->status = DRDY_STAT | DSC_STAT;
+        else
+            dev->ide[1]->sc->status = 0;
+    }
 
     dev->cur_dev &= ~1;
 
     if (dev->diag) {
         dev->diag = 0;
-        ide_irq_raise(dev->ide[0]);
+        if ((dev->ide[0]->type != IDE_ATAPI) || dev->ide[0]->sc->pad0)
+            ide_irq_raise(dev->ide[0]);
     }
 }
 

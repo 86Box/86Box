@@ -34,6 +34,7 @@ BEGIN
         MENUITEM "ステータスバーを隠す(&H)",		IDM_VID_HIDE_STATUS_BAR
         MENUITEM "ツールバーを隠す(&T)",		IDM_VID_HIDE_TOOLBAR
         MENUITEM SEPARATOR
+        MENUITEM "&Show non-primary monitors",  IDM_VID_MONITORS
         MENUITEM "ウィンドウのサイズをリサイズ可能(&R)",          IDM_VID_RESIZE
         MENUITEM "ウィンドウのサイズと位置を記憶(&E)",  IDM_VID_REMEMBER
         MENUITEM SEPARATOR
@@ -176,8 +177,8 @@ BEGIN
         MENUITEM "空(&M)",					IDM_CDROM_EMPTY
         MENUITEM "前のイメージを再読み込み(&R)",			IDM_CDROM_RELOAD
         MENUITEM SEPARATOR
-        MENUITEM "イメージ(&I)",					IDM_CDROM_IMAGE
-        MENUITEM "フォルダ(&F)",					IDM_CDROM_DIR
+        MENUITEM "イメージ(&I)...",					IDM_CDROM_IMAGE
+        MENUITEM "フォルダ(&F)...",					IDM_CDROM_DIR
     END
 END
 
@@ -271,6 +272,7 @@ END
 #define STR_DYNAREC		"動的リコンパイラ"
 
 #define STR_VIDEO		"ビデオカード:"
+#define STR_VIDEO_2		"ビデオカード 2:"
 #define STR_VOODOO		"Voodooグラフィック"
 #define STR_IBM8514		"IBM 8514/aグラフィック"
 #define STR_XGA			"XGAグラフィック"
@@ -333,6 +335,7 @@ END
 #define STR_BUS			"バス:"
 #define STR_CHANNEL		"チャンネル:"
 #define STR_ID			"ID:"
+#define STR_SPEED		"Speed:"
 
 #define STR_SPECIFY		"参照(&S)..."
 #define STR_SECTORS		"セクター:"
@@ -422,102 +425,103 @@ BEGIN
     IDS_2084	"H"
     IDS_2085	"S"
     IDS_2086	"MB"
-    IDS_2087	"BPBをチェック"
-    IDS_2088	"KB"
-    IDS_2089	"ビデオレンダラーが初期化できません。"
-    IDS_2090	"既定値"
-    IDS_2091	"%iつの待機状態"
-    IDS_2092	"タイプ"
-    IDS_2093	"PCapのセットアップに失敗しました"
-    IDS_2094	"PCapデバイスがありません"
-    IDS_2095	"不正なPCapデバイスです"
-    IDS_2096	"標準ジョイスティック(2ボタン)"
-    IDS_2097	"標準ジョイスティック(4ボタン)"
-    IDS_2098	"標準ジョイスティック(6ボタン)"
-    IDS_2099	"標準ジョイスティック(8ボタン)"
-    IDS_2100	"CH Flightstick Pro"
-    IDS_2101	"Microsoft SideWinder Pad"
-    IDS_2102	"Thrustmaster Flight Control System"
-    IDS_2103	"なし"
-    IDS_2104	"キーボードアクセラレータを読み込めません。"
-    IDS_2105	"生の入力が登録できません。"
-    IDS_2106	"%u"
-    IDS_2107	"%u MB (CHS: %i, %i, %i)"
-    IDS_2108	"フロッピー %i (%s): %ls"
-    IDS_2109	"すべてのイメージ (*.0??;*.1??;*.??0;*.86F;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.JSON;*.TD0;*.*FD?;*.MFM;*.XDF)\0*.0??;*.1??;*.??0;*.86F;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.JSON;*.TD0;*.*FD?;*.MFM;*.XDF\0アドバンスドセクターイメージ (*.IMD;*.JSON;*.TD0)\0*.IMD;*.JSON;*.TD0\0基本セクターイメージ (*.0??;*.1??;*.??0;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.XDF;*.*FD?)\0*.0??;*.1??;*.??0;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.XDF;*.*FD?\0フラックスイメージ (*.FDI)\0*.FDI\0表面イメージ (*.86F;*.MFM)\0*.86F;*.MFM\0すべてのファイル (*.*)\0*.*\0"
-    IDS_2110	"FreeTypeが初期化できません"
-    IDS_2111	"SDLが初期化できません。SDL2.dllが必要です"
-    IDS_2112	"使用中のマシンをハードリセットしますか？"
-    IDS_2113	"86Boxを終了しますか？"
-    IDS_2114	"Ghostscriptが初期化できません"
-    IDS_2115	"光磁気 %i (%ls): %ls"
-    IDS_2116	"光磁気イメージ (*.IM?;*.MDI)\0*.IM?;*.MDI\0すべてのファイル (*.*)\0*.*\0"
-    IDS_2117	"86Boxへようこそ！"
-    IDS_2118	"内蔵コントローラー"
-    IDS_2119	"終了"
-    IDS_2120	"ROMが見つかりません"
-    IDS_2121	"設定を保存しますか？"
-    IDS_2122	"保存すると使用中のマシンがハードリセットされます。"
-    IDS_2123	"保存"
-    IDS_2124	"86Boxのバージョン情報"
-    IDS_2125	"86Box v" EMU_VERSION
+    IDS_2087    "Speed"
+    IDS_2088	"BPBをチェック"
+    IDS_2089	"KB"
+    IDS_2090	"ビデオレンダラーが初期化できません。"
+    IDS_2091	"既定値"
+    IDS_2092	"%iつの待機状態"
+    IDS_2093	"タイプ"
+    IDS_2094	"PCapのセットアップに失敗しました"
+    IDS_2095	"PCapデバイスがありません"
+    IDS_2096	"不正なPCapデバイスです"
+    IDS_2097	"標準ジョイスティック(2ボタン)"
+    IDS_2098	"標準ジョイスティック(4ボタン)"
+    IDS_2099	"標準ジョイスティック(6ボタン)"
+    IDS_2100	"標準ジョイスティック(8ボタン)"
+    IDS_2101	"CH Flightstick Pro"
+    IDS_2102	"Microsoft SideWinder Pad"
+    IDS_2103	"Thrustmaster Flight Control System"
+    IDS_2104	"なし"
+    IDS_2105	"キーボードアクセラレータを読み込めません。"
+    IDS_2106	"生の入力が登録できません。"
+    IDS_2107	"%u"
+    IDS_2108	"%u MB (CHS: %i, %i, %i)"
+    IDS_2109	"フロッピー %i (%s): %ls"
+    IDS_2110	"すべてのイメージ (*.0??;*.1??;*.??0;*.86F;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.JSON;*.TD0;*.*FD?;*.MFM;*.XDF)\0*.0??;*.1??;*.??0;*.86F;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.JSON;*.TD0;*.*FD?;*.MFM;*.XDF\0アドバンスドセクターイメージ (*.IMD;*.JSON;*.TD0)\0*.IMD;*.JSON;*.TD0\0基本セクターイメージ (*.0??;*.1??;*.??0;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.XDF;*.*FD?)\0*.0??;*.1??;*.??0;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.XDF;*.*FD?\0フラックスイメージ (*.FDI)\0*.FDI\0表面イメージ (*.86F;*.MFM)\0*.86F;*.MFM\0すべてのファイル (*.*)\0*.*\0"
+    IDS_2111	"FreeTypeが初期化できません"
+    IDS_2112	"SDLが初期化できません。SDL2.dllが必要です"
+    IDS_2113	"使用中のマシンをハードリセットしますか？"
+    IDS_2114	"86Boxを終了しますか？"
+    IDS_2115	"Ghostscriptが初期化できません"
+    IDS_2116	"光磁気 %i (%ls): %ls"
+    IDS_2117	"光磁気イメージ (*.IM?;*.MDI)\0*.IM?;*.MDI\0すべてのファイル (*.*)\0*.*\0"
+    IDS_2118	"86Boxへようこそ！"
+    IDS_2119	"内蔵コントローラー"
+    IDS_2120	"終了"
+    IDS_2121	"ROMが見つかりません"
+    IDS_2122	"設定を保存しますか？"
+    IDS_2123	"保存すると使用中のマシンがハードリセットされます。"
+    IDS_2124	"保存"
+    IDS_2125	"86Boxのバージョン情報"
+    IDS_2126	"86Box v" EMU_VERSION
 
-    IDS_2126	"古いパソコンのエミュレーター\n\n著者: Sarah Walker, Miran Grca, Fred N. van Kempen (waltje), SA1988, Tiseno100, reenigne, leilei, JohnElliott, greatpsycho, and others.\n\nGNU General Public License version 2以降でリリースされています。詳しくは LICENSE をご覧ください。"
-    IDS_2127	"OK"
-    IDS_2128	"ハードウェアが利用できません"
+    IDS_2127	"古いパソコンのエミュレーター\n\n著者: Sarah Walker, Miran Grca, Fred N. van Kempen (waltje), SA1988, Tiseno100, reenigne, leilei, JohnElliott, greatpsycho, and others.\n\nGNU General Public License version 2以降でリリースされています。詳しくは LICENSE をご覧ください。"
+    IDS_2128	"OK"
+    IDS_2129	"ハードウェアが利用できません"
 #ifdef _WIN32
 #define LIB_NAME_PCAP "WinPcap"
 #else
 #define LIB_NAME_PCAP "libpcap"
 #endif
-    IDS_2129	LIB_NAME_PCAP "がインストールされてるか、" LIB_NAME_PCAP "に対応したネットワークに接続されてるか確認してください。"
-    IDS_2130	"不正な設定です"
+    IDS_2130	LIB_NAME_PCAP "がインストールされてるか、" LIB_NAME_PCAP "に対応したネットワークに接続されてるか確認してください。"
+    IDS_2131	"不正な設定です"
 #ifdef _WIN32
 #define LIB_NAME_FREETYPE "freetype.dll"
 #else
 #define LIB_NAME_FREETYPE "libfreetype"
 #endif
-    IDS_2131	"ESC/Pプリンタのエミュレーションには" LIB_NAME_FREETYPE "が必要です。"
+    IDS_2132	"ESC/Pプリンタのエミュレーションには" LIB_NAME_FREETYPE "が必要です。"
 #ifdef _WIN32
 #define LIB_NAME_GS "gsdll32.dll"
 #else
 #define LIB_NAME_GS "libgs"
 #endif
-    IDS_2132	"PostScriptファイルをPDFに自動変換するには" LIB_NAME_GS "が必要です。\n\n汎用PostScriptプリンターに送信されたドキュメントは、PostScript(.ps)ファイルとして保存されます。"
+    IDS_2133	"PostScriptファイルをPDFに自動変換するには" LIB_NAME_GS "が必要です。\n\n汎用PostScriptプリンターに送信されたドキュメントは、PostScript(.ps)ファイルとして保存されます。"
 #ifdef _WIN32
 #define LIB_NAME_FLUIDSYNTH "libfluidsynth.dll"
 #else
 #define LIB_NAME_FLUIDSYNTH "libfluidsynth"
 #endif
-    IDS_2133	"FluidSynthのMIDI出力には" LIB_NAME_FLUIDSYNTH "が必要です。"
-    IDS_2134	"フルスクリーンに切り替えています"
-    IDS_2135	"今後、このメッセージを表示しない"
-    IDS_2136	"終了しない"
-    IDS_2137	"リセット"
-    IDS_2138	"リセットしない"
-    IDS_2139	"光磁気イメージ (*.IM?;*.MDI)\0*.IM?;*.MDI\0すべてのファイル (*.*)\0*.*\0"
-    IDS_2140	"CD-ROMイメージ (*.ISO;*.CUE)\0*.ISO;*.CUE\0すべてのファイル (*.*)\0*.*\0"
-    IDS_2141	"%hs デバイスの設定"
-    IDS_2142    "モニターのスリープモード"
-    IDS_2143	"OpenGLシェーダー (*.GLSL)\0*.GLSL\0すべてのファイル (*.*)\0*.*\0"
-    IDS_2144	"OpenGL設定"
-    IDS_2145	"サポートされていない設定を読み込んでいます"
-    IDS_2146	"選択したマシンに基づくCPUタイプのフィルタリングは、このエミュレートされたマシンでは無効になっています。\n\nこれにより、選択したマシンと互換性のないCPUが選択できます。ただし、マシンのBIOSまたは他のソフトウェアとの互換性が失われる可能性があります。\n\nこの設定の有効化は公式サポートができません。また、バグレポートが無効として閉じられる場合があります。"
-    IDS_2147	"続行"
-    IDS_2148	"カセット: %s"
-    IDS_2149	"カセットイメージ (*.PCM;*.RAW;*.WAV;*.CAS)\0*.PCM;*.RAW;*.WAV;*.CAS\0すべてのファイル (*.*)\0*.*\0"
-    IDS_2150	"カートリッジ %i: %ls"
-    IDS_2151	"カートリッジイメージ (*.A;*.B;*.JRC)\0*.A;*.B;*.JRC\0すべてのファイル (*.*)\0*.*\0"
-    IDS_2152	"レンダラーの初期化エラー"
-    IDS_2153	"OpenGL (3.0コア) レンダラーが初期化できませんでした。別のレンダラーを使用してください。"
-    IDS_2154	"実行を再開"
-    IDS_2155	"実行を一時停止"
-    IDS_2156	"Ctrl+Alt+DELを押し"
-    IDS_2157	"Ctrl+Alt+Escを押し"
-    IDS_2158	"ハードリセット"
-    IDS_2159	"ACPIシャットダウン"
-    IDS_2160	"設定"
-    IDS_2161    "アーリードライブ"
+    IDS_2134	"FluidSynthのMIDI出力には" LIB_NAME_FLUIDSYNTH "が必要です。"
+    IDS_2135	"フルスクリーンに切り替えています"
+    IDS_2136	"今後、このメッセージを表示しない"
+    IDS_2137	"終了しない"
+    IDS_2138	"リセット"
+    IDS_2139	"リセットしない"
+    IDS_2140	"光磁気イメージ (*.IM?;*.MDI)\0*.IM?;*.MDI\0すべてのファイル (*.*)\0*.*\0"
+    IDS_2141	"CD-ROMイメージ (*.ISO;*.CUE)\0*.ISO;*.CUE\0すべてのファイル (*.*)\0*.*\0"
+    IDS_2142	"%hs デバイスの設定"
+    IDS_2143    "モニターのスリープモード"
+    IDS_2144	"OpenGLシェーダー (*.GLSL)\0*.GLSL\0すべてのファイル (*.*)\0*.*\0"
+    IDS_2145	"OpenGL設定"
+    IDS_2146	"サポートされていない設定を読み込んでいます"
+    IDS_2147	"選択したマシンに基づくCPUタイプのフィルタリングは、このエミュレートされたマシンでは無効になっています。\n\nこれにより、選択したマシンと互換性のないCPUが選択できます。ただし、マシンのBIOSまたは他のソフトウェアとの互換性が失われる可能性があります。\n\nこの設定の有効化は公式サポートができません。また、バグレポートが無効として閉じられる場合があります。"
+    IDS_2148	"続行"
+    IDS_2149	"カセット: %s"
+    IDS_2150	"カセットイメージ (*.PCM;*.RAW;*.WAV;*.CAS)\0*.PCM;*.RAW;*.WAV;*.CAS\0すべてのファイル (*.*)\0*.*\0"
+    IDS_2151	"カートリッジ %i: %ls"
+    IDS_2152	"カートリッジイメージ (*.A;*.B;*.JRC)\0*.A;*.B;*.JRC\0すべてのファイル (*.*)\0*.*\0"
+    IDS_2153	"レンダラーの初期化エラー"
+    IDS_2154	"OpenGL (3.0コア) レンダラーが初期化できませんでした。別のレンダラーを使用してください。"
+    IDS_2155	"実行を再開"
+    IDS_2156	"実行を一時停止"
+    IDS_2157	"Ctrl+Alt+DELを押し"
+    IDS_2158	"Ctrl+Alt+Escを押し"
+    IDS_2159	"ハードリセット"
+    IDS_2160	"ACPIシャットダウン"
+    IDS_2161	"設定"
+    IDS_2162    "アーリードライブ"
 END
 
 STRINGTABLE DISCARDABLE 

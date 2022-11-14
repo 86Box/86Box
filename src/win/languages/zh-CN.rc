@@ -34,6 +34,7 @@ BEGIN
         MENUITEM "隐藏状态栏(&H)",		IDM_VID_HIDE_STATUS_BAR
         MENUITEM "隐藏工具栏(&T)",		IDM_VID_HIDE_TOOLBAR
         MENUITEM SEPARATOR
+        MENUITEM "Show non-primary monitors(&S)",  IDM_VID_MONITORS
         MENUITEM "窗口大小可调(&R)",          IDM_VID_RESIZE
         MENUITEM "记住窗口大小和位置(&E)",  IDM_VID_REMEMBER
         MENUITEM SEPARATOR
@@ -176,8 +177,8 @@ BEGIN
         MENUITEM "空置驱动器(&M)",					IDM_CDROM_EMPTY
         MENUITEM "载入上一个镜像(&R)",			IDM_CDROM_RELOAD
         MENUITEM SEPARATOR
-        MENUITEM "镜像(&I)",					IDM_CDROM_IMAGE
-        MENUITEM "文件夹(&F)",					IDM_CDROM_DIR
+        MENUITEM "镜像(&I)...",					IDM_CDROM_IMAGE
+        MENUITEM "文件夹(&F)...",					IDM_CDROM_DIR
     END
 END
 
@@ -271,6 +272,7 @@ END
 #define STR_DYNAREC		"动态重编译器"
 
 #define STR_VIDEO		"显卡:"
+#define STR_VIDEO_2		"显卡 2:"
 #define STR_VOODOO		"Voodoo Graphics"
 #define STR_IBM8514		"IBM 8514/a Graphics"
 #define STR_XGA			"XGA Graphics"
@@ -333,6 +335,7 @@ END
 #define STR_BUS			"总线:"
 #define STR_CHANNEL		"通道:"
 #define STR_ID			"ID:"
+#define STR_SPEED		"Speed:"
 
 #define STR_SPECIFY		"指定(&S)..."
 #define STR_SECTORS		"扇区(S):"
@@ -422,102 +425,103 @@ BEGIN
     IDS_2084	"H"
     IDS_2085	"S"
     IDS_2086	"MB"
-    IDS_2087	"检查 BPB"
-    IDS_2088	"KB"
-    IDS_2089	"无法初始化视频渲染器。"
-    IDS_2090	"默认"
-    IDS_2091	"%i 等待状态 (WS)"
-    IDS_2092	"类型"
-    IDS_2093	"设置 PCap 失败"
-    IDS_2094	"未找到 PCap 设备"
-    IDS_2095	"无效 PCap 设备"
-    IDS_2096	"标准 2 键操纵杆"
-    IDS_2097	"标准 4 键操纵杆"
-    IDS_2098	"标准 6 键操纵杆"
-    IDS_2099	"标准 8 键操纵杆"
-    IDS_2100	"CH Flightstick Pro"
-    IDS_2101	"Microsoft SideWinder Pad"
-    IDS_2102	"Thrustmaster Flight Control System"
-    IDS_2103	"无"
-    IDS_2104	"无法加载键盘加速器。"
-    IDS_2105	"无法注册原始输入。"
-    IDS_2106	"%u"
-    IDS_2107	"%u MB (CHS: %i, %i, %i)"
-    IDS_2108	"软盘 %i (%s): %ls"
-    IDS_2109	"所有镜像 (*.0??;*.1??;*.??0;*.86F;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.JSON;*.TD0;*.*FD?;*.MFM;*.XDF)\0*.0??;*.1??;*.??0;*.86F;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.JSON;*.TD0;*.*FD?;*.MFM;*.XDF\0高级扇区镜像 (*.IMD;*.JSON;*.TD0)\0*.IMD;*.JSON;*.TD0\0基本扇区镜像 (*.0??;*.1??;*.??0;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.XDF;*.*FD?)\0*.0??;*.1??;*.??0;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.XDF;*.*FD?\0Flux 镜像 (*.FDI)\0*.FDI\0表面镜像 (*.86F;*.MFM)\0*.86F;*.MFM\0所有文件 (*.*)\0*.*\0"
-    IDS_2110	"无法初始化 FreeType"
-    IDS_2111	"无法初始化 SDL，需要 SDL2.dll"
-    IDS_2112	"确定要硬重置模拟器吗？"
-    IDS_2113	"确定要退出 86Box 吗？"
-    IDS_2114	"无法初始化 Ghostscript"
-    IDS_2115	"磁光盘 %i (%ls): %ls"
-    IDS_2116	"磁光盘镜像 (*.IM?;*.MDI)\0*.IM?;*.MDI\0所有文件 (*.*)\0*.*\0"
-    IDS_2117	"欢迎使用 86Box！"
-    IDS_2118	"内部控制器"
-    IDS_2119	"退出"
-    IDS_2120	"找不到 ROM"
-    IDS_2121	"要保存设置吗？"
-    IDS_2122	"此操作将硬重置模拟器。"
-    IDS_2123	"保存"
-    IDS_2124	"关于 86Box"
-    IDS_2125	"86Box v" EMU_VERSION
+    IDS_2087    "Speed"
+    IDS_2088	"检查 BPB"
+    IDS_2089	"KB"
+    IDS_2090	"无法初始化视频渲染器。"
+    IDS_2091	"默认"
+    IDS_2092	"%i 等待状态 (WS)"
+    IDS_2093	"类型"
+    IDS_2094	"设置 PCap 失败"
+    IDS_2095	"未找到 PCap 设备"
+    IDS_2096	"无效 PCap 设备"
+    IDS_2097	"标准 2 键操纵杆"
+    IDS_2098	"标准 4 键操纵杆"
+    IDS_2099	"标准 6 键操纵杆"
+    IDS_2100	"标准 8 键操纵杆"
+    IDS_2101	"CH Flightstick Pro"
+    IDS_2102	"Microsoft SideWinder Pad"
+    IDS_2103	"Thrustmaster Flight Control System"
+    IDS_2104	"无"
+    IDS_2105	"无法加载键盘加速器。"
+    IDS_2106	"无法注册原始输入。"
+    IDS_2107	"%u"
+    IDS_2108	"%u MB (CHS: %i, %i, %i)"
+    IDS_2109	"软盘 %i (%s): %ls"
+    IDS_2110	"所有镜像 (*.0??;*.1??;*.??0;*.86F;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.JSON;*.TD0;*.*FD?;*.MFM;*.XDF)\0*.0??;*.1??;*.??0;*.86F;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.JSON;*.TD0;*.*FD?;*.MFM;*.XDF\0高级扇区镜像 (*.IMD;*.JSON;*.TD0)\0*.IMD;*.JSON;*.TD0\0基本扇区镜像 (*.0??;*.1??;*.??0;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.XDF;*.*FD?)\0*.0??;*.1??;*.??0;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.XDF;*.*FD?\0Flux 镜像 (*.FDI)\0*.FDI\0表面镜像 (*.86F;*.MFM)\0*.86F;*.MFM\0所有文件 (*.*)\0*.*\0"
+    IDS_2111	"无法初始化 FreeType"
+    IDS_2112	"无法初始化 SDL，需要 SDL2.dll"
+    IDS_2113	"确定要硬重置模拟器吗？"
+    IDS_2114	"确定要退出 86Box 吗？"
+    IDS_2115	"无法初始化 Ghostscript"
+    IDS_2116	"磁光盘 %i (%ls): %ls"
+    IDS_2117	"磁光盘镜像 (*.IM?;*.MDI)\0*.IM?;*.MDI\0所有文件 (*.*)\0*.*\0"
+    IDS_2118	"欢迎使用 86Box！"
+    IDS_2119	"内部控制器"
+    IDS_2120	"退出"
+    IDS_2121	"找不到 ROM"
+    IDS_2122	"要保存设置吗？"
+    IDS_2123	"此操作将硬重置模拟器。"
+    IDS_2124	"保存"
+    IDS_2125	"关于 86Box"
+    IDS_2126	"86Box v" EMU_VERSION
 
-    IDS_2126	"一个旧式计算机模拟器\n\n作者: Sarah Walker、Miran Grca、Fred N. van Kempen (waltje)、SA1988、Tiseno100、reenigne、leilei、JohnElliott、greatpsycho 等人。\n\n本软件依据 GNU 通用公共许可证第二版或更新版本发布。详情见 LICENSE 文件。"
-    IDS_2127	"确定"
-    IDS_2128	"硬件不可用"
+    IDS_2127	"一个旧式计算机模拟器\n\n作者: Sarah Walker、Miran Grca、Fred N. van Kempen (waltje)、SA1988、Tiseno100、reenigne、leilei、JohnElliott、greatpsycho 等人。\n\n本软件依据 GNU 通用公共许可证第二版或更新版本发布。详情见 LICENSE 文件。"
+    IDS_2128	"确定"
+    IDS_2129	"硬件不可用"
 #ifdef _WIN32
 #define LIB_NAME_PCAP "WinPcap"
 #else
 #define LIB_NAME_PCAP "libpcap"
 #endif
-    IDS_2129	"请确认 " LIB_NAME_PCAP " 已安装且使用兼容 " LIB_NAME_PCAP " 的网络连接。"
-    IDS_2130	"无效配置"
+    IDS_2130	"请确认 " LIB_NAME_PCAP " 已安装且使用兼容 " LIB_NAME_PCAP " 的网络连接。"
+    IDS_2131	"无效配置"
 #ifdef _WIN32
 #define LIB_NAME_FREETYPE "freetype.dll"
 #else
 #define LIB_NAME_FREETYPE "libfreetype"
 #endif
-    IDS_2131	"ESC/P 打印机模拟需要" LIB_NAME_FREETYPE 
+    IDS_2132	"ESC/P 打印机模拟需要" LIB_NAME_FREETYPE 
 #ifdef _WIN32
 #define LIB_NAME_GS "gsdll32.dll"
 #else
 #define LIB_NAME_GS "libgs"
 #endif
-    IDS_2132	LIB_NAME_GS " 是将 PostScript 文件转换为 PDF 所需要的库。\n\n使用通用 PostScript 打印机打印的文档将被保存为 PostScript (.ps) 文件。"
+    IDS_2133	LIB_NAME_GS " 是将 PostScript 文件转换为 PDF 所需要的库。\n\n使用通用 PostScript 打印机打印的文档将被保存为 PostScript (.ps) 文件。"
 #ifdef _WIN32
 #define LIB_NAME_FLUIDSYNTH "libfluidsynth.dll"
 #else
 #define LIB_NAME_FLUIDSYNTH "libfluidsynth"
 #endif
-    IDS_2133	"FluidSynth MIDI 输出需要" LIB_NAME_FLUIDSYNTH 
-    IDS_2134	"正在进入全屏模式"
-    IDS_2135	"不要再显示此消息"
-    IDS_2136	"不退出"
-    IDS_2137	"重置"
-    IDS_2138	"不重置"
-    IDS_2139	"磁光盘镜像 (*.IM?;*.MDI)\0*.IM?;*.MDI\0所有文件 (*.*)\0*.*\0"
-    IDS_2140	"光盘镜像 (*.ISO;*.CUE)\0*.ISO;*.CUE\0所有文件 (*.*)\0*.*\0"
-    IDS_2141	"%hs 设备配置"
-    IDS_2142    "显示器处在睡眠状态"
-    IDS_2143	"OpenGL 着色器 (*.GLSL)\0*.GLSL\0所有文件 (*.*)\0*.*\0"
-    IDS_2144	"OpenGL 选项"
-    IDS_2145	"正在载入一个不受支持的配置"
-    IDS_2146	"此模拟计算机禁用了基于选定计算机的 CPU 类型过滤。\n\n能够选中与所选机器本不兼容的 CPU，但是可能会遇到与机器 BIOS 或其他软件不兼容的问题。\n\n启用此设置不受官方支持，并且提交的任何错误报告可能会视为无效而关闭。"
-    IDS_2147	"继续"
-    IDS_2148	"磁带: %s"
-    IDS_2149	"磁带镜像 (*.PCM;*.RAW;*.WAV;*.CAS)\0*.PCM;*.RAW;*.WAV;*.CAS\0所有文件 (*.*)\0*.*\0"
-    IDS_2150	"卡带 %i: %ls"
-    IDS_2151	"卡带镜像 (*.A;*.B;*.JRC)\0*.A;*.B;*.JRC\0所有文件 (*.*)\0*.*\0"
-    IDS_2152	"初始化渲染器时出错"
-    IDS_2153	"无法初始化 OpenGL (3.0 核心) 渲染器。请使用其他渲染器。"
-    IDS_2154	"恢复执行"
-    IDS_2155	"暂停执行"
-    IDS_2156	"按下 Ctrl+Alt+Del"
-    IDS_2157	"按下 Ctrl+Alt+Esc"
-    IDS_2158	"硬重置"
-    IDS_2159	"ACPI 关机"
-    IDS_2160	"设置"
-    IDS_2161    "早先的驱动器"
+    IDS_2134	"FluidSynth MIDI 输出需要" LIB_NAME_FLUIDSYNTH 
+    IDS_2135	"正在进入全屏模式"
+    IDS_2136	"不要再显示此消息"
+    IDS_2137	"不退出"
+    IDS_2138	"重置"
+    IDS_2139	"不重置"
+    IDS_2140	"磁光盘镜像 (*.IM?;*.MDI)\0*.IM?;*.MDI\0所有文件 (*.*)\0*.*\0"
+    IDS_2141	"光盘镜像 (*.ISO;*.CUE)\0*.ISO;*.CUE\0所有文件 (*.*)\0*.*\0"
+    IDS_2142	"%hs 设备配置"
+    IDS_2143    "显示器处在睡眠状态"
+    IDS_2144	"OpenGL 着色器 (*.GLSL)\0*.GLSL\0所有文件 (*.*)\0*.*\0"
+    IDS_2145	"OpenGL 选项"
+    IDS_2146	"正在载入一个不受支持的配置"
+    IDS_2147	"此模拟计算机禁用了基于选定计算机的 CPU 类型过滤。\n\n能够选中与所选机器本不兼容的 CPU，但是可能会遇到与机器 BIOS 或其他软件不兼容的问题。\n\n启用此设置不受官方支持，并且提交的任何错误报告可能会视为无效而关闭。"
+    IDS_2148	"继续"
+    IDS_2149	"磁带: %s"
+    IDS_2150	"磁带镜像 (*.PCM;*.RAW;*.WAV;*.CAS)\0*.PCM;*.RAW;*.WAV;*.CAS\0所有文件 (*.*)\0*.*\0"
+    IDS_2151	"卡带 %i: %ls"
+    IDS_2152	"卡带镜像 (*.A;*.B;*.JRC)\0*.A;*.B;*.JRC\0所有文件 (*.*)\0*.*\0"
+    IDS_2153	"初始化渲染器时出错"
+    IDS_2154	"无法初始化 OpenGL (3.0 核心) 渲染器。请使用其他渲染器。"
+    IDS_2155	"恢复执行"
+    IDS_2156	"暂停执行"
+    IDS_2157	"按下 Ctrl+Alt+Del"
+    IDS_2158	"按下 Ctrl+Alt+Esc"
+    IDS_2159	"硬重置"
+    IDS_2160	"ACPI 关机"
+    IDS_2161	"设置"
+    IDS_2162    "早先的驱动器"
 END
 
 STRINGTABLE DISCARDABLE 

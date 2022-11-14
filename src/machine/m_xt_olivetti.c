@@ -1,27 +1,26 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Emulation of the Olivetti XT-compatible machines.
+ *          Emulation of the Olivetti XT-compatible machines.
  *
- * 		- Supports MM58174 real-time clock emulation (M24)
- * 		- Supports MM58274 real-time clock emulation (M240)
+ *          - Supports MM58174 real-time clock emulation (M24)
+ *          - Supports MM58274 real-time clock emulation (M240)
  *
- * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
- *		Miran Grca, <mgrca8@gmail.com>
- *		Fred N. van Kempen, <decwiz@yahoo.com>
- *      EngiNerd <webmaster.crrc@yahoo.it>
+ * Authors: Sarah Walker, <http://pcem-emulator.co.uk/>
+ *          Miran Grca, <mgrca8@gmail.com>
+ *          Fred N. van Kempen, <decwiz@yahoo.com>
+ *          EngiNerd <webmaster.crrc@yahoo.it>
  *
- *		Copyright 2008-2019 Sarah Walker.
- *		Copyright 2016-2019 Miran Grca.
- *		Copyright 2017-2019 Fred N. van Kempen.
- *		Copyright 2020 EngiNerd.
+ *          Copyright 2008-2019 Sarah Walker.
+ *          Copyright 2016-2019 Miran Grca.
+ *          Copyright 2017-2019 Fred N. van Kempen.
+ *          Copyright 2020 EngiNerd.
  */
-
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
@@ -46,6 +45,7 @@
 #include <86box/fdc.h>
 #include <86box/fdc_ext.h>
 #include <86box/gameport.h>
+#include <86box/hdc.h>
 #include <86box/port_6x.h>
 #include <86box/sound.h>
 #include <86box/snd_speaker.h>
@@ -1187,6 +1187,9 @@ machine_xt_m240_init(const machine_t *model)
     memset(nvr, 0x00, sizeof(nvr_t));
 
     mm58274_init(nvr, model->nvrmask + 1);
+
+    if (hdc_current == HDC_INTERNAL)
+        device_add(&st506_xt_wd1002a_wx1_nobios_device);
 
     return ret;
 }

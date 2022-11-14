@@ -1,19 +1,22 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Implementation of the G2 GC100/GC100A chipset.
- *		NOTE: As documentation is currently available only for the
- *		CG100 chipset, the GC100A chipset has been reverese-engineered.
- *		Thus, its behavior may not be fully accurate.
+ *          Implementation of the G2 GC100/GC100A chipset.
  *
- *		Authors: EngiNerd, <webmaster.crrc@yahoo.it>
+ *          NOTE: As documentation is currently available only for the
+ *          GC100 chipset, the GC100A chipset has been reverese-engineered.
+ *          Thus, its behavior may not be fully accurate.
  *
- *		Copyright 2020-2021 EngiNerd.
+ *
+ *
+ * Authors: EngiNerd, <webmaster.crrc@yahoo.it>
+ *
+ *          Copyright 2020-2021 EngiNerd.
  */
 #include <stdarg.h>
 #include <stdint.h>

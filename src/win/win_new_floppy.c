@@ -1,18 +1,18 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Handle the New Floppy Image dialog.
+ *          Handle the New Floppy Image dialog.
  *
  *
  *
- * Authors:	Miran Grca, <mgrca8@gmail.com>
+ * Authors: Miran Grca, <mgrca8@gmail.com>
  *
- *		Copyright 2016-2019 Miran Grca.
+ *          Copyright 2016-2019 Miran Grca.
  */
 #define UNICODE
 #define BITMAP WINDOWS_BITMAP
@@ -773,7 +773,7 @@ NewFloppyDialogProcedure(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
                     return TRUE;
 
                 case IDC_CFILE:
-                    if (!file_dlg_w(hdlg, plat_get_string(is_mo ? IDS_2139 : (is_zip ? IDS_2055 : IDS_2062)), L"", NULL, 1)) {
+                    if (!file_dlg_w(hdlg, plat_get_string(is_mo ? IDS_2140 : (is_zip ? IDS_2055 : IDS_2062)), L"", NULL, 1)) {
                         if (!wcschr(wopenfilestring, L'.')) {
                             if (wcslen(wopenfilestring) && (wcslen(wopenfilestring) <= 256)) {
                                 twcs    = &wopenfilestring[wcslen(wopenfilestring)];

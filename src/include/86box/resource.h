@@ -71,87 +71,90 @@
 #define IDT_MEMORY       1714 /* Memory: */
 
 /* DLG_CFG_VIDEO */
-#define IDT_VIDEO 1715 /* Video: */
+#define IDT_VIDEO   1715 /* Video: */
+#define IDT_VIDEO_2 1716 /* Video 2: */
 
 /* DLG_CFG_INPUT */
-#define IDT_MOUSE    1716 /* Mouse: */
-#define IDT_JOYSTICK 1717 /* Joystick: */
+#define IDT_MOUSE    1717 /* Mouse: */
+#define IDT_JOYSTICK 1718 /* Joystick: */
 
 /* DLG_CFG_SOUND */
-#define IDT_SOUND    1718 /* Sound card: */
-#define IDT_MIDI_OUT 1719 /* MIDI Out Device: */
-#define IDT_MIDI_IN  1720 /* MIDI In Device: */
+#define IDT_SOUND    1719 /* Sound card: */
+#define IDT_MIDI_OUT 1720 /* MIDI Out Device: */
+#define IDT_MIDI_IN  1721 /* MIDI In Device: */
 
 /* DLG_CFG_NETWORK */
-#define IDT_NET_TYPE 1721 /* Network type: */
-#define IDT_PCAP     1722 /* PCap device: */
-#define IDT_NET      1723 /* Network adapter: */
+#define IDT_NET_TYPE 1722 /* Network type: */
+#define IDT_PCAP     1723 /* PCap device: */
+#define IDT_NET      1724 /* Network adapter: */
 
 /* DLG_CFG_PORTS */
-#define IDT_COM1 1724 /* COM1 Device: */
-#define IDT_COM2 1725 /* COM1 Device: */
-#define IDT_COM3 1726 /* COM1 Device: */
-#define IDT_COM4 1727 /* COM1 Device: */
+#define IDT_COM1 1725 /* COM1 Device: */
+#define IDT_COM2 1726 /* COM1 Device: */
+#define IDT_COM3 1727 /* COM1 Device: */
+#define IDT_COM4 1728 /* COM1 Device: */
 
-#define IDT_LPT1 1728 /* LPT1 Device: */
-#define IDT_LPT2 1729 /* LPT2 Device: */
-#define IDT_LPT3 1730 /* LPT3 Device: */
-#define IDT_LPT4 1731 /* LPT4 Device: */
+#define IDT_LPT1 1729 /* LPT1 Device: */
+#define IDT_LPT2 1730 /* LPT2 Device: */
+#define IDT_LPT3 1731 /* LPT3 Device: */
+#define IDT_LPT4 1732 /* LPT4 Device: */
 
 /* DLG_CFG_STORAGE */
-#define IDT_HDC    1732 /* HD Controller: */
-#define IDT_FDC    1733 /* Ext FD Controller: */
-#define IDT_SCSI_1 1734 /* SCSI Board #1: */
-#define IDT_SCSI_2 1735 /* SCSI Board #2: */
-#define IDT_SCSI_3 1736 /* SCSI Board #3: */
-#define IDT_SCSI_4 1737 /* SCSI Board #4: */
+#define IDT_HDC    1733 /* HD Controller: */
+#define IDT_FDC    1734 /* Ext FD Controller: */
+#define IDT_SCSI_1 1735 /* SCSI Board #1: */
+#define IDT_SCSI_2 1736 /* SCSI Board #2: */
+#define IDT_SCSI_3 1737 /* SCSI Board #3: */
+#define IDT_SCSI_4 1738 /* SCSI Board #4: */
 
 /* DLG_CFG_HARD_DISKS */
-#define IDT_HDD     1738 /* Hard disks: */
-#define IDT_BUS     1739 /* Bus: */
-#define IDT_CHANNEL 1740 /* Channel: */
-#define IDT_ID      1741 /* ID: */
-#define IDT_LUN     1742 /* LUN: */
+#define IDT_HDD     1739 /* Hard disks: */
+#define IDT_BUS     1740 /* Bus: */
+#define IDT_CHANNEL 1741 /* Channel: */
+#define IDT_ID      1742 /* ID: */
+#define IDT_LUN     1743 /* LUN: */
+#define IDT_SPEED   1744 /* Speed: */
 
 /* DLG_CFG_HARD_DISKS_ADD */
-#define IDT_SECTORS    1743 /* Sectors: */
-#define IDT_HEADS      1744 /* Heads: */
-#define IDT_CYLS       1745 /* Cylinders: */
-#define IDT_SIZE_MB    1746 /* Size (MB): */
-#define IDT_TYPE       1747 /* Type: */
-#define IDT_FILE_NAME  1748 /* File name: */
-#define IDT_IMG_FORMAT 1749 /* Image Format: */
-#define IDT_BLOCK_SIZE 1750 /* Block Size: */
-#define IDT_PROGRESS   1751 /* Progress: */
+#define IDT_SECTORS    1745 /* Sectors: */
+#define IDT_HEADS      1746 /* Heads: */
+#define IDT_CYLS       1747 /* Cylinders: */
+#define IDT_SIZE_MB    1748 /* Size (MB): */
+#define IDT_TYPE       1749 /* Type: */
+#define IDT_FILE_NAME  1750 /* File name: */
+#define IDT_IMG_FORMAT 1751 /* Image Format: */
+#define IDT_BLOCK_SIZE 1752 /* Block Size: */
+#define IDT_PROGRESS   1753 /* Progress: */
 
 /* DLG_CFG_FLOPPY_AND_CDROM_DRIVES */
-#define IDT_FLOPPY_DRIVES 1752 /* Floppy drives: */
-#define IDT_FDD_TYPE      1753 /* Type: */
-#define IDT_CD_DRIVES     1754 /* CD-ROM drives: */
-#define IDT_CD_BUS        1755 /* Bus: */
-#define IDT_CD_ID         1756 /* ID: */
-#define IDT_CD_CHANNEL    1757 /* Channel: */
-#define IDT_CD_SPEED      1758 /* Speed: */
+#define IDT_FLOPPY_DRIVES 1754 /* Floppy drives: */
+#define IDT_FDD_TYPE      1755 /* Type: */
+#define IDT_CD_DRIVES     1756 /* CD-ROM drives: */
+#define IDT_CD_BUS        1757 /* Bus: */
+#define IDT_CD_ID         1758 /* ID: */
+#define IDT_CD_LUN        1759 /* LUN: */
+#define IDT_CD_CHANNEL    1760 /* Channel: */
+#define IDT_CD_SPEED      1761 /* Speed: */
 
 /* DLG_CFG_OTHER_REMOVABLE_DEVICES */
-#define IDT_MO_DRIVES   1760 /* MO drives: */
-#define IDT_MO_BUS      1761 /* Bus: */
-#define IDT_MO_ID       1762 /* ID: */
-#define IDT_MO_CHANNEL  1763 /* Channel */
-#define IDT_MO_TYPE     1764 /* Type: */
+#define IDT_MO_DRIVES  1762 /* MO drives: */
+#define IDT_MO_BUS     1763 /* Bus: */
+#define IDT_MO_ID      1764 /* ID: */
+#define IDT_MO_CHANNEL 1765 /* Channel */
+#define IDT_MO_TYPE    1766 /* Type: */
 
-#define IDT_ZIP_DRIVES  1765 /* ZIP drives: */
-#define IDT_ZIP_BUS     1766 /* Bus: */
-#define IDT_ZIP_ID      1767 /* ID: */
-#define IDT_ZIP_LUN     1768 /* LUN: */
-#define IDT_ZIP_CHANNEL 1769 /* Channel: */
+#define IDT_ZIP_DRIVES  1767 /* ZIP drives: */
+#define IDT_ZIP_BUS     1768 /* Bus: */
+#define IDT_ZIP_ID      1769 /* ID: */
+#define IDT_ZIP_LUN     1770 /* LUN: */
+#define IDT_ZIP_CHANNEL 1771 /* Channel: */
 
 /* DLG_CFG_PERIPHERALS */
-#define IDT_ISARTC   1770 /* ISA RTC: */
-#define IDT_ISAMEM_1 1771 /* ISAMEM Board #1: */
-#define IDT_ISAMEM_2 1772 /* ISAMEM Board #2: */
-#define IDT_ISAMEM_3 1773 /* ISAMEM Board #3: */
-#define IDT_ISAMEM_4 1774 /* ISAMEM Board #4: */
+#define IDT_ISARTC   1772 /* ISA RTC: */
+#define IDT_ISAMEM_1 1773 /* ISAMEM Board #1: */
+#define IDT_ISAMEM_2 1774 /* ISAMEM Board #2: */
+#define IDT_ISAMEM_3 1775 /* ISAMEM Board #3: */
+#define IDT_ISAMEM_4 1776 /* ISAMEM Board #4: */
 
 /*
  * To try to keep these organized, we now group the
@@ -181,11 +184,13 @@
 
 #define IDC_VIDEO                 1020 /* video config */
 #define IDC_COMBO_VIDEO           1021
-#define IDC_CHECK_VOODOO          1022
-#define IDC_BUTTON_VOODOO         1023
-#define IDC_CHECK_IBM8514         1024
-#define IDC_CHECK_XGA             1025
-#define IDC_BUTTON_XGA            1026
+#define IDC_VIDEO_2               1022
+#define IDC_COMBO_VIDEO_2         1023
+#define IDC_CHECK_VOODOO          1024
+#define IDC_BUTTON_VOODOO         1025
+#define IDC_CHECK_IBM8514         1026
+#define IDC_CHECK_XGA             1027
+#define IDC_BUTTON_XGA            1028
 
 #define IDC_INPUT                 1030 /* input config */
 #define IDC_COMBO_MOUSE           1031
@@ -323,19 +328,20 @@
 /* For the DeviceConfig code, re-do later. */
 #define IDC_CONFIG_BASE            1300
 #define IDC_CONFIGURE_VID          1300
-#define IDC_CONFIGURE_SND          1301
-#define IDC_CONFIGURE_VOODOO       1302
-#define IDC_CONFIGURE_MOD          1303
-#define IDC_CONFIGURE_NET_TYPE     1304
-#define IDC_CONFIGURE_BUSLOGIC     1305
-#define IDC_CONFIGURE_PCAP         1306
-#define IDC_CONFIGURE_NET          1307
-#define IDC_CONFIGURE_MIDI_OUT     1308
-#define IDC_CONFIGURE_MIDI_IN      1309
-#define IDC_JOY1                   1310
-#define IDC_JOY2                   1311
-#define IDC_JOY3                   1312
-#define IDC_JOY4                   1313
+#define IDC_CONFIGURE_VID_2        1301
+#define IDC_CONFIGURE_SND          1302
+#define IDC_CONFIGURE_VOODOO       1303
+#define IDC_CONFIGURE_MOD          1304
+#define IDC_CONFIGURE_NET_TYPE     1305
+#define IDC_CONFIGURE_BUSLOGIC     1306
+#define IDC_CONFIGURE_PCAP         1307
+#define IDC_CONFIGURE_NET          1308
+#define IDC_CONFIGURE_MIDI_OUT     1309
+#define IDC_CONFIGURE_MIDI_IN      1310
+#define IDC_JOY1                   1311
+#define IDC_JOY2                   1312
+#define IDC_JOY3                   1313
+#define IDC_JOY4                   1314
 #define IDC_HDTYPE                 1380
 #define IDC_RENDER                 1381
 #define IDC_STATUS                 1382
@@ -366,8 +372,9 @@
 #define IDM_VID_HIDE_TOOLBAR    40023
 #define IDM_UPDATE_ICONS        40030
 #define IDM_SND_GAIN            40031
-#define IDM_VID_RESIZE          40040
-#define IDM_VID_REMEMBER        40041
+#define IDM_VID_MONITORS        40040
+#define IDM_VID_RESIZE          40041
+#define IDM_VID_REMEMBER        40042
 #define IDM_VID_SDL_SW          40050
 #define IDM_VID_SDL_HW          40051
 #define IDM_VID_SDL_OPENGL      40052

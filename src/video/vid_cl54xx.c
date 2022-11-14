@@ -1,23 +1,23 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Emulation of select Cirrus Logic cards (CL-GD 5428,
- *		CL-GD 5429, CL-GD 5430, CL-GD 5434 and CL-GD 5436 are supported).
+ *          Emulation of select Cirrus Logic cards (CL-GD 5428,
+ *          CL-GD 5429, CL-GD 5430, CL-GD 5434 and CL-GD 5436 are supported).
  *
  *
  *
- * Authors:	Miran Grca, <mgrca8@gmail.com>
- *		tonioni,
- *		TheCollector1995,
+ * Authors: Miran Grca, <mgrca8@gmail.com>
+ *          tonioni,
+ *          TheCollector1995,
  *
- *		Copyright 2016-2020 Miran Grca.
- *		Copyright 2020 tonioni.
- *		Copyright 2016-2020 TheCollector1995.
+ *          Copyright 2016-2020 Miran Grca.
+ *          Copyright 2020 tonioni.
+ *          Copyright 2016-2020 TheCollector1995.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -670,7 +670,8 @@ gd54xx_out(uint16_t addr, uint8_t val, void *p)
             if ((svga->seqaddr == 2) && !gd54xx->unlocked) {
                 o = svga->seqregs[svga->seqaddr & 0x1f];
                 svga_out(addr, val, svga);
-                svga->seqregs[svga->seqaddr & 0x1f] = (o & 0xf0) | (val & 0x0f);
+                if (svga->gdcreg[0xb] & 0x04)
+                    svga->seqregs[svga->seqaddr & 0x1f] = (o & 0xf0) | (val & 0x0f);
                 return;
             } else if ((svga->seqaddr > 6) && !gd54xx->unlocked)
                 return;
@@ -878,10 +879,6 @@ gd54xx_out(uint16_t addr, uint8_t val, void *p)
                     case 0x09:
                     case 0x0a:
                     case 0x0b:
-                        if (svga->gdcreg[0xb] & 0x04)
-                            svga->writemode = svga->gdcreg[5] & 7;
-                        else
-                            svga->writemode = svga->gdcreg[5] & 3;
                         svga->adv_flags = 0;
                         if (svga->gdcreg[0xb] & 0x01)
                             svga->adv_flags = FLAG_EXTRA_BANKS;
@@ -893,6 +890,18 @@ gd54xx_out(uint16_t addr, uint8_t val, void *p)
                             svga->adv_flags |= FLAG_LATCH8;
                         if (svga->gdcreg[0xb] & 0x10)
                             svga->adv_flags |= FLAG_ADDR_BY16;
+                        if (svga->gdcreg[0xb] & 0x04)
+                            svga->writemode = svga->gdcreg[5] & 7;
+                        else {
+                            svga->gdcreg[5] &= ~0x04;
+                            svga->writemode = svga->gdcreg[5] & 3;
+                            svga->adv_flags = 0;
+                            svga->gdcreg[0] &= 0x0f;
+                            gd543x_mmio_write(0xb8000, svga->gdcreg[0], gd54xx);
+                            svga->gdcreg[1] &= 0x0f;
+                            gd543x_mmio_write(0xb8004, svga->gdcreg[1], gd54xx);
+                            svga->seqregs[2] &= 0x0f;
+                        }
                         gd54xx_recalc_banking(gd54xx);
                         break;
 

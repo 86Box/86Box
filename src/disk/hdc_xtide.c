@@ -1,35 +1,35 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		XT-IDE controller emulation.
+ *          XT-IDE controller emulation.
  *
- *		The XT-IDE project is intended to allow 8-bit ("XT") systems
- *		to use regular IDE drives. IDE is a standard based on the
- *		16b PC/AT design, and so a special board (with its own BIOS)
- *		had to be created for this.
+ *          The XT-IDE project is intended to allow 8-bit ("XT") systems
+ *          to use regular IDE drives. IDE is a standard based on the
+ *          16b PC/AT design, and so a special board (with its own BIOS)
+ *          had to be created for this.
  *
- *		XT-IDE is *NOT* the same as XTA, or X-IDE, which is an older
- *		standard where the actual MFM/RLL controller for the PC/XT
- *		was placed on the hard drive (hard drives where its drive
- *		type would end in "X" or "XT", such as the 8425XT.) This was
- *		more or less the original IDE, but since those systems were
- *		already on their way out, the newer IDE standard based on the
- *		PC/AT controller and 16b design became the IDE we now know.
+ *          XT-IDE is *NOT* the same as XTA, or X-IDE, which is an older
+ *          standard where the actual MFM/RLL controller for the PC/XT
+ *          was placed on the hard drive (hard drives where its drive
+ *          type would end in "X" or "XT", such as the 8425XT.) This was
+ *          more or less the original IDE, but since those systems were
+ *          already on their way out, the newer IDE standard based on the
+ *          PC/AT controller and 16b design became the IDE we now know.
  *
  *
  *
- * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
- *		Miran Grca, <mgrca8@gmail.com>
- *		Fred N. van Kempen, <decwiz@yahoo.com>
+ * Authors: Sarah Walker, <http://pcem-emulator.co.uk/>
+ *          Miran Grca, <mgrca8@gmail.com>
+ *          Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 2008-2018 Sarah Walker.
- *		Copyright 2016-2018 Miran Grca.
- *		Copyright 2017,2018 Fred N. van Kempen.
+ *          Copyright 2008-2018 Sarah Walker.
+ *          Copyright 2016-2018 Miran Grca.
+ *          Copyright 2017-2018 Fred N. van Kempen.
  */
 #include <stdio.h>
 #include <stdint.h>

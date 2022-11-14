@@ -1,22 +1,22 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		CPU type handler.
+ *          CPU type handler.
  *
  *
  *
- * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
- *		leilei,
- *		Miran Grca, <mgrca8@gmail.com>
+ * Authors: Sarah Walker, <http://pcem-emulator.co.uk/>
+ *          leilei,
+ *          Miran Grca, <mgrca8@gmail.com>
  *
- *		Copyright 2008-2020 Sarah Walker.
- *		Copyright 2016-2018 leilei.
- *		Copyright 2016-2020 Miran Grca.
+ *          Copyright 2008-2020 Sarah Walker.
+ *          Copyright 2016-2018 leilei.
+ *          Copyright 2016-2020 Miran Grca.
  */
 #ifndef EMU_CPU_H
 #define EMU_CPU_H
@@ -503,14 +503,15 @@ extern int isibm486;
 extern int is_nec;
 extern int is_rapidcad;
 extern int hasfpu;
-#define CPU_FEATURE_RDTSC (1 << 0)
-#define CPU_FEATURE_MSR   (1 << 1)
-#define CPU_FEATURE_MMX   (1 << 2)
-#define CPU_FEATURE_CR4   (1 << 3)
-#define CPU_FEATURE_VME   (1 << 4)
-#define CPU_FEATURE_CX8   (1 << 5)
-#define CPU_FEATURE_3DNOW (1 << 6)
+#define CPU_FEATURE_RDTSC   (1 << 0)
+#define CPU_FEATURE_MSR     (1 << 1)
+#define CPU_FEATURE_MMX     (1 << 2)
+#define CPU_FEATURE_CR4     (1 << 3)
+#define CPU_FEATURE_VME     (1 << 4)
+#define CPU_FEATURE_CX8     (1 << 5)
+#define CPU_FEATURE_3DNOW   (1 << 6)
 #define CPU_FEATURE_SYSCALL (1 << 7)
+#define CPU_FEATURE_3DNOWE  (1 << 8)
 
 extern uint32_t cpu_features;
 

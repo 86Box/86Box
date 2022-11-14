@@ -1,22 +1,22 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		CPU type handler.
+ *          CPU type handler.
  *
- * Authors:	Sarah Walker, <tommowalker@tommowalker.co.uk>
- *		leilei,
- *		Miran Grca, <mgrca8@gmail.com>
- *		Fred N. van Kempen, <decwiz@yahoo.com>
+ * Authors: Sarah Walker, <tommowalker@tommowalker.co.uk>
+ *          leilei,
+ *          Miran Grca, <mgrca8@gmail.com>
+ *          Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 2008-2020 Sarah Walker.
- *		Copyright 2016-2018 leilei.
- *		Copyright 2016-2020 Miran Grca.
- *		Copyright 2018-2021 Fred N. van Kempen.
+ *          Copyright 2008-2020 Sarah Walker.
+ *          Copyright 2016-2018 leilei.
+ *          Copyright 2016-2020 Miran Grca.
+ *          Copyright 2018-2021 Fred N. van Kempen.
  */
 #include <math.h>
 #include <stdarg.h>
@@ -68,7 +68,8 @@ enum {
 };
 
 /*Addition flags returned by CPUID function 0x80000001*/
-#define CPUID_3DNOW (1UL << 31UL)
+#define CPUID_3DNOW  (1UL << 31UL)
+#define CPUID_3DNOWE (1UL << 30UL)
 
 /* Make sure this is as low as possible. */
 cpu_state_t cpu_state;
@@ -1167,6 +1168,11 @@ cpu_set(void)
 #    endif
 #endif
 
+            if ((cpu_s->cpu_type == CPU_K6_2P) || (cpu_s->cpu_type == CPU_K6_3P)) {
+                x86_opcodes_3DNOW = ops_3DNOWE;
+                x86_dynarec_opcodes_3DNOW = dynarec_ops_3DNOWE;
+            }
+
             timing_rr  = 1; /* register dest - register src */
             timing_rm  = 2; /* register dest - memory src */
             timing_mr  = 3; /* memory dest   - register src */
@@ -1202,6 +1208,8 @@ cpu_set(void)
             cpu_features = CPU_FEATURE_RDTSC | CPU_FEATURE_MSR | CPU_FEATURE_CR4 | CPU_FEATURE_VME | CPU_FEATURE_MMX;
             if (cpu_s->cpu_type >= CPU_K6_2)
                 cpu_features |= CPU_FEATURE_3DNOW;
+            if ((cpu_s->cpu_type == CPU_K6_2P) || (cpu_s->cpu_type == CPU_K6_3P))
+                cpu_features |= CPU_FEATURE_3DNOWE;
             msr.fcr = (1 << 8) | (1 << 9) | (1 << 12) | (1 << 16) | (1 << 19) | (1 << 21);
 #if defined(DEV_BRANCH) && defined(USE_AMD_K5)
             cpu_CR4_mask = CR4_TSD | CR4_DE | CR4_MCE;
@@ -1831,7 +1839,7 @@ cpu_CPUID(void)
                 case 0x80000001:
                     EAX = CPUID + 0x100;
                     EBX = ECX = 0;
-                    EDX       = CPUID_FPU | CPUID_VME | CPUID_PSE | CPUID_TSC | CPUID_MSR | CPUID_MCE | CPUID_CMPXCHG8B | CPUID_AMDSEP | CPUID_MMX | CPUID_3DNOW;
+                    EDX       = CPUID_FPU | CPUID_VME | CPUID_PSE | CPUID_TSC | CPUID_MSR | CPUID_MCE | CPUID_CMPXCHG8B | CPUID_AMDSEP | CPUID_MMX | CPUID_3DNOW | CPUID_3DNOWE;
                     break;
                 case 0x80000002:      /* Processor name string */
                     EAX = 0x2d444d41; /* AMD-K6(tm)-III P */

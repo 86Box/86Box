@@ -128,7 +128,7 @@ msgid "E&GA/(S)VGA settings"
 msgstr "&EGA/(S)VGA-asetukset"
 
 msgid "&Inverted VGA monitor"
-msgstr "&VGA näyttö käänteisillä väreillä"
+msgstr "&VGA-näyttö käänteisillä väreillä"
 
 msgid "VGA screen &type"
 msgstr "VGA-näytön &tyyppi"
@@ -161,7 +161,7 @@ msgid "&Average"
 msgstr "&Keskiarvo"
 
 msgid "CGA/PCjr/Tandy/E&GA/(S)VGA overscan"
-msgstr "CGA/PCjr/Tandy/E&GA/(S)VGA-&yliskannaus"
+msgstr "CGA/PCjr/Tandy/E&GA/(S)VGA &yliskannaus"
 
 msgid "Change contrast for &monochrome display"
 msgstr "&Muuta harmaavärinäytön kontrastia"
@@ -206,13 +206,13 @@ msgid "&About 86Box..."
 msgstr "&Tietoja 86Boxista..."
 
 msgid "&New image..."
-msgstr "&Uusi levykuva..."
+msgstr "&Uusi kasettikuva..."
 
 msgid "&Existing image..."
-msgstr "&Olemassaoleva levykuva..."
+msgstr "&Olemassaoleva kasettikuva..."
 
 msgid "Existing image (&Write-protected)..."
-msgstr "Olemassaoleva levykuva (&kirjoitussuojattu)..."
+msgstr "Olemassaoleva kasettikuva (&kirjoitussuojattu)..."
 
 msgid "&Record"
 msgstr "&Nauhoita"
@@ -227,7 +227,7 @@ msgid "&Fast forward to the end"
 msgstr "Kelaa &loppuun"
 
 msgid "E&ject"
-msgstr "&Poista asemasta"
+msgstr "&Poista kasettipesästä"
 
 msgid "&Image..."
 msgstr "&ROM-moduulikuva..."
@@ -244,11 +244,8 @@ msgstr "&Tyhjä"
 msgid "&Reload previous image"
 msgstr "&Lataa edellinen levykuva uudelleen"
 
-msgid "&Image"
-msgstr "L&evykuva"
-
 msgid "&Folder..."
-msgstr "&Folder..."
+msgstr "&Kansio..."
 
 msgid "Target &framerate"
 msgstr "&Kuvataajuustavoite"
@@ -385,6 +382,12 @@ msgstr "Näytönohjain:"
 msgid "Voodoo Graphics"
 msgstr "Voodoo-grafiikkasuoritin"
 
+msgid "IBM 8514/a Graphics"
+msgstr "IBM 8514/a-grafiikkasuoritin"
+
+msgid "XGA Graphics"
+msgstr "XGA-grafiikkasuoritin"
+
 msgid "Mouse:"
 msgstr "Hiiri:"
 
@@ -426,6 +429,15 @@ msgstr "Gravis Ultrasound"
 
 msgid "Use FLOAT32 sound"
 msgstr "Käytä FLOAT32-ääntä"
+
+msgid "FM synth driver"
+msgstr "FM-syntetisaattoriohjain"
+
+msgid "Nuked (more accurate)"
+msgstr "Nuked (tarkempi)"
+
+msgid "YMFM (faster)"
+msgstr "YMFM (nopeampi)"
 
 msgid "Network type:"
 msgstr "Verkon tyyppi:"
@@ -570,6 +582,9 @@ msgstr "Tarkista BPB"
 
 msgid "CD-ROM drives:"
 msgstr "CD-ROM-asemat:"
+
+msgid "Earlier drive"
+msgstr "Aiemmat asemat"
 
 msgid "MO drives:"
 msgstr "Magneettisoptiset asemat (MO):"
@@ -1190,16 +1205,16 @@ msgid "5.25\" 1.3 GB"
 msgstr "5.25\" 1.3 Gt"
 
 msgid "Perfect RPM"
-msgstr "Täydellinen kierrosluku"
+msgstr "Täydellinen RPM"
 
 msgid "1% below perfect RPM"
-msgstr "1% alle täydellisen kierrosluvun"
+msgstr "1% alle täydellisen RPM:n"
 
 msgid "1.5% below perfect RPM"
-msgstr "1.5% alle täydellisen kierrosluvun"
+msgstr "1.5% alle täydellisen RPM:n"
 
 msgid "2% below perfect RPM"
-msgstr "2% alle täydellisen kierrosluvun"
+msgstr "2% alle täydellisen RPM:n"
 
 msgid "(System Default)"
 msgstr "(Järjestelmän oletus)"

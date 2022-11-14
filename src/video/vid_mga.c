@@ -18,6 +18,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <wchar.h>
+#include <stdatomic.h>
 #include <86box/86box.h>
 #include <86box/io.h>
 #include <86box/timer.h>
@@ -429,7 +430,7 @@ typedef struct mystique_t {
         xzoomctrl,
         pixel_count, trap_count;
 
-    volatile int busy, blitter_submit_refcount,
+    atomic_int busy, blitter_submit_refcount,
         blitter_submit_dma_refcount, blitter_complete_refcount,
         endprdmasts_pending, softrap_pending,
         fifo_read_idx, fifo_write_idx;

@@ -32,6 +32,13 @@
 
 #define TEX_CACHE_MAX   64
 
+#ifdef __cplusplus
+#include <atomic>
+using atomic_int = std::atomic<int>;
+#else
+#include <stdatomic.h>
+#endif
+
 enum {
     VOODOO_1 = 0,
     VOODOO_SB50,
@@ -170,13 +177,13 @@ typedef struct voodoo_params_t {
 } voodoo_params_t;
 
 typedef struct texture_t {
-    uint32_t     base;
-    uint32_t     tLOD;
-    volatile int refcount, refcount_r[4];
-    int          is16;
-    uint32_t     palette_checksum;
-    uint32_t     addr_start[4], addr_end[4];
-    uint32_t    *data;
+    uint32_t   base;
+    uint32_t   tLOD;
+    atomic_int refcount, refcount_r[4];
+    int        is16;
+    uint32_t   palette_checksum;
+    uint32_t   addr_start[4], addr_end[4];
+    uint32_t  *data;
 } texture_t;
 
 typedef struct vert_t {
@@ -299,19 +306,21 @@ typedef struct voodoo_t {
     int type;
 
     fifo_entry_t fifo[FIFO_SIZE];
-    volatile int fifo_read_idx, fifo_write_idx;
-    volatile int cmd_read, cmd_written, cmd_written_fifo;
+    atomic_int   fifo_read_idx, fifo_write_idx;
+    atomic_int   cmd_read, cmd_written, cmd_written_fifo;
 
     voodoo_params_t params_buffer[PARAM_SIZE];
-    volatile int    params_read_idx[4], params_write_idx;
+    atomic_int      params_read_idx[4], params_write_idx;
 
-    uint32_t     cmdfifo_base, cmdfifo_end, cmdfifo_size;
-    int          cmdfifo_rp, cmdfifo_ret_addr;
-    int          cmdfifo_in_sub;
-    volatile int cmdfifo_depth_rd, cmdfifo_depth_wr;
-    volatile int cmdfifo_enabled;
-    uint32_t     cmdfifo_amin, cmdfifo_amax;
-    int          cmdfifo_holecount;
+    uint32_t   cmdfifo_base, cmdfifo_end, cmdfifo_size;
+    int        cmdfifo_rp, cmdfifo_ret_addr;
+    int        cmdfifo_in_sub;
+    atomic_int cmdfifo_depth_rd, cmdfifo_depth_wr;
+    atomic_int cmdfifo_enabled;
+    uint32_t   cmdfifo_amin, cmdfifo_amax;
+    int        cmdfifo_holecount;
+
+    atomic_uint  cmd_status;
 
     uint32_t     sSetupMode;
     vert_t       verts[4];

@@ -1,28 +1,28 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Define all known processor types.
+ *          Define all known processor types.
  *
  *
  *
- * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
- *		leilei,
- *		Miran Grca, <mgrca8@gmail.com>
- *		Fred N. van Kempen, <decwiz@yahoo.com>
- *		RichardG, <richardg867@gmail.com>
- *		dob205,
+ * Authors: Sarah Walker, <http://pcem-emulator.co.uk/>
+ *          leilei,
+ *          Miran Grca, <mgrca8@gmail.com>
+ *          Fred N. van Kempen, <decwiz@yahoo.com>
+ *          RichardG, <richardg867@gmail.com>
+ *          dob205,
  *
- *		Copyright 2008-2019 Sarah Walker.
- *		Copyright 2016-2019 leilei.
- *		Copyright 2016-2019 Miran Grca.
- *		Copyright 2017-2020 Fred N. van Kempen.
- *		Copyright 2020 RichardG.
- *		Copyright 2021 dob205.
+ *          Copyright 2008-2019 Sarah Walker.
+ *          Copyright 2016-2019 leilei.
+ *          Copyright 2016-2019 Miran Grca.
+ *          Copyright 2017-2020 Fred N. van Kempen.
+ *          Copyright 2020 RichardG.
+ *          Copyright 2021 dob205.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -140,8 +140,8 @@ const cpu_family_t cpu_families[] = {
 	.name = "V20",
 	.internal_name = "necv20",
 	.cpus = (const CPU[]) {
-		{"5",       CPU_V20, fpus_8088,   5000000,    1, 5000, 0, 0, 0, 0, 0,0,0,0, 1},
-		{"8",       CPU_V20, fpus_8088,   8000000,    1, 5000, 0, 0, 0, 0, 0,0,0,0, 1},
+		{"4.77",    CPU_V20, fpus_8088,   4772728,    1, 5000, 0, 0, 0, 0, 0,0,0,0, 1},
+		{"7.16",    CPU_V20, fpus_8088,   7159092,    1, 5000, 0, 0, 0, 0, 0,0,0,0, 1},
 		{"10",      CPU_V20, fpus_8088,  10000000,    1, 5000, 0, 0, 0, 0, 0,0,0,0, 1},
 		{"12",      CPU_V20, fpus_8088,  12000000,    1, 5000, 0, 0, 0, 0, 0,0,0,0, 1},
 		{"16",      CPU_V20, fpus_8088,  16000000,    1, 5000, 0, 0, 0, 0, 0,0,0,0, 2},
@@ -458,7 +458,7 @@ const cpu_family_t cpu_families[] = {
 		{"", 0}
 	}
     }, {
-	.package = CPU_PKG_SOCKET1 | CPU_PKG_SOCKET3_PC330, /*OEM versions are 3.3V, Retail versions are 3.3V with a 5V regulator for installation in older boards. hey are functionally identical*/
+	.package = CPU_PKG_SOCKET1 | CPU_PKG_SOCKET3_PC330, /*OEM versions are 3.3V, Retail versions are 3.3V with a 5V regulator for installation in older boards. They are functionally identical*/
 	.manufacturer = "Intel",
 	.name = "iDX4",
 	.internal_name = "idx4",

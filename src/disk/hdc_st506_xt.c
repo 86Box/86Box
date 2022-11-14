@@ -1,53 +1,53 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Driver for the IBM PC-XT Fixed Disk controller.
+ *          Driver for the IBM PC-XT Fixed Disk controller.
  *
- *		The original controller shipped by IBM was made by Xebec, and
- *		several variations had been made:
+ *          The original controller shipped by IBM was made by Xebec, and
+ *          several variations had been made:
  *
- *		#1	Original, single drive (ST412), 10MB, 2 heads.
- *		#2	Update, single drive (ST412) but with option for a
- *			switch block that can be used to 'set' the actual
- *			drive type. Four switches are defined, where switches
- *			1 and 2 define drive0, and switches 3 and 4 drive1.
+ *          #1 Original, single drive (ST412), 10MB, 2 heads.
+ *          #2 Update, single drive (ST412) but with option for a
+ *             switch block that can be used to 'set' the actual
+ *             drive type. Four switches are defined, where switches
+ *             1 and 2 define drive0, and switches 3 and 4 drive1.
  *
- *			  0  ON  ON	306  2  0
- *			  1  ON  OFF	375  8  0
- *			  2  OFF ON	306  6  256
- *			  3  OFF OFF	306  4  0
+ *               0  ON  ON  306  2  0
+ *               1  ON  OFF 375  8  0
+ *               2  OFF ON  306  6  256
+ *               3  OFF OFF 306  4  0
  *
- *			The latter option is the default, in use on boards
- *			without the switch block option.
+ *             The latter option is the default, in use on boards
+ *             without the switch block option.
  *
- *		#3	Another updated board, mostly to accomodate the new
- *			20MB disk now being shipped. The controller can have
- *			up to 2 drives, the type of which is set using the
- *			switch block:
+ *          #3 Another updated board, mostly to accomodate the new
+ *             20MB disk now being shipped. The controller can have
+ *             up to 2 drives, the type of which is set using the
+ *             switch block:
  *
- *			     SW1 SW2	CYLS HD SPT WPC
- *			  0  ON  ON	306  4  17  0
- *			  1  ON  OFF	612  4  17  0	(type 16)
- *			  2  OFF ON    	615  4  17  300	(Seagate ST-225, 2)
- *			  3  OFF OFF	306  8  17  128 (IBM WD25, 13)
+ *               SW1 SW2    CYLS HD SPT WPC
+ *               0  ON  ON  306  4  17  0
+ *               1  ON  OFF 612  4  17  0   (type 16)
+ *               2  OFF ON  615  4  17  300 (Seagate ST-225, 2)
+ *               3  OFF OFF 306  8  17  128 (IBM WD25, 13)
  *
- *		Examples of #3 are IBM/Xebec, WD10004A-WX1 and ST11R.
+ *             Examples of #3 are IBM/Xebec, WD10004A-WX1 and ST11R.
  *
- *		Since all controllers (including the ones made by DTC) use
- *		(mostly) the same API, we keep them all in this module.
+ *          Since all controllers (including the ones made by DTC) use
+ *          (mostly) the same API, we keep them all in this module.
  *
  *
  *
- * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
- *		Sarah Walker, <tommowalker@tommowalker.co.uk>
+ * Authors: Fred N. van Kempen, <decwiz@yahoo.com>
+ *          Sarah Walker, <tommowalker@tommowalker.co.uk>
  *
- *		Copyright 2017-2019 Fred N. van Kempen.
- *		Copyright 2008-2019 Sarah Walker.
+ *          Copyright 2017-2019 Fred N. van Kempen.
+ *          Copyright 2008-2019 Sarah Walker.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by

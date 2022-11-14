@@ -1,19 +1,19 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Implementation of the CD-ROM drive with SCSI(-like)
- *		commands, for both ATAPI and SCSI usage.
+ *          Implementation of the CD-ROM drive with SCSI(-like)
+ *          commands, for both ATAPI and SCSI usage.
  *
  *
  *
- * Author:	Miran Grca, <mgrca8@gmail.com>
+ * Authors: Miran Grca, <mgrca8@gmail.com>
  *
- *		Copyright 2016-2020 Miran Grca.
+ *          Copyright 2016-2020 Miran Grca.
  */
 #include <stdarg.h>
 #include <inttypes.h>
@@ -518,18 +518,29 @@ scsi_cdrom_mode_sense(scsi_cdrom_t *dev, uint8_t *buf, uint32_t pos, uint8_t pag
                 buf[pos++] = msplen;
                 scsi_cdrom_log("CD-ROM %i: MODE SENSE: Page [%02X] length %i\n", dev->id, i, msplen);
                 for (j = 0; j < msplen; j++) {
-                    if ((i == GPMODE_CAPABILITIES_PAGE) && (j >= 6) && (j <= 7)) {
-                        if (j & 1)
-                            buf[pos++] = ((dev->drv->speed * 176) & 0xff);
-                        else
-                            buf[pos++] = ((dev->drv->speed * 176) >> 8);
-                    } else if ((i == GPMODE_CAPABILITIES_PAGE) && (j >= 12) && (j <= 13)) {
-                        if (j & 1)
-                            buf[pos++] = ((dev->drv->cur_speed * 176) & 0xff);
-                        else
-                            buf[pos++] = ((dev->drv->cur_speed * 176) >> 8);
-                    } else
+                    /* If we are returning changeable values, always return them from the page,
+                       so they are all correctly. */
+                    if (page_control == 1)
                         buf[pos++] = scsi_cdrom_mode_sense_read(dev, page_control, i, 2 + j);
+                    else {
+                        if ((i == GPMODE_CAPABILITIES_PAGE) && (j == 4)) {
+                            buf[pos] = scsi_cdrom_mode_sense_read(dev, page_control, i, 2 + j) & 0x1f;
+                            /* The early CD-ROM drives we emulate (NEC CDR-260 for ATAPI and Toshiba CDS-431) are
+                               caddy drives, the later ones are tray drives. */
+                            buf[pos++] |= (dev->early ? 0x00 : 0x20);
+                        } else if ((i == GPMODE_CAPABILITIES_PAGE) && (j >= 6) && (j <= 7)) {
+                            if (j & 1)
+                                buf[pos++] = ((dev->drv->speed * 176) & 0xff);
+                            else
+                                buf[pos++] = ((dev->drv->speed * 176) >> 8);
+                        } else if ((i == GPMODE_CAPABILITIES_PAGE) && (j >= 12) && (j <= 13)) {
+                            if (j & 1)
+                                buf[pos++] = ((dev->drv->cur_speed * 176) & 0xff);
+                            else
+                                buf[pos++] = ((dev->drv->cur_speed * 176) >> 8);
+                        } else
+                            buf[pos++] = scsi_cdrom_mode_sense_read(dev, page_control, i, 2 + j);
+                    }
                 }
             }
         }

@@ -44,4 +44,12 @@ RC*
 
 # Qt Creator
 CMakeLists.txt.user
-*.DS_Store
+
+# Debian builder
+/debian/*.log
+/debian/*.substvars
+/debian/.debhelper
+/debian/86box
+/debian/debhelper-build-stamp
+/debian/files
+/obj-*-linux-gnu

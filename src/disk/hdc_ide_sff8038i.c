@@ -1,22 +1,22 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		Emulation of the SFF-8038i IDE Bus Master.
+ *          Emulation of the SFF-8038i IDE Bus Master.
  *
- *		PRD format :
- *		    word 0 - base address
- *		    word 1 - bits 1-15 = byte count, bit 31 = end of transfer
+ *          PRD format :
+ *            word 0 - base address
+ *            word 1 - bits 1-15 = byte count, bit 31 = end of transfer
  *
  *
  *
- * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
- *		Miran Grca, <mgrca8@gmail.com>
+ * Authors: Sarah Walker, <http://pcem-emulator.co.uk/>
+ *          Miran Grca, <mgrca8@gmail.com>
  *
- *		Copyright 2008-2020 Sarah Walker.
- *		Copyright 2016-2020 Miran Grca.
+ *          Copyright 2008-2020 Sarah Walker.
+ *          Copyright 2016-2020 Miran Grca.
  */
 #include <stdarg.h>
 #include <stdint.h>

@@ -244,9 +244,6 @@ msgstr "E&mpty"
 msgid "&Reload previous image"
 msgstr "&Reload previous image"
 
-msgid "&Image"
-msgstr "&Image"
-
 msgid "&Folder..."
 msgstr "&Folder..."
 
@@ -385,6 +382,12 @@ msgstr "Video:"
 msgid "Voodoo Graphics"
 msgstr "Voodoo Graphics"
 
+msgid "IBM 8514/a Graphics"
+msgstr "IBM 8514/a Graphics"
+
+msgid "XGA Graphics"
+msgstr "XGA Graphics"
+
 msgid "Mouse:"
 msgstr "Mouse:"
 
@@ -426,6 +429,15 @@ msgstr "Gravis Ultrasound"
 
 msgid "Use FLOAT32 sound"
 msgstr "Use FLOAT32 sound"
+
+msgid "FM synth driver"
+msgstr "FM synth driver"
+
+msgid "Nuked (more accurate)"
+msgstr "Nuked (more accurate)"
+
+msgid "YMFM (faster)"
+msgstr "YMFM (faster)"
 
 msgid "Network type:"
 msgstr "Network type:"
@@ -570,6 +582,9 @@ msgstr "Check BPB"
 
 msgid "CD-ROM drives:"
 msgstr "CD-ROM drives:"
+
+msgid "Earlier drive"
+msgstr "Earlier drive"
 
 msgid "MO drives:"
 msgstr "MO drives:"

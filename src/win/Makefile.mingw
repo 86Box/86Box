@@ -633,7 +633,7 @@ MINIVHDOBJ  := cwalk.o libxml2_encoding.o minivhd_convert.o \
             minivhd_struct_rw.o minivhd_util.o
 
 CDROMOBJ	:= cdrom.o \
-		    cdrom_image_backend.o cdrom_image_viso.o cdrom_image.o
+		    cdrom_image_backend.o cdrom_image_viso.o cdrom_image.o cdrom_mitsumi.o
 
 ZIPOBJ		:= zip.o
 
@@ -708,6 +708,7 @@ VIDOBJ		:= agpgart.o video.o \
 		    vid_bt48x_ramdac.o \
 		    vid_av9194.o vid_icd2061.o vid_ics2494.o vid_ics2595.o \
 		    vid_cl54xx.o \
+		    vid_et3000.o \
 		    vid_et4000.o vid_sc1148x_ramdac.o \
 		    vid_sc1502x_ramdac.o \
 		    vid_et4000w32.o vid_stg_ramdac.o \
