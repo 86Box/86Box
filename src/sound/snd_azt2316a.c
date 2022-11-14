@@ -147,6 +147,7 @@
 #include <86box/nvr.h>
 #include <86box/pic.h>
 #include <86box/sound.h>
+#include <86box/gameport.h>
 #include <86box/snd_ad1848.h>
 #include <86box/snd_azt2316a.h>
 #include <86box/snd_sb.h>
@@ -170,14 +171,15 @@ typedef struct azt2316a_t {
     int type;
     int wss_interrupt_after_config;
 
-    uint8_t wss_config;
+    uint8_t wss_config, opti, opti_reg_enabled;
 
     uint16_t cur_addr, cur_wss_addr, cur_mpu401_addr;
 
-    int cur_irq, cur_dma;
-    int cur_wss_enabled, cur_wss_irq, cur_wss_dma;
-    int cur_mpu401_irq;
-    int cur_mpu401_enabled;
+    int   cur_irq, cur_dma;
+    int   cur_wss_enabled, cur_wss_irq, cur_wss_dma;
+    int   cur_mpu401_irq;
+    int   cur_mpu401_enabled;
+    void *gameport;
 
     uint32_t config_word;
     uint32_t config_word_unlocked;
@@ -187,7 +189,8 @@ typedef struct azt2316a_t {
     ad1848_t ad1848;
     mpu_t   *mpu;
 
-    sb_t *sb;
+    sb_t   *sb;
+    uint8_t opti_regs[6];
 } azt2316a_t;
 
 static uint8_t
@@ -199,7 +202,7 @@ azt2316a_wss_read(uint16_t addr, void *p)
     /* TODO: when windows is initializing, writing 0x48, 0x58 and 0x60 to
        0x530 makes reading from 0x533 return 0x44, but writing 0x50
        makes this return 0x04. Why? */
-    if (addr & 1)
+    if ((addr & 1) || (azt2316a->opti))
         temp = 4 | (azt2316a->wss_config & 0x40);
     else
         temp = 4 | (azt2316a->wss_config & 0xC0);
@@ -868,6 +871,9 @@ azt2316a_get_buffer(int32_t *buffer, int len, void *p)
     azt2316a_t *azt2316a = (azt2316a_t *) p;
     int         c;
 
+    if (azt2316a->opti && azt2316a->opti_regs[3] & 0x4)
+        return;
+
     /* wss part */
     ad1848_update(&azt2316a->ad1848);
     for (c = 0; c < len * 2; c++)
@@ -877,6 +883,219 @@ azt2316a_get_buffer(int32_t *buffer, int len, void *p)
 
     /* sbprov2 part */
     sb_get_buffer_sbpro(buffer, len, azt2316a->sb);
+}
+
+static void
+optimc_remove_opl(azt2316a_t *azt2316a)
+{
+    io_removehandler(azt2316a->cur_addr + 0, 0x0004, azt2316a->sb->opl.read, NULL, NULL, azt2316a->sb->opl.write, NULL, NULL, azt2316a->sb->opl.priv);
+    io_removehandler(azt2316a->cur_addr + 8, 0x0002, azt2316a->sb->opl.read, NULL, NULL, azt2316a->sb->opl.write, NULL, NULL, azt2316a->sb->opl.priv);
+    io_removehandler(0x0388, 0x0004, azt2316a->sb->opl.read, NULL, NULL, azt2316a->sb->opl.write, NULL, NULL, azt2316a->sb->opl.priv);
+}
+
+static void
+optimc_add_opl(azt2316a_t *azt2316a)
+{
+    if (!(azt2316a->opti_regs[3] & 0x8) && (azt2316a->opti_regs[1] & 0x20)) {
+        fm_driver_get(FM_YMF289B, &azt2316a->sb->opl);
+    } else {
+        fm_driver_get((azt2316a->opti_regs[3] & 0x8) ? FM_YM3812 : FM_YMF262, &azt2316a->sb->opl);
+    }
+
+    /* DSP I/O handler is activated in sb_dsp_setaddr */
+    io_sethandler(azt2316a->cur_addr + 0, 0x0004, azt2316a->sb->opl.read, NULL, NULL, azt2316a->sb->opl.write, NULL, NULL, azt2316a->sb->opl.priv);
+    io_sethandler(azt2316a->cur_addr + 8, 0x0002, azt2316a->sb->opl.read, NULL, NULL, azt2316a->sb->opl.write, NULL, NULL, azt2316a->sb->opl.priv);
+    io_sethandler(0x0388, 0x0004, azt2316a->sb->opl.read, NULL, NULL, azt2316a->sb->opl.write, NULL, NULL, azt2316a->sb->opl.priv);
+}
+
+static void
+optimc_reload_opl(azt2316a_t *azt2316a)
+{
+    optimc_remove_opl(azt2316a);
+    optimc_add_opl(azt2316a);
+}
+
+static void
+optimc_reg_write(uint16_t addr, uint8_t val, void *p)
+{
+    azt2316a_t    *azt2316a         = (azt2316a_t *) p;
+    uint16_t       idx              = addr - 0xF8D;
+    uint8_t        old              = azt2316a->opti_regs[idx];
+    static uint8_t reg_enable_phase = 0;
+
+    if (azt2316a->opti_reg_enabled) {
+        switch (idx) {
+            case 0: /* MC1 */
+                {
+                    azt2316a->opti_regs[0] = val;
+                    if (val != old) {
+                        azt2316a->cur_mode = azt2316a->cur_wss_enabled = !!(val & 0x80);
+                        io_removehandler(azt2316a->cur_wss_addr, 0x0004, azt2316a_wss_read, NULL, NULL, azt2316a_wss_write, NULL, NULL, azt2316a);
+                        io_removehandler(azt2316a->cur_wss_addr + 0x0004, 0x0004, ad1848_read, NULL, NULL, ad1848_write, NULL, NULL, &azt2316a->ad1848);
+                        switch ((val >> 4) & 0x3) {
+                            case 0: /* WSBase = 0x530 */
+                                {
+                                    azt2316a->cur_wss_addr = 0x530;
+                                    break;
+                                }
+                            case 1: /* WSBase = 0xE80 */
+                                {
+                                    azt2316a->cur_wss_addr = 0xE80;
+                                    break;
+                                }
+                            case 2: /* WSBase = 0xF40 */
+                                {
+                                    azt2316a->cur_wss_addr = 0xF40;
+                                    break;
+                                }
+                            case 3: /* WSBase = 0x604 */
+                                {
+                                    azt2316a->cur_wss_addr = 0x604;
+                                    break;
+                                }
+                        }
+                        io_sethandler(azt2316a->cur_wss_addr, 0x0004, azt2316a_wss_read, NULL, NULL, azt2316a_wss_write, NULL, NULL, azt2316a);
+                        io_sethandler(azt2316a->cur_wss_addr + 0x0004, 0x0004, ad1848_read, NULL, NULL, ad1848_write, NULL, NULL, &azt2316a->ad1848);
+
+                        gameport_remap(azt2316a->gameport, (azt2316a->opti_regs[0] & 0x1) ? 0x00 : 0x200);
+                    }
+                    break;
+                }
+            case 1: /* MC2 */
+                azt2316a->opti_regs[1] = val;
+                if (old != val)
+                    optimc_reload_opl(azt2316a);
+                break;
+            case 2: /* MC3 */
+                if (val == 0xE3) {
+                    reg_enable_phase = 1;
+                    break;
+                }
+                azt2316a->opti_regs[2] = val;
+                if (old != val) {
+                    optimc_remove_opl(azt2316a);
+                    azt2316a->cur_addr = (val & 0x4) ? 0x240 : 0x220;
+                    switch ((val >> 4) & 0x3) {
+                        case 0:
+                            azt2316a->cur_dma = 1;
+                            break;
+                        case 1:
+                            azt2316a->cur_dma = 0;
+                            break;
+                        case 2:
+                        default:
+                            azt2316a->cur_dma = 3;
+                            break;
+                    }
+                    switch ((val >> 6) & 0x3) {
+                        case 0:
+                            azt2316a->cur_irq = 7;
+                            break;
+                        case 1:
+                            azt2316a->cur_irq = 10;
+                            break;
+                        case 2:
+                        default:
+                            azt2316a->cur_irq = 5;
+                            break;
+                    }
+                    sb_dsp_setaddr(&azt2316a->sb->dsp, azt2316a->cur_addr);
+                    sb_dsp_setirq(&azt2316a->sb->dsp, azt2316a->cur_irq);
+                    sb_dsp_setdma8(&azt2316a->sb->dsp, azt2316a->cur_dma);
+                    optimc_add_opl(azt2316a);
+                }
+                break;
+            case 3: /* MC4 */
+                azt2316a->opti_regs[3] = val;
+                if ((old & 0x8) != (val & 0x8))
+                    optimc_reload_opl(azt2316a);
+                break;
+            case 4: /* MC5 */
+                azt2316a->opti_regs[4] = val;
+                break;
+            case 5: /* MC6 */
+                azt2316a->opti_regs[5] = val;
+                if (old != val) {
+                    switch ((val >> 3) & 0x3) {
+                        case 0:
+                            azt2316a->cur_mpu401_irq = 9;
+                            break;
+                        case 1:
+                            azt2316a->cur_mpu401_irq = 10;
+                            break;
+                        case 2:
+                            azt2316a->cur_mpu401_irq = 5;
+                            break;
+                        case 3:
+                            azt2316a->cur_mpu401_irq = 7;
+                            break;
+                    }
+                    switch ((val >> 5) & 0x3) {
+                        case 0:
+                            azt2316a->cur_mpu401_addr = 0x330;
+                            break;
+                        case 1:
+                            azt2316a->cur_mpu401_addr = 0x320;
+                            break;
+                        case 2:
+                            azt2316a->cur_mpu401_addr = 0x310;
+                            break;
+                        case 3:
+                            azt2316a->cur_mpu401_addr = 0x300;
+                            break;
+                    }
+                    mpu401_change_addr(azt2316a->mpu, azt2316a->cur_mpu401_addr);
+                    mpu401_setirq(azt2316a->mpu, azt2316a->cur_mpu401_irq);
+                }
+                break;
+        }
+    }
+    if (addr == 0xF8F && (val == 0xE3 || val == 0x00)) {
+        if (reg_enable_phase) {
+            switch (reg_enable_phase) {
+                case 1:
+                    if (val == 0xE3) {
+                        reg_enable_phase++;
+                    }
+                    break;
+                case 2:
+                    if (val == 0x00) {
+                        reg_enable_phase++;
+                    }
+                    break;
+                case 3:
+                    if (val == 0xE3) {
+                        azt2316a->opti_reg_enabled = 1;
+                        azt2316a->opti_regs[2]     = 0x2;
+                        break;
+                    }
+                    break;
+            }
+        } else
+            reg_enable_phase = 1;
+        return;
+    }
+}
+
+static uint8_t
+optimc_reg_read(uint16_t addr, void *p)
+{
+    azt2316a_t *azt2316a = (azt2316a_t *) p;
+
+    if (azt2316a->opti_reg_enabled) {
+        switch (addr - 0xF8D) {
+            case 0: /* MC1 */
+            case 1: /* MC2 */
+            case 3: /* MC4 */
+            case 4: /* MC5 */
+                return azt2316a->opti_regs[addr - 0xF8D];
+            case 5: /* MC6 (not readable) */
+                return 0xFF;
+            case 2: /* MC3 */
+                return (azt2316a->opti_regs[2] & ~0x3) | 0x2;
+        }
+    }
+    return 0xFF;
 }
 
 static void *
@@ -892,6 +1111,7 @@ azt_init(const device_t *info)
     memset(azt2316a, 0, sizeof(azt2316a_t));
 
     azt2316a->type = info->local & 0x7fffffff;
+    azt2316a->opti = !!(info->local & 0x80000000);
 
     if (azt2316a->type == SB_SUBTYPE_CLONE_AZT1605_0X0C) {
         fn = "azt1605.nvr";
@@ -902,24 +1122,26 @@ azt_init(const device_t *info)
             fn = "azt2316a.nvr";
     }
 
-    /* config */
-    f = nvr_fopen(fn, "rb");
-    if (f) {
-        uint8_t checksum = 0x7f;
-        uint8_t saved_checksum;
-        size_t  res;
+    /* config (not saved for AcerMagic S20). */
+    if (!azt2316a->opti) {
+        f = nvr_fopen(fn, "rb");
+        if (f) {
+            uint8_t checksum = 0x7f;
+            uint8_t saved_checksum;
+            size_t  res;
 
-        res = fread(read_eeprom, AZTECH_EEPROM_SIZE, 1, f);
-        for (i = 0; i < AZTECH_EEPROM_SIZE; i++)
-            checksum += read_eeprom[i];
+            res = fread(read_eeprom, AZTECH_EEPROM_SIZE, 1, f);
+            for (i = 0; i < AZTECH_EEPROM_SIZE; i++)
+                checksum += read_eeprom[i];
 
-        res = fread(&saved_checksum, sizeof(saved_checksum), 1, f);
-        (void) res;
+            res = fread(&saved_checksum, sizeof(saved_checksum), 1, f);
+            (void) res;
 
-        fclose(f);
+            fclose(f);
 
-        if (checksum == saved_checksum)
-            loaded_from_eeprom = 1;
+            if (checksum == saved_checksum)
+                loaded_from_eeprom = 1;
+        }
     }
 
     if (!loaded_from_eeprom) {
@@ -961,93 +1183,117 @@ azt_init(const device_t *info)
     }
 
     if (azt2316a->type == SB_SUBTYPE_CLONE_AZT2316A_0X11) {
-        azt2316a->config_word = read_eeprom[11] | (read_eeprom[12] << 8) | (read_eeprom[13] << 16) | (read_eeprom[14] << 24);
-
-        switch (azt2316a->config_word & (3 << 0)) {
-            case 0:
-                azt2316a->cur_addr = 0x220;
-                break;
-            case 1:
-                azt2316a->cur_addr = 0x240;
-                break;
-            default:
-                fatal("AZT2316A: invalid sb addr in config word %08X\n", azt2316a->config_word);
-        }
-
-        if (azt2316a->config_word & (1 << 2))
-            azt2316a->cur_irq = 9;
-        else if (azt2316a->config_word & (1 << 3))
-            azt2316a->cur_irq = 5;
-        else if (azt2316a->config_word & (1 << 4))
-            azt2316a->cur_irq = 7;
-        else if (azt2316a->config_word & (1 << 5))
-            azt2316a->cur_irq = 10;
-        else
-            fatal("AZT2316A: invalid sb irq in config word %08X\n", azt2316a->config_word);
-
-        if (info->local & 0x80000000)
-            azt2316a->cur_dma = 1;
-        else  switch (azt2316a->config_word & (3 << 6)) {
-            case 1 << 6:
-                azt2316a->cur_dma = 0;
-                break;
-            case 2 << 6:
-                azt2316a->cur_dma = 1;
-                break;
-            case 3 << 6:
-                azt2316a->cur_dma = 3;
-                break;
-            default:
-                fatal("AZT2316A: invalid sb dma in config word %08X\n", azt2316a->config_word);
-        }
-
-        switch (azt2316a->config_word & (3 << 8)) {
-            case 0:
-                azt2316a->cur_wss_addr = 0x530;
-                break;
-            case 1 << 8:
-                azt2316a->cur_wss_addr = 0x604;
-                break;
-            case 2 << 8:
-                azt2316a->cur_wss_addr = 0xE80;
-                break;
-            case 3 << 8:
-                azt2316a->cur_wss_addr = 0xF40;
-                break;
-            default:
-                fatal("AZT2316A: invalid wss addr in config word %08X\n", azt2316a->config_word);
-        }
-
-        if (azt2316a->config_word & (1 << 10))
-            azt2316a->cur_wss_enabled = 1;
-        else
-            azt2316a->cur_wss_enabled = 0;
-
-        if (azt2316a->config_word & (1 << 12))
-            azt2316a->cur_mpu401_addr = 0x330;
-        else
-            azt2316a->cur_mpu401_addr = 0x300;
-
-        if (azt2316a->config_word & (1 << 13))
+        if (azt2316a->opti) {
+            /* OPTi 82C929 has no EEPROM interface. */
+            azt2316a->cur_wss_addr       = 0x530;
+            azt2316a->cur_mode           = 0;
+            azt2316a->cur_addr           = 0x220;
+            azt2316a->cur_irq            = 7;
+            azt2316a->cur_wss_enabled    = 0;
+            azt2316a->cur_dma            = 1;
+            azt2316a->cur_mpu401_irq     = 9;
+            azt2316a->cur_mpu401_addr    = 0x330;
             azt2316a->cur_mpu401_enabled = 1;
-        else
-            azt2316a->cur_mpu401_enabled = 0;
 
-        if (azt2316a->config_word & (1 << 24))
-            azt2316a->cur_mpu401_irq = 9;
-        else if (azt2316a->config_word & (1 << 25))
-            azt2316a->cur_mpu401_irq = 5;
-        else if (azt2316a->config_word & (1 << 26))
-            azt2316a->cur_mpu401_irq = 7;
-        else if (azt2316a->config_word & (1 << 27))
-            azt2316a->cur_mpu401_irq = 10;
-        else
-            fatal("AZT2316A: invalid mpu401 irq in config word %08X\n", azt2316a->config_word);
+            azt2316a->opti_regs[0] = ((device_get_config_int("gameport")) ? 0x01 : 0x00);
+            azt2316a->opti_regs[1] = 0x03;
+            azt2316a->opti_regs[2] = 0x00;
+            azt2316a->opti_regs[3] = 0x00;
+            azt2316a->opti_regs[4] = 0x2F;
+            azt2316a->opti_regs[5] = 0x83;
 
-        /* these are not present on the EEPROM */
-        azt2316a->cur_wss_irq = device_get_config_int("wss_irq");
-        azt2316a->cur_wss_dma = device_get_config_int("wss_dma");
-        azt2316a->cur_mode    = 0;
+            azt2316a->gameport = gameport_add(&gameport_device);
+            gameport_remap(azt2316a->gameport, (azt2316a->opti_regs[0] & 0x1) ? 0x00 : 0x200);
+        } else {
+            azt2316a->config_word = read_eeprom[11] | (read_eeprom[12] << 8) | (read_eeprom[13] << 16) | (read_eeprom[14] << 24);
+
+            switch (azt2316a->config_word & (3 << 0)) {
+                case 0:
+                    azt2316a->cur_addr = 0x220;
+                    break;
+                case 1:
+                    azt2316a->cur_addr = 0x240;
+                    break;
+                default:
+                    fatal("AZT2316A: invalid sb addr in config word %08X\n", azt2316a->config_word);
+            }
+
+            if (azt2316a->config_word & (1 << 2))
+                azt2316a->cur_irq = 9;
+            else if (azt2316a->config_word & (1 << 3))
+                azt2316a->cur_irq = 5;
+            else if (azt2316a->config_word & (1 << 4))
+                azt2316a->cur_irq = 7;
+            else if (azt2316a->config_word & (1 << 5))
+                azt2316a->cur_irq = 10;
+            else
+                fatal("AZT2316A: invalid sb irq in config word %08X\n", azt2316a->config_word);
+
+            if (info->local & 0x80000000)
+                azt2316a->cur_dma = 1;
+            else
+                switch (azt2316a->config_word & (3 << 6)) {
+                    case 1 << 6:
+                        azt2316a->cur_dma = 0;
+                        break;
+                    case 2 << 6:
+                        azt2316a->cur_dma = 1;
+                        break;
+                    case 3 << 6:
+                        azt2316a->cur_dma = 3;
+                        break;
+                    default:
+                        fatal("AZT2316A: invalid sb dma in config word %08X\n", azt2316a->config_word);
+                }
+
+            switch (azt2316a->config_word & (3 << 8)) {
+                case 0:
+                    azt2316a->cur_wss_addr = 0x530;
+                    break;
+                case 1 << 8:
+                    azt2316a->cur_wss_addr = 0x604;
+                    break;
+                case 2 << 8:
+                    azt2316a->cur_wss_addr = 0xE80;
+                    break;
+                case 3 << 8:
+                    azt2316a->cur_wss_addr = 0xF40;
+                    break;
+                default:
+                    fatal("AZT2316A: invalid wss addr in config word %08X\n", azt2316a->config_word);
+            }
+
+            if (azt2316a->config_word & (1 << 10))
+                azt2316a->cur_wss_enabled = 1;
+            else
+                azt2316a->cur_wss_enabled = 0;
+
+            if (azt2316a->config_word & (1 << 12))
+                azt2316a->cur_mpu401_addr = 0x330;
+            else
+                azt2316a->cur_mpu401_addr = 0x300;
+
+            if (azt2316a->config_word & (1 << 13))
+                azt2316a->cur_mpu401_enabled = 1;
+            else
+                azt2316a->cur_mpu401_enabled = 0;
+
+            if (azt2316a->config_word & (1 << 24))
+                azt2316a->cur_mpu401_irq = 9;
+            else if (azt2316a->config_word & (1 << 25))
+                azt2316a->cur_mpu401_irq = 5;
+            else if (azt2316a->config_word & (1 << 26))
+                azt2316a->cur_mpu401_irq = 7;
+            else if (azt2316a->config_word & (1 << 27))
+                azt2316a->cur_mpu401_irq = 10;
+            else
+                fatal("AZT2316A: invalid mpu401 irq in config word %08X\n", azt2316a->config_word);
+
+            /* these are not present on the EEPROM */
+            azt2316a->cur_wss_irq = device_get_config_int("wss_irq");
+            azt2316a->cur_wss_dma = device_get_config_int("wss_dma");
+            azt2316a->cur_mode    = 0;
+        }
     } else if (azt2316a->type == SB_SUBTYPE_CLONE_AZT1605_0X0C) {
         azt2316a->config_word = read_eeprom[12] + (read_eeprom[13] << 8) + (read_eeprom[14] << 16);
 
@@ -1118,19 +1364,19 @@ azt_init(const device_t *info)
 
         // these are not present on the EEPROM
         if (info->local & 0x80000000)
-            azt2316a->cur_dma     = 1;
+            azt2316a->cur_dma = 1;
         else
-            azt2316a->cur_dma     = device_get_config_int("sb_dma8"); // TODO: investigate TSR to make this work with it - there is no software configurable DMA8?
+            azt2316a->cur_dma = device_get_config_int("sb_dma8"); // TODO: investigate TSR to make this work with it - there is no software configurable DMA8?
         azt2316a->cur_wss_irq = device_get_config_int("wss_irq");
         azt2316a->cur_wss_dma = device_get_config_int("wss_dma");
         azt2316a->cur_mode    = 0;
     }
 
-    addr_setting = device_get_config_hex16("addr");
+    addr_setting = (azt2316a->opti) ? 0 : device_get_config_hex16("addr");
     if (addr_setting)
         azt2316a->cur_addr = addr_setting;
 
-    azt2316a->wss_interrupt_after_config = device_get_config_int("wss_interrupt_after_config");
+    azt2316a->wss_interrupt_after_config = (!!(azt2316a->opti)) ? 0 : device_get_config_int("wss_interrupt_after_config");
 
     /* wss part */
     if (info->local & 0x80000000)
@@ -1141,7 +1387,11 @@ azt_init(const device_t *info)
     ad1848_setirq(&azt2316a->ad1848, azt2316a->cur_wss_irq);
     ad1848_setdma(&azt2316a->ad1848, azt2316a->cur_wss_dma);
 
-    io_sethandler(azt2316a->cur_addr + 0x0400, 0x0040, azt2316a_config_read, NULL, NULL, azt2316a_config_write, NULL, NULL, azt2316a);
+    if (!azt2316a->opti) {
+        io_sethandler(azt2316a->cur_addr + 0x0400, 0x0040, azt2316a_config_read, NULL, NULL, azt2316a_config_write, NULL, NULL, azt2316a);
+    } else {
+        io_sethandler(0xF8D, 6, optimc_reg_read, NULL, NULL, optimc_reg_write, NULL, NULL, azt2316a);
+    }
     io_sethandler(azt2316a->cur_wss_addr, 0x0004, azt2316a_wss_read, NULL, NULL, azt2316a_wss_write, NULL, NULL, azt2316a);
     io_sethandler(azt2316a->cur_wss_addr + 0x0004, 0x0004, ad1848_read, NULL, NULL, ad1848_write, NULL, NULL, &azt2316a->ad1848);
 
@@ -1154,19 +1404,20 @@ azt_init(const device_t *info)
     azt2316a->sb = malloc(sizeof(sb_t));
     memset(azt2316a->sb, 0, sizeof(sb_t));
 
-    azt2316a->sb->opl_enabled = device_get_config_int("opl");
+    azt2316a->sb->opl_enabled = (azt2316a->opti) ? 1 : device_get_config_int("opl");
 
     for (i = 0; i < AZTECH_EEPROM_SIZE; i++)
         azt2316a->sb->dsp.azt_eeprom[i] = read_eeprom[i];
-
-    if (azt2316a->sb->opl_enabled)
-        fm_driver_get(FM_YMF262, &azt2316a->sb->opl);
 
     sb_dsp_init(&azt2316a->sb->dsp, SBPRO2, azt2316a->type, azt2316a);
     sb_dsp_setaddr(&azt2316a->sb->dsp, azt2316a->cur_addr);
     sb_dsp_setirq(&azt2316a->sb->dsp, azt2316a->cur_irq);
     sb_dsp_setdma8(&azt2316a->sb->dsp, azt2316a->cur_dma);
     sb_ct1345_mixer_reset(azt2316a->sb);
+
+    if (azt2316a->sb->opl_enabled)
+        fm_driver_get(FM_YMF262, &azt2316a->sb->opl);
+
     /* DSP I/O handler is activated in sb_dsp_setaddr */
     if (azt2316a->sb->opl_enabled) {
         io_sethandler(azt2316a->cur_addr + 0, 0x0004, azt2316a->sb->opl.read, NULL, NULL, azt2316a->sb->opl.write, NULL, NULL, azt2316a->sb->opl.priv);
@@ -1202,25 +1453,27 @@ azt_close(void *p)
     uint8_t     checksum = 0x7f;
     int         i;
 
-    if (azt2316a->type == SB_SUBTYPE_CLONE_AZT1605_0X0C) {
-        fn = "azt1605.nvr";
-    } else if (azt2316a->type == SB_SUBTYPE_CLONE_AZT2316A_0X11) {
-        fn = "azt2316a.nvr";
-    }
+    if (!azt2316a->opti) {
+        if (azt2316a->type == SB_SUBTYPE_CLONE_AZT1605_0X0C) {
+            fn = "azt1605.nvr";
+        } else if (azt2316a->type == SB_SUBTYPE_CLONE_AZT2316A_0X11) {
+            fn = "azt2316a.nvr";
+        }
 
-    /* always save to eeprom (recover from bad values) */
-    f = nvr_fopen(fn, "wb");
-    if (f) {
-        for (i = 0; i < AZTECH_EEPROM_SIZE; i++)
-            checksum += azt2316a->sb->dsp.azt_eeprom[i];
-        fwrite(azt2316a->sb->dsp.azt_eeprom, AZTECH_EEPROM_SIZE, 1, f);
+        /* always save to eeprom (recover from bad values) */
+        f = nvr_fopen(fn, "wb");
+        if (f) {
+            for (i = 0; i < AZTECH_EEPROM_SIZE; i++)
+                checksum += azt2316a->sb->dsp.azt_eeprom[i];
+            fwrite(azt2316a->sb->dsp.azt_eeprom, AZTECH_EEPROM_SIZE, 1, f);
 
-        // TODO: confirm any models saving mixer settings to EEPROM and implement reading back
-        // TODO: should remember to save wss duplex setting if 86Box has voice recording implemented in the future? Also, default azt2316a->wss_config
-        // TODO: azt2316a->cur_mode is not saved to EEPROM?
-        fwrite(&checksum, sizeof(checksum), 1, f);
+            // TODO: confirm any models saving mixer settings to EEPROM and implement reading back
+            // TODO: should remember to save wss duplex setting if 86Box has voice recording implemented in the future? Also, default azt2316a->wss_config
+            // TODO: azt2316a->cur_mode is not saved to EEPROM?
+            fwrite(&checksum, sizeof(checksum), 1, f);
 
-        fclose(f);
+            fclose(f);
+        }
     }
 
     sb_close(azt2316a->sb);
@@ -1382,7 +1635,7 @@ static const device_config_t azt1605_config[] = {
 };
 
 static const device_config_t azt2316a_config[] = {
-  // clang-format off
+// clang-format off
     {
         .name = "codec",
         .description = "CODEC",
@@ -1505,66 +1758,10 @@ static const device_config_t azt2316a_config[] = {
 static const device_config_t acermagic_s20_config[] = {
   // clang-format off
     {
-        .name = "wss_interrupt_after_config",
-        .description = "Raise CODEC interrupt on CODEC setup (needed by some drivers)",
+        .name = "gameport",
+        .description = "Gameport",
         .type = CONFIG_BINARY,
         .default_int = 0
-    },
-    {
-        .name = "addr",
-        .description = "SB Address",
-        .type = CONFIG_HEX16,
-        .default_string = "",
-        .default_int = 0,
-        .file_filter = "",
-        .spinner = { 0 },
-        .selection = {
-            {
-                .description = "0x220",
-                .value = 0x220
-            },
-            {
-                .description = "0x240",
-                .value = 0x240
-            },
-            {
-                .description = "Use EEPROM setting",
-                .value = 0
-            },
-            {
-                .description = ""
-            }
-        }
-    },
-    {
-        .name = "wss_irq",
-        .description = "WSS IRQ",
-        .type = CONFIG_SELECTION,
-        .selection = {
-            {
-                .description = "IRQ 11",
-                .value = 11
-            },
-            {
-                .description = "IRQ 10",
-                .value = 10
-            },
-            {
-                .description = "IRQ 7",
-                .value = 7
-            },
-            {
-                .description = ""
-            }
-        },
-        .default_int = 10
-    },
-    {
-        .name = "opl",
-        .description = "Enable OPL",
-        .type = CONFIG_BINARY,
-        .default_string = "",
-        .default_int = 1
     },
     {
         .name = "receive_input",
@@ -1581,7 +1778,7 @@ static const device_config_t acermagic_s20_config[] = {
         .default_int = 0
     },
     { .name = "", .description = "", .type = CONFIG_END }
-// clang-format on
+  // clang-format on
 };
 
 const device_t azt2316a_device = {
