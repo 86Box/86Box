@@ -8,11 +8,12 @@
  *
  *          Virtual ISO CD-ROM image back-end.
  *
+ *
+ *
  * Authors: RichardG <richardg867@gmail.com>
  *
  *          Copyright 2022 RichardG.
  */
-// clang-format off
 #ifndef _LARGEFILE_SOURCE
 #define _LARGEFILE_SOURCE
 #endif
@@ -40,7 +41,6 @@
 #include <86box/version.h>
 #include <86box/timer.h>
 #include <86box/nvr.h>
-// clang-format on
 
 #ifndef S_ISDIR
 #    define S_ISDIR(m) (((m) &S_IFMT) == S_IFDIR)

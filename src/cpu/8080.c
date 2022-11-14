@@ -1,16 +1,16 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		8080 CPU emulation.
+ *          8080 CPU emulation.
  *
- * Authors:	Cacodemon345
+ * Authors: Cacodemon345
  *
- *		Copyright 2022 Cacodemon345
+ *          Copyright 2022 Cacodemon345
  */
 
 
@@ -45,9 +45,9 @@ clock_end(void)
     int diff = cycdiff - cycles;
 
     /* On 808x systems, clock speed is usually crystal frequency divided by an integer. */
-    tsc += (uint64_t)diff * ((uint64_t)xt_cpu_multi >> 32ULL);		/* Shift xt_cpu_multi by 32 bits to the right and then multiply. */
+    tsc += (uint64_t)diff * ((uint64_t)xt_cpu_multi >> 32ULL); /* Shift xt_cpu_multi by 32 bits to the right and then multiply. */
     if (TIMER_VAL_LESS_THAN_VAL(timer_target, (uint32_t)tsc))
-	timer_process();
+        timer_process();
 }
 
 static void
@@ -55,8 +55,8 @@ i8080_wait(int c, int bus)
 {
     cycles -= c;
     if (bus < 2) {
-	    clock_end();
-	    clock_start();
+        clock_end();
+        clock_start();
     }
 }
 

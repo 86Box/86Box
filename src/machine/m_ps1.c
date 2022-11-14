@@ -1,36 +1,36 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Emulation of the IBM PS/1 models 2011, 2121.
+ *          Emulation of the IBM PS/1 models 2011, 2121.
  *
- * Model 2011:	The initial model, using a 10MHz 80286.
+ * Model 2011: The initial model, using a 10MHz 80286.
  *
- * Model 2121:	This is similar to model 2011 but some of the functionality
- *		has moved to a chip at ports 0xe0 (index)/0xe1 (data). The
- *		only functions I have identified are enables for the first
- *		512K and next 128K of RAM, in bits 0 of registers 0 and 1
- *		respectively.
+ * Model 2121: This is similar to model 2011 but some of the functionality
+ *             has moved to a chip at ports 0xe0 (index)/0xe1 (data). The
+ *             only functions I have identified are enables for the first
+ *             512K and next 128K of RAM, in bits 0 of registers 0 and 1
+ *             respectively.
  *
- *		Port 0x105 has bit 7 forced high. Without this 128K of
- *		memory will be missed by the BIOS on cold boots.
+ *             Port 0x105 has bit 7 forced high. Without this 128K of
+ *             memory will be missed by the BIOS on cold boots.
  *
- *		The reserved 384K is remapped to the top of extended memory.
- *		If this is not done then you get an error on startup.
+ *             The reserved 384K is remapped to the top of extended memory.
+ *             If this is not done then you get an error on startup.
  *
  *
  *
- * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
- *		Miran Grca, <mgrca8@gmail.com>
- *		Fred N. van Kempen, <decwiz@yahoo.com>
+ * Authors: Sarah Walker, <http://pcem-emulator.co.uk/>
+ *          Miran Grca, <mgrca8@gmail.com>
+ *          Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 2008-2019 Sarah Walker.
- *		Copyright 2016-2019 Miran Grca.
- *		Copyright 2017-2019 Fred N. van Kempen.
+ *          Copyright 2008-2019 Sarah Walker.
+ *          Copyright 2016-2019 Miran Grca.
+ *          Copyright 2017-2019 Fred N. van Kempen.
  */
 #include <stdio.h>
 #include <stdint.h>

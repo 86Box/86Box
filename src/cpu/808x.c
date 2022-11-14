@@ -1,19 +1,19 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		808x CPU emulation, mostly ported from reenigne's XTCE, which
- *		is cycle-accurate.
+ *          808x CPU emulation, mostly ported from reenigne's XTCE, which
+ *          is cycle-accurate.
  *
- * Authors:	Andrew Jenner, <https://www.reenigne.org>
- *		Miran Grca, <mgrca8@gmail.com>
+ * Authors: Andrew Jenner, <https://www.reenigne.org>
+ *          Miran Grca, <mgrca8@gmail.com>
  *
- *		Copyright 2015-2020 Andrew Jenner.
- *		Copyright 2016-2020 Miran Grca.
+ *          Copyright 2015-2020 Andrew Jenner.
+ *          Copyright 2016-2020 Miran Grca.
  */
 #include <math.h>
 #include <stdarg.h>

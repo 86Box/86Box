@@ -12,13 +12,13 @@
  *
  *
  *
- * Author: Sarah Walker, <http://pcem-emulator.co.uk/>
- *         Miran Grca, <mgrca8@gmail.com>
- *         Fred N. van Kempen, <decwiz@yahoo.com>
+ * Authors: Sarah Walker, <http://pcem-emulator.co.uk/>
+ *          Miran Grca, <mgrca8@gmail.com>
+ *          Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *         Copyright 2008-2020 Sarah Walker.
- *         Copyright 2016-2020 Miran Grca.
- *         Copyright 2017-2020 Fred N. van Kempen.
+ *          Copyright 2008-2020 Sarah Walker.
+ *          Copyright 2016-2020 Miran Grca.
+ *          Copyright 2017-2020 Fred N. van Kempen.
  */
 #include <stdarg.h>
 #include <stdio.h>
@@ -52,6 +52,7 @@ static int             next_inst = 0;
 static serial_device_t serial_devices[SERIAL_MAX];
 
 //#define ENABLE_SERIAL_CONSOLE 1
+
 #ifdef ENABLE_SERIAL_LOG
 int serial_do_log = ENABLE_SERIAL_LOG;
 

@@ -1,19 +1,19 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Implement the VNC remote renderer with LibVNCServer.
+ *          Implement the VNC remote renderer with LibVNCServer.
  *
  *
  *
- * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
- *		Based on raw code by RichardG, <richardg867@gmail.com>
+ * Authors: Fred N. van Kempen, <decwiz@yahoo.com>
+ *          Based on raw code by RichardG, <richardg867@gmail.com>
  *
- *		Copyright 2017-2019 Fred N. van Kempen.
+ *          Copyright 2017-2019 Fred N. van Kempen.
  */
 #include <stdarg.h>
 #include <stdio.h>
@@ -192,12 +192,12 @@ vnc_init(UNUSED(void *arg))
     rfbPixelFormat rpf = {
         /*
          * Screen format:
-         *	32bpp; 32 depth;
-         *	little endian;
-         *	true color;
-         *	max 255 R/G/B;
-         *	red shift 16; green shift 8; blue shift 0;
-         *	padding
+         *  32bpp; 32 depth;
+         *  little endian;
+         *  true color;
+         *  max 255 R/G/B;
+         *  red shift 16; green shift 8; blue shift 0;
+         *  padding
          */
         32, 32, 0, 1, 255, 255, 255, 16, 8, 0, 0, 0
     };

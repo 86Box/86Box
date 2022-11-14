@@ -1,24 +1,24 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Main emulator module where most things are controlled.
+ *          Main emulator module where most things are controlled.
  *
  *
  *
- * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
- *		Miran Grca, <mgrca8@gmail.com>
- *		Fred N. van Kempen, <decwiz@yahoo.com>
+ * Authors: Sarah Walker, <http://pcem-emulator.co.uk/>
+ *          Miran Grca, <mgrca8@gmail.com>
+ *          Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 2008-2020 Sarah Walker.
- *		Copyright 2016-2020 Miran Grca.
- *		Copyright 2017-2020 Fred N. van Kempen.
- *		Copyright 2021 Laci bá'
- *		Copyright 2021 dob205
+ *          Copyright 2008-2020 Sarah Walker.
+ *          Copyright 2016-2020 Miran Grca.
+ *          Copyright 2017-2020 Fred N. van Kempen.
+ *          Copyright 2021 Laci bá'
+ *          Copyright 2021 dob205
  */
 #include <inttypes.h>
 #include <stdarg.h>
@@ -205,15 +205,15 @@ char  exe_path[2048]; /* path (dir) of executable */
 char  usr_path[1024]; /* path (dir) of user data */
 char  cfg_path[1024]; /* full path of config file */
 FILE *stdlog = NULL;  /* file to log output to */
-// int	scrnsz_x = SCREEN_RES_X;		/* current screen size, X */
-// int scrnsz_y = SCREEN_RES_Y;			/* current screen size, Y */
+// int   scrnsz_x = SCREEN_RES_X; /* current screen size, X */
+// int   scrnsz_y = SCREEN_RES_Y; /* current screen size, Y */
 int config_changed; /* config has changed */
 int title_update;
 int framecountx        = 0;
 int hard_reset_pending = 0;
 
-// int	unscaled_size_x = SCREEN_RES_X;	/* current unscaled size X */
-// int unscaled_size_y = SCREEN_RES_Y;	/* current unscaled size Y */
+// int unscaled_size_x = SCREEN_RES_X; /* current unscaled size X */
+// int unscaled_size_y = SCREEN_RES_Y; /* current unscaled size Y */
 // int efscrnsz_y = SCREEN_RES_Y;
 
 static wchar_t mouse_msg[3][200];
@@ -473,7 +473,7 @@ usage:
             printf("-D or --debug        - force debug output logging\n");
 #endif
 #if 0
-			printf("-E or --nographic    - forces the old behavior\n");
+            printf("-E or --nographic    - forces the old behavior\n");
 #endif
             printf("-F or --fullscreen   - start in fullscreen mode\n");
             printf("-G or --lang langid  - start with specified language (e.g. en-US, or system)\n");
