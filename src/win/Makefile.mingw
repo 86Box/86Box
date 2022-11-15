@@ -15,16 +15,16 @@
 
 # Various compile-time options.
 ifndef STUFF
-STUFF :=
+ STUFF :=
 endif
 
 # Add feature selections here.
 ifndef EXTRAS
-EXTRAS :=
+ EXTRAS :=
 endif
 
 ifndef DEV_BUILD
-DEV_BUILD := n
+ DEV_BUILD := n
 endif
 
 ifeq ($(DEV_BUILD), y)
@@ -153,22 +153,22 @@ endif
 
 # Defaults for several build options (possibly defined in a chained file.)
 ifndef AUTODEP
-AUTODEP := n
+ AUTODEP := n
 endif
 ifndef OPTIM
-OPTIM := n
+ OPTIM := n
 endif
 ifndef RELEASE
-RELEASE := n
+ RELEASE := n
 endif
 ifndef X64
-X64 := n
+ X64 := n
 endif
 ifndef ARM
-ARM := n
+ ARM := n
 endif
 ifndef ARM64
-ARM64 := n
+ ARM64 := n
 endif
 ifndef DINPUT
  DINPUT := n
@@ -238,42 +238,42 @@ VPATH := $(EXPATH) . $(CODEGEN) minitrace cpu \
          sound/resid-fp sound/ymfm \
          scsi video network network/slirp win
 ifeq ($(X64), y)
-TOOL_PREFIX := x86_64-w64-mingw32-
+ TOOL_PREFIX := x86_64-w64-mingw32-
 else
-TOOL_PREFIX := i686-w64-mingw32-
+ TOOL_PREFIX := i686-w64-mingw32-
 endif
 WINDRES := windres
 STRIP   := strip
 ifeq ($(ARM64), y)
-WINDRES := aarch64-w64-mingw32-windres
-STRIP   := aarch64-w64-mingw32-strip
+ WINDRES := aarch64-w64-mingw32-windres
+ STRIP   := aarch64-w64-mingw32-strip
 endif
 ifeq ($(ARM), y)
-WINDRES := armv7-w64-mingw32-windres
-STRIP   := armv7-w64-mingw32-strip
+ WINDRES := armv7-w64-mingw32-windres
+ STRIP   := armv7-w64-mingw32-strip
 endif
 ifeq ($(CLANG), y)
-CPP := clang++
-CC  := clang
-ifeq ($(ARM64), y)
-CPP := aarch64-w64-mingw32-clang++
-CC  := aarch64-w64-mingw32-clang
-endif
-ifeq ($(ARM), y)
-CPP := armv7-w64-mingw32-clang++
-CC  := armv7-w64-mingw32-clang
-endif
+ CPP := clang++
+ CC  := clang
+ ifeq ($(ARM64), y)
+  CPP := aarch64-w64-mingw32-clang++
+  CC  := aarch64-w64-mingw32-clang
+ endif
+ ifeq ($(ARM), y)
+  CPP := armv7-w64-mingw32-clang++
+  CC  := armv7-w64-mingw32-clang
+ endif
 else
-CPP := ${TOOL_PREFIX}g++
-CC  := ${TOOL_PREFIX}gcc
-ifeq ($(ARM64), y)
-CPP := aarch64-w64-mingw32-g++
-CC  := aarch64-w64-mingw32-gcc
-endif
-ifeq ($(ARM), y)
-CPP := armv7-w64-mingw32-g++
-CC  := armv7-w64-mingw32-gcc
-endif
+ CPP := ${TOOL_PREFIX}g++
+ CC  := ${TOOL_PREFIX}gcc
+ ifeq ($(ARM64), y)
+  CPP := aarch64-w64-mingw32-g++
+  CC  := aarch64-w64-mingw32-gcc
+ endif
+ ifeq ($(ARM), y)
+  CPP := armv7-w64-mingw32-g++
+  CC  := armv7-w64-mingw32-gcc
+ endif
 endif
 DEPS     = -MMD -MF $*.d -c $<
 DEPFILE := win/.depends
@@ -283,10 +283,10 @@ OPTS := $(EXTRAS) $(STUFF)
 OPTS += -Iinclude -Iinclude_make \
         -iquote $(CODEGEN) -iquote cpu
 ifdef EXFLAGS
-OPTS += $(EXFLAGS)
+ OPTS += $(EXFLAGS)
 endif
 ifdef EXINC
-OPTS += -I$(EXINC)
+ OPTS += -I$(EXINC)
 endif
 ifeq ($(OPTIM), y)
  DFLAGS := -march=native
@@ -329,15 +329,15 @@ ifeq ($(ARM64), y)
 endif
 RFLAGS := --input-format=rc -O coff -Iinclude -Iinclude_make
 ifeq ($(RELEASE), y)
-OPTS   += -DRELEASE_BUILD
-RFLAGS += -DRELEASE_BUILD
+ OPTS   += -DRELEASE_BUILD
+ RFLAGS += -DRELEASE_BUILD
 endif
 
 
 # Optional modules.
 ifeq ($(DYNAREC), y)
-OPTS   += -DUSE_DYNAREC
-RFLAGS += -DUSE_DYNAREC
+ OPTS   += -DUSE_DYNAREC
+ RFLAGS += -DUSE_DYNAREC
 
  ifeq ($(NEW_DYNAREC), y)
   OPTS   += -DUSE_NEW_DYNAREC
@@ -384,129 +384,128 @@ else
 endif
 
 ifeq ($(FLUIDSYNTH), y)
-OPTS      += -DUSE_FLUIDSYNTH
-FSYNTHOBJ := midi_fluidsynth.o
+ OPTS      += -DUSE_FLUIDSYNTH
+ FSYNTHOBJ := midi_fluidsynth.o
 endif
 
 ifeq ($(MUNT), y)
-OPTS    += -DUSE_MUNT
-MUNTOBJ := midi_mt32.o \
-           Analog.o BReverbModel.o Display.o File.o FileStream.o LA32Ramp.o \
-           LA32FloatWaveGenerator.o LA32WaveGenerator.o \
-           MidiStreamParser.o Part.o Partial.o PartialManager.o \
-           Poly.o ROMInfo.o SampleRateConverter.o \
-           FIRResampler.o IIR2xResampler.o LinearResampler.o ResamplerModel.o \
-           SincResampler.o InternalResampler.o \
-           Synth.o Tables.o TVA.o TVF.o TVP.o sha1.o c_interface.o
+ OPTS    += -DUSE_MUNT
+ MUNTOBJ := midi_mt32.o \
+            Analog.o BReverbModel.o Display.o File.o FileStream.o LA32Ramp.o \
+            LA32FloatWaveGenerator.o LA32WaveGenerator.o \
+            MidiStreamParser.o Part.o Partial.o PartialManager.o \
+            Poly.o ROMInfo.o SampleRateConverter.o \
+            FIRResampler.o IIR2xResampler.o LinearResampler.o ResamplerModel.o \
+            SincResampler.o InternalResampler.o \
+            Synth.o Tables.o TVA.o TVF.o TVP.o sha1.o c_interface.o
 endif
 
 ifeq ($(CPPTHREADS), y)
-THREADOBJ := thread.o
+ THREADOBJ := thread.o
 else
-THREADOBJ := win_thread.o
+ THREADOBJ := win_thread.o
 endif
 
 ifeq ($(VNC), y)
-OPTS   += -DUSE_VNC
-RFLAGS += -DUSE_VNC
+ OPTS   += -DUSE_VNC
+ RFLAGS += -DUSE_VNC
  ifneq ($(VNC_PATH), )
   OPTS   += -I$(VNC_PATH)\INCLUDE
   VNCLIB := -L$(VNC_PATH)\LIB
  endif
-VNCLIB +=  -lvncserver
-VNCOBJ := vnc.o vnc_keymap.o
+ VNCLIB +=  -lvncserver
+ VNCOBJ := vnc.o vnc_keymap.o
 endif
 
 ifeq ($(MINITRACE), y)
-OPTS         += -DMTR_ENABLED
-RFLAGS       += -DMTR_ENABLED
-MINITRACEOBJ := minitrace.o
+ OPTS         += -DMTR_ENABLED
+ RFLAGS       += -DMTR_ENABLED
+ MINITRACEOBJ := minitrace.o
 endif
 
 ifeq ($(FAUDIO), y)
-OPTS += -DUSE_FAUDIO
+ OPTS += -DUSE_FAUDIO
 endif
 
 # Options for the DEV branch.
 ifeq ($(DEV_BRANCH), y)
-OPTS     += -DDEV_BRANCH
-RFLAGS   += -DDEV_BRANCH
-DEVBROBJ :=
+ OPTS     += -DDEV_BRANCH
+ RFLAGS   += -DDEV_BRANCH
+ DEVBROBJ :=
 
-ifeq ($(AMD_K5), y)
-OPTS += -DUSE_AMD_K5
-endif
+ ifeq ($(AMD_K5), y)
+  OPTS += -DUSE_AMD_K5
+ endif
 
-ifeq ($(AN430TX), y)
-OPTS += -DUSE_AN430TX
-endif
+ ifeq ($(AN430TX), y)
+  OPTS += -DUSE_AN430TX
+ endif
 
-ifeq ($(CYRIX_6X86), y)
-OPTS += -DUSE_CYRIX_6X86
-endif
+ ifeq ($(CYRIX_6X86), y)
+  OPTS += -DUSE_CYRIX_6X86
+ endif
 
-ifeq ($(DESKPRO386), y)
-OPTS += -DUSE_DESKPRO386
-endif
+ ifeq ($(DESKPRO386), y)
+  OPTS += -DUSE_DESKPRO386
+ endif
 
-ifeq ($(GUSMAX), y)
-OPTS += -DUSE_GUSMAX
-endif
+ ifeq ($(GUSMAX), y)
+  OPTS += -DUSE_GUSMAX
+ endif
 
-ifeq ($(ISAMEM_RAMPAGE), y)
-OPTS += -DUSE_ISAMEM_RAMPAGE
-endif
+ ifeq ($(ISAMEM_RAMPAGE), y)
+  OPTS += -DUSE_ISAMEM_RAMPAGE
+ endif
 
-ifeq ($(ISAMEM_IAB), y)
-OPTS += -DUSE_ISAMEM_IAB
-endif
+ ifeq ($(ISAMEM_IAB), y)
+  OPTS += -DUSE_ISAMEM_IAB
+ endif
 
-ifeq ($(ISAMEM_BRAT), y)
-OPTS += -DUSE_ISAMEM_BRAT
-endif
+ ifeq ($(ISAMEM_BRAT), y)
+  OPTS += -DUSE_ISAMEM_BRAT
+ endif
 
-ifeq ($(LASERXT), y)
-OPTS     += -DUSE_LASERXT
-DEVBROBJ += m_xt_laserxt.o
-endif
+ ifeq ($(LASERXT), y)
+  OPTS     += -DUSE_LASERXT
+  DEVBROBJ += m_xt_laserxt.o
+ endif
 
-ifeq ($(MGA), y)
-OPTS     += -DUSE_MGA
-DEVBROBJ += vid_mga.o
-endif
+ ifeq ($(MGA), y)
+  OPTS     += -DUSE_MGA
+  DEVBROBJ += vid_mga.o
+ endif
 
-ifeq ($(OPEN_AT), y)
-OPTS += -DUSE_OPEN_AT
-endif
+ ifeq ($(OPEN_AT), y)
+  OPTS += -DUSE_OPEN_AT
+ endif
 
-ifeq ($(PAS16), y)
-OPTS     += -DUSE_PAS16
-DEVBROBJ += snd_pas16.o
-endif
+ ifeq ($(PAS16), y)
+  OPTS     += -DUSE_PAS16
+  DEVBROBJ += snd_pas16.o
+ endif
 
-ifeq ($(SIO_DETECT), y)
-OPTS     += -DUSE_SIO_DETECT
-DEVBROBJ += sio_detect.o
-endif
+ ifeq ($(SIO_DETECT), y)
+  OPTS     += -DUSE_SIO_DETECT
+  DEVBROBJ += sio_detect.o
+ endif
 
-ifeq ($(VGAWONDER), y)
-OPTS += -DUSE_VGAWONDER
-endif
+ ifeq ($(VGAWONDER), y)
+  OPTS += -DUSE_VGAWONDER
+ endif
 
-ifeq ($(XL24), y)
-OPTS += -DUSE_XL24
-endif
+ ifeq ($(XL24), y)
+  OPTS += -DUSE_XL24
+ endif
 
-ifeq ($(OLIVETTI), y)
-OPTS     += -DUSE_OLIVETTI
-DEVBROBJ += olivetti_eva.o
-endif
+ ifeq ($(OLIVETTI), y)
+  OPTS     += -DUSE_OLIVETTI
+  DEVBROBJ += olivetti_eva.o
+ endif
 
-ifeq ($(GDBSTUB), y)
-OPTS     += -DUSE_GDBSTUB
-DEVBROBJ += gdbstub.o
-endif
-
+ ifeq ($(GDBSTUB), y)
+  OPTS     += -DUSE_GDBSTUB
+  DEVBROBJ += gdbstub.o
+ endif
 endif
 
 
@@ -772,17 +771,17 @@ OBJ := $(MAINOBJ) $(CPUOBJ) $(CHIPSETOBJ) $(MCHOBJ) $(DEVOBJ) $(MEMOBJ) \
        $(NETOBJ) $(PRINTOBJ) $(SCSIOBJ) $(SIOOBJ) $(SNDOBJ) $(VIDOBJ) $(VOODOOOBJ) \
        $(PLATOBJ) $(UIOBJ) $(FSYNTHOBJ) $(MUNTOBJ) $(DEVBROBJ) $(MINITRACEOBJ) $(THREADOBJ)
 ifdef EXOBJ
-OBJ += $(EXOBJ)
+ OBJ += $(EXOBJ)
 endif
 
 ifeq ($(OPENAL), y)
-LIBS := -mwindows -lopenal -lcomctl32 -lSDL2 -limagehlp -ldinput8 -ldxguid -ldxerr8 -luser32 -lgdi32 -lwinmm -limm32 -lole32 -loleaut32 -lshell32 -lversion -luuid -lws2_32
+ LIBS := -mwindows -lopenal -lcomctl32 -lSDL2 -limagehlp -ldinput8 -ldxguid -ldxerr8 -luser32 -lgdi32 -lwinmm -limm32 -lole32 -loleaut32 -lshell32 -lversion -luuid -lws2_32
 else
-ifeq ($(FAUDIO), y)
-LIBS := -mwindows -lfaudio -lcomctl32 -lSDL2 -limagehlp -ldinput8 -ldxguid -ldxerr8 -luser32 -lgdi32 -lwinmm -limm32 -lole32 -loleaut32 -lshell32 -lversion -luuid -lws2_32
-else
-LIBS := -mwindows -lcomctl32 -lSDL2 -limagehlp -ldinput8 -ldxguid -ldxerr8 -luser32 -lgdi32 -lwinmm -limm32 -lole32 -loleaut32 -lshell32 -lversion -luuid -lws2_32
-endif
+ ifeq ($(FAUDIO), y)
+  LIBS := -mwindows -lfaudio -lcomctl32 -lSDL2 -limagehlp -ldinput8 -ldxguid -ldxerr8 -luser32 -lgdi32 -lwinmm -limm32 -lole32 -loleaut32 -lshell32 -lversion -luuid -lws2_32
+ else
+  LIBS := -mwindows -lcomctl32 -lSDL2 -limagehlp -ldinput8 -ldxguid -ldxerr8 -luser32 -lgdi32 -lwinmm -limm32 -lole32 -loleaut32 -lshell32 -lversion -luuid -lws2_32
+ endif
 endif
 
 ifeq ($(RTMIDI), y)
@@ -792,16 +791,16 @@ ifeq ($(RTMIDI), y)
 endif
 
 ifeq ($(VNC), y)
-LIBS += $(VNCLIB) -lws2_32
+ LIBS += $(VNCLIB) -lws2_32
 endif
 LIBS += -lpng -lz -lwsock32 -liphlpapi -lpsapi -lhid -lsetupapi -luxtheme -static -lstdc++
 ifneq ($(X64), y)
-ifneq ($(ARM64), y)
-LIBS += -Wl,--large-address-aware
-endif
+ ifneq ($(ARM64), y)
+  LIBS += -Wl,--large-address-aware
+ endif
 endif
 ifeq ($(ARM64), y)
-LIBS += -lgcc
+ LIBS += -lgcc
 endif
 ifeq ($(DINPUT), y)
  LIBS += -ldinput8
