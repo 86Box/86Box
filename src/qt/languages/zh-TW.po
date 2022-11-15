@@ -1,5 +1,5 @@
 msgid "&Action"
-msgstr "操作(&A)"
+msgstr "動作(&A)"
 
 msgid "&Keyboard requires capture"
 msgstr "鍵盤需要捕捉(&K)"
@@ -584,7 +584,7 @@ msgid "CD-ROM drives:"
 msgstr "光碟機:"
 
 msgid "Earlier drive"
-msgstr "早先的驅動器"
+msgstr "早先的光碟機"
 
 msgid "MO drives:"
 msgstr "磁光碟機:"
