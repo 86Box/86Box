@@ -494,8 +494,8 @@ load_machine(void)
     mem_size = (((machine_has_bus(machine, MACHINE_AT) && (machines[machine].ram_granularity < 128)) ? machines[machine].min_ram*1024 : machines[machine].min_ram);
 #endif
 
-    if (mem_size > 2097152)
-        mem_size = 2097152;
+    if (mem_size > machine_get_max_ram(machine))
+        mem_size = machine_get_max_ram(machine);
 
     cpu_use_dynarec = !!ini_section_get_int(cat, "cpu_use_dynarec", 0);
 

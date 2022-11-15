@@ -328,6 +328,7 @@ void HarddiskDialog::onCreateNewFile() {
     }
     QFileInfo fi(fileName);
     fileName = (fi.isRelative() && !fi.filePath().isEmpty()) ? usr_path + fi.filePath() : fi.filePath();
+    ui->fileField->setFileName(fileName);
 
     QFile file(fileName);
     if (! file.open(QIODevice::WriteOnly)) {
