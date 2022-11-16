@@ -212,6 +212,30 @@ machine_xt_amixt_init(const machine_t *model)
     return ret;
 }
 
+// TODO
+// Onboard EGA Graphics (NSI Logic EVC315-S on early boards STMicroelectronics EGA on later revisions)
+// Adaptec ACB-2072 RLL Controller Card (Optional)
+// Atari PCM1 Mouse Support
+int
+machine_xt_ataripc3_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/ataripc3/AWARD_ATARI_PC_BIOS_3.08.BIN",
+                           0x000f8000, 32768, 0);
+#if 0
+    ret = bios_load_linear("roms/machines/ataripc3/c101701-004 308.u61",
+                           0x000f8000, 0x8000, 0);
+#endif
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_xt_clone_init(model, 0);
+
+    return ret;
+}
+
 int
 machine_xt_znic_init(const machine_t *model)
 {
