@@ -676,7 +676,8 @@ SNDOBJ := sound.o \
           snd_emu8k.o snd_mpu401.o \
           snd_sn76489.o snd_ssi2001.o \
           snd_wss.o \
-          snd_ym7128.o
+          snd_ym7128.o \
+          snd_optimc.o
 
 VIDOBJ := agpgart.o video.o \
           vid_table.o \
