@@ -574,24 +574,17 @@ MCHOBJ := machine.o machine_table.o \
           m_at_misc.o
 
 ifeq ($(NEW_KBC), y)
-DEVOBJ := bugger.o cartridge.o cassette.o hasp.o hwm.o hwm_lm75.o hwm_lm78.o hwm_gl518sm.o hwm_nsc366.o hwm_vt82c686.o \
-          ibm_5161.o intel_ich2_gpio.o intel_ich2_trap.o isamem.o isartc.o lpt.o pci_bridge.o postcard.o serial.o \
-          clock_ics9xxx.o isapnp.o \
-          i2c.o i2c_gpio.o smbus_ali7101.o smbus_piix4.o \
-          keyboard.o \
-          keyboard_xt.o kbc_at.o kbd_at.o \
-          mouse.o \
-          mouse_bus.o \
-          mouse_serial.o mouse_ps2.o \
-          phoenix_486_jumper.o \
-          tco.o
+ KBCOBJ := kbc_at.o kbd_at.o
 else
+ KBCOBJ := keyboard_at.o
+endif
+
 DEVOBJ := bugger.o cartridge.o cassette.o hasp.o hwm.o hwm_lm75.o hwm_lm78.o hwm_gl518sm.o hwm_nsc366.o hwm_vt82c686.o \
           ibm_5161.o intel_ich2_gpio.o intel_ich2_trap.o isamem.o isartc.o lpt.o pci_bridge.o postcard.o serial.o \
           clock_ics9xxx.o isapnp.o \
           i2c.o i2c_gpio.o smbus_ali7101.o smbus_piix4.o \
           keyboard.o \
-          keyboard_xt.o keyboard_at.o \
+          keyboard_xt.o $(KBCOBJ) \
           mouse.o \
           mouse_bus.o \
           mouse_serial.o mouse_ps2.o \
