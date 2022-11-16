@@ -967,10 +967,8 @@ optimc_reg_write(uint16_t addr, uint8_t val, void *p)
                     optimc_reload_opl(azt2316a);
                 break;
             case 2: /* MC3 */
-                if (val == 0xE3) {
-                    reg_enable_phase = 1;
+                if (val == 0xE3)
                     break;
-                }
                 azt2316a->opti_regs[2] = val;
                 if (old != val) {
                     optimc_remove_opl(azt2316a);
@@ -1050,7 +1048,12 @@ optimc_reg_write(uint16_t addr, uint8_t val, void *p)
                 break;
         }
     }
+    if (azt2316a->opti_reg_enabled)
+        azt2316a->opti_reg_enabled = 0;
     if (addr == 0xF8F && (val == 0xE3 || val == 0x00)) {
+        if (addr == 0xF8F && val == 0xE3 && !azt2316a->opti_reg_enabled) {
+            azt2316a->opti_reg_enabled = 1;
+        }
         if (reg_enable_phase) {
             switch (reg_enable_phase) {
                 case 1:
@@ -1065,9 +1068,8 @@ optimc_reg_write(uint16_t addr, uint8_t val, void *p)
                     break;
                 case 3:
                     if (val == 0xE3) {
-                        azt2316a->opti_reg_enabled = 1;
-                        azt2316a->opti_regs[2]     = 0x2;
-                        break;
+                        azt2316a->opti_regs[2] = 0x2;
+                        reg_enable_phase       = 1;
                     }
                     break;
             }
@@ -1081,6 +1083,7 @@ static uint8_t
 optimc_reg_read(uint16_t addr, void *p)
 {
     azt2316a_t *azt2316a = (azt2316a_t *) p;
+    uint8_t     temp     = 0xFF;
 
     if (azt2316a->opti_reg_enabled) {
         switch (addr - 0xF8D) {
@@ -1088,14 +1091,16 @@ optimc_reg_read(uint16_t addr, void *p)
             case 1: /* MC2 */
             case 3: /* MC4 */
             case 4: /* MC5 */
-                return azt2316a->opti_regs[addr - 0xF8D];
+                temp = azt2316a->opti_regs[addr - 0xF8D];
             case 5: /* MC6 (not readable) */
-                return 0xFF;
+                break;
             case 2: /* MC3 */
-                return (azt2316a->opti_regs[2] & ~0x3) | 0x2;
+                temp = (azt2316a->opti_regs[2] & ~0x3) | 0x2;
+                break;
         }
+        azt2316a->opti_reg_enabled = 0;
     }
-    return 0xFF;
+    return temp;
 }
 
 static void *
@@ -1635,7 +1640,7 @@ static const device_config_t azt1605_config[] = {
 };
 
 static const device_config_t azt2316a_config[] = {
-// clang-format off
+  // clang-format off
     {
         .name = "codec",
         .description = "CODEC",
@@ -1752,7 +1757,7 @@ static const device_config_t azt2316a_config[] = {
         .default_int = 0
     },
     { .name = "", .description = "", .type = CONFIG_END }
-// clang-format on
+  // clang-format on
 };
 
 static const device_config_t acermagic_s20_config[] = {
