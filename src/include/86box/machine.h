@@ -667,8 +667,8 @@ extern int machine_at_spitfire_init(const machine_t *);
 extern int machine_at_p6i440e2_init(const machine_t *);
 
 extern int machine_at_p2bls_init(const machine_t *);
-extern int machine_at_p3bf_init(const machine_t *);
 extern int machine_at_p2bls_coreboot_init(const machine_t *);
+extern int machine_at_p3bf_init(const machine_t *);
 extern int machine_at_p3bf_coreboot_init(const machine_t *);
 extern int machine_at_bf6_init(const machine_t *);
 extern int machine_at_ax6bc_init(const machine_t *);
