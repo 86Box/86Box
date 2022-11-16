@@ -164,9 +164,6 @@ static int cyrix_addr;
 static void    cpu_write(uint16_t addr, uint8_t val, void *priv);
 static uint8_t cpu_read(uint16_t addr, void *priv);
 
-static void    cpu_write(uint16_t addr, uint8_t val, void *priv);
-static uint8_t cpu_read(uint16_t addr, void *priv);
-
 #ifdef ENABLE_CPU_LOG
 int cpu_do_log = ENABLE_CPU_LOG;
 
