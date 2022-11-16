@@ -21,7 +21,7 @@
 extern "C" {
 #endif
 
-#include <86box/tco.h> /* TCO Header. Needed for the Intel ICH chipsets. */
+#include <86box/tco.h>
 
 #define ACPI_TIMER_FREQ 3579545
 #define PM_FREQ         ACPI_TIMER_FREQ

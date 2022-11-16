@@ -13,7 +13,6 @@
  * Authors: Tiseno100,
  *
  *          Copyright 2022 Tiseno100.
- *
  */
 
 #include <stdarg.h>

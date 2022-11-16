@@ -15,7 +15,6 @@
  *
  *          Copyright 2022 Tiseno100.
  *          Copyright 2022 Jasmine Iwanek.
- *
  */
 
 #include <stdarg.h>
@@ -147,8 +146,7 @@ intel_ich2_pirq_update(int reset, int addr, uint8_t val)
     if (((val & 0x80) != 0x80) && !reset) {                                            /* 86Box doesn't have an APIC yet.                          */
         intel_ich2_log("Intel ICH2 LPC: Update PIRQ %c to IRQ %d\n", '@' + pirq, val); /* Under normal circumstances on an APIC enabled motherboard*/
         pci_set_irq_routing(pirq, intel_ich2_pirq_table(val));                         /* this remains disabled and the IRQ are handed by the APIC */
-    }                                                                                  /* itself.                                                  */
-    else if (reset)
+    } else if (reset)                                                                  /* itself.                                                  */
         for (int i = 1; i <= 8; i++)
             pci_set_irq_routing(i, PCI_IRQ_DISABLED);
 }

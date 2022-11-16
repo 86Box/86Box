@@ -13,7 +13,6 @@
  * Authors: Tiseno100,
  *
  *          Copyright 2022 Tiseno100.
- *
  */
 
 #ifndef EMU_INTEL_ICH2_GPIO_H

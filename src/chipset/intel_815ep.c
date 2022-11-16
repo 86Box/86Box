@@ -15,7 +15,6 @@
  *
  *          Copyright 2022 Tiseno100.
  *          Copyright 2022 Jasmine Iwanek.
- *
  */
 
 #include <stdarg.h>

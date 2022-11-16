@@ -13,7 +13,6 @@
  * Authors: Tiseno100,
  *
  *          Copyright 2022 Tiseno100.
- *
  */
 
 #ifndef EMU_NSC_366_H

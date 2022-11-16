@@ -19,7 +19,6 @@
  *          Copyright 2020 Melissa Goad.
  *          Copyright 2022 Jasmine Iwanek.
  */
-
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>

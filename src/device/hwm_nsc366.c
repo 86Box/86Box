@@ -13,7 +13,6 @@
  * Authors: Tiseno100,
  *
  *          Copyright 2022 Tiseno100.
- *
  */
 
 /* The conversion algorithms were taken by the pc87360.c driver of the Linux kernel.
