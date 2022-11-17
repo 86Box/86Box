@@ -25,7 +25,7 @@ extern int speaker_mute;
 extern int speaker_gated;
 extern int speaker_enable, was_speaker_enable;
 
-extern void speaker_init();
+extern void speaker_init(void);
 
 extern void speaker_set_count(uint8_t new_m, int new_count);
 extern void speaker_update(void);

@@ -494,7 +494,7 @@ pfq_fetchw(void)
 }
 
 static uint16_t
-pfq_fetch()
+pfq_fetch(void)
 {
     if (opcode & 1)
         return pfq_fetchw();
@@ -520,7 +520,7 @@ pfq_add(int c, int add)
 
 /* Clear the prefetch queue - called on reset and on anything that affects either CS or IP. */
 static void
-pfq_clear()
+pfq_clear(void)
 {
     pfq_pos     = 0;
     prefetching = 0;

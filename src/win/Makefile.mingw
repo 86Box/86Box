@@ -177,7 +177,7 @@ ifndef FAUDIO
  FAUDIO := n
 endif
 ifndef OPENAL
- OPENAL := n
+ OPENAL := y
 endif
 ifndef FLUIDSYNTH
  FLUIDSYNTH := y
@@ -519,6 +519,9 @@ CFLAGS := $(CFLAGS)  `pkg-config --cflags freetype2`
 
 CXXFLAGS := $(CFLAGS)
 
+CFLAGS += -Werror=implicit-int -Werror=implicit-function-declaration \
+          -Werror=int-conversion -Werror=strict-prototypes -Werror=old-style-definition
+
 
 #########################################################################
 #             Create the (final) list of objects to build.              #
@@ -669,15 +672,15 @@ SNDOBJ := sound.o \
           snd_lpt_dac.o snd_lpt_dss.o \
           snd_adlib.o snd_adlibgold.o snd_ad1848.o snd_audiopci.o \
           snd_ac97_codec.o snd_ac97_via.o \
-          snd_azt2316a.o snd_cs423x.o snd_cmi8x38.o \
+          snd_azt2316a.o snd_cs423x.o \
+          snd_optimc.o snd_cmi8x38.o \
           snd_cms.o \
           snd_gus.o \
           snd_sb.o snd_sb_dsp.o \
           snd_emu8k.o snd_mpu401.o \
           snd_sn76489.o snd_ssi2001.o \
           snd_wss.o \
-          snd_ym7128.o \
-          snd_optimc.o
+          snd_ym7128.o
 
 VIDOBJ := agpgart.o video.o \
           vid_table.o \

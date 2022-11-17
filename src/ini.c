@@ -492,7 +492,7 @@ ini_write(ini_t ini, char *fn)
 }
 
 ini_t
-ini_new()
+ini_new(void)
 {
     ini_t ini = malloc(sizeof(list_t));
     memset(ini, 0, sizeof(list_t));

@@ -395,7 +395,7 @@ static inline int ir_reg_is_invalid(ir_reg_t ir_reg)
 
 struct ir_data_t;
 
-void codegen_reg_reset();
+void codegen_reg_reset(void);
 /*Write back all dirty registers*/
 void codegen_reg_flush(struct ir_data_t *ir, codeblock_t *block);
 /*Write back and evict all registers*/
@@ -414,6 +414,6 @@ ir_host_reg_t codegen_reg_alloc_write_reg(codeblock_t *block, ir_reg_t ir_reg);
 
 void codegen_reg_rename(codeblock_t *block, ir_reg_t src, ir_reg_t dst);
 
-void codegen_reg_mark_as_required();
+void codegen_reg_mark_as_required(void);
 void codegen_reg_process_dead_list(struct ir_data_t *ir);
 #endif

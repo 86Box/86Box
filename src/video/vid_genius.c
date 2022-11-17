@@ -783,7 +783,7 @@ genius_close(void *p)
 }
 
 static int
-genius_available()
+genius_available(void)
 {
     return rom_present(BIOS_ROM_PATH);
 }

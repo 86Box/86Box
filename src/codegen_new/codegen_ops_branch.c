@@ -13,11 +13,11 @@
 #include "codegen_ops_helpers.h"
 #include "codegen_ops_mov.h"
 
-static int NF_SET_01()
+static int NF_SET_01(void)
 {
         return NF_SET() ? 1 : 0;
 }
-static int VF_SET_01()
+static int VF_SET_01(void)
 {
         return VF_SET() ? 1 : 0;
 }

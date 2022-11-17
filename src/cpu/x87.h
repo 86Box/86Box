@@ -6,7 +6,7 @@
 extern uint32_t x87_pc_off,x87_op_off;
 extern uint16_t x87_pc_seg,x87_op_seg;
 
-static __inline void x87_set_mmx()
+static __inline void x87_set_mmx(void)
 {
 	uint64_t *p;
         cpu_state.TOP = 0;
@@ -15,7 +15,7 @@ static __inline void x87_set_mmx()
         cpu_state.ismmx = 1;
 }
 
-static __inline void x87_emms()
+static __inline void x87_emms(void)
 {
 	uint64_t *p;
 	p = (uint64_t *)cpu_state.tag;
@@ -24,7 +24,7 @@ static __inline void x87_emms()
 }
 
 
-uint16_t x87_gettag();
+uint16_t x87_gettag(void);
 void x87_settag(uint16_t new_tag);
 
 #define TAG_EMPTY  0

@@ -211,7 +211,7 @@ extern uint8_t svga_rotate[8][256];
 void    svga_out(uint16_t addr, uint8_t val, void *p);
 uint8_t svga_in(uint16_t addr, void *p);
 
-svga_t *svga_get_pri();
+svga_t *svga_get_pri(void);
 void    svga_set_override(svga_t *svga, int val);
 
 void svga_set_ramdac_type(svga_t *svga, int type);

@@ -119,7 +119,7 @@ static int opFSTP(uint32_t fetchdat)
 
 
 
-static int FSTOR()
+static int FSTOR(void)
 {
 	uint64_t *p;
         FP_ENTER();
@@ -191,7 +191,7 @@ static int opFSTOR_a32(uint32_t fetchdat)
 }
 #endif
 
-static int FSAVE()
+static int FSAVE(void)
 {
 	uint64_t *p;
 
@@ -751,7 +751,7 @@ static int opFCOS(uint32_t fetchdat)
 #endif
 
 
-static int FLDENV()
+static int FLDENV(void)
 {
         FP_ENTER();
         switch ((cr0 & 1) | (cpu_state.op32 & 0x100))
@@ -828,7 +828,7 @@ static int opFLDCW_a32(uint32_t fetchdat)
 }
 #endif
 
-static int FSTENV()
+static int FSTENV(void)
 {
         FP_ENTER();
 		cpu_state.npxs = (cpu_state.npxs & ~(7 << 11)) | ((cpu_state.TOP & 7) << 11);

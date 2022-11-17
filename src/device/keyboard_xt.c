@@ -367,7 +367,7 @@ kbd_log(const char *fmt, ...)
 #endif
 
 static uint8_t
-get_fdd_switch_settings()
+get_fdd_switch_settings(void)
 {
 
     int i, fdd_count = 0;
@@ -384,7 +384,7 @@ get_fdd_switch_settings()
 }
 
 static uint8_t
-get_videomode_switch_settings()
+get_videomode_switch_settings(void)
 {
 
     if (video_is_mda())

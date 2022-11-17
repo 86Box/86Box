@@ -47,7 +47,7 @@ fpu_log(const char *fmt, ...)
 #define X87_TAG_EMPTY   3
 
 #ifdef USE_NEW_DYNAREC
-uint16_t x87_gettag()
+uint16_t x87_gettag(void)
 {
         uint16_t ret = 0;
         int c;
@@ -84,7 +84,7 @@ void x87_settag(uint16_t new_tag)
         }
 }
 #else
-uint16_t x87_gettag()
+uint16_t x87_gettag(void)
 {
         uint16_t ret = 0;
         int c;
@@ -115,7 +115,7 @@ void x87_settag(uint16_t new_tag)
 
 
 #ifdef ENABLE_808X_LOG
-void x87_dumpregs()
+void x87_dumpregs(void)
 {
         if (cpu_state.ismmx)
         {

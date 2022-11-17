@@ -740,7 +740,7 @@ extern void cpu_fast_off_advance(void);
 extern void cpu_fast_off_period_set(uint16_t vla, double period);
 extern void cpu_fast_off_reset(void);
 
-extern void smi_raise();
-extern void nmi_raise();
+extern void smi_raise(void);
+extern void nmi_raise(void);
 
 #endif /*EMU_CPU_H*/

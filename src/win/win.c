@@ -883,7 +883,7 @@ plat_mmap(size_t size, uint8_t executable)
 }
 
 void
-plat_init_rom_paths()
+plat_init_rom_paths(void)
 {
     wchar_t appdata_dir[1024] = { L'\0' };
 

@@ -22,7 +22,7 @@
 #define MEM_BLOCK_MASK (MEM_BLOCK_NR-1)
 #define MEM_BLOCK_SIZE 0x3c0
 
-void codegen_allocator_init();
+void codegen_allocator_init(void);
 /*Allocate a mem_block_t, and the associated backing memory.
   If parent is non-NULL, then the new block will be added to the list in
   parent->next*/

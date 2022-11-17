@@ -63,7 +63,7 @@ acpi_log(const char *fmt, ...)
 #endif
 
 static uint64_t
-acpi_clock_get()
+acpi_clock_get(void)
 {
     return tsc * cpu_to_acpi;
 }

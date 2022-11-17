@@ -535,7 +535,7 @@ ogc_speed_changed(void *priv)
 }
 
 void
-ogc_mdaattr_rebuild()
+ogc_mdaattr_rebuild(void)
 {
     int c;
 
