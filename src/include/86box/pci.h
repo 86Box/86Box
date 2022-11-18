@@ -113,7 +113,7 @@ extern uint8_t pci_get_int(uint8_t card, uint8_t pci_int);
 
 extern void    pci_reset(void);
 extern void    pci_init(int type);
-extern uint8_t pci_register_bus();
+extern uint8_t pci_register_bus(void);
 extern void    pci_set_pmc(uint8_t pmc);
 extern void    pci_remap_bus(uint8_t bus_index, uint8_t bus_number);
 extern void    pci_relocate_slot(int type, int new_slot);

@@ -201,7 +201,7 @@ mm58174_time_get(uint8_t *regs, struct tm *tm)
 
 /* One more second has passed, update the internal clock. */
 static void
-mm58x74_recalc()
+mm58x74_recalc(void)
 {
     /* Ping the internal clock. */
     if (++intclk.tm_sec == 60) {

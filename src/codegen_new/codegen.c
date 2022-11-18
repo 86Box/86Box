@@ -58,12 +58,12 @@ int has_ea;
 codeblock_t *codeblock;
 uint16_t *codeblock_hash;
 
-void (*codegen_timing_start)();
+void (*codegen_timing_start)(void);
 void (*codegen_timing_prefix)(uint8_t prefix, uint32_t fetchdat);
 void (*codegen_timing_opcode)(uint8_t opcode, uint32_t fetchdat, int op_32, uint32_t op_pc);
-void (*codegen_timing_block_start)();
-void (*codegen_timing_block_end)();
-int (*codegen_timing_jump_cycles)();
+void (*codegen_timing_block_start)(void);
+void (*codegen_timing_block_end)(void);
+int (*codegen_timing_jump_cycles)(void);
 
 void codegen_timing_set(codegen_timing_t *timing)
 {
@@ -81,7 +81,7 @@ static int last_op_ssegs;
 static x86seg *last_op_ea_seg;
 static uint32_t last_op_32;
 
-void codegen_generate_reset()
+void codegen_generate_reset(void)
 {
         last_op_ssegs = -1;
         last_op_ea_seg = NULL;

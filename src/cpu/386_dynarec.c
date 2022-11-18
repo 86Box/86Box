@@ -260,7 +260,7 @@ static void prefetch_run(int instr_cycles, int bytes, int modrm, int reads, int 
 		prefetch_bytes = 16;
 }
 
-static void prefetch_flush()
+static void prefetch_flush(void)
 {
 	prefetch_bytes = 0;
 }
@@ -541,7 +541,7 @@ exec386_dynarec_dyn(void)
     if (valid_block && block->was_recompiled)
 #endif
     {
-	void (*code)() = (void *)&block->data[BLOCK_START];
+	void (*code)(void) = (void *)&block->data[BLOCK_START];
 
 #ifndef USE_NEW_DYNAREC
 	codeblock_hash[hash] = block;

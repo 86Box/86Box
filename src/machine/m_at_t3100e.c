@@ -169,7 +169,7 @@
 
 extern uint8_t *ram; /* Physical RAM */
 
-void at_init();
+void at_init(void);
 
 /* The T3100e motherboard can (and does) dynamically reassign RAM between
  * conventional, XMS and EMS. This translates to monkeying with the mappings.
@@ -336,7 +336,7 @@ port_to_page(uint16_t addr)
 }
 
 /* Used to dump the memory mapping table, for debugging
-void dump_mappings()
+void dump_mappings(void)
 {
         mem_mapping_t *mm = base_mapping.next;
 

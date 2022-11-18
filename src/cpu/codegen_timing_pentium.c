@@ -931,12 +931,12 @@ static inline int codegen_timing_instr_length(uint64_t timing, uint32_t fetchdat
         return len;
 }
 
-void codegen_timing_pentium_block_start()
+void codegen_timing_pentium_block_start(void)
 {
         u_pipe_full = decode_delay = decode_delay_offset = 0;
 }
 
-void codegen_timing_pentium_start()
+void codegen_timing_pentium_start(void)
 {
         last_prefix = 0;
         prefixes = 0;
@@ -1296,7 +1296,7 @@ nopair:
         addr_regmask = 0;
 }
 
-void codegen_timing_pentium_block_end()
+void codegen_timing_pentium_block_end(void)
 {
         if (u_pipe_full)
         {

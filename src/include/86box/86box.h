@@ -162,7 +162,7 @@ extern void set_screen_size_monitor(int x, int y, int monitor_index);
 extern void reset_screen_size(void);
 extern void reset_screen_size_monitor(int monitor_index);
 extern void set_screen_size_natural(void);
-extern void update_mouse_msg();
+extern void update_mouse_msg(void);
 #if 0
 extern void	pc_reload(wchar_t *fn);
 #endif

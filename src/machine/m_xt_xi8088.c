@@ -37,7 +37,7 @@ typedef struct xi8088_t {
 static xi8088_t xi8088;
 
 uint8_t
-xi8088_turbo_get()
+xi8088_turbo_get(void)
 {
     return xi8088.turbo;
 }

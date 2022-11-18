@@ -113,7 +113,7 @@ extern void zip_hard_reset(void);
 
 extern void zip_reset(scsi_common_t *sc);
 extern int  zip_load(zip_t *dev, char *fn);
-extern void zip_close();
+extern void zip_close(void);
 
 #ifdef __cplusplus
 }

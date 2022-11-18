@@ -168,7 +168,7 @@ extern void mo_hard_reset(void);
 
 extern void mo_reset(scsi_common_t *sc);
 extern int  mo_load(mo_t *dev, char *fn);
-extern void mo_close();
+extern void mo_close(void);
 
 #ifdef __cplusplus
 }

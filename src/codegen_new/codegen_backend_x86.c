@@ -264,7 +264,7 @@ static void build_loadstore_routines(codeblock_t *block)
         build_store_routine(block, 8, 1);
 }
 
-void codegen_backend_init()
+void codegen_backend_init(void)
 {
         codeblock_t *block;
         int c;

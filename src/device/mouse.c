@@ -87,7 +87,7 @@ static mouse_t mouse_devices[] = {
 static const device_t *mouse_curr;
 static void           *mouse_priv;
 static int             mouse_nbut;
-static int (*mouse_dev_poll)();
+static int (*mouse_dev_poll)(int x, int y, int z, int b, void *priv);
 
 #ifdef ENABLE_MOUSE_LOG
 int mouse_do_log = ENABLE_MOUSE_LOG;

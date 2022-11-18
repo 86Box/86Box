@@ -229,7 +229,7 @@ void joystick_get_device_name(raw_joystick_t* rawjoy, plat_joystick_t* joy, PRID
 			info->hid.dwProductId);
 }
 
-void joystick_init()
+void joystick_init(void)
 {
 	UINT size = 0;
 	atexit(joystick_close);
@@ -295,7 +295,7 @@ void joystick_init()
 		fatal("plat_joystick_init: RegisterRawInputDevices failed\n");
 }
 
-void joystick_close()
+void joystick_close(void)
 {
 	RAWINPUTDEVICE ridev[2];
 	ridev[0].dwFlags     = RIDEV_REMOVE;

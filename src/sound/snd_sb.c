@@ -2035,37 +2035,37 @@ sb_16_compat_init(const device_t *info)
 }
 
 static int
-sb_awe32_available()
+sb_awe32_available(void)
 {
     return rom_present("roms/sound/awe32.raw");
 }
 
 static int
-sb_32_pnp_available()
+sb_32_pnp_available(void)
 {
     return sb_awe32_available() && rom_present("roms/sound/CT3600 PnP.BIN");
 }
 
 static int
-sb_awe32_pnp_available()
+sb_awe32_pnp_available(void)
 {
     return sb_awe32_available() && rom_present("roms/sound/CT3980 PnP.BIN");
 }
 
 static int
-sb_awe64_value_available()
+sb_awe64_value_available(void)
 {
     return sb_awe32_available() && rom_present("roms/sound/CT4520 PnP.BIN");
 }
 
 static int
-sb_awe64_available()
+sb_awe64_available(void)
 {
     return sb_awe32_available() && rom_present("roms/sound/CT4520 PnP.BIN");
 }
 
 static int
-sb_awe64_gold_available()
+sb_awe64_gold_available(void)
 {
     return sb_awe32_available() && rom_present("roms/sound/CT4540 PnP.BIN");
 }
