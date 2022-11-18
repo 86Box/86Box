@@ -154,7 +154,7 @@ static void block_dirty_list_remove(codeblock_t *block)
         block->flags &= ~CODEBLOCK_IN_DIRTY_LIST;
 }
 
-int codegen_purge_purgable_list()
+int codegen_purge_purgable_list(void)
 {
         if (purgable_page_list_head)
         {
@@ -171,7 +171,7 @@ int codegen_purge_purgable_list()
         return 0;
 }
 
-static codeblock_t *block_free_list_get()
+static codeblock_t *block_free_list_get(void)
 {
         codeblock_t *block = NULL;
 
@@ -210,7 +210,7 @@ static codeblock_t *block_free_list_get()
         return block;
 }
 
-void codegen_init()
+void codegen_init(void)
 {
         int c;
 
@@ -227,7 +227,7 @@ void codegen_init()
 #endif
 }
 
-void codegen_close()
+void codegen_close(void)
 {
 #ifdef DEBUG_EXTRA
         pclog("Instruction counts :\n");
@@ -256,7 +256,7 @@ void codegen_close()
 #endif
 }
 
-void codegen_reset()
+void codegen_reset(void)
 {
         int c;
 
@@ -284,7 +284,7 @@ void codegen_reset()
         }
 }
 
-void dump_block()
+void dump_block(void)
 {
 /*        codeblock_t *block = pages[0x119000 >> 12].block;
 
@@ -574,7 +574,7 @@ void codegen_block_init(uint32_t phys_addr)
 
 static ir_data_t *ir_data;
 
-ir_data_t *codegen_get_ir_data()
+ir_data_t *codegen_get_ir_data(void)
 {
         return ir_data;
 }
@@ -645,7 +645,7 @@ void codegen_block_start_recompile(codeblock_t *block)
 }
 
 
-void codegen_block_remove()
+void codegen_block_remove(void)
 {
         codeblock_t *block = &codeblock[block_current];
 
@@ -654,7 +654,7 @@ void codegen_block_remove()
         recomp_page = -1;
 }
 
-void codegen_block_generate_end_mask_recompile()
+void codegen_block_generate_end_mask_recompile(void)
 {
         codeblock_t *block = &codeblock[block_current];
         page_t *p;
@@ -721,7 +721,7 @@ void codegen_block_generate_end_mask_recompile()
         recomp_page = -1;
 }
 
-void codegen_block_generate_end_mask_mark()
+void codegen_block_generate_end_mask_mark(void)
 {
         codeblock_t *block = &codeblock[block_current];
         uint32_t start_pc;
@@ -799,7 +799,7 @@ void codegen_block_generate_end_mask_mark()
         recomp_page = -1;
 }
 
-void codegen_block_end()
+void codegen_block_end(void)
 {
         codeblock_t *block = &codeblock[block_current];
 
@@ -828,7 +828,7 @@ void codegen_block_end_recompile(codeblock_t *block)
         codegen_ir_compile(ir_data, block);
 }
 
-void codegen_flush()
+void codegen_flush(void)
 {
         return;
 }

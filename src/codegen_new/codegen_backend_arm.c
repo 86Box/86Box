@@ -290,7 +290,7 @@ static void build_fp_round_routine(codeblock_t *block)
 	host_arm_MOV_REG(block, REG_PC, REG_LR);
 }
 
-void codegen_backend_init()
+void codegen_backend_init(void)
 {
 	codeblock_t *block;
         int c;

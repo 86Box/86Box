@@ -240,7 +240,7 @@ load_custom_shaders(const char *path)
  * @return Shader program identifier.
  */
 GLuint
-load_default_shaders()
+load_default_shaders(void)
 {
     GLuint vertex_id   = glCreateShader(GL_VERTEX_SHADER);
     GLuint fragment_id = glCreateShader(GL_FRAGMENT_SHADER);

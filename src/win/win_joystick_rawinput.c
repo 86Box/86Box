@@ -246,7 +246,7 @@ joystick_get_device_name(raw_joystick_t *rawjoy, plat_joystick_t *joy, PRID_DEVI
 }
 
 void
-joystick_init()
+joystick_init(void)
 {
     UINT size = 0;
     atexit(joystick_close);
@@ -316,7 +316,7 @@ end_loop:
 }
 
 void
-joystick_close()
+joystick_close(void)
 {
     RAWINPUTDEVICE ridev[2];
     ridev[0].dwFlags     = RIDEV_REMOVE;

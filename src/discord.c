@@ -132,7 +132,7 @@ discord_update_activity(int paused)
 }
 
 int
-discord_load()
+discord_load(void)
 {
     if (discord_handle != NULL)
         return (1);
@@ -152,7 +152,7 @@ discord_load()
 }
 
 void
-discord_init()
+discord_init(void)
 {
     enum EDiscordResult        result;
     struct DiscordCreateParams params;
@@ -177,7 +177,7 @@ discord_init()
 }
 
 void
-discord_close()
+discord_close(void)
 {
     if (discord_core != NULL)
         discord_core->destroy(discord_core);
@@ -187,7 +187,7 @@ discord_close()
 }
 
 void
-discord_run_callbacks()
+discord_run_callbacks(void)
 {
     if (discord_core == NULL)
         return;

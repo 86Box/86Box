@@ -15,7 +15,7 @@ static ir_data_t ir_block;
 static int codegen_unroll_start, codegen_unroll_count;
 static int codegen_unroll_first_instruction;
 
-ir_data_t *codegen_ir_init()
+ir_data_t *codegen_ir_init(void)
 {
         ir_block.wr_pos = 0;
 

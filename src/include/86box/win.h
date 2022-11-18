@@ -148,9 +148,9 @@ extern int  win_get_system_metrics(int i, int dpi);
 
 extern LPARAM win_get_string(int id);
 
-extern void win_clear_icon_set();
-extern void win_system_icon_set();
-extern void win_load_icon_set();
+extern void win_clear_icon_set(void);
+extern void win_system_icon_set(void);
+extern void win_load_icon_set(void);
 extern void win_get_icons_path(char *path_root);
 
 extern intptr_t fdd_type_to_icon(int type);
@@ -209,7 +209,7 @@ extern int  MediaMenuHandler(HWND hwnd, UINT message, WPARAM wParam, LPARAM lPar
 /* Functions in win_toolbar.c */
 extern HWND hwndRebar;
 extern void ToolBarCreate(HWND hwndParent, HINSTANCE hInst);
-extern void ToolBarLoadIcons();
+extern void ToolBarLoadIcons(void);
 extern void ToolBarUpdatePause(int paused);
 
 /* Functions in win_dialog.c: */
@@ -223,8 +223,8 @@ extern int file_dlg_st(HWND hwnd, int i, char *fn, char *title, int save);
 extern wchar_t *BrowseFolder(wchar_t *saved_path, wchar_t *title);
 
 /* Functions in win_media_menu.c */
-extern void  media_menu_init();
-extern void  media_menu_reset();
+extern void  media_menu_init(void);
+extern void  media_menu_reset(void);
 extern int   media_menu_proc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);
 extern HMENU media_menu_get_cassette(void);
 extern HMENU media_menu_get_cartridge(int id);
@@ -241,7 +241,7 @@ extern void  media_menu_update_mo(int id);
 
 /* Functions in win_ui.c */
 extern HMENU menuMain;
-extern void  ResetAllMenus();
+extern void  ResetAllMenus(void);
 
 #ifdef __cplusplus
 }

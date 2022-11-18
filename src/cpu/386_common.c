@@ -1452,7 +1452,7 @@ x86_int_sw_rm(int num)
 
 
 void
-x86illegal()
+x86illegal(void)
 {
     x86_int(6);
 }
@@ -1550,14 +1550,14 @@ idivl(int32_t val)
 
 
 void
-cpu_386_flags_extract()
+cpu_386_flags_extract(void)
 {
     flags_extract();
 }
 
 
 void
-cpu_386_flags_rebuild()
+cpu_386_flags_rebuild(void)
 {
     flags_rebuild();
 }

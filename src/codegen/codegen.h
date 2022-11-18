@@ -292,39 +292,39 @@ extern codeblock_t *codeblock;
 
 extern codeblock_t **codeblock_hash;
 
-void codegen_init();
-void codegen_reset();
-void codegen_block_init(uint32_t phys_addr);
-void codegen_block_remove();
-void codegen_block_start_recompile(codeblock_t *block);
-void codegen_block_end_recompile(codeblock_t *block);
-void codegen_block_end();
-void codegen_generate_call(uint8_t opcode, OpFn op, uint32_t fetchdat, uint32_t new_pc, uint32_t old_pc);
-void codegen_generate_seg_restore();
-void codegen_set_op32();
-void codegen_flush();
-void codegen_check_flush(page_t *page, uint64_t mask, uint32_t phys_addr);
+extern void codegen_init(void);
+extern void codegen_reset(void);
+extern void codegen_block_init(uint32_t phys_addr);
+extern void codegen_block_remove(void);
+extern void codegen_block_start_recompile(codeblock_t *block);
+extern void codegen_block_end_recompile(codeblock_t *block);
+extern void codegen_block_end(void);
+extern void codegen_generate_call(uint8_t opcode, OpFn op, uint32_t fetchdat, uint32_t new_pc, uint32_t old_pc);
+extern void codegen_generate_seg_restore(void);
+extern void codegen_set_op32(void);
+extern void codegen_flush(void);
+extern void codegen_check_flush(page_t *page, uint64_t mask, uint32_t phys_addr);
 
 extern int cpu_block_end;
 extern uint32_t codegen_endpc;
 
 extern int codegen_block_cycles;
 
-extern void (*codegen_timing_start)();
+extern void (*codegen_timing_start)(void);
 extern void (*codegen_timing_prefix)(uint8_t prefix, uint32_t fetchdat);
 extern void (*codegen_timing_opcode)(uint8_t opcode, uint32_t fetchdat, int op_32, uint32_t op_pc);
-extern void (*codegen_timing_block_start)();
-extern void (*codegen_timing_block_end)();
-extern int (*codegen_timing_jump_cycles)();
+extern void (*codegen_timing_block_start)(void);
+extern void (*codegen_timing_block_end)(void);
+extern int (*codegen_timing_jump_cycles)(void);
 
 typedef struct codegen_timing_t
 {
-        void (*start)();
+        void (*start)(void);
         void (*prefix)(uint8_t prefix, uint32_t fetchdat);
         void (*opcode)(uint8_t opcode, uint32_t fetchdat, int op_32, uint32_t op_pc);
-        void (*block_start)();
-        void (*block_end)();
-        int (*jump_cycles)();
+        void (*block_start)(void);
+        void (*block_end)(void);
+        int (*jump_cycles)(void);
 } codegen_timing_t;
 
 extern codegen_timing_t codegen_timing_pentium;

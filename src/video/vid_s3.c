@@ -876,12 +876,15 @@ s3_accel_out_fifo(s3_t *s3, uint16_t port, uint8_t val)
             s3->accel.short_stroke = (s3->accel.short_stroke & 0xff) | (val << 8);
             s3->accel.ssv_state    = 1;
 
-            s3->accel.cx = s3->accel.cur_x;
-            if (s3->accel.cur_x_bit12)
-                s3->accel.cx |= ~0xfff;
-            s3->accel.cy = s3->accel.cur_y;
-            if (s3->accel.cur_y_bit12)
-                s3->accel.cy |= ~0xfff;
+			s3->accel.cx   = s3->accel.cur_x & 0x7ff;
+			s3->accel.cy   = s3->accel.cur_y & 0x7ff;
+
+			if (s3->accel.cur_x & 0x800) {
+				s3->accel.cx |= ~0x7ff;
+			}
+			if (s3->accel.cur_y & 0x800) {
+				s3->accel.cy |= ~0x7ff;
+			}
 
             if (s3->accel.cmd & 0x1000) {
                 s3_short_stroke_start(-1, 0, 0xffffffff, 0, s3, s3->accel.short_stroke & 0xff);
@@ -1414,12 +1417,15 @@ s3_accel_out_fifo_w(s3_t *s3, uint16_t port, uint16_t val)
         s3->accel.short_stroke = val;
         s3->accel.ssv_state    = 1;
 
-        s3->accel.cx = s3->accel.cur_x;
-        if (s3->accel.cur_x_bit12)
-            s3->accel.cx |= ~0xfff;
-        s3->accel.cy = s3->accel.cur_y;
-        if (s3->accel.cur_y_bit12)
-            s3->accel.cy |= ~0xfff;
+		s3->accel.cx   = s3->accel.cur_x & 0x7ff;
+		s3->accel.cy   = s3->accel.cur_y & 0x7ff;
+
+		if (s3->accel.cur_x & 0x800) {
+			s3->accel.cx |= ~0x7ff;
+		}
+		if (s3->accel.cur_y & 0x800) {
+			s3->accel.cy |= ~0x7ff;
+		}
 
         if (s3->accel.cmd & 0x1000) {
             s3_short_stroke_start(-1, 0, 0xffffffff, 0, s3, s3->accel.short_stroke & 0xff);
@@ -1687,8 +1693,15 @@ s3_accel_write_fifo(s3_t *s3, uint32_t addr, uint8_t val)
         }
     } else {
         if (addr & 0x8000) {
-            s3_accel_out_fifo(s3, addr & 0xffff, val);
+            if ((addr == 0xe2e8) || (addr == 0xe2e9)) {
+                if ((s3->chip == S3_86C801) || (s3->chip == S3_86C805))
+                    goto mmio_byte_write;
+                else
+                    s3_accel_out_fifo(s3, addr & 0xffff, val);
+            } else
+                s3_accel_out_fifo(s3, addr & 0xffff, val);
         } else {
+mmio_byte_write:
             if (s3->accel.cmd & 0x100) {
                 if ((s3->accel.cmd & 0x600) == 0x200) {
                     if (((s3->accel.multifunc[0xa] & 0xc0) == 0x80) || (s3->accel.cmd & 2)) {
@@ -1740,8 +1753,8 @@ s3_accel_write_fifo_w(s3_t *s3, uint32_t addr, uint16_t val)
             if (addr == 0x811c)
                 s3_accel_out_fifo_w(s3, 0x9ee8, val);
             else {
-                if (addr == 0xe2e8 || addr == 0xe2ea) {
-                    if (s3->chip == S3_86C928 || s3->chip == S3_86C928PCI)
+                if ((addr == 0xe2e8) || (addr == 0xe2ea)) {
+                    if ((s3->chip == S3_86C801) || (s3->chip == S3_86C805) || (s3->chip == S3_86C928) || (s3->chip == S3_86C928PCI))
                         s3_accel_out_pixtrans_w(s3, val);
                     else {
                         s3_accel_write_fifo(s3, addr, val);
@@ -3142,8 +3155,12 @@ s3_recalctimings(svga_t *svga)
                 svga->render = svga_render_8bpp_highres;
                 if (s3->chip != S3_VISION868) {
                     if (s3->chip == S3_86C928) {
-                        if (s3->width == 2048 || s3->width == 1280 || s3->width == 1600)
-                            svga->hdisp <<= 1;
+                        if (s3->width == 2048 || s3->width == 1280 || s3->width == 1600) {
+                            if ((s3->width != 1600) && (svga->dispend == 1024) && (svga->hdisp != 1280))
+                                svga->hdisp <<= 2;
+                            else
+                                svga->hdisp <<= 1;
+                        }
                     } else if ((s3->chip != S3_86C801) && (s3->chip != S3_86C805) && (s3->chip != S3_TRIO32) && (s3->chip != S3_TRIO64) && (s3->chip != S3_VISION964) && (s3->chip != S3_VISION968)) {
                         if (s3->width == 1280 || s3->width == 1600)
                             svga->hdisp <<= 1;
@@ -3554,9 +3571,8 @@ s3_updatemapping(s3_t *s3)
                     mem_mapping_set_addr(&s3->mmio_mapping, 0xb8000, 0x8000);
                 else
                     mem_mapping_set_addr(&s3->mmio_mapping, 0xa0000, 0x10000);
-            } else {
-                mem_mapping_enable(&s3->mmio_mapping);
             }
+            mem_mapping_enable(&s3->mmio_mapping);
         } else {
             mem_mapping_disable(&s3->mmio_mapping);
         }
@@ -6214,12 +6230,15 @@ s3_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat, s3_
 
         case 1: /*Draw line*/
             if (!cpu_input) {
-                s3->accel.cx = s3->accel.cur_x;
-                if (s3->accel.cur_x_bit12)
-                    s3->accel.cx |= ~0xfff;
-                s3->accel.cy = s3->accel.cur_y;
-                if (s3->accel.cur_y_bit12)
-                    s3->accel.cy |= ~0xfff;
+				s3->accel.cx   = s3->accel.cur_x & 0x7ff;
+				s3->accel.cy   = s3->accel.cur_y & 0x7ff;
+
+				if (s3->accel.cur_x & 0x800) {
+					s3->accel.cx |= ~0x7ff;
+				}
+				if (s3->accel.cur_y & 0x800) {
+					s3->accel.cy |= ~0x7ff;
+				}
 
                 s3->accel.sy = s3->accel.maj_axis_pcnt;
 
@@ -6434,23 +6453,15 @@ s3_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat, s3_
             {
                 s3->accel.sx = s3->accel.maj_axis_pcnt & 0xfff;
                 s3->accel.sy = s3->accel.multifunc[0] & 0xfff;
-                s3->accel.cx = s3->accel.cur_x;
-                s3->accel.cy = s3->accel.cur_y;
+				s3->accel.cx   = s3->accel.cur_x & 0x7ff;
+				s3->accel.cy   = s3->accel.cur_y & 0x7ff;
 
-                if (s3->accel.cur_x_bit12) {
-                    if (s3->accel.cx <= 0x7ff) {
-                        s3->accel.cx = s3->accel.cur_x_bitres & 0xfff;
-                    } else {
-                        s3->accel.cx |= ~0xfff;
-                    }
-                }
-                if (s3->accel.cur_y_bit12) {
-                    if (s3->accel.cy <= 0x7ff) {
-                        s3->accel.cy = s3->accel.cur_y_bitres & 0xfff;
-                    } else {
-                        s3->accel.cy |= ~0xfff;
-                    }
-                }
+				if (s3->accel.cur_x & 0x800) {
+					s3->accel.cx |= ~0x7ff;
+				}
+				if (s3->accel.cur_y & 0x800) {
+					s3->accel.cy |= ~0x7ff;
+				}
 
                 s3->accel.dest = dstbase + s3->accel.cy * s3->width;
 
@@ -6659,43 +6670,20 @@ s3_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat, s3_
                 s3->accel.sx = s3->accel.maj_axis_pcnt & 0xfff;
                 s3->accel.sy = s3->accel.multifunc[0] & 0xfff;
 
-                s3->accel.dx = s3->accel.destx_distp & 0xfff;
-                if (s3->accel.destx_distp & 0x1000)
-                    s3->accel.dx |= ~0xfff;
-                s3->accel.dy = s3->accel.desty_axstp & 0xfff;
-                if (s3->accel.desty_axstp & 0x1000)
-                    s3->accel.dy |= ~0xfff;
+				s3->accel.dx = s3->accel.destx_distp & 0x7ff;
+				if (s3->accel.destx_distp & 0x800) s3->accel.dx |= ~0x7ff;
+				s3->accel.dy = s3->accel.desty_axstp & 0x7ff;
+				if (s3->accel.desty_axstp & 0x800) s3->accel.dy |= ~0x7ff;
 
-                s3->accel.cx = s3->accel.cur_x;
-                s3->accel.cy = s3->accel.cur_y;
+				s3->accel.cx = s3->accel.cur_x & 0x7ff;
+				s3->accel.cy = s3->accel.cur_y & 0x7ff;
 
-                if (s3->accel.destx_distp >= 0xfffff000) { /* avoid overflow */
-                    s3->accel.dx = s3->accel.destx_distp & 0xfff;
-                    if (s3->accel.cur_x_bit12) {
-                        if (s3->accel.cx <= 0x7ff) {
-                            s3->accel.cx = s3->accel.cur_x_bitres & 0xfff;
-                        } else {
-                            s3->accel.cx |= ~0xfff;
-                        }
-                    }
-                    if (s3->accel.cur_y_bitres > 0xfff)
-                        s3->accel.cy = s3->accel.cur_y_bitres;
-                } else {
-                    if (s3->accel.cur_x_bit12) {
-                        if (s3->accel.cx <= 0x7ff) { /* overlap x */
-                            s3->accel.cx = s3->accel.cur_x_bitres & 0xfff;
-                        } else { /* x end is negative */
-                            s3->accel.cx |= ~0xfff;
-                        }
-                    }
-                    if (s3->accel.cur_y_bit12) {
-                        if (s3->accel.cy <= 0x7ff) { /* overlap y */
-                            s3->accel.cy = s3->accel.cur_y_bitres & 0xfff;
-                        } else { /* y end is negative */
-                            s3->accel.cy |= ~0xfff;
-                        }
-                    }
-                }
+				if (s3->accel.cur_x & 0x800) {
+					s3->accel.cx |= ~0x7ff;
+				}
+				if (s3->accel.cur_y & 0x800) {
+					s3->accel.cy |= ~0x7ff;
+				}
 
                 s3->accel.src  = srcbase + s3->accel.cy * s3->width;
                 s3->accel.dest = dstbase + s3->accel.dy * s3->width;

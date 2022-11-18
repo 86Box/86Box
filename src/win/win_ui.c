@@ -200,7 +200,7 @@ static int   menu_vidapi = -1;
 static HMENU cur_menu    = NULL;
 
 static void
-show_render_options_menu()
+show_render_options_menu(void)
 {
     if (vid_api == menu_vidapi)
         return;

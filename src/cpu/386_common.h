@@ -225,25 +225,25 @@ static __inline void *get_ram_ptr(uint32_t a)
         }
 }
 
-static __inline uint8_t getbyte()
+static __inline uint8_t getbyte(void)
 {
         cpu_state.pc++;
         return fastreadb(cs + (cpu_state.pc - 1));
 }
 
-static __inline uint16_t getword()
+static __inline uint16_t getword(void)
 {
         cpu_state.pc+=2;
         return fastreadw(cs+(cpu_state.pc-2));
 }
 
-static __inline uint32_t getlong()
+static __inline uint32_t getlong(void)
 {
         cpu_state.pc+=4;
         return fastreadl(cs+(cpu_state.pc-4));
 }
 
-static __inline uint64_t getquad()
+static __inline uint64_t getquad(void)
 {
         cpu_state.pc+=8;
         return fastreadl(cs+(cpu_state.pc-8)) | ((uint64_t)fastreadl(cs+(cpu_state.pc-4)) << 32);
@@ -251,7 +251,7 @@ static __inline uint64_t getquad()
 
 
 
-static __inline uint8_t geteab()
+static __inline uint8_t geteab(void)
 {
         if (cpu_mod == 3)
                 return (cpu_rm & 4) ? cpu_state.regs[cpu_rm & 3].b.h : cpu_state.regs[cpu_rm&3].b.l;
@@ -260,7 +260,7 @@ static __inline uint8_t geteab()
         return readmemb(easeg, cpu_state.eaaddr);
 }
 
-static __inline uint16_t geteaw()
+static __inline uint16_t geteaw(void)
 {
         if (cpu_mod == 3)
                 return cpu_state.regs[cpu_rm].w;
@@ -269,7 +269,7 @@ static __inline uint16_t geteaw()
         return readmemw(easeg, cpu_state.eaaddr);
 }
 
-static __inline uint32_t geteal()
+static __inline uint32_t geteal(void)
 {
         if (cpu_mod == 3)
                 return cpu_state.regs[cpu_rm].l;
@@ -278,22 +278,22 @@ static __inline uint32_t geteal()
         return readmeml(easeg, cpu_state.eaaddr);
 }
 
-static __inline uint64_t geteaq()
+static __inline uint64_t geteaq(void)
 {
         return readmemq(easeg, cpu_state.eaaddr);
 }
 
-static __inline uint8_t geteab_mem()
+static __inline uint8_t geteab_mem(void)
 {
         if (eal_r) return *(uint8_t *)eal_r;
         return readmemb(easeg,cpu_state.eaaddr);
 }
-static __inline uint16_t geteaw_mem()
+static __inline uint16_t geteaw_mem(void)
 {
         if (eal_r) return *(uint16_t *)eal_r;
         return readmemw(easeg,cpu_state.eaaddr);
 }
-static __inline uint32_t geteal_mem()
+static __inline uint32_t geteal_mem(void)
 {
         if (eal_r) return *eal_r;
         return readmeml(easeg,cpu_state.eaaddr);

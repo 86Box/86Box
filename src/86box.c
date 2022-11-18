@@ -1121,7 +1121,7 @@ pc_reset_hard_init(void)
 }
 
 void
-update_mouse_msg()
+update_mouse_msg(void)
 {
     wchar_t wcpufamily[2048], wcpu[2048], wmachine[2048], *wcp;
 

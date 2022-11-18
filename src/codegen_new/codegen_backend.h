@@ -13,14 +13,14 @@
 #error Dynamic recompiler not implemented on your platform
 #endif
 
-void codegen_backend_init();
+void codegen_backend_init(void);
 void codegen_backend_prologue(codeblock_t *block);
 void codegen_backend_epilogue(codeblock_t *block);
 
 struct ir_data_t;
 struct uop_t;
 
-struct ir_data_t *codegen_get_ir_data();
+struct ir_data_t *codegen_get_ir_data(void);
 
 typedef int (*uOpFn)(codeblock_t *codeblock, struct uop_t *uop);
 

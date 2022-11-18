@@ -77,7 +77,7 @@ enum
 
 
 extern void	x86_doabrt(int x86_abrt);
-extern void	x86illegal();
-extern void	x86seg_reset();
+extern void	x86illegal(void);
+extern void	x86seg_reset(void);
 extern void	x86gpf(char *s, uint16_t error);
 extern void	x86gpf_expected(char *s, uint16_t error);

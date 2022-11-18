@@ -38,7 +38,7 @@ typedef struct {
 } lm75_t;
 
 /* hwm.c */
-extern uint16_t hwm_get_vcore();
+extern uint16_t hwm_get_vcore(void);
 
 /* hwm_lm75.c */
 extern void    lm75_remap(lm75_t *dev, uint8_t addr);

@@ -28,7 +28,7 @@ enum image_index {
 };
 
 void
-ToolBarLoadIcons()
+ToolBarLoadIcons(void)
 {
     if (!hwndToolbar)
         return;

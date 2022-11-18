@@ -184,7 +184,7 @@ struct
 	[IREG_temp1d] = {REG_DOUBLE, (void *)48, REG_FP, REG_VOLATILE},
 };
 
-void codegen_reg_mark_as_required()
+void codegen_reg_mark_as_required(void)
 {
         int reg;
 
@@ -224,7 +224,7 @@ int reg_is_native_size(ir_reg_t ir_reg)
         return 0;
 }
 
-void codegen_reg_reset()
+void codegen_reg_reset(void)
 {
         int c;
 

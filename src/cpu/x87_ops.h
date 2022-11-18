@@ -97,7 +97,7 @@ static int rounding_modes[4] = {FE_TONEAREST, FE_DOWNWARD, FE_UPWARD, FE_TOWARDZ
         } while (0)
 #endif
 
-static __inline void x87_checkexceptions()
+static __inline void x87_checkexceptions(void)
 {
 }
 
@@ -139,7 +139,7 @@ static __inline void x87_push_u64(uint64_t i)
 #endif
 }
 
-static __inline double x87_pop()
+static __inline double x87_pop(void)
 {
         double t = cpu_state.ST[cpu_state.TOP&7];
         cpu_state.tag[cpu_state.TOP&7] = TAG_EMPTY;
@@ -242,7 +242,7 @@ static __inline int64_t x87_fround(double b)
 
 #include "x87_ops_conv.h"
 
-static __inline double x87_ld80()
+static __inline double x87_ld80(void)
 {
         x87_conv_t test;
         test.eind.ll = readmeml(easeg,cpu_state.eaaddr);

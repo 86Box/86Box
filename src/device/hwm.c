@@ -31,7 +31,7 @@
 hwm_values_t hwm_values;
 
 uint16_t
-hwm_get_vcore()
+hwm_get_vcore(void)
 {
     /* Determine Vcore for the active CPU. */
     return cpu_s->voltage;

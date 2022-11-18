@@ -1034,7 +1034,7 @@ im1024_close(void *priv)
 }
 
 static int
-im1024_available()
+im1024_available(void)
 {
     return rom_present(BIOS_ROM_PATH);
 }
