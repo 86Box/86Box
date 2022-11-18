@@ -14,7 +14,7 @@
 #
 
 # Define our flags
-string(APPEND CMAKE_C_FLAGS_INIT                " -fomit-frame-pointer -Wall -fno-strict-aliasing")
+string(APPEND CMAKE_C_FLAGS_INIT                " -fomit-frame-pointer -Wall -fno-strict-aliasing -Werror=implicit-int -Werror=implicit-function-declaration -Werror=int-conversion -Werror=strict-prototypes -Werror=old-style-definition")
 string(APPEND CMAKE_CXX_FLAGS_INIT              " -fomit-frame-pointer -Wall -fno-strict-aliasing")
 string(APPEND CMAKE_C_FLAGS_RELEASE_INIT        " -g0 -O3")
 string(APPEND CMAKE_CXX_FLAGS_RELEASE_INIT      " -g0 -O3")
