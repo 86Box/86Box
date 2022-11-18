@@ -119,7 +119,7 @@ mt32_check(const char *func, mt32emu_return_code ret, mt32emu_return_code expect
 }
 
 int
-mt32_old_available()
+mt32_old_available(void)
 {
     if (roms_present[0] < 0)
         roms_present[0] = (rom_present(MT32_OLD_CTRL_ROM) && rom_present(MT32_OLD_PCM_ROM));
@@ -127,7 +127,7 @@ mt32_old_available()
 }
 
 int
-mt32_new_available()
+mt32_new_available(void)
 {
     if (roms_present[0] < 0)
         roms_present[0] = (rom_present(MT32_NEW_CTRL_ROM) && rom_present(MT32_NEW_PCM_ROM));
@@ -135,7 +135,7 @@ mt32_new_available()
 }
 
 int
-cm32l_available()
+cm32l_available(void)
 {
     if (roms_present[1] < 0)
         roms_present[1] = (rom_present(CM32L_CTRL_ROM) && rom_present(CM32L_PCM_ROM));
@@ -143,7 +143,7 @@ cm32l_available()
 }
 
 int
-cm32ln_available()
+cm32ln_available(void)
 {
     if (roms_present[1] < 0)
         roms_present[1] = (rom_present(CM32LN_CTRL_ROM) && rom_present(CM32LN_PCM_ROM));
@@ -199,7 +199,7 @@ mt32_stream_int16(int16_t *stream, int len)
 }
 
 void
-mt32_poll()
+mt32_poll(void)
 {
     midi_pos++;
     if (midi_pos == 48000 / RENDER_RATE) {

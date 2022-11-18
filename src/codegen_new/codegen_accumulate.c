@@ -36,7 +36,7 @@ void codegen_accumulate_flush(ir_data_t *ir)
 	acc_regs[0].count = 0;
 }
 
-void codegen_accumulate_reset()
+void codegen_accumulate_reset(void)
 {
 	acc_regs[0].count = 0;
 }

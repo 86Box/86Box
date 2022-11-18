@@ -58,7 +58,7 @@ enum
 #endif
 };
 
-static __inline int ZF_SET()
+static __inline int ZF_SET(void)
 {
         switch (cpu_state.flags_op)
         {
@@ -117,7 +117,7 @@ static __inline int ZF_SET()
 #endif
 }
 
-static __inline int NF_SET()
+static __inline int NF_SET(void)
 {
         switch (cpu_state.flags_op)
         {
@@ -184,7 +184,7 @@ static __inline int NF_SET()
 #endif
 }
 
-static __inline int PF_SET()
+static __inline int PF_SET(void)
 {
         switch (cpu_state.flags_op)
         {
@@ -243,7 +243,7 @@ static __inline int PF_SET()
 #endif
 }
 
-static __inline int VF_SET()
+static __inline int VF_SET(void)
 {
         switch (cpu_state.flags_op)
         {
@@ -336,7 +336,7 @@ static __inline int VF_SET()
 #endif
 }
 
-static __inline int AF_SET()
+static __inline int AF_SET(void)
 {
         switch (cpu_state.flags_op)
         {
@@ -409,7 +409,7 @@ static __inline int AF_SET()
 #endif
 }
 
-static __inline int CF_SET()
+static __inline int CF_SET(void)
 {
         switch (cpu_state.flags_op)
         {
@@ -502,7 +502,7 @@ static __inline int CF_SET()
 #endif
 }
 
-static __inline void flags_rebuild()
+static __inline void flags_rebuild(void)
 {
         if (cpu_state.flags_op != FLAGS_UNKNOWN)
         {
@@ -518,12 +518,12 @@ static __inline void flags_rebuild()
         }
 }
 
-static __inline void flags_extract()
+static __inline void flags_extract(void)
 {
         cpu_state.flags_op = FLAGS_UNKNOWN;
 }
 
-static __inline void flags_rebuild_c()
+static __inline void flags_rebuild_c(void)
 {
         if (cpu_state.flags_op != FLAGS_UNKNOWN)
         {
@@ -535,7 +535,7 @@ static __inline void flags_rebuild_c()
 }
 
 #ifdef USE_NEW_DYNAREC
-static __inline int flags_res_valid()
+static __inline int flags_res_valid(void)
 {
         if (cpu_state.flags_op == FLAGS_UNKNOWN ||
             (cpu_state.flags_op >= FLAGS_ROL8 && cpu_state.flags_op <= FLAGS_ROR32))
@@ -779,5 +779,5 @@ static __inline void setsbc32(uint32_t a, uint32_t b)
 }
 #endif
 
-extern void cpu_386_flags_extract();
-extern void cpu_386_flags_rebuild();
+extern void cpu_386_flags_extract(void);
+extern void cpu_386_flags_rebuild(void);

@@ -94,7 +94,7 @@ seg_reset(x86seg *s)
 
 
 void
-x86seg_reset()
+x86seg_reset(void)
 {
     seg_reset(&cpu_state.seg_cs);
     seg_reset(&cpu_state.seg_ds);
@@ -838,7 +838,7 @@ PUSHL(uint32_t v)
 
 
 uint16_t
-POPW()
+POPW(void)
 {
     uint16_t tempw;
     if (stack32) {
@@ -857,7 +857,7 @@ POPW()
 
 
 uint32_t
-POPL()
+POPL(void)
 {
     uint32_t templ;
 

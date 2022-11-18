@@ -94,7 +94,7 @@ t1000_display_set(uint8_t internal)
 }
 
 uint8_t
-t1000_display_get()
+t1000_display_get(void)
 {
     return (uint8_t) st_display_internal;
 }

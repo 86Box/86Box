@@ -27,6 +27,6 @@ typedef struct {
 
 extern machine_status_t machine_status;
 
-extern void machine_status_init();
+extern void machine_status_init(void);
 
 #endif /*EMU_MACHINE_STATUS_H*/

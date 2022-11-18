@@ -1044,7 +1044,7 @@ pci_init(int type)
 }
 
 uint8_t
-pci_register_bus()
+pci_register_bus(void)
 {
     return last_pci_bus++;
 }

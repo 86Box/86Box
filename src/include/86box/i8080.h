@@ -43,10 +43,10 @@ typedef struct i8080
     uint16_t* cpu_flags;
     void (*writemembyte)(uint32_t, uint8_t);
     uint8_t (*readmembyte)(uint32_t);
-    void (*startclock)();
-    void (*endclock)();
-    void (*checkinterrupts)();
-    uint8_t (*fetchinstruction)();
+    void (*startclock)(void);
+    void (*endclock)(void);
+    void (*checkinterrupts)(void);
+    uint8_t (*fetchinstruction)(void *);
 } i8080;
 
 #define C_FLAG_I8080 (1 << 0)

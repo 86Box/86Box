@@ -470,9 +470,12 @@ tgui_out(uint16_t addr, uint8_t val, void *p)
                     if (tgui->type >= TGUI_9440) {
                         svga->hwcursor.x = (svga->crtc[0x40] | (svga->crtc[0x41] << 8)) & 0x7ff;
                         svga->hwcursor.y = (svga->crtc[0x42] | (svga->crtc[0x43] << 8)) & 0x7ff;
-                        if (tgui->type >= TGUI_9660 && (tgui->accel.ger22 & 0xff) == 8) {
-                            svga->hwcursor.x <<= 1;
+
+                        if ((tgui->accel.ger22 & 0xff) == 8) {
+                            if (svga->bpp != 24)
+                                svga->hwcursor.x <<= 1;
                         }
+
                         svga->hwcursor.xoff = svga->crtc[0x46] & 0x3f;
                         svga->hwcursor.yoff = svga->crtc[0x47] & 0x3f;
                         svga->hwcursor.addr = (svga->crtc[0x44] << 10) | ((svga->crtc[0x45] & 0x0f) << 18) | (svga->hwcursor.yoff * 8);
@@ -622,6 +625,8 @@ void
 tgui_recalctimings(svga_t *svga)
 {
     tgui_t *tgui = (tgui_t *) svga->p;
+    uint8_t ger22lower  = tgui->accel.ger22 & 0xff;
+    uint8_t ger22upper  = (tgui->accel.ger22 >> 8);
 
     if (!svga->rowoffset)
         svga->rowoffset = 0x100;
@@ -629,11 +634,12 @@ tgui_recalctimings(svga_t *svga)
     if (svga->crtc[0x29] & 0x10)
         svga->rowoffset |= 0x100;
 
-    if (tgui->type >= TGUI_9440 && svga->bpp >= 24) {
-        if ((tgui->accel.bpp == 0) && (tgui->accel.ger22 & 0xff) != 14 && (svga->bpp == 24))
+    if ((tgui->type >= TGUI_9440) && (svga->bpp >= 24)) {
+        if ((tgui->accel.bpp == 0) && (ger22lower != 14) && (svga->bpp == 24))
             svga->hdisp = (svga->crtc[1] + 1) * 8;
-        if (tgui->accel.bpp == 3 && (tgui->accel.ger22 & 0xff) == 14 && (svga->bpp == 32) && (tgui->type == TGUI_9440))
+        if ((tgui->accel.bpp == 3) && (ger22lower == 14) && (svga->bpp == 32) && (tgui->type == TGUI_9440))
             svga->rowoffset <<= 1;
+        //pclog("Accelbpp = %d, ger22lower = %02x, ger22upper = %02x, bpp = %d, rowoffset = %d.\n", tgui->accel.bpp, ger22lower, ger22upper, svga->bpp, svga->rowoffset);
     }
 
     if ((svga->crtc[0x1e] & 0xA0) == 0xA0)
@@ -667,7 +673,7 @@ tgui_recalctimings(svga_t *svga)
     svga->lowres = !(svga->crtc[0x2a] & 0x40);
 
     svga->interlace = !!(svga->crtc[0x1e] & 4);
-    if (svga->interlace && tgui->type < TGUI_9440)
+    if (svga->interlace && (tgui->type < TGUI_9440))
         svga->rowoffset >>= 1;
 
     if (tgui->type >= TGUI_9440) {
@@ -735,10 +741,21 @@ tgui_recalctimings(svga_t *svga)
             case 8:
                 svga->render = svga_render_8bpp_highres;
                 if (tgui->type >= TGUI_9660) {
-                    if (svga->dispend == 512)
+                    if ((svga->dispend == 510) || (svga->dispend == 512))
                         svga->hdisp = 1280;
-                    else if (svga->dispend == 600 && svga->hdisp == 800 && svga->vtotal == 651)
+                    else if ((svga->dispend == 600) && (svga->hdisp == 800) && svga->interlace)
                         svga->hdisp = 1600;
+
+                    switch (svga->hdisp) {
+                        case 640:
+                            if (ger22upper & 0x01)
+                                svga->rowoffset = 0x50;
+                            break;
+                        case 1600:
+                            if (svga->rowoffset != 0x100)
+                                svga->rowoffset = 0x100;
+                            break;
+                    }
                 }
                 break;
             case 15:
@@ -816,7 +833,6 @@ tgui_recalcmapping(tgui_t *tgui)
                 mem_mapping_set_addr(&tgui->accel_mapping, 0xbc000, 0x4000);
             else if ((svga->crtc[0x36] & 0x03) == 0x03)
                 mem_mapping_set_addr(&tgui->accel_mapping, tgui->ge_base, 0x4000);
-            mem_mapping_disable(&svga->mapping);
         } else {
             switch (svga->gdcreg[6] & 0xC) {
                 case 0x0: /*128k at A0000*/
@@ -923,7 +939,7 @@ tgui_pci_read(int func, int addr, void *p)
             return 0x10;
 
         case 0x02:
-            return (tgui->type == TGUI_9440) ? 0x40 : 0x60; /*TGUI9440AGi or TGUI9660XGi*/
+            return (tgui->type == TGUI_9440) ? 0x40 : 0x60; /*TGUI9440AGi or TGUI96x0XGi*/
         case 0x03:
             return (tgui->type == TGUI_9440) ? 0x94 : 0x96;
 
@@ -1334,6 +1350,8 @@ tgui_accel_command(int count, uint32_t cpu_dat, tgui_t *tgui)
     uint32_t  trans_col = (tgui->accel.flags & TGUI_TRANSREV) ? tgui->accel.fg_col : tgui->accel.bg_col;
     uint16_t *vram_w    = (uint16_t *) svga->vram;
     uint32_t *vram_l    = (uint32_t *) svga->vram;
+    uint8_t ger22lower  = tgui->accel.ger22 & 0xff;
+    uint8_t ger22upper  = (tgui->accel.ger22 >> 8) & 0xff;
 
     if (tgui->accel.bpp == 0) {
         trans_col &= 0xff;
@@ -1389,79 +1407,39 @@ tgui_accel_command(int count, uint32_t cpu_dat, tgui_t *tgui)
         }
     }
 
-    /*Other than mode stuff, this bit is undocumented*/
-    switch (tgui->accel.ger22 & 0xff) {
-        case 0:
-            switch (tgui->accel.ger22 >> 8) {
-                case 0x41:
-                    tgui->accel.pitch = 640;
-                    break;
-            }
+    switch (svga->hdisp) {
+        case 640:
+        case 1024:
+        case 1280:
+            tgui->accel.pitch = svga->hdisp;
             break;
+        case 800: /*Disassembly of the TGUI9440/96x0 drivers shows that 800x600 is treated as 832 in the acceleration pitch (0x340 as horizontal display)*/
+            tgui->accel.pitch = svga->hdisp + 32;
+            break;
+        case 1600:
+            tgui->accel.pitch = 2048;
+            break;
+    }
 
-        case 4:
-            switch (tgui->accel.ger22 >> 8) {
-                case 0:
+    switch (ger22lower) {
+        case 4: /*8-bit mode for modes up to 1024x768.*/
+        case 9: /*15-bit and 16-bit modes.*/
+            if (!(ger22upper & 0x01)) {
+                if (ger22upper == 0x00)
                     tgui->accel.pitch = 1024;
-                    break;
-                case 0x40:
-                    tgui->accel.pitch = 640;
-                    break;
-                case 0x50:
-                    tgui->accel.pitch = 832;
-                    break;
             }
             break;
-        case 8:
-            switch (tgui->accel.ger22 >> 8) {
-                case 0:
-                    tgui->accel.pitch = 2048;
-                    break;
-                case 0x60:
-                    tgui->accel.pitch = 1280;
-                    break;
-            }
-            break;
-        case 9:
-            switch (tgui->accel.ger22 >> 8) {
-                case 0:
-                    tgui->accel.pitch = svga->hdisp;
-                    if (tgui->type == TGUI_9440)
-                        tgui->accel.pitch = 1024;
-                    break;
-                case 0x40:
-                    tgui->accel.pitch = 640;
-                    break;
-                case 0x50:
-                    tgui->accel.pitch = 832;
-                    break;
-            }
-            break;
-        case 13:
-            switch (tgui->accel.ger22 >> 8) {
-                case 0x60:
-                    tgui->accel.pitch = 2048;
-                    if (tgui->type >= TGUI_9660) {
-                        if (svga->hdisp == 1280)
-                            tgui->accel.pitch = svga->hdisp;
-                    }
-                    break;
-            }
-            break;
-        case 14:
-            switch (tgui->accel.ger22 >> 8) {
-                case 0:
-                    tgui->accel.pitch = 1024;
-                    break;
-                case 0x40:
-                    tgui->accel.pitch = 640;
-                    break;
-                case 0x50:
-                    tgui->accel.pitch = 832;
-                    break;
+        case 8: /*8-bit mode for modes greater than 1024x768 and 24-bit mode for 640x480 (latter is TGUI9440AGi only).*/
+            if (!(ger22upper & 0x01)) {
+                if (ger22upper == 0x00) {
+                    if (svga->bpp == 24)
+                        tgui->accel.pitch = 2048;
+                }
             }
             break;
     }
+
+    //pclog("TGUI accel command = %x, ger22 = %04x, hdisp = %d, dispend = %d, vtotal = %d, rowoffset = %d, svgabpp = %d, interlace = %d, accelbpp = %d, pitch = %d.\n", tgui->accel.command, tgui->accel.ger22, svga->hdisp, svga->dispend, svga->vtotal, svga->rowoffset, svga->bpp, svga->interlace, tgui->accel.bpp, tgui->accel.pitch);
 
     switch (tgui->accel.command) {
         case TGUI_BITBLT:
@@ -1728,32 +1706,14 @@ tgui_accel_command(int count, uint32_t cpu_dat, tgui_t *tgui)
             break;
 
         case TGUI_BRESENHAMLINE:
-            {
-                int     steep = 1;
-                int16_t dminor, dmajor, destxtmp, tmpswap;
-                int16_t cx, cy, dx, dy, err;
+            if (count == -1) {
+                tgui->accel.dx = tgui->accel.dst_x & 0xfff;
+                tgui->accel.dy = tgui->accel.dst_y & 0xfff;
 
-#define SWAP(a, b) \
-    tmpswap = a;   \
-    a       = b;   \
-    b       = tmpswap;
-
-                dminor = tgui->accel.src_y;
-                if (tgui->accel.src_y & 0x1000)
-                    dminor |= ~0xfff;
-                dminor >>= 1;
-
-                destxtmp = tgui->accel.src_x;
-                if (tgui->accel.src_x & 0x1000)
-                    destxtmp |= ~0xfff;
-
-                dmajor = -(destxtmp - (dminor << 1)) >> 1;
-
-                cx = dmajor;
-                cy = dminor;
-
-                dx = tgui->accel.dst_x & 0xfff;
-                dy = tgui->accel.dst_y & 0xfff;
+                if (tgui->accel.dst_x & 0x1000)
+                    tgui->accel.dx |= ~0xfff;
+                if (tgui->accel.dst_y & 0x1000)
+                    tgui->accel.dy |= ~0xfff;
 
                 tgui->accel.left   = tgui->accel.src_x_clip & 0xfff;
                 tgui->accel.right  = tgui->accel.dst_x_clip & 0xfff;
@@ -1767,78 +1727,113 @@ tgui_accel_command(int count, uint32_t cpu_dat, tgui_t *tgui)
                     tgui->accel.left >>= 2;
                     tgui->accel.right >>= 2;
                 }
+            }
 
-                err = tgui->accel.size_x + tgui->accel.src_y;
-                if ((tgui->accel.size_x + tgui->accel.src_y) & 0x1000)
-                    err |= ~0xfff;
+            //pclog("TGUI bres = %04x, err = %d, sizex = %d, sizey = %d, srcx = %d, srcy = %d.\n", tgui->accel.flags & 0x700, err, tgui->accel.size_x, tgui->accel.size_y, cx, tgui->accel.src_y);
+            while (count-- && (tgui->accel.y <= (tgui->accel.size_y))) {
+                //READ(tgui->accel.src_x + (tgui->accel.src_y * tgui->accel.pitch), src_dat);
 
-                if (tgui->accel.flags & 0x400) {
-                    steep = 0;
-                    SWAP(dx, dy);
-                    SWAP(xdir, ydir);
+                /*Note by TC1995: I suppose the x/y clipping max is always more than 0 in the TGUI 96xx, but the TGUI 9440 lacks clipping*/
+                if ((tgui->type == TGUI_9440) || ((tgui->type >= TGUI_9660) && tgui->accel.dx >= tgui->accel.left && tgui->accel.dx <= tgui->accel.right && tgui->accel.dy >= tgui->accel.top && tgui->accel.dy <= tgui->accel.bottom)) {
+                    READ(tgui->accel.dx + (tgui->accel.dy * tgui->accel.pitch), dst_dat);
+
+                    pat_dat = tgui->accel.fg_col;
+
+                    if (tgui->accel.bpp == 0)
+                        pat_dat &= 0xff;
+                    else if (tgui->accel.bpp == 1)
+                        pat_dat &= 0xffff;
+
+                    MIX();
+
+                    WRITE(tgui->accel.dx + (tgui->accel.dy * tgui->accel.pitch), out);
                 }
 
-                while (count--) {
-                    READ(tgui->accel.src_x + (tgui->accel.src_y * tgui->accel.pitch), src_dat);
+                if (tgui->accel.y == (tgui->accel.size_y & 0xfff)) {
+                    break;
+                }
 
-                    /*Note by TC1995: I suppose the x/y clipping max is always more than 0 in the TGUI 96xx, but the TGUI 9440 lacks clipping*/
-                    if (steep) {
-                        if ((tgui->type == TGUI_9440) || ((tgui->type >= TGUI_9660) && dx >= tgui->accel.left && dx <= tgui->accel.right && dy >= tgui->accel.top && dy <= tgui->accel.bottom)) {
-                            READ(dx + (dy * tgui->accel.pitch), dst_dat);
-
-                            pat_dat = tgui->accel.fg_col;
-
-                            if (tgui->accel.bpp == 0)
-                                pat_dat &= 0xff;
-                            else if (tgui->accel.bpp == 1)
-                                pat_dat &= 0xffff;
-
-                            MIX();
-
-                            WRITE(dx + (dy * tgui->accel.pitch), out);
-                        }
-                    } else {
-                        if ((tgui->type == TGUI_9440) || ((tgui->type >= TGUI_9660) && dy >= tgui->accel.left && dy <= tgui->accel.right && dx >= tgui->accel.top && dx <= tgui->accel.bottom)) {
-                            READ(dy + (dx * tgui->accel.pitch), dst_dat);
-
-                            pat_dat = tgui->accel.fg_col;
-
-                            if (tgui->accel.bpp == 0)
-                                pat_dat &= 0xff;
-                            else if (tgui->accel.bpp == 1)
-                                pat_dat &= 0xffff;
-
-                            MIX();
-
-                            WRITE(dy + (dx * tgui->accel.pitch), out);
-                        }
-                    }
-
-                    if (tgui->accel.y == tgui->accel.size_y) {
-                        break;
-                    }
-
-                    while (err > 0) {
-                        dy += ydir;
-                        err -= (cx << 1);
-                        if (!cx) {
+                if (tgui->accel.err >= (tgui->accel.size_y & 0xfff)) {
+                    //pclog("Bres DEC: destx = %d, desty = %d, err = %d, sizey = %d.\n", tgui->accel.src_x, tgui->accel.src_y, tgui->accel.err, tgui->accel.size_y);
+                    if ((tgui->accel.src_x >= 2048) && (tgui->accel.src_x < 4096))
+                        tgui->accel.err -= (4096 - tgui->accel.src_x);
+                    else if ((tgui->accel.src_x >= 4096) && (tgui->accel.src_x < 32768))
+                        tgui->accel.err -= (32768 - tgui->accel.src_x);
+                    else
+                        tgui->accel.err += tgui->accel.src_x;
+                    /*Step minor axis*/
+                    switch (tgui->accel.flags & 0x700) {
+                        case 0x300:
+                            tgui->accel.dy--;
                             break;
-                        }
+                        case 0x100:
+                            tgui->accel.dy--;
+                            break;
+                        case 0x700:
+                            tgui->accel.dx--;
+                            break;
+                        case 0x500:
+                            tgui->accel.dx++;
+                            break;
+                        case 0x200:
+                            tgui->accel.dy++;
+                            break;
+                        case 0x000:
+                            tgui->accel.dy++;
+                            break;
+                        case 0x600:
+                            tgui->accel.dx--;
+                            break;
+                        case 0x400:
+                            tgui->accel.dx++;
+                            break;
                     }
-                    dx += xdir;
-                    err += (cy << 1);
-
-                    tgui->accel.y++;
+                } else {
+                    //pclog("Bres INC: desty = %d, destx = %d, err = %d, sizey = %d.\n", tgui->accel.src_y, tgui->accel.src_x, tgui->accel.err, tgui->accel.size_y);
+                    tgui->accel.err += tgui->accel.src_y;
                 }
+
+                /*Step major axis*/
+                switch (tgui->accel.flags & 0x700) {
+                    case 0x300:
+                        tgui->accel.dx--;
+                        break;
+                    case 0x100:
+                        tgui->accel.dx++;
+                        break;
+                    case 0x700:
+                        tgui->accel.dy--;
+                        break;
+                    case 0x500:
+                        tgui->accel.dy--;
+                        break;
+                    case 0x200:
+                        tgui->accel.dx--;
+                        break;
+                    case 0x000:
+                        tgui->accel.dx++;
+                        break;
+                    case 0x600:
+                        tgui->accel.dy++;
+                        break;
+                    case 0x400:
+                        tgui->accel.dy++;
+                        break;
+                }
+
+                tgui->accel.y++;
             }
             break;
 
         case TGUI_SHORTVECTOR:
-            {
-                int16_t dx, dy;
+            if (count == -1) {
+                tgui->accel.dx = tgui->accel.dst_x & 0xfff;
+                tgui->accel.dy = tgui->accel.dst_y & 0xfff;
 
-                dx = tgui->accel.dst_x & 0xfff;
-                dy = tgui->accel.dst_y & 0xfff;
+                if (tgui->accel.dst_x & 0x1000)
+                    tgui->accel.dx |= ~0xfff;
+                if (tgui->accel.dst_y & 0x1000)
+                    tgui->accel.dy |= ~0xfff;
 
                 tgui->accel.left   = tgui->accel.src_x_clip & 0xfff;
                 tgui->accel.right  = tgui->accel.dst_x_clip & 0xfff;
@@ -1852,74 +1847,77 @@ tgui_accel_command(int count, uint32_t cpu_dat, tgui_t *tgui)
                     tgui->accel.left >>= 2;
                     tgui->accel.right >>= 2;
                 }
+            }
 
-                while (count--) {
-                    READ(tgui->accel.src_x + (tgui->accel.src_y * tgui->accel.pitch), src_dat);
+            while (count-- && (tgui->accel.y <= (tgui->accel.sv_size_y & 0xfff))) {
+                //READ(tgui->accel.src_x + (tgui->accel.src_y * tgui->accel.pitch), src_dat);
 
-                    /*Note by TC1995: I suppose the x/y clipping max is always more than 0 in the TGUI 96xx, but the TGUI 9440 lacks clipping*/
-                    if ((tgui->type == TGUI_9440) || ((tgui->type >= TGUI_9660) && dx >= tgui->accel.left && dx <= tgui->accel.right && dy >= tgui->accel.top && dy <= tgui->accel.bottom)) {
-                        READ(dx + (dy * tgui->accel.pitch), dst_dat);
+                /*Note by TC1995: I suppose the x/y clipping max is always more than 0 in the TGUI 96xx, but the TGUI 9440 lacks clipping*/
+                if ((tgui->type == TGUI_9440) || ((tgui->type >= TGUI_9660) && tgui->accel.dx >= tgui->accel.left && tgui->accel.dx <= tgui->accel.right && tgui->accel.dy >= tgui->accel.top && tgui->accel.dy <= tgui->accel.bottom)) {
+                    READ(tgui->accel.dx + (tgui->accel.dy * tgui->accel.pitch), dst_dat);
 
-                        pat_dat = tgui->accel.fg_col;
+                    pat_dat = tgui->accel.fg_col;
 
-                        if (tgui->accel.bpp == 0)
-                            pat_dat &= 0xff;
-                        else if (tgui->accel.bpp == 1)
-                            pat_dat &= 0xffff;
+                    if (tgui->accel.bpp == 0)
+                        pat_dat &= 0xff;
+                    else if (tgui->accel.bpp == 1)
+                        pat_dat &= 0xffff;
 
-                        MIX();
+                    MIX();
 
-                        WRITE(dx + (dy * tgui->accel.pitch), out);
-                    }
-
-                    if (tgui->accel.y == (tgui->accel.sv_size_y & 0xfff))
-                        break;
-
-                    switch ((tgui->accel.sv_size_y >> 8) & 0xe0) {
-                        case 0x00:
-                            dx++;
-                            break;
-                        case 0x20:
-                            dx++;
-                            dy--;
-                            break;
-                        case 0x40:
-                            dy--;
-                            break;
-                        case 0x60:
-                            dx--;
-                            dy--;
-                            break;
-                        case 0x80:
-                            dx--;
-                            break;
-                        case 0xa0:
-                            dx--;
-                            dy++;
-                            break;
-                        case 0xc0:
-                            dy++;
-                            break;
-                        case 0xe0:
-                            dx++;
-                            dy++;
-                            break;
-                    }
-
-                    tgui->accel.y++;
+                    WRITE(tgui->accel.dx + (tgui->accel.dy * tgui->accel.pitch), out);
                 }
+
+                if (tgui->accel.y == (tgui->accel.sv_size_y & 0xfff))
+                    break;
+
+                switch ((tgui->accel.sv_size_y >> 8) & 0xe0) {
+                    case 0x00:
+                        tgui->accel.dx++;
+                        break;
+                    case 0x20:
+                        tgui->accel.dx++;
+                        tgui->accel.dy--;
+                        break;
+                    case 0x40:
+                        tgui->accel.dy--;
+                        break;
+                    case 0x60:
+                        tgui->accel.dx--;
+                        tgui->accel.dy--;
+                        break;
+                    case 0x80:
+                        tgui->accel.dx--;
+                        break;
+                    case 0xa0:
+                        tgui->accel.dx--;
+                        tgui->accel.dy++;
+                        break;
+                    case 0xc0:
+                        tgui->accel.dy++;
+                        break;
+                    case 0xe0:
+                        tgui->accel.dx++;
+                        tgui->accel.dy++;
+                        break;
+                }
+
+                tgui->accel.y++;
             }
             break;
 
         case TGUI_FASTLINE:
-            {
-                if (tgui->type < TGUI_9660)
-                    break;
+            if (tgui->type < TGUI_9660)
+                break;
 
-                int16_t dx, dy;
+            if (count == -1) {
+                tgui->accel.dx = tgui->accel.dst_x & 0xfff;
+                tgui->accel.dy = tgui->accel.dst_y & 0xfff;
 
-                dx = tgui->accel.dst_x & 0xfff;
-                dy = tgui->accel.dst_y & 0xfff;
+                if (tgui->accel.dst_x & 0x1000)
+                    tgui->accel.dx |= ~0xfff;
+                if (tgui->accel.dst_y & 0x1000)
+                    tgui->accel.dy |= ~0xfff;
 
                 tgui->accel.left   = tgui->accel.src_x_clip & 0xfff;
                 tgui->accel.right  = tgui->accel.dst_x_clip & 0xfff;
@@ -1933,62 +1931,62 @@ tgui_accel_command(int count, uint32_t cpu_dat, tgui_t *tgui)
                     tgui->accel.left >>= 2;
                     tgui->accel.right >>= 2;
                 }
+            }
 
-                while (count--) {
-                    READ(tgui->accel.src_x + (tgui->accel.src_y * tgui->accel.pitch), src_dat);
+            while (count-- && (tgui->accel.y <= (tgui->accel.size_y & 0xfff))) {
+                //READ(tgui->accel.src_x + (tgui->accel.src_y * tgui->accel.pitch), src_dat);
 
-                    /*Note by TC1995: I suppose the x/y clipping max is always more than 0 in the TGUI 96xx, but the TGUI 9440 lacks clipping*/
-                    if ((tgui->type == TGUI_9440) || ((tgui->type >= TGUI_9660) && dx >= tgui->accel.left && dx <= tgui->accel.right && dy >= tgui->accel.top && dy <= tgui->accel.bottom)) {
-                        READ(dx + (dy * tgui->accel.pitch), dst_dat);
+                /*Note by TC1995: I suppose the x/y clipping max is always more than 0 in the TGUI 96xx, but the TGUI 9440 lacks clipping*/
+                if (tgui->accel.dx >= tgui->accel.left && tgui->accel.dx <= tgui->accel.right && tgui->accel.dy >= tgui->accel.top && tgui->accel.dy <= tgui->accel.bottom) {
+                    READ(tgui->accel.dx + (tgui->accel.dy * tgui->accel.pitch), dst_dat);
 
-                        pat_dat = tgui->accel.fg_col;
+                    pat_dat = tgui->accel.fg_col;
 
-                        if (tgui->accel.bpp == 0)
-                            pat_dat &= 0xff;
-                        else if (tgui->accel.bpp == 1)
-                            pat_dat &= 0xffff;
+                    if (tgui->accel.bpp == 0)
+                        pat_dat &= 0xff;
+                    else if (tgui->accel.bpp == 1)
+                        pat_dat &= 0xffff;
 
-                        MIX();
+                    MIX();
 
-                        WRITE(dx + (dy * tgui->accel.pitch), out);
-                    }
-
-                    if (tgui->accel.y == (tgui->accel.size_y & 0xfff))
-                        break;
-
-                    switch ((tgui->accel.size_y >> 8) & 0xe0) {
-                        case 0x00:
-                            dx++;
-                            break;
-                        case 0x20:
-                            dx++;
-                            dy--;
-                            break;
-                        case 0x40:
-                            dy--;
-                            break;
-                        case 0x60:
-                            dx--;
-                            dy--;
-                            break;
-                        case 0x80:
-                            dx--;
-                            break;
-                        case 0xa0:
-                            dx--;
-                            dy++;
-                            break;
-                        case 0xc0:
-                            dy++;
-                            break;
-                        case 0xe0:
-                            dx++;
-                            dy++;
-                            break;
-                    }
-
-                    tgui->accel.y++;
+                    WRITE(tgui->accel.dx + (tgui->accel.dy * tgui->accel.pitch), out);
                 }
+
+                if (tgui->accel.y == (tgui->accel.size_y & 0xfff))
+                    break;
+
+                switch ((tgui->accel.size_y >> 8) & 0xe0) {
+                    case 0x00:
+                        tgui->accel.dx++;
+                        break;
+                    case 0x20:
+                        tgui->accel.dx++;
+                        tgui->accel.dy--;
+                        break;
+                    case 0x40:
+                        tgui->accel.dy--;
+                        break;
+                    case 0x60:
+                        tgui->accel.dx--;
+                        tgui->accel.dy--;
+                        break;
+                    case 0x80:
+                        tgui->accel.dx--;
+                        break;
+                    case 0xa0:
+                        tgui->accel.dx--;
+                        tgui->accel.dy++;
+                        break;
+                    case 0xc0:
+                        tgui->accel.dy++;
+                        break;
+                    case 0xe0:
+                        tgui->accel.dx++;
+                        tgui->accel.dy++;
+                        break;
+                }
+
+                tgui->accel.y++;
             }
             break;
     }
@@ -2009,7 +2007,14 @@ tgui_accel_out(uint16_t addr, uint8_t val, void *p)
                     break;
 
                 case 9:
-                    tgui->accel.bpp = 1;
+                    switch (tgui->svga.bpp) {
+                        case 32:
+                            tgui->accel.bpp = 3;
+                            break;
+                        default:
+                            tgui->accel.bpp = 1;
+                            break;
+                    }
                     break;
 
                 case 13:
@@ -2131,6 +2136,11 @@ tgui_accel_out(uint16_t addr, uint8_t val, void *p)
             break;
         case 0x2141: /*Size X*/
             tgui->accel.size_x = (tgui->accel.size_x & 0xff) | (val << 8);
+            tgui->accel.err = tgui->accel.size_x;
+            if ((tgui->accel.err >= 2048) && (tgui->accel.err < 4096))
+                tgui->accel.err -= 4096;
+            else if ((tgui->accel.err >= 4096) && (tgui->accel.err < 32768))
+                tgui->accel.err -= 32768;
             break;
         case 0x2142: /*Size Y*/
             tgui->accel.size_y    = (tgui->accel.size_y & 0xff00) | val;
@@ -2367,7 +2377,6 @@ tgui_accel_in(uint16_t addr, void *p)
 
         case 0x2122:
             return tgui->accel.ger22 & 0xff;
-
         case 0x2123:
             return tgui->accel.ger22 >> 8;
 
@@ -2648,7 +2657,14 @@ tgui_accel_write(uint32_t addr, uint8_t val, void *p)
                     break;
 
                 case 9:
-                    tgui->accel.bpp = 1;
+                    switch (tgui->svga.bpp) {
+                        case 32:
+                            tgui->accel.bpp = 3;
+                            break;
+                        default:
+                            tgui->accel.bpp = 1;
+                            break;
+                    }
                     break;
 
                 case 13:
@@ -2770,6 +2786,11 @@ tgui_accel_write(uint32_t addr, uint8_t val, void *p)
             break;
         case 0x41: /*Size X*/
             tgui->accel.size_x = (tgui->accel.size_x & 0xff) | (val << 8);
+            tgui->accel.err = tgui->accel.size_x;
+            if ((tgui->accel.err >= 2048) && (tgui->accel.err < 4096))
+                tgui->accel.err -= 4096;
+            else if ((tgui->accel.err >= 4096) && (tgui->accel.err < 32768))
+                tgui->accel.err -= 32768;
             break;
         case 0x42: /*Size Y*/
             tgui->accel.size_y    = (tgui->accel.size_y & 0xff00) | val;
@@ -3022,7 +3043,6 @@ tgui_accel_read(uint32_t addr, void *p)
 
         case 0x22:
             return tgui->accel.ger22 & 0xff;
-
         case 0x23:
             return tgui->accel.ger22 >> 8;
 

@@ -60,7 +60,7 @@ static uint32_t last_op32;
 static x86seg *last_ea_seg;
 static int last_ssegs;
 
-void codegen_init()
+void codegen_init(void)
 {
         int c;
 
@@ -80,7 +80,7 @@ void codegen_init()
                 codeblock[c].valid = 0;
 }
 
-void codegen_reset()
+void codegen_reset(void)
 {
         int c;
 
@@ -92,7 +92,7 @@ void codegen_reset()
                 codeblock[c].valid = 0;
 }
 
-void dump_block()
+void dump_block(void)
 {
 }
 
@@ -381,7 +381,7 @@ void codegen_block_start_recompile(codeblock_t *block)
         codegen_flat_ss = !(cpu_cur_status & CPU_STATUS_NOTFLATSS);
 }
 
-void codegen_block_remove()
+void codegen_block_remove(void)
 {
         codeblock_t *block = &codeblock[block_current];
 
@@ -390,7 +390,7 @@ void codegen_block_remove()
         recomp_page = -1;
 }
 
-void codegen_block_generate_end_mask()
+void codegen_block_generate_end_mask(void)
 {
         codeblock_t *block = &codeblock[block_current];
         uint32_t start_pc;
@@ -448,7 +448,7 @@ void codegen_block_generate_end_mask()
         recomp_page = -1;
 }
 
-void codegen_block_end()
+void codegen_block_end(void)
 {
         codeblock_t *block = &codeblock[block_current];
 
@@ -491,7 +491,7 @@ void codegen_block_end_recompile(codeblock_t *block)
         add_to_block_list(block);
 }
 
-void codegen_flush()
+void codegen_flush(void)
 {
         return;
 }
@@ -541,7 +541,7 @@ int opcode_0f_modrm[256] =
         0, 1, 1, 1,  0, 1, 0, 0,  1, 1, 1, 0,  1, 1, 1, 0  /*f0*/
 };
 
-void codegen_debug()
+void codegen_debug(void)
 {
 }
 
