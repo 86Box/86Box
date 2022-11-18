@@ -74,9 +74,8 @@ svga_log(const char *fmt, ...)
 #    define svga_log(fmt, ...)
 #endif
 
-svga_t
-    *
-    svga_get_pri()
+svga_t *
+svga_get_pri(void)
 {
     return svga_pri;
 }

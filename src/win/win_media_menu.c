@@ -350,7 +350,7 @@ media_menu_update_mo(int id)
 }
 
 static void
-media_menu_load_submenus()
+media_menu_load_submenus(void)
 {
     memset(index_map, -1, sizeof(index_map));
 
@@ -428,7 +428,7 @@ is_valid_mo(int i)
 }
 
 void
-media_menu_reset()
+media_menu_reset(void)
 {
     /* Remove existing entries. */
     int c = GetMenuItemCount(media_menu);
@@ -488,7 +488,7 @@ media_menu_reset()
 
 /* Initializes the Media menu in the main menu bar. */
 static void
-media_menu_main_init()
+media_menu_main_init(void)
 {
     HMENU  hMenu;
     LPWSTR lpMenuName;
@@ -510,7 +510,7 @@ media_menu_main_init()
 }
 
 void
-media_menu_init()
+media_menu_init(void)
 {
     /* Initialize the main menu bar menu */
     media_menu_main_init();

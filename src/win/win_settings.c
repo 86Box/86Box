@@ -230,7 +230,7 @@ settings_listview_select(HWND hdlg, int id, int selection)
 }
 
 static void
-settings_process_messages()
+settings_process_messages(void)
 {
     MSG msg;
     while (PeekMessage(&msg, 0, 0, 0, PM_REMOVE | PM_NOYIELD)) {
@@ -1963,7 +1963,7 @@ win_settings_network_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 }
 
 static void
-normalize_hd_list()
+normalize_hd_list(void)
 {
     hard_disk_t ihdd[HDD_NUM];
     int         i, j;

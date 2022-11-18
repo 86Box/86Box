@@ -314,29 +314,29 @@ static inline void codegen_mark_code_present(codeblock_t *block, uint32_t start_
                 codegen_mark_code_present_multibyte(block, start_pc, len);
 }
 
-void codegen_init();
-void codegen_close();
-void codegen_reset();
-void codegen_block_init(uint32_t phys_addr);
-void codegen_block_remove();
-void codegen_block_start_recompile(codeblock_t *block);
-void codegen_block_end_recompile(codeblock_t *block);
-void codegen_block_end();
-void codegen_delete_block(codeblock_t *block);
-void codegen_generate_call(uint8_t opcode, OpFn op, uint32_t fetchdat, uint32_t new_pc, uint32_t old_pc);
-void codegen_generate_seg_restore();
-void codegen_set_op32();
-void codegen_flush();
-void codegen_check_flush(struct page_t *page, uint64_t mask, uint32_t phys_addr);
+extern void codegen_init(void);
+extern void codegen_close(void);
+extern void codegen_reset(void);
+extern void codegen_block_init(uint32_t phys_addr);
+extern void codegen_block_remove(void);
+extern void codegen_block_start_recompile(codeblock_t *block);
+extern void codegen_block_end_recompile(codeblock_t *block);
+extern void codegen_block_end(void);
+extern void codegen_delete_block(codeblock_t *block);
+extern void codegen_generate_call(uint8_t opcode, OpFn op, uint32_t fetchdat, uint32_t new_pc, uint32_t old_pc);
+extern void codegen_generate_seg_restore(void);
+extern void codegen_set_op32(void);
+extern void codegen_flush(void);
+extern void codegen_check_flush(struct page_t *page, uint64_t mask, uint32_t phys_addr);
 struct ir_data_t;
 x86seg *codegen_generate_ea(struct ir_data_t *ir, x86seg *op_ea_seg, uint32_t fetchdat, int op_ssegs, uint32_t *op_pc, uint32_t op_32, int stack_offset);
-void codegen_check_seg_read(codeblock_t *block, struct ir_data_t *ir, x86seg *seg);
-void codegen_check_seg_write(codeblock_t *block, struct ir_data_t *ir, x86seg *seg);
+extern void codegen_check_seg_read(codeblock_t *block, struct ir_data_t *ir, x86seg *seg);
+extern void codegen_check_seg_write(codeblock_t *block, struct ir_data_t *ir, x86seg *seg);
 
-int codegen_purge_purgable_list();
+extern int codegen_purge_purgable_list(void);
 /*Delete a random code block to free memory. This is obviously quite expensive, and
   will only be called when the allocator is out of memory*/
-void codegen_delete_random_block(int required_mem_block);
+extern void codegen_delete_random_block(int required_mem_block);
 
 extern int cpu_block_end;
 extern uint32_t codegen_endpc;
@@ -346,21 +346,21 @@ extern int cpu_notreps;
 
 extern int codegen_block_cycles;
 
-extern void (*codegen_timing_start)();
+extern void (*codegen_timing_start)(void);
 extern void (*codegen_timing_prefix)(uint8_t prefix, uint32_t fetchdat);
 extern void (*codegen_timing_opcode)(uint8_t opcode, uint32_t fetchdat, int op_32, uint32_t op_pc);
-extern void (*codegen_timing_block_start)();
-extern void (*codegen_timing_block_end)();
-extern int (*codegen_timing_jump_cycles)();
+extern void (*codegen_timing_block_start)(void);
+extern void (*codegen_timing_block_end)(void);
+extern int (*codegen_timing_jump_cycles)(void);
 
 typedef struct codegen_timing_t
 {
-        void (*start)();
+        void (*start)(void);
         void (*prefix)(uint8_t prefix, uint32_t fetchdat);
         void (*opcode)(uint8_t opcode, uint32_t fetchdat, int op_32, uint32_t op_pc);
-        void (*block_start)();
-        void (*block_end)();
-        int (*jump_cycles)();
+        void (*block_start)(void);
+        void (*block_end)(void);
+        int (*jump_cycles)(void);
 } codegen_timing_t;
 
 extern codegen_timing_t codegen_timing_pentium;
@@ -398,7 +398,7 @@ extern int codegen_reg_loaded[8];
 
 extern int codegen_in_recompile;
 
-void codegen_generate_reset();
+void codegen_generate_reset(void);
 
 int codegen_get_instruction_uop(codeblock_t *block, uint32_t pc, int *first_instruction, int *TOP);
 void codegen_set_loop_start(struct ir_data_t *ir, int first_instruction);

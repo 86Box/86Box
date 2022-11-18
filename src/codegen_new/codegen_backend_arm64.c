@@ -277,7 +277,7 @@ static void build_fp_round_routine(codeblock_t *block, int is_quad)
 	host_arm64_RET(block, REG_X30);
 }
 
-void codegen_backend_init()
+void codegen_backend_init(void)
 {
 	codeblock_t *block;
         int c;

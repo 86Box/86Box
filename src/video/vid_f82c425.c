@@ -96,7 +96,7 @@ f82c425_display_set(uint8_t internal)
 }
 
 uint8_t
-f82c425_display_get()
+f82c425_display_get(void)
 {
     return (uint8_t) st_display_internal;
 }

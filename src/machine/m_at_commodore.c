@@ -84,7 +84,7 @@ cbm_io_write(uint16_t port, uint8_t val, void *p)
 }
 
 static void
-cbm_io_init()
+cbm_io_init(void)
 {
     io_sethandler(0x0230, 0x0001, NULL, NULL, NULL, cbm_io_write, NULL, NULL, NULL);
 }

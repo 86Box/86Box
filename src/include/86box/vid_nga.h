@@ -42,7 +42,7 @@ void    nga_write(uint32_t addr, uint8_t val, void *priv);
 uint8_t nga_read(uint32_t addr, void *priv);
 void    nga_poll(void *priv);
 void    nga_close(void *priv);
-void    nga_mdaattr_rebuild();
+void    nga_mdaattr_rebuild(void);
 
 #ifdef EMU_DEVICE_H
 extern const device_config_t nga_config[];

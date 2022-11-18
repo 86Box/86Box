@@ -23,11 +23,11 @@ extern "C" {
 
 extern int discord_loaded;
 
-extern int  discord_load();
-extern void discord_init();
-extern void discord_close();
+extern int  discord_load(void);
+extern void discord_init(void);
+extern void discord_close(void);
 extern void discord_update_activity(int paused);
-extern void discord_run_callbacks();
+extern void discord_run_callbacks(void);
 
 #ifdef __cplusplus
 }

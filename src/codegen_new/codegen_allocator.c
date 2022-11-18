@@ -30,7 +30,7 @@ static uint8_t *mem_block_alloc = NULL;
 
 int codegen_allocator_usage = 0;
 
-void codegen_allocator_init()
+void codegen_allocator_init(void)
 {
         int c;
 

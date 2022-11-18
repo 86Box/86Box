@@ -42,7 +42,7 @@ void    ogc_write(uint32_t addr, uint8_t val, void *priv);
 uint8_t ogc_read(uint32_t addr, void *priv);
 void    ogc_poll(void *priv);
 void    ogc_close(void *priv);
-void    ogc_mdaattr_rebuild();
+void    ogc_mdaattr_rebuild(void);
 
 #ifdef EMU_DEVICE_H
 extern const device_config_t ogc_config[];
