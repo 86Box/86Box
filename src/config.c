@@ -69,6 +69,7 @@
 #include <86box/cdrom.h>
 #include <86box/cdrom_interface.h>
 #include <86box/rdisk.h>
+#include <86box/superdisk.h>
 #include <86box/mo.h>
 #include <86box/sound.h>
 #include <86box/midi.h>
@@ -1933,6 +1934,122 @@ load_other_removable_devices(void)
 
 go_to_mo:
     memset(temp, 0x00, sizeof(temp));
+    for (c = 0; c < SUPERDISK_NUM; c++) {
+        sprintf(temp, "superdisk_%02i_parameters", c + 1);
+        p = ini_section_get_string(cat, temp, NULL);
+        if (p != NULL)
+            sscanf(p, "%01u, %s", &superdisk_drives[c].is_240, s);
+        else
+            sscanf("0, none", "%01u, %s", &superdisk_drives[c].is_240, s);
+        superdisk_drives[c].bus_type = hdd_string_to_bus(s, 1);
+
+        /* Default values, needed for proper operation of the Settings dialog. */
+        superdisk_drives[c].ide_channel = superdisk_drives[c].scsi_device_id = c + 2;
+
+        if (superdisk_drives[c].bus_type == SUPERDISK_BUS_ATAPI) {
+            sprintf(temp, "superdisk_%02i_ide_channel", c + 1);
+            sprintf(tmp2, "%01u:%01u", (c + 2) >> 1, (c + 2) & 1);
+            p = ini_section_get_string(cat, temp, tmp2);
+            sscanf(p, "%01u:%01u", &board, &dev);
+            board &= 3;
+            dev &= 1;
+            superdisk_drives[c].ide_channel = (board << 1) + dev;
+
+            if (superdisk_drives[c].ide_channel > 7)
+                superdisk_drives[c].ide_channel = 7;
+        } else if (superdisk_drives[c].bus_type == SUPERDISK_BUS_SCSI) {
+            sprintf(temp, "superdisk_%02i_scsi_location", c + 1);
+            sprintf(tmp2, "%01u:%02u", SCSI_BUS_MAX, c + 2);
+            p = ini_section_get_string(cat, temp, tmp2);
+            sscanf(p, "%01u:%02u", &board, &dev);
+            if (board >= SCSI_BUS_MAX) {
+                /* Invalid bus - check legacy ID */
+                sprintf(temp, "superdisk_%02i_scsi_id", c + 1);
+                superdisk_drives[c].scsi_device_id = ini_section_get_int(cat, temp, c + 2);
+
+                if (superdisk_drives[c].scsi_device_id > 15)
+                    superdisk_drives[c].scsi_device_id = 15;
+            } else {
+                board %= SCSI_BUS_MAX;
+                dev &= 15;
+                superdisk_drives[c].scsi_device_id = (board << 4) + dev;
+            }
+        }
+
+        if (superdisk_drives[c].bus_type != SUPERDISK_BUS_ATAPI) {
+            sprintf(temp, "superdisk_%02i_ide_channel", c + 1);
+            ini_section_delete_var(cat, temp);
+        }
+
+        if (superdisk_drives[c].bus_type != SUPERDISK_BUS_SCSI) {
+            sprintf(temp, "superdisk_%02i_scsi_location", c + 1);
+            ini_section_delete_var(cat, temp);
+        }
+
+        sprintf(temp, "superdiske_%02i_scsi_id", c + 1);
+        ini_section_delete_var(cat, temp);
+
+        sprintf(temp, "superdisk_%02i_image_path", c + 1);
+        p = ini_section_get_string(cat, temp, "");
+
+        if (!strcmp(p, usr_path))
+            p[0] = 0x00;
+
+        if (p[0] != 0x00) {
+            if (path_abs(p)) {
+                if (strlen(p) > 511)
+                    fatal("load_other_removable_devices(): strlen(p) > 511 (superdisk_drives[%i].image_path)\n",
+                          c);
+                else
+                    strncpy(superdisk_drives[c].image_path, p, 511);
+            } else
+                path_append_filename(superdisk_drives[c].image_path, usr_path, p);
+            path_normalize(superdisk_drives[c].image_path);
+        }
+
+        for (int i = 0; i < MAX_PREV_IMAGES; i++) {
+            superdisk_drives[c].image_history[i] = (char *) calloc(MAX_IMAGE_PATH_LEN + 1, sizeof(char));
+            sprintf(temp, "superdisk_%02i_image_history_%02i", c + 1, i + 1);
+            p = ini_section_get_string(cat, temp, NULL);
+            if (p) {
+                if (path_abs(p)) {
+                    if (strlen(p) > 511)
+                        fatal("load_other_removable_devices(): strlen(p) > 511 "
+                              "(superdisk_drives[%i].image_history[%i])\n", c, i);
+                    else
+                        snprintf(superdisk_drives[c].image_history[i], 511, "%s", p);
+                } else
+                    snprintf(superdisk_drives[c].image_history[i], 511, "%s%s%s", usr_path,
+                             path_get_slash(usr_path), p);
+                path_normalize(superdisk_drives[c].image_history[i]);
+            }
+        }
+
+        /* If the SuperDisk drive is disabled, delete all its variables. */
+        if (superdisk_drives[c].bus_type == SUPERDISK_BUS_DISABLED) {
+            sprintf(temp, "superdisk_%02i_host_drive", c + 1);
+            ini_section_delete_var(cat, temp);
+
+            sprintf(temp, "superdisk_%02i_parameters", c + 1);
+            ini_section_delete_var(cat, temp);
+
+            sprintf(temp, "superdisk_%02i_ide_channel", c + 1);
+            ini_section_delete_var(cat, temp);
+
+            sprintf(temp, "superdisk_%02i_scsi_id", c + 1);
+            ini_section_delete_var(cat, temp);
+
+            sprintf(temp, "superdisk_%02i_image_path", c + 1);
+            ini_section_delete_var(cat, temp);
+
+            for (int i = 0; i < MAX_PREV_IMAGES; i++) {
+                sprintf(temp, "superdisk_%02i_image_history_%02i", c + 1, i + 1);
+                ini_section_delete_var(cat, temp);
+            }
+        }
+    }
+
+    memset(temp, 0x00, sizeof(temp));
     for (c = 0; c < MO_NUM; c++) {
         sprintf(temp, "mo_%02i_parameters", c + 1);
         p = ini_section_get_string(cat, temp, NULL);
@@ -2207,6 +2324,7 @@ config_load(void)
     memset(cdrom_ioctl, 0, sizeof(cdrom_ioctl_t) * CDROM_NUM);
 #endif
     memset(rdisk_drives, 0, sizeof(rdisk_drive_t));
+    memset(superdisk_drives, 0, sizeof(superdisk_drive_t));
 
     for (int i = 0; i < 768; i++)
         scancode_config_map[i] = i;
@@ -3685,6 +3803,49 @@ save_other_removable_devices(void)
                 ini_section_delete_var(cat, temp);
             else
                 save_image_file(cat, temp, rdisk_drives[c].image_history[i]);
+        }
+    }
+
+    for (c = 0; c < SUPERDISK_NUM; c++) {
+        sprintf(temp, "superdisk_%02i_parameters", c + 1);
+        if (superdisk_drives[c].bus_type == 0) {
+            ini_section_delete_var(cat, temp);
+        } else {
+            sprintf(tmp2, "%u, %s", superdisk_drives[c].is_240,
+                    hdd_bus_to_string(superdisk_drives[c].bus_type, 1));
+            ini_section_set_string(cat, temp, tmp2);
+        }
+
+        sprintf(temp, "superdisk_%02i_ide_channel", c + 1);
+        if (superdisk_drives[c].bus_type != SUPERDISK_BUS_ATAPI)
+            ini_section_delete_var(cat, temp);
+        else {
+            sprintf(tmp2, "%01u:%01u", superdisk_drives[c].ide_channel >> 1,
+                    superdisk_drives[c].ide_channel & 1);
+            ini_section_set_string(cat, temp, tmp2);
+        }
+
+        sprintf(temp, "superdisk_%02i_scsi_id", c + 1);
+        ini_section_delete_var(cat, temp);
+
+        sprintf(temp, "superdisk_%02i_scsi_location", c + 1);
+        if (superdisk_drives[c].bus_type != SUPERDISK_BUS_SCSI)
+            ini_section_delete_var(cat, temp);
+        else {
+            sprintf(tmp2, "%01u:%02u", superdisk_drives[c].scsi_device_id >> 4,
+                    superdisk_drives[c].scsi_device_id & 15);
+            ini_section_set_string(cat, temp, tmp2);
+        }
+
+        sprintf(temp, "superdisk_%02i_image_path", c + 1);
+        if ((superdisk_drives[c].bus_type == 0) || (strlen(superdisk_drives[c].image_path) == 0))
+            ini_section_delete_var(cat, temp);
+        else {
+            path_normalize(superdisk_drives[c].image_path);
+            if (!strnicmp(superdisk_drives[c].image_path, usr_path, strlen(usr_path)))
+                ini_section_set_string(cat, temp, &superdisk_drives[c].image_path[strlen(usr_path)]);
+            else
+                ini_section_set_string(cat, temp, superdisk_drives[c].image_path);
         }
     }
 

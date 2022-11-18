@@ -46,11 +46,14 @@
 #define GPCMD_REQUEST_SENSE                           0x03
 #define GPCMD_FORMAT_UNIT                             0x04
 #define GPCMD_IOMEGA_SENSE                            0x06
+#define GPCMD_IMATION_SENSE                           0x06
 #define GPCMD_READ_6                                  0x08
 #define GPCMD_WRITE_6                                 0x0a
 #define GPCMD_SEEK_6                                  0x0b
 #define GPCMD_IOMEGA_SET_PROTECTION_MODE              0x0c
+#define GPCMD_IMATION_SET_PROTECTION_MODE             0x0c
 #define GPCMD_IOMEGA_EJECT                            0x0d /* ATAPI only? */
+#define GPCMD_IMATION_EJECT                           0x0d /* ATAPI only? */
 #define GPCMD_NO_OPERATION_TOSHIBA                    0x0d /* Toshiba Vendor Unique command. */
 #define GPCMD_NO_OPERATION_NEC                        0x0d /* NEC Vendor Unique command. */
 #define GPCMD_INQUIRY                                 0x12
@@ -173,6 +176,7 @@
 #define GPMODE_CDROM_AUDIO_PAGE      0x0e
 #define GPMODE_CAPABILITIES_PAGE     0x2a
 #define GPMODE_IOMEGA_PAGE           0x2f
+#define GPMODE_IMATION_PAGE          0x2f
 #define GPMODE_UNK_VENDOR_PAGE       0x30
 #define GPMODE_ALL_PAGES             0x3f
 
@@ -190,6 +194,7 @@
 #define GPMODEP_CDROM_AUDIO_PAGE      0x0000000000004000LL
 #define GPMODEP_CAPABILITIES_PAGE     0x0000040000000000LL
 #define GPMODEP_IOMEGA_PAGE           0x0000800000000000LL
+#define GPMODEP_IMATION_PAGE          0x0000800000000000LL
 #define GPMODEP_UNK_VENDOR_PAGE       0x0001000000000000LL
 #define GPMODEP_ALL_PAGES             0x8000000000000000LL
 

@@ -28,6 +28,7 @@ extern "C" {
 #include <86box/random.h>
 #include <86box/scsi_device.h>
 #include <86box/rdisk.h>
+#include <86box/superdisk.h>
 #include <86box/mo.h>
 }
 
@@ -57,7 +58,7 @@ struct disk_size_t {
     int root_dir_entries;
 };
 
-static const disk_size_t disk_sizes[14] = {
+static const disk_size_t disk_sizes[16] = {
 // clang-format off
 #if 0
     { 1,  1, 2, 1, 1,  77, 26, 0, 0,    4, 2, 6,  68 }, /* 250k 8" */
@@ -79,11 +80,9 @@ static const disk_size_t disk_sizes[14] = {
     { 2,  2, 3, 1, 0,  80, 36, 2, 0xf0, 2, 2, 9, 240 }, /* 2.88M */
     { 0, 64, 0, 0, 0,  96, 32, 2,    0, 0, 0, 0,   0 }, /* ZIP 100 */
     { 0, 64, 0, 0, 0, 239, 32, 2,    0, 0, 0, 0,   0 }, /* ZIP 250 */
-#if 0
     { 0,  8, 0, 0, 0, 963, 32, 2,    0, 0, 0, 0,   0 }, /* LS-120 */
     { 0, 32, 0, 0, 0, 262, 56, 2,    0, 0, 0, 0,   0 }  /* LS-240 */
-#endif
-    // clang-format on
+// clang-format on
 };
 
 static const QStringList rpmModes = {
@@ -126,6 +125,11 @@ static const QStringList moTypes = {
     "5.25\" 1.3 GB",
 };
 
+static const QStringList superDiskTypes = {
+    "LS-120",
+    "LS-240",
+};
+
 NewFloppyDialog::NewFloppyDialog(MediaType type, QWidget *parent)
     : QDialog(parent)
     , ui(new Ui::NewFloppyDialog)
@@ -149,6 +153,12 @@ NewFloppyDialog::NewFloppyDialog(MediaType type, QWidget *parent)
                 Models::AddEntry(model, tr(rdiskTypes[i].toUtf8().data()), i);
             }
             ui->fileField->setFilter(tr("Removable disk images") % util::DlgFilter({ "im?", "img", "rdi", "zdi" }, true));
+            break;
+        case MediaType::SuperDisk:
+            for (int i = 0; i < superDiskTypes.size(); ++i) {
+                Models::AddEntry(model, tr(superDiskTypes[i].toUtf8().data()), i);
+            }
+            ui->fileField->setFilter(tr("SuperDisk images") % util::DlgFilter({ "im?", "img", "sdi" }, true));
             break;
         case MediaType::Mo:
             for (int i = 0; i < moTypes.size(); ++i) {
@@ -223,6 +233,22 @@ NewFloppyDialog::onCreate()
                 std::atomic_bool res;
                 std::thread      t([this, &res, filename, fileType, &progress] {
                     res = createRDiskSectorImage(filename, disk_sizes[ui->comboBoxSize->currentIndex() + 12], fileType, progress);
+                });
+                progress.exec();
+                t.join();
+
+                if (res) {
+                    return;
+                }
+            }
+            break;
+        case MediaType::SuperDisk:
+            {
+                fileType = fi.suffix().toLower() == QStringLiteral("zdi") ? FileType::Zdi: FileType::Img;
+
+                std::atomic_bool res;
+                std::thread      t([this, &res, filename, fileType, &progress] {
+                    res = createSuperDiskSectorImage(filename, disk_sizes[ui->comboBoxSize->currentIndex() + 12], fileType, progress);
                 });
                 progress.exec();
                 t.join();
@@ -705,6 +731,189 @@ NewFloppyDialog::createMoSectorImage(const QString &filename, int8_t disk_size, 
         stream.writeRawData(extra_bytes.data(), total_size2);
     }
     fileProgress(blocks_num);
+
+    return true;
+}
+
+bool
+NewFloppyDialog::createSuperDiskSectorImage(const QString &filename, const disk_size_t& disk_size, FileType type, QProgressDialog& pbar)
+{
+    uint32_t total_size    = 0;
+    uint32_t total_sectors = 0;
+    uint32_t sector_bytes  = 0;
+    uint16_t base          = 0x1000;
+    uint32_t pbar_max      = 0;
+
+    QFile file(filename);
+    if (!file.open(QIODevice::WriteOnly)) {
+        return false;
+    }
+    QDataStream stream(&file);
+    stream.setByteOrder(QDataStream::LittleEndian);
+
+    sector_bytes  = (128 << disk_size.sector_len);
+    total_sectors = disk_size.sides * disk_size.tracks * disk_size.sectors;
+    if (total_sectors > SUPERDISK_SECTORS)
+        total_sectors = SUPERDISK_240_SECTORS;
+    total_size = total_sectors * sector_bytes;
+
+    pbar_max = total_size;
+    if (type == FileType::Zdi) {
+        pbar_max += base;
+    }
+    pbar_max >>= 11;
+
+    if (type == FileType::Zdi) {
+        QByteArray data(base, 0);
+        auto       empty = data.data();
+
+        *(uint32_t *) &(empty[0x08]) = (uint32_t) base;
+        *(uint32_t *) &(empty[0x0C]) = total_size;
+        *(uint16_t *) &(empty[0x10]) = (uint16_t) sector_bytes;
+        *(uint8_t *) &(empty[0x14])  = (uint8_t) disk_size.sectors;
+        *(uint8_t *) &(empty[0x18])  = (uint8_t) disk_size.sides;
+        *(uint8_t *) &(empty[0x1C])  = (uint8_t) disk_size.tracks;
+
+        stream.writeRawData(empty, base);
+        pbar_max -= 2;
+    }
+
+    QByteArray bytes(total_size, 0);
+    auto       empty = bytes.data();
+
+    if (total_sectors == SUPERDISK_SECTORS) {
+        /* LS-120 */
+        /* MBR */
+        *(uint64_t *) &(empty[0x0000]) = 0x2054524150492EEBLL;
+        *(uint64_t *) &(empty[0x0008]) = 0x3930302065646F63LL;
+        *(uint64_t *) &(empty[0x0010]) = 0x67656D6F49202D20LL;
+        *(uint64_t *) &(empty[0x0018]) = 0x726F70726F432061LL;
+        *(uint64_t *) &(empty[0x0020]) = 0x202D206E6F697461LL;
+        *(uint64_t *) &(empty[0x0028]) = 0x30392F33322F3131LL;
+
+        *(uint64_t *) &(empty[0x01AE]) = 0x0116010100E90644LL;
+        *(uint64_t *) &(empty[0x01B6]) = 0xED08BBE5014E0135LL;
+        *(uint64_t *) &(empty[0x01BE]) = 0xFFFFFE06FFFFFE80LL;
+        *(uint64_t *) &(empty[0x01C6]) = 0x0002FFE000000020LL;
+
+        *(uint16_t *) &(empty[0x01FE]) = 0xAA55;
+
+        /* 31 sectors filled with 0x48 */
+        memset(&(empty[0x0200]), 0x48, 0x3E00);
+
+        /* Boot sector */
+        *(uint64_t *) &(empty[0x4000]) = 0x584F4236389058EBLL;
+        *(uint64_t *) &(empty[0x4008]) = 0x0008040200302E35LL;
+        *(uint64_t *) &(empty[0x4010]) = 0x00C0F80000020002LL;
+        *(uint64_t *) &(empty[0x4018]) = 0x0000002000FF003FLL;
+        *(uint32_t *) &(empty[0x4020]) = 0x0002FFE0;
+        *(uint16_t *) &(empty[0x4024]) = 0x0080;
+
+        empty[0x4026] = 0x29; /* ')' followed by randomly-generated volume serial number. */
+        empty[0x4027] = random_generate();
+        empty[0x4028] = random_generate();
+        empty[0x4029] = random_generate();
+        empty[0x402A] = random_generate();
+
+        memset(&(empty[0x402B]), 0x00, 0x000B);
+        memset(&(empty[0x4036]), 0x20, 0x0008);
+
+        empty[0x4036] = 'F';
+        empty[0x4037] = 'A';
+        empty[0x4038] = 'T';
+        empty[0x4039] = '1';
+        empty[0x403A] = '6';
+        memset(&(empty[0x403B]), 0x20, 0x0003);
+
+        empty[0x41FE] = 0x55;
+        empty[0x41FF] = 0xAA;
+
+        empty[0x5000] = empty[0x1D000] = empty[0x4015];
+        empty[0x5001] = empty[0x1D001] = 0xFF;
+        empty[0x5002] = empty[0x1D002] = 0xFF;
+        empty[0x5003] = empty[0x1D003] = 0xFF;
+
+        /* Root directory = 0x35000
+        Data = 0x39000 */
+    } else {
+        /* LS-240 */
+        /* MBR */
+        *(uint64_t *) &(empty[0x0000]) = 0x2054524150492EEBLL;
+        *(uint64_t *) &(empty[0x0008]) = 0x3930302065646F63LL;
+        *(uint64_t *) &(empty[0x0010]) = 0x67656D6F49202D20LL;
+        *(uint64_t *) &(empty[0x0018]) = 0x726F70726F432061LL;
+        *(uint64_t *) &(empty[0x0020]) = 0x202D206E6F697461LL;
+        *(uint64_t *) &(empty[0x0028]) = 0x30392F33322F3131LL;
+
+        *(uint64_t *) &(empty[0x01AE]) = 0x0116010100E900E9LL;
+        *(uint64_t *) &(empty[0x01B6]) = 0x2E32A7AC014E0135LL;
+
+        *(uint64_t *) &(empty[0x01EE]) = 0xEE203F0600010180LL;
+        *(uint64_t *) &(empty[0x01F6]) = 0x000777E000000020LL;
+        *(uint16_t *) &(empty[0x01FE]) = 0xAA55;
+
+        /* 31 sectors filled with 0x48 */
+        memset(&(empty[0x0200]), 0x48, 0x3E00);
+
+        /* The second sector begins with some strange data
+           in my reference image. */
+        *(uint64_t *) &(empty[0x0200]) = 0x3831393230334409LL;
+        *(uint64_t *) &(empty[0x0208]) = 0x6A57766964483130LL;
+        *(uint64_t *) &(empty[0x0210]) = 0x3C3A34676063653FLL;
+        *(uint64_t *) &(empty[0x0218]) = 0x586A56A8502C4161LL;
+        *(uint64_t *) &(empty[0x0220]) = 0x6F2D702535673D6CLL;
+        *(uint64_t *) &(empty[0x0228]) = 0x255421B8602D3456LL;
+        *(uint64_t *) &(empty[0x0230]) = 0x577B22447B52603ELL;
+        *(uint64_t *) &(empty[0x0238]) = 0x46412CC871396170LL;
+        *(uint64_t *) &(empty[0x0240]) = 0x704F55237C5E2626LL;
+        *(uint64_t *) &(empty[0x0248]) = 0x6C7932C87D5C3C20LL;
+        *(uint64_t *) &(empty[0x0250]) = 0x2C50503E47543D6ELL;
+        *(uint64_t *) &(empty[0x0258]) = 0x46394E807721536ALL;
+        *(uint64_t *) &(empty[0x0260]) = 0x505823223F245325LL;
+        *(uint64_t *) &(empty[0x0268]) = 0x365C79B0393B5B6ELL;
+
+        /* Boot sector */
+        *(uint64_t *) &(empty[0x4000]) = 0x584F4236389058EBLL;
+        *(uint64_t *) &(empty[0x4008]) = 0x0001080200302E35LL;
+        *(uint64_t *) &(empty[0x4010]) = 0x00EFF80000020002LL;
+        *(uint64_t *) &(empty[0x4018]) = 0x0000002000400020LL;
+        *(uint32_t *) &(empty[0x4020]) = 0x000777E0;
+        *(uint16_t *) &(empty[0x4024]) = 0x0080;
+
+        empty[0x4026] = 0x29; /* ')' followed by randomly-generated volume serial number. */
+        empty[0x4027] = random_generate();
+        empty[0x4028] = random_generate();
+        empty[0x4029] = random_generate();
+        empty[0x402A] = random_generate();
+
+        memset(&(empty[0x402B]), 0x00, 0x000B);
+        memset(&(empty[0x4036]), 0x20, 0x0008);
+
+        empty[0x4036] = 'F';
+        empty[0x4037] = 'A';
+        empty[0x4038] = 'T';
+        empty[0x4039] = '1';
+        empty[0x403A] = '6';
+        memset(&(empty[0x403B]), 0x20, 0x0003);
+
+        empty[0x41FE] = 0x55;
+        empty[0x41FF] = 0xAA;
+
+        empty[0x4200] = empty[0x22000] = empty[0x4015];
+        empty[0x4201] = empty[0x22001] = 0xFF;
+        empty[0x4202] = empty[0x22002] = 0xFF;
+        empty[0x4203] = empty[0x22003] = 0xFF;
+
+        /* Root directory = 0x3FE00
+        Data = 0x38200 */
+    }
+
+    pbar.setMaximum(pbar_max);
+    for (uint32_t i = 0; i < pbar_max; i++) {
+        stream.writeRawData(&empty[i << 11], 2048);
+        fileProgress(i);
+    }
+    fileProgress(pbar_max);
 
     return true;
 }

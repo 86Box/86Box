@@ -642,6 +642,12 @@ msgstr "Unidades de disco removível:"
 msgid "ZIP 250"
 msgstr "ZIP 250"
 
+msgid "Superdrives:"
+msgstr "Superdrives:"
+
+msgid "LS-240"
+msgstr "LS-240"
+
 msgid "ISA RTC:"
 msgstr "RTC ISA:"
 

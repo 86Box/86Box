@@ -35,7 +35,7 @@ typedef struct disk_size_t {
     int root_dir_entries;
 } disk_size_t;
 
-static const disk_size_t disk_sizes[14] = {
+static const disk_size_t disk_sizes[16] = {
 // clang-format off
 #if 0
     { 1,  1, 2, 1, 1,  77, 26, 0, 0,    4, 2, 6,  68 }, /* 250k 8" */
@@ -57,10 +57,8 @@ static const disk_size_t disk_sizes[14] = {
     { 2,  2, 3, 1, 0,  80, 36, 2, 0xf0, 2, 2, 9, 240 }, /* 2.88M */
     { 0, 64, 0, 0, 0,  96, 32, 2,    0, 0, 0, 0,   0 }, /* ZIP 100 */
     { 0, 64, 0, 0, 0, 239, 32, 2,    0, 0, 0, 0,   0 }, /* ZIP 250 */
-#if 0
     { 0,  8, 0, 0, 0, 963, 32, 2,    0, 0, 0, 0,   0 }, /* LS-120 */
     { 0, 32, 0, 0, 0, 262, 56, 2,    0, 0, 0, 0,   0 }  /* LS-240 */
-#endif
 // clang-format on
 };
 

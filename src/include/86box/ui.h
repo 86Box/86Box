@@ -49,10 +49,11 @@ extern int ui_msgbox_header(int flags, void *header, void *message);
 #define SB_CDROM      0x30
 #define SB_RDISK      0x40
 #define SB_MO         0x50
-#define SB_HDD        0x60
-#define SB_NETWORK    0x70
-#define SB_SOUND      0x80
-#define SB_TEXT       0x90
+#define SB_SUPERDISK  0x60
+#define SB_HDD        0x70
+#define SB_NETWORK    0x80
+#define SB_SOUND      0x90
+#define SB_TEXT       0x100
 
 extern wchar_t *ui_window_title(wchar_t *s);
 extern void     ui_hard_reset_completed(void);
