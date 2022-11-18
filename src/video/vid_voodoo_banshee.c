@@ -1193,6 +1193,10 @@ banshee_cmd_read(banshee_t *banshee, uint32_t addr)
             ret = voodoo->cmd_status;
             break;
 
+        case cmdBaseSize0:
+            ret = voodoo->cmdfifo_size;
+            break;
+
         case 0x108:
             break;
 
