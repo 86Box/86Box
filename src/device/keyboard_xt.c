@@ -411,7 +411,7 @@ kbd_poll(void *priv)
         kbd->blocked  = 1;
         picint(2);
 #ifdef ENABLE_KEYBOARD_XT_LOG
-        kbd_log("kbd_poll(): keyboard_xt : take IRQ\n");
+        kbd_log("XTkbd: kbd_poll(): keyboard_xt : take IRQ\n");
 #endif
     }
 
@@ -517,6 +517,7 @@ kbd_write(uint16_t port, uint8_t val, void *priv)
     xtkbd_t *kbd = (xtkbd_t *) priv;
     uint8_t bit, set, new_clock;
 
+
     switch (port) {
         case 0x61: /* Keyboard Control Register (aka Port B) */
             if (!(val & 0x80)) {
@@ -556,18 +557,18 @@ kbd_write(uint16_t port, uint8_t val, void *priv)
 
 #ifdef ENABLE_KEYBOARD_XT_LOG
             if ((kbd->type == KBD_TYPE_PC81) || (kbd->type == KBD_TYPE_PC82) || (kbd->type == KBD_TYPE_PRAVETZ))
-                kbd_log("Cassette motor is %s\n", !(val & 0x08) ? "ON" : "OFF");
+                kbd_log("XTkbd: Cassette motor is %s\n", !(val & 0x08) ? "ON" : "OFF");
 #endif
             break;
 #ifdef ENABLE_KEYBOARD_XT_LOG
         case 0x62: /* Switch Register (aka Port C) */
             if ((kbd->type == KBD_TYPE_PC81) || (kbd->type == KBD_TYPE_PC82) || (kbd->type == KBD_TYPE_PRAVETZ))
-                kbd_log("Cassette IN is %i\n", !!(val & 0x10));
+                kbd_log("XTkbd: Cassette IN is %i\n", !!(val & 0x10));
             break;
 #endif
 
         case 0xc0 ... 0xcf: /* Pravetz Flags */
-            kbd_log("Port %02X out: %02X\n", port, val);
+            kbd_log("XTkbd: Port %02X out: %02X\n", port, val);
             if (kbd->type == KBD_TYPE_PRAVETZ) {
                 bit = (port >> 1) & 0x07;
                 set = (port & 0x01) << bit;
@@ -680,7 +681,7 @@ kbd_read(uint16_t port, void *priv)
         case 0xc0: /* Pravetz Flags */
             if (kbd->type == KBD_TYPE_PRAVETZ)
                 ret = kbd->pravetz_flags;
-            kbd_log("Port %02X in : %02X\n", port, ret);
+            kbd_log("XTkbd: Port %02X in : %02X\n", port, ret);
             break;
     }
 
