@@ -266,6 +266,7 @@ opXCHG_EAX_ESP(uint32_t fetchdat)
         return 0;                                                                                         \
     }
 
+// clang-format off
 opBSWAP(EAX)
 opBSWAP(EBX)
 opBSWAP(ECX)
@@ -274,3 +275,4 @@ opBSWAP(ESI)
 opBSWAP(EDI)
 opBSWAP(EBP)
 opBSWAP(ESP)
+// clang-format on

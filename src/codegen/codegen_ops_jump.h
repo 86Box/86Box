@@ -252,6 +252,7 @@ static uint32_t rop ## name ## _l(uint8_t opcode,               \
         return op_pc+4;                                         \
 }
 
+// clang-format off
 ropBRANCH(JB,   BRANCH_COND_B, 0)
 ropBRANCH(JNB,  BRANCH_COND_B, 1)
 ropBRANCH(JE,   BRANCH_COND_E, 0)
@@ -268,3 +269,4 @@ ropBRANCH(JLE,  BRANCH_COND_LE, 0)
 ropBRANCH(JNLE, BRANCH_COND_LE, 1)
 ropBRANCH(JBE,  BRANCH_COND_BE, 0)
 ropBRANCH(JNBE, BRANCH_COND_BE, 1)
+// clang-format on

@@ -847,6 +847,7 @@ opMOV_r_l_a32(uint32_t fetchdat)
         return 0;                                                                     \
     }
 
+// clang-format off
 opCMOV(O)
 opCMOV(NO)
 opCMOV(B)
@@ -863,3 +864,4 @@ opCMOV(L)
 opCMOV(NL)
 opCMOV(LE)
 opCMOV(NLE)
+// clang-format on

@@ -36,9 +36,11 @@
         return op_pc + 1;                                                                                                    \
     }
 
+// clang-format off
 ropPcmp(PCMPEQB)
 ropPcmp(PCMPEQW)
 ropPcmp(PCMPEQD)
 ropPcmp(PCMPGTB)
 ropPcmp(PCMPGTW)
 ropPcmp(PCMPGTD)
+// clang-format on

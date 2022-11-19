@@ -616,8 +616,10 @@ ropMOV_seg_w(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, 
         return op_pc + 1;                                                                                            \
     }
 
+// clang-format off
 ropLseg(DS, cpu_state.seg_ds)
 ropLseg(ES, cpu_state.seg_es)
 ropLseg(FS, cpu_state.seg_fs)
 ropLseg(GS, cpu_state.seg_gs)
 ropLseg(SS, cpu_state.seg_ss)
+// clang-format on

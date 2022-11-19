@@ -77,6 +77,7 @@ FPU fpus_internal[] =
 
 
 const cpu_family_t cpu_families[] = {
+// clang-format off
     {
 	.package = CPU_PKG_8088,
 	.manufacturer = "Intel",
@@ -1146,6 +1147,7 @@ const cpu_family_t cpu_families[] = {
     }, {
 	.package = 0,
     }
+// clang-format on
 };
 
 /* Legacy CPU tables for backwards compatibility. */

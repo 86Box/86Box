@@ -69,6 +69,7 @@
         return 0;                                                       \
     }
 
+// clang-format off
 opJ(O)
 opJ(NO)
 opJ(B)
@@ -85,6 +86,8 @@ opJ(L)
 opJ(NL)
 opJ(LE)
 opJ(NLE)
+// clang-format on
+
 
                                                                 static int opLOOPNE_w(uint32_t fetchdat)
 {

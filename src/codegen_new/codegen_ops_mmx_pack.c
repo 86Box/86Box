@@ -36,6 +36,7 @@
         return op_pc + 1;                                                                                                    \
     }
 
+// clang-format off
 ropPpack(PACKSSWB)
 ropPpack(PACKSSDW)
 ropPpack(PACKUSWB)
@@ -45,3 +46,4 @@ ropPpack(PUNPCKLDQ)
 ropPpack(PUNPCKHBW)
 ropPpack(PUNPCKHWD)
 ropPpack(PUNPCKHDQ)
+// clang-format on

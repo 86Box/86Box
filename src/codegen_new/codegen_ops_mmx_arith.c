@@ -36,6 +36,7 @@
         return op_pc + 1;                                                                                                    \
     }
 
+// clang-format off
 ropParith(PADDB)
 ropParith(PADDW)
 ropParith(PADDD)
@@ -55,3 +56,4 @@ ropParith(PSUBUSW)
 ropParith(PMADDWD)
 ropParith(PMULHW)
 ropParith(PMULLW)
+// clang-format on

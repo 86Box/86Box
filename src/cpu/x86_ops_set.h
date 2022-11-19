@@ -19,6 +19,7 @@
         return cpu_state.abrt;                           \
     }
 
+// clang-format off
 opSET(O)
 opSET(NO)
 opSET(B)
@@ -35,3 +36,4 @@ opSET(L)
 opSET(NL)
 opSET(LE)
 opSET(NLE)
+// clang-format on

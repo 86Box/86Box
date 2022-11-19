@@ -528,14 +528,17 @@ FPU_ILLEGAL_a32(uint32_t fetchdat)
 #ifdef FPU_8087
 const OpFn OP_TABLE(fpu_8087_d8)[32] =
 {
+// clang-format off
         opFADDs_a16, opFMULs_a16, opFCOMs_a16, opFCOMPs_a16, opFSUBs_a16, opFSUBRs_a16, opFDIVs_a16, opFDIVRs_a16,
         opFADDs_a16, opFMULs_a16, opFCOMs_a16, opFCOMPs_a16, opFSUBs_a16, opFSUBRs_a16, opFDIVs_a16, opFDIVRs_a16,
         opFADDs_a16, opFMULs_a16, opFCOMs_a16, opFCOMPs_a16, opFSUBs_a16, opFSUBRs_a16, opFDIVs_a16, opFDIVRs_a16,
         opFADD,      opFMUL,      opFCOM,      opFCOMP,      opFSUB,      opFSUBR,      opFDIV,      opFDIVR
+// clang-format on
 };
 
 const OpFn OP_TABLE(fpu_8087_d9)[256] =
 {
+// clang-format off
         opFLDs_a16,   opFLDs_a16,   opFLDs_a16,   opFLDs_a16,   opFLDs_a16,   opFLDs_a16,   opFLDs_a16,   opFLDs_a16,
         ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,
         opFSTs_a16,   opFSTs_a16,   opFSTs_a16,   opFSTs_a16,   opFSTs_a16,   opFSTs_a16,   opFSTs_a16,   opFSTs_a16,
@@ -571,10 +574,12 @@ const OpFn OP_TABLE(fpu_8087_d9)[256] =
         opFLD1,       opFLDL2T,     opFLDL2E,     opFLDPI,      opFLDEG2,     opFLDLN2,     opFLDZ,       ILLEGAL_a16,
         opF2XM1,      opFYL2X,      opFPTAN,      opFPATAN,     ILLEGAL_a16,  ILLEGAL_a16,  opFDECSTP,    opFINCSTP,
         opFPREM,      opFYL2XP1,    opFSQRT,      ILLEGAL_a16,   opFRNDINT,   opFSCALE,     ILLEGAL_a16,  ILLEGAL_a16
+// clang-format on
 };
 
 const OpFn OP_TABLE(fpu_8087_da)[256] =
 {
+// clang-format off
         opFADDil_a16,  opFADDil_a16,  opFADDil_a16,  opFADDil_a16,  opFADDil_a16,  opFADDil_a16,  opFADDil_a16,  opFADDil_a16,
         opFMULil_a16,  opFMULil_a16,  opFMULil_a16,  opFMULil_a16,  opFMULil_a16,  opFMULil_a16,  opFMULil_a16,  opFMULil_a16,
         opFCOMil_a16,  opFCOMil_a16,  opFCOMil_a16,  opFCOMil_a16,  opFCOMil_a16,  opFCOMil_a16,  opFCOMil_a16,  opFCOMil_a16,
@@ -610,10 +615,12 @@ const OpFn OP_TABLE(fpu_8087_da)[256] =
         ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,
         ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,
         ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,
+// clang-format on
 };
 
 const OpFn OP_TABLE(fpu_8087_db)[256] =
 {
+// clang-format off
         opFILDil_a16,  opFILDil_a16,  opFILDil_a16,  opFILDil_a16,  opFILDil_a16,  opFILDil_a16,  opFILDil_a16,  opFILDil_a16,
         ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,
         opFISTil_a16,  opFISTil_a16,  opFISTil_a16,  opFISTil_a16,  opFISTil_a16,  opFISTil_a16,  opFISTil_a16,  opFISTil_a16,
@@ -649,18 +656,22 @@ const OpFn OP_TABLE(fpu_8087_db)[256] =
         ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,
         ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,
         ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,
+// clang-format on
 };
 
 const OpFn OP_TABLE(fpu_8087_dc)[32] =
 {
+// clang-format off
         opFADDd_a16, opFMULd_a16, opFCOMd_a16, opFCOMPd_a16, opFSUBd_a16, opFSUBRd_a16, opFDIVd_a16, opFDIVRd_a16,
         opFADDd_a16, opFMULd_a16, opFCOMd_a16, opFCOMPd_a16, opFSUBd_a16, opFSUBRd_a16, opFDIVd_a16, opFDIVRd_a16,
         opFADDd_a16, opFMULd_a16, opFCOMd_a16, opFCOMPd_a16, opFSUBd_a16, opFSUBRd_a16, opFDIVd_a16, opFDIVRd_a16,
         opFADDr,     opFMULr,     ILLEGAL_a16, ILLEGAL_a16,  opFSUBRr,    opFSUBr,      opFDIVRr,    opFDIVr
+// clang-format on
 };
 
 const OpFn OP_TABLE(fpu_8087_dd)[256] =
 {
+// clang-format off
         opFLDd_a16,    opFLDd_a16,    opFLDd_a16,    opFLDd_a16,    opFLDd_a16,    opFLDd_a16,    opFLDd_a16,    opFLDd_a16,
         ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,
         opFSTd_a16,    opFSTd_a16,    opFSTd_a16,    opFSTd_a16,    opFSTd_a16,    opFSTd_a16,    opFSTd_a16,    opFSTd_a16,
@@ -696,10 +707,12 @@ const OpFn OP_TABLE(fpu_8087_dd)[256] =
         ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,
         ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,
         ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,
+// clang-format on
 };
 
 const OpFn OP_TABLE(fpu_8087_de)[256] =
 {
+// clang-format off
         opFADDiw_a16,  opFADDiw_a16,  opFADDiw_a16,  opFADDiw_a16,  opFADDiw_a16,  opFADDiw_a16,  opFADDiw_a16,  opFADDiw_a16,
         opFMULiw_a16,  opFMULiw_a16,  opFMULiw_a16,  opFMULiw_a16,  opFMULiw_a16,  opFMULiw_a16,  opFMULiw_a16,  opFMULiw_a16,
         opFCOMiw_a16,  opFCOMiw_a16,  opFCOMiw_a16,  opFCOMiw_a16,  opFCOMiw_a16,  opFCOMiw_a16,  opFCOMiw_a16,  opFCOMiw_a16,
@@ -735,10 +748,12 @@ const OpFn OP_TABLE(fpu_8087_de)[256] =
         opFSUBP,       opFSUBP,       opFSUBP,       opFSUBP,       opFSUBP,       opFSUBP,       opFSUBP,       opFSUBP,
         opFDIVRP,      opFDIVRP,      opFDIVRP,      opFDIVRP,      opFDIVRP,      opFDIVRP,      opFDIVRP,      opFDIVRP,
         opFDIVP,       opFDIVP,       opFDIVP,       opFDIVP,       opFDIVP,       opFDIVP,       opFDIVP,       opFDIVP,
+// clang-format on
 };
 
 const OpFn OP_TABLE(fpu_8087_df)[256] =
 {
+// clang-format off
         opFILDiw_a16,  opFILDiw_a16,  opFILDiw_a16,  opFILDiw_a16,  opFILDiw_a16,  opFILDiw_a16,  opFILDiw_a16,  opFILDiw_a16,
         ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,
         opFISTiw_a16,  opFISTiw_a16,  opFISTiw_a16,  opFISTiw_a16,  opFISTiw_a16,  opFISTiw_a16,  opFISTiw_a16,  opFISTiw_a16,
@@ -774,27 +789,34 @@ const OpFn OP_TABLE(fpu_8087_df)[256] =
         ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,
         ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,
         ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,
+// clang-format on
 };
 #else
 #    define ILLEGAL_a32 FPU_ILLEGAL_a32
 
 const OpFn OP_TABLE(fpu_d8_a16)[32] =
 {
+// clang-format off
         opFADDs_a16, opFMULs_a16, opFCOMs_a16, opFCOMPs_a16, opFSUBs_a16, opFSUBRs_a16, opFDIVs_a16, opFDIVRs_a16,
         opFADDs_a16, opFMULs_a16, opFCOMs_a16, opFCOMPs_a16, opFSUBs_a16, opFSUBRs_a16, opFDIVs_a16, opFDIVRs_a16,
         opFADDs_a16, opFMULs_a16, opFCOMs_a16, opFCOMPs_a16, opFSUBs_a16, opFSUBRs_a16, opFDIVs_a16, opFDIVRs_a16,
         opFADD,      opFMUL,      opFCOM,      opFCOMP,      opFSUB,      opFSUBR,      opFDIV,      opFDIVR
+// clang-format on
 };
+
 const OpFn OP_TABLE(fpu_d8_a32)[32] =
 {
+// clang-format off
         opFADDs_a32, opFMULs_a32, opFCOMs_a32, opFCOMPs_a32, opFSUBs_a32, opFSUBRs_a32, opFDIVs_a32, opFDIVRs_a32,
         opFADDs_a32, opFMULs_a32, opFCOMs_a32, opFCOMPs_a32, opFSUBs_a32, opFSUBRs_a32, opFDIVs_a32, opFDIVRs_a32,
         opFADDs_a32, opFMULs_a32, opFCOMs_a32, opFCOMPs_a32, opFSUBs_a32, opFSUBRs_a32, opFDIVs_a32, opFDIVRs_a32,
         opFADD,      opFMUL,      opFCOM,      opFCOMP,      opFSUB,      opFSUBR,      opFDIV,      opFDIVR
+// clang-format on
 };
 
 const OpFn OP_TABLE(fpu_287_d9_a16)[256] =
 {
+// clang-format off
         opFLDs_a16,   opFLDs_a16,   opFLDs_a16,   opFLDs_a16,   opFLDs_a16,   opFLDs_a16,   opFLDs_a16,   opFLDs_a16,
         ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,
         opFSTs_a16,   opFSTs_a16,   opFSTs_a16,   opFSTs_a16,   opFSTs_a16,   opFSTs_a16,   opFSTs_a16,   opFSTs_a16,
@@ -830,10 +852,12 @@ const OpFn OP_TABLE(fpu_287_d9_a16)[256] =
         opFLD1,       opFLDL2T,     opFLDL2E,     opFLDPI,      opFLDEG2,     opFLDLN2,     opFLDZ,       ILLEGAL_a16,
         opF2XM1,      opFYL2X,      opFPTAN,      opFPATAN,     ILLEGAL_a16,  opFPREM1,     opFDECSTP,    opFINCSTP,
         opFPREM,      opFYL2XP1,    opFSQRT,      opFSINCOS,    opFRNDINT,    opFSCALE,     opFSIN,       opFCOS
+// clang-format on
 };
 
 const OpFn OP_TABLE(fpu_287_d9_a32)[256] =
 {
+// clang-format off
         opFLDs_a32,   opFLDs_a32,   opFLDs_a32,   opFLDs_a32,   opFLDs_a32,   opFLDs_a32,   opFLDs_a32,   opFLDs_a32,
         ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,
         opFSTs_a32,   opFSTs_a32,   opFSTs_a32,   opFSTs_a32,   opFSTs_a32,   opFSTs_a32,   opFSTs_a32,   opFSTs_a32,
@@ -869,10 +893,12 @@ const OpFn OP_TABLE(fpu_287_d9_a32)[256] =
         opFLD1,       opFLDL2T,     opFLDL2E,     opFLDPI,      opFLDEG2,     opFLDLN2,     opFLDZ,       ILLEGAL_a32,
         opF2XM1,      opFYL2X,      opFPTAN,      opFPATAN,     ILLEGAL_a32,  opFPREM1,     opFDECSTP,    opFINCSTP,
         opFPREM,      opFYL2XP1,    opFSQRT,      opFSINCOS,    opFRNDINT,    opFSCALE,     opFSIN,       opFCOS
+// clang-format on
 };
 
 const OpFn OP_TABLE(fpu_d9_a16)[256] =
 {
+// clang-format off
         opFLDs_a16,   opFLDs_a16,   opFLDs_a16,   opFLDs_a16,   opFLDs_a16,   opFLDs_a16,   opFLDs_a16,   opFLDs_a16,
         ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,
         opFSTs_a16,   opFSTs_a16,   opFSTs_a16,   opFSTs_a16,   opFSTs_a16,   opFSTs_a16,   opFSTs_a16,   opFSTs_a16,
@@ -908,10 +934,12 @@ const OpFn OP_TABLE(fpu_d9_a16)[256] =
         opFLD1,       opFLDL2T,     opFLDL2E,     opFLDPI,      opFLDEG2,     opFLDLN2,     opFLDZ,       ILLEGAL_a16,
         opF2XM1,      opFYL2X,      opFPTAN,      opFPATAN,     ILLEGAL_a16,  opFPREM1,     opFDECSTP,    opFINCSTP,
         opFPREM,      opFYL2XP1,    opFSQRT,      opFSINCOS,    opFRNDINT,    opFSCALE,     opFSIN,       opFCOS
+// clang-format on
 };
 
 const OpFn OP_TABLE(fpu_d9_a32)[256] =
 {
+// clang-format off
         opFLDs_a32,   opFLDs_a32,   opFLDs_a32,   opFLDs_a32,   opFLDs_a32,   opFLDs_a32,   opFLDs_a32,   opFLDs_a32,
         ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,
         opFSTs_a32,   opFSTs_a32,   opFSTs_a32,   opFSTs_a32,   opFSTs_a32,   opFSTs_a32,   opFSTs_a32,   opFSTs_a32,
@@ -947,10 +975,12 @@ const OpFn OP_TABLE(fpu_d9_a32)[256] =
         opFLD1,       opFLDL2T,     opFLDL2E,     opFLDPI,      opFLDEG2,     opFLDLN2,     opFLDZ,       ILLEGAL_a32,
         opF2XM1,      opFYL2X,      opFPTAN,      opFPATAN,     ILLEGAL_a32,  opFPREM1,     opFDECSTP,    opFINCSTP,
         opFPREM,      opFYL2XP1,    opFSQRT,      opFSINCOS,    opFRNDINT,    opFSCALE,     opFSIN,       opFCOS
+// clang-format on
 };
 
 const OpFn OP_TABLE(fpu_287_da_a16)[256] =
 {
+// clang-format off
         opFADDil_a16,  opFADDil_a16,  opFADDil_a16,  opFADDil_a16,  opFADDil_a16,  opFADDil_a16,  opFADDil_a16,  opFADDil_a16,
         opFMULil_a16,  opFMULil_a16,  opFMULil_a16,  opFMULil_a16,  opFMULil_a16,  opFMULil_a16,  opFMULil_a16,  opFMULil_a16,
         opFCOMil_a16,  opFCOMil_a16,  opFCOMil_a16,  opFCOMil_a16,  opFCOMil_a16,  opFCOMil_a16,  opFCOMil_a16,  opFCOMil_a16,
@@ -986,9 +1016,12 @@ const OpFn OP_TABLE(fpu_287_da_a16)[256] =
         ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,
         ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,
         ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,
+// clang-format on
 };
+
 const OpFn OP_TABLE(fpu_287_da_a32)[256] =
 {
+// clang-format off
         opFADDil_a32,  opFADDil_a32,  opFADDil_a32,  opFADDil_a32,  opFADDil_a32,  opFADDil_a32,  opFADDil_a32,  opFADDil_a32,
         opFMULil_a32,  opFMULil_a32,  opFMULil_a32,  opFMULil_a32,  opFMULil_a32,  opFMULil_a32,  opFMULil_a32,  opFMULil_a32,
         opFCOMil_a32,  opFCOMil_a32,  opFCOMil_a32,  opFCOMil_a32,  opFCOMil_a32,  opFCOMil_a32,  opFCOMil_a32,  opFCOMil_a32,
@@ -1024,10 +1057,12 @@ const OpFn OP_TABLE(fpu_287_da_a32)[256] =
         ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,
         ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,
         ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,
+// clang-format on
 };
 
 const OpFn OP_TABLE(fpu_da_a16)[256] =
 {
+// clang-format off
         opFADDil_a16,  opFADDil_a16,  opFADDil_a16,  opFADDil_a16,  opFADDil_a16,  opFADDil_a16,  opFADDil_a16,  opFADDil_a16,
         opFMULil_a16,  opFMULil_a16,  opFMULil_a16,  opFMULil_a16,  opFMULil_a16,  opFMULil_a16,  opFMULil_a16,  opFMULil_a16,
         opFCOMil_a16,  opFCOMil_a16,  opFCOMil_a16,  opFCOMil_a16,  opFCOMil_a16,  opFCOMil_a16,  opFCOMil_a16,  opFCOMil_a16,
@@ -1063,9 +1098,12 @@ const OpFn OP_TABLE(fpu_da_a16)[256] =
         ILLEGAL_a16,  opFUCOMPP,    ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,
         ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,
         ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,
+// clang-format on
 };
+
 const OpFn OP_TABLE(fpu_da_a32)[256] =
 {
+// clang-format off
         opFADDil_a32,  opFADDil_a32,  opFADDil_a32,  opFADDil_a32,  opFADDil_a32,  opFADDil_a32,  opFADDil_a32,  opFADDil_a32,
         opFMULil_a32,  opFMULil_a32,  opFMULil_a32,  opFMULil_a32,  opFMULil_a32,  opFMULil_a32,  opFMULil_a32,  opFMULil_a32,
         opFCOMil_a32,  opFCOMil_a32,  opFCOMil_a32,  opFCOMil_a32,  opFCOMil_a32,  opFCOMil_a32,  opFCOMil_a32,  opFCOMil_a32,
@@ -1101,10 +1139,12 @@ const OpFn OP_TABLE(fpu_da_a32)[256] =
         ILLEGAL_a32,  opFUCOMPP,    ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,
         ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,
         ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,
+// clang-format on
 };
 
 const OpFn OP_TABLE(fpu_686_da_a16)[256] =
 {
+// clang-format off
         opFADDil_a16,  opFADDil_a16,  opFADDil_a16,  opFADDil_a16,  opFADDil_a16,  opFADDil_a16,  opFADDil_a16,  opFADDil_a16,
         opFMULil_a16,  opFMULil_a16,  opFMULil_a16,  opFMULil_a16,  opFMULil_a16,  opFMULil_a16,  opFMULil_a16,  opFMULil_a16,
         opFCOMil_a16,  opFCOMil_a16,  opFCOMil_a16,  opFCOMil_a16,  opFCOMil_a16,  opFCOMil_a16,  opFCOMil_a16,  opFCOMil_a16,
@@ -1140,9 +1180,12 @@ const OpFn OP_TABLE(fpu_686_da_a16)[256] =
         ILLEGAL_a16,  opFUCOMPP,    ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,
         ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,
         ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,
+// clang-format on
 };
+
 const OpFn OP_TABLE(fpu_686_da_a32)[256] =
 {
+// clang-format off
         opFADDil_a32,  opFADDil_a32,  opFADDil_a32,  opFADDil_a32,  opFADDil_a32,  opFADDil_a32,  opFADDil_a32,  opFADDil_a32,
         opFMULil_a32,  opFMULil_a32,  opFMULil_a32,  opFMULil_a32,  opFMULil_a32,  opFMULil_a32,  opFMULil_a32,  opFMULil_a32,
         opFCOMil_a32,  opFCOMil_a32,  opFCOMil_a32,  opFCOMil_a32,  opFCOMil_a32,  opFCOMil_a32,  opFCOMil_a32,  opFCOMil_a32,
@@ -1178,10 +1221,12 @@ const OpFn OP_TABLE(fpu_686_da_a32)[256] =
         ILLEGAL_a32,  opFUCOMPP,    ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,
         ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,
         ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,
+// clang-format on
 };
 
 const OpFn OP_TABLE(fpu_287_db_a16)[256] =
 {
+// clang-format off
         opFILDil_a16,  opFILDil_a16,  opFILDil_a16,  opFILDil_a16,  opFILDil_a16,  opFILDil_a16,  opFILDil_a16,  opFILDil_a16,
         ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,
         opFISTil_a16,  opFISTil_a16,  opFISTil_a16,  opFISTil_a16,  opFISTil_a16,  opFISTil_a16,  opFISTil_a16,  opFISTil_a16,
@@ -1217,9 +1262,12 @@ const OpFn OP_TABLE(fpu_287_db_a16)[256] =
         ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,
         ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,
         ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,
+// clang-format on
 };
+
 const OpFn OP_TABLE(fpu_287_db_a32)[256] =
 {
+// clang-format off
         opFILDil_a32,  opFILDil_a32,  opFILDil_a32,  opFILDil_a32,  opFILDil_a32,  opFILDil_a32,  opFILDil_a32,  opFILDil_a32,
         ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,
         opFISTil_a32,  opFISTil_a32,  opFISTil_a32,  opFISTil_a32,  opFISTil_a32,  opFISTil_a32,  opFISTil_a32,  opFISTil_a32,
@@ -1255,10 +1303,12 @@ const OpFn OP_TABLE(fpu_287_db_a32)[256] =
         ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,
         ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,
         ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,
+// clang-format on
 };
 
 const OpFn OP_TABLE(fpu_db_a16)[256] =
 {
+// clang-format off
         opFILDil_a16,  opFILDil_a16,  opFILDil_a16,  opFILDil_a16,  opFILDil_a16,  opFILDil_a16,  opFILDil_a16,  opFILDil_a16,
         ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,
         opFISTil_a16,  opFISTil_a16,  opFISTil_a16,  opFISTil_a16,  opFISTil_a16,  opFISTil_a16,  opFISTil_a16,  opFISTil_a16,
@@ -1294,9 +1344,12 @@ const OpFn OP_TABLE(fpu_db_a16)[256] =
         ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,
         ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,
         ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,
+// clang-format on
 };
+
 const OpFn OP_TABLE(fpu_db_a32)[256] =
 {
+// clang-format off
         opFILDil_a32,  opFILDil_a32,  opFILDil_a32,  opFILDil_a32,  opFILDil_a32,  opFILDil_a32,  opFILDil_a32,  opFILDil_a32,
         ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,
         opFISTil_a32,  opFISTil_a32,  opFISTil_a32,  opFISTil_a32,  opFISTil_a32,  opFISTil_a32,  opFISTil_a32,  opFISTil_a32,
@@ -1332,10 +1385,12 @@ const OpFn OP_TABLE(fpu_db_a32)[256] =
         ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,
         ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,
         ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,
+// clang-format on
 };
 
 const OpFn OP_TABLE(fpu_686_db_a16)[256] =
 {
+// clang-format off
         opFILDil_a16,  opFILDil_a16,  opFILDil_a16,  opFILDil_a16,  opFILDil_a16,  opFILDil_a16,  opFILDil_a16,  opFILDil_a16,
         ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,
         opFISTil_a16,  opFISTil_a16,  opFISTil_a16,  opFISTil_a16,  opFISTil_a16,  opFISTil_a16,  opFISTil_a16,  opFISTil_a16,
@@ -1371,9 +1426,11 @@ const OpFn OP_TABLE(fpu_686_db_a16)[256] =
         opFUCOMI,      opFUCOMI,      opFUCOMI,      opFUCOMI,      opFUCOMI,      opFUCOMI,      opFUCOMI,      opFUCOMI,
         opFCOMI,       opFCOMI,       opFCOMI,       opFCOMI,       opFCOMI,       opFCOMI,       opFCOMI,       opFCOMI,
         ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,
+// clang-format on
 };
 const OpFn OP_TABLE(fpu_686_db_a32)[256] =
 {
+// clang-format off
         opFILDil_a32,  opFILDil_a32,  opFILDil_a32,  opFILDil_a32,  opFILDil_a32,  opFILDil_a32,  opFILDil_a32,  opFILDil_a32,
         ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,
         opFISTil_a32,  opFISTil_a32,  opFISTil_a32,  opFISTil_a32,  opFISTil_a32,  opFISTil_a32,  opFISTil_a32,  opFISTil_a32,
@@ -1409,40 +1466,52 @@ const OpFn OP_TABLE(fpu_686_db_a32)[256] =
         opFUCOMI,      opFUCOMI,      opFUCOMI,      opFUCOMI,      opFUCOMI,      opFUCOMI,      opFUCOMI,      opFUCOMI,
         opFCOMI,       opFCOMI,       opFCOMI,       opFCOMI,       opFCOMI,       opFCOMI,       opFCOMI,       opFCOMI,
         ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,
+// clang-format on
 };
 
 const OpFn OP_TABLE(fpu_287_dc_a16)[32] =
 {
+// clang-format off
         opFADDd_a16, opFMULd_a16, opFCOMd_a16, opFCOMPd_a16, opFSUBd_a16, opFSUBRd_a16, opFDIVd_a16, opFDIVRd_a16,
         opFADDd_a16, opFMULd_a16, opFCOMd_a16, opFCOMPd_a16, opFSUBd_a16, opFSUBRd_a16, opFDIVd_a16, opFDIVRd_a16,
         opFADDd_a16, opFMULd_a16, opFCOMd_a16, opFCOMPd_a16, opFSUBd_a16, opFSUBRd_a16, opFDIVd_a16, opFDIVRd_a16,
         opFADDr,     opFMULr,     ILLEGAL_a16, ILLEGAL_a16,  opFSUBRr,    opFSUBr,      opFDIVRr,    opFDIVr
+// clang-format on
 };
+
 const OpFn OP_TABLE(fpu_287_dc_a32)[32] =
 {
+// clang-format off
         opFADDd_a32, opFMULd_a32, opFCOMd_a32, opFCOMPd_a32, opFSUBd_a32, opFSUBRd_a32, opFDIVd_a32, opFDIVRd_a32,
         opFADDd_a32, opFMULd_a32, opFCOMd_a32, opFCOMPd_a32, opFSUBd_a32, opFSUBRd_a32, opFDIVd_a32, opFDIVRd_a32,
         opFADDd_a32, opFMULd_a32, opFCOMd_a32, opFCOMPd_a32, opFSUBd_a32, opFSUBRd_a32, opFDIVd_a32, opFDIVRd_a32,
         opFADDr,     opFMULr,     ILLEGAL_a32, ILLEGAL_a32,  opFSUBRr,    opFSUBr,      opFDIVRr,    opFDIVr
+// clang-format on
 };
 
 const OpFn OP_TABLE(fpu_dc_a16)[32] =
 {
+// clang-format off
         opFADDd_a16, opFMULd_a16, opFCOMd_a16, opFCOMPd_a16, opFSUBd_a16, opFSUBRd_a16, opFDIVd_a16, opFDIVRd_a16,
         opFADDd_a16, opFMULd_a16, opFCOMd_a16, opFCOMPd_a16, opFSUBd_a16, opFSUBRd_a16, opFDIVd_a16, opFDIVRd_a16,
         opFADDd_a16, opFMULd_a16, opFCOMd_a16, opFCOMPd_a16, opFSUBd_a16, opFSUBRd_a16, opFDIVd_a16, opFDIVRd_a16,
         opFADDr,     opFMULr,     opFCOM,      opFCOMP,      opFSUBRr,    opFSUBr,      opFDIVRr,    opFDIVr
+// clang-format on
 };
+
 const OpFn OP_TABLE(fpu_dc_a32)[32] =
 {
+// clang-format off
         opFADDd_a32, opFMULd_a32, opFCOMd_a32, opFCOMPd_a32, opFSUBd_a32, opFSUBRd_a32, opFDIVd_a32, opFDIVRd_a32,
         opFADDd_a32, opFMULd_a32, opFCOMd_a32, opFCOMPd_a32, opFSUBd_a32, opFSUBRd_a32, opFDIVd_a32, opFDIVRd_a32,
         opFADDd_a32, opFMULd_a32, opFCOMd_a32, opFCOMPd_a32, opFSUBd_a32, opFSUBRd_a32, opFDIVd_a32, opFDIVRd_a32,
         opFADDr,     opFMULr,     opFCOM,      opFCOMP,      opFSUBRr,    opFSUBr,      opFDIVRr,    opFDIVr
+// clang-format on
 };
 
 const OpFn OP_TABLE(fpu_287_dd_a16)[256] =
 {
+// clang-format off
         opFLDd_a16,    opFLDd_a16,    opFLDd_a16,    opFLDd_a16,    opFLDd_a16,    opFLDd_a16,    opFLDd_a16,    opFLDd_a16,
         ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,
         opFSTd_a16,    opFSTd_a16,    opFSTd_a16,    opFSTd_a16,    opFSTd_a16,    opFSTd_a16,    opFSTd_a16,    opFSTd_a16,
@@ -1478,9 +1547,12 @@ const OpFn OP_TABLE(fpu_287_dd_a16)[256] =
         ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,
         ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,
         ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,
+// clang-format on
 };
+
 const OpFn OP_TABLE(fpu_287_dd_a32)[256] =
 {
+// clang-format off
         opFLDd_a32,    opFLDd_a32,    opFLDd_a32,    opFLDd_a32,    opFLDd_a32,    opFLDd_a32,    opFLDd_a32,    opFLDd_a32,
         ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,
         opFSTd_a32,    opFSTd_a32,    opFSTd_a32,    opFSTd_a32,    opFSTd_a32,    opFSTd_a32,    opFSTd_a32,    opFSTd_a32,
@@ -1516,10 +1588,12 @@ const OpFn OP_TABLE(fpu_287_dd_a32)[256] =
         ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,
         ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,
         ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,
+// clang-format on
 };
 
 const OpFn OP_TABLE(fpu_dd_a16)[256] =
 {
+// clang-format off
         opFLDd_a16,    opFLDd_a16,    opFLDd_a16,    opFLDd_a16,    opFLDd_a16,    opFLDd_a16,    opFLDd_a16,    opFLDd_a16,
         ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,
         opFSTd_a16,    opFSTd_a16,    opFSTd_a16,    opFSTd_a16,    opFSTd_a16,    opFSTd_a16,    opFSTd_a16,    opFSTd_a16,
@@ -1555,9 +1629,12 @@ const OpFn OP_TABLE(fpu_dd_a16)[256] =
         opFUCOMP,      opFUCOMP,      opFUCOMP,      opFUCOMP,      opFUCOMP,      opFUCOMP,      opFUCOMP,      opFUCOMP,
         ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,
         ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,
+// clang-format on
 };
+
 const OpFn OP_TABLE(fpu_dd_a32)[256] =
 {
+// clang-format off
         opFLDd_a32,    opFLDd_a32,    opFLDd_a32,    opFLDd_a32,    opFLDd_a32,    opFLDd_a32,    opFLDd_a32,    opFLDd_a32,
         ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,
         opFSTd_a32,    opFSTd_a32,    opFSTd_a32,    opFSTd_a32,    opFSTd_a32,    opFSTd_a32,    opFSTd_a32,    opFSTd_a32,
@@ -1593,10 +1670,12 @@ const OpFn OP_TABLE(fpu_dd_a32)[256] =
         opFUCOMP,      opFUCOMP,      opFUCOMP,      opFUCOMP,      opFUCOMP,      opFUCOMP,      opFUCOMP,      opFUCOMP,
         ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,
         ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,
+// clang-format on
 };
 
 const OpFn OP_TABLE(fpu_287_de_a16)[256] =
 {
+// clang-format off
         opFADDiw_a16,  opFADDiw_a16,  opFADDiw_a16,  opFADDiw_a16,  opFADDiw_a16,  opFADDiw_a16,  opFADDiw_a16,  opFADDiw_a16,
         opFMULiw_a16,  opFMULiw_a16,  opFMULiw_a16,  opFMULiw_a16,  opFMULiw_a16,  opFMULiw_a16,  opFMULiw_a16,  opFMULiw_a16,
         opFCOMiw_a16,  opFCOMiw_a16,  opFCOMiw_a16,  opFCOMiw_a16,  opFCOMiw_a16,  opFCOMiw_a16,  opFCOMiw_a16,  opFCOMiw_a16,
@@ -1632,10 +1711,12 @@ const OpFn OP_TABLE(fpu_287_de_a16)[256] =
         opFSUBP,       opFSUBP,       opFSUBP,       opFSUBP,       opFSUBP,       opFSUBP,       opFSUBP,       opFSUBP,
         opFDIVRP,      opFDIVRP,      opFDIVRP,      opFDIVRP,      opFDIVRP,      opFDIVRP,      opFDIVRP,      opFDIVRP,
         opFDIVP,       opFDIVP,       opFDIVP,       opFDIVP,       opFDIVP,       opFDIVP,       opFDIVP,       opFDIVP,
+// clang-format on
 };
 
 const OpFn OP_TABLE(fpu_287_de_a32)[256] =
 {
+// clang-format off
         opFADDiw_a32,  opFADDiw_a32,  opFADDiw_a32,  opFADDiw_a32,  opFADDiw_a32,  opFADDiw_a32,  opFADDiw_a32,  opFADDiw_a32,
         opFMULiw_a32,  opFMULiw_a32,  opFMULiw_a32,  opFMULiw_a32,  opFMULiw_a32,  opFMULiw_a32,  opFMULiw_a32,  opFMULiw_a32,
         opFCOMiw_a32,  opFCOMiw_a32,  opFCOMiw_a32,  opFCOMiw_a32,  opFCOMiw_a32,  opFCOMiw_a32,  opFCOMiw_a32,  opFCOMiw_a32,
@@ -1671,10 +1752,12 @@ const OpFn OP_TABLE(fpu_287_de_a32)[256] =
         opFSUBP,       opFSUBP,       opFSUBP,       opFSUBP,       opFSUBP,       opFSUBP,       opFSUBP,       opFSUBP,
         opFDIVRP,      opFDIVRP,      opFDIVRP,      opFDIVRP,      opFDIVRP,      opFDIVRP,      opFDIVRP,      opFDIVRP,
         opFDIVP,       opFDIVP,       opFDIVP,       opFDIVP,       opFDIVP,       opFDIVP,       opFDIVP,       opFDIVP,
+// clang-format on
 };
 
 const OpFn OP_TABLE(fpu_de_a16)[256] =
 {
+// clang-format off
         opFADDiw_a16,  opFADDiw_a16,  opFADDiw_a16,  opFADDiw_a16,  opFADDiw_a16,  opFADDiw_a16,  opFADDiw_a16,  opFADDiw_a16,
         opFMULiw_a16,  opFMULiw_a16,  opFMULiw_a16,  opFMULiw_a16,  opFMULiw_a16,  opFMULiw_a16,  opFMULiw_a16,  opFMULiw_a16,
         opFCOMiw_a16,  opFCOMiw_a16,  opFCOMiw_a16,  opFCOMiw_a16,  opFCOMiw_a16,  opFCOMiw_a16,  opFCOMiw_a16,  opFCOMiw_a16,
@@ -1710,10 +1793,12 @@ const OpFn OP_TABLE(fpu_de_a16)[256] =
         opFSUBP,       opFSUBP,       opFSUBP,       opFSUBP,       opFSUBP,       opFSUBP,       opFSUBP,       opFSUBP,
         opFDIVRP,      opFDIVRP,      opFDIVRP,      opFDIVRP,      opFDIVRP,      opFDIVRP,      opFDIVRP,      opFDIVRP,
         opFDIVP,       opFDIVP,       opFDIVP,       opFDIVP,       opFDIVP,       opFDIVP,       opFDIVP,       opFDIVP,
+// clang-format on
 };
 
 const OpFn OP_TABLE(fpu_de_a32)[256] =
 {
+// clang-format off
         opFADDiw_a32,  opFADDiw_a32,  opFADDiw_a32,  opFADDiw_a32,  opFADDiw_a32,  opFADDiw_a32,  opFADDiw_a32,  opFADDiw_a32,
         opFMULiw_a32,  opFMULiw_a32,  opFMULiw_a32,  opFMULiw_a32,  opFMULiw_a32,  opFMULiw_a32,  opFMULiw_a32,  opFMULiw_a32,
         opFCOMiw_a32,  opFCOMiw_a32,  opFCOMiw_a32,  opFCOMiw_a32,  opFCOMiw_a32,  opFCOMiw_a32,  opFCOMiw_a32,  opFCOMiw_a32,
@@ -1749,10 +1834,12 @@ const OpFn OP_TABLE(fpu_de_a32)[256] =
         opFSUBP,       opFSUBP,       opFSUBP,       opFSUBP,       opFSUBP,       opFSUBP,       opFSUBP,       opFSUBP,
         opFDIVRP,      opFDIVRP,      opFDIVRP,      opFDIVRP,      opFDIVRP,      opFDIVRP,      opFDIVRP,      opFDIVRP,
         opFDIVP,       opFDIVP,       opFDIVP,       opFDIVP,       opFDIVP,       opFDIVP,       opFDIVP,       opFDIVP,
+// clang-format on
 };
 
 const OpFn OP_TABLE(fpu_287_df_a16)[256] =
 {
+// clang-format off
         opFILDiw_a16,  opFILDiw_a16,  opFILDiw_a16,  opFILDiw_a16,  opFILDiw_a16,  opFILDiw_a16,  opFILDiw_a16,  opFILDiw_a16,
         ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,
         opFISTiw_a16,  opFISTiw_a16,  opFISTiw_a16,  opFISTiw_a16,  opFISTiw_a16,  opFISTiw_a16,  opFISTiw_a16,  opFISTiw_a16,
@@ -1788,9 +1875,12 @@ const OpFn OP_TABLE(fpu_287_df_a16)[256] =
         ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,
         ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,
         ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,
+// clang-format on
 };
+
 const OpFn OP_TABLE(fpu_287_df_a32)[256] =
 {
+// clang-format off
         opFILDiw_a32,  opFILDiw_a32,  opFILDiw_a32,  opFILDiw_a32,  opFILDiw_a32,  opFILDiw_a32,  opFILDiw_a32,  opFILDiw_a32,
         ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,
         opFISTiw_a32,  opFISTiw_a32,  opFISTiw_a32,  opFISTiw_a32,  opFISTiw_a32,  opFISTiw_a32,  opFISTiw_a32,  opFISTiw_a32,
@@ -1826,10 +1916,12 @@ const OpFn OP_TABLE(fpu_287_df_a32)[256] =
         ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,
         ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,
         ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,
+// clang-format on
 };
 
 const OpFn OP_TABLE(fpu_df_a16)[256] =
 {
+// clang-format off
         opFILDiw_a16,  opFILDiw_a16,  opFILDiw_a16,  opFILDiw_a16,  opFILDiw_a16,  opFILDiw_a16,  opFILDiw_a16,  opFILDiw_a16,
         ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,
         opFISTiw_a16,  opFISTiw_a16,  opFISTiw_a16,  opFISTiw_a16,  opFISTiw_a16,  opFISTiw_a16,  opFISTiw_a16,  opFISTiw_a16,
@@ -1865,9 +1957,12 @@ const OpFn OP_TABLE(fpu_df_a16)[256] =
         ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,
         ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,
         ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,
+// clang-format on
 };
+
 const OpFn OP_TABLE(fpu_df_a32)[256] =
 {
+// clang-format off
         opFILDiw_a32,  opFILDiw_a32,  opFILDiw_a32,  opFILDiw_a32,  opFILDiw_a32,  opFILDiw_a32,  opFILDiw_a32,  opFILDiw_a32,
         ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,
         opFISTiw_a32,  opFISTiw_a32,  opFISTiw_a32,  opFISTiw_a32,  opFISTiw_a32,  opFISTiw_a32,  opFISTiw_a32,  opFISTiw_a32,
@@ -1903,10 +1998,12 @@ const OpFn OP_TABLE(fpu_df_a32)[256] =
         ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,
         ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,
         ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,
+// clang-format on
 };
 
 const OpFn OP_TABLE(fpu_686_df_a16)[256] =
 {
+// clang-format off
         opFILDiw_a16,  opFILDiw_a16,  opFILDiw_a16,  opFILDiw_a16,  opFILDiw_a16,  opFILDiw_a16,  opFILDiw_a16,  opFILDiw_a16,
         ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,
         opFISTiw_a16,  opFISTiw_a16,  opFISTiw_a16,  opFISTiw_a16,  opFISTiw_a16,  opFISTiw_a16,  opFISTiw_a16,  opFISTiw_a16,
@@ -1942,9 +2039,12 @@ const OpFn OP_TABLE(fpu_686_df_a16)[256] =
         opFUCOMIP,     opFUCOMIP,     opFUCOMIP,     opFUCOMIP,     opFUCOMIP,     opFUCOMIP,     opFUCOMIP,     opFUCOMIP,
         opFCOMIP,      opFCOMIP,      opFCOMIP,      opFCOMIP,      opFCOMIP,      opFCOMIP,      opFCOMIP,      opFCOMIP,
         ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,
+// clang-format on
 };
+
 const OpFn OP_TABLE(fpu_686_df_a32)[256] =
 {
+// clang-format off
         opFILDiw_a32,  opFILDiw_a32,  opFILDiw_a32,  opFILDiw_a32,  opFILDiw_a32,  opFILDiw_a32,  opFILDiw_a32,  opFILDiw_a32,
         ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,
         opFISTiw_a32,  opFISTiw_a32,  opFISTiw_a32,  opFISTiw_a32,  opFISTiw_a32,  opFISTiw_a32,  opFISTiw_a32,  opFISTiw_a32,
@@ -1980,10 +2080,12 @@ const OpFn OP_TABLE(fpu_686_df_a32)[256] =
         opFUCOMIP,     opFUCOMIP,     opFUCOMIP,     opFUCOMIP,     opFUCOMIP,     opFUCOMIP,     opFUCOMIP,     opFUCOMIP,
         opFCOMIP,      opFCOMIP,      opFCOMIP,      opFCOMIP,      opFCOMIP,      opFCOMIP,      opFCOMIP,      opFCOMIP,
         ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,
+// clang-format on
 };
 
 const OpFn OP_TABLE(nofpu_a16)[256] =
 {
+// clang-format off
         op_nofpu_a16, op_nofpu_a16, op_nofpu_a16, op_nofpu_a16, op_nofpu_a16, op_nofpu_a16, op_nofpu_a16, op_nofpu_a16,
         op_nofpu_a16, op_nofpu_a16, op_nofpu_a16, op_nofpu_a16, op_nofpu_a16, op_nofpu_a16, op_nofpu_a16, op_nofpu_a16,
         op_nofpu_a16, op_nofpu_a16, op_nofpu_a16, op_nofpu_a16, op_nofpu_a16, op_nofpu_a16, op_nofpu_a16, op_nofpu_a16,
@@ -2019,9 +2121,12 @@ const OpFn OP_TABLE(nofpu_a16)[256] =
         op_nofpu_a16, op_nofpu_a16, op_nofpu_a16, op_nofpu_a16, op_nofpu_a16, op_nofpu_a16, op_nofpu_a16, op_nofpu_a16,
         op_nofpu_a16, op_nofpu_a16, op_nofpu_a16, op_nofpu_a16, op_nofpu_a16, op_nofpu_a16, op_nofpu_a16, op_nofpu_a16,
         op_nofpu_a16, op_nofpu_a16, op_nofpu_a16, op_nofpu_a16, op_nofpu_a16, op_nofpu_a16, op_nofpu_a16, op_nofpu_a16,
+// clang-format on
 };
+
 const OpFn OP_TABLE(nofpu_a32)[256] =
 {
+// clang-format off
         op_nofpu_a32, op_nofpu_a32, op_nofpu_a32, op_nofpu_a32, op_nofpu_a32, op_nofpu_a32, op_nofpu_a32, op_nofpu_a32,
         op_nofpu_a32, op_nofpu_a32, op_nofpu_a32, op_nofpu_a32, op_nofpu_a32, op_nofpu_a32, op_nofpu_a32, op_nofpu_a32,
         op_nofpu_a32, op_nofpu_a32, op_nofpu_a32, op_nofpu_a32, op_nofpu_a32, op_nofpu_a32, op_nofpu_a32, op_nofpu_a32,
@@ -2057,6 +2162,7 @@ const OpFn OP_TABLE(nofpu_a32)[256] =
         op_nofpu_a32, op_nofpu_a32, op_nofpu_a32, op_nofpu_a32, op_nofpu_a32, op_nofpu_a32, op_nofpu_a32, op_nofpu_a32,
         op_nofpu_a32, op_nofpu_a32, op_nofpu_a32, op_nofpu_a32, op_nofpu_a32, op_nofpu_a32, op_nofpu_a32, op_nofpu_a32,
         op_nofpu_a32, op_nofpu_a32, op_nofpu_a32, op_nofpu_a32, op_nofpu_a32, op_nofpu_a32, op_nofpu_a32, op_nofpu_a32,
+// clang-format on
 };
 #endif
 

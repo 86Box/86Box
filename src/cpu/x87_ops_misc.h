@@ -1042,6 +1042,7 @@ opFSTCW_a32(uint32_t fetchdat)
 #    define cond_U  (PF_SET())
 #    define cond_NU (!PF_SET())
 
+// clang-format off
 opFCMOV(B)
 opFCMOV(E)
 opFCMOV(BE)
@@ -1050,4 +1051,5 @@ opFCMOV(NB)
 opFCMOV(NE)
 opFCMOV(NBE)
 opFCMOV(NU)
+// clang-format on
 #endif

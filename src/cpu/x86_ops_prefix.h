@@ -67,6 +67,7 @@
         return normal_opcode_table[(fetchdat & 0xff) | 0x300](fetchdat >> 8); \
     }
 
+// clang-format off
 op_seg(CS, cpu_state.seg_cs, x86_opcodes, x86_opcodes)
 op_seg(DS, cpu_state.seg_ds, x86_opcodes, x86_opcodes)
 op_seg(ES, cpu_state.seg_es, x86_opcodes, x86_opcodes)
@@ -87,6 +88,7 @@ op_seg(ES_REPNE, cpu_state.seg_es, x86_opcodes_REPNE, x86_opcodes)
 op_seg(FS_REPNE, cpu_state.seg_fs, x86_opcodes_REPNE, x86_opcodes)
 op_seg(GS_REPNE, cpu_state.seg_gs, x86_opcodes_REPNE, x86_opcodes)
 op_seg(SS_REPNE, cpu_state.seg_ss, x86_opcodes_REPNE, x86_opcodes)
+// clang-format on
 
                                                                         static int op_66(uint32_t fetchdat) /*Data size select*/
 {

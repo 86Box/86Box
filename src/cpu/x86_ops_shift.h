@@ -1048,7 +1048,9 @@ opD3_l_a32(uint32_t fetchdat)
         return 0;                                                                           \
     }
 
+// clang-format off
 opSHxD(SHLD_w)
 opSHxD(SHLD_l)
 opSHxD(SHRD_w)
 opSHxD(SHRD_l)
+// clang-format on
