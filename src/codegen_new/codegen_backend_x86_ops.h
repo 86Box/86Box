@@ -27,7 +27,7 @@ void host_x86_CMP32_REG_REG(codeblock_t *block, int src_reg_a, int src_reg_b);
 
 void host_x86_INC32_ABS(codeblock_t *block, void *p);
 
-void host_x86_JMP(codeblock_t *block, void *p);
+void      host_x86_JMP(codeblock_t *block, void *p);
 uint32_t *host_x86_JMP_short(codeblock_t *block);
 uint32_t *host_x86_JMP_long(codeblock_t *block);
 

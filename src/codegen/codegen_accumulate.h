@@ -1,8 +1,7 @@
-enum
-{
-        ACCREG_cycles = 0,
+enum {
+    ACCREG_cycles = 0,
 
-        ACCREG_COUNT
+    ACCREG_COUNT
 };
 
 struct ir_data_t;

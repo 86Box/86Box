@@ -2,15 +2,15 @@
 #define _CODEGEN_BACKEND_H_
 
 #if defined __amd64__ || defined _M_X64
-#include "codegen_backend_x86-64.h"
+#    include "codegen_backend_x86-64.h"
 #elif defined i386 || defined __i386 || defined __i386__ || defined _X86_ || defined _M_IX86
-#include "codegen_backend_x86.h"
+#    include "codegen_backend_x86.h"
 #elif defined __ARM_EABI__ || defined _ARM_ || defined _M_ARM
-#include "codegen_backend_arm.h"
+#    include "codegen_backend_arm.h"
 #elif defined __aarch64__ || defined _M_ARM64
-#include "codegen_backend_arm64.h"
+#    include "codegen_backend_arm64.h"
 #else
-#error Dynamic recompiler not implemented on your platform
+#    error Dynamic recompiler not implemented on your platform
 #endif
 
 void codegen_backend_init(void);
@@ -29,10 +29,9 @@ extern const uOpFn uop_handlers[];
 /*Register will not be preserved across function calls*/
 #define HOST_REG_FLAG_VOLATILE (1 << 0)
 
-typedef struct host_reg_def_t
-{
-        int reg;
-        int flags;
+typedef struct host_reg_def_t {
+    int reg;
+    int flags;
 } host_reg_def_t;
 
 extern host_reg_def_t codegen_host_reg_list[CODEGEN_HOST_REGS];

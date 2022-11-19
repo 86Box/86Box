@@ -16,9 +16,9 @@
 #include "codegen_ops.h"
 
 #if defined __amd64__ || defined _M_X64
-#include "codegen_ops_x86-64.h"
+#    include "codegen_ops_x86-64.h"
 #elif defined i386 || defined __i386 || defined __i386__ || defined _X86_ || defined _M_IX86
-#include "codegen_ops_x86.h"
+#    include "codegen_ops_x86.h"
 #endif
 
 #include "codegen_ops_arith.h"
