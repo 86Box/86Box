@@ -7,8 +7,7 @@ namespace Ui {
 class SpecifyDimensions;
 }
 
-class SpecifyDimensions : public QDialog
-{
+class SpecifyDimensions : public QDialog {
     Q_OBJECT
 
 public:

@@ -5,16 +5,15 @@
 #include <QWidget>
 #include <QLayout>
 
-class StyleOverride : public QProxyStyle
-{
+class StyleOverride : public QProxyStyle {
 public:
     int styleHint(
-        StyleHint hint,
-        const QStyleOption *option = nullptr,
-        const QWidget *widget = nullptr,
-        QStyleHintReturn *returnData = nullptr) const override;
+        StyleHint           hint,
+        const QStyleOption *option     = nullptr,
+        const QWidget      *widget     = nullptr,
+        QStyleHintReturn   *returnData = nullptr) const override;
 
-    void polish(QWidget* widget) override;
+    void polish(QWidget *widget) override;
 };
 
 #endif

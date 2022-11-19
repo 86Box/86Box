@@ -646,7 +646,7 @@ const device_config_t ogc_m24_config[] = {
     {
         .type = CONFIG_END
     }
-// clang-format on
+  // clang-format on
 };
 
 const device_t ogc_m24_device = {

@@ -1390,7 +1390,7 @@ static const device_config_t voodoo_config[] = {
     {
         .type = CONFIG_END
     }
-// clang-format on
+  // clang-format on
 };
 
 const device_t voodoo_device = {

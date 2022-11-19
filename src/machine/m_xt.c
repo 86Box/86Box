@@ -336,26 +336,25 @@ machine_xt_pravetz16_imko4_init(const machine_t *model)
 
     ret = bios_load_linear("roms/machines/pravetz16/BIOS_IMKO4_FE00.BIN",
                            0x000fe000, 65536, 0);
-    if (ret) 
-    {
+    if (ret) {
         bios_load_aux_linear("roms/machines/pravetz16/BIOS_IMKO4_F400.BIN",
-                                 0x000f4000, 8192, 0);
+                             0x000f4000, 8192, 0);
 
         bios_load_aux_linear("roms/machines/pravetz16/BIOS_IMKO4_F600.BIN",
-                                 0x000f6000, 8192, 0);
+                             0x000f6000, 8192, 0);
 
         bios_load_aux_linear("roms/machines/pravetz16/BIOS_IMKO4_FA00.BIN",
-                                 0x000fa000, 8192, 0);
+                             0x000fa000, 8192, 0);
 
         bios_load_aux_linear("roms/machines/pravetz16/BIOS_IMKO4_F800.BIN",
-                                 0x000f8000, 8192, 0);
+                             0x000f8000, 8192, 0);
 
         bios_load_aux_linear("roms/machines/pravetz16/BIOS_IMKO4_FC00.BIN",
-                                 0x000fc000, 8192, 0);
+                             0x000fc000, 8192, 0);
     }
 
     if (bios_only || !ret)
-	    return ret;
+        return ret;
 
     device_add(&keyboard_pravetz_device);
 
@@ -367,13 +366,13 @@ machine_xt_pravetz16_imko4_init(const machine_t *model)
 int
 machine_xt_micoms_xl7turbo_init(const machine_t *model)
 {
-	int ret;
-    
+    int ret;
+
     ret = bios_load_linear("roms/machines/mxl7t/XL7_TURBO.BIN",
-			   0x000fe000, 8192, 0);
+                           0x000fe000, 8192, 0);
 
     if (bios_only || !ret)
-	    return ret;
+        return ret;
 
     machine_xt_init_ex(model);
     return ret;
@@ -602,14 +601,14 @@ machine_xt_v20xt_init(const machine_t *model)
     int ret;
 
     ret = bios_load_linear("roms/machines/v20xt/V20XTBios.bin",
-                            0x000fe000, 8192, 0);
+                           0x000fe000, 8192, 0);
 
     if (bios_only || !ret)
-	return ret;
+        return ret;
 
     machine_xt_clone_init(model);
 
-        return ret;
+    return ret;
 }
 
 int

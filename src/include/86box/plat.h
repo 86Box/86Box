@@ -49,7 +49,7 @@ extern int strnicmp(const char *s1, const char *s2, size_t n);
 #    define ftello64 ftello
 #    define off64_t  off_t
 #elif defined(_MSC_VER)
-//# define fopen64	fopen
+// # define fopen64	fopen
 #    define fseeko64 _fseeki64
 #    define ftello64 _ftelli64
 #    define off64_t  off_t

@@ -35,8 +35,7 @@
 #include "qt_harddrive_common.hpp"
 #include "qt_settings_bus_tracking.hpp"
 
-extern "C"
-{
+extern "C" {
 #include <86box/86box.h>
 }
 
@@ -48,10 +47,14 @@ extern "C"
 
 class SettingsModel : public QAbstractListModel {
 public:
-    SettingsModel(QObject* parent) : QAbstractListModel(parent) {}
+    SettingsModel(QObject *parent)
+        : QAbstractListModel(parent)
+    {
+    }
 
     QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const override;
-    int rowCount(const QModelIndex &parent = QModelIndex()) const override;
+    int      rowCount(const QModelIndex &parent = QModelIndex()) const override;
+
 private:
     QStringList pages = {
         "Machine",
@@ -81,44 +84,49 @@ private:
     };
 };
 
-QVariant SettingsModel::data(const QModelIndex &index, int role) const {
+QVariant
+SettingsModel::data(const QModelIndex &index, int role) const
+{
     Q_ASSERT(checkIndex(index, QAbstractItemModel::CheckIndexOption::IndexIsValid | QAbstractItemModel::CheckIndexOption::ParentIsInvalid));
 
     switch (role) {
-    case Qt::DisplayRole:
-        return tr(pages.at(index.row()).toUtf8().data());
-    case Qt::DecorationRole:
-        return QIcon(QString("%1/%2.ico").arg(ProgSettings::getIconSetPath(), page_icons[index.row()]));
-    default:
-        return {};
+        case Qt::DisplayRole:
+            return tr(pages.at(index.row()).toUtf8().data());
+        case Qt::DecorationRole:
+            return QIcon(QString("%1/%2.ico").arg(ProgSettings::getIconSetPath(), page_icons[index.row()]));
+        default:
+            return {};
     }
 }
 
-int SettingsModel::rowCount(const QModelIndex &parent) const {
+int
+SettingsModel::rowCount(const QModelIndex &parent) const
+{
     (void) parent;
     return pages.size();
 }
 
-Settings* Settings::settings = nullptr;;
-Settings::Settings(QWidget *parent) :
-    QDialog(parent),
-    ui(new Ui::Settings)
+Settings *Settings::settings = nullptr;
+;
+Settings::Settings(QWidget *parent)
+    : QDialog(parent)
+    , ui(new Ui::Settings)
 {
     ui->setupUi(this);
     ui->listView->setModel(new SettingsModel(this));
 
     Harddrives::busTrackClass = new SettingsBusTracking;
-    machine = new SettingsMachine(this);
-    display = new SettingsDisplay(this);
-    input = new SettingsInput(this);
-    sound = new SettingsSound(this);
-    network = new SettingsNetwork(this);
-    ports = new SettingsPorts(this);
-    storageControllers = new SettingsStorageControllers(this);
-    harddisks = new SettingsHarddisks(this);
-    floppyCdrom = new SettingsFloppyCDROM(this);
-    otherRemovable = new SettingsOtherRemovable(this);
-    otherPeripherals = new SettingsOtherPeripherals(this);
+    machine                   = new SettingsMachine(this);
+    display                   = new SettingsDisplay(this);
+    input                     = new SettingsInput(this);
+    sound                     = new SettingsSound(this);
+    network                   = new SettingsNetwork(this);
+    ports                     = new SettingsPorts(this);
+    storageControllers        = new SettingsStorageControllers(this);
+    harddisks                 = new SettingsHarddisks(this);
+    floppyCdrom               = new SettingsFloppyCDROM(this);
+    otherRemovable            = new SettingsOtherRemovable(this);
+    otherPeripherals          = new SettingsOtherPeripherals(this);
 
     ui->stackedWidget->addWidget(machine);
     ui->stackedWidget->addWidget(display);
@@ -153,10 +161,12 @@ Settings::~Settings()
     delete ui;
     delete Harddrives::busTrackClass;
     Harddrives::busTrackClass = nullptr;
-    Settings::settings = nullptr;
+    Settings::settings        = nullptr;
 }
 
-void Settings::save() {
+void
+Settings::save()
+{
     machine->save();
     display->save();
     input->save();
@@ -170,12 +180,12 @@ void Settings::save() {
     otherPeripherals->save();
 }
 
-void Settings::accept()
+void
+Settings::accept()
 {
-    if (confirm_save && !settings_only)
-    {
+    if (confirm_save && !settings_only) {
         QMessageBox questionbox(QMessageBox::Icon::Question, "86Box", QStringLiteral("%1\n\n%2").arg(tr("Do you want to save the settings?"), tr("This will hard reset the emulated machine.")), QMessageBox::Save | QMessageBox::Cancel, this);
-        QCheckBox *chkbox = new QCheckBox(tr("Don't show this message again"));
+        QCheckBox  *chkbox = new QCheckBox(tr("Don't show this message again"));
         questionbox.setCheckBox(chkbox);
         chkbox->setChecked(!confirm_save);
         QObject::connect(chkbox, &QCheckBox::stateChanged, [](int state) {

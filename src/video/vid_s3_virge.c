@@ -4587,7 +4587,7 @@ static const device_config_t s3_trio3d2x_config[] = {
     {
         .type = CONFIG_END
     }
-// clang-format on
+  // clang-format on
 };
 
 const device_t s3_virge_325_pci_device = {

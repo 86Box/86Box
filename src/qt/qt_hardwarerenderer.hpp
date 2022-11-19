@@ -24,21 +24,20 @@
 #include "qt_renderercommon.hpp"
 
 #ifdef WAYLAND
-#include "wl_mouse.hpp"
+#    include "wl_mouse.hpp"
 #endif
 
-class HardwareRenderer : public QOpenGLWindow, protected QOpenGLFunctions, public RendererCommon
-{
-	Q_OBJECT
+class HardwareRenderer : public QOpenGLWindow, protected QOpenGLFunctions, public RendererCommon {
+    Q_OBJECT
 
 private:
-    bool wayland = false;
-    QOpenGLContext* m_context;
-    QOpenGLTexture* m_texture{nullptr};
-    QOpenGLShaderProgram* m_prog{nullptr};
-    QOpenGLTextureBlitter* m_blt{nullptr};
-    QOpenGLBuffer m_vbo[2];
-    QOpenGLVertexArrayObject m_vao;
+    bool                        wayland = false;
+    QOpenGLContext             *m_context;
+    QOpenGLTexture             *m_texture { nullptr };
+    QOpenGLShaderProgram       *m_prog { nullptr };
+    QOpenGLTextureBlitter      *m_blt { nullptr };
+    QOpenGLBuffer               m_vbo[2];
+    QOpenGLVertexArrayObject    m_vao;
     QOpenGLPixelTransferOptions m_transferOptions;
 
 public:
@@ -50,13 +49,14 @@ public:
     void resizeGL(int w, int h) override;
     void initializeGL() override;
     void paintGL() override;
-    void exposeEvent(QExposeEvent* event) override
+    void exposeEvent(QExposeEvent *event) override
     {
         onResize(size().width(), size().height());
     }
-    std::vector<std::tuple<uint8_t*, std::atomic_flag*>> getBuffers() override;
-    HardwareRenderer(QWidget* parent = nullptr, RenderType rtype = RenderType::OpenGL)
-    : QOpenGLWindow(QOpenGLWindow::NoPartialUpdate, parent->windowHandle()), QOpenGLFunctions()
+    std::vector<std::tuple<uint8_t *, std::atomic_flag *>> getBuffers() override;
+    HardwareRenderer(QWidget *parent = nullptr, RenderType rtype = RenderType::OpenGL)
+        : QOpenGLWindow(QOpenGLWindow::NoPartialUpdate, parent->windowHandle())
+        , QOpenGLFunctions()
     {
         imagebufs[0] = std::unique_ptr<uint8_t>(new uint8_t[2048 * 2048 * 4]);
         imagebufs[1] = std::unique_ptr<uint8_t>(new uint8_t[2048 * 2048 * 4]);
@@ -80,14 +80,14 @@ public:
     ~HardwareRenderer()
     {
         m_context->makeCurrent(this);
-        if (m_blt) m_blt->destroy();
+        if (m_blt)
+            m_blt->destroy();
         m_prog->release();
         delete m_prog;
         m_prog = nullptr;
         m_context->doneCurrent();
         delete m_context;
     }
-
 
     void setRenderType(RenderType type);
 
@@ -98,5 +98,5 @@ protected:
     std::array<std::unique_ptr<uint8_t>, 2> imagebufs;
 
     void resizeEvent(QResizeEvent *event) override;
-    bool event(QEvent* event) override;
+    bool event(QEvent *event) override;
 };

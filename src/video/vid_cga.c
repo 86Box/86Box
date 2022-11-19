@@ -120,7 +120,7 @@ cga_in(uint16_t addr, void *p)
 void
 cga_pravetz_out(uint16_t addr, uint8_t val, void *p)
 {
-    cga_t  *cga = (cga_t *) p;
+    cga_t *cga = (cga_t *) p;
 
     cga->fontbase = (((unsigned int) val) << 8);
 }

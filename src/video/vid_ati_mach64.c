@@ -216,7 +216,7 @@ typedef struct mach64_t {
     } accel;
 
     fifo_entry_t fifo[FIFO_SIZE];
-    atomic_int fifo_read_idx, fifo_write_idx;
+    atomic_int   fifo_read_idx, fifo_write_idx;
 
     thread_t *fifo_thread;
     event_t  *wake_fifo_thread;

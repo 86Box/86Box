@@ -22,38 +22,38 @@
 #ifndef EMU_PCI_H
 #define EMU_PCI_H
 
-#define PCI_REG_COMMAND      0x04
+#define PCI_REG_COMMAND        0x04
 
-#define PCI_COMMAND_IO       0x01
-#define PCI_COMMAND_MEM      0x02
+#define PCI_COMMAND_IO         0x01
+#define PCI_COMMAND_MEM        0x02
 
-#define PCI_NO_IRQ_STEERING       0x8000
-#define PCI_CAN_SWITCH_TYPE       0x10000
-#define PCI_NO_BRIDGES            0x20000
-#define PCI_ALWAYS_EXPOSE_DEV0    0x40000
+#define PCI_NO_IRQ_STEERING    0x8000
+#define PCI_CAN_SWITCH_TYPE    0x10000
+#define PCI_NO_BRIDGES         0x20000
+#define PCI_ALWAYS_EXPOSE_DEV0 0x40000
 
-#define PCI_CONFIG_TYPE_1    1
-#define PCI_CONFIG_TYPE_2    2
+#define PCI_CONFIG_TYPE_1      1
+#define PCI_CONFIG_TYPE_2      2
 
-#define PCI_CONFIG_TYPE_MASK 0x7fff
+#define PCI_CONFIG_TYPE_MASK   0x7fff
 
-#define PCI_INTA             1
-#define PCI_INTB             2
-#define PCI_INTC             3
-#define PCI_INTD             4
+#define PCI_INTA               1
+#define PCI_INTB               2
+#define PCI_INTC               3
+#define PCI_INTD               4
 
-#define PCI_MIRQ0            0
-#define PCI_MIRQ1            1
-#define PCI_MIRQ2            2
-#define PCI_MIRQ3            3
-#define PCI_MIRQ4            4
-#define PCI_MIRQ5            5
-#define PCI_MIRQ6            6
-#define PCI_MIRQ7            7
+#define PCI_MIRQ0              0
+#define PCI_MIRQ1              1
+#define PCI_MIRQ2              2
+#define PCI_MIRQ3              3
+#define PCI_MIRQ4              4
+#define PCI_MIRQ5              5
+#define PCI_MIRQ6              6
+#define PCI_MIRQ7              7
 
-#define PCI_IRQ_DISABLED     -1
+#define PCI_IRQ_DISABLED       -1
 
-#define PCI_ADD_STRICT       0x80
+#define PCI_ADD_STRICT         0x80
 
 enum {
     PCI_CARD_NORTHBRIDGE = 0,
