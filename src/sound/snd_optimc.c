@@ -131,13 +131,6 @@ optimc_add_opl(optimc_t *optimc)
 }
 
 static void
-optimc_reload_opl(optimc_t *optimc)
-{
-    optimc_remove_opl(optimc);
-    optimc_add_opl(optimc);
-}
-
-static void
 optimc_reg_write(uint16_t addr, uint8_t val, void *p)
 {
     optimc_t      *optimc           = (optimc_t *) p;
