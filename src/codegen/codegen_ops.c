@@ -32,9 +32,8 @@
 #include "codegen_ops_stack.h"
 #include "codegen_ops_xchg.h"
 
-RecompOpFn recomp_opcodes[512] =
-{
-// clang-format off
+RecompOpFn recomp_opcodes[512] = {
+    // clang-format off
         /*16-bit data*/
 /*      00              01              02              03              04              05              06              07              08              09              0a              0b              0c              0d              0e              0f*/
 /*00*/  ropADD_b_rmw,   ropADD_w_rmw,   ropADD_b_rm,    ropADD_w_rm,    ropADD_AL_imm,  ropADD_AX_imm,  ropPUSH_ES_16,  ropPOP_ES_16,   ropOR_b_rmw,    ropOR_w_rmw,    ropOR_b_rm,     ropOR_w_rm,     ropOR_AL_imm,   ropOR_AX_imm,   ropPUSH_CS_16,  NULL,
@@ -78,12 +77,11 @@ RecompOpFn recomp_opcodes[512] =
 /*d0*/  ropD0,          ropD1_l,        NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
 /*e0*/  NULL,           NULL,           ropLOOP,        ropJCXZ,        NULL,           NULL,           NULL,           NULL,           ropCALL_r32,    ropJMP_r32,     NULL,           ropJMP_r8,      NULL,           NULL,           NULL,           NULL,
 /*f0*/  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           ropF6,          ropF7_l,        NULL,           NULL,           ropCLI,         ropSTI,         ropCLD,         ropSTD,         ropFE,          ropFF_32
-// clang-format on
+    // clang-format on
 };
 
-RecompOpFn recomp_opcodes_0f[512] =
-{
-// clang-format off
+RecompOpFn recomp_opcodes_0f[512] = {
+    // clang-format off
         /*16-bit data*/
 /*      00              01              02              03              04              05              06              07              08              09              0a              0b              0c              0d              0e              0f*/
 /*00*/  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
@@ -127,13 +125,11 @@ RecompOpFn recomp_opcodes_0f[512] =
 /*d0*/  NULL,           ropPSRLW,       ropPSRLD,       ropPSRLQ,       NULL,           ropPMULLW,      NULL,           NULL,           ropPSUBUSB,     ropPSUBUSW,     NULL,           ropPAND,        ropPADDUSB,     ropPADDUSW,     NULL,           ropPANDN,
 /*e0*/  NULL,           ropPSRAW,       ropPSRAD,       NULL,           NULL,           ropPMULHW,      NULL,           NULL,           ropPSUBSB,      ropPSUBSW,      NULL,           ropPOR,         ropPADDSB,      ropPADDSW,      NULL,           ropPXOR,
 /*f0*/  NULL,           ropPSLLW,       ropPSLLD,       ropPSLLQ,       NULL,           ropPMADDWD,     NULL,           NULL,           ropPSUBB,       ropPSUBW,       ropPSUBD,       NULL,           ropPADDB,       ropPADDW,       ropPADDD,       NULL,
-// clang-format on
+    // clang-format on
 };
 
-
-RecompOpFn recomp_opcodes_d8[512] =
-{
-// clang-format off
+RecompOpFn recomp_opcodes_d8[512] = {
+    // clang-format off
         /*16-bit data*/
 /*      00              01              02              03              04              05              06              07              08              09              0a              0b              0c              0d              0e              0f*/
 /*00*/  ropFADDs,       ropFADDs,       ropFADDs,       ropFADDs,       ropFADDs,       ropFADDs,       ropFADDs,       ropFADDs,       ropFMULs,       ropFMULs,       ropFMULs,       ropFMULs,       ropFMULs,       ropFMULs,       ropFMULs,       ropFMULs,
@@ -177,12 +173,11 @@ RecompOpFn recomp_opcodes_d8[512] =
 /*d0*/  ropFCOM,        ropFCOM,        ropFCOM,        ropFCOM,        ropFCOM,        ropFCOM,        ropFCOM,        ropFCOM,        ropFCOMP,       ropFCOMP,       ropFCOMP,       ropFCOMP,       ropFCOMP,       ropFCOMP,       ropFCOMP,       ropFCOMP,
 /*e0*/  ropFSUB,        ropFSUB,        ropFSUB,        ropFSUB,        ropFSUB,        ropFSUB,        ropFSUB,        ropFSUB,        ropFSUBR,       ropFSUBR,       ropFSUBR,       ropFSUBR,       ropFSUBR,       ropFSUBR,       ropFSUBR,       ropFSUBR,
 /*f0*/  ropFDIV,        ropFDIV,        ropFDIV,        ropFDIV,        ropFDIV,        ropFDIV,        ropFDIV,        ropFDIV,        ropFDIVR,       ropFDIVR,       ropFDIVR,       ropFDIVR,       ropFDIVR,       ropFDIVR,       ropFDIVR,       ropFDIVR,
-// clang-format on
+    // clang-format on
 };
 
-RecompOpFn recomp_opcodes_d9[512] =
-{
-// clang-format off
+RecompOpFn recomp_opcodes_d9[512] = {
+    // clang-format off
         /*16-bit data*/
 /*      00              01              02              03              04              05              06              07              08              09              0a              0b              0c              0d              0e              0f*/
 /*00*/  ropFLDs,        ropFLDs,        ropFLDs,        ropFLDs,        ropFLDs,        ropFLDs,        ropFLDs,        ropFLDs,        NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
@@ -226,12 +221,11 @@ RecompOpFn recomp_opcodes_d9[512] =
 /*d0*/  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
 /*e0*/  ropFCHS,        NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           ropFLD1,        ropFLDL2T,      ropFLDL2E,      ropFLDPI,       ropFLDEG2,      ropFLDLN2,      ropFLDZ,        NULL,
 /*f0*/  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
-// clang-format on
+    // clang-format on
 };
 
-RecompOpFn recomp_opcodes_da[512] =
-{
-// clang-format off
+RecompOpFn recomp_opcodes_da[512] = {
+    // clang-format off
         /*16-bit data*/
 /*      00              01              02              03              04              05              06              07              08              09              0a              0b              0c              0d              0e              0f*/
 /*00*/  ropFADDil,      ropFADDil,      ropFADDil,      ropFADDil,      ropFADDil,      ropFADDil,      ropFADDil,      ropFADDil,      ropFMULil,      ropFMULil,      ropFMULil,      ropFMULil,      ropFMULil,      ropFMULil,      ropFMULil,      ropFMULil,
@@ -275,12 +269,11 @@ RecompOpFn recomp_opcodes_da[512] =
 /*d0*/  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
 /*e0*/  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
 /*f0*/  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
-// clang-format on
+    // clang-format on
 };
 
-RecompOpFn recomp_opcodes_db[512] =
-{
-// clang-format off
+RecompOpFn recomp_opcodes_db[512] = {
+    // clang-format off
         /*16-bit data*/
 /*      00              01              02              03              04              05              06              07              08              09              0a              0b              0c              0d              0e              0f*/
 /*00*/  ropFILDl,       ropFILDl,       ropFILDl,       ropFILDl,       ropFILDl,       ropFILDl,       ropFILDl,       ropFILDl,       NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
@@ -324,12 +317,11 @@ RecompOpFn recomp_opcodes_db[512] =
 /*d0*/  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
 /*e0*/  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
 /*f0*/  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
-// clang-format on
+    // clang-format on
 };
 
-RecompOpFn recomp_opcodes_dc[512] =
-{
-// clang-format off
+RecompOpFn recomp_opcodes_dc[512] = {
+    // clang-format off
         /*16-bit data*/
 /*      00              01              02              03              04              05              06              07              08              09              0a              0b              0c              0d              0e              0f*/
 /*00*/  ropFADDd,       ropFADDd,       ropFADDd,       ropFADDd,       ropFADDd,       ropFADDd,       ropFADDd,       ropFADDd,       ropFMULd,       ropFMULd,       ropFMULd,       ropFMULd,       ropFMULd,       ropFMULd,       ropFMULd,       ropFMULd,
@@ -373,12 +365,11 @@ RecompOpFn recomp_opcodes_dc[512] =
 /*d0*/  ropFCOM,        ropFCOM,        ropFCOM,        ropFCOM,        ropFCOM,        ropFCOM,        ropFCOM,        ropFCOM,        ropFCOMP,       ropFCOMP,       ropFCOMP,       ropFCOMP,       ropFCOMP,       ropFCOMP,       ropFCOMP,       ropFCOMP,
 /*e0*/  ropFSUBRr,      ropFSUBRr,      ropFSUBRr,      ropFSUBRr,      ropFSUBRr,      ropFSUBRr,      ropFSUBRr,      ropFSUBRr,      ropFSUBr,       ropFSUBr,       ropFSUBr,       ropFSUBr,       ropFSUBr,       ropFSUBr,       ropFSUBr,       ropFSUBr,
 /*f0*/  ropFDIVRr,      ropFDIVRr,      ropFDIVRr,      ropFDIVRr,      ropFDIVRr,      ropFDIVRr,      ropFDIVRr,      ropFDIVRr,      ropFDIVr,       ropFDIVr,       ropFDIVr,       ropFDIVr,       ropFDIVr,       ropFDIVr,       ropFDIVr,       ropFDIVr,
-// clang-format on
+    // clang-format on
 };
 
-RecompOpFn recomp_opcodes_dd[512] =
-{
-// clang-format off
+RecompOpFn recomp_opcodes_dd[512] = {
+    // clang-format off
         /*16-bit data*/
 /*      00              01              02              03              04              05              06              07              08              09              0a              0b              0c              0d              0e              0f*/
 /*00*/  ropFLDd,        ropFLDd,        ropFLDd,        ropFLDd,        ropFLDd,        ropFLDd,        ropFLDd,        ropFLDd,        NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
@@ -422,12 +413,11 @@ RecompOpFn recomp_opcodes_dd[512] =
 /*d0*/  ropFST,         ropFST,         ropFST,         ropFST,         ropFST,         ropFST,         ropFST,         ropFST,         ropFSTP,        ropFSTP,        ropFSTP,        ropFSTP,        ropFSTP,        ropFSTP,        ropFSTP,        ropFSTP,
 /*e0*/  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
 /*f0*/  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
-// clang-format on
+    // clang-format on
 };
 
-RecompOpFn recomp_opcodes_de[512] =
-{
-// clang-format off
+RecompOpFn recomp_opcodes_de[512] = {
+    // clang-format off
         /*16-bit data*/
 /*      00              01              02              03              04              05              06              07              08              09              0a              0b              0c              0d              0e              0f*/
 /*00*/  ropFADDiw,      ropFADDiw,      ropFADDiw,      ropFADDiw,      ropFADDiw,      ropFADDiw,      ropFADDiw,      ropFADDiw,      ropFMULiw,      ropFMULiw,      ropFMULiw,      ropFMULiw,      ropFMULiw,      ropFMULiw,      ropFMULiw,      ropFMULiw,
@@ -471,12 +461,11 @@ RecompOpFn recomp_opcodes_de[512] =
 /*d0*/  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           ropFCOMPP,      NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
 /*e0*/  ropFSUBRP,      ropFSUBRP,      ropFSUBRP,      ropFSUBRP,      ropFSUBRP,      ropFSUBRP,      ropFSUBRP,      ropFSUBRP,      ropFSUBP,       ropFSUBP,       ropFSUBP,       ropFSUBP,       ropFSUBP,       ropFSUBP,       ropFSUBP,       ropFSUBP,
 /*f0*/  ropFDIVRP,      ropFDIVRP,      ropFDIVRP,      ropFDIVRP,      ropFDIVRP,      ropFDIVRP,      ropFDIVRP,      ropFDIVRP,      ropFDIVP,       ropFDIVP,       ropFDIVP,       ropFDIVP,       ropFDIVP,       ropFDIVP,       ropFDIVP,       ropFDIVP,
-// clang-format on
+    // clang-format on
 };
 
-RecompOpFn recomp_opcodes_df[512] =
-{
-// clang-format off
+RecompOpFn recomp_opcodes_df[512] = {
+    // clang-format off
         /*16-bit data*/
 /*      00              01              02              03              04              05              06              07              08              09              0a              0b              0c              0d              0e              0f*/
 /*00*/  ropFILDw,       ropFILDw,       ropFILDw,       ropFILDw,       ropFILDw,       ropFILDw,       ropFILDw,       ropFILDw,       NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
@@ -520,12 +509,11 @@ RecompOpFn recomp_opcodes_df[512] =
 /*d0*/  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
 /*e0*/  ropFSTSW_AX,    NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
 /*f0*/  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
-// clang-format on
+    // clang-format on
 };
 
-RecompOpFn recomp_opcodes_REPE[512] =
-{
-// clang-format off
+RecompOpFn recomp_opcodes_REPE[512] = {
+    // clang-format off
         /*16-bit data*/
 /*      00              01              02              03              04              05              06              07              08              09              0a              0b              0c              0d              0e              0f*/
 /*00*/  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
@@ -569,12 +557,11 @@ RecompOpFn recomp_opcodes_REPE[512] =
 /*d0*/  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
 /*e0*/  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
 /*f0*/  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
-// clang-format on
+    // clang-format on
 };
 
-RecompOpFn recomp_opcodes_REPNE[512] =
-{
-// clang-format off
+RecompOpFn recomp_opcodes_REPNE[512] = {
+    // clang-format off
         /*16-bit data*/
 /*      00              01              02              03              04              05              06              07              08              09              0a              0b              0c              0d              0e              0f*/
 /*00*/  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
@@ -618,5 +605,5 @@ RecompOpFn recomp_opcodes_REPNE[512] =
 /*d0*/  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
 /*e0*/  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
 /*f0*/  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
-// clang-format on
+    // clang-format on
 };
