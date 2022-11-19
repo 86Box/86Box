@@ -10,8 +10,7 @@ class NewFloppyDialog;
 struct disk_size_t;
 class QProgressDialog;
 
-class NewFloppyDialog : public QDialog
-{
+class NewFloppyDialog : public QDialog {
     Q_OBJECT
 
 public:
@@ -39,12 +38,12 @@ private slots:
 
 private:
     Ui::NewFloppyDialog *ui;
-    MediaType mediaType_;
+    MediaType            mediaType_;
 
-    bool create86f(const QString& filename, const disk_size_t& disk_size, uint8_t rpm_mode);
-    bool createSectorImage(const QString& filename, const disk_size_t& disk_size, FileType type);
-    bool createZipSectorImage(const QString& filename, const disk_size_t& disk_size, FileType type, QProgressDialog& pbar);
-    bool createMoSectorImage(const QString& filename, int8_t disk_size, FileType type, QProgressDialog& pbar);
+    bool create86f(const QString &filename, const disk_size_t &disk_size, uint8_t rpm_mode);
+    bool createSectorImage(const QString &filename, const disk_size_t &disk_size, FileType type);
+    bool createZipSectorImage(const QString &filename, const disk_size_t &disk_size, FileType type, QProgressDialog &pbar);
+    bool createMoSectorImage(const QString &filename, int8_t disk_size, FileType type, QProgressDialog &pbar);
 };
 
 #endif // QT_NEWFLOPPYDIALOG_HPP

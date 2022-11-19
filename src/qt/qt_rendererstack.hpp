@@ -32,7 +32,7 @@ public:
     void wheelEvent(QWheelEvent *event) override;
     void leaveEvent(QEvent *event) override;
     void closeEvent(QCloseEvent *event) override;
-    void changeEvent(QEvent* event) override;
+    void changeEvent(QEvent *event) override;
     void resizeEvent(QResizeEvent *event) override
     {
         onResize(event->size().width(), event->size().height());
@@ -75,10 +75,10 @@ public:
             rendererWindow->onResize(width, height);
     }
 
-    void (*mouse_poll_func)() = nullptr;
+    void (*mouse_poll_func)()                   = nullptr;
     void (*mouse_capture_func)(QWindow *window) = nullptr;
-    void (*mouse_uncapture_func)() = nullptr;
-    void (*mouse_exit_func)() = nullptr;
+    void (*mouse_uncapture_func)()              = nullptr;
+    void (*mouse_exit_func)()                   = nullptr;
 
 signals:
     void blitToRenderer(int buf_idx, int x, int y, int w, int h);
@@ -98,8 +98,8 @@ private:
 
     int x, y, w, h, sx, sy, sw, sh;
 
-    int currentBuf  = 0;
-    int isMouseDown = 0;
+    int currentBuf      = 0;
+    int isMouseDown     = 0;
     int m_monitor_index = 0;
 
     Renderer current_vid_api = Renderer::None;
@@ -108,7 +108,7 @@ private:
 
     RendererCommon          *rendererWindow { nullptr };
     std::unique_ptr<QWidget> current;
-    std::atomic<bool> directBlitting{false};
+    std::atomic<bool>        directBlitting { false };
 };
 
 #endif // QT_RENDERERCONTAINER_HPP

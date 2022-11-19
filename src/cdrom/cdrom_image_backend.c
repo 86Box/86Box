@@ -135,7 +135,7 @@ static track_file_t *
 bin_init(const char *filename, int *error)
 {
     track_file_t *tf = (track_file_t *) malloc(sizeof(track_file_t));
-    struct stat stats;
+    struct stat   stats;
 
     if (tf == NULL) {
         *error = 1;

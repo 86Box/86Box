@@ -179,8 +179,8 @@ scsi_card_init(void)
     if (machine_has_flags(machine, MACHINE_SCSI))
         max--;
 
-/* Do not initialize any controllers if we have do not have any SCSI
-       bus left. */
+    /* Do not initialize any controllers if we have do not have any SCSI
+           bus left. */
     if (max > 0) {
         for (i = 0; i < max; i++) {
             if (!scsi_cards[scsi_card_current[i]].device)

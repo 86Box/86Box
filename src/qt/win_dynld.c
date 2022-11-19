@@ -25,10 +25,8 @@
 #include <86box/86box.h>
 #include <86box/plat_dynld.h>
 
-
 #ifdef ENABLE_DYNLD_LOG
 int dynld_do_log = ENABLE_DYNLD_LOG;
-
 
 static void
 dynld_log(const char *fmt, ...)
@@ -36,52 +34,50 @@ dynld_log(const char *fmt, ...)
     va_list ap;
 
     if (dynld_do_log) {
-	va_start(ap, fmt);
-	pclog_ex(fmt, ap);
-	va_end(ap);
+        va_start(ap, fmt);
+        pclog_ex(fmt, ap);
+        va_end(ap);
     }
 }
 #else
-#define dynld_log(fmt, ...)
+#    define dynld_log(fmt, ...)
 #endif
-
 
 void *
 dynld_module(const char *name, dllimp_t *table)
 {
-    HMODULE h;
+    HMODULE   h;
     dllimp_t *imp;
-    void *func;
+    void     *func;
 
     /* See if we can load the desired module. */
     if ((h = LoadLibrary(name)) == NULL) {
-	dynld_log("DynLd(\"%s\"): library not found! (%08X)\n", name, GetLastError());
-	return(NULL);
+        dynld_log("DynLd(\"%s\"): library not found! (%08X)\n", name, GetLastError());
+        return (NULL);
     }
 
     /* Now load the desired function pointers. */
-    for (imp=table; imp->name!=NULL; imp++) {
-	func = GetProcAddress(h, imp->name);
-	if (func == NULL) {
-		dynld_log("DynLd(\"%s\"): function '%s' not found! (%08X)\n",
-						name, imp->name, GetLastError());
-		FreeLibrary(h);
-		return(NULL);
-	}
+    for (imp = table; imp->name != NULL; imp++) {
+        func = GetProcAddress(h, imp->name);
+        if (func == NULL) {
+            dynld_log("DynLd(\"%s\"): function '%s' not found! (%08X)\n",
+                      name, imp->name, GetLastError());
+            FreeLibrary(h);
+            return (NULL);
+        }
 
-	/* To overcome typing issues.. */
-	*(char **)imp->func = (char *)func;
+        /* To overcome typing issues.. */
+        *(char **) imp->func = (char *) func;
     }
 
     /* All good. */
     dynld_log("loaded %s\n", name);
-    return((void *)h);
+    return ((void *) h);
 }
-
 
 void
 dynld_close(void *handle)
 {
     if (handle != NULL)
-	FreeLibrary((HMODULE)handle);
+        FreeLibrary((HMODULE) handle);
 }

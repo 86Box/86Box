@@ -1169,7 +1169,7 @@ cpu_set(void)
 #endif
 
             if ((cpu_s->cpu_type == CPU_K6_2P) || (cpu_s->cpu_type == CPU_K6_3P)) {
-                x86_opcodes_3DNOW = ops_3DNOWE;
+                x86_opcodes_3DNOW         = ops_3DNOWE;
                 x86_dynarec_opcodes_3DNOW = dynarec_ops_3DNOWE;
             }
 

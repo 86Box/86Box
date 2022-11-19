@@ -1614,6 +1614,6 @@ isamem_get_from_internal_name(const char *s)
 const device_t *
 isamem_get_device(int board)
 {
-/* Add the instance to the system. */
+    /* Add the instance to the system. */
     return boards[board].dev;
 }

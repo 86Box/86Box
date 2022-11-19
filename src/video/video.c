@@ -544,7 +544,7 @@ video_process_8_monitor(int x, int y, int monitor_index)
         if (monitors[monitor_index].target_buffer->line[y][xx] <= 0xff)
             monitors[monitor_index].target_buffer->line[y][xx] = monitors[monitor_index].mon_pal_lookup[monitors[monitor_index].target_buffer->line[y][xx]];
         else
-             monitors[monitor_index].target_buffer->line[y][xx] = 0x00000000;
+            monitors[monitor_index].target_buffer->line[y][xx] = 0x00000000;
     }
 }
 
@@ -1076,12 +1076,11 @@ loadfont_common(FILE *f, int format)
                 (void) !fread(&fontdat12x18[c][0], 1, 36, f);
             break;
 
-        case 10: /* Pravetz */
+        case 10:                       /* Pravetz */
             for (c = 0; c < 1024; c++) /* Allow up to 1024 chars */
                 for (d = 0; d < 8; d++)
                     fontdat[c][d] = fgetc(f) & 0xff;
             break;
-
     }
 
     (void) fclose(f);

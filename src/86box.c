@@ -769,7 +769,7 @@ usage:
 
     for (i = 0; i < FDD_NUM; i++) {
         if (fn[i] != NULL) {
-            if (strlen(fn[i]) <= 511) 
+            if (strlen(fn[i]) <= 511)
                 strncpy(floppyfns[i], fn[i], 511);
             free(fn[i]);
             fn[i] = NULL;

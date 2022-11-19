@@ -518,8 +518,7 @@ esp_dma_enable(esp_t *dev, int level)
         dev->dma_enabled = 1;
         dev->dma_86c01.status |= 0x02;
         timer_stop(&dev->timer);
-        if (((dev->rregs[ESP_CMD] & CMD_CMD) != CMD_TI) &&
-            ((dev->rregs[ESP_CMD] & CMD_CMD) != CMD_PAD)) {
+        if (((dev->rregs[ESP_CMD] & CMD_CMD) != CMD_TI) && ((dev->rregs[ESP_CMD] & CMD_CMD) != CMD_PAD)) {
             timer_on_auto(&dev->timer, 40.0);
         } else {
             esp_log("Period = %lf\n", dev->period);
@@ -2039,7 +2038,7 @@ static const device_config_t bios_enable_config[] = {
         .default_int = 0
     },
     { .name = "", .description = "", .type = CONFIG_END }
-// clang-format on
+  // clang-format on
 };
 
 const device_t dc390_pci_device = {

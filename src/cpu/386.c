@@ -209,7 +209,7 @@ exec386(int cycs)
                 enter_smm_check(0);
             else if (nmi && nmi_enable && nmi_mask) {
 #ifndef USE_NEW_DYNAREC
-		oldcs = CS;
+                oldcs = CS;
 #endif
                 cpu_state.oldpc = cpu_state.pc;
                 x86_int(2);

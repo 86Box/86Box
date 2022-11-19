@@ -624,9 +624,9 @@ tgui_in(uint16_t addr, void *p)
 void
 tgui_recalctimings(svga_t *svga)
 {
-    tgui_t *tgui = (tgui_t *) svga->p;
-    uint8_t ger22lower  = tgui->accel.ger22 & 0xff;
-    uint8_t ger22upper  = (tgui->accel.ger22 >> 8);
+    tgui_t *tgui       = (tgui_t *) svga->p;
+    uint8_t ger22lower = tgui->accel.ger22 & 0xff;
+    uint8_t ger22upper = (tgui->accel.ger22 >> 8);
 
     if (!svga->rowoffset)
         svga->rowoffset = 0x100;
@@ -639,7 +639,7 @@ tgui_recalctimings(svga_t *svga)
             svga->hdisp = (svga->crtc[1] + 1) * 8;
         if ((tgui->accel.bpp == 3) && (ger22lower == 14) && (svga->bpp == 32) && (tgui->type == TGUI_9440))
             svga->rowoffset <<= 1;
-        //pclog("Accelbpp = %d, ger22lower = %02x, ger22upper = %02x, bpp = %d, rowoffset = %d.\n", tgui->accel.bpp, ger22lower, ger22upper, svga->bpp, svga->rowoffset);
+        // pclog("Accelbpp = %d, ger22lower = %02x, ger22upper = %02x, bpp = %d, rowoffset = %d.\n", tgui->accel.bpp, ger22lower, ger22upper, svga->bpp, svga->rowoffset);
     }
 
     if ((svga->crtc[0x1e] & 0xA0) == 0xA0)
@@ -1344,14 +1344,14 @@ tgui_accel_command(int count, uint32_t cpu_dat, tgui_t *tgui)
     int       x, y;
     int       c, d;
     uint32_t  out;
-    uint32_t  src_dat   = 0, dst_dat, pat_dat;
-    int       xdir      = (tgui->accel.flags & 0x200) ? -1 : 1;
-    int       ydir      = (tgui->accel.flags & 0x100) ? -1 : 1;
-    uint32_t  trans_col = (tgui->accel.flags & TGUI_TRANSREV) ? tgui->accel.fg_col : tgui->accel.bg_col;
-    uint16_t *vram_w    = (uint16_t *) svga->vram;
-    uint32_t *vram_l    = (uint32_t *) svga->vram;
-    uint8_t ger22lower  = tgui->accel.ger22 & 0xff;
-    uint8_t ger22upper  = (tgui->accel.ger22 >> 8) & 0xff;
+    uint32_t  src_dat    = 0, dst_dat, pat_dat;
+    int       xdir       = (tgui->accel.flags & 0x200) ? -1 : 1;
+    int       ydir       = (tgui->accel.flags & 0x100) ? -1 : 1;
+    uint32_t  trans_col  = (tgui->accel.flags & TGUI_TRANSREV) ? tgui->accel.fg_col : tgui->accel.bg_col;
+    uint16_t *vram_w     = (uint16_t *) svga->vram;
+    uint32_t *vram_l     = (uint32_t *) svga->vram;
+    uint8_t   ger22lower = tgui->accel.ger22 & 0xff;
+    uint8_t   ger22upper = (tgui->accel.ger22 >> 8) & 0xff;
 
     if (tgui->accel.bpp == 0) {
         trans_col &= 0xff;
@@ -1439,7 +1439,7 @@ tgui_accel_command(int count, uint32_t cpu_dat, tgui_t *tgui)
             break;
     }
 
-    //pclog("TGUI accel command = %x, ger22 = %04x, hdisp = %d, dispend = %d, vtotal = %d, rowoffset = %d, svgabpp = %d, interlace = %d, accelbpp = %d, pitch = %d.\n", tgui->accel.command, tgui->accel.ger22, svga->hdisp, svga->dispend, svga->vtotal, svga->rowoffset, svga->bpp, svga->interlace, tgui->accel.bpp, tgui->accel.pitch);
+    // pclog("TGUI accel command = %x, ger22 = %04x, hdisp = %d, dispend = %d, vtotal = %d, rowoffset = %d, svgabpp = %d, interlace = %d, accelbpp = %d, pitch = %d.\n", tgui->accel.command, tgui->accel.ger22, svga->hdisp, svga->dispend, svga->vtotal, svga->rowoffset, svga->bpp, svga->interlace, tgui->accel.bpp, tgui->accel.pitch);
 
     switch (tgui->accel.command) {
         case TGUI_BITBLT:
@@ -1729,9 +1729,9 @@ tgui_accel_command(int count, uint32_t cpu_dat, tgui_t *tgui)
                 }
             }
 
-            //pclog("TGUI bres = %04x, err = %d, sizex = %d, sizey = %d, srcx = %d, srcy = %d.\n", tgui->accel.flags & 0x700, err, tgui->accel.size_x, tgui->accel.size_y, cx, tgui->accel.src_y);
+            // pclog("TGUI bres = %04x, err = %d, sizex = %d, sizey = %d, srcx = %d, srcy = %d.\n", tgui->accel.flags & 0x700, err, tgui->accel.size_x, tgui->accel.size_y, cx, tgui->accel.src_y);
             while (count-- && (tgui->accel.y <= (tgui->accel.size_y))) {
-                //READ(tgui->accel.src_x + (tgui->accel.src_y * tgui->accel.pitch), src_dat);
+                // READ(tgui->accel.src_x + (tgui->accel.src_y * tgui->accel.pitch), src_dat);
 
                 /*Note by TC1995: I suppose the x/y clipping max is always more than 0 in the TGUI 96xx, but the TGUI 9440 lacks clipping*/
                 if ((tgui->type == TGUI_9440) || ((tgui->type >= TGUI_9660) && tgui->accel.dx >= tgui->accel.left && tgui->accel.dx <= tgui->accel.right && tgui->accel.dy >= tgui->accel.top && tgui->accel.dy <= tgui->accel.bottom)) {
@@ -1754,7 +1754,7 @@ tgui_accel_command(int count, uint32_t cpu_dat, tgui_t *tgui)
                 }
 
                 if (tgui->accel.err >= (tgui->accel.size_y & 0xfff)) {
-                    //pclog("Bres DEC: destx = %d, desty = %d, err = %d, sizey = %d.\n", tgui->accel.src_x, tgui->accel.src_y, tgui->accel.err, tgui->accel.size_y);
+                    // pclog("Bres DEC: destx = %d, desty = %d, err = %d, sizey = %d.\n", tgui->accel.src_x, tgui->accel.src_y, tgui->accel.err, tgui->accel.size_y);
                     if ((tgui->accel.src_x >= 2048) && (tgui->accel.src_x < 4096))
                         tgui->accel.err -= (4096 - tgui->accel.src_x);
                     else if ((tgui->accel.src_x >= 4096) && (tgui->accel.src_x < 32768))
@@ -1789,7 +1789,7 @@ tgui_accel_command(int count, uint32_t cpu_dat, tgui_t *tgui)
                             break;
                     }
                 } else {
-                    //pclog("Bres INC: desty = %d, destx = %d, err = %d, sizey = %d.\n", tgui->accel.src_y, tgui->accel.src_x, tgui->accel.err, tgui->accel.size_y);
+                    // pclog("Bres INC: desty = %d, destx = %d, err = %d, sizey = %d.\n", tgui->accel.src_y, tgui->accel.src_x, tgui->accel.err, tgui->accel.size_y);
                     tgui->accel.err += tgui->accel.src_y;
                 }
 
@@ -1850,7 +1850,7 @@ tgui_accel_command(int count, uint32_t cpu_dat, tgui_t *tgui)
             }
 
             while (count-- && (tgui->accel.y <= (tgui->accel.sv_size_y & 0xfff))) {
-                //READ(tgui->accel.src_x + (tgui->accel.src_y * tgui->accel.pitch), src_dat);
+                // READ(tgui->accel.src_x + (tgui->accel.src_y * tgui->accel.pitch), src_dat);
 
                 /*Note by TC1995: I suppose the x/y clipping max is always more than 0 in the TGUI 96xx, but the TGUI 9440 lacks clipping*/
                 if ((tgui->type == TGUI_9440) || ((tgui->type >= TGUI_9660) && tgui->accel.dx >= tgui->accel.left && tgui->accel.dx <= tgui->accel.right && tgui->accel.dy >= tgui->accel.top && tgui->accel.dy <= tgui->accel.bottom)) {
@@ -1934,7 +1934,7 @@ tgui_accel_command(int count, uint32_t cpu_dat, tgui_t *tgui)
             }
 
             while (count-- && (tgui->accel.y <= (tgui->accel.size_y & 0xfff))) {
-                //READ(tgui->accel.src_x + (tgui->accel.src_y * tgui->accel.pitch), src_dat);
+                // READ(tgui->accel.src_x + (tgui->accel.src_y * tgui->accel.pitch), src_dat);
 
                 /*Note by TC1995: I suppose the x/y clipping max is always more than 0 in the TGUI 96xx, but the TGUI 9440 lacks clipping*/
                 if (tgui->accel.dx >= tgui->accel.left && tgui->accel.dx <= tgui->accel.right && tgui->accel.dy >= tgui->accel.top && tgui->accel.dy <= tgui->accel.bottom) {
@@ -2136,7 +2136,7 @@ tgui_accel_out(uint16_t addr, uint8_t val, void *p)
             break;
         case 0x2141: /*Size X*/
             tgui->accel.size_x = (tgui->accel.size_x & 0xff) | (val << 8);
-            tgui->accel.err = tgui->accel.size_x;
+            tgui->accel.err    = tgui->accel.size_x;
             if ((tgui->accel.err >= 2048) && (tgui->accel.err < 4096))
                 tgui->accel.err -= 4096;
             else if ((tgui->accel.err >= 4096) && (tgui->accel.err < 32768))
@@ -2786,7 +2786,7 @@ tgui_accel_write(uint32_t addr, uint8_t val, void *p)
             break;
         case 0x41: /*Size X*/
             tgui->accel.size_x = (tgui->accel.size_x & 0xff) | (val << 8);
-            tgui->accel.err = tgui->accel.size_x;
+            tgui->accel.err    = tgui->accel.size_x;
             if ((tgui->accel.err >= 2048) && (tgui->accel.err < 4096))
                 tgui->accel.err -= 4096;
             else if ((tgui->accel.err >= 4096) && (tgui->accel.err < 32768))

@@ -7,8 +7,7 @@ namespace Ui {
 class SettingsNetwork;
 }
 
-class SettingsNetwork : public QWidget
-{
+class SettingsNetwork : public QWidget {
     Q_OBJECT
 
 public:
@@ -31,7 +30,7 @@ private slots:
 
 private:
     Ui::SettingsNetwork *ui;
-    int machineId = 0;
+    int                  machineId = 0;
 };
 
 #endif // QT_SETTINGSNETWORK_HPP

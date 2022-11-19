@@ -22,11 +22,11 @@
 #define EMU_NAME    "86Box"
 #define EMU_NAME_W  LSTR(EMU_NAME)
 
-#define EMU_VERSION       "3.8"
+#define EMU_VERSION       "3.11"
 #define EMU_VERSION_W     LSTR(EMU_VERSION)
 #define EMU_VERSION_EX    "3.50" /* frozen due to IDE re-detection behavior on Windows */
 #define EMU_VERSION_MAJ   3
-#define EMU_VERSION_MIN   8
+#define EMU_VERSION_MIN   11
 #define EMU_VERSION_PATCH 0
 
 #define EMU_BUILD_NUM 0
@@ -42,7 +42,7 @@
 #define EMU_ROMS_URL   "https://github.com/86Box/roms/releases/latest"
 #define EMU_ROMS_URL_W LSTR(EMU_ROMS_URL)
 #ifdef RELEASE_BUILD
-# define EMU_DOCS_URL  "https://86box.readthedocs.io/en/v3.8/"
+# define EMU_DOCS_URL  "https://86box.readthedocs.io/en/v3.11/"
 #else
 # define EMU_DOCS_URL  "https://86box.readthedocs.io"
 #endif

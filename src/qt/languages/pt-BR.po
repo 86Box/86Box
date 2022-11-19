@@ -410,10 +410,10 @@ msgid "Sound card:"
 msgstr "Placa de som:"
 
 msgid "MIDI Out Device:"
-msgstr "Disp. saída MIDI:"
+msgstr "Disp. de saída MIDI:"
 
 msgid "MIDI In Device:"
-msgstr "Disp. entrada MIDI:"
+msgstr "Disp. de entrada MIDI:"
 
 msgid "Standalone MPU-401"
 msgstr "MPU-401 autônomo"
@@ -539,7 +539,7 @@ msgid "&Remove"
 msgstr "&Remover"
 
 msgid "Bus:"
-msgstr "Bar.:"
+msgstr "Barramento:"
 
 msgid "Channel:"
 msgstr "Canal:"

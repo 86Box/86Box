@@ -350,7 +350,7 @@ ps_init(void *lpt)
         }
     }
 
-/* Cache print folder path. */
+    /* Cache print folder path. */
     memset(dev->printer_path, 0x00, sizeof(dev->printer_path));
     path_append_filename(dev->printer_path, usr_path, "printer");
     if (!plat_dir_check(dev->printer_path))

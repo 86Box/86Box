@@ -39,16 +39,14 @@
 #ifndef _X86_OPS_H
 #define _X86_OPS_H
 
-
-#define UN_USED(x)    (void)(x)
-
+#define UN_USED(x) (void) (x)
 
 typedef int (*OpFn)(uint32_t fetchdat);
 
 #ifdef USE_DYNAREC
 void x86_setopcodes(const OpFn *opcodes, const OpFn *opcodes_0f,
-            const OpFn *dynarec_opcodes,
-            const OpFn *dynarec_opcodes_0f);
+                    const OpFn *dynarec_opcodes,
+                    const OpFn *dynarec_opcodes_0f);
 
 extern const OpFn *x86_dynarec_opcodes;
 extern const OpFn *x86_dynarec_opcodes_0f;
@@ -92,10 +90,10 @@ extern const OpFn dynarec_ops_winchip2_0f[1024];
 extern const OpFn dynarec_ops_pentium_0f[1024];
 extern const OpFn dynarec_ops_pentiummmx_0f[1024];
 
-#if defined(DEV_BRANCH) && defined(USE_CYRIX_6X86)
+#    if defined(DEV_BRANCH) && defined(USE_CYRIX_6X86)
 extern const OpFn dynarec_ops_c6x86_0f[1024];
 extern const OpFn dynarec_ops_c6x86mx_0f[1024];
-#endif
+#    endif
 
 extern const OpFn dynarec_ops_k6_0f[1024];
 extern const OpFn dynarec_ops_k62_0f[1024];
@@ -253,9 +251,9 @@ extern const OpFn ops_REPNE[1024];
 extern const OpFn ops_3DNOW[256];
 extern const OpFn ops_3DNOWE[256];
 
-#define C0 (1<<8)
-#define C1 (1<<9)
-#define C2 (1<<10)
-#define C3 (1<<14)
+#define C0 (1 << 8)
+#define C1 (1 << 9)
+#define C2 (1 << 10)
+#define C3 (1 << 14)
 
 #endif /*_X86_OPS_H*/

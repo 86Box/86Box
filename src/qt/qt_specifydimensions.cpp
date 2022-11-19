@@ -27,19 +27,18 @@
 #include <QTimer>
 #include <QScreen>
 
-extern "C"
-{
+extern "C" {
 #include <86box/86box.h>
 #include <86box/plat.h>
 #include <86box/ui.h>
 #include <86box/video.h>
 }
 
-extern MainWindow* main_window;
+extern MainWindow *main_window;
 
-SpecifyDimensions::SpecifyDimensions(QWidget *parent) :
-    QDialog(parent),
-    ui(new Ui::SpecifyDimensions)
+SpecifyDimensions::SpecifyDimensions(QWidget *parent)
+    : QDialog(parent)
+    , ui(new Ui::SpecifyDimensions)
 {
     ui->setupUi(this);
     ui->checkBox->setChecked(vid_resize == 2);
@@ -59,16 +58,16 @@ SpecifyDimensions::~SpecifyDimensions()
     delete ui;
 }
 
-void SpecifyDimensions::on_SpecifyDimensions_accepted()
+void
+SpecifyDimensions::on_SpecifyDimensions_accepted()
 {
-    if (ui->checkBox->isChecked())
-    {
+    if (ui->checkBox->isChecked()) {
         vid_resize = 2;
         main_window->setWindowFlag(Qt::WindowMaximizeButtonHint, false);
         main_window->setWindowFlag(Qt::MSWindowsFixedSizeDialogHint);
         window_remember = 0;
-        fixed_size_x = ui->spinBoxWidth->value();
-        fixed_size_y = ui->spinBoxHeight->value();
+        fixed_size_x    = ui->spinBoxWidth->value();
+        fixed_size_y    = ui->spinBoxHeight->value();
 
         main_window->resizeContents(fixed_size_x, fixed_size_y);
 
@@ -81,21 +80,19 @@ void SpecifyDimensions::on_SpecifyDimensions_accepted()
                 emit main_window->resizeContentsMonitor(fixed_size_x, fixed_size_y, i);
                 if (show_second_monitors) {
                     main_window->renderers[i]->show();
-                    main_window->renderers[i]->switchRenderer((RendererStack::Renderer)vid_api);
+                    main_window->renderers[i]->switchRenderer((RendererStack::Renderer) vid_api);
                 }
             }
         }
-        main_window->ui->stackedWidget->switchRenderer((RendererStack::Renderer)vid_api);
-    }
-    else
-    {
+        main_window->ui->stackedWidget->switchRenderer((RendererStack::Renderer) vid_api);
+    } else {
         main_window->setFixedSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
         main_window->ui->actionResizable_window->setChecked(false);
         vid_resize = 0;
         main_window->ui->actionResizable_window->trigger();
         window_remember = 1;
-        window_w = ui->spinBoxWidth->value();
-        window_h = ui->spinBoxHeight->value();
+        window_w        = ui->spinBoxWidth->value();
+        window_h        = ui->spinBoxHeight->value();
         main_window->setFixedSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
         emit main_window->resizeContents(ui->spinBoxWidth->value(), ui->spinBoxHeight->value());
         for (int i = 1; i < MONITORS_NUM; i++) {
@@ -104,8 +101,10 @@ void SpecifyDimensions::on_SpecifyDimensions_accepted()
                 main_window->renderers[i]->setWindowFlag(Qt::MSWindowsFixedSizeDialogHint, false);
                 emit main_window->resizeContentsMonitor(ui->spinBoxWidth->value(), ui->spinBoxHeight->value(), i);
                 main_window->renderers[i]->setFixedSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
-                if (show_second_monitors) { main_window->renderers[i]->show();
-                main_window->renderers[i]->switchRenderer((RendererStack::Renderer)vid_api); }
+                if (show_second_monitors) {
+                    main_window->renderers[i]->show();
+                    main_window->renderers[i]->switchRenderer((RendererStack::Renderer) vid_api);
+                }
             }
         }
         vid_resize = 1;

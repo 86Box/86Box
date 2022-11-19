@@ -7,8 +7,7 @@ namespace Ui {
 class SettingsStorageControllers;
 }
 
-class SettingsStorageControllers : public QWidget
-{
+class SettingsStorageControllers : public QWidget {
     Q_OBJECT
 
 public:
@@ -40,7 +39,7 @@ private slots:
 
 private:
     Ui::SettingsStorageControllers *ui;
-    int machineId = 0;
+    int                             machineId = 0;
 };
 
 #endif // QT_SETTINGSSTORAGECONTROLLERS_HPP

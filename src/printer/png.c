@@ -124,7 +124,7 @@ error:
             png_log("PNG: fatal error, bailing out, error = %i\n", errno);
         if (png != NULL)
             PNGFUNC(destroy_write_struct)
-            (&png, &info);
+        (&png, &info);
         if (fp != NULL)
             (void) fclose(fp);
         return (0);
@@ -206,7 +206,7 @@ png_write_rgb(char *fn, uint8_t *pix, int16_t w, int16_t h, uint16_t pitch, PALE
 error:
         if (png != NULL)
             PNGFUNC(destroy_write_struct)
-            (&png, &info);
+        (&png, &info);
         if (fp != NULL)
             (void) fclose(fp);
         return;
