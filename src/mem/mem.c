@@ -55,12 +55,12 @@
 #endif
 
 mem_mapping_t ram_low_mapping, /* 0..640K mapping */
-    ram_mid_mapping,      /* 640..1024K mapping */
-    ram_mid_mapping2,     /* 640..1024K mapping, second part, for SiS 471 in relocate mode  */
-    ram_remapped_mapping, /* 640..1024K mapping */
-    ram_remapped_mapping2,/* 640..1024K second mapping, for SiS 471 mode */
-    ram_high_mapping,     /* 1024K+ mapping */
-    ram_2gb_mapping,      /* 1024M+ mapping */
+    ram_mid_mapping,           /* 640..1024K mapping */
+    ram_mid_mapping2,          /* 640..1024K mapping, second part, for SiS 471 in relocate mode  */
+    ram_remapped_mapping,      /* 640..1024K mapping */
+    ram_remapped_mapping2,     /* 640..1024K second mapping, for SiS 471 mode */
+    ram_high_mapping,          /* 1024K+ mapping */
+    ram_2gb_mapping,           /* 1024M+ mapping */
     ram_split_mapping,
     bios_mapping,
     bios_high_mapping;
@@ -2806,9 +2806,9 @@ mem_remap_top(int kb)
     uint32_t   c;
     uint32_t   start = (mem_size >= 1024) ? mem_size : 1024;
     int        offset, size = mem_size - 640;
-    int        set    = 1;
-    static int old_kb = 0;
-    int        sis_mode = 0;
+    int        set        = 1;
+    static int old_kb     = 0;
+    int        sis_mode   = 0;
     uint32_t   start_addr = 0, addr = 0;
 
     mem_log("MEM: remapping top %iKB (mem=%i)\n", kb, mem_size);
@@ -2817,7 +2817,7 @@ mem_remap_top(int kb)
 
     /* SiS 471 special mode. */
     if (kb == -256) {
-        kb = 256;
+        kb       = 256;
         sis_mode = 1;
     }
 
@@ -2830,11 +2830,11 @@ mem_remap_top(int kb)
     if (size > kb)
         size = kb;
 
-    remap_start_addr = start << 10;
+    remap_start_addr  = start << 10;
     remap_start_addr2 = (start << 10) + 0x00020000;
 
     for (c = ((start * 1024) >> 12); c < (((start + size) * 1024) >> 12); c++) {
-        offset           = c - ((start * 1024) >> 12);
+        offset = c - ((start * 1024) >> 12);
         /* Use A0000-BFFFF, D0000-EFFFF instead of C0000-DFFFF, E0000-FFFFF. */
         addr = 0xa0000 + (offset << 12);
         if (sis_mode) {
@@ -2858,8 +2858,8 @@ mem_remap_top(int kb)
     mem_set_mem_state_both(start * 1024, size * 1024, set ? (MEM_READ_INTERNAL | MEM_WRITE_INTERNAL) : (MEM_READ_EXTERNAL | MEM_WRITE_EXTERNAL));
 
     for (c = 0xa0; c < 0xf0; c++) {
-         if ((c >= 0xc0) && (c <= 0xcf))
-             continue;
+        if ((c >= 0xc0) && (c <= 0xcf))
+            continue;
 
         if (sis_mode || ((c << 12) >= (mem_size << 10)))
             pages[c].mem = page_ff;

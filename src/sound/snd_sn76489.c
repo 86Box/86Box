@@ -281,7 +281,7 @@ static const device_config_t tndy_config[] = {
         }
     },
     { .name = "", .description = "", .type = CONFIG_END }
-// clang-format on
+  // clang-format on
 };
 
 const device_t sn76489_device = {

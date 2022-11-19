@@ -28,17 +28,15 @@ g_spawn_async_with_fds(const gchar *working_directory, gchar **argv,
     return 0;
 }
 
-
 /* Needs bounds checking, but not really used by libslirp. */
 GString *
 g_string_new(gchar *base)
 {
     char *ret = malloc(4096);
     if (base)
-	strcpy(ret, base);
+        strcpy(ret, base);
     return ret;
 }
-
 
 /* Unimplemented, as with anything related to GString. */
 gchar *
@@ -47,43 +45,41 @@ g_string_free(GString *string, gboolean free_segment)
     return (free_segment ? NULL : string);
 }
 
-
 /* Implementation borrowed from GLib itself. */
 gchar *
 g_strstr_len(const gchar *haystack, gssize haystack_len, const gchar *needle)
 {
     if (haystack_len < 0)
-	return strstr(haystack, needle);
+        return strstr(haystack, needle);
     else {
-	const gchar *p = haystack;
-	gsize needle_len = strlen(needle);
-	gsize haystack_len_unsigned = haystack_len;
-	const gchar *end;
-	gsize i;
+        const gchar *p                     = haystack;
+        gsize        needle_len            = strlen(needle);
+        gsize        haystack_len_unsigned = haystack_len;
+        const gchar *end;
+        gsize        i;
 
-	if (needle_len == 0)
-		return (gchar *) haystack;
+        if (needle_len == 0)
+            return (gchar *) haystack;
 
-	if (haystack_len_unsigned < needle_len)
-		return NULL;
+        if (haystack_len_unsigned < needle_len)
+            return NULL;
 
-	end = haystack + haystack_len - needle_len;
+        end = haystack + haystack_len - needle_len;
 
-	while (p <= end && *p) {
-		for (i = 0; i < needle_len; i++)
-			if (p[i] != needle[i])
-				goto next;
+        while (p <= end && *p) {
+            for (i = 0; i < needle_len; i++)
+                if (p[i] != needle[i])
+                    goto next;
 
-		return (gchar *)p;
+            return (gchar *) p;
 
 next:
-		p++;
-	}
+            p++;
+        }
 
-	return NULL;
+        return NULL;
     }
 }
-
 
 /* Implementation borrowed from GLib itself. */
 guint
@@ -91,43 +87,42 @@ g_strv_length(gchar **str_array)
 {
     guint i = 0;
     while (str_array[i] != NULL)
-    	++i;
+        ++i;
     return i;
 }
 
 /* Implementation borrowed from GLib itself. */
 gsize
-g_strlcpy (gchar       *dest,
-           const gchar *src,
-           gsize        dest_size)
+g_strlcpy(gchar       *dest,
+          const gchar *src,
+          gsize        dest_size)
 {
-  gchar *d = dest;
-  const gchar *s = src;
-  gsize n = dest_size;
+    gchar       *d = dest;
+    const gchar *s = src;
+    gsize        n = dest_size;
 
-  if (dest == NULL) return 0;
-  if (src  == NULL) return 0;
+    if (dest == NULL)
+        return 0;
+    if (src == NULL)
+        return 0;
 
-  /* Copy as many bytes as will fit */
-  if (n != 0 && --n != 0)
-    do
-      {
-        gchar c = *s++;
+    /* Copy as many bytes as will fit */
+    if (n != 0 && --n != 0)
+        do {
+            gchar c = *s++;
 
-        *d++ = c;
-        if (c == 0)
-          break;
-      }
-    while (--n != 0);
+            *d++ = c;
+            if (c == 0)
+                break;
+        } while (--n != 0);
 
-  /* If not enough room in dest, add NUL and traverse rest of src */
-  if (n == 0)
-    {
-      if (dest_size != 0)
-        *d = 0;
-      while (*s++)
-        ;
+    /* If not enough room in dest, add NUL and traverse rest of src */
+    if (n == 0) {
+        if (dest_size != 0)
+            *d = 0;
+        while (*s++)
+            ;
     }
 
-  return s - src - 1;  /* count does not include NUL */
+    return s - src - 1; /* count does not include NUL */
 }

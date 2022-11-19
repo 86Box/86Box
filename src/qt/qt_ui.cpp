@@ -27,7 +27,7 @@
 #include "qt_mainwindow.hpp"
 #include "qt_machinestatus.hpp"
 
-MainWindow* main_window = nullptr;
+MainWindow *main_window = nullptr;
 
 static QString sb_text, sb_buguitext, sb_mt32lcdtext;
 
@@ -60,7 +60,8 @@ plat_delay_ms(uint32_t count)
     QThread::msleep(count);
 }
 
-wchar_t* ui_window_title(wchar_t* str)
+wchar_t *
+ui_window_title(wchar_t *str)
 {
     if (str == nullptr) {
         static wchar_t title[512];
@@ -73,49 +74,65 @@ wchar_t* ui_window_title(wchar_t* str)
     return str;
 }
 
-extern "C" void qt_blit(int x, int y, int w, int h, int monitor_index)
+extern "C" void
+qt_blit(int x, int y, int w, int h, int monitor_index)
 {
     main_window->blitToWidget(x, y, w, h, monitor_index);
 }
 
-void mouse_poll() {
+void
+mouse_poll()
+{
     main_window->pollMouse();
 }
 
 extern "C" int vid_resize;
-void plat_resize_request(int w, int h, int monitor_index)
+void
+plat_resize_request(int w, int h, int monitor_index)
 {
-    if (video_fullscreen || is_quit) return;
+    if (video_fullscreen || is_quit)
+        return;
     if (vid_resize & 2) {
         plat_resize_monitor(fixed_size_x, fixed_size_y, monitor_index);
-    }
-    else {
+    } else {
         plat_resize_monitor(w, h, monitor_index);
     }
 }
 
-void plat_resize_monitor(int w, int h, int monitor_index) {
-    if (monitor_index >= 1) main_window->resizeContentsMonitor(w, h, monitor_index);
-    else main_window->resizeContents(w, h);
+void
+plat_resize_monitor(int w, int h, int monitor_index)
+{
+    if (monitor_index >= 1)
+        main_window->resizeContentsMonitor(w, h, monitor_index);
+    else
+        main_window->resizeContents(w, h);
 }
 
-void plat_setfullscreen(int on) {
+void
+plat_setfullscreen(int on)
+{
     main_window->setFullscreen(on > 0 ? true : false);
 }
 
-void plat_mouse_capture(int on) {
+void
+plat_mouse_capture(int on)
+{
     if (!kbd_req_capture && (mouse_type == MOUSE_TYPE_NONE) && !machine_has_mouse())
         return;
 
     main_window->setMouseCapture(on > 0 ? true : false);
 }
 
-int	ui_msgbox_header(int flags, void *header, void* message) {
-    if (header <= (void*)7168) header = plat_get_string((uintptr_t)header);
-    if (message <= (void*)7168) message = plat_get_string((uintptr_t)message);
+int
+ui_msgbox_header(int flags, void *header, void *message)
+{
+    if (header <= (void *) 7168)
+        header = plat_get_string((uintptr_t) header);
+    if (message <= (void *) 7168)
+        message = plat_get_string((uintptr_t) message);
 
-    auto hdr = (flags & MBX_ANSI) ? QString((char*)header) : QString::fromWCharArray(reinterpret_cast<const wchar_t*>(header));
-    auto msg = (flags & MBX_ANSI) ? QString((char*)message) : QString::fromWCharArray(reinterpret_cast<const wchar_t*>(message));
+    auto hdr = (flags & MBX_ANSI) ? QString((char *) header) : QString::fromWCharArray(reinterpret_cast<const wchar_t *>(header));
+    auto msg = (flags & MBX_ANSI) ? QString((char *) message) : QString::fromWCharArray(reinterpret_cast<const wchar_t *>(message));
 
     // any error in early init
     if (main_window == nullptr) {
@@ -129,60 +146,81 @@ int	ui_msgbox_header(int flags, void *header, void* message) {
     return 0;
 }
 
-void ui_init_monitor(int monitor_index) {
+void
+ui_init_monitor(int monitor_index)
+{
     if (QThread::currentThread() == main_window->thread()) {
         emit main_window->initRendererMonitor(monitor_index);
-    }
-    else emit main_window->initRendererMonitorForNonQtThread(monitor_index);
+    } else
+        emit main_window->initRendererMonitorForNonQtThread(monitor_index);
 }
 
-void ui_deinit_monitor(int monitor_index) {
+void
+ui_deinit_monitor(int monitor_index)
+{
     if (QThread::currentThread() == main_window->thread()) {
         emit main_window->destroyRendererMonitor(monitor_index);
-    }
-    else emit main_window->destroyRendererMonitorForNonQtThread(monitor_index);
+    } else
+        emit main_window->destroyRendererMonitorForNonQtThread(monitor_index);
 }
 
-int	ui_msgbox(int flags, void *message) {
+int
+ui_msgbox(int flags, void *message)
+{
     return ui_msgbox_header(flags, nullptr, message);
 }
 
-void ui_sb_update_text() {
-    emit main_window->statusBarMessage( !sb_mt32lcdtext.isEmpty() ? sb_mt32lcdtext : sb_text.isEmpty() ? sb_buguitext : sb_text);
+void
+ui_sb_update_text()
+{
+    emit main_window->statusBarMessage(!sb_mt32lcdtext.isEmpty() ? sb_mt32lcdtext : sb_text.isEmpty() ? sb_buguitext
+                                                                                                      : sb_text);
 }
 
-void ui_sb_mt32lcd(char* str)
+void
+ui_sb_mt32lcd(char *str)
 {
     sb_mt32lcdtext = QString(str);
     ui_sb_update_text();
 }
 
-void ui_sb_set_text_w(wchar_t *wstr) {
+void
+ui_sb_set_text_w(wchar_t *wstr)
+{
     sb_text = QString::fromWCharArray(wstr);
     ui_sb_update_text();
 }
 
-void ui_sb_set_text(char *str) {
+void
+ui_sb_set_text(char *str)
+{
     sb_text = str;
     ui_sb_update_text();
 }
 
 void
-ui_sb_update_tip(int arg) {
+ui_sb_update_tip(int arg)
+{
     main_window->updateStatusBarTip(arg);
 }
 
 void
-ui_sb_update_panes() {
+ui_sb_update_panes()
+{
     main_window->updateStatusBarPanes();
 }
 
-void ui_sb_bugui(char *str) {
+void
+ui_sb_bugui(char *str)
+{
     sb_buguitext = str;
-    ui_sb_update_text();;
+    ui_sb_update_text();
+    ;
 }
 
-void ui_sb_set_ready(int ready) {
+void
+ui_sb_set_ready(int ready)
+{
     if (ready == 0) {
         ui_sb_bugui(nullptr);
         ui_sb_set_text(nullptr);
@@ -190,72 +228,73 @@ void ui_sb_set_ready(int ready) {
 }
 
 void
-ui_sb_update_icon_state(int tag, int state) {
+ui_sb_update_icon_state(int tag, int state)
+{
     int category = tag & 0xfffffff0;
-    int item = tag & 0xf;
+    int item     = tag & 0xf;
     switch (category) {
-    case SB_CASSETTE:
-        machine_status.cassette.empty = state > 0 ? true : false;
-        break;
-    case SB_CARTRIDGE:
-        machine_status.cartridge[item].empty = state > 0 ? true : false;
-        break;
-    case SB_FLOPPY:
-        machine_status.fdd[item].empty = state > 0 ? true : false;
-        break;
-    case SB_CDROM:
-        machine_status.cdrom[item].empty = state > 0 ? true : false;
-        break;
-    case SB_ZIP:
-        machine_status.zip[item].empty = state > 0 ? true : false;
-        break;
-    case SB_MO:
-        machine_status.mo[item].empty = state > 0 ? true : false;
-        break;
-    case SB_HDD:
-        break;
-    case SB_NETWORK:
-        machine_status.net[item].empty = state > 0 ? true : false;
-        break;
-    case SB_SOUND:
-        break;
-    case SB_TEXT:
-        break;
+        case SB_CASSETTE:
+            machine_status.cassette.empty = state > 0 ? true : false;
+            break;
+        case SB_CARTRIDGE:
+            machine_status.cartridge[item].empty = state > 0 ? true : false;
+            break;
+        case SB_FLOPPY:
+            machine_status.fdd[item].empty = state > 0 ? true : false;
+            break;
+        case SB_CDROM:
+            machine_status.cdrom[item].empty = state > 0 ? true : false;
+            break;
+        case SB_ZIP:
+            machine_status.zip[item].empty = state > 0 ? true : false;
+            break;
+        case SB_MO:
+            machine_status.mo[item].empty = state > 0 ? true : false;
+            break;
+        case SB_HDD:
+            break;
+        case SB_NETWORK:
+            machine_status.net[item].empty = state > 0 ? true : false;
+            break;
+        case SB_SOUND:
+            break;
+        case SB_TEXT:
+            break;
     }
 }
 
 void
-ui_sb_update_icon(int tag, int active) {
+ui_sb_update_icon(int tag, int active)
+{
     int category = tag & 0xfffffff0;
-    int item = tag & 0xf;
+    int item     = tag & 0xf;
     switch (category) {
-    case SB_CASSETTE:
-        break;
-    case SB_CARTRIDGE:
-        break;
-    case SB_FLOPPY:
-        machine_status.fdd[item].active = active > 0 ? true : false;
-        break;
-    case SB_CDROM:
-        machine_status.cdrom[item].active = active > 0 ? true : false;
-        break;
-    case SB_ZIP:
-        machine_status.zip[item].active = active > 0 ? true : false;
-        break;
-    case SB_MO:
-        machine_status.mo[item].active = active > 0 ? true : false;
-        break;
-    case SB_HDD:
-        machine_status.hdd[item].active = active > 0 ? true : false;
-        break;
-    case SB_NETWORK:
-        machine_status.net[item].active = active > 0 ? true : false;
-        break;
-    case SB_SOUND:
-        break;
-    case SB_TEXT:
-        break;
+        case SB_CASSETTE:
+            break;
+        case SB_CARTRIDGE:
+            break;
+        case SB_FLOPPY:
+            machine_status.fdd[item].active = active > 0 ? true : false;
+            break;
+        case SB_CDROM:
+            machine_status.cdrom[item].active = active > 0 ? true : false;
+            break;
+        case SB_ZIP:
+            machine_status.zip[item].active = active > 0 ? true : false;
+            break;
+        case SB_MO:
+            machine_status.mo[item].active = active > 0 ? true : false;
+            break;
+        case SB_HDD:
+            machine_status.hdd[item].active = active > 0 ? true : false;
+            break;
+        case SB_NETWORK:
+            machine_status.net[item].active = active > 0 ? true : false;
+            break;
+        case SB_SOUND:
+            break;
+        case SB_TEXT:
+            break;
     }
 }
-
 }

@@ -26,7 +26,7 @@
 #include "qt_softwarerenderer.hpp"
 #include "qt_vulkanwindowrenderer.hpp"
 #ifdef Q_OS_WIN
-#include "qt_d3d9renderer.hpp"
+#    include "qt_d3d9renderer.hpp"
 #endif
 
 #include "qt_mainwindow.hpp"
@@ -63,7 +63,7 @@ struct mouseinputdata {
 };
 static mouseinputdata mousedata;
 
-extern "C" void macos_poll_mouse();
+extern "C" void    macos_poll_mouse();
 extern MainWindow *main_window;
 RendererStack::RendererStack(QWidget *parent, int monitor_index)
     : QStackedWidget(parent)
@@ -89,8 +89,8 @@ RendererStack::RendererStack(QWidget *parent, int monitor_index)
 #    ifdef WAYLAND
     if (!stricmp(mouse_type, "wayland")) {
         wl_init();
-        this->mouse_poll_func = wl_mouse_poll;
-        this->mouse_capture_func = wl_mouse_capture;
+        this->mouse_poll_func      = wl_mouse_poll;
+        this->mouse_capture_func   = wl_mouse_capture;
         this->mouse_uncapture_func = wl_mouse_uncapture;
     }
 #    endif
@@ -146,7 +146,7 @@ RendererStack::mousePoll()
     mouse_y          = mousedata.deltay;
     mouse_z          = mousedata.deltaz;
     mousedata.deltax = mousedata.deltay = mousedata.deltaz = 0;
-    mouse_buttons    = mousedata.mousebuttons;
+    mouse_buttons                                          = mousedata.mousebuttons;
 
     if (this->mouse_poll_func)
 #endif
@@ -258,10 +258,10 @@ RendererStack::switchRenderer(Renderer renderer)
     startblit();
     if (current) {
         if ((current_vid_api == Renderer::Direct3D9 && renderer != Renderer::Direct3D9)
-        || (current_vid_api != Renderer::Direct3D9 && renderer == Renderer::Direct3D9)) {
+            || (current_vid_api != Renderer::Direct3D9 && renderer == Renderer::Direct3D9)) {
             rendererWindow->finalize();
             if (rendererWindow->hasBlitFunc()) {
-                while (directBlitting) {}
+                while (directBlitting) { }
                 connect(this, &RendererStack::blit, this, &RendererStack::blitDummy, Qt::DirectConnection);
                 disconnect(this, &RendererStack::blit, this, &RendererStack::blitRenderer);
             } else {
@@ -277,7 +277,7 @@ RendererStack::switchRenderer(Renderer renderer)
                 createRenderer(renderer);
                 disconnect(this, &RendererStack::blit, this, &RendererStack::blitDummy);
                 blitDummied = false;
-                QTimer::singleShot(1000, this, [this]() { blitDummied = false; } );
+                QTimer::singleShot(1000, this, [this]() { blitDummied = false; });
             });
 
             rendererWindow->hasBlitFunc() ? current.reset() : current.release()->deleteLater();
@@ -354,65 +354,64 @@ RendererStack::createRenderer(Renderer renderer)
             }
 #ifdef Q_OS_WIN
         case Renderer::Direct3D9:
-        {
-            this->createWinId();
-            auto hw = new D3D9Renderer(this, m_monitor_index);
-            rendererWindow = hw;
-            connect(hw, &D3D9Renderer::error, this, [this](QString str)
             {
-                auto msgBox = new QMessageBox(QMessageBox::Critical, "86Box", QString("Failed to initialize D3D9 renderer. Falling back to software rendering.\n\n") + str, QMessageBox::Ok);
-                msgBox->setAttribute(Qt::WA_DeleteOnClose);
-                msgBox->show();
-                imagebufs = {};
-                QTimer::singleShot(0, this, [this]() { switchRenderer(Renderer::Software); });
-            });
-            connect(hw, &D3D9Renderer::initialized, this, [this]()
-            {
-                endblit();
-                emit rendererChanged();
-            });
-            current.reset(hw);
-            break;
-        }
+                this->createWinId();
+                auto hw        = new D3D9Renderer(this, m_monitor_index);
+                rendererWindow = hw;
+                connect(hw, &D3D9Renderer::error, this, [this](QString str) {
+                    auto msgBox = new QMessageBox(QMessageBox::Critical, "86Box", QString("Failed to initialize D3D9 renderer. Falling back to software rendering.\n\n") + str, QMessageBox::Ok);
+                    msgBox->setAttribute(Qt::WA_DeleteOnClose);
+                    msgBox->show();
+                    imagebufs = {};
+                    QTimer::singleShot(0, this, [this]() { switchRenderer(Renderer::Software); });
+                });
+                connect(hw, &D3D9Renderer::initialized, this, [this]() {
+                    endblit();
+                    emit rendererChanged();
+                });
+                current.reset(hw);
+                break;
+            }
 #endif
 #if QT_CONFIG(vulkan)
         case Renderer::Vulkan:
-        {
-            this->createWinId();
-            VulkanWindowRenderer *hw = nullptr;
-            try {
-                hw        = new VulkanWindowRenderer(this);
-            } catch(std::runtime_error& e) {
-                auto msgBox = new QMessageBox(QMessageBox::Critical, "86Box", e.what() + QString("\nFalling back to software rendering."), QMessageBox::Ok);
-                msgBox->setAttribute(Qt::WA_DeleteOnClose);
-                msgBox->show();
-                imagebufs = {};
-                QTimer::singleShot(0, this, [this]() { switchRenderer(Renderer::Software); });
-                current.reset(nullptr);
+            {
+                this->createWinId();
+                VulkanWindowRenderer *hw = nullptr;
+                try {
+                    hw = new VulkanWindowRenderer(this);
+                } catch (std::runtime_error &e) {
+                    auto msgBox = new QMessageBox(QMessageBox::Critical, "86Box", e.what() + QString("\nFalling back to software rendering."), QMessageBox::Ok);
+                    msgBox->setAttribute(Qt::WA_DeleteOnClose);
+                    msgBox->show();
+                    imagebufs = {};
+                    QTimer::singleShot(0, this, [this]() { switchRenderer(Renderer::Software); });
+                    current.reset(nullptr);
+                    break;
+                };
+                rendererWindow = hw;
+                connect(this, &RendererStack::blitToRenderer, hw, &VulkanWindowRenderer::onBlit, Qt::QueuedConnection);
+                connect(hw, &VulkanWindowRenderer::rendererInitialized, [=]() {
+                    /* Buffers are available only after initialization. */
+                    imagebufs = rendererWindow->getBuffers();
+                    endblit();
+                    emit rendererChanged();
+                });
+                connect(hw, &VulkanWindowRenderer::errorInitializing, [=]() {
+                    /* Renderer could not initialize, fallback to software. */
+                    auto msgBox = new QMessageBox(QMessageBox::Critical, "86Box", QString("Failed to initialize Vulkan renderer.\nFalling back to software rendering."), QMessageBox::Ok);
+                    msgBox->setAttribute(Qt::WA_DeleteOnClose);
+                    msgBox->show();
+                    imagebufs = {};
+                    QTimer::singleShot(0, this, [this]() { switchRenderer(Renderer::Software); });
+                });
+                current.reset(this->createWindowContainer(hw, this));
                 break;
-            };
-            rendererWindow = hw;
-            connect(this, &RendererStack::blitToRenderer, hw, &VulkanWindowRenderer::onBlit, Qt::QueuedConnection);
-            connect(hw, &VulkanWindowRenderer::rendererInitialized, [=]() {
-                /* Buffers are available only after initialization. */
-                imagebufs = rendererWindow->getBuffers();
-                endblit();
-                emit rendererChanged();
-            });
-            connect(hw, &VulkanWindowRenderer::errorInitializing, [=]() {
-                /* Renderer could not initialize, fallback to software. */
-                auto msgBox = new QMessageBox(QMessageBox::Critical, "86Box", QString("Failed to initialize Vulkan renderer.\nFalling back to software rendering."), QMessageBox::Ok);
-                msgBox->setAttribute(Qt::WA_DeleteOnClose);
-                msgBox->show();
-                imagebufs = {};
-                QTimer::singleShot(0, this, [this]() { switchRenderer(Renderer::Software); });
-            });
-            current.reset(this->createWindowContainer(hw, this));
-            break;
-        }
+            }
 #endif
     }
-    if (current.get() == nullptr) return;
+    if (current.get() == nullptr)
+        return;
     current->setFocusPolicy(Qt::NoFocus);
     current->setFocusProxy(this);
     current->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
@@ -425,8 +424,7 @@ RendererStack::createRenderer(Renderer renderer)
 
     if (rendererWindow->hasBlitFunc()) {
         connect(this, &RendererStack::blit, this, &RendererStack::blitRenderer, Qt::DirectConnection);
-    }
-    else {
+    } else {
         connect(this, &RendererStack::blit, this, &RendererStack::blitCommon, Qt::DirectConnection);
     }
 
@@ -447,7 +445,11 @@ RendererStack::blitDummy(int x, int y, int w, int h)
 void
 RendererStack::blitRenderer(int x, int y, int w, int h)
 {
-    if (blitDummied) { blitDummied = false; video_blit_complete_monitor(m_monitor_index); return; }
+    if (blitDummied) {
+        blitDummied = false;
+        video_blit_complete_monitor(m_monitor_index);
+        return;
+    }
     directBlitting = true;
     rendererWindow->blit(x, y, w, h);
     directBlitting = false;
@@ -479,7 +481,8 @@ RendererStack::blitCommon(int x, int y, int w, int h)
     currentBuf = (currentBuf + 1) % imagebufs.size();
 }
 
-void RendererStack::closeEvent(QCloseEvent* event)
+void
+RendererStack::closeEvent(QCloseEvent *event)
 {
     if (cpu_thread_run == 1 || is_quit == 0) {
         event->accept();
@@ -490,7 +493,8 @@ void RendererStack::closeEvent(QCloseEvent* event)
     main_window->close();
 }
 
-void RendererStack::changeEvent(QEvent *event)
+void
+RendererStack::changeEvent(QEvent *event)
 {
     if (m_monitor_index != 0 && isVisible()) {
         monitor_settings[m_monitor_index].mon_window_maximized = isMaximized();

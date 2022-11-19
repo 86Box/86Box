@@ -7,8 +7,7 @@ namespace Ui {
 class SettingsPorts;
 }
 
-class SettingsPorts : public QWidget
-{
+class SettingsPorts : public QWidget {
     Q_OBJECT
 
 public:

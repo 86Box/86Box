@@ -416,7 +416,7 @@ static const device_config_t mt32_config[] = {
         .default_int = 1
     },
     { .name = "", .description = "", .type = CONFIG_END }
-// clang-format on
+  // clang-format on
 };
 
 const device_t mt32_old_device = {
