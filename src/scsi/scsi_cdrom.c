@@ -30,6 +30,7 @@
 #include <86box/device.h>
 #include <86box/scsi.h>
 #include <86box/scsi_device.h>
+#include <86box/machine.h>
 #include <86box/nvr.h>
 #include <86box/hdc.h>
 #include <86box/hdc_ide.h>
@@ -2373,6 +2374,8 @@ scsi_cdrom_command(scsi_common_t *sc, uint8_t *cdb)
                         } else {
                             if (dev->early)
                                 ide_padstr8(dev->buffer + idx, 8, "NEC"); /* Vendor */
+                            else if (machine_is_sony())
+                                ide_padstr8(dev->buffer + idx, 8, "SONY"); /* Vendor */
                             else
                                 ide_padstr8(dev->buffer + idx, 8, "HITACHI"); /* Vendor */
                         }
@@ -2389,6 +2392,8 @@ scsi_cdrom_command(scsi_common_t *sc, uint8_t *cdb)
                         } else {
                             if (dev->early)
                                 ide_padstr8(dev->buffer + idx, 40, "CD-ROM DRIVE:260"); /* Product */
+                            else if (machine_is_sony())
+                                ide_padstr8(dev->buffer + idx, 40, "CD-ROM CDU76"); /* Product */
                             else
                                 ide_padstr8(dev->buffer + idx, 40, "CDR-8130"); /* Product */
                         }
@@ -2446,6 +2451,10 @@ scsi_cdrom_command(scsi_common_t *sc, uint8_t *cdb)
                         ide_padstr8(dev->buffer + 8, 8, "NEC");                /* Vendor */
                         ide_padstr8(dev->buffer + 16, 16, "CD-ROM DRIVE:260"); /* Product */
                         ide_padstr8(dev->buffer + 32, 4, "1.01");              /* Revision */
+                    } else if (machine_is_sony()) {
+                        ide_padstr8(dev->buffer + 8, 8, "SONY");    /* Vendor */
+                        ide_padstr8(dev->buffer + 16, 16, "CD-ROM CDU76"); /* Product */
+                        ide_padstr8(dev->buffer + 32, 4, "1.0i");      /* Revision */
                     } else {
                         ide_padstr8(dev->buffer + 8, 8, "HITACHI");    /* Vendor */
                         ide_padstr8(dev->buffer + 16, 16, "CDR-8130"); /* Product */
@@ -2749,6 +2758,9 @@ scsi_cdrom_identify(ide_t *ide, int ide_has_dma)
         ide_padstr((char *) (ide->buffer + 23), ".110    ", 8);                                  /* Firmware */
         ide_padstr((char *) (ide->buffer + 27), "EN C                DCR-MOD IREV2:06    ", 40); /* Model */
 #    endif
+    } else if (machine_is_sony()) {
+        ide_padstr((char *) (ide->buffer + 23), "1.0i    ", 8);                                  /* Firmware */
+        ide_padstr((char *) (ide->buffer + 27), "CD-ROM CDU76                            ", 40); /* Model */
     } else {
         ide_padstr((char *) (ide->buffer + 23), "0020    ", 8);                                  /* Firmware */
         ide_padstr((char *) (ide->buffer + 27), "HITACHI CDR-8130                        ", 40); /* Model */

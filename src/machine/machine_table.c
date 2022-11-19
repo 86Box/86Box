@@ -12139,3 +12139,9 @@ machine_has_mouse(void)
 {
     return (machines[machine].flags & MACHINE_MOUSE);
 }
+
+int
+machine_is_sony(void)
+{
+    return (!strcmp(machines[machine].internal_name, "pcv90"));
+}
