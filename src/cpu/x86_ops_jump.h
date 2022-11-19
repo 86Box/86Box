@@ -88,8 +88,7 @@ opJ(LE)
 opJ(NLE)
 // clang-format on
 
-
-                                                                static int opLOOPNE_w(uint32_t fetchdat)
+    static int opLOOPNE_w(uint32_t fetchdat)
 {
     int8_t offset = (int8_t) getbytef();
     CX--;

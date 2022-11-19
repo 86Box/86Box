@@ -90,7 +90,7 @@ op_seg(GS_REPNE, cpu_state.seg_gs, x86_opcodes_REPNE, x86_opcodes)
 op_seg(SS_REPNE, cpu_state.seg_ss, x86_opcodes_REPNE, x86_opcodes)
 // clang-format on
 
-                                                                        static int op_66(uint32_t fetchdat) /*Data size select*/
+    static int op_66(uint32_t fetchdat) /*Data size select*/
 {
     fetchdat = fastreadl(cs + cpu_state.pc);
     if (cpu_state.abrt)

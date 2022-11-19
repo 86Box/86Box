@@ -188,28 +188,28 @@ opPOPA_w(uint32_t fetchdat)
 static int
 opPOPA_l(uint32_t fetchdat)
 {
-        if (stack32) {
-                EDI = readmeml(ss, ESP);                        if (cpu_state.abrt) return 1;
-                ESI = readmeml(ss, ESP +  4);                   if (cpu_state.abrt) return 1;
-                EBP = readmeml(ss, ESP +  8);                   if (cpu_state.abrt) return 1;
-                EBX = readmeml(ss, ESP + 16);                   if (cpu_state.abrt) return 1;
-                EDX = readmeml(ss, ESP + 20);                   if (cpu_state.abrt) return 1;
-                ECX = readmeml(ss, ESP + 24);                   if (cpu_state.abrt) return 1;
-                EAX = readmeml(ss, ESP + 28);                   if (cpu_state.abrt) return 1;
-                ESP += 32;
-        } else {
-                EDI = readmeml(ss, ((SP)      & 0xFFFF));       if (cpu_state.abrt) return 1;
-                ESI = readmeml(ss, ((SP +  4) & 0xFFFF));       if (cpu_state.abrt) return 1;
-                EBP = readmeml(ss, ((SP +  8) & 0xFFFF));       if (cpu_state.abrt) return 1;
-                EBX = readmeml(ss, ((SP + 16) & 0xFFFF));       if (cpu_state.abrt) return 1;
-                EDX = readmeml(ss, ((SP + 20) & 0xFFFF));       if (cpu_state.abrt) return 1;
-                ECX = readmeml(ss, ((SP + 24) & 0xFFFF));       if (cpu_state.abrt) return 1;
-                EAX = readmeml(ss, ((SP + 28) & 0xFFFF));       if (cpu_state.abrt) return 1;
-                SP += 32;
-        }
-        CLOCK_CYCLES((is486) ? 9 : 24);
-        PREFETCH_RUN(24, 1, -1, 0,7,0,0, 0);
-        return 0;
+    if (stack32) {
+        EDI = readmeml(ss, ESP);                        if (cpu_state.abrt) return 1;
+        ESI = readmeml(ss, ESP +  4);                   if (cpu_state.abrt) return 1;
+        EBP = readmeml(ss, ESP +  8);                   if (cpu_state.abrt) return 1;
+        EBX = readmeml(ss, ESP + 16);                   if (cpu_state.abrt) return 1;
+        EDX = readmeml(ss, ESP + 20);                   if (cpu_state.abrt) return 1;
+        ECX = readmeml(ss, ESP + 24);                   if (cpu_state.abrt) return 1;
+        EAX = readmeml(ss, ESP + 28);                   if (cpu_state.abrt) return 1;
+        ESP += 32;
+    } else {
+        EDI = readmeml(ss, ((SP)      & 0xFFFF));       if (cpu_state.abrt) return 1;
+        ESI = readmeml(ss, ((SP +  4) & 0xFFFF));       if (cpu_state.abrt) return 1;
+        EBP = readmeml(ss, ((SP +  8) & 0xFFFF));       if (cpu_state.abrt) return 1;
+        EBX = readmeml(ss, ((SP + 16) & 0xFFFF));       if (cpu_state.abrt) return 1;
+        EDX = readmeml(ss, ((SP + 20) & 0xFFFF));       if (cpu_state.abrt) return 1;
+        ECX = readmeml(ss, ((SP + 24) & 0xFFFF));       if (cpu_state.abrt) return 1;
+        EAX = readmeml(ss, ((SP + 28) & 0xFFFF));       if (cpu_state.abrt) return 1;
+        SP += 32;
+    }
+    CLOCK_CYCLES((is486) ? 9 : 24);
+    PREFETCH_RUN(24, 1, -1, 0, 7, 0, 0, 0);
+    return 0;
 }
 
 static int
