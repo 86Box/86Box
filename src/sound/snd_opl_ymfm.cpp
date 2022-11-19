@@ -80,8 +80,8 @@ public:
         : YMFMChipBase(clock, type, samplerate)
         , m_chip(*this)
         , m_clock(clock)
-        , m_samplecnt(0)
         , m_samplerate(samplerate)
+        , m_samplecnt(0)
     {
         memset(m_samples, 0, sizeof(m_samples));
         memset(m_oldsamples, 0, sizeof(m_oldsamples));
