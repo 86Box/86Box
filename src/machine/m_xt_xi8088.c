@@ -156,7 +156,7 @@ static const device_config_t xi8088_config[] = {
         .default_int = 0
     },
     { .name = "", .description = "", .type = CONFIG_END }
-// clang-format on
+  // clang-format on
 };
 
 const device_t xi8088_device = {

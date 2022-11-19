@@ -189,22 +189,22 @@ enum {
 };
 
 enum {
-    cmdBaseAddr0                       = 0x20,
-    cmdBaseSize0                       = 0x24,
-    cmdBump0                           = 0x28,
-    cmdRdPtrL0                         = 0x2c,
-    cmdRdPtrH0                         = 0x30,
-    cmdAMin0                           = 0x34,
-    cmdAMax0                           = 0x3c,
-    cmdStatus0                         = 0x40,
-    cmdFifoDepth0                      = 0x44,
-    cmdHoleCnt0                        = 0x48,
+    cmdBaseAddr0  = 0x20,
+    cmdBaseSize0  = 0x24,
+    cmdBump0      = 0x28,
+    cmdRdPtrL0    = 0x2c,
+    cmdRdPtrH0    = 0x30,
+    cmdAMin0      = 0x34,
+    cmdAMax0      = 0x3c,
+    cmdStatus0    = 0x40,
+    cmdFifoDepth0 = 0x44,
+    cmdHoleCnt0   = 0x48,
 
-    Agp_agpReqSize                     = 0x00,
-    Agp_agpHostAddressLow              = 0x04,
-    Agp_agpHostAddressHigh             = 0x08,
-    Agp_agpGraphicsAddress             = 0x0C,
-    Agp_agpGraphicsStride              = 0x10,
+    Agp_agpReqSize         = 0x00,
+    Agp_agpHostAddressLow  = 0x04,
+    Agp_agpHostAddressHigh = 0x08,
+    Agp_agpGraphicsAddress = 0x0C,
+    Agp_agpGraphicsStride  = 0x10,
 };
 
 #define VGAINIT0_EXTENDED_SHIFT_OUT         (1 << 12)
@@ -1193,6 +1193,10 @@ banshee_cmd_read(banshee_t *banshee, uint32_t addr)
             ret = voodoo->cmd_status;
             break;
 
+        case cmdBaseSize0:
+            ret = voodoo->cmdfifo_size;
+            break;
+
         case 0x108:
             break;
 
@@ -1404,7 +1408,7 @@ banshee_cmd_write(banshee_t *banshee, uint32_t addr, uint32_t val)
     //        banshee_log("banshee_cmd_write: addr=%03x val=%08x\n", addr & 0x1fc, val);
     switch (addr & 0x1fc) {
         case Agp_agpHostAddressLow:
-            banshee->agpHostAddressLow  = val;
+            banshee->agpHostAddressLow = val;
             break;
 
         case Agp_agpHostAddressHigh:

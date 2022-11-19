@@ -7,8 +7,7 @@ namespace Ui {
 class MCADeviceList;
 }
 
-class MCADeviceList : public QDialog
-{
+class MCADeviceList : public QDialog {
     Q_OBJECT
 
 public:

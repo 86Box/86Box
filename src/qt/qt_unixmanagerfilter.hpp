@@ -10,7 +10,7 @@
  *
  * Authors:
  *      Teemu Korhonen
-	Cacodemon345
+        Cacodemon345
  *
  *      Copyright 2022 Teemu Korhonen
  *      Copyright 2022 Cacodemon345
@@ -27,11 +27,10 @@
  * Filters messages from VM-manager and
  * window blocked events to notify about open modal dialogs.
  */
-class UnixManagerSocket : public QLocalSocket
-{
+class UnixManagerSocket : public QLocalSocket {
     Q_OBJECT
 public:
-    UnixManagerSocket(QObject* object = nullptr);
+    UnixManagerSocket(QObject *object = nullptr);
 signals:
     void pause();
     void ctrlaltdel();

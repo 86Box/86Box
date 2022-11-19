@@ -31,9 +31,9 @@
 #include <86box/vid_svga.h>
 #include <86box/vid_svga_render.h>
 
-#define TVGA8900B_ID     0x03
-#define TVGA9000B_ID     0x23
-#define TVGA8900CLD_ID   0x33
+#define TVGA8900B_ID              0x03
+#define TVGA9000B_ID              0x23
+#define TVGA8900CLD_ID            0x33
 
 #define ROM_TVGA_8900B            "roms/video/tvga/tvga8900b.vbi"
 #define ROM_TVGA_8900CLD          "roms/video/tvga/trident.bin"

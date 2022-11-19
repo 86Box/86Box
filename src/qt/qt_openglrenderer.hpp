@@ -39,7 +39,7 @@
 #include "qt_opengloptions.hpp"
 #include "qt_renderercommon.hpp"
 
-typedef void (QOPENGLF_APIENTRYP PFNGLBUFFERSTORAGEEXTPROC_LOCAL) (GLenum target, GLsizeiptr size, const void *data, GLbitfield flags);
+typedef void(QOPENGLF_APIENTRYP PFNGLBUFFERSTORAGEEXTPROC_LOCAL)(GLenum target, GLsizeiptr size, const void *data, GLbitfield flags);
 
 class OpenGLRenderer : public QWindow, protected QOpenGLExtraFunctions, public RendererCommon {
     Q_OBJECT

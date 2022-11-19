@@ -272,7 +272,7 @@ static const device_config_t pssj_isa_config[] = {
         }
     },
     { .name = "", .description = "", .type = CONFIG_END }
-// clang-format on
+  // clang-format on
 };
 
 const device_t pssj_device = {

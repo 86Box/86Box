@@ -2791,7 +2791,7 @@ static const device_config_t et4000w32p_config[] = {
     {
         .type = CONFIG_END
     }
-// clang-format on
+  // clang-format on
 };
 
 const device_t et4000w32_device = {

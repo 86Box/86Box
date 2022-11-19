@@ -170,5 +170,5 @@ unsigned int hdd_table[128][3] = {
     { 1120, 16, 59 },
     { 1054, 16, 63 },
     {    0,  0,  0 }
-// clang-format on
+  // clang-format on
 };

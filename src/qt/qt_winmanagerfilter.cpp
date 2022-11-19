@@ -19,14 +19,13 @@
 #include <Windows.h>
 #include <86box/win.h>
 
-bool WindowsManagerFilter::nativeEventFilter(const QByteArray &eventType, void *message, result_t *result)
+bool
+WindowsManagerFilter::nativeEventFilter(const QByteArray &eventType, void *message, result_t *result)
 {
-    if (eventType == "windows_generic_MSG")
-    {
+    if (eventType == "windows_generic_MSG") {
         MSG *msg = static_cast<MSG *>(message);
 
-        switch (msg->message)
-        {
+        switch (msg->message) {
             case WM_SHOWSETTINGS:
                 emit showsettings();
                 return true;
@@ -51,14 +50,12 @@ bool WindowsManagerFilter::nativeEventFilter(const QByteArray &eventType, void *
     return false;
 }
 
-bool WindowsManagerFilter::eventFilter(QObject *obj, QEvent *event)
+bool
+WindowsManagerFilter::eventFilter(QObject *obj, QEvent *event)
 {
-    if (event->type() == QEvent::WindowBlocked)
-    {
+    if (event->type() == QEvent::WindowBlocked) {
         emit dialogstatus(1);
-    }
-    else if (event->type() == QEvent::WindowUnblocked)
-    {
+    } else if (event->type() == QEvent::WindowUnblocked) {
         emit dialogstatus(0);
     }
 

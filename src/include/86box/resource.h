@@ -137,11 +137,11 @@
 #define IDT_CD_SPEED      1761 /* Speed: */
 
 /* DLG_CFG_OTHER_REMOVABLE_DEVICES */
-#define IDT_MO_DRIVES  1762 /* MO drives: */
-#define IDT_MO_BUS     1763 /* Bus: */
-#define IDT_MO_ID      1764 /* ID: */
-#define IDT_MO_CHANNEL 1765 /* Channel */
-#define IDT_MO_TYPE    1766 /* Type: */
+#define IDT_MO_DRIVES   1762 /* MO drives: */
+#define IDT_MO_BUS      1763 /* Bus: */
+#define IDT_MO_ID       1764 /* ID: */
+#define IDT_MO_CHANNEL  1765 /* Channel */
+#define IDT_MO_TYPE     1766 /* Type: */
 
 #define IDT_ZIP_DRIVES  1767 /* ZIP drives: */
 #define IDT_ZIP_BUS     1768 /* Bus: */

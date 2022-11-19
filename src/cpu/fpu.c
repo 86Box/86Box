@@ -25,10 +25,8 @@
 #include <86box/86box.h>
 #include "cpu.h"
 
-
 #ifdef ENABLE_FPU_LOG
 int fpu_do_log = ENABLE_FPU_LOG;
-
 
 void
 fpu_log(const char *fmt, ...)
@@ -42,17 +40,16 @@ fpu_log(const char *fmt, ...)
     }
 }
 #else
-#define fpu_log(fmt, ...)
+#    define fpu_log(fmt, ...)
 #endif
-
 
 int
 fpu_get_type(const cpu_family_t *cpu_family, int cpu, const char *internal_name)
 {
-    const CPU *cpu_s = &cpu_family->cpus[cpu];
-    const FPU *fpus = cpu_s->fpus;
-    int fpu_type = fpus[0].type;
-    int c = 0;
+    const CPU *cpu_s    = &cpu_family->cpus[cpu];
+    const FPU *fpus     = cpu_s->fpus;
+    int        fpu_type = fpus[0].type;
+    int        c        = 0;
 
     while (fpus[c].internal_name) {
         if (!strcmp(internal_name, fpus[c].internal_name))
@@ -63,13 +60,12 @@ fpu_get_type(const cpu_family_t *cpu_family, int cpu, const char *internal_name)
     return fpu_type;
 }
 
-
 const char *
 fpu_get_internal_name(const cpu_family_t *cpu_family, int cpu, int type)
 {
     const CPU *cpu_s = &cpu_family->cpus[cpu];
-    const FPU *fpus = cpu_s->fpus;
-    int c = 0;
+    const FPU *fpus  = cpu_s->fpus;
+    int        c     = 0;
 
     while (fpus[c].internal_name) {
         if (fpus[c].type == type)
@@ -80,22 +76,20 @@ fpu_get_internal_name(const cpu_family_t *cpu_family, int cpu, int type)
     return fpus[0].internal_name;
 }
 
-
 const char *
 fpu_get_name_from_index(const cpu_family_t *cpu_family, int cpu, int c)
 {
     const CPU *cpu_s = &cpu_family->cpus[cpu];
-    const FPU *fpus = cpu_s->fpus;
+    const FPU *fpus  = cpu_s->fpus;
 
     return fpus[c].name;
 }
-
 
 int
 fpu_get_type_from_index(const cpu_family_t *cpu_family, int cpu, int c)
 {
     const CPU *cpu_s = &cpu_family->cpus[cpu];
-    const FPU *fpus = cpu_s->fpus;
+    const FPU *fpus  = cpu_s->fpus;
 
     return fpus[c].type;
 }

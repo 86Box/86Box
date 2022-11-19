@@ -7,8 +7,7 @@ namespace Ui {
 class SettingsOtherRemovable;
 }
 
-class SettingsOtherRemovable : public QWidget
-{
+class SettingsOtherRemovable : public QWidget {
     Q_OBJECT
 
 public:

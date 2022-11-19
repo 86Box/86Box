@@ -36,29 +36,27 @@
 #define _CODEGEN_PUBLIC_H_
 
 #ifndef USE_NEW_DYNAREC
-#define PAGE_MASK_INDEX_MASK 3
-#define PAGE_MASK_INDEX_SHIFT 10
-#define PAGE_MASK_SHIFT 4
+#    define PAGE_MASK_INDEX_MASK  3
+#    define PAGE_MASK_INDEX_SHIFT 10
+#    define PAGE_MASK_SHIFT       4
 #else
-#define PAGE_MASK_SHIFT 6
+#    define PAGE_MASK_SHIFT 6
 #endif
 #define PAGE_MASK_MASK 63
 
 #ifdef USE_NEW_DYNAREC
-#define BLOCK_PC_INVALID 0xffffffff
-#define BLOCK_INVALID 0
+#    define BLOCK_PC_INVALID 0xffffffff
+#    define BLOCK_INVALID    0
 #endif
 
-
-extern void    codegen_init(void);
+extern void codegen_init(void);
 #ifdef USE_NEW_DYNAREC
-extern void    codegen_close(void);
+extern void codegen_close(void);
 #endif
-extern void    codegen_flush(void);
-
+extern void codegen_flush(void);
 
 /*Current physical page of block being recompiled. -1 if no recompilation taking place */
-extern uint32_t    recomp_page;
-extern int codegen_in_recompile;
+extern uint32_t recomp_page;
+extern int      codegen_in_recompile;
 
 #endif

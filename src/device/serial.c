@@ -51,7 +51,7 @@ enum {
 static int             next_inst = 0;
 static serial_device_t serial_devices[SERIAL_MAX];
 
-//#define ENABLE_SERIAL_CONSOLE 1
+// #define ENABLE_SERIAL_CONSOLE 1
 
 #ifdef ENABLE_SERIAL_LOG
 int serial_do_log = ENABLE_SERIAL_LOG;

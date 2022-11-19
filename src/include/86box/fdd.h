@@ -21,9 +21,9 @@
 #ifndef EMU_FDD_H
 #define EMU_FDD_H
 
-#define FDD_NUM          4
-#define FLOPPY_IMAGE_HISTORY         4
-#define SEEK_RECALIBRATE -999
+#define FDD_NUM              4
+#define FLOPPY_IMAGE_HISTORY 4
+#define SEEK_RECALIBRATE     -999
 
 #ifdef __cplusplus
 extern "C" {
@@ -42,9 +42,7 @@ extern int  fdd_can_read_medium(int drive);
 extern int  fdd_doublestep_40(int drive);
 extern int  fdd_is_525(int drive);
 extern int  fdd_is_dd(int drive);
-#if 0
 extern int  fdd_is_hd(int drive);
-#endif
 extern int  fdd_is_ed(int drive);
 extern int  fdd_is_double_sided(int drive);
 extern void fdd_set_head(int drive, int head);
@@ -87,7 +85,7 @@ typedef struct {
 
 extern DRIVE      drives[FDD_NUM];
 extern char       floppyfns[FDD_NUM][512];
-extern char       *fdd_image_history[FDD_NUM][FLOPPY_IMAGE_HISTORY];
+extern char      *fdd_image_history[FDD_NUM][FLOPPY_IMAGE_HISTORY];
 extern pc_timer_t fdd_poll_time[FDD_NUM];
 extern int        ui_writeprot[FDD_NUM];
 

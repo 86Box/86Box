@@ -128,7 +128,7 @@ const joystick_if_t joystick_tm_fcs = {
     .button_count  = 4,
     .pov_count     = 1,
     .max_joysticks = 1,
-    .axis_names    = {"X axis",    "Y axis" },
-    .button_names  = { "Button 1",          "Button 2", "Button 3", "Button 4" },
-    .pov_names     = { "POV"}
+    .axis_names    = { "X axis", "Y axis" },
+    .button_names  = { "Button 1", "Button 2", "Button 3", "Button 4" },
+    .pov_names     = { "POV" }
 };

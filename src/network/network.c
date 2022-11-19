@@ -55,7 +55,7 @@
 #include <wchar.h>
 #include <time.h>
 #ifndef _WIN32
-#include <sys/time.h>
+#    include <sys/time.h>
 #endif /* _WIN32 */
 #include <stdbool.h>
 #define HAVE_STDARG_H
@@ -126,7 +126,7 @@ netdev_t network_devs[NET_HOST_INTF_MAX];
 
 /* Local variables. */
 
-#if defined ENABLE_NETWORK_LOG && !defined(_WIN32)
+#if defined     ENABLE_NETWORK_LOG && !defined(_WIN32)
 int             network_do_log = ENABLE_NETWORK_LOG;
 static FILE    *network_dump   = NULL;
 static mutex_t *network_dump_mutex;

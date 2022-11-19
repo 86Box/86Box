@@ -6,7 +6,7 @@
  *
  *          This file is part of the 86Box distribution.
  *
- *          OPTi MediaCHIPS 82C929 audio controller emulation.
+ *          OPTi MediaCHIPS 82C929 (also known as OPTi MAD16 Pro) audio controller emulation.
  *
  *
  *
@@ -37,13 +37,15 @@
 #include <86box/gameport.h>
 #include <86box/snd_ad1848.h>
 #include <86box/snd_sb.h>
+#include <86box/mem.h>
+#include <86box/rom.h>
 
 static int optimc_wss_dma[4] = { 0, 0, 1, 3 };
 static int optimc_wss_irq[8] = { 5, 7, 9, 10, 11, 12, 14, 15 }; /* W95 only uses 7-10, others may be wrong */
 
 enum optimc_local_flags {
     OPTIMC_CS4231 = 0x100,
-    OPTIMC_OPL4   = 0x200, /* Unused */
+    OPTIMC_OPL4   = 0x200,
 };
 
 typedef struct optimc_t {
@@ -84,7 +86,8 @@ optimc_wss_write(uint16_t addr, uint8_t val, void *priv)
 {
     optimc_t *optimc = (optimc_t *) priv;
 
-    if (!(optimc->regs[4] & 0x10) && optimc->cur_mode == 0) return;
+    if (!(optimc->regs[4] & 0x10) && optimc->cur_mode == 0)
+        return;
     optimc->wss_config = val;
     ad1848_setdma(&optimc->ad1848, optimc_wss_dma[val & 3]);
     ad1848_setirq(&optimc->ad1848, optimc_wss_irq[(val >> 3) & 7]);
@@ -121,19 +124,10 @@ optimc_remove_opl(optimc_t *optimc)
 static void
 optimc_add_opl(optimc_t *optimc)
 {
-    fm_driver_get(FM_YMF262, &optimc->sb->opl);
-    
     /* DSP I/O handler is activated in sb_dsp_setaddr */
     io_sethandler(optimc->cur_addr + 0, 0x0004, optimc->sb->opl.read, NULL, NULL, optimc->sb->opl.write, NULL, NULL, optimc->sb->opl.priv);
     io_sethandler(optimc->cur_addr + 8, 0x0002, optimc->sb->opl.read, NULL, NULL, optimc->sb->opl.write, NULL, NULL, optimc->sb->opl.priv);
     io_sethandler(0x0388, 0x0004, optimc->sb->opl.read, NULL, NULL, optimc->sb->opl.write, NULL, NULL, optimc->sb->opl.priv);
-}
-
-static void
-optimc_reload_opl(optimc_t *optimc)
-{
-    optimc_remove_opl(optimc);
-    optimc_add_opl(optimc);
 }
 
 static void
@@ -184,8 +178,6 @@ optimc_reg_write(uint16_t addr, uint8_t val, void *p)
                 }
             case 1: /* MC2 */
                 optimc->regs[1] = val;
-                if (old != val)
-                    optimc_reload_opl(optimc);
                 break;
             case 2: /* MC3 */
                 if (val == optimc->type)
@@ -228,8 +220,6 @@ optimc_reg_write(uint16_t addr, uint8_t val, void *p)
                 break;
             case 3: /* MC4 */
                 optimc->regs[3] = val;
-                if ((old & 0x8) != (val & 0x8))
-                    optimc_reload_opl(optimc);
                 break;
             case 4: /* MC5 */
                 optimc->regs[4] = val;
@@ -347,7 +337,7 @@ optimc_init(const device_t *info)
     optimc->regs[1] = 0x03;
     optimc->regs[2] = 0x00;
     optimc->regs[3] = 0x00;
-    optimc->regs[4] = 0x2F;
+    optimc->regs[4] = 0x3F;
     optimc->regs[5] = 0x83;
 
     optimc->gameport = gameport_add(&gameport_device);
@@ -375,11 +365,14 @@ optimc_init(const device_t *info)
     sb_dsp_setdma8(&optimc->sb->dsp, optimc->cur_dma);
     sb_ct1345_mixer_reset(optimc->sb);
 
-    optimc->fm_type = (info->local & OPTIMC_OPL4) ? FM_YMF289B : FM_YMF262;
+    optimc->fm_type = (info->local & OPTIMC_OPL4) ? FM_YMF278B : FM_YMF262;
     fm_driver_get(optimc->fm_type, &optimc->sb->opl);
     io_sethandler(optimc->cur_addr + 0, 0x0004, optimc->sb->opl.read, NULL, NULL, optimc->sb->opl.write, NULL, NULL, optimc->sb->opl.priv);
     io_sethandler(optimc->cur_addr + 8, 0x0002, optimc->sb->opl.read, NULL, NULL, optimc->sb->opl.write, NULL, NULL, optimc->sb->opl.priv);
     io_sethandler(0x0388, 0x0004, optimc->sb->opl.read, NULL, NULL, optimc->sb->opl.write, NULL, NULL, optimc->sb->opl.priv);
+    if (optimc->fm_type == FM_YMF278B) {
+        io_sethandler(0x380, 2, optimc->sb->opl.read, NULL, NULL, optimc->sb->opl.write, NULL, NULL, optimc->sb->opl.priv);
+    }
 
     io_sethandler(optimc->cur_addr + 4, 0x0002, sb_ct1345_mixer_read, NULL, NULL, sb_ct1345_mixer_write, NULL, NULL, optimc->sb);
 
@@ -399,7 +392,7 @@ optimc_init(const device_t *info)
 static void
 optimc_close(void *p)
 {
-    optimc_t* optimc = (optimc_t*)p;
+    optimc_t *optimc = (optimc_t *) p;
 
     sb_close(optimc->sb);
     free(optimc->mpu);
@@ -413,6 +406,12 @@ optimc_speed_changed(void *p)
 
     ad1848_speed_changed(&optimc->ad1848);
     sb_speed_changed(optimc->sb);
+}
+
+static int
+mirosound_pcm10_available(void)
+{
+    return rom_present("roms/sound/yamaha/yrw801.rom");
 }
 
 static const device_config_t acermagic_s20_config[] = {
@@ -441,16 +440,29 @@ static const device_config_t acermagic_s20_config[] = {
   // clang-format on
 };
 
-
 const device_t acermagic_s20_device = {
     .name          = "AcerMagic S20",
     .internal_name = "acermagic_s20",
     .flags         = DEVICE_ISA | DEVICE_AT,
-    .local         = 0xE3 | 0x100,
+    .local         = 0xE3 | OPTIMC_CS4231,
     .init          = optimc_init,
     .close         = optimc_close,
     .reset         = NULL,
     { .available = NULL },
+    .speed_changed = optimc_speed_changed,
+    .force_redraw  = NULL,
+    .config        = acermagic_s20_config
+};
+
+const device_t mirosound_pcm10_device = {
+    .name          = "miroSOUND PCM10",
+    .internal_name = "mirosound_pcm10",
+    .flags         = DEVICE_ISA | DEVICE_AT,
+    .local         = 0xE3 | OPTIMC_OPL4,
+    .init          = optimc_init,
+    .close         = optimc_close,
+    .reset         = NULL,
+    { .available = mirosound_pcm10_available },
     .speed_changed = optimc_speed_changed,
     .force_redraw  = NULL,
     .config        = acermagic_s20_config
