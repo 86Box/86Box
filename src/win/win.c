@@ -105,12 +105,13 @@ static const struct {
     void (*set_fs)(int fs);
     void (*reload)(void);
 } vid_apis[RENDERERS_NUM] = {
-  {	"SDL_Software", 1, (int(*)(void*))sdl_inits, sdl_close, NULL, sdl_pause, sdl_enable, sdl_set_fs, sdl_reload	},
-  {	"SDL_Hardware", 1, (int(*)(void*))sdl_inith, sdl_close, NULL, sdl_pause, sdl_enable, sdl_set_fs, sdl_reload	},
-  {	"SDL_OpenGL", 1, (int(*)(void*))sdl_initho, sdl_close, NULL, sdl_pause, sdl_enable, sdl_set_fs, sdl_reload	}
- ,{	"OpenGL_Core", 1, (int(*)(void*))opengl_init, opengl_close, opengl_resize, opengl_pause, NULL, opengl_set_fs, opengl_reload}
+    { "SDL_Software", 1, (int (*)(void *)) sdl_inits, sdl_close, NULL, sdl_pause, sdl_enable, sdl_set_fs, sdl_reload },
+    { "SDL_Hardware", 1, (int (*)(void *)) sdl_inith, sdl_close, NULL, sdl_pause, sdl_enable, sdl_set_fs, sdl_reload },
+    { "SDL_OpenGL", 1, (int (*)(void *)) sdl_initho, sdl_close, NULL, sdl_pause, sdl_enable, sdl_set_fs, sdl_reload },
+    { "OpenGL_Core", 1, (int (*)(void *)) opengl_init, opengl_close, opengl_resize, opengl_pause, NULL, opengl_set_fs, opengl_reload }
 #ifdef USE_VNC
- ,{	"VNC", 0, vnc_init, vnc_close, vnc_resize, vnc_pause, NULL, NULL						}
+    ,
+    { "VNC", 0, vnc_init, vnc_close, vnc_resize, vnc_pause, NULL, NULL }
 #endif
 };
 

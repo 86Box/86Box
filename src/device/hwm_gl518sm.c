@@ -279,8 +279,8 @@ gl518sm_init(const device_t *info)
         },
         {
          /* voltages */
-            hwm_get_vcore(), /* Vcore */
-            RESISTOR_DIVIDER(12000,                                   150, 47), /* +12V (15K/4.7K divider suggested in the datasheet) */
+            hwm_get_vcore(),                  /* Vcore */
+            RESISTOR_DIVIDER(12000, 150, 47), /* +12V (15K/4.7K divider suggested in the datasheet) */
             3300,                             /* +3.3V */
             5000                              /* +5V */
         }

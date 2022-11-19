@@ -18,7 +18,8 @@
 
 #include <QAbstractItemModel>
 
-int Models::AddEntry(QAbstractItemModel *model, const QString& displayRole, int userRole)
+int
+Models::AddEntry(QAbstractItemModel *model, const QString &displayRole, int userRole)
 {
     int row = model->rowCount();
     model->insertRow(row);

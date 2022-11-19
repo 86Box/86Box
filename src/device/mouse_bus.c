@@ -800,7 +800,7 @@ static const device_config_t ms_config[] = {
         }
     },
     { .name = "", .description = "", .type = CONFIG_END }
-// clang-format on
+  // clang-format on
 };
 
 const device_t mouse_logibus_device = {

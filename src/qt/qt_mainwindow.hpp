@@ -20,27 +20,26 @@ class MainWindow;
 
 class MachineStatus;
 
-class MainWindow : public QMainWindow
-{
+class MainWindow : public QMainWindow {
     Q_OBJECT
 
 public:
     explicit MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
 
-    void showMessage(int flags, const QString& header, const QString& message);
-    void getTitle(wchar_t* title);
-    void blitToWidget(int x, int y, int w, int h, int monitor_index);
+    void  showMessage(int flags, const QString &header, const QString &message);
+    void  getTitle(wchar_t *title);
+    void  blitToWidget(int x, int y, int w, int h, int monitor_index);
     QSize getRenderWidgetSize();
-    void setSendKeyboardInput(bool enabled);
+    void  setSendKeyboardInput(bool enabled);
 
     std::array<std::unique_ptr<RendererStack>, 8> renderers;
 signals:
-    void paint(const QImage& image);
+    void paint(const QImage &image);
     void resizeContents(int w, int h);
     void resizeContentsMonitor(int w, int h, int monitor_index);
     void pollMouse();
-    void statusBarMessage(const QString& msg);
+    void statusBarMessage(const QString &msg);
     void updateStatusBarPanes();
     void updateStatusBarActivity(int tag, bool active);
     void updateStatusBarEmpty(int tag, bool empty);
@@ -52,12 +51,12 @@ signals:
     void initRendererMonitorForNonQtThread(int monitor_index);
     void destroyRendererMonitorForNonQtThread(int monitor_index);
 
-    void setTitle(const QString& title);
+    void setTitle(const QString &title);
     void setFullscreen(bool state);
     void setMouseCapture(bool state);
 
-    void showMessageForNonQtThread(int flags, const QString& header, const QString& message);
-    void getTitleForNonQtThread(wchar_t* title);
+    void showMessageForNonQtThread(int flags, const QString &header, const QString &message);
+    void getTitleForNonQtThread(wchar_t *title);
 public slots:
     void showSettings();
     void hardReset();
@@ -120,43 +119,43 @@ private slots:
     void on_actionRenderer_options_triggered();
 
     void refreshMediaMenu();
-    void showMessage_(int flags, const QString& header, const QString& message);
-    void getTitle_(wchar_t* title);
+    void showMessage_(int flags, const QString &header, const QString &message);
+    void getTitle_(wchar_t *title);
 
     void on_actionMCA_devices_triggered();
 
 protected:
-    void keyPressEvent(QKeyEvent* event) override;
-    void keyReleaseEvent(QKeyEvent* event) override;
-    void focusInEvent(QFocusEvent* event) override;
-    void focusOutEvent(QFocusEvent* event) override;
-    bool eventFilter(QObject* receiver, QEvent* event) override;
-    void showEvent(QShowEvent* event) override;
-    void closeEvent(QCloseEvent* event) override;
-    void changeEvent(QEvent* event) override;
+    void keyPressEvent(QKeyEvent *event) override;
+    void keyReleaseEvent(QKeyEvent *event) override;
+    void focusInEvent(QFocusEvent *event) override;
+    void focusOutEvent(QFocusEvent *event) override;
+    bool eventFilter(QObject *receiver, QEvent *event) override;
+    void showEvent(QShowEvent *event) override;
+    void closeEvent(QCloseEvent *event) override;
+    void changeEvent(QEvent *event) override;
 
 private slots:
     void on_actionShow_non_primary_monitors_triggered();
 
-	void on_actionOpen_screenshots_folder_triggered();
+    void on_actionOpen_screenshots_folder_triggered();
 
     void on_actionApply_fullscreen_stretch_mode_when_maximized_triggered(bool checked);
 
 private:
-    Ui::MainWindow *ui;
+    Ui::MainWindow                *ui;
     std::unique_ptr<MachineStatus> status;
-    std::shared_ptr<MediaMenu> mm;
+    std::shared_ptr<MediaMenu>     mm;
 
 #ifdef Q_OS_MACOS
     uint32_t last_modifiers = 0;
-    void processMacKeyboardInput(bool down, const QKeyEvent* event);
+    void     processMacKeyboardInput(bool down, const QKeyEvent *event);
 #endif
 
     /* If main window should send keyboard input */
     bool send_keyboard_input = true;
-    bool shownonce = false;
-    bool resizableonce = false;
-    bool vnc_enabled = false;
+    bool shownonce           = false;
+    bool resizableonce       = false;
+    bool vnc_enabled         = false;
 
     friend class SpecifyDimensions;
     friend class ProgSettings;

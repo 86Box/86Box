@@ -51,38 +51,38 @@ extern uint8_t  rom_read(uint32_t addr, void *p);
 extern uint16_t rom_readw(uint32_t addr, void *p);
 extern uint32_t rom_readl(uint32_t addr, void *p);
 
-extern FILE *rom_fopen(char *fn, char *mode);
+extern FILE *rom_fopen(const char *fn, char *mode);
 extern int   rom_getfile(char *fn, char *s, int size);
 extern int   rom_present(char *fn);
 
-extern int rom_load_linear_oddeven(char *fn, uint32_t addr, int sz,
+extern int rom_load_linear_oddeven(const char *fn, uint32_t addr, int sz,
                                    int off, uint8_t *ptr);
-extern int rom_load_linear(char *fn, uint32_t addr, int sz,
+extern int rom_load_linear(const char *fn, uint32_t addr, int sz,
                            int off, uint8_t *ptr);
-extern int rom_load_interleaved(char *fnl, char *fnh, uint32_t addr,
+extern int rom_load_interleaved(const char *fnl, const char *fnh, uint32_t addr,
                                 int sz, int off, uint8_t *ptr);
 
 extern uint8_t  bios_read(uint32_t addr, void *priv);
 extern uint16_t bios_readw(uint32_t addr, void *priv);
 extern uint32_t bios_readl(uint32_t addr, void *priv);
 
-extern int bios_load(char *fn1, char *fn2, uint32_t addr, int sz,
+extern int bios_load(const char *fn1, const char *fn2, uint32_t addr, int sz,
                      int off, int flags);
-extern int bios_load_linear_combined(char *fn1, char *fn2,
+extern int bios_load_linear_combined(const char *fn1, const char *fn2,
                                      int sz, int off);
-extern int bios_load_linear_combined2(char *fn1, char *fn2,
-                                      char *fn3, char *fn4, char *fn5,
+extern int bios_load_linear_combined2(const char *fn1, const char *fn2,
+                                      const char *fn3, const char *fn4, const char *fn5,
                                       int sz, int off);
-extern int bios_load_linear_combined2_ex(char *fn1, char *fn2,
-                                         char *fn3, char *fn4, char *fn5,
+extern int bios_load_linear_combined2_ex(const char *fn1, const char *fn2,
+                                         const char *fn3, const char *fn4, const char *fn5,
                                          int sz, int off);
 
-extern int rom_init(rom_t *rom, char *fn, uint32_t address, int size,
+extern int rom_init(rom_t *rom, const char *fn, uint32_t address, int size,
                     int mask, int file_offset, uint32_t flags);
-extern int rom_init_oddeven(rom_t *rom, char *fn, uint32_t address, int size,
+extern int rom_init_oddeven(rom_t *rom, const char *fn, uint32_t address, int size,
                             int mask, int file_offset, uint32_t flags);
-extern int rom_init_interleaved(rom_t *rom, char *fn_low,
-                                char *fn_high, uint32_t address,
+extern int rom_init_interleaved(rom_t *rom, const char *fn_low,
+                                const char *fn_high, uint32_t address,
                                 int size, int mask, int file_offset,
                                 uint32_t flags);
 

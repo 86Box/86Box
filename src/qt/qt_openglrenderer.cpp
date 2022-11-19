@@ -27,11 +27,11 @@
 #include "qt_openglrenderer.hpp"
 
 #ifndef GL_MAP_PERSISTENT_BIT
-#define GL_MAP_PERSISTENT_BIT 0x0040
+#    define GL_MAP_PERSISTENT_BIT 0x0040
 #endif
 
 #ifndef GL_MAP_COHERENT_BIT
-#define GL_MAP_COHERENT_BIT 0x0080
+#    define GL_MAP_COHERENT_BIT 0x0080
 #endif
 
 OpenGLRenderer::OpenGLRenderer(QWidget *parent)
@@ -321,7 +321,10 @@ OpenGLRenderer::applyOptions()
 void
 OpenGLRenderer::reloadOptions()
 {
-    if (options) { delete options; options = nullptr; }
+    if (options) {
+        delete options;
+        options = nullptr;
+    }
     options = new OpenGLOptions(this, true, glslVersion);
 
     applyOptions();

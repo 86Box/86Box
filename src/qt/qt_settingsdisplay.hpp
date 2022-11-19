@@ -7,8 +7,7 @@ namespace Ui {
 class SettingsDisplay;
 }
 
-class SettingsDisplay : public QWidget
-{
+class SettingsDisplay : public QWidget {
     Q_OBJECT
 
 public:
@@ -36,7 +35,7 @@ private slots:
 
 private:
     Ui::SettingsDisplay *ui;
-    int machineId = 0;
+    int                  machineId = 0;
 };
 
 #endif // QT_SETTINGSDISPLAY_HPP

@@ -35,9 +35,9 @@ enum {
 enum {
     CPU_8088 = 1, /* 808x class CPUs */
     CPU_8086,
-    CPU_V20,   /* NEC 808x class CPUs */
+    CPU_V20, /* NEC 808x class CPUs */
     CPU_V30,
-    CPU_188,   /* 18x class CPUs */
+    CPU_188, /* 18x class CPUs */
     CPU_186,
     CPU_286,   /* 286 class CPUs */
     CPU_386SX, /* 386 class CPUs */

@@ -75,7 +75,7 @@ typedef struct {
 
 fdd_t fdd[FDD_NUM];
 
-char floppyfns[FDD_NUM][512];
+char  floppyfns[FDD_NUM][512];
 char *fdd_image_history[FDD_NUM][FLOPPY_IMAGE_HISTORY];
 
 pc_timer_t fdd_poll_time[FDD_NUM];

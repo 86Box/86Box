@@ -404,9 +404,9 @@ pci_set_pmc(uint8_t pmc)
         io_sethandler(0x0cf8, 1,
                       NULL, NULL, pci_cf8_read, NULL, NULL, pci_cf8_write, NULL);
         io_sethandler(0x0cfa, 1,
-                      pci_type2_read,NULL,NULL, pci_type2_write,NULL,NULL, NULL);
+                      pci_type2_read, NULL, NULL, pci_type2_write, NULL, NULL, NULL);
         io_sethandler(0x0cfc, 4,
-                      pci_read,pci_readw,pci_readl, pci_write,pci_writew,pci_writel, NULL);
+                      pci_read, pci_readw, pci_readl, pci_write, pci_writew, pci_writel, NULL);
     } else if (pci_pmc && !(pmc & 0x01)) {
         io_removehandler(pci_base, pci_size,
                          pci_type2_read, NULL, NULL,
@@ -420,9 +420,9 @@ pci_set_pmc(uint8_t pmc)
         io_removehandler(0x0cf8, 1,
                          NULL, NULL, pci_cf8_read, NULL, NULL, pci_cf8_write, NULL);
         io_removehandler(0x0cfa, 1,
-                         pci_type2_read,NULL,NULL, pci_type2_write,NULL,NULL, NULL);
+                         pci_type2_read, NULL, NULL, pci_type2_write, NULL, NULL, NULL);
         io_removehandler(0x0cfc, 4,
-                         pci_read,pci_readw,pci_readl, pci_write,pci_writew,pci_writel, NULL);
+                         pci_read, pci_readw, pci_readl, pci_write, pci_writew, pci_writel, NULL);
         io_sethandler(0x0cf8, 1,
                       pci_type2_read, NULL, NULL, pci_type2_write, NULL, NULL, NULL);
         io_sethandler(0x0cfa, 1,
@@ -509,7 +509,7 @@ static uint8_t
 pci_type2_read(uint16_t port, void *priv)
 {
     uint8_t slot = 0;
-    uint8_t ret = 0xff;
+    uint8_t ret  = 0xff;
 
     if (port == 0xcf8)
         ret = pci_key | (pci_func << 1);
@@ -862,11 +862,11 @@ pci_reset(void)
         io_removehandler(0x0cf8, 1,
                          NULL, NULL, pci_cf8_read, NULL, NULL, pci_cf8_write, NULL);
         io_removehandler(0x0cfc, 4,
-                         pci_read,pci_readw,pci_readl, pci_write,pci_writew,pci_writel, NULL);
+                         pci_read, pci_readw, pci_readl, pci_write, pci_writew, pci_writel, NULL);
         io_removehandler(0x0cf8, 1,
-                         pci_type2_read,NULL,NULL, pci_type2_write,NULL,NULL, NULL);
+                         pci_type2_read, NULL, NULL, pci_type2_write, NULL, NULL, NULL);
         io_removehandler(0x0cfa, 1,
-                         pci_type2_read,NULL,NULL, pci_type2_write,NULL,NULL, NULL);
+                         pci_type2_read, NULL, NULL, pci_type2_write, NULL, NULL, NULL);
         io_sethandler(0x0cf8, 1,
                       pci_type2_read, NULL, NULL, pci_type2_write, NULL, NULL, NULL);
         io_sethandler(0x0cfa, 1,

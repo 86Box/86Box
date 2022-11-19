@@ -47,18 +47,18 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #ifndef WIN_SDL_H
-# define WIN_SDL_H
+#define WIN_SDL_H
 
-extern void* sdl_win_handle;
-extern void	sdl_close(void);
-extern int	sdl_inits();
-extern int	sdl_inith();
-extern int	sdl_initho();
-extern int	sdl_pause(void);
-extern void	sdl_resize(int w, int h);
-extern void	sdl_enable(int enable);
-extern void	sdl_set_fs(int fs);
-extern void	sdl_reload(void);
+extern void *sdl_win_handle;
+extern void  sdl_close(void);
+extern int   sdl_inits();
+extern int   sdl_inith();
+extern int   sdl_initho();
+extern int   sdl_pause(void);
+extern void  sdl_resize(int w, int h);
+extern void  sdl_enable(int enable);
+extern void  sdl_set_fs(int fs);
+extern void  sdl_reload(void);
 
 enum sdl_main_status {
     SdlMainOk,
@@ -70,4 +70,4 @@ extern enum sdl_main_status sdl_main();
 extern void sdl_mouse_capture(int on);
 extern void sdl_mouse_poll();
 
-#endif	/*WIN_SDL_H*/
+#endif /*WIN_SDL_H*/

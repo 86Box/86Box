@@ -1175,7 +1175,7 @@ static const device_config_t spock_rom_config[] = {
         },
     },
     { .name = "", .description = "", .type = CONFIG_END }
-// clang-format on
+  // clang-format on
 };
 
 const device_t spock_device = {

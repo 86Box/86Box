@@ -706,7 +706,7 @@ mouse_poll()
     mouse_y          = mousedata.deltay;
     mouse_z          = mousedata.deltaz;
     mousedata.deltax = mousedata.deltay = mousedata.deltaz = 0;
-    mouse_buttons    = mousedata.mousebuttons;
+    mouse_buttons                                          = mousedata.mousebuttons;
     SDL_UnlockMutex(mousemutex);
 }
 

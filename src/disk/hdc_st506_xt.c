@@ -100,12 +100,12 @@
 #define ST506_XT_TYPE_VICTOR_V86P        27
 #define ST506_XT_TYPE_TOSHIBA_T1200      28
 
-#define XEBEC_BIOS_FILE       "roms/hdd/st506/ibm_xebec_62x0822_1985.bin"
-#define DTC_BIOS_FILE         "roms/hdd/st506/dtc_cxd21a.bin"
-#define ST11_BIOS_FILE_OLD    "roms/hdd/st506/st11_bios_vers_1.7.bin"
-#define ST11_BIOS_FILE_NEW    "roms/hdd/st506/st11_bios_vers_2.0.bin"
-#define WD1002A_WX1_BIOS_FILE "roms/hdd/st506/wd1002a_wx1-62-000094-032.bin"
-#define WD1004A_WX1_BIOS_FILE "roms/hdd/st506/wd1002a_wx1-62-000094-032.bin"
+#define XEBEC_BIOS_FILE                  "roms/hdd/st506/ibm_xebec_62x0822_1985.bin"
+#define DTC_BIOS_FILE                    "roms/hdd/st506/dtc_cxd21a.bin"
+#define ST11_BIOS_FILE_OLD               "roms/hdd/st506/st11_bios_vers_1.7.bin"
+#define ST11_BIOS_FILE_NEW               "roms/hdd/st506/st11_bios_vers_2.0.bin"
+#define WD1002A_WX1_BIOS_FILE            "roms/hdd/st506/wd1002a_wx1-62-000094-032.bin"
+#define WD1004A_WX1_BIOS_FILE            "roms/hdd/st506/wd1002a_wx1-62-000094-032.bin"
 /* SuperBIOS was for both the WX1 and 27X, users jumpers readout to determine
    if to use 26 sectors per track, 26 -> 17 sectors per track translation, or
    17 sectors per track. */
@@ -292,10 +292,33 @@ typedef struct {
 } hd_type_t;
 
 hd_type_t hd_types[4] = {
-    {306,  4, MFM_SECTORS}, /* type 0	*/
-    { 612, 4, MFM_SECTORS}, /* type 16	*/
-    { 615, 4, MFM_SECTORS}, /* type 2	*/
-    { 306, 8, MFM_SECTORS}  /* type 13	*/
+  // clang-format off
+    { 306,  4, MFM_SECTORS}, /* type 0	*/
+    { 612,  4, MFM_SECTORS}, /* type 16	*/
+    { 615,  4, MFM_SECTORS}, /* type 2	*/
+    { 306,  8, MFM_SECTORS}  /* type 13	*/
+  // clang-format on
+};
+
+hd_type_t hd_types_olivetti[16] = {
+  // clang-format off
+    { 697,  5, MFM_SECTORS},
+    { 612,  4, MFM_SECTORS}, /* type 16	*/
+    { 612,  4, MFM_SECTORS}, /* type 16	*/
+    { 306,  4, MFM_SECTORS}, /* type 0	*/
+    { 612,  8, MFM_SECTORS},
+    { 820,  6, MFM_SECTORS},
+    { 820,  6, MFM_SECTORS},
+    { 823, 10, MFM_SECTORS},
+    { 981,  5, MFM_SECTORS},
+    { 981,  5, MFM_SECTORS},
+    {1024,  8, MFM_SECTORS},
+    {1024,  9, MFM_SECTORS},
+    { 872,  5, MFM_SECTORS},
+    { 612,  4, MFM_SECTORS}, /* type 16	*/
+    { 612,  4, MFM_SECTORS}, /* type 16	*/
+    { 306,  4, MFM_SECTORS}  /* "not present" with the second hard disk */
+  // clang-format on
 };
 
 #ifdef ENABLE_ST506_XT_LOG
@@ -1272,9 +1295,9 @@ mem_write(uint32_t addr, uint8_t val, void *priv)
     addr -= dev->bios_addr;
 
     switch (dev->type) {
-        case ST506_XT_TYPE_ST11M:           /* ST-11M */
-        case ST506_XT_TYPE_ST11R:           /* ST-11R */
-            mask = 0x1fff; /* ST-11 decodes RAM on each 8K block */
+        case ST506_XT_TYPE_ST11M: /* ST-11M */
+        case ST506_XT_TYPE_ST11R: /* ST-11R */
+            mask = 0x1fff;        /* ST-11 decodes RAM on each 8K block */
             break;
 
         default:
@@ -1322,9 +1345,9 @@ mem_read(uint32_t addr, void *priv)
             }
             break;
 
-        case ST506_XT_TYPE_ST11M:           /* ST-11M */
-        case ST506_XT_TYPE_ST11R:           /* ST-11R */
-            mask = 0x1fff; /* ST-11 decodes RAM on each 8K block */
+        case ST506_XT_TYPE_ST11M: /* ST-11M */
+        case ST506_XT_TYPE_ST11R: /* ST-11R */
+            mask = 0x1fff;        /* ST-11 decodes RAM on each 8K block */
             break;
 
             /* default:
@@ -1430,29 +1453,40 @@ loadhd(hdc_t *dev, int c, int d, const char *fn)
 
 /* Set the "drive type" switches for the IBM Xebec controller. */
 static void
-set_switches(hdc_t *dev)
+set_switches(hdc_t *dev, hd_type_t *hdt, int num)
 {
     drive_t *drive;
     int      c, d;
+    int      e;
 
     dev->switches = 0x00;
 
     for (d = 0; d < MFM_NUM; d++) {
         drive = &dev->drives[d];
 
-        if (!drive->present)
+        if (!drive->present) {
+            if (dev->type == ST506_XT_TYPE_WD1002A_WX1_NOBIOS)
+                dev->switches |= (0x33 << (d ? 0 : 2));
             continue;
+        }
 
-        for (c = 0; c < 4; c++) {
-            if ((drive->spt == hd_types[c].spt) && (drive->hpc == hd_types[c].hpc) && (drive->tracks == hd_types[c].tracks)) {
-                dev->switches |= (c << (d ? 0 : 2));
+        for (c = 0; c < num; c++) {
+            /* Does the Xebec also support more than 4 types? */
+            if ((drive->spt == hdt[c].spt) && (drive->hpc == hdt[c].hpc) && (drive->tracks == hdt[c].tracks)) {
+                /* Olivetti M24/M240: Move the upper 2 bites up by 2 bits, as the
+                   layout is as follows: D0_3 D0_2 D1_3 D1_2 D0_1 D0_0 D1_1 D1_0. */
+                if (dev->type == ST506_XT_TYPE_WD1002A_WX1_NOBIOS)
+                    e = (c & 0x03) | ((c >> 2) << 4);
+                else
+                    e = c;
+                dev->switches |= (e << (d ? 0 : 2));
                 break;
             }
         }
 
 #ifdef ENABLE_ST506_XT_LOG
         st506_xt_log("ST506: ");
-        if (c == 4)
+        if (c == num)
             st506_xt_log("*WARNING* drive%i unsupported", d);
         else
             st506_xt_log("drive%i is type %i", d, c);
@@ -1538,16 +1572,9 @@ st506_init(const device_t *info)
             break;
 
         case ST506_XT_TYPE_WD1002A_WX1_NOBIOS: /* Western Digital WD1002A-WX1 (MFM, No BIOS) */
+            /* Supported base addresses: 320h, 324h, 328h, 32Ch. */
             dev->nr_err = ERR_NOT_AVAILABLE;
             fn          = NULL;
-            /* The switches are read in reverse: 0 = closed, 1 = open.
-               Both open means MFM, 17 sectors per track. */
-            dev->switches = 0x30; /* autobios */
-            dev->base     = device_get_config_hex16("base");
-            dev->irq      = device_get_config_int("irq");
-            if (dev->irq == 2)
-                dev->switches |= 0x40;
-            dev->bios_addr = device_get_config_hex20("bios_addr");
             break;
 
         case ST506_XT_TYPE_WD1004A_WX1: /* Western Digital WD1004A-WX1 (MFM) */
@@ -1613,7 +1640,7 @@ st506_init(const device_t *info)
             break;
 
         case ST506_XT_TYPE_TOSHIBA_T1200: /* Toshiba T1200 */
-            fn = NULL;
+            fn            = NULL;
             dev->base     = 0x01f0;
             dev->switches = 0x0c;
             break;
@@ -1650,7 +1677,9 @@ st506_init(const device_t *info)
 
     /* For the Xebec, set the switches now. */
     if (dev->type == ST506_XT_TYPE_XEBEC)
-        set_switches(dev);
+        set_switches(dev, (hd_type_t *) hd_types, 4);
+    else if (dev->type == ST506_XT_TYPE_WD1002A_WX1_NOBIOS)
+        set_switches(dev, (hd_type_t *) hd_types_olivetti, 16);
 
     /* Initial "active" drive parameters. */
     for (c = 0; c < MFM_NUM; c++) {

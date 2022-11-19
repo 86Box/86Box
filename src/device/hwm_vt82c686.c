@@ -182,7 +182,7 @@ vt82c686_init(const device_t *info)
     /* Set default values. Since this hardware monitor has a complex voltage factor system,
        the values struct contains voltage values *before* applying their respective factors. */
     hwm_values_t defaults = {
-// clang-format on
+  // clang-format off
         { /* fan speeds */
             3000,   /* usually CPU */
             3000    /* usually Chassis */
@@ -197,7 +197,7 @@ vt82c686_init(const device_t *info)
             5000,   /* +5V */
             12000   /* +12V */
         }
-// clang-format on
+  // clang-format on
     };
     hwm_values  = defaults;
     dev->values = &hwm_values;

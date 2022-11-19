@@ -29,21 +29,21 @@ extern RecompOpFn recomp_opcodes_REPNE[512];*/
 #define REG_EBP 5
 #define REG_ESI 6
 #define REG_EDI 7
-#define REG_AX 0
-#define REG_CX 1
-#define REG_DX 2
-#define REG_BX 3
-#define REG_SP 4
-#define REG_BP 5
-#define REG_SI 6
-#define REG_DI 7
-#define REG_AL 0
-#define REG_AH 4
-#define REG_CL 1
-#define REG_CH 5
-#define REG_DL 2
-#define REG_DH 6
-#define REG_BL 3
-#define REG_BH 7
+#define REG_AX  0
+#define REG_CX  1
+#define REG_DX  2
+#define REG_BX  3
+#define REG_SP  4
+#define REG_BP  5
+#define REG_SI  6
+#define REG_DI  7
+#define REG_AL  0
+#define REG_AH  4
+#define REG_CL  1
+#define REG_CH  5
+#define REG_DL  2
+#define REG_DH  6
+#define REG_BL  3
+#define REG_BH  7
 
 #endif

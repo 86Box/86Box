@@ -273,32 +273,32 @@ typedef struct s3_t {
     } accel;
 
     struct {
-        uint32_t     nop;
-        uint32_t     cntl;
-        uint32_t     stretch_filt_const;
-        uint32_t     src_dst_step;
-        uint32_t     crop;
-        uint32_t     src_base, dest_base;
-        uint32_t     src, dest;
-        uint32_t     srcbase, dstbase;
-        int32_t      dda_init_accumulator;
-        int32_t      k1, k2;
-        int          dm_index;
-        int          dither_matrix_idx;
-        int          src_step, dst_step;
-        int          sx, sx_backup, sy;
-        double       cx, dx;
-        double       cy, dy;
-        int          sx_scale_int, sx_scale_int_backup;
-        double       sx_scale;
-        double       sx_scale_dec;
-        double       sx_scale_inc;
-        double       sx_scale_backup;
-        double       sx_scale_len;
-        int          dither, host_data, scale_down;
-        int          input;
-        int          len, start;
-        int          odf, idf, yuv;
+        uint32_t   nop;
+        uint32_t   cntl;
+        uint32_t   stretch_filt_const;
+        uint32_t   src_dst_step;
+        uint32_t   crop;
+        uint32_t   src_base, dest_base;
+        uint32_t   src, dest;
+        uint32_t   srcbase, dstbase;
+        int32_t    dda_init_accumulator;
+        int32_t    k1, k2;
+        int        dm_index;
+        int        dither_matrix_idx;
+        int        src_step, dst_step;
+        int        sx, sx_backup, sy;
+        double     cx, dx;
+        double     cy, dy;
+        int        sx_scale_int, sx_scale_int_backup;
+        double     sx_scale;
+        double     sx_scale_dec;
+        double     sx_scale_inc;
+        double     sx_scale_backup;
+        double     sx_scale_len;
+        int        dither, host_data, scale_down;
+        int        input;
+        int        len, start;
+        int        odf, idf, yuv;
         atomic_int busy;
     } videoengine;
 
@@ -876,15 +876,15 @@ s3_accel_out_fifo(s3_t *s3, uint16_t port, uint8_t val)
             s3->accel.short_stroke = (s3->accel.short_stroke & 0xff) | (val << 8);
             s3->accel.ssv_state    = 1;
 
-			s3->accel.cx   = s3->accel.cur_x & 0x7ff;
-			s3->accel.cy   = s3->accel.cur_y & 0x7ff;
+            s3->accel.cx = s3->accel.cur_x & 0x7ff;
+            s3->accel.cy = s3->accel.cur_y & 0x7ff;
 
-			if (s3->accel.cur_x & 0x800) {
-				s3->accel.cx |= ~0x7ff;
-			}
-			if (s3->accel.cur_y & 0x800) {
-				s3->accel.cy |= ~0x7ff;
-			}
+            if (s3->accel.cur_x & 0x800) {
+                s3->accel.cx |= ~0x7ff;
+            }
+            if (s3->accel.cur_y & 0x800) {
+                s3->accel.cy |= ~0x7ff;
+            }
 
             if (s3->accel.cmd & 0x1000) {
                 s3_short_stroke_start(-1, 0, 0xffffffff, 0, s3, s3->accel.short_stroke & 0xff);
@@ -1417,15 +1417,15 @@ s3_accel_out_fifo_w(s3_t *s3, uint16_t port, uint16_t val)
         s3->accel.short_stroke = val;
         s3->accel.ssv_state    = 1;
 
-		s3->accel.cx   = s3->accel.cur_x & 0x7ff;
-		s3->accel.cy   = s3->accel.cur_y & 0x7ff;
+        s3->accel.cx = s3->accel.cur_x & 0x7ff;
+        s3->accel.cy = s3->accel.cur_y & 0x7ff;
 
-		if (s3->accel.cur_x & 0x800) {
-			s3->accel.cx |= ~0x7ff;
-		}
-		if (s3->accel.cur_y & 0x800) {
-			s3->accel.cy |= ~0x7ff;
-		}
+        if (s3->accel.cur_x & 0x800) {
+            s3->accel.cx |= ~0x7ff;
+        }
+        if (s3->accel.cur_y & 0x800) {
+            s3->accel.cy |= ~0x7ff;
+        }
 
         if (s3->accel.cmd & 0x1000) {
             s3_short_stroke_start(-1, 0, 0xffffffff, 0, s3, s3->accel.short_stroke & 0xff);
@@ -6230,15 +6230,15 @@ s3_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat, s3_
 
         case 1: /*Draw line*/
             if (!cpu_input) {
-				s3->accel.cx   = s3->accel.cur_x & 0x7ff;
-				s3->accel.cy   = s3->accel.cur_y & 0x7ff;
+                s3->accel.cx = s3->accel.cur_x & 0x7ff;
+                s3->accel.cy = s3->accel.cur_y & 0x7ff;
 
-				if (s3->accel.cur_x & 0x800) {
-					s3->accel.cx |= ~0x7ff;
-				}
-				if (s3->accel.cur_y & 0x800) {
-					s3->accel.cy |= ~0x7ff;
-				}
+                if (s3->accel.cur_x & 0x800) {
+                    s3->accel.cx |= ~0x7ff;
+                }
+                if (s3->accel.cur_y & 0x800) {
+                    s3->accel.cy |= ~0x7ff;
+                }
 
                 s3->accel.sy = s3->accel.maj_axis_pcnt;
 
@@ -6453,15 +6453,15 @@ s3_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat, s3_
             {
                 s3->accel.sx = s3->accel.maj_axis_pcnt & 0xfff;
                 s3->accel.sy = s3->accel.multifunc[0] & 0xfff;
-				s3->accel.cx   = s3->accel.cur_x & 0x7ff;
-				s3->accel.cy   = s3->accel.cur_y & 0x7ff;
+                s3->accel.cx = s3->accel.cur_x & 0x7ff;
+                s3->accel.cy = s3->accel.cur_y & 0x7ff;
 
-				if (s3->accel.cur_x & 0x800) {
-					s3->accel.cx |= ~0x7ff;
-				}
-				if (s3->accel.cur_y & 0x800) {
-					s3->accel.cy |= ~0x7ff;
-				}
+                if (s3->accel.cur_x & 0x800) {
+                    s3->accel.cx |= ~0x7ff;
+                }
+                if (s3->accel.cur_y & 0x800) {
+                    s3->accel.cy |= ~0x7ff;
+                }
 
                 s3->accel.dest = dstbase + s3->accel.cy * s3->width;
 
@@ -6670,20 +6670,22 @@ s3_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat, s3_
                 s3->accel.sx = s3->accel.maj_axis_pcnt & 0xfff;
                 s3->accel.sy = s3->accel.multifunc[0] & 0xfff;
 
-				s3->accel.dx = s3->accel.destx_distp & 0x7ff;
-				if (s3->accel.destx_distp & 0x800) s3->accel.dx |= ~0x7ff;
-				s3->accel.dy = s3->accel.desty_axstp & 0x7ff;
-				if (s3->accel.desty_axstp & 0x800) s3->accel.dy |= ~0x7ff;
+                s3->accel.dx = s3->accel.destx_distp & 0x7ff;
+                if (s3->accel.destx_distp & 0x800)
+                    s3->accel.dx |= ~0x7ff;
+                s3->accel.dy = s3->accel.desty_axstp & 0x7ff;
+                if (s3->accel.desty_axstp & 0x800)
+                    s3->accel.dy |= ~0x7ff;
 
-				s3->accel.cx = s3->accel.cur_x & 0x7ff;
-				s3->accel.cy = s3->accel.cur_y & 0x7ff;
+                s3->accel.cx = s3->accel.cur_x & 0x7ff;
+                s3->accel.cy = s3->accel.cur_y & 0x7ff;
 
-				if (s3->accel.cur_x & 0x800) {
-					s3->accel.cx |= ~0x7ff;
-				}
-				if (s3->accel.cur_y & 0x800) {
-					s3->accel.cy |= ~0x7ff;
-				}
+                if (s3->accel.cur_x & 0x800) {
+                    s3->accel.cx |= ~0x7ff;
+                }
+                if (s3->accel.cur_y & 0x800) {
+                    s3->accel.cy |= ~0x7ff;
+                }
 
                 s3->accel.src  = srcbase + s3->accel.cy * s3->width;
                 s3->accel.dest = dstbase + s3->accel.dy * s3->width;
@@ -8568,83 +8570,83 @@ s3_force_redraw(void *p)
 }
 
 static const device_config_t s3_orchid_86c911_config[] = {
-    {.name        = "memory",
+    { .name        = "memory",
      .description = "Memory size",
      .type        = CONFIG_SELECTION,
      .default_int = 1,
      .selection   = {
-            { .description = "512 KB",
+          { .description = "512 KB",
               .value       = 0 },
-            { .description = "1 MB",
+          { .description = "1 MB",
               .value       = 1 },
-            { .description = "" } } },
-    { .type = CONFIG_END}
+          { .description = "" } } },
+    { .type = CONFIG_END }
 };
 
 static const device_config_t s3_9fx_config[] = {
-    {.name        = "memory",
+    { .name        = "memory",
      .description = "Memory size",
      .type        = CONFIG_SELECTION,
      .default_int = 2,
      .selection   = {
-            { .description = "1 MB",
+          { .description = "1 MB",
               .value       = 1 },
-            { .description = "2 MB",
+          { .description = "2 MB",
               .value       = 2 },
-            /*Trio64 also supports 4 MB, however the Number Nine BIOS does not*/
-            {
+          /*Trio64 also supports 4 MB, however the Number Nine BIOS does not*/
+          {
                 .description = "" } } },
-    { .type = CONFIG_END}
+    { .type = CONFIG_END }
 };
 
 static const device_config_t s3_phoenix_trio32_config[] = {
-    {.name        = "memory",
+    { .name        = "memory",
      .description = "Memory size",
      .type        = CONFIG_SELECTION,
      .default_int = 2,
      .selection   = {
-            { .description = "512 KB",
+          { .description = "512 KB",
               .value       = 0 },
-            { .description = "1 MB",
+          { .description = "1 MB",
               .value       = 1 },
-            { .description = "2 MB",
+          { .description = "2 MB",
               .value       = 2 },
-            { .description = "" } } },
-    { .type = CONFIG_END}
+          { .description = "" } } },
+    { .type = CONFIG_END }
 };
 
 static const device_config_t s3_standard_config[] = {
-    {.name        = "memory",
+    { .name        = "memory",
      .description = "Memory size",
      .type        = CONFIG_SELECTION,
      .default_int = 4,
      .selection   = {
-            { .description = "1 MB",
+          { .description = "1 MB",
               .value       = 1 },
-            { .description = "2 MB",
+          { .description = "2 MB",
               .value       = 2 },
-            { .description = "4 MB",
+          { .description = "4 MB",
               .value       = 4 },
-            { .description = "" } } },
-    { .type = CONFIG_END}
+          { .description = "" } } },
+    { .type = CONFIG_END }
 };
 
 static const device_config_t s3_968_config[] = {
-    {.name        = "memory",
+    { .name        = "memory",
      .description = "Memory size",
      .type        = CONFIG_SELECTION,
      .default_int = 4,
      .selection   = {
-            { .description = "1 MB",
+          { .description = "1 MB",
               .value       = 1 },
-            { .description = "2 MB",
+          { .description = "2 MB",
               .value       = 2 },
-            { .description = "4 MB",
+          { .description = "4 MB",
               .value       = 4 },
-            { .description = "8 MB",
+          { .description = "8 MB",
               .value       = 8 },
-            { .description = "" } } },
-    { .type = CONFIG_END}
+          { .description = "" } } },
+    { .type = CONFIG_END }
 };
 
 const device_t s3_orchid_86c911_isa_device = {
