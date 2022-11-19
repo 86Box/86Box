@@ -75,7 +75,7 @@ static const device_t vid_internal_device = {
 
 static const VIDEO_CARD
 video_cards[] = {
-// clang-format off
+  // clang-format off
     { &vid_none_device                               },
     { &vid_internal_device                           },
     { &atiega_device                                 },
@@ -261,7 +261,7 @@ video_cards[] = {
     { &voodoo_3_3500_se_agp_device                   },
     { &voodoo_3_3500_si_agp_device                   },
     { NULL                                           }
-// clang-format on
+  // clang-format on
 };
 
 #ifdef ENABLE_VID_TABLE_LOG

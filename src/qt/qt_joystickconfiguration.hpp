@@ -7,8 +7,7 @@ namespace Ui {
 class JoystickConfiguration;
 }
 
-class JoystickConfiguration : public QDialog
-{
+class JoystickConfiguration : public QDialog {
     Q_OBJECT
 
 public:
@@ -24,9 +23,9 @@ private slots:
 
 private:
     Ui::JoystickConfiguration *ui;
-    QList<QWidget*> widgets;
-    int type;
-    int joystick_nr;
+    QList<QWidget *>           widgets;
+    int                        type;
+    int                        joystick_nr;
 };
 
 #endif // QT_JOYSTICKCONFIGURATION_HPP

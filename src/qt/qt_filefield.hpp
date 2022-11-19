@@ -7,8 +7,7 @@ namespace Ui {
 class FileField;
 }
 
-class FileField : public QWidget
-{
+class FileField : public QWidget {
     Q_OBJECT
 
 public:
@@ -16,26 +15,26 @@ public:
     ~FileField();
 
     QString fileName() const { return fileName_; }
-    void setFileName(const QString& fileName);
+    void    setFileName(const QString &fileName);
 
-    void setFilter(const QString& filter) { filter_ = filter; }
+    void    setFilter(const QString &filter) { filter_ = filter; }
     QString selectedFilter() const { return selectedFilter_; }
 
     void setCreateFile(bool createFile) { createFile_ = createFile; }
     bool createFile() { return createFile_; }
 
 signals:
-    void fileSelected(const QString& fileName);
+    void fileSelected(const QString &fileName);
 
 private slots:
     void on_pushButton_clicked();
 
 private:
     Ui::FileField *ui;
-    QString fileName_;
-    QString selectedFilter_;
-    QString filter_;
-    bool createFile_ = false;
+    QString        fileName_;
+    QString        selectedFilter_;
+    QString        filter_;
+    bool           createFile_ = false;
 };
 
 #endif // QT_FILEFIELD_HPP

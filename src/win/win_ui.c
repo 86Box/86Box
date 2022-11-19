@@ -53,8 +53,8 @@
 #define TIMER_1SEC 1 /* ID of the one-second timer */
 
 /* Platform Public data, specific. */
-HWND hwndMain  = NULL,  /* application main window */
-    hwndRender = NULL,  /* machine render window */
+HWND hwndMain   = NULL, /* application main window */
+    hwndRender  = NULL, /* machine render window */
     hwndRender2 = NULL; /* machine second screen render window */
 HMENU menuMain;         /* application main menu */
 RECT  oldclip;          /* mouse rect */
@@ -300,7 +300,7 @@ ResetAllMenus(void)
     CheckMenuItem(menuMain, IDM_VID_INVERT, invert_display ? MF_CHECKED : MF_UNCHECKED);
 
     if (show_second_monitors == 1)
-	CheckMenuItem(menuMain, IDM_VID_MONITORS, MF_CHECKED);
+        CheckMenuItem(menuMain, IDM_VID_MONITORS, MF_CHECKED);
 
     if (vid_resize == 1)
         CheckMenuItem(menuMain, IDM_VID_RESIZE, MF_CHECKED);
@@ -1380,10 +1380,10 @@ ui_init(int nCmdShow)
     }
 
     /* Initialize the configured Video API. */
-    if (! plat_setvid(vid_api)) {
+    if (!plat_setvid(vid_api)) {
         tdconfig.pszContent = MAKEINTRESOURCE(IDS_2090);
         TaskDialogIndirect(&tdconfig, NULL, NULL, NULL);
-        return(5);
+        return (5);
     }
 
     /* Set up the current window size. */

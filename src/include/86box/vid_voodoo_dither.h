@@ -17,7 +17,7 @@
  */
 
 #ifndef VIDEO_VOODOO_DITHER_H
-# define VIDEO_VOODOO_DITHER_H
+#define VIDEO_VOODOO_DITHER_H
 
 static const uint8_t dither_rb[256][4][4] =
 {

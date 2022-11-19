@@ -272,7 +272,7 @@ static const device_config_t midi_input_config[] = {
         .default_int = 1
     },
     { .name = "", .description = "", .type = CONFIG_END }
-// clang-format on
+  // clang-format on
 };
 
 const device_t rtmidi_output_device = {

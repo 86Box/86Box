@@ -19,24 +19,24 @@
 
 /* Windows needs the POSIX re-implementations */
 #if defined(_WIN32)
-#ifdef _MAX_FNAME
-#    define MAXNAMLEN _MAX_FNAME
-#else
-#    define MAXNAMLEN 15
-#endif
-#define MAXDIRLEN 127
+#    ifdef _MAX_FNAME
+#        define MAXNAMLEN _MAX_FNAME
+#    else
+#        define MAXNAMLEN 15
+#    endif
+#    define MAXDIRLEN 127
 
 struct dirent {
     long           d_ino;
     unsigned short d_reclen;
     unsigned short d_off;
-#ifdef UNICODE
+#    ifdef UNICODE
     wchar_t d_name[MAXNAMLEN + 1];
-#else
+#    else
     char d_name[MAXNAMLEN + 1];
-#endif
+#    endif
 };
-#define d_namlen d_reclen
+#    define d_namlen d_reclen
 
 typedef struct {
     short flags;  /* internal flags		*/
@@ -44,18 +44,18 @@ typedef struct {
     long  handle; /* open handle to Win32 system	*/
     short sts;    /* last known status code	*/
     char *dta;    /* internal work data		*/
-#ifdef UNICODE
+#    ifdef UNICODE
     wchar_t dir[MAXDIRLEN + 1]; /* open dir			*/
-#else
+#    else
     char dir[MAXDIRLEN + 1]; /* open dir			*/
-#endif
+#    endif
     struct dirent dent; /* actual directory entry	*/
 } DIR;
 
 /* Directory routine flags. */
-#define DIR_F_LOWER  0x0001 /* force to lowercase		*/
-#define DIR_F_SANE   0x0002 /* force this to sane path	*/
-#define DIR_F_ISROOT 0x0010 /* this is the root directory	*/
+#    define DIR_F_LOWER  0x0001 /* force to lowercase		*/
+#    define DIR_F_SANE   0x0002 /* force this to sane path	*/
+#    define DIR_F_ISROOT 0x0010 /* this is the root directory	*/
 
 /* Function prototypes. */
 extern DIR           *opendir(const char *);
@@ -64,11 +64,10 @@ extern long           telldir(DIR *);
 extern void           seekdir(DIR *, long);
 extern int            closedir(DIR *);
 
-#define rewinddir(dirp) seekdir(dirp, 0L)
+#    define rewinddir(dirp) seekdir(dirp, 0L)
 #else
 /* On linux and macOS, use the standard functions and types */
-#include <sys/dir.h>
+#    include <sys/dir.h>
 #endif
-
 
 #endif /*PLAT_DIR_H*/

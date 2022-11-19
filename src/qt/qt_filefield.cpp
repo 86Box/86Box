@@ -21,13 +21,13 @@
 
 #include <QFileDialog>
 
-FileField::FileField(QWidget *parent) :
-    QWidget(parent),
-    ui(new Ui::FileField)
+FileField::FileField(QWidget *parent)
+    : QWidget(parent)
+    , ui(new Ui::FileField)
 {
     ui->setupUi(this);
 
-    connect(ui->label, &QLineEdit::editingFinished, this, [this] () {
+    connect(ui->label, &QLineEdit::editingFinished, this, [this]() {
         fileName_ = ui->label->text();
         emit fileSelected(ui->label->text());
     });
@@ -39,12 +39,16 @@ FileField::~FileField()
     delete ui;
 }
 
-void FileField::setFileName(const QString &fileName) {
+void
+FileField::setFileName(const QString &fileName)
+{
     fileName_ = fileName;
     ui->label->setText(fileName);
 }
 
-void FileField::on_pushButton_clicked() {
+void
+FileField::on_pushButton_clicked()
+{
     QString fileName;
     if (createFile_) {
         fileName = QFileDialog::getSaveFileName(this, QString(), QString(), filter_, &selectedFilter_);

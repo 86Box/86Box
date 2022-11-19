@@ -2099,7 +2099,7 @@ static const device_config_t es1371_onboard_config[] = {
         .default_int = 1
     },
     { .name = "", .description = "", .type = CONFIG_END }
-// clang-format on
+  // clang-format on
 };
 
 const device_t es1371_device = {

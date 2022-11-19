@@ -74,43 +74,43 @@
 #define CGA_COMPOSITE     1
 
 enum MM58174_ADDR {
-        /* Registers */
-        MM58174_TEST,       /* TEST register, write only */
-        MM58174_TENTHS,     /* Tenths of second, read only */
-        MM58174_SECOND1,    /* Units of seconds, read only */
-        MM58174_SECOND10,   /* Tens of seconds, read only */
-        MM58174_MINUTE1,
-        MM58174_MINUTE10,
-        MM58174_HOUR1,
-        MM58174_HOUR10,
-        MM58174_DAY1,
-        MM58174_DAY10,
-        MM58174_WEEKDAY,
-        MM58174_MONTH1,
-        MM58174_MONTH10,
-        MM58174_LEAPYEAR,   /* Leap year status, write only */
-        MM58174_RESET,      /* RESET register, write only */
-        MM58174_IRQ         /* Interrupt register, read / write */
+    /* Registers */
+    MM58174_TEST,     /* TEST register, write only */
+    MM58174_TENTHS,   /* Tenths of second, read only */
+    MM58174_SECOND1,  /* Units of seconds, read only */
+    MM58174_SECOND10, /* Tens of seconds, read only */
+    MM58174_MINUTE1,
+    MM58174_MINUTE10,
+    MM58174_HOUR1,
+    MM58174_HOUR10,
+    MM58174_DAY1,
+    MM58174_DAY10,
+    MM58174_WEEKDAY,
+    MM58174_MONTH1,
+    MM58174_MONTH10,
+    MM58174_LEAPYEAR, /* Leap year status, write only */
+    MM58174_RESET,    /* RESET register, write only */
+    MM58174_IRQ       /* Interrupt register, read / write */
 };
 
 enum MM58274_ADDR {
-        /* Registers */
-        MM58274_CONTROL,    /* Control register */
-        MM58274_TENTHS,     /* Tenths of second, read only */
-        MM58274_SECOND1,
-        MM58274_SECOND10,
-        MM58274_MINUTE1,
-        MM58274_MINUTE10,
-        MM58274_HOUR1,
-        MM58274_HOUR10,
-        MM58274_DAY1,
-        MM58274_DAY10,
-        MM58274_MONTH1,
-        MM58274_MONTH10,
-        MM58274_YEAR1,
-        MM58274_YEAR10,
-        MM58274_WEEKDAY,
-        MM58274_SETTINGS    /* Settings register */
+    /* Registers */
+    MM58274_CONTROL, /* Control register */
+    MM58274_TENTHS,  /* Tenths of second, read only */
+    MM58274_SECOND1,
+    MM58274_SECOND10,
+    MM58274_MINUTE1,
+    MM58274_MINUTE10,
+    MM58274_HOUR1,
+    MM58274_HOUR10,
+    MM58274_DAY1,
+    MM58274_DAY10,
+    MM58274_MONTH1,
+    MM58274_MONTH10,
+    MM58274_YEAR1,
+    MM58274_YEAR10,
+    MM58274_WEEKDAY,
+    MM58274_SETTINGS /* Settings register */
 };
 
 static struct tm intclk;
@@ -124,7 +124,7 @@ typedef struct {
     uint8_t output_port;
     uint8_t id;
     int     param,
-            param_total;
+        param_total;
     uint8_t params[16];
     uint8_t scan[7];
 
@@ -254,14 +254,14 @@ mm58174_start(nvr_t *nvr)
 static void
 mm58174_write(uint16_t addr, uint8_t val, void *priv)
 {
-    nvr_t  *nvr = (nvr_t *) priv;
+    nvr_t *nvr = (nvr_t *) priv;
 
     addr &= 0x0f;
     val &= 0x0f;
 
     /* Update non-read-only changed values if not synchronizing time to host */
-    if ((addr != MM58174_TENTHS) && (addr != MM58174_SECOND1) && (addr != MM58174_SECOND10)) 
-        if ((nvr->regs[addr] != val) && !(time_sync & TIME_SYNC_ENABLED)) 
+    if ((addr != MM58174_TENTHS) && (addr != MM58174_SECOND1) && (addr != MM58174_SECOND10))
+        if ((nvr->regs[addr] != val) && !(time_sync & TIME_SYNC_ENABLED))
             nvr_dosave = 1;
 
     if ((addr == MM58174_RESET) && (val & 0x01)) {
@@ -269,7 +269,7 @@ mm58174_write(uint16_t addr, uint8_t val, void *priv)
         nvr->regs[MM58174_TENTHS] = 0;
         if (!(time_sync & TIME_SYNC_ENABLED)) {
             /* Only set seconds to 0 if not synchronizing time to host clock */
-            nvr->regs[MM58174_SECOND1] = 0;
+            nvr->regs[MM58174_SECOND1]  = 0;
             nvr->regs[MM58174_SECOND10] = 0;
         }
     }
@@ -285,7 +285,7 @@ mm58174_write(uint16_t addr, uint8_t val, void *priv)
 static uint8_t
 mm58174_read(uint16_t addr, void *priv)
 {
-    nvr_t  *nvr = (nvr_t *) priv;
+    nvr_t *nvr = (nvr_t *) priv;
 
     addr &= 0x0f;
 
@@ -334,12 +334,12 @@ mm58174_init(nvr_t *nvr, int size)
 static void
 mm58274_time_set(uint8_t *regs, struct tm *tm)
 {
-    regs[MM58274_SECOND1]    = (tm->tm_sec % 10);
-    regs[MM58274_SECOND10]   = (tm->tm_sec / 10);
-    regs[MM58274_MINUTE1]    = (tm->tm_min % 10);
-    regs[MM58274_MINUTE10]   = (tm->tm_min / 10);
-    regs[MM58274_HOUR1]      = (tm->tm_hour % 10);
-    regs[MM58274_HOUR10]     = (tm->tm_hour / 10);
+    regs[MM58274_SECOND1]  = (tm->tm_sec % 10);
+    regs[MM58274_SECOND10] = (tm->tm_sec / 10);
+    regs[MM58274_MINUTE1]  = (tm->tm_min % 10);
+    regs[MM58274_MINUTE10] = (tm->tm_min / 10);
+    regs[MM58274_HOUR1]    = (tm->tm_hour % 10);
+    regs[MM58274_HOUR10]   = (tm->tm_hour / 10);
     /* Store hour in 24-hour or 12-hour mode */
     if (regs[MM58274_SETTINGS] & 0x01) {
         regs[MM58274_HOUR1]  = (tm->tm_hour % 10);
@@ -352,35 +352,35 @@ mm58274_time_set(uint8_t *regs, struct tm *tm)
         else
             regs[MM58274_SETTINGS] &= 0x0B;
     }
-    regs[MM58274_WEEKDAY]    = (tm->tm_wday + 1);
-    regs[MM58274_DAY1]       = (tm->tm_mday % 10);
-    regs[MM58274_DAY10]      = (tm->tm_mday / 10);
-    regs[MM58274_MONTH1]     = ((tm->tm_mon + 1) % 10);
-    regs[MM58274_MONTH10]    = ((tm->tm_mon + 1) / 10);
+    regs[MM58274_WEEKDAY] = (tm->tm_wday + 1);
+    regs[MM58274_DAY1]    = (tm->tm_mday % 10);
+    regs[MM58274_DAY10]   = (tm->tm_mday / 10);
+    regs[MM58274_MONTH1]  = ((tm->tm_mon + 1) % 10);
+    regs[MM58274_MONTH10] = ((tm->tm_mon + 1) / 10);
     /* MM58274 can store 00 to 99 years but M240 uses the YEAR1 register to count 8 years from leap year */
-    regs[MM58274_YEAR1]      = ((tm->tm_year + 1900) % 8);
+    regs[MM58274_YEAR1] = ((tm->tm_year + 1900) % 8);
     /* Keep bit 0 and 1 12-hour / 24-hour and AM / PM */
-    regs[MM58274_SETTINGS]  &= 0x03;
+    regs[MM58274_SETTINGS] &= 0x03;
     /* Set leap counter bits 2 and 3 */
-    regs[MM58274_SETTINGS]  += (4* (regs[MM58274_YEAR1] & 0x03));
+    regs[MM58274_SETTINGS] += (4 * (regs[MM58274_YEAR1] & 0x03));
 }
 
 /* Get the chip time. */
 static void
 mm58274_time_get(uint8_t *regs, struct tm *tm)
 {
-    tm->tm_sec      = nibbles(MM58274_SECOND);
-    tm->tm_min      = nibbles(MM58274_MINUTE);
+    tm->tm_sec = nibbles(MM58274_SECOND);
+    tm->tm_min = nibbles(MM58274_MINUTE);
     /* Read hour in 24-hour or 12-hour mode */
     if (regs[MM58274_SETTINGS] & 0x01)
         tm->tm_hour = nibbles(MM58274_HOUR);
     else
         tm->tm_hour = ((nibbles(MM58274_HOUR) % 12) + (regs[MM58274_SETTINGS] & 0x04) ? 12 : 0);
-    tm->tm_wday     = (regs[MM58274_WEEKDAY] - 1);
-    tm->tm_mday     = nibbles(MM58274_DAY);
-    tm->tm_mon      = (nibbles(MM58274_MONTH) - 1);
+    tm->tm_wday = (regs[MM58274_WEEKDAY] - 1);
+    tm->tm_mday = nibbles(MM58274_DAY);
+    tm->tm_mon  = (nibbles(MM58274_MONTH) - 1);
     /* MM58274 can store 00 to 99 years but M240 uses the YEAR1 register to count 8 years from leap year */
-    tm->tm_year     = (1984 + regs[MM58274_YEAR1] - 1900);
+    tm->tm_year = (1984 + regs[MM58274_YEAR1] - 1900);
 }
 
 /* This is called every second through the NVR/RTC hook. */
@@ -413,14 +413,14 @@ mm58274_start(nvr_t *nvr)
 static void
 mm58274_write(uint16_t addr, uint8_t val, void *priv)
 {
-    nvr_t  *nvr = (nvr_t *) priv;
+    nvr_t *nvr = (nvr_t *) priv;
 
     addr &= 0x0f;
     val &= 0x0f;
 
     /* Update non-read-only changed values if not synchronizing time to host */
     if ((addr != MM58274_TENTHS))
-        if ((nvr->regs[addr] != val) && !(time_sync & TIME_SYNC_ENABLED)) 
+        if ((nvr->regs[addr] != val) && !(time_sync & TIME_SYNC_ENABLED))
             nvr_dosave = 1;
 
     if ((addr == MM58274_CONTROL) && (val & 0x04)) {
@@ -439,7 +439,7 @@ mm58274_write(uint16_t addr, uint8_t val, void *priv)
 static uint8_t
 mm58274_read(uint16_t addr, void *priv)
 {
-    nvr_t  *nvr = (nvr_t *) priv;
+    nvr_t *nvr = (nvr_t *) priv;
 
     addr &= 0x0f;
 
@@ -517,7 +517,7 @@ m24_kbd_adddata_ex(uint16_t val)
     kbd_adddata_process(val, m24_kbd_adddata);
 }
 
-/* 
+/*
    From the Olivetti M21/M24 Theory of Operation:
 
    Port   Function
@@ -535,7 +535,7 @@ static void
 m24_kbd_write(uint16_t port, uint8_t val, void *priv)
 {
     m24_kbd_t *m24_kbd = (m24_kbd_t *) priv;
-    uint8_t ret;
+    uint8_t    ret;
 
     xt_olivetti_log("M24: write %04X %02X\n", port, val);
 
@@ -1831,7 +1831,7 @@ machine_xt_m24_init(const machine_t *model)
 int
 machine_xt_m240_init(const machine_t *model)
 {
-    int ret;
+    int        ret;
     m24_kbd_t *m24_kbd;
     nvr_t     *nvr;
 

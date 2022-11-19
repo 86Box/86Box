@@ -288,7 +288,7 @@ main(int argc, char **argv)
         return (1);
     }
 
-/* Looks good, go and listen.. */
+    /* Looks good, go and listen.. */
     i = start_cap(interfaces[i - 1].device);
 
     dynld_close(pcap_handle);

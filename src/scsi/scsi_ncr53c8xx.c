@@ -877,8 +877,8 @@ ncr53c8xx_bad_message(ncr53c8xx_t *dev, uint8_t msg)
 static void
 ncr53c8xx_do_msgout(ncr53c8xx_t *dev, uint8_t id)
 {
-    uint8_t msg;
-    int     len, arg;
+    uint8_t        msg;
+    int            len, arg;
     scsi_device_t *sd;
 
     sd = &scsi_devices[dev->bus][id];
@@ -2611,7 +2611,7 @@ static const device_config_t ncr53c8xx_pci_config[] = {
         },
     },
     { .name = "", .description = "", .type = CONFIG_END }
-// clang-format on
+  // clang-format on
 };
 
 const device_t ncr53c810_pci_device = {

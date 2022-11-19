@@ -100,12 +100,12 @@
 #define ST506_XT_TYPE_VICTOR_V86P        27
 #define ST506_XT_TYPE_TOSHIBA_T1200      28
 
-#define XEBEC_BIOS_FILE       "roms/hdd/st506/ibm_xebec_62x0822_1985.bin"
-#define DTC_BIOS_FILE         "roms/hdd/st506/dtc_cxd21a.bin"
-#define ST11_BIOS_FILE_OLD    "roms/hdd/st506/st11_bios_vers_1.7.bin"
-#define ST11_BIOS_FILE_NEW    "roms/hdd/st506/st11_bios_vers_2.0.bin"
-#define WD1002A_WX1_BIOS_FILE "roms/hdd/st506/wd1002a_wx1-62-000094-032.bin"
-#define WD1004A_WX1_BIOS_FILE "roms/hdd/st506/wd1002a_wx1-62-000094-032.bin"
+#define XEBEC_BIOS_FILE                  "roms/hdd/st506/ibm_xebec_62x0822_1985.bin"
+#define DTC_BIOS_FILE                    "roms/hdd/st506/dtc_cxd21a.bin"
+#define ST11_BIOS_FILE_OLD               "roms/hdd/st506/st11_bios_vers_1.7.bin"
+#define ST11_BIOS_FILE_NEW               "roms/hdd/st506/st11_bios_vers_2.0.bin"
+#define WD1002A_WX1_BIOS_FILE            "roms/hdd/st506/wd1002a_wx1-62-000094-032.bin"
+#define WD1004A_WX1_BIOS_FILE            "roms/hdd/st506/wd1002a_wx1-62-000094-032.bin"
 /* SuperBIOS was for both the WX1 and 27X, users jumpers readout to determine
    if to use 26 sectors per track, 26 -> 17 sectors per track translation, or
    17 sectors per track. */
@@ -292,13 +292,16 @@ typedef struct {
 } hd_type_t;
 
 hd_type_t hd_types[4] = {
+  // clang-format off
     { 306,  4, MFM_SECTORS}, /* type 0	*/
     { 612,  4, MFM_SECTORS}, /* type 16	*/
     { 615,  4, MFM_SECTORS}, /* type 2	*/
     { 306,  8, MFM_SECTORS}  /* type 13	*/
+  // clang-format on
 };
 
 hd_type_t hd_types_olivetti[16] = {
+  // clang-format off
     { 697,  5, MFM_SECTORS},
     { 612,  4, MFM_SECTORS}, /* type 16	*/
     { 612,  4, MFM_SECTORS}, /* type 16	*/
@@ -315,6 +318,7 @@ hd_type_t hd_types_olivetti[16] = {
     { 612,  4, MFM_SECTORS}, /* type 16	*/
     { 612,  4, MFM_SECTORS}, /* type 16	*/
     { 306,  4, MFM_SECTORS}  /* "not present" with the second hard disk */
+  // clang-format on
 };
 
 #ifdef ENABLE_ST506_XT_LOG
@@ -1291,9 +1295,9 @@ mem_write(uint32_t addr, uint8_t val, void *priv)
     addr -= dev->bios_addr;
 
     switch (dev->type) {
-        case ST506_XT_TYPE_ST11M:           /* ST-11M */
-        case ST506_XT_TYPE_ST11R:           /* ST-11R */
-            mask = 0x1fff; /* ST-11 decodes RAM on each 8K block */
+        case ST506_XT_TYPE_ST11M: /* ST-11M */
+        case ST506_XT_TYPE_ST11R: /* ST-11R */
+            mask = 0x1fff;        /* ST-11 decodes RAM on each 8K block */
             break;
 
         default:
@@ -1341,9 +1345,9 @@ mem_read(uint32_t addr, void *priv)
             }
             break;
 
-        case ST506_XT_TYPE_ST11M:           /* ST-11M */
-        case ST506_XT_TYPE_ST11R:           /* ST-11R */
-            mask = 0x1fff; /* ST-11 decodes RAM on each 8K block */
+        case ST506_XT_TYPE_ST11M: /* ST-11M */
+        case ST506_XT_TYPE_ST11R: /* ST-11R */
+            mask = 0x1fff;        /* ST-11 decodes RAM on each 8K block */
             break;
 
             /* default:
@@ -1636,7 +1640,7 @@ st506_init(const device_t *info)
             break;
 
         case ST506_XT_TYPE_TOSHIBA_T1200: /* Toshiba T1200 */
-            fn = NULL;
+            fn            = NULL;
             dev->base     = 0x01f0;
             dev->switches = 0x0c;
             break;

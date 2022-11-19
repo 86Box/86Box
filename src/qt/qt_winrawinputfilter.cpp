@@ -45,24 +45,20 @@
 #include <memory>
 
 extern "C" void win_joystick_handle(PRAWINPUT);
-std::unique_ptr<WindowsRawInputFilter> WindowsRawInputFilter::Register(QMainWindow *window)
+std::unique_ptr<WindowsRawInputFilter>
+WindowsRawInputFilter::Register(QMainWindow *window)
 {
-    HWND wnd = (HWND)window->winId();
+    HWND wnd = (HWND) window->winId();
 
-    RAWINPUTDEVICE rid[2] =
-    {
-        {
-            .usUsagePage = 0x01,
-            .usUsage = 0x06,
-            .dwFlags = RIDEV_NOHOTKEYS,
-            .hwndTarget = wnd
-        },
-        {
-            .usUsagePage = 0x01,
-            .usUsage = 0x02,
-            .dwFlags = 0,
-            .hwndTarget = wnd
-        }
+    RAWINPUTDEVICE rid[2] = {
+        {.usUsagePage = 0x01,
+         .usUsage     = 0x06,
+         .dwFlags     = RIDEV_NOHOTKEYS,
+         .hwndTarget  = wnd},
+        { .usUsagePage = 0x01,
+         .usUsage     = 0x02,
+         .dwFlags     = 0,
+         .hwndTarget  = wnd}
     };
 
     if (RegisterRawInputDevices(rid, 2, sizeof(rid[0])) == FALSE)
@@ -77,8 +73,7 @@ WindowsRawInputFilter::WindowsRawInputFilter(QMainWindow *window)
 {
     this->window = window;
 
-    for (auto menu : window->findChildren<QMenu*>())
-    {
+    for (auto menu : window->findChildren<QMenu *>()) {
         connect(menu, &QMenu::aboutToShow, this, [=]() { menus_open++; });
         connect(menu, &QMenu::aboutToHide, this, [=]() { menus_open--; });
     }
@@ -91,29 +86,24 @@ WindowsRawInputFilter::WindowsRawInputFilter(QMainWindow *window)
 
 WindowsRawInputFilter::~WindowsRawInputFilter()
 {
-    RAWINPUTDEVICE rid[2] =
-    {
-        {
-            .usUsagePage = 0x01,
-            .usUsage = 0x06,
-            .dwFlags = RIDEV_REMOVE,
-            .hwndTarget = NULL
-        },
-        {
-            .usUsagePage = 0x01,
-            .usUsage = 0x02,
-            .dwFlags = RIDEV_REMOVE,
-            .hwndTarget = NULL
-        }
+    RAWINPUTDEVICE rid[2] = {
+        {.usUsagePage = 0x01,
+         .usUsage     = 0x06,
+         .dwFlags     = RIDEV_REMOVE,
+         .hwndTarget  = NULL},
+        { .usUsagePage = 0x01,
+         .usUsage     = 0x02,
+         .dwFlags     = RIDEV_REMOVE,
+         .hwndTarget  = NULL}
     };
 
     RegisterRawInputDevices(rid, 2, sizeof(rid[0]));
 }
 
-bool WindowsRawInputFilter::nativeEventFilter(const QByteArray &eventType, void *message, result_t *result)
+bool
+WindowsRawInputFilter::nativeEventFilter(const QByteArray &eventType, void *message, result_t *result)
 {
-    if (eventType == "windows_generic_MSG")
-    {
+    if (eventType == "windows_generic_MSG") {
         MSG *msg = static_cast<MSG *>(message);
 
         if (msg->message == WM_INPUT) {
@@ -134,7 +124,8 @@ bool WindowsRawInputFilter::nativeEventFilter(const QByteArray &eventType, void 
     return false;
 }
 
-void WindowsRawInputFilter::handle_input(HRAWINPUT input)
+void
+WindowsRawInputFilter::handle_input(HRAWINPUT input)
 {
     UINT size = 0;
 
@@ -142,12 +133,10 @@ void WindowsRawInputFilter::handle_input(HRAWINPUT input)
 
     std::vector<BYTE> buf(size);
 
-    if (GetRawInputData(input, RID_INPUT, buf.data(), &size, sizeof(RAWINPUTHEADER)) == size)
-    {
-        PRAWINPUT raw = (PRAWINPUT)buf.data();
+    if (GetRawInputData(input, RID_INPUT, buf.data(), &size, sizeof(RAWINPUTHEADER)) == size) {
+        PRAWINPUT raw = (PRAWINPUT) buf.data();
 
-        switch(raw->header.dwType)
-        {
+        switch (raw->header.dwType) {
             case RIM_TYPEKEYBOARD:
                 keyboard_handle(raw);
                 break;
@@ -156,30 +145,30 @@ void WindowsRawInputFilter::handle_input(HRAWINPUT input)
                     mouse_handle(raw);
                 break;
             case RIM_TYPEHID:
-            {
-                win_joystick_handle(raw);
-                break;
-            }
+                {
+                    win_joystick_handle(raw);
+                    break;
+                }
         }
     }
 }
 
 /* The following is more or less a direct copy of the old WIN32 implementation */
 
-void WindowsRawInputFilter::keyboard_handle(PRAWINPUT raw)
+void
+WindowsRawInputFilter::keyboard_handle(PRAWINPUT raw)
 {
-    USHORT scancode;
+    USHORT     scancode;
     static int recv_lalt = 0, recv_ralt = 0, recv_tab = 0;
 
     RAWKEYBOARD rawKB = raw->data.keyboard;
-    scancode = rawKB.MakeCode;
+    scancode          = rawKB.MakeCode;
 
     if (kbd_req_capture && !mouse_capture)
         return;
 
     /* If it's not a scan code that starts with 0xE1 */
-    if (!(rawKB.Flags & RI_KEY_E1))
-    {
+    if (!(rawKB.Flags & RI_KEY_E1)) {
         if (rawKB.Flags & RI_KEY_E0)
             scancode |= 0x100;
 
@@ -196,15 +185,10 @@ void WindowsRawInputFilter::keyboard_handle(PRAWINPUT raw)
        We use scan code 0xFFFF to mean a mapping that
        has a prefix other than E0 and that is not E1 1D,
        which is, for our purposes, invalid. */
-        if ((scancode == 0x00F) &&
-            !(rawKB.Flags & RI_KEY_BREAK) &&
-            (recv_lalt || recv_ralt) &&
-            !mouse_capture)
-        {
+        if ((scancode == 0x00F) && !(rawKB.Flags & RI_KEY_BREAK) && (recv_lalt || recv_ralt) && !mouse_capture) {
             /* We received a TAB while ALT was pressed, while the mouse
            is not captured, suppress the TAB and send an ALT key up. */
-            if (recv_lalt)
-            {
+            if (recv_lalt) {
                 keyboard_input(0, 0x038);
                 /* Extra key press and release so the guest is not stuck in the
                menu bar. */
@@ -212,8 +196,7 @@ void WindowsRawInputFilter::keyboard_handle(PRAWINPUT raw)
                 keyboard_input(0, 0x038);
                 recv_lalt = 0;
             }
-            if (recv_ralt)
-            {
+            if (recv_ralt) {
                 keyboard_input(0, 0x138);
                 /* Extra key press and release so the guest is not stuck in the
                menu bar. */
@@ -221,30 +204,22 @@ void WindowsRawInputFilter::keyboard_handle(PRAWINPUT raw)
                 keyboard_input(0, 0x138);
                 recv_ralt = 0;
             }
-        }
-        else if (((scancode == 0x038) || (scancode == 0x138)) &&
-                 !(rawKB.Flags & RI_KEY_BREAK) &&
-                 recv_tab &&
-                 !mouse_capture)
-        {
+        } else if (((scancode == 0x038) || (scancode == 0x138)) && !(rawKB.Flags & RI_KEY_BREAK) && recv_tab && !mouse_capture) {
             /* We received an ALT while TAB was pressed, while the mouse
            is not captured, suppress the ALT and send a TAB key up. */
             keyboard_input(0, 0x00F);
             recv_tab = 0;
-        }
-        else
-        {
-            switch (scancode)
-            {
-            case 0x00F:
-                recv_tab = !(rawKB.Flags & RI_KEY_BREAK);
-                break;
-            case 0x038:
-                recv_lalt = !(rawKB.Flags & RI_KEY_BREAK);
-                break;
-            case 0x138:
-                recv_ralt = !(rawKB.Flags & RI_KEY_BREAK);
-                break;
+        } else {
+            switch (scancode) {
+                case 0x00F:
+                    recv_tab = !(rawKB.Flags & RI_KEY_BREAK);
+                    break;
+                case 0x038:
+                    recv_lalt = !(rawKB.Flags & RI_KEY_BREAK);
+                    break;
+                case 0x138:
+                    recv_ralt = !(rawKB.Flags & RI_KEY_BREAK);
+                    break;
             }
 
             /* Translate right CTRL to left ALT if the user has so
@@ -257,18 +232,14 @@ void WindowsRawInputFilter::keyboard_handle(PRAWINPUT raw)
             if (scancode != 0xFFFF)
                 keyboard_input(!(rawKB.Flags & RI_KEY_BREAK), scancode);
         }
-    }
-    else
-    {
-        if (rawKB.MakeCode == 0x1D)
-        {
+    } else {
+        if (rawKB.MakeCode == 0x1D) {
             scancode = scancode_map[0x100]; /* Translate E1 1D to 0x100 (which would
                            otherwise be E0 00 but that is invalid
                            anyway).
                            Also, take a potential mapping into
                            account. */
-        }
-        else
+        } else
             scancode = 0xFFFF;
         if (scancode != 0xFFFF)
             keyboard_input(!(rawKB.Flags & RI_KEY_BREAK), scancode);
@@ -277,7 +248,8 @@ void WindowsRawInputFilter::keyboard_handle(PRAWINPUT raw)
 
 /* This is so we can disambiguate scan codes that would otherwise conflict and get
    passed on incorrectly. */
-UINT16 WindowsRawInputFilter::convert_scan_code(UINT16 scan_code)
+UINT16
+WindowsRawInputFilter::convert_scan_code(UINT16 scan_code)
 {
     if ((scan_code & 0xff00) == 0xe000)
         scan_code = (scan_code & 0xff) | 0x0100;
@@ -293,19 +265,20 @@ UINT16 WindowsRawInputFilter::convert_scan_code(UINT16 scan_code)
     return scan_code;
 }
 
-void WindowsRawInputFilter::keyboard_getkeymap()
+void
+WindowsRawInputFilter::keyboard_getkeymap()
 {
-    const LPCSTR keyName = "SYSTEM\\CurrentControlSet\\Control\\Keyboard Layout";
-    const LPCSTR valueName = "Scancode Map";
+    const LPCSTR  keyName   = "SYSTEM\\CurrentControlSet\\Control\\Keyboard Layout";
+    const LPCSTR  valueName = "Scancode Map";
     unsigned char buf[32768];
-    DWORD bufSize;
-    HKEY hKey;
-    int j;
-    UINT32 *bufEx2;
-    int scMapCount;
-    UINT16 *bufEx;
-    int scancode_unmapped;
-    int scancode_mapped;
+    DWORD         bufSize;
+    HKEY          hKey;
+    int           j;
+    UINT32       *bufEx2;
+    int           scMapCount;
+    UINT16       *bufEx;
+    int           scancode_unmapped;
+    int           scancode_mapped;
 
     /* First, prepare the default scan code map list which is 1:1.
      * Remappings will be inserted directly into it.
@@ -318,24 +291,20 @@ void WindowsRawInputFilter::keyboard_getkeymap()
     /* Get the scan code remappings from:
     HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Keyboard Layout */
     bufSize = 32768;
-    if (RegOpenKeyExA(HKEY_LOCAL_MACHINE, keyName, 0, 1, &hKey) == ERROR_SUCCESS)
-    {
-        if (RegQueryValueExA(hKey, valueName, NULL, NULL, buf, &bufSize) == ERROR_SUCCESS)
-        {
-            bufEx2 = (UINT32 *)buf;
+    if (RegOpenKeyExA(HKEY_LOCAL_MACHINE, keyName, 0, 1, &hKey) == ERROR_SUCCESS) {
+        if (RegQueryValueExA(hKey, valueName, NULL, NULL, buf, &bufSize) == ERROR_SUCCESS) {
+            bufEx2     = (UINT32 *) buf;
             scMapCount = bufEx2[2];
-            if ((bufSize != 0) && (scMapCount != 0))
-            {
-                bufEx = (UINT16 *)(buf + 12);
-                for (j = 0; j < scMapCount * 2; j += 2)
-                {
+            if ((bufSize != 0) && (scMapCount != 0)) {
+                bufEx = (UINT16 *) (buf + 12);
+                for (j = 0; j < scMapCount * 2; j += 2) {
                     /* Each scan code is 32-bit: 16 bits of remapped scan code,
                     and 16 bits of original scan code. */
                     scancode_unmapped = bufEx[j + 1];
-                    scancode_mapped = bufEx[j];
+                    scancode_mapped   = bufEx[j];
 
                     scancode_unmapped = convert_scan_code(scancode_unmapped);
-                    scancode_mapped = convert_scan_code(scancode_mapped);
+                    scancode_mapped   = convert_scan_code(scancode_mapped);
 
                     /* Ignore source scan codes with prefixes other than E1
                    that are not E1 1D. */
@@ -348,9 +317,10 @@ void WindowsRawInputFilter::keyboard_getkeymap()
     }
 }
 
-void WindowsRawInputFilter::mouse_handle(PRAWINPUT raw)
+void
+WindowsRawInputFilter::mouse_handle(PRAWINPUT raw)
 {
-    RAWMOUSE state = raw->data.mouse;
+    RAWMOUSE   state = raw->data.mouse;
     static int x, y;
 
     /* read mouse buttons and wheel */
@@ -369,13 +339,11 @@ void WindowsRawInputFilter::mouse_handle(PRAWINPUT raw)
     else if (state.usButtonFlags & RI_MOUSE_RIGHT_BUTTON_UP)
         buttons &= ~2;
 
-    if (state.usButtonFlags & RI_MOUSE_WHEEL)
-    {
-        dwheel += (SHORT)state.usButtonData / 120;
+    if (state.usButtonFlags & RI_MOUSE_WHEEL) {
+        dwheel += (SHORT) state.usButtonData / 120;
     }
 
-    if (state.usFlags & MOUSE_MOVE_ABSOLUTE)
-    {
+    if (state.usFlags & MOUSE_MOVE_ABSOLUTE) {
         /* absolute mouse, i.e. RDP or VNC
          * seems to work fine for RDP on Windows 10
          * Not sure about other environments.
@@ -384,46 +352,42 @@ void WindowsRawInputFilter::mouse_handle(PRAWINPUT raw)
         dy += (state.lLastY - y) / 25;
         x = state.lLastX;
         y = state.lLastY;
-    }
-    else
-    {
+    } else {
         /* relative mouse, i.e. regular mouse */
         dx += state.lLastX;
         dy += state.lLastY;
     }
-    HWND wnd = (HWND)window->winId();
+    HWND wnd = (HWND) window->winId();
 
     RECT rect;
 
     GetWindowRect(wnd, &rect);
 
     int left = rect.left + (rect.right - rect.left) / 2;
-    int top = rect.top + (rect.bottom - rect.top) / 2;
+    int top  = rect.top + (rect.bottom - rect.top) / 2;
 
     SetCursorPos(left, top);
 }
 
-void WindowsRawInputFilter::mousePoll()
+void
+WindowsRawInputFilter::mousePoll()
 {
-    if (mouse_capture || video_fullscreen)
-    {
+    if (mouse_capture || video_fullscreen) {
         static int b = 0;
 
-        if (dx != 0 || dy != 0 || dwheel != 0)
-        {
+        if (dx != 0 || dy != 0 || dwheel != 0) {
             mouse_x += dx;
             mouse_y += dy;
             mouse_z = dwheel;
 
-            dx = 0;
-            dy = 0;
+            dx     = 0;
+            dy     = 0;
             dwheel = 0;
         }
 
-        if (b != buttons)
-        {
+        if (b != buttons) {
             mouse_buttons = buttons;
-            b = buttons;
+            b             = buttons;
         }
     }
 }

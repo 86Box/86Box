@@ -221,7 +221,7 @@ nuked_log(const char *fmt, ...)
         va_start(ap, fmt);
         pclog_ex(fmt, ap);
         va_end(ap);
-	}
+    }
 }
 #else
 #    define nuked_log(fmt, ...)

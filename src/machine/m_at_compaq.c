@@ -702,7 +702,7 @@ const device_config_t compaq_plasma_config[] = {
         }
     },
     { .name = "", .description = "", .type = CONFIG_END }
-// clang-format on
+  // clang-format on
 };
 
 const device_t compaq_plasma_device = {

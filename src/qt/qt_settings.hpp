@@ -19,32 +19,31 @@ class SettingsFloppyCDROM;
 class SettingsOtherRemovable;
 class SettingsOtherPeripherals;
 
-class Settings : public QDialog
-{
+class Settings : public QDialog {
     Q_OBJECT
 
 public:
-     explicit Settings(QWidget *parent = nullptr);
+    explicit Settings(QWidget *parent = nullptr);
     ~Settings();
-     void save();
+    void save();
 
-     static Settings* settings;
+    static Settings *settings;
 protected slots:
-     void accept() override;
+    void accept() override;
 
 private:
-    Ui::Settings *ui;
-    SettingsMachine* machine;
-    SettingsDisplay* display;
-    SettingsInput* input;
-    SettingsSound* sound;
-    SettingsNetwork* network;
-    SettingsPorts* ports;
-    SettingsStorageControllers* storageControllers;
-    SettingsHarddisks* harddisks;
-    SettingsFloppyCDROM* floppyCdrom;
-    SettingsOtherRemovable* otherRemovable;
-    SettingsOtherPeripherals* otherPeripherals;
+    Ui::Settings               *ui;
+    SettingsMachine            *machine;
+    SettingsDisplay            *display;
+    SettingsInput              *input;
+    SettingsSound              *sound;
+    SettingsNetwork            *network;
+    SettingsPorts              *ports;
+    SettingsStorageControllers *storageControllers;
+    SettingsHarddisks          *harddisks;
+    SettingsFloppyCDROM        *floppyCdrom;
+    SettingsOtherRemovable     *otherRemovable;
+    SettingsOtherPeripherals   *otherPeripherals;
 };
 
 #endif // QT_SETTINGS_HPP
