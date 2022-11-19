@@ -1085,9 +1085,9 @@ rep_action(int bits)
         access(71, bits);
         pfq_clear();
         if (is_nec && (ovr_seg != NULL))
-           set_ip(cpu_state.pc - 3);
+            set_ip(cpu_state.pc - 3);
         else
-           set_ip(cpu_state.pc - 2);
+            set_ip(cpu_state.pc - 2);
         t = 0;
     }
     if (t == 0) {
@@ -1683,7 +1683,7 @@ execx86(int cycs)
         // pclog("[%04X:%04X] Opcode: %02X\n", CS, cpu_state.pc, opcode);
         if (is186) {
             switch (opcode) {
-                case 0x60:       /*PUSHA/PUSH R*/
+                case 0x60: /*PUSHA/PUSH R*/
                     orig_sp = SP;
                     wait(1, 0);
                     push(&AX);
@@ -1696,12 +1696,12 @@ execx86(int cycs)
                     push(&DI);
                     handled = 1;
                     break;
-                case 0x61:       /*POPA/POP R*/
+                case 0x61: /*POPA/POP R*/
                     wait(9, 0);
-                    DI      = pop();
-                    SI      = pop();
-                    BP      = pop();
-                    (void)    pop();      /* former orig_sp */
+                    DI = pop();
+                    SI = pop();
+                    BP = pop();
+                    (void) pop(); /* former orig_sp */
                     BX      = pop();
                     DX      = pop();
                     CX      = pop();
@@ -1710,9 +1710,9 @@ execx86(int cycs)
                     break;
 
                 case 0x62: /* BOUND r/m */
-                    lowbound = 0;
+                    lowbound  = 0;
                     highbound = 0;
-                    regval = 0;
+                    regval    = 0;
                     do_mod_rm();
 
                     lowbound  = readmemw(easeg, cpu_state.eaaddr);
@@ -1733,7 +1733,7 @@ execx86(int cycs)
                         in_rep     = (opcode == 0x64 ? 1 : 2);
                         rep_c_flag = 1;
                         completed  = 0;
-                        handled = 1;
+                        handled    = 1;
                     }
                     break;
 
@@ -1746,7 +1746,7 @@ execx86(int cycs)
 
                 case 0x69:
                     immediate = 0;
-                    bits = 16;
+                    bits      = 16;
                     do_mod_rm();
                     read_ea(0, 16);
                     immediate = pfq_fetchw();
@@ -1764,7 +1764,7 @@ execx86(int cycs)
 
                 case 0x6b: /* IMUL reg16,reg16/mem16,imm8 */
                     immediate = 0;
-                    bits = 16;
+                    bits      = 16;
                     do_mod_rm();
                     read_ea(0, 16);
                     immediate = pfq_fetchb();
@@ -1805,13 +1805,13 @@ execx86(int cycs)
                 case 0x6e:
                 case 0x6f: /* OUTM DW, src/OUTS DX, src */
                     dest_seg = ovr_seg ? *ovr_seg : ds;
-                    bits              = 8 << (opcode & 1);
-                    handled           = 1;
+                    bits     = 8 << (opcode & 1);
+                    handled  = 1;
                     if (!repeating)
                         wait(2, 0);
 
                     if (rep_action(bits))
-                         break;
+                        break;
                     else if (!repeating)
                         wait(7, 0);
 
@@ -1832,9 +1832,9 @@ execx86(int cycs)
 
                 case 0xc8: /* ENTER/PREPARE */
                     tempw_int = 0;
-                    size  = pfq_fetchw();
-                    nests = pfq_fetchb();
-                    i     = 0;
+                    size      = pfq_fetchw();
+                    nests     = pfq_fetchb();
+                    i         = 0;
 
                     push(&BP);
                     tempw_int = SP;
@@ -1984,7 +1984,7 @@ execx86(int cycs)
                                 handled = 1;
                                 break;
 
-                           case 0x2a: /* ROR4 r/m */
+                            case 0x2a: /* ROR4 r/m */
                                 do_mod_rm();
                                 wait(21, 0);
 
@@ -2081,10 +2081,10 @@ execx86(int cycs)
                                 odd           = !!(CL % 2);
                                 zero          = 1;
                                 nibbles_count = CL - odd;
-                                i = 0;
-                                carry = 0;
-                                nibble = 0;
-                                srcseg = ovr_seg ? *ovr_seg : ds;
+                                i             = 0;
+                                carry         = 0;
+                                nibble        = 0;
+                                srcseg        = ovr_seg ? *ovr_seg : ds;
 
                                 wait(5, 0);
                                 for (i = 0; i < ((nibbles_count / 2) + odd); i++) {
@@ -2116,10 +2116,10 @@ execx86(int cycs)
                                 odd           = !!(CL % 2);
                                 zero          = 1;
                                 nibbles_count = CL - odd;
-                                i = 0;
-                                carry = 0;
-                                nibble = 0;
-                                srcseg = ovr_seg ? *ovr_seg : ds;
+                                i             = 0;
+                                carry         = 0;
+                                nibble        = 0;
+                                srcseg        = ovr_seg ? *ovr_seg : ds;
 
                                 wait(5, 0);
                                 for (i = 0; i < ((nibbles_count / 2) + odd); i++) {
@@ -2151,10 +2151,10 @@ execx86(int cycs)
                                 odd           = !!(CL % 2);
                                 zero          = 1;
                                 nibbles_count = CL - odd;
-                                i = 0;
-                                carry = 0;
-                                nibble = 0;
-                                srcseg = ovr_seg ? *ovr_seg : ds;
+                                i             = 0;
+                                carry         = 0;
+                                nibble        = 0;
+                                srcseg        = ovr_seg ? *ovr_seg : ds;
 
                                 wait(5, 0);
                                 for (i = 0; i < ((nibbles_count / 2) + odd); i++) {
@@ -2206,7 +2206,7 @@ execx86(int cycs)
                                     }
                                 }
                                 setr8(cpu_rm, bit_offset);
- 
+
                                 handled = 1;
                                 break;
 
@@ -2501,9 +2501,9 @@ execx86(int cycs)
                     wait(1, 0);
                     break;
 
-                case 0x60:       /*JO alias*/
-                case 0x70:                    /*JO*/
-                case 0x61:                    /*JNO alias*/
+                case 0x60: /*JO alias*/
+                case 0x70: /*JO*/
+                case 0x61: /*JNO alias*/
                 case 0x71: /*JNO*/
                     jcc(opcode, cpu_state.flags & V_FLAG);
                     break;
@@ -2525,15 +2525,15 @@ execx86(int cycs)
                 case 0x77: /*JNBE*/
                     jcc(opcode, cpu_state.flags & (C_FLAG | Z_FLAG));
                     break;
-                case 0x68:       /*JS alias*/
-                case 0x78:                         /*JS*/
-                case 0x69:                         /*JNS alias*/
+                case 0x68: /*JS alias*/
+                case 0x78: /*JS*/
+                case 0x69: /*JNS alias*/
                 case 0x79: /*JNS*/
                     jcc(opcode, cpu_state.flags & N_FLAG);
                     break;
-                case 0x6A:       /*JP alias*/
-                case 0x7A:                         /*JP*/
-                case 0x6B:                         /*JNP alias*/
+                case 0x6A: /*JP alias*/
+                case 0x7A: /*JP*/
+                case 0x6B: /*JNP alias*/
                 case 0x7B: /*JNP*/
                     jcc(opcode, cpu_state.flags & P_FLAG);
                     break;
