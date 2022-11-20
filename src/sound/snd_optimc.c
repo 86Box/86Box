@@ -328,6 +328,18 @@ optimc_reg_read(uint16_t addr, void *p)
     return temp;
 }
 
+static void
+optimc_filter_cd_audio(int channel, double *buffer, void *p)
+{
+    optimc_t *optimc = (optimc_t*) p;
+
+    if (optimc->cur_wss_enabled) {
+        ad1848_filter_cd_audio(channel, buffer, p);
+    } else {
+        sbpro_filter_cd_audio(channel, buffer, p);
+    }
+}
+
 static void *
 optimc_init(const device_t *info)
 {
@@ -392,7 +404,7 @@ optimc_init(const device_t *info)
     io_sethandler(optimc->cur_addr + 4, 0x0002, sb_ct1345_mixer_read, NULL, NULL, sb_ct1345_mixer_write, NULL, NULL, optimc->sb);
 
     sound_add_handler(optimc_get_buffer, optimc);
-    sound_set_cd_audio_filter(sbpro_filter_cd_audio, optimc->sb);
+    sound_set_cd_audio_filter(optimc_filter_cd_audio, optimc);
 
     optimc->mpu = (mpu_t *) malloc(sizeof(mpu_t));
     memset(optimc->mpu, 0, sizeof(mpu_t));
