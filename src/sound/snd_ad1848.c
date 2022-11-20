@@ -384,18 +384,17 @@ ad1848_write(uint16_t addr, uint8_t val, void *priv)
             if (updatefreq)
                 ad1848_updatefreq(ad1848);
 
-            if (ad1848->type >= AD1848_TYPE_CS4231) { /* TODO: configure CD volume for CS4248/AD1848 too */
-                temp = (ad1848->type == AD1848_TYPE_CS4231) ? 18 : 4;
-                if (ad1848->regs[temp] & 0x80)
-                    ad1848->cd_vol_l = 0;
-                else
-                    ad1848->cd_vol_l = ad1848_vols_5bits_aux_gain[ad1848->regs[temp] & 0x1f];
-                temp++;
-                if (ad1848->regs[temp] & 0x80)
-                    ad1848->cd_vol_r = 0;
-                else
-                    ad1848->cd_vol_r = ad1848_vols_5bits_aux_gain[ad1848->regs[temp] & 0x1f];
-            }
+            temp = (ad1848->type < AD1848_TYPE_CS4231) ? 2 : ((ad1848->type == AD1848_TYPE_CS4231) ? 18 : 4);
+            if (ad1848->regs[temp] & 0x80)
+                ad1848->cd_vol_l = 0;
+            else
+                ad1848->cd_vol_l = ad1848_vols_5bits_aux_gain[ad1848->regs[temp] & 0x1f];
+            temp++;
+            if (ad1848->regs[temp] & 0x80)
+                ad1848->cd_vol_r = 0;
+            else
+                ad1848->cd_vol_r = ad1848_vols_5bits_aux_gain[ad1848->regs[temp] & 0x1f];
+
             break;
 
         case 2:
@@ -600,7 +599,7 @@ ad1848_filter_cd_audio(int channel, double *buffer, void *priv)
 }
 
 void
-ad1848_filter_aux2(void* priv, double* out_l, double* out_r)
+ad1848_filter_aux2(void *priv, double *out_l, double *out_r)
 {
     ad1848_t *ad1848 = (ad1848_t *) priv;
 
