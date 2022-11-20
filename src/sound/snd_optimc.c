@@ -70,6 +70,16 @@ typedef struct optimc_t {
     uint8_t regs[6];
 } optimc_t, opti_82c929_t;
 
+static void
+optimc_filter_opl(void* priv, double* out_l, double* out_r)
+{
+    optimc_t *optimc = (optimc_t *) priv;
+
+    if (optimc->cur_wss_enabled) {
+        ad1848_filter_aux2((void*)&optimc->ad1848, out_l, out_r);
+    }
+}
+
 static uint8_t
 optimc_wss_read(uint16_t addr, void *priv)
 {
@@ -364,6 +374,9 @@ optimc_init(const device_t *info)
     sb_dsp_setirq(&optimc->sb->dsp, optimc->cur_irq);
     sb_dsp_setdma8(&optimc->sb->dsp, optimc->cur_dma);
     sb_ct1345_mixer_reset(optimc->sb);
+
+    optimc->sb->opl_mixer = optimc;
+    optimc->sb->opl_mix = optimc_filter_opl;
 
     optimc->fm_type = (info->local & OPTIMC_OPL4) ? FM_YMF278B : FM_YMF262;
     fm_driver_get(optimc->fm_type, &optimc->sb->opl);
