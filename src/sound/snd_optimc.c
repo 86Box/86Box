@@ -364,7 +364,7 @@ optimc_init(const device_t *info)
     optimc->regs[4] = 0x3F;
     optimc->regs[5] = 0x83;
 
-    optimc->gameport = gameport_add(&gameport_device);
+    optimc->gameport = gameport_add(&gameport_pnp_device);
     gameport_remap(optimc->gameport, (optimc->regs[0] & 0x1) ? 0x00 : 0x200);
 
     if (info->local & 0x100)
