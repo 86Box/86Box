@@ -290,6 +290,9 @@ sb_get_buffer_sbpro(int32_t *buffer, int len, void *p)
             } else {
                 out_l = (((double) opl_buf[c]) * mixer->fm_l) * 0.7171630859375;
                 out_r = (((double) opl_buf[c + 1]) * mixer->fm_r) * 0.7171630859375;
+                if (sb->opl_mix && sb->opl_mixer) {
+                    sb->opl_mix(sb->opl_mixer, &out_l, &out_r);
+                }
             }
         }
 

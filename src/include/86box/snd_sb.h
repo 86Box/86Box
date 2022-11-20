@@ -147,6 +147,9 @@ typedef struct sb_t {
         pnp_rom[512];
 
     uint16_t opl_pnp_addr;
+
+    void   *opl_mixer;
+    void  (*opl_mix)(void*, double*, double*);
 } sb_t;
 
 extern void    sb_ct1345_mixer_write(uint16_t addr, uint8_t val, void *p);
