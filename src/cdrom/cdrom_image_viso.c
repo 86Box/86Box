@@ -859,7 +859,7 @@ viso_init(const char *dirname, int *error)
 
         /* Iterate through this directory's children again, making the entries. */
         if (dirp) {
-        rewinddir(dirp);
+            rewinddir(dirp);
             while ((readdir_entry = readdir(dirp))) {
                 /* Ignore . and .. pseudo-directories. */
                 if ((readdir_entry->d_name[0] == '.') && ((readdir_entry->d_name[1] == '\0') || (*((uint16_t *) &readdir_entry->d_name[1]) == '.')))
@@ -931,6 +931,7 @@ viso_init(const char *dirname, int *error)
 
                 cdrom_image_viso_log("[%08X] %s => [%-12s] %s\n", entry, dir->path, entry->name_short, entry->basename);
             }
+            closedir(dirp);
         } else {
             cdrom_image_viso_log("VISO: Failed to enumerate [%s], will be empty\n", dir->path);
         }
