@@ -812,16 +812,16 @@ viso_init(const char *dirname, int *error)
     while (dir) {
         /* Open directory for listing. */
         DIR *dirp = opendir(dir->path);
-        if (!dirp)
-            goto next_dir;
 
         /* Iterate through this directory's children to determine the entry array size. */
         size_t children_count = 3; /* include terminator, . and .. */
-        while ((readdir_entry = readdir(dirp))) {
-            /* Ignore . and .. pseudo-directories. */
-            if ((readdir_entry->d_name[0] == '.') && ((readdir_entry->d_name[1] == '\0') || (*((uint16_t *) &readdir_entry->d_name[1]) == '.')))
-                continue;
-            children_count++;
+        if (dirp) { /* create empty directory if opendir failed */
+            while ((readdir_entry = readdir(dirp))) {
+                /* Ignore . and .. pseudo-directories. */
+                if ((readdir_entry->d_name[0] == '.') && ((readdir_entry->d_name[1] == '\0') || (*((uint16_t *) &readdir_entry->d_name[1]) == '.')))
+                    continue;
+                children_count++;
+            }
         }
 
         /* Grow array if needed. */
@@ -858,77 +858,81 @@ viso_init(const char *dirname, int *error)
         }
 
         /* Iterate through this directory's children again, making the entries. */
+        if (dirp) {
         rewinddir(dirp);
-        while ((readdir_entry = readdir(dirp))) {
-            /* Ignore . and .. pseudo-directories. */
-            if ((readdir_entry->d_name[0] == '.') && ((readdir_entry->d_name[1] == '\0') || (*((uint16_t *) &readdir_entry->d_name[1]) == '.')))
-                continue;
+            while ((readdir_entry = readdir(dirp))) {
+                /* Ignore . and .. pseudo-directories. */
+                if ((readdir_entry->d_name[0] == '.') && ((readdir_entry->d_name[1] == '\0') || (*((uint16_t *) &readdir_entry->d_name[1]) == '.')))
+                    continue;
 
-            /* Add and fill entry. */
-            entry = dir_entries[children_count++] = (viso_entry_t *) calloc(1, sizeof(viso_entry_t) + dir_path_len + strlen(readdir_entry->d_name) + 2);
-            if (!entry)
-                break;
-            entry->parent = dir;
-            strcpy(entry->path, dir->path);
-            path_slash(&entry->path[dir_path_len]);
-            entry->basename = &entry->path[dir_path_len + 1];
-            strcpy(entry->basename, readdir_entry->d_name);
+                /* Add and fill entry. */
+                entry = dir_entries[children_count++] = (viso_entry_t *) calloc(1, sizeof(viso_entry_t) + dir_path_len + strlen(readdir_entry->d_name) + 2);
+                if (!entry)
+                    break;
+                entry->parent = dir;
+                strcpy(entry->path, dir->path);
+                path_slash(&entry->path[dir_path_len]);
+                entry->basename = &entry->path[dir_path_len + 1];
+                strcpy(entry->basename, readdir_entry->d_name);
 
-            /* Stat this child. */
-            if (stat(entry->path, &entry->stats) != 0) {
-                /* Use a blank structure if stat failed. */
-                memset(&entry->stats, 0x00, sizeof(struct stat));
-            }
-
-            /* Handle file size and El Torito boot code. */
-            if (!S_ISDIR(entry->stats.st_mode)) {
-                /* Clamp file size to 4 GB - 1 byte. */
-                if (entry->stats.st_size > ((uint32_t) -1))
-                    entry->stats.st_size = (uint32_t) -1;
-
-                /* Increase entry map size. */
-                viso->entry_map_size += entry->stats.st_size / viso->sector_size;
-                if (entry->stats.st_size % viso->sector_size)
-                    viso->entry_map_size++; /* round up to the next sector */
-
-                /* Detect El Torito boot code file and set it accordingly. */
-                if (dir == eltorito_dir) {
-                    if (!stricmp(readdir_entry->d_name, "Boot-NoEmul.img")) {
-                        eltorito_type = 0x00;
-have_eltorito_entry:
-                        if (eltorito_entry)
-                            eltorito_others_present = 1; /* flag that the boot code directory contains other files */
-                        eltorito_entry = entry;
-                    } else if (!stricmp(readdir_entry->d_name, "Boot-1.2M.img")) {
-                        eltorito_type = 0x01;
-                        goto have_eltorito_entry;
-                    } else if (!stricmp(readdir_entry->d_name, "Boot-1.44M.img")) {
-                        eltorito_type = 0x02;
-                        goto have_eltorito_entry;
-                    } else if (!stricmp(readdir_entry->d_name, "Boot-2.88M.img")) {
-                        eltorito_type = 0x03;
-                        goto have_eltorito_entry;
-                    } else if (!stricmp(readdir_entry->d_name, "Boot-HardDisk.img")) {
-                        eltorito_type = 0x04;
-                        goto have_eltorito_entry;
-                    } else {
-                        eltorito_others_present = 1; /* flag that the boot code directory contains other files */
-                    }
+                /* Stat this child. */
+                if (stat(entry->path, &entry->stats) != 0) {
+                    /* Use a blank structure if stat failed. */
+                    memset(&entry->stats, 0x00, sizeof(struct stat));
                 }
-            } else if ((dir == viso->root_dir) && !stricmp(readdir_entry->d_name, "[BOOT]")) {
-                /* Set this as the directory containing El Torito boot code. */
-                eltorito_dir            = entry;
-                eltorito_others_present = 0;
-            }
 
-            /* Set short filename. */
-            if (viso_fill_fn_short(entry->name_short, entry, dir_entries)) {
-                free(entry);
-                children_count--;
-                continue;
-            }
+                /* Handle file size and El Torito boot code. */
+                if (!S_ISDIR(entry->stats.st_mode)) {
+                    /* Clamp file size to 4 GB - 1 byte. */
+                    if (entry->stats.st_size > ((uint32_t) -1))
+                        entry->stats.st_size = (uint32_t) -1;
 
-            cdrom_image_viso_log("[%08X] %s => [%-12s] %s\n", entry, dir->path, entry->name_short, entry->basename);
+                    /* Increase entry map size. */
+                    viso->entry_map_size += entry->stats.st_size / viso->sector_size;
+                    if (entry->stats.st_size % viso->sector_size)
+                        viso->entry_map_size++; /* round up to the next sector */
+
+                    /* Detect El Torito boot code file and set it accordingly. */
+                    if (dir == eltorito_dir) {
+                        if (!stricmp(readdir_entry->d_name, "Boot-NoEmul.img")) {
+                            eltorito_type = 0x00;
+    have_eltorito_entry:
+                            if (eltorito_entry)
+                                eltorito_others_present = 1; /* flag that the boot code directory contains other files */
+                            eltorito_entry = entry;
+                        } else if (!stricmp(readdir_entry->d_name, "Boot-1.2M.img")) {
+                            eltorito_type = 0x01;
+                            goto have_eltorito_entry;
+                        } else if (!stricmp(readdir_entry->d_name, "Boot-1.44M.img")) {
+                            eltorito_type = 0x02;
+                            goto have_eltorito_entry;
+                        } else if (!stricmp(readdir_entry->d_name, "Boot-2.88M.img")) {
+                            eltorito_type = 0x03;
+                            goto have_eltorito_entry;
+                        } else if (!stricmp(readdir_entry->d_name, "Boot-HardDisk.img")) {
+                            eltorito_type = 0x04;
+                            goto have_eltorito_entry;
+                        } else {
+                            eltorito_others_present = 1; /* flag that the boot code directory contains other files */
+                        }
+                    }
+                } else if ((dir == viso->root_dir) && !stricmp(readdir_entry->d_name, "[BOOT]")) {
+                    /* Set this as the directory containing El Torito boot code. */
+                    eltorito_dir            = entry;
+                    eltorito_others_present = 0;
+                }
+
+                /* Set short filename. */
+                if (viso_fill_fn_short(entry->name_short, entry, dir_entries)) {
+                    free(entry);
+                    children_count--;
+                    continue;
+                }
+
+                cdrom_image_viso_log("[%08X] %s => [%-12s] %s\n", entry, dir->path, entry->name_short, entry->basename);
+            }
+        } else {
+            cdrom_image_viso_log("VISO: Failed to enumerate [%s], will be empty\n", dir->path);
         }
 
         /* Add terminator. */
