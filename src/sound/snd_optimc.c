@@ -153,41 +153,37 @@ optimc_reg_write(uint16_t addr, uint8_t val, void *p)
     if (optimc->reg_enabled) {
         switch (idx) {
             case 0: /* MC1 */
-                {
-                    optimc->regs[0] = val;
-                    if (val != old) {
-                        optimc->cur_mode = optimc->cur_wss_enabled = !!(val & 0x80);
-                        io_removehandler(optimc->cur_wss_addr, 0x0004, optimc_wss_read, NULL, NULL, optimc_wss_write, NULL, NULL, optimc);
-                        io_removehandler(optimc->cur_wss_addr + 0x0004, 0x0004, ad1848_read, NULL, NULL, ad1848_write, NULL, NULL, &optimc->ad1848);
-                        switch ((val >> 4) & 0x3) {
-                            case 0: /* WSBase = 0x530 */
-                                {
-                                    optimc->cur_wss_addr = 0x530;
-                                    break;
-                                }
-                            case 1: /* WSBase = 0xE80 */
-                                {
-                                    optimc->cur_wss_addr = 0xE80;
-                                    break;
-                                }
-                            case 2: /* WSBase = 0xF40 */
-                                {
-                                    optimc->cur_wss_addr = 0xF40;
-                                    break;
-                                }
-                            case 3: /* WSBase = 0x604 */
-                                {
-                                    optimc->cur_wss_addr = 0x604;
-                                    break;
-                                }
-                        }
-                        io_sethandler(optimc->cur_wss_addr, 0x0004, optimc_wss_read, NULL, NULL, optimc_wss_write, NULL, NULL, optimc);
-                        io_sethandler(optimc->cur_wss_addr + 0x0004, 0x0004, ad1848_read, NULL, NULL, ad1848_write, NULL, NULL, &optimc->ad1848);
+                optimc->regs[0] = val;
+                if (val != old) {
+                    optimc->cur_mode = optimc->cur_wss_enabled = !!(val & 0x80);
 
-                        gameport_remap(optimc->gameport, (optimc->regs[0] & 0x1) ? 0x00 : 0x200);
+                    if (ctx) /* WSS */
+                        sound_set_cd_audio_filter(ad1848_filter_cd_audio, &optimc->ad1848);
+                    else /* SBPro */
+                        sound_set_cd_audio_filter(sbpro_filter_cd_audio, optimc->sb);
+
+                    io_removehandler(optimc->cur_wss_addr, 0x0004, optimc_wss_read, NULL, NULL, optimc_wss_write, NULL, NULL, optimc);
+                    io_removehandler(optimc->cur_wss_addr + 0x0004, 0x0004, ad1848_read, NULL, NULL, ad1848_write, NULL, NULL, &optimc->ad1848);
+                    switch ((val >> 4) & 0x3) {
+                        case 0: /* WSBase = 0x530 */
+                            optimc->cur_wss_addr = 0x530;
+                             break;
+                        case 1: /* WSBase = 0xE80 */
+                            optimc->cur_wss_addr = 0xE80;
+                            break;
+                        case 2: /* WSBase = 0xF40 */
+                            optimc->cur_wss_addr = 0xF40;
+                            break;
+                        case 3: /* WSBase = 0x604 */
+                            optimc->cur_wss_addr = 0x604;
+                            break;
                     }
-                    break;
+                    io_sethandler(optimc->cur_wss_addr, 0x0004, optimc_wss_read, NULL, NULL, optimc_wss_write, NULL, NULL, optimc);
+                    io_sethandler(optimc->cur_wss_addr + 0x0004, 0x0004, ad1848_read, NULL, NULL, ad1848_write, NULL, NULL, &optimc->ad1848);
+
+                    gameport_remap(optimc->gameport, (optimc->regs[0] & 0x1) ? 0x00 : 0x200);
                 }
+                break;
             case 1: /* MC2 */
                 optimc->regs[1] = val;
                 break;
@@ -275,10 +271,9 @@ optimc_reg_write(uint16_t addr, uint8_t val, void *p)
     }
     if (optimc->reg_enabled)
         optimc->reg_enabled = 0;
-    if (addr == 0xF8F && (val == optimc->type || val == 0x00)) {
-        if (addr == 0xF8F && val == optimc->type && !optimc->reg_enabled) {
+    if ((addr == 0xF8F) && ((val == optimc->type) || (val == 0x00))) {
+        if ((addr == 0xF8F) && (val == optimc->type) && !optimc->reg_enabled)
             optimc->reg_enabled = 1;
-        }
         if (reg_enable_phase) {
             switch (reg_enable_phase) {
                 case 1:
@@ -326,18 +321,6 @@ optimc_reg_read(uint16_t addr, void *p)
         optimc->reg_enabled = 0;
     }
     return temp;
-}
-
-static void
-optimc_filter_cd_audio(int channel, double *buffer, void *p)
-{
-    optimc_t *optimc = (optimc_t*) p;
-
-    if (optimc->cur_wss_enabled) {
-        ad1848_filter_cd_audio(channel, buffer, p);
-    } else {
-        sbpro_filter_cd_audio(channel, buffer, p);
-    }
 }
 
 static void *
@@ -397,14 +380,13 @@ optimc_init(const device_t *info)
     io_sethandler(optimc->cur_addr + 0, 0x0004, optimc->sb->opl.read, NULL, NULL, optimc->sb->opl.write, NULL, NULL, optimc->sb->opl.priv);
     io_sethandler(optimc->cur_addr + 8, 0x0002, optimc->sb->opl.read, NULL, NULL, optimc->sb->opl.write, NULL, NULL, optimc->sb->opl.priv);
     io_sethandler(0x0388, 0x0004, optimc->sb->opl.read, NULL, NULL, optimc->sb->opl.write, NULL, NULL, optimc->sb->opl.priv);
-    if (optimc->fm_type == FM_YMF278B) {
+    if (optimc->fm_type == FM_YMF278B)
         io_sethandler(0x380, 2, optimc->sb->opl.read, NULL, NULL, optimc->sb->opl.write, NULL, NULL, optimc->sb->opl.priv);
-    }
 
     io_sethandler(optimc->cur_addr + 4, 0x0002, sb_ct1345_mixer_read, NULL, NULL, sb_ct1345_mixer_write, NULL, NULL, optimc->sb);
 
     sound_add_handler(optimc_get_buffer, optimc);
-    sound_set_cd_audio_filter(optimc_filter_cd_audio, optimc);
+    sound_set_cd_audio_filter(sbpro_filter_cd_audio, optimc->sb); /* CD audio filter for the default context */
 
     optimc->mpu = (mpu_t *) malloc(sizeof(mpu_t));
     memset(optimc->mpu, 0, sizeof(mpu_t));
