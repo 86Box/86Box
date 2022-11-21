@@ -1,16 +1,16 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Implementation of PS/2 series Mouse devices.
+ *          Implementation of PS/2 series Mouse devices.
  *
  *
  *
- * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
+ * Authors: Fred N. van Kempen, <decwiz@yahoo.com>
  */
 #include <stdarg.h>
 #include <stdio.h>
@@ -37,8 +37,8 @@ typedef struct {
     int mode;
 
     uint16_t flags;
-    uint8_t resolution;
-    uint8_t sample_rate;
+    uint8_t  resolution;
+    uint8_t  sample_rate;
 
     uint8_t command;
 
@@ -84,7 +84,7 @@ mouse_clear_data(void *priv)
 static void
 ps2_report_coordinates(mouse_t *dev)
 {
-    uint8_t buff[3] = {0x08, 0x00, 0x00};
+    uint8_t buff[3] = { 0x08, 0x00, 0x00 };
 
     if (dev->x > 255)
         dev->x = 255;
@@ -248,14 +248,13 @@ mouse_reset:
         dev->last_data[5] = val;
 
         if (dev->last_data[0] == 0xf3 && dev->last_data[1] == 0xc8
-        && dev->last_data[2] == 0xf3 && dev->last_data[3] == 0xc8
-        && dev->last_data[4] == 0xf3 && dev->last_data[5] == 0x50
-        && mouse_get_buttons() == 5) {
+            && dev->last_data[2] == 0xf3 && dev->last_data[3] == 0xc8
+            && dev->last_data[4] == 0xf3 && dev->last_data[5] == 0x50
+            && mouse_get_buttons() == 5) {
             dev->flags |= FLAG_INTMODE | FLAG_5BTN;
-        }
-        else if (dev->last_data[0] == 0xf3 && dev->last_data[1] == 0xc8
-        && dev->last_data[2] == 0xf3 && dev->last_data[3] == 0x64
-        && dev->last_data[4] == 0xf3 && dev->last_data[5] == 0x50) {
+        } else if (dev->last_data[0] == 0xf3 && dev->last_data[1] == 0xc8
+                   && dev->last_data[2] == 0xf3 && dev->last_data[3] == 0x64
+                   && dev->last_data[4] == 0xf3 && dev->last_data[5] == 0x50) {
             dev->flags |= FLAG_INTMODE;
         }
     }
@@ -264,7 +263,7 @@ mouse_reset:
 static int
 ps2_poll(int x, int y, int z, int b, void *priv)
 {
-    mouse_t *dev     = (mouse_t *) priv;
+    mouse_t *dev = (mouse_t *) priv;
 
     if (!x && !y && !z && (b == dev->b))
         return (0xff);
@@ -310,7 +309,8 @@ mouse_ps2_init(const device_t *info)
     if (i > 2)
         dev->flags |= FLAG_INTELLI;
 
-    if (i == 4) i = 3;
+    if (i == 4)
+        i = 3;
 
     /* Hook into the general AT Keyboard driver. */
     keyboard_at_set_mouse(ps2_write, dev);
@@ -356,7 +356,7 @@ static const device_config_t ps2_config[] = {
     {
         .name = "", .description = "", .type = CONFIG_END
     }
-// clang-format on
+  // clang-format on
 };
 
 const device_t mouse_ps2_device = {

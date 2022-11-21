@@ -1,19 +1,19 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Skeleton I/O APIC implementation, currently housing the MPS
- *		table patcher for machines that require it.
+ *          Skeleton I/O APIC implementation, currently housing the MPS
+ *          table patcher for machines that require it.
  *
  *
  *
- * Author:	RichardG, <richardg867@gmail.com>
+ * Authors: RichardG, <richardg867@gmail.com>
  *
- *		Copyright 2020 RichardG.
+ *          Copyright 2020 RichardG.
  */
 #include <stdarg.h>
 #include <stdio.h>

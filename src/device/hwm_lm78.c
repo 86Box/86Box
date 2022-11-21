@@ -1,18 +1,18 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Emulation of the National Semiconductor LM78 hardware monitoring chip.
+ *          Emulation of the National Semiconductor LM78 hardware monitoring chip.
  *
  *
  *
- * Author:	RichardG, <richardg867@gmail.com>
+ * Authors: RichardG, <richardg867@gmail.com>
  *
- *		Copyright 2020 RichardG.
+ *          Copyright 2020 RichardG.
  */
 #include <stdarg.h>
 #include <stdio.h>
@@ -757,25 +757,25 @@ lm78_init(const device_t *info)
     hwm_values_t defaults = {
         {
          /* fan speeds */
-            3000,    /* usually Chassis, sometimes CPU */
+            3000, /* usually Chassis, sometimes CPU */
             3000, /* usually CPU, sometimes Chassis */
             3000  /* usually PSU, sometimes Chassis */
         },
         {
          /* temperatures */
-            30,                                                       /* usually Board, sometimes Chassis */
-            30,                                                         /* Winbond only: usually CPU, sometimes Probe */
+            30, /* usually Board, sometimes Chassis */
+            30, /* Winbond only: usually CPU, sometimes Probe */
             30  /* Winbond only: usually CPU when not the one above */
         },
         {
          /* voltages */
-            hwm_get_vcore(), /* Vcore */
-            0, /* sometimes Vtt, Vio or second CPU */
-            3300, /* +3.3V */
-            RESISTOR_DIVIDER(5000, 11, 16), /* +5V  (divider values bruteforced) */
+            hwm_get_vcore(),                 /* Vcore */
+            0,                               /* sometimes Vtt, Vio or second CPU */
+            3300,                            /* +3.3V */
+            RESISTOR_DIVIDER(5000, 11, 16),  /* +5V  (divider values bruteforced) */
             RESISTOR_DIVIDER(12000, 28, 10), /* +12V (28K/10K divider suggested in the W83781D datasheet) */
-            LM78_NEG_VOLTAGE(12000, 2100), /* -12V */
-            LM78_NEG_VOLTAGE(5000, 909), /* -5V */
+            LM78_NEG_VOLTAGE(12000, 2100),   /* -12V */
+            LM78_NEG_VOLTAGE(5000, 909),     /* -5V */
             RESISTOR_DIVIDER(5000, 51, 75),  /* W83782D/AS99127F only: +5VSB (5.1K/7.5K divider suggested in the datasheet) */
             3000,                            /* W83782D/AS99127F only: Vbat */
             2500,                            /* AS99127F only: +2.5V */

@@ -1,25 +1,24 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Implementation of the Tekram DC-390 SCSI and related MCA
- *		controllers using the NCR 53c9x series of chips.
- *
- *
+ *          Implementation of the Tekram DC-390 SCSI and related MCA
+ *          controllers using the NCR 53c9x series of chips.
  *
  *
- * Authors:	Fabrice Bellard (QEMU)
- *		Herve Poussineau (QEMU)
- *		TheCollector1995, <mariogplayer@gmail.com>
- *		Miran Grca, <mgrca8@gmail.com>
  *
- *		Copyright 2005-2018 Fabrice Bellard.
- *		Copyright 2012-2018 Herve Poussineau.
- *		Copyright 2017,2018 Miran Grca.
+ * Authors: Fabrice Bellard (QEMU)
+ *          Herve Poussineau (QEMU)
+ *          TheCollector1995, <mariogplayer@gmail.com>
+ *          Miran Grca, <mgrca8@gmail.com>
+ *
+ *          Copyright 2005-2018 Fabrice Bellard.
+ *          Copyright 2012-2018 Herve Poussineau.
+ *          Copyright 2017-2018 Miran Grca.
  */
 #include <inttypes.h>
 #include <stdarg.h>
@@ -518,7 +517,8 @@ esp_dma_enable(esp_t *dev, int level)
         esp_log("ESP DMA Enabled\n");
         dev->dma_enabled = 1;
         dev->dma_86c01.status |= 0x02;
-        if ((dev->rregs[ESP_CMD] & CMD_CMD) != CMD_TI) {
+        timer_stop(&dev->timer);
+        if (((dev->rregs[ESP_CMD] & CMD_CMD) != CMD_TI) && ((dev->rregs[ESP_CMD] & CMD_CMD) != CMD_PAD)) {
             timer_on_auto(&dev->timer, 40.0);
         } else {
             esp_log("Period = %lf\n", dev->period);
@@ -924,6 +924,7 @@ esp_write_response(esp_t *dev)
 
     buf[0] = dev->status;
     buf[1] = 0;
+    esp_log("esp_write_response(): %02X %02X\n", buf[0], buf[1]);
 
     if (dev->dma) {
         if (dev->mca) {
@@ -953,9 +954,12 @@ esp_callback(void *p)
 {
     esp_t *dev = (esp_t *) p;
 
-    if (dev->dma_enabled || dev->do_cmd) {
+    if (dev->dma_enabled || dev->do_cmd || ((dev->rregs[ESP_CMD] & CMD_CMD) == CMD_PAD)) {
         if ((dev->rregs[ESP_CMD] & CMD_CMD) == CMD_TI) {
             esp_log("ESP SCSI Handle TI Callback\n");
+            handle_ti(dev);
+        } else if ((dev->rregs[ESP_CMD] & CMD_CMD) == CMD_PAD) {
+            esp_log("ESP SCSI Handle PAD Callback\n");
             handle_ti(dev);
         }
     }
@@ -1084,6 +1088,7 @@ esp_reg_write(esp_t *dev, uint32_t saddr, uint32_t val)
                     }
                     break;
                 case CMD_TI:
+                    esp_log("val = %02X\n", val);
                     break;
                 case CMD_SEL:
                     handle_s_without_atn(dev);
@@ -1107,9 +1112,9 @@ esp_reg_write(esp_t *dev, uint32_t saddr, uint32_t val)
                     esp_raise_irq(dev);
                     break;
                 case CMD_PAD:
-                    dev->rregs[ESP_RSTAT] = STAT_TC;
-                    dev->rregs[ESP_RINTR] |= INTR_FC;
-                    dev->rregs[ESP_RSEQ] = 0;
+                    esp_log("val = %02X\n", val);
+                    timer_stop(&dev->timer);
+                    timer_on_auto(&dev->timer, dev->period);
                     esp_log("ESP Transfer Pad\n");
                     break;
                 case CMD_SATN:
@@ -1173,6 +1178,9 @@ esp_pci_dma_memory_rw(esp_t *dev, uint8_t *buf, uint32_t len, int dir)
     } else {
         dma_bm_read(dev->dma_regs[DMA_SPA], buf, len, 4);
     }
+    esp_log("DMA: Address = %08X, Length = %08X (%02X %02X %02X %02X -> %02X %02X %02X %02X)\n", dev->dma_regs[DMA_SPA], len,
+            ram[dev->dma_regs[DMA_SPA]], ram[dev->dma_regs[DMA_SPA] + 1], ram[dev->dma_regs[DMA_SPA] + 2], ram[dev->dma_regs[DMA_SPA] + 3],
+            buf[0], buf[1], buf[2], buf[3]);
 
     /* update status registers */
     dev->dma_regs[DMA_WBC] -= len;
@@ -1215,6 +1223,7 @@ esp_pci_dma_write(esp_t *dev, uint16_t saddr, uint32_t val)
             switch (val & DMA_CMD_MASK) {
                 case 0: /*IDLE*/
                     esp_dma_enable(dev, 0);
+                    esp_log("PCI DMA disable\n");
                     break;
                 case 1: /*BLAST*/
                     break;
@@ -1227,6 +1236,7 @@ esp_pci_dma_write(esp_t *dev, uint16_t saddr, uint32_t val)
                     dev->dma_regs[DMA_WMAC] = dev->dma_regs[DMA_SMDLA];
                     dev->dma_regs[DMA_STAT] &= ~(DMA_STAT_BCMBLT | DMA_STAT_SCSIINT | DMA_STAT_DONE | DMA_STAT_ABORT | DMA_STAT_ERROR | DMA_STAT_PWDN);
                     esp_dma_enable(dev, 1);
+                    esp_log("PCI DMA enable\n");
                     break;
                 default: /* can't happen */
                     abort();
@@ -1251,6 +1261,7 @@ static void
 esp_pci_soft_reset(esp_t *dev)
 {
     esp_irq(dev, 0);
+    dev->rregs[ESP_RSTAT] &= ~STAT_INT;
     esp_pci_hard_reset(dev);
 }
 
@@ -1632,9 +1643,11 @@ esp_pci_read(int func, int addr, void *p)
         case 0x03:
             return 0x20;
         case 0x04:
-            return esp_pci_regs[0x04] & 3; /*Respond to IO*/
+            return esp_pci_regs[0x04] | 0x80; /*Respond to IO*/
+        case 0x05:
+            return esp_pci_regs[0x05];
         case 0x07:
-            return 2;
+            return esp_pci_regs[0x07] | 0x02;
         case 0x08:
             return 0; /*Revision ID*/
         case 0x09:
@@ -1646,7 +1659,7 @@ esp_pci_read(int func, int addr, void *p)
         case 0x0E:
             return 0; /*Header type */
         case 0x10:
-            return 1; /*I/O space*/
+            return (esp_pci_bar[0].addr_regs[0] & 0x80) | 0x01; /*I/O space*/
         case 0x11:
             return esp_pci_bar[0].addr_regs[1];
         case 0x12:
@@ -1707,10 +1720,25 @@ esp_pci_write(int func, int addr, uint8_t val, void *p)
             valxor = (val & 3) ^ esp_pci_regs[addr];
             if (valxor & PCI_COMMAND_IO) {
                 esp_io_remove(dev, dev->PCIBase, 0x80);
-                if ((dev->PCIBase != 0) && (val & PCI_COMMAND_IO))
+                if ((val & PCI_COMMAND_IO) && (dev->PCIBase != 0))
                     esp_io_set(dev, dev->PCIBase, 0x80);
             }
-            esp_pci_regs[addr] = val & 3;
+            if (dev->has_bios && (valxor & PCI_COMMAND_MEM)) {
+                esp_bios_disable(dev);
+                if ((val & PCI_COMMAND_MEM) && (esp_pci_bar[1].addr & 0x00000001))
+                    esp_bios_set_addr(dev, dev->BIOSBase);
+            }
+            if (dev->has_bios)
+                esp_pci_regs[addr] = val & 0x47;
+            else
+                esp_pci_regs[addr] = val & 0x45;
+            break;
+        case 0x05:
+            esp_pci_regs[addr] = val & 0x01;
+            break;
+
+        case 0x07:
+            esp_pci_regs[addr] &= ~(val & 0xf9);
             break;
 
         case 0x10:
@@ -1723,7 +1751,7 @@ esp_pci_write(int func, int addr, uint8_t val, void *p)
             /* Then let's set the PCI regs. */
             esp_pci_bar[0].addr_regs[addr & 3] = val;
             /* Then let's calculate the new I/O base. */
-            esp_pci_bar[0].addr &= 0xff00;
+            esp_pci_bar[0].addr &= 0xff80;
             dev->PCIBase = esp_pci_bar[0].addr;
             /* Log the new base. */
             // esp_log("ESP PCI: New I/O base is %04X\n" , dev->PCIBase);
@@ -1747,16 +1775,16 @@ esp_pci_write(int func, int addr, uint8_t val, void *p)
             /* Then let's set the PCI regs. */
             esp_pci_bar[1].addr_regs[addr & 3] = val;
             /* Then let's calculate the new I/O base. */
-            esp_pci_bar[1].addr &= 0xfff80001;
-            dev->BIOSBase = esp_pci_bar[1].addr & 0xfff80000;
+            esp_pci_bar[1].addr &= 0xffff0001;
+            dev->BIOSBase = esp_pci_bar[1].addr & 0xffff0000;
             /* Log the new base. */
             // esp_log("ESP PCI: New BIOS base is %08X\n" , dev->BIOSBase);
             /* We're done, so get out of the here. */
-            if (esp_pci_bar[1].addr & 0x00000001)
+            if ((esp_pci_regs[0x04] & PCI_COMMAND_MEM) && (esp_pci_bar[1].addr & 0x00000001))
                 esp_bios_set_addr(dev, dev->BIOSBase);
             return;
 
-        case 0x3C:
+        case 0x3c:
             esp_pci_regs[addr] = val;
             dev->irq           = val;
             esp_log("ESP IRQ now: %i\n", val);
@@ -1792,12 +1820,14 @@ dc390_init(const device_t *info)
     esp_pci_regs[0x04]          = 3;
 
     dev->has_bios = device_get_config_int("bios");
-    if (dev->has_bios)
-        rom_init(&dev->bios, DC390_ROM, 0xc8000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
+    if (dev->has_bios) {
+        dev->BIOSBase = 0xd0000;
+        rom_init(&dev->bios, DC390_ROM, 0xd0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
+    }
 
     /* Enable our BIOS space in PCI, if needed. */
     if (dev->has_bios) {
-        esp_pci_bar[1].addr = 0xfff80000;
+        esp_pci_bar[1].addr = 0xffff0000;
     } else {
         esp_pci_bar[1].addr = 0;
     }
@@ -2008,7 +2038,7 @@ static const device_config_t bios_enable_config[] = {
         .default_int = 0
     },
     { .name = "", .description = "", .type = CONFIG_END }
-// clang-format on
+  // clang-format on
 };
 
 const device_t dc390_pci_device = {

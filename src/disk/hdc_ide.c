@@ -1,21 +1,21 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Implementation of the IDE emulation for hard disks and ATAPI
- *		CD-ROM devices.
+ *          Implementation of the IDE emulation for hard disks and ATAPI
+ *          CD-ROM devices.
  *
  *
  *
- * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
- *		Miran Grca, <mgrca8@gmail.com>
+ * Authors: Sarah Walker, <http://pcem-emulator.co.uk/>
+ *          Miran Grca, <mgrca8@gmail.com>
  *
- *		Copyright 2008-2020 Sarah Walker.
- *		Copyright 2016-2020 Miran Grca.
+ *          Copyright 2008-2020 Sarah Walker.
+ *          Copyright 2016-2020 Miran Grca.
  */
 #include <stdarg.h>
 #include <stdio.h>
@@ -1632,14 +1632,14 @@ ide_writeb(uint16_t addr, uint8_t val, void *priv)
                             double xfer_time = ide_get_xfer_time(ide, 512 * sec_count);
                             wait_time        = seek_time > xfer_time ? seek_time : xfer_time;
                         } else if ((val == WIN_READ_MULTIPLE) && (ide->blocksize > 0)) {
-                            sec_count        = ide->secount ? ide->secount : 256;
+                            sec_count = ide->secount ? ide->secount : 256;
                             if (sec_count > ide->blocksize)
                                 sec_count = ide->blocksize;
                             double seek_time = hdd_timing_read(&hdd[ide->hdd_num], ide_get_sector(ide), sec_count);
                             double xfer_time = ide_get_xfer_time(ide, 512 * sec_count);
                             wait_time        = seek_time + xfer_time;
                         } else if ((val == WIN_READ_MULTIPLE) && (ide->blocksize == 0))
-                            wait_time        = 200.0;
+                            wait_time = 200.0;
                         else {
                             sec_count        = 1;
                             double seek_time = hdd_timing_read(&hdd[ide->hdd_num], ide_get_sector(ide), sec_count);
@@ -1692,7 +1692,7 @@ ide_writeb(uint16_t addr, uint8_t val, void *priv)
                         ide_set_callback(ide, wait_time);
                     } else if ((ide->type == IDE_HDD) && ((val == WIN_VERIFY) || (val == WIN_VERIFY_ONCE))) {
                         uint32_t sec_count = ide->secount ? ide->secount : 256;
-                        double seek_time = hdd_timing_read(&hdd[ide->hdd_num], ide_get_sector(ide), sec_count);
+                        double   seek_time = hdd_timing_read(&hdd[ide->hdd_num], ide_get_sector(ide), sec_count);
                         ide_set_callback(ide, seek_time + ide_get_xfer_time(ide, 2));
                     } else if ((val == WIN_IDENTIFY) || (val == WIN_SET_FEATURES))
                         ide_callback(ide);
@@ -1865,8 +1865,8 @@ ide_read_data(ide_t *ide, int length)
                         uint32_t sec_count = ide->secount ? ide->secount : 256;
                         if (sec_count > ide->blocksize)
                             sec_count = ide->blocksize;
-                        double   seek_time = hdd_timing_read(&hdd[ide->hdd_num], ide_get_sector(ide), sec_count);
-                        double   xfer_time = ide_get_xfer_time(ide, 512 * sec_count);
+                        double seek_time = hdd_timing_read(&hdd[ide->hdd_num], ide_get_sector(ide), sec_count);
+                        double xfer_time = ide_get_xfer_time(ide, 512 * sec_count);
                         ide_set_callback(ide, seek_time + xfer_time);
                     } else {
                         ide_callback(ide);
@@ -2090,18 +2090,27 @@ ide_board_callback(void *priv)
 #endif
 
     dev->ide[0]->atastat = DRDY_STAT | DSC_STAT;
-    if (dev->ide[0]->type == IDE_ATAPI)
-        dev->ide[0]->sc->status = DRDY_STAT | DSC_STAT;
+    if (dev->ide[0]->type == IDE_ATAPI) {
+        if (dev->ide[0]->sc->pad0)
+            dev->ide[0]->sc->status = DRDY_STAT | DSC_STAT;
+        else
+            dev->ide[0]->sc->status = 0;
+    }
 
     dev->ide[1]->atastat = DRDY_STAT | DSC_STAT;
-    if (dev->ide[1]->type == IDE_ATAPI)
-        dev->ide[1]->sc->status = DRDY_STAT | DSC_STAT;
+    if (dev->ide[1]->type == IDE_ATAPI) {
+        if (dev->ide[1]->sc->pad0)
+            dev->ide[1]->sc->status = DRDY_STAT | DSC_STAT;
+        else
+            dev->ide[1]->sc->status = 0;
+    }
 
     dev->cur_dev &= ~1;
 
     if (dev->diag) {
         dev->diag = 0;
-        ide_irq_raise(dev->ide[0]);
+        if ((dev->ide[0]->type != IDE_ATAPI) || dev->ide[0]->sc->pad0)
+            ide_irq_raise(dev->ide[0]);
     }
 }
 
@@ -2157,7 +2166,7 @@ ide_callback(void *priv)
             ide_set_signature(ide);
 
             if (ide->type == IDE_ATAPI) {
-                ide->sc->error  = 1;
+                ide->sc->error = 1;
                 if (ide->device_reset)
                     ide->device_reset(ide->sc);
                 if (ide->sc->pad0) /* pad0 = early */

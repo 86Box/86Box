@@ -32,19 +32,19 @@ extern "C" {
 #include "qt_deviceconfig.hpp"
 #include "qt_models_common.hpp"
 
-SettingsPorts::SettingsPorts(QWidget *parent) :
-    QWidget(parent),
-    ui(new Ui::SettingsPorts)
+SettingsPorts::SettingsPorts(QWidget *parent)
+    : QWidget(parent)
+    , ui(new Ui::SettingsPorts)
 {
     ui->setupUi(this);
 
     for (int i = 0; i < PARALLEL_MAX; i++) {
-        auto* cbox = findChild<QComboBox*>(QString("comboBoxLpt%1").arg(i+1));
-        auto* model = cbox->model();
-        int c = 0;
-        int selectedRow = 0;
+        auto *cbox        = findChild<QComboBox *>(QString("comboBoxLpt%1").arg(i + 1));
+        auto *model       = cbox->model();
+        int   c           = 0;
+        int   selectedRow = 0;
         while (true) {
-            const char* lptName = lpt_device_get_name(c);
+            const char *lptName = lpt_device_get_name(c);
             if (lptName == nullptr) {
                 break;
             }
@@ -57,13 +57,13 @@ SettingsPorts::SettingsPorts(QWidget *parent) :
         }
         cbox->setCurrentIndex(selectedRow);
 
-        auto* checkBox = findChild<QCheckBox*>(QString("checkBoxParallel%1").arg(i+1));
+        auto *checkBox = findChild<QCheckBox *>(QString("checkBoxParallel%1").arg(i + 1));
         checkBox->setChecked(lpt_ports[i].enabled > 0);
         cbox->setEnabled(lpt_ports[i].enabled > 0);
     }
 
     for (int i = 0; i < SERIAL_MAX; i++) {
-        auto* checkBox = findChild<QCheckBox*>(QString("checkBoxSerial%1").arg(i+1));
+        auto *checkBox = findChild<QCheckBox *>(QString("checkBoxSerial%1").arg(i + 1));
         checkBox->setChecked(com_ports[i].enabled > 0);
     }
 }
@@ -73,32 +73,42 @@ SettingsPorts::~SettingsPorts()
     delete ui;
 }
 
-void SettingsPorts::save() {
+void
+SettingsPorts::save()
+{
     for (int i = 0; i < PARALLEL_MAX; i++) {
-        auto* cbox = findChild<QComboBox*>(QString("comboBoxLpt%1").arg(i+1));
-        auto* checkBox = findChild<QCheckBox*>(QString("checkBoxParallel%1").arg(i+1));
-        lpt_ports[i].device = cbox->currentData().toInt();
+        auto *cbox           = findChild<QComboBox *>(QString("comboBoxLpt%1").arg(i + 1));
+        auto *checkBox       = findChild<QCheckBox *>(QString("checkBoxParallel%1").arg(i + 1));
+        lpt_ports[i].device  = cbox->currentData().toInt();
         lpt_ports[i].enabled = checkBox->isChecked() ? 1 : 0;
     }
 
     for (int i = 0; i < SERIAL_MAX; i++) {
-        auto* checkBox = findChild<QCheckBox*>(QString("checkBoxSerial%1").arg(i+1));
+        auto *checkBox       = findChild<QCheckBox *>(QString("checkBoxSerial%1").arg(i + 1));
         com_ports[i].enabled = checkBox->isChecked() ? 1 : 0;
     }
 }
 
-void SettingsPorts::on_checkBoxParallel1_stateChanged(int state) {
+void
+SettingsPorts::on_checkBoxParallel1_stateChanged(int state)
+{
     ui->comboBoxLpt1->setEnabled(state == Qt::Checked);
 }
 
-void SettingsPorts::on_checkBoxParallel2_stateChanged(int state) {
+void
+SettingsPorts::on_checkBoxParallel2_stateChanged(int state)
+{
     ui->comboBoxLpt2->setEnabled(state == Qt::Checked);
 }
 
-void SettingsPorts::on_checkBoxParallel3_stateChanged(int state) {
+void
+SettingsPorts::on_checkBoxParallel3_stateChanged(int state)
+{
     ui->comboBoxLpt3->setEnabled(state == Qt::Checked);
 }
 
-void SettingsPorts::on_checkBoxParallel4_stateChanged(int state) {
+void
+SettingsPorts::on_checkBoxParallel4_stateChanged(int state)
+{
     ui->comboBoxLpt4->setEnabled(state == Qt::Checked);
 }

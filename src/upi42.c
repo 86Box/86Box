@@ -767,7 +767,7 @@ UPI42_COND_JMP_IMM(JNT1, !upi42->t1, )
 UPI42_COND_JMP_IMM(JF0, upi42->psw & 0x20, )
 UPI42_COND_JMP_IMM(JF1, upi42->sts & 0x08, )
 UPI42_COND_JMP_IMM(JTF, !upi42->tf, upi42->tf = 0)
-UPI42_COND_JMP_IMM(JBb, upi42->a &(1 << ((fetchdat >> 5) & 7)), )
+UPI42_COND_JMP_IMM(JBb, upi42->a & (1 << ((fetchdat >> 5) & 7)), )
 UPI42_COND_JMP_IMM(JNIBF, !(upi42->sts & 0x02), )
 UPI42_COND_JMP_IMM(JOBF, upi42->sts & 0x01, )
 

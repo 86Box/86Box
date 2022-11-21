@@ -29,16 +29,17 @@ extern "C" {
 #include "qt_models_common.hpp"
 #include "qt_deviceconfig.hpp"
 
-void SettingsNetwork::enableElements(Ui::SettingsNetwork *ui) {
+void
+SettingsNetwork::enableElements(Ui::SettingsNetwork *ui)
+{
     for (int i = 0; i < NET_CARD_MAX; ++i) {
-        auto* nic_cbox = findChild<QComboBox*>(QString("comboBoxNIC%1").arg(i+1));
-        auto* net_type_cbox = findChild<QComboBox*>(QString("comboBoxNet%1").arg(i+1));
-        auto* intf_cbox = findChild<QComboBox*>(QString("comboBoxIntf%1").arg(i+1));
-        auto* conf_btn = findChild<QPushButton*>(QString("pushButtonConf%1").arg(i+1));
+        auto *nic_cbox      = findChild<QComboBox *>(QString("comboBoxNIC%1").arg(i + 1));
+        auto *net_type_cbox = findChild<QComboBox *>(QString("comboBoxNet%1").arg(i + 1));
+        auto *intf_cbox     = findChild<QComboBox *>(QString("comboBoxIntf%1").arg(i + 1));
+        auto *conf_btn      = findChild<QPushButton *>(QString("pushButtonConf%1").arg(i + 1));
 
-        int netType = net_type_cbox->currentData().toInt();
-        bool adaptersEnabled = netType == NET_TYPE_SLIRP ||
-            (netType == NET_TYPE_PCAP && intf_cbox->currentData().toInt() > 0);
+        int  netType         = net_type_cbox->currentData().toInt();
+        bool adaptersEnabled = netType == NET_TYPE_SLIRP || (netType == NET_TYPE_PCAP && intf_cbox->currentData().toInt() > 0);
 
         intf_cbox->setEnabled(net_type_cbox->currentData().toInt() == NET_TYPE_PCAP);
         nic_cbox->setEnabled(adaptersEnabled);
@@ -46,18 +47,18 @@ void SettingsNetwork::enableElements(Ui::SettingsNetwork *ui) {
     }
 }
 
-SettingsNetwork::SettingsNetwork(QWidget *parent) :
-    QWidget(parent),
-    ui(new Ui::SettingsNetwork)
+SettingsNetwork::SettingsNetwork(QWidget *parent)
+    : QWidget(parent)
+    , ui(new Ui::SettingsNetwork)
 {
     ui->setupUi(this);
 
     onCurrentMachineChanged(machine);
     enableElements(ui);
     for (int i = 0; i < NET_CARD_MAX; i++) {
-        auto* nic_cbox = findChild<QComboBox*>(QString("comboBoxNIC%1").arg(i+1));
-        auto* net_type_cbox = findChild<QComboBox*>(QString("comboBoxNet%1").arg(i+1));
-        auto* intf_cbox = findChild<QComboBox*>(QString("comboBoxIntf%1").arg(i+1));
+        auto *nic_cbox      = findChild<QComboBox *>(QString("comboBoxNIC%1").arg(i + 1));
+        auto *net_type_cbox = findChild<QComboBox *>(QString("comboBoxNet%1").arg(i + 1));
+        auto *intf_cbox     = findChild<QComboBox *>(QString("comboBoxIntf%1").arg(i + 1));
         connect(nic_cbox, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &SettingsNetwork::on_comboIndexChanged);
         connect(net_type_cbox, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &SettingsNetwork::on_comboIndexChanged);
         connect(intf_cbox, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &SettingsNetwork::on_comboIndexChanged);
@@ -69,30 +70,34 @@ SettingsNetwork::~SettingsNetwork()
     delete ui;
 }
 
-void SettingsNetwork::save() {
+void
+SettingsNetwork::save()
+{
     for (int i = 0; i < NET_CARD_MAX; ++i) {
-        auto* cbox = findChild<QComboBox*>(QString("comboBoxNIC%1").arg(i+1));
+        auto *cbox                   = findChild<QComboBox *>(QString("comboBoxNIC%1").arg(i + 1));
         net_cards_conf[i].device_num = cbox->currentData().toInt();
-        cbox = findChild<QComboBox*>(QString("comboBoxNet%1").arg(i+1));
-        net_cards_conf[i].net_type = cbox->currentData().toInt();
-        cbox = findChild<QComboBox*>(QString("comboBoxIntf%1").arg(i+1));
+        cbox                         = findChild<QComboBox *>(QString("comboBoxNet%1").arg(i + 1));
+        net_cards_conf[i].net_type   = cbox->currentData().toInt();
+        cbox                         = findChild<QComboBox *>(QString("comboBoxIntf%1").arg(i + 1));
         memset(net_cards_conf[i].host_dev_name, '\0', sizeof(net_cards_conf[i].host_dev_name));
         strncpy(net_cards_conf[i].host_dev_name, network_devs[cbox->currentData().toInt()].device, sizeof(net_cards_conf[i].host_dev_name) - 1);
     }
 }
 
-void SettingsNetwork::onCurrentMachineChanged(int machineId) {
+void
+SettingsNetwork::onCurrentMachineChanged(int machineId)
+{
     this->machineId = machineId;
 
-    int c = 0;
+    int c           = 0;
     int selectedRow = 0;
 
     for (int i = 0; i < NET_CARD_MAX; ++i) {
-        auto* cbox = findChild<QComboBox*>(QString("comboBoxNIC%1").arg(i+1));
-        auto *model = cbox->model();
-        auto removeRows = model->rowCount();
-        c = 0;
-        selectedRow = 0;
+        auto *cbox       = findChild<QComboBox *>(QString("comboBoxNIC%1").arg(i + 1));
+        auto *model      = cbox->model();
+        auto  removeRows = model->rowCount();
+        c                = 0;
+        selectedRow      = 0;
 
         while (true) {
             auto name = DeviceConfig::DeviceName(network_card_getdevice(c), network_card_get_internal_name(c), 1);
@@ -114,8 +119,8 @@ void SettingsNetwork::onCurrentMachineChanged(int machineId) {
         cbox->setCurrentIndex(-1);
         cbox->setCurrentIndex(selectedRow);
 
-        cbox = findChild<QComboBox*>(QString("comboBoxNet%1").arg(i+1));
-        model = cbox->model();
+        cbox       = findChild<QComboBox *>(QString("comboBoxNet%1").arg(i + 1));
+        model      = cbox->model();
         removeRows = model->rowCount();
         Models::AddEntry(model, tr("None"), NET_TYPE_NONE);
         Models::AddEntry(model, "SLiRP", NET_TYPE_SLIRP);
@@ -128,9 +133,9 @@ void SettingsNetwork::onCurrentMachineChanged(int machineId) {
         selectedRow = 0;
 
         QString currentPcapDevice = net_cards_conf[i].host_dev_name;
-        cbox = findChild<QComboBox*>(QString("comboBoxIntf%1").arg(i+1));
-        model = cbox->model();
-        removeRows = model->rowCount();
+        cbox                      = findChild<QComboBox *>(QString("comboBoxIntf%1").arg(i + 1));
+        model                     = cbox->model();
+        removeRows                = model->rowCount();
         for (int c = 0; c < network_ndev; c++) {
             Models::AddEntry(model, tr(network_devs[c].description), c);
             if (QString(network_devs[c].device) == currentPcapDevice) {
@@ -142,7 +147,9 @@ void SettingsNetwork::onCurrentMachineChanged(int machineId) {
     }
 }
 
-void SettingsNetwork::on_comboIndexChanged(int index) {
+void
+SettingsNetwork::on_comboIndexChanged(int index)
+{
     if (index < 0) {
         return;
     }
@@ -150,18 +157,26 @@ void SettingsNetwork::on_comboIndexChanged(int index) {
     enableElements(ui);
 }
 
-void SettingsNetwork::on_pushButtonConf1_clicked() {
-    DeviceConfig::ConfigureDevice(network_card_getdevice(ui->comboBoxNIC1->currentData().toInt()), 1, qobject_cast<Settings*>(Settings::settings));
+void
+SettingsNetwork::on_pushButtonConf1_clicked()
+{
+    DeviceConfig::ConfigureDevice(network_card_getdevice(ui->comboBoxNIC1->currentData().toInt()), 1, qobject_cast<Settings *>(Settings::settings));
 }
 
-void SettingsNetwork::on_pushButtonConf2_clicked() {
-    DeviceConfig::ConfigureDevice(network_card_getdevice(ui->comboBoxNIC2->currentData().toInt()), 2, qobject_cast<Settings*>(Settings::settings));
+void
+SettingsNetwork::on_pushButtonConf2_clicked()
+{
+    DeviceConfig::ConfigureDevice(network_card_getdevice(ui->comboBoxNIC2->currentData().toInt()), 2, qobject_cast<Settings *>(Settings::settings));
 }
 
-void SettingsNetwork::on_pushButtonConf3_clicked() {
-    DeviceConfig::ConfigureDevice(network_card_getdevice(ui->comboBoxNIC3->currentData().toInt()), 3, qobject_cast<Settings*>(Settings::settings));
+void
+SettingsNetwork::on_pushButtonConf3_clicked()
+{
+    DeviceConfig::ConfigureDevice(network_card_getdevice(ui->comboBoxNIC3->currentData().toInt()), 3, qobject_cast<Settings *>(Settings::settings));
 }
 
-void SettingsNetwork::on_pushButtonConf4_clicked() {
-    DeviceConfig::ConfigureDevice(network_card_getdevice(ui->comboBoxNIC4->currentData().toInt()), 4, qobject_cast<Settings*>(Settings::settings));
+void
+SettingsNetwork::on_pushButtonConf4_clicked()
+{
+    DeviceConfig::ConfigureDevice(network_card_getdevice(ui->comboBoxNIC4->currentData().toInt()), 4, qobject_cast<Settings *>(Settings::settings));
 }

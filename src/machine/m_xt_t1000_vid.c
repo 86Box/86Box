@@ -15,9 +15,9 @@
  *          Miran Grca, <mgrca8@gmail.com>
  *          Sarah Walker, <tommowalker@tommowalker.co.uk>
  *
- *          Copyright 2018,2019 Fred N. van Kempen.
- *          Copyright 2018,2019 Miran Grca.
- *          Copyright 2018,2019 Sarah Walker.
+ *          Copyright 2018-2019 Fred N. van Kempen.
+ *          Copyright 2018-2019 Miran Grca.
+ *          Copyright 2018-2019 Sarah Walker.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -94,7 +94,7 @@ t1000_display_set(uint8_t internal)
 }
 
 uint8_t
-t1000_display_get()
+t1000_display_get(void)
 {
     return (uint8_t) st_display_internal;
 }
@@ -723,7 +723,7 @@ static const device_config_t t1000_config[] = {
         .default_int = 0
     },
     { .name = "", .description = "", .type = CONFIG_END }
-// clang-format on
+  // clang-format on
 };
 
 const device_t t1000_video_device = {

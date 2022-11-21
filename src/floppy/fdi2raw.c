@@ -1,26 +1,26 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		FDI to raw bit stream converter
- *		FDI format created by Vincent "ApH" Joguin
- *		Tiny changes - function type fixes, multiple drives,
- *		addition of get_last_head and C++ callability by Thomas
- *		Harte.
+ *          FDI to raw bit stream converter
+ *          FDI format created by Vincent "ApH" Joguin
+ *          Tiny changes - function type fixes, multiple drives,
+ *          addition of get_last_head and C++ callability by Thomas
+ *          Harte.
  *
  *
  *
- * Authors:	Toni Wilen, <twilen@arabuusimiehet.com>
- *		and Vincent Joguin,
- *		Thomas Harte, <T.Harte@excite.co.uk>
+ * Authors: Toni Wilen, <twilen@arabuusimiehet.com>
+ *          and Vincent Joguin,
+ *          Thomas Harte, <T.Harte@excite.co.uk>
  *
- *		Copyright 2001-2004 Toni Wilen.
- *		Copyright 2001-2004 Vincent Joguin.
- *		Copyright 2001 Thomas Harte.
+ *          Copyright 2001-2004 Toni Wilen.
+ *          Copyright 2001-2004 Vincent Joguin.
+ *          Copyright 2001 Thomas Harte.
  */
 #define STATIC_INLINE
 #include <stdarg.h>

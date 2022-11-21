@@ -1,0 +1,29 @@
+Source: 86box
+Section: otherosfs
+Priority: optional
+Maintainer: Mariusz Kurek <mariuszkurek@protonmail.com>
+Build-Depends: cmake (>= 3.21),
+               debhelper-compat (= 13),
+               libevdev-dev,
+               libfreetype-dev,
+               libopenal-dev,
+               libqt5opengl5-dev,
+               librtmidi-dev,
+               libsdl2-dev,
+               libslirp-dev,
+               ninja-build,
+               qttools5-dev
+Standards-Version: 4.6.0
+Homepage: https://86box.net/
+#Vcs-Browser: https://salsa.debian.org/debian/86box
+#Vcs-Git: https://salsa.debian.org/debian/86box.git
+Rules-Requires-Root: no
+
+Package: 86box
+Architecture: amd64 armhf arm64 i386
+Depends: ${shlibs:Depends},
+         ${misc:Depends},
+         sse2-support [i386]
+Recommends: libpcap0.8-dev
+Description: An emulator for classic IBM PC clones
+#TODO: insert long description, indented with spaces

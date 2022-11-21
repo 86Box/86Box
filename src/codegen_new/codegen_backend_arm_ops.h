@@ -1,19 +1,19 @@
 #define COND_SHIFT 28
-#define COND_EQ (0x0 << COND_SHIFT)
-#define COND_NE (0x1 << COND_SHIFT)
-#define COND_CS (0x2 << COND_SHIFT)
-#define COND_CC (0x3 << COND_SHIFT)
-#define COND_MI (0x4 << COND_SHIFT)
-#define COND_PL (0x5 << COND_SHIFT)
-#define COND_VS (0x6 << COND_SHIFT)
-#define COND_VC (0x7 << COND_SHIFT)
-#define COND_HI (0x8 << COND_SHIFT)
-#define COND_LS (0x9 << COND_SHIFT)
-#define COND_GE (0xa << COND_SHIFT)
-#define COND_LT (0xb << COND_SHIFT)
-#define COND_GT (0xc << COND_SHIFT)
-#define COND_LE (0xd << COND_SHIFT)
-#define COND_AL (0xe << COND_SHIFT)
+#define COND_EQ    (0x0 << COND_SHIFT)
+#define COND_NE    (0x1 << COND_SHIFT)
+#define COND_CS    (0x2 << COND_SHIFT)
+#define COND_CC    (0x3 << COND_SHIFT)
+#define COND_MI    (0x4 << COND_SHIFT)
+#define COND_PL    (0x5 << COND_SHIFT)
+#define COND_VS    (0x6 << COND_SHIFT)
+#define COND_VC    (0x7 << COND_SHIFT)
+#define COND_HI    (0x8 << COND_SHIFT)
+#define COND_LS    (0x9 << COND_SHIFT)
+#define COND_GE    (0xa << COND_SHIFT)
+#define COND_LT    (0xb << COND_SHIFT)
+#define COND_GT    (0xc << COND_SHIFT)
+#define COND_LE    (0xd << COND_SHIFT)
+#define COND_AL    (0xe << COND_SHIFT)
 
 void host_arm_ADD_IMM(codeblock_t *block, int dst_reg, int src_reg, uint32_t imm);
 #define host_arm_ADD_REG(block, dst_reg, src_reg_n, src_reg_m) host_arm_ADD_REG_LSL(block, dst_reg, src_reg_n, src_reg_m, 0)
@@ -101,12 +101,12 @@ void host_arm_MVN_REG_LSL(codeblock_t *block, int dst_reg, int src_reg, int shif
 void host_arm_ORR_IMM_cond(codeblock_t *block, uint32_t cond, int dst_reg, int src_reg, uint32_t imm);
 void host_arm_ORR_REG_LSL_cond(codeblock_t *block, uint32_t cond, int dst_reg, int src_reg_n, int src_reg_m, int shift);
 
-#define host_arm_ORR_IMM(block, dst_reg, src_reg, imm) host_arm_ORR_IMM_cond(block, COND_AL, dst_reg, src_reg, imm)
+#define host_arm_ORR_IMM(block, dst_reg, src_reg, imm)                    host_arm_ORR_IMM_cond(block, COND_AL, dst_reg, src_reg, imm)
 #define host_arm_ORR_REG_LSL(block, dst_reg, src_reg_a, src_reg_b, shift) host_arm_ORR_REG_LSL_cond(block, COND_AL, dst_reg, src_reg_a, src_reg_b, shift)
 
-#define host_arm_ORRCC_IMM(block, dst_reg, src_reg, imm) host_arm_ORR_IMM_cond(block, COND_CC, dst_reg, src_reg, imm)
-#define host_arm_ORREQ_IMM(block, dst_reg, src_reg, imm) host_arm_ORR_IMM_cond(block, COND_EQ, dst_reg, src_reg, imm)
-#define host_arm_ORRVS_IMM(block, dst_reg, src_reg, imm) host_arm_ORR_IMM_cond(block, COND_VS, dst_reg, src_reg, imm)
+#define host_arm_ORRCC_IMM(block, dst_reg, src_reg, imm)                  host_arm_ORR_IMM_cond(block, COND_CC, dst_reg, src_reg, imm)
+#define host_arm_ORREQ_IMM(block, dst_reg, src_reg, imm)                  host_arm_ORR_IMM_cond(block, COND_EQ, dst_reg, src_reg, imm)
+#define host_arm_ORRVS_IMM(block, dst_reg, src_reg, imm)                  host_arm_ORR_IMM_cond(block, COND_VS, dst_reg, src_reg, imm)
 
 void host_arm_RSB_IMM(codeblock_t *block, int dst_reg, int src_reg, uint32_t imm);
 void host_arm_RSB_REG_LSL(codeblock_t *block, int dst_reg, int src_reg_n, int src_reg_m, int shift);

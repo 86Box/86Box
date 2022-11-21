@@ -1,20 +1,20 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Implementation of the IMD floppy image format.
+ *          Implementation of the IMD floppy image format.
  *
  *
  *
- * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
- *		Miran Grca, <mgrca8@gmail.com>
+ * Authors: Fred N. van Kempen, <decwiz@yahoo.com>
+ *          Miran Grca, <mgrca8@gmail.com>
  *
- *		Copyright 2016-2019 Miran Grca.
- *		Copyright 2018,2019 Fred N. van Kempen.
+ *          Copyright 2016-2019 Miran Grca.
+ *          Copyright 2018-2019 Fred N. van Kempen.
  */
 #include <stdarg.h>
 #include <stdint.h>

@@ -7,8 +7,7 @@ namespace Ui {
 class SettingsOtherPeripherals;
 }
 
-class SettingsOtherPeripherals : public QWidget
-{
+class SettingsOtherPeripherals : public QWidget {
     Q_OBJECT
 
 public:
@@ -34,7 +33,7 @@ private slots:
 
 private:
     Ui::SettingsOtherPeripherals *ui;
-    int machineId{0};
+    int                           machineId { 0 };
 };
 
 #endif // QT_SETTINGSOTHERPERIPHERALS_HPP

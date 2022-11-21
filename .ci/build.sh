@@ -1158,10 +1158,14 @@ EOF
 
 	# Run appimage-builder in extract-and-run mode for Docker compatibility.
 	# --appdir is a workaround for https://github.com/AppImageCrafters/appimage-builder/issues/270
-	project="$project" project_id="$project_id" project_version="$project_version" project_icon="$project_icon" arch_deb="$arch_deb" \
-		arch_appimage="$arch_appimage" appimage_path="$cwd/$package_name.AppImage" APPIMAGE_EXTRACT_AND_RUN=1 ./appimage-builder.AppImage \
-		--recipe AppImageBuilder-generated.yml --appdir "$(grep -oP '^\s+path: \K(.+)' AppImageBuilder-generated.yml)"
-	status=$?
+	for retry in 1 2 3 4 5
+	do
+		project="$project" project_id="$project_id" project_version="$project_version" project_icon="$project_icon" arch_deb="$arch_deb" \
+			arch_appimage="$arch_appimage" appimage_path="$cwd/$package_name.AppImage" APPIMAGE_EXTRACT_AND_RUN=1 ./appimage-builder.AppImage \
+			--recipe AppImageBuilder-generated.yml --appdir "$(grep -oP '^\s+path: \K(.+)' AppImageBuilder-generated.yml)"
+		status=$?
+		[ $status -eq 0 ] && break
+	done
 
 	# Remove appimage-builder binary on failure, just in case it's corrupted.
 	[ $status -ne 0 ] && rm -f "$appimage_builder_binary"

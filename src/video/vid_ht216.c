@@ -1629,17 +1629,17 @@ ht216_force_redraw(void *p)
 }
 
 static const device_config_t v7_vga_1024i_config[] = {
-    {.name        = "memory",
+    { .name        = "memory",
      .description = "Memory size",
      .type        = CONFIG_SELECTION,
      .default_int = 512,
      .selection   = {
-            { .description = "256 kB",
+          { .description = "256 kB",
               .value       = 256 },
-            { .description = "512 kB",
+          { .description = "512 kB",
               .value       = 512 },
-            { .description = "" } } },
-    { .type = CONFIG_END}
+          { .description = "" } } },
+    { .type = CONFIG_END }
 };
 
 // clang-format off

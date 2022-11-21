@@ -26,7 +26,7 @@
 machine_status_t machine_status;
 
 void
-machine_status_init()
+machine_status_init(void)
 {
     for (size_t i = 0; i < FDD_NUM; ++i) {
         machine_status.fdd[i].empty  = (strlen(floppyfns[i]) == 0);

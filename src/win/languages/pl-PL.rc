@@ -34,6 +34,7 @@ BEGIN
         MENUITEM "&Ukryj pasek statusu",		IDM_VID_HIDE_STATUS_BAR
         MENUITEM "Ukryj &pasek narzędzi",		IDM_VID_HIDE_TOOLBAR
         MENUITEM SEPARATOR
+        MENUITEM "&Show non-primary monitors",  IDM_VID_MONITORS
         MENUITEM "&Okno o zmiennym rozmiarze",          IDM_VID_RESIZE
         MENUITEM "P&amiętaj rozmiar &i pozycję",  IDM_VID_REMEMBER
         MENUITEM SEPARATOR
@@ -176,8 +177,8 @@ BEGIN
         MENUITEM "P&usty",					IDM_CDROM_EMPTY
         MENUITEM "&Przeładuj poprzedni obraz",			IDM_CDROM_RELOAD
         MENUITEM SEPARATOR
-        MENUITEM "&Obraz",					IDM_CDROM_IMAGE
-        MENUITEM "&Teczka",					IDM_CDROM_DIR
+        MENUITEM "&Obraz...",					IDM_CDROM_IMAGE
+        MENUITEM "&Teczka...",					IDM_CDROM_DIR
     END
 END
 
@@ -271,6 +272,7 @@ END
 #define STR_DYNAREC		"Dynamiczny rekompilator"
 
 #define STR_VIDEO		"Wideo:"
+#define STR_VIDEO_2		"Wideo 2:"
 #define STR_VOODOO		"Grafika Voodoo"
 #define STR_IBM8514		"Grafika IBM 8514/a"
 #define STR_XGA			"Grafika XGA"
@@ -333,6 +335,7 @@ END
 #define STR_BUS			"Magistrala:"
 #define STR_CHANNEL		"Kanał:"
 #define STR_ID			"ID:"
+#define STR_SPEED		"Speed:"
 
 #define STR_SPECIFY		"&Określ..."
 #define STR_SECTORS		"Sektory:"
@@ -422,102 +425,103 @@ BEGIN
     IDS_2084	"H"
     IDS_2085	"S"
     IDS_2086	"MB"
-    IDS_2087	"Sprawdzaj BPB"
-    IDS_2088	"KB"
-    IDS_2089	"Nie można zainicjować renderera wideo."
-    IDS_2090	"Domyślny"
-    IDS_2091	"%i Stany oczekiwania"
-    IDS_2092	"Rodzaj"
-    IDS_2093	"Nie udało się ustawić PCap"
-    IDS_2094	"Nie znaleziono urządzeń PCap"
-    IDS_2095	"Nieprawidłowe urządzenie PCap"
-    IDS_2096	"Standardowe joysticki 2-przyciskowe"
-    IDS_2097	"Standardowy joystick 4-przyciskowy"
-    IDS_2098	"Standardowy joystick 6-przyciskowy"
-    IDS_2099	"Standardowy joystick 8-przyciskowy"
-    IDS_2100	"CH Flightstick Pro"
-    IDS_2101	"Microsoft SideWinder Pad"
-    IDS_2102	"Thrustmaster Flight Control System"
-    IDS_2103	"Żaden"
-    IDS_2104	"Nie można załadować akceleratorów klawiaturowych."
-    IDS_2105	"Nie można zarejestrować surowych danych wejściowych."
-    IDS_2106	"%u"
-    IDS_2107	"%u MB (CHS: %i, %i, %i)"
-    IDS_2108	"Dyskietka %i (%s): %ls"
-    IDS_2109	"Wszystkie obrazy (*.0??;*.1??;*.??0;*.86F;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.JSON;*.TD0;*.*FD?;*.MFM;*.XDF)\0*.0??;*.1??;*.??0;*.86F;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.JSON;*.TD0;*.*FD?;*.MFM;*.XDF\0Zaawansowane obrazy sektorów (*.IMD;*.JSON;*.TD0)\0*.IMD;*.JSON;*.TD0\0Podstawowe obrazy sektorów (*.0??;*.1??;*.??0;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.XDF;*.*FD?)\0*.0??;*.1??;*.??0;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.XDF;*.*FD?\0Flux images (*.FDI)\0*.FDI\0Obrazy powierzchniowe (*.86F;*.MFM)\0*.86F;*.MFM\0All files (*.*)\0*.*\0"
-    IDS_2110	"Nie można zainicjować FreeType"
-    IDS_2111	"Nie można zainicjować SDL, wymagany SDL2.dll"
-    IDS_2112	"Jesteś pewien że chcesz wykonać twardy reset emulowanej maszyny?"
-    IDS_2113	"Jesteś pewien że chcesz zakończyć 86Box?"
-    IDS_2114	"Nie można zainicjować Ghostscript"
-    IDS_2115	"MO %i (%ls): %ls"
-    IDS_2116	"Obrazy MO (*.IM?;*.MDI)\0*.IM?;*.MDI\0All files (*.*)\0*.*\0"
-    IDS_2117	"Witamy w 86Box!"
-    IDS_2118	"Kontroler wewnętrzny"
-    IDS_2119	"Zakończ"
-    IDS_2120	"Nie znaleziono obrazów ROM"
-    IDS_2121	"Czy chcesz zapisać ustawienia?"
-    IDS_2122	"To spowoduje twardy reset wirtualnej maszyny."
-    IDS_2123	"Zapisz"
-    IDS_2124	"O 86Box"
-    IDS_2125	"86Box v" EMU_VERSION
+    IDS_2087    "Speed"
+    IDS_2088	"Sprawdzaj BPB"
+    IDS_2089	"KB"
+    IDS_2090	"Nie można zainicjować renderera wideo."
+    IDS_2091	"Domyślny"
+    IDS_2092	"%i Stany oczekiwania"
+    IDS_2093	"Rodzaj"
+    IDS_2094	"Nie udało się ustawić PCap"
+    IDS_2095	"Nie znaleziono urządzeń PCap"
+    IDS_2096	"Nieprawidłowe urządzenie PCap"
+    IDS_2097	"Standardowe joysticki 2-przyciskowe"
+    IDS_2098	"Standardowy joystick 4-przyciskowy"
+    IDS_2099	"Standardowy joystick 6-przyciskowy"
+    IDS_2100	"Standardowy joystick 8-przyciskowy"
+    IDS_2101	"CH Flightstick Pro"
+    IDS_2102	"Microsoft SideWinder Pad"
+    IDS_2103	"Thrustmaster Flight Control System"
+    IDS_2104	"Żaden"
+    IDS_2105	"Nie można załadować akceleratorów klawiaturowych."
+    IDS_2106	"Nie można zarejestrować surowych danych wejściowych."
+    IDS_2107	"%u"
+    IDS_2108	"%u MB (CHS: %i, %i, %i)"
+    IDS_2109	"Dyskietka %i (%s): %ls"
+    IDS_2110	"Wszystkie obrazy (*.0??;*.1??;*.??0;*.86F;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.JSON;*.TD0;*.*FD?;*.MFM;*.XDF)\0*.0??;*.1??;*.??0;*.86F;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.JSON;*.TD0;*.*FD?;*.MFM;*.XDF\0Zaawansowane obrazy sektorów (*.IMD;*.JSON;*.TD0)\0*.IMD;*.JSON;*.TD0\0Podstawowe obrazy sektorów (*.0??;*.1??;*.??0;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.XDF;*.*FD?)\0*.0??;*.1??;*.??0;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.XDF;*.*FD?\0Flux images (*.FDI)\0*.FDI\0Obrazy powierzchniowe (*.86F;*.MFM)\0*.86F;*.MFM\0All files (*.*)\0*.*\0"
+    IDS_2111	"Nie można zainicjować FreeType"
+    IDS_2112	"Nie można zainicjować SDL, wymagany SDL2.dll"
+    IDS_2113	"Jesteś pewien że chcesz wykonać twardy reset emulowanej maszyny?"
+    IDS_2114	"Jesteś pewien że chcesz zakończyć 86Box?"
+    IDS_2115	"Nie można zainicjować Ghostscript"
+    IDS_2116	"MO %i (%ls): %ls"
+    IDS_2117	"Obrazy MO (*.IM?;*.MDI)\0*.IM?;*.MDI\0All files (*.*)\0*.*\0"
+    IDS_2118	"Witamy w 86Box!"
+    IDS_2119	"Kontroler wewnętrzny"
+    IDS_2120	"Zakończ"
+    IDS_2121	"Nie znaleziono obrazów ROM"
+    IDS_2122	"Czy chcesz zapisać ustawienia?"
+    IDS_2123	"To spowoduje twardy reset wirtualnej maszyny."
+    IDS_2124	"Zapisz"
+    IDS_2125	"O 86Box"
+    IDS_2126	"86Box v" EMU_VERSION
 
-    IDS_2126	"Emulator starych komputerów\n\nAutorzy: Sarah Walker, Miran Grca, Fred N. van Kempen (waltje), SA1988, Tiseno100, reenigne, leilei, JohnElliott, greatpsycho, i inni.\n\nPrzetłumaczony przez: Fanta-Shokata\n\nWydany na licencji GNU General Public License w wersji 2 lub nowszej. Zobacz LICENSE aby uzyskać więcej informacji."
-    IDS_2127	"OK"
-    IDS_2128	"Sprzęt niedostępny"
+    IDS_2127	"Emulator starych komputerów\n\nAutorzy: Sarah Walker, Miran Grca, Fred N. van Kempen (waltje), SA1988, Tiseno100, reenigne, leilei, JohnElliott, greatpsycho, i inni.\n\nPrzetłumaczony przez: Fanta-Shokata\n\nWydany na licencji GNU General Public License w wersji 2 lub nowszej. Zobacz LICENSE aby uzyskać więcej informacji."
+    IDS_2128	"OK"
+    IDS_2129	"Sprzęt niedostępny"
 #ifdef _WIN32
 #define LIB_NAME_PCAP "WinPcap"
 #else
 #define LIB_NAME_PCAP "libpcap"
 #endif
-    IDS_2129	"Sprawdź, czy " LIB_NAME_PCAP " jest zainstalowany i czy posiadasz połączenie sieciowe kompatybilne z " LIB_NAME_PCAP "."
-    IDS_2130	"Nieprawidłowa konfiguracja"
+    IDS_2130	"Sprawdź, czy " LIB_NAME_PCAP " jest zainstalowany i czy posiadasz połączenie sieciowe kompatybilne z " LIB_NAME_PCAP "."
+    IDS_2131	"Nieprawidłowa konfiguracja"
 #ifdef _WIN32
 #define LIB_NAME_FREETYPE "freetype.dll"
 #else
 #define LIB_NAME_FREETYPE "libfreetype"
 #endif
-    IDS_2131	LIB_NAME_FREETYPE " jest wymagany do emulacji drukarki ESC-P."
+    IDS_2132	LIB_NAME_FREETYPE " jest wymagany do emulacji drukarki ESC-P."
 #ifdef _WIN32
 #define LIB_NAME_GS "gsdll32.dll"
 #else
 #define LIB_NAME_GS "libgs"
 #endif
-    IDS_2132	LIB_NAME_GS " jest wymagany do automatycznej konwersji plików PostScript do PDF.\n\nDokumenty wysłane do ogólnej drukarki PostScript zostaną zapisane jako pliki PostScript (.ps)."
+    IDS_2133	LIB_NAME_GS " jest wymagany do automatycznej konwersji plików PostScript do PDF.\n\nDokumenty wysłane do ogólnej drukarki PostScript zostaną zapisane jako pliki PostScript (.ps)."
 #ifdef _WIN32
 #define LIB_NAME_FLUIDSYNTH "libfluidsynth.dll"
 #else
 #define LIB_NAME_FLUIDSYNTH "libfluidsynth"
 #endif
-    IDS_2133	LIB_NAME_FLUIDSYNTH " jest wymagany dla wyjścia FluidSynth MIDI."
-    IDS_2134	"Przechodzenie do trybu pełnoekranowego"
-    IDS_2135	"Nie pokazuj więcej tego komunikatu"
-    IDS_2136	"Nie kończ"
-    IDS_2137	"Przywróć"
-    IDS_2138	"Nie przywracaj"
-    IDS_2139	"Obrazy MO (*.IM?;*.MDI)\0*.IM?;*.MDI\0All files (*.*)\0*.*\0"
-    IDS_2140	"Obrazy CD-ROM (*.ISO;*.CUE)\0*.ISO;*.CUE\0All files (*.*)\0*.*\0"
-    IDS_2141	"Konfiguracja urządzenia %hs"
-    IDS_2142    "Monitor w trybie czuwania"
-    IDS_2143	"Shadery OpenGL (*.GLSL)\0*.GLSL\0Wszystkie pliki (*.*)\0*.*\0"
-    IDS_2144	"Opcje OpenGL"
-    IDS_2145	"Ładujesz nieobsługiwaną konfigurację"
-    IDS_2146	"Wybór rodzaju procesora oparty na wybranej maszynie jest wyłączony dla tej emulowanej maszyny.\n\nPozwala to na wybór procesora który jest niekompatybilny z wybraną maszyną. Jednak możesz napotkać niezgodności z BIOS-em maszyny lub innym oprogramowaniem.\n\nAktywacja tego ustawienia nie jest wspierana i każde zgłoszenie błędu może zostać zamknięte jako nieważne."
-    IDS_2147	"Kontynuuj"
-    IDS_2148	"Kaseta: %s"
-    IDS_2149	"Obrazy kaset (*.PCM;*.RAW;*.WAV;*.CAS)\0*.PCM;*.RAW;*.WAV;*.CAS\0Wszystkie pliki (*.*)\0*.*\0"
-    IDS_2150	"Kartrydż %i: %ls"
-    IDS_2151	"Obrazy kartrydżu (*.A;*.B;*.JRC)\0*.A;*.B;*.JRC\0Wszystkie pliki (*.*)\0*.*\0"
-    IDS_2152	"Błąd inicjalizacji renderera"
-    IDS_2153	"Nie można zainicjować renderera OpenGL (3.0 Core). Użyj innego."
-    IDS_2154	"Wznów wykonywanie"
-    IDS_2155	"Zatrzymaj wykonywanie"
-    IDS_2156	"Naciśnij Ctrl+Alt+Del"
-    IDS_2157	"Naciśnij Ctrl+Alt+Esc"
-    IDS_2158	"Twardy reset"
-    IDS_2159	"Wyłączenie ACPI"
-    IDS_2160	"Ustawienia"
-    IDS_2161    "Wcześniejszy napęd"
+    IDS_2134	LIB_NAME_FLUIDSYNTH " jest wymagany dla wyjścia FluidSynth MIDI."
+    IDS_2135	"Przechodzenie do trybu pełnoekranowego"
+    IDS_2136	"Nie pokazuj więcej tego komunikatu"
+    IDS_2137	"Nie kończ"
+    IDS_2138	"Przywróć"
+    IDS_2139	"Nie przywracaj"
+    IDS_2140	"Obrazy MO (*.IM?;*.MDI)\0*.IM?;*.MDI\0All files (*.*)\0*.*\0"
+    IDS_2141	"Obrazy CD-ROM (*.ISO;*.CUE)\0*.ISO;*.CUE\0All files (*.*)\0*.*\0"
+    IDS_2142	"Konfiguracja urządzenia %hs"
+    IDS_2143    "Monitor w trybie czuwania"
+    IDS_2144	"Shadery OpenGL (*.GLSL)\0*.GLSL\0Wszystkie pliki (*.*)\0*.*\0"
+    IDS_2145	"Opcje OpenGL"
+    IDS_2146	"Ładujesz nieobsługiwaną konfigurację"
+    IDS_2147	"Wybór rodzaju procesora oparty na wybranej maszynie jest wyłączony dla tej emulowanej maszyny.\n\nPozwala to na wybór procesora który jest niekompatybilny z wybraną maszyną. Jednak możesz napotkać niezgodności z BIOS-em maszyny lub innym oprogramowaniem.\n\nAktywacja tego ustawienia nie jest wspierana i każde zgłoszenie błędu może zostać zamknięte jako nieważne."
+    IDS_2148	"Kontynuuj"
+    IDS_2149	"Kaseta: %s"
+    IDS_2150	"Obrazy kaset (*.PCM;*.RAW;*.WAV;*.CAS)\0*.PCM;*.RAW;*.WAV;*.CAS\0Wszystkie pliki (*.*)\0*.*\0"
+    IDS_2151	"Kartrydż %i: %ls"
+    IDS_2152	"Obrazy kartrydżu (*.A;*.B;*.JRC)\0*.A;*.B;*.JRC\0Wszystkie pliki (*.*)\0*.*\0"
+    IDS_2153	"Błąd inicjalizacji renderera"
+    IDS_2154	"Nie można zainicjować renderera OpenGL (3.0 Core). Użyj innego."
+    IDS_2155	"Wznów wykonywanie"
+    IDS_2156	"Zatrzymaj wykonywanie"
+    IDS_2157	"Naciśnij Ctrl+Alt+Del"
+    IDS_2158	"Naciśnij Ctrl+Alt+Esc"
+    IDS_2159	"Twardy reset"
+    IDS_2160	"Wyłączenie ACPI"
+    IDS_2161	"Ustawienia"
+    IDS_2162    "Wcześniejszy napęd"
 END
 
 STRINGTABLE DISCARDABLE 

@@ -37,7 +37,7 @@ typedef struct xi8088_t {
 static xi8088_t xi8088;
 
 uint8_t
-xi8088_turbo_get()
+xi8088_turbo_get(void)
 {
     return xi8088.turbo;
 }
@@ -156,7 +156,7 @@ static const device_config_t xi8088_config[] = {
         .default_int = 0
     },
     { .name = "", .description = "", .type = CONFIG_END }
-// clang-format on
+  // clang-format on
 };
 
 const device_t xi8088_device = {

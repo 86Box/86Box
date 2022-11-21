@@ -1,22 +1,22 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Handling of the emulated machines.
+ *          Handling of the emulated machines.
  *
  *
  *
- * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
- *		Miran Grca, <mgrca8@gmail.com>
- *		Fred N. van Kempen, <decwiz@yahoo.com>
+ * Authors: Sarah Walker, <http://pcem-emulator.co.uk/>
+ *          Miran Grca, <mgrca8@gmail.com>
+ *          Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 2008-2020 Sarah Walker.
- *		Copyright 2016-2020 Miran Grca.
- *		Copyright 2017-2020 Fred N. van Kempen.
+ *          Copyright 2008-2020 Sarah Walker.
+ *          Copyright 2016-2020 Miran Grca.
+ *          Copyright 2017-2020 Fred N. van Kempen.
  */
 
 #ifndef EMU_MACHINE_H
@@ -107,6 +107,7 @@
 #define MACHINE_SCSI_SEC 0x02000000 /* sys has int sec SCSI */
 #define MACHINE_USB_PRI  0x04000000 /* sys has int pri USB */
 #define MACHINE_USB_SEC  0x08000000 /* sys has int sec USB */
+#define MACHINE_COREBOOT 0x10000000 /* sys has coreboot BIOS */
 /* Combined flags. */
 #define MACHINE_IDE        (MACHINE_IDE_PRI)                   /* sys has int single IDE/ATAPI - mark as pri IDE/ATAPI */
 #define MACHINE_IDE_DUAL   (MACHINE_IDE_PRI | MACHINE_IDE_SEC) /* sys has int dual IDE/ATAPI - mark as both pri and sec IDE/ATAPI */
@@ -126,7 +127,10 @@
 #define IS_AT(m)      (((machines[m].bus_flags & (MACHINE_BUS_ISA16 | MACHINE_BUS_EISA | MACHINE_BUS_VLB | MACHINE_BUS_MCA | MACHINE_BUS_PCI | MACHINE_BUS_PCMCIA | MACHINE_BUS_AGP | MACHINE_BUS_AC97)) && !(machines[m].bus_flags & MACHINE_PC98)) ? 1 : 0)
 
 #define CPU_BLOCK(...) \
-    (const uint8_t[]) { __VA_ARGS__, 0 }
+    (const uint8_t[])  \
+    {                  \
+        __VA_ARGS__, 0 \
+    }
 #define MACHINE_MULTIPLIER_FIXED -1
 
 #define CPU_BLOCK_NONE           0
@@ -336,6 +340,7 @@ extern int   machine_get_ram_granularity(int m);
 extern int   machine_get_type(int m);
 extern void  machine_close(void);
 extern int   machine_has_mouse(void);
+extern int   machine_is_sony(void);
 
 extern uint8_t  machine_get_p1(void);
 extern void     machine_load_p1(int m);
@@ -792,6 +797,7 @@ extern int machine_xt_v20xt_init(const machine_t *);
 
 extern int machine_xt_iskra3104_init(const machine_t *);
 extern int machine_xt_pravetz16_imko4_init(const machine_t *);
+extern int machine_xt_micoms_xl7turbo_init(const machine_t *);
 
 /* m_xt_compaq.c */
 extern int machine_xt_compaq_deskpro_init(const machine_t *);

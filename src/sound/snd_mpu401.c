@@ -1958,7 +1958,7 @@ static const device_config_t mpu401_standalone_mca_config[] = {
         .default_int = 1
     },
     { .name = "", .description = "", .type = CONFIG_END }
-// clang-format on
+  // clang-format on
 };
 
 const device_t mpu401_device = {

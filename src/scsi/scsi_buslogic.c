@@ -1,24 +1,24 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		Emulation of BusLogic ISA and PCI SCSI controllers. Boards
- *		supported:
+ *          Emulation of BusLogic ISA and PCI SCSI controllers. Boards
+ *          supported:
  *
- *		  0 - BT-542BH ISA;
- *		  1 - BT-545S ISA;
- *		  2 - BT-958D PCI
+ *            0 - BT-542BH ISA;
+ *            1 - BT-545S ISA;
+ *            2 - BT-958D PCI
  *
  *
  *
- * Authors:	TheCollector1995, <mariogplayer@gmail.com>
- *		Miran Grca, <mgrca8@gmail.com>
- *		Fred N. van Kempen, <decwiz@yahoo.com>
+ * Authors: TheCollector1995, <mariogplayer@gmail.com>
+ *          Miran Grca, <mgrca8@gmail.com>
+ *          Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 2016-2018 Miran Grca.
- *		Copyright 2017,2018 Fred N. van Kempen.
+ *          Copyright 2016-2018 Miran Grca.
+ *          Copyright 2017-2018 Fred N. van Kempen.
  */
 #include <stdarg.h>
 #include <stdio.h>

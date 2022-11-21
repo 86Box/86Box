@@ -1,20 +1,20 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Implementation of 386DX and 486 machines.
+ *          Implementation of 386DX and 486 machines.
  *
  *
  *
- * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
- *		Miran Grca, <mgrca8@gmail.com>
+ * Authors: Sarah Walker, <http://pcem-emulator.co.uk/>
+ *          Miran Grca, <mgrca8@gmail.com>
  *
- *		Copyright 2010-2020 Sarah Walker.
- *		Copyright 2016-2020 Miran Grca.
+ *          Copyright 2010-2020 Sarah Walker.
+ *          Copyright 2016-2020 Miran Grca.
  */
 #include <stdarg.h>
 #include <stdint.h>
@@ -632,7 +632,10 @@ machine_at_pc330_6573_init(const machine_t *model) /* doesn't like every CPU oth
         return ret;
 
     machine_at_common_init(model);
+
+    pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x10, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
+
     pci_register_slot(0x11, PCI_CARD_NORMAL, 1, 2, 3, 4);
     pci_register_slot(0x12, PCI_CARD_NORMAL, 2, 3, 4, 1);
     pci_register_slot(0x13, PCI_CARD_NORMAL, 3, 4, 1, 2);

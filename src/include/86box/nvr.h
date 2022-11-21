@@ -111,7 +111,7 @@ extern int   nvr_save(void);
 
 extern int  nvr_is_leap(int year);
 extern int  nvr_get_days(int month, int year);
-extern void nvr_time_sync();
+extern void nvr_time_sync(void);
 extern void nvr_time_get(struct tm *);
 extern void nvr_time_set(struct tm *);
 

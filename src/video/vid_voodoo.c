@@ -876,7 +876,7 @@ voodoo_force_blit(void *p)
 }
 
 void *
-voodoo_card_init()
+voodoo_card_init(void)
 {
     int       c;
     voodoo_t *voodoo = malloc(sizeof(voodoo_t));
@@ -1152,7 +1152,7 @@ voodoo_2d3d_card_init(int type)
 }
 
 void *
-voodoo_init()
+voodoo_init(const device_t *info)
 {
     voodoo_set_t *voodoo_set = malloc(sizeof(voodoo_set_t));
     uint32_t      tmuConfig  = 1;
@@ -1390,7 +1390,7 @@ static const device_config_t voodoo_config[] = {
     {
         .type = CONFIG_END
     }
-// clang-format on
+  // clang-format on
 };
 
 const device_t voodoo_device = {

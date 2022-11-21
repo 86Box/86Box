@@ -774,13 +774,13 @@ static inline int COUNT(uint32_t c, int op_32)
         return c & CYCLES_MASK;
 }
 
-void codegen_timing_686_block_start()
+void codegen_timing_686_block_start(void)
 {
         prev_full = decode_delay = 0;
         regmask_modified = last_regmask_modified = 0;
 }
 
-void codegen_timing_686_start()
+void codegen_timing_686_start(void)
 {
         decode_delay = 0;
         last_prefix = 0;
@@ -1036,7 +1036,7 @@ void codegen_timing_686_opcode(uint8_t opcode, uint32_t fetchdat, int op_32, uin
         }
 }
 
-void codegen_timing_686_block_end()
+void codegen_timing_686_block_end(void)
 {
         if (prev_full)
         {

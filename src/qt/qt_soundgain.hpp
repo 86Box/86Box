@@ -7,8 +7,7 @@ namespace Ui {
 class SoundGain;
 }
 
-class SoundGain : public QDialog
-{
+class SoundGain : public QDialog {
     Q_OBJECT
 
 public:
@@ -22,7 +21,7 @@ private slots:
 
 private:
     Ui::SoundGain *ui;
-    int sound_gain_orig;
+    int            sound_gain_orig;
 };
 
 #endif // QT_SOUNDGAIN_HPP

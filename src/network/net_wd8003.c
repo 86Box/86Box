@@ -1,26 +1,26 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Implementation of the following network controllers:
- *			- SMC/WD 8003E (ISA 8-bit);
- *			- SMC/WD 8013EBT (ISA 16-bit);
- *			- SMC/WD 8013EP/A (MCA).
+ *          Implementation of the following network controllers:
+ *            - SMC/WD 8003E (ISA 8-bit);
+ *            - SMC/WD 8013EBT (ISA 16-bit);
+ *            - SMC/WD 8013EP/A (MCA).
  *
  *
  *
- * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
- *		TheCollector1995, <mariogplayer@gmail.com>
- *		Miran Grca, <mgrca8@gmail.com>
- *		Peter Grehan, <grehan@iprg.nokia.com>
+ * Authors: Fred N. van Kempen, <decwiz@yahoo.com>
+ *          TheCollector1995, <mariogplayer@gmail.com>
+ *          Miran Grca, <mgrca8@gmail.com>
+ *          Peter Grehan, <grehan@iprg.nokia.com>
  *
- *		Copyright 2017-2019 Fred N. van Kempen.
- *		Copyright 2016-2019 Miran Grca.
- *		Portions Copyright (C) 2002  MandrakeSoft S.A.
+ *          Copyright 2017-2019 Fred N. van Kempen.
+ *          Copyright 2016-2019 Miran Grca.
+ *          Portions Copyright (C) 2002  MandrakeSoft S.A.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
