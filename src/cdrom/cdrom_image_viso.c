@@ -115,7 +115,7 @@ typedef struct _viso_entry_ {
 
 typedef struct {
     uint64_t vol_size_offsets[2], pt_meta_offsets[2];
-    int      format, flags;
+    int      format, use_version_suffix : 1;
     size_t   metadata_sectors, all_sectors, entry_map_size, sector_size, file_fifo_pos;
     uint8_t *metadata;
 
@@ -470,7 +470,7 @@ viso_fill_time(uint8_t *data, time_t time, int format, int longform)
 }
 
 static int
-viso_fill_dir_record(uint8_t *data, viso_entry_t *entry, int format, int flags, int type)
+viso_fill_dir_record(uint8_t *data, viso_entry_t *entry, viso_t *viso, int type)
 {
     uint8_t *p = data, *q, *r;
 
@@ -482,11 +482,11 @@ viso_fill_dir_record(uint8_t *data, viso_entry_t *entry, int format, int flags, 
     if (entry->stats.st_mtime < 0)
         pclog("VISO: Warning: Windows returned st_mtime %lld on file [%s]\n", (long long) entry->stats.st_mtime, entry->path);
 #endif
-    p += viso_fill_time(p, entry->stats.st_mtime, format, 0); /* time */
-    *p++ = S_ISDIR(entry->stats.st_mode) ? 0x02 : 0x00;       /* flags */
+    p += viso_fill_time(p, entry->stats.st_mtime, viso->format, 0); /* time */
+    *p++ = S_ISDIR(entry->stats.st_mode) ? 0x02 : 0x00;             /* flags */
 
-    VISO_SKIP(p, 2 + (format <= VISO_FORMAT_HSF)); /* file unit size (reserved on HSF), interleave gap size (HSF/ISO) and skip factor (HSF only) */
-    VISO_LBE_16(p, 1);                             /* volume sequence number */
+    VISO_SKIP(p, 2 + (viso->format <= VISO_FORMAT_HSF)); /* file unit size (reserved on HSF), interleave gap size (HSF/ISO) and skip factor (HSF only) */
+    VISO_LBE_16(p, 1);                                   /* volume sequence number */
 
     switch (type) {
         case VISO_DIR_CURRENT:
@@ -496,7 +496,7 @@ viso_fill_dir_record(uint8_t *data, viso_entry_t *entry, int format, int flags, 
             *p++ = (type == VISO_DIR_PARENT) ? 1 : 0; /* magic value corresponding to . or .. */
 
             /* Fill Rock Ridge Extension Record for the root directory's . entry. */
-            if ((type == VISO_DIR_CURRENT_ROOT) && (format >= VISO_FORMAT_ISO_LFN)) {
+            if ((type == VISO_DIR_CURRENT_ROOT) && (viso->format >= VISO_FORMAT_ISO_LFN)) {
                 *p++ = 'E';
                 *p++ = 'R';
                 *p++ = 8 + (sizeof(rr_eid) - 1) + (sizeof(rr_edesc) - 1); /* length */
@@ -522,8 +522,8 @@ viso_fill_dir_record(uint8_t *data, viso_entry_t *entry, int format, int flags, 
             *q = strlen(entry->name_short);
             memcpy(p, entry->name_short, *q); /* file ID */
             p += *q;
-            if ((format >= VISO_FORMAT_ISO) && !S_ISDIR(entry->stats.st_mode)) {
-                *p++ = ';'; /* version suffix for files (ISO only?) */
+            if (viso->use_version_suffix && !S_ISDIR(entry->stats.st_mode)) {
+                *p++ = ';'; /* version suffix for files (ISO only, except for Windows NT SETUPLDR.BIN El Torito hack) */
                 *p++ = '1';
                 *q += 2;
             }
@@ -532,7 +532,7 @@ viso_fill_dir_record(uint8_t *data, viso_entry_t *entry, int format, int flags, 
                 *p++ = 0;
 
             /* Fill Rock Ridge data. */
-            if (format >= VISO_FORMAT_ISO_LFN) {
+            if (viso->format >= VISO_FORMAT_ISO_LFN) {
                 *p++ = 'R'; /* RR = present Rock Ridge entries (only documented by RRIP revision 1.09!) */
                 *p++ = 'R';
                 *p++ = 5; /* length */
@@ -588,14 +588,14 @@ viso_fill_dir_record(uint8_t *data, viso_entry_t *entry, int format, int flags, 
                     *p++ = times; /* flags */
 #ifdef st_birthtime
                     if (times & (1 << 0))
-                        p += viso_fill_time(p, entry->stats.st_birthtime, format, 0); /* creation */
+                        p += viso_fill_time(p, entry->stats.st_birthtime, viso->format, 0); /* creation */
 #endif
                     if (times & (1 << 1))
-                        p += viso_fill_time(p, entry->stats.st_mtime, format, 0); /* modify */
+                        p += viso_fill_time(p, entry->stats.st_mtime, viso->format, 0); /* modify */
                     if (times & (1 << 2))
-                        p += viso_fill_time(p, entry->stats.st_atime, format, 0); /* access */
+                        p += viso_fill_time(p, entry->stats.st_atime, viso->format, 0); /* access */
                     if (times & (1 << 3))
-                        p += viso_fill_time(p, entry->stats.st_ctime, format, 0); /* attributes */
+                        p += viso_fill_time(p, entry->stats.st_ctime, viso->format, 0); /* attributes */
 
                     *r += p - r; /* add to length */
                 }
@@ -764,8 +764,9 @@ viso_init(const char *dirname, int *error)
     *error        = 1;
     if (viso == NULL)
         goto end;
-    viso->sector_size = VISO_SECTOR_SIZE;
-    viso->format      = VISO_FORMAT_ISO_LFN;
+    viso->sector_size        = VISO_SECTOR_SIZE;
+    viso->format             = VISO_FORMAT_ISO_LFN;
+    viso->use_version_suffix = (viso->format >= VISO_FORMAT_ISO); /* cleared later if required */
 
     /* Prepare temporary data buffers. */
     data = calloc(2, viso->sector_size);
@@ -815,7 +816,7 @@ viso_init(const char *dirname, int *error)
 
         /* Iterate through this directory's children to determine the entry array size. */
         size_t children_count = 3; /* include terminator, . and .. */
-        if (dirp) { /* create empty directory if opendir failed */
+        if (dirp) {                /* create empty directory if opendir failed */
             while ((readdir_entry = readdir(dirp))) {
                 /* Ignore . and .. pseudo-directories. */
                 if ((readdir_entry->d_name[0] == '.') && ((readdir_entry->d_name[1] == '\0') || (*((uint16_t *) &readdir_entry->d_name[1]) == '.')))
@@ -896,7 +897,7 @@ viso_init(const char *dirname, int *error)
                     if (dir == eltorito_dir) {
                         if (!stricmp(readdir_entry->d_name, "Boot-NoEmul.img")) {
                             eltorito_type = 0x00;
-    have_eltorito_entry:
+have_eltorito_entry:
                             if (eltorito_entry)
                                 eltorito_others_present = 1; /* flag that the boot code directory contains other files */
                             eltorito_entry = entry;
@@ -915,6 +916,14 @@ viso_init(const char *dirname, int *error)
                         } else {
                             eltorito_others_present = 1; /* flag that the boot code directory contains other files */
                         }
+                    } else {
+                        /* Disable version suffixes if this structure appears to contain the Windows NT
+                           El Torito boot code, which is known not to tolerate suffixed file names. */
+                        if (eltorito_dir &&                                  /* El Torito directory present? */
+                            (eltorito_type == 0x00) &&                       /* El Torito directory not checked yet, or confirmed to contain non-emulation boot code? */
+                            (dir->parent == viso->root_dir) &&               /* one subdirectory deep? (I386 for instance) */
+                            !stricmp(readdir_entry->d_name, "SETUPLDR.BIN")) /* SETUPLDR.BIN present? */
+                            viso->use_version_suffix = 0;
                     }
                 } else if ((dir == viso->root_dir) && !stricmp(readdir_entry->d_name, "[BOOT]")) {
                     /* Set this as the directory containing El Torito boot code. */
@@ -969,7 +978,7 @@ next_dir:
     tzset();
     time_t now = time(NULL);
     if (viso->format >= VISO_FORMAT_ISO) /* timezones are ISO only */
-        tz_offset  = (now - mktime(gmtime(&now))) / (3600 / 4);
+        tz_offset = (now - mktime(gmtime(&now))) / (3600 / 4);
 
     /* Get root directory basename for the volume ID. */
     char *basename = path_get_filename(viso->root_dir->path);
@@ -1025,7 +1034,7 @@ next_dir:
         VISO_SKIP(p, 24 + (16 * (viso->format <= VISO_FORMAT_HSF))); /* PT size, LE PT offset, optional LE PT offset (three on HSF), BE PT offset, optional BE PT offset (three on HSF) */
 
         viso->root_dir->dr_offsets[i] = ftello64(viso->tf.file) + (p - data);
-        p += viso_fill_dir_record(p, viso->root_dir, viso->format, viso->flags, VISO_DIR_CURRENT); /* root directory */
+        p += viso_fill_dir_record(p, viso->root_dir, viso, VISO_DIR_CURRENT); /* root directory */
 
         if (i) {
             viso_write_wstring((uint16_t *) p, L"", 64, VISO_CHARSET_D); /* volume set ID */
@@ -1322,7 +1331,7 @@ next_dir:
                                      ((dir_type == VISO_DIR_PARENT) ? ".." : ((dir_type < VISO_DIR_PARENT) ? "." : (i ? entry->basename : entry->name_short))));
 
                 /* Fill directory record. */
-                viso_fill_dir_record(data, entry, viso->format, viso->flags, dir_type);
+                viso_fill_dir_record(data, entry, viso, dir_type);
 
                 /* Entries cannot cross sector boundaries, so pad to the next sector if needed. */
                 write = viso->sector_size - (ftello64(viso->tf.file) % viso->sector_size);
