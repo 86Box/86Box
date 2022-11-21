@@ -940,7 +940,6 @@ have_eltorito_entry:
 
                 cdrom_image_viso_log("[%08X] %s => [%-12s] %s\n", entry, dir->path, entry->name_short, entry->basename);
             }
-            closedir(dirp);
         } else {
             cdrom_image_viso_log("VISO: Failed to enumerate [%s], will be empty\n", dir->path);
         }
@@ -964,6 +963,8 @@ have_eltorito_entry:
 
 next_dir:
         /* Move on to the next directory. */
+        if (dirp)
+            closedir(dirp);
         dir = dir->next_dir;
     }
     if (dir_entries)
