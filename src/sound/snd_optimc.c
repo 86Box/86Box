@@ -312,7 +312,8 @@ optimc_reg_read(uint16_t addr, void *p)
             case 3: /* MC4 */
             case 4: /* MC5 */
                 temp = optimc->regs[addr - 0xF8D];
-            case 5: /* MC6 (not readable) */
+            case 5: /* MC6 */
+                temp = optimc->regs[5];
                 break;
             case 2: /* MC3 */
                 temp = (optimc->regs[2] & ~0x3) | 0x2;
