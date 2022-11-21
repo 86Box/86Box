@@ -115,7 +115,7 @@ typedef struct _viso_entry_ {
 
 typedef struct {
     uint64_t vol_size_offsets[2], pt_meta_offsets[2];
-    int      format;
+    int      format, flags;
     size_t   metadata_sectors, all_sectors, entry_map_size, sector_size, file_fifo_pos;
     uint8_t *metadata;
 
@@ -470,7 +470,7 @@ viso_fill_time(uint8_t *data, time_t time, int format, int longform)
 }
 
 static int
-viso_fill_dir_record(uint8_t *data, viso_entry_t *entry, int format, int type)
+viso_fill_dir_record(uint8_t *data, viso_entry_t *entry, int format, int flags, int type)
 {
     uint8_t *p = data, *q, *r;
 
@@ -968,7 +968,8 @@ next_dir:
        the timezone offset for descriptors and file times to use. */
     tzset();
     time_t now = time(NULL);
-    tz_offset  = (now - mktime(gmtime(&now))) / (3600 / 4);
+    if (viso->format >= VISO_FORMAT_ISO) /* timezones are ISO only */
+        tz_offset  = (now - mktime(gmtime(&now))) / (3600 / 4);
 
     /* Get root directory basename for the volume ID. */
     char *basename = path_get_filename(viso->root_dir->path);
@@ -1024,7 +1025,7 @@ next_dir:
         VISO_SKIP(p, 24 + (16 * (viso->format <= VISO_FORMAT_HSF))); /* PT size, LE PT offset, optional LE PT offset (three on HSF), BE PT offset, optional BE PT offset (three on HSF) */
 
         viso->root_dir->dr_offsets[i] = ftello64(viso->tf.file) + (p - data);
-        p += viso_fill_dir_record(p, viso->root_dir, viso->format, VISO_DIR_CURRENT); /* root directory */
+        p += viso_fill_dir_record(p, viso->root_dir, viso->format, viso->flags, VISO_DIR_CURRENT); /* root directory */
 
         if (i) {
             viso_write_wstring((uint16_t *) p, L"", 64, VISO_CHARSET_D); /* volume set ID */
@@ -1321,7 +1322,7 @@ next_dir:
                                      ((dir_type == VISO_DIR_PARENT) ? ".." : ((dir_type < VISO_DIR_PARENT) ? "." : (i ? entry->basename : entry->name_short))));
 
                 /* Fill directory record. */
-                viso_fill_dir_record(data, entry, viso->format, dir_type);
+                viso_fill_dir_record(data, entry, viso->format, viso->flags, dir_type);
 
                 /* Entries cannot cross sector boundaries, so pad to the next sector if needed. */
                 write = viso->sector_size - (ftello64(viso->tf.file) % viso->sector_size);
