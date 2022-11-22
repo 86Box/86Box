@@ -378,6 +378,10 @@ ad1848_write(uint16_t addr, uint8_t val, void *priv)
 
                 case 25:
                     return;
+                case 27:
+                    if (ad1848->type != AD1848_TYPE_DEFAULT)
+                        return;
+                    break;
             }
             ad1848->regs[ad1848->index] = val;
 
