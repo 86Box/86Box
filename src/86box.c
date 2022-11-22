@@ -598,8 +598,10 @@ usage:
     }
 
     /* TEMPORARY */
-    if (!log_path[0])
-        strcpy(log_path, "86box.log");
+    if (!log_path[0]) {
+        strcpy(log_path, exe_path);
+        strcat(log_path, "86box.log");
+    }
 
     /* One argument (config file) allowed. */
     if (c < argc) {
