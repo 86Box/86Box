@@ -300,7 +300,7 @@ static int
 viso_fill_fn_short(char *data, const viso_entry_t *entry, viso_entry_t **entries)
 {
     /* Get name and extension length. */
-    const char *ext_pos = S_ISDIR(entry->stats.st_mode) ? NULL : strrchr(entry->basename, '.');
+    const char *ext_pos = strrchr(entry->basename, '.');
     int         name_len, ext_len;
     if (ext_pos) {
         name_len = ext_pos - entry->basename;
@@ -392,7 +392,7 @@ viso_fill_fn_joliet(uint8_t *data, const viso_entry_t *entry, size_t max_len) /*
     len = viso_convert_utf8(utf8dec, entry->basename, len + 1);
 
     /* Trim decoded filename to max_len if needed. */
-    max_len >>= 1;
+    max_len /= 2;
     if (len > max_len) {
         viso_write_wstring((uint16_t *) data, utf8dec, max_len, VISO_CHARSET_FN);
 
