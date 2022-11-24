@@ -342,7 +342,7 @@ optimc_init(const device_t *info)
     optimc->cur_mpu401_addr    = 0x330;
     optimc->cur_mpu401_enabled = 1;
 
-    optimc->regs[0] = ((device_get_config_int("gameport")) ? 0x01 : 0x00);
+    optimc->regs[0] = 0x00;
     optimc->regs[1] = 0x03;
     optimc->regs[2] = 0x00;
     optimc->regs[3] = 0x00;
@@ -427,12 +427,6 @@ mirosound_pcm10_available(void)
 
 static const device_config_t acermagic_s20_config[] = {
   // clang-format off
-    {
-        .name = "gameport",
-        .description = "Gameport",
-        .type = CONFIG_BINARY,
-        .default_int = 0
-    },
     {
         .name = "receive_input",
         .description = "Receive input (SB MIDI)",
