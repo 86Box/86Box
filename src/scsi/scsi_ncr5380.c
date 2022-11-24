@@ -1354,22 +1354,7 @@ t128_read(uint32_t addr, void *priv)
         ret = ncr_dev->t128.status;
         ncr_log("T128 status read = %02x, cur bus = %02x, req = %02x, dma = %02x\n", ret, ncr->cur_bus, ncr->cur_bus & BUS_REQ, ncr->mode & MODE_DMA);
     } else if (addr >= 0x1d00 && addr < 0x1e00) {
-        if (addr >= 0x1d00 && addr < 0x1d20)
-            ret = ncr_read(0, ncr_dev);
-        else if (addr >= 0x1d20 && addr < 0x1d40)
-            ret = ncr_read(1, ncr_dev);
-        else if (addr >= 0x1d40 && addr < 0x1d60)
-            ret = ncr_read(2, ncr_dev);
-        else if (addr >= 0x1d60 && addr < 0x1d80)
-            ret = ncr_read(3, ncr_dev);
-        else if (addr >= 0x1d80 && addr < 0x1da0)
-            ret = ncr_read(4, ncr_dev);
-        else if (addr >= 0x1da0 && addr < 0x1dc0)
-            ret = ncr_read(5, ncr_dev);
-        else if (addr >= 0x1dc0 && addr < 0x1de0)
-            ret = ncr_read(6, ncr_dev);
-        else if (addr >= 0x1de0 && addr < 0x1e00)
-            ret = ncr_read(7, ncr_dev);
+        ret = ncr_read((addr - 0x1d00) >> 5, ncr_dev);
     } else if (addr >= 0x1e00 && addr < 0x2000) {
         if (ncr_dev->t128.host_pos >= MIN(512, dev->buffer_length) || ncr->dma_mode != DMA_INITIATOR_RECEIVE) {
             ret = 0xff;
@@ -1408,24 +1393,9 @@ t128_write(uint32_t addr, uint8_t val, void *priv)
         }
         ncr_dev->t128.ctrl = val;
         ncr_log("T128 ctrl write = %02x\n", val);
-    } else if (addr >= 0x1d00 && addr < 0x1e00) {
-        if (addr >= 0x1d00 && addr < 0x1d20)
-            ncr_write(0, val, ncr_dev);
-        else if (addr >= 0x1d20 && addr < 0x1d40)
-            ncr_write(1, val, ncr_dev);
-        else if (addr >= 0x1d40 && addr < 0x1d60)
-            ncr_write(2, val, ncr_dev);
-        else if (addr >= 0x1d60 && addr < 0x1d80)
-            ncr_write(3, val, ncr_dev);
-        else if (addr >= 0x1d80 && addr < 0x1da0)
-            ncr_write(4, val, ncr_dev);
-        else if (addr >= 0x1da0 && addr < 0x1dc0)
-            ncr_write(5, val, ncr_dev);
-        else if (addr >= 0x1dc0 && addr < 0x1de0)
-            ncr_write(6, val, ncr_dev);
-        else if (addr >= 0x1de0 && addr < 0x1e00)
-            ncr_write(7, val, ncr_dev);
-    } else if (addr >= 0x1e00 && addr < 0x2000) {
+    } else if (addr >= 0x1d00 && addr < 0x1e00)
+        ncr_write((addr - 0x1d00) >> 5, val, ncr_dev);
+    else if (addr >= 0x1e00 && addr < 0x2000) {
         if (ncr_dev->t128.host_pos < MIN(512, dev->buffer_length) && ncr->dma_mode == DMA_SEND) {
             ncr_dev->t128.buffer[ncr_dev->t128.host_pos] = val;
             ncr_dev->t128.host_pos++;
