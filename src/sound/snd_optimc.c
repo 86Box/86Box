@@ -157,6 +157,7 @@ optimc_reg_write(uint16_t addr, uint8_t val, void *p)
                 if (val != old) {
                     optimc->cur_mode = optimc->cur_wss_enabled = !!(val & 0x80);
 
+                    sound_set_cd_audio_filter(NULL, NULL);
                     if (optimc->cur_wss_enabled) /* WSS */
                         sound_set_cd_audio_filter(ad1848_filter_cd_audio, &optimc->ad1848);
                     else /* SBPro */
