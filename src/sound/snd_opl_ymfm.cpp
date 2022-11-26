@@ -320,12 +320,12 @@ ymfm_drv_read(uint16_t port, void *priv)
 {
     YMFMChipBase *drv = (YMFMChipBase *) priv;
 
-    if (port == 0x381) {
-        port += 4;
-    } /* Point to register read port. */
-    if (drv->flags() & FLAG_CYCLES) {
+    if ((port == 0x380) || (port == 0x381))
+        port |= 4;
+
+    /* Point to register read port. */
+    if (drv->flags() & FLAG_CYCLES)
         cycles -= ((int) (isa_timing * 8));
-    }
 
     uint8_t ret = drv->read(port);
     drv->update();
@@ -339,9 +339,8 @@ ymfm_drv_write(uint16_t port, uint8_t val, void *priv)
 {
     YMFMChipBase *drv = (YMFMChipBase *) priv;
     ymfm_log("YMFM write port %04x value = %02x\n", port, val);
-    if (port == 0x380 || port == 0x381) {
-        port += 4;
-    }
+    if ((port == 0x380) || (port == 0x381))
+        port |= 4;
     drv->write(port, val);
     drv->update();
 }
