@@ -1385,10 +1385,12 @@ m24_kbd_init(m24_kbd_t *kbd)
     m24_kbd_reset(kbd);
     timer_add(&kbd->send_delay_timer, m24_kbd_poll, kbd, 1);
 
-    /* Tell mouse driver about our internal mouse. */
-    mouse_reset();
-    mouse_set_buttons(2);
-    mouse_set_poll(ms_poll, kbd);
+    if (mouse_type == MOUSE_TYPE_INTERNAL) {
+        /* Tell mouse driver about our internal mouse. */
+        mouse_reset();
+        mouse_set_buttons(2);
+        mouse_set_poll(ms_poll, kbd);
+    }
 
     keyboard_set_table((kbd->id == 0x01) ? scancode_olivetti_m24_deluxe : scancode_olivetti_m240);
     keyboard_set_is_amstrad(0);

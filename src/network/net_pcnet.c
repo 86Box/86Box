@@ -3065,6 +3065,8 @@ static const device_config_t pcnet_isa_config[] = {
             { .description = "IRQ 4", .value = 4 },
             { .description = "IRQ 5", .value = 5 },
             { .description = "IRQ 9", .value = 9 },
+            { .description = "IRQ 10", .value = 10 },
+            { .description = "IRQ 11", .value = 11 },
             { .description = ""                  }
         },
     },
@@ -3124,6 +3126,8 @@ static const device_config_t pcnet_vlb_config[] = {
             { .description = "IRQ 4", .value = 4 },
             { .description = "IRQ 5", .value = 5 },
             { .description = "IRQ 9", .value = 9 },
+            { .description = "IRQ 10", .value = 10 },
+            { .description = "IRQ 11", .value = 11 },
             { .description = ""                  }
         },
     },
