@@ -67,6 +67,7 @@
 #include <86box/ui.h>
 #include <86box/timer.h>
 #include <86box/network.h>
+#include <86box/net_3c501.h>
 #include <86box/net_3c503.h>
 #include <86box/net_ne2000.h>
 #include <86box/net_pcnet.h>
@@ -95,6 +96,7 @@ static const device_t net_none_device = {
 
 static const device_t *net_cards[] = {
     &net_none_device,
+    &threec501_device,
     &threec503_device,
     &pcnet_am79c960_device,
     &pcnet_am79c961_device,
