@@ -340,6 +340,7 @@ extern int   machine_get_ram_granularity(int m);
 extern int   machine_get_type(int m);
 extern void  machine_close(void);
 extern int   machine_has_mouse(void);
+extern int   machine_is_sony(void);
 
 extern uint8_t  machine_get_p1(void);
 extern void     machine_load_p1(int m);
