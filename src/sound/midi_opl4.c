@@ -269,12 +269,15 @@ static const uint8_t g_volume_table[128] = {
     2, 2, 2, 1, 1, 0, 0, 0
 };
 
+#define BUFFER_SEGMENTS 10
+#define RENDER_RATE (48000 / 100)
+
 typedef struct opl4_midi {
     fm_drv_t          opl4;
     MIDI_CHANNEL_DATA midi_channel_data[16];
     VOICE_DATA        voice_data[24];
-    int16_t           buffer[SOUNDBUFLEN * 2];
-    float             buffer_float[SOUNDBUFLEN * 2];
+    int16_t           buffer[(48000 / 100) * 2 * BUFFER_SEGMENTS];
+    float             buffer_float[(48000 / 100) * 2 * BUFFER_SEGMENTS];
     uint32_t          midi_pos;
     bool              on;
     atomic_bool       gen_in_progress;
@@ -537,13 +540,14 @@ program_change(uint8_t midi_channel, uint8_t program, opl4_midi_t *opl4_midi)
     opl4_midi->midi_channel_data[midi_channel].instrument = program;
 }
 
-#define RENDER_RATE (48000 / 100)
 static void
 opl4_midi_thread(void *arg)
 {
     opl4_midi_t *opl4_midi = opl4_midi_cur;
     uint32_t     i         = 0;
     uint32_t     buf_size  = RENDER_RATE * 2;
+    uint32_t     buf_size_segments = buf_size * BUFFER_SEGMENTS;
+    uint32_t     buf_pos   = 0;
 
     int32_t buffer[RENDER_RATE * 2];
 
@@ -558,16 +562,24 @@ opl4_midi_thread(void *arg)
         atomic_store(&opl4_midi->gen_in_progress, false);
         if (sound_is_float) {
             for (i = 0; i < (buf_size / 2); i++) {
-                opl4_midi->buffer_float[i * 2]       = buffer[i * 2] / 32768.0;
-                opl4_midi->buffer_float[(i * 2) + 1] = buffer[(i * 2) + 1] / 32768.0;
+                opl4_midi->buffer_float[(i + buf_pos) * 2]       = buffer[i * 2] / 32768.0;
+                opl4_midi->buffer_float[((i + buf_pos) * 2) + 1] = buffer[(i * 2) + 1] / 32768.0;
             }
-            givealbuffer_midi(opl4_midi->buffer_float, buf_size);
+            buf_pos += buf_size / 2;
+            if (buf_pos >= (buf_size_segments / 2)) {
+                givealbuffer_midi(opl4_midi->buffer_float, buf_size_segments);
+                buf_pos = 0;
+            }
         } else {
             for (i = 0; i < (buf_size / 2); i++) {
-                opl4_midi->buffer[i * 2]       = buffer[i * 2] & 0xFFFF;       /* Outputs are clamped beforehand. */
-                opl4_midi->buffer[(i * 2) + 1] = buffer[(i * 2) + 1] & 0xFFFF; /* Outputs are clamped beforehand. */
+                opl4_midi->buffer[(i + buf_pos) * 2]       = buffer[i * 2] & 0xFFFF;       /* Outputs are clamped beforehand. */
+                opl4_midi->buffer[((i + buf_pos) * 2) + 1] = buffer[(i * 2) + 1] & 0xFFFF; /* Outputs are clamped beforehand. */
             }
-            givealbuffer_midi(opl4_midi->buffer, buf_size);
+            buf_pos += buf_size / 2;
+            if (buf_pos >= (buf_size_segments / 2)) {
+                givealbuffer_midi(opl4_midi->buffer, buf_size_segments);
+                buf_pos = 0;
+            }
         }
     }
 }
