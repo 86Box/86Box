@@ -270,7 +270,7 @@ static const uint8_t g_volume_table[128] = {
 };
 
 #define BUFFER_SEGMENTS 10
-#define RENDER_RATE (48000 / 100)
+#define RENDER_RATE     (48000 / 100)
 
 typedef struct opl4_midi {
     fm_drv_t          opl4;
@@ -419,8 +419,7 @@ note_on(uint8_t note, uint8_t velocity, MIDI_CHANNEL_DATA *midi_channel, opl4_mi
     const YRW801_WAVE_DATA       *wave_data[2];
     VOICE_DATA                   *voice[2];
     uint8_t                       i = 0, voices = 0;
-    uint32_t                      j              = 0;
-    static uint64_t               activation_num = 0;
+    uint32_t                      j = 0;
 
     while (opl4_midi->gen_in_progress) { }
 
@@ -444,7 +443,7 @@ note_on(uint8_t note, uint8_t velocity, MIDI_CHANNEL_DATA *midi_channel, opl4_mi
     for (i = 0; i < voices; i++) {
         voice[i]            = get_voice(wave_data[i], opl4_midi);
         voice[i]->is_active = true;
-        voice[i]->activated = activation_num++;
+        voice[i]->activated = plat_get_ticks();
 
         voice[i]->midi_channel = midi_channel;
         voice[i]->note         = note;
@@ -543,11 +542,11 @@ program_change(uint8_t midi_channel, uint8_t program, opl4_midi_t *opl4_midi)
 static void
 opl4_midi_thread(void *arg)
 {
-    opl4_midi_t *opl4_midi = opl4_midi_cur;
-    uint32_t     i         = 0;
-    uint32_t     buf_size  = RENDER_RATE * 2;
+    opl4_midi_t *opl4_midi         = opl4_midi_cur;
+    uint32_t     i                 = 0;
+    uint32_t     buf_size          = RENDER_RATE * 2;
     uint32_t     buf_size_segments = buf_size * BUFFER_SEGMENTS;
-    uint32_t     buf_pos   = 0;
+    uint32_t     buf_pos           = 0;
 
     int32_t buffer[RENDER_RATE * 2];
 
