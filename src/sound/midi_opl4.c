@@ -314,7 +314,23 @@ get_voice(const YRW801_WAVE_DATA *wave_data, opl4_midi_t *opl4_midi)
         }
     }
 
-    /* If no free voice found, deactivate the 'oldest' */
+    /* If no free voice is found, look for one with the same instrument */
+    if (free_voice->is_active) {
+        for (uint8_t voice = 0; voice < 24; voice++) {
+            if (opl4_midi_cur->voice_data[voice].is_active
+            && opl4_midi_cur->voice_data[voice].wave_data == wave_data) {
+                free_voice            = &opl4_midi_cur->voice_data[voice];
+                free_voice->is_active = 0;
+                free_voice->activated = 0;
+
+                free_voice->reg_misc &= ~OPL4_KEY_ON_BIT;
+                opl4_write_wave_register(OPL4_REG_MISC + free_voice->number, free_voice->reg_misc, opl4_midi);
+                return free_voice;
+            }
+        }
+    }
+
+    /* If still no free voice found, deactivate the 'oldest' */
     if (free_voice->is_active) {
         free_voice            = oldest_voice;
         free_voice->is_active = 0;
