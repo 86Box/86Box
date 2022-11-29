@@ -309,8 +309,10 @@ get_voice(const YRW801_WAVE_DATA *wave_data, opl4_midi_t *opl4_midi)
                 break;
             }
 
-            if (opl4_midi_cur->voice_data[voice].activated < free_voice->activated)
+            if (opl4_midi_cur->voice_data[voice].activated < free_voice->activated) {
                 free_voice = &opl4_midi_cur->voice_data[voice];
+                break;
+            }
         }
     }
 
