@@ -61,6 +61,7 @@ enum {
     CPUID_AMDSEP    = (1 << 10),
     CPUID_SEP       = (1 << 11),
     CPUID_MTRR      = (1 << 12),
+    CPUID_PGE       = (1 << 13),
     CPUID_MCA       = (1 << 14),
     CPUID_CMOV      = (1 << 15),
     CPUID_MMX       = (1 << 23),
@@ -1298,7 +1299,7 @@ cpu_set(void)
             if (cpu_s->cpu_type >= CPU_PENTIUM2)
                 cpu_features |= CPU_FEATURE_MMX;
             msr.fcr      = (1 << 8) | (1 << 9) | (1 << 12) | (1 << 16) | (1 << 19) | (1 << 21);
-            cpu_CR4_mask = CR4_VME | CR4_PVI | CR4_TSD | CR4_DE | CR4_PSE | CR4_MCE | CR4_PAE | CR4_PCE;
+            cpu_CR4_mask = CR4_VME | CR4_PVI | CR4_TSD | CR4_DE | CR4_PSE | CR4_MCE | CR4_PAE | CR4_PCE | CR4_PGE;
             if (cpu_s->cpu_type == CPU_PENTIUM2D)
                 cpu_CR4_mask |= CR4_OSFXSR;
 
@@ -1959,7 +1960,7 @@ cpu_CPUID(void)
             } else if (EAX == 1) {
                 EAX = CPUID;
                 EBX = ECX = 0;
-                EDX       = CPUID_FPU | CPUID_VME | CPUID_PSE | CPUID_TSC | CPUID_MSR | CPUID_PAE | CPUID_MCE | CPUID_CMPXCHG8B | CPUID_MTRR | CPUID_MCA | CPUID_SEP | CPUID_CMOV;
+                EDX       = CPUID_FPU | CPUID_VME | CPUID_PSE | CPUID_TSC | CPUID_MSR | CPUID_PAE | CPUID_MCE | CPUID_CMPXCHG8B | CPUID_MTRR | CPUID_PGE | CPUID_MCA | CPUID_SEP | CPUID_CMOV;
             } else if (EAX == 2) {
                 EAX = 0x00000001;
                 EBX = ECX = 0;
@@ -1977,7 +1978,7 @@ cpu_CPUID(void)
             } else if (EAX == 1) {
                 EAX = CPUID;
                 EBX = ECX = 0;
-                EDX       = CPUID_FPU | CPUID_VME | CPUID_PSE | CPUID_TSC | CPUID_MSR | CPUID_PAE | CPUID_MCE | CPUID_CMPXCHG8B | CPUID_MMX | CPUID_MTRR | CPUID_MCA | CPUID_SEP | CPUID_CMOV;
+                EDX       = CPUID_FPU | CPUID_VME | CPUID_PSE | CPUID_TSC | CPUID_MSR | CPUID_PAE | CPUID_MCE | CPUID_CMPXCHG8B | CPUID_MMX | CPUID_MTRR | CPUID_PGE | CPUID_MCA | CPUID_SEP | CPUID_CMOV;
             } else if (EAX == 2) {
                 EAX = 0x00000001;
                 EBX = ECX = 0;
@@ -1995,7 +1996,7 @@ cpu_CPUID(void)
             } else if (EAX == 1) {
                 EAX = CPUID;
                 EBX = ECX = 0;
-                EDX       = CPUID_FPU | CPUID_VME | CPUID_PSE | CPUID_TSC | CPUID_MSR | CPUID_PAE | CPUID_MCE | CPUID_CMPXCHG8B | CPUID_MMX | CPUID_MTRR | CPUID_MCA | CPUID_SEP | CPUID_FXSR | CPUID_CMOV;
+                EDX       = CPUID_FPU | CPUID_VME | CPUID_PSE | CPUID_TSC | CPUID_MSR | CPUID_PAE | CPUID_MCE | CPUID_CMPXCHG8B | CPUID_MMX | CPUID_MTRR | CPUID_PGE | CPUID_MCA | CPUID_SEP | CPUID_FXSR | CPUID_CMOV;
             } else if (EAX == 2) {
                 EAX = 0x00000001;
                 EBX = ECX = 0;

@@ -195,6 +195,7 @@ typedef struct {
 #define CR4_PVI  (1 << 1)
 #define CR4_PSE  (1 << 4)
 #define CR4_PAE  (1 << 5)
+#define CR4_PGE  (1 << 7)
 
 #define CPL      ((cpu_state.seg_cs.access >> 5) & 3)
 
