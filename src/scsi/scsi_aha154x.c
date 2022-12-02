@@ -519,7 +519,7 @@ aha_mca_write(int port, uint8_t val, void *priv)
 
     /* Get the new assigned I/O base address. */
     dev->Base = (dev->pos_regs[3] & 7) << 8;
-    dev->Base |= ((dev->pos_regs[3] & 0xc0) ? 0x34 : 0x30);
+    dev->Base |= ((dev->pos_regs[3] & 0x40) ? 0x34 : 0x30);
 
     /* Save the new IRQ and DMA channel values. */
     dev->Irq        = (dev->pos_regs[4] & 0x07) + 8;

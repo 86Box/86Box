@@ -1402,7 +1402,7 @@ x54x_reset(x54x_t *dev)
 
     clear_irq(dev);
     if (dev->flags & X54X_INT_GEOM_WRITABLE)
-        dev->Geometry = 0x80;
+        dev->Geometry = 0x90;
     else
         dev->Geometry = 0x00;
     dev->callback_phase     = 0;
