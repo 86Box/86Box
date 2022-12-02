@@ -548,7 +548,7 @@ wd_mca_write(int port, uint8_t val, void *priv)
 
     dev->base_address = (dev->pos_regs[2] & 0xfe) << 4;
     dev->ram_addr     = (dev->pos_regs[3] & 0xfc) << 12;
-    dev->irq          = irq[dev->pos_regs[5] & 0x02];
+    dev->irq          = irq[dev->pos_regs[5] & 0x03];
 
     /* Initialize the device if fully configured. */
     /* Register (new) I/O handler. */
