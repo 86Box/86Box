@@ -186,7 +186,7 @@ NewFloppyDialog::onCreate()
 {
     auto      filename = ui->fileField->fileName();
     QFileInfo fi(filename);
-    filename = (fi.isRelative() && !fi.filePath().isEmpty()) ? usr_path + fi.filePath() : fi.filePath();
+    filename = (fi.isRelative() && !fi.filePath().isEmpty()) ? (usr_path + fi.filePath()) : fi.filePath();
     ui->fileField->setFileName(filename);
     FileType  fileType;
 
