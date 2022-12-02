@@ -30,6 +30,7 @@
 #include <86box/device.h>
 #include <86box/scsi.h>
 #include <86box/scsi_device.h>
+#include <86box/machine.h>
 #include <86box/nvr.h>
 #include <86box/hdc.h>
 #include <86box/hdc_ide.h>
@@ -62,98 +63,98 @@ typedef struct
 
 /* Table of all SCSI commands and their flags, needed for the new disc change / not ready handler. */
 const uint8_t scsi_cdrom_command_flags[0x100] = {
-    IMPLEMENTED | CHECK_READY | NONDATA,             /* 0x00 */
-    IMPLEMENTED | ALLOW_UA | NONDATA | SCSI_ONLY,    /* 0x01 */
-    0,                                               /* 0x02 */
-    IMPLEMENTED | ALLOW_UA,                          /* 0x03 */
-    0, 0, 0, 0,                                      /* 0x04-0x07 */
-    IMPLEMENTED | CHECK_READY,                       /* 0x08 */
-    0, 0,                                            /* 0x09-0x0A */
-    IMPLEMENTED | CHECK_READY | NONDATA,             /* 0x0B */
-    0, 0, 0, 0, 0, 0,                                /* 0x0C-0x11 */
-    IMPLEMENTED | ALLOW_UA,                          /* 0x12 */
-    IMPLEMENTED | CHECK_READY | NONDATA | SCSI_ONLY, /* 0x13 */
-    0,                                               /* 0x14 */
-    IMPLEMENTED,                                     /* 0x15 */
-    0, 0, 0, 0,                                      /* 0x16-0x19 */
-    IMPLEMENTED,                                     /* 0x1A */
-    IMPLEMENTED | CHECK_READY,                       /* 0x1B */
-    0, 0,                                            /* 0x1C-0x1D */
-    IMPLEMENTED | CHECK_READY,                       /* 0x1E */
-    0, 0, 0, 0, 0, 0,                                /* 0x1F-0x24 */
-    IMPLEMENTED | CHECK_READY,                       /* 0x25 */
-    IMPLEMENTED | CHECK_READY | SCSI_ONLY | EARLY_ONLY,/* 0x26 */
-    0,                                               /* 0x27 */
-    IMPLEMENTED | CHECK_READY,                       /* 0x28 */
-    0, 0,                                            /* 0x29-0x2A */
-    IMPLEMENTED | CHECK_READY | NONDATA,             /* 0x2B */
-    0, 0, 0,                                         /* 0x2C-0x2E */
-    IMPLEMENTED | CHECK_READY | NONDATA | SCSI_ONLY, /* 0x2F */
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  /* 0x30-0x3F */
-    0, 0,                                            /* 0x40-0x41 */
-    IMPLEMENTED | CHECK_READY,                       /* 0x42 */
-    IMPLEMENTED | CHECK_READY,                       /* 0x43 - Read TOC - can get through UNIT_ATTENTION, per VIDE-CDD.SYS
-                                                        NOTE: The ATAPI reference says otherwise, but I think this is a question of
-                                                        interpreting things right - the UNIT ATTENTION condition we have here
-                                                        is a tradition from not ready to ready, by definition the drive
-                                                        eventually becomes ready, make the condition go away. */
-    IMPLEMENTED | CHECK_READY,                       /* 0x44 */
-    IMPLEMENTED | CHECK_READY,                       /* 0x45 */
-    IMPLEMENTED | ALLOW_UA,                          /* 0x46 */
-    IMPLEMENTED | CHECK_READY,                       /* 0x47 */
-    IMPLEMENTED | CHECK_READY,                       /* 0x48 */
-    IMPLEMENTED | CHECK_READY,                       /* 0x49 */
-    IMPLEMENTED | ALLOW_UA,                          /* 0x4A */
-    IMPLEMENTED | CHECK_READY,                       /* 0x4B */
-    0, 0,                                            /* 0x4C-0x4D */
-    IMPLEMENTED | CHECK_READY,                       /* 0x4E */
-    0, 0,                                            /* 0x4F-0x50 */
-    IMPLEMENTED | CHECK_READY,                       /* 0x51 */
-    IMPLEMENTED | CHECK_READY,                       /* 0x52 */
-    0, 0,                                            /* 0x53-0x54 */
-    IMPLEMENTED,                                     /* 0x55 */
-    0, 0, 0, 0,                                      /* 0x56-0x59 */
-    IMPLEMENTED,                                     /* 0x5A */
-    0, 0, 0, 0, 0,                                   /* 0x5B-0x5F */
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  /* 0x60-0x6F */
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  /* 0x70-0x7F */
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  /* 0x80-0x8F */
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  /* 0x90-0x9F */
-    0, 0, 0, 0, 0,                                   /* 0xA0-0xA4 */
-    IMPLEMENTED | CHECK_READY,                       /* 0xA5 */
-    0, 0,                                            /* 0xA6-0xA7 */
-    IMPLEMENTED | CHECK_READY,                       /* 0xA8 */
-    IMPLEMENTED | CHECK_READY,                       /* 0xA9 */
-    0, 0, 0,                                         /* 0xAA-0xAC */
-    IMPLEMENTED | CHECK_READY,                       /* 0xAD */
-    0,                                               /* 0xAE */
-    IMPLEMENTED | CHECK_READY | NONDATA | SCSI_ONLY, /* 0xAF */
-    0, 0, 0, 0,                                      /* 0xB0-0xB3 */
-    IMPLEMENTED | CHECK_READY | ATAPI_ONLY,          /* 0xB4 */
-    0, 0, 0,                                         /* 0xB5-0xB7 */
-    IMPLEMENTED | CHECK_READY | ATAPI_ONLY,          /* 0xB8 */
-    IMPLEMENTED | CHECK_READY,                       /* 0xB9 */
-    IMPLEMENTED | CHECK_READY,                       /* 0xBA */
-    IMPLEMENTED,                                     /* 0xBB */
-    IMPLEMENTED | CHECK_READY,                       /* 0xBC */
-    IMPLEMENTED,                                     /* 0xBD */
-    IMPLEMENTED | CHECK_READY,                       /* 0xBE */
-    IMPLEMENTED | CHECK_READY,                       /* 0xBF */
-    IMPLEMENTED | CHECK_READY | SCSI_ONLY,           /* 0xC0 */
-    IMPLEMENTED | CHECK_READY | SCSI_ONLY,           /* 0xC1 */
-    IMPLEMENTED | CHECK_READY | SCSI_ONLY,           /* 0xC2 */
-    0,                                               /* 0xC3 */
-    IMPLEMENTED | CHECK_READY | SCSI_ONLY,           /* 0xC4 */
-    0,                                               /* 0xC5 */
-    IMPLEMENTED | CHECK_READY | SCSI_ONLY,           /* 0xC6 */
-    IMPLEMENTED | CHECK_READY | SCSI_ONLY,           /* 0xC7 */
-    0, 0, 0, 0, 0,                                   /* 0xC8-0xCC */
-    IMPLEMENTED | CHECK_READY | SCSI_ONLY,           /* 0xCD */
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,              /* 0xCE-0xD9 */
-    IMPLEMENTED | SCSI_ONLY,                         /* 0xDA */
-    0, 0, 0, 0, 0,                                   /* 0xDB-0xDF */
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  /* 0xE0-0xEF */
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0   /* 0xF0-0xFF */
+    IMPLEMENTED | CHECK_READY | NONDATA,                /* 0x00 */
+    IMPLEMENTED | ALLOW_UA | NONDATA | SCSI_ONLY,       /* 0x01 */
+    0,                                                  /* 0x02 */
+    IMPLEMENTED | ALLOW_UA,                             /* 0x03 */
+    0, 0, 0, 0,                                         /* 0x04-0x07 */
+    IMPLEMENTED | CHECK_READY,                          /* 0x08 */
+    0, 0,                                               /* 0x09-0x0A */
+    IMPLEMENTED | CHECK_READY | NONDATA,                /* 0x0B */
+    0, 0, 0, 0, 0, 0,                                   /* 0x0C-0x11 */
+    IMPLEMENTED | ALLOW_UA,                             /* 0x12 */
+    IMPLEMENTED | CHECK_READY | NONDATA | SCSI_ONLY,    /* 0x13 */
+    0,                                                  /* 0x14 */
+    IMPLEMENTED,                                        /* 0x15 */
+    0, 0, 0, 0,                                         /* 0x16-0x19 */
+    IMPLEMENTED,                                        /* 0x1A */
+    IMPLEMENTED | CHECK_READY,                          /* 0x1B */
+    0, 0,                                               /* 0x1C-0x1D */
+    IMPLEMENTED | CHECK_READY,                          /* 0x1E */
+    0, 0, 0, 0, 0, 0,                                   /* 0x1F-0x24 */
+    IMPLEMENTED | CHECK_READY,                          /* 0x25 */
+    IMPLEMENTED | CHECK_READY | SCSI_ONLY | EARLY_ONLY, /* 0x26 */
+    0,                                                  /* 0x27 */
+    IMPLEMENTED | CHECK_READY,                          /* 0x28 */
+    0, 0,                                               /* 0x29-0x2A */
+    IMPLEMENTED | CHECK_READY | NONDATA,                /* 0x2B */
+    0, 0, 0,                                            /* 0x2C-0x2E */
+    IMPLEMENTED | CHECK_READY | NONDATA | SCSI_ONLY,    /* 0x2F */
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,     /* 0x30-0x3F */
+    0, 0,                                               /* 0x40-0x41 */
+    IMPLEMENTED | CHECK_READY,                          /* 0x42 */
+    IMPLEMENTED | CHECK_READY,                          /* 0x43 - Read TOC - can get through UNIT_ATTENTION, per VIDE-CDD.SYS
+                                                           NOTE: The ATAPI reference says otherwise, but I think this is a question of
+                                                           interpreting things right - the UNIT ATTENTION condition we have here
+                                                           is a tradition from not ready to ready, by definition the drive
+                                                           eventually becomes ready, make the condition go away. */
+    IMPLEMENTED | CHECK_READY,                          /* 0x44 */
+    IMPLEMENTED | CHECK_READY,                          /* 0x45 */
+    IMPLEMENTED | ALLOW_UA,                             /* 0x46 */
+    IMPLEMENTED | CHECK_READY,                          /* 0x47 */
+    IMPLEMENTED | CHECK_READY,                          /* 0x48 */
+    IMPLEMENTED | CHECK_READY,                          /* 0x49 */
+    IMPLEMENTED | ALLOW_UA,                             /* 0x4A */
+    IMPLEMENTED | CHECK_READY,                          /* 0x4B */
+    0, 0,                                               /* 0x4C-0x4D */
+    IMPLEMENTED | CHECK_READY,                          /* 0x4E */
+    0, 0,                                               /* 0x4F-0x50 */
+    IMPLEMENTED | CHECK_READY,                          /* 0x51 */
+    IMPLEMENTED | CHECK_READY,                          /* 0x52 */
+    0, 0,                                               /* 0x53-0x54 */
+    IMPLEMENTED,                                        /* 0x55 */
+    0, 0, 0, 0,                                         /* 0x56-0x59 */
+    IMPLEMENTED,                                        /* 0x5A */
+    0, 0, 0, 0, 0,                                      /* 0x5B-0x5F */
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,     /* 0x60-0x6F */
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,     /* 0x70-0x7F */
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,     /* 0x80-0x8F */
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,     /* 0x90-0x9F */
+    0, 0, 0, 0, 0,                                      /* 0xA0-0xA4 */
+    IMPLEMENTED | CHECK_READY,                          /* 0xA5 */
+    0, 0,                                               /* 0xA6-0xA7 */
+    IMPLEMENTED | CHECK_READY,                          /* 0xA8 */
+    IMPLEMENTED | CHECK_READY,                          /* 0xA9 */
+    0, 0, 0,                                            /* 0xAA-0xAC */
+    IMPLEMENTED | CHECK_READY,                          /* 0xAD */
+    0,                                                  /* 0xAE */
+    IMPLEMENTED | CHECK_READY | NONDATA | SCSI_ONLY,    /* 0xAF */
+    0, 0, 0, 0,                                         /* 0xB0-0xB3 */
+    IMPLEMENTED | CHECK_READY | ATAPI_ONLY,             /* 0xB4 */
+    0, 0, 0,                                            /* 0xB5-0xB7 */
+    IMPLEMENTED | CHECK_READY | ATAPI_ONLY,             /* 0xB8 */
+    IMPLEMENTED | CHECK_READY,                          /* 0xB9 */
+    IMPLEMENTED | CHECK_READY,                          /* 0xBA */
+    IMPLEMENTED,                                        /* 0xBB */
+    IMPLEMENTED | CHECK_READY,                          /* 0xBC */
+    IMPLEMENTED,                                        /* 0xBD */
+    IMPLEMENTED | CHECK_READY,                          /* 0xBE */
+    IMPLEMENTED | CHECK_READY,                          /* 0xBF */
+    IMPLEMENTED | CHECK_READY | SCSI_ONLY,              /* 0xC0 */
+    IMPLEMENTED | CHECK_READY | SCSI_ONLY,              /* 0xC1 */
+    IMPLEMENTED | CHECK_READY | SCSI_ONLY,              /* 0xC2 */
+    0,                                                  /* 0xC3 */
+    IMPLEMENTED | CHECK_READY | SCSI_ONLY,              /* 0xC4 */
+    0,                                                  /* 0xC5 */
+    IMPLEMENTED | CHECK_READY | SCSI_ONLY,              /* 0xC6 */
+    IMPLEMENTED | CHECK_READY | SCSI_ONLY,              /* 0xC7 */
+    0, 0, 0, 0, 0,                                      /* 0xC8-0xCC */
+    IMPLEMENTED | CHECK_READY | SCSI_ONLY,              /* 0xCD */
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,                 /* 0xCE-0xD9 */
+    IMPLEMENTED | SCSI_ONLY,                            /* 0xDA */
+    0, 0, 0, 0, 0,                                      /* 0xDB-0xDF */
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,     /* 0xE0-0xEF */
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0      /* 0xF0-0xFF */
 };
 
 static uint64_t scsi_cdrom_mode_sense_page_flags = (GPMODEP_R_W_ERROR_PAGE | GPMODEP_DISCONNECT_PAGE | GPMODEP_CDROM_PAGE | GPMODEP_CDROM_AUDIO_PAGE | (1ULL << 0x0fULL) | GPMODEP_CAPABILITIES_PAGE | GPMODEP_ALL_PAGES);
@@ -349,12 +350,12 @@ scsi_cdrom_init(scsi_cdrom_t *dev)
         dev->drv->bus_mode |= 1;
     scsi_cdrom_log("CD-ROM %i: Bus type %i, bus mode %i\n", dev->id, dev->drv->bus_type, dev->drv->bus_mode);
 
-    dev->sense[0]        = 0xf0;
-    dev->sense[7]        = 10;
+    dev->sense[0] = 0xf0;
+    dev->sense[7] = 10;
     if (dev->early)
-        dev->status      = READY_STAT | DSC_STAT;
+        dev->status = READY_STAT | DSC_STAT;
     else
-        dev->status      = 0;
+        dev->status = 0;
     dev->pos             = 0;
     dev->packet_status   = PHASE_NONE;
     scsi_cdrom_sense_key = scsi_cdrom_asc = scsi_cdrom_ascq = dev->unit_attention = 0;
@@ -553,7 +554,7 @@ static void
 scsi_cdrom_update_request_length(scsi_cdrom_t *dev, int len, int block_len)
 {
     int32_t bt, min_len = 0;
-    double dlen;
+    double  dlen;
 
     dev->max_transfer_len = dev->request_length;
 
@@ -570,11 +571,11 @@ scsi_cdrom_update_request_length(scsi_cdrom_t *dev, int len, int block_len)
                    that a media access comand does not DRQ in the middle of a sector. One of the drivers that
                    relies on the correctness of this behavior is MTMCDAI.SYS (the Mitsumi CD-ROM driver) for DOS
                    which uses the READ CD command to read data on some CD types. */
-                   if ((dev->current_cdb[0] == 0xb9) || (dev->current_cdb[0] == 0xbe)) {
-                       /* Round to sector length. */
-                       dlen = ((double) dev->max_transfer_len) / ((double) block_len);
-                       dev->max_transfer_len = ((uint16_t) floor(dlen)) * block_len;
-                   }
+                if ((dev->current_cdb[0] == 0xb9) || (dev->current_cdb[0] == 0xbe)) {
+                    /* Round to sector length. */
+                    dlen                  = ((double) dev->max_transfer_len) / ((double) block_len);
+                    dev->max_transfer_len = ((uint16_t) floor(dlen)) * block_len;
+                }
             } else {
                 /* Round it to the nearest 2048 bytes. */
                 dev->max_transfer_len = (dev->max_transfer_len >> 11) << 11;
@@ -1392,14 +1393,14 @@ scsi_cdrom_command(scsi_common_t *sc, uint8_t *cdb)
     int           ret, format            = 0;
     int           real_pos, track        = 0;
 #ifdef USE_86BOX_CD
-    char          device_identify[9]     = { '8', '6', 'B', '_', 'C', 'D', '0', '0', 0 };
-    char          device_identify_ex[15] = { '8', '6', 'B', '_', 'C', 'D', '0', '0', ' ', 'v', '1', '.', '0', '0', 0 };
+    char device_identify[9]     = { '8', '6', 'B', '_', 'C', 'D', '0', '0', 0 };
+    char device_identify_ex[15] = { '8', '6', 'B', '_', 'C', 'D', '0', '0', ' ', 'v', '1', '.', '0', '0', 0 };
 #endif
-    int32_t       blen                   = 0, *BufLen;
-    uint8_t      *b;
-    uint32_t      profiles[2] = { MMC_PROFILE_CD_ROM, MMC_PROFILE_DVD_ROM };
-    uint8_t       scsi_bus    = (dev->drv->scsi_device_id >> 4) & 0x0f;
-    uint8_t       scsi_id     = dev->drv->scsi_device_id & 0x0f;
+    int32_t  blen = 0, *BufLen;
+    uint8_t *b;
+    uint32_t profiles[2] = { MMC_PROFILE_CD_ROM, MMC_PROFILE_DVD_ROM };
+    uint8_t  scsi_bus    = (dev->drv->scsi_device_id >> 4) & 0x0f;
+    uint8_t  scsi_id     = dev->drv->scsi_device_id & 0x0f;
 
     if (dev->drv->bus_type == CDROM_BUS_SCSI) {
         BufLen = &scsi_devices[scsi_bus][scsi_id].buffer_length;
@@ -2035,7 +2036,7 @@ scsi_cdrom_command(scsi_common_t *sc, uint8_t *cdb)
             if (dev->early) {
                 scsi_cdrom_set_phase(dev, SCSI_PHASE_STATUS);
                 scsi_cdrom_stop(sc);
-                cdrom_eject(dev->id);		
+                cdrom_eject(dev->id);
                 scsi_cdrom_command_complete(dev);
             } else {
                 scsi_cdrom_set_phase(dev, SCSI_PHASE_STATUS);
@@ -2373,13 +2374,15 @@ scsi_cdrom_command(scsi_common_t *sc, uint8_t *cdb)
                         } else {
                             if (dev->early)
                                 ide_padstr8(dev->buffer + idx, 8, "NEC"); /* Vendor */
+                            else if (machine_is_sony())
+                                ide_padstr8(dev->buffer + idx, 8, "SONY"); /* Vendor */
                             else
                                 ide_padstr8(dev->buffer + idx, 8, "HITACHI"); /* Vendor */
                         }
 #endif
                         idx += 8;
 #ifdef USE_86BOX_CD
-                            ide_padstr8(dev->buffer + idx, 40, device_identify_ex); /* Product */
+                        ide_padstr8(dev->buffer + idx, 40, device_identify_ex); /* Product */
 #else
                         if (dev->drv->bus_type == CDROM_BUS_SCSI) {
                             if (dev->early)
@@ -2389,6 +2392,8 @@ scsi_cdrom_command(scsi_common_t *sc, uint8_t *cdb)
                         } else {
                             if (dev->early)
                                 ide_padstr8(dev->buffer + idx, 40, "CD-ROM DRIVE:260"); /* Product */
+                            else if (machine_is_sony())
+                                ide_padstr8(dev->buffer + idx, 40, "CD-ROM CDU76"); /* Product */
                             else
                                 ide_padstr8(dev->buffer + idx, 40, "CDR-8130"); /* Product */
                         }
@@ -2446,6 +2451,10 @@ scsi_cdrom_command(scsi_common_t *sc, uint8_t *cdb)
                         ide_padstr8(dev->buffer + 8, 8, "NEC");                /* Vendor */
                         ide_padstr8(dev->buffer + 16, 16, "CD-ROM DRIVE:260"); /* Product */
                         ide_padstr8(dev->buffer + 32, 4, "1.01");              /* Revision */
+                    } else if (machine_is_sony()) {
+                        ide_padstr8(dev->buffer + 8, 8, "SONY");    /* Vendor */
+                        ide_padstr8(dev->buffer + 16, 16, "CD-ROM CDU76"); /* Product */
+                        ide_padstr8(dev->buffer + 32, 4, "1.0i");      /* Revision */
                     } else {
                         ide_padstr8(dev->buffer + 8, 8, "HITACHI");    /* Vendor */
                         ide_padstr8(dev->buffer + 16, 16, "CDR-8130"); /* Product */
@@ -2722,7 +2731,7 @@ scsi_cdrom_identify(ide_t *ide, int ide_has_dma)
 {
 #ifdef USE_86BOX_CD
     scsi_cdrom_t *dev;
-    char device_identify[9] = { '8', '6', 'B', '_', 'C', 'D', '0', '0', 0 };
+    char          device_identify[9] = { '8', '6', 'B', '_', 'C', 'D', '0', '0', 0 };
 
     dev = (scsi_cdrom_t *) ide->sc;
 
@@ -2736,19 +2745,22 @@ scsi_cdrom_identify(ide_t *ide, int ide_has_dma)
         ide->buffer[0] = 0x8000 | (5 << 8) | 0x80 | (1 << 5); /* ATAPI device, CD-ROM drive, removable media, interrupt DRQ */
     else
         ide->buffer[0] = 0x8000 | (5 << 8) | 0x80 | (2 << 5); /* ATAPI device, CD-ROM drive, removable media, accelerated DRQ */
-    ide_padstr((char *) (ide->buffer + 10), "", 20);      /* Serial Number */
+    ide_padstr((char *) (ide->buffer + 10), "", 20);          /* Serial Number */
 #ifdef USE_86BOX_CD
-    ide_padstr((char *) (ide->buffer + 23), EMU_VERSION_EX, 8); /* Firmware */
+    ide_padstr((char *) (ide->buffer + 23), EMU_VERSION_EX, 8);   /* Firmware */
     ide_padstr((char *) (ide->buffer + 27), device_identify, 40); /* Model */
 #else
     if (dev->early) {
-#ifdef WRONG
+#    ifdef WRONG
         ide_padstr((char *) (ide->buffer + 23), "1.01    ", 8);                                  /* Firmware */
         ide_padstr((char *) (ide->buffer + 27), "NEC                 CD-ROM DRIVE:260    ", 40); /* Model */
-#else
+#    else
         ide_padstr((char *) (ide->buffer + 23), ".110    ", 8);                                  /* Firmware */
         ide_padstr((char *) (ide->buffer + 27), "EN C                DCR-MOD IREV2:06    ", 40); /* Model */
-#endif
+#    endif
+    } else if (machine_is_sony()) {
+        ide_padstr((char *) (ide->buffer + 23), "1.0i    ", 8);                                  /* Firmware */
+        ide_padstr((char *) (ide->buffer + 27), "CD-ROM CDU76                            ", 40); /* Model */
     } else {
         ide_padstr((char *) (ide->buffer + 23), "0020    ", 8);                                  /* Firmware */
         ide_padstr((char *) (ide->buffer + 27), "HITACHI CDR-8130                        ", 40); /* Model */
@@ -2800,7 +2812,7 @@ scsi_cdrom_drive_reset(int c)
     dev->drv = drv;
 
     dev->cur_lun = SCSI_LUN_USE_CDB;
-    dev->early = dev->drv->early;
+    dev->early   = dev->drv->early;
 
     drv->insert      = scsi_cdrom_insert;
     drv->get_volume  = scsi_cdrom_get_volume;

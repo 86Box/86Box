@@ -87,7 +87,7 @@ rom_add_path(const char *path)
 }
 
 FILE *
-rom_fopen(char *fn, char *mode)
+rom_fopen(const char *fn, char *mode)
 {
     char        temp[1024];
     rom_path_t *rom_path;
@@ -205,7 +205,7 @@ rom_readl(uint32_t addr, void *priv)
 }
 
 int
-rom_load_linear_oddeven(char *fn, uint32_t addr, int sz, int off, uint8_t *ptr)
+rom_load_linear_oddeven(const char *fn, uint32_t addr, int sz, int off, uint8_t *ptr)
 {
     FILE *f = rom_fopen(fn, "rb");
     int   i;
@@ -241,7 +241,7 @@ rom_load_linear_oddeven(char *fn, uint32_t addr, int sz, int off, uint8_t *ptr)
 
 /* Load a ROM BIOS from its chips, interleaved mode. */
 int
-rom_load_linear(char *fn, uint32_t addr, int sz, int off, uint8_t *ptr)
+rom_load_linear(const char *fn, uint32_t addr, int sz, int off, uint8_t *ptr)
 {
     FILE *f = rom_fopen(fn, "rb");
 
@@ -270,7 +270,7 @@ rom_load_linear(char *fn, uint32_t addr, int sz, int off, uint8_t *ptr)
 
 /* Load a ROM BIOS from its chips, linear mode with high bit flipped. */
 int
-rom_load_linear_inverted(char *fn, uint32_t addr, int sz, int off, uint8_t *ptr)
+rom_load_linear_inverted(const char *fn, uint32_t addr, int sz, int off, uint8_t *ptr)
 {
     FILE *f = rom_fopen(fn, "rb");
 
@@ -308,7 +308,7 @@ rom_load_linear_inverted(char *fn, uint32_t addr, int sz, int off, uint8_t *ptr)
 
 /* Load a ROM BIOS from its chips, interleaved mode. */
 int
-rom_load_interleaved(char *fnl, char *fnh, uint32_t addr, int sz, int off, uint8_t *ptr)
+rom_load_interleaved(const char *fnl, const char *fnh, uint32_t addr, int sz, int off, uint8_t *ptr)
 {
     FILE *fl = rom_fopen(fnl, "rb");
     FILE *fh = rom_fopen(fnh, "rb");
@@ -478,7 +478,7 @@ bios_add(void)
 
 /* These four are for loading the BIOS. */
 int
-bios_load(char *fn1, char *fn2, uint32_t addr, int sz, int off, int flags)
+bios_load(const char *fn1, const char *fn2, uint32_t addr, int sz, int off, int flags)
 {
     uint8_t  ret = 0;
     uint8_t *ptr = NULL;
@@ -525,7 +525,7 @@ bios_load(char *fn1, char *fn2, uint32_t addr, int sz, int off, int flags)
 }
 
 int
-bios_load_linear_combined(char *fn1, char *fn2, int sz, int off)
+bios_load_linear_combined(const char *fn1, const char *fn2, int sz, int off)
 {
     uint8_t ret = 0;
 
@@ -536,7 +536,7 @@ bios_load_linear_combined(char *fn1, char *fn2, int sz, int off)
 }
 
 int
-bios_load_linear_combined2(char *fn1, char *fn2, char *fn3, char *fn4, char *fn5, int sz, int off)
+bios_load_linear_combined2(const char *fn1, const char *fn2, const char *fn3, const char *fn4, const char *fn5, int sz, int off)
 {
     uint8_t ret = 0;
 
@@ -551,7 +551,7 @@ bios_load_linear_combined2(char *fn1, char *fn2, char *fn3, char *fn4, char *fn5
 }
 
 int
-bios_load_linear_combined2_ex(char *fn1, char *fn2, char *fn3, char *fn4, char *fn5, int sz, int off)
+bios_load_linear_combined2_ex(const char *fn1, const char *fn2, const char *fn3, const char *fn4, const char *fn5, int sz, int off)
 {
     uint8_t ret = 0;
 
@@ -566,7 +566,7 @@ bios_load_linear_combined2_ex(char *fn1, char *fn2, char *fn3, char *fn4, char *
 }
 
 int
-rom_init(rom_t *rom, char *fn, uint32_t addr, int sz, int mask, int off, uint32_t flags)
+rom_init(rom_t *rom, const char *fn, uint32_t addr, int sz, int mask, int off, uint32_t flags)
 {
     rom_log("rom_init(%08X, %s, %08X, %08X, %08X, %08X, %08X)\n", rom, fn, addr, sz, mask, off, flags);
 
@@ -595,7 +595,7 @@ rom_init(rom_t *rom, char *fn, uint32_t addr, int sz, int mask, int off, uint32_
 }
 
 int
-rom_init_oddeven(rom_t *rom, char *fn, uint32_t addr, int sz, int mask, int off, uint32_t flags)
+rom_init_oddeven(rom_t *rom, const char *fn, uint32_t addr, int sz, int mask, int off, uint32_t flags)
 {
     rom_log("rom_init(%08X, %08X, %08X, %08X, %08X, %08X, %08X)\n", rom, fn, addr, sz, mask, off, flags);
 
@@ -624,7 +624,7 @@ rom_init_oddeven(rom_t *rom, char *fn, uint32_t addr, int sz, int mask, int off,
 }
 
 int
-rom_init_interleaved(rom_t *rom, char *fnl, char *fnh, uint32_t addr, int sz, int mask, int off, uint32_t flags)
+rom_init_interleaved(rom_t *rom, const char *fnl, const char *fnh, uint32_t addr, int sz, int mask, int off, uint32_t flags)
 {
     /* Allocate a buffer for the image. */
     rom->rom = malloc(sz);

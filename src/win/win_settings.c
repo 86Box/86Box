@@ -230,7 +230,7 @@ settings_listview_select(HWND hdlg, int id, int selection)
 }
 
 static void
-settings_process_messages()
+settings_process_messages(void)
 {
     MSG msg;
     while (PeekMessage(&msg, 0, 0, 0, PM_REMOVE | PM_NOYIELD)) {
@@ -1963,7 +1963,7 @@ win_settings_network_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 }
 
 static void
-normalize_hd_list()
+normalize_hd_list(void)
 {
     hard_disk_t ihdd[HDD_NUM];
     int         i, j;
@@ -2893,16 +2893,16 @@ win_settings_hard_disks_add_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM 
 
                             for (i = 0; i < 0x3f8; i++)
                                 fwrite(&zero, 1, 4, f);
-                        } else if (img_format == IMG_FMT_HDX) {      /* HDX file */
-                            fwrite(&signature, 1, 8, f);   /* 00000000: Signature */
-                            fwrite(&size, 1, 8, f);        /* 00000008: Full size of the data (64-bit) */
-                            fwrite(&sector_size, 1, 4, f); /* 00000010: Sector size in bytes */
-                            fwrite(&spt, 1, 4, f);         /* 00000014: Sectors per cylinder */
-                            fwrite(&hpc, 1, 4, f);         /* 00000018: Heads per cylinder */
-                            fwrite(&tracks, 1, 4, f);      /* 0000001C: Cylinders */
-                            fwrite(&zero, 1, 4, f);        /* 00000020: [Translation] Sectors per cylinder */
-                            fwrite(&zero, 1, 4, f);        /* 00000004: [Translation] Heads per cylinder */
-                        } else if (img_format >= IMG_FMT_VHD_FIXED) {      /* VHD file */
+                        } else if (img_format == IMG_FMT_HDX) {       /* HDX file */
+                            fwrite(&signature, 1, 8, f);              /* 00000000: Signature */
+                            fwrite(&size, 1, 8, f);                   /* 00000008: Full size of the data (64-bit) */
+                            fwrite(&sector_size, 1, 4, f);            /* 00000010: Sector size in bytes */
+                            fwrite(&spt, 1, 4, f);                    /* 00000014: Sectors per cylinder */
+                            fwrite(&hpc, 1, 4, f);                    /* 00000018: Heads per cylinder */
+                            fwrite(&tracks, 1, 4, f);                 /* 0000001C: Cylinders */
+                            fwrite(&zero, 1, 4, f);                   /* 00000020: [Translation] Sectors per cylinder */
+                            fwrite(&zero, 1, 4, f);                   /* 00000004: [Translation] Heads per cylinder */
+                        } else if (img_format >= IMG_FMT_VHD_FIXED) { /* VHD file */
                             MVHDGeom _86box_geometry;
                             block_size = settings_get_cur_sel(hdlg, IDC_COMBO_HD_BLOCK_SIZE) == 0 ? MVHD_BLOCK_LARGE : MVHD_BLOCK_SMALL;
                             switch (img_format) {

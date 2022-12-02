@@ -884,7 +884,7 @@ static const device_config_t paradise_wd90c30_config[] = {
     {
         .type = CONFIG_END
     }
-// clang-format on
+  // clang-format on
 };
 
 const device_t paradise_wd90c30_device = {

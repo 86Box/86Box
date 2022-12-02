@@ -2064,7 +2064,7 @@ const machine_t machines[] = {
             .max_multi = 0
         },
         .bus_flags = MACHINE_PC,
-        .flags = MACHINE_VIDEO | MACHINE_MOUSE,
+        .flags = MACHINE_VIDEO | MACHINE_MOUSE | MACHINE_MFM,
         .ram = {
             .min = 128,
             .max = 640,
@@ -11969,8 +11969,8 @@ const machine_t machines[] = {
 
 /* Saved copies - jumpers get applied to these.
    We use also machine_gpio to store IBM PC/XT jumpers as they need more than one byte. */
-static uint16_t        machine_p1;
-static uint32_t        machine_gpio;
+static uint16_t machine_p1;
+static uint32_t machine_gpio;
 
 uint8_t
 machine_get_p1(void)
@@ -12005,97 +12005,97 @@ machine_set_gpio(uint32_t gpio)
 int
 machine_count(void)
 {
-    return((sizeof(machines) / sizeof(machine_t)) - 1);
+    return ((sizeof(machines) / sizeof(machine_t)) - 1);
 }
 
 char *
 machine_getname(void)
 {
-    return((char *)machines[machine].name);
+    return ((char *) machines[machine].name);
 }
 
 char *
 machine_getname_ex(int m)
 {
-    return((char *)machines[m].name);
+    return ((char *) machines[m].name);
 }
 
 const device_t *
 machine_getdevice(int m)
 {
     if (machines[m].device)
-        return(machines[m].device);
+        return (machines[m].device);
 
-    return(NULL);
+    return (NULL);
 }
 
 const device_t *
 machine_getviddevice(int m)
 {
     if (machines[m].vid_device)
-        return(machines[m].vid_device);
+        return (machines[m].vid_device);
 
-    return(NULL);
+    return (NULL);
 }
 
 const device_t *
 machine_getsnddevice(int m)
 {
     if (machines[m].snd_device)
-        return(machines[m].snd_device);
+        return (machines[m].snd_device);
 
-    return(NULL);
+    return (NULL);
 }
 
 const device_t *
 machine_getnetdevice(int m)
 {
     if (machines[m].net_device)
-        return(machines[m].net_device);
+        return (machines[m].net_device);
 
-    return(NULL);
+    return (NULL);
 }
 
 char *
 machine_get_internal_name(void)
 {
-    return((char *)machines[machine].internal_name);
+    return ((char *) machines[machine].internal_name);
 }
 
 char *
 machine_get_internal_name_ex(int m)
 {
-    return((char *)machines[m].internal_name);
+    return ((char *) machines[m].internal_name);
 }
 
 int
 machine_get_nvrmask(int m)
 {
-    return(machines[m].nvrmask);
+    return (machines[m].nvrmask);
 }
 
 int
 machine_has_flags(int m, int flags)
 {
-    return(machines[m].flags & flags);
+    return (machines[m].flags & flags);
 }
 
 int
 machine_has_bus(int m, int bus_flags)
 {
-    return(machines[m].bus_flags & bus_flags);
+    return (machines[m].bus_flags & bus_flags);
 }
 
 int
 machine_has_cartridge(int m)
 {
-    return(machine_has_bus(m, MACHINE_CARTRIDGE) ? 1 : 0);
+    return (machine_has_bus(m, MACHINE_CARTRIDGE) ? 1 : 0);
 }
 
 int
 machine_get_min_ram(int m)
 {
-    return(machines[m].ram.min);
+    return (machines[m].ram.min);
 }
 
 int
@@ -12111,13 +12111,13 @@ machine_get_max_ram(int m)
 int
 machine_get_ram_granularity(int m)
 {
-    return(machines[m].ram.step);
+    return (machines[m].ram.step);
 }
 
 int
 machine_get_type(int m)
 {
-    return(machines[m].type);
+    return (machines[m].type);
 }
 
 int
@@ -12126,16 +12126,22 @@ machine_get_machine_from_internal_name(char *s)
     int c = 0;
 
     while (machines[c].init != NULL) {
-        if (!strcmp(machines[c].internal_name, (const char *)s))
-            return(c);
+        if (!strcmp(machines[c].internal_name, (const char *) s))
+            return (c);
         c++;
     }
 
-    return(0);
+    return (0);
 }
 
 int
 machine_has_mouse(void)
 {
-    return(machines[machine].flags & MACHINE_MOUSE);
+    return (machines[machine].flags & MACHINE_MOUSE);
+}
+
+int
+machine_is_sony(void)
+{
+    return (!strcmp(machines[machine].internal_name, "pcv90"));
 }

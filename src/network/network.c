@@ -55,7 +55,7 @@
 #include <wchar.h>
 #include <time.h>
 #ifndef _WIN32
-#include <sys/time.h>
+#    include <sys/time.h>
 #endif /* _WIN32 */
 #include <stdbool.h>
 #define HAVE_STDARG_H
@@ -67,6 +67,7 @@
 #include <86box/ui.h>
 #include <86box/timer.h>
 #include <86box/network.h>
+#include <86box/net_3c501.h>
 #include <86box/net_3c503.h>
 #include <86box/net_ne2000.h>
 #include <86box/net_pcnet.h>
@@ -95,6 +96,7 @@ static const device_t net_none_device = {
 
 static const device_t *net_cards[] = {
     &net_none_device,
+    &threec501_device,
     &threec503_device,
     &pcnet_am79c960_device,
     &pcnet_am79c961_device,
@@ -126,7 +128,7 @@ netdev_t network_devs[NET_HOST_INTF_MAX];
 
 /* Local variables. */
 
-#if defined ENABLE_NETWORK_LOG && !defined(_WIN32)
+#if defined     ENABLE_NETWORK_LOG && !defined(_WIN32)
 int             network_do_log = ENABLE_NETWORK_LOG;
 static FILE    *network_dump   = NULL;
 static mutex_t *network_dump_mutex;

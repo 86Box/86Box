@@ -102,7 +102,7 @@ t3100e_display_set(uint8_t internal)
 }
 
 uint8_t
-t3100e_display_get()
+t3100e_display_get(void)
 {
     return st_display_internal;
 }

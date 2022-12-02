@@ -563,4 +563,4 @@ const device_t fluidsynth_device = {
     .config        = fluidsynth_config
 };
 
-#endif/*USE_FLUIDSYNTH*/
+#endif /*USE_FLUIDSYNTH*/

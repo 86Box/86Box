@@ -438,7 +438,7 @@ render_and_swap(gl_identifiers *gl)
  * Keeps the thread sleeping until closing.
  */
 static void
-opengl_fail()
+opengl_fail(void)
 {
     if (window != NULL) {
         SDL_DestroyWindow(window);

@@ -37,7 +37,7 @@ BEGIN
         MENUITEM "&Ocultar barra de status",		IDM_VID_HIDE_STATUS_BAR
         MENUITEM "Ocultar &barra de ferramenta",		IDM_VID_HIDE_TOOLBAR
         MENUITEM SEPARATOR
-        MENUITEM "&Show non-primary monitors",  IDM_VID_MONITORS
+        MENUITEM "&Mostrar monitores não-primários",  IDM_VID_MONITORS
         MENUITEM "&Janela redimensionável",          IDM_VID_RESIZE
         MENUITEM "&Lembrar tamanho e posição",  IDM_VID_REMEMBER
         MENUITEM SEPARATOR
@@ -338,7 +338,7 @@ END
 #define STR_BUS			"Bar.:"
 #define STR_CHANNEL		"Canal:"
 #define STR_ID			"ID:"
-#define STR_SPEED		"Speed:"
+#define STR_SPEED		"Velocidade:"
 
 #define STR_SPECIFY		"&Especificar..."
 #define STR_SECTORS		"Setores:"
@@ -428,7 +428,7 @@ BEGIN
     IDS_2084	"CA"
     IDS_2085	"SE"
     IDS_2086	"MB"
-    IDS_2087    "Speed"
+    IDS_2087    "Velocidade"
     IDS_2088	"Verificar BPB"
     IDS_2089	"KB"
     IDS_2090	"Não foi possível inicializar o renderizador de vídeo."

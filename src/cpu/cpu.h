@@ -35,9 +35,9 @@ enum {
 enum {
     CPU_8088 = 1, /* 808x class CPUs */
     CPU_8086,
-    CPU_V20,   /* NEC 808x class CPUs */
+    CPU_V20, /* NEC 808x class CPUs */
     CPU_V30,
-    CPU_188,   /* 18x class CPUs */
+    CPU_188, /* 18x class CPUs */
     CPU_186,
     CPU_286,   /* 286 class CPUs */
     CPU_386SX, /* 386 class CPUs */
@@ -195,6 +195,7 @@ typedef struct {
 #define CR4_PVI  (1 << 1)
 #define CR4_PSE  (1 << 4)
 #define CR4_PAE  (1 << 5)
+#define CR4_PGE  (1 << 7)
 
 #define CPL      ((cpu_state.seg_cs.access >> 5) & 3)
 
@@ -740,7 +741,7 @@ extern void cpu_fast_off_advance(void);
 extern void cpu_fast_off_period_set(uint16_t vla, double period);
 extern void cpu_fast_off_reset(void);
 
-extern void smi_raise();
-extern void nmi_raise();
+extern void smi_raise(void);
+extern void nmi_raise(void);
 
 #endif /*EMU_CPU_H*/

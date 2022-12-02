@@ -995,7 +995,7 @@ StatusBarCreate(HWND hwndParent, uintptr_t idStatus, HINSTANCE hInst)
 }
 
 void
-ui_sb_update_text()
+ui_sb_update_text(void)
 {
     uint8_t part = 0xff;
 

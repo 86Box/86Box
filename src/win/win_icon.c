@@ -32,7 +32,7 @@ HICON hIcon[256];         /* icon data loaded from resources */
 char  icon_set[256] = ""; /* name of the iconset to be used */
 
 void
-win_clear_icon_set()
+win_clear_icon_set(void)
 {
     int i;
 
@@ -44,7 +44,7 @@ win_clear_icon_set()
 }
 
 void
-win_system_icon_set()
+win_system_icon_set(void)
 {
     int i, x = win_get_system_metrics(SM_CXSMICON, dpi), y = win_get_system_metrics(SM_CYSMICON, dpi);
 
@@ -125,7 +125,7 @@ win_get_icons_path(char *path_root)
 }
 
 void
-win_load_icon_set()
+win_load_icon_set(void)
 {
     win_clear_icon_set();
     win_system_icon_set();

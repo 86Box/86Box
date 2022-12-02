@@ -535,7 +535,7 @@ ogc_speed_changed(void *priv)
 }
 
 void
-ogc_mdaattr_rebuild()
+ogc_mdaattr_rebuild(void)
 {
     int c;
 
@@ -646,7 +646,7 @@ const device_config_t ogc_m24_config[] = {
     {
         .type = CONFIG_END
     }
-// clang-format on
+  // clang-format on
 };
 
 const device_t ogc_m24_device = {

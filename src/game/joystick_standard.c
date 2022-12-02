@@ -251,9 +251,9 @@ const joystick_if_t joystick_2axis_2button = {
     .button_count  = 2,
     .pov_count     = 0,
     .max_joysticks = 2,
-    .axis_names    = {"X axis",    "Y axis" },
-    .button_names  = { "Button 1",          "Button 2" },
-    .pov_names     = { NULL}
+    .axis_names    = { "X axis", "Y axis" },
+    .button_names  = { "Button 1", "Button 2" },
+    .pov_names     = { NULL }
 };
 
 const joystick_if_t joystick_2axis_4button = {
@@ -269,9 +269,9 @@ const joystick_if_t joystick_2axis_4button = {
     .button_count  = 4,
     .pov_count     = 0,
     .max_joysticks = 1,
-    .axis_names    = {"X axis",    "Y axis" },
-    .button_names  = { "Button 1",          "Button 2", "Button 3", "Button 4" },
-    .pov_names     = { NULL}
+    .axis_names    = { "X axis", "Y axis" },
+    .button_names  = { "Button 1", "Button 2", "Button 3", "Button 4" },
+    .pov_names     = { NULL }
 };
 
 const joystick_if_t joystick_3axis_2button = {
@@ -287,9 +287,9 @@ const joystick_if_t joystick_3axis_2button = {
     .button_count  = 2,
     .pov_count     = 0,
     .max_joysticks = 1,
-    .axis_names    = {"X axis",    "Y axis", "Z axis" },
-    .button_names  = { "Button 1",   "Button 2" },
-    .pov_names     = { NULL}
+    .axis_names    = { "X axis", "Y axis", "Z axis" },
+    .button_names  = { "Button 1", "Button 2" },
+    .pov_names     = { NULL }
 };
 
 const joystick_if_t joystick_3axis_4button = {
@@ -305,9 +305,9 @@ const joystick_if_t joystick_3axis_4button = {
     .button_count  = 4,
     .pov_count     = 0,
     .max_joysticks = 1,
-    .axis_names    = {"X axis",    "Y axis", "Z axis" },
-    .button_names  = { "Button 1",   "Button 2", "Button 3", "Button 4" },
-    .pov_names     = { NULL}
+    .axis_names    = { "X axis", "Y axis", "Z axis" },
+    .button_names  = { "Button 1", "Button 2", "Button 3", "Button 4" },
+    .pov_names     = { NULL }
 };
 
 const joystick_if_t joystick_4axis_4button = {
@@ -323,9 +323,9 @@ const joystick_if_t joystick_4axis_4button = {
     .button_count  = 4,
     .pov_count     = 0,
     .max_joysticks = 1,
-    .axis_names    = {"X axis",  "Y axis", "Z axis", "zX axis" },
+    .axis_names    = { "X axis", "Y axis", "Z axis", "zX axis" },
     .button_names  = { "Button 1", "Button 2", "Button 3", "Button 4" },
-    .pov_names     = { NULL       }
+    .pov_names     = { NULL }
 };
 
 const joystick_if_t joystick_2axis_6button = {
@@ -341,9 +341,9 @@ const joystick_if_t joystick_2axis_6button = {
     .button_count  = 6,
     .pov_count     = 0,
     .max_joysticks = 1,
-    .axis_names    = {"X axis",    "Y axis" },
-    .button_names  = { "Button 1",          "Button 2", "Button 3", "Button 4", "Button 5", "Button 6" },
-    .pov_names     = { NULL}
+    .axis_names    = { "X axis", "Y axis" },
+    .button_names  = { "Button 1", "Button 2", "Button 3", "Button 4", "Button 5", "Button 6" },
+    .pov_names     = { NULL }
 };
 
 const joystick_if_t joystick_2axis_8button = {
@@ -359,7 +359,7 @@ const joystick_if_t joystick_2axis_8button = {
     .button_count  = 8,
     .pov_count     = 0,
     .max_joysticks = 1,
-    .axis_names    = {"X axis",    "Y axis" },
-    .button_names  = { "Button 1",          "Button 2", "Button 3", "Button 4", "Button 5", "Button 6", "Button 7", "Button 8" },
-    .pov_names     = { NULL}
+    .axis_names    = { "X axis", "Y axis" },
+    .button_names  = { "Button 1", "Button 2", "Button 3", "Button 4", "Button 5", "Button 6", "Button 7", "Button 8" },
+    .pov_names     = { NULL }
 };

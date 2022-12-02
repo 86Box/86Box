@@ -19,17 +19,17 @@
 #include <86box/timer.h>
 
 #if !defined FILTER_INITIAL && !defined FILTER_MOOG && !defined FILTER_CONSTANT
-//#define FILTER_INITIAL
+// #define FILTER_INITIAL
 #    define FILTER_MOOG
-//#define FILTER_CONSTANT
+// #define FILTER_CONSTANT
 #endif
 
 #if !defined RESAMPLER_LINEAR && !defined RESAMPLER_CUBIC
-//#define RESAMPLER_LINEAR
+// #define RESAMPLER_LINEAR
 #    define RESAMPLER_CUBIC
 #endif
 
-//#define EMU8K_DEBUG_REGISTERS
+// #define EMU8K_DEBUG_REGISTERS
 
 char *PORT_NAMES[][8] = {
   /* Data 0 ( 0x620/0x622) */

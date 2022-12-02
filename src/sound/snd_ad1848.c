@@ -378,24 +378,27 @@ ad1848_write(uint16_t addr, uint8_t val, void *priv)
 
                 case 25:
                     return;
+                case 27:
+                    if (ad1848->type != AD1848_TYPE_DEFAULT)
+                        return;
+                    break;
             }
             ad1848->regs[ad1848->index] = val;
 
             if (updatefreq)
                 ad1848_updatefreq(ad1848);
 
-            if (ad1848->type >= AD1848_TYPE_CS4231) { /* TODO: configure CD volume for CS4248/AD1848 too */
-                temp = (ad1848->type == AD1848_TYPE_CS4231) ? 18 : 4;
-                if (ad1848->regs[temp] & 0x80)
-                    ad1848->cd_vol_l = 0;
-                else
-                    ad1848->cd_vol_l = ad1848_vols_5bits_aux_gain[ad1848->regs[temp] & 0x1f];
-                temp++;
-                if (ad1848->regs[temp] & 0x80)
-                    ad1848->cd_vol_r = 0;
-                else
-                    ad1848->cd_vol_r = ad1848_vols_5bits_aux_gain[ad1848->regs[temp] & 0x1f];
-            }
+            temp = (ad1848->type < AD1848_TYPE_CS4231) ? 2 : ((ad1848->type == AD1848_TYPE_CS4231) ? 18 : 4);
+            if (ad1848->regs[temp] & 0x80)
+                ad1848->cd_vol_l = 0;
+            else
+                ad1848->cd_vol_l = ad1848_vols_5bits_aux_gain[ad1848->regs[temp] & 0x1f];
+            temp++;
+            if (ad1848->regs[temp] & 0x80)
+                ad1848->cd_vol_r = 0;
+            else
+                ad1848->cd_vol_r = ad1848_vols_5bits_aux_gain[ad1848->regs[temp] & 0x1f];
+
             break;
 
         case 2:
@@ -597,6 +600,24 @@ ad1848_filter_cd_audio(int channel, double *buffer, void *priv)
 
     c       = ((*buffer) * volume) / 65536.0;
     *buffer = c;
+}
+
+void
+ad1848_filter_aux2(void *priv, double *out_l, double *out_r)
+{
+    ad1848_t *ad1848 = (ad1848_t *) priv;
+
+    if (ad1848->regs[4] & 0x80) {
+        *out_l = 0.0;
+    } else {
+        *out_l = ((*out_l) * ad1848_vols_5bits_aux_gain[ad1848->regs[4] & 0x1f]) / 65536.0;
+    }
+
+    if (ad1848->regs[5] & 0x80) {
+        *out_r = 0.0;
+    } else {
+        *out_r = ((*out_r) * ad1848_vols_5bits_aux_gain[ad1848->regs[5] & 0x1f]) / 65536.0;
+    }
 }
 
 void

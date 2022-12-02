@@ -62,6 +62,6 @@ extern void    i2c_gpio_close(void *dev_handle);
 extern void    i2c_gpio_set(void *dev_handle, uint8_t scl, uint8_t sda);
 extern uint8_t i2c_gpio_get_scl(void *dev_handle);
 extern uint8_t i2c_gpio_get_sda(void *dev_handle);
-extern void   *i2c_gpio_get_bus();
+extern void   *i2c_gpio_get_bus(void *dev_handle);
 
 #endif /*EMU_I2C_H*/

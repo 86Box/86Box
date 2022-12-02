@@ -75,7 +75,7 @@ typedef struct {
 
 fdd_t fdd[FDD_NUM];
 
-char floppyfns[FDD_NUM][512];
+char  floppyfns[FDD_NUM][512];
 char *fdd_image_history[FDD_NUM][FLOPPY_IMAGE_HISTORY];
 
 pc_timer_t fdd_poll_time[FDD_NUM];
@@ -383,13 +383,11 @@ fdd_is_dd(int drive)
     return (drive_types[fdd[drive].type].flags & 0x70) == 0x10;
 }
 
-#if 0
 int
 fdd_is_hd(int drive)
 {
     return drive_types[fdd[drive].type].flags & FLAG_HOLE1;
 }
-#endif
 
 int
 fdd_is_ed(int drive)

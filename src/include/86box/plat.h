@@ -49,7 +49,7 @@ extern int strnicmp(const char *s1, const char *s2, size_t n);
 #    define ftello64 ftello
 #    define off64_t  off_t
 #elif defined(_MSC_VER)
-//# define fopen64	fopen
+// # define fopen64	fopen
 #    define fseeko64 _fseeki64
 #    define ftello64 _ftelli64
 #    define off64_t  off_t
@@ -106,7 +106,7 @@ extern int      plat_getcwd(char *bufp, int max);
 extern int      plat_chdir(char *path);
 extern void     plat_tempfile(char *bufp, char *prefix, char *suffix);
 extern void     plat_get_exe_name(char *s, int size);
-extern void     plat_init_rom_paths();
+extern void     plat_init_rom_paths(void);
 extern int      plat_dir_check(char *path);
 extern int      plat_dir_create(char *path);
 extern void    *plat_mmap(size_t size, uint8_t executable);

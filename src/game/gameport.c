@@ -116,7 +116,7 @@ static uint8_t gameport_pnp_rom[] = {
 static const isapnp_device_config_t gameport_pnp_defaults[] = {
     {.activate = 1,
      .io       = {
-                { .base = 0x200 },
+          { .base = 0x200 },
       }}
 };
 
@@ -642,7 +642,7 @@ static const device_config_t tmacm_config[] = {
         }
     },
     { "", "", -1 }
-// clang-format on
+  // clang-format on
 };
 
 const device_t gameport_tm_acm_device = {

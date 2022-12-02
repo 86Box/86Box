@@ -18,59 +18,44 @@
 
 #include "qt_unixmanagerfilter.hpp"
 
-UnixManagerSocket::UnixManagerSocket(QObject* obj)
+UnixManagerSocket::UnixManagerSocket(QObject *obj)
     : QLocalSocket(obj)
 {
     connect(this, &QLocalSocket::readyRead, this, &UnixManagerSocket::readyToRead);
 }
 
-void UnixManagerSocket::readyToRead()
+void
+UnixManagerSocket::readyToRead()
 {
-    if (canReadLine())
-    {
+    if (canReadLine()) {
         QByteArray line = readLine();
-        if (line.size())
-        {
+        if (line.size()) {
             line.resize(line.size() - 1);
-            if (line == "showsettings")
-            {
+            if (line == "showsettings") {
                 emit showsettings();
-            }
-            else if (line == "pause")
-            {
+            } else if (line == "pause") {
                 emit pause();
-            }
-            else if (line == "cad")
-            {
+            } else if (line == "cad") {
                 emit ctrlaltdel();
-            }
-            else if (line == "reset")
-            {
+            } else if (line == "reset") {
                 emit resetVM();
-            }
-            else if (line == "shutdownnoprompt")
-            {
+            } else if (line == "shutdownnoprompt") {
                 emit force_shutdown();
-            }
-            else if (line == "shutdown")
-            {
+            } else if (line == "shutdown") {
                 emit request_shutdown();
             }
         }
     }
 }
 
-bool UnixManagerSocket::eventFilter(QObject *obj, QEvent *event)
+bool
+UnixManagerSocket::eventFilter(QObject *obj, QEvent *event)
 {
-    if (state() == QLocalSocket::ConnectedState)
-    {
-        if (event->type() == QEvent::WindowBlocked)
-        {
-            write(QByteArray{"1"});
-        }
-        else if (event->type() == QEvent::WindowUnblocked)
-        {
-            write(QByteArray{"0"});
+    if (state() == QLocalSocket::ConnectedState) {
+        if (event->type() == QEvent::WindowBlocked) {
+            write(QByteArray { "1" });
+        } else if (event->type() == QEvent::WindowUnblocked) {
+            write(QByteArray { "0" });
         }
     }
 

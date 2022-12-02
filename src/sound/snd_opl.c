@@ -64,6 +64,11 @@ fm_driver_get(int chip_id, fm_drv_t *drv)
             drv->priv = device_add_inst(&ymf289b_ymfm_device, fm_dev_inst[fm_driver][chip_id]++);
             break;
 
+        case FM_YMF278B:
+            *drv      = ymfm_drv;
+            drv->priv = device_add_inst(&ymf278b_ymfm_device, fm_dev_inst[fm_driver][chip_id]++);
+            break;
+
         default:
             return 0;
     }

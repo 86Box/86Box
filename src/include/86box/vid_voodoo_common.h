@@ -33,10 +33,10 @@
 #define TEX_CACHE_MAX   64
 
 #ifdef __cplusplus
-#include <atomic>
+#    include <atomic>
 using atomic_int = std::atomic<int>;
 #else
-#include <stdatomic.h>
+#    include <stdatomic.h>
 #endif
 
 enum {
@@ -320,7 +320,7 @@ typedef struct voodoo_t {
     uint32_t   cmdfifo_amin, cmdfifo_amax;
     int        cmdfifo_holecount;
 
-    atomic_uint  cmd_status;
+    atomic_uint cmd_status;
 
     uint32_t     sSetupMode;
     vert_t       verts[4];

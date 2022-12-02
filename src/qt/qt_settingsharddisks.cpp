@@ -31,18 +31,18 @@ extern "C" {
 #include "qt_settings_bus_tracking.hpp"
 #include "qt_progsettings.hpp"
 
-const int ColumnBus         = 0;
-const int ColumnFilename    = 1;
-const int ColumnCylinders   = 2;
-const int ColumnHeads       = 3;
-const int ColumnSectors     = 4;
-const int ColumnSize        = 5;
-const int ColumnSpeed       = 6;
+const int ColumnBus       = 0;
+const int ColumnFilename  = 1;
+const int ColumnCylinders = 2;
+const int ColumnHeads     = 3;
+const int ColumnSectors   = 4;
+const int ColumnSize      = 5;
+const int ColumnSpeed     = 6;
 
-const int DataBus           = Qt::UserRole;
-const int DataBusChannel    = Qt::UserRole + 1;
-const int DataBusPrevious   = Qt::UserRole + 2;
-const int DataBusChannelPrevious   = Qt::UserRole + 3;
+const int DataBus                = Qt::UserRole;
+const int DataBusChannel         = Qt::UserRole + 1;
+const int DataBusPrevious        = Qt::UserRole + 2;
+const int DataBusChannelPrevious = Qt::UserRole + 3;
 
 /*
 static void
@@ -65,11 +65,15 @@ normalize_hd_list()
 }
 */
 
-static QString busChannelName(const QModelIndex& idx) {
+static QString
+busChannelName(const QModelIndex &idx)
+{
     return Harddrives::BusChannelName(idx.data(DataBus).toUInt(), idx.data(DataBusChannel).toUInt());
 }
 
-static void addRow(QAbstractItemModel* model, hard_disk_t* hd) {
+static void
+addRow(QAbstractItemModel *model, hard_disk_t *hd)
+{
     const QString userPath = usr_path;
 
     int row = model->rowCount();
@@ -77,7 +81,7 @@ static void addRow(QAbstractItemModel* model, hard_disk_t* hd) {
 
     QString busName = Harddrives::BusChannelName(hd->bus, hd->channel);
     model->setData(model->index(row, ColumnBus), busName);
-    model->setData(model->index(row, ColumnBus), ProgSettings::loadIcon( "/hard_disk.ico"), Qt::DecorationRole);
+    model->setData(model->index(row, ColumnBus), ProgSettings::loadIcon("/hard_disk.ico"), Qt::DecorationRole);
     model->setData(model->index(row, ColumnBus), hd->bus, DataBus);
     model->setData(model->index(row, ColumnBus), hd->bus, DataBusPrevious);
     model->setData(model->index(row, ColumnBus), hd->channel, DataBusChannel);
@@ -99,13 +103,13 @@ static void addRow(QAbstractItemModel* model, hard_disk_t* hd) {
     model->setData(model->index(row, ColumnSpeed), hd->speed_preset, Qt::UserRole);
 }
 
-SettingsHarddisks::SettingsHarddisks(QWidget *parent) :
-    QWidget(parent),
-    ui(new Ui::SettingsHarddisks)
+SettingsHarddisks::SettingsHarddisks(QWidget *parent)
+    : QWidget(parent)
+    , ui(new Ui::SettingsHarddisks)
 {
     ui->setupUi(this);
 
-    QAbstractItemModel* model = new QStandardItemModel(0, 7, this);
+    QAbstractItemModel *model = new QStandardItemModel(0, 7, this);
     model->setHeaderData(ColumnBus, Qt::Horizontal, tr("Bus"));
     model->setHeaderData(ColumnFilename, Qt::Horizontal, tr("File"));
     model->setHeaderData(ColumnCylinders, Qt::Horizontal, tr("C"));
@@ -120,15 +124,14 @@ SettingsHarddisks::SettingsHarddisks(QWidget *parent) :
             addRow(model, &hdd[i]);
         }
     }
-    if (model->rowCount() == HDD_NUM)
-    {
+    if (model->rowCount() == HDD_NUM) {
         ui->pushButtonNew->setEnabled(false);
         ui->pushButtonExisting->setEnabled(false);
     }
     ui->tableView->resizeColumnsToContents();
     ui->tableView->horizontalHeader()->setSectionResizeMode(ColumnFilename, QHeaderView::Stretch);
 
-    auto* tableSelectionModel = ui->tableView->selectionModel();
+    auto *tableSelectionModel = ui->tableView->selectionModel();
     connect(tableSelectionModel, &QItemSelectionModel::currentRowChanged, this, &SettingsHarddisks::onTableRowChanged);
     onTableRowChanged(QModelIndex());
 
@@ -141,18 +144,20 @@ SettingsHarddisks::~SettingsHarddisks()
     delete ui;
 }
 
-void SettingsHarddisks::save() {
+void
+SettingsHarddisks::save()
+{
     memset(hdd, 0, sizeof(hdd));
 
-    auto* model = ui->tableView->model();
-    int rows = model->rowCount();
+    auto *model = ui->tableView->model();
+    int   rows  = model->rowCount();
     for (int i = 0; i < rows; ++i) {
-        auto idx = model->index(i, ColumnBus);
-        hdd[i].bus = idx.data(DataBus).toUInt();
-        hdd[i].channel = idx.data(DataBusChannel).toUInt();
-        hdd[i].tracks = idx.siblingAtColumn(ColumnCylinders).data().toUInt();
-        hdd[i].hpc = idx.siblingAtColumn(ColumnHeads).data().toUInt();
-        hdd[i].spt = idx.siblingAtColumn(ColumnSectors).data().toUInt();
+        auto idx            = model->index(i, ColumnBus);
+        hdd[i].bus          = idx.data(DataBus).toUInt();
+        hdd[i].channel      = idx.data(DataBusChannel).toUInt();
+        hdd[i].tracks       = idx.siblingAtColumn(ColumnCylinders).data().toUInt();
+        hdd[i].hpc          = idx.siblingAtColumn(ColumnHeads).data().toUInt();
+        hdd[i].spt          = idx.siblingAtColumn(ColumnSectors).data().toUInt();
         hdd[i].speed_preset = idx.siblingAtColumn(ColumnSpeed).data(Qt::UserRole).toUInt();
 
         QByteArray fileName = idx.siblingAtColumn(ColumnFilename).data(Qt::UserRole).toString().toUtf8();
@@ -161,16 +166,18 @@ void SettingsHarddisks::save() {
     }
 }
 
-void SettingsHarddisks::on_comboBoxBus_currentIndexChanged(int index) {
+void
+SettingsHarddisks::on_comboBoxBus_currentIndexChanged(int index)
+{
     if (index < 0) {
         return;
     }
 
     buschangeinprogress = true;
-    auto idx = ui->tableView->selectionModel()->currentIndex();
+    auto idx            = ui->tableView->selectionModel()->currentIndex();
     if (idx.isValid()) {
-        auto* model = ui->tableView->model();
-        auto col = idx.siblingAtColumn(ColumnBus);
+        auto *model = ui->tableView->model();
+        auto  col   = idx.siblingAtColumn(ColumnBus);
         model->setData(col, ui->comboBoxBus->currentData(Qt::UserRole), DataBus);
         model->setData(col, busChannelName(col), Qt::DisplayRole);
         Harddrives::busTrackClass->device_track(0, DEV_HDD, model->data(col, DataBusPrevious).toInt(), model->data(col, DataBusChannelPrevious).toInt());
@@ -181,8 +188,7 @@ void SettingsHarddisks::on_comboBoxBus_currentIndexChanged(int index) {
     Harddrives::populateSpeeds(ui->comboBoxSpeed->model(), ui->comboBoxBus->currentData().toInt());
     int chanIdx = 0;
 
-    switch (ui->comboBoxBus->currentData().toInt())
-    {
+    switch (ui->comboBoxBus->currentData().toInt()) {
         case HDD_BUS_MFM:
             chanIdx = (Harddrives::busTrackClass->next_free_mfm_channel());
             break;
@@ -202,46 +208,53 @@ void SettingsHarddisks::on_comboBoxBus_currentIndexChanged(int index) {
     }
 
     if (idx.isValid()) {
-        auto* model = ui->tableView->model();
-        auto col = idx.siblingAtColumn(ColumnBus);
+        auto *model = ui->tableView->model();
+        auto  col   = idx.siblingAtColumn(ColumnBus);
         model->setData(col, chanIdx, DataBusChannelPrevious);
     }
     ui->comboBoxChannel->setCurrentIndex(chanIdx);
     buschangeinprogress = false;
 }
 
-void SettingsHarddisks::on_comboBoxChannel_currentIndexChanged(int index) {
+void
+SettingsHarddisks::on_comboBoxChannel_currentIndexChanged(int index)
+{
     if (index < 0) {
         return;
     }
 
     auto idx = ui->tableView->selectionModel()->currentIndex();
     if (idx.isValid()) {
-        auto* model = ui->tableView->model();
-        auto col = idx.siblingAtColumn(ColumnBus);
+        auto *model = ui->tableView->model();
+        auto  col   = idx.siblingAtColumn(ColumnBus);
         model->setData(col, ui->comboBoxChannel->currentData(Qt::UserRole), DataBusChannel);
         model->setData(col, busChannelName(col), Qt::DisplayRole);
-        if (!buschangeinprogress) Harddrives::busTrackClass->device_track(0, DEV_HDD, model->data(col, DataBus).toInt(), model->data(col, DataBusChannelPrevious).toUInt());
+        if (!buschangeinprogress)
+            Harddrives::busTrackClass->device_track(0, DEV_HDD, model->data(col, DataBus).toInt(), model->data(col, DataBusChannelPrevious).toUInt());
         Harddrives::busTrackClass->device_track(1, DEV_HDD, model->data(col, DataBus).toInt(), model->data(col, DataBusChannel).toUInt());
         model->setData(col, ui->comboBoxChannel->currentData(Qt::UserRole), DataBusChannelPrevious);
     }
 }
 
-void SettingsHarddisks::on_comboBoxSpeed_currentIndexChanged(int index) {
+void
+SettingsHarddisks::on_comboBoxSpeed_currentIndexChanged(int index)
+{
     if (index < 0) {
         return;
     }
 
     auto idx = ui->tableView->selectionModel()->currentIndex();
     if (idx.isValid()) {
-        auto* model = ui->tableView->model();
-        auto col = idx.siblingAtColumn(ColumnSpeed);
+        auto *model = ui->tableView->model();
+        auto  col   = idx.siblingAtColumn(ColumnSpeed);
         model->setData(col, ui->comboBoxSpeed->currentData(Qt::UserRole), Qt::UserRole);
         model->setData(col, hdd_preset_getname(ui->comboBoxSpeed->currentData(Qt::UserRole).toUInt()));
     }
 }
 
-void SettingsHarddisks::onTableRowChanged(const QModelIndex &current) {
+void
+SettingsHarddisks::onTableRowChanged(const QModelIndex &current)
+{
     bool hidden = !current.isValid();
     ui->labelBus->setHidden(hidden);
     ui->labelChannel->setHidden(hidden);
@@ -250,78 +263,84 @@ void SettingsHarddisks::onTableRowChanged(const QModelIndex &current) {
     ui->comboBoxChannel->setHidden(hidden);
     ui->comboBoxSpeed->setHidden(hidden);
 
-    uint32_t bus = current.siblingAtColumn(ColumnBus).data(DataBus).toUInt();
+    uint32_t bus        = current.siblingAtColumn(ColumnBus).data(DataBus).toUInt();
     uint32_t busChannel = current.siblingAtColumn(ColumnBus).data(DataBusChannel).toUInt();
-    uint32_t speed = current.siblingAtColumn(ColumnSpeed).data(Qt::UserRole).toUInt();
+    uint32_t speed      = current.siblingAtColumn(ColumnSpeed).data(Qt::UserRole).toUInt();
 
-    auto* model = ui->comboBoxBus->model();
-    auto match = model->match(model->index(0, 0), Qt::UserRole, bus);
-    if (! match.isEmpty()) {
+    auto *model = ui->comboBoxBus->model();
+    auto  match = model->match(model->index(0, 0), Qt::UserRole, bus);
+    if (!match.isEmpty()) {
         ui->comboBoxBus->setCurrentIndex(match.first().row());
     }
     model = ui->comboBoxChannel->model();
     match = model->match(model->index(0, 0), Qt::UserRole, busChannel);
-    if (! match.isEmpty()) {
+    if (!match.isEmpty()) {
         ui->comboBoxChannel->setCurrentIndex(match.first().row());
     }
 
     model = ui->comboBoxSpeed->model();
     match = model->match(model->index(0, 0), Qt::UserRole, speed);
-    if (! match.isEmpty()) {
+    if (!match.isEmpty()) {
         ui->comboBoxSpeed->setCurrentIndex(match.first().row());
     }
 }
 
-static void addDriveFromDialog(Ui::SettingsHarddisks* ui, const HarddiskDialog& dlg) {
+static void
+addDriveFromDialog(Ui::SettingsHarddisks *ui, const HarddiskDialog &dlg)
+{
     QByteArray fn = dlg.fileName().toUtf8();
 
     hard_disk_t hd;
     memset(&hd, 0, sizeof(hd));
 
-    hd.bus = dlg.bus();
+    hd.bus     = dlg.bus();
     hd.channel = dlg.channel();
-    hd.tracks = dlg.cylinders();
-    hd.hpc = dlg.heads();
-    hd.spt = dlg.sectors();
+    hd.tracks  = dlg.cylinders();
+    hd.hpc     = dlg.heads();
+    hd.spt     = dlg.sectors();
     strncpy(hd.fn, fn.data(), sizeof(hd.fn) - 1);
     hd.speed_preset = dlg.speed();
 
     addRow(ui->tableView->model(), &hd);
     ui->tableView->resizeColumnsToContents();
     ui->tableView->horizontalHeader()->setSectionResizeMode(1, QHeaderView::Stretch);
-    if (ui->tableView->model()->rowCount() == HDD_NUM)
-    {
+    if (ui->tableView->model()->rowCount() == HDD_NUM) {
         ui->pushButtonNew->setEnabled(false);
         ui->pushButtonExisting->setEnabled(false);
     }
 }
 
-void SettingsHarddisks::on_pushButtonNew_clicked() {
+void
+SettingsHarddisks::on_pushButtonNew_clicked()
+{
     HarddiskDialog dialog(false, this);
     switch (dialog.exec()) {
-    case QDialog::Accepted:
-        addDriveFromDialog(ui, dialog);
-        break;
+        case QDialog::Accepted:
+            addDriveFromDialog(ui, dialog);
+            break;
     }
 }
 
-
-void SettingsHarddisks::on_pushButtonExisting_clicked() {
+void
+SettingsHarddisks::on_pushButtonExisting_clicked()
+{
     HarddiskDialog dialog(true, this);
     switch (dialog.exec()) {
-    case QDialog::Accepted:
-        addDriveFromDialog(ui, dialog);
-        break;
+        case QDialog::Accepted:
+            addDriveFromDialog(ui, dialog);
+            break;
     }
 }
 
-void SettingsHarddisks::on_pushButtonRemove_clicked() {
+void
+SettingsHarddisks::on_pushButtonRemove_clicked()
+{
     auto idx = ui->tableView->selectionModel()->currentIndex();
-    if (! idx.isValid()) {
+    if (!idx.isValid()) {
         return;
     }
 
-    auto* model = ui->tableView->model();
+    auto *model = ui->tableView->model();
     model->removeRow(idx.row());
     ui->pushButtonNew->setEnabled(true);
     ui->pushButtonExisting->setEnabled(true);

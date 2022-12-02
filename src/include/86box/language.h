@@ -22,65 +22,65 @@
 #define LANG_UAGE_H
 
 /* String IDs. */
-#define IDS_STRINGS   2048 // "86Box"
-#define IDS_2049      2049 // "Error"
-#define IDS_2050      2050 // "Fatal error"
-#define IDS_2051      2051 // " - PAUSED"
-#define IDS_2052      2052 // "Press Ctrl+Alt+PgDn..."
-#define IDS_2053      2053 // "Speed"
-#define IDS_2054      2054 // "ZIP %i (%03i): %ls"
-#define IDS_2055      2055 // "ZIP images (*.IM?)\0*.IM..."
-#define IDS_2056      2056 // "No usable ROM images found!"
-#define IDS_2057      2057 // "(empty)"
-#define IDS_2058      2058 // "ZIP images (*.IM?)\0*.IM..."
-#define IDS_2059      2059 // "(Turbo)"
-#define IDS_2060      2060 // "On"
-#define IDS_2061      2061 // "Off"
-#define IDS_2062      2062 // "All floppy images (*.DSK..."
-#define IDS_2063      2063 // "Machine ""%hs"" is not..."
-#define IDS_2064      2064 // "Video card ""%hs"" is not..."
-#define IDS_2065      2065 // "Machine"
-#define IDS_2066      2066 // "Display"
-#define IDS_2067      2067 // "Input devices"
-#define IDS_2068      2068 // "Sound"
-#define IDS_2069      2069 // "Network"
-#define IDS_2070      2070 // "Ports (COM & LPT)"
-#define IDS_2071      2071 // "Storage controllers"
-#define IDS_2072      2072 // "Hard disks"
-#define IDS_2073      2073 // "Floppy and CD-ROM drives"
-#define IDS_2074      2074 // "Other removable devices"
-#define IDS_2075      2075 // "Other peripherals"
-#define IDS_2076      2076 // "Surface-based images (*.8.."
-#define IDS_2077      2077 // "Click to capture mouse"
-#define IDS_2078      2078 // "Press F12-F8 to release mouse"
-#define IDS_2079      2079 // "Press F12-F8 or middle button.."
-#define IDS_2080      2080 // "Unable to initialize Flui.."
-#define IDS_2081      2081 // "Bus"
-#define IDS_BUS       IDS_2081 // "Bus"
-#define IDS_2082      2082 // "File"
-#define IDS_2083      2083 // "C"
-#define IDS_2084      2084 // "H"
-#define IDS_2085      2085 // "S"
-#define IDS_2086      2086 // "MB"
-#define IDS_MB        IDS_2086 // "MB"
-#define IDS_2087      2087 // "Speed"
+#define IDS_STRINGS 2048     // "86Box"
+#define IDS_2049    2049     // "Error"
+#define IDS_2050    2050     // "Fatal error"
+#define IDS_2051    2051     // " - PAUSED"
+#define IDS_2052    2052     // "Press Ctrl+Alt+PgDn..."
+#define IDS_2053    2053     // "Speed"
+#define IDS_2054    2054     // "ZIP %i (%03i): %ls"
+#define IDS_2055    2055     // "ZIP images (*.IM?)\0*.IM..."
+#define IDS_2056    2056     // "No usable ROM images found!"
+#define IDS_2057    2057     // "(empty)"
+#define IDS_2058    2058     // "ZIP images (*.IM?)\0*.IM..."
+#define IDS_2059    2059     // "(Turbo)"
+#define IDS_2060    2060     // "On"
+#define IDS_2061    2061     // "Off"
+#define IDS_2062    2062     // "All floppy images (*.DSK..."
+#define IDS_2063    2063     // "Machine ""%hs"" is not..."
+#define IDS_2064    2064     // "Video card ""%hs"" is not..."
+#define IDS_2065    2065     // "Machine"
+#define IDS_2066    2066     // "Display"
+#define IDS_2067    2067     // "Input devices"
+#define IDS_2068    2068     // "Sound"
+#define IDS_2069    2069     // "Network"
+#define IDS_2070    2070     // "Ports (COM & LPT)"
+#define IDS_2071    2071     // "Storage controllers"
+#define IDS_2072    2072     // "Hard disks"
+#define IDS_2073    2073     // "Floppy and CD-ROM drives"
+#define IDS_2074    2074     // "Other removable devices"
+#define IDS_2075    2075     // "Other peripherals"
+#define IDS_2076    2076     // "Surface-based images (*.8.."
+#define IDS_2077    2077     // "Click to capture mouse"
+#define IDS_2078    2078     // "Press F12-F8 to release mouse"
+#define IDS_2079    2079     // "Press F12-F8 or middle button.."
+#define IDS_2080    2080     // "Unable to initialize Flui.."
+#define IDS_2081    2081     // "Bus"
+#define IDS_BUS     IDS_2081 // "Bus"
+#define IDS_2082    2082     // "File"
+#define IDS_2083    2083     // "C"
+#define IDS_2084    2084     // "H"
+#define IDS_2085    2085     // "S"
+#define IDS_2086    2086     // "MB"
+#define IDS_MB      IDS_2086 // "MB"
+#define IDS_2087    2087     // "Speed"
 
-#define IDS_2088      2088 // "Check BPB"
-#define IDS_BPB       IDS_2088 // "Check BPB"
+#define IDS_2088    2088     // "Check BPB"
+#define IDS_BPB     IDS_2088 // "Check BPB"
 
-#define IDS_2089      2089 // "KB"
-#define IDS_KB        IDS_2089 // "KB"
+#define IDS_2089    2089     // "KB"
+#define IDS_KB      IDS_2089 // "KB"
 
-#define IDS_2090      2090 // "Could not initialize the video..."
+#define IDS_2090    2090 // "Could not initialize the video..."
 
-#define IDS_2091      2091 // "Default"
-#define IDS_DEFAULT   IDS_2091 // "Default"
+#define IDS_2091    2091     // "Default"
+#define IDS_DEFAULT IDS_2091 // "Default"
 
-#define IDS_2092      2092 // "%i Wait state(s)"
-#define IDS_WS        IDS_2092 // "%i Wait state(s)"
+#define IDS_2092    2092     // "%i Wait state(s)"
+#define IDS_WS      IDS_2092 // "%i Wait state(s)"
 
-#define IDS_2093      2093 // "Type"
-#define IDS_TYPE      IDS_2093 // "Type"
+#define IDS_2093    2093     // "Type"
+#define IDS_TYPE    IDS_2093 // "Type"
 
 /* TODO */
 #define IDS_2094      2094 // "PCap failed to set up.."
@@ -262,14 +262,14 @@
 
 #define STR_NUM_2048  115
 // UNUSED: #define STR_NUM_3072  11
-#define STR_NUM_4096  40
-#define STR_NUM_4352  6
-#define STR_NUM_4608  6
-#define STR_NUM_5120  1
-#define STR_NUM_5376  7
-#define STR_NUM_5632  7
-#define STR_NUM_5888  24
-#define STR_NUM_6144  4
-#define STR_NUM_7168  1
+#define STR_NUM_4096 40
+#define STR_NUM_4352 6
+#define STR_NUM_4608 6
+#define STR_NUM_5120 1
+#define STR_NUM_5376 7
+#define STR_NUM_5632 7
+#define STR_NUM_5888 24
+#define STR_NUM_6144 4
+#define STR_NUM_7168 1
 
 #endif /*LANG_UAGE_H*/

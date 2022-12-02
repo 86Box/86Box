@@ -769,7 +769,7 @@ usage:
 
     for (i = 0; i < FDD_NUM; i++) {
         if (fn[i] != NULL) {
-            if (strlen(fn[i]) <= 511) 
+            if (strlen(fn[i]) <= 511)
                 strncpy(floppyfns[i], fn[i], 511);
             free(fn[i]);
             fn[i] = NULL;
@@ -1121,7 +1121,7 @@ pc_reset_hard_init(void)
 }
 
 void
-update_mouse_msg()
+update_mouse_msg(void)
 {
     wchar_t wcpufamily[2048], wcpu[2048], wmachine[2048], *wcp;
 

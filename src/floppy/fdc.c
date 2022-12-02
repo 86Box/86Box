@@ -2373,17 +2373,17 @@ const device_t fdc_xt_device = {
 };
 
 const device_t fdc_xt_sec_device = {
-    .name = "PC/XT Floppy Drive Controller (Secondary)",
+    .name          = "PC/XT Floppy Drive Controller (Secondary)",
     .internal_name = "fdc_xt",
-    .flags = FDC_FLAG_SEC,
-    .local = 0,
-    .init = fdc_init,
-    .close = fdc_close,
-    .reset = fdc_reset,
+    .flags         = FDC_FLAG_SEC,
+    .local         = 0,
+    .init          = fdc_init,
+    .close         = fdc_close,
+    .reset         = fdc_reset,
     { .available = NULL },
     .speed_changed = NULL,
-    .force_redraw = NULL,
-    .config = NULL
+    .force_redraw  = NULL,
+    .config        = NULL
 };
 
 const device_t fdc_xt_t1x00_device = {
@@ -2457,17 +2457,17 @@ const device_t fdc_at_device = {
 };
 
 const device_t fdc_at_sec_device = {
-    .name = "PC/AT Floppy Drive Controller (Secondary)",
+    .name          = "PC/AT Floppy Drive Controller (Secondary)",
     .internal_name = "fdc_at_sec",
-    .flags = 0,
-    .local = FDC_FLAG_AT | FDC_FLAG_SEC,
-    .init = fdc_init,
-    .close = fdc_close,
-    .reset = fdc_reset,
+    .flags         = 0,
+    .local         = FDC_FLAG_AT | FDC_FLAG_SEC,
+    .init          = fdc_init,
+    .close         = fdc_close,
+    .reset         = fdc_reset,
     { .available = NULL },
     .speed_changed = NULL,
-    .force_redraw = NULL,
-    .config = NULL
+    .force_redraw  = NULL,
+    .config        = NULL
 };
 
 const device_t fdc_at_actlow_device = {

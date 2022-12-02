@@ -107,7 +107,7 @@ static IXAudio2VoiceCallback callbacks = { &callbacksVtbl };
 #endif
 
 void
-inital()
+inital(void)
 {
 #if defined(_WIN32) && !defined(USE_FAUDIO)
     if (xaudio2_handle == NULL) {
@@ -182,7 +182,7 @@ inital()
 }
 
 void
-closeal()
+closeal(void)
 {
     if (!initialized)
         return;

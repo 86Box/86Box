@@ -49,8 +49,8 @@ struct disk_size_t {
     int encoding;
     int rpm;
     int tracks;
-    int sectors;	/* For IMG and Japanese FDI only. */
-    int sector_len;	/* For IMG and Japanese FDI only. */
+    int sectors;    /* For IMG and Japanese FDI only. */
+    int sector_len; /* For IMG and Japanese FDI only. */
     int media_desc;
     int spc;
     int num_fats;
@@ -58,20 +58,22 @@ struct disk_size_t {
     int root_dir_entries;
 };
 
-static const disk_size_t disk_sizes[14] = {	{	0,  1, 2, 1, 0,  40,  8, 2, 0xfe, 2, 2,  1,  64 },		/* 160k */
-                                           {	0,  1, 2, 1, 0,  40,  9, 2, 0xfc, 2, 2,  1,  64 },		/* 180k */
-                                           {	0,  2, 2, 1, 0,  40,  8, 2, 0xff, 2, 2,  1, 112 },		/* 320k */
-                                           {	0,  2, 2, 1, 0,  40,  9, 2, 0xfd, 2, 2,  2, 112 },		/* 360k */
-                                           {	0,  2, 2, 1, 0,  80,  8, 2, 0xfb, 2, 2,  2, 112 },		/* 640k */
-                                           {	0,  2, 2, 1, 0,  80,  9, 2, 0xf9, 2, 2,  3, 112 },		/* 720k */
-                                           {	1,  2, 0, 1, 1,  80, 15, 2, 0xf9, 1, 2,  7, 224 },		/* 1.2M */
-                                           {	1,  2, 0, 1, 1,  77,  8, 3, 0xfe, 1, 2,  2, 192 },		/* 1.25M */
-                                           {	1,  2, 0, 1, 0,  80, 18, 2, 0xf0, 1, 2,  9, 224 },		/* 1.44M */
-                                           {	1,  2, 0, 1, 0,  80, 21, 2, 0xf0, 2, 2,  5,  16 },		/* DMF cluster 1024 */
-                                           {	1,  2, 0, 1, 0,  80, 21, 2, 0xf0, 4, 2,  3,  16 },		/* DMF cluster 2048 */
-                                           {	2,  2, 3, 1, 0,  80, 36, 2, 0xf0, 2, 2,  9, 240 },		/* 2.88M */
-                                           {	0, 64, 0, 0, 0,  96, 32, 2,    0, 0, 0,  0,   0 },		/* ZIP 100 */
-                                           {	0, 64, 0, 0, 0, 239, 32, 2,    0, 0, 0,  0,   0 }	};	/* ZIP 250 */
+static const disk_size_t disk_sizes[14] = {
+    {0,  1,  2, 1, 0, 40,  8,  2, 0xfe, 2, 2, 1, 64 }, /* 160k */
+    { 0, 1,  2, 1, 0, 40,  9,  2, 0xfc, 2, 2, 1, 64 }, /* 180k */
+    { 0, 2,  2, 1, 0, 40,  8,  2, 0xff, 2, 2, 1, 112}, /* 320k */
+    { 0, 2,  2, 1, 0, 40,  9,  2, 0xfd, 2, 2, 2, 112}, /* 360k */
+    { 0, 2,  2, 1, 0, 80,  8,  2, 0xfb, 2, 2, 2, 112}, /* 640k */
+    { 0, 2,  2, 1, 0, 80,  9,  2, 0xf9, 2, 2, 3, 112}, /* 720k */
+    { 1, 2,  0, 1, 1, 80,  15, 2, 0xf9, 1, 2, 7, 224}, /* 1.2M */
+    { 1, 2,  0, 1, 1, 77,  8,  3, 0xfe, 1, 2, 2, 192}, /* 1.25M */
+    { 1, 2,  0, 1, 0, 80,  18, 2, 0xf0, 1, 2, 9, 224}, /* 1.44M */
+    { 1, 2,  0, 1, 0, 80,  21, 2, 0xf0, 2, 2, 5, 16 }, /* DMF cluster 1024 */
+    { 1, 2,  0, 1, 0, 80,  21, 2, 0xf0, 4, 2, 3, 16 }, /* DMF cluster 2048 */
+    { 2, 2,  3, 1, 0, 80,  36, 2, 0xf0, 2, 2, 9, 240}, /* 2.88M */
+    { 0, 64, 0, 0, 0, 96,  32, 2, 0,    0, 0, 0, 0  }, /* ZIP 100 */
+    { 0, 64, 0, 0, 0, 239, 32, 2, 0,    0, 0, 0, 0  }
+}; /* ZIP 250 */
 
 static const QStringList rpmModes = {
     "Perfect RPM",
@@ -113,41 +115,36 @@ static const QStringList moTypes = {
     "5.25\" 1.3 GB",
 };
 
-NewFloppyDialog::NewFloppyDialog(MediaType type, QWidget *parent) :
-    QDialog(parent),
-    ui(new Ui::NewFloppyDialog),
-    mediaType_(type)
+NewFloppyDialog::NewFloppyDialog(MediaType type, QWidget *parent)
+    : QDialog(parent)
+    , ui(new Ui::NewFloppyDialog)
+    , mediaType_(type)
 {
     ui->setupUi(this);
     ui->fileField->setCreateFile(true);
 
-    auto* model = ui->comboBoxSize->model();
+    auto *model = ui->comboBoxSize->model();
     switch (type) {
-    case MediaType::Floppy:
-        for (int i = 0; i < floppyTypes.size(); ++i) {
-            Models::AddEntry(model, tr(floppyTypes[i].toUtf8().data()), i);
-        }
-        ui->fileField->setFilter(
-            tr("All images") %
-            util::DlgFilter({ "86f","dsk","flp","im?","*fd?" }) %
-            tr("Basic sector images") %
-            util::DlgFilter({ "dsk","flp","im?","img","*fd?" }) %
-            tr("Surface images") %
-            util::DlgFilter({ "86f" }, true));
+        case MediaType::Floppy:
+            for (int i = 0; i < floppyTypes.size(); ++i) {
+                Models::AddEntry(model, tr(floppyTypes[i].toUtf8().data()), i);
+            }
+            ui->fileField->setFilter(
+                tr("All images") % util::DlgFilter({ "86f", "dsk", "flp", "im?", "*fd?" }) % tr("Basic sector images") % util::DlgFilter({ "dsk", "flp", "im?", "img", "*fd?" }) % tr("Surface images") % util::DlgFilter({ "86f" }, true));
 
-        break;
-    case MediaType::Zip:
-        for (int i = 0; i < zipTypes.size(); ++i) {
-            Models::AddEntry(model, tr(zipTypes[i].toUtf8().data()), i);
-        }
-        ui->fileField->setFilter(tr("ZIP images") % util::DlgFilter({ "im?","zdi" }, true));
-        break;
-    case MediaType::Mo:
-        for (int i = 0; i < moTypes.size(); ++i) {
-            Models::AddEntry(model, tr(moTypes[i].toUtf8().data()), i);
-        }
-        ui->fileField->setFilter(tr("MO images") % util::DlgFilter({ "im?","mdi" }) % tr("All files") % util::DlgFilter({ "*" }, true));
-        break;
+            break;
+        case MediaType::Zip:
+            for (int i = 0; i < zipTypes.size(); ++i) {
+                Models::AddEntry(model, tr(zipTypes[i].toUtf8().data()), i);
+            }
+            ui->fileField->setFilter(tr("ZIP images") % util::DlgFilter({ "im?", "zdi" }, true));
+            break;
+        case MediaType::Mo:
+            for (int i = 0; i < moTypes.size(); ++i) {
+                Models::AddEntry(model, tr(moTypes[i].toUtf8().data()), i);
+            }
+            ui->fileField->setFilter(tr("MO images") % util::DlgFilter({ "im?", "mdi" }) % tr("All files") % util::DlgFilter({ "*" }, true));
+            break;
     }
 
     model = ui->comboBoxRpm->model();
@@ -155,7 +152,7 @@ NewFloppyDialog::NewFloppyDialog(MediaType type, QWidget *parent) :
         Models::AddEntry(model, tr(rpmModes[i].toUtf8().data()), i);
     }
 
-    connect(ui->fileField, &FileField::fileSelected, this, [this](const QString& filename) {
+    connect(ui->fileField, &FileField::fileSelected, this, [this](const QString &filename) {
         bool hide = true;
         if (mediaType_ == MediaType::Floppy) {
             if (QFileInfo(filename).suffix().toLower() == QStringLiteral("86f")) {
@@ -172,134 +169,140 @@ NewFloppyDialog::NewFloppyDialog(MediaType type, QWidget *parent) :
     ui->comboBoxRpm->setHidden(true);
 }
 
-NewFloppyDialog::~NewFloppyDialog() {
+NewFloppyDialog::~NewFloppyDialog()
+{
     delete ui;
 }
 
-QString NewFloppyDialog::fileName() const{
+QString
+NewFloppyDialog::fileName() const
+{
     return ui->fileField->fileName();
 }
 
-void NewFloppyDialog::onCreate() {
-    auto filename = ui->fileField->fileName();
+void
+NewFloppyDialog::onCreate()
+{
+    auto      filename = ui->fileField->fileName();
     QFileInfo fi(filename);
-    FileType fileType;
+    FileType  fileType;
 
     QProgressDialog progress("Creating floppy image", QString(), 0, 100, this);
     connect(this, &NewFloppyDialog::fileProgress, &progress, &QProgressDialog::setValue);
     connect(this, &NewFloppyDialog::fileProgress, [] { QApplication::processEvents(); });
     switch (mediaType_) {
-    case MediaType::Floppy:
-        if (fi.suffix().toLower() == QStringLiteral("86f")) {
-            if (create86f(filename, disk_sizes[ui->comboBoxSize->currentIndex()], ui->comboBoxRpm->currentIndex())) {
-                return;
+        case MediaType::Floppy:
+            if (fi.suffix().toLower() == QStringLiteral("86f")) {
+                if (create86f(filename, disk_sizes[ui->comboBoxSize->currentIndex()], ui->comboBoxRpm->currentIndex())) {
+                    return;
+                }
+            } else {
+                fileType = fi.suffix().toLower() == QStringLiteral("zdi") ? FileType::Fdi : FileType::Img;
+                if (createSectorImage(filename, disk_sizes[ui->comboBoxSize->currentIndex()], fileType)) {
+                    return;
+                }
             }
-        } else {
-            fileType = fi.suffix().toLower() == QStringLiteral("zdi") ? FileType::Fdi : FileType::Img;
-            if (createSectorImage(filename, disk_sizes[ui->comboBoxSize->currentIndex()], fileType)) {
-                return;
+            break;
+        case MediaType::Zip:
+            {
+                fileType = fi.suffix().toLower() == QStringLiteral("zdi") ? FileType::Zdi : FileType::Img;
+
+                std::atomic_bool res;
+                std::thread      t([this, &res, filename, fileType, &progress] {
+                    res = createZipSectorImage(filename, disk_sizes[ui->comboBoxSize->currentIndex() + 12], fileType, progress);
+                });
+                progress.exec();
+                t.join();
+
+                if (res) {
+                    return;
+                }
             }
-        }
-        break;
-    case MediaType::Zip:
-    {
-        fileType = fi.suffix().toLower() == QStringLiteral("zdi") ? FileType::Zdi: FileType::Img;
+            break;
+        case MediaType::Mo:
+            {
+                fileType = fi.suffix().toLower() == QStringLiteral("mdi") ? FileType::Mdi : FileType::Img;
 
-        std::atomic_bool res;
-        std::thread t([this, &res, filename, fileType, &progress] {
-            res = createZipSectorImage(filename, disk_sizes[ui->comboBoxSize->currentIndex() + 12], fileType, progress);
-        });
-        progress.exec();
-        t.join();
+                std::atomic_bool res;
+                std::thread      t([this, &res, filename, fileType, &progress] {
+                    res = createMoSectorImage(filename, ui->comboBoxSize->currentIndex(), fileType, progress);
+                });
+                progress.exec();
+                t.join();
 
-        if (res) {
-            return;
-        }
-    }
-        break;
-    case MediaType::Mo:
-    {
-        fileType = fi.suffix().toLower() == QStringLiteral("mdi") ? FileType::Mdi: FileType::Img;
-
-        std::atomic_bool res;
-        std::thread t([this, &res, filename, fileType, &progress] {
-            res = createMoSectorImage(filename, ui->comboBoxSize->currentIndex(), fileType, progress);
-        });
-        progress.exec();
-        t.join();
-
-        if (res) {
-            return;
-        }
-    }
-        break;
+                if (res) {
+                    return;
+                }
+            }
+            break;
     }
 
     QMessageBox::critical(this, tr("Unable to write file"), tr("Make sure the file is being saved to a writable directory"));
     reject();
 }
 
-bool NewFloppyDialog::create86f(const QString& filename, const disk_size_t& disk_size, uint8_t rpm_mode)
+bool
+NewFloppyDialog::create86f(const QString &filename, const disk_size_t &disk_size, uint8_t rpm_mode)
 {
     FILE *f;
 
-    uint32_t magic = 0x46423638;
-    uint16_t version = 0x020C;
-    uint16_t dflags = 0;
-    uint16_t tflags = 0;
+    uint32_t magic          = 0x46423638;
+    uint16_t version        = 0x020C;
+    uint16_t dflags         = 0;
+    uint16_t tflags         = 0;
     uint32_t index_hole_pos = 0;
     uint32_t tarray[512];
     uint32_t array_size;
     uint32_t track_base, track_size;
-    int i;
+    int      i;
     uint32_t shift = 0;
 
-    dflags = 0;					/* Has surface data? - Assume no for now. */
-    dflags |= (disk_size.hole << 1);		/* Hole */
-    dflags |= ((disk_size.sides - 1) << 3);	/* Sides. */
-    dflags |= (0 << 4);				/* Write protect? - Assume no for now. */
-    dflags |= (rpm_mode << 5);			/* RPM mode. */
-    dflags |= (0 << 7);				/* Has extra bit cells? - Assume no for now. */
+    dflags = 0;                             /* Has surface data? - Assume no for now. */
+    dflags |= (disk_size.hole << 1);        /* Hole */
+    dflags |= ((disk_size.sides - 1) << 3); /* Sides. */
+    dflags |= (0 << 4);                     /* Write protect? - Assume no for now. */
+    dflags |= (rpm_mode << 5);              /* RPM mode. */
+    dflags |= (0 << 7);                     /* Has extra bit cells? - Assume no for now. */
 
-    tflags = disk_size.data_rate;		/* Data rate. */
-    tflags |= (disk_size.encoding << 3);	/* Encoding. */
-    tflags |= (disk_size.rpm << 5);		/* RPM. */
+    tflags = disk_size.data_rate;        /* Data rate. */
+    tflags |= (disk_size.encoding << 3); /* Encoding. */
+    tflags |= (disk_size.rpm << 5);      /* RPM. */
 
     switch (disk_size.hole) {
-	case 0:
-	case 1:
-	default:
-		switch(rpm_mode) {
-			case 1:
-				array_size = 25250;
-				break;
-			case 2:
-				array_size = 25374;
-				break;
-			case 3:
-				array_size = 25750;
-				break;
-			default:
-				array_size = 25000;
-				break;
-		}
-		break;
-	case 2:
-		switch(rpm_mode) {
-			case 1:
-				array_size = 50500;
-				break;
-			case 2:
-				array_size = 50750;
-				break;
-			case 3:
-				array_size = 51000;
-				break;
-			default:
-				array_size = 50000;
-				break;
-		}
-		break;
+        case 0:
+        case 1:
+        default:
+            switch (rpm_mode) {
+                case 1:
+                    array_size = 25250;
+                    break;
+                case 2:
+                    array_size = 25374;
+                    break;
+                case 3:
+                    array_size = 25750;
+                    break;
+                default:
+                    array_size = 25000;
+                    break;
+            }
+            break;
+        case 2:
+            switch (rpm_mode) {
+                case 1:
+                    array_size = 50500;
+                    break;
+                case 2:
+                    array_size = 50750;
+                    break;
+                case 3:
+                    array_size = 51000;
+                    break;
+                default:
+                    array_size = 50000;
+                    break;
+            }
+            break;
     }
 
     auto empty = (unsigned char *) malloc(array_size);
@@ -309,7 +312,7 @@ bool NewFloppyDialog::create86f(const QString& filename, const disk_size_t& disk
 
     f = plat_fopen(filename.toUtf8().data(), "wb");
     if (!f)
-	return false;
+        return false;
 
     fwrite(&magic, 4, 1, f);
     fwrite(&version, 2, 1, f);
@@ -320,17 +323,17 @@ bool NewFloppyDialog::create86f(const QString& filename, const disk_size_t& disk
     track_base = 8 + ((disk_size.sides == 2) ? 2048 : 1024);
 
     if (disk_size.tracks <= 43)
-	shift = 1;
+        shift = 1;
 
     for (i = 0; i < (disk_size.tracks * disk_size.sides) << shift; i++)
-	tarray[i] = track_base + (i * track_size);
+        tarray[i] = track_base + (i * track_size);
 
     fwrite(tarray, 1, (disk_size.sides == 2) ? 2048 : 1024, f);
 
     for (i = 0; i < (disk_size.tracks * disk_size.sides) << shift; i++) {
-	fwrite(&tflags, 2, 1, f);
-	fwrite(&index_hole_pos, 4, 1, f);
-	fwrite(empty, 1, array_size, f);
+        fwrite(&tflags, 2, 1, f);
+        fwrite(&index_hole_pos, 4, 1, f);
+        fwrite(empty, 1, array_size, f);
     }
 
     free(empty);
@@ -342,61 +345,62 @@ bool NewFloppyDialog::create86f(const QString& filename, const disk_size_t& disk
 
 /* Ignore false positive warning caused by a bug on gcc */
 #if __GNUC__ >= 11
-#pragma GCC diagnostic ignored "-Wstringop-overflow"
+#    pragma GCC diagnostic ignored "-Wstringop-overflow"
 #endif
 
-bool NewFloppyDialog::createSectorImage(const QString &filename, const disk_size_t& disk_size, FileType type)
+bool
+NewFloppyDialog::createSectorImage(const QString &filename, const disk_size_t &disk_size, FileType type)
 {
-    uint32_t total_size = 0;
-    uint32_t total_sectors = 0;
-    uint32_t sector_bytes = 0;
+    uint32_t total_size     = 0;
+    uint32_t total_sectors  = 0;
+    uint32_t sector_bytes   = 0;
     uint32_t root_dir_bytes = 0;
-    uint32_t fat_size = 0;
-    uint32_t fat1_offs = 0;
-    uint32_t fat2_offs = 0;
-    uint32_t zero_bytes = 0;
-    uint16_t base = 0x1000;
+    uint32_t fat_size       = 0;
+    uint32_t fat1_offs      = 0;
+    uint32_t fat2_offs      = 0;
+    uint32_t zero_bytes     = 0;
+    uint16_t base           = 0x1000;
 
     QFile file(filename);
-    if (! file.open(QIODevice::WriteOnly)) {
+    if (!file.open(QIODevice::WriteOnly)) {
         return false;
     }
     QDataStream stream(&file);
     stream.setByteOrder(QDataStream::LittleEndian);
 
-    sector_bytes = (128 << disk_size.sector_len);
+    sector_bytes  = (128 << disk_size.sector_len);
     total_sectors = disk_size.sides * disk_size.tracks * disk_size.sectors;
     if (total_sectors > ZIP_SECTORS)
         total_sectors = ZIP_250_SECTORS;
-    total_size = total_sectors * sector_bytes;
+    total_size     = total_sectors * sector_bytes;
     root_dir_bytes = (disk_size.root_dir_entries << 5);
-    fat_size = (disk_size.spfat * sector_bytes);
-    fat1_offs = sector_bytes;
-    fat2_offs = fat1_offs + fat_size;
-    zero_bytes = fat2_offs + fat_size + root_dir_bytes;
+    fat_size       = (disk_size.spfat * sector_bytes);
+    fat1_offs      = sector_bytes;
+    fat2_offs      = fat1_offs + fat_size;
+    zero_bytes     = fat2_offs + fat_size + root_dir_bytes;
 
     if (type == FileType::Fdi) {
         QByteArray bytes(base, 0);
-        auto empty = bytes.data();
+        auto       empty             = bytes.data();
         *(uint32_t *) &(empty[0x08]) = (uint32_t) base;
         *(uint32_t *) &(empty[0x0C]) = total_size;
         *(uint16_t *) &(empty[0x10]) = (uint16_t) sector_bytes;
-        *(uint8_t *)  &(empty[0x14]) = (uint8_t)  disk_size.sectors;
-        *(uint8_t *)  &(empty[0x18]) = (uint8_t)  disk_size.sides;
-        *(uint8_t *)  &(empty[0x1C]) = (uint8_t)  disk_size.tracks;
+        *(uint8_t *) &(empty[0x14])  = (uint8_t) disk_size.sectors;
+        *(uint8_t *) &(empty[0x18])  = (uint8_t) disk_size.sides;
+        *(uint8_t *) &(empty[0x1C])  = (uint8_t) disk_size.tracks;
         stream.writeRawData(empty, base);
     }
 
     QByteArray bytes(total_size, 0);
-    auto empty = bytes.data();
+    auto       empty = bytes.data();
 
     memset(empty + zero_bytes, 0xF6, total_size - zero_bytes);
 
-    empty[0x00] = 0xEB;			/* Jump to make MS-DOS happy. */
+    empty[0x00] = 0xEB; /* Jump to make MS-DOS happy. */
     empty[0x01] = 0x58;
     empty[0x02] = 0x90;
 
-    empty[0x03] = 0x38;			/* '86BOX5.0' OEM ID. */
+    empty[0x03] = 0x38; /* '86BOX5.0' OEM ID. */
     empty[0x04] = 0x36;
     empty[0x05] = 0x42;
     empty[0x06] = 0x4F;
@@ -406,17 +410,17 @@ bool NewFloppyDialog::createSectorImage(const QString &filename, const disk_size
     empty[0x0A] = 0x30;
 
     *(uint16_t *) &(empty[0x0B]) = (uint16_t) sector_bytes;
-    *(uint8_t  *) &(empty[0x0D]) = (uint8_t)  disk_size.spc;
+    *(uint8_t *) &(empty[0x0D])  = (uint8_t) disk_size.spc;
     *(uint16_t *) &(empty[0x0E]) = (uint16_t) 1;
-    *(uint8_t  *) &(empty[0x10]) = (uint8_t)  disk_size.num_fats;
+    *(uint8_t *) &(empty[0x10])  = (uint8_t) disk_size.num_fats;
     *(uint16_t *) &(empty[0x11]) = (uint16_t) disk_size.root_dir_entries;
     *(uint16_t *) &(empty[0x13]) = (uint16_t) total_sectors;
-    *(uint8_t *)  &(empty[0x15]) = (uint8_t)  disk_size.media_desc;
+    *(uint8_t *) &(empty[0x15])  = (uint8_t) disk_size.media_desc;
     *(uint16_t *) &(empty[0x16]) = (uint16_t) disk_size.spfat;
-    *(uint8_t *)  &(empty[0x18]) = (uint8_t)  disk_size.sectors;
-    *(uint8_t *)  &(empty[0x1A]) = (uint8_t)  disk_size.sides;
+    *(uint8_t *) &(empty[0x18])  = (uint8_t) disk_size.sectors;
+    *(uint8_t *) &(empty[0x1A])  = (uint8_t) disk_size.sides;
 
-    empty[0x26] = 0x29;			/* ')' followed by randomly-generated volume serial number. */
+    empty[0x26] = 0x29; /* ')' followed by randomly-generated volume serial number. */
     empty[0x27] = random_generate();
     empty[0x28] = random_generate();
     empty[0x29] = random_generate();
@@ -442,22 +446,23 @@ bool NewFloppyDialog::createSectorImage(const QString &filename, const disk_size
     return true;
 }
 
-bool NewFloppyDialog::createZipSectorImage(const QString &filename, const disk_size_t& disk_size, FileType type, QProgressDialog& pbar)
+bool
+NewFloppyDialog::createZipSectorImage(const QString &filename, const disk_size_t &disk_size, FileType type, QProgressDialog &pbar)
 {
-    uint32_t total_size = 0;
+    uint32_t total_size    = 0;
     uint32_t total_sectors = 0;
-    uint32_t sector_bytes = 0;
-    uint16_t base = 0x1000;
-    uint32_t pbar_max = 0;
+    uint32_t sector_bytes  = 0;
+    uint16_t base          = 0x1000;
+    uint32_t pbar_max      = 0;
 
     QFile file(filename);
-    if (! file.open(QIODevice::WriteOnly)) {
+    if (!file.open(QIODevice::WriteOnly)) {
         return false;
     }
     QDataStream stream(&file);
     stream.setByteOrder(QDataStream::LittleEndian);
 
-    sector_bytes = (128 << disk_size.sector_len);
+    sector_bytes  = (128 << disk_size.sector_len);
     total_sectors = disk_size.sides * disk_size.tracks * disk_size.sectors;
     if (total_sectors > ZIP_SECTORS)
         total_sectors = ZIP_250_SECTORS;
@@ -471,21 +476,21 @@ bool NewFloppyDialog::createZipSectorImage(const QString &filename, const disk_s
 
     if (type == FileType::Zdi) {
         QByteArray data(base, 0);
-        auto empty = data.data();
+        auto       empty = data.data();
 
         *(uint32_t *) &(empty[0x08]) = (uint32_t) base;
         *(uint32_t *) &(empty[0x0C]) = total_size;
         *(uint16_t *) &(empty[0x10]) = (uint16_t) sector_bytes;
-        *(uint8_t *)  &(empty[0x14]) = (uint8_t)  disk_size.sectors;
-        *(uint8_t *)  &(empty[0x18]) = (uint8_t)  disk_size.sides;
-        *(uint8_t *)  &(empty[0x1C]) = (uint8_t)  disk_size.tracks;
+        *(uint8_t *) &(empty[0x14])  = (uint8_t) disk_size.sectors;
+        *(uint8_t *) &(empty[0x18])  = (uint8_t) disk_size.sides;
+        *(uint8_t *) &(empty[0x1C])  = (uint8_t) disk_size.tracks;
 
         stream.writeRawData(empty, base);
         pbar_max -= 2;
     }
 
     QByteArray bytes(total_size, 0);
-    auto empty = bytes.data();
+    auto       empty = bytes.data();
 
     if (total_sectors == ZIP_SECTORS) {
         /* ZIP 100 */
@@ -515,7 +520,7 @@ bool NewFloppyDialog::createZipSectorImage(const QString &filename, const disk_s
         *(uint32_t *) &(empty[0x4020]) = 0x0002FFE0;
         *(uint16_t *) &(empty[0x4024]) = 0x0080;
 
-        empty[0x4026] = 0x29;			/* ')' followed by randomly-generated volume serial number. */
+        empty[0x4026] = 0x29; /* ')' followed by randomly-generated volume serial number. */
         empty[0x4027] = random_generate();
         empty[0x4028] = random_generate();
         empty[0x4029] = random_generate();
@@ -586,7 +591,7 @@ bool NewFloppyDialog::createZipSectorImage(const QString &filename, const disk_s
         *(uint32_t *) &(empty[0x4020]) = 0x000777E0;
         *(uint16_t *) &(empty[0x4024]) = 0x0080;
 
-        empty[0x4026] = 0x29;			/* ')' followed by randomly-generated volume serial number. */
+        empty[0x4026] = 0x29; /* ')' followed by randomly-generated volume serial number. */
         empty[0x4027] = random_generate();
         empty[0x4028] = random_generate();
         empty[0x4029] = random_generate();
@@ -624,26 +629,26 @@ bool NewFloppyDialog::createZipSectorImage(const QString &filename, const disk_s
     return true;
 }
 
-
-bool NewFloppyDialog::createMoSectorImage(const QString& filename, int8_t disk_size, FileType type, QProgressDialog& pbar)
+bool
+NewFloppyDialog::createMoSectorImage(const QString &filename, int8_t disk_size, FileType type, QProgressDialog &pbar)
 {
-    const mo_type_t *dp = &mo_types[disk_size];
-    uint32_t total_size = 0, total_size2;
-    uint32_t total_sectors = 0;
-    uint32_t sector_bytes = 0;
-    uint16_t base = 0x1000;
-    uint32_t pbar_max = 0, blocks_num;
+    const mo_type_t *dp            = &mo_types[disk_size];
+    uint32_t         total_size    = 0, total_size2;
+    uint32_t         total_sectors = 0;
+    uint32_t         sector_bytes  = 0;
+    uint16_t         base          = 0x1000;
+    uint32_t         pbar_max      = 0, blocks_num;
 
     QFile file(filename);
-    if (! file.open(QIODevice::WriteOnly)) {
+    if (!file.open(QIODevice::WriteOnly)) {
         return false;
     }
     QDataStream stream(&file);
     stream.setByteOrder(QDataStream::LittleEndian);
 
-    sector_bytes = dp->bytes_per_sector;
+    sector_bytes  = dp->bytes_per_sector;
     total_sectors = dp->sectors;
-    total_size = total_sectors * sector_bytes;
+    total_size    = total_sectors * sector_bytes;
 
     total_size2 = (total_size >> 20) << 20;
     total_size2 = total_size - total_size2;
@@ -658,20 +663,20 @@ bool NewFloppyDialog::createMoSectorImage(const QString& filename, int8_t disk_s
 
     if (type == FileType::Mdi) {
         QByteArray bytes(base, 0);
-        auto empty = bytes.data();
+        auto       empty = bytes.data();
 
         *(uint32_t *) &(empty[0x08]) = (uint32_t) base;
         *(uint32_t *) &(empty[0x0C]) = total_size;
         *(uint16_t *) &(empty[0x10]) = (uint16_t) sector_bytes;
-        *(uint8_t *)  &(empty[0x14]) = (uint8_t)  25;
-        *(uint8_t *)  &(empty[0x18]) = (uint8_t)  64;
-        *(uint8_t *)  &(empty[0x1C]) = (uint8_t)  (dp->sectors / 64) / 25;
+        *(uint8_t *) &(empty[0x14])  = (uint8_t) 25;
+        *(uint8_t *) &(empty[0x18])  = (uint8_t) 64;
+        *(uint8_t *) &(empty[0x1C])  = (uint8_t) (dp->sectors / 64) / 25;
 
         stream.writeRawData(empty, base);
     }
 
     QByteArray bytes(1048576, 0);
-    auto empty = bytes.data();
+    auto       empty = bytes.data();
 
     pbar.setMaximum(blocks_num);
     for (uint32_t i = 0; i < blocks_num; i++) {

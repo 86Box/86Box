@@ -28,6 +28,7 @@
 #include <time.h>
 #include <stdarg.h>
 #include <wchar.h>
+#define HAVE_STDARG_H
 #include <86box/86box.h>
 #include <86box/timer.h>
 #include <86box/io.h>
@@ -47,6 +48,7 @@
 #include <86box/gameport.h>
 #include <86box/hdc.h>
 #include <86box/port_6x.h>
+#include <86box/serial.h>
 #include <86box/sound.h>
 #include <86box/snd_speaker.h>
 #include <86box/video.h>
@@ -72,43 +74,43 @@
 #define CGA_COMPOSITE     1
 
 enum MM58174_ADDR {
-        /* Registers */
-        MM58174_TEST,       /* TEST register, write only */
-        MM58174_TENTHS,     /* Tenths of second, read only */
-        MM58174_SECOND1,    /* Units of seconds, read only */
-        MM58174_SECOND10,   /* Tens of seconds, read only */
-        MM58174_MINUTE1,
-        MM58174_MINUTE10,
-        MM58174_HOUR1,
-        MM58174_HOUR10,
-        MM58174_DAY1,
-        MM58174_DAY10,
-        MM58174_WEEKDAY,
-        MM58174_MONTH1,
-        MM58174_MONTH10,
-        MM58174_LEAPYEAR,   /* Leap year status, write only */
-        MM58174_RESET,      /* RESET register, write only */
-        MM58174_IRQ         /* Interrupt register, read / write */
+    /* Registers */
+    MM58174_TEST,     /* TEST register, write only */
+    MM58174_TENTHS,   /* Tenths of second, read only */
+    MM58174_SECOND1,  /* Units of seconds, read only */
+    MM58174_SECOND10, /* Tens of seconds, read only */
+    MM58174_MINUTE1,
+    MM58174_MINUTE10,
+    MM58174_HOUR1,
+    MM58174_HOUR10,
+    MM58174_DAY1,
+    MM58174_DAY10,
+    MM58174_WEEKDAY,
+    MM58174_MONTH1,
+    MM58174_MONTH10,
+    MM58174_LEAPYEAR, /* Leap year status, write only */
+    MM58174_RESET,    /* RESET register, write only */
+    MM58174_IRQ       /* Interrupt register, read / write */
 };
 
 enum MM58274_ADDR {
-        /* Registers */
-        MM58274_CONTROL,    /* Control register */
-        MM58274_TENTHS,     /* Tenths of second, read only */
-        MM58274_SECOND1,
-        MM58274_SECOND10,
-        MM58274_MINUTE1,
-        MM58274_MINUTE10,
-        MM58274_HOUR1,
-        MM58274_HOUR10,
-        MM58274_DAY1,
-        MM58274_DAY10,
-        MM58274_MONTH1,
-        MM58274_MONTH10,
-        MM58274_YEAR1,
-        MM58274_YEAR10,
-        MM58274_WEEKDAY,
-        MM58274_SETTINGS    /* Settings register */
+    /* Registers */
+    MM58274_CONTROL, /* Control register */
+    MM58274_TENTHS,  /* Tenths of second, read only */
+    MM58274_SECOND1,
+    MM58274_SECOND10,
+    MM58274_MINUTE1,
+    MM58274_MINUTE10,
+    MM58274_HOUR1,
+    MM58274_HOUR10,
+    MM58274_DAY1,
+    MM58274_DAY10,
+    MM58274_MONTH1,
+    MM58274_MONTH10,
+    MM58274_YEAR1,
+    MM58274_YEAR10,
+    MM58274_WEEKDAY,
+    MM58274_SETTINGS /* Settings register */
 };
 
 static struct tm intclk;
@@ -120,6 +122,7 @@ typedef struct {
     uint8_t status;
     uint8_t out;
     uint8_t output_port;
+    uint8_t id;
     int     param,
         param_total;
     uint8_t params[16];
@@ -145,23 +148,22 @@ video_timings_t timing_m19_vid = { VIDEO_ISA, 8, 16, 32, 8, 16, 32 };
 
 const device_t m19_vid_device;
 
-#ifdef ENABLE_M24VID_LOG
-int m24vid_do_log = ENABLE_M24VID_LOG;
+#ifdef ENABLE_XT_OLIVETTI_LOG
+int xt_olivetti_do_log = ENABLE_XT_OLIVETTI_LOG;
 
 static void
-m24_log(const char *fmt, ...)
+xt_olivetti_log(const char *fmt, ...)
 {
     va_list ap;
 
-    if (m24vid_do_log) {
+    if (xt_olivetti_do_log) {
         va_start(ap, fmt);
-        vfprintf(stdlog, fmt, ap);
+        pclog_ex(fmt, ap);
         va_end(ap);
-        fflush(stdlog);
     }
 }
 #else
-#    define m24_log(fmt, ...)
+#    define xt_olivetti_log(fmt, ...)
 #endif
 
 /* Set the chip time. */
@@ -201,7 +203,7 @@ mm58174_time_get(uint8_t *regs, struct tm *tm)
 
 /* One more second has passed, update the internal clock. */
 static void
-mm58x74_recalc()
+mm58x74_recalc(void)
 {
     /* Ping the internal clock. */
     if (++intclk.tm_sec == 60) {
@@ -252,14 +254,14 @@ mm58174_start(nvr_t *nvr)
 static void
 mm58174_write(uint16_t addr, uint8_t val, void *priv)
 {
-    nvr_t  *nvr = (nvr_t *) priv;
+    nvr_t *nvr = (nvr_t *) priv;
 
     addr &= 0x0f;
     val &= 0x0f;
 
     /* Update non-read-only changed values if not synchronizing time to host */
-    if ((addr != MM58174_TENTHS) && (addr != MM58174_SECOND1) && (addr != MM58174_SECOND10)) 
-        if ((nvr->regs[addr] != val) && !(time_sync & TIME_SYNC_ENABLED)) 
+    if ((addr != MM58174_TENTHS) && (addr != MM58174_SECOND1) && (addr != MM58174_SECOND10))
+        if ((nvr->regs[addr] != val) && !(time_sync & TIME_SYNC_ENABLED))
             nvr_dosave = 1;
 
     if ((addr == MM58174_RESET) && (val & 0x01)) {
@@ -267,7 +269,7 @@ mm58174_write(uint16_t addr, uint8_t val, void *priv)
         nvr->regs[MM58174_TENTHS] = 0;
         if (!(time_sync & TIME_SYNC_ENABLED)) {
             /* Only set seconds to 0 if not synchronizing time to host clock */
-            nvr->regs[MM58174_SECOND1] = 0;
+            nvr->regs[MM58174_SECOND1]  = 0;
             nvr->regs[MM58174_SECOND10] = 0;
         }
     }
@@ -283,7 +285,7 @@ mm58174_write(uint16_t addr, uint8_t val, void *priv)
 static uint8_t
 mm58174_read(uint16_t addr, void *priv)
 {
-    nvr_t  *nvr = (nvr_t *) priv;
+    nvr_t *nvr = (nvr_t *) priv;
 
     addr &= 0x0f;
 
@@ -332,12 +334,12 @@ mm58174_init(nvr_t *nvr, int size)
 static void
 mm58274_time_set(uint8_t *regs, struct tm *tm)
 {
-    regs[MM58274_SECOND1]    = (tm->tm_sec % 10);
-    regs[MM58274_SECOND10]   = (tm->tm_sec / 10);
-    regs[MM58274_MINUTE1]    = (tm->tm_min % 10);
-    regs[MM58274_MINUTE10]   = (tm->tm_min / 10);
-    regs[MM58274_HOUR1]      = (tm->tm_hour % 10);
-    regs[MM58274_HOUR10]     = (tm->tm_hour / 10);
+    regs[MM58274_SECOND1]  = (tm->tm_sec % 10);
+    regs[MM58274_SECOND10] = (tm->tm_sec / 10);
+    regs[MM58274_MINUTE1]  = (tm->tm_min % 10);
+    regs[MM58274_MINUTE10] = (tm->tm_min / 10);
+    regs[MM58274_HOUR1]    = (tm->tm_hour % 10);
+    regs[MM58274_HOUR10]   = (tm->tm_hour / 10);
     /* Store hour in 24-hour or 12-hour mode */
     if (regs[MM58274_SETTINGS] & 0x01) {
         regs[MM58274_HOUR1]  = (tm->tm_hour % 10);
@@ -350,35 +352,35 @@ mm58274_time_set(uint8_t *regs, struct tm *tm)
         else
             regs[MM58274_SETTINGS] &= 0x0B;
     }
-    regs[MM58274_WEEKDAY]    = (tm->tm_wday + 1);
-    regs[MM58274_DAY1]       = (tm->tm_mday % 10);
-    regs[MM58274_DAY10]      = (tm->tm_mday / 10);
-    regs[MM58274_MONTH1]     = ((tm->tm_mon + 1) % 10);
-    regs[MM58274_MONTH10]    = ((tm->tm_mon + 1) / 10);
+    regs[MM58274_WEEKDAY] = (tm->tm_wday + 1);
+    regs[MM58274_DAY1]    = (tm->tm_mday % 10);
+    regs[MM58274_DAY10]   = (tm->tm_mday / 10);
+    regs[MM58274_MONTH1]  = ((tm->tm_mon + 1) % 10);
+    regs[MM58274_MONTH10] = ((tm->tm_mon + 1) / 10);
     /* MM58274 can store 00 to 99 years but M240 uses the YEAR1 register to count 8 years from leap year */
-    regs[MM58274_YEAR1]      = ((tm->tm_year + 1900) % 8);
+    regs[MM58274_YEAR1] = ((tm->tm_year + 1900) % 8);
     /* Keep bit 0 and 1 12-hour / 24-hour and AM / PM */
-    regs[MM58274_SETTINGS]  &= 0x03;
+    regs[MM58274_SETTINGS] &= 0x03;
     /* Set leap counter bits 2 and 3 */
-    regs[MM58274_SETTINGS]  += (4* (regs[MM58274_YEAR1] & 0x03));
+    regs[MM58274_SETTINGS] += (4 * (regs[MM58274_YEAR1] & 0x03));
 }
 
 /* Get the chip time. */
 static void
 mm58274_time_get(uint8_t *regs, struct tm *tm)
 {
-    tm->tm_sec      = nibbles(MM58274_SECOND);
-    tm->tm_min      = nibbles(MM58274_MINUTE);
+    tm->tm_sec = nibbles(MM58274_SECOND);
+    tm->tm_min = nibbles(MM58274_MINUTE);
     /* Read hour in 24-hour or 12-hour mode */
     if (regs[MM58274_SETTINGS] & 0x01)
         tm->tm_hour = nibbles(MM58274_HOUR);
     else
         tm->tm_hour = ((nibbles(MM58274_HOUR) % 12) + (regs[MM58274_SETTINGS] & 0x04) ? 12 : 0);
-    tm->tm_wday     = (regs[MM58274_WEEKDAY] - 1);
-    tm->tm_mday     = nibbles(MM58274_DAY);
-    tm->tm_mon      = (nibbles(MM58274_MONTH) - 1);
+    tm->tm_wday = (regs[MM58274_WEEKDAY] - 1);
+    tm->tm_mday = nibbles(MM58274_DAY);
+    tm->tm_mon  = (nibbles(MM58274_MONTH) - 1);
     /* MM58274 can store 00 to 99 years but M240 uses the YEAR1 register to count 8 years from leap year */
-    tm->tm_year     = (1984 + regs[MM58274_YEAR1] - 1900);
+    tm->tm_year = (1984 + regs[MM58274_YEAR1] - 1900);
 }
 
 /* This is called every second through the NVR/RTC hook. */
@@ -411,14 +413,14 @@ mm58274_start(nvr_t *nvr)
 static void
 mm58274_write(uint16_t addr, uint8_t val, void *priv)
 {
-    nvr_t  *nvr = (nvr_t *) priv;
+    nvr_t *nvr = (nvr_t *) priv;
 
     addr &= 0x0f;
     val &= 0x0f;
 
     /* Update non-read-only changed values if not synchronizing time to host */
     if ((addr != MM58274_TENTHS))
-        if ((nvr->regs[addr] != val) && !(time_sync & TIME_SYNC_ENABLED)) 
+        if ((nvr->regs[addr] != val) && !(time_sync & TIME_SYNC_ENABLED))
             nvr_dosave = 1;
 
     if ((addr == MM58274_CONTROL) && (val & 0x04)) {
@@ -437,7 +439,7 @@ mm58274_write(uint16_t addr, uint8_t val, void *priv)
 static uint8_t
 mm58274_read(uint16_t addr, void *priv)
 {
-    nvr_t  *nvr = (nvr_t *) priv;
+    nvr_t *nvr = (nvr_t *) priv;
 
     addr &= 0x0f;
 
@@ -488,16 +490,12 @@ m24_kbd_poll(void *priv)
     if (m24_kbd->wantirq) {
         m24_kbd->wantirq = 0;
         picint(2);
-#if ENABLE_KEYBOARD_LOG
-        m24_log("M24: take IRQ\n");
-#endif
+        xt_olivetti_log("M24: take IRQ\n");
     }
 
     if (!(m24_kbd->status & STAT_OFULL) && key_queue_start != key_queue_end) {
-#if ENABLE_KEYBOARD_LOG
-        m24_log("Reading %02X from the key queue at %i\n",
-                m24_kbd->out, key_queue_start);
-#endif
+        xt_olivetti_log("Reading %02X from the key queue at %i\n",
+                        m24_kbd->out, key_queue_start);
         m24_kbd->out    = key_queue[key_queue_start];
         key_queue_start = (key_queue_start + 1) & 0xf;
         m24_kbd->status |= STAT_OFULL;
@@ -519,21 +517,32 @@ m24_kbd_adddata_ex(uint16_t val)
     kbd_adddata_process(val, m24_kbd_adddata);
 }
 
+/*
+   From the Olivetti M21/M24 Theory of Operation:
+
+   Port   Function
+   ----   --------
+   60h    Keyboard 8041 Data Transfer Read/Write
+   61h    Control Port A Read/Write
+   62h    Control Port B Read
+   63h    Not Used
+   64h    Keyboard 8041 Command/Status
+   65h    Communications Port Read
+   66h    System Configuration Read
+   67h    System Configuration Read
+ */
 static void
 m24_kbd_write(uint16_t port, uint8_t val, void *priv)
 {
     m24_kbd_t *m24_kbd = (m24_kbd_t *) priv;
+    uint8_t    ret;
 
-#if ENABLE_KEYBOARD_LOG
-    m24_log("M24: write %04X %02X\n", port, val);
-#endif
+    xt_olivetti_log("M24: write %04X %02X\n", port, val);
 
-#if 0
-    if (ram[8] == 0xc3)
-	output = 3;
-#endif
     switch (port) {
         case 0x60:
+            m24_kbd->status &= ~STAT_CD;
+
             if (m24_kbd->param != m24_kbd->param_total) {
                 m24_kbd->params[m24_kbd->param++] = val;
                 if (m24_kbd->param == m24_kbd->param_total) {
@@ -557,17 +566,38 @@ m24_kbd_write(uint16_t port, uint8_t val, void *priv)
                             break;
 
                         default:
-                            m24_log("M24: bad keyboard command complete %02X\n", m24_kbd->command);
+                            xt_olivetti_log("M24: bad keyboard command complete %02X\n", m24_kbd->command);
                     }
                 }
             } else {
                 m24_kbd->command = val;
                 switch (val) {
+                    /* 01: FD, 05: ANY ---> Customer test reports no keyboard.
+                       01: AA, 05: 01 ---> Customer test reports 102 Deluxe keyboard.
+                       01: AA, 05: 02 ---> Customer test reports 83-key keyboard.
+                       01: AA, 05: 10 ---> Customer test reports M240 keyboard.
+                       01: AA, 05: 20 ---> Customer test reports 101/102/key keyboard.
+                       01: AA, 05: 40 or anything else ---> Customer test reports 101/102/key keyboard.
+
+                       AA is the correct return for command 01, as confirmed by the M24 Customer Test. */
                     case 0x01: /*Self-test*/
+                        m24_kbd_adddata(0xaa);
+                        break;
+
+                    case 0x02: /*Olivetti M240: Read SWB*/
+                        /* SWB on mainboard (off=1)
+                         * bit 7 - use BIOS HD on mainboard (on) / on controller (off)
+                         * bit 6 - use OCG/CGA display adapter (on) / other display adapter (off)
+                         */
+                        ret = (hdc_current == HDC_INTERNAL) ? 0x00 : 0x80;
+                        ret |= video_is_cga() ? 0x40 : 0x00;
+
+                        m24_kbd_adddata(ret);
                         break;
 
                     case 0x05: /*Read ID*/
-                        m24_kbd_adddata(0x00);
+                        ret = m24_kbd->id;
+                        m24_kbd_adddata(ret);
                         break;
 
                     case 0x11:
@@ -580,8 +610,11 @@ m24_kbd_write(uint16_t port, uint8_t val, void *priv)
                         m24_kbd->param_total = 4;
                         break;
 
+                    case 0x13: /*Sent by Olivetti M240 Customer Diagnostics*/
+                        break;
+
                     default:
-                        m24_log("M24: bad keyboard command %02X\n", val);
+                        xt_olivetti_log("M24: bad keyboard command %02X\n", val);
                 }
             }
             break;
@@ -596,8 +629,16 @@ m24_kbd_write(uint16_t port, uint8_t val, void *priv)
                 was_speaker_enable = 1;
             pit_devs[0].set_gate(pit_devs[0].data, 2, val & 1);
             break;
+
+        case 0x64:
+            m24_kbd->status |= STAT_CD;
+
+            if (val == 0x02)
+                m24_kbd_adddata(0x00);
     }
 }
+
+extern uint8_t random_generate(void);
 
 static uint8_t
 m24_kbd_read(uint16_t port, void *priv)
@@ -621,16 +662,22 @@ m24_kbd_read(uint16_t port, void *priv)
             break;
 
         case 0x61:
+            /* MS-DOS 5.00 and higher's KEYB.COM freezes due to port 61h not having the
+               AT refresh toggle, because for some reson it thinks the M24 is an AT.
+
+               A German-language site confirms this also happens on real hardware.
+
+               The M240 is not affected. */
             ret = ppi.pb;
             break;
 
         case 0x64:
-            ret = m24_kbd->status;
+            ret = m24_kbd->status & 0x0f;
             m24_kbd->status &= ~(STAT_RTIMEOUT | STAT_TTIMEOUT);
             break;
 
         default:
-            m24_log("\nBad M24 keyboard read %04X\n", port);
+            xt_olivetti_log("\nBad M24 keyboard read %04X\n", port);
     }
 
     return (ret);
@@ -770,6 +817,561 @@ ms_poll(int x, int y, int z, int b, void *priv)
     return (0);
 }
 
+/* Remapping as follows:
+
+   - Left Windows  (E0 5B) -> NUMPAD 00 (54);
+   - Print Screen  (E0 37) -> SCR PRT (55);
+   - Menu          (E0 5D) -> HELP (56);
+   - NumPad Enter  (E0 1C) -> NUMPAD ENTER (57).
+   - Left          (E0 4B) -> LEFT (58);
+   - Down          (E0 50) -> DOWN (59);
+   - Right         (E0 4D) -> RIGHT (5A);
+   - Up            (E0 48) -> UP (5B);
+   - Page Up       (E0 49) -> CLEAR (5C);
+   - Page Down     (E0 51) -> BREAK (5D);
+   - CE Key        (56)    -> CE KEY (5E);
+     WARNING: The Olivetti CE Key is undocumented, but can be inferred from the fact
+              its position is missing in the shown layout, it being used by the Italian
+              keyboard layout, the keyboard is called 103-key, but only 102 keys are
+              shown.
+   - NumPad /      (E0 35) -> NUMPAD / (5F);
+   - F11           (57)    -> F11 (60);
+   - F12           (58)    -> F12 (61);
+   - Insert        (E0 52) -> F13 (62);
+   - Home          (E0 47) -> F14 (63);
+   - Delete        (E0 53) -> F15 (64);
+   - End           (E0 4F) -> F16 (65);
+   - Right Alt (Gr)(E0 38) -> F16 (66);
+   - Right Windows (E0 5C) -> F18 (67).
+ */
+const scancode scancode_olivetti_m24_deluxe[512] = {
+  // clang-format off
+    { {0},       {0}       }, { {0x01, 0}, {0x81, 0} },
+    { {0x02, 0}, {0x82, 0} }, { {0x03, 0}, {0x83, 0} },
+    { {0x04, 0}, {0x84, 0} }, { {0x05, 0}, {0x85, 0} },
+    { {0x06, 0}, {0x86, 0} }, { {0x07, 0}, {0x87, 0} },
+    { {0x08, 0}, {0x88, 0} }, { {0x09, 0}, {0x89, 0} },
+    { {0x0a, 0}, {0x8a, 0} }, { {0x0b, 0}, {0x8b, 0} },
+    { {0x0c, 0}, {0x8c, 0} }, { {0x0d, 0}, {0x8d, 0} },
+    { {0x0e, 0}, {0x8e, 0} }, { {0x0f, 0}, {0x8f, 0} },
+    { {0x10, 0}, {0x90, 0} }, { {0x11, 0}, {0x91, 0} },
+    { {0x12, 0}, {0x92, 0} }, { {0x13, 0}, {0x93, 0} },
+    { {0x14, 0}, {0x94, 0} }, { {0x15, 0}, {0x95, 0} },
+    { {0x16, 0}, {0x96, 0} }, { {0x17, 0}, {0x97, 0} },
+    { {0x18, 0}, {0x98, 0} }, { {0x19, 0}, {0x99, 0} },
+    { {0x1a, 0}, {0x9a, 0} }, { {0x1b, 0}, {0x9b, 0} },
+    { {0x1c, 0}, {0x9c, 0} }, { {0x1d, 0}, {0x9d, 0} },
+    { {0x1e, 0}, {0x9e, 0} }, { {0x1f, 0}, {0x9f, 0} },
+    { {0x20, 0}, {0xa0, 0} }, { {0x21, 0}, {0xa1, 0} },
+    { {0x22, 0}, {0xa2, 0} }, { {0x23, 0}, {0xa3, 0} },
+    { {0x24, 0}, {0xa4, 0} }, { {0x25, 0}, {0xa5, 0} },
+    { {0x26, 0}, {0xa6, 0} }, { {0x27, 0}, {0xa7, 0} },
+    { {0x28, 0}, {0xa8, 0} }, { {0x29, 0}, {0xa9, 0} },
+    { {0x2a, 0}, {0xaa, 0} }, { {0x2b, 0}, {0xab, 0} },
+    { {0x2c, 0}, {0xac, 0} }, { {0x2d, 0}, {0xad, 0} },
+    { {0x2e, 0}, {0xae, 0} }, { {0x2f, 0}, {0xaf, 0} },
+    { {0x30, 0}, {0xb0, 0} }, { {0x31, 0}, {0xb1, 0} },
+    { {0x32, 0}, {0xb2, 0} }, { {0x33, 0}, {0xb3, 0} },
+    { {0x34, 0}, {0xb4, 0} }, { {0x35, 0}, {0xb5, 0} },
+    { {0x36, 0}, {0xb6, 0} }, { {0x37, 0}, {0xb7, 0} },
+    { {0x38, 0}, {0xb8, 0} }, { {0x39, 0}, {0xb9, 0} },
+    { {0x3a, 0}, {0xba, 0} }, { {0x3b, 0}, {0xbb, 0} },
+    { {0x3c, 0}, {0xbc, 0} }, { {0x3d, 0}, {0xbd, 0} },
+    { {0x3e, 0}, {0xbe, 0} }, { {0x3f, 0}, {0xbf, 0} },
+    { {0x40, 0}, {0xc0, 0} }, { {0x41, 0}, {0xc1, 0} },
+    { {0x42, 0}, {0xc2, 0} }, { {0x43, 0}, {0xc3, 0} },
+    { {0x44, 0}, {0xc4, 0} }, { {0x45, 0}, {0xc5, 0} },
+    { {0x46, 0}, {0xc6, 0} }, { {0x47, 0}, {0xc7, 0} },
+    { {0x48, 0}, {0xc8, 0} }, { {0x49, 0}, {0xc9, 0} },
+    { {0x4a, 0}, {0xca, 0} }, { {0x4b, 0}, {0xcb, 0} },
+    { {0x4c, 0}, {0xcc, 0} }, { {0x4d, 0}, {0xcd, 0} },
+    { {0x4e, 0}, {0xce, 0} }, { {0x4f, 0}, {0xcf, 0} },
+    { {0x50, 0}, {0xd0, 0} }, { {0x51, 0}, {0xd1, 0} },
+    { {0x52, 0}, {0xd2, 0} }, { {0x53, 0}, {0xd3, 0} },
+    { {0},             {0} }, { {0},             {0} },
+    { {0x5e, 0}, {0xde, 0} }, { {0x60, 0}, {0xe0, 0} },	/*054*/
+    { {0x61, 0}, {0xe1, 0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*058*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*05c*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*060*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*064*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*068*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*06c*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*070*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*074*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*078*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*07c*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*080*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*084*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*088*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*08c*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*090*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*094*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*098*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*09c*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*0a0*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*0a4*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*0a8*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*0ac*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*0b0*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*0b4*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*0b8*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*0bc*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*0c0*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*0c4*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*0c8*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*0cc*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*0d0*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*0d4*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*0d8*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*0dc*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*0e0*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*0e4*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*0e8*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*0ec*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*0f0*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*0f4*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*0f8*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*0fc*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*100*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*104*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*108*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*10c*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*110*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*114*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*118*/
+    { {0x57, 0}, {0xd7, 0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*11c*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*120*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*124*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*128*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*12c*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*130*/
+    { {0},             {0} }, { {0x5f, 0}, {0xdf, 0} },
+    { {0},             {0} }, { {0x37, 0}, {0xb7, 0} },	/*134*/
+    { {0x66, 0}, {0xe6, 0} }, { {0x55, 0}, {0xd5, 0} },
+    { {0},             {0} }, { {0},             {0} },	/*138*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*13c*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*140*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0x46, 0}, {0xc6, 0} }, { {0x63, 0}, {0xe3, 0} },	/*144*/
+    { {0x5b, 0}, {0xdb, 0} }, { {0x5c, 0}, {0xdc, 0} },
+    { {0},             {0} }, { {0x58, 0}, {0xd8, 0} },	/*148*/
+    { {0},             {0} }, { {0x5a, 0}, {0xda, 0} },
+    { {0},             {0} }, { {0x65, 0}, {0xe5, 0} },	/*14c*/
+    { {0x59, 0}, {0xd9, 0} }, { {0x5d, 0}, {0xdd, 0} },
+    { {0x62, 0}, {0xe2, 0} }, { {0x64, 0}, {0xe4, 0} },	/*150*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*154*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0x54, 0}, {0xd4, 0} },	/*158*/
+    { {0x67, 0}, {0xe7, 0} }, { {0x56, 0}, {0xd6, 0} },
+    { {0},             {0} }, { {0},             {0} },	/*15c*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*160*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*164*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*168*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*16c*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*170*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*174*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*148*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*17c*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*180*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*184*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*88*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*18c*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*190*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*194*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*198*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*19c*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*1a0*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*1a4*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*1a8*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*1ac*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*1b0*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*1b4*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*1b8*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*1bc*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*1c0*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*1c4*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*1c8*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*1cc*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*1d0*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*1d4*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*1d8*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*1dc*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*1e0*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*1e4*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*1e8*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*1ec*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*1f0*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*1f4*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*1f8*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} }	/*1fc*/
+  // clang-format on
+};
+
+/* Remapping as follows:
+
+   - Left Windows  (E0 5B) -> 54;
+   - Right Windows (E0 5C) -> 56;
+   - Menu          (E0 5D) -> 5C.
+ */
+const scancode scancode_olivetti_m240[512] = {
+  // clang-format off
+    { {0},       {0}       }, { {0x01, 0}, {0x81, 0} },
+    { {0x02, 0}, {0x82, 0} }, { {0x03, 0}, {0x83, 0} },
+    { {0x04, 0}, {0x84, 0} }, { {0x05, 0}, {0x85, 0} },
+    { {0x06, 0}, {0x86, 0} }, { {0x07, 0}, {0x87, 0} },
+    { {0x08, 0}, {0x88, 0} }, { {0x09, 0}, {0x89, 0} },
+    { {0x0a, 0}, {0x8a, 0} }, { {0x0b, 0}, {0x8b, 0} },
+    { {0x0c, 0}, {0x8c, 0} }, { {0x0d, 0}, {0x8d, 0} },
+    { {0x0e, 0}, {0x8e, 0} }, { {0x0f, 0}, {0x8f, 0} },
+    { {0x10, 0}, {0x90, 0} }, { {0x11, 0}, {0x91, 0} },
+    { {0x12, 0}, {0x92, 0} }, { {0x13, 0}, {0x93, 0} },
+    { {0x14, 0}, {0x94, 0} }, { {0x15, 0}, {0x95, 0} },
+    { {0x16, 0}, {0x96, 0} }, { {0x17, 0}, {0x97, 0} },
+    { {0x18, 0}, {0x98, 0} }, { {0x19, 0}, {0x99, 0} },
+    { {0x1a, 0}, {0x9a, 0} }, { {0x1b, 0}, {0x9b, 0} },
+    { {0x1c, 0}, {0x9c, 0} }, { {0x1d, 0}, {0x9d, 0} },
+    { {0x1e, 0}, {0x9e, 0} }, { {0x1f, 0}, {0x9f, 0} },
+    { {0x20, 0}, {0xa0, 0} }, { {0x21, 0}, {0xa1, 0} },
+    { {0x22, 0}, {0xa2, 0} }, { {0x23, 0}, {0xa3, 0} },
+    { {0x24, 0}, {0xa4, 0} }, { {0x25, 0}, {0xa5, 0} },
+    { {0x26, 0}, {0xa6, 0} }, { {0x27, 0}, {0xa7, 0} },
+    { {0x28, 0}, {0xa8, 0} }, { {0x29, 0}, {0xa9, 0} },
+    { {0x2a, 0}, {0xaa, 0} }, { {0x2b, 0}, {0xab, 0} },
+    { {0x2c, 0}, {0xac, 0} }, { {0x2d, 0}, {0xad, 0} },
+    { {0x2e, 0}, {0xae, 0} }, { {0x2f, 0}, {0xaf, 0} },
+    { {0x30, 0}, {0xb0, 0} }, { {0x31, 0}, {0xb1, 0} },
+    { {0x32, 0}, {0xb2, 0} }, { {0x33, 0}, {0xb3, 0} },
+    { {0x34, 0}, {0xb4, 0} }, { {0x35, 0}, {0xb5, 0} },
+    { {0x36, 0}, {0xb6, 0} }, { {0x37, 0}, {0xb7, 0} },
+    { {0x38, 0}, {0xb8, 0} }, { {0x39, 0}, {0xb9, 0} },
+    { {0x3a, 0}, {0xba, 0} }, { {0x3b, 0}, {0xbb, 0} },
+    { {0x3c, 0}, {0xbc, 0} }, { {0x3d, 0}, {0xbd, 0} },
+    { {0x3e, 0}, {0xbe, 0} }, { {0x3f, 0}, {0xbf, 0} },
+    { {0x40, 0}, {0xc0, 0} }, { {0x41, 0}, {0xc1, 0} },
+    { {0x42, 0}, {0xc2, 0} }, { {0x43, 0}, {0xc3, 0} },
+    { {0x44, 0}, {0xc4, 0} }, { {0x45, 0}, {0xc5, 0} },
+    { {0x46, 0}, {0xc6, 0} }, { {0x47, 0}, {0xc7, 0} },
+    { {0x48, 0}, {0xc8, 0} }, { {0x49, 0}, {0xc9, 0} },
+    { {0x4a, 0}, {0xca, 0} }, { {0x4b, 0}, {0xcb, 0} },
+    { {0x4c, 0}, {0xcc, 0} }, { {0x4d, 0}, {0xcd, 0} },
+    { {0x4e, 0}, {0xce, 0} }, { {0x4f, 0}, {0xcf, 0} },
+    { {0x50, 0}, {0xd0, 0} }, { {0x51, 0}, {0xd1, 0} },
+    { {0x52, 0}, {0xd2, 0} }, { {0x53, 0}, {0xd3, 0} },
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*054*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*058*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*05c*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*060*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*064*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*068*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*06c*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*070*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*074*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*078*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*07c*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*080*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*084*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*088*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*08c*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*090*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*094*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*098*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*09c*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*0a0*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*0a4*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*0a8*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*0ac*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*0b0*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*0b4*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*0b8*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*0bc*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*0c0*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*0c4*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*0c8*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*0cc*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*0d0*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*0d4*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*0d8*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*0dc*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*0e0*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*0e4*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*0e8*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*0ec*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*0f0*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*0f4*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*0f8*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*0fc*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*100*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*104*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*108*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*10c*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*110*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*114*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*118*/
+    { {0x1c, 0}, {0x9c, 0} }, { {0x1d, 0}, {0x9d, 0} },
+    { {0},             {0} }, { {0},             {0} },	/*11c*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*120*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*124*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*128*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*12c*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*130*/
+    { {0},             {0} }, { {0x35, 0}, {0xb5, 0} },
+    { {0},             {0} }, { {0x37, 0}, {0xb7, 0} },	/*134*/
+    { {0x38, 0}, {0xb8, 0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*138*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*13c*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*140*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0x46, 0}, {0xc6, 0} }, { {0x47, 0}, {0xc7, 0} },	/*144*/
+    { {0x48, 0}, {0xc8, 0} }, { {0x49, 0}, {0xc9, 0} },
+    { {0},             {0} }, { {0x4b, 0}, {0xcb, 0} },	/*148*/
+    { {0},             {0} }, { {0x4d, 0}, {0xcd, 0} },
+    { {0},             {0} }, { {0x4f, 0}, {0xcf, 0} },	/*14c*/
+    { {0x50, 0}, {0xd0, 0} }, { {0x51, 0}, {0xd1, 0} },
+    { {0x52, 0}, {0xd2, 0} }, { {0x53, 0}, {0xd3, 0} },	/*150*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*154*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*158*/
+    { {0},             {0} }, { {0x54, 0}, {0xd4, 0} },
+    { {0x56, 0}, {0xd6, 0} }, { {0x5c, 0}, {0xdc, 0} },	/*15c*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*160*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*164*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*168*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*16c*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*170*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*174*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*148*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*17c*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*180*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*184*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*88*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*18c*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*190*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*194*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*198*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*19c*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*1a0*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*1a4*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*1a8*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*1ac*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*1b0*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*1b4*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*1b8*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*1bc*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*1c0*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*1c4*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*1c8*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*1cc*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*1d0*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*1d4*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*1d8*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*1dc*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*1e0*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*1e4*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*1e8*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*1ec*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*1f0*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*1f4*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} },	/*1f8*/
+    { {0},             {0} }, { {0},             {0} },
+    { {0},             {0} }, { {0},             {0} }	/*1fc*/
+  // clang-format on
+};
+
 static void
 m24_kbd_init(m24_kbd_t *kbd)
 {
@@ -783,12 +1385,14 @@ m24_kbd_init(m24_kbd_t *kbd)
     m24_kbd_reset(kbd);
     timer_add(&kbd->send_delay_timer, m24_kbd_poll, kbd, 1);
 
-    /* Tell mouse driver about our internal mouse. */
-    mouse_reset();
-    mouse_set_buttons(2);
-    mouse_set_poll(ms_poll, kbd);
+    if (mouse_type == MOUSE_TYPE_INTERNAL) {
+        /* Tell mouse driver about our internal mouse. */
+        mouse_reset();
+        mouse_set_buttons(2);
+        mouse_set_poll(ms_poll, kbd);
+    }
 
-    keyboard_set_table(scancode_xt);
+    keyboard_set_table((kbd->id == 0x01) ? scancode_olivetti_m24_deluxe : scancode_olivetti_m240);
     keyboard_set_is_amstrad(0);
 }
 
@@ -1004,6 +1608,16 @@ m24_read(uint16_t port, void *priv)
     int     i, fdd_count = 0;
 
     switch (port) {
+        case 0x62:
+            /* Control Port B Read */
+            ret = 0xff;
+            break;
+
+        case 0x65:
+            /* Communications Port Read */
+            ret = 0xff;
+            break;
+
         /*
          * port 66:
          * DIPSW-0 on mainboard (off=present=1)
@@ -1042,6 +1656,7 @@ m24_read(uint16_t port, void *priv)
                     break;
             }
             break;
+
         /*
          * port 67:
          * DIPSW-1 on mainboard (off=present=1)
@@ -1078,18 +1693,82 @@ m24_read(uint16_t port, void *priv)
             else
                 ret |= 0x0;
 
+            /* Switch 4 - The M21/M24 Theory of Operation says
+                          "Reserved for HDU", same as for Switch 3 */
+
             /* Switch 3 - Disable internal BIOS HD */
-            ret |= 0x4;
+            if (hdc_current != HDC_INTERNAL)
+                ret |= 0x4;
 
             /* Switch 2 - Set fast startup */
             ret |= 0x2;
-            
+
+            /* 1 = 720 kB (3.5"), 0 = 360 kB (5.25") */
+            ret |= (fdd_doublestep_40(0) || fdd_doublestep_40(1)) ? 0x1 : 0x0;
             break;
     }
 
     return (ret);
 }
 
+static uint8_t
+m240_read(uint16_t port, void *priv)
+{
+    uint8_t ret = 0x00;
+    int     i, fdd_count = 0;
+
+    switch (port) {
+        case 0x62:
+            /* SWA on Olivetti M240 mainboard (off=1) */
+            ret = 0x00;
+            if (ppi.pb & 0x8) {
+                /* Switches 4, 5 - floppy drives (number) */
+                for (i = 0; i < FDD_NUM; i++) {
+                    if (fdd_get_flags(i))
+                        fdd_count++;
+                }
+                if (!fdd_count)
+                    ret |= 0x00;
+                else
+                    ret |= ((fdd_count - 1) << 2);
+                /* Switches 6, 7 - monitor type */
+                if (video_is_mda())
+                    ret |= 0x3;
+                else if (video_is_cga())
+                    ret |= 0x2; /* 0x10 would be 40x25 */
+                else
+                    ret |= 0x0;
+            } else {
+                /* bit 2 always on */
+                ret |= 0x4;
+                /* Switch 8 - 8087 FPU. */
+                if (hasfpu)
+                    ret |= 0x02;
+            }
+            break;
+
+        case 0x63:
+            /* Olivetti M240 SWB:
+               - Bit 7: 1 = MFDD (= high-density) unit present (Customer Test will then always think Drive 2 is absent),
+                        0 = MFD unit absent;
+               - Bit 6: 1 = Second drive is 3.5" (for low density drive, this means 80-track),
+                        0 = Second drive is 5.25" (for low density drive, this means 40-track).
+               - Bit 5: 1 = First drive is 3.5" (for low density drive, this means 80-track),
+                        0 = First drive is 5.25" (for low density drive, this means 40-track).
+             */
+
+            ret = (fdd_is_hd(0) || fdd_is_hd(1)) ? 0x80 : 0x00;
+            ret |= fdd_doublestep_40(1) ? 0x40 : 0x00;
+            ret |= fdd_doublestep_40(0) ? 0x20 : 0x00;
+            break;
+    }
+
+    return (ret);
+}
+
+/*
+ * Uses M21/M24/M240 keyboard controller and M24 102/103-key Deluxe keyboard.
+ */
 int
 machine_xt_m24_init(const machine_t *model)
 {
@@ -1114,7 +1793,7 @@ machine_xt_m24_init(const machine_t *model)
         device_add(&fdc_xt_device);
 
     /* Address 66-67 = mainboard dip-switch settings */
-    io_sethandler(0x0066, 2, m24_read, NULL, NULL, NULL, NULL, NULL, NULL);
+    io_sethandler(0x0065, 3, m24_read, NULL, NULL, NULL, NULL, NULL, NULL);
 
     standalone_gameport_type = &gameport_device;
 
@@ -1133,20 +1812,29 @@ machine_xt_m24_init(const machine_t *model)
     if (gfxcard == VID_INTERNAL)
         device_add(&ogc_m24_device);
 
+    pit_devs[0].set_out_func(pit_devs[0].data, 1, pit_refresh_timer_xt);
+
+    io_sethandler(0x0062, 1, m24_read, NULL, NULL, NULL, NULL, NULL, NULL);
+
+    m24_kbd->id = 0x01;
+
     m24_kbd_init(m24_kbd);
     device_add_ex(&m24_kbd_device, m24_kbd);
+
+    if (hdc_current == HDC_INTERNAL)
+        device_add(&st506_xt_wd1002a_wx1_nobios_device);
 
     return ret;
 }
 
 /*
- * Current bugs:
- * - handles only 360kb floppy drives (drive type and capacity selectable with jumpers mapped to unknown memory locations)
+ * Uses M21/M24/M240 keyboard controller and M240 keyboard.
  */
 int
 machine_xt_m240_init(const machine_t *model)
 {
-    int ret;
+    int        ret;
+    m24_kbd_t *m24_kbd;
     nvr_t     *nvr;
 
     ret = bios_load_interleaved("roms/machines/m240/olivetti_m240_pch6_2.04_low.bin",
@@ -1156,12 +1844,15 @@ machine_xt_m240_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
+    m24_kbd = (m24_kbd_t *) malloc(sizeof(m24_kbd_t));
+    memset(m24_kbd, 0x00, sizeof(m24_kbd_t));
+
     machine_common_init(model);
 
     pit_devs[0].set_out_func(pit_devs[0].data, 1, pit_refresh_timer_xt);
 
     /* Address 66-67 = mainboard dip-switch settings */
-    io_sethandler(0x0066, 2, m24_read, NULL, NULL, NULL, NULL, NULL, NULL);
+    io_sethandler(0x0062, 2, m240_read, NULL, NULL, NULL, NULL, NULL, NULL);
 
     /*
      * port 60: should return jumper settings only under unknown conditions
@@ -1169,11 +1860,13 @@ machine_xt_m240_init(const machine_t *model)
      * bit 7 - use BIOS HD on mainboard (on) / on controller (off)
      * bit 6 - use OCG/CGA display adapter (on) / other display adapter (off)
      */
-    device_add(&keyboard_at_olivetti_device);
-    device_add(&port_6x_olivetti_device);
+    m24_kbd->id = 0x10;
+
+    m24_kbd_init(m24_kbd);
+    device_add_ex(&m24_kbd_device, m24_kbd);
 
     if (fdc_type == FDC_INTERNAL)
-        device_add(&fdc_xt_device);
+        device_add(&fdc_at_device); /* io.c logs clearly show it using port 3F7 */
 
     if (joystick_type)
         device_add(&gameport_device);

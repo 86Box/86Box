@@ -15,7 +15,7 @@
 %global romver v3.7
 
 Name:		86Box
-Version:	3.8
+Version:	3.11
 Release:	1%{?dist}
 Summary:	Classic PC emulator
 License:	GPLv2+
@@ -117,5 +117,5 @@ popd
 %{_datadir}/%{name}/roms
 
 %changelog
-* Tue Aug 30 2022 Robert de Rooy <robert.de.rooy[AT]gmail.com> 3.8-1
+* Fri Nov 18 2022 Robert de Rooy <robert.de.rooy[AT]gmail.com> 3.11-1
 - Bump release

@@ -38,7 +38,7 @@
 #include <86box/config.h>
 #include <86box/video.h>
 
-# define _SSIZE_T_DEFINED
+#define _SSIZE_T_DEFINED
 #include <slirp/libslirp.h>
 
 #ifdef _WIN32

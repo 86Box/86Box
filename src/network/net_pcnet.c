@@ -756,11 +756,11 @@ padr_match(nic_t *dev, const uint8_t *buf, int size)
     result  = !CSR_DRCVPA(dev) && !memcmp(hdr->ether_dhost, padr, 6);
 
     pcnet_log(3, "%s: packet dhost=%02x:%02x:%02x:%02x:%02x:%02x, "
-                "padr=%02x:%02x:%02x:%02x:%02x:%02x => %d\n",
-             dev->name,
-             hdr->ether_dhost[0], hdr->ether_dhost[1], hdr->ether_dhost[2],
-             hdr->ether_dhost[3], hdr->ether_dhost[4], hdr->ether_dhost[5],
-             padr[0], padr[1], padr[2], padr[3], padr[4], padr[5], result);
+                 "padr=%02x:%02x:%02x:%02x:%02x:%02x => %d\n",
+              dev->name,
+              hdr->ether_dhost[0], hdr->ether_dhost[1], hdr->ether_dhost[2],
+              hdr->ether_dhost[3], hdr->ether_dhost[4], hdr->ether_dhost[5],
+              padr[0], padr[1], padr[2], padr[3], padr[4], padr[5], result);
 
     return result;
 }
@@ -944,13 +944,13 @@ pcnetInit(nic_t *dev)
         dev->GCUpperPhys = 0;
         PCNET_INIT();
         pcnet_log(3, "%s: initblk.rlen=%#04x, initblk.tlen=%#04x\n",
-                 dev->name, initblk.rlen, initblk.tlen);
+                  dev->name, initblk.rlen, initblk.tlen);
     } else {
         struct INITBLK16 initblk;
         dev->GCUpperPhys = (0xff00 & (uint32_t) dev->aCSR[2]) << 16;
         PCNET_INIT();
         pcnet_log(3, "%s: initblk.rlen=%#04x, initblk.tlen=%#04x\n",
-                 dev->name, initblk.rlen, initblk.tlen);
+                  dev->name, initblk.rlen, initblk.tlen);
     }
 
 #undef PCNET_INIT
@@ -985,9 +985,9 @@ pcnetInit(nic_t *dev)
     CSR_CXST(dev) = CSR_CXBC(dev) = CSR_NXST(dev) = CSR_NXBC(dev) = 0;
 
     pcnet_log(1, "%s: Init: SWSTYLE=%d GCRDRA=%#010x[%d] GCTDRA=%#010x[%d]%s\n",
-             dev->name, BCR_SWSTYLE(dev),
-             dev->GCRDRA, CSR_RCVRL(dev), dev->GCTDRA, CSR_XMTRL(dev),
-             !dev->fSignalRxMiss ? " (CSR0_MISS disabled)" : "");
+              dev->name, BCR_SWSTYLE(dev),
+              dev->GCRDRA, CSR_RCVRL(dev), dev->GCTDRA, CSR_XMTRL(dev),
+              !dev->fSignalRxMiss ? " (CSR0_MISS disabled)" : "");
 
     if (dev->GCRDRA & (dev->iLog2DescSize - 1))
         pcnet_log(1, "%s: Warning: Misaligned RDRA\n", dev->name);
@@ -1072,7 +1072,7 @@ pcnetRdtePoll(nic_t *dev)
              */
             if (++dev->uCntBadRMD < 50)
                 pcnet_log(1, "%s: BAD RMD ENTRIES AT %#010x (i=%d)\n",
-                         dev->name, addr, i);
+                          dev->name, addr, i);
             return;
         }
 
@@ -1098,7 +1098,7 @@ pcnetRdtePoll(nic_t *dev)
              */
             if (++dev->uCntBadRMD < 50)
                 pcnet_log(1, "%s: BAD RMD ENTRIES + AT %#010x (i=%d)\n",
-                         dev->name, addr, i);
+                          dev->name, addr, i);
             return;
         }
 
@@ -1126,7 +1126,7 @@ pcnetTdtePoll(nic_t *dev, TMD *tmd)
 
         if (tmd->tmd1.ones != 15) {
             pcnet_log(1, "%s: BAD TMD XDA=%#010x\n",
-                     dev->name, PHYSADDR(dev, cxda));
+                      dev->name, PHYSADDR(dev, cxda));
             return 0;
         }
 
@@ -1182,7 +1182,7 @@ pcnetCalcPacketLen(nic_t *dev, int cb)
         }
         if (tmd.tmd1.ones != 15) {
             pcnet_log(1, "%s: BAD TMD XDA=%#010x\n",
-                     dev->name, PHYSADDR(dev, addrDesc));
+                      dev->name, PHYSADDR(dev, addrDesc));
             pcnet_log(3, "%s: pcnetCalcPacketLen: bad TMD, return %u\n", dev->name, cbPacket);
             return cbPacket;
         }
@@ -1228,9 +1228,9 @@ pcnetReceiveNoSync(void *priv, uint8_t *buf, int size)
         return 0;
 
     pcnet_log(1, "%s: pcnetReceiveNoSync: RX %x:%x:%x:%x:%x:%x > %x:%x:%x:%x:%x:%x len %d\n", dev->name,
-             buf[6], buf[7], buf[8], buf[9], buf[10], buf[11],
-             buf[0], buf[1], buf[2], buf[3], buf[4], buf[5],
-             size);
+              buf[6], buf[7], buf[8], buf[9], buf[10], buf[11],
+              buf[0], buf[1], buf[2], buf[3], buf[4], buf[5],
+              size);
 
     /*
      * Perform address matching.
@@ -1411,7 +1411,7 @@ pcnetReceiveNoSync(void *priv, uint8_t *buf, int size)
 
             dev->aCSR[0] |= 0x0400;
             pcnet_log(1, "%s: RINT set, RCVRC=%d CRDA=%#010x\n", dev->name,
-                     CSR_RCVRC(dev), PHYSADDR(dev, CSR_CRDA(dev)));
+                      CSR_RCVRC(dev), PHYSADDR(dev, CSR_CRDA(dev)));
 
             /* guest driver is owner: force repoll of current and next RDTEs */
             CSR_CRST(dev) = 0;
@@ -1574,7 +1574,7 @@ pcnetAsyncTransmit(nic_t *dev)
                     CSR_XMTRC(dev) = CSR_XMTRL(dev);
                 else
                     CSR_XMTRC(dev)
-                    --;
+                --;
 
                 TMD dummy;
                 if (!pcnetTdtePoll(dev, &dummy)) {
@@ -1629,7 +1629,7 @@ pcnetAsyncTransmit(nic_t *dev)
                         CSR_XMTRC(dev) = CSR_XMTRL(dev);
                     else
                         CSR_XMTRC(dev)
-                        --;
+                    --;
                     break;
                 }
             } /* the loop */
@@ -1897,7 +1897,7 @@ pcnet_csr_writew(nic_t *dev, uint16_t rap, uint16_t val)
                 return;
             }
             pcnet_log(3, "%s: WRITE CSR%d, %#06x (hacked %#06x) (alt init)\n", dev->name,
-                     rap, val, 1 + ~val);
+                      rap, val, 1 + ~val);
             val = 1 + ~val;
 
             /*
@@ -2984,12 +2984,12 @@ pcnet_init(const device_t *info)
     }
 
     pcnet_log(2, "%s: I/O=%04x, IRQ=%d, MAC=%02x:%02x:%02x:%02x:%02x:%02x\n",
-             dev->name, dev->base_address, dev->base_irq,
-             dev->aPROM[0], dev->aPROM[1], dev->aPROM[2],
-             dev->aPROM[3], dev->aPROM[4], dev->aPROM[5]);
+              dev->name, dev->base_address, dev->base_irq,
+              dev->aPROM[0], dev->aPROM[1], dev->aPROM[2],
+              dev->aPROM[3], dev->aPROM[4], dev->aPROM[5]);
 
     pcnet_log(1, "%s: %s attached IO=0x%X IRQ=%d\n", dev->name,
-             dev->is_pci ? "PCI" : "VLB/ISA", dev->base_address, dev->base_irq);
+              dev->is_pci ? "PCI" : "VLB/ISA", dev->base_address, dev->base_irq);
 
     /* Reset the board. */
     pcnetHardReset(dev);
@@ -3065,6 +3065,8 @@ static const device_config_t pcnet_isa_config[] = {
             { .description = "IRQ 4", .value = 4 },
             { .description = "IRQ 5", .value = 5 },
             { .description = "IRQ 9", .value = 9 },
+            { .description = "IRQ 10", .value = 10 },
+            { .description = "IRQ 11", .value = 11 },
             { .description = ""                  }
         },
     },
@@ -3124,6 +3126,8 @@ static const device_config_t pcnet_vlb_config[] = {
             { .description = "IRQ 4", .value = 4 },
             { .description = "IRQ 5", .value = 5 },
             { .description = "IRQ 9", .value = 9 },
+            { .description = "IRQ 10", .value = 10 },
+            { .description = "IRQ 11", .value = 11 },
             { .description = ""                  }
         },
     },

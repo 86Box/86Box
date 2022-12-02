@@ -42,7 +42,7 @@ static const struct {
     {"plip",            &lpt_plip_device          },
     {"dongle_savquest", &lpt_hasp_savquest_device },
     {"",                NULL                      }
-// clang-format on
+  // clang-format on
 };
 
 char *

@@ -74,9 +74,8 @@ svga_log(const char *fmt, ...)
 #    define svga_log(fmt, ...)
 #endif
 
-svga_t
-    *
-    svga_get_pri()
+svga_t *
+svga_get_pri(void)
 {
     return svga_pri;
 }
@@ -475,7 +474,7 @@ svga_recalctimings(svga_t *svga)
     svga->render     = svga_render_blank;
     if (!svga->scrblank && (svga->crtc[0x17] & 0x80) && svga->attr_palette_enable) {
         if (!(svga->gdcreg[6] & 1) && !(svga->attrregs[0x10] & 1)) { /*Text mode*/
-            if (svga->seqregs[1] & 8) { /*40 column*/
+            if (svga->seqregs[1] & 8) {                              /*40 column*/
                 svga->render = svga_render_text_40;
                 svga->hdisp *= (svga->seqregs[1] & 1) ? 16 : 18;
                 /* Character clock is off by 1 now in 40-line modes, on all cards. */

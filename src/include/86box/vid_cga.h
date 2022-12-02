@@ -68,8 +68,8 @@ void    cga_poll(void *p);
 #ifdef EMU_DEVICE_H
 extern const device_config_t cga_config[];
 
-extern const device_t        cga_device;
-extern const device_t        cga_pravetz_device;
+extern const device_t cga_device;
+extern const device_t cga_pravetz_device;
 #endif
 
 #endif /*VIDEO_CGA_H*/

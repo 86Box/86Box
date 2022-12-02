@@ -763,7 +763,7 @@ isartc_get_from_internal_name(char *s)
         c++;
     }
 
-/* Not found. */
+    /* Not found. */
     return (0);
 }
 

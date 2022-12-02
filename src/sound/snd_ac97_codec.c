@@ -637,7 +637,7 @@ ac97_codec_get(int model)
     if ((model >= 0) && (model < (sizeof(ac97_codecs) / sizeof(ac97_codecs[0]))))
         return ac97_codecs[model].device;
     else
-        return &cs4297a_device;/* fallback */
+        return &cs4297a_device; /* fallback */
 }
 
 const device_t ad1881_device = {

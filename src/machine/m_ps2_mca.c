@@ -806,7 +806,7 @@ ps2_mca_write(uint16_t port, uint8_t val, void *p)
 }
 
 static void
-ps2_mca_board_common_init()
+ps2_mca_board_common_init(void)
 {
     io_sethandler(0x0091, 0x0001, ps2_mca_read, NULL, NULL, ps2_mca_write, NULL, NULL, NULL);
     io_sethandler(0x0094, 0x0001, ps2_mca_read, NULL, NULL, ps2_mca_write, NULL, NULL, NULL);
