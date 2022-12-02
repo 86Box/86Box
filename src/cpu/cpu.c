@@ -155,7 +155,8 @@ static uint8_t ccr0, ccr1, ccr2, ccr3, ccr4, ccr5, ccr6;
 
 static uint8_t ccr0, ccr1, ccr2, ccr3, ccr4, ccr5, ccr6;
 
-void cpu_INVD(uint8_t wb)
+void
+cpu_INVD(uint8_t wb)
 {
     mem_invalidate_mtrr(wb);
 }
@@ -1177,7 +1178,7 @@ cpu_set(void)
 #endif
 
             if ((cpu_s->cpu_type == CPU_K6_2P) || (cpu_s->cpu_type == CPU_K6_3P)) {
-                x86_opcodes_3DNOW         = ops_3DNOWE;
+                x86_opcodes_3DNOW = ops_3DNOWE;
 #ifdef USE_DYNAREC
                 x86_dynarec_opcodes_3DNOW = dynarec_ops_3DNOWE;
 #endif
@@ -2705,13 +2706,13 @@ cpu_WRMSR(void)
                 case 0x20d:
                 case 0x20e:
                 case 0x20f:
-                    temp = EAX | ((uint64_t)EDX << 32);
+                    temp  = EAX | ((uint64_t) EDX << 32);
                     temp2 = (ECX - 0x200) >> 1;
                     if (ECX & 1) {
                         cpu_log("MTRR physmask[%d] = %08llx\n", temp2, temp);
 
                         if ((msr.mtrr_physmask[temp2] >> 11) & 0x1)
-                                mem_del_mtrr(msr.mtrr_physbase[temp2] & ~(0xFFF), msr.mtrr_physmask[temp2] & ~(0xFFF));
+                            mem_del_mtrr(msr.mtrr_physbase[temp2] & ~(0xFFF), msr.mtrr_physmask[temp2] & ~(0xFFF));
 
                         if ((temp >> 11) & 0x1)
                             mem_add_mtrr(msr.mtrr_physbase[temp2] & ~(0xFFF), temp & ~(0xFFF), msr.mtrr_physbase[temp2] & 0xFF);
@@ -2958,7 +2959,7 @@ amd_k_invalid_wrmsr:
                 case 0x20d:
                 case 0x20e:
                 case 0x20f:
-                    temp = EAX | ((uint64_t) EDX << 32);
+                    temp  = EAX | ((uint64_t) EDX << 32);
                     temp2 = (ECX - 0x200) >> 1;
                     if (ECX & 1) {
                         cpu_log("MTRR physmask[%d] = %08llx\n", temp2, temp);
