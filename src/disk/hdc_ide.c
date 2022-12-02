@@ -1150,6 +1150,9 @@ ide_atapi_packet_write(ide_t *ide, uint32_t val, int length)
     bufferw = (uint16_t *) bufferb;
     bufferl = (uint32_t *) bufferb;
 
+    if (dev->packet_status == PHASE_DATA_IN)
+        return;
+
     switch (length) {
         case 1:
             bufferb[dev->pos] = val & 0xff;
