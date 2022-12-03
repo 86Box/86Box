@@ -630,6 +630,18 @@ plat_chdir(char *path)
 }
 
 void
+plat_get_global_config_dir(char* strptr)
+{
+#ifdef __APPLE__
+    auto dir = QDir(QStandardPaths::standardLocations(QStandardPaths::GenericConfigLocation)[0] + "/net.86Box.86Box/");
+#else
+    auto dir = QDir(QStandardPaths::standardLocations(QStandardPaths::GenericConfigLocation)[0] + "/86Box/");
+#endif
+    if (!dir.exists()) dir.mkpath(".");
+    strncpy(strptr, dir.canonicalPath().toUtf8().constData(), 1024);
+}
+
+void
 plat_init_rom_paths()
 {
     auto paths = QStandardPaths::standardLocations(QStandardPaths::GenericDataLocation);
