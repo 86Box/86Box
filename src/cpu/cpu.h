@@ -172,36 +172,41 @@ typedef struct {
     const cpu_legacy_table_t **tables;
 } cpu_legacy_machine_t;
 
-#define C_FLAG   0x0001
-#define P_FLAG   0x0004
-#define A_FLAG   0x0010
-#define Z_FLAG   0x0040
-#define N_FLAG   0x0080
-#define T_FLAG   0x0100
-#define I_FLAG   0x0200
-#define D_FLAG   0x0400
-#define V_FLAG   0x0800
-#define NT_FLAG  0x4000
-#define MD_FLAG  0x8000
+#define C_FLAG     0x0001
+#define P_FLAG     0x0004
+#define A_FLAG     0x0010
+#define Z_FLAG     0x0040
+#define N_FLAG     0x0080
+#define T_FLAG     0x0100
+#define I_FLAG     0x0200
+#define D_FLAG     0x0400
+#define V_FLAG     0x0800
+#define NT_FLAG    0x4000
+#define MD_FLAG    0x8000
 
-#define RF_FLAG  0x0001 /* in EFLAGS */
-#define VM_FLAG  0x0002 /* in EFLAGS */
-#define VIF_FLAG 0x0008 /* in EFLAGS */
-#define VIP_FLAG 0x0010 /* in EFLAGS */
-#define VID_FLAG 0x0020 /* in EFLAGS */
+#define RF_FLAG    0x0001 /* in EFLAGS */
+#define VM_FLAG    0x0002 /* in EFLAGS */
+#define VIF_FLAG   0x0008 /* in EFLAGS */
+#define VIP_FLAG   0x0010 /* in EFLAGS */
+#define VID_FLAG   0x0020 /* in EFLAGS */
 
-#define WP_FLAG  0x10000 /* in CR0 */
-#define CR4_VME  (1 << 0)
-#define CR4_PVI  (1 << 1)
-#define CR4_PSE  (1 << 4)
-#define CR4_PAE  (1 << 5)
-#define CR4_PGE  (1 << 7)
+#define WP_FLAG    0x10000 /* in CR0 */
+#define CR4_VME    (1 << 0)
+#define CR4_PVI    (1 << 1)
+#define CR4_TSD    (1 << 2)
+#define CR4_DE     (1 << 3)
+#define CR4_PSE    (1 << 4)
+#define CR4_PAE    (1 << 5)
+#define CR4_MCE    (1 << 6)
+#define CR4_PGE    (1 << 7)
+#define CR4_PCE    (1 << 8)
+#define CR4_OSFXSR (1 << 9)
 
-#define CPL      ((cpu_state.seg_cs.access >> 5) & 3)
+#define CPL        ((cpu_state.seg_cs.access >> 5) & 3)
 
-#define IOPL     ((cpu_state.flags >> 12) & 3)
+#define IOPL       ((cpu_state.flags >> 12) & 3)
 
-#define IOPLp    ((!(msw & 1)) || (CPL <= IOPL))
+#define IOPLp      ((!(msw & 1)) || (CPL <= IOPL))
 
 typedef union {
     uint32_t l;
@@ -288,10 +293,10 @@ typedef struct {
     uint64_t mtrr_deftype; /* 0x000002ff */
 
     /* Pentium II/III/IV MSR's needed for late BIOS */
-    uint64_t    ecx1a0;         /* 0x000001a0 */
-    uint64_t    ecx198;         /* 0x00000198 */
-    uint64_t    ecx19a;         /* 0x0000019a */
-    uint64_t    ecx19d;         /* 0x0000019d */
+    uint64_t ecx1a0; /* 0x000001a0 */
+    uint64_t ecx198; /* 0x00000198 */
+    uint64_t ecx19a; /* 0x0000019a */
+    uint64_t ecx19d; /* 0x0000019d */
 
     /* Pentium Pro, Pentium II Klamath, and Pentium II Deschutes MSR's */
     uint64_t mca_ctl[5]; /* 0x00000400, 0x00000404, 0x00000408, 0x0000040c, 0x00000410 - Machine Check Architecture */
@@ -407,7 +412,7 @@ typedef struct {
 #define in_smm   cpu_state._in_smm
 #define smi_line cpu_state._smi_line
 
-#define smbase   cpu_state._smbase
+#define smbase cpu_state._smbase
 
 /*The cpu_state.flags below must match in both cpu_cur_status and block->status for a block
   to be valid*/
@@ -474,15 +479,9 @@ COMPILE_TIME_ASSERT(sizeof(cpu_state_t) <= 128)
 #    define fpu_cycles cpu_state._fpu_cycles
 #endif
 
-#define cpu_rm     cpu_state.rm_data.rm_mod_reg.rm
-#define cpu_mod    cpu_state.rm_data.rm_mod_reg.mod
-#define cpu_reg    cpu_state.rm_data.rm_mod_reg.reg
-
-#define CR4_TSD    (1 << 2)
-#define CR4_DE     (1 << 3)
-#define CR4_MCE    (1 << 6)
-#define CR4_PCE    (1 << 8)
-#define CR4_OSFXSR (1 << 9)
+#define cpu_rm  cpu_state.rm_data.rm_mod_reg.rm
+#define cpu_mod cpu_state.rm_data.rm_mod_reg.mod
+#define cpu_reg cpu_state.rm_data.rm_mod_reg.reg
 
 /* Global variables. */
 extern cpu_state_t cpu_state;

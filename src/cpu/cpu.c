@@ -384,8 +384,8 @@ cpu_set(void)
     is_k5      = !strcmp(cpu_f->manufacturer, "AMD") && (cpu_s->cpu_type > CPU_ENH_Am486DX) && (cpu_s->cpu_type < CPU_K6);
     is_k6      = (cpu_s->cpu_type >= CPU_K6) && !strcmp(cpu_f->manufacturer, "AMD");
     /* The Samuel 2 datasheet claims it's Celeron-compatible. */
-    is_p6    = (cpu_isintel && (cpu_s->cpu_type >= CPU_PENTIUMPRO)) || !strcmp(cpu_f->manufacturer, "VIA");
-    is_cxsmm = (!strcmp(cpu_f->manufacturer, "Cyrix") || !strcmp(cpu_f->manufacturer, "ST")) && (cpu_s->cpu_type >= CPU_Cx486S);
+    is_p6       = (cpu_isintel && (cpu_s->cpu_type >= CPU_PENTIUMPRO)) || !strcmp(cpu_f->manufacturer, "VIA");
+    is_cxsmm    = (!strcmp(cpu_f->manufacturer, "Cyrix") || !strcmp(cpu_f->manufacturer, "ST")) && (cpu_s->cpu_type >= CPU_Cx486S);
 
     cpu_isintel = cpu_isintel || !strcmp(cpu_f->manufacturer, "AMD");
 
@@ -426,9 +426,9 @@ cpu_set(void)
 #else
     x86_setopcodes(ops_386, ops_386_0f);
 #endif
-    x86_opcodes_REPE  = ops_REPE;
-    x86_opcodes_REPNE = ops_REPNE;
-    x86_opcodes_3DNOW = ops_3DNOW;
+    x86_opcodes_REPE    = ops_REPE;
+    x86_opcodes_REPNE   = ops_REPNE;
+    x86_opcodes_3DNOW   = ops_3DNOW;
 #ifdef USE_DYNAREC
     x86_dynarec_opcodes_REPE  = dynarec_ops_REPE;
     x86_dynarec_opcodes_REPNE = dynarec_ops_REPNE;
@@ -1170,7 +1170,7 @@ cpu_set(void)
 #endif
 
             if ((cpu_s->cpu_type == CPU_K6_2P) || (cpu_s->cpu_type == CPU_K6_3P)) {
-                x86_opcodes_3DNOW         = ops_3DNOWE;
+                x86_opcodes_3DNOW = ops_3DNOWE;
 #ifdef USE_DYNAREC
                 x86_dynarec_opcodes_3DNOW = dynarec_ops_3DNOWE;
 #endif
@@ -2864,7 +2864,7 @@ amd_k_invalid_wrmsr:
                     break;
                 case 0x1b:
                     cpu_log("APIC_BASE write: %08X%08X\n", EDX, EAX);
-                    // msr.apic_base = EAX | ((uint64_t)EDX << 32);
+                    // msr.apic_base = EAX | ((uint64_t) EDX << 32);
                     break;
                 case 0x2a:
                     break;
@@ -2936,16 +2936,16 @@ amd_k_invalid_wrmsr:
                     msr.ecx187 = EAX | ((uint64_t) EDX << 32);
                     break;
                 case 0x198:
-                    msr.ecx198 = EAX | ((uint64_t)EDX << 32);
+                    msr.ecx198 = EAX | ((uint64_t) EDX << 32);
                     break;
                 case 0x19a:
-                    msr.ecx19a = EAX | ((uint64_t)EDX << 32);
+                    msr.ecx19a = EAX | ((uint64_t) EDX << 32);
                     break;
                 case 0x19d:
-                    msr.ecx19d = EAX | ((uint64_t)EDX << 32);
+                    msr.ecx19d = EAX | ((uint64_t) EDX << 32);
                     break;
                 case 0x1a0:
-                    msr.ecx1a0 = EAX | ((uint64_t)EDX << 32);
+                    msr.ecx1a0 = EAX | ((uint64_t) EDX << 32);
                     break;
                 case 0x1e0:
                     msr.ecx1e0 = EAX | ((uint64_t) EDX << 32);
