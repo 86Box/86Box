@@ -1,21 +1,23 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Implementation of the UMC 8886xx PCI to ISA Bridge .
+ *          Implementation of the UMC 8886xx PCI to ISA Bridge .
  *
- *		Note: This chipset has no datasheet, everything were done via
- *		reverse engineering the BIOS of various machines using it.
+ * Note:    This chipset has no datasheet, everything were done via
+ *          reverse engineering the BIOS of various machines using it.
  *
- * Authors:	Tiseno100,
- *		Miran Grca, <mgrca8@gmail.com>
  *
- *		Copyright 2021 Tiseno100.
- *		Copyright 2021 Miran Grca.
+ *
+ * Authors: Tiseno100,
+ *          Miran Grca, <mgrca8@gmail.com>
+ *
+ *          Copyright 2021 Tiseno100.
+ *          Copyright 2021 Miran Grca.
  */
 
 /*
@@ -65,7 +67,6 @@
    Function 1 Register 4: (UMC 8886AF/8886BF Only!)
    Bit 0: Enable Internal IDE
 */
-
 #include <stdarg.h>
 #include <stdint.h>
 #include <stdio.h>

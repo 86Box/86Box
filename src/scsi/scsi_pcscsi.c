@@ -1,25 +1,24 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Implementation of the Tekram DC-390 SCSI and related MCA
- *		controllers using the NCR 53c9x series of chips.
- *
- *
+ *          Implementation of the Tekram DC-390 SCSI and related MCA
+ *          controllers using the NCR 53c9x series of chips.
  *
  *
- * Authors:	Fabrice Bellard (QEMU)
- *		Herve Poussineau (QEMU)
- *		TheCollector1995, <mariogplayer@gmail.com>
- *		Miran Grca, <mgrca8@gmail.com>
  *
- *		Copyright 2005-2018 Fabrice Bellard.
- *		Copyright 2012-2018 Herve Poussineau.
- *		Copyright 2017,2018 Miran Grca.
+ * Authors: Fabrice Bellard (QEMU)
+ *          Herve Poussineau (QEMU)
+ *          TheCollector1995, <mariogplayer@gmail.com>
+ *          Miran Grca, <mgrca8@gmail.com>
+ *
+ *          Copyright 2005-2018 Fabrice Bellard.
+ *          Copyright 2012-2018 Herve Poussineau.
+ *          Copyright 2017-2018 Miran Grca.
  */
 #include <inttypes.h>
 #include <stdarg.h>
@@ -519,8 +518,7 @@ esp_dma_enable(esp_t *dev, int level)
         dev->dma_enabled = 1;
         dev->dma_86c01.status |= 0x02;
         timer_stop(&dev->timer);
-        if (((dev->rregs[ESP_CMD] & CMD_CMD) != CMD_TI) &&
-            ((dev->rregs[ESP_CMD] & CMD_CMD) != CMD_PAD)) {
+        if (((dev->rregs[ESP_CMD] & CMD_CMD) != CMD_TI) && ((dev->rregs[ESP_CMD] & CMD_CMD) != CMD_PAD)) {
             timer_on_auto(&dev->timer, 40.0);
         } else {
             esp_log("Period = %lf\n", dev->period);
@@ -1661,7 +1659,7 @@ esp_pci_read(int func, int addr, void *p)
         case 0x0E:
             return 0; /*Header type */
         case 0x10:
-            return (esp_pci_bar[0].addr_regs[1] & 0x80) | 0x01; /*I/O space*/
+            return (esp_pci_bar[0].addr_regs[0] & 0x80) | 0x01; /*I/O space*/
         case 0x11:
             return esp_pci_bar[0].addr_regs[1];
         case 0x12:
@@ -1822,12 +1820,14 @@ dc390_init(const device_t *info)
     esp_pci_regs[0x04]          = 3;
 
     dev->has_bios = device_get_config_int("bios");
-    if (dev->has_bios)
-        rom_init(&dev->bios, DC390_ROM, 0xc8000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
+    if (dev->has_bios) {
+        dev->BIOSBase = 0xd0000;
+        rom_init(&dev->bios, DC390_ROM, 0xd0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
+    }
 
     /* Enable our BIOS space in PCI, if needed. */
     if (dev->has_bios) {
-        esp_pci_bar[1].addr = 0xfff80000;
+        esp_pci_bar[1].addr = 0xffff0000;
     } else {
         esp_pci_bar[1].addr = 0;
     }
@@ -2038,7 +2038,7 @@ static const device_config_t bios_enable_config[] = {
         .default_int = 0
     },
     { .name = "", .description = "", .type = CONFIG_END }
-// clang-format on
+  // clang-format on
 };
 
 const device_t dc390_pci_device = {

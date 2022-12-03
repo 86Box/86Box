@@ -1,21 +1,21 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Emulation of a PLIP parallel port network device.
+ *          Emulation of a PLIP parallel port network device.
  *
- *		Tested against the Linux plip.c driver and the DOS plip.com
- *		packet driver. PLIP is not particularly fast, as it's a 4-bit
- *		half-duplex protocol operating over SPP.
+ *          Tested against the Linux plip.c driver and the DOS plip.com
+ *          packet driver. PLIP is not particularly fast, as it's a 4-bit
+ *          half-duplex protocol operating over SPP.
  *
  *
  *
- * Author:	RichardG, <richardg867@gmail.com>
- *		Copyright 2020 RichardG.
+ * Authors: RichardG, <richardg867@gmail.com>
+ *          Copyright 2020 RichardG.
  */
 #include <inttypes.h>
 #include <memory.h>

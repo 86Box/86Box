@@ -127,7 +127,10 @@
 #define IS_AT(m)      (((machines[m].bus_flags & (MACHINE_BUS_ISA16 | MACHINE_BUS_EISA | MACHINE_BUS_VLB | MACHINE_BUS_MCA | MACHINE_BUS_PCI | MACHINE_BUS_PCMCIA | MACHINE_BUS_AGP | MACHINE_BUS_AC97)) && !(machines[m].bus_flags & MACHINE_PC98)) ? 1 : 0)
 
 #define CPU_BLOCK(...) \
-    (const uint8_t[]) { __VA_ARGS__, 0 }
+    (const uint8_t[])  \
+    {                  \
+        __VA_ARGS__, 0 \
+    }
 #define MACHINE_MULTIPLIER_FIXED -1
 
 #define CPU_BLOCK_NONE           0
@@ -337,6 +340,7 @@ extern int   machine_get_ram_granularity(int m);
 extern int   machine_get_type(int m);
 extern void  machine_close(void);
 extern int   machine_has_mouse(void);
+extern int   machine_is_sony(void);
 
 extern uint8_t  machine_get_p1(void);
 extern void     machine_load_p1(int m);

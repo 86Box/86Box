@@ -27,6 +27,8 @@ extern "C" {
 #include <86box/device.h>
 #include <86box/sound.h>
 #include <86box/snd_opl.h>
+#include <86box/mem.h>
+#include <86box/rom.h>
 }
 
 #define RSM_FRAC 10
@@ -62,6 +64,7 @@ public:
     virtual void     generate_resampled(int32_t *data, uint32_t num_samples) = 0;
     virtual int32_t *update()                                                = 0;
     virtual uint8_t  read(uint16_t addr)                                     = 0;
+    virtual void     set_clock(uint32_t clock)                               = 0;
 
 protected:
     int32_t m_buffer[SOUNDBUFLEN * 2];
@@ -77,6 +80,7 @@ public:
         : YMFMChipBase(clock, type, samplerate)
         , m_chip(*this)
         , m_clock(clock)
+        , m_samplerate(samplerate)
         , m_samplecnt(0)
     {
         memset(m_samples, 0, sizeof(m_samples));
@@ -86,6 +90,12 @@ public:
         m_subtract[0] = 80.0;
         m_subtract[1] = 320.0;
         m_type        = type;
+
+        if (m_type == FM_YMF278B) {
+            if (rom_load_linear("roms/sound/yamaha/yrw801.rom", 0, 0x200000, 0, m_yrw801) == 0) {
+                fatal("YRW801 ROM image \"roms/sound/yamaha/yrw801.rom\" not found\n");
+            }
+        }
 
         timer_add(&m_timers[0], YMFMChip::timer1, this, 0);
         timer_add(&m_timers[1], YMFMChip::timer2, this, 0);
@@ -101,7 +111,8 @@ public:
         if (tnum > 1)
             return;
 
-        pc_timer_t *timer = &m_timers[tnum];
+        m_duration_in_clocks[tnum] = duration_in_clocks;
+        pc_timer_t *timer          = &m_timers[tnum];
         if (duration_in_clocks < 0)
             timer_stop(timer);
         else {
@@ -113,16 +124,26 @@ public:
         }
     }
 
+    virtual void set_clock(uint32_t clock) override
+    {
+        m_clock     = clock;
+        m_clock_us  = 1000000 / (double) m_clock;
+        m_rateratio = (m_samplerate << RSM_FRAC) / m_chip.sample_rate(m_clock);
+
+        ymfm_set_timer(0, m_duration_in_clocks[0]);
+        ymfm_set_timer(1, m_duration_in_clocks[1]);
+    }
+
     virtual void generate(int32_t *data, uint32_t num_samples) override
     {
         for (uint32_t i = 0; i < num_samples; i++) {
             m_chip.generate(&m_output);
             if (ChipType::OUTPUTS == 1) {
-                *data++ = m_output.data[0];
-                *data++ = m_output.data[0];
+                *data++ = m_output.data[(m_type == FM_YMF278B) ? 4 : 0];
+                *data++ = m_output.data[(m_type == FM_YMF278B) ? 4 : 0];
             } else {
-                *data++ = m_output.data[0];
-                *data++ = m_output.data[1 % ChipType::OUTPUTS];
+                *data++ = m_output.data[(m_type == FM_YMF278B) ? 4 : 0];
+                *data++ = m_output.data[(m_type == FM_YMF278B) ? 5 : (1 % ChipType::OUTPUTS)];
             }
         }
     }
@@ -135,11 +156,11 @@ public:
                 m_oldsamples[1] = m_samples[1];
                 m_chip.generate(&m_output);
                 if (ChipType::OUTPUTS == 1) {
-                    m_samples[0] = m_output.data[0];
-                    m_samples[1] = m_output.data[0];
+                    m_samples[0] = m_output.data[(m_type == FM_YMF278B) ? 4 : 0];
+                    m_samples[1] = m_output.data[(m_type == FM_YMF278B) ? 4 : 0];
                 } else {
-                    m_samples[0] = m_output.data[0];
-                    m_samples[1] = m_output.data[1 % ChipType::OUTPUTS];
+                    m_samples[0] = m_output.data[(m_type == FM_YMF278B) ? 4 : 0];
+                    m_samples[1] = m_output.data[(m_type == FM_YMF278B) ? 5 : (1 % ChipType::OUTPUTS)];
                 }
                 m_samplecnt -= m_rateratio;
             }
@@ -182,7 +203,7 @@ public:
 
     virtual uint32_t get_special_flags(void) override
     {
-        return ((m_type == FM_YMF262) || (m_type == FM_YMF289B)) ? 0x8000 : 0x0000;
+        return ((m_type == FM_YMF262) || (m_type == FM_YMF289B) || (m_type == FM_YMF278B)) ? 0x8000 : 0x0000;
     }
 
     static void timer1(void *priv)
@@ -197,12 +218,25 @@ public:
         drv->m_engine->engine_timer_expired(1);
     }
 
+    virtual uint8_t ymfm_external_read(ymfm::access_class type, uint32_t address) override
+    {
+        if (type == ymfm::access_class::ACCESS_PCM && address < 0x200000) {
+            return m_yrw801[address];
+        }
+        return 0xFF;
+    }
+
 private:
     ChipType                       m_chip;
     uint32_t                       m_clock;
     double                         m_clock_us, m_subtract[2];
     typename ChipType::output_data m_output;
     pc_timer_t                     m_timers[2];
+    int32_t                        m_duration_in_clocks[2]; // Needed for clock switches.
+    uint32_t                       m_samplerate;
+
+    // YRW801-M wavetable ROM.
+    uint8_t m_yrw801[0x200000];
 
     // Resampling
     int32_t m_rateratio;
@@ -237,7 +271,7 @@ ymfm_log(const char *fmt, ...)
         va_start(ap, fmt);
         pclog_ex(fmt, ap);
         va_end(ap);
-	}
+    }
 }
 #else
 #    define ymfm_log(fmt, ...)
@@ -261,6 +295,10 @@ ymfm_drv_init(const device_t *info)
         case FM_YMF289B:
             fm = (YMFMChipBase *) new YMFMChip<ymfm::ymf289b>(33868800, FM_YMF289B, 48000);
             break;
+
+        case FM_YMF278B:
+            fm = (YMFMChipBase *) new YMFMChip<ymfm::ymf278b>(33868800, FM_YMF278B, 48000);
+            break;
     }
 
     fm->set_do_cycles(1);
@@ -282,9 +320,12 @@ ymfm_drv_read(uint16_t port, void *priv)
 {
     YMFMChipBase *drv = (YMFMChipBase *) priv;
 
-    if (drv->flags() & FLAG_CYCLES) {
+    if ((port == 0x380) || (port == 0x381))
+        port |= 4;
+
+    /* Point to register read port. */
+    if (drv->flags() & FLAG_CYCLES)
         cycles -= ((int) (isa_timing * 8));
-    }
 
     uint8_t ret = drv->read(port);
     drv->update();
@@ -298,6 +339,8 @@ ymfm_drv_write(uint16_t port, uint8_t val, void *priv)
 {
     YMFMChipBase *drv = (YMFMChipBase *) priv;
     ymfm_log("YMFM write port %04x value = %02x\n", port, val);
+    if ((port == 0x380) || (port == 0x381))
+        port |= 4;
     drv->write(port, val);
     drv->update();
 }
@@ -358,6 +401,20 @@ const device_t ymf289b_ymfm_device = {
     .internal_name = "ymf289b_ymfm",
     .flags         = 0,
     .local         = FM_YMF289B,
+    .init          = ymfm_drv_init,
+    .close         = ymfm_drv_close,
+    .reset         = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t ymf278b_ymfm_device = {
+    .name          = "Yamaha YMF278B OPL4 (YMFM)",
+    .internal_name = "ymf289b_ymfm",
+    .flags         = 0,
+    .local         = FM_YMF278B,
     .init          = ymfm_drv_init,
     .close         = ymfm_drv_close,
     .reset         = NULL,

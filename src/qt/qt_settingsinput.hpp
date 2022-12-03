@@ -7,8 +7,7 @@ namespace Ui {
 class SettingsInput;
 }
 
-class SettingsInput : public QWidget
-{
+class SettingsInput : public QWidget {
     Q_OBJECT
 
 public:
@@ -31,7 +30,7 @@ private slots:
 
 private:
     Ui::SettingsInput *ui;
-    int machineId = 0;
+    int                machineId = 0;
 };
 
 #endif // QT_SETTINGSINPUT_HPP

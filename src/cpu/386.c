@@ -196,20 +196,20 @@ exec386(int cycs)
                 }
             } else if (trap) {
                 flags_rebuild();
-		trap = 0;
+                trap = 0;
 #ifndef USE_NEW_DYNAREC
-		oldcs = CS;
+                oldcs = CS;
 #endif
-		cpu_state.oldpc = cpu_state.pc;
-		dr[6] |= 0x4000;
-		x86_int(1);
+                cpu_state.oldpc = cpu_state.pc;
+                dr[6] |= 0x4000;
+                x86_int(1);
             }
 
             if (smi_line)
                 enter_smm_check(0);
             else if (nmi && nmi_enable && nmi_mask) {
 #ifndef USE_NEW_DYNAREC
-		oldcs = CS;
+                oldcs = CS;
 #endif
                 cpu_state.oldpc = cpu_state.pc;
                 x86_int(2);

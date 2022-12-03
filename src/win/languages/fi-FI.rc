@@ -34,6 +34,7 @@ BEGIN
         MENUITEM "&Piilota tilapalkki",                                 IDM_VID_HIDE_STATUS_BAR
         MENUITEM "Piilota &työkalupalkki",                              IDM_VID_HIDE_TOOLBAR
         MENUITEM SEPARATOR
+        MENUITEM "&Show non-primary monitors",  IDM_VID_MONITORS
         MENUITEM "&Salli koon muuttaminen",                             IDM_VID_RESIZE
         MENUITEM "&Muista koko ja sijainti",                            IDM_VID_REMEMBER
         MENUITEM SEPARATOR
@@ -176,8 +177,8 @@ BEGIN
         MENUITEM "&Tyhjä",                                              IDM_CDROM_EMPTY
         MENUITEM "&Lataa edellinen levykuva uudelleen",                 IDM_CDROM_RELOAD
         MENUITEM SEPARATOR
-        MENUITEM "L&evykuva",                                           IDM_CDROM_IMAGE
-        MENUITEM "&Kansio",						IDM_CDROM_DIR
+        MENUITEM "L&evykuva...",                                           IDM_CDROM_IMAGE
+        MENUITEM "&Kansio...",						IDM_CDROM_DIR
     END
 END
 
@@ -271,6 +272,7 @@ END
 #define STR_DYNAREC         "Dynaaminen uudelleenkääntäjä"
 
 #define STR_VIDEO           "Näytönohjain:"
+#define STR_VIDEO_2         "Näytönohjain 2:"
 #define STR_VOODOO          "Voodoo-grafiikkasuoritin"
 #define STR_IBM8514	    "IBM 8514/a-grafiikkasuoritin"
 #define STR_XGA             "XGA-grafiikkasuoritin"
@@ -333,6 +335,7 @@ END
 #define STR_BUS             "Väylä:"
 #define STR_CHANNEL         "Kanava:"
 #define STR_ID              "ID:"
+#define STR_SPEED		"Speed:"
 
 #define STR_SPECIFY         "&Määritä..."
 #define STR_SECTORS         "Sektorit:"
@@ -422,102 +425,103 @@ BEGIN
     IDS_2084    "H"
     IDS_2085    "S"
     IDS_2086    "Mt"
-    IDS_2087    "Tarkista BPB"
-    IDS_2088    "kt"
-    IDS_2089    "Videorenderöijän alustus epäonnistui"
-    IDS_2090    "Oletus"
-    IDS_2091    "%i odotustilaa"
-    IDS_2092    "Tyyppi"
-    IDS_2093    "PCap-asennus epäonnistui"
-    IDS_2094    "PCap-laitteita ei löytynyt"
-    IDS_2095    "Virheellinen PCap-laite"
-    IDS_2096    "Standardi 2-painikkeinen peliohjain/-ohjaimet"
-    IDS_2097    "Standardi 4-painikkeinen peliohjain"
-    IDS_2098    "Standardi 6-painikkeinen peliohjain"
-    IDS_2099    "Standardi 8-painikkeinen peliohjain"
-    IDS_2100    "CH Flightstick Pro"
-    IDS_2101    "Microsoft SideWinder Pad"
-    IDS_2102    "Thrustmaster Flight Control System"
-    IDS_2103    "Ei mikään"
-    IDS_2104    "Näppäinkiihdyttimien lataus epäonnistui"
-    IDS_2105    "Raakasyötteen rekisteröinti epäonnistui"
-    IDS_2106    "%u"
-    IDS_2107    "%u Mt (CHS: %i, %i, %i)"
-    IDS_2108    "Levyke %i (%s): %ls"
-    IDS_2109    "Kaikki levykuvat (*.0??;*.1??;*.??0;*.86F;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.JSON;*.TD0;*.*FD?;*.MFM;*.XDF)\0*.0??;*.1??;*.??0;*.86F;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.JSON;*.TD0;*.*FD?;*.MFM;*.XDF\0Kehittyneet sektorilevykuvat (*.IMD;*.JSON;*.TD0)\0*.IMD;*.JSON;*.TD0\0Perussektorilevykuvat (*.0??;*.1??;*.??0;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.XDF;*.*FD?)\0*.0??;*.1??;*.??0;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.XDF;*.*FD?\0Flux-levykuvat (*.FDI)\0*.FDI\0Pintalevykuvat (*.86F;*.MFM)\0*.86F;*.MFM\0Kaikki tiedostot (*.*)\0*.*\0"
-    IDS_2110    "FreeType:n alustus epäonnistui"
-    IDS_2111    "SDL:n alustus epäonnistui. Tarvitaan SDL2.dll"
-    IDS_2112    "Haluatko varmasti käynnistää emuloidun tietokoneen uudelleen?"
-    IDS_2113    "Haluatko varmasti sulkea 86Boxin?"
-    IDS_2114    "Ghostscriptin alustus epäonnistui"
-    IDS_2115    "MO %i (%ls): %ls"
-    IDS_2116    "MO-levykuvat (*.IM?;*.MDI)\0*.IM?;*.MDI\0Kaikki tiedostot (*.*)\0*.*\0"
-    IDS_2117    "Tervetuloa 86Boxiin!"
-    IDS_2118    "Sisäinen ohjain"
-    IDS_2119    "Poistu"
-    IDS_2120    "ROM-tiedostoja ei löytynyt"
-    IDS_2121    "Tallennetaanko asetukset?"
-    IDS_2122    "Tämä käynnistää emuloidun tietokoneen uudelleen."
-    IDS_2123    "Tallenna"
-    IDS_2124    "Tietoja 86Box:sta"
-    IDS_2125    "86Box v" EMU_VERSION
+    IDS_2087    "Speed"
+    IDS_2088    "Tarkista BPB"
+    IDS_2089    "kt"
+    IDS_2090    "Videorenderöijän alustus epäonnistui"
+    IDS_2091    "Oletus"
+    IDS_2092    "%i odotustilaa"
+    IDS_2093    "Tyyppi"
+    IDS_2094    "PCap-asennus epäonnistui"
+    IDS_2095    "PCap-laitteita ei löytynyt"
+    IDS_2096    "Virheellinen PCap-laite"
+    IDS_2097    "Standardi 2-painikkeinen peliohjain/-ohjaimet"
+    IDS_2098    "Standardi 4-painikkeinen peliohjain"
+    IDS_2099    "Standardi 6-painikkeinen peliohjain"
+    IDS_2100    "Standardi 8-painikkeinen peliohjain"
+    IDS_2101    "CH Flightstick Pro"
+    IDS_2102    "Microsoft SideWinder Pad"
+    IDS_2103    "Thrustmaster Flight Control System"
+    IDS_2104    "Ei mikään"
+    IDS_2105    "Näppäinkiihdyttimien lataus epäonnistui"
+    IDS_2106    "Raakasyötteen rekisteröinti epäonnistui"
+    IDS_2107    "%u"
+    IDS_2108    "%u Mt (CHS: %i, %i, %i)"
+    IDS_2109    "Levyke %i (%s): %ls"
+    IDS_2110    "Kaikki levykuvat (*.0??;*.1??;*.??0;*.86F;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.JSON;*.TD0;*.*FD?;*.MFM;*.XDF)\0*.0??;*.1??;*.??0;*.86F;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.JSON;*.TD0;*.*FD?;*.MFM;*.XDF\0Kehittyneet sektorilevykuvat (*.IMD;*.JSON;*.TD0)\0*.IMD;*.JSON;*.TD0\0Perussektorilevykuvat (*.0??;*.1??;*.??0;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.XDF;*.*FD?)\0*.0??;*.1??;*.??0;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.XDF;*.*FD?\0Flux-levykuvat (*.FDI)\0*.FDI\0Pintalevykuvat (*.86F;*.MFM)\0*.86F;*.MFM\0Kaikki tiedostot (*.*)\0*.*\0"
+    IDS_2111    "FreeType:n alustus epäonnistui"
+    IDS_2112    "SDL:n alustus epäonnistui. Tarvitaan SDL2.dll"
+    IDS_2113    "Haluatko varmasti käynnistää emuloidun tietokoneen uudelleen?"
+    IDS_2114    "Haluatko varmasti sulkea 86Boxin?"
+    IDS_2115    "Ghostscriptin alustus epäonnistui"
+    IDS_2116    "MO %i (%ls): %ls"
+    IDS_2117    "MO-levykuvat (*.IM?;*.MDI)\0*.IM?;*.MDI\0Kaikki tiedostot (*.*)\0*.*\0"
+    IDS_2118    "Tervetuloa 86Boxiin!"
+    IDS_2119    "Sisäinen ohjain"
+    IDS_2120    "Poistu"
+    IDS_2121    "ROM-tiedostoja ei löytynyt"
+    IDS_2122    "Tallennetaanko asetukset?"
+    IDS_2123    "Tämä käynnistää emuloidun tietokoneen uudelleen."
+    IDS_2124    "Tallenna"
+    IDS_2125    "Tietoja 86Box:sta"
+    IDS_2126    "86Box v" EMU_VERSION
 
-    IDS_2126    "Vanhojen tietokoneiden emulaattori\n\nTekijät: Sarah Walker, Miran Grca, Fred N. van Kempen (waltje), SA1988, Tiseno100, reenigne, leilei, JohnElliott, greatpsycho ja muut.\n\nJulkaistu GNU General Public License 2. version tai myöhemmän alaisena. Tarkempia tietoja LICENSE-tiedostossa."
-    IDS_2127    "OK"
-    IDS_2128    "Laitteisto ei ole saatavilla"
+    IDS_2127    "Vanhojen tietokoneiden emulaattori\n\nTekijät: Sarah Walker, Miran Grca, Fred N. van Kempen (waltje), SA1988, Tiseno100, reenigne, leilei, JohnElliott, greatpsycho ja muut.\n\nJulkaistu GNU General Public License 2. version tai myöhemmän alaisena. Tarkempia tietoja LICENSE-tiedostossa."
+    IDS_2128    "OK"
+    IDS_2129    "Laitteisto ei ole saatavilla"
 #ifdef _WIN32
 #define LIB_NAME_PCAP "WinPcap"
 #else
 #define LIB_NAME_PCAP "libpcap"
 #endif
-    IDS_2129    "Varmista, että " LIB_NAME_PCAP " on asennettu ja että verkkoyhteytesi on " LIB_NAME_PCAP "-yhteensopiva."
-    IDS_2130    "Virheelliset määritykset"
+    IDS_2130    "Varmista, että " LIB_NAME_PCAP " on asennettu ja että verkkoyhteytesi on " LIB_NAME_PCAP "-yhteensopiva."
+    IDS_2131    "Virheelliset määritykset"
 #ifdef _WIN32
 #define LIB_NAME_FREETYPE "freetype.dll"
 #else
 #define LIB_NAME_FREETYPE "libfreetype"
 #endif
-    IDS_2131    LIB_NAME_FREETYPE " vaaditaan ESC/P-tulostimen emuloimiseksi."
+    IDS_2132    LIB_NAME_FREETYPE " vaaditaan ESC/P-tulostimen emuloimiseksi."
 #ifdef _WIN32
 #define LIB_NAME_GS "gsdll32.dll"
 #else
 #define LIB_NAME_GS "libgs"
 #endif
-    IDS_2132    LIB_NAME_GS " vaaditaan PostScript-tiedostojen automaattiseen muuntamiseen PDF-tiedostoiksi.\n\nKaikki geneeriselle PostScript-tulostimelle lähetetyt asiakirjat tallennetaan PostScript (.ps) -tiedostoina."
+    IDS_2133    LIB_NAME_GS " vaaditaan PostScript-tiedostojen automaattiseen muuntamiseen PDF-tiedostoiksi.\n\nKaikki geneeriselle PostScript-tulostimelle lähetetyt asiakirjat tallennetaan PostScript (.ps) -tiedostoina."
 #ifdef _WIN32
 #define LIB_NAME_FLUIDSYNTH "libfluidsynth.dll"
 #else
 #define LIB_NAME_FLUIDSYNTH "libfluidsynth"
 #endif
-    IDS_2133    LIB_NAME_FLUIDSYNTH " vaaditaan FluidSynth MIDI-ulostuloa varten."
-    IDS_2134    "Siirrytään koko näytön tilaan"
-    IDS_2135    "Älä näytä tätä viestiä uudelleen"
-    IDS_2136    "Älä poistu"
-    IDS_2137    "Käynnistä uudelleen"
-    IDS_2138    "Älä käynnistä uudelleen"
-    IDS_2139    "MO-levykuvat (*.IM?;*.MDI)\0*.IM?;*.MDI\0Kaikki tiedostot (*.*)\0*.*\0"
-    IDS_2140    "CD-ROM-levykuvat (*.ISO;*.CUE)\0*.ISO;*.CUE\0Kaikki tiedostot (*.*)\0*.*\0"
-    IDS_2141    "%hs - Laitteen määritykset"
-    IDS_2142    "Näyttö lepotilassa"
-    IDS_2143    "OpenGL-varjostinohjelmat (*.GLSL)\0*.GLSL\0Kaikki tiedostot (*.*)\0*.*\0"
-    IDS_2144    "OpenGL-asetukset"
-    IDS_2145    "Olet lataamassa ei-tuettuja määrittelyjä"
-    IDS_2146    "Valittuun tietokoneeseen perustuva suoritintyypin suodatus ei ole käytössä tällä emuloidulla koneella.\n\nTämä mahdollistaa muutoin yhteensopimattoman suorittimen valinnan kyseisen tietokoneen kanssa. Voit kuitenkin kohdata ongelmia tietokoneen BIOS:in tai muun ohjelmiston kanssa.\n\nTämän asetuksen käyttö ei ole virallisesti tuettua ja kaikki tehdyt virheraportit voidaan sulkea epäpätevinä."
-    IDS_2147    "Jatka"
-    IDS_2148    "Kasetti: %s"
-    IDS_2149    "Kasettitiedostot (*.PCM;*.RAW;*.WAV;*.CAS)\0*.PCM;*.RAW;*.WAV;*.CAS\0Kaikki tiedostot (*.*)\0*.*\0"
-    IDS_2150    "ROM-moduuli %i: %ls"
-    IDS_2151    "ROM-moduulikuvat (*.A;*.B;*.JRC)\0*.A;*.B;*.JRC\0Kaikki tiedostot (*.*)\0*.*\0"
-    IDS_2152	"Virhe renderöijän alustuksessa"
-    IDS_2153	"OpenGL (3.0 Core) -renderöijän alustus epäonnistui. Käytä toista renderöijää."
-    IDS_2154	"Jatka suoritusta"
-    IDS_2155	"Pysäytä suoritus"
-    IDS_2156	"Paina Ctrl+Alt+Del"
-    IDS_2157	"Paina Ctrl+Alt+Esc"
-    IDS_2158	"Kylmä uudelleenkäynnistys"
-    IDS_2159	"ACPI-sammutus"
-    IDS_2160	"Asetukset"
-    IDS_2161    "Aiemmat asemat"
+    IDS_2134    LIB_NAME_FLUIDSYNTH " vaaditaan FluidSynth MIDI-ulostuloa varten."
+    IDS_2135    "Siirrytään koko näytön tilaan"
+    IDS_2136    "Älä näytä tätä viestiä uudelleen"
+    IDS_2137    "Älä poistu"
+    IDS_2138    "Käynnistä uudelleen"
+    IDS_2139    "Älä käynnistä uudelleen"
+    IDS_2140    "MO-levykuvat (*.IM?;*.MDI)\0*.IM?;*.MDI\0Kaikki tiedostot (*.*)\0*.*\0"
+    IDS_2141    "CD-ROM-levykuvat (*.ISO;*.CUE)\0*.ISO;*.CUE\0Kaikki tiedostot (*.*)\0*.*\0"
+    IDS_2142    "%hs - Laitteen määritykset"
+    IDS_2143    "Näyttö lepotilassa"
+    IDS_2144    "OpenGL-varjostinohjelmat (*.GLSL)\0*.GLSL\0Kaikki tiedostot (*.*)\0*.*\0"
+    IDS_2145    "OpenGL-asetukset"
+    IDS_2146    "Olet lataamassa ei-tuettuja määrittelyjä"
+    IDS_2147    "Valittuun tietokoneeseen perustuva suoritintyypin suodatus ei ole käytössä tällä emuloidulla koneella.\n\nTämä mahdollistaa muutoin yhteensopimattoman suorittimen valinnan kyseisen tietokoneen kanssa. Voit kuitenkin kohdata ongelmia tietokoneen BIOS:in tai muun ohjelmiston kanssa.\n\nTämän asetuksen käyttö ei ole virallisesti tuettua ja kaikki tehdyt virheraportit voidaan sulkea epäpätevinä."
+    IDS_2148    "Jatka"
+    IDS_2149    "Kasetti: %s"
+    IDS_2150    "Kasettitiedostot (*.PCM;*.RAW;*.WAV;*.CAS)\0*.PCM;*.RAW;*.WAV;*.CAS\0Kaikki tiedostot (*.*)\0*.*\0"
+    IDS_2151    "ROM-moduuli %i: %ls"
+    IDS_2152    "ROM-moduulikuvat (*.A;*.B;*.JRC)\0*.A;*.B;*.JRC\0Kaikki tiedostot (*.*)\0*.*\0"
+    IDS_2153	"Virhe renderöijän alustuksessa"
+    IDS_2154	"OpenGL (3.0 Core) -renderöijän alustus epäonnistui. Käytä toista renderöijää."
+    IDS_2155	"Jatka suoritusta"
+    IDS_2156	"Pysäytä suoritus"
+    IDS_2157	"Paina Ctrl+Alt+Del"
+    IDS_2158	"Paina Ctrl+Alt+Esc"
+    IDS_2159	"Kylmä uudelleenkäynnistys"
+    IDS_2160	"ACPI-sammutus"
+    IDS_2161	"Asetukset"
+    IDS_2162    "Aiemmat asemat"
 END
 
 STRINGTABLE DISCARDABLE

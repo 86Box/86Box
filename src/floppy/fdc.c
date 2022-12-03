@@ -1,21 +1,21 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Implementation of the NEC uPD-765 and compatible floppy disk
- *		controller.
+ *          Implementation of the NEC uPD-765 and compatible floppy disk
+ *          controller.
  *
  *
  *
- * Authors:	Sarah Walker, <tommowalker@tommowalker.co.uk>
- *		Miran Grca, <mgrca8@gmail.com>
+ * Authors: Sarah Walker, <tommowalker@tommowalker.co.uk>
+ *          Miran Grca, <mgrca8@gmail.com>
  *
- *		Copyright 2008-2020 Sarah Walker.
- *		Copyright 2016-2020 Miran Grca.
+ *          Copyright 2008-2020 Sarah Walker.
+ *          Copyright 2016-2020 Miran Grca.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -2373,17 +2373,17 @@ const device_t fdc_xt_device = {
 };
 
 const device_t fdc_xt_sec_device = {
-    .name = "PC/XT Floppy Drive Controller (Secondary)",
+    .name          = "PC/XT Floppy Drive Controller (Secondary)",
     .internal_name = "fdc_xt",
-    .flags = FDC_FLAG_SEC,
-    .local = 0,
-    .init = fdc_init,
-    .close = fdc_close,
-    .reset = fdc_reset,
+    .flags         = FDC_FLAG_SEC,
+    .local         = 0,
+    .init          = fdc_init,
+    .close         = fdc_close,
+    .reset         = fdc_reset,
     { .available = NULL },
     .speed_changed = NULL,
-    .force_redraw = NULL,
-    .config = NULL
+    .force_redraw  = NULL,
+    .config        = NULL
 };
 
 const device_t fdc_xt_t1x00_device = {
@@ -2457,17 +2457,17 @@ const device_t fdc_at_device = {
 };
 
 const device_t fdc_at_sec_device = {
-    .name = "PC/AT Floppy Drive Controller (Secondary)",
+    .name          = "PC/AT Floppy Drive Controller (Secondary)",
     .internal_name = "fdc_at_sec",
-    .flags = 0,
-    .local = FDC_FLAG_AT | FDC_FLAG_SEC,
-    .init = fdc_init,
-    .close = fdc_close,
-    .reset = fdc_reset,
+    .flags         = 0,
+    .local         = FDC_FLAG_AT | FDC_FLAG_SEC,
+    .init          = fdc_init,
+    .close         = fdc_close,
+    .reset         = fdc_reset,
     { .available = NULL },
     .speed_changed = NULL,
-    .force_redraw = NULL,
-    .config = NULL
+    .force_redraw  = NULL,
+    .config        = NULL
 };
 
 const device_t fdc_at_actlow_device = {

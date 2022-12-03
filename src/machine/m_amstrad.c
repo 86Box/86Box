@@ -1,45 +1,45 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Emulation of the Amstrad series of PC's: PC1512, PC1640 and
- *		PC200, including their keyboard, mouse and video devices, as
- *		well as the PC2086 and PC3086 systems.
+ *          Emulation of the Amstrad series of PC's: PC1512, PC1640 and
+ *          PC200, including their keyboard, mouse and video devices, as
+ *          well as the PC2086 and PC3086 systems.
  *
- * PC1512:	The PC1512 extends CGA with a bit-planar 640x200x16 mode.
- *		Most CRTC registers are fixed.
+ * PC1512:  The PC1512 extends CGA with a bit-planar 640x200x16 mode.
+ *          Most CRTC registers are fixed.
  *
- *		The Technical Reference Manual lists the video waitstate
- *		time as between 12 and 46 cycles. We currently always use
- *		the lower number.
+ *          The Technical Reference Manual lists the video waitstate
+ *          time as between 12 and 46 cycles. We currently always use
+ *          the lower number.
  *
- * PC1640:	Mostly standard EGA, but with CGA & Hercules emulation.
+ * PC1640:  Mostly standard EGA, but with CGA & Hercules emulation.
  *
- * PC200:	CGA with some NMI stuff. But we don't need that as it's only
- *		used for TV and LCD displays, and we're emulating a CRT.
+ * PC200:  CGA with some NMI stuff. But we don't need that as it's only
+ *         used for TV and LCD displays, and we're emulating a CRT.
  *
- * PPC512/640:	Portable with both CGA-compatible and MDA-compatible monitors.
+ * PPC512/640: Portable with both CGA-compatible and MDA-compatible monitors.
  *
- * TODO:	This module is not complete yet:
+ * TODO:   This module is not complete yet:
  *
- * All models:	The internal mouse controller does not work correctly with
- *		version 7.04 of the mouse driver.
+ * All models: The internal mouse controller does not work correctly with
+ *             version 7.04 of the mouse driver.
  *
  *
  *
- * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
- *		Miran Grca, <mgrca8@gmail.com>
- *		Fred N. van Kempen, <decwiz@yahoo.com>
- *		John Elliott, <jce@seasip.info>
+ * Authors: Sarah Walker, <http://pcem-emulator.co.uk/>
+ *          Miran Grca, <mgrca8@gmail.com>
+ *          Fred N. van Kempen, <decwiz@yahoo.com>
+ *          John Elliott, <jce@seasip.info>
  *
- *		Copyright 2008-2019 Sarah Walker.
- *		Copyright 2016-2019 Miran Grca.
- *		Copyright 2017-2019 Fred N. van Kempen.
- *		Copyright 2019 John Elliott.
+ *          Copyright 2008-2019 Sarah Walker.
+ *          Copyright 2016-2019 Miran Grca.
+ *          Copyright 2017-2019 Fred N. van Kempen.
+ *          Copyright 2019 John Elliott.
  */
 #include <stdarg.h>
 #include <stdint.h>
@@ -162,10 +162,10 @@ static uint8_t key_queue[16];
 static int     key_queue_start = 0,
            key_queue_end       = 0;
 static uint8_t crtc_mask[32]   = {
-      0xff, 0xff, 0xff, 0xff, 0x7f, 0x1f, 0x7f, 0x7f,
-      0xf3, 0x1f, 0x7f, 0x1f, 0x3f, 0xff, 0x3f, 0xff,
-      0xff, 0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+    0xff, 0xff, 0xff, 0xff, 0x7f, 0x1f, 0x7f, 0x7f,
+    0xf3, 0x1f, 0x7f, 0x1f, 0x3f, 0xff, 0x3f, 0xff,
+    0xff, 0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
 };
 
 static video_timings_t timing_pc1512 = { VIDEO_BUS, 0, 0, 0, 0, 0, 0 }; /*PC1512 video code handles waitstates itself*/
@@ -2551,7 +2551,7 @@ machine_amstrad_init(const machine_t *model, int type)
                   ms_read, NULL, NULL, ms_write, NULL, NULL, ams);
 
     if (mouse_type == MOUSE_TYPE_INTERNAL) {
-/* Tell mouse driver about our internal mouse. */
+        /* Tell mouse driver about our internal mouse. */
         mouse_reset();
         mouse_set_buttons(2);
         mouse_set_poll(ms_poll, ams);

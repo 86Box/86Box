@@ -1,22 +1,22 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Implementation of the floppy drive emulation.
+ *          Implementation of the floppy drive emulation.
  *
  *
  *
- * Authors:	Sarah Walker, <tommowalker@tommowalker.co.uk>
- *		Miran Grca, <mgrca8@gmail.com>
- *		Fred N. van Kempen, <decwiz@yahoo.com>
+ * Authors: Sarah Walker, <tommowalker@tommowalker.co.uk>
+ *          Miran Grca, <mgrca8@gmail.com>
+ *          Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 2008-2019 Sarah Walker.
- *		Copyright 2016-2019 Miran Grca.
- *		Copyright 2018,2019 Fred N. van Kempen.
+ *          Copyright 2008-2019 Sarah Walker.
+ *          Copyright 2016-2019 Miran Grca.
+ *          Copyright 2018,2019 Fred N. van Kempen.
  */
 #include <stdarg.h>
 #include <stdint.h>
@@ -75,7 +75,7 @@ typedef struct {
 
 fdd_t fdd[FDD_NUM];
 
-char floppyfns[FDD_NUM][512];
+char  floppyfns[FDD_NUM][512];
 char *fdd_image_history[FDD_NUM][FLOPPY_IMAGE_HISTORY];
 
 pc_timer_t fdd_poll_time[FDD_NUM];
@@ -383,13 +383,11 @@ fdd_is_dd(int drive)
     return (drive_types[fdd[drive].type].flags & 0x70) == 0x10;
 }
 
-#if 0
 int
 fdd_is_hd(int drive)
 {
     return drive_types[fdd[drive].type].flags & FLAG_HOLE1;
 }
-#endif
 
 int
 fdd_is_ed(int drive)

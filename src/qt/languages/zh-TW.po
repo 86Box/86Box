@@ -1,0 +1,1221 @@
+msgid "&Action"
+msgstr "動作(&A)"
+
+msgid "&Keyboard requires capture"
+msgstr "鍵盤需要捕捉(&K)"
+
+msgid "&Right CTRL is left ALT"
+msgstr "將右 CTRL 鍵映射為左 ALT 鍵(&R)"
+
+msgid "&Hard Reset..."
+msgstr "硬重設(&H)..."
+
+msgid "&Ctrl+Alt+Del\tCtrl+F12"
+msgstr "Ctrl+Alt+Del(&C)\tCtrl+F12"
+
+msgid "Ctrl+Alt+&Esc"
+msgstr "Ctrl+Alt+Esc(&E)"
+
+msgid "&Pause"
+msgstr "暫停(&P)"
+
+msgid "E&xit..."
+msgstr "退出(&X)..."
+
+msgid "&View"
+msgstr "檢視(&V)"
+
+msgid "&Hide status bar"
+msgstr "隱藏狀態列(&H)"
+
+msgid "Hide &toolbar"
+msgstr "隱藏工具列(&T)"
+
+msgid "&Resizeable window"
+msgstr "視窗大小可調(&R)"
+
+msgid "R&emember size && position"
+msgstr "記住視窗大小和位置(&E)"
+
+msgid "Re&nderer"
+msgstr "渲染器(&N)"
+
+msgid "&SDL (Software)"
+msgstr "SDL (軟體)(&S)"
+
+msgid "SDL (&Hardware)"
+msgstr "SDL (硬體)(&H)"
+
+msgid "SDL (&OpenGL)"
+msgstr "SDL (OpenGL)(&O)"
+
+msgid "Open&GL (3.0 Core)"
+msgstr "OpenGL (3.0 核心)(&G)"
+
+msgid "&VNC"
+msgstr "VNC(&V)"
+
+msgid "Specify dimensions..."
+msgstr "指定視窗大小..."
+
+msgid "F&orce 4:3 display ratio"
+msgstr "強制 4:3 顯示比例(&O)"
+
+msgid "&Window scale factor"
+msgstr "視窗縮放係數(&W)"
+
+msgid "&0.5x"
+msgstr "0.5x(&0)"
+
+msgid "&1x"
+msgstr "1x(&1)"
+
+msgid "1.&5x"
+msgstr "1.5x(&5)"
+
+msgid "&2x"
+msgstr "2x(&2)"
+
+msgid "&3x"
+msgstr "3x(&3)"
+
+msgid "&4x"
+msgstr "4x(&4)"
+
+msgid "&5x"
+msgstr "5x(&5)"
+
+msgid "&6x"
+msgstr "6x(&6)"
+
+msgid "&7x"
+msgstr "7x(&7)"
+
+msgid "&8x"
+msgstr "8x(&8)"
+
+msgid "Filter method"
+msgstr "過濾方式"
+
+msgid "&Nearest"
+msgstr "鄰近(&N)"
+
+msgid "&Linear"
+msgstr "線性(&L)"
+
+msgid "Hi&DPI scaling"
+msgstr "HiDPI 縮放(&D)"
+
+msgid "&Fullscreen\tCtrl+Alt+PgUp"
+msgstr "全螢幕(&F)\tCtrl+Alt+PgUp"
+
+msgid "Fullscreen &stretch mode"
+msgstr "全螢幕拉伸模式(&S)"
+
+msgid "&Full screen stretch"
+msgstr "全螢幕拉伸(&F)"
+
+msgid "&4:3"
+msgstr "4:3(&4)"
+
+msgid "&Square pixels (Keep ratio)"
+msgstr "保持比例(&S)"
+
+msgid "&Integer scale"
+msgstr "整數比例(&I)"
+
+msgid "E&GA/(S)VGA settings"
+msgstr "EGA/(S)VGA 設定(&G)"
+
+msgid "&Inverted VGA monitor"
+msgstr "VGA 顯示器反色顯示(&I)"
+
+msgid "VGA screen &type"
+msgstr "VGA 螢幕類型(&T)"
+
+msgid "RGB &Color"
+msgstr "RGB 彩色(&C)"
+
+msgid "&RGB Grayscale"
+msgstr "RGB 灰度(&R)"
+
+msgid "&Amber monitor"
+msgstr "琥珀色單色顯示器(&A)"
+
+msgid "&Green monitor"
+msgstr "綠色單色顯示器(&G)"
+
+msgid "&White monitor"
+msgstr "白色單色顯示器(&W)"
+
+msgid "Grayscale &conversion type"
+msgstr "灰度轉換類型(&C)"
+
+msgid "BT&601 (NTSC/PAL)"
+msgstr "BT601 (NTSC/PAL)(&6)"
+
+msgid "BT&709 (HDTV)"
+msgstr "BT709 (HDTV)(&7)"
+
+msgid "&Average"
+msgstr "平均(&A)"
+
+msgid "CGA/PCjr/Tandy/E&GA/(S)VGA overscan"
+msgstr "CGA/PCjr/Tandy/EGA/(S)VGA 過掃描(&G)"
+
+msgid "Change contrast for &monochrome display"
+msgstr "變更單色顯示對比度(&M)"
+
+msgid "&Media"
+msgstr "介質(&M)"
+
+msgid "&Tools"
+msgstr "工具(&T)"
+
+msgid "&Settings..."
+msgstr "設定(&S)..."
+
+msgid "&Update status bar icons"
+msgstr "更新狀態列圖示(&U)"
+
+msgid "Take s&creenshot\tCtrl+F11"
+msgstr "擷圖(&C)\tCtrl+F11"
+
+msgid "&Preferences..."
+msgstr "首選項(&P)..."
+
+msgid "Enable &Discord integration"
+msgstr "啟用 Discord 整合(&D)"
+
+msgid "Sound &gain..."
+msgstr "音量增益(&G)..."
+
+msgid "Begin trace\tCtrl+T"
+msgstr "開始追踪\tCtrl+T"
+
+msgid "End trace\tCtrl+T"
+msgstr "結束追踪\tCtrl+T"
+
+msgid "&Help"
+msgstr "說明(&H)"
+
+msgid "&Documentation..."
+msgstr "文件(&D)..."
+
+msgid "&About 86Box..."
+msgstr "關於 86Box(&A)..."
+
+msgid "&New image..."
+msgstr "新增鏡像(&N)..."
+
+msgid "&Existing image..."
+msgstr "開啟已存在的鏡像(&E)..."
+
+msgid "Existing image (&Write-protected)..."
+msgstr "開啟已存在的鏡像並寫保護(&W)..."
+
+msgid "&Record"
+msgstr "錄製(&R)"
+
+msgid "&Play"
+msgstr "播放(&P)"
+
+msgid "&Rewind to the beginning"
+msgstr "倒帶至起點(&R)"
+
+msgid "&Fast forward to the end"
+msgstr "快進至終點(&F)"
+
+msgid "E&ject"
+msgstr "彈出(&J)"
+
+msgid "&Image..."
+msgstr "鏡像(&I)..."
+
+msgid "E&xport to 86F..."
+msgstr "匯出為 86F 格式(&x)..."
+
+msgid "&Mute"
+msgstr "靜音(&M)"
+
+msgid "E&mpty"
+msgstr "空置光碟機(&M)"
+
+msgid "&Reload previous image"
+msgstr "載入上一個鏡像(&R)"
+
+msgid "&Folder..."
+msgstr "資料夾(&F)..."
+
+msgid "Target &framerate"
+msgstr "目標幀率(&F)"
+
+msgid "&Sync with video"
+msgstr "與視訊同步(&S)"
+
+msgid "&25 fps"
+msgstr "25 fps(&2)"
+
+msgid "&30 fps"
+msgstr "30 fps(&3)"
+
+msgid "&50 fps"
+msgstr "50 fps(&5)"
+
+msgid "&60 fps"
+msgstr "60 fps(&6)"
+
+msgid "&75 fps"
+msgstr "75 fps(&7)"
+
+msgid "&VSync"
+msgstr "垂直同步(&V)"
+
+msgid "&Select shader..."
+msgstr "選擇著色器(&S)..."
+
+msgid "&Remove shader"
+msgstr "移除著色器(&R)"
+
+msgid "Preferences"
+msgstr "首選項"
+
+msgid "Sound Gain"
+msgstr "音量增益"
+
+msgid "New Image"
+msgstr "新增鏡像"
+
+msgid "Settings"
+msgstr "設定"
+
+msgid "Specify Main Window Dimensions"
+msgstr "指定主視窗大小"
+
+msgid "OK"
+msgstr "確定"
+
+msgid "Cancel"
+msgstr "取消"
+
+msgid "Save these settings as &global defaults"
+msgstr "將以上設定存儲為全局預設值(&G)"
+
+msgid "&Default"
+msgstr "預設(&D)"
+
+msgid "Language:"
+msgstr "語言:"
+
+msgid "Icon set:"
+msgstr "圖示集:"
+
+msgid "Gain"
+msgstr "增益"
+
+msgid "File name:"
+msgstr "檔案名:"
+
+msgid "Disk size:"
+msgstr "磁碟大小:"
+
+msgid "RPM mode:"
+msgstr "轉速 (RPM) 模式:"
+
+msgid "Progress:"
+msgstr "進度:"
+
+msgid "Width:"
+msgstr "寬度:"
+
+msgid "Height:"
+msgstr "高度:"
+
+msgid "Lock to this size"
+msgstr "鎖定此大小"
+
+msgid "Machine type:"
+msgstr "機器類型:"
+
+msgid "Machine:"
+msgstr "機型:"
+
+msgid "Configure"
+msgstr "配置"
+
+msgid "CPU type:"
+msgstr "CPU 類型:"
+
+msgid "Speed:"
+msgstr "速度:"
+
+msgid "FPU:"
+msgstr "浮點處理器 (FPU):"
+
+msgid "Wait states:"
+msgstr "等待狀態 (WS):"
+
+msgid "MB"
+msgstr "MB"
+
+msgid "Memory:"
+msgstr "記憶體:"
+
+msgid "Time synchronization"
+msgstr "時間同步"
+
+msgid "Disabled"
+msgstr "禁用"
+
+msgid "Enabled (local time)"
+msgstr "啟用 (本地時間)"
+
+msgid "Enabled (UTC)"
+msgstr "啟用 (UTC)"
+
+msgid "Dynamic Recompiler"
+msgstr "動態重編譯器"
+
+msgid "Video:"
+msgstr "顯示卡:"
+
+msgid "Voodoo Graphics"
+msgstr "Voodoo Graphics"
+
+msgid "IBM 8514/a Graphics"
+msgstr "IBM 8514/a Graphics"
+
+msgid "XGA Graphics"
+msgstr "XGA Graphics"
+
+msgid "Mouse:"
+msgstr "滑鼠:"
+
+msgid "Joystick:"
+msgstr "搖桿:"
+
+msgid "Joystick 1..."
+msgstr "搖桿 1..."
+
+msgid "Joystick 2..."
+msgstr "搖桿 2..."
+
+msgid "Joystick 3..."
+msgstr "搖桿 3..."
+
+msgid "Joystick 4..."
+msgstr "搖桿 4..."
+
+msgid "Sound card:"
+msgstr "音訊卡:"
+
+msgid "MIDI Out Device:"
+msgstr "MIDI 輸出裝置:"
+
+msgid "MIDI In Device:"
+msgstr "MIDI 輸入裝置:"
+
+msgid "Standalone MPU-401"
+msgstr "獨立 MPU-401"
+
+msgid "Innovation SSI-2001"
+msgstr "Innovation SSI-2001"
+
+msgid "CMS / Game Blaster"
+msgstr "CMS / Game Blaster"
+
+msgid "Gravis Ultrasound"
+msgstr "Gravis Ultrasound"
+
+msgid "Use FLOAT32 sound"
+msgstr "使用單精度浮點 (FLOAT32)"
+
+msgid "FM synth driver"
+msgstr "調頻合成器驅動器"
+
+msgid "Nuked (more accurate)"
+msgstr "Nuked (更準確)"
+
+msgid "YMFM (faster)"
+msgstr "YMFM (更快)"
+
+msgid "Network type:"
+msgstr "網路類型:"
+
+msgid "PCap device:"
+msgstr "PCap 裝置:"
+
+msgid "Network adapter:"
+msgstr "網路配接器:"
+
+msgid "COM1 Device:"
+msgstr "COM1 裝置:"
+
+msgid "COM2 Device:"
+msgstr "COM2 裝置:"
+
+msgid "COM3 Device:"
+msgstr "COM3 裝置:"
+
+msgid "COM4 Device:"
+msgstr "COM4 裝置:"
+
+msgid "LPT1 Device:"
+msgstr "LPT1 裝置:"
+
+msgid "LPT2 Device:"
+msgstr "LPT2 裝置:"
+
+msgid "LPT3 Device:"
+msgstr "LPT3 裝置:"
+
+msgid "LPT4 Device:"
+msgstr "LPT4 裝置:"
+
+msgid "Serial port 1"
+msgstr "序列埠 1"
+
+msgid "Serial port 2"
+msgstr "序列埠 2"
+
+msgid "Serial port 3"
+msgstr "序列埠 3"
+
+msgid "Serial port 4"
+msgstr "序列埠 4"
+
+msgid "Parallel port 1"
+msgstr "並列埠 1"
+
+msgid "Parallel port 2"
+msgstr "並列埠 2"
+
+msgid "Parallel port 3"
+msgstr "並列埠 3"
+
+msgid "Parallel port 4"
+msgstr "並列埠 4"
+
+msgid "HD Controller:"
+msgstr "硬碟控制器:"
+
+msgid "FD Controller:"
+msgstr "軟碟控制器:"
+
+msgid "Tertiary IDE Controller"
+msgstr "第三 IDE 控制器"
+
+msgid "Quaternary IDE Controller"
+msgstr "第四 IDE 控制器"
+
+msgid "SCSI"
+msgstr "SCSI"
+
+msgid "Controller 1:"
+msgstr "控制器 1:"
+
+msgid "Controller 2:"
+msgstr "控制器 2:"
+
+msgid "Controller 3:"
+msgstr "控制器 3:"
+
+msgid "Controller 4:"
+msgstr "控制器 4:"
+
+msgid "Cassette"
+msgstr "磁帶"
+
+msgid "Hard disks:"
+msgstr "硬碟:"
+
+msgid "&New..."
+msgstr "新增(&N)..."
+
+msgid "&Existing..."
+msgstr "已有鏡像(&E)..."
+
+msgid "&Remove"
+msgstr "移除(&R)"
+
+msgid "Bus:"
+msgstr "匯流排:"
+
+msgid "Channel:"
+msgstr "通道:"
+
+msgid "ID:"
+msgstr "ID:"
+
+msgid "&Specify..."
+msgstr "指定(&S)..."
+
+msgid "Sectors:"
+msgstr "磁區(S):"
+
+msgid "Heads:"
+msgstr "磁頭(H):"
+
+msgid "Cylinders:"
+msgstr "柱面(C):"
+
+msgid "Size (MB):"
+msgstr "大小 (MB):"
+
+msgid "Type:"
+msgstr "類型:"
+
+msgid "Image Format:"
+msgstr "鏡像格式:"
+
+msgid "Block Size:"
+msgstr "塊大小:"
+
+msgid "Floppy drives:"
+msgstr "軟碟機:"
+
+msgid "Turbo timings"
+msgstr "加速時序"
+
+msgid "Check BPB"
+msgstr "檢查 BPB"
+
+msgid "CD-ROM drives:"
+msgstr "光碟機:"
+
+msgid "Earlier drive"
+msgstr "早先的光碟機"
+
+msgid "MO drives:"
+msgstr "磁光碟機:"
+
+msgid "ZIP drives:"
+msgstr "ZIP 磁碟機:"
+
+msgid "ZIP 250"
+msgstr "ZIP 250"
+
+msgid "ISA RTC:"
+msgstr "ISA 實時時鐘:"
+
+msgid "ISA Memory Expansion"
+msgstr "ISA 記憶體擴充"
+
+msgid "Card 1:"
+msgstr "擴充卡 1:"
+
+msgid "Card 2:"
+msgstr "擴充卡 2:"
+
+msgid "Card 3:"
+msgstr "擴充卡 3:"
+
+msgid "Card 4:"
+msgstr "擴充卡 4:"
+
+msgid "ISABugger device"
+msgstr "ISABugger 裝置"
+
+msgid "POST card"
+msgstr "自檢 (POST) 卡"
+
+msgid "FONT_SIZE"
+msgstr "9"
+
+msgid "FONT_NAME"
+msgstr "Microsoft JhengHei"
+
+msgid "86Box"
+msgstr "86Box"
+
+msgid "Error"
+msgstr "錯誤"
+
+msgid "Fatal error"
+msgstr "致命錯誤"
+
+msgid " - PAUSED"
+msgstr " - 已暫停"
+
+msgid "Press Ctrl+Alt+PgDn to return to windowed mode."
+msgstr "按下 Ctrl+Alt+PgDn 返回到視窗模式。"
+
+msgid "Speed"
+msgstr "速度"
+
+msgid "ZIP %03i %i (%s): %ls"
+msgstr "ZIP %03i %i (%s): %ls"
+
+msgid "ZIP images"
+msgstr "ZIP 鏡像"
+
+msgid "86Box could not find any usable ROM images.\n\nPlease <a href=\"https://github.com/86Box/roms/releases/latest\">download</a> a ROM set and extract it into the \"roms\" directory."
+msgstr "86Box 找不到任何可用的 ROM 鏡像。\n\n請<a href=\"https://github.com/86Box/roms/releases/latest\">下載</a>ROM 包並將其解壓到 \"roms\" 資料夾。"
+
+msgid "(empty)"
+msgstr "(空)"
+
+msgid "All files"
+msgstr "所有檔案"
+
+msgid "Turbo"
+msgstr "加速"
+
+msgid "On"
+msgstr "開"
+
+msgid "Off"
+msgstr "關"
+
+msgid "All images"
+msgstr "所有鏡像"
+
+msgid "Basic sector images"
+msgstr "基本磁區鏡像"
+
+msgid "Surface images"
+msgstr "表面鏡像"
+
+msgid "Machine \"%hs\" is not available due to missing ROMs in the roms/machines directory. Switching to an available machine."
+msgstr "由於 roms/machines 資料夾中缺少合適的 ROM，機型 \"%hs\" 不可用。將切換到其他可用機型。"
+
+msgid "Video card \"%hs\" is not available due to missing ROMs in the roms/video directory. Switching to an available video card."
+msgstr "由於 roms/video 資料夾中缺少合適的 ROM，顯示卡 \"%hs\" 不可用。將切換到其他可用顯示卡。"
+
+msgid "Machine"
+msgstr "機型"
+
+msgid "Display"
+msgstr "顯示"
+
+msgid "Input devices"
+msgstr "輸入裝置"
+
+msgid "Sound"
+msgstr "聲音"
+
+msgid "Network"
+msgstr "網路"
+
+msgid "Ports (COM & LPT)"
+msgstr "連接埠 (COM 和 LPT)"
+
+msgid "Storage controllers"
+msgstr "存儲控制器"
+
+msgid "Hard disks"
+msgstr "硬碟"
+
+msgid "Floppy & CD-ROM drives"
+msgstr "軟碟/光碟機"
+
+msgid "Other removable devices"
+msgstr "其他可移除裝置"
+
+msgid "Other peripherals"
+msgstr "其他周邊裝置"
+
+msgid "Click to capture mouse"
+msgstr "點擊視窗捕捉滑鼠"
+
+msgid "Press F8+F12 to release mouse"
+msgstr "按下 F8+F12 釋放滑鼠"
+
+msgid "Press F8+F12 or middle button to release mouse"
+msgstr "按下 F8+F12 或滑鼠中鍵釋放滑鼠"
+
+msgid "Unable to initialize FluidSynth"
+msgstr "無法初始化 FluidSynth"
+
+msgid "Bus"
+msgstr "匯流排"
+
+msgid "File"
+msgstr "檔案"
+
+msgid "C"
+msgstr "C"
+
+msgid "H"
+msgstr "H"
+
+msgid "S"
+msgstr "S"
+
+msgid "KB"
+msgstr "KB"
+
+msgid "Could not initialize the video renderer."
+msgstr "無法初始化視訊渲染器。"
+
+msgid "Default"
+msgstr "預設"
+
+msgid "%i Wait state(s)"
+msgstr "%i 等待狀態 (WS)"
+
+msgid "Type"
+msgstr "類型"
+
+msgid "Failed to set up PCap"
+msgstr "設定 PCap 失敗"
+
+msgid "No PCap devices found"
+msgstr "未找到 PCap 裝置"
+
+msgid "Invalid PCap device"
+msgstr "無效 PCap 裝置"
+
+msgid "Standard 2-button joystick(s)"
+msgstr "標準 2 鍵搖桿"
+
+msgid "Standard 4-button joystick"
+msgstr "標準 4 鍵搖桿"
+
+msgid "Standard 6-button joystick"
+msgstr "標準 6 鍵搖桿"
+
+msgid "Standard 8-button joystick"
+msgstr "標準 8 鍵搖桿"
+
+msgid "CH Flightstick Pro"
+msgstr "CH Flightstick Pro"
+
+msgid "Microsoft SideWinder Pad"
+msgstr "Microsoft SideWinder Pad"
+
+msgid "Thrustmaster Flight Control System"
+msgstr "Thrustmaster Flight Control System"
+
+msgid "None"
+msgstr "無"
+
+msgid "Unable to load keyboard accelerators."
+msgstr "無法載入鍵盤加速器。"
+
+msgid "Unable to register raw input."
+msgstr "無法註冊原始輸入。"
+
+msgid "%u"
+msgstr "%u"
+
+msgid "%u MB (CHS: %i, %i, %i)"
+msgstr "%u MB (CHS: %i, %i, %i)"
+
+msgid "Floppy %i (%s): %ls"
+msgstr "軟碟 %i (%s): %ls"
+
+msgid "Advanced sector images"
+msgstr "進階磁區鏡像"
+
+msgid "Flux images"
+msgstr "Flux 鏡像"
+
+msgid "Unable to initialize FreeType"
+msgstr "無法初始化 FreeType"
+
+msgid "Unable to initialize SDL, SDL2.dll is required"
+msgstr "無法初始化 SDL，需要 SDL2.dll"
+
+msgid "Are you sure you want to hard reset the emulated machine?"
+msgstr "確定要硬重設模擬器嗎？"
+
+msgid "Are you sure you want to exit 86Box?"
+msgstr "確定要退出 86Box 嗎？"
+
+msgid "Unable to initialize Ghostscript"
+msgstr "無法初始化 Ghostscript"
+
+msgid "MO %i (%ls): %ls"
+msgstr "磁光碟 %i (%ls): %ls"
+
+msgid "MO images"
+msgstr "磁光碟鏡像"
+
+msgid "Welcome to 86Box!"
+msgstr "歡迎使用 86Box！"
+
+msgid "Internal controller"
+msgstr "內部控制器"
+
+msgid "Exit"
+msgstr "退出"
+
+msgid "No ROMs found"
+msgstr "找不到 ROM"
+
+msgid "Do you want to save the settings?"
+msgstr "要保存設定嗎？"
+
+msgid "This will hard reset the emulated machine."
+msgstr "此操作將硬重設模擬器。"
+
+msgid "Save"
+msgstr "保存"
+
+msgid "About 86Box"
+msgstr "關於 86Box"
+
+msgid "86Box v"
+msgstr "86Box v"
+
+msgid "An emulator of old computers\n\nAuthors: Sarah Walker, Miran Grca, Fred N. van Kempen (waltje), SA1988, Tiseno100, reenigne, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2 or later. See LICENSE for more information."
+msgstr "一個舊式電腦模擬器\n\n作者: Sarah Walker、Miran Grca、Fred N. van Kempen (waltje)、SA1988、Tiseno100、reenigne、leilei、JohnElliott、greatpsycho 等人。\n\n本軟體依據 GNU 通用公共授權第二版或更新版本發布。詳情見 LICENSE 檔案。"
+
+msgid "Hardware not available"
+msgstr "硬體不可用"
+
+msgid "WinPcap"
+msgstr "WinPcap"
+
+msgid "libpcap"
+msgstr "libpcap"
+
+msgid "Make sure libpcap is installed and that you are on a libpcap-compatible network connection."
+msgstr "請確認 libpcap 已安裝且使用相容 libpcap 的網路連線。"
+
+msgid "Invalid configuration"
+msgstr "無效配置"
+
+msgid "freetype.dll"
+msgstr "freetype.dll"
+
+msgid "libfreetype"
+msgstr "libfreetype"
+
+msgid " is required for ESC/P printer emulation."
+msgstr "ESC/P 印表機模擬需要"
+
+msgid "gsdll32.dll"
+msgstr "gsdll32.dll"
+
+msgid "libgs"
+msgstr "libgs"
+
+msgid " is required for automatic conversion of PostScript files to PDF.\n\nAny documents sent to the generic PostScript printer will be saved as PostScript (.ps) files."
+msgstr " 是將 PostScript 檔案轉換為 PDF 所需要的庫。\n\n使用通用 PostScript 印表機列印的文件將被保存為 PostScript (.ps) 檔案。"
+
+msgid "libfluidsynth.dll"
+msgstr "libfluidsynth.dll"
+
+msgid "libfluidsynth"
+msgstr "libfluidsynth"
+
+msgid " is required for FluidSynth MIDI output."
+msgstr "FluidSynth MIDI 輸出需要"
+
+msgid "Entering fullscreen mode"
+msgstr "正在進入全螢幕模式"
+
+msgid "Don't show this message again"
+msgstr "不要再顯示此消息"
+
+msgid "Don't exit"
+msgstr "不退出"
+
+msgid "Reset"
+msgstr "重設"
+
+msgid "Don't reset"
+msgstr "不重設"
+
+msgid "CD-ROM images"
+msgstr "光碟鏡像"
+
+msgid "%hs Device Configuration"
+msgstr "%hs 裝置配置"
+
+msgid "Monitor in sleep mode"
+msgstr "顯示器處在睡眠狀態"
+
+msgid "OpenGL Shaders"
+msgstr "OpenGL 著色器"
+
+msgid "OpenGL options"
+msgstr "OpenGL 選項"
+
+msgid "You are loading an unsupported configuration"
+msgstr "正在載入一個不受支援的配置"
+
+msgid "CPU type filtering based on selected machine is disabled for this emulated machine.\n\nThis makes it possible to choose a CPU that is otherwise incompatible with the selected machine. However, you may run into incompatibilities with the machine BIOS or other software.\n\nEnabling this setting is not officially supported and any bug reports filed may be closed as invalid."
+msgstr "此模擬電腦禁用了基於選定電腦的 CPU 類型過濾。\n\n能夠選中與所選機器本不相容的 CPU，但是可能會遇到與機器 BIOS 或其他軟體不相容的問題。\n\n啟用此設定不受官方支援，並且提交的任何錯誤報告可能會視為無效而關閉。"
+
+msgid "Continue"
+msgstr "繼續"
+
+msgid "Cassette: %s"
+msgstr "磁帶: %s"
+
+msgid "Cassette images"
+msgstr "磁帶鏡像"
+
+msgid "Cartridge %i: %ls"
+msgstr "卡帶 %i: %ls"
+
+msgid "Cartridge images"
+msgstr "卡帶鏡像"
+
+msgid "Error initializing renderer"
+msgstr "初始化渲染器時出錯"
+
+msgid "OpenGL (3.0 Core) renderer could not be initialized. Use another renderer."
+msgstr "無法初始化 OpenGL (3.0 核心) 渲染器。請使用其他渲染器。"
+
+msgid "Resume execution"
+msgstr "恢復執行"
+
+msgid "Pause execution"
+msgstr "暫停執行"
+
+msgid "Press Ctrl+Alt+Del"
+msgstr "按下 Ctrl+Alt+Del"
+
+msgid "Press Ctrl+Alt+Esc"
+msgstr "按下 Ctrl+Alt+Esc"
+
+msgid "Hard reset"
+msgstr "硬重設"
+
+msgid "ACPI shutdown"
+msgstr "ACPI 關機"
+
+msgid "Hard disk (%s)"
+msgstr "硬碟 (%s)"
+
+msgid "%01i:%01i"
+msgstr "%01i:%01i"
+
+msgid "%01i"
+msgstr "%01i"
+
+msgid "MFM/RLL or ESDI CD-ROM drives never existed"
+msgstr "不存在 MFM/RLL 或 ESDI CD-ROM 光碟機"
+
+msgid "Custom..."
+msgstr "自訂..."
+
+msgid "Custom (large)..."
+msgstr "自訂 (大容量)..."
+
+msgid "Add New Hard Disk"
+msgstr "添加新硬碟"
+
+msgid "Add Existing Hard Disk"
+msgstr "添加已存在的硬碟"
+
+msgid "HDI disk images cannot be larger than 4 GB."
+msgstr "HDI 磁碟鏡像不能超過 4 GB。"
+
+msgid "Disk images cannot be larger than 127 GB."
+msgstr "磁碟鏡像不能超過 127 GB。"
+
+msgid "Hard disk images"
+msgstr "硬碟鏡像"
+
+msgid "Unable to read file"
+msgstr "無法讀取檔案"
+
+msgid "Unable to write file"
+msgstr "無法寫入檔案"
+
+msgid "HDI or HDX images with a sector size other than 512 are not supported."
+msgstr "不支援非 512 位元組磁區大小的 HDI 或 HDX 鏡像。"
+
+msgid "USB is not yet supported"
+msgstr "尚未支援 USB"
+
+msgid "Disk image file already exists"
+msgstr "磁碟鏡像檔案已存在"
+
+msgid "Please specify a valid file name."
+msgstr "請指定有效的檔案名。"
+
+msgid "Disk image created"
+msgstr "已創建磁碟鏡像"
+
+msgid "Make sure the file exists and is readable."
+msgstr "請確定此檔案已存在並可讀取。"
+
+msgid "Make sure the file is being saved to a writable directory."
+msgstr "請確定此檔案保存在可寫目錄中。"
+
+msgid "Disk image too large"
+msgstr "磁碟鏡像太大"
+
+msgid "Remember to partition and format the newly-created drive."
+msgstr "請記得為新創建的鏡像分區並格式化。"
+
+msgid "The selected file will be overwritten. Are you sure you want to use it?"
+msgstr "選定的檔案將被覆蓋。確定繼續使用此檔案嗎？"
+
+msgid "Unsupported disk image"
+msgstr "不支援的磁碟鏡像"
+
+msgid "Overwrite"
+msgstr "覆蓋"
+
+msgid "Don't overwrite"
+msgstr "不覆蓋"
+
+msgid "Raw image (.img)"
+msgstr "原始鏡像 (.img)"
+
+msgid "HDI image (.hdi)"
+msgstr "HDI 鏡像 (.hdi)"
+
+msgid "HDX image (.hdx)"
+msgstr "HDX 鏡像 (.hdx)"
+
+msgid "Fixed-size VHD (.vhd)"
+msgstr "固定大小 VHD (.vhd)"
+
+msgid "Dynamic-size VHD (.vhd)"
+msgstr "動態大小 VHD (.vhd)"
+
+msgid "Differencing VHD (.vhd)"
+msgstr "差分 VHD (.vhd)"
+
+msgid "Large blocks (2 MB)"
+msgstr "大塊 (2 MB)"
+
+msgid "Small blocks (512 KB)"
+msgstr "小塊 (512 KB)"
+
+msgid "VHD files"
+msgstr "VHD 檔案"
+
+msgid "Select the parent VHD"
+msgstr "選擇父 VHD 檔案"
+
+msgid "This could mean that the parent image was modified after the differencing image was created.\n\nIt can also happen if the image files were moved or copied, or by a bug in the program that created this disk.\n\nDo you want to fix the timestamps?"
+msgstr "父映像可能在創建差異鏡像後被修改。\n\n如果鏡像檔案被移動或複製，或創建此磁碟的程式中存在錯誤，也可能發生這種情況。\n\n是否需要修復時間戳？"
+
+msgid "Parent and child disk timestamps do not match"
+msgstr "父碟與子碟的時間戳不匹配"
+
+msgid "Could not fix VHD timestamp."
+msgstr "無法修復 VHD 時間戳。"
+
+msgid "%01i:%02i"
+msgstr "%01i:%02i"
+
+msgid "MFM/RLL"
+msgstr "MFM/RLL"
+
+msgid "XTA"
+msgstr "XTA"
+
+msgid "ESDI"
+msgstr "ESDI"
+
+msgid "IDE"
+msgstr "IDE"
+
+msgid "ATAPI"
+msgstr "ATAPI"
+
+msgid "MFM/RLL (%01i:%01i)"
+msgstr "MFM/RLL (%01i:%01i)"
+
+msgid "XTA (%01i:%01i)"
+msgstr "XTA (%01i:%01i)"
+
+msgid "ESDI (%01i:%01i)"
+msgstr "ESDI (%01i:%01i)"
+
+msgid "IDE (%01i:%01i)"
+msgstr "IDE (%01i:%01i)"
+
+msgid "ATAPI (%01i:%01i)"
+msgstr "ATAPI (%01i:%01i)"
+
+msgid "SCSI (%01i:%02i)"
+msgstr "SCSI (%01i:%02i)"
+
+msgid "CD-ROM %i (%s): %s"
+msgstr "光碟 %i (%s): %s"
+
+msgid "160 kB"
+msgstr "160 kB"
+
+msgid "180 kB"
+msgstr "180 kB"
+
+msgid "320 kB"
+msgstr "320 kB"
+
+msgid "360 kB"
+msgstr "360 kB"
+
+msgid "640 kB"
+msgstr "640 kB"
+
+msgid "720 kB"
+msgstr "720 kB"
+
+msgid "1.2 MB"
+msgstr "1.2 MB"
+
+msgid "1.25 MB"
+msgstr "1.25 MB"
+
+msgid "1.44 MB"
+msgstr "1.44 MB"
+
+msgid "DMF (cluster 1024)"
+msgstr "DMF (1024 簇)"
+
+msgid "DMF (cluster 2048)"
+msgstr "DMF (2048 簇)"
+
+msgid "2.88 MB"
+msgstr "2.88 MB"
+
+msgid "ZIP 100"
+msgstr "ZIP 100"
+
+msgid "3.5\" 128 MB (ISO 10090)"
+msgstr "3.5 英寸 128 MB (ISO 10090)"
+
+msgid "3.5\" 230 MB (ISO 13963)"
+msgstr "3.5 英寸 230 MB (ISO 13963)"
+
+msgid "3.5\" 540 MB (ISO 15498)"
+msgstr "3.5 英寸 540 MB (ISO 15498)"
+
+msgid "3.5\" 640 MB (ISO 15498)"
+msgstr "3.5 英寸 640 MB (ISO 15498)"
+
+msgid "3.5\" 1.3 GB (GigaMO)"
+msgstr "3.5 英寸 1.3 GB (GigaMO)"
+
+msgid "3.5\" 2.3 GB (GigaMO 2)"
+msgstr "3.5 英寸 2.3 GB (GigaMO 2)"
+
+msgid "5.25\" 600 MB"
+msgstr "5.25 英寸 600 MB"
+
+msgid "5.25\" 650 MB"
+msgstr "5.25 英寸 650 MB"
+
+msgid "5.25\" 1 GB"
+msgstr "5.25 英寸 1 GB"
+
+msgid "5.25\" 1.3 GB"
+msgstr "5.25 英寸 1.3 GB"
+
+msgid "Perfect RPM"
+msgstr "標準轉速 (RPM)"
+
+msgid "1% below perfect RPM"
+msgstr "低於標準轉速的 1%"
+
+msgid "1.5% below perfect RPM"
+msgstr "低於標準轉速的 1.5%"
+
+msgid "2% below perfect RPM"
+msgstr "低於標準轉速的 2%"
+
+msgid "(System Default)"
+msgstr "(系統預設)"
+

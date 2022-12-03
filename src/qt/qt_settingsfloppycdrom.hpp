@@ -7,8 +7,7 @@ namespace Ui {
 class SettingsFloppyCDROM;
 }
 
-class SettingsFloppyCDROM : public QWidget
-{
+class SettingsFloppyCDROM : public QWidget {
     Q_OBJECT
 
 public:

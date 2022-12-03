@@ -45,11 +45,11 @@ plat_cdrom_ui_update(uint8_t id, uint8_t reload)
     cdrom_t *drv = &cdrom[id];
 
     if (drv->host_drive == 0) {
-	ui_sb_update_icon_state(SB_CDROM|id, 1);
+        ui_sb_update_icon_state(SB_CDROM | id, 1);
     } else {
-	ui_sb_update_icon_state(SB_CDROM|id, 0);
+        ui_sb_update_icon_state(SB_CDROM | id, 0);
     }
 
-    //media_menu_update_cdrom(id);
-    ui_sb_update_tip(SB_CDROM|id);
+    // media_menu_update_cdrom(id);
+    ui_sb_update_tip(SB_CDROM | id);
 }

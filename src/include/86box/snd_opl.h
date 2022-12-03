@@ -21,6 +21,7 @@ enum fm_type {
     FM_YM3812 = 0,
     FM_YMF262,
     FM_YMF289B,
+    FM_YMF278B,
     FM_MAX
 };
 
@@ -51,6 +52,7 @@ extern const device_t ymf262_nuked_device;
 extern const device_t ym3812_ymfm_device;
 extern const device_t ymf262_ymfm_device;
 extern const device_t ymf289b_ymfm_device;
+extern const device_t ymf278b_ymfm_device;
 #endif
 
 #endif /*SOUND_OPL_H*/

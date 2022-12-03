@@ -1,16 +1,16 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Victor V86P portable computer emulation.
+ *          Victor V86P portable computer emulation.
  *
- * Author:	Lubomir Rintel, <lkundrak@v3.sk>
+ * Authors: Lubomir Rintel, <lkundrak@v3.sk>
  *
- *		Copyright 2021 Lubomir Rintel.
+ *          Copyright 2021 Lubomir Rintel.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,7 +19,7 @@
  *
  * This program is  distributed in the hope that it will be useful, but
  * WITHOUT   ANY  WARRANTY;  without  even   the  implied  warranty  of
- * MERCHANTABILITY  or FITNESS	FOR A PARTICULAR  PURPOSE. See	the GNU
+ * MERCHANTABILITY  or FITNESS  FOR A PARTICULAR  PURPOSE. See  the GNU
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License

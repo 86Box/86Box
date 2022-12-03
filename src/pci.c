@@ -1,22 +1,22 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Implementation the PCI bus.
+ *          Implementation the PCI bus.
  *
  *
  *
- * Authors:	Miran Grca, <mgrca8@gmail.com>
- *		Fred N. van Kempen, <decwiz@yahoo.com>
- *		Sarah Walker, <tommowalker@tommowalker.co.uk>
+ * Authors: Miran Grca, <mgrca8@gmail.com>
+ *          Fred N. van Kempen, <decwiz@yahoo.com>
+ *          Sarah Walker, <tommowalker@tommowalker.co.uk>
  *
- *		Copyright 2016-2020 Miran Grca.
- *		Copyright 2017-2020 Fred N. van Kempen.
- *		Copyright 2008-2020 Sarah Walker.
+ *          Copyright 2016-2020 Miran Grca.
+ *          Copyright 2017-2020 Fred N. van Kempen.
+ *          Copyright 2008-2020 Sarah Walker.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -404,9 +404,9 @@ pci_set_pmc(uint8_t pmc)
         io_sethandler(0x0cf8, 1,
                       NULL, NULL, pci_cf8_read, NULL, NULL, pci_cf8_write, NULL);
         io_sethandler(0x0cfa, 1,
-                      pci_type2_read,NULL,NULL, pci_type2_write,NULL,NULL, NULL);
+                      pci_type2_read, NULL, NULL, pci_type2_write, NULL, NULL, NULL);
         io_sethandler(0x0cfc, 4,
-                      pci_read,pci_readw,pci_readl, pci_write,pci_writew,pci_writel, NULL);
+                      pci_read, pci_readw, pci_readl, pci_write, pci_writew, pci_writel, NULL);
     } else if (pci_pmc && !(pmc & 0x01)) {
         io_removehandler(pci_base, pci_size,
                          pci_type2_read, NULL, NULL,
@@ -420,9 +420,9 @@ pci_set_pmc(uint8_t pmc)
         io_removehandler(0x0cf8, 1,
                          NULL, NULL, pci_cf8_read, NULL, NULL, pci_cf8_write, NULL);
         io_removehandler(0x0cfa, 1,
-                         pci_type2_read,NULL,NULL, pci_type2_write,NULL,NULL, NULL);
+                         pci_type2_read, NULL, NULL, pci_type2_write, NULL, NULL, NULL);
         io_removehandler(0x0cfc, 4,
-                         pci_read,pci_readw,pci_readl, pci_write,pci_writew,pci_writel, NULL);
+                         pci_read, pci_readw, pci_readl, pci_write, pci_writew, pci_writel, NULL);
         io_sethandler(0x0cf8, 1,
                       pci_type2_read, NULL, NULL, pci_type2_write, NULL, NULL, NULL);
         io_sethandler(0x0cfa, 1,
@@ -509,7 +509,7 @@ static uint8_t
 pci_type2_read(uint16_t port, void *priv)
 {
     uint8_t slot = 0;
-    uint8_t ret = 0xff;
+    uint8_t ret  = 0xff;
 
     if (port == 0xcf8)
         ret = pci_key | (pci_func << 1);
@@ -862,11 +862,11 @@ pci_reset(void)
         io_removehandler(0x0cf8, 1,
                          NULL, NULL, pci_cf8_read, NULL, NULL, pci_cf8_write, NULL);
         io_removehandler(0x0cfc, 4,
-                         pci_read,pci_readw,pci_readl, pci_write,pci_writew,pci_writel, NULL);
+                         pci_read, pci_readw, pci_readl, pci_write, pci_writew, pci_writel, NULL);
         io_removehandler(0x0cf8, 1,
-                         pci_type2_read,NULL,NULL, pci_type2_write,NULL,NULL, NULL);
+                         pci_type2_read, NULL, NULL, pci_type2_write, NULL, NULL, NULL);
         io_removehandler(0x0cfa, 1,
-                         pci_type2_read,NULL,NULL, pci_type2_write,NULL,NULL, NULL);
+                         pci_type2_read, NULL, NULL, pci_type2_write, NULL, NULL, NULL);
         io_sethandler(0x0cf8, 1,
                       pci_type2_read, NULL, NULL, pci_type2_write, NULL, NULL, NULL);
         io_sethandler(0x0cfa, 1,
@@ -1044,7 +1044,7 @@ pci_init(int type)
 }
 
 uint8_t
-pci_register_bus()
+pci_register_bus(void)
 {
     return last_pci_bus++;
 }

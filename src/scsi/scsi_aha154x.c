@@ -1,21 +1,21 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Implementation of the AHA-154x series of SCSI Host Adapters
- *		made by Adaptec, Inc. These controllers were designed for
- *		the ISA bus.
+ *          Implementation of the AHA-154x series of SCSI Host Adapters
+ *          made by Adaptec, Inc. These controllers were designed for
+ *          the ISA bus.
  *
  *
  *
- * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
- *		Original Buslogic version by SA1988 and Miran Grca.
+ * Authors: Fred N. van Kempen, <decwiz@yahoo.com>
+ *          Original Buslogic version by SA1988 and Miran Grca.
  *
- *		Copyright 2017,2018 Fred N. van Kempen.
+ *          Copyright 2017-2018 Fred N. van Kempen.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -519,7 +519,7 @@ aha_mca_write(int port, uint8_t val, void *priv)
 
     /* Get the new assigned I/O base address. */
     dev->Base = (dev->pos_regs[3] & 7) << 8;
-    dev->Base |= ((dev->pos_regs[3] & 0xc0) ? 0x34 : 0x30);
+    dev->Base |= ((dev->pos_regs[3] & 0x40) ? 0x34 : 0x30);
 
     /* Save the new IRQ and DMA channel values. */
     dev->Irq        = (dev->pos_regs[4] & 0x07) + 8;

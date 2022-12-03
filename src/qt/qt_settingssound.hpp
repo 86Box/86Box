@@ -7,8 +7,7 @@ namespace Ui {
 class SettingsSound;
 }
 
-class SettingsSound : public QWidget
-{
+class SettingsSound : public QWidget {
     Q_OBJECT
 
 public:
@@ -38,7 +37,7 @@ private slots:
 
 private:
     Ui::SettingsSound *ui;
-    int machineId = 0;
+    int                machineId = 0;
 };
 
 #endif // QT_SETTINGSSOUND_HPP

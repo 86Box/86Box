@@ -14,15 +14,15 @@
   instruction. ARMv7 is restricted to +/- 32 MB, ARMv8 to +/- 128 MB, x86 to
   +/- 2GB. As a result, total memory size is limited to 32 MB on ARMv7*/
 #if defined __ARM_EABI__ || defined _ARM_ || defined _M_ARM
-#define MEM_BLOCK_NR 32768
+#    define MEM_BLOCK_NR 32768
 #else
-#define MEM_BLOCK_NR 131072
+#    define MEM_BLOCK_NR 131072
 #endif
 
-#define MEM_BLOCK_MASK (MEM_BLOCK_NR-1)
+#define MEM_BLOCK_MASK (MEM_BLOCK_NR - 1)
 #define MEM_BLOCK_SIZE 0x3c0
 
-void codegen_allocator_init();
+void codegen_allocator_init(void);
 /*Allocate a mem_block_t, and the associated backing memory.
   If parent is non-NULL, then the new block will be added to the list in
   parent->next*/

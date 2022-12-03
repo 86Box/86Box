@@ -72,8 +72,8 @@ voodoo_reg_log(const char *fmt, ...)
 void
 voodoo_reg_writel(uint32_t addr, uint32_t val, void *p)
 {
-    voodoo_t *voodoo = (voodoo_t *) p;
-    void (*voodoo_recalc_tex)(voodoo_t *voodoo, int tmu) = NULL;
+    voodoo_t *voodoo                                      = (voodoo_t *) p;
+    void (*voodoo_recalc_tex)(voodoo_t * voodoo, int tmu) = NULL;
     union {
         uint32_t i;
         float    f;

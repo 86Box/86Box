@@ -1,20 +1,20 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Implement the application's Status Bar.
+ *          Implement the application's Status Bar.
  *
  *
  *
- * Authors:	Miran Grca, <mgrca8@gmail.com>
- *		Fred N. van Kempen, <decwiz@yahoo.com>
+ * Authors: Miran Grca, <mgrca8@gmail.com>
+ *          Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 2016-2019 Miran Grca.
- *		Copyright 2017-2019 Fred N. van Kempen.
+ *          Copyright 2016-2019 Miran Grca.
+ *          Copyright 2017-2019 Fred N. van Kempen.
  */
 #define UNICODE
 #define BITMAP WINDOWS_BITMAP
@@ -188,10 +188,10 @@ StatusBarCreateCassetteTip(int part)
     WCHAR fn[512];
 
     if (strlen(cassette_fname) == 0)
-        _swprintf(tempTip, plat_get_string(IDS_2148), plat_get_string(IDS_2057));
+        _swprintf(tempTip, plat_get_string(IDS_2149), plat_get_string(IDS_2057));
     else {
         mbstoc16s(fn, cassette_fname, sizeof_w(fn));
-        _swprintf(tempTip, plat_get_string(IDS_2148), fn);
+        _swprintf(tempTip, plat_get_string(IDS_2149), fn);
     }
 
     if (sbTips[part] != NULL) {
@@ -210,11 +210,11 @@ StatusBarCreateCartridgeTip(int part)
     int   drive = sb_part_meanings[part] & 0xf;
 
     if (strlen(cart_fns[drive]) == 0) {
-        _swprintf(tempTip, plat_get_string(IDS_2150),
+        _swprintf(tempTip, plat_get_string(IDS_2151),
                   drive + 1, plat_get_string(IDS_2057));
     } else {
         mbstoc16s(fn, cart_fns[drive], sizeof_w(fn));
-        _swprintf(tempTip, plat_get_string(IDS_2150),
+        _swprintf(tempTip, plat_get_string(IDS_2151),
                   drive + 1, fn);
     }
 
@@ -238,11 +238,11 @@ StatusBarCreateFloppyTip(int part)
     mbstoc16s(wtext, fdd_getname(fdd_get_type(drive)),
               strlen(fdd_getname(fdd_get_type(drive))) + 1);
     if (strlen(floppyfns[drive]) == 0) {
-        _swprintf(tempTip, plat_get_string(IDS_2108),
+        _swprintf(tempTip, plat_get_string(IDS_2109),
                   drive + 1, wtext, plat_get_string(IDS_2057));
     } else {
         mbstoc16s(fn, floppyfns[drive], sizeof_w(fn));
-        _swprintf(tempTip, plat_get_string(IDS_2108),
+        _swprintf(tempTip, plat_get_string(IDS_2109),
                   drive + 1, wtext, fn);
     }
 
@@ -333,11 +333,11 @@ StatusBarCreateMOTip(int part)
     szText = plat_get_string(id);
 
     if (strlen(mo_drives[drive].image_path) == 0) {
-        _swprintf(tempTip, plat_get_string(IDS_2115),
+        _swprintf(tempTip, plat_get_string(IDS_2116),
                   drive + 1, szText, plat_get_string(IDS_2057));
     } else {
         mbstoc16s(fn, mo_drives[drive].image_path, sizeof_w(fn));
-        _swprintf(tempTip, plat_get_string(IDS_2115),
+        _swprintf(tempTip, plat_get_string(IDS_2116),
                   drive + 1, szText, fn);
     }
 
@@ -989,13 +989,13 @@ StatusBarCreate(HWND hwndParent, uintptr_t idStatus, HINSTANCE hInst)
     sb_parts++;
     SendMessage(hwndSBAR, SB_SETPARTS, (WPARAM) sb_parts, (LPARAM) iStatusWidths);
     SendMessage(hwndSBAR, SB_SETTEXT, 0 | SBT_NOBORDERS,
-                (LPARAM) plat_get_string(IDS_2117));
+                (LPARAM) plat_get_string(IDS_2118));
 
     sb_ready = 1;
 }
 
 void
-ui_sb_update_text()
+ui_sb_update_text(void)
 {
     uint8_t part = 0xff;
 

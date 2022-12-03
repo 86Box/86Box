@@ -1,23 +1,23 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Emulation of C&T CS8121 ("NEAT") 82C206/211/212/215 chipset.
+ *          Emulation of C&T CS8121 ("NEAT") 82C206/211/212/215 chipset.
  *
- * Note:	The datasheet mentions that the chipset supports up to 8MB
- *		of DRAM. This is intepreted as 'being able to refresh up to
- *		8MB of DRAM chips', because it works fine with bus-based
- *		memory expansion.
+ * Note:    The datasheet mentions that the chipset supports up to 8MB
+ *          of DRAM. This is intepreted as 'being able to refresh up to
+ *          8MB of DRAM chips', because it works fine with bus-based
+ *          memory expansion.
  *
  *
  *
- * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
+ * Authors: Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 2018 Fred N. van Kempen.
+ *          Copyright 2018 Fred N. van Kempen.
  */
 #include <stdarg.h>
 #include <stdio.h>

@@ -2130,9 +2130,9 @@ pgc_ito_raster(pgc_t *dev, int32_t *x, int32_t *y)
 void
 pgc_recalctimings(pgc_t *dev)
 {
-    double disptime, _dispontime, _dispofftime;
-    double pixel_clock = (cpuclock / (dev->cga_selected ? 25175000.0 : dev->native_pixel_clock) * (double) (1ull << 32));
-    uint8_t crtc0 = 97, crtc1 = 80;    /* Values from MDA, taken from there due to the 25 MHz refresh rate. */
+    double  disptime, _dispontime, _dispofftime;
+    double  pixel_clock = (cpuclock / (dev->cga_selected ? 25175000.0 : dev->native_pixel_clock) * (double) (1ull << 32));
+    uint8_t crtc0 = 97, crtc1 = 80; /* Values from MDA, taken from there due to the 25 MHz refresh rate. */
 
     /* Multiply pixel clock by 8. */
     pixel_clock     *= 8.0;

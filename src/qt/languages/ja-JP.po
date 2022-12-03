@@ -244,11 +244,8 @@ msgstr "空(&M)"
 msgid "&Reload previous image"
 msgstr "前のイメージを再読み込み(&R)"
 
-msgid "&Image"
-msgstr "イメージ(&I)"
-
 msgid "&Folder..."
-msgstr "&Folder..."
+msgstr "フォルダ(&F)..."
 
 msgid "Target &framerate"
 msgstr "目標フレームレート(&F)"
@@ -385,6 +382,12 @@ msgstr "ビデオカード:"
 msgid "Voodoo Graphics"
 msgstr "Voodooグラフィック"
 
+msgid "IBM 8514/a Graphics"
+msgstr "IBM 8514/aグラフィック"
+
+msgid "XGA Graphics"
+msgstr "XGAグラフィック"
+
 msgid "Mouse:"
 msgstr "マウス:"
 
@@ -426,6 +429,15 @@ msgstr "Gravis Ultrasound"
 
 msgid "Use FLOAT32 sound"
 msgstr "FLOAT32サウンドを使用する"
+
+msgid "FM synth driver"
+msgstr "FMシンセドライバー"
+
+msgid "Nuked (more accurate)"
+msgstr "Nuked (高精度化)"
+
+msgid "YMFM (faster)"
+msgstr "YMFM (より速く)"
 
 msgid "Network type:"
 msgstr "ネットワークタイプ:"
@@ -570,6 +582,9 @@ msgstr "BPBをチェック"
 
 msgid "CD-ROM drives:"
 msgstr "CD-ROMドライブ:"
+
+msgid "Earlier drive"
+msgstr "アーリードライブ"
 
 msgid "MO drives:"
 msgstr "光磁気ドライブ:"

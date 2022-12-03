@@ -40,9 +40,9 @@ static const struct {
     {"dot_matrix",      &lpt_prt_escp_device      },
     {"postscript",      &lpt_prt_ps_device        },
     {"plip",            &lpt_plip_device          },
-    {"dongle_savquest",	&lpt_hasp_savquest_device },
+    {"dongle_savquest", &lpt_hasp_savquest_device },
     {"",                NULL                      }
-// clang-format on
+  // clang-format on
 };
 
 char *

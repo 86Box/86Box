@@ -26,63 +26,59 @@
 
 #include <QThread>
 
-extern "C"
-{
+extern "C" {
 #include <86box/86box.h>
 #include <86box/plat.h>
 #include <86box/mouse.h>
 #include <poll.h>
 }
 
-static std::vector<std::pair<int, libevdev*>> evdev_mice;
-static std::atomic<bool> stopped = false;
-static QThread* evdev_thread;
+static std::vector<std::pair<int, libevdev *>> evdev_mice;
+static std::atomic<bool>                       stopped = false;
+static QThread                                *evdev_thread;
 
 static std::atomic<int> evdev_mouse_rel_x = 0, evdev_mouse_rel_y = 0;
 
-void evdev_mouse_poll()
+void
+evdev_mouse_poll()
 {
-    if (!evdev_mice.size() || !mouse_capture)
-    {
+    if (!evdev_mice.size() || !mouse_capture) {
         evdev_mouse_rel_x = 0;
         evdev_mouse_rel_y = 0;
         return;
     }
-    mouse_x = evdev_mouse_rel_x;
-    mouse_y = evdev_mouse_rel_y;
+    mouse_x           = evdev_mouse_rel_x;
+    mouse_y           = evdev_mouse_rel_y;
     evdev_mouse_rel_x = evdev_mouse_rel_y = 0;
 }
 
-void evdev_thread_func()
+void
+evdev_thread_func()
 {
-    struct pollfd *pfds = (struct pollfd*)calloc(evdev_mice.size(), sizeof(struct pollfd));
-    for (unsigned int i = 0; i < evdev_mice.size(); i++)
-    {
-        pfds[i].fd = libevdev_get_fd(evdev_mice[i].second);
+    struct pollfd *pfds = (struct pollfd *) calloc(evdev_mice.size(), sizeof(struct pollfd));
+    for (unsigned int i = 0; i < evdev_mice.size(); i++) {
+        pfds[i].fd     = libevdev_get_fd(evdev_mice[i].second);
         pfds[i].events = POLLIN;
     }
 
-    while (!stopped)
-    {
+    while (!stopped) {
         poll(pfds, evdev_mice.size(), 500);
-        for (unsigned int i = 0; i < evdev_mice.size(); i++)
-        {
+        for (unsigned int i = 0; i < evdev_mice.size(); i++) {
             struct input_event ev;
             if (pfds[i].revents & POLLIN) {
-                while (libevdev_next_event(evdev_mice[i].second, LIBEVDEV_READ_FLAG_NORMAL, &ev) == 0)
-                {
-                    if (ev.type == EV_REL && mouse_capture)
-                    {
-                        if (ev.code == REL_X) evdev_mouse_rel_x += ev.value;
-                        if (ev.code == REL_Y) evdev_mouse_rel_y += ev.value;
+                while (libevdev_next_event(evdev_mice[i].second, LIBEVDEV_READ_FLAG_NORMAL, &ev) == 0) {
+                    if (ev.type == EV_REL && mouse_capture) {
+                        if (ev.code == REL_X)
+                            evdev_mouse_rel_x += ev.value;
+                        if (ev.code == REL_Y)
+                            evdev_mouse_rel_y += ev.value;
                     }
                 }
             }
         }
     }
 
-    for (unsigned int i = 0; i < evdev_mice.size(); i++)
-    {
+    for (unsigned int i = 0; i < evdev_mice.size(); i++) {
         libevdev_free(evdev_mice[i].second);
         evdev_mice[i].second = nullptr;
         close(evdev_mice[i].first);
@@ -91,7 +87,8 @@ void evdev_thread_func()
     evdev_mice.clear();
 }
 
-void evdev_stop()
+void
+evdev_stop()
 {
     if (evdev_thread) {
         stopped = true;
@@ -100,37 +97,32 @@ void evdev_stop()
     }
 }
 
-void evdev_init()
+void
+evdev_init()
 {
-    if (evdev_thread) return;
-    for (int i = 0; i < 256; i++)
-    {
+    if (evdev_thread)
+        return;
+    for (int i = 0; i < 256; i++) {
         std::string evdev_device_path = "/dev/input/event" + std::to_string(i);
-        int fd = open(evdev_device_path.c_str(), O_NONBLOCK | O_RDONLY);
-        if (fd != -1)
-        {
-            libevdev* input_struct = nullptr;
-            int rc = libevdev_new_from_fd(fd, &input_struct);
-            if (rc <= -1)
-            {
+        int         fd                = open(evdev_device_path.c_str(), O_NONBLOCK | O_RDONLY);
+        if (fd != -1) {
+            libevdev *input_struct = nullptr;
+            int       rc           = libevdev_new_from_fd(fd, &input_struct);
+            if (rc <= -1) {
                 close(fd);
                 continue;
-            }
-            else
-            {
-                if (!libevdev_has_event_type(input_struct, EV_REL) || !libevdev_has_event_code(input_struct, EV_KEY, BTN_LEFT))
-                {
+            } else {
+                if (!libevdev_has_event_type(input_struct, EV_REL) || !libevdev_has_event_code(input_struct, EV_KEY, BTN_LEFT)) {
                     libevdev_free(input_struct);
                     close(fd);
                     continue;
                 }
                 evdev_mice.push_back(std::make_pair(fd, input_struct));
             }
-        }
-        else if (errno == ENOENT) break;
+        } else if (errno == ENOENT)
+            break;
     }
-    if (evdev_mice.size() != 0)
-    {
+    if (evdev_mice.size() != 0) {
         evdev_thread = QThread::create(evdev_thread_func);
         evdev_thread->start();
         atexit(evdev_stop);

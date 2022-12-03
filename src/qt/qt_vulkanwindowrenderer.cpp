@@ -4,20 +4,19 @@
 #include <QWindow>
 
 #if QT_CONFIG(vulkan)
-#include <QVulkanWindowRenderer>
-#include <QVulkanDeviceFunctions>
-#include <array>
-#include <stdexcept>
+#    include <QVulkanWindowRenderer>
+#    include <QVulkanDeviceFunctions>
+#    include <array>
+#    include <stdexcept>
 
-#include "qt_mainwindow.hpp"
-#include "qt_vulkanrenderer.hpp"
+#    include "qt_mainwindow.hpp"
+#    include "qt_vulkanrenderer.hpp"
 
-extern "C"
-{
-#include <86box/86box.h>
-#include <86box/video.h>
+extern "C" {
+#    include <86box/86box.h>
+#    include <86box/video.h>
 }
-#if 0
+#    if 0
 extern MainWindow* main_window;
 /*
 #version 450
@@ -695,10 +694,10 @@ public:
                 return "VK_ERROR_VALIDATION_FAILED_EXT";
             case VK_ERROR_INVALID_SHADER_NV:
                 return "VK_ERROR_INVALID_SHADER_NV";
-#if VK_HEADER_VERSION >= 135 && VK_HEADER_VERSION < 162
+#        if VK_HEADER_VERSION >= 135 && VK_HEADER_VERSION < 162
             case VK_ERROR_INCOMPATIBLE_VERSION_KHR:
                 return "VK_ERROR_INCOMPATIBLE_VERSION_KHR";
-#endif
+#        endif
             case VK_ERROR_INVALID_DRM_FORMAT_MODIFIER_PLANE_LAYOUT_EXT:
                 return "VK_ERROR_INVALID_DRM_FORMAT_MODIFIER_PLANE_LAYOUT_EXT";
             case VK_ERROR_NOT_PERMITTED_EXT:
@@ -789,9 +788,9 @@ public:
         m_devFuncs->vkDeviceWaitIdle(m_window->device());
     }
 };
-#endif
+#    endif
 
-VulkanWindowRenderer::VulkanWindowRenderer(QWidget* parent)
+VulkanWindowRenderer::VulkanWindowRenderer(QWidget *parent)
     : QVulkanWindow(parent->windowHandle())
 {
     parentWidget = parent;
@@ -799,47 +798,57 @@ VulkanWindowRenderer::VulkanWindowRenderer(QWidget* parent)
     instance.create();
     setVulkanInstance(&instance);
     setPhysicalDeviceIndex(0);
-    setPreferredColorFormats({VK_FORMAT_B8G8R8A8_UNORM, VK_FORMAT_R8G8B8A8_UNORM, VK_FORMAT_A8B8G8R8_UNORM_PACK32});
+    setPreferredColorFormats({ VK_FORMAT_B8G8R8A8_UNORM, VK_FORMAT_R8G8B8A8_UNORM, VK_FORMAT_A8B8G8R8_UNORM_PACK32 });
     setFlags(Flag::PersistentResources);
     buf_usage = std::vector<std::atomic_flag>(1);
     buf_usage[0].clear();
 }
 
-QVulkanWindowRenderer* VulkanWindowRenderer::createRenderer()
+QVulkanWindowRenderer *
+VulkanWindowRenderer::createRenderer()
 {
     renderer = new VulkanRenderer2(this);
     return renderer;
 }
 
-void VulkanWindowRenderer::resizeEvent(QResizeEvent *event) {
+void
+VulkanWindowRenderer::resizeEvent(QResizeEvent *event)
+{
     onResize(width(), height());
 
     QVulkanWindow::resizeEvent(event);
 }
 
-bool VulkanWindowRenderer::event(QEvent *event)
+bool
+VulkanWindowRenderer::event(QEvent *event)
 {
     bool res = false;
-    if (!eventDelegate(event, res)) return QVulkanWindow::event(event);
+    if (!eventDelegate(event, res))
+        return QVulkanWindow::event(event);
     return res;
 }
 
-void VulkanWindowRenderer::onBlit(int buf_idx, int x, int y, int w, int h)
+void
+VulkanWindowRenderer::onBlit(int buf_idx, int x, int y, int w, int h)
 {
     auto origSource = source;
     source.setRect(x, y, w, h);
-    if (isExposed()) requestUpdate();
+    if (isExposed())
+        requestUpdate();
     buf_usage[0].clear();
-    if (origSource != source) onResize(this->width(), this->height());
+    if (origSource != source)
+        onResize(this->width(), this->height());
 }
 
-uint32_t VulkanWindowRenderer::getBytesPerRow()
+uint32_t
+VulkanWindowRenderer::getBytesPerRow()
 {
     return renderer->imagePitch;
 }
 
-std::vector<std::tuple<uint8_t *, std::atomic_flag *>> VulkanWindowRenderer::getBuffers()
+std::vector<std::tuple<uint8_t *, std::atomic_flag *>>
+VulkanWindowRenderer::getBuffers()
 {
-    return std::vector{std::make_tuple((uint8_t*)renderer->mappedPtr, &this->buf_usage[0])};
+    return std::vector { std::make_tuple((uint8_t *) renderer->mappedPtr, &this->buf_usage[0]) };
 }
 #endif

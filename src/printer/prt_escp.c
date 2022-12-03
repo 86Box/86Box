@@ -1997,7 +1997,7 @@ escp_init(void *lpt)
     if (ft_handle == NULL) {
         ft_handle = dynld_module(fn, ft_imports);
         if (ft_handle == NULL) {
-            ui_msgbox_header(MBX_ERROR, (wchar_t *) IDS_2110, (wchar_t *) IDS_2131);
+            ui_msgbox_header(MBX_ERROR, (wchar_t *) IDS_2111, (wchar_t *) IDS_2132);
             return (NULL);
         }
     }
@@ -2005,7 +2005,7 @@ escp_init(void *lpt)
     /* Initialize FreeType. */
     if (ft_lib == NULL) {
         if (ft_Init_FreeType(&ft_lib)) {
-            ui_msgbox_header(MBX_ERROR, (wchar_t *) IDS_2110, (wchar_t *) IDS_2131);
+            ui_msgbox_header(MBX_ERROR, (wchar_t *) IDS_2111, (wchar_t *) IDS_2132);
             dynld_close(ft_lib);
             ft_lib = NULL;
             return (NULL);

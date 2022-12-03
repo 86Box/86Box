@@ -283,12 +283,12 @@ static inline int COUNT(int *c, int op_32)
         return *c;
 }
 
-void codegen_timing_winchip_block_start()
+void codegen_timing_winchip_block_start(void)
 {
         regmask_modified = 0;
 }
 
-void codegen_timing_winchip_start()
+void codegen_timing_winchip_start(void)
 {
         timing_count = 0;
         last_prefix = 0;
@@ -406,7 +406,7 @@ void codegen_timing_winchip_opcode(uint8_t opcode, uint32_t fetchdat, int op_32,
         regmask_modified = get_dstdep_mask(deps[opcode], fetchdat, bit8);
 }
 
-void codegen_timing_winchip_block_end()
+void codegen_timing_winchip_block_end(void)
 {
 }
 

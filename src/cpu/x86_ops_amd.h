@@ -1,17 +1,17 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		AMD SYSCALL and SYSRET CPU Instructions.
+ *          AMD SYSCALL and SYSRET CPU Instructions.
  *
  *
  *
- * Author:	Miran Grca, <mgrca8@gmail.com>
- *		Copyright 2016-2018 Miran Grca.
+ * Authors: Miran Grca, <mgrca8@gmail.com>
+ *          Copyright 2016-2018 Miran Grca.
  */
 static int
 opSYSCALL(uint32_t fetchdat)
@@ -23,15 +23,14 @@ opSYSCALL(uint32_t fetchdat)
     ret = syscall_op(fetchdat);
 
     if (ret <= 1) {
-	CLOCK_CYCLES(20);
-	PREFETCH_RUN(20, 7, -1, 0,0,0,0, 0);
-	PREFETCH_FLUSH();
-	CPU_BLOCK_END();
+        CLOCK_CYCLES(20);
+        PREFETCH_RUN(20, 7, -1, 0, 0, 0, 0, 0);
+        PREFETCH_FLUSH();
+        CPU_BLOCK_END();
     }
 
     return ret;
 }
-
 
 static int
 opSYSRET(uint32_t fetchdat)
@@ -43,10 +42,10 @@ opSYSRET(uint32_t fetchdat)
     ret = sysret(fetchdat);
 
     if (ret <= 1) {
-	CLOCK_CYCLES(20);
-	PREFETCH_RUN(20, 7, -1, 0,0,0,0, 0);
-	PREFETCH_FLUSH();
-	CPU_BLOCK_END();
+        CLOCK_CYCLES(20);
+        PREFETCH_RUN(20, 7, -1, 0, 0, 0, 0, 0);
+        PREFETCH_FLUSH();
+        CPU_BLOCK_END();
     }
 
     return ret;

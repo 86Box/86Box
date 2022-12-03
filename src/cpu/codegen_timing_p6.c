@@ -1691,7 +1691,7 @@ static int fpu_st_timestamp[8];
   dependent uop chains*/
 static int last_uop_timestamp = 0;
 
-void decode_flush_p6()
+void decode_flush_p6(void)
 {
         int c;
         int start_timestamp, uop_timestamp = 0;
@@ -1926,7 +1926,7 @@ static void decode_instruction(const macro_op_t *ins, uint64_t deps, uint32_t fe
         }
 }
 
-void codegen_timing_p6_block_start()
+void codegen_timing_p6_block_start(void)
 {
         int c;
 
@@ -1946,7 +1946,7 @@ void codegen_timing_p6_block_start()
                 fpu_st_timestamp[c] = 0;
 }
 
-void codegen_timing_p6_start()
+void codegen_timing_p6_start(void)
 {
         if (cpu_s->cpu_type == CPU_PENTIUMPRO)
         {
@@ -2083,7 +2083,7 @@ void codegen_timing_p6_opcode(uint8_t opcode, uint32_t fetchdat, int op_32, uint
         codegen_block_cycles += (last_complete_timestamp - old_last_complete_timestamp);
 }
 
-void codegen_timing_p6_block_end()
+void codegen_timing_p6_block_end(void)
 {
         if (decode_buffer.nr_uops)
         {
@@ -2093,7 +2093,7 @@ void codegen_timing_p6_block_end()
         }
 }
 
-int codegen_timing_p6_jump_cycles()
+int codegen_timing_p6_jump_cycles(void)
 {
         if (decode_buffer.nr_uops)
                 return 1;

@@ -34,6 +34,7 @@ BEGIN
         MENUITEM "&Skrij statusno vrstico",		IDM_VID_HIDE_STATUS_BAR
         MENUITEM "Hide &toolbar",		IDM_VID_HIDE_TOOLBAR
         MENUITEM SEPARATOR
+        MENUITEM "&Show non-primary monitors",  IDM_VID_MONITORS
         MENUITEM "S&premenljiva velikost okna",          IDM_VID_RESIZE
         MENUITEM "&Zapomni si velikost in položaj",  IDM_VID_REMEMBER
         MENUITEM SEPARATOR
@@ -176,8 +177,8 @@ BEGIN
         MENUITEM "&Prazen",					IDM_CDROM_EMPTY
         MENUITEM "&Naloži zadnjo sliko",			IDM_CDROM_RELOAD
         MENUITEM SEPARATOR
-        MENUITEM "&Slika",					IDM_CDROM_IMAGE
-        MENUITEM "&Mapa",					IDM_CDROM_DIR
+        MENUITEM "&Slika...",					IDM_CDROM_IMAGE
+        MENUITEM "&Mapa...",					IDM_CDROM_DIR
     END
 END
 
@@ -271,6 +272,7 @@ END
 #define STR_DYNAREC		"Dinamični prevajalnik"
 
 #define STR_VIDEO		"Video:"
+#define STR_VIDEO_2		"Video 2:"
 #define STR_VOODOO		"Voodoo grafika"
 #define STR_IBM8514		"IBM 8514/a grafika"
 #define STR_XGA			"XGA grafika"
@@ -333,6 +335,7 @@ END
 #define STR_BUS			"Vodilo:"
 #define STR_CHANNEL		"Kanal:"
 #define STR_ID			"ID:"
+#define STR_SPEED		"Speed:"
 
 #define STR_SPECIFY		"Določi..."
 #define STR_SECTORS		"Sektorji:"
@@ -422,102 +425,103 @@ BEGIN
     IDS_2084	"H"
     IDS_2085	"S"
     IDS_2086	"MB"
-    IDS_2087	"Preveri BPB"
-    IDS_2088	"KB"
-    IDS_2089	"Ne morem inicializirati pogona upodabljanja."
-    IDS_2090	"Privzeto"
-    IDS_2091	"%i stanj čakanja"
-    IDS_2092	"Vrsta"
-    IDS_2093	"Nastavitev PCap ni uspela"
-    IDS_2094	"Nobena naprava PCap ni bila najdena"
-    IDS_2095	"Neveljavna naprava PCap"
-    IDS_2096	"Standardna krmilna palica z 2 gumboma"
-    IDS_2097	"Standardna krmilna palica s 4 gumbi"
-    IDS_2098	"Standardna krmilna palica s 6 gumbi"
-    IDS_2099	"Standardna krmilna palica z 8 gumbi"
-    IDS_2100	"CH Flightstick Pro"
-    IDS_2101	"Microsoft SideWinder Pad"
-    IDS_2102	"Thrustmaster Flight Control System"
-    IDS_2103	"Brez"
-    IDS_2104	"Ne morem naložiti pospeševalnikov tipkovnice."
-    IDS_2105	"Ne morem registrirati neobdelanega vnosa."
-    IDS_2106	"%u"
-    IDS_2107	"%u MB (CHS: %i, %i, %i)"
-    IDS_2108	"Disketa %i (%s): %ls"
-    IDS_2109	"Vse slike (*.0??;*.1??;*.??0;*.86F;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.JSON;*.TD0;*.*FD?;*.MFM;*.XDF)\0*.0??;*.1??;*.??0;*.86F;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.JSON;*.TD0;*.*FD?;*.MFM;*.XDF\0Napredne sektorske slike (*.IMD;*.JSON;*.TD0)\0*.IMD;*.JSON;*.TD0\0Osnovne sektorske slike (*.0??;*.1??;*.??0;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.XDF;*.*FD?)\0*.0??;*.1??;*.??0;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.XDF;*.*FD?\0Tokovne slike (*.FDI)\0*.FDI\0Površinske slike (*.86F;*.MFM)\0*.86F;*.MFM\0Vse datoteke (*.*)\0*.*\0"
-    IDS_2110	"Ne morem inicializirati FreeType"
-    IDS_2111	"Ne morem inicializirati SDL, potrebna je knjižica SDL2.dll"
-    IDS_2112	"Ste prepričani, da želite ponovno zagnati emulirani sistem?"
-    IDS_2113	"Ste prepričani, da želite zapreti 86Box?"
-    IDS_2114	"Ne morem inicializirati Ghostscript"
-    IDS_2115	"MO %i (%ls): %ls"
-    IDS_2116	"Slike MO (*.IM?;*.MDI)\0*.IM?;*.MDI\0Vse datoteke (*.*)\0*.*\0"
-    IDS_2117	"Dobrodošli v 86Box!"
-    IDS_2118	"Notranji krmilnik"
-    IDS_2119	"Izhod"
-    IDS_2120	"Nobeni ROM-i niso bili najdeni"
-    IDS_2121	"Želite shraniti nastavitve?"
-    IDS_2122	"To bo ponovno zagnalo emuliran sistem."
-    IDS_2123	"Shrani"
-    IDS_2124	"O programu 86Box"
-    IDS_2125	"86Box v" EMU_VERSION
+    IDS_2087    "Speed"
+    IDS_2088	"Preveri BPB"
+    IDS_2089	"KB"
+    IDS_2090	"Ne morem inicializirati pogona upodabljanja."
+    IDS_2091	"Privzeto"
+    IDS_2092	"%i stanj čakanja"
+    IDS_2093	"Vrsta"
+    IDS_2094	"Nastavitev PCap ni uspela"
+    IDS_2095	"Nobena naprava PCap ni bila najdena"
+    IDS_2096	"Neveljavna naprava PCap"
+    IDS_2097	"Standardna krmilna palica z 2 gumboma"
+    IDS_2098	"Standardna krmilna palica s 4 gumbi"
+    IDS_2099	"Standardna krmilna palica s 6 gumbi"
+    IDS_2100	"Standardna krmilna palica z 8 gumbi"
+    IDS_2101	"CH Flightstick Pro"
+    IDS_2102	"Microsoft SideWinder Pad"
+    IDS_2103	"Thrustmaster Flight Control System"
+    IDS_2104	"Brez"
+    IDS_2105	"Ne morem naložiti pospeševalnikov tipkovnice."
+    IDS_2106	"Ne morem registrirati neobdelanega vnosa."
+    IDS_2107	"%u"
+    IDS_2108	"%u MB (CHS: %i, %i, %i)"
+    IDS_2109	"Disketa %i (%s): %ls"
+    IDS_2110	"Vse slike (*.0??;*.1??;*.??0;*.86F;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.JSON;*.TD0;*.*FD?;*.MFM;*.XDF)\0*.0??;*.1??;*.??0;*.86F;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.JSON;*.TD0;*.*FD?;*.MFM;*.XDF\0Napredne sektorske slike (*.IMD;*.JSON;*.TD0)\0*.IMD;*.JSON;*.TD0\0Osnovne sektorske slike (*.0??;*.1??;*.??0;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.XDF;*.*FD?)\0*.0??;*.1??;*.??0;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.XDF;*.*FD?\0Tokovne slike (*.FDI)\0*.FDI\0Površinske slike (*.86F;*.MFM)\0*.86F;*.MFM\0Vse datoteke (*.*)\0*.*\0"
+    IDS_2111	"Ne morem inicializirati FreeType"
+    IDS_2112	"Ne morem inicializirati SDL, potrebna je knjižica SDL2.dll"
+    IDS_2113	"Ste prepričani, da želite ponovno zagnati emulirani sistem?"
+    IDS_2114	"Ste prepričani, da želite zapreti 86Box?"
+    IDS_2115	"Ne morem inicializirati Ghostscript"
+    IDS_2116	"MO %i (%ls): %ls"
+    IDS_2117	"Slike MO (*.IM?;*.MDI)\0*.IM?;*.MDI\0Vse datoteke (*.*)\0*.*\0"
+    IDS_2118	"Dobrodošli v 86Box!"
+    IDS_2119	"Notranji krmilnik"
+    IDS_2120	"Izhod"
+    IDS_2121	"Nobeni ROM-i niso bili najdeni"
+    IDS_2122	"Želite shraniti nastavitve?"
+    IDS_2123	"To bo ponovno zagnalo emuliran sistem."
+    IDS_2124	"Shrani"
+    IDS_2125	"O programu 86Box"
+    IDS_2126	"86Box v" EMU_VERSION
 
-    IDS_2126	"Emulator starih računalnikov\n\nAvtorji: Sarah Walker, Miran Grca, Fred N. van Kempen (waltje), SA1988, Tiseno100, reenigne, leilei, JohnElliott, greatpsycho in drugi.\n\nIzdano pod licenco GNU General Public License različica 2 ali novejša. Glej datoteko LICENSE za več informacij."
-    IDS_2127	"V redu"
-    IDS_2128	"Strojna oprema ni na voljo"
+    IDS_2127	"Emulator starih računalnikov\n\nAvtorji: Sarah Walker, Miran Grca, Fred N. van Kempen (waltje), SA1988, Tiseno100, reenigne, leilei, JohnElliott, greatpsycho in drugi.\n\nIzdano pod licenco GNU General Public License različica 2 ali novejša. Glej datoteko LICENSE za več informacij."
+    IDS_2128	"V redu"
+    IDS_2129	"Strojna oprema ni na voljo"
 #ifdef _WIN32
 #define LIB_NAME_PCAP "WinPcap"
 #else
 #define LIB_NAME_PCAP "libpcap"
 #endif
-    IDS_2129	"Prepičajte se, da je nameščen " LIB_NAME_PCAP " in da ste na omrežni povezavi, združljivi z " LIB_NAME_PCAP
-    IDS_2130	"Neveljavna konfiguracija"
+    IDS_2130	"Prepičajte se, da je nameščen " LIB_NAME_PCAP " in da ste na omrežni povezavi, združljivi z " LIB_NAME_PCAP
+    IDS_2131	"Neveljavna konfiguracija"
 #ifdef _WIN32
 #define LIB_NAME_FREETYPE "freetype.dll"
 #else
 #define LIB_NAME_FREETYPE "libfreetype"
 #endif
-    IDS_2131	LIB_NAME_FREETYPE " je potreben za emuliranje ESC/P tiskalnika."
+    IDS_2132	LIB_NAME_FREETYPE " je potreben za emuliranje ESC/P tiskalnika."
 #ifdef _WIN32
 #define LIB_NAME_GS "gsdll32.dll"
 #else
 #define LIB_NAME_GS "libgs"
 #endif
-    IDS_2132	LIB_NAME_GS " je potreben za samodejno pretvorbo PostScript datotek v PDF.\n\nVsi dokumenti, poslani generičnemu PostScript tiskalniku bodo shranjeni kot PostScript (.ps) datoteke."
+    IDS_2133	LIB_NAME_GS " je potreben za samodejno pretvorbo PostScript datotek v PDF.\n\nVsi dokumenti, poslani generičnemu PostScript tiskalniku bodo shranjeni kot PostScript (.ps) datoteke."
 #ifdef _WIN32
 #define LIB_NAME_FLUIDSYNTH "libfluidsynth.dll"
 #else
 #define LIB_NAME_FLUIDSYNTH "libfluidsynth"
 #endif
-    IDS_2133	LIB_NAME_FLUIDSYNTH " je potreben za FluidSynth MIDI izhod."
-    IDS_2134	"Preklapljam v celozaslonski način"
-    IDS_2135	"Ne pokaži več tega sporočila"
-    IDS_2136	"Prekliči izhod"
-    IDS_2137	"Resetiraj"
-    IDS_2138	"Ne resetiraj"
-    IDS_2139	"Slike MO (*.IM?;*.MDI)\0*.IM?;*.MDI\0Vse datoteke (*.*)\0*.*\0"
-    IDS_2140	"Slike CD-ROM (*.ISO;*.CUE)\0*.ISO;*.CUE\0Vse datoteke (*.*)\0*.*\0"
-    IDS_2141	"Konfiguracija naprave %hs"
-    IDS_2142    "Zaslon v načinu spanja"
-    IDS_2143	"Senčilniki OpenGL (*.GLSL)\0*.GLSL\0Vse datoteke (*.*)\0*.*\0"
-    IDS_2144	"Možnosti OpenGL"
-    IDS_2145	"Nalagate nepodprto konfiguracijo"
-    IDS_2146	"Filtriranje vrste procesorja glede na izbran sistem je onemogočeno za ta emuliran sistem.\n\nTako lahko izberete procesor, ki je sicer nezdružljiv z izbranim sistemom. Vendar lahko naletite na nezdružljivosti z BIOS-om sistema ali drugo programsko opremo\n\nOmogočanje te nastavitve ni uradno podprto, vsa poročila o hroščih iz tega naslova pa bodo zaprta kot neveljavna."
-    IDS_2147	"Nadaljuj"
-    IDS_2148	"Kaseta: %s"
-    IDS_2149	"Slike kaset (*.PCM;*.RAW;*.WAV;*.CAS)\0*.PCM;*.RAW;*.WAV;*.CAS\0Vse datoteke (*.*)\0*.*\0"
-    IDS_2150	"Spominski vložek %i: %ls"
-    IDS_2151	"Slike spominskega vložka (*.A;*.B;*.JRC)\0*.A;*.B;*.JRC\0Vse datoteke (*.*)\0*.*\0"
-    IDS_2152	"Napaka pri zagonu sistema za upodabljanje"
-    IDS_2153	"Sistema za upodabljanje OpenGL (3.0 Core) ni bilo mogoče zagnati. Uporabite drug sistem za upodabljanje."
-    IDS_2154	"Nadaljuj izvajanje"
-    IDS_2155	"Prekini izvajanje"
-    IDS_2156	"Press Ctrl+Alt+Del"
-    IDS_2157	"Press Ctrl+Alt+Esc"
-    IDS_2158	"Ponovni zagon"
-    IDS_2159	"Zaustavitev ACPI"
-    IDS_2160	"Nastavitve"
-    IDS_2161    "Zgodnejši pogon"
+    IDS_2134	LIB_NAME_FLUIDSYNTH " je potreben za FluidSynth MIDI izhod."
+    IDS_2135	"Preklapljam v celozaslonski način"
+    IDS_2136	"Ne pokaži več tega sporočila"
+    IDS_2137	"Prekliči izhod"
+    IDS_2138	"Resetiraj"
+    IDS_2139	"Ne resetiraj"
+    IDS_2140	"Slike MO (*.IM?;*.MDI)\0*.IM?;*.MDI\0Vse datoteke (*.*)\0*.*\0"
+    IDS_2141	"Slike CD-ROM (*.ISO;*.CUE)\0*.ISO;*.CUE\0Vse datoteke (*.*)\0*.*\0"
+    IDS_2142	"Konfiguracija naprave %hs"
+    IDS_2143    "Zaslon v načinu spanja"
+    IDS_2144	"Senčilniki OpenGL (*.GLSL)\0*.GLSL\0Vse datoteke (*.*)\0*.*\0"
+    IDS_2145	"Možnosti OpenGL"
+    IDS_2146	"Nalagate nepodprto konfiguracijo"
+    IDS_2147	"Filtriranje vrste procesorja glede na izbran sistem je onemogočeno za ta emuliran sistem.\n\nTako lahko izberete procesor, ki je sicer nezdružljiv z izbranim sistemom. Vendar lahko naletite na nezdružljivosti z BIOS-om sistema ali drugo programsko opremo\n\nOmogočanje te nastavitve ni uradno podprto, vsa poročila o hroščih iz tega naslova pa bodo zaprta kot neveljavna."
+    IDS_2148	"Nadaljuj"
+    IDS_2149	"Kaseta: %s"
+    IDS_2150	"Slike kaset (*.PCM;*.RAW;*.WAV;*.CAS)\0*.PCM;*.RAW;*.WAV;*.CAS\0Vse datoteke (*.*)\0*.*\0"
+    IDS_2151	"Spominski vložek %i: %ls"
+    IDS_2152	"Slike spominskega vložka (*.A;*.B;*.JRC)\0*.A;*.B;*.JRC\0Vse datoteke (*.*)\0*.*\0"
+    IDS_2153	"Napaka pri zagonu sistema za upodabljanje"
+    IDS_2154	"Sistema za upodabljanje OpenGL (3.0 Core) ni bilo mogoče zagnati. Uporabite drug sistem za upodabljanje."
+    IDS_2155	"Nadaljuj izvajanje"
+    IDS_2156	"Prekini izvajanje"
+    IDS_2157	"Press Ctrl+Alt+Del"
+    IDS_2158	"Press Ctrl+Alt+Esc"
+    IDS_2159	"Ponovni zagon"
+    IDS_2160	"Zaustavitev ACPI"
+    IDS_2161	"Nastavitve"
+    IDS_2162    "Zgodnejši pogon"
 END
 
 STRINGTABLE DISCARDABLE 

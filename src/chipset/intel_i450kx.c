@@ -1,16 +1,18 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Implementation of the Intel 450KX Mars Chipset.
+ *          Implementation of the Intel 450KX Mars Chipset.
  *
- * Authors:	Tiseno100,
  *
- *		Copyright 2021 Tiseno100.
+ *
+ * Authors: Tiseno100
+ *
+ *          Copyright 2021 Tiseno100.
  */
 
 /*
@@ -19,7 +21,6 @@ Due to 86Box limitations we can't manage them seperately thus it is dev branch t
 
 i450GX is way more popular of an option but needs more stuff.
 */
-
 #include <stdarg.h>
 #include <stdint.h>
 #include <stdio.h>
