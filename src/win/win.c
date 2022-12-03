@@ -884,6 +884,26 @@ plat_mmap(size_t size, uint8_t executable)
 }
 
 void
+plat_get_global_config_dir(char* strptr)
+{
+    wchar_t appdata_dir[1024] = { L'\0' };
+
+    if (_wgetenv(L"LOCALAPPDATA") && _wgetenv(L"LOCALAPPDATA")[0] != L'\0') {
+        size_t len                 = 0;
+        wcsncpy(appdata_dir, _wgetenv(L"LOCALAPPDATA"), 1024);
+        len = wcslen(appdata_dir);
+        if (appdata_dir[len - 1] != L'\\') {
+            appdata_dir[len]     = L'\\';
+            appdata_dir[len + 1] = L'\0';
+        }
+        wcscat(appdata_dir, L"86box");
+        CreateDirectoryW(appdata_dir, NULL);
+        wcscat(appdata_dir, L"\\");
+        c16stombs(strptr, appdata_dir, 1024);
+    }
+}
+
+void
 plat_init_rom_paths(void)
 {
     wchar_t appdata_dir[1024] = { L'\0' };
