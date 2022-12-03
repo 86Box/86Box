@@ -810,6 +810,18 @@ plat_init_rom_paths()
 #endif
 }
 
+void
+plat_get_global_config_dir(char *strptr)
+{
+#ifdef __APPLE__
+    char* prefPath = SDL_GetPrefPath(NULL, "net.86Box.86Box")
+#else
+    char* prefPath = SDL_GetPrefPath(NULL, "86Box");
+#endif
+    strncpy(strptr, prefPath, 1024);
+    path_slash(strptr);
+}
+
 bool
 process_media_commands_3(uint8_t *id, char *fn, uint8_t *wp, int cmdargc)
 {
