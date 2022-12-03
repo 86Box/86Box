@@ -25,6 +25,7 @@
 #include "qt_util.hpp"
 
 extern "C" {
+#include <86box/86box.h>
 #include <86box/plat.h>
 #include <86box/random.h>
 #include <86box/scsi_device.h>
@@ -130,20 +131,20 @@ NewFloppyDialog::NewFloppyDialog(MediaType type, QWidget *parent)
                 Models::AddEntry(model, tr(floppyTypes[i].toUtf8().data()), i);
             }
             ui->fileField->setFilter(
-                tr("All images") % util::DlgFilter({ "86f", "dsk", "flp", "im?", "*fd?" }) % tr("Basic sector images") % util::DlgFilter({ "dsk", "flp", "im?", "img", "*fd?" }) % tr("Surface images") % util::DlgFilter({ "86f" }, true));
+                tr("All images") % util::DlgFilter({ "86f", "dsk", "flp", "im?", "img", "*fd?" }) % tr("Basic sector images") % util::DlgFilter({ "dsk", "flp", "im?", "img", "*fd?" }) % tr("Surface images") % util::DlgFilter({ "86f" }, true));
 
             break;
         case MediaType::Zip:
             for (int i = 0; i < zipTypes.size(); ++i) {
                 Models::AddEntry(model, tr(zipTypes[i].toUtf8().data()), i);
             }
-            ui->fileField->setFilter(tr("ZIP images") % util::DlgFilter({ "im?", "zdi" }, true));
+            ui->fileField->setFilter(tr("ZIP images") % util::DlgFilter({ "im?", "img", "zdi" }, true));
             break;
         case MediaType::Mo:
             for (int i = 0; i < moTypes.size(); ++i) {
                 Models::AddEntry(model, tr(moTypes[i].toUtf8().data()), i);
             }
-            ui->fileField->setFilter(tr("MO images") % util::DlgFilter({ "im?", "mdi" }) % tr("All files") % util::DlgFilter({ "*" }, true));
+            ui->fileField->setFilter(tr("MO images") % util::DlgFilter({ "im?", "img", "mdi" }) % tr("All files") % util::DlgFilter({ "*" }, true));
             break;
     }
 
@@ -185,6 +186,8 @@ NewFloppyDialog::onCreate()
 {
     auto      filename = ui->fileField->fileName();
     QFileInfo fi(filename);
+    filename = (fi.isRelative() && !fi.filePath().isEmpty()) ? (usr_path + fi.filePath()) : fi.filePath();
+    ui->fileField->setFileName(filename);
     FileType  fileType;
 
     QProgressDialog progress("Creating floppy image", QString(), 0, 100, this);
