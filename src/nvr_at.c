@@ -997,13 +997,13 @@ nvr_at_init(const device_t *info)
         case 1: /* standard AT */
         case 5: /* AMI WinBIOS 1994 */
         case 6: /* AMI BIOS 1995 */
-            if ((info->local & 0x0f) == 1)
+            if ((info->local & 0x1f) == 0x11)
                 local->flags |= FLAG_PIIX4;
             else {
                 local->def = 0x00;
-                if ((info->local & 0x0f) == 5)
+                if ((info->local & 0x1f) == 0x15)
                     local->flags |= FLAG_AMI_1994_HACK;
-                else if ((info->local & 0x0f) == 6)
+                else if ((info->local & 0x1f) == 0x16)
                     local->flags |= FLAG_AMI_1995_HACK;
                 else
                     local->def = 0xff;
@@ -1079,7 +1079,7 @@ nvr_at_init(const device_t *info)
             io_sethandler(0x0070, 2,
                           nvr_read, NULL, NULL, nvr_write, NULL, NULL, nvr);
         }
-        if (info->local & 0x10) {
+        if ((info->local & 0x1f) == 0x11) {
             io_sethandler(0x0072, 2,
                           nvr_read, NULL, NULL, nvr_write, NULL, NULL, nvr);
         }
