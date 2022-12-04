@@ -896,14 +896,14 @@ void
 nvr_at_index_read_handler(int set, uint16_t base, nvr_t *nvr)
 {
     io_handler(0, base, 1,
-               nvr_read, NULL, NULL, NULL, NULL, NULL, nvr);
+               NULL, NULL, NULL, nvr_write, NULL, NULL, nvr);
     nvr_at_handler(0, base, nvr);
 
     if (set)
         nvr_at_handler(1, base, nvr);
     else {
         io_handler(1, base, 1,
-                   nvr_read, NULL, NULL, NULL, NULL, NULL, nvr);
+                   NULL, NULL, NULL, nvr_write, NULL, NULL, nvr);
         io_handler(1, base + 1, 1,
                    nvr_read, NULL, NULL, nvr_write, NULL, NULL, nvr);
     }
