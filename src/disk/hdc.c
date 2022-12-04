@@ -103,6 +103,7 @@ static const struct {
     { &xta_wdxt150_device          },
     { &xtide_acculogic_device      },
     { &xtide_device                },
+    { &xtide_plus_device           },
     { &esdi_ps2_device             },
     { &ide_pci_device              },
     { &ide_pci_2ch_device          },
