@@ -902,9 +902,9 @@ nvr_at_index_read_handler(int set, uint16_t base, nvr_t *nvr)
     if (set)
         nvr_at_handler(1, base, nvr);
     else {
-        io_handler(set, base, 1,
+        io_handler(1, base, 1,
                    nvr_read, NULL, NULL, NULL, NULL, NULL, nvr);
-        io_handler(set, base + 1, 1,
+        io_handler(1, base + 1, 1,
                    nvr_read, NULL, NULL, nvr_write, NULL, NULL, nvr);
     }
 }
