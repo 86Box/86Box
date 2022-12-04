@@ -116,7 +116,7 @@ typedef struct cdrom {
         seek_diff, cd_end;
 
     int host_drive, prev_host_drive,
-        cd_buflen, noplay;
+        cd_buflen, audio_op;
 
     const cdrom_ops_t *ops;
 
