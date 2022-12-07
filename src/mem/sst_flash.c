@@ -484,7 +484,7 @@ const device_t sst_flash_29ee010_device = {
 };
 
 const device_t winbond_flash_w29c010_device = {
-    .name          = "SST 29EE010 Flash BIOS",
+    .name          = "Winbond W29C010 Flash BIOS",
     .internal_name = "winbond_flash_w29c010",
     .flags         = 0,
     .local         = WINBOND | W29C010 | SIZE_1M,
