@@ -366,6 +366,10 @@ hdd_count(int bus)
 void
 MachineStatus::refreshIcons()
 {
+    /* Check if icons should show activity. */
+    if (!update_icons)
+        return;
+
     for (size_t i = 0; i < FDD_NUM; ++i) {
         d->fdd[i].setActive(machine_status.fdd[i].active);
         d->fdd[i].setEmpty(machine_status.fdd[i].empty);
@@ -397,6 +401,23 @@ MachineStatus::refreshIcons()
     for (int i = 0; i < 2; ++i) {
         d->cartridge[i].setEmpty(machine_status.cartridge[i].empty);
     }
+}
+
+void
+MachineStatus::clearActivity()
+{
+    for (auto &fdd : d->fdd)
+        fdd.setActive(false);
+    for (auto &cdrom : d->cdrom)
+        cdrom.setActive(false);
+    for (auto &zip : d->zip)
+        zip.setActive(false);
+    for (auto &mo : d->mo)
+        mo.setActive(false);
+    for (auto &hdd : d->hdds)
+        hdd.setActive(false);
+    for (auto &net : d->net)
+        net.setActive(false);
 }
 
 void

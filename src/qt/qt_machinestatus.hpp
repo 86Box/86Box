@@ -70,6 +70,7 @@ public:
     static void iterateNIC(const std::function<void(int i)> &cb);
 
     QString getMessage();
+    void    clearActivity();
 public slots:
     void refresh(QStatusBar *sbar);
     void message(const QString &msg);
