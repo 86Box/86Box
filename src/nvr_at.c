@@ -1096,7 +1096,7 @@ nvr_at_init(const device_t *info)
             io_sethandler(0x0070, 2,
                           nvr_read, NULL, NULL, nvr_write, NULL, NULL, nvr);
         }
-        if ((info->local & 0x1f) == 0x11) {
+        if (((info->local & 0x1f) == 0x11) || ((info->local & 0x1f) == 0x17)) {
             io_sethandler(0x0072, 2,
                           nvr_read, NULL, NULL, nvr_write, NULL, NULL, nvr);
         }
