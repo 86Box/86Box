@@ -1006,6 +1006,8 @@ else
 		rm -rf "$cache_dir/SDL2-"* # remove old versions
 		wget -qO - https://www.libsdl.org/release/SDL2-2.0.20.tar.gz | tar zxf - -C "$cache_dir" || rm -rf "$prefix"
 	fi
+	cp cmake/flags-gcc.cmake cmake/flags-gcc.cmake.old
+	sed -i -e 's/ -Werror=.*\([" ]\)/\1/g' cmake/flags-gcc.cmake # temporary hack for -Werror=old-style-definition non-compliance
 	prefix_build="$cache_dir/SDL2-2.0.20-build-$arch_deb"
 	cmake -G Ninja -D SDL_SHARED=ON -D SDL_STATIC=OFF \
 		\
@@ -1028,6 +1030,7 @@ else
 		-S "$prefix" -B "$prefix_build" || exit 99
 	cmake --build "$prefix_build" -j$(nproc) || exit 99
 	cmake --install "$prefix_build" || exit 99
+	mv cmake/flags-gcc.cmake.old cmake/flags-gcc.cmake
 
 	# Archive Discord Game SDK library.
 	7z e -y -o"archive_tmp/usr/lib" "$discord_zip" "lib/$arch_discord/discord_game_sdk.so"
