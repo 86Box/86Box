@@ -40,7 +40,7 @@
 #include <86box/rom.h>
 
 static int optimc_wss_dma[4] = { 0, 0, 1, 3 };
-static int optimc_wss_irq[4] = { 7, 9, 10, 11, };
+static int optimc_wss_irq[4] = { 7, 9, 10, 11 };
 
 enum optimc_local_flags {
     OPTIMC_CS4231 = 0x100,
