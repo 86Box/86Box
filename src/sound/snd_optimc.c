@@ -101,7 +101,7 @@ optimc_wss_write(uint16_t addr, uint8_t val, void *priv)
         return;
     optimc->wss_config = val;
     ad1848_setdma(&optimc->ad1848, optimc_wss_dma[val & 3]);
-    ad1848_setirq(&optimc->ad1848, optimc_wss_irq[(val >> 3) & 7]);
+    ad1848_setirq(&optimc->ad1848, optimc_wss_irq[val & 3]);
 }
 
 static void
