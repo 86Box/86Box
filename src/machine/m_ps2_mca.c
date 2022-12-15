@@ -1405,7 +1405,7 @@ machine_ps2_model_55sx_init(const machine_t *model)
 
     machine_ps2_common_init(model);
 
-    ps2.planar_id = 0xfffb;
+    ps2.planar_id = 0xfbff;
     ps2_mca_board_model_55sx_init(0, 4);
 
     return ret;
