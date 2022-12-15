@@ -2793,7 +2793,7 @@ win_settings_hard_disks_add_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM 
 
             add_locations(hdlg);
             hdd_ptr->bus = HDD_BUS_IDE;
-            max_spt      = 63;
+            max_spt      = 255;
             max_hpc      = 255;
             settings_set_cur_sel(hdlg, IDC_COMBO_HD_BUS, hdd_ptr->bus - 1);
             max_tracks = 266305;
