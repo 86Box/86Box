@@ -703,13 +703,13 @@ HarddiskDialog::on_comboBoxBus_currentIndexChanged(int index)
             max_cylinders = 266305;
             break;
         case HDD_BUS_IDE:
-            max_sectors   = 63;
+            max_sectors   = 255;
             max_heads     = 255;
             max_cylinders = 266305;
             break;
         case HDD_BUS_ATAPI:
         case HDD_BUS_SCSI:
-            max_sectors   = 99;
+            max_sectors   = 255;
             max_heads     = 255;
             max_cylinders = 266305;
             break;
