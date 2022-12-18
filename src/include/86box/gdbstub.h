@@ -53,12 +53,12 @@ enum {
 extern int      gdbstub_step, gdbstub_next_asap;
 extern uint64_t gdbstub_watch_pages[(((uint32_t) -1) >> (MEM_GRANULARITY_BITS + 6)) + 1];
 
-extern void gdbstub_cpu_init();
-extern int  gdbstub_instruction();
-extern int  gdbstub_int3();
+extern void gdbstub_cpu_init(void);
+extern int  gdbstub_instruction(void);
+extern int  gdbstub_int3(void);
 extern void gdbstub_mem_access(uint32_t *addrs, int access);
-extern void gdbstub_init();
-extern void gdbstub_close();
+extern void gdbstub_init(void);
+extern void gdbstub_close(void);
 
 #else
 
