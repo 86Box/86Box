@@ -80,11 +80,6 @@ static char flash_path[1024];
 #define SST39SF010    0xb500
 #define SST39SF020    0xb600
 #define SST39SF040    0xb700
-
-#define SST39LF512    0xd400
-#define SST39LF010    0xd500
-#define SST39LF020    0xd600
-#define SST39LF040    0xd700
 #define SST39LF080    0xd800
 #define SST39LF016    0xd900
 
@@ -521,6 +516,20 @@ const device_t sst_flash_29ee010_device = {
     .internal_name = "sst_flash_29ee010",
     .flags         = 0,
     .local         = SST | SST29EE010 | SIZE_1M,
+    .init          = sst_init,
+    .close         = sst_close,
+    .reset         = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t winbond_flash_w29c010_device = {
+    .name          = "Winbond W29C010 Flash BIOS",
+    .internal_name = "winbond_flash_w29c010",
+    .flags         = 0,
+    .local         = WINBOND | W29C010 | SIZE_1M,
     .init          = sst_init,
     .close         = sst_close,
     .reset         = NULL,

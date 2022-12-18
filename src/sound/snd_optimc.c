@@ -6,7 +6,7 @@
  *
  *          This file is part of the 86Box distribution.
  *
- *          OPTi MediaCHIPS 82C929 (also known as OPTi MAD16 Pro) audio controller emulation.
+ *          OPTi MediaCHIPS 82C929A (also known as OPTi MAD16 Pro) audio controller emulation.
  *
  *
  *
@@ -31,7 +31,6 @@
 #include <86box/io.h>
 #include <86box/midi.h>
 #include <86box/timer.h>
-#include <86box/nvr.h>
 #include <86box/pic.h>
 #include <86box/sound.h>
 #include <86box/gameport.h>
@@ -41,7 +40,7 @@
 #include <86box/rom.h>
 
 static int optimc_wss_dma[4] = { 0, 0, 1, 3 };
-static int optimc_wss_irq[8] = { 5, 7, 9, 10, 11, 12, 14, 15 }; /* W95 only uses 7-10, others may be wrong */
+static int optimc_wss_irq[4] = { 7, 9, 10, 11 };
 
 enum optimc_local_flags {
     OPTIMC_CS4231 = 0x100,
@@ -68,7 +67,7 @@ typedef struct optimc_t {
 
     sb_t   *sb;
     uint8_t regs[6];
-} optimc_t, opti_82c929_t;
+} optimc_t, opti_82c929a_t;
 
 static void
 optimc_filter_opl(void* priv, double* out_l, double* out_r)
@@ -102,7 +101,7 @@ optimc_wss_write(uint16_t addr, uint8_t val, void *priv)
         return;
     optimc->wss_config = val;
     ad1848_setdma(&optimc->ad1848, optimc_wss_dma[val & 3]);
-    ad1848_setirq(&optimc->ad1848, optimc_wss_irq[(val >> 3) & 7]);
+    ad1848_setirq(&optimc->ad1848, optimc_wss_irq[val & 3]);
 }
 
 static void
@@ -334,7 +333,7 @@ optimc_init(const device_t *info)
     optimc->cur_wss_addr       = 0x530;
     optimc->cur_mode           = 0;
     optimc->cur_addr           = 0x220;
-    optimc->cur_irq            = 7;
+    optimc->cur_irq            = 5;
     optimc->cur_wss_enabled    = 0;
     optimc->cur_dma            = 1;
     optimc->cur_mpu401_irq     = 9;
@@ -424,7 +423,7 @@ mirosound_pcm10_available(void)
     return rom_present("roms/sound/yamaha/yrw801.rom");
 }
 
-static const device_config_t acermagic_s20_config[] = {
+static const device_config_t optimc_config[] = {
   // clang-format off
     {
         .name = "receive_input",
@@ -455,7 +454,7 @@ const device_t acermagic_s20_device = {
     { .available = NULL },
     .speed_changed = optimc_speed_changed,
     .force_redraw  = NULL,
-    .config        = acermagic_s20_config
+    .config        = optimc_config
 };
 
 const device_t mirosound_pcm10_device = {
@@ -469,5 +468,5 @@ const device_t mirosound_pcm10_device = {
     { .available = mirosound_pcm10_available },
     .speed_changed = optimc_speed_changed,
     .force_redraw  = NULL,
-    .config        = acermagic_s20_config
+    .config        = optimc_config
 };

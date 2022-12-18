@@ -1239,18 +1239,6 @@ s3_accel_out_fifo(s3_t *s3, uint16_t port, uint8_t val)
                                 s3_accel_start(1, 1, 0xffffffff, s3->accel.pix_trans[0], s3);
                         }
                         break;
-                    case 0x200:
-                        if (((s3->accel.multifunc[0xa] & 0xc0) == 0x80) || (s3->accel.cmd & 2)) {
-                            if (((s3->accel.frgd_mix & 0x60) != 0x40) || ((s3->accel.bkgd_mix & 0x60) != 0x40))
-                                s3_accel_start(16, 1, s3->accel.pix_trans[0] | (s3->accel.pix_trans[0] << 8), 0, s3);
-                            else
-                                s3_accel_start(2, 1, 0xffffffff, s3->accel.pix_trans[0] | (s3->accel.pix_trans[0] << 8), s3);
-                        } else {
-                            if (s3->chip != S3_86C928PCI && s3->chip != S3_86C928) {
-                                s3_accel_start(2, 1, 0xffffffff, s3->accel.pix_trans[0] | (s3->accel.pix_trans[0] << 8), s3);
-                            }
-                        }
-                        break;
                 }
             }
             break;

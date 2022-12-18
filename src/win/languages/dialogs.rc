@@ -1009,6 +1009,7 @@ END
 #undef STR_BUS
 #undef STR_CHANNEL
 #undef STR_ID
+#undef STR_SPEED
 
 #undef STR_SPECIFY
 #undef STR_SECTORS
