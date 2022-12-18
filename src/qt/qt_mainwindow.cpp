@@ -2231,6 +2231,9 @@ MainWindow::on_actionUpdate_status_bar_icons_triggered()
 {
     update_icons ^= 1;
     ui->actionUpdate_status_bar_icons->setChecked(update_icons);
+
+    /* Prevent icons staying when disabled during activity. */
+    status->clearActivity();
 }
 
 void

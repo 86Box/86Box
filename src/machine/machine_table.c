@@ -10587,7 +10587,7 @@ const machine_t machines[] = {
             .max = 1572864,
             .step = 8192
         },
-        255,
+        .nvrmask = 255,
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
         .gpio = 0,
