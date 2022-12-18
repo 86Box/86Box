@@ -2045,7 +2045,8 @@ scsi_cdrom_command(scsi_common_t *sc, uint8_t *cdb)
                     break;
                 }
                 pos = (cdb[2] << 24) | (cdb[3] << 16) | (cdb[4] << 8) | cdb[5];
-                ret = cdrom_audio_track_search(dev->drv, pos, cdb[9], cdb[1] & 1);
+                ret = cdrom_audio_track_search(dev->drv, pos, cdb[9] & 0xc0, cdb[1] & 1);
+                dev->drv->audio_op = (cdb[1] & 1) ? 0x03 : 0x02;
 
                 if (ret)
                     scsi_cdrom_command_complete(dev);
@@ -2061,7 +2062,7 @@ scsi_cdrom_command(scsi_common_t *sc, uint8_t *cdb)
                 break;
             }
             pos = (cdb[2] << 24) | (cdb[3] << 16) | (cdb[4] << 8) | cdb[5];
-            ret = cdrom_toshiba_audio_play(dev->drv, pos, cdb[9]);
+            ret = cdrom_toshiba_audio_play(dev->drv, pos, cdb[9] & 0xc0);
 
             if (ret)
                 scsi_cdrom_command_complete(dev);
@@ -2388,7 +2389,7 @@ scsi_cdrom_command(scsi_common_t *sc, uint8_t *cdb)
                             if (dev->early)
                                 ide_padstr8(dev->buffer + idx, 40, "CD-ROM CDS-431"); /* Product */
                             else
-                                ide_padstr8(dev->buffer + idx, 40, "XM6201TASUN32XCD1103"); /* Product */
+                                ide_padstr8(dev->buffer + idx, 40, "CD-ROM DRIVE:XM"); /* Product */
                         } else {
                             if (dev->early)
                                 ide_padstr8(dev->buffer + idx, 40, "CD-ROM DRIVE:260"); /* Product */
@@ -2399,7 +2400,7 @@ scsi_cdrom_command(scsi_common_t *sc, uint8_t *cdb)
                         }
 #endif
                         idx += 40;
-                        ide_padstr8(dev->buffer + idx, 20, "53R141"); /* Product */
+                        ide_padstr8(dev->buffer + idx, 20, "53R141"); /* Serial */
                         idx += 20;
                         break;
 
@@ -2443,8 +2444,8 @@ scsi_cdrom_command(scsi_common_t *sc, uint8_t *cdb)
                         ide_padstr8(dev->buffer + 32, 4, "H42");             /* Revision */
                     } else {
                         ide_padstr8(dev->buffer + 8, 8, "TOSHIBA");            /* Vendor */
-                        ide_padstr8(dev->buffer + 16, 16, "XM6201TASUN32XCD"); /* Product */
-                        ide_padstr8(dev->buffer + 32, 4, "1103");              /* Revision */
+                        ide_padstr8(dev->buffer + 16, 16, "CD-ROM DRIVE:XM"); /* Product */
+                        ide_padstr8(dev->buffer + 32, 4, "3433");              /* Revision */
                     }
                 } else {
                     if (dev->early) {
@@ -2492,12 +2493,14 @@ atapi_out:
         case GPCMD_PAUSE_RESUME:
             scsi_cdrom_set_phase(dev, SCSI_PHASE_STATUS);
             cdrom_audio_pause_resume(dev->drv, cdb[8] & 0x01);
+            dev->drv->audio_op = (cdb[8] & 0x01) ? 0x03 : 0x01;
             scsi_cdrom_command_complete(dev);
             break;
 
         case GPCMD_STILL:
             scsi_cdrom_set_phase(dev, SCSI_PHASE_STATUS);
-            dev->drv->cd_status = CD_STATUS_PAUSED;
+            cdrom_audio_pause_resume(dev->drv, 0x00);
+            dev->drv->audio_op = 0x01;
             scsi_cdrom_command_complete(dev);
             break;
 

@@ -1167,7 +1167,7 @@ cpu_set(void)
             if (cpu_s->cpu_type >= CPU_K6_2)
                 x86_setopcodes(ops_386, ops_k62_0f);
 #    if defined(DEV_BRANCH) && defined(USE_AMD_K5)
-            else if (cpu_s->cpu_type = CPU_K6)
+            else if (cpu_s->cpu_type == CPU_K6)
                 x86_setopcodes(ops_386, ops_k6_0f);
             else
                 x86_setopcodes(ops_386, ops_pentiummmx_0f);

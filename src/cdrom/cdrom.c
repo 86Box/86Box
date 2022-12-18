@@ -430,26 +430,31 @@ cdrom_audio_track_search(cdrom_t *dev, uint32_t pos, int type, uint8_t playbit)
     if (dev->cd_status == CD_STATUS_DATA_ONLY)
         return 0;
 
+    cdrom_log("Audio Track Search: MSF = %06x, type = %02x, playbit = %02x\n", pos, type, playbit);
     switch (type) {
+        case 0x00:
+            if (pos == 0xffffffff) {
+                cdrom_log("CD-ROM %i: Search from current position\n", dev->id);
+                pos = dev->seek_pos;
+            }
+            break;
         case 0x40:
-            cdrom_log("Audio Track Search: MSF = %06x, type = %02x\n", pos, type);
             m   = CD_DCB((pos >> 24) & 0xff);
             s   = CD_DCB((pos >> 16) & 0xff);
             f   = CD_DCB((pos >> 8) & 0xff);
-            pos = MSFtoLBA(m, s, f) - 150;
+            if (pos == 0xffffffff) {
+                cdrom_log("CD-ROM %i: Search from current position\n", dev->id);
+                pos = dev->seek_pos;
+            } else
+                pos = MSFtoLBA(m, s, f) - 150;
             break;
     }
 
-    /* Do this at this point, since it's at this point that we know the
-       actual LBA position to start playing from. */
-    if (!(dev->ops->track_type(dev, pos) & CD_TRACK_AUDIO)) {
-        cdrom_log("CD-ROM %i: LBA %08X not on an audio track\n", dev->id, pos);
-        cdrom_stop(dev);
-        return 0;
-    }
+    /* Unlike standard commands, if there's a data track on an Audio CD (mixed mode)
+       the playback continues with the audio muted (Toshiba CD-ROM SCSI-2 manual reference). */
 
     dev->seek_pos  = pos;
-    dev->noplay    = !playbit;
+    dev->cd_buflen = 0;
     dev->cd_status = playbit ? CD_STATUS_PLAYING : CD_STATUS_PAUSED;
     return 1;
 }
@@ -462,30 +467,29 @@ cdrom_toshiba_audio_play(cdrom_t *dev, uint32_t pos, int type)
     if (dev->cd_status == CD_STATUS_DATA_ONLY)
         return 0;
 
-    if (dev->cd_status == CD_STATUS_STOPPED || dev->cd_status == CD_STATUS_PAUSED)
-        dev->cd_status = CD_STATUS_PLAYING;
-
     /*Preliminary support, revert if too incomplete*/
+    cdrom_log("Toshiba Play Audio: MSF = %06x, cdstatus = %02x\n", pos, dev->cd_status);
     switch (type) {
         case 0x40:
-            cdrom_log("Toshiba Play Audio: MSF = %06x, type = %02x\n", pos, type);
             m   = CD_DCB((pos >> 24) & 0xff);
             s   = CD_DCB((pos >> 16) & 0xff);
             f   = CD_DCB((pos >> 8) & 0xff);
             pos = MSFtoLBA(m, s, f) - 150;
             break;
+        case 0xc0:
+            if (pos == 0xffffffff) {
+                cdrom_log("CD-ROM %i: Playing from current position\n", dev->id);
+                pos = dev->cd_end;
+            }
+            break;
     }
 
-    /* Do this at this point, since it's at this point that we know the
-       actual LBA position to start playing from. */
-    if (!(dev->ops->track_type(dev, pos) & CD_TRACK_AUDIO)) {
-        cdrom_log("CD-ROM %i: LBA %08X not on an audio track\n", dev->id, pos);
-        cdrom_stop(dev);
-        return 0;
-    }
+    /* Unlike standard commands, if there's a data track on an Audio CD (mixed mode)
+       the playback continues with the audio muted (Toshiba CD-ROM SCSI-2 manual reference). */
 
-    dev->cd_end    = pos;
+    dev->cd_end = pos;
     dev->cd_buflen = 0;
+    dev->cd_status = CD_STATUS_PLAYING;
     return 1;
 }
 
@@ -587,15 +591,12 @@ cdrom_get_current_subcodeq_playstatus(cdrom_t *dev, uint8_t *b)
 
     dev->ops->get_subchannel(dev, dev->seek_pos, &subc);
 
-    if (dev->cd_status == CD_STATUS_PLAYING)
-        ret = 0x00;
-    else if (dev->cd_status == CD_STATUS_PAUSED) {
-        if (dev->noplay)
-            ret = 0x02;
-        else
-            ret = 0x01;
-    } else
+    cdrom_log("Get Current Subcode-q Play Status = %02x, op = %02x.\n", dev->cd_status, dev->audio_op);
+
+    if ((dev->cd_status == CD_STATUS_DATA_ONLY) || (dev->cd_status == CD_STATUS_PLAYING_COMPLETED))
         ret = 0x03;
+    else
+        ret = (dev->cd_status == CD_STATUS_PLAYING) ? 0x00 : dev->audio_op;
 
     b[0] = subc.attr;
     b[1] = CD_BCD(subc.track);
@@ -895,6 +896,7 @@ cdrom_read_disc_info_toc(cdrom_t *dev, unsigned char *b, unsigned char track, in
 
     dev->ops->get_tracks(dev, &first_track, &last_track);
 
+    cdrom_log("Read DISC Info TOC Type = %d.\n", type);
     switch (type) {
         case 0:
             b[0] = CD_BCD(first_track);
