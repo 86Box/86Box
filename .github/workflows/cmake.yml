@@ -196,8 +196,8 @@ jobs:
         ui:
           - name: Win32 GUI
             qt: off
-          - name: Qt GUI
-            qt: on
+#          - name: Qt GUI
+#            qt: on
             slug: -Qt
         target:
           - name: x86
