@@ -104,7 +104,7 @@ jobs:
         run: cmake --install build
       - uses: actions/upload-artifact@v3
         with:
-          name: '86Box${{ matrix.dynarec.slug }}${{ matrix.build.slug }}-Windows-${{ matrix.environment.msystem }}-gha${{ github.run_number }}'
+          name: '86Box${{ matrix.ui.slug }}${{ matrix.dynarec.slug }}${{ matrix.build.slug }}-Windows-${{ matrix.environment.msystem }}-gha${{ github.run_number }}'
           path: build/artifacts/**
 
   llvm-windows:
