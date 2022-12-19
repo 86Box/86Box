@@ -200,6 +200,9 @@ endif
 ifndef RTMIDI
  RTMIDI := y
 endif
+ifndef MINITRACE
+ MINITRACE := n
+endif
 ifeq ($(DYNAREC), y)
  ifeq ($(ARM), y)
   ifeq ($(NEW_DYNAREC), n)
