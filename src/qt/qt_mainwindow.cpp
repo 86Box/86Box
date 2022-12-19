@@ -1835,6 +1835,7 @@ video_toggle_option(QAction *action, int *val)
     action->setChecked(*val > 0 ? true : false);
     endblit();
     config_save();
+    reset_screen_size();
     device_force_redraw();
     for (int i = 0; i < MONITORS_NUM; i++) {
         if (monitors[i].target_buffer)
