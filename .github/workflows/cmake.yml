@@ -105,7 +105,7 @@ jobs:
         shell: msys2 {0}
 
     strategy:
-      fail-fast: false
+      fail-fast: true
       matrix:
         build:
           - name: Debug
@@ -162,6 +162,7 @@ jobs:
       - name: Build
         run: cmake --build build
       - name: Generate package
+        if: matrix.environment.msystem != 'MINGW32'
         run: cmake --install build
       - uses: actions/upload-artifact@v3
         with:
