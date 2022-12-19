@@ -15,8 +15,8 @@ on:
     - "!**/CMakeLists.txt"
 
 jobs:
-  build:
-    name: MSYS2 Makefile build ${{ matrix.build.name }} ${{ matrix.dynarec.name }} build (${{ matrix.environment.msystem }})
+  msys2:
+    name: MSYS2 Makefile (Win32 GUI, ${{ matrix.build.name }}, ${{ matrix.dynarec.name }}, ${{ matrix.environment.msystem }})
 
     runs-on: windows-latest
 

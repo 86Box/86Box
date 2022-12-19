@@ -95,16 +95,16 @@ void mtr_flush_with_state(int);
 //	 pthread basics
 #ifdef _WIN32
 
-static int get_cur_thread_id() {
+static int get_cur_thread_id(void) {
 	return (int)GetCurrentThreadId();
 }
-static int get_cur_process_id() {
+static int get_cur_process_id(void) {
 	return (int)GetCurrentProcessId();
 }
 
 static uint64_t _frequency = 0;
 static uint64_t _starttime = 0;
-double mtr_time_s() {
+double mtr_time_s(void) {
 	if (_frequency == 0) {
 		QueryPerformanceFrequency((LARGE_INTEGER*)&_frequency);
 		QueryPerformanceCounter((LARGE_INTEGER*)&_starttime);
@@ -124,7 +124,7 @@ static BOOL WINAPI CtrlHandler(DWORD fdwCtrlType) {
 	ExitProcess(1);
 }
 
-void mtr_register_sigint_handler() {
+void mtr_register_sigint_handler(void) {
 	// For console apps:
 	SetConsoleCtrlHandler(&CtrlHandler, TRUE);
 }
@@ -154,10 +154,10 @@ static void join_flushing_thread(void) {
 
 #else
 
-static inline int get_cur_thread_id() {
+static inline int get_cur_thread_id(void) {
 	return (int)(intptr_t)pthread_self();
 }
-static inline int get_cur_process_id() {
+static inline int get_cur_process_id(void) {
 	return (int)getpid();
 }
 
@@ -193,7 +193,7 @@ double mtr_time_s() {
 	return time.tv_sec + time.tv_nsec / 1.0e9;
 }
 #else
-double mtr_time_s() {
+double mtr_time_s(void) {
 	static time_t start;
 	struct timeval tv;
 	gettimeofday(&tv, NULL);
@@ -217,7 +217,7 @@ static void termination_handler(int signum) {
 	exit(1);
 }
 
-void mtr_register_sigint_handler() {
+void mtr_register_sigint_handler(void) {
 #ifndef MTR_ENABLED
 	return;
 #endif
@@ -251,7 +251,7 @@ void mtr_init(const char *json_file) {
 	mtr_init_from_stream(fopen(json_file, "wb"));
 }
 
-void mtr_shutdown() {
+void mtr_shutdown(void) {
 	int i;
 #ifndef MTR_ENABLED
 	return;
@@ -289,7 +289,7 @@ const char *mtr_pool_string(const char *str) {
 	return "string pool full";
 }
 
-void mtr_start() {
+void mtr_start(void) {
 #ifndef MTR_ENABLED
 	return;
 #endif
@@ -304,7 +304,7 @@ void mtr_start() {
 	init_flushing_thread();
 }
 
-void mtr_stop() {
+void mtr_stop(void) {
 #ifndef MTR_ENABLED
 	return;
 #endif
@@ -435,7 +435,7 @@ void mtr_flush_with_state(int is_last) {
 	pthread_mutex_unlock(&mutex);
 }
 
-void mtr_flush() {
+void mtr_flush(void) {
 	mtr_flush_with_state(FALSE);
 }
 

@@ -25,7 +25,7 @@ on:
 
 jobs:
   msys2:
-    name: MSYS2 ${{ matrix.build.name }} ${{ matrix.dynarec.name }} build (${{ matrix.environment.msystem }})
+    name: MSYS2 (Win32 GUI, ${{ matrix.build.name }}, ${{ matrix.dynarec.name }}, ${{ matrix.environment.msystem }})
 
     runs-on: windows-2022
 
@@ -95,6 +95,79 @@ jobs:
           name: '86Box${{ matrix.dynarec.slug }}${{ matrix.build.slug }}-Windows-${{ matrix.environment.msystem }}-gha${{ github.run_number }}'
           path: build/artifacts/**
 
+  msys2-qt:
+    name: MSYS2 (Qt GUI, ${{ matrix.build.name }}, ${{ matrix.dynarec.name }}, ${{ matrix.environment.msystem }})
+
+    runs-on: windows-2022
+
+    defaults:
+      run:
+        shell: msys2 {0}
+
+    strategy:
+      fail-fast: true
+      matrix:
+        build:
+          - name: Debug
+            preset: debug
+            slug: -Debug
+          - name: Dev
+            preset: experimental
+            slug: -Dev
+        dynarec:
+          - name: ODR
+            new: off
+            slug: -ODR
+          - name: NDR
+            new: on
+            slug: -NDR
+        environment:
+          - msystem: MINGW32
+            prefix: mingw-w64-i686
+            toolchain: ./cmake/flags-gcc-i686.cmake
+          - msystem: MINGW64
+            prefix: mingw-w64-x86_64
+            toolchain: ./cmake/flags-gcc-x86_64.cmake
+          - msystem: UCRT64
+            prefix: mingw-w64-ucrt-x86_64
+            toolchain: ./cmake/flags-gcc-x86_64.cmake
+
+    steps:
+      - uses: msys2/setup-msys2@v2
+        with:
+          path-type: inherit
+          update: true
+          msystem: ${{ matrix.environment.msystem }}
+          install: >-
+            ${{ matrix.environment.prefix }}-ninja
+            ${{ matrix.environment.prefix }}-cc
+            ${{ matrix.environment.prefix }}-pkg-config
+            ${{ matrix.environment.prefix }}-freetype
+            ${{ matrix.environment.prefix }}-SDL2
+            ${{ matrix.environment.prefix }}-zlib
+            ${{ matrix.environment.prefix }}-libpng
+            ${{ matrix.environment.prefix }}-libvncserver
+            ${{ matrix.environment.prefix }}-openal
+            ${{ matrix.environment.prefix }}-rtmidi
+            ${{ matrix.environment.prefix }}-qt5-base
+            ${{ matrix.environment.prefix }}-qt5-tools
+      - uses: actions/checkout@v3
+      - name: Configure CMake
+        run: >-
+          cmake -G Ninja -S . -B build --preset ${{ matrix.build.preset }}
+          --toolchain ${{ matrix.environment.toolchain }}
+          -D NEW_DYNAREC=${{ matrix.dynarec.new }}
+          -D CMAKE_INSTALL_PREFIX=./build/artifacts
+          -D QT=ON
+      - name: Build
+        run: cmake --build build
+      - name: Generate package
+        run: cmake --install build
+      - uses: actions/upload-artifact@v3
+        with:
+          name: '86Box-Qt${{ matrix.dynarec.slug }}${{ matrix.build.slug }}-Windows-${{ matrix.environment.msystem }}-gha${{ github.run_number }}'
+          path: build/artifacts/**
+
   llvm-windows:
     name: "Windows vcpkg/LLVM (${{ matrix.ui.name }}, ${{ matrix.build.name }}, ${{ matrix.dynarec.name }}, ${{ matrix.target.name }})"
 
@@ -123,8 +196,8 @@ jobs:
         ui:
           - name: Win32 GUI
             qt: off
-          - name: Qt GUI
-            qt: on
+#          - name: Qt GUI
+#            qt: on
             slug: -Qt
         target:
           - name: x86
