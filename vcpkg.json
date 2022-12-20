@@ -21,6 +21,7 @@
                         "concurrent",
                         "default-features",
                         "gui",
+                        "opengl",
                         "harfbuzz",
                         "network",
                         "vulkan",
