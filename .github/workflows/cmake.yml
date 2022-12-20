@@ -25,7 +25,7 @@ on:
 
 jobs:
   msys2:
-    name: MSYS2 (${{ matrix.ui.name }}, ${{ matrix.build.name }}, ${{ matrix.dynarec.name }}, ${{ matrix.environment.msystem }})
+    name: "Windows MSYS2 (${{ matrix.ui.name }}, ${{ matrix.build.name }}, ${{ matrix.dynarec.name }}, ${{ matrix.environment.msystem }})"
 
     runs-on: windows-2022
 
@@ -73,14 +73,15 @@ jobs:
             toolchain: ./cmake/flags-gcc-x86_64.cmake
 
     steps:
-      - uses: msys2/setup-msys2@v2
+      - name: Prepare MSYS2 environment
+        uses: msys2/setup-msys2@v2
         with:
           update: true
           msystem: ${{ matrix.environment.msystem }}
           pacboy: >-
             ninja:p
             cmake:p
-            cc:p
+            gcc:p
             pkg-config:p
             freetype:p
             SDL2:p
@@ -88,6 +89,7 @@ jobs:
             libpng:p
             openal:p
             rtmidi:p
+            libvncserver:p
             ${{ matrix.ui.packages }}
       - uses: actions/checkout@v3
       - name: Configure CMake
@@ -98,6 +100,7 @@ jobs:
           -D CMAKE_INSTALL_PREFIX=./build/artifacts
           -D QT=${{ matrix.ui.qt }}
           -D STATIC_BUILD=${{ matrix.ui.static }}
+          -D VNC=n
       - name: Build
         run: cmake --build build
       - name: Generate package
@@ -141,15 +144,15 @@ jobs:
         target:
           - name: x86
             triplet: x86-windows-static
-            toolchain: cmake/llvm-win32-i686.cmake
+            toolchain: ./cmake/llvm-win32-i686.cmake
             vcvars: x64_x86
           - name: x64
             triplet: x64-windows-static
-            toolchain: cmake/llvm-win32-x86_64.cmake
+            toolchain: ./cmake/llvm-win32-x86_64.cmake
             vcvars: x64
           - name: ARM64
             triplet: arm64-windows-static
-            toolchain: cmake/llvm-win32-aarch64.cmake
+            toolchain: ./cmake/llvm-win32-aarch64.cmake
             vcvars: x64_arm64
         exclude:
           - dynarec: 
@@ -158,7 +161,6 @@ jobs:
               name: ARM64
 
     steps:
-      - uses: actions/checkout@v3
       - name: Prepare VS environment
         uses: ilammy/msvc-dev-cmd@v1
         with:
@@ -180,11 +182,13 @@ jobs:
           -password "${{ secrets.GITHUB_TOKEN }}"
       - name: Fix MSVC atomic headers
         run: dir "C:/Program Files/Microsoft Visual Studio/2022/*/VC/Tools/MSVC/*/include" -include stdatomic.h -recurse | del
+      - uses: actions/checkout@v3
       - name: Configure CMake
         run: >
           cmake -G Ninja -S . -B build --preset ${{ matrix.build.preset }}
           --toolchain C:/vcpkg/scripts/buildsystems/vcpkg.cmake
           -D NEW_DYNAREC=${{ matrix.dynarec.new }} -D QT=${{ matrix.ui.qt }}
+          -D CMAKE_INSTALL_PREFIX=./build/artifacts
           -D VCPKG_CHAINLOAD_TOOLCHAIN_FILE=${{ github.workspace }}/${{ matrix.target.toolchain }}
           -D VCPKG_TARGET_TRIPLET=${{ matrix.target.triplet }}
           -D VCPKG_HOST_TRIPLET=x64-windows
@@ -200,14 +204,14 @@ jobs:
       - name: Build
         run: cmake --build build
       - name: Generate package
-        run: cmake --install build --prefix ./build/artifacts
+        run: cmake --install build
       - uses: actions/upload-artifact@v3
         with:
           name: '86Box${{ matrix.ui.slug }}${{ matrix.dynarec.slug }}${{ matrix.build.slug }}-Windows-LLVM-${{ matrix.target.name }}-gha${{ github.run_number }}'
           path: build/artifacts/**
 
   linux:
-    name: "Linux GCC 11 (${{ matrix.build.name }} ${{ matrix.dynarec.name }} x86_64)"
+    name: "Linux GCC 11 (Qt GUI, ${{ matrix.build.name }}, ${{ matrix.dynarec.name }}, x86_64)"
 
     runs-on: ubuntu-22.04
 
@@ -230,7 +234,6 @@ jobs:
             slug: -NDR
 
     steps:
-      - uses: actions/checkout@v3
       - name: Install dependencies
         run: >-
           sudo apt update && sudo apt install
@@ -244,22 +247,24 @@ jobs:
           qtbase5-dev
           qttools5-dev
           libopenal-dev
+      - uses: actions/checkout@v3
       - name: Configure CMake
         run: >-
           cmake -G Ninja -S . -B build --preset ${{ matrix.build.preset }}
           --toolchain ./cmake/flags-gcc-x86_64.cmake
           -D NEW_DYNAREC=${{ matrix.dynarec.new }}
+          -D CMAKE_INSTALL_PREFIX=./build/artifacts
       - name: Build
         run: cmake --build build
-#     - name: Generate package
-#       run: cmake --install build --prefix ./build/artifacts
-#     - uses: actions/upload-artifact@v3
-#       with:
-#         name: '86Box${{ matrix.build.slug }}-UbuntuJammy-x86_64-gha${{ github.run_number }}'
-#         path: build/artifacts/**
+      - name: Generate package
+        run: cmake --install build
+      - uses: actions/upload-artifact@v3
+        with:
+          name: '86Box-Qt${{ matrix.dynarec.slug }}${{ matrix.build.slug }}-UbuntuJammy-x86_64-gha${{ github.run_number }}'
+          path: build/artifacts/**
 
   macos11:
-    name: "macOS 11 (${{ matrix.build.name }} x86_64)"
+    name: "macOS 11 (Qt GUI, ${{ matrix.build.name }}, ${{ matrix.dynarec.name }}, x86_64)"
 
     runs-on: macos-11
 
@@ -282,22 +287,31 @@ jobs:
             slug: -NDR
 
     steps:
-      - uses: actions/checkout@v3
       - name: Install dependencies
-        run: brew install freetype sdl2 libpng rtmidi qt@5 openal-soft ninja
+        run: >-
+          brew install
+          ninja
+          freetype
+          sdl2
+          libpng
+          rtmidi
+          qt@5
+          openal-soft
+      - uses: actions/checkout@v3
       - name: Configure CMake
         run: >-
           cmake -G Ninja -S . -B build --preset ${{ matrix.build.preset }}
-          --toolchain cmake/flags-gcc-x86_64.cmake
-          -D NEW_DYNAREC=${{ matrix.build.new-dynarec }}
+          --toolchain ./cmake/flags-gcc-x86_64.cmake
+          -D NEW_DYNAREC=${{ matrix.dynarec.new }}
+          -D CMAKE_INSTALL_PREFIX=./build/artifacts
           -D Qt5_ROOT=$(brew --prefix qt@5)
           -D Qt5LinguistTools_ROOT=$(brew --prefix qt@5)
           -D OpenAL_ROOT=$(brew --prefix openal-soft)
       - name: Build
         run: cmake --build build
       - name: Generate package
-        run: cmake --install build --prefix ./build/artifacts
+        run: cmake --install build
       - uses: actions/upload-artifact@v3
         with:
-          name: '86Box${{ matrix.build.slug }}-macOS-x86_64-gha${{ github.run_number }}'
+          name: '86Box-Qt${{ matrix.dynarec.slug }}${{ matrix.build.slug }}-macOS-x86_64-gha${{ github.run_number }}'
           path: build/artifacts/**
