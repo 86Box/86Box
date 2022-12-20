@@ -895,7 +895,7 @@ gd54xx_out(uint16_t addr, uint8_t val, void *p)
                         else {
                             svga->gdcreg[5] &= ~0x04;
                             svga->writemode = svga->gdcreg[5] & 3;
-                            svga->adv_flags = 0;
+                            svga->adv_flags &= (FLAG_EXTRA_BANKS | FLAG_ADDR_BY8 | FLAG_LATCH8);
                             svga->gdcreg[0] &= 0x0f;
                             gd543x_mmio_write(0xb8000, svga->gdcreg[0], gd54xx);
                             svga->gdcreg[1] &= 0x0f;
