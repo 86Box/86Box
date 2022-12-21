@@ -45,6 +45,7 @@
 #include <86box/hdc_ide.h>
 
 #define ROM_PATH_XT     "roms/hdd/xtide/ide_xt.bin"
+#define ROM_PATH_XTP    "roms/hdd/xtide/ide_xtp.bin"
 #define ROM_PATH_AT     "roms/hdd/xtide/ide_at.bin"
 #define ROM_PATH_PS2    "roms/hdd/xtide/SIDE1V12.BIN"
 #define ROM_PATH_PS2AT  "roms/hdd/xtide/ide_at_1_1_5.bin"
@@ -130,8 +131,13 @@ xtide_init(const device_t *info)
 
     memset(xtide, 0x00, sizeof(xtide_t));
 
-    rom_init(&xtide->bios_rom, ROM_PATH_XT,
-             0xc8000, 0x2000, 0x1fff, 0, MEM_MAPPING_EXTERNAL);
+    if (info->local == 1) {
+        rom_init(&xtide->bios_rom, ROM_PATH_XTP,
+                 0xc8000, 0x2000, 0x1fff, 0, MEM_MAPPING_EXTERNAL);
+    } else {
+        rom_init(&xtide->bios_rom, ROM_PATH_XT,
+                 0xc8000, 0x2000, 0x1fff, 0, MEM_MAPPING_EXTERNAL);
+    }
 
     xtide->ide_board = ide_xtide_init();
 
@@ -146,6 +152,12 @@ static int
 xtide_available(void)
 {
     return (rom_present(ROM_PATH_XT));
+}
+
+static int
+xtide_plus_available(void)
+{
+    return (rom_present(ROM_PATH_XTP));
 }
 
 static void *
@@ -253,6 +265,20 @@ const device_t xtide_device = {
     .close         = xtide_close,
     .reset         = NULL,
     { .available = xtide_available },
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t xtide_plus_device = {
+    .name          = "PC/XT XTIDE (V20/V30/8018x)",
+    .internal_name = "xtide_plus",
+    .flags         = DEVICE_ISA,
+    .local         = 1,
+    .init          = xtide_init,
+    .close         = xtide_close,
+    .reset         = NULL,
+    { .available = xtide_plus_available },
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
