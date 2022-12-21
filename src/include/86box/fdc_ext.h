@@ -31,6 +31,8 @@ extern const device_t fdc_b215_device;
 extern const device_t fdc_pii151b_device;
 extern const device_t fdc_pii158b_device;
 
+extern const device_t fdc_monster_device;
+
 extern void fdc_card_init(void);
 
 extern char           *fdc_card_get_internal_name(int card);
