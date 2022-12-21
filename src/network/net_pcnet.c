@@ -1486,7 +1486,7 @@ pcnetAsyncTransmit(nic_t *dev)
          */
         if (tmd.tmd1.stp && tmd.tmd1.enp) {
             const int cb = 4096 - tmd.tmd1.bcnt;
-            pcnet_log("%s: pcnetAsyncTransmit: stp&enp: cb=%d xmtrc=%#x\n", dev->name, cb, CSR_XMTRC(dev));
+            pcnet_log(3, "%s: pcnetAsyncTransmit: stp&enp: cb=%d xmtrc=%#x\n", dev->name, cb, CSR_XMTRC(dev));
 
             if ((pcnetIsLinkUp(dev) || fLoopback)) {
 

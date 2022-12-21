@@ -28,6 +28,7 @@
                       * least 7 devices, with each device being  \
                       * able to support 8 units, but hey... */
 
+/* Controller types. */
 #define HDC_NONE     0
 #define HDC_INTERNAL 1
 

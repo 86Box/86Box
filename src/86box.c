@@ -17,8 +17,8 @@
  *          Copyright 2008-2020 Sarah Walker.
  *          Copyright 2016-2020 Miran Grca.
  *          Copyright 2017-2020 Fred N. van Kempen.
- *          Copyright 2021 Laci bá'
- *          Copyright 2021 dob205
+ *          Copyright 2021      Laci bá'
+ *          Copyright 2021      dob205
  */
 #include <inttypes.h>
 #include <stdarg.h>

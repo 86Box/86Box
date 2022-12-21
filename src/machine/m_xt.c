@@ -20,6 +20,8 @@
 #include <86box/chipset.h>
 #include <86box/port_6x.h>
 
+extern const device_t vendex_xt_rtc_onboard_device;
+
 static void
 machine_xt_common_init(const machine_t *model)
 {
@@ -483,6 +485,7 @@ machine_xt_vendex_init(const machine_t *model)
         return ret;
 
     machine_xt_clone_init(model);
+    device_add(&vendex_xt_rtc_onboard_device);
 
     return ret;
 }
