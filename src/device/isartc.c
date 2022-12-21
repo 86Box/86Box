@@ -546,7 +546,7 @@ isartc_init(const device_t *info)
             break;
 
         case ISARTC_VENDEX: /* Vendex HeadStart Turbo 888-XT RTC */
-            dev->flags |= FLAG_YEAR80;
+            dev->flags |= FLAG_YEAR80 | FLAG_YEARBCD;
             dev->base_addr   = 0x0300;
             dev->base_addrsz = 32;
             dev->f_rd        = mm67_read;
