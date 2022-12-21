@@ -876,8 +876,6 @@ gd54xx_out(uint16_t addr, uint8_t val, void *p)
                     svga_recalctimings(svga);
             } else {
                 switch (svga->gdcaddr) {
-                    case 0x09:
-                    case 0x0a:
                     case 0x0b:
                         svga->adv_flags = 0;
                         if (svga->gdcreg[0xb] & 0x01)
@@ -888,11 +886,11 @@ gd54xx_out(uint16_t addr, uint8_t val, void *p)
                             svga->adv_flags |= FLAG_EXT_WRITE;
                         if (svga->gdcreg[0xb] & 0x08)
                             svga->adv_flags |= FLAG_LATCH8;
-                        if (svga->gdcreg[0xb] & 0x10)
+                        if ((svga->gdcreg[0xb] & 0x10) && (svga->adv_flags & FLAG_EXT_WRITE))
                             svga->adv_flags |= FLAG_ADDR_BY16;
                         if (svga->gdcreg[0xb] & 0x04)
                             svga->writemode = svga->gdcreg[5] & 7;
-                        else {
+                        else if (o & 0x4) {
                             svga->gdcreg[5] &= ~0x04;
                             svga->writemode = svga->gdcreg[5] & 3;
                             svga->adv_flags &= (FLAG_EXTRA_BANKS | FLAG_ADDR_BY8 | FLAG_LATCH8);
@@ -902,6 +900,8 @@ gd54xx_out(uint16_t addr, uint8_t val, void *p)
                             gd543x_mmio_write(0xb8004, svga->gdcreg[1], gd54xx);
                             svga->seqregs[2] &= 0x0f;
                         }
+                    case 0x09:
+                    case 0x0a:
                         gd54xx_recalc_banking(gd54xx);
                         break;
 
