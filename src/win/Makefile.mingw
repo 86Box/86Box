@@ -605,7 +605,7 @@ SIOOBJ := sio_acc3221.o sio_ali5123.o \
           sio_um8669f.o \
           sio_vt82c686.o
 
-FDDOBJ := fdd.o fdc.o fdc_magitronic.o fdc_pii15xb.o \
+FDDOBJ := fdd.o fdc.o fdc_magitronic.o fdc_monster.o fdc_pii15xb.o \
           fdi2raw.o \
           fdd_common.o fdd_86f.o \
           fdd_fdi.o fdd_imd.o fdd_img.o fdd_json.o \
