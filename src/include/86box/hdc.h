@@ -35,6 +35,7 @@
 extern int hdc_current;
 
 extern const device_t st506_xt_xebec_device;              /* st506_xt_xebec */
+extern const device_t st506_xt_wdxt_gen_device;           /* st506_xt_wdxt_gen */
 extern const device_t st506_xt_dtc5150x_device;           /* st506_xt_dtc */
 extern const device_t st506_xt_st11_m_device;             /* st506_xt_st11_m */
 extern const device_t st506_xt_st11_r_device;             /* st506_xt_st11_m */
