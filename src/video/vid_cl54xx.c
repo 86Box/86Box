@@ -1031,6 +1031,8 @@ gd54xx_out(uint16_t addr, uint8_t val, void *p)
         case 0x3d5:
             if (((svga->crtcreg == 0x19) || (svga->crtcreg == 0x1a) || (svga->crtcreg == 0x1b) || (svga->crtcreg == 0x1d) || (svga->crtcreg == 0x25) || (svga->crtcreg == 0x27)) && !gd54xx->unlocked)
                 return;
+            if ((svga->crtcreg == 0x25) || (svga->crtcreg == 0x27))
+                return;
             if ((svga->crtcreg < 7) && (svga->crtc[0x11] & 0x80))
                 return;
             if ((svga->crtcreg == 7) && (svga->crtc[0x11] & 0x80))
