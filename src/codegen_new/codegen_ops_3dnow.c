@@ -37,16 +37,18 @@
         return op_pc + 2;                                                                                                    \
     }
 
+// clang-format off
 ropParith(PFADD)
-    ropParith(PFCMPEQ)
-        ropParith(PFCMPGE)
-            ropParith(PFCMPGT)
-                ropParith(PFMAX)
-                    ropParith(PFMIN)
-                        ropParith(PFMUL)
-                            ropParith(PFSUB)
+ropParith(PFCMPEQ)
+ropParith(PFCMPGE)
+ropParith(PFCMPGT)
+ropParith(PFMAX)
+ropParith(PFMIN)
+ropParith(PFMUL)
+ropParith(PFSUB)
+// clang-format on
 
-                                uint32_t ropPF2ID(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
+uint32_t ropPF2ID(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
 {
     int dest_reg = (fetchdat >> 3) & 7;
 

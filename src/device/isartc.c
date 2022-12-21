@@ -82,10 +82,11 @@
 #include <86box/pic.h>
 #include <86box/isartc.h>
 
-#define ISARTC_EV170 0
-#define ISARTC_DTK   1
-#define ISARTC_P5PAK 2
-#define ISARTC_A6PAK 3
+#define ISARTC_EV170  0
+#define ISARTC_DTK    1
+#define ISARTC_P5PAK  2
+#define ISARTC_A6PAK  3
+#define ISARTC_VENDEX 4
 
 #define ISARTC_DEBUG 0
 
@@ -544,6 +545,18 @@ isartc_init(const device_t *info)
             dev->year        = MM67_AL_DOM; /* year, NON STANDARD */
             break;
 
+        case ISARTC_VENDEX: /* Vendex HeadStart Turbo 888-XT RTC */
+            dev->flags |= FLAG_YEAR80 | FLAG_YEARBCD;
+            dev->base_addr   = 0x0300;
+            dev->base_addrsz = 32;
+            dev->f_rd        = mm67_read;
+            dev->f_wr        = mm67_write;
+            dev->nvr.reset   = mm67_reset;
+            dev->nvr.start   = mm67_start;
+            dev->nvr.tick    = mm67_tick;
+            dev->year        = MM67_AL_DOM; /* year, NON STANDARD */
+            break;
+
         default:
             break;
     }
@@ -559,7 +572,7 @@ isartc_init(const device_t *info)
                   dev->f_rd, NULL, NULL, dev->f_wr, NULL, NULL, dev);
 
     /* Hook into the NVR backend. */
-    dev->nvr.fn  = isartc_get_internal_name(isartc_type);
+    dev->nvr.fn  = (char *)info->internal_name;
     dev->nvr.irq = dev->irq;
     if (!is_at)
         nvr_init(&dev->nvr);
@@ -707,6 +720,21 @@ static const device_t a6pak_device = {
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = a6pak_config
+};
+
+/* Onboard RTC devices */
+const device_t vendex_xt_rtc_onboard_device = {
+    .name          = "National Semiconductor MM58167 (Vendex)",
+    .internal_name = "vendex_xt_rtc",
+    .flags         = DEVICE_ISA,
+    .local         = ISARTC_VENDEX,
+    .init          = isartc_init,
+    .close         = isartc_close,
+    .reset         = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
 };
 
 static const device_t isartc_none_device = {
