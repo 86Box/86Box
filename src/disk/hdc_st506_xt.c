@@ -1337,7 +1337,7 @@ mem_read(uint32_t addr, void *priv)
             }
             break;
 
-        case ST506_XT_TYPE_WDXT_GEN /* WDXT-GEN */
+        case ST506_XT_TYPE_WDXT_GEN: /* WDXT-GEN */
             if (addr >= 0x002000) {
 #ifdef ENABLE_ST506_XT_LOG
                 st506_xt_log("ST506: WDXT-GEN ROM access(0x%06lx)\n", addr);
