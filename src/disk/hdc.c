@@ -84,6 +84,7 @@ static const struct {
     { &hdc_none_device             },
     { &hdc_internal_device         },
     { &st506_xt_xebec_device       },
+    { &st506_xt_wdxt_gen_device    },
     { &st506_xt_dtc5150x_device    },
     { &st506_xt_st11_m_device      },
     { &st506_xt_wd1002a_wx1_device },
