@@ -1567,7 +1567,7 @@ banshee_reg_writel(uint32_t addr, uint32_t val, void *p)
             break;
 
         case 0x0600000:
-        case 0x0700000: /*Texture download*/
+        case 0x0700000: /*TMU0 Texture download*/
             voodoo->tex_count++;
             voodoo_queue_command(voodoo, (addr & 0x1ffffc) | FIFO_WRITEL_TEX, val);
             break;

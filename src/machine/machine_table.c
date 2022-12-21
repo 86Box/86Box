@@ -832,14 +832,14 @@ const machine_t machines[] = {
             .min_voltage = 0,
             .max_voltage = 0,
             .min_multi = 0,
-            .max_multi = 0,
+            .max_multi = 0
         },
         .bus_flags = MACHINE_PC,
         .flags = MACHINE_FLAGS_NONE,
         .ram = {
             .min = 128,
             .max = 640,
-            .step = 64,
+            .step = 64
         },
         .nvrmask = 0,
         .kbc = KBC_IBM_PC_XT,
@@ -1231,7 +1231,7 @@ const machine_t machines[] = {
             .max_multi = 0
         },
         .bus_flags = MACHINE_PC,
-        MACHINE_FLAGS_NONE,
+        .flags = MACHINE_FLAGS_NONE,
         .ram = {
             .min = 256,
             .max = 640,
@@ -9585,7 +9585,7 @@ const machine_t machines[] = {
            .min_voltage = 2800,
            .max_voltage = 3520,
            .min_multi = 1.5,
-           .max_multi = 5.5,
+           .max_multi = 5.5
         },
         .bus_flags = MACHINE_PS2_PCI,
         .flags = MACHINE_IDE_DUAL,
@@ -11831,7 +11831,7 @@ const machine_t machines[] = {
             .min_voltage = 1300,
             .max_voltage = 3500,
             .min_multi = MACHINE_MULTIPLIER_FIXED,
-            .max_multi = MACHINE_MULTIPLIER_FIXED,
+            .max_multi = MACHINE_MULTIPLIER_FIXED
         },
         .bus_flags = MACHINE_PS2_A97,
         .flags = MACHINE_IDE_DUAL | MACHINE_AG,
