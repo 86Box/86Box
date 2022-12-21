@@ -172,36 +172,42 @@ typedef struct {
     const cpu_legacy_table_t **tables;
 } cpu_legacy_machine_t;
 
-#define C_FLAG   0x0001
-#define P_FLAG   0x0004
-#define A_FLAG   0x0010
-#define Z_FLAG   0x0040
-#define N_FLAG   0x0080
-#define T_FLAG   0x0100
-#define I_FLAG   0x0200
-#define D_FLAG   0x0400
-#define V_FLAG   0x0800
-#define NT_FLAG  0x4000
-#define MD_FLAG  0x8000
+#define C_FLAG     0x0001
+#define P_FLAG     0x0004
+#define A_FLAG     0x0010
+#define Z_FLAG     0x0040
+#define N_FLAG     0x0080
+#define T_FLAG     0x0100
+#define I_FLAG     0x0200
+#define D_FLAG     0x0400
+#define V_FLAG     0x0800
+#define NT_FLAG    0x4000
+#define MD_FLAG    0x8000
 
-#define RF_FLAG  0x0001 /* in EFLAGS */
-#define VM_FLAG  0x0002 /* in EFLAGS */
-#define VIF_FLAG 0x0008 /* in EFLAGS */
-#define VIP_FLAG 0x0010 /* in EFLAGS */
-#define VID_FLAG 0x0020 /* in EFLAGS */
+#define RF_FLAG    0x0001 /* in EFLAGS */
+#define VM_FLAG    0x0002 /* in EFLAGS */
+#define VIF_FLAG   0x0008 /* in EFLAGS */
+#define VIP_FLAG   0x0010 /* in EFLAGS */
+#define VID_FLAG   0x0020 /* in EFLAGS */
 
-#define WP_FLAG  0x10000 /* in CR0 */
-#define CR4_VME  (1 << 0)
-#define CR4_PVI  (1 << 1)
-#define CR4_PSE  (1 << 4)
-#define CR4_PAE  (1 << 5)
-#define CR4_PGE  (1 << 7)
+#define WP_FLAG    0x10000 /* in CR0 */
 
-#define CPL      ((cpu_state.seg_cs.access >> 5) & 3)
+#define CR4_VME    (1 << 0) /* Virtual 8086 Mode Extensions */
+#define CR4_PVI    (1 << 1) /* Protected-mode Virtual Interrupts */
+#define CR4_TSD    (1 << 2) /* Time Stamp Disable */
+#define CR4_DE     (1 << 3) /* Debugging Extensions */
+#define CR4_PSE    (1 << 4) /* Page Size Extension */
+#define CR4_PAE    (1 << 5) /* Physical Address Extension */
+#define CR4_MCE    (1 << 6) /* Machine Check Exception */
+#define CR4_PGE    (1 << 7) /* Page Global Enabled */
+#define CR4_PCE    (1 << 8) /* Performance-Monitoring Counter enable */
+#define CR4_OSFXSR (1 << 9) /* Operating system support for FXSAVE and FXRSTOR instructions */
 
-#define IOPL     ((cpu_state.flags >> 12) & 3)
+#define CPL        ((cpu_state.seg_cs.access >> 5) & 3)
 
-#define IOPLp    ((!(msw & 1)) || (CPL <= IOPL))
+#define IOPL       ((cpu_state.flags >> 12) & 3)
+
+#define IOPLp      ((!(msw & 1)) || (CPL <= IOPL))
 
 typedef union {
     uint32_t l;
@@ -468,15 +474,9 @@ COMPILE_TIME_ASSERT(sizeof(cpu_state_t) <= 128)
 #    define fpu_cycles cpu_state._fpu_cycles
 #endif
 
-#define cpu_rm     cpu_state.rm_data.rm_mod_reg.rm
-#define cpu_mod    cpu_state.rm_data.rm_mod_reg.mod
-#define cpu_reg    cpu_state.rm_data.rm_mod_reg.reg
-
-#define CR4_TSD    (1 << 2)
-#define CR4_DE     (1 << 3)
-#define CR4_MCE    (1 << 6)
-#define CR4_PCE    (1 << 8)
-#define CR4_OSFXSR (1 << 9)
+#define cpu_rm  cpu_state.rm_data.rm_mod_reg.rm
+#define cpu_mod cpu_state.rm_data.rm_mod_reg.mod
+#define cpu_reg cpu_state.rm_data.rm_mod_reg.reg
 
 /* Global variables. */
 extern cpu_state_t cpu_state;
