@@ -423,8 +423,10 @@ ropFUCOMPP(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat,
         return op_pc + 1;                                                                                                         \
     }
 
+// clang-format off
 ropF_arith_mem(s, uop_MEM_LOAD_SINGLE)
-    ropF_arith_mem(d, uop_MEM_LOAD_DOUBLE)
+ropF_arith_mem(d, uop_MEM_LOAD_DOUBLE)
+// clang-format on
 
 #define ropFI_arith_mem(name, temp_reg)                                                                                            \
     uint32_t ropFIADD##name(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)  \

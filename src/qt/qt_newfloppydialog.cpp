@@ -548,7 +548,7 @@ NewFloppyDialog::createZipSectorImage(const QString &filename, const disk_size_t
         empty[0x5003] = empty[0x1D003] = 0xFF;
 
         /* Root directory = 0x35000
-       Data = 0x39000 */
+        Data = 0x39000 */
     } else {
         /* ZIP 250 */
         /* MBR */
@@ -570,7 +570,7 @@ NewFloppyDialog::createZipSectorImage(const QString &filename, const disk_size_t
         memset(&(empty[0x0200]), 0x48, 0x3E00);
 
         /* The second sector begins with some strange data
-       in my reference image. */
+           in my reference image. */
         *(uint64_t *) &(empty[0x0200]) = 0x3831393230334409LL;
         *(uint64_t *) &(empty[0x0208]) = 0x6A57766964483130LL;
         *(uint64_t *) &(empty[0x0210]) = 0x3C3A34676063653FLL;
@@ -619,7 +619,7 @@ NewFloppyDialog::createZipSectorImage(const QString &filename, const disk_size_t
         empty[0x4203] = empty[0x22003] = 0xFF;
 
         /* Root directory = 0x3FE00
-       Data = 0x38200 */
+        Data = 0x38200 */
     }
 
     pbar.setMaximum(pbar_max);
