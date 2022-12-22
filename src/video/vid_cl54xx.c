@@ -876,8 +876,6 @@ gd54xx_out(uint16_t addr, uint8_t val, void *p)
                     svga_recalctimings(svga);
             } else {
                 switch (svga->gdcaddr) {
-                    case 0x09:
-                    case 0x0a:
                     case 0x0b:
                         svga->adv_flags = 0;
                         if (svga->gdcreg[0xb] & 0x01)
@@ -888,20 +886,24 @@ gd54xx_out(uint16_t addr, uint8_t val, void *p)
                             svga->adv_flags |= FLAG_EXT_WRITE;
                         if (svga->gdcreg[0xb] & 0x08)
                             svga->adv_flags |= FLAG_LATCH8;
-                        if (svga->gdcreg[0xb] & 0x10)
+                        if ((svga->gdcreg[0xb] & 0x10) && (svga->adv_flags & FLAG_EXT_WRITE))
                             svga->adv_flags |= FLAG_ADDR_BY16;
                         if (svga->gdcreg[0xb] & 0x04)
                             svga->writemode = svga->gdcreg[5] & 7;
-                        else {
+                        else if (o & 0x4) {
                             svga->gdcreg[5] &= ~0x04;
                             svga->writemode = svga->gdcreg[5] & 3;
-                            svga->adv_flags = 0;
-                            svga->gdcreg[0] &= 0x0f;
-                            gd543x_mmio_write(0xb8000, svga->gdcreg[0], gd54xx);
-                            svga->gdcreg[1] &= 0x0f;
-                            gd543x_mmio_write(0xb8004, svga->gdcreg[1], gd54xx);
+                            svga->adv_flags &= (FLAG_EXTRA_BANKS | FLAG_ADDR_BY8 | FLAG_LATCH8);
+                            if (svga->crtc[0x27] != CIRRUS_ID_CLGD5436) {
+                                svga->gdcreg[0] &= 0x0f;
+                                gd543x_mmio_write(0xb8000, svga->gdcreg[0], gd54xx);
+                                svga->gdcreg[1] &= 0x0f;
+                                gd543x_mmio_write(0xb8004, svga->gdcreg[1], gd54xx);
+                            }
                             svga->seqregs[2] &= 0x0f;
                         }
+                    case 0x09:
+                    case 0x0a:
                         gd54xx_recalc_banking(gd54xx);
                         break;
 
@@ -1028,6 +1030,8 @@ gd54xx_out(uint16_t addr, uint8_t val, void *p)
             return;
         case 0x3d5:
             if (((svga->crtcreg == 0x19) || (svga->crtcreg == 0x1a) || (svga->crtcreg == 0x1b) || (svga->crtcreg == 0x1d) || (svga->crtcreg == 0x25) || (svga->crtcreg == 0x27)) && !gd54xx->unlocked)
+                return;
+            if ((svga->crtcreg == 0x25) || (svga->crtcreg == 0x27))
                 return;
             if ((svga->crtcreg < 7) && (svga->crtc[0x11] & 0x80))
                 return;
