@@ -35,6 +35,7 @@
 extern int hdc_current;
 
 extern const device_t st506_xt_xebec_device;              /* st506_xt_xebec */
+extern const device_t st506_xt_wdxt_gen_device;           /* st506_xt_wdxt_gen */
 extern const device_t st506_xt_dtc5150x_device;           /* st506_xt_dtc */
 extern const device_t st506_xt_st11_m_device;             /* st506_xt_st11_m */
 extern const device_t st506_xt_st11_r_device;             /* st506_xt_st11_m */
@@ -79,6 +80,7 @@ extern const device_t xta_wdxt150_device; /* xta_wdxt150 */
 extern const device_t xta_hd20_device;    /* EuroPC internal */
 
 extern const device_t xtide_device;           /* xtide_xt */
+extern const device_t xtide_plus_device;      /* xtide_xt_plus */
 extern const device_t xtide_at_device;        /* xtide_at */
 extern const device_t xtide_at_386_device;    /* xtide_at_386 */
 extern const device_t xtide_acculogic_device; /* xtide_ps2 */
