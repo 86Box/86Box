@@ -22,7 +22,7 @@ MCADeviceList::MCADeviceList(QWidget *parent)
         for (int i = 0; i < mca_get_nr_cards(); i++) {
             uint32_t deviceId = (mca_read_index(0x00, i) | (mca_read_index(0x01, i) << 8));
             if (deviceId != 0xFFFF) {
-                QString hexRepresentation = QString::number(deviceId, 16).toUpper();
+                QString hexRepresentation = QString::asprintf("%04X", deviceId);
                 ui->listWidget->addItem(QString("Slot %1: 0x%2 (@%3.ADF)").arg(i + 1).arg(hexRepresentation, hexRepresentation));
             }
         }
