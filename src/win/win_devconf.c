@@ -108,7 +108,7 @@ deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 
                         c = 0;
                         q = 0;
-                        while (bios && bios->name && bios->name[0]) {
+                        while (bios && (bios->files_no > 0)) {
                             mbstowcs(lptsTemp, bios->name, strlen(bios->name) + 1);
                             p = 0;
                             for (d = 0; d < bios->files_no; d++)
@@ -218,7 +218,6 @@ deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
             if (cid == IDOK) {
                 id      = IDC_CONFIG_BASE;
                 config  = config_device.dev->config;
-                bios    = config->bios;
                 changed = 0;
                 char s[512];
 
@@ -251,6 +250,8 @@ deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
                             id += 2;
                             break;
                         case CONFIG_BIOS:
+                            bios    = config->bios;
+
                             val_str = config_get_string((char *) config_device.name,
                                                         (char *) config->name, (char *) config->default_string);
 
@@ -375,6 +376,7 @@ deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
                             id += 2;
                             break;
                         case CONFIG_BIOS:
+                            bios    = config->bios;
                             c = combo_to_struct[SendMessage(h, CB_GETCURSEL, 0, 0)];
                             for (; c > 0; c--)
                                 bios++;
@@ -551,6 +553,7 @@ deviceconfig_inst_open(HWND hwnd, const device_t *device, int inst)
             case CONFIG_MIDI_IN:
             case CONFIG_HEX16:
             case CONFIG_HEX20:
+            case CONFIG_BIOS:
                 /*Combo box*/
                 item     = (DLGITEMTEMPLATE *) data;
                 item->x  = 70;
