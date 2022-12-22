@@ -135,6 +135,7 @@ static fdc_cards_t fdc_cards[] = {
     { &fdc_b215_device     },
     { &fdc_pii151b_device  },
     { &fdc_pii158b_device  },
+    { &fdc_monster_device  },
     { NULL                 }
     // clang-format on
 };

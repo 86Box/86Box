@@ -90,7 +90,7 @@ typedef struct {
     int          files_no;
     uint32_t     local, size;
     void        *dev1, *dev2;
-    const char **files;
+    const char  *files[9];
 } device_config_bios_t;
 
 typedef struct {
@@ -108,7 +108,7 @@ typedef struct {
     const char                     *file_filter;
     const device_config_spinner_t   spinner;
     const device_config_selection_t selection[16];
-    const device_config_bios_t     *bios;
+    const device_config_bios_t     bios[32];
 } device_config_t;
 
 typedef struct _device_ {
@@ -164,6 +164,7 @@ extern void  device_speed_changed(void);
 extern void  device_force_redraw(void);
 extern void  device_get_name(const device_t *d, int bus, char *name);
 extern int   device_has_config(const device_t *d);
+extern const char *device_get_bios_file(const device_t *d, const char *internal_name, int file_no);
 
 extern int device_is_valid(const device_t *, int m);
 
