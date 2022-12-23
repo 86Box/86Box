@@ -407,7 +407,7 @@ new_page(escp_t *dev, int8_t save, int8_t resetx)
     dev->curr_y = dev->top_margin;
     if (dev->page) {
         dev->page->dirty = 0;
-        memset(dev->page->pixels, 0x00, dev->page->pitch * dev->page->h);
+        memset(dev->page->pixels, 0x00, (size_t) dev->page->pitch * dev->page->h);
     }
 
     /* Make the page's file name. */
@@ -451,9 +451,9 @@ fill_palette(uint8_t redmax, uint8_t greenmax, uint8_t bluemax, uint8_t colorID,
     colormask = colorID <<= 5;
 
     for (i = 0; i < 32; i++) {
-        dev->palcol[i + colormask].r = 255 - (uint8_t) floor(red * (float) i);
-        dev->palcol[i + colormask].g = 255 - (uint8_t) floor(green * (float) i);
-        dev->palcol[i + colormask].b = 255 - (uint8_t) floor(blue * (float) i);
+        dev->palcol[i + colormask].r = 255 - (uint8_t) floor((double) red * (float) i);
+        dev->palcol[i + colormask].g = 255 - (uint8_t) floor((double) green * (float) i);
+        dev->palcol[i + colormask].b = 255 - (uint8_t) floor((double) blue * (float) i);
     }
 }
 
@@ -2043,8 +2043,8 @@ escp_init(void *lpt)
     dev->page->w      = (int) (dev->dpi * dev->page_width);
     dev->page->h      = (int) (dev->dpi * dev->page_height);
     dev->page->pitch  = dev->page->w;
-    dev->page->pixels = (uint8_t *) malloc(dev->page->pitch * dev->page->h);
-    memset(dev->page->pixels, 0x00, dev->page->pitch * dev->page->h);
+    dev->page->pixels = (uint8_t *) malloc((size_t) dev->page->pitch * dev->page->h);
+    memset(dev->page->pixels, 0x00, (size_t) dev->page->pitch * dev->page->h);
 
     /* Initialize parameters. */
     for (i = 0; i < 32; i++) {
