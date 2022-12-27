@@ -1072,8 +1072,8 @@ const cpu_family_t cpu_families[] = {
 	.name = "Celeron (Covington)",
 	.internal_name = "celeron_covington",
 	.cpus = (const CPU[]) {
-		{"266",    CPU_PENTIUM2D,  fpus_internal, 266666666, 4.0, 2050,  0x650,  0x650, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 24,24,12,12, 32},
-		{"300",    CPU_PENTIUM2D,  fpus_internal, 300000000, 4.5, 2050,  0x651,  0x651, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 25,25,12,12, 36},
+		{"266",    CPU_PENTIUM2D,  fpus_internal, 266666666, 4.0, 2050,  0x650,  0x650, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 24,24,24,24, 32},
+		{"300",    CPU_PENTIUM2D,  fpus_internal, 300000000, 4.5, 2050,  0x651,  0x651, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 25,25,25,25, 36},
 		{"", 0}
 	}
     }, {
