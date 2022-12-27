@@ -1072,6 +1072,12 @@ const cpu_family_t cpu_families[] = {
 	.name = "Celeron (Covington)",
 	.internal_name = "celeron_covington",
 	.cpus = (const CPU[]) {
+		{"66",     CPU_PENTIUM2D,  fpus_internal,  66666666, 1.0, 2050,  0x652,  0x652, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,  6, 6, 6, 6, 8},  /* out of spec */
+		{"100",    CPU_PENTIUM2D,  fpus_internal, 100000000, 1.5, 2050,  0x652,  0x652, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,  9, 9, 9, 9, 12}, /* out of spec */
+		{"133",    CPU_PENTIUM2D,  fpus_internal, 133333333, 2.0, 2050,  0x652,  0x652, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 12,12,12,12, 16}, /* out of spec */
+		{"166",    CPU_PENTIUM2D,  fpus_internal, 166666666, 2.5, 2050,  0x652,  0x652, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 15,15,15,15, 20}, /* out of spec */
+		{"200",    CPU_PENTIUM2D,  fpus_internal, 200000000, 3.0, 2050,  0x652,  0x652, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 18,18,18,18, 24}, /* out of spec */
+		{"233",    CPU_PENTIUM2D,  fpus_internal, 233333333, 3.5, 2050,  0x652,  0x652, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 21,21,21,21, 28}, /* out of spec */
 		{"266",    CPU_PENTIUM2D,  fpus_internal, 266666666, 4.0, 2050,  0x650,  0x650, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 24,24,24,24, 32},
 		{"300",    CPU_PENTIUM2D,  fpus_internal, 300000000, 4.5, 2050,  0x651,  0x651, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 25,25,25,25, 36},
 		{"", 0}
