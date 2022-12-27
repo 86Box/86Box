@@ -1067,6 +1067,16 @@ const cpu_family_t cpu_families[] = {
 		{"", 0}
 	}
     }, {
+	.package = CPU_PKG_SLOT1,
+	.manufacturer = "Intel",
+	.name = "Celeron (Covington)",
+	.internal_name = "celeron_covington",
+	.cpus = (const CPU[]) {
+		{"266",    CPU_PENTIUM2D,  fpus_internal, 266666666, 4.0, 2050,  0x650,  0x650, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 24,24,12,12, 32},
+		{"300",    CPU_PENTIUM2D,  fpus_internal, 300000000, 4.5, 2050,  0x651,  0x651, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 25,25,12,12, 36},
+		{"", 0}
+	}
+    }, {
 	.package = CPU_PKG_SLOT2,
 	.manufacturer = "Intel",
 	.name = "Pentium II Xeon",
