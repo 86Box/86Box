@@ -511,6 +511,10 @@ ifeq ($(DEV_BRANCH), y)
  endif
 endif
 
+ifeq ($(RTMIDI), y)
+ OPTS += -DUSE_RTMIDI
+endif
+
 
 # Final versions of the toolchain flags.
 CFLAGS := $(OPTS) $(DFLAGS) $(COPTIM) $(AOPTIM) \
@@ -772,6 +776,10 @@ else
  SNDOBJ += xaudio2.o
 endif
 
+ifeq ($(RTMIDI), y)
+ SNDOBJ += midi_rtmidi.o
+endif
+
 OBJ := $(MAINOBJ) $(CPUOBJ) $(CHIPSETOBJ) $(MCHOBJ) $(DEVOBJ) $(MEMOBJ) \
        $(FDDOBJ) $(GAMEOBJ) $(CDROMOBJ) $(ZIPOBJ) $(MOOBJ) $(HDDOBJ) $(MINIVHDOBJ) \
        $(NETOBJ) $(PRINTOBJ) $(SCSIOBJ) $(SIOOBJ) $(SNDOBJ) $(VIDOBJ) $(VOODOOOBJ) \
@@ -791,9 +799,7 @@ else
 endif
 
 ifeq ($(RTMIDI), y)
- SNDOBJ += midi_rtmidi.o
- OPTS += -DUSE_RTMIDI
- LIBS += -lrtmidi
+ LIBS +=  -lrtmidi -lwinmm
 endif
 
 ifeq ($(VNC), y)
