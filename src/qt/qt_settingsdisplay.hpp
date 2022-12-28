@@ -35,7 +35,9 @@ private slots:
 
 private:
     Ui::SettingsDisplay *ui;
-    int                  machineId = 0;
+    int                  machineId   = 0;
+    int                  videoCard   = 0;
+    int                  videoCard_2 = 0;
 };
 
 #endif // QT_SETTINGSDISPLAY_HPP

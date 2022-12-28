@@ -367,7 +367,7 @@ hercules_poll(void *priv)
             else
                 x = dev->crtc[1] * 9;
 
-            video_process_8(x, dev->displine + 14);
+            video_process_8(x + 16, dev->displine + 14);
         }
         dev->sc = oldsc;
 
