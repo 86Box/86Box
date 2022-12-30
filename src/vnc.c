@@ -160,20 +160,15 @@ vnc_display(rfbClientPtr cl)
 static void
 vnc_blit(int x, int y, int w, int h, int monitor_index)
 {
-    uint32_t *p;
-    int       yy;
+    int       row;
 
     if (monitor_index || (x < 0) || (y < 0) || (w <= 0) || (h <= 0) || (w > 2048) || (h > 2048) || (buffer32 == NULL)) {
         video_blit_complete_monitor(monitor_index);
         return;
     }
 
-    for (yy = 0; yy < h; yy++) {
-        p = (uint32_t *) &(((uint32_t *) rfb->frameBuffer)[yy * VNC_MAX_X]);
-
-        if ((y + yy) >= 0 && (y + yy) < VNC_MAX_Y)
-            video_copy(p, &(buffer32->line[yy]), w * sizeof(uint32_t));
-    }
+    for (row = 0; row < h; ++row)
+        video_copy(&(((uint8_t *) rfb->frameBuffer)[row * 2048 * sizeof(uint32_t)]), &(buffer32->line[y + row][x]), w * sizeof(uint32_t));
 
     if (screenshots)
         video_screenshot((uint32_t *) rfb->frameBuffer, 0, 0, VNC_MAX_X);
