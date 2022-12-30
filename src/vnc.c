@@ -44,6 +44,15 @@ static int              allowedX,
     allowedY;
 static int ptr_x, ptr_y, ptr_but;
 
+typedef struct {
+    int buttons;
+    int dx;
+    int dy;
+    int dwheel;
+} MOUSESTATE;
+
+static MOUSESTATE ms;
+
 #ifdef ENABLE_VNC_LOG
 int vnc_do_log = ENABLE_VNC_LOG;
 
@@ -71,29 +80,43 @@ vnc_kbdevent(rfbBool down, rfbKeySym k, rfbClientPtr cl)
     vnc_kbinput(down ? 1 : 0, (int) k);
 }
 
+void
+vnc_mouse_poll(void)
+{
+    static int b = 0;
+    if (ms.dx != 0 || ms.dy != 0) {
+        mouse_x += ms.dx;
+        mouse_y += ms.dy;
+
+        ms.dx     = 0;
+        ms.dy     = 0;
+
+        // pclog("dx=%d, dy=%d, dwheel=%d\n", mouse_x, mouse_y, mouse_z);
+    }
+
+    if (b != ms.buttons) {
+        mouse_buttons = ms.buttons;
+        b             = ms.buttons;
+    }
+}
+
 static void
 vnc_ptrevent(int but, int x, int y, rfbClientPtr cl)
 {
-    if (x >= 0 && x < allowedX && y >= 0 && y < allowedY) {
-        /* VNC uses absolute positions within the window, no deltas. */
-        if (x != ptr_x || y != ptr_y) {
-            mouse_x += (x - ptr_x) / 100;
-            mouse_y += (y - ptr_y) / 100;
-            ptr_x = x;
-            ptr_y = y;
-        }
+    ms.buttons = 0;
+    if (but & 0x01)
+        ms.buttons |= 0x01;
+    if (but & 0x02)
+        ms.buttons |= 0x04;
+    if (but & 0x04)
+        ms.buttons |= 0x02;
+    ptr_but = but;
 
-        if (but != ptr_but) {
-            mouse_buttons = 0;
-            if (but & 0x01)
-                mouse_buttons |= 0x01;
-            if (but & 0x02)
-                mouse_buttons |= 0x04;
-            if (but & 0x04)
-                mouse_buttons |= 0x02;
-            ptr_but = but;
-        }
-    }
+    /* VNC uses absolute positions within the window, no deltas. */
+    ms.dx += (x - ptr_x) / 0.96; /* TODO: Figure out the correct scale factor for X and Y. */
+    ms.dy += (y - ptr_y) / 0.96;
+    ptr_x = x;
+    ptr_y = y;
 
     rfbDefaultPtrAddEvent(but, x, y, cl);
 }
@@ -110,7 +133,8 @@ vnc_clientgone(rfbClientPtr cl)
         vnc_log("VNC: no clients, pausing..\n");
 
         /* Disable the mouse. */
-        plat_mouse_capture(0);
+        // plat_mouse_capture(0);
+        mouse_set_poll_ex(NULL);
 
         plat_pause(1);
     }
@@ -129,12 +153,14 @@ vnc_newclient(rfbClientPtr cl)
         ptr_y   = allowedY / 2;
         mouse_x = mouse_y = mouse_z = 0;
         mouse_buttons               = 0x00;
+        memset(&ms, 0, sizeof(MOUSESTATE));
 
         /* We now have clients, un-pause the emulator if needed. */
         vnc_log("VNC: unpausing..\n");
 
         /* Enable the mouse. */
-        plat_mouse_capture(1);
+        // plat_mouse_capture(1);
+        mouse_set_poll_ex(vnc_mouse_poll);
 
         plat_pause(0);
     }
@@ -162,7 +188,7 @@ vnc_blit(int x, int y, int w, int h, int monitor_index)
 {
     int       row;
 
-    if (monitor_index || (x < 0) || (y < 0) || (w <= 0) || (h <= 0) || (w > 2048) || (h > 2048) || (buffer32 == NULL)) {
+    if (monitor_index || (x < 0) || (y < 0) || (w < VNC_MIN_X) || (h < VNC_MIN_Y) || (w > VNC_MAX_X) || (h > VNC_MAX_Y) || (buffer32 == NULL)) {
         video_blit_complete_monitor(monitor_index);
         return;
     }
@@ -260,7 +286,7 @@ vnc_resize(int x, int y)
         return;
 
     /* TightVNC doesn't like certain sizes.. */
-    if (x < VNC_MIN_X || x > VNC_MAX_X || y < VNC_MIN_Y || y > VNC_MAX_Y) {
+    if ((x < VNC_MIN_X) || (x > VNC_MAX_X) || (y < VNC_MIN_Y) || (y > VNC_MAX_Y)) {
         vnc_log("VNC: invalid resoltion %dx%d requested!\n", x, y);
         return;
     }

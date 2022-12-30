@@ -65,6 +65,7 @@ extern void mouse_init(void);
 extern void mouse_close(void);
 extern void mouse_reset(void);
 extern void mouse_set_buttons(int buttons);
+extern void mouse_set_poll_ex(void (*poll_ex)(void));
 extern void mouse_process(void);
 extern void mouse_set_poll(int (*f)(int, int, int, int, void *), void *);
 extern void mouse_poll(void);
