@@ -444,16 +444,16 @@ fill_palette(uint8_t redmax, uint8_t greenmax, uint8_t bluemax, uint8_t colorID,
     uint8_t colormask;
     int     i;
 
-    float red   = (float) redmax / (float) 30.9;
-    float green = (float) greenmax / (float) 30.9;
-    float blue  = (float) bluemax / (float) 30.9;
+    double red   = (double) redmax / (double) 30.9;
+    double green = (double) greenmax / (double) 30.9;
+    double blue  = (double) bluemax / (double) 30.9;
 
     colormask = colorID <<= 5;
 
     for (i = 0; i < 32; i++) {
-        dev->palcol[i + colormask].r = 255 - (uint8_t) floor((double) red * (float) i);
-        dev->palcol[i + colormask].g = 255 - (uint8_t) floor((double) green * (float) i);
-        dev->palcol[i + colormask].b = 255 - (uint8_t) floor((double) blue * (float) i);
+        dev->palcol[i + colormask].r = 255 - (uint8_t) floor(red * (double) i);
+        dev->palcol[i + colormask].g = 255 - (uint8_t) floor(green * (double) i);
+        dev->palcol[i + colormask].b = 255 - (uint8_t) floor(blue * (double) i);
     }
 }
 
