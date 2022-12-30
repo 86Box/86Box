@@ -2663,8 +2663,8 @@ pgc_init(pgc_t *dev, int maxw, int maxh, int visw, int vish,
     dev->visw = visw;
     dev->vish = vish;
 
-    dev->vram = (uint8_t *) malloc(maxw * maxh);
-    memset(dev->vram, 0x00, maxw * maxh);
+    dev->vram = (uint8_t *) malloc((size_t) maxw * maxh);
+    memset(dev->vram, 0x00, (size_t) maxw * maxh);
     dev->cga_vram = (uint8_t *) malloc(16384);
     memset(dev->cga_vram, 0x00, 16384);
 

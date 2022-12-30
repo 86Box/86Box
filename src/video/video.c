@@ -804,7 +804,7 @@ create_bitmap(int x, int y)
     bitmap_t *b = malloc(sizeof(bitmap_t) + (y * sizeof(uint32_t *)));
     int       c;
 
-    b->dat = malloc(x * y * 4);
+    b->dat = malloc((size_t) x * y * 4);
     for (c = 0; c < y; c++)
         b->line[c] = &(b->dat[c * x]);
     b->w = x;
