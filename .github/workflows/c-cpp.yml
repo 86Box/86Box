@@ -79,7 +79,6 @@ jobs:
           DEBUG=${{ matrix.build.debug }}
           NEW_DYNAREC=${{ matrix.dynarec.new }}
           X64=${{ matrix.environment.x64 }}
-          VNC=n
         working-directory: ./src
       - uses: actions/upload-artifact@v3
         with:
