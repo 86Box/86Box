@@ -416,7 +416,7 @@ ifeq ($(VNC), y)
   OPTS   += -I$(VNC_PATH)\INCLUDE
   VNCLIB := -L$(VNC_PATH)\LIB
  endif
- VNCLIB +=  -lvncserver
+ VNCLIB +=  -lvncserver.dll
  VNCOBJ := vnc.o vnc_keymap.o
 endif
 
