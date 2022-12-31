@@ -2848,7 +2848,7 @@ amd_k_invalid_wrmsr:
                     break;
                 case 0x1b:
                     cpu_log("APIC_BASE write: %08X%08X\n", EDX, EAX);
-                    // msr.apic_base = EAX | ((uint64_t)EDX << 32);
+                    // msr.apic_base = EAX | ((uint64_t) EDX << 32);
                     break;
                 case 0x2a:
                     break;
