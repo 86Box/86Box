@@ -168,7 +168,7 @@ jobs:
         run: echo "C:/Program Files/LLVM/bin" >> $env:GITHUB_PATH
       - name: Download Ninja
         run: >
-          Invoke-WebRequest https://github.com/ninja-build/ninja/releases/download/v1.10.2/ninja-win.zip -OutFile ninja-win.zip && 
+          Invoke-WebRequest https://github.com/ninja-build/ninja/releases/download/v1.11.1/ninja-win.zip -OutFile ninja-win.zip && 
           Expand-Archive ninja-win.zip -DestinationPath .
       - name: Setup NuGet Credentials
         run: >
