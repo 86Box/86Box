@@ -246,6 +246,7 @@ jobs:
           qtbase5-dev
           qttools5-dev
           libopenal-dev
+          libvncserver-dev
       - uses: actions/checkout@v3
       - name: Configure CMake
         run: >-
@@ -296,6 +297,7 @@ jobs:
           rtmidi
           qt@5
           openal-soft
+          libvncserver
       - uses: actions/checkout@v3
       - name: Configure CMake
         run: >-
