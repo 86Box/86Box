@@ -68,7 +68,7 @@ svga_render_blank(svga_t *svga)
     }
 
     uint32_t *line_ptr   = &buffer32->line[svga->displine + svga->y_add][svga->x_add];
-    uint32_t  line_width = (svga->hdisp + svga->scrollcache) * char_width * sizeof(uint32_t);
+    uint32_t  line_width = (uint32_t) (svga->hdisp + svga->scrollcache) * char_width * sizeof(uint32_t);
     memset(line_ptr, 0, line_width);
 }
 
