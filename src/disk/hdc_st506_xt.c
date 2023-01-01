@@ -88,7 +88,8 @@
 #include <86box/hdd.h>
 
 #define ST506_XT_TYPE_XEBEC              0
-#define ST506_XT_TYPE_DTC_5150X          1
+#define ST506_XT_TYPE_WDXT_GEN           1
+#define ST506_XT_TYPE_DTC_5150X          2
 #define ST506_XT_TYPE_ST11M              11
 #define ST506_XT_TYPE_ST11R              12
 #define ST506_XT_TYPE_WD1002A_WX1        21
@@ -101,6 +102,7 @@
 #define ST506_XT_TYPE_TOSHIBA_T1200      28
 
 #define XEBEC_BIOS_FILE                  "roms/hdd/st506/ibm_xebec_62x0822_1985.bin"
+#define WDXT_GEN_BIOS_FILE               "roms/hdd/st506/wdxt-gen/62-000128-000.bin"
 #define DTC_BIOS_FILE                    "roms/hdd/st506/dtc_cxd21a.bin"
 #define ST11_BIOS_FILE_OLD               "roms/hdd/st506/st11_bios_vers_1.7.bin"
 #define ST11_BIOS_FILE_NEW               "roms/hdd/st506/st11_bios_vers_2.0.bin"
@@ -1335,6 +1337,15 @@ mem_read(uint32_t addr, void *priv)
             }
             break;
 
+        case ST506_XT_TYPE_WDXT_GEN: /* WDXT-GEN */
+            if (addr >= 0x002000) {
+#ifdef ENABLE_ST506_XT_LOG
+                st506_xt_log("ST506: WDXT-GEN ROM access(0x%06lx)\n", addr);
+#endif
+                return 0xff;
+            }
+            break;
+
         case ST506_XT_TYPE_DTC_5150X: /* DTC */
         default:
             if (addr >= 0x002000) {
@@ -1517,6 +1528,10 @@ st506_init(const device_t *info)
     switch (dev->type) {
         case ST506_XT_TYPE_XEBEC: /* Xebec (MFM) */
             fn = XEBEC_BIOS_FILE;
+            break;
+
+        case ST506_XT_TYPE_WDXT_GEN: /* WDXT-GEN (MFM) */
+            fn = WDXT_GEN_BIOS_FILE;
             break;
 
         case ST506_XT_TYPE_DTC_5150X: /* DTC5150 (MFM) */
@@ -2115,6 +2130,20 @@ const device_t st506_xt_xebec_device = {
     .internal_name = "st506_xt",
     .flags         = DEVICE_ISA,
     .local         = (HDD_BUS_MFM << 8) | ST506_XT_TYPE_XEBEC,
+    .init          = st506_init,
+    .close         = st506_close,
+    .reset         = NULL,
+    { .available = xebec_available },
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t st506_xt_wdxt_gen_device = {
+    .name          = "Western Digital WDXT-GEN (MFM)",
+    .internal_name = "st506_xt",
+    .flags         = DEVICE_ISA,
+    .local         = (HDD_BUS_MFM << 8) | ST506_XT_TYPE_WDXT_GEN,
     .init          = st506_init,
     .close         = st506_close,
     .reset         = NULL,

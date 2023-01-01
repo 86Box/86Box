@@ -998,13 +998,13 @@ load_hard_disks(void)
                 break;
 
             case HDD_BUS_IDE:
-                max_spt    = 63;
+                max_spt    = 255;
                 max_hpc    = 255;
                 max_tracks = 266305;
                 break;
 
             case HDD_BUS_SCSI:
-                max_spt    = 99;
+                max_spt    = 255;
                 max_hpc    = 255;
                 max_tracks = 266305;
                 break;

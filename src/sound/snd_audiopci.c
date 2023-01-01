@@ -1958,7 +1958,7 @@ generate_es1371_filter(void)
     for (n = 0; n < ES1371_NCoef; n++)
         gain += low_fir_es1371_coef[n] / (float) N;
 
-    gain /= 0.95;
+    gain /= 0.65;
 
     /* Normalise filter, to produce unity gain */
     for (n = 0; n < ES1371_NCoef; n++)

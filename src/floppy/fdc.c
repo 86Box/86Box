@@ -135,6 +135,7 @@ static fdc_cards_t fdc_cards[] = {
     { &fdc_b215_device     },
     { &fdc_pii151b_device  },
     { &fdc_pii158b_device  },
+    { &fdc_monster_device  },
     { NULL                 }
     // clang-format on
 };
@@ -2276,6 +2277,9 @@ fdc_reset(void *priv)
     if (fdc->flags & FDC_FLAG_PCJR) {
         fdc->dma        = 0;
         fdc->specify[1] = 1;
+    } else if (fdc->flags & FDC_FLAG_SEC) {
+        fdc->dma        = 1;
+        fdc->specify[1] = 0;
     } else {
         fdc->dma        = 1;
         fdc->specify[1] = 0;

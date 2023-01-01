@@ -36,6 +36,8 @@ SettingsDisplay::SettingsDisplay(QWidget *parent)
 {
     ui->setupUi(this);
 
+    videoCard   = gfxcard;
+    videoCard_2 = gfxcard_2;
     onCurrentMachineChanged(machine);
 }
 
@@ -59,6 +61,7 @@ SettingsDisplay::onCurrentMachineChanged(int machineId)
 {
     // win_settings_video_proc, WM_INITDIALOG
     this->machineId = machineId;
+    auto curVideoCard = videoCard;
 
     auto *model      = ui->comboBoxVideo->model();
     auto  removeRows = model->rowCount();
@@ -80,7 +83,7 @@ SettingsDisplay::onCurrentMachineChanged(int machineId)
 
         if (video_card_available(c) && device_is_valid(video_dev, machineId)) {
             int row = Models::AddEntry(model, name, c);
-            if (c == gfxcard) {
+            if (c == curVideoCard) {
                 selectedRow = row - removeRows;
             }
         }
@@ -133,7 +136,8 @@ SettingsDisplay::on_comboBoxVideo_currentIndexChanged(int index)
     if (index < 0) {
         return;
     }
-    int videoCard = ui->comboBoxVideo->currentData().toInt();
+    auto curVideoCard_2 = videoCard_2;
+    videoCard = ui->comboBoxVideo->currentData().toInt();
     ui->pushButtonConfigure->setEnabled(video_card_has_config(videoCard) > 0);
 
     bool machineHasPci = machine_has_bus(machineId, MACHINE_BUS_PCI) > 0;
@@ -176,14 +180,14 @@ SettingsDisplay::on_comboBoxVideo_currentIndexChanged(int index)
 
         if (video_card_available(c) && device_is_valid(video_dev, machineId) && !(video_card_get_flags(c) == video_card_get_flags(videoCard))) {
             ui->comboBoxVideoSecondary->addItem(name, c);
-            if (c == gfxcard_2)
+            if (c == curVideoCard_2)
                 ui->comboBoxVideoSecondary->setCurrentIndex(ui->comboBoxVideoSecondary->count() - 1);
         }
 
         c++;
     }
 
-    if (gfxcard_2 == 0 || (machine_has_flags(machineId, MACHINE_VIDEO_ONLY) > 0)) {
+    if (videoCard_2 == 0 || (machine_has_flags(machineId, MACHINE_VIDEO_ONLY) > 0)) {
         ui->comboBoxVideoSecondary->setCurrentIndex(0);
         ui->pushButtonConfigureSecondary->setEnabled(false);
     }
@@ -208,8 +212,8 @@ SettingsDisplay::on_comboBoxVideoSecondary_currentIndexChanged(int index)
         ui->pushButtonConfigureSecondary->setEnabled(false);
         return;
     }
-    int videoCard = ui->comboBoxVideoSecondary->currentData().toInt();
-    ui->pushButtonConfigureSecondary->setEnabled(index != 0 && video_card_has_config(videoCard) > 0);
+    videoCard_2 = ui->comboBoxVideoSecondary->currentData().toInt();
+    ui->pushButtonConfigureSecondary->setEnabled(index != 0 && video_card_has_config(videoCard_2) > 0);
 }
 
 void

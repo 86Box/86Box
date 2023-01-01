@@ -29,6 +29,15 @@ extern "C" {
 #include <86box/snd_opl.h>
 #include <86box/mem.h>
 #include <86box/rom.h>
+
+// Disable c99-designator to avoid the warnings in *_ymfm_device
+#ifdef __clang__
+#    if __has_warning("-Wc99-designator")
+#        pragma clang diagnostic push
+#        pragma clang diagnostic ignored "-Wc99-designator"
+#    endif
+#endif
+
 }
 
 #define RSM_FRAC 10
@@ -432,4 +441,11 @@ const fm_drv_t ymfm_drv {
     &ymfm_drv_set_do_cycles,
     NULL,
 };
+
+#ifdef __clang__
+#    if __has_warning("-Wc99-designator")
+#        pragma clang diagnostic pop
+#    endif
+#endif
+
 }

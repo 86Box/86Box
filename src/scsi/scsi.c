@@ -41,9 +41,6 @@
 #include <86box/scsi_ncr53c8xx.h>
 #include <86box/scsi_pcscsi.h>
 #include <86box/scsi_spock.h>
-#ifdef WALTJE
-#    include "scsi_wd33c93.h"
-#endif
 
 int scsi_card_current[SCSI_BUS_MAX] = { 0, 0 };
 
@@ -85,9 +82,6 @@ static SCSI_CARD scsi_cards[] = {
     { &scsi_rt1000mc_device,     },
     { &scsi_t128_device,         },
     { &scsi_t130b_device,        },
-#ifdef WALTJE
-    { &scsi_wd33c93_device,      },
-#endif
     { &aha1640_device,           },
     { &buslogic_640a_device,     },
     { &ncr53c90_mca_device,      },

@@ -468,12 +468,12 @@ ui_sb_update_tip(int arg)
 }
 
 void
-ui_sb_update_panes()
+ui_sb_update_panes(void)
 {
 }
 
 void
-ui_sb_update_text()
+ui_sb_update_text(void)
 {
 }
 
@@ -699,7 +699,7 @@ typedef struct mouseinputdata {
 SDL_mutex            *mousemutex;
 static mouseinputdata mousedata;
 void
-mouse_poll()
+mouse_poll(void)
 {
     SDL_LockMutex(mousemutex);
     mouse_x          = mousedata.deltax;
@@ -754,7 +754,7 @@ plat_pause(int p)
 }
 
 void
-plat_init_rom_paths()
+plat_init_rom_paths(void)
 {
 #ifndef __APPLE__
     if (getenv("XDG_DATA_HOME")) {
@@ -808,6 +808,18 @@ plat_init_rom_paths()
     getDefaultROMPath(default_rom_path);
     rom_add_path(default_rom_path);
 #endif
+}
+
+void
+plat_get_global_config_dir(char *strptr)
+{
+#ifdef __APPLE__
+    char* prefPath = SDL_GetPrefPath(NULL, "net.86Box.86Box")
+#else
+    char* prefPath = SDL_GetPrefPath(NULL, "86Box");
+#endif
+    strncpy(strptr, prefPath, 1024);
+    path_slash(strptr);
 }
 
 bool
@@ -1190,7 +1202,7 @@ main(int argc, char **argv)
                 case SDL_RENDER_DEVICE_RESET:
                 case SDL_RENDER_TARGETS_RESET:
                     {
-                        extern void sdl_reinit_texture();
+                        extern void sdl_reinit_texture(void);
                         sdl_reinit_texture();
                         break;
                     }
@@ -1226,7 +1238,7 @@ main(int argc, char **argv)
             sdl_blit(params.x, params.y, params.w, params.h);
         }
         if (title_set) {
-            extern void ui_window_title_real();
+            extern void ui_window_title_real(void);
             ui_window_title_real();
         }
         if (video_fullscreen && keyboard_isfsexit()) {
@@ -1291,13 +1303,13 @@ joystick_process(void)
 {
 }
 void
-startblit()
+startblit(void)
 {
     SDL_LockMutex(blitmtx);
 }
 
 void
-endblit()
+endblit(void)
 {
     SDL_UnlockMutex(blitmtx);
 }

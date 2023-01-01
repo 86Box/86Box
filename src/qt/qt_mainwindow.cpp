@@ -261,7 +261,7 @@ MainWindow::MainWindow(QWidget *parent)
                 + (statusBar()->height() * !hide_status_bar)
                 + (ui->toolBar->height() * !hide_tool_bar);
 
-            ui->stackedWidget->resize(w, h);
+            ui->stackedWidget->resize(w, (h / (!dpi_scale ? util::screenOfWidget(this)->devicePixelRatio() : 1.)));
             setFixedSize(w, modifiedHeight);
         }
     });
@@ -1070,7 +1070,7 @@ std::array<uint32_t, 256> x11_to_xt_2 {
     0x53,
     0x138,
     0x55,
-    0x35,
+    0x56,
     0x57,
     0x58,
     0x56,
@@ -1835,6 +1835,7 @@ video_toggle_option(QAction *action, int *val)
     action->setChecked(*val > 0 ? true : false);
     endblit();
     config_save();
+    reset_screen_size();
     device_force_redraw();
     for (int i = 0; i < MONITORS_NUM; i++) {
         if (monitors[i].target_buffer)
@@ -2231,6 +2232,9 @@ MainWindow::on_actionUpdate_status_bar_icons_triggered()
 {
     update_icons ^= 1;
     ui->actionUpdate_status_bar_icons->setChecked(update_icons);
+
+    /* Prevent icons staying when disabled during activity. */
+    status->clearActivity();
 }
 
 void

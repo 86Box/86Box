@@ -1159,7 +1159,7 @@ cpu_set(void)
             if (cpu_s->cpu_type >= CPU_K6_2)
                 x86_setopcodes(ops_386, ops_k62_0f);
 #    if defined(DEV_BRANCH) && defined(USE_AMD_K5)
-            else if (cpu_s->cpu_type = CPU_K6)
+            else if (cpu_s->cpu_type == CPU_K6)
                 x86_setopcodes(ops_386, ops_k6_0f);
             else
                 x86_setopcodes(ops_386, ops_pentiummmx_0f);
@@ -1170,7 +1170,7 @@ cpu_set(void)
 #endif
 
             if ((cpu_s->cpu_type == CPU_K6_2P) || (cpu_s->cpu_type == CPU_K6_3P)) {
-                x86_opcodes_3DNOW         = ops_3DNOWE;
+                x86_opcodes_3DNOW = ops_3DNOWE;
 #ifdef USE_DYNAREC
                 x86_dynarec_opcodes_3DNOW = dynarec_ops_3DNOWE;
 #endif
@@ -2848,7 +2848,7 @@ amd_k_invalid_wrmsr:
                     break;
                 case 0x1b:
                     cpu_log("APIC_BASE write: %08X%08X\n", EDX, EAX);
-                    // msr.apic_base = EAX | ((uint64_t)EDX << 32);
+                    // msr.apic_base = EAX | ((uint64_t) EDX << 32);
                     break;
                 case 0x2a:
                     break;
