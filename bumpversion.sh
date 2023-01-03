@@ -73,3 +73,5 @@ patch_file src/unix/assets/*.spec '%global romver' 's/(^%global\ romver\s+)[0-9]
 patch_file src/unix/assets/*.spec 'changelog version' 's/(^[*]\s.*>\s+)[0-9].+/\1'"$newversion"-1'/'
 patch_file src/unix/assets/*.spec 'changelog date' 's/(^[*]\s)[a-zA-Z]{3}\s[a-zA-Z]{3}\s[0-9]{2}\s[0-9]{4}/\1'"$(pretty_date)"'/'
 patch_file src/unix/assets/*.metainfo.xml release 's/(<release version=")[^"]+(" date=")[^"]+/\1'"$newversion"'\2'"$(date +%Y-%m-%d)"'/'
+patch_file debian/changelog 'changelog date' 's/>  .+/>  '"$(date -R)"'/'
+patch_file debian/changelog 'changelog version' 's/86box \(.+\)/86box \('"$newversion"'\)/'
