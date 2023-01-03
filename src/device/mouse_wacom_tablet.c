@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <math.h>
 #include <86box/86box.h>
 #include <86box/device.h>
 #include <86box/timer.h>
@@ -85,6 +86,7 @@ wacom_reset(mouse_wacom_t* wacom)
     wacom->transmit_id = 0;
     wacom->format = 0; /* ASCII */
     wacom->measurement = 1;
+    wacom->increment = wacom->suppressed_increment = 0;
 
     mouse_mode = 1;
 }
@@ -211,6 +213,8 @@ sermouse_report_timer(void *priv)
     uint32_t transmitted = 0;
     double milisecond_diff = ((double)(tsc - wacom->old_tsc)) / cpuclock * 1000.0;
     int x = (mouse_mode == 0 ? wacom->rel_x : wacom->abs_x), y = (mouse_mode == 0 ? wacom->rel_y : wacom->abs_y);
+    int x_diff = abs(mouse_mode == 0 ? wacom->rel_x : (wacom->abs_x - wacom->last_abs_x));
+    int y_diff = abs(mouse_mode == 0 ? wacom->rel_y : (wacom->abs_y - wacom->last_abs_y));
 
     timer_on_auto(&wacom->report_timer, wacom->transmit_id ? (wacom->transmit_period / 8.0) : wacom->transmit_period);
     if (wacom->transmit_id && !wacom->transmission_ongoing)
@@ -218,9 +222,6 @@ sermouse_report_timer(void *priv)
     if (wacom->transmission_ongoing)
         goto transmit;
     else {
-        int x_diff = (mouse_mode == 0 ? wacom->rel_x : (wacom->last_abs_x - wacom->abs_x));
-        int y_diff = (mouse_mode == 0 ? wacom->rel_y : (wacom->last_abs_y - wacom->abs_y));
-
         if (wacom->transmission_stopped || (!mouse_tablet_in_proximity && !wacom->always_report)) return;
         if (milisecond_diff >= (wacom->interval * 5)) {
             transmitted = 1;
@@ -228,12 +229,13 @@ sermouse_report_timer(void *priv)
         } else transmitted = 0;
         if (!transmitted)
             return;
+
         if (wacom->increment && !(x_diff >= wacom->increment || y_diff >= wacom->increment || wacom_switch_off_to_on(wacom->b, wacom->oldb)))
             return;
         
         if (wacom->suppressed_increment && !(x_diff >= wacom->suppressed_increment || y_diff >= wacom->suppressed_increment || (wacom->b != wacom->oldb)))
             return;
-        
+
         switch (wacom->mode) {
             case WACOM_MODE_STREAM:
             default:
@@ -268,8 +270,11 @@ transmit_prepare:
     wacom->transmission_ongoing = 1;
     wacom->transmission_format = wacom->format;
     wacom->data_pos = 0;
-    wacom->last_abs_x = wacom->abs_x;
-    wacom->last_abs_y = wacom->abs_y;
+    if (!((wacom->increment && !(x_diff >= wacom->increment || y_diff >= wacom->increment || wacom_switch_off_to_on(wacom->b, wacom->oldb))) || 
+        (wacom->suppressed_increment && !(x_diff >= wacom->suppressed_increment || y_diff >= wacom->suppressed_increment || (wacom->b != wacom->oldb))))) {
+        wacom->last_abs_x = wacom->abs_x;
+        wacom->last_abs_y = wacom->abs_y;
+    }
     wacom->oldb = wacom->b;
     if (wacom->format == 1) {
         memset(wacom->data, 0, 7);
