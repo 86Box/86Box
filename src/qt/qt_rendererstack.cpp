@@ -153,15 +153,16 @@ RendererStack::mousePoll()
     mouse_x                   = mousedata.deltax;
     mouse_y                   = mousedata.deltay;
     mouse_z                   = mousedata.deltaz;
-    mouse_x_abs               = mousedata.x_abs;
-    mouse_y_abs               = mousedata.y_abs;
-    mouse_tablet_in_proximity = mousedata.mouse_tablet_in_proximity;
     mousedata.deltax = mousedata.deltay = mousedata.deltaz = 0;
     mouse_buttons                                          = mousedata.mousebuttons;
 
     if (this->mouse_poll_func)
 #endif
         this->mouse_poll_func();
+
+    mouse_x_abs               = mousedata.x_abs;
+    mouse_y_abs               = mousedata.y_abs;
+    mouse_tablet_in_proximity = mousedata.mouse_tablet_in_proximity;
 
     double scaled_x = mouse_x * mouse_sensitivity + mouse_x_error;
     double scaled_y = mouse_y * mouse_sensitivity + mouse_y_error;
