@@ -48,7 +48,7 @@ typedef struct {
     int last_abs_x, last_abs_y; /* Suppressed/Increment Mode. */
 
     double     transmit_period, report_period;
-    double     old_tsc;
+    double     old_tsc, reset_tsc;
     pc_timer_t command_timer, report_timer;
 
     serial_t *serial;
@@ -87,6 +87,7 @@ wacom_reset(mouse_wacom_t* wacom)
     wacom->format = 0; /* ASCII */
     wacom->measurement = 1;
     wacom->increment = wacom->suppressed_increment = 0;
+    wacom->reset_tsc = tsc;
 
     mouse_mode = 1;
 }
@@ -217,6 +218,8 @@ sermouse_report_timer(void *priv)
     int y_diff = abs(mouse_mode == 0 ? wacom->rel_y : (wacom->abs_y - wacom->last_abs_y));
 
     timer_on_auto(&wacom->report_timer, wacom->transmit_id ? (wacom->transmit_period / 8.0) : wacom->transmit_period);
+    if ((((double)(tsc - wacom->reset_tsc)) / cpuclock * 1000.0) <= 10)
+        return;
     if (wacom->transmit_id && !wacom->transmission_ongoing)
         goto transmit_prepare;
     if (wacom->transmission_ongoing)
