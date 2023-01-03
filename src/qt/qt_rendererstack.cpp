@@ -144,6 +144,11 @@ qt_mouse_capture(int on)
 void
 RendererStack::mousePoll()
 {
+#ifdef Q_OS_WINDOWS
+    mouse_x_abs               = mousedata.x_abs;
+    mouse_y_abs               = mousedata.y_abs;
+    return;
+#endif
 #ifndef __APPLE__
     mouse_x                   = mousedata.deltax;
     mouse_y                   = mousedata.deltay;
