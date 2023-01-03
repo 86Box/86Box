@@ -126,14 +126,17 @@ wacom_write(struct serial_s *serial, void *priv, uint8_t data)
     }
     if (data == '$') {
         wacom_reset(wacom);
+        return;
     }
     if (data == 0x13) {
         wacom->transmission_stopped = 1;
         pclog("WACOM: transmission stopped\n");
+        return;
     }
     if (data == 0x11) {
         wacom->transmission_stopped = 0;
         pclog("WACOM: transmission started\n");
+        return;
     }
     wacom->data_rec[wacom->data_rec_pos++] = data;
     if (data == '\r') {
