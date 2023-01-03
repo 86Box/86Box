@@ -174,6 +174,8 @@ wacom_poll(int x, int y, int z, int b, double abs_x, double abs_y, void *priv)
     wacom->abs_y = abs_y * (wacom->measurement ? 2972. : 3774.);
     if (wacom->abs_x > (wacom->measurement ? 4566 : 5800)) wacom->abs_x = (wacom->measurement ? 4566 : 5800);
     if (wacom->abs_y > (wacom->measurement ? 2972 : 3774)) wacom->abs_x = (wacom->measurement ? 2972 : 3774);
+    if (wacom->abs_x < 0) wacom->abs_x = 0;
+    if (wacom->abs_y < 0) wacom->abs_y = 0;
     wacom->rel_x = x;
     wacom->rel_y = y;
     if (wacom->b != b) wacom->oldb = wacom->b;
