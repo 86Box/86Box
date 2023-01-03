@@ -58,8 +58,10 @@ double mouse_x_error = 0.0, mouse_y_error = 0.0;
 }
 
 struct mouseinputdata {
-    atomic_int deltax, deltay, deltaz;
-    atomic_int mousebuttons;
+    atomic_int          deltax, deltay, deltaz;
+    atomic_int          mousebuttons;
+    atomic_bool         mouse_tablet_in_proximity;
+    std::atomic<double> x_abs, y_abs;
 };
 static mouseinputdata mousedata;
 
@@ -116,6 +118,7 @@ RendererStack::RendererStack(QWidget *parent, int monitor_index)
 
 RendererStack::~RendererStack()
 {
+    QApplication::restoreOverrideCursor();
     delete ui;
 }
 
@@ -142,9 +145,12 @@ void
 RendererStack::mousePoll()
 {
 #ifndef __APPLE__
-    mouse_x          = mousedata.deltax;
-    mouse_y          = mousedata.deltay;
-    mouse_z          = mousedata.deltaz;
+    mouse_x                   = mousedata.deltax;
+    mouse_y                   = mousedata.deltay;
+    mouse_z                   = mousedata.deltaz;
+    mouse_x_abs               = mousedata.x_abs;
+    mouse_y_abs               = mousedata.y_abs;
+    mouse_tablet_in_proximity = mousedata.mouse_tablet_in_proximity;
     mousedata.deltax = mousedata.deltay = mousedata.deltaz = 0;
     mouse_buttons                                          = mousedata.mousebuttons;
 
@@ -166,7 +172,7 @@ int ignoreNextMouseEvent = 1;
 void
 RendererStack::mouseReleaseEvent(QMouseEvent *event)
 {
-    if (this->geometry().contains(event->pos()) && event->button() == Qt::LeftButton && !mouse_capture && (isMouseDown & 1) && (mouse_get_buttons() != 0)) {
+    if (this->geometry().contains(event->pos()) && event->button() == Qt::LeftButton && !mouse_capture && (isMouseDown & 1) && (mouse_get_buttons() != 0) && mouse_mode == 0) {
         plat_mouse_capture(1);
         this->setCursor(Qt::BlankCursor);
         if (!ignoreNextMouseEvent)
@@ -180,7 +186,7 @@ RendererStack::mouseReleaseEvent(QMouseEvent *event)
         isMouseDown &= ~1;
         return;
     }
-    if (mouse_capture) {
+    if (mouse_capture || mouse_mode >= 1) {
         mousedata.mousebuttons &= ~event->button();
     }
     isMouseDown &= ~1;
@@ -190,7 +196,7 @@ void
 RendererStack::mousePressEvent(QMouseEvent *event)
 {
     isMouseDown |= 1;
-    if (mouse_capture) {
+    if (mouse_capture || mouse_mode >= 1) {
         mousedata.mousebuttons |= event->button();
     }
     event->accept();
@@ -238,9 +244,26 @@ RendererStack::mouseMoveEvent(QMouseEvent *event)
 #endif
 }
 
+
+void
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+RendererStack::enterEvent(QEnterEvent *event)
+#else
+RendererStack::enterEvent(QEvent *event)
+#endif
+{
+    mousedata.mouse_tablet_in_proximity = 1;
+
+    if (mouse_mode == 1)
+        QApplication::setOverrideCursor(Qt::BlankCursor);
+}
+
 void
 RendererStack::leaveEvent(QEvent *event)
 {
+    mousedata.mouse_tablet_in_proximity = 0;
+    if (mouse_mode == 1)
+        QApplication::setOverrideCursor(Qt::ArrowCursor);
     if (QApplication::platformName().contains("wayland")) {
         event->accept();
         return;
@@ -500,4 +523,17 @@ RendererStack::changeEvent(QEvent *event)
         monitor_settings[m_monitor_index].mon_window_maximized = isMaximized();
         config_save();
     }
+}
+
+bool
+RendererStack::event(QEvent* event)
+{
+    if (event->type() == QEvent::MouseMove) {
+        QMouseEvent* mouse_event = (QMouseEvent*)event;
+        if (mouse_mode >= 1) {
+            mousedata.x_abs = (mouse_event->localPos().x()) / (long double)width();
+            mousedata.y_abs = (mouse_event->localPos().y()) / (long double)height();
+        }
+    }
+    return QStackedWidget::event(event);
 }

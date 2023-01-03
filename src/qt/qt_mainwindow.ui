@@ -61,8 +61,16 @@
     <property name="title">
      <string>&amp;Action</string>
     </property>
+    <widget class="QMenu" name="menuTablet_tool">
+     <property name="title">
+      <string>Tablet tool</string>
+     </property>
+     <addaction name="actionPen"/>
+     <addaction name="actionCursor_Puck"/>
+    </widget>
     <addaction name="actionKeyboard_requires_capture"/>
     <addaction name="actionRight_CTRL_is_left_ALT"/>
+    <addaction name="menuTablet_tool"/>
     <addaction name="separator"/>
     <addaction name="actionHard_Reset"/>
     <addaction name="actionCtrl_Alt_Del"/>
@@ -849,6 +857,22 @@
    </property>
    <property name="text">
     <string>Apply fullscreen stretch mode when maximized</string>
+   </property>
+  </action>
+  <action name="actionCursor_Puck">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Cursor/Puck</string>
+   </property>
+  </action>
+  <action name="actionPen">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Pen</string>
    </property>
   </action>
  </widget>

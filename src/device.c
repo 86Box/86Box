@@ -412,7 +412,7 @@ device_poll(const device_t *d, int x, int y, int z, int b)
         if (devices[c] != NULL) {
             if (devices[c] == d) {
                 if (devices[c]->poll)
-                    return (devices[c]->poll(x, y, z, b, device_priv[c]));
+                    return (devices[c]->poll(x, y, z, b, 0, 0, device_priv[c]));
             }
         }
     }

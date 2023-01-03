@@ -122,7 +122,7 @@ typedef struct _device_ {
     void (*reset)(void *priv);
     union {
         int (*available)(void);
-        int (*poll)(int x, int y, int z, int b, void *priv);
+        int (*poll)(int x, int y, int z, int b, double abs_x, double abs_y, void *priv);
         void (*register_pci_slot)(int device, int type, int inta, int intb, int intc, int intd, void *priv);
     };
     void (*speed_changed)(void *priv);

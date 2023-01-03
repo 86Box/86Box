@@ -50,6 +50,7 @@ signals:
     void destroyRendererMonitor(int monitor_index);
     void initRendererMonitorForNonQtThread(int monitor_index);
     void destroyRendererMonitorForNonQtThread(int monitor_index);
+    void hardResetCompleted();
 
     void setTitle(const QString &title);
     void setFullscreen(bool state);
@@ -133,6 +134,12 @@ protected:
     void showEvent(QShowEvent *event) override;
     void closeEvent(QCloseEvent *event) override;
     void changeEvent(QEvent *event) override;
+
+private slots:
+    void on_actionPen_triggered();
+
+private slots:
+    void on_actionCursor_Puck_triggered();
 
 private slots:
     void on_actionShow_non_primary_monitors_triggered();

@@ -37,7 +37,14 @@ int mouse_type = 0;
 int mouse_x,
     mouse_y,
     mouse_z,
-    mouse_buttons;
+    mouse_buttons,
+    mouse_mode,
+    mouse_tablet_in_proximity = 0,
+    tablet_tool_type = 0; /* 0 = Puck/Cursor, 1 = Pen */
+
+double mouse_x_abs,
+       mouse_y_abs;
+
 
 static const device_t mouse_none_device = {
     .name          = "None",
@@ -80,6 +87,7 @@ static mouse_t mouse_devices[] = {
     { &mouse_msserial_device  },
     { &mouse_ltserial_device  },
     { &mouse_ps2_device       },
+    { &mouse_wacom_device     },
     { NULL                    }
     // clang-format on
 };
@@ -146,6 +154,7 @@ mouse_reset(void)
     /* Clear local data. */
     mouse_x = mouse_y = mouse_z = 0;
     mouse_buttons               = 0x00;
+    mouse_mode                  = 0;
 
     /* If no mouse configured, we're done. */
     if (mouse_type == 0)
@@ -174,7 +183,7 @@ mouse_process(void)
 
     if ((mouse_dev_poll != NULL) || (mouse_curr->poll != NULL)) {
         if (mouse_curr->poll != NULL)
-            mouse_curr->poll(mouse_x, mouse_y, mouse_z, mouse_buttons, mouse_priv);
+            mouse_curr->poll(mouse_x, mouse_y, mouse_z, mouse_buttons, mouse_x_abs, mouse_y_abs, mouse_priv);
         else
             mouse_dev_poll(mouse_x, mouse_y, mouse_z, mouse_buttons, mouse_priv);
 

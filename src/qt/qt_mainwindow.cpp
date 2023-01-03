@@ -42,6 +42,7 @@ extern "C" {
 #include <86box/discord.h>
 #include <86box/device.h>
 #include <86box/video.h>
+#include <86box/mouse.h>
 #include <86box/machine.h>
 #include <86box/vid_ega.h>
 #include <86box/version.h>
@@ -187,6 +188,12 @@ MainWindow::MainWindow(QWidget *parent)
     if (vmname.at(vmname.size() - 1) == '"' || vmname.at(vmname.size() - 1) == '\'')
         vmname.truncate(vmname.size() - 1);
     this->setWindowTitle(QString("%1 - %2 %3").arg(vmname, EMU_NAME, EMU_VERSION_FULL));
+
+    connect(this, &MainWindow::hardResetCompleted, this, [this]() {
+        ui->actionMCA_devices->setVisible(machine_has_bus(machine, MACHINE_BUS_MCA));
+        QApplication::setOverrideCursor(Qt::ArrowCursor);
+        ui->menuTablet_tool->menuAction()->setVisible(mouse_mode >= 1);
+    });
 
     connect(this, &MainWindow::showMessageForNonQtThread, this, &MainWindow::showMessage_, Qt::BlockingQueuedConnection);
 
@@ -622,6 +629,16 @@ MainWindow::MainWindow(QWidget *parent)
         }
     });
 #endif
+
+    actGroup = new QActionGroup(this);
+    actGroup->addAction(ui->actionCursor_Puck);
+    actGroup->addAction(ui->actionPen);
+
+    if (tablet_tool_type == 1) {
+        ui->actionPen->setChecked(true);
+    } else {
+        ui->actionCursor_Puck->setChecked(true);
+    }
 }
 
 void
@@ -1671,7 +1688,6 @@ MainWindow::refreshMediaMenu()
 {
     mm->refresh(ui->menuMedia);
     status->refresh(ui->statusbar);
-    ui->actionMCA_devices->setVisible(machine_has_bus(machine, MACHINE_BUS_MCA));
 }
 
 void
@@ -2411,3 +2427,16 @@ MainWindow::on_actionApply_fullscreen_stretch_mode_when_maximized_triggered(bool
     device_force_redraw();
     config_save();
 }
+
+void MainWindow::on_actionCursor_Puck_triggered()
+{
+    tablet_tool_type = 0;
+    config_save();
+}
+
+void MainWindow::on_actionPen_triggered()
+{
+    tablet_tool_type = 1;
+    config_save();
+}
+
