@@ -46,6 +46,7 @@ typedef struct {
     int suppressed, measurement, always_report;
 
     int last_abs_x, last_abs_y; /* Suppressed/Increment Mode. */
+    uint32_t settings; /* Settings DWORD */
 
     double     transmit_period, report_period;
     double     old_tsc, reset_tsc;
@@ -273,11 +274,9 @@ transmit_prepare:
     wacom->transmission_ongoing = 1;
     wacom->transmission_format = wacom->format;
     wacom->data_pos = 0;
-    if (!((wacom->increment && !(x_diff >= wacom->increment || y_diff >= wacom->increment || wacom_switch_off_to_on(wacom->b, wacom->oldb))) || 
-        (wacom->suppressed_increment && !(x_diff >= wacom->suppressed_increment || y_diff >= wacom->suppressed_increment || (wacom->b != wacom->oldb))))) {
-        wacom->last_abs_x = wacom->abs_x;
-        wacom->last_abs_y = wacom->abs_y;
-    }
+    wacom->last_abs_x = wacom->abs_x;
+    wacom->last_abs_y = wacom->abs_y;
+
     wacom->oldb = wacom->b;
     if (wacom->format == 1) {
         memset(wacom->data, 0, 7);
