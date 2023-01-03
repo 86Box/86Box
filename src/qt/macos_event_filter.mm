@@ -96,6 +96,8 @@ macos_poll_mouse()
     mouse_x          = mousedata.deltax;
     mouse_y          = mousedata.deltay;
     mouse_z          = mousedata.deltaz;
+    mouse_abs_x      = mousedata.x_abs;
+    mouse_abs_y      = mousedata.y_abs;
     mousedata.deltax = mousedata.deltay = mousedata.deltaz = 0;
     mouse_buttons                                          = mousedata.mousebuttons;
 }
