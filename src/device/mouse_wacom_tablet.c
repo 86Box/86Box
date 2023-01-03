@@ -218,7 +218,7 @@ sermouse_report_timer(void *priv)
     int x_diff = abs(mouse_mode == 0 ? wacom->rel_x : (wacom->abs_x - wacom->last_abs_x));
     int y_diff = abs(mouse_mode == 0 ? wacom->rel_y : (wacom->abs_y - wacom->last_abs_y));
 
-    timer_on_auto(&wacom->report_timer, wacom->transmit_id ? (wacom->transmit_period / 8.0) : wacom->transmit_period);
+    timer_on_auto(&wacom->report_timer, wacom->transmit_period);
     if ((((double)(tsc - wacom->reset_tsc)) / cpuclock * 1000.0) <= 10)
         return;
     if (wacom->transmit_id && !wacom->transmission_ongoing)
