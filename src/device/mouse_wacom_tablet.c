@@ -170,12 +170,10 @@ static int
 wacom_poll(int x, int y, int z, int b, double abs_x, double abs_y, void *priv)
 {
     mouse_wacom_t* wacom = (mouse_wacom_t*)priv;
-    if (abs_x > 1.0l) abs_x = 1.0l;
-    if (abs_y > 1.0l) abs_y = 1.0l;
-    if (abs_x < 0.l) abs_x = 0.l;
-    if (abs_y < 0.l) abs_y = 0.l;
     wacom->abs_x = abs_x * (wacom->measurement ? 4566. : 5800.);
     wacom->abs_y = abs_y * (wacom->measurement ? 2972. : 3774.);
+    if (wacom->abs_x > (wacom->measurement ? 4566 : 5800)) wacom->abs_x = (wacom->measurement ? 4566 : 5800);
+    if (wacom->abs_y > (wacom->measurement ? 2972 : 3774)) wacom->abs_x = (wacom->measurement ? 2972 : 3774);
     wacom->rel_x = x;
     wacom->rel_y = y;
     if (wacom->b != b) wacom->oldb = wacom->b;
