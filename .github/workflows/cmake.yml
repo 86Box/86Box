@@ -210,7 +210,7 @@ jobs:
           path: build/artifacts/**
 
   linux:
-    name: "Linux GCC 11 (Qt GUI, ${{ matrix.build.name }}, ${{ matrix.dynarec.name }}, x86_64)"
+    name: "Linux GCC 11 (${{ matrix.ui.name }}, ${{ matrix.build.name }}, ${{ matrix.dynarec.name }}, x86_64)"
 
     runs-on: ubuntu-22.04
 
@@ -231,6 +231,13 @@ jobs:
           - name: NDR
             new: on
             slug: -NDR
+        ui:
+          - name: Qt GUI
+            qt: on
+            slug: -Qt
+            packages: >-
+              qtbase5-dev
+              qttools5-dev
 
     steps:
       - name: Install dependencies
@@ -243,10 +250,9 @@ jobs:
           libpng-dev
           libc6-dev
           librtmidi-dev
-          qtbase5-dev
-          qttools5-dev
           libopenal-dev
           libvncserver-dev
+          ${{ matrix.ui.packages }}
       - uses: actions/checkout@v3
       - name: Configure CMake
         run: >-
@@ -260,11 +266,11 @@ jobs:
         run: cmake --install build
       - uses: actions/upload-artifact@v3
         with:
-          name: '86Box-Qt${{ matrix.dynarec.slug }}${{ matrix.build.slug }}-UbuntuJammy-x86_64-gha${{ github.run_number }}'
+          name: '86Box-{{ matrix.ui.slug }}${{ matrix.dynarec.slug }}${{ matrix.build.slug }}-UbuntuJammy-x86_64-gha${{ github.run_number }}'
           path: build/artifacts/**
 
   macos11:
-    name: "macOS 11 (Qt GUI, ${{ matrix.build.name }}, ${{ matrix.dynarec.name }}, x86_64)"
+    name: "macOS 11 (${{ matrix.ui.name }}, ${{ matrix.build.name }}, ${{ matrix.dynarec.name }}, x86_64)"
 
     runs-on: macos-11
 
@@ -285,6 +291,12 @@ jobs:
           - name: NDR
             new: on
             slug: -NDR
+        ui:
+          - name: Qt GUI
+            qt: on
+            slug: -Qt
+            packages: >-
+              qt@5
 
     steps:
       - name: Install dependencies
@@ -295,9 +307,9 @@ jobs:
           sdl2
           libpng
           rtmidi
-          qt@5
           openal-soft
           libvncserver
+          ${{ matrix.ui.packages }}
       - uses: actions/checkout@v3
       - name: Configure CMake
         run: >-
@@ -314,5 +326,5 @@ jobs:
         run: cmake --install build
       - uses: actions/upload-artifact@v3
         with:
-          name: '86Box-Qt${{ matrix.dynarec.slug }}${{ matrix.build.slug }}-macOS-x86_64-gha${{ github.run_number }}'
+          name: '86Box-{{ matrix.ui.slug }}${{ matrix.dynarec.slug }}${{ matrix.build.slug }}-macOS-x86_64-gha${{ github.run_number }}'
           path: build/artifacts/**
