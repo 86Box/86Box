@@ -261,13 +261,14 @@ jobs:
           --toolchain ./cmake/flags-gcc-x86_64.cmake
           -D NEW_DYNAREC=${{ matrix.dynarec.new }}
           -D CMAKE_INSTALL_PREFIX=./build/artifacts
+          -D QT=${{ matrix.ui.qt }}
       - name: Build
         run: cmake --build build
       - name: Generate package
         run: cmake --install build
       - uses: actions/upload-artifact@v3
         with:
-          name: '86Box-{{ matrix.ui.slug }}${{ matrix.dynarec.slug }}${{ matrix.build.slug }}-UbuntuJammy-x86_64-gha${{ github.run_number }}'
+          name: '86Box${{ matrix.ui.slug }}${{ matrix.dynarec.slug }}${{ matrix.build.slug }}-UbuntuJammy-x86_64-gha${{ github.run_number }}'
           path: build/artifacts/**
 
   macos11:
@@ -318,6 +319,7 @@ jobs:
           --toolchain ./cmake/flags-gcc-x86_64.cmake
           -D NEW_DYNAREC=${{ matrix.dynarec.new }}
           -D CMAKE_INSTALL_PREFIX=./build/artifacts
+          -D QT=${{ matrix.ui.qt }}
           -D Qt5_ROOT=$(brew --prefix qt@5)
           -D Qt5LinguistTools_ROOT=$(brew --prefix qt@5)
           -D OpenAL_ROOT=$(brew --prefix openal-soft)
@@ -327,5 +329,5 @@ jobs:
         run: cmake --install build
       - uses: actions/upload-artifact@v3
         with:
-          name: '86Box-{{ matrix.ui.slug }}${{ matrix.dynarec.slug }}${{ matrix.build.slug }}-macOS-x86_64-gha${{ github.run_number }}'
+          name: '86Box${{ matrix.ui.slug }}${{ matrix.dynarec.slug }}${{ matrix.build.slug }}-macOS-x86_64-gha${{ github.run_number }}'
           path: build/artifacts/**
