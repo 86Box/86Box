@@ -289,6 +289,7 @@ transmit_prepare:
     wacom->data_pos = 0;
     wacom->last_abs_x = wacom->abs_x;
     wacom->last_abs_y = wacom->abs_y;
+    wacom->remote_req = 0;
 
     wacom->oldb = wacom->b;
     if (wacom->format == 1) {
