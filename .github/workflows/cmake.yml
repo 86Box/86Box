@@ -82,7 +82,7 @@ jobs:
             ninja:p
             cmake:p
             gcc:p
-            pkg-config:p
+            pkgconf:p
             freetype:p
             SDL2:p
             zlib:p
