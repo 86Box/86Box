@@ -130,7 +130,6 @@ wacom_write(struct serial_s *serial, void *priv, uint8_t data)
     if (data == '@') {
         wacom->remote_req = 1;
         wacom->remote_mode = 1;
-        wacom->transmission_stopped = 0;
         return;
     }
     if (data == 0x13) {
@@ -139,6 +138,7 @@ wacom_write(struct serial_s *serial, void *priv, uint8_t data)
     }
     if (data == 0x11) {
         wacom->transmission_stopped = 0;
+        wacom->remote_mode = wacom->remote_req = 0;
         return;
     }
     wacom->data_rec[wacom->data_rec_pos++] = data;
@@ -171,13 +171,13 @@ wacom_write(struct serial_s *serial, void *priv, uint8_t data)
         } else if (!memcmp(wacom->data_rec, "AL", 2)) {
             sscanf((const char*)wacom->data_rec, "AL%d", &wacom->always_report);
         } else if (!memcmp(wacom->data_rec, "RQ", 2)) {
-            wacom->transmission_stopped = 0;
             sscanf((const char*)wacom->data_rec, "RQ%d", &wacom->remote_mode);
             if (wacom->remote_mode) wacom->remote_req = 1;
         } else if (!memcmp(wacom->data_rec, "SP", 2)) {
             wacom->transmission_stopped = 1;
         } else if (!memcmp(wacom->data_rec, "ST", 2)){
             wacom->transmission_stopped = 0;
+            wacom->remote_mode = wacom->remote_req = 0;
         }
     }
 }
