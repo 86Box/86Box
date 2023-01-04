@@ -130,7 +130,7 @@ opFPU(s, x87_ts, 16, t.i, geteal, t.s, _32)
 #ifndef FPU_8087
     opFPU(s, x87_ts, 32, t.i, geteal, t.s, _32)
 #endif
-    opFPU(d, x87_td, 16, t.i, geteaq, t.d, _64)
+opFPU(d, x87_td, 16, t.i, geteaq, t.d, _64)
 #ifndef FPU_8087
     opFPU(d, x87_td, 32, t.i, geteaq, t.d, _64)
 #endif
@@ -139,7 +139,7 @@ opFPU(iw, uint16_t, 16, t, geteaw, (double) (int16_t) t, _i16)
 #ifndef FPU_8087
     opFPU(iw, uint16_t, 32, t, geteaw, (double) (int16_t) t, _i16)
 #endif
-    opFPU(il, uint32_t, 16, t, geteal, (double) (int32_t) t, _i32)
+opFPU(il, uint32_t, 16, t, geteal, (double) (int32_t) t, _i32)
 #ifndef FPU_8087
     opFPU(il, uint32_t, 32, t, geteal, (double) (int32_t) t, _i32)
 #endif
