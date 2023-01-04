@@ -58,6 +58,7 @@ jobs:
       - name: Prepare MSYS2 environment
         uses: msys2/setup-msys2@v2
         with:
+          release: false
           update: true
           msystem: ${{ matrix.environment.msystem }}
           install: >-
