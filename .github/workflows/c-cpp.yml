@@ -62,15 +62,16 @@ jobs:
           msystem: ${{ matrix.environment.msystem }}
           install: >-
             make
-            ${{ matrix.environment.prefix }}-gcc
-            ${{ matrix.environment.prefix }}-pkg-config
-            ${{ matrix.environment.prefix }}-freetype
-            ${{ matrix.environment.prefix }}-SDL2
-            ${{ matrix.environment.prefix }}-zlib
-            ${{ matrix.environment.prefix }}-libpng
-            ${{ matrix.environment.prefix }}-openal
-            ${{ matrix.environment.prefix }}-rtmidi
-            ${{ matrix.environment.prefix }}-libvncserver
+          pacboy: >-
+            gcc:p
+            pkg-config:p
+            freetype:p
+            SDL2:p
+            zlib:p
+            libpng:p
+            openal:p
+            rtmidi:p
+            libvncserver:p
       - uses: actions/checkout@v3
       - name: make
         run: >-
