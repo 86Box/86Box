@@ -527,9 +527,9 @@ compaq_plasma_recalcattrs(compaq_plasma_t *self)
      *     Bit 0: Attributes 01-06, 08-0E are inverse video
      *     Bit 1: Attributes 01-06, 08-0E are bold
      *     Bit 2: Attributes 11-16, 18-1F, 21-26, 28-2F ... F1-F6, F8-FF
-     * 	      are inverse video
+     *            are inverse video
      *     Bit 3: Attributes 11-16, 18-1F, 21-26, 28-2F ... F1-F6, F8-FF
-     * 	      are bold */
+     *            are bold */
 
     /* Set up colours */
     amber = makecol(0xff, 0x7D, 0x00);
@@ -686,8 +686,8 @@ const device_config_t compaq_plasma_config[] = {
     },
     {
         .name = "rgb_type",
-		.description = "RGB type",
-		.type = CONFIG_SELECTION,
+        .description = "RGB type",
+        .type = CONFIG_SELECTION,
         .default_string = "",
         .default_int = 0,
         .file_filter = "",

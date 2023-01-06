@@ -1,19 +1,19 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Voodoo Graphics and 2 specific emulation.
+ *          Voodoo Graphics and 2 specific emulation.
  *
  *
  *
- * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
- *		leilei
+ * Authors: Sarah Walker, <http://pcem-emulator.co.uk/>
+ *          leilei
  *
- *		Copyright 2008-2020 Sarah Walker.
+ *          Copyright 2008-2020 Sarah Walker.
  */
 
 #ifndef VIDEO_VOODOO_DITHER_H

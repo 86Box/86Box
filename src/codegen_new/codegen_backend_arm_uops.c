@@ -119,8 +119,8 @@ codegen_ADD(codeblock_t *block, uop_t *uop)
 static int
 codegen_ADD_IMM(codeblock_t *block, uop_t *uop)
 {
-    //	host_arm_ADD_IMM(block, uop->dest_reg_a_real, uop->src_reg_a_real, uop->imm_data);
-    //        return 0;
+//    host_arm_ADD_IMM(block, uop->dest_reg_a_real, uop->src_reg_a_real, uop->imm_data);
+//        return 0;
 
     int dest_reg = HOST_REG_GET(uop->dest_reg_a_real), src_reg = HOST_REG_GET(uop->src_reg_a_real);
     int dest_size = IREG_GET_SIZE(uop->dest_reg_a_real), src_size = IREG_GET_SIZE(uop->src_reg_a_real);
@@ -2597,8 +2597,8 @@ codegen_SUB(codeblock_t *block, uop_t *uop)
 
     return 0;
 
-    //	host_arm_SUB_REG_LSL(block, uop->dest_reg_a_real, uop->src_reg_a_real, uop->src_reg_b_real, 0);
-    //        return 0;
+//    host_arm_SUB_REG_LSL(block, uop->dest_reg_a_real, uop->src_reg_a_real, uop->src_reg_b_real, 0);
+//        return 0;
 }
 static int
 codegen_SUB_IMM(codeblock_t *block, uop_t *uop)

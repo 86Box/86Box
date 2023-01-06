@@ -6,7 +6,7 @@
  *
  *          This file is part of the 86Box distribution.
  *
- *        Definitions for the Flight Control System driver.
+ *          Definitions for the Flight Control System driver.
  *
  *
  *

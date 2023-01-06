@@ -637,7 +637,7 @@ fdc_io_command_phase1(fdc_t *fdc, int out)
     pclog_toggle_suppr();
     pclog("%02X ", fdc->processed_cmd);
     for (i = 0; i < fdc->pnum; i++)
-	pclog("%02X ", fdc->params[i]);
+        pclog("%02X ", fdc->params[i]);
     pclog("\n");
     pclog_toggle_suppr();
 #endif
@@ -1329,9 +1329,9 @@ fdc_read(uint16_t addr, void *priv)
                  * fdc_t on one of the motherboard's support chips.
                  *
                  * Confirmed: 00=1.44M 3.5
-                 *	      10=2.88M 3.5
-                 *	      20=1.2M 5.25
-                 *	      30=1.2M 5.25
+                 *        10=2.88M 3.5
+                 *        20=1.2M 5.25
+                 *        30=1.2M 5.25
                  *
                  * as reported by Configur.exe.
                  */

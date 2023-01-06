@@ -1,59 +1,59 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Trident TGUI9400CXi and TGUI9440 emulation.
+ *          Trident TGUI9400CXi and TGUI9440 emulation.
  *
- *		TGUI9400CXi has extended write modes, controlled by extended
- *		GDC registers :
+ *          TGUI9400CXi has extended write modes, controlled by extended
+ *          GDC registers :
  *
- *		GDC[0x10] - Control
- *		      bit 0 - pixel width (1 = 16 bit, 0 = 8 bit)
- *		      bit 1 - mono->colour expansion (1 = enabled,
- *			      0 = disabled)
- *		      bit 2 - mono->colour expansion transparency
- *			      (1 = transparent, 0 = opaque)
- *		      bit 3 - extended latch copy
- *		GDC[0x11] - Background colour (low byte)
- *		GDC[0x12] - Background colour (high byte)
- *		GDC[0x14] - Foreground colour (low byte)
- *		GDC[0x15] - Foreground colour (high byte)
- *		GDC[0x17] - Write mask (low byte)
- *		GDC[0x18] - Write mask (high byte)
+ *            GDC[0x10] - Control
+ *                bit 0 - pixel width (1 = 16 bit, 0 = 8 bit)
+ *                bit 1 - mono->colour expansion (1 = enabled,
+ *                        0 = disabled)
+ *                bit 2 - mono->colour expansion transparency
+ *                       (1 = transparent, 0 = opaque)
+ *                bit 3 - extended latch copy
+ *            GDC[0x11] - Background colour (low byte)
+ *            GDC[0x12] - Background colour (high byte)
+ *            GDC[0x14] - Foreground colour (low byte)
+ *            GDC[0x15] - Foreground colour (high byte)
+ *            GDC[0x17] - Write mask (low byte)
+ *            GDC[0x18] - Write mask (high byte)
  *
- *		Mono->colour expansion will expand written data 8:1 to 8/16
- *		consecutive bytes.
- *		MSB is processed first. On word writes, low byte is processed
- *		first. 1 bits write foreground colour, 0 bits write background
- *		colour unless transparency is enabled.
- *		If the relevant bit is clear in the write mask then the data
- *		is not written.
+ *          Mono->colour expansion will expand written data 8:1 to 8/16
+ *          consecutive bytes.
+ *          MSB is processed first. On word writes, low byte is processed
+ *          first. 1 bits write foreground colour, 0 bits write background
+ *          colour unless transparency is enabled.
+ *          If the relevant bit is clear in the write mask then the data
+ *          is not written.
  *
- *		With 16-bit pixel width, each bit still expands to one byte,
- *		so the TGUI driver doubles up monochrome data.
+ *          With 16-bit pixel width, each bit still expands to one byte,
+ *          so the TGUI driver doubles up monochrome data.
  *
- *		While there is room in the register map for three byte colours,
- *		I don't believe 24-bit colour is supported. The TGUI9440
- *		blitter has the same limitation.
+ *          While there is room in the register map for three byte colours,
+ *          I don't believe 24-bit colour is supported. The TGUI9440
+ *          blitter has the same limitation.
  *
- *		I don't think double word writes are supported.
+ *          I don't think double word writes are supported.
  *
- *		Extended latch copy uses an internal 16 byte latch. Reads load
- *		the latch, writing writes out 16 bytes. I don't think the
- *		access size or host data has any affect, but the Windows 3.1
- *		driver always reads bytes and write words of 0xffff.
+ *          Extended latch copy uses an internal 16 byte latch. Reads load
+ *          the latch, writing writes out 16 bytes. I don't think the
+ *          access size or host data has any affect, but the Windows 3.1
+ *          driver always reads bytes and write words of 0xffff.
  *
  *
  *
- * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
- *		Miran Grca, <mgrca8@gmail.com>
+ * Authors: Sarah Walker, <http://pcem-emulator.co.uk/>
+ *          Miran Grca, <mgrca8@gmail.com>
  *
- *		Copyright 2008-2019 Sarah Walker.
- *		Copyright 2016-2019 Miran Grca.
+ *          Copyright 2008-2019 Sarah Walker.
+ *          Copyright 2016-2019 Miran Grca.
  */
 #include <stdio.h>
 #include <stdint.h>

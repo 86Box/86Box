@@ -1,21 +1,19 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Definitions for the language management module.
- *
- * NOTE:	FIXME: Strings 2176 and 2193 are same.
+ *          Definitions for the language management module.
  *
  *
  *
- * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
+ * Authors: Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 2017,2018 Fred N. van Kempen.
- *		Copyright 2022      Jasmine Iwanek.
+ *          Copyright 2017,2018 Fred N. van Kempen.
+ *          Copyright 2022      Jasmine Iwanek.
  */
 
 #ifndef LANG_UAGE_H

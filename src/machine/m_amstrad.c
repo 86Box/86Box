@@ -935,45 +935,45 @@ vid_speed_changed_200(void *priv)
  */
 static unsigned char mapping1[256] = {
     // clang-format off
-/*	0  1  2  3  4  5  6  7  8  9  A  B  C  D  E  F */
-/*00*/	0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-/*10*/	2, 0, 1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 1,
-/*20*/	2, 2, 0, 1, 2, 2, 1, 1, 2, 2, 1, 1, 2, 2, 1, 1,
-/*30*/	2, 2, 2, 0, 2, 2, 1, 1, 2, 2, 2, 1, 2, 2, 1, 1,
-/*40*/	2, 2, 1, 1, 0, 1, 1, 1, 2, 2, 1, 1, 1, 1, 1, 1,
-/*50*/	2, 2, 1, 1, 2, 0, 1, 1, 2, 2, 1, 1, 2, 1, 1, 1,
-/*60*/	2, 2, 2, 2, 2, 2, 0, 1, 2, 2, 2, 2, 2, 2, 1, 1,
-/*70*/	2, 2, 2, 2, 2, 2, 2, 0, 2, 2, 2, 2, 2, 2, 2, 1,
-/*80*/	2, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1,
-/*90*/	2, 2, 1, 1, 1, 1, 1, 1, 2, 0, 1, 1, 1, 1, 1, 1,
-/*A0*/	2, 2, 2, 1, 2, 2, 1, 1, 2, 2, 0, 1, 2, 2, 1, 1,
-/*B0*/	2, 2, 2, 2, 2, 2, 1, 1, 2, 2, 2, 0, 2, 2, 1, 1,
-/*C0*/	2, 2, 1, 1, 2, 1, 1, 1, 2, 2, 1, 1, 0, 1, 1, 1,
-/*D0*/	2, 2, 1, 1, 2, 2, 1, 1, 2, 2, 1, 1, 2, 0, 1, 1,
-/*E0*/	2, 2, 2, 2, 2, 2, 2, 1, 2, 2, 2, 2, 2, 2, 0, 1,
-/*F0*/	2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 0,
+/*      0  1  2  3  4  5  6  7  8  9  A  B  C  D  E  F */
+/*00*/  0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+/*10*/  2, 0, 1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 1,
+/*20*/  2, 2, 0, 1, 2, 2, 1, 1, 2, 2, 1, 1, 2, 2, 1, 1,
+/*30*/  2, 2, 2, 0, 2, 2, 1, 1, 2, 2, 2, 1, 2, 2, 1, 1,
+/*40*/  2, 2, 1, 1, 0, 1, 1, 1, 2, 2, 1, 1, 1, 1, 1, 1,
+/*50*/  2, 2, 1, 1, 2, 0, 1, 1, 2, 2, 1, 1, 2, 1, 1, 1,
+/*60*/  2, 2, 2, 2, 2, 2, 0, 1, 2, 2, 2, 2, 2, 2, 1, 1,
+/*70*/  2, 2, 2, 2, 2, 2, 2, 0, 2, 2, 2, 2, 2, 2, 2, 1,
+/*80*/  2, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1,
+/*90*/  2, 2, 1, 1, 1, 1, 1, 1, 2, 0, 1, 1, 1, 1, 1, 1,
+/*A0*/  2, 2, 2, 1, 2, 2, 1, 1, 2, 2, 0, 1, 2, 2, 1, 1,
+/*B0*/  2, 2, 2, 2, 2, 2, 1, 1, 2, 2, 2, 0, 2, 2, 1, 1,
+/*C0*/  2, 2, 1, 1, 2, 1, 1, 1, 2, 2, 1, 1, 0, 1, 1, 1,
+/*D0*/  2, 2, 1, 1, 2, 2, 1, 1, 2, 2, 1, 1, 2, 0, 1, 1,
+/*E0*/  2, 2, 2, 2, 2, 2, 2, 1, 2, 2, 2, 2, 2, 2, 0, 1,
+/*F0*/  2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 0,
     // clang-format on
 };
 
 static unsigned char mapping2[256] = {
     // clang-format off
-/*	0  1  2  3  4  5  6  7  8  9  A  B  C  D  E  F */
-/*00*/	0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-/*10*/	1, 3, 2, 2, 2, 2, 2, 2, 1, 2, 2, 2, 2, 2, 2, 2,
-/*20*/	1, 1, 3, 2, 1, 1, 2, 2, 1, 1, 2, 2, 1, 1, 2, 2,
-/*30*/	1, 1, 1, 3, 1, 1, 2, 2, 1, 1, 1, 2, 1, 1, 2, 2,
-/*40*/	1, 1, 2, 2, 3, 2, 2, 2, 1, 1, 2, 2, 2, 2, 2, 2,
-/*50*/	1, 1, 2, 2, 1, 3, 2, 2, 1, 1, 2, 2, 1, 2, 2, 2,
-/*60*/	1, 1, 1, 1, 1, 1, 3, 2, 1, 1, 1, 1, 1, 1, 2, 2,
-/*70*/	1, 1, 1, 1, 1, 1, 1, 3, 1, 1, 1, 1, 1, 1, 1, 2,
-/*80*/	2, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1,
-/*90*/	1, 1, 2, 2, 2, 2, 2, 2, 1, 3, 2, 2, 2, 2, 2, 2,
-/*A0*/	1, 1, 1, 2, 1, 1, 2, 2, 1, 1, 3, 2, 1, 1, 2, 2,
-/*B0*/	1, 1, 1, 1, 1, 1, 2, 2, 1, 1, 1, 3, 1, 1, 2, 2,
-/*C0*/	1, 1, 2, 2, 1, 2, 2, 2, 1, 1, 2, 2, 3, 2, 2, 2,
-/*D0*/	1, 1, 2, 2, 1, 1, 2, 2, 1, 1, 2, 2, 1, 3, 2, 2,
-/*E0*/	1, 1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 3, 2,
-/*F0*/	1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 3,
+/*      0  1  2  3  4  5  6  7  8  9  A  B  C  D  E  F */
+/*00*/  0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+/*10*/  1, 3, 2, 2, 2, 2, 2, 2, 1, 2, 2, 2, 2, 2, 2, 2,
+/*20*/  1, 1, 3, 2, 1, 1, 2, 2, 1, 1, 2, 2, 1, 1, 2, 2,
+/*30*/  1, 1, 1, 3, 1, 1, 2, 2, 1, 1, 1, 2, 1, 1, 2, 2,
+/*40*/  1, 1, 2, 2, 3, 2, 2, 2, 1, 1, 2, 2, 2, 2, 2, 2,
+/*50*/  1, 1, 2, 2, 1, 3, 2, 2, 1, 1, 2, 2, 1, 2, 2, 2,
+/*60*/  1, 1, 1, 1, 1, 1, 3, 2, 1, 1, 1, 1, 1, 1, 2, 2,
+/*70*/  1, 1, 1, 1, 1, 1, 1, 3, 1, 1, 1, 1, 1, 1, 1, 2,
+/*80*/  2, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1,
+/*90*/  1, 1, 2, 2, 2, 2, 2, 2, 1, 3, 2, 2, 2, 2, 2, 2,
+/*A0*/  1, 1, 1, 2, 1, 1, 2, 2, 1, 1, 3, 2, 1, 1, 2, 2,
+/*B0*/  1, 1, 1, 1, 1, 1, 2, 2, 1, 1, 1, 3, 1, 1, 2, 2,
+/*C0*/  1, 1, 2, 2, 1, 2, 2, 2, 1, 1, 2, 2, 3, 2, 2, 2,
+/*D0*/  1, 1, 2, 2, 1, 1, 2, 2, 1, 1, 2, 2, 1, 3, 2, 2,
+/*E0*/  1, 1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 3, 2,
+/*F0*/  1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 3,
     // clang-format on
 };
 
@@ -1054,7 +1054,7 @@ vid_out_200(uint16_t addr, uint8_t val, void *priv)
     uint8_t   old;
 
     switch (addr) {
-            /* 	MDA writes ============================================================== */
+        /* MDA writes ============================================================== */
         case 0x3b1:
         case 0x3b3:
         case 0x3b5:
@@ -1087,7 +1087,7 @@ vid_out_200(uint16_t addr, uint8_t val, void *priv)
                 nmi_raise();
             return;
 
-            /* 	CGA writes ============================================================== */
+        /* CGA writes ============================================================== */
         case 0x03d1:
         case 0x03d3:
         case 0x03d5:
@@ -1122,12 +1122,12 @@ vid_out_200(uint16_t addr, uint8_t val, void *priv)
                 set_lcd_cols(val);
             return;
 
-            /* 	PC200 control port writes ============================================== */
+        /* PC200 control port writes ============================================== */
         case 0x03de:
             vid->crtc_index = 0x1f;
-            /* 	NMI only seems to be triggered if the value being written has the high
-             * 	bit set (enable NMI). So it only protects writes to this port if you
-             * 	let it? */
+            /* NMI only seems to be triggered if the value being written has the high
+             * bit set (enable NMI). So it only protects writes to this port if you
+             * let it? */
             if (val & 0x80) {
                 vid->operation_ctrl = val;
                 vid->crtc_index |= 0x40;
@@ -2032,14 +2032,14 @@ kbd_write(uint16_t port, uint8_t val, void *priv)
             /*
              * PortB - System Control.
              *
-             *  7	Enable Status-1/Disable Keyboard Code on Port A.
-             *  6	Enable incoming Keyboard Clock.
-             *  5	Prevent external parity errors from causing NMI.
-             *  4	Disable parity checking of on-board system Ram.
-             *  3	Undefined (Not Connected).
-             *  2	Enable Port C LSB / Disable MSB. (See 1.8.3)
-             *  1	Speaker Drive.
-             *  0	8253 GATE 2 (Speaker Modulate).
+             *  7   Enable Status-1/Disable Keyboard Code on Port A.
+             *  6   Enable incoming Keyboard Clock.
+             *  5   Prevent external parity errors from causing NMI.
+             *  4   Disable parity checking of on-board system Ram.
+             *  3   Undefined (Not Connected).
+             *  2   Enable Port C LSB / Disable MSB. (See 1.8.3)
+             *  1   Speaker Drive.
+             *  0   8253 GATE 2 (Speaker Modulate).
              *
              * This register is controlled by BIOS and/or ROS.
              */
@@ -2097,14 +2097,14 @@ kbd_read(uint16_t port, void *priv)
                 /*
                  * PortA - System Status 1
                  *
-                 *  7	Always 0			    (KBD7)
-                 *  6	Second Floppy disk drive installed  (KBD6)
-                 *  5	DDM1 - Default Display Mode bit 1   (KBD5)
-                 *  4	DDM0 - Default Display Mode bit 0   (KBD4)
-                 *  3	Always 1			    (KBD3)
-                 *  2	Always 1			    (KBD2)
-                 *  1	8087 NDP installed		    (KBD1)
-                 *  0	Always 1			    (KBD0)
+                 *  7   Always 0                            (KBD7)
+                 *  6   Second Floppy disk drive installed  (KBD6)
+                 *  5   DDM1 - Default Display Mode bit 1   (KBD5)
+                 *  4   DDM0 - Default Display Mode bit 0   (KBD4)
+                 *  3   Always 1                            (KBD3)
+                 *  2   Always 1                            (KBD2)
+                 *  1   8087 NDP installed                  (KBD1)
+                 *  0   Always 1                            (KBD0)
                  *
                  * DDM00
                  *    00 unknown, external color?
@@ -2137,27 +2137,27 @@ kbd_read(uint16_t port, void *priv)
             /*
              * PortC - System Status 2.
              *
-             *  7	On-board system RAM parity error.
-             *  6	External parity error (I/OCHCK from expansion bus).
-             *  5	8253 PIT OUT2 output.
-             *  4 	Undefined (Not Connected).
+             *  7   On-board system RAM parity error.
+             *  6   External parity error (I/OCHCK from expansion bus).
+             *  5   8253 PIT OUT2 output.
+             *  4    Undefined (Not Connected).
              *-------------------------------------------
-             *	LSB 	MSB (depends on PB2)
+             *  LSB     MSB (depends on PB2)
              *-------------------------------------------
-             *  3	RAM3	Undefined
-             *  2	RAM2	Undefined
-             *  1	RAM1	Undefined
-             *  0	RAM0	RAM4
+             *  3   RAM3    Undefined
+             *  2   RAM2    Undefined
+             *  1   RAM1    Undefined
+             *  0   RAM0    RAM4
              *
              * PC7 is forced to 0 when on-board system RAM parity
              * checking is disabled by PB4.
              *
              * RAM4:0
-             * 01110	512K bytes on-board.
-             * 01111	544K bytes (32K external).
-             * 10000	576K bytes (64K external).
-             * 10001	608K bytes (96K external).
-             * 10010	640K bytes (128K external or fitted on-board).
+             * 01110    512K bytes on-board.
+             * 01111    544K bytes (32K external).
+             * 10000    576K bytes (64K external).
+             * 10001    608K bytes (96K external).
+             * 10010    640K bytes (128K external or fitted on-board).
              */
             if (ams->pb & 0x04)
                 ret = ams->stat2 & 0x0f;
@@ -2226,14 +2226,14 @@ ams_read(uint16_t port, void *priv)
 
         case 0x0379: /* printer control, also set LK1-3.
                       * per John Elliott's site, this is xor'ed with 0x07
-                      *   7	English Language.
-                      *   6	German Language.
-                      *   5	French Language.
-                      *   4	Spanish Language.
-                      *   3	Danish Language.
-                      *   2	Swedish Language.
-                      *   1	Italian Language.
-                      *   0	Diagnostic Mode.
+                      *   7 English Language.
+                      *   6 German Language.
+                      *   5 French Language.
+                      *   4 Spanish Language.
+                      *   3 Danish Language.
+                      *   2 Swedish Language.
+                      *   1 Italian Language.
+                      *   0 Diagnostic Mode.
                       */
             ret = (lpt_read(port, &lpt_ports[0]) & 0xf8) | ams->language;
             break;

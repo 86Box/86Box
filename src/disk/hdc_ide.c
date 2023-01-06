@@ -537,7 +537,7 @@ ide_hd_identify(ide_t *ide)
         /*
                 Bit 0 = The fields reported in words 54-58 are valid;
                 Bit 1 = The fields reported in words 64-70 are valid;
-                Bit 2 = The fields reported in word 88 are valid.	*/
+                Bit 2 = The fields reported in word 88 are valid. */
         ide->buffer[53] = 1;
 
         if (ide->cfg_spt != 0) {
@@ -1946,12 +1946,12 @@ ide_readb(uint16_t addr, void *priv)
                         Direction:
                                 To device if set;
                                 From device if clear.
-                IO		DRQ		CoD
-                0		1		1		Ready to accept command packet
-                1		1		1		Message - ready to send message to host
-                1		1		0		Data to host
-                0		1		0		Data from host
-                1		0		1		Status. */
+                IO      DRQ     CoD
+                0       1       1       Ready to accept command packet
+                1       1       1       Message - ready to send message to host
+                1       1       0       Data to host
+                0       1       0       Data from host
+                1       0       1       Status. */
         case 0x2: /* Sector count */
             if (ide->type == IDE_ATAPI)
                 temp = ide->sc->phase;

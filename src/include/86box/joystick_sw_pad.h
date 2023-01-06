@@ -6,7 +6,7 @@
  *
  *          This file is part of the 86Box distribution.
  *
- *        Definitions for the Sidewinder Pro driver.
+ *          Definitions for the Sidewinder Pro driver.
  *
  *
  *
