@@ -259,10 +259,17 @@ machine_at_scat_init(const machine_t *model, int is_v4, int is_ami)
 {
     machine_at_common_init(model);
 
-    if (is_ami)
-        device_add(&keyboard_at_ami_device);
-    else
-        device_add(&keyboard_at_device);
+    if (machines[machine].bus_flags & MACHINE_BUS_PS2) {
+        if (is_ami)
+            device_add(&keyboard_ps2_ami_device);
+        else
+            device_add(&keyboard_ps2_device);
+    } else {
+        if (is_ami)
+            device_add(&keyboard_at_ami_device);
+        else
+            device_add(&keyboard_at_device);
+    }
 
     if (is_v4)
         device_add(&scat_4_device);
