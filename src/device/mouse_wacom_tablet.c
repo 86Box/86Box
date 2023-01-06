@@ -328,10 +328,10 @@ wacom_report_timer(void *priv)
         }
 
         if (increment && !(x_diff > increment || y_diff > increment)) {
-            if (wacom->increment && !wacom_switch_off_to_on(wacom->b, wacom->oldb))
+            if (wacom->suppressed_increment && (wacom->b == wacom->oldb))
                 return;
 
-            if (wacom->suppressed_increment && (wacom->b == wacom->oldb))
+            if (wacom->increment && !wacom_switch_off_to_on(wacom->b, wacom->oldb))
                 return;
         }
     }
