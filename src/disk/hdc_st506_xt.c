@@ -44,7 +44,7 @@
  *
  *
  * Authors: Fred N. van Kempen, <decwiz@yahoo.com>
- *          Sarah Walker, <tommowalker@tommowalker.co.uk>
+ *          Sarah Walker, <https://pcem-emulator.co.uk/>
  *
  *          Copyright 2017-2019 Fred N. van Kempen.
  *          Copyright 2008-2019 Sarah Walker.

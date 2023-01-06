@@ -10,14 +10,14 @@
  *
  *
  *
- * Authors: Sarah Walker, <http://pcem-emulator.co.uk/>
+ * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
  *          Miran Grca, <mgrca8@gmail.com>
  *          Fred N. van Kempen, <decwiz@yahoo.com>
  *          David Hrdlička, <hrdlickadavid@outlook.com>
  *
  *          Copyright 2008-2019 Sarah Walker.
  *          Copyright 2016-2019 Miran Grca.
- *          Copyright 2018,2019 David Hrdlička.
+ *          Copyright 2018-2019 David Hrdlička.
  *          Copyright 2021-2022 Jasmine Iwanek.
  */
 

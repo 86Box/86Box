@@ -24,13 +24,13 @@
  *
  * Authors: Fred N. van Kempen, <decwiz@yahoo.com>
  *          Miran Grca, <mgrca8@gmail.com>
- *          Sarah Walker, <tommowalker@tommowalker.co.uk>
+ *          Sarah Walker, <https://pcem-emulator.co.uk/>
  *          Lubomir Rintel, <lkundrak@v3.sk>
  *
- *          Copyright 2018,2019 Fred N. van Kempen.
- *          Copyright 2018,2019 Miran Grca.
- *          Copyright 2018,2019 Sarah Walker.
- *          Copyright 2021 Lubomir Rintel.
+ *          Copyright 2018-2019 Fred N. van Kempen.
+ *          Copyright 2018-2019 Miran Grca.
+ *          Copyright 2018-2019 Sarah Walker.
+ *          Copyright 2021      Lubomir Rintel.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by

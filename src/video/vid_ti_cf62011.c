@@ -44,13 +44,13 @@
  *
  *
  *
- * Authors: Sarah Walker, <http://pcem-emulator.co.uk/>
+ * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
  *          Miran Grca, <mgrca8@gmail.com>
  *          Fred N. van Kempen, <decwiz@yahoo.com>
  *
  *          Copyright 2008-2018 Sarah Walker.
  *          Copyright 2016-2018 Miran Grca.
- *          Copyright 2017,2018 Fred N. van Kempen.
+ *          Copyright 2017-2018 Fred N. van Kempen.
  */
 #include <stdio.h>
 #include <stdint.h>

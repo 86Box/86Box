@@ -14,7 +14,7 @@
  *          Fred N. van Kempen, <decwiz@yahoo.com>
  *
  *          Copyright 2016-2019 Miran Grca.
- *          Copyright 2018,2019 Fred N. van Kempen.
+ *          Copyright 2018-2019 Fred N. van Kempen.
  */
 #ifndef EMU_FLOPPY_86F_H
 #define EMU_FLOPPY_86F_H

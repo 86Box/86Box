@@ -1,7 +1,7 @@
 // Minitrace
 //
 // Copyright 2014 by Henrik Rydgård
-// http://www.github.com/hrydgard/minitrace
+// https://www.github.com/hrydgard/minitrace
 // Released under the MIT license.
 //
 // Ultra-light dependency free library for performance tracing C/C++ applications.

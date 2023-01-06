@@ -14,7 +14,7 @@
  *          David Hrdlička, <hrdlickadavid@outlook.com>
  *
  *          Copyright 2016-2019 Miran Grca.
- *          Copyright 2018,2019 David Hrdlička.
+ *          Copyright 2018-2019 David Hrdlička.
  *          Copyright 2021 Laci bá'
  *          Copyright 2021-2022 Jasmine Iwanek.
  */

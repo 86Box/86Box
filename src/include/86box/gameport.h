@@ -11,7 +11,7 @@
  *
  *
  * Authors: Miran Grca, <mgrca8@gmail.com>
- *          Sarah Walker, <tommowalker@tommowalker.co.uk>
+ *          Sarah Walker, <https://pcem-emulator.co.uk/>
  *          RichardG, <richardg867@gmail.com>
  *
  *          Copyright 2016-2018 Miran Grca.

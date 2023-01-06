@@ -10,7 +10,7 @@
  *
  * Authors: Miran Grca, <mgrca8@gmail.com>
  *
- *          Copyright 2017,2018 Miran Grca.
+ *          Copyright 2017-2018 Miran Grca.
  */
 
 #ifndef SCSI_DISK_H

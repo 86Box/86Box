@@ -13,7 +13,7 @@
  * Authors: Fred N. van Kempen, <decwiz@yahoo.com>
  *          neozeed,
  *
- *          Copyright 2017,2018 Fred N. van Kempen.
+ *          Copyright 2017-2018 Fred N. van Kempen.
  *          Copyright 2016-2018 neozeed.
  *
  * This program is free software; you can redistribute it and/or modify

@@ -210,7 +210,7 @@ pc87310_reset(pc87310_t *dev)
     dev->tries = 0;
     /*
         0 = 360 rpm @ 500 kbps for 3.5"
-        1 = Default, 300 rpm @ 500,300,250,1000 kbps for 3.5"
+        1 = Default, 300 rpm @ 500, 300, 250, 1000 kbps for 3.5"
     */
     lpt1_remove();
     lpt1_handler(dev);

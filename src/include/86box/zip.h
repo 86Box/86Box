@@ -13,7 +13,7 @@
  *
  * Authors: Miran Grca, <mgrca8@gmail.com>
  *
- *          Copyright 2018,2019 Miran Grca.
+ *          Copyright 2018-2019 Miran Grca.
  */
 
 #ifndef EMU_ZIP_H

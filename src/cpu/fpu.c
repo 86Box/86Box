@@ -8,7 +8,7 @@
  *
  *          FPU type handler.
  *
- * Authors: Sarah Walker, <tommowalker@tommowalker.co.uk>
+ * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
  *          Miran Grca, <mgrca8@gmail.com>
  *
  *          Copyright 2008-2018 Sarah Walker.

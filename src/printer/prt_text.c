@@ -17,7 +17,7 @@
  *
  * Authors: Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *          Copyright 2018,2019 Fred N. van Kempen.
+ *          Copyright 2018-2019 Fred N. van Kempen.
  *
  *          Redistribution and  use  in source  and binary forms, with
  *          or  without modification, are permitted  provided that the

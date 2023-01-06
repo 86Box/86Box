@@ -12,7 +12,7 @@
  *
  *
  *
- * Authors: Sarah Walker, <http://pcem-emulator.co.uk/>
+ * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
  *
  *          Copyright 2008-2019 Sarah Walker.
  */

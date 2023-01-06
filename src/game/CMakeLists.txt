@@ -10,7 +10,7 @@
 #
 # Authors: David Hrdlička, <hrdlickadavid@outlook.com>
 #
-#          Copyright 2020,2021 David Hrdlička.
+#          Copyright 2020-2021 David Hrdlička.
 #
 
 add_library(game OBJECT gameport.c joystick_standard.c

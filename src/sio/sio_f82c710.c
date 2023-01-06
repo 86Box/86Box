@@ -18,7 +18,7 @@
  *
  *
  *
- * Authors: Sarah Walker, <http://pcem-emulator.co.uk/>
+ * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
  *          Eluan Costa Miranda <eluancm@gmail.com>
  *          Lubomir Rintel <lkundrak@v3.sk>
  *

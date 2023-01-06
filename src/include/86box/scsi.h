@@ -16,7 +16,7 @@
  *
  *          Copyright 2016-2018 TheCollector1995.
  *          Copyright 2016-2018 Miran Grca.
- *          Copyright 2017,2018 Fred N. van Kempen.
+ *          Copyright 2017-2018 Fred N. van Kempen.
  */
 #ifndef EMU_SCSI_H
 #define EMU_SCSI_H

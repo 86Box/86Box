@@ -10,12 +10,12 @@
  *
  *
  *
- * Authors: Sarah Walker, <http://pcem-emulator.co.uk/>
+ * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
  *          Miran Grca, <mgrca8@gmail.com>
  *          Fred N. van Kempen, <decwiz@yahoo.com>
  *
  *          Copyright 2008-2017 Sarah Walker.
- *          Copyright 2016,2017 Miran Grca.
+ *          Copyright 2016-2017 Miran Grca.
  */
 #ifndef EMU_IO_H
 #define EMU_IO_H

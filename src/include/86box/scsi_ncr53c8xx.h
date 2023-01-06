@@ -19,7 +19,7 @@
  *
  *          Copyright 2006-2018 Paul Brook.
  *          Copyright 2009-2018 Artyom Tarasenko.
- *          Copyright 2017,2018 Miran Grca.
+ *          Copyright 2017-2018 Miran Grca.
  */
 
 #ifndef SCSI_NCR53C8XX_H

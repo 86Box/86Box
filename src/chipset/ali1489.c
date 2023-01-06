@@ -13,8 +13,8 @@
  * Authors: Tiseno100,
  *          Miran Grca, <mgrca8@gmail.com>
  *
- *          Copyright 2020,2021 Tiseno100.
- *          Copyright 2020,2021 Miran Grca.
+ *          Copyright 2020-2021 Tiseno100.
+ *          Copyright 2020-2021 Miran Grca.
  */
 #include <stdarg.h>
 #include <stdint.h>

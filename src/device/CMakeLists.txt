@@ -10,7 +10,7 @@
 #
 # Authors: David Hrdlička, <hrdlickadavid@outlook.com>
 #
-#          Copyright 2020,2021 David Hrdlička.
+#          Copyright 2020-2021 David Hrdlička.
 #
 
 add_library(dev OBJECT bugger.c cassette.c cartridge.c hasp.c hwm.c hwm_lm75.c hwm_lm78.c hwm_gl518sm.c

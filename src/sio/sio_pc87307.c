@@ -535,7 +535,7 @@ pc87307_reset(pc87307_t *dev)
 
     /*
         0 = 360 rpm @ 500 kbps for 3.5"
-        1 = Default, 300 rpm @ 500,300,250,1000 kbps for 3.5"
+        1 = Default, 300 rpm @ 500, 300, 250, 1000 kbps for 3.5"
     */
     lpt1_remove();
     serial_remove(dev->uart[0]);

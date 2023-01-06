@@ -18,7 +18,7 @@
  *          Fred N. van Kempen, <decwiz@yahoo.com>
  *
  *          Copyright 2016-2018 Miran Grca.
- *          Copyright 2017,2018 Fred N. van Kempen.
+ *          Copyright 2017-2018 Fred N. van Kempen.
  */
 
 #ifndef SCSI_X54X_H

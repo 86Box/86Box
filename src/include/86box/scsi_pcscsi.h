@@ -19,7 +19,7 @@
  *
  *          Copyright 2005-2018 Fabrice Bellard.
  *          Copyright 2012-2018 Herve Poussineau.
- *          Copyright 2017,2018 Miran Grca.
+ *          Copyright 2017-2018 Miran Grca.
  */
 
 #ifndef SCSI_PCSCSI_H

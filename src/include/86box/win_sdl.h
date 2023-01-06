@@ -13,8 +13,8 @@
  * Authors: Fred N. van Kempen, <decwiz@yahoo.com>
  *          Michael Drüing, <michael@drueing.de>
  *
- *          Copyright 2018,2019 Fred N. van Kempen.
- *          Copyright 2018,2019 Michael Drüing.
+ *          Copyright 2018-2019 Fred N. van Kempen.
+ *          Copyright 2018-2019 Michael Drüing.
  *
  *          Redistribution and  use  in source  and binary forms, with
  *          or  without modification, are permitted  provided that the

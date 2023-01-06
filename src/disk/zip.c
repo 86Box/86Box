@@ -2073,7 +2073,7 @@ zip_phase_data_out(scsi_common_t *sc)
                     dev->buffer[2] = (i >> 8) & 0xff;
                     dev->buffer[3] = i & 0xff;
                 } else if (dev->current_cdb[1] & 4) {
-                    /* CHS are 96,1,2048 (ZIP 100) and 239,1,2048 (ZIP 250) */
+                    /* CHS are 96, 1, 2048 (ZIP 100) and 239, 1, 2048 (ZIP 250) */
                     s              = (i % 2048);
                     h              = ((i - s) / 2048) % 1;
                     c              = ((i - s) / 2048) / 1;

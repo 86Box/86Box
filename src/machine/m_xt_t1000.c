@@ -55,7 +55,7 @@
  *
  * Authors: Fred N. van Kempen, <decwiz@yahoo.com>
  *          Miran Grca, <mgrca8@gmail.com>
- *          Sarah Walker, <tommowalker@tommowalker.co.uk>
+ *          Sarah Walker, <https://pcem-emulator.co.uk/>
  *
  *          Copyright 2018-2019 Fred N. van Kempen.
  *          Copyright 2018-2019 Miran Grca.
@@ -687,8 +687,8 @@ t1000_read_nvram(uint16_t addr, void *priv)
             tmp = fdc_read(0x03f7, t1000.fdc);
 
             tmp = (tmp & 0x80) >> 3;              /* Bit 4 is changeline */
-            tmp |= (sys->nvr_active & 0xc0);      /* Bits 6,7 are r/w mode */
-            tmp |= 0x2e;                          /* Bits 5,3,2,1 always 1 */
+            tmp |= (sys->nvr_active & 0xc0);      /* Bits 6, 7 are r/w mode */
+            tmp |= 0x2e;                          /* Bits 5, 3, 2, 1 always 1 */
             tmp |= (sys->nvr_active & 0x40) >> 6; /* Ready state */
             break;
     }

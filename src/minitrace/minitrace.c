@@ -1,6 +1,6 @@
 // minitrace
 // Copyright 2014 by Henrik Rydgård
-// http://www.github.com/hrydgard/minitrace
+// https://www.github.com/hrydgard/minitrace
 // Released under the MIT license.
 
 // See minitrace.h for basic documentation.

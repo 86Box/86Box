@@ -12,13 +12,13 @@
  *
  *
  *
- * Authors: Sarah Walker, <http://pcem-emulator.co.uk/>
+ * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
  *          TheCollector1995, <mariogplayer@gmail.com>
  *          Fred N. van Kempen, <decwiz@yahoo.com>
  *
  *          Copyright 2017-2018 Sarah Walker.
  *          Copyright 2017-2018 TheCollector1995.
- *          Copyright 2017,2018 Fred N. van Kempen.
+ *          Copyright 2017-2018 Fred N. van Kempen.
  */
 
 #ifndef SCSI_NCR5380_H
