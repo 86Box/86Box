@@ -17,6 +17,7 @@ public:
     void save();
 
 private slots:
+    void on_comboBoxCDROMType_activated(int index);
     void on_comboBoxChannel_activated(int index);
     void on_comboBoxBus_activated(int index);
     void on_comboBoxSpeed_activated(int index);
@@ -26,8 +27,6 @@ private slots:
     void on_checkBoxTurboTimings_stateChanged(int arg1);
     void onFloppyRowChanged(const QModelIndex &current);
     void onCDROMRowChanged(const QModelIndex &current);
-
-    void on_checkBoxEarlierDrive_stateChanged(int arg1);
 
 private:
     Ui::SettingsFloppyCDROM *ui;

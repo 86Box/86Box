@@ -29,6 +29,7 @@ extern uint64_t tsc;
 #include <86box/cartridge.h>
 #include <86box/cassette.h>
 #include <86box/cdrom.h>
+#include <86box/cdrom_interface.h>
 #include <86box/fdd.h>
 #include <86box/hdc.h>
 #include <86box/scsi.h>
@@ -299,6 +300,8 @@ MachineStatus::iterateCDROM(const std::function<void(int)> &cb)
         if ((cdrom[i].bus_type == CDROM_BUS_ATAPI) && !hasIDE() && hdc_name.left(3) != QStringLiteral("ide") && hdc_name.left(5) != QStringLiteral("xtide"))
             continue;
         if ((cdrom[i].bus_type == CDROM_BUS_SCSI) && !hasSCSI() && (scsi_card_current[0] == 0) && (scsi_card_current[1] == 0) && (scsi_card_current[2] == 0) && (scsi_card_current[3] == 0))
+            continue;
+        if ((cdrom[i].bus_type == CDROM_BUS_MITSUMI) && (cdrom_interface_current == 0))
             continue;
         if (cdrom[i].bus_type != 0) {
             cb(i);

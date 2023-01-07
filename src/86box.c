@@ -1068,6 +1068,10 @@ pc_reset_hard_init(void)
 
     /* Reset the Hard Disk Controller module. */
     hdc_reset();
+
+    /* Reset the CD-ROM Controller module. */
+    cdrom_interface_reset();
+
     /* Reset and reconfigure the SCSI layer. */
     scsi_card_init();
 
