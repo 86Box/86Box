@@ -1,9 +1,10 @@
 /*
- * 86Box    An emulator of (mostly) x86-based PC systems and devices,
- *          using the ISA, EISA, VLB, MCA, and PCI system buses,
- *          roughly spanning the era between 1981 and 1995.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *          This file is part of the 86Box Project.
+ *          This file is part of the 86Box distribution.
  *
  *          Implementation of the following network controllers:
  *            - 3Com Etherlink II 3c503 (ISA 8-bit).

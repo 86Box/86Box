@@ -38,9 +38,9 @@ set_source_files_properties(${APP_ICON_MACOSX}
 
 # Prepare long version string
 if(EMU_BUILD)
-    set(LONG_VER_STRING	"${CMAKE_PROJECT_VERSION} [${EMU_BUILD}]")
+    set(LONG_VER_STRING "${CMAKE_PROJECT_VERSION} [${EMU_BUILD}]")
 else()
-    set(LONG_VER_STRING	"${CMAKE_PROJECT_VERSION}")
+    set(LONG_VER_STRING "${CMAKE_PROJECT_VERSION}")
 endif()
 
 # Generate Info.plist
