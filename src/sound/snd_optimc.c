@@ -40,7 +40,7 @@
 #include <86box/rom.h>
 
 static int optimc_wss_dma[4] = { 0, 0, 1, 3 };
-static int optimc_wss_irq[4] = { 7, 9, 10, 11 };
+static int optimc_wss_irq[8] = { 5, 7, 9, 10, 11, 12, 14, 15 };
 
 enum optimc_local_flags {
     OPTIMC_CS4231 = 0x100,
@@ -101,7 +101,7 @@ optimc_wss_write(uint16_t addr, uint8_t val, void *priv)
         return;
     optimc->wss_config = val;
     ad1848_setdma(&optimc->ad1848, optimc_wss_dma[val & 3]);
-    ad1848_setirq(&optimc->ad1848, optimc_wss_irq[val & 3]);
+    ad1848_setirq(&optimc->ad1848, optimc_wss_irq[(val >> 3) & 7]);
 }
 
 static void
