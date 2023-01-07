@@ -96,6 +96,7 @@ static const device_t *mouse_curr;
 static void           *mouse_priv;
 static int             mouse_nbut;
 static int (*mouse_dev_poll)(int x, int y, int z, int b, void *priv);
+static void (*mouse_poll_ex)(void) = NULL;
 
 #ifdef ENABLE_MOUSE_LOG
 int mouse_do_log = ENABLE_MOUSE_LOG;
@@ -174,12 +175,21 @@ mouse_set_buttons(int buttons)
 }
 
 void
+mouse_set_poll_ex(void (*poll_ex)(void))
+{
+    mouse_poll_ex = poll_ex;
+}
+
+void
 mouse_process(void)
 {
     if (mouse_curr == NULL)
         return;
 
-    mouse_poll();
+    if (mouse_poll_ex)
+        mouse_poll_ex();
+    else
+        mouse_poll();
 
     if ((mouse_dev_poll != NULL) || (mouse_curr->poll != NULL)) {
         if (mouse_curr->poll != NULL)

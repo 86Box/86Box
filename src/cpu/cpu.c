@@ -235,7 +235,7 @@ cpu_is_eligible(const cpu_family_t *cpu_family, int cpu, int machine)
     if (packages & CPU_PKG_SOCKET3)
         packages |= CPU_PKG_SOCKET1;
     else if (packages & CPU_PKG_SLOT1)
-        packages |= CPU_PKG_SOCKET370;
+        packages |= CPU_PKG_SOCKET370 | CPU_PKG_SOCKET8;
 
     /* Package type. */
     if (!(cpu_family->package & packages))
@@ -2848,7 +2848,7 @@ amd_k_invalid_wrmsr:
                     break;
                 case 0x1b:
                     cpu_log("APIC_BASE write: %08X%08X\n", EDX, EAX);
-                    // msr.apic_base = EAX | ((uint64_t)EDX << 32);
+                    // msr.apic_base = EAX | ((uint64_t) EDX << 32);
                     break;
                 case 0x2a:
                     break;

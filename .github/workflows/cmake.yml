@@ -76,13 +76,14 @@ jobs:
       - name: Prepare MSYS2 environment
         uses: msys2/setup-msys2@v2
         with:
+          release: false
           update: true
           msystem: ${{ matrix.environment.msystem }}
           pacboy: >-
             ninja:p
             cmake:p
             gcc:p
-            pkg-config:p
+            pkgconf:p
             freetype:p
             SDL2:p
             zlib:p
@@ -100,7 +101,6 @@ jobs:
           -D CMAKE_INSTALL_PREFIX=./build/artifacts
           -D QT=${{ matrix.ui.qt }}
           -D STATIC_BUILD=${{ matrix.ui.static }}
-          -D VNC=n
       - name: Build
         run: cmake --build build
       - name: Generate package
@@ -169,7 +169,7 @@ jobs:
         run: echo "C:/Program Files/LLVM/bin" >> $env:GITHUB_PATH
       - name: Download Ninja
         run: >
-          Invoke-WebRequest https://github.com/ninja-build/ninja/releases/download/v1.10.2/ninja-win.zip -OutFile ninja-win.zip && 
+          Invoke-WebRequest https://github.com/ninja-build/ninja/releases/download/v1.11.1/ninja-win.zip -OutFile ninja-win.zip && 
           Expand-Archive ninja-win.zip -DestinationPath .
       - name: Setup NuGet Credentials
         run: >
@@ -211,7 +211,7 @@ jobs:
           path: build/artifacts/**
 
   linux:
-    name: "Linux GCC 11 (Qt GUI, ${{ matrix.build.name }}, ${{ matrix.dynarec.name }}, x86_64)"
+    name: "Linux GCC 11 (${{ matrix.ui.name }}, ${{ matrix.build.name }}, ${{ matrix.dynarec.name }}, x86_64)"
 
     runs-on: ubuntu-22.04
 
@@ -232,6 +232,13 @@ jobs:
           - name: NDR
             new: on
             slug: -NDR
+        ui:
+          - name: Qt GUI
+            qt: on
+            slug: -Qt
+            packages: >-
+              qtbase5-dev
+              qttools5-dev
 
     steps:
       - name: Install dependencies
@@ -244,9 +251,9 @@ jobs:
           libpng-dev
           libc6-dev
           librtmidi-dev
-          qtbase5-dev
-          qttools5-dev
           libopenal-dev
+          libvncserver-dev
+          ${{ matrix.ui.packages }}
       - uses: actions/checkout@v3
       - name: Configure CMake
         run: >-
@@ -254,17 +261,18 @@ jobs:
           --toolchain ./cmake/flags-gcc-x86_64.cmake
           -D NEW_DYNAREC=${{ matrix.dynarec.new }}
           -D CMAKE_INSTALL_PREFIX=./build/artifacts
+          -D QT=${{ matrix.ui.qt }}
       - name: Build
         run: cmake --build build
       - name: Generate package
         run: cmake --install build
       - uses: actions/upload-artifact@v3
         with:
-          name: '86Box-Qt${{ matrix.dynarec.slug }}${{ matrix.build.slug }}-UbuntuJammy-x86_64-gha${{ github.run_number }}'
+          name: '86Box${{ matrix.ui.slug }}${{ matrix.dynarec.slug }}${{ matrix.build.slug }}-UbuntuJammy-x86_64-gha${{ github.run_number }}'
           path: build/artifacts/**
 
   macos11:
-    name: "macOS 11 (Qt GUI, ${{ matrix.build.name }}, ${{ matrix.dynarec.name }}, x86_64)"
+    name: "macOS 11 (${{ matrix.ui.name }}, ${{ matrix.build.name }}, ${{ matrix.dynarec.name }}, x86_64)"
 
     runs-on: macos-11
 
@@ -285,6 +293,12 @@ jobs:
           - name: NDR
             new: on
             slug: -NDR
+        ui:
+          - name: Qt GUI
+            qt: on
+            slug: -Qt
+            packages: >-
+              qt@5
 
     steps:
       - name: Install dependencies
@@ -295,8 +309,9 @@ jobs:
           sdl2
           libpng
           rtmidi
-          qt@5
           openal-soft
+          libvncserver
+          ${{ matrix.ui.packages }}
       - uses: actions/checkout@v3
       - name: Configure CMake
         run: >-
@@ -304,6 +319,7 @@ jobs:
           --toolchain ./cmake/flags-gcc-x86_64.cmake
           -D NEW_DYNAREC=${{ matrix.dynarec.new }}
           -D CMAKE_INSTALL_PREFIX=./build/artifacts
+          -D QT=${{ matrix.ui.qt }}
           -D Qt5_ROOT=$(brew --prefix qt@5)
           -D Qt5LinguistTools_ROOT=$(brew --prefix qt@5)
           -D OpenAL_ROOT=$(brew --prefix openal-soft)
@@ -313,5 +329,5 @@ jobs:
         run: cmake --install build
       - uses: actions/upload-artifact@v3
         with:
-          name: '86Box-Qt${{ matrix.dynarec.slug }}${{ matrix.build.slug }}-macOS-x86_64-gha${{ github.run_number }}'
+          name: '86Box${{ matrix.ui.slug }}${{ matrix.dynarec.slug }}${{ matrix.build.slug }}-macOS-x86_64-gha${{ github.run_number }}'
           path: build/artifacts/**

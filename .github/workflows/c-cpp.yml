@@ -58,28 +58,29 @@ jobs:
       - name: Prepare MSYS2 environment
         uses: msys2/setup-msys2@v2
         with:
+          release: false
           update: true
           msystem: ${{ matrix.environment.msystem }}
           install: >-
             make
-            ${{ matrix.environment.prefix }}-gcc
-            ${{ matrix.environment.prefix }}-pkg-config
-            ${{ matrix.environment.prefix }}-freetype
-            ${{ matrix.environment.prefix }}-SDL2
-            ${{ matrix.environment.prefix }}-zlib
-            ${{ matrix.environment.prefix }}-libpng
-            ${{ matrix.environment.prefix }}-openal
-            ${{ matrix.environment.prefix }}-rtmidi
-            ${{ matrix.environment.prefix }}-libvncserver
+          pacboy: >-
+            gcc:p
+            pkg-config:p
+            freetype:p
+            SDL2:p
+            zlib:p
+            libpng:p
+            openal:p
+            rtmidi:p
+            libvncserver:p
       - uses: actions/checkout@v3
       - name: make
         run: >-
-          make -fwin/makefile.mingw -j
+          make -fwin/Makefile.mingw -j
           DEV_BUILD=${{ matrix.build.dev }}
           DEBUG=${{ matrix.build.debug }}
           NEW_DYNAREC=${{ matrix.dynarec.new }}
           X64=${{ matrix.environment.x64 }}
-          VNC=n
         working-directory: ./src
       - uses: actions/upload-artifact@v3
         with:
