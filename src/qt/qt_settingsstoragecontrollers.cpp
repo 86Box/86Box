@@ -251,6 +251,12 @@ SettingsStorageControllers::on_pushButtonFD_clicked()
 }
 
 void
+SettingsStorageControllers::on_pushButtonCDInterface_clicked()
+{
+    DeviceConfig::ConfigureDevice(cdrom_interface_get_device(ui->comboBoxCDInterface->currentData().toInt()), 0, qobject_cast<Settings *>(Settings::settings));
+}
+
+void
 SettingsStorageControllers::on_pushButtonTertiaryIDE_clicked()
 {
     DeviceConfig::ConfigureDevice(&ide_ter_device, 0, qobject_cast<Settings *>(Settings::settings));
