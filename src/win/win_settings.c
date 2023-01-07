@@ -1103,7 +1103,7 @@ win_settings_video_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
             settings_enable_window(hdlg, IDC_CONFIGURE_VID, video_card_has_config(e));
 
             // Secondary Video Card
-            c = 0;
+            c = d = 0;
             settings_reset_content(hdlg, IDC_COMBO_VIDEO_2);
 
             while (1) {
@@ -1118,12 +1118,17 @@ win_settings_video_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
                 if (!device_name[0])
                     break;
 
+                if ((c > 1) && (video_card_get_flags(c) == video_card_get_flags(temp_gfxcard))) {
+                    c++;
+                    continue;
+                }
+
                 if (video_card_available(c) && device_is_valid(video_card_getdevice(c), temp_machine)) {
                     if (c == 0) // "None"
                         settings_add_string(hdlg, IDC_COMBO_VIDEO_2, win_get_string(IDS_2104));
                     else if (c == 1) // "Internal"
                         settings_add_string(hdlg, IDC_COMBO_VIDEO_2, win_get_string(IDS_2119));
-                    else if (video_card_get_flags(c) != video_card_get_flags(gfxcard))
+                    else
                         settings_add_string(hdlg, IDC_COMBO_VIDEO_2, (LPARAM) device_name);
                     settings_list_to_device[1][d] = c;
                     if ((c == 0) || (c == temp_gfxcard_2))
@@ -1158,6 +1163,49 @@ win_settings_video_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
                 case IDC_COMBO_VIDEO:
                     temp_gfxcard = settings_list_to_device[0][settings_get_cur_sel(hdlg, IDC_COMBO_VIDEO)];
                     settings_enable_window(hdlg, IDC_CONFIGURE_VID, video_card_has_config(temp_gfxcard));
+
+                    // Secondary Video Card
+                    c = d = 0;
+                    settings_reset_content(hdlg, IDC_COMBO_VIDEO_2);
+
+                    while (1) {
+                        /* Skip "internal" if machine doesn't have it. */
+                        if ((c == 1) && !machine_has_flags(temp_machine, MACHINE_VIDEO)) {
+                            c++;
+                            continue;
+                        }
+
+                        generate_device_name(video_card_getdevice(c), video_get_internal_name(c), 1);
+
+                        if (!device_name[0])
+                            break;
+
+                        if ((c > 1) && (video_card_get_flags(c) == video_card_get_flags(temp_gfxcard))) {
+                            c++;
+                            continue;
+                        }
+
+                        if (video_card_available(c) && device_is_valid(video_card_getdevice(c), temp_machine)) {
+                            if (c == 0) // "None"
+                                settings_add_string(hdlg, IDC_COMBO_VIDEO_2, win_get_string(IDS_2104));
+                            else if (c == 1) // "Internal"
+                                settings_add_string(hdlg, IDC_COMBO_VIDEO_2, win_get_string(IDS_2119));
+                            else
+                                settings_add_string(hdlg, IDC_COMBO_VIDEO_2, (LPARAM) device_name);
+                            settings_list_to_device[1][d] = c;
+                            if ((c == 0) || (c == temp_gfxcard_2))
+                                settings_set_cur_sel(hdlg, IDC_COMBO_VIDEO_2, d);
+                            d++;
+                        }
+
+                        c++;
+
+                        settings_process_messages();
+                    }
+
+                    settings_enable_window(hdlg, IDC_COMBO_VIDEO_2, !machine_has_flags(temp_machine, MACHINE_VIDEO_ONLY));
+                    e = settings_list_to_device[1][settings_get_cur_sel(hdlg, IDC_COMBO_VIDEO_2)];
+                    settings_enable_window(hdlg, IDC_CONFIGURE_VID_2, video_card_has_config(e));
                     break;
 
                 case IDC_COMBO_VIDEO_2:
@@ -1184,11 +1232,10 @@ win_settings_video_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
                     break;
 
                 case IDC_BUTTON_XGA:
-                    if (machine_has_bus(temp_machine, MACHINE_BUS_MCA) > 0) {
+                    if (machine_has_bus(temp_machine, MACHINE_BUS_MCA) > 0)
                         temp_deviceconfig |= deviceconfig_open(hdlg, (void *) &xga_device);
-                    } else {
+                    else
                         temp_deviceconfig |= deviceconfig_open(hdlg, (void *) &xga_isa_device);
-                    }
                     break;
 
                 case IDC_CONFIGURE_VID:
