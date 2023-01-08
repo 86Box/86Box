@@ -10,7 +10,7 @@
 #
 # Authors: David Hrdlička, <hrdlickadavid@outlook.com>
 #
-#          Copyright 2020,2021 David Hrdlička.
+#          Copyright 2020-2021 David Hrdlička.
 #
 
 add_library(chipset OBJECT 82c100.c acc2168.c cs8230.c ali1429.c ali1489.c ali1531.c ali1541.c ali1543.c

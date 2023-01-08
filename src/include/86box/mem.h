@@ -10,7 +10,7 @@
  *
  *
  *
- * Authors: Sarah Walker, <tommowalker@tommowalker.co.uk>
+ * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
  *          Fred N. van Kempen, <decwiz@yahoo.com>
  *          Miran Grca, <mgrca8@gmail.com>
  *

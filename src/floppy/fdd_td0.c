@@ -668,27 +668,27 @@ td0_initialize(int drive)
      * from the CMOS.
      */
     switch (header[6]) {
-        case 0: /* 5.25" 360k in 1.2M drive:	360 rpm
+        case 0: /* 5.25" 360k in 1.2M drive: 360 rpm
                    CMOS Drive type: None, value probably
                    reused by Teledisk */
-        case 2: /* 5.25" 1.2M			360 rpm */
-        case 5: /* 8"/5.25"/3.5" 1.25M		360 rpm */
+        case 2: /* 5.25" 1.2M: 360 rpm */
+        case 5: /* 8"/5.25"/3.5" 1.25M: 360 rpm */
             dev->default_track_flags = (density == 1) ? 0x20 : 0x21;
             dev->max_sector_size     = (density == 1) ? 6 : 5; /* 8192 or 4096 bytes. */
             break;
 
-        case 1: /* 5.25" 360k:			300 rpm */
-        case 3: /* 3.5" 720k:			300 rpm */
+        case 1: /* 5.25" 360k: 300 rpm */
+        case 3: /* 3.5" 720k: 300 rpm */
             dev->default_track_flags = 0x02;
             dev->max_sector_size     = 5; /* 4096 bytes. */
             break;
 
-        case 4: /* 3.5" 1.44M:			300 rpm */
+        case 4: /* 3.5" 1.44M: 300 rpm */
             dev->default_track_flags = (density == 1) ? 0x00 : 0x02;
             dev->max_sector_size     = (density == 1) ? 6 : 5; /* 8192 or 4096 bytes. */
             break;
 
-        case 6: /* 3.5" 2.88M:			300 rpm */
+        case 6: /* 3.5" 2.88M: 300 rpm */
             dev->default_track_flags = (density == 1) ? 0x00 : ((density == 2) ? 0x03 : 0x02);
             dev->max_sector_size     = (density == 1) ? 6 : ((density == 2) ? 7 : 5); /* 16384, 8192, or 4096 bytes. */
             break;

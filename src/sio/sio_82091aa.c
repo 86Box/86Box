@@ -1,17 +1,18 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Emulation of the Intel 82091AA Super I/O chip.
+ *          Emulation of the Intel 82091AA Super I/O chip.
  *
  *
  *
- * Author:	Miran Grca, <mgrca8@gmail.com>
- *		Copyright 2020 Miran Grca.
+ * Authors: Miran Grca, <mgrca8@gmail.com>
+ *
+ *          Copyright 2020 Miran Grca.
  */
 #include <stdio.h>
 #include <stdint.h>
