@@ -11,7 +11,7 @@
  *
  *
  *
- * Authors: Sarah Walker, <tommowalker@tommowalker.co.uk>
+ * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
  *          Miran Grca, <mgrca8@gmail.com>
  *          Fred N. van Kempen, <decwiz@yahoo.com>
  *
@@ -298,7 +298,7 @@ fdi_seek(int drive, int track)
 
 #if 0
     if (track > dev->lasttrack)
-	track = dev->lasttrack - 1;
+        track = dev->lasttrack - 1;
 #endif
 
     dev->track = track;

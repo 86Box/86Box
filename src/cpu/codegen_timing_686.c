@@ -949,7 +949,7 @@ void codegen_timing_686_opcode(uint8_t opcode, uint32_t fetchdat, int op_32, uin
                 if (regmask & IMPL_ESP)
                         regmask |= SRCDEP_ESP | DSTDEP_ESP;
 
-		agi_stall = check_agi(prev_deps, prev_opcode, prev_fetchdat, prev_op_32);
+                agi_stall = check_agi(prev_deps, prev_opcode, prev_fetchdat, prev_op_32);
 
                 /*Second instruction in the pair*/
                 if ((timings[opcode] & PAIR_MASK) == PAIR_NP)
@@ -992,7 +992,7 @@ void codegen_timing_686_opcode(uint8_t opcode, uint32_t fetchdat, int op_32, uin
                         if (!t_pair)
                                 fatal("Pairable 0 cycles! %02x %02x\n", opcode, prev_opcode);
 
-			agi_stall = check_agi(deps, opcode, fetchdat, op_32);
+                        agi_stall = check_agi(deps, opcode, fetchdat, op_32);
 
                         codegen_block_cycles += t_pair + agi_stall;
                         decode_delay = (-t_pair) + 1 + agi_stall;
@@ -1012,7 +1012,7 @@ void codegen_timing_686_opcode(uint8_t opcode, uint32_t fetchdat, int op_32, uin
                         /*Instruction not pairable*/
                         int agi_stall = 0;
 
-			agi_stall = check_agi(deps, opcode, fetchdat, op_32);
+                        agi_stall = check_agi(deps, opcode, fetchdat, op_32);
 
                         codegen_block_cycles += COUNT(timings[opcode], op_32) + decode_delay + agi_stall;
                         decode_delay = (-COUNT(timings[opcode], op_32)) + 1 + agi_stall;

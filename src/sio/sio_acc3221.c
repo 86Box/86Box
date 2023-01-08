@@ -1,18 +1,18 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Implementation of the ACC 3221-SP Super I/O Chip.
+ *          Implementation of the ACC 3221-SP Super I/O Chip.
  *
  *
  *
- * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
+ * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
  *
- *		Copyright 2019 Sarah Walker.
+ *          Copyright 2019 Sarah Walker.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -40,31 +40,31 @@ typedef struct acc3221_t {
 } acc3221_t;
 
 /* Configuration Register Index, BE (R/W):
-    Bit		Function
-    7		PIRQ 5 polarity.
+    Bit     Function
+    7       PIRQ 5 polarity.
                 1 = active high, default
                 0 = active low
-    6		PIRQ 7 polarity.
+    6       PIRQ 7 polarity.
                 1 = active high, default
                 0 = active low
-    5		Primary Parallel Port Extended Mode
+    5       Primary Parallel Port Extended Mode
                 0 = Compatible mode, default
                 1 = Extended/Bidirectional mode.
-    4		Primary Parallel Port Disable
+    4       Primary Parallel Port Disable
                 1 = Disable, 0 = Enable
                 Power Up Default is set by pin 120
                 (3221-DP)/pin 96 (3221-SP)
-    3		Primary Parallel Port Power Down
+    3       Primary Parallel Port Power Down
                 1 = Power Down, default = 0
-    2**		Secondary Parallel Port Extended
+    2**     Secondary Parallel Port Extended
                 Mode
                 0 = Compatible mode, default
                 1 = Extended/Bidirectional mode.
-    1**		Secondary Parallel Port Disable
+    1**     Secondary Parallel Port Disable
                 1 = Disable, 0 = Enable
                 Power Up Default is set by pin 77
                 (3221-DP)
-    0**		Secondary Parallel Port Power Down
+    0**     Secondary Parallel Port Power Down
                 1 = Power Down
                 0 = Enable, default
     Note: Power Up not applicable to 3221-EP. */
@@ -72,41 +72,41 @@ typedef struct acc3221_t {
 #define REG_BE_LPT2_DISABLE (3 << 0) /* 3221-DP/EP only */
 
 /* Configuration Register Index, BF (R/W):
-    Bit		Function
-    7-0		The 8 most significant address bits of
+    Bit     Function
+    7-0     The 8 most significant address bits of
                 the primary parallel port (A9-2)
                 Default 9E (LPT2, at 278-27B) */
 
 /* Configuration Register Index, DA (R/W)**:
-    Bit		Function
-    7-0		The 8 most significant address bits of
+    Bit     Function
+    7-0     The 8 most significant address bits of
                 the secondary parallel port (A9-2)
                 Default DE (LPT1, at 378-37B) */
 
 /* Configuration Register Index, DB (R/W):
-    Bit		Function
-    7		SIRQ4 polarity.
+    Bit     Function
+    7       SIRQ4 polarity.
                 1 = active high; default
                 0 = active low
-    6		SIRQ3 polarity.
+    6       SIRQ3 polarity.
                 1 = active high; default
                 0 = active low
-    5		SXTAL clock off. 1 = SCLK off,
+    5       SXTAL clock off. 1 = SCLK off,
                 0 = SCKL on, default
-    4		Primary serial port disable
+    4       Primary serial port disable
                 1 = Disable, 0 = Enable
                 Power Up default is set by pin 116
                 (3221-DP)/pin 93 (3221-SP)
-    3		Primary serial port power down
+    3       Primary serial port power down
                 1 = Power down, 0 = Enable
                 Power Up default is set by pin 116
                 (3221-DP)/pin 93 (3221-SP)
-    2		Reserved
-    1		Secondary serial port disable
+    2       Reserved
+    1       Secondary serial port disable
                 1 = Disable, 0 = Enable
                 Power Up default is set by pin 121
                 (3221-DP)/pin 97 (3221-SP)
-    0		Secondary serial port power down
+    0       Secondary serial port power down
                 1 = Power down, 0 = Enable
                 Power Up default is set by pin 121
                 (3221-DP)/pin 97 (3221-SP)
@@ -115,57 +115,57 @@ typedef struct acc3221_t {
 #define REG_DB_SERIAL2_DISABLE (3 << 0)
 
 /* Configuration Register Index, DC (R/W):
-    Bit		Function
-    7-1		The MSB of the Primary Serial Port
+    Bit     Function
+    7-1     The MSB of the Primary Serial Port
                 Address (bits A9-3).
                 Default = 7F (COM1, at 3F8-3FF).
-    0		When this bit is set to 1, bit A2 of
+    0       When this bit is set to 1, bit A2 of
                 primary parallel port is decoded.
                 Default is 0. */
 
 /* Configuration Register Index, DD (R/W):
-    Bit		Function
-    7-1		The MSB of the Secondary Serial Port
+    Bit     Function
+    7-1     The MSB of the Secondary Serial Port
                 Address (bits A9-3).
                 Default = 5F (COM2, at 2F8-2FF).
-    0**		When this bit is set to 1, bit A2 of
+    0**     When this bit is set to 1, bit A2 of
                 secondary parallel port is decoded.
                 Default is 0. */
 
 /* Configuration Register Index, DE (R/W):
-    Bit		Function
-    7-6		SIRQ3 source
-                b7	b6
-                0	0	Disabled, tri-stated
-                0	1	Disabled, tri-stated**
-                1	0	Primary serial port
-                1	1	Secondary serial port,
+    Bit     Function
+    7-6     SIRQ3 source
+                b7  b6
+                0   0   Disabled, tri-stated
+                0   1   Disabled, tri-stated**
+                1   0   Primary serial port
+                1   1   Secondary serial port,
                                 default
-    5-4		SIRQ4 source
-                b5	b4
-                0	0	Disabled, tri-stated
-                0	1	Disabled, tri-stated**
-                1	0	Primary serial port,
+    5-4     SIRQ4 source
+                b5  b4
+                0   0   Disabled, tri-stated
+                0   1   Disabled, tri-stated**
+                1   0   Primary serial port,
                                 default
-                1	1	Secondary serial port
+                1   1   Secondary serial port
 
-    3-2**	PIRQ7 source
-                b3	b2
-                0	0	Diabled, tri-stated,
+    3-2**   PIRQ7 source
+                b3  b2
+                0   0   Diabled, tri-stated,
                                 default
-                0	1	Primary serial port
-                1	0	Primary parallel port
-                1	1	Secondary parallel
+                0   1   Primary serial port
+                1   0   Primary parallel port
+                1   1   Secondary parallel
                                 port
     Note: Bits 3-2 are reserved in 3221-SP.
 
-    1-0		PIRQ5 source
-                b1	b0
-                0	0	Disabled, tri-stated
-                0	1	Secondary serial port
-                1	0	Primary parallel port,
+    1-0     PIRQ5 source
+                b1  b0
+                0   0   Disabled, tri-stated
+                0   1   Secondary serial port
+                1   0   Primary parallel port,
                                 default
-                1	1	Secondary parallel
+                1   1   Secondary parallel
                                 port** */
 #define REG_DE_SIRQ3_SOURCE  (3 << 6)
 #define REG_DE_SIRQ3_SERIAL1 (1 << 6)
@@ -183,48 +183,48 @@ typedef struct acc3221_t {
 #define REG_DE_PIRQ5_LPT2    (3 << 0)
 
 /* Configuration Register Index, DF (R/W)**:
-    Bit		Function
-    7-6		Reserved
-    5		RTC interface disable
+    Bit     Function
+    7-6     Reserved
+    5       RTC interface disable
                 1 = /RTCCS disabled
                 0 = /RTCCS enabled, default
-    4		Disable Modem Select
+    4       Disable Modem Select
                 1 = Moden CS disabled, default
                 0 = Modem CS enabled
 
     3-2
-                b3	b2
-                1	1	Reserved
-                1	0	Modem port address
+                b3  b2
+                1   1   Reserved
+                1   0   Modem port address
                                 = 3E8-3EF (default)
-                0	1	Modem port address:
+                0   1   Modem port address:
                                 2F8-2FF
-                0	0	Modem port address:
+                0   0   Modem port address:
                                 3F8-3FF
 
     1-0
-                b1	b0
-                1	1	Reserved
-                1	0	Mode 2, EISA Mode
-                0	1	Mode 1, AT BUS,
-                0	0	Mode 0, Two parallel
+                b1  b0
+                1   1   Reserved
+                1   0   Mode 2, EISA Mode
+                0   1   Mode 1, AT BUS,
+                0   0   Mode 0, Two parallel
                                 ports, default */
 
 /* Configuration Register Index, FA (R/W)**:
-    Bit		Function
-    7		General purpose I/O register, Bit 7
-    6		General purpose I/O register, Bit 6
-    5		General purpose I/O register, Bit 5
-    4		General purpose I/O register, Bit 4
-    3		General purpose I/O register, Bit 3
-    2		General purpose I/O register, Bit 2
-    1		General purpose I/O register, Bit 1
-    0		General purpose I/O register, Bit 0 */
+    Bit     Function
+    7       General purpose I/O register, Bit 7
+    6       General purpose I/O register, Bit 6
+    5       General purpose I/O register, Bit 5
+    4       General purpose I/O register, Bit 4
+    3       General purpose I/O register, Bit 3
+    2       General purpose I/O register, Bit 2
+    1       General purpose I/O register, Bit 1
+    0       General purpose I/O register, Bit 0 */
 
 /* Configuration Register Index, FB (R/W)**:
-    Bit		Function
-    7		Reserved
-    6**		0/2 EXG (Read Only)
+    Bit     Function
+    7       Reserved
+    6**     0/2 EXG (Read Only)
                 In mode 1 and mode 2
                 operation, when the third
                 floppy drive is installed, pin
@@ -234,7 +234,7 @@ typedef struct acc3221_t {
                 disable the third floppy drive.
                 1 = Third floppy drive enabled
                 0 = Third floppy drive disabled
-    5**		EXTFDD (Read Only)
+    5**     EXTFDD (Read Only)
                 In mode 1 and mode 2
                 operation, when the third
                 floppy drive is installed and
@@ -246,7 +246,7 @@ typedef struct acc3221_t {
                 drive 2.
                 1 = Third floppy drive as drive 0 (bootable)
                 0 = Third floppy drive as drive 2
-    4**		MS
+    4**     MS
                 In mode 1 and mode 2, t his bit is to
                 control the output pin MS to support a
                 special 3 1/2", 1.2M drive. When this
@@ -254,45 +254,45 @@ typedef struct acc3221_t {
                 a low signal. When this bit is set to
                 low (0), the MS pin sends a high
                 signal to support a 3 1/2", 1.2M drive.
-    3		FDC, Clock disable
+    3       FDC, Clock disable
                 0 = enable, default
                 1 = disable
-    2		Reserved
-    1		FDC disable
+    2       Reserved
+    1       FDC disable
                 0 = enable, 1= disable
                 Power Upd efault set by pin 117 (3221-
                 DP)/pin 94 (3221-SP)
-    0		FDC address
+    0       FDC address
                 0 = Primary, default
                 1 = Secondary
     Note: Bits 6-4 are reserved in 3221-SP. */
 #define REG_FB_FDC_DISABLE (1 << 1)
 
 /* Configuration Register Index, FB (R/W)**:
-    Bit		Function
-    7**		Disable general chip select 1
+    Bit     Function
+    7**     Disable general chip select 1
                 1 = disable, default
                 0 = enable
-    6**		Disable general chip select 2
+    6**     Disable general chip select 2
                 1 = disable, default
                 0 = enable
-    5**		Enable SA2 decoding for general chip
+    5**     Enable SA2 decoding for general chip
                 select 1
                 1 = enable
                 0 = disable, default
-    4**		Enable SA2 decoding for general chip
+    4**     Enable SA2 decoding for general chip
                 select 2
                 1 = enable
                 0 = disable, default
-    3		Reserved
-    2		IDE XT selected
+    3       Reserved
+    2       IDE XT selected
                 0 = IDE AT interface, default
                 1 = IDE XT interface
-    1		IDE disable, 1 = IDE disable
+    1       IDE disable, 1 = IDE disable
                 0 = IDE enable
                 Power Up default set by pin 13 (3221-
                 DP)/pin 13 (3221-SP)
-    0		Secondary IDE
+    0       Secondary IDE
                 1 = secondary
                 0 = primary, default
     Note: Bits 6-4 are reserved in 3221-SP. */
