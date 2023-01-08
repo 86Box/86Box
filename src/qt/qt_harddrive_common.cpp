@@ -20,6 +20,7 @@
 
 extern "C" {
 #include <86box/hdd.h>
+#include <86box/cdrom.h>
 }
 
 #include <QAbstractItemModel>
@@ -48,14 +49,16 @@ void
 Harddrives::populateRemovableBuses(QAbstractItemModel *model)
 {
     model->removeRows(0, model->rowCount());
-    model->insertRows(0, 3);
+    model->insertRows(0, 4);
     model->setData(model->index(0, 0), QObject::tr("Disabled"));
     model->setData(model->index(1, 0), QObject::tr("ATAPI"));
     model->setData(model->index(2, 0), QObject::tr("SCSI"));
+    model->setData(model->index(3, 0), QObject::tr("Mitsumi"));
 
     model->setData(model->index(0, 0), HDD_BUS_DISABLED, Qt::UserRole);
     model->setData(model->index(1, 0), HDD_BUS_ATAPI, Qt::UserRole);
     model->setData(model->index(2, 0), HDD_BUS_SCSI, Qt::UserRole);
+    model->setData(model->index(3, 0), CDROM_BUS_MITSUMI, Qt::UserRole);
 }
 
 void
@@ -143,6 +146,9 @@ Harddrives::BusChannelName(uint8_t bus, uint8_t channel)
         case HDD_BUS_SCSI:
             busName = QString("SCSI (%1:%2)").arg(channel >> 4).arg(channel & 15, 2, 10, QChar('0'));
             break;
+	    case CDROM_BUS_MITSUMI:
+	        busName = QString("Mitsumi");
+	        break;
     }
 
     return busName;
