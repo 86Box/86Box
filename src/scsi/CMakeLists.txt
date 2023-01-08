@@ -10,7 +10,7 @@
 #
 # Authors: David Hrdlička, <hrdlickadavid@outlook.com>
 #
-#          Copyright 2020,2021 David Hrdlička.
+#          Copyright 2020-2021 David Hrdlička.
 #
 
 add_library(scsi OBJECT scsi.c scsi_device.c scsi_cdrom.c scsi_disk.c

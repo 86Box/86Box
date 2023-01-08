@@ -1,22 +1,22 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		ATI 28800 emulation (VGA Charger and Korean VGA)
+ *          ATI 28800 emulation (VGA Charger and Korean VGA)
  *
  *
  *
- * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
- *		Miran Grca, <mgrca8@gmail.com>
- *		greatpsycho,
+ * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
+ *          Miran Grca, <mgrca8@gmail.com>
+ *          greatpsycho,
  *
- *		Copyright 2008-2018 Sarah Walker.
- *		Copyright 2016-2018 Miran Grca.
- *		Copyright 2018 greatpsycho.
+ *          Copyright 2008-2018 Sarah Walker.
+ *          Copyright 2016-2018 Miran Grca.
+ *          Copyright 2018 greatpsycho.
  */
 #include <stdarg.h>
 #include <stdint.h>

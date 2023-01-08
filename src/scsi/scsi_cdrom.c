@@ -1297,10 +1297,10 @@ scsi_cdrom_read_data(scsi_cdrom_t *dev, int msf, int type, int flags, int32_t *l
           data than that. */
 #if 0
     if ((dev->sector_pos + dev->sector_len - 1) >= cdsize) {
-	scsi_cdrom_log("CD-ROM %i: Trying to read to beyond the end of disc (%i >= %i)\n", dev->id,
-		  (dev->sector_pos + dev->sector_len - 1), cdsize);
-	scsi_cdrom_lba_out_of_range(dev);
-	return -1;
+        scsi_cdrom_log("CD-ROM %i: Trying to read to beyond the end of disc (%i >= %i)\n", dev->id,
+          (dev->sector_pos + dev->sector_len - 1), cdsize);
+        scsi_cdrom_lba_out_of_range(dev);
+        return -1;
     }
 #endif
 

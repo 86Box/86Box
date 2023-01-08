@@ -1,32 +1,32 @@
 #
-# 86Box		A hypervisor and IBM PC system emulator that specializes in
-#		running old operating systems and software designed for IBM
-#		PC systems and compatibles from 1981 through fairly recent
-#		system designs based on the PCI bus.
+# 86Box   A hypervisor and IBM PC system emulator that specializes in
+#         running old operating systems and software designed for IBM
+#         PC systems and compatibles from 1981 through fairly recent
+#         system designs based on the PCI bus.
 #
-#		This file is part of the 86Box distribution.
+#         This file is part of the 86Box distribution.
 #
-#		Prefix for localizing the general Makefile.mingw for local
-#		settings, so we can avoid changing the main one for all of
-#		our local setups.
+#         Prefix for localizing the general Makefile.mingw for local
+#         settings, so we can avoid changing the main one for all of
+#         our local setups.
 #
-# Author:	Fred N. van Kempen, <decwiz@yahoo.com>
+# Authors: Fred N. van Kempen, <decwiz@yahoo.com>
 #
 
 #########################################################################
-#	 Anything here will override defaults in Makefile.MinGW.	#
+#         Anything here will override defaults in Makefile.MinGW.       #
 #########################################################################
 
 
 # Name of the executable.
-#PROG	:= yourexe
+#PROG := 86box.exe
 
 
 # Various compile-time options.
 # -DROM_TRACE=0xc800 traces ROM access from segment C800
 # -DIO_TRACE=0x66 traces I/O on port 0x66
 # -DIO_CATCH enables I/O range catch logs
-STUFF	:=
+STUFF :=
 
 # Add feature selections here.
 # -DANSI_CFG forces the config file to ANSI encoding.
@@ -168,31 +168,31 @@ STUFF	:=
 # -DENABLE_JOYSTICK_LOG=N sets logging level at N.
 # -DENABLE_SDL_LOG=N sets logging level at N.
 # -DENABLE_SETTINGS_LOG=N sets logging level at N.
-EXTRAS		:=
+EXTRAS :=
 
 
-AUTODEP		:= n
-DEBUG		:= n
-OPTIM		:= n
-X64		:= n
-RELEASE		:= n
-USB		:= n
-VNC		:= n
-RDP		:= n
-DEV_BUILD	:= n
-DEV_BRANCH	:= n
-CIRRUS		:= n
-NE1000		:= n
-NV_RIVA		:= n
-OPENAL		:= y
-FLUIDSYNTH	:= y
-MUNT		:= y
-PAS16		:= n
-DYNAREC		:= y
+AUTODEP    := n
+DEBUG      := n
+OPTIM      := n
+X64        := n
+RELEASE    := n
+USB        := n
+VNC        := n
+RDP        := n
+DEV_BUILD  := n
+DEV_BRANCH := n
+CIRRUS     := n
+NE1000     := n
+NV_RIVA    := n
+OPENAL     := y
+FLUIDSYNTH := y
+MUNT       := y
+PAS16      := n
+DYNAREC    := y
 
 
 #########################################################################
-#	    Include the master Makefile.MinGW for the rest.		#
+#              Include the master Makefile.MinGW for the rest.          #
 #########################################################################
 include win/Makefile.mingw
 

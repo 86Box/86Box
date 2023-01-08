@@ -55,8 +55,8 @@
  *
  *          Page mapped at        0xD000    0xD400    0xD800    0xDC00
  *          ------------------------------------------------------
- *          Pages 0x00-0x7F         0x208    0x4208    0x8208    0xc208
- *          Pages 0x80-0xFF         0x218    0x4218    0x8218    0xc218
+ *          Pages 0x00-0x7F       0x208    0x4208    0x8208    0xc208
+ *          Pages 0x80-0xFF       0x218    0x4218    0x8218    0xc218
  *          Pages 0x100-0x17F     0x258    0x4258    0x8258    0xc258
  *          Pages 0x180-0x1FF     0x268    0x4268    0x8268    0xc268
  *
@@ -121,9 +121,9 @@
  *
  * Authors: Fred N. van Kempen, <decwiz@yahoo.com>
  *          Miran Grca, <mgrca8@gmail.com>
- *          Sarah Walker, <tommowalker@tommowalker.co.uk>
+ *          Sarah Walker, <https://pcem-emulator.co.uk/>
  *
- *          Copyright 2017,2018 Fred N. van Kempen.
+ *          Copyright 2017-2018 Fred N. van Kempen.
  *          Copyright 2016-2018 Miran Grca.
  *          Copyright 2008-2018 Sarah Walker.
  *
