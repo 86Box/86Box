@@ -598,7 +598,7 @@ ncr_write(uint16_t port, uint8_t val, void *priv)
             break;
 
         case 2: /* Mode register */
-            ncr_log("Write: Mode register, val=%02x\n", val & MODE_DMA);
+            ncr_log("Write: Mode register, val=%02x.\n", val);
             if ((val & MODE_ARBITRATE) && !(ncr->mode & MODE_ARBITRATE)) {
                 ncr->icr &= ~ICR_ARB_LOST;
                 ncr->icr |= ICR_ARB_IN_PROGRESS;
@@ -741,12 +741,7 @@ ncr_read(uint16_t port, void *priv)
             break;
 
         case 2: /* Mode register */
-            if (((ncr->mode & 0x30) == 0x30) && ((ncr_dev->type == 1) && (ncr_dev->bios_ver == 1)))
-                ncr->mode = 0;
-            if (((ncr->mode & 0x20) == 0x20) && (ncr_dev->type == 0))
-                ncr->mode = 0;
-
-            ncr_log("Read: Mode register\n");
+            ncr_log("Read: Mode register = %02x.\n", ncr->mode);
             ret = ncr->mode;
             break;
 
@@ -761,10 +756,10 @@ ncr_read(uint16_t port, void *priv)
             ncr_bus_read(ncr_dev);
             ncr_log("NCR cur bus stat=%02x\n", ncr->cur_bus & 0xff);
             ret |= (ncr->cur_bus & 0xff);
-            if ((ncr->icr & ICR_SEL) && ((ncr_dev->type == 1) && (ncr_dev->bios_ver == 1)))
-                ret |= 0x02;
-            if ((ncr->icr & ICR_BSY) && ((ncr_dev->type == 1) && (ncr_dev->bios_ver == 1)))
-                ret |= 0x40;
+            if (ncr->icr & ICR_SEL)
+                ret |= BUS_SEL;
+            if (ncr->icr & ICR_BSY)
+                ret |= BUS_BSY;
             break;
 
         case 5: /* Bus and Status register */
@@ -783,9 +778,9 @@ ncr_read(uint16_t port, void *priv)
             ncr_bus_read(ncr_dev);
             bus = ncr->cur_bus;
 
-            if ((bus & BUS_ACK) || ((ncr->icr & ICR_ACK) && ((ncr_dev->type == 1) && (ncr_dev->bios_ver == 1))))
+            if ((bus & BUS_ACK) || (ncr->icr & ICR_ACK))
                 ret |= STATUS_ACK;
-            if ((bus & BUS_ATN) || ((ncr->icr & ICR_ATN) && ((ncr_dev->type == 1) && (ncr_dev->bios_ver == 1))))
+            if ((bus & BUS_ATN) || (ncr->icr & ICR_ATN))
                 ret |= 0x02;
 
             if ((bus & BUS_REQ) && (ncr->mode & MODE_DMA)) {
@@ -885,6 +880,13 @@ memio_read(uint32_t addr, void *priv)
                         ncr_log("NCR status ctrl read=%02x\n", ncr_dev->status_ctrl & STATUS_BUFFER_NOT_READY);
                         if (!ncr_dev->ncr_busy)
                             ret |= STATUS_53C80_ACCESSIBLE;
+                        if (ncr->mode & 0x30) { /*Parity bits*/
+                            if (!(ncr->mode & MODE_DMA)) { /*This is to avoid RTBios 8.10R BIOS problems with the hard disk and detection.*/
+                                ret |= 0x01; /*If the parity bits are set, bit 0 of the 53c400 status port should be set as well.*/
+                                ncr->mode = 0; /*Required by RTASPI10.SYS otherwise it won't initialize.*/
+                            }
+                        }
+                        ncr_log("NCR 53c400 status = %02x.\n", ret);
                         break;
 
                     case 0x3981: /* block counter register*/
@@ -948,6 +950,7 @@ memio_write(uint32_t addr, uint8_t val, void *priv)
             case 0x3980:
                 switch (addr) {
                     case 0x3980: /* Control */
+                        ncr_log("NCR 53c400 control = %02x, mode = %02x.\n", val, ncr->mode);
                         if ((val & CTRL_DATA_DIR) && !(ncr_dev->status_ctrl & CTRL_DATA_DIR)) {
                             ncr_dev->buffer_host_pos = MIN(128, dev->buffer_length);
                             ncr_dev->status_ctrl |= STATUS_BUFFER_NOT_READY;
