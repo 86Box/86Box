@@ -49,6 +49,23 @@
        </property>
       </widget>
      </item>
+     <item row="2" column="0">
+      <widget class="QLabel" name="label_7">
+       <property name="text">
+        <string>CD-ROM Controller:</string>
+       </property>
+      </widget>
+     </item>
+     <item row="2" column="1">
+      <widget class="QComboBox" name="comboBoxCDInterface"/>
+     </item>
+     <item row="2" column="2">
+      <widget class="QPushButton" name="pushButtonCDInterface">
+       <property name="text">
+        <string>Configure</string>
+       </property>
+      </widget>
+     </item>
      <item row="0" column="1">
       <widget class="QComboBox" name="comboBoxHD">
        <property name="sizePolicy">
@@ -69,21 +86,21 @@
      <item row="1" column="1">
       <widget class="QComboBox" name="comboBoxFD"/>
      </item>
-     <item row="2" column="0">
+     <item row="3" column="0">
       <widget class="QCheckBox" name="checkBoxTertiaryIDE">
        <property name="text">
         <string>Tertiary IDE Controller</string>
        </property>
       </widget>
      </item>
-     <item row="3" column="0">
+     <item row="4" column="0">
       <widget class="QCheckBox" name="checkBoxQuaternaryIDE">
        <property name="text">
         <string>Quaternary IDE Controller</string>
        </property>
       </widget>
      </item>
-     <item row="2" column="2">
+     <item row="3" column="2">
       <widget class="QPushButton" name="pushButtonTertiaryIDE">
        <property name="enabled">
         <bool>false</bool>
@@ -93,7 +110,7 @@
        </property>
       </widget>
      </item>
-     <item row="3" column="2">
+     <item row="4" column="2">
       <widget class="QPushButton" name="pushButtonQuaternaryIDE">
        <property name="enabled">
         <bool>false</bool>
