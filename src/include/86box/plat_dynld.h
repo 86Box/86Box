@@ -1,17 +1,18 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- * 		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Define the Dynamic Module Loader interface.
+ *          Define the Dynamic Module Loader interface.
  *
  *
  *
- * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
- *		Copyright 2017 Fred N. van Kempen
+ * Authors: Fred N. van Kempen, <decwiz@yahoo.com>
+ *
+ *          Copyright 2017 Fred N. van Kempen
  */
 
 #ifndef PLAT_DYNLD_H

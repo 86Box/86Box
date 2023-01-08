@@ -1,7 +1,7 @@
 // Minitrace
 //
 // Copyright 2014 by Henrik Rydgård
-// http://www.github.com/hrydgard/minitrace
+// https://www.github.com/hrydgard/minitrace
 // Released under the MIT license.
 //
 // Ultra-light dependency free library for performance tracing C/C++ applications.
@@ -71,13 +71,13 @@ const char *mtr_pool_string(const char *str);
 
 // Commented-out types will be supported in the future.
 typedef enum {
-	MTR_ARG_TYPE_NONE = 0,
-	MTR_ARG_TYPE_INT = 1,	// I
-	// MTR_ARG_TYPE_FLOAT = 2,  // TODO
-	// MTR_ARG_TYPE_DOUBLE = 3,  // TODO
-	MTR_ARG_TYPE_STRING_CONST = 8,	// C
-	MTR_ARG_TYPE_STRING_COPY = 9,
-	// MTR_ARG_TYPE_JSON_COPY = 10,
+    MTR_ARG_TYPE_NONE = 0,
+    MTR_ARG_TYPE_INT = 1,          // I
+    // MTR_ARG_TYPE_FLOAT = 2,        // TODO
+    // MTR_ARG_TYPE_DOUBLE = 3,       // TODO
+    MTR_ARG_TYPE_STRING_CONST = 8, // C
+    MTR_ARG_TYPE_STRING_COPY = 9,
+    // MTR_ARG_TYPE_JSON_COPY = 10,
 } mtr_arg_type;
 
 // TODO: Add support for more than one argument (metadata) per event
@@ -213,55 +213,55 @@ void internal_mtr_raw_event_arg(const char *category, const char *name, char ph,
 // These are optimized to use X events (combined B and E). Much easier to do in C++ than in C.
 class MTRScopedTrace {
 public:
-	MTRScopedTrace(const char *category, const char *name)
-		: category_(category), name_(name) {
-		start_time_ = mtr_time_s();
-	}
-	~MTRScopedTrace() {
-		internal_mtr_raw_event(category_, name_, 'X', &start_time_);
-	}
+    MTRScopedTrace(const char *category, const char *name)
+        : category_(category), name_(name) {
+        start_time_ = mtr_time_s();
+    }
+    ~MTRScopedTrace() {
+        internal_mtr_raw_event(category_, name_, 'X', &start_time_);
+    }
 
 private:
-	const char *category_;
-	const char *name_;
-	double start_time_;
+    const char *category_;
+    const char *name_;
+    double start_time_;
 };
 
 // Only outputs a block if execution time exceeded the limit.
 // TODO: This will effectively call mtr_time_s twice at the end, which is bad.
 class MTRScopedTraceLimit {
 public:
-	MTRScopedTraceLimit(const char *category, const char *name, double limit_s)
-		: category_(category), name_(name), limit_(limit_s) {
-		start_time_ = mtr_time_s();
-	}
-	~MTRScopedTraceLimit() {
-		double end_time = mtr_time_s();
-		if (end_time - start_time_ >= limit_) {
-			internal_mtr_raw_event(category_, name_, 'X', &start_time_);
-		}
-	}
+    MTRScopedTraceLimit(const char *category, const char *name, double limit_s)
+        : category_(category), name_(name), limit_(limit_s) {
+        start_time_ = mtr_time_s();
+    }
+    ~MTRScopedTraceLimit() {
+        double end_time = mtr_time_s();
+        if (end_time - start_time_ >= limit_) {
+            internal_mtr_raw_event(category_, name_, 'X', &start_time_);
+        }
+    }
 
 private:
-	const char *category_;
-	const char *name_;
-	double start_time_;
-	double limit_;
+    const char *category_;
+    const char *name_;
+    double start_time_;
+    double limit_;
 };
 
 class MTRScopedTraceArg {
 public:
-	MTRScopedTraceArg(const char *category, const char *name, mtr_arg_type arg_type, const char *arg_name, void *arg_value)
-		: category_(category), name_(name) {
-		internal_mtr_raw_event_arg(category, name, 'B', 0, arg_type, arg_name, arg_value);
-	}
-	~MTRScopedTraceArg() {
-		internal_mtr_raw_event(category_, name_, 'E', 0);
-	}
+    MTRScopedTraceArg(const char *category, const char *name, mtr_arg_type arg_type, const char *arg_name, void *arg_value)
+        : category_(category), name_(name) {
+        internal_mtr_raw_event_arg(category, name, 'B', 0, arg_type, arg_name, arg_value);
+    }
+    ~MTRScopedTraceArg() {
+        internal_mtr_raw_event(category_, name_, 'E', 0);
+    }
 
 private:
-	const char *category_;
-	const char *name_;
+    const char *category_;
+    const char *name_;
 };
 #endif
 

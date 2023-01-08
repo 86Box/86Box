@@ -10,7 +10,7 @@
 #
 # Authors: David Hrdlička, <hrdlickadavid@outlook.com>
 #
-#          Copyright 2020,2021 David Hrdlička.
+#          Copyright 2020-2021 David Hrdlička.
 #
 
 add_library(fdd OBJECT fdd.c fdc.c fdc_magitronic.c fdc_monster.c fdc_pii15xb.c

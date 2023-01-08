@@ -11,10 +11,10 @@
 #define LPT4_ADDR    0x0268
 #define LPT4_IRQ     5
 /*
-#define LPT5_ADDR		0x027c
-#define LPT5_IRQ		7
-#define LPT6_ADDR		0x026c
-#define LPT6_IRQ		5
+#define LPT5_ADDR 0x027c
+#define LPT5_IRQ  7
+#define LPT6_ADDR 0x026c
+#define LPT6_IRQ  5
 */
 
 typedef struct

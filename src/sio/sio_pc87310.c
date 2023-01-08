@@ -1,22 +1,22 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Emulation of the NatSemi PC87310 Super I/O chip.
+ *          Emulation of the NatSemi PC87310 Super I/O chip.
  *
  *
  *
- * Author:	Miran Grca, <mgrca8@gmail.com>
- *      Tiseno100
- *      EngiNerd <webmaster.crrc@yahoo.it>
+ * Authors: Miran Grca, <mgrca8@gmail.com>
+ *          Tiseno100
+ *          EngiNerd <webmaster.crrc@yahoo.it>
  *
- *		Copyright 2020 Miran Grca.
- *      Copyright 2020 Tiseno100
- *      Copyright 2021 EngiNerd.
+ *          Copyright 2020 Miran Grca.
+ *          Copyright 2020 Tiseno100
+ *          Copyright 2021 EngiNerd.
  */
 #include <stdarg.h>
 #include <stdio.h>
@@ -210,7 +210,7 @@ pc87310_reset(pc87310_t *dev)
     dev->tries = 0;
     /*
         0 = 360 rpm @ 500 kbps for 3.5"
-        1 = Default, 300 rpm @ 500,300,250,1000 kbps for 3.5"
+        1 = Default, 300 rpm @ 500, 300, 250, 1000 kbps for 3.5"
     */
     lpt1_remove();
     lpt1_handler(dev);

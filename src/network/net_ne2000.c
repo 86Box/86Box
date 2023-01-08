@@ -22,7 +22,7 @@
  *          Miran Grca, <mgrca8@gmail.com>
  *          Peter Grehan, <grehan@iprg.nokia.com>
  *
- *          Copyright 2017,2018 Fred N. van Kempen.
+ *          Copyright 2017-2018 Fred N. van Kempen.
  *          Copyright 2016-2018 Miran Grca.
  *          Portions Copyright (C) 2002  MandrakeSoft S.A.
  *

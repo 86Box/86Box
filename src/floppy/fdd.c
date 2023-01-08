@@ -10,13 +10,13 @@
  *
  *
  *
- * Authors: Sarah Walker, <tommowalker@tommowalker.co.uk>
+ * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
  *          Miran Grca, <mgrca8@gmail.com>
  *          Fred N. van Kempen, <decwiz@yahoo.com>
  *
  *          Copyright 2008-2019 Sarah Walker.
  *          Copyright 2016-2019 Miran Grca.
- *          Copyright 2018,2019 Fred N. van Kempen.
+ *          Copyright 2018-2019 Fred N. van Kempen.
  */
 #include <stdarg.h>
 #include <stdint.h>
@@ -40,17 +40,17 @@
 #include <86box/fdc.h>
 
 /* Flags:
-   Bit  0:	300 rpm supported;
-   Bit  1:	360 rpm supported;
-   Bit  2:	size (0 = 3.5", 1 = 5.25");
-   Bit  3:	sides (0 = 1, 1 = 2);
-   Bit  4:	double density supported;
-   Bit  5:	high density supported;
-   Bit  6:	extended density supported;
-   Bit  7:	double step for 40-track media;
-   Bit  8:	invert DENSEL polarity;
-   Bit  9:	ignore DENSEL;
-   Bit 10:	drive is a PS/2 drive;
+   Bit  0:  300 rpm supported;
+   Bit  1:  360 rpm supported;
+   Bit  2:  size (0 = 3.5", 1 = 5.25");
+   Bit  3:  sides (0 = 1, 1 = 2);
+   Bit  4:  double density supported;
+   Bit  5:  high density supported;
+   Bit  6:  extended density supported;
+   Bit  7:  double step for 40-track media;
+   Bit  8:  invert DENSEL polarity;
+   Bit  9:  ignore DENSEL;
+   Bit 10:  drive is a PS/2 drive;
 */
 #define FLAG_RPM_300       1
 #define FLAG_RPM_360       2
@@ -146,49 +146,49 @@ static const struct
 } drive_types[] =
 {
     {       /*None*/
-	0, 0, "None", "none"
+        0, 0, "None", "none"
     },
     {       /*5.25" 1DD*/
-	43, FLAG_RPM_300 | FLAG_525 | FLAG_HOLE0, "5.25\" 180k", "525_1dd"
+        43, FLAG_RPM_300 | FLAG_525 | FLAG_HOLE0, "5.25\" 180k", "525_1dd"
     },
     {       /*5.25" DD*/
-	43, FLAG_RPM_300 | FLAG_525 | FLAG_DS | FLAG_HOLE0, "5.25\" 360k", "525_2dd"
+        43, FLAG_RPM_300 | FLAG_525 | FLAG_DS | FLAG_HOLE0, "5.25\" 360k", "525_2dd"
     },
     {       /*5.25" QD*/
-	86, FLAG_RPM_300 | FLAG_525 | FLAG_DS | FLAG_HOLE0 | FLAG_DOUBLE_STEP, "5.25\" 720k", "525_2qd"
+        86, FLAG_RPM_300 | FLAG_525 | FLAG_DS | FLAG_HOLE0 | FLAG_DOUBLE_STEP, "5.25\" 720k", "525_2qd"
     },
     {       /*5.25" HD PS/2*/
-	86, FLAG_RPM_360 | FLAG_525 | FLAG_DS | FLAG_HOLE0 | FLAG_HOLE1 | FLAG_DOUBLE_STEP | FLAG_INVERT_DENSEL | FLAG_PS2, "5.25\" 1.2M PS/2", "525_2hd_ps2"
+        86, FLAG_RPM_360 | FLAG_525 | FLAG_DS | FLAG_HOLE0 | FLAG_HOLE1 | FLAG_DOUBLE_STEP | FLAG_INVERT_DENSEL | FLAG_PS2, "5.25\" 1.2M PS/2", "525_2hd_ps2"
     },
     {       /*5.25" HD*/
-	86, FLAG_RPM_360 | FLAG_525 | FLAG_DS | FLAG_HOLE0 | FLAG_HOLE1 | FLAG_DOUBLE_STEP, "5.25\" 1.2M", "525_2hd"
+        86, FLAG_RPM_360 | FLAG_525 | FLAG_DS | FLAG_HOLE0 | FLAG_HOLE1 | FLAG_DOUBLE_STEP, "5.25\" 1.2M", "525_2hd"
     },
     {       /*5.25" HD Dual RPM*/
-	86, FLAG_RPM_300 | FLAG_RPM_360 | FLAG_525 | FLAG_DS | FLAG_HOLE0 | FLAG_HOLE1 | FLAG_DOUBLE_STEP, "5.25\" 1.2M 300/360 RPM", "525_2hd_dualrpm"
+        86, FLAG_RPM_300 | FLAG_RPM_360 | FLAG_525 | FLAG_DS | FLAG_HOLE0 | FLAG_HOLE1 | FLAG_DOUBLE_STEP, "5.25\" 1.2M 300/360 RPM", "525_2hd_dualrpm"
     },
     {       /*3.5" 1DD*/
-	86, FLAG_RPM_300 | FLAG_HOLE0 | FLAG_DOUBLE_STEP, "3.5\" 360k", "35_1dd"
+        86, FLAG_RPM_300 | FLAG_HOLE0 | FLAG_DOUBLE_STEP, "3.5\" 360k", "35_1dd"
     },
     {       /*3.5" DD*/
-	86, FLAG_RPM_300 | FLAG_DS | FLAG_HOLE0 | FLAG_DOUBLE_STEP, "3.5\" 720k", "35_2dd"
+        86, FLAG_RPM_300 | FLAG_DS | FLAG_HOLE0 | FLAG_DOUBLE_STEP, "3.5\" 720k", "35_2dd"
     },
     {       /*3.5" HD PS/2*/
-	86, FLAG_RPM_300 | FLAG_DS | FLAG_HOLE0 | FLAG_HOLE1 | FLAG_DOUBLE_STEP | FLAG_INVERT_DENSEL | FLAG_PS2, "3.5\" 1.44M PS/2", "35_2hd_ps2"
+        86, FLAG_RPM_300 | FLAG_DS | FLAG_HOLE0 | FLAG_HOLE1 | FLAG_DOUBLE_STEP | FLAG_INVERT_DENSEL | FLAG_PS2, "3.5\" 1.44M PS/2", "35_2hd_ps2"
     },
     {       /*3.5" HD*/
-	86, FLAG_RPM_300 | FLAG_DS | FLAG_HOLE0 | FLAG_HOLE1 | FLAG_DOUBLE_STEP, "3.5\" 1.44M", "35_2hd"
+        86, FLAG_RPM_300 | FLAG_DS | FLAG_HOLE0 | FLAG_HOLE1 | FLAG_DOUBLE_STEP, "3.5\" 1.44M", "35_2hd"
     },
     {       /*3.5" HD PC-98*/
-	86, FLAG_RPM_300 | FLAG_RPM_360 | FLAG_DS | FLAG_HOLE0 | FLAG_HOLE1 | FLAG_DOUBLE_STEP | FLAG_INVERT_DENSEL, "3.5\" 1.25M PC-98", "35_2hd_nec"
+        86, FLAG_RPM_300 | FLAG_RPM_360 | FLAG_DS | FLAG_HOLE0 | FLAG_HOLE1 | FLAG_DOUBLE_STEP | FLAG_INVERT_DENSEL, "3.5\" 1.25M PC-98", "35_2hd_nec"
     },
     {       /*3.5" HD 3-Mode*/
-	86, FLAG_RPM_300 | FLAG_RPM_360 | FLAG_DS | FLAG_HOLE0 | FLAG_HOLE1 | FLAG_DOUBLE_STEP, "3.5\" 1.44M 300/360 RPM", "35_2hd_3mode"
+        86, FLAG_RPM_300 | FLAG_RPM_360 | FLAG_DS | FLAG_HOLE0 | FLAG_HOLE1 | FLAG_DOUBLE_STEP, "3.5\" 1.44M 300/360 RPM", "35_2hd_3mode"
     },
     {       /*3.5" ED*/
-	86, FLAG_RPM_300 | FLAG_DS | FLAG_HOLE0 | FLAG_HOLE1 | FLAG_HOLE2 | FLAG_DOUBLE_STEP, "3.5\" 2.88M", "35_2ed"
+        86, FLAG_RPM_300 | FLAG_DS | FLAG_HOLE0 | FLAG_HOLE1 | FLAG_HOLE2 | FLAG_DOUBLE_STEP, "3.5\" 2.88M", "35_2ed"
     },
     {       /*End of list*/
-	-1, -1, "", ""
+        -1, -1, "", ""
     }
 };
 

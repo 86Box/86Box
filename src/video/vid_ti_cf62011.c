@@ -1,56 +1,56 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Emulation of the TI CF62011 SVGA chip.
+ *          Emulation of the TI CF62011 SVGA chip.
  *
- *		This chip was used in several of IBM's later machines, such
- *		as the PS/1 Model 2121, and a number of PS/2 models. As noted
- *		in an article on Usenet:
+ *          This chip was used in several of IBM's later machines, such
+ *          as the PS/1 Model 2121, and a number of PS/2 models. As noted
+ *          in an article on Usenet:
  *
- *		"In the early 90s IBM looked for some cheap VGA card to
- *		 substitute the (relatively) expensive XGA-2 adapter for
- *		 *servers*, where the primary purpose is supervision of the
- *		 machine rather than real *work* with it in Hi-Res. It was
- *		 just to supply a base video, where a XGA-2 were a waste of
- *		 potential. They had a contract with TI for some DSPs in
- *		 multimedia already (the MWave for instance is based on
- *		 TI-DSPs as well as many Thinkpad internal chipsets) and TI
- *		 offered them a rather cheap – and inexpensive – chipset
- *		 and combined it with a cheap clock oscillator and an Inmos
- *		 RAMDAC. That chipset was already pretty much outdated at
- *		 that time but IBM decided it would suffice for that low
- *		 end purpose.
+ *            "In the early 90s IBM looked for some cheap VGA card to
+ *            substitute the (relatively) expensive XGA-2 adapter for
+ *            *servers*, where the primary purpose is supervision of the
+ *            machine rather than real *work* with it in Hi-Res. It was
+ *            just to supply a base video, where a XGA-2 were a waste of
+ *            potential. They had a contract with TI for some DSPs in
+ *            multimedia already (the MWave for instance is based on
+ *            TI-DSPs as well as many Thinkpad internal chipsets) and TI
+ *            offered them a rather cheap – and inexpensive – chipset
+ *            and combined it with a cheap clock oscillator and an Inmos
+ *            RAMDAC. That chipset was already pretty much outdated at
+ *            that time but IBM decided it would suffice for that low
+ *            end purpose.
  *
- *		 Driver support was given under DOS and OS/2 only for base
- *		 functions like selection of the vertical refresh and few
- *		 different modes only. Not even the Win 3.x support has
- *		 been finalized. Technically the adapter could do better
- *		 than VGA, but its video BIOS is largely undocumented and
- *		 intentionally crippled down to a few functions."
+ *            Driver support was given under DOS and OS/2 only for base
+ *            functions like selection of the vertical refresh and few
+ *            different modes only. Not even the Win 3.x support has
+ *            been finalized. Technically the adapter could do better
+ *            than VGA, but its video BIOS is largely undocumented and
+ *            intentionally crippled down to a few functions."
  *
- *		This chip is reportedly the same one as used in the MCA
- *		IBM SVGA Adapter/A (ID 090EEh), which mostly had faster
- *		VRAM and RAMDAC. The VESA DOS graphics driver for that
- *		card can be used: m95svga.exe
+ *          This chip is reportedly the same one as used in the MCA
+ *          IBM SVGA Adapter/A (ID 090EEh), which mostly had faster
+ *          VRAM and RAMDAC. The VESA DOS graphics driver for that
+ *          card can be used: m95svga.exe
  *
- *		The controller responds at ports in the range 0x2100-0x210F,
- *		which are the same as the XGA. It supports up to 1MB of VRAM,
- *		but we lock it down to 512K. The PS/1 2122 had 256K.
+ *          The controller responds at ports in the range 0x2100-0x210F,
+ *          which are the same as the XGA. It supports up to 1MB of VRAM,
+ *          but we lock it down to 512K. The PS/1 2122 had 256K.
  *
  *
  *
- * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
- *		Miran Grca, <mgrca8@gmail.com>
- *		Fred N. van Kempen, <decwiz@yahoo.com>
+ * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
+ *          Miran Grca, <mgrca8@gmail.com>
+ *          Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 2008-2018 Sarah Walker.
- *		Copyright 2016-2018 Miran Grca.
- *		Copyright 2017,2018 Fred N. van Kempen.
+ *          Copyright 2008-2018 Sarah Walker.
+ *          Copyright 2016-2018 Miran Grca.
+ *          Copyright 2017-2018 Fred N. van Kempen.
  */
 #include <stdio.h>
 #include <stdint.h>

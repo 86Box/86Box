@@ -1152,7 +1152,7 @@ BuslogicPCIRead(int func, int addr, void *p)
         case 0x13:
             return buslogic_pci_bar[0].addr_regs[3];
         case 0x14:
-            // return (buslogic_pci_bar[1].addr_regs[0] & 0xe0);	/*Memory space*/
+            // return (buslogic_pci_bar[1].addr_regs[0] & 0xe0); /*Memory space*/
             return 0x00;
         case 0x15:
             return buslogic_pci_bar[1].addr_regs[1] & 0xc0;

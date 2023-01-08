@@ -16,7 +16,7 @@
  *          TheCollector1995,
  *
  *          Copyright 2016-2020 Miran Grca.
- *          Copyright 2020 tonioni.
+ *          Copyright 2020      tonioni.
  *          Copyright 2016-2020 TheCollector1995.
  */
 #include <stdio.h>
