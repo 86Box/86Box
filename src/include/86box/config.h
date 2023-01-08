@@ -16,7 +16,7 @@
  *          Overdoze,
  *
  *          Copyright 2008-2017 Sarah Walker.
- *          Copyright 2016,2017 Miran Grca.
+ *          Copyright 2016-2017 Miran Grca.
  *          Copyright 2017 Fred N. van Kempen.
  */
 #ifndef EMU_CONFIG_H

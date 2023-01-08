@@ -1312,14 +1312,14 @@ x54x_in(uint16_t port, void *priv)
 
         case 3:
             /* Bits according to ASPI4DOS.SYS v3.36:
-                    0		Not checked
-                    1		Must be 0
-                    2		Must be 0-0-0-1
-                    3		Must be 0
-                    4		Must be 0-1-0-0
-                    5		Must be 0
-                    6		Not checked
-                    7		Not checked
+                    0       Not checked
+                    1       Must be 0
+                    2       Must be 0-0-0-1
+                    3       Must be 0
+                    4       Must be 0-1-0-0
+                    5       Must be 0
+                    6       Not checked
+                    7       Not checked
             */
             if (dev->flags & X54X_INT_GEOM_WRITABLE)
                 ret = dev->Geometry;

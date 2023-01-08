@@ -9,6 +9,7 @@
  *          Implement the application's icon changing system.
  *
  *
+ *
  * Authors: Laci bá'
  *
  *          Copyright 2021 Laci bá'.

@@ -1,28 +1,30 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Implementation of the Chips & Technologies F82C710 Universal Peripheral
- *		Controller (UPC) and 82C606 CHIPSpak Multifunction Controller.
+ *          Implementation of the Chips & Technologies F82C710 Universal Peripheral
+ *          Controller (UPC) and 82C606 CHIPSpak Multifunction Controller.
  *
- *		Relevant literature:
+ * Relevant literature:
  *
- *		[1] Chips and Technologies, Inc.,
- *		    82C605/82C606 CHIPSpak/CHIPSport MULTIFUNCTION CONTROLLERS,
- *		    PRELIMINARY Data Sheet, Revision 1, May 1987.
- *		    <https://archive.org/download/82C606/82C606.pdf>
+ *          [1] Chips and Technologies, Inc.,
+ *              82C605/82C606 CHIPSpak/CHIPSport MULTIFUNCTION CONTROLLERS,
+ *              PRELIMINARY Data Sheet, Revision 1, May 1987.
+ *              <https://archive.org/download/82C606/82C606.pdf>
  *
- * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
- *		Eluan Costa Miranda <eluancm@gmail.com>
- *		Lubomir Rintel <lkundrak@v3.sk>
  *
- *		Copyright 2020 Sarah Walker.
- *		Copyright 2020 Eluan Costa Miranda.
- *		Copyright 2021 Lubomir Rintel.
+ *
+ * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
+ *          Eluan Costa Miranda <eluancm@gmail.com>
+ *          Lubomir Rintel <lkundrak@v3.sk>
+ *
+ *          Copyright 2020 Sarah Walker.
+ *          Copyright 2020 Eluan Costa Miranda.
+ *          Copyright 2021 Lubomir Rintel.
  */
 #include <stdio.h>
 #include <stdint.h>

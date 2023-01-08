@@ -10,7 +10,7 @@
 #
 # Authors:  David Hrdlička, <hrdlickadavid@outlook.com>
 #
-#           Copyright 2020,2021 David Hrdlička.
+#           Copyright 2020-2021 David Hrdlička.
 #
 
 add_library(slirp STATIC arp_table.c bootp.c cksum.c dnssearch.c if.c
