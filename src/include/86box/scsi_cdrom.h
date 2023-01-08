@@ -49,6 +49,10 @@ typedef struct {
         packet_len, pos;
 
     double callback;
+
+    mode_sense_pages_t ms_pages_saved_sony;
+    mode_sense_pages_t ms_drive_status_pages_saved;
+    int sony_vendor;
 } scsi_cdrom_t;
 #endif
 
