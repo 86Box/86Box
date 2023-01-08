@@ -80,6 +80,7 @@
 #include <86box/scsi.h>
 #include <86box/scsi_device.h>
 #include <86box/cdrom.h>
+#include <86box/cdrom_interface.h>
 #include <86box/zip.h>
 #include <86box/mo.h>
 #include <86box/scsi_disk.h>
@@ -1068,6 +1069,10 @@ pc_reset_hard_init(void)
 
     /* Reset the Hard Disk Controller module. */
     hdc_reset();
+
+    /* Reset the CD-ROM Controller module. */
+    cdrom_interface_reset();
+
     /* Reset and reconfigure the SCSI layer. */
     scsi_card_init();
 
