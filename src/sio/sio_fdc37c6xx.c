@@ -216,7 +216,7 @@ static uint8_t
 fdc37c6xx_read(uint16_t port, void *priv)
 {
     fdc37c6xx_t *dev = (fdc37c6xx_t *) priv;
-    uint8_t      ret = 0x00;
+    uint8_t      ret = 0xff;
 
     if (dev->tries == 2) {
         if (port == 0x3f1)
@@ -428,6 +428,20 @@ const device_t fdc37c665_ide_device = {
     .internal_name = "fdc37c665_ide",
     .flags         = 0,
     .local         = 0x265,
+    .init          = fdc37c6xx_init,
+    .close         = fdc37c6xx_close,
+    .reset         = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t fdc37c665_ide_pri_device = {
+    .name          = "SMC FDC37C665 Super I/O (With Primary IDE)",
+    .internal_name = "fdc37c665_ide_pri",
+    .flags         = 0,
+    .local         = 0x165,
     .init          = fdc37c6xx_init,
     .close         = fdc37c6xx_close,
     .reset         = NULL,
