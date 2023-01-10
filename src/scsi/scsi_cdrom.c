@@ -858,11 +858,10 @@ scsi_cdrom_update_request_length(scsi_cdrom_t *dev, int len, int block_len)
                    that a media access comand does not DRQ in the middle of a sector. One of the drivers that
                    relies on the correctness of this behavior is MTMCDAI.SYS (the Mitsumi CD-ROM driver) for DOS
                    which uses the READ CD command to read data on some CD types. */
-                if ((dev->current_cdb[0] == 0xb9) || (dev->current_cdb[0] == 0xbe)) {
-                    /* Round to sector length. */
-                    dlen                  = ((double) dev->max_transfer_len) / ((double) block_len);
-                    dev->max_transfer_len = ((uint16_t) floor(dlen)) * block_len;
-                }
+
+                /* Round to sector length. */
+                dlen                  = ((double) dev->max_transfer_len) / ((double) block_len);
+                dev->max_transfer_len = ((uint16_t) floor(dlen)) * block_len;
             } else {
                 /* Round it to the nearest 2048 bytes. */
                 dev->max_transfer_len = (dev->max_transfer_len >> 11) << 11;
@@ -929,7 +928,7 @@ scsi_cdrom_bus_speed(scsi_cdrom_t *dev)
 static void
 scsi_cdrom_command_common(scsi_cdrom_t *dev)
 {
-    double bytes_per_second, period;
+    double bytes_per_second = 0.0, period;
 
     dev->status   = BUSY_STAT;
     dev->phase    = 1;
