@@ -1618,6 +1618,9 @@ cdrom_readsector_raw(cdrom_t *dev, uint8_t *buffer, int sector, int ismsf, int c
                 lba = bcd2bin((sector >> 24) & 0xff);
                 msf = sector;
                 break;
+            /* Never used values but the compiler complains. */
+            default:
+                lba = msf = 0;
         }
     }
 
