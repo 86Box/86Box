@@ -2640,7 +2640,8 @@ begin:
                     break;
                 }
 
-                ret = cdrom_audio_play(dev->drv, pos, len, msf);
+                /* In this case, len is unused so just pass a fixed value of 1 intead. */
+                ret = cdrom_audio_play(dev->drv, pos, 1 /*len*/, msf);
 
                 if (ret)
                     scsi_cdrom_command_complete(dev);
