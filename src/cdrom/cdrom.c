@@ -797,7 +797,7 @@ void
 cdrom_get_current_subchannel_sony(cdrom_t *dev, uint8_t *b, int msf)
 {
     subchannel_t subc;
-    int          pos = 0, m, s, f;
+    int          pos = 0;
     uint32_t     dat;
 
     dev->ops->get_subchannel(dev, dev->seek_pos, &subc);
@@ -833,7 +833,6 @@ cdrom_get_audio_status_sony(cdrom_t *dev, uint8_t *b, int msf)
 {
     uint8_t      ret;
     subchannel_t subc;
-    int          m, s, f;
     uint32_t     dat;
 
     dev->ops->get_subchannel(dev, dev->seek_pos, &subc);
@@ -1063,7 +1062,6 @@ read_toc_sony(cdrom_t *dev, unsigned char *b, unsigned char start_track, int msf
 {
     track_info_t ti;
     int          i, len = 4;
-    int          m, s, f;
     int          first_track, last_track;
     uint32_t     temp;
 
@@ -1620,6 +1618,9 @@ cdrom_readsector_raw(cdrom_t *dev, uint8_t *buffer, int sector, int ismsf, int c
                 lba = bcd2bin((sector >> 24) & 0xff);
                 msf = sector;
                 break;
+            /* Never used values but the compiler complains. */
+            default:
+                lba = msf = 0;
         }
     }
 

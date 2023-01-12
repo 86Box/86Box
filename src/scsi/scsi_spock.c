@@ -516,7 +516,7 @@ spock_process_imm_cmd(spock_t *scsi)
 static void
 spock_execute_cmd(spock_t *scsi, scb_t *scb)
 {
-    int c, j;
+    int c, j = 0;
     int old_scb_state;
 
     if (scsi->in_reset) {
