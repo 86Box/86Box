@@ -1719,3 +1719,94 @@ machine_at_spc7700plw_init(const machine_t *model)
 
     return ret;
 }
+
+int
+machine_at_ms4134_init(const machine_t *model)
+{
+    int ret;
+
+       ret = bios_load_linear("roms/machines/ms4134/4alm001.bin",
+                           0x000e0000, 131072, 0);
+
+    if (bios_only || !ret)
+    return ret;
+
+    machine_at_common_ide_init(model);
+
+    device_add(&ali1429g_device);
+
+    device_add(&fdc37c665_ide_pri_device);
+
+    pci_init(PCI_CAN_SWITCH_TYPE | PCI_ALWAYS_EXPOSE_DEV0);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
+
+    pci_register_slot(0x0B, PCI_CARD_SCSI, 4, 1, 2, 3);
+    pci_register_slot(0x08, PCI_CARD_NORMAL, 1, 2, 3, 4);
+    pci_register_slot(0x09, PCI_CARD_NORMAL, 2, 3, 4, 1);
+    pci_register_slot(0x0A, PCI_CARD_NORMAL, 3, 4, 1, 2);
+    pci_register_slot(0x10, PCI_CARD_NORMAL, 1, 2, 3, 4);
+
+    device_add(&ali1435_device);
+    device_add(&sst_flash_29ee010_device);
+
+    device_add(&keyboard_ps2_ami_device);
+
+    return ret;
+}
+
+int
+machine_at_tg486gp_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/tg486gp/tg486gp.bin",
+               0x000e0000, 131072, 0);
+
+    if (bios_only || !ret)
+    return ret;
+
+    machine_at_common_ide_init(model);
+
+    device_add(&ali1429g_device);
+
+    device_add(&fdc37c665_ide_pri_device);
+
+    pci_init(PCI_CAN_SWITCH_TYPE | PCI_ALWAYS_EXPOSE_DEV0);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
+
+    pci_register_slot(0x0F, PCI_CARD_NORMAL, 1, 2, 3, 4);
+    pci_register_slot(0x0D, PCI_CARD_NORMAL, 2, 3, 4, 1);
+    pci_register_slot(0x0B, PCI_CARD_NORMAL, 3, 4, 1, 2);
+    pci_register_slot(0x10, PCI_CARD_NORMAL, 1, 2, 3, 4);
+
+    device_add(&ali1435_device);
+    device_add(&sst_flash_29ee010_device);
+
+    device_add(&keyboard_ps2_ami_device);
+
+    return ret;
+}
+
+int
+machine_at_tg486g_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/tg486g/tg486g.bin",
+               0x000c0000, 262144, 0);
+
+    if (bios_only || !ret)
+    return ret;
+    else {
+        mem_mapping_set_addr(&bios_mapping, 0x0c0000, 0x40000);
+        mem_mapping_set_exec(&bios_mapping, rom);
+    }
+
+    machine_at_common_init(model);
+    device_add(&sis_85c471_device);
+    device_add(&ide_isa_device);
+    device_add(&fdc37c651_ide_device);
+    device_add(&keyboard_ps2_intel_ami_pci_device);
+
+    return ret;
+}
