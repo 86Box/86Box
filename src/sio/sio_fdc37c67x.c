@@ -1,17 +1,18 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Implementation of the SMC FDC37C67X Super I/O Chip.
+ *          Implementation of the SMC FDC37C67X Super I/O Chip.
  *
  *
  *
- * Author:	Miran Grca, <mgrca8@gmail.com>
- *		Copyright 2016-2018 Miran Grca.
+ * Authors: Miran Grca, <mgrca8@gmail.com>
+ *
+ *          Copyright 2016-2018 Miran Grca.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -171,13 +172,13 @@ fdc37c67x_sio_handler(fdc37c67x_t *dev)
 {
 #if 0
     if (dev->sio_base) {
-	io_removehandler(dev->sio_base, 0x0002,
-			 fdc37c67x_read, NULL, NULL, fdc37c67x_write, NULL, NULL, dev);
+        io_removehandler(dev->sio_base, 0x0002,
+             fdc37c67x_read, NULL, NULL, fdc37c67x_write, NULL, NULL, dev);
     }
     dev->sio_base = (((uint16_t) dev->regs[0x27]) << 8) | dev->regs[0x26];
     if (dev->sio_base) {
-	io_sethandler(dev->sio_base, 0x0002,
-		      fdc37c67x_read, NULL, NULL, fdc37c67x_write, NULL, NULL, dev);
+        io_sethandler(dev->sio_base, 0x0002,
+             fdc37c67x_read, NULL, NULL, fdc37c67x_write, NULL, NULL, dev);
     }
 #endif
 }

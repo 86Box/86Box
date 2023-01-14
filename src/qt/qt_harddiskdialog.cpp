@@ -1,20 +1,20 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Hard disk dialog code.
+ *          Hard disk dialog code.
  *
  *
  *
- * Authors:	Joakim L. Gilje <jgilje@jgilje.net>
+ * Authors: Joakim L. Gilje <jgilje@jgilje.net>
  *          Cacodemon345
  *
- *		Copyright 2021 Joakim L. Gilje
- *      Copyright 2022 Cacodemon345
+ *          Copyright 2021 Joakim L. Gilje
+ *          Copyright 2022 Cacodemon345
  */
 #include "qt_harddiskdialog.hpp"
 #include "ui_qt_harddiskdialog.h"
@@ -703,13 +703,13 @@ HarddiskDialog::on_comboBoxBus_currentIndexChanged(int index)
             max_cylinders = 266305;
             break;
         case HDD_BUS_IDE:
-            max_sectors   = 63;
+            max_sectors   = 255;
             max_heads     = 255;
             max_cylinders = 266305;
             break;
         case HDD_BUS_ATAPI:
         case HDD_BUS_SCSI:
-            max_sectors   = 99;
+            max_sectors   = 255;
             max_heads     = 255;
             max_cylinders = 266305;
             break;

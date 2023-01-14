@@ -11,7 +11,7 @@
  *
  *
  *
- * Authors: Sarah Walker, <tommowalker@tommowalker.co.uk>
+ * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
  *          Miran Grca, <mgrca8@gmail.com>
  *
  *          Copyright 2008-2020 Sarah Walker.
@@ -135,6 +135,7 @@ static fdc_cards_t fdc_cards[] = {
     { &fdc_b215_device     },
     { &fdc_pii151b_device  },
     { &fdc_pii158b_device  },
+    { &fdc_monster_device  },
     { NULL                 }
     // clang-format on
 };
@@ -636,7 +637,7 @@ fdc_io_command_phase1(fdc_t *fdc, int out)
     pclog_toggle_suppr();
     pclog("%02X ", fdc->processed_cmd);
     for (i = 0; i < fdc->pnum; i++)
-	pclog("%02X ", fdc->params[i]);
+        pclog("%02X ", fdc->params[i]);
     pclog("\n");
     pclog_toggle_suppr();
 #endif
@@ -1328,9 +1329,9 @@ fdc_read(uint16_t addr, void *priv)
                  * fdc_t on one of the motherboard's support chips.
                  *
                  * Confirmed: 00=1.44M 3.5
-                 *	      10=2.88M 3.5
-                 *	      20=1.2M 5.25
-                 *	      30=1.2M 5.25
+                 *        10=2.88M 3.5
+                 *        20=1.2M 5.25
+                 *        30=1.2M 5.25
                  *
                  * as reported by Configur.exe.
                  */
@@ -2276,6 +2277,9 @@ fdc_reset(void *priv)
     if (fdc->flags & FDC_FLAG_PCJR) {
         fdc->dma        = 0;
         fdc->specify[1] = 1;
+    } else if (fdc->flags & FDC_FLAG_SEC) {
+        fdc->dma        = 1;
+        fdc->specify[1] = 0;
     } else {
         fdc->dma        = 1;
         fdc->specify[1] = 0;

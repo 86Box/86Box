@@ -12,7 +12,7 @@
  *
  * Authors: Fred N. van Kempen, <decwiz@yahoo.com>
  *          Miran Grca, <mgrca8@gmail.com>
- *          Sarah Walker, <tommowalker@tommowalker.co.uk>
+ *          Sarah Walker, <https://pcem-emulator.co.uk/>
  *
  *          Copyright 2017-2019 Fred N. van Kempen.
  *          Copyright 2016-2019 Miran Grca.
@@ -1405,7 +1405,7 @@ machine_ps2_model_55sx_init(const machine_t *model)
 
     machine_ps2_common_init(model);
 
-    ps2.planar_id = 0xfffb;
+    ps2.planar_id = 0xfbff;
     ps2_mca_board_model_55sx_init(0, 4);
 
     return ret;

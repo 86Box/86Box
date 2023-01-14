@@ -44,7 +44,7 @@
  *
  *
  * Authors: Fred N. van Kempen, <decwiz@yahoo.com>
- *          Sarah Walker, <tommowalker@tommowalker.co.uk>
+ *          Sarah Walker, <https://pcem-emulator.co.uk/>
  *
  *          Copyright 2017-2019 Fred N. van Kempen.
  *          Copyright 2008-2019 Sarah Walker.
@@ -88,7 +88,8 @@
 #include <86box/hdd.h>
 
 #define ST506_XT_TYPE_XEBEC              0
-#define ST506_XT_TYPE_DTC_5150X          1
+#define ST506_XT_TYPE_WDXT_GEN           1
+#define ST506_XT_TYPE_DTC_5150X          2
 #define ST506_XT_TYPE_ST11M              11
 #define ST506_XT_TYPE_ST11R              12
 #define ST506_XT_TYPE_WD1002A_WX1        21
@@ -101,6 +102,7 @@
 #define ST506_XT_TYPE_TOSHIBA_T1200      28
 
 #define XEBEC_BIOS_FILE                  "roms/hdd/st506/ibm_xebec_62x0822_1985.bin"
+#define WDXT_GEN_BIOS_FILE               "roms/hdd/st506/wdxt-gen/62-000128-000.bin"
 #define DTC_BIOS_FILE                    "roms/hdd/st506/dtc_cxd21a.bin"
 #define ST11_BIOS_FILE_OLD               "roms/hdd/st506/st11_bios_vers_1.7.bin"
 #define ST11_BIOS_FILE_NEW               "roms/hdd/st506/st11_bios_vers_2.0.bin"
@@ -178,28 +180,28 @@
 #define ERR_CRC_FAIL 0x32 /* CRC circuit failed test */
 
 /* Controller commands. */
-#define CMD_TEST_DRIVE_READY 0x00
-#define CMD_RECALIBRATE      0x01
-/* reserved			0x02 */
-#define CMD_STATUS             0x03
-#define CMD_FORMAT_DRIVE       0x04
-#define CMD_VERIFY             0x05
-#define CMD_FORMAT_TRACK       0x06
-#define CMD_FORMAT_BAD_TRACK   0x07
-#define CMD_READ               0x08
-#define CMD_REASSIGN           0x09
-#define CMD_WRITE              0x0a
-#define CMD_SEEK               0x0b
-#define CMD_SPECIFY            0x0c
-#define CMD_READ_ECC_BURST_LEN 0x0d
-#define CMD_READ_BUFFER        0x0e
-#define CMD_WRITE_BUFFER       0x0f
-#define CMD_ALT_TRACK          0x11
-#define CMD_INQUIRY_ST11       0x12 /* ST-11 BIOS */
-#define CMD_V86P_POWEROFF      0x1a /* Victor V86P */
-#define CMD_RAM_DIAGNOSTIC     0xe0
-/* reserved			0xe1 */
-/* reserved			0xe2 */
+#define CMD_TEST_DRIVE_READY     0x00
+#define CMD_RECALIBRATE          0x01
+/* reserved                      0x02 */
+#define CMD_STATUS               0x03
+#define CMD_FORMAT_DRIVE         0x04
+#define CMD_VERIFY               0x05
+#define CMD_FORMAT_TRACK         0x06
+#define CMD_FORMAT_BAD_TRACK     0x07
+#define CMD_READ                 0x08
+#define CMD_REASSIGN             0x09
+#define CMD_WRITE                0x0a
+#define CMD_SEEK                 0x0b
+#define CMD_SPECIFY              0x0c
+#define CMD_READ_ECC_BURST_LEN   0x0d
+#define CMD_READ_BUFFER          0x0e
+#define CMD_WRITE_BUFFER         0x0f
+#define CMD_ALT_TRACK            0x11
+#define CMD_INQUIRY_ST11         0x12 /* ST-11 BIOS */
+#define CMD_V86P_POWEROFF        0x1a /* Victor V86P */
+#define CMD_RAM_DIAGNOSTIC       0xe0
+/* reserved                      0xe1 */
+/* reserved                      0xe2 */
 #define CMD_DRIVE_DIAGNOSTIC     0xe3
 #define CMD_CTRLR_DIAGNOSTIC     0xe4
 #define CMD_READ_LONG            0xe5
@@ -293,19 +295,19 @@ typedef struct {
 
 hd_type_t hd_types[4] = {
   // clang-format off
-    { 306,  4, MFM_SECTORS}, /* type 0	*/
-    { 612,  4, MFM_SECTORS}, /* type 16	*/
-    { 615,  4, MFM_SECTORS}, /* type 2	*/
-    { 306,  8, MFM_SECTORS}  /* type 13	*/
+    { 306,  4, MFM_SECTORS}, /* type 0  */
+    { 612,  4, MFM_SECTORS}, /* type 16 */
+    { 615,  4, MFM_SECTORS}, /* type 2  */
+    { 306,  8, MFM_SECTORS}  /* type 13 */
   // clang-format on
 };
 
 hd_type_t hd_types_olivetti[16] = {
   // clang-format off
     { 697,  5, MFM_SECTORS},
-    { 612,  4, MFM_SECTORS}, /* type 16	*/
-    { 612,  4, MFM_SECTORS}, /* type 16	*/
-    { 306,  4, MFM_SECTORS}, /* type 0	*/
+    { 612,  4, MFM_SECTORS}, /* type 16 */
+    { 612,  4, MFM_SECTORS}, /* type 16 */
+    { 306,  4, MFM_SECTORS}, /* type 0  */
     { 612,  8, MFM_SECTORS},
     { 820,  6, MFM_SECTORS},
     { 820,  6, MFM_SECTORS},
@@ -315,8 +317,8 @@ hd_type_t hd_types_olivetti[16] = {
     {1024,  8, MFM_SECTORS},
     {1024,  9, MFM_SECTORS},
     { 872,  5, MFM_SECTORS},
-    { 612,  4, MFM_SECTORS}, /* type 16	*/
-    { 612,  4, MFM_SECTORS}, /* type 16	*/
+    { 612,  4, MFM_SECTORS}, /* type 16 */
+    { 612,  4, MFM_SECTORS}, /* type 16 */
     { 306,  4, MFM_SECTORS}  /* "not present" with the second hard disk */
   // clang-format on
 };
@@ -373,10 +375,10 @@ get_sector(hdc_t *dev, drive_t *drive, off64_t *addr)
 #if 0
     if (drive->cylinder != dev->cylinder) {
 #    ifdef ENABLE_ST506_XT_LOG
-	st506_xt_log("ST506: get_sector: wrong cylinder\n");
+        st506_xt_log("ST506: get_sector: wrong cylinder\n");
 #    endif
-	dev->error = ERR_ILLEGAL_ADDR;
-	return(0);
+        dev->error = ERR_ILLEGAL_ADDR;
+        return(0);
     }
 #endif
 
@@ -651,7 +653,7 @@ st506_callback(void *priv)
             }
         case CMD_READ:
 #if 0
-	case CMD_READ_LONG:
+        case CMD_READ_LONG:
 #endif
             switch (dev->state) {
                 case STATE_START_COMMAND:
@@ -747,7 +749,7 @@ st506_callback(void *priv)
             }
         case CMD_WRITE:
 #if 0
-	case CMD_WRITE_LONG:
+        case CMD_WRITE_LONG:
 #endif
             switch (dev->state) {
                 case STATE_START_COMMAND:
@@ -1335,6 +1337,15 @@ mem_read(uint32_t addr, void *priv)
             }
             break;
 
+        case ST506_XT_TYPE_WDXT_GEN: /* WDXT-GEN */
+            if (addr >= 0x002000) {
+#ifdef ENABLE_ST506_XT_LOG
+                st506_xt_log("ST506: WDXT-GEN ROM access(0x%06lx)\n", addr);
+#endif
+                return 0xff;
+            }
+            break;
+
         case ST506_XT_TYPE_DTC_5150X: /* DTC */
         default:
             if (addr >= 0x002000) {
@@ -1517,6 +1528,10 @@ st506_init(const device_t *info)
     switch (dev->type) {
         case ST506_XT_TYPE_XEBEC: /* Xebec (MFM) */
             fn = XEBEC_BIOS_FILE;
+            break;
+
+        case ST506_XT_TYPE_WDXT_GEN: /* WDXT-GEN (MFM) */
+            fn = WDXT_GEN_BIOS_FILE;
             break;
 
         case ST506_XT_TYPE_DTC_5150X: /* DTC5150 (MFM) */
@@ -2115,6 +2130,20 @@ const device_t st506_xt_xebec_device = {
     .internal_name = "st506_xt",
     .flags         = DEVICE_ISA,
     .local         = (HDD_BUS_MFM << 8) | ST506_XT_TYPE_XEBEC,
+    .init          = st506_init,
+    .close         = st506_close,
+    .reset         = NULL,
+    { .available = xebec_available },
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t st506_xt_wdxt_gen_device = {
+    .name          = "Western Digital WDXT-GEN (MFM)",
+    .internal_name = "st506_xt",
+    .flags         = DEVICE_ISA,
+    .local         = (HDD_BUS_MFM << 8) | ST506_XT_TYPE_WDXT_GEN,
     .init          = st506_init,
     .close         = st506_close,
     .reset         = NULL,

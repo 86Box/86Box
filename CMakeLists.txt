@@ -10,7 +10,7 @@
 #
 # Authors:  David Hrdlička, <hrdlickadavid@outlook.com>
 #
-#           Copyright 2020,2021 David Hrdlička.
+#           Copyright 2020-2021 David Hrdlička.
 #
 
 cmake_minimum_required(VERSION 3.16)
@@ -20,7 +20,6 @@ cmake_policy(SET CMP0079 NEW)
 
 if(HAIKU)
     set(OPENAL ON)
-    set(RTMIDI OFF)
 endif()
 
 if(NOT DEFINED QT OR QT)

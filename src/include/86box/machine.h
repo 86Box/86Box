@@ -10,7 +10,7 @@
  *
  *
  *
- * Authors: Sarah Walker, <http://pcem-emulator.co.uk/>
+ * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
  *          Miran Grca, <mgrca8@gmail.com>
  *          Fred N. van Kempen, <decwiz@yahoo.com>
  *
@@ -513,6 +513,9 @@ extern int machine_at_atc1415_init(const machine_t *);
 extern int machine_at_actionpc2600_init(const machine_t *);
 extern int machine_at_m919_init(const machine_t *);
 extern int machine_at_spc7700plw_init(const machine_t *);
+extern int machine_at_ms4134_init(const machine_t *);
+extern int machine_at_tg486gp_init(const machine_t *);
+extern int machine_at_tg486g_init(const machine_t *);
 
 /* m_at_commodore.c */
 extern int machine_at_cmdpc_init(const machine_t *);
@@ -681,6 +684,7 @@ extern int machine_at_p6sba_init(const machine_t *);
 extern int machine_at_ficka6130_init(const machine_t *);
 extern int machine_at_p3v133_init(const machine_t *);
 extern int machine_at_p3v4x_init(const machine_t *);
+extern int machine_at_gt694va_init(const machine_t *);
 
 extern int machine_at_vei8_init(const machine_t *);
 
@@ -702,7 +706,6 @@ extern int machine_at_awo671r_init(const machine_t *);
 extern int machine_at_63a1_init(const machine_t *);
 extern int machine_at_s370sba_init(const machine_t *);
 extern int machine_at_apas3_init(const machine_t *);
-extern int machine_at_gt694va_init(const machine_t *);
 extern int machine_at_cuv4xls_init(const machine_t *);
 extern int machine_at_6via90ap_init(const machine_t *);
 extern int machine_at_s1857_init(const machine_t *);

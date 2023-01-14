@@ -13,7 +13,7 @@
  *
  * Authors: Fred N. van Kempen, <decwiz@yahoo.com>
  *          Miran Grca, <mgrca8@gmail.com>
- *          Sarah Walker, <tommowalker@tommowalker.co.uk>
+ *          Sarah Walker, <https://pcem-emulator.co.uk/>
  *
  *          Copyright 2017-2019 Fred N. van Kempen.
  *          Copyright 2016-2019 Miran Grca.
@@ -345,6 +345,39 @@ device_available(const device_t *d)
 
     /* A NULL device is never available. */
     return (0);
+}
+
+const char *
+device_get_bios_file(const device_t *d, const char *internal_name, int file_no)
+{
+    device_config_t      *config = NULL;
+    device_config_bios_t *bios   = NULL;
+
+    if (d != NULL) {
+        config = (device_config_t *) d->config;
+        if (config != NULL) {
+            while (config->type != -1) {
+                if (config->type == CONFIG_BIOS) {
+                    bios = (device_config_bios_t *) config->bios;
+
+                    /* Go through the ROM's in the device configuration. */
+                    while (bios->files_no != 0) {
+                        if (!strcmp(internal_name, bios->internal_name)) {
+                            if (file_no < bios->files_no)
+                                return bios->files[file_no];
+                            else
+                                return NULL;
+                        }
+                        bios++;
+                    }
+                }
+                config++;
+            }
+        }
+    }
+
+    /* A NULL device is never available. */
+    return (NULL);
 }
 
 int

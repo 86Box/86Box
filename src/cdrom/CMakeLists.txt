@@ -10,7 +10,7 @@
 #
 # Authors: David Hrdlička, <hrdlickadavid@outlook.com>
 #
-#          Copyright 2020,2021 David Hrdlička.
+#          Copyright 2020-2021 David Hrdlička.
 #
 
 add_library(cdrom OBJECT cdrom.c cdrom_image_backend.c cdrom_image_viso.c cdrom_image.c cdrom_mitsumi.c)

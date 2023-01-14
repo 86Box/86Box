@@ -1,20 +1,20 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Definitions for the mouse driver.
+ *          Definitions for the mouse driver.
  *
  *
  *
- * Authors:	Miran Grca, <mgrca8@gmail.com>
- *		Fred N. van Kempen, <decwiz@yahoo.com>
+ * Authors: Miran Grca, <mgrca8@gmail.com>
+ *          Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 2016-2019 Miran Grca.
- *		Copyright 2017-2019 Fred N. van Kempen.
+ *          Copyright 2016-2019 Miran Grca.
+ *          Copyright 2017-2019 Fred N. van Kempen.
  */
 
 #ifndef EMU_MOUSE_H
@@ -65,6 +65,7 @@ extern void mouse_init(void);
 extern void mouse_close(void);
 extern void mouse_reset(void);
 extern void mouse_set_buttons(int buttons);
+extern void mouse_set_poll_ex(void (*poll_ex)(void));
 extern void mouse_process(void);
 extern void mouse_set_poll(int (*f)(int, int, int, int, void *), void *);
 extern void mouse_poll(void);

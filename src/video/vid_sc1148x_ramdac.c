@@ -1,20 +1,20 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Emulation of Sierra SC1148x RAMDACs and clones (e.g.: Winbond).
+ *          Emulation of Sierra SC1148x RAMDACs and clones (e.g.: Winbond).
  *
- *		Used by the S3 911 and 924 chips.
+ *          Used by the S3 911 and 924 chips.
  *
  *
  *
- * Authors:	TheCollector1995, <mariogplayer90@gmail.com>
+ * Authors: TheCollector1995, <mariogplayer90@gmail.com>
  *
- *		Copyright 2020 TheCollector1995.
+ *          Copyright 2020 TheCollector1995.
  */
 #include <stdio.h>
 #include <stdint.h>

@@ -1,18 +1,18 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Sigma Color 400 emulation.
+ *          Sigma Color 400 emulation.
  *
  *
  *
- * Authors:	John Elliott,
+ * Authors: John Elliott,
  *
- *		Copyright 2018 John Elliott.
+ *          Copyright 2018 John Elliott.
  */
 #include <stdio.h>
 #include <stdint.h>

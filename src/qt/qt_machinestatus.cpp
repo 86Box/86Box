@@ -1,20 +1,20 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Joystick configuration UI module.
+ *          Joystick configuration UI module.
  *
  *
  *
- * Authors:	Joakim L. Gilje <jgilje@jgilje.net>
+ * Authors: Joakim L. Gilje <jgilje@jgilje.net>
  *          Cacodemon345
  *
- *		Copyright 2021 Joakim L. Gilje
- *      Copyright 2021-2022 Cacodemon345
+ *          Copyright 2021 Joakim L. Gilje
+ *          Copyright 2021-2022 Cacodemon345
  */
 #include "qt_machinestatus.hpp"
 
@@ -29,6 +29,7 @@ extern uint64_t tsc;
 #include <86box/cartridge.h>
 #include <86box/cassette.h>
 #include <86box/cdrom.h>
+#include <86box/cdrom_interface.h>
 #include <86box/fdd.h>
 #include <86box/hdc.h>
 #include <86box/scsi.h>
@@ -299,6 +300,8 @@ MachineStatus::iterateCDROM(const std::function<void(int)> &cb)
         if ((cdrom[i].bus_type == CDROM_BUS_ATAPI) && !hasIDE() && hdc_name.left(3) != QStringLiteral("ide") && hdc_name.left(5) != QStringLiteral("xtide"))
             continue;
         if ((cdrom[i].bus_type == CDROM_BUS_SCSI) && !hasSCSI() && (scsi_card_current[0] == 0) && (scsi_card_current[1] == 0) && (scsi_card_current[2] == 0) && (scsi_card_current[3] == 0))
+            continue;
+        if ((cdrom[i].bus_type == CDROM_BUS_MITSUMI) && (cdrom_interface_current == 0))
             continue;
         if (cdrom[i].bus_type != 0) {
             cb(i);

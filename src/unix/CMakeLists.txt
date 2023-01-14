@@ -11,8 +11,8 @@
 # Authors: Cacodemon345
 #          David Hrdlička, <hrdlickadavid@outlook.com>
 #
-#          Copyright 2021 Cacodemon345.
-#          Copyright 2021 David Hrdlička.
+#          Copyright 2021      Cacodemon345.
+#          Copyright 2021      David Hrdlička.
 #
 
 add_library(plat OBJECT unix.c)

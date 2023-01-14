@@ -194,7 +194,7 @@
  * Authors: Fred N. van Kempen, <decwiz@yahoo.com>
  *          Miran Grca, <mgrca8@gmail.com>
  *          Mahod,
- *          Sarah Walker, <tommowalker@tommowalker.co.uk>
+ *          Sarah Walker, <https://pcem-emulator.co.uk/>
  *
  *          Copyright 2017-2020 Fred N. van Kempen.
  *          Copyright 2016-2020 Miran Grca.
@@ -1096,7 +1096,7 @@ nvr_at_init(const device_t *info)
             io_sethandler(0x0070, 2,
                           nvr_read, NULL, NULL, nvr_write, NULL, NULL, nvr);
         }
-        if ((info->local & 0x1f) == 0x11) {
+        if (((info->local & 0x1f) == 0x11) || ((info->local & 0x1f) == 0x17)) {
             io_sethandler(0x0072, 2,
                           nvr_read, NULL, NULL, nvr_write, NULL, NULL, nvr);
         }

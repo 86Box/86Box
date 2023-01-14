@@ -1,24 +1,24 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Main window module.
+ *          Main window module.
  *
  *
  *
- * Authors:	Joakim L. Gilje <jgilje@jgilje.net>
+ * Authors: Joakim L. Gilje <jgilje@jgilje.net>
  *          Cacodemon345
  *          Teemu Korhonen
  *          dob205
  *
- *		Copyright 2021 Joakim L. Gilje
- *      Copyright 2021-2022 Cacodemon345
- *      Copyright 2021-2022 Teemu Korhonen
- *      Copyright 2022 dob205
+ *          Copyright 2021 Joakim L. Gilje
+ *          Copyright 2021-2022 Cacodemon345
+ *          Copyright 2021-2022 Teemu Korhonen
+ *          Copyright 2022 dob205
  */
 #include <QDebug>
 
@@ -75,6 +75,7 @@ extern int qt_nvr_save(void);
 #include <QScreen>
 #include <QString>
 #include <QDir>
+#include <QSysInfo>
 #if QT_CONFIG(vulkan)
 #    include <QVulkanInstance>
 #    include <QVulkanFunctions>
@@ -261,7 +262,7 @@ MainWindow::MainWindow(QWidget *parent)
                 + (statusBar()->height() * !hide_status_bar)
                 + (ui->toolBar->height() * !hide_tool_bar);
 
-            ui->stackedWidget->resize(w, h);
+            ui->stackedWidget->resize(w, (h / (!dpi_scale ? util::screenOfWidget(this)->devicePixelRatio() : 1.)));
             setFixedSize(w, modifiedHeight);
         }
     });
@@ -1070,7 +1071,7 @@ std::array<uint32_t, 256> x11_to_xt_2 {
     0x53,
     0x138,
     0x55,
-    0x35,
+    0x56,
     0x57,
     0x58,
     0x56,
@@ -1835,6 +1836,7 @@ video_toggle_option(QAction *action, int *val)
     action->setChecked(*val > 0 ? true : false);
     endblit();
     config_save();
+    reset_screen_size();
     device_force_redraw();
     for (int i = 0; i < MONITORS_NUM; i++) {
         if (monitors[i].target_buffer)
@@ -2097,6 +2099,7 @@ MainWindow::on_actionAbout_86Box_triggered()
 #ifdef EMU_GIT_HASH
     githash = QString(" [%1]").arg(EMU_GIT_HASH);
 #endif
+    githash.append(QString(" [%1]").arg(QSysInfo::buildCpuArchitecture()));
     msgBox.setText(QString("<b>%3%1%2</b>").arg(EMU_VERSION_FULL, githash, tr("86Box v")));
     msgBox.setInformativeText(tr("An emulator of old computers\n\nAuthors: Sarah Walker, Miran Grca, Fred N. van Kempen (waltje), SA1988, Tiseno100, reenigne, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2 or later. See LICENSE for more information."));
     msgBox.setWindowTitle("About 86Box");

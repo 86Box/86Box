@@ -10,15 +10,15 @@
  *
  *
  *
- * Authors: Sarah Walker, <http://pcem-emulator.co.uk/>
+ * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
  *          Miran Grca, <mgrca8@gmail.com>
  *          Fred N. van Kempen, <decwiz@yahoo.com>
  *
  *          Copyright 2008-2020 Sarah Walker.
  *          Copyright 2016-2020 Miran Grca.
  *          Copyright 2017-2020 Fred N. van Kempen.
- *          Copyright 2021 Laci bá'
- *          Copyright 2021 dob205
+ *          Copyright 2021      Laci bá'
+ *          Copyright 2021      dob205
  */
 #include <inttypes.h>
 #include <stdarg.h>
@@ -80,6 +80,7 @@
 #include <86box/scsi.h>
 #include <86box/scsi_device.h>
 #include <86box/cdrom.h>
+#include <86box/cdrom_interface.h>
 #include <86box/zip.h>
 #include <86box/mo.h>
 #include <86box/scsi_disk.h>
@@ -1068,6 +1069,10 @@ pc_reset_hard_init(void)
 
     /* Reset the Hard Disk Controller module. */
     hdc_reset();
+
+    /* Reset the CD-ROM Controller module. */
+    cdrom_interface_reset();
+
     /* Reset and reconfigure the SCSI layer. */
     scsi_card_init();
 

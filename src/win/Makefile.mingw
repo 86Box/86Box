@@ -200,6 +200,9 @@ endif
 ifndef RTMIDI
  RTMIDI := y
 endif
+ifndef MINITRACE
+ MINITRACE := n
+endif
 ifeq ($(DYNAREC), y)
  ifeq ($(ARM), y)
   ifeq ($(NEW_DYNAREC), n)
@@ -413,7 +416,7 @@ ifeq ($(VNC), y)
   OPTS   += -I$(VNC_PATH)\INCLUDE
   VNCLIB := -L$(VNC_PATH)\LIB
  endif
- VNCLIB +=  -lvncserver
+ VNCLIB +=  -lvncserver.dll
  VNCOBJ := vnc.o vnc_keymap.o
 endif
 
@@ -508,6 +511,10 @@ ifeq ($(DEV_BRANCH), y)
  endif
 endif
 
+ifeq ($(RTMIDI), y)
+ OPTS += -DUSE_RTMIDI
+endif
+
 
 # Final versions of the toolchain flags.
 CFLAGS := $(OPTS) $(DFLAGS) $(COPTIM) $(AOPTIM) \
@@ -542,7 +549,7 @@ CPUOBJ := $(DYNARECOBJ) \
 CHIPSETOBJ := 82c100.o acc2168.o \
               contaq_82c59x.o \
               cs4031.o cs8230.o \
-              ali1429.o ali1489.o ali1531.o ali1541.o ali1543.o ali1621.o ali6117.o \
+              ali1429.o ali1435.o ali1489.o ali1531.o ali1541.o ali1543.o ali1621.o ali6117.o \
               gc100.o headland.o \
               ims8848.o intel_82335.o intel_420ex.o intel_4x0.o intel_i450kx.o intel_sio.o intel_piix.o \
               ioapic.o \
@@ -602,7 +609,7 @@ SIOOBJ := sio_acc3221.o sio_ali5123.o \
           sio_um8669f.o \
           sio_vt82c686.o
 
-FDDOBJ := fdd.o fdc.o fdc_magitronic.o fdc_pii15xb.o \
+FDDOBJ := fdd.o fdc.o fdc_magitronic.o fdc_monster.o fdc_pii15xb.o \
           fdi2raw.o \
           fdd_common.o fdd_86f.o \
           fdd_fdi.o fdd_imd.o fdd_img.o fdd_json.o \
@@ -641,12 +648,17 @@ SCSIOBJ := scsi.o scsi_device.o \
            scsi_ncr5380.o scsi_ncr53c8xx.o \
            scsi_pcscsi.o scsi_spock.o
 
+SLIRPOBJ := arp_table.o bootp.o cksum.o dnssearch.o if.o \
+            ip_icmp.o ip_input.o ip_output.o \
+            mbuf.o misc.o sbuf.o slirp.o socket.o \
+            tcp_input.o tcp_output.o tcp_subr.o tcp_timer.o \
+            udp.o \
+            util.o version.o \
+
 NETOBJ := network.o \
           net_pcap.o \
           net_slirp.o tinyglib.o \
-          arp_table.o bootp.o cksum.o dnssearch.o if.o ip_icmp.o ip_input.o \
-          ip_output.o mbuf.o misc.o sbuf.o slirp.o socket.o tcp_input.o \
-          tcp_output.o tcp_subr.o tcp_timer.o udp.o util.o version.o \
+          ${SLIRPOBJ} \
           net_dp8390.o net_3c501.o \
           net_3c503.o net_ne2000.o \
           net_pcnet.o net_wd8003.o \
@@ -757,6 +769,10 @@ else
  SNDOBJ += xaudio2.o
 endif
 
+ifeq ($(RTMIDI), y)
+ SNDOBJ += midi_rtmidi.o
+endif
+
 OBJ := $(MAINOBJ) $(CPUOBJ) $(CHIPSETOBJ) $(MCHOBJ) $(DEVOBJ) $(MEMOBJ) \
        $(FDDOBJ) $(GAMEOBJ) $(CDROMOBJ) $(ZIPOBJ) $(MOOBJ) $(HDDOBJ) $(MINIVHDOBJ) \
        $(NETOBJ) $(PRINTOBJ) $(SCSIOBJ) $(SIOOBJ) $(SNDOBJ) $(VIDOBJ) $(VOODOOOBJ) \
@@ -776,9 +792,7 @@ else
 endif
 
 ifeq ($(RTMIDI), y)
- SNDOBJ += midi_rtmidi.o
- OPTS += -DUSE_RTMIDI
- LIBS += -lrtmidi
+ LIBS +=  -lrtmidi -lwinmm
 endif
 
 ifeq ($(VNC), y)

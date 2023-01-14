@@ -10,7 +10,7 @@
  *
  *
  *
- * Authors: Sarah Walker,
+ * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
  *          Miran Grca, <mgrca8@gmail.com>
  *          Fred N. van Kempen, <decwiz@yahoo.com>
  *          Overdoze,
@@ -19,7 +19,7 @@
  *          Copyright 2008-2019 Sarah Walker.
  *          Copyright 2016-2019 Miran Grca.
  *          Copyright 2017-2019 Fred N. van Kempen.
- *          Copyright 2018,2019 David Hrdlička.
+ *          Copyright 2018-2019 David Hrdlička.
  *
  * NOTE:    Forcing config files to be in Unicode encoding breaks
  *          it on Windows XP, and possibly also Vista. Use the
@@ -61,6 +61,7 @@
 #include <86box/scsi.h>
 #include <86box/scsi_device.h>
 #include <86box/cdrom.h>
+#include <86box/cdrom_interface.h>
 #include <86box/zip.h>
 #include <86box/mo.h>
 #include <86box/sound.h>
@@ -904,6 +905,15 @@ load_storage_controllers(void)
         p = NULL;
     }
 
+    p = ini_section_get_string(cat, "cdrom_interface", NULL);
+    if (p != NULL)
+        cdrom_interface_current = cdrom_interface_get_from_internal_name(p);
+
+    if (free_p) {
+        free(p);
+        p = NULL;
+    }
+
     ide_ter_enabled = !!ini_section_get_int(cat, "ide_ter", 0);
     ide_qua_enabled = !!ini_section_get_int(cat, "ide_qua", 0);
 
@@ -998,13 +1008,13 @@ load_hard_disks(void)
                 break;
 
             case HDD_BUS_IDE:
-                max_spt    = 63;
+                max_spt    = 255;
                 max_hpc    = 255;
                 max_tracks = 266305;
                 break;
 
             case HDD_BUS_SCSI:
-                max_spt    = 99;
+                max_spt    = 255;
                 max_hpc    = 255;
                 max_tracks = 266305;
                 break;
@@ -1321,8 +1331,13 @@ load_floppy_and_cdrom_drives(void)
 
         sprintf(temp, "cdrom_%02i_speed", c + 1);
         cdrom[c].speed = ini_section_get_int(cat, temp, 8);
-        sprintf(temp, "cdrom_%02i_early", c + 1);
-        cdrom[c].early = ini_section_get_int(cat, temp, 0);
+
+        sprintf(temp, "cdrom_%02i_type", c + 1);
+        p = ini_section_get_string(cat, temp, (c == 1) ? "86BOX_CD-ROM_1.00" : "none");
+        cdrom_set_type(c, cdrom_get_from_internal_name(p));
+        if (cdrom_get_type(c) > KNOWN_CDROM_DRIVE_TYPES)
+            cdrom_set_type(c, KNOWN_CDROM_DRIVE_TYPES);
+        ini_section_delete_var(cat, temp);
 
         /* Default values, needed for proper operation of the Settings dialog. */
         cdrom[c].ide_channel = cdrom[c].scsi_device_id = c + 2;
@@ -2470,6 +2485,12 @@ save_storage_controllers(void)
     ini_section_set_string(cat, "hdc",
                            hdc_get_internal_name(hdc_current));
 
+    if (cdrom_interface_current == 0)
+        ini_section_delete_var(cat, "cdrom_interface");
+    else
+        ini_section_set_string(cat, "cdrom_interface",
+                           cdrom_interface_get_internal_name(cdrom_interface_current));
+
     if (ide_ter_enabled == 0)
         ini_section_delete_var(cat, "ide_ter");
     else
@@ -2717,17 +2738,25 @@ save_floppy_and_cdrom_drives(void)
             ini_section_set_int(cat, temp, cdrom[c].speed);
         }
 
-        sprintf(temp, "cdrom_%02i_early", c + 1);
-        if ((cdrom[c].bus_type == 0) || (cdrom[c].early == 0)) {
+        sprintf(temp, "cdrom_%02i_type", c + 1);
+        if ((cdrom[c].bus_type == 0) || (cdrom[c].bus_type == CDROM_BUS_MITSUMI)) {
             ini_section_delete_var(cat, temp);
         } else {
-            ini_section_set_int(cat, temp, cdrom[c].early);
+            ini_section_set_string(cat, temp,
+                                   cdrom_get_internal_name(cdrom_get_type(c)));
         }
 
         sprintf(temp, "cdrom_%02i_parameters", c + 1);
         if (cdrom[c].bus_type == 0) {
             ini_section_delete_var(cat, temp);
-        } else {
+        } else { /*In case one wants an ATAPI drive on SCSI and vice-versa.*/
+            if (cdrom[c].bus_type == CDROM_BUS_ATAPI) {
+                if (cdrom_drive_types[cdrom_get_type(c)].bus_type == BUS_TYPE_SCSI)
+                    cdrom[c].bus_type = CDROM_BUS_SCSI;
+            } else if (cdrom[c].bus_type == CDROM_BUS_SCSI) {
+                if (cdrom_drive_types[cdrom_get_type(c)].bus_type == BUS_TYPE_IDE)
+                    cdrom[c].bus_type = CDROM_BUS_ATAPI;
+            }
             sprintf(tmp2, "%u, %s", cdrom[c].sound_on,
                     hdd_bus_to_string(cdrom[c].bus_type, 1));
             ini_section_set_string(cat, temp, tmp2);

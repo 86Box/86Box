@@ -31,7 +31,6 @@
  *   USA.
  */
 
-// clang-format off
 #include <stdint.h>
 #include <stdio.h>
 #include <time.h>
@@ -51,7 +50,6 @@
 #include <86box/rom.h>
 #include <86box/video.h>
 #include <86box/vid_cga.h>
-// clang-format on
 
 static void
 elt_vid_off_poll(void *p)
