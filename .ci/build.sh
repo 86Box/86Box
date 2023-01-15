@@ -12,7 +12,7 @@
 #
 # Authors: RichardG, <richardg867@gmail.com>
 #
-#          Copyright 2021-2022 RichardG.
+#          Copyright 2021-2023 RichardG.
 #
 
 #
