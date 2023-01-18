@@ -2271,7 +2271,7 @@ banshee_overlay_draw(svga_t *svga, int displine)
                     uint8_t *fil  = malloc(64 * 3);
                     uint8_t *fil3 = malloc(64 * 3);
 
-                    assert(svga->overlay_latch.xsize <= 64);
+                    assert(svga->overlay_latch.cur_xsize <= 64);
                     if (banshee->vidProcCfg & VIDPROCCFG_H_SCALE_ENABLE) /* leilei HACK - don't know of real 4x1 hscaled behavior yet, double for now */
                     {
                         for (x = 0; x < svga->overlay_latch.cur_xsize; x++) {
