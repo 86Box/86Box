@@ -14,6 +14,7 @@
  *
  *          Copyright 2008-2020 Sarah Walker.
  */
+#include <assert.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdint.h>
@@ -2267,9 +2268,10 @@ banshee_overlay_draw(svga_t *svga, int displine)
 
             case VIDPROCCFG_FILTER_MODE_DITHER_4X4:
                 if (banshee->voodoo->scrfilter && banshee->voodoo->scrfilterEnabled) {
-                    uint8_t *fil  = malloc((svga->overlay_latch.cur_xsize) * 3);
-                    uint8_t *fil3 = malloc((svga->overlay_latch.cur_xsize) * 3);
+                    uint8_t *fil  = malloc(64 * 3);
+                    uint8_t *fil3 = malloc(64 * 3);
 
+                    assert(svga->overlay_latch.xsize <= 64)
                     if (banshee->vidProcCfg & VIDPROCCFG_H_SCALE_ENABLE) /* leilei HACK - don't know of real 4x1 hscaled behavior yet, double for now */
                     {
                         for (x = 0; x < svga->overlay_latch.cur_xsize; x++) {
@@ -2339,15 +2341,16 @@ banshee_overlay_draw(svga_t *svga, int displine)
 
             case VIDPROCCFG_FILTER_MODE_DITHER_2X2:
                 if (banshee->voodoo->scrfilter && banshee->voodoo->scrfilterEnabled) {
-                    uint8_t *fil   = malloc((svga->overlay_latch.cur_xsize) * 3);
-                    uint8_t *soak  = malloc((svga->overlay_latch.cur_xsize) * 3);
-                    uint8_t *soak2 = malloc((svga->overlay_latch.cur_xsize) * 3);
+                    uint8_t *fil   = malloc(64 * 3);
+                    uint8_t *soak  = malloc(64 * 3);
+                    uint8_t *soak2 = malloc(64 * 3);
 
-                    uint8_t *samp1 = malloc((svga->overlay_latch.cur_xsize) * 3);
-                    uint8_t *samp2 = malloc((svga->overlay_latch.cur_xsize) * 3);
-                    uint8_t *samp3 = malloc((svga->overlay_latch.cur_xsize) * 3);
+                    uint8_t *samp1 = malloc(64 * 3);
+                    uint8_t *samp2 = malloc(64 * 3);
+                    uint8_t *samp3 = malloc(64 * 3);
                     uint8_t *samp4 = malloc((svga->overlay_latch.cur_xsize) * 3);
 
+                    assert(svga->overlay_latch.xsize <= 64);
                     src = &svga->vram[src_addr2 & svga->vram_mask];
                     OVERLAY_SAMPLE(banshee->overlay_buffer[1]);
                     for (x = 0; x < svga->overlay_latch.cur_xsize; x++) {

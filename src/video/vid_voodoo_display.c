@@ -14,6 +14,7 @@
  *
  *          Copyright 2008-2020 Sarah Walker.
  */
+#include <assert.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdint.h>
@@ -373,7 +374,9 @@ voodoo_filterline_v1(voodoo_t *voodoo, uint8_t *fil, int column, uint16_t *src, 
     int x;
 
     // Scratchpad for avoiding feedback streaks
-    uint8_t *fil3 = malloc((voodoo->h_disp) * 3);
+    uint8_t fil3[4096 * 3];
+
+    assert(voodoo->h_disp <= 4096);
 
     /* 16 to 32-bit */
     for (x = 0; x < column; x++) {
@@ -432,7 +435,9 @@ voodoo_filterline_v2(voodoo_t *voodoo, uint8_t *fil, int column, uint16_t *src, 
     int x;
 
     // Scratchpad for blending filter
-    uint8_t *fil3 = malloc((voodoo->h_disp) * 3);
+    uint8_t fil3[4096 * 3];
+
+    assert(voodoo->h_disp <= 4096);
 
     /* 16 to 32-bit */
     for (x = 0; x < column; x++) {
@@ -537,7 +542,9 @@ voodoo_callback(void *p)
                     monitor->target_buffer->line[voodoo->line + 8][x] = 0x00000000;
 
                 if (voodoo->scrfilter && voodoo->scrfilterEnabled) {
-                    uint8_t *fil = malloc((voodoo->h_disp) * 3); /* interleaved 24-bit RGB */
+                    uint8_t fil[4096 * 3]; /* interleaved 24-bit RGB */
+
+                    assert(voodoo->h_disp <= 4096);
 
                     if (voodoo->type == VOODOO_2)
                         voodoo_filterline_v2(voodoo, fil, voodoo->h_disp, src, voodoo->line);
