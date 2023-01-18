@@ -2350,7 +2350,7 @@ banshee_overlay_draw(svga_t *svga, int displine)
                     uint8_t *samp3 = malloc(64 * 3);
                     uint8_t *samp4 = malloc((svga->overlay_latch.cur_xsize) * 3);
 
-                    assert(svga->overlay_latch.xsize <= 64);
+                    assert(svga->overlay_latch.cur_xsize <= 64);
                     src = &svga->vram[src_addr2 & svga->vram_mask];
                     OVERLAY_SAMPLE(banshee->overlay_buffer[1]);
                     for (x = 0; x < svga->overlay_latch.cur_xsize; x++) {
