@@ -2348,7 +2348,7 @@ banshee_overlay_draw(svga_t *svga, int displine)
                     uint8_t *samp1 = malloc(64 * 3);
                     uint8_t *samp2 = malloc(64 * 3);
                     uint8_t *samp3 = malloc(64 * 3);
-                    uint8_t *samp4 = malloc((svga->overlay_latch.cur_xsize) * 3);
+                    uint8_t *samp4 = malloc(64 * 3);
 
                     assert(svga->overlay_latch.cur_xsize <= 64);
                     src = &svga->vram[src_addr2 & svga->vram_mask];
