@@ -522,6 +522,9 @@ BEGIN
     IDS_2160	"ACPI bazirano gašenje"
     IDS_2161	"Postavke"
     IDS_2162    "Raniji pogon"
+    IDS_2163    "no dynarec"
+    IDS_2164    "old dynarec"
+    IDS_2165    "new dynarec"
 END
 
 STRINGTABLE DISCARDABLE 
