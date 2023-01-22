@@ -150,6 +150,18 @@
 #define IDS_2160      2160 // "ACPI shutdown"
 #define IDS_2161      2161 // "Settings"
 #define IDS_2162      2162 // "Early drive"
+#define IDS_2163      2163 // "no dynarec"
+#define IDS_2164      2164 // "old dynarec"
+#define IDS_2165      2165 // "new dynarec"
+#ifdef USE_DYNAREC
+#    ifdef USE_NEW_DYNAREC
+#        define IDS_DYNAREC IDS_2165
+#    else
+#        define IDS_DYNAREC IDS_2164
+#    endif
+#else
+#    define IDS_DYNAREC IDS_2163
+#endif
 
 #define IDS_4096      4096 // "Hard disk (%s)"
 #define IDS_4097      4097 // "%01i:%01i"
@@ -258,7 +270,7 @@
 
 #define IDS_LANG_ENUS IDS_7168
 
-#define STR_NUM_2048  115
+#define STR_NUM_2048  118
 // UNUSED: #define STR_NUM_3072  11
 #define STR_NUM_4096 40
 #define STR_NUM_4352 6
