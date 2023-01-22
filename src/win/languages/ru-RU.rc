@@ -522,6 +522,9 @@ BEGIN
     IDS_2160	"Сигнал завершения ACPI"
     IDS_2161	"Настройки машины"
     IDS_2162    "Предыдущий дисковод"
+    IDS_2163    "no dynarec"
+    IDS_2164    "old dynarec"
+    IDS_2165    "new dynarec"
 END
 
 STRINGTABLE DISCARDABLE 
