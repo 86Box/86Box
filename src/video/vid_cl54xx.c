@@ -525,7 +525,7 @@ gd54xx_overlay_draw(svga_t *svga, int displine)
     uint8_t  *src2        = &svga->vram[(svga->ma - (svga->hdisp * bytesperpix)) & svga->vram_display_mask];
     int       occl, ckval;
 
-    p = &((uint32_t *) buffer32->line[displine])[gd54xx->overlay.region1size + svga->x_add];
+    p = &((uint32_t *) svga->monitor->target_buffer->line[displine])[gd54xx->overlay.region1size + svga->x_add];
     src2 += gd54xx->overlay.region1size * bytesperpix;
 
     OVERLAY_SAMPLE();
@@ -1858,16 +1858,16 @@ gd54xx_hwcursor_draw(svga_t *svga, int displine)
                         break;
                     case 1:
                         /* The pixel is shown in the cursor background color */
-                        ((uint32_t *) buffer32->line[displine])[offset + svga->x_add] = bgcol;
+                        ((uint32_t *) svga->monitor->target_buffer->line[displine])[offset + svga->x_add] = bgcol;
                         break;
                     case 2:
                         /* The pixel is shown as the inverse of the original screen pixel
                            (XOR cursor) */
-                        ((uint32_t *) buffer32->line[displine])[offset + svga->x_add] ^= 0xffffff;
+                        ((uint32_t *) svga->monitor->target_buffer->line[displine])[offset + svga->x_add] ^= 0xffffff;
                         break;
                     case 3:
                         /* The pixel is shown in the cursor foreground color */
-                        ((uint32_t *) buffer32->line[displine])[offset + svga->x_add] = fgcol;
+                        ((uint32_t *) svga->monitor->target_buffer->line[displine])[offset + svga->x_add] = fgcol;
                         break;
                 }
             }
@@ -2219,7 +2219,7 @@ gd54xx_readw_linear(uint32_t addr, void *p)
             temp |= (svga_readb_linear(addr, svga) << 8);
 
             if (svga->fast)
-                cycles -= video_timing_read_w;
+                cycles -= svga->monitor->mon_video_timing_read_w;
 
             return temp;
         case 3:
@@ -2268,7 +2268,7 @@ gd54xx_readl_linear(uint32_t addr, void *p)
             temp |= (svga_readb_linear(addr + 2, svga) << 24);
 
             if (svga->fast)
-                cycles -= video_timing_read_l;
+                cycles -= svga->monitor->mon_video_timing_read_l;
 
             return temp;
         case 2:
@@ -2278,7 +2278,7 @@ gd54xx_readl_linear(uint32_t addr, void *p)
             temp |= (svga_readb_linear(addr, svga) << 24);
 
             if (svga->fast)
-                cycles -= video_timing_read_l;
+                cycles -= svga->monitor->mon_video_timing_read_l;
 
             return temp;
         case 3:
@@ -2454,7 +2454,7 @@ gd54xx_writew_linear(uint32_t addr, uint16_t val, void *p)
                 svga_writeb_linear(addr, val >> 8, svga);
 
                 if (svga->fast)
-                    cycles -= video_timing_write_w;
+                    cycles -= svga->monitor->mon_video_timing_write_w;
             case 3:
                 return;
         }
@@ -4267,7 +4267,7 @@ gd54xx_force_redraw(void *p)
 {
     gd54xx_t *gd54xx = (gd54xx_t *) p;
 
-    gd54xx->svga.fullchange = changeframecount;
+    gd54xx->svga.fullchange = gd54xx->svga.monitor->mon_changeframecount;
 }
 
 // clang-format off
