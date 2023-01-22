@@ -522,6 +522,9 @@ BEGIN
     IDS_2160	"Vypnout skrze rozhraní ACPI"
     IDS_2161	"Nastavení"
     IDS_2162    "Časná mechanika"
+    IDS_2163    "no dynarec"
+    IDS_2164    "old dynarec"
+    IDS_2165    "new dynarec"
 END
 
 STRINGTABLE DISCARDABLE 
