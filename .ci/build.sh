@@ -12,7 +12,7 @@
 #
 # Authors: RichardG, <richardg867@gmail.com>
 #
-#          Copyright 2021-2022 RichardG.
+#          Copyright 2021-2023 RichardG.
 #
 
 #
@@ -986,7 +986,8 @@ else
 	sdl_ui=OFF
 	grep -qiE "^QT:BOOL=ON" build/CMakeCache.txt || sdl_ui=ON
 
-	# Build rtmidi without JACK support to remove the dependency on libjack.
+	# Build rtmidi without JACK support to remove the dependency on libjack, as
+	# the Debian libjack is very likely to be incompatible with the system jackd.
 	prefix="$cache_dir/rtmidi-4.0.0"
 	if [ ! -d "$prefix" ]
 	then
@@ -997,6 +998,21 @@ else
 	cmake -G Ninja -D RTMIDI_API_JACK=OFF -D "CMAKE_TOOLCHAIN_FILE=$toolchain_file" -D "CMAKE_INSTALL_PREFIX=$cwd_root/archive_tmp/usr" -S "$prefix" -B "$prefix_build" || exit 99
 	cmake --build "$prefix_build" -j$(nproc) || exit 99
 	cmake --install "$prefix_build" || exit 99
+
+	# Build FluidSynth without JACK support to remove the dependency on libjack once again.
+	prefix="$cache_dir/fluidsynth-2.3.0"
+	if [ ! -d "$prefix" ]
+	then
+		rm -rf "$cache_dir/fluidsynth-"* # remove old versions
+		wget -qO - https://github.com/FluidSynth/fluidsynth/archive/refs/tags/v2.3.0.tar.gz | tar zxf - -C "$cache_dir" || rm -rf "$prefix"
+	fi
+	cp cmake/flags-gcc.cmake cmake/flags-gcc.cmake.old
+	sed -i -e 's/ -Werror=.*\([" ]\)/\1/g' cmake/flags-gcc.cmake # temporary hack for -Werror=old-style-definition non-compliance on FluidSynth and SDL2
+	prefix_build="$prefix/build-$arch_deb"
+	cmake -G Ninja -D enable-jack=OFF -D enable-sdl2=$sdl_ss -D "CMAKE_TOOLCHAIN_FILE=$toolchain_file" -D "CMAKE_INSTALL_PREFIX=$cwd_root/archive_tmp/usr" -S "$prefix" -B "$prefix_build" || exit 99
+	cmake --build "$prefix_build" -j$(nproc) || exit 99
+	cmake --install "$prefix_build" || exit 99
+	cp -p "$cwd_root/archive_tmp/usr/bin/fluidsynth" fluidsynth
 
 	# Build SDL2 for joystick and FAudio support, with most components
 	# disabled to remove the dependencies on PulseAudio and libdrm.
@@ -1028,6 +1044,7 @@ else
 		-S "$prefix" -B "$prefix_build" || exit 99
 	cmake --build "$prefix_build" -j$(nproc) || exit 99
 	cmake --install "$prefix_build" || exit 99
+	mv cmake/flags-gcc.cmake.old cmake/flags-gcc.cmake
 
 	# Archive Discord Game SDK library.
 	7z e -y -o"archive_tmp/usr/lib" "$discord_zip" "lib/$arch_discord/discord_game_sdk.so"

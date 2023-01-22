@@ -45,7 +45,6 @@ AppDir:
     include:
     - libedit2 # if (CLI:BOOL=ON|QT:BOOL=OFF)
     - libevdev2 # if QT:BOOL=ON
-    - libfluidsynth2
     - libfreetype6
     - libgbm1 # if QT:BOOL=ON
     - libgl1 # if QT:BOOL=ON

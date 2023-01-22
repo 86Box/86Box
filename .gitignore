@@ -38,6 +38,7 @@ Makefile
 # Visual Studio Code
 /.vs
 /.vscode
+/out
 
 # Windows resource compiler
 RC*

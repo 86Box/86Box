@@ -522,6 +522,9 @@ BEGIN
     IDS_2160	"ACPI 關機"
     IDS_2161	"設定"
     IDS_2162    "早先的光碟機"
+    IDS_2163    "no dynarec"
+    IDS_2164    "old dynarec"
+    IDS_2165    "new dynarec"
 END
 
 STRINGTABLE DISCARDABLE 

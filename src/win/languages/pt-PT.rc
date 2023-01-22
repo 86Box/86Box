@@ -522,6 +522,9 @@ BEGIN
     IDS_2160	"Encerramento ACPI"
     IDS_2161	"Definições"
     IDS_2162    "Unidade anterior"
+    IDS_2163    "no dynarec"
+    IDS_2164    "old dynarec"
+    IDS_2165    "new dynarec"
 END
 
 STRINGTABLE DISCARDABLE 

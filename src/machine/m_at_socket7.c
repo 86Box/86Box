@@ -57,7 +57,11 @@ machine_at_acerv35n_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_at_common_init(model);
+    machine_at_common_init_ex(model, 2);
+    /* Yes, it's called amstrad_mega_pc_nvr_device, but it's basically the
+       standard AT NVR, just initialized to 0x00's (perhaps that should be the
+       default behavior?). */
+    device_add(&amstrad_megapc_nvr_device);
 
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
